@@ -208,6 +208,10 @@ void GameWorld::submitRender() {
         d.lightBits = bits;
         d.id = 0x100000000ull | v.uid;
         d.castShadow = dist < 350.f;
+        d.damage0 = vec4(s.damageZones[0], s.damageZones[1], s.damageZones[2], s.damageZones[3]);
+        d.damage1 = vec4(s.damageZones[4], s.damageZones[5], 0.f, 0.f);
+        d.dmgBoxC = vec4(a.spec.boxCenter, 0.f);
+        d.dmgBoxH = vec4(a.spec.boxHalf, 1.f);
         dyn->submit(d);
         if (a.wheel && dist < 400.f) {
             for (int w = 0; w < s.wheelCount; w++) {

@@ -19,7 +19,40 @@ cbuffer ObjectCB : register(b1) {
     float4 gTint1;        // secondary color, a = damage
     float4 gObjParams;    // x light bits, y bone offset, z wetness, w emissive scale
     float4 gObjParams2;   // x skinned (1), y time offset, z fade, w unused
+    float4 gDamage0;      // crush amount 0..1: front, rear, left, right
+    float4 gDamage1;      // roof, underside
+    float4 gDmgBoxC;      // model-space collision box center
+    float4 gDmgBoxH;      // half extents, w > 0 enables deformation
 };
+
+float dmgHash(float3 p) { return frac(sin(dot(p, float3(12.9898, 78.233, 37.719))) * 43758.5453); }
+float dmgNoise(float3 p) {
+    float3 i = floor(p), f = frac(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = lerp(lerp(dmgHash(i), dmgHash(i + float3(1, 0, 0)), f.x), lerp(dmgHash(i + float3(0, 1, 0)), dmgHash(i + float3(1, 1, 0)), f.x), f.y);
+    float b = lerp(lerp(dmgHash(i + float3(0, 0, 1)), dmgHash(i + float3(1, 0, 1)), f.x), lerp(dmgHash(i + float3(0, 1, 1)), dmgHash(i + float3(1, 1, 1)), f.x), f.y);
+    return lerp(a, b, f.z);
+}
+// Crumple the body toward its interior around damaged zones (irregular, stronger at the extremities).
+float3 applyCrush(float3 p, inout float3 n) {
+    if (gDmgBoxH.w <= 0.0) return p;
+    float3 h = max(gDmgBoxH.xyz, 0.1);
+    float3 q = (p - gDmgBoxC.xyz) / h;   // -1..1 inside the box
+    float crumple = dmgNoise(p * 3.1) * 0.8 + dmgNoise(p * 7.3) * 0.4;
+    float3 d = 0;
+    d.y -= gDamage0.x * smoothstep(0.35, 1.05, q.y) * 0.42;
+    d.y += gDamage0.y * smoothstep(0.35, 1.05, -q.y) * 0.38;
+    d.x += gDamage0.z * smoothstep(0.25, 1.05, -q.x) * 0.22;
+    d.x -= gDamage0.w * smoothstep(0.25, 1.05, q.x) * 0.22;
+    d.z -= gDamage1.x * smoothstep(0.2, 1.05, q.z) * 0.3;
+    d.z += gDamage1.y * smoothstep(0.3, 1.05, -q.z) * 0.1;
+    float amount = dot(gDamage0, 1.0) + gDamage1.x;
+    float3 off = d * (0.55 + crumple) + (float3(dmgNoise(p * 5.1 + 3.0), dmgNoise(p * 5.1 + 7.0), dmgNoise(p * 5.1 + 11.0)) - 0.5) * 0.03 * saturate(length(d) * 6.0);
+    // crumpled panels catch the light differently
+    float3 pert = float3(dmgNoise(p * 9.0) - 0.5, dmgNoise(p * 9.0 + 5.0) - 0.5, dmgNoise(p * 9.0 + 9.0) - 0.5);
+    n = normalize(n + pert * saturate(length(d) * 5.0) * 1.2);
+    return p + off * step(0.001, amount);
+}
 
 // Material ids used for special handling (must match MaterialId in render/mesh.h)
 #define M_EMISSIVE 28u
@@ -82,9 +115,11 @@ VSOut finishVS(float3 localPos, float3 rel, float3 prevRel, float3 n, float3 t, 
 }
 
 VSOut vsRigid(VSInRigid i) {
-    float3 rel = mul(gWorld, float4(i.pos, 1)).xyz;
-    float3 prevRel = mul(gPrevWorld, float4(i.pos, 1)).xyz;
-    float3 n = normalize(mul((float3x3)gWorld, octDecode(i.nrm)));
+    float3 ln = octDecode(i.nrm);
+    float3 lp = applyCrush(i.pos, ln);
+    float3 rel = mul(gWorld, float4(lp, 1)).xyz;
+    float3 prevRel = mul(gPrevWorld, float4(lp, 1)).xyz;
+    float3 n = normalize(mul((float3x3)gWorld, ln));
     float3 t = normalize(mul((float3x3)gWorld, octDecode(i.tan)));
     return finishVS(i.pos, rel, prevRel, n, t, i.uv, i.color, i.mat);
 }
@@ -108,7 +143,8 @@ cbuffer ShadowPassCB : register(b2) {
     float4x4 gShadowViewProj;
 };
 float4 vsRigidShadow(VSInRigid i) : SV_Position {
-    float3 rel = mul(gWorld, float4(i.pos, 1)).xyz;
+    float3 ln = octDecode(i.nrm);
+    float3 rel = mul(gWorld, float4(applyCrush(i.pos, ln), 1)).xyz;
     return mul(gShadowViewProj, float4(rel, 1));
 }
 float4 vsSkinnedShadow(VSInSkinned i) : SV_Position {
