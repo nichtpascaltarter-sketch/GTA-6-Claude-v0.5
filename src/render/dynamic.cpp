@@ -7,6 +7,7 @@ struct ObjectCBData {
     mat4 world, prevWorld;
     vec4 tint0, tint1, params, params2;
     vec4 damage0, damage1, dmgBoxC, dmgBoxH;
+    vec4 wounds[4];
 };
 
 struct Model {
@@ -34,6 +35,8 @@ struct DrawItem {
     // Vehicle crush deformation (rigid models): zone amounts 0..1 (front, rear, left, right) / (roof, under),
     // collision box center/half extents in model space (dmgBoxH.w > 0 enables the deformation).
     vec4 damage0 = vec4(0.f), damage1 = vec4(0.f), dmgBoxC = vec4(0.f), dmgBoxH = vec4(0.f);
+    // Character wounds: bind-pose model-space position (xyz) + radius (w); w = 0 unused
+    vec4 wounds[4] = {vec4(0.f), vec4(0.f), vec4(0.f), vec4(0.f)};
 };
 
 struct DynamicRenderer {
@@ -176,6 +179,7 @@ struct DynamicRenderer {
         cb.data.damage1 = d.damage1;
         cb.data.dmgBoxC = d.dmgBoxC;
         cb.data.dmgBoxH = d.dmgBoxH;
+        for (int w = 0; w < 4; w++) cb.data.wounds[w] = d.wounds[w];
         cb.upload();
     }
 

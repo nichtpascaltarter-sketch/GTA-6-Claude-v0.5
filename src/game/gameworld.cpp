@@ -399,6 +399,7 @@ void GameWorld::submitRender() {
         d.rot = p.ragdoll ? mat3() : mat3FromQuat(quatAxisAngle(vec3(0, 0, 1), p.yaw));
         d.bones = p.skin;
         d.boneCount = Anim::B_COUNT;
+        for (int w = 0; w < 4; w++) d.wounds[w] = p.wounds[w];
         d.id = 0x500000000ull | p.uid;
         d.castShadow = p.visibleDist < 150.f;
         d.wetExposed = p.state == PS_SWIM ? 1.f : 0.6f;

@@ -159,6 +159,9 @@ struct Ped {
     float traverseT = 0.f, traverseDur = 0.f;
     vec3 traverseFrom, traverseMid, traverseTo;
     float diveDepth = 0.f;        // swimming: meters below the surface (0 = at the surface)
+    vec4 wounds[4];               // bind-pose wound centers + radius (blood on skin/clothes)
+    float woundAge[4] = {};
+    int woundNext = 0;
     bool hasParachute = false;
     float chuteOpen = 0.f;        // 0 closed .. 1 fully deployed (moveMode 4)
     float visibleDist = 0.f;      // distance to camera (LOD)

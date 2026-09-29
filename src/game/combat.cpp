@@ -305,6 +305,7 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
             if (t.state == PS_INVEHICLE || t.state == PS_DEAD) continue;
             vec3 tp = pedChestPos(t);
             if (length(tp - c) < wi.range) {
+                if (p.weapon == WPN_KNIFE) addWound(o, dvec3(tp), Anim::B_CHEST, 0.05f);
                 damagePed(o, wi.damage * (0.85f + (hash32(p.uid + o) % 30) * 0.01f), DMG_MELEE, pid, fwd);
 #ifdef HAVE_AUDIO
                 Audio::play(Audio::SFX_PUNCH, tp, 0.9f);
@@ -346,6 +347,7 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
                 for (const HitCapsule& hc : kHitCapsules)
                     if (hc.a == h.bone) mult = hc.mult;
                 float falloff = Saturate(1.2f - h.t / wi.range);
+                addWound(h.ped, h.pos, h.bone, h.bone == Anim::B_HEAD ? 0.045f : 0.06f);
                 damagePed(h.ped, dmg * mult * Max(falloff, 0.35f), DMG_BULLET, pid, d, h.bone);
                 spawnFx(FX_BLOOD, h.pos, -d, 3, 1.f);
 #ifdef HAVE_AUDIO
@@ -490,6 +492,22 @@ void GameWorld::damagePed(int pid, float amount, DamageType type, int attacker, 
     if (attacker >= 0 && attacker < (int)peds.size() && peds[attacker].isPlayer) {
         reportCrime(p.faction == FAC_POLICE ? 5 : 0, p.pos, pid);
     }
+}
+
+// Records a wound in bind-pose space so the blood stain follows the animated/ragdolled body.
+void GameWorld::addWound(int pid, dvec3 worldPos, int bone, float radius) {
+    if (pid < 0 || !peds[pid].used) return;
+    Ped& p = peds[pid];
+    if (bone < 0 || bone >= Anim::B_COUNT) bone = Anim::B_CHEST;
+    vec3 local = rel(worldPos, p.pos);
+    if (!p.ragdoll) local = rotate(conj(quatAxisAngle(vec3(0, 0, 1), p.yaw)), local);
+    mat4 inv = inverse(p.skin[bone]);
+    vec3 bind = transformPoint(inv, local);
+    if (!std::isfinite(bind.x) || !std::isfinite(bind.y) || !std::isfinite(bind.z)) return;
+    int slot = p.woundNext;
+    p.woundNext = (p.woundNext + 1) & 3;
+    p.wounds[slot] = vec4(bind, radius);
+    p.woundAge[slot] = 0.f;
 }
 
 void GameWorld::killPed(int pid, int attacker, vec3 dir, DamageType type) {

@@ -207,6 +207,7 @@ struct GameWorld {
     // Damage & combat
     void damagePed(int ped, float amount, DamageType type, int attacker, vec3 dir, int bone = -1);
     void killPed(int ped, int attacker, vec3 dir, DamageType type);
+    void addWound(int ped, dvec3 worldPos, int bone, float radius);
     void knockDown(int ped, vec3 impulse);
     void damageVehicle(int veh, float amount, int attacker, vec3 pointRel, vec3 impulse);
     void explode(dvec3 pos, float radius, float damage, int owner);

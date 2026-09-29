@@ -450,6 +450,12 @@ void GameWorld::updatePeds(float dt) {
 void GameWorld::updatePed(int id, float dt) {
     Ped& p = peds[id];
     p.stateTime += dt;
+    // wounds keep bleeding a little (stains spread for a while)
+    for (int w = 0; w < 4; w++)
+        if (p.wounds[w].w > 0.f && p.woundAge[w] < 12.f) {
+            p.woundAge[w] += dt;
+            p.wounds[w].w = Min(p.wounds[w].w + dt * 0.006f, 0.16f);
+        }
     p.fireTimer = Max(0.f, p.fireTimer - dt);
     p.meleeTimer = Max(0.f, p.meleeTimer - dt);
     p.hitReactTimer = Max(0.f, p.hitReactTimer - dt);

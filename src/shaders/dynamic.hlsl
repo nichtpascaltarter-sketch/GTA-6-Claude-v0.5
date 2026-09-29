@@ -23,6 +23,7 @@ cbuffer ObjectCB : register(b1) {
     float4 gDamage1;      // roof, underside
     float4 gDmgBoxC;      // model-space collision box center
     float4 gDmgBoxH;      // half extents, w > 0 enables deformation
+    float4 gWounds[4];    // characters: bind-pose wound centers (xyz) + radius (w), w = 0 unused
 };
 
 float dmgHash(float3 p) { return frac(sin(dot(p, float3(12.9898, 78.233, 37.719))) * 43758.5453); }
@@ -238,6 +239,20 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
     } else if (matId == M_EYE) {
         rough = 0.05;
         n = N;
+    }
+    // Blood from wounds (skin, hair and clothing): irregular stains that spread downward, darker and glossier
+    if (gObjParams2.x > 0.5 && (sm == SM_SKIN || sm == SM_CLOTH || sm == SM_HAIR || matId == M_CLOTH || matId == M_DENIM)) {
+        float blood = 0;
+        [unroll] for (int w = 0; w < 4; w++) {
+            float r = gWounds[w].w;
+            if (r <= 0.0) continue;
+            float3 d = i.localPos - gWounds[w].xyz;
+            d.z = d.z > 0.0 ? d.z * 1.8 : d.z * 0.6;   // runs down
+            float n = dmgNoise(i.localPos * 38.0) * 0.5 + dmgNoise(i.localPos * 11.0);
+            blood = max(blood, saturate((r * (0.75 + 0.5 * n) - length(d)) / (r * 0.35)));
+        }
+        albedo = lerp(albedo, float3(0.16, 0.012, 0.01), blood * 0.92);
+        rough = lerp(rough, 0.28, blood);
     }
     // Rain wetness on upward surfaces
     float wet = gWeather.y * saturate(N.z * 2.0 + 0.3) * (gObjParams.z > 0 ? 1.0 : 0.5);
