@@ -239,7 +239,7 @@ int TrafficCore::chooseConnector(Driver& d, int lane, bool fromCurrentLane) {
             if ((T.flags & LF_DIRT) && !(L.flags & LF_DIRT)) w *= 0.08f;
             if ((L.flags & LF_HIGHWAY) && !(T.flags & LF_HIGHWAY)) w *= 0.25f;       // mostly stay on the highway
             if (!(L.flags & (LF_HIGHWAY | LF_RAMP)) && (T.flags & LF_RAMP)) w *= 0.5f;
-            if (G.nodes[T.toNode].deadEnd) w *= 0.2f;
+            if (G.nodes[T.toNode].deadEnd) w *= G.nodes[T.toNode].uturnBlocked ? 0.001f : 0.2f;
             if (T.flags & LF_NOTRAFFIC) w *= 0.01f;
             // long vehicles avoid turns tighter than they can follow (the body would sweep into oncoming lanes)
             if (d.info.wheelbase > 3.3f && C.minRadius < d.info.wheelbase / Max(sinf(d.info.maxSteer), 0.3f) * 1.05f) w *= 0.03f;
@@ -675,18 +675,30 @@ float TrafficCore::gate(Driver& d, int conn, float distToEntry, float v, bool in
             if (sig == SIG_AMBER) {
                 if (d.amberDecided != conn) {
                     d.amberDecided = conn;
+                    // go when a comfortable stop is no longer possible and the line is reached before red; when the
+                    // line cannot be reached in time but a hard stop still works, brake hard (dilemma zone)
+                    float left = 0.f;
+                    while (left < 6.f && G.movementSignal(c.node, c.approach, c.turn, time + left + 0.25f) == SIG_AMBER) left += 0.25f;
                     float need = v * v / (2.f * d.pers.decel * 1.25f) + v * 0.25f;
-                    d.amberGo = lineDist < need || (d.pers.runsAmber && lineDist < v * 2.2f);
+                    float tLine = lineDist / Max(v, 0.5f);
+                    bool hardStopOk = v * v / (2.f * 6.5f) + v * 0.1f < lineDist;
+                    d.amberGo = (lineDist < need && (tLine < left + 0.2f || !hardStopOk)) ||
+                                (d.pers.runsAmber && lineDist < v * 2.2f && tLine < left + 0.6f);
                 }
                 if (!d.amberGo) return lineDist;
                 return FREE;
             }
-            if (sig == SIG_RED && d.amberGo && d.amberDecided == conn && lineDist < v * 1.6f + 2.f && v > 2.f) return FREE;  // committed on amber
+            // committed on amber: keep going only if a hard stop is no longer possible
+            if (sig == SIG_RED && d.amberGo && d.amberDecided == conn && v > 2.f && v * v / (2.f * 6.5f) + v * 0.1f > lineDist) return FREE;
             d.amberDecided = -1;
             d.amberGo = false;
             if (sig == SIG_RED) {
-                // cannot stop any more (signal changed while very close at speed)
-                if (lineDist < 1.f && v * v / (2.f * 7.f) > lineDist + 1.f) return FREE;
+                // too close to stop at the line (signal changed while very close at speed, or just spawned there):
+                // stop hard before the box if at all possible, only a car that cannot even do that carries on
+                if (lineDist < 1.f && v * v / (2.f * 7.f) > lineDist + 1.f) {
+                    if (v * v / (2.f * 8.5f) < distToEntry - 0.3f) return Max(distToEntry - 0.3f, 0.f);
+                    return FREE;
+                }
                 bool rightOnRed = c.turn == TK_RIGHT && d.pers.rightOnRed && L.right < 0 && !(L.flags & LF_HIGHWAY);
                 if (rightOnRed && d.stopDone && d.waitTime > 1.2f && !exitBlocked() &&
                     conflictsClear(d, c, conn, distToEntry, v, false, d.pers.gapTime)) {
@@ -1164,6 +1176,17 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
     d.nudgeTimer -= dt;
     if (d.nudgeTimer <= 0.f && d.mode != DM_PULLOVER) d.nudgeTarget = 0.f;
     d.nudge = approach(d.nudge, d.nudgeTarget, dt * Clamp(v * 0.25f, 0.6f, 2.0f));
+    // planned lateral offset (lane change profile) at lane coordinate uq of the current path, and its slope d(lat)/du
+    auto plannedLat = [&](float uq, float* slope) -> float {
+        if (d.lcLane < 0 || d.path >= NL) {
+            if (slope) *slope = 0.f;
+            return d.lat;
+        }
+        float len = Max(d.lcLen, 1.f);
+        float f = Saturate((uq - d.lcU0) / len);
+        if (slope) *slope = (f > 0.f && f < 1.f) ? (d.lcTo - d.lcFrom) * 6.f * f * (1.f - f) / len : 0.f;
+        return Lerp(d.lcFrom, d.lcTo, f * f * (3.f - 2.f * f));
+    };
     // ---- steering: pure pursuit from the rear axle
     float Ld = Clamp(2.6f + 0.36f * v, 4.f, 24.f);
     float ahead = Ld + d.info.rearAxleY;  // rear axle is behind the origin (rearAxleY < 0)
@@ -1179,7 +1202,7 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
             float rem = end - u;
             if (acc + rem >= ahead || ri + 1 >= d.routeLen) {
                 float uu = u + (ahead - acc);
-                float lat = path == d.path ? d.lat + d.nudge : 0.f;
+                float lat = path == d.path ? plannedLat(uu, nullptr) + d.nudge : 0.f;
                 if (path < NL) uu = Min(uu, G.lanes[path].u1 + 6.f);
                 target = G.pathPos(path, uu, lat).xy();
                 break;
@@ -1241,10 +1264,12 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
                 latRaw = l2;
             }
         }
-        float latF = fp == d.path ? d.lat + d.nudge : 0.f;
+        float slope = 0.f;
+        float latF = fp == d.path ? plannedLat(fuP, &slope) + d.nudge : 0.f;
         float e = latRaw - latF;                                  // + = front right of the planned line
         vec2 tf = G.pathTangent(fp, fuP);
-        float psi = atan2f(cross(fwd, tf), dot(fwd, tf));        // + = path heads left of us
+        // desired heading: the path tangent turned by the lane-change slope (+ lateral = right = clockwise)
+        float psi = atan2f(cross(fwd, tf), dot(fwd, tf)) - atanf(slope);   // + = planned line heads left of us
         float vs = Max(vF, 0.f);
         // curvature feed-forward with a short preview (steering actuator lag), full steady-state front-axle angle
         int pp;

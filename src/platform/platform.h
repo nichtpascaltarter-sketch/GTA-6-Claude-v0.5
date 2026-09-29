@@ -69,6 +69,8 @@ std::string userDataDir();  // created on demand, ends with separator
 void showMessageBox(const char* title, const char* msg);
 double timeSeconds();
 void sleepMs(int ms);
+// Process memory in MB: working set and private (committed) bytes.
+void memoryUsageMB(float& workingSet, float& privateBytes);
 int argCount();
 const char* arg(int i);
 // Returns value after "--name" or "--name=value" or nullptr.

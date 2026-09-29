@@ -454,25 +454,52 @@ void Animator::update(const AnimInput& in, float dt) {
         rotateLocal(outp, B_NECK, qy(-leanS * 0.5f));
     }
 
-    // ---------------------------------------------------------------- foot IK
+    // ---------------------------------------------------------------- foot IK (terrain probes + slope plane)
     float gl = footIK ? Clamp(in.groundOffsetL, -0.35f, 0.35f) : 0.f;
     float gr = footIK ? Clamp(in.groundOffsetR, -0.35f, 0.35f) : 0.f;
     footL += (gl - footL) * (1.f - expf(-dt * 14.f));
     footR += (gr - footR) * (1.f - expf(-dt * 14.f));
-    if (fabsf(footL) > 0.003f || fabsf(footR) > 0.003f) {
-        float drop = Min(0.f, Min(footL, footR));
-        outp.rootOffset.z += drop;
+    // slope along the facing (the lateral slope is already in the probes): n = groundNormal (model space)
+    vec3 gn = in.groundNormal;
+    float gnl = length(gn);
+    gn = gnl > 1e-4f && gn.z > 0.3f ? gn / gnl : vec3(0, 0, 1);
+    slopeN = lerp(slopeN, vec2(gn.x, gn.y), 1.f - expf(-dt * 8.f));
+    slopeS += ((footIK ? 1.f : 0.f) - slopeS) * (1.f - expf(-dt * 8.f));
+    float slopeY = -slopeN.y / sqrtf(Max(0.1f, 1.f - length2(slopeN))) * slopeS;   // dz/dy of the ground
+    if (fabsf(footL) > 0.003f || fabsf(footR) > 0.003f || fabsf(slopeY) > 0.01f) {
         const Bone ups[2] = {B_THIGH_L, B_THIGH_R}, lows[2] = {B_CALF_L, B_CALF_R}, ends[2] = {B_FOOT_L, B_FOOT_R};
-        float offs[2] = {footL - drop, footR - drop};
+        float offs[2] = {footL, footR};
+        vec3 fp[2];
+        quat fq[2];
         for (int s = 0; s < 2; s++) {
-            if (offs[s] < 0.002f) continue;
+            boneModel(sk, outp, ends[s], fq[s], fp[s]);
+            offs[s] += Clamp(fp[s].y * slopeY, -0.3f, 0.3f);
+        }
+        float drop = Min(0.f, Min(offs[0], offs[1]));
+        outp.rootOffset.z += drop;
+        // tilt the feet with the slope (pitch about the lateral axis)
+        quat tilt = qx(atanf(slopeY));
+        for (int s = 0; s < 2; s++) {
+            float o = offs[s] - drop;
             quat qa, qk;
             vec3 pa, pk;
             boneModel(sk, outp, ends[s], qa, pa);
             boneModel(sk, outp, lows[s], qk, pk);
-            vec3 target = pa + vec3(0, 0, offs[s]);
-            vec3 pole = pk + rotate(qk, vec3(0, 0.4f, 0));
-            solveTwoBoneIK(sk, outp, ups[s], lows[s], ends[s], target, pole, 1.f);
+            if (o > 0.002f) {
+                vec3 target = pa + vec3(0, 0, o);
+                vec3 pole = pk + rotate(qk, vec3(0, 0.4f, 0));
+                solveTwoBoneIK(sk, outp, ups[s], lows[s], ends[s], target, pole, 1.f);
+            }
+            if (fabsf(slopeY) > 0.01f) {
+                // foot model rotation = tilt * current (only for grounded feet: blend out as the foot lifts)
+                float restZ = sk.bindLocalPos[B_PELVIS].z + sk.bindLocalPos[ups[s]].z + sk.bindLocalPos[lows[s]].z + sk.bindLocalPos[ends[s]].z;
+                float grounded = 1.f - sstep(0.03f, 0.12f, fp[s].z - restZ);
+                quat qc;
+                vec3 pc;
+                boneModel(sk, outp, lows[s], qc, pc);
+                quat want = nlerp(qa, tilt * qa, grounded);
+                outp.rot[ends[s]] = normalize(conj(qc) * want);
+            }
         }
     }
 
@@ -486,6 +513,71 @@ void Animator::update(const AnimInput& in, float dt) {
     }
     locoBlend = moveW;
     extBlend = false;
+
+    // ---------------------------------------------------------------- face: look-at, gaze, blinks, lip-sync jaw
+    faceOverlay(in, dt);
+}
+
+void Animator::faceOverlay(const AnimInput& in, float dt) {
+    using namespace detail;
+    const Skeleton& sk = *skel;
+    bool dead = action >= 0 && actionFinished && (action == CLIP_DEATH_FRONT || action == CLIP_DEATH_BACK);
+    float eyeYaw = 0.f, eyePitch = 0.f;
+    // look-at: neck and head take what they can (limited), the eyes the rest
+    float lwT = dead ? 0.f : Clamp(in.lookWeight, 0.f, 1.f);
+    lookW += (lwT - lookW) * (1.f - expf(-dt * 4.f));
+    if (lookW > 0.005f) {
+        quat qh;
+        vec3 ph;
+        boneModel(sk, pose, B_HEAD, qh, ph);
+        vec3 fwdH = rotate(qh, vec3(0, 1, 0));
+        vec3 eyesP = ph + rotate(qh, vec3(0.f, 0.07f, 0.06f));
+        vec3 d = in.lookAt - eyesP;
+        float dl = length(d);
+        if (dl > 0.05f) {
+            d = d / dl;
+            float dy = wrapAngle(atan2f(-d.x, d.y) - atan2f(-fwdH.x, fwdH.y));
+            float dp = asinf(Clamp(d.z, -1.f, 1.f)) - asinf(Clamp(fwdH.z, -1.f, 1.f));
+            float dyH = Clamp(dy, -1.1f, 1.1f), dpH = Clamp(dp, -0.45f, 0.35f);
+            float w = lookW;
+            pose.rot[B_NECK] = normalize(pose.rot[B_NECK] * qz(dyH * 0.4f * w) * qx(dpH * 0.35f * w));
+            pose.rot[B_HEAD] = normalize(pose.rot[B_HEAD] * qz(dyH * 0.6f * w) * qx(dpH * 0.65f * w));
+            eyeYaw = Clamp(dy - dyH, -0.45f, 0.45f) * w;
+            eyePitch = Clamp(dp - dpH, -0.3f, 0.3f) * w;
+        }
+    }
+    // idle gaze: small saccades between fixations
+    gazeNext -= dt;
+    if (gazeNext <= 0.f) {
+        u32 h = hash32(seed * 747796405u + (u32)(time * 7.f) * 2891336453u);
+        gazeTarget = vec2((hashToFloat(h) - 0.5f) * 0.3f, (hashToFloat(hash32(h)) - 0.5f) * 0.12f) * (1.f - 0.6f * lookW);
+        gazeNext = 0.5f + 2.5f * hashToFloat(hash32(h + 7u));
+    }
+    gaze = lerp(gaze, gazeTarget, 1.f - expf(-dt * 35.f));
+    // blinks (occasionally double); dead peds keep the lids mostly shut
+    blinkNext -= dt;
+    if (blinkNext <= 0.f && blinkT < 0.f) {
+        u32 h = hash32(seed * 2654435761u + (u32)(time * 13.f));
+        blinkT = 0.f;
+        blinkNext = hashToFloat(h) < 0.15f ? 0.35f : 1.8f + 4.5f * hashToFloat(hash32(h));
+    }
+    float blink = 0.f;
+    if (blinkT >= 0.f) {
+        blinkT += dt;
+        float t = blinkT;
+        blink = t < 0.06f ? sstep(0.f, 0.06f, t) : (t < 0.09f ? 1.f : 1.f - sstep(0.09f, 0.26f, t));
+        if (t > 0.26f) blinkT = -1.f;
+    }
+    if (dead) blink = 0.78f;
+    const float kLidClose = 0.66f;   // eye pitch that brings the upper lid down onto the lower one
+    for (int s = 0; s < 2; s++) {
+        int b = s ? B_EYE_R : B_EYE_L;
+        float yaw = Clamp(gaze.x + eyeYaw, -0.5f, 0.5f), pitch = Clamp(gaze.y + eyePitch, -0.35f, 0.35f);
+        pitch = Lerp(pitch, -kLidClose, blink);
+        pose.rot[b] = normalize(pose.rot[b] * qz(yaw) * qx(pitch));
+    }
+    // speech drives the jaw when the game provides it
+    if (in.mouthOpen >= 0.f) pose.rot[B_JAW] = qx(-Clamp(in.mouthOpen, 0.f, 1.f) * 0.3f);
 }
 
 void Animator::blendFrom(const Pose& from, float seconds) {

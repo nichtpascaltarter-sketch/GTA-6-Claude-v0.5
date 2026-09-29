@@ -206,6 +206,7 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
                 b.region = (u8)reg;
                 b.lotC = lot.c;
                 b.lotHy = lot.hy;
+                b.lotHx = lot.hx;
                 b.ax = lot.ax;
                 b.front = -out;
                 b.lotKind = 0;
@@ -521,6 +522,7 @@ void BuildingSet::addSiteBuilding(WorldMap& map, const SiteBuildingReq& q, u32 s
     b.lotKind = 0;
     b.lotC = q.c;
     b.lotHy = q.hy + 2.f;
+    b.lotHx = q.hx + 2.f;
     b.style = (u8)st;
     b.roof = q.roof;
     b.floors = q.floors;

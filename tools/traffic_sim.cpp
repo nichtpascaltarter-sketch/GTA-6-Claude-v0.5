@@ -242,6 +242,7 @@ struct SimCar {
     int trailId = -1;
     bool deadlockFlag = false;
     float lifeTime = 0.f;
+    float latLogT = -100.f;
 };
 
 struct SimPed {
@@ -290,6 +291,8 @@ struct Sim {
     std::map<long long, double> pairLast;
     long redBefore = 0;
     bool verbose = false;
+    int watchCar = -1;
+    float watchT0 = 0.f, watchT1 = 0.f;
 
     void init(World3* world, vec2 c, float r, int ncars, int npeds) {
         w = world;
@@ -333,8 +336,8 @@ struct Sim {
             if (lane < 0) continue;
             const AI::Lane& L = w->lg.lanes[lane];
             if (L.flags & (AI::LF_DIRT | AI::LF_NOTRAFFIC)) continue;
-            if (L.u1 - L.u0 < 25.f) continue;
-            u = Clamp(u, L.u0 + 6.f, L.u1 - 14.f);
+            if (L.u1 - L.u0 < 40.f) continue;
+            u = Clamp(u, L.u0 + 6.f, L.u1 - 30.f);   // room to stop for a red light ahead
             if (u < L.u0 || u > L.u1) continue;
             vec3 pos = w->lg.lanePos(lane, u);
             bool ok = true;
@@ -506,6 +509,15 @@ struct Sim {
             AI::DriveOut out;
             tc.drive(i, c.s, dt, out);
             c.ctl = out.ctl;
+            if (i == watchCar && time >= watchT0 && time <= watchT1 && ((int)(time * 60.0) % 6) == 0) {
+                const AI::LaneGraph& G = w->lg;
+                std::string where = G.isLane(d->path) ? StrFormat("lane %d u %.1f/%.1f stopU %.1f", d->path, d->u, G.lanes[d->path].u1, G.lanes[d->path].stopU)
+                                                       : StrFormat("conn %d (turn %d node %d) u %.1f/%.1f", d->path - (int)G.lanes.size(), G.conn(d->path).turn, G.conn(d->path).node, d->u, G.conn(d->path).length);
+                where += StrFormat(" pos (%.1f %.1f) latErr %.2f diag %.2f %.2f %.2f %.2f steer %.2f", c.s.body.pos.x, c.s.body.pos.y, d->latErr, d->diag[0], d->diag[1], d->diag[2], d->diag[3], c.ctl.steer);
+                std::string nxt = d->routeLen > 0 && !G.isLane(d->route[0]) ? StrFormat("next conn %d sig %d", d->route[0] - (int)G.lanes.size(), (int)G.movementSignal(G.conn(d->route[0]).node, G.conn(d->route[0]).approach, G.conn(d->route[0]).turn, time)) : std::string("next -");
+                LOG("WATCH t=%.2f car %d %s %s v %.1f vT %.1f stop %.1f obst %.1f(%d) gateConn %d committed %d amberGo %d stopDone %d mode %d thr %.2f brk %.2f", time, i, where.c_str(), nxt.c_str(), c.s.speed(), d->vTarget, d->stopDist,
+                    d->obstDist, d->obstBody, d->gateConn, (int)d->committed, (int)d->amberGo, (int)d->stopDone, d->mode, c.ctl.throttle, c.ctl.brake);
+            }
             if (tc.stats.redViolations > redB) {
                 events.push_back({c.s.body.pos.toVec3().xy(), 1, time});
                 if (verbose) {
@@ -559,6 +571,13 @@ struct Sim {
                 }
             }
             if (d->waitTime < 5.f) c.deadlockFlag = false;
+            // large lateral deviation while plainly following a lane (no lane change / nudge / recovery)
+            if (verbose && w->lg.isLane(d->path) && d->lcLane < 0 && fabsf(d->nudge) < 0.05f && fabsf(d->lat) < 0.05f && d->recoverTimer <= 0.f && fabsf(d->latErr) > 0.9f &&
+                c.s.speed() > 3.f && time - c.latLogT > 10.0) {
+                c.latLogT = (float)time;
+                LOG("LATDEV t=%.1f car %d (%s) at %.1f %.1f lane %d u %.1f latErr %.2f v %.1f vT %.1f steer %.2f diag e %.2f psi %.2f ff %.2f st %.2f", time, i, models[c.model].name.c_str(), c.s.body.pos.x, c.s.body.pos.y, d->path, d->u,
+                    d->latErr, c.s.speed(), d->vTarget, c.ctl.steer, d->diag[0], d->diag[1], d->diag[2], d->diag[3]);
+            }
         }
         double c1 = cpuMs();
         for (int i = 0; i < (int)peds.size(); i++) {
@@ -948,6 +967,26 @@ int main(int argc, char** argv) {
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--probe") && i + 2 < argc) {
             vec2 p((float)atof(argv[i + 1]), (float)atof(argv[i + 2]));
+            printf("pointInBuilding(%.1f, %.1f): margin 0 -> %d, margin 1.8 -> %d\n", p.x, p.y, (int)World::gBuildings->pointInBuilding(p, 0.f), (int)World::gBuildings->pointInBuilding(p, 1.8f));
+            {
+                std::vector<int> nb;
+                World::gBuildings->buildingsNear(p, 30.f, nb);
+                for (int bi : nb) {
+                    const World::Building& b = World::gBuildings->buildings[bi];
+                    if (length(b.c - p) < 30.f) printf("  building %d c (%.1f %.1f) hx %.1f hy %.1f ax (%.2f %.2f)\n", bi, b.c.x, b.c.y, b.hx, b.hy, b.ax.x, b.ax.y);
+                }
+            }
+            for (int n = 0; n < (int)w.lg.nodes.size(); n++)
+                if (length(w.roads.nodes[n].p - p) < 20.f && w.lg.nodes[n].deadEnd) {
+                    printf("  dead end node %d uturnBlocked %d conns %d\n", n, (int)w.lg.nodes[n].uturnBlocked, w.lg.nodes[n].connCount);
+                    for (int c = w.lg.nodes[n].firstConn; c < w.lg.nodes[n].firstConn + w.lg.nodes[n].connCount; c++) {
+                        const AI::Connector& cc = w.lg.conns[c];
+                        float maxY = -1e9f, far = 0.f;
+                        for (auto& q : cc.pts) far = Max(far, length(q.xy() - w.roads.nodes[n].p));
+                        for (auto& q : cc.pts) maxY = Max(maxY, q.y);
+                        printf("    conn %d (path %d) len %.1f pts %zu maxY %.1f farthest from node %.1f\n", c, (int)w.lg.lanes.size() + c, cc.length, cc.pts.size(), maxY, far);
+                    }
+                }
             std::vector<int> cand;
             w.lg.lanesNear(p - vec2(8.f), p + vec2(8.f), cand);
             for (int li : cand) {
@@ -962,6 +1001,15 @@ int main(int argc, char** argv) {
                 printf("    to node %d at (%.1f, %.1f) z %.2f radius %.2f deadEnd %d control %d\n", l.toNode, tn.p.x, tn.p.y, tn.z, tn.radius, (int)w.lg.nodes[l.toNode].deadEnd, w.lg.nodes[l.toNode].control);
             }
             i += 2;
+        }
+        if (!strcmp(argv[i], "--deadends")) {
+            for (int n = 0; n < (int)w.lg.nodes.size(); n++)
+                if (w.lg.nodes[n].uturnBlocked) {
+                    const World::RoadNode& rn = w.roads.nodes[n];
+                    int e = rn.edges.empty() ? -1 : rn.edges[0];
+                    printf("obstructed dead end node %d at (%.1f, %.1f) edge %d cls %d\n", n, rn.p.x, rn.p.y, e, e >= 0 ? (int)w.roads.edges[e].cls : -1);
+                }
+            continue;
         }
         if (!strcmp(argv[i], "--turntest") && i + 2 < argc) {
             vec2 c((float)atof(argv[i + 1]), (float)atof(argv[i + 2]));
@@ -982,6 +1030,7 @@ int main(int argc, char** argv) {
             vec2 detailAt(1e9f);
             const char* plotPath = nullptr;
             bool verbose = false;
+            static Sim sim;
             for (int k = i + 1; k < argc; k++) {
                 if (!strcmp(argv[k], "--cars") && k + 1 < argc) ncars = atoi(argv[++k]);
                 else if (!strcmp(argv[k], "--peds") && k + 1 < argc) npeds = atoi(argv[++k]);
@@ -990,6 +1039,11 @@ int main(int argc, char** argv) {
                 else if (!strcmp(argv[k], "--dummy") && k + 1 < argc) dummyR = (float)atof(argv[++k]);
                 else if (!strcmp(argv[k], "-v")) verbose = true;
                 else if (!strcmp(argv[k], "--snaps") && k + 1 < argc) snapLimit = atoi(argv[++k]);
+                else if (!strcmp(argv[k], "--watch") && k + 3 < argc) {
+                    sim.watchCar = atoi(argv[++k]);
+                    sim.watchT0 = (float)atof(argv[++k]);
+                    sim.watchT1 = (float)atof(argv[++k]);
+                }
                 else if (!strcmp(argv[k], "--detail") && k + 1 < argc) detailOff = (float)atof(argv[++k]);
                 else if (!strcmp(argv[k], "--detailat") && k + 2 < argc) {
                     detailAt.x = (float)atof(argv[++k]);
@@ -997,7 +1051,6 @@ int main(int argc, char** argv) {
                 }
             }
             w.loadCells(c, r + 120.f);
-            static Sim sim;
             sim.verbose = verbose;
             sim.snapLimit = snapLimit;
             sim.snapDir = plotPath ? std::string(plotPath).substr(0, std::string(plotPath).find_last_of('/') + 1) : std::string();

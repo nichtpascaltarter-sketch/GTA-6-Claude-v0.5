@@ -246,7 +246,8 @@ void GameWorld::updateBrain(int id, float dt) {
             const Ped& t = peds[b.target];
             vec3 head = pedHeadPos(p);
             float dist = length(t.pos.toVec3() - p.pos.toVec3());
-            if (p.fireTimer <= 0.f && p.reloadTimer <= 0.f && dist < 45.f && (p.seat != 0 || vehicles[p.vehicle].sim.speed() < 12.f)) {
+            float range = p.weapon == WPN_SNIPER ? 170.f : (p.weapon == WPN_RIFLE ? 70.f : 45.f);   // helicopter marksman
+            if (p.fireTimer <= 0.f && p.reloadTimer <= 0.f && dist < range && (p.seat != 0 || vehicles[p.vehicle].sim.speed() < 12.f)) {
                 vec3 aim = pedChestPos(t);
                 vec3 d = normalize(aim - head);
                 float burst = fmodf((float)time * 0.8f + p.uid * 0.37f, 2.f);

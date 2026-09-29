@@ -37,6 +37,7 @@ struct GameMenu {
 
 GameMenu gMenu;
 int gMenuFrame = 0;
+int gMenuInject = -1;   // test automation (--missiontest roam): item id to choose on the next menu update, -2 = back
 
 void menuOpen(GameWorld& g, int owner, const std::string& title, const std::string& subtitle, const std::vector<MenuItem>& items,
               bool blocking = true, u32 accent = 0xff3aa0ffu, int cursor = 0) {
@@ -124,6 +125,11 @@ void menuUpdate(GameWorld& g, float dt) {
 #ifdef HAVE_AUDIO
         Audio::play2D(Audio::SFX_UI_BACK, 0.5f);
 #endif
+    }
+    if (gMenuInject != -1) {
+        if (gMenuInject == -2) gMenu.cancelled = true;
+        else gMenu.chosen = gMenuInject;
+        gMenuInject = -1;
     }
 }
 

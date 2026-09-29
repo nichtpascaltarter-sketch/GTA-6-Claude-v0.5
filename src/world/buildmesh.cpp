@@ -17,6 +17,7 @@ struct Ctx {
     std::vector<CollisionBox>* col;
     std::vector<PropInstance>* props;
     std::vector<LightInstance>* lights;
+    std::vector<FacadeMass>* masses = nullptr;  // facade masses for the street-level detail pass (LOD0)
 };
 
 // Polygon footprint helpers (CCW)
@@ -57,10 +58,11 @@ void facadeWalls(Ctx& x, const std::vector<vec2>& fp, float z0, float z1, float 
         vec2 a = fp[i], b = fp[(i + 1) % n];
         float len = length(b - a);
         if (len < 0.05f) continue;
-        // stretch bays to fit the wall exactly
+        // stretch bays to fit the wall exactly; each wall starts on a bay boundary so windows sit centered and whole
+        // (facadedetail.cpp aligns sills, frames and storefront mullions with this grid)
         float bays = Max(1.f, roundf(len / bay));
         float uLen = bays * bay;
-        float u0 = (float)i * 1000.f;
+        float u0 = (floorf((float)i * 1000.f / bay) + 0.002f) * bay;
         vec3 p0 = vec3(a, z0) - x.org, p1 = vec3(b, z0) - x.org;
         vec3 up(0, 0, z1 - z0);
         x.m->quad(p0, p1, p1 + up, p0 + up, vec2(u0, z0 - vBase), vec2(u0 + uLen, z0 - vBase), vec2(u0 + uLen, z1 - vBase),
@@ -203,8 +205,22 @@ void rooftopClutter(Ctx& x, vec2 c, vec2 ax, float hx, float hy, float z, Rng& r
     }
 }
 
+void recordMass(Ctx& x, const std::vector<vec2>& fp, float z0, float z1, float vBase, u8 kind, bool parapetOn) {
+    if (!x.masses) return;
+    FacadeMass fm;
+    fm.fp = fp;
+    fm.z0 = z0;
+    fm.z1 = z1;
+    fm.vBase = vBase;
+    fm.kind = kind;
+    fm.parapet = parapetOn;
+    x.masses->push_back(std::move(fm));
+}
+
 // Mass with facade walls + flat roof + parapet + collision
-void flatMass(Ctx& x, const std::vector<vec2>& fp, float z0, float z1, float vBase, u32 facadeId, float bay, bool parapetOn, u32 roofColor) {
+void flatMass(Ctx& x, const std::vector<vec2>& fp, float z0, float z1, float vBase, u32 facadeId, float bay, bool parapetOn, u32 roofColor,
+              u8 kind = FM_MAIN) {
+    recordMass(x, fp, z0, z1, vBase, kind, parapetOn);
     facadeWalls(x, fp, z0 - 3.f, z1 + (parapetOn ? 1.0f : 0.f), vBase, facadeId, bay);
     flatRoof(x, fp, z1 + 0.02f, roofColor, makeMat(MAT_ROOF_GRAVEL));
     if (parapetOn && x.detail) parapet(x, fp, z1, 1.0f, 0.3f, packRGBA8(0.8f, 0.8f, 0.78f, 1), makeMat(MAT_CONCRETE));
@@ -224,6 +240,10 @@ void awning(Ctx& x, vec2 a, vec2 b, vec2 out, float z, float depth, u32 color) {
 
 using namespace buildmesh_detail;
 
+// facadedetail.cpp
+void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& map, vec3 org, MeshData& m, std::vector<CollisionBox>* col,
+                       std::vector<PropInstance>* props, std::vector<LightInstance>* lights, const std::vector<FacadeMass>& masses);
+
 void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& map, bool detail, vec3 org, MeshData& m,
                        std::vector<CollisionBox>* col, std::vector<PropInstance>* props, std::vector<LightInstance>* lights) {
     Ctx x;
@@ -233,6 +253,9 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
     x.col = col;
     x.props = props;
     x.lights = lights;
+    thread_local std::vector<FacadeMass> masses;
+    masses.clear();
+    x.masses = detail ? &masses : nullptr;
     Rng r(b.seed ^ 0xB111D1u);
     vec2 ay = perp(b.ax);
     float z0 = b.baseZ;
@@ -246,7 +269,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             float topZ = z0 + b.height;
             if (hasPodium) {
                 auto fp = rectFP(b.c, b.ax, b.hx, b.hy);
-                flatMass(x, fp, z0, z0 + podH, z0, b.facade, bay, true, roofGray);
+                flatMass(x, fp, z0, z0 + podH, z0, b.facade, bay, true, roofGray, FM_PODIUM);
                 addCollision(x, b.c, b.ax, b.hx, b.hy, z0 - 3.f, z0 + podH);
             }
             float inset = hasPodium ? r.range(2.5f, Min(9.f, Min(b.hx, b.hy) * 0.35f)) : 0.f;
@@ -265,7 +288,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 if (shape <= 4) fp = rectFP(tc, b.ax, thx, thy);
                 else if (shape <= 7) fp = chamferFP(tc, b.ax, thx, thy, Min(thx, thy) * r.range(0.2f, 0.4f));
                 else fp = roundFP(tc, Min(thx, thy), 20, atan2f(b.ax.y, b.ax.x));
-                flatMass(x, fp, zc, zc + h, z0, b.facade, bay, true, roofGray);
+                flatMass(x, fp, zc, zc + h, z0, b.facade, bay, true, roofGray, hasPodium || t > 0 ? FM_TIER : FM_MAIN);
                 addCollision(x, tc, b.ax, thx, thy, zc - (t == 0 && !hasPodium ? 3.f : 0.f), zc + h);
                 zc += h;
                 thx *= r.range(0.72f, 0.88f);
@@ -347,12 +370,9 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             float th = b.height + r.range(3.f, 7.f);
             facadeWalls(x, tfp, z0 + b.height - 0.5f, z0 + th, z0, b.facade, bay);
             flatRoof(x, tfp, z0 + th, roofGray, makeMat(MAT_CONCRETE));
+            recordMass(x, tfp, z0 + b.height - 0.5f, z0 + th, z0, FM_DECO_TOWER, false);
             if (detail) {
-                // vertical neon sign fin on the tower
-                vec3 nc = hsvToRgb(r.f(), 0.8f, 1.f);
-                vec2 fpos = tcen + b.front * 2.2f;
-                m.box(vec3(fpos, z0 + b.height * 0.5f + 3.f) - org, vec3(b.ax, 0), vec3(ay, 0), vec3(0, 0, 1), vec3(0.12f, 0.9f, b.height * 0.35f),
-                      packRGBA8(nc.x, nc.y, nc.z, 0.8f), makeMat(MAT_EMISSIVE));
+                // (the vertical neon blade sign on the tower is built by the street-level detail pass)
                 // eyebrow ledges every floor on the front
                 for (int f = 1; f <= b.floors; f++) {
                     float z = z0 + fac.groundH + (f - 1) * fac.floorH - 0.35f;
@@ -363,16 +383,6 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 vec2 a0 = b.c + b.front * (b.hy + 0.05f) - b.ax * (b.hx * 0.6f), a1 = b.c + b.front * (b.hy + 0.05f) + b.ax * (b.hx * 0.6f);
                 vec3 ac = hsvToRgb(r.f(), 0.5f, 0.9f);
                 awning(x, a1, a0, b.front, z0 + 3.4f, 2.2f, packRGBA8(ac.x, ac.y, ac.z, 1));
-                if (lights) {
-                    LightInstance li;
-                    li.pos = vec3(b.c + b.front * (b.hy + 1.5f), z0 + 3.f);
-                    li.color = nc * 900.f;
-                    li.radius = 14.f;
-                    li.dir = vec3(0);
-                    li.cone = 0;
-                    li.type = 2;
-                    lights->push_back(li);
-                }
             }
             break;
         }
@@ -383,6 +393,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             bool flat = b.roof == ROOF_FLAT;
             if (flat) flatMass(x, fp, z0, z0 + b.height, z0, b.facade, bay, true, roofGray);
             else {
+                recordMass(x, fp, z0, z0 + b.height, z0, FM_MAIN, false);
                 facadeWalls(x, fp, z0 - 3.f, z0 + b.height, z0, b.facade, bay);
                 pitchedRoof(x, b.c, b.ax, b.hx, b.hy, z0 + b.height, 0.55f, false, 0.4f, packRGBA8(0.35f, 0.35f, 0.36f, 1), makeMat(MAT_ROOF_SHINGLE),
                             kWhite, makeMat(MAT_PLASTER));
@@ -396,12 +407,8 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 pitchedRoof(x, sc, b.ax, 2.2f, 2.2f, z0 + b.height + 9.f, 2.4f, true, 0.1f, packRGBA8(0.3f, 0.3f, 0.32f, 1), makeMat(MAT_ROOF_METAL), kWhite,
                             makeMat(MAT_PLASTER));
             }
-            if (detail && b.style == BS_SHOPS) {
-                vec3 ac = hsvToRgb(r.f(), 0.65f, 0.85f);
-                vec2 a0 = b.c + b.front * (b.hy + 0.05f) - b.ax * (b.hx - 0.3f), a1 = b.c + b.front * (b.hy + 0.05f) + b.ax * (b.hx - 0.3f);
-                if (r.chance(0.7f)) awning(x, a1, a0, b.front, z0 + fac.groundH - 1.1f, 1.8f, packRGBA8(ac.x, ac.y, ac.z, 1));
-                rooftopClutter(x, b.c, b.ax, b.hx, b.hy, z0 + b.height, r);
-            }
+            // (shop awnings, security gates and signs are part of the street-level detail pass)
+            if (detail && b.style == BS_SHOPS) rooftopClutter(x, b.c, b.ax, b.hx, b.hy, z0 + b.height, r);
             if (detail && b.style == BS_MOTEL) {
                 // walkway slab + railing along the front at the 2nd floor
                 vec2 wc = b.c + b.front * (b.hy + 1.1f);
@@ -492,6 +499,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             bool stilts = b.style == BS_SHACK;
             float zb = z0 + (stilts ? 2.2f : 0.f);
             auto fp = rectFP(b.c, b.ax, b.hx, b.hy);
+            recordMass(x, fp, zb, zb + b.height, zb, FM_HOUSE, false);
             facadeWalls(x, fp, zb - (stilts ? 0.3f : 2.f), zb + b.height, zb, b.facade, bay);
             addCollision(x, b.c, b.ax, b.hx, b.hy, z0 - 2.f, zb + b.height + 2.f);
             u32 roofMat, roofCol;
@@ -520,8 +528,9 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             }
             if (!detail) break;
             // Garage wing (suburban houses / villas)
-            bool garage = (b.style == BS_HOUSE && r.chance(0.7f)) || b.style == BS_VILLA;
-            float side = r.chance(0.5f) ? 1.f : -1.f;
+            // (deterministic from the seed: facadedetail.cpp keeps hedges and garden walls clear of this driveway)
+            bool garage = (b.style == BS_HOUSE && (b.seed % 10u) < 7u) || b.style == BS_VILLA;
+            float side = (b.seed & 64u) ? 1.f : -1.f;
             if (garage) {
                 float gw = 3.2f, gd = Min(b.hy, 3.4f);
                 vec2 gc = b.c + b.ax * (side * (b.hx + gw)) + b.front * (b.hy - gd);
@@ -606,6 +615,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             auto fp = rectFP(b.c, b.ax, b.hx, b.hy);
             if (b.roof == ROOF_FLAT) flatMass(x, fp, z0, z0 + b.height, z0, b.facade, bay, b.style != BS_BARN, roofGray);
             else {
+                recordMass(x, fp, z0, z0 + b.height, z0, FM_MAIN, false);
                 facadeWalls(x, fp, z0 - 2.f, z0 + b.height, z0, b.facade, bay);
                 u32 rc = b.style == BS_BARN ? packRGBA8(0.55f, 0.52f, 0.5f, 1) : packRGBA8(0.75f, 0.76f, 0.78f, 1);
                 pitchedRoof(x, b.c, b.ax, b.hx, b.hy, z0 + b.height, b.roof == ROOF_BARREL ? 0.3f : 0.4f, false, 0.3f, rc, makeMat(MAT_ROOF_METAL), kWhite,
@@ -642,6 +652,8 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             break;
         }
     }
+    // Street-level architectural detail and garden dressing (full-detail cells only)
+    if (detail && !masses.empty()) buildFacadeDetail(b, fac, map, org, m, col, props, lights, masses);
 }
 
 }  // namespace World

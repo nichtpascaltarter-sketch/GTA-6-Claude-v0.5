@@ -84,6 +84,7 @@ struct MaterialLibrary {
             {MAT_INTERIOR, 23, vec3(0.06f), vec3(0.05f), vec3(0.04f), vec4(0, 0, 0, 2), 0.5f, 1.f, 0, 0, 0},
             {MAT_LIGHT_INDICATOR, 17, vec3(0.6f, 0.35f, 0.02f), vec3(0.6f, 0.35f, 0.02f), vec3(0.3f), vec4(0, 0, 0, 1), 1.f, 0.3f, 0, 0, 0},
             {MAT_DECAL_TEXT, 27, vec3(0.9f), vec3(0.9f), vec3(0.9f), vec4(0, 0, 0, 1), 1.f, 1.f, 0, 0, 0},
+            {MAT_CAR_WINDOW, 17, vec3(0.01f), vec3(0.01f), vec3(0.01f), vec4(0, 0, 0, 1), 1.f, 0.2f, 0, MF_GLASS, 0},
         };
         layerCount = (int)defs.size();
         albedoArr = createMaterialArray(size, layerCount, true);

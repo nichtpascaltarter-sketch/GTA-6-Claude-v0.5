@@ -804,7 +804,7 @@ void drawCenter(const HudState& s, const Layout& L, float dt, float t) {
     g.lastHealth = s.health;
     g.hurtFlash = Max(0.f, g.hurtFlash - dt * 2.5f);
     float vig = g.lowHealth * (0.55f + 0.45f * sinf(t * 5.f)) * 0.5f + g.hurtFlash * 0.35f;
-    if (vig > 0.01f) {
+    if (vig > 0.01f && !s.rendererScreenFx) {
         float e = L.H * 0.22f;
         u32 r0 = C(0.55f, 0.02f, 0.05f, Saturate(vig)), r1 = C(0.55f, 0.02f, 0.05f, 0.f);
         gradientRect(0, 0, L.W, e, r0, r1);
@@ -817,7 +817,8 @@ void drawCenter(const HudState& s, const Layout& L, float dt, float t) {
     if (g.focusFx > 0.01f) {
         float k = g.focusFx * (0.75f + 0.25f * sinf(t * 2.2f));
         float e = L.H * 0.16f;
-        u32 f0 = withAlpha(kFocus, 0.22f * k), f1 = withAlpha(kFocus, 0.f);
+        // the renderer's Focus grading already darkens the edges: keep only a faint tint of the signature color
+        u32 f0 = withAlpha(kFocus, (s.rendererScreenFx ? 0.08f : 0.22f) * k), f1 = withAlpha(kFocus, 0.f);
         setAdditive(true);
         gradientRect(0, 0, L.W, e, f0, f1);
         gradientRect(0, L.H - e, L.W, e, f1, f0);
@@ -925,7 +926,8 @@ void drawBigMessage(const HudState& s, const Layout& L, float dt) {
     float cy = L.H * 0.42f;
     if (death || busted) {
         float k = Saturate(tt / 1.2f) * a;
-        backdrop(0, 0, L.W, L.H, 0.f, C(0.85f, 0.85f, 0.85f, k), death ? C(0.10f, 0.0f, 0.02f, 0.35f) : C(0.0f, 0.03f, 0.12f, 0.35f), 0.08f);
+        if (!s.rendererScreenFx)
+            backdrop(0, 0, L.W, L.H, 0.f, C(0.85f, 0.85f, 0.85f, k), death ? C(0.10f, 0.0f, 0.02f, 0.35f) : C(0.0f, 0.03f, 0.12f, 0.35f), 0.08f);
         gradientRect(0, 0, L.W, L.H * 0.5f, C(0.f, 0.f, 0.f, 0.35f * k), C(0.f, 0.f, 0.f, 0.f));
         gradientRect(0, L.H * 0.5f, L.W, L.H * 0.5f, C(0.f, 0.f, 0.f, 0.f), C(0.f, 0.f, 0.f, 0.45f * k));
         float ta = Saturate((tt - 0.35f) / 0.5f) * a;
@@ -1022,7 +1024,8 @@ void drawWeaponWheel(const HudState& s, const Layout& L, float dt, float t) {
     float e = easeOutCubic(a);
     float sc = L.s * (0.92f + 0.08f * e);
     vec2 c(L.W * 0.5f, L.H * 0.5f);
-    backdrop(0, 0, L.W, L.H, 0.f, C(0.75f, 0.75f, 0.8f, a), C(0.02f, 0.03f, 0.09f, 0.45f), 0.12f);
+    if (s.rendererScreenFx) rect(0, 0, L.W, L.H, C(0.02f, 0.03f, 0.09f, 0.30f * a));   // the scene is already blurred
+    else backdrop(0, 0, L.W, L.H, 0.f, C(0.75f, 0.75f, 0.8f, a), C(0.02f, 0.03f, 0.09f, 0.45f), 0.12f);
     int sel = s.weaponWheelOpen ? s.wheelSelected : g.wheelSelShown;
     if (sel != g.wheelSelShown) {
         g.wheelSelShown = sel;

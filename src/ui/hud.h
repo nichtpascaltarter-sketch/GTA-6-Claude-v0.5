@@ -54,7 +54,7 @@ struct Blip {
     bool flash = false;
     bool shortRange = false; // only on the minimap when close (< 250 m); always on the full map
     bool edge = true;        // clamp to minimap edge when outside the radar
-    const char* label = nullptr;  // name in the full-map legend / hover (e.g. "Ammu-Nation"-style original names)
+    const char* label = nullptr;  // name in the full-map legend / hover (original names, e.g. "Palmetto Arms")
 };
 
 struct Subtitle {
@@ -155,6 +155,9 @@ struct HudState {
     // Additions
     bool padPrompts = false;     // show gamepad glyphs for ~i:~ prompts (set from InputState::lastInputWasPad)
     bool metricUnits = true;     // speedometer km/h vs mph, altimeter m vs ft (GameSettings::metricUnits)
+    bool rendererScreenFx = false;  // true when the renderer's post-processing already grades the frame for low
+                                    // health / damage, Focus, the weapon wheel and wasted/busted: the HUD then skips
+                                    // its own full-screen vignettes and blur backdrops (widgets, arcs, banners stay)
 };
 
 void hudInit();                        // builds the map textures from World::gMap/gRoads/gBuildings (call after world gen)
@@ -264,5 +267,173 @@ MenuAction update(MenuState& state, const InputState& in, float dt);
 struct DisplayMode { int width, height; };
 const std::vector<DisplayMode>& displayModes();
 }
+
+// ------------------------------------------------------------------------------------------------------------------
+// Phone: handset in the bottom-right corner with built-in apps (Contacts, Messages, Tidegram social feed, Camera with
+// photo mode, Map, Quick Save) plus apps the game adds (stores, realty, jobs, mission replay, character switch).
+// The game owns a PhoneState, fills its data (contacts, messages, apps, call state, context) and calls Phone::update
+// EVERY gameplay frame, after drawHud and before Menus::update (the Tidegram feed and incoming calls tick while the
+// phone is closed; nothing is drawn then). Open the phone by setting open = true (phone key: Up arrow / D-pad up);
+// the phone clears it and returns PA_CLOSED when the player backs out of the home screen.
+// Input while open: arrows / D-pad navigate, Enter / A select, Backspace / B / right mouse back, wheel scrolls;
+// capturingInput tells the game to ignore those inputs for gameplay. In photo mode the phone takes all input.
+enum PhoneGlyph : u8 {
+    PG_STAR = 0, PG_CAR, PG_HOUSE, PG_BRIEFCASE, PG_REPLAY, PG_SWITCH, PG_DOLLAR, PG_TROPHY, PG_BOAT, PG_PLANE, PG_MUSIC,
+    PG_GEAR, PG_MAP, PG_USER, PG_COUNT
+};
+
+struct PhoneContact {
+    int id = 0;                  // returned in PhoneAction::id
+    std::string name;            // "Tomas"
+    std::string subtitle;        // shown under the name ("New job: Low Tide", "Mechanic")
+    bool mission = false;        // calling starts a story mission / story call (JOB badge)
+    bool enabled = true;         // false: greyed out, cannot be called right now
+    u32 color = 0;               // avatar color, 0 = derived from the name
+};
+
+struct PhoneMessage {
+    int id = 0;                  // returned in PhoneAction::id
+    int contactId = -1;          // >= 0 adds a "Call back" button (PA_CALL with that contact id)
+    std::string from;
+    std::string text;            // markup allowed (~y~ ~b~ ... see HudState)
+    std::string time;            // "17:32", "Day 11"
+    bool unread = true;          // the phone clears it when the message is opened (and returns PA_READ_MESSAGE)
+    bool mission = false;        // mission text (JOB badge in the list)
+    bool hasLocation = false;    // adds "Mark on map" (PA_SET_WAYPOINT with location)
+    vec2 location;
+    std::string actionLabel;     // non-empty adds a button with this label (PA_MESSAGE_ACTION, e.g. "Accept job")
+};
+
+struct PhoneListItem {           // one row in a game-provided app
+    int id = 0;
+    std::string label;
+    std::string detail;          // second line (small)
+    std::string right;           // short status at the right ("OWNED", "LOCKED", "+$400/day", "MARI")
+    long long price = -1;        // >= 0 shows the price at the right (red when the player cannot afford it)
+    bool enabled = true;
+};
+
+struct PhoneListApp {            // app tile after the built-in ones (store, realty, jobs, replay, switch...)
+    int id = 0;                  // returned in PhoneAction::app
+    std::string name;            // tile label + app title ("Wheels.ps")
+    std::string subtitle;        // line under the title inside the app ("Cash $12,400")
+    PhoneGlyph glyph = PG_STAR;
+    u32 color = 0;               // tile color, 0 = palette color picked from the id
+    bool action = false;         // no list: selecting the tile returns PA_APP_ACTION (e.g. "Switch to Dex")
+    bool enabled = true;
+    int badge = 0;               // number badge on the tile
+    std::vector<PhoneListItem> items;
+};
+
+enum PhoneCallState : u8 { CALL_NONE = 0, CALL_OUTGOING, CALL_INCOMING, CALL_ACTIVE };
+
+// Photo mode (Camera app): free camera, depth of field, time freeze, filters. While photo.active the phone flies the
+// camera (camPos/Yaw/Pitch/Roll/Fov, Render::Camera conventions, within 30 m of playerPos and above ground/water) and
+// the game must render from it, pause the simulation when freeze is set, hide the player model when hidePlayer is set
+// and skip drawHud. DOF, filters and grading are applied by the UI on top of the frame (see UI::setSceneDepth).
+struct PhotoMode {
+    bool active = false;
+    bool freeze = true;
+    bool hidePlayer = false;
+    vec3 camPos;
+    float camYaw = 0.f, camPitch = 0.f, camRoll = 0.f;   // radians
+    float camFov = 0.87f;                                // vertical, radians
+    float autoFocusDistance = 0.f;  // game: distance to the surface under the screen center (raycast), 0 = unknown
+    // Look settings (edited in the photo mode panel, kept between sessions)
+    bool autoFocus = true, dof = true;
+    float focusDistance = 8.f;   // meters (used when autoFocus is off or no distance is known)
+    float aperture = 2.8f;       // f-stop 1.4 .. 16 (lower = shallower depth of field)
+    int filter = 0;              // index into Phone::filterNames()
+    float filterStrength = 1.f;
+    float exposure = 0.f;        // EV
+    float contrast = 1.f, saturation = 1.f;
+    float temperature = 0.f;     // -1 cool .. +1 warm
+    float vignette = 0.25f, grain = 0.f;
+    int grid = 0;                // 0 off, 1 rule of thirds
+    int frame = 0;               // 0 none, 1 polaroid, 2 film strip, 3 neon
+};
+
+struct PhoneState {
+    bool open = false;
+    // Context filled by the game every frame
+    float timeOfDay = 12.f;
+    int day = 1;
+    int weather = 0;             // 0 clear, 1 cloudy, 2 rain, 3 storm, 4 fog (Tidegram chatter)
+    int signal = 4;              // bars 0..4
+    float battery = 0.8f;
+    std::string owner;           // protagonist name ("Mari"): player's Tidegram handle and name
+    long long money = 0;         // prices the player cannot afford are shown in red
+    vec3 playerPos;              // photo mode range center
+    vec3 cameraPos;              // gameplay camera: photo mode starts from it
+    float cameraYaw = 0.f, cameraPitch = 0.f, cameraFov = 1.f;
+    bool canQuickSave = true;
+    std::string quickSaveNote;   // why quick save is unavailable ("Not available during missions")
+    std::vector<PhoneContact> contacts;
+    std::vector<PhoneMessage> messages;   // newest last
+    std::vector<PhoneListApp> apps;
+    // Calls: the game drives the state. Setting CALL_INCOMING opens the phone on the call screen; after PA_CALL the
+    // phone shows CALL_OUTGOING until the game sets CALL_ACTIVE (connected) or CALL_NONE (no answer / ended).
+    PhoneCallState call = CALL_NONE;
+    std::string callName;
+    int callContactId = -1;
+    float callSeconds = 0.f;     // connected time shown during CALL_ACTIVE
+    std::string toast;           // one-line status shown on the phone ("Game saved"); the phone clears it after display
+    PhotoMode photo;
+    // Output (read by the game)
+    bool capturingInput = false; // phone is open and uses the navigation keys (arrows/Enter/Backspace, D-pad/A/B)
+};
+
+enum PhoneActionType : u8 {
+    PA_NONE = 0,
+    PA_CLOSED,               // phone put away
+    PA_CALL,                 // id = contact id (the game plays the call / starts the story mission)
+    PA_ANSWER, PA_DECLINE,   // incoming call
+    PA_HANG_UP,              // outgoing or active call ended by the player
+    PA_READ_MESSAGE,         // id = message id (opened for the first time)
+    PA_MESSAGE_ACTION,       // id = message id (its actionLabel button)
+    PA_SET_WAYPOINT,         // pos
+    PA_OPEN_MAP,             // open the pause-menu map (MENU_MAP)
+    PA_QUICK_SAVE,           // the game saves and sets toast ("Game saved") or an error
+    PA_APP_ITEM,             // app = PhoneListApp::id, id = PhoneListItem::id
+    PA_APP_ACTION,           // app = PhoneListApp::id (action tile)
+    PA_ENTER_PHOTO_MODE,     // photo.active is now true (camera initialized from cameraPos/Yaw/Pitch/Fov)
+    PA_EXIT_PHOTO_MODE,      // photo.active is now false
+    PA_TAKE_PHOTO,           // this frame shows the finished photo without UI: save the back buffer after UI::endFrame
+    PA_LIKE_POST,            // id = Tidegram post id (informational)
+};
+
+struct PhoneAction {
+    PhoneActionType type = PA_NONE;
+    int id = -1;
+    int app = -1;
+    vec2 pos;
+};
+
+namespace Phone {
+PhoneAction update(PhoneState& st, const HudState& hud, const InputState& in, float dt);
+const std::vector<std::string>& filterNames();   // photo mode filters
+bool isOpen();                                   // phone visible on screen (the HUD hides its bottom-right widgets)
+}
+
+// Tidegram social feed: the game reports what just happened around the player; a little later NPC accounts (locals,
+// news, traffic, police, tourists...) post about it with generated text. Cheap; call at the moment of the event.
+enum TideEvent : u8 {
+    TE_WANTED = 0,        // magnitude = wanted stars
+    TE_ESCAPED,           // lost the police
+    TE_BUSTED, TE_WASTED,
+    TE_CAR_STOLEN,        // subject = vehicle name
+    TE_CRASH,             // magnitude = speed km/h
+    TE_EXPLOSION, TE_SHOOTING,
+    TE_STUNT_JUMP,        // magnitude = distance m
+    TE_SPEEDING,          // magnitude = speed km/h
+    TE_MISSION_PASSED,    // subject = mission title
+    TE_PURCHASE,          // subject = item (vehicle, property)
+    TE_LOW_FLYBY,         // aircraft
+    TE_RACE_WON,
+    TE_WEATHER,           // subject = "rain" / "storm" / "fog"
+    TE_COUNT
+};
+void tidegramReport(TideEvent ev, vec2 pos, const char* subject = nullptr, float magnitude = 0.f);
+int tidegramUnread();    // posts added since the feed was last viewed
 
 }  // namespace UI

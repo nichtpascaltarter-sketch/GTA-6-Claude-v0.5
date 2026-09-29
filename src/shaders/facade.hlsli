@@ -190,7 +190,8 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         float dayOffice = office ? smoothstep(7.0, 8.5, hour) * (1.0 - smoothstep(18.0, 21.0, hour)) : 0;
         float litProb = saturate(f.litFrac * 0.75 * (evening + dayOffice * 0.9) + (storefront ? 0.85 : 0));
         bool lit = hashF(roomHash + 11u) < litProb;
-        float3 lightC = lerp(float3(1.0, 0.72, 0.45), float3(0.95, 0.97, 1.0), office ? 0.85 : hashF(roomHash + 12u) * 0.6);
+        float3 lightC = office ? lerp(float3(0.95, 0.9, 0.8), float3(0.85, 0.93, 1.0), hashF(roomHash + 12u))
+                               : lerp(float3(1.0, 0.6, 0.3), float3(1.0, 0.82, 0.6), hashF(roomHash + 12u) * 0.8);
         if (!office && hashF(roomHash + 13u) > 0.93) lightC = float3(0.4, 0.55, 1.0);  // TV glow
         float3 inside = coveredByBlind ? blindC : room;
         // Interior radiance: lit rooms emit, unlit rooms show dim daylight interior
@@ -198,7 +199,7 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         float3 glassTint = glassC;
         float3 interiorAlbedo = inside * glassTint;
         float3 em = 0;
-        if (lit) em = inside * lightC * (storefront ? 38.0 : 14.0) * (0.6 + 0.8 * hashF(roomHash + 14u));
+        if (lit) em = inside * lightC * (storefront ? 30.0 : 9.0) * (0.45 + 0.9 * hashF(roomHash + 14u));
         // Glass surface: dark reflective; interior visible through it
         outAlbedo = interiorAlbedo * 0.35 * dayInterior + glassTint * 0.02;
         r.emissive = em * glassTint * 1.2;

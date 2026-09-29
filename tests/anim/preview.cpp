@@ -326,6 +326,17 @@ int main(int argc, char** argv) {
 #else
         (void)t;
 #endif
+        if (const char* ep = getenv("PREVIEW_EYEPITCH")) {
+            // debug: pitch both eye bones (the upper lids ride on them: -0.95 closes the eyes)
+            float a = (float)atof(ep);
+            pose.rot[B_EYE_L] = normalize(pose.rot[B_EYE_L] * quatAxisAngle(vec3(1, 0, 0), a));
+            pose.rot[B_EYE_R] = normalize(pose.rot[B_EYE_R] * quatAxisAngle(vec3(1, 0, 0), a));
+        }
+        if (const char* ey = getenv("PREVIEW_EYEYAW")) {
+            float a = (float)atof(ey);
+            pose.rot[B_EYE_L] = normalize(pose.rot[B_EYE_L] * quatAxisAngle(vec3(0, 0, 1), a));
+            pose.rot[B_EYE_R] = normalize(pose.rot[B_EYE_R] * quatAxisAngle(vec3(0, 0, 1), a));
+        }
         mat4 ms[B_COUNT], skin[B_COUNT];
         computeMatrices(ch.sk, pose, ms, skin);
         std::vector<vec3> P(ch.mesh.verts.size()), N(ch.mesh.verts.size()), A(ch.mesh.verts.size());

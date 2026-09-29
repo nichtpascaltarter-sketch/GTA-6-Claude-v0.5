@@ -29,6 +29,7 @@ void GameWorld::init(Render::Renderer* r, Render::Environment* e, World::WorldMa
     vehicles.reserve(160);
     buildAssets();
     gMissions.registerAll(*this);
+    initAI();   // lane/sidewalk graphs now (1-2.5 s on the loading thread) instead of a hitch on the first frame
 }
 
 void GameWorld::shutdown() {
@@ -427,7 +428,8 @@ void GameWorld::submitRender() {
                 dl.radius = brake ? 5.f : 3.f;
                 renderer->addLight(dl);
             } else if ((L.type == Vehicles::LT_SIREN_RED || L.type == Vehicles::LT_SIREN_BLUE) && v.sirenOn) {
-                float ph = fmodf(env->gameSeconds * 2.2f + (L.type == Vehicles::LT_SIREN_RED ? 0.f : 0.5f), 1.f);
+                // same flash pattern as the lens shader (dynamic.hlsl): the left half of the bar is half a cycle ahead
+                float ph = fmodf(env->gameSeconds * 2.2f + (L.pos.x < 0.f ? 0.5f : 0.f), 1.f);
                 if (ph < 0.25f || (ph > 0.35f && ph < 0.55f)) {
                     Render::DynamicLight dl;
                     dl.pos = lp + vec3(0, 0, 0.2f);

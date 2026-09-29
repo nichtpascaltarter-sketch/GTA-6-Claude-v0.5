@@ -2,6 +2,7 @@
 // Bezier connectors through intersections with legal lane assignment, conflict sets and yield rules, signal plans with
 // protected left arrows, bus stops, and the pedestrian sidewalk graph (sidewalks, corners, crosswalks).
 #include "ai_core.h"
+#include "../world/buildings.h"
 
 namespace AI {
 
@@ -775,12 +776,14 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
 
     // ---- connectors
     std::vector<std::vector<int>> nodeConns(NN);
+    int uturnPulled = 0, uturnBlockedCount = 0;   // dead ends whose turning circle had to be moved / is obstructed
     for (int ni = 0; ni < NN; ni++) {
         NodeInfo& N = nodes[ni];
         const World::RoadNode& rnode = rn.nodes[ni];
         int na = (int)N.approaches.size();
         N.firstConn = (int)conns.size();
         if (na == 0) continue;
+        float uturnBack = 0.f, uturnScale = 1.f;
         auto addConn = [&](int ai, int li, int aj, int lo, u8 turn) {
             const Lane& Lin = lanes[li];
             const Lane& Lout = lanes[lo];
@@ -797,8 +800,9 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
             float D = length(p3.xy() - p0.xy());
             if (turn == TK_UTURN) {
                 // turning circle around the node: swing right to the circle, half a turn to the left, back to the lane
-                vec2 c0 = rnode.p;
-                float R = Clamp(fabsf(Lin.offset) + 3.4f, 4.8f, 6.5f);
+                // (pulled back toward the street / tightened when something stands in the way, see the dead-end code)
+                vec2 c0 = rnode.p - t0 * uturnBack;
+                float R = Clamp(fabsf(Lin.offset) + 3.4f, 4.8f, 6.5f) * uturnScale;
                 vec2 rt = rightOf(t0), lf = -rt;
                 float zc = (p0.z + p3.z) * 0.5f;
                 vec3 b1(c0 + rt * R, zc), b2(c0 + lf * R, zc);
@@ -853,7 +857,36 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
             if (!oneway && !A.inLanes.empty() && !A.outLanes.empty()) {
                 for (size_t k = 0; k < A.inLanes.size(); k++) {
                     int lo = A.outLanes[Min(k, A.outLanes.size() - 1)];
-                    addConn(0, A.inLanes[k], 0, lo, TK_UTURN);
+                    // the turning circle must be clear of buildings: pull it back toward the street and tighten it
+                    // until it fits (a building standing in a cul-de-sac bulb would otherwise trap every car)
+                    bool placed = false;
+                    const int kTries = 9;
+                    for (int attempt = 0; attempt < kTries && !placed; attempt++) {
+                        uturnBack = 1.5f * attempt;   // (never tighter: cars cannot follow a circle much under 5 m)
+                        uturnScale = 1.f;
+                        addConn(0, A.inLanes[k], 0, lo, TK_UTURN);
+                        const Connector& c = conns.back();
+                        bool blocked = false;
+                        if (World::gBuildings)
+                            for (const vec3& q : c.pts)
+                                if (World::gBuildings->pointInBuilding(q.xy(), 3.2f)) {   // body corners + tracking error
+                                    blocked = true;
+                                    break;
+                                }
+                        if (!blocked) {
+                            placed = true;
+                            uturnPulled += attempt > 0;
+                        } else if (attempt < kTries - 1) {
+                            conns.pop_back();
+                            lanes[A.inLanes[k]].out.pop_back();
+                            nodeConns[ni].pop_back();
+                        } else {
+                            N.uturnBlocked = true;   // keep the last try; routing steers clear of this dead end
+                            uturnBlockedCount++;
+                        }
+                    }
+                    uturnBack = 0.f;
+                    uturnScale = 1.f;
                 }
             }
             N.connCount = (int)conns.size() - N.firstConn;
@@ -1100,13 +1133,14 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
             // protected left when an approach of this axis has 2+ lanes and a left turn with opposing traffic
             bool wide = false, lefts = false;
             int approachesOnAxis = 0;
-            float bestClass = 0.f;
+            float bestClass = 0.f, vmax = 10.f;
             for (size_t ai = 0; ai < N.approaches.size(); ai++) {
                 const Approach& A = N.approaches[ai];
                 if (A.axis != a) continue;
                 if (!A.inLanes.empty()) approachesOnAxis++;
                 if (A.inLanes.size() >= 2) wide = true;
                 bestClass = Max(bestClass, classValue(rn.edges[A.edge].cls));
+                vmax = Max(vmax, World::roadInfo(rn.edges[A.edge].cls).speed);
                 for (int c = N.firstConn; c < N.firstConn + N.connCount; c++)
                     if (conns[c].approach == ai && conns[c].turn == TK_LEFT) lefts = true;
             }
@@ -1121,8 +1155,10 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
             float green = 11.f + (bestClass >= 5.f ? 7.f : (bestClass >= 4.f ? 4.f : 0.f)) + (float)((h >> (a * 3)) % 4);
             N.phases.push_back({(u8)a, PH_GREEN, t, t + green});
             t += green;
-            N.phases.push_back({(u8)a, PH_AMBER, t, t + 3.f});
-            t += 3.f;
+            // amber long enough to clear the line from where stopping stops being comfortable (1 s reaction, 3 m/s^2)
+            float amber = Clamp(1.f + vmax * 1.1f / (2.f * 3.f), 3.f, 4.5f);
+            N.phases.push_back({(u8)a, PH_AMBER, t, t + amber});
+            t += amber;
             N.phases.push_back({(u8)a, PH_ALLRED, t, t + 1.5f});
             t += 1.5f;
         }
@@ -1365,8 +1401,8 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
     buildSeconds = TimeSeconds() - t0;
     size_t cpts = 0;
     for (auto& c : conns) cpts += c.pts.size();
-    LOG("Lane graph: %zu lanes, %zu connectors (%zu pts), %zu walk nodes, %zu walk links (%.2f s)", lanes.size(), conns.size(), cpts,
-        walkNodes.size(), walkLinks.size(), buildSeconds);
+    LOG("Lane graph: %zu lanes, %zu connectors (%zu pts), %zu walk nodes, %zu walk links, dead-end turning circles moved %d / "
+        "obstructed %d (%.2f s)", lanes.size(), conns.size(), cpts, walkNodes.size(), walkLinks.size(), uturnPulled, uturnBlockedCount, buildSeconds);
 }
 
 }  // namespace AI

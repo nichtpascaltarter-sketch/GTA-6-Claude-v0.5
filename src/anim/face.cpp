@@ -480,6 +480,32 @@ void buildHeadGrid(BuildCtx& c) {
             }
             m.quad(a0, b0, b1, a1);
         }
+    // upper lids ride on the eye bones (the skeleton has no lid bones): the lid margin rotates about the eyeball
+    // centre with the eye, so it follows vertical gaze like a real lid and the animator blinks by pitching the eye
+    // down (the iris is hidden behind the closing lid). Full weight across the middle of the fissure, fading to
+    // nothing at the corners; the fold above follows partially.
+    {
+        const float halfSpan = 0.5f * (L.thO - L.thI);
+        const int rowsLid[3] = {H.rowEyeHi, H.rowEyeHi + 1, H.rowEyeHi + 2};
+        const float rowW[3] = {1.f, 0.6f, 0.15f};
+        for (int ri = 0; ri < 3; ri++) {
+            int j = rowsLid[ri];
+            if (j >= NR) continue;
+            for (int k = 0; k < NC; k++) {
+                BVert& v = m.v[H.grid[(size_t)j * NC + k]];
+                float th = v.pa;
+                bool right = th < kPi;
+                float at = right ? th : kTwoPi - th;
+                float dd = fabsf(at - H.thetaEye);
+                float w = rowW[ri] * (1.f - sstep(0.62f * halfSpan, 1.02f * halfSpan, dd));
+                if (w <= 0.f) continue;
+                WAcc acc;
+                for (int q = 0; q < 4; q++) acc.add(v.sw.b[q], v.sw.w[q] * (1.f - w));
+                acc.add(right ? B_EYE_R : B_EYE_L, w);
+                v.sw = acc.finish();
+            }
+        }
+    }
     H.eyeC[0] = D.J[B_EYE_L];
     H.eyeC[1] = D.J[B_EYE_R];
     H.eyeR = Lm.eyeR * hs;

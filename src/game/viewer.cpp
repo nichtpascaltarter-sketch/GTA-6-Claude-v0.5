@@ -461,12 +461,14 @@ struct Viewer {
                 for (auto& e : sn) m.stats.push_back({e[0], e[1]});
                 m.slots.clear();
                 const char* titles[] = {"Chapter 3 - Low Tide", "Chapter 2 - Neon Nights", "", "Chapter 1 - Arrival", "", "", "Autosave", ""};
+                const float kPct[8] = {27.4f, 21.3f, 0.f, 9.1f, 0.f, 0.f, 28.0f, 0.f};
+                const int kMoneyK[8] = {148, 118, 0, 58, 0, 0, 151, 0}, kDay[8] = {12, 9, 0, 3, 0, 0, 12, 0};
                 for (int i = 0; i < 8; i++) {
                     UI::SaveSlotInfo si;
                     si.used = titles[i][0] != 0;
                     if (si.used) {
                         si.title = titles[i];
-                        si.detail = StrFormat("%.1f%% complete  |  $%d,%03d  |  Day %d, %02d:%02d", 27.4f - i * 6.1f, 148 - i * 30, 200, 12 - i * 3, 21, 40 - i * 5);
+                        si.detail = StrFormat("%.1f%% complete  |  $%d,%03d  |  Day %d, %02d:%02d", kPct[i], kMoneyK[i], 200, kDay[i], 21, 40 - i * 5);
                         si.timestamp = StrFormat("2026-09-%02d  %02d:%02d", 28 - i, 22 - i, 14 + i * 7);
                     }
                     m.slots.push_back(si);

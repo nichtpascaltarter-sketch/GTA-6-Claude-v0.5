@@ -73,6 +73,31 @@ float3 localLightBRDF(GBufferData g, float3 N, float3 V, float3 L) {
     return r;
 }
 
+// Screen-space contact shadows: short ray march towards the sun through the depth buffer (fine detail the
+// shadow cascades cannot resolve: wheels on the road, props on sidewalks, window frames, foliage clumps).
+float contactShadow(float3 relPos, float viewDepth, uint2 pix) {
+    float len = clamp(viewDepth * 0.012, 0.25, 2.5);
+    const int steps = 10;
+    float jit = ign(float2(pix), gTime.z);
+    float thickness = max(0.2, viewDepth * 0.006);
+    float3 stepV = gSunDir.xyz * (len / steps);
+    float3 p = relPos + stepV * jit + gSunDir.xyz * viewDepth * 0.0006;
+    [loop] for (int i = 0; i < steps; i++) {
+        p += stepV;
+        float4 clip = mul(gViewProj, float4(p, 1));
+        if (clip.w <= 0.0) break;
+        float2 uv = clip.xy / clip.w * float2(0.5, -0.5) + 0.5;
+        if (any(uv <= 0.0) || any(uv >= 1.0)) break;
+        float d = tDepth.SampleLevel(sPointClamp, uv, 0);
+        if (d <= 0.0) continue;
+        float sceneZ = linearDepth(d);
+        float rayZ = clip.w;
+        float diff = rayZ - sceneZ;
+        if (diff > 0.02 * (1.0 + rayZ * 0.01) && diff < thickness) return saturate((float)i / steps * 0.5);  // soften far end
+    }
+    return 1.0;
+}
+
 groupshared uint gsMinZ, gsMaxZ, gsLightCount;
 groupshared uint gsLights[256];
 
@@ -129,7 +154,7 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
     float3 mbC = 2.7552 * diffColor + 0.6903;
     float3 aoMB = max(ao, ((ao * mbA + mbB) * ao + mbC) * ao);
     // Sky/ground SH through the visibility term + one-bounce screen-space indirect diffuse
-    float3 ambientDiffuse = diffColor * (evalSH9(N) * aoMB + gi);
+    float3 ambientDiffuse = diffColor * (ambientIrradiance(N, length(relPos)) * aoMB + gi);
     float3 R = reflect(-V, N);
     float2 ab = envBRDFApprox(g.rough, NoV);
     float specOcc = saturate(pow(NoV + ao, exp2(-16.0 * g.rough - 1.0)) - 1.0 + ao);
@@ -216,6 +241,8 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         color = g.albedo;
     } else {
         shadow = sampleSunShadow(relPos, g.normal, viewDepth, id.xy);
+        if (gRenderParams.z > 0.5 && shadow > 0.02 && viewDepth < 180.0 && dot(g.normal, gSunDir.xyz) > 0.0)
+            shadow *= contactShadow(relPos, viewDepth, id.xy);
         aogi = upsampleAOGI(id.xy, linearDepth(depth), g.normal);
         ao = g.ao * aogi.a;
         ssr = gSSParams.z > 0.5 ? tSSR[id.xy] : float4(0, 0, 0, 0);
@@ -250,7 +277,7 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         float3 o = 0;
         if (dbg == 1) o = g.albedo;
         else if (dbg == 2) o = g.normal * 0.5 + 0.5;
-        else if (dbg == 3) o = evalSH9(g.normal) * preExposure() * 4.0;
+        else if (dbg == 3) o = ambientIrradiance(g.normal, dist) * preExposure() * 4.0;
         else if (dbg == 4) o = shadow;
         else if (dbg == 5) o = float3(g.rough, g.metal, g.ao);
         else if (dbg == 6) o = color * preExposure();

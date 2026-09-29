@@ -1,6 +1,7 @@
 // Frame renderer: deferred PBR pipeline with atmosphere, shadows and post-processing.
 #pragma once
 #include "../gfx/gfx.h"
+#include <functional>
 
 namespace World { struct WorldMap; }
 
@@ -76,6 +77,7 @@ struct Settings {
 
     // Per-effect quality (set together by applyPreset, individually adjustable)
     int aoQuality = 2;            // 0 off, 1 low (1 slice), 2 high (2 slices), 3 ultra (3 slices, more steps)
+    bool contactShadows = true;   // screen-space sun contact shadows in the lighting pass
     bool ssgi = true;             // one-bounce screen-space indirect diffuse (computed with the AO pass)
     int ssrQuality = 2;           // 0 off, 1 low (smooth surfaces only), 2 high (glossy), 3 ultra (more steps)
     float ssrMaxRoughness = 0.55f;
@@ -97,6 +99,7 @@ struct Settings {
         static const int ao[4] = {1, 1, 2, 3}, ssrQ[4] = {1, 2, 2, 3}, fogQ[4] = {1, 1, 2, 3}, cloudQ[4] = {0, 1, 2, 3};
         static const int grassQ[4] = {1, 1, 2, 3}, shadowR[4] = {1024, 2048, 2048, 4096}, budget[4] = {6000, 12000, 20000, 32000};
         aoQuality = ao[quality];
+        contactShadows = quality >= 1;
         ssao = true;
         ssgi = quality >= 1;
         ssrQuality = ssrQ[quality];
@@ -208,6 +211,9 @@ public:
 
     Settings settings;
     PostFxControls postFx;  // set by gameplay each frame (persistent until changed)
+    // Traffic-signal lamp state from the AI signal phases (0 red, 1 amber, 2 green) for a signal prop on road edge
+    // `edge` at `propPos`; unset = props run their own local timer
+    std::function<int(int edge, vec2 propPos)> signalLampFn;
     DrawStats stats;
     FrameConstants frame;
     gfx::CBuffer<FrameConstants> frameCB;

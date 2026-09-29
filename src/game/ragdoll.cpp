@@ -324,9 +324,19 @@ void GameWorld_updateRagdoll(GameWorld& g, Ped& p, float dt) {
         vec3 front = cross(up, right);  // chest facing direction (character faces +Y: up x right = forward)
         bool faceDown = front.z < 0.f;
         vec3 headDir = r.p[RP_HEAD] - r.p[RP_PELVIS];
-        // the get-up clips start lying with the head pointing backwards (faceDown) / forwards (on back) of facing
+        // GET_UP_FRONT starts face down with the head towards +Y (facing), GET_UP_BACK on the back with the head
+        // towards -Y (feet forward); both with the pelvis above the origin
         float yawHead = atan2f(-headDir.x, headDir.y);
-        p.yaw = faceDown ? yawHead + kPi : yawHead;
+        p.yaw = faceDown ? yawHead : yawHead + kPi;
+        // crossfade the get-up from the ragdoll's final pose (bones relative to the new root) instead of cutting
+        {
+            mat4 rootInv = inverse(makeMat4(mat3FromQuat(quatAxisAngle(vec3(0, 0, 1), p.yaw)), p.pos.toVec3()));
+            mat4 model[Anim::B_COUNT];
+            for (int b = 0; b < Anim::B_COUNT; b++) model[b] = rootInv * p.bones[b];
+            Anim::Pose from;
+            Anim::poseFromModelSpace(ce.skel, model, from);
+            p.anim.blendFrom(from, 0.3f);
+        }
         freeRagdoll(p.ragdoll);
         p.state = PS_GETUP;
         p.stateTime = 0.f;

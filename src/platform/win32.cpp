@@ -10,6 +10,7 @@
 #include <xinput.h>
 #include <shellapi.h>
 #include <mmsystem.h>
+#include <psapi.h>
 #include <cstdarg>
 #include "platform.h"
 
@@ -404,6 +405,20 @@ double timeSeconds() {
     return (double)(now.QuadPart - g_start.QuadPart) / (double)g_freq.QuadPart;
 }
 void sleepMs(int ms) { Sleep((DWORD)ms); }
+
+void memoryUsageMB(float& workingSet, float& privateBytes) {
+    // K32GetProcessMemoryInfo lives in kernel32 since Windows 7 (no psapi.lib needed)
+    typedef BOOL(WINAPI * PFN)(HANDLE, PPROCESS_MEMORY_COUNTERS, DWORD);
+    static PFN fn = (PFN)(void*)GetProcAddress(GetModuleHandleA("kernel32.dll"), "K32GetProcessMemoryInfo");
+    workingSet = privateBytes = 0.f;
+    if (!fn) return;
+    PROCESS_MEMORY_COUNTERS_EX pmc = {};
+    pmc.cb = sizeof(pmc);
+    if (fn(GetCurrentProcess(), (PPROCESS_MEMORY_COUNTERS)&pmc, sizeof(pmc))) {
+        workingSet = (float)(pmc.WorkingSetSize / (1024.0 * 1024.0));
+        privateBytes = (float)(pmc.PrivateUsage / (1024.0 * 1024.0));
+    }
+}
 int argCount() { parseCommandLine(); return (int)g_args.size(); }
 const char* arg(int i) { parseCommandLine(); return i >= 0 && i < (int)g_args.size() ? g_args[i].c_str() : nullptr; }
 const char* argValue(const char* name) {

@@ -330,6 +330,8 @@ void GameWorld::animatePed(Ped& p, float dt) {
         in.speed = 0.f;
         in.inAir = false;
         in.stance = isBike(p.vehicle) ? 3 : (p.seat == 0 ? 1 : 2);
+        // the driver's hands follow the applied steering (not the direction the car is sliding)
+        if (p.seat == 0) in.localMoveDir = vec2(Clamp(vehicles[p.vehicle].sim.steerOut, -1.f, 1.f), 1.f);
     } else if (p.state == PS_ONFOOT || p.state == PS_SWIM) {
         if (in.stance == 1 || in.stance == 2 || in.stance == 3) in.stance = 0;
     }

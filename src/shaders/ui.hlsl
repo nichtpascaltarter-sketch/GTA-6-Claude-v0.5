@@ -1,5 +1,5 @@
-// 2D UI: solid, SDF text, images, rounded rects, circles, capsules, arcs, SDF icons, map, frosted backdrop, AA triangles.
-// Premultiplied alpha output (mode + 32 = additive: alpha written as 0).
+// 2D UI: solid, SDF text, images, rounded rects, circles, capsules, arcs, SDF icons, map, frosted backdrop, AA triangles,
+// photo grading (depth of field + filters). Premultiplied alpha output (mode + 32 = additive: alpha written as 0).
 cbuffer UICB : register(b1) {
     float4 gUIScreen;   // w, h, 1/w, 1/h
     float4 gUIClip;
@@ -9,7 +9,60 @@ Texture2D<float> tAtlas : register(t0);
 Texture2D<float4> tImage : register(t1);
 Texture2D<float> tIcons : register(t2);
 Texture2D<float4> tBlur : register(t3);
+Texture2D<float4> tScene : register(t4);   // full-resolution copy of the frame before the UI
+Texture2D<float> tDepth : register(t5);    // scene depth (reversed-Z infinite) for photo DOF
+Texture2D<float4> tHalf : register(t6);    // half-resolution copy (light blur level)
 SamplerState sLinear : register(s1);
+
+cbuffer UIPhotoCB : register(b3) {
+    float4 gPhA;   // filter, strength, exposure (EV), contrast
+    float4 gPhB;   // saturation, temperature, vignette, grain
+    float4 gPhC;   // dof, focus distance, blur scale, nearZ (0 = no depth: screen-space focus band)
+    float4 gPhD;   // time, screen aspect
+};
+
+float photoLuma(float3 c) { return dot(c, float3(0.299, 0.587, 0.114)); }
+
+// Photo mode filters (display-referred colors)
+float3 photoFilter(int f, float3 c) {
+    float l = photoLuma(c);
+    if (f == 1) {            // neon nights: magenta shadows, cyan highlights, punchy
+        float3 split = lerp(float3(0.95, 0.30, 0.80), float3(0.40, 0.95, 1.0), smoothstep(0.1, 0.8, l));
+        c = lerp(c, c * split * 1.3, 0.6);
+        c = (c - 0.5) * 1.12 + 0.5;
+        float nl = photoLuma(c);
+        c = lerp(float3(nl, nl, nl), c, 1.25);
+    } else if (f == 2) {     // golden hour: warm, lifted amber shadows, soft contrast
+        c *= float3(1.12, 1.0, 0.8);
+        c = lerp(c, c * float3(1.04, 0.9, 0.72) + float3(0.07, 0.04, 0.0), 0.45);
+        c = (c - 0.5) * 0.94 + 0.51;
+    } else if (f == 3) {     // noir: high contrast black and white
+        float g = saturate((l - 0.5) * 1.5 + 0.48);
+        g = lerp(g, g * g * (3.0 - 2.0 * g), 0.5);
+        c = float3(g, g, g);
+    } else if (f == 4) {     // vintage 86: faded blacks, warm highlights, muted
+        c = lerp(float3(l, l, l), c, 0.7);
+        c = c * 0.84 + float3(0.08, 0.075, 0.06);
+        c *= float3(1.07, 1.0, 0.88);
+        c.g += (1.0 - l) * 0.025;
+    } else if (f == 5) {     // chrome: cool, crisp, low saturation
+        c = lerp(float3(l, l, l), c, 0.55);
+        c *= float3(0.92, 1.0, 1.1);
+        c = (c - 0.5) * 1.28 + 0.5;
+    } else if (f == 6) {     // vapor: pastel pink / teal, low contrast
+        c = lerp(c, lerp(float3(0.78, 0.45, 0.88), float3(0.55, 1.0, 0.95), l), 0.38);
+        c = c * 0.8 + 0.13;
+    } else if (f == 7) {     // sepia
+        c = float3(l * 1.07 + 0.05, l * 0.88 + 0.025, l * 0.66 + 0.005);
+    } else if (f == 8) {     // tropic: vivid teal and green
+        c = lerp(float3(l, l, l), c, 1.45);
+        c *= float3(1.0, 1.05, 1.0);
+        c = (c - 0.5) * 1.08 + 0.5;
+    } else if (f == 9) {     // pixel: posterized (the blocks come from snapped coordinates)
+        c = floor(saturate(c) * 7.0 + 0.5) / 7.0;
+    }
+    return c;
+}
 
 struct VSIn {
     float2 pos : POSITION;
@@ -153,6 +206,50 @@ float4 psUI(VSOut i) : SV_Target {
     } else if (mode == 10) {
         float d = min(i.p.y, min(i.p.z, i.p.w));
         a = c.a * saturate(d + 0.5);
+    } else if (mode == 11) {
+        // Photo grading: uv = source screen uv, p.yz = position inside the drawn rect (0..1), p.w = rect aspect
+        float2 uv = i.uv;
+        int filter = (int)(gPhA.x + 0.5);
+        if (filter == 9 && gPhA.y > 0.01) {
+            float rows = lerp(540.0, 90.0, gPhA.y);
+            float2 grid = float2(rows * gPhD.y, rows);
+            uv = (floor(uv * grid) + 0.5) / grid;
+        }
+        float3 sharp = tScene.SampleLevel(sLinear, uv, 0).rgb;
+        float3 col = sharp;
+        if (gPhC.x > 0.5) {
+            float coc;
+            if (gPhC.w > 0.0) {
+                uint dw, dh;
+                tDepth.GetDimensions(dw, dh);
+                int2 dp = int2(saturate(uv) * float2(dw - 1, dh - 1) + 0.5);
+                float d = tDepth.Load(int3(dp, 0));
+                float z = d > 0.0 ? gPhC.w / d : 1e6;
+                coc = saturate(gPhC.z * abs(z - gPhC.y) / max(z, 0.05));
+            } else {
+                coc = saturate(gPhC.z * max(abs(uv.y - 0.52) - 0.08, 0.0) * 2.4);
+            }
+            float3 halfc = tHalf.SampleLevel(sLinear, uv, 0).rgb;
+            float3 blur = tBlur.SampleLevel(sLinear, uv, 0).rgb;
+            float t2 = coc * 2.0;
+            col = t2 < 1.0 ? lerp(sharp, halfc, t2) : lerp(halfc, blur, t2 - 1.0);
+        }
+        col *= exp2(gPhA.z);
+        float temp = gPhB.y;
+        col *= float3(1.0 + 0.12 * temp, 1.0 + 0.015 * temp, 1.0 - 0.14 * temp);
+        col = lerp(col, photoFilter(filter, col), gPhA.y);
+        col = (col - 0.5) * gPhA.w + 0.5;
+        float lum = photoLuma(col);
+        col = lerp(float3(lum, lum, lum), col, gPhB.x);
+        float2 q = i.p.yz * 2.0 - 1.0;
+        q.x *= sqrt(max(i.p.w, 0.1));
+        q.y /= sqrt(max(i.p.w, 0.1));
+        float vig = smoothstep(1.55, 0.35, length(q));
+        col *= lerp(1.0, vig, gPhB.z);
+        float n = frac(sin(dot(floor(i.screen) + frac(gPhD.x * 7.13) * 97.0, float2(12.9898, 78.233))) * 43758.5453) - 0.5;
+        col += n * gPhB.w * 0.18;
+        rgb = saturate(col);
+        a = 1.0;
     }
     int clipMode = (int)(gUIClipMode.x + 0.5);
     if (clipMode == 1) {

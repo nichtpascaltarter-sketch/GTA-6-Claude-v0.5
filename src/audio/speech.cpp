@@ -5,6 +5,7 @@
 // rules and F0 contour (speech_prosody.cpp) -> 2.5 ms parameter frames with Holmes-style coarticulation and a
 // Klatt cascade/parallel formant synthesizer driven by an LF glottal source (speech_klatt.cpp).
 //
+// Styles (inline [emotion] / [delivery] / [accent:x] markup), personas and lip-sync timing: speech_ext.h.
 // Unity build: this file #includes the other speech_*.cpp files; add only `#include "audio/speech.cpp"`.
 // Thread safety: all state is per call; tables are immutable (function-local statics are initialized once,
 // thread-safely, on first use).
@@ -13,9 +14,12 @@
 #include "speech_phonemes.cpp"
 #include "speech_dict.cpp"
 #include "speech_rules.cpp"
+#include "speech_style.cpp"
 #include "speech_text.cpp"
+#include "speech_accent.cpp"
 #include "speech_prosody.cpp"
 #include "speech_klatt.cpp"
+#include "speech_lipsync.cpp"
 
 namespace Speech {
 

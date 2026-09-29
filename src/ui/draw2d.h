@@ -95,6 +95,31 @@ void mapQuad(ID3D11ShaderResourceView* srv, const vec2 p[4], const vec2 uv[4], u
 // Frosted glass: blurred copy of what was rendered before the UI (the 3D frame), tinted, desaturated and mixed with
 // `overlay` (alpha = mix amount), clipped to a rounded rect. Enables backdrop capture for this frame.
 void backdrop(float x, float y, float w, float h, float radius, u32 tint, u32 overlay, float saturation = 1.f);
+// Photo grading of the 3D frame captured before the UI (photo mode, phone camera): draws the screen region
+// (u0, v0)-(u1, v1) (0..1 of the screen) into the rect with depth of field, exposure, white balance, a filter,
+// contrast, saturation, vignette and grain. Opaque. One parameter set per frame (the last call wins).
+struct PhotoFx {
+    int filter = 0;              // 0 natural, 1 neon nights, 2 golden hour, 3 noir, 4 vintage, 5 chrome, 6 vapor,
+                                 // 7 sepia, 8 tropic, 9 pixel
+    float strength = 1.f;        // filter mix 0..1
+    float exposure = 0.f;        // EV
+    float contrast = 1.f, saturation = 1.f;
+    float temperature = 0.f;     // -1 cool .. +1 warm
+    float vignette = 0.f, grain = 0.f;
+    bool dof = false;
+    float focusDistance = 10.f;  // meters (screen-space focus band around the center when no depth is set)
+    float aperture = 2.8f;       // f-stop
+    float fovY = 0.87f;          // radians (narrow lenses blur more)
+    float time = 0.f;            // seconds (grain animation)
+};
+void photoEffect(float x, float y, float w, float h, float u0, float v0, float u1, float v1, const PhotoFx& fx);
+// Depth buffer of the 3D frame for photoEffect's depth of field: reversed-Z infinite projection (value = nearZ /
+// view distance, 0 at infinity), any resolution. Call every frame before endFrame; nullptr = none.
+void setSceneDepth(ID3D11ShaderResourceView* depthSrv, float nearZ);
+// Snapshots: at the end of this frame's endFrame the finished frame is copied into a small persistent texture
+// (quarter resolution). Returns its id; the 8 most recent snapshots are kept.
+int requestSnapshot();
+ID3D11ShaderResourceView* snapshotSrv(int id);   // nullptr when unknown, not captured yet or overwritten
 // Clip following draws to an anti-aliased rounded rectangle (w <= 0 disables).
 void setClipRoundRect(float x, float y, float w, float h, float radius);
 // Current clip state save/restore.

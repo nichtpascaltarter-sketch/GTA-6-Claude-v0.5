@@ -13,6 +13,7 @@
 #include <sys/stat.h>
 
 #include "audio/speech.cpp"
+#include "audio/speech_ext.h"
 
 // ---- minimal platform stubs required by core/base.h
 void LogPrintf(const char* fmt, ...) {
@@ -392,6 +393,64 @@ int main(int argc, char** argv) {
             }
         }
         printf("Normalization checks: %s\n", bad ? "FAILED" : "OK");
+        st.problems += bad;
+    }
+    // Styles, personas and lip sync.
+    {
+        int bad = 0;
+        static const char* const kTags[] = {"[angry]", "[scared]", "[calm]", "[sad]", "[happy]", "[shout]", "[whisper]",
+                                            "[dj]", "[ad]", "[fineprint]", "[news]", "[dispatch]", "[accent:south]",
+                                            "[accent:newyork]", "[accent:latino]", "[accent:caribbean]",
+                                            "[accent:british]", "[angry:0.4][accent:latino:0.6]", "[whisper:0.5]"};
+        for (const char* tg : kTags) {
+            std::string t = std::string(tg) + "Get in the car, we have to go now! Is that the police? [pause:0.8] Drive.";
+            std::vector<float> x;
+            Speech::synthesize(t.c_str(), voices[1].v, 32000, x);
+            float pk = 0.f;
+            bool fin = true;
+            for (float v : x) fin = fin && v == v, pk = std::max(pk, fabsf(v));
+            float dur = x.size() / 32000.f, est = Speech::estimateDuration(t.c_str(), voices[1].v);
+            std::vector<Speech::VisemeKey> keys;
+            Speech::lipSync(t.c_str(), voices[1].v, keys);
+            float kend = keys.empty() ? 0.f : keys.back().time + keys.back().duration;
+            bool contiguous = !keys.empty() && keys.front().time == 0.f;
+            for (size_t k = 0; k + 1 < keys.size(); k++)
+                contiguous = contiguous && fabsf(keys[k].time + keys[k].duration - keys[k + 1].time) < 1e-4f;
+            bool ok = fin && pk <= 0.81f && pk > 0.3f && fabsf(dur - est) < 0.01f && fabsf(kend - dur) < 0.01f &&
+                      contiguous;
+            if (!ok) {
+                printf("  style %-32s dur %.2f est %.2f keys end %.2f peak %.2f %s\n", tg, dur, est, kend, pk,
+                       fin ? "" : "NaN");
+                bad++;
+            }
+        }
+        static const char* const kDisp[][2] = {
+            {"[angry]Get *down*! [laughs] Now.", "Get down! Now."},
+            {"[accent:south:0.6] Well, [pause:1] howdy [whisper]partner.", "Well, howdy partner."},
+            {"No markup here.", "No markup here."},
+        };
+        for (auto& d : kDisp) {
+            std::string got = Speech::displayText(d[0]);
+            if (got != d[1]) printf("  displayText('%s') = '%s', expected '%s'\n", d[0], got.c_str(), d[1]), bad++;
+        }
+        Speech::Style sty;
+        sty.emotion = Speech::EMOTION_SCARED;
+        sty.intensity = 0.7f;
+        sty.accent = Speech::ACCENT_CARIBBEAN;
+        sty.accentStrength = 0.5f;
+        sty.delivery = Speech::DELIVERY_NEWS;
+        std::string tags = Speech::styleTags(sty);
+        if (tags != "[accent:caribbean:0.5][news][scared:0.7]") printf("  styleTags = '%s'\n", tags.c_str()), bad++;
+        Speech::Persona mari = Speech::persona("mari"), rook = Speech::persona("CAST_ROOK"), anon = Speech::persona("x", true);
+        if (!(mari.voice.pitch > 150.f && rook.voice.pitch < 110.f && anon.voice.pitch > 150.f &&
+              rook.style.accent == Speech::ACCENT_NEWYORK))
+            printf("  persona table mismatch\n"), bad++;
+        std::vector<Speech::PhonemeTiming> ph;
+        Speech::phonemeTiming("[accent:british]Tune the radio.", voices[0].v, ph);
+        std::string seq;
+        for (auto& p : ph) seq += std::string(p.name) + " ";
+        if (seq.find("T Y UW") == std::string::npos) printf("  accent rewrite missing: %s\n", seq.c_str()), bad++;
+        printf("Style / persona / lip-sync checks: %s\n", bad ? "FAILED" : "OK");
         st.problems += bad;
     }
     // Edge cases.

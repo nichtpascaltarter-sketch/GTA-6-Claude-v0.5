@@ -54,6 +54,18 @@ struct Building {
     float lotHy;     // lot depth half-extent (for yards/parking)
     vec2 lotC;       // lot center
     u32 roofColor;
+    float lotHx = 0; // lot half-width along ax (gardens, hedges)
+};
+
+// A facade-covered mass of a building mesh (main block, podium, tower tier, deco tower, house body), recorded by
+// buildmesh.cpp so the street-level detail pass (facadedetail.cpp) can align moldings with the shader's window grid.
+enum FacadeMassKind : u8 { FM_MAIN = 0, FM_PODIUM, FM_TIER, FM_DECO_TOWER, FM_HOUSE };
+struct FacadeMass {
+    std::vector<vec2> fp;  // CCW footprint
+    float z0, z1;          // facade wall span (z1 = roof level, parapet excluded)
+    float vBase;           // facade v origin (building base)
+    u8 kind;
+    bool parapet;
 };
 
 struct BuildingSet {

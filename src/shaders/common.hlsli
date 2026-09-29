@@ -25,7 +25,7 @@ cbuffer FrameCB : register(b0) {
     float4 gFog;               // x height fog density, y height falloff, z fog start, w aerial perspective scale
     float4 gExposure;          // x exposure multiplier, y 1/exposure, z ev100, w night factor
     float4 gCamForward;        // xyz forward, w fov y
-    float4 gRenderParams;      // x shadow cascade count, y debug split (screen fraction, 0 = full), z SSR enabled, w debug view
+    float4 gRenderParams;      // x shadow cascade count, y debug split (screen fraction, 0 = full), z contact shadows, w debug view
     float4 gLightning;         // x flash intensity, yzw direction
     float4 gPlanetParams;      // x unused, y unused, z camera altitude km, w mie haze multiplier
     float4 gCloudShadow;       // xy center (world), z size (m), w strength
@@ -36,7 +36,8 @@ cbuffer FrameCB : register(b0) {
     float4 gSSParams;          // x AO enabled, y GI enabled, z SSR enabled, w SSR max roughness
     float4 gWeather2;          // x overcast (0..1), y storm (0..1), z puddle amount, w ripple animation time
     float4 gHalfScreen;        // half-resolution width, height, 1/width, 1/height
-    float4 gAmbientParams;     // x urban enclosure (facade share of the horizon band), y lightning ambient flash (lux)
+    float4 gAmbientParams;     // x urban enclosure (facade share of the horizon band), y lightning ambient flash (lux),
+                               // z probe irradiance weight (0 = sky SH only), w probe irradiance falloff distance (m)
 };
 
 // Global resources bound once per frame at high slots (see Renderer::bindGlobals)
@@ -52,6 +53,7 @@ StructuredBuffer<float4> gExposureBuf : register(t40);    // [0] x = exposure mu
 Texture2D<float> gOverheadMap : register(t41);            // highest static world surface (m) around the camera (rain occlusion)
 Texture2D<float> gWaterLevelG : register(t42);            // global water surface level map (m, -1000 = no water)
 Texture2D<float> gTerrainHeightG : register(t43);         // global terrain heightmap (m)
+StructuredBuffer<float4> gProbeSH : register(t44);        // SH9 irradiance of the reflection probe (local one-bounce GI)
 SamplerState sPointClamp : register(s0);
 SamplerState sLinearClamp : register(s1);
 SamplerState sLinearWrap : register(s2);
@@ -197,17 +199,25 @@ float2 envBRDFApprox(float rough, float NoV) {
 }
 
 // Irradiance (divided by PI -> outgoing radiance for albedo 1) from SH9 radiance coefficients.
-float3 evalSH9(float3 n) {
-    float3 r = gSkySH[0].rgb * 0.886227;
-    r += gSkySH[1].rgb * 1.023328 * n.y;
-    r += gSkySH[2].rgb * 1.023328 * n.z;
-    r += gSkySH[3].rgb * 1.023328 * n.x;
-    r += gSkySH[4].rgb * 0.858086 * n.x * n.y;
-    r += gSkySH[5].rgb * 0.858086 * n.y * n.z;
-    r += gSkySH[6].rgb * 0.247708 * (3.0 * n.z * n.z - 1.0);
-    r += gSkySH[7].rgb * 0.858086 * n.x * n.z;
-    r += gSkySH[8].rgb * 0.429043 * (n.x * n.x - n.y * n.y);
+float3 evalSH9From(StructuredBuffer<float4> sh, float3 n) {
+    float3 r = sh[0].rgb * 0.886227;
+    r += sh[1].rgb * 1.023328 * n.y;
+    r += sh[2].rgb * 1.023328 * n.z;
+    r += sh[3].rgb * 1.023328 * n.x;
+    r += sh[4].rgb * 0.858086 * n.x * n.y;
+    r += sh[5].rgb * 0.858086 * n.y * n.z;
+    r += sh[6].rgb * 0.247708 * (3.0 * n.z * n.z - 1.0);
+    r += sh[7].rgb * 0.858086 * n.x * n.z;
+    r += sh[8].rgb * 0.429043 * (n.x * n.x - n.y * n.y);
     return max(r, 0.0) / PI;
+}
+float3 evalSH9(float3 n) { return evalSH9From(gSkySH, n); }
+// Ambient irradiance / PI for a surface at distance dist from the camera: the reflection probe's irradiance
+// (sky + sunlit/shadowed surroundings seen from the camera: one-bounce GI) near the camera, sky SH further away.
+float3 ambientIrradiance(float3 n, float dist) {
+    float3 sky = evalSH9(n);
+    float w = gAmbientParams.z * saturate(1.0 - dist / max(gAmbientParams.w, 1.0));
+    return w > 0.0 ? lerp(sky, evalSH9From(gProbeSH, n), w) : sky;
 }
 
 // Shading model ids stored in gbuffer

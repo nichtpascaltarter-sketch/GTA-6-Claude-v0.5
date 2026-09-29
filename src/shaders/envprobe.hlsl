@@ -11,6 +11,7 @@ Texture2D<float3> tPEmissive : register(t6);
 Texture2D<float> tPDepth : register(t7);
 TextureCube<float4> tSourceCube : register(t8);
 RWTexture2DArray<float4> uDestCube : register(u0);
+RWStructuredBuffer<float4> uProbeSH : register(u1);
 
 cbuffer ProbeCB : register(b2) {
     float4 gProbe0;   // x face, y resolution, z roughness (prefilter), w destination size (prefilter)
@@ -161,4 +162,40 @@ void csPrefilter(uint3 id : SV_DispatchThreadID) {
         wsum += NoL;
     }
     uDestCube[uint3(id.xy, face)] = float4(sum / max(wsum, 1e-5), 1);
+}
+
+// Project the finished probe onto SH9 (irradiance of the camera's surroundings), blended with the previous
+// projection (gProbe0.z = blend towards the new value). Single group of 64 threads, 1024 directions.
+groupshared float3 gsPSH[64][9];
+[numthreads(64, 1, 1)]
+void csProbeSH(uint gi : SV_GroupIndex) {
+    float3 acc[9];
+    [unroll] for (int k = 0; k < 9; k++) acc[k] = 0;
+    [loop] for (int s = 0; s < 16; s++) {
+        uint idx = gi * 16 + s;
+        float u = ((idx % 32) + 0.5) / 32.0, v = ((idx / 32) + 0.5) / 32.0;
+        float phi = u * TWO_PI;
+        float cosT = 1.0 - 2.0 * v;
+        float sinT = sqrt(saturate(1.0 - cosT * cosT));
+        float3 d = float3(sinT * cos(phi), sinT * sin(phi), cosT);
+        float3 L = min(tSourceCube.SampleLevel(sLinearClamp, d, gProbe1.x).rgb, 30000.0);
+        float w = 4.0 * PI / 1024.0;
+        acc[0] += L * 0.282095 * w;
+        acc[1] += L * 0.488603 * d.y * w;
+        acc[2] += L * 0.488603 * d.z * w;
+        acc[3] += L * 0.488603 * d.x * w;
+        acc[4] += L * 1.092548 * d.x * d.y * w;
+        acc[5] += L * 1.092548 * d.y * d.z * w;
+        acc[6] += L * 0.315392 * (3.0 * d.z * d.z - 1.0) * w;
+        acc[7] += L * 1.092548 * d.x * d.z * w;
+        acc[8] += L * 0.546274 * (d.x * d.x - d.y * d.y) * w;
+    }
+    [unroll] for (int k2 = 0; k2 < 9; k2++) gsPSH[gi][k2] = acc[k2];
+    GroupMemoryBarrierWithGroupSync();
+    if (gi < 9) {
+        float3 sum = 0;
+        for (int t = 0; t < 64; t++) sum += gsPSH[t][gi];
+        float4 prev = uProbeSH[gi];
+        uProbeSH[gi] = float4(lerp(prev.rgb, sum, gProbe0.z), 0);
+    }
 }

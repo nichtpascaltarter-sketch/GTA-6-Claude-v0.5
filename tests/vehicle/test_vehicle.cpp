@@ -519,6 +519,172 @@ void testCar(const VehicleModel& m, CarReport& rep) {
 }
 
 
+// ---------------------------------------------------------------------------------------------------------------
+// Driving feel (cars): steering response with the game's keyboard ramp, weight transfer, drifts, burnouts
+struct FeelReport {
+    std::string name;
+    VehicleClass cls;
+    float yaw90Kb = -1, yaw90Pad = -1, yawOver = 0, latG100 = 0, release10 = -1, roll100 = 0;
+    float dive = 0, squat = 0;
+    float driftTime = 0, driftAngle = 0, driftSpeed = 0;
+    float burnMove = 0, burnSlip = 0, burnLaunch = -1;
+};
+
+// The game ramps keyboard steering (player.cpp): 3.2/s toward a larger input, 6/s back toward center.
+inline float keyboardRamp(float cur, float target, float dt) {
+    float rate = fabsf(target) > fabsf(cur) ? 3.2f : 6.f;
+    return cur + Clamp(target - cur, -rate * dt, rate * dt);
+}
+
+// Body slip angle (rad): + = velocity points to the right of the nose.
+inline float bodySlip(const Runner& q) {
+    vec3 v = q.s.body.vel, f = q.s.forward(), rt = q.s.right();
+    return atan2f(dot(v, rt), Max(fabsf(dot(v, f)), 0.5f));
+}
+
+void testFeel(const VehicleModel& m, FeelReport& rep) {
+    gPG->resetColliders();
+    Runner r;
+    // ---- step steer at 100 km/h: keyboard (ramped) and pad (raw step) ----
+    for (int pad = 0; pad < 2; pad++) {
+        ScenarioTrace st(r, pad ? "feel_step_pad" : "feel_step_kb");
+        r.init(m, kPadStart + vec3(0.f, -80.f, 0.f), -kHalfPi);
+        if (accelTo(r, 27.8f, 40.f) < 0.f) return;
+        r.run(1.f, [&](VehicleControls& c, Runner& q) { holdSpeed(c, q, 27.8f); }, [](Runner&) { return false; });
+        float in = 0.f, t0 = r.t, yawSS = 0.f, yawMax = 0.f, rollMax = 0.f, latAcc = 0.f;
+        int n = 0;
+        std::vector<std::pair<float, float>> yawLog;
+        r.run(3.f,
+              [&](VehicleControls& c, Runner& q) {
+                  in = pad ? -1.f : keyboardRamp(in, -1.f, 1.f / 120.f);  // full left
+                  c.steer = in;
+                  holdSpeed(c, q, 27.8f);
+              },
+              [&](Runner& q) {
+                  float yr = q.s.body.angVel.z;
+                  yawLog.push_back({q.t - t0, yr});
+                  yawMax = Max(yawMax, yr);
+                  rollMax = Max(rollMax, fabsf(q.roll()));
+                  if (q.t - t0 > 2.f) {
+                      yawSS += yr;
+                      latAcc += fabsf(yr * q.s.speed());
+                      n++;
+                  }
+                  return false;
+              });
+        yawSS = n ? yawSS / n : 0.f;
+        float t90 = -1.f;
+        for (auto& e : yawLog)
+            if (yawSS > 0.01f && e.second >= 0.9f * yawSS) {
+                t90 = e.first;
+                break;
+            }
+        if (pad) {
+            rep.yaw90Pad = t90;
+            continue;
+        }
+        rep.yaw90Kb = t90;
+        rep.yawOver = yawSS > 0.01f ? (yawMax / yawSS - 1.f) * 100.f : 0.f;
+        rep.latG100 = n ? latAcc / n / 9.81f : 0.f;
+        rep.roll100 = rollMax * kRadToDeg;
+        // release: yaw rate back under 10 % of the steady value
+        float tr = r.t;
+        rep.release10 = r.run(3.f,
+                              [&](VehicleControls& c, Runner& q) {
+                                  in = keyboardRamp(in, 0.f, 1.f / 120.f);
+                                  c.steer = in;
+                                  holdSpeed(c, q, 27.8f);
+                              },
+                              [&](Runner& q) { return fabsf(q.s.body.angVel.z) < 0.1f * yawSS; });
+        (void)tr;
+    }
+    // ---- dive under full braking from 100 km/h, squat at a full-throttle launch ----
+    {
+        ScenarioTrace st(r, "feel_pitch");
+        r.init(m, kPadStart + vec3(0.f, 60.f, 0.f), -kHalfPi);
+        float pMax = 0.f;
+        r.run(1.5f, [](VehicleControls& c, Runner&) { c.throttle = 1.f; }, [&](Runner& q) {
+            pMax = Max(pMax, q.pitch());
+            return false;
+        });
+        rep.squat = pMax * kRadToDeg;
+        accelTo(r, 27.8f, 40.f);
+        float pMin = 0.f;
+        r.run(1.2f, [](VehicleControls& c, Runner&) { c.brake = 1.f; }, [&](Runner& q) {
+            pMin = Min(pMin, q.pitch());
+            return q.s.speed() < 1.f;
+        });
+        rep.dive = -pMin * kRadToDeg;
+    }
+    // ---- handbrake drift from 60 km/h: steer into the corner + handbrake, then hold the corner input and modulate
+    // the throttle (the game's countersteer assist does the rest) ----
+    {
+        ScenarioTrace st(r, "feel_drift");
+        r.init(m, kPadStart + vec3(200.f, -100.f, 0.f), -kHalfPi);
+        accelTo(r, 16.7f, 30.f);
+        float in = 0.f, t0 = r.t;
+        r.run(0.5f,
+              [&](VehicleControls& c, Runner& q) {
+                  in = keyboardRamp(in, -1.f, 1.f / 120.f);
+                  c.steer = in;
+                  c.handbrake = true;
+                  c.throttle = 0.6f;
+                  (void)q;
+              },
+              [](Runner&) { return false; });
+        float tDrift = 0.f, angAcc = 0.f, spdAcc = 0.f;
+        bool ended = false;
+        r.run(10.f,
+              [&](VehicleControls& c, Runner& q) {
+                  float beta = fabsf(bodySlip(q));
+                  // hold the corner direction; less input as the slide grows (players ease off to countersteer)
+                  in = keyboardRamp(in, beta > 0.6f ? 0.3f : -0.6f, 1.f / 120.f);
+                  c.steer = in;
+                  c.throttle = Saturate(0.55f + 2.5f * (0.45f - beta));
+              },
+              [&](Runner& q) {
+                  float beta = fabsf(bodySlip(q)) * kRadToDeg;
+                  if (!ended && q.s.speed() > 4.f && beta > 10.f && beta < 80.f) {
+                      tDrift += 1.f / 120.f;
+                      angAcc += beta;
+                      spdAcc += q.s.speed();
+                  } else if (q.t - t0 > 1.0f) {
+                      ended = true;
+                  }
+                  return ended;
+              });
+        rep.driftTime = tDrift;
+        int nd = (int)(tDrift * 120.f + 0.5f);
+        rep.driftAngle = nd ? angAcc / nd : 0.f;
+        rep.driftSpeed = nd ? spdAcc / nd * 3.6f : 0.f;
+    }
+    // ---- burnout: throttle + brake at a standstill for 3 s, then release the brake ----
+    {
+        ScenarioTrace st(r, "feel_burnout");
+        r.init(m, kPadStart + vec3(400.f, 100.f, 0.f), -kHalfPi);
+        r.run(0.5f, [](VehicleControls&, Runner&) {}, [](Runner&) { return false; });
+        vec3 p0 = r.pos();
+        float slipMax = 0.f;
+        r.run(3.f, [](VehicleControls& c, Runner&) { c.throttle = 1.f; c.brake = 1.f; }, [&](Runner& q) {
+            for (int i = 0; i < q.s.wheelCount; i++) slipMax = Max(slipMax, q.s.wheels[i].slip);
+            return false;
+        });
+        rep.burnMove = length(r.pos() - p0);
+        rep.burnSlip = slipMax;
+        rep.burnLaunch = r.run(10.f, [](VehicleControls& c, Runner&) { c.throttle = 1.f; }, [](Runner& q) { return q.s.forwardSpeed() > 13.9f; });
+    }
+}
+
+void printFeelTable(const std::vector<FeelReport>& reps) {
+    fprintf(gOut, "\n### Driving feel (cars, keyboard input ramped like player.cpp)\n\n");
+    fprintf(gOut, "| model | class | yaw 90%% s kb / pad @100 | yaw overshoot %% | full-lock lat g @100 | release to 10%% s | roll @100 deg | brake dive deg | launch squat deg | drift s / deg / km/h | burnout moved m / slip / 0-50 after s |\n");
+    fprintf(gOut, "|---|---|---|---|---|---|---|---|---|---|---|\n");
+    for (auto& r : reps)
+        fprintf(gOut, "| %s | %s | %.2f / %.2f | %.0f | %.2f | %.2f | %.1f | %.1f | %.1f | %.1f / %.0f / %.0f | %.1f / %.1f / %.1f |\n", r.name.c_str(), className(r.cls),
+                r.yaw90Kb, r.yaw90Pad, r.yawOver, r.latG100, r.release10, r.roll100, r.dive, r.squat, r.driftTime, r.driftAngle, r.driftSpeed, r.burnMove,
+                r.burnSlip, r.burnLaunch);
+}
+
 // Metadata audit: prints the physics-relevant metadata of each model and flags values that produce bad handling.
 void auditModel(const VehicleModel& m) {
     VehicleState st;
@@ -1238,7 +1404,7 @@ void printBikeTable(const std::vector<CarReport>& reps) {
 }  // namespace VT
 
 int main(int argc, char** argv) {
-    bool synthetic = true, real = false, useModels = false, audit = false;
+    bool synthetic = true, real = false, useModels = false, audit = false, feel = true, feelOnly = false;
     int realRoutes = 2;
     std::vector<vec3> probes;
     float realLen = 6000.f;
@@ -1260,6 +1426,8 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--trace") && i + 1 < argc) gTrace = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--scenario") && i + 1 < argc) gTraceScenario = argv[++i];
         else if (!strcmp(argv[i], "--wheels")) gWheelTrace = true;
+        else if (!strcmp(argv[i], "--nofeel")) feel = false;
+        else if (!strcmp(argv[i], "--feelonly")) feelOnly = true;
     }
     if (outPath) gOut = fopen(outPath, "w");
     Jobs::init(Max(1, (int)std::thread::hardware_concurrency() - 1));
@@ -1289,6 +1457,7 @@ int main(int argc, char** argv) {
     if (synthetic) {
         std::vector<CarReport> cars;
         for (auto& m : models) {
+            if (feelOnly) break;
             if (only && strcmp(only, className(m.cls)) && strcmp(only, m.name.c_str())) continue;
             if (m.cls >= VC_BOAT) continue;
             CarReport rep;
@@ -1298,11 +1467,27 @@ int main(int argc, char** argv) {
             cars.push_back(rep);
             fprintf(stderr, "done %s\n", m.name.c_str());
         }
-        printCarTable(cars);
-        printBikeTable(cars);
+        if (!feelOnly) {
+            printCarTable(cars);
+            printBikeTable(cars);
+        }
+        if (feel) {
+            std::vector<FeelReport> fr;
+            for (auto& m : models) {
+                if (only && strcmp(only, className(m.cls)) && strcmp(only, m.name.c_str())) continue;
+                if (m.cls >= VC_MOTORBIKE) continue;
+                FeelReport rep;
+                rep.name = m.name;
+                rep.cls = m.cls;
+                testFeel(m, rep);
+                fr.push_back(rep);
+            }
+            printFeelTable(fr);
+        }
         std::vector<BoatReport> boats;
         std::vector<AirReport> air;
         for (auto& m : models) {
+            if (feelOnly) break;
             if (only && strcmp(only, className(m.cls)) && strcmp(only, m.name.c_str())) continue;
             if (m.cls == VC_BOAT || m.cls == VC_JETSKI || m.cls == VC_AIRBOAT) {
                 BoatReport rep;

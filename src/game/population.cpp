@@ -624,7 +624,8 @@ void GameWorld::updatePopulation(float dt) {
         const AI::Lane& L = laneGraph.lanes[lane];
         if ((L.flags & AI::LF_NOTRAFFIC) || ((L.flags & AI::LF_DIRT) && (h & 3) != 0)) continue;
         if (L.u1 - L.u0 < 12.f) continue;
-        u = Clamp(u, L.u0 + 3.f, L.u1 - 6.f);
+        // keep room to stop before the end of the lane (a red light may be just ahead)
+        u = Clamp(u, L.u0 + 3.f, Max(L.u0 + 3.f, L.u1 - Min(25.f, (L.u1 - L.u0) * 0.5f)));
         vec3 c = laneGraph.lanePos(lane, u);
         float d = length(c.xy() - pp.xy());
         if (!warm && inCameraView(c + vec3(0, 0, 1.f), 6.f) && d < 210.f) continue;
@@ -691,6 +692,7 @@ void GameWorld::updatePopulation(float dt) {
         else if (spec.cls == Vehicles::VC_AMBULANCE) va.role = VR_AMBULANCE;
         else if (spec.cls == Vehicles::VC_FIRETRUCK) va.role = VR_FIRETRUCK;
         float v0 = Min(L.speed, 16.f) * (0.55f + hashToFloat(hash32(h * 11u)) * 0.3f);
+        v0 = Min(v0, sqrtf(2.f * 3.f * Max(L.u1 - u - 8.f, 1.f)));   // able to stop comfortably at the lane end
         v.sim.body.vel = vec3(t * v0, 0.f);
         // far and unseen: start as a kinematic dummy right away (no physics until it comes near)
         if (d > 215.f && !inCameraView(c, 4.f)) traffic.toDummy(vid, v.sim);

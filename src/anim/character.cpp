@@ -319,6 +319,68 @@ CharacterDesc randomCharacter(u32 seed, int role) {
     return d;
 }
 
+// Bake ambient occlusion from the body's signed distance field into the vertex colours (all layers: skin, clothes,
+// hair). Samples the SDF along each normal and measures how much closer the body is than open space would be;
+// darkens armpits, the crotch, the neck under the jaw, ear and lid folds, nostrils, the mouth cavity and clothing
+// tucked against the body. Small-scale only (the renderer's screen-space AO handles the large scale).
+namespace detail {
+static void bakeOcclusion(const BuildCtx& c, MeshB& m) {
+    const float s = c.D->s;
+    const float dk[3] = {0.01f, 0.025f, 0.055f};
+    const float wk[3] = {0.45f, 0.35f, 0.2f};
+    const float reach = 0.06f * s, cap = 0.065f * s;
+    // uniform grid of candidate primitive lists (cells of 4 cm; a list holds every primitive whose bounding
+    // sphere comes within reach + cap + blend of the cell), so each sample evaluates only nearby primitives
+    const Sdf& sdf = c.sdf;
+    vec3 lo(1e9f), hi(-1e9f);
+    for (const BVert& v : m.v) {
+        lo = vmin(lo, v.p);
+        hi = vmax(hi, v.p);
+    }
+    const float cell = 0.04f;
+    lo = lo - vec3(0.01f);
+    int nx = Max(1, (int)ceilf((hi.x - lo.x) / cell) + 1), ny = Max(1, (int)ceilf((hi.y - lo.y) / cell) + 1),
+        nz = Max(1, (int)ceilf((hi.z - lo.z) / cell) + 1);
+    // candidate lists are built lazily, only for cells that contain vertices
+    std::vector<int> cellStart((size_t)nx * ny * nz, -1), cellCount((size_t)nx * ny * nz, 0);
+    std::vector<u16> items;
+    items.reserve(64 * 1024);
+    const float halfDiag = cell * 0.8661f;
+    for (BVert& v : m.v) {
+        u32 mat = v.mat;
+        if (mat == MAT_EYE || mat == MAT_EMISSIVE || mat == MAT_CHROME) continue;
+        vec3 n = v.n;
+        if (!(length2(n) > 0.5f)) continue;
+        int x = Clamp((int)((v.p.x - lo.x) / cell), 0, nx - 1), y = Clamp((int)((v.p.y - lo.y) / cell), 0, ny - 1),
+            z = Clamp((int)((v.p.z - lo.z) / cell), 0, nz - 1);
+        size_t ci = ((size_t)z * ny + y) * nx + x;
+        if (cellStart[ci] < 0) {
+            cellStart[ci] = (int)items.size();
+            vec3 cc = lo + vec3((x + 0.5f) * cell, (y + 0.5f) * cell, (z + 0.5f) * cell);
+            for (size_t i = 0; i < sdf.prims.size() && i < 65535; i++) {
+                const Prim& q = sdf.prims[i];
+                if (length(cc - q.bc) - q.br - halfDiag > reach + cap + q.k) continue;
+                items.push_back((u16)i);
+            }
+            cellCount[ci] = (int)items.size() - cellStart[ci];
+        }
+        const u16* list = items.data() + cellStart[ci];
+        int cnt = cellCount[ci];
+        if (cnt == 0) continue;
+        float s0 = Max(0.f, sdf.evalList(v.p, list, cnt, cap));
+        float occ = 0.f;
+        for (int k = 0; k < 3; k++) {
+            float d = dk[k] * s;
+            float sd = sdf.evalList(v.p + n * d, list, cnt, Min(cap, s0 + d));
+            occ += wk[k] * Saturate((s0 + d - sd) / d);
+        }
+        float ao = 1.f - Saturate(occ * 1.25f - 0.05f);
+        float k = mat == MAT_SKIN ? 0.42f : (mat == MAT_HAIR ? 0.3f : 0.35f);
+        v.col = v.col * (1.f - k * (1.f - ao));
+    }
+}
+}  // namespace detail
+
 void buildCharacterMesh(const CharacterDesc& d, const Skeleton& skel, SkinnedMeshData& out) {
     using namespace detail;
     BodyDims D;
@@ -339,6 +401,7 @@ void buildCharacterMesh(const CharacterDesc& d, const Skeleton& skel, SkinnedMes
     MeshB fin;
     compactInto(c.m, hide, fin);
     fin.append(extra);
+    bakeOcclusion(c, fin);
     fixUvSeams(fin);
     emitMesh(fin, out);
 }

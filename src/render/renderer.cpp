@@ -320,7 +320,7 @@ void Renderer::updateFrameConstants(const Camera& cam, const Environment& env, f
     f.fog = vec4(env.fogDensity, 0.15f, 0.f, froxels ? 1.0f + env.fogDensity * 0.5f + env.rain * 0.5f : 1.0f + env.fogDensity * 2.f + env.rain * 1.5f);
     f.exposure = vec4(exposure, 1.f / exposure, ev100, nightFactor);
     f.camForward = vec4(cam.forward(), cam.fovY);
-    f.renderParams = vec4((float)settings.shadowCascades, debugView > 0 ? debugSplit : 0.f, settings.ssr ? 1.f : 0.f, (float)debugView);
+    f.renderParams = vec4((float)settings.shadowCascades, debugView > 0 ? debugSplit : 0.f, settings.contactShadows ? 1.f : 0.f, (float)debugView);
     f.lightning = vec4(env.lightning, 0, 0, 0);
     f.cloudShadow = vec4((float)cam.pos.x, (float)cam.pos.y, 8192.f, 0.85f);
     f.planetParams = vec4(0, 0, Max(0.001f, (float)cam.pos.z * 0.001f + 0.002f), env.haze * (1.f + env.rain * 2.f + env.fogDensity * 3.f));
@@ -360,22 +360,23 @@ void Renderer::bindFrame() {
     gfx::ctx->CSSetSamplers(0, 7, samps);
 }
 
-// Global shader resources (see common.hlsli): t32..t43
+// Global shader resources (see common.hlsli): t32..t44
 static void bindGlobals(Renderer& r, bool withShadow) {
-    ID3D11ShaderResourceView* g[12] = {r.sky->shBuf.srv, r.sky->transmittance.srv, r.sky->aerial.srv,
+    ID3D11ShaderResourceView* g[13] = {r.sky->shBuf.srv, r.sky->transmittance.srv, r.sky->aerial.srv,
                                        withShadow ? r.shadows->map.srv : nullptr, r.sky->skyView.srv,
                                        withShadow ? r.clouds->shadowMap.srv : nullptr,
                                        r.fog->output(r.settings), r.envProbe->srv(), r.post->exposureBuf.srv,
-                                       r.weather->overheadSrv(), r.terrain->waterTex.srv, r.terrain->heightTex.srv};
-    gfx::ctx->VSSetShaderResources(32, 12, g);
-    gfx::ctx->PSSetShaderResources(32, 12, g);
-    gfx::ctx->CSSetShaderResources(32, 12, g);
+                                       r.weather->overheadSrv(), r.terrain->waterTex.srv, r.terrain->heightTex.srv,
+                                       r.envProbe->shSrv()};
+    gfx::ctx->VSSetShaderResources(32, 13, g);
+    gfx::ctx->PSSetShaderResources(32, 13, g);
+    gfx::ctx->CSSetShaderResources(32, 13, g);
 }
 static void unbindGlobals() {
-    ID3D11ShaderResourceView* n[12] = {};
-    gfx::ctx->VSSetShaderResources(32, 12, n);
-    gfx::ctx->PSSetShaderResources(32, 12, n);
-    gfx::ctx->CSSetShaderResources(32, 12, n);
+    ID3D11ShaderResourceView* n[13] = {};
+    gfx::ctx->VSSetShaderResources(32, 13, n);
+    gfx::ctx->PSSetShaderResources(32, 13, n);
+    gfx::ctx->CSSetShaderResources(32, 13, n);
 }
 
 void Renderer::render(const Camera& cam, const Environment& env, float dt) {
@@ -412,6 +413,8 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     envProbe->update(*this);
     bindFrame();
     frame.envProbe = envProbe->valid ? vec4(rel(envProbe->frontPos, cam.pos), (float)(envProbe->mips - 1)) : vec4(0.f);
+    frame.ambientParams.z = envProbe->shValid ? 1.f : 0.f;
+    frame.ambientParams.w = 280.f;
     frameCB.data = frame;
     frameCB.upload();
     bindGlobals(*this, false);
@@ -528,6 +531,14 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     gfx::setViewport((float)width, (float)height);
     c->OMSetDepthStencilState(gfx::states.depthGreaterWrite, 0);
     water->draw(*this, *terrain, hdrCopy.srv, depthCopy.srv, env.wind, ss->hiz.srv, ss->hizMips);
+    c->OMSetRenderTargets(0, nullptr, nullptr);
+    gfx::gpuTimerEnd();
+
+    // Vehicle windows (forward, premultiplied over the lit cabins; depth test without write)
+    gfx::gpuTimerBegin("glass");
+    c->OMSetRenderTargets(1, &hdr.rtv, depth.dsv);
+    gfx::setViewport((float)width, (float)height);
+    dynamic->drawGlass(*this);
     c->OMSetRenderTargets(0, nullptr, nullptr);
     gfx::gpuTimerEnd();
 

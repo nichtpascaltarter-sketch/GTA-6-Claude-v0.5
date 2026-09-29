@@ -374,6 +374,24 @@ struct App {
             }
             game.rig.yaw = p.yaw;
         }
+        if (autoplay == "traffic" || autoplay == "wanted") {
+            // AI tests: a busy downtown corner (traffic, pedestrians, signals) / a police chase at 3 stars
+            Ped& p = game.peds[game.player];
+            vec2 q = autoplay == "traffic" ? vec2(2713.f, 763.f) : vec2(2640.f, 700.f);
+            p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+            p.yaw = autoplay == "traffic" ? 2.4f : 0.f;
+            game.rig.yaw = p.yaw;
+            game.populationWarmup = 2.5f;
+            if (autoplay == "wanted") {
+                game.giveWeapon(game.player, WPN_PISTOL, 200);
+                p.weapon = WPN_PISTOL;
+                p.armor = 100.f;
+                game.pinfo.wantedHeat = 5.5f;
+                game.pinfo.wanted = 3;
+                game.pinfo.lastSeenPos = p.pos;
+                game.pinfo.lastSeenTime = (float)game.time;
+            }
+        }
         autoTime = 0.f;
         autoShot = 0;
     }
@@ -406,6 +424,15 @@ struct App {
         } else if (autoplay == "boat") {
             c.accel = 1.f;
             c.steer = t > 8.f ? 0.5f : 0.f;
+        } else if (autoplay == "traffic" || autoplay == "wanted") {
+            // traffic: stand at the corner and look around; wanted: run from the police with the gun drawn
+            if (autoplay == "traffic") c.look = vec2(0.004f, 0.f);
+            else {
+                c.move = vec2(sinf(t * 0.23f) * 0.5f, 1.f);
+                c.sprint.down = fmodf(t, 10.f) < 6.f;
+                c.look = vec2(sinf(t * 0.3f) * 0.006f, 0.f);
+            }
+            if ((int)(t / 5.f) != (int)((t - dt) / 5.f)) LOG("autoplay %s t=%.1f %s", autoplay.c_str(), t, game.aiDebugText().c_str());
         } else if (autoplay == "shoot") {
             c.usingPad = true;                        // controller soft lock-on
             c.aim.down = fmodf(t, 3.f) > 0.15f;       // re-press to re-acquire targets
@@ -521,7 +548,10 @@ struct App {
                 cam = rc;
                 renderer.render(rc, env, dt);
 #ifdef HAVE_GAME_UI
-                if (!menuOpen && pausePressed) openPause(UI::MENU_PAUSE);
+                if (!menuOpen && game.requestSaveMenu) {   // safehouse bed / save point
+                    game.requestSaveMenu = false;
+                    openPause(UI::MENU_SAVE);
+                } else if (!menuOpen && pausePressed) openPause(UI::MENU_PAUSE);
                 else if (!menuOpen && mapPressed) openPause(UI::MENU_MAP);
 #else
                 (void)pausePressed;
@@ -537,6 +567,7 @@ struct App {
                 game.fillHud(hud, dt);
                 bool showHud = menu.screen == UI::MENU_NONE && menu.settings.showHud && game.hudVisible;
                 if (showHud) UI::drawHud(hud, dt);
+                if (menu.screen == UI::MENU_NONE) drawMissionOverlay(game, dt);   // shop, phone and choice menus
                 drawCinematicOverlay();
             }
             if (state == AS_MENU || (state == AS_PLAYING && menu.screen != UI::MENU_NONE)) {
@@ -547,6 +578,12 @@ struct App {
 #endif
             drawDebugText();
             UI::endFrame();
+#ifdef HAVE_GAMEPLAY
+            if (state == AS_PLAYING && !game.requestScreenshot.empty()) {   // mission tests: shots include the HUD
+                gfx::saveScreenshotBMP(game.requestScreenshot.c_str());
+                game.requestScreenshot.clear();
+            }
+#endif
             gfx::gpuTimersResolve();
             // ---- automation
             if (autoShots && state == AS_FREECAM) {
@@ -574,10 +611,12 @@ struct App {
                         int np = 0, nv = 0;
                         for (auto& q : game.peds) np += q.used;
                         for (auto& q : game.vehicles) nv += q.used;
+                        float memWs = 0.f, memPriv = 0.f;
+                        Platform::memoryUsageMB(memWs, memPriv);
                         LOG("autoplay t=%.1f pos %.1f %.1f %.1f state %d health %.0f veh %d speed %.1f | peds %d vehicles %d wanted %d | cpu ms "
-                            "player %.2f ai %.2f veh %.2f peds %.2f",
+                            "player %.2f ai %.2f veh %.2f peds %.2f | mem %.0f MB (private %.0f)",
                             autoTime, pl->pos.x, pl->pos.y, pl->pos.z, (int)pl->state, pl->health, pv, pv >= 0 ? game.vehicles[pv].sim.speed() : length(pl->vel),
-                            np, nv, game.pinfo.wanted, game.profPlayer, game.profAI, game.profVehicles, game.profPeds);
+                            np, nv, game.pinfo.wanted, game.profPlayer, game.profAI, game.profVehicles, game.profPeds, memWs, memPriv);
                     }
                     autoShot++;
                 }

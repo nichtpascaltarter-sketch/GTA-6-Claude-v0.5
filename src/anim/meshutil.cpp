@@ -121,6 +121,25 @@ float Sdf::eval(vec3 p, u32 mask) const {
     return d;
 }
 
+float Sdf::evalList(vec3 p, const u16* list, int n, float cap) const {
+    float d = cap;
+    for (int i = 0; i < n; i++) {
+        const Prim& q = prims[list[i]];
+        if (q.op == OP_UNION) {
+            float lb = length(p - q.bc) - q.br;
+            if (lb > d + q.k) continue;
+            d = sminf(d, primDist(q, p), q.k);
+        } else if (q.op == OP_SUB) {
+            float lb = length(p - q.bc) - q.br;
+            if (lb > -d + q.k) continue;
+            d = smaxf(d, -primDist(q, p), q.k);
+        } else {
+            d = smaxf(d, primDist(q, p), q.k);
+        }
+    }
+    return d;
+}
+
 vec3 Sdf::grad(vec3 p, u32 mask) const {
     const float h = 0.0006f;
     vec3 k0(1, -1, -1), k1(-1, -1, 1), k2(-1, 1, -1), k3(1, 1, 1);

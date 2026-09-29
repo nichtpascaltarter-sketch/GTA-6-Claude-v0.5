@@ -95,6 +95,7 @@ struct NodeInfo {
     u8 control = 0;           // 0 uncontrolled (priority rules), 1 all-way stop, 2 signals
     u8 axisCount = 0;
     bool deadEnd = false;
+    bool uturnBlocked = false;    // dead end whose turning circle is obstructed (routing avoids it)
     bool gradeSeparated = false;
     int firstConn = 0, connCount = 0;
     std::vector<Approach> approaches;

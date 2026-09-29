@@ -14,6 +14,7 @@ namespace Speech {
 namespace detail {
 
 static const float kFrameSec = 0.0025f;
+static const float kWhisperGain = 0.1f;  // noise excitation level of whispered voicing (relative to glottal flow)
 
 struct Frame {
     float f0;
@@ -24,6 +25,7 @@ struct Frame {
     float ff[3], fb[3], fa[3], ab; // frication resonators (Hz, Hz, linear gain), bypass gain
     float fhp;                     // frication high-pass cutoff (Hz)
     float rd, tilt, creak;
+    float breath, jit, whisper;    // speaking-style source modifiers: extra breathiness, jitter scale, whisper
 };
 
 // Keypoint envelope, evaluated with a forward-moving cursor.
@@ -175,7 +177,20 @@ struct FrameBuilder {
                 if (hasFlag(nx, PF_LABIAL)) a.T0[1] = a.T1[1] = a.T0[1] - 150.f * fsc;
                 if (hasFlag(nx, PF_VELAR) || hasFlag(nx, PF_POSTALV)) a.T1[1] += 100.f * fsc;
             }
-            // Rhotic coda: vowel + R is handled by the R segment; ER after W lowers F2 a bit more.
+            // Accent vowel qualities (absolute targets) and speaking-style formant scaling (jaw / smile).
+            const Seg& sg = S[i];
+            if (sg.fo[0] > 0.f) {
+                for (int k = 0; k < 3; k++) {
+                    a.T0[k] = sg.fo[k] * fsc;
+                    a.T1[k] = sg.fo[3 + k] * fsc;
+                }
+                a.diph = fabsf(sg.fo[3] - sg.fo[0]) > 30.f || fabsf(sg.fo[4] - sg.fo[1]) > 60.f;
+            }
+            const StyleParams& P = u.segStyle(i);
+            if (P.f1 != 1.f || P.f23 != 1.f) {
+                a.T0[0] *= P.f1, a.T1[0] *= P.f1, a.fix[0] *= P.f1;
+                for (int k = 1; k < 3; k++) a.T0[k] *= P.f23, a.T1[k] *= P.f23, a.fix[k] *= P.f23;
+            }
         }
         // Transparent segments copy the targets of their neighbours.
         for (int i = 0; i < M; i++) {
@@ -271,6 +286,8 @@ struct FrameBuilder {
             // phrase position for intensity declination
             float emphDb = (s.flags & SF_EMPH) ? 3.f : 0.f;
             float shoutDb = (s.flags & SF_SHOUT) ? 4.f : 0.f;
+            const StyleParams& P = u.segStyle(i);
+            const float styleDb = P.loud;
             if (s.ph == PH_SIL) {
                 av.add(t0 + 0.0005f, 0.f);
                 av.add(t1, 0.f);
@@ -285,7 +302,7 @@ struct FrameBuilder {
                     if (s.stress == 1) db += 1.f;
                     else if (s.stress == 0) db -= (hasFlag(s.ph, PF_REDUCED) ? 3.5f : 2.f);
                 } else if (s.stress == 0) db -= 1.f;
-                db += emphDb + shoutDb;
+                db += emphDb + shoutDb + styleDb;
                 float A = dbLin(db);
                 float on = t0 + s.vot;
                 bool fromSilence = !prevVoiced && !prevVoicedRelease;
@@ -311,7 +328,7 @@ struct FrameBuilder {
                     av.add(t1 - 0.004f, A);
                 }
             } else if (hasFlag(s.ph, PF_FRIC) && hasFlag(s.ph, PF_VOICED)) {
-                float A = dbLin(p.av + shoutDb);
+                float A = dbLin(p.av + shoutDb + styleDb);
                 av.add(t0 + 0.008f, A);
                 bool nextVoicelessObs = hasFlag(next, PF_OBSTRUENT) && !hasFlag(next, PF_VOICED);
                 if (nextVoicelessObs || next == PH_SIL || i + 1 >= M) {
@@ -377,7 +394,7 @@ struct FrameBuilder {
 
             // ---- aspiration
             if (s.ph == PH_HH) {
-                float L = dbLin(p.ah + ((s.flags & SF_STRESSED) ? 1.f : -2.f) + shoutDb);
+                float L = dbLin(p.ah + ((s.flags & SF_STRESSED) ? 1.f : -2.f) + shoutDb + 0.5f * styleDb);
                 ah.add(t0, 0.f);
                 ah.add(t0 + std::min(0.015f, 0.3f * d), L);
                 ah.add(t1 - 0.004f, L * 0.8f);
@@ -425,7 +442,7 @@ struct FrameBuilder {
                 fhp.add(tb, hp);
             };
             if (hasFlag(s.ph, PF_FRIC)) {
-                float db = p.af + ((s.flags & SF_STRESSED) ? 1.f : -1.f) + shoutDb * 0.5f;
+                float db = p.af + ((s.flags & SF_STRESSED) ? 1.f : -1.f) + (shoutDb + styleDb) * 0.5f;
                 float L = dbLin(db);
                 bool sib = hasFlag(s.ph, PF_SIBILANT);
                 float rin = std::min(sib ? 0.022f : 0.012f, 0.35f * d), rout = std::min(0.014f, 0.3f * d);
@@ -438,7 +455,7 @@ struct FrameBuilder {
             } else if (hasFlag(s.ph, PF_AFFR)) {
                 bool mergedClosure = i > 0 && hasFlag(prev, PF_STOP) && (S[i - 1].flags & SF_UNRELEASED);
                 float tc = t0 + (mergedClosure ? 0.12f : 0.45f) * d;
-                float L = dbLin(p.af + shoutDb * 0.5f);
+                float L = dbLin(p.af + (shoutDb + styleDb) * 0.5f);
                 af.add(t0, 0.f);
                 af.add(tc - 0.0005f, 0.f);
                 af.add(tc + 0.001f, L * 1.3f);
@@ -453,7 +470,7 @@ struct FrameBuilder {
                 if (affricated) burst = std::max(burst, 0.016f / std::sqrt(speed));
                 burst = std::min(burst, 0.6f * d);
                 float tb = t1 - burst;
-                float db = p.burstAf + shoutDb * 0.5f;
+                float db = p.burstAf + (shoutDb + styleDb) * 0.5f;
                 if (s.flags & (SF_UNRELEASED | SF_WEAKREL)) {
                     // weak release only when the next consonant has a different place (keeps the place cue)
                     u32 placeMask = PF_LABIAL | PF_ALVEOLAR | PF_VELAR | PF_POSTALV;
@@ -519,6 +536,8 @@ struct FrameBuilder {
                 r += 0.05f;
             }
             if (s.flags & SF_SHOUT) r -= 0.3f;
+            r += P.rd + 0.6f * P.breath;
+            tl += P.tilt;
             rd.add(t0 + 0.5f * d, Clamp(r, 0.35f, 2.6f));
             tilt.add(t0 + 0.25f * d, tl);
             tilt.add(t1 - 0.25f * d, tl);
@@ -575,7 +594,7 @@ static void buildFrames(const Utterance& u, const std::vector<F0Point>& f0pts, c
         }
         // Higher formants (fixed per voice): F4..F8 approximate the vocal tract's higher poles, which keeps
         // realistic energy above 4 kHz at high sample rates.
-        bool rhotic = hasFlag(s.ph, PF_RHOTIC);
+        bool rhotic = hasFlag(s.ph, PF_RHOTIC) && s.fo[0] <= 0.f;
         static const float kHiF[5] = {3350.f, 4250.f, 5150.f, 6100.f, 7100.f};
         static const float kHiB[5] = {250.f, 320.f, 400.f, 500.f, 650.f};
         for (int k = 0; k < 5; k++) {
@@ -623,6 +642,11 @@ static void buildFrames(const Utterance& u, const std::vector<F0Point>& f0pts, c
         F.fhp = fb.fhp.eval(t);
         F.rd = fb.rd.eval(t);
         F.tilt = fb.tilt.eval(t);
+        const StyleParams& P = u.segStyle(seg);
+        F.breath = P.breath;
+        F.jit = P.jitter;
+        F.whisper = P.whisper;
+        if (P.whisper > 0.f) F.b[0] += 80.f * P.whisper;  // whispered vowels: open glottis damps F1
 
         // F0: anchors + micro-prosody
         float st = 0.f;
@@ -637,6 +661,8 @@ static void buildFrames(const Utterance& u, const std::vector<F0Point>& f0pts, c
                 st = Lerp(p0.st, p1.st, SmoothStep(0.f, 1.f, x) * 0.5f + x * 0.5f);
             }
         }
+        if (P.tremor > 0.f)  // fearful voice tremor (~5.5 Hz, slowly varying depth)
+            st += P.tremor * sinf(kTwoPi * 5.5f * t) * (0.75f + 0.25f * sinf(kTwoPi * 0.9f * t));
         if (isVowel(s.ph)) {
             int pv = seg > 0 ? (int)S[seg - 1].ph : (int)PH_SIL;
             float on = s0 + s.vot;
@@ -652,7 +678,7 @@ static void buildFrames(const Utterance& u, const std::vector<F0Point>& f0pts, c
         F.f0 = Clamp(voice.pitch * powf(2.f, st / 12.f), 40.f, 650.f);
 
         // creak toward the end of falling phrases, stronger with roughness; creaky onset after a glottal stop
-        float creak = rough * 0.12f;
+        float creak = rough * 0.12f + 0.5f * P.creak;
         if (isVowel(s.ph) && seg > 0 && (S[seg - 1].ph == PH_Q || S[seg - 1].ph == PH_SIL))
             creak += 0.9f * (1.f - Saturate((t - s0) / 0.035f));
         // glottalized onset of a vowel-initial function word after a consonant ("in a") marks the word boundary
@@ -661,7 +687,7 @@ static void buildFrames(const Utterance& u, const std::vector<F0Point>& f0pts, c
             creak += 0.8f * (1.f - Saturate((t - s0) / 0.03f));
         if ((s.flags & SF_PHRASE_FINAL) && (s.flags & SF_PREPAUSE || (seg + 1 < M && S[seg + 1].ph == PH_SIL))) {
             float x = Saturate((t - s0) / std::max(0.02f, s.dur));
-            creak += (0.15f + 0.75f * rough) * x * x;
+            creak += (0.15f + 0.75f * rough + P.creak) * x * x;
         }
         F.creak = Saturate(creak);
     }
@@ -952,6 +978,8 @@ void render(const Utterance& u, const std::vector<F0Point>& f0pts, const Audio::
     float avA = 0, avB = 0, ahA = 0, ahB = 0, afA = 0, afB = 0, gzA = 0, gzB = 0;
     float faA[3] = {0, 0, 0}, faB[3] = {0, 0, 0}, abA = 0, abB = 0;
     float tiltA = 0.f;
+    float boostG = 0.f, boostState = 0.f;
+    const float boostA = expf(-kTwoPi * 1800.f / sr);  // one-pole low-pass for the high-shelf boost
 
     auto interp = [&](float t, Frame& o) {
         float x = t / kFrameSec;
@@ -981,6 +1009,9 @@ void render(const Utterance& u, const std::vector<F0Point>& f0pts, const Audio::
         o.rd = Lerp(A.rd, B.rd, a);
         o.tilt = Lerp(A.tilt, B.tilt, a);
         o.creak = Lerp(A.creak, B.creak, a);
+        o.breath = Lerp(A.breath, B.breath, a);
+        o.jit = Lerp(A.jit, B.jit, a);
+        o.whisper = Lerp(A.whisper, B.whisper, a);
     };
 
     Frame cur, nxt;
@@ -1008,7 +1039,8 @@ void render(const Utterance& u, const std::vector<F0Point>& f0pts, const Audio::
             for (int i = 0; i < 3; i++) fr[i].setPeak(std::min(fm.ff[i], nyq), fm.fb[i], sr);
             fricHP.highpass(fm.fhp, sr);
         }
-        // spectral tilt low-pass coefficient: attenuation "tilt" dB at 3 kHz
+        // spectral tilt low-pass coefficient: attenuation "tilt" dB at 3 kHz; negative tilt = high-frequency boost
+        boostG = fm.tilt < -0.1f ? powf(10.f, -fm.tilt / 20.f) - 1.f : 0.f;
         {
             float tl = fm.tilt;
             if (tl < 0.1f) tiltA = 0.f;
@@ -1022,6 +1054,9 @@ void render(const Utterance& u, const std::vector<F0Point>& f0pts, const Audio::
         }
         curRd = fm.rd;
         curCreak = fm.creak;
+        const float jitScale = fm.jit;
+        const float breathMixF = breathMix + 0.3f * fm.breath;
+        const float wsp = Saturate(fm.whisper);
         const float invLen = 1.f / (float)(n1 - n0);
         for (int n = n0; n < n1; n++) {
             float w = (float)(n - n0) * invLen;
@@ -1035,9 +1070,9 @@ void render(const Utterance& u, const std::vector<F0Point>& f0pts, const Audio::
                 float T = (float)t;
                 float flut = 1.f + flutterAmt * (sinf(kTwoPi * 12.7f * T + fl1) + sinf(kTwoPi * 7.1f * T + fl2) +
                                                  sinf(kTwoPi * 4.7f * T + fl3)) * (1.f / 3.f);
-                float jit = 1.f + jitterAmt * nRand.gaussish();
+                float jit = 1.f + jitterAmt * jitScale * nRand.gaussish();
                 double T0 = 1.0 / (double)(f0 * flut * jit);
-                float amp = 1.f + shimmerAmt * nRand.gaussish();
+                float amp = 1.f + shimmerAmt * jitScale * nRand.gaussish();
                 float rdv = curRd;
                 if (rough > 0.25f && (g.periodIndex & 1)) {
                     amp *= 1.f - 0.35f * (rough - 0.25f);
@@ -1083,11 +1118,16 @@ void render(const Utterance& u, const std::vector<F0Point>& f0pts, const Audio::
             // spectral tilt
             tiltState = voice + tiltA * (tiltState - voice);
             voice = tiltState;
+            if (boostG > 0.f) {
+                boostState = voice + boostA * (boostState - voice);
+                voice += boostG * (voice - boostState);
+            }
 
             // ---- aspiration: explicit (h, VOT) + breathy voicing noise, modulated by glottal flow
             float na = aspHP.tick(nAsp.gaussish());
-            float asp = na * (ahv * 0.55f + av * breathMix * (0.25f + 0.75f * Clamp(flowN, 0.f, 1.2f)));
-            float x = voice * av + asp;
+            float asp = na * (ahv * 0.55f + av * breathMixF * (0.25f + 0.75f * Clamp(flowN, 0.f, 1.2f)));
+            // whisper: the voicing source is replaced by turbulence noise through the same vocal tract
+            float x = voice * av * (1.f - wsp) + asp + (wsp > 0.f ? na * av * wsp * kWhisperGain : 0.f);
             // release transients (stop bursts exciting the vocal tract)
             if (clickIdx < clicks.size() && n >= (int)(clicks[clickIdx].first * sr)) {
                 pulsePos = 0;
@@ -1152,7 +1192,15 @@ void render(const Utterance& u, const std::vector<F0Point>& f0pts, const Audio::
             peak = std::max(peak, a);
         }
     }
-    float gain = peak > 1e-9f ? 0.8f / peak : 0.f;
+    // whispered speech is normalized to a lower peak (it is quieter); mixed utterances are weighted by time
+    float wsum = 0.f, tsum = 0.f;
+    for (int i = 0; i < (int)u.segs.size(); i++) {
+        if (u.segs[i].ph == PH_SIL) continue;
+        wsum += u.segStyle(i).whisper * u.segs[i].dur;
+        tsum += u.segs[i].dur;
+    }
+    const float peakTarget = 0.8f - 0.35f * (tsum > 0.f ? wsum / tsum : 0.f);
+    float gain = peak > 1e-9f ? peakTarget / peak : 0.f;
     int fin = std::min(nS, (int)(0.004f * sr)), fout = std::min(nS, (int)(0.010f * sr));
     for (int n = 0; n < nS; n++) {
         float gv = gain;

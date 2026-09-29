@@ -19,6 +19,7 @@ using namespace hud_detail;
 void GameWorld::fillHud(UI::HudState& h, float dt) {
     Ped* pl = playerPed();
     h = UI::HudState();
+    h.rendererScreenFx = true;   // updatePostFx grades the frame (vignettes, Focus, wheel blur, wasted/busted)
     if (!pl) return;
     vec3 pp = pl->pos.toVec3();
     h.playerPos = pp.xy();

@@ -13,6 +13,8 @@ enum MaterialId : u8 {
     // Vehicles and characters (dynamic objects)
     MAT_CARPAINT, MAT_PLASTIC, MAT_LEATHER, MAT_LIGHT_HEAD, MAT_LIGHT_TAIL, MAT_SKIN, MAT_HAIR, MAT_CLOTH, MAT_DENIM,
     MAT_EYE, MAT_TIRE, MAT_RIM, MAT_CAR_GLASS, MAT_INTERIOR, MAT_LIGHT_INDICATOR, MAT_DECAL_TEXT,
+    // see-through vehicle windows: forward-shaded after lighting (vertex colour rgb = tint, a = clarity 1 clear..0 dark)
+    MAT_CAR_WINDOW,
     MAT_COUNT
 };
 

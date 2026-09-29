@@ -13,6 +13,7 @@ struct ObjectCBData {
 struct Model {
     gfx::Buffer vb, ib;
     u32 indexCount = 0;
+    u32 glassCount = 0;   // see-through windows (MAT_CAR_WINDOW): the last glassCount indices, drawn forward after lighting
     AABB bounds;
     bool skinned = false;
     void release() { vb.release(); ib.release(); }
@@ -42,6 +43,7 @@ struct DrawItem {
 struct DynamicRenderer {
     gfx::VertexShader vsRigid, vsSkinned, vsRigidShadow, vsSkinnedShadow;
     ID3D11PixelShader* ps = nullptr;
+    ID3D11PixelShader* psGlass = nullptr;
     gfx::CBuffer<ObjectCBData> cb;
     gfx::Buffer boneBuf, prevBoneBuf;
     static const int kMaxBones = 16384;
@@ -84,6 +86,7 @@ struct DynamicRenderer {
         vsRigidShadow = gfx::loadVS("dynamic.hlsl", "vsRigidShadow", rigid, 6);
         vsSkinnedShadow = gfx::loadVS("dynamic.hlsl", "vsSkinnedShadow", skinned, 8);
         ps = gfx::loadPS("dynamic.hlsl", "psDynamic");
+        psGlass = gfx::loadPS("dynamic.hlsl", "psGlass");
         cb.create();
         boneBuf = gfx::createBuffer(kMaxBones * 64, 64, gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
         prevBoneBuf = gfx::createBuffer(kMaxBones * 64, 64, gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
@@ -92,9 +95,21 @@ struct DynamicRenderer {
     Model* createModel(const MeshData& m) {
         Model* md = new Model();
         if (m.indices.empty()) return md;
+        // opaque triangles first, see-through windows last (their own forward pass)
+        std::vector<u32> idx;
+        idx.reserve(m.indices.size());
+        u32 glass = 0;
+        for (int pass = 0; pass < 2; pass++)
+            for (size_t t = 0; t + 2 < m.indices.size(); t += 3) {
+                bool isGlass = (m.verts[m.indices[t]].mat & 0xffu) == MAT_CAR_WINDOW;
+                if (isGlass != (pass == 1)) continue;
+                idx.insert(idx.end(), {m.indices[t], m.indices[t + 1], m.indices[t + 2]});
+                if (isGlass) glass += 3;
+            }
         md->vb = gfx::createBuffer((u32)(m.verts.size() * sizeof(VtxStatic)), sizeof(VtxStatic), gfx::BUF_VERTEX, m.verts.data());
-        md->ib = gfx::createBuffer((u32)(m.indices.size() * 4), 4, gfx::BUF_INDEX, m.indices.data());
-        md->indexCount = (u32)m.indices.size();
+        md->ib = gfx::createBuffer((u32)(idx.size() * 4), 4, gfx::BUF_INDEX, idx.data());
+        md->indexCount = (u32)idx.size();
+        md->glassCount = glass;
         md->bounds = m.bounds;
         return md;
     }
@@ -210,9 +225,10 @@ struct DynamicRenderer {
             c->VSSetShader(d.model->skinned ? vsSkinned.vs : vsRigid.vs, nullptr, 0);
             c->IASetVertexBuffers(0, 1, &d.model->vb.buf, &stride, &offset);
             c->IASetIndexBuffer(d.model->ib.buf, DXGI_FORMAT_R32_UINT, 0);
-            c->DrawIndexed(d.model->indexCount, 0, 0);
+            u32 opaqueCount = d.model->indexCount - d.model->glassCount;
+            if (opaqueCount) c->DrawIndexed(opaqueCount, 0, 0);
             r.stats.drawCalls++;
-            r.stats.triangles += (int)d.model->indexCount / 3;
+            r.stats.triangles += (int)opaqueCount / 3;
         }
         ID3D11ShaderResourceView* nulls[3] = {};
         c->PSSetShaderResources(10, 3, nulls);
@@ -241,12 +257,58 @@ struct DynamicRenderer {
             c->VSSetShader(d.model->skinned ? vsSkinnedShadow.vs : vsRigidShadow.vs, nullptr, 0);
             c->IASetVertexBuffers(0, 1, &d.model->vb.buf, &stride, &offset);
             c->IASetIndexBuffer(d.model->ib.buf, DXGI_FORMAT_R32_UINT, 0);
-            c->DrawIndexed(d.model->indexCount, 0, 0);
+            u32 opaqueCount = d.model->indexCount - d.model->glassCount;   // windows let the sun into the cabin
+            if (opaqueCount) c->DrawIndexed(opaqueCount, 0, 0);
             r.stats.drawCalls++;
         }
         ID3D11ShaderResourceView* nul = nullptr;
         c->VSSetShaderResources(20, 1, &nul);
     }
+
+    // See-through vehicle windows: forward pass into the lit HDR target (depth test, no depth write, premultiplied
+    // alpha), far to near. Needs the frame globals (sky, shadows, probe, fog) bound; the caller sets HDR + depth targets.
+    void drawGlass(Renderer& r) {
+        glassOrder.clear();
+        Frustum fr;
+        fr.fromMatrix(r.viewProjNoJitter);
+        for (size_t i = 0; i < items.size(); i++) {
+            const DrawItem& d = items[i];
+            if (!d.model->glassCount || d.model->skinned) continue;
+            mat4 w = worldRel(d.pos, d.rot, d.scale, r.camera.pos);
+            AABB b = transformAABB(d.model->bounds.valid() ? d.model->bounds : AABB(vec3(-1), vec3(1)), w);
+            if (!fr.testAABB(b)) continue;
+            glassOrder.push_back({length2(rel(d.pos, r.camera.pos)), (int)i});
+        }
+        if (glassOrder.empty()) return;
+        std::sort(glassOrder.begin(), glassOrder.end(), [](const std::pair<float, int>& a, const std::pair<float, int>& b) { return a.first > b.first; });
+        auto* c = gfx::ctx;
+        ID3D11Buffer* cbs[] = {cb.get()};
+        c->VSSetConstantBuffers(1, 1, cbs);
+        c->PSSetConstantBuffers(1, 1, cbs);
+        ID3D11Buffer* scb[] = {r.shadowCB.get()};
+        c->PSSetConstantBuffers(3, 1, scb);
+        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        c->IASetInputLayout(vsRigid.layout);
+        c->VSSetShader(vsRigid.vs, nullptr, 0);
+        c->PSSetShader(psGlass, nullptr, 0);
+        c->RSSetState(gfx::states.cullBack);
+        float bf[4] = {0, 0, 0, 0};
+        c->OMSetBlendState(gfx::states.premultiplied, bf, 0xffffffffu);
+        c->OMSetDepthStencilState(gfx::states.depthGreaterEqualNoWrite, 0);
+        for (auto& o : glassOrder) {
+            const DrawItem& d = items[o.second];
+            setObjectCB(r, d, 0);
+            UINT stride = sizeof(VtxStatic), offset = 0;
+            c->IASetVertexBuffers(0, 1, &d.model->vb.buf, &stride, &offset);
+            c->IASetIndexBuffer(d.model->ib.buf, DXGI_FORMAT_R32_UINT, 0);
+            c->DrawIndexed(d.model->glassCount, d.model->indexCount - d.model->glassCount, 0);
+            r.stats.drawCalls++;
+            r.stats.triangles += (int)d.model->glassCount / 3;
+        }
+        c->OMSetBlendState(gfx::states.opaque, bf, 0xffffffffu);
+        c->OMSetDepthStencilState(gfx::states.depthGreaterWrite, 0);
+    }
+    std::vector<std::pair<float, int>> glassOrder;
 };
 
 }  // namespace Render

@@ -267,6 +267,11 @@ DialogResult drawDialog(const Layout& L, const Nav& n, const char* title, const 
             else r.no = true;
         }
     }
+    // input prompts under the panel
+    {
+        PromptItem pi[] = {{"LEFTRIGHT", "DPADLR", "Choose"}, {"ENTER", "A", "Confirm"}, {"ESC", "B", "Cancel"}};
+        drawPromptBar(x + w, y + h + 18.f * sc, pi, 3, n.pad, 28.f * sc, a);
+    }
     if (fresh) return r;
     if (n.confirm) {
         if (I.dialogChoice == 0) r.yes = true;
@@ -821,24 +826,34 @@ MenuAction drawMap(MenuState& st, const Layout& L, const Nav& n, float dt, float
             ls.skew = lb.water ? 0.2f : 0.f;
             std::string name = upper(lb.name);
             float w = textWidth(name.c_str(), ls);
-            // first pass avoids labels, panels and blips; the second only labels and panels (blips draw on top)
-            const float offs[5] = {0.f, 1.3f, -1.3f, 2.4f, -2.4f};
-            bool done = false;
-            for (int pass = 0; pass < 2 && !done; pass++)
-                for (float off : offs) {
-                    float py = p.y + off * size;
-                    Placed r = {p.x - w * 0.5f - 6.f * sc, py - size * 0.6f, p.x + w * 0.5f + 6.f * sc, py + size * 0.6f};
-                    auto overlaps = [&](const std::vector<Placed>& list) {
-                        for (const Placed& q : list)
-                            if (r.x0 < q.x1 && r.x1 > q.x0 && r.y0 < q.y1 && r.y1 > q.y0) return true;
-                        return false;
-                    };
-                    if (overlaps(placed) || (pass == 0 && overlaps(blipRects))) continue;
-                    placed.push_back(r);
-                    text(p.x, py - size * 0.55f, name.c_str(), ls);
-                    done = true;
-                    break;
+            // Candidate positions: the anchor, then vertical steps (in label heights), then sideways (in label widths).
+            // Never over another label or a UI panel; among the rest the one covering the least blip area wins
+            // (ties go to the candidate closest to the anchor).
+            const vec2 offs[11] = {{0.f, 0.f}, {0.f, 1.3f}, {0.f, -1.3f}, {0.f, 2.4f}, {0.f, -2.4f}, {0.f, 3.6f}, {0.f, -3.6f},
+                                   {0.62f, 0.f}, {-0.62f, 0.f}, {0.62f, 1.3f}, {-0.62f, -1.3f}};
+            int bestOi = -1;
+            float bestCost = 1e30f;
+            Placed bestR = {};
+            for (int oi = 0; oi < 11; oi++) {
+                float px = p.x + offs[oi].x * w, py = p.y + offs[oi].y * size;
+                Placed r = {px - w * 0.5f - 6.f * sc, py - size * 0.6f, px + w * 0.5f + 6.f * sc, py + size * 0.6f};
+                bool hit = false;
+                for (const Placed& q : placed)
+                    if (r.x0 < q.x1 && r.x1 > q.x0 && r.y0 < q.y1 && r.y1 > q.y0) { hit = true; break; }
+                if (hit) continue;
+                float area = 0.f;
+                for (const Placed& q : blipRects) {
+                    float ix = Min(r.x1, q.x1) - Max(r.x0, q.x0), iy = Min(r.y1, q.y1) - Max(r.y0, q.y0);
+                    if (ix > 0.f && iy > 0.f) area += ix * iy;
                 }
+                float cost = area + oi * 40.f * sc * sc;
+                if (cost < bestCost) { bestCost = cost; bestOi = oi; bestR = r; }
+                if (area <= 0.f) break;   // later candidates are farther from the anchor
+            }
+            if (bestOi >= 0) {
+                placed.push_back(bestR);
+                text((bestR.x0 + bestR.x1) * 0.5f, (bestR.y0 + bestR.y1) * 0.5f - size * 0.55f, name.c_str(), ls);
+            }
         }
     }
     // route

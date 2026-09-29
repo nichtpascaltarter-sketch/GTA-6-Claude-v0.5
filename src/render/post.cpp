@@ -170,8 +170,10 @@ struct PostSystem {
 
     void render(Renderer& r, float dt) {
         auto* c = gfx::ctx;
-        cb.data.p0 = vec4(exposureCompensation, 2.2f, 1.4f, Clamp(dt, 0.f, 0.25f));
-        cb.data.p1 = vec4(0.045f, 0.22f, 0.012f, 1.08f);
+        // Night grade: slightly darker exposure (contrasty streets, lights and neon pop) and stronger bloom glow
+        float night = r.nightFactor;
+        cb.data.p0 = vec4(exposureCompensation - 0.55f * night, 2.2f, 1.4f, Clamp(dt, 0.f, 0.25f));
+        cb.data.p1 = vec4(Lerp(0.045f, 0.075f, night), 0.22f + 0.08f * night, 0.012f, 1.08f + 0.06f * night);
         cb.data.p2 = vec4(1.04f, 0.6f, -3.f, 16.f);
         cb.data.p3 = vec4((float)partialCount, r.cameraCut ? 1.f : 0.f, 0.35f, 0);
         const PostFxControls& fx = r.postFx;

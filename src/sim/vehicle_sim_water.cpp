@@ -101,6 +101,7 @@ void boatForces(StepCtx& x) {
     if (c.engineOff || !canRun) s.engineOn = false;
     else if (!s.engineOn && c.hasDriver && (c.throttle > 0.05f || c.brake > 0.05f)) s.engineOn = true;
     // ---- buoyancy at the float points on the wave surface ----
+    float rollBefore = dot(b.torque, x.fwd);
     float sumImm = 0.f, sumMax = 0.f, sumDraftImm = 0.f, sumDraft = 0.f;
     int wet = 0;
     for (int k = 0; k < t.floatCount; k++) {
@@ -127,6 +128,10 @@ void boatForces(StepCtx& x) {
         float Fd = -t.floatDamp * vz * Saturate(imm / t.floatDraft[k]);
         b.addForce(vec3(wn.x * F * 0.5f, wn.y * F * 0.5f, F + Fd), r);
     }
+    // the jetski rider balances the narrow hull with his body: the hydrostatic heel moment of a high seat over a
+    // narrow hull is carried by the rider (the bank controller below sets the lean)
+    bool riderOn = jetski && c.hasDriver && !s.riderOff;
+    if (riderOn && x.up.z > 0.35f) b.torque -= x.fwd * (0.9f * (dot(b.torque, x.fwd) - rollBefore));
     s.submerged = sumMax > 0.f ? sumImm / sumMax : 0.f;
     float wetFrac = sumDraft > 0.f ? sumDraftImm / sumDraft : 0.f;
     bool wasIn = s.inWater;
@@ -174,7 +179,18 @@ void boatForces(StepCtx& x) {
         }
         // planing lift raises the hull; the bow climbs over the hump, then settles to a small running trim
         b.addForce(x.up * (b.mass * kGrav * 0.25f * planing * wf), vec3(0.f));
-        b.torque += x.right * (b.mass * kGrav * L * (0.12f * hump + 0.02f * planing) * wf);
+        b.torque += x.right * (b.mass * kGrav * L * (0.2f * hump + 0.02f * planing) * wf);
+        // trim stability: a hull that noses up beyond its running trim meets the flow with its bottom, the lift moves
+        // aft and pushes the bow back down (keeps light, powerful craft from back-flipping under full throttle)
+        {
+            float trim = asinf(Clamp(x.fwd.z, -1.f, 1.f));
+            float over = trim - (0.05f + 0.12f * hump);
+            if (over > 0.f) {
+                float flow = Saturate(fabsf(vf) / 3.f);
+                float pAcc = -(40.f * over + 6.f * Max(wl.x, 0.f)) * flow * Max(wf, 0.35f);
+                b.torque += b.torqueFor(x.right * pAcc);
+            }
+        }
         // angular damping in water
         vec3 acc(-wl.x * 1.2f, -wl.y * 1.2f, -wl.z * 0.3f);
         b.torque += b.torqueFor(b.R * acc * wf);
@@ -182,8 +198,9 @@ void boatForces(StepCtx& x) {
         float bankF = jetski ? 0.8f : (airboat ? 0.15f : 0.4f);
         float target = -bankF * atanf(vf * b.angVel.z / kGrav);
         target = Clamp(target, -0.6f, 0.6f);
-        float kb = jetski ? 30.f : 12.f;
-        float rAcc = (kb * (target - s.lean) - 2.f * sqrtf(kb) * wl.y) * wf;
+        // (the jetski rider balances the narrow hull as long as it touches the water)
+        float kb = jetski ? 60.f : 12.f;
+        float rAcc = (kb * (target - s.lean) - 2.f * sqrtf(kb) * wl.y) * (jetski ? Max(wf, 0.6f) : wf);
         b.torque += b.torqueFor(x.fwd * rAcc);
     }
     // ---- propulsion ----
@@ -209,7 +226,11 @@ void boatForces(StepCtx& x) {
         float v = Max(vf, 0.f);
         float T = cmd > 0.f ? Min(t.thrustStatic, 0.5f * t.peakPowerW / Max(v, 0.1f)) * cmd : t.thrustStatic * 0.45f * cmd;
         T *= Saturate((top * 1.02f - vf) / (0.04f * top));
-        b.addForce(x.fwd * T, rProp);
+        // a hull's thrust line is set to pass near the center of mass (shaft/nozzle angle, drive trim): push at COM
+        // height so full throttle squats the stern only through the hull's hump trim; the airboat fan pushes from
+        // high above the deck and does pitch the bow down
+        vec3 rThrust = airboat ? rProp : b.R * vec3(t.propPos.x - t.com.x, t.propPos.y - t.com.y, 0.f);
+        b.addForce(x.fwd * T, rThrust);
     }
     // steering: rudder / jet nozzle / air rudders command a yaw rate the hull can carve
     // (max lateral acceleration per hull type, tighter radius at low speed; thrust gives authority at a standstill)

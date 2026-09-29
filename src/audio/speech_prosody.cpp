@@ -158,6 +158,18 @@ static bool voicelessObstruent(int ph) {
     return hasFlag(ph, PF_OBSTRUENT) && !hasFlag(ph, PF_VOICED);
 }
 
+const StyleParams& Utterance::segStyle(int i) const {
+    static const StyleParams kNeutral;
+    const int n = (int)segs.size();
+    if (n == 0 || wordStyle.empty()) return kNeutral;
+    i = Clamp(i, 0, n - 1);
+    for (int k = i; k >= 0; k--)
+        if (segs[k].word >= 0 && segs[k].word < (int)wordStyle.size()) return wordStyle[segs[k].word];
+    for (int k = i + 1; k < n; k++)
+        if (segs[k].word >= 0 && segs[k].word < (int)wordStyle.size()) return wordStyle[segs[k].word];
+    return kNeutral;
+}
+
 void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance& u) {
     u = Utterance();
     std::vector<TextWord> tws;
@@ -232,6 +244,9 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         uw.phrase = (int)u.phrases.size();
         uw.function = b.wp.function;
         uw.emph = b.tw.emph;
+        uw.style = b.tw.style;
+        if (!b.tw.phon && !b.tw.spell) uw.text = b.tw.w;
+        const StyleParams wsp = styleParams(b.tw.style);
         int widx = (int)u.words.size();
         bool isThe = b.tw.w == "the";
         // Glottal onset before a vowel-initial stressed content word following a consonant (clear word
@@ -282,9 +297,17 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
             Seg p;
             p.ph = PH_SIL;
             p.dur = pauseMs(brk, last) * 0.001f / (brk == BRK_MINOR ? 1.f : (0.5f + 0.5f * speed));
+            if (!last) p.dur *= wsp.pause;
             if (brk == BRK_MINOR && !last) p.dur = 0.f;  // minor break: lengthening only (no silence)
+            if (b.tw.pauseSec > 0.f && !last) p.dur = b.tw.pauseSec;  // explicit [pause:x]
             u.segs.push_back(p);
         }
+    }
+    // Style parameters per word (consecutive words usually share a style).
+    u.wordStyle.resize(u.words.size());
+    for (size_t w = 0; w < u.words.size(); w++) {
+        if (w > 0 && styleEqual(u.words[w].style, u.words[w - 1].style)) u.wordStyle[w] = u.wordStyle[w - 1];
+        else u.wordStyle[w] = styleParams(u.words[w].style);
     }
     // Remove zero-length pauses (minor breaks) but remember phrase-final marks.
     {
@@ -377,13 +400,12 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
     }
     {
         std::vector<Seg> out;
-        std::vector<bool> g2;
         std::vector<int> remap(N, -1);
         for (int i = 0; i < N; i++) {
             if (S[i].dur < 0.f) continue;
             remap[i] = (int)out.size();
             out.push_back(S[i]);
-            g2.push_back(gem[i]);
+            if (gem[i]) out.back().flags |= SF_GEMINATE;
         }
         auto fixFwd = [&](int idx) {
             while (idx < N && remap[idx] < 0) idx++;
@@ -396,8 +418,9 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         for (UWord& w : u.words) w.firstSeg = fixFwd(w.firstSeg), w.lastSeg = std::max(w.firstSeg, fixBack(w.lastSeg));
         for (UPhrase& p : u.phrases) p.firstSeg = fixFwd(p.firstSeg), p.lastSeg = fixBack(p.lastSeg);
         u.segs.swap(out);
-        gem.swap(g2);
     }
+    // Accent phonology (may insert or delete segments).
+    applyAccents(u);
     const int M = (int)S.size();
 
     // Stop release classification and aspiration.
@@ -422,10 +445,11 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         }
     }
 
-    // Durations (Klatt rules).
+    // Durations (Klatt rules), scaled by the speaking style (rate, stressed / unstressed vowel length).
     for (int i = 0; i < M; i++) {
         Seg& s = S[i];
         if (s.ph == PH_SIL) continue;
+        const StyleParams& P = u.segStyle(i);
         const PhInfo& pi = phInfo(s.ph);
         bool vowel = isVowel(s.ph);
         float inh = pi.inh, mn = pi.mn, pr = 1.f;
@@ -486,14 +510,16 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         if (vowel && (s.flags & SF_UTT_START) && (s.flags & SF_WORD_END) && (s.flags & SF_FUNCTION)) pr *= 1.6f;
         if (s.flags & SF_ARTICLE_A) pr *= 1.35f;
         float d = mn + (inh - mn) * pr;
+        if (vowel) d *= s.stress > 0 ? P.stressLen : P.reducedLen;
+        d *= s.durMul;
         if (s.flags & SF_UNRELEASED) d *= 0.8f;
-        if (gem[i]) d *= 1.5f;
+        if (s.flags & SF_GEMINATE) d *= 1.5f;
         float floor = vowel ? ((s.flags & SF_SYLLABIC) ? 22.f : 38.f) : (isStopPh(s.ph) ? 40.f : 25.f);
         if (s.flags & SF_UNRELEASED) floor = 30.f;
         if (s.ph == PH_Q) floor = 22.f;
         if (s.ph == PH_DX) floor = 16.f;
         d = std::max(d, floor);
-        s.dur = d * 0.001f / speed;
+        s.dur = d * 0.001f / (speed * P.rate);
     }
 
     // Voice onset time: voiceless (aspiration) portion at the start of the segment after a released stop.
@@ -515,7 +541,8 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         if (hasFlag(p.ph, PF_VOICED)) vot = voicedBefore ? 0.f : (onsetSonorant ? 6.f : pi.vot * 0.5f);
         else if (p.flags & SF_ASPIRATED) vot = pi.vot * (p.stress == 1 ? 1.f : p.stress == 2 ? 0.85f : 0.6f);
         else vot = 15.f;
-        vot = vot * 0.001f / std::sqrt(speed);
+        vot = vot * 0.001f / std::sqrt(speed * u.segStyle(i).rate);
+        if (!hasFlag(p.ph, PF_VOICED)) vot *= u.segStyle(i).vot;  // unaspirated stops (Spanish-influenced accents)
         if (vot <= 0.f) continue;
         if (isVowel(s.ph) && (p.flags & SF_ASPIRATED)) s.dur += 0.55f * vot;
         s.vot = std::min(vot, 0.65f * s.dur);
@@ -542,7 +569,7 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
             if (!isVowel(s.ph)) continue;
             if (s.stress == 1) lastCandidate = i;
             if (s.stress != 1 || (s.flags & SF_FUNCTION)) continue;
-            float a = count == 0 ? 1.f : std::max(0.55f, 1.f - 0.12f * (float)count);
+            float a = count == 0 ? 1.f : std::max(0.55f, 1.f - 0.12f * (float)count * (1.f - u.segStyle(i).accentAll));
             if (anyEmph) a *= (s.flags & SF_EMPH) ? 1.6f : 0.6f;
             s.flags |= SF_ACCENT;
             s.accent = a;
@@ -569,17 +596,19 @@ void buildF0(const Utterance& u, const Audio::VoiceParams& voice, std::vector<F0
     out.clear();
     const std::vector<Seg>& S = u.segs;
     const float expr = Clamp(voice.expressiveness, 0.f, 3.f);
-    const float R = 4.5f * expr;  // accent range (semitones)
+    const float R0 = 4.5f * expr;  // accent range (semitones)
     for (size_t pi = 0; pi < u.phrases.size(); pi++) {
         const UPhrase& ph = u.phrases[pi];
         if (ph.firstSeg >= (int)S.size()) continue;
         float t0 = S[ph.firstSeg].t0;
         float t1 = S[ph.lastSeg].t0 + S[ph.lastSeg].dur;
         float dur = std::max(0.05f, t1 - t0);
-        float top = ph.sentenceStart ? 1.0f : 0.4f;
+        const StyleParams& P = u.segStyle(ph.firstSeg);
+        const float R = R0 * P.range;
+        float top = (ph.sentenceStart ? 1.0f : 0.4f) + P.pitch;
         if (ph.shout) top += 3.f;
         if (ph.sentType == BRK_EXCLAIM) top += 1.f;
-        float decl = std::min(2.8f, 1.1f * dur + 0.4f);
+        float decl = std::min(2.8f, 1.1f * dur + 0.4f) * P.decl;
         float bEnd = top - decl;
         auto base = [&](float t) { return top + (bEnd - top) * Clamp((t - t0) / dur, 0.f, 1.f); };
         float rangeMul = 1.f;
@@ -590,6 +619,7 @@ void buildF0(const Utterance& u, const Audio::VoiceParams& voice, std::vector<F0
         bool statementEnd = ph.brk == BRK_PERIOD || ph.brk == BRK_EXCLAIM || ph.brk == BRK_CLAUSE || whq;
         bool continuation = ph.brk == BRK_COMMA || ph.brk == BRK_MINOR || ph.brk == BRK_DASH;
 
+        const size_t firstPoint = out.size();
         // collect accents
         std::vector<int> acc;
         for (int i = ph.firstSeg; i <= ph.lastSeg; i++)
@@ -616,7 +646,7 @@ void buildF0(const Utterance& u, const Audio::VoiceParams& voice, std::vector<F0
                     // continuation: fall then rise (L-H%) or plain rise for minor breaks
                     float dipT = peakT + 0.55f * (t1 - peakT);
                     if (dipT > peakT + 0.03f) out.push_back(F0Point{dipT, base(dipT) - 0.3f});
-                    float endLift = ph.brk == BRK_MINOR ? 0.25f * R : 0.45f * R + 0.8f;
+                    float endLift = (ph.brk == BRK_MINOR ? 0.25f * R : 0.45f * R + 0.8f) + P.endLift;
                     out.push_back(F0Point{t1, base(t1) + endLift});
                 }
             } else if (question) {
@@ -637,10 +667,16 @@ void buildF0(const Utterance& u, const Audio::VoiceParams& voice, std::vector<F0
                 float endLow = ph.brk == BRK_EXCLAIM ? -3.2f : -2.4f;
                 if (ph.brk == BRK_ELLIPSIS) endLow = -1.2f;
                 if (!statementEnd && ph.brk != BRK_ELLIPSIS) endLow = -1.5f;
-                out.push_back(F0Point{t1, bEnd + endLow * std::max(0.6f, std::min(1.3f, expr))});
+                out.push_back(F0Point{t1, bEnd + endLow * std::max(0.6f, std::min(1.3f, expr)) + P.endLift});
             }
         }
         if (acc.empty()) out.push_back(F0Point{t1, question ? base(t1) + 4.f : bEnd - 1.5f});
+        // Styled phrases: soft ceiling on the pitch excursion (raised and widened contours stay within a
+        // plausible range of the speaker's voice).
+        bool styled = P.pitch != 0.f || P.range != 1.f;
+        if (styled)
+            for (size_t k = firstPoint; k < out.size(); k++)
+                if (out[k].st > 9.f) out[k].st = 9.f + 0.5f * (out[k].st - 9.f);
     }
     // sort and enforce increasing times
     std::stable_sort(out.begin(), out.end(), [](const F0Point& a, const F0Point& b) { return a.t < b.t; });

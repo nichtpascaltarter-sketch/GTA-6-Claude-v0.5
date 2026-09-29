@@ -19,12 +19,16 @@ struct EnvProbeSystem {
     gfx::CBuffer<FrameConstants> frameCB;
     gfx::CBuffer<ProbeCBData> cb;
     ID3D11PixelShader* psLight = nullptr;
-    ID3D11ComputeShader* csPrefilter = nullptr;
+    ID3D11ComputeShader *csPrefilter = nullptr, *csSH = nullptr;
+    gfx::Buffer shBuf;       // SH9 irradiance of the probe (one-bounce ambient around the camera)
+    bool shValid = false;
     static constexpr float kNear = 0.5f;
 
     void init() {
         psLight = gfx::loadPS("envprobe.hlsl", "psProbeLight");
         csPrefilter = gfx::loadCS("envprobe.hlsl", "csPrefilter");
+        csSH = gfx::loadCS("envprobe.hlsl", "csProbeSH");
+        shBuf = gfx::createBuffer(9 * 16, 16, gfx::BUF_STRUCTURED | gfx::BUF_UAV);
         frameCB.create();
         cb.create();
     }
@@ -161,6 +165,21 @@ struct EnvProbeSystem {
         front ^= 1;
         frontPos = cyclePos;
         valid = true;
+        // Irradiance SH of the new capture (blended with the previous one to avoid pops while moving)
+        cb.data.p0 = vec4(0, (float)res, shValid && !r.cameraCut ? 0.5f : 1.f, 0);
+        cb.data.p1 = vec4((float)Min(2, mips - 1), (float)res, 0, 0);
+        cb.upload();
+        c->CSSetShader(csSH, nullptr, 0);
+        c->CSSetShaderResources(44, 1, &ns);  // global binding of the SH buffer (written below)
+        c->VSSetShaderResources(44, 1, &ns);
+        c->PSSetShaderResources(44, 1, &ns);
+        c->CSSetShaderResources(8, 1, &filtered[front].srv);
+        c->CSSetUnorderedAccessViews(1, 1, &shBuf.uav, nullptr);
+        c->Dispatch(1, 1, 1);
+        ID3D11UnorderedAccessView* nu2 = nullptr;
+        c->CSSetUnorderedAccessViews(1, 1, &nu2, nullptr);
+        c->CSSetShaderResources(8, 1, &ns);
+        shValid = true;
     }
 
     // One capture step per frame; a full synchronous capture after camera cuts / (re)creation.
@@ -168,6 +187,7 @@ struct EnvProbeSystem {
         const Settings& s = r.settings;
         if (!s.envProbe) {
             valid = false;
+            shValid = false;
             return;
         }
         int wantRes = Clamp(s.envProbeRes, 32, 512);
@@ -186,6 +206,7 @@ struct EnvProbeSystem {
     }
 
     ID3D11ShaderResourceView* srv() const { return valid ? filtered[front].srv : nullptr; }
+    ID3D11ShaderResourceView* shSrv() const { return shValid ? shBuf.srv : nullptr; }
 };
 
 }  // namespace Render

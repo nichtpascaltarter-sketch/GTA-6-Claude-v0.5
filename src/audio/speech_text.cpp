@@ -98,7 +98,7 @@ static u64 parseDigits(const std::string& s) {
 // ---------------------------------------------------------------------------------------------
 // Tokenizer
 
-enum TokType { TK_WORD, TK_NUM, TK_PUNCT };
+enum TokType { TK_WORD, TK_NUM, TK_PUNCT, TK_TAG };  // TK_TAG: inside of a [bracketed] tag / stage direction
 struct Tok {
     TokType type;
     std::string s;       // original text (ASCII-folded)
@@ -210,6 +210,18 @@ static void tokenize(const std::string& s, std::vector<Tok>& toks) {
             }
             i++;
             continue;
+        }
+        // style tags and stage directions: [angry] [accent:south] [pause:1] [laughs]
+        if (c == '[') {
+            size_t e = s.find(']', i);
+            if (e != std::string::npos && e - i <= 80) {
+                t.type = TK_TAG;
+                t.s = s.substr(i + 1, e - i - 1);
+                toks.push_back(t);
+                i = e + 1;
+                space = true;
+                continue;
+            }
         }
         bool numStart = isDigit(c) || (isCurrencyMark(c) && i + 1 < n && (isDigit(s[i + 1]) || (s[i + 1] == '.' && i + 2 < n && isDigit(s[i + 2])))) ||
                         (c == '.' && i + 1 < n && isDigit(s[i + 1]) && (i == 0 || !isDigit(s[i - 1]))) ||
@@ -338,15 +350,26 @@ static const Abbrev* findAbbrev(const std::string& lw) {
 struct Normalizer {
     std::vector<TextWord>* out;
     bool shoutSentence = false;
+    Style style;  // current speaking style (from tags)
 
+    void push(TextWord t) {
+        t.style = style;
+        t.shout = shoutSentence || style.emotion == EMOTION_SHOUT;
+        out->push_back(t);
+    }
     void addWord(const std::string& w, u8 emph = 0, bool spell = false) {
         if (w.empty()) return;
         TextWord t;
         t.w = w;
         t.emph = emph;
         t.spell = spell;
-        t.shout = shoutSentence;
-        out->push_back(t);
+        push(t);
+    }
+    void setPause(float sec) {
+        if (out->empty()) return;
+        TextWord& t = out->back();
+        t.pauseSec = std::max(t.pauseSec, sec);
+        if (t.brk < BRK_COMMA) t.brk = BRK_COMMA;
     }
     void addWords(const Words& ws, u8 emph = 0) {
         for (const std::string& s : ws) {
@@ -783,6 +806,16 @@ void normalizeText(const char* text, std::vector<TextWord>& out) {
     for (size_t i = 0; i < toks.size(); i++) {
         const Tok& t = toks[i];
         nz.shoutSentence = shout[i];
+        if (t.type == TK_TAG) {
+            // style tags change the style of the following words; anything else is a silent stage direction
+            float pauseSec = 0.f;
+            Style st = nz.style;
+            if (parseStyleTag(t.s, st, pauseSec)) {
+                if (pauseSec > 0.f) nz.setPause(pauseSec);
+                else nz.style = st;
+            }
+            continue;
+        }
         if (t.type == TK_PUNCT) {
             const std::string& p = t.s;
             if (p == "-") {
@@ -892,8 +925,7 @@ void normalizeText(const char* text, std::vector<TextWord>& out) {
             TextWord tw;
             tw.w = w.substr(1, w.size() - 2);
             tw.phon = true;
-            tw.shout = nz.shoutSentence;
-            out.push_back(tw);
+            nz.push(tw);
             prevWord = "";
             continue;
         }
@@ -1083,7 +1115,7 @@ void normalizeText(const char* text, std::vector<TextWord>& out) {
                 tw.phon = true;
             }
         }
-        out.push_back(tw);
+        nz.push(tw);
         prevWord = clean;
     }
     // Resolve deferred currency markers ("$2.5 million" -> "two point five million dollars").
@@ -1097,6 +1129,7 @@ void normalizeText(const char* text, std::vector<TextWord>& out) {
             TextWord tw;
             tw.w = cur;
             tw.shout = marker.shout;
+            tw.style = marker.style;
             if (pos > 0 && pos <= out.size()) {
                 tw.brk = out[pos - 1].brk;
                 out[pos - 1].brk = BRK_NONE;

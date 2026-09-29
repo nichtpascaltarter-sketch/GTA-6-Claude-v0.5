@@ -1,5 +1,7 @@
 // Dynamic objects: rigid models (vehicles, props in motion) and GPU-skinned characters.
 #include "gbuffer.hlsli"
+#include "reflection.hlsli"
+#include "shadow.hlsli"
 
 struct MaterialInfo {
     float layer, uvScale, roughScale, metal;
@@ -68,6 +70,7 @@ float3 applyCrush(float3 p, inout float3 n) {
 #define M_EYE 45u
 #define M_CAR_GLASS 48u
 #define M_LIGHT_INDICATOR 50u
+#define M_CAR_WINDOW 52u
 
 struct VSInRigid {
     float3 pos : POSITION;
@@ -187,7 +190,7 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         // grime towards the bottom of the body
         float grime = saturate((0.6 - i.localPos.z) * 1.5) * dirt;
         albedo = lerp(albedo, float3(0.18, 0.15, 0.12), grime * 0.6);
-    } else if (matId == M_CAR_GLASS) {
+    } else if (matId == M_CAR_GLASS || matId == M_CAR_WINDOW) {
         albedo = float3(0.01, 0.012, 0.014);
         rough = 0.02;
         metal = 0;
@@ -213,14 +216,17 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         bool left = (lightBits & 8u) != 0, right = (lightBits & 16u) != 0;
         bool isLeft = i.localPos.x < 0;
         bool blink = frac(gTime.x * 1.5) < 0.5;
-        albedo = float3(0.6, 0.35, 0.02);
-        emissive = ((isLeft && left) || (!isLeft && right)) && blink ? float3(1.0, 0.55, 0.05) * 700.0 : 0;
-        // siren lights (police/ambulance): bit 5, color from vertex color
-        if (lightBits & 32u) {
+        // light-bar lenses (police/fire/ambulance) carry their colour in the vertex colour with alpha < 0.5;
+        // indicator lenses (alpha >= 0.5) are amber
+        bool sirenLens = i.color.a < 0.5;
+        albedo = sirenLens ? i.color.rgb * 0.45 : float3(0.6, 0.35, 0.02);
+        rough = 0.08;
+        emissive = !sirenLens && ((isLeft && left) || (!isLeft && right)) && blink ? float3(1.0, 0.55, 0.05) * 700.0 : 0;
+        // siren flashing (bit 5): only the light-bar lenses
+        if ((lightBits & 32u) && sirenLens) {
             float ph = frac(gTime.x * 2.2 + (isLeft ? 0.5 : 0.0));
             float on = ph < 0.25 || (ph > 0.35 && ph < 0.55) ? 1.0 : 0.0;
             emissive = i.color.rgb * on * 4000.0;
-            albedo = i.color.rgb * 0.3;
         }
     } else if (matId == M_EMISSIVE) {
         emissive = albedo * i.color.a * 400.0 * m.emissive;
@@ -259,4 +265,44 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
     albedo *= lerp(1.0, 0.7, wet * (sm == SM_CARPAINT ? 0.3 : 1.0));
     rough = lerp(rough, 0.1, wet * 0.7);
     return packGBuffer(albedo, ao, n, rough, metal, sm, extra, emissive * gObjParams.w, i.curClip, i.prevClip);
+}
+
+// ------------------------------------------------------------------------------------------------------------------
+// Vehicle windows, forward-shaded after the deferred lighting over the lit cabin (premultiplied alpha): environment
+// reflection and sun glint with Fresnel, tint absorption (vertex colour alpha = clarity: 1 clear windscreen .. 0
+// privacy glass), a dust film from the vehicle's dirt, aerial perspective and volumetric fog.
+float4 psGlass(VSOut i, bool front : SV_IsFrontFace) : SV_Target {
+    float3 N = normalize(i.nrm) * (front ? 1.0 : -1.0);
+    float3 V = normalize(-i.rel);
+    float NoV = saturate(dot(N, V));
+    float dist = length(i.rel);
+    float2 screenUV = i.pos.xy * gScreen.zw;
+    float dirt = saturate(gTint0.a);
+    float rough = lerp(0.02, 0.2, dirt);
+    float3 R = reflect(-V, N);
+    float3 refl = envReflection(R, rough) * preExposure() * horizonOcclusion(R, N);
+    float F = 0.04 + 0.96 * pow5(1.0 - NoV);
+    float3 L = gSunDir.xyz;
+    float3 H = normalize(L + V);
+    float NoL = saturate(dot(N, L));
+    float a2 = max(rough * rough, 0.0016);
+    float spec = D_GGX(saturate(dot(N, H)), a2) * V_SmithGGXCorrelated(NoV, NoL, a2) * NoL;
+    float viewDepth = dot(i.rel, gCamForward.xyz);
+    float shadow = sampleSunShadow(i.rel, N, viewDepth, (uint2)i.pos.xy);
+    float3 sunE = mainLightIlluminance();
+    float3 glint = sunE * spec * F * shadow * preExposure();
+    // tint: part of the view into the cabin is absorbed (tinted towards the glass colour)
+    float cover = lerp(0.8, 0.18, saturate(i.color.a));
+    float3 tintCol = i.color.rgb * float3(0.02, 0.028, 0.026);
+    // dust film scatters sky and sun light (dirty windows look milky)
+    float3 skyE = evalSH9(N) * PI;
+    float3 film = 0.35 * (skyE + sunE * NoL * shadow) / PI * dirt * 0.35 * preExposure();
+    float a = saturate(F + (1.0 - F) * saturate(cover + dirt * 0.25));
+    float3 col = refl * F + glint + film + tintCol * (1.0 - F) * cover * (skyE / PI) * preExposure();
+    // the cabin behind is already fogged: attenuate the glass's own light, in-scatter weighted by its coverage
+    float4 ap = aerialPerspective(screenUV, dist);
+    col = col * ap.a + ap.rgb * preExposure() * a;
+    float4 fv = froxelFog(screenUV, viewDepth);
+    col = col * fv.a + fv.rgb * a;
+    return float4(min(col, 60000.0), a);
 }

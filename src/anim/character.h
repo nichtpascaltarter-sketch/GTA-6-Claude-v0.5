@@ -102,6 +102,11 @@ struct AnimInput {
                               // 10 smoke, 11 lean on wall, 12 sunbathe, 13 jog in place, 14 look around, 15 wave, 16 cheer,
                               // 17 point, 18 crouch, 19 fighting guard
     float groundOffsetL = 0, groundOffsetR = 0;  // foot IK height offsets from terrain probes (m)
+    // optional (defaults keep the automatic behaviour)
+    vec3 lookAt = vec3(0);    // point to look at in the ped's model space (x right, y forward, z up)
+    float lookWeight = 0;     // 0 none .. 1 head/neck/eyes turn towards lookAt (limited, smoothed)
+    float mouthOpen = -1;     // lip-sync jaw opening 0..1 from speech (-1 = clip/automatic)
+    vec3 groundNormal = vec3(0, 0, 1);  // terrain normal under the ped in its model space (feet align to slopes)
 };
 
 struct Animator {
@@ -122,6 +127,8 @@ struct Animator {
     float footL = 0, footR = 0, snapW = 0, snapRate = 5.f, moveW = 0, legScale = 1.f, styleF = 0, steerS = 0;
     vec2 dirS = vec2(0, 1);
     int lastInAction = -1;        // AnimInput::action of the previous update (actions start on a change)
+    float blinkT = -1.f, blinkNext = 2.f, gazeNext = 1.f, lookW = 0.f, slopeS = 0.f;
+    vec2 gaze, gazeTarget, slopeN;
     bool extBlend = false;        // blendFrom() pending: keep its crossfade when the next action starts
     bool actionUpper = false, wasReloading = false;
     Pose snap;                    // pose captured at a discontinuity (crossfaded out over 1/snapRate s)
@@ -129,6 +136,7 @@ struct Animator {
     void update(const AnimInput& in, float dt);
     // Crossfade from an externally produced pose (e.g. the ragdoll when a get-up starts) over `seconds`.
     void blendFrom(const Pose& from, float seconds);
+    void faceOverlay(const AnimInput& in, float dt);   // internal: look-at, gaze, blinks, jaw (called by update)
     bool actionDone() const { return actionFinished; }
 };
 

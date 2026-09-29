@@ -82,9 +82,9 @@ float GameWorld::completion() const {
     int storyDone = 0, sideDone = 0;
     for (size_t i = 0; i < storyFlags.size(); i++) {
         if (i < 64 && storyFlags[i]) storyDone++;
-        if (i >= 64 && storyFlags[i]) sideDone++;
+        if (i >= 64 && i < 128 && storyFlags[i]) sideDone++;   // [128, 384) hold extended ints (money, days, masks)
     }
-    story = Min(1.f, storyDone / 20.f);
+    story = Min(1.f, storyDone / 21.f);   // 21 story missions
     float coll = shellCount > 0 ? (float)pinfo.collectiblesFound / shellCount : 0.f;
     float side = Min(1.f, sideDone / 24.f);
     return story * 60.f + coll * 15.f + side * 25.f;
@@ -205,8 +205,8 @@ bool GameWorld::loadGame(int slot) {
     r.str(title);
     r.str(stamp);
     r.str(detail);
-    float tod, cloud, rain;
-    int day;
+    float tod = 12.f, cloud = 0.f, rain = 0.f;
+    int day = 1;
     r.pod(tod);
     r.pod(day);
     r.pod(cloud);

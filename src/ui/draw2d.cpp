@@ -41,9 +41,17 @@ struct BlurCBData {
     vec4 texel;    // xy = source texel size, zw = direction (texels)
 };
 
+// Photo grading parameters (one set per frame, register b3)
+struct PhotoCBData {
+    vec4 a;   // filter, strength, exposure (EV), contrast
+    vec4 b;   // saturation, temperature, vignette, grain
+    vec4 c;   // dof (0/1), focus distance, blur scale, nearZ (0 = no depth: screen-space focus band)
+    vec4 d;   // time, aspect (w/h), unused, unused
+};
+
 // Pixel shader modes (Vtx::p0); +32 = additive (alpha output 0)
 enum Mode { M_SOLID = 0, M_FONT = 1, M_IMAGE = 2, M_RRECT = 3, M_CIRCLE = 4, M_CAPSULE = 5, M_ARC = 6, M_ICON = 7,
-            M_MAP = 8, M_BACKDROP = 9, M_TRI = 10 };
+            M_MAP = 8, M_BACKDROP = 9, M_TRI = 10, M_PHOTO = 11 };
 
 Font g_fonts[FONT_COUNT];
 gfx::Texture g_atlas;
@@ -74,6 +82,18 @@ gfx::Texture g_half, g_q1, g_q2;
 int g_blurW = 0, g_blurH = 0;
 DXGI_FORMAT g_blurFmt = DXGI_FORMAT_UNKNOWN;
 bool g_blurValid = false;
+// Photo grading (photoEffect) and scene depth for its depth of field
+gfx::CBuffer<PhotoCBData> g_photoCB;
+PhotoCBData g_photo;
+bool g_photoUsed = false;
+ID3D11ShaderResourceView* g_depthSrv = nullptr;
+float g_depthNear = 0.f;
+// Snapshots of finished frames (quarter resolution ring)
+const int kSnapCount = 8;
+gfx::Texture g_snap[kSnapCount];
+int g_snapId[kSnapCount] = {-1, -1, -1, -1, -1, -1, -1, -1};
+int g_snapNextId = 0;
+int g_snapPending = -1;
 
 const int kAtlasSize = 2048;
 const int kEm = 128;         // render size
@@ -320,7 +340,62 @@ void releaseBlur() {
     g_blurValid = false;
 }
 
-// Captures the currently bound render target and produces a quarter-resolution blurred copy in g_q1.
+// (Re)creates the full-resolution copy and the half / quarter targets for a render target of this size and format.
+bool ensureCaptureTargets(const D3D11_TEXTURE2D_DESC& td) {
+    if ((int)td.Width == g_blurW && (int)td.Height == g_blurH && td.Format == g_blurFmt && g_copyTex) return true;
+    releaseBlur();
+    D3D11_TEXTURE2D_DESC cd = td;
+    cd.MipLevels = 1;
+    cd.ArraySize = 1;
+    cd.SampleDesc.Count = 1;
+    cd.SampleDesc.Quality = 0;
+    cd.Usage = D3D11_USAGE_DEFAULT;
+    cd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+    cd.CPUAccessFlags = 0;
+    cd.MiscFlags = 0;
+    if (SUCCEEDED(gfx::dev->CreateTexture2D(&cd, nullptr, &g_copyTex))) gfx::dev->CreateShaderResourceView(g_copyTex, nullptr, &g_copySrv);
+    int hw = Max(1, (int)td.Width / 2), hh = Max(1, (int)td.Height / 2);
+    int qw = Max(1, (int)td.Width / 4), qh = Max(1, (int)td.Height / 4);
+    g_half = gfx::createTexture2D(hw, hh, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_RTV);
+    g_q1 = gfx::createTexture2D(qw, qh, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_RTV);
+    g_q2 = gfx::createTexture2D(qw, qh, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_RTV);
+    g_blurW = (int)td.Width;
+    g_blurH = (int)td.Height;
+    g_blurFmt = td.Format;
+    return g_copyTex != nullptr;
+}
+
+// Pipeline state for the fullscreen passes below (restored by endFrame's own setup afterwards).
+void beginBlitPasses() {
+    auto* c = gfx::ctx;
+    c->IASetInputLayout(nullptr);
+    c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    c->VSSetShader(g_vsFull.vs, nullptr, 0);
+    c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
+    c->OMSetDepthStencilState(gfx::states.depthOff, 0);
+    c->RSSetState(gfx::states.cullNone);
+    ID3D11SamplerState* samps[] = {gfx::states.linearClamp};
+    c->PSSetSamplers(1, 1, samps);
+}
+
+void blitPass(ID3D11PixelShader* ps, ID3D11ShaderResourceView* src, int sw, int sh, const gfx::Texture& dst, vec2 dir) {
+    auto* c = gfx::ctx;
+    ID3D11ShaderResourceView* nullSrv[1] = {nullptr};
+    c->PSSetShaderResources(0, 1, nullSrv);
+    c->OMSetRenderTargets(1, &dst.rtv, nullptr);
+    gfx::setViewport((float)dst.width, (float)dst.height);
+    g_blurCB.data.texel = vec4(1.f / sw, 1.f / sh, dir.x, dir.y);
+    g_blurCB.upload();
+    ID3D11Buffer* cbs[] = {g_blurCB.get()};
+    c->PSSetConstantBuffers(2, 1, cbs);
+    c->PSSetShader(ps, nullptr, 0);
+    c->PSSetShaderResources(0, 1, &src);
+    c->Draw(3, 0);
+    c->PSSetShaderResources(0, 1, nullSrv);
+}
+
+// Captures the currently bound render target: full-resolution copy (g_copySrv), half resolution (g_half) and a
+// quarter-resolution blurred copy (g_q1).
 void captureBackdrop() {
     auto* c = gfx::ctx;
     ID3D11RenderTargetView* rtv = nullptr;
@@ -331,58 +406,47 @@ void captureBackdrop() {
     rtv->GetResource(&res);
     D3D11_TEXTURE2D_DESC td = {};
     ((ID3D11Texture2D*)res)->GetDesc(&td);
-    if ((int)td.Width != g_blurW || (int)td.Height != g_blurH || td.Format != g_blurFmt || !g_copyTex) {
-        releaseBlur();
-        D3D11_TEXTURE2D_DESC cd = td;
-        cd.MipLevels = 1;
-        cd.ArraySize = 1;
-        cd.SampleDesc.Count = 1;
-        cd.SampleDesc.Quality = 0;
-        cd.Usage = D3D11_USAGE_DEFAULT;
-        cd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-        cd.CPUAccessFlags = 0;
-        cd.MiscFlags = 0;
-        if (SUCCEEDED(gfx::dev->CreateTexture2D(&cd, nullptr, &g_copyTex))) gfx::dev->CreateShaderResourceView(g_copyTex, nullptr, &g_copySrv);
-        int hw = Max(1, (int)td.Width / 2), hh = Max(1, (int)td.Height / 2);
-        int qw = Max(1, (int)td.Width / 4), qh = Max(1, (int)td.Height / 4);
-        g_half = gfx::createTexture2D(hw, hh, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_RTV);
-        g_q1 = gfx::createTexture2D(qw, qh, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_RTV);
-        g_q2 = gfx::createTexture2D(qw, qh, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_RTV);
-        g_blurW = (int)td.Width;
-        g_blurH = (int)td.Height;
-        g_blurFmt = td.Format;
-    }
-    if (g_copyTex && td.SampleDesc.Count == 1) {
+    if (ensureCaptureTargets(td) && td.SampleDesc.Count == 1) {
         c->CopyResource(g_copyTex, res);
-        c->IASetInputLayout(nullptr);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        c->VSSetShader(g_vsFull.vs, nullptr, 0);
-        c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
-        c->OMSetDepthStencilState(gfx::states.depthOff, 0);
-        c->RSSetState(gfx::states.cullNone);
-        ID3D11SamplerState* samps[] = {gfx::states.linearClamp};
-        c->PSSetSamplers(1, 1, samps);
-        ID3D11ShaderResourceView* nullSrv[1] = {nullptr};
-        auto pass = [&](ID3D11PixelShader* ps, ID3D11ShaderResourceView* src, int sw, int sh, const gfx::Texture& dst, vec2 dir) {
-            c->PSSetShaderResources(0, 1, nullSrv);
-            c->OMSetRenderTargets(1, &dst.rtv, nullptr);
-            gfx::setViewport((float)dst.width, (float)dst.height);
-            g_blurCB.data.texel = vec4(1.f / sw, 1.f / sh, dir.x, dir.y);
-            g_blurCB.upload();
-            ID3D11Buffer* cbs[] = {g_blurCB.get()};
-            c->PSSetConstantBuffers(2, 1, cbs);
-            c->PSSetShader(ps, nullptr, 0);
-            c->PSSetShaderResources(0, 1, &src);
-            c->Draw(3, 0);
-        };
-        pass(g_psDown, g_copySrv, g_blurW, g_blurH, g_half, vec2(0, 0));
-        pass(g_psDown, g_half.srv, g_half.width, g_half.height, g_q1, vec2(0, 0));
+        beginBlitPasses();
+        blitPass(g_psDown, g_copySrv, g_blurW, g_blurH, g_half, vec2(0, 0));
+        blitPass(g_psDown, g_half.srv, g_half.width, g_half.height, g_q1, vec2(0, 0));
         for (int it = 0; it < 2; it++) {
-            pass(g_psBlur, g_q1.srv, g_q1.width, g_q1.height, g_q2, vec2(1.f + it, 0));
-            pass(g_psBlur, g_q2.srv, g_q2.width, g_q2.height, g_q1, vec2(0, 1.f + it));
+            blitPass(g_psBlur, g_q1.srv, g_q1.width, g_q1.height, g_q2, vec2(1.f + it, 0));
+            blitPass(g_psBlur, g_q2.srv, g_q2.width, g_q2.height, g_q1, vec2(0, 1.f + it));
         }
-        c->PSSetShaderResources(0, 1, nullSrv);
         g_blurValid = true;
+    }
+    c->OMSetRenderTargets(1, &rtv, dsv);
+    SAFE_RELEASE(res);
+    SAFE_RELEASE(rtv);
+    SAFE_RELEASE(dsv);
+}
+
+// Copies the finished frame (after the UI draws) into snapshot slot `id % kSnapCount` at quarter resolution.
+void captureSnapshot(int id) {
+    auto* c = gfx::ctx;
+    ID3D11RenderTargetView* rtv = nullptr;
+    ID3D11DepthStencilView* dsv = nullptr;
+    c->OMGetRenderTargets(1, &rtv, &dsv);
+    if (!rtv) { SAFE_RELEASE(dsv); return; }
+    ID3D11Resource* res = nullptr;
+    rtv->GetResource(&res);
+    D3D11_TEXTURE2D_DESC td = {};
+    ((ID3D11Texture2D*)res)->GetDesc(&td);
+    if (ensureCaptureTargets(td) && td.SampleDesc.Count == 1) {
+        int slot = id % kSnapCount;
+        int qw = Max(1, (int)td.Width / 4), qh = Max(1, (int)td.Height / 4);
+        gfx::Texture& snap = g_snap[slot];
+        if (snap.width != qw || snap.height != qh || !snap.rtv) {
+            snap.release();
+            snap = gfx::createTexture2D(qw, qh, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_RTV);
+        }
+        c->CopyResource(g_copyTex, res);
+        beginBlitPasses();
+        blitPass(g_psDown, g_copySrv, g_blurW, g_blurH, g_half, vec2(0, 0));
+        blitPass(g_psDown, g_half.srv, g_half.width, g_half.height, snap, vec2(0, 0));
+        g_snapId[slot] = id;
     }
     c->OMSetRenderTargets(1, &rtv, dsv);
     SAFE_RELEASE(res);
@@ -443,6 +507,7 @@ bool init() {
     g_psBlur = gfx::loadPS("ui.hlsl", "psUIBlur");
     g_cb.create();
     g_blurCB.create();
+    g_photoCB.create();
     D3D11_BLEND_DESC bd = {};
     bd.RenderTarget[0].BlendEnable = TRUE;
     bd.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
@@ -461,6 +526,10 @@ void shutdown() {
     g_atlas.release();
     g_vb.release();
     releaseBlur();
+    for (int i = 0; i < kSnapCount; i++) {
+        g_snap[i].release();
+        g_snapId[i] = -1;
+    }
     SAFE_RELEASE(g_blend);
 }
 
@@ -475,6 +544,7 @@ void beginFrame(int w, int h) {
     g_discard = false;
     g_additive = false;
     g_wantBackdrop = false;
+    g_photoUsed = false;
     g_frameIndex++;
 }
 
@@ -694,6 +764,40 @@ void mapQuad(ID3D11ShaderResourceView* srv, const vec2 p[4], const vec2 uv[4], u
              V(p[2].x, p[2].y, uv[2].x, uv[2].y, landTint, waterTint, M_MAP, coastLine),
              V(p[3].x, p[3].y, uv[3].x, uv[3].y, landTint, waterTint, M_MAP, coastLine), srv);
 }
+void photoEffect(float x, float y, float w, float h, float u0, float v0, float u1, float v1, const PhotoFx& fx) {
+    g_wantBackdrop = true;
+    g_photoUsed = true;
+    g_photo.a = vec4((float)Clamp(fx.filter, 0, 31), Saturate(fx.strength), Clamp(fx.exposure, -4.f, 4.f), Clamp(fx.contrast, 0.2f, 2.f));
+    g_photo.b = vec4(Clamp(fx.saturation, 0.f, 2.5f), Clamp(fx.temperature, -1.f, 1.f), Saturate(fx.vignette), Saturate(fx.grain));
+    // blur scale: circle of confusion ~ focal length^2 / (f-stop * focus distance); normalized so f/2.8 at 50 mm-ish
+    // framing gives a pleasant separation, longer lenses (narrow fov) blur more
+    float fovScale = 0.87f / Clamp(fx.fovY, 0.15f, 2.2f);
+    float blurScale = fx.dof ? Clamp((2.8f / Clamp(fx.aperture, 0.7f, 32.f)) * fovScale * fovScale * 0.55f, 0.f, 6.f) : 0.f;
+    g_photo.c = vec4(fx.dof ? 1.f : 0.f, Max(fx.focusDistance, 0.05f), blurScale, g_depthSrv ? g_depthNear : 0.f);
+    g_photo.d = vec4(fx.time, (float)g_w / (float)Max(g_h, 1), 0.f, 0.f);
+    u32 c = 0xffffffffu;
+    float ra = w / Max(h, 1.f);   // p1, p2: position inside the rect (vignette), p3: rect aspect
+    pushQuad(V(x, y, u0, v0, c, 0, M_PHOTO, 0, 0, ra), V(x + w, y, u1, v0, c, 0, M_PHOTO, 1, 0, ra),
+             V(x + w, y + h, u1, v1, c, 0, M_PHOTO, 1, 1, ra), V(x, y + h, u0, v1, c, 0, M_PHOTO, 0, 1, ra), anyTex());
+}
+
+void setSceneDepth(ID3D11ShaderResourceView* depthSrv, float nearZ) {
+    g_depthSrv = depthSrv;
+    g_depthNear = depthSrv ? Max(nearZ, 1e-4f) : 0.f;
+}
+
+int requestSnapshot() {
+    if (g_snapPending >= 0) return g_snapPending;
+    g_snapPending = g_snapNextId++;
+    return g_snapPending;
+}
+
+ID3D11ShaderResourceView* snapshotSrv(int id) {
+    if (id < 0) return nullptr;
+    int slot = id % kSnapCount;
+    return g_snapId[slot] == id ? g_snap[slot].srv : nullptr;
+}
+
 void backdrop(float x, float y, float w, float h, float r, u32 tint, u32 overlay, float saturation) {
     g_wantBackdrop = true;
     float hw = w * 0.5f, hh = h * 0.5f;
@@ -803,9 +907,29 @@ float textWrapped(float x, float y, float maxW, const char* str, const TextStyle
 }
 
 void endFrame() {
-    if (g_verts.empty()) return;
     auto* c = gfx::ctx;
+    if (g_verts.empty()) {
+        if (g_snapPending >= 0) {
+            captureSnapshot(g_snapPending);
+            g_snapPending = -1;
+        }
+        return;
+    }
     if (g_wantBackdrop) captureBackdrop();
+    // The depth buffer sampled for photo DOF must not stay bound as the depth target.
+    ID3D11RenderTargetView* savedRtv = nullptr;
+    ID3D11DepthStencilView* savedDsv = nullptr;
+    bool photoDepth = g_photoUsed && g_depthSrv;
+    if (photoDepth) {
+        c->OMGetRenderTargets(1, &savedRtv, &savedDsv);
+        c->OMSetRenderTargets(1, &savedRtv, nullptr);
+    }
+    if (g_photoUsed) {
+        g_photoCB.data = g_photo;
+        g_photoCB.upload();
+        ID3D11Buffer* pcb[] = {g_photoCB.get()};
+        c->PSSetConstantBuffers(3, 1, pcb);
+    }
     gfx::updateBuffer(g_vb, g_verts.data(), (u32)(g_verts.size() * sizeof(Vtx)));
     UINT stride = sizeof(Vtx), offset = 0;
     c->IASetVertexBuffers(0, 1, &g_vb.buf, &stride, &offset);
@@ -820,6 +944,9 @@ void endFrame() {
     ID3D11SamplerState* samps[] = {gfx::states.linearClamp};
     c->PSSetSamplers(1, 1, samps);
     ID3D11ShaderResourceView* blurSrv = (g_blurValid && g_q1.srv) ? g_q1.srv : g_atlas.srv;
+    ID3D11ShaderResourceView* sceneSrv = (g_blurValid && g_copySrv) ? g_copySrv : g_atlas.srv;
+    ID3D11ShaderResourceView* halfSrv = (g_blurValid && g_half.srv) ? g_half.srv : g_atlas.srv;
+    ID3D11ShaderResourceView* depthSrv = photoDepth ? g_depthSrv : g_atlas.srv;
     for (auto& b : g_batches) {
         if (b.count == 0) continue;
         g_cb.data.screen = vec4((float)g_w, (float)g_h, 1.f / g_w, 1.f / g_h);
@@ -829,12 +956,22 @@ void endFrame() {
         ID3D11Buffer* cbs[] = {g_cb.get()};
         c->VSSetConstantBuffers(1, 1, cbs);
         c->PSSetConstantBuffers(1, 1, cbs);
-        ID3D11ShaderResourceView* srvs[4] = {g_atlas.srv, b.tex ? b.tex : g_atlas.srv, g_iconSrv ? g_iconSrv : g_atlas.srv, blurSrv};
-        c->PSSetShaderResources(0, 4, srvs);
+        ID3D11ShaderResourceView* srvs[7] = {g_atlas.srv, b.tex ? b.tex : g_atlas.srv, g_iconSrv ? g_iconSrv : g_atlas.srv, blurSrv,
+                                             sceneSrv, depthSrv, halfSrv};
+        c->PSSetShaderResources(0, 7, srvs);
         c->Draw((UINT)b.count, (UINT)b.start);
     }
-    ID3D11ShaderResourceView* nulls[4] = {};
-    c->PSSetShaderResources(0, 4, nulls);
+    ID3D11ShaderResourceView* nulls[7] = {};
+    c->PSSetShaderResources(0, 7, nulls);
+    if (photoDepth) {
+        c->OMSetRenderTargets(1, &savedRtv, savedDsv);
+    }
+    SAFE_RELEASE(savedRtv);
+    SAFE_RELEASE(savedDsv);
+    if (g_snapPending >= 0) {
+        captureSnapshot(g_snapPending);
+        g_snapPending = -1;
+    }
 }
 
 }  // namespace UI

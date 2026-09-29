@@ -373,6 +373,11 @@ void GameWorld::buildAssets() {
     }
     protagonistChar[0] = protoStart;
     protagonistChar[1] = protoStart + 1;
+    // bake the clip library now (the first sampleClip builds it) instead of hitching on the first spawn in game
+    if (n > 0) {
+        Anim::Pose warm;
+        Anim::sampleClip(chars[0].skel, Anim::CLIP_IDLE, 0.f, warm);
+    }
     // Animators keep pointers to CharEntry::skel: reserve room for named story characters so the vector never
     // reallocates after peds exist.
     chars.reserve(chars.size() + 192);
@@ -424,13 +429,17 @@ int GameWorld::randomCivilianChar(u32 seed, int role) {
 }
 
 int GameWorld::findVehicleModel(Vehicles::VehicleClass cls, u32 seed) {
-    int count = 0;
-    for (auto& a : vassets)
-        if (a.spec.cls == cls) count++;
-    if (!count) return -1;
-    int k = (int)(seed % (u32)count);
-    for (int i = 0; i < (int)vassets.size(); i++)
-        if (vassets[i].spec.cls == cls && k-- == 0) return i;
+    // prefer civilian models (spawnWeight > 0: excludes police/service variants such as the patrol helicopter);
+    // fall back to any model of the class
+    for (int pass = 0; pass < 2; pass++) {
+        int count = 0;
+        for (auto& a : vassets)
+            if (a.spec.cls == cls && (pass == 1 || a.spec.spawnWeight > 0.f)) count++;
+        if (!count) continue;
+        int k = (int)(seed % (u32)count);
+        for (int i = 0; i < (int)vassets.size(); i++)
+            if (vassets[i].spec.cls == cls && (pass == 1 || vassets[i].spec.spawnWeight > 0.f) && k-- == 0) return i;
+    }
     return -1;
 }
 

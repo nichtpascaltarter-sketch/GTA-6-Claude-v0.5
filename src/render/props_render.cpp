@@ -114,7 +114,8 @@ struct PropRenderer {
 
     // Gather instances from near cells into buckets
     template <typename CellMap>
-    void gather(CellMap& cells, dvec3 cam, const Frustum& fr, float distScale, bool shadowPass) {
+    void gather(CellMap& cells, dvec3 cam, const Frustum& fr, float distScale, bool shadowPass,
+                const std::function<int(int, vec2)>* signalFn = nullptr) {
         for (auto& b : buckets) b.clear();
         bool anyBroken = Phys::gCollision && Phys::gCollision->brokenCount() > 0;
         for (auto& kv : cells) {
@@ -135,7 +136,9 @@ struct PropRenderer {
                 PropInstanceGPU g;
                 g.pos = vec4(rp, pi.scale);
                 float phase = hashToFloat(hash2i((int)(pi.pos.x * 3.f), (int)(pi.pos.y * 3.f))) * kTwoPi;
-                g.rot = vec4(cosf(pi.yaw), sinf(pi.yaw), phase, -1.f);
+                // traffic lamps follow the AI signal phases when the gameplay layer provides them
+                float sigW = (pi.type == World::PROP_TRAFFIC_LIGHT && signalFn && *signalFn) ? (float)(*signalFn)((int)pi.flags, pi.pos.xy()) + 0.25f : -1.f;
+                g.rot = vec4(cosf(pi.yaw), sinf(pi.yaw), phase, sigW);
                 buckets[pr].push_back(g);
             }
         }
@@ -174,7 +177,7 @@ struct PropRenderer {
         auto* c = gfx::ctx;
         Frustum fr;
         fr.fromMatrix(r.viewProjNoJitter);
-        gather(cells, r.camera.pos, fr, 1.f, false);
+        gather(cells, r.camera.pos, fr, 1.f, false, &r.signalLampFn);
         c->IASetInputLayout(vs.layout);
         c->VSSetShader(vs.vs, nullptr, 0);
         c->PSSetShader(ps, nullptr, 0);

@@ -117,6 +117,8 @@ struct Sdf {
     int cone(vec3 a, vec3 b, float ra, float rb, u32 mask, float k, float sx = 1, float sy = 1, vec3 xHint = vec3(1, 0, 0));
     int plane(vec3 p, vec3 n, u32 mask);   // keeps the side the normal points to (intersection)
     float eval(vec3 p, u32 mask) const;
+    // Evaluate only the listed primitives (in order), starting from `cap` (distances beyond it are not needed).
+    float evalList(vec3 p, const u16* list, int n, float cap) const;
     vec3 grad(vec3 p, u32 mask) const;
     // First exit along a ray from an interior point (returns t). If o is outside, searches inwards first.
     float castOut(vec3 o, vec3 d, u32 mask, float tMax) const;

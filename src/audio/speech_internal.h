@@ -2,6 +2,7 @@
 // All of these files are #included by speech.cpp (unity build); nothing here is public API.
 #pragma once
 #include "speech.h"
+#include "speech_ext.h"
 #include "../core/rng.h"
 
 namespace Speech {
@@ -112,9 +113,11 @@ struct TextWord {
     u8 emph = 0;          // 1 = emphasized (ALL CAPS in mixed text, *stars*)
     bool spell = false;   // spell as letters
     bool phon = false;    // w holds explicit ARPAbet phonemes
-    bool shout = false;   // whole sentence in capitals
+    bool shout = false;   // whole sentence in capitals (or [shout])
     bool gDrop = false;   // "nothin'" style -in' ending
     u8 brk = BRK_NONE;    // break after this word
+    float pauseSec = 0.f; // explicit pause after this word ([pause:x]); 0 = from the break type
+    Style style;          // speaking style in effect ([angry], [accent:south], ...)
 };
 
 void normalizeText(const char* text, std::vector<TextWord>& out);
@@ -131,6 +134,35 @@ void lookupWord(const TextWord& tw, WordPron& out);
 void letterToSound(const std::string& word, Pron& out);  // rules + stress assignment
 void spellWord(const std::string& word, Pron& out);
 bool isFunctionWord(const std::string& w);
+
+// ---------------------------------------------------------------------------------------------
+// Speaking styles: numeric prosody / voice-quality modifiers of an emotion + delivery + accent combination.
+struct StyleParams {
+    float rate = 1.f;        // speaking-rate multiplier (durations are divided by it)
+    float pause = 1.f;       // pause-length multiplier
+    float pitch = 0.f;       // F0 shift (semitones)
+    float range = 1.f;       // pitch-accent excursion multiplier
+    float decl = 1.f;        // declination multiplier
+    float stressLen = 1.f;   // stressed-vowel duration multiplier
+    float reducedLen = 1.f;  // unstressed-vowel duration multiplier (> 1: syllable-timed rhythm)
+    float loud = 0.f;        // voicing level (dB)
+    float rd = 0.f;          // voice-quality shift (Rd; < 0 pressed / tense, > 0 breathy / lax)
+    float breath = 0.f;      // added breathiness (aspiration noise in voicing)
+    float creak = 0.f;       // added creak (phrase ends and overall)
+    float jitter = 1.f;      // jitter / shimmer multiplier
+    float tremor = 0.f;      // F0 tremor depth (semitones, ~5.5 Hz)
+    float tilt = 0.f;        // spectral tilt (dB at 3 kHz; < 0 brighter)
+    float f1 = 1.f;          // F1 scale (jaw opening)
+    float f23 = 1.f;         // F2 / F3 scale (lip spreading, "smile")
+    float whisper = 0.f;     // 0..1 voicing replaced by noise excitation
+    float endLift = 0.f;     // semitones added to phrase-final pitch (upbeat / anxious endings)
+    float vot = 1.f;         // aspiration (voice onset time) multiplier for voiceless stops
+    float accentAll = 0.f;   // 0..1 extra pitch accents on function words (punchy announcer stress)
+};
+StyleParams styleParams(const Style& s);
+bool styleEqual(const Style& a, const Style& b);
+// Parses the inside of a [tag]; returns false for anything that is not a style/pause tag (stage direction).
+bool parseStyleTag(const std::string& tag, Style& st, float& pauseSec);
 
 // ---------------------------------------------------------------------------------------------
 // Utterance representation after phonetic processing.
@@ -155,11 +187,14 @@ enum SegFlag : u32 {
     SF_PREPAUSE = 1u << 17,   // last segment before a pause
     SF_ARTICLE_A = 1u << 18,  // the article "a" (kept unreduced)
     SF_WEAKREL = 1u << 19,    // coda stop releasing into a following consonant (no separate audible burst)
-    SF_FROM_T = 1u << 20      // flap derived from /t/ (the vowel before it keeps pre-fortis shortening)
+    SF_FROM_T = 1u << 20,     // flap derived from /t/ (the vowel before it keeps pre-fortis shortening)
+    SF_GEMINATE = 1u << 21    // merged identical consonants across a word boundary (longer closure)
 };
 
 struct Seg {
     u8 ph = PH_SIL;
+    float fo[6] = {0, 0, 0, 0, 0, 0};  // accent vowel quality: F1..F3 start and end targets (Hz, 0 = phoneme's own)
+    float durMul = 1.f;                // accent duration factor (drawl, compensatory lengthening)
     u8 stress = 0;         // vowels: lexical stress; consonants: stress of their syllable
     u32 flags = 0;
     int word = -1;         // index into Utterance::words (-1 for pauses)
@@ -176,6 +211,8 @@ struct UWord {
     bool function = false;
     u8 emph = 0;
     int nSyl = 0;
+    Style style;
+    std::string text;  // lowercase word (accent rules that depend on spelling)
 };
 
 struct UPhrase {
@@ -191,8 +228,15 @@ struct Utterance {
     std::vector<Seg> segs;
     std::vector<UWord> words;
     std::vector<UPhrase> phrases;
-    float total = 0.f;  // seconds
+    std::vector<StyleParams> wordStyle;  // per word (styleParams of UWord::style)
+    float total = 0.f;                   // seconds
+    // Style parameters of segment i (pauses take the preceding word's style).
+    const StyleParams& segStyle(int i) const;
 };
+
+// Accent phonology on a syllabified utterance (before durations): vowel qualities, rhoticity, consonant
+// substitutions, deletions.
+void applyAccents(Utterance& u);
 
 // Text -> segments with durations and timing (no F0). Deterministic and cheap.
 void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance& utt);
