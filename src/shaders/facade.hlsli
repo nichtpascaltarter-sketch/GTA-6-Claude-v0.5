@@ -160,7 +160,7 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         rough = 0.35;
         // Signs glow at night
         float night = gExposure.w;
-        r.emissive = sg.rgb * sg.a * (60.0 + 900.0 * night) * ((flags & 4u) ? 1.5 : 0.6);
+        r.emissive = sg.rgb * sg.a * (30.0 + 220.0 * night) * ((flags & 4u) ? 1.5 : 0.6);
         outN = N;
     } else if (inFrame) {
         outAlbedo = frameC;
@@ -188,7 +188,7 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         float hour = gTime.y;
         float evening = smoothstep(17.5, 19.5, hour) * (1.0 - smoothstep(23.0, 25.0, hour)) + (hour < 6.0 ? 0.25 : 0.0);
         float dayOffice = office ? smoothstep(7.0, 8.5, hour) * (1.0 - smoothstep(18.0, 21.0, hour)) : 0;
-        float litProb = saturate(f.litFrac * (evening + dayOffice * 0.9) + (storefront ? 0.9 : 0));
+        float litProb = saturate(f.litFrac * 0.75 * (evening + dayOffice * 0.9) + (storefront ? 0.85 : 0));
         bool lit = hashF(roomHash + 11u) < litProb;
         float3 lightC = lerp(float3(1.0, 0.72, 0.45), float3(0.95, 0.97, 1.0), office ? 0.85 : hashF(roomHash + 12u) * 0.6);
         if (!office && hashF(roomHash + 13u) > 0.93) lightC = float3(0.4, 0.55, 1.0);  // TV glow
@@ -198,7 +198,7 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         float3 glassTint = glassC;
         float3 interiorAlbedo = inside * glassTint;
         float3 em = 0;
-        if (lit) em = inside * lightC * (storefront ? 180.0 : 60.0);
+        if (lit) em = inside * lightC * (storefront ? 38.0 : 14.0) * (0.6 + 0.8 * hashF(roomHash + 14u));
         // Glass surface: dark reflective; interior visible through it
         outAlbedo = interiorAlbedo * 0.35 * dayInterior + glassTint * 0.02;
         r.emissive = em * glassTint * 1.2;
@@ -220,7 +220,7 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         float band = abs(fy - (fh - 0.1));
         if (band < 0.05 && !ground) {
             float3 neon = hsvToRgbF(hashF(seed));
-            r.emissive += neon * (40.0 + 900.0 * gExposure.w);
+            r.emissive += neon * (20.0 + 260.0 * gExposure.w);
             outAlbedo = neon;
         }
     }

@@ -64,11 +64,31 @@ struct Settings {
     int quality = 2;  // 0 low, 1 medium, 2 high, 3 ultra
 };
 
+// Local light (matches LightGPU in shaders/lighting.hlsl). pos is camera-relative when uploaded.
+struct LightGPU {
+    vec3 pos;
+    float radius;
+    vec3 color;
+    float spotCos;
+    vec3 dir;
+    float spotInner;
+};
+
+// A light submitted by gameplay in world space (headlights, muzzle flashes, sirens, fires)
+struct DynamicLight {
+    dvec3 pos;
+    vec3 color;
+    float radius;
+    vec3 dir = vec3(0, 0, -1);
+    float spotCos = -2.f, spotInner = -1.f;
+};
+
 struct DrawStats {
     int drawCalls = 0;
     int triangles = 0;
     int terrainNodes = 0;
-    void reset() { drawCalls = triangles = terrainNodes = 0; }
+    int lights = 0;
+    void reset() { drawCalls = triangles = terrainNodes = lights = 0; }
 };
 
 class Renderer;
@@ -135,6 +155,13 @@ public:
     World::WorldMap* map = nullptr;
 
     ID3D11ComputeShader* csLighting = nullptr;
+    gfx::Buffer lightBuf;
+    struct LightCBData { u32 count, pad[3]; };
+    gfx::CBuffer<LightCBData> lightCB;
+    std::vector<LightGPU> lightsFrame;
+    std::vector<DynamicLight> dynamicLights;  // cleared each frame after rendering
+    static const int kMaxLights = 4096;
+    void addLight(const DynamicLight& l) { dynamicLights.push_back(l); }
     gfx::VertexShader vsFullscreen;
 
     void createTargets();

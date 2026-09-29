@@ -272,6 +272,49 @@ struct WorldRenderer {
         });
     }
 
+    // Collect active local lights from near cells (camera-relative)
+    void gatherLights(dvec3 cam, float night, float time, const Frustum& fr, std::vector<LightGPU>& out, int maxLights) {
+        const float range = 380.f;
+        for (auto& kv : cells) {
+            StreamCell* c = kv.second;
+            if (c->lod != 0 || c->state.load() != 2) continue;
+            vec2 o = World::cellOrigin(c->cx, c->cy);
+            float qx = Max(Max(o.x - (float)cam.x, 0.f), (float)cam.x - (o.x + World::kCellSize));
+            float qy = Max(Max(o.y - (float)cam.y, 0.f), (float)cam.y - (o.y + World::kCellSize));
+            if (qx * qx + qy * qy > range * range) continue;
+            for (const World::LightInstance& li : c->lights) {
+                float k = 0.f;
+                switch (li.type) {
+                    case 0: k = SmoothStep(0.05f, 0.35f, night); break;           // street
+                    case 1: k = SmoothStep(0.2f, 0.6f, night); break;             // building / canopy
+                    case 2: k = 0.25f + 0.75f * night; break;                     // neon
+                    case 4: k = night * (fmodf(time + li.pos.x * 0.01f, 1.6f) < 0.25f ? 1.f : 0.f); break;
+                    default: k = night; break;
+                }
+                if (k <= 0.01f) continue;
+                vec3 rp = rel(li.pos, cam);
+                if (length2(rp) > range * range) continue;
+                if (!fr.testSphere(rp, li.radius)) continue;
+                LightGPU g;
+                g.pos = rp;
+                g.radius = li.radius;
+                g.color = li.color * k;
+                if (li.cone > 0.f && length2(li.dir) > 0.5f) {
+                    // cone stores cos of the outer angle as (1 - cone) for wide down-facing street lamps
+                    g.spotCos = Clamp(1.f - li.cone * 4.f, -0.95f, 0.99f);
+                    g.spotInner = Min(0.999f, g.spotCos + 0.25f);
+                    g.dir = li.dir;
+                } else {
+                    g.spotCos = -2.f;
+                    g.spotInner = -1.f;
+                    g.dir = vec3(0, 0, -1);
+                }
+                out.push_back(g);
+                if ((int)out.size() >= maxLights) return;
+            }
+        }
+    }
+
     int pendingCount() const {
         int n = 0;
         for (auto& kv : cells) n += kv.second->state.load() < 2;

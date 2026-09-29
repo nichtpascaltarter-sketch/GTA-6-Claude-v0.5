@@ -129,9 +129,9 @@ struct App {
             st.size = 18.f;
             st.shadow = 1.5f;
             World::Region reg = map.regionAt((float)cam.pos.x, (float)cam.pos.y);
-            std::string s = StrFormat("NEON TIDE  |  %.0f fps (%.2f ms)\npos %.0f %.0f %.0f  |  %s\ntime %05.2f  draws %d  tris %dk  cells %d (pending %d)",
+            std::string s = StrFormat("NEON TIDE  |  %.0f fps (%.2f ms)\npos %.0f %.0f %.0f  |  %s\ntime %05.2f  draws %d  tris %dk  cells %d (pending %d)  lights %d",
                                       fps, frameMs, cam.pos.x, cam.pos.y, cam.pos.z, World::regionInfo(reg).name, env.timeOfDay,
-                                      renderer.stats.drawCalls, renderer.stats.triangles / 1000, renderer.world->drawnCells, renderer.world->pendingCount());
+                                      renderer.stats.drawCalls, renderer.stats.triangles / 1000, renderer.world->drawnCells, renderer.world->pendingCount(), renderer.stats.lights);
             UI::roundRect(10, 10, 560, 78, 8, UI::rgba(0, 0, 0, 0.45f));
             UI::text(20, 16, s.c_str(), st);
         }

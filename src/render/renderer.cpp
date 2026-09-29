@@ -104,6 +104,8 @@ bool Renderer::init(int w, int h) {
     shadowCB.create();
     vsFullscreen = gfx::loadVS("post.hlsl", "vsFullscreen", nullptr, 0);
     csLighting = gfx::loadCS("lighting.hlsl", "csLighting");
+    lightBuf = gfx::createBuffer(kMaxLights * sizeof(LightGPU), sizeof(LightGPU), gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
+    lightCB.create();
     sky = new SkySystem();
     sky->init();
     shadows = new ShadowSystem();
@@ -346,17 +348,41 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     c->OMSetRenderTargets(0, nullptr, nullptr);
     gfx::gpuTimerEnd();
 
+    // Local lights: static world lights + gameplay lights
+    {
+        Frustum fr;
+        fr.fromMatrix(viewProjNoJitter);
+        lightsFrame.clear();
+        for (const DynamicLight& dl : dynamicLights) {
+            LightGPU g;
+            g.pos = rel(dl.pos, cam.pos);
+            g.radius = dl.radius;
+            g.color = dl.color;
+            g.dir = dl.dir;
+            g.spotCos = dl.spotCos;
+            g.spotInner = dl.spotInner;
+            if (length(g.pos) < 400.f && fr.testSphere(g.pos, g.radius)) lightsFrame.push_back(g);
+        }
+        world->gatherLights(cam.pos, nightFactor, env.gameSeconds, fr, lightsFrame, kMaxLights);
+        if (!lightsFrame.empty()) gfx::updateBuffer(lightBuf, lightsFrame.data(), (u32)(lightsFrame.size() * sizeof(LightGPU)));
+        lightCB.data.count = (u32)lightsFrame.size();
+        lightCB.upload();
+        stats.lights = (int)lightsFrame.size();
+        dynamicLights.clear();
+    }
     // Lighting
     gfx::gpuTimerBegin("lighting");
     bindGlobals(*this, true);
     ID3D11Buffer* scb[] = {shadowCB.get()};
     c->CSSetConstantBuffers(3, 1, scb);
-    ID3D11ShaderResourceView* srvs[7] = {gbAlbedo.srv, gbNormal.srv, gbMaterial.srv, gbEmissive.srv, depth.srv,
-                                         post->whiteTex.srv, cloudsTex.srv};
-    c->CSSetShaderResources(0, 7, srvs);
+    ID3D11Buffer* lcb[] = {lightCB.get()};
+    c->CSSetConstantBuffers(2, 1, lcb);
+    ID3D11ShaderResourceView* srvs[8] = {gbAlbedo.srv, gbNormal.srv, gbMaterial.srv, gbEmissive.srv, depth.srv,
+                                         post->whiteTex.srv, cloudsTex.srv, lightBuf.srv};
+    c->CSSetShaderResources(0, 8, srvs);
     c->CSSetUnorderedAccessViews(0, 1, &hdr.uav, nullptr);
     c->CSSetShader(csLighting, nullptr, 0);
-    c->Dispatch(gfx::divUp(width, 8), gfx::divUp(height, 8), 1);
+    c->Dispatch(gfx::divUp(width, 16), gfx::divUp(height, 16), 1);
     gfx::unbindCSResources(8, 1);
     gfx::gpuTimerEnd();
 
