@@ -10,9 +10,11 @@ if [ ! -x build/embed_shaders ] || [ tools/embed_shaders.cpp -nt build/embed_sha
 fi
 ./build/embed_shaders src/shaders build/gen/shaders_embedded.h
 OPT="-O2 -DNDEBUG"
+# Keep the unity build's peak memory near 1.2 GB (several builds may run at once on small machines)
+GCCMEM="--param ggc-min-expand=20 --param ggc-min-heapsize=32768"
 STRIP="-s"
 if [ "$1" = "debug" ]; then OPT="-O0 -g"; STRIP=""; fi
-$CXX -std=c++17 $OPT $EXTRA -march=x86-64-v2 -mfpmath=sse -fno-strict-aliasing -Wall -Wno-unused-function -Wno-unused-variable \
+$CXX -std=c++17 $OPT $EXTRA $GCCMEM -march=x86-64-v2 -mfpmath=sse -fno-strict-aliasing -Wall -Wno-unused-function -Wno-unused-variable \
   -Wno-missing-braces -Wno-unused-but-set-variable -Wno-class-memaccess -Ibuild/gen \
   src/main.cpp -o ${OUT:-bin/NeonTide.exe} $STRIP -static -static-libgcc -static-libstdc++ -mwindows \
   -ld3d11 -ldxgi -luuid -lole32 -loleaut32 -lwinmm -lshell32 -luser32 -lgdi32 -lkernel32 -lavrt

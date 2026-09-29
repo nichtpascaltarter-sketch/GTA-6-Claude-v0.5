@@ -479,6 +479,21 @@ void GameWorld::updatePed(int id, float dt) {
             }
             Vehicle& v = vehicles[p.vehicle];
             const Vehicles::VehicleModel& spec = vassets[v.model].spec;
+            // sinking vehicle: NPCs bail out and swim, the player runs out of air
+            if (!isBoat(p.vehicle) && v.sim.submerged > 0.7f) {
+                if (!p.isPlayer) {
+                    int vid = p.vehicle;
+                    removePedFromVehicle(id, false);
+                    p.pos.z = Max(p.pos.z, v.sim.body.pos.z + 0.5);
+                    (void)vid;
+                    break;
+                }
+                pinfo.breath = Max(0.f, pinfo.breath - dt / 20.f);
+                if (pinfo.breath <= 0.f) damagePed(id, 12.f * dt, DMG_DROWN, -1, vec3(0, 0, 1));
+                if (hudHelpTimer <= 0.f) help("The vehicle is sinking! Press ~i:F|Y~ to get out.", 2.f);
+            } else if (p.isPlayer) {
+                pinfo.breath = Min(1.f, pinfo.breath + dt * 0.3f);
+            }
             vec3 sp = p.seat < (int)spec.seats.size() ? spec.seats[p.seat].pos : vec3(0, 0, 0.5f);
             // seat position is the hip; the ped origin is at the feet (~0.45 m below a seated hip)
             vec3 wp = rotate(v.sim.body.rot, sp - vec3(0, 0, 0.5f));
