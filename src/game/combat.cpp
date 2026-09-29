@@ -361,6 +361,25 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
             } else if (h.vehicle >= 0) {
                 vec3 pr = rel(h.pos, vehicles[h.vehicle].sim.body.pos);
                 damageVehicle(h.vehicle, wi.damage * 0.35f, pid, pr, d * wi.damage * 3.f);
+                // shot-out tires
+                {
+                    Vehicle& hv = vehicles[h.vehicle];
+                    const Vehicles::VehicleModel& hs = vassets[hv.model].spec;
+                    vec3 local = transpose(hv.sim.body.rotMat()) * pr;
+                    for (int w = 0; w < hv.sim.wheelCount && w < (int)hs.wheels.size(); w++) {
+                        vec3 wc = hs.wheels[w].pos;
+                        if (fabsf(local.x - wc.x) < hs.wheels[w].width * 0.8f + 0.05f && length(vec2(local.y - wc.y, local.z - wc.z)) < hs.wheels[w].radius * 1.05f &&
+                            !hv.sim.wheels[w].burst) {
+                            hv.sim.wheels[w].burst = true;
+                            hv.sim.sleeping = false;
+#ifdef HAVE_AUDIO
+                            Audio::play(Audio::SFX_TIRE_POP, h.pos.toVec3(), 1.f);
+#endif
+                            spawnFx(FX_DUST, h.pos, vec3(0, 0, 1.f), 4, 0.4f);
+                            break;
+                        }
+                    }
+                }
                 spawnFx(FX_SPARKS, h.pos, h.normal, 4, 0.6f);
                 spawnDecal(DECAL_BULLET_METAL, h.pos, h.normal, 0.06f);
 #ifdef HAVE_AUDIO

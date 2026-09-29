@@ -198,7 +198,8 @@ struct Vehicle {
     // audio
     Audio::EmitterHandle sndEngine = 0, sndSiren = 0, sndSkid = 0, sndHorn = 0, sndExtra = 0, sndAlarm = 0;
     // fx
-    int skidTrack[4] = {-1, -1, -1, -1};
+    int skidTrack[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+    float exhaustTimer = 0.f;
     float smokeTimer = 0.f;
     float lastImpactSfx = 0.f;
     float visibleDist = 0.f;

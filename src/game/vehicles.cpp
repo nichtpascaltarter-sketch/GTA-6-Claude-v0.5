@@ -311,6 +311,31 @@ void GameWorld::updateVehicleFx(Vehicle& v, float dt) {
         v.lastImpactSfx = 0.25f;
     }
 #endif
+    // Skid marks: continuous strips per sliding wheel (a new strip starts when the wheel grips again)
+    if (v.visibleDist < 120.f && !isBoat((int)(&v - &vehicles[0])) && !isAircraft((int)(&v - &vehicles[0]))) {
+        for (int w = 0; w < s.wheelCount && w < 10; w++) {
+            const Vehicles::WheelState& ws = s.wheels[w];
+            bool marking = ws.contact && ws.slip > 0.42f && s.speed() > 2.5f && (ws.surface == Phys::SURF_ASPHALT || ws.surface == Phys::SURF_CONCRETE);
+            if (marking) {
+                float width = spec.wheels.size() > (size_t)w ? spec.wheels[w].width : 0.22f;
+                spawnSkid(v.skidTrack[w], s.body.pos + ws.contactPos, ws.contactNormal, width, Saturate((ws.slip - 0.42f) * 2.f + 0.3f));
+            } else {
+                v.skidTrack[w] = -1;
+            }
+        }
+    }
+    // Exhaust puffs at idle / hard acceleration (cold air look), gear shift clunks
+    if (v.visibleDist < 40.f && s.engineOn && !isBoat((int)(&v - &vehicles[0])) && !isAircraft((int)(&v - &vehicles[0]))) {
+        v.exhaustTimer -= dt;
+        if (v.exhaustTimer <= 0.f) {
+            v.exhaustTimer = s.throttleOut > 0.6f ? 0.08f : 0.25f;
+            vec3 back = rotate(s.body.rot, vec3(spec.boxHalf.x * 0.45f, spec.boxCenter.y - spec.boxHalf.y - 0.05f, 0.35f));
+            spawnFx(FX_EXHAUST, s.body.pos + back, rotate(s.body.rot, vec3(0, -1.2f, 0.2f)), 1, 0.4f + s.throttleOut * 0.6f);
+        }
+    }
+#ifdef HAVE_AUDIO
+    if (s.shifted && v.visibleDist < 60.f) Audio::play(Audio::SFX_GEAR_SHIFT, pos, isPlayerCar ? 0.5f : 0.25f);
+#endif
     // Particles: tire smoke, damaged engine smoke, fire, boat spray
     if (v.visibleDist < 150.f) {
         v.smokeTimer -= dt;
