@@ -20,6 +20,7 @@ struct App {
     World::WorldMap map;
     World::RoadNetwork roads;
     World::BuildingSet buildings;
+    Phys::CollisionWorld collision;
     Viewer viewer;
     Render::Renderer renderer;
     Render::Camera cam;
@@ -51,6 +52,7 @@ struct App {
         World::gRoads = &roads;
         buildings.generate(map, roads);
         World::gBuildings = &buildings;
+        Phys::gCollision = &collision;
         renderer.init(Platform::clientWidth(), Platform::clientHeight());
         renderer.setWorld(&map);
         viewer.init(renderer, map);

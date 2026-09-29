@@ -127,6 +127,7 @@ struct WorldRenderer {
         c->lights = std::move(g->lights);
         c->props = std::move(g->props);
         c->collision = std::move(g->collision);
+        if (c->lod == 0 && Phys::gCollision) Phys::gCollision->addCell(key(c->cx, c->cy, 0), c->collision, c->props);
         delete g;
         c->geo = nullptr;
     }
@@ -173,6 +174,7 @@ struct WorldRenderer {
         }
         for (int k : dead) {
             StreamCell* c = cells[k];
+            if (c->lod == 0 && Phys::gCollision) Phys::gCollision->removeCell(k);
             c->vb.release();
             c->ib.release();
             delete c;

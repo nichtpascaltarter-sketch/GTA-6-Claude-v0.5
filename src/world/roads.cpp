@@ -974,7 +974,8 @@ int RoadNetwork::nearestEdge(vec2 p, float maxDist, float* outS, float* outDist,
 }
 
 bool RoadNetwork::surfaceHeight(vec2 p, float* z, float maxZ) const {
-    std::vector<int> cand;
+    thread_local std::vector<int> cand;
+    cand.clear();
     edgesInRect(p - vec2(1.f), p + vec2(1.f), cand);
     bool found = false;
     float bestZ = -1e9f;

@@ -252,6 +252,7 @@ struct dvec3 {
 FORCEINLINE dvec3 operator+(dvec3 a, dvec3 b) { return dvec3(a.x + b.x, a.y + b.y, a.z + b.z); }
 FORCEINLINE dvec3 operator-(dvec3 a, dvec3 b) { return dvec3(a.x - b.x, a.y - b.y, a.z - b.z); }
 FORCEINLINE dvec3 operator+(dvec3 a, vec3 b) { return dvec3(a.x + b.x, a.y + b.y, a.z + b.z); }
+FORCEINLINE dvec3 operator-(dvec3 a, vec3 b) { return dvec3(a.x - b.x, a.y - b.y, a.z - b.z); }
 FORCEINLINE dvec3 operator*(dvec3 a, double s) { return dvec3(a.x * s, a.y * s, a.z * s); }
 // Relative offset (a - b) as float: used for camera-relative rendering.
 FORCEINLINE vec3 rel(dvec3 a, dvec3 b) { return vec3((float)(a.x - b.x), (float)(a.y - b.y), (float)(a.z - b.z)); }

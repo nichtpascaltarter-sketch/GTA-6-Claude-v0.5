@@ -15,13 +15,14 @@
 #include "world/buildmesh.cpp"
 #include "world/propmesh.cpp"
 #include "world/cellgen.cpp"
+#include "sim/physics.cpp"
 #include "render/renderer.cpp"
 // Content modules developed in parallel; compiled in when present.
-#if __has_include("sim/vehicle_models.cpp")
+#if !defined(NO_VEHICLES) && __has_include("sim/vehicle_models.cpp")
 #include "sim/vehicle_models.cpp"
 #define HAVE_VEHICLE_MODELS 1
 #endif
-#if __has_include("anim/anim_all.cpp")
+#if !defined(NO_CHARACTERS) && __has_include("anim/anim_all.cpp")
 #include "anim/anim_all.cpp"
 #define HAVE_CHARACTERS 1
 #endif
