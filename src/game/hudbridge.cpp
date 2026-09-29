@@ -205,6 +205,19 @@ void GameWorld::fillHud(UI::HudState& h, float dt) {
         b.edge = p.faction == FAC_ENEMY;
         h.blips.push_back(b);
     }
+    // the player's last vehicle (while on foot)
+    if (pv < 0 && pinfo.lastVehicle >= 0 && pinfo.lastVehicle < (int)vehicles.size() && vehicles[pinfo.lastVehicle].used &&
+        !vehicles[pinfo.lastVehicle].exploded && vehicles[pinfo.lastVehicle].playerUsed) {
+        const Vehicle& lv = vehicles[pinfo.lastVehicle];
+        UI::Blip b;
+        b.pos = lv.sim.body.pos.toVec3().xy();
+        b.heightDiff = (float)(lv.sim.body.pos.z - pl->pos.z);
+        b.icon = isBoat(pinfo.lastVehicle) ? UI::BLIP_BOAT : (isAircraft(pinfo.lastVehicle) ? (vassets[lv.model].spec.cls == Vehicles::VC_HELI ? UI::BLIP_HELI : UI::BLIP_PLANE) : UI::BLIP_VEHICLE);
+        b.color = 0xffffcc66u;
+        b.scale = 0.9f;
+        b.label = "Your vehicle";
+        h.blips.push_back(b);
+    }
     for (const UI::Blip& b : staticBlips) h.blips.push_back(b);
     for (const UI::Blip& b : missionBlips) h.blips.push_back(b);
     h.hasWaypoint = hasWaypoint;
