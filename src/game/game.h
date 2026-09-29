@@ -152,6 +152,13 @@ struct Ped {
     // animation extras
     float turnRate = 0.f;
     int pendingAction = -1;
+    // traversal (vault/climb) and cover
+    int moveMode = 0;             // 0 normal, 1 in cover, 2 vaulting, 3 climbing
+    vec3 coverNormal = vec3(0, 1, 0);
+    bool coverLow = false;
+    float traverseT = 0.f, traverseDur = 0.f;
+    vec3 traverseFrom, traverseMid, traverseTo;
+    float diveDepth = 0.f;        // swimming: meters below the surface (0 = at the surface)
     float visibleDist = 0.f;      // distance to camera (LOD)
     bool shadow = true;
 };

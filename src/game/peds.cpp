@@ -146,8 +146,8 @@ void GameWorld::movePed(Ped& p, vec2 desiredVel, float dt, bool jump) {
             else Audio::play(Audio::SFX_SPLASH_SMALL, np);
 #endif
         }
-        float target = wz - 1.32f;
-        np.z = Lerp(np.z, target, Saturate(dt * 6.f));
+        float target = Max(wz - 1.32f - p.diveDepth, g.z + 0.3f);
+        np.z = Lerp(np.z, target, Saturate(dt * (p.diveDepth > 0.f ? 2.5f : 6.f)));
         p.vel.z = 0.f;
         p.grounded = false;
         p.airTime = 0.f;
@@ -191,6 +191,120 @@ void GameWorld::movePed(Ped& p, vec2 desiredVel, float dt, bool jump) {
     }
     p.pos = dvec3(np);
     if (p.pos.z < -60.0) p.pos.z = -60.0;
+}
+
+// ------------------------------------------------------------------------------------------------------------------
+// Vaulting and climbing over low obstacles (walls, props, vehicles).
+bool GameWorld::probeObstacle(const Ped& p, vec3 dir, float reach, float& topZ, float& thickness, vec3& hitPos, vec3& hitNormal) const {
+    vec3 base = p.pos.toVec3();
+    float feet = base.z;
+    float best = 1e9f;
+    bool found = false;
+    // sample rays at knee, waist and chest height
+    const float heights[3] = {0.45f, 0.95f, 1.45f};
+    for (float h : heights) {
+        WorldHit wh;
+        vec3 o = base + vec3(0, 0, h);
+        if (!raycast(dvec3(o), dir, reach, wh, (int)(&p - &peds[0]), -1, false, true)) continue;
+        if (wh.t >= best) continue;
+        if (fabsf(wh.normal.z) > 0.6f) continue;  // floors/roofs are not obstacles
+        best = wh.t;
+        hitPos = wh.pos.toVec3();
+        hitNormal = wh.normal;
+        found = true;
+        // obstacle top and thickness
+        if (wh.vehicle >= 0) {
+            const Vehicle& v = vehicles[wh.vehicle];
+            const Vehicles::VehicleModel& spec = vassets[v.model].spec;
+            topZ = (float)v.sim.body.pos.z + spec.boxCenter.z + spec.boxHalf.z * 0.9f;
+            vec3 f = v.sim.forward(), r = v.sim.right();
+            thickness = fabsf(dot(dir, r)) > fabsf(dot(dir, f)) ? spec.boxHalf.x * 2.f : spec.boxHalf.y * 2.f;
+        } else if (wh.collider >= 0) {
+            const Phys::Collider& c = Phys::gCollision->collider(wh.collider);
+            topZ = c.kind == Phys::COL_BOX ? c.c.z + c.he.z : c.c.z + c.he.z;
+            if (c.kind == Phys::COL_BOX) {
+                vec2 ax = c.ax, ay = perp(c.ax);
+                thickness = fabsf(dot(dir.xy(), ax)) > fabsf(dot(dir.xy(), ay)) ? c.he.x * 2.f : c.he.y * 2.f;
+            } else {
+                thickness = c.he.x * 2.f;
+            }
+        } else {
+            // terrain step / ledge: measure the ground just beyond the hit
+            vec3 beyond = hitPos + dir * 0.4f;
+            topZ = groundHeight(beyond.x, beyond.y, feet + 3.f);
+            thickness = 3.f;
+        }
+    }
+    (void)feet;
+    return found;
+}
+
+bool GameWorld::tryTraverse(Ped& p, vec3 dir) {
+    float top, thick;
+    vec3 hit, nrm;
+    dir.z = 0;
+    dir = normalize(dir);
+    if (!probeObstacle(p, dir, 1.1f, top, thick, hit, nrm)) return false;
+    float feet = (float)p.pos.z;
+    float h = top - feet;
+    if (h < 0.4f || h > 2.4f) return false;
+    vec3 start = p.pos.toVec3();
+    if (h <= 1.25f && thick < 1.6f) {
+        // vault over: land on the far side
+        vec3 land = hit + dir * (thick + 0.55f);
+        land.z = groundHeight(land.x, land.y, top + 0.5f);
+        if (land.z > top + 0.3f || land.z < feet - 3.5f) return false;
+        vec3 push, n;
+        if (Phys::gCollision->capsuleOverlap(land, 0.3f, 1.7f, push, n)) return false;
+        p.moveMode = 2;
+        p.traverseFrom = start;
+        p.traverseMid = vec3(hit.x, hit.y, top + 0.15f) + dir * (thick * 0.5f);
+        p.traverseTo = land;
+        p.traverseDur = 0.55f + h * 0.15f;
+        p.pendingAction = Anim::CLIP_VAULT;
+    } else {
+        // climb onto the top surface
+        vec3 onTop = hit + dir * Min(thick * 0.5f, 0.6f);
+        onTop.z = top;
+        vec3 push, n;
+        if (Phys::gCollision->capsuleOverlap(onTop + vec3(0, 0, 0.05f), 0.28f, 1.7f, push, n) && length(push) > 0.1f) return false;
+        p.moveMode = 3;
+        p.traverseFrom = start;
+        p.traverseMid = vec3(hit.x, hit.y, top + 0.1f) - dir * 0.15f;
+        p.traverseTo = onTop;
+        p.traverseDur = 0.8f + h * 0.2f;
+        p.pendingAction = Anim::CLIP_CLIMB;
+    }
+    p.traverseT = 0.f;
+    p.yaw = atan2f(-dir.x, dir.y);
+    p.vel = vec3(0);
+    p.aiming = false;
+    return true;
+}
+
+void GameWorld::updateTraverse(Ped& p, float dt) {
+    p.traverseT += dt;
+    float t = Saturate(p.traverseT / Max(p.traverseDur, 0.05f));
+    // quadratic Bezier through the apex
+    vec3 pos;
+    if (p.moveMode == 3) {
+        // climb: pull up first, then step forward onto the top
+        float tz = Saturate(t / 0.62f), txy = Saturate((t - 0.45f) / 0.55f);
+        tz = tz * tz * (3.f - 2.f * tz);
+        pos = vec3(Lerp(p.traverseFrom.x, p.traverseTo.x, txy), Lerp(p.traverseFrom.y, p.traverseTo.y, txy), Lerp(p.traverseFrom.z, p.traverseTo.z, tz));
+    } else {
+        vec3 a = lerp(p.traverseFrom, p.traverseMid, t), b = lerp(p.traverseMid, p.traverseTo, t);
+        pos = lerp(a, b, t);
+    }
+    p.pos = dvec3(pos);
+    p.grounded = true;
+    p.vel = vec3(0);
+    if (t >= 1.f) {
+        p.moveMode = 0;
+        p.pos = dvec3(p.traverseTo);
+        p.groundZ = p.traverseTo.z;
+        p.airTime = 0.f;
+    }
 }
 
 // ------------------------------------------------------------------------------------------------------------------

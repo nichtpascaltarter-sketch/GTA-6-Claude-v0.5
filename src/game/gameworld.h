@@ -210,6 +210,11 @@ struct GameWorld {
     void updatePeds(float dt);
     void updatePed(int id, float dt);
     void movePed(Ped& p, vec2 desiredVel, float dt, bool jump);
+    // Obstacle probe in front of a ped: returns obstacle top height above the feet and its depth along `dir`
+    // (0 when nothing within reach). Used for vaulting, climbing and cover.
+    bool probeObstacle(const Ped& p, vec3 dir, float reach, float& topZ, float& thickness, vec3& hitPos, vec3& hitNormal) const;
+    bool tryTraverse(Ped& p, vec3 dir);   // starts a vault/climb when a suitable obstacle is ahead
+    void updateTraverse(Ped& p, float dt);
     void animatePed(Ped& p, float dt);
     void updateVehicles(float dt);
     void updateVehicleFx(Vehicle& v, float dt);

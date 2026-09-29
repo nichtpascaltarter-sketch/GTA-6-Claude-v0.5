@@ -165,6 +165,11 @@ void GameWorld::updatePlayer(float dt) {
 void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
     const Controls& c = ctl;
     bool swimming = p.state == PS_SWIM;
+    if (p.moveMode == 2 || p.moveMode == 3) {
+        updateTraverse(p, dt);
+        return;
+    }
+    if (swimming && p.moveMode == 1) p.moveMode = 0;
     // ----- weapon wheel
     if (c.weaponWheel.down && !swimming) {
         if (!pinfo.weaponWheel) {
@@ -335,14 +340,79 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
     }
     p.yaw = wrapA(p.yaw);
     p.turnRate = wrapA(p.yaw - prevYaw) / Max(dt, 1e-4f);
+    // ----- cover
+    vec3 camF3 = rig.cam.forward();
+    if (c.cover.pressed && !swimming) {
+        if (p.moveMode == 1) {
+            p.moveMode = 0;
+            p.animIn.crouch = false;
+        } else {
+            vec3 probeDir = mag > 0.1f ? vec3(normalize(dir), 0) : normalize(vec3(camF3.x, camF3.y, 0));
+            float top, thick;
+            vec3 hit, nrm;
+            if (probeObstacle(p, probeDir, 2.2f, top, thick, hit, nrm)) {
+                float h = top - (float)p.pos.z;
+                if (h > 0.75f) {
+                    vec3 n = normalize(vec3(nrm.x, nrm.y, 0));
+                    vec3 cp = hit + n * 0.36f;
+                    cp.z = groundHeight(cp.x, cp.y, (float)p.pos.z + 0.4f);
+                    p.pos = dvec3(cp);
+                    p.coverNormal = n;
+                    p.coverLow = h < 1.4f;
+                    p.moveMode = 1;
+                    p.vel = vec3(0);
+                    p.yaw = atan2f(n.x, -n.y);  // face the cover surface
+                }
+            }
+        }
+    }
+    if (p.moveMode == 1) {
+        vec3 n = p.coverNormal;
+        vec3 tangent = normalize(cross(vec3(0, 0, 1), n));
+        float along = dot(vec3(dir, 0), tangent) * Min(mag, 1.f);
+        float away = dot(vec3(dir, 0), n) * Min(mag, 1.f);
+        // crouch behind low cover, pop up while aiming
+        p.animIn.crouch = p.coverLow && !p.aiming;
+        if (away > 0.75f && !p.aiming) {
+            p.moveMode = 0;
+            p.animIn.crouch = false;
+        } else {
+            vec3 cand = p.pos.toVec3() + tangent * (along * 2.2f * dt);
+            // stay only while there is still cover behind the candidate position
+            WorldHit wh;
+            bool still = raycast(dvec3(cand + vec3(0, 0, p.coverLow ? 0.6f : 1.2f)), -n, 0.9f, wh, player, -1, false, true);
+            if (still && fabsf(along) > 0.05f) p.pos = dvec3(cand.x, cand.y, (double)groundHeight(cand.x, cand.y, cand.z + 0.4f));
+            if (!p.aiming) p.yaw = atan2f(n.x, -n.y);
+            else {
+                float ty = atan2f(-camF3.x, camF3.y);
+                p.yaw += wrapA(ty - p.yaw) * Saturate(dt * 16.f);
+            }
+            p.vel = vec3(0);
+            p.animIn.stance = 0;
+            return;
+        }
+    }
     if (c.crouch.pressed && !swimming) p.animIn.crouch = !p.animIn.crouch;
+    // ----- diving
+    if (swimming) {
+        if (c.crouch.down) p.diveDepth = Min(p.diveDepth + dt * 1.6f, 9.f);
+        else if (c.jump.down) p.diveDepth = Max(p.diveDepth - dt * 2.2f, 0.f);
+        if (p.diveDepth > 0.6f) {
+            pinfo.breath = Max(0.f, pinfo.breath - dt / 28.f);
+            if (pinfo.breath <= 0.f) damagePed(player, 12.f * dt, DMG_DROWN, -1, vec3(0, 0, 1));
+        }
+    } else {
+        p.diveDepth = 0.f;
+    }
     bool jump = c.jump.pressed && p.grounded && !p.aiming && !swimming;
+    // jumping at a low wall / car / fence vaults or climbs it instead
+    if (jump && mag > 0.2f && tryTraverse(p, vec3(normalize(dir), 0))) return;
+    if (jump && tryTraverse(p, vec3(-sinf(p.yaw), cosf(p.yaw), 0))) return;
     if (jump) p.animIn.crouch = false;
     movePed(p, desired, dt, jump);
     if (jump) p.pendingAction = Anim::CLIP_JUMP_START;
     pinfo.distanceWalked += length(vec2(p.vel.x, p.vel.y)) * dt;
-    // breath under water is not modelled for swimming at the surface
-    pinfo.breath = Min(1.f, pinfo.breath + dt * 0.3f);
+    if (p.diveDepth <= 0.6f) pinfo.breath = Min(1.f, pinfo.breath + dt * 0.3f);
     // ----- enter vehicle
     if (c.enter.pressed && !swimming) {
         std::vector<int> list;
