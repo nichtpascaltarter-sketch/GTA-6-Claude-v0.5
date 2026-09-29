@@ -44,6 +44,13 @@ void GameWorld::updatePlayer(float dt) {
     }
     // health regeneration up to half (GTA-style)
     if (p.health > 0.f && p.health < p.maxHealth * 0.5f && time - p.lastDamageTime > 6.0) p.health = Min(p.maxHealth * 0.5f, p.health + dt * 2.f);
+    // busted: hands up, then released at the police station via the respawn flow
+    if (pinfo.busted) {
+        pinfo.deathTimer += dt;
+        p.animIn.stance = 5;
+        movePed(p, vec2(0, 0), dt, false);
+        return;
+    }
     // death
     if (p.health <= 0.f || p.state == PS_DEAD) {
         if (pinfo.deathTimer <= 0.f) {
@@ -502,6 +509,17 @@ void GameWorld_respawnPlayer(GameWorld& g) {
     p.stateTime = 0.f;
     p.vel = vec3(0);
     p.grounded = true;
+    bool wasBusted = g.pinfo.busted;
+    if (wasBusted) {
+        // lose non-melee weapons and some cash, like a real booking
+        for (int w = WPN_PISTOL; w < WPN_COUNT; w++) {
+            p.hasWeapon[w] = false;
+            p.ammo[w] = p.clip[w] = 0;
+        }
+        p.weapon = WPN_FISTS;
+    }
+    p.animIn.stance = 0;
+    g.playerControl = true;
     g.pinfo.deathTimer = 0.f;
     g.pinfo.wanted = 0;
     g.pinfo.wantedHeat = 0.f;

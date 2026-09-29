@@ -2,6 +2,8 @@
 #pragma once
 #include "../world/worldtypes.h"
 #include "../world/roads.h"
+#include <unordered_map>
+#include <unordered_set>
 
 namespace Phys {
 
@@ -17,6 +19,7 @@ struct Collider {
     vec2 ax;        // box: unit x axis (horizontal); cylinder unused
     vec3 he;        // box half extents; cylinder: (radius, radius, height)
     int owner;      // cell key
+    int propIndex = -1;  // index into the cell's prop list (prop colliders), -1 otherwise
 };
 
 struct RayHit {
@@ -59,12 +62,18 @@ public:
     const Collider& collider(int i) const { return colliders[i]; }
     int colliderCount() const { return (int)colliders.size(); }
     // Remove (break) a collider, e.g. a streetlight knocked over. Returns false if already removed.
+    // Broken props stay broken for the session (also when their cell streams out and back in).
     bool breakCollider(int i);
+    size_t brokenCount() const { return brokenProps.size(); }
+    bool isPropBroken(int cellKey, int propIndex) const {
+        return !brokenProps.empty() && brokenProps.count(((long long)cellKey << 24) | (long long)propIndex) != 0;
+    }
 
 private:
     std::vector<Collider> colliders;
     std::vector<int> freeList;
     std::unordered_map<int, std::vector<int>> cellColliders;
+    std::unordered_set<long long> brokenProps;
     // Spatial hash (16 m cells)
     static constexpr float kCell = 16.f;
     std::unordered_map<long long, std::vector<int>> grid;

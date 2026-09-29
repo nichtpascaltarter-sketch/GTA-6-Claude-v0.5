@@ -165,9 +165,9 @@ void GameWorld::fillHud(UI::HudState& h, float dt) {
         }
     }
     if (pinfo.deathTimer > 0.f) {
-        h.bigMessage = "WASTED";
+        h.bigMessage = pinfo.busted ? "BUSTED" : "WASTED";
         h.bigMessageSub = "";
-        h.bigMessageColor = 0xff2020ff;
+        h.bigMessageColor = pinfo.busted ? 0xff33ccffu : 0xff2020ffu;
         h.bigMessageTime = pinfo.deathTimer;
     }
     hudNoteTimer = Max(0.f, hudNoteTimer - dt);

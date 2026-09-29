@@ -124,6 +124,18 @@ struct GameWorld {
     bool playerControl = true;  // false during cutscenes
     bool hudVisible = true;
     float hudRadioTimer = 0.f;
+    // Screen fades and cutscene letterbox (drawn by the app over the frame)
+    float fadeAlpha = 0.f, fadeTarget = 0.f, fadeSpeed = 2.5f;
+    float letterbox = 0.f;
+    void fadeOut(float speed = 2.5f) {
+        fadeTarget = 1.f;
+        fadeSpeed = speed;
+    }
+    void fadeIn(float speed = 2.5f) {
+        fadeTarget = 0.f;
+        fadeSpeed = speed;
+    }
+    bool fadedOut() const { return fadeAlpha >= 0.999f; }
     // HUD messages (filled by gameplay/missions, read by the HUD bridge)
     std::string hudNote, hudNoteTitle, hudHelp, hudObjective;
     float hudNoteTimer = 0.f, hudHelpTimer = 0.f;
@@ -161,6 +173,9 @@ struct GameWorld {
     int spawnVehicle(int model, dvec3 pos, float yaw, bool withDriver = false, Faction driverFaction = FAC_CIVILIAN);
     void despawnVehicle(int id, bool includeOccupants = true);
     int randomCivilianChar(u32 seed, int role = 0);
+    // Named characters (story cast): builds skeleton + mesh on first use (~10-40 ms), cached by `key`.
+    int namedCharacter(const std::string& key, const Anim::CharacterDesc& desc);
+    std::unordered_map<std::string, int> namedChars;
     int findVehicleModel(Vehicles::VehicleClass cls, u32 seed);
     void warpPedIntoVehicle(int ped, int veh, int seat);
     void removePedFromVehicle(int ped, bool exitAnim);

@@ -104,6 +104,38 @@ void GameWorld::updateWanted(float dt) {
 #endif
     }
     pinfo.maxWanted = Max(pinfo.maxWanted, (float)pinfo.wanted);
+    // Busted: low wanted level, an officer right next to a slow, non-shooting player on foot (or stopped in a car)
+    static float bustTimer = 0.f;
+    bool bustable = false;
+    if (pinfo.wanted > 0 && pinfo.wanted <= 2 && pl->health > 0.f && !pinfo.busted) {
+        int pv = pl->vehicle;
+        float spd = pv >= 0 ? vehicles[pv].sim.speed() : length(vec2(pl->vel.x, pl->vel.y));
+        bool calm = spd < 1.2f && !pl->firing && !(pv < 0 && pl->aiming);
+        if (calm) {
+            for (int i = 0; i < (int)peds.size(); i++) {
+                const Ped& p = peds[i];
+                if (!p.used || p.faction != FAC_POLICE || p.health <= 0.f || p.state != PS_ONFOOT) continue;
+                if (length(p.pos.toVec3() - ppos) < (pv >= 0 ? 3.2f : 2.2f)) {
+                    bustable = true;
+                    break;
+                }
+            }
+        }
+    }
+    bustTimer = bustable ? bustTimer + dt : 0.f;
+    if (bustTimer > 2.2f) {
+        bustTimer = 0.f;
+        pinfo.busted = true;
+        pinfo.arrests++;
+        bigMessage("BUSTED", "", 0xffffcc33u);
+#ifdef HAVE_AUDIO
+        Audio::play2D(Audio::SFX_BUSTED, 0.9f);
+#endif
+        if (pl->vehicle >= 0) removePedFromVehicle(player, false);
+        pl->pendingAction = Anim::CLIP_HANDS_UP;
+        playerControl = false;
+        pinfo.deathTimer = 0.001f;   // reuse the respawn flow (police station release)
+    }
     if (pinfo.wanted > 0) {
         // evasion: out of sight and outside the search radius around the last seen position
         float searchR = 120.f + pinfo.wanted * 90.f;

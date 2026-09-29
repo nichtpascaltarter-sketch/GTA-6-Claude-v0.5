@@ -455,7 +455,11 @@ struct App {
                     env.gameSeconds += simDt * game.timeScale;
                     weather.update(env, simDt, game.rig.cam.pos);
                     game.update(simDt);
-                    if (game.pinfo.deathTimer > 5.f) GameWorld_respawnPlayer(game);
+                    if (game.pinfo.deathTimer > 3.8f) game.fadeOut(1.2f);
+                    if (game.pinfo.deathTimer > 5.f && game.fadedOut()) {
+                        GameWorld_respawnPlayer(game);
+                        game.fadeIn(0.8f);
+                    }
                 }
                 if (in.pressed(KEY_F9)) {
                     state = AS_FREECAM;
@@ -486,6 +490,7 @@ struct App {
                 game.fillHud(hud, dt);
                 bool showHud = menu.screen == UI::MENU_NONE && menu.settings.showHud && game.hudVisible;
                 if (showHud) UI::drawHud(hud, dt);
+                drawCinematicOverlay();
             }
             if (state == AS_MENU || (state == AS_PLAYING && menu.screen != UI::MENU_NONE)) {
                 prepareMenuData();
@@ -548,6 +553,33 @@ struct App {
     }
 
 #if defined(HAVE_GAMEPLAY) && defined(HAVE_GAME_UI)
+    // Letterbox bars during cutscenes (with subtitles drawn above them) and full-screen fades.
+    void drawCinematicOverlay() {
+        float W = (float)gfx::backbufferWidth(), H = (float)gfx::backbufferHeight();
+        if (game.letterbox > 0.f) {
+            float e = game.letterbox * game.letterbox * (3.f - 2.f * game.letterbox);
+            float bar = H * 0.115f * e;
+            UI::rect(0, 0, W, bar, UI::rgba(0, 0, 0, 1));
+            UI::rect(0, H - bar, W, bar, UI::rgba(0, 0, 0, 1));
+            if (!game.subText.empty() && game.subTimer > 0.f) {
+                UI::TextStyle st;
+                st.size = H * 0.028f;
+                st.align = UI::ALIGN_CENTER;
+                st.shadow = 2.f;
+                std::string line = game.subSpeaker.empty() ? game.subText : game.subSpeaker + ": " + game.subText;
+                UI::textWrapped(W * 0.15f, H - bar + bar * 0.25f, W * 0.7f, line.c_str(), st);
+            }
+            if (e > 0.9f) {
+                UI::TextStyle hint;
+                hint.size = H * 0.018f;
+                hint.align = UI::ALIGN_RIGHT;
+                hint.color = UI::rgba(1, 1, 1, 0.55f);
+                UI::text(W - H * 0.03f, H - bar * 0.35f, game.ctl.usingPad ? "(A) Skip" : "[Space] Skip", hint);
+            }
+        }
+        if (game.fadeAlpha > 0.f) UI::rect(0, 0, W, H, UI::rgba(0, 0, 0, game.fadeAlpha));
+    }
+
     void openPause(UI::MenuScreen s) {
         menu.screen = s;
         menu.cursor = 0;

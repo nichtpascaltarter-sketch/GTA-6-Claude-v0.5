@@ -93,9 +93,12 @@ void CollisionWorld::addCell(int key, const std::vector<World::CollisionBox>& bo
         c.owner = key;
         alloc(c);
     }
-    for (const auto& p : props) {
+    for (int pi = 0; pi < (int)props.size(); pi++) {
+        const World::PropInstance& p = props[pi];
+        if (isPropBroken(key, pi)) continue;
         Collider c;
         c.owner = key;
+        c.propIndex = pi;
         c.surface = SURF_METAL;
         c.flags = 0;
         c.ax = vec2(cosf(p.yaw), sinf(p.yaw));
@@ -135,6 +138,7 @@ void CollisionWorld::removeCell(int key) {
 
 bool CollisionWorld::breakCollider(int i) {
     if (i < 0 || i >= (int)colliders.size() || colliders[i].owner < 0 || !(colliders[i].flags & 1)) return false;
+    if (colliders[i].propIndex >= 0) brokenProps.insert(((long long)colliders[i].owner << 24) | (long long)colliders[i].propIndex);
     erase(i);
     colliders[i].flags = 0;
     colliders[i].he = vec3(0);

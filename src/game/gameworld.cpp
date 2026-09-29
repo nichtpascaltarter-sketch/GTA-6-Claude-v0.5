@@ -145,6 +145,10 @@ void GameWorld::update(float realDt) {
     float dt = Min(realDt, 0.05f) * timeScale;
     dtLast = dt;
     if (paused) return;
+    float fr = Min(realDt, 0.05f);
+    if (fadeAlpha < fadeTarget) fadeAlpha = Min(fadeTarget, fadeAlpha + fr * fadeSpeed);
+    else if (fadeAlpha > fadeTarget) fadeAlpha = Max(fadeTarget, fadeAlpha - fr * fadeSpeed);
+    letterbox = Saturate(letterbox + (mInCutscene() ? fr : -fr) * 2.5f);
     time += dt;
     pinfo.playTime += realDt;
     hudRadioTimer = Max(0.f, hudRadioTimer - realDt);

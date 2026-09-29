@@ -327,6 +327,9 @@ void GameWorld::buildAssets() {
     }
     protagonistChar[0] = protoStart;
     protagonistChar[1] = protoStart + 1;
+    // Animators keep pointers to CharEntry::skel: reserve room for named story characters so the vector never
+    // reallocates after peds exist.
+    chars.reserve(chars.size() + 192);
     LOG("Character assets: %d characters in %.2f s", n, TimeSeconds() - t1);
 #endif
     for (int w = 1; w < WPN_COUNT; w++) {
@@ -340,6 +343,26 @@ void GameWorld::buildAssets() {
         pickupModels[p] = m.empty() ? nullptr : dyn->createModel(m);
     }
     LOG("Game assets built in %.2f s", TimeSeconds() - t0);
+}
+
+int GameWorld::namedCharacter(const std::string& key, const Anim::CharacterDesc& desc) {
+    auto it = namedChars.find(key);
+    if (it != namedChars.end()) return it->second;
+    if (chars.size() >= chars.capacity()) {
+        LOG("namedCharacter: roster full, using a generic character for %s", key.c_str());
+        return randomCivilianChar(hashString(key.c_str()), desc.role);
+    }
+    CharEntry ce;
+    ce.desc = desc;
+    ce.role = desc.role;
+    Anim::buildSkeleton(desc, ce.skel);
+    SkinnedMeshData md;
+    Anim::buildCharacterMesh(desc, ce.skel, md);
+    ce.model = renderer->dynamic->createSkinnedModel(md);
+    int id = (int)chars.size();
+    chars.push_back(ce);
+    namedChars[key] = id;
+    return id;
 }
 
 int GameWorld::randomCivilianChar(u32 seed, int role) {
