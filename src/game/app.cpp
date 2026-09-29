@@ -347,6 +347,24 @@ struct App {
         if (autoplay == "shoot") {
             game.giveWeapon(game.player, WPN_RIFLE, 300);
             game.peds[game.player].weapon = WPN_RIFLE;
+            game.peds[game.player].armor = 100.f;
+            // three armed hostiles ahead of the player
+            Ped& p = game.peds[game.player];
+            vec2 f(-sinf(p.yaw), cosf(p.yaw)), r(cosf(p.yaw), sinf(p.yaw));
+            for (int i = 0; i < 3; i++) {
+                vec2 q = p.pos.toVec3().xy() + f * (14.f + i * 4.f) + r * ((i - 1) * 5.f);
+                float gz = game.groundHeight(q.x, q.y, (float)p.pos.z + 3.f);
+                int ci = game.randomCivilianChar(0x5100u + i, 2);
+                int e = game.spawnPed(ci, dvec3(q.x, q.y, gz), p.yaw + kPi, FAC_ENEMY);
+                if (e < 0) continue;
+                game.giveWeapon(e, WPN_PISTOL, 90);
+                game.peds[e].weapon = WPN_PISTOL;
+                game.peds[e].brain.type = BRAIN_COMBAT;
+                game.peds[e].brain.target = game.player;
+                game.peds[e].brain.accuracy = 0.2f;
+                game.peds[e].persistent = true;
+            }
+            game.rig.yaw = p.yaw;
         }
         autoTime = 0.f;
         autoShot = 0;
@@ -374,9 +392,11 @@ struct App {
             c.accel = 1.f;
             c.steer = t > 8.f ? 0.5f : 0.f;
         } else if (autoplay == "shoot") {
-            c.aim.down = true;
-            c.attack.down = fmodf(t, 2.f) < 0.8f;
-            c.look = vec2(0.004f, 0.f);
+            c.usingPad = true;                        // controller soft lock-on
+            c.aim.down = fmodf(t, 3.f) > 0.15f;       // re-press to re-acquire targets
+            c.aim.pressed = fmodf(t, 3.f) <= 0.15f + dt && fmodf(t, 3.f) > 0.15f;
+            c.attack.down = c.aim.down && fmodf(t, 1.2f) < 0.6f;
+            c.move = vec2(t > 8.f ? 0.4f : 0.f, 0.f);  // strafe later
         }
     }
 #endif
