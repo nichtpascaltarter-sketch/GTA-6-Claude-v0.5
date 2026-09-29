@@ -6,7 +6,7 @@ namespace Game {
 namespace save_detail {
 
 const u32 kMagic = 0x4E54534Eu;  // "NSTN"
-const u32 kVersion = 3;
+const u32 kVersion = 4;
 
 struct Writer {
     std::vector<u8> buf;
@@ -141,6 +141,7 @@ bool GameWorld::saveGame(int slot, const std::string& title) {
     w.vec(storyFlags);
     w.vec(ownedVehicleModels);
     w.pod(protagonistIndex);
+    w.pod(pinfo.hintsShown);
     u32 cs = checksum(w.buf.data(), w.buf.size());
     w.pod(cs);
     std::string path = slotPath(slot);
@@ -250,6 +251,8 @@ bool GameWorld::loadGame(int slot) {
     r.vec(owned);
     int proto = 0;
     r.pod(proto);
+    u32 hints = 0;
+    r.pod(hints);
     if (!r.ok) {
         LOG("Save slot %d is corrupt", slot);
         return false;
@@ -261,6 +264,7 @@ bool GameWorld::loadGame(int slot) {
     env->cloudCover = cloud;
     env->rain = rain;
     pinfo = pi;
+    pinfo.hintsShown = hints;
     storyTitle = story;
     storyFlags = flags;
     ownedVehicleModels = owned;

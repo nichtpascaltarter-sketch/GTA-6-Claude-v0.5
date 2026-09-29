@@ -707,6 +707,40 @@ void GameWorld::updateFocus(float realDt) {
     }
 }
 
+void GameWorld::tutorialHint(int id, const char* text) {
+    if (pinfo.hintsShown & (1u << id)) return;
+    if (hudHelpTimer > 0.f) return;   // wait until the current help box is gone
+    pinfo.hintsShown |= 1u << id;
+    help(text, 7.f);
+}
+
+// Contextual one-time hints for new players.
+void GameWorld::updateTutorialHints(float dt) {
+    (void)dt;
+    Ped* pp = playerPed();
+    if (!pp || !playerControl || mInCutscene() || pinfo.deathTimer > 0.f) return;
+    Ped& p = *pp;
+    if (p.state == PS_ONFOOT) {
+        std::vector<int> list;
+        vehiclesNear(p.pos.toVec3().xy(), 4.5f, list);
+        for (int vi : list)
+            if (!vehicles[vi].locked && !vehicles[vi].exploded) {
+                tutorialHint(0, "Press ~i:F|Y~ to enter a vehicle. Hold ~i:G|UP~ nearby to ride as a passenger.");
+                break;
+            }
+        if (pinfo.playTime > 20.0) tutorialHint(1, "Hold ~i:SHIFT|A~ to sprint. Press ~i:SPACE|X~ at low walls to vault or climb.");
+        if (p.weapon != WPN_FISTS && pinfo.playTime > 40.0) tutorialHint(2, "Aim with ~i:RMB|LT~ and fire with ~i:LMB|RT~. Hold ~i:TAB|LB~ for the weapon wheel.");
+        if (pinfo.wanted > 0) tutorialHint(3, "Press ~i:Q|RB~ near a wall or car to take cover. Break line of sight and leave the red search area to lose the police.");
+        if (pinfo.playTime > 90.0) tutorialHint(4, "Press ~i:M|START~ to open the map and set a waypoint. Crouch with ~i:CTRL|LS~ to sneak up for silent takedowns.");
+        if (pinfo.playTime > 150.0) tutorialHint(5, "Use Focus with ~k:CAPS~ or by clicking both sticks (~p:LS~ + ~p:RS~): Mari slows time while aiming, Dex while driving.");
+    } else if (p.state == PS_INVEHICLE) {
+        int pv = p.vehicle;
+        if (!isBike(pv) && !isBoat(pv) && !isAircraft(pv)) tutorialHint(6, "Change the radio with ~i:PGUP|RIGHT~. Headlights ~i:H|DOWN~, horn ~i:E|LS~. Hold ~i:V|BACK~ for the cinematic camera.");
+        if (isAircraft(pv)) tutorialHint(7, "Throttle/collective with ~i:W|RT~ and ~i:S|LT~, pitch and roll with ~i:ARROWS|LS~, yaw with ~i:A|LB~ / ~i:D|RB~. Bail out at altitude to skydive.");
+        if (isBoat(pv)) tutorialHint(8, "Boats plane at speed - ease off the throttle in tight turns.");
+    }
+}
+
 void GameWorld_respawnPlayer(GameWorld& g) {
     Ped* pp = g.playerPed();
     if (!pp) return;

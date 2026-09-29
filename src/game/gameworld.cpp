@@ -160,6 +160,7 @@ void GameWorld::update(float realDt) {
     Phys::gWaves.strength = env->wind;
     populationWarmup = Max(0.f, populationWarmup - realDt);
     if (pinfo.deathTimer <= 0.f) updateFocus(Min(realDt, 0.05f));
+    updateTutorialHints(realDt);
     double t0 = TimeSeconds();
     updatePlayer(dt);
     double t1 = TimeSeconds();

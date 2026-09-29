@@ -89,6 +89,7 @@ struct PlayerInfo {
     int kills = 0, copsKilled = 0, vehiclesStolen = 0, headshots = 0, shotsFired = 0, shotsHit = 0;
     int deaths = 0, arrests = 0;
     int collectiblesFound = 0;
+    u32 hintsShown = 0;         // one-time tutorial hints already displayed (bit per hint)
     float focus = 1.f;          // ability meter 0..1
     bool focusActive = false;
     std::vector<u8> collectibleFlags;   // per collectible id
@@ -238,6 +239,8 @@ struct GameWorld {
     void updateTraverse(Ped& p, float dt);
     void updateParachute(Ped& p, float dt);
     void updateFocus(float realDt);
+    void tutorialHint(int id, const char* text);
+    void updateTutorialHints(float dt);
     bool focusActiveApplied = false;
     bool stealthTakedown(Ped& p);
     bool sprintKick(Ped& p);
