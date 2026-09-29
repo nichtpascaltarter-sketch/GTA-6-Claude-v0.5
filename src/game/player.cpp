@@ -175,7 +175,7 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
     }
     // skydiving: long free fall with a parachute on the back
     if (!p.grounded && p.state == PS_ONFOOT && p.hasParachute && p.airTime > 0.5f && (float)p.pos.z - p.groundZ > 20.f) {
-        if (hudHelpTimer <= 0.f) help(c.usingPad ? "Press (X) to deploy the parachute." : "Press SPACE to deploy the parachute.", 1.f);
+        if (hudHelpTimer <= 0.f) help("Press ~i:SPACE|X~ to deploy the ~p~parachute~s~.", 1.f);
         // tracking: steer the fall with the movement input
         vec2 cf(-sinf(rig.yaw), cosf(rig.yaw)), cr(cosf(rig.yaw), sinf(rig.yaw));
         vec2 track = (cr * c.move.x + cf * c.move.y) * 28.f;
@@ -306,7 +306,7 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
             if (p.meleeTimer <= 0.f) {
                 // face the camera direction for melee
                 p.yaw = atan2f(-camF.x, camF.y);
-                fireWeapon(player, dvec3(muzzle), aimDir);
+                if (!stealthTakedown(p) && !(c.sprint.down && p.weapon == WPN_FISTS && sprintKick(p))) fireWeapon(player, dvec3(muzzle), aimDir);
                 p.meleeTimer = wi.fireInterval;
             }
         } else {
@@ -437,7 +437,8 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
     pinfo.distanceWalked += length(vec2(p.vel.x, p.vel.y)) * dt;
     if (p.diveDepth <= 0.6f) pinfo.breath = Min(1.f, pinfo.breath + dt * 0.3f);
     // ----- enter vehicle
-    if (c.enter.pressed && !swimming) {
+    if ((c.enter.pressed || c.special.pressed) && !swimming) {
+        bool asPassenger = c.special.pressed && !c.enter.pressed;
         std::vector<int> list;
         vehiclesNear(p.pos.toVec3().xy(), 7.f, list);
         int best = -1;
@@ -445,6 +446,7 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
         for (int vi : list) {
             Vehicle& v = vehicles[vi];
             if (v.locked || v.exploded || v.sim.wrecked) continue;
+            if (asPassenger && freeSeat(vi, false) < 0) continue;
             const Vehicles::VehicleModel& spec = vassets[v.model].spec;
             mat3 R = v.sim.body.rotMat();
             vec3 lc = transpose(R) * (p.pos.toVec3() - v.sim.body.pos.toVec3());
@@ -456,8 +458,7 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
             }
         }
         if (best >= 0) {
-            int seat = 0;
-            // passenger seat only for boats/aircraft when the pilot seat is taken by a friend
+            int seat = asPassenger ? freeSeat(best, false) : 0;
             p.targetVehicle = best;
             p.targetSeat = seat;
             p.state = PS_ENTERING;
@@ -466,6 +467,57 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
             gEnter = EnterState();
         }
     }
+}
+
+// Silent takedown of an unaware ped from behind while sneaking (crouched) with fists or a knife.
+bool GameWorld::stealthTakedown(Ped& p) {
+    if (!p.animIn.crouch || (p.weapon != WPN_FISTS && p.weapon != WPN_KNIFE)) return false;
+    vec3 f(-sinf(p.yaw), cosf(p.yaw), 0.f);
+    std::vector<int> list;
+    pedsNear(p.pos.toVec3().xy(), 2.f, list);
+    for (int o : list) {
+        if (o == player) continue;
+        Ped& t = peds[o];
+        if (t.health <= 0.f || t.state != PS_ONFOOT || t.brain.alerted || t.isPlayer) continue;
+        vec3 d = t.pos.toVec3() - p.pos.toVec3();
+        d.z = 0;
+        float dist = length(d);
+        if (dist > 1.6f || dist < 0.2f || dot(d / dist, f) < 0.7f) continue;
+        vec3 tf(-sinf(t.yaw), cosf(t.yaw), 0.f);
+        if (dot(tf, d / dist) < 0.3f) continue;  // must be approached from behind
+        p.pendingAction = Anim::CLIP_PUNCH_R;
+        killPed(o, player, f, DMG_MELEE);
+#ifdef HAVE_AUDIO
+        Audio::play(Audio::SFX_PUNCH, pedChestPos(t), 0.5f, 0.8f);
+#endif
+        if (p.weapon == WPN_KNIFE) spawnFx(FX_BLOOD, dvec3(pedChestPos(t)), f, 4, 0.8f);
+        return true;
+    }
+    return false;
+}
+
+// Running kick: heavier melee hit with a good chance to knock the target over.
+bool GameWorld::sprintKick(Ped& p) {
+    vec3 f(-sinf(p.yaw), cosf(p.yaw), 0.f);
+    std::vector<int> list;
+    pedsNear(p.pos.toVec3().xy(), 2.4f, list);
+    for (int o : list) {
+        if (o == player) continue;
+        Ped& t = peds[o];
+        if (t.health <= 0.f || t.state != PS_ONFOOT) continue;
+        vec3 d = t.pos.toVec3() - p.pos.toVec3();
+        d.z = 0;
+        float dist = length(d);
+        if (dist > 2.1f || dist < 0.2f || dot(d / dist, f) < 0.6f) continue;
+        p.pendingAction = Anim::CLIP_KICK;
+        damagePed(o, 28.f, DMG_MELEE, player, f);
+        if (peds[o].used && peds[o].health > 0.f) knockDown(o, f * 320.f + vec3(0, 0, 80.f));
+#ifdef HAVE_AUDIO
+        Audio::play(Audio::SFX_KICK, pedChestPos(t), 0.9f);
+#endif
+        return true;
+    }
+    return false;
 }
 
 void GameWorld::updatePlayerVehicle(Ped& p, float dt) {

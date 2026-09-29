@@ -218,6 +218,8 @@ void GameWorld::fillHud(UI::HudState& h, float dt) {
         h.gpsColor = 0xff33ddff;
     }
     h.radarVisible = hudVisible && settingsRadar;
+    h.padPrompts = ctl.usingPad;
+    h.metricUnits = settingsMetric;
     float spd = pv >= 0 ? vehicles[pv].sim.speed() : 0.f;
     h.radarZoom = 1.f + Saturate(spd / 45.f) * 0.9f + (pv >= 0 && isAircraft(pv) ? Saturate(h.altitude / 300.f) * 2.f : 0.f);
 }

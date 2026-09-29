@@ -171,7 +171,7 @@ struct GameWorld {
     int gameDay = 1;
     bool missionTargetActive = false;
     vec2 missionTarget;
-    bool settingsSubtitles = true, settingsRadar = true;
+    bool settingsSubtitles = true, settingsRadar = true, settingsMetric = true;
     std::vector<CrimeEvent> crimes;
 
     // Setup
@@ -228,6 +228,8 @@ struct GameWorld {
     bool tryTraverse(Ped& p, vec3 dir);   // starts a vault/climb when a suitable obstacle is ahead
     void updateTraverse(Ped& p, float dt);
     void updateParachute(Ped& p, float dt);
+    bool stealthTakedown(Ped& p);
+    bool sprintKick(Ped& p);
     void animatePed(Ped& p, float dt);
     void updateVehicles(float dt);
     void updateVehicleFx(Vehicle& v, float dt);

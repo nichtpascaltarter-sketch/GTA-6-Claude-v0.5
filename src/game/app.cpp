@@ -157,6 +157,9 @@ struct App {
     void startNewGame() {
 #ifdef HAVE_GAMEPLAY
         game.newGame();
+#ifdef HAVE_GAME_UI
+        UI::hudReset();
+#endif
         state = AS_PLAYING;
         weather.setImmediate(WX_FAIR);
 #ifdef HAVE_GAME_UI
@@ -464,6 +467,9 @@ struct App {
                     if (game.pinfo.deathTimer > 5.f && game.fadedOut()) {
                         GameWorld_respawnPlayer(game);
                         game.fadeIn(0.8f);
+#ifdef HAVE_GAME_UI
+                        UI::hudReset();
+#endif
                     }
                 }
                 if (in.pressed(KEY_F9)) {
@@ -627,6 +633,10 @@ struct App {
         add("Wasted / busted", StrFormat("%d / %d", pi.deaths, pi.arrests));
         menu.briefTitle = game.storyTitle;
         menu.briefText = game.missionBrief();
+        menu.money = game.pinfo.money;
+        menu.timeOfDay = env.timeOfDay;
+        menu.day = game.gameDay;
+        menu.playerName = game.protagonistIndex == 0 ? "Mari Ortega" : "Dex Calloway";
     }
 
     bool handleMenuAction(const UI::MenuAction& a) {
@@ -640,6 +650,7 @@ struct App {
                 if (slot >= 0 && game.loadGame(slot)) {
                     state = AS_PLAYING;
                     menu.screen = UI::MENU_NONE;
+                    UI::hudReset();
                     weather.setImmediate(WX_FAIR);
 #ifdef HAVE_AUDIO
                     Audio::setPaused(false);
@@ -700,6 +711,7 @@ struct App {
 #ifdef HAVE_GAMEPLAY
         game.settingsSubtitles = s.subtitles;
         game.settingsRadar = s.showRadar;
+        game.settingsMetric = s.metricUnits;
         game.vibration = s.vibration;
 #endif
     }
