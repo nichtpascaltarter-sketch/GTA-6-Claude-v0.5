@@ -34,6 +34,8 @@ void GameWorld::fillHud(UI::HudState& h, float dt) {
     h.armor = Saturate(pl->armor / 100.f);
     h.breath = pinfo.breath;
     h.stamina = pinfo.stamina;
+    h.special = pinfo.focus;
+    h.specialActive = pinfo.focusActive;
     h.dead = pl->health <= 0.f;
     // money with animated deltas
     if (!gMoneyInit) {

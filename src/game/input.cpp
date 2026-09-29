@@ -105,6 +105,15 @@ void readControls(const InputState& in, const InputConfig& cfg, bool inVehicle, 
     c.lookBehind = either(key(in, KEY_C), pad(in, PAD_RTHUMB));
     c.camMode = either(key(in, KEY_V), pad(in, PAD_BACK));
     c.special = either(key(in, KEY_G), pad(in, PAD_UP));
+    {
+        Button caps = key(in, 0x14);  // VK_CAPITAL
+        Button sticks;
+        bool both = p.down(PAD_LTHUMB) && p.down(PAD_RTHUMB);
+        bool bothPrev = (p.prevButtons & PAD_LTHUMB) && (p.prevButtons & PAD_RTHUMB);
+        sticks.down = both;
+        sticks.pressed = both && !bothPrev;
+        c.focus = either(caps, sticks);
+    }
     if (inVehicle) {
         Button nx = key(in, KEY_PGUP), pv = key(in, KEY_PGDN);
         c.radioNext = either(either(nx, pad(in, PAD_RIGHT)), key(in, KEY_Q));

@@ -671,6 +671,42 @@ void GameWorld::updateParachute(Ped& p, float dt) {
     }
 }
 
+// Focus: Mari slows time while aiming on foot, Dex while driving. The meter drains while active and recharges
+// slowly (faster with kills / near misses in the future). Toggled with Caps Lock or by clicking both sticks.
+void GameWorld::updateFocus(float realDt) {
+    Ped* pp = playerPed();
+    if (!pp || pinfo.deathTimer > 0.f || pinfo.busted) {
+        if (focusActiveApplied) {
+            focusActiveApplied = false;
+            pinfo.focusActive = false;
+        }
+        return;
+    }
+    Ped& p = *pp;
+    bool eligible = protagonistIndex == 0 ? (p.state == PS_ONFOOT && p.aiming) : (p.state == PS_INVEHICLE && p.seat == 0);
+    if (ctl.focus.pressed && playerControl) {
+        if (!pinfo.focusActive && pinfo.focus > 0.15f && eligible) pinfo.focusActive = true;
+        else pinfo.focusActive = false;
+    }
+    if (pinfo.focusActive && (!eligible || pinfo.focus <= 0.f)) pinfo.focusActive = false;
+    if (pinfo.focusActive) pinfo.focus = Max(0.f, pinfo.focus - realDt / 9.f);
+    else pinfo.focus = Min(1.f, pinfo.focus + realDt / 90.f);
+    if (pinfo.focusActive != focusActiveApplied) {
+        focusActiveApplied = pinfo.focusActive;
+#ifdef HAVE_AUDIO
+        Audio::play2D(Audio::SFX_UI_SELECT, 0.4f, pinfo.focusActive ? 0.6f : 0.9f);
+#endif
+    }
+    if (!pinfo.weaponWheel) {
+        float target = pinfo.focusActive ? (protagonistIndex == 0 ? 0.35f : 0.5f) : 1.f;
+        timeScale = Lerp(timeScale, target, Saturate(realDt * 6.f));
+        if (fabsf(timeScale - 1.f) < 0.01f) timeScale = 1.f;
+#ifdef HAVE_AUDIO
+        Audio::setSlowMotion(timeScale);
+#endif
+    }
+}
+
 void GameWorld_respawnPlayer(GameWorld& g) {
     Ped* pp = g.playerPed();
     if (!pp) return;

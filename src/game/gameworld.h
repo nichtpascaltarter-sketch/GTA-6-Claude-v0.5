@@ -4,6 +4,7 @@
 #include "game.h"
 #include "../ui/hud.h"
 #include "../audio/speech.h"
+#include "ai_game.h"   // AI additions: lane graph, traffic/pedestrian cores and game-side AI state
 
 namespace Game {
 
@@ -84,6 +85,8 @@ struct PlayerInfo {
     int kills = 0, copsKilled = 0, vehiclesStolen = 0, headshots = 0, shotsFired = 0, shotsHit = 0;
     int deaths = 0, arrests = 0;
     int collectiblesFound = 0;
+    float focus = 1.f;          // ability meter 0..1
+    bool focusActive = false;
     std::vector<u8> collectibleFlags;   // per collectible id
     float maxWanted = 0;
     double playTime = 0;
@@ -229,6 +232,8 @@ struct GameWorld {
     bool tryTraverse(Ped& p, vec3 dir);   // starts a vault/climb when a suitable obstacle is ahead
     void updateTraverse(Ped& p, float dt);
     void updateParachute(Ped& p, float dt);
+    void updateFocus(float realDt);
+    bool focusActiveApplied = false;
     bool stealthTakedown(Ped& p);
     bool sprintKick(Ped& p);
     void animatePed(Ped& p, float dt);
@@ -318,6 +323,29 @@ struct GameWorld {
     bool requestSaveMenu = false;       // set when the player steps into a safehouse save marker: the app opens MENU_SAVE
     std::string requestScreenshot;      // test automation: the app saves the next finished frame (after UI) here, clears it
     bool policeSuppressed = false;      // an active mission keeps the police out (crimes are not reported while set)
+
+    // ---- AI additions (lanes.cpp, traffic_core.cpp, pednav.cpp, ai.cpp, traffic.cpp, pedai.cpp, police.cpp,
+    //      events.cpp, barks.cpp, population.cpp) ----
+    AI::LaneGraph laneGraph;            // lanes, connectors, signal plans, sidewalk graph (built once by initAI)
+    AI::TrafficCore traffic;            // traffic driver model (driver slots indexed by vehicle id)
+    AI::PedCore pedNav;                 // sidewalk navigation for pedestrians
+    AIState ai;                         // per-ped / per-vehicle AI records, witnesses, stimuli, incidents, timings
+    void initAI();                      // builds the graphs; called lazily by updateAI if the app did not call it
+    PedAI& pedAI(int ped);
+    VehAI& vehAI(int veh);
+    bool inCameraView(vec3 p, float margin) const;
+    void aiSay(int ped, int bark, float chance = 1.f, bool important = false);   // barks.cpp (TTS + close subtitles)
+    void aiStimulus(dvec3 pos, int kind, int source, float radius, bool byPlayer);  // scare / alert nearby peds
+    bool attachTraffic(int veh, int lane = -1, float u = 0.f, bool cautious = false);  // traffic.cpp
+    void aiDriveBoat(int veh, float dt, dvec3 target, float speed);
+    void aiFlyHeli(int veh, float dt, dvec3 target, float altitude, float orbitRadius, bool orbit);
+    void aiCivilianBrain(int ped, float dt);    // pedai.cpp
+    void aiPoliceBrain(int ped, float dt);      // police.cpp (officers on foot)
+    void aiPoliceDrive(int veh, float dt);      // police.cpp (pursuit / response driving)
+    void updateEvents(float dt);                // events.cpp (ambient random events)
+    void aiBuildBodies();                       // perception proxies for this tick
+    void aiUpdateThreats(float dt);
+    std::string aiDebugText() const;
 };
 
 extern GameWorld* gGame;

@@ -73,6 +73,8 @@ struct HudState {
     float armor = 0.f;           // 0..1
     float breath = 1.f;          // under water 0..1 (bar shown when < 1)
     float stamina = 1.f;         // sprint stamina (shown briefly when < 1)
+    float special = 1.f;         // protagonist Focus ability meter 0..1 (third bar under the radar, GTA-style)
+    bool specialActive = false;  // Focus active: bar pulses, subtle screen treatment
     bool dead = false;           // "WASTED" screen handled by game via bigMessage
     // Money
     long long money = 0;

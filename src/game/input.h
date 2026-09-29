@@ -21,6 +21,7 @@ struct Controls {
     float accel = 0.f, brake = 0.f, steer = 0.f;
     float pitch = 0.f, roll = 0.f, yaw = 0.f, lift = 0.f;   // aircraft
     Button handbrake, horn, lights, radioNext, radioPrev, lookBehind, camMode, special;
+    Button focus;          // protagonist ability (Caps Lock / both sticks clicked)
     // Global
     Button pause, map, skip, confirm, back;
     vec2 menuNav;          // edge-triggered (-1/0/1) menu navigation
