@@ -201,6 +201,19 @@ void GameWorld::updateVehicles(float dt) {
 void GameWorld::handleVehicleEvents(int vi) {
     Vehicle& v = vehicles[vi];
     Vehicles::VehicleState& s = v.sim;
+    // Severe crashes injure the occupants (delta-v from the largest impulse this step)
+    if (s.impactImpulse > 0.f) {
+        float dv = s.impactImpulse / Max(s.body.mass, 100.f);
+        if (dv > 9.f) {
+            float dmg = (dv - 9.f) * (isBike(vi) ? 9.f : 5.5f);
+            for (int seat = 0; seat < 8; seat++) {
+                int o = v.seats[seat];
+                if (o < 0) continue;
+                damagePed(o, dmg, DMG_VEHICLE, -1, s.impactNormal);
+            }
+            if (v.seats[0] >= 0 && peds[v.seats[0]].isPlayer) rig.shake = Max(rig.shake, Saturate(dv / 20.f));
+        }
+    }
     if (s.ejectRider) {
         for (int seat = 0; seat < 2; seat++) {
             int rider = v.seats[seat];
