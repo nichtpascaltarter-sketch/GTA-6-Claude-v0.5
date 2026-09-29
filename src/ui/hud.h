@@ -214,6 +214,7 @@ struct MenuState {
     float loadingProgress = 0.f;           // MENU_LOADING 0..1
     std::string loadingTip;
     bool canContinue = false;              // main menu shows "Continue"
+    bool canSave = true;                   // pause menu offers "Save Game" (false during missions)
     // internal UI state (owned by the menu code)
     int cursor = 0, tab = 0;
     float anim = 0.f;

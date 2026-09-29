@@ -127,8 +127,9 @@ struct App {
         if (in.down(KEY_PGDN)) env.timeOfDay -= dt * 2.f;
     }
 
-    void drawDebug() {
+    void drawDebug(float dt) {
         UI::beginFrame(gfx::backbufferWidth(), gfx::backbufferHeight());
+        viewer.drawOverlay(renderer, dt);
         if (showDebug) {
             UI::TextStyle st;
             st.size = 18.f;
@@ -203,7 +204,7 @@ struct App {
             renderer.dynamic->beginFrame();
             viewer.update(renderer, map, dt);
             renderer.render(cam, env, dt);
-            drawDebug();
+            drawDebug(dt);
             gfx::gpuTimersResolve();
             if (autoShots) {
                 // wait for streaming to settle (bounded) before counting frames

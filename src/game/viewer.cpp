@@ -66,6 +66,12 @@ struct Viewer {
 #endif
     }
 
+    // 2D overlay for UI test modes (called between UI::beginFrame/endFrame after the world is rendered).
+    void drawOverlay(Render::Renderer& r, float dt) {
+        (void)r;
+        (void)dt;
+    }
+
     void update(Render::Renderer& r, World::WorldMap& map, float dt) {
         if (mode.empty()) return;
         t += dt;

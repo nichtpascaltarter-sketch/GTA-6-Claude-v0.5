@@ -26,6 +26,14 @@
 #include "anim/anim_all.cpp"
 #define HAVE_CHARACTERS 1
 #endif
+#if __has_include("sim/vehicle_sim.cpp")
+#include "sim/vehicle_sim.cpp"
+#define HAVE_VEHICLE_SIM 1
+#endif
+#if __has_include("ui/ui_all.cpp")
+#include "ui/ui_all.cpp"
+#define HAVE_GAME_UI 1
+#endif
 #include "game/app.cpp"
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
