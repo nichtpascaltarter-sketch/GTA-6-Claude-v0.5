@@ -81,6 +81,9 @@ struct ShadowSystem;
 struct PostSystem;
 struct MaterialLibrary;
 struct WorldRenderer;
+struct WaterRenderer;
+struct PropRenderer;
+struct DynamicRenderer;
 
 class Renderer {
 public:
@@ -102,7 +105,7 @@ public:
     int outWidth = 0, outHeight = 0; // output resolution
     gfx::Texture depth;
     gfx::Texture gbAlbedo, gbNormal, gbMaterial, gbEmissive, gbVelocity;
-    gfx::Texture hdr;
+    gfx::Texture hdr, hdrCopy, depthCopy;
     gfx::Texture cloudsTex;  // cloud color+transmittance at quarter res (placeholder clear until clouds run)
 
     // Camera state
@@ -126,6 +129,9 @@ public:
     PostSystem* post = nullptr;
     MaterialLibrary* materials = nullptr;
     WorldRenderer* world = nullptr;
+    WaterRenderer* water = nullptr;
+    PropRenderer* props = nullptr;
+    DynamicRenderer* dynamic = nullptr;
     World::WorldMap* map = nullptr;
 
     ID3D11ComputeShader* csLighting = nullptr;

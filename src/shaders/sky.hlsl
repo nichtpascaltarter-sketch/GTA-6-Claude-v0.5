@@ -215,9 +215,15 @@ void csSkySH(uint gi : SV_GroupIndex) {
         float3 d = float3(sinT * cos(phi), sinT * sin(phi), cosT);
         float3 L = skyRadiance(d, false);
         if (d.z < 0.0) {
-            // below the horizon: ground bounce approximation (sunlit ground albedo)
-            float3 up = skyRadiance(float3(d.x, d.y, -d.z), false);
-            L = up * 0.35 * saturate(gSunDir.z * 2.0 + 0.3) + 0.02 * L;
+            // Below the horizon: radiance of the sunlit/skylit ground (average urban albedo), warm bounce
+            float3 groundAlbedo = float3(0.2, 0.17, 0.14);
+            float3 skyIrr = 0;
+            // approximate sky irradiance on the ground from a few upward samples
+            skyIrr += skyRadiance(float3(0, 0, 1), false) * 0.5;
+            skyIrr += skyRadiance(normalize(float3(d.x, d.y, 0.5)), false) * 0.5;
+            skyIrr *= PI;
+            float3 sunIrr = mainLightIlluminance() * saturate(gSunDir.z) * 0.8;  // partial occlusion by the city
+            L = groundAlbedo * (skyIrr + sunIrr) / PI;
         }
         float w = 4.0 * PI / 1024.0;
         acc[0] += L * 0.282095 * w;

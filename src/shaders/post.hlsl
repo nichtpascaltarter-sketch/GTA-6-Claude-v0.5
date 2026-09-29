@@ -64,6 +64,64 @@ void csExposure() {
 }
 
 // ------------------------------------------------------------------------------------------------
+// Bloom: 13-tap downsample (with Karis average on the first level) and tent upsample.
+Texture2D<float4> tBloomSrc : register(t3);
+Texture2D<float4> tBloomLow : register(t4);
+RWTexture2D<float4> uBloomDst : register(u2);
+cbuffer BloomCB : register(b2) {
+    float4 gBloom;  // xy dst size, z first level (karis), w upsample radius
+};
+float3 karis(float3 c) { return c / (1.0 + luminance(c)); }
+
+[numthreads(8, 8, 1)]
+void csBloomDown(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= (uint)gBloom.x || id.y >= (uint)gBloom.y) return;
+    float2 texel = 1.0 / (gBloom.xy * 2.0);
+    float2 uv = (id.xy + 0.5) / gBloom.xy;
+    float3 a = tBloomSrc.SampleLevel(sLinearClamp, uv + texel * float2(-2, -2), 0).rgb;
+    float3 b = tBloomSrc.SampleLevel(sLinearClamp, uv + texel * float2(0, -2), 0).rgb;
+    float3 c = tBloomSrc.SampleLevel(sLinearClamp, uv + texel * float2(2, -2), 0).rgb;
+    float3 d = tBloomSrc.SampleLevel(sLinearClamp, uv + texel * float2(-2, 0), 0).rgb;
+    float3 e = tBloomSrc.SampleLevel(sLinearClamp, uv, 0).rgb;
+    float3 f = tBloomSrc.SampleLevel(sLinearClamp, uv + texel * float2(2, 0), 0).rgb;
+    float3 g = tBloomSrc.SampleLevel(sLinearClamp, uv + texel * float2(-2, 2), 0).rgb;
+    float3 h = tBloomSrc.SampleLevel(sLinearClamp, uv + texel * float2(0, 2), 0).rgb;
+    float3 i = tBloomSrc.SampleLevel(sLinearClamp, uv + texel * float2(2, 2), 0).rgb;
+    float3 j = tBloomSrc.SampleLevel(sLinearClamp, uv + texel * float2(-1, -1), 0).rgb;
+    float3 k = tBloomSrc.SampleLevel(sLinearClamp, uv + texel * float2(1, -1), 0).rgb;
+    float3 l = tBloomSrc.SampleLevel(sLinearClamp, uv + texel * float2(-1, 1), 0).rgb;
+    float3 m = tBloomSrc.SampleLevel(sLinearClamp, uv + texel * float2(1, 1), 0).rgb;
+    float3 r;
+    if (gBloom.z > 0.5) {
+        float3 g0 = (a + b + d + e) * 0.25, g1 = (b + c + e + f) * 0.25, g2 = (d + e + g + h) * 0.25, g3 = (e + f + h + i) * 0.25, g4 = (j + k + l + m) * 0.25;
+        float w0 = 1.0 / (1.0 + luminance(g0)), w1 = 1.0 / (1.0 + luminance(g1)), w2 = 1.0 / (1.0 + luminance(g2)), w3 = 1.0 / (1.0 + luminance(g3)), w4 = 1.0 / (1.0 + luminance(g4));
+        r = (g0 * w0 * 0.125 + g1 * w1 * 0.125 + g2 * w2 * 0.125 + g3 * w3 * 0.125 + g4 * w4 * 0.5) / (w0 * 0.125 + w1 * 0.125 + w2 * 0.125 + w3 * 0.125 + w4 * 0.5);
+    } else {
+        r = e * 0.125 + (a + c + g + i) * 0.03125 + (b + d + f + h) * 0.0625 + (j + k + l + m) * 0.125;
+    }
+    uBloomDst[id.xy] = float4(min(r, 30000.0), 1);
+}
+
+[numthreads(8, 8, 1)]
+void csBloomUp(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= (uint)gBloom.x || id.y >= (uint)gBloom.y) return;
+    float2 uv = (id.xy + 0.5) / gBloom.xy;
+    float2 t = gBloom.w / gBloom.xy;
+    float3 s = tBloomLow.SampleLevel(sLinearClamp, uv + float2(-t.x, -t.y), 0).rgb;
+    s += tBloomLow.SampleLevel(sLinearClamp, uv + float2(0, -t.y), 0).rgb * 2.0;
+    s += tBloomLow.SampleLevel(sLinearClamp, uv + float2(t.x, -t.y), 0).rgb;
+    s += tBloomLow.SampleLevel(sLinearClamp, uv + float2(-t.x, 0), 0).rgb * 2.0;
+    s += tBloomLow.SampleLevel(sLinearClamp, uv, 0).rgb * 4.0;
+    s += tBloomLow.SampleLevel(sLinearClamp, uv + float2(t.x, 0), 0).rgb * 2.0;
+    s += tBloomLow.SampleLevel(sLinearClamp, uv + float2(-t.x, t.y), 0).rgb;
+    s += tBloomLow.SampleLevel(sLinearClamp, uv + float2(0, t.y), 0).rgb * 2.0;
+    s += tBloomLow.SampleLevel(sLinearClamp, uv + float2(t.x, t.y), 0).rgb;
+    s /= 16.0;
+    float3 cur = tBloomSrc.SampleLevel(sLinearClamp, uv, 0).rgb;
+    uBloomDst[id.xy] = float4(cur + s, 1);
+}
+
+// ------------------------------------------------------------------------------------------------
 struct VSOut {
     float4 pos : SV_Position;
     float2 uv : TEXCOORD0;
@@ -89,7 +147,13 @@ float3 acesFitted(float3 v) {
 
 float4 psTonemap(VSOut i) : SV_Target {
     float3 c = tHDR.SampleLevel(sLinearClamp, i.uv, 0).rgb;
-    c += tBloom.SampleLevel(sLinearClamp, i.uv, 0).rgb * gPost1.x;
+    // light sharpening (compensates TAA softness)
+    float2 px = 1.0 / gScreen.xy;
+    float3 nb = tHDR.SampleLevel(sLinearClamp, i.uv + float2(px.x, 0), 0).rgb + tHDR.SampleLevel(sLinearClamp, i.uv - float2(px.x, 0), 0).rgb +
+                tHDR.SampleLevel(sLinearClamp, i.uv + float2(0, px.y), 0).rgb + tHDR.SampleLevel(sLinearClamp, i.uv - float2(0, px.y), 0).rgb;
+    float3 sharp = c + (c - nb * 0.25) * gPost3.z;
+    c = max(lerp(c, sharp, saturate(1.0 - luminance(c) * 0.2)), 0.0);
+    c = lerp(c, tBloom.SampleLevel(sLinearClamp, i.uv, 0).rgb, gPost1.x);
     // White balance / warmth (sub-tropical grade) and saturation
     c *= float3(1.0 + gPost2.y * 0.06, 1.0, 1.0 - gPost2.y * 0.08);
     float l = luminance(c);

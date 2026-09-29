@@ -69,6 +69,108 @@ struct RoadCellOutput {
     std::vector<LightInstance> lights;
 };
 
+
+// Streetlights, median palms and bus stops along an edge
+void placeFurniture(const RoadEdge& e, int cx, int cy, const WorldMap& map, RoadCellOutput& out) {
+    const RoadClassInfo& ri = roadInfo(e.cls);
+    bool hwy = e.cls == RC_HIGHWAY || e.cls == RC_RAMP;
+    bool unpaved = (e.flags & RF_UNPAVED) != 0;
+    if (unpaved) return;
+    bool twoWay = e.lanesB > 0 && e.lanesF > 0;
+    float hw = e.halfWidth, sw = e.sidewalk;
+    float spacing = hwy ? 55.f : (e.cls == RC_RURAL ? 70.f : (e.cls == RC_LANE ? 38.f : 32.f));
+    bool lit = true;
+    if (e.cls == RC_RURAL) lit = (e.seed & 1) == 0;
+    float s0 = e.cut0 + 8.f, s1 = e.length - e.cut1 - 8.f;
+    int k = 0;
+    for (float s = s0 + fmodf((float)(e.seed % 100), spacing * 0.5f); s < s1 && lit; s += spacing, k++) {
+        vec3 c = e.posAt(s);
+        vec3 t = e.tangentAt(s);
+        vec3 rv = normalize(vec3(t.y, -t.x, 0));
+        float ground = map.heightAt(c.x, c.y);
+        bool deck = c.z - ground > 2.2f;
+        int side = (k & 1) ? 1 : -1;
+        if (hwy && !twoWay) side = 1;
+        PropInstance pi;
+        pi.flags = 0;
+        pi.variant = (u8)(e.seed % 3);
+        if (hwy && twoWay) {
+            pi.pos = c + vec3(0, 0, 0.85f);
+            pi.type = PROP_STREETLIGHT_DOUBLE;
+            pi.yaw = atan2f(rv.y, rv.x);
+            pi.scale = 1.f;
+        } else {
+            float off = hw + (sw > 0 ? 0.6f : (deck ? 0.6f : 1.4f));
+            pi.pos = c + rv * (side * off) + vec3(0, 0, sw > 0 ? 0.15f : 0.f);
+            pi.type = PROP_STREETLIGHT;
+            pi.yaw = atan2f(-rv.y * side, -rv.x * side);
+            pi.scale = hwy ? 1.3f : (e.cls <= RC_AVENUE ? 1.1f : 1.f);
+        }
+        if (!inCell(pi.pos.xy(), cx, cy)) continue;
+        out.props.push_back(pi);
+        float armLen = 2.2f * pi.scale, poleH = 8.6f * pi.scale;
+        LightInstance li;
+        li.dir = vec3(0, 0, -1);
+        li.cone = 0.2f;
+        li.type = 0;
+        if (pi.type == PROP_STREETLIGHT_DOUBLE) {
+            for (int s2 = -1; s2 <= 1; s2 += 2) {
+                li.pos = pi.pos + rv * (s2 * 2.9f) + vec3(0, 0, 11.4f);
+                li.color = vec3(1.0f, 0.78f, 0.52f) * 9000.f;
+                li.radius = 38.f;
+                out.lights.push_back(li);
+            }
+        } else {
+            vec3 armDir(cosf(pi.yaw), sinf(pi.yaw), 0);
+            li.pos = pi.pos + armDir * armLen + vec3(0, 0, poleH);
+            bool warm = (e.seed >> 3) % 3 != 0;
+            li.color = (warm ? vec3(1.0f, 0.72f, 0.42f) : vec3(0.85f, 0.9f, 1.0f)) * 7000.f;
+            li.radius = 30.f;
+            out.lights.push_back(li);
+        }
+    }
+    // Median palms on boulevards
+    if (ri.median > 0.f && !hwy && twoWay) {
+        for (float s = e.cut0 + 10.f; s < e.length - e.cut1 - 10.f; s += 14.f) {
+            vec3 c = e.posAt(s);
+            if (!inCell(c.xy(), cx, cy)) continue;
+            if (c.z - map.heightAt(c.x, c.y) > 2.f) continue;
+            PropInstance pi;
+            pi.pos = c + vec3(0, 0, 0.18f);
+            pi.yaw = hashToFloat(hash2i((int)s, (int)e.seed)) * kTwoPi;
+            pi.scale = 0.85f + hashToFloat(hash2i((int)s, (int)e.seed + 1)) * 0.35f;
+            pi.type = PROP_PALM_TALL;
+            pi.variant = (u8)(hash2i((int)s, 3) % 4);
+            pi.flags = 0;
+            out.props.push_back(pi);
+        }
+    }
+    // Sidewalk details: bus stops, benches, bins, hydrants
+    if (sw > 2.f && !hwy) {
+        u32 h = e.seed;
+        for (float s = e.cut0 + 15.f; s < e.length - e.cut1 - 15.f; s += 23.f) {
+            h = hash32(h + 1u);
+            int side = (h & 1) ? 1 : -1;
+            vec3 c = e.posAt(s);
+            vec3 t = e.tangentAt(s);
+            vec3 rv = normalize(vec3(t.y, -t.x, 0));
+            float r = hashToFloat(h >> 1);
+            PropType type = r < 0.08f ? PROP_BUS_STOP : (r < 0.22f ? PROP_BENCH : (r < 0.4f ? PROP_BIN : (r < 0.52f ? PROP_HYDRANT : PROP_COUNT)));
+            if (type == PROP_COUNT) continue;
+            PropInstance pi;
+            float off = hw + (type == PROP_BUS_STOP ? sw - 1.2f : 0.9f);
+            pi.pos = c + rv * (side * off) + vec3(0, 0, 0.15f);
+            if (!inCell(pi.pos.xy(), cx, cy)) continue;
+            pi.yaw = atan2f(t.y, t.x) + (side > 0 ? kPi : 0.f);
+            pi.scale = 1.f;
+            pi.type = (u8)type;
+            pi.variant = 0;
+            pi.flags = 0;
+            out.props.push_back(pi);
+        }
+    }
+}
+
 void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, RoadCellOutput& out) {
     vec2 org = cellOrigin(cx, cy);
     std::vector<int> cand;
@@ -236,77 +338,9 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
                     }
                 }
             }
-            // ---------- Street furniture along the edge (deterministic per segment)
-            if (!deck && !unpaved) {
-                float spacing = hwy ? 55.f : (e.cls == RC_RURAL ? 70.f : 32.f);
-                bool lit = e.cls != RC_DIRT && !(e.cls == RC_RURAL && map.regionAt(mid.x, mid.y) != REG_FARMLAND && false);
-                if (e.cls == RC_RURAL) lit = (e.seed & 1) == 0;
-                int k0 = (int)ceilf((a.s + 6.f) / spacing), k1 = (int)floorf((b.s - 6.f) / spacing);
-                for (int k = k0; k <= k1 && lit; k++) {
-                    float s = k * spacing;
-                    if (s < a.s || s >= b.s || s < e.cut0 + 8.f || s > e.length - e.cut1 - 8.f) continue;
-                    float t = (s - a.s) / Max(b.s - a.s, 1e-4f);
-                    vec3 c = lerp(a.c, b.c, t);
-                    vec3 rv = normalize(lerp(a.right, b.right, t));
-                    int side = (k & 1) ? 1 : -1;
-                    if (hwy) side = 0;
-                    PropInstance pi;
-                    float off = hw + (sw > 0 ? 0.6f : 1.4f);
-                    if (side == 0) {
-                        // highway median lights (double arm)
-                        pi.pos = c + vec3(0, 0, 0.85f);
-                        pi.type = PROP_STREETLIGHT_DOUBLE;
-                    } else {
-                        pi.pos = c + rv * (side * off) + vec3(0, 0, sw > 0 ? 0.15f : 0.f);
-                        pi.type = PROP_STREETLIGHT;
-                    }
-                    pi.yaw = atan2f(-rv.y * side, -rv.x * side);  // arm points over the road
-                    if (side == 0) pi.yaw = atan2f(rv.y, rv.x);
-                    pi.scale = hwy ? 1.35f : (e.cls <= RC_AVENUE ? 1.1f : 1.f);
-                    pi.variant = (u8)(e.seed % 3);
-                    pi.flags = 0;
-                    out.props.push_back(pi);
-                    float armLen = 2.2f * pi.scale;
-                    float poleH = 8.5f * pi.scale;
-                    LightInstance li;
-                    if (side == 0) {
-                        for (int s2 = -1; s2 <= 1; s2 += 2) {
-                            li.pos = pi.pos + rv * (s2 * armLen) + vec3(0, 0, poleH);
-                            li.color = vec3(1.0f, 0.78f, 0.52f) * 9000.f;
-                            li.radius = 36.f;
-                            li.dir = vec3(0, 0, -1);
-                            li.cone = 0.25f;
-                            li.type = 0;
-                            out.lights.push_back(li);
-                        }
-                    } else {
-                        li.pos = pi.pos - rv * (side * armLen) + vec3(0, 0, poleH);
-                        bool warm = (e.seed >> 3) % 3 != 0;
-                        li.color = (warm ? vec3(1.0f, 0.72f, 0.42f) : vec3(0.85f, 0.9f, 1.0f)) * 7000.f;
-                        li.radius = 30.f;
-                        li.dir = vec3(0, 0, -1);
-                        li.cone = 0.2f;
-                        li.type = 0;
-                        out.lights.push_back(li);
-                    }
-                }
-                // Palms in boulevard medians
-                if (ri.median > 0.f && !hwy && twoWay) {
-                    for (float s = ceilf(a.s / 14.f) * 14.f; s < b.s; s += 14.f) {
-                        if (s < e.cut0 + 10.f || s > e.length - e.cut1 - 10.f) continue;
-                        float t = (s - a.s) / Max(b.s - a.s, 1e-4f);
-                        PropInstance pi;
-                        pi.pos = lerp(a.c, b.c, t) + vec3(0, 0, 0.18f);
-                        pi.yaw = hashToFloat(hash2i((int)s, (int)e.seed)) * kTwoPi;
-                        pi.scale = 0.85f + hashToFloat(hash2i((int)s, (int)e.seed + 1)) * 0.35f;
-                        pi.type = PROP_PALM_TALL;
-                        pi.variant = (u8)(hash2i((int)s, 3) % 4);
-                        pi.flags = 0;
-                        out.props.push_back(pi);
-                    }
-                }
-            }
         }
+        // ---------- Street furniture along the whole edge (placed where it falls inside this cell)
+        placeFurniture(e, cx, cy, map, out);
     }
 
     // ---------------------------------------------------------------- Intersections

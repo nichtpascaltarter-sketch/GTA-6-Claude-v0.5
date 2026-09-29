@@ -6,6 +6,8 @@
 #include "../ui/draw2d.h"
 #include "../platform/platform.h"
 
+#include "../game/viewer.cpp"
+
 namespace Game {
 
 struct Shot {
@@ -18,6 +20,7 @@ struct App {
     World::WorldMap map;
     World::RoadNetwork roads;
     World::BuildingSet buildings;
+    Viewer viewer;
     Render::Renderer renderer;
     Render::Camera cam;
     Render::Environment env;
@@ -50,6 +53,7 @@ struct App {
         World::gBuildings = &buildings;
         renderer.init(Platform::clientWidth(), Platform::clientHeight());
         renderer.setWorld(&map);
+        viewer.init(renderer, map);
         LOG("Init done in %.2f s (shaders: %d compiled in %.2f s)", TimeSeconds() - t0, gfx::shaderCompileCount(),
             gfx::shaderCompileSeconds());
         cam.pos = dvec3(3000, -300, 60);
@@ -178,6 +182,8 @@ struct App {
             if (env.timeOfDay >= 24.f) env.timeOfDay -= 24.f;
             if (env.timeOfDay < 0.f) env.timeOfDay += 24.f;
             env.gameSeconds += dt;
+            renderer.dynamic->beginFrame();
+            viewer.update(renderer, map, dt);
             renderer.render(cam, env, dt);
             drawDebug();
             gfx::gpuTimersResolve();

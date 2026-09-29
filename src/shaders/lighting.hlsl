@@ -26,6 +26,31 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
     float3 F = F_Schlick(f0, VoH);
     float3 spec = D_GGX(NoH, a) * V_SmithGGXCorrelated(NoV, NoL, a) * F;
     float3 direct = (diffColor / PI * (1.0 - F) + spec) * NoL * sunE * shadow;
+    float3 coatSpecAmb = 0;
+    if (g.shadingModel == SM_SKIN) {
+        // Wrapped diffuse with a reddish subsurface falloff
+        float w = 0.45;
+        float nlw = saturate((dot(N, L) + w) / (1.0 + w));
+        float3 sss = float3(1.0, 0.45, 0.3) * (nlw - NoL) * g.extra;
+        direct = (diffColor / PI * (NoL + max(sss, 0.0)) + spec * NoL) * sunE * shadow;
+    } else if (g.shadingModel == SM_CLOTH) {
+        float sheen = pow(1.0 - NoV, 4.0) * 0.35 * g.extra;
+        direct += diffColor * sheen * NoL * sunE * shadow;
+    } else if (g.shadingModel == SM_HAIR) {
+        // Broad secondary highlight shifted towards the light (approximates anisotropic hair)
+        float3 H2 = normalize(L + V + N * 0.3);
+        float spec2 = pow(saturate(dot(N, H2)), 20.0) * 0.08;
+        direct += g.albedo * spec2 * sunE * shadow * NoL;
+    } else if (g.shadingModel == SM_CARPAINT) {
+        // Clear coat layer over the base
+        float ca = 0.035 * 0.035;
+        float Fc = 0.04 + 0.96 * pow5(1.0 - VoH);
+        float coat = D_GGX(NoH, ca) * V_SmithGGXCorrelated(NoV, NoL, ca) * Fc * g.extra;
+        direct = direct * (1.0 - Fc * g.extra) + coat * NoL * sunE * shadow;
+        float Fcv = (0.04 + 0.96 * pow5(1.0 - NoV)) * g.extra;
+        float3 Rc = reflect(-V, N);
+        coatSpecAmb = skyRadiance(normalize(float3(Rc.xy, max(Rc.z, 0.02))), false) * Fcv * saturate(1.0 + 1.5 * dot(Rc, N));
+    }
     if (g.shadingModel == SM_FOLIAGE) {
         // Thin translucency: light passing through leaves
         float back = saturate(dot(-N, L)) * 0.6 + pow(saturate(dot(V, -L)), 6.0) * 0.8;
@@ -45,7 +70,7 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
     float3 skyRefl = lerp(skyRadiance(normalize(float3(R.xy, max(R.z, 0.02))), false), evalSH9(R) * PI, saturate(g.rough * 1.3));
     float horizonOcc = saturate(1.0 + 1.5 * dot(R, N));  // avoid reflecting below the surface
     float3 ambientSpec = skyRefl * (f0 * ab.x + ab.y) * specOcc * horizonOcc * horizonOcc;
-    return direct + ambientDiffuse + ambientSpec;
+    return direct + ambientDiffuse + ambientSpec + coatSpecAmb;
 }
 
 [numthreads(8, 8, 1)]

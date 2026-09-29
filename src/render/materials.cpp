@@ -9,7 +9,8 @@ struct MaterialInfoGPU {
     float normalScale, shadingModel, flags, emissive;
 };
 
-enum MatFlags { MF_PAINT = 1, MF_GLASS = 2, MF_FACADE = 4, MF_FOLIAGE = 8, MF_EMISSIVE = 16, MF_UNLIT = 32 };
+enum MatFlags { MF_PAINT = 1, MF_GLASS = 2, MF_FACADE = 4, MF_FOLIAGE = 8, MF_EMISSIVE = 16, MF_UNLIT = 32, MF_CARPAINT = 64,
+                MF_SKIN = 128, MF_HAIR = 256, MF_CLOTH = 512 };
 
 struct MaterialLibrary {
     gfx::Texture albedoArr, normalArr;
@@ -67,6 +68,22 @@ struct MaterialLibrary {
             {MAT_BARK, 22, vec3(0.2f, 0.15f, 0.1f), vec3(0.3f, 0.24f, 0.17f), vec3(0.12f, 0.1f, 0.08f), vec4(0, 0, 0, 8), 1.5f, 1.f, 0, 0, 0},
             {MAT_PALM_FROND, 1, vec3(0.06f, 0.14f, 0.03f), vec3(0.12f, 0.2f, 0.05f), vec3(0.3f, 0.28f, 0.12f), vec4(0.3f, 0, 0, 4), 2.f, 1.f, 0, MF_FOLIAGE, 0},
             {MAT_SAND, 0, vec3(0.45f, 0.38f, 0.26f), vec3(0.58f, 0.5f, 0.36f), vec3(0.2f, 0.18f, 0.16f), vec4(0, 0, 0, 4), 4.f, 1.f, 0, 0, 0},
+            {MAT_CARPAINT, 18, vec3(0.8f), vec3(0.8f), vec3(0.4f), vec4(0, 0, 0, 1), 1.f, 1.f, 0.2f, MF_CARPAINT, 0},
+            {MAT_PLASTIC, 18, vec3(0.03f), vec3(0.035f), vec3(0.06f), vec4(0, 0, 0, 1), 1.f, 1.2f, 0, 0, 0},
+            {MAT_LEATHER, 11, vec3(0.12f, 0.07f, 0.04f), vec3(0.1f, 0.06f, 0.035f), vec3(0.05f), vec4(0, 0, 0, 2), 0.5f, 0.8f, 0, 0, 0},
+            {MAT_LIGHT_HEAD, 17, vec3(0.8f), vec3(0.8f), vec3(0.8f), vec4(0, 0, 0, 1), 1.f, 0.3f, 0, 0, 0},
+            {MAT_LIGHT_TAIL, 17, vec3(0.4f, 0.02f, 0.02f), vec3(0.4f, 0.02f, 0.02f), vec3(0.3f), vec4(0, 0, 0, 1), 1.f, 0.3f, 0, 0, 0},
+            {MAT_SKIN, 11, vec3(0.9f), vec3(0.8f, 0.7f, 0.65f), vec3(0.5f), vec4(0, 0, 0, 1), 0.25f, 1.f, 0, MF_SKIN, 0},
+            {MAT_HAIR, 19, vec3(0.8f), vec3(0.8f), vec3(0.6f), vec4(0, 0, 0, 2), 0.15f, 1.f, 0, MF_HAIR, 0},
+            {MAT_CLOTH, 23, vec3(0.85f), vec3(0.85f), vec3(0.3f), vec4(0, 0, 0, 2), 0.3f, 1.f, 0, MF_CLOTH, 0},
+            {MAT_DENIM, 23, vec3(0.12f, 0.18f, 0.35f), vec3(0.08f, 0.13f, 0.28f), vec3(0.3f), vec4(0, 0, 0, 3), 0.25f, 1.f, 0, MF_CLOTH, 0},
+            {MAT_EYE, 17, vec3(0.85f), vec3(0.85f), vec3(0.8f), vec4(0, 0, 0, 1), 1.f, 0.3f, 0, 0, 0},
+            {MAT_TIRE, 15, vec3(0.025f), vec3(0.03f), vec3(0.02f), vec4(0, 0, 0, 6), 0.4f, 1.f, 0, 0, 0},
+            {MAT_RIM, 19, vec3(0.8f), vec3(0.8f), vec3(0.7f), vec4(0, 0, 0, 1), 0.5f, 0.5f, 1.f, 0, 0},
+            {MAT_CAR_GLASS, 17, vec3(0.01f), vec3(0.01f), vec3(0.01f), vec4(0, 0, 0, 1), 1.f, 0.2f, 0, MF_GLASS, 0},
+            {MAT_INTERIOR, 23, vec3(0.06f), vec3(0.05f), vec3(0.04f), vec4(0, 0, 0, 2), 0.5f, 1.f, 0, 0, 0},
+            {MAT_LIGHT_INDICATOR, 17, vec3(0.6f, 0.35f, 0.02f), vec3(0.6f, 0.35f, 0.02f), vec3(0.3f), vec4(0, 0, 0, 1), 1.f, 0.3f, 0, 0, 0},
+            {MAT_DECAL_TEXT, 27, vec3(0.9f), vec3(0.9f), vec3(0.9f), vec4(0, 0, 0, 1), 1.f, 1.f, 0, 0, 0},
         };
         layerCount = (int)defs.size();
         albedoArr = createMaterialArray(size, layerCount, true);
@@ -100,7 +117,7 @@ struct MaterialLibrary {
             mi.metal = d.metal;
             mi.tint = vec4(1, 1, 1, 1);
             mi.normalScale = 1.f;
-            mi.shadingModel = (d.flags == MF_FOLIAGE) ? 1.f : 0.f;
+            mi.shadingModel = (d.flags == MF_FOLIAGE) ? 1.f : (d.flags == MF_CARPAINT ? 3.f : (d.flags == MF_SKIN ? 2.f : (d.flags == MF_HAIR ? 6.f : (d.flags == MF_CLOTH ? 7.f : 0.f))));
             mi.flags = d.flags;
             mi.emissive = d.emissive;
         }

@@ -10,6 +10,9 @@ enum MaterialId : u8 {
     MAT_GLASS, MAT_METAL_PAINTED, MAT_METAL_BRUSHED, MAT_PAVERS, MAT_MARBLE, MAT_STONE, MAT_CORRUGATED, MAT_FABRIC,
     MAT_WOOD, MAT_TILE_POOL, MAT_GRASS, MAT_DIRT, MAT_RUBBER, MAT_EMISSIVE, MAT_CHROME, MAT_CONCRETE_PANEL, MAT_FACADE,
     MAT_LEAVES, MAT_BARK, MAT_PALM_FROND, MAT_SAND,
+    // Vehicles and characters (dynamic objects)
+    MAT_CARPAINT, MAT_PLASTIC, MAT_LEATHER, MAT_LIGHT_HEAD, MAT_LIGHT_TAIL, MAT_SKIN, MAT_HAIR, MAT_CLOTH, MAT_DENIM,
+    MAT_EYE, MAT_TIRE, MAT_RIM, MAT_CAR_GLASS, MAT_INTERIOR, MAT_LIGHT_INDICATOR, MAT_DECAL_TEXT,
     MAT_COUNT
 };
 
@@ -117,6 +120,38 @@ struct MeshData {
     // Extruded prism walls (footprint CCW from above), from z0 to z1
     void extrudeWalls(const std::vector<vec2>& fp, float z0, float z1, u32 color, u32 mat);
     void append(const MeshData& o);
+};
+
+// Skinned vertex for characters: 44 bytes.
+struct VtxSkinned {
+    vec3 pos;      // bind-pose model space
+    u32 normal;
+    u32 tangent;
+    vec2 uv;
+    u32 color;     // RGBA8 tint (skin tone / cloth color)
+    u32 mat;       // material id (bits 0-7) | param << 8
+    u8 bones[4];
+    u8 weights[4]; // unorm, sum to 255
+};
+
+struct SkinnedMeshData {
+    std::vector<VtxSkinned> verts;
+    std::vector<u32> indices;
+    AABB bounds;
+    u32 addVertex(vec3 p, vec3 n, vec3 t, vec2 uv, u32 color, u32 mat, const u8 bones[4], const u8 weights[4]) {
+        VtxSkinned v;
+        v.pos = p;
+        v.normal = packNormalOct(n);
+        v.tangent = packNormalOct(t);
+        v.uv = uv;
+        v.color = color;
+        v.mat = mat;
+        for (int i = 0; i < 4; i++) { v.bones[i] = bones[i]; v.weights[i] = weights[i]; }
+        verts.push_back(v);
+        bounds.add(p);
+        return (u32)verts.size() - 1;
+    }
+    void tri(u32 a, u32 b, u32 c) { indices.push_back(a); indices.push_back(b); indices.push_back(c); }
 };
 
 // Ear-clipping triangulation of a simple polygon (CCW). Returns triangle indices into poly.

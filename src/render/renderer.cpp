@@ -86,7 +86,10 @@ struct SkySystem {
 #include "terrain_render.cpp"
 #include "materials.cpp"
 #include "world_render.cpp"
+#include "props_render.cpp"
+#include "dynamic.cpp"
 #include "shadows.cpp"
+#include "water.cpp"
 #include "post.cpp"
 
 namespace UI { gfx::Texture buildSignAtlas(const std::vector<std::string>& names); }
@@ -114,6 +117,14 @@ bool Renderer::init(int w, int h) {
     world = new WorldRenderer();
     world->init(materials);
     shadows->casters.push_back([this](Renderer& r, const mat4& vp, int cascade) { world->drawShadow(r, vp, cascade); });
+    water = new WaterRenderer();
+    water->init();
+    props = new PropRenderer();
+    props->init(materials);
+    dynamic = new DynamicRenderer();
+    dynamic->init(materials);
+    shadows->casters.push_back([this](Renderer& r, const mat4& vp, int cascade) { dynamic->drawShadow(r, vp, cascade); });
+    shadows->casters.push_back([this](Renderer& r, const mat4& vp, int cascade) { props->drawShadow(r, world->cells, vp, cascade); });
     createTargets();
     return true;
 }
@@ -125,6 +136,7 @@ void Renderer::shutdown() {
 void Renderer::setWorld(World::WorldMap* m) {
     map = m;
     terrain->setMap(m);
+    water->setMap(*m, *terrain);
     if (World::gBuildings) {
         world->uploadFacades(*World::gBuildings);
         world->signTex = UI::buildSignAtlas(World::gBuildings->signNames);
@@ -142,6 +154,8 @@ void Renderer::createTargets() {
     gbEmissive = createTexture2D(width, height, DXGI_FORMAT_R11G11B10_FLOAT, TEX_RTV | TEX_SRV);
     gbVelocity = createTexture2D(width, height, DXGI_FORMAT_R16G16_FLOAT, TEX_RTV | TEX_SRV);
     hdr = createTexture2D(width, height, DXGI_FORMAT_R16G16B16A16_FLOAT, TEX_RTV | TEX_SRV | TEX_UAV);
+    hdrCopy = createTexture2D(width, height, DXGI_FORMAT_R16G16B16A16_FLOAT, TEX_SRV);
+    depthCopy = createTexture2D(width, height, DXGI_FORMAT_R32_TYPELESS, TEX_SRV);
     // Clouds placeholder: fully transparent layer (rgb 0, transmittance 1) until volumetric clouds run
     u16 half1 = 0x3C00;
     u16 cl[4] = {0, 0, 0, half1};
@@ -157,6 +171,8 @@ void Renderer::releaseTargets() {
     gbEmissive.release();
     gbVelocity.release();
     hdr.release();
+    hdrCopy.release();
+    depthCopy.release();
     cloudsTex.release();
 }
 
@@ -295,6 +311,7 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     bindFrame();
     unbindGlobals();
     world->update(cam.pos, TimeSeconds());
+    dynamic->prepare(*this);
     gfx::gpuTimerBegin("sky");
     sky->update(*this, frame.planetParams.w);
     gfx::gpuTimerEnd();
@@ -324,6 +341,8 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     c->RSSetState(gfx::states.cullBack);
     terrain->drawGBuffer(*this);
     world->drawGBuffer(*this);
+    props->drawGBuffer(*this, world->cells, materials);
+    dynamic->drawGBuffer(*this);
     c->OMSetRenderTargets(0, nullptr, nullptr);
     gfx::gpuTimerEnd();
 
@@ -341,6 +360,17 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     gfx::unbindCSResources(8, 1);
     gfx::gpuTimerEnd();
 
+    // Water (forward, reads copies of the lit scene and depth)
+    gfx::gpuTimerBegin("water");
+    c->CopyResource(hdrCopy.res, hdr.res);
+    c->CopyResource(depthCopy.res, depth.res);
+    c->OMSetRenderTargets(1, &hdr.rtv, depth.dsv);
+    gfx::setViewport((float)width, (float)height);
+    c->OMSetDepthStencilState(gfx::states.depthGreaterWrite, 0);
+    water->draw(*this, *terrain, hdrCopy.srv, depthCopy.srv, env.wind);
+    c->OMSetRenderTargets(0, nullptr, nullptr);
+    gfx::gpuTimerEnd();
+
     // Post
     unbindGlobals();
     gfx::gpuTimerBegin("post");
@@ -349,6 +379,7 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
 
     prevCamPos = cam.pos;
     prevViewProjNoJitter = viewProjNoJitter;
+    dynamic->endFrame();
     frameIndex++;
     cameraCut = false;
 }
