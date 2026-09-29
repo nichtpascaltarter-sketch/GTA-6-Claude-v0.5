@@ -981,13 +981,22 @@ bool RoadNetwork::surfaceHeight(vec2 p, float* z, float maxZ) const {
     float bestZ = -1e9f;
     for (int ei : cand) {
         const RoadEdge& e = edges[ei];
+        // closest point over the whole polyline first, then decide road vs sidewalk once (per-segment tests
+        // misclassified lane points near polyline vertices as the raised sidewalk of the neighboring segment)
+        float bestD = 1e30f, bestZe = 0.f;
         for (size_t k = 0; k + 1 < e.pts.size(); k++) {
-            vec2 a = e.pts[k].xy(), c = e.pts[k + 1].xy();
             float t;
-            float d = distPointSegment2D(p, a, c, &t);
-            if (d <= e.halfWidth + e.sidewalk) {
-                float zz = Lerp(e.pts[k].z, e.pts[k + 1].z, t) + (d > e.halfWidth ? 0.15f : 0.f);
-                if (zz <= maxZ && zz > bestZ) { bestZ = zz; found = true; }
+            float d = distPointSegment2D(p, e.pts[k].xy(), e.pts[k + 1].xy(), &t);
+            if (d < bestD) {
+                bestD = d;
+                bestZe = Lerp(e.pts[k].z, e.pts[k + 1].z, t);
+            }
+        }
+        if (bestD <= e.halfWidth + e.sidewalk) {
+            float zz = bestZe + (bestD > e.halfWidth ? 0.15f : 0.f);
+            if (zz <= maxZ && zz > bestZ) {
+                bestZ = zz;
+                found = true;
             }
         }
     }
