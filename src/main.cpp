@@ -26,11 +26,16 @@
 #include "anim/anim_all.cpp"
 #define HAVE_CHARACTERS 1
 #endif
-#if __has_include("sim/vehicle_sim.cpp")
+#if !defined(NO_AUDIO) && __has_include("audio/audio_all.cpp")
+#include "audio/audio_all.cpp"
+#include "audio/speech.cpp"
+#define HAVE_AUDIO 1
+#endif
+#if !defined(NO_VEHICLES) && __has_include("sim/vehicle_sim.cpp")
 #include "sim/vehicle_sim.cpp"
 #define HAVE_VEHICLE_SIM 1
 #endif
-#if __has_include("ui/ui_all.cpp")
+#if !defined(NO_UI) && __has_include("ui/ui_all.cpp")
 #include "ui/ui_all.cpp"
 #define HAVE_GAME_UI 1
 #endif
