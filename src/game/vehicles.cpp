@@ -301,6 +301,7 @@ void GameWorld::updateVehicleFx(Vehicle& v, float dt) {
         v.sndAlarm = 0;
     }
     // impacts
+    if (isPlayerCar && s.impactImpulse > 1500.f) rumble(Saturate(s.impactImpulse / 20000.f), Saturate(s.impactImpulse / 12000.f));
     v.lastImpactSfx -= dt;
     if (s.impactImpulse > 2500.f && v.lastImpactSfx <= 0.f && v.visibleDist < 200.f) {
         vec3 ip = pos + s.impactPoint;

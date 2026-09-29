@@ -137,6 +137,14 @@ struct GameWorld {
         fadeSpeed = speed;
     }
     bool fadedOut() const { return fadeAlpha >= 0.999f; }
+    // Controller rumble (decays each frame; applied by updateRumble)
+    float rumbleLow = 0.f, rumbleHigh = 0.f;
+    bool vibration = true;
+    void rumble(float low, float high) {
+        rumbleLow = Max(rumbleLow, low);
+        rumbleHigh = Max(rumbleHigh, high);
+    }
+    void updateRumble(float dt);
     // HUD messages (filled by gameplay/missions, read by the HUD bridge)
     std::string hudNote, hudNoteTitle, hudHelp, hudObjective;
     float hudNoteTimer = 0.f, hudHelpTimer = 0.f;

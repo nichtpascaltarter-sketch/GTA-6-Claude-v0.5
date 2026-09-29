@@ -444,7 +444,10 @@ struct App {
                 readControls(in, icfg, pv >= 0, pv >= 0 && game.isAircraft(pv), dt, game.ctl);
                 if (!autoplay.empty()) applyAutoplay(game.ctl, simDt);
                 bool pausePressed = game.ctl.pause.pressed, mapPressed = game.ctl.map.pressed;
-                if (menuOpen) game.ctl = Controls();
+                if (menuOpen) {
+                    game.ctl = Controls();
+                    Platform::setGamepadRumble(0.f, 0.f);
+                }
                 game.paused = menuOpen;
                 if (!menuOpen) {
                     env.timeOfDay += simDt * game.timeScale / 120.f;   // 1 game minute = 2 real seconds
@@ -695,6 +698,7 @@ struct App {
 #ifdef HAVE_GAMEPLAY
         game.settingsSubtitles = s.subtitles;
         game.settingsRadar = s.showRadar;
+        game.vibration = s.vibration;
 #endif
     }
 

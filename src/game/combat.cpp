@@ -413,6 +413,7 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
         }
     }
     if (p.isPlayer) {
+        rumble(wi.recoil * 6.f + 0.1f, wi.recoil * 10.f + 0.15f);
         rig.recoil += wi.recoil;
         if (hitSomeone) {
             pinfo.shotsHit++;
@@ -439,6 +440,7 @@ void GameWorld::damagePed(int pid, float amount, DamageType type, int attacker, 
     p.health -= a;
     p.lastAttacker = attacker;
     p.lastDamageTime = (float)time;
+    if (p.isPlayer) rumble(Saturate(a / 40.f), Saturate(a / 25.f));
     if (p.isPlayer && attacker >= 0 && attacker < (int)peds.size()) {
         vec3 d = rel(peds[attacker].pos, p.pos);
         float ang = atan2f(-d.x, d.y) - rig.yaw;
@@ -535,9 +537,10 @@ void GameWorld::explode(dvec3 pos, float radius, float damage, int owner) {
 #ifdef HAVE_AUDIO
     Audio::play(radius > 5.f ? Audio::SFX_EXPLOSION : Audio::SFX_EXPLOSION_SMALL, pos.toVec3());
 #endif
-    // camera shake by distance
+    // camera shake + rumble by distance
     float camD = length(rel(rig.cam.pos, pos));
     rig.shake = Max(rig.shake, Saturate(1.4f - camD / (radius * 8.f)));
+    rumble(Saturate(1.2f - camD / (radius * 10.f)), Saturate(1.f - camD / (radius * 6.f)));
     std::vector<int> list;
     pedsNear(vec2((float)pos.x, (float)pos.y), radius * 1.6f, list);
     for (int i : list) {

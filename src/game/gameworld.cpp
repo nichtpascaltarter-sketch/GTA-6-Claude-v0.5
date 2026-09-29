@@ -166,6 +166,33 @@ void GameWorld::update(float realDt) {
     updateMissions(dt);
     updateGps(realDt);
     updateCamera(realDt);
+    updateRumble(realDt);
+}
+
+void GameWorld::updateRumble(float dt) {
+    float low = rumbleLow, high = rumbleHigh;
+    // continuous engine/road vibration while driving
+    int pv = playerVehicle();
+    if (pv >= 0) {
+        const Vehicles::VehicleState& s = vehicles[pv].sim;
+        float rpm = Saturate((s.engineRpm - 800.f) / 6000.f);
+        low = Max(low, s.engineOn ? 0.04f + rpm * 0.06f : 0.f);
+        float slip = 0.f;
+        for (int w = 0; w < s.wheelCount; w++)
+            if (s.wheels[w].contact) slip = Max(slip, s.wheels[w].slip);
+        high = Max(high, Saturate(slip - 0.3f) * 0.35f);
+        if (s.wheelsOnGround > 0 && s.speed() > 5.f) {
+            for (int w = 0; w < s.wheelCount; w++)
+                if (s.wheels[w].contact && s.wheels[w].surface != Phys::SURF_ASPHALT && s.wheels[w].surface != Phys::SURF_CONCRETE) {
+                    low = Max(low, 0.12f);
+                    break;
+                }
+        }
+    }
+    if (paused || !vibration) low = high = 0.f;
+    Platform::setGamepadRumble(Saturate(low), Saturate(high));
+    rumbleLow = Max(0.f, rumbleLow - dt * 3.f);
+    rumbleHigh = Max(0.f, rumbleHigh - dt * 5.f);
 }
 
 // ------------------------------------------------------------------------------------------------------------------
