@@ -159,6 +159,10 @@ std::string gpuTimerReport();
 // Screenshot: copies back buffer to CPU and writes a BMP file.
 bool saveScreenshotBMP(const char* path);
 
+// Debug: read back a small region of a texture (R16G16B16A16_FLOAT or R32 formats) as floats.
+bool readbackPixelsFloat4(ID3D11Resource* res, DXGI_FORMAT fmt, int x, int y, float out[4]);
+bool readbackBuffer(ID3D11Buffer* buf, void* out, u32 size);
+
 // Debug annotation markers (no-op when unavailable)
 void beginEvent(const char* name);
 void endEvent();

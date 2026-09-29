@@ -240,3 +240,19 @@ float distPointSegment2D(vec2 p, vec2 a, vec2 b, float* tOut = nullptr);
 bool segmentIntersect2D(vec2 a, vec2 b, vec2 c, vec2 d, float* ta = nullptr, float* tc = nullptr);
 bool pointInPolygon2D(vec2 p, const vec2* poly, int n);
 float polygonArea2D(const vec2* poly, int n);
+
+// Double-precision position for world-space camera/object placement over a 20 km world.
+struct dvec3 {
+    double x, y, z;
+    dvec3() : x(0), y(0), z(0) {}
+    constexpr dvec3(double a, double b, double c) : x(a), y(b), z(c) {}
+    explicit dvec3(vec3 v) : x(v.x), y(v.y), z(v.z) {}
+    vec3 toVec3() const { return vec3((float)x, (float)y, (float)z); }
+};
+FORCEINLINE dvec3 operator+(dvec3 a, dvec3 b) { return dvec3(a.x + b.x, a.y + b.y, a.z + b.z); }
+FORCEINLINE dvec3 operator-(dvec3 a, dvec3 b) { return dvec3(a.x - b.x, a.y - b.y, a.z - b.z); }
+FORCEINLINE dvec3 operator+(dvec3 a, vec3 b) { return dvec3(a.x + b.x, a.y + b.y, a.z + b.z); }
+FORCEINLINE dvec3 operator*(dvec3 a, double s) { return dvec3(a.x * s, a.y * s, a.z * s); }
+// Relative offset (a - b) as float: used for camera-relative rendering.
+FORCEINLINE vec3 rel(dvec3 a, dvec3 b) { return vec3((float)(a.x - b.x), (float)(a.y - b.y), (float)(a.z - b.z)); }
+FORCEINLINE vec3 rel(vec3 a, dvec3 b) { return vec3((float)((double)a.x - b.x), (float)((double)a.y - b.y), (float)((double)a.z - b.z)); }

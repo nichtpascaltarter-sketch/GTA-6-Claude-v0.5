@@ -242,11 +242,8 @@ std::string StrFormat(const char* fmt, ...) {
 double TimeSeconds() { return Platform::timeSeconds(); }
 
 namespace Platform {
-bool init(const char* title, int width, int height, bool fullscreen, bool hidden) {
-    QueryPerformanceFrequency(&g_freq);
-    QueryPerformanceCounter(&g_start);
-    SetUnhandledExceptionFilter(crashHandler);
-    // Command line
+void parseCommandLine() {
+    if (!g_args.empty()) return;
     int argc = 0;
     LPWSTR* argvW = CommandLineToArgvW(GetCommandLineW(), &argc);
     for (int i = 0; i < argc; i++) {
@@ -255,6 +252,13 @@ bool init(const char* title, int width, int height, bool fullscreen, bool hidden
         g_args.push_back(tmp);
     }
     LocalFree(argvW);
+}
+
+bool init(const char* title, int width, int height, bool fullscreen, bool hidden) {
+    QueryPerformanceFrequency(&g_freq);
+    QueryPerformanceCounter(&g_start);
+    SetUnhandledExceptionFilter(crashHandler);
+    parseCommandLine();
     // User data dir + log
     std::string dir = userDataDir();
     g_logFile = fopen((dir + "log.txt").c_str(), "w");
@@ -400,9 +404,10 @@ double timeSeconds() {
     return (double)(now.QuadPart - g_start.QuadPart) / (double)g_freq.QuadPart;
 }
 void sleepMs(int ms) { Sleep((DWORD)ms); }
-int argCount() { return (int)g_args.size(); }
-const char* arg(int i) { return i >= 0 && i < (int)g_args.size() ? g_args[i].c_str() : nullptr; }
+int argCount() { parseCommandLine(); return (int)g_args.size(); }
+const char* arg(int i) { parseCommandLine(); return i >= 0 && i < (int)g_args.size() ? g_args[i].c_str() : nullptr; }
 const char* argValue(const char* name) {
+    parseCommandLine();
     std::string key = std::string("--") + name;
     for (size_t i = 0; i < g_args.size(); i++) {
         const std::string& a = g_args[i];
@@ -412,6 +417,7 @@ const char* argValue(const char* name) {
     return nullptr;
 }
 bool hasArg(const char* name) {
+    parseCommandLine();
     std::string key = std::string("--") + name;
     for (auto& a : g_args)
         if (a == key || (a.size() > key.size() && a.compare(0, key.size(), key) == 0 && a[key.size()] == '=')) return true;

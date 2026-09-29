@@ -48,6 +48,7 @@ struct InputState {
 };
 
 namespace Platform {
+void parseCommandLine();
 bool init(const char* title, int width, int height, bool fullscreen, bool hidden);
 void shutdown();
 // Pumps OS messages; returns false when the app should quit.

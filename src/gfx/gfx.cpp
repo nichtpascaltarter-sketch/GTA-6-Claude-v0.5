@@ -624,8 +624,10 @@ ID3DBlob* compileBlob(const char* file, const char* entry, const char* target, c
     double t0 = Platform::timeSeconds();
     UINT flags = D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_ENABLE_STRICTNESS;
     HRESULT hr = pD3DCompile(f->data, f->size, file, macros.data(), &inc, entry, target, flags, 0, &code, &err);
-    g_compileMicros += (long long)((Platform::timeSeconds() - t0) * 1e6);
+    double took = Platform::timeSeconds() - t0;
+    g_compileMicros += (long long)(took * 1e6);
     g_compileCount++;
+    LOG("Compiled %s:%s (%s) in %.2f s", file, entry, target, took);
     if (FAILED(hr)) {
         const char* msg = err ? (const char*)err->GetBufferPointer() : "(no message)";
         LOG("Shader compile error %s:%s (%s):\n%s", file, entry, target, msg);
@@ -840,6 +842,60 @@ bool saveScreenshotBMP(const char* path) {
         fwrite(row.data(), 1, row.size(), f);
     }
     fclose(f);
+    ctx->Unmap(st, 0);
+    st->Release();
+    return true;
+}
+
+static float halfToFloat(u16 h) {
+    u32 sign = (h >> 15) & 1, exp = (h >> 10) & 31, man = h & 1023;
+    float v;
+    if (exp == 0) v = ldexpf((float)man, -24);
+    else if (exp == 31) v = man ? NAN : INFINITY;
+    else v = ldexpf((float)(man | 1024), (int)exp - 25);
+    return sign ? -v : v;
+}
+
+bool readbackPixelsFloat4(ID3D11Resource* res, DXGI_FORMAT fmt, int x, int y, float out[4]) {
+    D3D11_TEXTURE2D_DESC td = {};
+    ((ID3D11Texture2D*)res)->GetDesc(&td);
+    D3D11_TEXTURE2D_DESC sd = td;
+    sd.Width = 1; sd.Height = 1; sd.MipLevels = 1; sd.ArraySize = 1;
+    sd.Usage = D3D11_USAGE_STAGING; sd.BindFlags = 0; sd.CPUAccessFlags = D3D11_CPU_ACCESS_READ; sd.MiscFlags = 0;
+    ID3D11Texture2D* st = nullptr;
+    if (FAILED(dev->CreateTexture2D(&sd, nullptr, &st))) return false;
+    D3D11_BOX box = {(UINT)x, (UINT)y, 0, (UINT)x + 1, (UINT)y + 1, 1};
+    ctx->CopySubresourceRegion(st, 0, 0, 0, 0, res, 0, &box);
+    D3D11_MAPPED_SUBRESOURCE ms;
+    if (FAILED(ctx->Map(st, 0, D3D11_MAP_READ, 0, &ms))) { st->Release(); return false; }
+    out[0] = out[1] = out[2] = out[3] = 0;
+    if (fmt == DXGI_FORMAT_R16G16B16A16_FLOAT) {
+        const u16* p = (const u16*)ms.pData;
+        for (int i = 0; i < 4; i++) out[i] = halfToFloat(p[i]);
+    } else if (fmt == DXGI_FORMAT_R32_FLOAT || fmt == DXGI_FORMAT_R32_TYPELESS) {
+        out[0] = *(const float*)ms.pData;
+    } else {
+        const u8* p = (const u8*)ms.pData;
+        for (int i = 0; i < 4; i++) out[i] = p[i] / 255.f;
+    }
+    ctx->Unmap(st, 0);
+    st->Release();
+    return true;
+}
+
+bool readbackBuffer(ID3D11Buffer* buf, void* out, u32 size) {
+    D3D11_BUFFER_DESC bd = {};
+    buf->GetDesc(&bd);
+    D3D11_BUFFER_DESC sd = {};
+    sd.ByteWidth = bd.ByteWidth;
+    sd.Usage = D3D11_USAGE_STAGING;
+    sd.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    ID3D11Buffer* st = nullptr;
+    if (FAILED(dev->CreateBuffer(&sd, nullptr, &st))) return false;
+    ctx->CopyResource(st, buf);
+    D3D11_MAPPED_SUBRESOURCE ms;
+    if (FAILED(ctx->Map(st, 0, D3D11_MAP_READ, 0, &ms))) { st->Release(); return false; }
+    memcpy(out, ms.pData, Min(size, (u32)bd.ByteWidth));
     ctx->Unmap(st, 0);
     st->Release();
     return true;
