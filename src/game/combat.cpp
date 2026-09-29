@@ -252,7 +252,8 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
         p.fireTimer = 0.3f;
         return;
     }
-    p.fireTimer = wi.fireInterval;
+    // NPCs react slower than the player between shots (less for accurate professionals)
+    p.fireTimer = wi.fireInterval * (p.isPlayer ? 1.f : 1.7f + (1.f - p.brain.accuracy) * 1.3f);
     p.firing = true;
     if (p.weapon == WPN_GRENADE || p.weapon == WPN_MOLOTOV || p.weapon == WPN_RPG) {
         // projectile weapons
@@ -337,6 +338,22 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
         u32 hs = hash32(p.uid * 977u + (u32)(time * 4000.0) + k * 131u);
         float a = hashToFloat(hs) * kTwoPi, r = sqrtf(hashToFloat(hash32(hs))) * spread;
         vec3 d = normalize(dir + rx * (cosf(a) * r) + ry * (sinf(a) * r));
+        if (!p.isPlayer && player >= 0 && p.brain.target == player && peds[player].used) {
+            // GTA-style hit probability: accuracy, range, a moving or covered target and Focus all reduce it;
+            // a missed shot is steered past the target so it still whizzes by
+            const Ped& tgt = peds[player];
+            vec3 tp = pedChestPos(tgt);
+            float dist = length(tp - muzzle.toVec3());
+            float spdT = tgt.vehicle >= 0 ? vehicles[tgt.vehicle].sim.speed() : length(vec2(tgt.vel.x, tgt.vel.y));
+            float chance = (0.25f + 0.55f * p.brain.accuracy) * (1.15f - Saturate(dist / 70.f)) * (spdT > 2.f ? 0.55f : 1.f) *
+                           (tgt.moveMode == 1 ? (tgt.animIn.crouch ? 0.2f : 0.4f) : 1.f) * (pinfo.focusActive ? 0.6f : 1.f);
+            if (hashToFloat(hash32(hs ^ 0x5bd1e995u)) > chance) {
+                vec3 sideV = normalize(cross(d, vec3(0, 0, 1)));
+                float missBy = 0.6f + hashToFloat(hash32(hs + 77u)) * 1.4f;
+                vec3 missPoint = tp + sideV * (((hs >> 3) & 1) ? missBy : -missBy) + vec3(0, 0, hashToFloat(hs >> 5) * 0.8f - 0.2f);
+                d = normalize(missPoint - muzzle.toVec3());
+            }
+        }
         WorldHit h;
         int ignoreVeh = p.vehicle;
         if (raycast(muzzle, d, wi.range, h, pid, ignoreVeh)) {
@@ -453,6 +470,7 @@ void GameWorld::damagePed(int pid, float amount, DamageType type, int attacker, 
     if (p.health <= 0.f || p.invincible) return;
     if (p.isPlayer && attacker >= 0 && attacker < (int)peds.size() && peds[attacker].faction == FAC_FRIEND) return;
     float a = amount;
+    if (p.isPlayer && attacker >= 0 && attacker != pid && type != DMG_EXPLOSION) a *= 0.5f;   // protagonists are tougher
     if (p.armor > 0.f && type != DMG_FALL && type != DMG_DROWN) {
         float absorbed = Min(p.armor, a * 0.7f);
         p.armor -= absorbed;
@@ -490,7 +508,8 @@ void GameWorld::damagePed(int pid, float amount, DamageType type, int attacker, 
         if (attacker >= 0) p.brain.target = attacker;
     }
     if (attacker >= 0 && attacker < (int)peds.size() && peds[attacker].isPlayer) {
-        reportCrime(p.faction == FAC_POLICE ? 5 : 0, p.pos, pid);
+        bool selfDefense = p.faction != FAC_POLICE && p.weapon != WPN_FISTS && p.brain.type == BRAIN_COMBAT && p.brain.target == attacker;
+        if (!selfDefense) reportCrime(p.faction == FAC_POLICE ? 5 : 0, p.pos, pid);
     }
 }
 
@@ -520,7 +539,8 @@ void GameWorld::killPed(int pid, int attacker, vec3 dir, DamageType type) {
         pinfo.kills++;
         pinfo.killMarker = true;
         if (p.faction == FAC_POLICE) pinfo.copsKilled++;
-        reportCrime(p.faction == FAC_POLICE ? 6 : 7, p.pos, pid);
+        bool selfDefense = p.faction != FAC_POLICE && p.weapon != WPN_FISTS && p.brain.type == BRAIN_COMBAT && p.brain.target == attacker;
+        if (!selfDefense) reportCrime(p.faction == FAC_POLICE ? 6 : 7, p.pos, pid);
     }
     if (p.state == PS_INVEHICLE) {
         // dies in the seat: slump (vehicle keeps rolling)
