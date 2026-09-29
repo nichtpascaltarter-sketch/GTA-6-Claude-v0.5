@@ -1,6 +1,6 @@
 // Deferred lighting: sun/moon with cascaded shadows, sky ambient, aerial perspective, sky background.
 #include "gbuffer.hlsli"
-#include "skycommon.hlsli"
+#include "reflection.hlsli"
 #include "shadow.hlsli"
 
 Texture2D<float4> tAlbedo : register(t0);
@@ -12,6 +12,7 @@ Texture2D<float4> tAOGI : register(t5);        // half res: rgb indirect diffuse
 Texture2D<float4> tClouds : register(t6);
 Texture2D<float> tHalfDepth : register(t8);     // half-res linear depth (bilateral upsample of AO/GI)
 Texture2D<float2> tHalfNormal : register(t9);
+Texture2D<float4> tSSR : register(t10);         // screen-space reflections: rgb radiance (pre-exposed), a confidence
 RWTexture2D<float4> uHDR : register(u0);
 
 // Depth/normal-aware upsample of the half-resolution AO + indirect diffuse.
@@ -75,7 +76,7 @@ float3 localLightBRDF(GBufferData g, float3 N, float3 V, float3 L) {
 groupshared uint gsMinZ, gsMaxZ, gsLightCount;
 groupshared uint gsLights[256];
 
-float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float shadow, float ao, float3 gi) {
+float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float shadow, float ao, float3 gi, float4 ssr) {
     float3 N = g.normal;
     float3 L = gSunDir.xyz;
     float3 H = normalize(V + L);
@@ -110,9 +111,11 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
         float Fc = 0.04 + 0.96 * pow5(1.0 - VoH);
         float coat = D_GGX(NoH, ca) * V_SmithGGXCorrelated(NoV, NoL, ca) * Fc * g.extra;
         direct = direct * (1.0 - Fc * g.extra) + coat * NoL * sunE * shadow;
+        // Clear coat reflects the environment sharply: screen-space hits over the probe / sky
         float Fcv = (0.04 + 0.96 * pow5(1.0 - NoV)) * g.extra;
         float3 Rc = reflect(-V, N);
-        coatSpecAmb = skyRadiance(normalize(float3(Rc.xy, max(Rc.z, 0.02))), false) * Fcv * saturate(1.0 + 1.5 * dot(Rc, N));
+        float3 coatEnv = lerp(envReflection(Rc, 0.03), ssr.rgb / preExposure(), ssr.a);
+        coatSpecAmb = coatEnv * Fcv * horizonOcclusion(Rc, N);
     }
     if (g.shadingModel == SM_FOLIAGE) {
         // Thin translucency: light passing through leaves
@@ -130,10 +133,10 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
     float3 R = reflect(-V, N);
     float2 ab = envBRDFApprox(g.rough, NoV);
     float specOcc = saturate(pow(NoV + ao, exp2(-16.0 * g.rough - 1.0)) - 1.0 + ao);
-    // Rough sky reflection: blend of SH (rough) and sky radiance in reflected direction (smooth)
-    float3 skyRefl = lerp(skyRadiance(normalize(float3(R.xy, max(R.z, 0.02))), false), evalSH9(R) * PI, saturate(g.rough * 1.3));
-    float horizonOcc = saturate(1.0 + 1.5 * dot(R, N));  // avoid reflecting below the surface
-    float3 ambientSpec = skyRefl * (f0 * ab.x + ab.y) * specOcc * horizonOcc * horizonOcc;
+    // Environment reflection: screen-space hits where available, else the probe / sky (occluded by AO)
+    float3 env = envReflection(R, g.rough) * specOcc;
+    env = lerp(env, ssr.rgb / preExposure(), ssr.a);
+    float3 ambientSpec = env * (f0 * ab.x + ab.y) * horizonOcclusion(R, N);
     return direct + ambientDiffuse + ambientSpec + coatSpecAmb;
 }
 
@@ -185,7 +188,18 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
     if (depth <= 0.0) {
         float3 sky = skyRadiance(-V, true);
         sky = sky * clouds.a + clouds.rgb;
-        uHDR[id.xy] = float4(min(sky * preExposure(), 60000.0), 1);
+        if (gLightning.x > 0.0) {
+            // lightning: clouds light up from within, strongest towards the bolt
+            float toward = pow(saturate(dot(-V, gLightning.yzw)), 4.0);
+            float cloudLit = 1.0 - clouds.a;
+            sky += float3(0.75, 0.8, 1.0) * gLightning.x * (cloudLit * (350.0 + 2200.0 * toward) + 15.0 + 250.0 * toward);
+        }
+        float4 fv = froxelFog(uv, gFogParams0.w);
+        float3 skyOut = min(sky * preExposure(), 60000.0) * fv.a + fv.rgb;
+        int dbgS = (int)gRenderParams.w;
+        if (dbgS == 15 && uv.x >= gRenderParams.y) skyOut = fv.rgb * 4.0;
+        else if (dbgS == 16 && uv.x >= gRenderParams.y) skyOut = fv.a;
+        uHDR[id.xy] = float4(skyOut, 1);
         return;
     }
     GBufferData g = unpackGBuffer(tAlbedo[id.xy], tNormal[id.xy], tMaterial[id.xy]);
@@ -197,13 +211,15 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
     float shadow = 1;
     float ao = 1;
     float4 aogi = float4(0, 0, 0, 1);
+    float4 ssr = 0;
     if (g.shadingModel == SM_UNLIT) {
         color = g.albedo;
     } else {
         shadow = sampleSunShadow(relPos, g.normal, viewDepth, id.xy);
         aogi = upsampleAOGI(id.xy, linearDepth(depth), g.normal);
         ao = g.ao * aogi.a;
-        color = shadeSurface(g, relPos, V, sunE, shadow, ao, aogi.rgb / preExposure());
+        ssr = gSSParams.z > 0.5 ? tSSR[id.xy] : float4(0, 0, 0, 0);
+        color = shadeSurface(g, relPos, V, sunE, shadow, ao, aogi.rgb / preExposure(), ssr);
         // Local lights
         uint n = min(gsLightCount, 256u);
         float3 local = 0;
@@ -222,6 +238,12 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
             local += localLightBRDF(g, g.normal, V, Lv) * Lt.color * att;
         }
         color += local * lerp(0.6, 1.0, ao);
+        if (gLightning.x > 0.0) {
+            // lightning flash: sky-wide ambient burst + directional light from the bolt
+            float3 diffC = g.albedo * (1.0 - g.metal);
+            float3 flashE = float3(0.75, 0.8, 1.0) * gAmbientParams.y;
+            color += diffC / PI * flashE * ((0.5 + 0.5 * g.normal.z) * ao * 0.6 + saturate(dot(g.normal, gLightning.yzw)) * 0.6);
+        }
     }
     int dbg = (int)gRenderParams.w;
     if (dbg > 0 && uv.x >= gRenderParams.y) {
@@ -238,11 +260,17 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         else if (dbg == 10) o = min(gsLightCount, 64u) / 64.0;
         else if (dbg == 11) o = aogi.a;
         else if (dbg == 12) o = aogi.rgb * 4.0;
+        else if (dbg == 13) o = lerp(float3(0.02, 0.0, 0.03), ssr.rgb, ssr.a);
+        else if (dbg == 14) o = ssr.a;
+        else if (dbg == 15) o = froxelFog(uv, viewDepth).rgb * 4.0;
+        else if (dbg == 16) o = froxelFog(uv, viewDepth).a;
         if (any(isnan(o))) o = float3(1, 0, 1);
         uHDR[id.xy] = float4(o, 1);
         return;
     }
     float4 ap = aerialPerspective(uv, dist);
     color = color * ap.a + ap.rgb;
-    uHDR[id.xy] = float4(min(color * preExposure() + emissive * ap.a, 60000.0), 1);
+    float3 outC = min(color * preExposure() + emissive * ap.a, 60000.0);
+    float4 fv = froxelFog(uv, viewDepth);
+    uHDR[id.xy] = float4(outC * fv.a + fv.rgb, 1);
 }

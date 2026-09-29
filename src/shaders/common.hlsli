@@ -50,7 +50,7 @@ Texture3D<float4> gFogVolume : register(t38);             // integrated froxel f
 TextureCube<float4> gEnvProbeTex : register(t39);            // dynamic reflection probe (prefiltered by roughness, not exposed)
 StructuredBuffer<float4> gExposureBuf : register(t40);    // [0] x = exposure multiplier, y = ev100, z = avg lum; [1] x = previous frame's exposure
 Texture2D<float> gOverheadMap : register(t41);            // highest static world surface (m) around the camera (rain occlusion)
-Texture2D<float4> gRippleTex : register(t42);             // rain ripple rings: xy offset to drop center, z time offset, w mask
+Texture2D<float> gWaterLevelG : register(t42);            // global water surface level map (m, -1000 = no water)
 Texture2D<float> gTerrainHeightG : register(t43);         // global terrain heightmap (m)
 SamplerState sPointClamp : register(s0);
 SamplerState sLinearClamp : register(s1);

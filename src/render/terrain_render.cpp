@@ -254,12 +254,16 @@ struct TerrainRenderer {
         c->PSSetShaderResources(0, 7, srvs);
     }
 
-    void drawGBuffer(Renderer& r) {
+    void drawGBuffer(Renderer& r) { drawGBufferVP(r, r.viewProjNoJitter, r.camera.pos, 1.f, true); }
+
+    // G-buffer pass for an arbitrary view (reflection probe faces): vp is relative to refPos, which must also be
+    // the gCamPos of the bound frame constants. rangeScale > 1 selects coarser LODs.
+    void drawGBufferVP(Renderer& r, const mat4& vp, dvec3 refPos, float rangeScale, bool mainView = false) {
         if (!map) return;
         Frustum fr;
-        fr.fromMatrix(r.viewProjNoJitter);
-        select(r.camera.pos, fr, 1.f);
-        uploadNodes(1.f);
+        fr.fromMatrix(vp);
+        select(refPos, fr, rangeScale);
+        uploadNodes(rangeScale);
         if (!drawnNodes) return;
         auto* c = gfx::ctx;
         bindCommon();
@@ -268,8 +272,10 @@ struct TerrainRenderer {
         c->PSSetShader(ps, nullptr, 0);
         c->DrawIndexedInstanced((UINT)indexCount, (UINT)drawnNodes, 0, 0, 0);
         r.stats.drawCalls++;
-        r.stats.terrainNodes += drawnNodes;
-        r.stats.triangles += drawnNodes * indexCount / 3;
+        if (mainView) {
+            r.stats.terrainNodes += drawnNodes;
+            r.stats.triangles += drawnNodes * indexCount / 3;
+        }
         ID3D11ShaderResourceView* nulls[7] = {};
         c->VSSetShaderResources(0, 7, nulls);
         c->PSSetShaderResources(0, 7, nulls);

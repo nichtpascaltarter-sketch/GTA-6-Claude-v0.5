@@ -70,7 +70,8 @@ void planeForces(StepCtx& x) {
     // propeller / jet thrust
     bool jet = top > 115.f;
     float vf = Max(vl.y, 1.f);
-    float T = s.throttleOut * (jet ? t.thrustStatic : Min(t.thrustStatic, 0.8f * t.peakPowerW / vf));
+    // propeller: static thrust falling off with airspeed, capped by shaft power; jets: roughly constant thrust
+    float T = s.throttleOut * (jet ? t.thrustStatic : Min(t.thrustStatic * (1.f - 0.3f * Min(vf / top, 1.2f)), 0.8f * t.peakPowerW / vf));
     b.addForce(x.fwd * T, vec3(0.f));
     // control surfaces as angular accelerations: authority grows with dynamic pressure
     float qRef = 0.5f * kRhoAir * Sq(0.6f * top);

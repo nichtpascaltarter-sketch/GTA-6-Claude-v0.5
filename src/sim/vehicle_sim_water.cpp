@@ -158,30 +158,32 @@ void boatForces(StepCtx& x) {
         // longitudinal resistance (drops when planing) + hump before planing
         float fLong = -(t.hullDragX * (1.f - 0.45f * planing) * vf * fabsf(vf) + 0.02f * b.mass * vf) * wf;
         float hump = expf(-Sq((fabsf(vf) / t.planeSpeed - 0.65f) / 0.3f));
-        fLong -= (vf > 0.f ? 1.f : -1.f) * b.mass * kGrav * 0.07f * hump * wf * Saturate(fabsf(vf));
+        fLong -= (vf > 0.f ? 1.f : -1.f) * b.mass * kGrav * 0.2f * hump * wf * Saturate(fabsf(vf));
         b.addForce(x.fwd * fLong, vec3(0.f));
-        // lateral (keel) resistance at the bow and stern quarters: carving + yaw damping + directional stability
-        float zKeel = t.boxC.z - t.boxH.z * 0.8f - t.com.z;
+        // lateral (keel) resistance at the bow and stern quarters: carving + yaw damping + directional stability.
+        // Applied at the COM height: planing hulls bank into turns rather than heeling outward.
+        float zKeel = 0.f;
         for (int e = 0; e < 2; e++) {
             float yy = t.boxC.y + (e ? 0.3f : -0.38f) * L - t.com.y;
             vec3 rl(0.f, yy, zKeel);
             float vlat = vl.x - wl.z * yy;
-            float kq = t.hullDragY * (e ? 0.4f : 0.6f), kl = 0.5f * b.mass * (e ? 0.4f : 0.6f);
+            float kq = t.hullDragY * (e ? 0.45f : 0.55f), kl = 0.5f * b.mass * (e ? 0.45f : 0.55f);
             float f = -(kq * vlat * fabsf(vlat) + kl * vlat) * wf;
             float lim = fabsf(vlat) * b.mass * 0.5f / dt;
             b.addForce(x.right * Clamp(f, -lim, lim), b.R * rl);
         }
-        // planing lift behind the COM levels the hull; the hump raises the bow
-        b.addForce(x.up * (b.mass * kGrav * 0.25f * planing * wf), b.R * vec3(0.f, -0.12f * L, 0.f));
-        b.torque += x.right * (b.mass * kGrav * L * 0.03f * hump * wf);
+        // planing lift raises the hull; the bow climbs over the hump, then settles to a small running trim
+        b.addForce(x.up * (b.mass * kGrav * 0.25f * planing * wf), vec3(0.f));
+        b.torque += x.right * (b.mass * kGrav * L * (0.12f * hump + 0.02f * planing) * wf);
         // angular damping in water
-        vec3 acc(-wl.x * 1.2f, -wl.y * 1.2f, -wl.z * (0.6f + 0.05f * fabsf(vf)));
+        vec3 acc(-wl.x * 1.2f, -wl.y * 1.2f, -wl.z * 0.3f);
         b.torque += b.torqueFor(b.R * acc * wf);
         // bank into turns (hull shape / rider lean)
-        float bankF = jetski ? 0.85f : (airboat ? 0.1f : 0.35f);
+        float bankF = jetski ? 0.8f : (airboat ? 0.15f : 0.4f);
         float target = -bankF * atanf(vf * b.angVel.z / kGrav);
-        target = Clamp(target, -0.7f, 0.7f);
-        float rAcc = (6.f * (target - s.lean) - 3.f * wl.y) * wf;
+        target = Clamp(target, -0.6f, 0.6f);
+        float kb = jetski ? 30.f : 12.f;
+        float rAcc = (kb * (target - s.lean) - 2.f * sqrtf(kb) * wl.y) * wf;
         b.torque += b.torqueFor(x.fwd * rAcc);
     }
     // ---- propulsion ----
@@ -207,28 +209,22 @@ void boatForces(StepCtx& x) {
         float v = Max(vf, 0.f);
         float T = cmd > 0.f ? Min(t.thrustStatic, 0.5f * t.peakPowerW / Max(v, 0.1f)) * cmd : t.thrustStatic * 0.45f * cmd;
         T *= Saturate((top * 1.02f - vf) / (0.04f * top));
-        if (airboat) {
-            // fan thrust along the hull; rudders in the prop wash give yaw even at a standstill
-            b.addForce(x.fwd * T, rProp);
-            b.addForce(x.right * (-steer * fabsf(T) * 0.35f), b.R * (t.propPos - t.com + vec3(0.f, -0.5f, 0.f)));
-        } else {
-            float d = steer * (jetski ? 0.6f : 0.5f);
-            vec3 dirL(-sinf(d), cosf(d), 0.f);
-            b.addForce(b.R * dirL * T, rProp);
-        }
+        b.addForce(x.fwd * T, rProp);
     }
-    // rudder / hull steering at speed (keeps authority when the thrust is low)
-    if (s.inWater && !airboat) {
-        float v2 = Min(vf * fabsf(vf), 900.f);
-        float acc = -steer * 0.011f * v2 / Max(L * 0.15f, 0.5f) * Saturate(wetFrac * 1.5f);
-        b.torque += b.torqueFor(x.up * acc);
+    // steering: rudder / jet nozzle / air rudders command a yaw rate the hull can carve
+    // (max lateral acceleration per hull type, tighter radius at low speed; thrust gives authority at a standstill)
+    {
+        float aMax = (jetski ? 1.1f : (airboat ? 0.7f : 1.0f)) * kGrav;
+        float rMin = (jetski ? 2.0f : (airboat ? 1.8f : 1.5f)) * L;
+        float v = fabsf(vf);
+        float rT = -steer * Min(Max(v, 1.5f) / rMin, aMax / Max(v, 1.f)) * (vf < -0.5f ? -1.f : 1.f);
+        float wet = airboat ? 1.f : (s.inWater ? Max(Saturate(wetFrac * 1.5f), 0.7f) : 0.f);
+        float authority = Saturate(Max(v / 3.f, (propWet ? fabsf(cmd) : 0.f) * 0.8f)) * wet;
+        if (airboat) authority = Saturate(Max(v / 3.f, fabsf(cmd)));   // air rudders work in the fan wash, also on land
+        float acc = 12.f * (rT - b.angVel.z) * authority;
+        b.torque += b.torqueFor(vec3(0.f, 0.f, acc));   // about world vertical (hulls lean in turns)
     }
-    if (airboat) {
-        // air rudder at speed + low-friction hull sliding over mud/grass is handled by the ground contacts
-        float acc = -steer * 0.004f * vf * fabsf(vf);
-        b.torque += b.torqueFor(x.up * acc);
-        b.force -= b.vel * (0.5f * kRhoAir * t.dragArea * x.speed);
-    }
+    if (airboat) b.force -= b.vel * (0.5f * kRhoAir * t.dragArea * x.speed);
     // jetski rider falls off when flipped
     if (jetski && c.hasDriver && !s.riderOff && x.up.z < 0.2f) {
         s.ejectRider = true;

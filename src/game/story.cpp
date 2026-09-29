@@ -1,195 +1,35 @@
-// Story missions and side activities. Each mission is a small state machine using the GameWorld mission helpers.
+// Story registry: every story mission and side activity with its start trigger, prerequisites, protagonist and
+// availability window. Mission scripts live in story_act1/2/3.cpp and activities.cpp (all in namespace Game::mu).
 #include "missions.h"
 
 namespace Game {
 
+using namespace mu;
+
 namespace story_detail {
 
-// Finds a curbside spot on the road nearest to p (right side of travel), returns position and heading.
-vec3 curbSpot(GameWorld& g, vec2 p, float along, float* yawOut, float sideOffset = -1.f) {
-    float s = 0, side = 0;
-    int e = g.roads->nearestEdge(p, 300.f, &s, nullptr, &side);
-    if (e < 0) {
-        if (yawOut) *yawOut = 0.f;
-        return vec3(p, g.groundHeight(p.x, p.y, 200.f));
-    }
-    const World::RoadEdge& ed = g.roads->edges[e];
-    s = Clamp(s + along, ed.cut0 + 2.f, ed.length - ed.cut1 - 2.f);
-    vec3 c = ed.posAt(s);
-    vec3 t = ed.tangentAt(s);
-    vec3 n(t.y, -t.x, 0);
-    float off = sideOffset >= 0.f ? sideOffset : ed.halfWidth - 1.3f;
-    vec3 r = c + normalize(n) * off;
-    if (yawOut) *yawOut = atan2f(-t.x, t.y);
-    r.z = g.groundHeight(r.x, r.y, c.z + 2.f);
-    return r;
+template <class T> Mission* makeMission() { return new T(); }
+
+MissionDef storyDef(const char* id, const char* title, const char* contact, char letter, vec2 start, int storyIndex, int req, int req2,
+                    int protagonist, int act, std::function<Mission*()> create) {
+    MissionDef d;
+    d.id = id;
+    d.title = title;
+    d.contact = contact;
+    d.letter = letter;
+    d.startPos = start;
+    d.storyIndex = storyIndex;
+    d.requiresFlag = req;
+    d.requiresFlag2 = req2;
+    d.setsFlag = storyIndex;
+    d.repeatable = false;
+    d.timeFrom = d.timeTo = 0.f;
+    d.icon = UI::BLIP_MISSION;
+    d.protagonist = protagonist;
+    d.act = act;
+    d.create = create;
+    return d;
 }
-
-vec3 sidewalkSpot(GameWorld& g, vec2 p, float along) {
-    float s = 0, side = 0;
-    int e = g.roads->nearestEdge(p, 300.f, &s, nullptr, &side);
-    if (e < 0) return vec3(p, g.groundHeight(p.x, p.y, 200.f));
-    const World::RoadEdge& ed = g.roads->edges[e];
-    s = Clamp(s + along, 1.f, ed.length - 1.f);
-    vec3 c = ed.posAt(s);
-    vec3 t = ed.tangentAt(s);
-    vec3 n = normalize(vec3(-t.y, t.x, 0)) * (side >= 0 ? 1.f : -1.f);
-    vec3 r = c + n * (ed.halfWidth + Max(ed.sidewalk, 1.2f) * 0.5f);
-    r.z = g.groundHeight(r.x, r.y, c.z + 2.f);
-    return r;
-}
-
-const u32 kMariColor = 0xffcc55ffu;   // pink (ABGR packed: r in low byte)
-const u32 kDexColor = 0xff66ddaau;
-const u32 kTomasColor = 0xff55ccffu;
-
-// ------------------------------------------------------------------------------------------------------------------
-// Prologue: "Low Tide" - Mari gets a call from her brother Tomas, picks him up from a Calle Luna garage and brings him
-// to Mama Lucha's diner while two Cuervos in a car tail them.
-class MissionLowTide : public Mission {
-public:
-    int tomas = -1, car = -1, chaser = -1;
-    vec3 garage, diner;
-    const char* title() const override { return "Low Tide"; }
-    const char* brief() const override {
-        return "Tomas called in a panic from a garage in Calle Luna. Pick him up and get him to Mama Lucha's diner before "
-               "whoever he owes money to catches up with him.";
-    }
-    long long reward() const override { return 1500; }
-    void start(GameWorld& g) override {
-        float yaw;
-        garage = sidewalkSpot(g, vec2(1980.f, 2710.f), 0.f);
-        diner = curbSpot(g, vec2(1240.f, 1880.f), 0.f, &yaw);
-        int ci = g.randomCivilianChar(0x7011u, 0);
-        tomas = g.mPed(ci, dvec3(garage), 0.f, FAC_FRIEND);
-        if (tomas >= 0) {
-            g.peds[tomas].invincible = true;
-            g.peds[tomas].brain.type = BRAIN_SCENARIO;
-            g.peds[tomas].brain.scenario = 8;
-        }
-        DialogueLine l;
-        l.speaker = "Tomas";
-        l.text = "Mari, it's me. I messed up. I need you at the old Vargas garage, right now. Please hurry.";
-        l.female = false;
-        l.voiceSeed = 21;
-        l.color = kTomasColor;
-        g.mSay(l);
-        DialogueLine m;
-        m.speaker = "Mari";
-        m.text = "Tomas? Hey, slow down. Stay there, I'm coming.";
-        m.ped = g.player;
-        m.color = kMariColor;
-        g.mSay(m);
-        g.mObjective("Get to the ~y~garage~s~ in Calle Luna.");
-        g.mTarget(garage.xy());
-        g.mMarker(dvec3(garage), 2.5f);
-    }
-    MissionStatus update(GameWorld& g, float dt) override {
-        (void)dt;
-        if (tomas < 0 || !g.peds[tomas].used) {
-            failReason = "Tomas is gone.";
-            return MS_FAILED;
-        }
-        switch (stage) {
-            case 0:
-                if (g.playerAt(garage.xy(), g.playerVehicle() >= 0 ? 8.f : 3.f)) {
-                    g.mClearMarkers();
-                    g.mClearTarget();
-                    car = g.playerVehicle();
-                    // cutscene: Tomas runs to the car
-                    std::vector<CutsceneShot> shots;
-                    CutsceneShot a;
-                    a.pos = dvec3(garage + vec3(6.f, -5.f, 2.2f));
-                    a.target = dvec3(garage + vec3(0, 0, 1.2f));
-                    a.pos2 = dvec3(garage + vec3(4.f, -6.f, 2.f));
-                    a.target2 = dvec3(garage + vec3(0, 0, 1.3f));
-                    a.duration = 6.f;
-                    a.fov = 42.f;
-                    shots.push_back(a);
-                    g.mCutscene(shots);
-                    g.mSay("Tomas", "They took the money I was holding for them. Two guys from the Cuervos. They think I skimmed it.", tomas, kTomasColor);
-                    g.mSay("Mari", "Did you?", g.player, kMariColor);
-                    g.mSay("Tomas", "No! I swear. Just get me to Lucha's, she'll know what to do.", tomas, kTomasColor);
-                    next();
-                }
-                break;
-            case 1:
-                if (!g.mInCutscene() && !g.mTalking()) {
-                    int pv = g.playerVehicle();
-                    if (pv >= 0) {
-                        int seat = g.freeSeat(pv, false);
-                        if (seat > 0) g.warpPedIntoVehicle(tomas, pv, seat);
-                        g.peds[tomas].brain.type = BRAIN_FOLLOW;
-                        g.peds[tomas].brain.target = g.player;
-                    } else {
-                        g.peds[tomas].brain.type = BRAIN_FOLLOW;
-                        g.peds[tomas].brain.target = g.player;
-                    }
-                    g.mObjective("Take Tomas to ~y~Mama Lucha's diner~s~.");
-                    g.mTarget(diner.xy());
-                    g.mMarker(dvec3(diner), 3.f);
-                    // tail car with two Cuervos
-                    int model = g.findVehicleModel(Vehicles::VC_MUSCLE, 1);
-                    if (model < 0) model = g.findVehicleModel(Vehicles::VC_SEDAN, 2);
-                    if (model >= 0) {
-                        float yaw;
-                        vec3 sp = curbSpot(g, garage.xy() - vec2(60.f, 0.f), -30.f, &yaw);
-                        chaser = g.mVehicle(model, dvec3(sp + vec3(0, 0, 0.3f)), yaw);
-                        if (chaser >= 0) {
-                            for (int s = 0; s < 2; s++) {
-                                int ci = g.randomCivilianChar(0x9000u + s, 2);
-                                int gp = g.mPed(ci, dvec3(sp), yaw, FAC_ENEMY);
-                                if (gp < 0) continue;
-                                g.warpPedIntoVehicle(gp, chaser, s);
-                                g.giveWeapon(gp, WPN_PISTOL, 60);
-                                g.peds[gp].weapon = WPN_PISTOL;
-                                g.peds[gp].brain.type = BRAIN_COMBAT;
-                                g.peds[gp].brain.target = g.player;
-                                g.peds[gp].brain.accuracy = 0.25f;
-                            }
-                            g.vehicles[chaser].color0 = vec3(0.05f);
-                            g.mBlipVehicle(chaser, UI::BLIP_ENEMY);
-                        }
-                    }
-#ifdef HAVE_AUDIO
-                    Audio::setScore(0x10u, 0.55f);
-#endif
-                    g.mSay("Tomas", "Mari... that black car. It's them!", tomas, kTomasColor);
-                    next();
-                }
-                break;
-            case 2: {
-                bool tomasWithPlayer = g.peds[tomas].vehicle >= 0 && g.peds[tomas].vehicle == g.playerVehicle();
-                if (g.playerAt(diner.xy(), 10.f) && (tomasWithPlayer || g.playerVehicle() < 0)) {
-                    g.mClearMarkers();
-                    g.mClearTarget();
-                    g.mObjective("");
-                    int pv = g.playerVehicle();
-                    if (pv >= 0 && g.vehicles[pv].sim.speed() > 2.f) {
-                        g.help("Stop the vehicle at the diner.", 2.f);
-                        break;
-                    }
-                    if (g.peds[tomas].vehicle >= 0) g.removePedFromVehicle(tomas, true);
-                    g.mSay("Mari", "Inside. Now. And Tomas - you're telling Lucha everything.", g.player, kMariColor);
-                    g.mSay("Tomas", "Everything. I promise.", tomas, kTomasColor);
-                    next();
-                }
-                break;
-            }
-            case 3:
-                if (!g.mTalking() && stageTime > 1.f) {
-                    g.peds[tomas].invincible = false;
-                    g.peds[tomas].brain.type = BRAIN_GOTO;
-                    g.peds[tomas].brain.goal = dvec3(diner + vec3(0, 4.f, 0));
-                    g.peds[tomas].brain.speed = 1.6f;
-                    g.storyBriefText = "Mama Lucha agreed to hide Tomas at the diner. The Cuervos will be back - and someone is paying them.";
-                    return MS_PASSED;
-                }
-                break;
-        }
-        return MS_RUNNING;
-    }
-};
 
 }  // namespace story_detail
 
@@ -197,19 +37,128 @@ using namespace story_detail;
 
 void MissionManager::registerAll(GameWorld& g) {
     defs.clear();
-    MissionDef d;
-    d.id = "low_tide";
-    d.contact = "Tomas";
-    d.letter = 'T';
-    d.startPos = sidewalkSpot(g, vec2(1545.f, 2330.f), 14.f).xy();
-    d.storyIndex = 0;
-    d.requiresFlag = -1;
-    d.setsFlag = 0;
-    d.repeatable = false;
-    d.timeFrom = d.timeTo = 0.f;
-    d.icon = UI::BLIP_MISSION;
-    d.create = [] { return (Mission*)new MissionLowTide(); };
+    computePlaces(g);
+    const Places& P = gPlaces;
+    auto startAt = [](const Place& p, float along) { return p.pos.xy() + p.streetDir * along; };
+
+    // ---- Prologue + Act 1: Calle Luna
+    MissionDef d = storyDef("low_tide", "Low Tide", "Tomas", 'T', startAt(P.mariApt, 0.f), SF_LOW_TIDE, -1, -1, 0, 0, makeMission<MissionLowTide>);
+    d.hidden = true;   // starts with the opening phone call of a new game
     defs.push_back(d);
+    defs.push_back(storyDef("repo_man", "Repo Man", "Rook", 'R', startAt(P.rookShop, 3.f), SF_REPO_MAN, SF_LOW_TIDE, -1, 1, 1,
+                            makeMission<MissionRepoMan>));
+    defs.push_back(storyDef("dry_dock", "Dry Dock", "Rook", 'R', startAt(P.dexTrailer, 0.f), SF_DRY_DOCK, SF_REPO_MAN, -1, 1, 1,
+                            makeMission<MissionDryDock>));
+    defs.push_back(storyDef("pressure", "Pressure Cooker", "Mama Lucha", 'L', startAt(P.diner, -3.f), SF_PRESSURE, SF_LOW_TIDE, -1, 0, 1,
+                            makeMission<MissionPressure>));
+    defs.push_back(storyDef("collateral", "Collateral", "Mama Lucha", 'L', startAt(P.diner, -3.f), SF_COLLATERAL, SF_PRESSURE, SF_DRY_DOCK, 0, 1,
+                            makeMission<MissionCollateral>));
+    d = storyDef("pink_slips", "Pink Slips", "Chuy", 'C', startAt(P.raceCalle, 0.f), SF_PINK_SLIPS, SF_DRY_DOCK, -1, 1, 1, makeMission<MissionPinkSlips>);
+    d.timeFrom = 20.f;
+    d.timeTo = 5.f;
+    defs.push_back(d);
+    d = storyDef("last_call", "Last Call", "Mama Lucha", 'L', startAt(P.diner, -3.f), SF_LAST_CALL, SF_COLLATERAL, SF_PINK_SLIPS, 0, 1,
+                 makeMission<MissionLastCall>);
+    d.timeFrom = 19.f;
+    d.timeTo = 4.f;
+    defs.push_back(d);
+
+    // ---- Act 2: the city
+    const u32 kBoats = classBit(Vehicles::VC_BOAT) | classBit(Vehicles::VC_JETSKI) | classBit(Vehicles::VC_AIRBOAT);
+    defs.push_back(storyDef("dead_air", "Dead Air", "Kit", 'K', startAt(P.pulseFm, -3.f), SF_DEAD_AIR, SF_LAST_CALL, -1, 0, 2,
+                            makeMission<MissionDeadAir>));
+    d = storyDef("velvet_rope", "Velvet Rope", "Kit", 'K', startAt(P.clubRiptide, -20.f), SF_VELVET_ROPE, SF_DEAD_AIR, -1, 0, 2,
+                 makeMission<MissionVelvetRope>);
+    d.timeFrom = 21.f;
+    d.timeTo = 4.f;
+    defs.push_back(d);
+    defs.push_back(storyDef("bagman", "The Bagman", "Rook", 'R', startAt(P.policeHq, 150.f), SF_BAGMAN, SF_LAST_CALL, -1, 1, 2,
+                            makeMission<MissionBagman>));
+    d = storyDef("sawgrass_run", "Sawgrass Run", "Jonah", 'J', P.sawgrassDock.xy(), SF_SAWGRASS_RUN, SF_BAGMAN, -1, 1, 2,
+                 makeMission<MissionSawgrassRun>);
+    d.needsClasses = kBoats;
+    defs.push_back(d);
+    d = storyDef("riptide", "Riptide", "Tomas", 'T', startAt(P.boatyard, 2.f), SF_RIPTIDE, SF_VELVET_ROPE, -1, 0, 2, makeMission<MissionRiptide>);
+    d.needsClasses = kBoats;
+    defs.push_back(d);
+    d = storyDef("heavy_lift", "Heavy Lift", "Rook", 'R', P.portGate.curb.xy() - vec2(120.f, 0.f), SF_HEAVY_LIFT, SF_SAWGRASS_RUN, -1, 1, 2,
+                 makeMission<MissionHeavyLift>);
+    d.timeFrom = 21.f;
+    d.timeTo = 5.f;
+    defs.push_back(d);
+    d = storyDef("fireworks", "Fireworks", "Kit", 'K', P.pierRamp.xy() - vec2(6.f, 0.f), SF_FIREWORKS, SF_RIPTIDE, SF_HEAVY_LIFT, 0, 2,
+                 makeMission<MissionFireworks>);
+    d.timeFrom = 20.f;
+    d.timeTo = 3.f;
+    defs.push_back(d);
+    d = storyDef("second_chance", "Second Chance", "Jonah", 'J', startAt(P.airport, 0.f), SF_SECOND_CHANCE, SF_HEAVY_LIFT, -1, 1, 2,
+                 makeMission<MissionSecondChance>);
+    d.needsClasses = classBit(Vehicles::VC_HELI);
+    defs.push_back(d);
+    d = storyDef("paper_trail", "Paper Trail", "Kit", 'K', P.keyCoral.curb.xy() + P.keyCoral.streetDir * -60.f, SF_PAPER_TRAIL, SF_FIREWORKS, -1, 0, 2,
+                 makeMission<MissionPaperTrail>);
+    d.timeFrom = 22.f;
+    d.timeTo = 4.5f;
+    defs.push_back(d);
+
+    // ---- Act 3: the big score
+    defs.push_back(storyDef("blueprints", "Blueprints", "Rook", 'R', startAt(P.rookShop, 3.f), SF_BLUEPRINTS, SF_PAPER_TRAIL, SF_SECOND_CHANCE, 1, 3,
+                            makeMission<MissionBlueprints>));
+    defs.push_back(storyDef("dress_rehearsal", "Dress Rehearsal", "Rook", 'R', startAt(P.rookShop, -4.f), SF_DRESS_REHEARSAL, SF_BLUEPRINTS, -1, 0, 3,
+                            makeMission<MissionDressRehearsal>));
+    defs.push_back(storyDef("solaris_one", "Solaris One", "The Crew", 'H', startAt(P.rookShop, 3.f), SF_SOLARIS_ONE, SF_DRESS_REHEARSAL, -1, 1, 3,
+                            makeMission<MissionSolarisOne>));
+    defs.push_back(storyDef("overseas", "Overseas", "Mama Lucha", 'L', startAt(P.redland, 0.f), SF_OVERSEAS, SF_SOLARIS_ONE, -1, 0, 3,
+                            makeMission<MissionOverseas>));
+    defs.push_back(storyDef("signal", "Signal", "Kit", 'K', startAt(P.pulseFm, -3.f), SF_SIGNAL, SF_OVERSEAS, -1, 0, 3, makeMission<MissionSignal>));
+
+    // ---- side activities
+    auto side = [&](const char* id, const char* title, const char* contact, vec2 start, int req, int sets, UI::BlipIcon icon,
+                    std::function<Mission*()> create) {
+        MissionDef s = storyDef(id, title, contact, 0, start, -1, req, -1, -1, 0, create);
+        s.setsFlag = sets;
+        s.repeatable = true;
+        s.icon = icon;
+        return s;
+    };
+    // jobs started from their vehicles (G / D-pad up in a taxi, police car or ambulance)
+    MissionDef job = side("taxi", "Taxi Fares", "Sol Cabs", P.taxiDepot.pos.xy(), -1, SIDE_TAXI, UI::BLIP_TAXI_JOB, makeMission<MissionTaxi>);
+    job.hidden = true;
+    defs.push_back(job);
+    job = side("vigilante", "Vigilante", "Police car", P.policeHq.pos.xy(), -1, SIDE_VIGILANTE, UI::BLIP_VIGILANTE, makeMission<MissionVigilante>);
+    job.hidden = true;
+    defs.push_back(job);
+    job = side("paramedic", "Paramedic", "Ambulance", P.hospital.pos.xy(), -1, SIDE_PARAMEDIC, UI::BLIP_HOSPITAL, makeMission<MissionParamedic>);
+    job.hidden = true;
+    defs.push_back(job);
+    defs.push_back(side("courier", "Rapido Couriers", "Rapido Couriers", P.courierDepot.pos.xy(), SF_LOW_TIDE, SIDE_COURIER, UI::BLIP_DELIVERY_JOB,
+                        makeMission<MissionCourier>));
+    defs.push_back(side("range", "Shooting Range", "Palmetto Arms", placeOffset(g, P.rangeFlats, 0.f, 4.f).xy(), -1, SIDE_RANGE, UI::BLIP_GUN_SHOP,
+                        makeMission<MissionRange>));
+    for (const RaceSpec& rs : raceSpecs()) {
+        Place startPlace = resolvePlace(g, rs.via[0]);
+        vec2 sp = rs.domain == 1 ? startPlace.pos.xy() : startPlace.curb.xy();
+        RaceSpec copy = rs;
+        MissionDef r = side(rs.id, rs.name, rs.domain == 1 ? "Boat race" : "Street race", sp, SF_LOW_TIDE, rs.sideFlag,
+                            rs.domain == 1 ? UI::BLIP_BOAT : UI::BLIP_RACE, [copy]() { return (Mission*)new MissionRace(copy); });
+        if (rs.night) {
+            r.timeFrom = 20.f;
+            r.timeTo = 5.f;
+        }
+        if (rs.domain == 1) r.needsClasses = kBoats;
+        defs.push_back(r);
+    }
+    const u32 kAir = classBit(Vehicles::VC_PLANE) | classBit(Vehicles::VC_HELI);
+    for (int lesson = 0; lesson < 3; lesson++) {
+        static const char* const kIds[3] = {"flight_1", "flight_2", "flight_3"};
+        static const char* const kTitles[3] = {"Flight School: Circuit", "Flight School: Pads", "Flight School: Coastal Run"};
+        MissionDef f = side(kIds[lesson], kTitles[lesson], "Flight school", startAt(P.airport, -8.f + 8.f * lesson), SF_LOW_TIDE, SIDE_FLIGHT_1 + lesson,
+                            UI::BLIP_PLANE, [lesson]() { return (Mission*)new MissionFlightSchool(lesson); });
+        f.needsClasses = lesson == 1 ? classBit(Vehicles::VC_HELI) : kAir;
+        if (lesson > 0) f.requiresFlag2 = SIDE_FLIGHT_1 + lesson - 1;
+        defs.push_back(f);
+    }
+    LOG("Missions registered: %d", (int)defs.size());
 }
 
 }  // namespace Game

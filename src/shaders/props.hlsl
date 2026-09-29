@@ -1,5 +1,6 @@
 // Instanced props and vegetation.
 #include "gbuffer.hlsli"
+#include "weather.hlsli"
 
 struct MaterialInfo {
     float layer, uvScale, roughScale, metal;
@@ -157,8 +158,6 @@ GBufferOut psProp(VSOut i, bool front : SV_IsFrontFace) {
             }
         }
     }
-    float wet = gWeather.y * saturate(N.z * 2.0 + 0.3);
-    albedo *= lerp(1.0, 0.65, wet);
-    rough = lerp(rough, 0.15, wet * 0.8);
+    applyWetness(albedo, rough, n, N, i.rel + gCamPos.xyz, sm == SM_FOLIAGE ? 0.4 : saturate(rough * 1.2) * (1.0 - metal), 0.0);
     return packGBuffer(albedo, ao, n, rough, metal, sm, extra, emissive, i.curClip, i.prevClip);
 }

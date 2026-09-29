@@ -1,0 +1,165 @@
+// Froxel volumetric fog: height fog + humidity + rain haze lit by the sun (CSM + cloud shadows -> god rays),
+// sky ambient and local lights (halos), with temporal reprojection, then front-to-back integration.
+// Volume layout: x/y screen, z exponential view-depth slices from gFogParams1.z to gFogParams0.w.
+#include "skycommon.hlsli"
+#include "shadow.hlsli"
+
+struct LightGPU {
+    float3 pos;
+    float radius;
+    float3 color;
+    float spotCos;
+    float3 dir;
+    float spotInner;
+};
+StructuredBuffer<LightGPU> tLights : register(t0);
+Texture3D<float4> tFogHistory : register(t1);
+Texture3D<float4> tInjected : register(t2);
+RWTexture3D<float4> uFog : register(u0);
+
+cbuffer FogCB : register(b1) {
+    float4 gFogVol;    // xyz volume size, w history valid
+    float4 gFogJit;    // xyz jitter (froxel units), w light count
+    float4 gFogMedia;  // x base humidity (1/m), y humidity scale height (m), z rain haze (1/m), w noise strength
+    float4 gFogMisc;   // xy wind offset (m), z local light anisotropy, w ambient boost (lightning, 1 = none)
+};
+
+float sliceDepth(float w) { return gFogParams1.z * exp2(w / gFogParams1.y); }  // w in [0,1] -> view depth
+
+float phaseHG(float g, float c) { return (1.0 - g * g) / (4.0 * PI * pow(max(1.0 + g * g - 2.0 * g * c, 1e-4), 1.5)); }
+
+float mediaDensity(float3 worldP) {
+    float h = worldP.z;
+    float fog = gFogParams0.x * exp(-max(h - gFogParams0.z, 0.0) * gFogParams0.y);
+    float humid = gFogMedia.x * exp(-max(h, 0.0) / gFogMedia.y);
+    float rain = gFogMedia.z * exp(-max(h, 0.0) / 600.0);
+    float3 np = float3(worldP.xy + gFogMisc.xy, worldP.z * 2.0) * 0.035;
+    float n = valueNoise3(np) * 0.65 + valueNoise3(np * 2.7 + 11.0) * 0.35;
+    float mod = lerp(1.0, saturate(n * 1.6 - 0.1) * 1.6, gFogMedia.w);
+    return (fog + humid + rain) * mod;
+}
+
+// Single-tap cascade shadow (temporal accumulation filters it)
+float froxelSunShadow(float3 relPos, float viewDepth) {
+    if (gSunDir.w <= 0.0) return 0.0;
+    int count = (int)gShadowParams.y;
+    [loop] for (int c = 0; c < count; c++) {
+        if (viewDepth < gCascadeSplits[c]) {
+            float4 sp = mul(gCascadeVP[c], float4(relPos + gSunDir.xyz * gCascadeTexel[c] * 2.0, 1));
+            float2 suv = sp.xy * float2(0.5, -0.5) + 0.5;
+            if (any(suv < 0.0) || any(suv > 1.0) || sp.z > 1.0) return 1.0;
+            return gShadowMap.SampleCmpLevelZero(sShadowCmp, float3(suv, c), sp.z);
+        }
+    }
+    return 1.0;
+}
+
+groupshared uint gsFogLights[64];
+groupshared uint gsFogLightCount;
+
+[numthreads(8, 8, 1)]
+void csFogInject(uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex, uint3 gid : SV_GroupID) {
+    float3 size = gFogVol.xyz;
+    // Tile light culling (8x8 froxels of one slice)
+    if (gi == 0) gsFogLightCount = 0;
+    GroupMemoryBarrierWithGroupSync();
+    float z0 = sliceDepth(gid.z / size.z), z1 = sliceDepth((gid.z + 1.0) / size.z);
+    if (z0 < 420.0) {
+        float2 t0 = (gid.xy * 8.0) / size.xy, t1 = min((gid.xy * 8.0 + 8.0) / size.xy, 1.0);
+        float3 c00 = reconstructPos(float2(t0.x, t0.y), 1.0), c10 = reconstructPos(float2(t1.x, t0.y), 1.0);
+        float3 c01 = reconstructPos(float2(t0.x, t1.y), 1.0), c11 = reconstructPos(float2(t1.x, t1.y), 1.0);
+        float3 center = normalize(c00 + c10 + c01 + c11);
+        float3 pl[4];
+        pl[0] = normalize(cross(c00, c10));
+        pl[1] = normalize(cross(c10, c11));
+        pl[2] = normalize(cross(c11, c01));
+        pl[3] = normalize(cross(c01, c00));
+        [unroll] for (int k = 0; k < 4; k++) if (dot(pl[k], center) < 0) pl[k] = -pl[k];
+        uint n = (uint)gFogJit.w;
+        for (uint li = gi; li < n; li += 64) {
+            LightGPU L = tLights[li];
+            float vz = dot(L.pos, gCamForward.xyz);
+            if (vz + L.radius < z0 || vz - L.radius > z1) continue;
+            bool vis = true;
+            [unroll] for (int k2 = 0; k2 < 4; k2++) vis = vis && dot(pl[k2], L.pos) > -L.radius;
+            if (!vis) continue;
+            uint slot;
+            InterlockedAdd(gsFogLightCount, 1, slot);
+            if (slot < 64) gsFogLights[slot] = li;
+        }
+    }
+    GroupMemoryBarrierWithGroupSync();
+    if (any((float3)id >= size)) return;
+
+    float3 f = id + 0.5 + gFogJit.xyz;
+    float2 uv = f.xy / size.xy;
+    float viewDepth = sliceDepth(f.z / size.z);
+    float3 dir = normalize(reconstructPos(uv, 1.0));
+    float3 relPos = dir * (viewDepth / max(dot(dir, gCamForward.xyz), 0.05));
+    float3 worldP = relPos + gCamPos.xyz;
+    float sigmaT = mediaDensity(worldP);
+    float sigmaS = sigmaT * 0.96;
+    float3 V = dir;
+    // sun / moon
+    float3 sunE = mainLightIlluminance();
+    float sh = froxelSunShadow(relPos, viewDepth) * cloudShadowAt(relPos);
+    float3 Lin = sunE * sh * phaseHG(gFogParams1.x, dot(gSunDir.xyz, V));
+    // sky ambient (isotropic)
+    Lin += (evalSH9(float3(0, 0, 1)) * 0.65 + evalSH9(float3(0, 0, -1)) * 0.35) * gFogMisc.w;
+    // local lights
+    uint nl = min(gsFogLightCount, 64u);
+    for (uint i = 0; i < nl; i++) {
+        LightGPU L = tLights[gsFogLights[i]];
+        float3 Lv = L.pos - relPos;
+        float d2 = dot(Lv, Lv);
+        if (d2 > L.radius * L.radius) continue;
+        float d = sqrt(d2);
+        Lv /= d;
+        float x = d / L.radius;
+        float win = saturate(1.0 - x * x * x * x);
+        float att = win * win / max(d2, 0.5);
+        if (L.spotCos > -1.0) att *= smoothstep(L.spotCos, L.spotInner, dot(-Lv, L.dir));
+        Lin += L.color * att * phaseHG(gFogMisc.z, dot(-Lv, V));
+    }
+    float4 cur = float4(sigmaS * Lin * preExposure(), sigmaT);
+    // temporal reprojection (volume position of this point last frame)
+    if (gFogVol.w > 0.5) {
+        float4 pc = mul(gPrevViewProj, float4(relPos, 1));
+        if (pc.w > 0.0) {
+            float2 puv = pc.xy / pc.w * float2(0.5, -0.5) + 0.5;
+            float pw = log2(max(pc.w, gFogParams1.z) / gFogParams1.z) * gFogParams1.y;
+            if (all(puv > 0.0) && all(puv < 1.0) && pw < 1.0) {
+                float4 h = tFogHistory.SampleLevel(sLinearClamp, float3(puv, pw), 0);
+                h.rgb *= prevExposureRatio();
+                cur = lerp(h, cur, 0.12);
+            }
+        }
+    }
+    uFog[id] = cur;
+}
+
+// Front-to-back integration along each froxel column: rgb in-scattered radiance up to the far side of the
+// slice (pre-exposed), a transmittance.
+[numthreads(8, 8, 1)]
+void csFogIntegrate(uint3 id : SV_DispatchThreadID) {
+    float3 size = gFogVol.xyz;
+    if (any((float2)id.xy >= size.xy)) return;
+    float2 uv = (id.xy + 0.5) / size.xy;
+    float3 dir = normalize(reconstructPos(uv, 1.0));
+    float rayScale = 1.0 / max(dot(dir, gCamForward.xyz), 0.05);
+    float3 L = 0;
+    float T = 1.0;
+    float prevZ = 0.0;
+    uint n = (uint)size.z;
+    for (uint z = 0; z < n; z++) {
+        float z1 = sliceDepth((z + 1.0) / size.z);
+        float ds = (z1 - prevZ) * rayScale;
+        prevZ = z1;
+        float4 m = tInjected[uint3(id.xy, z)];
+        float st = max(m.a, 1e-7);
+        float trans = exp(-st * ds);
+        L += T * (m.rgb - m.rgb * trans) / st;
+        T *= trans;
+        uFog[uint3(id.xy, z)] = float4(L, T);
+    }
+}

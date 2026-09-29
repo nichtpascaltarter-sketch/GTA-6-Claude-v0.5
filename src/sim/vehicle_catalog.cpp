@@ -3,65 +3,6 @@ namespace Vehicles {
 namespace detail {
 
 // ------------------------------------------------------------------------------------------------
-// Factory paint palettes (authored in sRGB, stored linear)
-inline std::vector<vec3> palette(const char* kind) {
-    std::vector<vec3> p;
-    auto add = [&](int r, int g, int b) { p.push_back(srgb((float)r, (float)g, (float)b)); };
-    std::string k = kind;
-    if (k == "common") {
-        add(236, 236, 234); add(200, 202, 205); add(150, 152, 156); add(78, 80, 84); add(18, 18, 20); add(120, 20, 24);
-        add(28, 44, 86); add(170, 160, 140); add(60, 70, 58); add(90, 120, 150); add(210, 205, 190); add(110, 40, 30);
-    } else if (k == "lux") {
-        add(12, 12, 14); add(230, 230, 228); add(160, 162, 166); add(52, 54, 60); add(20, 30, 58); add(70, 20, 26);
-        add(110, 104, 96); add(40, 48, 44);
-    } else if (k == "sport") {
-        add(190, 16, 18); add(245, 196, 0); add(20, 60, 150); add(240, 240, 240); add(12, 12, 12); add(230, 100, 10);
-        add(40, 140, 80); add(120, 125, 130); add(90, 30, 120); add(0, 150, 170);
-    } else if (k == "muscle") {
-        add(180, 20, 20); add(20, 20, 20); add(245, 170, 0); add(30, 80, 160); add(80, 110, 60); add(230, 230, 225);
-        add(200, 90, 20); add(90, 20, 40);
-    } else if (k == "truck") {
-        add(240, 240, 238); add(20, 20, 22); add(150, 152, 156); add(120, 20, 22); add(30, 50, 90); add(90, 70, 50);
-        add(60, 70, 58); add(200, 170, 110); add(80, 82, 86);
-    } else if (k == "classic") {
-        add(180, 60, 40); add(90, 140, 160); add(210, 190, 140); add(60, 90, 60); add(230, 225, 210); add(120, 30, 30);
-        add(40, 60, 110); add(200, 120, 40);
-    } else if (k == "fleet") {
-        add(240, 240, 238); add(245, 245, 245); add(200, 202, 205); add(230, 230, 228);
-    } else if (k == "bike") {
-        add(12, 12, 12); add(190, 16, 18); add(20, 60, 150); add(240, 240, 240); add(245, 196, 0); add(40, 140, 80); add(120, 125, 130);
-    } else if (k == "scooter") {
-        add(240, 240, 238); add(160, 210, 200); add(240, 150, 150); add(250, 220, 120); add(20, 20, 22); add(120, 170, 220);
-    } else if (k == "boat") {
-        add(240, 240, 238); add(20, 40, 90); add(150, 20, 20); add(20, 20, 22); add(0, 120, 150); add(200, 200, 205); add(230, 180, 30);
-    } else if (k == "air") {
-        add(240, 240, 238); add(200, 30, 30); add(20, 50, 120); add(230, 180, 30); add(40, 40, 44);
-    } else {
-        add(200, 200, 200);
-    }
-    return p;
-}
-
-inline void physics(VehicleModel& o, float mass, float kW, float nm, float rpm, float top, int gears, float driveF, float grip,
-                    float travel, float stiff, float cd, float down, vec3 com, int engine) {
-    o.mass = mass;
-    o.power = kW;
-    o.torque = nm;
-    o.maxRpm = rpm;
-    o.topSpeed = top;
-    o.gears = gears;
-    o.driveFront = driveF;
-    o.grip = grip;
-    o.suspensionTravel = travel;
-    o.suspensionStiffness = stiff;
-    o.dragCoef = cd;
-    o.downforce = down;
-    o.centerOfMass = com;
-    o.engineSound = engine;
-    o.brakeForce = mass * (grip > 1.1f ? 8.0f : 6.5f);
-}
-
-// ------------------------------------------------------------------------------------------------
 // Layout helpers. y forward from the wheelbase centre, z up from the ground.
 inline void dims(CarDef& d, float L, float W, float wb, float fohFrac, float R, float tireW) {
     CarSpec& s = d.s;
@@ -343,62 +284,6 @@ inline void archMinivan(CarDef& d, float L = 5.1f, float W = 1.99f, float H = 1.
     I.zFloor = s.zSill + 0.12f; I.hipH = 0.32f;
     I.yHipF = s.yRoofF - 0.45f; I.yHipR = I.yHipF - 0.95f;
     I.dashY0 = s.yCowl - 0.05f; I.dashY1 = s.yCowl - 0.50f; I.seatX = s.halfW * 0.42f;
-}
-
-// ------------------------------------------------------------------------------------------------
-// Liveries: text & stripes placed on both sides (not mirrored)
-inline void sideText(PMesh& m, CarBody& b, const char* text, float y, float z, float h, u8 mat, u32 c) {
-    for (int side = 0; side < 2; side++) {
-        Frame fr = side == 0 ? projRight() : projLeft();
-        // text must read front-to-back on the left, back-to-front on the right
-        if (side == 1) fr.x = vec3(0, -1, 0);
-        Decal dc;
-        dc.pr = &b.proj;
-        dc.fr = fr;
-        dc.back = 3.f;
-        float u = side == 1 ? -y : y;
-        float w = strlen(text) * h * 0.72f;
-        decalRange(dc, vec2(u - w * 0.6f - 0.1f, z - h), vec2(u + w * 0.6f + 0.1f, z + h));
-        m.newGroup(40.f);
-        m.use(mat, c);
-        textDecal(m, dc, text, vec2(u, z), h);
-    }
-}
-inline void sideStripe(PMesh& m, CarBody& b, float y0, float y1, float z, float w, u8 mat, u32 c, float off = 0.0012f) {
-    for (int side = 0; side < 2; side++) {
-        Frame fr = side == 0 ? projRight() : projLeft();
-        Decal dc;
-        dc.pr = &b.proj;
-        dc.fr = fr;
-        dc.back = 3.f;
-        decalRange(dc, vec2(y0, z - w), vec2(y1, z + w));
-        std::vector<vec2> l;
-        l.push_back(vec2(y0, z));
-        l.push_back(vec2(y1, z));
-        m.newGroup(40.f);
-        m.use(mat, c);
-        stripDecal(m, dc, l, w, off, 0.05f);
-    }
-}
-// Star badge (6-point) on the front doors
-inline void doorStar(PMesh& m, CarBody& b, float y, float z, float r, vec3 tint) {
-    for (int side = 0; side < 2; side++) {
-        Frame fr = side == 0 ? projRight() : projLeft();
-        Decal dc;
-        dc.pr = &b.proj;
-        dc.fr = fr;
-        dc.back = 3.f;
-        std::vector<vec2> st;
-        for (int k = 0; k < 12; k++) {
-            float a = kHalfPi + kTwoPi * k / 12.f;
-            float rr = (k & 1) ? r * 0.5f : r;
-            st.push_back(vec2(y + cosf(a) * rr, z + sinf(a) * rr));
-        }
-        decalRange(dc, vec2(y - r, z - r), vec2(y + r, z + r));
-        m.newGroup(40.f);
-        m.use(MAT_METAL_PAINTED, colv(tint));
-        loopFill(m, dc, st, 0.0018f, 2);
-    }
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -910,7 +795,10 @@ static const ModelEntry kModels[] = {
     {mdlKumo, VC_SUV},        {mdlOstgrat, VC_SUV},      {mdlTanuki, VC_SUV},        {mdlPalomino, VC_PICKUP},   {mdlTekko, VC_PICKUP},
     {mdlCutter, VC_PICKUP},   {mdlKestrel, VC_SPORTS},   {mdlSpree, VC_SPORTS},      {mdlKaze, VC_SPORTS},       {mdlOrsa, VC_SUPER},
     {mdlArclight, VC_SUPER},  {mdlScorch, VC_MUSCLE},    {mdlGatorback, VC_MUSCLE},  {mdlTomo, VC_VAN},          {mdlGovPatrol, VC_POLICE},
-    {mdlSawPursuit, VC_POLICE}, {mdlGovCab, VC_TAXI},
+    {mdlSawPursuit, VC_POLICE}, {mdlGovCab, VC_TAXI},     {mdlStevedore, VC_VAN},     {mdlParcel, VC_SERVICE},   {mdlPackhorse, VC_TRUCK},
+    {mdlLongbow, VC_TRUCK},   {mdlCompactor, VC_SERVICE}, {mdlLifeline, VC_AMBULANCE}, {mdlGuardian, VC_FIRETRUCK}, {mdlBoulevard, VC_BUS},
+    {mdlRaijin, VC_MOTORBIKE}, {mdlSundowner, VC_MOTORBIKE}, {mdlMochi, VC_SCOOTER},     {mdlSunchaser, VC_BOAT},    {mdlBonefish, VC_BOAT},
+    {mdlWavekite, VC_JETSKI},  {mdlSkimmer, VC_AIRBOAT},    {mdlTern, VC_PLANE},        {mdlKite, VC_HELI},         {mdlKitePolice, VC_HELI},
 };
 
 }  // namespace detail

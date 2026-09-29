@@ -1,7 +1,13 @@
 // Geometry toolkit for the procedural vehicle generator (included from vehicle_models.cpp, unity build).
 // An intermediate polygon mesh with smoothing groups (welded positions + angle-threshold auto smoothing),
 // parametric primitives (lathe, tube, rounded box, ellipsoid, extrusion) and surface-projected decals.
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <functional>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace Vehicles {
 namespace detail {
@@ -766,12 +772,74 @@ inline void stripDecal(PMesh& m, const Decal& dc, const std::vector<vec2>& line,
     };
     for (int i = 0; i + 1 < n; i++) {
         if (!ok[i] || !ok[i + 1]) continue;
-        vec3 f = normalize(m.P[L[i]] + m.P[R[i + 1]] - m.P[R[i]] - m.P[L[i + 1]]);
-        (void)f;
         vec3 facing = -dc.fr.z;
         triF(R[i], R[i + 1], L[i + 1], facing);
         triF(R[i], L[i + 1], L[i], facing);
     }
+}
+
+}  // namespace detail
+}  // namespace Vehicles
+
+namespace Vehicles {
+namespace detail {
+
+// ------------------------------------------------------------------------------------------------
+// Generic superellipse loft along +Y: each station gives centre (x,z), half extents and exponent.
+// Emits a closed tube with outward normals; ends are capped by fans (or pinched when size -> 0).
+struct LoftSec {
+    float y, cx, cz, hw, hh, e;   // e: superellipse exponent (2 = ellipse, larger = boxier)
+    float bot = 1.f;              // scale of the lower half height (hh * bot below cz)
+};
+inline vec2 superEll(float a, float hw, float hh, float e) {
+    float c = cosf(a), s = sinf(a);
+    float x = hw * Sign(c) * powf(fabsf(c), 2.f / e);
+    float z = hh * Sign(s) * powf(fabsf(s), 2.f / e);
+    return vec2(x, z);
+}
+inline void loftY(PMesh& m, const std::vector<LoftSec>& secs, int around, bool capA, bool capB) {
+    int rows = (int)secs.size();
+    std::vector<u32> id(rows * around);
+    for (int i = 0; i < rows; i++) {
+        const LoftSec& q = secs[i];
+        for (int j = 0; j < around; j++) {
+            float a = kTwoPi * j / around;
+            vec2 p = superEll(a, q.hw, q.hh, q.e);
+            if (p.y < 0.f) p.y *= q.bot;
+            id[i * around + j] = m.add(vec3(q.cx + p.x, q.y, q.cz + p.y));
+        }
+    }
+    for (int i = 0; i + 1 < rows; i++)
+        for (int j = 0; j < around; j++) {
+            int j1 = (j + 1) % around;
+            u32 a = id[i * around + j], b = id[(i + 1) * around + j], c = id[(i + 1) * around + j1], d = id[i * around + j1];
+            vec3 ctr = (vec3(secs[i].cx, secs[i].y, secs[i].cz) + vec3(secs[i + 1].cx, secs[i + 1].y, secs[i + 1].cz)) * 0.5f;
+            vec3 mid = (m.P[a] + m.P[b] + m.P[c] + m.P[d]) * 0.25f;
+            vec3 out = mid - ctr;
+            out.y = 0.f;
+            if (length2(out) < 1e-10f) out = vec3(0, secs[i + 1].y - secs[i].y, 0);
+            m.quadFacing(a, b, c, d, out);
+        }
+    for (int e = 0; e < 2; e++) {
+        if ((e == 0 && !capA) || (e == 1 && !capB)) continue;
+        int i = e == 0 ? 0 : rows - 1;
+        const LoftSec& q = secs[i];
+        if (q.hw < 1e-4f && q.hh < 1e-4f) continue;
+        u32 c = m.add(vec3(q.cx, q.y, q.cz));
+        float dir = (e == 0) ? (secs[0].y - secs[1].y) : (secs[rows - 1].y - secs[rows - 2].y);
+        for (int j = 0; j < around; j++) {
+            u32 a = id[i * around + j], b = id[i * around + (j + 1) % around];
+            vec3 fn = cross(m.P[a] - m.P[c], m.P[b] - m.P[c]);
+            if (fn.y * dir >= 0.f) m.tri(c, a, b);
+            else m.tri(c, b, a);
+        }
+    }
+}
+// Same but along an arbitrary straight axis: sections given in a frame (x = side, y = along, z = up)
+inline void loftFrame(PMesh& m, const Frame& fr, const std::vector<LoftSec>& secs, int around, bool capA, bool capB) {
+    PMesh::Mark mk = m.mark();
+    loftY(m, secs, around, capA, capB);
+    m.transform(mk, fr.m());
 }
 
 }  // namespace detail

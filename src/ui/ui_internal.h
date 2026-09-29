@@ -10,11 +10,11 @@ namespace uix {
 // NEON TIDE palette (RGBA8, r in the low byte: use rgba()).
 inline u32 C(float r, float g, float b, float a = 1.f) { return rgba(r, g, b, a); }
 extern const u32 kNavy, kNavyDeep, kNavyPanel, kInk, kPink, kPinkHot, kCyan, kCyanDeep, kWhite, kText, kTextDim, kTextMute,
-    kGold, kYellow, kRed, kRedDeep, kGreen, kGreenMoney, kBlue, kOrange, kPurple, kHealth, kHealthLow, kArmor;
+    kGold, kYellow, kRed, kRedDeep, kGreen, kGreenMoney, kBlue, kOrange, kPurple, kHealth, kHealthLow, kArmor, kFocus;
 
 // Layout: design at 1080p, scale by height, anchor to a centered 16:9 safe area.
 struct Layout {
-    float W = 1920, H = 1080, s = 1;     // screen size, scale (H / 1080)
+    float W = 1920, H = 1080, s = 1;     // screen size, scale (H / 1080, or W / 1920 when narrower than 16:9)
     float x0 = 0, x1 = 1920;             // 16:9 region
     float left = 0, right = 0, top = 0, bottom = 0;  // safe margins applied (HUD anchors)
     float px(float v) const { return v * s; }
@@ -94,16 +94,22 @@ struct MapView {
     float mpp = 2.f;      // meters per pixel
     float rot = 0.f;      // radians; world direction `rot` (heading, CCW from north) points up on screen
     vec2 screenCenter;
+    // cached sin/cos of rot (recomputed when rot changes)
+    mutable float cachedRot = 1e30f, cr = 1.f, sr = 0.f;
+    void sync() const {
+        if (rot != cachedRot) { cachedRot = rot; cr = cosf(rot); sr = sinf(rot); }
+    }
     vec2 toScreen(vec2 w) const {
-        vec2 d = (w - center) / mpp;
-        float c = cosf(-rot), s = sinf(-rot);
-        vec2 r(c * d.x - s * d.y, s * d.x + c * d.y);
-        return screenCenter + vec2(r.x, -r.y);
+        sync();
+        float inv = 1.f / mpp;
+        vec2 d = (w - center) * inv;
+        // rotate by -rot, flip y for screen space
+        return screenCenter + vec2(cr * d.x + sr * d.y, -(-sr * d.x + cr * d.y));
     }
     vec2 toWorld(vec2 sp) const {
+        sync();
         vec2 r(sp.x - screenCenter.x, -(sp.y - screenCenter.y));
-        float c = cosf(rot), s = sinf(rot);
-        vec2 d(c * r.x - s * r.y, s * r.x + c * r.y);
+        vec2 d(cr * r.x - sr * r.y, sr * r.x + cr * r.y);
         return center + d * mpp;
     }
     // Screen-space rotation to apply to an upright glyph that should point along world heading h.

@@ -181,7 +181,7 @@ static PhTable buildPhTable() {
     phPlace(p[PH_JH], PL_POSTALV, 150.f, 0.25f);
     phTargets(p[PH_JH], 260, 1850, 2700, 80, 120, 200);
     p[PH_JH].rank = 25, p[PH_JH].tInt = 15, p[PH_JH].tExt = 50, p[PH_JH].tExtF1 = 25;
-    p[PH_JH].af = 56.f, p[PH_JH].av = 50.f;
+    p[PH_JH].af = 59.f, p[PH_JH].av = 50.f;
     p[PH_JH].burstMs = 4, p[PH_JH].burstAf = 50;
     phFric(p[PH_JH], 2700, 700, 0, 4000, 1500, -5, 6000, 2500, -14, -40);
 

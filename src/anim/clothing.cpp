@@ -589,13 +589,15 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
                 // body up to a scoop (pc 0.9 front/back, 0.8 at the armholes) plus straps over the shoulders
                 float side = fabsf(sinf(v.pb));
                 float body = Min(cv, (0.8f + 0.09f * (1.f - side) - v.pc) * R.torsoLen);
-                float strap = Min(covStraps(R, v, 0.105f * R.s, 0.026f * R.s, 0.975f), cv);
+                // straps run continuously over the shoulders (only the hem limits them, not the neckline)
+                float strap = Min(covStraps(R, v, 0.105f * R.s, 0.026f * R.s, 1.05f), v.bp.z - hz);
                 cv = Max(body, strap);
             }
             return cv;
         }
         if (v.part == PART_ARM) {
-            if (tk) return -1.f;
+            // tank straps may cross the shoulder junction: evaluate them on the arm root as well (clean edges)
+            if (tk) return v.pa < 0.08f * R.s ? Min(covStraps(R, v, 0.105f * R.s, 0.026f * R.s, 1.05f), v.bp.z - hz) : -1.f;
             return sl - v.pa;
         }
         return -1.f;
@@ -604,12 +606,19 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
     g.thick = 0.0035f;
     float ls = loose;
     float zc = R.zCrotch, zw = R.zWaist;
+    // an untucked top hangs over the waistband: clear the bottoms' shell (plus belt) where they overlap
+    float clearE = o.botTopZ > 0.f ? o.botTorsoOff + 0.004f - g.thick : 0.f;
+    float zbt = o.botTopZ;
     g.extraFn = [=](const BVert& v) -> float {
         float e = ls;
         if (v.part == PART_ARM) e = ls * (0.6f + 0.8f * Saturate(v.pa / Max(sl, 0.05f)));
-        else if (v.part == PART_TORSO) e = ls * (0.5f + 0.9f * sstep(zw + 0.1f, zc, v.bp.z));   // hangs looser at the hem
+        else if (v.part == PART_TORSO) {
+            e = ls * (0.5f + 0.9f * sstep(zw + 0.1f, zc, v.bp.z));   // hangs looser at the hem
+            if (clearE > 0.f) e = Max(e, clearE * sstep(zbt + 0.06f, zbt - 0.005f, v.bp.z));
+        }
         return e;
     };
+    o.topTorsoOff = g.thick + ls * 1.4f;
     if (top == TOP_HAWAIIAN) {
         u32 sd = d.seed;
         g.colFn = [=](const BVert& v, vec3 base) { return floral(v, base, sd); };
@@ -988,15 +997,19 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
         return -1.f;
     };
     float zc = R.zCrotch;
+    // over a tucked shirt the waist must clear the shirt shell
+    float torsoE = Max(ls * 0.7f, o.topTorsoOff > 0.f ? o.topTorsoOff + 0.004f - g.thick : 0.f);
     g.extraFn = [=](const BVert& v) -> float {
         if (v.part == PART_LEG) {
             float down = Saturate((zc - v.bp.z) / Max(zc - zcuf, 0.05f));
-            return ls + fl * down;
+            return Max(ls + fl * down, v.bp.z > zc ? torsoE : 0.f);
         }
-        return ls * 0.7f;
+        return torsoE;
     };
     if (g.smooth < 1) g.smooth = 1;
     emitGarment(o, g);
+    o.botTorsoOff = g.thick + torsoE + (belt || dutyBelt ? 0.009f : 0.004f);
+    o.botTopZ = zt;
     auto decal = [&](CovFn cov, vec3 dcol, u8 mat, float extraOff, u32 parts, bool hem = false) {
         GarmentDef dg;
         dg.parts = parts;

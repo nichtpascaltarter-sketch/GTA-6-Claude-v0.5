@@ -1,6 +1,7 @@
 // Static world geometry (roads, buildings, props): material-table driven PBR into the G-buffer.
 #include "gbuffer.hlsli"
 #include "facade.hlsli"
+#include "weather.hlsli"
 
 struct MaterialInfo {
     float layer, uvScale, roughScale, metal;
@@ -63,12 +64,21 @@ float4 vsWorldShadow(VSIn i) : SV_Position {
     return mul(gShadowViewProj, float4(rel, 1));
 }
 
-// ------------------------------------------------------------------------------------------------
-float puddleMask(float3 worldP, float3 N) {
-    if (gWeather.y <= 0.01 || N.z < 0.85) return 0;
-    float2 p = worldP.xy - floor(worldP.xy / 1024.0) * 1024.0;
-    float n = fbmValue(p * 0.18, 3);
-    return smoothstep(0.62 - gWeather.y * 0.25, 0.7 - gWeather.y * 0.25, n) * gWeather.y;
+
+// Animated emissive patterns for signage and landmark lights (MAT_EMISSIVE param = pattern | phase << 4,
+// written by world/sitegeo.cpp): aviation blink, marquee chase, colour cycle, pulse, sequenced flasher, night-only.
+float3 emissiveAnim(uint param, float3 col) {
+    uint pat = param & 15u;
+    float ph = ((param >> 4) & 255u) / 256.0;
+    float t = gTime.x;
+    if (pat == 1u) return col * (frac(t * 0.8 + ph) < 0.18 ? 1.6 : 0.03);
+    if (pat == 2u) return col * (0.2 + 1.3 * step(0.5, frac(t * 1.5 - ph * 4.0)));
+    if (pat == 3u) return hsvToRgbF(frac(t * 0.08 + ph)) * dot(col, 0.3333) * 1.4;
+    if (pat == 4u) return col * (0.45 + 0.55 * (0.5 + 0.5 * sin(t * 2.1 + ph * 6.2832)));
+    if (pat == 5u) return col * (frac(t * 0.5 - ph) < 0.06 ? 3.0 : 0.0);
+    if (pat == 6u) return col * gExposure.w;
+    if (pat == 7u) return col * (frac(t * 0.33 + ph) < 0.5 ? 1.0 : 0.05);
+    return col;
 }
 
 GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
@@ -106,19 +116,18 @@ GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
         rough = saturate(nr.z * m.roughScale);
         metal = m.metal;
         ao = nr.w;
-        if ((uint)m.flags & 16) emissive = albedo * i.color.a * 400.0 * m.emissive;
+        if ((uint)m.flags & 16) {
+            emissive = albedo * i.color.a * 400.0 * m.emissive;
+            if (param != 0u) emissive = emissiveAnim(param, emissive);
+        }
         if ((uint)m.flags & 8) { sm = SM_FOLIAGE; extra = 0.6; }
         // Large-scale variation to break tiling on big surfaces
         float2 wp = worldP.xy - floor(worldP.xy / 2048.0) * 2048.0;
         float macro = fbmValue(wp * 0.03 + worldP.z * 0.01, 2);
         albedo *= lerp(0.88, 1.08, macro);
     }
-    // Rain wetness
-    float wet = gWeather.y * saturate(N.z * 2.0 + 0.3);
-    float puddle = puddleMask(worldP, N);
-    albedo *= lerp(1.0, 0.6, wet * (1.0 - metal));
-    rough = lerp(rough, 0.12, wet * 0.8);
-    rough = lerp(rough, 0.02, puddle);
-    n = normalize(lerp(n, N, puddle));
+    // Rain wetness (sheltered surfaces stay dry), puddles on flat ground with ripples, facade streaks
+    float porosity = saturate(rough * 1.3 - 0.15) * (1.0 - metal);
+    applyWetness(albedo, rough, n, N, worldP, porosity, 1.0);
     return packGBuffer(albedo, ao, n, rough, metal, sm, extra, emissive, i.curClip, i.prevClip);
 }

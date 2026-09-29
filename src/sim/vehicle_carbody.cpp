@@ -119,9 +119,10 @@ struct CarSpec {
     float liveryY0 = 0.f, liveryY1 = 0.f;
     // generic extra pillars (y centre, width) and glass switches
     std::vector<vec2> pillars;
+    std::vector<vec2> roofKeys;   // optional explicit roofline (y, z) replacing the generated one
     bool rearGlass = true, sideGlass = true;
     bool frontArch = true, rearArch = true;
-    float zBeltCab = 0.f;   // unused unless > 0
+    float hoodNarrow = 0.f;  // plan half-width reduction ahead of the cowl (conventional truck noses)
 };
 
 struct CarBody {
@@ -190,7 +191,9 @@ struct CarBody {
         yGhF = s.yCowl;
         yGhR = s.yDeck;
         cRoof.clear();
-        if (s.openTop) {
+        if (!s.roofKeys.empty()) {
+            for (const vec2& k : s.roofKeys) cRoof.add(k.x, k.y);
+        } else if (s.openTop) {
             cRoof.add(s.yRoofF, s.zRoof);
             cRoof.add(lerp(s.yRoofF, s.yCowl, 0.5f), lerp(s.zRoof, s.zCowl, 0.5f) + s.wsBow);
             cRoof.add(s.yCowl, s.zCowl);
@@ -252,6 +255,7 @@ struct CarBody {
         }
         if (y >= yF - 1e-5f || y <= yR + 1e-5f) return 0.f;
         if (s.waist != 0.f) w -= s.waist * expf(-Sq((y - (s.yCowl + s.yRoofR) * 0.5f) / 0.8f));
+        if (s.hoodNarrow != 0.f) w -= s.hoodNarrow * smooth01((y - (s.yCowl - 0.05f)) / 0.35f) * (w / Max(s.halfW, 1e-3f));
         if (s.hips != 0.f) w += s.hips * expf(-Sq((y - yWr) / 0.55f)) * Saturate((y - yR) / 0.3f);
         return Max(w, 0.f);
     }
@@ -333,16 +337,16 @@ struct CarBody {
     void buildRows() {
         std::vector<float> r;
         // plan rounding zones (superellipse angle spacing)
-        int nf = 14;
+        int nf = 11;
         for (int i = 0; i <= nf; i++) {
             float th = kHalfPi * i / nf;
             r.push_back(yF - s.frontD + s.frontD * powf(sinf(th), 2.f / s.frontExp));
             r.push_back(yR + s.rearD - s.rearD * powf(sinf(th), 2.f / s.rearExp));
         }
         // nose / tail profile detail
-        for (int i = 1; i < 6; i++) {
-            r.push_back(lerp(yHF, yF, i / 6.f));
-            if (yTE > yR + 0.05f) r.push_back(lerp(yR, yTE, i / 6.f));
+        for (int i = 1; i < 5; i++) {
+            r.push_back(lerp(yHF, yF, i / 5.f));
+            if (yTE > yR + 0.05f) r.push_back(lerp(yR, yTE, i / 5.f));
         }
         r.push_back(yHF);
         r.push_back(yTE);
@@ -350,7 +354,7 @@ struct CarBody {
         for (int a = 0; a < 2; a++) {
             if (!archOn(a)) continue;
             float yw = a == 0 ? yWf : yWr;
-            int na = 14;
+            int na = 12;
             for (int i = 0; i <= na; i++) r.push_back(yw + Ra * cosf(kPi * i / na));
             r.push_back(yw + Ra + s.flareW);
             r.push_back(yw - Ra - s.flareW);
@@ -405,7 +409,7 @@ struct CarBody {
         std::vector<float> u;
         for (vec2 y : uu) u.push_back(y.x);
         rows.clear();
-        const float maxGap = 0.085f;
+        const float maxGap = 0.1f;
         for (size_t i = 0; i < u.size(); i++) {
             if (i > 0) {
                 float g = u[i] - u[i - 1];
@@ -643,8 +647,6 @@ struct CarBody {
                     else if (Lmin <= 1e-4f) c = CC_PAINT;
                     else {
                         // DLO rules
-                        float zrel = Saturate((cc.z - G[i * NP + pGh0].z) / Max(G[i * NP + pRail0].z - G[i * NP + pGh0].z, 1e-3f));
-                        (void)zrel;
                         bool glass = yc < s.dloFront && yc > Min(s.dloRearBot, s.dloRearTop);
                         if (glass && fabsf(s.dloRearTop - s.dloRearBot) > 1e-4f && yc < Max(s.dloRearBot, s.dloRearTop))
                             glass = (s.dloRearTop > s.dloRearBot) ? (j < jSplit) : (j >= jSplit);
@@ -730,13 +732,6 @@ struct CarBody {
                 m.use(mt, cl);
                 if (c == CC_GLASS) m.quad(GV(i, j), GV(i + 1, j), GV(i + 1, j + 1), GV(i, j + 1));
                 else m.quad(V(i, j), V(i + 1, j), V(i + 1, j + 1), V(i, j + 1));
-                if (getenv("VM_CHECK")) {
-                    vec3 a = G[i * NP + j], bq = G[(i + 1) * NP + j], cq = G[(i + 1) * NP + j + 1], dq = G[i * NP + j + 1];
-                    vec3 qn = cross(cq - a, dq - bq);
-                    vec3 gn = GN[i * NP + j] + GN[(i + 1) * NP + j] + GN[(i + 1) * NP + j + 1] + GN[i * NP + j + 1];
-                    if (dot(qn, gn) < 0.f)
-                        printf("inverted cell i=%d j=%d band=%d y=%.3f z=%.3f x=%.3f cls=%d\n", i, j, cellBand[j], rows[i], (a.z + cq.z) * 0.5f, a.x, c);
-                }
             }
         // glass seals: walls between glass cells and non-glass neighbours
         m.newGroup(30.f);
@@ -767,7 +762,6 @@ struct CarBody {
 
     // wheel wells: lip + liner along the opening boundary, inner wall
     void emitArches(PMesh& m) {
-        int NC1 = NP - 1;
         for (int a = 0; a < 2; a++) {
             if (!archOn(a)) continue;
             float yw = a == 0 ? yWf : yWr;
@@ -791,7 +785,6 @@ struct CarBody {
             for (int j = pCor0; j <= jArch; j++) { B.push_back(G[i0 * NP + j]); isArc.push_back(0); }
             for (int i = i0 + 1; i < i1; i++) { B.push_back(G[i * NP + jArch]); isArc.push_back(1); }
             for (int j = jArch; j >= pCor0; j--) { B.push_back(G[i1 * NP + j]); isArc.push_back(0); }
-            (void)NC1;
             int n = (int)B.size();
             vec3 wc(0, yw, s.wheelR);
             // inner points

@@ -3,6 +3,7 @@
 // shared by the radar and the full-screen pause map.
 #include "ui_internal.h"
 #include "../world/buildings.h"
+#include "../world/sites.h"
 
 namespace UI {
 namespace map_detail {
@@ -32,6 +33,19 @@ vec2 g_landMin(-9600, -9700), g_landMax(6200, 9800);
 vec2 g_lakeCenter(-2400, 6600);
 std::vector<u32> g_visRoads[World::RC_COUNT];
 std::vector<vec2> g_scr;
+
+// Special-site shapes (airport pads, port yards, piers, parks, golf, stadium, terminals...)
+enum SiteShape : u8 { SS_RECT = 0, SS_ROUND, SS_CAPSULE };
+struct MSite {
+    vec2 c, ax;
+    float hx, hy;
+    u32 color;
+    u8 shape;
+    u8 layer;        // 0 ground (always visible), 1 structure (drawn with buildings)
+    u8 runway;       // centerline dashes
+};
+std::vector<MSite> g_sites;
+std::vector<std::vector<u32>> g_siteGrid;
 
 inline int gridIdx(float v) { return Clamp((int)floorf((v + World::kWorldHalf) / kGridCell), 0, kGridRes - 1); }
 
@@ -108,6 +122,81 @@ void buildRoads() {
     g_roadStamp.assign(g_roads.size(), 0);
 }
 
+void buildSites() {
+    using namespace uix;
+    g_sites.clear();
+    g_siteGrid.assign((size_t)kGridRes * kGridRes, {});
+    if (!World::gSites || !World::gSites->generated) return;
+    const World::SiteSet& S = *World::gSites;
+    for (const World::Pad& p : S.pads) {
+        MSite m;
+        m.c = p.c;
+        m.ax = p.ax;
+        m.hx = p.hx;
+        m.hy = p.hy;
+        m.shape = SS_RECT;
+        m.layer = 0;
+        m.runway = p.kind == World::PAD_RUNWAY;
+        switch (p.kind) {
+        case World::PAD_RUNWAY: m.color = C(0.33f, 0.345f, 0.41f); break;
+        case World::PAD_SHOULDER: m.color = C(0.27f, 0.28f, 0.33f); break;
+        case World::PAD_TAXIWAY: m.color = C(0.30f, 0.31f, 0.37f); break;
+        case World::PAD_YARD: m.color = C(0.25f, 0.255f, 0.29f); break;
+        case World::PAD_PLAZA: m.color = C(0.28f, 0.285f, 0.33f); break;
+        case World::PAD_DECK: m.color = C(0.34f, 0.30f, 0.25f); break;
+        case World::PAD_TURF: m.color = C(0.16f, 0.29f, 0.21f); break;
+        case World::PAD_SAND: m.color = C(0.40f, 0.37f, 0.30f); break;
+        default: m.color = C(0.26f, 0.27f, 0.31f); break;
+        }
+        g_sites.push_back(m);
+    }
+    for (const World::SiteElem& e : S.elems) {
+        MSite m;
+        m.c = e.c;
+        m.ax = length2(e.ax) > 1e-6f ? normalize(e.ax) : vec2(1, 0);
+        m.hx = e.hx;
+        m.hy = e.hy;
+        m.shape = SS_RECT;
+        m.layer = 1;
+        m.runway = 0;
+        switch (e.kind) {
+        case World::SK_TERMINAL: case World::SK_CONCOURSE: case World::SK_HANGAR: case World::SK_FIRE_STATION: case World::SK_CLUBHOUSE:
+        case World::SK_BEACH_CLUB: case World::SK_CITY_HALL: case World::SK_SUGAR_MILL: case World::SK_FISH_SHACK: case World::SK_PORT_GATE:
+        case World::SK_CONTROL_TOWER: case World::SK_SOLARIS:
+            m.color = C(0.30f, 0.315f, 0.41f);
+            break;
+        case World::SK_FUEL_FARM: m.color = C(0.30f, 0.30f, 0.33f); m.shape = SS_ROUND; break;
+        case World::SK_STADIUM: m.color = C(0.33f, 0.34f, 0.44f); m.shape = SS_ROUND; break;
+        case World::SK_CONTAINER_BLOCK: m.color = C(0.36f, 0.27f, 0.25f); break;
+        case World::SK_QUAY: m.color = C(0.28f, 0.28f, 0.31f); m.layer = 0; break;
+        case World::SK_PARK: m.color = C(0.14f, 0.28f, 0.20f); m.layer = 0; break;
+        case World::SK_GOLF_HOLE: m.color = C(0.17f, 0.33f, 0.22f); m.shape = SS_CAPSULE; m.layer = 0; break;
+        case World::SK_MARINA: case World::SK_RIVER_MARINA: case World::SK_DOCK: case World::SK_BEACH_PIER: case World::SK_BOARDWALK:
+        case World::SK_BOAT_RAMP:
+            m.color = C(0.36f, 0.32f, 0.26f);
+            m.layer = 0;
+            break;
+        default: continue;
+        }
+        g_sites.push_back(m);
+        if (e.kind == World::SK_STADIUM) {
+            // playing field inside the bowl
+            MSite f = m;
+            f.hx *= 0.55f;
+            f.hy *= 0.5f;
+            f.color = C(0.16f, 0.36f, 0.22f);
+            g_sites.push_back(f);
+        }
+    }
+    for (size_t i = 0; i < g_sites.size(); i++) {
+        const MSite& m = g_sites[i];
+        float r = sqrtf(m.hx * m.hx + m.hy * m.hy);
+        int x0 = gridIdx(m.c.x - r), x1 = gridIdx(m.c.x + r), y0 = gridIdx(m.c.y - r), y1 = gridIdx(m.c.y + r);
+        for (int gy = y0; gy <= y1; gy++)
+            for (int gx = x0; gx <= x1; gx++) g_siteGrid[(size_t)gy * kGridRes + gx].push_back((u32)i);
+    }
+}
+
 void buildBuildings() {
     g_bldGrid.assign((size_t)kGridRes * kGridRes, {});
     if (!World::gBuildings) return;
@@ -165,6 +254,20 @@ void buildBaseTexture() {
             float urban = World::regionInfo(reg).urban;
             if (reg == World::REG_AIRPORT || reg == World::REG_PORT) c = lerp(c, vec3(0.17f, 0.18f, 0.21f), 0.6f);
             else if (urban > 0.75f) c = lerp(c, vec3(0.155f, 0.160f, 0.215f), 0.35f);
+            // district shading: a faint per-district hue and a soft darker seam where districts meet
+            u32 rh = hash32((u32)reg * 0x9E3779B9u + 17u);
+            vec3 tint(0.96f + 0.08f * hashToFloat(rh), 0.96f + 0.08f * hashToFloat(rh >> 7), 0.96f + 0.08f * hashToFloat(rh >> 14));
+            c = c * tint;
+            if (reg != World::REG_OCEAN && wl < h) {
+                bool seam = false;
+                for (int k = 0; k < 4 && !seam; k++) {
+                    int nx = Clamp(tx + (k == 0 ? 1 : k == 1 ? -1 : 0), 0, R - 1), ny = Clamp(ty + (k == 2 ? 1 : k == 3 ? -1 : 0), 0, R - 1);
+                    size_t ni = (size_t)ny * R + nx;
+                    u8 nr = m.region[ni];
+                    if (nr != (u8)reg && nr != World::REG_OCEAN && m.height[ni] > m.waterLevel[ni]) seam = true;
+                }
+                if (seam) c = c * 0.8f;
+            }
             // hillshade + elevation tint
             int x0 = Max(tx - 1, 0), x1 = Min(tx + 1, R - 1), y0 = Max(ty - 1, 0), y1 = Min(ty + 1, R - 1);
             float dx = (m.height[(size_t)ty * R + x1] - m.height[(size_t)ty * R + x0]) / ((x1 - x0) * World::kHeightCell);
@@ -262,6 +365,19 @@ void buildLabels() {
 }
 
 // Colors
+u32 roadFillRadar(u8 cls) {
+    using namespace uix;
+    switch (cls) {
+    case World::RC_HIGHWAY: return C(0.92f, 0.68f, 0.36f);
+    case World::RC_RAMP: return C(0.84f, 0.62f, 0.34f);
+    case World::RC_BOULEVARD: return C(0.70f, 0.73f, 0.81f);
+    case World::RC_AVENUE: return C(0.62f, 0.65f, 0.74f);
+    case World::RC_STREET: return C(0.52f, 0.56f, 0.65f);
+    case World::RC_LANE: return C(0.46f, 0.50f, 0.59f);
+    case World::RC_RURAL: return C(0.62f, 0.61f, 0.57f);
+    default: return C(0.47f, 0.42f, 0.35f);
+    }
+}
 u32 roadFill(u8 cls) {
     using namespace uix;
     switch (cls) {
@@ -276,7 +392,7 @@ u32 roadFill(u8 cls) {
     }
 }
 float roadMinPx(u8 cls, bool radar) {
-    static const float radarMin[World::RC_COUNT] = {5.0f, 3.8f, 3.2f, 2.6f, 2.2f, 2.8f, 1.8f, 2.8f};
+    static const float radarMin[World::RC_COUNT] = {4.4f, 3.2f, 2.8f, 2.3f, 2.0f, 2.4f, 1.6f, 2.6f};
     static const float fullMin[World::RC_COUNT] = {2.6f, 2.0f, 1.6f, 1.1f, 0.9f, 1.5f, 0.9f, 1.5f};
     return radar ? radarMin[cls] : fullMin[cls];
 }
@@ -298,6 +414,7 @@ void mapInit() {
     double t1 = TimeSeconds();
     buildRoads();
     buildBuildings();
+    buildSites();
     double t2 = TimeSeconds();
     buildLabels();
     g_mapReady = true;
@@ -356,8 +473,62 @@ void drawMapBase(const MapView& v, const MapDrawOpts& o) {
     // world -> screen rotation for directions
     float cr = cosf(-v.rot), sr = sinf(-v.rot);
     auto dirToScreen = [&](vec2 d) { return vec2(cr * d.x - sr * d.y, -(sr * d.x + cr * d.y)); };
-    // ---------------------------------------------------------------- buildings
+    // ---------------------------------------------------------------- special sites (pads, yards, parks, piers...)
     float bldFade = radar ? Saturate((3.4f - mpp) / 1.2f) : Saturate((2.6f - mpp) / 1.0f);
+    if (!g_sites.empty()) {
+        static std::vector<u32> vis;
+        vis.clear();
+        g_stamp++;
+        static std::vector<u32> siteStamp;
+        if (siteStamp.size() != g_sites.size()) siteStamp.assign(g_sites.size(), 0);
+        int x0 = gridIdx(wmn.x - 64.f), x1 = gridIdx(wmx.x + 64.f), y0 = gridIdx(wmn.y - 64.f), y1 = gridIdx(wmx.y + 64.f);
+        if ((x1 - x0 + 1) * (y1 - y0 + 1) > 4000) {
+            for (u32 i = 0; i < (u32)g_sites.size(); i++) vis.push_back(i);
+        } else {
+            for (int gy = y0; gy <= y1; gy++)
+                for (int gx = x0; gx <= x1; gx++)
+                    for (u32 si : g_siteGrid[(size_t)gy * kGridRes + gx])
+                        if (siteStamp[si] != g_stamp) { siteStamp[si] = g_stamp; vis.push_back(si); }
+        }
+        for (int layer = 0; layer < 2; layer++) {
+            float la = layer == 0 ? a : a * bldFade;
+            if (la <= 0.01f) continue;
+            for (u32 si : vis) {
+                const MSite& m = g_sites[si];
+                if (m.layer != layer) continue;
+                vec2 sp = v.toScreen(m.c);
+                float rad = (m.hx + m.hy) / mpp;
+                if (sp.x < smn.x - rad || sp.x > smx.x + rad || sp.y < smn.y - rad || sp.y > smx.y + rad) continue;
+                vec2 ax = dirToScreen(m.ax);
+                float hx = Max(m.hx / mpp, 0.6f), hy = Max(m.hy / mpp, 0.6f);
+                float r = m.shape == SS_RECT ? Min(1.f, Min(hx, hy)) : Min(hx, hy);
+                u32 col = withAlpha(m.color, la);
+                if (m.shape == SS_ROUND && hx > 1.5f && hy > 1.5f) {
+                    // ellipse-like: rounded rect with full radius on the short side plus an inner fill
+                    roundRectRotated(sp, ax, hx, hy, Min(hx, hy) * 0.95f, col);
+                } else {
+                    roundRectRotated(sp, ax, hx, hy, r, col);
+                }
+                if (m.runway && mpp < 4.f && hx > 20.f) {
+                    // centerline dashes and threshold bars
+                    float dashM = 30.f, gapM = 30.f;
+                    int n = (int)(m.hx * 2.f / (dashM + gapM));
+                    u32 dc = C(0.92f, 0.94f, 1.f, 0.8f * la);
+                    for (int k = 0; k < n; k++) {
+                        float s0 = -m.hx + 60.f + k * (dashM + gapM);
+                        if (s0 + dashM > m.hx - 60.f) break;
+                        vec2 pa = v.toScreen(m.c + m.ax * s0), pb = v.toScreen(m.c + m.ax * (s0 + dashM));
+                        capsule(pa.x, pa.y, pb.x, pb.y, Max(1.f, 1.2f / mpp), dc);
+                    }
+                    for (int end = -1; end <= 1; end += 2) {
+                        vec2 pc = v.toScreen(m.c + m.ax * (end * (m.hx - 25.f)));
+                        roundRectRotated(pc, ax, Max(0.8f, 12.f / mpp), Max(1.f, m.hy * 0.7f / mpp), 0.5f, dc);
+                    }
+                }
+            }
+        }
+    }
+    // ---------------------------------------------------------------- buildings
     if (o.buildings && bldFade > 0.01f && World::gBuildings) {
         const auto& bs = World::gBuildings->buildings;
         int x0 = gridIdx(wmn.x - 64.f), x1 = gridIdx(wmx.x + 64.f), y0 = gridIdx(wmn.y - 64.f), y1 = gridIdx(wmx.y + 64.f);
@@ -384,33 +555,39 @@ void drawMapBase(const MapView& v, const MapDrawOpts& o) {
     // ---------------------------------------------------------------- roads
     for (auto& l : g_visRoads) l.clear();
     bool fine = mpp <= 3.5f;
+    bool majorOnly = mpp > 9.f || (radar && mpp > 6.5f);
     float margin = 40.f;
-    if (fine) {
-        g_stamp++;
+    {
         int x0 = gridIdx(wmn.x - margin), x1 = gridIdx(wmx.x + margin), y0 = gridIdx(wmn.y - margin), y1 = gridIdx(wmx.y + margin);
-        for (int gy = y0; gy <= y1; gy++)
-            for (int gx = x0; gx <= x1; gx++)
-                for (u32 ri : g_roadGrid[(size_t)gy * kGridRes + gx]) {
-                    if (g_roadStamp[ri] == g_stamp) continue;
-                    g_roadStamp[ri] = g_stamp;
-                    g_visRoads[g_roads[ri].cls].push_back(ri);
-                }
-    } else {
-        bool majorOnly = mpp > 9.f;
-        auto consider = [&](u32 ri) {
-            const MRoad& r = g_roads[ri];
-            if (r.mx.x < wmn.x || r.mn.x > wmx.x || r.mx.y < wmn.y || r.mn.y > wmx.y) return;
-            g_visRoads[r.cls].push_back(ri);
-        };
-        if (majorOnly)
-            for (u32 ri : g_majorRoads) consider(ri);
-        else
-            for (u32 ri = 0; ri < (u32)g_roads.size(); ri++) consider(ri);
+        bool useGrid = (x1 - x0 + 1) * (y1 - y0 + 1) <= 900;
+        auto isMinor = [](u8 c) { return c == World::RC_STREET || c == World::RC_LANE || c == World::RC_DIRT; };
+        if (useGrid) {
+            g_stamp++;
+            for (int gy = y0; gy <= y1; gy++)
+                for (int gx = x0; gx <= x1; gx++)
+                    for (u32 ri : g_roadGrid[(size_t)gy * kGridRes + gx]) {
+                        if (g_roadStamp[ri] == g_stamp) continue;
+                        g_roadStamp[ri] = g_stamp;
+                        const MRoad& r = g_roads[ri];
+                        if (majorOnly && isMinor(r.cls)) continue;
+                        g_visRoads[r.cls].push_back(ri);
+                    }
+        } else {
+            auto consider = [&](u32 ri) {
+                const MRoad& r = g_roads[ri];
+                if (r.mx.x < wmn.x || r.mn.x > wmx.x || r.mx.y < wmn.y || r.mn.y > wmx.y) return;
+                g_visRoads[r.cls].push_back(ri);
+            };
+            if (majorOnly)
+                for (u32 ri : g_majorRoads) consider(ri);
+            else
+                for (u32 ri = 0; ri < (u32)g_roads.size(); ri++) consider(ri);
+        }
     }
-    float minorFade = radar ? 1.f : Saturate((12.f - mpp) / 5.f);
-    float widthScale = radar ? 0.85f : 1.f;
+    float minorFade = radar ? Saturate((6.5f - mpp) / 2.f) : Saturate((12.f - mpp) / 5.f);
+    float widthScale = radar ? 0.6f : 1.f;
     u32 casing = C(0.035f, 0.045f, 0.085f, 0.92f * a);
-    float casingPx = radar ? 1.3f : (mpp < 3.f ? 1.1f : 0.f);
+    float casingPx = radar ? (mpp < 4.f ? 1.0f : 0.f) : (mpp < 3.f ? 1.1f : 0.f);
     // two passes: casings, then fills (in class order so major roads sit on top)
     for (int pass = 0; pass < 2; pass++) {
         if (pass == 0 && casingPx <= 0.f) continue;
@@ -421,7 +598,7 @@ void drawMapBase(const MapView& v, const MapDrawOpts& o) {
             float fade = minor ? minorFade : 1.f;
             if (fade <= 0.01f) continue;
             if (!radar && pass == 0 && minor && mpp > 2.2f) continue;
-            u32 fill = roadFill((u8)cls);
+            u32 fill = radar ? roadFillRadar((u8)cls) : roadFill((u8)cls);
             u32 col = pass == 0 ? withAlpha(casing, fade) : withAlpha(fill, a * fade);
             for (u32 ri : g_visRoads[cls]) {
                 const MRoad& r = g_roads[ri];

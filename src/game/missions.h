@@ -52,6 +52,10 @@ public:
     // Automated test driver (--missiontest): performs the player's part of the current stage with scripted
     // teleports/controls. The default implementation handles generic targets, enemies and markers.
     virtual void autotest(GameWorld& g, MissionTest& t);
+    // End-of-mission banners and retry policy (side activities override these).
+    virtual const char* passBanner() const { return "MISSION PASSED"; }
+    virtual const char* failBanner() const { return "MISSION FAILED"; }
+    virtual bool allowRetry() const { return true; }
     // Called once when the mission ends (pass or fail) before the framework cleans up entities.
     virtual void finish(GameWorld& g, bool passed) {
         (void)g;
@@ -89,7 +93,7 @@ struct MissionDef {
     int act = 0;                // story act (0 prologue, 1..3)
     const char* title = "";     // mission title (blip legend, replay list)
     int requiresFlag2 = -1;     // optional second prerequisite
-    u32 needsClasses = 0;       // bitmask of Vehicles::VehicleClass that must exist (boats, aircraft...)
+    u32 needsClasses = 0;       // bitmask of Vehicles::VehicleClass; one of them must exist in the build (boats, aircraft)
     bool hidden = false;        // started by script (phone/trigger), no start blip
 };
 
@@ -130,6 +134,7 @@ struct RetryState {
     float armor = 0.f;
     int weapon = 0;
     long long money = 0;
+    bool replay = false;
 };
 
 struct MissionManager {
@@ -157,6 +162,7 @@ struct MissionManager {
     // Additions:
     int checkpoint = 0;         // last checkpoint reached by the active mission
     int startCheckpoint = 0;    // checkpoint for the next startMission() (retry)
+    bool replay = false;        // replaying a finished story mission from the phone (no rewards, flags untouched)
     RetryState retry;
     bool suppressPolice = false;        // active mission keeps the wanted level at zero
     bool allowSwitch = false;           // character switching allowed during the active mission
@@ -185,5 +191,6 @@ bool openWorldBusy();                    // a shop/phone/menu has the player's a
 // UI::drawHud and UI::endFrame; when the app does not call it, menus fall back to the HUD help box.
 void drawMissionOverlay(GameWorld& g, float dt);
 std::string speakableText(const std::string& text);   // phonetic spellings of story names for the TTS
+void drawMarkers(GameWorld& g, const std::vector<Marker>& list);   // glowing cylinder markers
 
 }  // namespace Game

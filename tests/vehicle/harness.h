@@ -90,7 +90,15 @@ struct ProvingGround {
         World::gMap = &map;
         World::gRoads = &roads;
         Phys::gCollision = &cw;
-        // wall + props
+        resetColliders();
+    }
+
+    // (Re)creates the static colliders (wall, tower, breakable props) under a fresh cell key so every test run
+    // starts with unbroken props (CollisionWorld remembers broken props per cell key).
+    int currentCell = -1;
+    void resetColliders() {
+        if (currentCell >= 0) cw.removeCell(currentCell);
+        currentCell = nextCell++;
         std::vector<World::CollisionBox> boxes;
         World::CollisionBox wall;
         wall.c = vec3(2010.f, 0.f, 10.f);
@@ -118,7 +126,7 @@ struct ProvingGround {
             p.type = World::PROP_PALM;
             props.push_back(p);
         }
-        cw.addCell(nextCell++, boxes, props);
+        cw.addCell(currentCell, boxes, props);
     }
 };
 
@@ -351,10 +359,10 @@ struct Runner {
         vec3 p = pos(), v = s.body.vel;
         float slipMax = 0.f;
         for (int i = 0; i < s.wheelCount; i++) slipMax = Max(slipMax, s.wheels[i].slip);
-        printf("[%s] t=%6.2f p=(%8.2f %8.2f %6.2f) v=%6.2f vf=%6.2f vz=%5.2f yawr=%5.2f roll=%5.1f pitch=%5.1f hdg=%6.1f w=%d g=%d rpm=%5.0f thr=%.2f slip=%.2f sub=%.2f up=%.2f ctl(t%.1f b%.1f s%.2f h%d p%.1f)\n",
+        printf("[%s] t=%6.2f p=(%8.2f %8.2f %6.2f) v=%6.2f vf=%6.2f vz=%5.2f yawr=%5.2f roll=%5.1f pitch=%5.1f hdg=%6.1f w=%d g=%d rpm=%5.0f thr=%.2f slip=%.2f sub=%.2f up=%.2f hp=%.0f imp=%.0f/%d ctl(t%.1f b%.1f s%.2f h%d p%.1f)\n",
                scenario, t, p.x, p.y, p.z, length(v), s.forwardSpeed(), v.z, s.body.angVel.z, s.lean * kRadToDeg,
                asinf(Clamp(s.forward().z, -1.f, 1.f)) * kRadToDeg, heading() * kRadToDeg, s.wheelsOnGround, s.gear, s.engineRpm,
-               s.throttleOut, slipMax, s.submerged, s.up().z, c.throttle, c.brake, c.steer, (int)c.handbrake, c.pitch);
+               s.throttleOut, slipMax, s.submerged, s.up().z, s.health, s.impactImpulse, s.impactCollider, c.throttle, c.brake, c.steer, (int)c.handbrake, c.pitch);
         if (wheelTrace)
             for (int i = 0; i < s.wheelCount; i++) {
                 const WheelState& w = s.wheels[i];

@@ -153,7 +153,9 @@ enum SegFlag : u32 {
     SF_SHOUT = 1u << 15,
     SF_UTT_START = 1u << 16,  // first segment after a pause
     SF_PREPAUSE = 1u << 17,   // last segment before a pause
-    SF_ARTICLE_A = 1u << 18   // the article "a" (kept unreduced)
+    SF_ARTICLE_A = 1u << 18,  // the article "a" (kept unreduced)
+    SF_WEAKREL = 1u << 19,    // coda stop releasing into a following consonant (no separate audible burst)
+    SF_FROM_T = 1u << 20      // flap derived from /t/ (the vowel before it keeps pre-fortis shortening)
 };
 
 struct Seg {

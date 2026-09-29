@@ -226,6 +226,13 @@ void csSkySH(uint gi : SV_GroupIndex) {
             float3 facadeL = facadeAlbedo * (mainLightIlluminance() * sunOnFacade * 0.55 + skyIrrV) / PI;
             L = lerp(L, facadeL, enclosure * 0.85);
         }
+        // Overcast: clouds replace the blue sky with a brighter-at-zenith grey dome lit by the hidden sun
+        if (gWeather2.x > 0.0 && d.z >= 0.0) {
+            float3 zen = skyRadiance(float3(0, 0, 1), false);
+            float Eclear = luminance(mainLightIlluminance()) * saturate(gSunDir.z) + luminance(zen) * PI;
+            float Loc = Eclear * 0.16 / PI * (1.0 + 2.0 * d.z) / 2.0 * (1.0 - gWeather2.y * 0.55);
+            L = lerp(L, float3(0.92, 0.95, 1.0) * Loc, gWeather2.x);
+        }
         if (d.z < 0.0) {
             // Below the horizon: radiance of the sunlit/skylit ground (average urban albedo), warm bounce
             float3 groundAlbedo = float3(0.2, 0.17, 0.14);
@@ -234,7 +241,7 @@ void csSkySH(uint gi : SV_GroupIndex) {
             skyIrr += skyRadiance(float3(0, 0, 1), false) * 0.5;
             skyIrr += skyRadiance(normalize(float3(d.x, d.y, 0.5)), false) * 0.5;
             skyIrr *= PI;
-            float3 sunIrr = mainLightIlluminance() * saturate(gSunDir.z) * 0.8;  // partial occlusion by the city
+            float3 sunIrr = mainLightIlluminance() * saturate(gSunDir.z) * 0.8 * (1.0 - gWeather2.x * 0.85);  // city + cloud occlusion
             L = groundAlbedo * (skyIrr + sunIrr) / PI;
         }
         float w = 4.0 * PI / 1024.0;

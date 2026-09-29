@@ -28,6 +28,7 @@ const u32 kPurple = C(0.62f, 0.40f, 1.00f);
 const u32 kHealth = C(0.30f, 0.84f, 0.50f);
 const u32 kHealthLow = C(1.00f, 0.30f, 0.34f);
 const u32 kArmor = C(0.30f, 0.68f, 1.00f);
+const u32 kFocus = C(0.98f, 0.36f, 0.86f);
 
 namespace common_detail {
 double g_time = 0.0;
@@ -46,7 +47,9 @@ Layout layout() {
     Layout l;
     l.W = (float)screenWidth();
     l.H = (float)screenHeight();
-    l.s = l.H / 1080.f;
+    // Scale by height (1080p design); screens narrower than 16:9 (4:3, 5:4, 16:10) scale by width instead so
+    // the 1920-unit wide design always fits horizontally.
+    l.s = Min(l.H / 1080.f, l.W / 1920.f);
     float w169 = Min(l.W, l.H * 16.f / 9.f);
     l.x0 = (l.W - w169) * 0.5f;
     l.x1 = l.x0 + w169;
@@ -113,6 +116,8 @@ PadInfo padInfo(const char* k) {
     if (s == "LEFT") return {PK_DPAD, kWhite, "", 3};
     if (s == "RIGHT") return {PK_DPAD, kWhite, "", 4};
     if (s == "DPAD") return {PK_DPAD, kWhite, "", 0};
+    if (s == "DPADLR") return {PK_DPAD, kWhite, "", 5};
+    if (s == "DPADUD") return {PK_DPAD, kWhite, "", 6};
     return {PK_NONE, kWhite, k, 0};
 }
 
@@ -147,7 +152,8 @@ float promptWidth(const char* key, bool pad, float h) {
         }
     }
     std::string s = upper(key);
-    if (mouseKind(s)) return h * 0.78f;
+    if (mouseKind(s)) return h * 0.82f;
+    if (s == "LEFTRIGHT" || s == "UPDOWN") return h * 2.f + h * 0.15f;
     TextStyle st = keyStyle(h);
     return Max(h, textWidth(s.c_str(), st) + h * 0.55f);
 }
@@ -208,11 +214,15 @@ float drawPrompt(float x, float y, const char* key, bool pad, float h, float alp
         }
         case PK_DPAD: {
             drawIcon(ICO_DPAD, cx, cy, h * 1.28f, dark, Max(1.f, h * 0.05f), rim);
-            if (pi.dir) {
-                vec2 d = pi.dir == 1 ? vec2(0, -1) : pi.dir == 2 ? vec2(0, 1) : pi.dir == 3 ? vec2(-1, 0) : vec2(1, 0);
+            auto arm = [&](vec2 d) {
                 vec2 c = vec2(cx, cy) + d * (h * 0.3f);
                 roundRect(c.x - h * 0.12f, c.y - h * 0.12f, h * 0.24f, h * 0.24f, h * 0.05f, withAlpha(kWhite, alpha));
-            }
+            };
+            if (pi.dir == 1) arm(vec2(0, -1));
+            if (pi.dir == 2) arm(vec2(0, 1));
+            if (pi.dir == 3 || pi.dir == 5) arm(vec2(-1, 0));
+            if (pi.dir == 4 || pi.dir == 5) arm(vec2(1, 0));
+            if (pi.dir == 6) { arm(vec2(0, -1)); arm(vec2(0, 1)); }
             return w;
         }
         default: break;
@@ -221,11 +231,31 @@ float drawPrompt(float x, float y, const char* key, bool pad, float h, float alp
     std::string s = upper(key);
     int mk = mouseKind(s);
     if (mk) {
-        u32 wc = withAlpha(kWhite, alpha);
-        drawIcon(ICO_MOUSE, cx, cy, h * 1.2f, wc, 1.5f, withAlpha(0xff000000u, 0.5f * alpha));
-        if (mk == 1) drawIcon(ICO_MOUSE_L, cx, cy, h * 1.2f, withAlpha(kPink, alpha));
-        if (mk == 2) drawIcon(ICO_MOUSE_R, cx, cy, h * 1.2f, withAlpha(kPink, alpha));
-        if (mk == 3) drawIcon(ICO_MOUSE_WHEEL, cx, cy, h * 1.2f, withAlpha(kPink, alpha));
+        float sz = h * 1.25f;
+        drawIcon(ICO_MOUSE, cx, cy + h * 0.06f, sz, withAlpha(C(0.45f, 0.48f, 0.58f), alpha));
+        drawIcon(ICO_MOUSE, cx, cy, sz, withAlpha(kWhite, alpha));
+        if (mk == 1) drawIcon(ICO_MOUSE_L, cx, cy, sz, withAlpha(kPink, alpha));
+        if (mk == 2) drawIcon(ICO_MOUSE_R, cx, cy, sz, withAlpha(kPink, alpha));
+        // button split and wheel
+        float top = cy - sz * 0.44f, split = cy - sz * 0.08f;
+        rect(cx - sz * 0.012f, top, sz * 0.024f + 0.5f, split - top, withAlpha(kInk, 0.8f * alpha));
+        rect(cx - sz * 0.29f, split, sz * 0.58f, Max(1.f, sz * 0.022f), withAlpha(kInk, 0.8f * alpha));
+        drawIcon(ICO_MOUSE_WHEEL, cx, cy, sz, withAlpha(mk == 3 ? kPink : kInk, alpha));
+        return w;
+    }
+    if (s == "LEFTRIGHT" || s == "UPDOWN") {
+        // two arrow keycaps
+        bool lr = s == "LEFTRIGHT";
+        for (int k = 0; k < 2; k++) {
+            float kx = x + k * (h + h * 0.15f);
+            roundRect(kx, y + h * 0.07f, h, h, h * 0.2f, withAlpha(C(0.45f, 0.48f, 0.58f), alpha));
+            roundRectGradient(kx, y, h, h, h * 0.2f, withAlpha(kWhite, alpha), withAlpha(C(0.86f, 0.88f, 0.94f), alpha));
+            vec2 c(kx + h * 0.5f, y + h * 0.5f);
+            float r = h * 0.2f;
+            vec2 d = lr ? vec2(k == 0 ? -1.f : 1.f, 0.f) : vec2(0.f, k == 0 ? -1.f : 1.f);
+            vec2 pp = perp(d);
+            triangle(c + d * r, c - d * r * 0.7f + pp * r, c - d * r * 0.7f - pp * r, withAlpha(kInk, alpha));
+        }
         return w;
     }
     // keyboard keycap

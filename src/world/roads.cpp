@@ -1,4 +1,5 @@
 #include "roads.h"
+#include "sites.h"
 #include "../core/noise.h"
 #include <unordered_map>
 
@@ -182,7 +183,19 @@ void RoadNetwork::generate(WorldMap& map) {
                            -0.3f, -6.55f}), "Interstate 38"});
     hwys.push_back({kmPts({-1.1f, 9.35f, -1.0f, 8.4f, -0.2f, 7.2f, -0.6f, 6.0f, -1.4f, 5.2f, -1.6f, 3.6f, -1.55f, 2.0f,
                            -1.7f, 0.2f, -1.8f, -1.6f, -1.5f, -3.2f, -0.9f, -4.4f, 0.2f, -5.1f, 0.6f, -5.35f}), "Palmera Turnpike"});
-    hwys.push_back({kmPts({-0.2f, 0.95f, 0.6f, 0.62f, 1.4f, 0.97f, 2.38f, 0.95f}), "Sol Expressway"});
+    {
+        // Sol Expressway runs along the airport's south fence and ends on the Palmera Turnpike (T junction)
+        std::vector<vec2> tp = smoothPath(hwys[1].ctrl, 30.f);
+        float xT = -1680.f;
+        for (size_t i = 0; i + 1 < tp.size(); i++)
+            if ((tp[i].y - 470.f) * (tp[i + 1].y - 470.f) <= 0.f && fabsf(tp[i + 1].y - tp[i].y) > 1e-3f) {
+                xT = Lerp(tp[i].x, tp[i + 1].x, (470.f - tp[i].y) / (tp[i + 1].y - tp[i].y));
+                break;
+            }
+        hwys.push_back({{vec2(xT, 470.f), vec2(-800.f, 468.f), vec2(100.f, 470.f), vec2(820.f, 482.f), vec2(1180.f, 590.f), vec2(1480.f, 975.f),
+                         vec2(2380.f, 950.f)},
+                        "Sol Expressway"});
+    }
     hwys.push_back({kmPts({-1.55f, 1.9f, -2.6f, 1.85f, -4.0f, 1.8f, -6.0f, 1.9f, -8.0f, 2.1f, -9.0f, 2.6f, -9.0f, 4.2f, -8.6f, 5.6f,
                            -7.8f, 5.8f}), "Sawgrass Expressway"});
     hwys.push_back({kmPts({-0.6f, 6.0f, 0.8f, 5.95f, 2.0f, 5.8f, 2.8f, 5.6f}), "Lake Connector"});
@@ -221,7 +234,7 @@ void RoadNetwork::generate(WorldMap& map) {
                                      : StrFormat("%s Avenue", ordinal(Max(1, 48 - ix)).c_str());
             emitRuns(b, vec2(x, y0), vec2(x, y1), 25.f, cls, [&](vec2 p) {
                 Region r = map.regionAt(p.x, p.y);
-                if (!coreValid(p) || r == REG_AIRPORT) return false;
+                if (!coreValid(p) || r == REG_AIRPORT || gSites->blocksRoads(p)) return false;
                 // lower density grid in the flats/north: skip every other minor line
                 if ((r == REG_FLATS || r == REG_NORTH_CITY) && cls == RC_STREET && (ix & 1)) return false;
                 return true;
@@ -235,7 +248,9 @@ void RoadNetwork::generate(WorldMap& map) {
                                      : StrFormat("%s %s Street", iy >= 0 ? "N" : "S", ordinal(Max(1, abs(iy))).c_str());
             emitRuns(b, vec2(x0, y), vec2(x1, y), 25.f, cls, [&](vec2 p) {
                 Region r = map.regionAt(p.x, p.y);
-                if (!coreValid(p) || r == REG_AIRPORT) return false;
+                if (!coreValid(p) || r == REG_AIRPORT || gSites->blocksRoads(p)) return false;
+                // Airport Boulevard (site road) continues this line into the airport from x = 1000
+                if (iy == 15 && p.x < 999.f) return false;
                 if ((r == REG_FLATS || r == REG_NORTH_CITY) && cls == RC_STREET && (iy & 1)) return false;
                 return true;
             }, major ? 200.f : 60.f, name.c_str());
@@ -409,7 +424,7 @@ void RoadNetwork::generate(WorldMap& map) {
     b.add(smoothPath(kmPts({3.8f, 1.75f, 4.3f, 1.75f, 4.95f, 1.72f}), 20.f), RC_STREET, 0, RF_BRIDGE, "Venetia Causeway");
     b.add(smoothPath(kmPts({3.9f, 3.3f, 4.4f, 3.32f, 5.0f, 3.3f}), 20.f), RC_BOULEVARD, 0, RF_BRIDGE, "Flamingo Causeway");
     b.add(smoothPath(kmPts({3.45f, -2.55f, 3.8f, -2.75f, 4.15f, -3.05f, 4.4f, -3.35f}), 20.f), RC_AVENUE, 0, RF_BRIDGE, "Coral Key Causeway");
-    b.add(smoothPath(kmPts({3.7f, -0.15f, 3.9f, -0.18f, 4.15f, -0.15f}), 20.f), RC_AVENUE, 0, RF_BRIDGE, "Port Isle Bridge");
+    b.add(smoothPath(kmPts({3.7f, -0.15f, 3.85f, -0.166f, 4.06f, -0.16f}), 20.f), RC_AVENUE, 0, RF_BRIDGE, "Port Isle Bridge");
     b.add(smoothPath(kmPts({5.1f, 4.3f, 5.02f, 4.6f, 4.8f, 4.95f, 4.5f, 5.1f}), 20.f), RC_AVENUE, 0, RF_BRIDGE, "Inlet Bridge");
     // Bay island access roads
     b.add(smoothPath(kmPts({4.2f, 0.8f, 4.28f, 1.1f, 4.3f, 1.35f}), 15.f), RC_LANE, 0, RF_BRIDGE, "Isla Estrella Drive");
@@ -472,6 +487,9 @@ void RoadNetwork::generate(WorldMap& map) {
         b.add(smoothPath(kmPts({-5.0f, 4.85f, -4.0f, 4.9f, -2.8f, 5.0f, -1.5f, 5.2f}), 25.f), RC_RURAL, 0, 0, "Harlow Road");
     }
 
+    // ------------------------------------------------------------- Site roads (airport loop + perimeter, Port Isle, Key Coral, access roads)
+    for (const SiteRoad& r : gSites->roads) b.add(r.pts, (RoadClass)r.cls, r.layer, r.flags, r.name.c_str());
+
     // ------------------------------------------------------------- Interchange ramps (highway <-> boulevards)
     // Find where highways cross boulevards/avenues; add a pair of ramps on each side.
     {
@@ -489,6 +507,8 @@ void RoadNetwork::generate(WorldMap& map) {
                     float ta, tb;
                     if (!segmentIntersect2D(path[i], path[i + 1], s.first, s.second, &ta, &tb)) continue;
                     if (acc - lastIc < 1300.f) continue;
+                    // the Sol Expressway starts on the turnpike: no interchange right at that junction
+                    if (strcmp(hwys[h].name, "Sol Expressway") == 0 && acc < 600.f) continue;
                     vec2 x = lerp(path[i], path[i + 1], ta);
                     if (map.isWater(x.x, x.y)) continue;
                     lastIc = acc;
@@ -1005,6 +1025,11 @@ bool RoadNetwork::surfaceHeight(vec2 p, float* z, float maxZ) const {
         const RoadNode* ns[2] = {&nodes[e.n0], &nodes[e.n1]};
         for (auto* n : ns)
             if (n->radius > 0 && length(p - n->p) < n->radius && n->z <= maxZ && n->z > bestZ) { bestZ = n->z; found = true; }
+    }
+    float pz;
+    if (gSites && gSites->padHeight(p, &pz, maxZ) && pz > bestZ) {
+        bestZ = pz;
+        found = true;
     }
     if (found) *z = bestZ;
     return found;

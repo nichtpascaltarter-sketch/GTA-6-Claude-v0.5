@@ -85,6 +85,21 @@ void blendUpperBody(const Pose& base, const Pose& layer, float w, Pose& out) {
     out.rootOffset = base.rootOffset;
 }
 
+void poseFromModelSpace(const Skeleton& skel, const mat4* modelSpace, Pose& out) {
+    quat mq[B_COUNT];
+    for (int b = 0; b < B_COUNT; b++) {
+        const mat4& m = modelSpace[b];
+        mat3 r(normalize(m.c[0].xyz()), normalize(m.c[1].xyz()), normalize(m.c[2].xyz()));
+        mq[b] = normalize(quatFromMat3(r));
+        int p = skel.parent[b];
+        out.rot[b] = p >= 0 ? normalize(conj(mq[p]) * mq[b]) : mq[b];
+    }
+    // pelvis offset: model position minus the position the (rotated) root chain gives in bind
+    vec3 rootT = modelSpace[B_ROOT].c[3].xyz();
+    vec3 bindPel = rootT + rotate(mq[B_ROOT], skel.bindLocalPos[B_PELVIS]);
+    out.rootOffset = rotate(conj(mq[B_ROOT]), modelSpace[B_PELVIS].c[3].xyz() - bindPel);
+}
+
 void solveTwoBoneIK(const Skeleton& skel, Pose& pose, Bone upper, Bone lower, Bone end, vec3 targetModel, vec3 poleModel, float weight) {
     using namespace detail;
     if (weight <= 0.f) return;

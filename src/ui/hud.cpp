@@ -23,8 +23,9 @@ struct State {
     // money
     bool moneyInit = false;
     double moneyShown = 0;
-    long long lastMoney = 0;
+    long long lastMoney = 0, lastDelta = 0;
     std::vector<Popup> popups;
+    float popupSpace = 0.f;
     float moneyPulse = 0;
     // wanted
     float wantedAlpha = 0;
@@ -78,6 +79,7 @@ struct State {
     float zoomShown = 1.f;
     float healthShown = 1.f, healthLag = 1.f, armorShown = 0.f, armorLag = 0.f;
     float breathAlpha = 0, staminaAlpha = 0;
+    float specialShown = 1.f, focusFx = 0.f;
     float speedAlpha = 0, speedShown = 0;
     float altAlpha = 0, altShown = 0;
     float lowHealth = 0;
@@ -185,8 +187,8 @@ void drawRadar(const HudState& s, const Layout& L, float dt, float t) {
             vec2 c = v.toScreen(s.searchAreaCenters[i]);
             float r = s.searchAreaRadii[i] / v.mpp;
             u32 col = redPhase ? kRed : kBlue;
-            circle(c.x, c.y, r, withAlpha(col, 0.22f * a));
-            circle(c.x, c.y, r, withAlpha(col, 0.55f * a), 1.5f * sc);
+            circle(c.x, c.y, r, withAlpha(col, 0.13f * a));
+            circle(c.x, c.y, r, withAlpha(col, 0.45f * a), 1.5f * sc);
         }
     }
     // GPS route
@@ -236,12 +238,17 @@ void drawRadar(const HudState& s, const Layout& L, float dt, float t) {
     float pa = v.screenAngle(s.playerHeading);
     drawIconGlow(BLIP_PLAYER, pc.x, pc.y, 30.f * sc, C(0.f, 0.f, 0.f, 0.45f * a), 3.f * sc);
     drawIcon(BLIP_PLAYER, pc.x, pc.y, 30.f * sc, withAlpha(kWhite, a), 1.6f * sc, C(0.02f, 0.02f, 0.06f, a), pa);
-    // wanted: radar flashes red / blue
+    // wanted: the radar rim glows red / blue
     if (s.wanted > 0) {
         float ph = fmodf(t * 1.6f, 1.f);
         u32 col = ph < 0.5f ? kRed : kBlue;
-        float pulse = 0.5f + 0.5f * sinf(ph * kTwoPi * 2.f);
-        rect(rr.x, rr.y, rr.w, rr.h, withAlpha(col, (0.10f + 0.10f * pulse) * a));
+        float pulse = 0.65f + 0.35f * sinf(ph * kTwoPi * 2.f);
+        float e = 34.f * sc;
+        u32 c0 = withAlpha(col, 0.42f * pulse * a), c1 = withAlpha(col, 0.f);
+        gradientRect(rr.x, rr.y, rr.w, e, c0, c1);
+        gradientRect(rr.x, rr.y + rr.h - e, rr.w, e, c1, c0);
+        gradientRectH(rr.x, rr.y, e, rr.h, c0, c1);
+        gradientRectH(rr.x + rr.w - e, rr.y, e, rr.h, c1, c0);
     }
     // inner depth vignette
     gradientRect(rr.x, rr.y, rr.w, 26.f * sc, C(0.f, 0.f, 0.03f, 0.40f * a), C(0.f, 0.f, 0.03f, 0.f));
@@ -254,9 +261,10 @@ void drawRadar(const HudState& s, const Layout& L, float dt, float t) {
                   withAlpha(ph < 0.5f ? kRed : kBlue, 0.75f * a));
     }
 
-    // ---------------------------------------------------------------- status bars
+    // ---------------------------------------------------------------- status bars (GTA-style: health | armor | Focus)
     float by = rr.y + rr.h + 8.f * sc, bh = 9.f * sc, gap = 5.f * sc;
-    float bw = (rr.w - gap) * 0.5f;
+    float bw = (rr.w - gap * 2.f) * 0.5f;           // health: half the width
+    float bw2 = (rr.w - gap * 2.f) * 0.25f;         // armor and Focus: a quarter each
     g.healthShown = approachExp(g.healthShown, Saturate(s.health), 12.f, dt);
     g.healthLag = s.health < g.healthLag ? approachExp(g.healthLag, Saturate(s.health), 1.6f, dt) : Saturate(s.health);
     g.armorShown = approachExp(g.armorShown, Saturate(s.armor), 12.f, dt);
@@ -277,7 +285,20 @@ void drawRadar(const HudState& s, const Layout& L, float dt, float t) {
     };
     bool lowHp = s.health < 0.25f && !s.dead;
     bar(rr.x, bw, g.healthShown, g.healthLag, lowHp ? kHealthLow : kHealth, C(1.f, 0.85f, 0.85f), lowHp);
-    bar(rr.x + bw + gap, bw, g.armorShown, g.armorLag, kArmor, C(0.85f, 0.92f, 1.f), false);
+    bar(rr.x + bw + gap, bw2, g.armorShown, g.armorLag, kArmor, C(0.85f, 0.92f, 1.f), false);
+    {
+        g.specialShown = approachExp(g.specialShown, Saturate(s.special), 10.f, dt);
+        float sx = rr.x + bw + bw2 + gap * 2.f;
+        bool low = s.special < 0.15f;
+        u32 col = low ? lerpColor(kFocus, C(0.35f, 0.32f, 0.42f), 0.55f) : kFocus;
+        bar(sx, bw2, g.specialShown, g.specialShown, col, col, s.specialActive);
+        if (s.specialActive) {
+            setAdditive(true);
+            float pulse = 0.5f + 0.5f * sinf(t * 7.f);
+            roundRect(sx - 2.f * sc, by - 2.f * sc, bw2 + 4.f * sc, bh + 4.f * sc, bh * 0.5f + 2.f * sc, withAlpha(kFocus, (0.25f + 0.25f * pulse) * a));
+            setAdditive(false);
+        }
+    }
     // breath / stamina (thin, only while not full)
     g.breathAlpha = fadeTo(g.breathAlpha, s.breath < 0.999f, dt, 6.f, 2.f);
     g.staminaAlpha = fadeTo(g.staminaAlpha, s.stamina < 0.999f && s.breath >= 0.999f, dt, 6.f, 1.5f);
@@ -362,16 +383,20 @@ void drawTopRight(const HudState& s, const Layout& L, float dt, float t) {
         g.moneyShown = (double)s.money;
         g.lastMoney = s.money;
     }
-    if (s.moneyDelta != 0 && (s.money != g.lastMoney || g.popups.empty() || g.popups.back().t > 0.25f)) {
-        g.popups.push_back({s.moneyDelta, 0.f});
-        if (g.popups.size() > 3) g.popups.erase(g.popups.begin());
-        g.moneyPulse = 1.f;
-    } else if (s.money != g.lastMoney && s.moneyDelta == 0) {
-        g.popups.push_back({s.money - g.lastMoney, 0.f});
-        if (g.popups.size() > 3) g.popups.erase(g.popups.begin());
-        g.moneyPulse = 1.f;
+    {
+        // popup when the balance changes (amount from moneyDelta when the game provides it) or when the game reports a
+        // new delta without changing the balance in the same frame
+        long long amount = 0;
+        if (s.money != g.lastMoney) amount = s.moneyDelta != 0 ? s.moneyDelta : s.money - g.lastMoney;
+        else if (s.moneyDelta != 0 && s.moneyDelta != g.lastDelta) amount = s.moneyDelta;
+        if (amount != 0) {
+            g.popups.push_back({amount, 0.f});
+            if (g.popups.size() > 3) g.popups.erase(g.popups.begin());
+            g.moneyPulse = 1.f;
+        }
+        g.lastMoney = s.money;
+        g.lastDelta = s.moneyDelta;
     }
-    g.lastMoney = s.money;
     double diff = (double)s.money - g.moneyShown;
     if (fabs(diff) < 1.0) g.moneyShown = (double)s.money;
     else g.moneyShown += diff * (1.0 - exp(-7.0 * dt)) + (diff > 0 ? 1.0 : -1.0);
@@ -409,7 +434,8 @@ void drawTopRight(const HudState& s, const Layout& L, float dt, float t) {
         std::string txt = fmtMoney(p.amount, true);
         text(xr + (1.f - in) * 30.f * sc, y + i * 30.f * sc, txt.c_str(), st);
     }
-    y += 34.f * sc * Min((float)g.popups.size(), 1.f);
+    g.popupSpace = approachExp(g.popupSpace, (float)g.popups.size(), 10.f, dt);
+    y += (30.f * g.popupSpace + (g.popupSpace > 0.01f ? 4.f : 0.f)) * sc;
     // weapon panel
     if (s.weaponIcon != g.lastWeaponIcon || s.weaponName != g.lastWeaponName) {
         g.weaponChangeT = 0.f;
@@ -450,8 +476,10 @@ void drawTopRight(const HudState& s, const Layout& L, float dt, float t) {
         // weapon name for a moment after switching
         float nameA = a * (1.f - SmoothStep(2.2f, 2.8f, g.weaponChangeT));
         if (nameA > 0.01f && !s.weaponName.empty()) {
-            TextStyle ns = style(FONT_HEADING, 19.f * sc, withAlpha(kTextDim, nameA), ALIGN_RIGHT);
+            TextStyle ns = style(FONT_HEADING, 20.f * sc, withAlpha(kText, nameA), ALIGN_RIGHT);
             ns.shadow = 1.5f * sc;
+            ns.outline = 1.4f * sc;
+            ns.outlineColor = C(0.f, 0.f, 0.04f, 0.8f * nameA);
             ns.tracking = 0.06f;
             std::string n = upper(s.weaponName);
             text(xr, cy + ih * 0.5f + 4.f * sc, n.c_str(), ns);
@@ -521,9 +549,6 @@ void drawTopLeft(const HudState& s, const Layout& L, float dt, float t) {
         TextStyle when = style(FONT_BODY, 16.f * sc, withAlpha(kTextMute, a), ALIGN_RIGHT);
         text(xx + w - pad, iy + 2.f * sc, "now", when);
         richDraw(ix + isz + 14.f * sc, iy + 26.f * sc, g.note.c_str(), body, w - pad * 2.f - 58.f * sc, ro);
-        // progress hairline
-        float life = Saturate(g.noteT / 8.f);
-        rect(xx + 14.f * sc, y + h - 3.f * sc, (w - 28.f * sc) * (1.f - life), 2.f * sc, withAlpha(kPink, 0.6f * a));
     }
     (void)t;
 }
@@ -532,8 +557,6 @@ void drawTopLeft(const HudState& s, const Layout& L, float dt, float t) {
 // Top center: radio station banner
 u32 stationColor(const std::string& name) {
     u32 h = hashString(name.c_str());
-    static const u32 pal[6] = {0, 0, 0, 0, 0, 0};
-    (void)pal;
     float hue = hashToFloat(h);
     vec3 c = hsvToRgb(hue, 0.72f, 1.f);
     return C(c.x, c.y, c.z);
@@ -603,12 +626,17 @@ void drawBottomRight(const HudState& s, const Layout& L, float dt, float t) {
         float span = kPi * 0.72f;   // half sweep
         float maxV = s.metricUnits ? 260.f : 160.f;
         float f = Saturate(g.speedShown / maxV);
-        arc(c.x, c.y, r, 7.f * sc, 0.f, span, C(0.02f, 0.03f, 0.07f, 0.62f * a));
+        circleSoft(c.x, c.y + 2.f * sc, r + 6.f * sc, 14.f * sc, C(0.f, 0.f, 0.03f, 0.40f * a));
+        circle(c.x, c.y, r + 5.f * sc, C(0.03f, 0.04f, 0.10f, 0.55f * a));
+        arc(c.x, c.y, r, 7.f * sc, 0.f, span, C(1.f, 1.f, 1.f, 0.12f * a));
         if (f > 0.002f) {
             float half = span * f;
             float mid = -span + half;
             u32 col = lerpColor(kCyan, kPink, SmoothStep(0.45f, 0.95f, f));
-            arc(c.x, c.y, r, 5.f * sc, mid, half, withAlpha(col, a));
+            setAdditive(true);
+            arc(c.x, c.y, r, 14.f * sc, mid, half, withAlpha(col, 0.18f * a));
+            setAdditive(false);
+            arc(c.x, c.y, r, 6.f * sc, mid, half, withAlpha(col, a));
         }
         for (int k = 0; k <= 8; k++) {
             float ang = -span + 2.f * span * k / 8.f;
@@ -713,7 +741,7 @@ void drawBottomRight(const HudState& s, const Layout& L, float dt, float t) {
 void drawBottomCenter(const HudState& s, const Layout& L, float dt) {
     float sc = L.s;
     float cx = L.W * 0.5f;
-    float maxW = (L.x1 - L.x0) * 0.58f;
+    float maxW = (L.x1 - L.x0) * 0.5f;
     float y = L.bottom - 8.f * sc;
     RichOpts ro;
     ro.pad = s.padPrompts;
@@ -783,6 +811,22 @@ void drawCenter(const HudState& s, const Layout& L, float dt, float t) {
         gradientRect(0, L.H - e, L.W, e, r1, r0);
         gradientRectH(0, 0, e, L.H, r0, r1);
         gradientRectH(L.W - e, 0, e, L.H, r1, r0);
+    }
+    // Focus ability: soft magenta edge glow with slow breathing while active
+    g.focusFx = approachExp(g.focusFx, s.specialActive ? 1.f : 0.f, 6.f, dt);
+    if (g.focusFx > 0.01f) {
+        float k = g.focusFx * (0.75f + 0.25f * sinf(t * 2.2f));
+        float e = L.H * 0.16f;
+        u32 f0 = withAlpha(kFocus, 0.22f * k), f1 = withAlpha(kFocus, 0.f);
+        setAdditive(true);
+        gradientRect(0, 0, L.W, e, f0, f1);
+        gradientRect(0, L.H - e, L.W, e, f1, f0);
+        gradientRectH(0, 0, e * 1.2f, L.H, f0, f1);
+        gradientRectH(L.W - e * 1.2f, 0, e * 1.2f, L.H, f1, f0);
+        setAdditive(false);
+        // thin letterbox-like lines hinting at the slowed time
+        rect(0, 0, L.W, 2.f * sc, withAlpha(kFocus, 0.5f * k));
+        rect(0, L.H - 2.f * sc, L.W, 2.f * sc, withAlpha(kFocus, 0.5f * k));
     }
     // damage direction indicators (angles: 0 = ahead, counter-clockwise positive)
     for (auto& d : g.dmg) d.seen = false;
@@ -998,9 +1042,13 @@ void drawWeaponWheel(const HudState& s, const Layout& L, float dt, float t) {
         float pop = isSel ? 12.f * sc * easeOutBack(Min(1.f, g.wheelSelT / 0.25f)) : 0.f;
         vec2 sc2 = c + dir * pop;
         if (isSel) {
-            arc(sc2.x, sc2.y, rMid, thick, mid, half, withAlpha(C(0.60f, 0.08f, 0.38f), 0.92f * a), 10.f * sc);
-            arc(sc2.x, sc2.y, rMid + thick * 0.25f, thick * 0.5f, mid, half, withAlpha(kPink, 0.55f * a), 10.f * sc);
-            arc(sc2.x, sc2.y, rOut - 3.f * sc, 5.f * sc, mid, half, withAlpha(C(1.f, 0.75f, 0.9f), a), 10.f * sc);
+            arc(sc2.x, sc2.y, rMid, thick, mid, half, withAlpha(C(0.74f, 0.10f, 0.45f), 0.94f * a), 10.f * sc);
+            for (int k = 0; k < 6; k++) {
+                float fr = (float)k / 6.f;
+                arc(sc2.x, sc2.y, rIn + thick * (0.5f + 0.5f * fr) , thick * (1.f - fr) * 0.5f + 2.f, mid, half,
+                    withAlpha(kPink, 0.16f * a), 10.f * sc);
+            }
+            arc(sc2.x, sc2.y, rOut - 3.f * sc, 5.f * sc, mid, half, withAlpha(C(1.f, 0.78f, 0.92f), a), 10.f * sc);
         } else {
             arc(sc2.x, sc2.y, rMid, thick, mid, half, C(0.04f, 0.06f, 0.14f, 0.82f * a), 10.f * sc);
             arc(sc2.x, sc2.y, rOut - 1.5f * sc, 2.f * sc, mid, half, C(1.f, 1.f, 1.f, 0.14f * a), 10.f * sc);
@@ -1009,13 +1057,13 @@ void drawWeaponWheel(const HudState& s, const Layout& L, float dt, float t) {
         if (has) {
             int icon = i < (int)g.wheelIcons.size() ? g.wheelIcons[i] : -1;
             if (icon < 0) icon = 0;
-            float w = 138.f * sc * (isSel ? 1.08f : 1.f);
-            drawWeapon(icon, ic.x, ic.y - 6.f * sc, w, withAlpha(isSel ? kWhite : C(0.82f, 0.85f, 0.95f), a), 1.2f * sc, C(0.f, 0.f, 0.03f, 0.7f * a));
+            float w = 172.f * sc * (isSel ? 1.08f : 1.f);
+            drawWeapon(icon, ic.x, ic.y - 8.f * sc, w, withAlpha(isSel ? kWhite : C(0.86f, 0.89f, 0.97f), a), 1.2f * sc, C(0.f, 0.f, 0.03f, 0.7f * a));
             std::string name, ammo;
             splitSlot(g.wheelSlots[i], name, ammo);
             if (!ammo.empty()) {
-                TextStyle as = style(FONT_HEADING, 19.f * sc, withAlpha(isSel ? kWhite : kTextDim, a), ALIGN_CENTER);
-                text(ic.x, ic.y + 26.f * sc, ammo.c_str(), as);
+                TextStyle as = style(FONT_HEADING, 21.f * sc, withAlpha(isSel ? kWhite : kTextDim, a), ALIGN_CENTER);
+                text(ic.x, ic.y + 30.f * sc, ammo.c_str(), as);
             }
         } else {
             circle(ic.x, ic.y, 4.f * sc, C(1.f, 1.f, 1.f, 0.18f * a));
@@ -1071,6 +1119,7 @@ void drawHud(const HudState& s, float dt) {
         g.zoomShown = s.radarZoom;
         g.healthShown = g.healthLag = s.health;
         g.armorShown = g.armorLag = s.armor;
+        g.specialShown = s.special;
         g.lastHealth = s.health;
     }
     g.radarAlpha = fadeTo(g.radarAlpha, s.radarVisible, dt, 5.f, 5.f);

@@ -233,6 +233,11 @@ float carSteer(StepCtx& x) {
 
 // Bike: lean-driven steering (countersteer implicit), balance torque with gravity/centripetal feed-forward,
 // wheelies/stoppies, riderless fall onto the kickstand, crash detection.
+// Steady-state lean limit the rider will use: the tires cannot hold more than atan(mu) (scooters lean less).
+float bikeMaxLean(const VehicleState& s) {
+    return Min(s.cls == VC_SCOOTER ? 0.68f : 0.8f, atanf(0.85f * Clamp(s.model->grip, 0.5f, 1.4f)));
+}
+
 float bikeSteer(StepCtx& x) {
     VehicleState& s = *x.s;
     const VehicleTuning& t = s.tune;
@@ -243,7 +248,9 @@ float bikeSteer(StepCtx& x) {
     float delta;
     if (rider) {
         float spd = SmoothStep(1.5f, 8.f, v);
-        float lean = Clamp(s.lean, -1.1f, 1.1f);
+        // never ask the front tire for more turn than the grip-limited lean sustains (a lean overshoot must not tighten the line)
+        float lmax = bikeMaxLean(s) + 0.05f;
+        float lean = Clamp(s.lean, -lmax, lmax);
         float kin = atanf(t.wheelbase * kGrav * tanf(lean) / Max(v * v, 1.f));
         // yaw-rate feedback: the turn rate the lean can sustain is g*tan(lean)/v (+ = right = clockwise)
         float rTarget = kGrav * tanf(lean) / Max(v, 1.f);
@@ -274,25 +281,30 @@ void bikeAssist(StepCtx& x, bool frontContact, bool rearContact, float driveIn, 
     float pitchAng = asinf(Clamp(x.fwd.z, -1.f, 1.f)), pitchRate = wl.x;
     bool grounded = frontContact || rearContact;
     if (rider) {
-        float maxLean = Min(s.cls == VC_SCOOTER ? 0.68f : 0.8f, atanf(0.85f * Clamp(s.model->grip, 0.5f, 1.4f)));
+        float maxLean = bikeMaxLean(s);
         float spd = SmoothStep(1.5f, 8.f, v);
         float in = Clamp(c.steer, -1.f, 1.f);
         float targetLean = x.vFwd > -0.5f ? in * maxLean * spd : 0.f;
+        // the rider leans in progressively (~0.35 s to full lean)
+        targetLean = Clamp(targetLean, s.leanCmd - 2.5f * x.dt, s.leanCmd + 2.5f * x.dt);
+        s.leanCmd = targetLean;
         if (grounded) {
-            // cancel the natural roll dynamics (ground reaction vs centripetal force), then PD to the target lean
-            float aRight = -x.vFwd * b.angVel.z;
-            float h = t.com.z;
-            float natural = b.mass * h * (kGrav * sinf(lean) - aRight * cosf(lean));
+            // the rider balances the bike: cancel the roll torque the tires produce this step (ground reaction vs
+            // cornering force, including when the tires slide), then PD to the target lean
             float wn = 9.f, zeta = 0.9f;
             float acc = wn * wn * (targetLean - lean) - 2.f * zeta * wn * leanRate;
             // picking up a fallen bike / feet down at a standstill
             if (v < 1.f && fabsf(lean) > 0.5f) acc = Clamp(acc, -3.f, 3.f);
-            b.torque += x.fwd * (-natural) + b.torqueFor(x.fwd * acc);
+            b.torque += x.fwd * (-x.tireRollTorque) + b.torqueFor(x.fwd * acc);
             // yaw stability: pull the yaw rate toward what the lean sustains (arcade anti-lowside)
             if (v > 3.f && x.vFwd > 0.f) {
+                // only suppress over-rotation (yaw beyond what the lean sustains); never add yaw
                 float rTarget = -kGrav * tanf(Clamp(lean, -1.1f, 1.1f)) / v;  // world z (+ = left)
+                float rMaxGrip = 1.1f * Clamp(s.model->grip, 0.5f, 1.4f) * kGrav / v;
+                rTarget = Clamp(rTarget, -rMaxGrip, rMaxGrip);
                 float err = b.angVel.z - rTarget;
-                b.torque += b.torqueFor(x.up * (-4.f * err));
+                bool over = fabsf(b.angVel.z) > fabsf(rTarget) && err * b.angVel.z > 0.f;
+                if (over) b.torque += b.torqueFor(vec3(0.f, 0.f, -4.f * err));
             }
         } else {
             // airborne: keep the bike upright-ish, rider pitch control
@@ -303,17 +315,17 @@ void bikeAssist(StepCtx& x, bool frontContact, bool rearContact, float driveIn, 
         bool pitchCtl = false;
         if (rearContact && !frontContact && pitchAng > 0.03f) {
             pitchCtl = true;
-            if (c.pitch > 0.1f && driveIn > 0.1f) pAcc = 16.f * (Lerp(0.25f, 0.6f, c.pitch) - pitchAng) - 6.f * pitchRate;
+            if (c.pitch > 0.1f && driveIn > 0.1f) pAcc = 25.f * (Lerp(0.25f, 0.6f, c.pitch) - pitchAng) - 9.f * pitchRate;
             else pAcc = -2.5f - 2.f * Max(pitchRate, 0.f);
-            if (pitchAng > 0.8f) pAcc = -25.f;
+            if (pitchAng > 0.75f) pAcc = Min(pAcc, -25.f);
         } else if (frontContact && rearContact && c.pitch > 0.3f && driveIn > 0.5f && v < 28.f && v > 2.f) {
             pitchCtl = true;
             pAcc = 9.f * c.pitch;
         } else if (frontContact && !rearContact && pitchAng < -0.03f) {
             pitchCtl = true;
-            if (c.pitch < -0.1f && brakeIn > 0.3f) pAcc = 16.f * (c.pitch * 0.45f - pitchAng) - 6.f * pitchRate;
+            if (c.pitch < -0.1f && brakeIn > 0.3f) pAcc = 25.f * (c.pitch * 0.4f - pitchAng) - 9.f * pitchRate;
             else pAcc = 3.f + 2.f * Max(-pitchRate, 0.f);
-            if (pitchAng < -0.7f) pAcc = 25.f;
+            if (pitchAng < -0.6f) pAcc = Max(pAcc, 25.f);
         } else if (frontContact && rearContact && c.pitch < -0.3f && brakeIn > 0.5f && v > 5.f) {
             pitchCtl = true;
             pAcc = 7.f * c.pitch;
@@ -329,7 +341,10 @@ void bikeAssist(StepCtx& x, bool frontContact, bool rearContact, float driveIn, 
             s.riderOff = true;
             s.ejectTimer = 1.f;
         }
-    } else if (grounded && v < 2.f && fabsf(lean) < 0.5f && x.up.z > 0.8f) {
+    } else if (!rider) {
+        s.leanCmd = lean;
+    }
+    if (!rider && grounded && v < 2.f && fabsf(lean) < 0.5f && x.up.z > 0.8f) {
         // riderless and nearly stopped: settle onto the kickstand (left, ~12 degrees)
         float aRight = -x.vFwd * b.angVel.z;
         float natural = b.mass * t.com.z * (kGrav * sinf(lean) - aRight * cosf(lean));
@@ -376,8 +391,20 @@ void wheelForces(StepCtx& x) {
         }
     if (driveW > 0.f) drivenOmega /= driveW;
     DriveCmd dc;
-    if (road || bike) dc = powertrain(x, drivenOmega);
-    else {
+    if (road || bike) {
+        dc = powertrain(x, drivenOmega);
+        if (bike && s.wheelCount >= 2) {
+            // power-wheelie limiter: the rider feathers the throttle past the balance point
+            bool frontUp = true, rearDown = false;
+            for (int i = 0; i < s.wheelCount; i++) {
+                if (m.wheels[i].pos.y > t.com.y && s.wheels[i].contact) frontUp = false;
+                if (m.wheels[i].pos.y <= t.com.y && s.wheels[i].contact) rearDown = true;
+            }
+            float pitchAng = asinf(Clamp(x.fwd.z, -1.f, 1.f));
+            float target = c.pitch > 0.1f ? Lerp(0.25f, 0.6f, c.pitch) : 0.1f;
+            if (frontUp && rearDown && pitchAng > target) dc.wheelTorque *= Saturate(1.f - (pitchAng - target) * 6.f);
+        }
+    } else {
         dc.brake = heli ? 1.f : Saturate(c.brake);
         if (!c.hasDriver) dc.brake = 1.f;
     }
@@ -443,8 +470,20 @@ void wheelForces(StepCtx& x) {
             w.compressionVel = 0.f;
             continue;
         }
+        // tire profile: cars/aircraft roll on a flat tread (contact below the hub along n); bike tires are a thin
+        // disk with a round crown (radius 0.3 r), so a leaned bike's contact stays near the wheel plane
+        float radEff = rad, crown = rad;
+        vec3 dPlane = -n;
+        if (bike) {
+            vec3 axle = x.right;
+            vec3 d = -n + axle * dot(n, axle);
+            float dl = length(d);
+            dPlane = dl > 1e-3f ? d / dl : -n;
+            crown = 0.3f * rad;
+            radEff = (rad - crown) * dl + crown;
+        }
         float dist = dot(mount - P, n);
-        float comp = travel - (dist - rad) / upN;
+        float comp = travel - (dist - radEff) / upN;
         if (comp <= 0.f) {
             w.contact = false;
             w.compressionVel = 0.f;
@@ -453,7 +492,7 @@ void wheelForces(StepCtx& x) {
         }
         float compC = Min(comp, travel);
         vec3 hub = mount - up * (travel - compC);
-        vec3 cp = hub - n * rad;
+        vec3 cp = bike ? hub + dPlane * (rad - crown) - n * crown : hub - n * rad;
         vec3 r = cp - x.comW;
         float compVel = -dot(b.velAt(r), n) / upN;
         float fs = t.staticLoad[i] + t.springK[i] * (compC - t.restComp[i]);
@@ -562,7 +601,9 @@ void wheelForces(StepCtx& x) {
         }
         // traction control (friction-circle aware): limit drive slip so that lateral grip survives
         if (!hb && fabsf(Td) > 1.f) {
-            float sLim = bike ? 1.25f : t.tcSlip / kp * (s.hbTimer < 1.f ? 3.f : 1.f);
+            // generous at launch (burnouts, fishtails), just past peak at speed (no power spin-outs on a straight)
+            float sLow = t.tcSlip / kp, sHigh = Min(sLow, 1.4f);
+            float sLim = bike ? 1.25f : Lerp(sLow, sHigh, SmoothStep(8.f, 25.f, fabsf(vx))) * (s.hbTimer < 1.f ? 3.f : 1.f);
             float sxMax = sqrtf(Max(sLim * sLim - sy * sy, 0.25f));
             float dvMax = sxMax * kp * Vx;
             if (Td > 0.f && vx > -1.f) wn = Min(wn, Max((vx + dvMax) / rad, w.spinVel - 400.f * dt));
@@ -588,6 +629,7 @@ void wheelForces(StepCtx& x) {
         b.addForce(o.n * N, o.r);
         b.addForce(fwdG * fx, o.r);
         b.addForce(latG * fy, rLat);
+        if (bike) x.tireRollTorque += dot(cross(o.r, o.n * N + fwdG * fx) + cross(rLat, latG * fy), x.fwd);
         w.contact = true;
         w.contactPos = o.r + b.R * t.com;
         w.contactNormal = o.n;

@@ -60,10 +60,25 @@ void chassisGroundContacts(StepCtx& x) {
         x.groundValid = true;
     }
     vec3 P0 = x.groundP, N0 = x.groundN;
-    bool bike = isBikeClass(s.cls);
+    bool bike = isBikeClass(s.cls), plane = s.cls == VC_PLANE;
     float margin = 0.08f;
+    // Aircraft do not touch down like boxes: belly points, an upswept tail (allows ~12 degrees of rotation),
+    // wingtips at mid height and the top of the fin/cabin for inverted crashes.
+    vec3 planePts[8];
+    if (plane) {
+        float zb = t.boxC.z - t.boxH.z, zt = t.boxC.z + t.boxH.z, h = zt - zb;
+        float yf = t.boxC.y + 0.8f * t.boxH.y, yr = t.boxC.y - 0.95f * t.boxH.y;
+        planePts[0] = vec3(-0.12f * t.boxH.x, yf, zb);
+        planePts[1] = vec3(0.12f * t.boxH.x, yf, zb);
+        planePts[2] = vec3(-0.12f * t.boxH.x, yr, zb + 0.42f * h);
+        planePts[3] = vec3(0.12f * t.boxH.x, yr, zb + 0.42f * h);
+        planePts[4] = vec3(-t.boxH.x, t.com.y, zb + 0.45f * h);
+        planePts[5] = vec3(t.boxH.x, t.com.y, zb + 0.45f * h);
+        planePts[6] = vec3(0.f, yr, zt);
+        planePts[7] = vec3(0.f, yf, zt - 0.2f * h);
+    }
     for (int k = 0; k < 8; k++) {
-        vec3 lp = t.boxC + vec3(k & 1 ? t.boxH.x : -t.boxH.x, k & 2 ? t.boxH.y : -t.boxH.y, k & 4 ? t.boxH.z : -t.boxH.z);
+        vec3 lp = plane ? planePts[k] : t.boxC + vec3(k & 1 ? t.boxH.x : -t.boxH.x, k & 2 ? t.boxH.y : -t.boxH.y, k & 4 ? t.boxH.z : -t.boxH.z);
         if (bike) {
             // footpegs / fairing: a bike scrapes at ~60 degrees of lean and lies on its side when down
             lp.x *= 0.45f;
@@ -131,6 +146,23 @@ void boxVsCollider(StepCtx& x, int id, const Phys::Collider& c, vec3 bc) {
     float ext = fabsf(b.R.c[0].z) * H.x + fabsf(b.R.c[1].z) * H.y + fabsf(b.R.c[2].z) * H.z;
     float top = c.c.z + c.he.z;
     if (n.z > 0.6f && bc.z - ext > top - 0.35f) return;   // resting on the roof: ground() handles it
+    if (fabsf(n.z) > 0.5f) {
+        // World boxes stand on the ground: never push a vehicle down into the terrain (or up through a wall).
+        // Separate horizontally along the collider face with the least penetration instead.
+        vec3 d = bc - c.c;
+        float ex = fabsf(dot(b.R.c[0], cax)) * H.x + fabsf(dot(b.R.c[1], cax)) * H.y + fabsf(dot(b.R.c[2], cax)) * H.z;
+        float ey = fabsf(dot(b.R.c[0], cay)) * H.x + fabsf(dot(b.R.c[1], cay)) * H.y + fabsf(dot(b.R.c[2], cay)) * H.z;
+        float dx = dot(d, cax), dy = dot(d, cay);
+        float px = c.he.x + ex - fabsf(dx), py = c.he.y + ey - fabsf(dy);
+        if (px < py) {
+            n = cax * (dx >= 0.f ? 1.f : -1.f);
+            depth = px;
+        } else {
+            n = cay * (dy >= 0.f ? 1.f : -1.f);
+            depth = py;
+        }
+        if (depth <= 0.f) return;
+    }
     if (tryBreak(x, id, c, pt - x.comW, n)) return;
     float hB = c.he.x * fabsf(dot(n, cax)) + c.he.y * fabsf(dot(n, cay)) + c.he.z * fabsf(n.z);
     float mu = 0.35f;

@@ -336,7 +336,8 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         else if (s.ph == PH_IH && !(s.flags & SF_WORD_START)) s.ph = PH_IX;
     }
 
-    // Flapping (within words only, for clarity): T/D between a vowel (or R) and an unstressed vowel -> DX.
+    // Flapping (within words only: across word boundaries a flapped /t/ is heard as /d/ or lost, "bat again" ->
+    // "bad again"): T/D between a vowel (or R) and an unstressed vowel -> DX.
     for (int i = 1; i + 1 < N; i++) {
         Seg& s = S[i];
         if (s.ph != PH_T && s.ph != PH_D) continue;
@@ -345,6 +346,7 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         if (!(isVowel(pv) || pv == PH_R) || !isVowel(nv)) continue;
         if (S[i - 1].word != s.word || S[i + 1].word != s.word) continue;
         if (S[i + 1].stress != 0) continue;
+        if (s.ph == PH_T) s.flags |= SF_FROM_T;
         s.ph = PH_DX;
     }
     // Dark /l/ in codas; syllabic reductions.
@@ -404,6 +406,15 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         if (!isStopPh(s.ph) && s.ph != PH_CH && s.ph != PH_JH) continue;
         int nx = i + 1 < M ? (int)S[i + 1].ph : (int)PH_SIL;
         if (isStopPh(s.ph) && (isStopPh(nx) || nx == PH_CH || nx == PH_JH)) s.flags |= SF_UNRELEASED;
+        // A coda stop releases straight into a following nasal, or into the fricative or approximant that starts
+        // the next word: no separate burst. (Before /h/ the release stays: an unreleased stop followed by
+        // breathy /h/ is heard as a voiced stop, "word hot" -> "word god".)
+        if (isStopPh(s.ph) && !(s.flags & (SF_UNRELEASED | SF_ONSET)) && i + 1 < M) {
+            bool crossWord = (S[i + 1].flags & SF_WORD_START) != 0;
+            if (hasFlag(nx, PF_NASAL) ||
+                (crossWord && (hasFlag(nx, PF_FRIC) || hasFlag(nx, PF_LIQUID) || hasFlag(nx, PF_GLIDE))))
+                s.flags |= SF_WEAKREL;
+        }
         if ((s.ph == PH_P || s.ph == PH_T || s.ph == PH_K) && (s.flags & SF_ONSET) &&
             (isVowel(nx) || hasFlag(nx, PF_LIQUID) || hasFlag(nx, PF_GLIDE))) {
             bool afterS = i > 0 && S[i - 1].ph == PH_S && S[i - 1].syl == s.syl;
@@ -443,6 +454,7 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
             if (i + 1 < M && S[i + 1].word == s.word && !isVowel(next)) {
                 if (hasFlag(next, PF_FRIC) && hasFlag(next, PF_VOICED)) f = 1.6f;
                 else if (isStopPh(next) && hasFlag(next, PF_VOICED)) f = 1.2f;
+                else if (next == PH_DX) f = (S[i + 1].flags & SF_FROM_T) ? 0.85f : 1.1f;
                 else if (hasFlag(next, PF_NASAL)) f = 0.85f;
                 else if (voicelessObstruent(next)) f = 0.7f;
             } else if (s.flags & SF_WORD_END) {
@@ -493,7 +505,13 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         if (!(isVowel(s.ph) || (onsetSonorant && (p.flags & SF_ONSET)))) continue;
         const PhInfo& pi = phInfo(p.ph);
         float vot;
-        bool voicedBefore = i >= 2 && (isVowel(S[i - 2].ph) || hasFlag(S[i - 2].ph, PF_SONOR));
+        // the stop closure was voiced when it follows a voiced sound (a voiced stop only if its own
+        // closure was voiced: "word gap"); voicing then simply continues through the release
+        bool voicedBefore = false;
+        if (i >= 2 && S[i - 2].ph != PH_SIL && hasFlag(S[i - 2].ph, PF_VOICED)) {
+            voicedBefore = !isStopPh(S[i - 2].ph) ||
+                           (i >= 3 && (isVowel(S[i - 3].ph) || hasFlag(S[i - 3].ph, PF_SONOR)));
+        }
         if (hasFlag(p.ph, PF_VOICED)) vot = voicedBefore ? 0.f : (onsetSonorant ? 6.f : pi.vot * 0.5f);
         else if (p.flags & SF_ASPIRATED) vot = pi.vot * (p.stress == 1 ? 1.f : p.stress == 2 ? 0.85f : 0.6f);
         else vot = 15.f;

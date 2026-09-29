@@ -425,8 +425,12 @@ void buildHeadGrid(BuildCtx& c) {
                 vec3 hq = hp;
                 float nx = fabsf(hq.x);
                 if (hq.z < Lm.ala[1].z + 0.002f && hq.z > Lm.subnasale.z - 0.001f && hq.y > Lm.subnasale.y + 0.0015f &&
-                    hq.y < Lm.noseTip.y - 0.005f && nx > 0.003f && nx < fabsf(Lm.ala[1].x) - 0.002f)
-                    col = col * 0.45f;
+                    hq.y < Lm.noseTip.y - 0.005f && nx > 0.003f && nx < fabsf(Lm.ala[1].x) - 0.002f) {
+                    // only the underside (the grid is too coarse for holes; a soft shade reads as nostrils from
+                    // the front and does not smear dark patches onto the sides of the nose)
+                    vec3 gn = normalize(c.sdf.grad(p, HM));
+                    col = col * Lerp(1.f, 0.62f, sstep(-0.25f, -0.7f, gn.z));
+                }
             }
             float cheek = bump(ath, 40.f * deg, 16.f * deg) * bump(ph, -8.f * deg, 12.f * deg) * sstep(0.04f, 0.25f, lum);
             col = lerp(col, mulColor(col, vec3(1.12f, 0.9f, 0.88f)), cheek * 0.45f);

@@ -522,15 +522,23 @@ Shape makeIcon(int id) {
         s.add(ellipseP(vec2(50, 92), 36, 34));
         s.sub(rectP(0, 90, 100, 100));
         break;
-    case ICO_MOUSE:
-        s.add(rrectP(26, 8, 74, 92, 24));
-        s.sub(rrectP(32, 14, 68, 86, 18));
-        s.add(rectP(48.5f, 12, 51.5f, 40));
-        s.add(rectP(28, 38.5f, 72, 41.5f));
+    case ICO_MOUSE: s.add(rrectP(20, 6, 80, 94, 30)); break;
+    case ICO_MOUSE_L: {
+        Shape body;
+        Poly p = rrectP(25, 11, 80, 94, 26);
+        s.add(p);
+        s.sub(rectP(47.5f, 0, 100, 100));
+        s.sub(rectP(0, 42, 100, 100));
         break;
-    case ICO_MOUSE_L: s.add(Poly{vec2(33, 38), vec2(33, 26), vec2(38, 17), vec2(47, 14), vec2(47, 38)}); break;
-    case ICO_MOUSE_R: s.add(Poly{vec2(53, 14), vec2(62, 17), vec2(67, 26), vec2(67, 38), vec2(53, 38)}); break;
-    case ICO_MOUSE_WHEEL: s.add(capsuleP(vec2(50, 20), vec2(50, 32), 3.5f)); break;
+    }
+    case ICO_MOUSE_R: {
+        Poly p = rrectP(20, 11, 75, 94, 26);
+        s.add(p);
+        s.sub(rectP(0, 0, 52.5f, 100));
+        s.sub(rectP(0, 42, 100, 100));
+        break;
+    }
+    case ICO_MOUSE_WHEEL: s.add(capsuleP(vec2(50, 19), vec2(50, 33), 4.5f)); break;
     case ICO_DPAD:
         s.add(rrectP(37, 8, 63, 92, 5));
         s.add(rrectP(8, 37, 92, 63, 5));
@@ -699,8 +707,8 @@ Shape makeWeapon(int w) {
         s.add(rrectP(226, 54, 302, 76, 6));
         for (int k = 0; k < 5; k++) s.sub(rectP(236 + k * 13.f, 59, 240 + k * 13.f, 72));
         s.add(rrectP(108, 40, 172, 70, 5));
-        s.add(Poly{vec2(112, 44), vec2(22, 56), vec2(16, 88), vec2(40, 92), vec2(116, 68)});
-        s.sub(rectP(18, 62, 26, 88));
+        s.add(smoothClosed({vec2(114, 44), vec2(70, 50), vec2(24, 56), vec2(18, 74), vec2(20, 92), vec2(40, 94), vec2(74, 80), vec2(114, 70)}, 4));
+        s.sub(rectP(26, 50, 29, 100));
         s.add(strokeP({vec2(140, 70), vec2(142, 84), vec2(164, 86), vec2(166, 70)}, 6.f));
         s.add(capsuleP(vec2(150, 72), vec2(152, 82), 3.f));
         s.add(rectP(360, 40, 366, 46));

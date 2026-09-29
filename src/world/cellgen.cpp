@@ -1,5 +1,6 @@
 // Per-cell world content generation (runs on worker threads).
 #include "buildings.h"
+#include "sites.h"
 #include "../render/mesh.h"
 #include "worldtypes.h"
 
@@ -60,6 +61,7 @@ void scatterVegetation(int cx, int cy, std::vector<PropInstance>& props) {
             if (underwater && type != PROP_MANGROVE && type != PROP_SAWGRASS) continue;
             if (gRoads->nearRoad(p, type == PROP_SAWGRASS ? 1.f : 2.5f)) continue;
             if (gBuildings->pointInBuilding(p, 2.5f)) continue;
+            if (gSites->blocksVegetation(p)) continue;
             PropInstance pi;
             pi.pos = vec3(p, gz);
             pi.yaw = hashToFloat(hash32(h ^ 0x1234u)) * kTwoPi;
@@ -76,6 +78,7 @@ void scatterVegetation(int cx, int cy, std::vector<PropInstance>& props) {
             vec2 p = org + vec2(hashToFloat(h), hashToFloat(hash32(h))) * kCellSize;
             float cd = map.coastDistance(p.x, p.y);
             if (cd < 8.f || cd > 60.f || map.isWater(p.x, p.y)) continue;
+            if (gSites->blocksVegetation(p)) continue;
             PropInstance pi;
             pi.pos = vec3(p, map.heightAt(p.x, p.y));
             pi.yaw = hashToFloat(h ^ 7u) * kTwoPi;
@@ -109,6 +112,8 @@ void generateCell(int cx, int cy, bool detail, CellGeometry& out) {
     }
     if (detail) scatterVegetation(cx, cy, out.props);
     // Far cells still need collision for distant physics (vehicles spawned far) - kept cheap: building boxes only
+    // Airport, port, Key Coral and landmark geometry (streams with the cell like everything else)
+    buildSiteCell(cx, cy, detail, out);
     if (!detail) {
         for (int bi : bs.cellLists[(size_t)cy * cps + cx]) {
             const Building& b = bs.buildings[bi];

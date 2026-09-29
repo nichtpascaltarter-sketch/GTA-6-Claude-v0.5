@@ -11,8 +11,14 @@ cbuffer PostCB : register(b1) {
     float4 gPost0;  // x exposure compensation EV, y adaptation speed up, z speed down, w dt
     float4 gPost1;  // x bloom strength, y vignette, z grain, w saturation
     float4 gPost2;  // x contrast, y warmth, z min EV, w max EV
-    float4 gPost3;  // x partial count, y, z, w
+    float4 gPost3;  // x partial count, y camera cut, z sharpen, w unused
+    // Gameplay screen effects (Renderer::postFx)
+    float4 gFx0;    // x saturation, y vignette, z chromatic aberration, w flash
+    float4 gFx1;    // rgb tint, w blur
+    float4 gFx2;    // rgb vignette color, w underwater
+    float4 gFx3;    // rgb flash color, w extra grain
 };
+Texture2D<float> tSceneDepth : register(t5);
 
 // 1) Partial reduction: each 16x16 group averages log luminance over a 64x64 region (4x4 subsample).
 //    Output per group: (sum of weighted log2 luminance, sum of weights).
@@ -149,8 +155,26 @@ float3 acesFitted(float3 v) {
     return saturate(mul(outM, v));
 }
 
+// Disc blur of the HDR image (gameplay blur / underwater softening), radius in pixels.
+float3 discBlur(float2 uv, float radius) {
+    float3 s = tHDR.SampleLevel(sLinearClamp, uv, 0).rgb;
+    float2 px = radius / gScreen.xy;
+    [unroll] for (int k = 0; k < 12; k++) {
+        float a = k * 2.39996323;
+        float r = sqrt((k + 0.5) / 12.0);
+        s += tHDR.SampleLevel(sLinearClamp, uv + float2(cos(a), sin(a)) * r * px, 0).rgb;
+    }
+    return s / 13.0;
+}
+
 float4 psTonemap(VSOut i) : SV_Target {
-    float3 c = tHDR.SampleLevel(sLinearClamp, i.uv, 0).rgb;
+    float2 uv = i.uv;
+    float uw = gFx2.w;
+    if (uw > 0.0) {
+        // underwater refraction wobble
+        uv += float2(sin(uv.y * 38.0 + gTime.x * 2.1), cos(uv.x * 31.0 + gTime.x * 1.7)) * 0.0022 * uw;
+    }
+    float3 c = tHDR.SampleLevel(sLinearClamp, uv, 0).rgb;
     // Debug views (--debugview N) are shown linearly, without grading
     if (gRenderParams.w > 0.5 && i.uv.x >= gRenderParams.y) {
         if (gRenderParams.y > 0.0 && i.uv.x < gRenderParams.y + 1.5 / gScreen.x) return float4(1, 1, 0, 1);  // split divider
@@ -158,24 +182,50 @@ float4 psTonemap(VSOut i) : SV_Target {
     }
     // light sharpening (compensates TAA softness)
     float2 px = 1.0 / gScreen.xy;
-    float3 nb = tHDR.SampleLevel(sLinearClamp, i.uv + float2(px.x, 0), 0).rgb + tHDR.SampleLevel(sLinearClamp, i.uv - float2(px.x, 0), 0).rgb +
-                tHDR.SampleLevel(sLinearClamp, i.uv + float2(0, px.y), 0).rgb + tHDR.SampleLevel(sLinearClamp, i.uv - float2(0, px.y), 0).rgb;
+    float3 nb = tHDR.SampleLevel(sLinearClamp, uv + float2(px.x, 0), 0).rgb + tHDR.SampleLevel(sLinearClamp, uv - float2(px.x, 0), 0).rgb +
+                tHDR.SampleLevel(sLinearClamp, uv + float2(0, px.y), 0).rgb + tHDR.SampleLevel(sLinearClamp, uv - float2(0, px.y), 0).rgb;
     float3 sharp = c + (c - nb * 0.25) * gPost3.z;
     c = max(lerp(c, sharp, saturate(1.0 - luminance(c) * 0.2)), 0.0);
-    c = lerp(c, tBloom.SampleLevel(sLinearClamp, i.uv, 0).rgb, gPost1.x);
+    // Chromatic aberration: radial red/blue split
+    float ca = gFx0.z;
+    if (ca > 0.0) {
+        float2 dir = (uv - 0.5) * ca * 0.012;
+        c.r = tHDR.SampleLevel(sLinearClamp, uv + dir, 0).r;
+        c.b = tHDR.SampleLevel(sLinearClamp, uv - dir, 0).b;
+    }
+    float blurAmt = saturate(gFx1.w + uw * 0.25);
+    if (blurAmt > 0.0) c = lerp(c, discBlur(uv, 2.0 + blurAmt * 10.0), saturate(blurAmt * 2.0));
+    c = lerp(c, tBloom.SampleLevel(sLinearClamp, uv, 0).rgb, gPost1.x);
+    if (uw > 0.0) {
+        // Underwater: absorption with distance, blue-green scattering, soft caustic shimmer
+        float d = tSceneDepth.SampleLevel(sPointClamp, uv, 0);
+        float dist = d > 0.0 ? linearDepth(d) : 200.0;
+        float3 trans = exp(-float3(0.45, 0.09, 0.07) * dist);
+        float amb = gExposureBuf[0].z * gExposureBuf[0].x;  // average scene luminance, pre-exposed
+        float3 fogC = float3(0.05, 0.32, 0.36) * max(amb, 0.02) * 2.0;
+        float2 cp = uv * float2(9.0, 6.0) + gTime.x * 0.35;
+        float caustic = pow(abs(sin(cp.x + sin(cp.y * 1.3)) * sin(cp.y + sin(cp.x * 1.7))), 3.0);
+        float3 uwc = c * trans * (1.0 + caustic * 0.35 * saturate(1.0 - dist / 25.0)) + fogC * (1.0 - trans);
+        c = lerp(c, uwc, uw);
+    }
     // White balance / warmth (sub-tropical grade) and saturation
     c *= float3(1.0 + gPost2.y * 0.06, 1.0, 1.0 - gPost2.y * 0.08);
+    c *= gFx1.rgb;
     float l = luminance(c);
-    c = max(lerp(l, c, gPost1.w), 0.0);
-    c = acesFitted(c * 1.0);
-    // contrast around mid grey in display space
-    c = saturate((c - 0.5) * gPost2.x + 0.5);
-    // vignette
+    c = max(lerp(l, c, gPost1.w * gFx0.x), 0.0);
+    // Contrast as a power curve around scene mid grey (0.18): keeps black at 0 instead of clipping the shadows
+    c = 0.18 * pow(max(c / 0.18, 0.0), gPost2.x);
+    c = acesFitted(c);
+    // vignette (grading) + gameplay colored vignette
     float2 d = i.uv - 0.5;
-    c *= 1.0 - gPost1.y * dot(d, d) * 1.6;
-    float3 outc = linearToSrgb(c);
+    float r2 = dot(d, d);
+    c *= 1.0 - gPost1.y * r2 * 1.6;
+    if (gFx0.y > 0.0) c = lerp(c, gFx2.rgb, saturate(gFx0.y * smoothstep(0.05, 0.5, r2 * 2.0)));
+    // flash
+    c = lerp(c, gFx3.rgb, gFx0.w);
+    float3 outc = linearToSrgb(saturate(c));
     // film grain + dither to hide banding
     float n = ign(i.pos.xy, gTime.z) - 0.5;
-    outc += n * (gPost1.z + 1.0 / 255.0);
+    outc += n * (gPost1.z + gFx3.w * 0.08 + 1.0 / 255.0);
     return float4(outc, 1);
 }

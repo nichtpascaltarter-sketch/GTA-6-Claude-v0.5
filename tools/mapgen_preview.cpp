@@ -4,6 +4,7 @@
 #include "../src/core/noise.cpp"
 #include "../src/core/jobs.cpp"
 #include "../src/world/worldmap.cpp"
+#include "../src/world/sites.cpp"
 #include "../src/world/roads.cpp"
 #include "../src/world/buildings.cpp"
 #include <thread>
@@ -57,6 +58,33 @@ int main(int argc, char** argv) {
         unsigned char* d = &img[((size_t)py * W + px) * 3];
         d[0] = (unsigned char)(c.x * 255); d[1] = (unsigned char)(c.y * 255); d[2] = (unsigned char)(c.z * 255);
     };
+    // Site pads (runways dark, taxiways/aprons light gray, decks brown) and element anchors
+    for (auto& pd : World::gSites->pads) {
+        vec3 col = pd.kind == World::PAD_RUNWAY ? vec3(0.12f) : pd.kind == World::PAD_DECK ? vec3(0.55f, 0.4f, 0.25f)
+                 : pd.kind == World::PAD_YARD ? vec3(0.78f) : pd.kind == World::PAD_PLAZA ? vec3(0.85f, 0.75f, 0.6f) : vec3(0.62f);
+        vec2 ay = perp(pd.ax);
+        for (float u = -pd.hx; u <= pd.hx; u += 4.f)
+            for (float v = -pd.hy; v <= pd.hy; v += 4.f) { vec2 q = pd.c + pd.ax * u + ay * v; plot(q.x, q.y, col); }
+    }
+    for (auto& e : World::gSites->elems) {
+        vec3 col = e.kind < 40 ? vec3(1, 0.2f, 0.2f) : e.kind < 80 ? vec3(0.2f, 0.9f, 1) : e.kind < 100 ? vec3(0.2f, 1, 0.3f) : vec3(1, 0.3f, 1);
+        if (e.kind == World::SK_CONTAINER_BLOCK) col = vec3(0.9f, 0.5f, 0.1f);
+        if (e.kind == World::SK_RUNWAY || e.kind == World::SK_TAXI_MARKS || e.kind == World::SK_APRON_MARKS || e.kind == World::SK_FENCE) continue;
+        if (!e.pts.empty() && e.kind != World::SK_BILLBOARD) {
+            for (size_t i = 0; i + 1 < e.pts.size(); i++)
+                for (int k = 0; k <= 8; k++) { vec2 q = lerp(e.pts[i], e.pts[i + 1], k / 8.f); plot(q.x, q.y, col); }
+            continue;
+        }
+        vec2 ay = perp(e.ax);
+        float hx = Min(e.hx, 400.f), hy = Min(e.hy, 400.f);
+        for (float u = -hx; u <= hx; u += 6.f)
+            for (float v = -hy; v <= hy; v += 6.f) {
+                if (fabsf(u) < hx - 6.f && fabsf(v) < hy - 6.f) continue;  // outline only
+                vec2 q = e.c + e.ax * u + ay * v;
+                plot(q.x, q.y, col);
+            }
+        plot(e.c.x, e.c.y, vec3(1));
+    }
     for (auto& e : roads.edges) {
         vec3 col = e.cls == World::RC_HIGHWAY ? vec3(1, 0.55f, 0.1f) : e.cls == World::RC_BOULEVARD ? vec3(1, 1, 0.3f) : e.cls == World::RC_RAMP ? vec3(1, 0.3f, 0.3f)
                  : e.cls == World::RC_RURAL ? vec3(0.9f, 0.85f, 0.7f) : e.cls == World::RC_DIRT ? vec3(0.6f, 0.45f, 0.3f) : vec3(0.95f, 0.95f, 0.95f);

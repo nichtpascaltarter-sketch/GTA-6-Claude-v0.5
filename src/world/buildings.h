@@ -62,6 +62,7 @@ struct BuildingSet {
     std::vector<std::vector<int>> cellLists;  // per streaming cell: building indices (by center)
     std::vector<std::string> signNames;       // shop sign texts (index = sign slot)
     void generate(WorldMap& map, const RoadNetwork& roads);
+    void addSiteBuilding(WorldMap& map, const struct SiteBuildingReq& q, u32 seed);
     // Collision query: returns true if p (xy) is inside any building footprint (with margin)
     bool pointInBuilding(vec2 p, float margin, float* topZ = nullptr) const;
     void buildingsNear(vec2 p, float r, std::vector<int>& out) const;

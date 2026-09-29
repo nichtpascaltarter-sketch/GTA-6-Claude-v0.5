@@ -266,6 +266,8 @@ struct FrameBuilder {
             bool prevVoicedRelease = i > 0 && (hasFlag(prev, PF_STOP) || prev == PH_JH) && hasFlag(prev, PF_VOICED) &&
                                      s.vot <= 0.f;
             bool vowel = isVowel(s.ph);
+            // /h/ between voiced sounds is breathy-voiced ("a house")
+            bool hVoiced = s.ph == PH_HH && i + 1 < M && (isVowel(next) || hasFlag(next, PF_SONOR)) && prevVoiced;
             // phrase position for intensity declination
             float emphDb = (s.flags & SF_EMPH) ? 3.f : 0.f;
             float shoutDb = (s.flags & SF_SHOUT) ? 4.f : 0.f;
@@ -311,7 +313,15 @@ struct FrameBuilder {
             } else if (hasFlag(s.ph, PF_FRIC) && hasFlag(s.ph, PF_VOICED)) {
                 float A = dbLin(p.av + shoutDb);
                 av.add(t0 + 0.008f, A);
-                av.add(t1 - 0.008f, A * 0.9f);
+                bool nextVoicelessObs = hasFlag(next, PF_OBSTRUENT) && !hasFlag(next, PF_VOICED);
+                if (nextVoicelessObs || next == PH_SIL || i + 1 >= M) {
+                    // a final voiced fricative devoices progressively before a voiceless sound or a pause
+                    // ("has to" [hass tu]); the preceding vowel length keeps the voicing contrast
+                    av.add(t0 + 0.5f * d, A * (nextVoicelessObs ? 0.5f : 0.7f));
+                    av.add(t1 - 0.004f, A * (nextVoicelessObs ? 0.1f : 0.3f));
+                } else {
+                    av.add(t1 - 0.008f, A * 0.9f);
+                }
             } else if (s.ph == PH_JH) {
                 // closure with a low-passed voice bar, then voiced frication
                 float A = dbLin(p.av);
@@ -321,8 +331,8 @@ struct FrameBuilder {
                 float bar = dbLin(42.f);
                 av.add(t0 + 0.006f, vc ? bar : 0.f);
                 av.add(std::max(t0 + 0.007f, tc - 0.004f), vc ? bar * 0.8f : bar * 0.5f);
-                av.add(tc + 0.006f, A * 0.8f);
-                av.add(t1 - 0.006f, A * 0.8f);
+                av.add(tc + 0.006f, A * (vc ? 0.8f : 0.6f));
+                av.add(t1 - 0.006f, A * (vc ? 0.8f : 0.6f));
             } else if (hasFlag(s.ph, PF_STOP) && hasFlag(s.ph, PF_VOICED)) {
                 // Voice bar: through the whole closure after voiced sounds, otherwise prevoicing in its last part.
                 float burst = p.burstMs * 0.001f;
@@ -352,8 +362,7 @@ struct FrameBuilder {
                 av.add(t0 + 0.35f * d, A);
                 av.add(t1 - 0.35f * d, A);
             } else if (s.ph == PH_HH) {
-                bool nextV = isVowel(next) || hasFlag(next, PF_SONOR);
-                if (prevVoiced && nextV) {
+                if (hVoiced) {
                     av.add(t0 + 0.3f * d, dbLin(33.f));
                     av.add(t1 - 0.3f * d, dbLin(33.f));
                 } else {
@@ -445,11 +454,11 @@ struct FrameBuilder {
                 burst = std::min(burst, 0.6f * d);
                 float tb = t1 - burst;
                 float db = p.burstAf + shoutDb * 0.5f;
-                if (s.flags & SF_UNRELEASED) {
-                    // weak release only when the next stop has a different place (keeps the place cue)
+                if (s.flags & (SF_UNRELEASED | SF_WEAKREL)) {
+                    // weak release only when the next consonant has a different place (keeps the place cue)
                     u32 placeMask = PF_LABIAL | PF_ALVEOLAR | PF_VELAR | PF_POSTALV;
                     bool homorganic = (phInfo(next).flags & placeMask) == (p.flags & placeMask);
-                    db = homorganic ? 0.f : db - 16.f;
+                    db = homorganic ? 0.f : db - ((s.flags & SF_UNRELEASED) ? 16.f : 14.f);
                 }
                 if (!(s.flags & SF_STRESSED) && !(s.flags & SF_PREPAUSE)) db -= 2.f;
                 float L = dbLin(db);
@@ -465,7 +474,7 @@ struct FrameBuilder {
                     velarF = bd.V[1] > 1700.f * fsc ? 0.5f * (bd.V[1] + bd.V[2]) : bd.V[1] * 1.05f;
                 }
                 setSpectrum(t0, t1, affricated ? phInfo(PH_CH) : p, velarF);
-                if (!(s.flags & SF_UNRELEASED)) {
+                if (!(s.flags & (SF_UNRELEASED | SF_WEAKREL))) {
                     // Release transient: an impulse exciting the whole vocal tract (dominant cue for labials).
                     float amp = hasFlag(s.ph, PF_LABIAL) ? 1.0f : hasFlag(s.ph, PF_VELAR) ? 0.2f : 0.25f;
                     amp *= hasFlag(s.ph, PF_VOICED) ? 0.6f : 1.3f;

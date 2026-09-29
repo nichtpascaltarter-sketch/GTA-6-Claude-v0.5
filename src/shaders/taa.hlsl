@@ -5,6 +5,7 @@ Texture2D<float4> tCurrent : register(t0);
 Texture2D<float4> tHistory : register(t1);
 Texture2D<float2> tVelocity : register(t2);
 Texture2D<float> tDepth : register(t3);
+Texture2D<float> tReactive : register(t4);   // particles / rain coverage: favor the current frame
 RWTexture2D<float4> uOut : register(u0);
 
 cbuffer TAACB : register(b1) {
@@ -99,6 +100,7 @@ void csTAA(uint3 id : SV_DispatchThreadID) {
     hist = yCoCgToRgb(hy);
     float speed = length(vel * gScreen.xy);
     float blend = gTAA.y + saturate(speed * 0.02) * 0.2;
+    blend = lerp(blend, 1.0, tReactive[p] * 0.9);
     if (gTAA.x > 0.5 || offscreen) blend = 1.0;
     float3 res = lerp(hist, cur, blend);
     uOut[id.xy] = float4(untonemapW(res), 1);

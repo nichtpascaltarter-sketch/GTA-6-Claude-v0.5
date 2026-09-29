@@ -1,0 +1,181 @@
+// Ambient speech ("barks"): short original lines spoken by pedestrians, drivers, gang members and police through the
+// formant TTS, varied by temperament, gender and neighborhood, rate limited, with subtitles only when close.
+#include "gameworld.h"
+
+namespace Game {
+
+namespace barks_detail {
+
+enum LineFlags : u8 { LB_BOLD = 1, LB_TIMID = 2, LB_LUNA = 4, LB_BEACH = 8, LB_DOWNTOWN = 16, LB_FEMALE = 32, LB_MALE = 64 };
+
+struct Line {
+    const char* text;
+    u8 flags;
+};
+
+struct Bank {
+    int kind;
+    const Line* lines;
+    int count;
+};
+
+const Line kGreet[] = {{"Morning.", 0}, {"Nice day, huh?", 0}, {"Hey there.", 0}, {"Buenas.", LB_LUNA}, {"Beautiful out here.", LB_BEACH},
+                       {"Excuse me, running late.", LB_DOWNTOWN}, {"How you doing?", 0}, {"Oye, que tal?", LB_LUNA}};
+const Line kBump[] = {{"Watch it!", 0}, {"Hey, eyes up!", 0}, {"Excuse you.", 0}, {"Sorry, sorry.", LB_TIMID}, {"Do you mind?", 0},
+                      {"Careful, pal.", LB_BOLD}, {"Seriously?", 0}, {"Mira por donde vas!", LB_LUNA}};
+const Line kInsult[] = {{"You got a problem?", LB_BOLD}, {"Keep walking.", 0}, {"Unbelievable.", 0}, {"What is wrong with you?", 0},
+                        {"Back off!", LB_BOLD}, {"Tourists. Every time.", LB_BEACH}};
+const Line kPanic[] = {{"Oh my god!", 0}, {"What was that?", 0}, {"Somebody help!", 0}, {"No no no!", LB_TIMID}, {"Get down!", LB_BOLD},
+                       {"Dios mio!", LB_LUNA}, {"Is that a gun?", 0}, {"Are you kidding me?", 0}};
+const Line kFlee[] = {{"Run!", 0}, {"Get out of here!", 0}, {"Move, move!", LB_BOLD}, {"I am out of here!", 0}, {"Corre, corre!", LB_LUNA},
+                      {"Everybody run!", 0}, {"Not today!", 0}};
+const Line kCower[] = {{"Please don't hurt me!", 0}, {"I have kids!", 0}, {"Please, please.", LB_TIMID}, {"Leave me alone!", 0},
+                       {"Take whatever you want!", 0}, {"Por favor, no!", LB_LUNA}};
+const Line kCallPolice[] = {{"I'm calling the cops!", 0}, {"Somebody call nine one one!", 0}, {"I'm getting the police!", 0},
+                            {"You are so going to jail!", LB_BOLD}};
+const Line kPhoneReport[] = {{"Police? Somebody's shooting on the street!", 0}, {"Yes, hello, there's a crazy person here!", 0},
+                             {"I need the police, right now!", 0}, {"Someone just got attacked, send somebody!", 0},
+                             {"Hello? There's a guy with a gun!", 0}};
+const Line kHandsUp[] = {{"Okay, okay! Easy!", 0}, {"Don't shoot!", 0}, {"I don't want trouble!", 0}, {"Whoa, whoa, calm down!", LB_BOLD},
+                         {"Take it easy, please!", LB_TIMID}};
+const Line kCarjacked[] = {{"Hey! That's my car!", 0}, {"Are you crazy? Get out!", LB_BOLD}, {"My car! Somebody stop him!", 0},
+                           {"You're not taking my ride!", LB_BOLD}, {"Ladron! Mi carro!", LB_LUNA}};
+const Line kHonk[] = {{"Move it!", 0}, {"Come on, come on!", 0}, {"Today, please!", 0}, {"Get out of the road!", LB_BOLD},
+                      {"Are you parked there?", 0}, {"Vamos, muevete!", LB_LUNA}, {"Learn to drive!", LB_BOLD}};
+const Line kCrash[] = {{"You hit my car!", 0}, {"Look what you did!", 0}, {"My insurance!", 0}, {"Were you even looking?", 0},
+                       {"Brand new paint job!", LB_BOLD}};
+const Line kThanks[] = {{"Thank you so much!", 0}, {"You're a lifesaver!", 0}, {"Thanks, I owe you one.", 0}, {"Gracias, de verdad.", LB_LUNA},
+                        {"Here, take this. You earned it.", 0}};
+const Line kHelp[] = {{"Hey! Can you help me?", 0}, {"Excuse me, over here!", 0}, {"Could you give me a hand?", 0}, {"Please, I need some help!", 0}};
+const Line kDrunk[] = {{"Where did I park the boat?", 0}, {"Everybody loves me.", 0}, {"This sidewalk keeps moving.", 0},
+                       {"One more round, for the road.", 0}, {"I'm fine. I'm totally fine.", 0}, {"Who turned the street sideways?", 0}};
+const Line kMusicPraise[] = {{"Play another one!", 0}, {"This guy is good!", 0}, {"Love this song.", 0}, {"Otra, otra!", LB_LUNA}};
+const Line kTourist[] = {{"Get the palm trees in!", 0}, {"Smile, honey!", 0}, {"One more, with the ocean.", LB_BEACH},
+                         {"Is this the famous street?", 0}, {"Look at that sunset!", 0}};
+const Line kFilming[] = {{"Oh, this is going online.", 0}, {"Are you getting this?", 0}, {"Fight, fight!", LB_BOLD}, {"No way, look at this!", 0}};
+const Line kGangWarn[] = {{"You lost, homie?", 0}, {"Wrong block, friend.", 0}, {"Put that away before you get hurt.", 0},
+                          {"This is our street.", 0}, {"Keep walking.", 0}, {"Tu no eres de aqui.", LB_LUNA}, {"You looking for trouble?", 0}};
+const Line kGangAttack[] = {{"Get him!", 0}, {"You asked for it!", 0}, {"Light him up!", 0}, {"Nobody disrespects the block!", 0},
+                            {"Dale, dale!", LB_LUNA}};
+const Line kGangTaunt[] = {{"That's what I thought.", 0}, {"Run home!", 0}, {"Don't come back!", 0}};
+const Line kCopFreeze[] = {{"Freeze! Police!", 0}, {"Police! Don't move!", 0}, {"Drop the weapon!", 0}, {"Hands where I can see them!", 0},
+                           {"Stop right there!", 0}};
+const Line kCopGround[] = {{"Get on the ground!", 0}, {"On your knees, now!", 0}, {"Hands behind your head!", 0}, {"Don't make this worse!", 0}};
+const Line kCopSpotted[] = {{"Suspect spotted!", 0}, {"I have eyes on the suspect!", 0}, {"There he is!", 0}, {"Visual on the suspect, moving in!", 0}};
+const Line kCopLost[] = {{"We lost him.", 0}, {"Suspect is out of sight.", 0}, {"Where did he go?", 0}, {"Lost visual.", 0}};
+const Line kCopChatter[] = {{"All units, suspect heading north.", 0}, {"Requesting backup.", 0}, {"Units converging on the location.", 0},
+                            {"Dispatch, we are in pursuit.", 0}, {"Set up a perimeter.", 0}, {"Air unit, do you have a visual?", 0},
+                            {"Suspect vehicle is fleeing, all units respond.", 0}};
+const Line kCopEngage[] = {{"Shots fired! Shots fired!", 0}, {"Take him down!", 0}, {"Open fire!", 0}, {"Suspect is armed!", 0}};
+const Line kCopCover[] = {{"Taking cover!", 0}, {"Cover me!", 0}, {"Flanking left!", 0}, {"Moving up!", 0}, {"I'm going around!", 0}};
+const Line kCopArrest[] = {{"You're under arrest.", 0}, {"Turn around, slowly.", 0}, {"It's over, give it up.", 0}};
+const Line kCopDown[] = {{"Officer down!", 0}, {"Man down, man down!", 0}, {"We need medical, officer down!", 0}};
+const Line kMugger[] = {{"Wallet. Now.", 0}, {"Give me the bag!", 0}, {"Don't be a hero.", 0}, {"Empty your pockets!", 0}};
+const Line kVictim[] = {{"Help! Thief!", 0}, {"He took my bag!", 0}, {"Stop him!", 0}, {"Somebody stop that guy!", 0}, {"Al ladron!", LB_LUNA}};
+const Line kArgue[] = {{"You slammed right into me!", 0}, {"Me? You stopped for no reason!", 0}, {"I'm calling my lawyer!", 0},
+                       {"Show me your license!", 0}, {"Look at my bumper!", 0}, {"You came out of nowhere!", 0}};
+const Line kRace[] = {{"Eat my dust!", 0}, {"Let's see what you got!", 0}, {"Green means go!", 0}};
+const Line kMedic[] = {{"Stay with me.", 0}, {"We need a stretcher here.", 0}, {"Pulse is weak, move!", 0}, {"Step back, give us room.", 0}};
+const Line kBreakdown[] = {{"Of course. Of course it dies now.", 0}, {"Come on, start!", 0}, {"Anybody know engines?", 0}};
+const Line kDive[] = {{"Whoa!", 0}, {"Look out!", 0}, {"Are you insane?", 0}, {"Watch where you're going!", 0}, {"Maniac!", LB_BOLD}};
+const Line kGunSeen[] = {{"Whoa, he's got a gun!", 0}, {"Easy with that thing.", LB_BOLD}, {"Oh no, no, no.", LB_TIMID},
+                         {"Put that away, man.", 0}, {"Is that real?", 0}};
+const Line kCopSearch[] = {{"Check the alleys.", 0}, {"He's around here somewhere.", 0}, {"Search the area.", 0}, {"Keep your eyes open.", 0}};
+const Line kCopBackup[] = {{"Backup is on the way!", 0}, {"Heavy units responding.", 0}, {"Air support inbound.", 0}};
+const Line kWitnessStop[] = {{"Okay, I hung up! I hung up!", 0}, {"I didn't see anything!", 0}, {"I won't call, I swear!", 0}};
+const Line kJog[] = {{"On your left.", 0}, {"Morning!", 0}, {"Five more miles.", 0}};
+const Line kPhoneChat[] = {{"No, I told her already.", 0}, {"Are you serious? No way.", 0}, {"I'll be there in ten.", 0},
+                           {"Can you hear me now?", 0}, {"Yeah, yeah, I know.", 0}, {"Mira, te llamo luego.", LB_LUNA}};
+
+#define BANK(k, arr) {k, arr, (int)ARRAY_COUNT(arr)}
+const Bank kBanks[] = {
+    BANK(BK_GREET, kGreet), BANK(BK_BUMP, kBump), BANK(BK_INSULT, kInsult), BANK(BK_PANIC, kPanic), BANK(BK_FLEE, kFlee),
+    BANK(BK_COWER, kCower), BANK(BK_CALL_POLICE, kCallPolice), BANK(BK_PHONE_REPORT, kPhoneReport), BANK(BK_HANDS_UP, kHandsUp),
+    BANK(BK_CARJACKED, kCarjacked), BANK(BK_HONK, kHonk), BANK(BK_CRASH, kCrash), BANK(BK_THANKS, kThanks), BANK(BK_HELP, kHelp),
+    BANK(BK_DRUNK, kDrunk), BANK(BK_MUSIC_PRAISE, kMusicPraise), BANK(BK_TOURIST, kTourist), BANK(BK_FILMING, kFilming),
+    BANK(BK_GANG_WARN, kGangWarn), BANK(BK_GANG_ATTACK, kGangAttack), BANK(BK_GANG_TAUNT, kGangTaunt), BANK(BK_COP_FREEZE, kCopFreeze),
+    BANK(BK_COP_GROUND, kCopGround), BANK(BK_COP_SPOTTED, kCopSpotted), BANK(BK_COP_LOST, kCopLost), BANK(BK_COP_CHATTER, kCopChatter),
+    BANK(BK_COP_ENGAGE, kCopEngage), BANK(BK_COP_COVER, kCopCover), BANK(BK_COP_ARREST, kCopArrest), BANK(BK_COP_DOWN, kCopDown),
+    BANK(BK_MUGGER, kMugger), BANK(BK_VICTIM, kVictim), BANK(BK_ARGUE, kArgue), BANK(BK_RACE, kRace), BANK(BK_MEDIC, kMedic),
+    BANK(BK_BREAKDOWN, kBreakdown), BANK(BK_DIVE, kDive), BANK(BK_GUN_SEEN, kGunSeen), BANK(BK_COP_SEARCH, kCopSearch),
+    BANK(BK_COP_BACKUP, kCopBackup), BANK(BK_WITNESS_STOP, kWitnessStop), BANK(BK_JOG, kJog), BANK(BK_PHONE_CHAT, kPhoneChat),
+};
+#undef BANK
+
+const char* speakerName(const Ped& p, u8 role) {
+    if (p.faction == FAC_POLICE) return "Officer";
+    if (p.faction == FAC_GANG_CUERVOS) return "Cuervo";
+    if (p.faction == FAC_GANG_SAINTS) return "Saint";
+    if (p.faction == FAC_MEDIC) return "Paramedic";
+    switch (role) {
+        case PR_TOURIST: return "Tourist";
+        case PR_DRUNK: return "Drunk";
+        case PR_MUSICIAN: return "Musician";
+        case PR_JOGGER: return "Jogger";
+        default: break;
+    }
+    if (p.state == PS_INVEHICLE) return "Driver";
+    return p.female ? "Woman" : "Man";
+}
+
+}  // namespace barks_detail
+
+using namespace barks_detail;
+
+void GameWorld::aiSay(int pid, int kind, float chance, bool important) {
+    if (pid < 0 || pid >= (int)peds.size() || !peds[pid].used || kind < 0 || kind >= BK_COUNT) return;
+    Ped& p = peds[pid];
+    if (p.isPlayer || p.health <= 0.f) return;
+    PedAI& pa = pedAI(pid);
+    if (pa.barkCooldown > 0.f || p.speechCooldown > 0.f) return;
+    if (!important && ai.barkGlobal > 0.f) return;
+    u32 h = hash32(p.uid * 2654435761u + (u32)kind * 7919u + (u32)(time * 13.0));
+    if (hashToFloat(h) > chance) {
+        pa.barkCooldown = 1.5f;
+        return;
+    }
+    // speech only matters near the listener
+    vec3 head = pedHeadPos(p);
+    float camD = length(rel(dvec3(head), rig.cam.pos));
+    if (camD > 60.f) return;
+    const Bank* bank = nullptr;
+    for (const Bank& b : kBanks)
+        if (b.kind == kind) bank = &b;
+    if (!bank || bank->count == 0) return;
+    World::Region reg = map->regionAt(head.x, head.y);
+    u8 want = 0;
+    if (reg == World::REG_CALLE_LUNA || reg == World::REG_FLATS) want |= LB_LUNA;
+    if (reg == World::REG_BEACH || reg == World::REG_KEY_CORAL) want |= LB_BEACH;
+    if (reg == World::REG_DOWNTOWN || reg == World::REG_FINANCIAL) want |= LB_DOWNTOWN;
+    int candidates[16];
+    int n = 0;
+    for (int i = 0; i < bank->count && n < 16; i++) {
+        u8 f = bank->lines[i].flags;
+        if ((f & LB_BOLD) && pa.temper != 2) continue;
+        if ((f & LB_TIMID) && pa.temper != 0) continue;
+        if ((f & (LB_LUNA | LB_BEACH | LB_DOWNTOWN)) && !(f & want)) continue;
+        if ((f & LB_FEMALE) && !p.female) continue;
+        if ((f & LB_MALE) && p.female) continue;
+        candidates[n++] = i;
+    }
+    if (n == 0) return;
+    const Line& line = bank->lines[candidates[hash32(h) % n]];
+#ifdef HAVE_AUDIO
+    float vol = kind == BK_COP_CHATTER ? 0.75f : 1.f;
+    Audio::speakAt(line.text, p.voice, head, vol);
+    float dur = Audio::estimateSpeechDuration(line.text, p.voice);
+#else
+    float dur = 1.5f;
+#endif
+    p.speechCooldown = dur + 0.4f;
+    pa.barkCooldown = dur + 3.f + hashToFloat(hash32(h + 1u)) * 4.f;
+    ai.barkGlobal = Min(dur * 0.5f, 1.2f);
+    // subtitles only when close to the player (or for important lines within earshot)
+    Ped* pl = playerPed();
+    if (pl && settingsSubtitles && subTimer <= 0.2f) {
+        float d = length(rel(p.pos, pl->pos));
+        if (d < 12.f || (important && d < 25.f)) subtitle(speakerName(p, pa.role), line.text, Max(dur, 1.2f) + 0.6f, 0xffd0d0d0u);
+    }
+}
+
+}  // namespace Game

@@ -1,4 +1,5 @@
 #include "worldmap.h"
+#include "sites.h"
 #include "../core/noise.h"
 #include "../core/jobs.h"
 
@@ -113,6 +114,7 @@ Region WorldMap::classify(float x, float y, float sdf) const {
     if (inPoly(p, solBeach)) return REG_BEACH;
     if (inPoly(p, keyCoral)) return REG_KEY_CORAL;
     if (inPoly(p, portIsle)) return REG_PORT;
+    if (x >= kAirportX0 && x <= kAirportX1 && y >= kAirportY0 && y <= kAirportY1) return REG_AIRPORT;
     for (size_t i = 0; i < smallIslands.size(); i++) {
         if (inPoly(p, smallIslands[i])) {
             // Bay islands first (x > 3.9 km), keys have negative y below -6 km
@@ -136,7 +138,6 @@ Region WorldMap::classify(float x, float y, float sdf) const {
     if (boxMask(q, 2.72f, 4.2f, -2.05f, -0.62f) > 0) return REG_FINANCIAL;
     if (boxMask(q, 2.3f, 4.6f, 0.92f, 3.0f) > 0) return REG_MIDTOWN;
     if (boxMask(q, 0.95f, 2.62f, -0.92f, 0.92f) > 0) return REG_CALLE_LUNA;
-    if (boxMask(q, -0.8f, 0.95f, 0.55f, 2.3f) > 0) return REG_AIRPORT;
     if (boxMask(q, 1.0f, 5.0f, 3.0f, 5.4f) > 0) return REG_NORTH_CITY;
     if (boxMask(q, -0.8f, 1.0f, 2.3f, 5.1f) > 0 || boxMask(q, 0.95f, 2.3f, 0.92f, 3.0f) > 0) return REG_FLATS;
     if (boxMask(q, 0.9f, 3.9f, -4.7f, -2.05f) > 0 || boxMask(q, 1.8f, 2.72f, -2.05f, -0.92f) > 0) return REG_GROVE;
@@ -160,8 +161,10 @@ void WorldMap::generate() {
                    2.4f, 9.5f, 4.0f, 9.6f, 5.0f, 9.6f});
     solBeach = km({4.95f, -2.65f, 5.3f, -2.55f, 5.4f, -1.5f, 5.45f, 0.0f, 5.45f, 1.5f, 5.4f, 3.0f, 5.3f, 4.2f, 5.12f, 4.45f,
                    4.96f, 4.3f, 4.9f, 3.0f, 4.85f, 1.5f, 4.8f, 0.0f, 4.8f, -1.5f, 4.85f, -2.3f});
-    keyCoral = km({4.35f, -3.0f, 4.7f, -3.1f, 4.75f, -4.0f, 4.55f, -4.9f, 4.25f, -5.0f, 4.1f, -4.2f, 4.15f, -3.4f});
-    portIsle = km({3.97f, -0.45f, 4.55f, -0.5f, 4.6f, 0.02f, 4.02f, 0.12f});
+    keyCoral = km({4.30f, -2.97f, 4.62f, -3.0f, 4.84f, -3.22f, 4.9f, -3.7f, 4.84f, -4.35f, 4.64f, -4.95f, 4.3f, -5.12f, 4.06f, -4.78f,
+                   3.99f, -4.1f, 4.03f, -3.55f, 4.12f, -3.17f});
+    // Port Isle: man-made rectangular island with quay walls (see sites.h)
+    portIsle = {vec2(kPortX0, kPortY0), vec2(kPortX1, kPortY0), vec2(kPortX1, kPortY1), vec2(kPortX0, kPortY1)};
     smallIslands.clear();
     // Bay islands (mansions)
     smallIslands.push_back(ellipse(vec2(4300, 1300), vec2(1, 0.2f), 190, 120, 20, 11, 0.08f));
@@ -283,6 +286,11 @@ void WorldMap::generate() {
             vec2 pkm(x / 1000.f, y / 1000.f);
             float cityMask = (pkm.x > 2.4f && pkm.x < 4.3f && pkm.y > -2.2f && pkm.y < 4.4f) ? 1.f : 0.f;
             float warpAmt = 1.f - 0.8f * cityMask;
+            {
+                // Port Isle keeps straight quay lines
+                float dPort = Max(Max(kPortX0 - x, x - kPortX1), Max(kPortY0 - y, y - kPortY1));
+                warpAmt *= SmoothStep(0.f, 180.f, dPort);
+            }
             float sx = (x + wx * warpAmt + kWorldHalf) / coarseCell - 0.5f;
             float sy = (y + wy * warpAmt + kWorldHalf) / coarseCell - 0.5f;
             int ix = Clamp((int)floorf(sx), 0, cr - 2), iy = Clamp((int)floorf(sy), 0, cr - 2);
@@ -384,6 +392,8 @@ void WorldMap::generate() {
             region[idx] = (u8)reg;
         }
     }, 8);
+    // Special sites shape the terrain (airfield, quays, basins) and reserve their areas before roads are built
+    gSites->layout(*this);
     recomputeSplat();
     LOG("World map generated in %.2f s", TimeSeconds() - t0);
 }
@@ -447,7 +457,8 @@ void WorldMap::recomputeSplat() {
                 w[TL_DIRT] = 0.18f * (1.f - n) * (1.f - urban * 0.5f);
                 if (reg == REG_BEACH || reg == REG_KEY_CORAL || reg == REG_KEYS || reg == REG_KEY_TOWN) w[TL_SAND] = 0.35f * n;
                 if (reg == REG_GROVE || reg == REG_BAY_ISLAND) w[TL_FOREST] = 0.3f * n2;
-                if (reg == REG_AIRPORT || reg == REG_PORT) { w[TL_URBAN] = 1.f; w[TL_GRASS] = 0.6f * n2; }
+                if (reg == REG_PORT) { w[TL_URBAN] = 1.f; w[TL_GRASS] = 0.1f * n2; }
+                if (reg == REG_AIRPORT) { w[TL_URBAN] = 0.08f; w[TL_GRASS] = 1.f; w[TL_DIRT] = 0.12f * n; }
             }
             // Beach sand near the coast line
             float sdf = coastDistance(x, y);

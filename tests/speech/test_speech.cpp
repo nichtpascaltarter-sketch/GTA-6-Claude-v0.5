@@ -1,8 +1,12 @@
 // Native test harness for the procedural TTS (src/audio/speech.cpp).
 // Build:  g++ -std=c++17 -O2 -I src tests/speech/test_speech.cpp -o /tmp/test_speech -lpthread
 // Usage:  /tmp/test_speech [--out DIR] [--rate HZ] [--say "text"] [--voice NAME] [--phon "text"] [--quick]
-// Writes one WAV per (sentence, voice) plus manifest.tsv (for tests/speech/asr_eval.py), prints phoneme
-// transcriptions, timing (x real time) and sanity checks (NaN, clipping, silence, determinism, threads).
+//                          [--words] [--focus FILE] [--segs "text"]
+// Writes one WAV per (sentence, voice) plus manifest.tsv / manifest_heldout.tsv (for tests/speech/asr_eval.py),
+// prints phoneme transcriptions, timing (x real time) and sanity checks (NaN, clipping, silence, duration
+// estimate, determinism, threads, text-normalization regressions). --words writes the rhyme-test style word set
+// ("Say the word X again."), --focus synthesizes each line of FILE with every test voice, --segs dumps segment
+// timing for spectrogram overlays. Exit code 1 when any check fails.
 #include <chrono>
 #include <cstdarg>
 #include <thread>
@@ -357,6 +361,38 @@ int main(int argc, char** argv) {
         for (int k = 0; k < nT; k++) same = same && seq[k] == par[k];
         printf("Thread/determinism check: %s\n", same ? "OK" : "MISMATCH");
         if (!same) st.problems++;
+    }
+    // Text normalization regressions (numbers, money, codes, homographs).
+    {
+        static const char* const kNorm[][2] = {
+            {"Meet me at 10:30 on 5th Ave. with $1,500.",
+             "meet me at ten thirty on fifth avenue with one thousand five hundred dollars"},
+            {"It costs \xe2\x82\xac" "4.50 or \xc2\xa3" "2.99.",
+             "it costs four euros and fifty cents or two pounds and ninety nine pence"},
+            {"Take exit 12B, it's a 5K run.", "take exit twelve b it's a five k run"},
+            {"Ages 18-25, call 555-0123.", "ages eighteen to twenty five call five five five oh one two three"},
+            {"In 1986 he scored 102-98.", "in nineteen eighty six he scored one hundred two ninety eight"},
+            {"The suspect fled; we suspect him.", "the {S AH1 S P EH2 K T} fled we {S AH0 S P EH1 K T} him"},
+            {"Close the door, it was close.", "{K L OW1 Z} the door it was {K L OW1 S}"},
+            {"On May 5th, may I?", "on {M EY1} fifth may i"},
+            {"Dr. Smith lives on St. James St.", "doctor smith {L IH1 V Z} on saint james street"},
+        };
+        int bad = 0;
+        for (auto& c : kNorm) {
+            std::vector<Speech::detail::TextWord> tw;
+            Speech::detail::normalizeText(c[0], tw);
+            std::string got;
+            for (auto& w : tw) {
+                if (!got.empty()) got += ' ';
+                got += w.phon ? "{" + w.w + "}" : w.w;
+            }
+            if (got != c[1]) {
+                printf("  normalization mismatch: '%s'\n    got:      %s\n    expected: %s\n", c[0], got.c_str(), c[1]);
+                bad++;
+            }
+        }
+        printf("Normalization checks: %s\n", bad ? "FAILED" : "OK");
+        st.problems += bad;
     }
     // Edge cases.
     {

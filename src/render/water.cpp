@@ -5,6 +5,7 @@ struct WaterCBData {
     vec4 params;
     vec4 morph[16];
     vec4 mode;
+    vec4 reflection;  // x screen-space reflections enabled, y max HiZ iterations, z HiZ max mip
 };
 
 struct WaterRenderer {
@@ -109,7 +110,8 @@ struct WaterRenderer {
         return true;
     }
 
-    void draw(Renderer& r, TerrainRenderer& t, ID3D11ShaderResourceView* sceneColor, ID3D11ShaderResourceView* sceneDepth, float waveStrength) {
+    void draw(Renderer& r, TerrainRenderer& t, ID3D11ShaderResourceView* sceneColor, ID3D11ShaderResourceView* sceneDepth, float waveStrength,
+              ID3D11ShaderResourceView* hiz, int hizMips) {
         auto* c = gfx::ctx;
         Frustum fr;
         fr.fromMatrix(r.viewProjNoJitter);
@@ -125,13 +127,15 @@ struct WaterRenderer {
             cb.data.morph[l] = vec4(Lerp(lo, hi, 0.62f), hi * 0.96f, 0, 0);
         }
         cb.data.mode = vec4(0, World::kWorldHalf, 45000.f, 1.f);
+        bool ssr = r.settings.waterSSR && hiz;
+        cb.data.reflection = vec4(ssr ? 1.f : 0.f, r.settings.ssrQuality >= 3 ? 64.f : 40.f, (float)(hizMips - 1), 0.f);
         cb.upload();
         ID3D11Buffer* cbs[] = {cb.get()};
         c->VSSetConstantBuffers(1, 1, cbs);
         c->PSSetConstantBuffers(1, 1, cbs);
         ID3D11Buffer* scb[] = {r.shadowCB.get()};
         c->PSSetConstantBuffers(3, 1, scb);
-        ID3D11ShaderResourceView* srvs[7] = {t.heightTex.srv, t.waterTex.srv, sceneColor, sceneDepth, waveTex.srv, nullptr, nodeBuf.srv};
+        ID3D11ShaderResourceView* srvs[7] = {t.heightTex.srv, t.waterTex.srv, sceneColor, sceneDepth, waveTex.srv, hiz, nodeBuf.srv};
         c->VSSetShaderResources(0, 7, srvs);
         c->PSSetShaderResources(0, 7, srvs);
         c->IASetInputLayout(vs.layout);

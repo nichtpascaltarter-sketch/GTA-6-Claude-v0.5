@@ -1,19 +1,39 @@
 // Water surface: ocean, bay, rivers, canals and the lake. Forward-shaded into the HDR buffer.
-#include "skycommon.hlsli"
+#include "reflection.hlsli"
 #include "shadow.hlsli"
+#include "ssrtrace.hlsli"
 
 Texture2D<float> tHeight : register(t0);
 Texture2D<float> tWaterLevel : register(t1);
 Texture2D<float4> tSceneColor : register(t2);   // HDR copy (pre-exposed) for refraction
 Texture2D<float> tSceneDepth : register(t3);
 Texture2D<float4> tWaveNormals : register(t4);  // tileable wave normal map (xy normal, z foam mask, w height)
+Texture2D<float2> tHiZ : register(t5);           // depth pyramid of the opaque scene (screen-space reflections)
 StructuredBuffer<float4> tNodes : register(t6);
 
 cbuffer WaterCB : register(b1) {
     float4 gWaterParams;   // x world half, y heightmap texel (m), z grid resolution, w wave strength (weather)
     float4 gMorph[16];     // per lod: morph start, end
     float4 gWaterMode;     // x: 0 = CDLOD world grid, 1 = ocean skirt; y: skirt inner radius; z: skirt outer; w: time scale
+    float4 gWaterRefl;     // x screen-space reflections enabled, y max iterations, z HiZ max mip
 };
+
+// Screen-space reflection of the opaque scene on the water surface (current frame, pre-exposed).
+float4 waterSSR(float3 relPos, float3 R) {
+    if (gWaterRefl.x < 0.5) return 0;
+    ScreenRay ray = makeScreenRay(relPos, R, 1500.0);
+    float3 hit;
+    float iterFrac;
+    if (!traceHiZ(tHiZ, ray, gHalfScreen.xy, (int)gWaterRefl.z, (int)gWaterRefl.y, hit, iterFrac)) return 0;
+    if (any(hit.xy <= 0.0) || any(hit.xy >= 1.0)) return 0;
+    float hd = tSceneDepth.SampleLevel(sPointClamp, hit.xy, 0);
+    if (hd <= 0.0) return 0;
+    float zr = linearDepth(max(hit.z, 1e-7)), zs = linearDepth(hd);
+    if (abs(zr - zs) > max(0.4, zs * 0.04)) return 0;
+    float2 edge = saturate(min(hit.xy, 1.0 - hit.xy) / float2(0.06, 0.12));
+    float conf = edge.x * edge.y * saturate((1.0 - iterFrac) * 4.0);
+    return float4(tSceneColor.SampleLevel(sLinearClamp, hit.xy, 0).rgb, conf);
+}
 
 struct VSOut {
     float4 pos : SV_Position;
@@ -160,10 +180,13 @@ float4 psWater(VSOut i) : SV_Target {
     float3 skyE = evalSH9(float3(0, 0, 1)) * PI;
     float3 inscatter = scatterCol * (sunE * saturate(gSunDir.z) * 0.08 + skyE * 0.12) / PI;
     float3 underwater = refr * trans + inscatter * preExposure() * (1.0 - trans);
-    // Reflection
+    // Reflection: screen-space hits (city skyline, boats, piers) over the environment probe / sky
     float3 R = reflect(-V, N);
     R.z = abs(R.z);
-    float3 refl = skyRadiance(normalize(R), false) * preExposure();
+    R = normalize(R);
+    float3 refl = envReflection(R, 0.02) * preExposure();
+    float4 ssrW = waterSSR(i.rel, R);
+    refl = lerp(refl, ssrW.rgb, ssrW.a);
     float NoV = saturate(dot(N, V));
     float F = 0.02 + 0.98 * pow5(1.0 - NoV);
     // Sun glint (GGX, low roughness)
@@ -182,9 +205,11 @@ float4 psWater(VSOut i) : SV_Target {
     float3 foamCol = (sunE * saturate(gSunDir.z) * shadow + skyE) * 0.8 / PI * preExposure();
     float3 col = lerp(underwater, refl, F) + glint;
     col = lerp(col, foamCol, foam);
-    // Aerial perspective
+    // Aerial perspective + volumetric fog
     float4 ap = aerialPerspective(screenUV, dist);
     col = col * ap.a + ap.rgb * preExposure();
+    float4 fv = froxelFog(screenUV, dot(i.rel, gCamForward.xyz));
+    col = col * fv.a + fv.rgb;
     // Soft edge where water meets the shore (avoid hard line)
     float edge = saturate(thickness / 0.15);
     return float4(min(col, 60000.0), edge);

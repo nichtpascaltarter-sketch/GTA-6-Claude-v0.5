@@ -110,8 +110,12 @@ void solveVelocities(Body& b, ContactSet& cs, float dt, int iters) {
         c.mT2 = b.effMass(c.r, c.t2);
         float vn = dot(b.velAt(c.r), c.n);
         c.target = 0.f;
-        if (c.depth < 0.f) c.target = c.depth / dt;            // speculative: may close the gap this step
-        else if (vn < -1.5f) c.target = -c.e * vn;             // bounce
+        if (c.depth < 0.f) {
+            c.target = c.depth / dt;                            // speculative: may close the gap this step
+            if (vn < c.target && vn < -1.5f) c.target = -c.e * vn;  // ...and it does, hard: bounce like a resting contact
+        } else if (vn < -1.5f) {
+            c.target = -c.e * vn;                               // bounce
+        }
         c.jn = c.jt1 = c.jt2 = c.jp = 0.f;
     }
     for (int it = 0; it < iters; it++) {
@@ -228,6 +232,7 @@ struct StepCtx {
     bool groundValid = false;
     float maxStaticImpulse = 0.f;
     bool handbrake = false;
+    float tireRollTorque = 0.f;  // bikes: roll torque (about fwd, + = lean right) of this step's tire forces about the COM
     vec3 toWorld(vec3 localPt) const { return b.R * (localPt - s->tune.com); }  // local model point -> COM-relative world
 };
 
@@ -381,16 +386,15 @@ bool stateFinite(const VehicleState& s) {
 
 }  // namespace vsim
 
-using namespace vsim;
 
 dvec3 vehicleCenterOfMass(const VehicleState& s) { return s.body.pos + rotate(s.body.rot, s.tune.com); }
 
 void stepVehicle(VehicleState& s, const VehicleControls& c, float dt) {
-    clearEvents(s);
+    vsim::clearEvents(s);
     if (!s.model || !(dt > 0.f) || !Phys::gCollision || !World::gMap) return;
     dt = Min(dt, 0.1f);
     if (s.sleeping) {
-        bool wake = wantsToMove(s, c) || length2(s.body.vel) > 0.05f * 0.05f || length2(s.body.angVel) > 0.05f * 0.05f;
+        bool wake = vsim::wantsToMove(s, c) || length2(s.body.vel) > 0.05f * 0.05f || length2(s.body.angVel) > 0.05f * 0.05f;
         if (!wake && ++s.wakeCheck >= 120) {
             // the ground under a sleeping vehicle can disappear (streamed-out roof, broken prop): re-check once a second
             s.wakeCheck = 0;
@@ -413,9 +417,9 @@ void stepVehicle(VehicleState& s, const VehicleControls& c, float dt) {
     n = Max(n, (int)ceilf(s.speed() * dt / 0.5f));
     n = Clamp(n, 1, 8);
     float h = dt / n;
-    for (int i = 0; i < n && !s.sleeping; i++) stepOnce(s, c, h);
+    for (int i = 0; i < n && !s.sleeping; i++) vsim::stepOnce(s, c, h);
     s.prevHasDriver = c.hasDriver;
-    if (!stateFinite(s)) {
+    if (!vsim::stateFinite(s)) {
         s.body.pos = p0;
         s.body.rot = normalize(q0);
         if (!std::isfinite(s.body.rot.w)) s.body.rot = quat();
@@ -436,7 +440,7 @@ void wheelLocalTransform(const VehicleState& s, int wheel, vec3& pos, quat& rot)
     }
     const WheelSpec& ws = s.model->wheels[wheel];
     const WheelState& w = s.wheels[wheel];
-    float travel = wheelTravel(s, wheel);
+    float travel = vsim::wheelTravel(s, wheel);
     float off = w.compression - s.tune.restComp[wheel];
     // retracted landing gear folds up into the body
     if (s.cls == VC_PLANE && s.gearDown < 1.f) off += (1.f - s.gearDown) * (ws.radius * 1.2f + travel);

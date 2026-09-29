@@ -1,20 +1,11 @@
-// Volumetric clouds: noise generation, half-resolution raymarch with temporal accumulation, cloud shadow map.
-#include "skycommon.hlsli"
+// Volumetric clouds: noise generation, quarter-resolution ray-march with checkerboard temporal reconstruction at
+// half resolution, cloud shadow map.
+#include "cloudcommon.hlsli"
 
-Texture3D<float4> tShapeNoise : register(t0);
-Texture3D<float4> tDetailNoise : register(t1);
-Texture2D<float4> tWeather : register(t2);
 Texture2D<float4> tCloudHistory : register(t3);
-Texture2D<float> tDepthFull : register(t4);
 RWTexture3D<float4> uNoise3D : register(u0);
 RWTexture2D<float4> uOut2D : register(u1);
 
-cbuffer CloudCB : register(b1) {
-    float4 gCloud0;   // x coverage, y density, z bottom (m), w top (m)
-    float4 gCloud1;   // xy wind offset (m), z time, w frame
-    float4 gCloud2;   // x half-res width, y height, z history valid, w rain darkening
-    float4 gCloud3;   // xyz camera position delta (for reprojection), w unused
-};
 
 // ------------------------------------------------------------------------------------------------
 // Noise generation (tileable)
@@ -55,7 +46,6 @@ float perlin3p(float3 p, float P) {
 float worleyFbm(float3 p, float freq) {
     return worley3(p * freq, freq) * 0.625 + worley3(p * freq * 2.0, freq * 2.0) * 0.25 + worley3(p * freq * 4.0, freq * 4.0) * 0.125;
 }
-float remap(float v, float l0, float h0, float l1, float h1) { return l1 + (v - l0) * (h1 - l1) / (h0 - l0); }
 
 [numthreads(4, 4, 4)]
 void csShapeNoise(uint3 id : SV_DispatchThreadID) {
@@ -88,122 +78,115 @@ void csWeather(uint3 id : SV_DispatchThreadID) {
     uOut2D[id.xy] = float4(saturate(c * 0.7 + cells * 0.45 - 0.1), t, saturate(cells * c * 1.5 - 0.4), 1);
 }
 
-// ------------------------------------------------------------------------------------------------
-float heightFraction(float z) { return saturate((z - gCloud0.z) / (gCloud0.w - gCloud0.z)); }
-float heightGradient(float hf, float type) {
-    // stratus: thin bottom band; cumulus: rounded; cumulonimbus: tall
-    float st = saturate(remap(hf, 0.0, 0.08, 0.0, 1.0)) * saturate(remap(hf, 0.1, 0.25, 1.0, 0.0));
-    float cu = saturate(remap(hf, 0.0, 0.12, 0.0, 1.0)) * saturate(remap(hf, 0.35, 0.65, 1.0, 0.0));
-    float cb = saturate(remap(hf, 0.0, 0.1, 0.0, 1.0)) * saturate(remap(hf, 0.75, 1.0, 1.0, 0.0));
-    return type < 0.5 ? lerp(st, cu, type * 2.0) : lerp(cu, cb, type * 2.0 - 1.0);
-}
-float4 weatherAt(float2 xy) {
-    float2 uv = (xy + gCloud1.xy) / 38000.0;
-    return tWeather.SampleLevel(sLinearWrap, uv, 0);
-}
-float cloudDensity(float3 p, bool detail) {
-    float hf = heightFraction(p.z);
-    if (hf <= 0.0 || hf >= 1.0) return 0;
-    float4 w = weatherAt(p.xy);
-    float coverage = saturate(w.r * 0.85 + gCloud0.x * 1.05 - 0.62);
-    float type = saturate(w.g * 0.7 + gCloud0.x * 0.5 - 0.1);
-    float3 sp = (p + float3(gCloud1.xy * 1.2, 0)) / 4200.0;
-    float4 sn = tShapeNoise.SampleLevel(sLinearWrap, sp, 0);
-    float lowFreq = sn.g * 0.625 + sn.b * 0.25 + sn.a * 0.125;
-    float base = remap(sn.r, lowFreq - 1.0, 1.0, 0.0, 1.0);
-    base *= heightGradient(hf, type);
-    float d = saturate(remap(base, 1.0 - coverage, 1.0, 0.0, 1.0)) * coverage;
-    if (detail && d > 0.0) {
-        float3 dp = (p + float3(gCloud1.xy * 2.0, gCloud1.z * 3.0)) / 900.0;
-        float3 dn = tDetailNoise.SampleLevel(sLinearWrap, dp, 0).rgb;
-        float df = dn.r * 0.625 + dn.g * 0.25 + dn.b * 0.125;
-        df = lerp(df, 1.0 - df, saturate(hf * 4.0));
-        d = saturate(remap(d, df * 0.22, 1.0, 0.0, 1.0));
-    }
-    return d * gCloud0.y;
-}
-
-float hgPhase(float g, float c) { return (1.0 - g * g) / (4.0 * PI * pow(max(1.0 + g * g - 2.0 * g * c, 1e-4), 1.5)); }
-
-// Raymarch at half resolution. Output rgb = inscattered radiance (pre-exposed), a = transmittance.
-[numthreads(8, 8, 1)]
-void csClouds(uint3 id : SV_DispatchThreadID) {
-    if (id.x >= (uint)gCloud2.x || id.y >= (uint)gCloud2.y) return;
-    float2 uv = (id.xy + 0.5) / gCloud2.xy;
-    // Skip pixels fully covered by geometry (check 2x2 full-res footprint)
-    int2 fp = int2(id.xy * 2);
-    float dmax = max(max(tDepthFull[fp], tDepthFull[fp + int2(1, 0)]), max(tDepthFull[fp + int2(0, 1)], tDepthFull[fp + int2(1, 1)]));
-    float dmin = min(min(tDepthFull[fp], tDepthFull[fp + int2(1, 0)]), min(tDepthFull[fp + int2(0, 1)], tDepthFull[fp + int2(1, 1)]));
-    float3 dir = normalize(reconstructPos(uv, 1e-5));
-    float4 result = float4(0, 0, 0, 1);
+// Ray-march through the cloud slab. Returns rgb = inscattered radiance (not exposed), a = transmittance.
+float4 marchClouds(float3 dir, float jitter) {
     float camZ = gCamPos.z;
-    if (dmin <= 0.0 && dir.z > -0.02 && gCloud0.x > 0.01) {
-        // Intersect the cloud slab (flat, with a curvature term for far horizon distances)
-        float z0 = gCloud0.z, z1 = gCloud0.w;
-        float dz = max(dir.z, 0.015);
-        float t0 = camZ < z0 ? (z0 - camZ) / dz : 0.0;
-        float t1 = camZ < z1 ? (z1 - camZ) / dz : 0.0;
-        t1 = min(t1, 60000.0);
-        if (t1 > t0) {
-            int steps = (int)lerp(48.0, 96.0, saturate(1.0 - dir.z * 2.0));
-            float stepLen = (t1 - t0) / steps;
-            float jitter = ign(id.xy, gCloud1.w);
-            float t = t0 + stepLen * jitter;
-            float3 sunDir = gSunDir.xyz;
-            float cosTheta = dot(dir, sunDir);
-            float phase = lerp(hgPhase(-0.25, cosTheta), hgPhase(0.75, cosTheta), 0.6);
-            float3 sunL = mainLightIlluminance();
-            float3 ambTop = evalSH9(float3(0, 0, 1)) * PI;
-            float3 ambBot = evalSH9(float3(0, 0, -1)) * PI * 0.6;
-            float T = 1.0;
-            float3 L = 0;
-            float sigma = 0.018;
-            float zeroCount = 0;
-            [loop] for (int s = 0; s < steps; s++) {
-                float3 p = float3(gCamPos.xy, camZ) + dir * t;
-                float d = cloudDensity(p, true);
-                if (d > 0.001) {
-                    // light march toward the sun (6 samples, growing steps)
-                    float od = 0;
-                    float ls = 25.0;
-                    float3 lp = p;
-                    [loop] for (int k = 0; k < 6; k++) {
-                        lp += sunDir * ls;
-                        od += cloudDensity(lp, k < 3) * ls;
-                        ls *= 1.5;
-                    }
-                    // Multiple-scattering octaves (Wrenninge-style): later octaves see less extinction
-                    float lightT = exp(-od * sigma) + 0.5 * exp(-od * sigma * 0.25) + 0.25 * exp(-od * sigma * 0.0625);
-                    float powder = 1.0 - exp(-d * stepLen * sigma * 2.0);
-                    float hf = heightFraction(p.z);
-                    float3 amb = lerp(ambBot, ambTop, hf) * (0.35 + 0.65 * hf);
-                    float3 S = (sunL * lightT * phase * lerp(0.7, 1.0, powder) + amb * 0.3) * d * sigma;
-                    float stepT = exp(-d * sigma * stepLen);
-                    L += T * (S - S * stepT) / max(d * sigma, 1e-6);
-                    T *= stepT;
-                    if (T < 0.02) break;
-                }
-                t += stepLen;
+    if (dir.z <= -0.02 || gCloud0.x <= 0.01) return float4(0, 0, 0, 1);
+    float z0 = gCloud0.z, z1 = gCloud0.w;
+    float dz = max(dir.z, 0.015);
+    float t0 = camZ < z0 ? (z0 - camZ) / dz : 0.0;
+    float t1 = camZ < z1 ? (z1 - camZ) / dz : 0.0;
+    t1 = min(t1, 60000.0);
+    if (t1 <= t0) return float4(0, 0, 0, 1);
+    int steps = (int)(lerp(48.0, 96.0, saturate(1.0 - dir.z * 2.0)) * gCloud3.y);
+    int lightSteps = gCloud3.y < 0.8 ? 4 : 6;
+    float stepLen = (t1 - t0) / steps;
+    float t = t0 + stepLen * jitter;
+    float3 sunDir = gSunDir.xyz;
+    float cosTheta = dot(dir, sunDir);
+    float phase = lerp(hgPhase(-0.25, cosTheta), hgPhase(0.75, cosTheta), 0.6);
+    float3 sunL = mainLightIlluminance();
+    float3 ambTop = evalSH9(float3(0, 0, 1)) * PI;
+    float3 ambBot = evalSH9(float3(0, 0, -1)) * PI * 0.6;
+    float T = 1.0;
+    float3 L = 0;
+    const float sigma = 0.018;
+    [loop] for (int s = 0; s < steps; s++) {
+        float3 p = float3(gCamPos.xy, camZ) + dir * t;
+        float d = cloudDensity(p, true);
+        if (d > 0.001) {
+            // light march toward the sun (growing steps)
+            float od = 0;
+            float ls = 25.0;
+            float3 lp = p;
+            [loop] for (int k = 0; k < lightSteps; k++) {
+                lp += sunDir * ls;
+                od += cloudDensity(lp, k < 3) * ls;
+                ls *= lightSteps == 4 ? 1.9 : 1.5;
             }
-            // Rain darkening
-            L *= 1.0 - gCloud2.w * 0.6;
-            // Aerial perspective: fade toward the sky with distance
-            float mid = (t0 + t1) * 0.5;
-            float fade = exp(-mid / 42000.0);
-            T = lerp(1.0, T, fade);
-            L *= fade;
-            result = float4(L, T);
+            // Multiple-scattering octaves (Wrenninge-style): later octaves see less extinction
+            float lightT = exp(-od * sigma) + 0.5 * exp(-od * sigma * 0.25) + 0.25 * exp(-od * sigma * 0.0625);
+            float powder = 1.0 - exp(-d * stepLen * sigma * 2.0);
+            float hf = heightFraction(p.z);
+            float3 amb = lerp(ambBot, ambTop, hf) * (0.35 + 0.65 * hf);
+            float3 S = (sunL * lightT * phase * lerp(0.7, 1.0, powder) + amb * 0.3) * d * sigma;
+            float stepT = exp(-d * sigma * stepLen);
+            L += T * (S - S * stepT) / max(d * sigma, 1e-6);
+            T *= stepT;
+            if (T < 0.02) break;
         }
-    } else if (dmax > 0.0 && dmin > 0.0) {
-        result = float4(0, 0, 0, 1);
+        t += stepLen;
     }
-    // Temporal accumulation (reproject by direction; clouds are far away)
+    // Rain / storm darkening (thick, water-laden cloud bases)
+    L *= (1.0 - gCloud2.w * 0.6) * (1.0 - gCloud3.x * 0.35);
+    // Aerial perspective: fade toward the sky with distance
+    float mid = (t0 + t1) * 0.5;
+    float fade = exp(-mid / 42000.0);
+    return float4(L * fade, lerp(1.0, T, fade));
+}
+
+Texture2D<float2> tHiZ : register(t5);        // half-res depth pyramid (y = farthest depth of the footprint)
+Texture2D<float4> tCloudTrace : register(t6); // quarter-res trace (reconstruction input)
+
+// Trace: one ray per 2x2 block of half-res pixels, rotating through the block over 4 frames
+// (gCloud3.zw = this frame's sub-pixel). Ultra quality traces every half-res pixel (offset 0, full size).
+[numthreads(8, 8, 1)]
+void csCloudTrace(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= (uint)gCloud2.x || id.y >= (uint)gCloud2.y) return;
+    bool full = gCloud2.x >= gHalfScreen.x - 0.5;
+    int2 hp = full ? int2(id.xy) : min(int2(id.xy) * 2 + int2(gCloud3.zw), int2(gHalfScreen.xy) - 1);
+    float4 result = float4(0, 0, 0, 1);
+    if (tHiZ.Load(int3(hp, 0)).y <= 0.0) {  // some sky in the footprint
+        float2 uv = (hp + 0.5) * gHalfScreen.zw;
+        float3 dir = normalize(reconstructPos(uv, 1e-5));
+        result = marchClouds(dir, ign(float2(hp), gCloud1.w));
+    }
+    uOut2D[id.xy] = result;
+}
+
+// Reconstruction at half resolution: the freshly traced pixel of each 2x2 block is blended with its history,
+// the other three reproject their history (by direction: clouds are far away), clamped to the neighborhood of
+// this frame's traces.
+[numthreads(8, 8, 1)]
+void csCloudReconstruct(uint3 id : SV_DispatchThreadID) {
+    if (any(id.xy >= (uint2)gHalfScreen.xy)) return;
+    if (tHiZ.Load(int3(id.xy, 0)).y > 0.0) { uOut2D[id.xy] = float4(0, 0, 0, 1); return; }   // no sky here
+    float2 uv = (id.xy + 0.5) * gHalfScreen.zw;
+    bool full = gCloud2.x >= gHalfScreen.x - 0.5;
+    int2 tp = full ? int2(id.xy) : int2(id.xy) / 2;
+    int2 tmax = int2(gCloud2.xy) - 1;
+    bool fresh = full || all((id.xy & 1u) == (uint2)gCloud3.zw);
+    float4 cur = fresh ? tCloudTrace[min(tp, tmax)] : tCloudTrace.SampleLevel(sLinearClamp, uv, 0);
+    float4 mn = cur, mx = cur;
+    [unroll] for (int y = -1; y <= 1; y++)
+    [unroll] for (int x = -1; x <= 1; x++) {
+        float4 v = tCloudTrace[clamp(tp + int2(x, y), int2(0, 0), tmax)];
+        mn = min(mn, v);
+        mx = max(mx, v);
+    }
+    float4 result = cur;
     if (gCloud2.z > 0.5) {
+        float3 dir = normalize(reconstructPos(uv, 1e-5));
         float4 prevClip = mul(gPrevViewProj, float4(dir * 1e5, 1));
         float2 puv = prevClip.xy / prevClip.w * float2(0.5, -0.5) + 0.5;
         if (all(puv > 0.0) && all(puv < 1.0) && prevClip.w > 0) {
             float4 h = tCloudHistory.SampleLevel(sLinearClamp, puv, 0);
-            result = lerp(h, result, 0.12);
+            if (fresh) {
+                result = lerp(h, cur, full ? 0.12 : 0.45);
+            } else {
+                float4 pad = (mx - mn) * 0.25 + float4(0.02, 0.02, 0.02, 0.01) * float4(mx.rgb, 1);
+                result = clamp(h, mn - pad, mx + pad);
+            }
         }
     }
     uOut2D[id.xy] = result;

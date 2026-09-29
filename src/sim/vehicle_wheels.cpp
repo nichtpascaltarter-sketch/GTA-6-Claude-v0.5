@@ -53,15 +53,13 @@ inline void buildTire(PMesh& m, const WheelDesign& d) {
         P(w * 0.86f, rr + 0.010f, 0);
         P(w * 0.80f, rr - 0.008f, 0);
     } else {
+        // inner sidewall (faces the car, rarely seen): coarser than the outer one
         P(-w * 0.86f, rr + 0.002f, 0);
-        P(-w * 0.96f, rr + h * 0.25f, 0);
-        P(-w * 1.00f, rr + h * 0.52f, 0);
-        P(-w * 0.97f, rr + h * 0.78f, 0);
+        P(-w * 1.00f, rr + h * 0.45f, 0);
         P(-w * 0.90f, R - h * 0.06f, 1);
         // tread with circumferential grooves
         float t0 = -w * 0.78f, t1 = w * 0.78f;
-        int grooves = d.W > 0.2f ? 3 : 2;
-        if (d.offroad) grooves = 2;
+        int grooves = 2;
         float gw = 0.005f, gd = d.offroad ? 0.014f : 0.008f;
         P(t0, R, 2);
         for (int g = 0; g < grooves; g++) {
@@ -202,8 +200,7 @@ inline void buildSpokeFace(PMesh& m, const WheelDesign& d, float rOut, float aLi
         vec3 p0 = m.P[i0], p1 = m.P[i1];
         u32 b0 = m.add(p0 - vec3(depth, 0, 0), vec2(p0.y, 0)), b1 = m.add(p1 - vec3(depth, 0, 0), vec2(p1.y, depth));
         u32 a0 = m.add(p0, vec2(p0.y, 0)), a1 = m.add(p1, vec2(p1.y, depth));
-        m.quadFacing(a0, a1, b1, b0, facing);
-        m.quadFacing(a0, a1, b1, b0, -facing);  // spokes are open at the back: double-sided walls
+        m.quadFacing(a0, a1, b1, b0, facing);  // the back plate hides the hollow spoke backs
     };
     for (int k = 0; k + 1 < R; k++)
         for (int c = 0; c < cols; c++) {
@@ -233,12 +230,10 @@ inline void buildWheel(const WheelDesign& d, MeshData& out) {
     std::vector<vec2> lip;
     float lipA = d.moto ? w * 0.78f : w * 0.90f;
     lip.push_back(vec2(lipA - 0.010f, rr + 0.016f));
-    lip.push_back(vec2(lipA + 0.006f, rr + 0.010f));
-    lip.push_back(vec2(lipA + 0.008f, rr - 0.006f));
-    lip.push_back(vec2(lipA - 0.004f, rr - 0.016f));
+    lip.push_back(vec2(lipA + 0.007f, rr + 0.007f));
+    lip.push_back(vec2(lipA - 0.002f, rr - 0.016f));
     lip.push_back(vec2(lipA - 0.03f, rr - 0.020f));
-    lip.push_back(vec2(-w * 0.80f, rr - 0.020f));
-    lip.push_back(vec2(-w * 0.90f, rr - 0.008f));
+    lip.push_back(vec2(-w * 0.82f, rr - 0.020f));
     lip.push_back(vec2(-w * 0.92f, rr + 0.012f));
     lathe(m, vec3(0, 0, 0), vec3(1, 0, 0), vec3(0, 1, 0), lip, d.seg);
     float rOut = rr - 0.018f;
@@ -292,8 +287,8 @@ inline void buildWheel(const WheelDesign& d, MeshData& out) {
         }
     } else {
         WheelDesign s = d;
-        if (d.style == RIM_MESH) { s.spokes = Max(d.spokes, 12); s.spokeHub = 0.010f; s.spokeRim = 0.008f; }
-        if (d.style == RIM_TURBINE) { s.spokes = Max(d.spokes, 10); }
+        if (d.style == RIM_MESH) { s.spokes = Max(d.spokes, 12); s.spokeHub = 0.010f; s.spokeRim = 0.008f; s.split = false; }
+        if (d.style == RIM_TURBINE) { s.spokes = Max(d.spokes, 10); s.split = false; }
         if (d.style == RIM_DISH) { s.dish = Max(d.dish, 0.045f); }
         if (d.style == RIM_CLASSIC) { s.spokes = 5; s.spokeHub = 0.036f; s.spokeRim = 0.036f; s.winIn = 0.45f; s.winOut = 0.80f; }
         if (d.style == RIM_BIKE) { s.dish = 0.004f; s.concave = 0.0f; s.winIn = 0.30f; s.winOut = 0.92f; }
@@ -326,10 +321,8 @@ inline void buildWheel(const WheelDesign& d, MeshData& out) {
             float th = kTwoPi * (i + 0.5f) / d.lugs;
             vec3 c(aFace - 0.004f, cosf(th) * lr, sinf(th) * lr);
             std::vector<vec2> nut;
-            nut.push_back(vec2(0.0f, 0.0f));
             nut.push_back(vec2(0.0f, 0.0105f));
             nut.push_back(vec2(0.016f, 0.0105f));
-            nut.push_back(vec2(0.020f, 0.006f));
             nut.push_back(vec2(0.021f, 0.0f));
             lathe(m, c, vec3(1, 0, 0), vec3(0, 1, 0), nut, 6);
         }

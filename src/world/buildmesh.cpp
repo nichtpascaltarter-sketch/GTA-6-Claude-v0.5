@@ -1,5 +1,6 @@
 // Building mesh generation per cell (full detail and far LOD).
 #include "buildings.h"
+#include "sites.h"
 #include "../render/mesh.h"
 #include "worldtypes.h"
 
@@ -314,9 +315,11 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
         case BS_CONDO:
         case BS_GARAGE: {
             auto fp = rectFP(b.c, b.ax, b.hx, b.hy);
-            flatMass(x, fp, z0, z0 + b.height, z0, b.facade, bay, true, roofGray);
+            // garages whose roof is an open parking deck (airport) get parapet, ramp and deck furniture from the site generator
+            bool deck = b.style == BS_GARAGE && gSites && gSites->roofDeckAt(b.c, z0 + b.height);
+            flatMass(x, fp, z0, z0 + b.height, z0, b.facade, bay, !deck, roofGray);
             addCollision(x, b.c, b.ax, b.hx, b.hy, z0 - 3.f, z0 + b.height);
-            rooftopClutter(x, b.c, b.ax, b.hx, b.hy, z0 + b.height, r);
+            if (!deck) rooftopClutter(x, b.c, b.ax, b.hx, b.hy, z0 + b.height, r);
             if (b.style == BS_CONDO && detail) {
                 // balcony slabs on the front and back facades
                 for (int f = 1; f < b.floors; f++) {

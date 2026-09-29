@@ -1,6 +1,7 @@
 // CDLOD terrain: instanced grid patches morphing between LODs, heightmap-displaced.
 #include "common.hlsli"
 #include "gbuffer.hlsli"
+#include "weather.hlsli"
 
 Texture2D<float> tHeight : register(t0);
 Texture2D<float4> tSplat0 : register(t1);
@@ -31,6 +32,7 @@ struct VSOut {
     float4 curClip : TEXCOORD3;
 };
 
+#define TL_ROCK_IDX 3
 float2 worldToUV(float2 w) { return (w + gTerrainParams.x) / (2.0 * gTerrainParams.x); }
 
 float sampleHeight(float2 w) { return tHeight.SampleLevel(sLinearClamp, worldToUV(w), 0); }
@@ -149,14 +151,14 @@ GBufferOut psTerrain(VSOut i) {
     float3 T = normalize(cross(float3(0, 1, 0), N));
     float3 B = cross(N, T);
     float3 n = normalize(T * nTS.x + B * nTS.y + N * nTS.z);
-    // Wetness: darken + smoother (rain / shoreline)
+    // Shoreline wetness (always) + rain wetness / puddles
     float wl = tWaterLevel.SampleLevel(sLinearClamp, uvT, 0);
     float h = i.rel.z + gCamPos.z;
     float shoreWet = wl > -999.0 ? saturate(1.0 - (h - wl) / 0.6) : 0.0;
-    float wet = max(gWeather.y, shoreWet);
-    albedo *= lerp(1.0, 0.55, wet);
-    rough = lerp(rough, 0.08, wet * 0.85);
-    n = normalize(lerp(n, N, wet * 0.7));
+    albedo *= lerp(1.0, 0.55, shoreWet);
+    rough = lerp(rough, 0.08, shoreWet * 0.85);
+    n = normalize(lerp(n, N, shoreWet * 0.7));
+    applyWetness(albedo, rough, n, N, float3(w, h), 0.9, 1.0 - weights[TL_ROCK_IDX] * 0.8);
 
     GBufferOut o;
     o = packGBuffer(albedo, 1.0, n, rough, 0.0, SM_DEFAULT, 0.0, 0.0, i.curClip, i.prevClip);

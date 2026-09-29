@@ -78,7 +78,7 @@ bool g_blurValid = false;
 const int kAtlasSize = 2048;
 const int kEm = 128;         // render size
 const int kSdfScale = 2;     // downsample factor
-const int kSpread = 12;      // pixels at render resolution
+const int kSpread = 18;      // pixels at render resolution (outlines / soft shadows / glows need the range)
 
 void dt1d(const float* f, int n, float* d, int* v, float* z) {
     int k = 0;
@@ -413,6 +413,20 @@ bool init() {
     buildFont(g_fonts[FONT_HEADING], "Bahnschrift SemiBold Condensed", "Arial Narrow", FW_BOLD, atlas, penX, penY, rowH);
     buildFont(g_fonts[FONT_TITLE], "Impact", "Arial Black", FW_BLACK, atlas, penX, penY, rowH);
     LOG("Font atlas built in %.2f s", Platform::timeSeconds() - t0);
+    if (Platform::hasArg("dumpuifont")) {
+        // test tooling: atlas + glyph metrics for offline UI previews
+        std::string path = Platform::userDataDir() + "ui_font.bin";
+        if (FILE* f = fopen(path.c_str(), "wb")) {
+            u32 magic = 0x4E54464Eu, size = kAtlasSize, nf = FONT_COUNT;
+            fwrite(&magic, 4, 1, f);
+            fwrite(&size, 4, 1, f);
+            fwrite(&nf, 4, 1, f);
+            fwrite(g_fonts, sizeof(Font), FONT_COUNT, f);
+            fwrite(atlas.data(), 1, atlas.size(), f);
+            fclose(f);
+            LOG("UI font atlas dumped to %s", path.c_str());
+        }
+    }
     g_atlas = gfx::createTexture2D(kAtlasSize, kAtlasSize, DXGI_FORMAT_R8_UNORM, gfx::TEX_SRV, 1, 1, atlas.data(), kAtlasSize);
     g_vb = gfx::createBuffer(kMaxVerts * sizeof(Vtx), sizeof(Vtx), gfx::BUF_VERTEX | gfx::BUF_DYNAMIC);
     D3D11_INPUT_ELEMENT_DESC layout[] = {
@@ -519,7 +533,7 @@ static void roundRectImpl(float x, float y, float w, float h, float r, u32 ct, u
     float pad = 1.5f;
     float x0 = x - pad, y0 = y - pad, x1 = x + w + pad, y1 = y + h + pad;
     r = Clamp(r, 0.f, Min(hw, hh));
-    float enc = Min(r, 999.f) + floorf(Clamp(border, 0.f, 99.f) * 10.f + 0.5f) * 1000.f;
+    float enc = Min(r, 990.f) + floorf(Clamp(border, 0.f, 99.f) * 10.f + 0.5f) * 1000.f;
     pushQuad(V(x0, y0, -hw - pad, -hh - pad, ct, bc, M_RRECT, hw, hh, enc), V(x1, y0, hw + pad, -hh - pad, ct, bc, M_RRECT, hw, hh, enc),
              V(x1, y1, hw + pad, hh + pad, cb, bc, M_RRECT, hw, hh, enc), V(x0, y1, -hw - pad, hh + pad, cb, bc, M_RRECT, hw, hh, enc),
              anyTex());
@@ -533,7 +547,7 @@ void roundRectRotated(vec2 c, vec2 ax, float hw, float hh, float r, u32 col) {
     vec2 ay = perp(ax);
     float ex = hw + pad, ey = hh + pad;
     r = Clamp(r, 0.f, Min(hw, hh));
-    float enc = Min(r, 999.f);
+    float enc = Min(r, 990.f);
     vec2 p0 = c - ax * ex - ay * ey, p1 = c + ax * ex - ay * ey, p2 = c + ax * ex + ay * ey, p3 = c - ax * ex + ay * ey;
     pushQuad(V(p0.x, p0.y, -ex, -ey, col, 0, M_RRECT, hw, hh, enc), V(p1.x, p1.y, ex, -ey, col, 0, M_RRECT, hw, hh, enc),
              V(p2.x, p2.y, ex, ey, col, 0, M_RRECT, hw, hh, enc), V(p3.x, p3.y, -ex, ey, col, 0, M_RRECT, hw, hh, enc), anyTex());
@@ -685,7 +699,7 @@ void backdrop(float x, float y, float w, float h, float r, u32 tint, u32 overlay
     float hw = w * 0.5f, hh = h * 0.5f;
     float pad = 1.5f;
     float x0 = x - pad, y0 = y - pad, x1 = x + w + pad, y1 = y + h + pad;
-    r = Clamp(r, 0.f, Min(Min(hw, hh), 999.f));
+    r = Clamp(r, 0.f, Min(Min(hw, hh), 990.f));
     float enc = r + floorf(Saturate(saturation) * 100.f + 0.5f) * 1000.f;
     pushQuad(V(x0, y0, -hw - pad, -hh - pad, tint, overlay, M_BACKDROP, hw, hh, enc),
              V(x1, y0, hw + pad, -hh - pad, tint, overlay, M_BACKDROP, hw, hh, enc),
@@ -741,13 +755,21 @@ float text(float x, float y, const char* str, const TextStyle& st) {
         }
     };
     float alphaMul = (st.color >> 24) / 255.f;
+    // The soft edge of an outline pass must fade out before the distance field saturates at the quad border:
+    // (0.5 - outl) * pr >= 0.5 + margin with pr = pxRange / (1 + soft).
+    auto clampOutline = [&](float outl, float soft) {
+        float pr = pxRange / (1.f + soft);
+        return Min(outl, 0.5f - 0.6f / Max(pr, 1e-3f));
+    };
     if (st.glow > 0.f && st.glowColor) {
-        float gl = Min(st.glow / Max(pxRange, 1e-3f), 0.45f);
-        emit(0, 0, st.glowColor, st.glowColor, st.glowColor, gl, 2.5f);
+        float gl = clampOutline(st.glow / Max(pxRange, 1e-3f), 2.5f);
+        if (gl > 0.f) emit(0, 0, st.glowColor, st.glowColor, st.glowColor, gl, 2.5f);
     }
     if (st.shadow > 0.f) {
         u32 sc = withAlpha(0xff000000u, (st.shadowSoft > 0.f ? 0.75f : 0.6f) * alphaMul);
-        emit(st.shadow, st.shadow, sc, sc, sc, outlineSdf + 0.08f + st.shadowSoft * 0.2f, st.shadowSoft * 3.f);
+        float soft = st.shadowSoft * 2.5f;
+        float so = clampOutline(outlineSdf + 0.06f + st.shadowSoft * 0.12f, soft);
+        emit(st.shadow, st.shadow, sc, sc, sc, Max(so, 0.f), soft);
     }
     emit(0, 0, st.color, grad ? st.colorBottom : st.color, st.outlineColor, outlineSdf, 0.f);
     return w;

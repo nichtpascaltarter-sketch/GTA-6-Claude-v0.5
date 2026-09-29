@@ -161,8 +161,11 @@ void hudInit();                        // builds the map textures from World::gM
 void drawHud(const HudState& s, float dt);
 // Frame order: UI::beginFrame -> drawHud (in gameplay) -> Menus::update (while a menu is open) -> UI::endFrame.
 // drawHud / Menus::update only record draw calls; the 3D frame must already be in the back buffer (menus and the
-// weapon wheel blur it). hudInit takes ~0.3 s (icon atlas + 2560^2 map texture + road/building grids); the icon atlas
-// is also created lazily so menus and the loading screen work before hudInit. Cost per frame: see PROGRESS notes.
+// weapon wheel blur it). hudInit takes ~0.3-0.7 s (icon atlas + 2560^2 map texture + road/building/site grids); the
+// icon atlas is also created lazily so menus and the loading screen work before hudInit. Measured CPU cost per frame
+// (1080p): drawHud 0.05-0.09 ms natively (0.5 ms under Wine on a loaded machine); pause map ~0.3-0.8 ms.
+// Layout: designed at 1920x1080 and scaled by height (by width on screens narrower than 16:9); HUD anchors stay
+// inside the centered 16:9 region on ultrawide screens.
 void hudReset();                       // forget HUD animation state (after loading a save / respawn teleport)
 
 // ------------------------------------------------------------------------------------------------------------------

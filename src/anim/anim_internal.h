@@ -280,6 +280,8 @@ struct OutfitCtx {
         size_t t0, t1;                // triangle range in out
     };
     std::vector<Layer> layers;
+    // torso offsets of the already emitted top/bottom shells (so the next layer clears them at the waist)
+    float botTorsoOff = 0.f, botTopZ = -1.f, topTorsoOff = 0.f;
     OutfitCtx(BuildCtx& cc, MeshB& o, std::vector<u8>& h) : c(cc), out(o), hideBody(h) {}
 };
 bool emitGarment(OutfitCtx& o, const GarmentDef& g);

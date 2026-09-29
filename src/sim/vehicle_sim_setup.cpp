@@ -25,8 +25,8 @@ ClassParams classParams(VehicleClass c) {
     static const ClassParams kCoupe    = {1.55f, 0.40f, 0.36f, 0.62f, 0.40f, 0.25f, 0.60f, 0.25f, 0.8f, 0.25f, 0.125f, 0.80f, 0.20f, 1.0f};
     static const ClassParams kSuv      = {1.30f, 0.40f, 0.35f, 0.60f, 0.30f, 0.20f, 0.60f, 0.10f, 1.1f, 0.20f, 0.140f, 0.80f, 0.28f, 0.9f};
     static const ClassParams kPickup   = {1.30f, 0.40f, 0.35f, 0.60f, 0.30f, 0.15f, 0.60f, 0.12f, 0.9f, 0.25f, 0.140f, 0.80f, 0.28f, 0.9f};
-    static const ClassParams kSports   = {1.75f, 0.40f, 0.40f, 0.65f, 0.60f, 0.45f, 0.58f, 0.35f, 0.6f, 0.30f, 0.120f, 0.80f, 0.15f, 1.0f};
-    static const ClassParams kSuper    = {1.90f, 0.40f, 0.40f, 0.65f, 0.80f, 0.60f, 0.56f, 0.40f, 0.6f, 0.30f, 0.115f, 0.80f, 0.12f, 1.0f};
+    static const ClassParams kSports   = {1.75f, 0.40f, 0.40f, 0.65f, 0.40f, 0.30f, 0.58f, 0.28f, 0.6f, 0.30f, 0.120f, 0.80f, 0.15f, 1.0f};
+    static const ClassParams kSuper    = {1.90f, 0.40f, 0.40f, 0.65f, 0.50f, 0.40f, 0.56f, 0.32f, 0.6f, 0.30f, 0.115f, 0.80f, 0.12f, 1.0f};
     static const ClassParams kMuscle   = {1.45f, 0.40f, 0.33f, 0.58f, 0.20f, 0.05f, 0.60f, 0.12f, 0.35f, 0.45f, 0.130f, 0.80f, 0.22f, 0.9f};
     static const ClassParams kVan      = {1.35f, 0.40f, 0.35f, 0.60f, 0.35f, 0.25f, 0.62f, 0.15f, 1.1f, 0.20f, 0.140f, 0.80f, 0.30f, 0.9f};
     static const ClassParams kBus      = {1.20f, 0.40f, 0.35f, 0.60f, 0.70f, 0.50f, 0.62f, 0.25f, 1.3f, 0.15f, 0.150f, 0.85f, 0.40f, 0.6f};
@@ -274,7 +274,7 @@ void deriveTuning(VehicleState& s, const VehicleModel& m) {
         else t.propPos = length(m.rotorPos) > 0.01f && m.rotorPos.z < zb + 0.5f ? m.rotorPos : vec3(0.f, sternY, zb + 0.02f);
         float top = Max(m.topSpeed, 4.f);
         float eta = m.cls == VC_AIRBOAT ? 0.45f : 0.5f;
-        float vref = Max(0.3f * top, 4.f);
+        float vref = Max(0.5f * top, 5.f);
         t.thrustStatic = eta * t.peakPowerW / vref;
         float Ttop = eta * t.peakPowerW / top;
         float lin = 0.02f * mass;
@@ -289,10 +289,10 @@ void deriveTuning(VehicleState& s, const VehicleModel& m) {
         t.inducedK = 1.f / (kPi * 0.8f * 7.5f);
         float top = Max(m.topSpeed, 30.f);
         bool jet = top > 115.f;
-        t.thrustStatic = jet ? Max(0.35f * mass * kGrav, t.peakPowerW / top) : 22.f * m.power;
+        t.thrustStatic = jet ? Max(0.35f * mass * kGrav, t.peakPowerW / top) : 19.f * m.power;
         // parasitic drag area chosen so that full throttle level flight tops out at topSpeed
         float q = 0.5f * kRhoAir * top * top;
-        float Ttop = jet ? t.thrustStatic * 0.85f : Min(t.thrustStatic, 0.8f * t.peakPowerW / top);
+        float Ttop = jet ? t.thrustStatic * 0.85f : Min(t.thrustStatic * 0.7f, 0.8f * t.peakPowerW / top);
         float CL = mass * kGrav / (q * t.wingArea);
         float induced = q * t.wingArea * t.inducedK * CL * CL;
         t.dragArea = Max((Ttop - induced) / q, 0.012f * t.wingArea);
@@ -396,6 +396,7 @@ void resetVehicle(VehicleState& s, dvec3 pos, float yaw) {
     s.hbTimer = 10.f;
     s.gearDown = 1.f;
     s.lean = 0.f;
+    s.leanCmd = 0.f;
     s.steerOut = 0.f;
     s.stall = 0.f;
     s.heliYawTarget = 0.f;

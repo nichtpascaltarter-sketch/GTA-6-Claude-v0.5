@@ -132,13 +132,64 @@ struct Char {
     SkinnedMeshData mesh;
 };
 
+// Scripted animator inputs for transition checks.
+static void runScenario(int sc, float t, AnimInput& in) {
+    switch (sc) {
+        case 1:   // speed ramp 0 -> 7 -> 0 m/s
+            in.speed = t < 7.f ? t : Max(0.f, 14.f - t);
+            break;
+        case 2:   // walk, stop, aim pistol, fire, reload, walk while aiming (strafe)
+            in.speed = t < 2.f ? 1.4f : (t < 6.f ? 0.f : 1.3f);
+            in.localMoveDir = t < 6.f ? vec2(0, 1) : vec2(1, 0);
+            in.weaponKind = 1;
+            in.aiming = t > 2.5f;
+            in.firing = t > 3.5f && t < 4.2f;
+            in.reloading = t > 4.5f && t < 5.5f;
+            in.aimPitch = 0.3f * sinf(t);
+            break;
+        case 3:   // enter car at 0.5 s (seated at 1.55 s), drive, exit at 4 s
+            in.action = t >= 0.5f && t < 0.52f ? CLIP_ENTER_CAR_L : (t >= 4.f && t < 4.02f ? CLIP_EXIT_CAR_L : -1);
+            in.stance = t >= 1.55f && t < 4.f ? 1 : 0;
+            break;
+        case 4:   // jog, jump, fall, land
+            in.speed = 3.f;
+            in.action = t >= 1.f && t < 1.02f ? CLIP_JUMP_START : (t >= 1.8f && t < 1.82f ? CLIP_LAND : -1);
+            in.inAir = t > 1.15f && t < 1.8f;
+            break;
+        case 5:   // walking with a rifle (carry), then aim
+            in.speed = 1.5f;
+            in.weaponKind = 2;
+            in.aiming = t > 2.f;
+            break;
+        case 6:   // phone while walking, then standing talking
+            in.stance = t < 3.f ? 8 : 7;
+            in.speed = t < 3.f ? 1.3f : 0.f;
+            break;
+        case 7:   // hit reactions while walking, then punches standing
+            in.speed = t < 2.f ? 1.4f : 0.f;
+            in.action = (t >= 0.8f && t < 0.82f) ? CLIP_HIT_FRONT : ((t >= 2.5f && t < 2.52f) ? CLIP_PUNCH_R : -1);
+            break;
+        case 9:   // turning on the spot
+            in.turnRate = t < 3.f ? 2.5f : -2.5f;
+            break;
+        case 8:   // driving with steering input in localMoveDir.x
+            in.stance = 1;
+            in.localMoveDir = vec2(sinf(t * 1.5f), 1.f);
+            break;
+        default: break;
+    }
+}
+
 int main(int argc, char** argv) {
     const char* out = argc > 1 ? argv[1] : "/tmp/preview.ppm";
     u32 seed = 1000;
     int role = -1, count = 1, W = 900, H = 900, clip = -1;
     float t = 0.f, dist = -1.f, yaw = 0.f, fov = 30.f, camZ = -1.f, spacing = 0.9f;
+    int scenario = 0;
     const char* view = "front";
-    bool lineup = false;
+    bool lineup = false, strip = false, floorOn = false;
+    float stripDt = -1.f;
+    std::vector<int> clipList;
     for (int i = 2; i < argc; i++) {
         auto nx = [&]() { return i + 1 < argc ? argv[++i] : "0"; };
         if (!strcmp(argv[i], "--seed")) seed = (u32)atoi(nx());
@@ -155,14 +206,28 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--height")) camZ = (float)atof(nx());
         else if (!strcmp(argv[i], "--spacing")) spacing = (float)atof(nx());
         else if (!strcmp(argv[i], "--lineup")) lineup = true;
+        else if (!strcmp(argv[i], "--strip")) strip = true;
+        else if (!strcmp(argv[i], "--dt")) stripDt = (float)atof(nx());
+        else if (!strcmp(argv[i], "--floor")) floorOn = true;
+        else if (!strcmp(argv[i], "--scenario")) scenario = atoi(nx());
+        else if (!strcmp(argv[i], "--clips")) {
+            // comma separated clip list, one per character
+            const char* c = nx();
+            while (*c) {
+                clipList.push_back(atoi(c));
+                while (*c && *c != ',') c++;
+                if (*c == ',') c++;
+            }
+        }
     }
+    if (!clipList.empty()) count = (int)clipList.size();
     Img img(W, H);
     std::vector<Char> chars(count);
     double tb = 0;
     size_t totalTris = 0;
     for (int i = 0; i < count; i++) {
         Char& ch = chars[i];
-        u32 sd = lineup ? 1000 + i * 7919 : seed + i * 7919;
+        u32 sd = lineup ? 1000 + i * 7919 : (strip || !clipList.empty() ? seed : seed + i * 7919);
         int rl = role >= 0 ? role : (lineup ? i % 7 : 0);
         ch.d = randomCharacter(sd, rl);
         buildSkeleton(ch.d, ch.sk);
@@ -227,6 +292,9 @@ int main(int argc, char** argv) {
         dd = dist > 0 ? dist : 0.9f;
     }
     dir = rotate(quatAxisAngle(vec3(0, 0, 1), yaw * kDegToRad), dir);
+    // screen-right direction (the camera looks along -dir)
+    vec3 sideAxis = length(vec3(dir.x, dir.y, 0.f)) < 1e-3f ? vec3(-1, 0, 0) : normalize(vec3(-dir.y, dir.x, 0.f));
+    if (getenv("PREVIEW_ALONGX")) sideAxis = vec3(1, 0, 0);
     cam.eye = target + dir * dd;
     cam.target = target;
     cam.setup(W, H);
@@ -236,7 +304,25 @@ int main(int argc, char** argv) {
         for (int b = 0; b < B_COUNT; b++) pose.rot[b] = quat();
         pose.rootOffset = vec3(0);
 #ifdef ANIM_HAVE_CLIPS
-        if (clip >= 0) sampleClip(ch.sk, (Clip)clip, t, pose, (u32)i);
+        int ci = !clipList.empty() ? clipList[i] : clip;
+        float ti = t;
+        if (strip && ci >= 0) ti = t + i * (stripDt > 0.f ? stripDt : clipInfo((Clip)ci).duration / Max(count - (clipInfo((Clip)ci).loop ? 0 : 1), 1));
+        if (strip) printf("frame %d: t=%.3f\n", i, ti);
+        if (ci >= 0) sampleClip(ch.sk, (Clip)ci, ti, pose, (u32)i);
+        if (scenario > 0) {
+            // run the Animator with scripted inputs up to time ti (character i: ti = t + i * dt)
+            Animator an;
+            an.init(&ch.sk, 7u);
+            float T = strip ? t + i * (stripDt > 0.f ? stripDt : 0.5f) : t;
+            const float dt = 1.f / 60.f;
+            for (float tt = 0.f; tt < T; tt += dt) {
+                AnimInput in;
+                runScenario(scenario, tt, in);
+                an.update(in, dt);
+            }
+            pose = an.pose;
+            printf("scenario %d t=%.2f action %d stance %d\n", scenario, T, an.action, an.stance);
+        }
 #else
         (void)t;
 #endif
@@ -244,7 +330,8 @@ int main(int argc, char** argv) {
         computeMatrices(ch.sk, pose, ms, skin);
         std::vector<vec3> P(ch.mesh.verts.size()), N(ch.mesh.verts.size()), A(ch.mesh.verts.size());
         std::vector<u32> M(ch.mesh.verts.size());
-        vec3 off(i * spacing, 0, 0);
+        // characters are lined up across the view direction
+        vec3 off = sideAxis * ((i - (count - 1) * 0.5f) * spacing) + vec3(cx, 0, 0);
         for (size_t v = 0; v < ch.mesh.verts.size(); v++) {
             const VtxSkinned& vx = ch.mesh.verts[v];
             mat4 m;
@@ -266,6 +353,24 @@ int main(int argc, char** argv) {
             M[v] = vx.mat;
         }
         drawMesh(img, cam, P, N, A, M, ch.mesh.indices);
+    }
+    if (floorOn) {
+        // checkerboard floor (0.25 m tiles) at z = 0 to judge ground contact
+        std::vector<vec3> P, N, A;
+        std::vector<u32> M, I;
+        float ext = (count - 1) * spacing * 0.5f + 1.5f;
+        float x0 = cx - ext, x1 = cx + ext, y0 = -ext - 1.f, y1 = ext + 1.f, tile = 0.25f;
+        for (float y = y0; y < y1 - 1e-4f; y += tile)
+            for (float x = x0; x < x1 - 1e-4f; x += tile) {
+                int k = (int)floorf(x / tile + 1000.f) + (int)floorf(y / tile + 1000.f);
+                vec3 c = (k & 1) ? vec3(0.32f, 0.3f, 0.28f) : vec3(0.42f, 0.4f, 0.37f);
+                u32 b = (u32)P.size();
+                P.push_back(vec3(x, y, 0)); P.push_back(vec3(x + tile, y, 0)); P.push_back(vec3(x + tile, y + tile, 0)); P.push_back(vec3(x, y + tile, 0));
+                for (int q = 0; q < 4; q++) { N.push_back(vec3(0, 0, 1)); A.push_back(c); M.push_back(MAT_CLOTH); }
+                I.push_back(b); I.push_back(b + 1); I.push_back(b + 2);
+                I.push_back(b); I.push_back(b + 2); I.push_back(b + 3);
+            }
+        drawMesh(img, cam, P, N, A, M, I);
     }
     img.save(out);
     return 0;

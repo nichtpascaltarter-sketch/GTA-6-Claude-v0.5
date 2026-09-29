@@ -638,7 +638,7 @@ inline void seam(PMesh& m, Projector& pr, Frame fr, const std::vector<vec2>& lin
     for (auto& q : line) { mn = vmin(mn, q); mx = vmax(mx, q); }
     decalRange(dc, mn, mx);
     m.use(MAT_PLASTIC, col(0.35f, 0.35f, 0.35f));
-    stripDecal(m, dc, line, w, 0.0012f, 0.025f);
+    stripDecal(m, dc, line, w, 0.0012f, 0.04f);
 }
 
 // Door pull handle on the right side at (y, z)
@@ -1073,9 +1073,18 @@ inline void buildInterior(PMesh& m, CarBody& b, const CarLook& L, const Interior
     for (int i = 0; i + 1 < b.nr; i++) {
         if (b.rowL[i] < 0.25f || b.rowL[i + 1] < 0.25f) continue;
         for (int j = b.pRail0; j < NC1; j++) {
-            vec3 p[4] = {b.G[i * b.NP + j], b.G[(i + 1) * b.NP + j], b.G[(i + 1) * b.NP + j + 1], b.G[i * b.NP + j + 1]};
+            int ii[4] = {i, i + 1, i + 1, i}, jj[4] = {j, j, j + 1, j + 1};
             vec3 q[4];
-            for (int k = 0; k < 4; k++) q[k] = p[k] - vec3(0, 0, 0.035f);
+            for (int k = 0; k < 4; k++) {
+                // offset along the inward section normal so the lining stays inside the rail and glass
+                int r = ii[k], c = jj[k];
+                vec3 pa = b.G[r * b.NP + Max(c - 1, 0)], pb = b.G[r * b.NP + Min(c + 1, b.NP - 1)];
+                vec2 t(pb.x - pa.x, pb.z - pa.z);
+                vec2 nrm = length(t) > 1e-6f ? normalize(vec2(t.y, -t.x)) : vec2(0, 1);
+                if (nrm.y < 0.f) nrm = -nrm;
+                vec3 p = b.G[r * b.NP + c];
+                q[k] = p - vec3(nrm.x, 0, nrm.y) * 0.035f;
+            }
             u32 a = m.add(q[0]), bb = m.add(q[1]), c = m.add(q[2]), d = m.add(q[3]);
             m.quadFacing(a, bb, c, d, vec3(0, 0, -1));
         }

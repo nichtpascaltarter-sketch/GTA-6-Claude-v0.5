@@ -176,6 +176,7 @@ struct VehicleState {
     float waterZPrev[kMaxFloats] = {};
     float aglTimer = 0.f;
     float ejectTimer = 0.f;
+    float leanCmd = 0.f;           // bikes: rider lean target (slew-limited)
 
     vec3 forward() const { return rotate(body.rot, vec3(0, 1, 0)); }
     vec3 right() const { return rotate(body.rot, vec3(1, 0, 0)); }

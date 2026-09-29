@@ -70,6 +70,7 @@ struct Settings {
     bool clouds = true;
     bool volumetrics = true;  // master toggle for froxel volumetric fog (quality in fogQuality)
     bool motionBlur = true;
+    float motionBlurAmount = 1.f;  // shutter scale for motion blur (0..2; 1 = 180 degree shutter)
     float fovDeg = 60.f;
     int quality = 2;  // 0 low, 1 medium, 2 high, 3 ultra
 
@@ -150,6 +151,20 @@ enum DecalType : int {
     DECAL_COUNT
 };
 
+// Gameplay-driven screen effects applied in the grading / tonemap pass every frame (defaults = no effect).
+struct PostFxControls {
+    float saturation = 1.f;        // 0 = greyscale, 1 = normal, > 1 more saturated
+    vec3 tint = vec3(1);           // color multiplier of the final image
+    float vignette = 0.f;          // extra vignette strength 0..1 (damage feedback, death screen)
+    vec3 vignetteColor = vec3(0);  // vignette color (e.g. red for low health)
+    float chromatic = 0.f;         // chromatic aberration 0..1 (impacts)
+    float flash = 0.f;             // full-screen flash 0..1 (camera shutter, flashbang, explosion)
+    vec3 flashColor = vec3(1);
+    float blur = 0.f;              // full-screen blur 0..1
+    float underwater = 0.f;        // 0..1: blue-green tint, depth fog, wobble, softened image
+    float grain = 0.f;             // extra film grain 0..1
+};
+
 struct DrawStats {
     int drawCalls = 0;
     int triangles = 0;
@@ -176,6 +191,11 @@ struct ParticleSystem;
 struct DecalSystem;
 struct ScreenSpaceSystem;
 struct AOSystem;
+struct SSRSystem;
+struct EnvProbeSystem;
+struct VolumetricFog;
+struct WeatherSystem;
+struct GrassSystem;
 
 class Renderer {
 public:
@@ -187,6 +207,7 @@ public:
     void render(const Camera& cam, const Environment& env, float dt);
 
     Settings settings;
+    PostFxControls postFx;  // set by gameplay each frame (persistent until changed)
     DrawStats stats;
     FrameConstants frame;
     gfx::CBuffer<FrameConstants> frameCB;
@@ -196,8 +217,10 @@ public:
     int width = 0, height = 0;       // render resolution
     int outWidth = 0, outHeight = 0; // output resolution
     gfx::Texture depth;
+    ID3D11DepthStencilView* depthRO = nullptr;  // read-only view: depth test while sampling depth (decals, particles)
     gfx::Texture gbAlbedo, gbNormal, gbMaterial, gbEmissive, gbVelocity;
     gfx::Texture hdr, hdrCopy, depthCopy;
+    gfx::Texture reactive;  // R8 mask written by particles / rain: TAA favors the current frame there (no smearing)
     gfx::Texture cloudsTex;  // cloud color+transmittance at quarter res (placeholder clear until clouds run)
 
     // Camera state
@@ -229,6 +252,11 @@ public:
     CloudSystem* clouds = nullptr;
     ScreenSpaceSystem* ss = nullptr;
     AOSystem* ao = nullptr;
+    SSRSystem* ssrSys = nullptr;
+    EnvProbeSystem* envProbe = nullptr;
+    VolumetricFog* fog = nullptr;
+    WeatherSystem* weather = nullptr;
+    GrassSystem* grass = nullptr;
     World::WorldMap* map = nullptr;
 
     ID3D11ComputeShader* csLighting = nullptr;
@@ -256,6 +284,7 @@ public:
     void updateFrameConstants(const Camera& cam, const Environment& env, float dt);
     void computeSunAndSky(const Environment& env);
     void bindFrame();  // binds FrameCB to all stages
+    void fxDemo(float dt);  // --fxdemo: stages particles/decals in front of the camera (visual testing)
 };
 
 }  // namespace Render

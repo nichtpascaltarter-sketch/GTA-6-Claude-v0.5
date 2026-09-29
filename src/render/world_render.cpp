@@ -6,6 +6,7 @@
 namespace World {
 struct CellGeometry;
 void generateCell(int cx, int cy, bool detail, CellGeometry& out);
+const std::vector<int>& siteFarCells(float* range);  // world/sitecell.cpp: skyline landmark cells
 }
 
 namespace Render {
@@ -154,6 +155,18 @@ struct WorldRenderer {
                 // keep far version alive under near cells briefly for seamless transitions
                 if (d < nearRadius + 60.f && d >= nearRadius - 60.f) reqs.push_back({d + 1.f, cx, cy, 1});
             }
+        // Skyline landmarks (Solaris One, cranes, masts, stadium...) keep their far LOD beyond the far ring
+        {
+            float landmarkRange = 0.f;
+            for (int ci : World::siteFarCells(&landmarkRange)) {
+                int cx = ci % cps, cy = ci / cps;
+                vec2 o = World::cellOrigin(cx, cy);
+                float qx = Max(Max(o.x - (float)cam.x, 0.f), (float)cam.x - (o.x + cs));
+                float qy = Max(Max(o.y - (float)cam.y, 0.f), (float)cam.y - (o.y + cs));
+                float d = sqrtf(qx * qx + qy * qy);
+                if (d >= farRadius && d < landmarkRange) reqs.push_back({d, cx, cy, 1});
+            }
+        }
         std::sort(reqs.begin(), reqs.end(), [](const Req& a, const Req& b) { return a.d < b.d; });
         for (auto& r : reqs) requestCell(r.cx, r.cy, r.lod, now);
         // Upload finished cells (budgeted)
@@ -211,18 +224,21 @@ struct WorldRenderer {
         }
     }
 
-    void drawGBuffer(Renderer& r) {
+    void drawGBuffer(Renderer& r) { drawGBufferVP(r, r.viewProjNoJitter, r.camera.pos, true, true); }
+
+    // G-buffer pass for an arbitrary view: vp and all cell offsets are relative to refPos.
+    void drawGBufferVP(Renderer& r, const mat4& vp, dvec3 refPos, bool withDecals, bool mainView = false) {
         auto* c = gfx::ctx;
         Frustum fr;
-        fr.fromMatrix(r.viewProjNoJitter);
+        fr.fromMatrix(vp);
         bindCommon(r);
         c->VSSetShader(vs.vs, nullptr, 0);
         c->PSSetShader(ps, nullptr, 0);
         ID3D11Buffer* cbs[] = {drawCB.get()};
         c->VSSetConstantBuffers(1, 1, cbs);
         c->PSSetConstantBuffers(1, 1, cbs);
-        drawnCells = 0;
-        forVisible(fr, r.camera.pos, false, [&](StreamCell* sc, vec3 off) {
+        if (mainView) drawnCells = 0;
+        forVisible(fr, refPos, false, [&](StreamCell* sc, vec3 off) {
             drawCB.data.cellOffset = vec4(off, 0);
             drawCB.data.params = vec4(0);
             drawCB.upload();
@@ -231,12 +247,14 @@ struct WorldRenderer {
             c->IASetIndexBuffer(sc->ib.buf, DXGI_FORMAT_R32_UINT, 0);
             if (sc->opaqueCount) c->DrawIndexed(sc->opaqueCount, 0, 0);
             r.stats.drawCalls++;
-            r.stats.triangles += sc->opaqueCount / 3;
-            drawnCells++;
+            if (mainView) {
+                r.stats.triangles += sc->opaqueCount / 3;
+                drawnCells++;
+            }
         });
         // Decals (road paint) with depth bias
         c->RSSetState(decalRS);
-        forVisible(fr, r.camera.pos, true, [&](StreamCell* sc, vec3 off) {
+        if (withDecals) forVisible(fr, refPos, true, [&](StreamCell* sc, vec3 off) {
             if (!sc->decalCount) return;
             drawCB.data.cellOffset = vec4(off, 0);
             drawCB.upload();

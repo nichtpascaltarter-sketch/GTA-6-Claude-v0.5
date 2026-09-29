@@ -50,6 +50,7 @@ void sdfShade(float d, float4 c, float4 c2, float pxRange, float outline, float 
         float pr = pxRange / (1.0 + soft);
         float ol = saturate((d - 0.5 + outline) * pr + 0.5);
         if (soft > 0.0) ol = ol * ol * (3.0 - 2.0 * ol);
+        ol *= saturate(d * 14.0);   // never reach the saturated border of the distance field (quad edges)
         rgb = lerp(c2.rgb, c.rgb, fill);
         a = max(fill * c.a, ol * c2.a);
     } else {
@@ -75,9 +76,11 @@ float4 psUI(VSOut i) : SV_Target {
         rgb = timg.rgb * c.rgb;
         a = timg.a * c.a;
     } else if (mode == 3) {
+        // p.w = radius (< 1000) + border * 10 * 1000; decode with a tolerance for interpolation noise
         float2 halfSize = i.p.yz;
-        float bw = floor(i.p.w / 1000.0) / 10.0;
-        float r = i.p.w - floor(i.p.w / 1000.0) * 1000.0;
+        float hi = floor(i.p.w / 1000.0 + 0.005);
+        float bw = hi / 10.0;
+        float r = max(i.p.w - hi * 1000.0, 0.0);
         float sdf = sdRoundRect(i.uv, halfSize, r);
         float cov = saturate(0.5 - sdf);
         if (bw > 0.0) {
@@ -137,8 +140,9 @@ float4 psUI(VSOut i) : SV_Target {
         a = c.a;
     } else if (mode == 9) {
         float2 halfSize = i.p.yz;
-        float sat = floor(i.p.w / 1000.0) / 100.0;
-        float r = i.p.w - floor(i.p.w / 1000.0) * 1000.0;
+        float hi = floor(i.p.w / 1000.0 + 0.005);
+        float sat = hi / 100.0;
+        float r = max(i.p.w - hi * 1000.0, 0.0);
         float sdf = sdRoundRect(i.uv, halfSize, r);
         float cov = saturate(0.5 - sdf);
         float3 b = tBlur.SampleLevel(sLinear, i.screen * gUIScreen.zw, 0).rgb;

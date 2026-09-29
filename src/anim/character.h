@@ -85,17 +85,22 @@ void blendUpperBody(const Pose& base, const Pose& layer, float w, Pose& out);
 void computeMatrices(const Skeleton& skel, const Pose& pose, mat4* modelSpace, mat4* skinning);
 // Two-bone IK helper (e.g. plant feet on uneven ground, hands on steering wheel / weapon).
 void solveTwoBoneIK(const Skeleton& skel, Pose& pose, Bone upper, Bone lower, Bone end, vec3 targetModel, vec3 poleModel, float weight);
+// Recover a Pose from model-space bone matrices (e.g. a ragdoll expressed relative to the ped root) for blending.
+void poseFromModelSpace(const Skeleton& skel, const mat4* modelSpace, Pose& out);
 
 // High level animation state machine driven by gameplay each frame.
 struct AnimInput {
     float speed = 0;          // horizontal speed (m/s)
     float turnRate = 0;       // rad/s (for leaning)
-    vec2 localMoveDir = vec2(0, 1);  // movement direction relative to facing (for strafing)
+    vec2 localMoveDir = vec2(0, 1);  // movement direction relative to facing (for strafing); while driving
+                                     // (stance 1) x = steering input -1 left .. +1 right (turns the wheel)
     bool crouch = false, aiming = false, firing = false, reloading = false, inAir = false, swimming = false;
     int weaponKind = 0;       // 0 none, 1 pistol, 2 rifle/smg/shotgun, 3 melee, 4 thrown
     float aimPitch = 0;       // radians, + up
     int action = -1;          // one-shot Clip to play (punch, hit, death, enter car, ...), -1 none
     int stance = 0;           // 0 normal, 1 driving, 2 passenger, 3 bike, 4 cower, 5 hands up, 6 sit, 7 talk, 8 phone, 9 dance, ...
+                              // 10 smoke, 11 lean on wall, 12 sunbathe, 13 jog in place, 14 look around, 15 wave, 16 cheer,
+                              // 17 point, 18 crouch, 19 fighting guard
     float groundOffsetL = 0, groundOffsetR = 0;  // foot IK height offsets from terrain probes (m)
 };
 
@@ -112,8 +117,18 @@ struct Animator {
     int prevStance = 0;
     u32 seed = 0;
     bool actionFinished = true;
+    // additional internal state (implementation defined)
+    float speedS = 0, leanS = 0, fireT = 10.f, reloadW = 0, reloadT = 0, airT = 0, stanceTime = 0;
+    float footL = 0, footR = 0, snapW = 0, snapRate = 5.f, moveW = 0, legScale = 1.f, styleF = 0, steerS = 0;
+    vec2 dirS = vec2(0, 1);
+    int lastInAction = -1;        // AnimInput::action of the previous update (actions start on a change)
+    bool extBlend = false;        // blendFrom() pending: keep its crossfade when the next action starts
+    bool actionUpper = false, wasReloading = false;
+    Pose snap;                    // pose captured at a discontinuity (crossfaded out over 1/snapRate s)
     void init(const Skeleton* s, u32 variationSeed);
     void update(const AnimInput& in, float dt);
+    // Crossfade from an externally produced pose (e.g. the ragdoll when a get-up starts) over `seconds`.
+    void blendFrom(const Pose& from, float seconds);
     bool actionDone() const { return actionFinished; }
 };
 

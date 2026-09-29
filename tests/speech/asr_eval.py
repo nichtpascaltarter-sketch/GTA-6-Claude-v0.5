@@ -35,8 +35,8 @@ def normalize(text):
     return " ".join(out)
 
 
-def make_recognizer(name, mdir):
-    nt = max(1, os.cpu_count() or 1)
+def make_recognizer(name, mdir, threads=0):
+    nt = threads if threads > 0 else max(1, os.cpu_count() or 1)
     if name.startswith("whisper-"):
         size = name.split("-", 1)[1]
         d = os.path.join(mdir, "sherpa-onnx-whisper-%s.en" % size)
@@ -76,6 +76,8 @@ def main():
     ap.add_argument("--asr", default="whisper-base,parakeet")
     ap.add_argument("--quiet", action="store_true")
     ap.add_argument("--words", action="store_true", help="word test: score only the target word of 'Say the word X again.'")
+    ap.add_argument("--batch", type=int, default=8, help="streams decoded per batch (bounds peak memory)")
+    ap.add_argument("--threads", type=int, default=0, help="inference threads (0 = all cores)")
     a = ap.parse_args()
     rows = []
     base = os.path.dirname(os.path.abspath(a.manifest))
@@ -89,22 +91,28 @@ def main():
         rows.append((p, voice, ref))
     summary = {}
     for name in a.asr.split(","):
-        rec = make_recognizer(name, a.models)
-        streams = []
-        for p, voice, ref in rows:
-            x, sr = load_wav(p)
-            s = rec.create_stream()
-            s.accept_waveform(sr, x)
-            streams.append(s)
-        rec.decode_streams(streams)
+        rec = make_recognizer(name, a.models, a.threads)
+        results = []  # decoded text per row; streams are decoded in small batches to bound memory
+        for b in range(0, len(rows), max(1, a.batch)):
+            streams = []
+            for p, voice, ref in rows[b:b + max(1, a.batch)]:
+                x, sr = load_wav(p)
+                s = rec.create_stream()
+                s.accept_waveform(sr, x)
+                streams.append(s)
+            rec.decode_streams(streams)
+            results.extend(s.result.text for s in streams)
+            del streams
+        del rec
         if a.words:
             ok = collections.Counter(); tot = collections.Counter(); wrong = []
             # accepted homophones / spellings (cot-caught merger is normal in American English)
             alts = {"mat": ["matt"], "hole": ["whole"], "cash": ["cache"], "cot": ["caught"], "bought": ["bot"],
-                    "yak": ["yack"], "heart": ["hart"], "bite": ["byte"], "pal": ["pall"], "boy": ["buoy"], "hot": ["haught"]}
-            for (p, voice, ref), s in zip(rows, streams):
+                    "yak": ["yack"], "heart": ["hart"], "bite": ["byte"], "pal": ["pall"], "boy": ["buoy"], "hot": ["haught"],
+                    "bass": ["base"]}
+            for (p, voice, ref), text in zip(rows, results):
                 target = ref.split()[3]
-                hyp = normalize(s.result.text)
+                hyp = normalize(text)
                 hw = hyp.split()
                 hit = normalize(target) in hw or any(normalize(x) in hw for x in alts.get(target, []))
                 tot[voice] += 1; ok[voice] += hit
@@ -117,8 +125,8 @@ def main():
             continue
         per_voice = collections.defaultdict(lambda: [0, 0])  # errors, words
         tot_err = tot_words = 0
-        for (p, voice, ref), s in zip(rows, streams):
-            hyp = s.result.text.strip()
+        for (p, voice, ref), text in zip(rows, results):
+            hyp = text.strip()
             h = normalize(hyp)
             # reference alternatives: "sol|soul" matches either spelling (homophones / name spellings)
             hw = set(h.split())

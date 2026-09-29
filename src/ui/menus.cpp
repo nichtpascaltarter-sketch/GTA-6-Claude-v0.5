@@ -47,6 +47,7 @@ struct Internal {
     float setCatHl = -1.f, setRowHl = -1.f;
     // dialog
     DialogKind dialog = DLG_NONE;
+    bool dialogFresh = false;   // opened this frame: ignore the key press that opened it
     int dialogChoice = 1;
     float dialogT = 0.f;
     int dialogSlot = -1;
@@ -58,10 +59,12 @@ struct Internal {
     bool dragging = false;
     vec2 dragStart, dragLast;
     bool legend = true;
+    vec4 legendRect;   // x, y, w, h of the legend panel last frame (clicks there do not set waypoints)
     float mapFade = 0.f;
     // loading
     float tipT = 0.f;
     int tipIndex = 0;
+    std::string lastTip;
     // feedback
     float denyT = 10.f;
 };
@@ -181,7 +184,7 @@ void drawLogo(float x, float y, float size, float alpha, float t, bool centered)
     setAdditive(false);
     polyline(wave.data(), (int)wave.size(), Max(1.5f, size * 0.022f), withAlpha(C(0.75f, 0.97f, 1.f), alpha));
     TextStyle tag = style(FONT_HEADING, size * 0.17f, withAlpha(kTextDim, alpha));
-    tag.tracking = 0.62f;
+    tag.tracking = 0.48f;
     std::string tg = "STATE OF PALMERA";
     float tw = textWidth(tg.c_str(), tag);
     text(centered ? x - tw * 0.5f : x0 + 4.f * sc, y + size * 1.2f, tg.c_str(), tag);
@@ -227,6 +230,8 @@ struct DialogResult { bool yes = false, no = false; };
 
 DialogResult drawDialog(const Layout& L, const Nav& n, const char* title, const char* msg, const char* yesLabel, const char* noLabel, float dt) {
     DialogResult r;
+    bool fresh = I.dialogFresh;
+    I.dialogFresh = false;
     I.dialogT += dt;
     float a = easeOutCubic(I.dialogT / 0.2f);
     float sc = L.s;
@@ -246,7 +251,7 @@ DialogResult drawDialog(const Layout& L, const Nav& n, const char* title, const 
     float bw = 240.f * sc, bh = 58.f * sc, by = y + h - bh - 30.f * sc;
     float bx[2] = {x + w * 0.5f - bw - 12.f * sc, x + w * 0.5f + 12.f * sc};
     const char* labels[2] = {yesLabel, noLabel};
-    if (n.left || n.right) I.dialogChoice = 1 - I.dialogChoice;
+    if (!fresh && (n.left || n.right)) I.dialogChoice = 1 - I.dialogChoice;
     for (int i = 0; i < 2; i++) {
         bool hov = inRect(n.mouse, bx[i], by, bw, bh);
         if (hov && n.mouseMoved) I.dialogChoice = i;
@@ -257,11 +262,12 @@ DialogResult drawDialog(const Layout& L, const Nav& n, const char* title, const 
         bs.tracking = 0.06f;
         std::string lab = upper(labels[i]);
         text(bx[i] + bw * 0.5f, by + bh * 0.5f - bs.size * 0.55f, lab.c_str(), bs);
-        if (n.click && hov) {
+        if (!fresh && n.click && hov) {
             if (i == 0) r.yes = true;
             else r.no = true;
         }
     }
+    if (fresh) return r;
     if (n.confirm) {
         if (I.dialogChoice == 0) r.yes = true;
         else r.no = true;
@@ -275,6 +281,7 @@ void openDialog(DialogKind k, int slot, int defaultChoice = 1) {
     I.dialogSlot = slot;
     I.dialogChoice = defaultChoice;
     I.dialogT = 0.f;
+    I.dialogFresh = true;
 }
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -290,47 +297,60 @@ u32 skyColorAt(float t) {
 }
 
 void drawPalm(vec2 base, float height, float lean, float t, float phase, u32 col) {
-    // trunk: tapered curve
-    const int N = 14;
+    // trunk: tapered curve built as one polygon (no seams), subtle ring marks
+    const int N = 18;
     vec2 pts[N + 1];
+    float sway = sinf(t * 0.9f + phase) * height * 0.012f;
     for (int i = 0; i <= N; i++) {
         float u = (float)i / N;
-        float bend = lean * u * u * height;
-        pts[i] = base + vec2(bend + sinf(t * 0.9f + phase) * u * u * height * 0.012f, -u * height);
+        pts[i] = base + vec2(lean * u * u * height + sway * u * u, -u * height);
     }
-    for (int i = 0; i < N; i++) {
-        float w0 = height * Lerp(0.045f, 0.022f, (float)i / N), w1 = height * Lerp(0.045f, 0.022f, (float)(i + 1) / N);
+    vec2 trunk[(N + 1) * 2];
+    for (int i = 0; i <= N; i++) {
+        float w = height * Lerp(0.034f, 0.016f, (float)i / N);
+        vec2 d = normalize(i < N ? pts[i + 1] - pts[i] : pts[i] - pts[i - 1]), nn = perp(d);
+        trunk[i] = pts[i] + nn * w;
+        trunk[(N + 1) * 2 - 1 - i] = pts[i] - nn * w;
+    }
+    polygon(trunk, (N + 1) * 2, col);
+    u32 ring = lerpColor(col, C(0.35f, 0.12f, 0.35f), 0.35f);
+    for (int i = 2; i < N; i += 2) {
+        float w = height * Lerp(0.034f, 0.016f, (float)i / N) * 0.85f;
         vec2 d = normalize(pts[i + 1] - pts[i]), nn = perp(d);
-        quad(pts[i] + nn * w0, pts[i + 1] + nn * w1, pts[i + 1] - nn * w1, pts[i] - nn * w0, col);
-        // ring notches
-        if (i % 2 == 0) capsule(pts[i].x - nn.x * w0, pts[i].y - nn.y * w0, pts[i].x + nn.x * w0, pts[i].y + nn.y * w0, 1.2f, withAlpha(col, 0.f));
+        capsule(pts[i].x - nn.x * w, pts[i].y - nn.y * w, pts[i].x + nn.x * w, pts[i].y + nn.y * w, Max(1.f, height * 0.003f), ring);
     }
     vec2 top = pts[N];
-    // fronds
-    const int F = 9;
+    // fronds: arching spine with leaflets hanging from both sides (gravity), tips taper into the last leaflets
+    const int F = 10;
     for (int f = 0; f < F; f++) {
-        float ang = -kPi + kPi * (f + 0.5f) / F * 1.0f + sinf(t * 1.1f + phase + f) * 0.05f;
-        float len = height * (0.42f + 0.12f * sinf(f * 2.3f + phase));
-        vec2 dir(cosf(ang), sinf(ang) * 0.55f);
-        const int S = 10;
-        vec2 prev = top;
-        std::vector<vec2> left, right;
+        float fa = (float)f / (F - 1);
+        float ang = Lerp(-kPi - 0.35f, 0.35f, fa) + sinf(t * 1.1f + phase + f * 1.7f) * 0.035f;
+        float side = fabsf(fa - 0.5f) * 2.f;   // 0 upward fronds .. 1 sideways fronds
+        float len = height * (0.27f + 0.06f * sinf(f * 2.3f + phase * 3.f)) * (1.05f - 0.25f * (1.f - side));
+        vec2 dir(cosf(ang), sinf(ang) * 0.8f);
+        float droop = Lerp(0.30f, 0.62f, side);
+        const int S = 20;
+        vec2 spine[S + 1];
         for (int k = 0; k <= S; k++) {
             float u = (float)k / S;
-            vec2 p = top + dir * (len * u) + vec2(0.f, len * 0.55f * u * u);
-            vec2 d = k == 0 ? dir : normalize(p - prev);
-            vec2 nn = perp(d);
-            float w = height * 0.05f * sinf(u * kPi) * (1.f - 0.4f * u);
-            left.push_back(p + nn * w);
-            right.push_back(p - nn * w * 0.6f);
-            prev = p;
+            spine[k] = top + dir * (len * u) + vec2(0.f, len * droop * u * u);
         }
-        std::vector<vec2> poly;
-        for (auto& p : left) poly.push_back(p);
-        for (int k = (int)right.size() - 1; k >= 0; k--) poly.push_back(right[k]);
-        polygon(poly.data(), (int)poly.size(), col);
+        for (int k = 0; k < S; k++) {
+            float u = (float)k / S;
+            vec2 a = spine[k], b = spine[k + 1];
+            float w = height * 0.007f * (1.f - u * 0.85f);
+            capsule(a.x, a.y, b.x, b.y, w * 2.f, col);
+            vec2 d = normalize(b - a), nn = perp(d);
+            float leaf = height * (0.062f * sinf((0.1f + u * 0.85f) * kPi) + 0.01f);
+            vec2 mid = (a + b) * 0.5f, halfSeg = (b - a) * 0.32f;
+            for (int sd = -1; sd <= 1; sd += 2) {
+                vec2 hang = normalize(nn * (float)sd * 0.6f + d * 0.5f + vec2(0.f, 0.55f));
+                vec2 tip = mid + hang * leaf;
+                triangle(mid - halfSeg, mid + halfSeg, tip, col);
+            }
+        }
     }
-    circle(top.x, top.y + height * 0.02f, height * 0.035f, col);
+    for (int k = 0; k < 3; k++) circle(top.x + (k - 1) * height * 0.018f, top.y + height * 0.025f, height * 0.016f, col);
 }
 
 void drawLoadingArt(const Layout& L, float t) {
@@ -350,37 +370,23 @@ void drawLoadingArt(const Layout& L, float t) {
         circle(x, y, (0.6f + rng.f() * 1.2f) * L.s, C(1.f, 0.95f, 1.f, (0.25f + 0.5f * rng.f()) * tw * (1.f - y / (horizon * 0.55f))));
     }
     // sun with synthwave stripes
-    vec2 sc(W * 0.62f, horizon - H * 0.06f);
-    float sr = H * 0.23f;
+    vec2 sc(W * 0.6f, horizon - H * 0.13f);
+    float sr = H * 0.21f;
     setAdditive(true);
     circleSoft(sc.x, sc.y, sr * 1.2f, sr * 1.6f, C(1.f, 0.35f, 0.45f, 0.35f));
     setAdditive(false);
     {
-        const int sb = 20;
-        for (int i = 0; i < sb; i++) {
-            float y0 = sc.y - sr + 2.f * sr * i / sb, y1 = sc.y - sr + 2.f * sr * (i + 1) / sb;
-            float yc = (y0 + y1) * 0.5f;
-            float hw0 = sqrtf(Max(0.f, sr * sr - Sq(Min(fabsf(y0 - sc.y), fabsf(y1 - sc.y)))));
-            (void)hw0;
-            float u = (float)i / sb;
-            vec3 top(1.f, 0.93f, 0.45f), bot(1.f, 0.25f, 0.55f);
-            vec3 c = lerp(top, bot, u);
-            // clip each band to the circle using a rounded clip region
-            ClipState pc = getClip();
-            setClipCircle(sc.x, sc.y, sr);
-            rect(sc.x - sr, y0, 2.f * sr, y1 - y0 + 1.f, C(c.x, c.y, c.z));
-            setClip(pc);
-            (void)yc;
-        }
+        // sun disc: one rounded quad with a vertical gradient (radius = half size makes it a circle)
+        roundRectGradient(sc.x - sr, sc.y - sr, 2.f * sr, 2.f * sr, sr, C(1.f, 0.93f, 0.45f), C(1.f, 0.25f, 0.55f));
         // stripes cut in the lower half, animated downward
-        for (int k = 0; k < 7; k++) {
-            float ph = fmodf(t * 0.08f + k / 7.f, 1.f);
-            float yy = sc.y + sr * (0.05f + ph * 0.95f);
-            float th = sr * (0.015f + 0.07f * ph);
+        for (int k = 0; k < 8; k++) {
+            float ph = fmodf(t * 0.06f + k / 8.f, 1.f);
+            float yy = sc.y + sr * (-0.3f + ph * 1.3f);
+            float th = sr * (0.012f + 0.075f * ph);
             float tt = Saturate((yy - 0.f) / horizon);
             ClipState pc = getClip();
             setClipCircle(sc.x, sc.y, sr + 1.f);
-            rect(sc.x - sr - 2.f, yy - th * 0.5f, 2.f * sr + 4.f, th, skyColorAt(tt));
+            rect(sc.x - sr - 2.f, yy - th * 0.5f, 2.f * sr + 4.f, th, lerpColor(skyColorAt(tt), C(0.25f, 0.05f, 0.30f), 0.35f));
             setClip(pc);
         }
     }
@@ -436,9 +442,9 @@ void drawLoadingArt(const Layout& L, float t) {
     setAdditive(false);
     // palms (foreground silhouettes)
     u32 palm = C(0.035f, 0.01f, 0.06f);
-    drawPalm(vec2(W * 0.08f, H * 1.02f), H * 0.78f, 0.25f, t, 0.3f, palm);
-    drawPalm(vec2(W * 0.17f, H * 1.04f), H * 0.58f, 0.42f, t, 1.7f, palm);
-    drawPalm(vec2(W * 0.93f, H * 1.03f), H * 0.72f, -0.3f, t, 2.9f, palm);
+    drawPalm(vec2(W * 0.04f, H * 1.03f), H * 0.6f, 0.36f, t, 0.3f, palm);
+    drawPalm(vec2(W * 0.15f, H * 1.06f), H * 0.42f, 0.55f, t, 1.7f, palm);
+    drawPalm(vec2(W * 0.95f, H * 1.03f), H * 0.72f, -0.3f, t, 2.9f, palm);
     // foreground beach
     std::vector<vec2> dune;
     dune.push_back(vec2(0, H));
@@ -471,11 +477,12 @@ void drawLoading(MenuState& st, const Layout& L, float dt, float t) {
     // progress + tip panel
     I.tipT += dt;
     int nt = (int)ARRAY_COUNT(kTips);
-    if (I.tipT > 7.f) {
-        I.tipT = 0.f;
-        I.tipIndex = (I.tipIndex + 1) % nt;
-    }
+    if (st.loadingTip.empty() && I.tipT > 7.f) I.tipIndex = (I.tipIndex + 1) % nt;
     std::string tip = st.loadingTip.empty() ? kTips[I.tipIndex] : st.loadingTip;
+    if (tip != I.lastTip) {
+        I.lastTip = tip;
+        I.tipT = 0.f;
+    }
     float tipA = Saturate(I.tipT / 0.5f) * (st.loadingTip.empty() ? 1.f - SmoothStep(6.4f, 7.f, I.tipT) : 1.f);
     float pw = 620.f * sc;
     float px = L.right - pw, py = L.bottom - 150.f * sc;
@@ -772,24 +779,67 @@ MenuAction drawMap(MenuState& st, const Layout& L, const Nav& n, float dt, float
             rect(0, sy, L.W, 1.f, gc);
         }
     }
-    // labels
-    for (const MapLabel& lb : mapLabels()) {
-        float vis;
-        if (lb.importance >= 4.f) vis = SmoothStep(5.5f, 8.f, v.mpp);
-        else if (lb.importance >= 3.f) vis = SmoothStep(2.2f, 3.5f, v.mpp);
-        else if (lb.importance >= 2.f) vis = 1.f - SmoothStep(14.f, 20.f, v.mpp);
-        else vis = 1.f - SmoothStep(8.f, 11.f, v.mpp);
-        if (vis <= 0.01f) continue;
-        vec2 p = v.toScreen(lb.pos);
-        if (p.x < -300 || p.x > L.W + 300 || p.y < -100 || p.y > L.H + 100) continue;
-        float size = (lb.importance >= 4.f ? 44.f : lb.importance >= 3.f ? 30.f : lb.importance >= 2.f ? 22.f : 20.f) * sc;
-        TextStyle ls = style(lb.importance >= 4.f ? FONT_TITLE : FONT_HEADING, size, withAlpha(lb.water ? C(0.55f, 0.82f, 0.95f) : kWhite, 0.82f * vis * a), ALIGN_CENTER);
-        ls.tracking = lb.importance >= 3.f ? 0.28f : 0.12f;
-        ls.outline = 2.f * sc;
-        ls.outlineColor = C(0.01f, 0.02f, 0.06f, 0.75f * vis * a);
-        ls.skew = lb.water ? 0.2f : 0.f;
-        std::string name = upper(lb.name);
-        text(p.x, p.y - size * 0.55f, name.c_str(), ls);
+    // labels: most important first, skipped when they would overlap a placed label or a UI panel
+    {
+        struct Placed { float x0, y0, x1, y1; };
+        static std::vector<Placed> placed;
+        placed.clear();
+        placed.push_back({0.f, 0.f, L.W, 190.f * sc});                                   // header / tabs
+        if (I.legend) placed.push_back({L.right - 340.f * sc, 190.f * sc, L.W, L.H * 0.8f});  // legend panel
+        placed.push_back({0.f, L.H - 170.f * sc, L.W * 0.4f, L.H});                      // location info
+        placed.push_back({L.W * 0.4f, L.H - 90.f * sc, L.W, L.H});                       // prompts
+        // blip footprints: labels prefer positions that keep blips, the player and the waypoint readable
+        static std::vector<Placed> blipRects;
+        blipRects.clear();
+        auto addBlipRect = [&](vec2 bp, float r) {
+            if (bp.x < -r || bp.x > L.W + r || bp.y < -r || bp.y > L.H + r) return;
+            blipRects.push_back({bp.x - r, bp.y - r, bp.x + r, bp.y + r});
+        };
+        for (const Blip& b : st.mapBlips) addBlipRect(v.toScreen(b.pos), 15.f * sc);
+        if (st.hasWaypoint) addBlipRect(v.toScreen(st.waypoint), 17.f * sc);
+        addBlipRect(v.toScreen(st.playerPos), 19.f * sc);
+        static std::vector<const MapLabel*> order;
+        order.clear();
+        for (const MapLabel& lb : mapLabels()) order.push_back(&lb);
+        std::stable_sort(order.begin(), order.end(), [](const MapLabel* x, const MapLabel* y) { return x->importance > y->importance; });
+        for (const MapLabel* lbp : order) {
+            const MapLabel& lb = *lbp;
+            float vis;
+            if (lb.importance >= 4.f) vis = SmoothStep(5.5f, 8.f, v.mpp);
+            else if (lb.importance >= 3.f) vis = SmoothStep(2.2f, 3.5f, v.mpp);
+            else if (lb.importance >= 2.f) vis = 1.f - SmoothStep(14.f, 20.f, v.mpp);
+            else vis = 1.f - SmoothStep(8.f, 11.f, v.mpp);
+            if (vis <= 0.01f) continue;
+            vec2 p = v.toScreen(lb.pos);
+            if (p.x < -300 || p.x > L.W + 300 || p.y < -100 || p.y > L.H + 100) continue;
+            float size = (lb.importance >= 4.f ? 44.f : lb.importance >= 3.f ? 30.f : lb.importance >= 2.f ? 22.f : 20.f) * sc;
+            TextStyle ls = style(lb.importance >= 4.f ? FONT_TITLE : FONT_HEADING, size,
+                                 withAlpha(lb.water ? C(0.55f, 0.82f, 0.95f) : kWhite, 0.82f * vis * a), ALIGN_CENTER);
+            ls.tracking = lb.importance >= 3.f ? 0.28f : 0.12f;
+            ls.outline = 2.f * sc;
+            ls.outlineColor = C(0.01f, 0.02f, 0.06f, 0.75f * vis * a);
+            ls.skew = lb.water ? 0.2f : 0.f;
+            std::string name = upper(lb.name);
+            float w = textWidth(name.c_str(), ls);
+            // first pass avoids labels, panels and blips; the second only labels and panels (blips draw on top)
+            const float offs[5] = {0.f, 1.3f, -1.3f, 2.4f, -2.4f};
+            bool done = false;
+            for (int pass = 0; pass < 2 && !done; pass++)
+                for (float off : offs) {
+                    float py = p.y + off * size;
+                    Placed r = {p.x - w * 0.5f - 6.f * sc, py - size * 0.6f, p.x + w * 0.5f + 6.f * sc, py + size * 0.6f};
+                    auto overlaps = [&](const std::vector<Placed>& list) {
+                        for (const Placed& q : list)
+                            if (r.x0 < q.x1 && r.x1 > q.x0 && r.y0 < q.y1 && r.y1 > q.y0) return true;
+                        return false;
+                    };
+                    if (overlaps(placed) || (pass == 0 && overlaps(blipRects))) continue;
+                    placed.push_back(r);
+                    text(p.x, py - size * 0.55f, name.c_str(), ls);
+                    done = true;
+                    break;
+                }
+        }
     }
     // route
     if (!st.gpsRoute.empty()) drawMapRoute(v, st.gpsRoute, C(1.f, 0.4f, 0.8f), Max(3.f, 4.f * sc), a, vec2(0, 0), vec2(L.W, L.H));
@@ -823,7 +873,8 @@ MenuAction drawMap(MenuState& st, const Layout& L, const Nav& n, float dt, float
     // cursor + waypoint set / clear
     vec2 cw = v.toWorld(I.cursor);
     if (interactive && I.dialog == DLG_NONE) {
-        bool clickSet = (!usePadCursor && n.release && !I.dragging && inRect(n.mouse, 0, 190.f * sc, L.W, L.H - 190.f * sc)) ||
+        bool overLegend = I.legend && inRect(n.mouse, I.legendRect.x, I.legendRect.y, I.legendRect.z, I.legendRect.w);
+        bool clickSet = (!usePadCursor && n.release && !I.dragging && !overLegend && inRect(n.mouse, 0, 190.f * sc, L.W, L.H - 190.f * sc)) ||
                         (usePadCursor && n.confirm) || (!usePadCursor && n.confirm);
         bool clear = n.rclick || n.btnX;
         if (clickSet) {
@@ -915,6 +966,7 @@ MenuAction drawMap(MenuState& st, const Layout& L, const Nav& n, float dt, float
         float lw = 330.f * sc, rowH = 38.f * sc;
         float lh = 64.f * sc + rowH * entries.size();
         float lx = L.right - lw, ly = 200.f * sc;
+        I.legendRect = vec4(lx, ly, lw, lh);
         panel(lx, ly, lw, lh, a, 12.f);
         TextStyle hs = style(FONT_HEADING, 22.f * sc, withAlpha(kPink, a));
         hs.tracking = 0.2f;
@@ -1104,7 +1156,7 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
     bool changed = false;
     GameSettings& gs = st.settings;
     // categories column
-    float cw = 350.f * sc, rowH = 58.f * sc;
+    float cw = 390.f * sc, rowH = 58.f * sc;
     panel(x, y, cw, h, a);
     float catY0 = y + 18.f * sc;
     bool dialogFree = I.dialog == DLG_NONE;
@@ -1116,13 +1168,15 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
             I.setCursor = 0;
         }
     }
+    bool consumed = false;   // the key that moved focus must not also edit a value
     if (dialogFree && !I.setItemsFocus) {
         if (n.up) { I.setCat = (I.setCat + 3) % 4; I.setCursor = 0; }
         if (n.down) { I.setCat = (I.setCat + 1) % 4; I.setCursor = 0; }
-        if (n.right || n.confirm) { I.setItemsFocus = true; I.setCursor = 0; }
+        if (n.right || n.confirm) { I.setItemsFocus = true; I.setCursor = 0; consumed = true; }
         else if (n.back) exit = true;
     } else if (dialogFree && n.back) {
         I.setItemsFocus = false;
+        consumed = true;
     }
     float catTarget = catY0 + I.setCat * (rowH + 6.f * sc);
     if (I.setCatHl < 0.f) I.setCatHl = catTarget;
@@ -1136,6 +1190,8 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
         TextStyle ts = style(FONT_HEADING, 25.f * sc, withAlpha(sel ? kWhite : kTextDim, a));
         ts.tracking = 0.05f;
         std::string lab = upper(kCatNames[c]);
+        float avail = cw - 70.f * sc - 22.f * sc, tw = textWidth(lab.c_str(), ts);
+        if (tw > avail) ts.size *= avail / tw;
         text(x + 70.f * sc, ry + rowH * 0.5f - ts.size * 0.56f, lab.c_str(), ts);
     }
     // items
@@ -1150,7 +1206,7 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
     text(ix + 30.f * sc, y + 22.f * sc, title.c_str(), hs);
     rect(ix + 30.f * sc, y + 66.f * sc, iw - 60.f * sc, 1.f * sc, withAlpha(kWhite, 0.1f * a));
     float listY = y + 82.f * sc, ih = 54.f * sc;
-    if (dialogFree && I.setItemsFocus) {
+    if (dialogFree && I.setItemsFocus && !consumed) {
         if (n.up) I.setCursor = (I.setCursor + count - 1) % count;
         if (n.down) I.setCursor = (I.setCursor + 1) % count;
     }
@@ -1179,7 +1235,7 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
         std::string lab = upper(it.label);
         text(ix + 34.f * sc, cy - ls.size * 0.56f, lab.c_str(), ls);
         if (it.type == ST_ACTION) {
-            if (dialogFree && sel && n.confirm) changed |= changeItem(it, 0, gs, I.setCat);
+            if (dialogFree && sel && n.confirm && !consumed) changed |= changeItem(it, 0, gs, I.setCat);
             if (dialogFree && n.click && inRect(n.mouse, ix + 14.f * sc, ry, iw - 28.f * sc, ih)) changed |= changeItem(it, 0, gs, I.setCat);
             continue;
         }
@@ -1223,7 +1279,7 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
             if (dialogFree && n.click && inRect(n.mouse, bx - 10.f * sc, ry, 50.f * sc, ih)) changed |= changeItem(it, -1, gs, I.setCat);
             if (dialogFree && n.click && inRect(n.mouse, bx + bw - 40.f * sc, ry, 50.f * sc, ih)) changed |= changeItem(it, 1, gs, I.setCat);
         }
-        if (dialogFree && sel) {
+        if (dialogFree && sel && !consumed) {
             if (n.left) changed |= changeItem(it, -1, gs, I.setCat);
             if (n.right) changed |= changeItem(it, 1, gs, I.setCat);
             if (n.confirm && it.type != ST_SLIDER) changed |= changeItem(it, 0, gs, I.setCat);
@@ -1247,7 +1303,7 @@ MenuAction drawSlots(MenuState& st, const Layout& L, const Nav& n, float x, floa
     panel(x, y, w, h, a);
     TextStyle hs = style(FONT_HEADING, 30.f * sc, withAlpha(kWhite, a));
     hs.tracking = 0.06f;
-    text(x + 30.f * sc, y + 22.f * sc, save ? "SAVE GAME" : "LOAD GAME", hs);
+    text(x + 30.f * sc, y + 22.f * sc, save ? "SAVE GAME" : (inGame ? "LOAD GAME" : "SAVED GAMES"), hs);
     TextStyle sub = style(FONT_BODY, 19.f * sc, withAlpha(kTextDim, a), ALIGN_RIGHT);
     text(x + w - 30.f * sc, y + 30.f * sc, save ? "Choose a slot to save your progress" : "Choose a saved game to continue", sub);
     rect(x + 30.f * sc, y + 66.f * sc, w - 60.f * sc, 1.f * sc, withAlpha(kWhite, 0.1f * a));
@@ -1370,9 +1426,12 @@ void drawStats(MenuState& st, const Layout& L, const Nav& n, float x, float y, f
     setClip(pc);
 }
 
-void drawBrief(MenuState& st, const Layout& L, float x, float y, float w, float h, float a, bool pad) {
+void drawBrief(MenuState& st, const Layout& L, float x, float y, float w, float h, float a, bool pad, float t) {
     float sc = L.s;
-    panel(x, y, w, h, a);
+    bool hasTarget = st.hasWaypoint || !st.gpsRoute.empty();
+    float mapW = hasTarget && mapReady() ? Min(w * 0.4f, 700.f * sc) : 0.f;
+    float tw = w - (mapW > 0.f ? mapW + 20.f * sc : 0.f);
+    panel(x, y, tw, h, a);
     roundRect(x, y + 30.f * sc, 5.f * sc, 60.f * sc, 2.5f * sc, withAlpha(kPink, a));
     TextStyle ks = style(FONT_HEADING, 19.f * sc, withAlpha(kPink, a));
     ks.tracking = 0.2f;
@@ -1380,7 +1439,7 @@ void drawBrief(MenuState& st, const Layout& L, float x, float y, float w, float 
     TextStyle hs = style(FONT_HEADING, 44.f * sc, withAlpha(kWhite, a));
     std::string title = st.briefTitle.empty() ? std::string("FREE ROAM") : upper(st.briefTitle);
     text(x + 36.f * sc, y + 50.f * sc, title.c_str(), hs);
-    rect(x + 36.f * sc, y + 112.f * sc, w - 72.f * sc, 1.f * sc, withAlpha(kWhite, 0.1f * a));
+    rect(x + 36.f * sc, y + 112.f * sc, tw - 72.f * sc, 1.f * sc, withAlpha(kWhite, 0.1f * a));
     TextStyle bs = style(FONT_BODY, 24.f * sc, withAlpha(kText, a));
     RichOpts ro;
     ro.alpha = a;
@@ -1389,7 +1448,47 @@ void drawBrief(MenuState& st, const Layout& L, float x, float y, float w, float 
     std::string body = st.briefText.empty()
                            ? std::string("No active mission. Explore Porto Sol, check the ~p~map~s~ for contacts marked with their initials, or take on side jobs around Palmera.")
                            : st.briefText;
-    richDraw(x + 36.f * sc, y + 136.f * sc, body.c_str(), bs, Min(w - 72.f * sc, 1100.f * sc), ro);
+    richDraw(x + 36.f * sc, y + 136.f * sc, body.c_str(), bs, Min(tw - 72.f * sc, 1100.f * sc), ro);
+    if (mapW <= 0.f) return;
+    // destination inset: small map framed on the route end / waypoint, with the route and the destination pin
+    float mx = x + tw + 20.f * sc, my = y, mh = h;
+    panel(mx, my, mapW, mh, a);
+    vec2 dest = st.hasWaypoint ? st.waypoint : st.gpsRoute.back();
+    float ix = mx + 16.f * sc, iy = my + 60.f * sc, iw = mapW - 32.f * sc, ih = mh - 136.f * sc;
+    TextStyle ts = style(FONT_HEADING, 19.f * sc, withAlpha(kPink, a));
+    ts.tracking = 0.2f;
+    text(mx + 24.f * sc, my + 22.f * sc, "DESTINATION", ts);
+    vec2 span = dest - st.playerPos;
+    float dist = length(span);
+    vec2 center = (dest + st.playerPos) * 0.5f;
+    float mpp = Clamp(Max(fabsf(span.x) / (iw * 0.75f), fabsf(span.y) / (ih * 0.75f)), 1.2f / sc, 14.f / sc);
+    ClipState pc = getClip();
+    setClipRoundRect(ix, iy, iw, ih, 10.f * sc);
+    MapView v;
+    v.center = center;
+    v.mpp = mpp;
+    v.screenCenter = vec2(ix + iw * 0.5f, iy + ih * 0.5f);
+    MapDrawOpts o;
+    o.style = MAPSTYLE_FULL;
+    o.alpha = a;
+    o.extentMin = vec2(ix, iy);
+    o.extentMax = vec2(ix + iw, iy + ih);
+    drawMapBase(v, o);
+    if (!st.gpsRoute.empty()) drawMapRoute(v, st.gpsRoute, C(1.f, 0.4f, 0.8f), Max(3.f, 4.f * sc), a, vec2(ix, iy), vec2(ix + iw, iy + ih));
+    Blip wb;
+    wb.pos = dest;
+    wb.icon = BLIP_WAYPOINT;
+    drawBlipGlyph(wb, v.toScreen(dest), 34.f * sc, a, t, false, false);
+    vec2 pp = v.toScreen(st.playerPos);
+    drawIcon(BLIP_PLAYER, pp.x, pp.y, 30.f * sc, withAlpha(kWhite, a), 1.6f * sc, C(0.02f, 0.02f, 0.06f, a), v.screenAngle(st.playerHeading));
+    setClip(pc);
+    roundRect(ix, iy, iw, ih, 10.f * sc, 0, 1.f * sc, withAlpha(kWhite, 0.12f * a));
+    TextStyle ds = style(FONT_HEADING, 26.f * sc, withAlpha(kWhite, a));
+    std::string dn = upper(mapDistrictAt(dest));
+    text(mx + 24.f * sc, my + mh - 64.f * sc, dn.c_str(), ds);
+    TextStyle ms = style(FONT_BODY, 19.f * sc, withAlpha(kTextDim, a), ALIGN_RIGHT);
+    std::string dl = dist >= 1000.f ? StrFormat("%.1f km", dist / 1000.f) : StrFormat("%d m", (int)dist);
+    text(mx + mapW - 24.f * sc, my + mh - 58.f * sc, dl.c_str(), ms);
 }
 
 MenuAction drawQuitTab(MenuState& st, const Layout& L, const Nav& n, float x, float y, float w, float h, float a, float dt) {
@@ -1464,7 +1563,7 @@ MenuAction updatePause(MenuState& st, const Layout& L, const Nav& n, float dt, f
         break;
     }
     case PT_BRIEF:
-        drawBrief(st, L, cx, cy + slide, cw, ch, a * ca, n.pad);
+        drawBrief(st, L, cx, cy + slide, cw, ch, a * ca, n.pad, t);
         if (I.dialog == DLG_NONE && n.back) exit = true;
         break;
     case PT_STATS:
@@ -1507,18 +1606,20 @@ MenuAction updatePause(MenuState& st, const Layout& L, const Nav& n, float dt, f
                            {"C", "Y", "Center"}, {"L", "BACK", "Legend"}, {"ESC", "B", "Resume"}};
         footer(L, pi, 6, n.pad, a);
     } else if (tab == PT_SETTINGS) {
-        PromptItem pi[] = {{"ENTER", "A", "Select"}, {"LEFT", "LEFT", "Change"}, {"ESC", "B", "Back"}};
+        PromptItem pi[] = {{"ENTER", "A", "Select"}, {"LEFTRIGHT", "DPADLR", "Change"}, {"ESC", "B", I.setItemsFocus ? "Back" : "Resume"}};
         footer(L, pi, 3, n.pad, a);
     } else if (tab == PT_SAVE) {
         PromptItem pi[] = {{"ENTER", "A", "Save"}, {"ESC", "B", "Resume"}};
         footer(L, pi, 2, n.pad, a);
-    } else {
+    } else if (tab == PT_STATS) {
+        PromptItem pi[] = {{"UPDOWN", "DPADUD", "Scroll"}, {"ESC", "B", "Resume"}};
+        footer(L, pi, 2, n.pad, a);
+    } else if (tab == PT_QUIT) {
         PromptItem pi[] = {{"ENTER", "A", "Select"}, {"ESC", "B", "Resume"}};
-        footer(L, pi, tab == PT_QUIT ? 2 : 1, n.pad, a);
-        if (tab != PT_QUIT) {
-            PromptItem p2[] = {{"ESC", "B", "Resume"}};
-            (void)p2;
-        }
+        footer(L, pi, 2, n.pad, a);
+    } else {
+        PromptItem pi[] = {{"ESC", "B", "Resume"}};
+        footer(L, pi, 1, n.pad, a);
     }
     if (exit && act.type == MA_NONE) {
         act.type = MA_RESUME;
@@ -1644,7 +1745,7 @@ MenuAction update(MenuState& st, const InputState& in, float dt) {
             bool exit = false;
             float cy = 200.f * L.s;
             changed |= drawSettings(st, L, blocked, L.left, cy + (1.f - a) * 20.f * L.s, L.right - L.left, L.H - cy - 110.f * L.s, a, dt, exit);
-            PromptItem pi[] = {{"ENTER", "A", "Select"}, {"LEFT", "LEFT", "Change"}, {"ESC", "B", "Back"}};
+            PromptItem pi[] = {{"ENTER", "A", "Select"}, {"LEFTRIGHT", "DPADLR", "Change"}, {"ESC", "B", "Back"}};
             footer(L, pi, 3, n.pad, a);
             if (exit) {
                 st.screen = MENU_MAIN;

@@ -94,7 +94,14 @@ struct SkySystem {
 #include "clouds.cpp"
 #include "screenspace.cpp"
 #include "ssao.cpp"
+#include "ssr.cpp"
+#include "envprobe.cpp"
+#include "volumetrics.cpp"
 #include "particles.cpp"
+#include "weather.cpp"
+#include "decals.cpp"
+#include "fxdemo.cpp"
+#include "grass.cpp"
 
 namespace UI { gfx::Texture buildSignAtlas(const std::vector<std::string>& names); }
 
@@ -134,11 +141,23 @@ bool Renderer::init(int w, int h) {
     shadows->casters.push_back([this](Renderer& r, const mat4& vp, int cascade) { dynamic->drawShadow(r, vp, cascade); });
     shadows->casters.push_back([this](Renderer& r, const mat4& vp, int cascade) { props->drawShadow(r, world->cells, vp, cascade); });
     particles = new ParticleSystem();
+    particles->init(settings.particleBudget);
     decals = new DecalSystem();
+    decals->init();
     ss = new ScreenSpaceSystem();
     ss->init();
     ao = new AOSystem();
     ao->init();
+    ssrSys = new SSRSystem();
+    ssrSys->init();
+    envProbe = new EnvProbeSystem();
+    envProbe->init();
+    fog = new VolumetricFog();
+    fog->init();
+    weather = new WeatherSystem();
+    weather->init();
+    grass = new GrassSystem();
+    grass->init();
     createTargets();
     if (const char* ds = Platform::argValue("debugsplit")) {
         debugView = atoi(ds);
@@ -166,6 +185,13 @@ void Renderer::createTargets() {
     height = Max(64, (int)(outHeight * settings.renderScale));
     using namespace gfx;
     depth = createTexture2D(width, height, DXGI_FORMAT_R32_TYPELESS, TEX_DSV | TEX_SRV);
+    {
+        D3D11_DEPTH_STENCIL_VIEW_DESC dv = {};
+        dv.Format = DXGI_FORMAT_D32_FLOAT;
+        dv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+        dv.Flags = D3D11_DSV_READ_ONLY_DEPTH;
+        gfx::dev->CreateDepthStencilView(depth.res, &dv, &depthRO);
+    }
     gbAlbedo = createTexture2D(width, height, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, TEX_RTV | TEX_SRV);
     gbNormal = createTexture2D(width, height, DXGI_FORMAT_R16G16_UNORM, TEX_RTV | TEX_SRV);
     gbMaterial = createTexture2D(width, height, DXGI_FORMAT_R8G8B8A8_UNORM, TEX_RTV | TEX_SRV);
@@ -173,6 +199,7 @@ void Renderer::createTargets() {
     gbVelocity = createTexture2D(width, height, DXGI_FORMAT_R16G16_FLOAT, TEX_RTV | TEX_SRV);
     hdr = createTexture2D(width, height, DXGI_FORMAT_R16G16B16A16_FLOAT, TEX_RTV | TEX_SRV | TEX_UAV);
     hdrCopy = createTexture2D(width, height, DXGI_FORMAT_R16G16B16A16_FLOAT, TEX_SRV);
+    reactive = createTexture2D(width, height, DXGI_FORMAT_R8_UNORM, TEX_RTV | TEX_SRV);
     depthCopy = createTexture2D(width, height, DXGI_FORMAT_R32_TYPELESS, TEX_SRV);
     // Clouds placeholder: fully transparent layer (rgb 0, transmittance 1) until volumetric clouds run
     u16 half1 = 0x3C00;
@@ -182,9 +209,12 @@ void Renderer::createTargets() {
     if (clouds) clouds->resize(width, height);
     ss->resize(width, height);
     ao->resize(ss->halfW, ss->halfH);
+    decals->resize(width, height);
+    ssrSys->resize(width, height, ss->halfW, ss->halfH);
 }
 
 void Renderer::releaseTargets() {
+    SAFE_RELEASE(depthRO);
     depth.release();
     gbAlbedo.release();
     gbNormal.release();
@@ -193,6 +223,7 @@ void Renderer::releaseTargets() {
     gbVelocity.release();
     hdr.release();
     hdrCopy.release();
+    reactive.release();
     depthCopy.release();
     cloudsTex.release();
 }
@@ -284,7 +315,9 @@ void Renderer::updateFrameConstants(const Camera& cam, const Environment& env, f
     f.time = vec4(env.gameSeconds, env.timeOfDay, (float)(frameIndex % 1024), dt);
     f.weather = vec4(env.rain, env.wetness, env.cloudCover, env.wind);
     f.wind = vec4(env.windDir.x, env.windDir.y, 0.f, 0.f);
-    f.fog = vec4(env.fogDensity, 0.15f, 0.f, 1.0f + env.fogDensity * 2.f + env.rain * 1.5f);
+    // Aerial perspective distance scale: fog and rain haze are mostly handled by the froxel volume when enabled
+    bool froxels = settings.volumetrics && settings.fogQuality > 0;
+    f.fog = vec4(env.fogDensity, 0.15f, 0.f, froxels ? 1.0f + env.fogDensity * 0.5f + env.rain * 0.5f : 1.0f + env.fogDensity * 2.f + env.rain * 1.5f);
     f.exposure = vec4(exposure, 1.f / exposure, ev100, nightFactor);
     f.camForward = vec4(cam.forward(), cam.fovY);
     f.renderParams = vec4((float)settings.shadowCascades, debugView > 0 ? debugSplit : 0.f, settings.ssr ? 1.f : 0.f, (float)debugView);
@@ -293,13 +326,15 @@ void Renderer::updateFrameConstants(const Camera& cam, const Environment& env, f
     f.planetParams = vec4(0, 0, Max(0.001f, (float)cam.pos.z * 0.001f + 0.002f), env.haze * (1.f + env.rain * 2.f + env.fogDensity * 3.f));
     bool aoOn = settings.ssao && settings.aoQuality > 0;
     bool ssrOn = settings.ssr && settings.ssrQuality > 0;
-    f.ssParams = vec4(aoOn ? 1.f : 0.f, aoOn && settings.ssgi ? 1.f : 0.f, ssrOn ? 1.f : 0.f, settings.ssrMaxRoughness);
+    f.ssParams = vec4(aoOn ? 1.f : 0.f, aoOn && settings.ssgi ? 1.f : 0.f, ssrOn && ss->pyramidValid ? 1.f : 0.f, settings.ssrMaxRoughness);
     f.halfScreen = vec4((float)ss->halfW, (float)ss->halfH, 1.f / ss->halfW, 1.f / ss->halfH);
     f.fogParams0 = vec4(0.f);
     f.fogParams1 = vec4(0.f);
     f.overhead = vec4(0.f);
     f.envProbe = vec4(0.f);
     f.weather2 = vec4(0.f);
+    fog->setFrameParams(*this, env, f);
+    weather->setFrameParams(*this, env, f, dt);
     // How much of the horizon band is taken by (partly sunlit) facades: drives the warm urban bounce in the sky SH
     float urban = 0.f;
     if (map) {
@@ -325,32 +360,39 @@ void Renderer::bindFrame() {
     gfx::ctx->CSSetSamplers(0, 7, samps);
 }
 
+// Global shader resources (see common.hlsli): t32..t43
 static void bindGlobals(Renderer& r, bool withShadow) {
-    ID3D11ShaderResourceView* g[6] = {r.sky->shBuf.srv, r.sky->transmittance.srv, r.sky->aerial.srv,
-                                      withShadow ? r.shadows->map.srv : nullptr, r.sky->skyView.srv,
-                                      withShadow ? r.clouds->shadowMap.srv : nullptr};
-    ID3D11ShaderResourceView* e[1] = {r.post->exposureBuf.srv};
-    gfx::ctx->VSSetShaderResources(32, 6, g);
-    gfx::ctx->PSSetShaderResources(32, 6, g);
-    gfx::ctx->CSSetShaderResources(32, 6, g);
-    gfx::ctx->VSSetShaderResources(40, 1, e);
-    gfx::ctx->PSSetShaderResources(40, 1, e);
-    gfx::ctx->CSSetShaderResources(40, 1, e);
+    ID3D11ShaderResourceView* g[12] = {r.sky->shBuf.srv, r.sky->transmittance.srv, r.sky->aerial.srv,
+                                       withShadow ? r.shadows->map.srv : nullptr, r.sky->skyView.srv,
+                                       withShadow ? r.clouds->shadowMap.srv : nullptr,
+                                       r.fog->output(r.settings), r.envProbe->srv(), r.post->exposureBuf.srv,
+                                       r.weather->overheadSrv(), r.terrain->waterTex.srv, r.terrain->heightTex.srv};
+    gfx::ctx->VSSetShaderResources(32, 12, g);
+    gfx::ctx->PSSetShaderResources(32, 12, g);
+    gfx::ctx->CSSetShaderResources(32, 12, g);
 }
 static void unbindGlobals() {
-    ID3D11ShaderResourceView* n[9] = {};
-    gfx::ctx->VSSetShaderResources(32, 9, n);
-    gfx::ctx->PSSetShaderResources(32, 9, n);
-    gfx::ctx->CSSetShaderResources(32, 9, n);
+    ID3D11ShaderResourceView* n[12] = {};
+    gfx::ctx->VSSetShaderResources(32, 12, n);
+    gfx::ctx->PSSetShaderResources(32, 12, n);
+    gfx::ctx->CSSetShaderResources(32, 12, n);
 }
 
 void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     stats.reset();
     auto* c = gfx::ctx;
     updateFrameConstants(cam, env, dt);
+    if (Platform::hasArg("fxdemo")) fxDemo(dt);
     bindFrame();
     unbindGlobals();
     world->update(cam.pos, TimeSeconds());
+    // Overhead height map of the static world (rain occlusion / dry areas / grass): refresh + frame constants
+    weather->updateOverhead(*this);
+    weather->updateLightning(*this, env, clouds->cloudBase);
+    weather->setFrameParams(*this, env, frame, 0.f);
+    frameCB.data = frame;
+    frameCB.upload();
+    bindFrame();
     dynamic->prepare(*this);
     gfx::gpuTimerBegin("sky");
     sky->update(*this, frame.planetParams.w);
@@ -363,6 +405,23 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     shadows->render(*this);
     gfx::gpuTimerEnd();
     bindFrame();
+
+    // Reflection probe: one cube face per frame (full capture after camera cuts)
+    gfx::gpuTimerBegin("envprobe");
+    bindGlobals(*this, true);
+    envProbe->update(*this);
+    bindFrame();
+    frame.envProbe = envProbe->valid ? vec4(rel(envProbe->frontPos, cam.pos), (float)(envProbe->mips - 1)) : vec4(0.f);
+    frameCB.data = frame;
+    frameCB.upload();
+    bindGlobals(*this, false);
+    gfx::gpuTimerEnd();
+
+    // Grass placement (GPU, from the terrain splat + overhead map)
+    gfx::gpuTimerBegin("grass place");
+    bindGlobals(*this, false);
+    grass->place(*this, *terrain, dt);
+    gfx::gpuTimerEnd();
 
     // G-buffer
     gfx::gpuTimerBegin("gbuffer");
@@ -380,10 +439,17 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
     c->RSSetState(gfx::states.cullBack);
     terrain->drawGBuffer(*this);
+    grass->draw(*this);
     world->drawGBuffer(*this);
     props->drawGBuffer(*this, world->cells, materials);
     dynamic->drawGBuffer(*this);
     c->OMSetRenderTargets(0, nullptr, nullptr);
+    gfx::gpuTimerEnd();
+
+    // Deferred decals + skid marks into the G-buffer
+    gfx::gpuTimerBegin("decals");
+    decals->update(*this, dt);
+    decals->render(*this);
     gfx::gpuTimerEnd();
 
     // Screen-space inputs (depth pyramid, previous frame color pyramid) and AO / indirect diffuse
@@ -394,6 +460,15 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     gfx::gpuTimerBegin("ao+gi");
     bindGlobals(*this, false);
     ID3D11ShaderResourceView* aoSrv = ao->run(*this, *ss);
+    gfx::gpuTimerEnd();
+    gfx::gpuTimerBegin("ssr");
+    ID3D11ShaderResourceView* ssrSrv = ssrSys->run(*this, *ss);
+    gfx::gpuTimerEnd();
+    // Particles: emission (adds effect lights before the light gather) and GPU simulation / sort
+    gfx::gpuTimerBegin("particles sim");
+    particles->updateCPU(*this, dt);
+    bindGlobals(*this, false);
+    particles->simulate(*this, dt);
     gfx::gpuTimerEnd();
 
     // Local lights: static world lights + gameplay lights
@@ -421,7 +496,12 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     // Clouds (half resolution, before lighting composites them over the sky)
     gfx::gpuTimerBegin("clouds");
     bindGlobals(*this, false);
-    if (settings.clouds) clouds->update(*this, env, dt);
+    if (settings.clouds) clouds->update(*this, env, dt, ss->hiz.srv);
+    gfx::gpuTimerEnd();
+    // Volumetric fog (needs the light list, shadow maps and the cloud shadow map)
+    gfx::gpuTimerBegin("fog");
+    bindGlobals(*this, true);
+    fog->run(*this, env, dt);
     gfx::gpuTimerEnd();
     // Lighting
     gfx::gpuTimerBegin("lighting");
@@ -430,14 +510,14 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     c->CSSetConstantBuffers(3, 1, scb);
     ID3D11Buffer* lcb[] = {lightCB.get()};
     c->CSSetConstantBuffers(2, 1, lcb);
-    ID3D11ShaderResourceView* srvs[10] = {gbAlbedo.srv, gbNormal.srv, gbMaterial.srv, gbEmissive.srv, depth.srv,
+    ID3D11ShaderResourceView* srvs[11] = {gbAlbedo.srv, gbNormal.srv, gbMaterial.srv, gbEmissive.srv, depth.srv,
                                           aoSrv ? aoSrv : post->whiteTex.srv, settings.clouds ? clouds->output() : cloudsTex.srv,
-                                          lightBuf.srv, ss->depthCur(), ss->halfNormal.srv};
-    c->CSSetShaderResources(0, 10, srvs);
+                                          lightBuf.srv, ss->depthCur(), ss->halfNormal.srv, ssrSrv};
+    c->CSSetShaderResources(0, 11, srvs);
     c->CSSetUnorderedAccessViews(0, 1, &hdr.uav, nullptr);
     c->CSSetShader(csLighting, nullptr, 0);
     c->Dispatch(gfx::divUp(width, 16), gfx::divUp(height, 16), 1);
-    gfx::unbindCSResources(10, 1);
+    gfx::unbindCSResources(11, 1);
     gfx::gpuTimerEnd();
 
     // Water (forward, reads copies of the lit scene and depth)
@@ -447,8 +527,18 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     c->OMSetRenderTargets(1, &hdr.rtv, depth.dsv);
     gfx::setViewport((float)width, (float)height);
     c->OMSetDepthStencilState(gfx::states.depthGreaterWrite, 0);
-    water->draw(*this, *terrain, hdrCopy.srv, depthCopy.srv, env.wind);
+    water->draw(*this, *terrain, hdrCopy.srv, depthCopy.srv, env.wind, ss->hiz.srv, ss->hizMips);
     c->OMSetRenderTargets(0, nullptr, nullptr);
+    gfx::gpuTimerEnd();
+
+    // Particles (sorted, soft, lit), rain and lightning; both write the TAA reactive mask
+    gfx::gpuTimerBegin("particles");
+    float zero4[4] = {0, 0, 0, 0};
+    c->ClearRenderTargetView(reactive.rtv, zero4);
+    particles->draw(*this, reactive.rtv, weather->blend);
+    gfx::gpuTimerEnd();
+    gfx::gpuTimerBegin("rain");
+    weather->draw(*this, env, reactive.rtv);
     gfx::gpuTimerEnd();
 
     // Post
@@ -460,10 +550,6 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     prevCamPos = cam.pos;
     prevViewProjNoJitter = viewProjNoJitter;
     dynamic->endFrame();
-    particles->requests.clear();
-    particles->tracers.clear();
-    decals->requests.clear();
-    decals->skids.clear();
     frameIndex++;
     cameraCut = false;
     if ((frameIndex % 30) == 0 && Platform::hasArg("gputimers")) LOG("GPU timers (frame %u):\n%s", frameIndex, gfx::gpuTimerReport().c_str());

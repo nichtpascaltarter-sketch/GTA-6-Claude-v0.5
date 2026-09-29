@@ -1,0 +1,469 @@
+// Traffic integration: attaches AI drivers to vehicles, runs the driver model (traffic_core.cpp) with the kinematic
+// dummy mode for far, unseen vehicles, and handles the gameplay side of driving: fleeing and abandoning cars, stuck and
+// flipped recovery, honking and shouting at blockers, buses serving stops, taxis picking up and dropping off fares,
+// ambulances/fire trucks running to incidents with sirens, plus boat and helicopter autopilots.
+// Police pursuit driving lives in police.cpp.
+#include "gameworld.h"
+
+namespace Game {
+
+namespace traffic_detail {
+
+constexpr float kDummyFar = 205.f;     // physics -> dummy when farther than this from camera and player (and unseen)
+constexpr float kDummyNear = 180.f;    // dummy -> physics when closer than this or in view
+
+float yawOfVehicle(const Vehicles::VehicleState& s) {
+    vec3 f = s.forward();
+    return atan2f(-f.x, f.y);
+}
+
+}  // namespace traffic_detail
+
+using namespace traffic_detail;
+
+bool GameWorld::attachTraffic(int vi, int lane, float u, bool cautious) {
+    if (!ai.ready || vi < 0 || vi >= (int)vehicles.size() || !vehicles[vi].used) return false;
+    Vehicle& v = vehicles[vi];
+    const Vehicles::VehicleModel& m = vassets[v.model].spec;
+    AI::VehicleInfo info = AI::makeVehicleInfo(m, v.sim);
+    if (lane < 0) {
+        vec2 pos = v.sim.body.pos.toVec3().xy();
+        vec3 f = v.sim.forward();
+        lane = laneGraph.nearestLane(pos, f.xy(), 30.f, &u);
+        if (lane < 0) return false;
+    }
+    traffic.attach(vi, v.uid, hash32(v.uid * 7919u + 3u), info, lane, u, cautious);
+    VehAI& va = vehAI(vi);
+    va.managed = true;
+    if (m.cls == Vehicles::VC_BUS) va.role = VR_BUS;
+    else if (m.cls == Vehicles::VC_TAXI && va.role == VR_TRAFFIC) va.role = VR_TAXI;
+    return true;
+}
+
+// ------------------------------------------------------------------------------------------------------------------
+void GameWorld::driveVehicleAI(int vi, float dt) {
+    if (vi < 0 || vi >= (int)vehicles.size() || !vehicles[vi].used) return;
+    Vehicle& v = vehicles[vi];
+    if (v.scripted) return;
+    int drv = v.seats[0];
+    if (drv < 0) return;
+    Ped& dp = peds[drv];
+    Brain& b = dp.brain;
+    VehAI& va = vehAI(vi);
+    const Vehicles::VehicleModel& spec = vassets[v.model].spec;
+    va.barkTimer -= dt;
+    va.hornBarkTimer -= dt;
+    // ---- the player's own car (autoplay / driving assist): plain lane following along the road it is on
+    if (dp.isPlayer) {
+        AI::Driver* d = traffic.get(vi);
+        if (!d) {
+            if (!attachTraffic(vi)) {
+                v.ctl = Vehicles::VehicleControls();
+                v.ctl.brake = 1.f;
+                return;
+            }
+            d = traffic.get(vi);
+            va.role = VR_TRAFFIC;
+        }
+        if (d->dummy) traffic.toPhysics(vi, v.sim);
+        if (d->mode != AI::DM_NORMAL && d->mode != AI::DM_ROUTE) d->mode = AI::DM_NORMAL;
+        AI::DriveOut out;
+        traffic.drive(vi, v.sim, dt, out);
+        v.ctl = out.ctl;
+        v.indicator = out.indicator;
+        v.hornOn = out.horn;
+        return;
+    }
+    // ---- boats and aircraft have their own autopilots
+    if (isBoat(vi)) {
+        if (v.faction == FAC_POLICE && pinfo.wanted > 0) {
+            aiPoliceDrive(vi, dt);
+            return;
+        }
+        // wander on open water: pick a far water point in a straight line, re-pick on arrival
+        if (length(va.taskPos) < 1.f || length(v.sim.body.pos.toVec3().xy() - va.taskPos) < 40.f || va.taskTimer <= 0.f) {
+            vec2 p = v.sim.body.pos.toVec3().xy();
+            for (int k = 0; k < 12; k++) {
+                u32 h = hash32(v.uid * 31u + (u32)(time * 7.0) + k * 977u);
+                float ang = hashToFloat(h) * kTwoPi, r = 200.f + hashToFloat(hash32(h)) * 400.f;
+                vec2 q = p + vec2(cosf(ang), sinf(ang)) * r;
+                bool water = true;
+                for (int s = 1; s <= 8 && water; s++) water = map->isWater(Lerp(p.x, q.x, s / 8.f), Lerp(p.y, q.y, s / 8.f));
+                if (water) {
+                    va.taskPos = q;
+                    break;
+                }
+            }
+            va.taskTimer = 90.f;
+        }
+        va.taskTimer -= dt;
+        aiDriveBoat(vi, dt, dvec3(va.taskPos.x, va.taskPos.y, 0.0), b.type == BRAIN_FLEE ? 22.f : 11.f);
+        return;
+    }
+    if (isAircraft(vi)) {
+        if (v.faction == FAC_POLICE) {
+            aiPoliceDrive(vi, dt);
+            return;
+        }
+        // civilian helicopter with an AI pilot (no scripted path): hover-orbit where it is
+        vec3 p = v.sim.body.pos.toVec3();
+        aiFlyHeli(vi, dt, dvec3(p.x, p.y, 0.0), Max(p.z, 60.f), 150.f, true);
+        return;
+    }
+    // ---- police in pursuit / responding: their own driving logic
+    if (v.faction == FAC_POLICE && (b.type == BRAIN_COMBAT || b.type == BRAIN_ARREST || b.type == BRAIN_GOTO || va.task != 0)) {
+        aiPoliceDrive(vi, dt);
+        return;
+    }
+    // hostile drivers (gang drive-bys, mission hostiles set to combat) chase their target like pursuers
+    if (b.type == BRAIN_COMBAT && dp.target_is_valid(*this)) {
+        aiPoliceDrive(vi, dt);
+        return;
+    }
+    // ---- lane traffic
+    AI::Driver* d = traffic.get(vi);
+    if (!d) {
+        if (!attachTraffic(vi)) {
+            v.ctl = Vehicles::VehicleControls();
+            v.ctl.handbrake = true;
+            v.ctl.brake = 1.f;
+            return;
+        }
+        d = traffic.get(vi);
+    }
+    // mode from the driver's brain and role
+    if (b.type == BRAIN_FLEE) {
+        if (d->mode != AI::DM_FLEE) {
+            d->mode = AI::DM_FLEE;
+            d->routeLen = 0;
+            traffic.planRoute(*d);
+        }
+        vec3 from = b.target >= 0 && b.target < (int)peds.size() && peds[b.target].used ? peds[b.target].pos.toVec3() : b.goal.toVec3();
+        d->threat = from.xy();
+        va.fleeTimer += dt;
+        // calm down after a while far from the threat
+        if (va.fleeTimer > 25.f && length(v.sim.body.pos.toVec3().xy() - d->threat) > 250.f) {
+            b.type = BRAIN_DRIVER;
+            d->mode = AI::DM_NORMAL;
+            va.fleeTimer = 0.f;
+        }
+    } else if (d->mode == AI::DM_FLEE) {
+        d->mode = AI::DM_NORMAL;
+    }
+    vec3 vp = v.sim.body.pos.toVec3();
+    Ped* pl = playerPed();
+    float plD = pl ? length(rel(v.sim.body.pos, pl->pos)) : 1e9f;
+    float camD = length(rel(v.sim.body.pos, rig.cam.pos));
+    bool inView = inCameraView(vp, 4.f);
+    // ---- role behaviors (may change modes / stop points)
+    switch (va.role) {
+        case VR_TAXI: {
+            if (va.fare >= 0) {
+                bool fareValid = va.fare < (int)peds.size() && peds[va.fare].used && peds[va.fare].vehicle == vi;
+                if (!fareValid) {
+                    va.fare = -1;
+                    d->hasDest = false;
+                    d->mode = AI::DM_NORMAL;
+                    break;
+                }
+                float toDest = length(vp.xy() - va.dest);
+                if (d->mode == AI::DM_NORMAL || d->mode == AI::DM_ROUTE) {
+                    if (!d->hasDest) {
+                        traffic.setDestination(*d, va.dest);
+                        d->mode = AI::DM_ROUTE;
+                    }
+                    if (toDest < 45.f) {
+                        d->mode = AI::DM_PULLOVER;
+                        d->holdTimer = -1.f;
+                        va.stopTimer = 0.f;
+                    }
+                } else if (d->mode == AI::DM_PULLOVER) {
+                    if (v.sim.speed() < 0.4f) va.stopTimer += dt;
+                    if (va.stopTimer > 1.2f) {
+                        int fare = va.fare;
+                        removePedFromVehicle(fare, true);
+                        peds[fare].brain.type = BRAIN_WANDER;
+                        peds[fare].brain.edge = -1;
+                        pedAI(fare).activity = ACT_WALK;
+                        pedAI(fare).navOk = false;
+                        va.fare = -1;
+                        d->hasDest = false;
+                        d->destEdges.clear();
+                        d->mode = AI::DM_NORMAL;
+                        d->nudgeTarget = 0.f;
+                        va.taskTimer = 25.f;   // no new fare for a while
+                    }
+                }
+            } else if (d->mode == AI::DM_PULLOVER && va.task == 1) {
+                // waiting for a hailing ped to board
+                va.stopTimer += dt;
+                int hail = va.scene;
+                bool valid = hail >= 0 && hail < (int)peds.size() && peds[hail].used && peds[hail].state == PS_ONFOOT && pedAI(hail).targetVeh == vi;
+                if (!valid || va.stopTimer > 25.f) {
+                    d->mode = AI::DM_NORMAL;
+                    d->stopPath = -1;
+                    va.task = 0;
+                    va.scene = -1;
+                } else if (peds[hail].state == PS_INVEHICLE) {
+                    va.task = 0;
+                }
+            } else {
+                va.taskTimer -= dt;
+                // look for a pedestrian hailing on our side of the street ahead (checked twice a second)
+                if (va.taskTimer <= 0.f && d->path >= 0 && d->path < (int)laneGraph.lanes.size() && !d->dummy) {
+                    va.taskTimer = 0.5f;
+                    const AI::Lane& L = laneGraph.lanes[d->path];
+                    vec2 fwd = laneGraph.laneTangent(d->path, d->u);
+                    vec2 rgt = AI::rightOf(fwd);
+                    int best = -1;
+                    float bestA = 1e9f;
+                    for (int pi = 0; pi < (int)peds.size() && pi < (int)ai.ped.size(); pi++) {
+                        const Ped& q = peds[pi];
+                        if (!q.used || q.state != PS_ONFOOT || ai.ped[pi].uid != q.uid || ai.ped[pi].activity != ACT_HAIL_TAXI || ai.ped[pi].targetVeh >= 0) continue;
+                        vec2 rel2 = q.pos.toVec3().xy() - vp.xy();
+                        float along = dot(rel2, fwd), side = dot(rel2, rgt);
+                        if (along < 18.f || along > 80.f || side < 0.f || side > L.width * 0.5f + 12.f) continue;
+                        if (along < bestA) {
+                            bestA = along;
+                            best = pi;
+                        }
+                    }
+                    if (best >= 0 && L.right < 0) {
+                        float u = 0.f;
+                        vec2 qp = peds[best].pos.toVec3().xy();
+                        u = laneGraph.projectPath(d->path, qp, d->u + bestA, nullptr);
+                        if (u < L.u1 - 6.f) {
+                            d->mode = AI::DM_PULLOVER;
+                            d->holdTimer = -1.f;
+                            d->stopPath = d->path;
+                            d->stopU = u + 2.f;
+                            va.task = 1;
+                            va.scene = best;
+                            va.stopTimer = 0.f;
+                            pedAI(best).targetVeh = vi;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+        case VR_BUS: {
+            // boarding/alighting while held at a stop
+            if (d->mode == AI::DM_HOLD) {
+                va.stopTimer += dt;
+                if (va.stopTimer > 1.0f && va.stopTimer - dt <= 1.0f) {
+                    // waiting passengers board, one or two get off
+                    std::vector<int> near_;
+                    pedsNear(vp.xy(), 16.f, near_);
+                    for (int pi : near_) {
+                        if (pi >= (int)ai.ped.size() || ai.ped[pi].uid != peds[pi].uid) continue;
+                        if (ai.ped[pi].activity == ACT_WAIT_BUS && !peds[pi].persistent) {
+                            ai.ped[pi].activity = ACT_ENTER_VEH;
+                            ai.ped[pi].targetVeh = vi;
+                        }
+                    }
+                }
+            } else {
+                va.stopTimer = 0.f;
+            }
+            break;
+        }
+        case VR_AMBULANCE:
+        case VR_FIRETRUCK: {
+            // run to the incident with the siren, then stop and let the crew work
+            Incident* inc = va.scene >= 0 && va.scene < (int)ai.incidents.size() && ai.incidents[va.scene].active ? &ai.incidents[va.scene] : nullptr;
+            if (va.task == 0 && inc) {
+                if (d->mode != AI::DM_EMERGENCY) {
+                    d->mode = AI::DM_EMERGENCY;
+                    traffic.setDestination(*d, inc->pos.toVec3().xy());
+                }
+                v.sirenOn = true;
+                if (length(vp.xy() - inc->pos.toVec3().xy()) < 32.f) {
+                    d->mode = AI::DM_PULLOVER;
+                    d->holdTimer = -1.f;
+                    va.task = 1;
+                    va.taskTimer = 0.f;
+                }
+            } else if (va.task == 1) {
+                va.taskTimer += dt;
+                v.sirenOn = va.taskTimer < 6.f || ((int)(time * 2.0) & 1);
+                if (v.sim.speed() < 0.5f && va.taskTimer > 1.5f && va.taskTimer - dt <= 1.5f) {
+                    // crew gets out and attends the scene
+                    for (int s = 0; s < 8; s++) {
+                        int c = v.seats[s];
+                        if (c < 0 || s == 0) continue;
+                        removePedFromVehicle(c, true);
+                        PedAI& ca = pedAI(c);
+                        ca.activity = ACT_EVENT;
+                        ca.homeVeh = vi;
+                        ca.anchor = inc ? inc->pos.toVec3().xy() : vp.xy();
+                        ca.actTimer = 14.f + hashToFloat(hash32(peds[c].uid)) * 6.f;
+                        peds[c].brain.type = BRAIN_WANDER;
+                    }
+                }
+                // everyone back in: leave
+                bool crewOut = false;
+                for (int pi = 0; pi < (int)ai.ped.size() && pi < (int)peds.size(); pi++)
+                    if (peds[pi].used && ai.ped[pi].uid == peds[pi].uid && ai.ped[pi].homeVeh == vi && peds[pi].vehicle != vi && peds[pi].health > 0.f) crewOut = true;
+                if (va.taskTimer > 30.f && !crewOut) {
+                    va.task = 2;
+                    v.sirenOn = false;
+                    d->mode = AI::DM_NORMAL;
+                    d->hasDest = false;
+                    if (inc) inc->active = false;
+                }
+            } else {
+                v.sirenOn = false;
+                if (d->mode == AI::DM_EMERGENCY) d->mode = AI::DM_NORMAL;
+            }
+            break;
+        }
+        default: break;
+    }
+    // ---- dummy mode switching (far, unseen, calm)
+    bool calm = d->mode == AI::DM_NORMAL || d->mode == AI::DM_ROUTE;
+    if (!d->dummy) {
+        bool onLane = d->path >= 0 && d->path < (int)laneGraph.lanes.size();
+        bool can = !inView && camD > kDummyFar && plD > kDummyFar && calm && onLane && d->recoverTimer <= 0.f && !v.sirenOn && v.sim.up().z > 0.8f &&
+                   v.sim.speed() < 40.f && v.sim.health > 300.f;
+        va.offView = can ? va.offView + dt : 0.f;
+        if (va.offView > 0.8f) {
+            traffic.toDummy(vi, v.sim);
+            va.offView = 0.f;
+        }
+    } else {
+        if (inView || camD < kDummyNear || plD < kDummyNear || !calm) traffic.toPhysics(vi, v.sim);
+    }
+    // ---- drive
+    AI::DriveOut out;
+    traffic.drive(vi, v.sim, dt, out);
+    v.ctl = out.ctl;
+    v.indicator = out.indicator;
+    v.hornOn = out.horn || (d->mode == AI::DM_FLEE && ((int)(time * 3.0 + v.uid) % 4 == 0) && v.sim.speed() > 3.f);
+    // ---- fleeing driver boxed in: bail out and run
+    if (out.wantsAbandon && b.type == BRAIN_FLEE) {
+        removePedFromVehicle(drv, true);
+        b.type = BRAIN_FLEE;
+        b.timer = 0.f;
+        aiSay(drv, BK_FLEE, 0.8f);
+        traffic.detach(vi);
+        va.managed = false;
+        v.ctl = Vehicles::VehicleControls();
+        return;
+    }
+    // ---- flipped or hopelessly stuck
+    if (d->flipTime > 3.f || d->lostTime > 6.f) {
+        if (!inView && camD > 50.f && d->path >= 0) {
+            vec3 p = laneGraph.pathPos(d->path, d->u);
+            vec2 t = laneGraph.pathTangent(d->path, d->u);
+            Vehicles::resetVehicle(v.sim, dvec3(p.x, p.y, p.z + 0.3f), AI::dirYaw(t));
+            d->flipTime = 0.f;
+            d->lostTime = 0.f;
+            d->recoverTimer = 0.f;
+        } else if (d->flipTime > 3.f) {
+            // visible: the driver climbs out and walks away
+            removePedFromVehicle(drv, true);
+            dp.brain.type = BRAIN_WANDER;
+            dp.brain.edge = -1;
+            aiSay(drv, BK_CRASH, 0.7f);
+            traffic.detach(vi);
+            va.managed = false;
+            return;
+        }
+    }
+    // ---- honking / shouting at whoever blocks the road
+    if (out.blocker >= 0 && out.blocker < (int)traffic.bodies.size()) {
+        const AI::Body& bl = traffic.bodies[out.blocker];
+        bool playerBlock = (bl.flags & AI::BF_PLAYER) != 0;
+        if (playerBlock && out.horn && va.hornBarkTimer <= 0.f && plD < 25.f) {
+            aiSay(drv, BK_HONK, 0.6f);
+            va.hornBarkTimer = 8.f;
+        }
+    }
+    (void)spec;
+}
+
+// ------------------------------------------------------------------------------------------------------------------
+// Boat helm: steer toward a target over water, keep off the shore, throttle by distance.
+void GameWorld::aiDriveBoat(int vi, float dt, dvec3 target, float speed) {
+    Vehicle& v = vehicles[vi];
+    Vehicles::VehicleControls& c = v.ctl;
+    c = Vehicles::VehicleControls();
+    vec3 p = v.sim.body.pos.toVec3();
+    vec3 f = v.sim.forward();
+    vec2 fwd = normalize(f.xy() + vec2(1e-5f, 0.f));
+    vec2 to = target.toVec3().xy() - p.xy();
+    float dist = length(to);
+    vec2 want = dist > 1e-3f ? to / dist : fwd;
+    // shore avoidance: probe fan ahead, steer toward the open side
+    float spd = v.sim.speed();
+    float probe = 18.f + spd * 2.5f;
+    auto land = [&](vec2 dir, float r) {
+        for (int k = 1; k <= 4; k++) {
+            vec2 q = p.xy() + dir * (r * k / 4.f);
+            if (!map->isWater(q.x, q.y) || map->waterAt(q.x, q.y) - map->heightAt(q.x, q.y) < 1.2f) return true;
+        }
+        return false;
+    };
+    if (land(fwd, probe)) {
+        vec2 l = rotate(fwd, 0.7f), r = rotate(fwd, -0.7f);
+        bool ll = land(l, probe * 0.8f), rr = land(r, probe * 0.8f);
+        want = !ll ? l : (!rr ? r : -fwd);
+    }
+    float err = wrapAngle(atan2f(want.y, want.x) - atan2f(fwd.y, fwd.x));   // + = target to the left
+    c.steer = Clamp(-err * 1.6f, -1.f, 1.f);
+    float targetSpeed = Min(speed, dist * 0.25f + 2.f);
+    if (fabsf(err) > 1.4f) targetSpeed = Min(targetSpeed, 4.f);
+    float fs = v.sim.forwardSpeed();
+    if (fs < targetSpeed) c.throttle = Saturate((targetSpeed - fs) * 0.3f + 0.25f);
+    else if (fs > targetSpeed + 3.f) c.brake = Saturate((fs - targetSpeed) * 0.15f);
+    (void)dt;
+}
+
+// Helicopter autopilot: altitude hold with the collective, cyclic tilt toward the desired velocity (orbit or go-to),
+// yaw to face the target. Works with the flight model's attitude targets (vehicle_sim_air.cpp).
+void GameWorld::aiFlyHeli(int vi, float dt, dvec3 target, float altitude, float orbitRadius, bool orbit) {
+    Vehicle& v = vehicles[vi];
+    Vehicles::VehicleControls& c = v.ctl;
+    c = Vehicles::VehicleControls();
+    const Vehicles::VehicleState& s = v.sim;
+    vec3 p = s.body.pos.toVec3();
+    vec3 tp = target.toVec3();
+    vec2 to = tp.xy() - p.xy();
+    float dist = length(to);
+    vec2 dir = dist > 1e-3f ? to / dist : vec2(0, 1);
+    vec2 vd;
+    if (orbit) {
+        // tangential flight around the target, pulled onto the circle
+        vec2 tang(-dir.y, dir.x);
+        float radial = dist - orbitRadius;
+        vd = tang * 14.f + dir * Clamp(radial * 0.25f, -8.f, 12.f);
+    } else {
+        float sp = Clamp(dist * 0.35f, 0.f, 38.f);
+        vd = dir * sp;
+    }
+    vec3 fw = s.forward();
+    vec2 fh = normalize(fw.xy() + vec2(1e-5f, 0.f));
+    vec2 rh = AI::rightOf(fh);
+    vec2 vel = s.body.vel.xy();
+    float aF = Clamp((dot(vd, fh) - dot(vel, fh)) * 0.6f, -6.f, 6.f);
+    float aR = Clamp((dot(vd, rh) - dot(vel, rh)) * 0.6f, -6.f, 6.f);
+    const float maxTilt = 0.52f;
+    c.pitch = Clamp(atanf(-aF / 9.81f) / maxTilt, -1.f, 1.f);
+    c.roll = Clamp(atanf(aR / 9.81f) / maxTilt, -1.f, 1.f);
+    if (fabsf(c.pitch) < 0.05f) c.pitch = c.pitch < 0.f ? -0.05f : 0.05f;
+    // altitude: keep above the ground / buildings under us
+    float ground = map->heightAt(p.x, p.y);
+    float alt = Max(altitude, ground + 35.f);
+    float vz = Clamp((alt - p.z) * 0.5f, -5.f, 7.f);
+    c.lift = vz > 0.f ? vz / 8.f : vz / 6.f;
+    c.lift = Clamp(c.lift + 0.02f, -1.f, 1.f);
+    // face the target (the searchlight / sniper look at it)
+    float wantYaw = atan2f(-to.x, to.y);
+    float err = wrapAngle(wantYaw - atan2f(-fh.x, fh.y));
+    c.yaw = Clamp(-err * 1.2f, -1.f, 1.f);
+    c.throttle = 0.f;
+    (void)dt;
+}
+
+}  // namespace Game

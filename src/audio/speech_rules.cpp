@@ -325,6 +325,9 @@ static const LtsRule kRulesM[] = {
     {nullptr, nullptr, nullptr, nullptr}};
 
 static const LtsRule kRulesN[] = {
+    {"", "NGE", " ", "N JH"},
+    {"", "NGES", " ", "N JH IH0 Z"},
+    {"", "NGED", " ", "N JH D"},
     {"E", "NG", "+", "N JH"},
     {"", "NG", "R", "NG G"},
     {"", "NG", "#", "NG G"},
@@ -818,6 +821,12 @@ void letterToSound(const std::string& word, Pron& out) {
     for (char c : word)
         if (c >= 'a' && c <= 'z') lw += c;
         else if (c >= 'A' && c <= 'Z') lw += (char)(c + 32);
+    // final -s after a consonant letter (or y / w) that follows a voiced sound is /z/ ("weighs", "lens", "laws")
+    size_t n = lw.size();
+    if (n >= 3 && lw[n - 1] == 's' && !strchr("aeious", lw[n - 2]) && p.size() >= 2 && p.back().ph == PH_S) {
+        int pv = p[p.size() - 2].ph;
+        if (hasFlag(pv, PF_VOICED) && !hasFlag(pv, PF_SIBILANT)) p.back().ph = PH_Z;
+    }
     assignStress(lw, p);
     out.insert(out.end(), p.begin(), p.end());
 }

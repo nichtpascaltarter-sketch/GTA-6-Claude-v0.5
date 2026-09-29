@@ -1,4 +1,5 @@
 #include "buildings.h"
+#include "sites.h"
 #include "../core/noise.h"
 #include "../render/mesh.h"
 #include <unordered_map>
@@ -78,8 +79,8 @@ const char* kAdj[] = {"Golden", "Blue", "Sunny", "Neon", "Tropical", "Coral", "I
                       "Lucky", "Silver", "Salty", "Pink", "Midnight", "Paradise", "Breeze", "Tidal", "Flamingo", "Pelican"};
 const char* kNoun[] = {"Palm", "Marlin", "Wave", "Moon", "Star", "Shell", "Reef", "Harbor", "Pearl", "Lagoon", "Parrot", "Mango",
                        "Dolphin", "Sands", "Tide", "Heron", "Gator", "Orchid"};
-const char* kChains[] = {"QUIKSTOP", "BURGER BAY", "TACO TIDE", "FRESHMART", "MEGASAVE", "PALM PHARMACY", "BAYSIDE BANK",
-                         "PELICAN PIZZA", "WASH N GO", "CELLSTAR", "SUNCOAST CREDIT", "FLAMINGO LAUNDRY", "KWIK CASH", "GATOR GAS",
+const char* kChains[] = {"TIDESTOP", "BURGER BAY", "TACO TIDE", "FRESHMART", "MEGASAVE", "PALM PHARMACY", "BAYSIDE BANK",
+                         "PELICAN PIZZA", "WASH N GO", "PALMCELL", "SUNRAY CREDIT", "FLAMINGO LAUNDRY", "CASH CRAB", "GATOR GAS",
                          "CAFE CUBANITO", "LA ESQUINA", "EL FARO", "CASA FRESCA", "PANADERIA SOL", "FARMACIA LUZ"};
 
 std::string makeSignName(Rng& r) {
@@ -109,7 +110,7 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
     // Reserve special areas: airport runways and port yard are left free of lots
     auto reserved = [&](vec2 p) {
         Region r = map.regionAt(p.x, p.y);
-        return r == REG_AIRPORT || r == REG_OCEAN || r == REG_SAWGRASS || r == REG_RIDGE;
+        return r == REG_AIRPORT || r == REG_OCEAN || r == REG_SAWGRASS || r == REG_RIDGE || gSites->blocksLots(p);
     };
 
     for (size_t ei = 0; ei < roads.edges.size(); ei++) {
@@ -227,7 +228,12 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
                         break;
                     }
                     case REG_BAY_ISLAND: st = BS_VILLA; break;
-                    case REG_KEY_CORAL: st = r < 0.75f ? BS_VILLA : BS_CONDO; break;
+                    case REG_KEY_CORAL: {
+                        // exclusive island: villas throughout, a few low boutique condos only on beachfront lots
+                        bool beachfront = map.coastDistance(lot.c.x, lot.c.y) < 140.f;
+                        st = (beachfront && r < 0.22f) ? BS_CONDO : BS_VILLA;
+                        break;
+                    }
                     case REG_PORT: st = BS_WAREHOUSE; break;
                     case REG_GROVE: st = r < 0.45f ? BS_VILLA : (mainRoad && r < 0.6f ? BS_SHOPS : BS_HOUSE); break;
                     case REG_FLATS: st = r < 0.4f ? BS_WAREHOUSE : (r < 0.55f ? BS_FACTORY : (mainRoad ? BS_SHOPS : BS_HOUSE)); break;
@@ -284,7 +290,7 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
                         break;
                     }
                     case BS_MIDRISE: floors = br.irange((int)Max(3.f, minF), (int)Clamp(maxF, 4.f, 14.f)); break;
-                    case BS_CONDO: floors = br.irange(6, reg == REG_KEY_CORAL ? 14 : 24); break;
+                    case BS_CONDO: floors = reg == REG_KEY_CORAL ? br.irange(4, 8) : br.irange(6, 24); break;
                     case BS_DECO: floors = br.irange(2, 5); break;
                     case BS_SHOPS: floors = br.irange(1, reg == REG_MIDTOWN ? 4 : 3); break;
                     case BS_STRIPMALL: case BS_GASSTATION: case BS_FARMHOUSE: case BS_SHACK: floors = 1; break;
@@ -481,6 +487,8 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
             }
         }
     }
+    // Buildings requested by the site layout (airport garages and sheds, port offices, clubhouses, shacks)
+    for (size_t qi = 0; qi < gSites->buildingReqs.size(); qi++) addSiteBuilding(map, gSites->buildingReqs[qi], hash32((u32)qi * 2246822519u + 0x51E5u));
     // Per-cell lists
     const int cps = (int)(2.f * kWorldHalf / 256.f);
     cellLists.assign((size_t)cps * cps, {});
@@ -494,6 +502,92 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
     LOG("Buildings: %zu (towers %d, midrise %d, condo %d, deco %d, shops %d, strip %d, houses %d, villas %d, warehouses %d) in %.2f s",
         buildings.size(), counts[BS_TOWER], counts[BS_MIDRISE], counts[BS_CONDO], counts[BS_DECO], counts[BS_SHOPS], counts[BS_STRIPMALL],
         counts[BS_HOUSE], counts[BS_VILLA], counts[BS_WAREHOUSE], TimeSeconds() - t0);
+    // Sites that depend on roads and buildings (billboards, farm silos) + per-cell site element lists
+    gSites->makeFacades(*this);
+    gSites->finalize(map, roads, *this);
+}
+
+void BuildingSet::addSiteBuilding(WorldMap& map, const SiteBuildingReq& q, u32 seed) {
+    Rng br(seed);
+    BuildingStyle st = (BuildingStyle)q.style;
+    Building b;
+    b.seed = seed;
+    b.c = q.c;
+    b.ax = q.ax;
+    b.hx = q.hx;
+    b.hy = q.hy;
+    b.front = q.front;
+    b.region = q.region;
+    b.lotKind = 0;
+    b.lotC = q.c;
+    b.lotHy = q.hy + 2.f;
+    b.style = (u8)st;
+    b.roof = q.roof;
+    b.floors = q.floors;
+    FacadeGPU f = {};
+    f.seed = seed;
+    f.signIndex = (float)(br.next() % 480);
+    f.litFrac = br.range(0.45f, 0.8f);
+    f.roomDepth = br.range(4.f, 7.f);
+    vec3 wall(0.92f), frame(0.25f), glass = kGlass[br.next() % ARRAY_COUNT(kGlass)];
+    MaterialId wallMat = MAT_STUCCO;
+    float floorH = 3.2f, groundH = 4.2f, bay = 3.2f, winW = 0.55f, winH = 0.55f, sill = 0.9f;
+    int style = 0;
+    u32 flags = 0;
+    switch (st) {
+        case BS_GARAGE:
+            style = 2; floorH = 3.0f; groundH = 3.5f; bay = 6.f; wallMat = MAT_CONCRETE; wall = vec3(0.86f); frame = vec3(0.45f); f.litFrac = 0.95f;
+            break;
+        case BS_WAREHOUSE: case BS_FACTORY: case BS_BARN:
+            style = 4; floorH = br.range(9.f, 11.f); groundH = floorH; bay = br.range(6.f, 8.f);
+            wallMat = br.chance(0.5f) ? MAT_CORRUGATED : MAT_CONCRETE_PANEL; wall = kNeutral[br.next() % ARRAY_COUNT(kNeutral)]; frame = vec3(0.3f);
+            f.litFrac = 0.35f;
+            break;
+        case BS_MIDRISE: case BS_TOWER:
+            style = br.chance(0.5f) ? 1 : 2; floorH = 3.4f; groundH = 5.f; bay = style == 1 ? 1.8f : 3.2f; winW = 0.7f; winH = 0.62f; sill = 0.8f;
+            wall = kNeutral[br.next() % 4]; wallMat = MAT_CONCRETE_PANEL; frame = vec3(0.15f); flags |= 1u | 16u;
+            break;
+        case BS_VILLA: case BS_HOUSE: case BS_SHACK:
+            style = 5; floorH = 3.2f; groundH = 3.4f; bay = br.range(3.4f, 4.4f); winW = 0.42f; winH = 0.58f; sill = 0.9f;
+            wall = st == BS_SHACK ? vec3(0.75f, 0.72f, 0.66f) : vec3(0.98f, 0.9f, 0.8f) * br.range(0.92f, 1.03f);
+            if (st == BS_SHACK) wallMat = MAT_WOOD_SIDING;
+            frame = vec3(0.95f); flags |= 8u; f.litFrac = 0.7f;
+            break;
+        case BS_SHOPS:
+            style = 0; floorH = 3.2f; groundH = 4.4f; bay = 3.4f; wall = kPastels[br.next() % ARRAY_COUNT(kPastels)]; frame = kBright[br.next() % ARRAY_COUNT(kBright)];
+            flags |= 1u | 2u;
+            break;
+        default: break;
+    }
+    f.floorH = floorH;
+    f.groundH = groundH;
+    f.bayW = bay;
+    f.winW = winW;
+    f.winH = winH;
+    f.sillH = sill;
+    f.style = (float)style;
+    f.wallColor = rgb8(wall.x, wall.y, wall.z);
+    f.frameColor = rgb8(frame.x, frame.y, frame.z);
+    f.glassColor = rgb8(glass.x, glass.y, glass.z);
+    f.flags = flags;
+    f.wallLayer = (float)wallMat;
+    b.facade = (u32)facades.size();
+    facades.push_back(f);
+    b.height = groundH + (Max(1, (int)q.floors) - 1) * floorH;
+    if (st == BS_WAREHOUSE || st == BS_BARN) b.height = floorH;
+    b.roofColor = rgb8(0.9f, 0.9f, 0.9f);
+    if (q.baseZ > -100.f) b.baseZ = q.baseZ + 0.15f;
+    else {
+        float bz = -1e9f;
+        vec2 ay = perp(b.ax);
+        for (int sx = -1; sx <= 1; sx++)
+            for (int sy = -1; sy <= 1; sy++) {
+                vec2 p = b.c + b.ax * (sx * b.hx) + ay * (sy * b.hy);
+                bz = Max(bz, map.heightAt(p.x, p.y));
+            }
+        b.baseZ = Max(bz, 0.3f) + 0.15f;
+    }
+    buildings.push_back(b);
 }
 
 void BuildingSet::buildingsNear(vec2 p, float r, std::vector<int>& out) const {

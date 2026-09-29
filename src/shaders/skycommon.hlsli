@@ -78,4 +78,10 @@ float4 aerialPerspective(float2 uv, float distMeters) {
     float w = saturate(slice * AP_RES);
     return float4(ap.rgb * w, lerp(1.0, ap.a, w));
 }
+// Froxel volumetric fog at a screen position / view depth: rgb in-scatter (pre-exposed), a transmittance.
+float4 froxelFog(float2 uv, float viewDepth) {
+    if (gFogParams1.w < 0.5) return float4(0, 0, 0, 1);
+    float w = saturate(log2(max(viewDepth, gFogParams1.z) / gFogParams1.z) * gFogParams1.y);
+    return gFogVolume.SampleLevel(sLinearClamp, float3(uv, w), 0);
+}
 #endif
