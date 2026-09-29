@@ -311,6 +311,16 @@ void GameWorld::submitRender() {
         d.castShadow = p.visibleDist < 150.f;
         d.wetExposed = p.state == PS_SWIM ? 1.f : 0.6f;
         dyn->submit(d);
+        if (p.moveMode == 4 && parachuteModel) {
+            Render::DrawItem cd;
+            cd.model = parachuteModel;
+            cd.pos = p.pos + dvec3(0, 0, 0.3);
+            cd.rot = mat3FromQuat(quatAxisAngle(vec3(0, 0, 1), p.yaw));
+            float o = Saturate(p.chuteOpen);
+            cd.scale = vec3(0.3f + 0.7f * o, 0.4f + 0.6f * o, 0.25f + 0.75f * o);
+            cd.id = 0x700000000ull | p.uid;
+            dyn->submit(cd);
+        }
         // weapon in hand
         if (p.weapon != WPN_FISTS && weaponModels[p.weapon] && p.state != PS_INVEHICLE && p.state != PS_ENTERING && p.visibleDist < 120.f &&
             p.state != PS_SWIM) {

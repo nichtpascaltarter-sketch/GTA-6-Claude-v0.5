@@ -169,6 +169,29 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
         updateTraverse(p, dt);
         return;
     }
+    if (p.moveMode == 4) {
+        updateParachute(p, dt);
+        return;
+    }
+    // skydiving: long free fall with a parachute on the back
+    if (!p.grounded && p.state == PS_ONFOOT && p.hasParachute && p.airTime > 0.5f && (float)p.pos.z - p.groundZ > 20.f) {
+        if (hudHelpTimer <= 0.f) help(c.usingPad ? "Press (X) to deploy the parachute." : "Press SPACE to deploy the parachute.", 1.f);
+        // tracking: steer the fall with the movement input
+        vec2 cf(-sinf(rig.yaw), cosf(rig.yaw)), cr(cosf(rig.yaw), sinf(rig.yaw));
+        vec2 track = (cr * c.move.x + cf * c.move.y) * 28.f;
+        p.vel.x += (track.x - p.vel.x) * Saturate(dt * 0.8f);
+        p.vel.y += (track.y - p.vel.y) * Saturate(dt * 0.8f);
+        p.vel.z = Max(p.vel.z, -52.f);  // terminal velocity
+        if (length(track) > 1.f) p.yaw = atan2f(-track.x, track.y);
+        if (c.jump.pressed) {
+            p.moveMode = 4;
+            p.chuteOpen = 0.f;
+#ifdef HAVE_AUDIO
+            Audio::play(Audio::SFX_BODY_FALL, p.pos.toVec3() + vec3(0, 0, 3.f), 0.6f, 0.6f);
+#endif
+            return;
+        }
+    }
     if (swimming && p.moveMode == 1) p.moveMode = 0;
     // ----- weapon wheel
     if (c.weaponWheel.down && !swimming) {
@@ -531,7 +554,19 @@ void GameWorld::updatePlayerVehicle(Ped& p, float dt) {
 #ifdef HAVE_AUDIO
         Audio::setRadioStation(-1);
 #endif
+        float agl = air ? v.sim.agl : 0.f;
         removePedFromVehicle(player, !bail);
+        if (air && agl > 18.f) {
+            // jump out of an aircraft: free fall with a parachute
+            p.hasParachute = true;
+            p.state = PS_ONFOOT;
+            p.grounded = false;
+            p.airTime = 0.f;
+            p.fallStartZ = (float)p.pos.z;
+            p.vel = v.sim.body.vel + v.sim.right() * (spec.seats.empty() || spec.seats[0].exitLeft ? -2.f : 2.f);
+            v.idleTime = 0.f;
+            return;
+        }
         if (bail) {
             // dive out: ragdoll with the vehicle's velocity
             knockDown(player, v.sim.body.vel * 20.f + v.sim.right() * (spec.seats.empty() || spec.seats[0].exitLeft ? -150.f : 150.f));
@@ -543,6 +578,44 @@ void GameWorld::updatePlayerVehicle(Ped& p, float dt) {
 #endif
         }
         v.idleTime = 0.f;
+    }
+}
+
+void GameWorld::updateParachute(Ped& p, float dt) {
+    const Controls& c = ctl;
+    p.chuteOpen = Min(1.f, p.chuteOpen + dt * 1.4f);
+    float open = p.chuteOpen * p.chuteOpen;
+    p.yaw -= c.move.x * 1.05f * dt * open;
+    bool flare = c.sprint.down || c.move.y < -0.5f;
+    float fwdSpeed = flare ? 4.5f : 9.5f + Max(c.move.y, 0.f) * 4.f;
+    float sink = flare ? 2.6f : 5.2f + Max(c.move.y, 0.f) * 2.f;
+    vec3 f(-sinf(p.yaw), cosf(p.yaw), 0.f);
+    vec3 target = f * (fwdSpeed * open) + vec3(0, 0, -Lerp(45.f, sink, open));
+    target.x += env->windDir.x * env->wind * 3.f;
+    target.y += env->windDir.y * env->wind * 3.f;
+    p.vel += (target - p.vel) * Saturate(dt * (1.2f + open * 1.5f));
+    vec3 np = p.pos.toVec3() + p.vel * dt;
+    vec3 push, n;
+    if (Phys::gCollision->capsuleOverlap(np, 0.35f, 1.8f, push, n)) np += push;
+    float gz = groundHeight(np.x, np.y, np.z + 0.5f);
+    float wz;
+    bool water = Phys::waterSurface(np.x, np.y, wz) && wz > gz;
+    float surface = water ? wz - 1.2f : gz;
+    p.pos = dvec3(np);
+    p.grounded = false;
+    p.airTime += dt;
+    if (np.z <= surface + 0.05f) {
+        float impact = -p.vel.z;
+        p.moveMode = 0;
+        p.hasParachute = false;
+        p.chuteOpen = 0.f;
+        p.pos.z = surface;
+        p.grounded = !water;
+        p.airTime = 0.f;
+        p.fallStartZ = surface;
+        p.vel = vec3(p.vel.x, p.vel.y, 0.f) * 0.3f;
+        if (!water && impact > 8.f) knockDown(player, vec3(f * 90.f));
+        else if (!water) p.pendingAction = Anim::CLIP_LAND;
     }
 }
 

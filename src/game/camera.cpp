@@ -144,6 +144,13 @@ void GameWorld::updateCamera(float dt) {
         wantFov = Lerp(58.f + Saturate((spd - 5.f) / 3.f) * 5.f, 44.f, r.aimBlend);
         if (p.weapon == WPN_SNIPER && aimMode) wantFov = 16.f;
         if (p.state == PS_RAGDOLL || p.state == PS_GETUP) wantDist = 4.2f;
+        if (p.moveMode == 4) {
+            wantDist = 9.f;
+            pivot = p.pos + dvec3(0, 0, 3.0);
+        } else if (!p.grounded && p.hasParachute && p.airTime > 0.5f) {
+            wantDist = 6.5f;
+            wantFov = 68.f;
+        }
     }
     r.pitch = Clamp(r.pitch, minPitch, maxPitch);
     r.yaw = wrapAngle(r.yaw);

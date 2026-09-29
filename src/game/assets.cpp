@@ -186,6 +186,52 @@ void buildWeaponMesh(WeaponType w, MeshData& m) {
     }
 }
 
+// Ram-air canopy (cells along X), suspension lines to the harness at the origin. Canopy ~6.5 m above the harness.
+void buildParachuteMesh(MeshData& m) {
+    const int cells = 9, chord = 5;
+    const float span = 8.2f, depth = 3.2f, height = 6.4f;
+    u32 colA = packRGBA8(0.95f, 0.22f, 0.45f, 1), colB = packRGBA8(0.12f, 0.12f, 0.16f, 1);
+    u32 mat = makeMat(MAT_FABRIC);
+    auto surf = [&](float u, float v, float thick) {
+        float x = (u - 0.5f) * span;
+        float arch = 1.f - (2.f * u - 1.f) * (2.f * u - 1.f);   // anhedral arch
+        float z = height - 1.3f * (1.f - arch);
+        float y = (v - 0.4f) * depth;
+        float camber = sinf(v * kPi) * 0.35f;
+        return vec3(x * (0.92f + 0.08f * arch), y, z + camber + thick);
+    };
+    for (int layer = 0; layer < 2; layer++) {
+        float th = layer ? -0.28f : 0.f;
+        u32 start = (u32)m.verts.size();
+        for (int j = 0; j <= chord; j++)
+            for (int i = 0; i <= cells * 2; i++) {
+                float u = (float)i / (cells * 2), v = (float)j / chord;
+                vec3 p = surf(u, v, th);
+                vec3 du = surf(Min(u + 0.01f, 1.f), v, th) - surf(Max(u - 0.01f, 0.f), v, th);
+                vec3 dv = surf(u, Min(v + 0.01f, 1.f), th) - surf(u, Max(v - 0.01f, 0.f), th);
+                vec3 n = normalize(cross(du, dv));
+                if (layer) n = -n;
+                u32 col = ((i / 2) & 1) ? colA : colB;
+                m.addVertex(p, n, normalize(du), vec2(u * span, v * depth), col, mat);
+            }
+        int W = cells * 2 + 1;
+        for (int j = 0; j < chord; j++)
+            for (int i = 0; i < cells * 2; i++) {
+                u32 a = start + j * W + i, b = a + 1, c = a + W, d = c + 1;
+                if (layer) m.quadIdx(a, c, d, b);
+                else m.quadIdx(a, b, d, c);
+            }
+    }
+    // suspension lines
+    u32 line = packRGBA8(0.85f, 0.85f, 0.85f, 1);
+    for (int i = 0; i <= cells; i += 3)
+        for (int j = 1; j < chord; j += 2) {
+            vec3 top = surf((float)i / cells, (float)j / chord, -0.28f);
+            vec3 bot = vec3(top.x > 0 ? 0.2f : -0.2f, 0.f, 1.5f);
+            asset_detail::cylinderAB(m, bot, top, 0.012f, 0.012f, 3, line, makeMat(MAT_PLASTIC), false);
+        }
+}
+
 void buildPickupMesh(int type, MeshData& m) {
     switch (type) {
         case PICK_MONEY: {
@@ -341,6 +387,11 @@ void GameWorld::buildAssets() {
         MeshData m;
         buildPickupMesh(p, m);
         pickupModels[p] = m.empty() ? nullptr : dyn->createModel(m);
+    }
+    {
+        MeshData m;
+        buildParachuteMesh(m);
+        parachuteModel = dyn->createModel(m);
     }
     LOG("Game assets built in %.2f s", TimeSeconds() - t0);
 }

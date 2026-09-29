@@ -105,6 +105,7 @@ struct GameWorld {
     int protagonistChar[2] = {-1, -1};
     Render::Model* weaponModels[WPN_COUNT] = {};
     Render::Model* pickupModels[6] = {};
+    Render::Model* parachuteModel = nullptr;
 
     // Entities
     std::vector<Ped> peds;
@@ -215,6 +216,7 @@ struct GameWorld {
     bool probeObstacle(const Ped& p, vec3 dir, float reach, float& topZ, float& thickness, vec3& hitPos, vec3& hitNormal) const;
     bool tryTraverse(Ped& p, vec3 dir);   // starts a vault/climb when a suitable obstacle is ahead
     void updateTraverse(Ped& p, float dt);
+    void updateParachute(Ped& p, float dt);
     void animatePed(Ped& p, float dt);
     void updateVehicles(float dt);
     void updateVehicleFx(Vehicle& v, float dt);
