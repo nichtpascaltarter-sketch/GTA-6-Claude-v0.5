@@ -258,7 +258,9 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
             vec3 eye = rig.cam.pos.toVec3();
             for (int i = 0; i < (int)peds.size(); i++) {
                 const Ped& o = peds[i];
-                if (!o.used || i == player || o.health <= 0.f || o.state == PS_INVEHICLE) continue;
+                if (!o.used || i == player || o.health <= 0.f || o.state == PS_INVEHICLE || o.state == PS_RAGDOLL || o.state == PS_DEAD ||
+                    o.state == PS_GETUP)
+                    continue;
                 vec3 tp = pedChestPos(o);
                 vec3 d = tp - eye;
                 float dist = length(d);
@@ -275,7 +277,10 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
         gLockTime = 0.f;
     }
     p.aiming = wantAim;
-    if (p.aiming && gLockTarget >= 0 && peds[gLockTarget].used && peds[gLockTarget].health > 0.f) {
+    if (gLockTarget >= 0 && (!peds[gLockTarget].used || peds[gLockTarget].health <= 0.f || peds[gLockTarget].state == PS_RAGDOLL ||
+                             peds[gLockTarget].state == PS_DEAD))
+        gLockTarget = -1;   // target went down: release the lock
+    if (p.aiming && gLockTarget >= 0) {
         gLockTime += dt;
         vec3 tp = pedChestPos(peds[gLockTarget]);
         vec3 d = tp - rig.cam.pos.toVec3();
