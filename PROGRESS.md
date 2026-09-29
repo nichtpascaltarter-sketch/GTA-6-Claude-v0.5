@@ -62,8 +62,18 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   tiled deferred local lights (street/neon/building lights), volumetric clouds (half-res + temporal, cloud shadows),
   TAA, bloom, auto exposure, ACES tonemap, dynamic rigid + GPU-skinned object renderer with car paint/skin/hair/cloth
   shading models, model viewer (`--viewer vehicles|characters`).
-- Parallel agents (in progress): audio engine + radio music (src/audio), formant TTS (src/audio/speech*),
-  vehicle models (src/sim/vehicle_*), characters + animation (src/anim).
+- Audio (src/audio, done by agent): WASAPI mixer (192 voices, 3D, doppler, reverb, ducking), 79 synthesized SFX,
+  9 engine kinds, sirens/horns/skids/rotors/boats, ambience beds, procedural music engine, 9 radio stations with DJs,
+  ads and talk (live timelines), dynamic mission score. Formant TTS voices (src/audio/speech*).
+- Gameplay (src/game, first playable 2026-09-29): see "Gameplay architecture". Player on foot (walk/jog/sprint,
+  jump, crouch, cover, vault/climb, swim/dive, skydive/parachute), weapons (12 incl. melee, grenades, RPG), stealth
+  takedowns, vehicles of every class via vehicle_sim, carjacking, passengers, ragdolls, wanted/busted/wasted,
+  population + police dispatch, ambient boats/helis/planes, missions framework + prologue, save/load, weather,
+  controller rumble, fades/letterbox.
+- Parallel agents (in progress): vehicle models (src/sim/vehicle_catalog etc.), vehicle dynamics (vehicle_sim*),
+  characters + animation (src/anim), HUD/menus/map (src/ui), renderer effects (GTAO/SSR/GI/fog/rain/particles/
+  grass), world landmarks + airport/port/Key Coral (src/world), traffic/ped/police AI (ai.cpp, population.cpp,
+  police.cpp), story campaign + side activities + economy (story*.cpp, missions*).
 
 ## Gameplay architecture (src/game, src/sim)
 - `app.cpp`: states LOADING (world generated on a thread, loading screen) -> MENU (cinematic flyover + main menu)
@@ -95,7 +105,8 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
 - No SSR/GTAO/GI yet (shadows are sky-blue-ish); no grass; wetland terrain looks flat; foliage quality basic.
 - Water close-up normals repetitive; no underwater.
 - Airport/port/Key Coral have no roads or special content yet; no landmarks.
-- Gameplay: not started (physics, player, vehicles, AI, missions, UI, save).
+- Machine for testing has only 4 cores: Wine play-tests are very slow while agents build (use tools/playtest.sh
+  with short DURATION). Full game init under Wine ~67 s (28 s shader compile, cached afterwards).
 
 ## Scorecards
 (appended at each milestone)
