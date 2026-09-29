@@ -535,8 +535,13 @@ struct App {
                     Ped* pl = game.playerPed();
                     if (pl) {
                         int pv = game.playerVehicle();
-                        LOG("autoplay t=%.1f pos %.1f %.1f %.1f state %d health %.0f veh %d speed %.1f", autoTime, pl->pos.x, pl->pos.y, pl->pos.z,
-                            (int)pl->state, pl->health, pv, pv >= 0 ? game.vehicles[pv].sim.speed() : length(pl->vel));
+                        int np = 0, nv = 0;
+                        for (auto& q : game.peds) np += q.used;
+                        for (auto& q : game.vehicles) nv += q.used;
+                        LOG("autoplay t=%.1f pos %.1f %.1f %.1f state %d health %.0f veh %d speed %.1f | peds %d vehicles %d wanted %d | cpu ms "
+                            "player %.2f ai %.2f veh %.2f peds %.2f",
+                            autoTime, pl->pos.x, pl->pos.y, pl->pos.z, (int)pl->state, pl->health, pv, pv >= 0 ? game.vehicles[pv].sim.speed() : length(pl->vel),
+                            np, nv, game.pinfo.wanted, game.profPlayer, game.profAI, game.profVehicles, game.profPeds);
                     }
                     autoShot++;
                 }

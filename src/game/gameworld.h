@@ -212,6 +212,7 @@ struct GameWorld {
     void reportCrime(int type, dvec3 pos, int victim);
     void onPickupCollected(const Pickup& pk);
     void placeWorldPickups();
+    void placeStaticBlips();
     void notify(const std::string& title, const std::string& text);
     void help(const std::string& text, float seconds = 6.f);
     void bigMessage(const std::string& text, const std::string& sub, u32 color);

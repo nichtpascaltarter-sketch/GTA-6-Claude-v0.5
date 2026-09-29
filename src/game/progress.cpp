@@ -50,6 +50,7 @@ std::vector<vec3> computeShellSpots(const World::WorldMap& map, const World::Roa
 using namespace progress_detail;
 
 void GameWorld::placeWorldPickups() {
+    placeStaticBlips();
     // Neon Shell collectibles
     std::vector<vec3> spots = computeShellSpots(*map, *roads);
     pinfo.collectibleFlags.resize(spots.size(), 0);
@@ -101,6 +102,39 @@ void GameWorld::placeWorldPickups() {
         pk.respawn = 120.f;
         pk.pos = dvec3(p.x, p.y, groundHeight(p.x, p.y, 200.f) + 0.05f);
         pickups.push_back(pk);
+    }
+}
+
+// Hospitals and police stations (respawn/release points) on the map legend.
+void GameWorld::placeStaticBlips() {
+    staticBlips.clear();
+    static const vec2 hospitals[] = {vec2(1650, 1050), vec2(3650, 3200), vec2(-2400, 1800), vec2(5200, -900), vec2(-6400, 5200),
+                                     vec2(900, 6800), vec2(-3900, -3100), vec2(7400, 4800)};
+    static const char* hospitalNames[] = {"Calle Luna Medical", "Midtown General", "Westbrook Hospital", "Sol Beach Clinic",
+                                          "Harlow County Hospital", "Okahatchee Medical", "Redland Health", "Fort Castell Hospital"};
+    for (int i = 0; i < 8; i++) {
+        UI::Blip b;
+        b.pos = hospitals[i];
+        b.icon = UI::BLIP_HOSPITAL;
+        b.shortRange = true;
+        b.label = hospitalNames[i];
+        staticBlips.push_back(b);
+    }
+    static const vec2 stations[] = {vec2(2900, 300), vec2(1400, -500), vec2(4100, 2300), vec2(5050, 1800), vec2(-1500, 3200),
+                                    vec2(2000, -3300), vec2(-5000, 5000), vec2(6600, 7300)};
+    static const char* stationNames[] = {"PSPD Central", "PSPD Calle Luna", "PSPD Midtown", "Sol Beach Police", "Flats Precinct",
+                                         "Grove Precinct", "Harlow Sheriff", "Fort Castell Police"};
+    for (int i = 0; i < 8; i++) {
+        float s = 0, side = 0;
+        vec2 p = stations[i];
+        int e = roads->nearestEdge(p, 300.f, &s, nullptr, &side);
+        if (e >= 0) p = roads->edges[e].posAt(s).xy();
+        UI::Blip b;
+        b.pos = p;
+        b.icon = UI::BLIP_POLICE_STATION;
+        b.shortRange = true;
+        b.label = stationNames[i];
+        staticBlips.push_back(b);
     }
 }
 
