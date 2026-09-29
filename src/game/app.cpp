@@ -63,6 +63,9 @@ struct App {
         parseShots();
         if (const char* t = Platform::argValue("time")) env.timeOfDay = (float)atof(t);
         if (const char* d = Platform::argValue("debugview")) renderer.debugView = atoi(d);
+        if (const char* cc = Platform::argValue("clouds")) env.cloudCover = (float)atof(cc);
+        if (const char* rr = Platform::argValue("rain")) { env.rain = (float)atof(rr); env.wetness = env.rain; }
+        if (const char* ff = Platform::argValue("fog")) env.fogDensity = (float)atof(ff);
         lastTime = TimeSeconds();
         return true;
     }
@@ -150,6 +153,19 @@ struct App {
             float d[4];
             gfx::readbackPixelsFloat4(renderer.depth.res, DXGI_FORMAT_R32_FLOAT, p[0], p[1], d);
             LOG("  hdr(%d,%d) = %.4g %.4g %.4g  depth %.4g", p[0], p[1], px[0], px[1], px[2], d[0]);
+        }
+        if (renderer.settings.clouds) {
+            for (int k = 0; k < 5; k++) {
+                float cl[4];
+                int cx = renderer.clouds->w * (k + 1) / 6, cy = renderer.clouds->h / 5;
+                gfx::readbackPixelsFloat4(renderer.clouds->history[renderer.clouds->cur].res, DXGI_FORMAT_R16G16B16A16_FLOAT, cx, cy, cl);
+                LOG("  cloud(%d,%d) = %.4g %.4g %.4g T=%.3f", cx, cy, cl[0], cl[1], cl[2], cl[3]);
+            }
+            u16 sm[4] = {};
+            float smv[4];
+            gfx::readbackPixelsFloat4(renderer.clouds->shadowMap.res, DXGI_FORMAT_R32_FLOAT, 128, 128, smv);
+            (void)sm;
+            LOG("  cloud shadow center raw %.4g", smv[0]);
         }
     }
 

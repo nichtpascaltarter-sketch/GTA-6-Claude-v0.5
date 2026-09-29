@@ -38,6 +38,7 @@ struct FrameConstants {
     vec4 camPos, camPosWrap, screen, jitter, sunDir, sunColor;
     vec4 skyAmbient[9];
     vec4 time, weather, wind, fog, exposure, camForward, renderParams, lightning, planetParams;
+    vec4 cloudShadow;  // xy center (world), z size (m), w strength
 };
 
 struct ShadowConstants {
@@ -104,6 +105,7 @@ struct WorldRenderer;
 struct WaterRenderer;
 struct PropRenderer;
 struct DynamicRenderer;
+struct CloudSystem;
 
 class Renderer {
 public:
@@ -152,6 +154,7 @@ public:
     WaterRenderer* water = nullptr;
     PropRenderer* props = nullptr;
     DynamicRenderer* dynamic = nullptr;
+    CloudSystem* clouds = nullptr;
     World::WorldMap* map = nullptr;
 
     ID3D11ComputeShader* csLighting = nullptr;

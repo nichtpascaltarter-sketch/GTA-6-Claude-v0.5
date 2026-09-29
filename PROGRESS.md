@@ -33,8 +33,38 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
 - Threads: `Jobs` pool (core/jobs.h). World cells generate on low-priority jobs.
 - No third-party code, no external assets. Only Win32/D3D11/DXGI/XInput/WASAPI + C++ std lib.
 
-## Status
-- [x] M1 in progress: platform layer, math, jobs, D3D11 wrapper, shader embedding/compile/cache, test harness.
+## Status (what exists)
+- M1 engine foundation: Win32 platform (raw input, XInput, crash handler, log), math, jobs, D3D11 wrapper, runtime
+  shader compile + disk cache, SDF text UI (GDI-rasterized fonts), screenshot/probe automation (`--shot`, `--probe`).
+- World (src/world): 20.5 km map (worldmap.cpp) with mainland, Sol Beach barrier island, bay islands, Port Isle,
+  Key Coral, 11 Coral Keys + Key Solano, mangrove islets, Lake Okahatchee, Rio Sol river + canals, Cypress Ridge hills,
+  Sawgrass wetlands. Regions (districts) with perturbed borders. Road network (roads.cpp): highways (grade separated,
+  elevated in the city, bridges), ramps/interchanges, city grid, Grove warped grid, suburb superblocks with curvy
+  lanes + cul-de-sacs, beach avenues, town grids, causeways, rural section roads, lakeshore, ridge roads; planarized
+  graph (~6k nodes, ~10k edges), signalized intersections, terrain flattening. Buildings (buildings.cpp): 37k lots along
+  road frontage, 17 styles (towers, midrise, condo, art deco, shops, strip malls, houses, villas, warehouses, factories,
+  farmhouses, barns, motels, gas stations, garages, churches, stilt shacks), each with its own facade record.
+  Meshes per 256 m cell (roadmesh.cpp, buildmesh.cpp, cellgen.cpp): road strips w/ lane markings, sidewalks, curbs,
+  intersections w/ rounded corners + crosswalks, medians w/ palms, bridge decks + pillars, building masses w/ facade
+  shader, parapets, roofs (flat/hip/gable), balconies, awnings, pools, driveways, garages, canopies, parking lots;
+  streetlights/signals/stop signs/furniture; vegetation scatter by biome (propmesh.cpp prototypes).
+- Renderer (src/render, src/shaders): deferred PBR G-buffer, physical sky (Hillaire LUTs), aerial perspective,
+  sky SH ambient with ground bounce, CSM (4 cascades, stabilized, PCF), CDLOD terrain w/ 8 procedural layers,
+  procedural material library (36+ GPU-generated materials), facade shader with interior mapping + night lit rooms +
+  shop sign atlas (GDI-rendered names) + neon trims, cell streaming (near detail 420 m / far 2.3 km), instanced props
+  and alpha-tested foliage with wind, water (CDLOD + ocean skirt, Gerstner waves, refraction, absorption, foam, glint),
+  tiled deferred local lights (street/neon/building lights), volumetric clouds (half-res + temporal, cloud shadows),
+  TAA, bloom, auto exposure, ACES tonemap, dynamic rigid + GPU-skinned object renderer with car paint/skin/hair/cloth
+  shading models, model viewer (`--viewer vehicles|characters`).
+- Parallel agents (in progress): audio engine + radio music (src/audio), formant TTS (src/audio/speech*),
+  vehicle models (src/sim/vehicle_*), characters + animation (src/anim).
+
+## Known issues / next
+- Perf: clouds (half-res full raymarch) too expensive for 60 fps at 1440p -> quarter-res + checkerboard.
+- No SSR/GTAO/GI yet (shadows are sky-blue-ish); no grass; wetland terrain looks flat; foliage quality basic.
+- Water close-up normals repetitive; no underwater.
+- Airport/port/Key Coral have no roads or special content yet; no landmarks.
+- Gameplay: not started (physics, player, vehicles, AI, missions, UI, save).
 
 ## Scorecards
 (appended at each milestone)

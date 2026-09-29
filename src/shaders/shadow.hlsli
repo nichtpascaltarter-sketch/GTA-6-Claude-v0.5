@@ -16,6 +16,7 @@ static const float2 kPoisson[12] = {
     float2(0.962, -0.195), float2(0.473, -0.480), float2(0.519, 0.767), float2(0.185, -0.893),
     float2(0.507, 0.064), float2(0.896, 0.412), float2(-0.322, -0.933), float2(-0.792, -0.598)};
 
+float sampleSunShadowGeo(float3 relPos, float3 N, float viewDepth, uint2 pix);
 float sampleCascade(int c, float3 relPos, float3 N, float noiseAngle) {
     float3 p = relPos + N * gCascadeTexel[c] * 2.0 + gSunDir.xyz * gCascadeTexel[c] * 1.0;
     float4 sp = mul(gCascadeVP[c], float4(p, 1));
@@ -35,7 +36,19 @@ float sampleCascade(int c, float3 relPos, float3 N, float noiseAngle) {
     return s / 12.0;
 }
 
+float cloudShadowAt(float3 relPos) {
+    float2 w = relPos.xy + gCamPos.xy;
+    float2 uv = (w - gCloudShadow.xy) / gCloudShadow.z + 0.5;
+    if (any(uv < 0.0) || any(uv > 1.0)) return 1.0;
+    return lerp(1.0, gCloudShadowMap.SampleLevel(sLinearClamp, uv, 0), gCloudShadow.w);
+}
+
 float sampleSunShadow(float3 relPos, float3 N, float viewDepth, uint2 pix) {
+    float cs = cloudShadowAt(relPos);
+    return cs * sampleSunShadowGeo(relPos, N, viewDepth, pix);
+}
+
+float sampleSunShadowGeo(float3 relPos, float3 N, float viewDepth, uint2 pix) {
     int count = (int)gShadowParams.y;
     if (gSunDir.w <= 0.0) return 0.0;
     float noiseAngle = ign(pix, gTime.z) * TWO_PI;
@@ -56,4 +69,6 @@ float sampleSunShadow(float3 relPos, float3 N, float viewDepth, uint2 pix) {
     }
     return 1.0;
 }
+
+
 #endif

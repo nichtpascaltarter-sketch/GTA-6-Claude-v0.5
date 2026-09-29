@@ -91,6 +91,7 @@ struct SkySystem {
 #include "shadows.cpp"
 #include "water.cpp"
 #include "post.cpp"
+#include "clouds.cpp"
 
 namespace UI { gfx::Texture buildSignAtlas(const std::vector<std::string>& names); }
 
@@ -121,6 +122,8 @@ bool Renderer::init(int w, int h) {
     shadows->casters.push_back([this](Renderer& r, const mat4& vp, int cascade) { world->drawShadow(r, vp, cascade); });
     water = new WaterRenderer();
     water->init();
+    clouds = new CloudSystem();
+    clouds->init();
     props = new PropRenderer();
     props->init(materials);
     dynamic = new DynamicRenderer();
@@ -163,6 +166,7 @@ void Renderer::createTargets() {
     u16 cl[4] = {0, 0, 0, half1};
     cloudsTex = createTexture2D(1, 1, DXGI_FORMAT_R16G16B16A16_FLOAT, TEX_SRV, 1, 1, cl, 8);
     post->resize(width, height);
+    if (clouds) clouds->resize(width, height);
 }
 
 void Renderer::releaseTargets() {
@@ -270,6 +274,7 @@ void Renderer::updateFrameConstants(const Camera& cam, const Environment& env, f
     f.camForward = vec4(cam.forward(), cam.fovY);
     f.renderParams = vec4((float)settings.shadowCascades, 1.f, settings.ssr ? 1.f : 0.f, (float)debugView);
     f.lightning = vec4(env.lightning, 0, 0, 0);
+    f.cloudShadow = vec4((float)cam.pos.x, (float)cam.pos.y, 8192.f, 0.85f);
     f.planetParams = vec4(0, 0, Max(0.001f, (float)cam.pos.z * 0.001f + 0.002f), env.haze * (1.f + env.rain * 2.f + env.fogDensity * 3.f));
     frameCB.data = f;
     frameCB.upload();
@@ -289,12 +294,13 @@ void Renderer::bindFrame() {
 }
 
 static void bindGlobals(Renderer& r, bool withShadow) {
-    ID3D11ShaderResourceView* g[5] = {r.sky->shBuf.srv, r.sky->transmittance.srv, r.sky->aerial.srv,
-                                      withShadow ? r.shadows->map.srv : nullptr, r.sky->skyView.srv};
+    ID3D11ShaderResourceView* g[6] = {r.sky->shBuf.srv, r.sky->transmittance.srv, r.sky->aerial.srv,
+                                      withShadow ? r.shadows->map.srv : nullptr, r.sky->skyView.srv,
+                                      withShadow ? r.clouds->shadowMap.srv : nullptr};
     ID3D11ShaderResourceView* e[1] = {r.post->exposureBuf.srv};
-    gfx::ctx->VSSetShaderResources(32, 5, g);
-    gfx::ctx->PSSetShaderResources(32, 5, g);
-    gfx::ctx->CSSetShaderResources(32, 5, g);
+    gfx::ctx->VSSetShaderResources(32, 6, g);
+    gfx::ctx->PSSetShaderResources(32, 6, g);
+    gfx::ctx->CSSetShaderResources(32, 6, g);
     gfx::ctx->VSSetShaderResources(40, 1, e);
     gfx::ctx->PSSetShaderResources(40, 1, e);
     gfx::ctx->CSSetShaderResources(40, 1, e);
@@ -370,6 +376,11 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
         stats.lights = (int)lightsFrame.size();
         dynamicLights.clear();
     }
+    // Clouds (half resolution, before lighting composites them over the sky)
+    gfx::gpuTimerBegin("clouds");
+    bindGlobals(*this, false);
+    if (settings.clouds) clouds->update(*this, env, dt);
+    gfx::gpuTimerEnd();
     // Lighting
     gfx::gpuTimerBegin("lighting");
     bindGlobals(*this, true);
@@ -378,7 +389,7 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     ID3D11Buffer* lcb[] = {lightCB.get()};
     c->CSSetConstantBuffers(2, 1, lcb);
     ID3D11ShaderResourceView* srvs[8] = {gbAlbedo.srv, gbNormal.srv, gbMaterial.srv, gbEmissive.srv, depth.srv,
-                                         post->whiteTex.srv, cloudsTex.srv, lightBuf.srv};
+                                         post->whiteTex.srv, settings.clouds ? clouds->output() : cloudsTex.srv, lightBuf.srv};
     c->CSSetShaderResources(0, 8, srvs);
     c->CSSetUnorderedAccessViews(0, 1, &hdr.uav, nullptr);
     c->CSSetShader(csLighting, nullptr, 0);

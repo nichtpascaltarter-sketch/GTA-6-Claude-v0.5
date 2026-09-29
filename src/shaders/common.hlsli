@@ -28,6 +28,7 @@ cbuffer FrameCB : register(b0) {
     float4 gRenderParams;      // x shadow cascade count, y AO strength, z SSR enabled, w debug view
     float4 gLightning;         // x flash intensity, yzw direction
     float4 gPlanetParams;      // x unused, y unused, z camera altitude km, w mie haze multiplier
+    float4 gCloudShadow;       // xy center (world), z size (m), w strength
 };
 
 // Global resources bound once per frame at high slots (see Renderer::bindGlobals)
@@ -36,6 +37,7 @@ Texture2D<float4> gTransmittanceLUT : register(t33);
 Texture3D<float4> gAerialLUT : register(t34);
 Texture2DArray<float> gShadowMap : register(t35);
 Texture2D<float4> gSkyViewLUT : register(t36);
+Texture2D<float> gCloudShadowMap : register(t37);
 StructuredBuffer<float4> gExposureBuf : register(t40);    // x = exposure multiplier, y = ev100, z = avg lum
 SamplerState sPointClamp : register(s0);
 SamplerState sLinearClamp : register(s1);
