@@ -295,6 +295,7 @@ struct GameWorld {
     bool signalGreen(int node, vec2 approachDir) const;
     int signalLampState(int node, vec2 approachDir) const;   // 0 red, 1 amber, 2 green
     void updatePopulation(float dt);
+    void updateAmbientTraffic(float dt);   // ambient.cpp: boats, helicopters, planes
     void updateDispatch(float dt);
     float trafficWeight(const Vehicles::VehicleModel& m, World::Region reg) const;
     float parkedWeight(const Vehicles::VehicleModel& m) const;

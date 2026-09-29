@@ -110,6 +110,7 @@ void GameWorld::updateVehicles(float dt) {
         for (int i = 0; i < (int)vehicles.size(); i++) {
             Vehicle& v = vehicles[i];
             if (!v.used) continue;
+            if (v.scripted) continue;  // moved by gameplay (ambient.cpp)
             Vehicles::VehicleControls c = v.ctl;
             if (v.seats[0] < 0 || v.sim.wrecked) {
                 // no driver: handbrake on, engine idles down

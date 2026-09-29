@@ -10,6 +10,7 @@
 #include "police.cpp"
 #include "ai.cpp"
 #include "population.cpp"
+#include "ambient.cpp"
 #include "progress.cpp"
 #include "hudbridge.cpp"
 #include "route.cpp"

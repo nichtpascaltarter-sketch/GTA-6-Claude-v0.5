@@ -159,6 +159,7 @@ void GameWorld::update(float realDt) {
     updatePlayer(dt);
     double t1 = TimeSeconds();
     updateAI(dt);
+    updateAmbientTraffic(dt);
     double t2 = TimeSeconds();
     updateVehicles(dt);
     double t3 = TimeSeconds();
@@ -272,7 +273,7 @@ void GameWorld::submitRender() {
         const VehicleAsset& a = vassets[v.model];
         const Vehicles::VehicleState& s = v.sim;
         float dist = v.visibleDist;
-        if (dist > 1600.f) continue;
+        if (dist > (v.renderFar ? 9000.f : 1600.f)) continue;
         vec3 toV = rel(s.body.pos, cam);
         float rad = length(a.spec.boxHalf) + 1.f;
         if (dot(toV, camF) < -rad && dist > rad) continue;  // behind the camera

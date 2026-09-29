@@ -202,6 +202,8 @@ struct Vehicle {
     float smokeTimer = 0.f;
     float lastImpactSfx = 0.f;
     float visibleDist = 0.f;
+    bool scripted = false;        // moved kinematically by gameplay (ambient air/sea traffic, cutscenes)
+    bool renderFar = false;       // drawn up to the horizon (aircraft)
 };
 
 enum PickupType : u8 { PICK_MONEY = 0, PICK_HEALTH, PICK_ARMOR, PICK_WEAPON, PICK_COLLECTIBLE, PICK_PACKAGE };
