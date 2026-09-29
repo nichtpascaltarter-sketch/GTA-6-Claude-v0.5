@@ -29,8 +29,8 @@ struct PostSystem {
     ID3D11ShaderResourceView* finalSrv = nullptr;
 
     void init() {
-        float initExp[4] = {2.5e-5f, 15.f, 0.f, 0.f};
-        exposureBuf = gfx::createBuffer(16, 16, gfx::BUF_STRUCTURED | gfx::BUF_UAV, initExp);
+        float initExp[8] = {2.5e-5f, 15.f, 0.f, 0.f, 2.5e-5f, 0.f, 0.f, 0.f};
+        exposureBuf = gfx::createBuffer(32, 16, gfx::BUF_STRUCTURED | gfx::BUF_UAV, initExp);
         u32 white = 0xffffffffu, black = 0xff000000u;
         whiteTex = gfx::createTexture2D(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV, 1, 1, &white, 4);
         blackTex = gfx::createTexture2D(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV, 1, 1, &black, 4);

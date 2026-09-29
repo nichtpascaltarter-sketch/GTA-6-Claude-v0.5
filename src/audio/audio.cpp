@@ -16,10 +16,27 @@ using namespace dsp;
 constexpr int kMaxVoices = 192;
 constexpr int kMaxRealVoices = 64;
 constexpr int kMaxEmitters = 512;
-constexpr int kMaxRealEmitters = 24;
+constexpr int kMaxRealEmitters = 20;
+constexpr float kInaudible = 0.0015f;  // ~-56 dB: masked by any bed; not worth synthesizing
 constexpr int kHandleTable = 4096;
 constexpr int kItdLen = 64;
 constexpr float kSpeedOfSound = 343.f;
+
+// Optional stage timers (define AUDIO_PROFILE to enable; used by the native benchmark).
+#ifdef AUDIO_PROFILE
+double g_prof[8] = {};
+struct ProfScope {
+    int k;
+    double t0;
+    explicit ProfScope(int kk) : k(kk), t0(TimeSeconds()) {}
+    ~ProfScope() { g_prof[k] += TimeSeconds() - t0; }
+};
+#define PROF_SCOPE(k) ProfScope _prof_##k(k)
+#else
+#define PROF_SCOPE(k) \
+    do {              \
+    } while (0)
+#endif
 
 // ---------------------------------------------------------------------------------------------
 enum class CmdType : u8 { Play, Stop, EmitterCreate, EmitterSet, EmitterDestroy, SpeechReady };
@@ -214,8 +231,8 @@ static void spatialize(SpatialState& st, const SpatialParams& p, const float* in
         };
         float xl = rd(dl), xr = rd(dr);
         st.itdW = (st.itdW + 1) & (kItdLen - 1);
-        xl = st.farL.process(xl);
-        xr = st.farR.process(xr);
+        if (p.farEar == 0) xl = st.farL.process(xl);
+        else xr = st.farR.process(xr);
         float gl = gl0 + (gl1 - gl0) * u, gr = gr0 + (gr1 - gr0) * u, sg = s0 + (s1 - s0) * u;
         outL[i] += xl * gl;
         outR[i] += xr * gr;
@@ -644,6 +661,7 @@ struct Mixer {
         bool worldActive = pauseGain > 0.f;
         // ---- ambience
         if (worldActive && amb) {
+            PROF_SCOPE(0);
             radioSetContext(st.amb.timeOfDay, st.amb.rain);
             ambienceRender(amb, aL, aR, n, st.amb, lis);
             for (int i = 0; i < n; i++) {
@@ -652,15 +670,27 @@ struct Mixer {
             }
         }
         // ---- voices
-        renderVoices(n, worldActive);
+        {
+            PROF_SCOPE(1);
+            renderVoices(n, worldActive);
+        }
         // ---- radio producers (in-car + world radio sources)
-        renderRadio(n, blockSec);
+        {
+            PROF_SCOPE(2);
+            renderRadio(n, blockSec);
+        }
         // ---- emitters
-        if (worldActive) renderEmitters(n);
+        if (worldActive) {
+            PROF_SCOPE(3);
+            renderEmitters(n);
+        }
         // ---- score
         renderScore(n, blockSec);
         // ---- reverb
-        reverb.process(sL, sR, rL, rR, n);
+        {
+            PROF_SCOPE(4);
+            reverb.process(sL, sR, rL, rR, n);
+        }
         // ---- ducking envelopes
         float sEnvMax = 0.f, lEnvMax = 0.f;
         for (int i = 0; i < n; i++) {
@@ -732,7 +762,7 @@ struct Mixer {
             if (worldVoice && !worldActive) continue;  // frozen while paused
             float rate = v.rate * ((v.bus == Bus::Ui) ? 1.f : slowmo);
             if (v.is3D) rate *= v.par.doppler;
-            if (v.is3D && v.par.audibility < 1e-5f) v.real = false;
+            if (v.is3D && v.score < kInaudible * 0.5f) v.real = false;
             bool finished = false;
             if (!v.real) {
                 // advance virtually
@@ -837,9 +867,9 @@ struct Mixer {
         int realMax = kMaxRealEmitters;
         if (cnt > realMax) {
             std::nth_element(idx, idx + realMax, idx + cnt, [&](int a, int b) { return emitters[a].score > emitters[b].score; });
-            for (int k = 0; k < cnt; k++) emitters[idx[k]].real = k < realMax && emitters[idx[k]].score > 1e-5f;
+            for (int k = 0; k < cnt; k++) emitters[idx[k]].real = k < realMax && emitters[idx[k]].score > kInaudible;
         } else {
-            for (int k = 0; k < cnt; k++) emitters[idx[k]].real = emitters[idx[k]].score > 1e-5f;
+            for (int k = 0; k < cnt; k++) emitters[idx[k]].real = emitters[idx[k]].score > kInaudible;
         }
         for (int k = 0; k < cnt; k++) {
             int slot = idx[k];
@@ -866,6 +896,7 @@ struct Mixer {
                     mono[i] = fastTanh(e.spkLp.process(e.spkHp.process(m)) * 1.4f) * 0.8f;
                 }
             } else if (e.synth) {
+                e.synth->setLod(e.par.audibility * Max(e.volume, 0.f) < 0.06f ? 1 : 0);
                 float rate = e.par.doppler * slowmo;
                 for (int i = 0; i < n; i++) {
                     if (e.fifoPos + 3.0 >= (double)e.fifoLen) {
@@ -881,18 +912,17 @@ struct Mixer {
                     }
                     int ip = (int)e.fifoPos;
                     float t = (float)(e.fifoPos - (double)ip);
-                    mono[i] = hermite(e.fifo[ip - 1], e.fifo[ip], e.fifo[ip + 1], e.fifo[ip + 2], t);
+                    mono[i] = e.dc.process(hermite(e.fifo[ip - 1], e.fifo[ip], e.fifo[ip + 1], e.fifo[ip + 2], t));
                     e.fifoPos += (double)rate;
                 }
                 int shot = emitterPollOneShot(e.type, e.synth);
                 if (shot > 0) {
                     vec3 off(rng.range(-6.f, 6.f), rng.range(-6.f, 6.f), 0.f);
-                    spawnOneShot(shot, e.pos + off, rng.range(0.5f, 0.9f), rng.range(0.92f, 1.08f));
+                    spawnOneShot(shot, e.pos + off, rng.range(0.25f, 0.5f) * Max(e.volume, 0.f), rng.range(0.92f, 1.08f));
                 }
             } else {
                 for (int i = 0; i < n; i++) mono[i] = 0.f;
             }
-            for (int i = 0; i < n; i++) mono[i] = e.dc.process(mono[i]);
             // volume smoothing (attack/release) applied pre-spatialization
             float v0 = e.volSmooth;
             float coef = e.releasing ? 0.25f : 0.35f;
@@ -1025,11 +1055,21 @@ struct Mixer {
 Mixer* g_mixer = nullptr;
 std::mutex g_renderMutex;
 std::atomic<bool> g_inited{false};
-bool g_deviceOk = false;
+std::atomic<bool> g_deviceOk{false};
+std::atomic<bool> g_offline{false};  // renderOffline() in use (tests / capture without a device)
 bool g_async = false;
 std::mutex g_lifeMutex;
 
+// Sound-producing API calls are live with an output device or once renderOffline() drives the mixer;
+// otherwise (init() found no device) they are no-ops returning invalid handles.
+static inline bool apiLive() { return g_inited.load() && (g_deviceOk.load() || g_offline.load()); }
+
 static void renderCallback(float* out, int frames) {
+    static thread_local bool s_ftz = false;
+    if (!s_ftz) {
+        enableFlushDenormals();
+        s_ftz = true;
+    }
     if (!g_renderMutex.try_lock()) {
         memset(out, 0, sizeof(float) * 2 * (size_t)frames);
         return;
@@ -1074,6 +1114,10 @@ void spawnWorldOneShot(int bankId, vec3 worldPos, float volume, float pitch) {
     if (mix::g_mixer) mix::g_mixer->spawnOneShot(bankId, worldPos, volume, pitch);
 }
 
+void dialogSpeechDropped(SpeechJob* j) {
+    if (j) mix::handleClear(j->handle);
+}
+
 void dialogSpeechReady(SpeechJob* j) {
     j->refs.fetch_add(1);
     mix::Cmd c = {};
@@ -1094,23 +1138,29 @@ using namespace detail;
 
 bool init() {
     std::lock_guard<std::mutex> lk(mix::g_lifeMutex);
-    if (mix::g_inited.load()) return mix::g_deviceOk;
-    mix::initCore();
-    mix::g_inited.store(true);
-    mix::g_deviceOk = backend::start(&mix::renderCallback);
-    if (mix::g_deviceOk) {
+    if (mix::g_inited.load()) {
+        // Calling init() again after it found no device retries opening one (unless the mixer is
+        // already being driven by renderOffline()).
+        if (mix::g_deviceOk.load() || mix::g_offline.load()) return mix::g_deviceOk.load();
+    } else {
+        mix::initCore();
+        mix::g_inited.store(true);
+    }
+    bool ok = backend::start(&mix::renderCallback);
+    if (ok) {
         mix::g_async = true;
         speechStart(true);
         musicStartThread();
         int hc = (int)std::thread::hardware_concurrency();
         bankStartAsync(Clamp(hc - 1, 1, 4));
+        mix::g_deviceOk.store(true);
         LOG("Audio: output started (procedural bank rendering in background)");
     } else {
         mix::g_async = false;
         speechStart(false);
         LOG("Audio: no output device - audio disabled");
     }
-    return mix::g_deviceOk;
+    return ok;
 }
 
 void shutdown() {
@@ -1134,7 +1184,8 @@ void shutdown() {
     }
     mix::garbageDrain();
     mix::g_inited.store(false);
-    mix::g_deviceOk = false;
+    mix::g_deviceOk.store(false);
+    mix::g_offline.store(false);
     mix::g_async = false;
 }
 
@@ -1192,7 +1243,7 @@ void setVoiceVolume(float v) {
 }
 
 static SoundHandle playImpl(Sfx id, vec3 pos, float volume, float pitch, bool is2D) {
-    if (!mix::g_inited.load() || (int)id <= 0 || (int)id >= SFX_COUNT) return 0;
+    if (!mix::apiLive() || (int)id <= 0 || (int)id >= SFX_COUNT) return 0;
     u32 h = mix::newVoiceHandle();
     mix::g_handleState[h & (mix::kHandleTable - 1)].store(h, std::memory_order_release);
     mix::Cmd c = {};
@@ -1213,7 +1264,7 @@ SoundHandle play(Sfx id, vec3 pos, float volume, float pitch) { return playImpl(
 SoundHandle play2D(Sfx id, float volume, float pitch) { return playImpl(id, vec3(), volume, pitch, true); }
 
 void stop(SoundHandle h) {
-    if (!mix::g_inited.load() || !h) return;
+    if (!mix::apiLive() || !h) return;
     mix::handleClear(h);
     mix::Cmd c = {};
     c.type = mix::CmdType::Stop;
@@ -1221,12 +1272,12 @@ void stop(SoundHandle h) {
     mix::pushCmd(c);
 }
 bool isPlaying(SoundHandle h) {
-    if (!mix::g_inited.load() || !h) return false;
+    if (!mix::apiLive() || !h) return false;
     return mix::handleAlive(h);
 }
 
 EmitterHandle createEmitter(EmitterType type) {
-    if (!mix::g_inited.load() || (int)type < 0 || (int)type >= EMIT_COUNT) return 0;
+    if (!mix::apiLive() || (int)type < 0 || (int)type >= EMIT_COUNT) return 0;
     std::lock_guard<std::mutex> lk(mix::g_cmdMutex);
     static int s_cursor = 0;
     for (int k = 0; k < mix::kMaxEmitters; k++) {
@@ -1254,7 +1305,7 @@ EmitterHandle createEmitter(EmitterType type) {
 }
 
 void setEmitter(EmitterHandle h, vec3 pos, vec3 vel, float p0, float p1, float p2, float p3, float volume) {
-    if (!mix::g_inited.load() || !h) return;
+    if (!mix::apiLive() || !h) return;
     mix::Cmd c = {};
     c.type = mix::CmdType::EmitterSet;
     c.handle = h;
@@ -1269,7 +1320,7 @@ void setEmitter(EmitterHandle h, vec3 pos, vec3 vel, float p0, float p1, float p
 }
 
 void destroyEmitter(EmitterHandle h) {
-    if (!mix::g_inited.load() || !h) return;
+    if (!mix::apiLive() || !h) return;
     mix::Cmd c = {};
     c.type = mix::CmdType::EmitterDestroy;
     c.handle = h;
@@ -1301,7 +1352,7 @@ void setRadioInterior(float amount) {
 }
 
 static SoundHandle speakImpl(const char* text, const VoiceParams& voice, float volume, bool positional, vec3 pos) {
-    if (!mix::g_inited.load() || !text || !*text) return 0;
+    if (!mix::apiLive() || !text || !*text) return 0;
     u32 h = mix::newVoiceHandle();
     mix::g_handleState[h & (mix::kHandleTable - 1)].store(h, std::memory_order_release);
     SpeechJob* j = new SpeechJob();
@@ -1337,12 +1388,14 @@ void renderOffline(float* outStereo, int frames) {
         if (!mix::g_inited.load()) {
             mix::initCore();
             mix::g_inited.store(true);
-            mix::g_deviceOk = false;
+            mix::g_deviceOk.store(false);
             mix::g_async = false;
             speechStart(false);
         }
+        mix::g_offline.store(true);
     }
     bankWaitAll();
+    dsp::ScopedFlushDenormals ftz;
     std::lock_guard<std::mutex> rl(mix::g_renderMutex);
     int done = 0;
     while (done < frames) {

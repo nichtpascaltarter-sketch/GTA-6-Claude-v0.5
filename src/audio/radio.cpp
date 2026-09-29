@@ -815,6 +815,7 @@ std::atomic<bool> g_quit{false};
 bool g_async = false;
 std::atomic<float> g_durScale{1.f};
 std::atomic<int> g_calibN{0};
+constexpr int kMaxQueuedDialogue = 48;
 
 static void synthJob(SpeechJob* j) {
     j->state.store(1);
@@ -834,6 +835,7 @@ static void synthJob(SpeechJob* j) {
 
 static void workerMain() {
     backend::setThreadLowPriority();
+    dsp::enableFlushDenormals();
     for (;;) {
         SpeechJob* j = nullptr;
         {
@@ -875,23 +877,45 @@ void speechSubmit(SpeechJob* j) {
             return;
         }
         std::lock_guard<std::mutex> lk(g_m);
-        if (g_queue.size() >= 64) {
+        if (g_queue.size() >= (size_t)kMaxQueuedDialogue) {
             j->state.store(2);
+            dialogSpeechDropped(j);
             speechJobRelease(j);
             return;
         }
         g_queue.push_back(j);
         return;
     }
+    SpeechJob* dropped = nullptr;
     {
         std::lock_guard<std::mutex> lk(g_m);
+        if (j->priority == 0) {
+            // bound the dialogue backlog: drop the oldest queued line (it would play far too late anyway)
+            int pending = 0;
+            size_t oldest = g_queue.size();
+            for (size_t i = 0; i < g_queue.size(); i++)
+                if (g_queue[i]->priority == 0) {
+                    if (oldest == g_queue.size()) oldest = i;
+                    pending++;
+                }
+            if (pending >= kMaxQueuedDialogue) {
+                dropped = g_queue[oldest];
+                g_queue.erase(g_queue.begin() + (long)oldest);
+            }
+        }
         g_queue.push_back(j);
     }
     g_cv.notify_one();
+    if (dropped) {
+        dropped->state.store(2);
+        dialogSpeechDropped(dropped);
+        speechJobRelease(dropped);
+    }
 }
 
 void speechPumpSync() {
     using namespace speechw;
+    dsp::ScopedFlushDenormals ftz;
     for (;;) {
         SpeechJob* j = nullptr;
         {
@@ -926,6 +950,7 @@ void speechStop() {
     }
     for (SpeechJob* j : rest) {
         j->state.store(2);
+        if (j->priority == 0) dialogSpeechDropped(j);
         speechJobRelease(j);
     }
     g_async = false;
@@ -1412,6 +1437,7 @@ static bool pumpOnce(int target) {
 
 static void threadMain() {
     backend::setThreadHighPriority();
+    dsp::enableFlushDenormals();
     while (!g_quit.load()) {
         bool worked;
         {
@@ -1459,6 +1485,7 @@ void musicShutdown() {
 
 void musicPumpSync(int framesNeeded) {
     using namespace mthread;
+    dsp::ScopedFlushDenormals ftz;
     std::lock_guard<std::mutex> lk(g_m);
     if (!music::g_piano.ready.load()) music::pianoWait();
     int need = (framesNeeded + kProdBlock - 1) / kProdBlock + 1;

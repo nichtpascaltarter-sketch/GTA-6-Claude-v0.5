@@ -214,6 +214,18 @@ void csSkySH(uint gi : SV_GroupIndex) {
         float sinT = sqrt(saturate(1.0 - cosT * cosT));
         float3 d = float3(sinT * cos(phi), sinT * sin(phi), cosT);
         float3 L = skyRadiance(d, false);
+        // Urban horizon band: part of the low sky is replaced by building facades. Facades seen in direction d face
+        // back along -d, so they are sunlit when the sun is behind the viewer: shadowed surfaces facing away from
+        // the sun receive warm bounce light instead of blue sky.
+        float enclosure = gAmbientParams.x * smoothstep(0.6, 0.0, abs(d.z));
+        if (enclosure > 0.0 && d.z >= 0.0) {
+            float3 facadeAlbedo = float3(0.36, 0.32, 0.27);
+            float3 dh = normalize(float3(d.xy, 0) + 1e-5);
+            float sunOnFacade = saturate(dot(-dh, gSunDir.xyz)) * saturate(gSunDir.z * 4.0 + 0.2);
+            float3 skyIrrV = (skyRadiance(normalize(float3(-dh.xy, 0.6)), false) + skyRadiance(float3(0, 0, 1), false)) * 0.5 * PI * 0.5;
+            float3 facadeL = facadeAlbedo * (mainLightIlluminance() * sunOnFacade * 0.55 + skyIrrV) / PI;
+            L = lerp(L, facadeL, enclosure * 0.85);
+        }
         if (d.z < 0.0) {
             // Below the horizon: radiance of the sunlit/skylit ground (average urban albedo), warm bounce
             float3 groundAlbedo = float3(0.2, 0.17, 0.14);

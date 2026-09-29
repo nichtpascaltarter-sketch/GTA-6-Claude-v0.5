@@ -112,6 +112,8 @@ struct EngineCore {
     float wobblePhase = 0;
     int ctl = 0;
     float gainNorm = 1;
+    int lod = 0;
+    float wob = 1.f;
     float levelTrim = 1.f;
     float drive = 0.2f;
 
@@ -177,6 +179,9 @@ struct EngineCore {
         aC = 1.f - expf(-1.f / (tauMs * 0.001f * kSR));
         pulseScale = 60.f / tauMs;
         drive = 0.18f + 0.82f * (0.3f + 0.7f * load) * (0.25f + 0.75f * throttle);
+        wobblePhase += 0.8f * 16.f * kInvSR;
+        if (wobblePhase >= 1.f) wobblePhase -= 1.f;
+        wob = 1.f + 0.012f * (1.f - SmoothStep(0.f, 0.15f, rpm01)) * sinWrapped(wobblePhase);
         if (spec.turbo > 0.f) {
             float target = throttle * SmoothStep(0.2f, 0.7f, rpm01) * (0.5f + 0.5f * load);
             boost += (target - boost) * (target > boost ? 0.0035f : 0.012f);
@@ -227,9 +232,6 @@ struct EngineCore {
             throttle += (tThrottle - throttle) * kThrC;
             load += (tLoad - load) * kLoadC;
 
-            wobblePhase += 0.8f * kInvSR;
-            if (wobblePhase >= 1.f) wobblePhase -= 1.f;
-            float wob = 1.f + 0.012f * (1.f - SmoothStep(0.f, 0.15f, rpm01)) * sinWrapped(wobblePhase);
             float dDeg = rpmHz() * wob * (360.f / 60.f) * kInvSR;
             float prev = crankDeg;
             crankDeg += dDeg;
@@ -279,22 +281,31 @@ struct EngineCore {
             exc += w * aexc * spec.rasp * (0.5f + 0.8f * load);
             float y = exc * spec.directGain;
             y += res[0].process(exc) * spec.resG[0];
-            y += res[1].process(exc) * spec.resG[1];
-            y += res[2].process(exc) * spec.resG[2];
+            if (lod == 0) {
+                y += res[1].process(exc) * spec.resG[1];
+                y += res[2].process(exc) * spec.resG[2];
+            } else {
+                y += exc * (spec.resG[1] + spec.resG[2]) * 0.3f;
+            }
             y = muffler.process(y);
             y += s2 * spec.subGain * 0.25f;
+            if (lod > 0) {
+                y = dcHp.process(y);
+                out[i] = y * spec.level * gainNorm * 0.55f * levelTrim;
+                continue;
+            }
             if (spec.knock > 0.f) {
                 knockEnv *= 0.9965f;
                 y += knockBp.bp(w) * knockEnv * spec.knock * 0.9f;
             }
-            float intake = intakeBp.bp(nz.white()) * (0.15f + pulseEnv * 3.f) * throttle * (0.3f + 0.7f * rpm01);
+            float intake = intakeBp.bp(w) * (0.15f + pulseEnv * 3.f) * throttle * (0.3f + 0.7f * rpm01);
             y += intake * spec.intakeGain;
             y += w * pulseEnv * spec.mechGain * 2.f * (1.f - rpm01 * 0.5f);
             if (popEnv > 1e-4f) {
                 y += popBp.bp(nz.white()) * popEnv * 1.5f;
                 popEnv *= 0.992f;
             }
-            if (spec.turbo > 0.f) {
+            if (spec.turbo > 0.f && (boost > 1e-3f || bovEnv > 1e-4f)) {
                 turboPhase += turboFreq * kInvSR;
                 if (turboPhase >= 1.f) turboPhase -= 1.f;
                 float ph2 = turboPhase * 2.f;
@@ -360,7 +371,7 @@ struct ElectricCore {
 };
 
 // Loudness calibration per engine kind (measured RMS of a full idle/rev/decel sweep at 4 m).
-static const float kEngineTrim[ENGINE_COUNT] = {0.70f, 1.27f, 2.79f, 1.10f, 2.24f, 1.f, 0.62f, 2.88f, 0.53f};
+static const float kEngineTrim[ENGINE_COUNT] = {0.70f, 1.27f, 2.79f, 1.10f, 2.24f, 1.f, 0.46f, 2.88f, 0.48f};
 
 // =============================================================================================
 struct EngineSynth : EmitterSynth {
@@ -387,6 +398,7 @@ struct EngineSynth : EmitterSynth {
         if (kind == ENGINE_ELECTRIC) ev.render(out, n);
         else core.render(out, n);
     }
+    void setLod(int lod) override { core.lod = lod; }
 };
 
 // =============================================================================================
@@ -705,7 +717,7 @@ struct RotorCore {
         if (turb2 >= 1.f) turb2 -= 1.f;
         float turb = (sinWrapped(turb1) * 0.02f + sinWrapped(turb2) * 0.025f) * SmoothStep(0.f, 0.3f, rpm01) +
                      hissHp.process(w) * 0.03f * rpm01;
-        return (slap + wash + tail + turb) * 0.6f;
+        return (slap + wash + tail + turb) * 1.2f;
     }
 };
 
@@ -877,7 +889,7 @@ struct WakeSynth : EmitterSynth {
             splashEnv *= 0.9996f;
             float y = rush.bp(p) * xPow * 1.4f + swash.lp(p) * x * 1.2f + slapBpf.bp(kick) * 0.2f +
                       splashBp.bp(w) * splashEnv * 0.6f;
-            out[i] = y * 0.7f;
+            out[i] = y * 2.1f;
         }
     }
 };

@@ -25,10 +25,18 @@ cbuffer FrameCB : register(b0) {
     float4 gFog;               // x height fog density, y height falloff, z fog start, w aerial perspective scale
     float4 gExposure;          // x exposure multiplier, y 1/exposure, z ev100, w night factor
     float4 gCamForward;        // xyz forward, w fov y
-    float4 gRenderParams;      // x shadow cascade count, y AO strength, z SSR enabled, w debug view
+    float4 gRenderParams;      // x shadow cascade count, y debug split (screen fraction, 0 = full), z SSR enabled, w debug view
     float4 gLightning;         // x flash intensity, yzw direction
     float4 gPlanetParams;      // x unused, y unused, z camera altitude km, w mie haze multiplier
     float4 gCloudShadow;       // xy center (world), z size (m), w strength
+    float4 gFogParams0;        // x ground fog density (1/m), y height falloff (1/m), z reference height (m), w froxel far (m)
+    float4 gFogParams1;        // x phase anisotropy g, y 1/log2(far/near), z froxel near (m), w volumetric fog enabled
+    float4 gOverhead;          // xy overhead height map min corner (world xy), z map size (m), w enabled
+    float4 gEnvProbe;          // xyz probe position relative to the camera, w max mip (0 = no probe, use the sky)
+    float4 gSSParams;          // x AO enabled, y GI enabled, z SSR enabled, w SSR max roughness
+    float4 gWeather2;          // x overcast (0..1), y storm (0..1), z puddle amount, w ripple animation time
+    float4 gHalfScreen;        // half-resolution width, height, 1/width, 1/height
+    float4 gAmbientParams;     // x urban enclosure (facade share of the horizon band), y lightning ambient flash (lux)
 };
 
 // Global resources bound once per frame at high slots (see Renderer::bindGlobals)
@@ -38,7 +46,12 @@ Texture3D<float4> gAerialLUT : register(t34);
 Texture2DArray<float> gShadowMap : register(t35);
 Texture2D<float4> gSkyViewLUT : register(t36);
 Texture2D<float> gCloudShadowMap : register(t37);
-StructuredBuffer<float4> gExposureBuf : register(t40);    // x = exposure multiplier, y = ev100, z = avg lum
+Texture3D<float4> gFogVolume : register(t38);             // integrated froxel fog: rgb in-scatter (pre-exposed), a transmittance
+TextureCube<float4> gEnvProbeTex : register(t39);            // dynamic reflection probe (prefiltered by roughness, not exposed)
+StructuredBuffer<float4> gExposureBuf : register(t40);    // [0] x = exposure multiplier, y = ev100, z = avg lum; [1] x = previous frame's exposure
+Texture2D<float> gOverheadMap : register(t41);            // highest static world surface (m) around the camera (rain occlusion)
+Texture2D<float4> gRippleTex : register(t42);             // rain ripple rings: xy offset to drop center, z time offset, w mask
+Texture2D<float> gTerrainHeightG : register(t43);         // global terrain heightmap (m)
 SamplerState sPointClamp : register(s0);
 SamplerState sLinearClamp : register(s1);
 SamplerState sLinearWrap : register(s2);
@@ -48,6 +61,8 @@ SamplerState sPointWrap : register(s5);
 SamplerState sAnisoClamp : register(s6);
 
 float preExposure() { return gExposureBuf[0].x; }
+// Converts values pre-exposed with the previous frame's exposure (history buffers) to the current exposure.
+float prevExposureRatio() { return gExposureBuf[0].x / max(gExposureBuf[1].x, 1e-12); }
 
 // ------------------------------------------------------------------------------------------------
 float3 srgbToLinear(float3 c) { return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4); }

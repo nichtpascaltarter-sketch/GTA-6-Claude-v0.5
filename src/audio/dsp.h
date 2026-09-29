@@ -3,9 +3,29 @@
 // Header-only. Everything lives in Audio::dsp. All processors are allocation-free after init().
 #pragma once
 #include "../core/base.h"
+#if defined(__SSE__) || defined(_M_X64) || defined(_M_AMD64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 1)
+#include <xmmintrin.h>
+#define AUDIO_HAS_MXCSR 1
+#endif
 
 namespace Audio {
 namespace dsp {
+
+// Denormal protection: exponentially decaying envelopes and filter states would otherwise fall into
+// the denormal range, which is extremely slow on x86. Every audio thread enables flush-to-zero and
+// denormals-are-zero; code running on foreign threads (renderOffline) uses the scoped variant.
+inline void enableFlushDenormals() {
+#ifdef AUDIO_HAS_MXCSR
+    _mm_setcsr(_mm_getcsr() | 0x8040u);
+#endif
+}
+struct ScopedFlushDenormals {
+#ifdef AUDIO_HAS_MXCSR
+    unsigned int old;
+    ScopedFlushDenormals() : old(_mm_getcsr()) { _mm_setcsr(old | 0x8040u); }
+    ~ScopedFlushDenormals() { _mm_setcsr(old); }
+#endif
+};
 
 constexpr int kSampleRate = 48000;       // internal mixing / synthesis rate
 constexpr float kSR = 48000.f;
@@ -514,24 +534,43 @@ struct AllpassDelay {
     void clear() { std::fill(buf.begin(), buf.end(), 0.f); }
 };
 
+// Ring-buffer block helpers (split at the wrap point so inner loops are contiguous / vectorizable).
+FORCEINLINE void ringRead(const float* b, int mask, int start, float* dst, int m) {
+    int s = start & mask, first = Min(m, mask + 1 - s);
+    memcpy(dst, b + s, sizeof(float) * (size_t)first);
+    if (first < m) memcpy(dst + first, b, sizeof(float) * (size_t)(m - first));
+}
+FORCEINLINE void ringAcc(const float* b, int mask, int start, float* dst, int m, float g) {
+    int s = start & mask, first = Min(m, mask + 1 - s);
+    const float* p = b + s;
+    for (int i = 0; i < first; i++) dst[i] += p[i] * g;
+    for (int i = first; i < m; i++) dst[i] += b[i - first] * g;
+}
+FORCEINLINE void ringWrite(float* b, int mask, int start, const float* src, int m) {
+    int s = start & mask, first = Min(m, mask + 1 - s);
+    memcpy(b + s, src, sizeof(float) * (size_t)first);
+    if (first < m) memcpy(b, src + first, sizeof(float) * (size_t)(m - first));
+}
+
 // ---------------------------------------------------------------------------------------------
 // FDN reverb: 8 lines, Householder feedback, per-line HF damping, input diffusion, early
 // reflections, pre-delay and slow delay modulation. Stereo in/out (wet only).
 struct FdnReverb {
     static constexpr int N = 8;
+    static constexpr int kEr = 6;
     DelayLine lines[N];
     float baseLen[N] = {};
+    int ilen[N] = {};
     float gain[N] = {};
     float dampState[N] = {};
     float dampCoef = 0.3f;
     AllpassDelay diffL[2], diffR[2];
     DelayLine pre;
-    DelayLine er;
     int preDelay = 480;
-    float erTapsL[8] = {}, erTapsR[8] = {}, erGain[8] = {};
+    int erTapsL[kEr] = {}, erTapsR[kEr] = {};
+    float erGain[kEr] = {};
     float erLevel = 0.4f, lateLevel = 1.f;
     float modPhase = 0, modRate = 0.00002f, modDepth = 6.f;
-    float lowCutState[2] = {};
     float rt60 = 1.5f;
     void init(float size, u32 seed) {
         static const float kLens[N] = {1433, 1601, 1867, 2053, 2251, 2399, 2687, 2903};
@@ -539,22 +578,22 @@ struct FdnReverb {
         for (int i = 0; i < N; i++) {
             s = s * 1664525u + 1013904223u;
             float jitter = 1.f + ((float)(s >> 9) / 8388608.f - 0.5f) * 0.06f;
-            baseLen[i] = kLens[i] * size * jitter;
+            baseLen[i] = Max(kLens[i] * size * jitter, 80.f);
+            ilen[i] = (int)baseLen[i];
             lines[i].init((int)(baseLen[i] + modDepth * 2.f + 8.f));
             dampState[i] = 0;
         }
-        diffL[0].init((int)(142 * size), 0.62f);
-        diffL[1].init((int)(379 * size), 0.6f);
-        diffR[0].init((int)(157 * size), 0.62f);
-        diffR[1].init((int)(353 * size), 0.6f);
-        pre.init(9600);
-        er.init(9600);
-        static const float kErL[8] = {7.1f, 11.3f, 17.9f, 23.3f, 31.7f, 41.2f, 53.9f, 67.1f};
-        static const float kErR[8] = {8.3f, 12.9f, 19.7f, 26.1f, 33.9f, 44.5f, 57.3f, 71.9f};
-        for (int i = 0; i < 8; i++) {
-            erTapsL[i] = kErL[i] * size * 48.f;
-            erTapsR[i] = kErR[i] * size * 48.f;
-            erGain[i] = powf(0.82f, (float)i) * ((i & 1) ? -1.f : 1.f) * 0.35f;
+        diffL[0].init(Max(64, (int)(142 * size)), 0.62f);
+        diffL[1].init(Max(64, (int)(379 * size)), 0.6f);
+        diffR[0].init(Max(64, (int)(157 * size)), 0.62f);
+        diffR[1].init(Max(64, (int)(353 * size)), 0.6f);
+        pre.init(16384);
+        static const float kErL[kEr] = {7.1f, 13.3f, 21.9f, 31.7f, 45.2f, 61.9f};
+        static const float kErR[kEr] = {8.3f, 15.9f, 25.7f, 36.1f, 50.5f, 68.3f};
+        for (int i = 0; i < kEr; i++) {
+            erTapsL[i] = (int)(kErL[i] * size * 48.f);
+            erTapsR[i] = (int)(kErR[i] * size * 48.f);
+            erGain[i] = powf(0.8f, (float)i) * ((i & 1) ? -1.f : 1.f) * 0.4f;
         }
         setDecay(1.5f, 0.35f);
     }
@@ -569,55 +608,108 @@ struct FdnReverb {
         for (auto& l : lines) l.clear();
         for (int i = 0; i < 2; i++) { diffL[i].clear(); diffR[i].clear(); }
         pre.clear();
-        er.clear();
         for (float& d : dampState) d = 0;
     }
+    // Block-based processing: every recirculating delay (lines >= ~850 samples, diffusers >= 64)
+    // is longer than the 64-sample sub-block, so each stage can stream through its buffer
+    // sequentially for the whole sub-block (cache-friendly, vectorizable).
     void process(const float* inL, const float* inR, float* outL, float* outR, int n) {
-        float y[N];
-        for (int s = 0; s < n; s++) {
-            float xl = inL[s], xr = inR[s];
-            pre.write(0.5f * (xl + xr));
-            float xp = pre.readInt(preDelay);
-            er.write(xp);
-            // early reflections
-            float el = 0, erv = 0;
-            for (int t = 0; t < 8; t++) {
-                el += er.readInt((int)erTapsL[t]) * erGain[t];
-                erv += er.readInt((int)erTapsR[t]) * erGain[t];
+        constexpr int B = 64;
+        float mono[B], sd[B], dl[B], dr[B], el[B], er[B], y[N][B], sum[B];
+        for (int s0 = 0; s0 < n; s0 += B) {
+            const int m = Min(B, n - s0);
+            // pre-delay: write the block, then read (absolute indices keep per-sample semantics)
+            const int base = pre.w;
+            for (int i = 0; i < m; i++) {
+                float xl = inL[s0 + i], xr = inR[s0 + i];
+                mono[i] = 0.5f * (xl + xr);
+                sd[i] = 0.3f * (xl - xr);
             }
-            // diffused input (stereo)
-            float dl = diffL[1].process(diffL[0].process(xp + 0.3f * (xl - xr)));
-            float dr = diffR[1].process(diffR[0].process(xp - 0.3f * (xl - xr)));
-            // read lines
-            modPhase += modRate;
+            ringWrite(pre.buf.data(), pre.mask, base, mono, m);
+            pre.w = (base + m) & pre.mask;
+            const float* pb = pre.buf.data();
+            const int pm = pre.mask;
+            ringRead(pb, pm, base - preDelay, mono, m);
+            for (int i = 0; i < m; i++) el[i] = er[i] = 0.f;
+            for (int t = 0; t < kEr; t++) {
+                ringAcc(pb, pm, base - preDelay - erTapsL[t], el, m, erGain[t]);
+                ringAcc(pb, pm, base - preDelay - erTapsR[t], er, m, erGain[t]);
+            }
+            // input diffusion (allpass lengths exceed the block: no intra-block dependency)
+            for (int i = 0; i < m; i++) {
+                dl[i] = mono[i] + sd[i];
+                dr[i] = mono[i] - sd[i];
+            }
+            diffuse(diffL[0], dl, m);
+            diffuse(diffL[1], dl, m);
+            diffuse(diffR[0], dr, m);
+            diffuse(diffR[1], dr, m);
+            // slow delay modulation of two lines, constant within the sub-block
+            modPhase += modRate * (float)m;
             if (modPhase >= 1.f) modPhase -= 1.f;
-            float m0 = sinWrapped(modPhase) * modDepth;
             float ph2 = modPhase + 0.25f;
             if (ph2 >= 1.f) ph2 -= 1.f;
-            float m1 = sinWrapped(ph2) * modDepth;
-            for (int i = 0; i < N; i++) {
-                float d = baseLen[i];
-                if (i == 1) d += m0;
-                else if (i == 6) d += m1;
-                float v = (i == 1 || i == 6) ? lines[i].read(d) : lines[i].readInt((int)d);
-                // HF damping
-                dampState[i] = v + dampCoef * (dampState[i] - v);
-                y[i] = dampState[i] * gain[i];
+            const float dmod[2] = {baseLen[1] + sinWrapped(modPhase) * modDepth, baseLen[6] + sinWrapped(ph2) * modDepth};
+            // read all lines for the block, damp, scale
+            const float dc = dampCoef;
+            for (int k = 0; k < N; k++) {
+                DelayLine& L = lines[k];
+                const float* b = L.buf.data();
+                const int mk = L.mask;
+                if (k == 1 || k == 6) {
+                    const float d = dmod[k == 1 ? 0 : 1];
+                    const int di = (int)d;
+                    const float fr = d - (float)di;
+                    const int o = L.w - 1 - di;
+                    for (int i = 0; i < m; i++) {
+                        float a = b[(o + i) & mk], c = b[(o + i - 1) & mk];
+                        y[k][i] = a + (c - a) * fr;
+                    }
+                } else {
+                    ringRead(b, mk, L.w - 1 - ilen[k], y[k], m);
+                }
+                float st = dampState[k];
+                const float g = gain[k];
+                for (int i = 0; i < m; i++) {
+                    st = y[k][i] + dc * (st - y[k][i]);
+                    y[k][i] = st * g;
+                }
+                dampState[k] = st;
             }
-            // Householder reflection
-            float sum = 0;
-            for (int i = 0; i < N; i++) sum += y[i];
-            sum *= (2.f / N);
-            for (int i = 0; i < N; i++) {
-                float in = (i & 1) ? dr : dl;
-                if (i & 2) in = -in;
-                lines[i].write(y[i] - sum + in * 0.5f);
+            // Householder reflection + input injection, written back as contiguous blocks
+            for (int i = 0; i < m; i++)
+                sum[i] = (y[0][i] + y[1][i] + y[2][i] + y[3][i] + y[4][i] + y[5][i] + y[6][i] + y[7][i]) * (2.f / N);
+            float tmp[B];
+            for (int k = 0; k < N; k++) {
+                DelayLine& L = lines[k];
+                const float* in = (k & 1) ? dr : dl;
+                const float sign = (k & 2) ? -0.5f : 0.5f;
+                for (int i = 0; i < m; i++) tmp[i] = y[k][i] - sum[i] + in[i] * sign;
+                ringWrite(L.buf.data(), L.mask, L.w, tmp, m);
+                L.w = (L.w + m) & L.mask;
             }
-            float ol = (y[0] - y[2] + y[4] - y[6] + y[1] * 0.5f - y[5] * 0.5f) * 0.5f;
-            float orr = (y[1] - y[3] + y[5] - y[7] + y[2] * 0.5f - y[6] * 0.5f) * 0.5f;
-            outL[s] = ol * lateLevel + el * erLevel;
-            outR[s] = orr * lateLevel + erv * erLevel;
+            for (int i = 0; i < m; i++) {
+                float ol = (y[0][i] - y[2][i] + y[4][i] - y[6][i] + y[1][i] * 0.5f - y[5][i] * 0.5f) * 0.5f;
+                float orr = (y[1][i] - y[3][i] + y[5][i] - y[7][i] + y[2][i] * 0.5f - y[6][i] * 0.5f) * 0.5f;
+                outL[s0 + i] = ol * lateLevel + el[i] * erLevel;
+                outR[s0 + i] = orr * lateLevel + er[i] * erLevel;
+            }
         }
+    }
+    // Allpass over a block (requires ap.len >= block length).
+    static void diffuse(AllpassDelay& ap, float* x, int m) {
+        float* b = ap.buf.data();
+        int pos = ap.pos;
+        const int len = ap.len;
+        const float g = ap.g;
+        for (int i = 0; i < m; i++) {
+            float d = b[pos];
+            float v = x[i] - g * d;
+            b[pos] = v;
+            x[i] = d + g * v;
+            if (++pos >= len) pos = 0;
+        }
+        ap.pos = pos;
     }
 };
 

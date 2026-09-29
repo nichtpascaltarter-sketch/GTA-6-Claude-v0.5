@@ -660,10 +660,16 @@ static void s_reload(Buf& b) {
     mechClack(b, tRack + 0.16f * j, 0.7f, 1.05f);
 }
 static void s_dryFire(Buf& b) {
-    Mode m[3] = {{b.rnd(3000.f, 3500.f), 0.008f, 1.f}, {b.rnd(5500.f, 6200.f), 0.006f, 0.7f}, {b.rnd(7600.f, 8400.f), 0.004f, 0.5f}};
-    modes(b, 0.f, 0.6f, m, 3);
-    click(b, 0.f, 0.5f, 3);
-    noise(b, 0.f, 0.03f, 0.2f, 0.0003f, 0.005f, FLP, 800.f, -1.f, 0.1f, 0.7f);
+    // trigger pull (sear) then hammer fall on an empty chamber
+    Mode s1[2] = {{b.rnd(4200.f, 4800.f), 0.004f, 1.f}, {b.rnd(7000.f, 7800.f), 0.003f, 0.6f}};
+    modes(b, 0.f, 0.3f, s1, 2);
+    float th = b.rnd(0.035f, 0.05f);
+    Mode m[4] = {{b.rnd(3000.f, 3500.f), 0.012f, 1.f}, {b.rnd(5500.f, 6200.f), 0.009f, 0.7f}, {b.rnd(7600.f, 8400.f), 0.006f, 0.5f},
+                 {b.rnd(1400.f, 1700.f), 0.02f, 0.6f}};
+    modes(b, th, 0.8f, m, 4);
+    click(b, th, 0.6f, 3);
+    noise(b, th, 0.05f, 0.5f, 0.0003f, 0.008f, FLP, 900.f, -1.f, 0.1f, 0.7f);
+    tone(b, th, 0.05f, 220.f, 140.f, 0.01f, 0.25f, 0.0005f, 0.01f);
 }
 static void s_weaponSwitch(Buf& b) {
     int s0 = 0, n = S(0.32f);
@@ -1951,6 +1957,7 @@ static float estCost(int id) {
 }
 
 static void workerMain() {
+    dsp::enableFlushDenormals();
     for (;;) {
         int idx = g_workNext.fetch_add(1);
         if (idx >= (int)g_work.size()) break;
@@ -1975,6 +1982,7 @@ bool bankStarted() { return sfxgen::g_started.load(); }
 
 void bankRenderEntry(int id) {
     using namespace sfxgen;
+    dsp::ScopedFlushDenormals ftz;
     if (id <= 0 || id >= BANK_COUNT) return;
     int vars = Clamp((int)kDefs[id].variations, 1, kMaxVariations);
     for (int v = 0; v < vars; v++) renderVariation(id, v, g_bank[id].vars[v]);

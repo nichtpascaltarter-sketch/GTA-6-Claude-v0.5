@@ -46,7 +46,9 @@ struct Blip {
     vec2 pos;                // world XY
     float heightDiff = 0.f;  // blip z - player z (renders up/down indicators when |d| > 4 m)
     BlipIcon icon = BLIP_DOT;
-    u32 color = 0xffffffff;  // tint for DOT/ENEMY/FRIEND/VEHICLE; icons have their own colors when 0
+    u32 color = 0xffffffff;  // tint for DOT/ENEMY/FRIEND/VEHICLE; icons have their own colors when 0. For the semantic
+                             // icons (ENEMY, FRIEND, POLICE*, OBJECTIVE, WAYPOINT, MISSION) the default white also means
+                             // "use the icon color" (red enemies, blue friends, flashing police, yellow objective...)
     float scale = 1.f;
     char letter = 0;         // mission contact initial for BLIP_MISSION
     bool flash = false;
@@ -100,7 +102,10 @@ struct HudState {
     bool reticleOnFriendly = false;
     float hitMarker = 0.f;       // > 0 shows a hit marker (fades, game sets 1 on hit)
     bool killMarker = false;
-    std::vector<float> damageDirections;   // screen-space angles (rad, 0 = up) of recent hits taken, fade handled by UI
+    std::vector<float> damageDirections;   // screen-space angles (rad, 0 = up/ahead, counter-clockwise positive like
+                                           // headings: +pi/2 = attacker on the left) of recent hits taken. An entry may
+                                           // be pushed for one frame or kept while fresh; the UI matches entries across
+                                           // frames and fades them out itself.
     // Vehicle
     bool inVehicle = false;
     std::string vehicleName;     // shown briefly on entering (game sets vehicleNameTimer)
@@ -120,6 +125,10 @@ struct HudState {
     float timeOfDay = 12.f;
     int day = 1;
     // Messages
+    // Text markup (help, objective, subtitle text, notification): color codes ~r~ ~g~ ~b~ ~y~ ~o~ ~p~ (pink) ~c~ (cyan)
+    // ~m~ (purple) ~w~ ~l~ (grey) ~s~ (reset), ~#RRGGBB~ custom color, ~n~ new line; input prompts ~k:E~ (keycap,
+    // also ~k:LMB~ ~k:RMB~ ~k:WHEEL~), ~p:A~ (gamepad glyph: A B X Y LB RB LT RT LS RS START BACK UP DOWN LEFT RIGHT),
+    // ~i:E|A~ (keyboard|pad, chosen by padPrompts). Example: "Press ~i:F|Y~ to enter the ~b~vehicle~s~."
     std::string helpText;        // top-left help box ("Press E to enter the vehicle"), empty = hidden
     std::string objective;       // mission objective line (bottom center, above subtitles) e.g. "Go to the ~y~marina~s~."
     Subtitle subtitle;           // dialogue line (empty text = hidden)
@@ -141,10 +150,18 @@ struct HudState {
     bool radarVisible = true;
     float radarZoom = 1.f;       // 1 = default (~220 m radius); game raises it with vehicle speed / aircraft altitude
     bool interior = false;
+    // Additions
+    bool padPrompts = false;     // show gamepad glyphs for ~i:~ prompts (set from InputState::lastInputWasPad)
+    bool metricUnits = true;     // speedometer km/h vs mph, altimeter m vs ft (GameSettings::metricUnits)
 };
 
 void hudInit();                        // builds the map textures from World::gMap/gRoads/gBuildings (call after world gen)
 void drawHud(const HudState& s, float dt);
+// Frame order: UI::beginFrame -> drawHud (in gameplay) -> Menus::update (while a menu is open) -> UI::endFrame.
+// drawHud / Menus::update only record draw calls; the 3D frame must already be in the back buffer (menus and the
+// weapon wheel blur it). hudInit takes ~0.3 s (icon atlas + 2560^2 map texture + road/building grids); the icon atlas
+// is also created lazily so menus and the loading screen work before hudInit. Cost per frame: see PROGRESS notes.
+void hudReset();                       // forget HUD animation state (after loading a save / respawn teleport)
 
 // ------------------------------------------------------------------------------------------------------------------
 // Settings shared with the game (menus edit them; the game applies them).
@@ -223,12 +240,24 @@ struct MenuState {
     int confirmSlot = -1;
     bool dragging = false;
     MenuScreen prevScreen = MENU_NONE;
+    // Additions (filled by the game, shown in the pause menu header)
+    long long money = 0;
+    float timeOfDay = 12.f;
+    int day = 1;
+    std::string playerName;            // optional, shown in the pause header
 };
 
 namespace Menus {
 // Process input and draw the active screen. Call every frame while state.screen != MENU_NONE (after rendering the
 // world/HUD, before UI::endFrame). Returns the action chosen this frame (MA_NONE most frames).
+// Navigation: MENU_MAIN is the front-end root; MENU_PAUSE opens the tabbed pause menu (MAP, BRIEF, STATS, SETTINGS,
+// SAVE when canSave, QUIT). Setting screen to MENU_MAP / MENU_BRIEF / MENU_STATS / MENU_SAVE from the game opens the
+// pause menu on that tab. MENU_SETTINGS / MENU_LOAD opened from MENU_MAIN are shown as front-end pages. On MA_RESUME
+// the menu sets screen = MENU_NONE itself; for the other actions the game decides what to show next.
 MenuAction update(MenuState& state, const InputState& in, float dt);
+// Display modes offered by the settings screen; GameSettings::resolutionIndex indexes this list (-1 = native desktop).
+struct DisplayMode { int width, height; };
+const std::vector<DisplayMode>& displayModes();
 }
 
 }  // namespace UI

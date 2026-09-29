@@ -277,6 +277,8 @@ struct WorldRenderer {
     // Collect active local lights from near cells (camera-relative)
     void gatherLights(dvec3 cam, float night, float time, const Frustum& fr, std::vector<LightGPU>& out, int maxLights) {
         const float range = 380.f;
+        bool anyBroken = Phys::gCollision && Phys::gCollision->brokenCount() > 0;
+        std::vector<vec3> brokenPoles;
         for (auto& kv : cells) {
             StreamCell* c = kv.second;
             if (c->lod != 0 || c->state.load() != 2) continue;
@@ -284,7 +286,27 @@ struct WorldRenderer {
             float qx = Max(Max(o.x - (float)cam.x, 0.f), (float)cam.x - (o.x + World::kCellSize));
             float qy = Max(Max(o.y - (float)cam.y, 0.f), (float)cam.y - (o.y + World::kCellSize));
             if (qx * qx + qy * qy > range * range) continue;
+            // Street lamps knocked down by gameplay switch off (lamp heads sit <= 3.6 m from the pole, 5-13 m up)
+            brokenPoles.clear();
+            if (anyBroken) {
+                int cellKey = key(c->cx, c->cy, 0);
+                for (size_t i = 0; i < c->props.size(); i++) {
+                    const World::PropInstance& pi = c->props[i];
+                    if ((pi.type == World::PROP_STREETLIGHT || pi.type == World::PROP_STREETLIGHT_DOUBLE) &&
+                        Phys::gCollision->isPropBroken(cellKey, (int)i))
+                        brokenPoles.push_back(pi.pos);
+                }
+            }
             for (const World::LightInstance& li : c->lights) {
+                if (!brokenPoles.empty() && li.type == 0) {
+                    bool off = false;
+                    for (const vec3& p : brokenPoles) {
+                        vec2 d = li.pos.xy() - p.xy();
+                        float dz = li.pos.z - p.z;
+                        if (dot(d, d) < 3.6f * 3.6f && dz > 5.f && dz < 13.f) { off = true; break; }
+                    }
+                    if (off) continue;
+                }
                 float k = 0.f;
                 switch (li.type) {
                     case 0: k = SmoothStep(0.05f, 0.35f, night); break;           // street

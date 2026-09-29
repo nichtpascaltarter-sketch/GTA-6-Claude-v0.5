@@ -308,6 +308,11 @@ struct GameWorld {
     void pedsNear(vec2 p, float r, std::vector<int>& out) const;
     void vehiclesNear(vec2 p, float r, std::vector<int>& out) const;
     float groundHeight(float x, float y, float zRef) const;
+
+    // ---- Missions/economy additions (story module: missions.cpp, story*.cpp, activities/shops/economy) ----
+    bool requestSaveMenu = false;       // set when the player steps into a safehouse save marker: the app opens MENU_SAVE
+    std::string requestScreenshot;      // test automation: the app saves the next finished frame (after UI) here, clears it
+    bool policeSuppressed = false;      // an active mission keeps the police out (crimes are not reported while set)
 };
 
 extern GameWorld* gGame;

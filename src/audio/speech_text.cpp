@@ -243,9 +243,9 @@ static void tokenize(const std::string& s, std::vector<Tok>& toks) {
                         i++;
                         break;
                     }
-                } else if (d == '.' && i + 1 < n && isAlpha(s[i + 1]) && i + 2 <= n &&
-                           (i + 2 == n || s[i + 2] == '.' || !isAlpha(s[i + 2])) && (i - b) == 1) {
-                    // dotted abbreviation a.m. / u.s. / e.g.: consume "x." groups
+                } else if (d == '.' && i + 1 < n && isAlpha(s[i + 1]) && (i + 2 >= n || !isAlpha(s[i + 2])) &&
+                           (i - b == 1 || (i >= 2 && s[i - 2] == '.'))) {
+                    // dotted abbreviation a.m. / u.s.a. / e.g.: consume single-letter "x." groups
                     i++;
                 } else break;
             }
@@ -446,6 +446,17 @@ static void expandNumber(Normalizer& nz, const std::string& tokIn, const std::ve
         nz.addWords(w);
         return;
     }
+    if (!hasComma && dot == std::string::npos && !money && suf.empty() && !percent &&
+        (intDigits == "911" || intDigits == "411" || intDigits == "311" || intDigits == "211")) {
+        digitsSeq(intDigits, w, false);  // emergency / service numbers
+        nz.addWords(w);
+        return;
+    }
+    if (!hasComma && intDigits.size() > 15 && !money) {
+        digitsSeq(intDigits, w, false);
+        nz.addWords(w);
+        return;
+    }
     if (!hasComma && intDigits.size() > 1 && intDigits[0] == '0' && dot == std::string::npos && !money) {
         digitsSeq(intDigits, w, true);  // "007", "0123"
         nz.addWords(w);
@@ -535,7 +546,7 @@ static void expandNumber(Normalizer& nz, const std::string& tokIn, const std::ve
     else if (suf == "lbs") say(w, "pounds");
     else if (suf == "kg") say(w, "kilograms");
     else if (suf == "ft") say(w, "feet");
-    else if (suf == "x") say(w, "times");
+    else if (suf == "x") say(w, (ti + 1 < toks.size() && toks[ti + 1].type == TK_NUM && !toks[ti + 1].spaceBefore) ? "by" : "times");
     else if (suf == "m" && !money) say(w, "meters");
     else if (suf == "am" || suf == "pm") {
         nz.addWords(w);
@@ -660,7 +671,12 @@ void normalizeText(const char* text, std::vector<TextWord>& out) {
                         if (g + 1 < groups.size()) nz.setBreak(BRK_COMMA);
                     }
                 } else {
-                    for (auto& g : groups) expandNumber(nz, g, toks, k, prevWord);
+                    bool range = groups.size() == 2 && k + 1 < toks.size() && toks[k + 1].type == TK_WORD &&
+                                 toks[k + 1].s.size() > 2 && toks[k + 1].s.back() == 's';
+                    for (size_t g = 0; g < groups.size(); g++) {
+                        expandNumber(nz, groups[g], toks, g + 1 < groups.size() ? i : k, prevWord);
+                        if (range && g == 0) nz.addWord("to");
+                    }
                 }
                 i = k;
                 prevWord = "";
@@ -798,6 +814,9 @@ void normalizeText(const char* text, std::vector<TextWord>& out) {
                 if (e && lw != "us" && lw != "la" && lw != "er" && lw != "ai" && lw != "id") nz.addWord(lw, emph);
                 else
                     for (char c : lw) nz.addWord(std::string(1, c), emph, true);
+            } else if (lw == "swat" || lw == "nasa" || lw == "nato" || lw == "laser" || lw == "radar" ||
+                       lw == "scuba" || lw == "fema" || lw == "unicef" || lw == "awol") {
+                nz.addWord(lw, emph);  // acronyms pronounced as words: no shouting emphasis
             } else if (dictLookup(lw)) {
                 const char* e = dictLookup(lw);
                 bool letterSpelling = strlen(lw.c_str()) <= 5 && e[0] != '~' && lw.size() >= 2 && [&]() {
@@ -816,6 +835,11 @@ void normalizeText(const char* text, std::vector<TextWord>& out) {
             } else {
                 nz.addWord(lw, (u8)(emph | 1));
             }
+            prevWord = lw;
+            continue;
+        }
+        if (lw == "mph" && prevWord.empty() && i > 0 && toks[i - 1].type == TK_NUM) {
+            nz.addWords(Words{"miles", "per", "hour"});
             prevWord = lw;
             continue;
         }

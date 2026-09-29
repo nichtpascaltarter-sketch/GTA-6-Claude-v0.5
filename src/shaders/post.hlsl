@@ -28,6 +28,7 @@ void csLumReduce(uint3 gid : SV_GroupID, uint3 tid : SV_GroupThreadID, uint gi :
         float2 d = uv - 0.5;
         float w = lerp(0.3, 1.0, saturate(1.0 - dot(d, d) * 2.5));
         if (!(lum >= 0.0) || lum > 1e9) { lum = 1.0; w = 0.0; }  // NaN / Inf guard
+        if (gRenderParams.w > 0.5 && uv.x >= gRenderParams.y) w = 0.0;  // debug view area does not drive exposure
         acc = float2(log2(max(lum, 1e-4)) * w, w);
     }
     gsLum[gi] = acc;
@@ -60,6 +61,9 @@ void csExposure() {
     float speed = targetEV > ev ? gPost0.y : gPost0.z;
     ev = lerp(ev, targetEV, 1.0 - exp(-speed * gPost0.w));
     float exposure = 1.0 / (1.2 * exp2(ev));
+    // Keep the exposure the frame was rendered with: history buffers (TAA output, scene color pyramid) are
+    // pre-exposed with it and get rescaled by prevExposureRatio() next frame.
+    uExposure[1] = float4(prev.w < 0.5 ? exposure : prev.x, 0, 0, 0);
     uExposure[0] = float4(exposure, ev, avgLum, 1);
 }
 
@@ -147,6 +151,11 @@ float3 acesFitted(float3 v) {
 
 float4 psTonemap(VSOut i) : SV_Target {
     float3 c = tHDR.SampleLevel(sLinearClamp, i.uv, 0).rgb;
+    // Debug views (--debugview N) are shown linearly, without grading
+    if (gRenderParams.w > 0.5 && i.uv.x >= gRenderParams.y) {
+        if (gRenderParams.y > 0.0 && i.uv.x < gRenderParams.y + 1.5 / gScreen.x) return float4(1, 1, 0, 1);  // split divider
+        return float4(linearToSrgb(saturate(c)), 1);
+    }
     // light sharpening (compensates TAA softness)
     float2 px = 1.0 / gScreen.xy;
     float3 nb = tHDR.SampleLevel(sLinearClamp, i.uv + float2(px.x, 0), 0).rgb + tHDR.SampleLevel(sLinearClamp, i.uv - float2(px.x, 0), 0).rgb +

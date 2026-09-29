@@ -152,7 +152,8 @@ enum SegFlag : u32 {
     SF_ACCENT = 1u << 14,     // nucleus of a pitch-accented syllable
     SF_SHOUT = 1u << 15,
     SF_UTT_START = 1u << 16,  // first segment after a pause
-    SF_PREPAUSE = 1u << 17    // last segment before a pause
+    SF_PREPAUSE = 1u << 17,   // last segment before a pause
+    SF_ARTICLE_A = 1u << 18   // the article "a" (kept unreduced)
 };
 
 struct Seg {

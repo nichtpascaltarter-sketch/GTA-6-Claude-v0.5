@@ -23,7 +23,6 @@ static bool isPhraseSplitWord(const std::string& w) {
 }
 
 static bool isSentenceBreak(u8 b) { return b == BRK_PERIOD || b == BRK_QUESTION || b == BRK_EXCLAIM; }
-static bool isPauseBreak(u8 b) { return b >= BRK_COMMA; }
 
 // Legal English syllable onsets (maximal onset principle).
 static bool legalOnset(const Seg* c, int n) {
@@ -235,6 +234,17 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         uw.emph = b.tw.emph;
         int widx = (int)u.words.size();
         bool isThe = b.tw.w == "the";
+        // Glottal onset before a vowel-initial stressed content word following a consonant (clear word
+        // boundary: "all [q]units", "is [q]often").
+        if (!b.wp.ph.empty() && isVowel(b.wp.ph[0].ph) && u.segs.size() > 1 && u.segs.back().ph != PH_SIL &&
+            !isVowel(u.segs.back().ph) && b.wp.ph[0].stress == 1 && !b.wp.function) {
+            Seg q;
+            q.ph = PH_Q;
+            q.stress = b.wp.ph[0].stress;
+            q.word = widx;
+            q.flags = SF_WORD_START | (b.wp.function ? (u32)SF_FUNCTION : 0u);
+            u.segs.push_back(q);
+        }
         for (size_t k = 0; k < b.wp.ph.size(); k++) {
             Seg s;
             s.ph = b.wp.ph[k].ph;
@@ -243,9 +253,15 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
             if (b.wp.function) s.flags |= SF_FUNCTION;
             if (b.tw.emph) s.flags |= SF_EMPH;
             if (b.tw.shout) s.flags |= SF_SHOUT;
-            if (k == 0) s.flags |= SF_WORD_START;
+            if (k == 0 && u.segs.back().ph != PH_Q) s.flags |= SF_WORD_START;
             if (k + 1 == b.wp.ph.size()) s.flags |= SF_WORD_END;
             u.segs.push_back(s);
+        }
+        // "and" before a vowel drops its /d/ in connected speech ("and a" -> [@n@], not "and the")
+        if (b.tw.w == "and" && b.tw.brk == BRK_NONE && wi + 1 < ws.size() && !ws[wi + 1].wp.ph.empty() &&
+            isVowel(ws[wi + 1].wp.ph[0].ph) && u.segs.back().ph == PH_D) {
+            u.segs.pop_back();
+            u.segs.back().flags |= SF_WORD_END;
         }
         // "the" before a vowel -> DH IY
         if (isThe && wi + 1 < ws.size() && !ws[wi + 1].wp.ph.empty() && isVowel(ws[wi + 1].wp.ph[0].ph) &&
@@ -260,7 +276,7 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         bool last = wi + 1 == ws.size();
         if (brk >= BRK_MINOR || last) {
             cur.lastSeg = (int)u.segs.size() - 1;
-            cur.brk = brk == BRK_NONE ? BRK_PERIOD : brk;
+            cur.brk = brk == BRK_NONE ? (u8)BRK_PERIOD : brk;
             u.phrases.push_back(cur);
             phraseOpen = false;
             Seg p;
@@ -305,10 +321,16 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         if (i + 1 >= N || S[i + 1].ph == PH_SIL) S[i].flags |= SF_PREPAUSE;
     }
 
+    // The article "a" keeps a fuller [^] quality and some length (otherwise it is easily heard as "the").
+    for (size_t w = 0; w < u.words.size(); w++) {
+        const UWord& uw = u.words[w];
+        if (uw.firstSeg == uw.lastSeg && ws.size() > w && ws[w].tw.w == "a" && S[uw.firstSeg].ph == PH_AH)
+            S[uw.firstSeg].flags |= SF_ARTICLE_A;
+    }
     // Vowel allophones for unstressed vowels.
     for (int i = 0; i < N; i++) {
         Seg& s = S[i];
-        if (!isVowel(s.ph) || s.stress != 0) continue;
+        if (!isVowel(s.ph) || s.stress != 0 || (s.flags & SF_ARTICLE_A)) continue;
         if (s.ph == PH_AH) s.ph = PH_AX;
         else if (s.ph == PH_ER) s.ph = PH_AXR;
         else if (s.ph == PH_IH && !(s.flags & SF_WORD_START)) s.ph = PH_IX;
@@ -336,7 +358,7 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
             S[i - 1].word == s.word) {
             int nx = S[i + 1].ph;
             bool wordEndNext = (S[i + 1].flags & SF_WORD_END) != 0;
-            if ((nx == PH_LX && (wordEndNext || !isVowel(i + 2 < N ? S[i + 2].ph : PH_SIL))) ||
+            if ((nx == PH_LX && (wordEndNext || !isVowel(i + 2 < N ? (int)S[i + 2].ph : (int)PH_SIL))) ||
                 (nx == PH_N && wordEndNext && (S[i - 1].ph == PH_T || S[i - 1].ph == PH_D)))
                 s.flags |= SF_SYLLABIC;
         }
@@ -380,7 +402,7 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
     for (int i = 0; i < M; i++) {
         Seg& s = S[i];
         if (!isStopPh(s.ph) && s.ph != PH_CH && s.ph != PH_JH) continue;
-        int nx = i + 1 < M ? S[i + 1].ph : PH_SIL;
+        int nx = i + 1 < M ? (int)S[i + 1].ph : (int)PH_SIL;
         if (isStopPh(s.ph) && (isStopPh(nx) || nx == PH_CH || nx == PH_JH)) s.flags |= SF_UNRELEASED;
         if ((s.ph == PH_P || s.ph == PH_T || s.ph == PH_K) && (s.flags & SF_ONSET) &&
             (isVowel(nx) || hasFlag(nx, PF_LIQUID) || hasFlag(nx, PF_GLIDE))) {
@@ -396,7 +418,7 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         const PhInfo& pi = phInfo(s.ph);
         bool vowel = isVowel(s.ph);
         float inh = pi.inh, mn = pi.mn, pr = 1.f;
-        int prev = i > 0 ? S[i - 1].ph : PH_SIL, next = i + 1 < M ? S[i + 1].ph : PH_SIL;
+        int prev = i > 0 ? (int)S[i - 1].ph : (int)PH_SIL, next = i + 1 < M ? (int)S[i + 1].ph : (int)PH_SIL;
         bool phraseFinal = (s.flags & SF_PHRASE_FINAL) != 0;
         bool prePause = phraseFinal && (i + 1 >= M || [&]() {
                             for (int k = i + 1; k < M; k++) {
@@ -426,7 +448,7 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
             } else if (s.flags & SF_WORD_END) {
                 f = 1.1f;
             }
-            pr *= prePause ? f : 1.f + (f - 1.f) * 0.5f;
+            pr *= prePause ? f : 1.f + (f - 1.f) * 0.75f;
             if (isVowel(next)) pr *= 1.2f;
             if (s.flags & SF_SYLLABIC) pr *= 0.45f;
             if (s.flags & SF_SHOUT) pr *= 1.1f;
@@ -434,17 +456,29 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
             if (!(s.flags & SF_WORD_START)) pr *= 0.85f;
             if (s.stress == 0) pr *= 0.8f;
             bool pc = !isVowel(prev) && prev != PH_SIL, nc = !isVowel(next) && next != PH_SIL;
-            if (pc && nc) pr *= 0.5f;
-            else if (nc) pr *= 0.7f;
+            // nasal before another nasal and sibilant before a stop keep more of their length (clear cues)
+            float cl = 0.7f;
+            if (nc && hasFlag(s.ph, PF_NASAL) && hasFlag(next, PF_NASAL)) cl = 1.f;
+            else if (nc && hasFlag(s.ph, PF_SIBILANT) && hasFlag(s.ph, PF_FRIC) && hasFlag(next, PF_STOP)) cl = 0.85f;
+            if (pc && nc) pr *= 0.5f * cl / 0.7f;
+            else if (nc) pr *= cl;
             else if (pc) pr *= 0.7f;
             if (prePause && (s.flags & SF_CODA)) pr *= 1.4f;
             if (s.ph == PH_DX) pr = 1.f;
+            if (s.ph == PH_HH && isVowel(prev)) pr *= 0.7f;  // intervocalic /h/ is short
         }
         if (s.flags & SF_EMPH) pr *= 1.35f;
         if (s.flags & SF_FUNCTION) pr *= 0.85f;
+        if (s.flags & SF_UNRELEASED) pr *= 0.6f;
+        if ((s.ph == PH_CH || s.ph == PH_JH) && i > 0 && (S[i - 1].flags & SF_UNRELEASED)) pr *= 0.6f;
+        if (vowel && (s.flags & SF_UTT_START) && (s.flags & SF_WORD_END) && (s.flags & SF_FUNCTION)) pr *= 1.6f;
+        if (s.flags & SF_ARTICLE_A) pr *= 1.35f;
         float d = mn + (inh - mn) * pr;
+        if (s.flags & SF_UNRELEASED) d *= 0.8f;
         if (gem[i]) d *= 1.5f;
         float floor = vowel ? ((s.flags & SF_SYLLABIC) ? 22.f : 38.f) : (isStopPh(s.ph) ? 40.f : 25.f);
+        if (s.flags & SF_UNRELEASED) floor = 30.f;
+        if (s.ph == PH_Q) floor = 22.f;
         if (s.ph == PH_DX) floor = 16.f;
         d = std::max(d, floor);
         s.dur = d * 0.001f / speed;
@@ -465,7 +499,7 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         else vot = 15.f;
         vot = vot * 0.001f / std::sqrt(speed);
         if (vot <= 0.f) continue;
-        if (isVowel(s.ph) && (p.flags & SF_ASPIRATED)) s.dur += 0.4f * vot;
+        if (isVowel(s.ph) && (p.flags & SF_ASPIRATED)) s.dur += 0.55f * vot;
         s.vot = std::min(vot, 0.65f * s.dur);
     }
 
@@ -517,7 +551,7 @@ void buildF0(const Utterance& u, const Audio::VoiceParams& voice, std::vector<F0
     out.clear();
     const std::vector<Seg>& S = u.segs;
     const float expr = Clamp(voice.expressiveness, 0.f, 3.f);
-    const float R = 3.6f * expr;  // accent range (semitones)
+    const float R = 4.5f * expr;  // accent range (semitones)
     for (size_t pi = 0; pi < u.phrases.size(); pi++) {
         const UPhrase& ph = u.phrases[pi];
         if (ph.firstSeg >= (int)S.size()) continue;
@@ -573,7 +607,7 @@ void buildF0(const Utterance& u, const Audio::VoiceParams& voice, std::vector<F0
                 out.push_back(F0Point{tv0 + 0.4f * tvd, base(tv0) - 1.0f});
                 float riseStart = std::min(t1 - 0.03f, tv0 + 0.6f * tvd);
                 out.push_back(F0Point{riseStart, base(riseStart) - 0.6f});
-                out.push_back(F0Point{t1, base(t1) + std::max(4.5f, 1.7f * R)});
+                out.push_back(F0Point{t1, base(t1) + std::max(6.f, 1.9f * R)});
             } else {
                 // H* L-L%: peak then fall to the bottom of the range
                 float hh = (whq ? 1.0f : 0.9f) * h;

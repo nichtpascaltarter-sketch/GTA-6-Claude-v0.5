@@ -116,10 +116,14 @@ struct PropRenderer {
     template <typename CellMap>
     void gather(CellMap& cells, dvec3 cam, const Frustum& fr, float distScale, bool shadowPass) {
         for (auto& b : buckets) b.clear();
+        bool anyBroken = Phys::gCollision && Phys::gCollision->brokenCount() > 0;
         for (auto& kv : cells) {
             StreamCell* c = kv.second;
             if (c->lod != 0 || c->state.load() != 2) continue;
-            for (const World::PropInstance& pi : c->props) {
+            int cellKey = WorldRenderer::key(c->cx, c->cy, 0);
+            for (size_t idx = 0; idx < c->props.size(); idx++) {
+                const World::PropInstance& pi = c->props[idx];
+                if (anyBroken && Phys::gCollision->isPropBroken(cellKey, (int)idx)) continue;  // knocked down by gameplay
                 int pr = protoFor(pi);
                 if (pr < 0) continue;
                 const Proto& P = protos[pr];

@@ -89,6 +89,8 @@ struct EmitterSynth {
     virtual void render(float* out, int n) = 0;
     // Called when the emitter is released (fade handled by the mixer).
     virtual void release() {}
+    // Level of detail hint from the mixer (0 = full, 1 = distant/quiet: cheaper synthesis).
+    virtual void setLod(int lod) { (void)lod; }
 };
 
 struct EmitterDef {
@@ -146,6 +148,8 @@ float speechDurationScale();
 // Called (from the speech worker or speechPumpSync) when a dialogue job (priority 0) finished
 // synthesis; the mixer takes its own reference. Implemented in audio.cpp.
 void dialogSpeechReady(SpeechJob* j);
+// Called when a queued dialogue job is dropped (queue overflow) so its handle stops "playing".
+void dialogSpeechDropped(SpeechJob* j);
 
 // ---------------------------------------------------------------------------------------------
 // Music producers (music.cpp + radio.cpp): stations and score render ahead into ring buffers on the

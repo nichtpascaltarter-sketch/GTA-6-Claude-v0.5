@@ -17,6 +17,12 @@ struct TextStyle {
     float shadow = 0.f;        // drop shadow offset in pixels
     Align align = ALIGN_LEFT;
     float tracking = 0.f;      // extra spacing in em units
+    // Extensions (defaults keep the original look):
+    u32 colorBottom = 0;       // != 0: vertical gradient from color (top of the line) to colorBottom (baseline)
+    float skew = 0.f;          // italic slant (x shift per pixel of height above the baseline, e.g. 0.2)
+    float glow = 0.f;          // soft outer glow radius in pixels (0 = none), drawn under the text
+    u32 glowColor = 0;         // glow color (alpha = strength)
+    float shadowSoft = 0.f;    // > 0 blurs the drop shadow (0..1)
 };
 
 bool init();
@@ -26,6 +32,8 @@ void endFrame();  // flushes to the currently bound back buffer
 
 inline u32 rgba(float r, float g, float b, float a = 1.f) { return packRGBA8(r, g, b, a); }
 inline u32 withAlpha(u32 c, float a) { return (c & 0x00ffffffu) | ((u32)(Saturate(a) * ((c >> 24) & 255)) << 24); }
+// Linear blend of two RGBA8 colors.
+u32 lerpColor(u32 a, u32 b, float t);
 
 void rect(float x, float y, float w, float h, u32 color);
 void roundRect(float x, float y, float w, float h, float radius, u32 color, float border = 0.f, u32 borderColor = 0);
@@ -42,8 +50,64 @@ void setClipRect(float x, float y, float w, float h);  // w<=0 disables
 
 float text(float x, float y, const char* str, const TextStyle& style);  // returns width
 float textWidth(const char* str, const TextStyle& style);
-void textWrapped(float x, float y, float maxW, const char* str, const TextStyle& style, float lineSpacing = 1.25f);
+// Word-wraps into lines no wider than maxW; returns the total height used (lines * size * lineSpacing).
+float textWrapped(float x, float y, float maxW, const char* str, const TextStyle& style, float lineSpacing = 1.25f);
 int screenWidth();
 int screenHeight();
+
+// ------------------------------------------------------------------------------------------------------------------
+// Extensions (all anti-aliased analytically in the pixel shader)
+// Horizontal gradient.
+void gradientRectH(float x, float y, float w, float h, u32 left, u32 right);
+// Four-corner gradient (top-left, top-right, bottom-right, bottom-left).
+void gradientRect4(float x, float y, float w, float h, u32 tl, u32 tr, u32 br, u32 bl);
+// Rounded rect with a vertical gradient fill.
+void roundRectGradient(float x, float y, float w, float h, float radius, u32 top, u32 bottom, float border = 0.f,
+                       u32 borderColor = 0);
+// Rotated rounded rectangle: center, unit axis of the local x direction, half extents.
+void roundRectRotated(vec2 center, vec2 axis, float hw, float hh, float radius, u32 color);
+// Soft-edged circle: the edge fades over `feather` pixels centered on radius r (glow: r = R/2, feather = R).
+void circleSoft(float cx, float cy, float r, float feather, u32 color);
+// Ring outline with soft edges.
+void ringSoft(float cx, float cy, float r, float thickness, float feather, u32 color);
+// Round-capped line (capsule) of the given total width; feather > 0 softens the edge (glow lines).
+void capsule(float x0, float y0, float x1, float y1, float width, u32 color, float feather = 0.f);
+// Polyline made of capsules (round joins).
+void polyline(const vec2* pts, int n, float width, u32 color, bool closed = false, float feather = 0.f);
+// Ring segment centered on angle `midAngle` (radians, 0 = up, clockwise positive) spanning `halfAngle` each side.
+// `gap` (pixels, halfAngle < 90 deg only) trims both ends by gap/2 with parallel cuts (segmented rings).
+void arc(float cx, float cy, float radius, float thickness, float midAngle, float halfAngle, u32 color, float gap = 0.f);
+// Filled anti-aliased triangle / convex quad / arbitrary simple polygon (ear clipping, any winding).
+void triangle(vec2 a, vec2 b, vec2 c, u32 color);
+void triangle3(vec2 a, vec2 b, vec2 c, u32 ca, u32 cb, u32 cc);   // per-vertex colors
+void quad(vec2 a, vec2 b, vec2 c, vec2 d, u32 color);
+void quad4(vec2 a, vec2 b, vec2 c, vec2 d, u32 ca, u32 cb, u32 cc, u32 cd);
+void polygon(const vec2* pts, int n, u32 color);
+// SDF icon from the atlas registered with setIconAtlas(): uv rect in the atlas, pxRange = screen pixels per SDF unit
+// (distance field value 0..1 spans `spreadPx` atlas pixels; callers normally use the helpers in the HUD code).
+void setIconAtlas(ID3D11ShaderResourceView* srv);
+void iconSdf(float x, float y, float w, float h, float u0, float v0, float u1, float v1, u32 color, float pxRange,
+             float outline = 0.f, u32 outlineColor = 0, float soft = 0.f, float angle = 0.f);
+// World map texture (RGB land color, A = encoded water depth) rendered with crisp analytic coastlines. Corners are
+// given in screen space with their texture coordinates (p0..p3 clockwise). landTint/waterTint multiply the colors.
+void mapQuad(ID3D11ShaderResourceView* srv, const vec2 p[4], const vec2 uv[4], u32 landTint, u32 waterTint,
+             float coastLine = 1.f);
+// Frosted glass: blurred copy of what was rendered before the UI (the 3D frame), tinted, desaturated and mixed with
+// `overlay` (alpha = mix amount), clipped to a rounded rect. Enables backdrop capture for this frame.
+void backdrop(float x, float y, float w, float h, float radius, u32 tint, u32 overlay, float saturation = 1.f);
+// Clip following draws to an anti-aliased rounded rectangle (w <= 0 disables).
+void setClipRoundRect(float x, float y, float w, float h, float radius);
+// Current clip state save/restore.
+struct ClipState { vec4 clip; int mode; float radius; };
+ClipState getClip();
+void setClip(const ClipState& c);
+// Additive blending for following draws (glows, light sweeps): output alpha is zeroed so colors add up.
+void setAdditive(bool additive);
+// Ignore every further draw call until endFrame (test overlays use this to keep debug text off screenshots).
+void discardDrawsUntilEndFrame();
+// Number of vertices submitted this frame (profiling).
+int vertexCount();
+// Incremented by every beginFrame (lets animation clocks advance once per frame).
+int frameIndex();
 
 }  // namespace UI

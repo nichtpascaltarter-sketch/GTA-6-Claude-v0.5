@@ -27,6 +27,7 @@ static const LtsRule kRulesA[] = {
     {" ", "A", " ", "AH0"},
     {"", "ACHE", "", "EY K"},
     {"", "AGAIN", "", "AH0 G EH N"},
+    {" ", "A", "WA", "AH0"},
     {"", "AUGH", "T", "AO"},
     {"", "AUGH", "", "AE F"},
     {"", "AU", "", "AO"},
@@ -54,6 +55,8 @@ static const LtsRule kRulesA[] = {
     {"", "ARR", "", "AE R"},
     {"W", "AR", "", "AO R"},
     {"QU", "AR", "", "AO R"},
+    {"#:", "ARY", " ", "EH2 R IY0"},
+    {"#:", "ANCY", " ", "AH0 N S IY0"},
     {"#:", "ARD", " ", "ER0 D"},
     {"#:", "AR", " ", "ER0"},
     {"#:", "ARS", " ", "ER0 Z"},
@@ -99,8 +102,12 @@ static const LtsRule kRulesB[] = {
 
 static const LtsRule kRulesC[] = {
     {" ", "CH", "^", "K"},
+    {" ", "CHARACT", "", "K EH R AH0 K T"},
+    {" ", "CHEM", "", "K EH M"},
+    {" ", "CHAOS", "", "K EY AA S"},
     {"", "CHR", "", "K R"},
     {"", "CH", "", "CH"},
+    {"", "C", "Q", ""},
     {"S", "CI", "#", "S AY"},
     {"", "CI", "A", "SH"},
     {"", "CI", "O", "SH"},
@@ -118,8 +125,9 @@ static const LtsRule kRulesD[] = {
     {" ", "DO", " ", "D UW"},
     {" ", "DOES", "", "D AH Z"},
     {" ", "DOW", "", "D AW"},
-    {"", "DU", "A", "JH UW"},
+    {"", "DU", "A", "JH UW0"},
     {"", "DGE", "", "JH"},
+    {"", "DG", "", "JH"},
     {"", "DD", "", "D"},
     {"", "D", "", "D"},
     {nullptr, nullptr, nullptr, nullptr}};
@@ -147,6 +155,8 @@ static const LtsRule kRulesE[] = {
     {"#:^", "EL", " ", "AH0 L"},
     {"I", "ENCE", "", "AH0 N S"},
     {"I", "ENT", "", "AH0 N T"},
+    {"#:^", "ENCY", " ", "AH0 N S IY0"},
+    {"#", "ENCY", " ", "AH0 N S IY0"},
     {"#:^", "ENT", " ", "AH0 N T"},
     {"#:^", "ENTS", " ", "AH0 N T S"},
     {"#:^", "ENCE", " ", "AH0 N S"},
@@ -154,6 +164,7 @@ static const LtsRule kRulesE[] = {
     {" ", "E", "^^", "EH"},
     {"", "EAR", "^", "ER"},
     {"", "EAR", "", "IH R"},
+    {"", "EAU", "", "Y UW"},
     {"", "EA", "D", "EH"},
     {"", "EA", "TH", "EH"},
     {"", "EA", "LTH", "EH"},
@@ -195,6 +206,8 @@ static const LtsRule kRulesG[] = {
     {"", "GG", "", "G"},
     {" ", "GU", "#", "G"},
     {"", "G", "+", "JH"},
+    {"#:", "GUE", " ", "G"},
+    {"#:", "GUES", " ", "G Z"},
     {" ", "GH", "", "G"},
     {"OU", "GH", " ", "F"},
     {"", "GH", "", ""},
@@ -202,6 +215,7 @@ static const LtsRule kRulesG[] = {
     {"", "G", "N ", ""},
     {"", "G", "NS ", ""},
     {"", "G", "NED ", ""},
+    {"", "G", "NM", ""},
     {"", "G", "", "G"},
     {nullptr, nullptr, nullptr, nullptr}};
 
@@ -218,15 +232,21 @@ static const LtsRule kRulesH[] = {
     {nullptr, nullptr, nullptr, nullptr}};
 
 static const LtsRule kRulesI[] = {
+    {" ", "INN", "", "IH N"},
     {" ", "IN", "", "IH N"},
     {" ", "I", " ", "AY"},
     {"", "IGH", "", "AY"},
     {"", "I", "GN ", "AY"},
     {"", "I", "GNS ", "AY"},
     {"", "I", "GNED ", "AY"},
+    {"", "I", "GNM", "AY"},
     {"", "I", "ND ", "AY"},
     {"", "I", "NDS ", "AY"},
     {"", "I", "LD", "AY"},
+    {"^", "I", "ENT ", "IY0"},
+    {"^", "I", "ENTS ", "IY0"},
+    {"^", "I", "ENCE", "IY0"},
+    {"^", "I", "ENCY", "IY0"},
     {"", "IEN", "", "AY AH0 N"},
     {"", "IE", "T", "AY AH0"},
     {"#:^", "IES", " ", "IY0 Z"},
@@ -246,6 +266,17 @@ static const LtsRule kRulesI[] = {
     {"", "IR", "#", "AY R"},
     {"", "IR", "", "ER"},
     {"", "IOUS", "", "IY0 AH0 S"},
+    {"", "IOR", "", "IY0 ER0"},
+    {"", "IUM", "", "IY0 AH0 M"},
+    {"", "I", "ENT ", "IY0"},
+    {"", "I", "ENTS ", "IY0"},
+    {"", "I", "ENCE", "IY0"},
+    {"#:", "IFY", "", "AH0 F AY2"},
+    {"#:", "IFIED", "", "AH0 F AY2 D"},
+    {"#:", "ICALLY", "", "IH0 K L IY0"},
+    {"#:", "ICAL", "", "IH0 K AH0 L"},
+    {"#:", "ICS", " ", "IH0 K S"},
+    {"#:", "IC", " ", "IH0 K"},
     {"L", "ION", "", "Y AH0 N"},
     {"N", "ION", "", "Y AH0 N"},
     {"", "ION", "", "IY0 AH0 N"},
@@ -315,7 +346,7 @@ static const LtsRule kRulesO[] = {
     {"", "OUNG", "", "AH NG"},
     {"", "OUP", "", "UW P"},
     {"", "OUR", "", "AO R"},
-    {"", "OUS", "", "AH0 S"},
+    {"#:", "OUS", "", "AH0 S"},
     {"", "OU", "", "AW"},
     {"", "OWN", " ", "AW N"},
     {"", "OWD", "", "AW D"},
@@ -332,6 +363,9 @@ static const LtsRule kRulesO[] = {
     {"", "OE", " ", "OW"},
     {"W", "OR", "^", "ER"},
     {"#:", "OR", " ", "ER0"},
+    {"#:", "OR", "ED ", "ER0"},
+    {"#:", "OR", "ING", "ER0"},
+    {"#:", "ORY", " ", "AO2 R IY0"},
     {"#:", "ORS", " ", "ER0 Z"},
     {"", "OR", "", "AO R"},
     {"", "OLD", "", "OW L D"},
@@ -340,6 +374,7 @@ static const LtsRule kRulesO[] = {
     {"#:^", "ON", " ", "AH0 N"},
     {"#:^", "ONS", " ", "AH0 N Z"},
     {"#:", "OM", " ", "AH0 M"},
+    {"", "O", "TION", "OW"},
     {"", "O", "^%", "OW"},
     {"", "O", " ", "OW"},
     {"", "O", "", "AA"},
@@ -348,6 +383,7 @@ static const LtsRule kRulesO[] = {
 static const LtsRule kRulesP[] = {
     {"", "PH", "", "F"},
     {"", "PP", "", "P"},
+    {" ", "PSYCH", "", "S AY K"},
     {" ", "PS", "", "S"},
     {" ", "PN", "", "N"},
     {"", "P", "", "P"},
@@ -405,13 +441,16 @@ static const LtsRule kRulesT[] = {
     {nullptr, nullptr, nullptr, nullptr}};
 
 static const LtsRule kRulesU[] = {
+    {" ", "UNI", "", "Y UW N IH"},
     {" ", "UN", "", "AH N"},
+    {" ", "UPP", "", "AH P"},
     {" ", "UP", "", "AH P"},
     {"", "URE", " ", "Y UH R"},
     {"@", "UR", "#", "UH R"},
     {"", "UR", "#", "Y UH R"},
     {"", "UR", "", "ER"},
     {"", "UY", "", "AY"},
+    {"#:", "UAL", "", "Y UW0 AH0 L"},
     {"", "U", "^^", "AH"},
     {"", "U", "^ ", "AH"},
     {"@", "U", "^%", "UW"},
@@ -463,7 +502,9 @@ static const LtsRule* const kRuleTable[26] = {kRulesA, kRulesB, kRulesC, kRulesD
 
 static inline bool ltsLetter(char c) { return c >= 'A' && c <= 'Z'; }
 static inline bool ltsVowel(char c) { return c == 'A' || c == 'E' || c == 'I' || c == 'O' || c == 'U' || c == 'Y'; }
-static inline bool ltsCons(char c) { return ltsLetter(c) && c != 'A' && c != 'E' && c != 'I' && c != 'O' && c != 'U'; }
+static inline bool ltsCons(char c) {
+    return ltsLetter(c) && c != 'A' && c != 'E' && c != 'I' && c != 'O' && c != 'U' && c != 'Y';
+}
 static inline bool ltsVoiced(char c) {
     return c == 'B' || c == 'D' || c == 'V' || c == 'G' || c == 'J' || c == 'L' || c == 'M' || c == 'N' || c == 'R' ||
            c == 'W' || c == 'Z';
@@ -616,104 +657,129 @@ static bool startsWith(const std::string& w, const char* pre) {
     return w.size() > n && w.compare(0, n, pre) == 0;
 }
 
+// Number of trailing vowels that belong to a stress-neutral suffix (-ing, -ness, ...).
+static int neutralSuffixVowels(const std::string& w, const Pron& p) {
+    struct NS {
+        const char* s;
+        int v;
+    };
+    static const NS kNeutral[] = {{"ings", 1}, {"ing", 1},  {"ers", 1},    {"er", 1},   {"est", 1},  {"lessly", 2},
+                                  {"less", 1}, {"ness", 1}, {"ments", 1},  {"ment", 1}, {"fully", 2}, {"ful", 1},
+                                  {"ably", 2}, {"able", 2}, {"ism", 2},    {"ists", 1}, {"ist", 1},   {"ish", 1},
+                                  {"ship", 1}, {"hood", 1}, {"wards", 1},  {"ward", 1}, {"ly", 1},
+                                  {"aries", 2}, {"ories", 2}, {"ary", 2}, {"ory", 2}};
+    for (size_t k = 0; k < ARRAY_COUNT(kNeutral); k++) {
+        size_t n = strlen(kNeutral[k].s);
+        bool ist = kNeutral[k].s[0] == 'i' && (kNeutral[k].s[1] == 's');  // -ist/-ism need a real stem
+        if (w.size() >= n + (ist ? 5 : 3) && endsWith(w, kNeutral[k].s)) return kNeutral[k].v;
+    }
+    if ((endsWith(w, "ed") || endsWith(w, "es")) && p.size() >= 2 && p[p.size() - 2].ph == PH_IH &&
+        p[p.size() - 2].stress == 0 && (p.back().ph == PH_D || p.back().ph == PH_Z))
+        return 1;
+    return 0;
+}
+
 // Assigns lexical stress to rule-derived pronunciations and reduces unstressed vowels.
 static void assignStress(const std::string& w, Pron& p) {
     std::vector<int> vow;  // indices of vowels
     for (int i = 0; i < (int)p.size(); i++)
         if (isVowel(p[i].ph)) vow.push_back(i);
     if (vow.empty()) return;
+    const int n = (int)vow.size();
     std::vector<int> cand;
     for (int i : vow)
         if (p[i].stress == kStressUnknown) cand.push_back(i);
-    int n = (int)vow.size();
     int target = -1;
+    // Suffixes that put the stress on the syllable right before them (their own vowels are 0-marked by the rules).
+    static const char* const kPreStress[] = {
+        "tion", "tions", "sion", "sions", "cian", "cians", "tian", "cial", "cially", "tial", "tially", "cious",
+        "tious", "xious", "gion", "gions", "gious", "ity", "ities", "ify", "ified", "ifies", "ical", "ically", "ic",
+        "ics", "ial", "ially", "ian", "ians", "ious", "iously", "eous", "uous", "ual", "ually", "ia", "ias", "ient",
+        "ients", "ience", "iency", "ior", "iors", "ium", "iums", "ssive", "ctive", "ctives", "nsive", "ptive",
+        "ency", "ancy"};
+    static const char* const kFinalStress[] = {"ee", "ees", "eer", "eers", "ese", "ette", "ettes", "oon", "oons",
+                                               "ique", "esque", "aire"};
+    bool preStress = false, finalStress = false;
+    for (size_t k = 0; k < ARRAY_COUNT(kPreStress) && !preStress; k++)
+        if (w.size() > strlen(kPreStress[k]) + 1 && endsWith(w, kPreStress[k])) preStress = true;
+    for (size_t k = 0; k < ARRAY_COUNT(kFinalStress) && !finalStress; k++)
+        if (w.size() > strlen(kFinalStress[k]) + 1 && endsWith(w, kFinalStress[k])) finalStress = true;
     if (cand.empty()) {
         target = vow[0];  // e.g. "king" -> K IH0 NG: promote
     } else if (cand.size() == 1) {
         target = cand[0];
+    } else if (preStress) {
+        target = cand.back();
+    } else if (finalStress) {
+        target = cand.back();
     } else {
-        // Suffix-driven placement.
-        bool preStress = endsWith(w, "ic") || endsWith(w, "ics") || endsWith(w, "ical") || endsWith(w, "ically");
-        bool finalStress = endsWith(w, "ee") || endsWith(w, "eer") || endsWith(w, "ese") || endsWith(w, "ette") ||
-                           endsWith(w, "oon") || endsWith(w, "ique") || endsWith(w, "esque") || endsWith(w, "ade");
-        int nc = (int)cand.size();
-        if (finalStress) {
-            target = cand[nc - 1];
-        } else if (preStress) {
-            // last candidate is the "ic" vowel; stress the one before it
-            target = nc >= 2 ? cand[nc - 2] : cand[0];
-        } else if ((endsWith(w, "ate") || endsWith(w, "ize") || endsWith(w, "ise") || endsWith(w, "ated") ||
-                    endsWith(w, "izes") || endsWith(w, "ates")) &&
-                   nc >= 3) {
-            target = cand[nc - 3];
-        } else {
-            // Prefix check for two-syllable words: unstressed prefixes shift stress right.
+        int core = std::max(1, n - neutralSuffixVowels(w, p));
+        std::vector<int> cc;  // candidates inside the core
+        for (int k = 0; k < core; k++)
+            if (p[vow[k]].stress == kStressUnknown) cc.push_back(vow[k]);
+        if (cc.empty()) cc = cand;
+        bool verbAte = (endsWith(w, "ate") || endsWith(w, "ated") || endsWith(w, "ates") || endsWith(w, "ating") ||
+                        endsWith(w, "ator") || endsWith(w, "ators") ||
+                        endsWith(w, "ize") || endsWith(w, "ized") || endsWith(w, "izes") || endsWith(w, "izing") ||
+                        endsWith(w, "ise") || endsWith(w, "ised"));
+        if (verbAte && core >= 3 && p[vow[core - 3]].stress == kStressUnknown) {
+            target = vow[core - 3];
+        } else if (core <= 1 || cc.size() == 1) {
+            target = cc[0];
+        } else if (core == 2) {
             static const char* const kPrefixes[] = {"be", "de", "re", "pre", "pro", "con", "com", "dis", "ex", "mis",
                                                     "ob", "sub", "sur", "per", "ad", "ac", "ap", "at", "ef", "es",
                                                     "in", "im", "en", "em", "un", "for", "a"};
-            int nsyl = n;
-            // count trailing unstressed (marked) vowels as a neutral suffix
-            int trail = 0;
-            for (int k = n - 1; k >= 0 && p[vow[k]].stress != kStressUnknown; k--) trail++;
-            int core = nsyl - trail;  // syllables before neutral suffix
-            // candidates restricted to the core part
-            std::vector<int> cc;
-            for (int k = 0; k < core; k++)
-                if (p[vow[k]].stress == kStressUnknown) cc.push_back(vow[k]);
-            if (cc.empty()) cc = cand;
-            if (core <= 1 || cc.size() == 1) {
-                target = cc[0];
-            } else if (core == 2) {
-                bool pre = false;
-                for (size_t k = 0; k < ARRAY_COUNT(kPrefixes); k++)
-                    if (startsWith(w, kPrefixes[k]) && w.size() >= strlen(kPrefixes[k]) + 3) {
-                        pre = true;
-                        break;
-                    }
-                // "a" prefix only when followed by consonant + vowel (about, away)
-                if (pre && w[0] == 'a' && w.size() > 2 && strchr("aeiouy", w[1])) pre = false;
-                target = pre && cc.size() >= 2 ? cc[1] : cc[0];
-            } else {
-                // Latin-style rule over the core syllables: heavy penult attracts stress.
-                int pen = vow[core - 2];
-                int ante = vow[core - 3];
-                int consAfter = 0;
-                for (int k = pen + 1; k < vow[core - 1]; k++) consAfter++;
-                bool heavy = isTenseVowel(p[pen].ph) || consAfter >= 2;
-                target = heavy ? pen : ante;
-                if (p[target].stress != kStressUnknown) target = (p[pen].stress == kStressUnknown) ? pen : cc[0];
+            bool pre = false;
+            for (size_t k = 0; k < ARRAY_COUNT(kPrefixes) && !pre; k++) {
+                size_t pl = strlen(kPrefixes[k]);
+                if (!startsWith(w, kPrefixes[k]) || w.size() < pl + 3) continue;
+                if (pl == 1) {
+                    // a- prefix: a + consonant + vowel (about), doubled consonant (assist, attack) or an onset
+                    // cluster (asleep, agree); not before other clusters (alter, active)
+                    if (w.size() <= 3 || strchr("aeiouy", w[1])) continue;
+                    char c1 = w[1], c2 = w[2];
+                    bool vowel2 = strchr("aeiouy", c2) != nullptr;
+                    bool doubled = c1 == c2;
+                    bool onset = strchr("lrw", c2) != nullptr && strchr("bcdfgkpt", c1) != nullptr;
+                    bool sOnset = c1 == 's' && strchr("lpt", c2) != nullptr;
+                    pre = vowel2 || doubled || onset || sOnset;
+                } else {
+                    pre = true;
+                }
             }
+            if (p[cc[0]].stress != kStressUnknown) pre = true;
+            target = pre && cc.size() >= 2 ? cc[1] : cc[0];
+        } else {
+            // Latin-style rule: a heavy penult (tense vowel or closed syllable) attracts stress, else antepenult.
+            int pen = vow[core - 2], ante = vow[core - 3], last = vow[core - 1];
+            int clusterLen = last - pen - 1;
+            bool closed = false;
+            if (clusterLen >= 2) {
+                int c1 = p[pen + 2].ph;
+                bool mutaCumLiquida = clusterLen == 2 && hasFlag(p[pen + 1].ph, PF_OBSTRUENT) &&
+                                      (c1 == PH_L || c1 == PH_R || c1 == PH_W || c1 == PH_Y);
+                closed = !mutaCumLiquida;
+            }
+            bool heavy = isTenseVowel(p[pen].ph) || p[pen].ph == PH_ER || closed;
+            target = heavy ? pen : ante;
+            if (p[target].stress != kStressUnknown) target = (p[pen].stress == kStressUnknown) ? pen : cc[0];
         }
     }
-    // Apply stress: primary on target, secondary two syllables earlier in long words.
+    // Apply stress: primary on target, secondary on the first syllable of long words.
     int tv = -1;
     for (int k = 0; k < n; k++)
         if (vow[k] == target) tv = k;
     for (int k = 0; k < n; k++) {
         PhS& x = p[vow[k]];
-        if (vow[k] == target) {
-            x.stress = 1;
-        } else if (x.stress == kStressUnknown) {
-            x.stress = (tv >= 2 && k == tv - 2 && k == 0) ? 2 : 0;
-        }
+        if (vow[k] == target) x.stress = 1;
+        else if (x.stress == kStressUnknown) x.stress = (tv >= 2 && k == 0) ? 2 : 0;
     }
     // Vowel reduction of unstressed full vowels.
     for (int k = 0; k < n; k++) {
         PhS& x = p[vow[k]];
         if (x.stress != 0) continue;
-        switch (x.ph) {
-            case PH_AE:
-            case PH_AA:
-            case PH_AO:
-            case PH_EH:
-            case PH_UH:
-                x.ph = PH_AH;
-                break;
-            case PH_ER:
-                break;
-            default:
-                break;
-        }
+        if (x.ph == PH_AE || x.ph == PH_AA || x.ph == PH_AO || x.ph == PH_EH || x.ph == PH_UH) x.ph = PH_AH;
     }
 }
 
@@ -766,7 +832,7 @@ static bool pronFromEntry(const char* e, Pron& out, bool* function) {
     return true;
 }
 
-static int lastPh(const Pron& p) { return p.empty() ? PH_SIL : p.back().ph; }
+static int lastPh(const Pron& p) { return p.empty() ? (int)PH_SIL : (int)p.back().ph; }
 
 static bool isSibilantPh(int ph) { return ph == PH_S || ph == PH_Z || ph == PH_SH || ph == PH_ZH || ph == PH_CH || ph == PH_JH; }
 static bool isVoicelessPh(int ph) {
@@ -791,63 +857,95 @@ static void demotePrimary(Pron& p) {
         if (x.stress == 1) x.stress = 2;
 }
 
-// Looks a stem up in the dictionary (optionally trying orthographic repairs).
+// Looks a stem up in the dictionary (content words only: "butter" is not "but" + "er").
 static bool stemLookup(const std::string& stem, Pron& out) {
     if (stem.size() < 2) return false;
-    return pronFromEntry(dictLookup(stem), out, nullptr);
+    const char* e = dictLookup(stem);
+    if (!e || e[0] == '~') return false;
+    return pronFromEntry(e, out, nullptr);
 }
 
 static bool isConsChar(char c) { return c >= 'a' && c <= 'z' && !strchr("aeiou", c); }
-
-// Tries stem candidates for a suffix-stripped word: stem, stem+e, undoubled stem, y-restored stem.
-static bool findStem(const std::string& stem, bool yRestore, Pron& out, int depth);
+static bool isVowelChar(char c) { return c && strchr("aeiou", c) != nullptr; }
 
 static bool analyze(const std::string& w, Pron& out, int depth);
+static bool analyzeSuffix(const std::string& w, Pron& out, int depth);
 
-static bool findStem(const std::string& stem, bool yRestore, Pron& out, int depth) {
-    if (stem.size() < 2) return false;
-    Pron p;
-    if (yRestore) {
-        if (stemLookup(stem + "y", p)) { out = p; return true; }
-        return false;
-    }
-    if (stem.size() >= 3 && stemLookup(stem, p)) { out = p; return true; }
-    p.clear();
-    if (stemLookup(stem + "e", p)) { out = p; return true; }
-    p.clear();
+// Finds the stem of a suffixed word. Vowel-initial suffixes allow silent-e restoration ("hated" -> hate; single
+// consonant after a single vowel prefers the e-form) and consonant undoubling ("robbed" -> rob); consonant-initial
+// suffixes need the exact stem ("movement" -> move).
+static bool findStem(const std::string& stem, bool vowelSuffix, bool yRestore, Pron& out, int depth) {
     size_t n = stem.size();
-    if (n >= 3 && stem[n - 1] == stem[n - 2] && isConsChar(stem[n - 1]) && stemLookup(stem.substr(0, n - 1), p)) {
+    Pron p;
+    if (yRestore) return n >= 2 && stemLookup(stem + "y", out);
+    if (n < 2) return false;
+    if (!vowelSuffix) {
+        if (n >= 3 && stemLookup(stem, out)) return true;
+        return depth > 0 && n >= 4 && analyzeSuffix(stem, out, depth - 1);
+    }
+    bool singleVC = isConsChar(stem[n - 1]) && isVowelChar(stem[n - 2]) && (n < 3 || !isVowelChar(stem[n - 3])) &&
+                    stem[n - 1] != 'w' && stem[n - 1] != 'x' && stem[n - 1] != 'y';
+    if (singleVC && stemLookup(stem + "e", p)) {
         out = p;
         return true;
     }
     p.clear();
-    if (stem.size() == 2 && stemLookup(stem, p)) { out = p; return true; }
-    if (depth > 0) {
-        p.clear();
-        if (stem.size() >= 4 && analyze(stem, p, depth - 1)) { out = p; return true; }
+    if (n >= 3 && stemLookup(stem, p)) {
+        out = p;
+        return true;
+    }
+    p.clear();
+    if (n >= 4 && stem[n - 1] == stem[n - 2] && isConsChar(stem[n - 1]) && stemLookup(stem.substr(0, n - 1), p)) {
+        out = p;
+        return true;
+    }
+    p.clear();
+    if (!singleVC && stemLookup(stem + "e", p)) {
+        out = p;
+        return true;
     }
     return false;
 }
 
 struct SuffixDef {
     const char* suf;
-    const char* ph;     // appended phonemes ("" for special handling)
-    int kind;           // 0 = plain, 1 = plural -s, 2 = past -ed, 3 = y->i form
+    const char* ph;  // appended phonemes ("" for special handling)
+    int kind;        // 0 = plain, 1 = plural -s, 2 = past -ed, 3 = y->i form
+    bool vowelInit;  // suffix starts with a vowel (stem may drop silent e / double its consonant)
+    bool stack;      // the stem itself may carry another suffix ("killers", "powerfully")
 };
 
 static const SuffixDef kSuffixes[] = {
-    {"iness", "N AH0 S", 3}, {"ies", "", 3}, {"ied", "", 3}, {"ier", "ER0", 3}, {"iest", "IH0 S T", 3},
-    {"ily", "L IY0", 3}, {"iful", "F AH0 L", 3},
-    {"ings", "IH0 NG Z", 0}, {"ing", "IH0 NG", 0}, {"ed", "", 2}, {"es", "", 1}, {"'s", "", 1}, {"s'", "", 1},
-    {"ers", "ER0 Z", 0}, {"er", "ER0", 0}, {"est", "IH0 S T", 0}, {"ly", "L IY0", 0}, {"ness", "N AH0 S", 0},
-    {"ments", "M AH0 N T S", 0}, {"ment", "M AH0 N T", 0}, {"fully", "F AH0 L IY0", 0}, {"ful", "F AH0 L", 0},
-    {"lessly", "L AH0 S L IY0", 0}, {"less", "L AH0 S", 0}, {"able", "AH0 B AH0 L", 0}, {"ably", "AH0 B L IY0", 0},
-    {"ism", "IH0 Z AH0 M", 0}, {"ists", "IH0 S T S", 0}, {"ist", "IH0 S T", 0}, {"ish", "IH0 SH", 0},
-    {"hood", "HH UH2 D", 0}, {"ship", "SH IH2 P", 0}, {"wards", "W ER0 D Z", 0}, {"ward", "W ER0 D", 0},
-    {"y", "IY0", 0}, {"s", "", 1},
+    {"iness", "N AH0 S", 3, false, false}, {"ies", "", 3, true, false}, {"ied", "", 3, true, false},
+    {"ier", "ER0", 3, true, false}, {"iest", "IH0 S T", 3, true, false}, {"ily", "L IY0", 3, false, false},
+    {"iful", "F AH0 L", 3, false, false}, {"ings", "IH0 NG Z", 0, true, false}, {"ing", "IH0 NG", 0, true, false},
+    {"ed", "", 2, true, false}, {"es", "", 1, true, false}, {"'s", "", 1, false, true}, {"s'", "", 1, false, true},
+    {"ers", "ER0 Z", 0, true, false}, {"er", "ER0", 0, true, false}, {"est", "IH0 S T", 0, true, false},
+    {"ors", "ER0 Z", 0, true, false}, {"or", "ER0", 0, true, false}, {"als", "AH0 L Z", 0, true, false},
+    {"al", "AH0 L", 0, true, false},
+    {"ly", "L IY0", 0, false, true}, {"ness", "N AH0 S", 0, false, true}, {"ments", "M AH0 N T S", 0, false, false},
+    {"ment", "M AH0 N T", 0, false, false}, {"fully", "F AH0 L IY0", 0, false, false},
+    {"ful", "F AH0 L", 0, false, false}, {"lessly", "L AH0 S L IY0", 0, false, false},
+    {"less", "L AH0 S", 0, false, false}, {"able", "AH0 B AH0 L", 0, true, false},
+    {"ably", "AH0 B L IY0", 0, true, false}, {"ism", "IH0 Z AH0 M", 0, true, false},
+    {"ists", "IH0 S T S", 0, true, false}, {"ist", "IH0 S T", 0, true, false}, {"ish", "IH0 SH", 0, true, false},
+    {"hood", "HH UH2 D", 0, false, false}, {"ship", "SH IH2 P", 0, false, false},
+    {"wards", "W ER0 D Z", 0, false, false}, {"ward", "W ER0 D", 0, false, false}, {"y", "IY0", 0, true, false},
+    {"s", "", 1, false, true},
 };
 
 static bool analyzeSuffix(const std::string& w, Pron& out, int depth) {
+    // "-ly" after "-le": simply = simple + ly
+    if (endsWith(w, "ly") && w.size() >= 5) {
+        Pron p;
+        std::string stem = w.substr(0, w.size() - 2) + "le";
+        if (stemLookup(stem, p) && p.size() >= 2 && p.back().ph == PH_L) {
+            if (isVowel(p[p.size() - 2].ph) && p[p.size() - 2].stress == 0) p.erase(p.end() - 2);
+            parsePhonemes("IY0", p);
+            out.insert(out.end(), p.begin(), p.end());
+            return true;
+        }
+    }
     for (size_t k = 0; k < ARRAY_COUNT(kSuffixes); k++) {
         const SuffixDef& s = kSuffixes[k];
         if (!endsWith(w, s.suf)) continue;
@@ -855,7 +953,7 @@ static bool analyzeSuffix(const std::string& w, Pron& out, int depth) {
         if (stem.size() < 2) continue;
         Pron p;
         if (s.kind == 3) {
-            if (!findStem(stem, true, p, depth)) continue;
+            if (!findStem(stem, s.vowelInit, true, p, 0)) continue;
             if (strcmp(s.suf, "ies") == 0) addPlural(p);
             else if (strcmp(s.suf, "ied") == 0) addPast(p);
             else {
@@ -866,16 +964,19 @@ static bool analyzeSuffix(const std::string& w, Pron& out, int depth) {
                 parsePhonemes(s.ph, p);
             }
         } else {
-            // "-s" after a vowel letter could be a plural of a vowel-final word ("radios", "cameras").
-            if (s.kind == 1 && strcmp(s.suf, "s") == 0 && endsWith(w, "ss")) continue;  // "boss", "miss"
-            if (!findStem(stem, false, p, depth)) continue;
+            if (strcmp(s.suf, "s") == 0 && (endsWith(w, "ss") || endsWith(w, "us") || endsWith(w, "is"))) continue;
+            if (strcmp(s.suf, "es") == 0 && !(endsWith(stem, "s") || endsWith(stem, "x") || endsWith(stem, "z") ||
+                                              endsWith(stem, "ch") || endsWith(stem, "sh") || endsWith(stem, "o")))
+                continue;
+            if (strcmp(s.suf, "y") == 0 && (stem.size() < 3 || !isConsChar(stem.back()))) continue;
+            if ((strcmp(s.suf, "al") == 0 || strcmp(s.suf, "als") == 0 || strcmp(s.suf, "or") == 0 ||
+                 strcmp(s.suf, "ors") == 0) && stem.size() < 4)
+                continue;
+            if (!findStem(stem, s.vowelInit, false, p, s.stack ? depth : 0)) continue;
             if (s.kind == 1) addPlural(p);
             else if (s.kind == 2) addPast(p);
-            else {
-                // "-y" only after consonants ("dirty", "bloody"); avoid "ly" double counting
-                if (strcmp(s.suf, "y") == 0 && !isConsChar(stem.back())) continue;
-                parsePhonemes(s.ph, p);
-            }
+            else if (strcmp(s.suf, "ly") == 0 && !p.empty() && p.back().ph == PH_L) parsePhonemes("IY0", p);
+            else parsePhonemes(s.ph, p);
         }
         out.insert(out.end(), p.begin(), p.end());
         return true;
@@ -892,17 +993,18 @@ static bool analyzePrefix(const std::string& w, Pron& out, int depth) {
         {"under", "AH2 N D ER0"}, {"over", "OW2 V ER0"}, {"out", "AW2 T"}, {"un", "AH0 N"}, {"re", "R IY0"},
         {"dis", "D IH0 S"}, {"mis", "M IH0 S"}, {"non", "N AA2 N"}, {"pre", "P R IY0"}, {"anti", "AE2 N T IY0"},
         {"super", "S UW2 P ER0"}, {"sub", "S AH2 B"}, {"inter", "IH2 N T ER0"}, {"semi", "S EH2 M IY0"},
-        {"mid", "M IH2 D"}, {"self", "S EH2 L F"}, {"ex", "EH2 K S"}, {"co", "K OW2"}, {"de", "D IY0"},
-        {"up", "AH2 P"}, {"down", "D AW2 N"}, {"back", "B AE2 K"},
+        {"mid", "M IH2 D"}, {"self", "S EH2 L F"}, {"co", "K OW2"}, {"de", "D IY0"},
     };
     for (size_t k = 0; k < ARRAY_COUNT(kPrefixes); k++) {
         const PrefixDef& d = kPrefixes[k];
         if (!startsWith(w, d.pre)) continue;
         std::string rest = w.substr(strlen(d.pre));
-        if (rest.size() < 3) continue;
+        if (rest.size() < 4) continue;
+        bool shortPre = strcmp(d.pre, "co") == 0 || strcmp(d.pre, "de") == 0 || strcmp(d.pre, "re") == 0;
+        if (shortPre && isVowelChar(rest[0]) && rest.size() < 5) continue;  // "co-" + vowel etc. rarely prefixes
         Pron p;
-        bool ok = pronFromEntry(dictLookup(rest), p, nullptr);
-        if (!ok && depth > 0) ok = analyzeSuffix(rest, p, depth - 1);
+        bool ok = stemLookup(rest, p);
+        if (!ok && depth > 0) ok = analyzeSuffix(rest, p, 0);
         if (!ok) continue;
         parsePhonemes(d.ph, out);
         out.insert(out.end(), p.begin(), p.end());
@@ -912,29 +1014,22 @@ static bool analyzePrefix(const std::string& w, Pron& out, int depth) {
 }
 
 static bool analyzeCompound(const std::string& w, Pron& out, int depth) {
-    if (w.size() < 6) return false;
-    // Prefer the longest first part.
+    if (w.size() < 7) return false;
+    static const char* const kBadSecond[] = {"age", "ate", "ant", "ent", "ion", "ice", "ive", "ism", "ist", "ize",
+                                             "ess", "est", "ous", "ary", "ory", "ery", "ance", "ence", "able",
+                                             "ible", "ity", "ure", "ing", "ness", "less", "ment", "ful", "ship",
+                                             "hood", "ward", "ers", "ions", "age", "ages", "ates", "ants", "ents",
+                                             "tion", "sion", "ted", "ted"};
     for (int split = (int)w.size() - 3; split >= 3; split--) {
         std::string a = w.substr(0, (size_t)split), b = w.substr((size_t)split);
+        bool bad = false;
+        for (size_t k = 0; k < ARRAY_COUNT(kBadSecond) && !bad; k++) bad = b == kBadSecond[k];
+        if (bad) continue;
         Pron pa, pb;
-        const char* ea = dictLookup(a);
-        if (!ea || ea[0] == '~') continue;  // function words rarely start compounds
-        const char* eb = dictLookup(b);
-        bool okb = false;
-        if (eb) okb = pronFromEntry(eb, pb, nullptr);
-        else if (depth > 0) okb = analyzeSuffix(b, pb, 0);
+        if (!stemLookup(a, pa)) continue;
+        bool okb = stemLookup(b, pb);
+        if (!okb && depth > 0 && b.size() >= 4) okb = analyzeSuffix(b, pb, 0);
         if (!okb) continue;
-        pronFromEntry(ea, pa, nullptr);
-        // function-word entries carry reduced stress; give the first part primary stress
-        bool hasPrimary = false;
-        for (PhS& x : pa)
-            if (x.stress == 1) hasPrimary = true;
-        if (!hasPrimary)
-            for (PhS& x : pa)
-                if (isVowel(x.ph)) {
-                    x.stress = 1;
-                    break;
-                }
         demotePrimary(pb);
         out.insert(out.end(), pa.begin(), pa.end());
         out.insert(out.end(), pb.begin(), pb.end());

@@ -8,9 +8,33 @@ Texture2D<float2> tNormal : register(t1);
 Texture2D<float4> tMaterial : register(t2);
 Texture2D<float3> tEmissive : register(t3);
 Texture2D<float> tDepth : register(t4);
-Texture2D<float> tAO : register(t5);
+Texture2D<float4> tAOGI : register(t5);        // half res: rgb indirect diffuse (pre-exposed), a ambient visibility
 Texture2D<float4> tClouds : register(t6);
+Texture2D<float> tHalfDepth : register(t8);     // half-res linear depth (bilateral upsample of AO/GI)
+Texture2D<float2> tHalfNormal : register(t9);
 RWTexture2D<float4> uHDR : register(u0);
+
+// Depth/normal-aware upsample of the half-resolution AO + indirect diffuse.
+float4 upsampleAOGI(uint2 pix, float z, float3 N) {
+    if (gSSParams.x < 0.5) return float4(0, 0, 0, 1);
+    float2 hp = (pix + 0.5) * 0.5 - 0.5;
+    int2 b = (int2)floor(hp);
+    float2 f = hp - b;
+    int2 mx = int2(gHalfScreen.xy) - 1;
+    float4 sum = 0;
+    float wsum = 0;
+    [unroll] for (int k = 0; k < 4; k++) {
+        int2 o = int2(k & 1, k >> 1);
+        int2 q = clamp(b + o, int2(0, 0), mx);
+        float bw = (o.x ? f.x : 1.0 - f.x) * (o.y ? f.y : 1.0 - f.y);
+        float qz = tHalfDepth[q];
+        float3 qn = octDecode(tHalfNormal[q] * 2.0 - 1.0);
+        float w = bw * (exp(-abs(qz - z) / (0.04 * z + 0.03)) * pow(saturate(dot(qn, N) * 0.5 + 0.5), 8.0) + 1e-4);
+        sum += tAOGI[q] * w;
+        wsum += w;
+    }
+    return sum / max(wsum, 1e-6);
+}
 
 // Local lights (streetlights, windows, neon, headlights...). Positions relative to the camera.
 struct LightGPU {
@@ -51,7 +75,7 @@ float3 localLightBRDF(GBufferData g, float3 N, float3 V, float3 L) {
 groupshared uint gsMinZ, gsMaxZ, gsLightCount;
 groupshared uint gsLights[256];
 
-float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float shadow, float ao) {
+float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float shadow, float ao, float3 gi) {
     float3 N = g.normal;
     float3 L = gSunDir.xyz;
     float3 H = normalize(V + L);
@@ -101,7 +125,8 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
     float3 mbB = -4.7951 * diffColor + 0.6417;
     float3 mbC = 2.7552 * diffColor + 0.6903;
     float3 aoMB = max(ao, ((ao * mbA + mbB) * ao + mbC) * ao);
-    float3 ambientDiffuse = diffColor * evalSH9(N) * aoMB;
+    // Sky/ground SH through the visibility term + one-bounce screen-space indirect diffuse
+    float3 ambientDiffuse = diffColor * (evalSH9(N) * aoMB + gi);
     float3 R = reflect(-V, N);
     float2 ab = envBRDFApprox(g.rough, NoV);
     float specOcc = saturate(pow(NoV + ao, exp2(-16.0 * g.rough - 1.0)) - 1.0 + ao);
@@ -171,12 +196,14 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
     float viewDepth = dot(relPos, gCamForward.xyz);
     float shadow = 1;
     float ao = 1;
+    float4 aogi = float4(0, 0, 0, 1);
     if (g.shadingModel == SM_UNLIT) {
         color = g.albedo;
     } else {
         shadow = sampleSunShadow(relPos, g.normal, viewDepth, id.xy);
-        ao = min(g.ao, tAO.SampleLevel(sLinearClamp, uv, 0));
-        color = shadeSurface(g, relPos, V, sunE, shadow, ao);
+        aogi = upsampleAOGI(id.xy, linearDepth(depth), g.normal);
+        ao = g.ao * aogi.a;
+        color = shadeSurface(g, relPos, V, sunE, shadow, ao, aogi.rgb / preExposure());
         // Local lights
         uint n = min(gsLightCount, 256u);
         float3 local = 0;
@@ -197,7 +224,7 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         color += local * lerp(0.6, 1.0, ao);
     }
     int dbg = (int)gRenderParams.w;
-    if (dbg > 0) {
+    if (dbg > 0 && uv.x >= gRenderParams.y) {
         float3 o = 0;
         if (dbg == 1) o = g.albedo;
         else if (dbg == 2) o = g.normal * 0.5 + 0.5;
@@ -209,6 +236,8 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         else if (dbg == 8) o = aerialPerspective(uv, dist).rgb * preExposure() * 10.0;
         else if (dbg == 9) o = sunE * preExposure();
         else if (dbg == 10) o = min(gsLightCount, 64u) / 64.0;
+        else if (dbg == 11) o = aogi.a;
+        else if (dbg == 12) o = aogi.rgb * 4.0;
         if (any(isnan(o))) o = float3(1, 0, 1);
         uHDR[id.xy] = float4(o, 1);
         return;

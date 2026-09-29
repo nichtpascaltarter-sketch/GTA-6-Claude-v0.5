@@ -92,6 +92,9 @@ struct SkySystem {
 #include "water.cpp"
 #include "post.cpp"
 #include "clouds.cpp"
+#include "screenspace.cpp"
+#include "ssao.cpp"
+#include "particles.cpp"
 
 namespace UI { gfx::Texture buildSignAtlas(const std::vector<std::string>& names); }
 
@@ -130,7 +133,17 @@ bool Renderer::init(int w, int h) {
     dynamic->init(materials);
     shadows->casters.push_back([this](Renderer& r, const mat4& vp, int cascade) { dynamic->drawShadow(r, vp, cascade); });
     shadows->casters.push_back([this](Renderer& r, const mat4& vp, int cascade) { props->drawShadow(r, world->cells, vp, cascade); });
+    particles = new ParticleSystem();
+    decals = new DecalSystem();
+    ss = new ScreenSpaceSystem();
+    ss->init();
+    ao = new AOSystem();
+    ao->init();
     createTargets();
+    if (const char* ds = Platform::argValue("debugsplit")) {
+        debugView = atoi(ds);
+        debugSplit = 0.5f;
+    }
     return true;
 }
 
@@ -167,6 +180,8 @@ void Renderer::createTargets() {
     cloudsTex = createTexture2D(1, 1, DXGI_FORMAT_R16G16B16A16_FLOAT, TEX_SRV, 1, 1, cl, 8);
     post->resize(width, height);
     if (clouds) clouds->resize(width, height);
+    ss->resize(width, height);
+    ao->resize(ss->halfW, ss->halfH);
 }
 
 void Renderer::releaseTargets() {
@@ -272,10 +287,27 @@ void Renderer::updateFrameConstants(const Camera& cam, const Environment& env, f
     f.fog = vec4(env.fogDensity, 0.15f, 0.f, 1.0f + env.fogDensity * 2.f + env.rain * 1.5f);
     f.exposure = vec4(exposure, 1.f / exposure, ev100, nightFactor);
     f.camForward = vec4(cam.forward(), cam.fovY);
-    f.renderParams = vec4((float)settings.shadowCascades, 1.f, settings.ssr ? 1.f : 0.f, (float)debugView);
+    f.renderParams = vec4((float)settings.shadowCascades, debugView > 0 ? debugSplit : 0.f, settings.ssr ? 1.f : 0.f, (float)debugView);
     f.lightning = vec4(env.lightning, 0, 0, 0);
     f.cloudShadow = vec4((float)cam.pos.x, (float)cam.pos.y, 8192.f, 0.85f);
     f.planetParams = vec4(0, 0, Max(0.001f, (float)cam.pos.z * 0.001f + 0.002f), env.haze * (1.f + env.rain * 2.f + env.fogDensity * 3.f));
+    bool aoOn = settings.ssao && settings.aoQuality > 0;
+    bool ssrOn = settings.ssr && settings.ssrQuality > 0;
+    f.ssParams = vec4(aoOn ? 1.f : 0.f, aoOn && settings.ssgi ? 1.f : 0.f, ssrOn ? 1.f : 0.f, settings.ssrMaxRoughness);
+    f.halfScreen = vec4((float)ss->halfW, (float)ss->halfH, 1.f / ss->halfW, 1.f / ss->halfH);
+    f.fogParams0 = vec4(0.f);
+    f.fogParams1 = vec4(0.f);
+    f.overhead = vec4(0.f);
+    f.envProbe = vec4(0.f);
+    f.weather2 = vec4(0.f);
+    // How much of the horizon band is taken by (partly sunlit) facades: drives the warm urban bounce in the sky SH
+    float urban = 0.f;
+    if (map) {
+        const World::RegionInfo& ri = World::regionInfo(map->regionAt((float)cam.pos.x, (float)cam.pos.y));
+        urban = ri.urban * Saturate((ri.minFloors + ri.maxFloors) * 0.5f / 8.f);
+    }
+    urbanEnclosure = frameIndex == 0 ? urban : Lerp(urbanEnclosure, urban, Clamp(dt * 0.5f, 0.f, 1.f));
+    f.ambientParams = vec4(urbanEnclosure, 0.f, 0.f, 0.f);
     frameCB.data = f;
     frameCB.upload();
 }
@@ -354,6 +386,16 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     c->OMSetRenderTargets(0, nullptr, nullptr);
     gfx::gpuTimerEnd();
 
+    // Screen-space inputs (depth pyramid, previous frame color pyramid) and AO / indirect diffuse
+    gfx::gpuTimerBegin("hiz+pyramid");
+    ss->buildHiZ(*this);
+    ss->buildColorPyramid(*this, post->finalSrv, post->historyValid && !cameraCut);
+    gfx::gpuTimerEnd();
+    gfx::gpuTimerBegin("ao+gi");
+    bindGlobals(*this, false);
+    ID3D11ShaderResourceView* aoSrv = ao->run(*this, *ss);
+    gfx::gpuTimerEnd();
+
     // Local lights: static world lights + gameplay lights
     {
         Frustum fr;
@@ -388,13 +430,14 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     c->CSSetConstantBuffers(3, 1, scb);
     ID3D11Buffer* lcb[] = {lightCB.get()};
     c->CSSetConstantBuffers(2, 1, lcb);
-    ID3D11ShaderResourceView* srvs[8] = {gbAlbedo.srv, gbNormal.srv, gbMaterial.srv, gbEmissive.srv, depth.srv,
-                                         post->whiteTex.srv, settings.clouds ? clouds->output() : cloudsTex.srv, lightBuf.srv};
-    c->CSSetShaderResources(0, 8, srvs);
+    ID3D11ShaderResourceView* srvs[10] = {gbAlbedo.srv, gbNormal.srv, gbMaterial.srv, gbEmissive.srv, depth.srv,
+                                          aoSrv ? aoSrv : post->whiteTex.srv, settings.clouds ? clouds->output() : cloudsTex.srv,
+                                          lightBuf.srv, ss->depthCur(), ss->halfNormal.srv};
+    c->CSSetShaderResources(0, 10, srvs);
     c->CSSetUnorderedAccessViews(0, 1, &hdr.uav, nullptr);
     c->CSSetShader(csLighting, nullptr, 0);
     c->Dispatch(gfx::divUp(width, 16), gfx::divUp(height, 16), 1);
-    gfx::unbindCSResources(8, 1);
+    gfx::unbindCSResources(10, 1);
     gfx::gpuTimerEnd();
 
     // Water (forward, reads copies of the lit scene and depth)
@@ -417,8 +460,13 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     prevCamPos = cam.pos;
     prevViewProjNoJitter = viewProjNoJitter;
     dynamic->endFrame();
+    particles->requests.clear();
+    particles->tracers.clear();
+    decals->requests.clear();
+    decals->skids.clear();
     frameIndex++;
     cameraCut = false;
+    if ((frameIndex % 30) == 0 && Platform::hasArg("gputimers")) LOG("GPU timers (frame %u):\n%s", frameIndex, gfx::gpuTimerReport().c_str());
 }
 
 }  // namespace Render

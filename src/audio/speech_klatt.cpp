@@ -131,6 +131,7 @@ struct FrameBuilder {
     std::vector<Bound> bounds;  // bounds[i] = boundary before segment i; bounds[M] = end
     KTrack av, ah, af, rd, tilt, fhp;
     KTrack ff[3], fb[3], fa[3], ab;
+    std::vector<std::pair<float, float>> clicks;  // release transients (time, amplitude) into the cascade
 
     FrameBuilder(const Utterance& uu, const Audio::VoiceParams& v) : u(uu), voice(v) {
         fsc = Clamp(v.formantScale, 0.7f, 1.5f);
@@ -170,7 +171,7 @@ struct FrameBuilder {
             }
             if (a.vowel && S[i].stress == 0 && (S[i].ph == PH_AX || S[i].ph == PH_IX)) {
                 // schwa takes on some of the colour of the following consonant (lower F2 before labials etc.)
-                int nx = i + 1 < M ? S[i + 1].ph : PH_SIL;
+                int nx = i + 1 < M ? (int)S[i + 1].ph : (int)PH_SIL;
                 if (hasFlag(nx, PF_LABIAL)) a.T0[1] = a.T1[1] = a.T0[1] - 150.f * fsc;
                 if (hasFlag(nx, PF_VELAR) || hasFlag(nx, PF_POSTALV)) a.T1[1] += 100.f * fsc;
             }
@@ -195,6 +196,13 @@ struct FrameBuilder {
                 }
             }
         }
+        // Intervocalic /h/ glides between its neighbours (no formant jump that would sound like a stop release).
+        for (int i = 1; i + 1 < M; i++) {
+            if (S[i].ph != PH_HH) continue;
+            int pv = S[i - 1].ph, nx = S[i + 1].ph;
+            if ((isVowel(pv) || hasFlag(pv, PF_SONOR)) && (isVowel(nx) || hasFlag(nx, PF_SONOR)))
+                for (int k = 0; k < 3; k++) aco[i].T0[k] = aco[i - 1].T1[k], aco[i].T1[k] = aco[i + 1].T0[k];
+        }
         bounds.resize(M + 1);
         for (int k = 0; k < 3; k++) {
             bounds[0].V[k] = aco.empty() ? 500.f : aco[0].T0[k];
@@ -214,7 +222,7 @@ struct FrameBuilder {
         const Bound& R = bounds[i + 1];
         for (int k = 0; k < 3; k++) {
             float ts = a.T0[k], te = a.T1[k];
-            float tgt = a.diph ? Lerp(ts, te, SmoothStep(0.2f, 0.85f, uu)) : Lerp(ts, te, Saturate(uu));
+            float tgt = a.diph ? Lerp(ts, te, SmoothStep(0.22f, 1.0f, uu)) : Lerp(ts, te, Saturate(uu));
             float dl = L.dr[k], dr = R.dl[k];
             float devL = dl > 0.f ? (L.V[k] - ts) * trans((t - s0) / dl) : 0.f;
             float devR = dr > 0.f ? (R.V[k] - te) * trans((s1 - t) / dr) : 0.f;
@@ -236,7 +244,6 @@ struct FrameBuilder {
         const std::vector<Seg>& S = u.segs;
         int M = (int)S.size();
         const float breath = Saturate(voice.breathiness);
-        const float rough = Saturate(voice.roughness);
         float rd0 = 0.62f + 0.3f * Saturate((voice.pitch - 110.f) / 100.f) + 1.2f * breath;
         rd.def = rd0;
         tilt.def = 0.f;
@@ -250,8 +257,11 @@ struct FrameBuilder {
             const Seg& s = S[i];
             const PhInfo& p = phInfo(s.ph);
             float t0 = s.t0, d = s.dur, t1 = t0 + d;
-            int prev = i > 0 ? S[i - 1].ph : PH_SIL, next = i + 1 < M ? S[i + 1].ph : PH_SIL;
+            int prev = i > 0 ? (int)S[i - 1].ph : (int)PH_SIL, next = i + 1 < M ? (int)S[i + 1].ph : (int)PH_SIL;
             bool prevVoiced = i > 0 && hasFlag(prev, PF_VOICED) && !hasFlag(prev, PF_STOP) && prev != PH_SIL;
+            // voiced stop preceded by a voiced stop whose closure was voiced ("word bat"): voicing continues
+            bool prevVoicedClosure = i > 1 && hasFlag(prev, PF_STOP) && hasFlag(prev, PF_VOICED) &&
+                                     (isVowel(S[i - 2].ph) || hasFlag(S[i - 2].ph, PF_SONOR));
             // previous segment releases into continuing voicing (intervocalic voiced stop / affricate)
             bool prevVoicedRelease = i > 0 && (hasFlag(prev, PF_STOP) || prev == PH_JH) && hasFlag(prev, PF_VOICED) &&
                                      s.vot <= 0.f;
@@ -277,12 +287,13 @@ struct FrameBuilder {
                 float A = dbLin(db);
                 float on = t0 + s.vot;
                 bool fromSilence = !prevVoiced && !prevVoicedRelease;
-                float ramp = (prev == PH_SIL) ? 0.01f : (fromSilence ? 0.008f : 0.006f);
+                float ramp = prev == PH_Q ? 0.005f : prev == PH_SIL ? 0.015f : (fromSilence ? 0.008f : 0.006f);
                 if (s.vot > 0.f || fromSilence) {
                     av.add(on, 0.f);
                     av.add(on + ramp, A);
                 } else {
-                    av.add(t0 + 0.004f, A);
+                    bool sonPrev = hasFlag(prev, PF_NASAL) || hasFlag(prev, PF_LIQUID);
+                    av.add(t0 + (sonPrev ? 0.01f : 0.004f), A);
                 }
                 bool nextVoiceless = !(hasFlag(next, PF_VOICED)) || next == PH_SIL;
                 bool prePause = next == PH_SIL || i + 1 >= M;
@@ -302,15 +313,22 @@ struct FrameBuilder {
                 av.add(t0 + 0.008f, A);
                 av.add(t1 - 0.008f, A * 0.9f);
             } else if (s.ph == PH_JH) {
+                // closure with a low-passed voice bar, then voiced frication
                 float A = dbLin(p.av);
-                av.add(t0 + 0.006f, prevVoiced ? A * 0.7f : 0.f);
-                av.add(t1 - 0.006f, A);
+                bool vc = prevVoiced || isVowel(prev) || prevVoicedClosure;
+                bool merged = i > 0 && hasFlag(prev, PF_STOP) && (S[i - 1].flags & SF_UNRELEASED);
+                float tc = t0 + (merged ? 0.12f : 0.45f) * d;
+                float bar = dbLin(42.f);
+                av.add(t0 + 0.006f, vc ? bar : 0.f);
+                av.add(std::max(t0 + 0.007f, tc - 0.004f), vc ? bar * 0.8f : bar * 0.5f);
+                av.add(tc + 0.006f, A * 0.8f);
+                av.add(t1 - 0.006f, A * 0.8f);
             } else if (hasFlag(s.ph, PF_STOP) && hasFlag(s.ph, PF_VOICED)) {
                 // Voice bar: through the whole closure after voiced sounds, otherwise prevoicing in its last part.
                 float burst = p.burstMs * 0.001f;
                 float A = dbLin(p.av);
                 float tb = t1 - burst;
-                if (prevVoiced || isVowel(prev)) {
+                if (prevVoiced || isVowel(prev) || prevVoicedClosure) {
                     av.add(t0 + 0.006f, A);
                     av.add(std::max(t0 + 0.007f, tb - 0.004f), A * 0.7f);
                 } else {
@@ -320,7 +338,7 @@ struct FrameBuilder {
                     av.add(pv + 0.008f, A * 0.6f);
                     av.add(std::max(pv + 0.009f, tb - 0.003f), A * 0.6f);
                 }
-                bool releaseVoiced = (prevVoiced || isVowel(prev)) && i + 1 < M &&
+                bool releaseVoiced = (prevVoiced || isVowel(prev) || prevVoicedClosure) && i + 1 < M &&
                                      (isVowel(next) || hasFlag(next, PF_SONOR)) && S[i + 1].vot <= 0.f;
                 if (releaseVoiced) {
                     av.add(tb + 0.001f, A * 0.6f);
@@ -336,8 +354,8 @@ struct FrameBuilder {
             } else if (s.ph == PH_HH) {
                 bool nextV = isVowel(next) || hasFlag(next, PF_SONOR);
                 if (prevVoiced && nextV) {
-                    av.add(t0 + 0.3f * d, dbLin(42.f));
-                    av.add(t1 - 0.3f * d, dbLin(42.f));
+                    av.add(t0 + 0.3f * d, dbLin(33.f));
+                    av.add(t1 - 0.3f * d, dbLin(33.f));
                 } else {
                     av.add(t0 + 0.004f, 0.f);
                     av.add(t1 - 0.001f, 0.f);
@@ -358,7 +376,7 @@ struct FrameBuilder {
             }
             if (s.vot > 0.f && i > 0 && hasFlag(prev, PF_STOP) && !hasFlag(prev, PF_VOICED)) {
                 bool asp = (S[i - 1].flags & SF_ASPIRATED) != 0;
-                float L0 = dbLin(asp ? 57.f : 48.f), L1 = dbLin(asp ? 52.f : 42.f);
+                float L0 = dbLin(asp ? 51.f : 45.f), L1 = dbLin(asp ? 47.f : 40.f);
                 ah.add(t0 - 0.0005f, 0.f);
                 ah.add(t0 + 0.0015f, L0);
                 ah.add(t0 + s.vot * 0.85f, L1);
@@ -402,13 +420,15 @@ struct FrameBuilder {
                 float L = dbLin(db);
                 bool sib = hasFlag(s.ph, PF_SIBILANT);
                 float rin = std::min(sib ? 0.022f : 0.012f, 0.35f * d), rout = std::min(0.014f, 0.3f * d);
-                af.add(t0, 0.f);
+                float pre = (i > 0 && (isVowel(prev) || hasFlag(prev, PF_SONOR))) ? 0.008f : 0.f;
+                af.add(t0 - pre, 0.f);
                 af.add(t0 + rin, L);
                 af.add(t1 - rout, L);
                 af.add(t1 + 0.002f, 0.f);
                 setSpectrum(t0, t1, p, 0.f);
             } else if (hasFlag(s.ph, PF_AFFR)) {
-                float tc = t0 + 0.36f * d;
+                bool mergedClosure = i > 0 && hasFlag(prev, PF_STOP) && (S[i - 1].flags & SF_UNRELEASED);
+                float tc = t0 + (mergedClosure ? 0.12f : 0.45f) * d;
                 float L = dbLin(p.af + shoutDb * 0.5f);
                 af.add(t0, 0.f);
                 af.add(tc - 0.0005f, 0.f);
@@ -425,7 +445,12 @@ struct FrameBuilder {
                 burst = std::min(burst, 0.6f * d);
                 float tb = t1 - burst;
                 float db = p.burstAf + shoutDb * 0.5f;
-                if (s.flags & SF_UNRELEASED) db -= 14.f;
+                if (s.flags & SF_UNRELEASED) {
+                    // weak release only when the next stop has a different place (keeps the place cue)
+                    u32 placeMask = PF_LABIAL | PF_ALVEOLAR | PF_VELAR | PF_POSTALV;
+                    bool homorganic = (phInfo(next).flags & placeMask) == (p.flags & placeMask);
+                    db = homorganic ? 0.f : db - 16.f;
+                }
                 if (!(s.flags & SF_STRESSED) && !(s.flags & SF_PREPAUSE)) db -= 2.f;
                 float L = dbLin(db);
                 af.add(t0, 0.f);
@@ -440,6 +465,12 @@ struct FrameBuilder {
                     velarF = bd.V[1] > 1700.f * fsc ? 0.5f * (bd.V[1] + bd.V[2]) : bd.V[1] * 1.05f;
                 }
                 setSpectrum(t0, t1, affricated ? phInfo(PH_CH) : p, velarF);
+                if (!(s.flags & SF_UNRELEASED)) {
+                    // Release transient: an impulse exciting the whole vocal tract (dominant cue for labials).
+                    float amp = hasFlag(s.ph, PF_LABIAL) ? 1.0f : hasFlag(s.ph, PF_VELAR) ? 0.2f : 0.25f;
+                    amp *= hasFlag(s.ph, PF_VOICED) ? 0.6f : 1.3f;
+                    clicks.push_back(std::make_pair(tb, amp));
+                }
                 if ((s.flags & SF_PREPAUSE) && !hasFlag(s.ph, PF_VOICED)) {
                     // audible release of a final voiceless stop
                     ah.add(t1 - 0.0005f, 0.f);
@@ -448,7 +479,7 @@ struct FrameBuilder {
                 }
             } else {
                 af.add(t0 + 0.002f, 0.f);
-                af.add(t1 - 0.002f, 0.f);
+                af.add(std::max(t0 + 0.003f, t1 - 0.012f), 0.f);
             }
 
             // ---- source quality
@@ -462,7 +493,12 @@ struct FrameBuilder {
             } else if (hasFlag(s.ph, PF_NASAL)) {
                 r += 0.1f;
                 tl = 2.f;
-            } else if (hasFlag(s.ph, PF_FRIC) || s.ph == PH_JH) {
+            } else if (hasFlag(s.ph, PF_AFFR)) {
+                r += 0.4f;
+                tilt.add(t0 + 0.2f * d, 16.f);
+                tilt.add(t0 + 0.42f * d, 16.f);
+                tl = 6.f;
+            } else if (hasFlag(s.ph, PF_FRIC)) {
                 r += 0.3f;
                 tl = 6.f;
             } else if (hasFlag(s.ph, PF_STOP)) {
@@ -474,7 +510,6 @@ struct FrameBuilder {
                 r += 0.05f;
             }
             if (s.flags & SF_SHOUT) r -= 0.3f;
-            (void)rough;
             rd.add(t0 + 0.5f * d, Clamp(r, 0.35f, 2.6f));
             tilt.add(t0 + 0.25f * d, tl);
             tilt.add(t1 - 0.25f * d, tl);
@@ -494,7 +529,7 @@ struct FrameBuilder {
 // Frame generation
 
 static void buildFrames(const Utterance& u, const std::vector<F0Point>& f0pts, const Audio::VoiceParams& voice,
-                        std::vector<Frame>& frames) {
+                        std::vector<Frame>& frames, std::vector<std::pair<float, float>>& clicks) {
     FrameBuilder fb(u, voice);
     fb.setupAcoustics();
     fb.buildEnvelopes();
@@ -549,14 +584,18 @@ static void buildFrames(const Utterance& u, const std::vector<F0Point>& f0pts, c
             float e = std::min(t - s0, s1 - t);
             place = Saturate(e / 0.008f);
             placeF = phInfo(s.ph).nasalZero * fsc;
+        } else if (hasFlag(s.ph, PF_LIQUID) && phInfo(s.ph).nasalZero > 0.f) {
+            float e = std::min(t - s0, s1 - t);
+            place = 0.75f * Saturate(e / 0.012f);  // lateral anti-resonance
+            placeF = phInfo(s.ph).nasalZero * fsc;
         } else if (isVowel(s.ph)) {
             if (seg + 1 < M && hasFlag(S[seg + 1].ph, PF_NASAL)) {
-                float w = std::min(0.1f, 0.6f * s.dur);
-                nas = std::max(nas, 0.7f * Saturate((t - (s1 - w)) / w));
+                float w = std::min(0.07f, 0.45f * s.dur);
+                nas = std::max(nas, 0.45f * Saturate((t - (s1 - w)) / w));
             }
             if (seg > 0 && hasFlag(S[seg - 1].ph, PF_NASAL)) {
-                float w = std::min(0.04f, 0.4f * s.dur);
-                nas = std::max(nas, 0.5f * (1.f - Saturate((t - s0) / w)));
+                float w = std::min(0.03f, 0.3f * s.dur);
+                nas = std::max(nas, 0.35f * (1.f - Saturate((t - s0) / w)));
             }
         }
         F.nasal = nas;
@@ -590,7 +629,7 @@ static void buildFrames(const Utterance& u, const std::vector<F0Point>& f0pts, c
             }
         }
         if (isVowel(s.ph)) {
-            int pv = seg > 0 ? S[seg - 1].ph : PH_SIL;
+            int pv = seg > 0 ? (int)S[seg - 1].ph : (int)PH_SIL;
             float on = s0 + s.vot;
             if (t >= on) {
                 if (hasFlag(pv, PF_OBSTRUENT) && !hasFlag(pv, PF_VOICED)) st += 1.3f * expf(-(t - on) / 0.03f);
@@ -603,14 +642,22 @@ static void buildFrames(const Utterance& u, const std::vector<F0Point>& f0pts, c
         }
         F.f0 = Clamp(voice.pitch * powf(2.f, st / 12.f), 40.f, 650.f);
 
-        // creak toward the end of falling phrases, stronger with roughness
+        // creak toward the end of falling phrases, stronger with roughness; creaky onset after a glottal stop
         float creak = rough * 0.12f;
+        if (isVowel(s.ph) && seg > 0 && (S[seg - 1].ph == PH_Q || S[seg - 1].ph == PH_SIL))
+            creak += 0.9f * (1.f - Saturate((t - s0) / 0.035f));
+        // glottalized onset of a vowel-initial function word after a consonant ("in a") marks the word boundary
+        if (isVowel(s.ph) && (s.flags & SF_WORD_START) && (s.flags & SF_FUNCTION) && seg > 0 &&
+            !isVowel(S[seg - 1].ph) && S[seg - 1].ph != PH_SIL)
+            creak += 0.8f * (1.f - Saturate((t - s0) / 0.03f));
         if ((s.flags & SF_PHRASE_FINAL) && (s.flags & SF_PREPAUSE || (seg + 1 < M && S[seg + 1].ph == PH_SIL))) {
             float x = Saturate((t - s0) / std::max(0.02f, s.dur));
             creak += (0.15f + 0.75f * rough) * x * x;
         }
         F.creak = Saturate(creak);
     }
+    clicks = fb.clicks;
+    std::sort(clicks.begin(), clicks.end());
     // Light smoothing of F0 and formant tracks (binomial 1-2-1, two passes).
     for (int pass = 0; pass < 2; pass++) {
         float prevF0 = frames[0].f0, prevF[3] = {frames[0].f[0], frames[0].f[1], frames[0].f[2]};
@@ -843,7 +890,12 @@ void render(const Utterance& u, const std::vector<F0Point>& f0pts, const Audio::
     if (u.segs.empty() || u.total <= 0.f) return;
     const float sr = (float)Clamp(sampleRate, 8000, 96000);
     std::vector<Frame> frames;
-    buildFrames(u, f0pts, voice, frames);
+    std::vector<std::pair<float, float>> clicks;
+    buildFrames(u, f0pts, voice, frames, clicks);
+    size_t clickIdx = 0;
+    const int pulseLen = std::max(2, (int)(0.00025f * sr + 0.5f));  // 0.25 ms half-sine release transient
+    int pulsePos = -1;
+    float pulseAmp = 0.f;
     const int nF = (int)frames.size();
     const int nS = (int)((nF - 1) * kFrameSec * sr);
     if (nS <= 0) return;
@@ -1027,6 +1079,16 @@ void render(const Utterance& u, const std::vector<F0Point>& f0pts, const Audio::
             float na = aspHP.tick(nAsp.gaussish());
             float asp = na * (ahv * 0.55f + av * breathMix * (0.25f + 0.75f * Clamp(flowN, 0.f, 1.2f)));
             float x = voice * av + asp;
+            // release transients (stop bursts exciting the vocal tract)
+            if (clickIdx < clicks.size() && n >= (int)(clicks[clickIdx].first * sr)) {
+                pulsePos = 0;
+                pulseAmp = clicks[clickIdx].second;
+                clickIdx++;
+            }
+            if (pulsePos >= 0) {
+                x += 3.f * pulseAmp * sinf(kPi * ((float)pulsePos + 0.5f) / (float)pulseLen);
+                if (++pulsePos >= pulseLen) pulsePos = -1;
+            }
 
             // ---- cascade: nasal pole/zero, place anti-resonance, formants
             x = rnp.tick(x);
@@ -1056,15 +1118,30 @@ void render(const Utterance& u, const std::vector<F0Point>& f0pts, const Audio::
         }
     }
 
-    // Normalize to peak 0.8 and apply de-click fades.
-    float peak = 0.f;
+    // Loudness consistency: gently compress rare peaks (bursts, onsets) above the 99.5th percentile with a soft
+    // knee, then normalize to peak 0.8 and apply de-click fades.
+    std::vector<float> mag;
+    mag.reserve((size_t)nS);
     for (int n = 0; n < nS; n++) {
         float v = dst[n];
-        if (!(v == v) || v > 1e6f || v < -1e6f) {  // NaN / blow-up guard
-            dst[n] = 0.f;
-            continue;
+        if (!(v == v) || v > 1e6f || v < -1e6f) v = dst[n] = 0.f;  // NaN / blow-up guard
+        mag.push_back(fabsf(v));
+    }
+    size_t kth = (size_t)((double)mag.size() * 0.995);
+    if (kth >= mag.size()) kth = mag.size() - 1;
+    std::nth_element(mag.begin(), mag.begin() + (long)kth, mag.end());
+    const float knee = mag[kth];
+    float peak = 0.f;
+    if (knee > 1e-9f) {
+        for (int n = 0; n < nS; n++) {
+            float v = dst[n], a = fabsf(v);
+            if (a > knee) {
+                float over = (a - knee) / knee;
+                a = knee * (1.f + over / (1.f + 1.5f * over));  // asymptotically <= 1.67 * knee
+                dst[n] = v < 0.f ? -a : a;
+            }
+            peak = std::max(peak, a);
         }
-        peak = std::max(peak, fabsf(v));
     }
     float gain = peak > 1e-9f ? 0.8f / peak : 0.f;
     int fin = std::min(nS, (int)(0.004f * sr)), fout = std::min(nS, (int)(0.010f * sr));
