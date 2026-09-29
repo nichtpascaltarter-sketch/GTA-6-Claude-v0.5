@@ -120,10 +120,47 @@ void GameWorld::updateCamera(float dt) {
             r.cam.roll = air ? asinf(Clamp(rgt.z, -1.f, 1.f)) : 0.f;
             r.fov = Lerp(r.fov, (65.f + Saturate(spd / 60.f) * 10.f) * kDegToRad, Saturate(rdt * 4.f));
             r.cam.fovY = r.fov;
-            if (c.camMode.pressed) r.vehicleView = 0;
+            if (c.camMode.released) r.vehicleView = 0;
             return;
         }
-        if (c.camMode.pressed) r.vehicleView = (r.vehicleView + 1) % 3;
+        // hold the camera button for cinematic roadside shots; a short press cycles the views
+        if (c.camMode.down) r.camHold += rdt;
+        if (c.camMode.released) {
+            if (!r.cineUsed) r.vehicleView = (r.vehicleView + 1) % 3;
+            r.camHold = 0.f;
+            r.cineUsed = false;
+            r.cineActive = false;
+        }
+        if (r.camHold > 0.35f) {
+            r.cineUsed = true;
+            dvec3 vp = v.sim.body.pos;
+            vec3 toCam = rel(r.cinePos, vp);
+            vec3 vfwd = spd > 2.f ? normalize(vel) : f;
+            // pick a new vantage point ahead of the vehicle when it has passed the current one
+            if (!r.cineActive || dot(toCam, vfwd) < -25.f || length(toCam) > 140.f) {
+                u32 hsh = hash32((u32)(time * 3.0) + v.uid);
+                float side = (hsh & 1) ? 1.f : -1.f;
+                vec3 rightV = normalize(cross(vfwd, vec3(0, 0, 1)));
+                float ahead = 25.f + Min(spd, 40.f) * 1.2f;
+                vec3 cp = vp.toVec3() + vfwd * ahead + rightV * (side * (6.f + (hsh >> 4) % 6)) ;
+                float gz = groundHeight(cp.x, cp.y, cp.z + 20.f);
+                cp.z = Max(cp.z, gz) + (air ? 6.f : 1.2f + ((hsh >> 8) % 3));
+                if (air) cp = vp.toVec3() - vfwd * 18.f + rightV * (side * 12.f) + vec3(0, 0, 4.f);
+                r.cinePos = dvec3(cp);
+                r.cineActive = true;
+                r.cut = true;
+            }
+            vec3 d = rel(vp + dvec3(0, 0, 0.8), r.cinePos);
+            float dl = length(d);
+            if (dl > 1e-3f) d = d / dl;
+            r.cam.pos = r.cinePos;
+            r.cam.yaw = atan2f(-d.x, d.y);
+            r.cam.pitch = asinf(Clamp(d.z, -1.f, 1.f));
+            r.cam.roll = 0.f;
+            r.fov = Lerp(r.fov, Clamp(900.f / Max(dl, 5.f), 18.f, 55.f) * kDegToRad, Saturate(rdt * 3.f));
+            r.cam.fovY = r.fov;
+            return;
+        }
         minPitch = -1.2f;
         maxPitch = 0.8f;
     } else {

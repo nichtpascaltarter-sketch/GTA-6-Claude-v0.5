@@ -57,6 +57,10 @@ struct CameraRig {
     float scriptFov = 50.f;
     bool scriptActive = false;
     Render::Camera cam;
+    // cinematic vehicle camera (hold the camera button)
+    float camHold = 0.f;
+    bool cineActive = false, cineUsed = false;
+    dvec3 cinePos;
 };
 
 struct PlayerInfo {
