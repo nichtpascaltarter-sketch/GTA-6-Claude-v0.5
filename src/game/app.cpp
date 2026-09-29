@@ -412,6 +412,7 @@ struct App {
             c.aim.pressed = fmodf(t, 3.f) <= 0.15f + dt && fmodf(t, 3.f) > 0.15f;
             c.attack.down = c.aim.down && fmodf(t, 1.2f) < 0.6f;
             c.move = vec2(t > 8.f ? 0.4f : 0.f, 0.f);  // strafe later
+            if (fmodf(t, 3.f) < 0.5f) c.look = vec2(0.03f, 0.f);  // sweep between re-acquisitions
         }
     }
 #endif

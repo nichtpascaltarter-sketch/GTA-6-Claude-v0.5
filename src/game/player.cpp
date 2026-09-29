@@ -254,7 +254,7 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
         gLockTarget = -1;
         if (c.usingPad) {
             vec3 cf = rig.cam.forward();
-            float best = 0.93f;
+            float best = 0.86f;   // generous cone (~30 deg) like console aim assist
             vec3 eye = rig.cam.pos.toVec3();
             for (int i = 0; i < (int)peds.size(); i++) {
                 const Ped& o = peds[i];
@@ -265,7 +265,7 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
                 if (dist > 70.f || dist < 1.f) continue;
                 float cs = dot(d / dist, cf);
                 bool hostile = o.faction == FAC_ENEMY || o.faction == FAC_POLICE || (o.brain.type == BRAIN_COMBAT && o.brain.target == player);
-                float score = cs + (hostile ? 0.04f : 0.f);
+                float score = cs + (hostile ? 0.08f : -0.04f);
                 if (score > best && lineOfSight(rig.cam.pos, dvec3(tp), player, -1)) {
                     best = score;
                     gLockTarget = i;
