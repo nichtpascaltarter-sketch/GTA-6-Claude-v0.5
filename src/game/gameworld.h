@@ -145,6 +145,9 @@ struct GameWorld {
         rumbleHigh = Max(rumbleHigh, high);
     }
     void updateRumble(float dt);
+    // CPU timings of the last update (ms), shown in the F1 debug overlay
+    float profPlayer = 0, profAI = 0, profVehicles = 0, profPeds = 0, profMisc = 0, profMissions = 0, profCamera = 0;
+    void sanitizeEntities();
     // HUD messages (filled by gameplay/missions, read by the HUD bridge)
     std::string hudNote, hudNoteTitle, hudHelp, hudObjective;
     float hudNoteTimer = 0.f, hudHelpTimer = 0.f;
@@ -310,5 +313,6 @@ struct GameWorld {
 extern GameWorld* gGame;
 void GameWorld_updateRagdoll(GameWorld& g, Ped& p, float dt);
 void freeRagdoll(Ragdoll*& r);
+void GameWorld_respawnPlayer(GameWorld& g);
 
 }  // namespace Game

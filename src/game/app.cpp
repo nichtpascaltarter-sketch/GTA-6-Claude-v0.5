@@ -296,9 +296,11 @@ struct App {
         int np = 0, nv = 0;
         for (auto& p : game.peds) np += p.used;
         for (auto& v : game.vehicles) nv += v.used;
-        s += StrFormat("\npeds %d  vehicles %d  wanted %d", np, nv, game.pinfo.wanted);
+        s += StrFormat("\npeds %d  vehicles %d  wanted %d  |  cpu ms: player %.2f ai %.2f veh %.2f peds %.2f misc %.2f mis %.2f cam %.2f", np, nv,
+                       game.pinfo.wanted, game.profPlayer, game.profAI, game.profVehicles, game.profPeds, game.profMisc, game.profMissions,
+                       game.profCamera);
 #endif
-        UI::roundRect(10, 10, 600, 100, 8, UI::rgba(0, 0, 0, 0.45f));
+        UI::roundRect(10, 10, 980, 100, 8, UI::rgba(0, 0, 0, 0.45f));
         UI::text(20, 16, s.c_str(), st);
     }
 

@@ -155,18 +155,77 @@ void GameWorld::update(float realDt) {
     Phys::gWaves.time = env->gameSeconds;
     Phys::gWaves.windDir = env->windDir;
     Phys::gWaves.strength = env->wind;
+    double t0 = TimeSeconds();
     updatePlayer(dt);
+    double t1 = TimeSeconds();
     updateAI(dt);
+    double t2 = TimeSeconds();
     updateVehicles(dt);
+    double t3 = TimeSeconds();
     updatePeds(dt);
+    double t4 = TimeSeconds();
     updateProjectiles(dt);
     updateFires(dt);
     updatePickups(dt);
     updateWanted(dt);
+    double t5 = TimeSeconds();
     updateMissions(dt);
     updateGps(realDt);
+    double t6 = TimeSeconds();
+    sanitizeEntities();
     updateCamera(realDt);
     updateRumble(realDt);
+    double t7 = TimeSeconds();
+    auto ema = [](float& v, double ms) { v = Lerp(v, (float)ms, 0.1f); };
+    ema(profPlayer, (t1 - t0) * 1000.0);
+    ema(profAI, (t2 - t1) * 1000.0);
+    ema(profVehicles, (t3 - t2) * 1000.0);
+    ema(profPeds, (t4 - t3) * 1000.0);
+    ema(profMisc, (t5 - t4) * 1000.0);
+    ema(profMissions, (t6 - t5) * 1000.0);
+    ema(profCamera, (t7 - t6) * 1000.0);
+}
+
+// Guards against numerical blow-ups or entities escaping the world: non-finite or far-out-of-bounds entities are
+// reset (player) or removed (everyone else) instead of propagating NaNs into rendering/physics.
+void GameWorld::sanitizeEntities() {
+    auto bad = [](dvec3 p) {
+        return !std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z) || fabs(p.x) > 30000.0 || fabs(p.y) > 30000.0 || p.z < -500.0 ||
+               p.z > 6000.0;
+    };
+    for (int i = 0; i < (int)vehicles.size(); i++) {
+        Vehicle& v = vehicles[i];
+        if (!v.used) continue;
+        bool nanVel = !std::isfinite(v.sim.body.vel.x) || !std::isfinite(v.sim.body.vel.y) || !std::isfinite(v.sim.body.vel.z);
+        if (!bad(v.sim.body.pos) && !nanVel) continue;
+        LOG("sanitize: vehicle %d (model %d) invalid state, removing", i, v.model);
+        bool hasPlayer = false;
+        for (int s = 0; s < 8; s++)
+            if (v.seats[s] >= 0 && peds[v.seats[s]].isPlayer) hasPlayer = true;
+        if (hasPlayer) {
+            Ped& p = peds[player];
+            removePedFromVehicle(player, false);
+            GameWorld_respawnPlayer(*this);
+            (void)p;
+        }
+        despawnVehicle(i, true);
+    }
+    for (int i = 0; i < (int)peds.size(); i++) {
+        Ped& p = peds[i];
+        if (!p.used) continue;
+        bool nanVel = !std::isfinite(p.vel.x) || !std::isfinite(p.vel.y) || !std::isfinite(p.vel.z);
+        if (!bad(p.pos) && !nanVel && std::isfinite(p.yaw)) continue;
+        LOG("sanitize: ped %d invalid state", i);
+        if (p.isPlayer) {
+            p.vel = vec3(0);
+            p.yaw = 0.f;
+            freeRagdoll(p.ragdoll);
+            p.state = PS_ONFOOT;
+            GameWorld_respawnPlayer(*this);
+        } else {
+            despawnPed(i);
+        }
+    }
 }
 
 void GameWorld::updateRumble(float dt) {
