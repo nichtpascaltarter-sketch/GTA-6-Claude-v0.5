@@ -583,6 +583,17 @@ struct App {
                 if (autoTime > autoDuration) break;
             }
 #endif
+            // --menushot N: screenshot of the front end after N frames (automated menu test)
+            if (state == AS_MENU && autotest) {
+                static int menuFrames = 0;
+                const char* ms = Platform::argValue("menushot");
+                if (ms && ++menuFrames == atoi(ms)) {
+                    std::string path = shotPath("menu_main");
+                    gfx::saveScreenshotBMP(path.c_str());
+                    LOG("Saved %s", path.c_str());
+                    quit = true;
+                }
+            }
             if (quit) break;
             gfx::present(autotest ? false : renderer.settings.vsync);
         }
