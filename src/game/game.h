@@ -141,6 +141,7 @@ struct Ped {
     float hitReactTimer = 0.f;
     int lastAttacker = -1;
     float lastDamageTime = -100.f;
+    double lastGunfireReport = -100.0, lastCrimeReport = -100.0;
     Ragdoll* ragdoll = nullptr;
     // AI
     Brain brain;

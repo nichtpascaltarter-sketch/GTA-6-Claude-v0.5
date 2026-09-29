@@ -290,7 +290,10 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
             p.weapon = WPN_FISTS;
         }
         if (p.isPlayer) pinfo.shotsFired++;
-        reportCrime(1, p.pos, -1);
+        if (p.isPlayer && time - p.lastGunfireReport > 4.0) {
+            p.lastGunfireReport = time;
+            reportCrime(1, p.pos, -1);
+        }
         return;
     }
     if (wi.clipSize == 0) {
@@ -458,8 +461,11 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
             pinfo.hitMarker = 1.f;
         }
     }
-    bool silent = false;
-    if (!silent) reportCrime(1, p.pos, -1);
+    // gunfire is reported at most once every few seconds per shooter (a burst is one incident)
+    if (time - p.lastGunfireReport > 4.0) {
+        p.lastGunfireReport = time;
+        if (p.isPlayer) reportCrime(1, p.pos, -1);
+    }
     if (p.clip[p.weapon] <= 0 && p.ammo[p.weapon] > 0) p.reloadTimer = wi.reloadTime;
 }
 
@@ -509,7 +515,11 @@ void GameWorld::damagePed(int pid, float amount, DamageType type, int attacker, 
     }
     if (attacker >= 0 && attacker < (int)peds.size() && peds[attacker].isPlayer) {
         bool selfDefense = p.faction != FAC_POLICE && p.weapon != WPN_FISTS && p.brain.type == BRAIN_COMBAT && p.brain.target == attacker;
-        if (!selfDefense) reportCrime(p.faction == FAC_POLICE ? 5 : 0, p.pos, pid);
+        // one assault report per victim every few seconds (a beating is one incident)
+        if (!selfDefense && time - p.lastCrimeReport > 5.0) {
+            p.lastCrimeReport = time;
+            reportCrime(p.faction == FAC_POLICE ? 5 : 0, p.pos, pid);
+        }
     }
 }
 
