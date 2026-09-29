@@ -120,7 +120,14 @@ struct App {
 #ifdef HAVE_GAMEPLAY
         game.init(&renderer, &env, &map, &roads, &buildings);
         weather.seed = (u32)(TimeSeconds() * 1000.0) | 1u;
-        if (Platform::argValue("rain") || Platform::argValue("clouds") || Platform::argValue("fog") || !shots.empty() || autotest) weather.locked = true;
+        if (Platform::argValue("rain") || Platform::argValue("clouds") || Platform::argValue("fog") || !shots.empty() || autotest) {
+            weather.locked = true;
+            WeatherKind k = WX_FAIR;
+            if (const char* rr = Platform::argValue("rain")) k = atof(rr) > 0.7 ? WX_STORM : (atof(rr) > 0.15 ? WX_RAIN : k);
+            if (const char* ff = Platform::argValue("fog")) k = atof(ff) > 0.3 ? WX_FOG : k;
+            if (const char* cc = Platform::argValue("clouds")) k = atof(cc) > 0.75 ? WX_OVERCAST : (atof(cc) > 0.5 ? WX_CLOUDY : (atof(cc) < 0.2 ? WX_CLEAR : k));
+            weather.setImmediate(k);
+        }
 #endif
 #ifdef HAVE_GAME_UI
         UI::hudInit();
@@ -157,11 +164,12 @@ struct App {
     void startNewGame() {
 #ifdef HAVE_GAMEPLAY
         game.newGame();
+        if (const char* t = Platform::argValue("time")) env.timeOfDay = (float)atof(t);   // test override
 #ifdef HAVE_GAME_UI
         UI::hudReset();
 #endif
         state = AS_PLAYING;
-        weather.setImmediate(WX_FAIR);
+        if (!weather.locked) weather.setImmediate(WX_FAIR);
 #ifdef HAVE_GAME_UI
         menu.screen = UI::MENU_NONE;
 #endif
