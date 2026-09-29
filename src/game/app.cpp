@@ -380,10 +380,17 @@ struct App {
             c.look = vec2(sinf(t * 0.5f) * 0.01f, 0.f);
             c.jump.pressed = fmodf(t, 7.f) < dt;
         } else if (autoplay == "drive" || autoplay == "bike") {
-            c.accel = t < 18.f ? 1.f : 0.f;
-            c.brake = t >= 18.f && t < 22.f ? 1.f : 0.f;
-            c.steer = sinf(t * 0.35f) * 0.35f;
-            c.handbrake.down = t > 12.f && t < 13.f;
+            // road-following: the traffic driver AI steers the player's vehicle (exercises both systems)
+            int pv = game.playerVehicle();
+            if (pv >= 0) {
+                game.driveVehicleAI(pv, dt);
+                const Vehicles::VehicleControls& vc = game.vehicles[pv].ctl;
+                c.accel = vc.throttle;
+                c.brake = vc.brake;
+                c.steer = vc.steer;
+                c.usingPad = true;
+            }
+            c.handbrake.down = t > 12.f && t < 12.6f;
         } else if (autoplay == "fly") {
             c.lift = t < 8.f ? 1.f : 0.1f;
             c.pitch = t > 8.f ? -0.35f : 0.f;
