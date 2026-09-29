@@ -70,10 +70,12 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   takedowns, vehicles of every class via vehicle_sim, carjacking, passengers, ragdolls, wanted/busted/wasted,
   population + police dispatch, ambient boats/helis/planes, missions framework + prologue, save/load, weather,
   controller rumble, fades/letterbox.
-- Parallel agents (in progress): vehicle models (src/sim/vehicle_catalog etc.), vehicle dynamics (vehicle_sim*),
-  characters + animation (src/anim), HUD/menus/map (src/ui), renderer effects (GTAO/SSR/GI/fog/rain/particles/
-  grass), world landmarks + airport/port/Key Coral (src/world), traffic/ped/police AI (ai.cpp, population.cpp,
-  police.cpp), story campaign + side activities + economy (story*.cpp, missions*).
+- Integrated 2026-09-29 (agents still refining): procedural characters + clip library + animator (src/anim),
+  ~45 original vehicle models incl. bikes, trucks, boats, planes, helis (src/sim/vehicle_*), full vehicle dynamics
+  (vehicle_sim*), HUD/minimap/map/menus/weapon wheel (src/ui), renderer effects (GTAO, SSR + env probe, volumetric
+  fog, weather/rain, particles, decals, grass), world sites (airport, Port Isle, landmarks, leisure, rural),
+  lane-graph traffic + sidewalk peds + police tactics + ambient events (lanes/traffic_core/pednav/events),
+  story acts 1-3 + mission tests + character switching (story_act*.cpp, missions*, switching.cpp).
 
 ## Gameplay architecture (src/game, src/sim)
 - `app.cpp`: states LOADING (world generated on a thread, loading screen) -> MENU (cinematic flyover + main menu)
