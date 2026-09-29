@@ -100,6 +100,15 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
 - Test automation: `--play` (skip menu), `--autoplay walk|drive|bike|fly|boat|shoot` (scripted input, periodic
   screenshots `auto_<mode>_NN.bmp`, telemetry in the log), `--autoduration S`, `--autoevery S`.
 
+## Backlog (after the current agent wave)
+- Enterable interiors (seamless GTA-V style): hollow shells + interior meshes/props/lights for safehouses, shops,
+  diner, nightclub, police station, hospital; interior light/ambient handling in the renderer.
+- Metro/elevated rail + trams with stations (world geometry + train entities the player can ride).
+- Wildlife: seagulls/pelicans, alligators and herons in the Sawgrass, dolphins, dogs; flocks.
+- Phone UI (contacts, messages, camera/photo mode, map, quick save), social-media feed reacting to player actions.
+- First-person camera option; weapon attachments; character customization shops (barber, tattoos, clothes).
+- Real-GPU performance validation (target 60 fps @1440p on RTX 4070-class); offline shader precompile option.
+
 ## Known issues / next
 - Perf: clouds (half-res full raymarch) too expensive for 60 fps at 1440p -> quarter-res + checkerboard.
 - No SSR/GTAO/GI yet (shadows are sky-blue-ish); no grass; wetland terrain looks flat; foliage quality basic.
