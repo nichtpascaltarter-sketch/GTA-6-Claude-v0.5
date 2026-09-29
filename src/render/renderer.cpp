@@ -84,8 +84,12 @@ struct SkySystem {
 }  // namespace Render
 
 #include "terrain_render.cpp"
+#include "materials.cpp"
+#include "world_render.cpp"
 #include "shadows.cpp"
 #include "post.cpp"
+
+namespace UI { gfx::Texture buildSignAtlas(const std::vector<std::string>& names); }
 
 namespace Render {
 
@@ -105,6 +109,11 @@ bool Renderer::init(int w, int h) {
     post->init();
     terrain = new TerrainRenderer();
     terrain->init();
+    materials = new MaterialLibrary();
+    materials->init(*terrain);
+    world = new WorldRenderer();
+    world->init(materials);
+    shadows->casters.push_back([this](Renderer& r, const mat4& vp, int cascade) { world->drawShadow(r, vp, cascade); });
     createTargets();
     return true;
 }
@@ -116,6 +125,10 @@ void Renderer::shutdown() {
 void Renderer::setWorld(World::WorldMap* m) {
     map = m;
     terrain->setMap(m);
+    if (World::gBuildings) {
+        world->uploadFacades(*World::gBuildings);
+        world->signTex = UI::buildSignAtlas(World::gBuildings->signNames);
+    }
 }
 
 void Renderer::createTargets() {
@@ -281,6 +294,7 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     updateFrameConstants(cam, env, dt);
     bindFrame();
     unbindGlobals();
+    world->update(cam.pos, TimeSeconds());
     gfx::gpuTimerBegin("sky");
     sky->update(*this, frame.planetParams.w);
     gfx::gpuTimerEnd();
@@ -309,6 +323,7 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
     c->RSSetState(gfx::states.cullBack);
     terrain->drawGBuffer(*this);
+    world->drawGBuffer(*this);
     c->OMSetRenderTargets(0, nullptr, nullptr);
     gfx::gpuTimerEnd();
 

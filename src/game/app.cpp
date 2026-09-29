@@ -1,5 +1,7 @@
 // Application: owns the world, renderer and game loop.
 #include "../world/worldmap.h"
+#include "../world/roads.h"
+#include "../world/buildings.h"
 #include "../render/renderer.h"
 #include "../ui/draw2d.h"
 #include "../platform/platform.h"
@@ -14,6 +16,8 @@ struct Shot {
 
 struct App {
     World::WorldMap map;
+    World::RoadNetwork roads;
+    World::BuildingSet buildings;
     Render::Renderer renderer;
     Render::Camera cam;
     Render::Environment env;
@@ -25,6 +29,7 @@ struct App {
     std::vector<Shot> shots;
     int shotIndex = 0, shotFrame = 0;
     int shotSettleFrames = 12;
+    int shotWait = 0;
 
     bool init() {
         int w = Platform::argValue("width") ? atoi(Platform::argValue("width")) : 1600;
@@ -39,6 +44,10 @@ struct App {
         double t0 = TimeSeconds();
         map.generate();
         World::gMap = &map;
+        roads.generate(map);
+        World::gRoads = &roads;
+        buildings.generate(map, roads);
+        World::gBuildings = &buildings;
         renderer.init(Platform::clientWidth(), Platform::clientHeight());
         renderer.setWorld(&map);
         LOG("Init done in %.2f s (shaders: %d compiled in %.2f s)", TimeSeconds() - t0, gfx::shaderCompileCount(),
@@ -116,9 +125,9 @@ struct App {
             st.size = 18.f;
             st.shadow = 1.5f;
             World::Region reg = map.regionAt((float)cam.pos.x, (float)cam.pos.y);
-            std::string s = StrFormat("NEON TIDE  |  %.0f fps (%.2f ms)\npos %.0f %.0f %.0f  |  %s\ntime %05.2f  EV %.1f  draws %d  tris %dk  terrain nodes %d",
+            std::string s = StrFormat("NEON TIDE  |  %.0f fps (%.2f ms)\npos %.0f %.0f %.0f  |  %s\ntime %05.2f  draws %d  tris %dk  cells %d (pending %d)",
                                       fps, frameMs, cam.pos.x, cam.pos.y, cam.pos.z, World::regionInfo(reg).name, env.timeOfDay,
-                                      renderer.ev100, renderer.stats.drawCalls, renderer.stats.triangles / 1000, renderer.stats.terrainNodes);
+                                      renderer.stats.drawCalls, renderer.stats.triangles / 1000, renderer.world->drawnCells, renderer.world->pendingCount());
             UI::roundRect(10, 10, 560, 78, 8, UI::rgba(0, 0, 0, 0.45f));
             UI::text(20, 16, s.c_str(), st);
         }
@@ -173,8 +182,11 @@ struct App {
             drawDebug();
             gfx::gpuTimersResolve();
             if (autoShots) {
-                shotFrame++;
+                // wait for streaming to settle (bounded) before counting frames
+                if (renderer.world->pendingCount() > 0 && shotWait < 600) { shotWait++; }
+                else shotFrame++;
                 if (shotFrame >= shotSettleFrames) {
+                    shotWait = 0;
                     std::string path = std::string("Z:\\tmp\\") + shots[shotIndex].name + ".bmp";
                     if (const char* dir = Platform::argValue("shotdir")) path = std::string(dir) + shots[shotIndex].name + ".bmp";
                     gfx::saveScreenshotBMP(path.c_str());

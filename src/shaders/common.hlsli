@@ -50,6 +50,7 @@ float preExposure() { return gExposureBuf[0].x; }
 // ------------------------------------------------------------------------------------------------
 float3 srgbToLinear(float3 c) { return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4); }
 float3 linearToSrgb(float3 c) { return c <= 0.0031308 ? c * 12.92 : 1.055 * pow(abs(c), 1.0 / 2.4) - 0.055; }
+float3 hsvToRgbF(float h) { return saturate(abs(frac(h + float3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0); }
 float luminance(float3 c) { return dot(c, float3(0.2126, 0.7152, 0.0722)); }
 float sq(float x) { return x * x; }
 float pow5(float x) { float x2 = x * x; return x2 * x2 * x; }

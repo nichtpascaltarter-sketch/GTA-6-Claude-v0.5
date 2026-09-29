@@ -79,6 +79,8 @@ struct SkySystem;
 struct TerrainRenderer;
 struct ShadowSystem;
 struct PostSystem;
+struct MaterialLibrary;
+struct WorldRenderer;
 
 class Renderer {
 public:
@@ -122,6 +124,8 @@ public:
     TerrainRenderer* terrain = nullptr;
     ShadowSystem* shadows = nullptr;
     PostSystem* post = nullptr;
+    MaterialLibrary* materials = nullptr;
+    WorldRenderer* world = nullptr;
     World::WorldMap* map = nullptr;
 
     ID3D11ComputeShader* csLighting = nullptr;

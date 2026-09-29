@@ -4,11 +4,17 @@
 #include "../src/core/noise.cpp"
 #include "../src/core/jobs.cpp"
 #include "../src/world/worldmap.cpp"
+#include "../src/world/roads.cpp"
+#include "../src/world/buildings.cpp"
 #include <thread>
 int main(int argc, char** argv) {
     Jobs::init(Max(1, (int)std::thread::hardware_concurrency() - 1));
     World::WorldMap m;
     m.generate();
+    World::RoadNetwork roads;
+    roads.generate(m);
+    World::BuildingSet bset;
+    bset.generate(m, roads);
     const int R = World::kHeightRes;
     int step = argc > 2 ? atoi(argv[2]) : 2;
     int W = R / step;
@@ -36,6 +42,42 @@ int main(int argc, char** argv) {
             fwrite(px, 1, 3, f);
         }
     fclose(f);
+    // Overlay roads: rasterize into a second image
+    std::vector<unsigned char> img((size_t)W * W * 3);
+    {
+        FILE* r = fopen(argc > 1 ? argv[1] : "/tmp/map.ppm", "rb");
+        char hdr[64]; int ww, hh, mx;
+        fscanf(r, "%2s %d %d %d", hdr, &ww, &hh, &mx); fgetc(r);
+        fread(img.data(), 1, img.size(), r); fclose(r);
+    }
+    float scale = (float)W / (2.f * World::kWorldHalf);
+    auto plot = [&](float x, float y, vec3 c) {
+        int px = (int)((x + World::kWorldHalf) * scale), py = W - 1 - (int)((y + World::kWorldHalf) * scale);
+        if (px < 0 || py < 0 || px >= W || py >= W) return;
+        unsigned char* d = &img[((size_t)py * W + px) * 3];
+        d[0] = (unsigned char)(c.x * 255); d[1] = (unsigned char)(c.y * 255); d[2] = (unsigned char)(c.z * 255);
+    };
+    for (auto& e : roads.edges) {
+        vec3 col = e.cls == World::RC_HIGHWAY ? vec3(1, 0.55f, 0.1f) : e.cls == World::RC_BOULEVARD ? vec3(1, 1, 0.3f) : e.cls == World::RC_RAMP ? vec3(1, 0.3f, 0.3f)
+                 : e.cls == World::RC_RURAL ? vec3(0.9f, 0.85f, 0.7f) : e.cls == World::RC_DIRT ? vec3(0.6f, 0.45f, 0.3f) : vec3(0.95f, 0.95f, 0.95f);
+        if (e.flags & World::RF_BRIDGE) col = col * 0.6f + vec3(0.4f, 0, 0.4f);
+        for (size_t i = 0; i + 1 < e.pts.size(); i++) {
+            vec2 a = e.pts[i].xy(), b = e.pts[i + 1].xy();
+            int n = (int)(length(b - a) * scale * 2) + 1;
+            for (int k = 0; k <= n; k++) { vec2 p = lerp(a, b, (float)k / n); plot(p.x, p.y, col); }
+        }
+    }
+    for (auto& nd : roads.nodes) if (nd.control == 2) plot(nd.p.x, nd.p.y, vec3(0, 1, 0));
+    for (auto& b : bset.buildings) {
+        vec3 col = b.style == World::BS_TOWER ? vec3(0.2f, 0.3f, 0.9f) : b.style == World::BS_HOUSE ? vec3(0.9f, 0.5f, 0.4f) : vec3(0.6f, 0.2f, 0.7f);
+        vec2 ay = perp(b.ax);
+        for (float u = -b.hx; u <= b.hx; u += 2.f)
+            for (float v = -b.hy; v <= b.hy; v += 2.f) { vec2 q = b.c + b.ax * u + ay * v; plot(q.x, q.y, col); }
+    }
+    FILE* o = fopen(argc > 1 ? argv[1] : "/tmp/map.ppm", "wb");
+    fprintf(o, "P6 %d %d 255\n", W, W);
+    fwrite(img.data(), 1, img.size(), o);
+    fclose(o);
     Jobs::shutdown();
     return 0;
 }
