@@ -101,8 +101,8 @@ void GameWorld::newGame() {
     gameDay = 1;
     env->timeOfDay = 17.2f;
     resetWorldForLoad();
-    // Start: Mari's apartment block in Calle Luna, near the Rio Sol bridge
-    vec2 start(1520.f, 2320.f);
+    // Start: Mari's street in Calle Luna (district box x 0.95-2.62 km, y -0.92..0.92 km)
+    vec2 start(1780.f, 160.f);
     float s = 0, side = 0;
     int e = roads->nearestEdge(start, 400.f, &s, nullptr, &side);
     vec3 pos(start, 0.f);
@@ -117,6 +117,9 @@ void GameWorld::newGame() {
     }
     pos.z = groundHeight(pos.x, pos.y, pos.z + 30.f);
     spawnPlayer(dvec3(pos), yaw);
+    fadeAlpha = 1.f;
+    fadeIn(0.6f);
+    populationWarmup = 2.5f;
     giveWeapon(player, WPN_PISTOL, 60);
     // a parked starter car next to the player
     int model = findVehicleModel(Vehicles::VC_COUPE, 3);
@@ -155,6 +158,7 @@ void GameWorld::update(float realDt) {
     Phys::gWaves.time = env->gameSeconds;
     Phys::gWaves.windDir = env->windDir;
     Phys::gWaves.strength = env->wind;
+    populationWarmup = Max(0.f, populationWarmup - realDt);
     double t0 = TimeSeconds();
     updatePlayer(dt);
     double t1 = TimeSeconds();

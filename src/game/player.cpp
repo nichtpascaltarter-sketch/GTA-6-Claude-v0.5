@@ -723,6 +723,7 @@ void GameWorld_respawnPlayer(GameWorld& g) {
     g.pinfo.money -= fee;
     g.timeScale = 1.f;
     g.rig.cut = true;
+    g.populationWarmup = 1.5f;
 #ifdef HAVE_AUDIO
     Audio::setSlowMotion(1.f);
 #endif

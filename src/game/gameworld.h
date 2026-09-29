@@ -300,6 +300,7 @@ struct GameWorld {
     float trafficWeight(const Vehicles::VehicleModel& m, World::Region reg) const;
     float parkedWeight(const Vehicles::VehicleModel& m) const;
     bool populationOff = false;
+    float populationWarmup = 0.f;   // > 0: screen is faded, populate the surroundings instantly (ignore view checks)
     float pedDensityScale = 1.f, trafficDensityScale = 1.f;
     void updateWanted(float dt);   // wanted level (police.cpp)
 

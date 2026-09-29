@@ -266,6 +266,9 @@ bool GameWorld::loadGame(int slot) {
     ownedVehicleModels = owned;
     protagonistIndex = proto;
     spawnPlayer(pos, yaw);
+    fadeAlpha = 1.f;
+    fadeIn(0.6f);
+    populationWarmup = 2.5f;
     Ped* pl = playerPed();
     if (pl) {
         pl->health = health;
