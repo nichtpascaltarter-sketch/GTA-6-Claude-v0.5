@@ -118,4 +118,17 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   with short DURATION). Full game init under Wine ~67 s (28 s shader compile, cached afterwards).
 
 ## Scorecards
-(appended at each milestone)
+(appended at each milestone; graded against GTA 6 itself)
+
+### Scorecard 1 — first playable gameplay layer (2026-09-29)
+| Category | Score | Evidence |
+|---|---|---|
+| Map scale and variety | 5/10 | 20.5 km x 20.5 km world with 23 districts, 1.2k km of roads, 37k buildings; but repetitive procedural massing, empty airport/port (in progress), no interiors. |
+| Visual fidelity | 3/10 | PBR deferred, physical sky, volumetric clouds, water, TAA, motion blur; flat materials and simple buildings, GI/SSR still in progress — nowhere near GTA 6 photorealism. |
+| World density and life | 1/10 | Population/traffic code exists but the first play-test screenshots show empty streets. |
+| Vehicles and driving | 2/10 | 27 procedural models + full raycast-wheel/boat/air sim integrated; driving not yet verified in-game. |
+| On-foot and combat | 3/10 | Animated third-person locomotion, sprint/jump/cover/vault/swim/parachute, 12 weapons, ragdolls — only walking verified so far. |
+| NPC and police AI | 1/10 | Brains, dispatch and wanted/busted written but not yet observed working. |
+| Missions and story | 1/10 | Mission framework (TTS dialogue, cutscenes, markers, GPS) + a prologue; campaign in progress. |
+| Audio | 4/10 | Complete procedural engine (3D mixer, synthesized SFX/engines, 9 radio stations with DJs), but synthesized music and TTS voices can't match GTA's licensed music and acting. |
+| Performance and stability | 3/10 | No crashes in automated runs so far; untested on a real GPU (llvmpipe only); ~67 s first boot incl. shader compile. |
