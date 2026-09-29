@@ -485,7 +485,11 @@ void GameWorld::damagePed(int pid, float amount, DamageType type, int attacker, 
     p.health -= a;
     p.lastAttacker = attacker;
     p.lastDamageTime = (float)time;
-    if (p.isPlayer) rumble(Saturate(a / 40.f), Saturate(a / 25.f));
+    if (p.isPlayer) {
+        rumble(Saturate(a / 40.f), Saturate(a / 25.f));
+        fxDamage = Min(1.f, fxDamage + a / 40.f);
+        if (a > 30.f) fxChroma = Min(1.f, fxChroma + 0.5f);
+    }
     if (p.isPlayer && attacker >= 0 && attacker < (int)peds.size()) {
         vec3 d = rel(peds[attacker].pos, p.pos);
         float ang = atan2f(-d.x, d.y) - rig.yaw;
@@ -608,6 +612,14 @@ void GameWorld::explode(dvec3 pos, float radius, float damage, int owner) {
     float camD = length(rel(rig.cam.pos, pos));
     rig.shake = Max(rig.shake, Saturate(1.4f - camD / (radius * 8.f)));
     rumble(Saturate(1.2f - camD / (radius * 10.f)), Saturate(1.f - camD / (radius * 6.f)));
+    {
+        float k = Saturate(1.f - camD / (radius * 12.f));
+        if (k > 0.f && dot(normalize(rel(pos, rig.cam.pos)), rig.cam.forward()) > -0.2f) {
+            fxFlash = Max(fxFlash, k * 0.55f);
+            fxFlashColor = vec3(1.f, 0.62f, 0.3f);
+            fxChroma = Max(fxChroma, k * 0.6f);
+        }
+    }
     std::vector<int> list;
     pedsNear(vec2((float)pos.x, (float)pos.y), radius * 1.6f, list);
     for (int i : list) {

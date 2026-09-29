@@ -153,6 +153,10 @@ struct GameWorld {
         rumbleHigh = Max(rumbleHigh, high);
     }
     void updateRumble(float dt);
+    // Screen effects (renderer PostFxControls) driven by gameplay state
+    float fxDamage = 0.f, fxFlash = 0.f, fxChroma = 0.f;
+    vec3 fxFlashColor = vec3(1.f);
+    void updatePostFx(float realDt);
     // CPU timings of the last update (ms), shown in the F1 debug overlay
     float profPlayer = 0, profAI = 0, profVehicles = 0, profPeds = 0, profMisc = 0, profMissions = 0, profCamera = 0;
     void sanitizeEntities();

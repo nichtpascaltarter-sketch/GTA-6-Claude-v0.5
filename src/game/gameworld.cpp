@@ -182,6 +182,7 @@ void GameWorld::update(float realDt) {
     sanitizeEntities();
     updateCamera(realDt);
     updateRumble(realDt);
+    updatePostFx(realDt);
     double t7 = TimeSeconds();
     auto ema = [](float& v, double ms) { v = Lerp(v, (float)ms, 0.1f); };
     ema(profPlayer, (t1 - t0) * 1000.0);
@@ -233,6 +234,57 @@ void GameWorld::sanitizeEntities() {
             despawnPed(i);
         }
     }
+}
+
+void GameWorld::updatePostFx(float realDt) {
+    Render::PostFxControls fx;
+    Ped* pl = playerPed();
+    float dt = Min(realDt, 0.05f);
+    fxDamage = Max(0.f, fxDamage - dt * 1.6f);
+    fxFlash = Max(0.f, fxFlash - dt * 3.f);
+    fxChroma = Max(0.f, fxChroma - dt * 2.5f);
+    if (pl) {
+        float hp = Saturate(pl->health / pl->maxHealth);
+        // low health: pulsing red vignette with a heartbeat rhythm, colors drain
+        if (hp < 0.3f && pl->health > 0.f) {
+            float beat = powf(Saturate(sinf((float)time * 7.5f)), 8.f);
+            float k = (0.3f - hp) / 0.3f;
+            fx.vignette = Max(fx.vignette, 0.2f + 0.25f * k + beat * 0.15f);
+            fx.vignetteColor = vec3(0.45f, 0.02f, 0.02f);
+            fx.saturation = Lerp(1.f, 0.55f, k);
+        }
+        if (fxDamage > 0.f) {
+            fx.vignette = Max(fx.vignette, fxDamage * 0.45f);
+            fx.vignetteColor = vec3(0.5f, 0.02f, 0.02f);
+        }
+        if (pinfo.focusActive) {
+            fx.saturation = Min(fx.saturation, 0.8f);
+            fx.tint = protagonistIndex == 0 ? vec3(1.04f, 0.98f, 1.03f) : vec3(0.97f, 1.0f, 1.05f);
+            fx.vignette = Max(fx.vignette, 0.22f);
+            fx.chromatic = Max(fx.chromatic, 0.08f);
+        }
+        if (pinfo.weaponWheel) {
+            fx.blur = 0.45f;
+            fx.saturation = Min(fx.saturation, 0.6f);
+        }
+        // death / arrest screens
+        if (pinfo.deathTimer > 0.f) {
+            float k = Saturate(pinfo.deathTimer / 1.2f);
+            fx.saturation = Lerp(fx.saturation, pinfo.busted ? 0.5f : 0.12f, k);
+            fx.blur = Max(fx.blur, 0.3f * k);
+            fx.vignette = Max(fx.vignette, 0.55f * k);
+            fx.vignetteColor = pinfo.busted ? vec3(0.02f, 0.03f, 0.08f) : vec3(0.25f, 0.01f, 0.01f);
+            fx.grain = 0.2f * k;
+        }
+    }
+    // camera under the water surface
+    float wz;
+    vec3 cp = rig.cam.pos.toVec3();
+    if (Phys::waterSurface(cp.x, cp.y, wz) && cp.z < wz - 0.05f) fx.underwater = 1.f;
+    fx.flash = fxFlash;
+    fx.flashColor = fxFlashColor;
+    fx.chromatic = Max(fx.chromatic, fxChroma);
+    renderer->postFx = fx;
 }
 
 void GameWorld::updateRumble(float dt) {
