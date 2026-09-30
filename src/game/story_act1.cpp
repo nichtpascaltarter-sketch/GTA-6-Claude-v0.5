@@ -80,7 +80,7 @@ public:
                     playerCar = g.playerVehicle();
                     vec3 tp = pedPos(g, tomas);
                     std::vector<CutsceneShot> shots;
-                    shots.push_back(shotEstablish(tp, garageYaw, 26.f, 9.f, 3.5f));
+                    establish(g, shots, tp, garageYaw, 26.f, 9.f, 3.5f);
                     shots.push_back(shotTwo(tp, playerPos(g), 6.5f));
                     g.mCutscene(shots);
                     if (tomas >= 0) setGoto(g, tomas, playerPos(g), 3.5f);
@@ -143,7 +143,7 @@ public:
                     std::vector<CutsceneShot> shots;
                     shots.push_back(shotTwo(lp, playerPos(g), 5.f, 4.5f, 40.f, -1.f));
                     shots.push_back(shotOver(playerPos(g), lp, 7.f));
-                    shots.push_back(shotEstablish(lp, gPlaces.diner.yaw, 30.f, 12.f, 4.f));
+                    establish(g, shots, lp, gPlaces.diner.yaw, 30.f, 12.f, 4.f);
                     g.mCutscene(shots);
                     say(g, CAST_LUCHA, lucha, "[scared:0.8]Marisol! Dios mio, what happened to him?");
                     sayMe(g, "Cuervos. He says he owes them money.");
@@ -241,7 +241,7 @@ public:
         provideRide(g, P.rookShop, -14.f);
         vec3 rp = pedPos(g, rook);
         std::vector<CutsceneShot> shots;
-        shots.push_back(shotEstablish(rp, P.rookShop.yaw, 34.f, 14.f, 4.f));
+        establish(g, shots, rp, P.rookShop.yaw, 34.f, 14.f, 4.f);
         shots.push_back(shotTwo(rp, playerPos(g), 7.f));
         shots.push_back(shotOver(playerPos(g), rp, 7.f, -1.f));
         shots.push_back(shotOver(rp, playerPos(g), 6.f));
@@ -633,7 +633,7 @@ public:
         vec3 lp = pedPos(g, lucha), fp = pedPos(g, fixer);
         placePlayer(g, placeOffset(g, P.diner, -8.f, 0.f), yawTo(placeOffset(g, P.diner, -8.f, 0.f).xy(), lp.xy()));
         std::vector<CutsceneShot> shots;
-        shots.push_back(shotEstablish(lp, P.diner.yaw, 28.f, 10.f, 3.5f));
+        establish(g, shots, lp, P.diner.yaw, 28.f, 10.f, 3.5f);
         shots.push_back(shotTwo(lp, fp, 7.f));
         shots.push_back(shotOver(fp, lp, 6.f));
         shots.push_back(shotOver(lp, fp, 6.f, -1.f));
@@ -852,6 +852,7 @@ public:
         facePed(g, lucha, mp);
         facePed(g, dex, mp);
         std::vector<CutsceneShot> shots;
+        establish(g, shots, lp, P.diner.yaw, 30.f, 11.f, 3.5f);
         shots.push_back(shotTwo(lp, mp, 6.f));
         shots.push_back(shotOver(mp, lp, 6.f));
         shots.push_back(shotTwo(dp, mp, 7.f, 4.f, 42.f, -1.f));
@@ -1162,7 +1163,7 @@ public:
         score(SC_CHASE, 0.5f, 4);
         std::vector<CutsceneShot> shots;
         if (playerCar >= 0) {
-            shots.push_back(shotEstablish(p0, yaw + kPi, 30.f, 8.f, 3.5f));
+            establish(g, shots, p0, yaw + kPi, 30.f, 8.f, 3.5f);
             shots.push_back(shotVehicle(g, playerCar, 4.f, -1.f));
         }
         if (checkpoint == 0) {
@@ -1385,7 +1386,7 @@ public:
         setIdle(g, lucha, 0);
         facePed(g, lucha, mp);
         std::vector<CutsceneShot> shots;
-        shots.push_back(shotEstablish(lp, P.diner.yaw, 32.f, 11.f, 4.f, 50.f));
+        establish(g, shots, lp, P.diner.yaw, 32.f, 11.f, 4.f, 50.f);
         shots.push_back(shotTwo(lp, mp, 6.f));
         shots.push_back(shotTwo(dp, mp, 5.f, 4.f, 42.f, -1.f));
         vec3 street = curbOffset(g, P.diner, -80.f);

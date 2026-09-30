@@ -182,6 +182,9 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
             float d = length(rel(s.pos, p.pos));
             if (d > s.radius || s.source == id) continue;
             bool fresh = time - s.time < 0.6f;
+            // a witness on the phone to the police keeps talking (backing away from the scene) unless something
+            // blows up next to them: re-reacting to the very gunfire being reported would drop the call
+            if (pa.activity == ACT_CALL_POLICE && !(s.kind == STIM_EXPLOSION && d < 15.f)) continue;
             if (p.faction == FAC_POLICE) {
                 // an officer on a foot beat runs toward trouble: an NPC culprit is pursued (the player's crimes go
                 // through the wanted level), other commotion is checked out
@@ -721,7 +724,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                                 pa.activity = sp.kind == AI::SP_BUS_STOP ? ACT_WAIT_BUS : ACT_SCENARIO;
                                 pa.anchor = sp.pos.xy();
                                 pa.anchorYaw = atan2f(-sp.face.x, sp.face.y);
-                                pa.stance = sp.kind == AI::SP_BENCH ? 6 : 0;
+                                pa.stance = sp.kind == AI::SP_BENCH ? 6 : (sp.kind == AI::SP_BUS_STOP ? 23 : 0);
                                 pa.clip = -1;   // (stance 6 is the looping sit)
                                 pa.actTimer = 20.f + hashToFloat(hash32(h * 3u)) * 40.f;
                             } else if (r < 0.28f && pa.role != PR_DRUNK) {
@@ -1015,11 +1018,11 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     // walk away from the scene a bit, then talk on the phone
                     vec2 away = pos - pa.threatPos;
                     float d = length(away);
+                    stance = 8;   // phone to the ear, also while backing off
                     if (d < 18.f && pa.actTimer > 4.f) {
-                        desired = (d > 1e-3f ? away / d : AI::yawDir(p.yaw)) * 2.6f;
+                        desired = (d > 1e-3f ? away / d : AI::yawDir(p.yaw)) * (d < 10.f ? 3.2f : 2.4f);
                         faceYaw = atan2f(-desired.x, desired.y);
                     } else {
-                        stance = 8;
                         faceYaw = yawTo(pos, pa.threatPos) + kPi;
                     }
                     faceSet = true;

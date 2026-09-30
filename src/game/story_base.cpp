@@ -24,6 +24,7 @@ enum SideFlag : int {
     SIDE_TAXI_ALL, SIDE_VIGILANTE_ALL, SIDE_PARAMEDIC_ALL, SIDE_COURIER_ALL,
     SIDE_BOUNTY_ALL,
     SIDE_ROSA_1, SIDE_ROSA_2, SIDE_ROSA_3,
+    SIDE_VELMA_1, SIDE_VELMA_2, SIDE_VELMA_3,
     SIDE_COUNT
 };
 
@@ -58,6 +59,8 @@ enum ExtFlag : int {
     EX_SWITCH_TIP = 246,
     EX_WORLD_TEXTS = 247,           // bitmask of one-off open-world texts delivered (economy.cpp)
     EX_VEHICLE_PAINT = 260,         // 260..299: paint (packed RGB565) of owned vehicles by garage slot
+    EX_RIVAL_WINS = 300,            // 300..307: races won against each race's rival (by the race's best-time slot)
+    EX_RIVAL_FINALS = 308,          // bitmask: rival finals won (a pink slip on the road, a trophy on the water)
     EX_VEHICLE_MODS = 384,          // 384..503: Tide Customs parts of owned vehicles, 3 ints per garage slot (see shops.cpp)
 };
 

@@ -693,7 +693,10 @@ void unblipVehicle(int veh) {
 void teleportVehicle(GameWorld& g, int v, vec3 pos, float yaw) {
     if (v < 0 || !g.vehicles[v].used) return;
     Vehicles::resetVehicle(g.vehicles[v].sim, dvec3(pos + vec3(0, 0, 0.3f)), yaw);
-    g.vehicles[v].sim.sleeping = false;
+    // the reset settles vehicles on the ground below; aircraft placed in the air keep their height
+    Vehicles::VehicleState& s = g.vehicles[v].sim;
+    if (g.isAircraft(v) && (float)s.body.pos.z < pos.z) s.body.pos.z = pos.z;
+    s.sleeping = false;
 }
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -958,6 +961,34 @@ CutsceneShot shotEstablish(vec3 at, float yaw, float dist, float height, float d
     vec3 p0 = at + vec3(back * dist, height);
     vec3 p1 = at + vec3(back * (dist * 0.8f), height * 0.85f);
     return shotMove(p0, at + vec3(0, 0, 4.f), p1, at + vec3(0, 0, 3.f), duration, fov);
+}
+
+// True when nothing solid stands between a camera position and what it looks at. The ray runs from the subject out to
+// the camera, so a camera buried inside a building across the street counts as blocked (boxes that contain the ray's
+// start are ignored, which also skips the subject's own facade).
+bool clearView(GameWorld& g, dvec3 cam, dvec3 subject) {
+    vec3 d = rel(cam, subject);
+    float len = length(d);
+    if (len < 1.f) return true;
+    WorldHit h;
+    return !g.raycast(subject, d / len, len - 0.5f, h, -1, -1, false, false);
+}
+
+// Establishing shot with a clear view: the requested angle first, then swinging around the subject and climbing.
+// Nothing is added when every angle is blocked (a scene inside an interior), so the cutscene opens on its first
+// close shot instead. The shot plays a moment before the first line.
+bool establish(GameWorld& g, std::vector<CutsceneShot>& shots, vec3 at, float yaw, float dist, float height, float duration,
+               float fov = 55.f) {
+    static const float kSwing[] = {0.f, 0.45f, -0.45f, 0.9f, -0.9f, 1.4f, -1.4f};
+    for (float lift : {1.f, 1.6f, 2.4f})
+        for (float sw : kSwing) {
+            CutsceneShot s = shotEstablish(at, yaw + sw, dist * (lift > 2.f ? 0.8f : 1.f), height * lift, duration, fov);
+            if (!clearView(g, s.pos, s.target) || !clearView(g, s.pos2, s.target2)) continue;
+            s.leadIn = Min(1.4f, duration * 0.35f);
+            shots.push_back(s);
+            return true;
+        }
+    return false;
 }
 
 // Chase-cam style shot looking at a vehicle from behind/side.

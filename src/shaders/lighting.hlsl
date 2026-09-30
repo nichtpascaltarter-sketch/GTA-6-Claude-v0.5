@@ -95,16 +95,24 @@ float portalFormFactor(PortalGPU q, float3 p, float3 n) {
     return saturate(dot(f, n) / (2.0 * PI));
 }
 // Ambient irradiance / PI inside volume k: room ambient + daylight bounce + light entering through each portal
+// Daylight bounced around a room (sun and sky off floors and walls): the sky's brightness with a warm-neutral
+// tint, not its blue (the blue sky only shows where a surface sees it through an opening)
+float3 interiorDayBounce(float amount) {
+    float3 sky = evalSH9(float3(0, 0, 1));
+    return amount * dot(sky, float3(0.2126, 0.7152, 0.0722)) * float3(1.0, 0.95, 0.88);
+}
 float3 interiorIrradiance(int k, float3 p, float3 n, float dist) {
     InteriorGPU v = tInteriors[k];
-    float3 e = v.amb.rgb + v.axis.w * evalSH9(float3(0, 0, 1));
+    float3 e = v.amb.rgb + interiorDayBounce(v.axis.w);
     uint first = (uint)v.c.w, count = (uint)v.axis.z;
     [loop] for (uint i = 0; i < count; i++) {
         PortalGPU q = tPortals[first + i];
         float ff = portalFormFactor(q, p, n) * q.p0.w;
         if (ff <= 0.0) continue;
         float3 outN = -normalize(cross(q.u.xyz, q.v.xyz));
-        e += ambientIrradiance(outN, dist) * ff;
+        float3 a = ambientIrradiance(outN, dist);
+        // light through a window is sky plus sunlit street and facades: pull it halfway to neutral
+        e += lerp(a, dot(a, float3(0.2126, 0.7152, 0.0722)) * float3(1.0, 0.97, 0.92), 0.5) * ff;
     }
     return e;
 }
@@ -112,7 +120,7 @@ float3 interiorIrradiance(int k, float3 p, float3 n, float dist) {
 // through an opening (portal coverage around R, sharper for smooth surfaces)
 float3 interiorReflection(int k, float3 p, float3 R, float rough, float dist) {
     InteriorGPU v = tInteriors[k];
-    float3 room = v.amb.rgb + v.axis.w * evalSH9(float3(0, 0, 1));
+    float3 room = v.amb.rgb + interiorDayBounce(v.axis.w);
     float3 e = room;
     uint first = (uint)v.c.w, count = (uint)v.axis.z;
     float cover = 0.0;
@@ -298,7 +306,7 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         int dbgS = (int)gRenderParams.w;
         if (dbgS == 15 && uv.x >= gRenderParams.y) skyOut = fv.rgb * 4.0;
         else if (dbgS == 16 && uv.x >= gRenderParams.y) skyOut = fv.a;
-        uHDR[id.xy] = float4(skyOut, 1);
+        uHDR[id.xy] = float4(sanitizeHDR(skyOut), 1);
         return;
     }
     GBufferData g = unpackGBuffer(tAlbedo[id.xy], tNormal[id.xy], tMaterial[id.xy]);
@@ -375,5 +383,5 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
     color = color * ap.a + ap.rgb;
     float3 outC = min(color * preExposure() + emissive * ap.a, 60000.0);
     float4 fv = froxelFog(uv, viewDepth);
-    uHDR[id.xy] = float4(outC * fv.a + fv.rgb, 1);
+    uHDR[id.xy] = float4(sanitizeHDR(outC * fv.a + fv.rgb), 1);
 }

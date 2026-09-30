@@ -90,6 +90,11 @@ const Tpl kShooting[] = {
     {PK_POLICE, IMG_NONE, "Reports of shots fired in {D}. Officers en route. Please avoid the area."},
     {PK_NEWS, IMG_POLICE, "Police investigating reports of gunfire near {S} in {D}."},
 };
+const Tpl kRobbery[] = {
+    {PK_LOCAL, IMG_NONE, "[Somebody just held up|Armed robbery at] {S} in {D}. [Everyone ok??|The clerk is still shaking.|Glad I left five minutes early.]"},
+    {PK_POLICE, IMG_NONE, "Officers responding to an armed robbery at {S}, {D}. Anyone with information please contact the department."},
+    {PK_NEWS, IMG_POLICE, "Armed robbery at {S} in {D}. [No injuries reported.|Police are reviewing security footage.]"},
+};
 const Tpl kStunt[] = {
     {PK_LOCAL, IMG_CAR, "Somebody just jumped a car [over|across] {S}. [I have questions. Mostly: how.|Physics called in sick today.|{N} meters. I paced it out.]"},
     {PK_LOCAL, IMG_NONE, "Real life has no respawn button, {D} driver. [Still. Ten out of ten.|Anyway, sick jump.]"},
@@ -404,6 +409,7 @@ const Tpl* eventTable(TideEvent ev, float mag, int& n) {
         case TE_LOW_FLYBY: n = (int)ARRAY_COUNT(kFlyby); return kFlyby;
         case TE_RACE_WON: n = (int)ARRAY_COUNT(kRace); return kRace;
         case TE_WEATHER: n = (int)ARRAY_COUNT(kWeather); return kWeather;
+        case TE_ROBBERY: n = (int)ARRAY_COUNT(kRobbery); return kRobbery;
         default: n = 0; return nullptr;
     }
 }

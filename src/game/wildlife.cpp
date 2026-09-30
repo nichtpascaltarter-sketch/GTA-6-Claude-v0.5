@@ -4171,6 +4171,26 @@ bool sceneStageA(GameWorld& g, int s) {
     }
 }
 
+// After the fast-forward: frame the animals that moved (flocks, pods) from at most maxDist away
+void trackCam(GameWorld& g, float maxDist, float minHeight) {
+    vec3 c(0.f);
+    int n = 0;
+    for (const Animal& a : gW.animals)
+        if (a.used) {
+            c += a.pos;
+            n++;
+        }
+    if (!n) return;
+    c = c / (float)n;
+    vec3 away = gTestCam.pos - c;
+    float d = length(away);
+    vec3 eye = gTestCam.pos;
+    if (d > maxDist) eye = c + away * (maxDist / d);
+    float floorZ = Max(g.map->heightAt(eye.x, eye.y), g.map->waterAt(eye.x, eye.y));
+    eye.z = Max(eye.z, floorZ + minHeight);
+    aimCam(eye, c, gTestCam.fov * kRadToDeg);
+}
+
 // Stage B (after streaming): the animals. Returns the number of fast-forward steps (1/30 s) to simulate.
 int sceneStageB(GameWorld& g, int s) {
     switch (s) {
@@ -4178,7 +4198,10 @@ int sceneStageB(GameWorld& g, int s) {
         case 1: {
             int gi = newGroup(GT_GULLS, SP_GULL, vec3(5531.f, 1242.3f, 6.65f));
             Group& G = gW.groups[gi];
-            for (int k = 0; k < 5; k++) G.perches.push_back({vec3(5527.8f + 1.35f * (float)k, 1242.25f, 6.66f), 3});
+            for (int k = 0; k < 5; k++) {
+                vec2 q(5527.8f + 1.35f * (float)k, 1242.25f - 0.6f * (float)(k & 1));
+                G.perches.push_back({vec3(q, gz(g, q)), 0});
+            }
             for (int k = 0; k < 5; k++) {
                 int ai = newAnimal(gi, SP_GULL, k == 2 ? 1 : 0, G.perches[k].pos, (k & 1) ? 1.9f : -1.4f);
                 Animal& a = gW.animals[ai];
@@ -4373,6 +4396,9 @@ void testUpdate(GameWorld& g) {
                 updateAllGroups(g, 1.f / 30.f);
                 if (s == 4) addThreat(gW.cam, vec3(0.f), 95.f, 2, true, g.player, -1);
             }
+            if (s == 0) trackCam(g, 38.f, 2.f);
+            if (s == 2) trackCam(g, 30.f, 3.f);
+            if (s == 14) trackCam(g, 70.f, 2.f);
             if (s == 8)   // a couple of dolphins mid-leap for the shot
                 for (const Group& G : gW.groups)
                     if (G.used && G.type == GT_DOLPHINS)
@@ -4456,8 +4482,10 @@ void update(GameWorld& g, float dt) {
         spawner(g, dt);
         despawnFar(g, dt);
     }
-    updateAllGroups(g, dt);
-    vehicleImpacts(g);
+    if (gW.testScene < 0 || gW.testPhase != 2) {   // test shots: hold the staged moment while streaming settles
+        updateAllGroups(g, dt);
+        vehicleImpacts(g);
+    }
     gW.msUpdate = Lerp(gW.msUpdate, (float)((TimeSeconds() - t0) * 1000.0), 0.05f);
     gW.logT += dt;
     if (gW.logT > 30.f) {

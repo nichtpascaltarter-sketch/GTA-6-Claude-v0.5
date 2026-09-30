@@ -501,6 +501,54 @@ void testMelee() {
     }
     printf("bat grip: worst left fist distance from the handle %.3f m\n", worst);
     CHECK(worst < 0.02f, "left hand off the bat handle (%.3f m)", worst);
+    // takedown between mismatched heights: with grabTarget the attacker's forearm still reaches the victim's throat
+    {
+        CharacterDesc dv = randomCharacter(77u, 0), da = randomCharacter(78u, 0);
+        dv.height = 1.58f;
+        da.height = 1.95f;
+        Skeleton sv, sa;
+        buildSkeleton(dv, sv);
+        buildSkeleton(da, sa);
+        Animator an;
+        an.init(&sa, 5u);
+        const float dt = 1.f / 60.f;
+        float worstT = 0.f;
+        for (int f = 0; f < 120; f++) {
+            float tt = f * dt;
+            AnimInput in;
+            in.action = f == 0 ? CLIP_TAKEDOWN_ATTACKER : -1;
+            Pose vp;
+            sampleClip(sv, CLIP_TAKEDOWN_VICTIM, tt, vp);
+            vec3 neck = jointPos(sv, vp, B_NECK) + clipRootMotion(sv, CLIP_TAKEDOWN_VICTIM, tt);
+            vec3 root = vec3(0.f, -0.55f, 0.f) + clipRootMotion(sa, CLIP_TAKEDOWN_ATTACKER, tt);
+            in.grabTarget = neck - root;
+            in.grabWeight = 1.f;
+            an.update(in, dt);
+            if (tt > 0.6f) {
+                vec3 e = jointPos(sa, an.pose, B_FOREARM_R), w = jointPos(sa, an.pose, B_HAND_R), th = in.grabTarget + vec3(0.f, 0.07f, 0.04f);
+                vec3 ew = w - e;
+                float u = Saturate(dot(th - e, ew) / Max(length2(ew), 1e-6f));
+                worstT = Max(worstT, length(e + ew * u - th));
+            }
+        }
+        printf("takedown (1.95 m attacker, 1.58 m victim): forearm to throat %.3f m\n", worstT);
+        CHECK(worstT < 0.06f, "takedown IK misses the throat (%.3f m)", worstT);
+    }
+    // phone frame sits on the right palm
+    {
+        Animator an;
+        an.init(&sk, 9u);
+        AnimInput in;
+        in.phoneBrowse = true;
+        for (int f = 0; f < 40; f++) an.update(in, 1.f / 60.f);
+        mat4 m[B_COUNT];
+        computeMatrices(sk, an.pose, m, nullptr);
+        vec3 pp, la, sc;
+        phoneFrame(sk, m, pp, la, sc);
+        vec3 hr = m[B_HAND_R].c[3].xyz(), head = m[B_HEAD].c[3].xyz();
+        CHECK(length(pp - hr) < 0.12f && pp.z < head.z - 0.2f && dot(sc, normalize(head - pp)) > 0.3f,
+              "browsing phone frame off (%.3f from the hand, screen facing %.2f)", length(pp - hr), dot(sc, normalize(head - pp)));
+    }
     // knockout holds its last frame
     {
         Animator an;

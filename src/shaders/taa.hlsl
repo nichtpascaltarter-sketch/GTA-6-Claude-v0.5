@@ -56,7 +56,7 @@ void csTAA(uint3 id : SV_DispatchThreadID) {
     [unroll] for (int y = -1; y <= 1; y++)
     [unroll] for (int x = -1; x <= 1; x++) {
         int2 q = clamp(p + int2(x, y), int2(0, 0), int2(gScreen.xy) - 1);
-        float3 c = tonemapW(tCurrent[q].rgb);
+        float3 c = tonemapW(sanitizeHDR(tCurrent[q].rgb));   // forward passes (water, particles, glass) write here too
         float3 ycc = rgbToYCoCg(c);
         m1 += ycc;
         m2 += ycc * ycc;
@@ -89,7 +89,7 @@ void csTAA(uint3 id : SV_DispatchThreadID) {
     }
     float2 prevUV = uv - vel;
     bool offscreen = any(prevUV < 0.0) || any(prevUV > 1.0);
-    float3 hist = tonemapW(sampleHistory(prevUV));
+    float3 hist = tonemapW(sanitizeHDR(sampleHistory(prevUV)));
     float3 hy = rgbToYCoCg(hist);
     // Clip history toward the neighborhood mean
     float3 center = (bmin + bmax) * 0.5, ext = (bmax - bmin) * 0.5 + 1e-5;

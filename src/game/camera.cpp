@@ -27,6 +27,22 @@ float smoothNoise(float t, float seed) {
 using namespace cam_detail;
 
 void GameWorld::updateCamera(float dt) {
+    updateCameraRig(dt);
+    CameraRig& r = rig;
+    bool scripted = r.mode == CAM_SCRIPTED || r.scriptActive;
+    if (scripted || r.scriptBlend <= 0.f) return;
+    // ease out of the last cutscene shot into the gameplay camera
+    float k = 1.f - r.scriptBlend / Max(r.scriptBlendTotal, 1e-3f);
+    float e = k * k * (3.f - 2.f * k);
+    r.cam.pos = r.scriptFrom.pos + dvec3(rel(r.cam.pos, r.scriptFrom.pos) * e);
+    r.cam.yaw = r.scriptFrom.yaw + wrapAngle(r.cam.yaw - r.scriptFrom.yaw) * e;
+    r.cam.pitch = Lerp(r.scriptFrom.pitch, r.cam.pitch, e);
+    r.cam.roll = Lerp(r.scriptFrom.roll, r.cam.roll, e);
+    r.cam.fovY = Lerp(r.scriptFrom.fovY, r.cam.fovY, e);
+    r.scriptBlend = Max(0.f, r.scriptBlend - Min(dt, 0.05f));
+}
+
+void GameWorld::updateCameraRig(float dt) {
     CameraRig& r = rig;
     Ped* pp = playerPed();
     const Controls& c = ctl;
@@ -42,6 +58,7 @@ void GameWorld::updateCamera(float dt) {
         r.cam.fovY = r.scriptFov * kDegToRad;
         r.yaw = r.cam.yaw;
         r.pitch = r.cam.pitch;
+        r.scriptFrom = r.cam;   // where a blended exit starts from
         return;
     }
     if (!pp) return;
@@ -169,6 +186,46 @@ void GameWorld::updateCamera(float dt) {
         r.mode = aimMode ? CAM_AIM : CAM_ONFOOT;
         r.aimBlend = Lerp(r.aimBlend, aimMode ? 1.f : 0.f, Saturate(rdt * 10.f));
         float spd = length(vec2(p.vel.x, p.vel.y));
+        // first person: from the eyes; the orbit camera takes over in cover, ragdolls, the water, skydives and
+        // parachute glides, getting in / out of vehicles and synced takedowns
+        if (c.camMode.pressed && playerControl && !pinfo.weaponWheel) {
+            r.footFirstPerson = !r.footFirstPerson;
+            r.cut = true;
+        }
+        bool gliding = !p.grounded && p.hasParachute && p.airTime > 0.5f;
+        bool fp = r.footFirstPerson && p.state == PS_ONFOOT && p.moveMode == 0 && !gliding && p.takedownT < 0.f && !p.ragdoll;
+        if (fp) {
+            quat qy = quatAxisAngle(vec3(0, 0, 1), p.yaw);
+            vec3 eye = rotate(qy, p.bones[Anim::B_HEAD].c[3].xyz() + vec3(0.f, 0.13f, 0.075f));
+            dvec3 target = p.pos + dvec3(eye);
+            vec3 de = rel(target, r.fpEye);
+            if (!r.fpActive || r.cut || length(de) > 1.f) r.fpEye = target;
+            else r.fpEye = r.fpEye + dvec3(de * Saturate(rdt * 30.f));   // animation jitter out, head bob kept
+            r.fpActive = true;
+            r.cut = false;
+            r.pitch = Clamp(r.pitch, -1.35f, 1.3f);
+            r.yaw = wrapAngle(r.yaw);
+            r.shake = Max(0.f, r.shake - rdt * 0.9f);
+            float sh = r.shake * r.shake, tt = (float)time * 18.f;
+            r.cam.pos = r.fpEye;
+            r.cam.yaw = r.yaw + smoothNoise(tt, 11.f) * sh * 0.04f;
+            r.cam.pitch = r.pitch + r.recoil + smoothNoise(tt, 37.f) * sh * 0.04f;
+            r.cam.roll = 0.f;
+            float fpFov = Lerp(68.f + Saturate((spd - 5.f) / 3.f) * 4.f, 52.f, r.aimBlend);
+            if (p.weapon == WPN_SNIPER && aimMode) fpFov = 16.f;
+            r.fovTarget = fpFov * kDegToRad;
+            r.fov = Lerp(r.fov, r.fovTarget, Saturate(rdt * 8.f));
+            r.cam.fovY = r.fov;
+            // keep the orbit rig warm so switching back is seamless
+            r.pivotWorld = p.pos + dvec3(0, 0, 1.55);
+            r.pivotSmooth = vec3(0);
+            r.curDist = 0.6f;
+            return;
+        }
+        if (r.fpActive) {
+            r.fpActive = false;
+            r.cut = true;
+        }
         // gentle auto-follow behind the ped while moving without camera input
         if (!aimMode && spd > 1.f && r.noInputTime > 2.f) {
             float targetYaw = p.yaw;

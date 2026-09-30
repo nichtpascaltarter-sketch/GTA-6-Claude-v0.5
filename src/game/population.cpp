@@ -18,29 +18,30 @@ struct Density {
 
 Density densityFor(World::Region r) {
     switch (r) {
-        case World::REG_DOWNTOWN: return {44, 30, 14};
-        case World::REG_FINANCIAL: return {38, 28, 10};
-        case World::REG_MIDTOWN: return {34, 24, 16};
-        case World::REG_NORTH_CITY: return {26, 22, 16};
-        case World::REG_CALLE_LUNA: return {36, 20, 18};
-        case World::REG_BEACH: return {42, 20, 16};
-        case World::REG_BAY_ISLAND: return {8, 6, 8};
-        case World::REG_KEY_CORAL: return {14, 10, 10};
-        case World::REG_PORT: return {14, 16, 8};
-        case World::REG_GROVE: return {18, 14, 14};
-        case World::REG_AIRPORT: return {10, 16, 12};
-        case World::REG_FLATS: return {18, 18, 14};
-        case World::REG_SUBURBS: return {12, 14, 16};
-        case World::REG_REDLAND: return {6, 8, 6};
+        // busy city sidewalks and beach crowds, streets lined with parked cars (tuned against the GTA 6 trailers)
+        case World::REG_DOWNTOWN: return {64, 36, 30};
+        case World::REG_FINANCIAL: return {56, 34, 22};
+        case World::REG_MIDTOWN: return {48, 30, 28};
+        case World::REG_NORTH_CITY: return {34, 26, 26};
+        case World::REG_CALLE_LUNA: return {54, 24, 32};
+        case World::REG_BEACH: return {72, 24, 26};
+        case World::REG_BAY_ISLAND: return {10, 8, 12};
+        case World::REG_KEY_CORAL: return {22, 12, 16};
+        case World::REG_PORT: return {16, 20, 10};
+        case World::REG_GROVE: return {24, 16, 22};
+        case World::REG_AIRPORT: return {14, 20, 16};
+        case World::REG_FLATS: return {24, 20, 22};
+        case World::REG_SUBURBS: return {14, 16, 24};
+        case World::REG_REDLAND: return {7, 9, 8};
         case World::REG_SAWGRASS: return {1, 5, 1};
-        case World::REG_GULF_TOWN: return {10, 6, 6};
+        case World::REG_GULF_TOWN: return {12, 7, 8};
         case World::REG_FARMLAND: return {2, 6, 3};
-        case World::REG_LAKE_TOWN: return {14, 10, 10};
-        case World::REG_HARLOW: return {10, 8, 8};
+        case World::REG_LAKE_TOWN: return {18, 12, 14};
+        case World::REG_HARLOW: return {12, 9, 10};
         case World::REG_RIDGE: return {2, 6, 2};
-        case World::REG_FORT_CASTELL: return {14, 12, 12};
-        case World::REG_KEYS: return {4, 6, 4};
-        case World::REG_KEY_TOWN: return {18, 10, 10};
+        case World::REG_FORT_CASTELL: return {18, 14, 16};
+        case World::REG_KEYS: return {5, 7, 5};
+        case World::REG_KEY_TOWN: return {24, 12, 14};
         default: return {0, 0, 0};
     }
 }
@@ -57,6 +58,9 @@ float pedTimeFactor(World::Region r, float tod) {
     else f = 0.35f;
     if (isNight(tod) && nightlifeArea(r)) f = Max(f, 0.95f);            // clubs, bars, the beach front
     if (r == World::REG_FINANCIAL && (tod < 7.f || tod > 20.f)) f *= 0.5f; // offices empty at night
+    bool offices = r == World::REG_DOWNTOWN || r == World::REG_FINANCIAL || r == World::REG_MIDTOWN;
+    if (offices && ((tod > 7.5f && tod < 9.5f) || (tod > 12.f && tod < 14.f) || (tod > 17.f && tod < 19.f))) f *= 1.15f;   // commute, lunch
+    if ((r == World::REG_BEACH || r == World::REG_KEY_CORAL) && tod > 11.f && tod < 17.5f) f *= 1.15f;                   // beach afternoon
     if (r == World::REG_PORT && (tod < 6.f || tod > 19.f)) f *= 0.4f;      // shifts end
     return f;
 }
@@ -64,7 +68,10 @@ float pedTimeFactor(World::Region r, float tod) {
 float trafficTimeFactor(float tod) {
     if (tod < 5.f) return 0.35f;
     if (tod < 7.f) return 0.35f + (tod - 5.f) * 0.33f;
-    if (tod < 22.f) return 1.f;
+    if (tod < 9.5f) return 1.25f;              // morning rush hour
+    if (tod < 16.5f) return 0.95f;
+    if (tod < 19.f) return 1.25f;              // evening rush hour
+    if (tod < 22.f) return 0.85f;
     return 0.6f;
 }
 
@@ -79,9 +86,9 @@ struct PopState {
 };
 PopState gPop;
 
-constexpr int kMaxPeds = 60;
-constexpr int kMaxTraffic = 34;
-constexpr int kMaxParked = 18;
+constexpr int kMaxPeds = 90;
+constexpr int kMaxTraffic = 44;
+constexpr int kMaxParked = 36;
 
 inline u32 nextSeed() { return hash32(gPop.counter++ * 2654435761u + 0x51ED27u); }
 
@@ -458,7 +465,10 @@ void GameWorld::updatePopulation(float dt) {
         bool business = (reg == World::REG_DOWNTOWN || reg == World::REG_FINANCIAL) && tod > 7.f && tod < 19.5f;
         bool beach = reg == World::REG_BEACH || reg == World::REG_KEY_CORAL;
         w[PK_WALKER] = 1.f;
-        w[PK_GROUP] = night && nightlifeArea(reg) ? 0.45f : 0.25f;
+        // company: friends, couples and families walk together (more so on the beach front and in the lively districts)
+        bool lively = reg == World::REG_DOWNTOWN || reg == World::REG_BEACH || reg == World::REG_CALLE_LUNA || reg == World::REG_MIDTOWN ||
+                      reg == World::REG_KEY_CORAL;
+        w[PK_GROUP] = night && nightlifeArea(reg) ? 0.55f : (lively ? 0.4f : 0.25f);
         w[PK_CHAT] = 0.14f;
         w[PK_SPOT] = 0.2f;
         w[PK_HAIL] = (reg == World::REG_DOWNTOWN || reg == World::REG_FINANCIAL || reg == World::REG_MIDTOWN || reg == World::REG_BEACH) && !night ? 0.05f : 0.f;
@@ -521,7 +531,8 @@ void GameWorld::updatePopulation(float dt) {
                 pa.activity = ACT_SCENARIO;
                 pa.anchor = sp;
                 pa.anchorYaw = p.yaw;
-                pa.stance = 12;   // lying in the sun (looping stance)
+                float sq = hashToFloat(hash32(h * 13u));
+                pa.stance = sq < 0.45f ? 12 : (sq < 0.75f ? 22 : 21);   // on the back / face down / sitting up on the towel
                 pa.clip = -1;
                 pa.actTimer = 90.f + hashToFloat(hash32(h * 3u)) * 200.f;
                 spawned = 1;
@@ -577,7 +588,7 @@ void GameWorld::updatePopulation(float dt) {
                     pa.anchor = sp;
                     pa.anchorYaw = AI::dirYaw(-q.along);
                     float qr = hashToFloat(hash32(hk));
-                    pa.stance = qr < 0.4f ? 7 : (qr < 0.65f ? 8 : 0);
+                    pa.stance = qr < 0.35f ? 7 : (qr < 0.5f ? 8 : 23);   // chatting / on the phone / waiting in line
                     pa.clip = -1;
                     pa.clipTimer = 3.f + qr * 8.f;
                     q.ids[q.n] = id;
@@ -620,7 +631,7 @@ void GameWorld::updatePopulation(float dt) {
                 pa.activity = bench ? ACT_SCENARIO : ACT_WAIT_BUS;
                 pa.anchor = sp.pos.xy();
                 pa.anchorYaw = AI::dirYaw(sp.face);
-                pa.stance = bench ? 6 : ((h >> 7) % 3 == 0 ? 8 : 0);
+                pa.stance = bench ? 6 : ((h >> 7) % 3 == 0 ? 8 : 23);   // seated / on the phone / waiting
                 pa.clip = -1;
                 pa.actTimer = 30.f + hashToFloat(hash32(h * 5u)) * 90.f;
                 spawned = 1;

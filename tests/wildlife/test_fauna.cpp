@@ -3,7 +3,7 @@
 // (finite skinning matrices, quadruped feet on the ground during stance, leash reaching the hand) and the boids
 // kernel, and renders a contact sheet of posed models with a small software rasterizer (PPM) for visual checks.
 // Build: g++ -O2 -std=c++17 -Isrc tests/wildlife/test_fauna.cpp -o /tmp/test_fauna -lpthread
-// Run:   /tmp/test_fauna [out.ppm] [pose]   (pose: stand | walk | run | fly | sit)
+// Run:   /tmp/test_fauna [out.ppm] [pose] [species substring] [cell px]   (pose: stand | walk | run | fly | sit)
 #include "../../tools/native_stubs.cpp"
 #include "../../src/core/math.cpp"
 #include "../../src/core/noise.cpp"
@@ -324,13 +324,18 @@ int main(int argc, char** argv) {
         EXPECT(minD > 0.5f, "boids collapse: min separation %.2f", minD);
         EXPECT(maxR < 60.f, "boids scatter: radius %.1f", maxR);
     }
-    // ---- contact sheet
+    // ---- contact sheet (optionally only the species whose name contains argv[3], in cells of argv[4] pixels)
     {
-        int cols = 7, cell = 220;
-        int rows = ((int)models.size() + cols - 1) / cols;
-        Image img(cols * cell, rows * cell * 2);
-        for (size_t i = 0; i < models.size(); i++) {
-            const ModelData& md = models[i];
+        const char* only = argc > 3 ? argv[3] : nullptr;
+        std::vector<const ModelData*> sheet;
+        for (const ModelData& md : models)
+            if (!only || strstr(speciesInfo(md.species).name, only)) sheet.push_back(&md);
+        int cell = argc > 4 ? atoi(argv[4]) : 220;
+        int cols = Min(7, Max((int)sheet.size(), 1));
+        int rows = ((int)sheet.size() + cols - 1) / cols;
+        Image img(cols * cell, Max(rows, 1) * cell * 2);
+        for (size_t i = 0; i < sheet.size(); i++) {
+            const ModelData& md = *sheet[i];
             Pose P;
             poseFor(md, mode, 0.3f, P, skin, F);
             const SkinnedMeshData& mesh = md.lod[0].verts.empty() ? md.batch[0] : md.lod[0];

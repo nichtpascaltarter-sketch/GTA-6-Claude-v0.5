@@ -1197,6 +1197,7 @@ struct QuadSpec {
     float rThigh, rArm, rShin, rFoot;   // radii (m)
     bool hoof, plantigrade;
     float hump, dewlap, mane, horns, antlers;
+    float neckDrop = 0.f;           // lowers the neck root (fraction of the barrel depth): horses carry the neck from low on the chest
 };
 
 QuadSpec quadSpec(int sp, int var) {
@@ -1205,25 +1206,25 @@ QuadSpec quadSpec(int sp, int var) {
         case SP_DOG: {
             q = {0.57f, 0.55f, 0.46f, 0.115f, 0.26f, 0.25f, 0.28f, 0.07f, 0.07f,
                  0.20f, 0.075f, 0.058f, 0.85f, 1.f,
-                 0.14f, 0.062f, 0.075f, 0.10f, 0.038f, 0.045f, -0.25f,
+                 0.13f, 0.068f, 0.105f, 0.095f, 0.042f, 0.064f, -0.3f,
                  0.10f, 0.055f, 1.f, 0.3f,
-                 0.40f, 0.028f, 1.f, -0.35f, 0.f,
+                 0.40f, 0.032f, 1.f, -0.35f, 0.f,
                  0.075f,
                  0.44f, -0.06f, 0.12f, 0.0f, 0.05f,
                  0.42f, 0.14f, 0.22f, -0.16f, -0.10f,
                  0.075f, 0.05f, 0.028f, 0.03f, false, false, 0.f, 0.f, 0.f, 0.f, 0.f};
             if (var == 2) {   // german shepherd: longer, erect ears, sloping back, bushy low tail
                 q.withers = 0.62f; q.hipH = 0.55f; q.bodyLen = 0.52f; q.earFlop = 0.f; q.earLen = 0.12f; q.earOut = 0.25f;
-                q.muzzleLen = 0.12f; q.tailBush = 1.6f; q.tailAngle = -0.9f; q.tailLen = 0.44f;
+                q.muzzleLen = 0.12f; q.muzzleH = 0.056f; q.headH = 0.1f; q.tailBush = 1.6f; q.tailAngle = -0.9f; q.tailLen = 0.44f;
             } else if (var == 3) {   // small terrier
                 q.withers = 0.30f; q.hipH = 0.30f; q.bodyLen = 0.26f; q.bodyW = 0.07f; q.depth = 0.15f; q.rump = 0.04f; q.brisket = 0.04f;
-                q.neckLen = 0.1f; q.neckR = 0.045f; q.neckR2 = 0.035f; q.headLen = 0.09f; q.headW = 0.042f; q.headH = 0.05f;
-                q.muzzleLen = 0.05f; q.muzzleW = 0.022f; q.muzzleH = 0.026f; q.earLen = 0.05f; q.earW = 0.035f; q.earFlop = 0.3f;
+                q.neckLen = 0.1f; q.neckR = 0.045f; q.neckR2 = 0.035f; q.headLen = 0.085f; q.headW = 0.044f; q.headH = 0.066f;
+                q.muzzleLen = 0.05f; q.muzzleW = 0.024f; q.muzzleH = 0.036f; q.earLen = 0.05f; q.earW = 0.035f; q.earFlop = 0.3f;
                 q.tailLen = 0.14f; q.tailR = 0.014f; q.tailAngle = 0.9f; q.legX = 0.045f;
                 q.rThigh = 0.045f; q.rArm = 0.03f; q.rShin = 0.016f; q.rFoot = 0.018f;
             } else if (var == 4) {   // stocky brindle stray
-                q.withers = 0.50f; q.hipH = 0.49f; q.bodyLen = 0.42f; q.bodyW = 0.13f; q.depth = 0.25f; q.headW = 0.075f; q.headH = 0.08f;
-                q.muzzleLen = 0.075f; q.muzzleW = 0.045f; q.earFlop = 0.45f; q.earLen = 0.07f; q.tailLen = 0.3f; q.tailR = 0.022f;
+                q.withers = 0.50f; q.hipH = 0.49f; q.bodyLen = 0.42f; q.bodyW = 0.13f; q.depth = 0.25f; q.headW = 0.078f; q.headH = 0.11f;
+                q.muzzleLen = 0.075f; q.muzzleW = 0.047f; q.muzzleH = 0.068f; q.earFlop = 0.45f; q.earLen = 0.07f; q.tailLen = 0.3f; q.tailR = 0.022f;
                 q.tailBush = 0.6f; q.tailAngle = -0.2f; q.rThigh = 0.08f; q.rArm = 0.055f;
             }
             break;
@@ -1264,7 +1265,7 @@ QuadSpec quadSpec(int sp, int var) {
         case SP_COW:
             q = {1.35f, 1.38f, 1.30f, 0.33f, 0.74f, 0.12f, 0.02f, 0.16f, 0.2f,
                  0.50f, 0.28f, 0.2f, 0.35f, 0.9f,
-                 0.40f, 0.14f, 0.19f, 0.2f, 0.11f, 0.12f, -0.75f,
+                 0.30f, 0.135f, 0.25f, 0.17f, 0.1f, 0.155f, -0.9f,
                  0.20f, 0.08f, 0.f, 1.3f,
                  0.90f, 0.035f, 0.5f, -1.3f, 1.f,
                  0.17f,
@@ -1276,14 +1277,15 @@ QuadSpec quadSpec(int sp, int var) {
             break;
         case SP_HORSE:
             q = {1.60f, 1.58f, 1.25f, 0.28f, 0.66f, 0.1f, 0.05f, 0.16f, 0.18f,
-                 0.80f, 0.23f, 0.14f, 0.95f, 0.72f,
-                 0.34f, 0.105f, 0.20f, 0.24f, 0.075f, 0.1f, -1.05f,
+                 0.80f, 0.25f, 0.15f, 0.75f, 0.7f,
+                 0.34f, 0.1f, 0.27f, 0.22f, 0.08f, 0.15f, -0.95f,
                  0.15f, 0.055f, 0.f, 0.15f,
                  1.00f, 0.06f, 1.f, -1.15f, 0.f,
                  0.14f,
                  0.46f, -0.04f, 0.28f, 0.0f, 0.05f,
                  0.52f, 0.12f, 0.32f, -0.12f, -0.03f,
                  0.22f, 0.12f, 0.045f, 0.055f, true, false, 0.f, 0.f, 1.f, 0.f, 0.f};
+            q.neckDrop = 0.2f;
             break;
         default: break;
     }
@@ -1455,7 +1457,7 @@ void buildQuadSkeleton(const QuadSpec& Q, Skel& sk, vec3* J) {
     sk.add(BODY, vec3(0, yP, H - Q.depth * 0.28f));                   // PELVIS
     sk.add(BODY, vec3(0, yC, W - Q.depth * 0.32f));                   // CHEST
     vec3 nd = vec3(0, cosf(Q.neckAngle), sinf(Q.neckAngle));
-    vec3 n1 = vec3(0, yC + Q.brisket * 0.35f, W - Q.depth * 0.15f);
+    vec3 n1 = vec3(0, yC + Q.brisket * 0.35f, W - Q.depth * (0.15f + Q.neckDrop));
     sk.add(CHEST, n1);                                                // NECK1
     sk.add(NECK1, n1 + nd * (Q.neckLen * 0.5f));                     // NECK2
     vec3 hd = n1 + nd * Q.neckLen;
@@ -1463,8 +1465,9 @@ void buildQuadSkeleton(const QuadSpec& Q, Skel& sk, vec3* J) {
     vec3 hf = vec3(0, cosf(Q.headPitch), sinf(Q.headPitch));
     vec3 hu = normalize(cross(vec3(1, 0, 0), hf));
     sk.add(HEAD, hd + hf * (Q.headLen * 0.3f) - hu * (Q.headH * 0.45f));        // JAW hinge
-    sk.add(HEAD, hd + vec3(-Q.headW * 0.55f, 0, 0) + hf * 0.01f + hu * (Q.headH * 0.3f));   // EAR_L
-    sk.add(HEAD, hd + vec3(Q.headW * 0.55f, 0, 0) + hf * 0.01f + hu * (Q.headH * 0.3f));    // EAR_R
+    float earX = Q.headW * (0.55f + 0.3f * Q.earFlop);
+    sk.add(HEAD, hd + vec3(-earX, 0, 0) + hf * 0.01f + hu * (Q.headH * 0.3f));   // EAR_L
+    sk.add(HEAD, hd + vec3(earX, 0, 0) + hf * 0.01f + hu * (Q.headH * 0.3f));    // EAR_R
     vec3 td = vec3(0, -cosf(Q.tailAngle), sinf(Q.tailAngle));
     vec3 t1 = vec3(0, yP - Q.rump * 0.85f, H - Q.depth * 0.08f);
     sk.add(PELVIS, t1);                                               // TAIL1
@@ -1659,7 +1662,7 @@ void buildQuadMesh(int sp, int var, const QuadSpec& Q, const Skel& sk, const vec
                 hB = Lerp(hB, Q.muzzleH * 0.35f, tw);
             } else {
                 float k = Saturate((a - aStop) / Max(total - aStop, 1e-3f));
-                float tip = sqrtf(Max(1.f - powf(k, 3.f), 0.f));
+                float tip = sqrtf(Max(1.f - powf(k, Q.hoof ? 7.f : 3.5f), 0.f));
                 w = Q.muzzleW * (1.1f - 0.15f * k) * tip;
                 hT = Q.muzzleH * 0.55f * tip;
                 hB = Q.muzzleH * 0.35f * tip;
@@ -1681,7 +1684,7 @@ void buildQuadMesh(int sp, int var, const QuadSpec& Q, const Skel& sk, const vec
             float tip = sqrtf(Max(1.f - powf(t, 4.f), 0.f));
             s.w = Lerp(Q.headW * 0.6f, Q.muzzleW * 0.8f, t) * tip;
             s.hT = Q.muzzleH * 0.12f * tip + 0.002f;
-            s.hB = Lerp(Q.headH * 0.28f, Q.muzzleH * 0.22f, t) * tip;
+            s.hB = Lerp(Q.headH * (Q.hoof ? 0.42f : 0.3f), Q.muzzleH * (Q.hoof ? 0.3f : 0.24f), smooth01(t)) * tip;
             s.ex = 2.2f;
         });
         float jl = JS.back().u;
@@ -1822,7 +1825,7 @@ void buildQuadMesh(int sp, int var, const QuadSpec& Q, const Skel& sk, const vec
         vec3 j1 = sk.bind[b1], j2 = sk.bind[b2], j3 = sk.bind[b3], toe = J[b1 + 20];
         int parentB = front ? CHEST : PELVIS;
         vec3 top = j1 + vec3(-sd * Q.legX * 0.35f, front ? -0.02f * W : 0.03f * H, (front ? W : H) * 0.1f);
-        std::vector<vec3> lp = smoothPath({top, j1, j2, j3, toe + vec3(0, 0, Q.rFoot * 0.9f)}, lod == 0 ? 3 : 1);
+        std::vector<vec3> lp = smoothPath({top, j1, j2, j3, toe + vec3(0, Q.hoof ? 0.f : Q.rFoot * 0.2f, Q.rFoot * (Q.hoof ? 0.9f : 1.1f))}, lod == 0 ? 3 : 1);
         float aJ1 = length(j1 - top), aJ2 = aJ1 + length(j2 - j1), aJ3 = aJ2 + length(j3 - j2);
         float total = 0.f;
         for (size_t i = 1; i < lp.size(); i++) total += length(lp[i] - lp[i - 1]);
@@ -1865,8 +1868,8 @@ void buildQuadMesh(int sp, int var, const QuadSpec& Q, const Skel& sk, const vec
                 a.sw = skin1(b3);
             }, false, true);
         } else if (lod == 0 || !front) {
-            vec3 pc = toe + vec3(0, Q.rFoot * (Q.plantigrade ? 0.2f : 0.6f), Q.rFoot * 0.75f);
-            ellipsoid(mb, pc, vec3(0, 1, 0), vec3(0, 0, 1), Q.rFoot * (Q.plantigrade ? 2.2f : 1.5f), Q.rFoot * 1.15f, Q.rFoot * 0.8f, lod == 0 ? 6 : 4,
+            vec3 pc = toe + vec3(0, Q.rFoot * (Q.plantigrade ? 0.2f : 0.3f), Q.rFoot * 0.78f);
+            ellipsoid(mb, pc, vec3(0, 1, 0), vec3(0, 0, 1), Q.rFoot * (Q.plantigrade ? 2.2f : 1.25f), Q.rFoot * 1.2f, Q.rFoot * 0.82f, lod == 0 ? 6 : 4,
                       lod == 0 ? 8 : 5, [&](int, float, float th, vec3 p, VAttr& a) {
                           paint(QP_FOOT, 1.f, th, sd, front, p, a);
                           a.sw = skin1(b3);
@@ -1984,7 +1987,10 @@ vec3 reptPaint(int sp, int var, int part, float s, float th, vec3 p, u8& mat) {
         vec3 back = C(0.11f, 0.12f, 0.09f), side = C(0.2f, 0.2f, 0.15f), belly = C(0.78f, 0.74f, 0.58f);
         vec3 c = mixc(side, back, sstep(-0.1f, 0.6f, up));
         c = mixc(c, belly, sstep(-0.35f, -0.75f, up));
-        if (part == RP_JAW && up > 0.4f) return C(0.85f, 0.78f, 0.62f);   // inside of the mouth
+        if (part == RP_JAW && up > 0.4f) {   // inside of the mouth: cream gums, yellowish tongue, darker throat
+            vec3 m = mixc(C(0.8f, 0.72f, 0.56f), C(0.74f, 0.6f, 0.42f), sstep(0.8f, 0.97f, up));
+            return mixc(C(0.36f, 0.27f, 0.2f), m, sstep(0.0f, 0.25f, s)) * (0.9f + 0.1f * fine);
+        }
         if (part == RP_BODY && s > 0.83f && up < -0.2f && p.y > 0.75f) c = C(0.8f, 0.72f, 0.58f);   // palate / jaw lining
         if (p.y < -0.5f && up > -0.3f) c = mixc(c, C(0.28f, 0.27f, 0.18f), sinf(p.y * 9.f) > 0.55f ? 0.5f : 0.f);   // faint tail bands
         return c * (0.8f + 0.25f * mott) * (0.92f + 0.12f * fine);
@@ -2044,10 +2050,10 @@ void buildReptMesh(int sp, int var, const ReptSpec& R, const Skel& sk, const vec
         float w, hT, hB, cz = z, ex = 2.2f;
         if (y < R.tailBase) {   // tail: taller than wide, tapering
             float k = (y - R.tailTip) / (R.tailBase - R.tailTip);   // 0 tip .. 1 base
-            float e = powf(k, 0.8f);
-            w = Lerp(0.004f, R.tailW, e);
-            hT = Lerp(0.006f, R.tailH, e);
-            hB = Lerp(0.004f, R.tailH * 0.8f, e);
+            float eW = powf(k, 0.85f), eH = powf(k, sp == SP_GATOR ? 0.55f : 0.8f);   // gator tails: tall, flattened sideways
+            w = Lerp(0.004f, R.tailW, eW);
+            hT = Lerp(0.006f, R.tailH, eH);
+            hB = Lerp(0.004f, R.tailH * 0.8f, eH);
             cz = z + Lerp(-0.02f, 0.f, k) * (L / 3.4f);
             ex = 2.4f;
         } else if (y < R.shoulder) {   // trunk
@@ -2136,6 +2142,7 @@ void buildReptMesh(int sp, int var, const ReptSpec& R, const Skel& sk, const vec
             a.col = reptPaint(sp, var, RP_JAW, u / jl, th, p, mat);
             a.mat = mat;
             a.sw = skin1(JAW);
+            if (lod == 0 && sp == SP_GATOR) a.disp = 0.009f * gauss1(sinf(th), 0.62f, 0.14f) * sstep(0.02f, 0.2f, u / jl);   // gum ridges
         }, true, false);
         // teeth along both jaws (gators show them with the mouth closed)
         if (sp == SP_GATOR && lod == 0) {
@@ -3034,8 +3041,10 @@ void animateReptile(const ModelData& m, const ReptileAnim& a, Pose& P) {
     float hiss = Saturate(a.hiss) * (1.f - dead);
     float jaw = Max(Saturate(a.jaw), hiss * 0.75f);
     P.q[NECK] = qz(a.headYaw * 0.5f) * qx(hiss * 0.18f + a.headPitch * 0.5f);
-    P.q[HEAD] = qz(a.headYaw * 0.5f) * qx(a.headPitch * 0.5f + jaw * 0.12f - 0.05f * dead);
-    P.q[JAW] = qx(-jaw * (m.species == SP_GATOR ? 0.85f : 0.5f));
+    // gaping lifts the head (upper jaw) while the lower jaw rests near the ground; a hiss opens it downwards too
+    float lift0 = jaw * (m.species == SP_GATOR ? 0.42f : 0.2f) * (1.f - hiss * 0.5f);
+    P.q[HEAD] = qz(a.headYaw * 0.5f) * qx(a.headPitch * 0.5f + lift0 - 0.05f * dead);
+    P.q[JAW] = qx(-jaw * (m.species == SP_GATOR ? 0.72f : 0.5f));
     float inflate = 1.f + 0.07f * hiss;
     P.s[BODY] = P.s[CHEST] = vec3(inflate, 1.f, inflate);
     // ---- body height: belly on the ground .. high walk; swimming floats level

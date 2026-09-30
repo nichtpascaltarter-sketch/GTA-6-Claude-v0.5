@@ -186,7 +186,7 @@ void layoutApartment(IB& b) {
     ws.wallCol = Gy(0.93f);
     ws.floorMat = M(MAT_TILE);
     ws.floorCol = C(0.8f, 0.82f, 0.83f);
-    ws.floorUV = 1.f;
+    ws.floorUV = 1.5f;
     ws.wainscotH = 1.25f;
     ws.wainCol = C(hsv(r.range(0.45f, 0.58f), 0.25f, 0.85f));
     ws.wainMat = M(MAT_TILE);
@@ -312,6 +312,8 @@ void layoutApartment(IB& b) {
         }
         domeLight(b, vec3(bcx, (ym + Y1) * 0.5f, H), bath, 140.f, vec3(1.f, 0.95f, 0.88f));
     }
+    roomDressing(b, living, false, d.seed ^ 0x61u);
+    roomDressing(b, bedroom, false, d.seed ^ 0x62u);
 }
 
 // ------------------------------------------------------------------------------------------------ Dex's trailer
@@ -625,6 +627,8 @@ void layoutTrailer(IB& b) {
         towelRail(b, vec3(xp1 + pt * 0.5f, iy1 - 1.2f, 0.f), -kHalfPi, C(0.7f, 0.3f, 0.25f));
     }
     domeLight(b, vec3((xp1 + ix1) * 0.5f, (iy0 + iy1) * 0.5f, zc), bath, 90.f, vec3(1.f, 0.95f, 0.88f));
+    roomDressing(b, living, false, d.seed ^ 0x71u);
+    roomDressing(b, bedroom, false, d.seed ^ 0x72u);
 }
 
 }  // namespace ikit

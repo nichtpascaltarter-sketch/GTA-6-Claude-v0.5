@@ -78,7 +78,7 @@ void scatterVegetation(int cx, int cy, std::vector<PropInstance>& props) {
             vec2 p = org + vec2(hashToFloat(h), hashToFloat(hash32(h))) * kCellSize;
             float cd = map.coastDistance(p.x, p.y);
             if (cd < 8.f || cd > 60.f || map.isWater(p.x, p.y)) continue;
-            if (gSites->blocksVegetation(p)) continue;
+            if (gSites->blocksVegetation(p) || gRoads->nearRoad(p, 1.5f)) continue;
             PropInstance pi;
             pi.pos = vec3(p, map.heightAt(p.x, p.y));
             pi.yaw = hashToFloat(h ^ 7u) * kTwoPi;
@@ -98,6 +98,8 @@ void generateCell(int cx, int cy, bool detail, CellGeometry& out) {
     RoadCellOutput roads;
     buildRoadCell(*gRoads, map, cx, cy, roads);
     out.opaque.append(roads.road);
+    // deck parapets, median barriers and guardrails collide at every LOD (vehicles far from the camera stay on the decks)
+    out.collision.insert(out.collision.end(), roads.collision.begin(), roads.collision.end());
     if (detail) {
         out.decals.append(roads.decals);
         out.props.insert(out.props.end(), roads.props.begin(), roads.props.end());

@@ -33,6 +33,7 @@ struct CutsceneShot {
     float duration = 3.f;
     int speaker = -2;        // shot added by the runtime to frame this speaking ped (-2: a scripted shot)
     float handheld = 0.f;    // 0 locked-off camera .. 1 nervous handheld (tense beats)
+    float leadIn = 0.f;      // opening a cutscene: seconds of picture before the first line (establishing shots)
 };
 
 struct Marker {
@@ -163,6 +164,8 @@ struct MissionManager {
     bool skippable = true;
     bool holdForDialogue = false;   // story cutscenes keep framing the speakers until the conversation ends
     int autoShots = 0;              // speaker shots added to the current cutscene
+    float leadIn = 0.f;             // silence before the next line starts (an establishing shot breathes)
+    float handheldNow = 0.f;        // eased handheld amount of the cutscene camera
     // result banner
     float passTimer = 0.f;
     float cooldown = 0.f;

@@ -400,10 +400,19 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
     if (sprint && mag > 0.1f) pinfo.stamina = Max(0.f, pinfo.stamina - dt * 0.07f);
     else pinfo.stamina = Min(1.f, pinfo.stamina + dt * 0.12f);
     vec2 desired = mag > 0.1f ? normalize(dir) * speed : vec2(0, 0);
+    // first person: the body faces the view; backwards and sideways the legs can only walk / jog
+    bool firstPerson = rig.fpActive && !swimming;
+    if (firstPerson && mag > 0.1f) {
+        float fwdAmt = dot(normalize(dir), fwd);
+        if (fwdAmt < -0.3f) desired = desired * (Min(speed, 2.2f) / Max(speed, 1e-3f));
+        else if (fwdAmt < 0.5f) desired = desired * (Min(speed, 3.6f) / Max(speed, 1e-3f));
+    }
     // facing
     float prevYaw = p.yaw;
     if (meleeLock || p.meleeMove >= 0 || p.dodgeT >= 0.f) {
         // melee.cpp / the lock-on above steer the facing
+    } else if (firstPerson) {
+        p.yaw += wrapA(cy - p.yaw) * Saturate(dt * 18.f);
     } else if (p.aiming || (p.firing && wi.clipSize > 0)) {
         float ty = atan2f(-camF.x, camF.y);
         p.yaw += wrapA(ty - p.yaw) * Saturate(dt * 16.f);

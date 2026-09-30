@@ -61,6 +61,14 @@ struct CameraRig {
     float camHold = 0.f;
     bool cineActive = false, cineUsed = false;
     dvec3 cinePos;
+    // on-foot first person (toggled with the camera button while walking around)
+    bool footFirstPerson = false;
+    bool fpActive = false;                // this frame renders from the eyes (the toggle can be overridden)
+    dvec3 fpEye;                          // smoothed eye position
+    // blend from the last scripted (cutscene) shot back to the gameplay camera: set scriptBlend = scriptBlendTotal
+    // (seconds) when a cutscene ends instead of cutting
+    float scriptBlend = 0.f, scriptBlendTotal = 0.f;
+    Render::Camera scriptFrom;
 };
 
 struct PlayerInfo {
@@ -114,6 +122,7 @@ struct GameWorld {
     Render::Model* weaponModels[WPN_COUNT] = {};
     Render::Model* pickupModels[6] = {};
     Render::Model* parachuteModel = nullptr;
+    Render::Model* phoneModel = nullptr;      // smartphone prop (calls, idle scrolling)
 
     // Entities
     std::vector<Ped> peds;
@@ -282,6 +291,7 @@ struct GameWorld {
     void updatePlayerOnFoot(Ped& p, float dt);
     void updatePlayerVehicle(Ped& p, float dt);
     void updateCamera(float dt);
+    void updateCameraRig(float dt);             // camera.cpp: the rig itself (updateCamera adds cutscene blends)
     void submitRender();
     void updateAudioListener(float dt);
     void fillHud(UI::HudState& h, float dt);

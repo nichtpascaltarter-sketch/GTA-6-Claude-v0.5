@@ -441,12 +441,18 @@ void layoutChopShop(IB& b) {
         quadF(b, vec3(gw0, yO, gz0), vec3(gw1, yO, gz0), vec3(gw1, yO, gz1), vec3(gw0, yO, gz1), vec3(0, -1, 0), glassCol(0.75f, vec3(0.8f, 0.85f, 0.8f)), kGlassMat);
         quadF(b, vec3(gw0, yO, gz0), vec3(gw1, yO, gz0), vec3(gw1, yO, gz1), vec3(gw0, yO, gz1), vec3(0, 1, 0), glassCol(0.75f, vec3(0.8f, 0.85f, 0.8f)), kGlassMat);
         // floor: oil stains and painted bay lines
+        // oil stains: clusters of overlapping irregular blots, a shade darker than the slab
         Rng sr(d.seed + 1u);
-        for (int k = 0; k < 14; k++) {
-            vec3 sp(sr.range(X0 + 1.f, X1 - 1.f), sr.range(Y0 + 2.f, yO - 1.f), 0.002f + k * 0.0001f);
-            b.pushAxes(sp, vec3(1, 0, 0), vec3(0, sr.range(0.5f, 1.4f), 0), vec3(0, 0, 1));
-            disc(b, vec3(0.f), sr.range(0.2f, 0.7f), 12, C(0.12f, 0.11f, 0.1f, 1.f), M(MAT_ASPHALT));
-            b.pop();
+        for (int k = 0; k < 9; k++) {
+            vec3 sp(sr.range(X0 + 1.f, X1 - 1.f), sr.range(Y0 + 2.f, yO - 1.f), 0.f);
+            int nb = sr.irange(2, 4);
+            for (int j = 0; j < nb; j++) {
+                vec3 q = sp + vec3(sr.range(-0.3f, 0.3f), sr.range(-0.3f, 0.3f), 0.002f + (k * 4 + j) * 0.00005f);
+                float rr = sr.range(0.08f, 0.32f), a = sr.f() * kPi;
+                b.pushAxes(q, vec3(cosf(a), sinf(a), 0.f) * sr.range(0.7f, 1.3f), vec3(-sinf(a), cosf(a), 0.f), vec3(0, 0, 1));
+                disc(b, vec3(0.f), rr, 9, C(vec3(0.34f, 0.32f, 0.29f) * sr.range(0.85f, 1.1f)), M(MAT_CONCRETE));
+                b.pop();
+            }
         }
     }
     // ---- lifts: a car raised on the main bay's lift, a stripped shell on stands in the next bay
@@ -548,6 +554,8 @@ void layoutChopShop(IB& b) {
         crate(b, vec3((pxa + pxb) * 0.5f + 1.6f, yO + 1.4f, 0.f), 0.3f, vec3(0.5f, 0.4f, 0.4f), r.next());
         troffer(b, vec3((pxa + pxb) * 0.5f, (yO + Y1) * 0.5f, oH), 1.2f, 0.3f, parts, 380.f, vec3(1.f, 0.97f, 0.9f), 6.f);
     }
+    roomDressing(b, garage, true, d.seed ^ 0xD1u);
+    roomDressing(b, office, false, d.seed ^ 0xD2u);
 }
 
 // ------------------------------------------------------------------------------------------------ Port Isle warehouse
@@ -733,6 +741,7 @@ void layoutWarehouse(IB& b) {
     scenario(b, vec3(doorX + 1.5f, Y0 + 2.2f, 0.f), 0.f, 19, SR_GUARD, SF_STAFF);
     scenario(b, vec3(X0 + (X1 - X0) * 0.35f + 1.2f, ya - 2.4f, 0.f), -1.2f, 14, SR_WORKER, SF_OPTIONAL);
     scenario(b, vec3(X0 + (X1 - X0) * 0.55f, ya - 0.9f, 0.f), 0.7f, 0, SR_WORKER, SF_OPTIONAL);
+    roomDressing(b, hall, true, d.seed ^ 0xE1u);
 }
 
 }  // namespace ikit

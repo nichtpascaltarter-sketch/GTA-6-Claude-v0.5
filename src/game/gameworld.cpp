@@ -532,6 +532,20 @@ void GameWorld::submitRender() {
             wd.castShadow = p.visibleDist < 40.f;
             dyn->submit(wd);
         }
+        // smartphone in hand: at the ear during calls, browsing, the idle phone check (Anim::phoneFrame fits all)
+        if (phoneModel && p.visibleDist < 35.f && !p.ragdoll && (p.state == PS_ONFOOT || p.state == PS_SWIM) &&
+            (p.anim.phoneW > 0.5f || p.anim.browseW > 0.5f || (p.anim.idleVar == Anim::detail::IC_IDLE_PHONE && p.anim.idleVarW > 0.5f))) {
+            mat3 pr = d.rot;
+            Render::DrawItem pd;
+            pd.model = phoneModel;
+            vec3 fp, fl, fs;
+            Anim::phoneFrame(ce.skel, p.bones, fp, fl, fs);
+            pd.pos = p.pos + dvec3(pr * fp);
+            pd.rot = frameFromForward(pr * fl, pr * fs);
+            pd.id = 0x680000000ull | p.uid;
+            pd.castShadow = p.visibleDist < 15.f;
+            dyn->submit(pd);
+        }
     }
     Wildlife::submitRender(*this);   // birds, flocks, fish shoals, pets, herds, alligators (wildlife.cpp)
     // ---- pickups

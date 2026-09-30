@@ -116,6 +116,10 @@ vec3 clipRootMotion(const Skeleton& skel, Clip c, float t);
 // `palm` = palm normal. Melee weapons attach to the right hand (right = true); for two-handed swings the animator
 // keeps the left hand on the same handle, 9.5 cm below the right fist (towards the knob).
 void handGrip(const Skeleton& skel, const mat4* modelSpace, bool right, vec3& pos, vec3& axis, vec3& palm);
+// Phone prop frame for every phone pose (call at the ear, browsing, the idle phone check): `pos` = centre of the
+// phone, `longAxis` = its length direction (towards the top edge), `screen` = screen normal. It lies in the right palm
+// (screen away from the palm), or between both palms when the hands hold it together.
+void phoneFrame(const Skeleton& skel, const mat4* modelSpace, vec3& pos, vec3& longAxis, vec3& screen);
 
 // High level animation state machine driven by gameplay each frame.
 struct AnimInput {
@@ -158,6 +162,12 @@ struct AnimInput {
     bool listening = false;   // listener: crossed arms / hand on hip / hands in pockets, occasional nods, head tilts
                               // (turn it to the speaker with lookAt / lookWeight)
     bool phoneCall = false;   // phone held to the right ear (standing or walking), the left arm stays free / gestures
+    bool phoneBrowse = false; // looking down at a phone held at chest height: both hands standing, the right hand only
+                              // while walking / jogging (~0.3 s blend). Place the prop with phoneFrame().
+    // takedown contact for mismatched heights: the victim's B_NECK joint in this (attacker's) model space while playing
+    // CLIP_TAKEDOWN_ATTACKER; the choke arm and the hand behind the head are IK'd onto it (weight 0 = as authored)
+    vec3 grabTarget = vec3(0);
+    float grabWeight = 0;
     vec3 groundNormal = vec3(0, 0, 1);  // terrain normal under the ped in its model space (feet align to slopes)
 };
 
@@ -195,6 +205,7 @@ struct Animator {
     int gestMode = 0;
     float gestT = 0.f, gestDur = 0.f, gestR = 0.f, gestL = 0.f, palmR = 0.f, palmL = 0.f, beatS = 0.f, phoneW = 0.f;
     float tiltS = 0.f, tiltTarget = 0.f, tiltNext = 0.f, nodNext = 3.f, nodPhase = -1.f, autoNod = 0.f;
+    float browseW = 0.f, browseL = 0.f, grabW = 0.f;
     void conversation(const AnimInput& in, float dt, Pose& p);   // internal: gestures, listener cues, phone at the ear
     Pose snap;                    // pose captured at a discontinuity (crossfaded out over 1/snapRate s)
     void init(const Skeleton* s, u32 variationSeed);

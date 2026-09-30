@@ -6,6 +6,10 @@
 namespace Game {
 namespace mu {
 
+// garage helpers (shops.cpp)
+int packPaint(vec3 c);
+void saveOwnedMods(GameWorld& g, int v);
+
 // ------------------------------------------------------------------------------------------------------------------
 // Small models for activity props (built once, rendered as dynamic draw items)
 Render::Model* gTargetModel = nullptr;
@@ -144,23 +148,57 @@ struct RaceRival {
     const char* taunt;       // mid race, while ahead of the player
     const char* beaten;      // the player won
     const char* gloat;       // the player lost
+    // the rivalry: after the first win the rival comes back for rematches; after three, the final puts their car (a
+    // trophy on the water) against the prize; once the final is won they greet the player with respect
+    const char* rematch;
+    const char* finalOffer;
+    const char* finalLost;
+    const char* respect;
+    const char* trophy;      // water rivals: the trophy name ("" for road rivals, who hand over their car)
 };
 const RaceRival kRivals[] = {
     {"race_calle", "Chuy", "cast_thug_c", false, 0xff4040ffu, "[angry:0.5]You again, repo man? Tonight I win my slip back.",
-     "[shout]Eat my exhaust!", "[angry]Rigged. This whole city is rigged.", "[happy]Pink slip energy, baby!"},
+     "[shout]Eat my exhaust!", "[angry]Rigged. This whole city is rigged.", "[happy]Pink slip energy, baby!",
+     "[angry:0.4]Round two. I tuned the engine myself this time.",
+     "[calm]Okay. Pink slips. My car against your prize money. Winner drives home in it.",
+     "[sad:0.5]Take her. Just change the oil every three thousand. She deserves it.",
+     "[calm]You got my car and my respect. Only one of those I want back.", ""},
     {"race_beach", "Nikki Vega", "racer_nikki", true, 0xffff66ccu, "[happy:0.6]Cute car. Shame it'll be looking at my taillights all night.",
-     "[happy]Still with me? Adorable.", "[sad:0.4]Okay. Okay. Rematch next Friday.", "[happy]See you at the finish. Oh wait, I'm already there."},
+     "[happy]Still with me? Adorable.", "[sad:0.4]Okay. Okay. Rematch next Friday.", "[happy]See you at the finish. Oh wait, I'm already there.",
+     "[happy:0.5]Rematch, as promised. I brought a faster car and a better attitude. Mostly the car.",
+     "[happy:0.4]Let's make it interesting. My title against your prize. Unless you like losing twice.",
+     "[sad:0.3]Fine. She's yours. Tell her Nikki says hi.", "[happy:0.4]There's my favorite car thief. Drive nice.", ""},
     {"race_overseas", "Duke Marlow", "redneck", false, 0xff66aaffu, "[calm]Seven miles of bridge, no cops, no brakes. Keep up.",
-     "[shout]Keys are mine, city kid!", "[angry:0.4]Well dang. You drive like the bridge owes you money.", "[happy:0.5]Welcome to the Keys, city kid."},
+     "[shout]Keys are mine, city kid!", "[angry:0.4]Well dang. You drive like the bridge owes you money.", "[happy:0.5]Welcome to the Keys, city kid.",
+     "[calm]Came back for more bridge, city kid? The Keys don't forgive.",
+     "[calm]Title to my ride against your winnings. Seven miles. No excuses.",
+     "[sad:0.4]Well. My granddaddy won that title in a card game. Now you won it on a bridge.",
+     "[happy:0.3]City kid. Still driving my old ride like it owes you money?", ""},
     {"race_grove", "Preston Hale", "racer_preston", false, 0xffaaddffu, "[calm]Daddy's car, my rules. Try not to scratch the hedges.",
      "[happy:0.5]Money can't buy talent. Oh wait, it can.", "[angry:0.5]This isn't over. My lawyer will hear about this.",
-     "[happy:0.4]Told you. Talent and a trust fund."},
+     "[happy:0.4]Told you. Talent and a trust fund.",
+     "[angry:0.3]My lawyer says I should stop racing you. My lawyer doesn't drive.",
+     "[calm]Pink slips. Daddy has a whole garage of these. He won't even notice.",
+     "[scared:0.4]He's going to notice. Oh, he is definitely going to notice.",
+     "[calm]Daddy noticed. I take the bus now. Thanks for that.", ""},
     {"race_keys", "Mama Juno", "old_woman", true, 0xff88ffccu, "[happy:0.4]I've been racing this loop since before you were born, sugar.",
-     "[happy]Too slow, baby!", "[happy:0.3]Not bad. You'd have beaten me in nineteen eighty too.", "[happy]Still got it!"},
+     "[happy]Too slow, baby!", "[happy:0.3]Not bad. You'd have beaten me in nineteen eighty too.", "[happy]Still got it!",
+     "[happy:0.4]Back again, sugar? I baked a pie for the winner. It's for me.",
+     "[happy:0.3]At my age you race for keeps. My car against your purse, sugar.",
+     "[happy:0.3]Well I'll be. Take her, baby. She's done her last lap with me.",
+     "[happy:0.4]There's my champion. Come by for pie sometime.", ""},
     {"boat_bay", "Captain Ferro", "old_man", false, 0xffffcc66u, "[calm]The bay's choppy tonight. Hold your line and respect the buoys.",
-     "[shout]Mind my wake!", "[happy:0.3]Good hands on that wheel. Your father would be proud.", "[happy:0.5]Salt water in your eyes? Happens to everyone."},
+     "[shout]Mind my wake!", "[happy:0.3]Good hands on that wheel. Your father would be proud.", "[happy:0.5]Salt water in your eyes? Happens to everyone.",
+     "[calm]Back on the water? Good. The bay needs more people who respect it.",
+     "[calm]The Harbor Cup. My trophy against your purse. Old rules.",
+     "[happy:0.3]The Harbor Cup is yours. Put it where the sun can find it.",
+     "[calm]Cup holder. Mind the buoys like you mean it.", "Harbor Cup"},
     {"boat_river", "Tito Reyes", "racer_tito", false, 0xff66ffffu, "[happy:0.5]Rio Sol's my river. You're just visiting.",
-     "[shout]River rat coming through!", "[angry:0.4]Lucky wake. That's all that was.", "[happy]River rat wins again!"},
+     "[shout]River rat coming through!", "[angry:0.4]Lucky wake. That's all that was.", "[happy]River rat wins again!",
+     "[happy:0.4]The river remembers you. So do I.",
+     "[calm]The River Crown is on the line. You win, you're king of the Rio Sol.",
+     "[sad:0.4]Long live the king. Don't get used to it.",
+     "[happy:0.3]Your majesty. Try not to sink my river.", "River Crown"},
 };
 
 const RaceRival* rivalFor(const char* raceId) {
@@ -199,6 +237,10 @@ public:
     long long won = 0;
     int rivalCar = -1, rivalPed = -1;
     bool taunted = false;
+    int rivalWins = 0;        // earlier wins against this race's rival
+    bool finalRace = false;   // the rivalry's final: the rival's car (or trophy) is on the line
+    bool finalDone = false;   // the final was won before: the rival greets with respect
+    long long fee = 0;
     MissionRace(const RaceSpec& s) : spec(s) {}
     const char* title() const override { return spec.name; }
     const char* brief() const override { return "Win the race. Entry fee is paid at the start line; the winner takes the prize money."; }
@@ -209,6 +251,10 @@ public:
     void start(GameWorld& g) override {
         if (spec.night && g.env->timeOfDay > 5.f && g.env->timeOfDay < 20.f) g.env->timeOfDay = 21.f;
         bool water = spec.domain == 1;
+        rivalWins = flag(g, EX_RIVAL_WINS + spec.bestSlot);
+        finalDone = (flag(g, EX_RIVAL_FINALS) >> spec.bestSlot) & 1;
+        finalRace = rivalFor(spec.id) && !finalDone && rivalWins >= 3;
+        fee = finalRace ? spec.fee * 2 : spec.fee;
         std::vector<vec2> via = spec.via;
         float wz = 0.f;
         if (water) {
@@ -255,16 +301,21 @@ public:
                     g.vehicles[v].color0 = lin(((rr->color) & 255) / 255.f, ((rr->color >> 8) & 255) / 255.f, ((rr->color >> 16) & 255) / 255.f);
                 }
             }
-            ScriptDriver& d = addDriver(g, v, race.path, spec.racerSpeed + (i == 0 ? 2.6f : i * 1.2f), water ? DRV_WATER : DRV_ROAD, 0);
+            float rivalPace = finalRace ? 3.6f : (rivalWins > 0 ? 3.0f : 2.6f);   // the rival brings more each time
+            ScriptDriver& d = addDriver(g, v, race.path, spec.racerSpeed + (i == 0 ? rivalPace : i * 1.2f), water ? DRV_WATER : DRV_ROAD, 0);
             d.racer = true;
             d.rubberPed = g.player;
             d.speedScale = 0.f;
         }
         if (!paid) {
-            money(g, -spec.fee);
+            money(g, -fee);
             paid = true;
         }
-        g.mObjective(StrFormat("~y~%s~s~  Entry fee $%lld, prize $%lld", spec.name, spec.fee, spec.prize));
+        const RaceRival* rr = rivalFor(spec.id);
+        if (finalRace && rr)
+            g.mObjective(StrFormat("~y~%s~s~  Rivalry final: $%lld buy-in against %s's %s", spec.name, fee, rr->name, rr->trophy[0] ? rr->trophy : "car"));
+        else
+            g.mObjective(StrFormat("~y~%s~s~  Entry fee $%lld, prize $%lld", spec.name, fee, spec.prize));
         rivalSay(g, 0);
         score(SC_CHASE, 0.45f, 5 + spec.bestSlot);
         countdown = 4.f;
@@ -276,7 +327,8 @@ public:
     void rivalSay(GameWorld& g, int which) {
         const RaceRival* rr = rivalFor(spec.id);
         if (!rr) return;
-        const char* text = which == 0 ? rr->intro : (which == 1 ? rr->taunt : (which == 2 ? rr->beaten : rr->gloat));
+        const char* opener = finalDone ? rr->respect : (finalRace ? rr->finalOffer : (rivalWins > 0 ? rr->rematch : rr->intro));
+        const char* text = which == 0 ? opener : (which == 1 ? rr->taunt : (which == 2 ? (finalRace ? rr->finalLost : rr->beaten) : rr->gloat));
         DialogueLine l = line(rr->name, text, pedAlive(g, rivalPed) ? rivalPed : -1, rr->color);
         Speech::Persona p = Speech::persona(rr->persona, rr->female);
         l.hasVoice = true;
@@ -343,6 +395,7 @@ public:
                         g.notify("RACE WON", StrFormat("%s  %d:%04.1f%s", spec.name, (int)(raceTime / 60.f), fmodf(raceTime, 60.f), record ? "  NEW RECORD" : ""));
                         g.socialReport(UI::TE_RACE_WON, dvec3(playerPos(g)), spec.name);
                         rivalSay(g, 2);
+                        winRivalry(g);
                         for (int v : race.racers) releaseDriver(g, v);
                         return MS_PASSED;
                     }
@@ -353,6 +406,42 @@ public:
             }
         }
         return MS_RUNNING;
+    }
+
+    // a win against the rival: count it; the final hands over the rival's car (into the garages, in the rival's colours
+    // with their tuning) or, on the water, their trophy and a purse
+    void winRivalry(GameWorld& g) {
+        const RaceRival* rr = rivalFor(spec.id);
+        if (!rr) return;
+        setFlag(g, EX_RIVAL_WINS + spec.bestSlot, Min(rivalWins + 1, 99));
+        if (!finalRace) {
+            if (rivalWins + 1 == 3)
+                g.notify(rr->name, StrFormat("%s wants a final: next time the %s is on the line.", rr->name, rr->trophy[0] ? rr->trophy : "pink slip"));
+            return;
+        }
+        setFlag(g, EX_RIVAL_FINALS, flag(g, EX_RIVAL_FINALS) | (1 << spec.bestSlot));
+        int m = rivalCar >= 0 && g.vehicles[rivalCar].used ? g.vehicles[rivalCar].model : -1;
+        bool road = spec.domain == 0 && !rr->trophy[0];
+        if (road && m >= 0 && std::find(g.ownedVehicleModels.begin(), g.ownedVehicleModels.end(), m) == g.ownedVehicleModels.end()) {
+            Vehicle& rv = g.vehicles[rivalCar];
+            g.ownedVehicleModels.push_back(m);
+            int slot = (int)g.ownedVehicleModels.size() - 1;
+            if (slot < 40) setFlag(g, EX_VEHICLE_PAINT + slot, packPaint(rv.color0));
+            // the rival's tuning comes with it
+            rv.mods.engine = 2;
+            rv.mods.transmission = 2;
+            rv.mods.turbo = true;
+            rv.mods.finish = 1;
+            rv.mods.neon = rv.color0;
+            saveOwnedMods(g, rivalCar);
+            g.notify("PINK SLIP", StrFormat("%s's car is yours, tuned as they left it. It waits in every safehouse garage.", rr->name));
+        } else {
+            long long purse = 10000;
+            won += purse;
+            g.notify(rr->trophy[0] ? rr->trophy : "PINK SLIP",
+                     rr->trophy[0] ? StrFormat("The %s is yours, and a $%lld purse.", rr->trophy, purse)
+                                   : StrFormat("You already own one like %s's car. They paid out $%lld instead.", rr->name, purse));
+        }
     }
 
     void autotest(GameWorld& g, MissionTest& t) override {

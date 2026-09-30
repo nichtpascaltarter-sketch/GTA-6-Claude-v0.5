@@ -3383,6 +3383,37 @@ vec3 clipRootMotion(const Skeleton& skel, Clip c, float t) {
     return rootMotionRef(ci, Clamp(t, 0.f, info.duration)) * (L.ctx[0].D.s * ls);
 }
 
+void phoneFrame(const Skeleton& skel, const mat4* modelSpace, vec3& pos, vec3& longAxis, vec3& screen) {
+    // palm centres and frames of both hands (bind axes: fingers along B_FINGERS, palm normals as in skeleton.cpp)
+    vec3 pc[2], fd[2], pn[2];
+    for (int s = 0; s < 2; s++) {
+        int hb = s ? B_HAND_R : B_HAND_L, fb = s ? B_FINGERS_R : B_FINGERS_L;
+        vec3 fl = skel.bindLocalPos[fb];
+        float pl = length(fl);
+        vec3 fing = pl > 1e-5f ? fl / pl : vec3(0, 0, -1);
+        vec3 palmB = normalize(s ? cross(vec3(0, 1, 0), fing) : cross(fing, vec3(0, 1, 0)));
+        const mat4& m = modelSpace[hb];
+        vec3 cx = m.c[0].xyz(), cy = m.c[1].xyz(), cz = m.c[2].xyz();
+        auto dirOf = [&](vec3 v) { return normalize(cx * v.x + cy * v.y + cz * v.z); };
+        fd[s] = dirOf(fing);
+        pn[s] = dirOf(palmB);
+        pc[s] = m.c[3].xyz() + fd[s] * (0.55f * pl) + pn[s] * (0.16f * pl);
+    }
+    // the phone lies on the right palm (back against it), shifted a little towards the fingers
+    pos = pc[1] + pn[1] * 0.006f + fd[1] * 0.02f;
+    longAxis = fd[1];
+    screen = pn[1];
+    // held between both hands: centre between the palms, screen normal averaged
+    float d = length(pc[0] - pc[1]);
+    if (d < 0.14f) {
+        float w = 1.f - detail::sstep(0.09f, 0.14f, d);
+        vec3 mid = (pc[0] + pc[1]) * 0.5f + normalize(pn[0] + pn[1] + vec3(0, 0, 1e-3f)) * 0.006f;
+        pos = lerp(pos, mid, 0.5f * w);
+        screen = normalize(lerp(screen, normalize(pn[0] + pn[1] + vec3(0, 0, 1e-3f)), 0.5f * w));
+    }
+    longAxis = normalize(longAxis - screen * dot(longAxis, screen));
+}
+
 void handGrip(const Skeleton& skel, const mat4* modelSpace, bool right, vec3& pos, vec3& axis, vec3& palm) {
     int hb = right ? B_HAND_R : B_HAND_L, fb = right ? B_FINGERS_R : B_FINGERS_L;
     vec3 fl = skel.bindLocalPos[fb];

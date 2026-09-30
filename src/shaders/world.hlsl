@@ -81,6 +81,71 @@ float3 emissiveAnim(uint param, float3 col) {
     return col;
 }
 
+// Thin line mask with a minimum on-screen width (energy kept: thinner than ~2 px -> wider and fainter).
+float lineMask(float d, float halfWidth, float px) {
+    float w = max(halfWidth, px);
+    return smoothstep(w, w * 0.35, d) * (halfWidth / w);
+}
+
+// Asphalt wear in road space (ruv: u across, v along the road, meters; world-aligned on junctions and lots):
+// polished darker wheel tracks and an oil-drip band per ~3.5 m lane, occasional utility-cut patches with sealed
+// seams, sparse meandering longitudinal cracks near lane joints and partial transverse cracks, some of them
+// sealed with glossy tar snakes. Procedural in world space, so nothing repeats with the 4 m texture tile.
+void roadWear(float2 ruv, float camDist, inout float3 albedo, inout float rough, inout float ao, out float rut) {
+    rut = 0.0;
+    float fade = saturate(1.6 - camDist / 110.0);
+    if (fade <= 0.0) return;
+    float u = ruv.x, v = ruv.y;
+    float px = camDist * 0.0012;   // ~1.5-2 pixels at 1080p-1440p
+    // lanes: wheel tracks at +-0.9 m from the lane centre, oil drips between them
+    float lu = frac(u / 3.5) * 3.5 - 1.75;
+    float track = exp(-sq((abs(lu) - 0.9) / 0.32)) * (0.75 + 0.25 * valueNoise(float2(v * 0.08, u * 0.3)));
+    float oil = exp(-sq(lu / 0.24)) * saturate(valueNoise(float2(v * 0.3, floor(u / 3.5) * 5.1)) * 1.6 - 0.3);
+    rut = track * fade;
+    albedo *= 1.0 - (0.1 * track + 0.2 * oil) * fade;
+    rough = saturate(rough * (1.0 - (0.2 * track + 0.12 * oil) * fade));
+    // utility-cut patches (one in ~14 cells of 14 m x 3.5 m)
+    float2 pc = float2(floor(v / 14.0), floor(u / 3.5));
+    uint ph = hash2u(asuint(int2(pc)) + 0x51u);
+    if (hashF(ph) < 0.07) {
+        float2 lo = float2(hashF(ph + 1u) * 6.0, hashF(ph + 2u) * 1.2);
+        float2 sz = float2(1.5 + hashF(ph + 3u) * 4.5, 1.0 + hashF(ph + 4u) * 1.6);
+        float2 q = float2(v - pc.x * 14.0, u - pc.y * 3.5) - lo;
+        if (all(q > 0.0) && all(q < sz)) {
+            bool fresh = hashF(ph + 5u) < 0.5;
+            albedo *= fresh ? 0.75 : 1.1;
+            rough = saturate(rough + (fresh ? -0.06 : 0.03));
+            float edge = min(min(q.x, sz.x - q.x), min(q.y, sz.y - q.y));
+            albedo *= 1.0 - 0.35 * lineMask(edge, 0.025, px) * fade;   // sealed seam
+        }
+    }
+    // longitudinal cracks meandering near the lane joints, only along some stretches
+    float lane = floor(u / 3.5 + 0.5);
+    float lj = u - lane * 3.5;
+    float meander = (valueNoise(float2(v * 0.19, lane * 3.1)) - 0.5) * 0.6 + (valueNoise(float2(v * 1.4, lane + 7.1)) - 0.5) * 0.07;
+    float dL = abs(lj - meander);
+    float presentL = smoothstep(0.58, 0.72, valueNoise(float2(v * 0.04, lane * 3.7 + 1.3)));
+    // partial transverse cracks, one every few cells of 9 m
+    float cell = floor(v / 9.0);
+    uint th = hash2u(uint2(asuint((int)cell), 0x7a3u));
+    float dT = 10.0, presentT = 0.0;
+    if (hashF(th) < 0.3) {
+        float v0 = cell * 9.0 + 1.0 + hashF(th + 1u) * 7.0;
+        float jag = (valueNoise(float2(u * 1.6, cell)) - 0.5) * 0.4 + (valueNoise(float2(u * 6.5, cell + 3.0)) - 0.5) * 0.06;
+        dT = abs(v - v0 - jag);
+        float us = hashF(th + 2u) * 4.0, ue = us + 2.0 + hashF(th + 3u) * 6.0;
+        presentT = smoothstep(us, us + 0.5, u) * smoothstep(ue, ue - 0.5, u);
+    }
+    // sealed cracks: a wide glossy tar band over the crack instead of an open line
+    bool sealedL = valueNoise(float2(v * 0.013, lane * 1.9 + 4.0)) > 0.55;
+    bool sealedT = hashF(th + 4u) < 0.4;
+    float crack = max(lineMask(dL, 0.012, px) * presentL * (sealedL ? 0.0 : 1.0), lineMask(dT, 0.01, px) * presentT * (sealedT ? 0.0 : 1.0));
+    float tar = max(lineMask(dL, 0.045, px) * presentL * (sealedL ? 1.0 : 0.0), lineMask(dT, 0.04, px) * presentT * (sealedT ? 1.0 : 0.0));
+    albedo *= 1.0 - (crack * 0.45 + tar * 0.5) * fade;
+    rough = saturate(lerp(rough, 0.35, tar * fade));
+    ao *= 1.0 - crack * 0.35 * fade;
+}
+
 GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
     uint matId = i.mat & 0xffu;
     uint param = (i.mat >> 8) & 0x7fffffu;
@@ -93,6 +158,7 @@ GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
     float3 albedo, n;
     float rough, metal, ao = 1;
     float3 emissive = 0;
+    float rut = 0;   // wheel-track strength on asphalt (wet-road water film)
     uint sm = (uint)m.shadingModel;
     float extra = 0;
     if ((uint)m.flags & 4) {
@@ -129,6 +195,7 @@ GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
         rough = saturate(rough * lerp(0.82, 1.12, fbmValue(wpr * 0.45 + worldP.z * 0.2, 2)));
         metal = m.metal;
         ao = nr.w;
+        if (matId <= 1u) roadWear(i.uv, length(i.rel), albedo, rough, ao, rut);   // MAT_ASPHALT, MAT_ASPHALT_OLD
         if ((uint)m.flags & 16) {
             emissive = albedo * i.color.a * 400.0 * m.emissive;
             if (param != 0u) emissive = emissiveAnim(param, emissive);
@@ -152,5 +219,11 @@ GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
     // Rain wetness (sheltered surfaces stay dry), puddles on flat ground with ripples, facade streaks
     float porosity = saturate(rough * 1.3 - 0.15) * (1.0 - metal);
     applyWetness(albedo, rough, n, N, worldP, porosity, 1.0);
+    // Water lingers in the slightly rutted wheel tracks: glossy reflective streaks along the lanes when wet
+    if (rut > 0.0 && gWeather.y > 0.01) {
+        float film = saturate(gWeather.y * 1.3 - 0.2) * rut * skyExposure(worldP);
+        rough = lerp(rough, 0.06, film * 0.8);
+        albedo *= 1.0 - film * 0.12;
+    }
     return packGBuffer(albedo, ao, n, rough, metal, sm, extra, emissive, i.curClip, i.prevClip);
 }

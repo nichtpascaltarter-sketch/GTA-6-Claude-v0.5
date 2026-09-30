@@ -2,6 +2,7 @@
 // Runs on the world generation thread; everything here is deterministic.
 #include "sites.h"
 #include "buildings.h"
+#include "transit.h"
 #include "worldtypes.h"
 #include "../render/mesh.h"
 #include "../core/noise.h"
@@ -407,7 +408,7 @@ void layoutAirport(Lay& L) {
             c.text = letters[i];
         }
         L.elem(SK_CONTROL_TOWER, vec2(730.f, 1832.f), vec2(1, 0), 16.f, 16.f, zA, 94.f, 420);
-        L.elem(SK_AIRPORT_SIGN, vec2(968.f, 1524.f), vec2(1, 0), 20.f, 6.f, zA, 7.f, 421).text = "PORTO SOL INTERNATIONAL";
+        L.elem(SK_AIRPORT_SIGN, vec2(968.f, 1538.f), vec2(1, 0), 20.f, 6.f, zA, 7.f, 421).text = "PORTO SOL INTERNATIONAL";
         SiteElem& h1 = L.elem(SK_HANGAR, vec2(-710.f, 1620.f), vec2(1, 0), 45.f, 60.f, zA, 30.f, 430);
         h1.text = "PALMERA AIR TECHNICS";
         h1.p[0] = 0.35f;  // door opening fraction
@@ -427,16 +428,20 @@ void layoutAirport(Lay& L) {
         const float deckZ = zA + 0.15f + 15.5f + 0.03f;
         const vec2 gc[2] = {vec2(835.f, 1347.5f), vec2(835.f, 1650.f)};
         const float ghy[2] = {122.5f, 115.f};
-        const float rampX = 913.f, rampHW = 4.f, rampLen = 128.f, landLen = 14.f;
+        const float rampX = 913.f, rampHW = 4.f, rampLen = 128.f, landLen = 26.f;  // long landing: buses and trucks swing onto the deck
         for (int k = 0; k < 2; k++) {
             L.pad(gc[k], vec2(1, 0), 69.7f, ghy[k] - 0.3f, deckZ, PAD_PARKING, packRGBA8(1.1f, 1.1f, 1.08f, 1.f), true, false);
             SiteElem& pm = L.elem(SK_PARKING_MARKS, gc[k] - vec2(1.f, 0.f), vec2(1, 0), 66.f, ghy[k] - 4.f, deckZ, 1.f, 320u + (u32)k);
             pm.p[0] = 5.2f;
             pm.p[1] = 7.f;
+            // turning apron kept free of stalls, cars and light poles where the landing meets the deck (filled in below)
+            pm.p[2] = 872.f;
             // the south garage's ramp climbs north from its south end, the north garage's climbs south from its north end
             float dir = k == 0 ? 1.f : -1.f;
             float yFoot = k == 0 ? gc[k].y - ghy[k] + 6.f : gc[k].y + ghy[k] - 6.f;
             float yTop = yFoot + dir * rampLen;
+            pm.p[3] = Min(yTop, yTop + dir * landLen) - 8.f;
+            pm.p[4] = Max(yTop, yTop + dir * landLen) + 8.f;
             Pad& rp = L.pad(vec2(rampX, (yFoot + yTop) * 0.5f), vec2(0, dir), rampLen * 0.5f, rampHW, (zA + deckZ) * 0.5f, PAD_RAMP, kW, false, false);
             rp.slope = (deckZ - zA) / rampLen;
             L.pad(vec2(910.f, yTop + dir * landLen * 0.5f), vec2(1, 0), 7.f, landLen * 0.5f, deckZ, PAD_PARKING, kW, false, false);
@@ -964,6 +969,7 @@ void layoutLandmarks(Lay& L) {
         e.text = "SOLARIS ONE";
         L.blockAA(S.lotBlocks, c.x - 46.f, c.y - 46.f, c.x + 46.f, c.y + 46.f);
         L.blockAA(S.vegBlocks, c.x - 44.f, c.y - 44.f, c.x + 44.f, c.y + 44.f);
+        L.blockAA(S.roadBlocks, c.x - 40.f, c.y - 40.f, c.x + 40.f, c.y + 40.f);  // no grid street through the tower
         L.padAA(c.x - 41.f, c.y - 41.f, c.x + 41.f, c.y + 41.f, z + 0.35f, PAD_PLAZA).flags = 2;
         map.flattenRect(c, vec2(1, 0), 40.f, 40.f, z + 0.1f, 6.f);
     }
@@ -1280,6 +1286,7 @@ void SiteSet::layout(WorldMap& map) {
     layoutPort(L);
     layoutKeyCoral(L);
     layoutLandmarks(L);
+    transitLayout(*this, map);   // SkyLine metro corridor and stations (transit.cpp)
     buildPadHash();
     buildRectHash();
     generated = true;
@@ -1374,6 +1381,8 @@ void SiteSet::finalize(WorldMap& map, const RoadNetwork& net, const BuildingSet&
         }
         LOG("Sites: %d silos, %d windmills", silos, mills);
     }
+    // SkyLine profile, piers, bus stops and ferry piers need the roads (transit.cpp)
+    transitFinalize(*this, map, net, bs);
     // ---------------------------------------------------------------- per-cell element lists
     const int cps = kCellsPerSide;
     cellElems.assign((size_t)cps * cps, {});

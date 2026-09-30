@@ -438,6 +438,7 @@ enum TideEvent : u8 {
     TE_LOW_FLYBY,         // aircraft
     TE_RACE_WON,
     TE_WEATHER,           // subject = "rain" / "storm" / "fog"
+    TE_ROBBERY,           // subject = store name, magnitude = dollars taken
     TE_COUNT
 };
 void tidegramReport(TideEvent ev, vec2 pos, const char* subject = nullptr, float magnitude = 0.f);

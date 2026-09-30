@@ -848,7 +848,7 @@ void pendant(IB& b, vec3 top, float drop, int room, u32 shadeCol, float cd = 220
             lathe(b, p, {vec2(0.2f, 0.0f), vec2(0.19f, 0.05f), vec2(0.15f, 0.1f), vec2(0.07f, 0.14f), vec2(0.025f, 0.16f)}, 16, shadeCol, M(MAT_METAL_PAINTED), true);
         } else if (style == 1) {
             // glass globe (diner / schoolhouse)
-            sphere(b, p + vec3(0, 0, 0.02f), 0.12f, 12, C(1.f, 0.95f, 0.85f, 0.85f), EM());
+            sphere(b, p + vec3(0, 0, 0.02f), 0.12f, 12, C(1.f, 0.9f, 0.75f, 0.35f), EM());   // frosted glass glows softly
             cyl(b, p + vec3(0, 0, 0.12f), 0.05f, 0.04f, 0.05f, 10, shadeCol, M(MAT_CHROME));
         } else {
             // drum fabric shade
@@ -1040,6 +1040,100 @@ void picture(IB& b, vec3 c, float w, float h, u32 seed, u32 frameCol = 0) {
 }
 
 // Rug on the floor (with border band and pattern)
+// Small fixtures that make a room read as real: outlets along the walls, switch plates beside doorways, a smoke
+// detector and a return-air grille on the ceiling; commercial rooms add sprinkler heads and lit EXIT signs over the
+// exterior doors. Openings and doorways are respected.
+void roomDressing(IB& b, int roomIdx, bool commercial, u32 seed) {
+    if (!b.geo()) return;
+    const InteriorDef& d = *b.d;
+    const InteriorRoom& r = d.rooms[roomIdx];
+    Rng rr(seed);
+    InPart ip(b, IP_DETAIL);
+    const float H = r.mx.z - r.mn.z;
+    u32 plate = Gy(0.93f), pm = M(MAT_PLASTIC);
+    for (int side = 0; side < 4; side++) {
+        vec3 o, u, n;
+        float w;
+        faceFrame(r, side, o, u, n, w);
+        std::vector<Hole> holes;
+        for (const InteriorOpening& op : d.openings) {
+            Hole h;
+            float dep;
+            if (openingOnFace(d, op, r, side, h, dep)) holes.push_back(h);
+        }
+        std::vector<Hole> doorHoles;
+        for (const InteriorDoor& dr : d.doors) {
+            Hole h;
+            if (doorOnFace(dr, r, side, h)) doorHoles.push_back(h);
+            if (dr.exterior) {
+                // exterior doorways sit behind the facade wall: match them by plane distance
+                vec3 dc = dr.c;
+                float dist = dot(dc - o, n);
+                if (dist < -0.4f || dist > 0.05f) continue;
+                vec3 t3(dr.t, 0.f);
+                if (fabsf(dot(t3, u)) < 0.99f) continue;
+                float sc = dot(dc - o, u);
+                if (sc < -dr.w || sc > w + dr.w) continue;
+                Hole eh{sc - dr.w * 0.5f, sc + dr.w * 0.5f, dr.c.z - r.mn.z, dr.c.z - r.mn.z + dr.h};
+                doorHoles.push_back(eh);
+                if (commercial && eh.z1 + 0.45f < H) {
+                    // EXIT sign over the door, lettering toward the room
+                    vec3 sp = o + u * ((eh.s0 + eh.s1) * 0.5f) + n * 0.09f + vec3(0, 0, eh.z1 + 0.28f);
+                    float yaw = atan2f(n.y, n.x) - kHalfPi;   // local +y = n
+                    At at(b, sp, yaw);
+                    box(b, vec3(0.f), vec3(0.18f, 0.04f, 0.09f), Gy(0.95f), pm, SK_NONE);
+                    box(b, vec3(0, 0.041f, 0.f), vec3(0.16f, 0.001f, 0.07f), C(0.1f, 0.8f, 0.3f, 0.9f), EM(), SK_NZ);
+                    textC(b, "EXIT", vec3(0, 0.043f, 0.f), vec3(-1, 0, 0), vec3(0, 0, 1), 0.07f, 0.012f, Gy(1.f), M(MAT_PAINT_WHITE));
+                }
+            }
+        }
+        for (const Hole& h : doorHoles) holes.push_back(h);
+        auto clear = [&](float s, float z0, float z1, float m) {
+            for (const Hole& h : holes)
+                if (s > h.s0 - m && s < h.s1 + m && z1 > h.z0 - 0.05f && z0 < h.z1 + 0.05f) return false;
+            return true;
+        };
+        // outlets along the wall
+        for (float s = 0.9f + rr.range(0.f, 0.6f); s < w - 0.4f; s += rr.range(2.6f, 3.8f)) {
+            if (!clear(s, 0.2f, 0.45f, 0.35f)) continue;
+            vec3 c = o + u * s + n * 0.004f + vec3(0, 0, 0.32f);
+            float yaw = atan2f(n.y, n.x) - kHalfPi;
+            At at(b, c, yaw);
+            box(b, vec3(0.f), vec3(0.036f, 0.004f, 0.058f), plate, pm, SK_NY);
+            for (int k = -1; k <= 1; k += 2) box(b, vec3(0.f, 0.0045f, k * 0.022f), vec3(0.012f, 0.0006f, 0.01f), Gy(0.25f), pm, SK_NY);
+        }
+        // switch plates on the latch side of every doorway
+        for (const Hole& h : doorHoles) {
+            float s = h.s1 + 0.16f;
+            if (s > w - 0.1f || !clear(s, 1.0f, 1.3f, 0.02f)) s = h.s0 - 0.16f;
+            if (s < 0.1f) continue;
+            vec3 c = o + u * s + n * 0.004f + vec3(0, 0, 1.15f);
+            float yaw = atan2f(n.y, n.x) - kHalfPi;
+            At at(b, c, yaw);
+            box(b, vec3(0.f), vec3(0.04f, 0.004f, 0.062f), plate, pm, SK_NY);
+            box(b, vec3(0.f, 0.006f, 0.f), vec3(0.008f, 0.004f, 0.018f), Gy(0.97f), pm, SK_NY);
+        }
+    }
+    // ceiling: smoke detector, return grille, sprinklers
+    vec3 cc((r.mn.x + r.mx.x) * 0.5f, (r.mn.y + r.mx.y) * 0.5f, r.mx.z);
+    b.pushAxes(cc + vec3(0.35f, 0.25f, -0.001f), vec3(1, 0, 0), vec3(0, -1, 0), vec3(0, 0, -1));
+    cyl(b, vec3(0.f), 0.065f, 0.058f, 0.035f, 12, Gy(0.95f), pm, true, false);
+    b.pop();
+    {
+        vec3 gc(Lerp(r.mn.x, r.mx.x, 0.25f), Lerp(r.mn.y, r.mx.y, 0.7f), r.mx.z - 0.004f);
+        box(b, gc, vec3(0.3f, 0.3f, 0.004f), Gy(0.9f), M(MAT_METAL_PAINTED), SK_PZ);
+        for (int k = -3; k <= 3; k++) box(b, gc + vec3(k * 0.075f, 0.f, -0.005f), vec3(0.008f, 0.27f, 0.003f), Gy(0.55f), M(MAT_METAL_PAINTED), SK_PZ);
+    }
+    if (commercial) {
+        for (float x = r.mn.x + 1.5f; x < r.mx.x - 0.5f; x += 3.f)
+            for (float y = r.mn.y + 1.5f; y < r.mx.y - 0.5f; y += 3.f) {
+                b.pushAxes(vec3(x + 0.4f, y + 0.4f, r.mx.z), vec3(1, 0, 0), vec3(0, -1, 0), vec3(0, 0, -1));
+                lathe(b, vec3(0.f), {vec2(0.03f, 0.f), vec2(0.012f, 0.03f), vec2(0.012f, 0.05f), vec2(0.022f, 0.055f)}, 6, Gy(0.85f), M(MAT_CHROME), true);
+                b.pop();
+            }
+    }
+}
+
 void rug(IB& b, vec3 c, float w, float dp, u32 seed) {
     Rng r(seed);
     float hue = r.f();

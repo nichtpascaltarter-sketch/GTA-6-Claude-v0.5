@@ -383,6 +383,7 @@ void layoutGunShop(IB& b) {
         collide(b, vec3((cs > 0.f ? X0 + 3.2f : X1 - 3.2f) + 0.31f * cs, by - 0.3f, 0.42f), vec3(0.62f, 0.45f, 0.42f));
         troffer(b, vec3((X0 + X1) * 0.5f, by, H), 1.2f, 0.3f, back, 380.f, vec3(1.f, 0.96f, 0.88f), 5.5f);
     }
+    roomDressing(b, shop, true, d.seed ^ 0x91u);
 }
 
 // ------------------------------------------------------------------------------------------------ clothing pieces
@@ -717,6 +718,7 @@ void layoutClothes(IB& b) {
         storageShelf(b, vec3((X0 + X1) * 0.5f - cs * 1.0f, Y1 - 0.28f, 0.f), kPi, Min(4.0f, X1 - X0 - 3.f), 2.0f, r.next());
         troffer(b, vec3((X0 + X1) * 0.5f, (yS + Y1) * 0.5f, H), 1.2f, 0.3f, stock, 360.f, vec3(1.f, 0.96f, 0.9f), 5.f);
     }
+    roomDressing(b, shop, true, d.seed ^ 0xA1u);
 }
 
 }  // namespace ikit

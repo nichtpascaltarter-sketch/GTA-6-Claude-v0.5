@@ -321,6 +321,8 @@ struct RoamTest {
     vec3 color0;
     std::string stamp0;
     int ok = 0, bad = 0;
+    vec3 standAt;          // where roamStandOn put the player (re-placed once if an interior was still being built)
+    bool restood = false;
 };
 RoamTest gRoam;
 
@@ -339,6 +341,8 @@ void roamNext() {
 void roamStandOn(GameWorld& g, vec3 p) {
     mu::placePlayer(g, vec3(p.x, p.y, p.z + 0.5f), 0.f);
     g.rig.cut = true;
+    gRoam.standAt = p;
+    gRoam.restood = false;
 }
 
 // first enabled menu item matching pred, -1 if none (ids are returned, not indices)
@@ -359,8 +363,18 @@ bool roamUpdate(GameWorld& g, float dt, MissionTest& T) {
     // wait for a menu to open: true once open; logs a failure and skips the step on timeout
     auto waitMenu = [&](int owner, const char* what) {
         if (menuIs(owner)) return true;
+        // the interior's floor may only have appeared after the teleport: stand on the marker again
+        vec3 pp = pl->pos.toVec3();
+        if (R.t > 1.f && !R.restood && (::length(pp.xy() - R.standAt.xy()) > 1.2f || fabsf(pp.z - R.standAt.z) > 2.f)) {
+            LOG("[missiontest] roam: %s: re-standing on the marker (player at %.1f %.1f %.1f, marker %.1f %.1f %.1f)", what, pp.x, pp.y, pp.z,
+                R.standAt.x, R.standAt.y, R.standAt.z);
+            roamStandOn(g, R.standAt);
+            R.restood = true;
+        }
         if (R.t > 5.f) {
-            roamCheck(false, StrFormat("%s: menu did not open", what));
+            roamCheck(false, StrFormat("%s: menu did not open (player %.1f %.1f %.1f, marker %.1f %.1f %.1f, control %d, mission %d, menu %d)", what,
+                                       pp.x, pp.y, pp.z, R.standAt.x, R.standAt.y, R.standAt.z, (int)g.playerControl, gMissions.active ? 1 : 0,
+                                       (int)gMenu.open));
             if (gMenu.open) menuClose(g);
             roamNext();
         }

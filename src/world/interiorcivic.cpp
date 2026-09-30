@@ -407,6 +407,8 @@ void layoutPolice(IB& b) {
         int nx = Max(1, (int)((X1 - X0) / 3.2f));
         for (int i = 0; i < nx; i++) troffer(b, vec3(X0 + (X1 - X0) * (i + 0.5f) / nx, (py0 + py1) * 0.5f, HB), 1.2f, 0.6f, pen, 460.f, vec3(0.97f, 0.99f, 1.f), 6.5f);
     }
+    roomDressing(b, lobby, true, d.seed ^ 0xB1u);
+    roomDressing(b, pen, true, d.seed ^ 0xB2u);
 }
 
 // ------------------------------------------------------------------------------------------------ hospital pieces
@@ -543,7 +545,7 @@ void layoutHospital(IB& b) {
     ls.wallCol = C(0.92f, 0.94f, 0.94f);
     ls.floorMat = M(MAT_TILE);
     ls.floorCol = C(0.78f, 0.84f, 0.86f);
-    ls.floorUV = 1.f / 1.2f;
+    ls.floorUV = 1.f;
     ls.ceilMat = M(MAT_CEILING_TILE);
     ls.ceilCol = Gy(0.95f);
     ls.chairRail = 0.95f;
@@ -670,6 +672,8 @@ void layoutHospital(IB& b) {
         int nx = Max(1, (int)((X1 - X0) / 3.f));
         for (int i = 0; i < nx; i++) troffer(b, vec3(X0 + (X1 - X0) * (i + 0.5f) / nx, ty0 + 0.9f, HT), 1.2f, 0.6f, triage, 650.f, vec3(0.96f, 0.99f, 1.f), 6.5f);
     }
+    roomDressing(b, lobby, true, d.seed ^ 0xC1u);
+    roomDressing(b, triage, true, d.seed ^ 0xC2u);
 }
 
 }  // namespace ikit

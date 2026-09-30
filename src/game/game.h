@@ -201,6 +201,14 @@ struct Ped {
     std::vector<Speech::AccentCue> lipAccents;  // stressed syllables (brow raises, nods)
     double lipStart = -1.0;
     int lipIdx = 0;
+    // conversation: listening to another ped's line (crossed arms / nods, gaze at the speaker), passing glances
+    double listenUntil = -1.0;
+    int listenTo = -1;
+    int lookPed = -1;             // ped being glanced at / faced while talking (-1 none)
+    float lookT = 0.f;            // s left on that glance
+    float glanceNext = 0.f;       // s until the next check for someone worth glancing at
+    bool phoneCall = false;       // on the phone (held to the ear); set by the phone UI for the player, by AI for NPCs
+    bool phoneBrowse = false;     // looking at the phone held in front (the player while the phone UI is open)
 };
 
 struct Vehicle {

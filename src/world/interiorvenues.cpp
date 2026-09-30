@@ -286,7 +286,7 @@ void layoutDiner(IB& b) {
     ks.wallMat = M(MAT_TILE);
     ks.floorMat = M(MAT_TILE);
     ks.floorCol = C(0.62f, 0.3f, 0.22f);
-    ks.floorUV = 1.f / 0.6f;
+    ks.floorUV = 1.f;
     ks.ceilMat = M(MAT_CEILING_TILE);
     ks.ceilCol = Gy(0.93f);
     ks.baseH = 0.12f;
@@ -508,6 +508,9 @@ void layoutDiner(IB& b) {
         collide(b, vec3(sx1 - 0.5f, sy0 + 1.35f, 0.3f), vec3(0.32f, 0.95f, 0.3f));
         domeLight(b, vec3((sx0 + sx1) * 0.5f, (sy0 + sy1) * 0.5f, H), store, 110.f, vec3(1.f, 0.95f, 0.85f));
     }
+    roomDressing(b, dine, true, d.seed ^ 0x81u);
+    roomDressing(b, kitchen, true, d.seed ^ 0x82u);
+    roomDressing(b, hall, true, d.seed ^ 0x83u);
 }
 
 // ------------------------------------------------------------------------------------------------ club pieces

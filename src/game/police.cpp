@@ -10,9 +10,9 @@ namespace Game {
 namespace police_detail {
 
 // crime types: 0 assault, 1 gunfire, 2 hit pedestrian with vehicle, 3 ram vehicle, 4 damage police vehicle,
-// 5 assault officer, 6 kill officer, 7 murder, 8 explosion, 9 carjacking, 10 vehicle theft
-const float kCrimeHeat[] = {0.35f, 0.5f, 0.6f, 0.15f, 0.9f, 1.2f, 2.2f, 1.2f, 1.4f, 0.45f, 0.25f};
-const bool kNeedsWitness[] = {true, false, true, true, false, false, false, true, false, true, true};
+// 5 assault officer, 6 kill officer, 7 murder, 8 explosion, 9 carjacking, 10 vehicle theft, 11 armed robbery (store hold-ups)
+const float kCrimeHeat[] = {0.35f, 0.5f, 0.6f, 0.15f, 0.9f, 1.2f, 2.2f, 1.2f, 1.4f, 0.45f, 0.25f, 2.8f};
+const bool kNeedsWitness[] = {true, false, true, true, false, false, false, true, false, true, true, true};
 const float kStarHeat[6] = {0.f, 0.3f, 2.0f, 5.0f, 9.0f, 15.0f};
 
 
@@ -52,7 +52,7 @@ using namespace police_detail;
 // ------------------------------------------------------------------------------------------------------------------
 // Crime reports from gameplay code (combat.cpp, vehicles.cpp, player.cpp)
 void GameWorld::reportCrime(int type, dvec3 pos, int victim) {
-    if (type < 0 || type > 10) return;
+    if (type < 0 || type > 11) return;
     Ped* pl = playerPed();
     // who did it?  Gunfire is reported at the shooter's position; everything else is only reported for the player.
     int perp = player;

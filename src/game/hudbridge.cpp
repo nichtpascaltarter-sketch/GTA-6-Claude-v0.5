@@ -112,6 +112,10 @@ void GameWorld::fillHud(UI::HudState& h, float dt) {
     // aiming
     h.aiming = pl->aiming || (pl->state == PS_ONFOOT && wi.clipSize > 0 && ctl.attack.down);
     h.reticleSpread = (wi.spread * (pl->aiming ? 0.45f : 1.f) * (1.f + pl->spreadHeat)) * 900.f;
+    if (rig.fpActive && !h.aiming) {
+        h.aiming = true;          // first person: a plain centre dot while not aiming
+        h.reticleSpread = 0.f;
+    }
     if (h.aiming) {
         WorldHit hit;
         vec3 f = rig.cam.forward();

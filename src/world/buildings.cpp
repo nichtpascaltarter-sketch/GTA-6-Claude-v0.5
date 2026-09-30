@@ -1,6 +1,7 @@
 #include "buildings.h"
 #include "sites.h"
 #include "interiors.h"
+#include "transit.h"
 #include "../core/noise.h"
 #include "../render/mesh.h"
 #include <unordered_map>
@@ -147,6 +148,45 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
         return false;
     };
 
+    // Exact lot / road test: no road polyline may come within its paved width + sidewalk + margin of the lot rectangle
+    // (the eight probe points above miss ramps and curves that cut through a large lot between them)
+    auto lotHitsRoad = [&](const OBB2& o, int ownEdge) {
+        thread_local std::vector<int> cand;
+        float rr = sqrtf(o.hx * o.hx + o.hy * o.hy);
+        roads.edgesInRect(o.c - vec2(rr + 35.f), o.c + vec2(rr + 35.f), cand);
+        vec2 oy = perp(o.ax);
+        auto toLocal = [&](vec2 q) { vec2 d = q - o.c; return vec2(dot(d, o.ax), dot(d, oy)); };
+        auto rectDist = [&](vec2 l) { float qx = Max(fabsf(l.x) - o.hx, 0.f), qy = Max(fabsf(l.y) - o.hy, 0.f); return sqrtf(qx * qx + qy * qy); };
+        for (int oi : cand) {
+            const RoadEdge& oe = roads.edges[oi];
+            float clear = oe.halfWidth + oe.sidewalk + (oi == ownEdge ? 0.3f : 0.8f);
+            for (size_t k = 0; k + 1 < oe.pts.size(); k++) {
+                vec2 A = toLocal(oe.pts[k].xy()), B = toLocal(oe.pts[k + 1].xy());
+                // quick reject: segment bounding box farther than `clear` from the rectangle
+                if (Min(A.x, B.x) > o.hx + clear || Max(A.x, B.x) < -o.hx - clear || Min(A.y, B.y) > o.hy + clear || Max(A.y, B.y) < -o.hy - clear) continue;
+                // segment crossing the rectangle (slab test)
+                vec2 d = B - A;
+                float t0 = 0.f, t1 = 1.f;
+                bool inside = true;
+                for (int ax = 0; ax < 2 && inside; ax++) {
+                    float p0 = ax == 0 ? A.x : A.y, dd = ax == 0 ? d.x : d.y, h = ax == 0 ? o.hx : o.hy;
+                    if (fabsf(dd) < 1e-6f) { if (p0 < -h || p0 > h) inside = false; continue; }
+                    float ta = (-h - p0) / dd, tb = (h - p0) / dd;
+                    if (ta > tb) std::swap(ta, tb);
+                    t0 = Max(t0, ta);
+                    t1 = Min(t1, tb);
+                    if (t0 > t1) inside = false;
+                }
+                if (inside) return true;
+                float dist = Min(rectDist(A), rectDist(B));
+                const vec2 cs[4] = {vec2(-o.hx, -o.hy), vec2(o.hx, -o.hy), vec2(o.hx, o.hy), vec2(-o.hx, o.hy)};
+                for (vec2 c : cs) dist = Min(dist, distPointSegment2D(c, A, B));
+                if (dist < clear) return true;
+            }
+        }
+        return false;
+    };
+
     // Reserve special areas: airport runways and port yard are left free of lots
     auto reserved = [&](vec2 p) {
         Region r = map.regionAt(p.x, p.y);
@@ -234,6 +274,7 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
                     }
                 }
                 if (ok && lots.overlaps(lot)) ok = false;
+                if (ok && lotHitsRoad(lot, (int)ei)) ok = false;
                 if (ok && hitsBulb(lot)) ok = false;
                 if (!ok) {
                     s += 6.f;
@@ -531,6 +572,8 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
     }
     // Buildings requested by the site layout (airport garages and sheds, port offices, clubhouses, shacks)
     for (size_t qi = 0; qi < gSites->buildingReqs.size(); qi++) addSiteBuilding(map, gSites->buildingReqs[qi], hash32((u32)qi * 2246822519u + 0x51E5u));
+    // Keep the SkyLine viaduct corridor and its stations clear (transit.cpp)
+    transitPruneBuildings(buildings);
     // Per-cell lists
     const int cps = (int)(2.f * kWorldHalf / 256.f);
     cellLists.assign((size_t)cps * cps, {});

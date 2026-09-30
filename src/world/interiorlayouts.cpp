@@ -86,8 +86,8 @@ void exteriorWall(IB& b, vec2 a, vec2 c, float z0, float z1, u32 col, u32 mat) {
 // name in raised letters that glow at night. Also used on facades without a sign band (above the glass).
 void shopSign(IB& b, const char* name, u32 bg, u32 fg, float zAbove = 0.f) {
     const InteriorDef& d = *b.d;
-    float z0 = d.signZ0, z1 = d.signZ1;
-    if (z1 <= 0.f) {
+    float z0 = d.signZ0 + 0.12f, z1 = d.signZ1;   // above the awning line (facadedetail hangs awnings 0.12 m into the band)
+    if (d.signZ1 <= 0.f) {
         if (zAbove <= 0.f) return;
         z0 = zAbove;
         z1 = zAbove + 0.7f;
@@ -223,8 +223,9 @@ void doorLeaves(const InteriorDef& d, InteriorMesh& out) {
 // Products on one shelf: x0..x1 along the shelf, front edge at y = yf (products extend toward -y), shelf top z
 void shelfRow(IB& b, float x0, float x1, float z, float yf, float depth, float maxH, u32 seed) {
     Rng r(seed);
-    int type = r.irange(0, 5);
-    if (maxH < 0.16f && type == 1) type = 0;
+    // each shelf leans toward one family of products but mixes in others block by block
+    int shelfType = r.irange(0, 5);
+    int type = shelfType;
     float x = x0 + 0.015f;
     int blockLeft = 0;
     vec3 col(1.f), band(1.f);
@@ -235,8 +236,12 @@ void shelfRow(IB& b, float x0, float x1, float z, float yf, float depth, float m
             hue = r.f();
             col = hsv(hue, r.range(0.5f, 0.95f), r.range(0.45f, 0.95f));
             band = r.chance(0.5f) ? vec3(0.95f) : hsv(hue + 0.5f, 0.8f, 0.9f);
-            if (r.chance(0.07f)) {
-                x += r.range(0.06f, 0.18f);   // gap (sold out)
+            type = r.chance(0.55f) ? shelfType : r.irange(0, 5);
+            if (maxH < 0.16f && type == 1) type = 0;
+            // shelf-edge price tag for the block
+            box(b, vec3(x + 0.05f, yf + 0.016f, z - 0.018f), vec3(0.035f, 0.001f, 0.014f), r.chance(0.2f) ? C(1.f, 0.85f, 0.1f) : Gy(0.97f), M(MAT_PAINT_WHITE), SK_NY);
+            if (r.chance(0.12f)) {
+                x += r.range(0.08f, 0.24f);   // gap (sold out)
                 continue;
             }
         }
@@ -748,7 +753,7 @@ void layoutConvenience(IB& b) {
     st.wallCol = C(0.93f, 0.93f, 0.9f);
     st.floorMat = M(MAT_TILE);
     st.floorCol = C(0.86f, 0.86f, 0.84f);
-    st.floorUV = 1.f / 1.5f;   // 45 cm vinyl tiles
+    st.floorUV = 1.f;   // 30 cm vinyl composition tiles (MAT_TILE: 32 tiles per 9.6 m)
     st.ceilMat = M(MAT_CEILING_TILE);
     st.ceilCol = Gy(0.95f);
     st.baseH = 0.1f;
@@ -868,6 +873,8 @@ void layoutConvenience(IB& b) {
         tube(b, vec3(cs > 0.f ? X1 - 0.5f : X0 + 0.5f, by - 0.4f, 0.1f), vec3(cs > 0.f ? X1 - 0.55f : X0 + 0.55f, by - 0.3f, 1.3f), 0.012f, 6, C(0.6f, 0.45f, 0.3f), M(MAT_WOOD));
         scenario(b, vec3(cs > 0.f ? kx0 + 1.4f : kx1 - 1.4f, by, 0.f), cs > 0.f ? kHalfPi : -kHalfPi, 6, SR_WORKER, SF_OPTIONAL | SF_STAFF);
     }
+    roomDressing(b, shop, true, d.seed ^ 0x51u);
+    if (backRoom) roomDressing(b, back, false, d.seed ^ 0x52u);
 }
 
 // ------------------------------------------------------------------------------------------------ dispatch

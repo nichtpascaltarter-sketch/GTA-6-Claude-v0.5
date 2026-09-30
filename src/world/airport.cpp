@@ -1404,28 +1404,37 @@ void genFence(const SiteElem& e, G& g) {
     float H = e.h;
     u32 post = rgb(0.55f, 0.57f, 0.6f), wire = rgb(0.45f, 0.47f, 0.5f);
     float L = length(cb - ca);
-    int posts = Max(1, (int)(L / 4.f));
-    for (int k = 0; k <= posts; k++) {
-        vec2 p = lerp(ca, cb, (float)k / posts);
-        boxY(g, vec3(p, e.z + H * 0.5f - 0.2f), d, vec3(0.04f, 0.04f, H * 0.5f + 0.2f), post, M(MAT_METAL_PAINTED));
-        if ((k & 1) == 0) beam(g, vec3(p, e.z + H), vec3(p + out * 0.45f, e.z + H + 0.45f), 0.05f, 0.05f, post, M(MAT_METAL_PAINTED));
+    int n = Max(1, (int)(L / 4.f));
+    // runs of 4 m spans between gaps where a road (plus sidewalk) passes through the fence line
+    int k = 0;
+    while (k < n) {
+        vec2 pm = lerp(ca, cb, (k + 0.5f) / n);
+        if (gRoads && gRoads->nearRoad(pm, 0.8f)) { k++; continue; }
+        int k1 = k;
+        while (k1 + 1 < n && !(gRoads && gRoads->nearRoad(lerp(ca, cb, (k1 + 1.5f) / n), 0.8f))) k1++;
+        vec2 ra = lerp(ca, cb, (float)k / n), rb = lerp(ca, cb, (float)(k1 + 1) / n);
+        for (int j = k; j <= k1 + 1; j++) {
+            vec2 p = lerp(ca, cb, (float)j / n);
+            boxY(g, vec3(p, e.z + H * 0.5f - 0.2f), d, vec3(0.04f, 0.04f, H * 0.5f + 0.2f), post, M(MAT_METAL_PAINTED));
+            if ((j & 1) == 0) beam(g, vec3(p, e.z + H), vec3(p + out * 0.45f, e.z + H + 0.45f), 0.05f, 0.05f, post, M(MAT_METAL_PAINTED));
+        }
+        // chain-link wires and barbed top along the run, sparse cross wires per span
+        for (int s = 0; s < 4; s++) {
+            float z = e.z + 0.15f + s * (H - 0.3f) / 3.f;
+            beam(g, vec3(ra, z), vec3(rb, z), 0.03f, 0.03f, wire, M(MAT_METAL_PAINTED));
+        }
+        for (int s = 0; s < 3; s++) {
+            float o = 0.15f + s * 0.15f;
+            beam(g, vec3(ra + out * o, e.z + H + o), vec3(rb + out * o, e.z + H + o), 0.02f, 0.02f, wire, M(MAT_METAL_PAINTED));
+        }
+        for (int j = k; j <= k1; j++) {
+            vec2 p0 = lerp(ca, cb, (float)j / n), p1 = lerp(ca, cb, (float)(j + 1) / n);
+            beam(g, vec3(p0, e.z + 0.15f), vec3(p1, e.z + H), 0.015f, 0.015f, wire, M(MAT_METAL_PAINTED));
+            beam(g, vec3(p1, e.z + 0.15f), vec3(p0, e.z + H), 0.015f, 0.015f, wire, M(MAT_METAL_PAINTED));
+        }
+        collide(g, vec3((ra + rb) * 0.5f, e.z + H * 0.5f), d, vec3(length(rb - ra) * 0.5f, 0.1f, H * 0.5f));
+        k = k1 + 1;
     }
-    // mesh panel: faint double-sided chain link surface (dark, mostly see-through at distance thanks to its low albedo)
-    for (int s = 0; s < 4; s++) {
-        float z = e.z + 0.15f + s * (H - 0.3f) / 3.f;
-        beam(g, vec3(ca, z), vec3(cb, z), 0.03f, 0.03f, wire, M(MAT_METAL_PAINTED));
-    }
-    for (int s = 0; s < 3; s++) {
-        float o = 0.15f + s * 0.15f;
-        beam(g, vec3(ca + out * o, e.z + H + o), vec3(cb + out * o, e.z + H + o), 0.02f, 0.02f, wire, M(MAT_METAL_PAINTED));
-    }
-    // diagonal chain-link hint: sparse cross wires
-    for (int k = 0; k < posts; k++) {
-        vec2 p0 = lerp(ca, cb, (float)k / posts), p1 = lerp(ca, cb, (float)(k + 1) / posts);
-        beam(g, vec3(p0, e.z + 0.15f), vec3(p1, e.z + H), 0.015f, 0.015f, wire, M(MAT_METAL_PAINTED));
-        beam(g, vec3(p1, e.z + 0.15f), vec3(p0, e.z + H), 0.015f, 0.015f, wire, M(MAT_METAL_PAINTED));
-    }
-    collide(g, vec3((ca + cb) * 0.5f, e.z + H * 0.5f), d, vec3(L * 0.5f, 0.1f, H * 0.5f));
 }
 
 void genApproachLights(const SiteElem& e, G& g) {
@@ -1505,7 +1514,7 @@ void genAirportSign(const SiteElem& e, G& g) {
     }
     light(g, base + vec3(face * 6.f, 0.5f), vec3(0.9f, 0.95f, 1.f) * 3000.f, 16.f, 1, normalize(vec3(-face, 0.4f)), 0.25f);
     if (g.detail)
-        for (int s = -1; s <= 1; s += 2) prop(g, base + vec3(rt * (s * 18.f) - face * 4.f, 0), 0.4f * s, 1.f, PROP_PALM_TALL, 2);
+        for (int s = -1; s <= 1; s += 2) prop(g, base + vec3(rt * (s * 16.5f) - face * 4.f, 0), 0.4f * s, 1.f, PROP_PALM_TALL, 2);
 }
 
 // Parked car: body, tapered glass cabin with a body-coloured roof, dark wheel band (far LOD: body block only)
@@ -1542,6 +1551,7 @@ void genParkingMarks(const SiteElem& e, G& g) {
             float ys = y + half * depth;
             for (float x = x0 + 2.f; x + 2.6f < x1 - 2.f; x += 2.6f) {
                 vec2 lc(x, ys + depth * 0.5f);
+                if (e.p[4] > e.p[3] && x > e.p[2] && lc.y > e.p[3] && lc.y < e.p[4]) continue;  // turning apron
                 bool own = g.owns(lc);
                 if (own && g.detail) paintRect(g, vec2(x, ys + depth * 0.5f), vec2(0, 1), depth * 0.5f, 0.06f, z, kWhiteC, matWhite());
                 u32 h = hash3i((int)(x * 4.f), (int)(ys * 4.f), (int)e.seed);
@@ -1560,6 +1570,7 @@ void genParkingMarks(const SiteElem& e, G& g) {
         for (float x = x0 + 20.f; x < x1 - 10.f; x += 40.f) {
             vec2 lp(x, y - aisle * 0.5f);
             if (!g.owns(lp)) continue;
+            if (e.p[4] > e.p[3] && x > e.p[2] - 2.f && lp.y > e.p[3] && lp.y < e.p[4]) continue;
             cyl(g, vec3(lp, e.z), 0.15f, 0.1f, 9.f, 6, rgb(0.55f), M(MAT_METAL_PAINTED), false);
             boxY(g, vec3(lp, e.z + 9.1f), vec2(1, 0), vec3(0.5f, 0.3f, 0.1f), rgb(0.3f), M(MAT_METAL_PAINTED));
             quad(g, *g.m, vec3(lp + vec2(-0.45f, -0.25f), e.z + 8.99f), vec3(lp + vec2(0.45f, -0.25f), e.z + 8.99f), vec3(lp + vec2(0.45f, 0.25f), e.z + 8.99f),

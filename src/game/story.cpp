@@ -150,6 +150,18 @@ void MissionManager::registerAll(GameWorld& g) {
         defs.push_back(stranger("rosa_2", "Abuela Rosa: Dominoes Night", SIDE_ROSA_2, SIDE_ROSA_1, SF_DRY_DOCK, makeMission<MissionRosaDominoes>));
         defs.push_back(stranger("rosa_3", "Abuela Rosa: Sunday Drive", SIDE_ROSA_3, SIDE_ROSA_2, SF_PRESSURE, makeMission<MissionRosaSunday>));
     }
+    {
+        vec2 velma = velmaHome(g).pos.xy();
+        auto stranger = [&](const char* id, const char* title, int sets, int req, int req2, std::function<Mission*()> create) {
+            MissionDef s = storyDef(id, title, "Velma", '?', velma, -1, req, req2, 1, 0, create);
+            s.setsFlag = sets;
+            s.icon = UI::BLIP_FRIEND;
+            return s;
+        };
+        defs.push_back(stranger("velma_1", "Repo Karma", SIDE_VELMA_1, SF_DRY_DOCK, -1, makeMission<MissionVelmaKarma>));
+        defs.push_back(stranger("velma_2", "Night Shift", SIDE_VELMA_2, SIDE_VELMA_1, SF_COLLATERAL, makeMission<MissionVelmaShift>));
+        defs.push_back(stranger("velma_3", "Collections", SIDE_VELMA_3, SIDE_VELMA_2, SF_LAST_CALL, makeMission<MissionVelmaCollections>));
+    }
     for (const RaceSpec& rs : raceSpecs()) {
         Place startPlace = resolvePlace(g, rs.via[0]);
         vec2 sp = rs.domain == 1 ? startPlace.pos.xy() : startPlace.curb.xy();

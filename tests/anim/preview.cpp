@@ -247,6 +247,10 @@ static void runScenario(int sc, float t, AnimInput& in) {
         case 16:   // listening
             in.listening = true;
             break;
+        case 17:   // browsing a phone standing, then walking from 2.5 s
+            in.phoneBrowse = true;
+            in.speed = t >= 2.5f ? 1.4f : 0.f;
+            break;
         case 14:   // knocked out from the guard at 0.3 s
             in.stance = 19;
             in.action = (t >= 0.3f && t < 0.32f) ? CLIP_KNOCKOUT : -1;
@@ -407,6 +411,27 @@ int main(int argc, char** argv) {
             // internal clips: base id + character index (CLIP_COUNT + n, see anim_internal.h)
             detail::sampleClipId(ch.sk, atoi(ic) + (strip ? 0 : i), ti, pose, (u32)i);
         }
+        if (pair && i == 1 && getenv("PREVIEW_PAIRIK")) {
+            // attacker through the animator with its choke arm IK'd onto the victim's (character 0's) actual neck
+            Animator an;
+            an.init(&ch.sk, 5u);
+            const float dt = 1.f / 60.f;
+            for (float tt = 0.f; tt < ti; tt += dt) {
+                AnimInput in;
+                in.action = tt < dt * 0.5f ? CLIP_TAKEDOWN_ATTACKER : -1;
+                if (tt < dt * 0.5f) in.action = CLIP_TAKEDOWN_ATTACKER;
+                Pose vp;
+                sampleClip(chars[0].sk, CLIP_TAKEDOWN_VICTIM, tt, vp, 0u);
+                mat4 vm[B_COUNT];
+                computeMatrices(chars[0].sk, vp, vm, nullptr);
+                vec3 neckW = vm[B_NECK].c[3].xyz() + clipRootMotion(chars[0].sk, CLIP_TAKEDOWN_VICTIM, tt);
+                vec3 attRoot = vec3(0.f, -0.55f, 0.f) + clipRootMotion(ch.sk, CLIP_TAKEDOWN_ATTACKER, tt);
+                in.grabTarget = neckW - attRoot;
+                in.grabWeight = 1.f;
+                an.update(in, dt);
+            }
+            pose = an.pose;
+        }
         if (scenario > 0) {
             // run the Animator with scripted inputs up to time ti (character i: ti = t + i * dt)
             Animator an;
@@ -485,6 +510,40 @@ int main(int argc, char** argv) {
             M[v] = vx.mat;
         }
         drawMesh(img, cam, P, N, A, M, ch.mesh.indices);
+        if (getenv("PREVIEW_PHONE")) {
+            mat4 msp[B_COUNT];
+            for (int b = 0; b < B_COUNT; b++) {
+                msp[b] = ms[b];
+                msp[b].c[3] = vec4(ms[b].c[3].xyz() + off, 1.f);
+            }
+            vec3 pp, la, sc;
+            phoneFrame(ch.sk, msp, pp, la, sc);
+            vec3 wx = normalize(cross(la, sc));
+            std::vector<vec3> Ps, Ns, As;
+            std::vector<u32> Ms, Is;
+            vec3 hl = la * 0.073f, hw = wx * 0.035f, ht = sc * 0.004f;
+            vec3 corners[8];
+            for (int k = 0; k < 8; k++) corners[k] = pp + hl * ((k & 1) ? 1.f : -1.f) + hw * ((k & 2) ? 1.f : -1.f) + ht * ((k & 4) ? 1.f : -1.f);
+            const int faces[6][4] = {{4, 5, 7, 6}, {0, 2, 3, 1}, {0, 1, 5, 4}, {2, 6, 7, 3}, {0, 4, 6, 2}, {1, 3, 7, 5}};
+            for (int f = 0; f < 6; f++) {
+                u32 b0 = (u32)Ps.size();
+                vec3 fc(0);
+                for (int k = 0; k < 4; k++) fc += corners[faces[f][k]];
+                vec3 fn = normalize(fc * 0.25f - pp);
+                for (int k = 0; k < 4; k++) {
+                    Ps.push_back(corners[faces[f][k]]);
+                    Ns.push_back(fn);
+                    As.push_back(f == 0 ? vec3(0.1f, 0.25f, 0.5f) : vec3(0.05f));
+                    Ms.push_back(MAT_PLASTIC);
+                }
+                vec3 e1 = Ps[b0 + 1] - Ps[b0], e2 = Ps[b0 + 2] - Ps[b0];
+                bool flip = dot(cross(e1, e2), fn) < 0.f;
+                u32 q[6] = {b0, b0 + 1, b0 + 2, b0, b0 + 2, b0 + 3};
+                if (flip) { std::swap(q[1], q[2]); std::swap(q[4], q[5]); }
+                for (u32 x : q) Is.push_back(x);
+            }
+            drawMesh(img, cam, Ps, Ns, As, Ms, Is);
+        }
         if (weapon) {
             mat4 msw[B_COUNT];
             for (int b = 0; b < B_COUNT; b++) {

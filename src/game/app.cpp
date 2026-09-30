@@ -62,6 +62,7 @@ struct App {
     bool tourShot = false, tourDone = false;
     int meleeVictim = -1;        // --autoplay melee: the civilian for the takedown
     int renderEvery = 1;         // --renderevery N: automated runs render every Nth gameplay frame (+ screenshot frames)
+    float skippedDt = 0.f;       // game time since the last rendered frame
     u32 playFrames = 0;
     // autoplay test scripts (--autoplay walk|drive|bike|fly|boat|shoot)
     std::string autoplay;
@@ -128,6 +129,7 @@ struct App {
         if (const char* ff = Platform::argValue("fog")) env.fogDensity = (float)atof(ff);
 #ifdef HAVE_GAMEPLAY
         game.init(&renderer, &env, &map, &roads, &buildings);
+        game.rig.footFirstPerson = Platform::hasArg("firstperson");   // start in the on-foot first-person view
         weather.seed = (u32)(TimeSeconds() * 1000.0) | 1u;
         if (Platform::argValue("rain") || Platform::argValue("clouds") || Platform::argValue("fog") || !shots.empty() || autotest) {
             weather.locked = true;
@@ -1024,8 +1026,12 @@ struct App {
 #endif
                 cam = rc;
                 game.renderCam = rc;
-                if (doRender) renderer.render(rc, env, dt);
-                else renderer.world->update(rc.pos, TimeSeconds());
+                skippedDt += dt;
+                if (doRender) {
+                    // frames skipped by --renderevery still count for time-based adaptation (exposure, particles)
+                    renderer.render(rc, env, Min(skippedDt, 0.25f));
+                    skippedDt = 0.f;
+                } else renderer.world->update(rc.pos, TimeSeconds());
 #ifdef HAVE_GAME_UI
                 if (!menuOpen && game.requestSaveMenu) {   // safehouse bed / save point (never during automated runs)
                     game.requestSaveMenu = false;
@@ -1218,6 +1224,11 @@ struct App {
         ph.quickSaveNote = onMission ? "Not available during missions" : (game.pinfo.wanted > 0 ? "Lose the police first" : "");
         phoneRefresh(game, ph);   // contacts, messages, apps, story calls (phone_game.cpp)
         UI::PhoneAction a = UI::Phone::update(ph, hud, in, dt);
+        // the protagonist holds the phone to the ear while a call rings out or is connected
+        if (pl) {
+            pl->phoneCall = ph.call == UI::CALL_OUTGOING || ph.call == UI::CALL_ACTIVE;
+            pl->phoneBrowse = ph.open && !pl->phoneCall && !ph.photo.active;   // looking at the screen
+        }
         if (a.type != UI::PA_NONE && phoneHandle(game, ph, a)) return;   // calls, messages and apps
         switch (a.type) {
             case UI::PA_SET_WAYPOINT:
@@ -1275,6 +1286,7 @@ struct App {
         add("Accuracy", StrFormat("%.0f%%", pi.shotsFired ? 100.f * pi.shotsHit / pi.shotsFired : 0.f));
         add("Highest wanted level", StrFormat("%.0f stars", pi.maxWanted));
         add("Wasted / busted", StrFormat("%d / %d", pi.deaths, pi.arrests));
+        add("Stores robbed", StrFormat("%d", Interiors::storeRobberies(game)));
         menu.briefTitle = game.storyTitle;
         menu.briefText = game.missionBrief();
         menu.money = game.pinfo.money;

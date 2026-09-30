@@ -278,6 +278,19 @@ void buildPickupMesh(int type, MeshData& m) {
     }
 }
 
+// Smartphone held by peds (calls, idle scrolling): origin at the centre, long axis +Y, screen facing +Z.
+void buildPhoneMesh(MeshData& m) {
+    const vec3 Y(0, 1, 0), Z(0, 0, 1);
+    u32 frame = packRGBA8(0.16f, 0.17f, 0.19f, 1), back = packRGBA8(0.07f, 0.08f, 0.1f, 1);
+    obox(m, vec3(0.f), Y, Z, vec3(0.0355f, 0.0735f, 0.0038f), frame, makeMat(MAT_METAL_BRUSHED));
+    obox(m, vec3(0.f, 0.f, -0.0039f), Y, Z, vec3(0.0345f, 0.0725f, 0.0004f), back, makeMat(MAT_PLASTIC));
+    obox(m, vec3(-0.017f, 0.052f, -0.0048f), Y, Z, vec3(0.012f, 0.014f, 0.0011f), frame, makeMat(MAT_METAL_BRUSHED));
+    sphere(m, vec3(-0.021f, 0.057f, -0.0058f), 0.0042f, 8, packRGBA8(0.02f, 0.02f, 0.03f, 1), makeMat(MAT_CAR_GLASS));
+    sphere(m, vec3(-0.013f, 0.047f, -0.0058f), 0.0042f, 8, packRGBA8(0.02f, 0.02f, 0.03f, 1), makeMat(MAT_CAR_GLASS));
+    // lit screen (a cool, dim social-feed white; alpha scales the emission)
+    obox(m, vec3(0.f, 0.f, 0.0039f), Y, Z, vec3(0.0335f, 0.071f, 0.0003f), packRGBA8(0.62f, 0.68f, 0.8f, 0.55f), makeMat(MAT_EMISSIVE));
+}
+
 }  // namespace asset_detail
 
 using namespace asset_detail;
@@ -405,6 +418,11 @@ void GameWorld::buildAssets() {
         MeshData m;
         buildParachuteMesh(m);
         parachuteModel = dyn->createModel(m);
+    }
+    {
+        MeshData m;
+        buildPhoneMesh(m);
+        phoneModel = dyn->createModel(m);
     }
     LOG("Game assets built in %.2f s", TimeSeconds() - t0);
 }

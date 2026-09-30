@@ -99,6 +99,36 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   (birds, gators, dolphins, dogs, ...). World: street-level facade detail + fuller vegetation; renderer: SSGI +
   probe-SH GI, HiZ SSR, froxel fog, weather, GPU particles/decals/grass, quarter-res checkerboard clouds.
 
+## Integrated 2026-09-30 night (wave 2 continued)
+- Wildlife (src/game/wildlife.cpp, animal_models.cpp): boids bird flocks (gulls, pelicans, pigeons, herons/egrets/
+  spoonbills, vultures, parrots), alligators (bask/swim/lunge/bite), dolphin pods, fish shoals, turtles, manatees,
+  dogs on leashes and strays, cats, deer, cattle/horses, iguanas, raccoons; flee/death reactions; 16 animal SFX.
+  `--nowildlife`, `--wildlifetest`.
+- Interiors (src/world/interior*.cpp, src/game/interiors_game.cpp): 18 enterable interiors (convenience stores,
+  Mari's apartment, Mama Lucha's diner, Rook's chop shop, Dex's trailer, police HQ + hospital lobbies, 2 gun shops,
+  Threads clothes store, Club Riptide, port warehouse, ...), hollow shells with door cuts, door leaves, interior
+  lights/portals, scenario NPCs (clerks, cooks, patrons, dancers, cops, nurses), shop signs with real names.
+- Characters (src/anim): quadric-decimated LODs (16.5k/4.5k/1.5k tris), 37 bones incl. lips/tongue/brows, 15 visemes,
+  expressions (neutral/smile/sad/angry/fear/surprise/pain) with brow/nod pulses, idle variations, 4 dance styles,
+  stances 21 sit-on-ground / 22 sunbathe / 23 queue, conversation layer (beat gestures on accent cues, listener
+  poses, phone at the ear). Game side: speakers gesture by emotion, standing peds within 3.5 m listen and look at the
+  speaker, bystanders glance at the player (and the player at people close by), phone prop in hand.
+- Camera: on-foot first person (V / Back toggles; body faces the view, walk/jog limits backwards and sideways,
+  centre-dot reticle; orbit camera in cover, ragdolls, water, parachute glides, vehicles, takedowns), `--firstperson`.
+- Vehicles: LOD meshes (LOD1 wheels, LOD2 without wheels) by distance; visual body pitch/roll/heave; wet-road grip
+  and aquaplaning; repair resets damage; crash damage pulls the steering and saps power; turbo whistle, blow-off,
+  flutter and shift pops for tuned cars (Audio::setEngineTune; gear changes latched across physics substeps).
+- AI: peds use building doors (errands), walking groups, foot-beat officers pursue NPC culprits, mixed crowd
+  reactions (run / hit the deck / film on phones), helicopter searchlight, loudspeaker pull-overs, tackle arrests.
+- Story: "Abuela Rosa" strangers chain, named race rivals with lines, bail-bond (skip tracing) jobs.
+- Audio: crowd walla by place (street/beach/club/mall) and panic, airport PA announcements, bark takes.
+- Renderer: city light-pollution sky glow, architectural night lighting, procedural shop interiors behind storefronts
+  with opening hours and roller shutters, shopfront spill lights, lit env probes, storm sky/sun occlusion fixes,
+  PCSS-lite soft shadows, alternate-frame far cascades, per-preset probe rate; `--synctimers` per-pass timing.
+  Estimated renderer cost on an RTX 4070 at 1440p High: ~8 ms.
+- Test tooling: `--renderevery N` (render every Nth frame in automated runs), NaN-safe core wrapAngle.
+- Transit agent started: SkyLine elevated metro, buses on routes, ferries (src/world/transit.cpp, src/game/transit_game.cpp).
+
 ## Gameplay architecture (src/game, src/sim)
 - `app.cpp`: states LOADING (world generated on a thread, loading screen) -> MENU (cinematic flyover + main menu)
   -> PLAYING (pause/map menus overlay) ; FREECAM for --shot/--viewer/F9. Gameplay compiles only when characters,

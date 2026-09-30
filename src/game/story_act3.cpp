@@ -461,6 +461,7 @@ public:
         int rook = spawnCast(g, CAST_ROOK, P.rookShop.door, P.rookShop.yaw + kPi, FAC_FRIEND);
         vec3 rp = pedPos(g, rook), dp = playerPos(g), mp = pedPos(g, mari);
         std::vector<CutsceneShot> shots;
+        establish(g, shots, rp, P.rookShop.yaw, 34.f, 14.f, 4.f);
         shots.push_back(shotTwo(rp, dp, 7.f));
         shots.push_back(shotTwo(mp, dp, 6.f, 4.f, 42.f, -1.f));
         if (vehicle >= 0) shots.push_back(shotVehicle(g, vehicle, 5.f));
@@ -815,6 +816,7 @@ public:
         placePlayer(g, placeOffset(g, P.redland, 0.f, 0.5f), P.redland.yaw);
         vec3 dp = pedPos(g, dex), mp = playerPos(g);
         std::vector<CutsceneShot> shots;
+        establish(g, shots, mp, P.redland.yaw, 34.f, 12.f, 4.f);
         shots.push_back(shotTwo(dp, mp, 6.f));
         shots.push_back(shotOver(mp, dp, 7.f));
         shots.push_back(shotOver(dp, mp, 6.f, -1.f));
@@ -1178,7 +1180,7 @@ public:
         vec3 kp = pedPos(g, kit), mp = playerPos(g), rp = pedPos(g, rook);
         for (int p : {kit, rook, lucha, dex}) facePed(g, p, mp);
         std::vector<CutsceneShot> shots;
-        shots.push_back(shotEstablish(kp, S.yaw, 45.f, 25.f, 5.f));
+        establish(g, shots, kp, S.yaw, 45.f, 25.f, 5.f);
         shots.push_back(shotTwo(kp, mp, 7.f));
         shots.push_back(shotTwo(rp, mp, 7.f, 4.5f, 42.f, -1.f));
         shots.push_back(shotTwo(pedPos(g, lucha), mp, 6.f));
@@ -1223,7 +1225,7 @@ public:
         shots.push_back(shotMove(P.solarisPlaza + vec3(-200.f, -220.f, 60.f), P.solarisPlaza + vec3(0, 0, 300.f), P.solarisPlaza + vec3(-160.f, -200.f, 40.f),
                                  P.solarisPlaza + vec3(0, 0, 120.f), 7.f, 55.f));
         shots.push_back(shotMove(by + vec3(-40.f, -30.f, 12.f), by, by + vec3(-25.f, -20.f, 6.f), by + vec3(0, 0, 1.2f), 8.f, 45.f));
-        shots.push_back(shotEstablish(P.riverLaunch, yawTo(P.riverLaunch.xy(), P.riverMouth.xy()), 60.f, 20.f, 8.f, 55.f));
+        establish(g, shots, P.riverLaunch, yawTo(P.riverLaunch.xy(), P.riverMouth.xy()), 60.f, 20.f, 8.f, 55.f);
         g.mCutscene(shots, true);
         if (choice == 1) {
             narrator(g, "Pulse FM News", "Breaking news. Porto Sol police captain Reyna Holt was arrested this morning after a Pulse FM broadcast aired "

@@ -5,6 +5,7 @@
 #include "../src/core/jobs.cpp"
 #include "../src/world/worldmap.cpp"
 #include "../src/world/sites.cpp"
+#include "../src/world/transit.cpp"
 #include "../src/world/roads.cpp"
 #include "../src/world/buildings.cpp"
 #include <thread>

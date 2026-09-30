@@ -40,7 +40,7 @@ public:
         facePed(g, kit, mp);
         facePed(g, g.player, kp);
         std::vector<CutsceneShot> shots;
-        shots.push_back(shotEstablish(kp, S.yaw, 40.f, 22.f, 4.f));
+        establish(g, shots, kp, S.yaw, 40.f, 22.f, 4.f);
         shots.push_back(shotTwo(kp, mp, 6.f));
         shots.push_back(shotOver(mp, kp, 7.f));
         shots.push_back(shotOver(kp, mp, 6.f, -1.f));
@@ -253,7 +253,7 @@ public:
         }
         placePlayer(g, curbOffset(g, gPlaces.clubRiptide, -20.f), gPlaces.clubRiptide.curbYaw);
         std::vector<CutsceneShot> shots;
-        shots.push_back(shotEstablish(dance, atan2f(-out.x, out.y) + kPi, 45.f, 18.f, 4.5f, 50.f));
+        establish(g, shots, dance, atan2f(-out.x, out.y) + kPi, 45.f, 18.f, 4.5f, 50.f);
         shots.push_back(shotArc(dance, 14.f, 3.f, 0.f, 1.2f, 6.f));
         shots.push_back(shotMove(cabana + vec3(out * -12.f, 3.f), pedPos(g, holt) + vec3(0, 0, 1.4f), cabana + vec3(out * -10.f, 2.5f),
                                  pedPos(g, holt) + vec3(0, 0, 1.5f), 5.f, 35.f));
@@ -734,7 +734,7 @@ public:
         vec3 jp = pedPos(g, jonah), dp = playerPos(g);
         facePed(g, jonah, dp);
         std::vector<CutsceneShot> shots;
-        shots.push_back(shotEstablish(jp, yawTo(w.xy(), dock.xy()), 45.f, 14.f, 4.5f, 55.f));
+        establish(g, shots, jp, yawTo(w.xy(), dock.xy()), 45.f, 14.f, 4.5f, 55.f);
         shots.push_back(shotTwo(jp, dp, 7.f));
         shots.push_back(shotOver(dp, jp, 7.f));
         shots.push_back(shotOver(jp, dp, 6.f, -1.f));
@@ -1671,7 +1671,7 @@ public:
         }
         placePlayer(g, curbOffset(g, V, -60.f), V.curbYaw);
         std::vector<CutsceneShot> shots;
-        shots.push_back(shotEstablish(house, V.yaw + kPi * 0.5f, 45.f, 16.f, 5.f, 50.f));
+        establish(g, shots, house, V.yaw + kPi * 0.5f, 45.f, 16.f, 5.f, 50.f);
         shots.push_back(shotArc(safe, 18.f, 5.f, 0.3f, 1.0f, 5.f));
         g.mCutscene(shots);
         phoneLine(g, CAST_KIT, "[calm]Holt's at a police fundraiser downtown until midnight. Her private security walks the grounds.");

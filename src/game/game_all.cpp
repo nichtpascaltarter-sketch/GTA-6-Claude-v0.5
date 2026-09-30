@@ -48,4 +48,5 @@
 #include "missiontest.cpp"
 #include "openworld.cpp"
 #include "interiors_game.cpp"   // enterable interiors: streaming, doors, NPCs, render submission
+#include "holdups.cpp"          // store hold-ups on the interiors' shop clerks
 #include "gameworld.cpp"

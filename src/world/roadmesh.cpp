@@ -67,11 +67,26 @@ struct RoadCellOutput {
     MeshData decals;    // paint (depth-biased)
     std::vector<PropInstance> props;
     std::vector<LightInstance> lights;
+    std::vector<CollisionBox> collision;  // deck parapets, guardrails, railings, street furniture
 };
+
+// Oriented collision slab along a road segment: lateral band [lat0, lat1] (right = +), from z0 to z0 + h above the road
+inline void roadRailCollision(RoadCellOutput& out, vec3 a, vec3 b, vec3 right, float lat0, float lat1, float h) {
+    vec2 d = b.xy() - a.xy();
+    float L = length(d);
+    if (L < 0.05f) return;
+    CollisionBox cb;
+    vec3 m = (a + b) * 0.5f + right * ((lat0 + lat1) * 0.5f);
+    float zlo = Min(a.z, b.z), zhi = Max(a.z, b.z);
+    cb.c = vec3(m.x, m.y, (zlo - 0.3f + zhi + h) * 0.5f);
+    cb.ax = d / L;
+    cb.he = vec3(L * 0.5f + 0.05f, Max(0.08f, (lat1 - lat0) * 0.5f), (zhi + h - zlo + 0.3f) * 0.5f);
+    out.collision.push_back(cb);
+}
 
 
 // Streetlights, median palms and bus stops along an edge
-void placeFurniture(const RoadEdge& e, int cx, int cy, const WorldMap& map, RoadCellOutput& out) {
+void placeFurniture(const RoadNetwork& net, int ei, const RoadEdge& e, int cx, int cy, const WorldMap& map, RoadCellOutput& out) {
     const RoadClassInfo& ri = roadInfo(e.cls);
     bool hwy = e.cls == RC_HIGHWAY || e.cls == RC_RAMP;
     bool unpaved = (e.flags & RF_UNPAVED) != 0;
@@ -107,6 +122,9 @@ void placeFurniture(const RoadEdge& e, int cx, int cy, const WorldMap& map, Road
             pi.scale = hwy ? 1.3f : (e.cls <= RC_AVENUE ? 1.1f : 1.f);
         }
         if (!inCell(pi.pos.xy(), cx, cy)) continue;
+        // never on the pavement of another road (junction flares, ramps and parallel roads crowd the verge), never under a deck
+        if (net.onPavement(pi.pos.xy(), pi.pos.z, 0.3f, pi.type == PROP_STREETLIGHT_DOUBLE ? (int)(&e - &net.edges[0]) : -1)) continue;
+        if (net.onPavement(pi.pos.xy(), pi.pos.z + 7.f, 1.0f, -1, 6.3f)) continue;
         out.props.push_back(pi);
         float armLen = 2.2f * pi.scale, poleH = 8.6f * pi.scale;
         LightInstance li;
@@ -135,6 +153,7 @@ void placeFurniture(const RoadEdge& e, int cx, int cy, const WorldMap& map, Road
             vec3 c = e.posAt(s);
             if (!inCell(c.xy(), cx, cy)) continue;
             if (c.z - map.heightAt(c.x, c.y) > 2.f) continue;
+            if (net.onPavement(c.xy(), c.z, 0.5f, ei)) continue;
             PropInstance pi;
             pi.pos = c + vec3(0, 0, 0.18f);
             pi.yaw = hashToFloat(hash2i((int)s, (int)e.seed)) * kTwoPi;
@@ -161,6 +180,7 @@ void placeFurniture(const RoadEdge& e, int cx, int cy, const WorldMap& map, Road
             float off = hw + (type == PROP_BUS_STOP ? sw - 1.2f : 0.9f);
             pi.pos = c + rv * (side * off) + vec3(0, 0, 0.15f);
             if (!inCell(pi.pos.xy(), cx, cy)) continue;
+            if (net.onPavement(pi.pos.xy(), pi.pos.z, 0.3f)) continue;
             pi.yaw = atan2f(t.y, t.x) + (side > 0 ? kPi : 0.f);
             pi.scale = 1.f;
             pi.type = (u8)type;
@@ -234,16 +254,93 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
                     u32 m = unpaved ? matDirt : matDirt;
                     out.road.quadFacing(x0, s0, s1, x1, vec2(0, a.s), vec2(1.2f, a.s), vec2(1.2f, b.s), vec2(0, b.s), white, m, vec3(0, 0, 1));
                 }
+                if (!deck && !unpaved) {
+                    // Falls beside embankments and approaches: steel W-beam guardrail (no sidewalk) or a pedestrian railing at
+                    // the outer sidewalk edge, per sub-span where the ground drops more than 1 m below the road edge
+                    float edgeLat = hw + (sw > 0.f && !hwy ? sw : 0.f);
+                    float segLen = b.s - a.s;
+                    int nsub = Max(1, (int)ceilf(segLen / 12.f));
+                    for (int q = 0; q < nsub; q++) {
+                        float t0 = (float)q / nsub, t1 = (float)(q + 1) / nsub, tm = (t0 + t1) * 0.5f;
+                        vec3 cm = lerp(a.c, b.c, tm);
+                        vec3 rm = normalize(lerp(a.right, b.right, tm));
+                        float drop = -1e9f;
+                        for (int smp = 0; smp < 3; smp++) {
+                            float ts = t0 + (t1 - t0) * (0.1f + 0.4f * smp);
+                            vec3 cs = lerp(a.c, b.c, ts);
+                            vec3 outP = cs + rm * (sgn * (edgeLat + 2.0f));
+                            float dd = cs.z - map.heightAt(outP.x, outP.y);
+                            float wl = map.waterAt(outP.x, outP.y);
+                            if (wl > kNoWater + 1.f) dd = Max(dd, cs.z - wl + 0.5f);
+                            drop = Max(drop, dd);
+                        }
+                        if (drop < 1.0f) continue;
+                        // another road continues beside this edge here (merge, junction flare): leave it open
+                        bool merge = false;
+                        for (int smp = 0; smp < 3 && !merge; smp++) {
+                            float ts = t0 + (t1 - t0) * (0.5f * smp);
+                            vec3 railP = lerp(a.c, b.c, ts) + rm * (sgn * (edgeLat + 0.3f));
+                            merge = net.onPavement(railP.xy(), railP.z - 0.1f, 0.f, ei, 1.1f);
+                        }
+                        if (merge) continue;
+                        vec3 A0 = lerp(sectionPoint(a, sgn * (edgeLat + 0.3f)), sectionPoint(b, sgn * (edgeLat + 0.3f)), t0) - o3;
+                        vec3 A1 = lerp(sectionPoint(a, sgn * (edgeLat + 0.3f)), sectionPoint(b, sgn * (edgeLat + 0.3f)), t1) - o3;
+                        vec3 rs = a.right * sgn;
+                        bool railing = sw > 0.f && !hwy;
+                        float zb = railing ? 0.15f : 0.f;
+                        vec3 lo = vec3(0, 0, zb + (railing ? 0.95f : 0.55f)), hi = vec3(0, 0, zb + (railing ? 1.05f : 0.87f));
+                        // rail band facing the road and its back
+                        out.road.quadFacing(A0 + lo, A1 + lo, A1 + hi, A0 + hi, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), colorGray(0.78f),
+                                            makeMat(MAT_METAL_BRUSHED), -rs);
+                        out.road.quadFacing(A1 + lo, A0 + lo, A0 + hi, A1 + hi, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), colorGray(0.7f),
+                                            makeMat(MAT_METAL_BRUSHED), rs);
+                        if (railing) {
+                            vec3 m0 = vec3(0, 0, zb + 0.5f), m1 = vec3(0, 0, zb + 0.55f);
+                            out.road.quadFacing(A0 + m0, A1 + m0, A1 + m1, A0 + m1, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), colorGray(0.7f),
+                                                makeMat(MAT_METAL_PAINTED), -rs);
+                        }
+                        // posts
+                        float spanLen = length(A1 - A0);
+                        int np = Max(1, (int)(spanLen / (railing ? 2.5f : 4.f)));
+                        vec3 fwd = normalize(A1 - A0);
+                        for (int k = 0; k <= np; k++) {
+                            if (k == np && q + 1 < nsub) continue;
+                            vec3 pp = lerp(A0, A1, (float)k / np) + rs * 0.08f;
+                            out.road.box(pp + vec3(0, 0, zb + (railing ? 0.53f : 0.4f) - 0.25f), fwd, rs, vec3(0, 0, 1),
+                                         vec3(0.05f, 0.06f, (railing ? 0.53f : 0.45f) + 0.25f), colorGray(railing ? 0.55f : 0.62f), makeMat(MAT_METAL_PAINTED));
+                        }
+                        vec3 wa = lerp(sectionPoint(a, 0.f), sectionPoint(b, 0.f), t0), wb = lerp(sectionPoint(a, 0.f), sectionPoint(b, 0.f), t1);
+                        roadRailCollision(out, wa + vec3(0, 0, zb), wb + vec3(0, 0, zb), rm, sgn > 0 ? edgeLat + 0.15f : -(edgeLat + 0.45f),
+                                          sgn > 0 ? edgeLat + 0.45f : -(edgeLat + 0.15f), railing ? 1.1f : 0.9f);
+                    }
+                }
                 if (deck) {
-                    // Barrier walls on the deck edges
+                    // Barrier walls on the deck edges, in sub-spans; open where another road's pavement continues beside the deck
                     float bw = 0.35f, bh = 0.95f;
                     float lat = sgn * (hw + (sw > 0 && !hwy ? sw : 0.f) + bw * 0.5f);
-                    vec3 p0 = sectionPoint(a, lat - bw * 0.5f) - o3, p1 = sectionPoint(b, lat - bw * 0.5f) - o3;
-                    vec3 q0 = sectionPoint(a, lat + bw * 0.5f) - o3, q1 = sectionPoint(b, lat + bw * 0.5f) - o3;
-                    vec3 up(0, 0, bh);
-                    out.road.quadFacing(p0 + up, q0 + up, q1 + up, p1 + up, vec2(0, a.s), vec2(bw, a.s), vec2(bw, b.s), vec2(0, b.s), white, matConcrete, vec3(0, 0, 1));
-                    out.road.quadFacing(q1, q0, q0 + up, q1 + up, vec2(b.s, 0), vec2(a.s, 0), vec2(a.s, bh), vec2(b.s, bh), white, matConcrete, a.right * sgn);
-                    out.road.quadFacing(p0, p1, p1 + up, p0 + up, vec2(a.s, 0), vec2(b.s, 0), vec2(b.s, bh), vec2(a.s, bh), white, matConcrete, a.right * -sgn);
+                    int nsub = Max(1, (int)ceilf((b.s - a.s) / 5.f));
+                    vec3 rAB = normalize(a.right + b.right);
+                    for (int q = 0; q < nsub; q++) {
+                        float t0 = (float)q / nsub, t1 = (float)(q + 1) / nsub;
+                        bool merge = false;
+                        for (int smp = 0; smp < 3 && !merge; smp++) {
+                            vec3 cs = lerp(a.c, b.c, t0 + (t1 - t0) * (0.5f * smp));
+                            vec3 railP = cs + rAB * (lat + sgn * 0.3f);
+                            merge = net.onPavement(railP.xy(), cs.z - 0.1f, 0.f, ei, 1.1f);
+                        }
+                        if (merge) continue;
+                        vec3 c0 = lerp(a.c, b.c, t0), c1 = lerp(a.c, b.c, t1);
+                        float s0 = Lerp(a.s, b.s, t0), s1 = Lerp(a.s, b.s, t1);
+                        roadRailCollision(out, c0, c1, rAB, lat - bw * 0.5f, lat + bw * 0.5f, bh);
+                        vec3 p0 = lerp(sectionPoint(a, lat - bw * 0.5f), sectionPoint(b, lat - bw * 0.5f), t0) - o3;
+                        vec3 p1 = lerp(sectionPoint(a, lat - bw * 0.5f), sectionPoint(b, lat - bw * 0.5f), t1) - o3;
+                        vec3 q0 = lerp(sectionPoint(a, lat + bw * 0.5f), sectionPoint(b, lat + bw * 0.5f), t0) - o3;
+                        vec3 q1 = lerp(sectionPoint(a, lat + bw * 0.5f), sectionPoint(b, lat + bw * 0.5f), t1) - o3;
+                        vec3 up(0, 0, bh);
+                        out.road.quadFacing(p0 + up, q0 + up, q1 + up, p1 + up, vec2(0, s0), vec2(bw, s0), vec2(bw, s1), vec2(0, s1), white, matConcrete, vec3(0, 0, 1));
+                        out.road.quadFacing(q1, q0, q0 + up, q1 + up, vec2(s1, 0), vec2(s0, 0), vec2(s0, bh), vec2(s1, bh), white, matConcrete, a.right * sgn);
+                        out.road.quadFacing(p0, p1, p1 + up, p0 + up, vec2(s0, 0), vec2(s1, 0), vec2(s1, bh), vec2(s0, bh), white, matConcrete, a.right * -sgn);
+                    }
                     // Deck side face down to the slab bottom
                     float outerLat = sgn * (hw + (sw > 0 && !hwy ? sw : 0.f) + bw);
                     vec3 d0 = sectionPoint(a, outerLat) - o3, d1 = sectionPoint(b, outerLat) - o3;
@@ -302,6 +399,7 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
                 out.road.quadFacing(p0 + up, q0 + up, q1 + up, p1 + up, vec2(0, a.s), vec2(0.6f, a.s), vec2(0.6f, b.s), vec2(0, b.s), white, matConcrete, vec3(0, 0, 1));
                 out.road.quadFacing(q1, q0, q0 + up, q1 + up, vec2(b.s, 0), vec2(a.s, 0), vec2(a.s, bh), vec2(b.s, bh), white, matConcrete, a.right);
                 out.road.quadFacing(p0, p1, p1 + up, p0 + up, vec2(a.s, 0), vec2(b.s, 0), vec2(b.s, bh), vec2(a.s, bh), white, matConcrete, a.right * -1.f);
+                roadRailCollision(out, a.c, b.c, normalize(a.right + b.right), -bw, bw, bh);
             }
             // ---------- Lane markings
             if (!unpaved && e.cls != RC_LANE) {
@@ -340,7 +438,7 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
             }
         }
         // ---------- Street furniture along the whole edge (placed where it falls inside this cell)
-        placeFurniture(e, cx, cy, map, out);
+        placeFurniture(net, ei, e, cx, cy, map, out);
     }
 
     // ---------------------------------------------------------------- Intersections
@@ -519,6 +617,7 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
                 pi.type = nd.control == 2 ? PROP_TRAFFIC_LIGHT : PROP_STOP_SIGN;
                 pi.variant = (u8)(e.cls <= RC_AVENUE ? 1 : 0);
                 pi.flags = (u16)A.edge;
+                if (net.onPavement(pi.pos.xy(), pi.pos.z, 0.2f)) continue;
                 out.props.push_back(pi);
             }
         }

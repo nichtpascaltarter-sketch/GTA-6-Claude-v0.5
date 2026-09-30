@@ -337,6 +337,27 @@ void GameWorld::startLipSync(int pid, const char* spokenText, const Audio::Voice
     Speech::accentCues(spokenText, voice, p.lipAccents);
     p.lipStart = Platform::timeSeconds();
     p.lipIdx = 0;
+    // conversation partners: peds standing within 3.5 m turn to listen for the length of the line (not those busy
+    // fleeing / fighting / driving); the speaker addresses the closest one
+    float lineLen = p.lipKeys.empty() ? 2.f : p.lipKeys.back().time + p.lipKeys.back().duration;
+    int nearest = -1, listeners = 0;
+    float best = 1e9f;
+    for (int j = 0; j < (int)peds.size() && listeners < 4; j++) {
+        Ped& o = peds[j];
+        if (j == pid || !o.used || o.state != PS_ONFOOT || o.ragdoll || o.health <= 0.f) continue;
+        BrainType bt = o.brain.type;
+        if (bt == BRAIN_FLEE || bt == BRAIN_COWER || bt == BRAIN_COMBAT || bt == BRAIN_ARREST) continue;
+        float d = length(rel(o.pos, p.pos));
+        if (d > 3.5f) continue;
+        o.listenUntil = p.lipStart + lineLen + 0.6;
+        o.listenTo = pid;
+        listeners++;
+        if (d < best) best = d, nearest = j;
+    }
+    if (nearest >= 0) {
+        p.lookPed = nearest;
+        p.lookT = lineLen + 0.3f;
+    }
 }
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -382,6 +403,9 @@ void GameWorld::animatePed(Ped& p, float dt) {
     in.expression = -1;          // automatic (pain / fear / anger / mood) unless the line's emotion says otherwise
     in.expressionWeight = 1.f;
     in.brow = in.nod = 0.f;
+    in.speaking = in.listening = false;
+    in.beat = 0.f;
+    in.gestureAmount = 1.f;
     if (p.lipStart >= 0.0 && !p.lipKeys.empty()) {
         const std::vector<Speech::VisemeKey>& K = p.lipKeys;
         float t = (float)(Platform::timeSeconds() - p.lipStart) + 0.03f;
@@ -405,6 +429,7 @@ void GameWorld::animatePed(Ped& p, float dt) {
             in.visemeWeight = Saturate(K[k].weight);
             in.visemeNext = k + 1 < (int)K.size() ? (int)K[k + 1].viseme : 0;
             in.visemeBlend = blend * 2.f;
+            in.speaking = true;
             // facial performance: the voiced emotion, plus brow raises / nods on stressed syllables
             for (const Speech::StyleSpan& sp : p.lipStyles)
                 if (t >= sp.start && t < sp.end) {
@@ -417,6 +442,15 @@ void GameWorld::animatePed(Ped& p, float dt) {
                         case Speech::EMOTION_CALM: case Speech::EMOTION_WHISPER: in.expression = 0; break;
                         default: break;
                     }
+                    switch (sp.style.emotion) {   // how much the hands talk
+                        case Speech::EMOTION_SHOUT: in.gestureAmount = 1.35f; break;
+                        case Speech::EMOTION_ANGRY: in.gestureAmount = 1.25f; break;
+                        case Speech::EMOTION_HAPPY: case Speech::EMOTION_SCARED: in.gestureAmount = 1.1f; break;
+                        case Speech::EMOTION_CALM: in.gestureAmount = 0.7f; break;
+                        case Speech::EMOTION_SAD: in.gestureAmount = 0.6f; break;
+                        case Speech::EMOTION_WHISPER: in.gestureAmount = 0.4f; break;
+                        default: break;
+                    }
                     if (in.expression >= 0 && sp.style.emotion != Speech::EMOTION_SHOUT) in.expressionWeight = Saturate(sp.style.intensity);
                     break;
                 }
@@ -427,7 +461,80 @@ void GameWorld::animatePed(Ped& p, float dt) {
                     in.brow = Max(in.brow, env * ac.strength * (ac.nuclear ? 0.8f : 0.5f));
                     in.nod = Max(in.nod, env * ac.strength * (ac.nuclear ? 0.7f : 0.3f));
                 }
+                // beat gestures: the hand's down-stroke lands slightly ahead of the stressed syllable
+                float db = d + 0.09f;
+                if (db > -0.12f && db < 0.3f) {
+                    float env = db < 0.f ? 1.f + db / 0.12f : 1.f - db / 0.3f;
+                    in.beat = Max(in.beat, env * ac.strength * (ac.nuclear ? 1.f : 0.6f));
+                }
             }
+        }
+    }
+    // conversation: listeners hold a listening pose and look at the speaker; speakers address their listener;
+    // bystanders glance at the player walking past (and the player at people close by)
+    double nowT = Platform::timeSeconds();
+    int look = -1;
+    float lookW = 0.f;
+    bool upright = p.state == PS_ONFOOT && !p.aiming && p.health > 0.f;
+    if (p.listenUntil > nowT && p.listenTo >= 0 && p.listenTo < (int)peds.size() && peds[p.listenTo].used) {
+        if (upright && spd < 0.6f) in.listening = true;
+        look = p.listenTo;
+        lookW = 0.85f;
+    } else {
+        p.listenTo = -1;
+        if (p.lookT > 0.f) look = p.lookPed, lookW = in.speaking ? 0.8f : 0.6f;
+    }
+    p.lookT -= dt;
+    p.glanceNext -= dt;
+    if (p.glanceNext <= 0.f) {
+        u32 h = hash32(p.uid * 2654435761u + (u32)(nowT * 7.0));
+        p.glanceNext = 1.5f + 3.f * hashToFloat(h);
+        if (upright && p.lookT <= 0.f && look < 0 && p.visibleDist < 25.f) {
+            int cand = -1;
+            if (!p.isPlayer && player >= 0) {
+                cand = player;   // NPC: notice the player passing close in front (more often when armed)
+                float chance = weaponInfo(peds[player].weapon).animKind != 0 ? 0.7f : 0.35f;
+                if (hashToFloat(hash32(h + 1u)) > chance) cand = -1;
+            } else if (p.isPlayer) {
+                float bestD = 3.5f;   // player: the closest ped standing or walking by in front
+                for (int j = 0; j < (int)peds.size(); j++) {
+                    const Ped& o = peds[j];
+                    if (!o.used || &o == &p || o.state != PS_ONFOOT || o.visibleDist > 10.f) continue;
+                    float d = length(rel(o.pos, p.pos));
+                    if (d < bestD) bestD = d, cand = j;
+                }
+                if (hashToFloat(hash32(h + 2u)) > 0.45f) cand = -1;
+            }
+            if (cand >= 0) {
+                vec3 D = rel(peds[cand].pos, p.pos);
+                float d = length(vec2(D.x, D.y));
+                bool inFront = dot(vec2(D.x, D.y), fwd) > 0.3f * d;
+                if (d < (p.isPlayer ? 3.5f : 5.f) && inFront) {
+                    p.lookPed = cand;
+                    p.lookT = 1.2f + 1.5f * hashToFloat(hash32(h + 3u));
+                }
+            }
+        }
+    }
+    in.lookWeight = 0.f;
+    if (look >= 0 && look < (int)peds.size() && peds[look].used && upright) {
+        const Ped& o = peds[look];
+        float headZ = o.ragdoll ? 0.3f : o.bones[Anim::B_HEAD].c[3].z;
+        vec3 D = rel(o.pos, p.pos) + vec3(0.f, 0.f, headZ);
+        in.lookAt = vec3(dot(vec2(D.x, D.y), rightV), dot(vec2(D.x, D.y), fwd), D.z);
+        in.lookWeight = in.lookAt.y > -0.2f ? lookW : 0.f;   // never wrench the head round to someone behind
+    }
+    // phone at the ear (player on a call, NPCs chatting on the phone)
+    in.phoneCall = p.phoneCall && upright;
+    in.phoneBrowse = p.phoneBrowse && upright && !p.phoneCall;
+    // synced takedown: the attacker's choke arm finds the victim's actual neck (tall / short pairs still connect)
+    in.grabWeight = 0.f;
+    if (p.takedownT >= 0.f && !p.takedownVictim && p.takedownPartner >= 0 && p.takedownPartner < (int)peds.size()) {
+        const Ped& v = peds[p.takedownPartner];
+        if (v.used && !v.ragdoll && v.charIndex >= 0) {
+            vec3 neck = rel(v.pos, p.pos) + rotate(yawQuat(v.yaw), v.bones[Anim::B_NECK].c[3].xyz());
+            in.grabTarget = vec3(dot(vec2(neck.x, neck.y), rightV), dot(vec2(neck.x, neck.y), fwd), neck.z);
+            in.grabWeight = 1.f;
         }
     }
     // foot IK: probe ground under both feet (only for nearby peds)

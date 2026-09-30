@@ -134,8 +134,10 @@ struct WorldRenderer {
         }, kJobLow);
     }
 
-    // Light spilling out of shop windows at night: a wide warm downlight above the shopfront every ~8 m along the
-    // street front of every building with a storefront ground floor (type 5: follows shop hours, see gatherLights).
+    // Light spilling out of shop windows at night: a wide warm light every ~8 m along the street front of every
+    // building with a storefront ground floor (type 5: night only, follows shop hours, see gatherLights). It sits
+    // low (2.15 m) and close to the glass (0.45 m out), aimed out and down, so awnings / canopies above the
+    // shopfront (which project 1.3-1.8 m from ~3.3 m) stay outside its cone and never come near the source.
     void addStorefrontLights(StreamCell* c) {
         const World::BuildingSet* bs = World::gBuildings;
         const int cps = World::kCellsPerSide;
@@ -149,13 +151,13 @@ struct WorldRenderer {
             int n = Max(1, (int)floorf(len / 8.f));
             for (int k = 0; k < n; k++) {
                 float u = -b.hx + (k + 0.5f) * len / n;
-                vec2 p = b.c + b.ax * u + b.front * (b.hy + 0.9f);
+                vec2 p = b.c + b.ax * u + b.front * (b.hy + 0.45f);
                 World::LightInstance li;
-                li.pos = vec3(p, b.baseZ + 3.1f);
-                li.color = vec3(1.f, 0.83f, 0.64f) * 340.f;
-                li.radius = 9.f;
-                li.dir = normalize(vec3(b.front * 0.6f, -1.f));
-                li.cone = 0.22f;
+                li.pos = vec3(p, b.baseZ + 2.15f);
+                li.color = vec3(1.f, 0.83f, 0.64f) * 170.f;
+                li.radius = 8.f;
+                li.dir = normalize(vec3(b.front * 0.8f, -0.6f));
+                li.cone = 0.2f;   // cos(outer) = 0.2: ~78 degrees around the out-and-down axis
                 li.type = 5;
                 c->lights.push_back(li);
             }

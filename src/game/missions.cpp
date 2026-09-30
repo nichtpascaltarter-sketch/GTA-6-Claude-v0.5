@@ -53,6 +53,19 @@ bool classAvailable(const GameWorld& g, u32 mask) {
     return false;
 }
 
+// a story or stranger mission marker was entered: the screen fades out and the mission starts under black
+int gPendingStart = -1;
+bool cinematicStart(const MissionDef& d) { return d.storyIndex >= 0 || !d.repeatable; }
+
+// leave a scripted camera: ease from the last shot back into the gameplay camera, or cut when that shot was far from
+// the player (the scene teleported somebody)
+void releaseScriptCamera(GameWorld& g) {
+    g.rig.scriptActive = false;
+    Ped* pp = g.playerPed();
+    if (pp && length(rel(g.rig.scriptFrom.pos, pp->pos)) < 45.f) g.rig.scriptBlend = g.rig.scriptBlendTotal = 0.9f;
+    else g.rig.cut = true;
+}
+
 }  // namespace mission_detail
 
 using namespace mission_detail;
@@ -157,6 +170,7 @@ void GameWorld::mCutscene(const std::vector<CutsceneShot>& shots, bool skippable
     gMissions.skippable = skippable;
     gMissions.holdForDialogue = skippable;   // story cutscenes (the character switch camera is not skippable)
     gMissions.autoShots = 0;
+    gMissions.leadIn = shots.empty() || gMissions.test.active ? 0.f : shots[0].leadIn;
     if (!shots.empty()) {
         playerControl = false;
         hudVisible = false;
@@ -245,6 +259,7 @@ void GameWorld::mEnd(bool passed, const std::string& reason) {
     M.vehicles.clear();
     M.markers.clear();
     M.lines.clear();
+    M.leadIn = 0.f;
     M.shots.clear();
     M.shotIndex = -1;
     gTracked.clear();
@@ -254,8 +269,7 @@ void GameWorld::mEnd(bool passed, const std::string& reason) {
     missionCounterLabel.clear();
     playerControl = true;
     hudVisible = true;
-    rig.scriptActive = false;
-    rig.cut = true;
+    if (rig.scriptActive) mission_detail::releaseScriptCamera(*this);
     timeScale = pinfo.deathTimer > 0.f ? timeScale : 1.f;
     policeSuppressed = false;
     M.suppressPolice = false;
@@ -300,7 +314,10 @@ void GameWorld::updateMissions(float dt) {
     if ((int)storyFlags.size() < kFlagCount) storyFlags.resize(kFlagCount, 0);
     Ped* pl = playerPed();
     // ---- dialogue playback
-    if (!M.lines.empty()) {
+    if (!M.lines.empty() && M.leadIn > 0.f && M.lineTimer <= 0.f && M.lineSound == 0) {
+        M.leadIn -= dt;   // an opening shot plays a moment before anybody speaks
+    } else if (!M.lines.empty()) {
+        M.leadIn = 0.f;
         DialogueLine& l = M.lines.front();
         if (M.lineTimer <= 0.f && M.lineSound == 0) {
             bool pedVoice = l.ped >= 0 && l.ped < (int)peds.size() && peds[l.ped].used;
@@ -381,19 +398,30 @@ void GameWorld::updateMissions(float dt) {
         if (length2(rel(s.pos2, dvec3(0, 0, 0))) < 1e-6f) rig.scriptPos = s.pos;
         if (length2(rel(s.target2, dvec3(0, 0, 0))) < 1e-6f) rig.scriptTarget = s.target;
         rig.scriptFov = s.fov;
-        if (s.handheld > 0.f) {
+        // handheld on tense beats: the shot's own amount, raised while an angry, shouted or frightened line plays in
+        // the scene; eased so a locked-off shot starts to breathe instead of snapping into a shake
+        float wantHand = s.handheld;
+        if (M.holdForDialogue && !M.lines.empty() && M.lineTimer > 0.f && !M.lines.front().phone) {
+            const std::string& lt = M.lines.front().text;
+            if (lt.find("[angry") != std::string::npos || lt.find("[shout") != std::string::npos || lt.find("[scared") != std::string::npos)
+                wantHand = Max(wantHand, 0.6f);
+        }
+        if (M.shotTime <= dt) M.handheldNow = Max(M.handheldNow * 0.5f, s.handheld);   // a cut resets most of the drift
+        M.handheldNow += (wantHand - M.handheldNow) * Min(1.f, dt * 1.2f);
+        if (M.handheldNow > 0.01f) {
             // handheld: slow drift plus a little breathing on the aim, never a jitter
             float tt = (float)time;
             vec3 drift(sinf(tt * 0.9f) + 0.5f * sinf(tt * 2.3f + 1.f), cosf(tt * 0.7f) + 0.4f * sinf(tt * 1.9f), 0.6f * sinf(tt * 1.3f + 2.f));
             vec3 aim(sinf(tt * 1.1f + 0.5f), 0.6f * cosf(tt * 1.7f), 0.5f * sinf(tt * 1.5f));
-            rig.scriptPos = rig.scriptPos + dvec3(drift * (0.035f * s.handheld));
-            rig.scriptTarget = rig.scriptTarget + dvec3(aim * (0.05f * s.handheld));
+            rig.scriptPos = rig.scriptPos + dvec3(drift * (0.035f * M.handheldNow));
+            rig.scriptTarget = rig.scriptTarget + dvec3(aim * (0.05f * M.handheldNow));
         }
         bool skip = M.skippable && ctl.skip.pressed && M.shotTime > 0.4f;
         if (M.shotTime >= s.duration || skip) {
             if (skip) {
                 M.shotIndex = (int)M.shots.size();
                 M.lines.clear();
+                M.leadIn = 0.f;
                 subTimer = 0.f;
             } else {
                 M.shotIndex++;
@@ -412,8 +440,7 @@ void GameWorld::updateMissions(float dt) {
                 M.shots.clear();
                 playerControl = true;
                 hudVisible = true;
-                rig.scriptActive = false;
-                rig.cut = true;
+                mission_detail::releaseScriptCamera(*this);
             }
         } else if (s.speaker != -2 && !M.lines.empty() && M.lines.front().ped != s.speaker && M.shotTime > 0.6f) {
             // a runtime speaker shot: cut to the next speaker as soon as they talk
@@ -425,6 +452,20 @@ void GameWorld::updateMissions(float dt) {
                 M.shotTime = 0.f;
                 M.autoShots++;
             }
+        }
+    }
+    // ---- a marker start waiting for the fade to black
+    if (mission_detail::gPendingStart >= 0) {
+        int i = mission_detail::gPendingStart;
+        if (!pl || pl->health <= 0.f || M.active) {
+            mission_detail::gPendingStart = -1;
+            fadeIn(2.5f);
+            playerControl = true;
+        } else if (fadedOut()) {
+            mission_detail::gPendingStart = -1;
+            playerControl = true;
+            startMission(i);
+            if (fadeTarget > 0.f) fadeIn(1.6f);   // no opening cutscene: come straight back up
         }
     }
     // ---- active mission
@@ -513,7 +554,17 @@ void GameWorld::updateMissions(float dt) {
                         continue;
                     }
                     M.startCheckpoint = 0;
-                    startMission(i);
+                    if (mission_detail::cinematicStart(d) && !M.test.active) {
+                        mission_detail::gPendingStart = i;
+                        fadeOut(3.f);
+                        playerControl = false;
+                        if (pv >= 0 && peds[player].seat == 0) {
+                            vehicles[pv].ctl = Vehicles::VehicleControls();
+                            vehicles[pv].ctl.brake = 1.f;
+                        }
+                    } else {
+                        startMission(i);
+                    }
                     break;
                 }
             }
@@ -658,11 +709,16 @@ void GameWorld::startMission(int i) {
     hasWaypoint = false;
     gpsRoute.clear();
     hudHelpTimer = 0.f;
-    bigMessage(M.active->title(), M.defs[i].storyIndex >= 0 ? std::string(M.defs[i].contact) : std::string("Side activity"), 0xffffffffu);
+    bigMessage(M.active->title(), mission_detail::cinematicStart(M.defs[i]) ? std::string(M.defs[i].contact) : std::string("Side activity"), 0xffffffffu);
 #ifdef HAVE_AUDIO
     Audio::setScore(hash32((u32)i) & 0xffff, 0.35f);   // missions usually pick their own score in start()
 #endif
     M.active->start(*this);
+    // a story or stranger mission that opens on a cutscene comes up out of a short fade instead of a hard cut
+    if (mission_detail::cinematicStart(M.defs[i]) && M.shotIndex >= 0 && !M.test.active) {
+        fadeAlpha = 1.f;
+        fadeIn(1.3f);   // alpha per second: about 0.8 s
+    }
 }
 
 }  // namespace Game

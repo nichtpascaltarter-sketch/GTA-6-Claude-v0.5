@@ -643,6 +643,19 @@ void genRiverMarina(const SiteElem& e, G& g) {
     }
     // bait & tackle shop on the bank and the sign
     vec2 shop = e.c + n * (bank + 16.f) - t * (halfLen * 0.2f);
+    {
+        // slide along the bank to the first spot clear of streets (deterministic: every cell finds the same one)
+        const float offs[] = {-0.2f, 0.f, -0.4f, 0.2f, -0.6f, 0.4f};
+        bool found = false;
+        for (float o : offs) {
+            vec2 q = e.c + n * (bank + 16.f) + t * (halfLen * o);
+            if (gRoads && gRoads->nearRoad(q, 11.5f)) continue;
+            shop = q;
+            found = true;
+            break;
+        }
+        if (!found) shop = vec2(1e9f);
+    }
     if (g.owns(shop)) {
         float z = gMap->heightAt(shop.x, shop.y);
         std::vector<vec2> fp = rectPoly(shop, t, 9.f, 6.f);

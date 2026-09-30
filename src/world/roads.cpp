@@ -799,6 +799,32 @@ void RoadNetwork::generate(WorldMap& map) {
     }
 
     // ============================================================= Elevation
+    // At-grade roads that highways must bridge over: their segments in a coarse grid (highways and ramps excluded)
+    const float kXCell = 64.f;
+    const int xRes = (int)(2.f * kWorldHalf / kXCell) + 1;
+    std::vector<std::vector<int>> xGrid((size_t)xRes * xRes);
+    std::vector<std::pair<vec2, vec2>> xSegs;
+    for (const RoadEdge& o : edges) {
+        if (o.cls == RC_HIGHWAY || o.cls == RC_RAMP) continue;
+        for (size_t k = 0; k + 1 < o.pts.size(); k++) {
+            vec2 a = o.pts[k].xy(), c = o.pts[k + 1].xy();
+            int id = (int)xSegs.size();
+            xSegs.push_back({a, c});
+            int x0 = Clamp((int)((Min(a.x, c.x) + kWorldHalf) / kXCell), 0, xRes - 1), x1 = Clamp((int)((Max(a.x, c.x) + kWorldHalf) / kXCell), 0, xRes - 1);
+            int y0 = Clamp((int)((Min(a.y, c.y) + kWorldHalf) / kXCell), 0, xRes - 1), y1 = Clamp((int)((Max(a.y, c.y) + kWorldHalf) / kXCell), 0, xRes - 1);
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++) xGrid[(size_t)y * xRes + x].push_back(id);
+        }
+    }
+    auto crossesStreet = [&](vec2 p, float r) {
+        int cx0 = Clamp((int)((p.x - r + kWorldHalf) / kXCell), 0, xRes - 1), cx1 = Clamp((int)((p.x + r + kWorldHalf) / kXCell), 0, xRes - 1);
+        int cy0 = Clamp((int)((p.y - r + kWorldHalf) / kXCell), 0, xRes - 1), cy1 = Clamp((int)((p.y + r + kWorldHalf) / kXCell), 0, xRes - 1);
+        for (int y = cy0; y <= cy1; y++)
+            for (int x = cx0; x <= cx1; x++)
+                for (int id : xGrid[(size_t)y * xRes + x])
+                    if (distPointSegment2D(p, xSegs[id].first, xSegs[id].second) < r) return true;
+        return false;
+    };
     for (auto& e : edges) {
         // densify to <= 12 m spacing for smooth elevation profiles
         std::vector<vec3> dense;
@@ -828,11 +854,13 @@ void RoadNetwork::generate(WorldMap& map) {
             }
             target[i] = z;
         }
-        // Highways: raise over at-grade road crossings
+        // Highways: raise over at-grade road crossings (clearance ~6.5 m under the deck); the grade limit below builds the approaches
         if (hwy) {
             for (size_t i = 0; i < e.pts.size(); i++) {
                 vec2 p = e.pts[i].xy();
-                (void)p;
+                if (!crossesStreet(p, 18.f)) continue;
+                target[i] = Max(target[i], map.heightAt(p.x, p.y) + 8.f);
+                e.flags |= RF_BRIDGE;
             }
         }
         // Smooth: dilate high points (bridges need ramps), then average; grade limit
@@ -1033,6 +1061,24 @@ bool RoadNetwork::surfaceHeight(vec2 p, float* z, float maxZ) const {
     }
     if (found) *z = bestZ;
     return found;
+}
+
+bool RoadNetwork::onPavement(vec2 p, float z, float margin, int ignoreEdge, float zTol) const {
+    thread_local std::vector<int> cand;
+    cand.clear();
+    edgesInRect(p - vec2(margin + 30.f), p + vec2(margin + 30.f), cand);
+    for (int ei : cand) {
+        if (ei == ignoreEdge) continue;
+        const RoadEdge& e = edges[ei];
+        if (e.flags & RF_UNPAVED) continue;
+        float r = e.halfWidth + margin;
+        for (size_t k = 0; k + 1 < e.pts.size(); k++) {
+            float t;
+            float d = distPointSegment2D(p, e.pts[k].xy(), e.pts[k + 1].xy(), &t);
+            if (d < r && fabsf(Lerp(e.pts[k].z, e.pts[k + 1].z, t) - z) < zTol) return true;
+        }
+    }
+    return false;
 }
 
 bool RoadNetwork::nearRoad(vec2 p, float margin) const {

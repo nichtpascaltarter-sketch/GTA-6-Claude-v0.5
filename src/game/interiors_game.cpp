@@ -10,6 +10,8 @@ namespace Game {
 
 namespace interiors_game {
 
+const int kScriptedSub = 77;   // Brain::sub of scenario peds driven by another module (hold-ups): not pinned
+
 using World::InteriorDef;
 
 const float kLoadRange = 480.f;       // camera to the interior's cell (LOD0 cells with the facade cut-outs reach 420 m)
@@ -380,7 +382,7 @@ void pinNpcs(GameWorld& g, Loaded* L, const InteriorDef& d) {
         int id = L->peds[i];
         if (id < 0 || id >= (int)g.peds.size()) continue;
         Ped& p = g.peds[id];
-        if (!p.used || p.uid != L->pedUid[i] || p.brain.type != BRAIN_SCENARIO || p.state != PS_ONFOOT) continue;
+        if (!p.used || p.uid != L->pedUid[i] || p.brain.type != BRAIN_SCENARIO || p.brain.sub == kScriptedSub || p.state != PS_ONFOOT) continue;
         const World::InteriorScenario& sc = d.scenarios[L->pedScenario[i]];
         vec3 wp = d.toWorld(sc.pos);
         p.pos = dvec3(wp.x, wp.y, wp.z + sc.lift);
@@ -617,6 +619,11 @@ void testDrive(GameWorld& g, float dt) {
 
 }  // namespace interiors_game
 
+namespace holdups {   // holdups.cpp (store robberies on the shop clerks spawned here)
+void update(GameWorld& g, float dt);
+void testDrive(GameWorld& g, float dt);
+}  // namespace holdups
+
 // ------------------------------------------------------------------------------------------------------------------
 // Public API
 namespace Interiors {
@@ -624,7 +631,10 @@ namespace Interiors {
 using namespace interiors_game;
 
 // Before the player update: the --interiortest walk-through drives the controls
-void preUpdate(GameWorld& g, float dt) { testDrive(g, dt); }
+void preUpdate(GameWorld& g, float dt) {
+    testDrive(g, dt);
+    holdups::testDrive(g, dt);
+}
 
 // After the peds update: streaming, collision, doors, NPCs, player inside detection
 void update(GameWorld& g, float dt) {
@@ -649,6 +659,7 @@ void update(GameWorld& g, float dt) {
     gIS.playerInterior = pl && pl->state != PS_INVEHICLE ? World::gInteriors->at(pp + vec3(0, 0, 0.9f), &room) : -1;
     gIS.playerRoom = room;
     gIS.inside = approach(gIS.inside, gIS.playerInterior >= 0 ? 1.f : 0.f, dt * 2.5f);
+    holdups::update(g, dt);
 }
 
 // Render submission in gameplay (GameWorld::submitRender)

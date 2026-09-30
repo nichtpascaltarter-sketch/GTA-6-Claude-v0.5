@@ -190,7 +190,7 @@ void csCloudReconstruct(uint3 id : SV_DispatchThreadID) {
             }
         }
     }
-    uOut2D[id.xy] = result;
+    uOut2D[id.xy] = anyNonFinite(result.rgb) || !(result.a >= 0.0) ? float4(0, 0, 0, 1) : float4(min(result.rgb, 60000.0), saturate(result.a));
 }
 
 // Cloud shadow map: transmittance of sunlight through the cloud layer, top-down 2D map around the camera

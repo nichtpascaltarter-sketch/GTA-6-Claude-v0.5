@@ -381,7 +381,7 @@ std::string GameWorld::aiCensusText(float radius) const {
                 dance += pa->stance == 9;
                 smoke += pa->stance == 10;
                 lean += pa->stance == 11;
-                sun += pa->stance == 12;
+                sun += pa->stance == 12 || pa->stance == 21 || pa->stance == 22;
                 break;
             case ACT_QUEUE: queue++; break;
             case ACT_WATCH: watch++; break;

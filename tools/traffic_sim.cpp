@@ -27,6 +27,9 @@
 #if __has_include("../src/world/sites.cpp")
 #include "../src/world/sites.cpp"
 #endif
+#if __has_include("../src/world/transit.cpp")
+#include "../src/world/transit.cpp"   // SkyLine corridor reservations (called from sites.cpp / buildings.cpp)
+#endif
 #if __has_include("../src/world/sitecell.cpp")
 // site geometry (airport, port, landmarks, leisure, rural) streamed with the cells like in the game
 #include "../src/world/sitegeo.cpp"

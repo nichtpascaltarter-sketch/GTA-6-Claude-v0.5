@@ -219,6 +219,7 @@ void Animator::init(const Skeleton* s, u32 variationSeed) {
     gestMode = 0;
     gestT = gestDur = gestR = gestL = palmR = palmL = beatS = phoneW = 0.f;
     tiltS = tiltTarget = tiltNext = autoNod = 0.f;
+    browseW = browseL = grabW = 0.f;
     nodNext = 2.f + 2.f * hashToFloat(hash32(variationSeed * 57u + 3u));
     nodPhase = -1.f;
     if (s) {
@@ -589,6 +590,62 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             } else {
                 outp = tmp;
                 footIK = footIK && actionKeepsFootIK(action);
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- takedown: choke arm onto the victim's real neck
+    {
+        float gwT = 0.f;
+        if (action == CLIP_TAKEDOWN_ATTACKER && !actionFinished && in.grabWeight > 0.f)
+            gwT = Clamp(in.grabWeight, 0.f, 1.f) * sstep(0.12f, 0.35f, actionTime) * (1.f - sstep(2.45f, 2.63f, actionTime));
+        grabW += (gwT - grabW) * (1.f - expf(-dt * 20.f));
+        if (grabW > 0.01f && !cheap) {
+            // the throat sits a little in front of and above the neck joint (same facing as the attacker)
+            vec3 throat = in.grabTarget + vec3(0.f, 0.07f, 0.04f);
+            auto forearmMiss = [&]() {
+                quat qe, qw;
+                vec3 pe, pw;
+                boneModel(sk, outp, B_FOREARM_R, qe, pe);
+                boneModel(sk, outp, B_HAND_R, qw, pw);
+                vec3 seg = pw - pe;
+                float u = Saturate(dot(throat - pe, seg) / Max(length2(seg), 1e-6f));
+                return throat - (pe + seg * u);   // move the forearm so it crosses the throat
+            };
+            vec3 delta = forearmMiss();
+            // a shorter victim: sink the hips (knees bend, feet stay planted) for most of the height difference
+            float dz = Min(0.f, delta.z) * 0.7f * grabW;
+            if (dz < -0.005f) {
+                const Bone ups[2] = {B_THIGH_L, B_THIGH_R}, lows[2] = {B_CALF_L, B_CALF_R}, ends[2] = {B_FOOT_L, B_FOOT_R};
+                quat fq[2];
+                vec3 fp[2];
+                for (int s = 0; s < 2; s++) boneModel(sk, outp, ends[s], fq[s], fp[s]);
+                outp.rootOffset.z += dz;
+                for (int s = 0; s < 2; s++) {
+                    quat qk, qp;
+                    vec3 pk, pp;
+                    boneModel(sk, outp, lows[s], qk, pk);
+                    boneModel(sk, outp, B_PELVIS, qp, pp);
+                    vec3 pole = pk + rotate(qp, vec3((s ? 1.f : -1.f) * 0.2f, 1.f, 0.f)) * 0.4f;
+                    solveTwoBoneIK(sk, outp, ups[s], lows[s], ends[s], fp[s], pole, 1.f);
+                    boneModel(sk, outp, lows[s], qk, pk);
+                    outp.rot[ends[s]] = normalize(conj(qk) * fq[s]);
+                }
+                delta = forearmMiss();
+            }
+            if (length2(delta) > 0.16f) delta = normalize(delta) * 0.4f;
+            for (int s = 1; s >= 0; s--) {
+                int up = s ? B_UPPERARM_R : B_UPPERARM_L, lo = s ? B_FOREARM_R : B_FOREARM_L, hb = s ? B_HAND_R : B_HAND_L;
+                quat qu, qf, qh0;
+                vec3 pu, pf, ph0;
+                boneModel(sk, outp, up, qu, pu);
+                boneModel(sk, outp, lo, qf, pf);
+                boneModel(sk, outp, hb, qh0, ph0);
+                vec3 bend = pf - (pu + ph0) * 0.5f;
+                vec3 pole = pf + (length2(bend) > 1e-6f ? normalize(bend) : vec3(0, 1, 0)) * 0.3f;
+                solveTwoBoneIK(sk, outp, (Bone)up, (Bone)lo, (Bone)hb, ph0 + delta, pole, grabW);
+                boneModel(sk, outp, lo, qf, pf);
+                outp.rot[hb] = normalize(conj(qf) * qh0);   // keep the hand's orientation
             }
         }
     }
@@ -968,6 +1025,45 @@ void Animator::conversation(const AnimInput& in, float dt, Pose& p) {
             P = normalize(P - F * dot(P, F));
             boneModel(sk, p, B_FOREARM_R, qf, pf);
             p.rot[B_HAND_R] = normalize(conj(qf) * nlerp(qhd, quatFromTwoPairs(fing, palmB, F, P), phoneW));
+        }
+    }
+    // ---- browsing a phone at chest height: right hand (plus the left one supporting while standing), head down
+    {
+        float kb = 1.f - expf(-dt * 10.f);
+        bool on = in.phoneBrowse && !in.phoneCall && !busy;
+        browseW += ((on ? 1.f : 0.f) - browseW) * kb;
+        browseL += ((on ? 1.f - Saturate((speedS - 0.3f) / 0.8f) : 0.f) - browseL) * kb;
+        if (browseW > 0.01f) {
+            boneModel(sk, p, B_CHEST, qc, pc);
+            float sc = length(sk.bindLocalPos[B_FOREARM_R]) / 0.331f;
+            vec3 phoneC = pc + rotate(qc, vec3(0.02f, 0.3f, -0.21f) * sc);
+            for (int s = 1; s >= 0; s--) {
+                float w = s ? browseW : browseW * browseL;
+                if (w <= 0.01f) continue;
+                float sx = s ? 1.f : -1.f;
+                int up = s ? B_UPPERARM_R : B_UPPERARM_L, lo = s ? B_FOREARM_R : B_FOREARM_L, hb = s ? B_HAND_R : B_HAND_L;
+                vec3 fing, palmB;
+                float pl;
+                handBindAxes(sk, s, fing, palmB, pl);
+                // palm up towards the face, fingers forward (the other hand cradles the phone from its side)
+                vec3 F = rotate(qc, normalize(vec3(-sx * 0.25f, 1.f, 0.35f)));
+                vec3 P = rotate(qc, normalize(vec3(-sx * 0.35f, -0.45f, 0.85f)));
+                P = normalize(P - F * dot(P, F));
+                vec3 palmC = phoneC + rotate(qc, vec3(sx * 0.035f, -0.01f, -0.012f)) * sc;
+                vec3 wrist = palmC - F * (0.55f * pl) - P * (0.16f * pl);
+                quat qu, qf, qhd;
+                vec3 pu, pf, phd;
+                boneModel(sk, p, up, qu, pu);
+                boneModel(sk, p, hb, qhd, phd);
+                vec3 pole = lerp(pu, wrist, 0.5f) + rotate(qc, normalize(vec3(sx, -0.5f, -1.f))) * 0.4f;
+                solveTwoBoneIK(sk, p, (Bone)up, (Bone)lo, (Bone)hb, wrist, pole, w);
+                boneModel(sk, p, lo, qf, pf);
+                p.rot[hb] = normalize(conj(qf) * nlerp(qhd, quatFromTwoPairs(fing, palmB, F, P), w));
+            }
+            // eyes on the screen (less while walking)
+            float look = browseW * (0.75f + 0.25f * browseL);
+            p.rot[B_NECK] = normalize(p.rot[B_NECK] * qx(-0.18f * look));
+            p.rot[B_HEAD] = normalize(p.rot[B_HEAD] * qx(-0.3f * look));
         }
     }
     // ---- head tilts between phrases (speaker and listener), towards the phone on a call

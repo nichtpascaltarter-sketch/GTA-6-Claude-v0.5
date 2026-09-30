@@ -157,7 +157,7 @@ void csFogInject(uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex, uint3 
             }
         }
     }
-    uFog[id] = cur;
+    uFog[id] = anyNonFinite(cur.rgb) || !(cur.a >= 0.0) ? float4(0, 0, 0, 0) : float4(min(cur.rgb, 60000.0), cur.a);
 }
 
 // Front-to-back integration along each froxel column: rgb in-scattered radiance up to the far side of the

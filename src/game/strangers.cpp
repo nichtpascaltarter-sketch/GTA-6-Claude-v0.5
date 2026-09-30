@@ -1,5 +1,5 @@
 // Strangers: short side stories with recurring characters, unlocked one part at a time.
-// "Abuela Rosa" (Mari, Calle Luna): Rosa Villanueva, 81, wants her late husband Ernesto's car back from the crooked
+// "Repo Karma" (Dex, below): the nurse whose car Dex repossessed. "Abuela Rosa" (Mari, Calle Luna): Rosa Villanueva, 81, wants her late husband Ernesto's car back from the crooked
 // Sunshine Towing, then a ride to dominoes night past the tow company's trucks, then one last drive to the beach where
 // Ernesto proposed. She gives Mari the car at the end.
 #include "missions.h"
@@ -81,7 +81,7 @@ public:
         facePed(g, rosa, mp);
         facePed(g, g.player, rp);
         std::vector<CutsceneShot> shots;
-        shots.push_back(shotEstablish(rp, home.yaw, 22.f, 7.f, 3.5f));
+        establish(g, shots, rp, home.yaw, 22.f, 7.f, 3.5f);
         shots.push_back(shotTwo(rp, mp, 6.f));
         g.mCutscene(shots);
         rosaSay(g, rosa, "[sad:0.5]Marisol, mija. Those Sunshine Towing crooks took Ernesto's car. Right out of my driveway.");
@@ -422,6 +422,333 @@ public:
                 }
                 break;
             case 2: testGoal(g, t, dt, 60.f); break;
+            default: break;
+        }
+    }
+};
+
+// ==================================================================================================================
+// "Repo Karma" (Dex): Velma Duarte, a night-shift nurse at Tidewater General, lost her car to one of Dex's repos. Dex
+// quietly steals it back off Rook's lot, gets her to her shift on time, and runs off the Coastline Savings collector
+// who has been leaning on her.
+const u32 kColVelma = 0xff9fe6ffu;
+
+int velmaChar(GameWorld& g) {
+    Anim::CharacterDesc d;
+    d.seed = 0x5E1A4u;
+    d.gender = Anim::FEMALE;
+    d.height = 1.66f;
+    d.weight = 0.4f;
+    d.muscle = 0.3f;
+    d.age = 0.3f;
+    d.skinTone = vec3(0.45f, 0.3f, 0.22f);
+    d.hairStyle = 8;
+    d.hairColor = vec3(0.05f, 0.04f, 0.035f);
+    d.top = 5;
+    d.topColor = lin(0.35f, 0.7f, 0.72f);   // scrubs
+    d.bottom = 9;
+    d.bottomColor = lin(0.33f, 0.66f, 0.7f);
+    d.shoes = 0;
+    d.shoeColor = lin(0.95f, 0.95f, 0.95f);
+    d.role = 6;
+    return g.namedCharacter("stranger_velma", d);
+}
+
+void velmaSay(GameWorld& g, int ped, const std::string& text, float pause = 0.3f) {
+    DialogueLine l = line("Velma", text, pedAlive(g, ped) ? ped : -1, kColVelma);
+    Speech::Persona p = Speech::persona("stranger_velma", true);
+    l.hasVoice = true;
+    l.voice = p.voice;
+    l.spoken = p.tags() + speakableText(text);
+    l.pause = pause;
+    g.mSay(l);
+}
+
+Place velmaHome(GameWorld& g) { return resolveFrontage(g, vec2(1520.f, 1300.f)); }
+int velmaModel(GameWorld& g) { return pickModel(g, {Vehicles::VC_COMPACT, Vehicles::VC_SEDAN}, 11); }
+const vec3 kVelmaBlue = vec3(0.12f, 0.22f, 0.5f);
+
+// Part 1: "Repo Karma" - take Velma's car back off Rook's lot and bring it to her building.
+class MissionVelmaKarma : public StoryMission {
+public:
+    int velma = -1, car = -1;
+    Place home;
+    const char* title() const override { return "Repo Karma"; }
+    const char* brief() const override { return "The nurse whose car Dex repossessed lost two shifts without it. Get it back off Rook's lot, quietly."; }
+    long long reward() const override { return 800; }
+
+    void start(GameWorld& g) override {
+        gMissions.suppressPolice = true;
+        home = velmaHome(g);
+        score(SC_NOIR, 0.25f, 19);
+        velma = g.mPed(velmaChar(g), dvec3(home.door), home.yaw + kPi, FAC_FRIEND);
+        if (velma >= 0) {
+            g.peds[velma].invincible = true;
+            g.peds[velma].voice = Speech::persona("stranger_velma", true).voice;
+            setIdle(g, velma, 7);
+        }
+        car = spawnCar(g, velmaModel(g), curbOffset(g, gPlaces.rookShop, 16.f), gPlaces.rookShop.curbYaw, kVelmaBlue);
+        if (car >= 0) g.vehicles[car].sim.engineOn = false;
+        placePlayer(g, placeOffset(g, home, -1.5f, 1.f), home.yaw);
+        provideRide(g, home, -12.f);
+        vec3 vp = pedPos(g, velma), dp = playerPos(g);
+        facePed(g, velma, dp);
+        facePed(g, g.player, vp);
+        std::vector<CutsceneShot> shots;
+        establish(g, shots, vp, home.yaw, 26.f, 9.f, 4.f);
+        shots.push_back(shotTwo(vp, dp, 6.f));
+        shots.push_back(shotOver(dp, vp, 6.f));
+        g.mCutscene(shots);
+        velmaSay(g, velma, "[angry:0.6]You. You're the repo man. You took my car last Tuesday.");
+        sayMe(g, "[calm]You missed some payments. It's the job.");
+        velmaSay(g, velma, "[sad:0.6]I missed some payments because Coastline tripled my rate. Then I missed two shifts because I had no car. I'm a nurse.");
+        sayMe(g, "[sad:0.4]... Blue hatchback, right? Give me an hour.");
+    }
+
+    MissionStatus update(GameWorld& g, float dt) override {
+        (void)dt;
+        if (vehicleLost(g, car, "Velma's car")) return MS_FAILED;
+        switch (stage) {
+            case 0:
+                if (!g.mInCutscene() && !g.mTalking()) {
+                    g.mBlipVehicle(car, UI::BLIP_VEHICLE);
+                    g.mTarget(vehPos(g, car).xy(), UI::BLIP_VEHICLE);
+                    g.mObjective("Take ~b~Velma's car~s~ back off Rook's lot. Rook doesn't need to know.");
+                    next();
+                }
+                break;
+            case 1:
+                if (g.playerInVehicle(car)) {
+                    g.mClearBlips();
+                    g.mClearTarget();
+                    sayMe(g, "[whisper:0.4]Sorry, Rook. Karma's a repo man too.");
+                    goTo(g, home.curb, 5.f, "Bring the car to ~y~Velma's building~s~.", true);
+                    next();
+                }
+                break;
+            case 2:
+                if (arrived(g) && g.playerInVehicle(car)) {
+                    clearGoal(g);
+                    g.removePedFromVehicle(g.player, false);
+                    std::vector<CutsceneShot> shots;
+                    shots.push_back(shotTwo(pedPos(g, velma), playerPos(g), 6.f));
+                    g.mCutscene(shots);
+                    velmaSay(g, velma, "[happy:0.6]That's my car. With a full tank? Who are you?");
+                    sayMe(g, "[calm]Dex. Just a guy correcting a paperwork error.");
+                    velmaSay(g, velma, "[happy:0.4]Well, Dex. If you ever get shot, ask for Velma at Tidewater General.");
+                    next();
+                }
+                break;
+            case 3:
+                if (!g.mInCutscene() && !g.mTalking()) {
+                    phoneLine(g, CAST_ROOK, "[calm]Somebody took a blue hatchback off my lot. Funny. You wouldn't know anything, would you?");
+                    sayMe(g, "[calm]Never heard of it.");
+                    return MS_PASSED;
+                }
+                break;
+        }
+        return MS_RUNNING;
+    }
+
+    void autotest(GameWorld& g, MissionTest& t) override {
+        float dt = g.dtLast;
+        switch (stage) {
+            case 1: if (t.stageTime > 0.5f && car >= 0) t.enter(car); break;
+            case 2: testGoal(g, t, dt); break;
+            default: break;
+        }
+    }
+};
+
+// Part 2: "Night Shift" - get Velma to Tidewater General before her shift starts.
+class MissionVelmaShift : public StoryMission {
+public:
+    int velma = -1, car = -1;
+    Place home;
+    float clock = 0.f;
+    const char* title() const override { return "Night Shift"; }
+    const char* brief() const override { return "Velma's car won't start and her shift at Tidewater General begins in a few minutes."; }
+    long long reward() const override { return 1500; }
+
+    void start(GameWorld& g) override {
+        home = velmaHome(g);
+        score(SC_CHASE, 0.5f, 19);
+        velma = g.mPed(velmaChar(g), dvec3(home.door), home.yaw + kPi, FAC_FRIEND);
+        if (velma >= 0) {
+            g.peds[velma].voice = Speech::persona("stranger_velma", true).voice;
+            g.peds[velma].maxHealth = g.peds[velma].health = 250.f;
+        }
+        placePlayer(g, placeOffset(g, home, -2.f, 1.f), home.yaw);
+        car = playerCar = spawnCar(g, pickModel(g, {Vehicles::VC_SPORTS, Vehicles::VC_MUSCLE}, 2), home.curb, home.curbYaw, lin(0.18f, 0.2f, 0.22f));
+        std::vector<CutsceneShot> shots;
+        shots.push_back(shotTwo(pedPos(g, velma), playerPos(g), 5.f));
+        g.mCutscene(shots);
+        velmaSay(g, velma, "[scared:0.6]Dex! The car won't start and my shift starts in five minutes. If I'm late again they'll fire me.");
+        sayMe(g, "[calm]Get in. I know a shortcut. Several, actually.");
+    }
+
+    MissionStatus update(GameWorld& g, float dt) override {
+        if (allyDown(g, velma, "Velma")) return MS_FAILED;
+        if (vehicleLost(g, car, "car")) return MS_FAILED;
+        switch (stage) {
+            case 0:
+                if (!g.mInCutscene() && !g.mTalking()) {
+                    setFollow(g, velma, g.player);
+                    g.mBlipVehicle(car, UI::BLIP_VEHICLE);
+                    g.mObjective("Get in the ~b~car~s~ with Velma.");
+                    next();
+                }
+                break;
+            case 1:
+                if (g.playerInVehicle(car) && g.peds[velma].vehicle != car && ::length(pedPos(g, velma) - vehPos(g, car)) < 8.f) {
+                    int seat = g.freeSeat(car, false);
+                    if (seat > 0) g.warpPedIntoVehicle(velma, car, seat);
+                }
+                if (g.playerInVehicle(car) && g.peds[velma].vehicle == car) {
+                    g.mClearBlips();
+                    goTo(g, gPlaces.hospital.curb, 6.f, "Get Velma to ~y~Tidewater General~s~ before her shift.", true);
+                    clock = 50.f + ::length(gPlaces.hospital.curb - playerPos(g)) / 18.f;
+                    next();
+                }
+                break;
+            case 2: {
+                clock -= dt;
+                g.missionTimerHud = clock;
+                if (clock <= 0.f) return fail("Velma was late for her shift.");
+                if (stageTime > 12.f && stageTime < 12.1f) velmaSay(g, velma, "[scared:0.5]Red light! That was a red light!");
+                if (stageTime > 30.f && stageTime < 30.1f) velmaSay(g, velma, "[happy:0.4]You drive like my ambulance guys. That's not a compliment.");
+                bool together = g.peds[velma].vehicle >= 0 && g.peds[velma].vehicle == g.playerVehicle();
+                if (arrived(g) && together) {
+                    g.missionTimerHud = -1.f;
+                    clearGoal(g);
+                    g.removePedFromVehicle(velma, true);
+                    setGoto(g, velma, gPlaces.hospital.door, 2.f);
+                    velmaSay(g, velma, clock > 20.f ? "[happy]With time to spare! I owe you a coffee. A terrible hospital coffee."
+                                                    : "[happy:0.5]Made it! Barely. Thank you, Dex!");
+                    next();
+                }
+                break;
+            }
+            case 3:
+                if (!g.mTalking()) return MS_PASSED;
+                break;
+        }
+        return MS_RUNNING;
+    }
+
+    void finish(GameWorld& g, bool passed) override {
+        (void)passed;
+        g.missionTimerHud = -1.f;
+    }
+
+    void autotest(GameWorld& g, MissionTest& t) override {
+        float dt = g.dtLast;
+        switch (stage) {
+            case 1:
+                if (t.stageTime > 0.5f && car >= 0) {
+                    t.enter(car);
+                    g.warpPedIntoVehicle(velma, car, 1);
+                }
+                break;
+            case 2: testGoal(g, t, dt, 70.f); break;
+            default: break;
+        }
+    }
+};
+
+// Part 3: "Collections" - the Coastline Savings collector is at Velma's door with two heavies. Run them off and take the
+// file they're holding over her.
+class MissionVelmaCollections : public StoryMission {
+public:
+    int velma = -1, collector = -1, file = -1;
+    Place home;
+    const char* title() const override { return "Collections"; }
+    const char* brief() const override {
+        return "Coastline Savings sent a collector and two heavies to Velma's building. They want the car, the apartment and her signature.";
+    }
+    long long reward() const override { return 3000; }
+
+    void start(GameWorld& g) override {
+        gMissions.suppressPolice = true;
+        home = velmaHome(g);
+        score(SC_CHASE, 0.7f, 19);
+        velma = g.mPed(velmaChar(g), dvec3(home.door), home.yaw + kPi, FAC_FRIEND);
+        if (velma >= 0) {
+            g.peds[velma].invincible = true;
+            g.peds[velma].voice = Speech::persona("stranger_velma", true).voice;
+            setIdle(g, velma, 5);
+        }
+        collector = gunman(g, CAST_BANKER, placeOffset(g, home, 1.5f, 1.2f), home.yaw, WPN_PISTOL, 0.25f);
+        for (int i = 0; i < 2; i++) gunman(g, CAST_GUARD_A + i, placeOffset(g, home, -2.f + i * 5.f, 2.5f), home.yaw, WPN_BAT, 0.2f);
+        for (int e : enemies) setIdle(g, e, e == collector ? 7 : 10);
+        placePlayer(g, curbOffset(g, home, -40.f), home.curbYaw);
+        vec3 cp = pedPos(g, collector), vp = pedPos(g, velma);
+        facePed(g, collector, vp);
+        std::vector<CutsceneShot> shots;
+        establish(g, shots, cp, home.yaw, 28.f, 10.f, 4.f);
+        shots.push_back(shotTwo(cp, vp, 6.f));
+        shots.push_back(shotOver(vp, cp, 5.f));
+        g.mCutscene(shots);
+        say(g, CAST_BANKER, collector, "[calm]Ms. Duarte. Coastline Savings is a patient bank. Today it stopped being patient.");
+        velmaSay(g, velma, "[scared:0.6]I paid you. I paid everything you asked.");
+        say(g, CAST_BANKER, collector, "[calm]The rate changed. Sign here, or my friends help you move out.");
+    }
+
+    MissionStatus update(GameWorld& g, float dt) override {
+        (void)dt;
+        switch (stage) {
+            case 0:
+                if (!g.mInCutscene() && !g.mTalking()) {
+                    blipEnemies(g);
+                    g.mObjective("Run off the ~r~Coastline collector~s~ and his heavies.");
+                    next();
+                }
+                break;
+            case 1:
+                if (g.playerAt(pedPos(g, collector).xy(), 30.f) && stageTime > 1.f && !g.mTalking() && timer == 0.f) {
+                    timer = 1.f;
+                    for (int e : enemies)
+                        if (pedAlive(g, e)) setCombat(g, e, g.player, 0.25f);
+                    sayMe(g, "[angry:0.6]Coastline Savings. You're Sandoval's bank, right? I've got a message for him.");
+                }
+                if (aliveEnemies(g) == 0) {
+                    g.mClearBlips();
+                    vec3 fp = pedPos(g, collector);
+                    file = spawnPackage(g, fp.z > -1e5f ? fp + vec3(0.6f, 0.f, 0.f) : placeOffset(g, home, 1.5f, 1.2f));
+                    goTo(g, g.pickups[file].pos.toVec3(), 1.5f, "Grab the collector's ~g~file~s~.");
+                    next();
+                }
+                break;
+            case 2:
+                if (grabNear(g, file, 1.8f)) {
+                    clearGoal(g);
+                    setIdle(g, velma, 7);
+                    std::vector<CutsceneShot> shots;
+                    shots.push_back(shotTwo(pedPos(g, velma), playerPos(g), 6.f));
+                    g.mCutscene(shots);
+                    sayMe(g, "[calm]Your loan file. Forged signature on page three. Kit at Pulse FM will love this.");
+                    velmaSay(g, velma, "[sad:0.4]Why are you doing this, Dex?");
+                    sayMe(g, "[sad:0.5]Because I used to pull people out of the water. Somewhere along the way I started pushing them in.");
+                    velmaSay(g, velma, "[happy:0.5]Well. Free check-ups for life. Don't make me use them.");
+                    next();
+                }
+                break;
+            case 3:
+                if (!g.mInCutscene() && !g.mTalking()) return MS_PASSED;
+                break;
+        }
+        return MS_RUNNING;
+    }
+
+    void autotest(GameWorld& g, MissionTest& t) override {
+        switch (stage) {
+            case 1:
+                if (t.stageTime > 0.5f) t.teleportNear(pedPos(g, collector).xy(), 8.f);
+                if (t.stageTime > 2.f) t.killEnemies();
+                break;
+            case 2:
+                if (file >= 0 && t.stageTime > 0.5f) t.teleport(g.pickups[file].pos.toVec3(), 0.f);
+                break;
             default: break;
         }
     }
