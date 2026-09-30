@@ -639,10 +639,10 @@ void testFeel(const VehicleModel& m, FeelReport& rep) {
                   float mag = fabsf(beta), dir = beta > 0.f ? 1.f : -1.f;
                   // countersteer (toward the direction of travel) grows with the excess slip and the yaw rate
                   float yawSign = q.s.body.angVel.z > 0.f ? 1.f : -1.f;  // + = rotating left
-                  float cs = Clamp(0.9f * mag / target, 0.f, 1.f);
+                  float cs = Clamp(1.8f * (mag - target) / target + 0.25f * fabsf(q.s.body.angVel.z), -1.f, 1.f);
                   c.steer = Clamp(cs * yawSign, -1.f, 1.f);
                   (void)dir;
-                  c.throttle = Saturate(0.7f + 3.f * (target - mag));
+                  c.throttle = Saturate(0.6f + 2.5f * (target - mag));
               },
               [&](Runner& q) {
                   float beta = fabsf(bodySlip(q)) * kRadToDeg;
@@ -685,6 +685,46 @@ void printFeelTable(const std::vector<FeelReport>& reps) {
         fprintf(gOut, "| %s | %s | %.2f / %.2f | %.0f | %.2f | %.2f | %.1f | %.1f | %.1f | %.1f / %.0f / %.0f | %.1f / %.1f / %.1f |\n", r.name.c_str(), className(r.cls),
                 r.yaw90Kb, r.yaw90Pad, r.yawOver, r.latG100, r.release10, r.roll100, r.dive, r.squat, r.driftTime, r.driftAngle, r.driftSpeed, r.burnMove,
                 r.burnSlip, r.burnLaunch);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Mod-shop upgrades: idempotency of applyUpgrades and stability at level 3 + turbo
+struct UpgradeReport {
+    std::string name;
+    VehicleClass cls;
+    bool idempotent = false, stockExact = false;
+    CarReport stock, up;
+    FeelReport feelStock, feelUp;
+};
+
+bool sameTuning(const VehicleTuning& a, const VehicleTuning& b) { return memcmp(&a, &b, sizeof(VehicleTuning)) == 0; }
+
+void checkUpgradeApi(const VehicleModel& m, UpgradeReport& rep) {
+    VehicleUpgrades maxed;
+    maxed.engine = maxed.brakes = maxed.transmission = maxed.suspension = 3;
+    maxed.turbo = true;
+    VehicleState a, fresh;
+    initVehicle(fresh, m, 0, dvec3(kPadStart), 0.f);
+    initVehicle(a, m, 0, dvec3(kPadStart), 0.f);
+    applyUpgrades(a, m, maxed);
+    VehicleTuning t1 = a.tune;
+    applyUpgrades(a, m, maxed);
+    rep.idempotent = sameTuning(t1, a.tune);
+    VehicleUpgrades stock;
+    applyUpgrades(a, m, stock);
+    rep.stockExact = sameTuning(fresh.tune, a.tune);
+}
+
+void printUpgradeTable(const std::vector<UpgradeReport>& reps) {
+    fprintf(gOut, "\n### Upgrades: stock -> engine/brakes/transmission/suspension 3 + turbo\n\n");
+    fprintf(gOut, "| model | class | idempotent / stock exact | 0-100 s | top km/h | 100-0 m | skidpad lat g | lane change ok | hb 180 deg | roll @100 deg | step release s | drift s |\n");
+    fprintf(gOut, "|---|---|---|---|---|---|---|---|---|---|---|---|\n");
+    for (auto& r : reps)
+        fprintf(gOut, "| %s | %s | %s / %s | %.1f -> %.1f | %.0f -> %.0f | %.1f -> %.1f | %.2f -> %.2f | %s -> %s | %.0f -> %.0f | %.1f -> %.1f | %.2f -> %.2f | %.1f -> %.1f |\n",
+                r.name.c_str(), className(r.cls), r.idempotent ? "yes" : "NO", r.stockExact ? "yes" : "NO", r.stock.t100, r.up.t100,
+                r.stock.topSpeed * 3.6f, r.up.topSpeed * 3.6f, r.stock.brake100, r.up.brake100, r.stock.latG, r.up.latG, r.stock.laneOk > 0 ? "yes" : "NO",
+                r.up.laneOk > 0 ? "yes" : "NO", r.stock.hb180, r.up.hb180, r.feelStock.roll100, r.feelUp.roll100, r.feelStock.release10, r.feelUp.release10,
+                r.feelStock.driftTime, r.feelUp.driftTime);
 }
 
 // Metadata audit: prints the physics-relevant metadata of each model and flags values that produce bad handling.
@@ -1406,7 +1446,7 @@ void printBikeTable(const std::vector<CarReport>& reps) {
 }  // namespace VT
 
 int main(int argc, char** argv) {
-    bool synthetic = true, real = false, useModels = false, audit = false, feel = true, feelOnly = false;
+    bool synthetic = true, real = false, useModels = false, audit = false, feel = true, feelOnly = false, upgradeCheck = false;
     int realRoutes = 2;
     std::vector<vec3> probes;
     float realLen = 6000.f;
@@ -1430,6 +1470,12 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--wheels")) gWheelTrace = true;
         else if (!strcmp(argv[i], "--nofeel")) feel = false;
         else if (!strcmp(argv[i], "--feelonly")) feelOnly = true;
+        else if (!strcmp(argv[i], "--upgrades")) upgradeCheck = true;
+        else if (!strcmp(argv[i], "--maxmods")) {
+            gUpgrades.engine = gUpgrades.brakes = gUpgrades.transmission = gUpgrades.suspension = 3;
+            gUpgrades.turbo = true;
+            gUpgradesOn = true;
+        }
     }
     if (outPath) gOut = fopen(outPath, "w");
     Jobs::init(Max(1, (int)std::thread::hardware_concurrency() - 1));
@@ -1485,6 +1531,29 @@ int main(int argc, char** argv) {
                 fr.push_back(rep);
             }
             printFeelTable(fr);
+        }
+        if (upgradeCheck) {
+            std::vector<UpgradeReport> ur;
+            for (auto& m : models) {
+                if (only && strcmp(only, className(m.cls)) && strcmp(only, m.name.c_str())) continue;
+                if (m.cls >= VC_BOAT) continue;
+                UpgradeReport rep;
+                rep.name = m.name;
+                rep.cls = m.cls;
+                checkUpgradeApi(m, rep);
+                bool carCls = m.cls < VC_MOTORBIKE;
+                testCar(m, rep.stock);
+                if (carCls) testFeel(m, rep.feelStock);
+                gUpgrades = VehicleUpgrades();
+                gUpgrades.engine = gUpgrades.brakes = gUpgrades.transmission = gUpgrades.suspension = 3;
+                gUpgrades.turbo = true;
+                gUpgradesOn = true;
+                testCar(m, rep.up);
+                if (carCls) testFeel(m, rep.feelUp);
+                gUpgradesOn = false;
+                ur.push_back(rep);
+            }
+            printUpgradeTable(ur);
         }
         std::vector<BoatReport> boats;
         std::vector<AirReport> air;

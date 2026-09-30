@@ -456,14 +456,17 @@ bool roamUpdate(GameWorld& g, float dt, MissionTest& T) {
             }
             break;
         }
-        case 4: {   // respray with one wanted star
+        case 4: {   // Tide Customs with one wanted star: quick respray, a neon kit and an engine upgrade, then leave
             const ShopSite& s = gShops.shops[2];
+            auto step = [&](int next) {
+                R.phase = next;
+                R.t = 0.f;
+            };
             if (R.phase == 0) {
                 int model = R.value0 >= 0 && R.value0 < (int)g.vassets.size() ? R.value0 : pickModel(g, {Vehicles::VC_SEDAN});
-                roamStandOn(g, s.marker + vec3(0.f, 0.f, 0.f));
                 R.veh = placePlayer(g, s.marker, s.place.curbYaw, model);
                 if (R.veh < 0) {
-                    roamCheck(false, "respray: could not spawn a car");
+                    roamCheck(false, "Tide Customs: could not spawn a car");
                     roamNext();
                     break;
                 }
@@ -472,24 +475,52 @@ bool roamUpdate(GameWorld& g, float dt, MissionTest& T) {
                 R.money0 = g.pinfo.money;
                 g.pinfo.wanted = 1;
                 g.pinfo.wantedHeat = 0.5f;
-                R.phase = 1;
-                R.t = 0.f;
+                step(1);
             } else if (R.phase == 1) {
-                if (gShops.resprayStage != 0) {
-                    R.phase = 2;
-                    R.t = 0.f;
-                } else if (R.t > 5.f) {
-                    roamCheck(false, StrFormat("%s did not start (wanted %d, seen %d)", s.name, g.pinfo.wanted, (int)g.pinfo.policeSeesPlayer));
+                if (menuIs(MO_RESPRAY)) {
+                    roamCheck(g.pinfo.wanted == 0 && g.rig.scriptActive, StrFormat("%s: garage open, wanted cleared, garage camera", s.name));
+                    gMenuInject = MI_RESPRAY;
+                    step(2);
+                } else if (R.t > 8.f) {
+                    roamCheck(false, StrFormat("%s did not open (wanted %d, seen %d)", s.name, g.pinfo.wanted, (int)g.pinfo.policeSeesPlayer));
                     roamNext();
                 }
-            } else if (R.phase == 2) {
+            } else if (R.phase == 2 && R.t > 0.4f) {
+                const Vehicle& v = g.vehicles[R.veh];
+                roamCheck(R.money0 - g.pinfo.money == kRespray && length(v.color0 - R.color0) > 0.01f && v.sim.health >= 999.f, "quick respray: new paint, repaired");
+                R.money0 = g.pinfo.money;
+                gMenuInject = MP_NEON;
+                step(3);
+            } else if (R.phase == 3 && R.t > 0.4f) {
+                roamCheck(gShops.modPage == MP_NEON && gMenu.items.size() > 3, StrFormat("neon page lists %d kits", (int)gMenu.items.size()));
+                gMenuInject = 2;   // Ice Blue
+                step(4);
+            } else if (R.phase == 4 && R.t > 0.4f) {
+                const Vehicle& v = g.vehicles[R.veh];
+                roamCheck(length(v.mods.neon - kNeons[2].srgb) < 0.01f && R.money0 - g.pinfo.money == kNeonPrice, "Ice Blue neon installed");
+                R.money0 = g.pinfo.money;
+                gMenuInject = -2;
+                step(5);
+            } else if (R.phase == 5 && R.t > 0.4f) {
+                gMenuInject = MP_ENGINE;
+                step(6);
+            } else if (R.phase == 6 && R.t > 0.4f) {
+                gMenuInject = 2;   // engine level 2
+                step(7);
+            } else if (R.phase == 7 && R.t > 0.4f) {
+                const Vehicle& v = g.vehicles[R.veh];
+                roamCheck(v.mods.engine == 2 && g.pinfo.money < R.money0, StrFormat("engine level 2 fitted (-$%lld)", R.money0 - g.pinfo.money));
+                gMenuInject = -2;
+                step(8);
+            } else if (R.phase == 8 && R.t > 0.4f) {
+                gMenuInject = MI_LEAVE;
+                step(9);
+            } else if (R.phase == 9) {
                 if (gShops.resprayStage == 0 && R.t > 0.5f) {
-                    const Vehicle& v = g.vehicles[R.veh];
-                    roamCheck(g.pinfo.wanted == 0 && R.money0 - g.pinfo.money == 300 && length(v.color0 - R.color0) > 0.01f && v.sim.health >= 999.f,
-                              StrFormat("%s: new paint, repaired, wanted cleared, -$300", s.name));
+                    roamCheck(g.playerControl && !g.rig.scriptActive && !gMenu.open, "left the garage: control and camera restored");
                     roamNext();
-                } else if (R.t > 12.f) {
-                    roamCheck(false, "respray did not finish");
+                } else if (R.t > 8.f) {
+                    roamCheck(false, StrFormat("garage exit stuck (stage %d)", gShops.resprayStage));
                     roamNext();
                 }
             }
@@ -563,6 +594,10 @@ bool roamUpdate(GameWorld& g, float dt, MissionTest& T) {
             } else if (R.phase == 2 && R.t > 0.6f) {
                 bool out = h.garageVehicle >= 0 && g.vehicles[h.garageVehicle].used && g.vehicles[h.garageVehicle].model == R.value0;
                 roamCheck(out && !gMenu.open, StrFormat("garage: %s parked outside", g.vassets[R.value0].spec.name.c_str()));
+                if (out) {
+                    const Vehicle& gv = g.vehicles[h.garageVehicle];
+                    roamCheck(length(gv.mods.neon - kNeons[2].srgb) < 0.01f && gv.mods.engine == 2, "garage car kept its Tide Customs parts");
+                }
                 roamNext();
             }
             break;

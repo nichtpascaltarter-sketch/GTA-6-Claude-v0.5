@@ -24,6 +24,9 @@
 #include "world/rural.cpp"
 #include "world/sitecell.cpp"
 #include "world/facadedetail.cpp"
+#include "world/interiorkit.cpp"
+#include "world/interiorlayouts.cpp"
+#include "world/interiors.cpp"
 #include "sim/physics.cpp"
 #include "render/renderer.cpp"
 // Content modules developed in parallel; compiled in when present.

@@ -34,6 +34,8 @@ struct DrawItem {
     u64 id = 0;                   // stable id for motion vectors (0 = none)
     bool castShadow = true;
     bool drawGlass = true;        // false: the see-through windows are shattered (the forward glass pass skips them)
+    float paintFinish = 0.f;      // car paint finish (0 gloss, 1 metallic, 2 pearl, 3 matte, 4 chrome)
+    float glassTint = 0.f;        // extra window tint 0..1
     // Vehicle crush deformation (rigid models): zone amounts 0..1 (front, rear, left, right) / (roof, under),
     // collision box center/half extents in model space (dmgBoxH.w > 0 enables the deformation).
     vec4 damage0 = vec4(0.f), damage1 = vec4(0.f), dmgBoxC = vec4(0.f), dmgBoxH = vec4(0.f);
@@ -190,7 +192,7 @@ struct DynamicRenderer {
         cb.data.tint0 = d.tint0;
         cb.data.tint1 = d.tint1;
         cb.data.params = vec4((float)d.lightBits, (float)boneOffset, d.wetExposed, d.emissiveScale);
-        cb.data.params2 = vec4(d.model->skinned ? 1.f : 0.f, 0, 1, 0);
+        cb.data.params2 = vec4(d.model->skinned ? 1.f : 0.f, d.glassTint, 1.f, d.paintFinish);
         cb.data.damage0 = d.damage0;
         cb.data.damage1 = d.damage1;
         cb.data.dmgBoxC = d.dmgBoxC;

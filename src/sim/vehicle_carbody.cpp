@@ -121,6 +121,7 @@ struct CarSpec {
     std::vector<vec2> pillars;
     std::vector<vec2> roofKeys;   // optional explicit roofline (y, z) replacing the generated one
     bool rearGlass = true, sideGlass = true;
+    bool privacyGlass = false;  // dark rear side / rear windows (SUVs, vans, police)
     bool frontArch = true, rearArch = true;
     float hoodNarrow = 0.f;  // plan half-width reduction ahead of the cowl (conventional truck noses)
 };
@@ -670,9 +671,9 @@ struct CarBody {
                     }
                 } else {  // top
                     if (Lmin < -1e-4f) c = s.cockpit ? CC_INTERIOR : CC_BED;
-                    else if (Lmax <= 1e-4f) {
+                    else if (Lmax <= 1e-4f || (yc > s.yCowl && !s.openTop)) {  // cells ahead of the windscreen base are cowl/hood
                         c = CC_PAINT;
-                        if (yc > s.yCowl && yc < s.yCowl + s.cowlLen) c = CC_PLASTIC;
+                        if (yc > s.yCowl && yc < s.yCowl + s.cowlLen + 0.05f) c = CC_PLASTIC;
                     } else {
                         if (yc > s.yRoofF) c = CC_GLASS;
                         else if (yc < s.yRoofR) c = s.openTop ? CC_INTERIOR : (s.rearGlass ? CC_GLASS : CC_PAINT);
@@ -682,6 +683,8 @@ struct CarBody {
                         }
                     }
                 }
+                // open tops: the drop behind the windscreen header into the cockpit is open air (seen through the glass)
+                if (s.openTop && (b == BD_GHSIDE || b == BD_RAIL || b == BD_TOP) && yc < s.yRoofF && Lmax > 0.02f) c = CC_HOLE;
                 if (s.liveryDoors && (b == BD_SIDE || b == BD_SHOULDER || b == BD_CORNER) && c == CC_PAINT &&
                     yc > Min(s.liveryY0, s.liveryY1) && yc < Max(s.liveryY0, s.liveryY1))
                     c = CC_PAINT2;
@@ -696,12 +699,29 @@ struct CarBody {
             case CC_PAINT2: mat = MAT_CARPAINT; color = kCol2; break;
             case CC_PLASTIC: mat = MAT_PLASTIC; color = col(0.9f, 0.9f, 0.9f); break;
             case CC_GLOSS: mat = MAT_CAR_GLASS; color = kCol1; break;
-            case CC_GLASS: mat = MAT_CAR_GLASS; color = kCol1; break;
+            case CC_GLASS: mat = MAT_CAR_WINDOW; color = kCol1; break;
             case CC_BED: mat = MAT_PLASTIC; color = col(0.7f, 0.7f, 0.7f); break;
             case CC_INTERIOR: mat = MAT_INTERIOR; color = kCol1; break;
             case CC_CHROME: mat = MAT_CHROME; color = kCol1; break;
             default: mat = MAT_CARPAINT; color = kCol1; break;
         }
+    }
+
+    // See-through window tint (rgb) and clarity (alpha) for a glass cell: clear windscreen and front side glass,
+    // lighter rear glass, dark privacy glass on SUVs/vans, deep-tinted sunroof.
+    u32 windowColor(int i, int j) const {
+        float yc = (rows[i] + rows[i + 1]) * 0.5f;
+        u8 band = cellBand[j];
+        float clarity;
+        if (band == BD_TOP || band == BD_RAIL) {
+            if (yc > s.yRoofF - 0.01f) clarity = 1.f;
+            else if (yc < s.yRoofR + 0.01f) clarity = s.privacyGlass ? 0.4f : 0.85f;
+            else clarity = 0.3f;
+        } else {
+            bool front = s.doors < 4 || yc > s.bPillar;
+            clarity = front ? 0.92f : (s.privacyGlass ? 0.38f : 0.88f);
+        }
+        return clarity < 0.5f ? col(0.78f, 0.82f, 0.82f, clarity) : col(0.87f, 0.95f, 0.92f, clarity);
     }
 
     // -------------------------------------------------------------------------------------------
@@ -729,6 +749,7 @@ struct CarBody {
                 u8 mt;
                 u32 cl;
                 matFor(c, mt, cl);
+                if (c == CC_GLASS) cl = windowColor(i, j);
                 m.use(mt, cl);
                 if (c == CC_GLASS) m.quad(GV(i, j), GV(i + 1, j), GV(i + 1, j + 1), GV(i, j + 1));
                 else m.quad(V(i, j), V(i + 1, j), V(i + 1, j + 1), V(i, j + 1));
@@ -751,6 +772,10 @@ struct CarBody {
                     u32 g0 = m.add(G[ia * NP + ja] - GN[ia * NP + ja] * inset), g1 = m.add(G[ib * NP + jb] - GN[ib * NP + jb] * inset);
                     vec3 mid = (G[ia * NP + ja] + G[ib * NP + jb]) * 0.5f;
                     m.quadFacing(o0, o1, g1, g0, ctr - mid);
+                    // back side: seen from the cabin through the see-through glass
+                    u32 p0 = m.add(G[ia * NP + ja]), p1 = m.add(G[ib * NP + jb]);
+                    u32 h0 = m.add(G[ia * NP + ja] - GN[ia * NP + ja] * inset), h1 = m.add(G[ib * NP + jb] - GN[ib * NP + jb] * inset);
+                    m.quadFacing(p0, p1, h1, h0, mid - ctr);
                 };
                 if (!isGlass(i - 1, j)) wall(i, j, i, j + 1);
                 if (!isGlass(i + 1, j)) wall(i + 1, j, i + 1, j + 1);

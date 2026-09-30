@@ -15,6 +15,7 @@ struct Nav {
     bool pad = false;
     bool up = false, down = false, left = false, right = false;
     bool confirm = false, back = false, tabL = false, tabR = false, btnX = false, btnY = false;
+    bool start = false;   // gamepad START (closes the pause menu from any tab)
     bool pageUp = false, pageDown = false;
     bool click = false, release = false, rclick = false, mouseDown = false, mouseMoved = false;
     vec2 mouse;
@@ -45,6 +46,12 @@ struct Internal {
     int setCursor = 0;
     int dragSlider = -1;
     float setCatHl = -1.f, setRowHl = -1.f;
+    float slotHl = -1.f;                 // eased save/load slot highlight (row units)
+    float briefScroll = 0.f, briefScrollShown = 0.f;
+    bool briefScrollable = false;
+    std::string briefSeen;
+    float tabHlX = -1.f, tabHlW = 0.f;   // eased pause-tab highlight
+    float lastHeaderT = -1.f;
     // dialog
     DialogKind dialog = DLG_NONE;
     bool dialogFresh = false;   // opened this frame: ignore the key press that opened it
@@ -97,6 +104,7 @@ Nav readInput(const InputState& in, float dt, bool wasdNav) {
     if (rep(h, I.hDir, I.hTimer)) { n.left = h < 0; n.right = h > 0; }
     n.confirm = in.pressed(KEY_ENTER) || in.pressed(KEY_SPACE) || p.pressed(PAD_A);
     n.back = in.pressed(KEY_ESCAPE) || in.pressed(KEY_BACK) || p.pressed(PAD_B);
+    n.start = p.pressed(PAD_START);
     n.tabL = in.pressed(KEY_Q) || p.pressed(PAD_LB);
     n.tabR = in.pressed(KEY_E) || p.pressed(PAD_RB);
     n.btnX = in.pressed(KEY_X) || in.pressed(KEY_DELETE) || p.pressed(PAD_X);
@@ -645,24 +653,51 @@ int drawPauseHeader(MenuState& st, const Layout& L, const Nav& n, int tab, float
     float lbW = promptWidth(pad ? "LB" : "Q", pad, promptH);
     drawPrompt(x, ty + (th - promptH) * 0.5f, pad ? "LB" : "Q", pad, promptH, a);
     x += lbW + 14.f * sc;
+    // tab rects first: backgrounds, then the highlight pill gliding to the active tab, then icons and labels
+    float dt = I.lastHeaderT < 0.f ? 1.f : Clamp(t - I.lastHeaderT, 0.f, 1.f);
+    bool snap = dt > 0.25f || I.tabHlX < 0.f;
+    I.lastHeaderT = t;
+    struct TabRect { float x, w; };
+    TabRect rects[PT_COUNT];
+    TextStyle ts = style(FONT_HEADING, 25.f * sc, kWhite, ALIGN_LEFT);
+    ts.tracking = 0.08f;
+    for (int i = 0; i < (int)tabs.size(); i++) {
+        std::string lab = upper(kTabNames[tabs[i]]);
+        rects[i].x = x;
+        rects[i].w = textWidth(lab.c_str(), ts) + 70.f * sc;
+        x += rects[i].w + 10.f * sc;
+    }
+    for (int i = 0; i < (int)tabs.size(); i++) {
+        if (tabs[i] == tab) {
+            if (snap) {
+                I.tabHlX = rects[i].x;
+                I.tabHlW = rects[i].w;
+            } else {
+                I.tabHlX = approachExp(I.tabHlX, rects[i].x, 16.f, dt);
+                I.tabHlW = approachExp(I.tabHlW, rects[i].w, 16.f, dt);
+            }
+            continue;
+        }
+        bool hov = inRect(n.mouse, rects[i].x, ty, rects[i].w, th);
+        roundRect(rects[i].x, ty, rects[i].w, th, 8.f * sc, C(0.06f, 0.08f, 0.18f, (hov ? 0.9f : 0.7f) * a), 1.f * sc,
+                  withAlpha(kWhite, (hov ? 0.25f : 0.10f) * a));
+    }
+    roundRectGradient(I.tabHlX, ty, I.tabHlW, th, 8.f * sc, C(1.f, 0.24f, 0.60f, 0.95f * a), C(0.75f, 0.10f, 0.50f, 0.95f * a));
+    setAdditive(true);
+    gradientRectH(I.tabHlX, ty, I.tabHlW * 0.6f, th, C(1.f, 0.7f, 0.9f, 0.16f * a), C(1.f, 0.7f, 0.9f, 0.f));
+    setAdditive(false);
     for (int i = 0; i < (int)tabs.size(); i++) {
         int tb = tabs[i];
-        TextStyle ts = style(FONT_HEADING, 25.f * sc, kWhite, ALIGN_LEFT);
-        ts.tracking = 0.08f;
         std::string lab = upper(kTabNames[tb]);
-        float tw = textWidth(lab.c_str(), ts) + 70.f * sc;
         bool active = tb == tab;
-        bool hov = inRect(n.mouse, x, ty, tw, th);
-        if (active) {
-            roundRectGradient(x, ty, tw, th, 8.f * sc, C(1.f, 0.24f, 0.60f, 0.95f * a), C(0.75f, 0.10f, 0.50f, 0.95f * a));
-        } else {
-            roundRect(x, ty, tw, th, 8.f * sc, C(0.06f, 0.08f, 0.18f, (hov ? 0.9f : 0.7f) * a), 1.f * sc, withAlpha(kWhite, (hov ? 0.25f : 0.10f) * a));
-        }
-        drawIcon(kTabIcons[tb], x + 24.f * sc, ty + th * 0.5f, 24.f * sc, withAlpha(active ? kWhite : kTextDim, a));
-        ts.color = withAlpha(active ? kWhite : kTextDim, a);
-        text(x + 44.f * sc, ty + th * 0.5f - ts.size * 0.56f, lab.c_str(), ts);
+        bool hov = inRect(n.mouse, rects[i].x, ty, rects[i].w, th);
+        // the label brightens as the pill arrives
+        float cover = Saturate(1.f - fabsf(I.tabHlX - rects[i].x) / Max(rects[i].w * 0.6f, 1.f));
+        u32 lc = lerpColor(kTextDim, kWhite, active ? Max(cover, 0.6f) : cover * 0.8f);
+        drawIcon(kTabIcons[tb], rects[i].x + 24.f * sc, ty + th * 0.5f, 24.f * sc, withAlpha(lc, a));
+        ts.color = withAlpha(lc, a);
+        text(rects[i].x + 44.f * sc, ty + th * 0.5f - ts.size * 0.56f, lab.c_str(), ts);
         if (hov && n.click && I.dialog == DLG_NONE) newTab = tb;
-        x += tw + 10.f * sc;
     }
     drawPrompt(x + 4.f * sc, ty + (th - promptH) * 0.5f, pad ? "RB" : "E", pad, promptH, a);
     if (I.dialog == DLG_NONE) {
@@ -1347,6 +1382,14 @@ MenuAction drawSlots(MenuState& st, const Layout& L, const Nav& n, float x, floa
     ClipState pc = getClip();
     setClipRect(x, listY - 4.f * sc, w, visible * (rowH + 6.f * sc) + 4.f * sc);
     int activate = -1;
+    {
+        // the selection bar glides between slots
+        if (I.slotHl < 0.f || fabsf(I.slotHl - st.cursor) > 6.f) I.slotHl = (float)st.cursor;
+        I.slotHl = approachExp(I.slotHl, (float)st.cursor, 18.f, dt);
+        float hy = listY + (I.slotHl - I.scroll) * (rowH + 6.f * sc);
+        float hshake = I.denyT < 0.35f ? sinf(I.denyT * 60.f) * 6.f * sc * (1.f - I.denyT / 0.35f) : 0.f;
+        selectionBar(x + 14.f * sc + hshake, hy, w - 28.f * sc, rowH, a);
+    }
     for (int k = 0; k < count; k++) {
         float ry = listY + (k - I.scroll) * (rowH + 6.f * sc);
         if (ry < listY - rowH || ry > y + h) continue;
@@ -1357,8 +1400,7 @@ MenuAction drawSlots(MenuState& st, const Layout& L, const Nav& n, float x, floa
         bool sel = k == st.cursor;
         float shake = (sel && I.denyT < 0.35f) ? sinf(I.denyT * 60.f) * 6.f * sc * (1.f - I.denyT / 0.35f) : 0.f;
         float rx = x + 14.f * sc + shake;
-        if (sel) selectionBar(rx, ry, w - 28.f * sc, rowH, a);
-        else roundRect(rx, ry, w - 28.f * sc, rowH, 6.f * sc, C(1.f, 1.f, 1.f, 0.04f * a));
+        if (!sel) roundRect(rx, ry, w - 28.f * sc, rowH, 6.f * sc, C(1.f, 1.f, 1.f, 0.04f * a));
         TextStyle ns = style(FONT_HEADING, 18.f * sc, withAlpha(sel ? kWhite : kPink, a));
         ns.tracking = 0.14f;
         text(rx + 24.f * sc, ry + 12.f * sc, StrFormat("SLOT %d", k + 1).c_str(), ns);
@@ -1441,8 +1483,9 @@ void drawStats(MenuState& st, const Layout& L, const Nav& n, float x, float y, f
     setClip(pc);
 }
 
-void drawBrief(MenuState& st, const Layout& L, float x, float y, float w, float h, float a, bool pad, float t) {
+void drawBrief(MenuState& st, const Layout& L, const Nav& n, float x, float y, float w, float h, float a, float t, float dt) {
     float sc = L.s;
+    bool pad = n.pad;
     bool hasTarget = st.hasWaypoint || !st.gpsRoute.empty();
     float mapW = hasTarget && mapReady() ? Min(w * 0.4f, 700.f * sc) : 0.f;
     float tw = w - (mapW > 0.f ? mapW + 20.f * sc : 0.f);
@@ -1463,7 +1506,32 @@ void drawBrief(MenuState& st, const Layout& L, float x, float y, float w, float 
     std::string body = st.briefText.empty()
                            ? std::string("No active mission. Explore Porto Sol, check the ~p~map~s~ for contacts marked with their initials, or take on side jobs around Palmera.")
                            : st.briefText;
-    richDraw(x + 36.f * sc, y + 136.f * sc, body.c_str(), bs, Min(tw - 72.f * sc, 1100.f * sc), ro);
+    // long mission logs scroll (arrows / D-pad / right stick / wheel) inside the panel
+    float bodyW = Min(tw - 72.f * sc, 1100.f * sc), bodyTop = y + 136.f * sc, bodyH = h - 136.f * sc - 28.f * sc;
+    float textH = richMeasure(body.c_str(), bs, bodyW, ro).y;
+    float maxScroll = Max(0.f, textH - bodyH);
+    I.briefScrollable = maxScroll > 0.f;
+    if (st.briefText != I.briefSeen) {
+        I.briefSeen = st.briefText;
+        I.briefScroll = I.briefScrollShown = 0.f;
+    }
+    float step = 70.f * sc;
+    if (n.down) I.briefScroll += step;
+    if (n.up) I.briefScroll -= step;
+    I.briefScroll -= n.wheel * step;
+    if (n.in) I.briefScroll -= n.in->pad.rightStick.y * 900.f * sc * dt;
+    I.briefScroll = Clamp(I.briefScroll, 0.f, maxScroll);
+    I.briefScrollShown = approachExp(I.briefScrollShown, I.briefScroll, 14.f, dt);
+    ClipState bc = getClip();
+    setClipRect(x, bodyTop - 4.f * sc, tw, bodyH + 8.f * sc);
+    richDraw(x + 36.f * sc, bodyTop - I.briefScrollShown, body.c_str(), bs, bodyW, ro);
+    setClip(bc);
+    if (maxScroll > 0.f) {
+        float trackH = bodyH, thumbH = Max(40.f * sc, trackH * bodyH / textH);
+        float ty = bodyTop + (trackH - thumbH) * (I.briefScrollShown / maxScroll);
+        roundRect(x + tw - 18.f * sc, bodyTop, 4.f * sc, trackH, 2.f * sc, withAlpha(kWhite, 0.08f * a));
+        roundRect(x + tw - 18.f * sc, ty, 4.f * sc, thumbH, 2.f * sc, withAlpha(kPink, 0.9f * a));
+    }
     if (mapW <= 0.f) return;
     // destination inset: small map framed on the route end / waypoint, with the route and the destination pin
     float mx = x + tw + 20.f * sc, my = y, mh = h;
@@ -1578,7 +1646,7 @@ MenuAction updatePause(MenuState& st, const Layout& L, const Nav& n, float dt, f
         break;
     }
     case PT_BRIEF:
-        drawBrief(st, L, cx, cy + slide, cw, ch, a * ca, n.pad, t);
+        drawBrief(st, L, n, cx, cy + slide, cw, ch, a * ca, t, dt);
         if (I.dialog == DLG_NONE && n.back) exit = true;
         break;
     case PT_STATS:
@@ -1632,10 +1700,14 @@ MenuAction updatePause(MenuState& st, const Layout& L, const Nav& n, float dt, f
     } else if (tab == PT_QUIT) {
         PromptItem pi[] = {{"ENTER", "A", "Select"}, {"ESC", "B", "Resume"}};
         footer(L, pi, 2, n.pad, a);
+    } else if (tab == PT_BRIEF && I.briefScrollable) {
+        PromptItem pi[] = {{"UPDOWN", "RS", "Scroll"}, {"ESC", "B", "Resume"}};
+        footer(L, pi, 2, n.pad, a);
     } else {
         PromptItem pi[] = {{"ESC", "B", "Resume"}};
         footer(L, pi, 1, n.pad, a);
     }
+    if (n.start && I.dialog == DLG_NONE && I.openT > 0.2f) exit = true;   // not the press that opened the menu
     if (exit && act.type == MA_NONE) {
         act.type = MA_RESUME;
         st.screen = MENU_NONE;

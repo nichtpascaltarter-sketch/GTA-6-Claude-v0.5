@@ -826,18 +826,28 @@ float textWidth(const char* str, const TextStyle& st) {
 float text(float x, float y, const char* str, const TextStyle& st) {
     const Font& f = g_fonts[st.font];
     float w = textWidth(str, st);
+    float s = st.size;
+    // rotation pivot: the anchor at mid line height (before alignment)
+    float pivX = x, pivY = y + s * 0.55f;
+    bool rotated = st.angle != 0.f;
+    float ca = rotated ? cosf(st.angle) : 1.f, sa = rotated ? sinf(st.angle) : 0.f;
     if (st.align == ALIGN_CENTER) x -= w * 0.5f;
     else if (st.align == ALIGN_RIGHT) x -= w;
-    float s = st.size;
     // SDF smoothing: px per em unit spread
     float pxRange = f.spreadEm * s * 2.f;
     float outlineSdf = st.outline / Max(pxRange, 1e-3f);
     bool grad = st.colorBottom != 0;
+    // glyph corners are laid out unrotated, rotated around the pivot, then offset (shadows keep a screen direction)
+    auto place = [&](float px, float py, float ox, float oy) {
+        if (!rotated) return vec2(px + ox, py + oy);
+        float dx = px - pivX, dy = py - pivY;
+        return vec2(pivX + ca * dx - sa * dy + ox, pivY + sa * dx + ca * dy + oy);
+    };
     auto emit = [&](float ox, float oy, u32 color, u32 colorB, u32 color2, float outl, float soft) {
-        float penX = x + ox, baseline = y + f.ascent * s + oy;
+        float penX = x, baseline = y + f.ascent * s;
         float top = baseline - f.ascent * s;
         for (const char* p = str; *p; p++) {
-            if (*p == '\n') { penX = x + ox; baseline += s * 1.2f; top = baseline - f.ascent * s; continue; }
+            if (*p == '\n') { penX = x; baseline += s * 1.2f; top = baseline - f.ascent * s; continue; }
             unsigned ch = (unsigned char)*p;
             if (ch >= 128 || !f.glyphs[ch].valid) ch = '?';
             const Glyph& g = f.glyphs[ch];
@@ -850,10 +860,11 @@ float text(float x, float y, const char* str, const TextStyle& st) {
                     ct = lerpColor(color, colorB, (y0 - top) / span);
                     cb = lerpColor(color, colorB, (y1 - top) / span);
                 }
-                pushQuad(V(x0 + k0, y0, g.u0, g.v0, ct, color2, M_FONT, pxRange, outl, soft),
-                         V(x1 + k0, y0, g.u1, g.v0, ct, color2, M_FONT, pxRange, outl, soft),
-                         V(x1 + k1, y1, g.u1, g.v1, cb, color2, M_FONT, pxRange, outl, soft),
-                         V(x0 + k1, y1, g.u0, g.v1, cb, color2, M_FONT, pxRange, outl, soft), g_atlas.srv);
+                vec2 q0 = place(x0 + k0, y0, ox, oy), q1 = place(x1 + k0, y0, ox, oy), q2 = place(x1 + k1, y1, ox, oy), q3 = place(x0 + k1, y1, ox, oy);
+                pushQuad(V(q0.x, q0.y, g.u0, g.v0, ct, color2, M_FONT, pxRange, outl, soft),
+                         V(q1.x, q1.y, g.u1, g.v0, ct, color2, M_FONT, pxRange, outl, soft),
+                         V(q2.x, q2.y, g.u1, g.v1, cb, color2, M_FONT, pxRange, outl, soft),
+                         V(q3.x, q3.y, g.u0, g.v1, cb, color2, M_FONT, pxRange, outl, soft), g_atlas.srv);
             }
             penX += (g.advance + st.tracking) * s;
         }

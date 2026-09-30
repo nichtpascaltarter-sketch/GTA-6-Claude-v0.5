@@ -303,6 +303,10 @@ struct Sample {
     int wheels;
 };
 
+// Upgrades fitted by Runner::init (the upgrade check runs the suites again with every mod at level 3 + turbo).
+inline VehicleUpgrades gUpgrades;
+inline bool gUpgradesOn = false;
+
 struct Runner {
     VehicleState s;
     const VehicleModel* m = nullptr;
@@ -319,6 +323,10 @@ struct Runner {
     void init(const VehicleModel& model, vec3 pos, float yaw) {
         m = &model;
         initVehicle(s, model, 0, dvec3(pos), yaw);
+        if (gUpgradesOn) {
+            applyUpgrades(s, model, gUpgrades);
+            resetVehicle(s, dvec3(pos), yaw);   // settle at the lowered ride height
+        }
         t = 0.f;
     }
     // Runs until `until` returns true or tmax seconds pass. ctl fills the controls each step.

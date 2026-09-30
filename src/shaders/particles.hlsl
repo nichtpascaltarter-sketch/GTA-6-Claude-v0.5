@@ -254,7 +254,7 @@ float groundHeight(float2 worldXY) {
     float2 tuv = (worldXY + 10240.0) / 20480.0;
     float h = gTerrainHeightG.SampleLevel(sLinearClamp, tuv, 0);
     if (gOverhead.w > 0.5) {
-        float2 ouv = (worldXY - gOverhead.xy) / gOverhead.z;
+        float2 ouv = overheadUV(worldXY);
         if (all(ouv > 0.0) && all(ouv < 1.0)) h = max(h, gOverheadMap.SampleLevel(sPointClamp, ouv, 0));
     }
     return h;

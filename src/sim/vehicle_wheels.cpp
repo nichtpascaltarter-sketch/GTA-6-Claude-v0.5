@@ -5,6 +5,8 @@ namespace detail {
 
 enum RimStyle : u8 { RIM_SPOKE = 0, RIM_MESH, RIM_TURBINE, RIM_STEEL, RIM_TRUCK, RIM_DISH, RIM_BIKE, RIM_WIRE, RIM_CLASSIC };
 
+inline void strokeText3D(PMesh& m, vec3 origin, vec3 right, vec3 up, const char* text, float h, float depth);
+
 struct WheelDesign {
     float R = 0.33f;        // tire outer radius
     float W = 0.22f;        // tire width
@@ -13,6 +15,7 @@ struct WheelDesign {
     bool offroad = false;   // chunky shoulder blocks
     bool moto = false;      // round motorcycle profile
     bool whitewall = false;
+    int sidewallText = 1;   // raised brand lettering on the outer sidewall: 0 none, 1 rubber, 2 raised white letters
     RimStyle style = RIM_SPOKE;
     int spokes = 5;
     bool split = false;     // spokes in pairs
@@ -106,6 +109,37 @@ inline void buildTire(PMesh& m, const WheelDesign& d) {
             m.quad(a, dd, c, b);
         }
     m.uvMode = UV_BOX;
+}
+
+// Raised brand lettering following the outer sidewall (twice, top and bottom), readable from outside (+X).
+inline void tireLettering(PMesh& m, const WheelDesign& d) {
+    if (d.sidewallText == 0 || d.moto) return;
+    float w = d.W * 0.5f, R = d.R, rr = d.rimR, h = R - rr;
+    float rT = rr + 0.5f * h, ht = 0.34f * h;
+    // outer sidewall bulge x(r): parabola through the profile points at 0.25h, 0.52h and 0.78h
+    auto xs = [&](float r) {
+        float u = (r - rr) / h;
+        float a0 = 0.25f, a1 = 0.52f, a2 = 0.78f, b0 = 0.96f * w, b1 = 1.f * w, b2 = 0.97f * w;
+        float l0 = (u - a1) * (u - a2) / ((a0 - a1) * (a0 - a2)), l1 = (u - a0) * (u - a2) / ((a1 - a0) * (a1 - a2)),
+              l2 = (u - a0) * (u - a1) / ((a2 - a0) * (a2 - a1));
+        return b0 * l0 + b1 * l1 + b2 * l2;
+    };
+    if (d.sidewallText == 2) m.use(MAT_METAL_PAINTED, col(0.9f, 0.9f, 0.86f));
+    else m.use(MAT_TIRE, kCol1);
+    const char* brand = "VANTORA";
+    int n = (int)strlen(brand);
+    float dth = ht * 0.8f / rT;
+    char one[2] = {0, 0};
+    for (int k = 0; k < 1; k++) {
+        float thc = kHalfPi;
+        for (int i = 0; i < n; i++) {
+            float th = thc + ((n - 1) * 0.5f - i) * dth;
+            vec3 right(0, sinf(th), -cosf(th)), up(0, cosf(th), sinf(th));
+            vec3 o(xs(rT) - 0.0008f, cosf(th) * rT, sinf(th) * rT);
+            one[0] = brand[i];
+            strokeText3D(m, o, right, up, one, ht, 0.0024f);
+        }
+    }
 }
 
 // Rim face in polar coordinates with windows between spokes; `ax` = face plane position along +X.
@@ -223,6 +257,8 @@ inline void buildWheel(const WheelDesign& d, MeshData& out) {
     PMesh m;
     m.newGroup(50.f);
     buildTire(m, d);
+    m.newGroup(30.f);
+    tireLettering(m, d);
     float w = d.W * 0.5f, rr = d.rimR;
     // ---- rim lip + barrel (lathe, outside on the left)
     m.newGroup(45.f);

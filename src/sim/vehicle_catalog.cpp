@@ -101,6 +101,7 @@ inline void archSUV(CarDef& d, float L = 5.0f, float W = 1.98f, float H = 1.80f,
     archSedan(d, L, W, H, wb, R);
     CarSpec& s = d.s;
     s.style = BS_SUV;
+    s.privacyGlass = true;
     dims(d, L, W, wb, 0.19f, R, 0.265f);
     s.archGap = 0.055f;
     s.zSill = 0.30f + (R - 0.35f) * 0.8f;
@@ -133,6 +134,7 @@ inline void archPickup(CarDef& d, float L = 5.9f, float W = 2.03f, float H = 1.9
     archSUV(d, L, W, H, wb, R);
     CarSpec& s = d.s;
     s.style = BS_PICKUP;
+    s.privacyGlass = false;
     dims(d, L, W, wb, 0.165f, R, 0.275f);
     s.zSill = 0.36f + (R - 0.38f);
     s.zBeltR = 0.675f * H; s.zBeltF = s.zBeltR - 0.02f; s.zCowl = s.zBeltF + 0.04f;
@@ -664,7 +666,7 @@ inline void mdlGatorback(VehicleModel& o) {
     d.L.chromeBumpers = true; d.L.bumperFZ = s.zNoseBot + 0.12f; d.L.bumperRZ = s.zTailBot + 0.12f; d.L.intakeW = 0.f; d.L.fogs = false;
     d.L.tail = TL_CLASSIC; d.L.tailW = 0.24f; d.L.tailH = 0.055f; d.L.tailYaw = 0.1f; d.L.tailC = vec2(s.halfW * 0.62f, s.zTailTop + 0.08f);
     d.L.hoodScoop = true; d.L.spoiler = SP_DUCK; d.L.exhaust = 2; d.L.antennaFin = false; d.L.handlesChrome = true;
-    d.wd.style = RIM_CLASSIC; d.wd.faceTint = vec3(0.7f); d.wd.whitewall = false;
+    d.wd.style = RIM_CLASSIC; d.wd.faceTint = vec3(0.7f); d.wd.whitewall = false; d.wd.sidewallText = 2;
     physics(o, 1720.f, 320.f, 640.f, 5800.f, 70.f, 4, 0.f, 0.9f, 0.18f, 0.9f, 0.45f, 0.f, vec3(0, 0.3f, 0.50f), Audio::ENGINE_V8);
     buildCar(d, o);
     o.paletteColors = palette("muscle");

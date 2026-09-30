@@ -2,7 +2,8 @@
 # Automated play-test under Wine: runs each --autoplay scenario, collects screenshots (PNG) and the telemetry log.
 # Usage: tools/playtest.sh [scenario ...]   (default: walk drive bike fly boat shoot)
 # Env: EXE (default bin/NeonTide.exe), OUTDIR (default /tmp/playtest), WINEPREFIX (default /tmp/wine_playtest),
-#      DURATION (seconds of game time per scenario, default 30), RES (default 960x540)
+#      DURATION (seconds of game time per scenario, default 30), RES (default 960x540),
+#      QUALITY (optional renderer preset override 0 low .. 3 ultra; low keeps software-rendered runs fast)
 cd "$(dirname "$0")/.."
 EXE=${EXE:-bin/NeonTide.exe}
 OUTDIR=${OUTDIR:-/tmp/playtest}
@@ -18,7 +19,7 @@ LOG="$WINEPREFIX/drive_c/users/root/AppData/Local/NeonTide/log.txt"
 for s in $SCENARIOS; do
   echo "== $s"
   EXE=$EXE TIMEOUT=${TIMEOUT:-1200} tools/run.sh --width "$W" --height "$H" --play --autoplay "$s" \
-      --autoduration "$DURATION" --autoevery 5 --shotdir "Z:${WINDIR}\\" > "$OUTDIR/run_$s.txt" 2>&1
+      --autoduration "$DURATION" --autoevery 5 ${QUALITY:+--quality $QUALITY} --shotdir "Z:${WINDIR}\\" > "$OUTDIR/run_$s.txt" 2>&1
   echo "exit $?"
   if [ -f "$LOG" ]; then
     cp "$LOG" "$OUTDIR/log_$s.txt"

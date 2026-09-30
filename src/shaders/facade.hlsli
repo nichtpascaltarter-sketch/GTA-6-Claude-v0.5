@@ -147,6 +147,16 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
     // Floor slab lines for curtain walls
     if (style == 1 && !ground && fy < 0.35) { inWin = false; albedo = frameC * 0.8; rough = 0.4; r.metal = 0.6; }
 
+    // Weathering on the wall: dirt at the base of the building, rain streaks below window sills and slab edges
+    if (!inWin) {
+        float baseGrime = saturate(1.0 - uv.y / (0.9 + valueNoise(float2(uv.x * 1.7, 3.1)) * 0.8));
+        float underSill = (wl.x > -0.05 && wl.x < winW + 0.05 && wl.y < 0.0) ? saturate(1.0 + wl.y / (0.6 + hashF(roomHash + 31u) * 1.4)) : 0.0;
+        float drip = valueNoise(float2(uv.x * 11.0, uv.y * 0.6)) * valueNoise(float2(uv.x * 23.0 + 5.0, uv.y * 1.3));
+        float streaks = underSill * saturate(drip * 3.0 - 0.2) * (style == 1 ? 0.0 : 1.0);
+        float grime = saturate(baseGrime * 0.7 + streaks * 0.55);
+        albedo *= lerp(1.0, float3(0.6, 0.58, 0.55), grime);
+        rough = saturate(rough + grime * 0.1);
+    }
     float3 outAlbedo = albedo;
     float3 outN = normalize(T * nts.x + B * nts.y + N * nts.z);
     if (signBand) {
@@ -184,12 +194,20 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         float blindLevel = hashF(roomHash + 6u);
         bool coveredByBlind = blinds && (wl.y / winH) > blindLevel;
         float3 blindC = office ? float3(0.7, 0.7, 0.68) : lerp(float3(0.8, 0.75, 0.65), float3(0.5, 0.2, 0.15), hashF(roomHash + 7u));
-        // Lighting schedule
+        // Lighting schedule: every room has its own switch-on / switch-off times, so windows light up one by
+        // one at dusk and go dark gradually through the night (some stay lit all night, early risers at dawn).
         float hour = gTime.y;
-        float evening = smoothstep(17.5, 19.5, hour) * (1.0 - smoothstep(23.0, 25.0, hour)) + (hour < 6.0 ? 0.25 : 0.0);
-        float dayOffice = office ? smoothstep(7.0, 8.5, hour) * (1.0 - smoothstep(18.0, 21.0, hour)) : 0;
-        float litProb = saturate(f.litFrac * 0.75 * (evening + dayOffice * 0.9) + (storefront ? 0.85 : 0));
-        bool lit = hashF(roomHash + 11u) < litProb;
+        float hc = hour < 12.0 ? hour + 24.0 : hour;             // evening-continuous clock: 12..36
+        bool occupied = hashF(roomHash + 11u) < f.litFrac * 0.85;
+        float onT = 17.0 + hashF(roomHash + 15u) * 3.8;
+        float offT = 21.3 + pow(hashF(roomHash + 16u), 1.6) * 7.0;
+        bool allNight = hashF(roomHash + 17u) < 0.06;
+        bool eveningLit = hc >= onT && (hc < offT || allNight) && hc < 30.5 + hashF(roomHash + 18u);
+        bool morningLit = hour > 5.2 + hashF(roomHash + 19u) && hour < 7.4 + hashF(roomHash + 20u) * 1.3 && hashF(roomHash + 21u) < 0.35;
+        bool officeLit = office && hour > 7.0 + hashF(roomHash + 22u) * 1.5 && hour < 17.5 + pow(hashF(roomHash + 23u), 3.0) * 5.0;
+        bool shopOpen = storefront && hour > 7.0 + hashF(roomHash + 24u) && hour < 22.0 + hashF(roomHash + 25u) * 3.0;
+        bool lit = (occupied && (office ? officeLit || (eveningLit && hashF(roomHash + 26u) < 0.3) : (eveningLit || morningLit))) ||
+                   shopOpen || (storefront && hashF(roomHash + 27u) < 0.4);   // closed shops keep display lighting
         float3 lightC = office ? lerp(float3(0.95, 0.9, 0.8), float3(0.85, 0.93, 1.0), hashF(roomHash + 12u))
                                : lerp(float3(1.0, 0.6, 0.3), float3(1.0, 0.82, 0.6), hashF(roomHash + 12u) * 0.8);
         if (!office && hashF(roomHash + 13u) > 0.93) lightC = float3(0.4, 0.55, 1.0);  // TV glow

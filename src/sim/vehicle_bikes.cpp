@@ -215,7 +215,7 @@ inline void mdlRaijin(VehicleModel& o) {
     }
     // windscreen
     m.newGroup(30.f);
-    m.use(MAT_CAR_GLASS, kCol1);
+    m.use(MAT_CAR_WINDOW, col(0.55f, 0.6f, 0.66f, 0.55f));  // smoked screen
     {
         std::vector<LoftSec> w;
         w.push_back({0.80f, 0, 0.99f, 0.13f, 0.012f, 2.f});

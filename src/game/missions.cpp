@@ -155,6 +155,8 @@ void GameWorld::mCutscene(const std::vector<CutsceneShot>& shots, bool skippable
     gMissions.shotIndex = shots.empty() ? -1 : 0;
     gMissions.shotTime = 0.f;
     gMissions.skippable = skippable;
+    gMissions.holdForDialogue = skippable;   // story cutscenes (the character switch camera is not skippable)
+    gMissions.autoShots = 0;
     if (!shots.empty()) {
         playerControl = false;
         hudVisible = false;
@@ -295,6 +297,21 @@ void GameWorld::updateMissions(float dt) {
             subtitle(l.speaker, Speech::displayText(l.text.c_str()), dur + 0.3f, l.color);
             if (pedVoice && !l.phone && peds[l.ped].state == PS_ONFOOT && peds[l.ped].brain.type == BRAIN_NONE && peds[l.ped].animIn.stance == 0 && !peds[l.ped].isPlayer)
                 peds[l.ped].animIn.stance = 7;
+            // blocking: in a cutscene, the people standing around turn to whoever speaks
+            if (pedVoice && !l.phone && M.shotIndex >= 0) {
+                vec3 sp = peds[l.ped].pos.toVec3();
+                auto turn = [&](int id) {
+                    if (id < 0 || id == l.ped || id >= (int)peds.size() || !peds[id].used || peds[id].health <= 0.f) return;
+                    Ped& q = peds[id];
+                    if (q.state != PS_ONFOOT || (!q.isPlayer && q.brain.type != BRAIN_NONE)) return;
+                    vec2 d = sp.xy() - q.pos.toVec3().xy();
+                    float dist = length(d);
+                    if (dist < 0.6f || dist > 9.f) return;
+                    q.yaw = atan2f(-d.x, d.y);
+                };
+                for (int id : M.peds) turn(id);
+                turn(player);
+            }
             if (M.lineSound == 0) M.lineSound = 0xffffffffu;  // no audio device: time-based
         }
         M.lineTimer -= dt;
@@ -329,6 +346,14 @@ void GameWorld::updateMissions(float dt) {
                 M.shotIndex++;
             }
             M.shotTime = 0.f;
+            // scripted shots are used up but the conversation goes on: frame the current speaker
+            if (!skip && M.shotIndex >= (int)M.shots.size() && M.holdForDialogue && !M.lines.empty() && M.autoShots < 24) {
+                CutsceneShot sh;
+                if (speakerShot(M.lines.front().ped, M.shots.empty() ? nullptr : &M.shots.back(), M.lineTimer, sh)) {
+                    M.shots.push_back(sh);
+                    M.autoShots++;
+                }
+            }
             if (M.shotIndex >= (int)M.shots.size()) {
                 M.shotIndex = -1;
                 M.shots.clear();
@@ -336,6 +361,16 @@ void GameWorld::updateMissions(float dt) {
                 hudVisible = true;
                 rig.scriptActive = false;
                 rig.cut = true;
+            }
+        } else if (s.speaker != -2 && !M.lines.empty() && M.lines.front().ped != s.speaker && M.shotTime > 0.6f) {
+            // a runtime speaker shot: cut to the next speaker as soon as they talk
+            CutsceneShot sh;
+            if (speakerShot(M.lines.front().ped, &s, M.lineTimer, sh)) {
+                M.shots.push_back(sh);
+                M.shots.erase(M.shots.begin() + M.shotIndex);
+                M.shotIndex = (int)M.shots.size() - 1;
+                M.shotTime = 0.f;
+                M.autoShots++;
             }
         }
     }

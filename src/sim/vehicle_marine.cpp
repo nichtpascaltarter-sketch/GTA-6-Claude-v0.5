@@ -200,7 +200,7 @@ struct Hull {
 inline void glassRibbon(PMesh& m, const std::vector<vec3>& base, vec3 up, float h, bool frame) {
     int n = (int)base.size();
     m.newGroup(30.f);
-    m.use(MAT_CAR_GLASS, kCol1);
+    m.use(MAT_CAR_WINDOW, col(0.86f, 0.94f, 0.95f, 0.9f));
     std::vector<u32> a(n), b(n), a2(n), b2(n);
     for (int i = 0; i < n; i++) {
         a[i] = m.add(base[i]);

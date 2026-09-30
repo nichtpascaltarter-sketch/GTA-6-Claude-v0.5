@@ -1,5 +1,6 @@
 #include "buildings.h"
 #include "sites.h"
+#include "interiors.h"
 #include "../core/noise.h"
 #include "../render/mesh.h"
 #include <unordered_map>
@@ -546,6 +547,8 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
     // Sites that depend on roads and buildings (billboards, farm silos) + per-cell site element lists
     gSites->makeFacades(*this);
     gSites->finalize(map, roads, *this);
+    // Enterable interiors: picks host buildings (story places, shops) and plans their openings (world/interiors.cpp)
+    planInteriors(map, roads, *this);
 }
 
 void BuildingSet::addSiteBuilding(WorldMap& map, const SiteBuildingReq& q, u32 seed) {

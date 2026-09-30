@@ -159,7 +159,7 @@ static bool isStopPh(int ph) { return hasFlag(ph, PF_STOP); }
 static float wordRand(const Utterance& u, int w, u32 salt) {
     if (w < 0 || w >= (int)u.words.size()) return 0.5f;
     u32 h = hashCombine(hashString(u.words[(size_t)w].text.c_str()), (u32)w * 7919u + salt * 104729u);
-    return hashToFloat(hash32(h));
+    return hashToFloat(hash32(h ^ u.seed));
 }
 static bool voicelessObstruent(int ph) {
     return hasFlag(ph, PF_OBSTRUENT) && !hasFlag(ph, PF_VOICED);
@@ -181,6 +181,41 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
     u = Utterance();
     std::vector<TextWord> tws;
     normalizeText(text, tws);
+    // Prosodic variety seed: the voice (different speakers phrase the same line differently) and the take.
+    {
+        u32 bits[6];
+        memcpy(&bits[0], &voice.pitch, 4);
+        memcpy(&bits[1], &voice.formantScale, 4);
+        memcpy(&bits[2], &voice.speed, 4);
+        memcpy(&bits[3], &voice.breathiness, 4);
+        memcpy(&bits[4], &voice.roughness, 4);
+        memcpy(&bits[5], &voice.expressiveness, 4);
+        u32 h = 0x9e3779b9u;
+        for (int k = 0; k < 6; k++) h = hashCombine(h, bits[k]);
+        u.seed = hashCombine(h, tws.empty() ? 0u : tws[0].style.take);
+    }
+    // Spontaneous-speech touches for long conversational lines (deterministic, sparing): an occasional
+    // hesitation filler at a clause boundary. Broadcast deliveries, anger, shouting and [fluent] text never get one.
+    bool longCasual = tws.size() >= 14;
+    for (const TextWord& t : tws) longCasual = longCasual && !t.fluent;
+    if (longCasual) {
+        std::vector<size_t> cand;
+        for (size_t i = 4; i + 4 < tws.size(); i++) {
+            const Style& st = tws[i].style;
+            if (tws[i - 1].brk == BRK_COMMA && st.delivery == DELIVERY_TALK && st.emotion != EMOTION_ANGRY &&
+                st.emotion != EMOTION_SHOUT && st.emotion != EMOTION_WHISPER && !tws[i].phon)
+                cand.push_back(i);
+        }
+        u32 h = hashCombine(hashString(text), u.seed);
+        if (!cand.empty() && h % 100u < 45u) {
+            size_t at = cand[(h >> 8) % (u32)cand.size()];
+            TextWord f;
+            f.w = (h >> 16) & 1u ? "uh" : "um";
+            f.style = tws[at].style;
+            f.brk = BRK_MINOR;
+            tws.insert(tws.begin() + (long)at, f);
+        }
+    }
     std::vector<WordBuild> ws;
     ws.reserve(tws.size());
     for (size_t i = 0; i < tws.size(); i++) {
@@ -231,6 +266,10 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
     Seg lead;
     lead.ph = PH_SIL;
     lead.dur = 0.04f;
+    // long conversational lines start with an audible breath intake
+    if (ws.size() >= 14 && !ws[0].tw.fluent && ws[0].tw.style.delivery == DELIVERY_TALK &&
+        styleParams(ws[0].tw.style).breathIn >= 0.5f)
+        lead.dur = 0.34f;
     u.segs.push_back(lead);
     UPhrase cur;
     cur.firstSeg = 1;
@@ -308,6 +347,18 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
             if (brk == BRK_MINOR && !last) p.dur = 0.f;  // minor break: lengthening only (no silence)
             if (b.tw.pauseSec > 0.f && !last) p.dur = b.tw.pauseSec;  // explicit [pause:x]
             u.segs.push_back(p);
+        }
+    }
+    // Hesitation fillers ("um", "uh", "er", "hmm"): long, level and never accented.
+    for (const UWord& w : u.words) {
+        const std::string& t = w.text;
+        if (!(t == "um" || t == "umm" || t == "uh" || t == "uhh" || t == "er" || t == "erm" || t == "hmm" ||
+              t == "mm" || t == "mmm"))
+            continue;
+        for (int i = w.firstSeg; i <= w.lastSeg && i < (int)u.segs.size(); i++) {
+            Seg& sg = u.segs[(size_t)i];
+            sg.flags |= SF_FUNCTION;
+            if (isVowel(sg.ph) || hasFlag(sg.ph, PF_NASAL)) sg.durMul *= 1.8f;
         }
     }
     // Style parameters per word (consecutive words usually share a style).
@@ -452,17 +503,23 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         }
     }
 
-    // Words inside phrases of four or more words (neither first nor last): slightly faster tempo.
+    // Words inside phrases of four or more words (neither first nor last, and not the phrase's last content word,
+    // which carries the nuclear accent): slightly faster tempo.
     std::vector<bool> midPhraseWord(u.words.size(), false);
     {
-        std::vector<int> phraseWords(u.phrases.size() + 1, 0);
-        for (const UWord& w : u.words)
-            if (w.phrase >= 0 && w.phrase < (int)phraseWords.size()) phraseWords[(size_t)w.phrase]++;
+        std::vector<int> phraseWords(u.phrases.size() + 1, 0), lastContent(u.phrases.size() + 1, -1);
         for (size_t w = 0; w < u.words.size(); w++) {
             int ph = u.words[w].phrase;
+            if (ph < 0 || ph >= (int)phraseWords.size()) continue;
+            phraseWords[(size_t)ph]++;
+            if (!u.words[w].function) lastContent[(size_t)ph] = (int)w;
+        }
+        for (size_t w = 0; w < u.words.size(); w++) {
+            int ph = u.words[w].phrase;
+            if (ph < 0 || ph >= (int)phraseWords.size()) continue;
             bool first = w == 0 || u.words[w - 1].phrase != ph;
             bool last = w + 1 == u.words.size() || u.words[w + 1].phrase != ph;
-            midPhraseWord[w] = !first && !last && ph >= 0 && ph < (int)phraseWords.size() && phraseWords[(size_t)ph] >= 4;
+            midPhraseWord[w] = !first && !last && phraseWords[(size_t)ph] >= 4 && (int)w != lastContent[(size_t)ph];
         }
     }
     // Durations (Klatt rules), scaled by the speaking style (rate, stressed / unstressed vowel length).
@@ -592,7 +649,11 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
             if (s.stress == 1) lastCandidate = i;
             if (s.stress != 1 || (s.flags & SF_FUNCTION)) continue;
             float a = count == 0 ? 1.f : std::max(0.55f, 1.f - 0.12f * (float)count * (1.f - u.segStyle(i).accentAll));
-            a *= 0.88f + 0.24f * wordRand(u, s.word, 1u);  // natural variety of accent heights
+            // natural variety of prenuclear accent heights (the nuclear, focus accent keeps its full height)
+            bool laterAccent = false;
+            for (int k = i + 1; k <= ph.lastSeg && k < M && !laterAccent; k++)
+                laterAccent = isVowel(S[k].ph) && S[k].stress == 1 && !(S[k].flags & SF_FUNCTION);
+            if (laterAccent) a *= 0.88f + 0.24f * wordRand(u, s.word, 1u);
             if (anyEmph) a *= (s.flags & SF_EMPH) ? 1.6f : 0.6f;
             s.flags |= SF_ACCENT;
             s.accent = a;

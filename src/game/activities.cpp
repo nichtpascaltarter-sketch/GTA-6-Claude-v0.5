@@ -1138,7 +1138,7 @@ ActivitiesState gAct;
 // lip turns the car's speed into the ramp's climb angle so every jump leaves cleanly, for traffic as well as the player.
 constexpr float kRampLen = 9.f, kRampHalfW = 2.6f, kRampH = 2.4f;
 constexpr int kRampSteps = 18;
-constexpr int kRampCollisionKey = -7000;   // collision "cell" keys -7000 - i (never used by world streaming)
+constexpr int kRampCollisionKey = 1000000;   // collision "cell" keys 1000000 + i (streaming cells use keys < 2 * 80 * 80)
 
 struct StuntRamp {
     vec3 foot;          // center of the ramp's foot on the ground
@@ -1352,7 +1352,7 @@ void addRampCollision(StuntRamp& r, int index) {
         b.he = vec3(kRampHalfW, kRampLen / kRampSteps * 0.5f, (top + 0.5f) * 0.5f);
         boxes.push_back(b);
     }
-    Phys::gCollision->addCell(kRampCollisionKey - index, boxes, {});
+    Phys::gCollision->addCell(kRampCollisionKey + index, boxes, {});
     r.collision = true;
 }
 

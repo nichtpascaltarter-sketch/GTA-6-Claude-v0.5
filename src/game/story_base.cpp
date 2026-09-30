@@ -53,6 +53,7 @@ enum ExtFlag : int {
     EX_LAST_PAYDAY = 245,
     EX_SWITCH_TIP = 246,
     EX_VEHICLE_PAINT = 260,         // 260..299: paint (packed RGB565) of owned vehicles by garage slot
+    EX_VEHICLE_MODS = 384,          // 384..503: Tide Customs parts of owned vehicles, 3 ints per garage slot (see shops.cpp)
 };
 
 const int kStoryMissionCount = SF_STORY_COUNT;

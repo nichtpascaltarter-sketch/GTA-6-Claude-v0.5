@@ -365,6 +365,8 @@ inline void mdlParcel(VehicleModel& o) {
     physics(o, 5600.f, 150.f, 580.f, 3600.f, 33.f, 6, 0.f, 0.85f, 0.18f, 1.6f, 0.55f, 0.f, vec3(0, -0.2f, 1.0f), Audio::ENGINE_TRUCK_DIESEL);
     CarBody b(d.s);
     PMesh m;
+    d.L.maker = makerId(o.maker);
+    d.L.logoR = Max(d.L.logoR, 0.05f);
     carBodyParts(d, b, m, true);
     finalizeMesh(m, o.body);
     buildWheel(d.wd, o.wheel);
@@ -459,6 +461,8 @@ inline void mdlPackhorse(VehicleModel& o) {
     physics(o, 8200.f, 220.f, 900.f, 2600.f, 30.f, 6, 0.f, 0.85f, 0.18f, 1.8f, 0.60f, 0.f, vec3(0, 0.3f, 1.3f), Audio::ENGINE_TRUCK_DIESEL);
     CarBody b(d.s);
     PMesh m;
+    d.L.maker = makerId(o.maker);
+    d.L.logoR = Max(d.L.logoR, 0.05f);
     carBodyParts(d, b, m, true);
     finalizeMesh(m, o.body);
     buildWheel(d.wd, o.wheel);
@@ -560,6 +564,8 @@ inline void mdlLongbow(VehicleModel& o) {
     physics(o, 9000.f, 373.f, 2500.f, 2100.f, 34.f, 10, 0.f, 0.9f, 0.16f, 2.0f, 0.62f, 0.f, vec3(0, 0.6f, 1.25f), Audio::ENGINE_TRUCK_DIESEL);
     CarBody b(d.s);
     PMesh m;
+    d.L.maker = makerId(o.maker);
+    d.L.logoR = Max(d.L.logoR, 0.05f);
     carBodyParts(d, b, m, true);
     finalizeMesh(m, o.body);
     buildWheel(d.wd, o.wheel);
@@ -672,6 +678,8 @@ inline void mdlCompactor(VehicleModel& o) {
     physics(o, 15500.f, 250.f, 1600.f, 2200.f, 25.f, 6, 0.f, 0.85f, 0.16f, 2.2f, 0.75f, 0.f, vec3(0, -0.4f, 1.35f), Audio::ENGINE_TRUCK_DIESEL);
     CarBody b(d.s);
     PMesh m;
+    d.L.maker = makerId(o.maker);
+    d.L.logoR = Max(d.L.logoR, 0.05f);
     carBodyParts(d, b, m, true);
     finalizeMesh(m, o.body);
     buildWheel(d.wd, o.wheel);
@@ -786,6 +794,8 @@ inline void mdlLifeline(VehicleModel& o) {
     o.sirenMode = 3;
     CarBody b(d.s);
     PMesh m;
+    d.L.maker = makerId(o.maker);
+    d.L.logoR = Max(d.L.logoR, 0.05f);
     carBodyParts(d, b, m, true);
     finalizeMesh(m, o.body);
     buildWheel(d.wd, o.wheel);
@@ -924,6 +934,8 @@ inline void mdlGuardian(VehicleModel& o) {
     o.sirenMode = 0;
     CarBody b(d.s);
     PMesh m;
+    d.L.maker = makerId(o.maker);
+    d.L.logoR = Max(d.L.logoR, 0.05f);
     carBodyParts(d, b, m, true);
     finalizeMesh(m, o.body);
     buildWheel(d.wd, o.wheel);
@@ -1057,7 +1069,10 @@ inline void mdlBoulevard(VehicleModel& o) {
     physics(o, 12500.f, 220.f, 1200.f, 2300.f, 25.f, 6, 0.f, 0.85f, 0.16f, 2.0f, 0.70f, 0.f, vec3(0, -0.4f, 1.2f), Audio::ENGINE_TRUCK_DIESEL);
     CarBody b(d.s);
     PMesh m;
+    d.L.maker = makerId(o.maker);
+    d.L.logoR = 0.075f;
     carBodyParts(d, b, m, false);
+    noseLogo(m, b, d.L);
     finalizeMesh(m, o.body);
     buildWheel(d.wd, o.wheel);
     wheelPair(o, s.wb * 0.5f, s.trackF, s.wheelR, s.wheelW, true, false);

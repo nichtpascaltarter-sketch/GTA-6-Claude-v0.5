@@ -117,6 +117,10 @@ bool Renderer::init(int w, int h) {
     csLighting = gfx::loadCS("lighting.hlsl", "csLighting");
     lightBuf = gfx::createBuffer(kMaxLights * sizeof(LightGPU), sizeof(LightGPU), gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
     lightCB.create();
+    // enterable interiors: volumes (4 x float4), portals (3 x float4), per-light volume ids (see uploadInteriors)
+    interiorBuf = gfx::createBuffer(kMaxInteriorVolumes * 64, 64, gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
+    portalBuf = gfx::createBuffer(kMaxInteriorPortals * 48, 48, gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
+    lightVolumeBuf = gfx::createBuffer(kMaxLights * 4, 4, gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
     sky = new SkySystem();
     sky->init();
     shadows = new ShadowSystem();
@@ -379,6 +383,52 @@ static void unbindGlobals() {
     gfx::ctx->CSSetShaderResources(32, 13, n);
 }
 
+// Enterable interiors (see InteriorVolume in renderer.h): camera-relative volume/portal records for the lighting
+// pass, and the volume each local light sits in (lights only light their own volume; outdoor lights only outdoors).
+void Renderer::uploadInteriors() {
+    const dvec3 cam = camera.pos;
+    int nv = Min((int)interiorVolumes.size(), kMaxInteriorVolumes);
+    interiorGpu.clear();
+    portalGpu.clear();
+    int np = 0;
+    for (int i = 0; i < nv; i++) {
+        const InteriorVolume& v = interiorVolumes[i];
+        int first = np, count = 0;
+        for (int k = 0; k < v.portalCount && np < kMaxInteriorPortals; k++) {
+            int pi = v.firstPortal + k;
+            if (pi < 0 || pi >= (int)interiorPortals.size()) break;
+            const InteriorPortal& p = interiorPortals[pi];
+            portalGpu.push_back(vec4(rel(p.corner, cam), p.transmission));
+            portalGpu.push_back(vec4(p.edgeU, 0.f));
+            portalGpu.push_back(vec4(p.edgeV, 0.f));
+            np++;
+            count++;
+        }
+        interiorGpu.push_back(vec4(rel(v.center, cam), (float)first));
+        interiorGpu.push_back(vec4(v.axis.x, v.axis.y, (float)count, v.skyBounce));
+        interiorGpu.push_back(vec4(v.halfExtents, 0.f));
+        interiorGpu.push_back(vec4(v.ambient, 0.f));
+    }
+    lightVolumeFrame.assign(lightsFrame.size(), 0u);
+    for (size_t li = 0; li < lightsFrame.size() && nv > 0; li++) {
+        vec3 p = lightsFrame[li].pos;
+        for (int i = 0; i < nv; i++) {
+            vec3 d = p - interiorGpu[(size_t)i * 4].xyz();
+            vec2 ax = interiorGpu[(size_t)i * 4 + 1].xy();
+            vec3 he = interiorGpu[(size_t)i * 4 + 2].xyz();
+            float lx = d.x * ax.x + d.y * ax.y, ly = -d.x * ax.y + d.y * ax.x;
+            if (fabsf(lx) <= he.x + 0.3f && fabsf(ly) <= he.y + 0.3f && fabsf(d.z) <= he.z + 0.3f) {
+                lightVolumeFrame[li] = (u32)i + 1u;
+                break;
+            }
+        }
+    }
+    if (!interiorGpu.empty()) gfx::updateBuffer(interiorBuf, interiorGpu.data(), (u32)(interiorGpu.size() * sizeof(vec4)));
+    if (!portalGpu.empty()) gfx::updateBuffer(portalBuf, portalGpu.data(), (u32)(portalGpu.size() * sizeof(vec4)));
+    if (!lightVolumeFrame.empty()) gfx::updateBuffer(lightVolumeBuf, lightVolumeFrame.data(), (u32)(lightVolumeFrame.size() * sizeof(u32)));
+    lightCB.data.interiorCount = (u32)nv;
+}
+
 void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     stats.reset();
     auto* c = gfx::ctx;
@@ -485,13 +535,14 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
             g.radius = dl.radius;
             g.color = dl.color;
             g.dir = dl.dir;
-            g.spotCos = dl.spotCos;
-            g.spotInner = dl.spotInner;
+            g.spotCos = dl.headlight ? 0.f : dl.spotCos;
+            g.spotInner = dl.headlight ? 2.f : dl.spotInner;
             if (length(g.pos) < 400.f && fr.testSphere(g.pos, g.radius)) lightsFrame.push_back(g);
         }
         world->gatherLights(cam.pos, nightFactor, env.gameSeconds, fr, lightsFrame, kMaxLights);
         if (!lightsFrame.empty()) gfx::updateBuffer(lightBuf, lightsFrame.data(), (u32)(lightsFrame.size() * sizeof(LightGPU)));
         lightCB.data.count = (u32)lightsFrame.size();
+        uploadInteriors();   // interior volumes / portals + which volume each light belongs to (sets interiorCount)
         lightCB.upload();
         stats.lights = (int)lightsFrame.size();
         dynamicLights.clear();
@@ -513,14 +564,15 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     c->CSSetConstantBuffers(3, 1, scb);
     ID3D11Buffer* lcb[] = {lightCB.get()};
     c->CSSetConstantBuffers(2, 1, lcb);
-    ID3D11ShaderResourceView* srvs[11] = {gbAlbedo.srv, gbNormal.srv, gbMaterial.srv, gbEmissive.srv, depth.srv,
+    ID3D11ShaderResourceView* srvs[14] = {gbAlbedo.srv, gbNormal.srv, gbMaterial.srv, gbEmissive.srv, depth.srv,
                                           aoSrv ? aoSrv : post->whiteTex.srv, settings.clouds ? clouds->output() : cloudsTex.srv,
-                                          lightBuf.srv, ss->depthCur(), ss->halfNormal.srv, ssrSrv};
-    c->CSSetShaderResources(0, 11, srvs);
+                                          lightBuf.srv, ss->depthCur(), ss->halfNormal.srv, ssrSrv,
+                                          interiorBuf.srv, portalBuf.srv, lightVolumeBuf.srv};
+    c->CSSetShaderResources(0, 14, srvs);
     c->CSSetUnorderedAccessViews(0, 1, &hdr.uav, nullptr);
     c->CSSetShader(csLighting, nullptr, 0);
     c->Dispatch(gfx::divUp(width, 16), gfx::divUp(height, 16), 1);
-    gfx::unbindCSResources(11, 1);
+    gfx::unbindCSResources(14, 1);
     gfx::gpuTimerEnd();
 
     // Water (forward, reads copies of the lit scene and depth)
@@ -560,6 +612,8 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
 
     prevCamPos = cam.pos;
     prevViewProjNoJitter = viewProjNoJitter;
+    interiorVolumes.clear();
+    interiorPortals.clear();
     dynamic->endFrame();
     frameIndex++;
     cameraCut = false;

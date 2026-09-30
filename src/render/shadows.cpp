@@ -18,9 +18,17 @@ struct ShadowSystem {
     std::vector<std::function<void(Renderer&, const mat4&, int)>> casters;
 
     void init(int resolution) {
+        passCB.create();
+        setResolution(resolution);
+    }
+
+    // (Re)creates the cascade array (quality presets change the resolution at runtime).
+    void setResolution(int resolution) {
+        resolution = Clamp(resolution, 512, 8192);
+        if (resolution == res && map.res) return;
+        map.release();
         res = resolution;
         map = gfx::createTexture2D(res, res, DXGI_FORMAT_R32_TYPELESS, gfx::TEX_DSV | gfx::TEX_SRV | gfx::TEX_SLICE_RTVS, 1, 4);
-        passCB.create();
     }
 
     void computeCascades(Renderer& r) {
@@ -85,6 +93,8 @@ struct ShadowSystem {
     }
 
     void render(Renderer& r) {
+        setResolution(r.settings.shadowRes);
+        cascades = Clamp(r.settings.shadowCascades, 1, 4);
         computeCascades(r);
         auto* c = gfx::ctx;
         ID3D11ShaderResourceView* nullSrv = nullptr;

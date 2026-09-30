@@ -20,7 +20,7 @@ cbuffer ObjectCB : register(b1) {
     float4 gTint0;        // primary paint / outfit color, a = dirt
     float4 gTint1;        // secondary color, a = damage
     float4 gObjParams;    // x light bits, y bone offset, z wetness, w emissive scale
-    float4 gObjParams2;   // x skinned (1), y time offset, z fade, w unused
+    float4 gObjParams2;   // x skinned (1), y window tint 0..1, z fade, w paint finish (0 gloss 1 metallic 2 pearl 3 matte 4 chrome)
     float4 gDamage0;      // crush amount 0..1: front, rear, left, right
     float4 gDamage1;      // roof, underside
     float4 gDmgBoxC;      // model-space collision box center
@@ -187,6 +187,25 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         rough = lerp(0.28, 0.6, dirt);
         extra = 1.0 - dirt * 0.7;  // clearcoat strength
         n = N;
+        uint finish = (uint)(gObjParams2.w + 0.5);
+        if (finish == 1u) {          // metallic: brighter flake, tighter base highlight
+            metal = 0.6;
+            rough = lerp(0.2, 0.55, dirt);
+            albedo *= lerp(0.85, 1.25, a.r);
+        } else if (finish == 2u) {   // pearl: soft two-tone shift across the panels
+            float shift = saturate(abs(N.z) * 0.8 + 0.2 * a.r);
+            albedo = lerp(albedo, albedo.gbr * 0.9 + 0.08, 0.25 * shift);
+            metal = 0.4;
+        } else if (finish == 3u) {   // matte: no clearcoat, diffuse
+            metal = 0.0;
+            rough = lerp(0.62, 0.8, dirt);
+            extra = 0.0;
+        } else if (finish == 4u) {   // chrome: mirror with the paint as a tint
+            albedo = lerp(float3(0.95, 0.95, 0.95), paint, 0.35);
+            metal = 1.0;
+            rough = lerp(0.06, 0.3, dirt);
+            extra = 0.2;
+        }
         // grime towards the bottom of the body
         float grime = saturate((0.6 - i.localPos.z) * 1.5) * dirt;
         albedo = lerp(albedo, float3(0.18, 0.15, 0.12), grime * 0.6);
@@ -230,6 +249,20 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         }
     } else if (matId == M_EMISSIVE) {
         emissive = albedo * i.color.a * 400.0 * m.emissive;
+        // animated signage / light patterns (same param encoding as world.hlsl emissiveAnim; interiors use it)
+        uint pat = (i.mat >> 8) & 15u;
+        if (pat != 0u) {
+            float ph = ((i.mat >> 12) & 255u) / 256.0, t = gTime.x;
+            if (pat == 1u) emissive *= frac(t * 0.8 + ph) < 0.18 ? 1.6 : 0.03;
+            else if (pat == 2u) emissive *= 0.2 + 1.3 * step(0.5, frac(t * 1.5 - ph * 4.0));
+            else if (pat == 3u) emissive = hsvToRgbF(frac(t * 0.08 + ph)) * dot(emissive, 0.3333) * 1.4;
+            else if (pat == 4u) emissive *= 0.45 + 0.55 * (0.5 + 0.5 * sin(t * 2.1 + ph * 6.2832));
+            else if (pat == 5u) emissive *= frac(t * 0.5 - ph) < 0.06 ? 3.0 : 0.0;
+            else if (pat == 6u) emissive *= gExposure.w;
+            else if (pat == 7u) emissive *= frac(t * 0.33 + ph) < 0.5 ? 1.0 : 0.05;
+            else if (pat == 8u) emissive = hsvToRgbF(frac(t * 0.45 + ph)) * dot(emissive, 0.3333) * 1.6;   // fast hue (club)
+            else if (pat == 9u) emissive *= 0.6 + 0.4 * sin(t * 37.0 + ph * 40.0) * sin(t * 23.0 + ph * 7.0);   // TV flicker
+        }
     } else if (matId == M_SKIN) {
         albedo = i.color.rgb * lerp(0.85, 1.05, a.r);
         sm = SM_SKIN;
@@ -261,7 +294,7 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         rough = lerp(rough, 0.28, blood);
     }
     // Rain wetness on upward surfaces
-    float wet = gWeather.y * saturate(N.z * 2.0 + 0.3) * (gObjParams.z > 0 ? 1.0 : 0.5);
+    float wet = gWeather.y * saturate(N.z * 2.0 + 0.3) * (gObjParams.z > 0 ? 1.0 : (gObjParams.z < 0 ? 0.0 : 0.5));   // < 0: indoors, never wet
     albedo *= lerp(1.0, 0.7, wet * (sm == SM_CARPAINT ? 0.3 : 1.0));
     rough = lerp(rough, 0.1, wet * 0.7);
     return packGBuffer(albedo, ao, n, rough, metal, sm, extra, emissive * gObjParams.w, i.curClip, i.prevClip);
@@ -293,6 +326,7 @@ float4 psGlass(VSOut i, bool front : SV_IsFrontFace) : SV_Target {
     float3 glint = sunE * spec * F * shadow * preExposure();
     // tint: part of the view into the cabin is absorbed (tinted towards the glass colour)
     float cover = lerp(0.8, 0.18, saturate(i.color.a));
+    cover = lerp(cover, 0.94, saturate(gObjParams2.y));   // aftermarket window tint
     float3 tintCol = i.color.rgb * float3(0.02, 0.028, 0.026);
     // dust film scatters sky and sun light (dirty windows look milky)
     float3 skyE = evalSH9(N) * PI;

@@ -352,6 +352,7 @@ struct GameWorld {
     bool requestSaveMenu = false;       // set when the player steps into a safehouse save marker: the app opens MENU_SAVE
     std::string requestScreenshot;      // test automation: the app saves the next finished frame (after UI) here, clears it
     bool policeSuppressed = false;      // an active mission keeps the police out (crimes are not reported while set)
+    bool speakerShot(int speaker, const struct CutsceneShot* prev, float lineTime, struct CutsceneShot& out);   // cutscene framing (missions.cpp)
 
     // ---- AI additions (lanes.cpp, traffic_core.cpp, pednav.cpp, ai.cpp, traffic.cpp, pedai.cpp, police.cpp,
     //      events.cpp, barks.cpp, population.cpp) ----

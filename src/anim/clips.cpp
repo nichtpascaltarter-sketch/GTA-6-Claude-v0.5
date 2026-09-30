@@ -120,7 +120,9 @@ static inline float twistAngle(quat q, vec3 axis) {
 // ------------------------------------------------------------------------------------------------
 // Rig -> Pose
 
-static void rigToPose(const AuthorCtx& A, const Rig& r, Pose& out) {
+// twistRef (optional, per arm): forearm twist winding to stay closest to (the previous baked frame), instead of the
+// authored ArmCtl::twist; twistOut receives the solved twist of IK arms.
+static void rigToPose(const AuthorCtx& A, const Rig& r, Pose& out, const float* twistRef = nullptr, float* twistOut = nullptr) {
     const Skeleton& sk = A.sk;
     for (int b = 0; b < B_COUNT; b++) out.rot[b] = quat();
     out.rootOffset = r.pelvis;
@@ -230,8 +232,10 @@ static void rigToPose(const AuthorCtx& A, const Rig& r, Pose& out) {
         // the winding when the requested orientation is near half a turn
         quat local = normalize(conj(qf) * want);
         float tw = twistAngle(local, ax);
-        while (tw - a.twist > kPi) tw -= kTwoPi;
-        while (tw - a.twist < -kPi) tw += kTwoPi;
+        float ref = twistRef ? twistRef[s] : a.twist;
+        while (tw - ref > kPi) tw -= kTwoPi;
+        while (tw - ref < -kPi) tw += kTwoPi;
+        if (twistOut) twistOut[s] = tw;
         out.rot[B_FOREARM_L + o] = normalize(out.rot[B_FOREARM_L + o] * qaa(ax, tw * 0.5f));
         boneModel(sk, out, B_FOREARM_L + o, qf, tf);
         out.rot[B_HAND_L + o] = normalize(conj(qf) * want);
@@ -2159,6 +2163,16 @@ static void batArms(const AuthorCtx& A, Rig& r, const WKey& w) {
     gripArm(A, r.arm[0], 0, w.g - D * kBatGap, D, w.f, w.poleL);
 }
 
+// Both hands on the bat for the keyed body rig: the fists point along the right shoulder -> grip direction (projected
+// off the handle), which keeps the wrists anatomical and the finger direction continuous along the swing.
+static void batArmsFromShoulder(const AuthorCtx& A, Rig& r, WKey w) {
+    vec3 sh = bonePos(A, r, B_UPPERARM_R) + vec3(0.f, 0.f, -0.12f * A.D.s);
+    vec3 D = normalize(w.d), v = w.g - sh;
+    vec3 F = v - D * dot(v, D);
+    w.f = length2(F) > 1e-6f ? normalize(F) : w.f;
+    batArms(A, r, w);
+}
+
 // Time-aware Catmull-Rom weights over the keys around t (same scheme as sampleKeys).
 static void splineWeights(const float* ts, int n, float t, int idx[4], float w[4]) {
     for (int j = 0; j < 4; j++) {
@@ -2262,7 +2276,7 @@ static void batGuard(const AuthorCtx& A, Rig& r, WKey& w) {
     w.f = normalize(vec3(-0.45f, 0.8f, 0.2f));
     w.pole = normalize(vec3(1.f, -0.2f, -1.f));
     w.poleL = normalize(vec3(-0.1f, 0.3f, -1.f));
-    batArms(A, r, w);
+    batArmsFromShoulder(A, r, w);
 }
 
 // Bat held across in front of the face: right hand on the handle, left hand overhand on the barrel.
@@ -2305,7 +2319,7 @@ static void clipGuardLoop(const AuthorCtx& A, int id, float t, Rig& r) {
     } else if (id == IC_GUARD_BAT) {
         w.d = rotate(qaa(w.f, 0.07f * sw), w.d);
         w.g = w.g + vec3(0.f, 0.f, -0.008f * bob) * s;
-        batArms(A, r, w);
+        batArmsFromShoulder(A, r, w);
     } else {
         w.g = w.g + vec3(0.f, 0.f, -0.01f * bob) * s;
         gripArm(A, r.arm[1], 1, w.g, w.d, w.f, w.pole);
@@ -2328,9 +2342,7 @@ static void clipFists(const AuthorCtx& A, Clip c, float t, Rig& r) {
             wind.spineRoll = 0.08f;
             wind.pelvis = g.pelvis + vec3(0.03f, -0.04f, -0.02f) * s;
             faceTarget(wind);
-            vec3 sh = bonePos(A, wind, B_UPPERARM_R);
-            armIK(wind.arm[1], sh + vec3(0.19f, -0.04f, -0.08f) * s, vec3(1.f, -0.6f, 0.2f), 0.95f);
-            wind.arm[1].twist = 1.3f;
+            fistArm(A, wind, 1, vec3(0.25f, 0.06f, 1.42f) * s, vec3(1.f, 0.1f, -0.5f), vec3(-1.f, 0.3f, 0.f));
             guardArm(A, wind, 0, vec3(-0.07f, 0.3f, -0.16f));
             hit.pelvisYaw = 0.3f;
             hit.spineYaw = 0.35f;
@@ -2339,7 +2351,7 @@ static void clipFists(const AuthorCtx& A, Clip c, float t, Rig& r) {
             hit.pelvis = g.pelvis + vec3(-0.03f, 0.06f, -0.03f) * s;
             setFootToes(A, hit.leg[1], g.leg[1].ankle.x - 0.02f * s, g.leg[1].ankle.y + A.ballFwd, -0.55f, -1.0f);
             faceTarget(hit);
-            armIK(hit.arm[1], vec3(0.07f, 0.54f, 1.5f) * s, vec3(0.6f, 0.15f, 1.f), 0.95f);
+            armIK(hit.arm[1], vec3(0.05f, 0.52f, 1.44f) * s, vec3(1.f, -0.1f, 0.25f), 0.95f);
             hit.arm[1].orient = true;
             hit.arm[1].handRot = handFrame(A, 1, vec3(-0.85f, 0.5f, 0.05f), vec3(0.1f, 0.f, -1.f));
             guardArm(A, hit, 0, vec3(-0.05f, 0.18f, -0.14f));
@@ -2347,7 +2359,7 @@ static void clipFists(const AuthorCtx& A, Clip c, float t, Rig& r) {
             fol.pelvisYaw = 0.42f;
             fol.spineYaw = 0.5f;
             faceTarget(fol);
-            armIK(fol.arm[1], vec3(-0.16f, 0.46f, 1.46f) * s, vec3(0.5f, 0.3f, 1.f), 0.95f);
+            armIK(fol.arm[1], vec3(-0.18f, 0.45f, 1.42f) * s, vec3(0.8f, 0.3f, 0.2f), 0.95f);
             fol.arm[1].handRot = handFrame(A, 1, vec3(-0.9f, 0.1f, -0.1f), vec3(0.1f, 0.f, -1.f));
             guardArm(A, fol, 0, vec3(-0.05f, 0.18f, -0.14f));
             back = g;
@@ -2473,7 +2485,7 @@ static void clipKnife(const AuthorCtx& A, Clip c, float t, Rig& r) {
         faceTarget(lunge);
         setFootFlat(A, lunge.leg[0], vec3(A.ankle[0].x - 0.02f * s, 0.34f * s, 0.f), 0.12f);
         setFootToes(A, lunge.leg[1], g.leg[1].ankle.x, g.leg[1].ankle.y + A.ballFwd + 0.06f * s, -0.4f, -0.35f);
-        armIK(lunge.arm[0], vec3(-0.25f, 0.1f, 1.2f) * s, poleL, 0.4f);
+        armIK(lunge.arm[0], bonePos(A, lunge, B_UPPERARM_L) + vec3(0.1f, 0.26f, -0.12f) * s, poleL, 0.4f);   // free hand up
         hold = lunge;
         hold.pelvis = lunge.pelvis + vec3(0.f, 0.01f, 0.f) * s;
         std::vector<Key> k = {{0.f, g}, {0.18f, cock}, {0.32f, lunge}, {0.42f, hold}, {0.75f, g}};
@@ -2539,7 +2551,7 @@ static void clipBat(const AuthorCtx& A, Clip c, float t, Rig& r) {
             {0.78f, vec3(-0.3f, 0.02f, 1.36f) * s, vec3(-0.35f, -0.65f, 0.65f), vec3(0.3f, -0.8f, 0.3f), vec3(0.3f, 0.5f, -1.f), vec3(-1.f, -0.2f, -0.6f)},
             {1.05f, wg.g, wg.d, wg.f, wg.pole, wg.poleL},
         };
-        batArms(A, r, sampleWeapon(wk, 7, t));
+        batArmsFromShoulder(A, r, sampleWeapon(wk, 7, t));
     } else {
         // overhead: raise the bat behind the head, step in and chop down through head height (0.62 s)
         Rig raise = g, chop = g, hit = g, fol = g;
@@ -2573,7 +2585,7 @@ static void clipBat(const AuthorCtx& A, Clip c, float t, Rig& r) {
             {0.76f, vec3(0.02f, 0.4f, 0.98f) * s, vec3(0.f, 0.7f, -0.7f), vec3(0.f, -0.7f, -0.7f), vec3(0.7f, -0.5f, -0.6f), vec3(-0.7f, -0.5f, -0.6f)},
             {1.2f, wg.g, wg.d, wg.f, wg.pole, wg.poleL},
         };
-        batArms(A, r, sampleWeapon(wk, 6, t));
+        batArmsFromShoulder(A, r, sampleWeapon(wk, 6, t));
     }
 }
 
@@ -2589,6 +2601,7 @@ static vec3 rootMotionRef(int c, float t) {
         case CLIP_DODGE_R: return vec3(1.2f * smoother((t - 0.03f) / 0.4f), 0.f, 0.f);
         case CLIP_KNOCKOUT: return vec3(0.f, 0.38f * smoother((t - 0.45f) / 0.6f), 0.f);
         case CLIP_TAKEDOWN_VICTIM: return vec3(0.f, 0.4f * smoother((t - 2.45f) / 0.4f), 0.f);
+        case CLIP_TAKEDOWN_ATTACKER: return vec3(0.f, -0.35f * smoother((t - 2.5f) / 0.45f), 0.f);   // steps back off the body
         default: return vec3(0.f);
     }
 }
@@ -2773,7 +2786,7 @@ static void takedownVictim(const AuthorCtx& A, float t, Rig& r) {
     vec3 throat(0.f, 0.08f * s, 1.44f * s);
     for (int sd = 0; sd < 2; sd++) {
         float sx = sd ? 1.f : -1.f;
-        armIK(grab.arm[sd], throat + vec3(sx * 0.07f, 0.06f, -0.08f) * s, vec3(sx, -0.5f, -0.6f), 0.8f);
+        armIK(grab.arm[sd], throat + vec3(sx * 0.06f, 0.05f, 0.02f) * s, vec3(sx, -0.5f, -0.6f), 0.8f);
         grab.arm[sd].twist = 0.9f;
     }
     pull1 = grab;
@@ -2840,6 +2853,8 @@ static void takedownAttacker(const AuthorCtx& A, float t, Rig& r) {
     reach.pelvis = vec3(0.f, 0.1f, -0.03f) * s;
     reach.spinePitch = 0.2f;
     setFootFlat(A, reach.leg[0], vec3(A.ankle[0].x, 0.22f * s, 0.f), 0.05f);
+    armFK(reach.arm[1], 1, 1.25f, 0.3f, 1.3f, 0.6f, 0.5f);   // arms coming up round the victim
+    armFK(reach.arm[0], 0, 1.35f, 0.2f, 1.5f, 0.4f, 0.4f);
     hold = a;
     hold.pelvis = vec3(0.02f, 0.14f, -0.08f) * s;
     hold.spinePitch = 0.08f;
@@ -2861,11 +2876,16 @@ static void takedownAttacker(const AuthorCtx& A, float t, Rig& r) {
         lower.leg[sd].knee = normalize(vec3(sx * 0.4f, 1.f, 0.f));
     }
     rel = lower;
-    rel.pelvis = vec3(0.02f, 0.02f, -0.3f) * s;
-    rel.spinePitch = 0.3f;
+    rel.pelvis = vec3(0.02f, -0.1f, -0.22f) * s;
+    rel.spinePitch = 0.25f;
+    rel.leg[1].ankle = vec3(A.ankle[1].x + 0.06f * s, -0.4f * s, A.footH + 0.06f * s);   // stepping back
     for (int sd = 0; sd < 2; sd++) armFK(rel.arm[sd], sd, 0.45f, 0.3f, 0.7f, 0.3f, 0.4f);
+    Rig end = a;   // standing 0.35 m further back (root motion)
+    vec3 back = rootMotionRef(CLIP_TAKEDOWN_ATTACKER, 3.f) * s;
+    end.pelvis = end.pelvis + back;
+    for (int sd = 0; sd < 2; sd++) end.leg[sd].ankle = end.leg[sd].ankle + back;
     std::vector<Key> k = {{0.f, a},       {0.22f, reach},   {kTakedownGrab, hold}, {0.9f, lean},       {1.4f, hold},
-                          {1.8f, lean},   {2.3f, lower},    {kTakedownRelease, lower}, {2.7f, rel},    {3.0f, a}};
+                          {1.8f, lean},   {2.3f, lower},    {kTakedownRelease, lower}, {2.7f, rel},    {3.0f, end}};
     sampleKeys(A, k, t, false, 3.0f, r, 0.2f);
     // hands on the victim: the right forearm across the throat (hand towards its left shoulder), the left hand
     // behind its head; blended in over the reach and out at the release
@@ -3045,11 +3065,17 @@ static void bakeClip(const AuthorCtx& A, int c, BakedClip& out) {
     out.rot.resize((size_t)n * B_COUNT);
     out.root.resize(n);
     Pose p;
+    float twPrev[2] = {0.f, 0.f}, twNow[2] = {0.f, 0.f};
     for (int f = 0; f < n; f++) {
         float t = ci.loop ? ci.duration * f / n : Min(ci.duration, f / out.fps);
         Rig r;
         authorClip(A, c, t, r);
-        rigToPose(A, r, p);
+        // forearm twist winding follows the previous frame (no half-turn flips when a grip passes the wrap)
+        for (int s = 0; s < 2; s++) twNow[s] = r.arm[s].twist;
+        if (f > 0)
+            for (int s = 0; s < 2; s++) twPrev[s] = r.arm[s].ik ? twPrev[s] : r.arm[s].twist;
+        rigToPose(A, r, p, f > 0 ? twPrev : nullptr, twNow);
+        for (int s = 0; s < 2; s++) twPrev[s] = twNow[s];
         for (int b = 0; b < B_COUNT; b++) {
             quat q = normalize(p.rot[b]);
             if (f > 0 && dot(q, out.rot[(size_t)(f - 1) * B_COUNT + b]) < 0.f) q = quat(-q.x, -q.y, -q.z, -q.w);

@@ -11,6 +11,7 @@
 // Openings follow the facade shader's window grid exactly (shaders/facade.hlsli): every wall starts on a bay boundary and
 // stretches round(len / bayW) bays to its length (buildmesh.cpp facadeWalls), floors count up from the building base.
 #include "buildings.h"
+#include "interiors.h"
 #include "../render/mesh.h"
 #include "worldtypes.h"
 
@@ -37,6 +38,23 @@ inline u32 pk(float r, float g, float b, float a = 1.f) { return pk(vec3(r, g, b
 inline u32 pk(float v) { return pk(vec3(v, v, v), 1.f); }
 inline u32 MM(MaterialId id, u32 param = 0) { return makeMat(id, param); }
 inline u32 neonMat(u32 anim, u32 phase) { return makeMat(MAT_EMISSIVE, anim == 0 ? 0u : (anim | ((phase & 255u) << 4))); }
+
+// Development statistics: vertices emitted per feature (compiled in only with -DNT_FACADE_STATS, used by profiling tools)
+#ifdef NT_FACADE_STATS
+enum FdStat { FS_TRIMS, FS_STORE, FS_AWNING, FS_GATE, FS_BLADE, FS_WNEON, FS_GRAFFITI, FS_AC, FS_PIPE, FS_FIRE, FS_BALC, FS_DECO, FS_TOWER, FS_LAWN,
+              FS_HEDGE, FS_VINE, FS_HOUSE, FS_WARE, FS_CORNICE, FS_COPING, FS_COURSE, FS_PILASTER, FS_COUNT };
+long long gFacadeStat[FS_COUNT];
+struct FdStatScope {
+    MeshData* m;
+    int id;
+    size_t v0;
+    FdStatScope(MeshData* mm, int i) : m(mm), id(i), v0(mm->verts.size()) {}
+    ~FdStatScope() { gFacadeStat[id] += (long long)(m->verts.size() - v0); }
+};
+#define FD_STAT(mesh, id) FdStatScope fdStatScope((mesh), (id))
+#else
+#define FD_STAT(mesh, id)
+#endif
 
 enum : u32 { WF_FRONT = 1, WF_TOP = 2, WF_BOTTOM = 4, WF_START = 8, WF_END = 16, WF_BACK = 32, WF_BOX = 31, WF_ALL = 63,
              WF_LEDGE = WF_FRONT | WF_TOP | WF_BOTTOM,     // long horizontal molding (ends hidden at corners / in neighbours)
@@ -186,6 +204,7 @@ struct FD {
     bool old = false;      // older urban fabric: window AC units, security gates, fire escapes
     bool graffiti = false; // Calle Luna, the Flats
     size_t v0 = 0, budget = 9000;
+    int doorBay = -1;      // front bay holding an enterable interior's entrance (interiors.h): kept clear
     bool room() const { return k.m->verts.size() - v0 < budget; }
 };
 
@@ -193,6 +212,7 @@ struct FD {
 enum Cornice { CO_BAND = 0, CO_CLASSIC, CO_SLAB, CO_STEPPED, CO_NONE };
 
 void cornice(FD& d, const Wall& w, float H, int kind) {
+    FD_STAT(d.k.m, FS_CORNICE);
     Sink& k = d.k;
     float e = 0.004f * (float)(w.idx & 1);  // keeps overlapping corner pieces from z-fighting
     switch (kind) {
@@ -213,17 +233,20 @@ void cornice(FD& d, const Wall& w, float H, int kind) {
 }
 
 void coping(FD& d, const Wall& w, float H) {
+    FD_STAT(d.k.m, FS_COPING);
     float e = 0.004f * (float)(w.idx & 1);
     wbox(d.k, w, -0.06f, w.len + 0.06f, H + 0.97f + e, H + 1.07f + e, -0.36f, 0.06f, d.trim, d.trimMat, WF_LEDGE);
 }
 
 void stringCourse(FD& d, const Wall& w, float z, float h, float out, u32 col, u32 mat) {
+    FD_STAT(d.k.m, FS_COURSE);
     float e = 0.004f * (float)(w.idx & 1);
     wbox(d.k, w, -out, w.len + out, z - h * 0.5f + e, z + h * 0.5f + e, 0.f, out, col, mat, WF_LEDGE);
 }
 
 // Pilasters at bay boundaries (corners always); `every` = spacing in bays (0 = corners only)
 void pilasters(FD& d, const Wall& w, float z0, float z1, int every, float width, float out, u32 col, u32 mat) {
+    FD_STAT(d.k.m, FS_PILASTER);
     const FacadeGPU& f = *d.f;
     float pier = w.bw * (1.f - f.winW);
     for (int i = 0; i <= w.bays; i++) {
@@ -240,6 +263,7 @@ void pilasters(FD& d, const Wall& w, float z0, float z1, int every, float width,
 // ------------------------------------------------------------------------------------------------ openings
 // Window trim kinds: 0 sill only, 1 sill + head, 2 full frame, 3 frame + keystone head
 void windowTrims(FD& d, const Wall& w, const FacadeMass& ms, int kind, bool shutters, u32 shutterCol, int bahama) {
+    FD_STAT(d.k.m, FS_TRIMS);
     const FacadeGPU& f = *d.f;
     Sink& k = d.k;
     int style = (int)f.style;
@@ -260,6 +284,7 @@ void windowTrims(FD& d, const Wall& w, const FacadeMass& ms, int kind, bool shut
         // full surrounds where people look (lowest four floors); sills alone keep the rhythm higher up
         int kf = fr.idx <= 4 ? kind : 0;
         for (int i = 0; i < w.bays; i++) {
+            if (fr.idx == 0 && i == d.doorBay && w.facing > 0.9f) continue;   // interior entrance bay
             if (style == 4 && !industrialWindow(f, w, i, fr.idx)) continue;
             float s0 = (i + ws.x0) * w.bw, s1 = s0 + ws.w * w.bw, sc = (s0 + s1) * 0.5f;
             wbox(k, w, s0 - 0.08f, s1 + 0.08f, z0 - 0.09f, z0, 0.f, 0.11f, d.trim, d.trimMat, WF_LEDGE);
@@ -290,6 +315,7 @@ void windowTrims(FD& d, const Wall& w, const FacadeMass& ms, int kind, bool shut
 
 // Storefront: piers, bulkheads, mullions, transom, head, door; sign band lip and cornice
 void storefront(FD& d, const Wall& w, float vBase, int doorBay) {
+    FD_STAT(d.k.m, FS_STORE);
     const FacadeGPU& f = *d.f;
     Sink& k = d.k;
     float gH = f.groundH;
@@ -303,10 +329,19 @@ void storefront(FD& d, const Wall& w, float vBase, int doorBay) {
     int nm = Max(1, (int)floorf(f.bayW * 0.92f / 1.4f));
     for (int i = 0; i < w.bays; i++) {
         float s0 = (i + 0.04f) * w.bw, s1 = (i + 0.96f) * w.bw;
-        wbox(k, w, s0, s1, vBase - 0.3f, zg0, 0.f, 0.08f, d.dark, MM(MAT_MARBLE), WF_FRONT | WF_TOP);
+        // (an enterable interior's entrance keeps its doorway clear: bulkhead and mullions stop at the door jambs)
+        bool walkIn = i == doorBay && d.doorBay == doorBay;
+        float wdc = (s0 + s1) * 0.5f, wdw = Min(1.9f, (s1 - s0) * 0.8f) * 0.5f + 0.08f;
+        if (walkIn) {
+            wbox(k, w, s0, wdc - wdw, vBase - 0.3f, zg0, 0.f, 0.08f, d.dark, MM(MAT_MARBLE), WF_FRONT | WF_TOP | WF_END);
+            wbox(k, w, wdc + wdw, s1, vBase - 0.3f, zg0, 0.f, 0.08f, d.dark, MM(MAT_MARBLE), WF_FRONT | WF_TOP | WF_START);
+        } else {
+            wbox(k, w, s0, s1, vBase - 0.3f, zg0, 0.f, 0.08f, d.dark, MM(MAT_MARBLE), WF_FRONT | WF_TOP);
+        }
         wbox(k, w, s0, s1, zg1 - 0.07f, zg1 + 0.02f, 0.f, 0.06f, d.frame, fm, WF_FRONT | WF_BOTTOM);
         for (int j = 1; j < nm; j++) {
             float s = s0 + (s1 - s0) * j / nm;
+            if (walkIn && fabsf(s - wdc) < wdw + 0.04f) continue;
             wbox(k, w, s - 0.035f, s + 0.035f, zg0, zg1, 0.f, 0.06f, d.frame, fm, WF_POST);
         }
         float zt = zg0 + Min(2.4f, glassH - 0.45f);
@@ -316,11 +351,13 @@ void storefront(FD& d, const Wall& w, float vBase, int doorBay) {
             float zh = zg0 - 0.35f + Min(2.3f, glassH);
             wbox(k, w, dc - dw * 0.5f - 0.08f, dc - dw * 0.5f, vBase, zh, 0.f, 0.08f, d.frame, fm, WF_POST);
             wbox(k, w, dc + dw * 0.5f, dc + dw * 0.5f + 0.08f, vBase, zh, 0.f, 0.08f, d.frame, fm, WF_POST);
-            wbox(k, w, dc - 0.04f, dc + 0.04f, vBase, zh, 0.f, 0.08f, d.frame, fm, WF_FRONT);
             wbox(k, w, dc - dw * 0.5f, dc + dw * 0.5f, zh - 0.08f, zh, 0.f, 0.08f, d.frame, fm, WF_FRONT | WF_BOTTOM);
-            // push bars
-            wbox(k, w, dc - dw * 0.42f, dc - 0.12f, vBase + 1.0f, vBase + 1.05f, 0.08f, 0.12f, pk(0.8f, 0.8f, 0.82f), MM(MAT_CHROME), WF_FRONT);
-            wbox(k, w, dc + 0.12f, dc + dw * 0.42f, vBase + 1.0f, vBase + 1.05f, 0.08f, 0.12f, pk(0.8f, 0.8f, 0.82f), MM(MAT_CHROME), WF_FRONT);
+            if (!walkIn) {   // painted-on doors (a walk-in interior has real leaves)
+                wbox(k, w, dc - 0.04f, dc + 0.04f, vBase, zh, 0.f, 0.08f, d.frame, fm, WF_FRONT);
+                // push bars
+                wbox(k, w, dc - dw * 0.42f, dc - 0.12f, vBase + 1.0f, vBase + 1.05f, 0.08f, 0.12f, pk(0.8f, 0.8f, 0.82f), MM(MAT_CHROME), WF_FRONT);
+                wbox(k, w, dc + 0.12f, dc + dw * 0.42f, vBase + 1.0f, vBase + 1.05f, 0.08f, 0.12f, pk(0.8f, 0.8f, 0.82f), MM(MAT_CHROME), WF_FRONT);
+            }
         }
     }
     if (f.flags & 2u) {
@@ -333,11 +370,12 @@ void storefront(FD& d, const Wall& w, float vBase, int doorBay) {
 
 // Striped canvas awning with a scalloped valance, from s0 to s1 along the wall, attached at z, projecting `depth`
 void awningStriped(FD& d, const Wall& w, float s0, float s1, float z, float depth, u32 colA, u32 colB, bool scallop) {
+    FD_STAT(d.k.m, FS_AWNING);
     Sink& k = d.k;
     MeshData& m = *k.m;
     float len = s1 - s0;
     if (len < 0.4f) return;
-    int n = Max(1, (int)roundf(len / 0.75f));
+    int n = Max(1, (int)roundf(len / 1.0f));
     float drop = depth * 0.38f, val = 0.3f;
     u32 mat = MM(MAT_FABRIC);
     vec3 N3(w.n, 0.f), T3(w.t, 0.f);
@@ -349,7 +387,7 @@ void awningStriped(FD& d, const Wall& w, float s0, float s1, float z, float dept
         m.quadFacing(A0, A1, B1, B0, vec2(a0, 0), vec2(a1, 0), vec2(a1, depth), vec2(a0, depth), c, mat, vec3(N3 * 0.4f) + vec3(0, 0, 1));
         m.quadFacing(A0, B0, B1, A1, vec2(a0, 0), vec2(a0, depth), vec2(a1, depth), vec2(a1, 0), c, mat, vec3(-N3 * 0.4f) - vec3(0, 0, 1));
         // valance: straight top, scalloped (or straight) bottom, double sided
-        const int SEG = 3;
+        const int SEG = 2;
         vec3 pts[SEG + 1];
         for (int j = 0; j <= SEG; j++) {
             float u = (float)j / SEG;
@@ -386,8 +424,8 @@ void awningStriped(FD& d, const Wall& w, float s0, float s1, float z, float dept
         if (dot(fn, nn) >= 0.f) { m.tri(i0, i1, i2); m.tri(j0, j2, j1); }
         else { m.tri(i0, i2, i1); m.tri(j0, j1, j2); }
     }
-    // brackets
-    for (int e = 0; e < 2; e++) {
+    // brackets (long awnings only)
+    for (int e = 0; e < 2 && len > 4.f; e++) {
         float s = e == 0 ? s0 + 0.08f : s1 - 0.08f;
         vec3 a = vec3(w.a + w.t * s, z - 0.02f), b = vec3(w.a + w.t * s + w.n * depth, z - drop - 0.02f);
         vec3 ax = normalize(b - a);
@@ -397,6 +435,7 @@ void awningStriped(FD& d, const Wall& w, float s0, float s1, float z, float dept
 
 // Roll-down security gate: housing at the top of the storefront glass; optionally pulled partly down
 void securityGate(FD& d, const Wall& w, float s0, float s1, float zTop, float closedTo, u32 panelCol) {
+    FD_STAT(d.k.m, FS_GATE);
     Sink& k = d.k;
     wbox(k, w, s0 - 0.04f, s1 + 0.04f, zTop - 0.34f, zTop, 0.f, 0.3f, pk(0.55f, 0.56f, 0.57f), MM(MAT_METAL_BRUSHED), WF_BOX | WF_BOTTOM);
     for (int e = 0; e < 2; e++) {
@@ -433,6 +472,7 @@ void neonText(Sink& k, const char* txt, vec3 origin, vec3 right, vec3 up, float 
 
 // Projecting blade sign: panel perpendicular to the wall at s, vertical neon letters on both faces, tube border, brackets
 void bladeSign(FD& d, const Wall& w, float s, float z0, float z1, float o0, float o1, const char* word, vec3 ncol, u32 panelCol, u32 anim) {
+    FD_STAT(d.k.m, FS_BLADE);
     Sink& k = d.k;
     float th = 0.09f;
     // panel spans o0..o1 out of the wall, thickness along t
@@ -476,6 +516,7 @@ void bladeSign(FD& d, const Wall& w, float s, float z0, float z1, float o0, floa
 
 // Small window neon (OPEN / word) floating just in front of storefront glass
 void windowNeon(FD& d, const Wall& w, float sc, float z, const char* word, vec3 col, u32 anim) {
+    FD_STAT(d.k.m, FS_WNEON);
     Sink& k = d.k;
     float h = 0.26f;
     vec2 rt = vec2(-w.n.y, w.n.x);
@@ -496,6 +537,7 @@ void windowNeon(FD& d, const Wall& w, float sc, float z, const char* word, vec3 
 
 // Graffiti piece: optional backing blob, dark outline, colored fill, drips (paint on the wall plane)
 void graffiti(FD& d, const Wall& w, float sc, float zb, float h, Rng& r) {
+    FD_STAT(d.k.m, FS_GRAFFITI);
     Sink& k = d.k;
     char word[12];
     int nsy = r.irange(2, 3);
@@ -550,6 +592,7 @@ void graffiti(FD& d, const Wall& w, float sc, float zb, float h, Rng& r) {
 
 // ------------------------------------------------------------------------------------------------ wall equipment
 void acUnit(FD& d, const Wall& w, float sc, float zSill, float wWin) {
+    FD_STAT(d.k.m, FS_AC);
     Sink& k = d.k;
     float hw = Min(0.34f, wWin * 0.4f);
     u32 body = d.r.chance(0.7f) ? pk(0.88f, 0.87f, 0.82f) : pk(0.62f, 0.6f, 0.56f);
@@ -558,14 +601,15 @@ void acUnit(FD& d, const Wall& w, float sc, float zSill, float wWin) {
 }
 
 void downpipe(FD& d, const Wall& w, float s, float zTop, float zBot, u32 col) {
+    FD_STAT(d.k.m, FS_PIPE);
     Sink& k = d.k;
     wbox(k, w, s - 0.055f, s + 0.055f, zBot + 0.25f, zTop, 0.04f, 0.15f, col, MM(MAT_METAL_PAINTED), WF_POST);
-    wbox(k, w, s - 0.07f, s + 0.07f, zBot, zBot + 0.25f, 0.03f, 0.3f, col, MM(MAT_METAL_PAINTED), WF_POST | WF_TOP);
-    wbox(k, w, s - 0.1f, s + 0.1f, zTop - 0.02f, zTop + 0.22f, 0.f, 0.2f, col, MM(MAT_METAL_PAINTED), WF_POST | WF_BOTTOM);
+    wbox(k, w, s - 0.07f, s + 0.07f, zBot, zBot + 0.25f, 0.03f, 0.3f, col, MM(MAT_METAL_PAINTED), WF_FRONT | WF_TOP);
 }
 
 // Fire escape on a brick midrise: platforms and railings at each upper floor, switchback stairs, drop ladder
 void fireEscape(FD& d, const Wall& w, const FacadeMass& ms, int bay0, int nb) {
+    FD_STAT(d.k.m, FS_FIRE);
     const FacadeGPU& f = *d.f;
     Sink& k = d.k;
     float s0 = bay0 * w.bw + 0.15f, s1 = (bay0 + nb) * w.bw - 0.15f;
@@ -617,6 +661,7 @@ void fireEscape(FD& d, const Wall& w, const FacadeMass& ms, int bay0, int nb) {
 
 // Balconies on a wall: slab + railing (metal) or solid stucco parapet, pattern 0 every bay, 1 alternate, 2 center pair
 void balconies(FD& d, const Wall& w, const FacadeMass& ms, int pattern, bool solid) {
+    FD_STAT(d.k.m, FS_BALC);
     const FacadeGPU& f = *d.f;
     Sink& k = d.k;
     FloorRow rows[64];
@@ -656,6 +701,7 @@ void balconies(FD& d, const Wall& w, const FacadeMass& ms, int pattern, bool sol
 // ------------------------------------------------------------------------------------------------ style specials
 // Art deco: fins at the shader's fin lines, corner speed lines, ziggurat crest, finial on the tower element
 void decoFront(FD& d, const Wall& w, const FacadeMass& ms) {
+    FD_STAT(d.k.m, FS_DECO);
     const FacadeGPU& f = *d.f;
     Sink& k = d.k;
     float H = ms.z1, zf0 = ms.vBase + f.groundH;
@@ -682,6 +728,7 @@ void decoFront(FD& d, const Wall& w, const FacadeMass& ms) {
 
 // Towers: vertical fins (curtain walls) or spandrel ledges (punched/ribbon), crown band
 void towerTier(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls, int finMode) {
+    FD_STAT(d.k.m, FS_TOWER);
     const FacadeGPU& f = *d.f;
     Sink& k = d.k;
     FloorRow rows[160];
@@ -708,6 +755,7 @@ void towerTier(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls, int 
 // ------------------------------------------------------------------------------------------------ houses and gardens
 // Lawn over the whole lot following the terrain (the house and pool deck sit on top)
 void lawn(FD& d) {
+    FD_STAT(d.k.m, FS_LAWN);
     const Building& b = *d.b;
     Sink& k = d.k;
     if (b.lotHx < 2.f || b.lotHy < 2.f) return;
@@ -740,6 +788,7 @@ inline u32 foliageTint(vec3 c) { return pk(c); }
 
 // Hedge segment between two ground points, following the terrain in pieces
 void hedge(FD& d, vec2 a, vec2 b, float h, float wd, vec3 tint, bool collide) {
+    FD_STAT(d.k.m, FS_HEDGE);
     Sink& k = d.k;
     float L = length(b - a);
     if (L < 0.5f) return;
@@ -766,6 +815,7 @@ void hedge(FD& d, vec2 a, vec2 b, float h, float wd, vec3 tint, bool collide) {
 
 // Bougainvillea: magenta flowering clumps climbing a wall from the ground, over a span along the wall
 void bougainvillea(FD& d, const Wall& w, float s0, float s1, float zg, float zTop) {
+    FD_STAT(d.k.m, FS_VINE);
     Sink& k = d.k;
     u32 mat = MM(MAT_LEAVES);
     const vec3 blossom[] = {vec3(1.f, 0.25f, 0.75f), vec3(0.95f, 0.2f, 0.55f), vec3(0.85f, 0.25f, 0.95f), vec3(1.f, 0.45f, 0.35f)};
@@ -787,6 +837,7 @@ void bougainvillea(FD& d, const Wall& w, float s0, float s1, float zg, float zTo
 
 // House and villa: door, stoop, porch roof / portico, window trims and shutters, AC condenser, garden
 void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
+    FD_STAT(d.k.m, FS_HOUSE);
     const Building& b = *d.b;
     const FacadeGPU& f = *d.f;
     Sink& k = d.k;
@@ -805,7 +856,7 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
                                vec3(0.85f, 0.4f, 0.3f), vec3(0.4f, 0.6f, 0.75f), vec3(0.55f, 0.75f, 0.45f)};
     u32 shutterCol = pk(shutterPal[d.r.next() % ARRAY_COUNT(shutterPal)]);
     for (const Wall& w : walls)
-        if (w.len > 2.f) windowTrims(d, w, ms, w.facing > 0.5f ? trimKind : 0, shutters && w.facing > -0.5f, shutterCol, bahama && w.facing > 0.5f);
+        if (w.len > 2.f && fabsf(w.facing) > 0.5f) windowTrims(d, w, ms, w.facing > 0.5f ? trimKind : 0, shutters && w.facing > 0.5f, shutterCol, bahama && w.facing > 0.5f);
     // front door at the pier nearest the middle of the front wall
     if (fw.bays >= 2) {
         int bi = fw.bays / 2;
@@ -904,8 +955,9 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
     (void)frontMid;
     if (hedges) {
         float hh = villa ? 1.8f : d.r.range(1.1f, 1.6f);
-        hedge(d, fl + b.front * -1.f, bl, hh, 0.9f, hedgeTint, true);
-        hedge(d, frt + b.front * -1.f, brt, hh, 0.9f, hedgeTint, true);
+        // (no hedge on the garage side: the garage wing and its driveway can reach the lot line)
+        if (!(garage && gside < 0.f)) hedge(d, fl + b.front * -1.f, bl, hh, 0.9f, hedgeTint, true);
+        if (!(garage && gside > 0.f)) hedge(d, frt + b.front * -1.f, brt, hh, 0.9f, hedgeTint, true);
         if (d.r.chance(0.6f)) hedge(d, bl, brt, hh, 0.9f, hedgeTint, true);
     }
     // front boundary: low hedge or stucco garden wall with gaps for the driveway and the front walk
@@ -986,6 +1038,7 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
 
 // Warehouses and factories: personnel doors with canopies and wall packs, dock bumpers, downpipes
 void warehouseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
+    FD_STAT(d.k.m, FS_WARE);
     const Building& b = *d.b;
     Sink& k = d.k;
     float z0 = ms.vBase;
@@ -1047,6 +1100,7 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
     d.k.props = props;
     d.k.lights = lights;
     d.b = &b;
+    d.doorBay = interiorDoorBay(b);
     d.f = &fac;
     d.map = &map;
     d.r = Rng(b.seed ^ 0xFAC4DE71u);
@@ -1131,7 +1185,7 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
             if (w.len < 1.2f) continue;
             bool front = &w == &walls[fi];
             // base and ground-floor course
-            if (bottom && plinth && !(front && store) && !industrial)
+            if (bottom && plinth && !(front && (store || d.doorBay >= 0)) && !industrial)
                 wbox(d.k, w, -0.05f, w.len + 0.05f, ms.vBase - 0.5f, ms.vBase + 0.55f, 0.f, 0.05f, d.dark, d.wallMat, WF_FRONT | WF_TOP);
             if (bottom && floors >= 2 && !industrial) stringCourse(d, w, ms.vBase + fac.groundH, 0.22f, 0.12f, d.trim, d.trimMat);
             if (sillCourses && !industrial && (int)fac.style == 0) {
@@ -1178,7 +1232,7 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 bool tagged = d.graffiti && d.r.chance(0.5f);
                 for (int i = 0; i < fw.bays; i++) {
                     float s0 = (i + 0.04f) * fw.bw, s1 = (i + 0.96f) * fw.bw;
-                    bool closed = d.r.chance(0.3f);
+                    bool closed = d.r.chance(0.3f) && d.doorBay < 0;   // an enterable shop is open
                     float closedTo = closed ? Lerp(ms.vBase + 0.35f, zTopGlass - 0.5f, d.r.f()) : zTopGlass + 1.f;
                     securityGate(d, fw, s0, s1, zTopGlass, closedTo, pk(gc));
                     if (closed && tagged && closedTo < zTopGlass - 1.3f) {
@@ -1243,6 +1297,7 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 for (int ri = 0; ri < nr && d.room(); ri++) {
                     WinSpec ws = winSpec(fac, rows[ri].idx == 0);
                     if (ws.store) continue;
+                    if (rows[ri].idx == 0 && d.doorBay >= 0 && w.facing > 0.9f) continue;   // interior windows stay clear
                     for (int i = 0; i < w.bays; i++) {
                         if (shHashF(b.seed * 977u + (u32)(w.idx * 131 + ri * 17 + i)) > p) continue;
                         float s0 = (i + ws.x0) * w.bw, s1 = s0 + ws.w * w.bw;
@@ -1256,8 +1311,7 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
             const Wall& bw = walls[bi];
             if (bw.len > 3.f) {
                 u32 pc = d.r.chance(0.5f) ? d.trim : pk(0.5f, 0.52f, 0.5f);
-                downpipe(d, bw, 0.4f, ms.z1 + (ms.parapet ? 0.6f : 0.f), ms.vBase, pc);
-                downpipe(d, bw, bw.len - 0.4f, ms.z1 + (ms.parapet ? 0.6f : 0.f), ms.vBase, pc);
+                downpipe(d, bw, (b.seed & 1u) ? 0.4f : bw.len - 0.4f, ms.z1 + (ms.parapet ? 0.6f : 0.f), ms.vBase, pc);
             }
         }
         if (industrial) warehouseDetail(d, ms, walls);

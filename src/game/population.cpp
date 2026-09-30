@@ -700,6 +700,12 @@ void GameWorld::updatePopulation(float dt) {
                     role = PR_WORKER;
                 }
                 if (night && nightlifeArea(sreg) && role == PR_CIVILIAN && h % 2 == 0) role = PR_NIGHTLIFE;
+                // sightseeing groups by day on the beach front, downtown and in the marina districts
+                bool scenic = sreg == World::REG_BEACH || sreg == World::REG_DOWNTOWN || sreg == World::REG_KEY_CORAL || sreg == World::REG_BAY_ISLAND;
+                if (kind == PK_GROUP && scenic && !night && (h >> 17) % 2 == 0) {
+                    role = PR_TOURIST;
+                    charRole = 4;
+                }
                 bool walkDir = (h >> 11) & 1;
                 vec2 heading = walkDir ? s.t : -s.t;
                 int id = spawnPed(randomCivilianChar(h >> 3, charRole), dvec3(p3), AI::dirYaw(heading), FAC_CIVILIAN);

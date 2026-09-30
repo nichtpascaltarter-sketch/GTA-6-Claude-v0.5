@@ -85,6 +85,11 @@ struct MaterialLibrary {
             {MAT_LIGHT_INDICATOR, 17, vec3(0.6f, 0.35f, 0.02f), vec3(0.6f, 0.35f, 0.02f), vec3(0.3f), vec4(0, 0, 0, 1), 1.f, 0.3f, 0, 0, 0},
             {MAT_DECAL_TEXT, 27, vec3(0.9f), vec3(0.9f), vec3(0.9f), vec4(0, 0, 0, 1), 1.f, 1.f, 0, 0, 0},
             {MAT_CAR_WINDOW, 17, vec3(0.01f), vec3(0.01f), vec3(0.01f), vec4(0, 0, 0, 1), 1.f, 0.2f, 0, MF_GLASS, 0},
+            // interiors: tile grid generators reused with neutral colours (the vertex colour tints them)
+            {MAT_TILE, 25, vec3(0.86f, 0.86f, 0.84f), vec3(0.8f, 0.8f, 0.78f), vec3(0.42f, 0.41f, 0.39f), vec4(0, 0, 0, 3), 9.6f, 1.6f, 0, 0, 0},
+            {MAT_CEILING_TILE, 25, vec3(0.88f, 0.88f, 0.86f), vec3(0.84f, 0.84f, 0.82f), vec3(0.62f, 0.62f, 0.6f), vec4(0, 0, 0, 2), 19.2f, 9.f, 0, 0, 0},
+            {MAT_CARPET, 23, vec3(0.7f), vec3(0.62f), vec3(0.3f), vec4(0, 0, 0, 4), 0.35f, 1.f, 0, 0, 0},
+            {MAT_WOOD_FLOOR, 24, vec3(0.5f, 0.36f, 0.22f), vec3(0.6f, 0.45f, 0.29f), vec3(0.3f), vec4(0, 0, 0, 4), 1.8f, 0.55f, 0, 0, 0},
         };
         layerCount = (int)defs.size();
         albedoArr = createMaterialArray(size, layerCount, true);

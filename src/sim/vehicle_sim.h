@@ -54,6 +54,18 @@ struct WheelState {
     bool burst = false;        // shot-out tire
 };
 
+// Mod-shop upgrades (added by the vehicle simulation). Levels 0..3 (clamped); see applyUpgrades().
+//   engine:       +10 % torque and power per level
+//   turbo:        up to +14 % torque/power once spooled (~0.7 s lag above ~35 % rpm), VehicleState::turboBoost
+//   brakes:       +15 % brake torque per level
+//   transmission: shift time -20 % per level, gear spread -5 % per level (closer ratios)
+//   suspension:   springs +15 %, dampers +20 %, anti-roll bars +40 % per level, ride height -2 cm per level
+//   top speed rises with power: +2.5 % per engine level, +3 % with the turbo
+struct VehicleUpgrades {
+    int engine = 0, brakes = 0, transmission = 0, suspension = 0;
+    bool turbo = false;
+};
+
 // Per-vehicle tuning derived from the VehicleModel by initVehicle (internal to the simulation; do not edit).
 struct VehicleTuning {
     vec3 com;                       // local center of mass
@@ -86,6 +98,9 @@ struct VehicleTuning {
     float engineI = 0.2f;
     float shiftTime = 0.25f;
     float driveRadius = 0.33f;
+    float topSpeed = 50.f;          // governor speed (m/s): model top speed plus upgrades
+    bool turbo = false;             // turbocharger fitted (upgrade)
+    float rideDrop = 0.f;           // lowered suspension (m): wheels sit this much higher in the body at rest
     // aero
     float dragArea = 0.7f;          // Cd*A (m^2)
     float liftArea = 0.f;           // downforce coefficient * A (m^2)
@@ -179,6 +194,8 @@ struct VehicleState {
     float ejectTimer = 0.f;
     float leanCmd = 0.f;           // bikes: rider lean target (slew-limited)
     float driftTimer = 0.f;        // cars: > 0 while the driver holds a power slide (countersteer / handbrake flick)
+    VehicleUpgrades upgrades;      // fitted upgrades (set through applyUpgrades; initVehicle starts stock)
+    float turboBoost = 0.f;        // 0..1 turbo spool (audio: whistle while rising, blow-off when it drops fast)
 
     vec3 forward() const { return rotate(body.rot, vec3(0, 1, 0)); }
     vec3 right() const { return rotate(body.rot, vec3(1, 0, 0)); }
@@ -207,5 +224,9 @@ void resetVehicle(VehicleState& s, dvec3 pos, float yaw);
 dvec3 vehicleCenterOfMass(const VehicleState& s);
 // Shoot out a tire (the game's weapons can call this): reduces grip on that wheel, rim scrapes.
 void burstTire(VehicleState& s, int wheel);
+// Fit mod-shop upgrades: re-derives the tuning from the model plus `u` (stock tuning when all levels are 0).
+// Idempotent, callable at any time on a live vehicle: pose, motion, wheel state, damage and flags are kept.
+// initVehicle starts stock, so call this again after re-initializing a vehicle that carries mods.
+void applyUpgrades(VehicleState& s, const VehicleModel& m, const VehicleUpgrades& u);
 
 }  // namespace Vehicles

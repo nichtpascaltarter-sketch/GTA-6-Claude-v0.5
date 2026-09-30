@@ -56,6 +56,75 @@ struct HalfLoft {
             }
         }
     }
+    // Cabin lining seen through the see-through windows: inward copy of every non-glass cell between y0 and y1
+    // (offset towards the section axis) plus double-sided bulkheads closing both ends. Call after build().
+    void innerShell(PMesh& m, float y0, float y1, float off, u8 mat, u32 color) {
+        int nr = (int)rows.size();
+        auto inner = [&](int i, int j) {
+            vec3 g = G[i * NS + j];
+            vec3 ax(0.f, g.y, (G[i * NS].z + G[i * NS + NS - 1].z) * 0.5f);
+            vec3 d = ax - g;
+            float l = length(d);
+            return l > off * 1.5f ? g + d * (off / l) : ax;
+        };
+        // glass map for the reveals
+        std::vector<u8> glass((nr - 1) * (NS - 1), 0);
+        for (int i = 0; i + 1 < nr; i++)
+            for (int j = 0; j + 1 < NS; j++) {
+                vec3 a = G[i * NS + j], b = G[(i + 1) * NS + j], c = G[(i + 1) * NS + j + 1], d = G[i * NS + j + 1];
+                u8 mt = MAT_CARPAINT;
+                u32 cl = kCol1;
+                classify((a + b + c + d) * 0.25f, j, mt, cl);
+                glass[i * (NS - 1) + j] = mt == MAT_CAR_WINDOW;
+            }
+        auto isGlass = [&](int i, int j) { return i >= 0 && i + 1 < nr && j >= 0 && j + 1 < NS && glass[i * (NS - 1) + j]; };
+        m.use(mat, color);
+        // window reveals: double-sided strips from the skin edge to the lining edge around every opening
+        for (int i = 0; i + 1 < nr; i++)
+            for (int j = 0; j + 1 < NS; j++) {
+                if (!isGlass(i, j) || rows[i] < y0 - 1e-4f || rows[i + 1] > y1 + 1e-4f) continue;
+                auto reveal = [&](int ia, int ja, int ib, int jb) {
+                    vec3 sa = G[ia * NS + ja], sb = G[ib * NS + jb], qa = inner(ia, ja), qb = inner(ib, jb);
+                    vec3 n = cross(sb - sa, qa - sa);
+                    if (length2(n) < 1e-12f) return;
+                    m.quadFacing(m.add(sa), m.add(sb), m.add(qb), m.add(qa), n);
+                    m.quadFacing(m.add(sa), m.add(sb), m.add(qb), m.add(qa), -n);
+                };
+                if (!isGlass(i, j - 1)) reveal(i, j, i + 1, j);
+                if (!isGlass(i, j + 1) && j + 1 < NS - 1) reveal(i, j + 1, i + 1, j + 1);
+                if (!isGlass(i - 1, j)) reveal(i, j, i, j + 1);
+                if (!isGlass(i + 1, j)) reveal(i + 1, j, i + 1, j + 1);
+            }
+        for (int i = 0; i + 1 < nr; i++) {
+            if (rows[i] < y0 - 1e-4f || rows[i + 1] > y1 + 1e-4f) continue;
+            for (int j = 0; j + 1 < NS; j++) {
+                vec3 a = G[i * NS + j], b = G[(i + 1) * NS + j], c = G[(i + 1) * NS + j + 1], d = G[i * NS + j + 1];
+                if (length(cross(c - a, d - b)) < 1e-8f) continue;
+                if (isGlass(i, j)) continue;
+                vec3 qa = inner(i, j), qb = inner(i + 1, j), qc = inner(i + 1, j + 1), qd = inner(i, j + 1);
+                vec3 ctr = (qa + qb + qc + qd) * 0.25f;
+                vec3 ax(0.f, ctr.y, (G[i * NS].z + G[i * NS + NS - 1].z) * 0.5f);
+                m.quadFacing(m.add(qa), m.add(qb), m.add(qc), m.add(qd), ax - ctr);
+            }
+        }
+        // bulkheads at the first and last lined rows
+        for (int e = 0; e < 2; e++) {
+            int i = -1;
+            for (int k = 0; k < nr; k++)
+                if (rows[k] >= y0 - 1e-4f && rows[k] <= y1 + 1e-4f) { if (e == 0) { i = k; break; } else i = k; }
+            if (i < 0) continue;
+            vec3 ctr(0.f, rows[i], (G[i * NS].z + G[i * NS + NS - 1].z) * 0.5f);
+            u32 ic = m.add(ctr), ic2 = m.add(ctr);
+            for (int j = 0; j + 1 < NS; j++) {
+                vec3 pa = inner(i, j), pb = inner(i, j + 1);
+                vec3 fn = cross(pa - ctr, pb - ctr);
+                if (length2(fn) < 1e-12f) continue;
+                u32 a = m.add(pa), b = m.add(pb), a2 = m.add(pa), b2 = m.add(pb);
+                if (fn.y >= 0.f) { m.tri(ic, a, b); m.tri(ic2, b2, a2); }
+                else { m.tri(ic, b, a); m.tri(ic2, a2, b2); }
+            }
+        }
+    }
 };
 
 // Cambered airfoil (NACA-like) outline in (chord 0..1, thickness), CCW from the trailing edge along the top.
@@ -147,14 +216,20 @@ inline void mdlTern(VehicleModel& o) {
         cl = kCol1;
         float top = zt(c.y);
         bool side = j >= 5 && j <= 9;
-        if (c.y < 0.55f && c.y > 0.02f && c.z > lerp(1.66f, 2.0f, (0.55f - c.y) / 0.53f) - 0.02f && j >= 8) { mt = MAT_CAR_GLASS; return; }  // windshield
-        if (side && c.z > 1.42f && c.z < top - 0.1f && ((c.y < 0.02f && c.y > -0.85f) || (c.y < -0.95f && c.y > -1.75f))) { mt = MAT_CAR_GLASS; return; }
+        if (c.y < 0.55f && c.y > 0.02f && c.z > lerp(1.66f, 2.0f, (0.55f - c.y) / 0.53f) - 0.02f && j >= 8) {  // windshield
+            mt = MAT_CAR_WINDOW; cl = col(0.88f, 0.95f, 0.95f, 1.f); return;
+        }
+        if (side && c.z > 1.42f && c.z < top - 0.1f && ((c.y < 0.02f && c.y > -0.85f) || (c.y < -0.95f && c.y > -1.75f))) {
+            mt = MAT_CAR_WINDOW; cl = col(0.86f, 0.94f, 0.94f, c.y < -0.9f ? 0.8f : 0.92f); return;
+        }
         if (j == 5 && c.y < 1.1f) { cl = kCol2; return; }  // cheat line along the widest part of the fuselage
         if (c.z < zb(c.y) + 0.12f && c.y > -1.8f) { mt = MAT_CARPAINT; cl = kCol2; }
     };
     PMesh::Mark mk = m.mark();
     m.newGroup(35.f);
     fl.build(m);
+    m.newGroup(38.f);
+    fl.innerShell(m, -2.05f, 0.62f, 0.02f, MAT_INTERIOR, col(0.75f, 0.72f, 0.68f));
     m.mirrorX(mk);
     // cowling air inlets and exhaust
     m.newGroup(40.f);
@@ -388,12 +463,14 @@ inline void heliBuild(VehicleModel& o, bool police) {
         // bubble canopy: nose above the chin, and big side windows in the doors
         bool nose = c.y > 0.85f && c.z > 0.78f + (c.y - 0.85f) * 0.1f;
         bool doors = c.y < 0.8f && c.y > -0.9f && c.z > 1.12f && c.z < zt(c.y) - 0.12f && j >= 4 && j <= 11 && fabsf(c.y + 0.05f) > 0.04f;
-        if (nose || doors) { mt = MAT_CAR_GLASS; return; }
+        if (nose || doors) { mt = MAT_CAR_WINDOW; cl = col(0.86f, 0.95f, 0.94f, nose ? 1.f : 0.9f); return; }
         if (c.z < 0.9f || (police && c.z < 1.1f)) { cl = kCol2; }
     };
     PMesh::Mark mk = m.mark();
     m.newGroup(35.f);
     fl.build(m);
+    m.newGroup(38.f);
+    fl.innerShell(m, -1.55f, 1.93f, 0.02f, MAT_INTERIOR, police ? col(0.5f, 0.5f, 0.52f) : col(0.72f, 0.7f, 0.66f));
     m.mirrorX(mk);
     // canopy centre post (roof to nose tip)
     {

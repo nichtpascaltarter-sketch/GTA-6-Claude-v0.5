@@ -105,9 +105,11 @@ const Tpl kMission[] = {
     {PK_CONSPIRACY, IMG_NONE, "Mark my words: what happened in {D} today is connected to the Causeway thing. [Nobody listens.|Screenshot this.]"},
     {PK_RADIO, IMG_NONE, "Wild day in {C}, folks. [Stay tuned to {R}|Keep it locked to {R}] for the soundtrack to whatever this is."},
 };
+// subject: a vehicle or a property name (no article in the templates)
 const Tpl kPurchase[] = {
-    {PK_LOCAL, IMG_CAR, "New neighbor just rolled up in a {V}. [Loud. Very loud.|Must be nice.|Rent's going up again, isn't it.]"},
-    {PK_INFLUENCER, IMG_NONE, "Saw someone buy a {V} like it was a smoothie. {C} energy is unmatched."},
+    {PK_LOCAL, IMG_NONE, "Word on {S} is somebody just paid cash for {V}. [Must be nice.|Rent's going up again, isn't it.|What do they DO for a living?]"},
+    {PK_LOCAL, IMG_NONE, "{V} has a new owner. [Loud parties incoming.|Hope they're friendlier than the last one.|Welcome to {D}, I guess.]"},
+    {PK_INFLUENCER, IMG_DAY, "Saw someone buy {V} like it was a smoothie. {C} energy is unmatched."},
 };
 const Tpl kFlyby[] = {
     {PK_LOCAL, IMG_NONE, "Some maniac just flew a [plane|jet|chopper] [under the power lines|between the towers|right over the pool] in {D}. My hair is still moving."},
@@ -240,9 +242,13 @@ void initPersonas() {
     addPersona("Beto Eats", "betoeats", PK_FOODIE, false, 38000);
     addPersona("Coach Nia", "coachnia", PK_FITNESS, true, 120000);
     addPersona("Lani Luxe", "lanilux", PK_INFLUENCER, true, 1400000);
+    // distinct first names (shuffled pool)
+    std::vector<int> order((int)ARRAY_COUNT(kFirst));
+    for (int i = 0; i < (int)order.size(); i++) order[i] = i;
+    for (int i = (int)order.size() - 1; i > 0; i--) std::swap(order[i], order[rndi(i + 1)]);
     for (int i = 0; i < 22; i++) {
         bool tourist = i % 4 == 3;
-        std::string first = kFirst[rndi((int)ARRAY_COUNT(kFirst))];
+        std::string first = kFirst[order[i % (int)order.size()]];
         std::string last = kLast[rndi((int)ARRAY_COUNT(kLast))];
         std::string handle;
         int pat = rndi(4);

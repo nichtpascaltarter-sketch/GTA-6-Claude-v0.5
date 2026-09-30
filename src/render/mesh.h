@@ -15,6 +15,9 @@ enum MaterialId : u8 {
     MAT_EYE, MAT_TIRE, MAT_RIM, MAT_CAR_GLASS, MAT_INTERIOR, MAT_LIGHT_INDICATOR, MAT_DECAL_TEXT,
     // see-through vehicle windows: forward-shaded after lighting (vertex colour rgb = tint, a = clarity 1 clear..0 dark)
     MAT_CAR_WINDOW,
+    // Interiors (world/interiorkit.cpp): glossy ceramic floor/wall tiles (30 cm at uv = meters, tint by vertex colour),
+    // matte acoustic ceiling tiles (60 cm), fine loop-pile carpet, light oak floor planks
+    MAT_TILE, MAT_CEILING_TILE, MAT_CARPET, MAT_WOOD_FLOOR,
     MAT_COUNT
 };
 

@@ -688,7 +688,8 @@ static const char* const kDictEntries[] = {
     "underline AH2 N D ER0 L AY1 N", "view V Y UW1", "anger AE1 NG G ER0", "citizen S IH1 T AH0 Z AH0 N",
 
     // ---- expressions, interjections, street talk
-    "uh AH1", "um AH1 M", "hmm HH M", "huh HH AH1", "ah AA1", "aha AA0 HH AA1", "ooh UW1", "oops UW1 P S",
+    "uh AH1", "um AH1 M", "hmm HH M", "huh HH AH1", "ow AW1", "ouch AW1 CH", "ugh AH1 G", "psst P S T",
+    "erm ER1 M", "mm M", "mmm M", "uhh AH1", "umm AH1 M", "hmph HH M F", "tsk T S K", "ah AA1", "aha AA0 HH AA1", "ooh UW1", "oops UW1 P S",
     "ouch AW1 CH", "whoa W OW1", "wow W AW1", "damn D AE1 M", "dammit D AE1 M IH0 T", "hell HH EH1 L",
     "heck HH EH1 K", "crap K R AE1 P", "shoot SH UW1 T", "gosh G AA1 SH", "geez JH IY1 Z", "jeez JH IY1 Z",
     "yo Y OW1", "cool K UW1 L", "chill CH IH1 L", "sucker S AH1 K ER0", "punk P AH1 NG K", "jerk JH ER1 K",

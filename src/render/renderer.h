@@ -93,6 +93,14 @@ struct Settings {
     int maxDecals = 512;
     int rainQuality = 2;          // 0 low .. 3 ultra (number of rain streaks)
 
+    // Quality ladder. High is the default and the 1440p / RTX 4070-class target (all effects on, ~6-7 ms for
+    // clouds + fog + SSR + SSGI); Medium trims step counts and resolutions; Low keeps the look with the
+    // cheapest variants; Ultra raises sample counts, probe resolution and shadow resolution.
+    enum Preset { PRESET_LOW = 0, PRESET_MEDIUM = 1, PRESET_HIGH = 2, PRESET_ULTRA = 3 };
+    static const char* presetName(int q) {
+        static const char* names[4] = {"Low", "Medium", "High", "Ultra"};
+        return names[q < 0 ? 0 : (q > 3 ? 3 : q)];
+    }
     // Sets every per-effect field from a global quality level (0 low, 1 medium, 2 high, 3 ultra).
     void applyPreset(int q) {
         quality = q < 0 ? 0 : (q > 3 ? 3 : q);
@@ -137,6 +145,25 @@ struct DynamicLight {
     float radius;
     vec3 dir = vec3(0, 0, -1);
     float spotCos = -2.f, spotInner = -1.f;
+    bool headlight = false;  // vehicle low beam: asymmetric cut-off pattern along dir (spotCos/Inner ignored)
+};
+
+// Enterable interiors (world/interiors.h), submitted by gameplay every frame like dynamic lights. Inside an interior
+// volume the lighting pass replaces the sky/probe ambient and sky reflections with the room's own ambient plus the
+// daylight entering through the room's openings (portals, Lambert polygon form factor), and local lights only light
+// the volume that contains them (lamps don't leak through walls, street lights don't light rooms).
+struct InteriorPortal {
+    dvec3 corner;              // one corner of the opening (world)
+    vec3 edgeU, edgeV;         // opening edges; cross(edgeU, edgeV) points into the room
+    float transmission = 1.f;  // 0 closed opaque door .. 0.8 glass .. 1 open
+};
+struct InteriorVolume {
+    dvec3 center;              // oriented box (world)
+    vec2 axis = vec2(1, 0);    // unit horizontal x axis of the box
+    vec3 halfExtents;
+    vec3 ambient;              // room ambient radiance (irradiance / PI, same units as the sky SH)
+    float skyBounce = 0.f;     // fraction of the sky irradiance bounced around inside by daylight
+    int firstPortal = 0, portalCount = 0;   // range in Renderer::interiorPortals
 };
 
 // Gameplay particle effects (see ParticleSystem in particles.cpp for the per-type behavior).
@@ -267,12 +294,20 @@ public:
 
     ID3D11ComputeShader* csLighting = nullptr;
     gfx::Buffer lightBuf;
-    struct LightCBData { u32 count, pad[3]; };
+    struct LightCBData { u32 count, interiorCount, pad[2]; };
     gfx::CBuffer<LightCBData> lightCB;
     std::vector<LightGPU> lightsFrame;
     std::vector<DynamicLight> dynamicLights;  // cleared each frame after rendering
     static const int kMaxLights = 4096;
     void addLight(const DynamicLight& l) { dynamicLights.push_back(l); }
+    // Interior volumes + portals for this frame (cleared after rendering); see InteriorVolume
+    std::vector<InteriorVolume> interiorVolumes;
+    std::vector<InteriorPortal> interiorPortals;
+    gfx::Buffer interiorBuf, portalBuf, lightVolumeBuf;
+    static const int kMaxInteriorVolumes = 32, kMaxInteriorPortals = 128;
+    std::vector<vec4> interiorGpu, portalGpu;
+    std::vector<u32> lightVolumeFrame;
+    void uploadInteriors();
 
     // Gameplay effects. All positions in world space; cheap to call every frame (requests are queued and
     // consumed by the GPU particle / decal systems during render()).

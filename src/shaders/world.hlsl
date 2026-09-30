@@ -111,9 +111,22 @@ GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
         float4 nr = tMatNormal.Sample(sAnisoWrap, float3(uv, m.layer));
         albedo = a.rgb * m.tint.rgb * i.color.rgb;
         float2 nxy = (nr.xy * 2.0 - 1.0) * m.normalScale;
+        rough = saturate(nr.z * m.roughScale);
+        // Close-up detail: the same layer at a higher, rotated frequency adds micro normals and roughness
+        // variation (asphalt grain, concrete pores, stucco) and hides the base tiling
+        float camDist = length(i.rel);
+        float detailW = saturate(1.0 - camDist / 22.0);
+        if (detailW > 0.0) {
+            float2 duv = float2(uv.x * 0.8 - uv.y * 0.6, uv.x * 0.6 + uv.y * 0.8) * 4.7 + 0.37;
+            float4 nr2 = tMatNormal.Sample(sAnisoWrap, float3(duv, m.layer));
+            nxy += (nr2.xy * 2.0 - 1.0) * m.normalScale * 0.55 * detailW;
+            rough = saturate(rough * lerp(1.0, 0.7 + nr2.z * 0.6, detailW * 0.6));
+        }
         float3 nts = float3(nxy, sqrt(saturate(1.0 - dot(nxy, nxy))));
         n = normalize(T * nts.x + B * nts.y + N * nts.z);
-        rough = saturate(nr.z * m.roughScale);
+        // Worn / polished patches: large-scale roughness variation
+        float2 wpr = worldP.xy - floor(worldP.xy / 1024.0) * 1024.0;
+        rough = saturate(rough * lerp(0.82, 1.12, fbmValue(wpr * 0.45 + worldP.z * 0.2, 2)));
         metal = m.metal;
         ao = nr.w;
         if ((uint)m.flags & 16) {
@@ -125,6 +138,16 @@ GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
         float2 wp = worldP.xy - floor(worldP.xy / 2048.0) * 2048.0;
         float macro = fbmValue(wp * 0.03 + worldP.z * 0.01, 2);
         albedo *= lerp(0.88, 1.08, macro);
+        // Grime at the foot of walls (splash-back, dirt) on vertical surfaces
+        if (abs(N.z) < 0.45 && metal < 0.5) {
+            float ground = gTerrainHeightG.SampleLevel(sLinearClamp, (worldP.xy + 10240.0) / 20480.0, 0);
+            float above = worldP.z - ground;
+            float2 side = normalize(float2(-N.y, N.x) + 1e-5);
+            float streak = valueNoise(float2(dot(worldP.xy, side) * 3.1, worldP.z * 9.0)) * 0.5 + valueNoise(float2(dot(worldP.xy, side) * 0.9, 1.3)) * 0.5;
+            float grime = saturate(1.0 - above / (0.6 + streak * 0.9)) * saturate(above * 4.0 + 0.3);
+            albedo *= lerp(1.0, float3(0.62, 0.6, 0.56), grime * 0.8);
+            rough = saturate(rough + grime * 0.08);
+        }
     }
     // Rain wetness (sheltered surfaces stay dry), puddles on flat ground with ripples, facade streaks
     float porosity = saturate(rough * 1.3 - 0.15) * (1.0 - metal);

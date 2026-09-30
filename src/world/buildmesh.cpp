@@ -1,6 +1,7 @@
 // Building mesh generation per cell (full detail and far LOD).
 #include "buildings.h"
 #include "sites.h"
+#include "interiors.h"
 #include "../render/mesh.h"
 #include "worldtypes.h"
 
@@ -18,6 +19,7 @@ struct Ctx {
     std::vector<PropInstance>* props;
     std::vector<LightInstance>* lights;
     std::vector<FacadeMass>* masses = nullptr;  // facade masses for the street-level detail pass (LOD0)
+    int interior = -1;  // enterable interior of the building (world/interiors.cpp): facade cut-outs, hollow collision
 };
 
 // Polygon footprint helpers (CCW)
@@ -63,6 +65,9 @@ void facadeWalls(Ctx& x, const std::vector<vec2>& fp, float z0, float z1, float 
         float bays = Max(1.f, roundf(len / bay));
         float uLen = bays * bay;
         float u0 = (floorf((float)i * 1000.f / bay) + 0.002f) * bay;
+        // enterable interior: the wall is emitted with its door / window openings cut out
+        if (x.interior >= 0 && x.detail && interiorFacadeWall(x.interior, *x.m, x.org, a, b, z0, z1, u0, uLen, vBase, color, makeMat(MAT_FACADE, facadeId)))
+            continue;
         vec3 p0 = vec3(a, z0) - x.org, p1 = vec3(b, z0) - x.org;
         vec3 up(0, 0, z1 - z0);
         x.m->quad(p0, p1, p1 + up, p0 + up, vec2(u0, z0 - vBase), vec2(u0 + uLen, z0 - vBase), vec2(u0 + uLen, z1 - vBase),
@@ -178,6 +183,7 @@ void pitchedRoof(Ctx& x, vec2 c, vec2 ax, float hx, float hy, float z, float pit
 
 void addCollision(Ctx& x, vec2 c, vec2 ax, float hx, float hy, float z0, float z1) {
     if (!x.col) return;
+    if (x.interior >= 0 && interiorShellCollision(x.interior, c, ax, hx, hy, z0, z1, *x.col)) return;   // hollow shell
     CollisionBox b;
     b.c = vec3(c, (z0 + z1) * 0.5f);
     b.ax = ax;
@@ -297,6 +303,8 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
     x.col = col;
     x.props = props;
     x.lights = lights;
+    x.interior = b.interior;
+    if (b.interior >= 0 && interiorOwnsShell(b.interior)) return;   // the whole structure streams with its interior
     thread_local std::vector<FacadeMass> masses;
     masses.clear();
     x.masses = detail ? &masses : nullptr;

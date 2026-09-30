@@ -8,7 +8,7 @@
 // 1 where the sky is open above the point, 0 under cover. Soft (4 taps) near roof edges.
 float skyExposure(float3 worldP) {
     if (gOverhead.w < 0.5) return 1.0;
-    float2 uv = (worldP.xy - gOverhead.xy) / gOverhead.z;
+    float2 uv = overheadUV(worldP.xy);
     if (any(uv < 0.0) || any(uv > 1.0)) return 1.0;
     float2 o = 0.35 / gOverhead.z;
     float4 h;

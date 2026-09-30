@@ -163,6 +163,7 @@ void GameWorld::update(float realDt) {
     if (pinfo.deathTimer <= 0.f) updateFocus(Min(realDt, 0.05f));
     updateTutorialHints(realDt);
     double t0 = TimeSeconds();
+    Interiors::preUpdate(*this, dt);   // interiors_game.cpp (test walk-through controls)
     updatePlayer(dt);
     double t1 = TimeSeconds();
     updateAI(dt);
@@ -171,6 +172,7 @@ void GameWorld::update(float realDt) {
     updateVehicles(dt);
     double t3 = TimeSeconds();
     updatePeds(dt);
+    Interiors::update(*this, dt);      // interiors_game.cpp: streaming, collision, doors, NPCs, player inside
     double t4 = TimeSeconds();
     updateProjectiles(dt);
     updateFires(dt);
@@ -321,6 +323,7 @@ void GameWorld::submitRender() {
     dvec3 cam = rig.cam.pos;
     vec3 camF = rig.cam.forward();
     bool night = env->timeOfDay < 6.8f || env->timeOfDay > 19.2f;
+    Interiors::submit(*this);   // enterable interiors: rooms, doors, lights, ambient volumes
     // ---- vehicles
     struct LitCar {
         float d;
@@ -360,7 +363,19 @@ void GameWorld::submitRender() {
         d.dmgBoxC = vec4(a.spec.boxCenter, 0.f);
         d.dmgBoxH = vec4(a.spec.boxHalf, 1.f);
         d.drawGlass = !v.windowsBroken;
+        d.paintFinish = (float)v.mods.finish;
+        d.glassTint = v.mods.tint * 0.3f;
         dyn->submit(d);
+        // neon underglow: coloured light pools under the body
+        if (length2(v.mods.neon) > 1e-4f && dist < 180.f) {
+            for (int k = -1; k <= 1; k += 2) {
+                Render::DynamicLight nl;
+                nl.pos = s.body.pos + dvec3(R * vec3(0.f, a.spec.boxCenter.y + a.spec.boxHalf.y * 0.45f * (float)k, a.spec.boxCenter.z - a.spec.boxHalf.z + 0.12f));
+                nl.color = v.mods.neon * 60.f;
+                nl.radius = 3.2f + a.spec.boxHalf.x;
+                renderer->addLight(nl);
+            }
+        }
         if (a.wheel && dist < 400.f) {
             for (int w = 0; w < s.wheelCount; w++) {
                 vec3 lp;
@@ -544,6 +559,7 @@ void GameWorld::updateAudioListener(float dt) {
         L.inVehicle = rig.vehicleView == 2 ? 1.f : 0.35f;
         L.interior = rig.vehicleView == 2 ? 0.6f : 0.f;
     }
+    L.interior = Max(L.interior, Interiors::insideAmount() * 0.8f);   // inside a building (interiors_game.cpp)
     Audio::update(L, dt);
     Audio::Ambience amb;
     vec2 p = L.pos.xy();

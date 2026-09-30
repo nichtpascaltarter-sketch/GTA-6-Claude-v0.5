@@ -33,7 +33,7 @@ float surfaceHeightAt(float2 worldXY) {
     float wl = gWaterLevelG.SampleLevel(sPointClamp, tuv, 0);
     if (wl > -999.0) hgt = max(hgt, wl);
     if (gOverhead.w > 0.5) {
-        float2 ouv = (worldXY - gOverhead.xy) / gOverhead.z;
+        float2 ouv = overheadUV(worldXY);
         if (all(ouv > 0.0) && all(ouv < 1.0)) hgt = max(hgt, gOverheadMap.SampleLevel(sPointClamp, ouv, 0));
     }
     return hgt;

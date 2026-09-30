@@ -115,6 +115,12 @@ void deriveTuning(VehicleState& s, const VehicleModel& m) {
     VehicleTuning& t = s.tune;
     t = VehicleTuning();
     const ClassParams cp = classParams(m.cls);
+    // mod-shop upgrades (vehicle_sim.h: VehicleUpgrades) scale the stock values below
+    const int uE = Clamp(s.upgrades.engine, 0, 3), uB = Clamp(s.upgrades.brakes, 0, 3);
+    const int uT = Clamp(s.upgrades.transmission, 0, 3), uS = Clamp(s.upgrades.suspension, 0, 3);
+    const float kSpring = 1.f + 0.15f * uS, kDamp = 1.f + 0.2f * uS, kArb = 1.f + 0.4f * uS;
+    t.turbo = s.upgrades.turbo;
+    t.rideDrop = 0.02f * uS;
     float massM = Max(m.mass, 20.f);
     float mass = massM + riderMass(m.cls);
     // collision box (fallback from the wheels when the model has none)
@@ -169,8 +175,8 @@ void deriveTuning(VehicleState& s, const VehicleModel& m) {
         t.springK[i] = mi * w * w;
         t.restComp[i] = cp.restFrac * travel;
         float cc = 2.f * sqrtf(t.springK[i] * mi);
-        t.dampBump[i] = cp.zetaB * cc;
-        t.dampRebound[i] = cp.zetaR * cc;
+        t.dampBump[i] = cp.zetaB * cc * kDamp;
+        t.dampRebound[i] = cp.zetaR * cc * kDamp;
         t.wheelI[i] = 0.6f * mWheel * ws.radius * ws.radius;
         bool front = ws.pos.y > t.com.y;
         t.rear[i] = !front;
@@ -202,7 +208,7 @@ void deriveTuning(VehicleState& s, const VehicleModel& m) {
             sum += t.brakeT[i];
             want += Max(m.brakeForce, 500.f) * m.wheels[i].radius;
         }
-        for (int i = 0; i < nw; i++) t.brakeT[i] *= want / Max(sum, 1e-3f);
+        for (int i = 0; i < nw; i++) t.brakeT[i] *= want / Max(sum, 1e-3f) * (1.f + 0.15f * uB);
     }
     // anti-roll bar pairs (left/right wheels on the same axle)
     for (int i = 0; i < nw; i++) {
@@ -213,12 +219,13 @@ void deriveTuning(VehicleState& s, const VehicleModel& m) {
             t.arbPair[i] = (signed char)j;
             t.arbPair[j] = (signed char)i;
             float f = m.wheels[i].pos.y > t.com.y ? cp.arbF : cp.arbR;
-            t.arbK[i] = t.arbK[j] = f * 0.5f * (t.springK[i] + t.springK[j]);
+            t.arbK[i] = t.arbK[j] = f * kArb * 0.5f * (t.springK[i] + t.springK[j]);
             trackSum += fabsf(m.wheels[i].pos.x - m.wheels[j].pos.x);
             trackN++;
             break;
         }
     }
+    for (int i = 0; i < nw; i++) t.springK[i] *= kSpring;
     if (fy < -1e8f) fy = nw ? m.wheels[0].pos.y : 1.3f;
     if (ry > 1e8f) {
         ry = fy;
@@ -238,15 +245,17 @@ void deriveTuning(VehicleState& s, const VehicleModel& m) {
     t.driveRadius = driveN ? driveR / driveN : (nw ? m.wheels[0].radius : 0.33f);
     t.maxRpm = Clamp(m.maxRpm, 1500.f, 20000.f);
     t.idleRpm = Clamp(t.maxRpm * 0.13f, 550.f, 1300.f);
-    t.peakPowerW = Max(m.power, 1.f) * 1000.f;
+    const float kEngine = 1.f + 0.1f * uE;
+    t.peakPowerW = Max(m.power, 1.f) * 1000.f * kEngine;
     float wMax = t.maxRpm * kTwoPi / 60.f;
-    t.peakTorque = Max(m.torque, t.peakPowerW / (0.9f * wMax));
-    t.engineI = 0.08f + 0.0006f * t.peakTorque;
+    t.engineI = 0.08f + 0.0006f * Max(m.torque, t.peakPowerW / kEngine / (0.9f * wMax));
+    t.peakTorque = Max(m.torque * kEngine, t.peakPowerW / (0.9f * wMax));
     t.gears = Clamp(m.gears, 1, 10);
-    t.shiftTime = cp.shift;
-    float top = Max(m.topSpeed, 5.f);
+    t.shiftTime = cp.shift * (1.f - 0.2f * uT);
+    t.topSpeed = Max(m.topSpeed, 5.f) * (1.f + 0.025f * uE + (t.turbo ? 0.03f : 0.f));
+    float top = t.topSpeed;
     float topRatio = 0.9f * wMax / (top / t.driveRadius);
-    float spread = t.gears > 1 ? Clamp(0.9f + 0.55f * t.gears, 2.2f, 6.2f) : 1.f;
+    float spread = t.gears > 1 ? Clamp((0.9f + 0.55f * t.gears) * (1.f - 0.05f * uT), 1.8f, 6.2f) : 1.f;
     t.ratio[1] = topRatio * spread;
     for (int g = 2; g <= t.gears; g++) t.ratio[g] = t.ratio[1] * powf(topRatio / t.ratio[1], (float)(g - 1) / (float)(t.gears - 1));
     t.ratio[0] = t.ratio[1] * 0.95f;
@@ -327,7 +336,7 @@ float restOffset(const VehicleState& s) {
     const VehicleModel& m = *s.model;
     if (s.wheelCount > 0 && !isBoatClass(s.cls)) {
         float lo = 1e9f;
-        for (int i = 0; i < s.wheelCount; i++) lo = Min(lo, m.wheels[i].pos.z - m.wheels[i].radius);
+        for (int i = 0; i < s.wheelCount; i++) lo = Min(lo, m.wheels[i].pos.z + s.tune.rideDrop - m.wheels[i].radius);
         return -lo;
     }
     float lo = s.tune.boxC.z - s.tune.boxH.z;

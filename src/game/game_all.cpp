@@ -43,4 +43,5 @@
 #include "story.cpp"
 #include "missiontest.cpp"
 #include "openworld.cpp"
+#include "interiors_game.cpp"   // enterable interiors: streaming, doors, NPCs, render submission
 #include "gameworld.cpp"

@@ -118,6 +118,7 @@ struct TextWord {
     u8 brk = BRK_NONE;    // break after this word
     float pauseSec = 0.f; // explicit pause after this word ([pause:x]); 0 = from the break type
     Style style;          // speaking style in effect ([angry], [accent:south], ...)
+    bool fluent = false;  // [fluent]: no automatic hesitations / breaths
 };
 
 void normalizeText(const char* text, std::vector<TextWord>& out);
@@ -234,6 +235,7 @@ struct Utterance {
     std::vector<UWord> words;
     std::vector<UPhrase> phrases;
     std::vector<StyleParams> wordStyle;  // per word (styleParams of UWord::style)
+    u32 seed = 0;                        // prosodic variety seed (voice + take)
     float total = 0.f;                   // seconds
     // Style parameters of segment i (pauses take the preceding word's style).
     const StyleParams& segStyle(int i) const;

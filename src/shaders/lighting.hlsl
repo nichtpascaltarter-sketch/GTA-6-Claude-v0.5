@@ -2,6 +2,7 @@
 #include "gbuffer.hlsli"
 #include "reflection.hlsli"
 #include "shadow.hlsli"
+#include "lights.hlsli"
 
 Texture2D<float4> tAlbedo : register(t0);
 Texture2D<float2> tNormal : register(t1);
@@ -38,19 +39,90 @@ float4 upsampleAOGI(uint2 pix, float z, float3 N) {
 }
 
 // Local lights (streetlights, windows, neon, headlights...). Positions relative to the camera.
-struct LightGPU {
-    float3 pos;
-    float radius;
-    float3 color;      // luminous intensity (cd) * rgb
-    float spotCos;     // cos of outer cone angle; <= -1 for point lights
-    float3 dir;        // spot direction
-    float spotInner;   // cos of inner cone angle
-};
 StructuredBuffer<LightGPU> tLights : register(t7);
 cbuffer LightCB : register(b2) {
     uint gLightCount;
-    uint3 gLightPad;
+    uint gInteriorCount;   // enterable interior volumes this frame (see below)
+    uint2 gLightPad;
 };
+
+// ---- Enterable interiors (world/interiors.h; Renderer::interiorVolumes / uploadInteriors) ----------------------------
+// Inside an interior volume (oriented box) the sky/probe ambient and the sky reflections are replaced by the room's own
+// ambient plus the daylight entering through the room's openings: each portal is a rectangle lit by the outside
+// radiance (sky SH / probe in the portal's outward direction), integrated with Lambert's polygon formula. Local lights
+// only light the volume they sit in (tLightVolume: 0 outdoors, k + 1 inside volume k), so lamps don't leak through
+// walls and street lights don't light rooms. Direct sun still comes in through the openings (the shell's shadows).
+struct InteriorGPU {
+    float4 c;      // xyz box center (camera-relative), w first portal
+    float4 axis;   // xy unit x axis, z portal count, w sky bounce fraction
+    float4 he;     // xyz half extents
+    float4 amb;    // rgb room ambient radiance (irradiance / PI)
+};
+struct PortalGPU {
+    float4 p0;     // xyz corner (camera-relative), w transmission
+    float4 u;      // edge along the wall
+    float4 v;      // edge up; cross(u, v) points into the room
+};
+StructuredBuffer<InteriorGPU> tInteriors : register(t11);
+StructuredBuffer<PortalGPU> tPortals : register(t12);
+StructuredBuffer<uint> tLightVolume : register(t13);
+static int sInterior = -1;   // interior volume of the pixel being shaded (-1 outdoors)
+
+int interiorAt(float3 relPos) {
+    [loop] for (uint k = 0; k < gInteriorCount; k++) {
+        InteriorGPU v = tInteriors[k];
+        float3 d = relPos - v.c.xyz;
+        float lx = dot(d.xy, v.axis.xy), ly = dot(d.xy, float2(-v.axis.y, v.axis.x));
+        if (abs(lx) <= v.he.x + 0.05 && abs(ly) <= v.he.y + 0.05 && abs(d.z) <= v.he.z + 0.05) return (int)k;
+    }
+    return -1;
+}
+// Edge term of the polygon vector form factor (fitted theta / sin(theta), Heitz et al. 2016)
+float3 portalEdge(float3 a, float3 b) {
+    float x = dot(a, b);
+    float y = abs(x);
+    float t = 0.8543985 + (0.4965155 + 0.0145206 * y) * y;
+    float u = 3.4175940 + (4.1616724 + y) * y;
+    float v = t / u;
+    float thetaSin = x > 0.0 ? v : 0.5 * rsqrt(max(1.0 - x * x, 1e-7)) - v;
+    return cross(a, b) * thetaSin;
+}
+// Clamped-cosine form factor of a portal seen from p around direction n
+float portalFormFactor(PortalGPU q, float3 p, float3 n) {
+    float3 c0 = q.p0.xyz - p, c1 = c0 + q.v.xyz, c2 = c1 + q.u.xyz, c3 = c0 + q.u.xyz;   // winds away from p
+    float3 l0 = normalize(c0), l1 = normalize(c1), l2 = normalize(c2), l3 = normalize(c3);
+    float3 f = portalEdge(l0, l1) + portalEdge(l1, l2) + portalEdge(l2, l3) + portalEdge(l3, l0);
+    return saturate(dot(f, n) / (2.0 * PI));
+}
+// Ambient irradiance / PI inside volume k: room ambient + daylight bounce + light entering through each portal
+float3 interiorIrradiance(int k, float3 p, float3 n, float dist) {
+    InteriorGPU v = tInteriors[k];
+    float3 e = v.amb.rgb + v.axis.w * evalSH9(float3(0, 0, 1));
+    uint first = (uint)v.c.w, count = (uint)v.axis.z;
+    [loop] for (uint i = 0; i < count; i++) {
+        PortalGPU q = tPortals[first + i];
+        float ff = portalFormFactor(q, p, n) * q.p0.w;
+        if (ff <= 0.0) continue;
+        float3 outN = -normalize(cross(q.u.xyz, q.v.xyz));
+        e += ambientIrradiance(outN, dist) * ff;
+    }
+    return e;
+}
+// Reflection fallback inside volume k: the room's ambient, and the outside world where the reflection leaves
+// through an opening (portal coverage around R, sharper for smooth surfaces)
+float3 interiorReflection(int k, float3 p, float3 R, float rough, float dist) {
+    InteriorGPU v = tInteriors[k];
+    float3 room = v.amb.rgb + v.axis.w * evalSH9(float3(0, 0, 1));
+    float3 e = room;
+    uint first = (uint)v.c.w, count = (uint)v.axis.z;
+    float cover = 0.0;
+    [loop] for (uint i = 0; i < count; i++) {
+        PortalGPU q = tPortals[first + i];
+        cover += portalFormFactor(q, p, R) * q.p0.w;
+    }
+    cover = saturate(cover * lerp(4.0, 1.5, saturate(rough)));
+    return lerp(e, envReflection(R, rough), cover);
+}
 
 float3 localLightBRDF(GBufferData g, float3 N, float3 V, float3 L) {
     float3 H = normalize(V + L);
@@ -139,7 +211,7 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
         // Clear coat reflects the environment sharply: screen-space hits over the probe / sky
         float Fcv = (0.04 + 0.96 * pow5(1.0 - NoV)) * g.extra;
         float3 Rc = reflect(-V, N);
-        float3 coatEnv = lerp(envReflection(Rc, 0.03), ssr.rgb / preExposure(), ssr.a);
+        float3 coatEnv = lerp(sInterior >= 0 ? interiorReflection(sInterior, relPos, Rc, 0.03, length(relPos)) : envReflection(Rc, 0.03), ssr.rgb / preExposure(), ssr.a);
         coatSpecAmb = coatEnv * Fcv * horizonOcclusion(Rc, N);
     }
     if (g.shadingModel == SM_FOLIAGE) {
@@ -153,13 +225,15 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
     float3 mbB = -4.7951 * diffColor + 0.6417;
     float3 mbC = 2.7552 * diffColor + 0.6903;
     float3 aoMB = max(ao, ((ao * mbA + mbB) * ao + mbC) * ao);
-    // Sky/ground SH through the visibility term + one-bounce screen-space indirect diffuse
-    float3 ambientDiffuse = diffColor * (ambientIrradiance(N, length(relPos)) * aoMB + gi);
+    // Sky/ground SH through the visibility term + one-bounce screen-space indirect diffuse (interiors: room ambient
+    // + daylight through the openings)
+    float3 ambIrr = sInterior >= 0 ? interiorIrradiance(sInterior, relPos, N, length(relPos)) : ambientIrradiance(N, length(relPos));
+    float3 ambientDiffuse = diffColor * (ambIrr * aoMB + gi);
     float3 R = reflect(-V, N);
     float2 ab = envBRDFApprox(g.rough, NoV);
     float specOcc = saturate(pow(NoV + ao, exp2(-16.0 * g.rough - 1.0)) - 1.0 + ao);
     // Environment reflection: screen-space hits where available, else the probe / sky (occluded by AO)
-    float3 env = envReflection(R, g.rough) * specOcc;
+    float3 env = (sInterior >= 0 ? interiorReflection(sInterior, relPos, R, g.rough, length(relPos)) : envReflection(R, g.rough)) * specOcc;
     env = lerp(env, ssr.rgb / preExposure(), ssr.a);
     float3 ambientSpec = env * (f0 * ab.x + ab.y) * horizonOcclusion(R, N);
     return direct + ambientDiffuse + ambientSpec + coatSpecAmb;
@@ -228,6 +302,7 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         return;
     }
     GBufferData g = unpackGBuffer(tAlbedo[id.xy], tNormal[id.xy], tMaterial[id.xy]);
+    sInterior = gInteriorCount > 0 ? interiorAt(relPos) : -1;
     float3 emissive = tEmissive[id.xy];
     float dist = length(relPos);
     float3 color;
@@ -251,6 +326,7 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         uint n = min(gsLightCount, 256u);
         float3 local = 0;
         for (uint i = 0; i < n; i++) {
+            if (tLightVolume[gsLights[i]] != (uint)(sInterior + 1)) continue;   // lights stay in their own volume
             LightGPU Lt = tLights[gsLights[i]];
             float3 Lv = Lt.pos - relPos;
             float d2 = dot(Lv, Lv);
@@ -260,7 +336,7 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
             float x = d / Lt.radius;
             float win = saturate(1.0 - x * x * x * x);
             float att = win * win / max(d2, 0.3);
-            if (Lt.spotCos > -1.0) att *= smoothstep(Lt.spotCos, Lt.spotInner, dot(-Lv, Lt.dir));
+            att *= lightAngular(Lt, Lv);
             if (att <= 0) continue;
             local += localLightBRDF(g, g.normal, V, Lv) * Lt.color * att;
         }
@@ -268,7 +344,7 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         if (gLightning.x > 0.0) {
             // lightning flash: sky-wide ambient burst + directional light from the bolt
             float3 diffC = g.albedo * (1.0 - g.metal);
-            float3 flashE = float3(0.75, 0.8, 1.0) * gAmbientParams.y;
+            float3 flashE = float3(0.75, 0.8, 1.0) * gAmbientParams.y * (sInterior >= 0 ? 0.1 : 1.0);
             color += diffC / PI * flashE * ((0.5 + 0.5 * g.normal.z) * ao * 0.6 + saturate(dot(g.normal, gLightning.yzw)) * 0.6);
         }
     }

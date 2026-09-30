@@ -52,6 +52,8 @@ struct CarLook {
     bool leather = false;
     vec3 badgeTint = vec3(0.8f, 0.8f, 0.82f);
     int badgeShape = 0;
+    u8 maker = 0;          // MakerId: original maker emblem on the grille / nose / tail (0 = generic badge)
+    float logoR = 0.034f;  // emblem radius
     vec3 plateBand = vec3(0.05f, 0.45f, 0.5f);
 };
 
@@ -60,6 +62,8 @@ struct Samp {
     u8 ok;
 };
 inline void strokeText3D(PMesh& m, vec3 origin, vec3 right, vec3 up, const char* text, float h, float depth);
+inline void buildLogo(PMesh& m, const Frame& F, float r, u8 maker);
+inline Frame surfaceFrame(vec3 p, vec3 n, float lift);
 enum FaceMode { FM_NORMAL = 0, FM_OUT, FM_IN };
 
 inline void sampleLoop(const Decal& dc, const std::vector<vec2>& loop, std::vector<Samp>& out) {
@@ -518,7 +522,10 @@ inline void buildGrille(PMesh& m, CarBody& b, const CarLook& L) {
         vec3 x = normalize(cross(vec3(0, 0, 1), -n)), y = cross(-n, x);
         if (length2(x) < 0.5f) x = vec3(1, 0, 0);
         Frame bf(p + n * (st.floorOff + 0.012f), x, vec3(0, 0, 1), n);
-        if (L.badgeShape == 1) {
+        if (L.maker != 0) {
+            float lr = L.grille == GR_TRUCK ? Max(L.logoR, 0.075f) : L.logoR;
+            buildLogo(m, surfaceFrame(p, n, st.floorOff + 0.009f), lr, L.maker);
+        } else if (L.badgeShape == 1) {
             std::vector<vec2> dia;
             dia.push_back(vec2(0, -0.035f)); dia.push_back(vec2(0.045f, 0)); dia.push_back(vec2(0, 0.035f)); dia.push_back(vec2(-0.045f, 0));
             extrude(m, dia, bf, 0.f, 0.008f);
@@ -638,7 +645,7 @@ inline void seam(PMesh& m, Projector& pr, Frame fr, const std::vector<vec2>& lin
     for (auto& q : line) { mn = vmin(mn, q); mx = vmax(mx, q); }
     decalRange(dc, mn, mx);
     m.use(MAT_PLASTIC, col(0.35f, 0.35f, 0.35f));
-    stripDecal(m, dc, line, w, 0.0012f, 0.04f);
+    stripDecal(m, dc, line, w, 0.0025f, 0.04f);
 }
 
 // Door pull handle on the right side at (y, z)
@@ -988,7 +995,120 @@ inline void steeringWheel(PMesh& m, vec3 c, float tilt, float r = 0.185f) {
         cyl(m, c + d * 0.05f, c + d * (r - 0.01f) - ax * 0.01f, 0.012f, 6, false);
     }
     // column
-    cyl(m, c - ax * 0.03f, c - ax * 0.3f, 0.03f, 8, true);
+    cyl(m, c - ax * 0.03f, c - ax * 0.38f, 0.03f, 8, true);
+}
+
+// Quad visible from both sides (cabin closing panels are seen from inside and, through the glass, from outside).
+inline void quad2(PMesh& m, vec3 a, vec3 b, vec3 c, vec3 d, vec3 facing) {
+    m.quadFacing(m.add(a), m.add(b), m.add(c), m.add(d), facing);
+    m.quadFacing(m.add(a), m.add(b), m.add(c), m.add(d), -facing);
+}
+
+// Inner cabin skin seen through the see-through windows: pillar trims (inward copies of the non-glass greenhouse
+// cells), cargo side walls / floor / tailgate lining for hatch-type bodies, and a bulkhead + parcel shelf for sedans
+// and cabs, so no culled outer panel reveals the outside. Right half, mirrored.
+inline void cabinTrim(PMesh& m, CarBody& b, const InteriorLayout& I, float y0, float y1, float zPan) {
+    const CarSpec& s = b.s;
+    if (s.openTop) return;
+    PMesh::Mark mk = m.mark();
+    int NC1 = b.NP - 1;
+    // pillar / rail trims
+    m.newGroup(38.f);
+    m.use(MAT_FABRIC, col(0.55f, 0.55f, 0.53f));
+    for (int i = 0; i + 1 < b.nr; i++) {
+        if (b.rowL[i] < 0.01f || b.rowL[i + 1] < 0.01f) continue;
+        for (int j = b.pGh0; j < b.pRail0; j++) {  // pillars; the door-card ledge meets the glass, the headliner lines the rail
+            u8 cc = b.cls[i * NC1 + j];
+            if (cc == CC_GLASS || cc == CC_HOLE || cc == CC_SKIP || cc == CC_INTERIOR || cc == CC_BED) continue;
+            int ii[4] = {i, i + 1, i + 1, i}, jj[4] = {j, j, j + 1, j + 1};
+            u32 v[4];
+            vec3 nsum(0, 0, 0);
+            for (int k = 0; k < 4; k++) {
+                vec3 g = b.G[ii[k] * b.NP + jj[k]], n = b.GN[ii[k] * b.NP + jj[k]];
+                v[k] = m.add(g - n * 0.012f);
+                nsum += n;
+            }
+            m.quadFacing(v[0], v[1], v[2], v[3], -nsum);
+        }
+    }
+    // lower cabin: side walls, floors and end panels
+    m.newGroup(40.f);
+    m.use(MAT_INTERIOR, kCol1);
+    // wheel houses where a wheel well rises into the cabin floor (cab-overs, vans): boxes over the liners
+    for (int a = 0; a < 2; a++) {
+        if (!b.archOn(a)) continue;
+        float yw = a == 0 ? b.yWf : b.yWr;
+        float zTop = s.wheelR + b.Ra + 0.04f;
+        float ya = Max(yw - b.Ra - 0.03f, y1), yz = Min(yw + b.Ra + 0.03f, y0 + 0.2f);
+        if (zTop < I.zFloor + 0.03f || yz - ya < 0.1f) continue;
+        float track = a == 0 ? s.trackF : s.trackR;
+        float xa = track - s.wheelW * 0.5f - 0.07f, xb = b.beltXAt(yw) - 0.065f;
+        if (xb - xa < 0.05f) continue;
+        roundedBoxAt(m, vec3((xa + xb) * 0.5f, (ya + yz) * 0.5f, (I.zFloor + zTop) * 0.5f),
+                     vec3((xb - xa) * 0.5f, (yz - ya) * 0.5f, (zTop - I.zFloor) * 0.5f), 0.03f, 1);
+    }
+    auto wallX = [&](float y) { return b.beltXAt(y) - 0.045f; };
+    auto beltZ = [&](float y) { return b.beltZAt(y) - 0.01f; };
+    bool cargo = s.style == BS_HATCH || s.style == BS_WAGON || s.style == BS_SUV || s.style == BS_VAN;
+    if (cargo) {
+        float yC = b.yR + 0.16f;
+        if (yC < y1 - 0.05f) {
+            int n = 8;
+            std::vector<u32> lo(n + 1), hi(n + 1);
+            for (int k = 0; k <= n; k++) {
+                float y = lerp(yC, y1, k / (float)n);
+                lo[k] = m.add(vec3(wallX(y) - 0.03f, y, Min(zPan, beltZ(y) - 0.05f)));
+                hi[k] = m.add(vec3(wallX(y), y, beltZ(y)));
+            }
+            for (int k = 0; k < n; k++) m.quadFacing(lo[k], lo[k + 1], hi[k + 1], hi[k], vec3(-1, 0, 0));
+            // cargo floor at the height of the rear axle pan
+            float xa = wallX(yC) - 0.03f, xb = wallX(y1) - 0.03f;
+            m.quadFacing(m.add(vec3(0, yC, zPan)), m.add(vec3(xa, yC, zPan)), m.add(vec3(xb, y1, zPan)), m.add(vec3(0, y1, zPan)), vec3(0, 0, 1));
+            // tailgate lining up to the rear window
+            quad2(m, vec3(0, yC, zPan), vec3(xa, yC, zPan), vec3(wallX(yC), yC, beltZ(yC)), vec3(0, yC, beltZ(yC)), vec3(0, 1, 0));
+        }
+    } else if (s.style == BS_BOXY) {
+        // vans and truck cabs: full-height partition behind the last seat row (inside the shell), following the section
+        float yb = Max(y1, b.yR + s.rearD * 0.6f + 0.04f);
+        int ir = b.rowAt(yb);
+        const vec3* sec = &b.G[ir * b.NP];
+        auto secX = [&](float z) {
+            for (int j = b.pSide0; j + 1 < b.NP; j++)
+                if ((sec[j].z - z) * (sec[j + 1].z - z) <= 0.f && fabsf(sec[j + 1].z - sec[j].z) > 1e-5f)
+                    return lerp(sec[j].x, sec[j + 1].x, (z - sec[j].z) / (sec[j + 1].z - sec[j].z));
+            return sec[b.pGh0].x;
+        };
+        float zTop = sec[b.NP - 1].z - 0.014f;
+        const int nl = 8;
+        for (int k = 0; k < nl; k++) {
+            float za = lerp(I.zFloor, zTop, k / (float)nl), zb = lerp(I.zFloor, zTop, (k + 1) / (float)nl);
+            float xa = Max(secX(za) - 0.014f, 0.f), xb = Max(secX(zb) - 0.014f, 0.f);
+            quad2(m, vec3(0, yb, za), vec3(xa, yb, za), vec3(xb, yb, zb), vec3(0, yb, zb), vec3(0, 1, 0));
+        }
+    } else {
+        // bulkhead behind the last seat row, up to the belt (cabs keep the rear window clear above it)
+        float yb = y1;
+        float xw = wallX(yb) - 0.02f;
+        quad2(m, vec3(0, yb, I.zFloor), vec3(xw, yb, I.zFloor), vec3(xw, yb, beltZ(yb)), vec3(0, yb, beltZ(yb)), vec3(0, 1, 0));
+        if (s.style == BS_SEDAN || s.style == BS_COUPE) {
+            // parcel shelf from the bulkhead top back to the lower edge of the rear window (closes the box under the glass)
+            float yr = Max(s.yDeck + 0.01f, b.yR + 0.15f), zr = b.roofZAt(yr) - 0.014f;
+            for (int i = 0; i + 1 < b.nr; i++) {
+                if (b.rows[i] > s.yRoofR) break;
+                if (b.cls[i * NC1 + NC1 - 1] == CC_GLASS) {
+                    yr = b.rows[i];
+                    zr = b.G[i * b.NP + b.NP - 1].z - 0.014f;
+                    break;
+                }
+            }
+            if (yr < yb - 0.05f) {
+                // the shelf reaches out to the glass / C-pillar trim line so nothing shows beside it
+                quad2(m, vec3(0, yr, zr), vec3(b.beltXAt(yr) - 0.012f, yr, zr), vec3(b.beltXAt(yb) - 0.012f, yb, beltZ(yb) + 0.006f),
+                      vec3(0, yb, beltZ(yb) + 0.006f), vec3(0, 0, 1));
+            }
+        }
+    }
+    m.mirrorX(mk);
 }
 
 inline void buildInterior(PMesh& m, CarBody& b, const CarLook& L, const InteriorLayout& I) {
@@ -1010,12 +1130,13 @@ inline void buildInterior(PMesh& m, CarBody& b, const CarLook& L, const Interior
         }
         return z;
     };
+    float yDoorF = Max(y0, b.s.yCowl);  // run the trim up to the windscreen base (firewall)
     for (int k = 0; k <= n; k++) {
-        float y = lerp(y1, y0, k / (float)n);
+        float y = lerp(y1, yDoorF, k / (float)n);
         float bx = b.beltXAt(y) - 0.045f, bz = b.beltZAt(y) - 0.01f;
         lo[k] = m.add(vec3(bx - 0.03f, y, Min(floorZ(y), bz - 0.05f)));
         hi[k] = m.add(vec3(bx, y, bz));
-        ledge[k] = m.add(vec3(bx + 0.04f, y, bz + 0.005f));
+        ledge[k] = m.add(vec3(b.beltXAt(y) - 0.012f, y, bz + 0.006f));
     }
     for (int k = 0; k < n; k++) {
         m.quadFacing(lo[k], lo[k + 1], hi[k + 1], hi[k], vec3(-1, 0, 0));
@@ -1056,6 +1177,23 @@ inline void buildInterior(PMesh& m, CarBody& b, const CarLook& L, const Interior
     dp.push_back(vec2(I.dashY1 - 0.02f, dz - 0.02f));
     dp.push_back(vec2(I.dashY1 + 0.06f, dz + 0.035f));
     extrude(m, dp, Frame(vec3(0, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(1, 0, 0)), -dw, dw);
+    // defroster deck from the dash top to the windscreen base, and the firewall below it: the cabin is closed at the
+    // front so the see-through glass never reveals the inside of the cowl or engine bay
+    {
+        float yf = Max(b.s.yCowl - 0.005f, I.dashY0), zf = b.s.zCowl - 0.015f;
+        float xc = Min(b.beltXAt(yf), b.sideXAt(yf, zf)) - 0.03f;
+        if (yf > I.dashY0 + 0.004f)
+            quad2(m, vec3(-dw, I.dashY0, dz - 0.02f), vec3(dw, I.dashY0, dz - 0.02f), vec3(xc, yf, zf), vec3(-xc, yf, zf), vec3(0, 0, 1));
+        // firewall following the body section so its edges reach the side panels (no gap beside it)
+        const int nl = 5;
+        float zl[nl + 1], xl[nl + 1];
+        for (int k = 0; k <= nl; k++) {
+            zl[k] = lerp(I.zFloor, zf, k / (float)nl);
+            xl[k] = Min(b.sideXAt(yf, zl[k]), zl[k] > b.beltZAt(yf) - 0.02f ? b.beltXAt(yf) : 9.f) - 0.025f;
+        }
+        for (int k = 0; k < nl; k++)
+            quad2(m, vec3(-xl[k], yf, zl[k]), vec3(xl[k], yf, zl[k]), vec3(xl[k + 1], yf, zl[k + 1]), vec3(-xl[k + 1], yf, zl[k + 1]), vec3(0, -1, 0));
+    }
     // instrument binnacle + centre screen
     roundedBoxAt(m, vec3(-I.seatX, I.dashY1 + 0.05f, dz + 0.04f), vec3(0.17f, 0.07f, 0.04f), 0.03f, 2);
     m.use(MAT_EMISSIVE, col(0.35f, 0.55f, 0.9f, 0.08f));
@@ -1064,32 +1202,34 @@ inline void buildInterior(PMesh& m, CarBody& b, const CarLook& L, const Interior
     m.use(MAT_INTERIOR, kCol1);
     roundedBoxAt(m, vec3(0, (I.dashY1 + I.yHipF) * 0.5f - 0.05f, I.zFloor + 0.12f), vec3(0.1f, (I.dashY1 - I.yHipF) * 0.5f + 0.05f, 0.12f), 0.04f, 2);
     // steering wheel (left)
-    steeringWheel(m, vec3(-I.seatX, I.yHipF + 0.5f, dz - 0.02f), 0.42f);
+    steeringWheel(m, vec3(-I.seatX, I.yHipF + 0.42f, dz - 0.02f), 0.42f);
     // headliner under the roof (both halves): offset copy of the roof cells, facing down
     m.newGroup(40.f);
     m.use(MAT_FABRIC, col(0.55f, 0.55f, 0.53f));
     PMesh::Mark hk = m.mark();
     int NC1 = b.NP - 1;
     for (int i = 0; i + 1 < b.nr; i++) {
-        if (b.rowL[i] < 0.25f || b.rowL[i + 1] < 0.25f) continue;
+        if (b.rowL[i] < 0.01f || b.rowL[i + 1] < 0.01f) continue;
         for (int j = b.pRail0; j < NC1; j++) {
+            u8 cc = b.cls[i * NC1 + j];
+            float yc = (b.rows[i] + b.rows[i + 1]) * 0.5f;
+            // windscreen / rear window stay clear; a sunroof keeps the lining under it (closed blind)
+            bool sunroof = yc < b.s.yRoofF - 0.01f && yc > b.s.yRoofR + 0.01f;
+            if ((cc == CC_GLASS && !sunroof) || cc == CC_HOLE || cc == CC_SKIP || cc == CC_INTERIOR || cc == CC_BED) continue;
             int ii[4] = {i, i + 1, i + 1, i}, jj[4] = {j, j, j + 1, j + 1};
-            vec3 q[4];
+            u32 v[4];
+            vec3 nsum(0, 0, 0);
             for (int k = 0; k < 4; k++) {
-                // offset along the inward section normal so the lining stays inside the rail and glass
-                int r = ii[k], c = jj[k];
-                vec3 pa = b.G[r * b.NP + Max(c - 1, 0)], pb = b.G[r * b.NP + Min(c + 1, b.NP - 1)];
-                vec2 t(pb.x - pa.x, pb.z - pa.z);
-                vec2 nrm = length(t) > 1e-6f ? normalize(vec2(t.y, -t.x)) : vec2(0, 1);
-                if (nrm.y < 0.f) nrm = -nrm;
-                vec3 p = b.G[r * b.NP + c];
-                q[k] = p - vec3(nrm.x, 0, nrm.y) * 0.035f;
+                // just inside the glass inset, so the lining meets every window edge without a gap
+                vec3 g = b.G[ii[k] * b.NP + jj[k]], n = b.GN[ii[k] * b.NP + jj[k]];
+                v[k] = m.add(g - n * 0.012f);
+                nsum += n;
             }
-            u32 a = m.add(q[0]), bb = m.add(q[1]), c = m.add(q[2]), d = m.add(q[3]);
-            m.quadFacing(a, bb, c, d, vec3(0, 0, -1));
+            m.quadFacing(v[0], v[1], v[2], v[3], -nsum);
         }
     }
     m.mirrorX(hk);
+    cabinTrim(m, b, I, y0, y1, floorZ(b.yWr) - 0.02f);
 }
 
 }  // namespace detail
@@ -1137,6 +1277,11 @@ inline const char* glyphStrokes(char c) {
         case '8': return "1 3 0 4 0 5 1 6 3 6 4 5 4 4 3 3 1 3 0 2 0 1 1 0 3 0 4 1 4 2 3 3";
         case '9': return "4 3 1 3 0 4 0 5 1 6 3 6 4 5 4 1 3 0 1 0";
         case '-': return "1 3 3 3";
+        case 'J': return "4 6 4 1 3 0 1 0 0 1";
+        case 'Q': return "1 0 0 1 0 5 1 6 3 6 4 5 4 1 3 0 1 0|2 2 4 0";
+        case 'Z': return "0 6 4 6 0 0 4 0";
+        case '\'': return "2 6 1.6 4.6";
+        case '.': return "2 0 2 0.6";
         default: return "";
     }
 }
@@ -1187,7 +1332,11 @@ inline void strokeText3D(PMesh& m, vec3 origin, vec3 right, vec3 up, const char*
                     if (l < 1e-4f) continue;
                     vec3 ax = d / l;
                     vec3 ay = normalize(cross(out, ax));
-                    roundedBox(m, Frame((a + bq) * 0.5f + out * (depth * 0.5f), ax, ay, out), vec3(l * 0.5f + h * 0.06f, h * 0.07f, depth * 0.5f), 0.f, 1);
+                    // flat-topped bar standing on the surface (no bottom face: it lies on the panel)
+                    float hl = l * 0.5f + h * 0.06f, hw = h * 0.07f;
+                    std::vector<vec2> bar;
+                    bar.push_back(vec2(-hl, -hw)); bar.push_back(vec2(hl, -hw)); bar.push_back(vec2(hl, hw)); bar.push_back(vec2(-hl, hw));
+                    extrude(m, bar, Frame((a + bq) * 0.5f, ax, ay, out), 0.f, depth, false, true);
                 }
                 line.clear();
                 if (*p == 0) break;

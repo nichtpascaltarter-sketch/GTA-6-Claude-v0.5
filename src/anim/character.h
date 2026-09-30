@@ -17,6 +17,8 @@ enum Bone : u8 {
     B_THIGH_R, B_CALF_R, B_FOOT_R, B_TOE_R,
     B_FINGERS_L, B_THUMB_L, B_FINGERS_R, B_THUMB_R,
     B_JAW, B_EYE_L, B_EYE_R,
+    // speech / expression (no physics): lips and tongue, driven by the visemes (AnimInput::viseme*)
+    B_LIP_UPPER, B_LIP_LOWER, B_LIP_CORNER_L, B_LIP_CORNER_R, B_TONGUE,
     B_COUNT
 };
 

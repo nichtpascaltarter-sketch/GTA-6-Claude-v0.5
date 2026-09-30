@@ -761,7 +761,9 @@ inline void stripDecal(PMesh& m, const Decal& dc, const std::vector<vec2>& line,
         vec2 nn = perp(t) * (w * 0.5f);
         vec3 p0, n0, p1, n1;
         bool a = dc.at(pts[i] + nn, p0, n0), b = dc.at(pts[i] - nn, p1, n1);
-        ok[i] = a && b;
+        // end the strip cleanly where the surface turns away from the projection (> ~70 degrees):
+        // grazing hits there would break it into dashes or wrap it onto the neighbouring face
+        ok[i] = a && b && dot(n0, dc.fr.z) < -0.34f && dot(n1, dc.fr.z) < -0.34f;
         L[i] = m.add(p0 + n0 * off);
         R[i] = m.add(p1 + n1 * off);
     }

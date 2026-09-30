@@ -444,8 +444,23 @@ void wheelLocalTransform(const VehicleState& s, int wheel, vec3& pos, quat& rot)
     float off = w.compression - s.tune.restComp[wheel];
     // retracted landing gear folds up into the body
     if (s.cls == VC_PLANE && s.gearDown < 1.f) off += (1.f - s.gearDown) * (ws.radius * 1.2f + travel);
-    pos = ws.pos + vec3(0.f, 0.f, off);
+    pos = ws.pos + vec3(0.f, 0.f, off + s.tune.rideDrop);
     rot = quatAxisAngle(vec3(0, 0, 1), -w.steerAngle) * quatAxisAngle(vec3(1, 0, 0), -w.spinAngle);
+}
+
+void applyUpgrades(VehicleState& s, const VehicleModel& m, const VehicleUpgrades& u) {
+    VehicleUpgrades c = u;
+    c.engine = Clamp(c.engine, 0, 3);
+    c.brakes = Clamp(c.brakes, 0, 3);
+    c.transmission = Clamp(c.transmission, 0, 3);
+    c.suspension = Clamp(c.suspension, 0, 3);
+    s.model = &m;
+    s.upgrades = c;
+    // the tuning is a pure function of (model, upgrades): re-deriving it keeps every dynamic state field intact
+    vsim::deriveTuning(s, m);
+    if (s.gear > s.tune.gears) s.gear = s.tune.gears;
+    if (!s.tune.turbo) s.turboBoost = 0.f;
+    s.sleeping = false;
 }
 
 void burstTire(VehicleState& s, int wheel) {

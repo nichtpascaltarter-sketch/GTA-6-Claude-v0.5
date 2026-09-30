@@ -143,6 +143,12 @@ StyleParams styleParams(const Style& s) {
     combine(p, deliveryTable(s.delivery));
     combine(p, scaled(accentTable(s.accent), Clamp(s.accentStrength, 0.f, 1.f)));
     combine(p, timbreTable(s.timbre));
+    if (s.take) {  // another performance: slightly different pitch level, range and pace
+        u32 h = hash32(s.take * 2654435761u + 0x7f4a7c15u);
+        p.pitch += 1.2f * (hashToFloat(h) - 0.5f);
+        p.range *= 1.f + 0.2f * (hashToFloat(hash32(h + 1u)) - 0.5f);
+        p.rate *= 1.f + 0.06f * (hashToFloat(hash32(h + 2u)) - 0.5f);
+    }
     p.rate = Clamp(p.rate, 0.5f, 2.2f);
     p.pause = Clamp(p.pause, 0.2f, 3.f);
     p.accentAll = Saturate(p.accentAll);
@@ -151,7 +157,8 @@ StyleParams styleParams(const Style& s) {
 
 bool styleEqual(const Style& a, const Style& b) {
     return a.emotion == b.emotion && a.delivery == b.delivery && a.accent == b.accent && a.timbre == b.timbre &&
-           a.intensity == b.intensity && a.accentStrength == b.accentStrength;
+           a.intensity == b.intensity && a.accentStrength == b.accentStrength && a.take == b.take &&
+           a.channel == b.channel;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -240,6 +247,26 @@ bool parseStyleTag(const std::string& tagIn, Style& st, float& pauseSec) {
     }
     if (f.empty() || f[0].empty()) return false;
     float num = 0.f;
+    static const NameId kChannelNames[] = {
+        {"direct", CHANNEL_DIRECT}, {"dry", CHANNEL_DIRECT}, {"megaphone", CHANNEL_MEGAPHONE}, {"bullhorn", CHANNEL_MEGAPHONE},
+        {"loudhailer", CHANNEL_MEGAPHONE}, {"pa", CHANNEL_PA}, {"publicaddress", CHANNEL_PA}, {"announcement", CHANNEL_PA},
+        {"radio", CHANNEL_RADIO}, {"walkie", CHANNEL_RADIO}, {"walkietalkie", CHANNEL_RADIO}, {"policeradio", CHANNEL_RADIO},
+        {"scanner", CHANNEL_RADIO}, {"phone", CHANNEL_PHONE}, {"telephone", CHANNEL_PHONE}, {"call", CHANNEL_PHONE},
+    };
+    {
+        size_t kc = (f[0] == "channel" && f.size() >= 2) ? 1 : 0;
+        int c = findName(kChannelNames, ARRAY_COUNT(kChannelNames), f[kc]);
+        if (c >= 0 && (kc == 1 || f.size() == 1)) {
+            st.channel = (u8)c;
+            return true;
+        }
+    }
+    if (f[0] == "take" || f[0] == "variant") {
+        float v = 0.f;
+        if (f.size() < 2 || !parseNumber(f[1], v)) return false;
+        st.take = (u32)v;
+        return true;
+    }
     if (f[0] == "pause" || f[0] == "break") {
         float sec = 0.5f;
         if (f.size() >= 2 && !parseNumber(f[1], sec)) return false;
@@ -313,6 +340,9 @@ std::string styleTags(const Style& s) {
     }
     if (s.timbre != TIMBRE_NORMAL && s.timbre < TIMBRE_COUNT) r += std::string("[") + kTimbreTag[s.timbre] + "]";
     if (s.delivery != DELIVERY_TALK && s.delivery < DELIVERY_COUNT) r += std::string("[") + kDeliveryTag[s.delivery] + "]";
+    if (s.take) r += "[take:" + std::to_string(s.take) + "]";
+    static const char* const kChannelTag[CHANNEL_COUNT] = {"", "megaphone", "pa", "radio", "phone"};
+    if (s.channel > CHANNEL_DIRECT && s.channel < CHANNEL_COUNT) r += std::string("[") + kChannelTag[s.channel] + "]";
     if (s.emotion != EMOTION_NEUTRAL && s.emotion < EMOTION_COUNT) {
         r += "[";
         r += kEmotionTag[s.emotion];

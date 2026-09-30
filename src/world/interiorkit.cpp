@@ -96,6 +96,11 @@ void quadM(IB& b, vec3 a, vec3 bb, vec3 c, vec3 dd, u32 col, u32 mat, vec2 uvo =
     float lu = length(bb - a), lv = length(dd - a);
     quad(b, a, bb, c, dd, uvo, uvo + vec2(lu, 0), uvo + vec2(lu, lv), uvo + vec2(0, lv), col, mat);
 }
+// quad whose winding is fixed so that it faces `facing` (local)
+void quadF(IB& b, vec3 a, vec3 bb, vec3 c, vec3 dd, vec3 facing, u32 col, u32 mat, vec2 uvo = vec2(0.f)) {
+    if (dot(cross(bb - a, dd - a), facing) < 0.f) quadM(b, a, dd, c, bb, col, mat, uvo);
+    else quadM(b, a, bb, c, dd, col, mat, uvo);
+}
 void tri(IB& b, vec3 p0, vec3 p1, vec3 p2, u32 col, u32 mat) {
     if (!b.geo()) return;
     vec3 a = b.f.P(p0), c1 = b.f.P(p1), c2 = b.f.P(p2);
@@ -421,8 +426,8 @@ void wallWithHoles(IB& b, vec3 o, vec3 u, vec3 nrm, float w, float h, const std:
     std::sort(zs, zs + nz);
     nx = (int)(std::unique(xs, xs + nx, [](float a, float c) { return fabsf(a - c) < 1e-4f; }) - xs);
     nz = (int)(std::unique(zs, zs + nz, [](float a, float c) { return fabsf(a - c) < 1e-4f; }) - zs);
-    vec3 up = cross(nrm, u);  // u x up = nrm for a CCW quad facing nrm
-    if (dot(cross(u, up), nrm) < 0.f) up = -up;
+    vec3 up(0, 0, 1);  // face frames satisfy cross(u, up) = nrm (see faceFrame)
+    (void)nrm;
     for (int i = 0; i + 1 < nx; i++)
         for (int k = 0; k + 1 < nz; k++) {
             float xa = xs[i], xb = xs[i + 1], za = zs[k], zb = zs[k + 1];
@@ -436,17 +441,16 @@ void wallWithHoles(IB& b, vec3 o, vec3 u, vec3 nrm, float w, float h, const std:
         }
 }
 
-// Lining of an opening through a wall: from the plane at depth d0 to d1 along n (inward), hole rect in (u, z)
+// Lining of an opening through a wall: planes at depth d0..d1 along n, hole rect (s along u, z)
 void reveal(IB& b, vec3 o, vec3 u, vec3 n, float s0, float s1, float z0, float z1, float d0, float d1, u32 col, u32 mat, bool sill = true) {
     if (!b.geo()) return;
     vec3 up(0, 0, 1);
     auto P = [&](float s, float z, float dd) { return o + u * s + up * z + n * dd; };
-    // jambs face the opening center
-    quadM(b, P(s0, z0, d1), P(s0, z0, d0), P(s0, z1, d0), P(s0, z1, d1), col, mat);
-    quadM(b, P(s1, z0, d0), P(s1, z0, d1), P(s1, z1, d1), P(s1, z1, d0), col, mat);
-    // head faces down, sill faces up
-    quadM(b, P(s0, z1, d0), P(s1, z1, d0), P(s1, z1, d1), P(s0, z1, d1), col, mat);
-    if (sill) quadM(b, P(s0, z0, d1), P(s1, z0, d1), P(s1, z0, d0), P(s0, z0, d0), col, mat);
+    // jambs face the opening center, the head faces down, the sill up
+    quadF(b, P(s0, z0, d0), P(s0, z0, d1), P(s0, z1, d1), P(s0, z1, d0), u, col, mat);
+    quadF(b, P(s1, z0, d0), P(s1, z0, d1), P(s1, z1, d1), P(s1, z1, d0), -u, col, mat);
+    quadF(b, P(s0, z1, d0), P(s1, z1, d0), P(s1, z1, d1), P(s0, z1, d1), -up, col, mat);
+    if (sill) quadF(b, P(s0, z0, d0), P(s1, z0, d0), P(s1, z0, d1), P(s0, z0, d1), up, col, mat);
 }
 
 // ------------------------------------------------------------------------------------------------ room shell
@@ -482,11 +486,13 @@ thread_local std::vector<ExtraHole> tExtraHoles;
 // Face frame of a room side: origin (bottom-left seen from inside), u along the wall (left to right seen from inside),
 // inward normal, width
 void faceFrame(const InteriorRoom& r, int side, vec3& o, vec3& u, vec3& n, float& w) {
+    // o = bottom-left corner seen from inside the room, u = left-to-right along the wall, n = inward normal;
+    // cross(u, +z) == n so quads (o, o+u, o+u+z, o+z) face into the room
     switch (side) {
-        case 0: o = vec3(r.mn.x, r.mn.y, r.mn.z); u = vec3(1, 0, 0); n = vec3(0, 1, 0); w = r.mx.x - r.mn.x; break;    // front wall, seen from inside looking -y? (u = +x)
-        case 1: o = vec3(r.mx.x, r.mn.y, r.mn.z); u = vec3(0, 1, 0); n = vec3(-1, 0, 0); w = r.mx.y - r.mn.y; break;
-        case 2: o = vec3(r.mx.x, r.mx.y, r.mn.z); u = vec3(-1, 0, 0); n = vec3(0, -1, 0); w = r.mx.x - r.mn.x; break;
-        default: o = vec3(r.mn.x, r.mx.y, r.mn.z); u = vec3(0, -1, 0); n = vec3(1, 0, 0); w = r.mx.y - r.mn.y; break;
+        case 0: o = vec3(r.mx.x, r.mn.y, r.mn.z); u = vec3(-1, 0, 0); n = vec3(0, 1, 0); w = r.mx.x - r.mn.x; break;   // front (-y)
+        case 1: o = vec3(r.mx.x, r.mx.y, r.mn.z); u = vec3(0, -1, 0); n = vec3(-1, 0, 0); w = r.mx.y - r.mn.y; break;  // right (+x)
+        case 2: o = vec3(r.mn.x, r.mx.y, r.mn.z); u = vec3(1, 0, 0); n = vec3(0, -1, 0); w = r.mx.x - r.mn.x; break;   // back (+y)
+        default: o = vec3(r.mn.x, r.mn.y, r.mn.z); u = vec3(0, 1, 0); n = vec3(1, 0, 0); w = r.mx.y - r.mn.y; break;   // left (-x)
     }
 }
 
@@ -623,8 +629,8 @@ void shell(IB& b, int roomIdx, const ShellStyle& st) {
                 vec3 ctr = (a + c2) * 0.5f;
                 float yaw = atan2f(u.y, u.x);
                 At at(b, ctr, yaw);
-                // local x along the wall, local y = inward normal? (rotated u -> x, so y = perp(u) = n for these faces)
-                box(b, vec3(0.f), vec3((s.second - s.first) * 0.5f, proud * 0.5f, (z1 - z0) * 0.5f), col, mat, SK_NY | SK_NZ);
+                // local x = u, local y = perp(u) = -n: the face against the wall is +y
+                box(b, vec3(0.f), vec3((s.second - s.first) * 0.5f, proud * 0.5f, (z1 - z0) * 0.5f), col, mat, SK_PY | SK_NZ);
             }
         };
         if (st.baseH > 0.f) run(0.f, st.baseH, 0.018f, st.baseCol, st.baseMat);
@@ -702,9 +708,7 @@ void doorLeafGeo(IB& b, float w, float h, float th, u8 style, u32 color, bool ha
             box(b, vec3(w - fw * 0.5f, 0.f, h * 0.5f), vec3(fw * 0.5f, th * 0.5f, h * 0.5f - 0.07f), frameC, steel, SK_PZ | SK_NZ);
             for (int s = -1; s <= 1; s += 2) {
                 float y = s * 0.004f;
-                vec3 a(fw, y, 0.12f), c(w - fw, y, h - fw);
-                if (s > 0) quad(b, vec3(a.x, y, a.z), vec3(c.x, y, a.z), vec3(c.x, y, c.z), vec3(a.x, y, c.z), vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), glassCol(0.95f), kGlassMat);
-                else quad(b, vec3(c.x, y, a.z), vec3(a.x, y, a.z), vec3(a.x, y, c.z), vec3(c.x, y, c.z), vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), glassCol(0.95f), kGlassMat);
+                quadF(b, vec3(fw, y, 0.12f), vec3(w - fw, y, 0.12f), vec3(w - fw, y, h - fw), vec3(fw, y, h - fw), vec3(0, (float)s, 0), glassCol(0.95f), kGlassMat);
             }
             // push bar and handle (both faces)
             float hx = handleRight ? w - 0.16f : 0.16f;
@@ -718,9 +722,6 @@ void doorLeafGeo(IB& b, float w, float h, float th, u8 style, u32 color, bool ha
         case 2: {  // steel service door with a vision panel
             rbox(b, vec3(w * 0.5f, 0.f, h * 0.5f), vec3(w * 0.5f, th * 0.5f, h * 0.5f), 0.006f, color, paint, true);
             for (int s = -1; s <= 1; s += 2) {
-                float y = s * (th * 0.5f + 0.003f);
-                vec3 lo(w * 0.35f, y, 1.35f), hi(w * 0.65f, y, 1.75f);
-                if (s > 0) quad(b, vec3(lo.x, y, lo.z), vec3(lo.x, y, lo.z) + vec3(0, 0, 0), vec3(0.f), vec3(0.f), vec2(0.f), vec2(0.f), vec2(0.f), vec2(0.f), 0, 0);
                 box(b, vec3(w * 0.5f, s * (th * 0.5f + 0.004f), 1.55f), vec3(w * 0.16f, 0.004f, 0.21f), Gy(0.3f), steel, SK_NONE);
                 box(b, vec3(w * 0.5f, s * (th * 0.5f + 0.008f), 1.55f), vec3(w * 0.13f, 0.002f, 0.18f), C(0.2f, 0.25f, 0.28f), M(MAT_GLASS), SK_NONE);
                 box(b, vec3(handleRight ? w - 0.12f : 0.12f, s * (th * 0.5f + 0.03f), 1.02f), vec3(0.07f, 0.012f, 0.012f), Gy(0.75f), chrome, SK_NONE);
@@ -764,15 +765,13 @@ void doorLeafGeo(IB& b, float w, float h, float th, u8 style, u32 color, bool ha
                 if (style == 3) {
                     // glass lite in the upper half
                     float gy = s * (th * 0.1f);
-                    vec3 a(rail, gy, h * 0.52f), c(w - rail, gy, h - rail);
-                    if (s > 0) quad(b, vec3(a.x, gy, a.z), vec3(c.x, gy, a.z), vec3(c.x, gy, c.z), vec3(a.x, gy, c.z), vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), glassCol(0.7f, vec3(0.8f, 0.85f, 0.8f)), kGlassMat);
-                    else quad(b, vec3(c.x, gy, a.z), vec3(a.x, gy, a.z), vec3(a.x, gy, c.z), vec3(c.x, gy, c.z), vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), glassCol(0.7f, vec3(0.8f, 0.85f, 0.8f)), kGlassMat);
+                    quadF(b, vec3(rail, gy, h * 0.52f), vec3(w - rail, gy, h * 0.52f), vec3(w - rail, gy, h - rail), vec3(rail, gy, h - rail), vec3(0, (float)s, 0),
+                          glassCol(0.7f, vec3(0.8f, 0.85f, 0.8f)), kGlassMat);
                 }
                 // lever handle + rose
                 float hx = handleRight ? w - 0.075f : 0.075f;
                 float dir = handleRight ? -1.f : 1.f;
-                cyl(b, vec3(hx, s * th * 0.5f, 1.0f), 0.028f, 0.028f, 0.0f, 10, Gy(0.8f), chrome, false);
-                b.pushAxes(vec3(hx, s * th * 0.5f, 1.0f), vec3(1, 0, 0), vec3(0, 0, 1), vec3(0, s, 0));
+                b.pushAxes(vec3(hx, s * th * 0.5f, 1.0f), vec3(1, 0, 0), vec3(0, 0, -(float)s), vec3(0, (float)s, 0));
                 cyl(b, vec3(0.f), 0.028f, 0.028f, 0.012f, 10, C(0.78f, 0.68f, 0.42f), chrome, true);
                 cyl(b, vec3(0.f), 0.009f, 0.009f, 0.055f, 6, C(0.78f, 0.68f, 0.42f), chrome, false);
                 b.pop();
@@ -801,7 +800,7 @@ void doorFrameInner(IB& b, vec3 c, vec2 t, vec2 n, float w, float h, float th, u
     InPart ip(b, IP_SHELL);
     vec3 u(t, 0.f), nn(n, 0.f);
     vec3 o = c - u * (w * 0.5f);
-    reveal(b, o, u, nn, 0.f, w, 0.f, h, -th * 0.5f, th * 0.5f, trimCol, M(MAT_WOOD), false);
+    reveal(b, o, u, nn, 0.f, w, 0.f, h, -th * 0.5f, th * 0.5f, trimCol, M(MAT_WOOD), true);   // sill = threshold
     casing(b, c, t, n, w, h, th * 0.5f, trimCol, M(MAT_PAINT_WHITE));
     casing(b, c, t, -n, w, h, th * 0.5f, trimCol, M(MAT_PAINT_WHITE));
 }
@@ -812,7 +811,6 @@ void downlight(IB& b, vec3 p, int room, float cd = 280.f, vec3 tint = vec3(1.f, 
     {
         InPart ip(b, IP_SHELL);
         cyl(b, p - vec3(0, 0, 0.012f), 0.085f, 0.085f, 0.012f, 12, Gy(0.95f), M(MAT_PAINT_WHITE), false, true);
-        disc(b, p - vec3(0, 0, 0.013f), 0.0f, 3, 0, 0);
         b.pushAxes(p - vec3(0, 0, 0.0135f), vec3(1, 0, 0), vec3(0, -1, 0), vec3(0, 0, -1));
         disc(b, vec3(0.f), 0.06f, 12, C(tint, 0.9f), EM());
         b.pop();

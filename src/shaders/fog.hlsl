@@ -3,19 +3,14 @@
 // Volume layout: x/y screen, z exponential view-depth slices from gFogParams1.z to gFogParams0.w.
 #include "skycommon.hlsli"
 #include "shadow.hlsli"
+#include "lights.hlsli"
 
-struct LightGPU {
-    float3 pos;
-    float radius;
-    float3 color;
-    float spotCos;
-    float3 dir;
-    float spotInner;
-};
 StructuredBuffer<LightGPU> tLights : register(t0);
 Texture3D<float4> tFogHistory : register(t1);
 Texture3D<float4> tInjected : register(t2);
+Texture3D<float> tFogNoise : register(t3);       // tileable 64^3 value noise (generated at init)
 RWTexture3D<float4> uFog : register(u0);
+RWTexture3D<float> uFogNoise : register(u1);
 
 cbuffer FogCB : register(b1) {
     float4 gFogVol;    // xyz volume size, w history valid
@@ -33,8 +28,9 @@ float mediaDensity(float3 worldP) {
     float fog = gFogParams0.x * exp(-max(h - gFogParams0.z, 0.0) * gFogParams0.y);
     float humid = gFogMedia.x * exp(-max(h, 0.0) / gFogMedia.y);
     float rain = gFogMedia.z * exp(-max(h, 0.0) / 600.0);
-    float3 np = float3(worldP.xy + gFogMisc.xy, worldP.z * 2.0) * 0.035;
-    float n = valueNoise3(np) * 0.65 + valueNoise3(np * 2.7 + 11.0) * 0.35;
+    // 64^3 tileable noise covering 256 m horizontally (2 octaves baked in)
+    float3 np = float3(worldP.xy + gFogMisc.xy, worldP.z * 2.0) / 256.0;
+    float n = tFogNoise.SampleLevel(sLinearWrap, np, 0);
     float mod = lerp(1.0, saturate(n * 1.6 - 0.1) * 1.6, gFogMedia.w);
     return (fog + humid + rain) * mod;
 }
@@ -118,7 +114,7 @@ void csFogInject(uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex, uint3 
         float x = d / L.radius;
         float win = saturate(1.0 - x * x * x * x);
         float att = win * win / max(d2, 0.5);
-        if (L.spotCos > -1.0) att *= smoothstep(L.spotCos, L.spotInner, dot(-Lv, L.dir));
+        att *= lightAngular(L, Lv);
         Lin += L.color * att * phaseHG(gFogMisc.z, dot(-Lv, V));
     }
     float4 cur = float4(sigmaS * Lin * preExposure(), sigmaT);
@@ -162,4 +158,23 @@ void csFogIntegrate(uint3 id : SV_DispatchThreadID) {
         T *= trans;
         uFog[uint3(id.xy, z)] = float4(L, T);
     }
+}
+
+// Tileable value noise volume for the fog density variation (two octaves, periods 8 and 16 cells).
+float tileHash(int3 c, int period) { c = (c % period + period) % period; return hashF(hash3u(asuint(c))); }
+float tileValueNoise(float3 p, int period) {
+    int3 i = (int3)floor(p);
+    float3 f = frac(p);
+    float3 u = f * f * (3.0 - 2.0 * f);
+    float n000 = tileHash(i, period), n100 = tileHash(i + int3(1, 0, 0), period);
+    float n010 = tileHash(i + int3(0, 1, 0), period), n110 = tileHash(i + int3(1, 1, 0), period);
+    float n001 = tileHash(i + int3(0, 0, 1), period), n101 = tileHash(i + int3(1, 0, 1), period);
+    float n011 = tileHash(i + int3(0, 1, 1), period), n111 = tileHash(i + int3(1, 1, 1), period);
+    return lerp(lerp(lerp(n000, n100, u.x), lerp(n010, n110, u.x), u.y), lerp(lerp(n001, n101, u.x), lerp(n011, n111, u.x), u.y), u.z);
+}
+[numthreads(4, 4, 4)]
+void csFogNoise(uint3 id : SV_DispatchThreadID) {
+    float3 p = (id + 0.5) / 64.0;
+    float n = tileValueNoise(p * 8.0, 8) * 0.65 + tileValueNoise(p * 16.0 + 0.37, 16) * 0.35;
+    uFogNoise[id] = n;
 }

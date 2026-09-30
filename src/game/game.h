@@ -236,6 +236,16 @@ struct Vehicle {
     bool renderFar = false;       // drawn up to the horizon (aircraft)
     bool windowsBroken = false;   // shattered by gunfire or a hard crash (glass no longer drawn)
     int glassHits = 0;
+    // customization (mod shop): visual parts are read by the render/FX code, handling parts by applyVehicleMods
+    struct Mods {
+        u8 finish = 0;            // paint finish: 0 gloss, 1 metallic, 2 pearl, 3 matte, 4 chrome
+        u8 engine = 0, brakes = 0, transmission = 0, suspension = 0;   // upgrade levels 0..3
+        u8 armor = 0;             // 0..5 (-15% body damage per level)
+        bool turbo = false;
+        u8 tint = 0;              // window tint 0 stock, 1 light, 2 dark, 3 limo
+        vec3 neon = vec3(0.f);    // underglow colour (black = none)
+        vec3 smoke = vec3(1.f);   // tire smoke colour
+    } mods;
 };
 
 enum PickupType : u8 { PICK_MONEY = 0, PICK_HEALTH, PICK_ARMOR, PICK_WEAPON, PICK_COLLECTIBLE, PICK_PACKAGE };

@@ -214,7 +214,7 @@ struct FrameBuilder {
             }
         }
         // Long pauses between phrases hold an open, neutral tract (the breath intake is shaped by it).
-        for (int i = 1; i + 1 < M; i++) {
+        for (int i = 0; i + 1 < M; i++) {
             if (S[i].ph != PH_SIL || S[i].dur < 0.3f) continue;
             static const float kBreathF[3] = {600.f, 1350.f, 2500.f};
             for (int k = 0; k < 3; k++) aco[i].T0[k] = aco[i].T1[k] = kBreathF[k] * fsc;
@@ -314,7 +314,7 @@ struct FrameBuilder {
                 af.add(t1, 0.f);
                 // audible breath intake in longer pauses between phrases (not at the utterance edges)
                 const float bin = i + 1 < M ? u.segStyle(i + 1).breathIn : 0.f;
-                if (d >= 0.3f && i > 0 && i + 1 < M && bin > 0.f) {
+                if (d >= 0.3f && i + 1 < M && bin > 0.f) {
                     float L = dbLin(39.f + 10.f * breath) * std::min(2.f, bin);
                     float ta = t0 + 0.35f * d, tb = t1 - std::min(0.12f, 0.25f * d), tc = t1 - 0.04f;
                     ah.add(ta, 0.f);
@@ -473,6 +473,8 @@ struct FrameBuilder {
             };
             if (hasFlag(s.ph, PF_FRIC)) {
                 float db = p.af + ((s.flags & SF_STRESSED) ? 1.f : -1.f) + (shoutDb + styleDb) * 0.5f - 4.f * P.slur;
+                // a voiced fricative devoicing before a voiceless consonant gets the stronger voiceless frication
+                if (hasFlag(s.ph, PF_VOICED) && hasFlag(next, PF_OBSTRUENT) && !hasFlag(next, PF_VOICED)) db += 3.f;
                 float L = dbLin(db);
                 bool sib = hasFlag(s.ph, PF_SIBILANT);
                 float rin = std::min(sib ? 0.022f : 0.012f, 0.35f * d), rout = std::min(0.014f, 0.3f * d);

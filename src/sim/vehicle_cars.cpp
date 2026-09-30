@@ -246,10 +246,25 @@ inline vec3 lightAnchor(CarBody& b, vec2 xz, bool rear) {
 // Body shell + all projected details + interior (no wheels / metadata). Returns the built body helper.
 inline void carBodyParts(const CarDef& d, CarBody& b, PMesh& m, bool interior = true);
 
-inline void buildCar(const CarDef& d, VehicleModel& out) {
+// Lettering shown on the tail: the model name without fleet/package suffixes.
+inline std::string badgeText(const std::string& name) {
+    const char* const kSuffix[] = {" Patrol", " Pursuit", " Cab", " Sheriff", " Trooper", " Utility"};
+    std::string s = name;
+    for (const char* suf : kSuffix) {
+        size_t n = strlen(suf);
+        if (s.size() > n && s.compare(s.size() - n, n, suf) == 0) s.resize(s.size() - n);
+    }
+    return s;
+}
+
+inline void buildCar(const CarDef& def, VehicleModel& out) {
+    CarDef d = def;
+    d.L.maker = makerId(out.maker);
     CarBody b(d.s);
     PMesh m;
     carBodyParts(d, b, m, true);
+    if (d.L.grille == GR_NONE) noseLogo(m, b, d.L);
+    rearBadges(m, b, d.L, badgeText(out.name));
     const CarSpec& s = b.s;
     const CarLook& L = d.L;
     finalizeMesh(m, out.body);

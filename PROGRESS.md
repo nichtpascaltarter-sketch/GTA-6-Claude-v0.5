@@ -77,6 +77,28 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   lane-graph traffic + sidewalk peds + police tactics + ambient events (lanes/traffic_core/pednav/events),
   story acts 1-3 + mission tests + character switching (story_act*.cpp, missions*, switching.cpp).
 
+## Integrated 2026-09-30 (lead + agent wave 2)
+- Melee v2 (src/game/melee.cpp): timed moves (wind-up -> contact -> recovery), 3-hit fist combos, heavy attacks
+  (R / B), knife and bat move sets, lock-on with RMB/LT (fighting-guard stance 19, strafing), block (Q/RB) with
+  perfect-block stagger + counter window, dodge (Space/X) with i-frames, lunge/magnetism, hit reactions, knock-downs,
+  NPCs block/dodge and chain combos (all NPC melee goes through meleeStart via fireWeapon).
+- Gunfire reactions: point-blank shotgun / rifle / sniper knock-downs, leg wounds make targets limp, see-through
+  vehicle windows (MAT_CAR_WINDOW forward glass pass) shatter from gunfire (2 hits above the belt line) or violent
+  crashes (respray replaces them).
+- Lip sync: GameWorld::startLipSync stores Speech::lipSync viseme keys per ped (missions + barks) and drives the jaw
+  (AnimInput::mouthOpen); speech personas/emotion tags for the cast, radio hosts and barks (speech agent);
+  subtitles strip speech markup.
+- Phone (UI agent: src/ui/phone.cpp, tidegram.cpp; story agent: src/game/phone_game.cpp phoneRefresh/phoneHandle):
+  contacts, story calls (incoming/outgoing), texts, apps (Wheels.ps, Dynasty Realty, Jobs, Replay, Switch), quick
+  save, map/waypoint, photo mode (free camera, DOF, freeze, filters; photos in %LOCALAPPDATA%/NeonTide/Photos).
+  Tidegram social feed (src/game/social.cpp): wanted/escaped/busted/wasted/car stolen/crash/explosion/shooting/
+  speeding/low fly-by/mission passed/weather/purchases/races/stunt jumps -> NPC posts.
+- Crash handler logs the faulting address, access-violation target and an x64 unwound call stack (module offsets);
+  symbolize with a `-O2 -g1` build + x86_64-w64-mingw32-addr2line (scratch helper: build_g1.sh / symbolize.sh).
+- Agents added: interiors (enterable safehouses/shops/diner/club/police/hospital/penthouse/warehouse), wildlife
+  (birds, gators, dolphins, dogs, ...). World: street-level facade detail + fuller vegetation; renderer: SSGI +
+  probe-SH GI, HiZ SSR, froxel fog, weather, GPU particles/decals/grass, quarter-res checkerboard clouds.
+
 ## Gameplay architecture (src/game, src/sim)
 - `app.cpp`: states LOADING (world generated on a thread, loading screen) -> MENU (cinematic flyover + main menu)
   -> PLAYING (pause/map menus overlay) ; FREECAM for --shot/--viewer/F9. Gameplay compiles only when characters,
@@ -103,12 +125,9 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   screenshots `auto_<mode>_NN.bmp`, telemetry in the log), `--autoduration S`, `--autoevery S`.
 
 ## Backlog (after the current agent wave)
-- Enterable interiors (seamless GTA-V style): hollow shells + interior meshes/props/lights for safehouses, shops,
-  diner, nightclub, police station, hospital; interior light/ambient handling in the renderer.
-- Metro/elevated rail + trams with stations (world geometry + train entities the player can ride).
-- Wildlife: seagulls/pelicans, alligators and herons in the Sawgrass, dolphins, dogs; flocks.
-- Phone UI (contacts, messages, camera/photo mode, map, quick save), social-media feed reacting to player actions.
-- First-person camera option; weapon attachments; character customization shops (barber, tattoos, clothes).
+- Metro/elevated rail + trams + bus routes + ferries (brief queued in the lead's notes).
+- Vehicle customization shop (paint/wheels/body kits/performance/tint/neon).
+- First-person camera option; weapon attachments; character customization shops (barber, tattoos).
 - Real-GPU performance validation (target 60 fps @1440p on RTX 4070-class); offline shader precompile option.
 
 ## Known issues / next

@@ -23,6 +23,7 @@ struct TextStyle {
     float glow = 0.f;          // soft outer glow radius in pixels (0 = none), drawn under the text
     u32 glowColor = 0;         // glow color (alpha = strength)
     float shadowSoft = 0.f;    // > 0 blurs the drop shadow (0..1)
+    float angle = 0.f;         // rotation in radians (clockwise on screen) around the anchor (x, y + size * 0.55)
 };
 
 bool init();

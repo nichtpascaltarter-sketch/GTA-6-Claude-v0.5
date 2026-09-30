@@ -359,10 +359,18 @@ void GameWorld::updateVehicleFx(Vehicle& v, float dt) {
             v.smokeTimer = 0.05f;
             for (int w = 0; w < s.wheelCount; w++) {
                 const Vehicles::WheelState& ws = s.wheels[w];
+                // wet roads: tires throw a fine spray behind the car (more with speed and standing water)
+                if (ws.contact && env->wetness > 0.25f && s.speed() > 7.f && v.visibleDist < 60.f && !isBoat((int)(&v - &vehicles[0])) &&
+                    (ws.surface == Phys::SURF_ASPHALT || ws.surface == Phys::SURF_CONCRETE)) {
+                    float wet = Saturate((env->wetness - 0.25f) / 0.5f) * Saturate((s.speed() - 7.f) / 20.f);
+                    vec3 back = -v.sim.forward() * 0.6f + vec3(0.f, 0.f, 0.35f);
+                    spawnFx(FX_WAKE_SPRAY, s.body.pos + ws.contactPos + dvec3(back * 0.3f), back * (0.5f + s.speed() * 0.05f), 1, 0.25f + 0.35f * wet,
+                            vec3(0.82f, 0.84f, 0.86f));
+                }
                 if (ws.contact && ws.slip > 0.45f && s.speed() > 3.f && !isBoat((int)(&v - &vehicles[0]))) {
                     bool dusty = ws.surface == Phys::SURF_DIRT || ws.surface == Phys::SURF_SAND || ws.surface == Phys::SURF_GRASS || ws.surface == Phys::SURF_MUD;
                     spawnFx(dusty ? FX_DUST : FX_TIRE_SMOKE, s.body.pos + ws.contactPos, vec3(0, 0, 0.5f), 1,
-                                             Saturate(ws.slip), vec3(1));
+                                             Saturate(ws.slip), dusty ? vec3(1) : v.mods.smoke);
                 }
             }
             vec3 enginePos = rotate(s.body.rot, vec3(0, spec.boxCenter.y + spec.boxHalf.y * 0.7f, spec.boxCenter.z + spec.boxHalf.z * 0.6f));
@@ -401,6 +409,7 @@ void GameWorld::updateVehicleFx(Vehicle& v, float dt) {
 void GameWorld::damageVehicle(int veh, float amount, int attacker, vec3 pointRel, vec3 impulse) {
     if (veh < 0 || !vehicles[veh].used) return;
     Vehicle& v = vehicles[veh];
+    amount *= 1.f - 0.15f * Min((int)v.mods.armor, 5);   // armor plating
     Vehicles::applyDamage(v.sim, amount, pointRel, impulse);
     v.sim.sleeping = false;
     if (attacker >= 0 && attacker < (int)peds.size() && peds[attacker].isPlayer && v.faction == FAC_POLICE) reportCrime(4, v.sim.body.pos, v.seats[0]);

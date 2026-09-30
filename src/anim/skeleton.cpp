@@ -182,6 +182,14 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
     J[B_JAW] = J[B_HEAD] + vec3(0, 0.010f, 0.020f) * hs;
     J[B_EYE_L] = J[B_HEAD] + vec3(-0.0315f * D.eyeSpace, 0.0705f, 0.058f) * hs;
     J[B_EYE_R] = J[B_HEAD] + vec3(0.0315f * D.eyeSpace, 0.0705f, 0.058f) * hs;
+    // speech bones (pivots, head space as in face.cpp's landmarks): the upper lip hangs from above/behind it (pitch
+    // forward = protrude), the lower lip rides the jaw from below/behind (pitch back = tuck), the corners swing about a
+    // point behind the mouth (yaw = narrow/spread, pitch = up/down), the tongue from the floor of the mouth
+    J[B_LIP_UPPER] = J[B_HEAD] + vec3(0.f, 0.084f, 0.006f) * hs;
+    J[B_LIP_LOWER] = J[B_HEAD] + vec3(0.f, 0.083f, -0.04f) * hs;
+    J[B_LIP_CORNER_L] = J[B_HEAD] + vec3(-0.004f * D.lipW * D.faceW, 0.065f, -0.02f) * hs;
+    J[B_LIP_CORNER_R] = J[B_HEAD] + vec3(0.004f * D.lipW * D.faceW, 0.065f, -0.02f) * hs;
+    J[B_TONGUE] = J[B_HEAD] + vec3(0.f, 0.052f, -0.036f) * hs;
 }
 
 static const int kParent[B_COUNT] = {
@@ -195,6 +203,7 @@ static const int kParent[B_COUNT] = {
     B_PELVIS, B_THIGH_R, B_CALF_R, B_FOOT_R,
     B_HAND_L, B_HAND_L, B_HAND_R, B_HAND_R,
     B_HEAD, B_HEAD, B_HEAD,
+    B_HEAD, B_JAW, B_HEAD, B_HEAD, B_JAW,  // LIP_UPPER, LIP_LOWER, LIP_CORNER_L/R, TONGUE
 };
 
 }  // namespace detail
@@ -236,6 +245,9 @@ void buildSkeleton(const CharacterDesc& d, Skeleton& out) {
     }
     out.boneLength[B_JAW] = 0.095f * hs;
     out.boneLength[B_EYE_L] = out.boneLength[B_EYE_R] = 0.024f * hs;
+    out.boneLength[B_LIP_UPPER] = out.boneLength[B_LIP_LOWER] = 0.02f * hs;
+    out.boneLength[B_LIP_CORNER_L] = out.boneLength[B_LIP_CORNER_R] = 0.03f * hs;
+    out.boneLength[B_TONGUE] = 0.04f * hs;
 
     out.boneRadius[B_ROOT] = 0.05f * s;
     out.boneRadius[B_PELVIS] = D.hipHalfW * 0.9f;
@@ -260,6 +272,7 @@ void buildSkeleton(const CharacterDesc& d, Skeleton& out) {
     }
     out.boneRadius[B_JAW] = 0.045f * hs;
     out.boneRadius[B_EYE_L] = out.boneRadius[B_EYE_R] = 0.012f * hs;
+    for (int b = B_LIP_UPPER; b <= B_TONGUE; b++) out.boneRadius[b] = 0.008f * hs;
 }
 
 }  // namespace Anim

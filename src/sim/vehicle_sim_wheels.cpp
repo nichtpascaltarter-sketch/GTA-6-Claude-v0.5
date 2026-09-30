@@ -188,10 +188,13 @@ DriveCmd powertrain(StepCtx& x, float drivenOmega) {
     if (s.engineOn) s.engineRpm = Clamp(s.engineRpm, t.idleRpm * 0.9f, t.maxRpm * 1.02f);
     float thrEff = s.engineOn && engaged ? driveIn : 0.f;
     if (s.engineRpm >= t.maxRpm * 0.995f) thrEff = 0.f;  // rev limiter
-    float top = s.gear < 0 ? Min(s.model->topSpeed * 0.35f, 14.f) : Max(s.model->topSpeed, 5.f);
+    float top = s.gear < 0 ? Min(s.model->topSpeed * 0.35f, 14.f) : t.topSpeed;
     thrEff *= Saturate((top * 1.005f - fabsf(vF)) / (0.025f * top));  // governor
     s.throttleOut = approach(s.throttleOut, s.engineOn ? (engaged ? thrEff : driveIn * 0.6f) : 0.f, 8.f * dt);
-    float Te = engineTorque(t, s.engineRpm) * thrEff;
+    // turbo: boost builds with throttle above ~35 % rpm (spool lag ~0.7 s) and dumps quickly off throttle
+    float boostT = t.turbo && s.engineOn ? Saturate(thrEff * 1.25f) * SmoothStep(0.3f, 0.55f, s.engineRpm / t.maxRpm) : 0.f;
+    s.turboBoost = approach(s.turboBoost, boostT, (boostT > s.turboBoost ? 1.4f : 3.5f) * dt);
+    float Te = engineTorque(t, s.engineRpm) * thrEff * (1.f + 0.14f * s.turboBoost);
     if (thrEff < 0.02f && locked && wheelRpm > t.idleRpm * 1.1f) Te = -t.peakTorque * (0.06f + 0.1f * wheelRpm / t.maxRpm);
     s.engineLoad = s.engineOn ? Saturate(fabsf(Te) / t.peakTorque) : 0.f;
     d.wheelTorque = Te * ratio * 0.9f;
@@ -449,7 +452,7 @@ void wheelForces(StepCtx& x) {
             w.compression = approach(w.compression, 0.f, dt);
             continue;
         }
-        vec3 rMount = b.R * (ws.pos + vec3(0.f, 0.f, travel - t.restComp[i]) - t.com);
+        vec3 rMount = b.R * (ws.pos + vec3(0.f, 0.f, travel - t.restComp[i] + t.rideDrop) - t.com);
         vec3 mount = x.comW + rMount;
         vec3 hubPrev = mount - up * (travel - w.compression);
         float fallSpec = Max(0.f, -b.velAt(rMount).z) * dt;
@@ -549,7 +552,9 @@ void wheelForces(StepCtx& x) {
     float betaBody = atan2f(x.vLocal.x, Max(fabsf(x.vLocal.y), 1.f));
     bool counter = c.steer * b.angVel.z > 0.f && fabsf(c.steer) > 0.1f && fabsf(b.angVel.z) > 0.15f;  // + steer = right, + yaw = left
     bool sliding = road && rearDrive > 0.3f && c.throttle > 0.4f && fabsf(betaBody) > 0.15f && x.speed > 5.f;
-    if (sliding && (counter || s.hbTimer < 1.5f)) s.driftTimer = 0.8f;   // brief steering corrections keep the drift
+    // a drift starts with a countersteer or a handbrake flick and lasts while the driver keeps the slide going with
+    // throttle and steering (either way); lifting off, centering the wheel or regaining grip ends it
+    if (sliding && (counter || s.hbTimer < 1.5f || (s.driftTimer > 0.f && fabsf(c.steer) > 0.1f))) s.driftTimer = 0.3f;
     else s.driftTimer = Max(s.driftTimer - dt, 0.f);
     bool drift = sliding && s.driftTimer > 0.f;
     bool frontC = false, rearC = false;
@@ -628,7 +633,7 @@ void wheelForces(StepCtx& x) {
         // traction control (friction-circle aware): limit drive slip so that lateral grip survives
         if (!hb && !dc.burnout && fabsf(Td) > 1.f) {
             // generous at launch (burnouts, fishtails), just past peak at speed (no power spin-outs on a straight)
-            float sLow = t.tcSlip / kp, sHigh = Min(sLow, 1.4f);
+            float sLow = t.tcSlip / kp, sHigh = Min(sLow, 0.85f);
             float sLim = bike ? 1.25f : Lerp(sLow, sHigh, SmoothStep(8.f, 25.f, fabsf(vx))) * (s.hbTimer < 1.f || drift ? 3.f : 1.f);
             float sxMax = sqrtf(Max(sLim * sLim - sy * sy, 0.25f));
             float dvMax = sxMax * kp * Vx;

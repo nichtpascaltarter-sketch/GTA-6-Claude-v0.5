@@ -153,6 +153,54 @@ void lipSync(const char* text, const Audio::VoiceParams& voice, std::vector<Vise
     out.back().duration = utt.total + 0.02f - out.back().time;  // synthesize() output ends 20 ms after the last segment
 }
 
+void styleTimeline(const char* text, const Audio::VoiceParams& voice, std::vector<StyleSpan>& out) {
+    out.clear();
+    if (!text || !*text) return;
+    detail::Utterance utt;
+    detail::buildUtterance(text, voice, utt);
+    if (utt.segs.empty() || utt.total <= 0.f) return;
+    for (const detail::UWord& w : utt.words) {
+        if (w.lastSeg < w.firstSeg || w.firstSeg < 0 || w.lastSeg >= (int)utt.segs.size()) continue;
+        float a = utt.segs[(size_t)w.firstSeg].t0;
+        float b = utt.segs[(size_t)w.lastSeg].t0 + utt.segs[(size_t)w.lastSeg].dur;
+        if (!out.empty() && detail::styleEqual(out.back().style, w.style)) {
+            out.back().end = b;  // extend (pauses inside a span belong to it)
+            continue;
+        }
+        StyleSpan sp;
+        sp.start = out.empty() ? 0.f : a;
+        if (!out.empty()) out.back().end = a;
+        sp.end = b;
+        sp.style = w.style;
+        out.push_back(sp);
+    }
+    if (!out.empty()) out.back().end = utt.total + 0.02f;
+}
+
+void accentCues(const char* text, const Audio::VoiceParams& voice, std::vector<AccentCue>& out) {
+    out.clear();
+    if (!text || !*text) return;
+    detail::Utterance utt;
+    detail::buildUtterance(text, voice, utt);
+    const std::vector<detail::Seg>& S = utt.segs;
+    for (const detail::UPhrase& ph : utt.phrases) {
+        int last = -1;
+        for (int i = ph.firstSeg; i <= ph.lastSeg && i < (int)S.size(); i++)
+            if (S[(size_t)i].flags & detail::SF_ACCENT) last = i;
+        for (int i = ph.firstSeg; i <= ph.lastSeg && i < (int)S.size(); i++) {
+            const detail::Seg& s = S[(size_t)i];
+            if (!(s.flags & detail::SF_ACCENT)) continue;
+            AccentCue c;
+            c.time = s.t0 + s.vot + 0.45f * std::max(0.f, s.dur - s.vot);
+            float k = s.accent;
+            if (s.flags & (detail::SF_EMPH | detail::SF_SHOUT)) k *= 1.3f;
+            c.strength = Saturate(0.6f * k);
+            c.nuclear = i == last;
+            out.push_back(c);
+        }
+    }
+}
+
 void phonemeTiming(const char* text, const Audio::VoiceParams& voice, std::vector<PhonemeTiming>& out) {
     out.clear();
     if (!text || !*text) return;

@@ -12,6 +12,7 @@ struct VolumetricFog {
     bool historyValid = false;
     int w = 0, h = 0, d = 0;
     ID3D11ComputeShader *csInject = nullptr, *csIntegrate = nullptr;
+    gfx::Texture noise;   // tileable density variation
     gfx::CBuffer<FogCBData> cb;
     vec2 windOffset;
     static constexpr float kNear = 0.5f;
@@ -20,6 +21,13 @@ struct VolumetricFog {
         csInject = gfx::loadCS("fog.hlsl", "csFogInject");
         csIntegrate = gfx::loadCS("fog.hlsl", "csFogIntegrate");
         cb.create();
+        noise = gfx::createTexture3D(64, 64, 64, DXGI_FORMAT_R8_UNORM, gfx::TEX_SRV | gfx::TEX_UAV, 1);
+        ID3D11ComputeShader* gen = gfx::loadCS("fog.hlsl", "csFogNoise");
+        gfx::ctx->CSSetShader(gen, nullptr, 0);
+        gfx::ctx->CSSetUnorderedAccessViews(1, 1, &noise.uav, nullptr);
+        gfx::ctx->Dispatch(16, 16, 16);
+        gfx::unbindCSResources(1, 2);
+        gen->Release();
     }
 
     void ensure(int quality) {
@@ -82,12 +90,12 @@ struct VolumetricFog {
         c->CSSetConstantBuffers(0, 4, cbs);
         int prev = cur;
         cur ^= 1;
-        ID3D11ShaderResourceView* srvs[2] = {r.lightBuf.srv, inject[prev].srv};
-        c->CSSetShaderResources(0, 2, srvs);
+        ID3D11ShaderResourceView* srvs[4] = {r.lightBuf.srv, inject[prev].srv, nullptr, noise.srv};
+        c->CSSetShaderResources(0, 4, srvs);
         c->CSSetUnorderedAccessViews(0, 1, &inject[cur].uav, nullptr);
         c->CSSetShader(csInject, nullptr, 0);
         c->Dispatch(gfx::divUp(w, 8), gfx::divUp(h, 8), d);
-        gfx::unbindCSResources(3, 1);
+        gfx::unbindCSResources(4, 1);
         c->CSSetShaderResources(2, 1, &inject[cur].srv);
         c->CSSetUnorderedAccessViews(0, 1, &integrated.uav, nullptr);
         c->CSSetShader(csIntegrate, nullptr, 0);

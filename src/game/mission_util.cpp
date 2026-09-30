@@ -292,6 +292,62 @@ Place resolvePlace(GameWorld& g, vec2 hint, float along = 0.f, bool allowBridge 
     return pl;
 }
 
+// True when the place's door opens into a building: the door spot is outside, a facade stands right behind it.
+bool hasFrontage(GameWorld& g, const Place& p) {
+    if (p.edge < 0 || !g.buildings) return false;
+    if (g.buildings->pointInBuilding(p.door.xy(), 0.3f)) return false;
+    for (float d = 1.5f; d <= 7.5f; d += 1.5f)
+        if (g.buildings->pointInBuilding(p.door.xy() + p.outward * d, 0.f)) return true;
+    return false;
+}
+
+// A street place in front of a building (shops, homes, offices): the nearest one to the hint whose door opens into a
+// facade. Hints are only rough (the city is generated), so this keeps story locations off empty lots.
+Place resolveFrontage(GameWorld& g, vec2 hint, float along = 0.f) {
+    Place base = resolvePlace(g, hint, along);
+    if (hasFrontage(g, base)) return base;
+    Place best = base;
+    float bestD = 1e9f;
+    for (float r = 10.f; r <= 220.f && bestD > 1e8f; r += 10.f) {
+        int n = Max(6, (int)(r * kTwoPi / 12.f));
+        for (int i = 0; i < n; i++) {
+            float a = kTwoPi * i / n;
+            Place p = resolvePlace(g, hint + vec2(cosf(a), sinf(a)) * r);
+            if (!hasFrontage(g, p)) continue;
+            float d = ::length(p.pos.xy() - hint);
+            if (d < bestD) {
+                bestD = d;
+                best = p;
+            }
+        }
+    }
+    if (bestD > 1e8f) LOG("Story place near (%.0f, %.0f): no building frontage found, using the street", hint.x, hint.y);
+    return best;
+}
+
+// A place at an interior's front door (world/interiors.h: the planner puts enterable interiors into real buildings),
+// snapped to the street in front of it. `name` binds a named interior (shops), otherwise the nth interior of `kind`.
+bool placeFromInterior(GameWorld& g, const char* name, int kind, int nth, Place& out) {
+    if (!World::gInteriors) return false;
+    int i = name ? World::gInteriors->byName(name) : World::gInteriors->byKind((u8)kind, nth);
+    if (i < 0) return false;
+    const World::InteriorDef& d = World::gInteriors->defs[i];
+    const World::InteriorMarker* m = d.marker(World::IM_DOOR_OUT);
+    vec3 door = m ? d.toWorld(m->pos) : d.toWorld(vec3(0.f, -2.f, 0.f));
+    Place p = resolvePlace(g, door.xy());
+    if (p.edge < 0) return false;
+    p.door = vec3(door.xy(), groundAt(g, door.x, door.y, door.z + 2.f));
+    out = p;
+    return true;
+}
+
+// Building places: the interior's entrance when the world has one, else the nearest real frontage to the hint.
+Place resolveBuilding(GameWorld& g, vec2 hint, int kind, const char* name = nullptr) {
+    Place p;
+    if (placeFromInterior(g, name, kind, 0, p)) return p;
+    return resolveFrontage(g, hint);
+}
+
 // Deep enough water near hint (spiral search), z at the water surface.
 bool findWater(GameWorld& g, vec2 hint, float minDepth, vec3& out, float maxR = 900.f) {
     for (float r = 0.f; r <= maxR; r += 12.f) {
@@ -344,36 +400,36 @@ void computePlaces(GameWorld& g) {
     Places& P = gPlaces;
     if (P.ready) return;
     double t0 = TimeSeconds();
-    P.mariApt = resolvePlace(g, vec2(1720, 360));
+    P.mariApt = resolveBuilding(g, vec2(1720, 360), World::IK_APARTMENT);
     P.boatyard = resolvePlace(g, vec2(1650, 235));
-    P.diner = resolvePlace(g, vec2(1330, 330));
-    P.vargasGarage = resolvePlace(g, vec2(2200, -480));
-    P.stashHouse = resolvePlace(g, vec2(1150, -620));
+    P.diner = resolveBuilding(g, vec2(1330, 330), World::IK_DINER);
+    P.vargasGarage = resolveFrontage(g, vec2(2200, -480));
+    P.stashHouse = resolveFrontage(g, vec2(1150, -620));
     P.solarisPier = resolvePlace(g, vec2(2560, 330));
-    P.rookShop = resolvePlace(g, vec2(1560, 2260));
-    P.dexTrailer = resolvePlace(g, vec2(1250, 2650));
-    P.pulseFm = resolvePlace(g, vec2(3350, 640));
-    P.policeHq = resolvePlace(g, vec2(3050, -350));
+    P.rookShop = resolveBuilding(g, vec2(1560, 2260), World::IK_CHOPSHOP);
+    P.dexTrailer = resolveBuilding(g, vec2(1250, 2650), World::IK_TRAILER);
+    P.pulseFm = resolveFrontage(g, vec2(3350, 640));
+    P.policeHq = resolveBuilding(g, vec2(3050, -350), World::IK_POLICE);
     P.solarisOne = resolvePlace(g, vec2(3350, -810));
-    P.sandovalOffice = resolvePlace(g, vec2(3700, -1000));
-    P.palmMotors = resolvePlace(g, vec2(2700, 1300));
-    P.gunFlats = resolvePlace(g, vec2(800, 2900));
-    P.gunNorth = resolvePlace(g, vec2(3300, 3900));
-    P.resprayCL = resolvePlace(g, vec2(2300, -150));
-    P.resprayBeach = resolvePlace(g, vec2(5100, 2000));
-    P.threads = resolvePlace(g, vec2(5150, -300));
+    P.sandovalOffice = resolveFrontage(g, vec2(3700, -1000));
+    P.palmMotors = resolveFrontage(g, vec2(2700, 1300));
+    P.gunFlats = resolveBuilding(g, vec2(800, 2900), World::IK_GUNSHOP, "Palmetto Arms");
+    P.gunNorth = resolveBuilding(g, vec2(3300, 3900), World::IK_GUNSHOP, "Northside Arms");
+    P.resprayCL = resolveFrontage(g, vec2(2300, -150));
+    P.resprayBeach = resolveFrontage(g, vec2(5100, 2000));
+    P.threads = resolveBuilding(g, vec2(5150, -300), World::IK_CLOTHES, "Threads");
     P.clubRiptide = resolvePlace(g, vec2(5380, 900));
-    P.beachCondo = resolvePlace(g, vec2(5120, 1500));
+    P.beachCondo = resolveFrontage(g, vec2(5120, 1500));
     P.beachPier = resolvePlace(g, vec2(5380, 1250));
     P.portGate = resolvePlace(g, vec2(4060, -200));
-    P.keyCoral = resolvePlace(g, vec2(4450, -4200));
+    P.keyCoral = resolveFrontage(g, vec2(4450, -4200));
     P.keyCoralMarina = resolvePlace(g, vec2(4200, -3900));
     P.sandovalMansion = resolvePlace(g, vec2(4300, 1300), 0.f, true);
     P.airport = resolvePlace(g, vec2(760, 1200));
-    P.carwash = resolvePlace(g, vec2(1800, 1500));
-    P.taxiDepot = resolvePlace(g, vec2(2600, 700));
-    P.courierDepot = resolvePlace(g, vec2(1700, -300));
-    P.hospital = resolvePlace(g, vec2(1650, 1050));
+    P.carwash = resolveFrontage(g, vec2(1800, 1500));
+    P.taxiDepot = resolveFrontage(g, vec2(2600, 700));
+    P.courierDepot = resolveFrontage(g, vec2(1700, -300));
+    P.hospital = resolveBuilding(g, vec2(1650, 1050), World::IK_HOSPITAL);
     P.raceCalle = resolvePlace(g, vec2(1100, -850));
     P.raceBeach = resolvePlace(g, vec2(5150, -2300));
     P.raceHighway = resolvePlace(g, vec2(300, -6000));
@@ -388,13 +444,13 @@ void computePlaces(GameWorld& g) {
     P.fortCastell = resolvePlace(g, vec2(4200, 7600));
     P.northCity = resolvePlace(g, vec2(2600, 4300));
     P.grove = resolvePlace(g, vec2(2000, -3500));
-    P.redland = resolvePlace(g, vec2(800, -5400));
+    P.redland = resolveFrontage(g, vec2(800, -5400));
     P.harlow = resolvePlace(g, vec2(-5000, 4850));
     P.midtownPark = resolvePlace(g, vec2(3100, 1600));
-    P.cafeBeach = resolvePlace(g, vec2(5200, 300));
+    P.cafeBeach = resolveFrontage(g, vec2(5200, 300));
     P.flatsYard = resolvePlace(g, vec2(400, 3700));
-    P.kitStudio = resolvePlace(g, vec2(600, 3400));
-    P.downtownPenthouse = resolvePlace(g, vec2(3800, 200));
+    P.kitStudio = resolveFrontage(g, vec2(600, 3400));
+    P.downtownPenthouse = resolveFrontage(g, vec2(3800, 200));
     P.stadium = resolvePlace(g, vec2(3565, 620));
     findWater(g, vec2(1650, 150), 1.5f, P.riverLaunch, 200.f);
     findWater(g, vec2(3950, 160), 2.f, P.riverMouth, 400.f);
@@ -453,8 +509,10 @@ void computePlaces(GameWorld& g) {
         P.keySolanoDock = vec3(land, groundAt(g, land.x, land.y));
     }
     P.ready = true;
-    LOG("Story places resolved in %.1f ms (boatyard %.0f %.0f, river %.0f %.0f, sawgrass dock %.0f %.0f)", (TimeSeconds() - t0) * 1000.0,
-        P.boatyard.pos.x, P.boatyard.pos.y, P.riverLaunch.x, P.riverLaunch.y, P.sawgrassDock.x, P.sawgrassDock.y);
+    LOG("Story places resolved in %.1f ms (diner %.0f %.0f, Mari's %.0f %.0f, Rook's %.0f %.0f, Pulse FM %.0f %.0f, boatyard %.0f %.0f, river %.0f %.0f, "
+        "sawgrass dock %.0f %.0f)",
+        (TimeSeconds() - t0) * 1000.0, P.diner.door.x, P.diner.door.y, P.mariApt.door.x, P.mariApt.door.y, P.rookShop.door.x, P.rookShop.door.y,
+        P.pulseFm.door.x, P.pulseFm.door.y, P.boatyard.pos.x, P.boatyard.pos.y, P.riverLaunch.x, P.riverLaunch.y, P.sawgrassDock.x, P.sawgrassDock.y);
 }
 
 // Offset a place along its street / outward (meters), snapped to the ground.
@@ -907,6 +965,51 @@ CutsceneShot shotVehicle(GameWorld& g, int v, float duration, float side = 1.f, 
     vec3 cam2 = p + vec3(-fd * 5.f + r * (4.5f * side), 1.6f);
     return shotMove(cam, p + vec3(0, 0, 0.8f), cam2, p + vec3(fd * 2.f, 0.9f), duration, fov);
 }
+
+}  // namespace mu
+
+// Runtime framing for dialogue that outlasts a cutscene's scripted shots: an over-the-shoulder shot of the speaker
+// from the nearest listener (alternating sides), or the previous shot held for voice-overs and phone lines.
+bool GameWorld::speakerShot(int speaker, const CutsceneShot* prev, float lineTime, CutsceneShot& out) {
+    float dur = Clamp(lineTime + 0.35f, 1.2f, 9.f);
+    bool onFoot = speaker >= 0 && speaker < (int)peds.size() && peds[speaker].used && peds[speaker].health > 0.f && peds[speaker].state == PS_ONFOOT;
+    if (!onFoot) {
+        if (!prev) return false;
+        out = *prev;
+        out.pos = out.pos2;
+        out.target = out.target2;
+        out.duration = dur;
+        out.speaker = speaker;
+        return true;
+    }
+    vec3 sp = peds[speaker].pos.toVec3();
+    // listener: the player unless the player speaks, else the closest mission ped
+    int listener = -1;
+    float best = 12.f;
+    auto consider = [&](int id) {
+        if (id < 0 || id == speaker || id >= (int)peds.size() || !peds[id].used || peds[id].health <= 0.f || peds[id].state != PS_ONFOOT) return;
+        float d = length(peds[id].pos.toVec3() - sp);
+        if (d < best && d > 0.5f) {
+            best = d;
+            listener = id;
+        }
+    };
+    consider(player);
+    if (listener < 0 || speaker == player)
+        for (int id : gMissions.peds) consider(id);
+    float side = (gMissions.autoShots & 1) ? -1.f : 1.f;
+    if (listener >= 0) out = mu::shotOver(peds[listener].pos.toVec3(), sp, dur, side, 38.f);
+    else {
+        // nobody to look over: a gentle medium shot from in front of the speaker
+        vec2 f = mu::dirFromYaw(peds[speaker].yaw);
+        vec3 cam = sp + vec3(f * 2.6f + vec2(f.y, -f.x) * 0.8f * side, 1.62f);
+        out = mu::shotMove(cam, sp + vec3(0, 0, 1.55f), cam + vec3(f * -0.2f, 0.f), sp + vec3(0, 0, 1.58f), dur, 40.f);
+    }
+    out.speaker = speaker;
+    return true;
+}
+
+namespace mu {
 
 // ------------------------------------------------------------------------------------------------------------------
 // Adaptive score: style 0 neon noir, 1 chase, 2 stealth, 3 heist (see audio/music.cpp ScoreGen::init)

@@ -31,6 +31,7 @@ struct CutsceneShot {
     dvec3 pos2, target2;     // camera moves linearly from pos/target to pos2/target2 over the shot
     float fov = 50.f;
     float duration = 3.f;
+    int speaker = -2;        // shot added by the runtime to frame this speaking ped (-2: a scripted shot)
 };
 
 struct Marker {
@@ -159,6 +160,8 @@ struct MissionManager {
     int shotIndex = -1;
     float shotTime = 0.f;
     bool skippable = true;
+    bool holdForDialogue = false;   // story cutscenes keep framing the speakers until the conversation ends
+    int autoShots = 0;              // speaker shots added to the current cutscene
     // result banner
     float passTimer = 0.f;
     float cooldown = 0.f;
@@ -186,7 +189,7 @@ extern MissionManager gMissions;
 enum StoryFlagLayout : int {
     kSideBase = 64,
     kExtBase = 128,
-    kFlagCount = 384,
+    kFlagCount = 512,
 };
 
 // Open world systems (defined by the story/economy modules, called from the mission runtime).

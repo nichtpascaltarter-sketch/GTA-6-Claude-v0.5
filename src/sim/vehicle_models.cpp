@@ -7,6 +7,7 @@
 #include "vehicle_wheels.cpp"
 #include "vehicle_carbody.cpp"
 #include "vehicle_cardetail.cpp"
+#include "vehicle_badges.cpp"
 #include "vehicle_cars.cpp"
 #include "vehicle_heavy.cpp"
 #include "vehicle_bikes.cpp"

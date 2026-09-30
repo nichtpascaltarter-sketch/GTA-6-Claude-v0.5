@@ -1488,6 +1488,11 @@ void TrafficCore::drive(int vid, Vehicles::VehicleState& s, float dt, DriveOut& 
         if (d.stopDist < 1e8f) d.stopDist -= v * dt;
         if (d.obstDist < 1e8f) d.obstDist -= (v - d.obstSpeed) * dt;
     }
+    if (d.yieldHold > 0.f) {
+        // backed off from a nose-to-nose block: wait for the other vehicle to get through
+        d.yieldHold -= dt;
+        d.vTarget = 0.f;
+    }
     control(d, s, pos, fwd, v, dt, out);
     // statistics: lane-center error on straight-ish lane driving
     if (d.path < (int)g->lanes.size() && d.lcLane < 0 && d.nudge == 0.f && v > 3.f && d.recoverTimer <= 0.f) {
@@ -1601,12 +1606,14 @@ void TrafficCore::drive(int vid, Vehicles::VehicleState& s, float dt, DriveOut& 
                 const Body& b = bodies[bi];
                 vec2 rel = b.pos - pos;
                 float along = dot(rel, fwd), lat = dot(rel, rightOf(fwd));
-                if (along < -d.info.halfLen - 0.5f && along > -d.info.halfLen - b.halfLen - 4.5f && fabsf(lat) < d.info.halfWid + b.halfWid + 0.3f) room = false;
+                if (along < -d.info.halfLen - 0.5f && along > -d.info.halfLen - b.halfLen - 6.5f && fabsf(lat) < d.info.halfWid + b.halfWid + 0.3f) room = false;
             });
             if (room) {
-                d.recoverTimer = 1.6f;
+                // back off properly (not just a car length) and stay back until the other one has gone through
+                d.recoverTimer = 2.8f;
                 d.recoverDir = 0;
                 d.mutualTime = 0.f;
+                d.yieldHold = 6.8f;   // (counts down during the 2.8 s reverse as well)
                 stats.deadlockBreaks++;
             } else if (d.mutualTime > 8.f && (d.uid > od.uid || d.mutualTime > 14.f) && d.nudgeTimer <= 0.f) {
                 // boxed in from behind as well: squeeze past the other car on its free side

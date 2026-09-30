@@ -53,7 +53,7 @@ void csGrassPlace(uint3 id : SV_DispatchThreadID) {
     float groundZ = gTerrainHeightG.SampleLevel(sLinearClamp, tuv, 0);
     bool meshLawn = false;
     if (gOverhead.w > 0.5) {
-        float2 ouv = (wp - gOverhead.xy) / gOverhead.z;
+        float2 ouv = overheadUV(wp);
         if (all(ouv > 0.0) && all(ouv < 1.0)) {
             float top = gOverheadMap.SampleLevel(sPointClamp, ouv, 0);
             if (top > groundZ - 0.35) {
@@ -94,7 +94,7 @@ void csGrassPlace(uint3 id : SV_DispatchThreadID) {
     float3 col;
     if (type == 0) { height = lerp(0.07, 0.16, hv); width = 0.012; col = float3(0.08, 0.17, 0.035); }
     else if (type == 1) { height = lerp(0.22, 0.55, hv * hv); width = 0.016; col = float3(0.1, 0.17, 0.04); }
-    else if (type == 2) { height = lerp(0.7, 1.45, hv); width = 0.03; col = float3(0.24, 0.23, 0.09); }
+    else if (type == 2) { height = lerp(0.7, 1.45, hv); width = 0.045; col = float3(0.16, 0.17, 0.065); }
     else if (type == 3) { height = lerp(0.18, 0.4, hv); width = 0.02; col = float3(0.07, 0.12, 0.035); }
     else { height = lerp(0.25, 0.55, hv); width = 0.014; col = float3(0.22, 0.24, 0.12); }
     // color variation: dry / lush patches
@@ -164,7 +164,7 @@ GrassVSOut vsGrass(uint vid : SV_VertexID, uint inst : SV_InstanceID) {
     uint bh = hashU(asuint(g.seed * 16777216.0) + blade * 0x9e3779b9u);
     float r0 = hashF(bh), r1 = hashF(bh ^ 0x68bc21ebu), r2 = hashF(bh ^ 0x02e5be93u), r3 = hashF(bh ^ 0x51ed270bu);
     uint type = g.colorType >> 24;
-    float spread = type == 2 ? 0.35 : 0.22;
+    float spread = type == 2 ? 0.5 : 0.24;
     float2 off = (float2(r0, r1) - 0.5) * spread * (gGrass3.y > 0.5 ? 2.0 : 1.0);
     float ang = g.yaw + r2 * TWO_PI;
     float2 across = float2(cos(ang), sin(ang));
@@ -198,9 +198,9 @@ GBufferOut psGrass(GrassVSOut i, bool front : SV_IsFrontFace) {
     float yf = i.bladeUV.y;
     uint type = (uint)i.color.a;
     float3 base = i.color.rgb;
-    float3 tipC = type == 2 ? base * float3(1.5, 1.35, 1.0) : base * float3(1.35, 1.45, 1.1);
-    float3 albedo = lerp(base * 0.55, tipC, yf);
-    float ao = lerp(0.45, 1.0, saturate(yf * 1.6));
+    float3 tipC = type == 2 ? base * float3(1.75, 1.6, 1.35) : base * float3(1.35, 1.45, 1.1);
+    float3 albedo = lerp(base * 0.75, tipC, yf);
+    float ao = lerp(0.65, 1.0, saturate(yf * 1.6));
     if (i.flower > 0.5 && yf > 0.85) {
         static const float3 kFlower[4] = {float3(0.85, 0.82, 0.75), float3(0.85, 0.7, 0.08), float3(0.55, 0.25, 0.7), float3(0.8, 0.15, 0.12)};
         albedo = kFlower[(uint)i.flower - 1u];

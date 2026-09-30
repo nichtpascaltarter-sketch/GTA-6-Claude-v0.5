@@ -1026,7 +1026,10 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
     if (direct && va.taskTimer < 0.5f && dist > 20.f) direct = false;
     if (!direct && d) {
         if (d->mode != AI::DM_EMERGENCY) d->mode = AI::DM_EMERGENCY;
-        if (!d->hasDest || length(d->dest - tp.xy()) > 40.f || d->destRecalc <= 0.f) traffic.setDestination(*d, tp.xy());
+        // every third unit drives to where the suspect is heading (cut-off / pincer), the others follow the trail
+        vec2 goal = tp.xy();
+        if (targetVeh >= 0 && (v.uid % 3) == 0 && length(tv.xy()) > 8.f) goal += tv.xy() * Clamp(dist / 28.f, 1.5f, 7.f);
+        if (!d->hasDest || length(d->dest - goal) > 40.f || d->destRecalc <= 0.f) traffic.setDestination(*d, goal);
         v.sirenOn = true;
         AI::DriveOut out;
         traffic.drive(vi, v.sim, dt, out);

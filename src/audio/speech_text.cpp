@@ -350,10 +350,12 @@ static const Abbrev* findAbbrev(const std::string& lw) {
 struct Normalizer {
     std::vector<TextWord>* out;
     bool shoutSentence = false;
+    bool fluent = false;
     Style style;  // current speaking style (from tags)
 
     void push(TextWord t) {
         t.style = style;
+        t.fluent = fluent;
         t.shout = shoutSentence || style.emotion == EMOTION_SHOUT;
         out->push_back(t);
     }
@@ -855,7 +857,11 @@ void normalizeText(const char* text, std::vector<TextWord>& out) {
             // style tags change the style of the following words; anything else is a silent stage direction
             float pauseSec = 0.f;
             Style st = nz.style;
-            if (parseStyleTag(t.s, st, pauseSec)) {
+            std::string tl = lowerStr(t.s);
+            if (tl == "fluent" || tl == "nofiller" || tl == "scripted") {
+                nz.fluent = true;
+                for (TextWord& w : out) w.fluent = true;
+            } else if (parseStyleTag(t.s, st, pauseSec)) {
                 if (pauseSec > 0.f) nz.setPause(pauseSec);
                 else nz.style = st;
             } else if (const Vocalization* voc = findVocalization(t.s)) {

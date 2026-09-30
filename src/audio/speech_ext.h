@@ -14,6 +14,11 @@ namespace Speech {
 //   accent:   [accent:general|south|newyork|latino|caribbean|british]            strength: [accent:south:0.6] (0..1)
 //   timbre:   [timbre:normal|nasal|husky|gravelly|bright|dark|fry] (or bare [husky], [gravelly], ...)
 //   pause:    [pause] (0.5 s) or [pause:1.2] (seconds) after the preceding word
+//   take:     [take:N] a different performance of the same line (repeated barks don't sound cloned)
+//   channel:  [megaphone] [pa] [radio] [phone] (whole line: police megaphone, public-address hall with reverb,
+//             two-way radio with squelch, telephone); the output then includes the channel's tail (channelTail())
+//   fluency:  [fluent] no automatic hesitations / breaths (long conversational lines get an occasional "uh" and
+//             breath intakes, deterministically; broadcast deliveries never do)
 // Common stage directions are voiced as nonverbal sounds: [laughs] [chuckles] [giggles] [sighs] [gasps] [coughs]
 // [hmm] [scoffs] [groans] [sobs] [yawns]. Any other [bracketed text] is a silent stage direction. displayText()
 // removes all markup, so the same string can drive both the voice and the subtitle.
@@ -67,12 +72,44 @@ struct Style {
     u8 timbre = TIMBRE_NORMAL;
     float intensity = 1.f;       // emotion strength (0..1.5)
     float accentStrength = 1.f;  // accent strength (0..1)
+    u32 take = 0;                // performance variant ([take:N]): different intonation details / pacing, 0 = default
+    u8 channel = 0;              // Channel the whole line is heard through (last channel tag wins)
 };
 
 // Markup prefix selecting `s`, e.g. "[accent:latino:0.6][husky][angry]" (empty for the default style).
 std::string styleTags(const Style& s);
 // `text` without markup: tags, stage directions and *emphasis* stars removed, spaces tidied (for subtitles).
 std::string displayText(const char* text);
+
+// ---- Transmission channels ---------------------------------------------------------------------------------------
+enum Channel : u8 {
+    CHANNEL_DIRECT = 0,  // unprocessed
+    CHANNEL_MEGAPHONE,   // bullhorn: narrow horn band, overdriven, street slap echo
+    CHANNEL_PA,          // public address in a big hall (airport, station, mall): band-limited, long reverb
+    CHANNEL_RADIO,       // two-way / police radio: 350 Hz - 3 kHz, hard compression and clipping, hiss, squelch tail
+    CHANNEL_PHONE,       // telephone line: 300 Hz - 3.4 kHz, mild saturation
+    CHANNEL_COUNT
+};
+// Processes existing mono PCM in place (any source, e.g. radio-show callers); appends channelTail() seconds.
+void applyChannel(int channel, int sampleRate, u32 seed, std::vector<float>& pcm);
+float channelTail(int channel);  // seconds of echo / reverb / squelch appended after the speech
+
+// ---- Crowd walla ---------------------------------------------------------------------------------------------------
+// Unintelligible multi-voice murmur (pseudo-English syllables, conversational prosody, occasional laughs), rendered as
+// a seamless mono loop for the ambience system: loop it and scale its gain with crowd density; render two or three
+// seeds and crossfade for dense or long-lived places. Cost: roughly voices x seconds of speech synthesis
+// (8 voices x 12 s is ~0.2 s of CPU at 22 kHz) -- do it on a worker thread or at load time.
+struct WallaParams {
+    u32 seed = 1;
+    int voices = 8;              // simultaneous talkers (1..32)
+    float seconds = 12.f;        // loop length (2..120)
+    float femaleRatio = 0.5f;
+    float excitement = 0.3f;     // 0 hushed lounge murmur .. 1 lively beach / club crowd
+    float laughter = 0.08f;      // chance of a laugh per conversational turn
+    u8 accent = ACCENT_GENERAL;  // optional local flavour (e.g. ACCENT_LATINO for Calle Luna)
+    float accentMix = 0.f;       // fraction of turns spoken with that accent
+};
+void walla(const WallaParams& p, int sampleRate, std::vector<float>& out);  // appends; RMS ~ -20 dBFS, peak <= 0.5
 
 // ---- Personas ----------------------------------------------------------------------------------------------------
 // A cast voice: timbre (VoiceParams) plus default accent / delivery / mood. Speak a line as the persona with
@@ -130,5 +167,22 @@ struct PhonemeTiming {
     i16 word;               // index of the spoken word (-1 for pauses)
 };
 void phonemeTiming(const char* text, const Audio::VoiceParams& voice, std::vector<PhonemeTiming>& out);
+
+// ---- Facial expression cues ----------------------------------------------------------------------------------------
+// Style spans (same timeline): which emotion / delivery is being voiced when, e.g. to drive an angry or smiling face
+// in sync with "[angry]" or "[happy]" parts of a line. Consecutive words with the same style form one span.
+struct StyleSpan {
+    float start, end;  // seconds
+    Style style;
+};
+void styleTimeline(const char* text, const Audio::VoiceParams& voice, std::vector<StyleSpan>& out);
+
+// Pitch accents (stressed, prominent syllables): natural moments for eyebrow raises, head nods and blinks.
+struct AccentCue {
+    float time;      // seconds (peak of the accented vowel)
+    float strength;  // 0..1 (emphasized words and shouting are strongest)
+    bool nuclear;    // last accent of its phrase (usually the strongest gesture)
+};
+void accentCues(const char* text, const Audio::VoiceParams& voice, std::vector<AccentCue>& out);
 
 }  // namespace Speech

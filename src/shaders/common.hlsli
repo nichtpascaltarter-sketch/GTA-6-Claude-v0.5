@@ -63,6 +63,11 @@ SamplerState sPointWrap : register(s5);
 SamplerState sAnisoClamp : register(s6);
 
 float preExposure() { return gExposureBuf[0].x; }
+// Texture coordinates of a world position in the overhead maps (top-down render: +y world is up = row 0).
+float2 overheadUV(float2 worldXY) {
+    float2 uv = (worldXY - gOverhead.xy) / gOverhead.z;
+    return float2(uv.x, 1.0 - uv.y);
+}
 // Converts values pre-exposed with the previous frame's exposure (history buffers) to the current exposure.
 float prevExposureRatio() { return gExposureBuf[0].x / max(gExposureBuf[1].x, 1e-12); }
 

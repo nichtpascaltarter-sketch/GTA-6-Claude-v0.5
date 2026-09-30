@@ -453,6 +453,23 @@ int main(int argc, char** argv) {
         std::string seq;
         for (auto& p : ph) seq += std::string(p.name) + " ";
         if (seq.find("T Y UW") == std::string::npos) printf("  accent rewrite missing: %s\n", seq.c_str()), bad++;
+        {
+            const char* t = "[calm]Relax. It's fine. [angry]I said RELAX! [laughs] [happy]Just kidding.";
+            std::vector<Speech::StyleSpan> spans;
+            Speech::styleTimeline(t, voices[0].v, spans);
+            std::vector<Speech::AccentCue> cues;
+            Speech::accentCues(t, voices[0].v, cues);
+            float dur = Speech::estimateDuration(t, voices[0].v);
+            bool ok = spans.size() >= 3 && spans.front().start == 0.f && fabsf(spans.back().end - dur) < 1e-3f &&
+                      spans[0].style.emotion == Speech::EMOTION_CALM && spans[1].style.emotion == Speech::EMOTION_ANGRY;
+            for (size_t k = 0; k + 1 < spans.size(); k++) ok = ok && fabsf(spans[k].end - spans[k + 1].start) < 1e-4f;
+            bool strongest = false;
+            for (auto& c : cues) {
+                ok = ok && c.time > 0.f && c.time < dur && c.strength > 0.f && c.strength <= 1.f;
+                strongest = strongest || c.strength >= 0.99f;  // the emphasized "RELAX"
+            }
+            if (!ok || !strongest || cues.size() < 4) printf("  style timeline / accent cues mismatch\n"), bad++;
+        }
         printf("Style / persona / lip-sync checks: %s\n", bad ? "FAILED" : "OK");
         st.problems += bad;
     }

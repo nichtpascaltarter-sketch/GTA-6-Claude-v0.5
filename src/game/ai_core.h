@@ -366,6 +366,7 @@ struct Driver {
     int stopPath = -1;          // host-requested stop point (taxi pickup, scene arrival): path + u of the front bumper
     float stopU = 0.f;
     float lastDriveTime = -1.f; // time of the last drive() call (stale drivers are relocalized)
+    float yieldHold = 0.f;      // stay put after backing off to let a blocked vehicle through (s)
     float diag[6] = {};         // controller diagnostics for the test harness (front error, heading error, feed-forward, command, path, u)
 };
 

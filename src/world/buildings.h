@@ -55,6 +55,7 @@ struct Building {
     vec2 lotC;       // lot center
     u32 roofColor;
     float lotHx = 0; // lot half-width along ax (gardens, hedges)
+    i16 interior = -1;  // enterable interior hosted on the ground floor (world/interiors.h), -1 none
 };
 
 // A facade-covered mass of a building mesh (main block, podium, tower tier, deco tower, house body), recorded by

@@ -56,6 +56,10 @@ struct App {
     int shotWait = 0;
     bool autotest = false;
     bool pendingPhoto = false;   // photo mode: save the next finished frame
+    // --autoplay tour: visit districts at different hours, one screenshot per stop (scorecard evidence)
+    int tourStop = -1;
+    float tourT = 0.f;
+    bool tourShot = false, tourDone = false;
     // autoplay test scripts (--autoplay walk|drive|bike|fly|boat|shoot)
     std::string autoplay;
     float autoTime = 0.f;
@@ -375,6 +379,13 @@ struct App {
             }
             game.rig.yaw = p.yaw;
         }
+        if (autoplay == "tour") {
+            tourStop = -1;
+            tourT = 0.f;
+            tourShot = tourDone = false;
+            autoDuration = 1e9f;   // ends after the last stop
+            weather.locked = true;
+        }
         if (autoplay == "traffic" || autoplay == "wanted") {
             // AI tests: a busy downtown corner (traffic, pedestrians, signals) / a police chase at 3 stars
             Ped& p = game.peds[game.player];
@@ -434,6 +445,8 @@ struct App {
                 c.look = vec2(sinf(t * 0.3f) * 0.006f, 0.f);
             }
             if ((int)(t / 5.f) != (int)((t - dt) / 5.f)) LOG("autoplay %s t=%.1f %s", autoplay.c_str(), t, game.aiDebugText().c_str());
+        } else if (autoplay == "tour") {
+            updateTour(c, dt);
         } else if (autoplay == "shoot") {
             c.usingPad = true;                        // controller soft lock-on
             c.aim.down = fmodf(t, 3.f) > 0.15f;       // re-press to re-acquire targets
@@ -444,6 +457,69 @@ struct App {
         }
     }
 #endif
+
+    // District tour: teleport to story places across the map at chosen hours/weather, let streaming and the population
+    // settle, walk a few steps and take one screenshot per stop (auto_tour_NN_name.bmp via requestScreenshot).
+    void updateTour(Controls& c, float dt) {
+        mu::computePlaces(game);
+        const mu::Places& P = mu::gPlaces;
+        struct Stop {
+            const char* name;
+            const mu::Place* pl;
+            float hour;
+            WeatherKind wx;
+            float yawOff;
+        };
+        const Stop stops[] = {
+            {"calle_luna_morning", &P.mariApt, 9.5f, WX_FAIR, 0.7f},       {"diner_noon", &P.diner, 12.5f, WX_CLEAR, -0.6f},
+            {"downtown_afternoon", &P.policeHq, 14.f, WX_FAIR, 0.5f},      {"solaris_plaza", &P.solarisOne, 15.5f, WX_CLOUDY, 0.9f},
+            {"midtown_park", &P.midtownPark, 16.5f, WX_FAIR, -0.8f},       {"beach_condos", &P.beachCondo, 17.5f, WX_CLEAR, 0.6f},
+            {"beach_pier_sunset", &P.beachPier, 19.1f, WX_FAIR, -0.5f},    {"club_night", &P.clubRiptide, 22.5f, WX_CLEAR, 0.7f},
+            {"downtown_rain_night", &P.policeHq, 21.5f, WX_RAIN, -0.7f},   {"port_gate", &P.portGate, 8.5f, WX_OVERCAST, 0.6f},
+            {"airport", &P.airport, 11.f, WX_FAIR, -0.6f},                 {"key_coral_marina", &P.keyCoralMarina, 15.f, WX_CLEAR, 0.8f},
+            {"sawgrass_dawn", &P.sawgrassRoad, 7.2f, WX_FOG, 0.5f},        {"grove_suburb", &P.grove, 17.f, WX_FAIR, -0.7f},
+            {"lake_town", &P.lakeTown, 10.5f, WX_FAIR, 0.6f},              {"fort_castell", &P.fortCastell, 13.f, WX_CLOUDY, -0.5f},
+        };
+        const int n = (int)(sizeof(stops) / sizeof(stops[0]));
+        if (tourDone) return;
+        Ped* pl = game.playerPed();
+        if (!pl) return;
+        if (tourStop < 0 || (tourShot && tourT > 8.5f)) {
+            tourStop++;
+            tourT = 0.f;
+            tourShot = false;
+            if (tourStop >= n) {
+                tourDone = true;
+                LOG("autoplay tour done: %d stops", n);
+                return;
+            }
+            const Stop& st = stops[tourStop];
+            if (pl->vehicle >= 0) game.removePedFromVehicle(game.player, false);
+            vec3 pos = st.pl->pos;
+            pl->pos = dvec3(pos.x, pos.y, game.groundHeight(pos.x, pos.y, pos.z + 2.f));
+            pl->vel = vec3(0.f);
+            pl->yaw = atan2f(-st.pl->streetDir.x, st.pl->streetDir.y);
+            game.rig.yaw = pl->yaw + st.yawOff;
+            game.rig.pitch = -0.1f;
+            game.rig.cut = true;
+            env.timeOfDay = st.hour;
+            weather.setImmediate(st.wx);
+            game.populationWarmup = 2.5f;
+            game.pinfo.wanted = 0;
+            LOG("autoplay tour stop %d %s at %.0f %.0f, %.1f h", tourStop, st.name, pos.x, pos.y, st.hour);
+        }
+        tourT += dt;
+        c.move = vec2(0.f, tourT > 3.f && tourT < 6.f ? 0.3f : 0.f);   // a few slow steps for natural poses
+        if (!tourShot && tourT > 7.f && (renderer.world->pendingCount() == 0 || tourT > 14.f)) {
+            game.requestScreenshot = shotPath(StrFormat("auto_tour_%02d_%s", tourStop, stops[tourStop].name));
+            tourShot = true;
+            int np = 0, nv = 0;
+            for (auto& q : game.peds) np += q.used;
+            for (auto& q : game.vehicles) nv += q.used;
+            LOG("autoplay tour shot %d %s | peds %d vehicles %d | cpu ms ai %.2f veh %.2f peds %.2f", tourStop, stops[tourStop].name, np, nv,
+                game.profAI, game.profVehicles, game.profPeds);
+        }
+    }
 
     void run() {
         while (true) {
@@ -488,6 +564,7 @@ struct App {
 #ifdef HAVE_GAMEPLAY
                 if (in.pressed(KEY_F9) && game.player >= 0) state = AS_PLAYING;
                 if (game.player >= 0) game.submitRender();
+                else Interiors::submitFreecam(renderer, cam, env);   // enterable interiors without a game (--shot)
 #endif
                 renderer.render(cam, env, dt);
             }
@@ -642,7 +719,9 @@ struct App {
             }
 #ifdef HAVE_GAMEPLAY
             if (!autoplay.empty() && state == AS_PLAYING) {
-                if (autoTime >= autoShot * autoShotEvery + 1.5f && (renderer.world->pendingCount() == 0 || autoTime > autoShot * autoShotEvery + 6.f)) {
+                if (autoplay == "tour") {
+                    if (tourDone && game.requestScreenshot.empty()) break;
+                } else if (autoTime >= autoShot * autoShotEvery + 1.5f && (renderer.world->pendingCount() == 0 || autoTime > autoShot * autoShotEvery + 6.f)) {
                     std::string path = shotPath(StrFormat("auto_%s_%02d", autoplay.c_str(), autoShot));
                     gfx::saveScreenshotBMP(path.c_str());
                     Ped* pl = game.playerPed();
@@ -887,6 +966,7 @@ struct App {
         const UI::GameSettings& s = menu.settings;
         renderer.settings.vsync = s.vsync;
         renderer.settings.applyPreset(s.quality);
+        if (const char* q = Platform::argValue("quality")) renderer.settings.applyPreset(atoi(q));   // test runs: 0 low .. 3 ultra
         renderer.settings.renderScale = Clamp(s.renderScale, 0.5f, 1.f);
         renderer.settings.motionBlur = s.motionBlur;
         renderer.post->exposureCompensation = 0.3f + s.brightness * 0.8f;
