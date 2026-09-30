@@ -32,7 +32,8 @@ struct EnvProbeSystem {
         psLight = gfx::loadPS("envprobe.hlsl", "psProbeLight");
         csPrefilter = gfx::loadCS("envprobe.hlsl", "csPrefilter");
         csSH = gfx::loadCS("envprobe.hlsl", "csProbeSH");
-        shBuf = gfx::createBuffer(9 * 16, 16, gfx::BUF_STRUCTURED | gfx::BUF_UAV);
+        float zeroSH[9 * 4] = {};   // defined contents: the SH is blended over time from its previous value
+        shBuf = gfx::createBuffer(9 * 16, 16, gfx::BUF_STRUCTURED | gfx::BUF_UAV, zeroSH);
         lightBuf = gfx::createBuffer(kMaxProbeLights * sizeof(LightGPU), sizeof(LightGPU), gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
         frameCB.create();
         cb.create();

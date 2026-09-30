@@ -1181,7 +1181,8 @@ void shopsUpdate(GameWorld& g, float dt) {
         b.label = s.name;
         g.missionBlips.push_back(b);
         float d = ::length(s.marker - pp);
-        if (d < 120.f && !gMissions.active) {
+        bool busy = s.kind == SHOP_RESPRAY && (gShops.resprayStage != 0 || s.inside);   // no ring around the car being serviced
+        if (d < 120.f && !gMissions.active && !busy) {
             worldMarker(s.marker, s.kind == SHOP_RESPRAY ? (s.bayInterior >= 0 ? 2.2f : 3.f) : 1.1f, s.kind == SHOP_RESPRAY ? vec3(0.9f, 0.5f, 1.f) : vec3(0.3f, 0.8f, 1.f));
         }
     }

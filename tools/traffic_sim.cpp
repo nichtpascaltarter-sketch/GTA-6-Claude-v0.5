@@ -564,6 +564,11 @@ struct Sim {
                 where += StrFormat(" pos (%.1f %.1f) latErr %.2f diag %.2f %.2f %.2f %.2f steer %.2f vF %.2f yawRate %.2f heading %.3f pathDir %.3f steerOut %.2f imp %.0f", c.s.body.pos.x, c.s.body.pos.y, d->latErr, d->diag[0], d->diag[1], d->diag[2], d->diag[3], c.ctl.steer,
                                    c.s.forwardSpeed(), c.s.body.angVel.z, atan2f(c.s.forward().y, c.s.forward().x), atan2f(G.pathTangent(d->path, d->u).y, G.pathTangent(d->path, d->u).x), c.s.steerOut, c.s.impactImpulse);
                 std::string nxt = d->routeLen > 0 && !G.isLane(d->route[0]) ? StrFormat("next conn %d sig %d", d->route[0] - (int)G.lanes.size(), (int)G.movementSignal(G.conn(d->route[0]).node, G.conn(d->route[0]).approach, G.conn(d->route[0]).turn, time)) : std::string("next -");
+                if (d->obstBody >= 0 && d->obstBody < (int)tc.bodies.size() && tc.bodies[d->obstBody].kind == AI::BK_PED) {
+                    const SimPed& sp = peds[tc.bodies[d->obstBody].host];
+                    nxt += StrFormat(" [ped %d state %d link %d kind %d x %.2f/%.2f fromA %d pos %.2f %.2f vel %.2f %.2f]", tc.bodies[d->obstBody].host, sp.w.state, sp.w.link,
+                                     sp.w.link >= 0 ? G.walkLinks[sp.w.link].kind : -1, sp.w.x, sp.w.link >= 0 ? G.walkLinks[sp.w.link].length : 0.f, (int)sp.w.fromA, sp.pos.x, sp.pos.y, sp.vel.x, sp.vel.y);
+                }
                 LOG("WATCH t=%.2f car %d %s %s v %.1f vT %.1f stop %.1f obst %.1f(%d) gateConn %d committed %d amberGo %d stopDone %d mode %d thr %.2f brk %.2f stk %.2f rec %.2f col %d [%s wb %.2f maxSteer %.2f]", time, i, where.c_str(), nxt.c_str(), c.s.speed(), d->vTarget, d->stopDist,
                     d->obstDist, d->obstBody, d->gateConn, (int)d->committed, (int)d->amberGo, (int)d->stopDone, d->mode, c.ctl.throttle, c.ctl.brake, d->stuckTime, d->recoverTimer, c.s.impactCollider,
                     models[c.model].name.c_str(), c.info.wheelbase, c.info.maxSteer);

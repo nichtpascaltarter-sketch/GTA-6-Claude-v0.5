@@ -169,9 +169,9 @@ std::string ordinal(int n) {
 // way is either cleared by kRampClear or is the road it lands on, met at grade.
 constexpr float kRampHalfWidth = 3.3f;    // one 3.8 m lane + 1.4 m shoulders (the Ramp class, one way)
 constexpr float kRampHoldReach = 17.6f;   // highway half width + ramp half width + 0.3: the ramp still runs on the highway
-constexpr float kRampEnvGrade = 0.066f;   // design descent (the elevation pass limits ramps to 7%)
-constexpr float kRampClear = 5.0f;        // deck over a road it crosses
-constexpr float kRampOffset = 20.f;       // centreline offset from the highway's while running alongside
+constexpr float kRampEnvGrade = 0.069f;   // design descent (the elevation pass limits ramps to 7%)
+constexpr float kRampClear = 4.6f;        // deck over a road it crosses (the overlap pass settles anything closer)
+constexpr float kRampOffset = 18.f;       // centreline offset from the highway's while running alongside, clear of its deck
 
 struct RampPlanner {
     struct RSeg {
@@ -255,10 +255,18 @@ struct RampPlanner {
         for (size_t i = 0; i + 1 < dp.size(); i++) insert({dp[i], dp[i + 1], dz[i], dz[i + 1], 14.f, 14.f, poly, 1});
     }
 
-    // Check a ramp path laid out from its highway end (index 0, on the highway centreline) to its landing (last point, on
-    // the landing road's centreline). landR: the landing junction's radius. On success P/Z hold the path resampled at
-    // <= 5 m and its expected profile.
-    bool check(const std::vector<vec2>& path, int hwyPoly, int landPoly, float landR, std::vector<vec2>& P, std::vector<float>& Z) {
+    // A ramp path laid out from its highway end (index 0, on the highway centreline) to its landing (last point, on the
+    // landing road's centreline); landR: the landing junction's radius. profile() resamples it at <= 5 m (P) and works out
+    // the heights it will get (Z): held on the highway while it runs against the highway's pavement, then as high as it
+    // can stay while still reaching the landing at the design grade, never below grade, flat where it lands (across the
+    // junction disc and wherever its surface lies over the landing road's), the elevation pass's 7% limit. Returns 0 when
+    // the ramp gets down in time, 1 when it is too short to, 2 when it cannot work at all. clear() then checks everything
+    // it passes: roads cleared by kRampClear, or met at grade where it lands.
+    std::vector<vec2> P;
+    std::vector<float> Z, S, G;
+    size_t held = 0;
+    float L = 0.f, flat = 0.f, landZ = 0.f;
+    int profile(const std::vector<vec2>& path, int hwyPoly, int landPoly, float landR) {
         P.clear();
         for (size_t i = 0; i + 1 < path.size(); i++) {
             int n = Max(1, (int)ceilf(length(path[i + 1] - path[i]) / 5.f));
@@ -266,78 +274,78 @@ struct RampPlanner {
         }
         P.push_back(path.back());
         size_t n = P.size();
-        if (n < 8) { why = 1; return false; }
-        std::vector<float> S(n, 0.f);
+        if (n < 8) return 2;
+        S.assign(n, 0.f);
         for (size_t i = 1; i < n; i++) S[i] = S[i - 1] + length(P[i] - P[i - 1]);
-        float L = S.back();
-        // held run on the highway
-        std::vector<float> hz(n, -1e9f);
-        size_t held = 0;
-        for (; held < n; held++) {
+        L = S.back();
+        Z.assign(n, 0.f);
+        for (held = 0; held < n; held++) {
             float bd = 1e9f, bz = 0.f;
-            query(P[held], kRampHoldReach, [&](const RSeg& s) {
+            vec2 p = P[held];
+            query(p, kRampHoldReach, [&](const RSeg& s) {
                 if (s.layer != 1 || s.poly != hwyPoly) return;
-                float t, d = distPointSegment2D(P[held], s.a, s.b, &t);
+                float t, d = distPointSegment2D(p, s.a, s.b, &t);
                 if (d < bd) { bd = d; bz = Lerp(s.za, s.zb, t); }
             });
             if (bd >= kRampHoldReach) break;
-            hz[held] = bz;
+            Z[held] = bz;
         }
-        if (held == 0 || held + 4 >= n) { why = 2; return false; }
-        // flat run at the landing: the junction disc, and wherever the ramp's surface lies over the landing road's
-        float landZ = 0.f, flat = landR;
-        {
-            size_t i = n;
-            float zl = -1e9f;
-            while (i-- > held) {
-                bool over = false;
-                query(P[i], 30.f, [&](const RSeg& s) {
-                    if (s.layer != 0 || s.poly != landPoly) return;
-                    float t, d = distPointSegment2D(P[i], s.a, s.b, &t);
-                    if (d < kRampHalfWidth + s.reach) {
-                        over = true;
-                        if (i + 1 == n) zl = Max(zl, Lerp(s.za, s.zb, t));
-                    }
-                });
-                if (!over) break;
-                flat = Max(flat, L - S[i]);
-            }
-            if (zl < -1e8f) { why = 3; return false; }
-            landZ = zl;
+        if (held == 0 || held + 4 >= n) return 2;
+        flat = landR;
+        float zl = -1e9f;
+        for (size_t i = n; i-- > held;) {
+            bool over = false;
+            vec2 p = P[i];
+            query(p, 30.f, [&](const RSeg& s) {
+                if (s.layer != 0 || s.poly != landPoly) return;
+                float t, d = distPointSegment2D(p, s.a, s.b, &t);
+                if (d < kRampHalfWidth + s.reach + 1.f) {
+                    over = true;
+                    if (i + 1 == n) zl = Max(zl, Lerp(s.za, s.zb, t));
+                }
+            });
+            if (!over) break;
+            flat = Max(flat, L - S[i]);
         }
-        // profile: held on the highway, then as high as it can stay while still reaching the landing at the design grade,
-        // never below grade; the elevation pass's 7% limit
-        float zTop = hz[held - 1];
-        Z.assign(n, 0.f);
-        std::vector<float> G(n, 0.f);
+        if (zl < -1e8f) return 2;
+        landZ = zl;
+        float zTop = Z[held - 1];
+        G.assign(n, 0.f);
         for (size_t i = 0; i < n; i++) {
             G[i] = map->heightAt(P[i].x, P[i].y);
-            if (i < held) { Z[i] = hz[i]; continue; }
-            if (map->isWater(P[i].x, P[i].y)) { why = 4; return false; }
-            if (gSites && gSites->blocksRoads(P[i])) { why = 5; return false; }
-            if (L - S[i] <= flat) { Z[i] = landZ; continue; }
-            float env = landZ + kRampEnvGrade * (L - flat - S[i]);
-            Z[i] = Max(G[i] + 0.25f, Min(zTop, env));
+            if (i < held) continue;
+            if (L - S[i] <= flat) Z[i] = landZ;
+            else Z[i] = Max(gradeZ(P[i]), Min(zTop, landZ + kRampEnvGrade * (L - flat - S[i])));
         }
+        std::vector<float> hz(Z.begin(), Z.begin() + held);
         for (int pass = 0; pass < 2; pass++) {
             for (size_t i = 1; i < n; i++) Z[i] = Max(Z[i], Z[i - 1] - 0.07f * (S[i] - S[i - 1]));
             for (size_t i = n - 1; i-- > 0;) Z[i] = Max(Z[i], Z[i + 1] - 0.07f * (S[i + 1] - S[i]));
         }
         for (size_t i = 0; i < held; i++) Z[i] = hz[i];
         for (size_t i = held; i < n; i++)
-            if (L - S[i] <= flat && Z[i] > landZ + 0.35f) { why = 6; return false; }   // cannot get down in time
-        // what it passes
+            if (L - S[i] <= flat && Z[i] > landZ + 0.35f) return 1;
+        return 0;
+    }
+    bool clear(int hwyPoly, int landPoly) {
+        size_t n = P.size();
         float parallelRun = 0.f;
         int parallelPoly = -2;
-        for (size_t i = 0; i < n; i++) {
-            vec2 dirv = normalize(P[Min(i + 1, n - 1)] - P[i > 0 ? i - 1 : 0]);
+        // from the landing back: most layouts that fail do so where they come down
+        for (size_t j = 0; j < n; j++) {
+            size_t i = n - 1 - j;
+            vec2 p = P[i], dirv = normalize(P[Min(i + 1, n - 1)] - P[i > 0 ? i - 1 : 0]);
+            if (i >= held) {
+                if (L - S[i] <= flat + 2.f && map->isWater(p.x, p.y)) { why = 4; return false; }
+                if (gSites && gSites->blocksRoads(p)) { why = 5; return false; }
+                if (gSites && Z[i] - G[i] < kRampClear && gSites->padAt(p)) { why = 7; return false; }   // low over a site's pad
+            }
             bool landing = L - S[i] <= flat + 2.f;
-            if (i >= held && gSites && Z[i] - G[i] < kRampClear && gSites->padAt(P[i])) { why = 7; return false; }   // low over a site's pad
             bool fail = false, alongStreet = false;
             int alongPoly = -2;
-            query(P[i], kRampHalfWidth + 20.f, [&](const RSeg& s) {
+            query(p, kRampHalfWidth + 19.f, [&](const RSeg& s) {
                 if (fail) return;
-                float t, d = distPointSegment2D(P[i], s.a, s.b, &t);
+                float t, d = distPointSegment2D(p, s.a, s.b, &t);
                 float dz = Z[i] - Lerp(s.za, s.zb, t);
                 if (s.layer == 1 && s.poly == hwyPoly) {
                     // its own highway: held on it, or clear of its pavement
@@ -351,21 +359,28 @@ struct RampPlanner {
                 }
                 if (s.layer == -1 && fabsf(dz) < 0.45f && landing) return;   // the ramp sharing this landing
                 if (fabsf(dz) < kRampClear) {
-                    fail = true; whyPoly = s.poly; whyLayer = s.layer;
-                    if (getenv("RAMPDBG2")) printf("  conflict i %zu/%zu S %.0f/%.0f flat %.1f held %zu P (%.1f, %.1f) Z %.2f dz %.2f d %.1f reach %.1f poly %d layer %d\n", i, n, S[i], L, flat, held, P[i].x, P[i].y, Z[i], dz, d, s.reach, s.poly, s.layer);
+                    fail = true;
+                    whyPoly = s.poly;
+                    whyLayer = s.layer;
                     return;
                 }
                 // cleared, but not by running on top of a road (its piers would stand in the lanes)
                 vec2 sd = s.b - s.a;
                 float sl = length(sd);
-                if (s.layer == 0 && sl > 1e-3f && fabsf(dot(sd / sl, dirv)) > 0.85f) { alongStreet = true; alongPoly = s.poly; }
+                if (s.layer == 0 && sl > 1e-3f && fabsf(dot(sd / sl, dirv)) > 0.85f) {
+                    alongStreet = true;
+                    alongPoly = s.poly;
+                }
             });
             if (fail) { why = 8; return false; }
-            if (alongStreet && i > 0) {
-                parallelRun = alongPoly == parallelPoly ? parallelRun + (S[i] - S[i - 1]) : 0.f;
+            if (alongStreet && j > 0) {
+                parallelRun = alongPoly == parallelPoly ? parallelRun + (S[i + 1] - S[i]) : 0.f;
                 parallelPoly = alongPoly;
                 if (parallelRun > 24.f) { why = 9; return false; }
-            } else parallelRun = 0.f, parallelPoly = -2;
+            } else {
+                parallelRun = 0.f;
+                parallelPoly = -2;
+            }
         }
         return true;
     }
@@ -714,6 +729,7 @@ void RoadNetwork::generate(WorldMap& map) {
     // most and clear every road it passes, or that ramp is left out; a crossing where no ramp fits leaves the interchange
     // to the next crossing.
     {
+        double tPlan = TimeSeconds();
         RampPlanner plan;
         plan.map = &map;
         for (size_t pi = 0; pi < b.polys.size(); pi++) {
@@ -770,9 +786,9 @@ void RoadNetwork::generate(WorldMap& map) {
             plan.query(PL, 60.f, [&](const RampPlanner::RSeg& s) {
                 if (!ok || s.poly == apoly) return;
                 float d = distPointSegment2D(PL, s.a, s.b);
-                if (s.layer == 1 && d < s.hw + landR + 6.f) ok = false;
-                if (s.layer == 0 && d < landR + s.reach + 6.f) ok = false;
-                if (s.layer < 0 && d < landR + 8.f) ok = false;
+                if (s.layer == 1 && d < s.hw + 0.35f + landR + 4.f) ok = false;   // the junction disc clear of the deck
+                if (s.layer == 0 && d < landR + Max(landR, s.hw + (s.reach - s.hw) * 0.3f + 2.f) + 2.f) ok = false;   // and of the next junction's
+                if (s.layer < 0 && d > 1.f && d < 2.f * landR + 2.f) ok = false;   // another ramp: the same junction, or its own
             });
             return ok;
         };
@@ -818,6 +834,10 @@ void RoadNetwork::generate(WorldMap& map) {
             std::vector<float> Z;
             bool ok = false;
         };
+        // landing distances along the arterial: ~70 m preferred, closer in or further out where the ramps need the room
+        std::vector<float> kLandings;
+        for (float G = 34.f; G <= 200.f; G += 4.f) kLandings.push_back(G);
+        std::stable_sort(kLandings.begin(), kLandings.end(), [](float a, float c) { return fabsf(a - 70.f) < fabsf(c - 70.f); });
         std::vector<vec2> attaches;   // where planned ramps join the highways
         int dbgHist[12] = {0}, dbgLayer[3] = {0}, dbgLand = 0;   // DBGWHY
         auto planRamp = [&](size_t h, float sx, int sgn, int dir, vec2 PL, vec2 tL, int apoly, float landR, RampPlan& out) {
@@ -825,22 +845,34 @@ void RoadNetwork::generate(WorldMap& map) {
             hwyAt(h, sx, hp, hd);
             vec2 nArt = perp(tL);
             if (dot(nArt, hd * (float)dir) < 0.f) nArt = -nArt;
-            float sQ = dot(PL + nArt * 25.f - hp, hd) * dir;   // station of the square approach's start
-            for (float A : {280.f, 330.f, 390.f, 460.f, 540.f}) {
-                float sA = sx + dir * A;
-                if (sA < 80.f || sA > hwS[h].back() - 80.f) break;
-                vec2 HA, tA;
-                hwyAt(h, sA, HA, tA);
-                bool clash = false;
-                for (vec2 q : attaches) clash |= length(q - HA) > 1.f && length(q - HA) < 90.f;   // one shared node, or well apart
-                if (clash) continue;
-                for (float S = A - 60.f; S >= Max(sQ + 25.f, 30.f); S -= 30.f) {
+            float sQ = dot(PL + nArt * 25.f - hp, hd) * dir;   // station where the square approach starts
+            // swing out at station S; the ramp leaves the highway as close to it as lets it come down in time
+            for (float S = Max(sQ + 25.f, 30.f); S <= 330.f; S += 20.f) {
+                // the swing has to be gentle (a longer run alongside does not change it)
+                if (!smoothEnough(buildPath(h, sx, sgn, dir, S + 60.f, S, PL, nArt))) { dbgHist[10]++; continue; }
+                for (float A = S + 60.f; A <= 640.f; A += 20.f) {
+                    float sA = sx + dir * A;
+                    if (sA < 80.f || sA > hwS[h].back() - 80.f) { dbgHist[1]++; break; }
+                    vec2 HA, tA;
+                    hwyAt(h, sA, HA, tA);
+                    bool clash = false;
+                    for (vec2 q : attaches) clash |= length(q - HA) > 1.f && length(q - HA) < 90.f;   // one shared node, or well apart
+                    if (clash) continue;
                     std::vector<vec2> rp = buildPath(h, sx, sgn, dir, A, S, PL, nArt);
-                    if (!smoothEnough(rp)) { dbgHist[10]++; continue; }
-                    if (!plan.check(rp, (int)h, apoly, landR, out.P, out.Z)) { dbgHist[plan.why]++; if (plan.why == 8) dbgLayer[plan.whyLayer + 1]++; continue; }
-                    out.path = rp;
-                    out.ok = true;
-                    return;
+                    if (!smoothEnough(rp)) { dbgHist[11]++; continue; }
+                    int pr = plan.profile(rp, (int)h, apoly, landR);
+                    if (pr == 1) { if (A + 20.f > 640.f) dbgHist[6]++; continue; }
+                    if (pr == 2) { dbgHist[2]++; break; }
+                    if (plan.clear((int)h, apoly)) {
+                        out.path = rp;
+                        out.P = plan.P;
+                        out.Z = plan.Z;
+                        out.ok = true;
+                        return;
+                    }
+                    dbgHist[plan.why]++;
+                    if (plan.why == 8) dbgLayer[plan.whyLayer + 1]++;
+                    break;   // what it runs into does not go away with a longer run alongside
                 }
             }
         };
@@ -873,10 +905,12 @@ void RoadNetwork::generate(WorldMap& map) {
                     int got = 0, left = 0;
                     for (int sgn = -1; sgn <= 1; sgn += 2) {
                         int adSign = dot(ad, side) * sgn > 0.f ? 1 : -1;
-                        RampPlan pair[2], single;
-                        int singleDir = 0;
-                        // landing distance along the arterial: ~70 m preferred, further out where the ramps need the room
-                        for (float G : {70.f, 60.f, 80.f, 90.f, 50.f, 100.f, 110.f, 125.f, 140.f, 160.f, 180.f}) {
+                        // both ramps of this side at one junction where they fit (the landing ~70 m out preferred, closer in
+                        // or further out where they need the room); otherwise each at a landing of its own
+                        RampPlan pair[2], first;
+                        int firstDir = 0;
+                        std::vector<float> okOther;   // landings where the other ramp fitted on its own
+                        for (float G : kLandings) {
                             vec2 PL, tL;
                             if (!arterialPoint(as, tb, adSign, G, PL, tL) || !landingOk(PL, as.poly, landR)) { dbgLand++; continue; }
                             RampPlan cur[2];
@@ -886,8 +920,13 @@ void RoadNetwork::generate(WorldMap& map) {
                                 pair[1] = std::move(cur[1]);
                                 break;
                             }
-                            for (int d = 0; d < 2 && !single.ok; d++)
-                                if (cur[d].ok) { single = std::move(cur[d]); singleDir = d == 0 ? -1 : 1; }
+                            for (int d = 0; d < 2; d++) {
+                                if (!cur[d].ok) continue;
+                                if (!first.ok) {
+                                    first = std::move(cur[d]);
+                                    firstDir = d == 0 ? -1 : 1;
+                                } else if ((d == 0 ? -1 : 1) != firstDir) okOther.push_back(G);
+                            }
                         }
                         auto emit = [&](RampPlan& pl, int dir) {
                             bool exitRamp = dir == sgn;   // upstream of the crossing for this side's traffic
@@ -902,7 +941,7 @@ void RoadNetwork::generate(WorldMap& map) {
                             got++;
                         };
                         if (getenv("RAMPDBG")) {
-                            printf("PLAN %s x (%.0f, %.0f) side %d: %s land-fail %d  why", hwys[h].name, x.x, x.y, sgn, pair[0].ok ? "pair" : (single.ok ? "single" : "none"), dbgLand);
+                            printf("PLAN %s x (%.0f, %.0f) side %d: %s land-fail %d  why", hwys[h].name, x.x, x.y, sgn, pair[0].ok ? "pair" : (first.ok ? (okOther.empty() ? "single" : "two?") : "none"), dbgLand);
                             for (int q = 0; q < 12; q++) printf(" %d", dbgHist[q]);
                             printf("  layer(-1,0,1) %d %d %d\n", dbgLayer[0], dbgLayer[1], dbgLayer[2]);
                             for (int q = 0; q < 12; q++) dbgHist[q] = 0;
@@ -912,9 +951,18 @@ void RoadNetwork::generate(WorldMap& map) {
                         if (pair[0].ok) {
                             emit(pair[0], -1);
                             emit(pair[1], 1);
-                        } else if (single.ok) {
-                            emit(single, singleDir);
-                            left++;
+                        } else if (first.ok) {
+                            emit(first, firstDir);
+                            // the other one at a junction of its own, clear of the first
+                            RampPlan other;
+                            for (float G : okOther) {
+                                vec2 PL, tL;
+                                if (!arterialPoint(as, tb, adSign, G, PL, tL) || !landingOk(PL, as.poly, landR)) continue;
+                                planRamp(h, sx, sgn, -firstDir, PL, tL, as.poly, landR, other);
+                                if (other.ok) break;
+                            }
+                            if (other.ok) emit(other, -firstDir);
+                            else left++;
                         } else left += 2;
                     }
                     if (got == 0) continue;
@@ -925,7 +973,7 @@ void RoadNetwork::generate(WorldMap& map) {
                 }
             }
         }
-        LOG("Road gen: %zu interchanges, %d ramps (%d left out where they could not come down in time)", interchanges.size(), planned, dropped);
+        LOG("Road gen: %zu interchanges, %d ramps (%d left out where they could not come down in time) %.2f s DBGT", interchanges.size(), planned, dropped, TimeSeconds() - tPlan);
     }
 
     // ============================================================= Planarize
@@ -1409,7 +1457,7 @@ void RoadNetwork::generate(WorldMap& map) {
                                 const RoadEdge& o = edges[oe];
                                 if (o.cls == RC_RAMP || o.cls == RC_HIGHWAY) continue;
                                 for (size_t k = 0; k + 1 < o.pts.size() && !over; k++)
-                                    over = distPointSegment2D(e.pts[i].xy(), o.pts[k].xy(), o.pts[k + 1].xy()) < e.halfWidth + o.halfWidth + o.sidewalk;
+                                    over = distPointSegment2D(e.pts[i].xy(), o.pts[k].xy(), o.pts[k + 1].xy()) < e.halfWidth + o.halfWidth + o.sidewalk + 1.f;
                             }
                             if (!over) break;
                             flat = Max(flat, end == 0 ? L - sAlong[i] : sAlong[i]);

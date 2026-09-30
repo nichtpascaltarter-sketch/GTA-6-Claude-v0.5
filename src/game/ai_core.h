@@ -348,6 +348,7 @@ struct Driver {
     float flipTime = 0.f, lostTime = 0.f, mutualTime = 0.f;
     int recoverDir = 0;
     vec2 stuckAnchor = vec2(1e9f);  // where the car stood when it last made progress while wanting to move
+    float pedCreep = 0.f;       // inching forward at a pedestrian dawdling in front of the bumper (s left)
     int kturns = 0;             // three-point-turn back-ups on the current path
     bool kturn = false;         // the running recovery is a three-point-turn back-up (keeps the path)
     float kturnT = 0.f;         // time running wide at full lock (three-point-turn trigger)
@@ -459,6 +460,7 @@ struct Walker {
     float waitTimer = 0.f;
     float stuckTimer = 0.f;
     float lastProgress = 0.f;
+    float flipCd = 0.f;         // no second about-turn this soon after one (no dithering in front of a waiting car)
     int prevNode = -1;
     bool hasDest = false;
     vec2 dest;

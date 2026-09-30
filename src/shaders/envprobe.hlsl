@@ -133,7 +133,9 @@ float4 psProbeLight(VSOut i) : SV_Target {
         float3 horizon = skyRadiance(normalize(float3(dir.xy, 0.03)), false);
         L = L * T + horizon * (1.0 - T);
     }
-    return float4(min(L, 60000.0), 1);
+    // never let a NaN / Inf into the cube: the SH below is blended over time, so a single bad texel would poison
+    // the near-camera ambient for good (min() does not reliably drop NaN on every driver)
+    return float4(sanitizeHDR(min(L, 60000.0)), 1);
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -197,7 +199,7 @@ void csProbeSH(uint gi : SV_GroupIndex) {
         float cosT = 1.0 - 2.0 * v;
         float sinT = sqrt(saturate(1.0 - cosT * cosT));
         float3 d = float3(sinT * cos(phi), sinT * sin(phi), cosT);
-        float3 L = min(tSourceCube.SampleLevel(sLinearClamp, d, gProbe1.x).rgb, 30000.0);
+        float3 L = sanitizeHDR(min(tSourceCube.SampleLevel(sLinearClamp, d, gProbe1.x).rgb, 30000.0));
         float w = 4.0 * PI / 1024.0;
         acc[0] += L * 0.282095 * w;
         acc[1] += L * 0.488603 * d.y * w;
@@ -215,6 +217,7 @@ void csProbeSH(uint gi : SV_GroupIndex) {
         float3 sum = 0;
         for (int t = 0; t < 64; t++) sum += gsPSH[t][gi];
         float4 prev = uProbeSH[gi];
-        uProbeSH[gi] = float4(lerp(prev.rgb, sum, gProbe0.z), 0);
+        float3 res = anyNonFinite(prev.rgb) ? sum : lerp(prev.rgb, sum, gProbe0.z);   // uninitialised / bad history
+        uProbeSH[gi] = float4(anyNonFinite(res) ? float3(0, 0, 0) : res, 0);
     }
 }

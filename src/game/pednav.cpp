@@ -183,12 +183,14 @@ vec2 PedCore::step(Walker& w, vec2 pos, float dt, int selfBody, float* faceYaw) 
     else if (off < 3.f) w.x += spd * dt * 0.4f;
     // stuck detection (blocked by a wall/prop): pick another direction
     w.stuckTimer += dt;
+    w.flipCd = Max(0.f, w.flipCd - dt);
     if (w.stuckTimer > 2.f) {
-        if (fabsf(w.x - w.lastProgress) < 0.8f && off > 1.2f) {
+        if (fabsf(w.x - w.lastProgress) < 0.8f && off > 1.2f && w.flipCd <= 0.f) {
             w.fromA = !w.fromA;
             w.x = Max(0.f, L.length - w.x);
             w.lat = -w.lat;
             w.state = WS_WALK;
+            w.flipCd = 7.f;
         }
         w.lastProgress = w.x;
         w.stuckTimer = 0.f;

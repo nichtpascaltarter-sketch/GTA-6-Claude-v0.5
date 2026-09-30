@@ -34,7 +34,7 @@ float headlightPattern(float3 fwd, float3 d) {
 float lightAngular(LightGPU L, float3 Lv) {
     if (L.spotCos <= -1.0) return 1.0;
     if (L.spotInner > 1.5) return headlightPattern(L.dir, -Lv);
-    return smoothstep(L.spotCos, L.spotInner, dot(-Lv, L.dir));
+    return smoothstep(L.spotCos, max(L.spotInner, L.spotCos + 1e-4), dot(-Lv, L.dir));   // equal edges: 0/0
 }
 
 #endif

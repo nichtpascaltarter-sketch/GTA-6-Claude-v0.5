@@ -1257,8 +1257,18 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     // ---- speed target
     float vObst = 99.f;
     if (obstGap < 1e8f) {
-        if (obstPed) vObst = safeSpeed(obstGap, 0.f, 0.6f, P.decel * 1.2f, 2.2f);
-        else vObst = safeSpeed(obstGap, obstV, P.headway, P.decel, P.minGap);
+        if (obstPed) {
+            vObst = safeSpeed(obstGap, 0.f, 0.6f, P.decel * 1.2f, 2.2f);
+            // someone dawdling in front of the bumper (not crossing at a crosswalk, not the player): after a honk,
+            // inch forward - people step aside for a car that creeps at them
+            const Body& pb = bodies[obstB];
+            if (!(pb.flags & (BF_CROSSING | BF_PLAYER)) && obstGap < 3.f && v < 1.5f) {
+                if (d.blockedTime > P.patience + 1.f && d.pedCreep <= 0.f) d.pedCreep = 3.f;
+                if (d.pedCreep > 0.f) vObst = Max(vObst, 0.9f);
+            }
+        } else {
+            vObst = safeSpeed(obstGap, obstV, P.headway, P.decel, P.minGap);
+        }
     }
     float vStop = stopDist < 1e8f ? safeSpeed(stopDist, 0.f, 0.25f, P.decel * 1.1f, 0.35f) : 99.f;
     d.stopDist = stopDist;
@@ -1565,6 +1575,7 @@ void TrafficCore::drive(int vid, Vehicles::VehicleState& s, float dt, DriveOut& 
     }
     d.lastDriveTime = (float)time;
     d.lcCooldown = Max(0.f, d.lcCooldown - dt);
+    d.pedCreep = Max(0.f, d.pedCreep - dt);
     d.busStopCooldown = Max(0.f, d.busStopCooldown - dt);
     d.destRecalc -= dt;
     if (d.path < 0) {

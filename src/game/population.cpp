@@ -940,6 +940,15 @@ void GameWorld::updatePopulation(float dt) {
         }
         if (model < 0) continue;
         const Vehicles::VehicleModel& spec = vassets[model].spec;
+        // cul-de-sacs see little through traffic, and nothing too long to swing round the turning circle
+        if (L.toNode >= 0 && laneGraph.nodes[L.toNode].deadEnd) {
+            float yMin = 1e9f, yMax = -1e9f;
+            for (const Vehicles::WheelSpec& w : spec.wheels) {
+                yMin = Min(yMin, w.pos.y);
+                yMax = Max(yMax, w.pos.y);
+            }
+            if (laneGraph.nodes[L.toNode].uturnBlocked || yMax - yMin > 3.3f || (h >> 9) % 4 != 0) continue;
+        }
         if (!traffic.laneFree(lane, u, spec.boxHalf.y, 5.f)) continue;
         if (pv >= 0 && length(vehicles[pv].sim.body.pos.toVec3().xy() - c.xy()) < 10.f) continue;
         bool cop = spec.cls == Vehicles::VC_POLICE;
