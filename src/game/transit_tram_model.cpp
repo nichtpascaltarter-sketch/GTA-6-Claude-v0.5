@@ -280,9 +280,12 @@ void buildNose(TB& b, float y0, float dir, bool lead, float clarity) {
             b.quad(c - right * 0.14f - vec3(0, 0, 0.06f), c + right * 0.14f - vec3(0, 0, 0.06f), c + right * 0.14f + vec3(0, 0, 0.06f), c - right * 0.14f + vec3(0, 0, 0.06f),
                    tc(0.95f, 0.95f, 0.92f), makeMat(MAT_LIGHT_HEAD), out);
         }
-        vec3 t = N.at(sd > 0 ? 0.22f : 0.78f, 0.82f) + out * 0.012f;
-        b.quad(t - right * 0.05f - vec3(0, 0, 0.05f), t + right * 0.05f - vec3(0, 0, 0.05f), t + right * 0.05f + vec3(0, 0, 0.05f), t - right * 0.05f + vec3(0, 0, 0.05f),
-               tc(0.5f, 0.03f, 0.03f), makeMat(MAT_LIGHT_TAIL), out);
+        if (!lead) {
+            // tail lamps on the trailing nose only (lit with the lights and the brakes)
+            vec3 t = N.at(sd > 0 ? 0.3f : 0.7f, 0.82f) + out * 0.012f;
+            b.quad(t - right * 0.12f - vec3(0, 0, 0.05f), t + right * 0.12f - vec3(0, 0, 0.05f), t + right * 0.12f + vec3(0, 0, 0.05f),
+                   t - right * 0.12f + vec3(0, 0, 0.05f), tc(0.5f, 0.03f, 0.03f), makeMat(MAT_LIGHT_TAIL), out);
+        }
     }
     // destination display text
     if (b.lod < 2) {

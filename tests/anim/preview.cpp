@@ -3,6 +3,11 @@
 // Build: g++ -O2 -std=c++17 -I src tests/anim/preview.cpp -o /tmp/preview
 // Usage: preview out.ppm [--seed S] [--role R] [--count N] [--view front|side|back|face|three|top] [--clip C] [--t T]
 //                        [--w W] [--h H] [--dist D] [--yaw deg] [--height z] [--fov deg] [--mode lineup|single]
+//                        [--tiles] (one tile per character, camera on its head) [--ss N] (supersampling) [--lod L]
+// Env: PREVIEW_NOHAT, PREVIEW_HAIR / _HAIRCOL / _FH / _GENDER / _AGE / _TOP / _BOTTOM / _SHOES (override the desc),
+//      PREVIEW_TGT=x,y,z (tile camera target offset from the head), PREVIEW_WIRE (triangle edges),
+//      PREVIEW_OPAQUECARDS (strand cards opaque and culled, as drawn before the renderer's card pass).
+// Strand cards are alpha-tested with a stand-in strand pattern (cardAlpha) and drawn two-sided.
 #include "../../src/core/math.cpp"
 #include "../../src/render/mesh.cpp"
 #include "../../src/anim/anim_all.cpp"

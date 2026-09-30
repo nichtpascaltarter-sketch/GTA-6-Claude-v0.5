@@ -544,7 +544,7 @@ void updateStopCrowds(GameWorld& g, float dt, vec3 pp) {
         vec2 look = bench ? st.face : normalize(-st.along * 0.8f + st.face * 0.6f);
         pa.anchorYaw = atan2f(-look.x, look.y) + (hashToFloat(hash32(h * 5u)) - 0.5f) * 0.6f;
         p.yaw = pa.anchorYaw;
-        pa.stance = bench ? 8 : 23;
+        pa.stance = bench ? 6 : waitStance(h);   // seated on the bench, or waiting by the curb
         pa.clip = -1;
         pa.actTimer = 600.f;
         Waiter w;

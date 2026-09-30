@@ -395,7 +395,7 @@ void updatePierCrowds(GameWorld& g, float dt, vec3 pp) {
         pa.anchor = spot;
         pa.anchorYaw = atan2f(-fp.dir.x, fp.dir.y) + (hashToFloat(hash32(h * 5u)) - 0.5f) * 1.2f;   // looking out over the water
         p.yaw = pa.anchorYaw;
-        pa.stance = (h >> 11) % 4 == 0 ? 8 : 23;
+        pa.stance = waitStance(h);
         pa.clip = -1;
         pa.actTimer = 600.f;
         Waiter w;

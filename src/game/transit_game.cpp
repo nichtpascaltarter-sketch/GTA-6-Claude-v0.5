@@ -375,6 +375,15 @@ int freeCarSeat(const GameWorld& g, int veh) {
     return -1;
 }
 
+// Varied waiting poses for platform, stop and pier crowds: queueing, on the phone, looking around, the odd smoker
+int waitStance(u32 h) {
+    u32 r = hash32(h * 2654435761u + 0x5747u) % 100u;
+    if (r < 46u) return 23;
+    if (r < 70u) return 8;
+    if (r < 91u) return 14;
+    return 10;
+}
+
 int spawnCivilian(GameWorld& g, u32 seed, vec3 pos, float yaw) {
     if (g.chars.empty()) return -1;
     World::Region reg = g.map->regionAt(pos.x, pos.y);
@@ -512,7 +521,7 @@ void updateWalkers(GameWorld& g, float dt) {
                     const World::MetroStation& st = World::gTransit->metro.stations[w.station];
                     vec2 toTrack = -st.right() * (w.side == 0 ? 1.f : -1.f);
                     pa.anchorYaw = atan2f(-toTrack.x, toTrack.y);
-                    pa.stance = 23;
+                    pa.stance = waitStance(w.uid);
                     pa.clip = -1;
                     pa.actTimer = 600.f;
                     gS.waiters.push_back(wt);
@@ -543,7 +552,7 @@ void updateWalkers(GameWorld& g, float dt) {
                         PedAI& pa = g.pedAI(w.ped);
                         pa.activity = ACT_SCENARIO;
                         pa.anchor = pos;
-                        pa.stance = 23;
+                        pa.stance = waitStance(w.uid);
                         pa.actTimer = 600.f;
                         gS.waiters.push_back(wt);
                     }
@@ -634,7 +643,7 @@ void updateCrowds(GameWorld& g, float dt, vec3 pp) {
             vec2 toTrack = -st.right() * S;
             pa.anchorYaw = atan2f(-toTrack.x, toTrack.y) + (hashToFloat(hash32(h * 3u)) - 0.5f) * 0.8f;
             p.yaw = pa.anchorYaw;
-            pa.stance = (h >> 9) % 5 == 0 ? 8 : 23;   // on the phone or waiting
+            pa.stance = waitStance(h);
             pa.clip = -1;
             pa.actTimer = 600.f;
             Waiter w;

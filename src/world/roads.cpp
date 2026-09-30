@@ -889,11 +889,12 @@ void RoadNetwork::generate(WorldMap& map) {
                     float ta, tb;
                     if (!segmentIntersect2D(path[i], path[i + 1], ap.pts[as.k], ap.pts[as.k + 1], &ta, &tb)) continue;
                     if (acc - lastIc < 1300.f) continue;
-                    // the Sol Expressway starts on the turnpike: no interchange right at that junction
-                    if (strcmp(hwys[h].name, "Sol Expressway") == 0 && acc < 600.f) continue;
                     vec2 x = lerp(path[i], path[i + 1], ta);
                     if (map.isWater(x.x, x.y)) continue;
                     float sx = acc0 + ta * segLen;
+                    // none right at a highway's ends (the Sol Expressway starts on the turnpike, the Sawgrass Expressway ends
+                    // on the ridge roads)
+                    if (sx < 600.f || sx > hwS[h].back() - 400.f) continue;
                     vec2 hp, hd;
                     hwyAt(h, sx, hp, hd);
                     vec2 side = perp(hd), ad = normalize(ap.pts[as.k + 1] - ap.pts[as.k]);
@@ -1667,6 +1668,9 @@ void RoadNetwork::generate(WorldMap& map) {
                             if (bi == (int)ei) continue;
                             const RoadEdge& B = edges[bi];
                             if (hwyA && B.cls != RC_HIGHWAY) continue;
+                            // the same road continuing through a node (a ramp's attach node, a junction) is not an overlap
+                            bool adjacent = A.n0 == B.n0 || A.n0 == B.n1 || A.n1 == B.n0 || A.n1 == B.n1;
+                            if (adjacent && A.cls == B.cls && A.name == B.name) continue;
                             int k = oSegs[id].second;
                             float lim = A.halfWidth + A.sidewalk + B.halfWidth - 1.f;   // A's whole surface over B's lanes
                             bool nearB = false;
@@ -1748,8 +1752,22 @@ void RoadNetwork::generate(WorldMap& map) {
         // the node's height rather than flattened toward it)
         bool shift = e.cls == RC_RAMP;
         float z0 = nodes[e.n0].z, z1 = nodes[e.n1].z;
-        float e0 = e.pts.front().z, e1 = e.pts.back().z;
         float acc = 0;
+        if (!shift) {
+            // an end far off its node's height (a bridge landing right at a junction) first comes down (or up) to it at 6%,
+            // so the blend does not squeeze the difference into a cliff
+            for (size_t i = 0; i < e.pts.size(); i++) {
+                if (i > 0) acc += length(e.pts[i].xy() - e.pts[i - 1].xy());
+                e.pts[i].z = Clamp(e.pts[i].z, z0 - 0.06f * acc, z0 + 0.06f * acc);
+            }
+            acc = 0;
+            for (size_t i = e.pts.size(); i-- > 0;) {
+                if (i + 1 < e.pts.size()) acc += length(e.pts[i].xy() - e.pts[i + 1].xy());
+                e.pts[i].z = Clamp(e.pts[i].z, z1 - 0.06f * acc, z1 + 0.06f * acc);
+            }
+            acc = 0;
+        }
+        float e0 = e.pts.front().z, e1 = e.pts.back().z;
         for (size_t i = 0; i < e.pts.size(); i++) {
             if (i > 0) acc += length(e.pts[i].xy() - e.pts[i - 1].xy());
             float w = SmoothStep(40.f, 0.f, acc);

@@ -883,7 +883,7 @@ static void addEar(BuildCtx& c, int sd) {
     auto protrude = [&](float a, float s) {
         float frontness = sstep(0.2f, 1.f, cosf(a));
         float lobe = sstep(0.2f, 1.f, -sinf(a));
-        return s * Lerp(0.004f, 0.0125f * eo, 1.f - frontness * 0.85f) * (1.f - 0.35f * lobe) * D.headS + 0.002f * D.headS;
+        return s * Lerp(0.0035f, 0.0105f * eo, 1.f - frontness * 0.85f) * (1.f - 0.35f * lobe) * D.headS + 0.0015f * D.headS;
     };
     const float fr[] = {0.06f, 0.18f, 0.31f, 0.43f, 0.55f, 0.65f, 0.73f, 0.81f, 0.87f, 0.93f, 0.985f};
     const int NFr = (int)(sizeof(fr) / sizeof(fr[0]));
@@ -1389,8 +1389,8 @@ static void paintSkinDetail(BuildCtx& c) {
             }
             if (ageSpots > 0.f && hp.z > -0.01f) {
                 float nz = skinNoise3(hp, 110.f, seed);
-                float spot = sstep(0.72f, 0.8f, nz) * ageSpots * sstep(0.02f, 0.06f, hp.y + 0.03f);
-                if (spot > 0.f) col = lerp(col, mulColor(col, vec3(0.8f, 0.7f, 0.6f)), spot * 0.7f);
+                float spot = sstep(0.77f, 0.84f, nz) * ageSpots * sstep(0.02f, 0.06f, hp.y + 0.03f);
+                if (spot > 0.f) col = lerp(col, mulColor(col, vec3(0.84f, 0.74f, 0.64f)), spot * 0.45f);
             }
         }
         v.col = col;
