@@ -10,12 +10,14 @@ Texture2D<float> tSceneDepth : register(t3);
 Texture2D<float4> tWaveNormals : register(t4);  // tileable wave normal map (xy normal, z foam mask, w height)
 Texture2D<float2> tHiZ : register(t5);           // depth pyramid of the opaque scene (screen-space reflections)
 StructuredBuffer<float4> tNodes : register(t6);
+Texture2D<float2> tWake : register(t7);           // boat wakes around the camera: x foam, y height (m)
 
 cbuffer WaterCB : register(b1) {
     float4 gWaterParams;   // x world half, y heightmap texel (m), z grid resolution, w wave strength (weather)
     float4 gMorph[16];     // per lod: morph start, end
     float4 gWaterMode;     // x: 0 = CDLOD world grid, 1 = ocean skirt; y: skirt inner radius; z: skirt outer; w: time scale
     float4 gWaterRefl;     // x screen-space reflections enabled, y max iterations, z HiZ max mip
+    float4 gWake;          // xy wake map origin (world), z size (m), w 1 = wakes present
 };
 
 // Screen-space reflection of the opaque scene on the water surface (current frame, pre-exposed).
@@ -177,6 +179,20 @@ float4 psWater(VSOut i) : SV_Target {
     float3 dn = sampleWaveNormal(i.world, t, dist);
     float calm = saturate(1.0 - amp);  // calm rivers/bay: smoother
     float3 N = normalize(float3(gn.xy + dn.xy * lerp(0.35, 0.18, calm), gn.z));
+    // Boat wakes: Kelvin wave pattern (height -> normal) and foam trails from the wake map
+    float wakeFoam = 0;
+    if (gWake.w > 0.5) {
+        float2 wuv = (i.world - gWake.xy) / gWake.z;
+        if (all(wuv > 0.0) && all(wuv < 1.0)) {
+            float texel = gWake.z / 512.0;
+            float2 w0 = tWake.SampleLevel(sLinearClamp, wuv, 0);
+            float hx = tWake.SampleLevel(sLinearClamp, wuv + float2(1.0 / 512.0, 0), 0).y - w0.y;
+            float hy = tWake.SampleLevel(sLinearClamp, wuv + float2(0, 1.0 / 512.0), 0).y - w0.y;
+            float edgeFade = saturate(min(min(wuv.x, 1.0 - wuv.x), min(wuv.y, 1.0 - wuv.y)) * 12.0);
+            N = normalize(N + float3(-hx, -hy, 0) / texel * 1.5 * edgeFade);
+            wakeFoam = saturate(w0.x) * edgeFade;
+        }
+    }
     // Distance: flatten normals to reduce aliasing
     N = normalize(lerp(N, float3(0, 0, 1), saturate(dist / 2500.0) * 0.7));
 
@@ -237,7 +253,7 @@ float4 psWater(VSOut i) : SV_Target {
         float along = saturate(valueNoise(i.world * 0.11 + t * 0.05) * 1.8 - 0.35);
         breakers = band * along * saturate(1.0 - i.depth / 3.0) * saturate(i.depth * 3.0) * waves;
     }
-    float foam = saturate((shore * 0.9 + crest + breakers * 1.3) * foamTex.x * 1.6);
+    float foam = saturate((shore * 0.9 + crest + breakers * 1.3) * foamTex.x * 1.6 + wakeFoam * lerp(0.55, 1.0, foamTex.x));
     float3 foamCol = (sunE * saturate(gSunDir.z) * shadow + skyE) * 0.8 / PI * preExposure();
     float3 col = lerp(underwater, refl, F) + glint;
     col = lerp(col, foamCol, foam);
@@ -249,6 +265,47 @@ float4 psWater(VSOut i) : SV_Target {
     // Soft edge where water meets the shore (avoid hard line)
     float edge = saturate(thickness / 0.15);
     return float4(min(col, 60000.0), edge);
+}
+
+// ------------------------------------------------------------------------------------------------
+// Boat wake ribbons rendered into the wake map (additive): one quad strip per boat trail, widening with the Kelvin
+// wedge (19.5 degrees) behind the boat. Output x foam, y height (m).
+struct WakeVSIn {
+    float4 pos : POSITION;     // xy map-local position (m), z lateral offset (m, signed), w distance behind the boat (m)
+    float4 info : TEXCOORD0;   // x age (s), y wedge half-width here (m), z amplitude (0..1, speed), w beam (m)
+    float2 world : TEXCOORD1;  // world xy (wrapped) for stable noise
+};
+struct WakeVSOut {
+    float4 pos : SV_Position;
+    float2 latS : TEXCOORD0;
+    float4 info : TEXCOORD1;
+    float2 world : TEXCOORD2;
+};
+WakeVSOut vsWake(WakeVSIn i) {
+    WakeVSOut o;
+    float2 uv = i.pos.xy / gWake.z;
+    o.pos = float4(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, 0.5, 1.0);
+    o.latS = i.pos.zw;
+    o.info = i.info;
+    o.world = i.world;
+    return o;
+}
+float2 psWake(WakeVSOut i) : SV_Target {
+    float x = abs(i.latS.x), sB = i.latS.y;
+    float age = i.info.x, W = max(i.info.y, 0.1), amp = i.info.z, beam = i.info.w;
+    float fromArm = W - x;
+    // divergent waves: crests along the wedge arms, strongest just inside them, spacing growing downstream
+    float lambda = 2.2 + 0.06 * sB;
+    float div = sin(TWO_PI * fromArm / lambda) * exp(-max(fromArm, 0.0) / (5.0 + 0.15 * sB)) * saturate(fromArm / 0.8 + 1.0);
+    // transverse waves across the wedge
+    float trans = sin(TWO_PI * sB / (5.0 + amp * 9.0)) * saturate(1.0 - x / W) * 0.45;
+    float fade = exp(-age / 16.0) * saturate(sB / 3.0);
+    float height = amp * (div + trans) * fade * 0.28;
+    // foam: churned centre trail + thin white lines on the arms right behind the boat, broken up by noise
+    float n = valueNoise(i.world * 1.3) * 0.6 + valueNoise(i.world * 4.1) * 0.4;
+    float core = exp(-sq(x / (beam * 0.9 + 0.05 * sB))) * exp(-age / 11.0) * saturate(n * 1.6 - 0.1);
+    float arm = exp(-sq(fromArm / 0.7)) * exp(-age / 3.5) * saturate(n * 2.0 - 0.4);
+    return float2((core + arm * 0.7) * amp, height);
 }
 
 // ------------------------------------------------------------------------------------------------

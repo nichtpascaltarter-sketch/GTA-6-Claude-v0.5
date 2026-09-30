@@ -138,6 +138,23 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
     D.foreheadSlope = 0.5f + 0.5f * g();
     D.lidFold = r.f();
     D.headLen = 1.f + 0.035f * g();
+    {
+        // separate stream: the draws above keep their values for existing seeds
+        Rng q(hash32(d.seed * 0x2C1B3C6Du + 0x297A2D39u));
+        auto h = [&]() { return q.range(-1.f, 1.f); };
+        D.jawFlare = 0.5f + 0.5f * h();
+        D.chinSquare = Saturate(Lerp(0.55f, 0.2f, fem) + 0.35f * h());
+        D.chinCleft = (fem < 0.5f && q.chance(0.18f)) ? q.range(0.4f, 1.f) : 0.f;
+        D.noseHump = Saturate(0.35f * (1.f - fem) + 0.3f * h() + 0.2f * a);
+        D.noseTipUp = 0.5f * h() + 0.25f * fem;
+        D.lipBow = 0.5f + 0.5f * h();
+        D.asymEye = 0.0007f * h();
+        D.asymBrow = 0.0012f * h();
+        D.asymMouth = 0.0008f * h();
+        D.asymNose = 0.0009f * h();
+        D.asymChin = 0.0012f * h();
+        D.asymEar = 0.12f * h();
+    }
 
     // ---- joints (model space, bind pose, raised by the shoe sole)
     vec3* J = D.J;
@@ -181,7 +198,7 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
     D.shin = length(J[B_FOOT_L] - J[B_CALF_L]);
     J[B_JAW] = J[B_HEAD] + vec3(0, 0.010f, 0.020f) * hs;
     J[B_EYE_L] = J[B_HEAD] + vec3(-0.0315f * D.eyeSpace, 0.0705f, 0.058f) * hs;
-    J[B_EYE_R] = J[B_HEAD] + vec3(0.0315f * D.eyeSpace, 0.0705f, 0.058f) * hs;
+    J[B_EYE_R] = J[B_HEAD] + vec3(0.0315f * D.eyeSpace, 0.0705f, 0.058f + D.asymEye) * hs;
     // speech bones (pivots, head space as in face.cpp's landmarks): the upper lip hangs from above/behind it (pitch
     // forward = protrude), the lower lip rides the jaw from below/behind (pitch back = tuck), the corners swing about a
     // point behind the mouth (yaw = narrow/spread, pitch = up/down), the tongue from the floor of the mouth

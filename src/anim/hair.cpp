@@ -419,25 +419,27 @@ static void buildFacialHair(OutfitCtx& o) {
     const float thMC = H.thetaMouth;
     vec3 fcol = d.hairColor * 0.85f;
     // beard region in head grid terms
-    auto rowOf = [](const BVert& v) { return (int)lrintf((v.pc - 1.2f) * 34.f); };
+    // head grid rows (face.cpp): lips from rowLipLo (skin under the lower vermilion) to rowLipHi (upper vermilion
+    // border), the mustache over the philtrum up to the nose, the chin below the lower lip
+    const float nrd = (float)(H.rows - 1);
+    const int rLipLo = H.rowLipLo, rLipHi = H.rowLipHi;
+    auto rowOf = [nrd](const BVert& v) { return (int)lrintf((v.pc - 1.2f) * nrd); };
     auto region = [=](const BVert& v, bool mustache, bool chin, bool cheeks) -> float {
         if (v.part != PART_HEAD || v.pc < 1.2f) return -1.f;
         float at = v.pa > kPi ? kTwoPi - v.pa : v.pa;
         int j = rowOf(v);
         float best = -1.f;
-        // mustache: above the upper lip border (rows 12..14) within the mouth span (+ margin)
+        // mustache: from the upper lip's vermilion border up the philtrum within the mouth span (+ margin)
         if (mustache) {
-            float inRow = (j >= 12 && j <= 14) ? 1.f : -1.f;
-            float m = Min((thMC + 5.f * deg - at) * 0.1f, 0.01f * inRow);
-            if (j == 13 || j == 12) m = Min((thMC + 5.f * deg - at) * 0.1f, 0.01f);
+            float m = (j >= rLipHi && j <= rLipHi + 4) ? Min((thMC + 5.f * deg - at) * 0.1f, 0.01f) : -1.f;
             best = Max(best, m);
         }
-        // chin: under the lower lip, rows 1..6, narrow
+        // chin: under the lower lip, narrow
         if (chin) {
-            float c1 = Min((22.f * deg - at) * 0.1f, j <= 6 && j >= 1 ? 0.01f : -1.f);
+            float c1 = Min((22.f * deg - at) * 0.1f, j <= rLipLo && j >= 1 ? 0.01f : -1.f);
             // connect mustache to chin around the mouth corners
             float c2 = Min((thMC + 6.f * deg - at) * 0.1f, Min(((thMC + 6.f * deg) - fabsf(at - thMC - 2.f * deg) * 4.f) * 0.1f,
-                                                                (j >= 6 && j <= 12) ? 0.01f : -1.f));
+                                                                (j >= rLipLo && j <= rLipHi) ? 0.01f : -1.f));
             best = Max(best, Max(c1, at > thMC * 0.85f ? c2 : -1.f));
         }
         // cheeks + jaw + under the chin: up to a line from the sideburn to the mouth corner
@@ -445,7 +447,7 @@ static void buildFacialHair(OutfitCtx& o) {
             float phTop = Lerp(-22.f, 6.f, sstep(thMC * kRadToDeg, 72.f, at * kRadToDeg)) * deg;
             float cov = Min((phTop - v.pb) * 0.1f, (80.f * deg - at) * 0.1f);
             // keep lips clear
-            bool lip = j >= 7 && j <= 12 && at < thMC * 1.15f;
+            bool lip = j > rLipLo && j <= rLipHi && at < thMC * 1.15f;
             if (lip) cov = -1.f;
             if (j < 1) cov = -1.f;
             best = Max(best, cov);

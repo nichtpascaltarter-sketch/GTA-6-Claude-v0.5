@@ -73,6 +73,19 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
         v.ctl = out.ctl;
         v.indicator = out.indicator;
         v.hornOn = out.horn;
+        // autopilot hung on a ledge (see the AI car recovery below): back onto the lane a few meters on
+        bool hung = !d->dummy && d->vTarget > 1.f && v.sim.speed() < 0.5f && (v.sim.up().z < 0.94f || v.sim.wheelsOnGround < 3) && d->path >= 0;
+        va.hungTime = hung ? va.hungTime + dt : 0.f;
+        if (va.hungTime > 5.f) {
+            float u = Min(d->u + 4.f, laneGraph.pathLength(d->path) - 0.5f);
+            vec3 p = laneGraph.pathPos(d->path, u);
+            vec2 t = laneGraph.pathTangent(d->path, u);
+            Vehicles::resetVehicle(v.sim, dvec3(p.x, p.y, p.z + 0.35f), AI::dirYaw(t));
+            v.sim.body.vel = vec3(t * 2.f, 0.f);
+            d->u = u;
+            va.hungTime = 0.f;
+            ai.stats.unhung++;
+        }
         return;
     }
     // ---- boats and aircraft have their own autopilots

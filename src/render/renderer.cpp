@@ -692,6 +692,7 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     // Post
     unbindGlobals();
     RenderPassTiming::begin("post");
+    post->cloudSrv = settings.clouds ? clouds->output() : nullptr;
     post->render(*this, dt);
     RenderPassTiming::end();
 

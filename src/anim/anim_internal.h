@@ -109,6 +109,11 @@ struct BodyDims {
     // face shape (multipliers around 1)
     float faceW, jawW, chinP, chinH, noseL, noseW, noseP, noseBridge, lipFull, lipW, eyeSize, eyeTilt, eyeSpace,
         browH, browRidge, cheekB, earSize, earOut, foreheadSlope, lidFold, headLen;
+    // face shape variety beyond the multipliers: jaw angle flare, chin shape (0 round .. 1 square), cleft chin,
+    // nose hump / tip rotation, lip bow; and subtle left/right asymmetry (meters, head space, applied to the right
+    // side: eye height, brow height, mouth corner height, nose tip / chin deviation in x, ear protrusion factor)
+    float jawFlare, chinSquare, chinCleft, noseHump, noseTipUp, lipBow;
+    float asymEye, asymBrow, asymMouth, asymNose, asymChin, asymEar;
 };
 void computeDims(const CharacterDesc& d, BodyDims& D);
 // Shoe sole thickness for a shoe index.
@@ -258,6 +263,8 @@ struct HeadInfo {
     std::vector<u32> grid;  // rows*cols vertex indices into the body mesh (row-major, row 0 = neck junction)
     int rowEyeLo = 0, rowEyeHi = 0, rowMouthLo = 0, rowMouthHi = 0, rowBrow = 0, rowChin = 0, rowNoseBase = 0;
     int rowHairline = 0;
+    int rowLipLo = 0, rowLipHi = 0;   // lowest / highest lip rows (skin just below / the vermilion border above)
+    int rowLidLo = 0, rowLidHi = 0;   // lowest lower-lid row / highest upper-lid (fold) row
     vec3 eyeC[2];           // eyeball centers (model)
     float eyeR = 0.012f;
     vec3 earPos[2];         // ear root centers (model)

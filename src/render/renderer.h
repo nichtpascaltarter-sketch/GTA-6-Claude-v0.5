@@ -330,6 +330,9 @@ public:
     void addTracer(dvec3 from, dvec3 to);
     // Continuous tire strip: pass the same trackId every frame while the wheel skids; a new id starts a new strip.
     void addSkidMark(int trackId, dvec3 pos, vec3 normal, float width, float intensity);
+    // Boat wake: call every frame for each moving boat with its bow position, heading (xy), speed (m/s) and half
+    // beam (m). The same id continues a trail (Kelvin wave pattern + foam, fading over ~30 s).
+    void addWake(int boatId, dvec3 pos, vec2 dir, float speed, float beam);
     ParticleSystem* particles = nullptr;
     DecalSystem* decals = nullptr;
     gfx::VertexShader vsFullscreen;

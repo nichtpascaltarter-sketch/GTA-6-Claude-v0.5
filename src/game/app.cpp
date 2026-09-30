@@ -549,6 +549,7 @@ struct App {
                     if (vid >= 0) {
                         game.warpPedIntoVehicle(game.player, vid, 0);
                         game.vehicles[vid].persistent = true;
+                        p.pos = game.vehicles[vid].sim.body.pos;   // (the population pass this frame measures from here)
                         game.rig.yaw = yaw;
                         if (chase || soak) game.attachTraffic(vid, lane, u);
                     }

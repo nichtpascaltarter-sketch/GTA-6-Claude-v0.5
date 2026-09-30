@@ -856,7 +856,7 @@ void RoadNetwork::generate(WorldMap& map) {
                     int k = hSegs[id].second;
                     float t;
                     float d = distPointSegment2D(p, h.pts[k].xy(), h.pts[k + 1].xy(), &t);
-                    if (d >= h.halfWidth + rampHw + 1.f) continue;
+                    if (d >= h.halfWidth + rampHw + 0.3f) continue;   // the pavements touch or overlap
                     float z = Lerp(h.pts[k].z, h.pts[k + 1].z, t);
                     float score = fabsf(z - refZ) * 4.f + d;
                     if (score < best) {
@@ -898,19 +898,24 @@ void RoadNetwork::generate(WorldMap& map) {
             }
             target[i] = z;
         }
-        // Ramps: from the end attached to a highway node, hold the highway's level for as long as the ramp still overlaps
-        // the highway pavement (auxiliary lane up to the gore); the rest of the ramp follows its own profile
+        // Ramps: from the end attached to a highway node, hold the highway's level for as long as the ramp still runs against
+        // the highway pavement (auxiliary lane up to the gore); the rest follows its own profile. Where what is left of the
+        // ramp is too short to come down (or up) to its other end at 7%, the hold is released early.
         if (e.cls == RC_RAMP && !hGrid.empty()) {
+            size_t cnt = e.pts.size();
+            size_t idx = &e - &edges[0];
+            std::vector<float> sAlong(cnt, 0.f);
+            for (size_t i = 1; i < cnt; i++) sAlong[i] = sAlong[i - 1] + length(e.pts[i].xy() - e.pts[i - 1].xy());
+            float L = sAlong.back();
+            std::vector<char>& hm = held[idx];
+            std::vector<float>& hzv = heldZ[idx];
+            hm.assign(cnt, 0);
+            hzv.assign(cnt, 0.f);
             for (int end = 0; end < 2; end++) {
                 int nid = end == 0 ? e.n0 : e.n1;
                 bool atHighway = false;
                 for (int oe : nodes[nid].edges) atHighway |= edges[oe].cls == RC_HIGHWAY;
                 if (!atHighway) continue;
-                size_t cnt = e.pts.size();
-                std::vector<char>& hm = held[&e - &edges[0]];
-                std::vector<float>& hzv = heldZ[&e - &edges[0]];
-                hm.resize(cnt, 0);
-                hzv.resize(cnt, 0.f);
                 // reference height: the attach node's highway ends
                 float refZ = 0.f;
                 int nref = 0;
@@ -920,14 +925,28 @@ void RoadNetwork::generate(WorldMap& map) {
                         nref++;
                     }
                 refZ /= (float)Max(1, nref);
+                std::vector<size_t> run;
                 for (size_t j = 0; j < cnt; j++) {
                     size_t i = end == 0 ? j : cnt - 1 - j;
                     float hz;
                     if (!highwayAt(e.pts[i].xy(), e.halfWidth, refZ, &hz)) break;
                     refZ = hz;
-                    target[i] = Max(target[i], hz);
-                    hm[i] = 1;
                     hzv[i] = hz;
+                    run.push_back(i);
+                }
+                if (run.empty()) continue;
+                float zFar = target[end == 0 ? cnt - 1 : 0];
+                size_t keep = run.size();
+                while (keep > 1) {
+                    size_t i = run[keep - 1];
+                    float left = end == 0 ? L - sAlong[i] : sAlong[i];
+                    if (fabsf(hzv[i] - zFar) <= 0.12f * left) break;
+                    keep--;
+                }
+                for (size_t r = 0; r < keep; r++) {
+                    size_t i = run[r];
+                    target[i] = Max(target[i], hzv[i]);
+                    hm[i] = 1;
                 }
             }
         }
@@ -985,7 +1004,6 @@ void RoadNetwork::generate(WorldMap& map) {
     // boulevard) share one surface where one road's surface lies over the other's lanes: the higher road is capped to the
     // lower one there and eases back to its own profile at the grade limit. Highways and ramp sections held at highway
     // level keep their height; genuine grade separations (4.5 m or more) are left alone.
-    {
         std::vector<std::vector<int>> oGrid((size_t)xRes * xRes);
         std::vector<std::pair<int, int>> oSegs;
         for (size_t ei = 0; ei < edges.size(); ei++) {
@@ -1003,81 +1021,107 @@ void RoadNetwork::generate(WorldMap& map) {
             }
         }
         auto isHeld = [&](size_t ei, size_t i) { return i < held[ei].size() && held[ei][i]; };
-        // ease a profile back up from its capped points at grade g
-        auto ease = [&](RoadEdge& E, size_t ei, const std::vector<char>& fixedPt, bool down) {
+        // ease a profile back up from its capped points at grade g (only where it is higher than the easing)
+        bool easeFixedEnds = false;
+        auto ease = [&](RoadEdge& E, size_t ei, const std::vector<char>& fixedPt) {
             size_t n = E.pts.size();
             float g = E.cls == RC_HIGHWAY ? 0.045f : 0.07f;
             for (int dir = 0; dir < 2; dir++) {
-                float lim = down ? 1e9f : -1e9f;
+                float lim = 1e9f;
                 for (size_t j = 0; j < n; j++) {
                     size_t i = dir == 0 ? j : n - 1 - j;
                     if (fixedPt[i]) { lim = E.pts[i].z; continue; }
                     size_t prev = dir == 0 ? i - 1 : i + 1;
-                    if (j > 0) lim += (down ? g : -g) * length(E.pts[i].xy() - E.pts[prev].xy());
-                    if (isHeld(ei, i)) continue;   // held ramp points stay
-                    if (down && E.pts[i].z > lim) E.pts[i].z = lim;
-                    if (!down && E.pts[i].z < lim) E.pts[i].z = lim;
+                    if (j > 0) lim += g * length(E.pts[i].xy() - E.pts[prev].xy());
+                    if (easeFixedEnds && (i == 0 || i + 1 == n)) continue;   // junction ends stay once they are on their nodes
+                    if (!isHeld(ei, i) && E.pts[i].z > lim) E.pts[i].z = lim;   // held ramp points stay
                 }
             }
         };
-        for (int iter = 0; iter < 16; iter++) {   // chains of overlapping roads settle one hop per round
+        // candidate pairs (plan geometry does not change): A's segment [i, i+1] passing within reach of B's segment k
+        struct Cand { int i, b, k; };
+        std::vector<std::vector<Cand>> cands(edges.size());
+        for (size_t ei = 0; ei < edges.size(); ei++) {
+            const RoadEdge& A = edges[ei];
+            if (A.flags & RF_UNPAVED) continue;
+            bool hwyA = A.cls == RC_HIGHWAY;   // highways only yield to other highways (interchange overlaps)
+            size_t n = A.pts.size();
+            for (size_t i = 0; i < n; i++) {
+                size_t i1 = Min(i + 1, n - 1);
+                vec2 p = A.pts[i].xy();
+                int cx = Clamp((int)((p.x + kWorldHalf) / kXCell), 0, xRes - 1), cy = Clamp((int)((p.y + kWorldHalf) / kXCell), 0, xRes - 1);
+                for (int gy = Max(0, cy - 1); gy <= Min(xRes - 1, cy + 1); gy++)
+                    for (int gx = Max(0, cx - 1); gx <= Min(xRes - 1, cx + 1); gx++)
+                        for (int id : oGrid[(size_t)gy * xRes + gx]) {
+                            int bi = oSegs[id].first;
+                            if (bi == (int)ei) continue;
+                            const RoadEdge& B = edges[bi];
+                            if (hwyA && B.cls != RC_HIGHWAY) continue;
+                            int k = oSegs[id].second;
+                            float lim = A.halfWidth + A.sidewalk + B.halfWidth - 1.f;   // A's whole surface over B's lanes
+                            bool nearB = false;
+                            for (int q = 0; q <= 3 && !nearB; q++)
+                                nearB = distPointSegment2D(lerp(A.pts[i].xy(), A.pts[i1].xy(), q / 3.f), B.pts[k].xy(), B.pts[k + 1].xy()) <= lim;
+                            if (nearB) cands[ei].push_back({(int)i, bi, k});
+                        }
+            }
+        }
+        auto settleOverlaps = [&](bool fixedEnds) {
+        for (int iter = 0; iter < 24; iter++) {   // chains of overlapping roads settle one hop per round
             bool changed = false;
             for (size_t ei = 0; ei < edges.size(); ei++) {
+                if (cands[ei].empty()) continue;
                 RoadEdge& A = edges[ei];
-                if (A.flags & RF_UNPAVED) continue;
-                bool rigid = A.cls == RC_HIGHWAY;   // highways keep their profile (their bridges clear what they cross)
+                bool hwyA = A.cls == RC_HIGHWAY;
                 size_t n = A.pts.size();
                 std::vector<float> cap(n, 1e9f);
                 bool any = false;
-                for (size_t i = 0; i < n; i++) {
-                    vec2 p = A.pts[i].xy();
-                    int cx = Clamp((int)((p.x + kWorldHalf) / kXCell), 0, xRes - 1), cy = Clamp((int)((p.y + kWorldHalf) / kXCell), 0, xRes - 1);
-                    for (int gy = Max(0, cy - 1); gy <= Min(xRes - 1, cy + 1); gy++)
-                        for (int gx = Max(0, cx - 1); gx <= Min(xRes - 1, cx + 1); gx++)
-                            for (int id : oGrid[(size_t)gy * xRes + gx]) {
-                                int bi = oSegs[id].first;
-                                if (bi == (int)ei) continue;
-                                RoadEdge& B = edges[bi];
-                                int k = oSegs[id].second;
-                                vec2 b0 = B.pts[k].xy(), b1 = B.pts[k + 1].xy();
-                                // A's whole surface (with sidewalk) over B's lanes
-                                float lim = A.halfWidth + A.sidewalk + B.halfWidth - 1.f;
-                                // samples along A's segment [i, i+1] against B's segment: where A's surface lies over B's lanes
-                                // and the two are 0.3-4.5 m apart
-                                size_t i1 = Min(i + 1, n - 1);
-                                float za = -1e9f, zb = 0.f;
-                                for (int q = 0; q <= 3; q++) {
-                                    float ta = q / 3.f;
-                                    vec2 ap = lerp(A.pts[i].xy(), A.pts[i1].xy(), ta);
-                                    float tb;
-                                    if (distPointSegment2D(ap, b0, b1, &tb) > lim) continue;
-                                    float zaq = Lerp(A.pts[i].z, A.pts[i1].z, ta), zbq = Lerp(B.pts[k].z, B.pts[k + 1].z, tb);
-                                    float dzq = zaq - zbq;
-                                    if (dzq <= 0.3f || dzq >= 4.5f) continue;
-                                    if (dzq > za - zb) { za = zaq; zb = zbq; }
-                                }
-                                if (za < -1e8f) continue;
-                                float dz = za - zb;
-                                (void)dz;
-                                if (rigid || isHeld(ei, i) || isHeld(ei, i1)) continue;
-                                for (size_t v : {i, i1}) cap[v] = Min(cap[v], zb);
-                                any = true;
-                            }
+                for (const Cand& c : cands[ei]) {
+                    size_t i = (size_t)c.i, i1 = Min(i + 1, n - 1);
+                    if (isHeld(ei, i) || isHeld(ei, i1)) continue;
+                    const RoadEdge& B = edges[c.b];
+                    int k = c.k;
+                    vec2 b0 = B.pts[k].xy(), b1 = B.pts[k + 1].xy();
+                    float lim = A.halfWidth + A.sidewalk + B.halfWidth - 1.f;
+                    // samples along A's segment: where A's surface lies over B's lanes 0.3-4.5 m above them (2.5 m where a
+                    // highway is involved: more is a flyover)
+                    float maxDz = hwyA ? 2.5f : 4.5f;
+                    float zbest = 1e9f;
+                    for (int q = 0; q <= 3; q++) {
+                        float ta = q / 3.f, tb;
+                        if (distPointSegment2D(lerp(A.pts[i].xy(), A.pts[i1].xy(), ta), b0, b1, &tb) > lim) continue;
+                        float zaq = Lerp(A.pts[i].z, A.pts[i1].z, ta), zbq = Lerp(B.pts[k].z, B.pts[k + 1].z, tb);
+                        float dzq = zaq - zbq;
+                        if (dzq > 0.3f && dzq < maxDz) zbest = Min(zbest, zbq);
+                    }
+                    if (zbest > 1e8f) continue;
+                    cap[i] = Min(cap[i], zbest);
+                    cap[i1] = Min(cap[i1], zbest);
+                    any = true;
                 }
                 if (!any) continue;
+                // anchors that do not move (ramp points held on the highway, junction ends once they sit on their nodes):
+                // a cap never pulls a point more than 10% below an anchor, so no cliff opens next to one
+                std::vector<float> sA(n, 0.f);
+                for (size_t i = 1; i < n; i++) sA[i] = sA[i - 1] + length(A.pts[i].xy() - A.pts[i - 1].xy());
+                for (size_t h = 0; h < n; h++) {
+                    if (!(isHeld(ei, h) || (fixedEnds && (h == 0 || h + 1 == n)))) continue;
+                    for (size_t i = 0; i < n; i++)
+                        if (cap[i] < 1e8f) cap[i] = Max(cap[i], A.pts[h].z - 0.1f * fabsf(sA[i] - sA[h]));
+                }
                 std::vector<char> fixedPt(n, 0);
                 for (size_t i = 0; i < n; i++)
-                    if (cap[i] < A.pts[i].z - 0.05f && !isHeld(ei, i)) {
+                    if (cap[i] < A.pts[i].z - 0.05f && !isHeld(ei, i) && !(fixedEnds && (i == 0 || i + 1 == n))) {
                         A.pts[i].z = cap[i];
                         fixedPt[i] = 1;
                         changed = true;
                     }
-                ease(A, ei, fixedPt, true);
+                ease(A, ei, fixedPt);
             }
             if (!changed) break;
         }
-    }
-
+        };
+        settleOverlaps(false);
     // Node heights: average of incident edge ends; then snap edge ends to node heights (at-grade)
     for (size_t n = 0; n < nodes.size(); n++) {
         float s = 0;
@@ -1107,6 +1151,25 @@ void RoadNetwork::generate(WorldMap& map) {
         e.pts.front() = vec3(nodes[e.n0].p, z0);
         e.pts.back() = vec3(nodes[e.n1].p, z1);
         e.dist.resize(e.pts.size());
+        e.dist[0] = 0;
+        for (size_t i = 1; i < e.pts.size(); i++) e.dist[i] = e.dist[i - 1] + length(e.pts[i] - e.pts[i - 1]);
+        e.length = e.dist.back();
+    }
+
+    // After the junction blend: held ramp sections go back onto the (blended) highway surface, and overlaps near junctions
+    // are settled again with the junction ends fixed
+    for (size_t ei = 0; ei < edges.size(); ei++) {
+        RoadEdge& e = edges[ei];
+        if (e.cls != RC_RAMP || held[ei].empty()) continue;
+        for (size_t i = 1; i + 1 < e.pts.size() && i < held[ei].size(); i++) {
+            if (!held[ei][i]) continue;
+            float hz;
+            if (highwayAt(e.pts[i].xy(), e.halfWidth, e.pts[i].z, &hz)) e.pts[i].z = hz;
+        }
+    }
+    easeFixedEnds = true;
+    settleOverlaps(true);
+    for (auto& e : edges) {
         e.dist[0] = 0;
         for (size_t i = 1; i < e.pts.size(); i++) e.dist[i] = e.dist[i - 1] + length(e.pts[i] - e.pts[i - 1]);
         e.length = e.dist.back();

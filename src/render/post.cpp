@@ -5,6 +5,7 @@ struct PostCBData {
     vec4 p0, p1, p2, p3;
     vec4 fx0, fx1, fx2, fx3;  // gameplay PostFxControls
     vec4 cb0, cb1, cb2;       // colour-blind correction rows (w of cb0 = enabled)
+    vec4 shaft;               // crepuscular rays: xy sun position (uv), z strength (0 = off)
 };
 struct MotionBlurCBData {
     vec4 params;
@@ -21,6 +22,9 @@ struct PostSystem {
     gfx::Texture whiteTex, blackTex;
     gfx::Texture history[2];
     gfx::Texture bloomDown, bloomUp;
+    gfx::Texture shaftA, shaftB;   // crepuscular rays: radial pass 0 (lit fraction), pass 1 (radiance)
+    ID3D11ComputeShader* csShafts = nullptr;
+    ID3D11ShaderResourceView* cloudSrv = nullptr;   // this frame's cloud layer (set by the renderer; null = none)
     int bloomLevels = 6;
     int historyIndex = 0;
     bool historyValid = false;
@@ -49,6 +53,7 @@ struct PostSystem {
         csExposure = gfx::loadCS("post.hlsl", "csExposure");
         csBloomDown = gfx::loadCS("post.hlsl", "csBloomDown");
         csBloomUp = gfx::loadCS("post.hlsl", "csBloomUp");
+        csShafts = gfx::loadCS("post.hlsl", "csSunShafts");
         csTAA = gfx::loadCS("taa.hlsl", "csTAA");
         psTonemap = gfx::loadPS("post.hlsl", "psTonemap");
         csTileMax = gfx::loadCS("motionblur.hlsl", "csTileMax");
@@ -70,6 +75,11 @@ struct PostSystem {
         bloomLevels = Min(6, gfx::mipCount(bw, bh));
         bloomDown = gfx::createTexture2D(bw, bh, DXGI_FORMAT_R11G11B10_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV | gfx::TEX_MIP_UAVS, bloomLevels, 1);
         bloomUp = gfx::createTexture2D(bw, bh, DXGI_FORMAT_R11G11B10_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV | gfx::TEX_MIP_UAVS, bloomLevels, 1);
+        shaftA.release();
+        shaftB.release();
+        int sw = Max(1, w / 4), sh = Max(1, h / 4);
+        shaftA = gfx::createTexture2D(sw, sh, DXGI_FORMAT_R16_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV);
+        shaftB = gfx::createTexture2D(sw, sh, DXGI_FORMAT_R16G16B16A16_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV);
         mbTiles.release();
         mbNeighbor.release();
         mbOut.release();
@@ -166,6 +176,47 @@ struct PostSystem {
         }
     }
 
+    // Crepuscular rays through cloud gaps (see csSunShafts): two quarter-resolution radial passes towards the sun.
+    // Strength 0 when the sun is behind the camera or far off screen, at night, or without volumetric clouds.
+    float shaftStrength(Renderer& r, vec2& sunUV) const {
+        sunUV = vec2(0.5f, 0.5f);
+        if (!cloudSrv || r.moonLight || r.nightFactor >= 1.f) return 0.f;
+        vec4 sc = r.viewProjNoJitter * vec4(r.sunDir * 1000.f, 1.f);
+        if (sc.w <= 1.f) return 0.f;
+        sunUV = vec2(sc.x / sc.w * 0.5f + 0.5f, 0.5f - sc.y / sc.w * 0.5f);
+        float off = Max(Max(-sunUV.x, sunUV.x - 1.f), Max(-sunUV.y, sunUV.y - 1.f));
+        float onScreen = Saturate(1.f - off / 0.6f);
+        // low sun: long, reddened paths through the hazy boundary layer; more with fog and rain haze
+        float golden = 1.f - Saturate(r.sunElevation / 25.f);
+        return 0.03f * Lerp(0.5f, 1.f, golden) * (1.f + r.frame.fog.x) * onScreen * (1.f - r.nightFactor);
+    }
+
+    void runShafts(Renderer& r) {
+        auto* c = gfx::ctx;
+        ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get(), bloomCB.get()};
+        c->CSSetConstantBuffers(0, 3, cbs);
+        c->CSSetShader(csShafts, nullptr, 0);
+        ID3D11ShaderResourceView* lut[1] = {r.sky->transmittance.srv};
+        c->CSSetShaderResources(33, 1, lut);
+        c->CSSetShaderResources(40, 1, &exposureBuf.srv);
+        for (int pass = 0; pass < 2; pass++) {
+            gfx::Texture& dst = pass == 0 ? shaftA : shaftB;
+            bloomCB.data.params = vec4((float)dst.width, (float)dst.height, (float)pass, 0.f);
+            bloomCB.upload();
+            ID3D11ShaderResourceView* src = pass == 0 ? cloudSrv : shaftA.srv;
+            c->CSSetShaderResources(3, 1, &src);
+            c->CSSetUnorderedAccessViews(2, 1, &dst.uav, nullptr);
+            c->Dispatch(gfx::divUp(dst.width, 8), gfx::divUp(dst.height, 8), 1);
+            ID3D11UnorderedAccessView* nu = nullptr;
+            c->CSSetUnorderedAccessViews(2, 1, &nu, nullptr);
+            ID3D11ShaderResourceView* ns = nullptr;
+            c->CSSetShaderResources(3, 1, &ns);
+        }
+        ID3D11ShaderResourceView* ns1[1] = {};
+        c->CSSetShaderResources(33, 1, ns1);
+        c->CSSetShaderResources(40, 1, ns1);
+    }
+
     void render(Renderer& r, float dt) {
         auto* c = gfx::ctx;
         // Night grade: slightly darker exposure (contrasty streets, lights and neon pop) and stronger bloom glow
@@ -190,10 +241,14 @@ struct PostSystem {
         cb.data.cb0 = vec4(m[0], m[1], m[2], r.settings.colorblindOn ? 1.f : 0.f);
         cb.data.cb1 = vec4(m[3], m[4], m[5], 0.f);
         cb.data.cb2 = vec4(m[6], m[7], m[8], 0.f);
+        vec2 sunUV;
+        float shafts = shaftStrength(r, sunUV);
+        cb.data.shaft = vec4(sunUV.x, sunUV.y, shafts, 0.f);
         cb.upload();
         runTAA(r);
         runMotionBlur(r, dt);
         runBloom(r);
+        if (shafts > 0.f) runShafts(r);
         ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get()};
         c->CSSetConstantBuffers(0, 2, cbs);
         c->PSSetConstantBuffers(0, 2, cbs);
@@ -226,7 +281,7 @@ struct PostSystem {
         c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         c->VSSetShader(r.vsFullscreen.vs, nullptr, 0);
         c->PSSetShader(psTonemap, nullptr, 0);
-        ID3D11ShaderResourceView* srvs[6] = {displaySrv, bloomUp.srv, nullptr, nullptr, nullptr, r.depth.srv};
+        ID3D11ShaderResourceView* srvs[6] = {displaySrv, bloomUp.srv, shafts > 0.f ? shaftB.srv : blackTex.srv, nullptr, nullptr, r.depth.srv};
         c->PSSetShaderResources(0, 6, srvs);
         c->PSSetShaderResources(40, 1, &exposureBuf.srv);
         c->Draw(3, 0);

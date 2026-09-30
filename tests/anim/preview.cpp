@@ -21,6 +21,22 @@ struct Img {
             for (int x = 0; x < w; x++) c[(size_t)y * w + x] = lerp(vec3(0.55f, 0.65f, 0.8f), vec3(0.8f, 0.78f, 0.72f), t);
         }
     }
+    // box-filter by an integer factor (supersampling)
+    Img down(int f) const {
+        Img o(w / f, h / f);
+        for (int y = 0; y < o.h; y++)
+            for (int x = 0; x < o.w; x++) {
+                vec3 acc(0);
+                for (int j = 0; j < f; j++)
+                    for (int i = 0; i < f; i++) acc += c[(size_t)(y * f + j) * w + x * f + i];
+                o.c[(size_t)y * o.w + x] = acc / (float)(f * f);
+            }
+        return o;
+    }
+    void blit(const Img& t, int x0) {
+        for (int y = 0; y < t.h && y < h; y++)
+            for (int x = 0; x < t.w && x0 + x < w; x++) c[(size_t)y * w + x0 + x] = t.c[(size_t)y * t.w + x];
+    }
     void save(const char* path) {
         FILE* f = fopen(path, "wb");
         fprintf(f, "P6\n%d %d\n255\n", w, h);
@@ -68,8 +84,30 @@ struct Cam {
     }
 };
 
+// Strand cards (MAT_HAIR with a card kind in the material param, see hair.cpp): emulate the renderer's alpha from
+// uv (x across the card 0..1, y root 0 .. tip 1), the per-card seed and the vertex alpha (density).
+static float cardAlpha(u32 mat, vec2 uv, float dens) {
+    u32 kind = (mat >> 8) & 15u, seed = (mat >> 12) & 0xffffu;
+    if ((mat & 0xff) != MAT_HAIR || kind == 0) return 1.f;
+    int ns = kind == 2 ? 3 : (kind == 3 ? 2 : 6);   // strand clumps across a card
+    float s = Saturate(uv.x) * ns;
+    int si = Min((int)s, ns - 1);
+    float sf = s - si;
+    u32 h = hash32(seed * 131u + (u32)si * 7919u + 17u);
+    float len = 0.55f + 0.45f * hashToFloat(h);
+    float y = Saturate(uv.y);
+    if (y > len) return 0.f;
+    float half = 0.42f * (1.f - 0.8f * y / len) + 0.05f;
+    float d = fabsf(sf - 0.5f - 0.2f * (hashToFloat(h * 3u + 1u) - 0.5f));
+    float cov = d < half ? 1.f : 0.f;
+    float edge = detail::sstep(0.f, 0.08f, uv.x) * detail::sstep(1.f, 0.92f, uv.x);
+    return cov * edge * Saturate(dens * 1.3f);
+}
+
+static bool wire = false;
 static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const std::vector<vec3>& N, const std::vector<vec3>& A,
-                     const std::vector<u32>& mats, const std::vector<u32>& idx) {
+                     const std::vector<u32>& mats, const std::vector<u32>& idx, const std::vector<vec2>* UV = nullptr,
+                     const std::vector<float>* AL = nullptr) {
     std::vector<vec3> sp(P.size());
     std::vector<float> vz(P.size());
     for (size_t i = 0; i < P.size(); i++) {
@@ -85,7 +123,10 @@ static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const
         if (vz[i0] < 0.1f || vz[i1] < 0.1f || vz[i2] < 0.1f) continue;
         vec3 a = sp[i0], b = sp[i1], c = sp[i2];
         float area = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-        if (area >= 0.f) continue;   // backface (screen y down => CCW front has negative area)
+        u32 matT = mats[i0];
+        bool card = UV && (matT & 0xff) == MAT_HAIR && ((matT >> 8) & 15u) != 0;
+        if (area >= 0.f && !card) continue;   // backface (screen y down => CCW front has negative area); cards: two-sided
+        if (fabsf(area) < 1e-12f) continue;
         int x0 = Max(0, (int)floorf(Min(a.x, Min(b.x, c.x)))), x1 = Min(img.w - 1, (int)ceilf(Max(a.x, Max(b.x, c.x))));
         int y0 = Max(0, (int)floorf(Min(a.y, Min(b.y, c.y)))), y1 = Min(img.h - 1, (int)ceilf(Max(a.y, Max(b.y, c.y))));
         if (x0 > x1 || y0 > y1) continue;
@@ -103,8 +144,14 @@ static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const
                 float z = w0 * a.z + w1 * b.z + w2 * c.z;
                 size_t o = (size_t)y * img.w + x;
                 if (z >= img.z[o]) continue;
+                if (card) {
+                    vec2 uv = (*UV)[i0] * w0 + (*UV)[i1] * w1 + (*UV)[i2] * w2;
+                    float dn = AL ? (*AL)[i0] * w0 + (*AL)[i1] * w1 + (*AL)[i2] * w2 : 1.f;
+                    if (cardAlpha(matT, uv, dn) < 0.5f) continue;
+                }
                 img.z[o] = z;
                 vec3 n = normalize(N[i0] * w0 + N[i1] * w1 + N[i2] * w2);
+                if (card && area > 0.f) n = -n;
                 vec3 alb = A[i0] * w0 + A[i1] * w1 + A[i2] * w2;
                 vec3 pos = P[i0] * w0 + P[i1] * w1 + P[i2] * w2;
                 vec3 V = normalize(cam.eye - pos);
@@ -121,6 +168,13 @@ static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const
                 col += vec3(powf(Max(0.f, dot(n, H)), gloss) * ks * (dot(n, L1) > 0 ? 1.f : 0.f));
                 float rim = powf(1.f - Max(0.f, dot(n, V)), 3.f) * 0.08f;
                 col += vec3(rim);
+                if (wire) {
+                    // triangle edges: barycentric distance scaled to pixels
+                    float e0 = w0 * fabsf(area) / Max(length(vec2(b.x - c.x, b.y - c.y)), 1e-3f);
+                    float e1 = w1 * fabsf(area) / Max(length(vec2(c.x - a.x, c.y - a.y)), 1e-3f);
+                    float e2 = w2 * fabsf(area) / Max(length(vec2(a.x - b.x, a.y - b.y)), 1e-3f);
+                    if (Min(e0, Min(e1, e2)) < 0.9f) col = col * 0.55f;
+                }
                 img.c[o] = col;
             }
     }
@@ -270,6 +324,8 @@ int main(int argc, char** argv) {
     int weapon = 0, melee = -1;
     bool visemes = false;
     int lodSel = -1;
+    bool tiles = false;
+    int ss = 1;
     float stripDt = -1.f;
     std::vector<int> clipList;
     for (int i = 2; i < argc; i++) {
@@ -298,6 +354,8 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--melee")) melee = atoi(nx());      // AnimInput::meleeKind for scenarios
         else if (!strcmp(argv[i], "--visemes")) visemes = true;        // one character per viseme (0..14)
         else if (!strcmp(argv[i], "--lod")) lodSel = atoi(nx());        // render this LOD (buildCharacterMeshLods)
+        else if (!strcmp(argv[i], "--tiles")) tiles = true;             // one tile per character, camera on its head
+        else if (!strcmp(argv[i], "--ss")) ss = Clamp(atoi(nx()), 1, 4); // supersampling factor
         else if (!strcmp(argv[i], "--clips")) {
             // comma separated clip list, one per character
             const char* c = nx();
@@ -308,6 +366,9 @@ int main(int argc, char** argv) {
             }
         }
     }
+    W *= ss;
+    H *= ss;
+    wire = getenv("PREVIEW_WIRE") != nullptr;
     if (pair) {
         // takedown pair: character 0 = victim, character 1 = attacker 0.55 m behind it (same seed variations)
         clipList = {CLIP_TAKEDOWN_VICTIM, CLIP_TAKEDOWN_ATTACKER};
@@ -323,6 +384,11 @@ int main(int argc, char** argv) {
         u32 sd = lineup ? 1000 + i * 7919 : (pair ? seed + i * 7919 : (strip || visemes || !clipList.empty() ? seed : seed + i * 7919));
         int rl = role >= 0 ? role : (lineup ? i % 7 : 0);
         ch.d = randomCharacter(sd, rl);
+        if (getenv("PREVIEW_NOHAT")) { ch.d.hat = -1; ch.d.glasses = -1; }
+        if (const char* hsv = getenv("PREVIEW_HAIR")) ch.d.hairStyle = atoi(hsv);
+        if (const char* fhv = getenv("PREVIEW_FH")) ch.d.facialHair = atoi(fhv);
+        if (const char* gv = getenv("PREVIEW_GENDER")) ch.d.gender = atoi(gv) ? FEMALE : MALE;
+        if (const char* av = getenv("PREVIEW_AGE")) ch.d.age = (float)atof(av);
         buildSkeleton(ch.d, ch.sk);
         double t0 = TimeSeconds();
         if (getenv("PREVIEW_PARTS")) {
@@ -483,8 +549,10 @@ int main(int argc, char** argv) {
         computeMatrices(ch.sk, pose, ms, skin);
         std::vector<vec3> P(ch.mesh.verts.size()), N(ch.mesh.verts.size()), A(ch.mesh.verts.size());
         std::vector<u32> M(ch.mesh.verts.size());
+        std::vector<vec2> UVs(ch.mesh.verts.size());
+        std::vector<float> ALs(ch.mesh.verts.size());
         // characters are lined up across the view direction
-        vec3 off = sideAxis * ((i - (count - 1) * 0.5f) * spacing) + vec3(cx, 0, 0);
+        vec3 off = tiles ? vec3(0) : sideAxis * ((i - (count - 1) * 0.5f) * spacing) + vec3(cx, 0, 0);
 #ifdef ANIM_HAVE_CLIPS
         if (pair) off = vec3(cx, i == 1 ? -0.55f : 0.f, 0.f);
         if ((rootMotion || pair) && ci >= 0) off = off + clipRootMotion(ch.sk, (Clip)ci, ti);
@@ -508,8 +576,25 @@ int main(int argc, char** argv) {
                 A[v] = mm == MAT_EYE ? vec3(0, 1, 0) : (mm == MAT_HAIR ? vec3(1, 0, 0) : (mm == MAT_SKIN ? vec3(0.5f) : vec3(0, 0, 1)));
             }
             M[v] = vx.mat;
+            UVs[v] = vx.uv;
+            ALs[v] = cc.w;
         }
-        drawMesh(img, cam, P, N, A, M, ch.mesh.indices);
+        if (tiles) {
+            // own camera on this character's head (face views), tile i of the image
+            int tw = W / count;
+            Img tile(tw, H);
+            Cam tc;
+            tc.fov = fov;
+            vec3 hp = ms[B_HEAD].c[3].xyz() + off;
+            float hs = ch.sk.boneLength[B_HEAD] > 0.f ? 1.f : 1.f;
+            (void)hs;
+            tc.target = hp + vec3(0, 0.03f, 0.035f);
+            tc.eye = tc.target + dir * (dist > 0 ? dist : 0.55f);
+            tc.setup(tw, H);
+            drawMesh(tile, tc, P, N, A, M, ch.mesh.indices, &UVs, &ALs);
+            img.blit(tile, i * tw);
+        } else
+            drawMesh(img, cam, P, N, A, M, ch.mesh.indices, &UVs, &ALs);
         if (getenv("PREVIEW_PHONE")) {
             mat4 msp[B_COUNT];
             for (int b = 0; b < B_COUNT; b++) {
@@ -573,6 +658,7 @@ int main(int argc, char** argv) {
             }
         drawMesh(img, cam, P, N, A, M, I);
     }
-    img.save(out);
+    if (ss > 1) img.down(ss).save(out);
+    else img.save(out);
     return 0;
 }

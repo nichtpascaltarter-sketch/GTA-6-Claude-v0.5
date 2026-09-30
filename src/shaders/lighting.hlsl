@@ -284,9 +284,15 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
         coatSpecAmb = coatEnv * Fcv * horizonOcclusion(Rc, N);
     }
     if (g.shadingModel == SM_FOLIAGE) {
-        // Thin translucency: light passing through leaves
-        float back = saturate(dot(-N, L)) * 0.6 + pow(saturate(dot(V, -L)), 6.0) * 0.8;
-        direct += diffColor * g.extra * back * sunE * shadow / PI;
+        // Leaf / frond / blade translucency: sunlight through the thin tissue, strongest looking into the sun (the
+        // golden-hour glow of backlit palms and grass), tinted by the leaf (light leaves saturated yellow-green).
+        // Shadowed by other geometry, not by the leaf itself: sampled beyond the leaf towards the sun.
+        float back = saturate(dot(-N, L)) * 0.45 + pow(saturate(dot(V, -L)), 4.0) * 1.3;
+        if (back > 0.01) {
+            float shT = sampleSunShadowGeo(relPos + L * 0.4, L, dot(relPos, gCamForward.xyz), uint2(0, 0)) * cloudShadowAt(relPos);
+            float3 tint = diffColor * (0.55 + diffColor * 2.2);
+            direct += tint * g.extra * back * sunE * shT / PI;
+        }
     }
     // Ambient: sky SH with multi-bounce AO approximation (Jimenez 2016)
     // Multi-bounce AO approximation (Jimenez 2016)

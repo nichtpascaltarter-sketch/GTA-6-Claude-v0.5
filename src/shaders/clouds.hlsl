@@ -81,21 +81,28 @@ void csWeather(uint3 id : SV_DispatchThreadID) {
 // Ray-march through the cloud slab. Returns rgb = inscattered radiance (not exposed), a = transmittance.
 float4 marchClouds(float3 dir, float jitter) {
     float camZ = gCamPos.z;
-    if (dir.z <= -0.02 || gCloud0.x <= 0.01) return float4(0, 0, 0, 1);
+    if (dir.z <= -0.02) return float4(0, 0, 0, 1);
+    float4 cirrus = cirrusLayer(dir);   // high layer behind the cumulus
+    if (gCloud0.x <= 0.01) return cirrus;
     float z0 = gCloud0.z, z1 = gCloud0.w;
     float dz = max(dir.z, 0.015);
     float t0 = camZ < z0 ? (z0 - camZ) / dz : 0.0;
     float t1 = camZ < z1 ? (z1 - camZ) / dz : 0.0;
     t1 = min(t1, 60000.0);
-    if (t1 <= t0) return float4(0, 0, 0, 1);
+    if (t1 <= t0) return cirrus;
     int steps = (int)(lerp(48.0, 96.0, saturate(1.0 - dir.z * 2.0)) * gCloud3.y);
     int lightSteps = gCloud3.y < 0.8 ? 4 : 6;
     float stepLen = (t1 - t0) / steps;
     float t = t0 + stepLen * jitter;
     float3 sunDir = gSunDir.xyz;
     float cosTheta = dot(dir, sunDir);
-    float phase = lerp(hgPhase(-0.25, cosTheta), hgPhase(0.75, cosTheta), 0.6);
-    float3 sunL = mainLightIlluminance();
+    // Phase per scattering octave: single scattering keeps a sharp forward (diffraction) peak that lights the thin
+    // edges of clouds in front of the sun (silver linings); each further octave is more isotropic, so thick cores
+    // seen against the sun stay dark
+    float ph0 = lerp(hgPhase(-0.25, cosTheta), hgPhase(0.75, cosTheta), 0.6) * 0.85 + hgPhase(0.92, cosTheta) * 0.15;
+    float ph1 = lerp(hgPhase(-0.18, cosTheta), hgPhase(0.55, cosTheta), 0.6);
+    float ph2 = lerp(hgPhase(-0.12, cosTheta), hgPhase(0.38, cosTheta), 0.6);
+    float3 sunL = sunLightAtAltitude(0.5 * (z0 + z1));   // golden hour: the cloud layer sees a whiter, longer sun
     float3 ambTop = evalSH9(float3(0, 0, 1)) * PI;
     float3 ambBot = evalSH9(float3(0, 0, -1)) * PI * 0.6;
     float3 cityUp = cityUplight() * 0.29;   // lit city below: glowing cloud bases at night
@@ -116,11 +123,11 @@ float4 marchClouds(float3 dir, float jitter) {
                 ls *= lightSteps == 4 ? 1.9 : 1.5;
             }
             // Multiple-scattering octaves (Wrenninge-style): later octaves see less extinction
-            float lightT = exp(-od * sigma) + 0.5 * exp(-od * sigma * 0.25) + 0.25 * exp(-od * sigma * 0.0625);
+            float lightT = exp(-od * sigma) * ph0 + 0.5 * exp(-od * sigma * 0.25) * ph1 + 0.25 * exp(-od * sigma * 0.0625) * ph2;
             float powder = 1.0 - exp(-d * stepLen * sigma * 2.0);
             float hf = heightFraction(p.z);
             float3 amb = lerp(ambBot, ambTop, hf) * (0.35 + 0.65 * hf);
-            float3 S = (sunL * lightT * phase * lerp(0.7, 1.0, powder) + amb * 0.3 + cityUp * (1.0 - hf) * (1.0 - hf)) * d * sigma;
+            float3 S = (sunL * lightT * lerp(0.7, 1.0, powder) + amb * 0.3 + cityUp * (1.0 - hf) * (1.0 - hf)) * d * sigma;
             float stepT = exp(-d * sigma * stepLen);
             L += T * (S - S * stepT) / max(d * sigma, 1e-6);
             T *= stepT;
@@ -133,7 +140,8 @@ float4 marchClouds(float3 dir, float jitter) {
     // Aerial perspective: fade toward the sky with distance
     float mid = (t0 + t1) * 0.5;
     float fade = exp(-mid / 42000.0);
-    return float4(L * fade, lerp(1.0, T, fade));
+    float Tc = lerp(1.0, T, fade);
+    return float4(L * fade + cirrus.rgb * Tc, Tc * cirrus.a);
 }
 
 Texture2D<float2> tHiZ : register(t5);        // half-res depth pyramid (y = farthest depth of the footprint)

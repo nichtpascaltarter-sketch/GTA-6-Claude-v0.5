@@ -14,7 +14,19 @@ double groundAt(double x, double y) {
 }
 }  // namespace fxdemo_detail
 
+namespace fxdemo_detail {
+// 10 Hz gate for the demo boat's bow spray
+bool tick20Spray(float dt) {
+    static float acc = 0.f;
+    acc += dt;
+    if (acc < 0.1f) return false;
+    acc -= 0.1f;
+    return true;
+}
+}  // namespace fxdemo_detail
+
 void Renderer::fxDemo(float dt) {
+    using fxdemo_detail::tick20Spray;
     using fxdemo_detail::groundAt;
     static float t = 0.f, nextExplosion = 0.5f, nextTracer = 0.f, nextFlash = 0.f, acc20 = 0.f;
     static bool decalsPlaced = false;
@@ -32,6 +44,19 @@ void Renderer::fxDemo(float dt) {
         p.z = groundAt(p.x, p.y);
         return p;
     };
+    // A virtual boat circling 55 m ahead when that spot is open water: exercises the wake map (Kelvin wedge,
+    // foam trail) and the bow spray
+    {
+        dvec3 centre = at(55.f, 0.f);
+        if (centre.z < -0.8f) {
+            float ang = t * 0.28f;
+            dvec3 bow = centre + dvec3(cosf(ang) * 30.0, sinf(ang) * 30.0, 0.0);
+            vec2 heading(-sinf(ang), cosf(ang));
+            bow.z = 0.0;
+            addWake(0x7fff0001, bow, heading, 30.f * 0.28f, 1.4f);
+            if (tick20Spray(dt)) spawnParticles(PT_WAKE_SPRAY, bow + dvec3(0, 0, 0.3), vec3(heading.x, heading.y, 0.6f) * 2.f, 2, 1.f);
+        }
+    }
     acc20 += dt;
     bool tick20 = acc20 >= 0.05f;
     if (tick20) acc20 -= 0.05f;

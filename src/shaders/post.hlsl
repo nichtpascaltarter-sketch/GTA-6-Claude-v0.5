@@ -1,5 +1,6 @@
 // Post processing: auto exposure, tonemapping, color grading, output.
 #include "common.hlsli"
+#include "skycommon.hlsli"
 
 Texture2D<float4> tHDR : register(t0);
 Texture2D<float4> tBloom : register(t1);
@@ -19,8 +20,10 @@ cbuffer PostCB : register(b1) {
     float4 gCb0;    // colour-blind correction matrix rows (xyz), gCb0.w = enabled
     float4 gCb1;
     float4 gCb2;
+    float4 gShaft;  // crepuscular rays: xy sun position (uv), z strength (0 = off)
 };
 Texture2D<float> tSceneDepth : register(t5);
+Texture2D<float4> tShafts : register(t2);   // crepuscular ray radiance (pre-exposed, signed), quarter resolution
 
 // Auto exposure from luminance histograms (GTA-style metering): a trimmed geometric mean of all pixels for the
 // mid-tones, plus a gentle highlight constraint from the non-sky pixels (97th percentile: sunlit streets and
@@ -102,6 +105,26 @@ void csExposure() {
         float evHL = p97 - log2(1.2 * 3.5);
         if (evHL > targetEV) targetEV = lerp(targetEV, evHL, 0.35);
     }
+    // Sky constraint: when sky fills a good part of the frame and sits far above the metered mid-tones (a sunset
+    // over a shaded foreground, a bright overcast dome over a dark street), pull part of the way towards keeping the
+    // sky's median below the filmic shoulder (~1.1 pre-exposed) so it keeps its colour instead of clipping to white.
+    // A clear day sky is well below that and is unaffected.
+    float totalSky = total - totalS;
+    if (totalSky > total * 0.15) {
+        float target50 = totalSky * 0.5, cumK = 0, p50 = histLog(63.0);
+        bool found50 = false;
+        [unroll] for (int k3 = 0; k3 < 64; k3++) {
+            float hk = max(h[k3] - hs[k3], 0.0);
+            float a3 = cumK;
+            cumK += hk;
+            if (!found50 && cumK >= target50) {
+                p50 = histLog((float)k3) + (hk > 0.0 ? (target50 - a3) / hk - 0.5 : 0.0) / kHistScale;
+                found50 = true;
+            }
+        }
+        float evSky = p50 - log2(1.2 * 1.1);
+        if (evSky > targetEV) targetEV = lerp(targetEV, evSky, 0.5 * saturate((totalSky / total - 0.15) * 2.5));
+    }
     targetEV = clamp(targetEV, gPost2.z, gPost2.w);
     float ev = prev.y;
     if (prev.w < 0.5 || gPost3.y > 0.5 || !(ev == ev)) ev = targetEV;
@@ -173,6 +196,33 @@ void csBloomUp(uint3 id : SV_DispatchThreadID) {
 }
 
 // ------------------------------------------------------------------------------------------------
+// Crepuscular rays through the clouds. Two radial passes at quarter resolution average the cloud transmittance
+// along the screen-space path from each pixel to the sun (16 x 16 = 256 evenly spread taps): pass 0 (gBloom.z = 0)
+// reads the cloud layer (transmittance in a, 1 where there is no sky), pass 1 the pass-0 result. Pass 1 turns the
+// lit fraction into in-scattered sunlight relative to the fully lit air the sky model assumes: sunlit shafts
+// brighten, the columns of air in cloud shadow darken. Mie forward phase, reddened golden-hour sunlight.
+[numthreads(8, 8, 1)]
+void csSunShafts(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= (uint)gBloom.x || id.y >= (uint)gBloom.y) return;
+    float2 uv = (id.xy + 0.5) / gBloom.xy;
+    bool first = gBloom.z < 0.5;
+    float2 stepUV = (gShaft.xy - uv) * (first ? 1.0 / 256.0 : 1.0 / 16.0);
+    float lit = 0;
+    [unroll] for (int k = 0; k < 16; k++) {
+        float4 v = tBloomSrc.SampleLevel(sLinearClamp, uv + stepUV * k, 0);
+        lit += first ? v.a : v.r;
+    }
+    lit *= 1.0 / 16.0;
+    if (first) { uBloomDst[id.xy] = float4(lit, 0, 0, 1); return; }
+    float3 dir = normalize(reconstructPos(uv, 1e-5));
+    float c = dot(dir, gSunDir.xyz);
+    const float g = 0.76;
+    float ph = (1.0 - g * g) / (4.0 * PI * pow(max(1.0 + g * g - 2.0 * g * c, 1e-4), 1.5));
+    float3 L = mainLightIlluminance() * ph * gShaft.z * (lit - 0.55) * preExposure();
+    uBloomDst[id.xy] = float4(clamp(L, -30000.0, 30000.0), 1);
+}
+
+// ------------------------------------------------------------------------------------------------
 struct VSOut {
     float4 pos : SV_Position;
     float2 uv : TEXCOORD0;
@@ -237,6 +287,12 @@ float4 psTonemap(VSOut i) : SV_Target {
     float blurAmt = saturate(gFx1.w + uw * 0.25);
     if (blurAmt > 0.0) c = lerp(c, discBlur(uv, 2.0 + blurAmt * 10.0), saturate(blurAmt * 2.0));
     c = lerp(c, tBloom.SampleLevel(sLinearClamp, uv, 0).rgb, gPost1.x);
+    if (gShaft.z > 0.0) {
+        // crepuscular rays over the sky and distant scenery (the froxel fog handles the air near the camera)
+        float d0 = tSceneDepth.SampleLevel(sPointClamp, i.uv, 0);
+        float air = d0 > 0.0 ? saturate((linearDepth(d0) - 250.0) / 2500.0) : 1.0;
+        if (air > 0.0) c = max(c + tShafts.SampleLevel(sLinearClamp, i.uv, 0).rgb * air, c * 0.55);
+    }
     if (uw > 0.0) {
         // Underwater: absorption with distance, blue-green scattering, soft caustic shimmer
         float d = tSceneDepth.SampleLevel(sPointClamp, uv, 0);

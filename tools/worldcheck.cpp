@@ -1,6 +1,6 @@
 // World data checks (native, no GPU): drivable lanes must be free of colliders and props, every road edge with a fall
-// beside it (decks, embankments, approaches) must be guarded by a collision barrier, and the ground the vehicle physics
-// drives on must meet the lane surfaces without steps.
+// beside it (decks, embankments, approaches) must be guarded by a collision barrier, the ground the vehicle physics
+// drives on must meet the lane surfaces without steps, and no road profile hides a cliff.
 // Build from the repo root:  g++ -std=c++17 -O2 -I. tools/worldcheck.cpp -o /tmp/worldcheck -lpthread
 // Run from the repo root:    /tmp/worldcheck [max listed per category]     (exit code 1 when a check fails)
 // Keep the include list in sync with the world section of src/main.cpp.
@@ -339,8 +339,25 @@ int main(int argc, char** argv) {
         printf("  step %+.2f m at (%.1f, %.1f) z %.2f (terrain %.2f): %s edge %d s %.0f of %.0f (cut %.0f/%.0f) nodes %d->%d; ground from %s\n", h.step, h.p.x,
                h.p.y, h.p.z, h.terrain, roadInfo(e.cls).name, h.edge, h.s, e.length, e.cut0, e.cut1, e.n0, e.n1, culprit(h.p.xy(), h.p.z + 2.5f).c_str());
     }
+    // ---- 4. grades: no drivable edge climbs or drops more than 16% between two profile points (a cliff inside a road)
+    int steep = 0;
+    printf("\n[grades] road profile segments steeper than 16%%:\n");
+    for (size_t ei = 0; ei < roads.edges.size(); ei++) {
+        const RoadEdge& e = roads.edges[ei];
+        if (e.flags & RF_UNPAVED) continue;
+        for (size_t k = 0; k + 1 < e.pts.size(); k++) {
+            float d = length(e.pts[k + 1].xy() - e.pts[k].xy());
+            if (d < 0.5f) continue;
+            float g = fabsf(e.pts[k + 1].z - e.pts[k].z) / d;
+            if (g <= 0.16f) continue;
+            if (steep++ < maxList)
+                printf("  %.0f%% on %s edge %d at (%.1f, %.1f) z %.2f -> %.2f over %.1f m (s %.0f of %.0f)\n", g * 100.f, roadInfo(e.cls).name, (int)ei, e.pts[k].x,
+                       e.pts[k].y, e.pts[k].z, e.pts[k + 1].z, d, e.dist[k], e.length);
+        }
+    }
+    printf("  %d segments\n", steep);
     Jobs::shutdown();
-    bool fail = laneHits > 0 || propHits > 0 || unguarded > 0.f || !zhits.empty();
+    bool fail = laneHits > 0 || propHits > 0 || unguarded > 0.f || !zhits.empty() || steep > 0;
     printf("\nworldcheck: %s\n", fail ? "FAILED" : "passed");
     return fail ? 1 : 0;
 }

@@ -37,15 +37,17 @@ struct VSOut {
 
 float3 rotZ(float3 v, float c, float s) { return float3(c * v.x - s * v.y, s * v.x + c * v.y, v.z); }
 
-float3 windOffset(float3 local, float scale, float phase, uint matId) {
+float3 windOffset(float3 local, float scale, float phase, uint matId, float2 wxy) {
     bool foliage = matId == 32u || matId == 34u;  // MAT_LEAVES, MAT_PALM_FROND
     float h = max(local.z, 0.0) * scale;
     float w = gWeather.w * 0.7 + 0.15 + gWeather.x * 0.6;
     float t = gTime.x;
+    // gust fronts travelling across the area (shared with the grass): trees lean further and thrash as one passes
+    float gust = windGust(wxy, t);
     float sway = sin(t * 0.9 + phase) * 0.6 + sin(t * 2.1 + phase * 1.7) * 0.25;
-    float3 off = float3(gWind.xy, 0) * (sway + 0.8) * w * h * h * 0.0035;
+    float3 off = float3(gWind.xy, 0) * (sway * (0.7 + 0.6 * gust) + 0.5 + 0.9 * gust) * w * h * h * 0.0035;
     if (foliage) {
-        float flutter = sin(t * 6.0 + phase * 3.0 + local.x * 2.0 + local.y * 1.7) * 0.05 * w;
+        float flutter = sin(t * (6.0 + 3.0 * gust) + phase * 3.0 + local.x * 2.0 + local.y * 1.7) * 0.05 * w * (0.6 + gust);
         off += float3(flutter, flutter * 0.7, flutter * 1.2) * min(h * 0.1, 1.0);
     }
     return off;
@@ -56,7 +58,7 @@ VSOut vsProp(VSIn i) {
     float scale = i.instPos.w;
     float3 local = i.pos * scale;
     float3 p = rotZ(local, i.instRot.x, i.instRot.y);
-    p += windOffset(i.pos, scale, i.instRot.z, i.mat & 0xffu);
+    p += windOffset(i.pos, scale, i.instRot.z, i.mat & 0xffu, i.instPos.xy + gCamPos.xy);
     float3 rel = p + i.instPos.xyz;
     o.rel = rel;
     o.pos = mul(gViewProj, float4(rel, 1));
@@ -83,7 +85,7 @@ struct VSShadowOut {
 VSShadowOut vsPropShadow(VSIn i) {
     VSShadowOut o;
     float scale = i.instPos.w;
-    float3 p = rotZ(i.pos * scale, i.instRot.x, i.instRot.y) + windOffset(i.pos, scale, i.instRot.z, i.mat & 0xffu);
+    float3 p = rotZ(i.pos * scale, i.instRot.x, i.instRot.y) + windOffset(i.pos, scale, i.instRot.z, i.mat & 0xffu, i.instPos.xy + gCamPos.xy);
     o.pos = mul(gShadowViewProj, float4(p + i.instPos.xyz, 1));
     o.uv = i.uv;
     o.color = i.color;
@@ -123,10 +125,13 @@ GBufferOut psProp(VSOut i, bool front : SV_IsFrontFace) {
         float mip = tFoliage.CalculateLevelOfDetail(sAnisoWrap, i.uv);
         float a = f.a * (1.0 + max(mip, 0.0) * 0.28);
         clip(a - 0.5);
-        albedo = f.rgb * i.color.rgb * 1.1;
-        rough = 0.55;
+        // per-plant colour variation (hue / vigour) from the instance's random wind phase; palm fronds waxier
+        float pv = frac(i.inst.z * 0.1591 + 0.37);
+        float3 vary = lerp(float3(1.07, 1.02, 0.82), float3(0.88, 1.0, 1.06), pv) * lerp(0.86, 1.1, frac(pv * 7.13));
+        albedo = f.rgb * i.color.rgb * 1.1 * vary;
+        rough = matId == 34u ? 0.42 : 0.55;
         sm = SM_FOLIAGE;
-        extra = 0.65;
+        extra = matId == 34u ? 0.8 : 0.65;
         // fake curved normals for crossed cards (rounded canopy look)
         n = normalize(N + float3(0, 0, 0.35));
         ao = 0.85;

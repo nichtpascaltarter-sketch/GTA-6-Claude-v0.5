@@ -75,6 +75,19 @@ bool laneBehind(const AI::LaneGraph& G, vec2 p, vec2 fwd, float dist, int& outLa
 
 bool isCop(const Ped& p) { return p.used && p.faction == FAC_POLICE && p.health > 0.f; }
 
+// Where a sight line to a ped should end: the head on foot; for someone in a vehicle, a point just outside the
+// vehicle's body on the observer's side (a ray to the seat would hit the car's own shell and never see them).
+dvec3 sightPoint(const GameWorld& g, const Ped& t, vec3 from) {
+    if (t.vehicle < 0 || t.vehicle >= (int)g.vehicles.size() || !g.vehicles[t.vehicle].used) return t.pos + dvec3(0, 0, 1.2);
+    const Vehicle& v = g.vehicles[t.vehicle];
+    vec3 c = v.sim.body.pos.toVec3();
+    vec3 to = from - c;
+    to.z = 0.f;
+    vec3 dir = length(to) > 0.1f ? normalize(to) : vec3(0, 1, 0);
+    float r = length(g.vassets[v.model].spec.boxHalf.xy()) + 0.35f;
+    return dvec3(c + dir * r + vec3(0, 0, 0.9f));
+}
+
 }  // namespace police_detail
 
 using namespace police_detail;
@@ -195,7 +208,8 @@ void GameWorld::updateWanted(float dt) {
             if (dot(normalize(vec3(d.x, d.y, 0)), f) < 0.1f) continue;
         }
         int ignoreVeh = p.vehicle;
-        if (lineOfSight(p.pos + dvec3(0, 0, air ? -1.0 : 1.6), pl->pos + dvec3(0, 0, 1.2), i, ignoreVeh)) {
+        dvec3 eye = p.pos + dvec3(0, 0, air ? -1.0 : 1.6);
+        if (lineOfSight(eye, sightPoint(*this, *pl, eye.toVec3()), i, ignoreVeh)) {
             seen = true;
             seer = i;
         }
@@ -1015,7 +1029,9 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
     vec3 tp;
     vec3 tv(0.f);
     int targetVeh = -1;
+    bool tpReal = false;   // tp is the target itself (not a search point / extrapolated heading)
     if (target >= 0) {
+        tpReal = true;
         const Ped& t = peds[target];
         targetVeh = t.vehicle;
         if (targetVeh >= 0) {
@@ -1031,10 +1047,12 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
             tp = pinfo.lastSeenPos.toVec3() + gD.lastSeenVel * lostFor;
             tv = gD.lastSeenVel;
             va.task = PT_PURSUE;
+            tpReal = false;
         } else if (chasingPlayer && !pinfo.policeSeesPlayer && lostFor > 2.5f) {
             // lost sight: search the last known area
             tp = pinfo.lastSeenPos.toVec3();
             tv = vec3(0.f);
+            tpReal = false;
             if (va.task != PT_SEARCH || length(v.sim.body.pos.toVec3().xy() - va.taskPos) < 20.f || va.taskTimer <= 0.f) {
                 va.task = PT_SEARCH;
                 float R = searchRadiusFor(Max(pinfo.wanted, 1)) * 0.8f;
@@ -1101,7 +1119,9 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
     bool direct = dist < 65.f && (targetVeh < 0 || dist < 45.f);
     if (direct && va.repath <= 0.f) {
         va.repath = 0.4f;
-        va.taskTimer = lineOfSight(v.sim.body.pos + dvec3(0, 0, 1.3), dvec3(tp) + dvec3(0, 0, 1.0), drv, vi) ? 1.f : 0.f;
+        dvec3 eye = v.sim.body.pos + dvec3(0, 0, 1.3);
+        dvec3 aimPt = tpReal ? sightPoint(*this, peds[target], eye.toVec3()) : dvec3(tp) + dvec3(0, 0, 1.0);
+        va.taskTimer = lineOfSight(eye, aimPt, drv, vi) ? 1.f : 0.f;
     }
     if (direct && va.taskTimer < 0.5f && dist > 20.f) direct = false;
     if (!direct && d) {

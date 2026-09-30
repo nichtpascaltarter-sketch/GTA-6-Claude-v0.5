@@ -36,6 +36,8 @@ struct Test {
     vec3 tpTarget;
     float tpT = 0.f;
     float diagT = 0.f;
+    float stuckT = 0.f;
+    bool stuckShot = false;
 };
 Test gT;
 
@@ -366,7 +368,8 @@ void bus(GameWorld& g, float dt) {
             if (b.materialized() && gT.stageT > 1.f) {
                 vec3 bp = g.vehicles[b.veh].sim.body.pos.toVec3();
                 if (gT.shot == 0 && length(bp.xy() - s.flag) < 45.f) {
-                    scriptCam(g, vec3(s.flag + s.along * 16.f - s.face * 3.f, s.z + 1.7f), bp + vec3(0, 0, 1.5f), 55.f);
+                    // at the curb ahead of the stop, looking back down the street at the bus pulling in
+                    scriptCam(g, vec3(s.flag + s.along * 18.f + s.face * 0.6f, s.z + 2.1f), bp + vec3(0, 0, 1.5f), 55.f);
                     snap(g, "bus_arriving");
                 }
             }
@@ -431,12 +434,58 @@ void bus(GameWorld& g, float dt) {
                 gT.diagT = 5.f;
                 const AI::Driver* d = g.traffic.get(b.veh);
                 const Vehicle& v = g.vehicles[b.veh];
-                if (d)
+                if (d) {
                     LOG("Transit test [bus]: phase %d next %d leg %d off %.1f | mode %d path %d(%s) u %.1f speed %.1f vT %.1f stopD %.1f obstD %.1f body %d gate %d wait %.1f "
                         "route %d dest %zu lc %d dummy %d stopPath %d stopU %.1f",
                         b.phase, b.next, b.leg, b.offRoute, (int)d->mode, d->path, g.laneGraph.isLane(d->path) ? "lane" : "conn", d->u, v.sim.speed(), d->vTarget,
                         d->stopDist, d->obstDist, d->obstBody, d->gateConn, d->waitTime, d->routeLen, d->destEdges.size(), d->lcLane, (int)d->dummy, d->stopPath,
                         d->stopU);
+                    // what holds the bus up: the obstacle it reacts to and the movement it waits for
+                    vec3 bp = v.sim.body.pos.toVec3();
+                    std::string ob = "none";
+                    if (d->obstBody >= 0 && d->obstBody < (int)g.traffic.bodies.size()) {
+                        const AI::Body& B = g.traffic.bodies[d->obstBody];
+                        if (B.kind == AI::BK_CAR && B.host >= 0 && B.host < (int)g.vehicles.size()) {
+                            const Vehicle& ov = g.vehicles[B.host];
+                            ob = StrFormat("car %d '%s' at (%.1f, %.1f, %.1f) v %.1f flags %d parked %d seat0 %d persistent %d", B.host, g.vassets[ov.model].spec.name.c_str(),
+                                           B.pos.x, B.pos.y, B.z, B.speed, (int)B.flags, (int)ov.parked, ov.seats[0], (int)ov.persistent);
+                        } else if (B.kind == AI::BK_PED && B.host >= 0 && B.host < (int)g.peds.size()) {
+                            int act = B.host < (int)g.ai.ped.size() ? (int)g.ai.ped[B.host].activity : -1;
+                            ob = StrFormat("ped %d at (%.1f, %.1f, %.1f) v %.1f state %d act %d flags %d", B.host, B.pos.x, B.pos.y, B.z, B.speed, (int)g.peds[B.host].state, act,
+                                           (int)B.flags);
+                        }
+                    }
+                    std::string gate = "none";
+                    if (d->gateConn >= 0 && d->gateConn < (int)g.laneGraph.conns.size()) {
+                        const AI::Connector& C = g.laneGraph.conns[d->gateConn];
+                        gate = StrFormat("node %d turn %d signal %d", C.node, (int)C.turn, (int)g.laneGraph.movementSignal(C.node, C.approach, C.turn, g.traffic.time));
+                    }
+                    LOG("Transit test [bus]: bus at (%.1f, %.1f) | obstacle %s | gate %s", bp.x, bp.y, ob.c_str(), gate.c_str());
+                    // every route bus on the street nearby
+                    std::string all;
+                    for (const tb::Bus& o : tb::gB.buses) {
+                        if (!o.materialized() || !tb::busValid(g, o)) continue;
+                        const Vehicle& ov = g.vehicles[o.veh];
+                        vec3 op = ov.sim.body.pos.toVec3();
+                        if (length(op.xy() - bp.xy()) > 250.f) continue;
+                        const AI::Driver* od = g.traffic.get(o.veh);
+                        all += StrFormat(" [%s/%d veh %d (%.0f, %.0f) phase %d timer %.1f next %d mode %d v %.1f]", tb::routeOf(o).number.c_str(), o.idx, o.veh, op.x, op.y,
+                                         o.phase, o.timer, o.next, od ? (int)od->mode : -1, ov.sim.speed());
+                    }
+                    LOG("Transit test [bus]: route buses near:%s", all.c_str());
+                }
+            }
+            // held up for long: a look at the street ahead from above the bus
+            gT.stuckT = (b.materialized() && b.phase == 0 && g.vehicles[b.veh].sim.speed() < 0.3f) ? gT.stuckT + dt : 0.f;
+            if (gT.stuckT > 25.f && !gT.stuckShot && gT.pendName.empty()) {
+                const Vehicle& v = g.vehicles[b.veh];
+                vec3 bp = v.sim.body.pos.toVec3(), f = v.sim.forward();
+                vec3 side = normalize(cross(f, vec3(0, 0, 1)));
+                scriptCam(g, bp - f * 9.f + side * 5.f + vec3(0, 0, 13.f), bp + f * 14.f, 60.f);
+                snap(g, "stuck");
+                gT.stuckShot = true;
+            } else if (gT.stuckShot && g.rig.scriptActive && gT.pendName.empty() && g.requestScreenshot.empty()) {
+                releaseCam(g);
             }
             static int lastPhase = 2;
             if (b.phase == 2 && lastPhase == 0) {

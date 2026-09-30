@@ -138,6 +138,16 @@ float valueNoise3(float3 p) {
     float n001 = hash31(i + float3(0, 0, 1)), n101 = hash31(i + float3(1, 0, 1)), n011 = hash31(i + float3(0, 1, 1)), n111 = hash31(i + float3(1, 1, 1));
     return lerp(lerp(lerp(n000, n100, u.x), lerp(n010, n110, u.x), u.y), lerp(lerp(n001, n101, u.x), lerp(n011, n111, u.x), u.y), u.z);
 }
+// Gusts: bands of stronger wind travelling downwind across fields and trees (world space, shared by the grass and
+// the vegetation so they move together). 0 = lull .. 1 = gust front.
+float windGust(float2 wxy, float t) {
+    float2 wd = normalize(gWind.xy + float2(1e-4, 0));
+    float along = dot(wxy, wd), across = dot(wxy, float2(-wd.y, wd.x));
+    float speed = 4.0 + 8.0 * gWeather.w;
+    float band = 0.5 + 0.5 * sin((along - t * speed) * 0.045 + valueNoise(float2(across * 0.012, along * 0.004)) * 3.0);
+    float cells = valueNoise(float2((along - t * speed * 1.3) * 0.02, across * 0.02));
+    return saturate(band * 0.65 + cells * 0.55 - 0.1);
+}
 float2 gradDir(float2 i) { float a = hash21(i) * TWO_PI; return float2(cos(a), sin(a)); }
 float gradNoise(float2 p) {
     float2 i = floor(p), f = frac(p);

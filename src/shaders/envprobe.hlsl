@@ -43,14 +43,16 @@ float probeShadow(float3 relPos, float3 N) {
 
 // Cheap cloud layer for reflections: 8 density samples through the slab, analytic lighting.
 float4 probeClouds(float3 dir) {
-    if (dir.z < 0.01 || gCloud0.x < 0.01) return float4(0, 0, 0, 1);
+    if (dir.z < 0.01) return float4(0, 0, 0, 1);
+    float4 cirrus = cirrusLayer(dir);
+    if (gCloud0.x < 0.01) return cirrus;
     float camZ = gCamPos.z;
     float z0 = gCloud0.z, z1 = gCloud0.w;
     float t0 = max((z0 - camZ) / dir.z, 0.0), t1 = min(max((z1 - camZ) / dir.z, 0.0), 40000.0);
-    if (t1 <= t0) return float4(0, 0, 0, 1);
+    if (t1 <= t0) return cirrus;
     const int N = 8;
     float dt = (t1 - t0) / N;
-    float3 sunL = mainLightIlluminance();
+    float3 sunL = sunLightAtAltitude(0.5 * (z0 + z1));
     float cosT = dot(dir, gSunDir.xyz);
     float phase = lerp(hgPhase(-0.2, cosT), hgPhase(0.7, cosT), 0.5);
     float3 amb = evalSH9(float3(0, 0, 1)) * PI;
@@ -71,7 +73,8 @@ float4 probeClouds(float3 dir) {
     }
     float fade = exp(-(t0 + t1) * 0.5 / 42000.0);
     L *= (1.0 - gCloud2.w * 0.6) * fade;
-    return float4(L, lerp(1.0, T, fade));
+    float Tc = lerp(1.0, T, fade);
+    return float4(L + cirrus.rgb * Tc, Tc * cirrus.a);
 }
 
 struct VSOut {

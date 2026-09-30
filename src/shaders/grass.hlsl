@@ -133,12 +133,14 @@ struct GrassVSOut {
     float2 bladeUV : TEXCOORD3;              // x across (-1..1), y height fraction
     nointerpolation float flower : TEXCOORD4;
     float3 rel : TEXCOORD5;
+    nointerpolation float bladeRnd : TEXCOORD6;   // per-blade random (colour variation, dry tips)
 };
 
 float3 windBend(float3 root, float t, float heightFrac, float h, float seed) {
     float2 wd = normalize(gWind.xy + float2(1e-4, 0));
     float2 wp = root.xy + gCamPos.xy;
-    float gust = valueNoise((wp - wd * t * 3.5) * 0.08) * 1.2 + 0.2;
+    // travelling gust fronts (shared with trees and palms) over small turbulent patches and per-blade flutter
+    float gust = windGust(wp, t) * 1.1 + valueNoise((wp - wd * t * 3.5) * 0.08) * 0.35 + 0.15;
     float sway = sin(t * 2.3 + dot(wp, wd) * 0.35 + seed * 6.28) * 0.35 + sin(t * 5.1 + seed * 19.0) * 0.1;
     float amt = gGrass2.x * (gust + sway) * heightFrac * heightFrac * h;
     return float3(wd * amt, -amt * amt * 0.35 / max(h, 0.05));
@@ -188,6 +190,7 @@ GrassVSOut vsGrass(uint vid : SV_VertexID, uint inst : SV_InstanceID) {
     o.color = float4(float3(c & 255u, (c >> 8) & 255u, (c >> 16) & 255u) / 255.0, (float)type);
     o.bladeUV = float2(qc.x * 2.0 - 1.0, yf);
     o.flower = flower ? 1.0 + floor(r2 * 4.0) : 0.0;
+    o.bladeRnd = frac(r0 * 3.17 + r3 * 5.71);
     return o;
 }
 
@@ -199,7 +202,12 @@ GBufferOut psGrass(GrassVSOut i, bool front : SV_IsFrontFace) {
     uint type = (uint)i.color.a;
     float3 base = i.color.rgb;
     float3 tipC = type == 2 ? base * float3(1.75, 1.6, 1.35) : base * float3(1.35, 1.45, 1.1);
-    float3 albedo = lerp(base * 0.75, tipC, yf);
+    // per-blade colour variation and sun-dried tips (straw), more of them on sawgrass and meadows
+    float bladeRnd = i.bladeRnd;
+    float3 albedo = lerp(base * 0.75, tipC, yf) * lerp(0.88, 1.08, bladeRnd);
+    float dryAmt = type == 2 ? 0.7 : (type == 1 ? 0.45 : 0.2);
+    float dry = smoothstep(0.62, 1.0, yf) * step(1.0 - dryAmt, frac(bladeRnd * 7.31));
+    albedo = lerp(albedo, float3(0.52, 0.45, 0.26) * (0.85 + 0.3 * bladeRnd), dry * 0.8);
     float ao = lerp(0.65, 1.0, saturate(yf * 1.6));
     if (i.flower > 0.5 && yf > 0.85) {
         static const float3 kFlower[4] = {float3(0.85, 0.82, 0.75), float3(0.85, 0.7, 0.08), float3(0.55, 0.25, 0.7), float3(0.8, 0.15, 0.12)};
