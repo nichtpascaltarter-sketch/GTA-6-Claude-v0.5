@@ -59,6 +59,7 @@ void GameWorld::updateCameraRig(float dt) {
         r.yaw = r.cam.yaw;
         r.pitch = r.cam.pitch;
         r.scriptFrom = r.cam;   // where a blended exit starts from
+        r.fpActive = false;     // cutscene shots are never from the player's eyes (first-person gun holds stop)
         return;
     }
     if (!pp) return;
@@ -81,6 +82,7 @@ void GameWorld::updateCameraRig(float dt) {
     float wantFov = 60.f;
     vec3 shoulder(0, 0, 0);
     float minPitch = -1.25f, maxPitch = 0.95f;
+    if (dead || inVeh) r.fpActive = false;   // the on-foot branch below decides first person
     if (dead) {
         r.mode = CAM_DEATH;
         pivot = p.pos + dvec3(0, 0, 0.6);

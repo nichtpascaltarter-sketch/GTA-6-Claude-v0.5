@@ -388,6 +388,12 @@ inline void lampPatchLod(PMesh& m, CarBody& b, const CarLook& L, bool rear, int 
     if (rear) m.use(MAT_LIGHT_TAIL, col(1.f, 0.f, 0.f));
     else m.use(MAT_LIGHT_HEAD, kCol1);
     loopFill(m, dc, O, 0.004f, 1);
+    if (lod == 1 && rear && (L.tail == TL_WRAP || L.tail == TL_SLIM || L.tail == TL_VERT)) {
+        // smoked centre as on the close-up lamp, so the lit area matches across the LOD switch
+        std::vector<vec2> in = insetClosed(O, Min(hw, hh) * 0.45f);
+        m.use(MAT_CAR_GLASS, kCol1);
+        loopFill(m, dc, in.size() > 10 ? resampleClosed(in, 10) : in, 0.0052f, 1);
+    }
     if (lod == 1 && !rear) {
         // turn signal at the outer end of the lamp
         std::vector<vec2> a = resampleClosed(shapeRoundRect(vec2(hw * 0.78f, -hh * 0.2f), Min(hw * 0.2f, 0.03f), hh * 0.5f, 0.008f, 2), 8);

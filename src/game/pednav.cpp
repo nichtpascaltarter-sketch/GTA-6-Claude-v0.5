@@ -225,8 +225,9 @@ vec2 PedCore::step(Walker& w, vec2 pos, float dt, int selfBody, float* faceYaw) 
                 // anticipate head-on encounters: both keep right
                 vec2 rv = myVel - b.vel;
                 if (dot(rv, -n) > 0.3f && d < 2.5f) push += rightOf(normalize(myVel + vec2(1e-3f, 0.f))) * 0.45f;
-            } else if (b.speed < 0.6f) {
-                // stopped vehicle (e.g. on the crosswalk): walk around its nearer end
+            } else if (b.speed < 0.15f) {
+                // stopped vehicle (e.g. on the crosswalk): walk around its nearer end (one inching forward at us counts
+                // as moving: step out of its way)
                 vec2 bf = b.fwd, br = rightOf(bf);
                 vec2 lp = pos - b.pos;
                 float lx = dot(lp, br), ly = dot(lp, bf);

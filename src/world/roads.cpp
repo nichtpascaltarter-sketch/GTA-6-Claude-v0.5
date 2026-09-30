@@ -486,6 +486,7 @@ void RoadNetwork::generate(WorldMap& map) {
         }
         // Bayfront boulevard along the downtown shore
         std::vector<vec2> bay;
+        float prevShore = -1.f;
         for (float y = -2000.f; y <= 4000.f; y += 25.f) {
             // find the shoreline x by marching east from x=3000
             float xs = 3000.f;
@@ -493,6 +494,9 @@ void RoadNetwork::generate(WorldMap& map) {
                 if (map.isWater(x, y)) { xs = x; break; }
                 xs = x;
             }
+            // a jump of the shoreline is a river mouth: the drive bridges it instead of following the river inland
+            if (prevShore > 0.f && fabsf(xs - prevShore) > 150.f) xs = prevShore;
+            prevShore = xs;
             bay.push_back(vec2(xs - 55.f, y));
         }
         b.add(smoothPath(bay, 25.f), RC_BOULEVARD, 0, 0, "Bayshore Boulevard");

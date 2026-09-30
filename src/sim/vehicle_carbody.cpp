@@ -625,6 +625,42 @@ struct CarBody {
             pass(-0.53f);
         }
     }
+    // Lengthwise fairing of the side band around the wheel arches: the columns there follow the arch and flare
+    // curves row by row, which leaves a row-to-row ripple in the reflections above the wheels. Smoothing only
+    // along the length (same column) keeps the section shape (and the feature-line crease) intact; the opening
+    // boundary and everything below it stay pinned.
+    void fairArches() {
+        int iters = lodLevel() == 0 ? 6 : 0;
+        if (iters == 0 || nr < 4) return;
+        std::vector<vec3> T;
+        auto pinned = [&](int i, int j) {
+            if (i <= 0 || i + 1 >= nr) return true;
+            if (j < pSide0 || j >= pSh0 + 1) return true;  // only the side band moves
+            float y = rows[i];
+            int a = archAt(y, 0.001f);
+            if (a >= 0 && j <= jArch) return true;  // the cut edge and the pillars of the opening
+            return archAt(y, s.flareW + 0.35f) < 0;  // far from the arches: nothing to fix
+        };
+        auto pass = [&](float f) {
+            T = G;
+            for (int i = 1; i + 1 < nr; i++)
+                for (int j = pSide0; j <= pSh0; j++) {
+                    if (pinned(i, j)) continue;
+                    vec3 a = G[(i - 1) * NP + j], c = G[(i + 1) * NP + j], p = G[i * NP + j];
+                    // umbrella along the row direction, weighted by the (uneven) row spacing
+                    float wa = 1.f / Max(fabsf(p.y - a.y), 1e-3f), wc = 1.f / Max(fabsf(c.y - p.y), 1e-3f);
+                    vec3 avg = (a * wa + c * wc) / (wa + wc);
+                    vec3 d = avg - p;
+                    d.y = 0.f;  // keep the stations
+                    T[i * NP + j] = p + d * f;
+                }
+            G.swap(T);
+        };
+        for (int k = 0; k < iters; k++) {
+            pass(0.5f);
+            pass(-0.53f);
+        }
+    }
 
     void buildGrid() {
         G.resize(nr * NP);
@@ -633,6 +669,7 @@ struct CarBody {
         rowZsh.assign(nr, 0.f);
         for (int i = 0; i < nr; i++) computeSection(i, &G[i * NP]);
         fairEnds();
+        fairArches();
         // grid normals (angle weighted over adjacent quads)
         GN.assign(nr * NP, vec3(0, 0, 0));
         for (int i = 0; i + 1 < nr; i++)

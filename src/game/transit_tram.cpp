@@ -46,6 +46,7 @@ struct Tram {
     int dings = 0;         // more dings to come
     float dingT = 0.f;
     float held = 0.f;      // seconds held by something on the rails
+    float pedHold = 0.f;   // seconds held by a person at the nose
     int annFor = -1;       // "next stop" given for this stop
     int arrFor = -1;       // arrival events run for this stop
     int lineJ = -1;        // junction whose stop line the tram waits at
@@ -62,6 +63,7 @@ struct TState {
     Render::Model* doorLeaf = nullptr;
     std::vector<float> vLim;     // braking-aware curve speed limit per track sample (for the front)
     std::vector<int> jConn;      // lane graph connector per junction (signals), -1 unknown
+    std::vector<float> jLine;    // track position of the stop line before each junction (behind the crosswalk)
     int ride = -1;               // tram the player rides
     int paidTram = -1;
     int skipStage = 0;
@@ -213,7 +215,20 @@ void initTrams(GameWorld& g) {
         gT2.trams.push_back(t);
     }
     gT2.jConn.assign(L.junctions.size(), -1);
-    for (size_t j = 0; j < L.junctions.size(); j++) gT2.jConn[j] = findConn(g.laneGraph, L.junctions[j]);
+    gT2.jLine.assign(L.junctions.size(), 0.f);
+    const AI::LaneGraph& G = g.laneGraph;
+    for (size_t j = 0; j < L.junctions.size(); j++) {
+        const World::TramJunction& J = L.junctions[j];
+        gT2.jConn[j] = findConn(G, J);
+        // where cars stop: the lane's stop line ahead of the crosswalk (or just short of the lane end)
+        float back = 0.8f;
+        int grp = J.fromEdge * 2 + (J.fromDir < 0 ? 1 : 0);
+        if (grp >= 0 && grp < (int)G.groupFirst.size() && G.groupFirst[grp] >= 0) {
+            const AI::Lane& Ln = G.lanes[G.groupFirst[grp] + G.groupCount[grp] - 1];
+            if (Ln.stopU >= 0.f) back = Ln.u1 - Ln.stopU + 0.3f;
+        }
+        gT2.jLine[j] = L.wrap(J.sIn - Clamp(back, 0.6f, 9.f));
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------- vehicles
@@ -558,7 +573,7 @@ void updateStopCrowds(GameWorld& g, float dt, vec3 pp) {
 
 // ---------------------------------------------------------------------------------------------------------------- driving
 // What stands in the way along the rails ahead: returns the gap from the front to the nearest body (1e9 none)
-float scanAhead(GameWorld& g, const Tram& t, float look, int* hitBody, bool* hitPed) {
+float scanAhead(GameWorld& g, const Tram& t, float look, int* hitBody, bool* hitPed, float pedMargin = 0.55f) {
     const World::TramLine& L = line();
     AI::TrafficCore& T = g.traffic;
     *hitBody = -1;
@@ -600,7 +615,7 @@ float scanAhead(GameWorld& g, const Tram& t, float look, int* hitBody, bool* hit
         vec2 br(bf.y, -bf.x);
         float extN = b.halfLen * fabsf(dot(bf, nrm)) + b.halfWid * fabsf(dot(br, nrm));
         float extT = b.halfLen * fabsf(dot(bf, tan)) + b.halfWid * fabsf(dot(br, tan));
-        float half = td::kHalfWidth + extN + (ped ? 0.55f : 0.3f);
+        float half = td::kHalfWidth + extN + (ped ? pedMargin : 0.3f);
         if (bestD > half) {
             // crossing in front: will it be on the rails when we get there?
             if (!ped && b.speed < 1.f) return;
@@ -781,7 +796,7 @@ void driveTram(GameWorld& g, Tram& t, float dt, bool playerAboard, vec3 listener
     int jNext = -1;
     float dLine = 1e9f;
     for (int j = 0; j < (int)L.junctions.size(); j++) {
-        float d = L.ahead(t.s, L.junctions[j].sIn - 1.6f);
+        float d = L.ahead(t.s, gT2.jLine[j]);
         if (d > L.length - 5.f) continue;
         if (d < dLine) {
             dLine = d;
@@ -813,11 +828,13 @@ void driveTram(GameWorld& g, Tram& t, float dt, bool playerAboard, vec3 listener
         }
     }
     if (jNext >= 0 && dLine > 60.f && t.passedJ == jNext) t.passedJ = -1;
-    // obstacles on the rails
+    // obstacles on the rails (someone who has stood at the nose for a while gets a narrower berth: people waiting at the
+    // kerb, or stepping aside for the tram, must not hold it forever)
     int hb = -1;
     bool hp = false;
     float look = Clamp(t.v * t.v / (2.f * kTDecel) + 14.f, 16.f, 90.f);
-    float gap = scanAhead(g, t, look, &hb, &hp);
+    float gap = scanAhead(g, t, look, &hb, &hp, t.pedHold > 6.f ? 0.f : 0.55f);
+    t.pedHold = (hp && gap < 4.f && t.v < 0.3f) ? t.pedHold + dt : 0.f;
     if (gap < 1e8f) {
         vT = Min(vT, brakeSpeed(gap - 2.5f, kTDecel));
         if (gap < 3.f) vT = 0.f;
@@ -1249,7 +1266,7 @@ std::string tramDiag(GameWorld& g, Tram& t) {
             const AI::Connector& C = g.laneGraph.conns[ci];
             sig = (int)g.laneGraph.movementSignal(C.node, C.approach, C.turn, g.traffic.time);
         }
-        s += StrFormat(" | J node %d control %d minor %d turn %d line in %.1f m sig %d", J.node, (int)J.control, (int)J.minor, J.turn, L.ahead(t.s, J.sIn - 1.6f), sig);
+        s += StrFormat(" | J node %d control %d minor %d turn %d line in %.1f m sig %d", J.node, (int)J.control, (int)J.minor, J.turn, L.ahead(t.s, gT2.jLine[t.lineJ]), sig);
     }
     if (t.materialized()) {
         int hb;

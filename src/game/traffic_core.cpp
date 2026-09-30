@@ -1569,7 +1569,8 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
         if (v < 0.4f && d.stopDist > 0.8f) aCmd = Min(aCmd, 1.0f);
         else aCmd = Min(aCmd, -req);
     }
-    if (d.obstDist < 1e8f && v > d.obstSpeed) {
+    bool creepingAtPed = d.pedCreep > 0.f && d.obstBody >= 0 && d.obstBody < (int)bodies.size() && bodies[d.obstBody].kind == BK_PED;
+    if (d.obstDist < 1e8f && v > d.obstSpeed && !creepingAtPed) {
         float gapNow = d.obstDist - d.pers.minGap * 0.6f;
         float dv = v - Max(d.obstSpeed, 0.f);
         if (gapNow < dv * dv / (2.f * d.pers.decel) + 1.f) aCmd = Min(aCmd, -dv * dv / (2.f * Max(gapNow, 0.3f)));

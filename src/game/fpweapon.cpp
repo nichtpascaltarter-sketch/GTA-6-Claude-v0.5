@@ -116,6 +116,7 @@ mat3 camRot(float yaw, float pitch, float roll) {
 
 bool GameWorld::fpWeaponUsable(const Ped& p) const {
     if (!rig.fpActive || p.state != PS_ONFOOT || p.ragdoll || p.weapon < WPN_PISTOL || p.weapon > WPN_RPG) return false;
+    if (rig.scriptBlend > 0.f) return false;   // easing back from a cutscene shot: the view is not at the eyes yet
     if (p.phoneCall || p.phoneBrowse || p.meleeMove >= 0 || p.takedownT >= 0.f || p.moveMode != 0) return false;
     // climbing, vaulting and throws need the hands
     int a = p.anim.actionDone() ? -1 : p.anim.action;
