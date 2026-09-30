@@ -951,14 +951,16 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
                         vec3 cm = lerp(a.c, b.c, tm);
                         vec3 rm = normalize(lerp(a.right, b.right, tm));
                         float drop = -1e9f;
-                        for (int smp = 0; smp < 3; smp++) {
-                            float ts = t0 + (t1 - t0) * (0.1f + 0.4f * smp);
+                        for (int smp = 0; smp <= 4; smp++) {   // every ~3 m and 1.5-2.5 m out: a dip between samples still gets its rail
+                            float ts = t0 + (t1 - t0) * (smp * 0.25f);
                             vec3 cs = lerp(a.c, b.c, ts);
-                            vec3 outP = cs + rm * (sgn * (edgeLat + 2.0f));
-                            float dd = cs.z - map.heightAt(outP.x, outP.y);
-                            float wl = map.waterAt(outP.x, outP.y);
-                            if (wl > kNoWater + 1.f) dd = Max(dd, cs.z - wl + 0.5f);
-                            drop = Max(drop, dd);
+                            for (float out2 = 1.5f; out2 <= 2.51f; out2 += 0.5f) {
+                                vec3 outP = cs + rm * (sgn * (edgeLat + out2));
+                                float dd = cs.z - map.heightAt(outP.x, outP.y);
+                                float wl = map.waterAt(outP.x, outP.y);
+                                if (wl > kNoWater + 1.f) dd = Max(dd, cs.z - wl + 0.5f);
+                                drop = Max(drop, dd);
+                            }
                         }
                         if (drop < 1.0f) continue;
                         // another road continues beside this edge here (merge, junction flare): leave it open

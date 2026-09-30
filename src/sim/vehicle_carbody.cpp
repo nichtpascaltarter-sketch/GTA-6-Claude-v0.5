@@ -112,6 +112,7 @@ struct CarSpec {
     bool plasticArches = false, plasticSills = false, plasticBumpers = false;
     bool valance = true;   // dark lower lip band under the front and rear bumpers
     u8 dloTrim = 1;        // side window surround: 0 none, 1 gloss black, 2 chrome
+    std::vector<vec4> sideWin;  // see-through windows in the lower-body side band (y0, y1, z0, z1): buses, coaches
     // recess (pickup bed / cockpit)
     float recF = 0.f, recR = 0.f, recDepth = 0.f;
     bool cockpit = false;
@@ -388,6 +389,8 @@ struct CarBody {
         if (s.dloRearTop != s.dloRearBot && lod < 2)
             for (int i = 1; i < (lod == 0 ? 4 : 2); i++) r.push_back(lerp(s.dloRearBot, s.dloRearTop, i / (lod == 0 ? 4.f : 2.f)));
         if (s.liveryDoors && lod < 2) { r.push_back(s.liveryY0); r.push_back(s.liveryY1); }
+        if (lod < 2)
+            for (const vec4& w : s.sideWin) { r.push_back(w.x); r.push_back(w.y); }
         if (s.recDepth > 0.f) {
             r.push_back(s.recF + 0.004f); r.push_back(s.recF - 0.004f);
             r.push_back(s.recR + 0.004f); r.push_back(s.recR - 0.004f);
@@ -735,6 +738,9 @@ struct CarBody {
                     if (s.plasticArches && (flareZone || (archAt(yc, s.flareW) >= 0 && j < jArch))) c = CC_PLASTIC;
                     if (s.plasticSills && (b == BD_CORNER || j < jArch)) c = CC_PLASTIC;
                     if (s.plasticBumpers && (b == BD_CORNER || j < jArch) && (yc > yWf + Ra || yc < yWr - Ra)) c = CC_PLASTIC;
+                    if (b == BD_SIDE && lodLevel() < 2)
+                        for (const vec4& w : s.sideWin)
+                            if (yc > w.x && yc < w.y && cc.z > w.z && cc.z < w.w) c = CC_GLASS;
                 } else if (b == BD_SHOULDER || b == BD_LEDGE) {
                     c = CC_PAINT;
                     if (b == BD_LEDGE && yc > s.yCowl && yc < s.yCowl + s.cowlLen) c = CC_PLASTIC;
@@ -924,7 +930,7 @@ struct CarBody {
                 m.quadFacing(v0, v1, v2, v3, na + nb);
             };
             for (int i = 0; i + 1 < nr; i++)
-                for (int j = pGh0; j < pRail0; j++) {
+                for (int j = s.sideWin.empty() ? pGh0 : pSide0; j < pRail0; j++) {
                     if (cls[i * NC1 + j] != CC_GLASS) continue;
                     if (painted(i - 1, j)) strip(i, j, i, j + 1, i - 1, j, i - 1, j + 1);
                     if (painted(i + 1, j)) strip(i + 1, j, i + 1, j + 1, i + 2, j, i + 2, j + 1);

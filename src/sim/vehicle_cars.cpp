@@ -536,6 +536,59 @@ inline void carBodyParts(const CarDef& d, CarBody& b, PMesh& m, bool interior) {
         cyl(m, vec3(0, b.yR - 0.2f, s.zRearLow + 0.035f), vec3(0, b.yR - 0.2f, s.zRearLow + 0.06f), 0.012f, 8);
     }
     if (L.hoodScoop) hoodScoop(m, b);
+    if (L.hoodVents) {
+        // two louvred extractor vents on the hood (heat exits of mid/front-engined performance cars)
+        Frame ft = projTop();
+        ft.o = vec3(0, 0, 5.f);
+        Decal dc;
+        dc.pr = &b.proj;
+        dc.fr = ft;
+        dc.back = 0.f;
+        float yv = (s.yCowl + b.yHF) * 0.5f + 0.06f;
+        decalRange(dc, vec2(-0.7f, yv - 0.3f), vec2(0.7f, yv + 0.3f));
+        for (int sg = -1; sg <= 1; sg += 2) {
+            float xc = sg * s.halfW * 0.34f;
+            LampStyle st;
+            st.height = 0.004f; st.bezel = 0.008f; st.wallMat = MAT_CAR_GLASS; st.bezelMat = MAT_CAR_GLASS;
+            st.floorMat = MAT_PLASTIC; st.floorCol = col(0.2f, 0.2f, 0.2f); st.floorOff = 0.001f;
+            lampHousing(m, dc, resampleClosed(shapeRoundRect(vec2(xc, yv), 0.13f, 0.1f, 0.03f, 3), 28), st);
+            m.newGroup(40.f);
+            m.use(MAT_CAR_GLASS, kCol1);
+            for (int k = 0; k < 5; k++) {
+                std::vector<vec2> ln;
+                float yy = yv - 0.07f + k * 0.035f;
+                ln.push_back(vec2(xc - 0.11f, yy));
+                ln.push_back(vec2(xc + 0.11f, yy));
+                decalBar(m, dc, ln, 0.012f, 0.006f, 0.001f, 0.05f);
+            }
+        }
+    }
+    if (L.bedRails && s.recDepth > 0.f) {
+        // chrome tube rails along the bed sides
+        m.newGroup(40.f);
+        m.use(MAT_CHROME, kCol1);
+        for (int sg = -1; sg <= 1; sg += 2) {
+            float y0 = s.recR + 0.12f, y1 = s.recF - 0.12f;
+            float x = sg * (b.rowXw[b.rowAt((y0 + y1) * 0.5f)] - 0.02f);
+            float z = b.rowZsh[b.rowAt((y0 + y1) * 0.5f)] + 0.012f;
+            cyl(m, vec3(x, y0, z + 0.07f), vec3(x, y1, z + 0.07f), 0.016f, 8);
+            for (int k = 0; k < 3; k++) {
+                float y = lerp(y0, y1, k / 2.f);
+                cyl(m, vec3(x, y, z - 0.01f), vec3(x, y, z + 0.07f), 0.014f, 8);
+            }
+        }
+    }
+    if (L.mudFlaps) {
+        // rubber mud flaps hanging behind every wheel
+        m.newGroup(40.f);
+        m.use(MAT_RUBBER, kCol1);
+        for (int a = 0; a < 2; a++)
+            for (int sg = -1; sg <= 1; sg += 2) {
+                float yw = a == 0 ? b.yWf : b.yWr, track = a == 0 ? s.trackF : s.trackR;
+                vec3 c(sg * track, yw - b.Ra - 0.03f, s.wheelR * 0.62f);
+                roundedBoxAt(m, c, vec3(s.wheelW * 0.55f, 0.006f, s.wheelR * 0.42f), 0.004f, 1);
+            }
+    }
     if (L.roof == RX_RAILS) roofRails(m, b);
     if (L.bullBar) bullBar(m, b);
     if (L.spotLamp) spotLamp(m, b);

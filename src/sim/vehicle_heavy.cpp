@@ -964,6 +964,81 @@ inline void mdlGuardian(VehicleModel& o) {
 }
 
 // City bus: rounded box loft with projected flush glazing
+// City-bus saloon seen through the see-through side windows: painted inner walls and ceiling (lining of every
+// shell cell above the floor), a low floor, wheel-house boxes, pairs of seats along both sides with an aisle,
+// yellow grab poles and the driver's seat, wheel and dash. LOD1 keeps the lining, floor and seat blocks.
+inline void busInterior(PMesh& m, CarBody& b, float yF, float yR, float yDoor0, float yDoor1) {
+    const int lod = lodLevel();
+    if (lod >= 2) return;
+    const CarSpec& s = b.s;
+    const int NC1 = b.NP - 1;
+    const float zFloor = 0.46f, zCeil = 2.78f;
+    PMesh::Mark mk = m.mark();
+    // inner walls, ceiling and end walls (LOD1: one inward-facing box)
+    m.newGroup(40.f);
+    m.use(MAT_METAL_PAINTED, col(0.8f, 0.8f, 0.78f));
+    if (lod == 1) {
+        float x0 = s.halfW - 0.09f, y0 = yR + s.rearD * 0.6f, y1 = yF - s.frontD * 0.6f;
+        vec3 c[8] = {vec3(0, y0, zFloor), vec3(x0, y0, zFloor), vec3(x0, y1, zFloor), vec3(0, y1, zFloor),
+                     vec3(0, y0, zCeil), vec3(x0, y0, zCeil), vec3(x0, y1, zCeil), vec3(0, y1, zCeil)};
+        auto q = [&](int a, int b2, int c2, int d, vec3 f) { m.quadFacing(m.add(c[a]), m.add(c[b2]), m.add(c[c2]), m.add(c[d]), f); };
+        q(1, 2, 6, 5, vec3(-1, 0, 0));  // side wall
+        q(4, 5, 6, 7, vec3(0, 0, -1));  // ceiling
+        q(0, 1, 5, 4, vec3(0, 1, 0));   // rear wall
+        q(3, 2, 6, 7, vec3(0, -1, 0));  // front wall
+    }
+    for (int i = 0; i + 1 < b.nr && lod == 0; i++) {
+        float yc = (b.rows[i] + b.rows[i + 1]) * 0.5f;
+        bool endZone = yc > yF - s.frontD - 0.02f || yc < yR + s.rearD + 0.02f;
+        for (int j = endZone ? b.pCor0 : b.pSide0; j < NC1; j++) {
+            u8 cc = b.cls[i * NC1 + j];
+            if (cc == CC_GLASS || cc == CC_HOLE || cc == CC_SKIP) continue;
+            if (b.cellCenter(i, j).z < zFloor - 0.06f) continue;
+            liningCell(m, b, i, j, 0.012f);
+        }
+    }
+    // floor (dark rubber) and wheel houses
+    float xw = s.halfW - 0.07f;
+    m.use(MAT_INTERIOR, col(0.8f, 0.8f, 0.8f));
+    m.quadFacing(m.add(vec3(0, yR + s.rearD * 0.5f, zFloor)), m.add(vec3(xw, yR + s.rearD * 0.5f, zFloor)), m.add(vec3(xw, yF - s.frontD * 0.5f, zFloor)),
+                 m.add(vec3(0, yF - s.frontD * 0.5f, zFloor)), vec3(0, 0, 1));
+    for (int a = 0; a < 2; a++) {
+        float yw = a == 0 ? b.yWf : b.yWr;
+        float track = a == 0 ? s.trackF : s.trackR;
+        float xa = track - s.wheelW * 0.5f - 0.08f, zTop = s.wheelR + b.Ra + 0.06f;
+        if (zTop <= zFloor) continue;
+        roundedBoxAt(m, vec3((xa + xw) * 0.5f, yw, (zFloor + zTop) * 0.5f), vec3((xw - xa) * 0.5f, b.Ra + 0.06f, (zTop - zFloor) * 0.5f), 0.04f, 1);
+    }
+    // passenger seats: pairs by the windows on both sides, facing forward (none in the door bays on the right,
+    // mirrored copy on the left keeps them: symmetric shell, the door is a decal on the right)
+    CarLook seatLook;
+    seatLook.seatTint = vec3(0.12f, 0.18f, 0.35f);
+    for (float y = yF - 2.3f; y > yR + 1.0f; y -= 0.8f) {
+        if (y < yDoor1 + 0.4f && y > yDoor0 - 0.4f) continue;
+        if (lod == 0) seat(m, vec3(0.72f, y, zFloor + 0.44f), 0.42f, seatLook, false, 0.22f, 0.8f, false);
+        else {
+            m.use(MAT_FABRIC, colv(seatLook.seatTint));
+            roundedBoxAt(m, vec3(0.72f, y - 0.2f, zFloor + 0.62f), vec3(0.42f, 0.06f, 0.3f), 0.f, 1);
+        }
+    }
+    // grab poles along the aisle and a ceiling rail
+    if (lod == 0) {
+        m.newGroup(40.f);
+        m.use(MAT_METAL_PAINTED, col(0.95f, 0.72f, 0.08f));
+        for (float y = yF - 2.0f; y > yR + 1.0f; y -= 1.6f) cyl(m, vec3(0.3f, y, zFloor), vec3(0.3f, y, zCeil), 0.018f, 8, false);
+        cyl(m, vec3(0.34f, yF - 1.8f, zCeil - 0.2f), vec3(0.34f, yR + 1.0f, zCeil - 0.2f), 0.015f, 8, false);
+    }
+    m.mirrorX(mk);
+    // driver's place (left): seat, near-flat wheel, dash
+    CarLook drv;
+    drv.seatTint = vec3(0.1f, 0.1f, 0.11f);
+    seat(m, vec3(-0.75f, yF - 1.2f, zFloor + 0.55f), 0.26f, drv, true, 0.2f, 0.9f, true);
+    if (lod == 0) steeringWheel(m, vec3(-0.75f, yF - 0.72f, zFloor + 0.95f), 1.05f, 0.23f);
+    m.newGroup(35.f);
+    m.use(MAT_INTERIOR, kCol1);
+    roundedBoxAt(m, vec3(-0.55f, yF - 0.45f, zFloor + 0.7f), vec3(0.6f, 0.22f, 0.12f), 0.05f, 1);
+}
+
 inline void mdlBoulevard(VehicleModel& o) {
     o.name = "Boulevard"; o.maker = "Civitas"; o.cls = VC_BUS;
     CarDef d;
@@ -981,7 +1056,14 @@ inline void mdlBoulevard(VehicleModel& o) {
     s.crownHood = 0.12f; s.crownDeck = 0.15f; s.fenderDrop = 0.15f;
     s.frontD = 0.28f; s.frontExp = 6.f; s.rearD = 0.25f; s.rearExp = 6.f;
     s.tuLow = 0.02f; s.tuTop = 0.04f; s.zWide = 1.2f; s.shR = 0.16f; s.shRx = 0.14f; s.cornerR = 0.06f;
-    s.zChar = 0.f; s.charOut = 0.f; s.flareOut = 0.f; s.cowlLen = 0.f;
+    s.zChar = 1.15f; s.charOut = 0.f; s.flareOut = 0.f; s.cowlLen = 0.f;  // (zChar: column line at the window sills)
+    // see-through saloon windows (both sides) and the driver's / front-door window
+    {
+        float yw0 = yF - 1.9f, yw1 = yR + 0.5f;
+        for (int k = 0; k < 6; k++)
+            s.sideWin.push_back(vec4(lerp(yw0, yw1, (k + 1) / 6.f) + 0.05f, lerp(yw0, yw1, k / 6.f) - 0.05f, 1.15f, 2.45f));
+        s.sideWin.push_back(vec4(yF - 1.75f, yF - 0.35f, 1.15f, 2.45f));
+    }
     CarLook& L = d.L;
     L.head = HL_RECT; L.headC = vec2(0.95f, 0.72f); L.headW = 0.18f; L.headH = 0.06f; L.headYaw = 0.2f;
     L.grille = GR_NONE; L.intakeW = 0.f; L.fogs = false; L.plateFZ = 0.55f; L.blackBumpers = true; L.bumperFZ = 0.45f; L.bumperRZ = 0.5f;
@@ -1009,13 +1091,14 @@ inline void mdlBoulevard(VehicleModel& o) {
         int nw = 6;
         for (int side = 0; side < 2; side++) {
             Decal dc = sideDecal(b, side == 1, vec2(yR, 0.3f), vec2(yF, 3.0f));
-            for (int k = 0; k < nw; k++) {
+            // (close up the windows are real glass cells in the shell; far away dark patches)
+            for (int k = 0; k < nw && lodLevel() >= 2; k++) {
                 float y1 = lerp(yw0, yw1, (float)k / nw) - 0.05f, y0 = lerp(yw0, yw1, (float)(k + 1) / nw) + 0.05f;
                 if (side == 0 && k == 2) continue;  // middle door position
                 glassPatch(m, dc, rectO(y0, y1, 1.15f, 2.50f, 0.06f), 0.025f);
             }
             // front side window by the driver / door
-            glassPatch(m, dc, rectO(yF - 1.75f, yF - 0.35f, 1.15f, 2.50f, 0.06f), 0.025f);
+            if (lodLevel() >= 2) glassPatch(m, dc, rectO(yF - 1.75f, yF - 0.35f, 1.15f, 2.50f, 0.06f), 0.025f);
             if (side == 0) {
                 // front door (glass bi-fold) and middle door
                 float dy[2][2] = {{yF - 1.62f, yF - 0.42f}, {lerp(yw0, yw1, 3.f / nw) + 0.05f, lerp(yw0, yw1, 2.f / nw) - 0.05f}};
@@ -1070,7 +1153,7 @@ inline void mdlBoulevard(VehicleModel& o) {
             roundedBoxAt(m, vec3(sg * 1.42f, yF + 0.25f, 2.35f), vec3(0.04f, 0.004f, 0.18f), 0.01f, 1);
             m.use(MAT_PLASTIC, col(0.4f, 0.4f, 0.4f));
         }
-        // interior hint: a few seat backs and poles visible through the windows are skipped (glass is opaque)
+        busInterior(m, b, yF, yR, lerp(yw0, yw1, 3.f / nw) + 0.05f, lerp(yw0, yw1, 2.f / nw) - 0.05f);
     };
     physics(o, 12500.f, 220.f, 1200.f, 2300.f, 25.f, 6, 0.f, 0.85f, 0.16f, 2.0f, 0.70f, 0.f, vec3(0, -0.4f, 1.2f), Audio::ENGINE_TRUCK_DIESEL);
     CarBody b(d.s);

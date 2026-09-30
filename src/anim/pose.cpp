@@ -180,6 +180,24 @@ void holdGrip(const Skeleton& skel, Pose& pose, bool right, vec3 pos, vec3 axis,
     vec3 pn = normalize(right ? cross(vec3(0, 1, 0), fing) : cross(fing, vec3(0, 1, 0)));
     quat qh = quatFromTwoPairs(vec3(0, 1, 0), pn, axis, palm);
     vec3 wrist = pos - rotate(qh, fing * (kGripAlong * pl) + pn * (kGripPalm * pl));
+    // out of the arm's reach: swing the clavicle toward the grip first (up to ~20 degrees, as a shoulder protracts when
+    // the arm stretches for a far handguard)
+    {
+        int cl = skel.parent[up];
+        quat qc, qa, qp;
+        vec3 pc, pa, pp;
+        boneModel(skel, pose, cl, qc, pc);
+        boneModel(skel, pose, up, qa, pa);
+        float reach = (length(skel.bindLocalPos[lo]) + length(skel.bindLocalPos[hb])) * 0.97f;
+        vec3 toT = wrist - pa, arm = pa - pc;
+        float over = length(toT) - reach, armL = length(arm);
+        vec3 ax = cross(arm, toT);
+        if (over > 0.f && armL > 1e-3f && length2(ax) > 1e-10f && skel.parent[cl] >= 0) {
+            float ang = Min(over / armL, 0.35f) * weight;
+            boneModel(skel, pose, skel.parent[cl], qp, pp);
+            pose.rot[cl] = normalize(conj(qp) * quatAxisAngle(normalize(ax), ang) * qc);
+        }
+    }
     solveTwoBoneIK(skel, pose, (Bone)up, (Bone)lo, (Bone)hb, wrist, pole, weight);
     quat qf;
     vec3 pf;

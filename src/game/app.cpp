@@ -721,9 +721,11 @@ struct App {
             static bool arriving = false;
             static float trackT = 0.f, logT = 0.f, doneT = 0.f;
             Ped* pl = game.playerPed();
+            static vec3 camAt;
             auto release = [&](const char* why) {
                 if (trackVeh >= 0) LOG("autoplay parking: done with car %d (%s) after %.1f s", trackVeh, why, trackT);
                 trackVeh = trackPed = phase = -1;
+                game.rig.scriptActive = false;
             };
             if (trackVeh >= 0 && (!game.vehicles[trackVeh].used || trackT > 60.f)) release("timeout");
             if (trackVeh < 0 && pl) {
@@ -748,11 +750,22 @@ struct App {
                     vec3 cp = v.sim.body.pos.toVec3();
                     vec2 f = v.sim.forward().xy();
                     f = length2(f) > 1e-6f ? normalize(f) : vec2(0, 1);
-                    vec2 at = cp.xy() - f * (arriving ? 14.f : 7.f) + AI::rightOf(f) * 4.5f;
+                    // a fixed camera on the curb side a little behind the car (arriving: further back, it is still
+                    // rolling up), the player out of shot behind it (population and streaming stay centred here)
+                    float lu = 0.f, llat = 0.f;
+                    int lane = game.laneGraph.nearestLane(cp.xy(), f, 8.f, &lu, &llat);
+                    float side = 1.f;
+                    if (lane >= 0) {
+                        const AI::Lane& L = game.laneGraph.lanes[lane];
+                        side = L.width * 0.5f + World::roadInfo((World::RoadClass)L.cls).shoulder + 1.2f - llat;   // to the sidewalk
+                    }
+                    side = Clamp(side, 2.5f, 6.f);
+                    vec2 cam = cp.xy() - f * (arriving ? 16.f : 8.f) + AI::rightOf(f) * side;
+                    camAt = vec3(cam, game.groundHeight(cam.x, cam.y, cp.z + 2.f) + 2.1f);
+                    vec2 at = cam - f * 9.f;
                     if (pl->vehicle >= 0) game.removePedFromVehicle(game.player, false);
                     pl->pos = dvec3(at.x, at.y, game.groundHeight(at.x, at.y, cp.z + 2.f));
                     pl->vel = vec3(0.f);
-                    game.rig.cut = true;
                     LOG("autoplay parking: following %s car %d (%s) at %.0f %.0f, ped %d", arriving ? "arriving" : "departing", trackVeh,
                         game.vassets[v.model].spec.name.c_str(), cp.x, cp.y, trackPed);
                 }
@@ -791,9 +804,10 @@ struct App {
                         ph = 3, name = "parked";
                     }
                 }
-                vec3 dv = look - pl->pos.toVec3();
-                game.rig.yaw = atan2f(-dv.x, dv.y) + 0.32f;   // over the shoulder: the player off to one side of the frame
-                game.rig.pitch = -0.12f;
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(camAt);
+                game.rig.scriptTarget = dvec3(look + vec3(0.f, 0.f, 0.6f));
+                game.rig.scriptFov = 50.f;
                 if (ph != phase) {
                     phase = ph;
                     if (ph >= 0) {
@@ -803,6 +817,12 @@ struct App {
                     }
                 }
                 if ((!arriving && phase == 4) || (arriving && phase >= 2)) doneT += dt;
+                // every few seconds: where the person is and what they are doing
+                if (pedOk && (int)(trackT / 3.f) != (int)((trackT - dt) / 3.f)) {
+                    const Ped& tp = game.peds[trackPed];
+                    LOG("autoplay parking:   ped %d at %.1f %.1f state %d brain %d activity %d speed %.1f | car at %.1f %.1f", trackPed, tp.pos.x, tp.pos.y, (int)tp.state,
+                        (int)tp.brain.type, pa ? (int)pa->activity : -1, length(tp.vel.xy()), v.sim.body.pos.x, v.sim.body.pos.y);
+                }
                 if (doneT > 4.f) release("seen through");
             }
             logT -= dt;

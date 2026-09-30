@@ -39,7 +39,7 @@ Spec specFor(WeaponType w) {
     s.longGun = true;
     s.kickBack = 0.025f;
     s.kickPitch = 0.05f;
-    s.hip = vec3(0.14f, 0.26f, -0.22f);
+    s.hip = vec3(0.13f, 0.21f, -0.21f);
     switch (w) {
         case WPN_PISTOL:
             s.right = pistolGrip(vec3(0.f, 0.f, 0.03f), 0.3f);
@@ -67,14 +67,15 @@ Spec specFor(WeaponType w) {
             break;
         case WPN_RIFLE:
             s.right = pistolGrip(vec3(0.f, -0.02f, 0.02f), 0.3f);
-            s.left = underGrip(vec3(0.f, 0.28f, 0.037f));
+            s.left = underGrip(vec3(0.f, 0.245f, 0.037f));   // rear of the handguard, close to the magazine well
             s.foregrip = foreGrip(0.3f, 0.029f);
             s.sight = vec3(0.f, 0.12f, 0.11f), s.sightDist = 0.17f;   // through the built-in red-dot tube (rear end 13 cm out)
             s.muzzle = vec3(0.f, 0.6f, 0.055f);
             break;
         case WPN_SHOTGUN:
             s.right = {vec3(0.f, -0.055f, 0.018f), vec3(0.f, 0.45f, 0.89f), vec3(-1.f, 0.1f, 0.f)};   // wrist of the stock
-            s.left = underGrip(vec3(0.f, 0.3f, 0.02f));
+            s.left = underGrip(vec3(0.f, 0.27f, 0.02f));   // rear half of the pump
+            s.hip = vec3(0.13f, 0.16f, -0.2f);
             s.foregrip = foreGrip(0.3f, 0.017f);
             s.sight = vec3(0.f, 0.607f, 0.0752f), s.sightDist = 0.82f;   // brass bead at the muzzle
             s.muzzle = vec3(0.f, 0.62f, 0.06f);
@@ -82,8 +83,9 @@ Spec specFor(WeaponType w) {
             break;
         case WPN_SNIPER:
             s.right = pistolGrip(vec3(0.f, -0.05f, 0.02f), 0.35f);
-            s.left = s.foregrip = underGrip(vec3(0.f, 0.17f, 0.008f));
+            s.left = s.foregrip = underGrip(vec3(0.f, 0.15f, 0.008f));
             s.sight = vec3(0.f, 0.1f, 0.115f), s.sightDist = 0.2f;
+            s.hip = vec3(0.13f, 0.17f, -0.2f);
             s.muzzle = vec3(0.f, 0.78f, 0.06f);
             s.kickBack = 0.05f, s.kickPitch = 0.1f;
             break;

@@ -499,6 +499,12 @@ void RoadNetwork::generate(WorldMap& map) {
             prevShore = xs;
             bay.push_back(vec2(xs - 55.f, y));
         }
+        // no jogs: a step in the shoreline eases in over ~100 m (a bridge approach through a kink would overlap itself)
+        for (int pass = 0; pass < 4; pass++) {
+            std::vector<vec2> sm = bay;
+            for (size_t i = 1; i + 1 < bay.size(); i++) sm[i].x = (bay[i - 1].x + bay[i].x * 2.f + bay[i + 1].x) * 0.25f;
+            bay.swap(sm);
+        }
         b.add(smoothPath(bay, 25.f), RC_BOULEVARD, 0, 0, "Bayshore Boulevard");
     }
 
@@ -1743,10 +1749,6 @@ void RoadNetwork::generate(WorldMap& map) {
         for (size_t ei = 0; ei < edges.size(); ei++) {
             const RoadEdge& A = edges[ei];
             if (A.flags & RF_UNPAVED) continue;
-            // a link so short that the discs of the junctions at its ends cover it is carried by their surfaces
-            float linkLen = 0.f;
-            for (size_t i = 0; i + 1 < A.pts.size(); i++) linkLen += length(A.pts[i + 1].xy() - A.pts[i].xy());
-            if (discR[A.n0] > 0.f && discR[A.n1] > 0.f && linkLen < discR[A.n0] + discR[A.n1]) continue;
             bool hwyA = A.cls == RC_HIGHWAY;   // highways only yield to other highways (interchange overlaps)
             size_t n = A.pts.size();
             for (size_t i = 0; i < n; i++) {
@@ -1807,13 +1809,15 @@ void RoadNetwork::generate(WorldMap& map) {
                 }
                 if (!any) continue;
                 // anchors that do not move (ramp points held on the highway, junction ends once they sit on their nodes):
-                // a cap never pulls a point more than 10% below an anchor, so no cliff opens next to one
+                // a cap never pulls a point more than 10% below an anchor, so no cliff opens next to one (3% on a link
+                // so short that the discs of the junctions at its ends cover it: it stays with them)
                 std::vector<float> sA(n, 0.f);
                 for (size_t i = 1; i < n; i++) sA[i] = sA[i - 1] + length(A.pts[i].xy() - A.pts[i - 1].xy());
+                float anchorGrade = discR[A.n0] > 0.f && discR[A.n1] > 0.f && sA[n - 1] < discR[A.n0] + discR[A.n1] ? 0.03f : 0.1f;
                 for (size_t h = 0; h < n; h++) {
                     if (!(isHeld(ei, h) || (fixedEnds && (h == 0 || h + 1 == n)))) continue;
                     for (size_t i = 0; i < n; i++)
-                        if (cap[i] < 1e8f) cap[i] = Max(cap[i], A.pts[h].z - 0.1f * fabsf(sA[i] - sA[h]));
+                        if (cap[i] < 1e8f) cap[i] = Max(cap[i], A.pts[h].z - anchorGrade * fabsf(sA[i] - sA[h]));
                 }
                 std::vector<char> fixedPt(n, 0);
                 for (size_t i = 0; i < n; i++)

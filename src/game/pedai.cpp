@@ -8,6 +8,35 @@ namespace Game {
 
 namespace pedai_detail {
 
+// Which end of a car (+1 front, -1 rear) to walk round, preferring `pref` unless another vehicle stands right there
+// (parked cars can be bumper to bumper).
+float carEndToWalkRound(const GameWorld& g, int veh, float pref) {
+    const Vehicle& v = g.vehicles[veh];
+    const Vehicles::VehicleModel& spec = g.vassets[v.model].spec;
+    vec2 cc = v.sim.body.pos.toVec3().xy();
+    vec2 f = v.sim.forward().xy();
+    f = length2(f) > 1e-6f ? normalize(f) : vec2(0, 1);
+    thread_local std::vector<int> around;
+    for (int k = 0; k < 2; k++) {
+        float e = k == 0 ? pref : -pref;
+        vec2 q = cc + f * (e * (spec.boxHalf.y + 0.8f));
+        around.clear();
+        g.vehiclesNear(q, 8.f, around);
+        bool blocked = false;
+        for (int o : around) {
+            if (o == veh || blocked) continue;
+            const Vehicle& ov = g.vehicles[o];
+            const Vehicles::VehicleModel& os = g.vassets[ov.model].spec;
+            vec2 of = ov.sim.forward().xy();
+            of = length2(of) > 1e-6f ? normalize(of) : vec2(0, 1);
+            vec2 d = q - ov.sim.body.pos.toVec3().xy();
+            if (fabsf(dot(d, of)) < os.boxHalf.y + 0.4f && fabsf(dot(d, AI::rightOf(of))) < os.boxHalf.x + 0.4f) blocked = true;
+        }
+        if (!blocked) return e;
+    }
+    return pref;
+}
+
 inline float wrapA(float a) {
     // remainder instead of repeated subtraction: a huge or infinite angle must not spin forever
     if (a >= -kPi && a <= kPi) return a;
@@ -1131,8 +1160,10 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         float ly = dot(lp, cfw), lx = dot(lp, crt);
                         float targetSide = dot(target - cc, crt) >= 0.f ? 1.f : -1.f, pedSide = lx >= 0.f ? 1.f : -1.f;
                         if (pedSide != targetSide && fabsf(lx) > hs.boxHalf.x * 0.5f) {
-                            float side = fabsf(ly) < hs.boxHalf.y + 0.7f ? pedSide : targetSide;
-                            goal = cc - cfw * (hs.boxHalf.y + 1.f) + crt * (side * (hs.boxHalf.x + 0.6f));
+                            // round the back (or the front, if the next car stands right behind), then across
+                            float endSign = carEndToWalkRound(*this, hv, ly > hs.boxHalf.y * 0.5f ? 1.f : -1.f);
+                            float side = fabsf(ly) < hs.boxHalf.y + 0.6f || ly * endSign < 0.f ? pedSide : targetSide;
+                            goal = cc + cfw * (endSign * (hs.boxHalf.y + 0.8f)) + crt * (side * (hs.boxHalf.x + 0.6f));
                         }
                     }
                     if (goal.x == target.x && goal.y == target.y) {
@@ -1190,9 +1221,11 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                             float doorSide = left ? -1.f : 1.f, pedSide = lx >= 0.f ? 1.f : -1.f, endSign = ly >= 0.f ? 1.f : -1.f;
                             vec2 goal = door;
                             if (pedSide != doorSide && fabsf(lx) > hs.boxHalf.x * 0.5f) {
-                                // on the far side: along the car to its nearer end, then across in front of / behind it
-                                float side = fabsf(ly) < hs.boxHalf.y + 0.7f ? pedSide : doorSide;
-                                goal = cc + cfw * (endSign * (hs.boxHalf.y + 1.f)) + AI::rightOf(cfw) * (side * (hs.boxHalf.x + 0.6f));
+                                // on the far side: along the car to its nearer end (unless another car stands there),
+                                // then across in front of / behind it
+                                endSign = carEndToWalkRound(*this, hv, endSign);
+                                float side = fabsf(ly) < hs.boxHalf.y + 0.6f || ly * endSign < 0.f ? pedSide : doorSide;
+                                goal = cc + cfw * (endSign * (hs.boxHalf.y + 0.8f)) + AI::rightOf(cfw) * (side * (hs.boxHalf.x + 0.6f));
                             }
                             vec2 tg = goal - pos;
                             float dg = Max(length(tg), 1e-3f);

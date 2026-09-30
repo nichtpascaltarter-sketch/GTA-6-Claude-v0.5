@@ -232,10 +232,15 @@ struct LampStyle {
 inline std::vector<vec2> lampHousing(PMesh& m, const Decal& dc, const std::vector<vec2>& O, const LampStyle& st) {
     std::vector<vec2> I = insetClosed(O, st.bezel);
     if (lodLevel() >= 1) {
-        // distant: just the lens / floor as one flat patch
+        // distant: just the lens / floor as one patch (big ones such as windscreens keep inner rings so the
+        // flat fan does not sink under a curved surface)
+        vec2 mn(1e9f, 1e9f), mx(-1e9f, -1e9f);
+        for (const vec2& q : I) { mn = vmin(mn, q); mx = vmax(mx, q); }
+        float ext = Max(mx.x - mn.x, mx.y - mn.y);
         m.newGroup(50.f);
         m.use(st.floorMat, st.floorCol);
-        loopFill(m, dc, I.size() > 12 ? resampleClosed(I, lodLevel() == 1 ? 12 : 6) : I, Max(st.floorOff, 0.004f), 1);
+        loopFill(m, dc, I.size() > 12 ? resampleClosed(I, lodLevel() == 1 ? 12 : 6) : I, Max(st.floorOff, 0.004f),
+                 ext > 0.6f ? (lodLevel() == 1 ? 3 : 2) : 1);
         return I;
     }
     std::vector<Samp> sO, sI;

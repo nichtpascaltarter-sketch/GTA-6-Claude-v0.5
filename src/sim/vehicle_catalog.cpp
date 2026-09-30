@@ -227,7 +227,7 @@ inline void archSuper(CarDef& d, float L = 4.7f, float W = 2.03f, float H = 1.14
     Lk.head = HL_SLIM; Lk.headYaw = 0.75f; Lk.headPitch = 0.45f; Lk.headH = 0.035f; Lk.headW = s.halfW * 0.2f;
     Lk.headC = vec2(s.halfW * 0.70f, s.zHoodF - 0.13f);
     Lk.grille = GR_MESH; Lk.grilleChrome = false; Lk.grilleTop = s.zNoseTop + 0.02f; Lk.grilleBot = s.zNoseBot + 0.02f; Lk.grilleW = s.halfW * 0.40f;
-    Lk.sideIntake = true; Lk.spoiler = SP_WING; Lk.exhaust = 3; Lk.exhaustR = 0.05f;
+    Lk.sideIntake = true; Lk.spoiler = SP_WING; Lk.exhaust = 3; Lk.exhaustR = 0.05f; Lk.hoodVents = true;
     Lk.tail = TL_SLIM; Lk.tailC = vec2(s.halfW * 0.74f, s.zTailTop + 0.06f); Lk.tailW = 0.18f; Lk.tailH = 0.03f;
     Lk.antennaFin = false;
     d.I.zFloor = 0.18f; d.I.hipH = 0.16f; d.I.yHipF = s.yRoofF - 0.18f;
@@ -518,6 +518,7 @@ inline void mdlTanuki(VehicleModel& o) {
     d.L.mirrorsBlack = true; d.L.plateFZ = s.zNoseBot + 0.25f;
     d.wd.offroad = true; d.wd.style = RIM_STEEL; d.wd.faceTint = vec3(0.25f); d.wd.hubcap = false; d.wd.lugs = 6;
     physics(o, 2100.f, 165.f, 390.f, 5500.f, 46.f, 6, 0.45f, 1.0f, 0.30f, 0.85f, 0.45f, 0.f, vec3(0, 0.05f, 0.82f), Audio::ENGINE_V6);
+    d.L.mudFlaps = true;
     buildCar(d, o);
     o.paletteColors = palette("classic");
     o.spawnWeight = 3.f; o.price = 39000;
@@ -529,6 +530,7 @@ inline void mdlPalomino(VehicleModel& o) {
     CarDef d;
     archPickup(d);
     physics(o, 2450.f, 290.f, 560.f, 5600.f, 50.f, 10, 0.f, 0.95f, 0.26f, 1.1f, 0.42f, 0.f, vec3(0, 0.35f, 0.82f), Audio::ENGINE_V8);
+    d.L.bedRails = true; d.L.mudFlaps = true;
     buildCar(d, o);
     o.paletteColors = palette("truck");
     o.spawnWeight = 7.f; o.price = 46000;
@@ -542,6 +544,7 @@ inline void mdlTekko(VehicleModel& o) {
     d.L.grille = GR_HBAR; d.L.grilleChrome = false; d.L.grilleBars = 2; d.L.head = HL_SLIM; d.L.headH = 0.05f;
     d.wd.style = RIM_SPOKE; d.wd.spokes = 6; d.wd.faceTint = vec3(0.2f);
     physics(o, 2050.f, 210.f, 420.f, 5800.f, 48.f, 8, 0.f, 0.97f, 0.25f, 1.05f, 0.40f, 0.f, vec3(0, 0.3f, 0.78f), Audio::ENGINE_V6);
+    d.L.mudFlaps = true;
     buildCar(d, o);
     o.paletteColors = palette("truck");
     o.spawnWeight = 5.f; o.price = 36000;

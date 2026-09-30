@@ -35,6 +35,160 @@ void privacyScreen(IB& b, float x, float y0, float y1, float h) {
     collideMM(b, vec3(x - 0.04f, y0, 0.f), vec3(x + 0.04f, y1, h));
 }
 
+// L-shaped sectional sofa (front +y): the main run along x (back at -y, an arm at the free end) and the return at the
+// +x end (ret > 0) or the -x end (ret < 0), |ret| deep toward +y with its back on the outer side and an arm at its end
+void sectional(IB& b, vec3 p, float yaw, float w, float ret, u32 fabric, u32 seed) {
+    At at(b, p, yaw);
+    Rng r(seed);
+    InPart ip(b, IP_FURNITURE);
+    const float D = 0.95f, armW = 0.2f, s = ret >= 0.f ? 1.f : -1.f, yEnd = Max(fabsf(ret), D + 0.6f) - D * 0.5f;
+    const float xo = s * (w * 0.5f - D * 0.5f);   // centre line of the return
+    const vec3 fc = rgbOf(fabric);
+    const u32 fab = M(MAT_CLOTH), legC = C(0.1f, 0.09f, 0.08f);
+    const vec2 legs[5] = {vec2(-s * (w * 0.5f - 0.08f), -D * 0.5f + 0.08f), vec2(-s * (w * 0.5f - 0.08f), D * 0.5f - 0.08f),
+                          vec2(s * (w * 0.5f - 0.08f), -D * 0.5f + 0.08f), vec2(s * (w * 0.5f - 0.08f), yEnd - 0.08f), vec2(s * (w * 0.5f - D + 0.08f), yEnd - 0.08f)};
+    for (const vec2& l : legs) cyl(b, vec3(l.x, l.y, 0.f), 0.02f, 0.026f, 0.1f, 8, legC, M(MAT_METAL_BRUSHED), false);
+    // bases, backs, arms
+    rbox(b, vec3(0.f, 0.f, 0.23f), vec3(w * 0.5f, D * 0.5f, 0.13f), 0.03f, fabric, fab, true);
+    rbox(b, vec3(xo, (yEnd + D * 0.5f) * 0.5f, 0.23f), vec3(D * 0.5f, (yEnd - D * 0.5f) * 0.5f, 0.13f), 0.03f, fabric, fab, true);
+    rbox(b, vec3(0.f, -D * 0.5f + 0.1f, 0.58f), vec3(w * 0.5f - 0.02f, 0.1f, 0.26f), 0.05f, fabric, fab);
+    rbox(b, vec3(s * (w * 0.5f - 0.1f), (yEnd - D * 0.5f) * 0.5f, 0.58f), vec3(0.1f, (yEnd + D * 0.5f) * 0.5f - 0.02f, 0.26f), 0.05f, fabric, fab);
+    rbox(b, vec3(-s * (w * 0.5f - armW * 0.5f), 0.02f, 0.45f), vec3(armW * 0.5f, D * 0.5f - 0.01f, 0.2f), 0.07f, fabric, fab);
+    rbox(b, vec3(xo, yEnd - armW * 0.5f, 0.45f), vec3(D * 0.5f - 0.01f, armW * 0.5f, 0.2f), 0.07f, fabric, fab);
+    // seat and back cushions along the main run, then along the return (which takes the corner seat)
+    auto backCushion = [&](vec3 c, vec2 f, float hw) {
+        b.pushAxes(c, vec3(f.y, -f.x, 0.f), normalize(vec3(f.x, f.y, 0.2f)), normalize(vec3(-f.x * 0.2f, -f.y * 0.2f, 1.f)));
+        rbox(b, vec3(0.f), vec3(hw, 0.09f, 0.2f), 0.07f, C(fc * r.range(0.95f, 1.04f)), fab, true);
+        b.pop();
+    };
+    const float lo = s > 0.f ? -(w * 0.5f - armW) : -(w * 0.5f - D), hi = s > 0.f ? w * 0.5f - D : w * 0.5f - armW;
+    const int n = Max(1, (int)roundf((hi - lo) / 0.8f));
+    const float cw = (hi - lo) / n;
+    for (int k = 0; k < n; k++) {
+        float x = lo + cw * (k + 0.5f);
+        rbox(b, vec3(x, 0.07f, 0.44f), vec3(cw * 0.5f - 0.006f, D * 0.5f - 0.15f, 0.085f), 0.05f, C(fc * r.range(0.95f, 1.03f)), fab);
+        backCushion(vec3(x, -D * 0.5f + 0.27f, 0.68f), vec2(0.f, 1.f), cw * 0.5f - 0.008f);
+    }
+    const float ya = -D * 0.5f + 0.2f, yb = yEnd - armW;
+    const int m = Max(1, (int)roundf((yb - ya) / 0.8f));
+    const float ch = (yb - ya) / m;
+    for (int k = 0; k < m; k++) {
+        float y = ya + ch * (k + 0.5f);
+        rbox(b, vec3(xo - s * 0.07f, y, 0.44f), vec3(D * 0.5f - 0.15f, ch * 0.5f - 0.006f, 0.085f), 0.05f, C(fc * r.range(0.95f, 1.03f)), fab);
+        backCushion(vec3(s * (w * 0.5f - 0.27f), y, 0.68f), vec2(-s, 0.f), ch * 0.5f - 0.008f);
+    }
+    // throw pillows: two in the corner, one at the free end
+    for (int k = 0; k < 3; k++) {
+        vec3 pc = hsv(r.f(), r.range(0.2f, 0.5f), r.range(0.45f, 0.8f));
+        vec2 f = k == 1 ? vec2(-s, 0.f) : vec2(0.f, 1.f);
+        vec3 c = k == 0 ? vec3(s * (w * 0.5f - D - 0.15f), -D * 0.5f + 0.4f, 0.66f)
+                        : (k == 1 ? vec3(s * (w * 0.5f - 0.4f), -D * 0.5f + 0.55f, 0.66f) : vec3(-s * (w * 0.5f - armW - 0.25f), -D * 0.5f + 0.4f, 0.66f));
+        vec3 ax = vec3(f.y, -f.x, 0.f), ay = normalize(vec3(f.x, f.y, 0.45f));
+        b.pushAxes(c, ax, ay, normalize(cross(ax, ay)));
+        rbox(b, vec3(0.f), vec3(0.2f, 0.07f, 0.2f), 0.06f, C(pc), fab, true);
+        b.pop();
+    }
+    collide(b, vec3(0.f, 0.f, 0.4f), vec3(w * 0.5f, D * 0.5f, 0.4f));
+    collide(b, vec3(xo, (yEnd + D * 0.5f) * 0.5f, 0.4f), vec3(D * 0.5f, (yEnd - D * 0.5f) * 0.5f, 0.4f));
+}
+
+// Low sideboard against a wall (front +y): lacquered doors with brass pulls, a stone top, a table lamp, vases, a book
+// stack with a bowl
+void sideboard(IB& b, vec3 p, float yaw, float w, u32 col, u32 top, int roomIdx, u32 seed) {
+    At at(b, p, yaw);
+    Rng r(seed);
+    InPart ip(b, IP_FURNITURE);
+    const float D = 0.45f, Ht = 0.74f;
+    const u32 brass = C(0.8f, 0.62f, 0.32f);
+    for (int sx = -1; sx <= 1; sx += 2)
+        for (int sy = -1; sy <= 1; sy += 2) cyl(b, vec3(sx * (w * 0.5f - 0.07f), sy * (D * 0.5f - 0.07f), 0.f), 0.014f, 0.018f, 0.1f, 8, brass, M(MAT_CHROME), false);
+    rbox(b, vec3(0.f, 0.f, (0.1f + Ht - 0.02f) * 0.5f), vec3(w * 0.5f, D * 0.5f, (Ht - 0.12f) * 0.5f), 0.01f, col, M(MAT_PLASTIC), true);
+    const int nd = w > 1.5f ? 4 : 3;
+    for (int k = 0; k < nd; k++) {
+        float x = -w * 0.5f + w * (k + 0.5f) / nd;
+        box(b, vec3(x, D * 0.5f + 0.004f, (0.1f + Ht - 0.02f) * 0.5f), vec3(w * 0.5f / nd - 0.008f, 0.004f, (Ht - 0.12f) * 0.5f - 0.02f), C(rgbOf(col) * 1.1f), M(MAT_PLASTIC),
+            SK_NZ | SK_NY);
+        box(b, vec3(x, D * 0.5f + 0.014f, Ht - 0.1f), vec3(0.07f, 0.006f, 0.006f), brass, M(MAT_CHROME), SK_NY);
+    }
+    rbox(b, vec3(0.f, 0.01f, Ht), vec3(w * 0.5f + 0.02f, D * 0.5f + 0.02f, 0.02f), 0.005f, top, M(MAT_MARBLE), true);
+    collide(b, vec3(0.f, 0.f, Ht * 0.5f), vec3(w * 0.5f, D * 0.5f, Ht * 0.5f));
+    const float z = Ht + 0.02f;
+    tableLamp(b, vec3(-w * 0.5f + 0.28f, 0.f, z), roomIdx, C(0.85f, 0.8f, 0.7f), C(0.95f, 0.9f, 0.8f), 50.f);
+    vec3 vc = hsv(r.range(0.02f, 0.12f), r.range(0.1f, 0.4f), r.range(0.3f, 0.9f));
+    lathe(b, vec3(0.05f, 0.03f, z), {vec2(0.05f, 0.f), vec2(0.1f, 0.12f), vec2(0.08f, 0.28f), vec2(0.035f, 0.38f), vec2(0.045f, 0.42f)}, 14, C(vc), M(MAT_PAINT_WHITE), false);
+    lathe(b, vec3(0.24f, -0.04f, z), {vec2(0.04f, 0.f), vec2(0.07f, 0.08f), vec2(0.03f, 0.2f), vec2(0.035f, 0.23f)}, 12, C(vc * 0.6f), M(MAT_PAINT_WHITE), false);
+    for (int k = 0; k < 3; k++)
+        box(b, vec3(w * 0.5f - 0.3f + r.range(-0.02f, 0.02f), 0.f, z + 0.02f + k * 0.04f), vec3(0.14f - k * 0.015f, 0.1f - k * 0.01f, 0.02f),
+            C(hsv(r.f(), r.range(0.2f, 0.5f), r.range(0.3f, 0.8f))), M(MAT_FABRIC), k ? SK_NZ : SK_NONE);
+    lathe(b, vec3(w * 0.5f - 0.3f, 0.f, z + 0.12f), {vec2(0.03f, 0.f), vec2(0.1f, 0.05f), vec2(0.11f, 0.06f)}, 14, C(0.12f, 0.1f, 0.09f), M(MAT_PAINT_WHITE), false);
+}
+
+// Brass bar cart (front +y): two glass shelves on a tube frame with casters and a handle, bottles, a decanter,
+// glasses and an ice bucket
+void barCart(IB& b, vec3 p, float yaw, u32 seed) {
+    At at(b, p, yaw);
+    Rng r(seed);
+    InPart ip(b, IP_FURNITURE);
+    const float w = 0.8f, dp = 0.44f, hx = w * 0.5f - 0.02f, hy = dp * 0.5f - 0.02f;
+    const u32 brass = C(0.8f, 0.62f, 0.32f), bm = M(MAT_CHROME);
+    for (int sx = -1; sx <= 1; sx += 2)
+        for (int sy = -1; sy <= 1; sy += 2) {
+            tube(b, vec3(sx * hx, sy * hy, 0.07f), vec3(sx * hx, sy * hy, 0.84f), 0.011f, 6, brass, bm);
+            sphere(b, vec3(sx * hx, sy * hy, 0.035f), 0.035f, 8, Gy(0.08f), M(MAT_RUBBER));
+        }
+    for (int sy = -1; sy <= 1; sy += 2) tube(b, vec3(-hx, sy * hy, 0.8f), vec3(-hx - 0.1f, sy * hy, 0.84f), 0.01f, 6, brass, bm);
+    tube(b, vec3(-hx - 0.1f, -hy, 0.84f), vec3(-hx - 0.1f, hy, 0.84f), 0.012f, 6, brass, bm, true);
+    for (float z : {0.3f, 0.76f}) {
+        box(b, vec3(0.f, 0.f, z), vec3(hx, hy, 0.005f), C(0.8f, 0.9f, 0.9f, 1.f), M(MAT_GLASS), SK_NONE);
+        for (int sy = -1; sy <= 1; sy += 2) tube(b, vec3(-hx, sy * hy, z + 0.02f), vec3(hx, sy * hy, z + 0.02f), 0.008f, 6, brass, bm);
+        for (int sx = -1; sx <= 1; sx += 2) tube(b, vec3(sx * hx, -hy, z + 0.02f), vec3(sx * hx, hy, z + 0.02f), 0.008f, 6, brass, bm);
+    }
+    for (int k = 0; k < 4; k++) {
+        vec3 bc = hsv(r.range(0.02f, 0.14f), r.range(0.3f, 0.9f), r.range(0.2f, 0.7f));
+        if (k == 3) bc = vec3(0.05f, 0.2f, 0.08f);
+        bottle(b, vec3(-0.26f + k * 0.12f, -0.08f + r.range(-0.03f, 0.03f), 0.765f), r.range(0.03f, 0.04f), r.range(0.24f, 0.32f), C(bc, 1.f), M(MAT_GLASS),
+               r.chance(0.5f) ? brass : Gy(0.1f), 8);
+    }
+    lathe(b, vec3(0.25f, 0.08f, 0.765f), {vec2(0.05f, 0.f), vec2(0.08f, 0.07f), vec2(0.03f, 0.16f), vec2(0.018f, 0.2f)}, 12, C(0.75f, 0.45f, 0.15f, 1.f), M(MAT_GLASS), false);
+    sphere(b, vec3(0.25f, 0.08f, 0.985f), 0.028f, 8, C(0.9f, 0.95f, 0.95f, 1.f), M(MAT_GLASS));
+    for (int k = 0; k < 4; k++)
+        lathe(b, vec3(-0.25f + k * 0.1f, 0.1f, 0.765f), {vec2(0.03f, 0.f), vec2(0.035f, 0.02f), vec2(0.04f, 0.09f)}, 8, C(0.9f, 0.95f, 0.95f, 1.f), M(MAT_GLASS), false);
+    lathe(b, vec3(0.f, 0.f, 0.305f), {vec2(0.08f, 0.f), vec2(0.1f, 0.18f), vec2(0.105f, 0.19f)}, 14, Gy(0.75f), M(MAT_METAL_BRUSHED), false);
+    for (int k = 0; k < 2; k++) bottle(b, vec3(0.22f, -0.06f + k * 0.12f, 0.305f), 0.038f, 0.3f, C(0.25f, 0.4f, 0.2f, 1.f), M(MAT_GLASS), brass, 8);
+    collide(b, vec3(0.f, 0.f, 0.45f), vec3(w * 0.5f, dp * 0.5f, 0.45f));
+}
+
+// Large low-pile area rug with a border band (centre c on the floor, w along x, dp along y)
+void areaRug(IB& b, vec3 c, float w, float dp, u32 base, u32 border) {
+    InPart ip(b, IP_FURNITURE);
+    box(b, c + vec3(0.f, 0.f, 0.005f), vec3(w * 0.5f, dp * 0.5f, 0.005f), border, M(MAT_CARPET), SK_NZ);
+    box(b, c + vec3(0.f, 0.f, 0.0105f), vec3(w * 0.5f - 0.16f, dp * 0.5f - 0.16f, 0.0005f), base, M(MAT_CARPET), SK_NZ);
+}
+
+// Feature wall (local frame: wall face at y = 0, cladding toward +y, x along the wall centred, height h): style 0
+// dark book-matched stone slabs with brass reveals, style 1 lacquered oak slats on a black backing; grazer spots
+// along the top wash it
+void featureWall(IB& b, float w, float h, int style, int roomIdx) {
+    InPart ip(b, IP_SHELL);
+    if (style == 0) {
+        const int n = Max(2, (int)roundf(w / 1.2f));
+        const float sw = w / n;
+        for (int k = 0; k < n; k++) {
+            float x = -w * 0.5f + sw * (k + 0.5f);
+            box(b, vec3(x, 0.02f, h * 0.5f), vec3(sw * 0.5f - 0.005f, 0.02f, h * 0.5f), C(k & 1 ? vec3(0.17f, 0.16f, 0.16f) : vec3(0.19f, 0.18f, 0.17f)), M(MAT_MARBLE), SK_NZ);
+            if (k) box(b, vec3(x - sw * 0.5f, 0.012f, h * 0.5f), vec3(0.006f, 0.012f, h * 0.5f), C(0.8f, 0.62f, 0.32f), M(MAT_CHROME), SK_NZ);
+        }
+    } else {
+        box(b, vec3(0.f, 0.006f, h * 0.5f), vec3(w * 0.5f, 0.006f, h * 0.5f), Gy(0.03f), M(MAT_PAINT_WHITE), SK_NZ);
+        for (float x = -w * 0.5f + 0.05f; x < w * 0.5f - 0.03f; x += 0.1f)
+            box(b, vec3(x, 0.03f, h * 0.5f), vec3(0.022f, 0.018f, h * 0.5f), C(0.55f, 0.38f, 0.22f), M(MAT_PLASTIC), SK_NZ);
+    }
+    box(b, vec3(0.f, 0.05f, h + 0.01f), vec3(w * 0.5f, 0.05f, 0.01f), Gy(0.9f), M(MAT_PAINT_WHITE), SK_NONE);
+    const int nl = Max(2, (int)(w / 2.2f));
+    for (int k = 0; k < nl; k++)
+        light(b, vec3(-w * 0.5f + w * (k + 0.5f) / nl, 0.35f, h - 0.05f), vec3(1.f, 0.82f, 0.6f) * 160.f, 4.5f, roomIdx, normalize(vec3(0.f, -0.3f, -1.f)), 55.f, 30.f);
+}
+
 // ------------------------------------------------------------------------------------------------ tower lobby
 void layoutResLobby(IB& b) {
     const InteriorDef& d = *b.d;
