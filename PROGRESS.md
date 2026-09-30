@@ -125,7 +125,7 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
 - Settings (UI agent's menus, wired by the lead): key-binding table read by input.cpp (every IA_* action), separate
   X/Y sensitivities, hold/toggle aim/sprint/crouch, controller layouts (standard/alternate/southpaw), first person on
   foot / in vehicles by default, camera shake scale, vehicle auto-centre, head bob, frame-rate cap (sleep + spin),
-  dialogue ducking depth (Audio::setDialogueDucking), reduced flashing (muzzle flashes; renderer hooks pending),
+  dialogue ducking depth (Audio::setDialogueDucking), reduced flashing (muzzle flashes, lightning, strobe emissives),
   settings.ini persistence, "Run Benchmark" in Settings. Autosave into slot 8 after passed missions and every 10
   minutes of calm free roam.
 - Weapons (src/game/weaponmods.cpp): components per gun (suppressor: quiet crack, no flash, 9 m startle instead of a
@@ -146,6 +146,34 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   Estimated renderer cost on an RTX 4070 at 1440p High: ~8 ms.
 - Test tooling: `--renderevery N` (render every Nth frame in automated runs), NaN-safe core wrapAngle.
 - Transit agent started: SkyLine elevated metro, buses on routes, ferries (src/world/transit.cpp, src/game/transit_game.cpp).
+
+## Integrated 2026-09-30 morning (wave 3)
+- First-person gun handling (src/game/fpweapon.cpp, Anim::holdGrip): in first person every gun sits in front of the
+  eyes, low right at the hip, raised onto the line of sight while aiming (iron sights centred; the rifle's open
+  red-dot tube and the SMG reflex window show a HUD red dot), tipped across the body while sprinting, rolled over
+  while reloading (the support hand lets go to fetch the magazine), pulled in and tipped up against walls; it lags
+  quick turns, bobs with the stride and kicks back per shot. After the camera update both hands are IK'd onto the
+  weapon's grips (fist centre, handle axis and palm per gun; vertical foregrips move the support hand). Magnifying
+  scopes (sniper, scoped rifle / revolver) switch to a scope sight picture on the HUD (duplex or mil-dot reticle)
+  with the gun hidden; aiming the sniper rifle always looks through its scope. Shots and tracers leave the visible
+  muzzle. `--autoplay fpguns --firstperson` screenshots every gun and pose.
+- Weapon meshes detailed for first person (assets.cpp): pistol (bevelled slide, front/rear serrations, ejection port
+  over the barrel hood, three-dot sights, rail, controls, stippled grip), revolver (fluted cylinder, ejector shroud,
+  top strap notch and red-insert blade, hammer, checkered grips), SMG (split receiver, rail, iron sights, shroud,
+  twin-bar stock), carbine (split receiver, full-length rail, charging handle, forward assist, vented octagonal
+  handguard, birdcage flash hider, buffer tube, collapsible stock), pump shotgun (vent rib, brass bead, grooved pump,
+  recoil pad), sniper (ported brake, steel action, bolt knob, folded bipod, cheek riser, scope rings and turrets).
+  Openings, grooves and pads use MAT_RUBBER, which weapon tints leave alone.
+- Vehicles: brake calipers drawn behind the wheel spokes (VehicleAsset::caliper: steers and rides, never spins).
+- Cloth: mip-stable fabric textures and garment-UV yarn relief (no moire); garments choose their weave (woven shirts,
+  suits, uniforms, blouses, skirts and dresses; rib-knit tanks; twill trousers, shorts and work wear; jersey tees,
+  polos and hoodies; denim keeps its own twill).
+- Street life: owners walk round to cars parked at the curb, get in, signal and pull out at a gap; passing cars
+  pull into free curb spots and the driver walks into a nearby building; lane-change conflicts, stop-line roll-up and
+  repeatedly stuck cars are resolved.
+- Transit end-to-end tests pass by day: bus (route 9, stops, skip, alight), SkyLine metro (Civic Center to Canvas
+  District), ferry (to Port Isle and ashore); station fare gates with two lanes, platform strip lights by day,
+  varied waiting crowds; the Sol Beach streetcar loop (6.24 km, 16 stops, 4 trams) is being brought up.
 
 ## Gameplay architecture (src/game, src/sim)
 - `app.cpp`: states LOADING (world generated on a thread, loading screen) -> MENU (cinematic flyover + main menu)
@@ -173,9 +201,9 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   screenshots `auto_<mode>_NN.bmp`, telemetry in the log), `--autoduration S`, `--autoevery S`.
 
 ## Backlog (after the current agent wave)
-- Metro/elevated rail + trams + bus routes + ferries (brief queued in the lead's notes).
-- Vehicle customization shop (paint/wheels/body kits/performance/tint/neon).
-- First-person camera option; weapon attachments; character customization shops (barber, tattoos).
+- Characters realism pass 3 (faces, skin, hands at close range): next agent slot that frees up.
+- Character customization shops beyond Threads clothing: barber, tattoo parlour.
+- First-person detail for the RPG, grenades and melee weapons (the guns are done).
 - Real-GPU performance validation (target 60 fps @1440p on RTX 4070-class); offline shader precompile option.
 
 ## Known issues / next
@@ -184,13 +212,13 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   with ~110 peds / 70 vehicles (software D3D translation, not representative).
 - Visual gap vs GTA 6 (largest): characters still stylized at close range (realism pass 2 in progress: sculpted faces
   done, strand-card hair / eyelashes / clothing folds next); procedural building massing repeats; vehicles procedural.
-- Renderer limitations: hair has no soft edges yet (needs strand-card UVs), no iris parallax, env probe without
-  parallax correction and dynamic objects, froxel fog halos soft at 1440p, oil drips per lane (no stop-line data).
+- Renderer limitations: the curly hairstyle's top highlight reads white/grey, no iris parallax, env probe without
+  parallax correction and dynamic objects, froxel fog halos soft at 1440p, oil drips per lane (no stop-line data);
+  sand / unpaved ground turns into dark blotches under a grazing sunset sun (renderer agent).
 - World: 18 lane/ground steps and a few interchange layouts where streets attach to ramps beside highways
   (planarisation fix in progress); worldcheck must exit clean.
-- Story: Tide Customs visits happen at the curb (not inside the new mod-shop interior); Downtown Penthouse needs an
-  interior named "Downtown Penthouse"; penthouse vault marker (interiortower.cpp) pending; cutscene camera fix-up
-  can't see glass/awnings/foliage (no collision).
+- Story: Downtown Penthouse needs an interior named "Downtown Penthouse"; penthouse vault marker (interiortower.cpp)
+  pending; cutscene camera fix-up can't see glass/awnings/foliage (no collision).
 - Wildlife: the new species and the `--wildscene perf` stress scene still need a Wine check.
 - Machine for testing has only 4 cores / 16 GB shared by several agents: gate builds and Wine runs with
   scratchpad `memgate.sh` (full build ~1.6 GB, Wine ~1.5 GB); Wine runs are 2-15 s per frame under load, so use
