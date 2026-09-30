@@ -87,10 +87,13 @@ struct Probe {
 // (inside a building), urbanHint: Ambience::urban.
 static void analyze(AcousticState& s, float interiorHint, float urbanHint) {
     const int half = kProbeH / 2;
-    int nNear = 0;
-    for (int i = 0; i < kProbeH; i++)
+    int nNear = 0, nEsc = 0;
+    for (int i = 0; i < kProbeH; i++) {
         if (s.h[i] < 25.f) nNear++;
+        if (s.h[i] >= kProbeHMax - 0.5f) nEsc++;
+    }
     float nearFrac = (float)nNear / (float)kProbeH;
+    float hEsc = (float)nEsc / (float)kProbeH;   // tunnel ~0.1 (its axis), canopy / station platform 1
     int nE = 0;
     for (int j = 0; j < kProbeE; j++)
         if (s.e[j] < kProbeEMax - 0.5f) nE++;
@@ -98,7 +101,7 @@ static void analyze(AcousticState& s, float interiorHint, float urbanHint) {
     bool upHit = s.up < kProbeUpMax - 0.5f;
     float cover = upHit ? SmoothStep(24.f, 6.f, s.up) : 0.f;
     float interior = Saturate(interiorHint);
-    float geoEnclosed = cover * Saturate(0.25f + 0.45f * nearFrac + 0.5f * eFrac);
+    float geoEnclosed = cover * Saturate(0.25f + 0.45f * nearFrac + 0.5f * eFrac) * (1.f - 0.5f * SmoothStep(0.2f, 0.8f, hEsc));
     float enclosed = Max(geoEnclosed, interior);
     // street canyon: facades on both sides (narrowest opposite pair); tall when the elevated rays hit too
     float best = 0.f, bestW = 1e9f;
@@ -134,11 +137,13 @@ static void analyze(AcousticState& s, float interiorHint, float urbanHint) {
     float V = L1 * L2 * Hh, S = 2.f * (L1 * L2 + (L1 + L2) * Hh);
     float furnished = Saturate(interior * 1.25f);
     float alpha = Lerp(0.07f, 0.24f, furnished);   // bare concrete (tunnel, garage, station) .. furnished room
-    float sky = 1.f - eFrac;                       // openings to the sky (open station sides, underpass ends)
-    float aEff = alpha * (1.f - sky) + 0.85f * sky;
+    // openings: sky visible above the rim, or open sides under a canopy (station platform, underpass)
+    float openF = Max(1.f - eFrac, SmoothStep(0.2f, 0.6f, hEsc));
+    float aEff = alpha * (1.f - openF) + 0.85f * openF;
     float rt = 0.161f * V / Max(S * aEff, 1.f);
-    s.rtIn = Clamp(rt, 0.22f, 4.2f);
-    s.dampIn = Lerp(0.18f, 0.55f, furnished);
+    rt = Lerp(rt, 1.2f, SmoothStep(0.4f, 1.f, hEsc) * cover);  // a canopy rings between floor and roof
+    s.rtIn = Clamp(rt, 0.22f, 3.6f);
+    s.dampIn = Lerp(0.35f, 0.55f, furnished);
     s.preIn = Clamp(L1 * 0.5f / kC, 0.002f, 0.03f);
     s.wetIn = enclosed * Lerp(0.95f, 0.7f, furnished);
     // outdoor reverb: longer and louder among tall facades
@@ -151,7 +156,7 @@ static void analyze(AcousticState& s, float interiorHint, float urbanHint) {
     if (axis >= 0 && bestW < 75.f) {
         s.flutterA = axis;
         s.flutterDelay = 2.f * bestW / kC;
-        s.flutterFb = Clamp(0.6f * tall * SmoothStep(80.f, 10.f, bestW) * (1.f - 0.5f * cover) * (1.f - 0.6f * furnished), 0.f, 0.6f);
+        s.flutterFb = Clamp(0.52f * tall * SmoothStep(80.f, 10.f, bestW) * (1.f - 0.5f * cover) * (1.f - 0.6f * furnished), 0.f, 0.5f);
     } else {
         s.flutterA = -1;
         s.flutterDelay = 0.f;
@@ -333,14 +338,14 @@ struct EnvFx {
             float d = a.h[t];
             bool hit = d < kProbeHMax - 0.5f;
             float dl = a.h[(t + kProbeH - 1) % kProbeH], dr = a.h[(t + 1) % kProbeH];
-            float spec = (d <= dl + 0.05f && d <= dr + 0.05f) ? 1.f : 0.45f;
-            taps[t].tg = hit ? cur.er * spec * 0.75f / (1.f + 2.f * d / 6.f) : 0.f;
+            float spec = (d <= dl + 0.05f && d <= dr + 0.05f) ? 1.f : 0.35f;
+            taps[t].tg = hit ? cur.er * spec * 0.75f / (1.f + 2.f * d / 10.f) : 0.f;
             taps[t].td = Clamp(2.f * d / kC * kSR, 16.f, (float)kErLen - 600.f);
         }
         {
             Tap& u = taps[kProbeH];
             bool hit = a.up < kProbeUpMax - 0.5f;
-            u.tg = hit ? cur.er * 0.6f / (1.f + 2.f * a.up / 6.f) : 0.f;
+            u.tg = hit ? cur.er * 0.6f / (1.f + 2.f * a.up / 10.f) : 0.f;
             u.td = Clamp(2.f * a.up / kC * kSR, 16.f, (float)kErLen - 600.f);
         }
         // pans follow the listener's orientation
@@ -397,8 +402,8 @@ struct EnvFx {
                 g1 = tp.tg * 0.25f;
                 jump = false;
             }
-            float d0 = tp.d, d1 = jump ? tp.d : tp.d + (tp.td - tp.d) * 0.2f;
-            bool isFlutter = cur.flutterA >= 0 && (t == tgt.flutterA || t == tgt.flutterA + kProbeH / 2);
+            float d0 = tp.d, d1 = jump ? tp.d : tp.d + (tp.td - tp.d) * 0.06f;
+            bool isFlutter = tgt.flutterA >= 0 && (t == tgt.flutterA || t == tgt.flutterA + kProbeH / 2);
             if (fabsf(d1 - d0) < 1e-3f) {
                 int di = (int)(d0 + 0.5f);
                 ringRead(eb, emask, erW - di, tmp, n);

@@ -44,73 +44,89 @@ static FORCEINLINE float keyed(const float* xs, const float* ys, int n, float x)
     return ys[n - 1];
 }
 
-// Local rotations of the derived bones (character.h), out[b - B_FIRST_DERIVED]:
+// Derived bones (character.h):
 //  - forearm roll = half of the hand's twist about the forearm axis;
 //  - finger phalanges from the curl controller's angle about the fingers' flexion axis (the clips' and holdGrip's
 //    convention: fingers 0..1 -> 1.45 * fingers rad), per finger and joint from a key table on c = fingers: open at 0,
 //    a relaxed cascade at 0.35 (the ulnar fingers curl more), wrapped round a ~3 cm handle at holdGrip's fist centre
 //    at 0.9 (the short pinky and index curl less there) and a closed fist at 1. The flexion axes lean so curling
 //    fingers converge towards the thumb's base;
-//  - thumb phalanges: aimed at key directions in the hand frame on the thumb controller (B_THUMB's angle about its
-//    opposition axis, thumb 0..1 -> 0.9 rad): open, relaxed beside the index finger, along a handle's far side above
-//    the index finger (grips, 0.55), across the closed fingers (fist, 1).
-static void derivedLocals(const Skeleton& sk, const Pose& pose, quat* out) {
+//  - thumb (metacarpal and phalanges): aimed at key directions in the hand frame on the thumb controller (B_THUMB's
+//    angle about its opposition axis, thumb 0..1 -> 0.9 rad): open near the palm's plane, relaxed beside the index
+//    finger, along a handle's far side above the index finger (grips, 0.55), across the closed fingers (fist, 1).
+static const float kCurlKeys[4] = {0.f, 0.35f, 0.9f, 1.f};
+static const float kFingerFlex[4][3][4] = {   // [finger][joint][key]: flexion (rad) added to the bind rest curl
+    {{0.f, 0.42f, 1.2f, 1.45f}, {0.f, 0.4f, 0.92f, 1.5f}, {0.f, 0.28f, 0.81f, 1.05f}},    // index
+    {{0.f, 0.48f, 1.3f, 1.5f}, {0.f, 0.44f, 1.0f, 1.6f}, {0.f, 0.3f, 0.9f, 1.1f}},       // middle
+    {{0.f, 0.5f, 1.24f, 1.52f}, {0.f, 0.5f, 0.83f, 1.62f}, {0.f, 0.34f, 0.97f, 1.1f}},   // ring
+    {{0.f, 0.52f, 0.9f, 1.55f}, {0.f, 0.56f, 0.66f, 1.62f}, {0.f, 0.4f, 0.8f, 1.1f}},    // pinky
+};
+static const float kThumbKeys[4] = {0.f, 0.2f, 0.55f, 1.f};
+
+void initDerivedRig(Skeleton& sk) {
     const vec3 Y(0, 1, 0);
-    // finger joint flexion keys (rad, added to the bind rest curl): [finger][joint][key] at c = kC[key]
-    static const float kC[4] = {0.f, 0.35f, 0.9f, 1.f};
-    static const float kFlex[4][3][4] = {
-        {{0.f, 0.42f, 1.2f, 1.45f}, {0.f, 0.4f, 0.92f, 1.5f}, {0.f, 0.28f, 0.81f, 1.05f}},    // index
-        {{0.f, 0.48f, 1.3f, 1.5f}, {0.f, 0.44f, 1.0f, 1.6f}, {0.f, 0.3f, 0.9f, 1.1f}},       // middle
-        {{0.f, 0.5f, 1.24f, 1.52f}, {0.f, 0.5f, 0.83f, 1.62f}, {0.f, 0.34f, 0.97f, 1.1f}},   // ring
-        {{0.f, 0.52f, 0.9f, 1.55f}, {0.f, 0.56f, 0.66f, 1.62f}, {0.f, 0.4f, 0.8f, 1.1f}},    // pinky
-    };
     static const float kLean[4] = {0.0f, 0.04f, 0.09f, 0.15f};   // flexed fingers lean towards the thumb's base
-    // thumb key directions in the hand frame (fingers, thumb side, palm) for the metacarpal, the proximal and the distal
-    // phalanx at thumb = kCt (a zero vector = the bind direction: the open thumb, near the palm's plane)
-    static const float kCt[4] = {0.f, 0.2f, 0.55f, 1.f};
-    static const float kTM[4][3] = {{0.f, 0.f, 0.f}, {0.63f, 0.64f, 0.4f}, {0.59f, 0.46f, 0.66f}, {0.55f, 0.13f, 0.82f}};
-    static const float kT1[4][3] = {{0.f, 0.f, 0.f}, {0.95f, 0.12f, 0.02f}, {0.93f, 0.1f, 0.35f}, {0.93f, -0.3f, 0.2f}};
-    static const float kT2[4][3] = {{0.f, 0.f, 0.f}, {0.97f, 0.f, 0.12f}, {0.97f, 0.f, 0.25f}, {0.87f, -0.49f, 0.f}};
+    // thumb key directions in the hand frame (fingers, thumb side, palm); a zero vector = the bind direction
+    static const float kTab[3][4][3] = {
+        {{0.f, 0.f, 0.f}, {0.63f, 0.64f, 0.4f}, {0.59f, 0.46f, 0.66f}, {0.55f, 0.13f, 0.82f}},   // metacarpal
+        {{0.f, 0.f, 0.f}, {0.95f, 0.12f, 0.02f}, {0.93f, 0.1f, 0.35f}, {0.93f, -0.3f, 0.2f}},    // proximal phalanx
+        {{0.f, 0.f, 0.f}, {0.97f, 0.f, 0.12f}, {0.97f, 0.f, 0.25f}, {0.87f, -0.49f, 0.f}},       // distal phalanx
+    };
     for (int side = 0; side < 2; side++) {
         const bool right = side == 1;
-        const int hb = right ? B_HAND_R : B_HAND_L, fb = right ? B_FINGERS_R : B_FINGERS_L, tb = right ? B_THUMB_R : B_THUMB_L;
-        vec3 fax = normalize(sk.bindLocalPos[hb]);
-        out[(right ? B_FOREARM_ROLL_R : B_FOREARM_ROLL_L) - B_FIRST_DERIVED] = qaa(fax, 0.5f * twistAbout(pose.rot[hb], fax));
-        vec3 fing = normalize(sk.bindLocalPos[fb]);
+        Skeleton::DerivedRig& R = sk.derived[side];
+        R.forearmAxis = normalize(sk.bindLocalPos[right ? B_HAND_R : B_HAND_L]);
+        vec3 fing = normalize(sk.bindLocalPos[right ? B_FINGERS_R : B_FINGERS_L]);
         vec3 pn = normalize(right ? cross(Y, fing) : cross(fing, Y));
-        float c = twistAbout(pose.rot[fb], normalize(cross(fing, pn))) * (1.f / 1.45f);
-        vec3 td = normalize(fing * 0.62f + Y * 0.66f + pn * 0.42f);
-        float ct = Saturate(twistAbout(pose.rot[tb], normalize(cross(td, pn))) * (1.f / 0.9f));
+        R.fingerCtlAxis = normalize(cross(fing, pn));
+        R.thumbCtlAxis = normalize(cross(normalize(fing * 0.62f + Y * 0.66f + pn * 0.42f), pn));
         for (int f = 0; f < 4; f++) {
-            const int b0 = phalanxBone(right, f, 0);
-            vec3 d1 = normalize(sk.bindLocalPos[b0 + 1]);
+            vec3 d1 = normalize(sk.bindLocalPos[phalanxBone(right, f, 1)]);
             vec3 ax = normalize(cross(d1, pn));
             float lean = (right ? 1.f : -1.f) * kLean[f];
-            vec3 u = normalize(ax * cosf(lean) + d1 * sinf(lean));
-            float mcp = keyed(kC, kFlex[f][0], 4, Max(c, -0.3f));
-            float pip = keyed(kC, kFlex[f][1], 4, Max(c, -0.04f));
-            float dip = keyed(kC, kFlex[f][2], 4, Max(c, -0.04f));
-            out[b0 - B_FIRST_DERIVED] = qaa(u, mcp);
-            out[b0 + 1 - B_FIRST_DERIVED] = qaa(u, pip);
-            out[b0 + 2 - B_FIRST_DERIVED] = qaa(u, dip);
+            R.flexAxis[f] = normalize(ax * cosf(lean) + d1 * sinf(lean));
         }
-        // thumb: interpolate the key directions, then turn each bone (after its parents' rotations) onto them
         const int t0 = phalanxBone(right, 4, 0);
         vec3 bm = normalize(sk.bindLocalPos[t0 + 1]), b1 = normalize(sk.bindLocalPos[t0 + 2]);
         vec3 b2 = rotate(qaa(normalize(cross(b1, thumbPadDir(pn))), kThumbRestIP), b1);
-        int k = ct < kCt[1] ? 0 : (ct < kCt[2] ? 1 : 2);
-        float w = Saturate((ct - kCt[k]) / (kCt[k + 1] - kCt[k]));
-        auto keyDir = [&](const float (*tab)[3], vec3 rest) {
-            vec3 a = fing * tab[k][0] + Y * tab[k][1] + pn * tab[k][2], b = fing * tab[k + 1][0] + Y * tab[k + 1][1] + pn * tab[k + 1][2];
-            return normalize(lerp(length2(a) > 1e-8f ? normalize(a) : rest, length2(b) > 1e-8f ? normalize(b) : rest, w));
-        };
-        quat qM = quatFromTo(bm, keyDir(kTM, bm));
-        quat l1 = normalize(conj(qM) * quatFromTo(rotate(qM, b1), keyDir(kT1, b1)) * qM);
+        const vec3 bind[3] = {bm, b1, b2};
+        for (int j = 0; j < 3; j++)
+            for (int k = 0; k < 4; k++) {
+                vec3 v = fing * kTab[j][k][0] + Y * kTab[j][k][1] + pn * kTab[j][k][2];
+                R.thumbKey[j][k] = length2(v) > 1e-8f ? normalize(v) : bind[j];
+            }
+    }
+}
+
+// Local rotations of the derived bones, out[b - B_FIRST_DERIVED].
+static void derivedLocals(const Skeleton& sk, const Pose& pose, quat* out) {
+    for (int side = 0; side < 2; side++) {
+        const bool right = side == 1;
+        const Skeleton::DerivedRig& R = sk.derived[side];
+        const int hb = right ? B_HAND_R : B_HAND_L;
+        out[(right ? B_FOREARM_ROLL_R : B_FOREARM_ROLL_L) - B_FIRST_DERIVED] =
+            qaa(R.forearmAxis, 0.5f * twistAbout(pose.rot[hb], R.forearmAxis));
+        float c = twistAbout(pose.rot[right ? B_FINGERS_R : B_FINGERS_L], R.fingerCtlAxis) * (1.f / 1.45f);
+        float ct = Saturate(twistAbout(pose.rot[right ? B_THUMB_R : B_THUMB_L], R.thumbCtlAxis) * (1.f / 0.9f));
+        for (int f = 0; f < 4; f++) {
+            const int b0 = phalanxBone(right, f, 0) - B_FIRST_DERIVED;
+            out[b0] = qaa(R.flexAxis[f], keyed(kCurlKeys, kFingerFlex[f][0], 4, Max(c, -0.3f)));
+            out[b0 + 1] = qaa(R.flexAxis[f], keyed(kCurlKeys, kFingerFlex[f][1], 4, Max(c, -0.04f)));
+            out[b0 + 2] = qaa(R.flexAxis[f], keyed(kCurlKeys, kFingerFlex[f][2], 4, Max(c, -0.04f)));
+        }
+        // thumb: interpolate the key directions, then turn each bone (after its parents' rotations) onto them
+        int k = ct < kThumbKeys[1] ? 0 : (ct < kThumbKeys[2] ? 1 : 2);
+        float w = Saturate((ct - kThumbKeys[k]) / (kThumbKeys[k + 1] - kThumbKeys[k]));
+        vec3 d[3];
+        for (int j = 0; j < 3; j++) d[j] = normalize(lerp(R.thumbKey[j][k], R.thumbKey[j][k + 1], w));
+        quat qM = quatFromTo(R.thumbKey[0][0], d[0]);
+        quat l1 = normalize(conj(qM) * quatFromTo(rotate(qM, R.thumbKey[1][0]), d[1]) * qM);
         quat q12 = normalize(qM * l1);
-        quat l2 = normalize(conj(q12) * quatFromTo(rotate(q12, b2), keyDir(kT2, b2)) * q12);
-        out[t0 - B_FIRST_DERIVED] = qM;
-        out[t0 + 1 - B_FIRST_DERIVED] = l1;
-        out[t0 + 2 - B_FIRST_DERIVED] = l2;
+        quat l2 = normalize(conj(q12) * quatFromTo(rotate(q12, R.thumbKey[2][0]), d[2]) * q12);
+        const int t0 = phalanxBone(right, 4, 0) - B_FIRST_DERIVED;
+        out[t0] = qM;
+        out[t0 + 1] = l1;
+        out[t0 + 2] = l2;
     }
 }
 
@@ -136,11 +152,6 @@ void boneModel(const Skeleton& sk, const Pose& pose, int bone, quat& q, vec3& t)
     }
 }
 
-static FORCEINLINE mat4 matFromQT(quat q, vec3 t) {
-    mat3 r = mat3FromQuat(q);
-    return mat4(vec4(r.c[0], 0), vec4(r.c[1], 0), vec4(r.c[2], 0), vec4(t, 1));
-}
-
 }  // namespace detail
 
 void computeMatrices(const Skeleton& skel, const Pose& pose, mat4* modelSpace, mat4* skinning) {
@@ -160,7 +171,8 @@ void computeMatrices(const Skeleton& skel, const Pose& pose, mat4* modelSpace, m
             mt[b] = lp;
             mq[b] = normalize(lr);
         }
-        mat4 m = detail::matFromQT(mq[b], mt[b]);
+        mat3 r = mat3FromQuat(mq[b]);
+        mat4 m(vec4(r.c[0], 0), vec4(r.c[1], 0), vec4(r.c[2], 0), vec4(mt[b], 1));
         if (modelSpace) modelSpace[b] = m;
         if (skinning) skinning[b] = m * skel.invBindModel[b];
     }

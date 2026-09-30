@@ -915,8 +915,10 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
             {
                 vec3 l0 = sectionPoint(a, -hw) - o3, r0 = sectionPoint(a, hw) - o3;
                 vec3 l1 = sectionPoint(b, -hw) - o3, r1 = sectionPoint(b, hw) - o3;
-                // uv: u across (meters from left), v along (meters)
-                out.road.quadFacing(r0, r1, l1, l0, vec2(2 * hw, a.s), vec2(2 * hw, b.s), vec2(0, b.s), vec2(0, a.s), white, surf, vec3(0, 0, 1));
+                // uv: u across (meters from left), v along (meters); colour alpha = carriageway width / 64 m, so
+                // the terrain shader can place the right-hand kerb's drains and gutter grime at u = 2 hw
+                u32 surfCol = packRGBA8(1.f, 1.f, 1.f, Saturate(hw * (2.f / 64.f)));
+                out.road.quadFacing(r0, r1, l1, l0, vec2(2 * hw, a.s), vec2(2 * hw, b.s), vec2(0, b.s), vec2(0, a.s), surfCol, surf, vec3(0, 0, 1));
             }
             // ---------- sides: sidewalks+curbs, or shoulders/skirts, or bridge barriers
             for (int side = -1; side <= 1; side += 2) {

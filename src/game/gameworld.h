@@ -222,6 +222,7 @@ struct GameWorld {
     bool fpWeaponUsable(const Ped& p) const;
     bool fpWeaponMuzzle(dvec3& out) const;
     void updateFirstPersonWeapon(float dt);
+    void updateCameraFades(float realDt);   // camera.cpp: peds covering the player / touching the lens dither out
     bool weaponShowcase = false;   // test: a rack of every gun (stock / all components + tints) at showcasePos
     dvec3 showcasePos;
     void submitWeaponShowcase();

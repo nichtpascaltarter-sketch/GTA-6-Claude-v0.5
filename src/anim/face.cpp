@@ -607,6 +607,15 @@ void buildHeadGrid(BuildCtx& c) {
             if (j <= H.rowMouthLo) jawW = Max(jawW, front * sstep(80.f * deg, 30.f * deg, ath));
             jawW *= sstep(-0.02f, 0.03f, hp.y);   // towards the ear the jaw influence fades
             if (j <= 2) jawW *= 0.6f;
+            {
+                // the commissures stay closed when the jaw drops: towards the mouth corners both sides of the slit
+                // meet at half the jaw's weight, so the opening is lens shaped instead of splitting past the lips
+                float uc = ath / Max(L.thMC, 1e-3f);
+                float nearSlit = j < H.rowMouthHi ? 1.f - sstep(0.f, 2.5f, (float)(H.rowMouthLo - j)) : 1.f - sstep(0.f, 2.5f, (float)(j - H.rowMouthHi));
+                float ck = sstep(0.68f, 1.02f, uc) * (1.f - sstep(1.3f, 1.8f, uc)) * nearSlit * front;
+                if (j < H.rowMouthHi) jawW = Lerp(jawW, 0.5f * jawW, ck);
+                else jawW = Max(jawW, 0.5f * ck);
+            }
             WAcc acc;
             acc.add(B_JAW, jawW);
             acc.add(B_HEAD, 1.f - jawW);
@@ -1317,8 +1326,9 @@ static void addMouth(BuildCtx& c) {
     }
     // cavity: half ellipsoid facing inwards (wide enough to back the mouth corners when they spread)
     {
-        vec3 cen = headToModel(c, vec3(0, 0.08f, -0.02f));
-        vec3 rr = vec3(0.031f, 0.03f, 0.016f) * hs;
+        // its front rim sits back inside the cheeks (it must not show past the lip corners)
+        vec3 cen = headToModel(c, vec3(0, 0.078f, -0.02f));
+        vec3 rr = vec3(0.032f, 0.031f, 0.016f) * hs;
         const int NU = 10, NV = 6;
         std::vector<u32> g((NU + 1) * (NV + 1));
         for (int i = 0; i <= NU; i++)
@@ -1345,36 +1355,47 @@ static void addMouth(BuildCtx& c) {
                 triFacing(m, a, cc, d, normalize(cen - m.v[a].p));
             }
     }
-    // teeth: upper and lower arch strips
+    // teeth: upper and lower arch strips with individual crowns (incisors ~8 mm, then narrower towards the canines and
+    // premolars): a rounded incisal edge per tooth, the labial face bulging between the gaps, darker interproximal lines
+    // and the gum margin in pink
     for (int row = 0; row < 2; row++) {
-        const int NU = 24;
-        std::vector<u32> top, bot;
-        float z0 = row == 0 ? -0.0105f : -0.0285f, z1 = row == 0 ? -0.0198f : -0.0205f;
+        const int NU = 40;
+        const float up = row == 0 ? 1.f : -1.f;
+        std::vector<u32> gum, top, bot;
+        float zRoot = row == 0 ? -0.0105f : -0.0285f, zEdge = row == 0 ? -0.0198f : -0.0205f;
+        const vec3 gumCol = lerp(c.lipCol, vec3(0.62f, 0.3f, 0.3f), 0.6f);
         for (int i = 0; i <= NU; i++) {
             float u = (float)i / NU * 2.f - 1.f;
+            float au = fabsf(u);
+            float tp = row == 0 ? (au < 0.4f ? au / 0.4f * 2.f : 2.f + (au - 0.4f) / 0.6f * 3.f) : au * 5.f;   // tooth index
+            float ft = tp - floorf(tp);                       // 0 / 1 at a gap .. 0.5 mid-tooth
+            float mid = sinf(kPi * ft);                       // 0 at the gaps, 1 mid-tooth
             float x = u * 0.02f;
-            float y = 0.0905f - 0.018f * u * u;
-            for (int e = 0; e < 2; e++) {
+            float y = 0.0905f - 0.018f * u * u + 0.00035f * mid;   // labial bulge of each crown
+            // the incisal edge is straight across each crown and rounds off at its corners
+            float edge = zEdge + up * 0.0005f * (1.f - sstep(0.f, 0.24f, Min(ft, 1.f - ft)));
+            vec3 nrm = normalize(vec3(u * 0.8f + 0.25f * cosf(kPi * ft) * (u < 0.f ? -1.f : 1.f), 1.f, 0.f));
+            float tint = 1.f + 0.05f * (hashToFloat(hash32((u32)floorf(tp) * 977u + (u32)row * 31u + (u < 0.f ? 7u : 0u))) - 0.5f);
+            vec3 toothCol = vec3(0.68f, 0.65f, 0.56f) * (1.f - 0.4f * au) * (row == 0 ? 1.f : 0.85f) * tint *
+                            (0.66f + 0.34f * sstep(0.f, 0.3f, mid));
+            for (int e = 0; e < 3; e++) {
                 BVert v;
-                v.p = headToModel(c, vec3(x, y, e == 0 ? z0 : z1));
-                v.n = normalize(vec3(u * 0.8f, 1.f, 0.f));
-                // tooth boundaries along the arch (incisors ~8 mm, then narrower towards the canines)
-                float au = fabsf(u);
-                float tp = row == 0 ? (au < 0.4f ? au / 0.4f * 2.f : 2.f + (au - 0.4f) / 0.6f * 3.f)
-                                    : au / 1.f * 5.f;
-                float gapT = fabsf(tp - floorf(tp + 0.5f));   // 0 at a boundary .. 0.5 mid-tooth
-                float gapShade = 0.68f + 0.32f * sstep(0.f, 0.22f, gapT);
-                v.col = vec3(0.66f, 0.63f, 0.55f) * (1.f - 0.4f * au) * (row == 0 ? 1.f : 0.85f) * gapShade;
-                v.mat = MAT_EYE;
+                float z = e == 0 ? zRoot + up * 0.0025f : (e == 1 ? zRoot : edge);
+                v.p = headToModel(c, vec3(x, y - (e == 0 ? 0.0006f : 0.f), z));
+                v.n = nrm;
+                v.col = e == 0 ? gumCol : (e == 1 ? lerp(toothCol, gumCol, 0.25f) : toothCol * 0.97f);
+                v.mat = e == 0 ? MAT_SKIN : MAT_EYE;
                 v.part = PART_MOUTH;
                 v.sw = skin1(row == 0 ? B_HEAD : B_JAW);
-                (e == 0 ? top : bot).push_back(m.add(v));
+                (e == 0 ? gum : (e == 1 ? top : bot)).push_back(m.add(v));
             }
         }
         for (int i = 0; i < NU; i++) {
             vec3 f = m.v[top[i]].n;
             triFacing(m, top[i], top[i + 1], bot[i + 1], f);
             triFacing(m, top[i], bot[i + 1], bot[i], f);
+            triFacing(m, gum[i], gum[i + 1], top[i + 1], f);
+            triFacing(m, gum[i], top[i + 1], top[i], f);
         }
     }
     // tongue: a domed blade on the floor of the mouth (tip just behind the lower incisors, below their edge), on
@@ -1440,6 +1461,10 @@ static float paintSkinDetail(BuildCtx& c) {
     const float orbAmt = Lerp(0.8f, 0.55f, fair) * r.range(0.7f, 1.2f) * (0.8f + 0.5f * D.age);
     const float freckles = (fair > 0.55f && d.age < 0.5f && r.chance(0.28f)) ? r.range(0.35f, 1.f) : 0.f;
     const float ageSpots = (fair > 0.3f && d.age > 0.55f && r.chance(0.55f)) ? sstep(0.55f, 0.95f, d.age) * r.range(0.5f, 1.f) : 0.f;
+    // fold darkening (separate stream: the draws above keep their values)
+    Rng rf(hash32(d.seed * 0x632BE5ABu + 0x9u));
+    const float foldNL = (0.12f + 0.4f * sstep(0.2f, 0.9f, d.age) + 0.12f * Saturate(D.weight - 0.5f)) * rf.range(0.7f, 1.2f);
+    const float foldMar = 0.45f * sstep(0.5f, 0.95f, d.age) * rf.range(0.6f, 1.2f);
     const vec3 red(1.1f, 0.84f, 0.82f);
     const vec3 warm = vec3(1.05f, 0.95f, 0.9f);
     const u32 seed = hash32(d.seed * 131u + 71u);
@@ -1498,6 +1523,25 @@ static float paintSkinDetail(BuildCtx& c) {
                 orb = Max(orb, ring * (0.45f + 0.35f * below + 0.35f * inner));
             }
             if (orb > 0.f) col = lerp(col, mulColor(col, Lerp(1.f, 0.72f, orbAmt) * lerp(vec3(0.93f, 0.9f, 0.96f), vec3(1.f), 1.f - fair)), Saturate(orb));
+            // folds that must read at conversation distance (the shader's crease channel only resolves up close): the
+            // nasolabial fold from beside the nose wing to beside the mouth corner (faint on the young, deep with
+            // age) and, later in life, the marionette lines down from the corners
+            if (hp.y > 0.05f) {
+                auto segD = [&](vec3 a, vec3 b) {
+                    vec3 ab = b - a;
+                    float t = Saturate(dot(hp - a, ab) / Max(dot(ab, ab), 1e-10f));
+                    return length(hp - (a + ab * t));
+                };
+                float fold = 0.f;
+                for (int sd = 0; sd < 2; sd++) {
+                    float sx = sd ? 1.f : -1.f;
+                    vec3 nlA = Lm.ala[sd] + vec3(sx * 0.0045f, -0.004f, 0.001f), nlB = Lm.mouthCorner[sd] + vec3(sx * 0.0065f, -0.004f, -0.005f);
+                    fold = Max(fold, foldNL * expf(-Sq(segD(nlA, nlB) / 0.0022f)));
+                    vec3 mA = Lm.mouthCorner[sd] + vec3(sx * 0.0015f, -0.002f, -0.003f), mB = Lm.mouthCorner[sd] + vec3(sx * 0.0045f, -0.005f, -0.021f);
+                    fold = Max(fold, foldMar * expf(-Sq(segD(mA, mB) / 0.0018f)));
+                }
+                if (fold > 0.f) col = lerp(col, mulColor(col, vec3(0.84f, 0.78f, 0.78f)), Saturate(fold));
+            }
             // vermilion: the lip rows already carry lipCol; darken the corners and the wet line a touch
             if (v.flags & BuildCtx::F_LIP) {
                 float at = v.pa > kPi ? kTwoPi - v.pa : v.pa;

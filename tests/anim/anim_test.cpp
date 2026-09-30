@@ -565,6 +565,46 @@ void testMelee() {
 }
 
 // Visemes move the lips: 'aa' opens the mouth, 'U' pushes the lips forward and narrows the corners, 'PP' closes.
+// Derived bones: the forearm roll carries exactly half of the hand's twist about the forearm axis (the rule holdGrip
+// relies on), and a closed fist brings every fingertip back to the palm side of the knuckles.
+void testDerivedBones() {
+    CharacterDesc d = randomCharacter(77, 0);
+    Skeleton sk;
+    buildSkeleton(d, sk);
+    for (int side = 0; side < 2; side++) {
+        const bool right = side == 1;
+        const int fa = right ? B_FOREARM_R : B_FOREARM_L, hb = right ? B_HAND_R : B_HAND_L, rb = right ? B_FOREARM_ROLL_R : B_FOREARM_ROLL_L;
+        vec3 ax = normalize(sk.bindLocalPos[hb]);
+        vec3 fing = normalize(sk.bindLocalPos[right ? B_FINGERS_R : B_FINGERS_L]);
+        vec3 pn = normalize(right ? cross(vec3(0, 1, 0), fing) : cross(fing, vec3(0, 1, 0)));
+        Pose p;
+        for (int b = 0; b < B_COUNT; b++) p.rot[b] = quat();
+        p.rootOffset = vec3(0);
+        const float twist = 1.3f;
+        p.rot[hb] = quatAxisAngle(ax, twist) * quatAxisAngle(normalize(cross(ax, pn)), 0.4f);
+        p.rot[right ? B_FINGERS_R : B_FINGERS_L] = quatAxisAngle(normalize(cross(fing, pn)), 1.45f);
+        mat4 m[B_COUNT];
+        computeMatrices(sk, p, m, nullptr);
+        mat3 rf(m[fa].c[0].xyz(), m[fa].c[1].xyz(), m[fa].c[2].xyz()), rr(m[rb].c[0].xyz(), m[rb].c[1].xyz(), m[rb].c[2].xyz());
+        quat local = normalize(conj(quatFromMat3(rf)) * quatFromMat3(rr));
+        float p2 = local.x * ax.x + local.y * ax.y + local.z * ax.z;
+        float got = 2.f * atan2f(local.w < 0.f ? -p2 : p2, fabsf(local.w));
+        CHECK(fabsf(got - 0.5f * twist) < 0.01f, "forearm roll twist %.3f, expected %.3f", got, 0.5f * twist);
+        // fist: each fingertip (the distal bone's far end) ends up behind the knuckle line, on the palm side
+        mat3 rh(m[hb].c[0].xyz(), m[hb].c[1].xyz(), m[hb].c[2].xyz());
+        vec3 F = rh * fing, P = rh * pn, W = m[hb].c[3].xyz();
+        for (int f = 0; f < 4; f++) {
+            int b3 = phalanxBone(right, f, 2);
+            mat3 r3(m[b3].c[0].xyz(), m[b3].c[1].xyz(), m[b3].c[2].xyz());
+            vec3 tip = m[b3].c[3].xyz() + r3 * (normalize(sk.bindLocalPos[b3]) * sk.boneLength[b3]);
+            float along = dot(tip - W, F), palmSide = dot(tip - W, P);
+            CHECK(along < length(sk.bindLocalPos[right ? B_FINGERS_R : B_FINGERS_L]) && palmSide > 0.f,
+                  "fist: finger %d tip at %.3f along / %.3f palm side", f, along, palmSide);
+        }
+    }
+    printf("derived bones: forearm roll = half the hand twist, fists close\n");
+}
+
 void testVisemes() {
     CharacterDesc d = randomCharacter(4242u, 0);
     Skeleton sk;
@@ -621,6 +661,7 @@ int main() {
     testDriving();
     testMelee();
     testVisemes();
+    testDerivedBones();
     testLods();
     testMesh();
     printf("%s (%d failures)\n", gFail ? "FAILED" : "ALL PASSED", gFail);

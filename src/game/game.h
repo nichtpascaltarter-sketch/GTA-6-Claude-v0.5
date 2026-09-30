@@ -177,6 +177,7 @@ struct Ped {
     bool hasParachute = false;
     float chuteOpen = 0.f;        // 0 closed .. 1 fully deployed (moveMode 4)
     float visibleDist = 0.f;      // distance to camera (LOD)
+    float camFade = 1.f;          // dithered out while standing between the camera and the player (updateCameraFades)
     bool shadow = true;
     // melee (melee.cpp): current move with wind-up / contact / recovery, combos, blocking, dodging, staggers
     int meleeMove = -1;           // MeleeMoveId in progress, -1 none

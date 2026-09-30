@@ -65,7 +65,7 @@ public:
         vec3 rp = pedPos(g, rook), kp = pedPos(g, kit), mp = pedPos(g, mari), dp = playerPos(g);
         for (int p : {rook, kit, jonah, mari}) facePed(g, p, dp);
         std::vector<CutsceneShot> shots;
-        if (inside) shots.push_back(shotRoom(in, vec3(liftL.x + (liftL.x > (in.d->x0 + in.d->x1) * 0.5f ? -5.f : 5.f), liftL.y - 7.5f, 2.6f), rp, kp, 5.5f));
+        if (inside) shots.push_back(shotRoom(in, vec3(liftL.x + (liftL.x > (in.d->x0 + in.d->x1) * 0.5f ? -5.f : 5.f), 1.1f, 2.6f), rp, kp, 5.5f));   // front corner
         else shots.push_back(shotArc(rp, 9.f, 2.5f, 0.2f, 1.1f, 6.f));
         shots.push_back(shotTwo(kp, dp, 7.f));
         shots.push_back(shotTwo(rp, dp, 6.f, 4.5f, 42.f, -1.f));
@@ -543,7 +543,7 @@ public:
         facePed(g, rook, dp);
         facePed(g, mari, rp);
         std::vector<CutsceneShot> shots;
-        if (inside) shots.push_back(shotRoom(in, vec3(liftL.x + (liftL.x > (in.d->x0 + in.d->x1) * 0.5f ? -4.5f : 4.5f), liftL.y - 7.f, 2.4f), rp, dp, 4.5f));
+        if (inside) shots.push_back(shotRoom(in, vec3(liftL.x + (liftL.x > (in.d->x0 + in.d->x1) * 0.5f ? -4.5f : 4.5f), 1.1f, 2.4f), rp, dp, 4.5f));   // front corner
         else establish(g, shots, rp, P.rookShop.yaw, 34.f, 14.f, 4.f);
         shots.push_back(shotTwo(rp, dp, 7.f));
         shots.push_back(shotTwo(mp, dp, 6.f, 4.f, 42.f, -1.f));
@@ -855,6 +855,11 @@ public:
                 if (t.stageTime > 0.3f && vehicle >= 0 && g.playerVehicle() != vehicle) {
                     t.enter(vehicle);
                     if (mari >= 0) g.warpPedIntoVehicle(mari, vehicle, 1);
+                }
+                // the scripted drive hops through traffic: keep the van in one piece (the test checks the heist, not the driving)
+                if (vehicleAlive(g, vehicle)) {
+                    g.vehicles[vehicle].sim.health = Max(g.vehicles[vehicle].sim.health, 700.f);
+                    g.vehicles[vehicle].sim.engineHealth = Max(g.vehicles[vehicle].sim.engineHealth, 700.f);
                 }
                 testGoal(g, t, dt, 70.f);
                 break;

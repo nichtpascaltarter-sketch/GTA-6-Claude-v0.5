@@ -451,6 +451,7 @@ void buildSkeleton(const CharacterDesc& d, Skeleton& out) {
     out.boneRadius[B_JAW] = 0.045f * hs;
     out.boneRadius[B_EYE_L] = out.boneRadius[B_EYE_R] = 0.012f * hs;
     for (int b = B_LIP_UPPER; b <= B_BROW_R; b++) out.boneRadius[b] = 0.008f * hs;
+    initDerivedRig(out);
 }
 
 }  // namespace Anim

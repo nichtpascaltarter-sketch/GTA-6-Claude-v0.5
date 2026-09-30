@@ -111,6 +111,9 @@ void tsLoadCells(Phys::CollisionWorld& cw, vec2 c, float r) {
 #include "../src/sim/vehicle_models.h"
 #include "../src/sim/vehicle_sim.h"
 #include "../src/sim/waves.h"
+#if __has_include("../src/world/sites.h")
+#include "../src/world/sites.h"
+#endif
 void tsLoadCells(Phys::CollisionWorld& cw, vec2 c, float r);
 #endif
 #include "../src/game/lanes.cpp"
@@ -1363,6 +1366,27 @@ int main(int argc, char** argv) {
             }
             printf("dead ends: %d\n", total);
             if (all) i++;
+            continue;
+        }
+        if (!strcmp(argv[i], "--sites") && i + 3 < argc) {
+            // site elements near a point (venue anchors for the population: gates, terminals, docks, ramps)
+            vec2 p((float)atof(argv[i + 1]), (float)atof(argv[i + 2]));
+            float r = (float)atof(argv[i + 3]);
+            i += 3;
+            if (World::gSites)
+                for (size_t k = 0; k < World::gSites->elems.size(); k++) {
+                    const World::SiteElem& e = World::gSites->elems[k];
+                    if (length(e.c - p) > r) continue;
+                    printf("elem %zu kind %d var %d c (%.1f %.1f) ax (%.2f %.2f) hx %.1f hy %.1f z %.1f h %.1f text '%s' p %.1f %.1f %.1f %.1f\n", k, e.kind, e.variant, e.c.x, e.c.y,
+                           e.ax.x, e.ax.y, e.hx, e.hy, e.z, e.h, e.text.c_str(), e.p[0], e.p[1], e.p[2], e.p[3]);
+                }
+            std::vector<int> cand;
+            w.roads.edgesInRect(p - vec2(r), p + vec2(r), cand);
+            for (int ei : cand) {
+                const World::RoadEdge& e = w.roads.edges[ei];
+                printf("edge %d cls %d n0 %d (%.0f %.0f) n1 %d (%.0f %.0f) len %.0f hw %.1f sw %.1f lanes %d/%d flags %d\n", ei, e.cls, e.n0, w.roads.nodes[e.n0].p.x, w.roads.nodes[e.n0].p.y, e.n1,
+                       w.roads.nodes[e.n1].p.x, w.roads.nodes[e.n1].p.y, e.length, e.halfWidth, e.sidewalk, e.lanesF, e.lanesB, e.flags);
+            }
             continue;
         }
         if (!strcmp(argv[i], "--ramps")) {

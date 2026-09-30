@@ -85,6 +85,10 @@ struct Ambience {
     float wind = 0.2f;       // 0..1
     float timeOfDay = 12.f;  // hours 0..24
     float underwater = 0.f;  // 0/1
+    // District character (0..1 each; all 0 keeps the generic beds above):
+    float downtown = 0.f;    // high-rise core: traffic roar, building HVAC hum, far sirens, helicopters, construction by day
+    float port = 0.f;        // docks / container terminal: generator drone, cranes, containers, reverse beepers, ship horns
+    float traffic = -1.f;    // road traffic near the listener (e.g. cars within 80 m / 15); -1 = follow `urban`
 };
 
 struct VoiceParams {
@@ -176,6 +180,10 @@ void setRadioInterior(float amount);  // 1 = inside the car cabin (full), 0 = he
 SoundHandle speak(const char* text, const VoiceParams& voice, float volume = 1.f);
 SoundHandle speakAt(const char* text, const VoiceParams& voice, vec3 pos, float volume = 1.f);
 float estimateSpeechDuration(const char* text, const VoiceParams& voice);
+
+// Thunder from a lightning strike `distance` metres away. The caller delays it like the flash (distance / 343 m/s);
+// close strikes tear and crack before the boom, 1-3 km boom and roll, farther ones only rumble.
+void playThunder(float distance, float volume = 1.f);
 
 // Score: dynamic mission music (intensity 0 = off .. 1 = full action), mood seed per mission.
 void setScore(int moodSeed, float intensity);

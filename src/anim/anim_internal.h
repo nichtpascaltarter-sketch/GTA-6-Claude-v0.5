@@ -130,6 +130,8 @@ struct BodyDims {
     int ancestry;           // resolved CharacterDesc::ancestry (0..4)
 };
 void computeDims(const CharacterDesc& d, BodyDims& D);
+// Constants of the derived bones (Skeleton::derived) from the bind skeleton (pose.cpp; buildSkeleton calls it).
+void initDerivedRig(Skeleton& sk);
 // Face height (head space, unscaled): points on the face below the eye line move away from / towards it by
 // BodyDims::faceH and the mouth region shifts with the philtrum length; the eyes, the back of the head, the ears and the
 // neck stay. Applied to everything placed on the face in head space (face.cpp's headToModel, the speech bones).

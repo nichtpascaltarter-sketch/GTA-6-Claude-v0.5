@@ -614,6 +614,36 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
             offs.push_back(off);
         }
     };
+    // an on/off-ramp meets the motorway on the motorway's centre line, its taper crossing the outer lanes: the ramp's lane
+    // ends (starts) where its line clears the motorway's lanes, so the merge (diverge) connector runs down the taper
+    // alongside the outer lane - instead of ramp traffic stopping to give way inside the lanes it is about to join
+    auto rampClearCut = [&](const World::RoadEdge& e, int end, int ni) -> float {
+        float clear = 0.f;
+        std::vector<int> hwys;
+        for (int oe : rn.nodes[ni].edges) {
+            const World::RoadEdge& o = rn.edges[oe];
+            if (o.cls != World::RC_HIGHWAY) continue;
+            const World::RoadClassInfo& oi = World::roadInfo(o.cls);
+            float laneStart = o.lanesF > 0 && o.lanesB > 0 && oi.median > 0.f ? oi.median * 0.5f : 0.f;
+            clear = Max(clear, laneStart + (float)Max(o.lanesF, o.lanesB) * oi.laneWidth);
+            hwys.push_back(oe);
+        }
+        if (hwys.empty()) return 0.f;
+        clear += World::roadInfo(e.cls).laneWidth * 0.5f + 0.3f;
+        for (float s = 0.f; s < e.length * 0.6f; s += 1.f) {
+            vec2 p = e.posAt(end == 0 ? s : e.length - s).xy();
+            float dmin = 1e9f;
+            for (int oe : hwys) {
+                const World::RoadEdge& o = rn.edges[oe];
+                for (size_t k = 0; k + 1 < o.pts.size(); k++) {
+                    float t;
+                    dmin = Min(dmin, distPointSegment2D(p, o.pts[k].xy(), o.pts[k + 1].xy(), &t));
+                }
+            }
+            if (dmin >= clear) return s;
+        }
+        return e.length * 0.6f;
+    };
     for (int ei = 0; ei < NE; ei++) {
         const World::RoadEdge& e = rn.edges[ei];
         for (int end = 0; end < 2; end++) {
@@ -623,6 +653,7 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
             int deg = degree[ni];
             if (deg >= 3 && rnode.radius > 0.f) {
                 laneCut[ei * 2 + end] = cut;
+                if (e.cls == World::RC_RAMP) laneCut[ei * 2 + end] = Max(cut, rampClearCut(e, end, ni));
             } else if (deg == 1) {
                 laneCut[ei * 2 + end] = Min(9.f, e.length * 0.3f);
             } else if (deg == 2) {
@@ -900,6 +931,17 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
             float ang;
         };
         std::vector<Move> moves;
+        // where a ramp meets the motorway (merge / diverge): only the movements along the carriageway - nothing turns
+        // across the other carriageway's lanes and the median barrier
+        bool interchange = false;
+        {
+            int nh = 0, nr = 0;
+            for (const Approach& A : N.approaches) {
+                nh += rn.edges[A.edge].cls == World::RC_HIGHWAY;
+                nr += rn.edges[A.edge].cls == World::RC_RAMP;
+            }
+            interchange = nh > 0 && nr > 0;
+        }
         for (int ai = 0; ai < na; ai++) {
             const Approach& A = N.approaches[ai];
             if (A.inLanes.empty()) continue;
@@ -915,6 +957,10 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                 else if (fabsf(ang) > 155.f * kDegToRad) continue;  // U-turn through an intersection: not allowed
                 else if (ang > 35.f * kDegToRad) turn = TK_LEFT;
                 else if (ang < -35.f * kDegToRad) turn = TK_RIGHT;
+                if (interchange) {
+                    if (fabsf(ang) > 60.f * kDegToRad) continue;
+                    turn = TK_STRAIGHT;   // (a taper at up to 60 degrees is still a merge or a diverge)
+                }
                 if (N.gradeSeparated && turn != TK_STRAIGHT) continue;
                 moves.push_back({ai, aj, turn, ang});
             }

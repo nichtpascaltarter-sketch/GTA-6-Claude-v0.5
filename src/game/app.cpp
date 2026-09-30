@@ -73,6 +73,7 @@ struct App {
     float tourT = 0.f;
     bool tourShot = false, tourDone = false;
     int meleeVictim = -1;        // --autoplay melee: the civilian for the takedown
+    int fadePed = -1;            // --autoplay camfade: the pedestrian placed around the camera
     int renderEvery = 1;         // --renderevery N: automated runs render every Nth gameplay frame (+ screenshot frames)
     float skippedDt = 0.f;       // game time since the last rendered frame
     int frameCap = 0;            // Settings: frame-rate cap (0 = unlimited)
@@ -457,6 +458,22 @@ struct App {
             autoDuration = 1e9f;   // ends after the results screen
             weather.locked = true;
         }
+        if (autoplay == "camfade") {
+            // a pedestrian held across the line of sight at several distances, beside the player and in front of the
+            // first-person eyes (auto_camfade_NN_name.bmp)
+            mu::setFlag(game, mu::EX_INTRO_DONE, 1);
+            pl->invincible = true;
+            tourStop = -1;
+            tourT = 0.f;
+            tourShot = tourDone = false;
+            autoDuration = 1e9f;
+            vec3 pp = pl->pos.toVec3();
+            fadePed = game.spawnPed(game.randomCivilianChar(0x6a11u, 0), dvec3(pp.x + 3.f, pp.y, pp.z), pl->yaw, FAC_CIVILIAN);
+            if (fadePed >= 0) {
+                game.peds[fadePed].persistent = true;
+                game.peds[fadePed].brain.type = BRAIN_NONE;
+            }
+        }
         if (autoplay == "tour") {
             mu::setFlag(game, mu::EX_INTRO_DONE, 1);   // no prologue phone call: free roam only
             tourStop = -1;
@@ -484,7 +501,7 @@ struct App {
             }
         }
         if (autoplay == "crowd" || autoplay == "panic" || autoplay == "chase" || autoplay == "rage" || autoplay == "soak" || autoplay == "parking" ||
-            autoplay == "bender") {
+            autoplay == "bender" || autoplay == "hwysoak") {
             // AI scenario tests: crowd variety at four places and hours / gunfire panic -> police response -> arrest /
             // night car chase at 4 stars (PIT, boxing, roadblocks, helicopter searchlight) / rear-ending a bold driver
             mu::setFlag(game, mu::EX_INTRO_DONE, 1);
@@ -602,8 +619,8 @@ struct App {
             } else {
                 // the player's car on a long straight lane: chase = sports car at night, rage = sedan with a bold
                 // driver stopped 22 m ahead in the same lane
-                bool chase = autoplay == "chase", soak = autoplay == "soak";
-                vec2 q = chase || soak ? vec2(2640.f, 700.f) : vec2(2713.f, 763.f);
+                bool chase = autoplay == "chase", hwy = autoplay == "hwysoak", soak = autoplay == "soak" || hwy;
+                vec2 q = hwy ? vec2(2342.f, 1143.f) : (chase || soak ? vec2(2640.f, 700.f) : vec2(2713.f, 763.f));
                 int lane = -1;
                 float u = 0.f;
                 for (int k = 0; k < 60 && lane < 0; k++) {
@@ -1043,9 +1060,10 @@ struct App {
                 }
                 LOG("autoplay rage t=%.1f npc: %s | ahead: %s | %s", t, npcTxt.c_str(), ahead.c_str(), game.aiCensusText(40.f).c_str());
             }
-        } else if (autoplay == "soak") {
+        } else if (autoplay == "soak" || autoplay == "hwysoak") {
             // long drive on the traffic AI through the city while the clock runs (rush hour -> night), with a 3-star
-            // chase at 8-10 min and a 4-star chase at 18-20 min; telemetry every 20 s, the own car unstuck if needed
+            // chase at 8-10 min and a 4-star chase at 18-20 min; telemetry every 20 s, the own car unstuck if needed.
+            // hwysoak: the same, but trips from one interchange to another across the map (on-ramps, merges, exits)
             static float stuckT = 0.f;
             static int unsticks = 0, respawns = 0;
             Ped* pl = game.playerPed();
@@ -1111,12 +1129,17 @@ struct App {
                         routeT += dt;
                         vec2 me = game.vehicles[pv].sim.body.pos.toVec3().xy();
                         bool arrived = d->mode == AI::DM_ROUTE && (length(d->dest - me) < 60.f || (d->destEdges.size() <= 1 && length(d->dest - me) < 250.f));
-                        if (d->mode == AI::DM_FLEE || d->mode == AI::DM_NORMAL || arrived || routeT > 240.f) {
+                        bool hwyTrips = autoplay == "hwysoak";
+                        if (d->mode == AI::DM_FLEE || d->mode == AI::DM_NORMAL || arrived || routeT > (hwyTrips ? 480.f : 240.f)) {
                             static const vec2 kSpots[] = {{2713, 763}, {3165, -243}, {3350, -760}, {2700, 1300}, {1720, 360},
                                                           {5066, 1470}, {5372, 900}, {3093, 1600}, {2300, -150}, {3356, 662}};
+                            // (next to interchanges, far apart: every trip takes an on-ramp, the motorway and an exit)
+                            static const vec2 kHwy[] = {{1459, 5900}, {-115, 487}, {2553, 4096}, {-1685, 93}, {1395, 810},
+                                                        {-144, 6007}, {2342, 1143}, {-1787, -1432}, {-1003, 5694}, {2745, 5486}};
+                            const vec2* spots = hwyTrips ? kHwy : kSpots;
                             static int next = 0;
-                            vec2 dest = kSpots[next % 10];
-                            if (length(dest - me) < 150.f) dest = kSpots[++next % 10];
+                            vec2 dest = spots[next % 10];
+                            if (length(dest - me) < 150.f) dest = spots[++next % 10];
                             next++;
                             game.traffic.setDestination(*d, dest);
                             d->mode = AI::DM_ROUTE;
@@ -1168,6 +1191,8 @@ struct App {
             updateTour(c, dt);
         } else if (autoplay == "fpguns") {
             updateFpGuns(c, dt);
+        } else if (autoplay == "camfade") {
+            updateCamFade(c, dt);
         } else if (autoplay == "melee") {
             // lock on, jab-cross-uppercut combos, a heavy hook, a held block, a dodge; then a rear takedown
             if (t < 9.5f) {
@@ -1263,6 +1288,53 @@ struct App {
             game.requestScreenshot = shotPath(StrFormat("auto_fpguns_%02d_%s", tourStop, st.name));
             LOG("autoplay fpguns %s: hold %.2f aim %.2f scope %.2f dot %.2f block %.2f", st.name, game.fpw.w, game.fpw.ads, game.fpw.scope,
                 game.fpw.redDot, game.fpw.block);
+        }
+    }
+
+    // --autoplay camfade: the pedestrian 1.3 m and 2.3 m out along the line of sight to the player (see-through,
+    // then half faded), beside the player (solid) and 0.75 m in front of the first-person eyes (solid)
+    void updateCamFade(Controls& c, float dt) {
+        const char* names[] = {"occluder_near", "occluder_mid", "beside_player", "fp_close"};
+        const int n = 4;
+        const float stepLen = 2.5f;
+        (void)c;
+        if (tourDone) return;
+        Ped* pl = game.playerPed();
+        if (!pl || fadePed < 0 || !game.peds[fadePed].used) {
+            if (!tourDone) LOG("autoplay camfade: no pedestrian");
+            tourDone = true;
+            return;
+        }
+        if (tourStop < 0 || tourT >= stepLen) {
+            tourStop++;
+            tourT = 0.f;
+            tourShot = false;
+            if (tourStop >= n) {
+                tourDone = true;
+                LOG("autoplay camfade done");
+                return;
+            }
+            game.rig.footFirstPerson = tourStop == 3;
+        }
+        tourT += dt;
+        Ped& q = game.peds[fadePed];
+        vec3 pp = pl->pos.toVec3();
+        vec3 cam = game.rig.cam.pos.toVec3();
+        vec2 sight = normalize(vec2(pp.x - cam.x, pp.y - cam.y) + vec2(1e-4f, 0.f));
+        vec2 at;
+        if (tourStop <= 1) at = vec2(cam.x, cam.y) + sight * (tourStop == 0 ? 1.3f : 2.3f);
+        else if (tourStop == 2) at = vec2(pp.x, pp.y) + vec2(sight.y, -sight.x) * 0.9f;
+        else at = vec2(pp.x, pp.y) + vec2(-sinf(pl->yaw), cosf(pl->yaw)) * 0.75f;
+        q.pos = dvec3(at.x, at.y, game.groundHeight(at.x, at.y, pp.z + 2.f));
+        q.vel = vec3(0.f);
+        vec2 look = vec2(pp.x - at.x, pp.y - at.y);
+        if (tourStop <= 1) look = -sight;   // face the camera
+        q.yaw = atan2f(-look.x, look.y);
+        if (!tourShot && tourT >= 2.f) {
+            tourShot = true;
+            game.requestScreenshot = shotPath(StrFormat("auto_camfade_%02d_%s", tourStop, names[tourStop]));
+            LOG("autoplay camfade %s: fade %.2f fp %d cam-ped %.2f m", names[tourStop], q.camFade, (int)game.rig.fpActive,
+                length(q.pos.toVec3() + vec3(0.f, 0.f, 1.f) - cam));
         }
     }
 
@@ -1748,7 +1820,7 @@ struct App {
                         weather.locked = false;
                         openMainMenu();
                     }
-                } else if (autoplay == "tour" || autoplay == "fpguns") {
+                } else if (autoplay == "tour" || autoplay == "fpguns" || autoplay == "camfade") {
                     if (tourDone && game.requestScreenshot.empty()) break;
                 } else if (autoTime >= autoShot * autoShotEvery + 1.5f && (renderer.world->pendingCount() == 0 || autoTime > autoShot * autoShotEvery + 6.f)) {
                     std::string path = shotPath(StrFormat("auto_%s_%02d", autoplay.c_str(), autoShot));

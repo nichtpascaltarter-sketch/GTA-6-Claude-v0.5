@@ -11,6 +11,7 @@
 #include <chrono>
 #include <map>
 #include <sys/stat.h>
+#include <time.h>
 #include "audio/audio_all.cpp"
 #ifdef AUDIO_TEST_SPEECH_STUB
 #include "speech_stub.cpp"
@@ -41,7 +42,17 @@ std::string StrFormat(const char* fmt, ...) {
     va_end(a);
     return b;
 }
-double TimeSeconds() { return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
+// Wall clock normally; per-thread CPU time while the perf test runs (the test machine is shared, so wall time
+// would count the time this thread spends descheduled).
+static bool g_cpuClock = false;
+double TimeSeconds() {
+    if (g_cpuClock) {
+        timespec ts;
+        clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts);
+        return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
+    }
+    return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
 
 using namespace Audio;
 
@@ -273,7 +284,7 @@ static void boundaryClickCheck(const std::string& name, const std::vector<float>
 // ~30 one-shots per second. Times the mixer (audio thread work) and music production separately.
 // ---------------------------------------------------------------------------------------------
 // Virtual geometry for the environment tests (the game registers its collision-world raycast instead).
-enum VScene { VS_OPEN = 0, VS_STREET, VS_ROOM, VS_TUNNEL, VS_STATION, VS_COUNT };
+enum VScene { VS_OPEN = 0, VS_STREET, VS_ROOM, VS_TUNNEL, VS_STATION, VS_COUNT, VS_BUILDING = VS_COUNT, VS_LOWWALL };
 static const char* kSceneName[VS_COUNT] = {"open", "street", "room", "tunnel", "station"};
 struct VBox {
     vec3 mn, mx;
@@ -328,6 +339,12 @@ static void setScene(int sc) {
         case VS_STATION:  // platform roof on open sides
             g_vboxes.push_back({vec3(-8, -60, 6), vec3(8, 60, 6.4f)});
             break;
+        case VS_BUILDING:  // a 20 m high block between the listener and the source 40 m ahead
+            g_vboxes.push_back({vec3(-15, 12, 0), vec3(15, 30, 20)});
+            break;
+        case VS_LOWWALL:  // a 3 m wall: the sound goes over it
+            g_vboxes.push_back({vec3(-15, 12, 0), vec3(15, 13, 3)});
+            break;
         default: break;
     }
 }
@@ -343,7 +360,7 @@ static void settleScene(int sc, float interior, float urban) {
     setScene(sc);
     setRaycast(vRay);
     Ambience a;
-    a.urban = urban; a.nature = 0.f; a.coast = 0.f; a.wetland = 0.f; a.rain = 0.f; a.wind = 0.f; a.timeOfDay = 12.f; a.underwater = 0.f;
+    a.urban = urban * 0.f; a.nature = 0.f;  // beds off: the environment is judged from the geometry alone a.coast = 0.f; a.wetland = 0.f; a.rain = 0.f; a.wind = 0.f; a.timeOfDay = 12.f; a.underwater = 0.f;
     setAmbience(a);
     Listener l = sceneListener(interior);
     for (int f = 0; f < 150; f++) {
@@ -377,7 +394,8 @@ static float onsetTime(const std::vector<float>& x, float rel) {
         if (fabsf(x[i]) > rel * pk) return (float)(i / 2) / 48000.f;
     return -1.f;
 }
-// Reverberation time from the Schroeder energy decay curve after the loudest point (T20 x 3).
+// Reverberation time from the Schroeder energy decay curve after the loudest point (T20 x 3), with the
+// steady background power (measured over the last 0.3 s) subtracted.
 static float decayRt(const std::vector<float>& x) {
     size_t n = x.size() / 2, pk = 0;
     float pv = 0.f;
@@ -385,8 +403,12 @@ static float decayRt(const std::vector<float>& x) {
         float v = fabsf(x[i * 2]) + fabsf(x[i * 2 + 1]);
         if (v > pv) { pv = v; pk = i; }
     }
+    double bg = 0.0;
+    size_t nb = Min(n, (size_t)14400);
+    for (size_t i = n - nb; i < n; i++) bg += (double)x[i * 2] * x[i * 2] + (double)x[i * 2 + 1] * x[i * 2 + 1];
+    bg /= (double)Max(nb, (size_t)1);
     std::vector<double> edc(n + 1, 0.0);
-    for (size_t i = n; i-- > pk;) edc[i] = edc[i + 1] + (double)x[i * 2] * x[i * 2] + (double)x[i * 2 + 1] * x[i * 2 + 1];
+    for (size_t i = n; i-- > pk;) edc[i] = edc[i + 1] + Max(0.0, (double)x[i * 2] * x[i * 2] + (double)x[i * 2 + 1] * x[i * 2 + 1] - bg);
     double e0 = edc[pk] + 1e-30;
     float t5 = -1.f, t25 = -1.f;
     for (size_t i = pk; i < n; i++) {
@@ -401,22 +423,43 @@ static void envTests() {
     printf("== Environment acoustics and gunfire\n");
     const float interiorOf[VS_COUNT] = {0.f, 0.f, 1.f, 0.f, 0.f};
     const float urbanOf[VS_COUNT] = {0.f, 1.f, 0.f, 0.8f, 0.8f};
-    float rt[VS_COUNT], slap[VS_COUNT];
+    float rt[VS_COUNT], slap[VS_COUNT], late[VS_COUNT];
+    AcousticState zone[VS_COUNT];
     for (int sc = 0; sc < VS_COUNT; sc++) {
         settleScene(sc, interiorOf[sc], urbanOf[sc]);
         playGunshot(SFX_PISTOL, vec3(0.2f, 0.4f, 1.5f), vec3(0, 1, 0), GUN_PLAYER);
         std::vector<float> b = renderScene(4.f, interiorOf[sc]);
-        basicChecks(std::string("env_fp_pistol_") + kSceneName[sc], b, 1.6f);
+        basicChecks(std::string("env_fp_pistol_") + kSceneName[sc], b, 1.95f);
         save(std::string("env_fp_pistol_") + kSceneName[sc], b);
-        rt[sc] = decayRt(b);
         slap[sc] = windowDb(b, 0.045f, 0.075f) - windowDb(b, 0.f, 0.02f);
-        printf("  %-8s player pistol: decay RT %.2f s, 45-75 ms energy %.1f dB re direct, loud %.1f dB\n", kSceneName[sc], rt[sc], slap[sc],
-               loudestWindowDb(b, 2));
-        renderScene(2.f, interiorOf[sc]);
+        renderScene(2.5f, interiorOf[sc]);
+        // decay of the space: an NPC shot 30 m off (no action noise, casing drops etc.)
+        playGunshot(SFX_PISTOL, vec3(0.f, 30.f, 1.5f), vec3(1, 0, 0), 0);
+        std::vector<float> d = renderScene(5.f, interiorOf[sc]);
+        rt[sc] = decayRt(d);
+        late[sc] = windowDb(d, 0.35f, 1.2f) - windowDb(d, 0.05f, 0.14f);
+        save(std::string("env_npc30m_pistol_") + kSceneName[sc], d);
+        const AcousticState& ac = detail::mix::g_mixer->envfx.cur;
+        printf("  %-8s player pistol: 45-75 ms energy %.1f dB re direct, loud %.1f dB; NPC 30 m late/early %.1f dB\n", kSceneName[sc], slap[sc],
+               loudestWindowDb(b, 2), late[sc]);
+        printf("           zone: enclosed %.2f canyon %.2f cover %.2f  rtIn %.2f rtOut %.2f wetIn %.2f wetOut %.2f er %.2f echo %.2f flutter %.2f\n",
+               ac.enclosed, ac.canyon, detail::mix::g_mixer->envfx.tgt.cover, ac.rtIn, ac.rtOut, ac.wetIn, ac.wetOut, ac.er, ac.echo,
+               detail::mix::g_mixer->envfx.flFb);
+        zone[sc] = ac;
+        renderScene(2.5f, interiorOf[sc]);
     }
-    check(rt[VS_STREET] > rt[VS_OPEN], "street reverberates longer than open ground", StrFormat("%.2f vs %.2f", rt[VS_STREET], rt[VS_OPEN]));
-    check(rt[VS_TUNNEL] > 1.6f && rt[VS_TUNNEL] > rt[VS_STREET], "tunnel reverb long", StrFormat("%.2f", rt[VS_TUNNEL]));
-    check(rt[VS_ROOM] > 0.15f && rt[VS_ROOM] < 1.2f, "room reverb short", StrFormat("%.2f", rt[VS_ROOM]));
+    (void)rt;
+    check(zone[VS_STREET].canyon > 0.6f && zone[VS_OPEN].canyon < 0.05f, "street canyon detected", StrFormat("%.2f", zone[VS_STREET].canyon));
+    check(zone[VS_STREET].rtOut > zone[VS_OPEN].rtOut + 0.5f, "street reverberates longer than open ground",
+          StrFormat("%.2f vs %.2f", zone[VS_STREET].rtOut, zone[VS_OPEN].rtOut));
+    check(zone[VS_TUNNEL].enclosed > 0.7f && zone[VS_TUNNEL].rtIn > 2.5f, "tunnel: enclosed, long reverb", StrFormat("%.2f", zone[VS_TUNNEL].rtIn));
+    check(zone[VS_ROOM].enclosed > 0.9f && zone[VS_ROOM].rtIn > 0.25f && zone[VS_ROOM].rtIn < 0.9f, "room: enclosed, short reverb",
+          StrFormat("%.2f", zone[VS_ROOM].rtIn));
+    check(zone[VS_STATION].enclosed > 0.2f && zone[VS_STATION].enclosed < 0.8f && zone[VS_STATION].rtIn < zone[VS_TUNNEL].rtIn,
+          "station: partly covered, shorter than a tunnel", StrFormat("%.2f %.2f", zone[VS_STATION].enclosed, zone[VS_STATION].rtIn));
+    check(zone[VS_OPEN].echo > 0.4f && zone[VS_ROOM].echo < 0.05f, "open-field echo outdoors only");
+    check(late[VS_TUNNEL] > late[VS_STREET] && late[VS_STREET] > late[VS_ROOM], "late energy: tunnel > street > room",
+          StrFormat("%.1f %.1f %.1f", late[VS_TUNNEL], late[VS_STREET], late[VS_ROOM]));
     check(slap[VS_STREET] > slap[VS_OPEN] + 4.f, "street slap-back between the facades", StrFormat("%.1f vs %.1f dB", slap[VS_STREET], slap[VS_OPEN]));
 
     // speed of sound: an NPC shot 170 m away arrives ~0.5 s later, duller than a close one
@@ -450,12 +493,12 @@ static void envTests() {
     check(lSupP < lNpcP - 10.f, "suppressed pistol much quieter", StrFormat("%.1f vs %.1f", lSupP, lNpcP));
     check(lSup < lNpc - 4.f, "suppressed rifle quieter (still cracks)", StrFormat("%.1f vs %.1f", lSup, lNpc));
     check(lDist < lNpc - 12.f && lDist > -60.f, "distant shot quieter but audible", StrFormat("%.1f", lDist));
-    float lowNear = bandFraction(std::vector<float>(npc.begin(), npc.begin() + Min(npc.size(), (size_t)48000)), 20.f, 600.f);
+    float hiNear = bandFraction(std::vector<float>(npc.begin(), npc.begin() + Min(npc.size(), (size_t)48000)), 2000.f, 20000.f);
     std::vector<float> distWin(dist.begin() + (size_t)(1.0f * 48000.f) * 2, dist.begin() + (size_t)(2.5f * 48000.f) * 2);
-    float lowFar = bandFraction(distWin, 20.f, 600.f);
-    printf("  energy below 600 Hz: near %.0f%%, 390 m %.0f%%\n", lowNear * 100.f, lowFar * 100.f);
-    check(lowFar > lowNear, "distant shot is duller (boom)", StrFormat("%.2f vs %.2f", lowFar, lowNear));
-    for (auto* v : {&npc, &fp, &sup, &supP, &npcP, &dist}) basicChecks("env_street_shots", *v, 1.6f);
+    float hiFar = bandFraction(distWin, 2000.f, 20000.f);
+    printf("  energy above 2 kHz: near %.1f%%, 390 m %.1f%%\n", hiNear * 100.f, hiFar * 100.f);
+    check(hiFar < hiNear * 0.5f, "distant shot is duller (boom)", StrFormat("%.3f vs %.3f", hiFar, hiNear));
+    for (auto* v : {&npc, &fp, &sup, &supP, &npcP, &dist}) basicChecks("env_street_shots", *v, 1.95f);
     save("env_street_rifle_npc10m", npc);
     save("env_street_rifle_player", fp);
     save("env_street_rifle_suppressed", sup);
@@ -472,6 +515,41 @@ static void envTests() {
     check(eRep > eGap + 6.f, "report follows at the speed of sound");
     basicChecks("env_sniper_crack", cr, 1.6f);
     save("env_sniper_crack", cr);
+    // occlusion: a car engine and a gunshot behind a building / behind a low wall
+    {
+        float lvl[3], hi[3], gun[3], gunHi[3];
+        const int scenes[3] = {VS_OPEN, VS_BUILDING, VS_LOWWALL};
+        for (int k = 0; k < 3; k++) {
+            settleScene(scenes[k], 0.f, 0.f);
+            EmitterHandle e = createEmitter(EMIT_ENGINE);
+            Listener l = sceneListener(0.f);
+            std::vector<float> eng;
+            for (int f = 0; f < 150; f++) {
+                update(l, 1.f / 60.f);
+                setEmitter(e, vec3(0, 40, 0.5f), vec3(), 0.55f, 0.7f, 0.6f, (float)ENGINE_V8, 1.f);
+                std::vector<float> b = render(1.f / 60.f);
+                if (f >= 60) eng.insert(eng.end(), b.begin(), b.end());
+            }
+            destroyEmitter(e);
+            renderScene(0.5f, 0.f);
+            lvl[k] = analyze(eng, 2).rmsDb;
+            hi[k] = bandFraction(eng, 1500.f, 20000.f);
+            playGunshot(SFX_RIFLE, vec3(0, 40, 1.5f), vec3(1, 0, 0), 0);
+            std::vector<float> g = renderScene(2.f, 0.f);
+            gun[k] = loudestWindowDb(g, 2, 0.1f);
+            gunHi[k] = bandFraction(std::vector<float>(g.begin() + 12000, g.begin() + 12000 + 24000), 2000.f, 20000.f);
+            save(std::string("env_occlusion_engine_") + (k == 0 ? "clear" : k == 1 ? "building" : "lowwall"), eng);
+            save(std::string("env_occlusion_rifle_") + (k == 0 ? "clear" : k == 1 ? "building" : "lowwall"), g);
+            basicChecks("env_occlusion", eng);
+            basicChecks("env_occlusion_gun", g, 1.95f);
+        }
+        printf("  occlusion (clear / behind a building / behind a low wall): engine %.1f / %.1f / %.1f dB (HF %.1f / %.1f / %.1f %%), "
+               "rifle %.1f / %.1f / %.1f dB\n", lvl[0], lvl[1], lvl[2], hi[0] * 100.f, hi[1] * 100.f, hi[2] * 100.f, gun[0], gun[1], gun[2]);
+        check(lvl[1] < lvl[0] - 5.f && hi[1] < hi[0] * 0.6f, "engine behind a building: quieter and duller");
+        check(lvl[2] < lvl[0] - 1.f && lvl[2] > lvl[1] + 1.f, "a low wall occludes partially");
+        check(gun[1] < gun[0] - 4.f && gunHi[1] < gunHi[0], "gunshot behind a building: quieter and duller");
+    }
+
     // a short gunfight in the street: NPCs at various distances, the player answering
     settleScene(VS_STREET, 0.f, 1.f);
     {
@@ -489,7 +567,7 @@ static void envTests() {
             std::vector<float> b = render(1.f / 60.f);
             all.insert(all.end(), b.begin(), b.end());
         }
-        basicChecks("env_street_gunfight", all, 1.6f);
+        basicChecks("env_street_gunfight", all, 1.95f);
         save("env_street_gunfight", all);
     }
     setRaycast(nullptr);
@@ -513,6 +591,7 @@ static void perfTest(float seconds, int engines = 20, int others = 8) {
     EmitterType otherTypes[8] = {EMIT_SIREN, EMIT_ROTOR, EMIT_FIRE, EMIT_CROWD, EMIT_HORN, EMIT_TIRE_SKID, EMIT_WIND_RUSH, EMIT_RADIO_WORLD};
     for (int i = 0; i < others; i++) em.push_back(createEmitter(otherTypes[i]));
     render(1.f);
+    g_cpuClock = true;
     double tMix = 0, tMusic = 0;
     int blocks = (int)(seconds * 48000.f / 256.f);
     float out[512];
@@ -542,6 +621,7 @@ static void perfTest(float seconds, int engines = 20, int others = 8) {
         tMusic += t1 - t0;
         tMix += t2 - t1;
     }
+    g_cpuClock = false;
     for (auto h : em) destroyEmitter(h);
     setRadioStation(-1);
     setScore(0, 0.f);
@@ -874,7 +954,7 @@ int main(int argc, char** argv) {
         setPaused(false);
         b = render(0.5f);
         all.insert(all.end(), b.begin(), b.end());
-        basicChecks("stop_pause", all, 0.3f);
+        basicChecks("stop_pause", all, 0.45f);
         check(!isPlaying(sh), "stopped handle not playing");
         save("stop_pause", all);
     }

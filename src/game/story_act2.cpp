@@ -439,6 +439,7 @@ public:
     PedPath walk;
     float waitT = 0.f, boardT = 0.f, stopT = 0.f;
     bool rideLine = false;
+    int testShotPhase = 0;   // --missiontest: the SkyLine phase last photographed
     const char* title() const override { return "The Bagman"; }
     const char* brief() const override {
         return "Every week Holt's bagman collects protection money from half of Porto Sol. Follow him on his rounds, then take the bag "
@@ -835,6 +836,10 @@ public:
                     break;
                 }
                 // the SkyLine leg played out in full: follow him onto his train, get off with him, take him down
+                if (metroPhase != testShotPhase && metroPhase > 0) {
+                    testShotPhase = metroPhase;
+                    t.screenshot(StrFormat("metro%d", metroPhase).c_str());
+                }
                 if (metroPhase == 0) {
                     fastForwardDriver(g, bagCar, 25.f, dt);
                     if (bagCar >= 0 && fmodf(t.stageTime, 1.f) < dt) {

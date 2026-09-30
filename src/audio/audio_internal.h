@@ -39,6 +39,23 @@ enum BankId : int {
     AMB_DOG_DISTANT,
     AMB_WATER_LAP,
     AMB_CROW,
+    AMB_AIRBOAT,        // stereo pass-bys (2D, baked pan sweep)
+    AMB_BOAT_PASS,
+    AMB_TRAIN_PASS,
+    AMB_CRANE,          // port
+    AMB_CONTAINER,
+    AMB_REVERSE_BEEP,
+    AMB_CONSTRUCTION,   // downtown by day
+    AMB_PIG_FROG,       // wetland
+    AMB_CHORUS_FROG,
+    AMB_LIMPKIN,
+    AMB_BLACKBIRD,
+    AMB_MOSQUITO,       // stereo, past the ear
+    AMB_HALYARD,        // marina
+    AMB_BUOY_BELL,
+    AMB_THUNDER_CLOSE,  // stereo thunder by distance (Audio::playThunder)
+    AMB_THUNDER_MID,
+    AMB_THUNDER_FAR,
     GUN_NEAR,                                 // + GunClass: close report (dry: the mixer adds the environment)
     GUN_FP = GUN_NEAR + GC_COUNT,             // + GunClass: the shooter's own perspective (stereo, tight)
     GUN_MECH = GUN_FP + GC_COUNT,             // + GunClass: action cycling (slide / bolt / pump), heard up close
@@ -119,6 +136,8 @@ EmitterSynth* constructEmitterSynth(EmitterType type, void* storage, u32 seed);
 // ---------------------------------------------------------------------------------------------
 // Mixer services used by ambience / crowd code (audio thread only).
 void spawnWorldOneShot(int bankId, vec3 worldPos, float volume, float pitch);
+// A 2D world one-shot (stereo ambience pass-bys, thunder): flip swaps the channels.
+void spawnAmbient2D(int bankId, float volume, float pitch, bool flip);
 struct ListenerState {
     vec3 pos, vel, forward = vec3(0, 1, 0), up = vec3(0, 0, 1), right = vec3(1, 0, 0);
     float interior = 0, inVehicle = 0;
@@ -163,7 +182,7 @@ struct AmbienceRenderer;
 AmbienceRenderer* ambienceCreate();
 void ambienceDestroy(AmbienceRenderer* a);
 void ambienceRender(AmbienceRenderer* a, float* L, float* R, int n, const Ambience& target,
-                    const ListenerState& ls);
+                    const ListenerState& ls, const AcousticState& ac);
 
 // ---------------------------------------------------------------------------------------------
 // Crowd walla beds (crowd.cpp): rendered on a background thread at init (or on demand offline).

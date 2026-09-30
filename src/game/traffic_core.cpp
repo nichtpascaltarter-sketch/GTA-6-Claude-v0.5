@@ -762,11 +762,15 @@ bool TrafficCore::conflictsClear(const Driver& d, const Connector& c, int connId
     // we do, so it is not what we are waiting for (a car at the end of an on-ramp holding up the lane it merges into)
     auto queuedBehindMe = [&](int di) -> bool {
         if (myBody < 0) return false;
+        const Body& me = bodies[myBody];
         for (int hop = 0; hop < 6 && di >= 0 && di < (int)drivers.size(); hop++) {
             const Driver& q = drivers[di];
             if (!q.active || q.obstBody < 0 || q.obstBody >= (int)bodies.size() || q.obstDist > 9.f) return false;
             int qb = driverBody(di);
             if (qb >= 0 && bodies[qb].speed > 1.f) return false;
+            // (a queue behind us, headed our way - not a car across our path that happens to see us as its obstacle
+            //  while we see it as ours: that pair would both go)
+            if (qb < 0 || dot(bodies[qb].fwd, me.fwd) < 0.6f || dot(bodies[qb].pos - me.pos, me.fwd) > 0.f) return false;
             if (q.obstBody == myBody) return true;
             di = bodies[q.obstBody].driver;
         }
@@ -1017,11 +1021,8 @@ float TrafficCore::gate(Driver& d, int conn, float distToEntry, float v, bool in
             for (const Conflict& x : c.conflicts) yields |= x.yield != 0 || x.merge != 0;
             if (!yields && c.conflicts.empty()) return FREE;
             if (exitBlocked() && impatience < 1.f && c.turn != TK_STRAIGHT) return Max(lineDist, 0.f);
-            // (the end of an on-ramp: merging drivers take tighter gaps, and one standing there pushes in after a few
-            //  seconds - the traffic behind in the lane it joins lets it in)
-            bool rampMerge = c.turn == TK_MERGE || (L.flags & LF_RAMP);
-            float margin = d.pers.gapTime - (rampMerge ? 2.6f : 2.f);
-            if (conflictsClear(d, c, conn, distToEntry, v, false, margin) || d.waitTime > (rampMerge ? 7.f : 20.f)) return FREE;
+            float margin = d.pers.gapTime - 2.f;
+            if (conflictsClear(d, c, conn, distToEntry, v, false, margin) || d.waitTime > 20.f) return FREE;
             return Max(lineDist, 0.f);
         }
     }

@@ -37,6 +37,8 @@ struct DrawItem {
     bool drawGlass = true;        // false: the see-through windows are shattered (the forward glass pass skips them)
     float paintFinish = 0.f;      // car paint finish (0 gloss, 1 metallic, 2 pearl, 3 matte, 4 chrome)
     float glassTint = 0.f;        // extra window tint 0..1
+    float fade = 1.f;             // < 1: dithered out in the G-buffer and glass passes (shadows stay), e.g. a pedestrian
+                                  // between the camera and the player
     // Vehicle crush deformation (rigid models): zone amounts 0..1 (front, rear, left, right) / (roof, under),
     // collision box center/half extents in model space (dmgBoxH.w > 0 enables the deformation).
     vec4 damage0 = vec4(0.f), damage1 = vec4(0.f), dmgBoxC = vec4(0.f), dmgBoxH = vec4(0.f);
@@ -207,7 +209,7 @@ struct DynamicRenderer {
         cb.data.params = vec4((float)d.lightBits, (float)boneOffset, d.wetExposed, d.emissiveScale);
         // y: window tint (rigid) / hair strand cards present over the hair shell (skinned)
         float y2 = d.model->skinned ? (d.model->cardStart < d.model->indexCount ? 1.f : 0.f) : d.glassTint;
-        cb.data.params2 = vec4(d.model->skinned ? 1.f : 0.f, y2, 1.f, d.paintFinish);
+        cb.data.params2 = vec4(d.model->skinned ? 1.f : 0.f, y2, Saturate(d.fade), d.paintFinish);
         cb.data.damage0 = d.damage0;
         cb.data.damage1 = d.damage1;
         cb.data.dmgBoxC = d.dmgBoxC;

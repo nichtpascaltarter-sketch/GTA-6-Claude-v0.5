@@ -189,6 +189,7 @@ void GameWorld::update(float realDt) {
     sanitizeEntities();
     updateCamera(realDt);
     updateFirstPersonWeapon(realDt);   // after the camera: the gun is placed in front of the eyes
+    updateCameraFades(realDt);
     Wildlife::update(*this, dt);   // animals around the player (wildlife.cpp; after the camera: LOD / spawning use it)
     updateRumble(realDt);
     updatePostFx(realDt);
@@ -545,10 +546,12 @@ void GameWorld::submitRender() {
         if (p.visibleDist > 350.f) continue;
         if (hidePlayerModel && i == player) continue;
         if (i != player) {
-            // a passer-by walking through the camera would fill the frame with the inside of their body: skip them
+            // peds covering the player or brushing the lens are dithered out (updateCameraFades); with the lens
+            // inside the body (before the smoothed fade caught up) they are skipped outright
+            if (p.camFade < 0.02f) continue;
             vec3 rc = rel(rig.cam.pos, p.pos);
             float zc = Clamp(rc.z, 0.3f, 1.5f);
-            if (length(vec3(rc.x, rc.y, rc.z - zc)) < 0.55f) continue;
+            if (length(vec3(rc.x, rc.y, rc.z - zc)) < 0.22f) continue;
         }
         vec3 toP = rel(p.pos, cam);
         if (dot(toP, camF) < -2.f && p.visibleDist > 3.f) continue;
@@ -564,6 +567,7 @@ void GameWorld::submitRender() {
         d.id = 0x500000000ull | p.uid;
         d.castShadow = p.visibleDist < 150.f;
         d.wetExposed = p.state == PS_SWIM ? 1.f : 0.6f;
+        d.fade = i == player ? 1.f : p.camFade;
         dyn->submit(d);
         if (p.moveMode == 4 && parachuteModel) {
             Render::DrawItem cd;
@@ -573,6 +577,7 @@ void GameWorld::submitRender() {
             float o = Saturate(p.chuteOpen);
             cd.scale = vec3(0.3f + 0.7f * o, 0.4f + 0.6f * o, 0.25f + 0.75f * o);
             cd.id = 0x700000000ull | p.uid;
+            cd.fade = d.fade;
             dyn->submit(cd);
         }
         // weapon in hand
@@ -610,6 +615,7 @@ void GameWorld::submitRender() {
             }
             wd.id = 0x600000000ull | p.uid;
             wd.castShadow = p.visibleDist < 40.f;
+            wd.fade = d.fade;
             if (!hideGun) dyn->submit(wd);
             // fitted attachments share the weapon's transform
             u8 comps = weaponComps(p, p.weapon);
@@ -663,6 +669,7 @@ void GameWorld::submitRender() {
             pd.rot = frameFromForward(pr * fl, pr * fs);
             pd.id = 0x680000000ull | p.uid;
             pd.castShadow = p.visibleDist < 15.f;
+            pd.fade = d.fade;
             dyn->submit(pd);
         }
     }
@@ -704,8 +711,22 @@ void GameWorld::submitRender() {
 }
 
 // ------------------------------------------------------------------------------------------------------------------
+#ifdef HAVE_AUDIO
+// Acoustic probe / occlusion rays for the audio module (reverb zones, slap-back from facades, sources behind walls).
+// Sideways rays test the static colliders only (buildings, walls, interiors, props); straight up also the terrain and
+// road decks, so bridges and viaducts overhead count as cover.
+static bool audioRaycast(vec3 o, vec3 d, float maxDist, float* hitDist) {
+    if (!Phys::gCollision) return false;
+    Phys::RayHit h;
+    if (!Phys::gCollision->raycast(o, d, maxDist, h, d.z > 0.9f)) return false;
+    *hitDist = h.t;
+    return true;
+}
+#endif
+
 void GameWorld::updateAudioListener(float dt) {
 #ifdef HAVE_AUDIO
+    Audio::setRaycast(audioRaycast);
     Audio::Listener L;
     L.pos = rig.cam.pos.toVec3();
     static vec3 prevPos = L.pos;

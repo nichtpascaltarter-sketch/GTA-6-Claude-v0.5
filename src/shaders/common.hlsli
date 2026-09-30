@@ -81,6 +81,17 @@ float3 hsvToRgbF(float h) { return saturate(abs(frac(h + float3(0.0, 2.0 / 3.0, 
 float luminance(float3 c) { return dot(c, float3(0.2126, 0.7152, 0.0722)); }
 // Non-finite guard for HDR values entering temporal histories / blur chains (bit test: immune to fast-math).
 bool anyNonFinite(float3 v) { return any((asuint(v) & 0x7fffffffu) >= 0x7f800000u); }
+// Bump mapping from a scalar height field (meters) via screen-space derivatives (Mikkelsen's surface gradient):
+// no tangent frame or texture needed, so procedural detail can be applied to any surface. dPx / dPy: ddx / ddy of
+// the position.
+float3 perturbBump(float3 n, float3 N, float3 dPx, float3 dPy, float height) {
+    float2 dh = float2(ddx(height), ddy(height));
+    float3 r1 = cross(dPy, N), r2 = cross(N, dPx);
+    float det = dot(dPx, r1);
+    if (abs(det) < 1e-14) return n;
+    float3 grad = (r1 * dh.x + r2 * dh.y) / det;
+    return normalize(n - grad);
+}
 float3 sanitizeHDR(float3 c) { return anyNonFinite(c) ? 0.0 : clamp(c, 0.0, 60000.0); }
 float sq(float x) { return x * x; }
 float pow5(float x) { float x2 = x * x; return x2 * x2 * x; }

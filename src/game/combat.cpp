@@ -12,7 +12,7 @@ const WeaponInfo kWeapons[WPN_COUNT] = {
     {"Switchblade", 1, 3, 1, 34.f, 1.6f, 0.55f, 0, 0.f, 0.f, 1, false, Audio::SFX_PUNCH, 400, 0, 0.f},
     {"Baseball Bat", 2, 3, 1, 42.f, 1.9f, 0.8f, 0, 0.f, 0.f, 1, false, Audio::SFX_PUNCH, 250, 0, 0.f},
     {"Vesper 9mm", 3, 1, 2, 26.f, 70.f, 0.2f, 15, 1.35f, 0.035f, 1, false, Audio::SFX_PISTOL, 1200, 60, 0.018f},
-    {"Grand Duke .44", 4, 1, 2, 64.f, 80.f, 0.55f, 6, 2.1f, 0.025f, 1, false, Audio::SFX_PISTOL, 2800, 90, 0.05f},
+    {"Grand Duke .44", 4, 1, 2, 64.f, 80.f, 0.55f, 6, 2.1f, 0.025f, 1, false, Audio::SFX_REVOLVER, 2800, 90, 0.05f},
     {"Kestrel SMG", 5, 2, 3, 19.f, 55.f, 0.075f, 30, 1.8f, 0.055f, 1, true, Audio::SFX_SMG, 4200, 120, 0.012f},
     {"Marauder Rifle", 6, 2, 4, 30.f, 150.f, 0.105f, 30, 2.1f, 0.03f, 1, true, Audio::SFX_RIFLE, 7800, 180, 0.016f},
     {"Tidebreaker 12ga", 7, 2, 5, 16.f, 32.f, 0.85f, 8, 2.8f, 0.09f, 8, false, Audio::SFX_SHOTGUN, 3900, 110, 0.06f},
@@ -316,13 +316,12 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
     vec3 up = fabsf(dir.z) < 0.95f ? vec3(0, 0, 1) : vec3(1, 0, 0);
     vec3 rx = normalize(cross(dir, up)), ry = cross(rx, dir);
 #ifdef HAVE_AUDIO
-    float pitchJ = (hash32(p.uid + (u32)(time * 1000)) % 8) * 0.01f;
-    if (suppressed) {
-        // a suppressed shot: the report is gone, what is left is a thin, high crack and the action cycling
-        Audio::play((Audio::Sfx)wi.sfx, muzzle.toVec3(), 0.2f, 1.55f + pitchJ);
-        Audio::play(Audio::SFX_WHOOSH, muzzle.toVec3(), 0.35f, 1.8f + pitchJ);
-    } else {
-        Audio::play((Audio::Sfx)wi.sfx, muzzle.toVec3(), 1.f, 0.96f + pitchJ);
+    {
+        // layered gunshot: report / distant boom by distance, action, supersonic crack past the listener, environment
+        // tail (street slap-back, open-field decay, room reverb); the player's own gun in first-person perspective
+        float pitchJ = (hash32(p.uid + (u32)(time * 1000)) % 8) * 0.01f;
+        u32 gflags = (suppressed ? (u32)Audio::GUN_SUPPRESSED : 0u) | (p.isPlayer ? (u32)Audio::GUN_PLAYER : 0u);
+        Audio::playGunshot((Audio::Sfx)wi.sfx, muzzle.toVec3(), dir, gflags, 1.f, 0.97f + pitchJ);
     }
 #endif
     if (!suppressed) {

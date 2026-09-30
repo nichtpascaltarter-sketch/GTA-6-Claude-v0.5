@@ -219,21 +219,18 @@ float brickPattern(float2 uv, float rows, float cols, float mortar, out float2 c
     return saturate(edge);
 }
 
-// Asphalt aggregate only: the texture repeats every 4 m, so it carries no distinctive features. Cracks, sealant,
-// patches, wheel tracks and oil drips are added per pixel in road space by world.hlsl (roadWear).
+// Asphalt binder tone only: the texture repeats every 4 m, so it carries no distinctive features. The aggregate is
+// added per pixel in world.hlsl (asphaltGrain, scaled to the pixel footprint: a magnified per-texel aggregate reads
+// as coarse gravel), and so are cracks, sealant, patches, wheel tracks, oil drips, covers and drains (road space).
 Surf genAsphalt(float2 uv) {
     Surf s;
-    float agg = tvalue(uv * 700, 700);
-    float agg2 = tvalue(uv * 350 + 3.1, 350);
-    float fines = tvalue(uv * 1400 + 7.7, 1400);
-    float big = tfbm(uv, 3, 4, 0.5) * 0.5 + 0.5;
-    float stones = step(0.8, agg) * 0.6 + step(0.85, agg2) * 0.4;
-    s.height = 0.5 + stones * 0.3 + agg * 0.1 + fines * 0.05;
-    float3 c = lerp(gColorA.rgb, gColorB.rgb, 0.25 + big * 0.5);
-    c = lerp(c, gColorC.rgb, stones * 0.6);
-    c *= 0.95 + fines * 0.1;
+    float mott = tfbm(uv, 6.0, 4, 0.5) * 0.5 + 0.5;
+    float big = tfbm(uv, 2.0, 3, 0.5) * 0.5 + 0.5;
+    float3 c = lerp(gColorA.rgb, gColorB.rgb, 0.3 + big * 0.4);
+    c *= 0.95 + mott * 0.1;
     s.albedo = c;
-    s.rough = lerp(0.9, 0.75, stones);
+    s.height = 0.5 + (mott - 0.5) * 0.15;
+    s.rough = 0.86 + (mott - 0.5) * 0.08;
     s.ao = 1.0;
     return s;
 }

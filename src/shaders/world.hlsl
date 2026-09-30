@@ -84,6 +84,8 @@ float3 emissiveAnim(uint param, float3 col) {
     return col;
 }
 
+static float sGutter = 0.0;   // asphalt pixel in the gutter strip along the kerb (wet: running water)
+
 // Thin line mask with a minimum on-screen width (energy kept: thinner than ~2 px -> wider and fainter).
 float lineMask(float d, float halfWidth, float px) {
     float w = max(halfWidth, px);
@@ -94,19 +96,91 @@ float lineMask(float d, float halfWidth, float px) {
 // polished darker wheel tracks and an oil-drip band per ~3.5 m lane, occasional utility-cut patches with sealed
 // seams, sparse meandering longitudinal cracks near lane joints and partial transverse cracks, some of them
 // sealed with glossy tar snakes. Procedural in world space, so nothing repeats with the 4 m texture tile.
+// Street furniture in the road surface: cast-iron manhole covers near the lane centres every few tens of metres and
+// storm-drain grates in the gutter. Road space as in roadWear; roadW = carriageway width (0 = unknown: only the left
+// kerb, u = 0, is known). Writes iron where a cover / grate is, height (m) for the bump.
+void roadFurniture(float2 ruv, float roadW, float px, inout float3 albedo, inout float rough, inout float metal,
+                   inout float ao, inout float hgt, out float gutter) {
+    float u = ruv.x, v = ruv.y;
+    // gutter: the strip along the kerb collects grit, leaves and oily grime (and runs with water in the rain)
+    float dEdge = roadW > 0.0 ? min(u, roadW - u) : u;
+    gutter = saturate(1.0 - dEdge / 0.45) * step(0.0, dEdge);
+    // manhole covers: one per 48 m stretch (two in three stretches), in the first or second lane
+    float mc = floor(v / 48.0);
+    uint mh = hash2u(uint2(asuint((int)mc), 0x3c1u));
+    if (hashF(mh) < 0.66) {
+        float2 c = float2(hashF(mh + 1u) < 0.5 || roadW < 7.0 ? 1.75 : 5.25, mc * 48.0 + 6.0 + hashF(mh + 2u) * 36.0);
+        float2 d = float2(u, v) - c;
+        float r = length(d);
+        if (r < 0.36) {
+            float ring = frac(r / 0.045);
+            float ang = atan2(d.y, d.x);
+            float ribs = step(0.8, frac(ang / (TWO_PI / 24.0))) * step(0.1, r);
+            float raised = r > 0.32 ? 1.0 : saturate(step(0.55, ring) * 0.7 + ribs * 0.6);
+            float gap = smoothstep(0.305, 0.312, r) * (1.0 - smoothstep(0.318, 0.325, r));   // seat gap
+            albedo = lerp(float3(0.11, 0.105, 0.1), float3(0.18, 0.17, 0.155), raised) * (1.0 - gap * 0.8);
+            metal = 0.75;
+            rough = lerp(0.62, 0.42, raised);   // raised pattern polished by tyres
+            ao *= 1.0 - gap * 0.7;
+            hgt += raised * 0.003 - gap * 0.004;
+        }
+    }
+    // storm drains at the kerb: one per 32 m stretch on either side (alternating), grate bars across the flow
+    float dc = floor(v / 32.0);
+    uint dh = hash2u(uint2(asuint((int)dc), 0x5d9u));
+    if (hashF(dh) < 0.6) {
+        bool right = roadW > 0.0 && hashF(dh + 1u) < 0.5;
+        float gu = right ? roadW - u : u;
+        float gv = v - (dc * 32.0 + 4.0 + hashF(dh + 2u) * 24.0);
+        if (gu > 0.04 && gu < 0.5 && abs(gv) < 0.45) {
+            float frame = step(min(min(gu - 0.04, 0.5 - gu), 0.45 - abs(gv)), 0.035);
+            float bar = step(0.45, frac(gv / 0.055));
+            float solid = max(frame, bar);
+            albedo = lerp(float3(0.008, 0.008, 0.008), float3(0.13, 0.12, 0.11), solid);
+            metal = lerp(0.0, 0.75, solid);
+            rough = lerp(0.95, 0.5, solid);
+            ao *= lerp(0.15, 1.0, solid);
+            hgt -= (1.0 - solid) * 0.02;
+        }
+    }
+}
+
+// Asphalt surface grain: aggregate stones (~6 mm) in dark binder, as octaves that each fade out before they get
+// below ~3 pixels. Nothing is magnified from a texture (no gravel blobs up close) and nothing shimmers far away:
+// at street distances only the tone and the wear remain. Returns an albedo factor; hgt receives the micro height (m).
+float asphaltGrain(float2 worldXY, float fp, out float hgt) {
+    float2 p = worldXY - floor(worldXY / 48.0) * 48.0;
+    float g = 0.0;
+    hgt = 0.0;
+    const float sz[3] = {0.006, 0.014, 0.032};
+    const float amp[3] = {0.22, 0.1, 0.06};
+    [unroll] for (int k = 0; k < 3; k++) {
+        float vis = saturate((sz[k] / max(fp, 1e-5) - 2.5) * 0.5);
+        if (vis > 0.0) {
+            float nv = valueNoise(p / sz[k] + k * 17.3);
+            float stone = smoothstep(0.52, 0.72, nv);
+            g += (stone - 0.3) * amp[k] * vis;
+            hgt += stone * sz[k] * 0.12 * vis;
+        }
+    }
+    return 1.0 + g;
+}
+
 void roadWear(float2 ruv, float camDist, inout float3 albedo, inout float rough, inout float ao, out float rut) {
     rut = 0.0;
     float fade = saturate(1.6 - camDist / 110.0);
     if (fade <= 0.0) return;
     float u = ruv.x, v = ruv.y;
     float px = camDist * 0.0012;   // ~1.5-2 pixels at 1080p-1440p
-    // lanes: wheel tracks at +-0.9 m from the lane centre, oil drips between them
+    // lanes: rubber-darkened, slightly polished wheel tracks at +-0.9 m from the lane centre, oil drips between them
     float lu = frac(u / 3.5) * 3.5 - 1.75;
     float track = exp(-sq((abs(lu) - 0.9) / 0.32)) * (0.75 + 0.25 * valueNoise(float2(v * 0.08, u * 0.3)));
-    float oil = exp(-sq(lu / 0.24)) * saturate(valueNoise(float2(v * 0.3, floor(u / 3.5) * 5.1)) * 1.6 - 0.3);
+    float drip = saturate(valueNoise(float2(v * 0.3, floor(u / 3.5) * 5.1)) * 1.6 - 0.3);
+    drip *= 0.6 + 0.4 * smoothstep(0.4, 0.8, valueNoise(float2(v * 2.3, u * 2.3)));   // individual drips
+    float oil = exp(-sq(lu / 0.24)) * drip;
     rut = track * fade;
-    albedo *= 1.0 - (0.1 * track + 0.2 * oil) * fade;
-    rough = saturate(rough * (1.0 - (0.2 * track + 0.12 * oil) * fade));
+    albedo *= 1.0 - (0.17 * track + 0.28 * oil) * fade;
+    rough = saturate(rough * (1.0 - (0.22 * track + 0.2 * oil) * fade));
     // utility-cut patches (one in ~14 cells of 14 m x 3.5 m)
     float2 pc = float2(floor(v / 14.0), floor(u / 3.5));
     uint ph = hash2u(asuint(int2(pc)) + 0x51u);
@@ -184,7 +258,7 @@ GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
         // Close-up detail: the same layer at a higher, rotated frequency adds micro normals and roughness
         // variation (asphalt grain, concrete pores, stucco) and hides the base tiling
         float camDist = length(i.rel);
-        float detailW = saturate(1.0 - camDist / 22.0);
+        float detailW = saturate(1.0 - camDist / 22.0) * (matId <= 1u ? 0.0 : 1.0);   // asphalt: procedural grain below
         if (detailW > 0.0) {
             float2 duv = float2(uv.x * 0.8 - uv.y * 0.6, uv.x * 0.6 + uv.y * 0.8) * 4.7 + 0.37;
             float4 nr2 = tMatNormal.Sample(sAnisoWrap, float3(duv, m.layer));
@@ -198,7 +272,33 @@ GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
         rough = saturate(rough * lerp(0.82, 1.12, fbmValue(wpr * 0.45 + worldP.z * 0.2, 2)));
         metal = m.metal;
         ao = nr.w;
-        if (matId <= 1u) roadWear(i.uv, length(i.rel), albedo, rough, ao, rut);   // MAT_ASPHALT, MAT_ASPHALT_OLD
+        if (matId <= 1u) {
+            // MAT_ASPHALT, MAT_ASPHALT_OLD: aggregate grain, lane wear, cracks and patches, covers and drains
+            float3 dPx = ddx(i.rel), dPy = ddy(i.rel);
+            float fp = max(length(dPx), length(dPy));
+            float hgt = 0.0;
+            albedo *= asphaltGrain(worldP.xy, fp, hgt);
+            roadWear(i.uv, length(i.rel), albedo, rough, ao, rut);
+            float gutter = 0.0;
+            float roadW = i.color.a < 0.995 ? i.color.a * 64.0 : 0.0;
+            roadFurniture(i.uv, roadW, length(i.rel) * 0.0012, albedo, rough, metal, ao, hgt, gutter);
+            albedo *= 1.0 - gutter * 0.3;
+            rough = saturate(rough + gutter * 0.05);
+            n = perturbBump(n, N, dPx, dPy, hgt);
+            sGutter = gutter;
+        } else if (matId == 5u || matId == 6u) {
+            // road paint: chipped where the traffic wears it, grit showing through; the chips fade into an average
+            // wear before they get smaller than ~3 pixels
+            float3 dPx = ddx(i.rel), dPy = ddy(i.rel);
+            float fp = max(length(dPx), length(dPy));
+            float2 wp2 = worldP.xy - floor(worldP.xy / 64.0) * 64.0;
+            float patchy = valueNoise(wp2 * 1.3 + 4.1) - 0.5;
+            float chipsN = valueNoise(wp2 * 30.0) * 0.6 + valueNoise(wp2 * 75.0) * 0.4;
+            float vis = saturate((0.013 / max(fp, 1e-5) - 2.5) * 0.5);
+            float worn = lerp(saturate(0.25 + patchy * 0.6), smoothstep(0.6, 0.78, chipsN + patchy * 0.5), vis);
+            albedo = lerp(albedo, float3(0.075, 0.072, 0.07), worn * 0.85);
+            rough = lerp(rough, 0.9, worn);
+        }
         if ((uint)m.flags & 16) {
             emissive = albedo * i.color.a * 400.0 * m.emissive;
             if (param != 0u) emissive = emissiveAnim(param, emissive);
@@ -223,9 +323,9 @@ GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
     float porosity = saturate(rough * 1.3 - 0.15) * (1.0 - metal);
     applyWetness(albedo, rough, n, N, worldP, porosity, 1.0);
     // Water lingers in the slightly rutted wheel tracks: glossy reflective streaks along the lanes when wet
-    if (rut > 0.0 && gWeather.y > 0.01) {
-        float film = saturate(gWeather.y * 1.3 - 0.2) * rut * skyExposure(worldP);
-        rough = lerp(rough, 0.06, film * 0.8);
+    if ((rut > 0.0 || sGutter > 0.0) && gWeather.y > 0.01) {
+        float film = saturate(gWeather.y * 1.3 - 0.2) * max(rut, sGutter) * skyExposure(worldP);
+        rough = lerp(rough, 0.05, film * 0.85);
         albedo *= 1.0 - film * 0.12;
     }
     return packGBuffer(albedo, ao, n, rough, metal, sm, extra, emissive, i.curClip, i.prevClip);

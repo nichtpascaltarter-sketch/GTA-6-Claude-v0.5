@@ -39,7 +39,7 @@ struct ProfScope {
 #endif
 
 // ---------------------------------------------------------------------------------------------
-enum class CmdType : u8 { Play, Gunshot, Stop, EmitterCreate, EmitterSet, EmitterTune, EmitterDestroy, SpeechReady };
+enum class CmdType : u8 { Play, Gunshot, Thunder, Stop, EmitterCreate, EmitterSet, EmitterTune, EmitterDestroy, SpeechReady };
 struct Cmd {
     CmdType type;
     bool is2D;
@@ -78,6 +78,9 @@ std::atomic<u32> g_handleState[kHandleTable];
 std::atomic<u32> g_nextHandle{1};
 std::atomic<u8> g_emitterBusy[kMaxEmitters];
 u32 g_emitterGen[kMaxEmitters];
+// occlusion of each emitter slot from the game thread's rays (valid while the handle matches)
+std::atomic<u32> g_emOcclHandle[kMaxEmitters];
+std::atomic<float> g_emOccl[kMaxEmitters];
 
 // garbage (audio thread -> game thread)
 constexpr u32 kGarbageCap = 1024;
@@ -304,6 +307,7 @@ struct Voice {
     float occl = 0.f;        // occlusion 0..1 (fixed for the life of a one-shot)
     bool fp = false;         // first-person gun layer: 2D, not ducked by the player-shot duck
     float pan2D = 0.f;       // 2D world voices: stereo placement
+    bool flip = false;       // 2D stereo buffers: swap channels (ambience pass-bys from the other side)
 };
 
 struct Emitter {
@@ -452,7 +456,7 @@ struct Mixer {
             case SFX_ROCKET_LAUNCH: return 0.8f;
             case SFX_TIRE_POP: return 0.6f;
             case SFX_CAR_CRASH_HEAVY: return 0.5f;
-            case SFX_THUNDER: return 0.4f;
+            case SFX_THUNDER: case AMB_THUNDER_CLOSE: case AMB_THUNDER_MID: case AMB_THUNDER_FAR: return 0.4f;
             default: return 0.f;
         }
     }
@@ -500,7 +504,7 @@ struct Mixer {
     }
 
     // Gunfire: report (close / first-person / suppressed) + action + distant boom + supersonic crack.
-    void startGunshot(int sfx, u32 handle, vec3 pos, vec3 dir, u32 flags, float volume, float pitch) {
+    void startGunshot(int sfx, u32 handle, vec3 pos, vec3 dir, u32 flags, float volume, float pitch, float occlHint = -1.f) {
         int gc = gunClassOf(sfx);
         if (gc < 0) {
             handleClear(handle);
@@ -511,12 +515,12 @@ struct Mixer {
         float d = length(rel);
         bool fp = (flags & GUN_PLAYER) != 0 || d < 1.2f;
         int delay = fp ? 0 : (int)(Min(d / kSpeedOfSound, 4.f) * kSR);
-        float occ = fp ? 0.f : acoustics::probeOcclusion(st.acoustic, rel);
+        float occ = fp ? 0.f : occlHint >= 0.f ? occlHint : acoustics::probeOcclusion(st.acoustic, rel);
         float pan2D = d > 0.3f ? Clamp(dot(rel / d, lis.right), -1.f, 1.f) * 0.3f : 0.f;
         // report: bystander / shooter perspective / suppressed
         int rid = sup ? GUN_SUP + gc : fp ? GUN_FP + gc : GUN_NEAR + gc;
         float nearW = fp ? 1.f : 1.f - 0.55f * SmoothStep(90.f, 500.f, d);
-        Voice* rv = startLayer(rid, handle, pos, volume * nearW, pitch, delay, 1.6f, sup ? 0.35f : 1.f, occ);
+        Voice* rv = startLayer(rid, handle, pos, volume * nearW, pitch, delay, sup ? 1.2f : 2.4f, sup ? 0.35f : 1.f, occ);
         if (!rv) handleClear(handle);
         else if (fp) {
             rv->fp = true;
@@ -560,9 +564,9 @@ struct Mixer {
         }
     }
 
-    void startSfx(int id, u32 handle, bool is2D, vec3 pos, float volume, float pitch) {
+    void startSfx(int id, u32 handle, bool is2D, vec3 pos, float volume, float pitch, float occlHint = -1.f) {
         if (gunClassOf(id) >= 0) {
-            startGunshot(id, handle, pos, vec3(), is2D ? (u32)GUN_PLAYER : 0u, volume, pitch);
+            startGunshot(id, handle, pos, vec3(), is2D ? (u32)GUN_PLAYER : 0u, volume, pitch, occlHint);
             return;
         }
         if (id <= 0 || id >= BANK_COUNT || !bankReady(id)) {
@@ -600,7 +604,7 @@ struct Mixer {
         if (v->is3D) {
             vec3 rel = pos - lis.pos;
             float dist = length(rel);
-            v->occl = acoustics::probeOcclusion(st.acoustic, rel);
+            v->occl = occlHint >= 0.f ? occlHint : acoustics::probeOcclusion(st.acoustic, rel);
             if (dist > 12.f) v->delay = (int)(Min(dist / kSpeedOfSound, 3.f) * kSR);
         }
         v->sp.reset();
@@ -660,8 +664,15 @@ struct Mixer {
         }
         for (const Cmd& c : g_processing) {
             switch (c.type) {
-                case CmdType::Play: startSfx(c.id, c.handle, c.is2D, c.pos, c.volume, c.pitch); break;
-                case CmdType::Gunshot: startGunshot(c.id, c.handle, c.pos, c.vel, (u32)c.p[0], c.volume, c.pitch); break;
+                case CmdType::Play: startSfx(c.id, c.handle, c.is2D, c.pos, c.volume, c.pitch, c.p[1]); break;
+                case CmdType::Gunshot: startGunshot(c.id, c.handle, c.pos, c.vel, (u32)c.p[0], c.volume, c.pitch, c.p[1]); break;
+                case CmdType::Thunder: {
+                    // by distance: a close strike tears before the boom, 1-3 km booms and rolls, farther only rumbles
+                    float dist = c.p[0];
+                    int id = dist < 1100.f ? AMB_THUNDER_CLOSE : dist < 3200.f ? AMB_THUNDER_MID : AMB_THUNDER_FAR;
+                    spawn2D(id, c.volume * Clamp(1.25f - dist / 9000.f, 0.35f, 1.f), rng.range(0.9f, 1.06f), rng.chance(0.5f));
+                    break;
+                }
                 case CmdType::Stop:
                     for (auto& v : voices)
                         if (v.active && v.handle == c.handle) {
@@ -833,7 +844,7 @@ struct Mixer {
         if (worldActive && amb) {
             PROF_SCOPE(0);
             radioSetContext(st.amb.timeOfDay, st.amb.rain);
-            ambienceRender(amb, aL, aR, n, st.amb, lis);
+            ambienceRender(amb, aL, aR, n, st.amb, lis, st.acoustic);
             for (int i = 0; i < n; i++) {
                 aL[i] = ambDcL.process(aL[i]);
                 aR[i] = ambDcR.process(aR[i]);
@@ -922,7 +933,7 @@ struct Mixer {
             if (!v.active) continue;
             if (v.is3D) {
                 computeSpatial(lis, env, v.pos3, vec3(), v.refDist, v.maxDist, v.airAbs, v.reverb, v.occl, v.erK, v.echoK, v.par);
-                v.score = v.par.audibility * v.volume * (0.4f + (float)v.priority / 255.f);
+                v.score = v.delay >= n ? -1.f : v.par.audibility * v.volume * (0.4f + (float)v.priority / 255.f);
             } else {
                 v.score = 10.f + (float)v.priority;
             }
@@ -985,10 +996,12 @@ struct Mixer {
                         pl *= 1.41421f;
                         pr *= 1.41421f;
                     }
+                    const float* srcL = (st2 && v.flip) ? mono2 : mono;
+                    const float* srcR = st2 ? (v.flip ? mono : mono2) : mono;
                     for (int i = 0; i < m; i++) {
                         float f = fin + (1.f - fin) * ((float)i / (float)m);
-                        oL[i] += mono[i] * g * f * pl;
-                        oR[i] += (st2 ? mono2[i] : mono[i]) * g * f * pr;
+                        oL[i] += srcL[i] * g * f * pl;
+                        oR[i] += srcR[i] * g * f * pr;
                     }
                     if (v.bus == Bus::World) {
                         // a sound at the listener: sends as a 3D source at 1 m
@@ -1063,9 +1076,10 @@ struct Mixer {
             Emitter& e = emitters[i];
             if (!e.active) continue;
             const EmitterDef& d = emitterDef(e.type);
-            float occT = acoustics::probeOcclusion(st.acoustic, e.pos - lis.pos);
+            float occT = g_emOcclHandle[i].load(std::memory_order_acquire) == e.handle ? g_emOccl[i].load(std::memory_order_relaxed)
+                                                                                       : acoustics::probeOcclusion(st.acoustic, e.pos - lis.pos);
             e.occl += (occT - e.occl) * ok;
-            computeSpatial(lis, env, e.pos, e.vel, d.refDist, d.maxDist, 1.f, d.reverb, e.occl, 1.f, 0.f, e.par);
+            computeSpatial(lis, env, e.pos, e.vel, d.refDist, d.maxDist, 1.f, d.reverb, e.occl, 0.6f, 0.f, e.par);
             e.score = e.par.audibility * Max(e.volume, 0.05f) * (0.4f + (float)d.priority / 255.f);
             if (e.releasing) e.score *= 0.5f;
             idx[cnt++] = i;
@@ -1257,6 +1271,27 @@ struct Mixer {
         g_handleState[h & (kHandleTable - 1)].store(h);
         startSfx(id, h, false, pos, vol, pitch);
     }
+    void spawn2D(int id, float vol, float pitch, bool flip) {
+        if (id <= 0 || id >= BANK_COUNT || !bankReady(id)) return;
+        const SoundDef& d = soundDef(id);
+        BankEntry& e = bankEntry(id);
+        if (e.count <= 0) return;
+        Voice* v = allocVoice(d.priority);
+        if (!v) return;
+        *v = Voice();
+        v->active = true;
+        v->id = id;
+        v->buf = &e.vars[rng.irange(0, e.count - 1)];
+        v->rate = pitch * (1.f + rng.range(-d.pitchVar, d.pitchVar));
+        v->volume = vol * d.gain;
+        v->bus = Bus::World;
+        v->is3D = false;
+        v->reverb = d.reverb;
+        v->priority = d.priority;
+        v->echoK = echoWeight(id);
+        v->flip = flip;
+        v->sp.reset();
+    }
 };
 
 Mixer* g_mixer = nullptr;
@@ -1274,7 +1309,45 @@ static inline bool apiLive() { return g_inited.load() && (g_deviceOk.load() || g
 // Acoustic probe (game thread: update() casts a few rays per frame through the game's raycast).
 std::atomic<RaycastFn> g_raycast{nullptr};
 acoustics::Probe g_probe;
-constexpr int kProbeRaysPerFrame = 6;
+constexpr int kProbeRaysPerFrame = 4;
+
+// Occlusion rays (game thread). Emitters are re-tested round-robin; one-shots get one ray when played from the
+// update thread. Results reach the mixer through per-slot atomics; without a ray the mixer uses the probe estimate.
+struct EmitterView {
+    u32 handle = 0;
+    vec3 pos;
+    float maxDist = 0.f;
+};
+EmitterView g_emView[kMaxEmitters];                   // guarded by g_cmdMutex
+int g_occlCursor = 0;
+std::thread::id g_updateThread;
+vec3 g_listenerPos;                                   // update thread only
+int g_oneShotRays = 0;                                // update thread only
+constexpr int kEmitterRaysPerFrame = 6, kOneShotRaysPerFrame = 8;
+
+// 0 clear line of sight, ~0.55 blocked but heard over the obstacle, 1 blocked.
+static float occlusionRays(RaycastFn fn, vec3 from, vec3 to) {
+    vec3 d = to - from;
+    float len = length(d);
+    if (len < 4.f || !std::isfinite(len)) return 0.f;
+    float hit;
+    if (!fn(from, d / len, len - 1.f, &hit)) return 0.f;
+    vec3 over = to + vec3(0.f, 0.f, 8.f + 0.04f * len);   // diffraction over roofs / walls
+    vec3 d2 = over - from;
+    float l2 = length(d2);
+    if (!fn(from, d2 / l2, l2 - 1.f, &hit)) return 0.55f;
+    return 1.f;
+}
+
+// Occlusion of a one-shot at play time (-1: unknown, the mixer falls back to the probe estimate).
+static float oneShotOcclusion(vec3 pos, float maxDist) {
+    RaycastFn fn = g_raycast.load();
+    if (!fn || g_oneShotRays <= 0 || std::this_thread::get_id() != g_updateThread) return -1.f;
+    float d = length(pos - g_listenerPos);
+    if (d < 4.f || d > maxDist) return -1.f;
+    g_oneShotRays--;
+    return occlusionRays(fn, g_listenerPos, pos + vec3(0.f, 0.f, 0.5f));
+}
 
 static void renderCallback(float* out, int frames) {
     static thread_local bool s_ftz = false;
@@ -1324,6 +1397,9 @@ static u32 newVoiceHandle() {
 
 void spawnWorldOneShot(int bankId, vec3 worldPos, float volume, float pitch) {
     if (mix::g_mixer) mix::g_mixer->spawnOneShot(bankId, worldPos, volume, pitch);
+}
+void spawnAmbient2D(int bankId, float volume, float pitch, bool flip) {
+    if (mix::g_mixer) mix::g_mixer->spawn2D(bankId, volume, pitch, flip);
 }
 
 void dialogSpeechDropped(SpeechJob* j) {
@@ -1415,10 +1491,42 @@ void update(const Listener& listener, float dt) {
     AcousticState ac;
     float interiorHint = Saturate(listener.interior) * (1.f - Saturate(listener.inVehicle));
     RaycastFn fn = mix::g_raycast.load();
+    mix::g_updateThread = std::this_thread::get_id();
+    mix::g_listenerPos = listener.pos;
+    mix::g_oneShotRays = mix::kOneShotRaysPerFrame;
     if (fn) {
         mix::g_probe.step(listener.pos, fn, mix::kProbeRaysPerFrame);
         mix::g_probe.fill(ac);
         acoustics::analyze(ac, interiorHint, urban);
+        // occlusion of emitters behind buildings / walls, a few per frame
+        struct Job {
+            int slot;
+            u32 handle;
+            vec3 pos;
+        };
+        Job jobs[mix::kEmitterRaysPerFrame];
+        int nj = 0;
+        {
+            std::lock_guard<std::mutex> lk(mix::g_cmdMutex);
+            for (int k = 0; k < mix::kMaxEmitters && nj < mix::kEmitterRaysPerFrame; k++) {
+                int slot = mix::g_occlCursor;
+                mix::g_occlCursor = (mix::g_occlCursor + 1) % mix::kMaxEmitters;
+                const mix::EmitterView& ev = mix::g_emView[slot];
+                if (!ev.handle) continue;
+                float d = length(ev.pos - listener.pos);
+                if (d < 4.f || d > ev.maxDist) {
+                    mix::g_emOccl[slot].store(0.f, std::memory_order_relaxed);
+                    mix::g_emOcclHandle[slot].store(ev.handle, std::memory_order_release);
+                    continue;
+                }
+                jobs[nj++] = {slot, ev.handle, ev.pos};
+            }
+        }
+        for (int j = 0; j < nj; j++) {
+            float o = mix::occlusionRays(fn, listener.pos, jobs[j].pos + vec3(0.f, 0.f, 0.6f));
+            mix::g_emOccl[jobs[j].slot].store(o, std::memory_order_relaxed);
+            mix::g_emOcclHandle[jobs[j].slot].store(jobs[j].handle, std::memory_order_release);
+        }
     } else {
         acoustics::fallback(ac, interiorHint, urban);
     }
@@ -1497,6 +1605,11 @@ static SoundHandle playImpl(Sfx id, vec3 pos, float volume, float pitch, bool is
     c.pos = pos;
     c.volume = Max(volume, 0.f);
     c.pitch = Clamp(pitch, 0.1f, 4.f);
+    c.p[1] = -1.f;
+    if (!is2D) {
+        const SoundDef& d = soundDef((int)id);
+        if (d.bus == Bus::World && d.priority >= 90) c.p[1] = mix::oneShotOcclusion(pos, Min(d.maxDist, 400.f));
+    }
     if (!mix::pushCmd(c)) {
         mix::handleClear(h);
         return 0;
@@ -1518,6 +1631,7 @@ SoundHandle playGunshot(Sfx weapon, vec3 muzzle, vec3 dir, u32 flags, float volu
     c.pos = muzzle;
     c.vel = std::isfinite(dir.x + dir.y + dir.z) ? dir : vec3();
     c.p[0] = (float)(flags & 0xffu);
+    c.p[1] = (flags & GUN_PLAYER) ? 0.f : mix::oneShotOcclusion(muzzle, 900.f);
     c.volume = Max(volume, 0.f);
     c.pitch = Clamp(pitch, 0.1f, 4.f);
     if (!mix::pushCmd(c)) {
@@ -1565,6 +1679,9 @@ EmitterHandle createEmitter(EmitterType type) {
         c.volume = 1.f;
         c.pos = mix::g_shared.listener.pos + vec3(0.f, 0.f, -10000.f);  // silent until first setEmitter
         mix::g_pending.push_back(c);
+        mix::EmitterView& ev = mix::g_emView[slot];
+        ev.handle = 0;   // no occlusion rays until the first setEmitter places it
+        ev.maxDist = emitterDef(type).maxDist;
         return h;
     }
     return 0;
@@ -1582,7 +1699,14 @@ void setEmitter(EmitterHandle h, vec3 pos, vec3 vel, float p0, float p1, float p
     c.p[2] = p2;
     c.p[3] = p3;
     c.volume = Max(volume, 0.f);
-    mix::pushCmd(c);
+    std::lock_guard<std::mutex> lk(mix::g_cmdMutex);
+    if (mix::g_pending.size() >= mix::kMaxPendingCmds) return;
+    mix::g_pending.push_back(c);
+    mix::EmitterView& ev = mix::g_emView[h % (u32)mix::kMaxEmitters];
+    if (std::isfinite(pos.x + pos.y + pos.z)) {
+        ev.handle = h;
+        ev.pos = pos;
+    }
 }
 
 void setEngineTune(EmitterHandle h, float boost, float tune, bool shifted) {
@@ -1601,7 +1725,10 @@ void destroyEmitter(EmitterHandle h) {
     mix::Cmd c = {};
     c.type = mix::CmdType::EmitterDestroy;
     c.handle = h;
-    mix::pushCmd(c);
+    std::lock_guard<std::mutex> lk(mix::g_cmdMutex);
+    mix::EmitterView& ev = mix::g_emView[h % (u32)mix::kMaxEmitters];
+    if (ev.handle == h) ev.handle = 0;
+    if (mix::g_pending.size() < mix::kMaxPendingCmds) mix::g_pending.push_back(c);
 }
 
 int radioStationCount() { return stationCount(); }
@@ -1650,6 +1777,15 @@ SoundHandle speakAt(const char* text, const VoiceParams& voice, vec3 pos, float 
 float estimateSpeechDuration(const char* text, const VoiceParams& voice) {
     if (!text) return 0.f;
     return Speech::estimateDuration(text, voice) * speechDurationScale();
+}
+
+void playThunder(float distance, float volume) {
+    if (!mix::apiLive() || !std::isfinite(distance)) return;
+    mix::Cmd c = {};
+    c.type = mix::CmdType::Thunder;
+    c.p[0] = Max(distance, 0.f);
+    c.volume = Saturate(volume) * 1.2f;
+    mix::pushCmd(c);
 }
 
 void setScore(int moodSeed, float intensity) {

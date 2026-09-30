@@ -317,4 +317,51 @@ void GameWorld::updateCameraRig(float dt) {
     r.cam.fovY = r.fov;
 }
 
+// Pedestrians between the camera and the player, or with the lens against their body, dither out instead of filling
+// the frame (the renderer clips against DrawItem::fade; shadows stay). The fade is smoothed, so a passer-by crossing
+// the line of sight turns see-through rather than popping. First-person and scripted cameras only test the lens:
+// a melee opponent or a cutscene close-up at arm's length stays solid.
+void GameWorld::updateCameraFades(float realDt) {
+    float k = 1.f - expf(-Min(realDt, 0.1f) * 12.f);
+    dvec3 cam = rig.cam.pos;
+    bool sight = player >= 0 && !rig.fpActive && !rig.scriptActive;
+    vec3 toPl(0.f);
+    float plDist = 0.f;
+    if (sight) {
+        const Ped& pl = peds[player];
+        dvec3 tgt = pl.state == PS_INVEHICLE && pl.vehicle >= 0 ? vehicles[pl.vehicle].sim.body.pos : pl.pos + dvec3(0, 0, 1.1);
+        toPl = rel(tgt, cam);
+        plDist = length(toPl);
+        sight = plDist > 1.f && toPl.x * toPl.x + toPl.y * toPl.y > 0.01f;
+    }
+    float sxy2 = toPl.x * toPl.x + toPl.y * toPl.y;
+    for (int i = 0; i < (int)peds.size(); i++) {
+        Ped& p = peds[i];
+        if (!p.used) continue;
+        float target = 1.f;
+        if (i != player && p.state != PS_INVEHICLE && p.visibleDist < 9.f) {
+            vec3 rc = rel(p.pos, cam);   // feet, camera-relative
+            // lens against the body: nearest point of the body axis (0.3 .. 1.6 m above the feet)
+            float zc = Clamp(-rc.z, 0.3f, 1.6f);
+            target = Saturate((length(rc + vec3(0.f, 0.f, zc)) - 0.25f) * 4.f);
+            if (sight) {
+                // body across the line of sight: closest approach in plan, then the sight height there
+                float t = Clamp((rc.x * toPl.x + rc.y * toPl.y) / sxy2, 0.f, 1.f);
+                vec3 q = toPl * t;
+                float lateral = length(vec2(rc.x - q.x, rc.y - q.y));
+                float h = q.z - rc.z;          // sight line height above the ped's feet
+                float along = t * plDist;      // distance from the lens
+                if (lateral < 0.6f && h > -0.1f && h < 2.0f && along < plDist - 0.7f) {
+                    float cover = Saturate((0.6f - lateral) * 4.f);
+                    float solid = Saturate((along - 0.8f) / 2.4f);   // at the lens: gone; 3 m out: solid
+                    target = Min(target, Lerp(1.f, solid, cover));
+                }
+            }
+        }
+        // out quickly, back a little slower
+        p.camFade = Lerp(p.camFade, target, target < p.camFade ? k : k * 0.5f);
+        if (target >= 1.f && p.camFade > 0.995f) p.camFade = 1.f;
+    }
+}
+
 }  // namespace Game

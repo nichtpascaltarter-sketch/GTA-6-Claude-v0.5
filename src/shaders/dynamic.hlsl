@@ -159,18 +159,10 @@ float4 vsSkinnedShadow(VSInSkinned i) : SV_Position {
     return mul(gShadowViewProj, float4(rel, 1));
 }
 
-// Bump mapping from a scalar height field (meters) via screen-space derivatives (Mikkelsen's surface gradient):
-// no tangent frame or texture needed, so procedural detail can be applied to any skinned surface.
-float3 perturbBump(float3 n, float3 N, float3 dPx, float3 dPy, float height) {
-    float2 dh = float2(ddx(height), ddy(height));
-    float3 r1 = cross(dPy, N), r2 = cross(N, dPx);
-    float det = dot(dPx, r1);
-    if (abs(det) < 1e-14) return n;
-    float3 grad = (r1 * dh.x + r2 * dh.y) / det;
-    return normalize(n - grad);
-}
 
 GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
+    // faded objects (a pedestrian between the camera and the player) dither out; TAA resolves the pattern
+    if (gObjParams2.z < 0.999) clip(gObjParams2.z - ign(i.pos.xy, gTime.z) - 0.002);
     uint matId = i.mat & 0xffu;
     MaterialInfo m = tMaterials[matId];
     float3 N = normalize(i.nrm) * (front ? 1.0 : -1.0);
@@ -461,7 +453,7 @@ GBufferOut psHairCard(VSOut i, bool front : SV_IsFrontFace) {
     float seed = (float)((i.mat >> 12) & 0xffffu) * (1.0 / 65535.0);
     float rnd;
     float cov = hairCardCoverage(i.uv, kind, seed, i.color.a, fwidth(i.uv.x), rnd);
-    clip(cov - ign(i.pos.xy, gTime.z) - 0.002);
+    clip(cov * gObjParams2.z - ign(i.pos.xy, gTime.z) - 0.002);   // one threshold for coverage and fade
     float3 N = normalize(i.nrm) * (front ? 1.0 : -1.0);
     float3 T = i.tan - N * dot(i.tan, N);
     float tl = length(T);
@@ -506,6 +498,7 @@ void psHairCardShadow(VSCardShadowOut i) {
 // reflection and sun glint with Fresnel, tint absorption (vertex colour alpha = clarity: 1 clear windscreen .. 0
 // privacy glass), a dust film from the vehicle's dirt, aerial perspective and volumetric fog.
 float4 psGlass(VSOut i, bool front : SV_IsFrontFace) : SV_Target {
+    if (gObjParams2.z < 0.999) clip(gObjParams2.z - ign(i.pos.xy, gTime.z) - 0.002);
     float3 N = normalize(i.nrm) * (front ? 1.0 : -1.0);
     float3 V = normalize(-i.rel);
     float NoV = saturate(dot(N, V));

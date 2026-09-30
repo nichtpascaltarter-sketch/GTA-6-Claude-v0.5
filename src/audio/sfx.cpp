@@ -1948,6 +1948,7 @@ static void s_shipHorn(Buf& b) {
 }
 
 #include "sfx_guns.cpp"
+#include "sfx_amb.cpp"
 
 // ---------------------------------------------------------------------------------------------
 // Definitions table (order must match BankId)
@@ -2074,38 +2075,55 @@ static const SoundDef kDefs[BANK_COUNT] = {
     {"amb_dog_distant",   W, 25,  3, 0.5f,  6.f,   700.f,  0.35f, 0.05f, 0.8f},
     {"amb_water_lap",     W, 20,  4, 0.3f,  3.f,   50.f,   0.15f, 0.06f, 1.f},
     {"amb_crow",          W, 20,  3, 0.35f, 6.f,   300.f,  0.3f,  0.05f, 1.f},
+    {"amb_airboat",       W, 35,  2, 0.55f, 1.f,   1.f,    0.2f,  0.04f, 1.f},
+    {"amb_boat_pass",     W, 30,  2, 0.45f, 1.f,   1.f,    0.2f,  0.04f, 1.f},
+    {"amb_train_pass",    W, 30,  2, 0.5f,  1.f,   1.f,    0.2f,  0.03f, 1.f},
+    {"amb_crane",         W, 30,  3, 0.5f,  25.f,  900.f,  0.35f, 0.05f, 0.7f},
+    {"amb_container",     W, 30,  3, 0.7f,  40.f,  1500.f, 0.4f,  0.05f, 0.6f},
+    {"amb_reverse_beep",  W, 25,  2, 0.3f,  10.f,  500.f,  0.3f,  0.03f, 0.8f},
+    {"amb_construction",  W, 25,  3, 0.5f,  15.f,  700.f,  0.35f, 0.05f, 0.7f},
+    {"amb_pig_frog",      W, 20,  3, 0.45f, 6.f,   200.f,  0.2f,  0.05f, 1.f},
+    {"amb_chorus_frog",   W, 20,  3, 0.3f,  4.f,   120.f,  0.2f,  0.05f, 1.f},
+    {"amb_limpkin",       W, 20,  3, 0.45f, 10.f,  500.f,  0.3f,  0.04f, 0.8f},
+    {"amb_blackbird",     W, 20,  3, 0.35f, 5.f,   200.f,  0.2f,  0.05f, 1.f},
+    {"amb_mosquito",      W, 20,  3, 0.12f, 1.f,   1.f,    0.f,   0.05f, 1.f},
+    {"amb_halyard",       W, 20,  3, 0.35f, 5.f,   120.f,  0.25f, 0.05f, 1.f},
+    {"amb_buoy_bell",     W, 20,  2, 0.4f,  20.f,  800.f,  0.35f, 0.02f, 0.8f},
+    {"amb_thunder_close", W, 210, 2, 1.0f,  1.f,   1.f,    0.3f,  0.05f, 1.f},
+    {"amb_thunder_mid",   W, 200, 3, 0.95f, 1.f,   1.f,    0.3f,  0.05f, 1.f},
+    {"amb_thunder_far",   W, 190, 3, 0.8f,  1.f,   1.f,    0.3f,  0.05f, 1.f},
     // gunfire layers (Mixer::startGunshot)
-    {"gun_near_pistol",   W, 200, 4, 1.20f, 5.f,   700.f,  0.4f,  0.03f, 0.7f},
-    {"gun_near_revolver", W, 200, 4, 1.30f, 5.f,   800.f,  0.4f,  0.03f, 0.7f},
-    {"gun_near_smg",      W, 200, 4, 1.15f, 5.f,   650.f,  0.4f,  0.03f, 0.7f},
-    {"gun_near_rifle",    W, 200, 4, 1.30f, 6.f,   950.f,  0.4f,  0.03f, 0.7f},
-    {"gun_near_shotgun",  W, 200, 4, 1.35f, 6.f,   800.f,  0.4f,  0.03f, 0.7f},
-    {"gun_near_sniper",   W, 210, 4, 1.40f, 7.f,   1300.f, 0.4f,  0.02f, 0.6f},
-    {"gun_fp_pistol",     W, 240, 3, 1.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
-    {"gun_fp_revolver",   W, 240, 3, 1.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
-    {"gun_fp_smg",        W, 240, 3, 1.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
-    {"gun_fp_rifle",      W, 240, 3, 1.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
-    {"gun_fp_shotgun",    W, 240, 3, 1.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
-    {"gun_fp_sniper",     W, 240, 3, 1.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_near_pistol",   W, 200, 4, 1.06f, 5.f,   700.f,  0.4f,  0.03f, 1.2f},
+    {"gun_near_revolver", W, 200, 4, 1.13f, 5.f,   800.f,  0.4f,  0.03f, 1.2f},
+    {"gun_near_smg",      W, 200, 4, 1.01f, 5.f,   650.f,  0.4f,  0.03f, 1.2f},
+    {"gun_near_rifle",    W, 200, 4, 1.13f, 6.f,   950.f,  0.4f,  0.03f, 1.2f},
+    {"gun_near_shotgun",  W, 200, 4, 1.18f, 6.f,   800.f,  0.4f,  0.03f, 1.2f},
+    {"gun_near_sniper",   W, 210, 4, 1.23f, 7.f,   1300.f, 0.4f,  0.02f, 1.2f},
+    {"gun_fp_pistol",     W, 240, 3, 1.70f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_revolver",   W, 240, 3, 1.70f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_smg",        W, 240, 3, 1.70f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_rifle",      W, 240, 3, 1.70f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_shotgun",    W, 240, 3, 1.70f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_sniper",     W, 240, 3, 1.70f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
     {"gun_mech_pistol",   W, 190, 3, 0.45f, 1.5f,  30.f,   0.12f, 0.04f, 1.f},
     {"gun_mech_revolver", W, 190, 3, 0.40f, 1.5f,  30.f,   0.12f, 0.04f, 1.f},
     {"gun_mech_smg",      W, 190, 3, 0.45f, 1.5f,  30.f,   0.12f, 0.04f, 1.f},
     {"gun_mech_rifle",    W, 190, 3, 0.45f, 1.5f,  30.f,   0.12f, 0.04f, 1.f},
     {"gun_mech_shotgun",  W, 190, 3, 0.50f, 1.5f,  30.f,   0.12f, 0.03f, 1.f},
     {"gun_mech_sniper",   W, 190, 3, 0.50f, 1.5f,  30.f,   0.12f, 0.03f, 1.f},
-    {"gun_sup_pistol",    W, 190, 4, 0.80f, 2.f,   150.f,  0.3f,  0.04f, 1.f},
-    {"gun_sup_revolver",  W, 190, 4, 0.90f, 3.f,   300.f,  0.35f, 0.04f, 0.9f},
-    {"gun_sup_smg",       W, 190, 4, 0.75f, 2.f,   150.f,  0.3f,  0.04f, 1.f},
-    {"gun_sup_rifle",     W, 190, 4, 0.95f, 3.f,   350.f,  0.35f, 0.04f, 0.9f},
-    {"gun_sup_shotgun",   W, 190, 4, 0.90f, 2.f,   200.f,  0.3f,  0.04f, 1.f},
-    {"gun_sup_sniper",    W, 200, 4, 1.00f, 3.f,   450.f,  0.35f, 0.03f, 0.9f},
-    {"gun_far_urban_light", W, 180, 3, 1.00f, 40.f, 1800.f, 0.12f, 0.04f, 0.5f},
-    {"gun_far_urban_heavy", W, 180, 3, 1.05f, 40.f, 2300.f, 0.12f, 0.04f, 0.5f},
-    {"gun_far_urban_big",   W, 185, 3, 1.10f, 45.f, 3000.f, 0.12f, 0.03f, 0.45f},
-    {"gun_far_open_light",  W, 180, 3, 1.00f, 40.f, 1800.f, 0.12f, 0.04f, 0.5f},
-    {"gun_far_open_heavy",  W, 180, 3, 1.05f, 40.f, 2300.f, 0.12f, 0.04f, 0.5f},
-    {"gun_far_open_big",    W, 185, 3, 1.10f, 45.f, 3000.f, 0.12f, 0.03f, 0.45f},
-    {"gun_crack",         W, 200, 4, 1.00f, 3.f,   60.f,   0.15f, 0.05f, 1.f},
+    {"gun_sup_pistol",    W, 190, 4, 1.01f, 2.f,   150.f,  0.3f,  0.04f, 1.f},
+    {"gun_sup_revolver",  W, 190, 4, 1.13f, 3.f,   300.f,  0.35f, 0.04f, 0.9f},
+    {"gun_sup_smg",       W, 190, 4, 0.95f, 2.f,   150.f,  0.3f,  0.04f, 1.f},
+    {"gun_sup_rifle",     W, 190, 4, 1.20f, 3.f,   350.f,  0.35f, 0.04f, 0.9f},
+    {"gun_sup_shotgun",   W, 190, 4, 1.13f, 2.f,   200.f,  0.3f,  0.04f, 1.f},
+    {"gun_sup_sniper",    W, 200, 4, 1.26f, 3.f,   450.f,  0.35f, 0.03f, 0.9f},
+    {"gun_far_urban_light", W, 180, 3, 1.80f, 30.f, 1800.f, 0.12f, 0.04f, 0.5f},
+    {"gun_far_urban_heavy", W, 180, 3, 1.89f, 30.f, 2300.f, 0.12f, 0.04f, 0.5f},
+    {"gun_far_urban_big",   W, 185, 3, 1.98f, 34.f, 3000.f, 0.12f, 0.03f, 0.45f},
+    {"gun_far_open_light",  W, 180, 3, 1.80f, 30.f, 1800.f, 0.12f, 0.04f, 0.5f},
+    {"gun_far_open_heavy",  W, 180, 3, 1.89f, 30.f, 2300.f, 0.12f, 0.04f, 0.5f},
+    {"gun_far_open_big",    W, 185, 3, 1.98f, 34.f, 3000.f, 0.12f, 0.03f, 0.45f},
+    {"gun_crack",         W, 200, 4, 1.20f, 3.f,   60.f,   0.15f, 0.05f, 1.f},
 };
 #undef W
 #undef U
@@ -2117,6 +2135,9 @@ static bool isStereo(int id) {
         case SFX_PICKUP_CASH: case SFX_PICKUP_HEALTH: case SFX_PICKUP_COLLECTIBLE: case SFX_CHECKPOINT:
         case SFX_MISSION_PASSED: case SFX_MISSION_FAILED: case SFX_WASTED: case SFX_BUSTED: case SFX_WANTED_UP:
         case SFX_WANTED_LOST: case SFX_PURCHASE:
+            return true;
+        case AMB_AIRBOAT: case AMB_BOAT_PASS: case AMB_TRAIN_PASS: case AMB_MOSQUITO: case AMB_THUNDER_CLOSE: case AMB_THUNDER_MID:
+        case AMB_THUNDER_FAR:
             return true;
         default: return id >= GUN_FP && id < GUN_MECH;
     }
@@ -2231,7 +2252,8 @@ static void synthesize(int id, int var, Buf& b) {
         case AMB_WATER_LAP: s_waterLap(b); break;
         case AMB_CROW: s_crow(b); break;
         default:
-            if (id >= GUN_NEAR && id <= GUN_CRACK) s_gunLayer(b, id);
+            if (id >= AMB_AIRBOAT && id <= AMB_THUNDER_FAR) s_ambLayer(b, id, var);
+            else if (id >= GUN_NEAR && id <= GUN_CRACK) s_gunLayer(b, id);
             else tone(b, 0.f, 0.01f, 440.f, 440.f, 0.f, 0.f, 0.001f, 0.01f);  // routed ids (guns): silent stub buffer
             break;
     }
@@ -2308,6 +2330,7 @@ static float estCost(int id) {
         case SFX_ROCKET_LAUNCH: case SFX_GLASS_BREAK: return 4.f;
         default:
             if (id >= GUN_FAR_URBAN && id < GUN_CRACK) return 8.f;
+            if (id == AMB_AIRBOAT || id == AMB_TRAIN_PASS || id == AMB_BOAT_PASS || (id >= AMB_THUNDER_CLOSE && id <= AMB_THUNDER_FAR)) return 8.f;
             if (id >= GUN_NEAR && id < GUN_MECH) return 2.f;
             return 1.f;
     }

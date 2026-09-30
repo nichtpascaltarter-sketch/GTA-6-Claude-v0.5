@@ -882,7 +882,7 @@ static void digitSection(const Digit& g, float u, float s, float& a, float& bd, 
     const float l1 = S2 - S1, l2 = S3 - S2, l3 = S4 - S3;
     float R;
     if (!g.thumb) R = g.r0 * (u < S3 ? Lerp(1.f, 0.875f, sstep(S1, S3, u)) : Lerp(0.875f, 0.85f, sstep(S3, S4, u)));
-    else R = g.r0 * (u < S2 ? Lerp(1.24f, 1.f, sstep(S1, S2, u)) : (u < S3 ? Lerp(1.f, 0.95f, sstep(S2, S3, u)) : 0.94f));
+    else R = g.r0 * (u < S2 ? Lerp(0.95f, 1.04f, sstep(S1, S2, u)) : (u < S3 ? Lerp(1.04f, 0.95f, sstep(S2, S3, u)) : 0.94f));   // the thenar carries the base
     float knuckle = 0.07f * bump(u, S2, 0.0035f * s) + 0.05f * bump(u, S3, 0.003f * s);
     if (!g.thumb) knuckle += 0.14f * bump(u, S1 - 0.0015f * s, 0.0055f * s);
     float pads = 0.08f * bump(u, S2 + 0.5f * l2, 0.3f * l2) + 0.11f * bump(u, S3 + 0.52f * l3, 0.28f * l3);
@@ -1093,8 +1093,10 @@ static void buildFingers(BuildCtx& c, int side) {
         // above the distal surface, its base and sides tucked under the skin folds; a thin rim shows its thickness
         {
             const float u0 = S4 - (g.thumb ? 0.62f : 0.6f) * l3, uE = c0 + 0.85f * capL;
-            const int NU = 5, NV = 4;   // odd: a column on the centre line (the plate's chords stay above the skin)
-            const float vRow[NV] = {0.f, 0.35f, 0.75f, 1.f};
+            // odd column count: a column on the centre line (the plate's chords stay above the skin); a second row just
+            // past the fold makes the plate emerge along a clean line whatever the skin's facets underneath
+            const int NU = 5, NV = 5;
+            const float vRow[NV] = {0.f, 0.08f, 0.38f, 0.76f, 1.f};
             const float thMax = g.thumb ? 0.95f : 0.9f;
             const float ext = (g.thumb ? 0.6f : 1.f) * nailExt * s;
             u32 grid[NV][NU];
@@ -1111,7 +1113,10 @@ static void buildFingers(BuildCtx& c, int side) {
                     vec3 n;
                     vec3 sp = digitPoint(g, ua, th, s, &n);
                     float x4 = x * x * x * x;
-                    float h = (j == 0 ? -0.00025f : 0.00036f) * s * (1.f - 0.55f * x * x) - 0.0008f * s * x4;
+                    // tucked under the proximal and lateral folds, 0.3-0.4 mm proud over the bed, the free edge clear of
+                    // the fingertip across its whole width
+                    float side = Lerp(0.0009f, 0.00025f, sstep(0.5f, 0.95f, vRow[j]));
+                    float h = (j == 0 ? -0.0005f : 0.00038f * (1.f - 0.45f * x * x)) * s - side * s * x4;
                     vec3 pos = sp + n * h;
                     if (j == NV - 1 && ext > 0.f) {
                         // long nails: continue the plate's own curve past the tip

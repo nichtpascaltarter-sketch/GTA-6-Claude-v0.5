@@ -214,7 +214,7 @@ GBufferOut psTerrain(VSOut i) {
     if (mudW > 0.0 && !submerged) {
         albedo *= lerp(1.0, 0.75, mudW);
         rough = lerp(rough, 0.42, mudW);
-        float pool = smoothstep(0.58, 0.64, fbmValue(wrapped * 0.06, 2) + valueNoise(w * 0.4) * 0.1) * mudW;
+        float pool = smoothstep(0.58, 0.64, fbmValue(wrapped * 0.06, 2) + valueNoise(w * 0.4) * 0.1) * mudW * (1.0 - sandW);   // no ponds on beach sand
         albedo *= lerp(1.0, 0.45, pool);
         rough = lerp(rough, 0.03, pool);
         n = normalize(lerp(n, N, pool));

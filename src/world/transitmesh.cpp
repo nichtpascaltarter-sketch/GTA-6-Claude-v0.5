@@ -682,6 +682,14 @@ void genStation(const SiteElem& e, G& g) {
                 squad(g, m, f, vec3(en * roofL, l0, z0 - 0.22f), vec3(en * roofL, l1, z1 - 0.22f), vec3(en * roofL, l1, z1), vec3(en * roofL, l0, z0), rgbv(kTeal),
                       mPaint, vec3((float)en, 0, 0));
         }
+        // collision for the roof shell (three steps following the arch): bullets and aircraft stop on it, cameras stay
+        // under it and the audio probe hears the platforms as a covered space
+        for (int k = -1; k <= 1; k++) {
+            float lc = (float)k * roofHalf * 2.f / 3.f, lh = roofHalf / 3.f;
+            float zt = Max(roofZ(lc - lh), roofZ(lc + lh)), zb = Min(roofZ(lc - lh), roofZ(lc + lh)) - 0.22f;
+            if (k == 0) zt = roofZ(0.f), zb = roofZ(lh) - 0.22f;
+            scollide(g, f, 0.f, lc, (zt + zb) * 0.5f, vec3(roofL, lh, (zt - zb) * 0.5f));
+        }
         for (int sd = -1; sd <= 1; sd += 2) {
             float l = sd * roofHalf, z = roofZ(l);
             squad(g, m, f, vec3(-roofL, l, z - 0.22f), vec3(roofL, l, z - 0.22f), vec3(roofL, l, z + 0.02f), vec3(-roofL, l, z + 0.02f), rgbv(kTeal), mPaint,

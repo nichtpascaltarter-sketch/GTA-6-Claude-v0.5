@@ -426,11 +426,14 @@ static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
         std::vector<u32> det;
         for (u32 i = 0; i < (u32)m.v.size(); i++)
             if (m.v[i].part == PART_FACEDETAIL && (lod >= 2 || cardKind(m.v[i]) != CARD_NONE)) det.push_back(i);
-        for (BVert& v : m.v)
+        for (BVert& v : m.v) {
             if (v.flags & BuildCtx::F_CARDSHELL) {
                 v.col = v.col * (1.f / 0.72f);
                 v.flags &= (u8)~BuildCtx::F_CARDSHELL;
             }
+            // the fingers' joint creases would smear once their tubes are decimated
+            if (v.part == PART_FINGER || v.part == PART_THUMB) v.uv.y = 0.f;
+        }
         for (BVert& v : m.v) {
             if (v.part != PART_HEAD || !(v.flags & BuildCtx::F_FACE)) continue;
             float best = 1e9f;

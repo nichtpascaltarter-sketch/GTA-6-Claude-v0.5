@@ -56,6 +56,13 @@ struct Skeleton {
     mat4 invBindModel[B_COUNT];   // inverse of bind-pose model-space transform
     float boneLength[B_COUNT];
     float boneRadius[B_COUNT];    // approximate limb radius (for ragdoll capsules / hit detection)
+    // Constants of the derived bones, per hand (0 left, 1 right), filled by buildSkeleton: the forearm axis, the curl
+    // controllers' axes, the fingers' flexion axes and the thumb's key directions / bind directions (pose.cpp).
+    struct DerivedRig {
+        vec3 forearmAxis, fingerCtlAxis, thumbCtlAxis;
+        vec3 flexAxis[4];
+        vec3 thumbKey[3][4];      // metacarpal, proximal, distal phalanx direction at the thumb curl keys
+    } derived[2];
 };
 
 // A pose: local rotations (relative to bind) + root translation. Blending is done on this representation.
