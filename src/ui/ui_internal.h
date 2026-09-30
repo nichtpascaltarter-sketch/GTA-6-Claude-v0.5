@@ -135,6 +135,9 @@ void mapInit();
 void drawMapBase(const MapView& v, const MapDrawOpts& o);
 void drawMapRoute(const MapView& v, const std::vector<vec2>& route, u32 color, float widthPx, float alpha, vec2 cullMin,
                   vec2 cullMax);
+// Overlay lines from setMapLines (transit): `radar` draws only the radar ones, thinner and fainter
+const std::vector<MapLine>& mapLines();
+void drawMapLines(const MapView& v, float alpha, float uiScale, vec2 cullMin, vec2 cullMax, bool radar);
 // District / water labels for the full map
 struct MapLabel { vec2 pos; std::string name; float importance; bool water; };
 const std::vector<MapLabel>& mapLabels();

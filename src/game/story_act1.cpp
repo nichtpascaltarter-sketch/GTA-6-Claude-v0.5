@@ -1558,5 +1558,49 @@ public:
     }
 };
 
+// New game: the opening. Porto Sol from over the bay with the title, then down the Calle Luna street to Mari, and the
+// player's camera takes over from the last shot.
+void openingShots(GameWorld& g) {
+    const Places& P = gPlaces;
+    Ped* pl = g.playerPed();
+    if (!pl) return;
+    std::vector<CutsceneShot> shots;
+    vec3 city = P.solarisPlaza + vec3(0.f, 0.f, 70.f);
+    vec2 in = normalize(city.xy() - P.bayCenter.xy() + vec2(0.01f, 0.f));
+    vec3 c0 = P.bayCenter + vec3(-in * 250.f, 95.f), c1 = P.bayCenter + vec3(in * 120.f, 70.f);
+    shots.push_back(shotMove(c0, city, c1, city - vec3(0.f, 0.f, 25.f), 10.f, 50.f));
+    // down the street to Mari from behind her (she stands on the sidewalk facing along it), ending where the gameplay
+    // camera will be, so the hand-off is a short ease instead of a swing around her
+    vec3 mari = pl->pos.toVec3() + vec3(0.f, 0.f, 1.4f);
+    vec2 sd = dirFromYaw(pl->yaw);
+    shots.push_back(shotMove(mari + vec3(-sd * 150.f, 32.f), mari, mari + vec3(-sd * 55.f, 11.f), mari, 7.f, 46.f));
+    establish(g, shots, pl->pos.toVec3(), pl->yaw, 12.f, 3.f, 4.5f, 45.f);
+    g.mCutscene(shots, true);
+    gMissions.holdForDialogue = false;
+    gMissions.cardTitle = "NEON TIDE";
+    gMissions.cardSub = "Porto Sol";
+    gMissions.cardT = 0.f;
+    gMissions.cardDelay = 1.8f;
+    gMissions.cardCentered = true;
+    g.fadeAlpha = 1.f;
+    g.fadeIn(0.6f);
+}
+
+// The opening as a mission (hidden, repeatable): lets the test harness film it; passes when the shots are done.
+class MissionOpening : public StoryMission {
+public:
+    const char* title() const override { return "Porto Sol"; }
+    const char* brief() const override { return "The opening shots of a new game."; }
+    long long reward() const override { return 0; }
+    const char* passBanner() const override { return ""; }
+    bool allowRetry() const override { return false; }
+    void start(GameWorld& g) override { openingShots(g); }
+    MissionStatus update(GameWorld& g, float dt) override {
+        (void)dt;
+        if (stageTime > 0.5f && !g.mInCutscene()) return MS_PASSED;
+        return MS_RUNNING;
+    }
+};
+
 }  // namespace mu
 }  // namespace Game

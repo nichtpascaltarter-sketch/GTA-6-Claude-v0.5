@@ -4,6 +4,10 @@
 #include "missions.h"
 
 namespace Game {
+namespace interiors_game {
+bool rideElevator(GameWorld& g, int from, bool up);   // interiors_game.cpp (the heist test rides the express elevator)
+}
+
 namespace mu {
 
 int heistApproach(GameWorld& g) { return flag(g, EX_HEIST_APPROACH) == 2 ? 2 : 1; }
@@ -406,6 +410,11 @@ public:
     int wave = 0;
     long long take = 0;
     int savedOutfit[2] = {0, 0};
+    // the quiet way in, when the world has Solaris One's lobby and penthouse: the express elevator to Sandoval's vault
+    bool tower = false;
+    int lobbyDef = -1, topDef = -1;
+    vec3 liftDown, liftUp, vaultAt, vaultDoor, topEntry;
+    float crackT = 0.f;
     const char* title() const override { return "Solaris One"; }
     const char* brief() const override {
         return "Take Sandoval's vault at the top of Solaris One: the stolen deeds, the Cuervo payroll and his cash. Then get out of downtown "
@@ -425,9 +434,53 @@ public:
         blipEnemies(g);
     }
 
+    bool towerReady() {
+        if (!World::gInteriors) return false;
+        lobbyDef = World::gInteriors->byName("Solaris One");
+        topDef = World::gInteriors->byName("Solaris One Penthouse");
+        if (lobbyDef < 0 || topDef < 0) return false;
+        const World::InteriorDef& lo = World::gInteriors->defs[lobbyDef];
+        const World::InteriorDef& ph = World::gInteriors->defs[topDef];
+        const World::InteriorMarker* a = lo.marker(World::IM_ELEVATOR);
+        const World::InteriorMarker* b = ph.marker(World::IM_ELEVATOR_TOP);
+        const World::InteriorMarker* e = ph.marker(World::IM_ENTRY);
+        if (!a || !b || lo.link != topDef) return false;
+        liftDown = lo.toWorld(a->pos);
+        liftUp = ph.toWorld(b->pos);
+        topEntry = e ? ph.toWorld(e->pos) : liftUp;
+        // the round vault door stands on the penthouse's west pier (x = -0.7 of the half width, y = 2.9 in its frame)
+        const World::InteriorMarker* v = ph.marker(World::IM_COUNTER);
+        vaultDoor = ph.toWorld(vec3(-0.7f * ph.x1, 2.9f, 1.3f));
+        vaultAt = ph.toWorld(v ? v->pos : vec3(-0.7f * ph.x1 + 1.3f, 2.9f, 0.f));
+        return true;
+    }
+
+    // the penthouse view: the city through the glass 456 m up, then the two of them
+    void topCutscene(GameWorld& g) {
+        vec3 dp = playerPos(g), mp = pedPos(g, mari);
+        vec2 out = normalize(gPlaces.mariApt.pos.xy() - dp.xy() + vec2(0.01f, 0.f));
+        std::vector<CutsceneShot> shots;
+        shots.push_back(shotMove(dp + vec3(-out * 1.5f, 1.7f), dp + vec3(out * 400.f, -300.f), dp + vec3(out * 0.5f, 1.6f), dp + vec3(out * 400.f, -330.f),
+                                 6.f, 55.f));
+        shots.push_back(shotTwo(dp, mp, 6.f));
+        g.mCutscene(shots);
+        sayP(g, 0, mari, "[whisper:0.4]Look at this. He can see all of Calle Luna from up here.");
+        sayMe(g, "[whisper:0.4]And tonight Calle Luna can see him. The vault's on the west side.");
+    }
+
+    // the guards come up in the elevator
+    void topGuards(GameWorld& g) {
+        for (int i = 0; i < 4; i++) {
+            vec3 p = topEntry + vec3((i % 2) * 1.4f - 0.7f, (i / 2) * 1.4f - 0.7f, 0.2f);
+            gunman(g, i & 1 ? CAST_GUARD_B : CAST_GUARD_A, p, 0.f, i == 0 ? WPN_RIFLE : WPN_SMG, 0.24f);
+        }
+        blipEnemies(g);
+    }
+
     void start(GameWorld& g) override {
         gMissions.suppressPolice = true;   // the story keeps regular police out of this one
         quiet = heistApproach(g) == 1;
+        tower = quiet && towerReady();
         const Places& P = gPlaces;
         savedOutfit[0] = currentOutfit(g, 0);
         savedOutfit[1] = currentOutfit(g, 1);
@@ -564,7 +617,10 @@ public:
                         shots.push_back(shot(dock + vec3(gPlaces.solarisOne.streetDir * 14.f, 3.f), dock, 4.f, 45.f));
                     }
                     g.mCutscene(shots);
-                    if (quiet) {
+                    if (tower) {
+                        radioLine(g, CAST_KIT, "[whisper:0.5]Cameras looping. The express elevator to the top is yours.");
+                        sayP(g, 0, mari, "[whisper:0.4]Twenty minutes. Walk like you belong here.");
+                    } else if (quiet) {
                         radioLine(g, CAST_KIT, "[whisper:0.5]Cameras looping. Elevator to ninety is yours.");
                         sayP(g, 0, mari, "[whisper:0.4]Twenty minutes. See you at the top.");
                         radioLine(g, CAST_KIT, "[scared:0.6]Vault's open. Deeds, ledgers, cash, you're golden... wait. Sandoval's head of security just walked into the camera room.");
@@ -577,6 +633,15 @@ public:
                 }
                 break;
             case 2:
+                if (!g.mInCutscene() && !g.mTalking() && tower) {
+                    // on foot through the lobby to the express elevator
+                    if (g.playerVehicle() >= 0) g.removePedFromVehicle(g.player, false);
+                    if (mari >= 0 && g.peds[mari].vehicle >= 0) g.removePedFromVehicle(mari, false);
+                    setFollow(g, mari, g.player);
+                    goTo(g, liftDown, 1.f, "Walk through the ~y~lobby~s~ and take the express elevator to the top.");
+                    setStage(20);
+                    break;
+                }
                 if (!g.mInCutscene() && !g.mTalking()) {
                     if (quiet) {
                         // they came back down to the plaza with the loot
@@ -661,6 +726,76 @@ public:
                 }
                 break;
             }
+            case 20:   // riding up (the interiors' elevator: E in the cab)
+                if (::length(playerPos(g) - liftUp) < 8.f) {
+                    clearGoal(g);
+                    placePed(g, mari, topEntry + vec3(0.8f, 0.8f, 0.f), 0.f);   // she rode up with him
+                    facePed(g, mari, playerPos(g));
+                    score(SC_NOIR, 0.35f, 2);
+                    topCutscene(g);
+                    next();
+                }
+                break;
+            case 21:
+                if (!g.mInCutscene() && !g.mTalking()) {
+                    setFollow(g, mari, g.player);
+                    goTo(g, vaultAt, 1.4f, "Crack ~y~Sandoval's vault~s~.");
+                    next();
+                }
+                break;
+            case 22:
+                if (arrived(g)) {
+                    clearGoal(g);
+                    Ped* pl = g.playerPed();
+                    if (pl) {
+                        vec2 d = vaultDoor.xy() - playerPos(g).xy();
+                        pl->yaw = atan2f(-d.x, d.y);
+                    }
+                    radioLine(g, CAST_KIT, "[whisper:0.5]Okay. Twelve digits, and the wheel is noisy. Listen for the clicks.");
+                    crackT = 0.f;
+                    next();
+                }
+                break;
+            case 23: {
+                crackT += dt;
+                g.missionCounterLabel = "VAULT";
+                g.missionCounter = Min(100, (int)(crackT * 10.f));
+                g.missionCounterMax = 100;
+                if (crackT > 3.5f && crackT - dt <= 3.5f) sayP(g, 0, mari, "[whisper:0.4]Four. Nine. Come on, come on.");
+                if (crackT > 7.f && crackT - dt <= 7.f) radioLine(g, CAST_KIT, "[whisper:0.4]Last wheel. Gently.");
+                if (crackT >= 10.f) {
+                    g.missionCounterLabel.clear();
+                    take = 220000;
+#ifdef HAVE_AUDIO
+                    Audio::play2D(Audio::SFX_PURCHASE, 0.7f);
+#endif
+                    sayP(g, 0, mari, "[whisper][happy:0.4]It's open. The deeds. The ledgers. And that is a lot of cash.");
+                    radioLine(g, CAST_KIT, "[scared:0.6]Guys. Sandoval's head of security just walked into the camera room. He's seen the loop.");
+                    radioLine(g, CAST_KIT, "[shout]The elevator is coming up. Four of them!");
+                    topGuards(g);
+                    g.mObjective("Take out ~r~security~s~.");
+                    score(SC_CHASE, 1.f, 2);
+                    next();
+                }
+                break;
+            }
+            case 24:
+                updateBuddy(g, 30.f);
+                if (aliveEnemies(g) == 0) {
+                    g.mClearBlips();
+                    sayMe(g, "[shout:0.5]Elevator. Now. Before they send more.");
+                    goTo(g, liftUp, 1.f, "Take the ~y~elevator~s~ back down.");
+                    next();
+                }
+                break;
+            case 25:   // riding down
+                if (::length(playerPos(g) - liftDown) < 10.f) {
+                    clearGoal(g);
+                    placePed(g, mari, liftDown + vec3(0.8f, -0.8f, 0.f), 0.f);
+                    radioLine(g, CAST_KIT, "[shout]The lobby is filling up. Out the front, the car is waiting!");
+                    beginFight(g);
+                }
+                break;
             case 7:
                 updateBuddy(g);
                 if (!quiet && g.pinfo.wanted > 0) {
@@ -707,6 +842,21 @@ public:
                 break;
             case 5: if (t.stageTime > 0.5f) t.teleport(goal, 0.f); break;
             case 51: if (t.stageTime > 0.5f) t.enter(vehicle); break;
+            // the tower: into the cab and up / down with the interiors' elevator ride
+            case 20:
+                if (t.stageTime > 0.5f && t.stageTime - dt <= 0.5f) {
+                    t.teleport(liftDown, 0.f);
+                    interiors_game::rideElevator(g, lobbyDef, true);
+                }
+                break;
+            case 22: if (t.stageTime > 0.5f) t.teleport(vaultAt, 0.f); break;
+            case 24: if (t.stageTime > 1.f) t.killEnemies(); break;
+            case 25:
+                if (t.stageTime > 0.5f && t.stageTime - dt <= 0.5f) {
+                    t.teleport(liftUp, 0.f);
+                    interiors_game::rideElevator(g, topDef, false);
+                }
+                break;
             case 6:
                 if (t.stageTime > 1.f) {
                     t.killEnemies();
@@ -1226,7 +1376,9 @@ public:
         std::vector<CutsceneShot> shots;
         shots.push_back(shotMove(P.solarisPlaza + vec3(-200.f, -220.f, 60.f), P.solarisPlaza + vec3(0, 0, 300.f), P.solarisPlaza + vec3(-160.f, -200.f, 40.f),
                                  P.solarisPlaza + vec3(0, 0, 120.f), 7.f, 55.f));
-        shots.push_back(shotMove(by + vec3(-40.f, -30.f, 12.f), by, by + vec3(-25.f, -20.f, 6.f), by + vec3(0, 0, 1.2f), 8.f, 45.f));
+        // the family boatyard, from wherever it can be seen whole
+        if (!establish(g, shots, by, P.boatyard.yaw, 34.f, 11.f, 8.f, 45.f))
+            shots.push_back(shotMove(by + vec3(-40.f, -30.f, 12.f), by, by + vec3(-25.f, -20.f, 6.f), by + vec3(0, 0, 1.2f), 8.f, 45.f));
         establish(g, shots, P.riverLaunch, yawTo(P.riverLaunch.xy(), P.riverMouth.xy()), 60.f, 20.f, 8.f, 55.f);
         // the last shot drifts up over the river mouth for as long as the voices and the title card need
         shots.push_back(shotMove(P.riverMouth + vec3(-90.f, -70.f, 9.f), P.riverMouth + vec3(0.f, 0.f, 4.f), P.riverMouth + vec3(-75.f, -55.f, 34.f),

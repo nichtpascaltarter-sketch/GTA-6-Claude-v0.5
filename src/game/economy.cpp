@@ -316,6 +316,13 @@ std::vector<MenuItem> jobItems(GameWorld& g) {
         it.detail = d.setsFlag >= 0 && flag(g, d.setsFlag) ? "Completed. Select to mark it on the map." : "Select to mark it on the map.";
         std::string rival = rivalStatus(g, d.id);
         if (!rival.empty()) it.detail = rival;
+        if (strcmp(d.id, "wishlist") == 0) {
+            int lv = flag(g, EX_WISHLIST_LEVEL), n = (int)ARRAY_COUNT(kWishlist);
+            it.detail = StrFormat("Order %d of %d: a %s. Select to mark Rook's garage.", lv % n + 1, n, wishClassName(kWishlist[lv % n].cls));
+        } else if (strcmp(d.id, "bounty") == 0) {
+            int lv = flag(g, EX_BOUNTY_LEVEL), n = (int)ARRAY_COUNT(kFugitives);
+            it.detail = StrFormat("Next skip: %s, who %s. Select to mark the office.", kFugitives[lv % n].name, kFugitives[lv % n].crime);
+        }
         size_t idLen = strlen(d.id);
         if (d.letter == '?' && idLen > 2 && d.id[idLen - 2] == '_' && d.id[idLen - 1] >= '1' && d.id[idLen - 1] <= '9')   // strangers: rosa_1 ...
             it.detail = StrFormat("%s's story, part %c of 3. %s", d.contact, d.id[idLen - 1],
@@ -341,6 +348,8 @@ std::vector<MenuItem> replayItems(GameWorld& g) {
         it.id = i;
         it.right = d.protagonist == 0 ? "MARI" : (d.protagonist == 1 ? "DEX" : "");
         it.detail = StrFormat("Act %d. Contact: %s.", d.act, d.contact);
+        int best = d.setsFlag >= 0 && d.setsFlag < 32 ? flag(g, EX_STORY_BEST + d.setsFlag) : 0;
+        if (best > 0) it.detail += StrFormat(" Best time %d:%02d.", best / 600, (best / 10) % 60);
         items.push_back(it);
     }
     if (items.empty()) {

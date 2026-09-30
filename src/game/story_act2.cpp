@@ -1057,7 +1057,9 @@ public:
                         break;
                     }
                 break;
-            case 5: if (t.stageTime > 0.5f) t.teleportNear(gPlaces.riverLaunch.xy(), 6.f); break;   // boats: on water next to the yard
+            case 5:   // the slip itself is water: put the boat on it (once a second, it has to settle)
+                if (t.stageTime > 0.5f && fmodf(t.stageTime, 1.f) < dt) t.teleport(gPlaces.riverLaunch, mu::yawTo(playerPos(g).xy(), gPlaces.riverLaunch.xy()));
+                break;
             default: break;
         }
     }

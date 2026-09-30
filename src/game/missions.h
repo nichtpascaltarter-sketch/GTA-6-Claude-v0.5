@@ -165,6 +165,9 @@ struct MissionManager {
     bool holdForDialogue = false;   // story cutscenes keep framing the speakers until the conversation ends
     int autoShots = 0;              // speaker shots added to the current cutscene
     float leadIn = 0.f;             // silence before the next line starts (an establishing shot breathes)
+    // the player's stats when the mission started (the pass summary shows the difference)
+    double statStart = 0.0;
+    int statKills = 0, statHeadshots = 0, statShots = 0, statHits = 0;
     // cinematic title card over a cutscene (drawn by the mission overlay, which shows while the HUD is hidden)
     std::string cardTitle, cardSub;
     float cardT = -1.f, cardDelay = 0.f;

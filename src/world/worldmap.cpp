@@ -537,6 +537,22 @@ void WorldMap::flattenAlong(vec2 a, vec2 b, float za, float zb, float halfWidth,
         }
 }
 
+void WorldMap::lowerAlong(vec2 a, vec2 b, float za, float zb, float flat, float reach, float slope) {
+    vec2 mn = vmin(a, b) - vec2(reach), mx = vmax(a, b) + vec2(reach);
+    int x0 = Max(0, (int)floorf(worldToTexel(mn.x))), x1 = Min(kHeightRes - 1, (int)ceilf(worldToTexel(mx.x)));
+    int y0 = Max(0, (int)floorf(worldToTexel(mn.y))), y1 = Min(kHeightRes - 1, (int)ceilf(worldToTexel(mx.y)));
+    for (int ty = y0; ty <= y1; ty++)
+        for (int tx = x0; tx <= x1; tx++) {
+            vec2 p(texelToWorld(tx), texelToWorld(ty));
+            float t;
+            float d = distPointSegment2D(p, a, b, &t);
+            if (d > reach) continue;
+            float z = Lerp(za, zb, t) + Max(0.f, d - flat) * slope;
+            size_t idx = (size_t)ty * kHeightRes + tx;
+            if (height[idx] > z) height[idx] = z;
+        }
+}
+
 void WorldMap::flattenRect(vec2 c, vec2 ax, float hx, float hy, float z, float blend) {
     vec2 ay = perp(ax);
     float reach = sqrtf(hx * hx + hy * hy) + blend;

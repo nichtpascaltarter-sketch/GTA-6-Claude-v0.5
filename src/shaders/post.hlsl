@@ -3,7 +3,7 @@
 
 Texture2D<float4> tHDR : register(t0);
 Texture2D<float4> tBloom : register(t1);
-RWStructuredBuffer<uint> uLumHist : register(u0);   // 64-bin log2 luminance histogram (fixed-point weights)
+RWStructuredBuffer<uint> uLumHist : register(u0);   // 2 x 64-bin log2 luminance histograms: all pixels, non-sky
 RWStructuredBuffer<float4> uExposure : register(u1);
 
 cbuffer PostCB : register(b1) {
@@ -19,17 +19,18 @@ cbuffer PostCB : register(b1) {
 };
 Texture2D<float> tSceneDepth : register(t5);
 
-// Auto exposure from a luminance histogram (GTA-style metering): a trimmed geometric mean for the mid-tones plus a
-// highlight constraint that keeps the bright end (95th percentile: sunlit streets, bright sky) below the tonemapper's
-// shoulder, so a dark foreground cannot blow out the sunlit majority and a bright sky cannot crush a street.
+// Auto exposure from luminance histograms (GTA-style metering): a trimmed geometric mean of all pixels for the
+// mid-tones, plus a gentle highlight constraint from the non-sky pixels (97th percentile: sunlit streets and
+// facades) that pulls towards keeping them below the tonemapper's shoulder. The sky may clip; the time-of-day
+// exposure floor (gPost2.z) stops a dark surface in front of the camera from opening the exposure to night levels.
 static const float kHistMin = -12.0;   // log2 luminance of bin 0 (cd/m2)
 static const float kHistScale = 2.0;   // bins per log2 unit (64 bins cover -12 .. +20)
 
 // 1) Histogram: each 16x16 group bins a 64x64 region (4x4 subsample), center / lower-screen weighted.
-groupshared uint gsHist[64];
+groupshared uint gsHist[128];
 [numthreads(16, 16, 1)]
 void csLumHist(uint3 gid : SV_GroupID, uint3 tid : SV_GroupThreadID, uint gi : SV_GroupIndex) {
-    if (gi < 64) gsHist[gi] = 0;
+    if (gi < 128) gsHist[gi] = 0;
     GroupMemoryBarrierWithGroupSync();
     uint2 base = gid.xy * 64 + tid.xy * 4;
     if (base.x < (uint)gScreen.x && base.y < (uint)gScreen.y) {
@@ -43,11 +44,13 @@ void csLumHist(uint3 gid : SV_GroupID, uint3 tid : SV_GroupThreadID, uint gi : S
         if (gRenderParams.w > 0.5 && uv.x >= gRenderParams.y) w = 0.0;   // debug view area does not drive exposure
         if (w > 0.0) {
             uint bin = (uint)clamp((log2(max(lum, 1e-6)) - kHistMin) * kHistScale, 0.0, 63.0);
-            InterlockedAdd(gsHist[bin], (uint)(w * 64.0 + 0.5));
+            uint wq = (uint)(w * 64.0 + 0.5);
+            InterlockedAdd(gsHist[bin], wq);
+            if (tSceneDepth.SampleLevel(sPointClamp, uv, 0) > 0.0) InterlockedAdd(gsHist[64 + bin], wq);
         }
     }
     GroupMemoryBarrierWithGroupSync();
-    if (gi < 64 && gsHist[gi] > 0) InterlockedAdd(uLumHist[gi], gsHist[gi]);
+    if (gi < 128 && gsHist[gi] > 0) InterlockedAdd(uLumHist[gi], gsHist[gi]);
 }
 
 float histLog(float bin) { return (bin + 0.5) / kHistScale + kHistMin; }
@@ -55,37 +58,47 @@ float histLog(float bin) { return (bin + 0.5) / kHistScale + kHistMin; }
 // 2) Metering + adaptation (clears the histogram for the next frame). gPost3.y > 0.5: camera cut, snap exposure.
 [numthreads(1, 1, 1)]
 void csExposure() {
-    float h[64];
-    float total = 0;
+    float h[64], hs[64];
+    float total = 0, totalS = 0;
     [unroll] for (int b = 0; b < 64; b++) {
         h[b] = (float)uLumHist[b];
+        hs[b] = (float)uLumHist[64 + b];
         total += h[b];
+        totalS += hs[b];
         uLumHist[b] = 0;
+        uLumHist[64 + b] = 0;
     }
     float4 prev = uExposure[0];
     if (total <= 0.0) return;
     // trimmed geometric mean between the 8th and 94th percentiles
     float lo = total * 0.08, hi = total * 0.94;
-    float cum = 0, s = 0, ws = 0, p95 = histLog(63.0);
-    bool p95Found = false;
+    float cum = 0, s = 0, ws = 0;
     [unroll] for (int k = 0; k < 64; k++) {
         float a = cum, bnd = cum + h[k];
         float take = max(min(bnd, hi) - max(a, lo), 0.0);
         s += histLog((float)k) * take;
         ws += take;
-        if (!p95Found && bnd >= total * 0.95) {
-            p95 = histLog((float)k) + (h[k] > 0.0 ? (total * 0.95 - a) / h[k] - 0.5 : 0.0) / kHistScale;
-            p95Found = true;
-        }
         cum = bnd;
     }
     float avgLog = ws > 0.0 ? s / ws : histLog(31.0);
     float avgLum = exp2(avgLog);
     float targetEV = log2(max(avgLum, 1e-4) * 100.0 / 12.5) - gPost0.x;
-    // highlight constraint: the 95th percentile should land at or below ~3.2 (pre-exposed), where the filmic curve
-    // still shows texture; the mid-tones may darken towards that, but only partly (70%)
-    float evHL = p95 - log2(1.2 * 3.2);
-    if (evHL > targetEV) targetEV = lerp(targetEV, evHL, 0.7);
+    // highlight constraint (non-sky): the 97th percentile should land at or below ~3.5 (pre-exposed), where the
+    // filmic curve still shows texture; the mid-tones only move a third of the way towards that
+    if (totalS > total * 0.05) {
+        float target97 = totalS * 0.97, cumS = 0, p97 = histLog(63.0);
+        bool found = false;
+        [unroll] for (int k2 = 0; k2 < 64; k2++) {
+            float a2 = cumS;
+            cumS += hs[k2];
+            if (!found && cumS >= target97) {
+                p97 = histLog((float)k2) + (hs[k2] > 0.0 ? (target97 - a2) / hs[k2] - 0.5 : 0.0) / kHistScale;
+                found = true;
+            }
+        }
+        float evHL = p97 - log2(1.2 * 3.5);
+        if (evHL > targetEV) targetEV = lerp(targetEV, evHL, 0.35);
+    }
     targetEV = clamp(targetEV, gPost2.z, gPost2.w);
     float ev = prev.y;
     if (prev.w < 0.5 || gPost3.y > 0.5 || !(ev == ev)) ev = targetEV;

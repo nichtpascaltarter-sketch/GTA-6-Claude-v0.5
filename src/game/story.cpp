@@ -139,6 +139,9 @@ void MissionManager::registerAll(GameWorld& g) {
                         UI::BLIP_HIDEOUT, makeMission<MissionBounty>));
     defs.push_back(side("wishlist", "Rook's Wishlist", "Rook", startAt(P.rookShop, -14.f), SF_REPO_MAN, -1, UI::BLIP_GARAGE,
                         makeMission<MissionWishlist>));
+    MissionDef opening = side("opening", "Porto Sol", "", P.mariApt.pos.xy(), -1, -1, UI::BLIP_MISSION, makeMission<MissionOpening>);
+    opening.hidden = true;   // the new-game opening shots (played by openworld.cpp; listed for the test harness)
+    defs.push_back(opening);
     // strangers: one-time short stories, one part at a time (Mari)
     {
         vec2 rosa = rosaHome(g).pos.xy();

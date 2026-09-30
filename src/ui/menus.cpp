@@ -24,7 +24,9 @@ struct Nav {
     float lt = 0.f, rt = 0.f;
 };
 
-enum DialogKind { DLG_NONE = 0, DLG_OVERWRITE, DLG_LOAD, DLG_QUIT_MENU, DLG_QUIT_GAME, DLG_NEW_GAME, DLG_BIND_CONFLICT };
+enum DialogKind {
+    DLG_NONE = 0, DLG_OVERWRITE, DLG_LOAD, DLG_QUIT_MENU, DLG_QUIT_GAME, DLG_NEW_GAME, DLG_BIND_CONFLICT, DLG_RESTORE_DEFAULTS, DLG_BENCHMARK
+};
 
 struct Internal {
     MenuScreen lastScreen = MENU_NONE;
@@ -825,6 +827,7 @@ MenuAction drawMap(MenuState& st, const Layout& L, const Nav& n, float dt, float
             rect(0, sy, L.W, 1.f, gc);
         }
     }
+    drawMapLines(v, a, sc, vec2(0.f, 0.f), vec2(L.W, L.H), false);   // transit lines under labels and blips
     // labels: most important first, skipped when they would overlap a placed label or a UI panel
     {
         struct Placed { float x0, y0, x1, y1; };
@@ -1018,18 +1021,24 @@ MenuAction drawMap(MenuState& st, const Layout& L, const Nav& n, float dt, float
         std::vector<LegendEntry> entries;
         entries.push_back({BLIP_PLAYER, "You", kWhite});
         if (st.hasWaypoint || hasWpBlip) entries.push_back({BLIP_WAYPOINT, "Waypoint", kPink});
+        int lineRows = 0;
+        for (const MapLine& ml : mapLines()) lineRows += ml.name.empty() ? 0 : 1;
+        size_t blipCap = (size_t)Max(8, 16 - Min(lineRows, 6));   // named transit lines keep their rows
         for (const Blip& b : st.mapBlips) {
             if (b.icon == BLIP_PLAYER || b.icon == BLIP_WAYPOINT) continue;
-            std::string nm = b.label ? b.label : blipDefaultName(b.icon);
+            bool grouped = b.icon == BLIP_METRO || b.icon == BLIP_BUS || b.icon == BLIP_FERRY;   // one row per icon
+            std::string nm = b.label && !grouped ? b.label : blipDefaultName(b.icon);
             bool dup = false;
             for (auto& e : entries)
                 if (e.icon == b.icon && e.name == nm) dup = true;
-            if (dup || entries.size() >= 14) continue;
+            if (dup || entries.size() >= blipCap) continue;
             bool semantic = b.icon == BLIP_ENEMY || b.icon == BLIP_FRIEND || b.icon == BLIP_POLICE || b.icon == BLIP_OBJECTIVE || b.icon == BLIP_MISSION;
             u32 col = (b.color == 0 || (semantic && b.color == 0xffffffffu)) ? blipDefaultColor(b.icon) : b.color;
             entries.push_back({b.icon, nm, col});
         }
-        float lw = 330.f * sc, rowH = 38.f * sc;
+        for (const MapLine& ml : mapLines())
+            if (!ml.name.empty() && entries.size() < 18) entries.push_back({BLIP_COUNT, ml.name, ml.color});   // line swatch
+        float lw = 330.f * sc, rowH = 38.f * sc * Min(1.f, 16.f / (float)Max((int)entries.size(), 1));
         float lh = 64.f * sc + rowH * entries.size();
         float lx = L.right - lw, ly = 200.f * sc;
         I.legendRect = vec4(lx, ly, lw, lh);
@@ -1042,7 +1051,11 @@ MenuAction drawMap(MenuState& st, const Layout& L, const Nav& n, float dt, float
             Blip b;
             b.icon = entries[i].icon;
             b.color = entries[i].color;
-            if (b.icon == BLIP_PLAYER) drawIcon(BLIP_PLAYER, lx + 34.f * sc, ry + rowH * 0.5f, 26.f * sc, withAlpha(kWhite, a), 1.5f * sc, C(0, 0, 0, a));
+            if (b.icon == BLIP_COUNT) {
+                float sy = ry + rowH * 0.5f;
+                capsule(lx + 20.f * sc, sy, lx + 48.f * sc, sy, 8.5f * sc, C(0.02f, 0.02f, 0.07f, 0.7f * a));
+                capsule(lx + 20.f * sc, sy, lx + 48.f * sc, sy, 6.f * sc, withAlpha(b.color, a));
+            } else if (b.icon == BLIP_PLAYER) drawIcon(BLIP_PLAYER, lx + 34.f * sc, ry + rowH * 0.5f, 26.f * sc, withAlpha(kWhite, a), 1.5f * sc, C(0, 0, 0, a));
             else drawBlipGlyph(b, vec2(lx + 34.f * sc, ry + rowH * 0.5f + (b.icon == BLIP_WAYPOINT ? 6.f * sc : 0.f)), 26.f * sc, a, t, false, false);
             TextStyle es = style(FONT_BODY, 19.f * sc, withAlpha(kText, a));
             text(lx + 62.f * sc, ry + rowH * 0.5f - es.size * 0.6f, entries[i].name.c_str(), es);
@@ -1081,8 +1094,10 @@ struct SetItem {
     float fmtScale = 100.f;
     const char* onLabel = "On";
     const char* offLabel = "Off";
-    int action = -1;          // ST_BIND: InputAction
+    int action = -1;          // ST_BIND: InputAction; ST_ACTION: SetAction
 };
+
+enum SetAction { SA_RESTORE_DEFAULTS = 0, SA_RUN_BENCHMARK };
 
 enum SetCategory { SC_DISPLAY = 0, SC_AUDIO, SC_CAMERA, SC_CONTROLS, SC_BINDINGS, SC_ACCESS, SC_GAMEPLAY, SC_COUNT };
 const char* kCatNames[SC_COUNT] = {"Display & Graphics", "Audio", "Camera", "Controls", "Key Bindings", "Accessibility", "Gameplay"};
@@ -1140,9 +1155,9 @@ void buildItems(GameSettings& gs, int cat, std::vector<SetItem>& items) {
         it.action = a;
         items.push_back(it);
     };
-    auto action = [&](const char* l, const char* d) {
+    auto action = [&](const char* l, const char* d, int id) {
         SetItem it;
-        it.label = l; it.desc = d; it.type = ST_ACTION;
+        it.label = l; it.desc = d; it.type = ST_ACTION; it.action = id;
         items.push_back(it);
     };
     switch (cat) {
@@ -1162,6 +1177,7 @@ void buildItems(GameSettings& gs, int cat, std::vector<SetItem>& items) {
                 {"Low", "Medium", "High", "Ultra"}, 0);
         toggle("Motion Blur", "Camera and object motion blur.", &gs.motionBlur);
         slider("Brightness", "Exposure bias applied on top of the automatic exposure.", &gs.brightness, -1.f, 1.f, 0.05f, "%+d", 100.f);
+        action("Run Benchmark", "Measures frame rate with your current settings; takes about 3 minutes.", SA_RUN_BENCHMARK);
         break;
     }
     case SC_AUDIO:
@@ -1177,7 +1193,7 @@ void buildItems(GameSettings& gs, int cat, std::vector<SetItem>& items) {
         boptions("Vehicle View", "Camera used when you get into a vehicle. The camera button still cycles views while driving.",
                  &gs.firstPersonVehicle, "Third Person", "First Person");
         slider("Field of View", "Vertical field of view of the third-person camera.", &gs.fov, 50.f, 90.f, 1.f, kFmtDegrees, 1.f);
-        slider("First Person Field of View", "Vertical field of view in first person, on foot and in vehicles.", &gs.fovFirstPerson, 55.f, 100.f,
+        slider("First Person Field of View", "Vertical field of view in first person, on foot and in vehicles.", &gs.fovFirstPerson, 55.f, 90.f,
                1.f, kFmtDegrees, 1.f);
         slider("Camera Shake", "Strength of camera shake from impacts, explosions, gunfire and speed.", &gs.cameraShake, 0.f, 1.f, 0.05f, "%d%%",
                100.f);
@@ -1227,7 +1243,7 @@ void buildItems(GameSettings& gs, int cat, std::vector<SetItem>& items) {
         boptions("Units", "Speed and distance units.", &gs.metricUnits, "Imperial", "Metric");
         break;
     }
-    action("Restore Defaults", "Resets every option on this page to its default value.");
+    action("Restore Defaults", "Resets every option on this page to its default value.", SA_RESTORE_DEFAULTS);
 }
 
 void restoreDefaults(GameSettings& gs, int cat) {
@@ -1296,7 +1312,7 @@ std::string valueText(const SetItem& it) {
 }
 
 // Changes an item by `dir` steps (0 = activate). Returns true when a value changed.
-bool changeItem(SetItem& it, int dir, GameSettings& gs, int cat) {
+bool changeItem(SetItem& it, int dir) {
     switch (it.type) {
     case ST_TOGGLE:
         *it.b = !*it.b;
@@ -1319,11 +1335,7 @@ bool changeItem(SetItem& it, int dir, GameSettings& gs, int cat) {
         else *it.i = idx + it.optBase;
         return true;
     }
-    case ST_ACTION:
-        if (dir != 0) return false;
-        restoreDefaults(gs, cat);
-        return true;
-    default: return false;
+    default: return false;   // ST_ACTION (Restore Defaults) goes through a confirmation dialog
     }
 }
 
@@ -1570,9 +1582,11 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
         float lw = textWidth(lab.c_str(), ls);
         if (lw > labMax) ls.size *= labMax / lw;
         text(ix + 34.f * sc, cy - ls.size * 0.56f, lab.c_str(), ls);
-        if (it.type == ST_ACTION) {
-            if (dialogFree && !capturing && sel && n.confirm && !consumed) changed |= changeItem(it, 0, gs, I.setCat);
-            if (dialogFree && !capturing && n.click && inRect(n.mouse, ix + 14.f * sc, ry, iw - 28.f * sc, ih)) changed |= changeItem(it, 0, gs, I.setCat);
+        if (it.type == ST_ACTION) {   // Restore Defaults / Run Benchmark: confirmed in a dialog (Menus::update acts on it)
+            if (it.action == SA_RUN_BENCHMARK)
+                drawIcon(ICO_CHEVRON, ix + iw - 44.f * sc, cy, 22.f * sc, withAlpha(sel && !bindings ? kWhite : kPink, a));
+            bool go = (sel && n.confirm && !consumed) || (n.click && inRect(n.mouse, ix + 14.f * sc, ry, iw - 28.f * sc, ih));
+            if (dialogFree && !capturing && go) openDialog(it.action == SA_RUN_BENCHMARK ? DLG_BENCHMARK : DLG_RESTORE_DEFAULTS, I.setCat, 1);
             continue;
         }
         if (it.type == ST_BIND) {
@@ -1608,6 +1622,11 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
                 } else {
                     TextStyle es = style(FONT_HEADING, 18.f * sc, withAlpha(kTextMute, a), ALIGN_CENTER);
                     text(bx + colW * 0.5f, cy - es.size * 0.56f, "-", es);
+                }
+                if (dialogFree && !capturing && n.mouseMoved && inRect(n.mouse, bx, by, colW, bh)) I.bindCol = slot;
+                if (dialogFree && !capturing && n.rclick && inRect(n.mouse, bx, by, colW, bh) && key != 0) {   // right click clears
+                    gs.keyBinds[it.action][slot] = 0;
+                    changed = true;
                 }
                 if (dialogFree && !capturing && n.click && inRect(n.mouse, bx, by, colW, bh)) {
                     I.setItemsFocus = true;
@@ -1648,7 +1667,7 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
             circle(kx, cy, ph * 0.5f - 4.f * sc, on ? withAlpha(sel ? kPinkHot : kWhite, a) : withAlpha(kTextDim, a));
             vs.align = ALIGN_RIGHT;
             text(px - 16.f * sc, cy - vs.size * 0.56f, upper(val).c_str(), vs);
-            if (dialogFree && !capturing && n.click && inRect(n.mouse, ix + 14.f * sc, ry, iw - 28.f * sc, ih)) changed |= changeItem(it, 0, gs, I.setCat);
+            if (dialogFree && !capturing && n.click && inRect(n.mouse, ix + 14.f * sc, ry, iw - 28.f * sc, ih)) changed |= changeItem(it, 0);
         } else if (it.type == ST_SLIDER) {
             float bw = 270.f * sc, bh = 8.f * sc;
             float bx = valX + 10.f * sc, by = cy - bh * 0.5f;
@@ -1682,13 +1701,13 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
             float ax0 = bx + 14.f * sc, ax1 = bx + bw - 14.f * sc;
             drawIcon(ICO_CHEVRON, ax0, cy, 22.f * sc, withAlpha(sel ? kWhite : kTextDim, a), 0.f, 0, kPi);
             drawIcon(ICO_CHEVRON, ax1, cy, 22.f * sc, withAlpha(sel ? kWhite : kTextDim, a));
-            if (dialogFree && !capturing && n.click && inRect(n.mouse, bx - 10.f * sc, ry, 50.f * sc, ih)) changed |= changeItem(it, -1, gs, I.setCat);
-            if (dialogFree && !capturing && n.click && inRect(n.mouse, bx + bw - 40.f * sc, ry, 50.f * sc, ih)) changed |= changeItem(it, 1, gs, I.setCat);
+            if (dialogFree && !capturing && n.click && inRect(n.mouse, bx - 10.f * sc, ry, 50.f * sc, ih)) changed |= changeItem(it, -1);
+            if (dialogFree && !capturing && n.click && inRect(n.mouse, bx + bw - 40.f * sc, ry, 50.f * sc, ih)) changed |= changeItem(it, 1);
         }
         if (dialogFree && sel && !consumed) {
-            if (n.left) changed |= changeItem(it, -1, gs, I.setCat);
-            if (n.right) changed |= changeItem(it, 1, gs, I.setCat);
-            if (n.confirm && it.type != ST_SLIDER) changed |= changeItem(it, 0, gs, I.setCat);
+            if (n.left) changed |= changeItem(it, -1);
+            if (n.right) changed |= changeItem(it, 1);
+            if (n.confirm && it.type != ST_SLIDER) changed |= changeItem(it, 0);
         }
     }
     a = aPage;
@@ -1734,6 +1753,8 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
         rect(ix + 30.f * sc, y + h - 78.f * sc, iw - 60.f * sc, 1.f * sc, withAlpha(kWhite, 0.1f * a));
         std::string desc = items[I.setCursor].desc;
         if (capturing) desc = "Press a key or mouse button to bind it. Escape cancels, Delete clears the key.";
+        else if (bindings && n.pad && conflictNote.empty())
+            desc = "Keyboard and mouse bindings. Controller buttons follow the layout chosen in Controls > Controller Layout.";
         else if (!conflictNote.empty()) {
             ds.color = withAlpha(C(1.f, 0.55f, 0.55f), a);
             desc = conflictNote + " Rebind one of them to resolve the conflict.";
@@ -1977,6 +1998,7 @@ void drawBrief(MenuState& st, const Layout& L, const Nav& n, float x, float y, f
     o.extentMin = vec2(ix, iy);
     o.extentMax = vec2(ix + iw, iy + ih);
     drawMapBase(v, o);
+    drawMapLines(v, a, sc * 0.8f, vec2(ix, iy), vec2(ix + iw, iy + ih), false);
     if (!st.gpsRoute.empty()) drawMapRoute(v, st.gpsRoute, C(1.f, 0.4f, 0.8f), Max(3.f, 4.f * sc), a, vec2(ix, iy), vec2(ix + iw, iy + ih));
     Blip wb;
     wb.pos = dest;
@@ -2329,6 +2351,20 @@ MenuAction update(MenuState& st, const InputState& in, float dt) {
             title = "START A NEW GAME?";
             msg = "Any progress since your last save will be lost.";
             break;
+        case DLG_BENCHMARK:
+            title = "RUN BENCHMARK?";
+            msg = std::string("Five scripted scenes measure the frame rate with your current settings. It takes about 3 minutes.") +
+                  (I.root == MENU_PAUSE ? " Any progress since your last save will be lost." : "");
+            yes = "Run";
+            no = "Cancel";
+            break;
+        case DLG_RESTORE_DEFAULTS:
+            title = "RESTORE DEFAULTS?";
+            msg = StrFormat("Every option on the ~p~%s~s~ page goes back to its default value.",
+                            kCatNames[Clamp(I.dialogSlot, 0, (int)SC_COUNT - 1)]);
+            yes = "Restore";
+            no = "Cancel";
+            break;
         case DLG_BIND_CONFLICT: {
             title = "KEY ALREADY IN USE";
             int others = 0;
@@ -2355,6 +2391,11 @@ MenuAction update(MenuState& st, const InputState& in, float dt) {
             case DLG_QUIT_MENU: act.type = MA_QUIT_TO_MENU; break;
             case DLG_QUIT_GAME: act.type = MA_QUIT_GAME; break;
             case DLG_NEW_GAME: act.type = MA_NEW_GAME; break;
+            case DLG_RESTORE_DEFAULTS:
+                restoreDefaults(st.settings, Clamp(I.dialogSlot, 0, (int)SC_COUNT - 1));
+                changed = true;
+                break;
+            case DLG_BENCHMARK: act.type = MA_RUN_BENCHMARK; break;
             case DLG_BIND_CONFLICT:
                 if (I.bindAction >= 0 && I.bindAction < IA_COUNT) {
                     GameSettings& gs = st.settings;

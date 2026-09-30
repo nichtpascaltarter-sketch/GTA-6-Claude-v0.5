@@ -412,11 +412,11 @@ void computePlaces(GameWorld& g) {
     P.policeHq = resolveBuilding(g, vec2(3050, -350), World::IK_POLICE);
     P.solarisOne = resolvePlace(g, vec2(3350, -810));
     P.sandovalOffice = resolveFrontage(g, vec2(3700, -1000));
-    P.palmMotors = resolveFrontage(g, vec2(2700, 1300));
+    P.palmMotors = resolveBuilding(g, vec2(2700, 1300), World::IK_DEALERSHIP, "Palm Motors");
     P.gunFlats = resolveBuilding(g, vec2(800, 2900), World::IK_GUNSHOP, "Palmetto Arms");
     P.gunNorth = resolveBuilding(g, vec2(3300, 3900), World::IK_GUNSHOP, "Northside Arms");
-    P.resprayCL = resolveFrontage(g, vec2(2300, -150));
-    P.resprayBeach = resolveFrontage(g, vec2(5100, 2000));
+    P.resprayCL = resolveBuilding(g, vec2(2300, -150), World::IK_MODSHOP, "Tide Customs Calle Luna");
+    P.resprayBeach = resolveBuilding(g, vec2(5100, 2000), World::IK_MODSHOP, "Tide Customs Sol Beach");
     P.threads = resolveBuilding(g, vec2(5150, -300), World::IK_CLOTHES, "Threads");
     P.clubRiptide = resolvePlace(g, vec2(5380, 900));
     P.beachCondo = resolveFrontage(g, vec2(5120, 1500));
@@ -426,7 +426,7 @@ void computePlaces(GameWorld& g) {
     P.keyCoralMarina = resolvePlace(g, vec2(4200, -3900));
     P.sandovalMansion = resolvePlace(g, vec2(4300, 1300), 0.f, true);
     P.airport = resolvePlace(g, vec2(760, 1200));
-    P.carwash = resolveFrontage(g, vec2(1800, 1500));
+    P.carwash = resolveBuilding(g, vec2(1800, 1500), World::IK_CARWASH, "Sunwash Car Wash");
     P.taxiDepot = resolveFrontage(g, vec2(2600, 700));
     P.courierDepot = resolveFrontage(g, vec2(1700, -300));
     P.hospital = resolveBuilding(g, vec2(1650, 1050), World::IK_HOSPITAL);
@@ -450,7 +450,7 @@ void computePlaces(GameWorld& g) {
     P.cafeBeach = resolveFrontage(g, vec2(5200, 300));
     P.flatsYard = resolvePlace(g, vec2(400, 3700));
     P.kitStudio = resolveFrontage(g, vec2(600, 3400));
-    P.downtownPenthouse = resolveFrontage(g, vec2(3800, 200));
+    P.downtownPenthouse = resolveBuilding(g, vec2(3800, 200), World::IK_APARTMENT, "Downtown Penthouse");   // the interiors agent's tower once it has one
     P.stadium = resolvePlace(g, vec2(3565, 620));
     findWater(g, vec2(1650, 150), 1.5f, P.riverLaunch, 200.f);
     findWater(g, vec2(3950, 160), 2.f, P.riverMouth, 400.f);
@@ -693,9 +693,10 @@ void unblipVehicle(int veh) {
 void teleportVehicle(GameWorld& g, int v, vec3 pos, float yaw) {
     if (v < 0 || !g.vehicles[v].used) return;
     Vehicles::resetVehicle(g.vehicles[v].sim, dvec3(pos + vec3(0, 0, 0.3f)), yaw);
-    // the reset settles vehicles on the ground below; aircraft placed in the air keep their height
+    // the reset settles vehicles on the ground below; aircraft placed in the air and boats placed on the water keep
+    // their height (the ground under a boat is the riverbed)
     Vehicles::VehicleState& s = g.vehicles[v].sim;
-    if (g.isAircraft(v) && (float)s.body.pos.z < pos.z) s.body.pos.z = pos.z;
+    if ((g.isAircraft(v) || g.isBoat(v)) && (float)s.body.pos.z < pos.z) s.body.pos.z = pos.z;
     s.sleeping = false;
 }
 

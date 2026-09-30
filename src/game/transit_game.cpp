@@ -1,7 +1,7 @@
 // Public transit gameplay: the SkyLine metro loop (timetable, trains as scripted vehicles with doors, lights, sound and
 // announcements, riders boarding and alighting, platform crowds, police following the player), riding as a passenger
-// with a fare, skip-to-next-station and alighting at any station. Buses and ferries live in transit_bus.cpp /
-// transit_ferry.cpp and share the helpers declared here.
+// with a fare, skip-to-next-station and alighting at any station. City buses (transit_bus.cpp) and the bay ferries
+// (transit_ferry.cpp) are included at the end of this file and share the helpers here.
 //
 // Every train's position is a pure function of the transit clock (GameWorld::time + a skip offset): far trains cost a
 // table lookup, trains within kMaterialize of the player become scripted Vehicles (three cars each) so the passenger,
@@ -1265,7 +1265,26 @@ void updateTrains(GameWorld& g, float dt) {
     }
 }
 
+std::string upperCase(const std::string& s) {
+    std::string o = s;
+    for (char& c : o) c = (char)toupper((unsigned char)c);
+    return o;
+}
+
 }  // namespace tg
+
+namespace tb {   // city buses (transit_bus.cpp, included at the end of this file)
+void update(GameWorld& g, float dt);
+bool playerOnBus();
+}  // namespace tb
+namespace tf {   // bay ferries (transit_ferry.cpp, included at the end of this file)
+void update(GameWorld& g, float dt);
+void submit(GameWorld& g);
+bool playerOnFerry();
+}  // namespace tf
+namespace tt {   // --autoplay metro | bus | ferry (transit_test.cpp, included at the end of this file)
+void update(GameWorld& g, float dt);
+}  // namespace tt
 
 using namespace tg;
 
@@ -1291,11 +1310,14 @@ void update(GameWorld& g, float dt) {
     Ped* pl = g.playerPed();
     if (!pl) return;
     double t0 = TimeSeconds();
+    tt::update(g, dt);
     playerLogic(g, dt);
     updateTrains(g, dt);
     updateWalkers(g, dt);
     updateCrowds(g, dt, pl->pos.toVec3());
     ensureBlips(g, dt);
+    tb::update(g, dt);
+    tf::update(g, dt);
     double ms = (TimeSeconds() - t0) * 1000.0;
     static double acc = 0.0;
     static int frames = 0;
@@ -1311,6 +1333,7 @@ void update(GameWorld& g, float dt) {
 }
 
 void submit(GameWorld& g) {
+    tf::submit(g);
     if (!gS.init || gS.assetCab < 0 || !g.renderer || !g.renderer->dynamic) return;
     Render::DynamicRenderer* dyn = g.renderer->dynamic;
     dvec3 cam = g.rig.cam.pos;
@@ -1397,8 +1420,12 @@ void submit(GameWorld& g) {
     }
 }
 
-// For tests and the HUD: true while the player rides the SkyLine
-bool playerRiding() { return gS.rideTrain >= 0; }
+// For tests and the HUD: true while the player rides the SkyLine or a city bus
+bool playerRiding() { return gS.rideTrain >= 0 || tb::playerOnBus() || tf::playerOnFerry(); }
 
 }  // namespace Transit
 }  // namespace Game
+
+#include "transit_bus.cpp"
+#include "transit_ferry.cpp"
+#include "transit_test.cpp"

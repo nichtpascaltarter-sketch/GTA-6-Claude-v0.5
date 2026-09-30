@@ -3,6 +3,7 @@
 #include "sites.h"
 #include "../render/mesh.h"
 #include "worldtypes.h"
+#include "interiors.h"
 
 namespace World {
 
@@ -34,11 +35,14 @@ void genSolaris(const SiteElem& e, G& g) {
     bool detail = g.detail;
     float z0 = e.z;
     u32 fac = (u32)e.p[7];
-    // podium
+    // podium (the enterable lobby behind its south face and the penthouse up top: interiors.cpp planSolaris)
+    const int lobby = interiorForLandmark(IK_TOWER_LOBBY), pent = interiorForLandmark(IK_PENTHOUSE);
     std::vector<vec2> pod = solarisPlate(e.c, 36.f, 8.f, 0.f);
-    facadeRing(g, pod, z0 - 1.f, z0 + 26.f, z0, fac, 1.6f);
+    if (detail && lobby >= 0) interiorFacadeRing(lobby, *g.m, g.org, pod, z0 - 1.f, z0 + 26.f, z0, fac, 1.6f, kWhiteC);
+    else facadeRing(g, pod, z0 - 1.f, z0 + 26.f, z0, fac, 1.6f);
     polyFlat(g, *g.m, pod, z0 + 26.f, rgb(0.85f), M(MAT_ROOF_GRAVEL));
-    collide(g, vec3(e.c, z0 + 13.f), vec2(1, 0), vec3(34.f, 34.f, 13.f));
+    if (!(lobby >= 0 && g.col && interiorShellCollision(lobby, e.c - vec2(0.f, 1.f), vec2(1, 0), 34.f, 35.f, z0, z0 + 26.f, *g.col)))
+        collide(g, vec3(e.c, z0 + 13.f), vec2(1, 0), vec3(34.f, 34.f, 13.f));
     // tower segments
     const float towerTop = 468.f;
     int segs = detail ? 30 : 15;
@@ -51,7 +55,9 @@ void genSolaris(const SiteElem& e, G& g) {
         float rot = tm * 58.f * kDegToRad;
         float ch = half * 0.3f;
         std::vector<vec2> fp = solarisPlate(e.c, half, ch, rot);
-        facadeRing(g, fp, za, zb, z0, fac, 1.6f);
+        const bool pentSeg = detail && pent >= 0 && k == segs - 1;
+        if (pentSeg) interiorFacadeRing(pent, *g.m, g.org, fp, za, zb, z0, fac, 1.6f, kWhiteC);
+        else facadeRing(g, fp, za, zb, z0, fac, 1.6f);
         // slab fascia with a thin light line at each joint
         std::vector<vec2> ring = solarisPlate(e.c, half + 0.35f, ch, rot);
         for (size_t i = 0; i < ring.size(); i++) {
@@ -71,7 +77,8 @@ void genSolaris(const SiteElem& e, G& g) {
             vec3 p0(mid + on * 0.05f - tan * 0.35f, za), p1(mid + on * 0.05f + tan * 0.35f, za);
             quad(g, *g.m, p0, p1, p1 + vec3(0, 0, segH), p0 + vec3(0, 0, segH), rgb(1.f, 0.72f, 0.3f, 0.75f), emMat(EA_NIGHT), vec3(on, 0));
         }
-        collide(g, vec3(e.c, (za + zb) * 0.5f), vec2(cosf(rot), sinf(rot)), vec3(half, half, segH * 0.5f));
+        if (!(pentSeg && g.col && interiorShellCollision(pent, e.c, vec2(cosf(rot), sinf(rot)), half, half, za, zb, *g.col)))
+            collide(g, vec3(e.c, (za + zb) * 0.5f), vec2(cosf(rot), sinf(rot)), vec3(half, half, segH * 0.5f));
         if (k == segs - 1) polyFlat(g, *g.m, fp, zb, rgb(0.6f), M(MAT_ROOF_GRAVEL));
     }
     // crown: four glass fins converging toward the spire
@@ -115,9 +122,9 @@ void genSolaris(const SiteElem& e, G& g) {
         float tw = textAdvance(t, th, 0.35f);
         strokeText(g, *g.m, t, vec3(e.c + vec2(-tw * 0.5f, -35.4f), z0 + 19.f), vec3(1, 0, 0), vec3(0, 0, 1), th, 0.45f, rgb(1.f, 0.8f, 0.45f, 0.6f), emMat(EA_NIGHT),
                    0.35f, 0.35f);
-        boxY(g, vec3(e.c + vec2(0, -40.f), z0 + 6.5f), vec2(1, 0), vec3(14.f, 5.f, 0.3f), rgb(0.85f, 0.87f, 0.9f), M(MAT_METAL_BRUSHED), true);
+        boxY(g, vec3(e.c + vec2(0, -41.f), z0 + 6.5f), vec2(1, 0), vec3(14.f, 5.f, 0.3f), rgb(0.85f, 0.87f, 0.9f), M(MAT_METAL_BRUSHED), true);
         for (int s = -1; s <= 1; s += 2) cyl(g, vec3(e.c + vec2(s * 12.f, -43.f), z0), 0.3f, 0.3f, 6.3f, 8, rgb(0.8f), M(MAT_METAL_BRUSHED), false);
-        for (int k = -1; k <= 1; k++) light(g, vec3(e.c + vec2(k * 9.f, -40.f), z0 + 6.f), vec3(1.f, 0.85f, 0.6f) * 5000.f, 20.f, 1, vec3(0, 0, -1), 0.3f);
+        for (int k = -1; k <= 1; k++) light(g, vec3(e.c + vec2(k * 9.f, -41.f), z0 + 6.f), vec3(1.f, 0.85f, 0.6f) * 5000.f, 20.f, 1, vec3(0, 0, -1), 0.3f);
         // uplights washing the corner LED lines
         for (int c = 0; c < 4; c++) {
             float a = kHalfPi * c + kPi * 0.25f;

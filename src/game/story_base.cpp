@@ -63,10 +63,12 @@ enum ExtFlag : int {
     EX_SWITCH_TIP = 246,
     EX_WORLD_TEXTS = 247,           // bitmask of one-off open-world texts delivered (economy.cpp)
     EX_VEHICLE_PAINT = 260,         // 260..299: paint (packed RGB565) of owned vehicles by garage slot
-    EX_RIVAL_WINS = 300,            // 300..307: races won against each race's rival (by the race's best-time slot)
-    EX_RIVAL_FINALS = 308,          // bitmask: rival finals won (a pink slip on the road, a trophy on the water)
-    EX_FIELD_GUIDE = 309,           // bitmask of species photographed for the Wild Porto Sol census (phone_game.cpp)
-    EX_WISHLIST_LEVEL = 310,        // orders delivered on Rook's Wishlist (the next order is this modulo the list)
+    // (300..333 belong to the store hold-ups, holdups.cpp)
+    EX_RIVAL_WINS = 248,            // 248..255: races won against each race's rival (by the race's best-time slot)
+    EX_RIVAL_FINALS = 256,          // bitmask: rival finals won (a pink slip on the road, a trophy on the water)
+    EX_FIELD_GUIDE = 257,           // bitmask of species photographed for the Wild Porto Sol census (phone_game.cpp)
+    EX_WISHLIST_LEVEL = 258,        // orders delivered on Rook's Wishlist (the next order is this modulo the list)
+    EX_STORY_BEST = 352,            // 352..383: best time (deciseconds) per story mission, by its story flag
     EX_VEHICLE_MODS = 384,          // 384..503: Tide Customs parts of owned vehicles, 3 ints per garage slot (see shops.cpp)
 };
 

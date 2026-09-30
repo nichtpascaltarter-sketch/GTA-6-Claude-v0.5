@@ -89,7 +89,7 @@ void sanitize(GameSettings& s) {
     s.mouseSensitivityY = Clamp(s.mouseSensitivityY, 0.1f, 3.f);
     s.padSensitivityY = Clamp(s.padSensitivityY, 0.1f, 3.f);
     s.padLayout = Clamp(s.padLayout, 0, 2);
-    s.fovFirstPerson = Clamp(s.fovFirstPerson, 55.f, 100.f);
+    s.fovFirstPerson = Clamp(s.fovFirstPerson, 55.f, 90.f);
     s.cameraShake = Saturate(s.cameraShake);
     s.subtitleSize = Clamp(s.subtitleSize, 0, 3);
     s.subtitleBackground = Saturate(s.subtitleBackground);
@@ -99,6 +99,19 @@ void sanitize(GameSettings& s) {
     for (int a = 0; a < IA_COUNT; a++)
         for (int k = 0; k < 2; k++)
             if (s.keyBinds[a][k] >= 256) s.keyBinds[a][k] = 0;
+}
+
+// Key code from a settings.ini key name ("W", "PAGE UP", "LMB"; a plain number is taken as a key code); 0 = none
+int keyFromName(const std::string& raw) {
+    std::string t = trim(raw);
+    if (t.empty()) return 0;
+    if (t.find_first_not_of("0123456789") == std::string::npos) return Clamp(atoi(t.c_str()), 0, 255);
+    std::string u = t;
+    for (char& c : u) c = (char)toupper((unsigned char)c);
+    if (u == "NONE") return 0;
+    for (int vk = 1; vk < 256; vk++)
+        if (keyName(vk) == u) return vk;
+    return 0;
 }
 
 }  // namespace settings_detail
@@ -226,9 +239,10 @@ std::string settingsToText(const GameSettings& src) {
         else snprintf(b, sizeof(b), "%s=%.4g\n", f.key, *(float*)f.ptr);
         out += b;
     }
+    out += "# key bindings: primary | secondary (key names as shown in the menu, NONE when unbound)\n";
     for (int a = 0; a < IA_COUNT; a++) {
-        snprintf(b, sizeof(b), "bind.%s=%d,%d\n", kActions[a].key, s.keyBinds[a][0], s.keyBinds[a][1]);
-        out += b;
+        std::string k0 = s.keyBinds[a][0] ? keyName(s.keyBinds[a][0]) : "NONE", k1 = s.keyBinds[a][1] ? keyName(s.keyBinds[a][1]) : "NONE";
+        out += StrFormat("bind.%s=%s | %s\n", kActions[a].key, k0.c_str(), k1.c_str());
     }
     return out;
 }
@@ -250,11 +264,9 @@ void settingsFromText(const std::string& text, GameSettings& s) {
             std::string an = key.substr(5);
             for (int a = 0; a < IA_COUNT; a++)
                 if (an == kActions[a].key) {
-                    int k0 = 0, k1 = 0;
-                    if (sscanf(val.c_str(), "%d,%d", &k0, &k1) >= 1) {
-                        s.keyBinds[a][0] = (u16)Clamp(k0, 0, 255);
-                        s.keyBinds[a][1] = (u16)Clamp(k1, 0, 255);
-                    }
+                    size_t bar = val.find('|');
+                    s.keyBinds[a][0] = (u16)keyFromName(val.substr(0, bar));
+                    s.keyBinds[a][1] = bar == std::string::npos ? 0 : (u16)keyFromName(val.substr(bar + 1));
                 }
             continue;
         }

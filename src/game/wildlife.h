@@ -21,6 +21,7 @@ enum Species : u8 {
     SP_DOG, SP_CAT, SP_RACCOON, SP_DEER, SP_COW, SP_HORSE,
     // more birds (appended so the values above stay stable: the photo census stores species bits)
     SP_SANDPIPER, SP_GRACKLE, SP_FRIGATE, SP_CORMORANT, SP_CEGRET,
+    SP_SQUIRREL,
     SP_COUNT
 };
 

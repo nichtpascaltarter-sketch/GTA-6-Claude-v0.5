@@ -28,6 +28,13 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   Wine + Xvfb + llvmpipe. Log: `/tmp/neontide_wine/drive_c/users/root/AppData/Local/NeonTide/log.txt`.
 - Convert: `convert /tmp/x.bmp /tmp/x.png`, then view the PNG.
 
+## Performance validation on real hardware
+- `NeonTide.exe --benchmark` (optionally `--quality 0..3`, `--width/--height`): five scripted scenes (downtown noon,
+  Sol Beach sunset, Calle Luna night rain, city flyover, Sawgrass fog), each measured for 20 s (`--benchseconds N`)
+  after streaming settles, vsync off. Reports average fps, 1 % / 0.1 % lows, worst frame, CPU update and render
+  submission ms, peds/vehicles; written to `%LOCALAPPDATA%\NeonTide\benchmark.txt` (+ `benchmark_history.txt`) and
+  shown on a results screen. Target: 60 fps at 2560x1440 High on an RTX 4070-class GPU.
+
 ## Architecture (conventions)
 - World coords: X east, Y north, Z up, meters. World square [-10240, 10240]^2, sea level z = 0.
 - Math: `src/core/math.h` column-major mat4, column vectors (M*v), HLSL default column_major + mul(M,v).

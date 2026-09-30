@@ -888,6 +888,11 @@ void layoutPolice(IB& b);      // interiorcivic.cpp
 void layoutHospital(IB& b);
 void layoutChopShop(IB& b);    // interiorindustrial.cpp
 void layoutWarehouse(IB& b);
+void layoutTowerLobby(IB& b);   // interiortower.cpp
+void layoutPenthouse(IB& b);
+void layoutDealership(IB& b);   // interiorgarages.cpp
+void layoutModShop(IB& b);
+void layoutCarWash(IB& b);
 
 void runLayout(IB& b) {
     b.roomCounter = 0;
@@ -906,6 +911,11 @@ void runLayout(IB& b) {
         case IK_HOSPITAL: layoutHospital(b); break;
         case IK_CHOPSHOP: layoutChopShop(b); break;
         case IK_WAREHOUSE: layoutWarehouse(b); break;
+        case IK_TOWER_LOBBY: layoutTowerLobby(b); break;
+        case IK_PENTHOUSE: layoutPenthouse(b); break;
+        case IK_DEALERSHIP: layoutDealership(b); break;
+        case IK_MODSHOP: layoutModShop(b); break;
+        case IK_CARWASH: layoutCarWash(b); break;
         default: layoutConvenience(b); break;
     }
 }

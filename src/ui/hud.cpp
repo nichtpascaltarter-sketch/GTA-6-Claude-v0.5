@@ -196,6 +196,7 @@ void drawRadar(const HudState& s, const Layout& L, float dt, float t) {
     if (mapReady()) drawMapBase(v, o);
     else rect(rr.x, rr.y, rr.w, rr.h, C(0.10f, 0.13f, 0.18f, a));
     vec2 cmin(rr.x, rr.y), cmax(rr.x + rr.w, rr.y + rr.h);
+    if (mapReady()) drawMapLines(v, a, sc, cmin, cmax, true);
     // police search areas
     if (s.wanted > 0) {
         u32 policeCol = policeColor(t);

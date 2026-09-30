@@ -38,6 +38,7 @@ struct Dispatch {
     u32 counter = 1;
     vec3 lightAim;          // helicopter searchlight: where the operator is pointing (follows with a lag)
     bool lightAimSet = false;
+    vec3 lastSeenVel;       // the suspect's velocity when last seen (units follow the radioed heading for a while)
 };
 Dispatch gD;
 
@@ -187,7 +188,7 @@ void GameWorld::updateWanted(float dt) {
         vec3 d = ppos - p.pos.toVec3();
         float dist = length(d);
         bool air = p.vehicle >= 0 && isAircraft(p.vehicle);
-        float range = air ? 260.f : (p.state == PS_INVEHICLE ? 95.f : 75.f);
+        float range = air ? 260.f : (p.state == PS_INVEHICLE ? (pinfo.wanted >= 3 ? 125.f : 95.f) : 75.f);   // pursuit crews watch the road far ahead
         if (dist > range) continue;
         if (!air && p.state != PS_INVEHICLE && dist > 12.f) {
             vec3 f(-sinf(p.yaw), cosf(p.yaw), 0);
@@ -203,6 +204,8 @@ void GameWorld::updateWanted(float dt) {
     if (seen) {
         pinfo.lastSeenPos = pl->pos;
         pinfo.lastSeenTime = (float)time;
+        int spv = pl->vehicle;
+        gD.lastSeenVel = spv >= 0 && spv < (int)vehicles.size() ? vehicles[spv].sim.body.vel : pl->vel;
     }
     // ---- crimes: witnessed by police -> immediate; otherwise a civilian may phone it in
     for (const CrimeEvent& e : crimes) {
@@ -911,6 +914,9 @@ void GameWorld::updateDispatch(float dt) {
         int vid = spawnVehicle(model, dvec3(c.x, c.y, c.z + 0.3f), AI::dirYaw(t), true, FAC_POLICE);
         if (vid < 0) return;
         ai.stats.unitsSent++;
+        LOG("police unit %d: %s at %.0f %.0f, %.0f m from the suspect (lane %d, attempt %d, suspect %.1f m/s)", vid,
+            attempt == 0 && behindLane >= 0 ? "behind on the suspect's road" : (fast ? (fromBehind ? "behind (probe)" : "ahead") : "around"), c.x, c.y,
+            length(c.xy() - pp.xy()), lane, attempt, pspeed);
         Vehicle& v = vehicles[vid];
         v.faction = FAC_POLICE;
         v.sirenOn = true;
@@ -1011,7 +1017,13 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
             tp = t.pos.toVec3();
             tv = t.vel;
         }
-        if (chasingPlayer && !pinfo.policeSeesPlayer && time - pinfo.lastSeenTime > 2.5) {
+        float lostFor = (float)(time - pinfo.lastSeenTime);
+        if (chasingPlayer && !pinfo.policeSeesPlayer && lostFor > 2.5f && lostFor < 9.f && length(gD.lastSeenVel.xy()) > 6.f) {
+            // just lost sight of a fast getaway: follow the radioed heading before fanning out to search
+            tp = pinfo.lastSeenPos.toVec3() + gD.lastSeenVel * lostFor;
+            tv = gD.lastSeenVel;
+            va.task = PT_PURSUE;
+        } else if (chasingPlayer && !pinfo.policeSeesPlayer && lostFor > 2.5f) {
             // lost sight: search the last known area
             tp = pinfo.lastSeenPos.toVec3();
             tv = vec3(0.f);

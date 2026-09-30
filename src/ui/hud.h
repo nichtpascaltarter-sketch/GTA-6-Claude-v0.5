@@ -39,6 +39,9 @@ enum BlipIcon : u8 {
     BLIP_BANK,
     BLIP_AIRPORT,
     BLIP_HIDEOUT,        // gang hideout / criminal activity
+    BLIP_METRO,          // SkyLine station (train front)
+    BLIP_BUS,            // bus stop / depot (bus side view)
+    BLIP_FERRY,          // ferry terminal (ferry side view)
     BLIP_COUNT
 };
 
@@ -54,8 +57,23 @@ struct Blip {
     bool flash = false;
     bool shortRange = false; // only on the minimap when close (< 250 m); always on the full map
     bool edge = true;        // clamp to minimap edge when outside the radar
-    const char* label = nullptr;  // name in the full-map legend / hover (original names, e.g. "Palmetto Arms")
+    const char* label = nullptr;  // name in the full-map legend / hover (original names, e.g. "Palmetto Arms").
+                                  // METRO / BUS / FERRY share one legend row per icon; their labels show on hover.
 };
+
+// Overlay lines drawn under the blips on the full map, the phone map and (fainter, thinner) the radar: transit lines,
+// bus and ferry routes. The UI keeps a copy: call setMapLines once the data is known and again only when it changes
+// (an empty list removes them).
+struct MapLine {
+    std::vector<vec2> pts;   // world XY
+    u32 color = 0xffffffff;
+    float width = 3.f;       // pixels at 1080p (scaled with the UI)
+    bool closed = false;     // loop: the last point joins the first (the SkyLine)
+    bool dashed = false;     // dashed line (ferry routes over water)
+    bool radar = true;       // also drawn on the radar
+    std::string name;        // full-map legend row with a line swatch ("SkyLine"); empty = no legend row
+};
+void setMapLines(const std::vector<MapLine>& lines);
 
 struct Subtitle {
     std::string speaker;     // may be empty
@@ -227,7 +245,7 @@ struct GameSettings {
     // Camera
     bool firstPersonOnFoot = false;      // start on foot in first person (V / Back still toggles in play)
     bool firstPersonVehicle = false;     // vehicles start in the first person view (rig.vehicleView = 2)
-    float fovFirstPerson = 75.f;         // first-person vertical field of view, degrees 55..100
+    float fovFirstPerson = 68.f;         // first-person vertical field of view, degrees 55..90 (68 = the camera's own)
     float cameraShake = 1.f;             // 0..1 scale of all camera shake (impacts, explosions, speed)
     bool vehicleAutoCenter = true;       // the vehicle camera swings back behind the car after looking around
     bool headBob = true;                 // first-person head bob (off helps with motion sickness)
@@ -270,6 +288,7 @@ enum MenuActionType : u8 {
     MA_NEW_GAME, MA_CONTINUE, MA_LOAD_SLOT, MA_SAVE_SLOT, MA_RESUME, MA_QUIT_TO_MENU, MA_QUIT_GAME,
     MA_SETTINGS_CHANGED,   // settings were edited (apply live)
     MA_SET_WAYPOINT, MA_CLEAR_WAYPOINT,
+    MA_RUN_BENCHMARK,      // Settings > Display & Graphics > Run Benchmark, confirmed by the player
 };
 
 struct MenuAction {

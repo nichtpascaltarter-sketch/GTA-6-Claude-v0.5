@@ -156,7 +156,7 @@ static void savePPM(const Image& img, const char* path) {
 
 static void poseFor(const ModelData& md, const char* mode, float t, Pose& P, mat4* skin, Frames& F) {
     const SpeciesInfo& si = speciesInfo(md.species);
-    bool fly = !strcmp(mode, "fly"), walk = !strcmp(mode, "walk"), run = !strcmp(mode, "run"), sit = !strcmp(mode, "sit");
+    bool fly = !strcmp(mode, "fly"), walk = !strcmp(mode, "walk"), run = !strcmp(mode, "run"), sit = !strcmp(mode, "sit"), rear = !strcmp(mode, "rear");
     switch (si.plan) {
         case PLAN_BIRD: {
             BirdAnim a;
@@ -185,6 +185,7 @@ static void poseFor(const ModelData& md, const char* mode, float t, Pose& P, mat
             a.gait = run ? 3.f : 0.f;
             a.phase = t * quadCycleRate(md, a.speed, a.gait);
             a.sit = sit ? 1.f : 0.f;
+            a.rear = rear ? 1.f : 0.f;
             a.tailWag = 0.5f;
             animateQuad(md, a, P);
             break;

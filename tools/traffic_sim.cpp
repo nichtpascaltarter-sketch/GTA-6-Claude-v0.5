@@ -252,6 +252,7 @@ struct SimCar {
     bool deadlockFlag = false;
     float lifeTime = 0.f;
     float latLogT = -100.f;
+    float hungTime = 0.f;      // same ledge recovery as the game host (traffic.cpp)
 };
 
 struct SimPed {
@@ -291,7 +292,7 @@ struct Sim {
     Rng rng{12345};
     u32 uidNext = 1;
     // metrics
-    long collisions = 0, hardCollisions = 0, pedHits = 0, staticImpacts = 0, deadlocks = 0, respawns = 0, propHits = 0;
+    long collisions = 0, hardCollisions = 0, pedHits = 0, staticImpacts = 0, deadlocks = 0, respawns = 0, propHits = 0, unhung = 0;
     double vehSeconds = 0.0;
     double clsSpeedSum[World::RC_COUNT] = {}, clsTime[World::RC_COUNT] = {};
     double aiTime = 0.0, aiMax = 0.0, physTime = 0.0, pedTime = 0.0;
@@ -545,8 +546,19 @@ struct Sim {
             }
             if (tc.stats.stuckEvents > stuckB) {
                 events.push_back({c.s.body.pos.toVec3().xy(), 2, time});
-                if (verbose) LOG("STUCK t=%.1f car %d at %.1f %.1f z %.2f path %d u %.1f lat %.2f vT %.1f stop %.1f obst %.1f(%d) up %.2f gear %d wheels %d sleep %d imp %.0f col %d thr %.2f", time, i, c.s.body.pos.x, c.s.body.pos.y, c.s.body.pos.z, d->path, d->u, d->latErr, d->vTarget, d->stopDist, d->obstDist, d->obstBody, c.s.up().z,
-                                 c.s.gear, c.s.wheelsOnGround, (int)c.s.sleeping, c.s.impactImpulse, c.s.impactCollider, c.ctl.throttle);
+                if (verbose) {
+                    vec3 cp = c.s.body.pos.toVec3();
+                    float laneZ = w->lg.pathPos(d->path, d->u).z;
+                    Phys::GroundHit gh = Phys::gCollision->ground(cp.x, cp.y, cp.z + 2.f, 3.f);
+                    std::string wh;
+                    for (int k = 0; k < c.s.wheelCount; k++) {
+                        vec3 wp = cp + c.s.wheels[k].contactPos;
+                        Phys::GroundHit wg = Phys::gCollision->ground(wp.x, wp.y, cp.z + 2.f, 3.f);
+                        wh += StrFormat(" w%d(%s z %.2f g %.2f)", k, c.s.wheels[k].contact ? "on" : "off", wp.z, wg.z);
+                    }
+                    LOG("STUCK t=%.1f car %d at %.1f %.1f z %.2f laneZ %.2f groundZ %.2f path %d u %.1f lat %.2f vT %.1f stop %.1f obst %.1f(%d) up %.2f gear %d wheels %d sleep %d imp %.0f col %d thr %.2f |%s", time, i, cp.x, cp.y, cp.z, laneZ, gh.z, d->path, d->u, d->latErr, d->vTarget, d->stopDist, d->obstDist, d->obstBody, c.s.up().z,
+                        c.s.gear, c.s.wheelsOnGround, (int)c.s.sleeping, c.s.impactImpulse, c.s.impactCollider, c.ctl.throttle, wh.c_str());
+                }
             }
             if (d->waitTime > 60.f && !c.deadlockFlag) {
                 c.deadlockFlag = true;
@@ -710,6 +722,22 @@ struct Sim {
                 trails[c.trailId].pts.push_back(c.s.body.pos.toVec3().xy());
                 trails[c.trailId].spd.push_back(v);
             }
+            // hung on a ledge / kerb: back onto the lane a few meters on (game: out of view, or after 20 s)
+            bool hung = d && !d->dummy && d->vTarget > 1.f && v < 0.5f && (c.s.up().z < 0.94f || c.s.wheelsOnGround < 3) && d->path >= 0;
+            c.hungTime = hung ? c.hungTime + h : 0.f;
+            if (c.hungTime > 5.f) {
+                float u = Min(d->u + 4.f, w->lg.pathLength(d->path) - 0.5f);
+                vec3 p = w->lg.pathPos(d->path, u);
+                vec2 t = w->lg.pathTangent(d->path, u);
+                Vehicles::resetVehicle(c.s, dvec3(p.x, p.y, p.z + 0.35f), AI::dirYaw(t));
+                c.s.body.vel = vec3(t * 2.f, 0.f);
+                d->u = u;
+                d->stuckTime = 0.f;
+                d->recoverTimer = 0.f;
+                c.hungTime = 0.f;
+                unhung++;
+                if (verbose) LOG("UNHUNG t=%.1f car %d at %.1f %.1f path %d u %.1f", time, i, p.x, p.y, d->path, u);
+            }
             float dist = length(c.s.body.pos.toVec3().xy() - center);
             bool lost = d && (d->lostTime > 5.f || d->flipTime > 6.f);
             if (dist > radius + 80.f || lost || c.s.body.pos.z < -20.0) {
@@ -773,7 +801,7 @@ struct Sim {
         printf("collisions: %ld (%.2f per vehicle-hour), hard (>3000 Ns): %ld (%.2f/veh-h)\n", collisions, collisions / Max(vh, 1e-6), hardCollisions, hardCollisions / Max(vh, 1e-6));
         printf("static impacts (walls/props >2500 Ns): %ld, props broken: %ld\n", staticImpacts, propHits);
         printf("red-light violations: %ld, stop-sign violations: %ld\n", tc.stats.redViolations, tc.stats.stopSignViolations);
-        printf("stuck recoveries: %ld, relocalizations: %ld, deadlocks (>60 s waits): %ld, respawns: %ld\n", tc.stats.stuckEvents, tc.stats.relocalizations, deadlocks, respawns);
+        printf("stuck recoveries: %ld, relocalizations: %ld, deadlocks (>60 s waits): %ld, respawns: %ld, lifted off ledges: %ld\n", tc.stats.stuckEvents, tc.stats.relocalizations, deadlocks, respawns, unhung);
         printf("pedestrians hit: %ld\n", pedHits);
         const char* names[] = {"highway", "boulevard", "avenue", "street", "lane", "rural", "dirt", "ramp"};
         printf("average speed by road class (km/h):");
@@ -1021,8 +1049,50 @@ int main(int argc, char** argv) {
                        l.offset, l.u0, l.u1, e.length, l.stopU, l.fromNode, l.toNode, w.roads.nodes[l.fromNode].edges.size(), w.roads.nodes[l.toNode].edges.size(), u, lat, l.out.size());
                 const World::RoadNode& tn = w.roads.nodes[l.toNode];
                 printf("    to node %d at (%.1f, %.1f) z %.2f radius %.2f deadEnd %d control %d\n", l.toNode, tn.p.x, tn.p.y, tn.z, tn.radius, (int)w.lg.nodes[l.toNode].deadEnd, w.lg.nodes[l.toNode].control);
+                // lane surface vs collision ground along the lane (steps / ledges the physics cars can hang on)
+                w.loadCells(p, 80.f);
+                for (float uu = Max(l.u0, u - 30.f); uu <= Min(l.u1, u + 30.f); uu += 3.f) {
+                    vec3 lp = w.lg.pathPos(li, uu);
+                    Phys::GroundHit gh = w.cw.ground(lp.x, lp.y, lp.z + 3.f, 6.f);
+                    printf("      u %.1f lane z %.2f ground z %.2f%s\n", uu, lp.z, gh.z, fabsf(gh.z - lp.z) > 0.4f ? "  <-- MISMATCH" : "");
+                }
             }
             i += 2;
+        }
+        if (!strcmp(argv[i], "--zcheck")) {
+            // lane surface vs the ground the vehicle physics drives on (terrain + road decks): steps where a car can
+            // get hung up (a flat node disc next to a steep ramp, a deck edge) are listed per node, worst first
+            struct Hit { float step; int lane; float u; vec3 p; };
+            std::vector<Hit> hits;
+            long samples = 0;
+            for (int li = 0; li < (int)w.lg.lanes.size(); li++) {
+                const AI::Lane& l = w.lg.lanes[li];
+                for (float uu = l.u0; uu <= l.u1; uu += 2.f) {
+                    vec3 lp = w.lg.pathPos(li, uu);
+                    float th = World::gMap->heightAt(lp.x, lp.y), rz = th;
+                    float g = th;
+                    if (World::gRoads->surfaceHeight(lp.xy(), &rz, lp.z + 2.5f) && rz > th - 0.5f) g = rz;
+                    samples++;
+                    float step = g - lp.z;
+                    if (fabsf(step) > 0.45f) hits.push_back({step, li, uu, lp});
+                }
+            }
+            // cluster by location
+            std::sort(hits.begin(), hits.end(), [](const Hit& a, const Hit& b) { return fabsf(a.step) > fabsf(b.step); });
+            std::vector<Hit> reps;
+            for (const Hit& hh : hits) {
+                bool near_ = false;
+                for (const Hit& r : reps)
+                    if (length(r.p.xy() - hh.p.xy()) < 30.f) near_ = true;
+                if (!near_) reps.push_back(hh);
+            }
+            printf("zcheck: %ld samples, %zu off by > 0.45 m, %zu places\n", samples, hits.size(), reps.size());
+            for (const Hit& r : reps) {
+                const AI::Lane& l = w.lg.lanes[r.lane];
+                printf("  step %+.2f m at (%.1f, %.1f) z %.2f lane %d edge %d cls %d u %.1f (u0 %.1f u1 %.1f) nodes %d->%d\n", r.step, r.p.x, r.p.y, r.p.z, r.lane, l.edge,
+                       l.cls, r.u, l.u0, l.u1, l.fromNode, l.toNode);
+            }
+            continue;
         }
         if (!strcmp(argv[i], "--deadends")) {
             for (int n = 0; n < (int)w.lg.nodes.size(); n++)

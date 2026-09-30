@@ -1199,6 +1199,7 @@ void mapScreen(PhoneState& st, const HudState& hud, const PL& p, const Nav& n, f
         o.extentPx = Max(p.sw, p.sh);
         o.buildings = true;
         drawMapBase(v, o);
+        drawMapLines(v, a, s * 0.8f, vec2(p.sx, p.sy), vec2(p.sx + p.sw, p.sy + p.sh), false);
         if (!hud.gpsRoute.empty())
             drawMapRoute(v, hud.gpsRoute, C(1.f, 0.4f, 0.8f), Max(2.5f, 3.5f * s), a, vec2(p.sx, p.sy), vec2(p.sx + p.sw, p.sy + p.sh));
         // street names when zoomed in (kept clear of the info card, the hint bar and the player)

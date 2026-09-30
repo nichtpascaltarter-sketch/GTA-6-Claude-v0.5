@@ -33,6 +33,9 @@ enum InteriorKind : u8 {
     IK_GYM,
     IK_BARBER,
     IK_TATTOO,
+    IK_DEALERSHIP,     // Palm Motors showroom
+    IK_MODSHOP,        // Tide Customs body and paint shops
+    IK_CARWASH,        // Sunwash Car Wash
     IK_COUNT
 };
 
@@ -133,6 +136,7 @@ struct InteriorDef {
     bool ownShell = false;        // the interior builds the whole structure (trailer, club)
     float signZ0 = 0.f, signZ1 = 0.f;   // storefront sign band of the facade (heights above the floor, 0 = none)
     float radius = 20.f;          // bounding radius around the region center (streaming, culling)
+    int link = -1;                // interior at the other end of the express elevator (IM_ELEVATOR <-> IM_ELEVATOR_TOP)
     std::vector<InteriorOpening> openings;
     std::vector<InteriorDoor> doors;
     std::vector<InteriorRoom> rooms;
@@ -189,6 +193,11 @@ bool interiorFacadeWall(int interior, MeshData& m, vec3 org, vec2 a, vec2 b, flo
 bool interiorShellCollision(int interior, vec2 c, vec2 ax, float hx, float hy, float z0, float z1, std::vector<CollisionBox>& out);
 // Whole-structure interiors replace the building mesh (the structure itself streams with the interior).
 bool interiorOwnsShell(int interior);
+// ---- landmark hooks (landmarks.cpp genSolaris) ----
+// Interior of a landmark kind (IK_TOWER_LOBBY, IK_PENTHOUSE), -1 if none was planned
+int interiorForLandmark(u8 kind);
+// sitegeo::facadeRing (facade quads of a footprint ring z0..z1, bay grid per wall) with the interior's openings cut
+void interiorFacadeRing(int interior, MeshData& m, vec3 org, const std::vector<vec2>& fp, float z0, float z1, float vBase, u32 facadeId, float bay, u32 col);
 // Front bay holding an exterior door of an interior building (facadedetail.cpp keeps trims and gates out of it), -1 none
 int interiorDoorBay(const Building& b);
 // Warehouse loading door at footprint coordinate u (along Building::ax) replaced by a real roll-up door of the

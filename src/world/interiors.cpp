@@ -440,6 +440,67 @@ bool planClub(const WorldMap& map, const RoadNetwork& roads, InteriorDef& d) {
     return true;
 }
 
+// Solaris One (sites.cpp SK_SOLARIS, drawn by landmarks.cpp genSolaris): the lobby behind the south face of the 72 m
+// podium (its bay grid starts at x = -28 m; floor on the plaza pad) and Sandoval's penthouse in the top tower segment
+// of the detailed model (30 segments; the floor on the facade's 4.1 m floor grid above its 9 m ground floor). The
+// landmark cuts both into its facade rings and hollows its collision (interiorFacadeRing / interiorShellCollision).
+bool planSolaris(InteriorDef& lobby, InteriorDef& ph) {
+    if (!gSites) return false;
+    const SiteElem* se = nullptr;
+    for (const SiteElem& e : gSites->elems)
+        if (e.kind == SK_SOLARIS) {
+            se = &e;
+            break;
+        }
+    if (!se) return false;
+    const vec2 c = se->c;
+    const float z0 = se->z;
+    lobby.kind = IK_TOWER_LOBBY;
+    lobby.name = "Solaris One";
+    lobby.building = -1;
+    lobby.seed = hashString("Solaris One lobby");
+    lobby.ay = vec2(0.f, 1.f);
+    lobby.ax = vec2(lobby.ay.y, -lobby.ay.x);
+    lobby.origin = vec3(c.x, c.y - 36.f, z0 + 0.45f);
+    lobby.x0 = -18.4f;
+    lobby.x1 = 18.4f;
+    lobby.depth = 31.f;
+    lobby.ceil = 8.3f;
+    lobby.shellTop = 8.45f;
+    lobby.bw = 1.6f;
+    lobby.bayX0 = lobby.x0;
+    lobby.bays = 23;
+    lobby.doorBay = 11;
+    lobby.storefront = true;
+    lobby.radius = length(vec2(18.4f, 15.5f)) + 2.f;
+    // top segment of genSolaris (towerTop 468 m, 30 segments in the detailed model)
+    const float towerTop = 468.f;
+    const int segs = 30, k = segs - 1;
+    const float segH = (towerTop - 26.f) / segs;
+    const float t0 = (float)k / segs, t1 = (float)(k + 1) / segs, tm = (t0 + t1) * 0.5f;
+    const float za = z0 + 26.f + k * segH;
+    const float half = Lerp(30.f, 18.f, powf(tm, 1.2f));
+    const float rot = tm * 58.f * kDegToRad;
+    const float v = ceilf((za + 0.9f - z0 - 9.f) / 4.1f) * 4.1f + 9.f;
+    ph.kind = IK_PENTHOUSE;
+    ph.name = "Solaris One Penthouse";
+    ph.building = -1;
+    ph.seed = hashString("Solaris One penthouse");
+    ph.ay = vec2(-sinf(rot), cosf(rot));
+    ph.ax = vec2(ph.ay.y, -ph.ay.x);
+    ph.origin = vec3(c - ph.ay * half, z0 + v);
+    ph.x0 = -half;
+    ph.x1 = half;
+    ph.depth = 2.f * half;
+    ph.ceil = 8.2f;
+    ph.shellTop = 8.35f;
+    ph.bw = 1.6f;
+    ph.bayX0 = -half;
+    ph.bays = Max(1, (int)roundf(2.f * half / 1.6f));
+    ph.radius = half * 1.42f + 1.f;
+    return true;
+}
+
 }  // namespace interior_plan
 
 void planInteriors(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs) {
@@ -473,6 +534,10 @@ void planInteriors(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs) {
         {IK_CONVENIENCE, "Northside Quick Stop", vec2(2300.f, 3800.f), kRetail, 8.f, 12.f, 16.f, 17.f, 0, nullptr},
         {IK_CONVENIENCE, "Flats Food & Fuel", vec2(420.f, 3350.f), kRetail | styleBit(BS_WAREHOUSE), 8.f, 12.f, 16.f, 17.f, 0, nullptr},
         {IK_CONVENIENCE, "Grove Pantry", vec2(2150.f, -3100.f), kRetail | styleBit(BS_STRIPMALL), 8.f, 12.f, 16.f, 17.f, 0, nullptr},
+        {IK_DEALERSHIP, "Palm Motors", vec2(2700.f, 1300.f), kRetail, 14.f, 14.f, 24.f, 20.f, TF_STORE | TF_TALL | TF_ROLLUP | TF_WIDEDOOR, nullptr},
+        {IK_MODSHOP, "Tide Customs Calle Luna", vec2(2300.f, -150.f), kRetail | kIndustrial, 11.f, 13.f, 18.f, 18.f, TF_TALL | TF_ROLLUP, nullptr},
+        {IK_MODSHOP, "Tide Customs Sol Beach", vec2(5100.f, 2000.f), kRetail | kIndustrial, 11.f, 13.f, 18.f, 18.f, TF_TALL | TF_ROLLUP, nullptr},
+        {IK_CARWASH, "Sunwash Car Wash", vec2(1800.f, 1500.f), kIndustrial | kRetail, 10.f, 14.f, 16.f, 20.f, TF_TALL | TF_ROLLUP, nullptr},
     };
     auto finish = [&](InteriorDef& d) {
         // rooms, doors, scenario points, markers (layout in plan mode), daylight portals
@@ -523,6 +588,18 @@ void planInteriors(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs) {
             finish(d);
             if (gSites) gSites->vegBlocks.push_back({d.center().xy(), d.ax, (d.x1 - d.x0) * 0.5f + 3.f, d.depth * 0.5f + 3.f});
             set.defs.push_back(std::move(d));
+        }
+    }
+    {
+        InteriorDef lobby, ph;
+        if (planSolaris(lobby, ph)) {
+            finish(lobby);
+            finish(ph);
+            int li = (int)set.defs.size();
+            lobby.link = li + 1;
+            ph.link = li;
+            set.defs.push_back(std::move(lobby));
+            set.defs.push_back(std::move(ph));
         }
     }
     if (gSites) gSites->buildRectHash();   // vegetation and beach furniture keep off whole-structure interiors
@@ -647,6 +724,24 @@ bool interiorShellCollision(int interior, vec2 c, vec2 ax, float hx, float hy, f
     if (rx1 >= bx1 - 0.01f) emit(rx1 - T, rx1, ry0, ry1, floorZ, top);
     if (ry1 >= by1 - 0.01f) emit(rx0, rx1, ry1 - T, ry1, floorZ, top);
     return true;
+}
+
+int interiorForLandmark(u8 kind) { return gInteriors ? gInteriors->byKind(kind, 0) : -1; }
+
+void interiorFacadeRing(int interior, MeshData& m, vec3 org, const std::vector<vec2>& fp, float z0, float z1, float vBase, u32 facadeId, float bay, u32 col) {
+    int n = (int)fp.size();
+    u32 mat = makeMat(MAT_FACADE, facadeId);
+    for (int i = 0; i < n; i++) {
+        vec2 a = fp[i], b = fp[(i + 1) % n];
+        float len = length(b - a);
+        if (len < 0.05f) continue;
+        float uLen = Max(1.f, roundf(len / bay)) * bay, u0 = (float)i * 1000.f;
+        if (interiorFacadeWall(interior, m, org, a, b, z0, z1, u0, uLen, vBase, col, mat)) continue;
+        vec3 p0 = vec3(a, z0) - org, p1 = vec3(b, z0) - org, up(0, 0, z1 - z0);
+        vec2 on(b.y - a.y, a.x - b.x);
+        m.quadFacing(p0, p1, p1 + up, p0 + up, vec2(u0, z0 - vBase), vec2(u0 + uLen, z0 - vBase), vec2(u0 + uLen, z1 - vBase), vec2(u0, z1 - vBase), col, mat,
+                     vec3(on, 0));
+    }
 }
 
 bool interiorOwnsShell(int interior) {

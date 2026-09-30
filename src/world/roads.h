@@ -80,6 +80,8 @@ struct RoadNetwork {
     bool nearRoad(vec2 p, float margin) const;
     // True if p lies on the paved width (+ margin) of a road whose surface there is within 2.5 m of z (street furniture filter)
     bool onPavement(vec2 p, float z, float margin, int ignoreEdge = -1, float zTol = 2.5f) const;
+    // Junction surface height at p inside node n's disc: height of the nearest incident road centreline
+    float junctionZ(const RoadNode& n, vec2 p) const;
     void edgesInRect(vec2 mn, vec2 mx, std::vector<int>& out) const;
     float totalLength(RoadClass c) const;
 

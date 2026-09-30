@@ -284,7 +284,7 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         float3 dPx = ddx(i.rel), dPy = ddy(i.rel);
         float pxLen = max(length(dPx) + length(dPy), 1e-6);
         float curv = (length(ddx(N)) + length(ddy(N))) / pxLen;
-        float thin = saturate((curv - 45.0) / 220.0);
+        float thin = saturate((curv - 90.0) / 260.0);   // fingers ~125 /m, ear rims and nostril wings higher
         rough = lerp(0.5, 0.36, saturate((curv - 20.0) / 90.0));
         // Pores and fine creases as a bump from the bind-pose position, faded before they could alias
         float detailW = saturate(1.6 - pxLen * 0.5 / 0.0009);
@@ -338,10 +338,11 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
             albedo *= lerp(1.0, 0.55, smoothstep(24.0, 28.5, pd));   // limbal ring
         } else if (pd >= 29.0) {
             float vein = smoothstep(0.9, 0.97, valueNoise(float2(phase * 16.0, pd * 0.45))) * saturate((pd - 42.0) / 35.0);
-            albedo = lerp(albedo * float3(1.0, 0.97, 0.95), float3(0.62, 0.16, 0.13), vein * 0.4);
+            albedo = lerp(albedo * float3(0.84, 0.81, 0.79), float3(0.55, 0.14, 0.12), vein * 0.4);   // sclera: off-white
         }
-        ao *= lerp(1.0, 0.55, saturate((pd - 50.0) / 35.0));   // the lids shade the edges of the eyeball
-        rough = 0.03;   // wet cornea: sharp catchlights from the env probe / SSR
+        ao *= lerp(1.0, 0.45, saturate((pd - 45.0) / 35.0));   // the lids shade the edges of the eyeball
+        // wet cornea over the iris: sharp catchlights from the env probe / SSR; the sclera is moist but diffuse
+        rough = lerp(0.03, 0.24, smoothstep(26.0, 36.0, pd));
         metal = 0;
         n = N;
     }

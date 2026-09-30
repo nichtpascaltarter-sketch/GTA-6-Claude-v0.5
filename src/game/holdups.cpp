@@ -41,6 +41,7 @@ struct Test {
     int shot = 0;
     int stage = 0;
     float stageT = 0.f;
+    u32 taken = 0;     // screenshots already requested (bit per step)
 };
 Test gT;
 
@@ -285,6 +286,11 @@ void update(GameWorld& g, float dt) {
     if (!World::gInteriors) return;
     Ped* pl = g.playerPed();
     gS.hintCooldown = Max(0.f, gS.hintCooldown - dt);
+    if (g.missionActive()) {
+        // a mission took over (its scenes clear the interiors' extras): drop the robbery without consequences
+        if (gS.phase != HP_NONE) finish(g);
+        return;
+    }
     if (gS.phase == HP_NONE) {
         if (!pl || pl->state != PS_ONFOOT || !pl->aiming || !armedWithGun(*pl) || g.missionActive()) return;
         int def = Interiors::currentInterior();
@@ -473,6 +479,7 @@ void testDrive(GameWorld& g, float dt) {
         vec3 start = (out ? d.toWorld(out->pos) : d.toWorld(vec3(0.f, -3.f, 0.f))) - vec3(d.ay, 0.f) * 2.f;
         place(start, atan2f(-d.ay.x, d.ay.y));
         g.populationOff = true;
+        setFlag(g, EX_INTRO_DONE, 1);   // no prologue phone call in the middle of the test
         g.giveWeapon(g.player, WPN_PISTOL, 120);
         pl->weapon = WPN_PISTOL;
         g.pinfo.wanted = 0;
@@ -495,6 +502,11 @@ void testDrive(GameWorld& g, float dt) {
         gT.stageT = 0.f;
     };
     auto once = [&](float at) { return gT.stageT >= at && gT.stageT < at + dt * 1.01f; };
+    auto shotOnce = [&](int bit, float at, const char* name) {
+        if (gT.stageT < at || (gT.taken & (1u << bit))) return;
+        gT.taken |= 1u << bit;
+        g.requestScreenshot = shotName(name);
+    };
     if (gS.phase != HP_NONE && gS.paid && gS.reportAt > g.time + 3.0) gS.reportAt = g.time + 3.0;   // short phone-in delay under test
     switch (gT.stage) {
         case 0:   // settle outside the shop
@@ -527,14 +539,14 @@ void testDrive(GameWorld& g, float dt) {
             bool warning = gT.stageT > 2.2f && gT.stageT < 2.9f;
             steerLook(g, ckp + vec3(0, 0, warning ? 4.5f : 1.3f));
             c.aim.down = true;
-            if (once(0.9f)) g.requestScreenshot = shotName("hands_up");
+            shotOnce(1, 0.9f, "hands_up");
             if (once(1.5f)) c.enter.pressed = true;
             if (gT.stageT > 2.7f && gT.stageT < 2.75f + dt) {
                 c.attack.pressed = true;
                 c.attack.down = true;
             }
-            if (once(4.5f)) g.requestScreenshot = shotName("emptying");
-            if (gS.phase == HP_HANDOVER || gS.phase == HP_ALARM || gS.phase == HP_ARMED || gS.phase == HP_NONE || gT.stageT > 40.f) {
+            shotOnce(2, 4.5f, "emptying");
+            if (gS.phase == HP_HANDOVER || gS.phase == HP_ALARM || gS.phase == HP_ARMED || gS.phase == HP_NONE || gT.stageT > 25.f) {
                 LOG("holduptest: phase %d after %.1f s (progress %.2f, shots %d)", gS.phase, gT.stageT, gS.progress, g.pinfo.shotsFired);
                 next(gS.phase == HP_HANDOVER ? 4 : 6);
             }
@@ -542,7 +554,7 @@ void testDrive(GameWorld& g, float dt) {
         }
         case 4:   // the bag on the counter, then grab it
             if (gS.clerk >= 0) steerLook(g, gS.reg);
-            if (once(0.6f)) g.requestScreenshot = shotName("bag_on_counter");
+            shotOnce(3, 0.6f, "bag_on_counter");
             if (gT.stageT > 1.5f && !gS.paid) {
                 vec2 to = gS.reg.xy() - counter.xy();
                 vec3 at = gS.reg - vec3(normalize(to + vec2(1e-4f, 0.f)) * 0.9f, 0.f);
@@ -558,8 +570,8 @@ void testDrive(GameWorld& g, float dt) {
             break;
         case 5:   // out of the door, looking back
             if (gT.stageT < dt * 1.5f) place(door - vec3(d.ay, 0.f) * 4.f, atan2f(d.ay.x, -d.ay.y));
-            if (once(1.2f)) {
-                g.requestScreenshot = shotName("escape");
+            if (gT.stageT >= 1.2f) {
+                shotOnce(5, 1.2f, "escape");
                 next(6);
             }
             break;

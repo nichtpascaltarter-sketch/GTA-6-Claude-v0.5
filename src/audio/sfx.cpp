@@ -1926,6 +1926,43 @@ static void s_deerSnort(Buf& b) {
     if (b.chance(0.5f)) noise(b, d + b.rnd(0.15f, 0.3f), d * 0.8f, 0.6f, 0.003f, d * 0.25f, FBP, 1400.f, 800.f, 0.1f, 1.f, 1);
     reverb(b, 1.2f, 0.2f, 0.5f, 0.02f, 1.3f, 0.3f);
 }
+// Boat-tailed grackle: harsh "chek" notes, a wooden rattle, and now and then the rising rusty-hinge squeal.
+static void s_grackleCall(Buf& b) {
+    float t = 0.f;
+    int cheks = b.irnd(1, 3);
+    for (int k = 0; k < cheks; k++) {
+        noise(b, t, 0.05f, 0.7f, 0.002f, 0.015f, FBP, b.rnd(2200.f, 2900.f), -1.f, 0.1f, 2.2f);
+        tone(b, t, 0.05f, b.rnd(1100.f, 1400.f), 900.f, 0.04f, 0.35f, 0.002f, 0.015f, 0.f, 0.5f, 0.35f);
+        t += b.rnd(0.12f, 0.2f);
+    }
+    if (b.chance(0.5f)) {   // rattle
+        int n = b.irnd(6, 11);
+        float rate = b.rnd(22.f, 32.f);
+        for (int k = 0; k < n; k++) {
+            click(b, t, 0.35f, 5);
+            noise(b, t, 0.012f, 0.3f, 0.001f, 0.004f, FBP, 3000.f);
+            t += 1.f / rate;
+        }
+        t += 0.08f;
+    }
+    if (b.chance(0.6f)) {   // rising squeal
+        float d = b.rnd(0.25f, 0.4f);
+        tone(b, t, d, b.rnd(1300.f, 1700.f), b.rnd(3400.f, 4200.f), d * 0.9f, 0.45f, 0.01f, d * 0.6f, 0.f, 0.35f, 0.2f);
+        noise(b, t, d, 0.12f, 0.01f, d * 0.5f, FBP, 2500.f, 4500.f, d, 1.5f);
+    }
+    reverb(b, 0.9f, 0.14f, 0.5f, 0.01f, 1.f, 0.25f);
+}
+// Sanderling flock calls: quick, thin "twick" notes.
+static void s_shorebirdPeep(Buf& b) {
+    float t = 0.f;
+    int n = b.irnd(2, 4);
+    for (int k = 0; k < n; k++) {
+        float f = b.rnd(4400.f, 5400.f);
+        tone(b, t, 0.05f, f, f * 0.8f, 0.04f, 0.55f, 0.002f, 0.018f, b.rnd(-0.3f, 0.3f), 0.12f);
+        t += b.rnd(0.07f, 0.14f);
+    }
+    reverb(b, 0.7f, 0.12f, 0.5f, 0.01f, 1.f, 0.2f);
+}
 
 // ---------------------------------------------------------------------------------------------
 // Public transit
@@ -2088,6 +2125,8 @@ static const SoundDef kDefs[BANK_COUNT] = {
     {"animal_blow",       W, 50,  3, 0.6f,  4.f,   120.f,  0.15f, 0.08f, 1.f},
     {"raccoon_chitter",   W, 40,  3, 0.4f,  2.f,   50.f,   0.1f,  0.08f, 1.f},
     {"deer_snort",        W, 80,  3, 0.9f,  5.f,   250.f,  0.25f, 0.06f, 1.f},
+    {"grackle_call",      W, 50,  4, 0.55f, 5.f,   200.f,  0.2f,  0.07f, 1.f},
+    {"shorebird_peep",    W, 40,  4, 0.35f, 3.f,   90.f,   0.15f, 0.08f, 1.f},
     {"transit_chime",     W, 130, 1, 0.55f, 6.f,   90.f,   0.3f,  0.f,   1.f},
     {"train_doors",       W, 90,  3, 0.7f,  3.f,   60.f,   0.2f,  0.04f, 1.f},
     {"rail_clack",        W, 70,  6, 0.9f,  4.f,   220.f,  0.25f, 0.08f, 0.8f},
@@ -2211,6 +2250,8 @@ static void synthesize(int id, int var, Buf& b) {
         case SFX_ANIMAL_BLOW: s_animalBlow(b); break;
         case SFX_RACCOON_CHITTER: s_raccoonChitter(b); break;
         case SFX_DEER_SNORT: s_deerSnort(b); break;
+        case SFX_GRACKLE_CALL: s_grackleCall(b); break;
+        case SFX_SHOREBIRD_PEEP: s_shorebirdPeep(b); break;
         case SFX_TRANSIT_CHIME: s_transitChime(b); break;
         case SFX_TRAIN_DOORS: s_trainDoors(b); break;
         case SFX_RAIL_CLACK: s_railClack(b); break;

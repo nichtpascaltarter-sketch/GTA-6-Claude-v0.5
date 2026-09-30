@@ -65,10 +65,13 @@ bool insideBuilding(const GameWorld& g, vec3 p, float margin = 0.f) {
     return g.buildings && g.buildings->pointInBuilding(p.xy(), margin, &top) && p.z < top + 0.3f;
 }
 
+// inside one of the enterable interiors (shops, the diner, the Solaris penthouse...)
+bool insideInterior(vec3 p) { return World::gInteriors && World::gInteriors->at(p) >= 0; }
+
 // a camera at `cam` sees `subject`: it is not inside a building and nothing solid stands in between (the ray runs from
 // the subject out, so walls around a buried camera count)
 bool camSees(const GameWorld& g, dvec3 cam, dvec3 subject) {
-    if (insideBuilding(g, cam.toVec3())) return false;
+    if (insideBuilding(g, cam.toVec3()) || insideInterior(cam.toVec3())) return false;
     vec3 d = rel(cam, subject);
     float len = length(d);
     if (len < 0.8f) return true;
@@ -100,7 +103,15 @@ dvec3 swingCam(dvec3 cam, dvec3 target, float ang, float k) {
 // either way around its subject, the reverse angle, then any pull-in down to 25%. A shot of a scene inside an interior
 // (or one nothing fixes) is left alone.
 void fixShot(const GameWorld& g, CutsceneShot& s) {
-    if (insideBuilding(g, s.target.toVec3(), -1.f) || insideBuilding(g, s.target2.toVec3(), -1.f)) return;   // a doorway is outside
+    if (gMissions.test.active) {
+        vec3 c = s.pos.toVec3(), t = s.target.toVec3();
+        LOG("[cutscene] shot cam (%.1f %.1f %.1f) in %d/%d, target (%.1f %.1f %.1f) in %d/%d/%d, sees %d", c.x, c.y, c.z, (int)insideBuilding(g, c),
+            (int)insideInterior(c), t.x, t.y, t.z, (int)insideBuilding(g, t), (int)insideBuilding(g, t, -1.f), (int)insideInterior(t),
+            (int)camSees(g, s.pos, s.target));
+    }
+    // a scene inside an interior is framed by hand (a doorway just outside a building still counts as outside)
+    if (insideBuilding(g, s.target.toVec3(), -1.f) || insideBuilding(g, s.target2.toVec3(), -1.f)) return;
+    if (insideInterior(s.target.toVec3()) || insideInterior(s.target2.toVec3())) return;
     if (camSees(g, s.pos, s.target) && camSees(g, s.pos2, s.target2)) return;
     struct Try {
         float ang, kMin;
@@ -329,6 +340,7 @@ void GameWorld::mEnd(bool passed, const std::string& reason) {
     M.leadIn = 0.f;
     M.shots.clear();
     M.shotIndex = -1;
+    M.cardT = -1.f;
     gTracked.clear();
     mClearTarget();
     hudObjective.clear();
@@ -765,6 +777,11 @@ void GameWorld::startMission(int i) {
         M.retry.money = pinfo.money;
     }
     M.activeDef = i;
+    M.statStart = time;
+    M.statKills = pinfo.kills;
+    M.statHeadshots = pinfo.headshots;
+    M.statShots = pinfo.shotsFired;
+    M.statHits = pinfo.shotsHit;
     M.active = M.defs[i].create();
     M.active->stage = 0;
     M.active->stageTime = 0.f;
@@ -788,8 +805,11 @@ void GameWorld::startMission(int i) {
             fadeIn(1.3f);   // alpha per second: about 0.8 s
         }
         // the title comes up over the opening shot (the HUD message would stay hidden until the cutscene ends)
-        M.cardTitle = M.active->title();
-        M.cardSub = M.defs[i].contact;
+        // "Jaz: Viral" becomes JAZ over "Viral"
+        std::string t = M.active->title();
+        size_t colon = t.find(": ");
+        M.cardTitle = colon != std::string::npos ? t.substr(colon + 2) : t;
+        M.cardSub = colon != std::string::npos ? t.substr(0, colon) : std::string(M.defs[i].contact);
         M.cardT = 0.f;
         M.cardDelay = 0.9f;
         M.cardCentered = false;

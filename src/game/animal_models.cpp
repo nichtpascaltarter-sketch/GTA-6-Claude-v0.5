@@ -432,6 +432,7 @@ static const SpeciesInfo kSpecies[SP_COUNT] = {
     {"frigatebird",      PLAN_BIRD,     2,   1.00f, 0.40f, 2.20f, 15.f,  1.4f},
     {"cormorant",        PLAN_BIRD,     1,   0.80f, 0.60f, 1.25f, 12.f,  1.8f},
     {"cattle egret",     PLAN_BIRD,     1,   0.50f, 0.46f, 0.90f, 6.f,   0.35f},
+    {"grey squirrel",    PLAN_QUAD,     1,   0.45f, 0.14f, 0.f,   6.f,   0.5f},
 };
 const SpeciesInfo& speciesInfo(int sp) { return kSpecies[Clamp(sp, 0, (int)SP_COUNT - 1)]; }
 
@@ -1325,6 +1326,7 @@ struct QuadSpec {
     bool hoof, plantigrade;
     float hump, dewlap, mane, horns, antlers;
     float neckDrop = 0.f;           // lowers the neck root (fraction of the barrel depth): horses carry the neck from low on the chest
+    float tailCurl = 0.f;           // extra upward bend per tail third (squirrels curl the tail up over the back)
 };
 
 QuadSpec quadSpec(int sp, int var) {
@@ -1413,6 +1415,18 @@ QuadSpec quadSpec(int sp, int var) {
                  0.52f, 0.12f, 0.32f, -0.12f, -0.03f,
                  0.22f, 0.12f, 0.045f, 0.055f, true, false, 0.f, 0.f, 1.f, 0.f, 0.f};
             q.neckDrop = 0.2f;
+            break;
+        case SP_SQUIRREL:
+            q = {0.085f, 0.10f, 0.10f, 0.034f, 0.07f, 0.05f, 0.1f, 0.035f, 0.03f,
+                 0.028f, 0.027f, 0.023f, 0.6f, 1.f,
+                 0.034f, 0.024f, 0.037f, 0.012f, 0.013f, 0.017f, -0.15f,
+                 0.017f, 0.011f, 0.f, 0.2f,
+                 0.19f, 0.012f, 2.f, 1.3f, 0.f,
+                 0.024f,
+                 0.5f, -0.06f, 0.14f, 0.02f, 0.12f,
+                 0.42f, 0.22f, 0.16f, -0.2f, 0.3f,
+                 0.03f, 0.011f, 0.007f, 0.008f, false, true, 0.f, 0.f, 0.f, 0.f, 0.f};
+            q.tailCurl = 0.45f;
             break;
         default: break;
     }
@@ -1571,6 +1585,15 @@ vec3 quadPaint(int sp, int var, const QuadSpec& Q, const QuadPaintIn& in, u8& ma
             if (in.part == QP_HEAD && in.s > 0.85f) return fur(coat * 0.6f);
             return fur(coat);
         }
+        case SP_SQUIRREL: {   // grey squirrel: grizzled grey with a brown wash, white belly, pale-fringed tail
+            vec3 grey = C(0.52f, 0.5f, 0.47f), brown = C(0.5f, 0.38f, 0.26f), wht = C(0.9f, 0.88f, 0.84f);
+            if (in.part == QP_TAIL) return fur(mixc(grey, wht, fabsf(cosf(in.th)) > 0.72f ? 0.55f : 0.f) * (0.85f + 0.3f * Saturate(blot + 0.5f)));
+            if ((in.part == QP_BODY || in.part == QP_NECK || in.part == QP_JAW) && up < -0.4f) return fur(wht);
+            if (in.part == QP_HEAD) return fur(in.s > 0.55f && up < 0.f ? wht : mixc(grey, brown, 0.35f));
+            if (in.part == QP_EAR) return fur(brown);
+            if (in.part == QP_LEG || isFootFur) return fur(mixc(brown, grey, 0.4f));
+            return fur(mixc(grey, brown, Saturate(0.3f + 0.4f * blot + 0.3f * up)));
+        }
         default: return C(0.5f, 0.5f, 0.5f);
     }
 }
@@ -1598,8 +1621,19 @@ void buildQuadSkeleton(const QuadSpec& Q, Skel& sk, vec3* J) {
     vec3 td = vec3(0, -cosf(Q.tailAngle), sinf(Q.tailAngle));
     vec3 t1 = vec3(0, yP - Q.rump * 0.85f, H - Q.depth * 0.08f);
     sk.add(PELVIS, t1);                                               // TAIL1
-    sk.add(TAIL1, t1 + td * (Q.tailLen * 0.33f));                    // TAIL2
-    sk.add(TAIL2, t1 + td * (Q.tailLen * 0.66f));                    // TAIL3
+    vec3 tailTip;
+    if (Q.tailCurl > 0.f) {   // each third bends further up and forward
+        float seg = Q.tailLen / 3.f;
+        auto dirAt = [&](float ang) { return vec3(0, -cosf(ang), sinf(ang)); };
+        vec3 t2 = t1 + dirAt(Q.tailAngle) * seg, t3 = t2 + dirAt(Q.tailAngle + Q.tailCurl) * seg;
+        sk.add(TAIL1, t2);                                            // TAIL2
+        sk.add(TAIL2, t3);                                            // TAIL3
+        tailTip = t3 + dirAt(Q.tailAngle + 2.f * Q.tailCurl) * seg;
+    } else {
+        sk.add(TAIL1, t1 + td * (Q.tailLen * 0.33f));                // TAIL2
+        sk.add(TAIL2, t1 + td * (Q.tailLen * 0.66f));                // TAIL3
+        tailTip = t1 + td * Q.tailLen;
+    }
     for (int sd = -1; sd <= 1; sd += 2) {   // front legs (FL then FR)
         vec3 s = vec3(sd * Q.legX, yC + 0.02f * W, 0.62f * W);
         vec3 e = vec3(sd * Q.legX * 1.05f, s.y + Q.fElbowY * W, Q.fElbowZ * W);
@@ -1628,6 +1662,7 @@ void buildQuadSkeleton(const QuadSpec& Q, Skel& sk, vec3* J) {
     J[HEAD + 40] = hf;
     J[HEAD + 41] = hu;
     J[HEAD + 42] = collar;
+    J[60] = tailTip;
 }
 
 void buildQuadMesh(int sp, int var, const QuadSpec& Q, const Skel& sk, const vec3* J, int lod, bool leash, MBuild& mb) {
@@ -1912,8 +1947,8 @@ void buildQuadMesh(int sp, int var, const QuadSpec& Q, const Skel& sk, const vec
     // ---- tail
     {
         vec3 t1 = sk.bind[TAIL1], t2 = sk.bind[TAIL2], t3 = sk.bind[TAIL3];
-        vec3 td = normalize(t3 - t1);
-        vec3 tip = t1 + td * Q.tailLen;
+        vec3 td = normalize(t2 - t1);
+        vec3 tip = J[60];
         bool horse = sp == SP_HORSE;
         std::vector<vec3> tp;
         if (horse) {   // dock then a long fall of hair
@@ -3021,7 +3056,8 @@ void animateQuad(const ModelData& m, const QuadAnim& a, Pose& P, const float* fo
         float drop = (sk.bind[BODY].z - Q.depth * 0.95f) * lie;
         P.rootPos.z -= drop;
     }
-    if (rear > 0.f) rotateRootAbout(sk, P, vec3(0, sk.bind[HL1].y, 0.f), qx(0.75f * rear));
+    bool squirrel = m.species == SP_SQUIRREL;   // sits bolt upright on its haunches to eat
+    if (rear > 0.f) rotateRootAbout(sk, P, vec3(0, sk.bind[HL1].y, 0.f), qx((squirrel ? 1.2f : 0.75f) * rear));
     if (dead > 0.f) {
         float rollDir = 1.f;
         P.rootRot = normalize(slerp(P.rootRot, qy(1.5f * rollDir), dead));
@@ -3034,9 +3070,10 @@ void animateQuad(const ModelData& m, const QuadAnim& a, Pose& P, const float* fo
     float alertUp = 0.22f * Saturate(a.alert);
     float ly = Clamp(a.lookYaw, -1.6f, 1.6f), lp = Clamp(a.lookPitch, -0.8f, 0.8f);
     float n1 = -hd * (longNeck > 0.f ? 1.05f : 0.75f) + alertUp + nod - 0.25f * crouch - (a.gait > 2.2f ? 0.18f : 0.f) * moving + sit * 0.25f;
-    P.q[NECK1] = qz(ly * 0.25f) * qx(n1 - 0.4f * dead);
-    P.q[NECK2] = qz(ly * 0.35f) * qx(-hd * 0.35f + alertUp * 0.3f - 0.3f * dead);
-    P.q[HEAD] = qz(ly * 0.4f) * qx(lp - hd * 0.25f + (longNeck > 0.f ? hd * 0.2f : 0.f) - 0.2f * dead);
+    float level = m.species == SP_SQUIRREL ? rear : 0.f;   // sitting up, a squirrel keeps its head level
+    P.q[NECK1] = qz(ly * 0.25f) * qx(n1 - 0.4f * dead - 0.55f * level);
+    P.q[NECK2] = qz(ly * 0.35f) * qx(-hd * 0.35f + alertUp * 0.3f - 0.3f * dead - 0.3f * level);
+    P.q[HEAD] = qz(ly * 0.4f) * qx(lp - hd * 0.25f + (longNeck > 0.f ? hd * 0.2f : 0.f) - 0.2f * dead - 0.35f * level);
     float maxJaw = m.species == SP_CAT ? 0.6f : (m.species == SP_DOG ? 0.5f : (m.species == SP_RACCOON ? 0.45f : 0.3f));
     P.q[JAW] = qx(-Saturate(a.mouth) * maxJaw);
     // ears: erect ears prick forward when alert; floppy ones swing with the gait
@@ -3060,6 +3097,9 @@ void animateQuad(const ModelData& m, const QuadAnim& a, Pose& P, const float* fo
         } else if (m.species == SP_HORSE || m.species == SP_COW) {
             sw = 0.22f * sinf(t * 0.9f + 1.f) + 0.12f * sinf(t * 2.3f) + wag * 0.5f * sinf(t * 5.f);
             up = 0.25f * moving * (a.gait > 1.5f ? 1.f : 0.f);
+        } else if (m.species == SP_SQUIRREL) {   // quick flicks when alarmed, streams out behind when bounding
+            sw = 0.08f * sinf(t * 1.7f);
+            up = 0.35f * wag * sinf(t * 16.f) - 0.3f * moving * (a.gait > 1.5f ? 1.f : 0.f);
         } else if (m.species == SP_DEER) {
             sw = 0.1f * sinf(t * 3.f);
             up = 1.1f * Saturate(a.alert * 0.4f + moving * (a.gait > 1.5f ? 1.f : 0.f));   // white flag up when fleeing
@@ -3126,8 +3166,13 @@ void animateQuad(const ModelData& m, const QuadAnim& a, Pose& P, const float* fo
             }
         }
         if (rear > 0.f && front) {
-            target = lerp(target, F.p[b1] + vec3(0, 0.2f * h, -0.35f * h), rear);
-            d3 = normalize(lerp(d3, vec3(0, -1.f, 0.4f), rear));
+            if (squirrel) {   // forepaws up at the mouth, holding the nut
+                target = lerp(target, lerp(F.p[b1], F.p[HEAD], 0.75f) + vec3((float)sd * 0.008f, 0.02f, -0.015f), rear);
+                d3 = normalize(lerp(d3, vec3(0, 0.3f, 1.f), rear));
+            } else {
+                target = lerp(target, F.p[b1] + vec3(0, 0.2f * h, -0.35f * h), rear);
+                d3 = normalize(lerp(d3, vec3(0, -1.f, 0.4f), rear));
+            }
         }
         legIK3(sk, P, F, b1, b2, b3, m.legEnd[leg], target, d3, pole);
     }

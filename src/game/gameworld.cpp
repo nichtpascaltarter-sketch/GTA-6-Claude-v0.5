@@ -350,8 +350,8 @@ void GameWorld::submitRender() {
         if (v.lightsOn) bits |= 1u;
         if (driven && (v.ctl.brake > 0.1f && s.forwardSpeed() > 0.5f)) bits |= 2u;
         if (driven && s.gear < 0) bits |= 4u;
-        if (v.indicator < 0 || v.alarm) bits |= 8u;
-        if (v.indicator > 0 || v.alarm) bits |= 16u;
+        if (v.indicator < 0 || v.indicator == 2 || v.alarm) bits |= 8u;    // 2 = hazard lights (both sides)
+        if (v.indicator == 1 || v.indicator == 2 || v.alarm) bits |= 16u;
         if (v.sirenOn) bits |= 32u;
         // level of detail by distance (the player's own vehicle always full detail)
         int vlod = vi == playerVehicle() ? 0 : (dist < 40.f ? 0 : (dist < 120.f ? 1 : 2));
@@ -479,6 +479,12 @@ void GameWorld::submitRender() {
         if (!p.used || p.charIndex < 0) continue;
         if (p.visibleDist > 350.f) continue;
         if (hidePlayerModel && i == player) continue;
+        if (i != player) {
+            // a passer-by walking through the camera would fill the frame with the inside of their body: skip them
+            vec3 rc = rel(rig.cam.pos, p.pos);
+            float zc = Clamp(rc.z, 0.3f, 1.5f);
+            if (length(vec3(rc.x, rc.y, rc.z - zc)) < 0.55f) continue;
+        }
         vec3 toP = rel(p.pos, cam);
         if (dot(toP, camF) < -2.f && p.visibleDist > 3.f) continue;
         const CharEntry& ce = chars[p.charIndex];

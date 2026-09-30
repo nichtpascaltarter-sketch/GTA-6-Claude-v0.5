@@ -1494,12 +1494,12 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac0, const WorldMap&
         int fi = 0;
         for (int i = 1; i < (int)walls.size(); i++)
             if (walls[i].facing > walls[fi].facing) fi = i;
-        // the roof the billboard stands on is the top of the building's main mass
-        const FacadeMass* top = &ms;
+        // billboards stand on (and wall ads reach up to) the roof of the full-footprint body
+        const FacadeMass* body = &ms;
         for (const FacadeMass& o : masses)
-            if (o.z1 > top->z1 && o.kind != FM_DECO_TOWER) top = &o;
-        rooftopBillboard(d, *top, walls[fi]);
-        wallAd(d, *top, walls);
+            if ((o.kind == FM_MAIN || o.kind == FM_PODIUM) && o.z1 > body->z1) body = &o;
+        rooftopBillboard(d, *body, walls[fi]);
+        wallAd(d, *body, walls);
         break;
     }
 }

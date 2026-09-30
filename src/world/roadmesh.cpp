@@ -1315,7 +1315,12 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
         }
     }
     // ---------------------------------------------------------------- Street furniture, trees, utility lines (LOD0)
-    if (out.detail) street_dressing::dressCell(net, map, cx, cy, cand, out);
+    // (wider candidate set: a boulevard just outside the cell still has its outer sidewalk inside it)
+    if (out.detail) {
+        std::vector<int> dcand;
+        net.edgesInRect(org - vec2(24.f), org + vec2(kCellSize + 24.f), dcand);
+        street_dressing::dressCell(net, map, cx, cy, dcand, out);
+    }
 }
 
 }  // namespace World

@@ -43,8 +43,8 @@ struct PostSystem {
         whiteTex = gfx::createTexture2D(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV, 1, 1, &white, 4);
         blackTex = gfx::createTexture2D(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV, 1, 1, &black, 4);
         csReduce = gfx::loadCS("post.hlsl", "csLumHist");
-        u32 zeroHist[64] = {};
-        lumHist = gfx::createBuffer(64 * 4, 4, gfx::BUF_STRUCTURED | gfx::BUF_UAV, zeroHist);
+        u32 zeroHist[128] = {};
+        lumHist = gfx::createBuffer(128 * 4, 4, gfx::BUF_STRUCTURED | gfx::BUF_UAV, zeroHist);
         csExposure = gfx::loadCS("post.hlsl", "csExposure");
         csBloomDown = gfx::loadCS("post.hlsl", "csBloomDown");
         csBloomUp = gfx::loadCS("post.hlsl", "csBloomUp");
@@ -195,12 +195,13 @@ struct PostSystem {
         // Exposure from the anti-aliased image: luminance histogram, then metering + adaptation
         c->CSSetShader(csReduce, nullptr, 0);
         c->CSSetShaderResources(0, 1, &displaySrv);
+        c->CSSetShaderResources(5, 1, &r.depth.srv);
         c->CSSetShaderResources(40, 1, &exposureBuf.srv);
         c->CSSetUnorderedAccessViews(0, 1, &lumHist.uav, nullptr);
         c->Dispatch(gfx::divUp(r.width, 64), gfx::divUp(r.height, 64), 1);
-        ID3D11ShaderResourceView* nullSrv[3] = {};
+        ID3D11ShaderResourceView* nullSrv[6] = {};
         ID3D11UnorderedAccessView* nullUav[2] = {};
-        c->CSSetShaderResources(0, 3, nullSrv);
+        c->CSSetShaderResources(0, 6, nullSrv);
         c->CSSetShaderResources(40, 1, nullSrv);
         c->CSSetShader(csExposure, nullptr, 0);
         ID3D11UnorderedAccessView* expUavs[2] = {lumHist.uav, exposureBuf.uav};

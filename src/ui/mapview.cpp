@@ -401,12 +401,61 @@ float roadMinPx(u8 cls, bool radar) {
 const int kDrawOrder[World::RC_COUNT] = {World::RC_DIRT, World::RC_LANE, World::RC_STREET, World::RC_RURAL, World::RC_AVENUE,
                                          World::RC_BOULEVARD, World::RC_RAMP, World::RC_HIGHWAY};
 
+std::vector<MapLine> g_mapLines;
+
 }  // namespace map_detail
+
+void setMapLines(const std::vector<MapLine>& lines) { map_detail::g_mapLines = lines; }
 
 namespace uix {
 using namespace map_detail;
 
 bool mapReady() { return g_mapReady; }
+
+const std::vector<MapLine>& mapLines() { return g_mapLines; }
+
+void drawMapLines(const MapView& v, float alpha, float uiScale, vec2 cmin, vec2 cmax, bool radar) {
+    static std::vector<vec2> scr;
+    for (const MapLine& ml : g_mapLines) {
+        if (ml.pts.size() < 2 || (radar && !ml.radar)) continue;
+        scr.clear();
+        for (const vec2& p : ml.pts) scr.push_back(v.toScreen(p));
+        if (ml.closed) scr.push_back(scr[0]);
+        float w = Max(1.5f, ml.width * uiScale * (radar ? 0.75f : 1.f));
+        float la = alpha * (radar ? 0.6f : 1.f);
+        float dash = 11.f * uiScale, gap = 7.f * uiScale;
+        for (int pass = 0; pass < 2; pass++) {
+            float pw = pass == 0 ? w + 2.5f * uiScale : w;
+            u32 c = pass == 0 ? C(0.02f, 0.02f, 0.07f, 0.7f * la) : withAlpha(ml.color, la);
+            float along = 0.f;   // dash phase carried across segments
+            for (size_t i = 0; i + 1 < scr.size(); i++) {
+                vec2 a = scr[i], b = scr[i + 1];
+                float len = length(b - a);
+                bool off = Max(a.x, b.x) < cmin.x - pw || Min(a.x, b.x) > cmax.x + pw || Max(a.y, b.y) < cmin.y - pw ||
+                           Min(a.y, b.y) > cmax.y + pw;
+                if (!ml.dashed) {
+                    if (!off) capsule(a.x, a.y, b.x, b.y, pw, c);
+                    continue;
+                }
+                if (len < 1e-3f) continue;
+                vec2 d = (b - a) / len;
+                float t = 0.f;
+                while (t < len) {
+                    float period = dash + gap, ph = fmodf(along + t, period);
+                    if (ph < dash) {
+                        float e = Min(len, t + (dash - ph));
+                        if (!off) {
+                            vec2 p0 = a + d * t, p1 = a + d * e;
+                            capsule(p0.x, p0.y, p1.x, p1.y, pw, c);
+                        }
+                        t = e;
+                    } else t += period - ph;
+                }
+                along += len;
+            }
+        }
+    }
+}
 
 void mapInit() {
     if (!World::gMap || !World::gRoads) return;

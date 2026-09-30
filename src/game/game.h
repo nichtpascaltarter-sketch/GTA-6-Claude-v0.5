@@ -232,7 +232,7 @@ struct Vehicle {
     int seats[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
     bool lightsOn = false;
     bool sirenOn = false, hornOn = false;
-    int indicator = 0;            // -1 left, 1 right
+    int indicator = 0;            // -1 left, 1 right, 2 hazard lights
     bool alarm = false;
     bool persistent = false;      // player-owned / mission vehicles
     bool locked = false;

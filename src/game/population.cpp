@@ -1007,6 +1007,7 @@ void GameWorld::updatePopulation(float dt) {
         if (nearStop) continue;
         float lat = L.width * 0.5f + info.shoulder * 0.5f;
         vec3 c = laneGraph.lanePos(lane, u, lat);
+        if (World::roadWorkZoneAt(c.xy())) continue;   // the parking strip is fenced off for road works
         if (!warm && inCameraView(c + vec3(0, 0, 1.f), 4.f) && length(c.xy() - pp.xy()) < 110.f) continue;
         if (length(c.xy() - pp.xy()) < (warm ? 10.f : 45.f)) continue;
         std::vector<int> close;

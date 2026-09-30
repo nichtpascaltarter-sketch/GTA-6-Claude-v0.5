@@ -821,5 +821,391 @@ void genStation(const SiteElem& e, G& g) {
         stairFlight(g, f, st, side, !g.detail);
     }
 }
+
+// ------------------------------------------------------------------------------------------------ bus stops
+// Porto Sol Transit stop: the city's standard shelter (for new stops; existing shelters are reused), a flag pole at the
+// curb with a two-faced blade sign (PST band, route badges in the route colours, stop name), a lit timetable case facing
+// the sidewalk and a downlight under the shelter roof.
+const vec3 kPstBlue(0.04f, 0.18f, 0.36f);
+
+void routeBadge(G& g, vec3 c, vec3 right, vec3 up, vec3 nrm, float size, const BusRoute& R) {
+    MeshData& m = *g.m;
+    vec3 a = c - right * size * 0.5f - up * size * 0.5f;
+    m.quadFacing(a - g.org, a + right * size - g.org, a + right * size + up * size - g.org, a + up * size - g.org, vec2(0), vec2(1, 0), vec2(1, 1), vec2(0, 1),
+                 rgbv(R.color * 1.6f, 0.2f), emMat(EA_NIGHT), nrm);
+    float th = size * 0.52f;
+    float w = textAdvance(R.number.c_str(), th);
+    strokeText(g, m, R.number.c_str(), c - right * (w * 0.5f) - up * (th * 0.5f) + nrm * 0.003f, right, up, th, th * 0.17f, rgb(1.f, 1.f, 1.f, 0.25f), emMat());
+}
+
+void genBusStop(const SiteElem& e, G& g) {
+    const TransitNet& N = *gTransit;
+    if (!N.ready || e.variant >= N.busStops.size()) return;
+    const BusStop& b = N.busStops[e.variant];
+    MeshData& m = *g.m;
+    vec3 al(b.along, 0.f), fc(b.face, 0.f);   // travel direction, toward the street
+    // ---- shelter (new stops) and its downlight
+    if (b.ownShelter && g.owns(b.pos)) {
+        float yaw = atan2f(b.face.x, -b.face.y);
+        prop(g, vec3(b.pos, b.z), yaw, 1.f, PROP_BUS_STOP, (u8)(b.seed & 3u));
+        light(g, vec3(b.pos, b.z) + vec3(0, 0, 2.3f), vec3(0.95f, 0.97f, 1.f) * 90.f, 7.f, 0);
+    }
+    if (!g.owns(b.flag)) return;
+    vec3 base(b.flag, b.z);
+    u32 galv = rgb(0.62f, 0.64f, 0.66f), mBr = M(MAT_METAL_BRUSHED), mPaint = M(MAT_METAL_PAINTED);
+    // pole
+    cyl(g, base, 0.045f, 0.04f, 3.15f, g.detail ? 8 : 5, galv, mBr);
+    collide(g, base + vec3(0, 0, 1.5f), b.along, vec3(0.06f, 0.06f, 1.5f));
+    // blade sign: plane spanned by the pole and the sidewalk direction, faces point along the street
+    vec3 inward = -fc;                       // from the curb toward the buildings
+    const float bw = 0.62f, z0 = 2.2f, z1 = 3.08f;
+    vec3 bc = base + inward * (bw * 0.5f + 0.05f) + vec3(0, 0, (z0 + z1) * 0.5f);
+    box(g, bc, inward, vec3(0, 0, 1), vec3(bw * 0.5f, (z1 - z0) * 0.5f, 0.016f), rgb(0.93f, 0.94f, 0.95f), mPaint);
+    // mounting brackets
+    for (int k = 0; k < 2; k++) box(g, base + inward * 0.04f + vec3(0, 0, z0 + 0.12f + k * 0.62f), inward, vec3(0, 0, 1), vec3(0.06f, 0.03f, 0.03f), galv, mBr);
+    if (!g.detail) return;
+    // route list (routes serving this stop)
+    std::vector<int> routes;
+    for (int r = 0; r < (int)N.busRoutes.size(); r++)
+        if (b.routeMask & (1u << r)) routes.push_back(r);
+    for (int fs = -1; fs <= 1; fs += 2) {
+        vec3 nrm = al * (float)fs;
+        vec3 right = normalize(cross(vec3(0, 0, 1), nrm));   // reading direction for a viewer facing -nrm
+        vec3 face = bc + nrm * 0.018f;
+        // top band: PST
+        vec3 tb = face + vec3(0, 0, (z1 - z0) * 0.5f - 0.1f);
+        m.quadFacing(tb - right * (bw * 0.5f) - vec3(0, 0, 0.1f) - g.org, tb + right * (bw * 0.5f) - vec3(0, 0, 0.1f) - g.org,
+                     tb + right * (bw * 0.5f) + vec3(0, 0, 0.1f) - g.org, tb - right * (bw * 0.5f) + vec3(0, 0, 0.1f) - g.org, vec2(0), vec2(1, 0), vec2(1, 1),
+                     vec2(0, 1), rgbv(kPstBlue), mPaint, nrm);
+        {
+            float th = 0.095f;
+            const char* txt = "BUS";
+            float w = textAdvance(txt, th);
+            strokeText(g, m, txt, tb - right * (w * 0.5f) - vec3(0, 0, th * 0.5f) + nrm * 0.002f, right, vec3(0, 0, 1), th, th * 0.18f, rgb(1.f, 1.f, 1.f, 0.15f),
+                       emMat(EA_NIGHT));
+        }
+        // route badges (two per row)
+        float bs = 0.2f;
+        for (size_t k = 0; k < routes.size() && k < 4; k++) {
+            int row = (int)k / 2, col = (int)k % 2;
+            int inRow = Min(2, (int)routes.size() - row * 2);
+            float x = inRow == 1 ? 0.f : (col == 0 ? -0.14f : 0.14f);
+            vec3 c = face + right * x + vec3(0, 0, (z1 - z0) * 0.5f - 0.34f - row * 0.25f) + nrm * 0.002f;
+            routeBadge(g, c, right, vec3(0, 0, 1), nrm, bs, N.busRoutes[routes[k]]);
+        }
+        // stop name (fine print at the bottom)
+        {
+            std::string nm = upper(b.name);
+            float th = Min(0.05f, (bw - 0.06f) / Max(textAdvance(nm.c_str(), 1.f), 0.1f));
+            float w = textAdvance(nm.c_str(), th);
+            strokeText(g, m, nm.c_str(), face - right * (w * 0.5f) - vec3(0, 0, (z1 - z0) * 0.5f - 0.05f) + nrm * 0.002f, right, vec3(0, 0, 1), th, th * 0.16f,
+                       rgb(0.08f, 0.1f, 0.14f), mPaint);
+        }
+    }
+    // timetable case on the sidewalk side of the pole (lit panel with one line per route)
+    {
+        vec3 tc = base + inward * 0.1f + vec3(0, 0, 1.45f);
+        box(g, tc, al, vec3(0, 0, 1), vec3(0.2f, 0.3f, 0.035f), rgb(0.2f, 0.22f, 0.25f), mPaint);
+        vec3 nrm = inward;
+        vec3 right = normalize(cross(vec3(0, 0, 1), nrm));
+        vec3 face = tc + nrm * 0.037f;
+        m.quadFacing(face - right * 0.17f - vec3(0, 0, 0.26f) - g.org, face + right * 0.17f - vec3(0, 0, 0.26f) - g.org, face + right * 0.17f + vec3(0, 0, 0.26f) - g.org,
+                     face - right * 0.17f + vec3(0, 0, 0.26f) - g.org, vec2(0), vec2(1, 0), vec2(1, 1), vec2(0, 1), rgb(0.95f, 0.96f, 0.93f, 0.06f), emMat(), nrm);
+        strokeText(g, m, "TIMETABLE", face - right * 0.15f + vec3(0, 0, 0.19f) + nrm * 0.002f, right, vec3(0, 0, 1), 0.035f, 0.006f, rgbv(kPstBlue), mPaint);
+        for (size_t k = 0; k < routes.size() && k < 4; k++) {
+            const BusRoute& R = N.busRoutes[routes[k]];
+            vec3 row = face - right * 0.15f + vec3(0, 0, 0.1f - k * 0.1f) + nrm * 0.002f;
+            m.quadFacing(row - g.org, row + right * 0.05f - g.org, row + right * 0.05f + vec3(0, 0, 0.05f) - g.org, row + vec3(0, 0, 0.05f) - g.org, vec2(0), vec2(1, 0),
+                         vec2(1, 1), vec2(0, 1), rgbv(R.color * 1.5f), mPaint, nrm);
+            std::string line = R.number + " " + upper(R.name);
+            strokeText(g, m, line.c_str(), row + right * 0.065f + nrm * 0.001f, right, vec3(0, 0, 1), 0.03f, 0.005f, rgb(0.1f, 0.1f, 0.12f), mPaint);
+            std::string every = StrFormat("EVERY %d MIN", Max(1, (int)(R.headway / 60.f + 0.5f)));
+            strokeText(g, m, every.c_str(), row + right * 0.065f - vec3(0, 0, 0.04f) + nrm * 0.001f, right, vec3(0, 0, 1), 0.022f, 0.004f, rgb(0.3f, 0.3f, 0.32f), mPaint);
+        }
+    }
+    // yellow curb along the bus bay (no parking)
+    paintRect(g, b.flag + b.face * 0.3f - b.along * 6.5f, b.along, 8.f, 0.1f, b.z + 0.004f, rgb(0.95f, 0.8f, 0.1f), M(MAT_PAINT_YELLOW));
+}
+
+// ------------------------------------------------------------------------------------------------ ferry piers
+// Concrete T-head pier on pile bents: a ramp up from the shore, the walkway with railings and lamp posts, the T-head
+// with fenders, bollards and a boarding gate on the berth face, a waiting shelter with benches, ticket machine and
+// timetable, and a name totem at the pier root. Pieces are emitted by the cell that holds their center.
+const vec3 kFerryTeal(0.02f, 0.42f, 0.5f);
+
+struct PF {   // pier frame: along = distance from the base toward the head, lateral = right of `dir`
+    vec2 base, dir, rt;
+    float z;
+    vec3 P(float along, float lateral, float zz) const { return vec3(base + dir * along + rt * lateral, zz); }
+    vec2 Q(float along, float lateral) const { return base + dir * along + rt * lateral; }
+};
+
+void pbox(G& g, const PF& f, float along, float lateral, float z, vec3 he, u32 col, u32 mat, bool bottom = true) {
+    g.m->box(f.P(along, lateral, z) - g.org, vec3(f.dir, 0), vec3(f.rt, 0), vec3(0, 0, 1), he, col, mat, bottom);
+}
+void pcollide(G& g, const PF& f, float along, float lateral, float z, vec3 he) { collide(g, f.P(along, lateral, z), f.dir, he); }
+
+// Railing along a pier-frame segment (posts every ~2 m, top and mid rails)
+void pierRail(G& g, const PF& f, vec2 a, vec2 b, u32 col) {
+    vec3 A = f.P(a.x, a.y, f.z), B = f.P(b.x, b.y, f.z);
+    float L = length(B - A);
+    if (L < 0.1f) return;
+    int n = Max(1, (int)ceilf(L / 2.f));
+    for (int k = 0; k <= n; k++) {
+        vec3 p = lerp(A, B, (float)k / n);
+        g.m->box(p + vec3(0, 0, 0.53f) - g.org, vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.03f, 0.03f, 0.53f), col, M(MAT_METAL_BRUSHED), false);
+    }
+    beam(g, A + vec3(0, 0, 1.06f), B + vec3(0, 0, 1.06f), 0.06f, 0.05f, col, M(MAT_METAL_BRUSHED));
+    beam(g, A + vec3(0, 0, 0.55f), B + vec3(0, 0, 0.55f), 0.03f, 0.03f, col, M(MAT_METAL_BRUSHED));
+    vec2 ax = normalize(vec2(B.x - A.x, B.y - A.y));
+    vec3 c = (A + B) * 0.5f;
+    collide(g, vec3(c.x, c.y, f.z + 0.6f), ax, vec3(L * 0.5f, 0.06f, 0.6f));
+}
+
+void genFerryPier(const SiteElem& e, G& g) {
+    using namespace transit_ferry;
+    const TransitNet& N = *gTransit;
+    if (!N.ready || e.variant >= N.piers.size()) return;
+    const FerryPier& fp = N.piers[e.variant];
+    PF f;
+    f.base = fp.base;
+    f.dir = fp.dir;
+    f.rt = fp.right();
+    f.z = fp.deckZ;
+    MeshData& m = *g.m;
+    u32 cDeck = rgb(0.7f, 0.69f, 0.66f), cEdge = rgb(0.6f, 0.59f, 0.56f), cPile = rgb(0.55f, 0.54f, 0.5f), cRail = rgb(0.78f, 0.8f, 0.82f);
+    u32 mConc = M(MAT_CONCRETE);
+    const float W = fp.halfWidth, Lw = fp.length - kHeadDepth;
+    const float seabedMin = fp.waterZ - 6.f;
+    auto seabed = [&](vec2 p) { return Max(gMap->heightAt(p.x, p.y) - 0.5f, seabedMin); };
+    // ---- approach ramp from the shore (descends inland at 1:12 until it meets the ground)
+    {
+        float k = 0.f;
+        float z = f.z;
+        std::vector<float> ks, zs;
+        ks.push_back(0.f);
+        zs.push_back(z);
+        while (k < 30.f) {
+            float k2 = k + 2.f;
+            vec2 q = f.Q(-k2, 0.f);
+            float gz = gMap->heightAt(q.x, q.y);
+            float z2 = f.z - k2 / 12.f;
+            ks.push_back(k2);
+            zs.push_back(Max(z2, gz));
+            k = k2;
+            if (z2 <= gz + 0.05f) break;
+        }
+        for (size_t i = 0; i + 1 < ks.size(); i++) {
+            float a0 = -ks[i + 1], a1 = -ks[i];
+            vec2 mid = f.Q((a0 + a1) * 0.5f, 0.f);
+            if (!g.owns(mid)) continue;
+            float z0 = zs[i + 1], z1 = zs[i];
+            vec3 p0 = f.P(a0, -W, z0), p1 = f.P(a1, -W, z1), p2 = f.P(a1, W, z1), p3 = f.P(a0, W, z0);
+            m.quadFacing(p0 - g.org, p1 - g.org, p2 - g.org, p3 - g.org, vec2(0), vec2(2, 0), vec2(2, 2 * W), vec2(0, 2 * W), cDeck, mConc, vec3(0, 0, 1));
+            for (int sd = -1; sd <= 1; sd += 2) {
+                vec3 q0 = f.P(a0, sd * W, z0), q1 = f.P(a1, sd * W, z1);
+                vec2 g0 = f.Q(a0, sd * W), g1 = f.Q(a1, sd * W);
+                float b0 = gMap->heightAt(g0.x, g0.y) - 0.3f, b1 = gMap->heightAt(g1.x, g1.y) - 0.3f;
+                m.quadFacing(q0 - g.org, q1 - g.org, vec3(q1.x, q1.y, Min(b1, z1 - 0.3f)) - g.org, vec3(q0.x, q0.y, Min(b0, z0 - 0.3f)) - g.org, vec2(0), vec2(2, 0),
+                             vec2(2, 1), vec2(0, 1), cEdge, mConc, vec3(f.rt * (float)sd, 0));
+                if (g.detail) {
+                    PF fr = f;
+                    fr.z = z1;
+                    beam(g, f.P(a0, sd * (W - 0.1f), z0 + 1.02f), f.P(a1, sd * (W - 0.1f), z1 + 1.02f), 0.06f, 0.05f, cRail, M(MAT_METAL_BRUSHED));
+                    g.m->box(f.P(a1, sd * (W - 0.1f), z1 + 0.51f) - g.org, vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.03f, 0.03f, 0.51f), cRail,
+                             M(MAT_METAL_BRUSHED), false);
+                }
+            }
+            // walkable steps (4 per 2 m piece)
+            for (int q = 0; q < 4; q++) {
+                float t0 = q / 4.f, t1 = (q + 1) / 4.f;
+                float zz = Lerp(z0, z1, (t0 + t1) * 0.5f);
+                pcollide(g, f, Lerp(a0, a1, (t0 + t1) * 0.5f), 0.f, zz - 0.3f, vec3(0.26f, W, 0.3f));
+            }
+            for (int sd = -1; sd <= 1; sd += 2) pcollide(g, f, (a0 + a1) * 0.5f, sd * (W - 0.1f), (z0 + z1) * 0.5f + 0.6f, vec3(1.f, 0.06f, 0.6f));
+        }
+    }
+    // ---- walkway (4 m pieces)
+    for (float a0 = 0.f; a0 < Lw - 0.01f; a0 += 4.f) {
+        float a1 = Min(Lw, a0 + 4.f);
+        vec2 mid = f.Q((a0 + a1) * 0.5f, 0.f);
+        if (!g.owns(mid)) continue;
+        float am = (a0 + a1) * 0.5f, ah = (a1 - a0) * 0.5f;
+        pbox(g, f, am, 0.f, f.z - 0.2f, vec3(ah, W, 0.2f), cDeck, mConc);
+        pbox(g, f, am, 0.f, f.z - 0.55f, vec3(ah, W - 0.4f, 0.15f), cEdge, mConc);   // edge beam
+        pcollide(g, f, am, 0.f, f.z - 0.2f, vec3(ah + 0.02f, W, 0.2f));
+        if (g.detail) {
+            for (int sd = -1; sd <= 1; sd += 2) pierRail(g, f, vec2(a0, sd * (W - 0.08f)), vec2(a1, sd * (W - 0.08f)), cRail);
+            // expansion joint strip
+            pbox(g, f, a0 + 0.02f, 0.f, f.z + 0.003f, vec3(0.02f, W - 0.1f, 0.004f), rgb(0.25f), M(MAT_RUBBER), false);
+        }
+        // pile bent every 8 m
+        if (fmodf(a0, 8.f) < 0.5f) {
+            for (int sd = -1; sd <= 1; sd += 2) {
+                vec2 q = f.Q(am, sd * (W - 0.8f));
+                float zb = seabed(q);
+                cyl(g, vec3(q, zb), 0.32f, 0.32f, f.z - 0.4f - zb, g.detail ? 10 : 6, cPile, mConc, false);
+            }
+            pbox(g, f, am, 0.f, f.z - 0.75f, vec3(0.4f, W - 0.3f, 0.2f), cPile, mConc);   // pile cap
+        }
+        // lamp post every 16 m (alternating sides)
+        int li = (int)floorf(a0 / 16.f + 0.01f);
+        if (fmodf(a0, 16.f) < 0.5f && g.detail) {
+            float sd = (li & 1) ? 1.f : -1.f;
+            vec3 base = f.P(am, sd * (W - 0.25f), f.z);
+            cyl(g, base, 0.06f, 0.05f, 4.2f, 8, rgb(0.2f, 0.22f, 0.24f), M(MAT_METAL_PAINTED));
+            g.m->box(base + vec3(f.rt * (-sd * 0.35f), 4.15f) - g.org, vec3(f.rt, 0), vec3(f.dir, 0), vec3(0, 0, 1), vec3(0.4f, 0.12f, 0.06f), rgb(0.2f, 0.22f, 0.24f),
+                     M(MAT_METAL_PAINTED));
+            lamp(g, base + vec3(f.rt * (-sd * 0.55f), 4.08f), 0.18f, vec3(1.f, 0.9f, 0.75f), 0.8f, EA_NIGHT);
+            light(g, base + vec3(f.rt * (-sd * 0.55f), 4.f), vec3(1.f, 0.85f, 0.65f) * 900.f, 14.f, 0, vec3(0, 0, -1), 0.3f);
+        }
+    }
+    // ---- T-head
+    const float H = kHeadHalf, D = kHeadDepth;
+    for (float l0 = -H; l0 < H - 0.01f; l0 += 6.f) {
+        float l1 = Min(H, l0 + 6.f);
+        float lm = (l0 + l1) * 0.5f, lh = (l1 - l0) * 0.5f;
+        vec2 mid = f.Q(fp.length - D * 0.5f, lm);
+        if (!g.owns(mid)) continue;
+        pbox(g, f, fp.length - D * 0.5f, lm, f.z - 0.2f, vec3(D * 0.5f, lh, 0.2f), cDeck, mConc);
+        pbox(g, f, fp.length - D * 0.5f, lm, f.z - 0.6f, vec3(D * 0.5f - 0.3f, lh, 0.2f), cEdge, mConc);
+        pcollide(g, f, fp.length - D * 0.5f, lm, f.z - 0.2f, vec3(D * 0.5f, lh + 0.02f, 0.2f));
+        // piles: 3 rows under the head
+        for (int r = 0; r < 3; r++) {
+            vec2 q = f.Q(fp.length - 0.8f - r * (D - 1.6f) * 0.5f, lm);
+            float zb = seabed(q);
+            cyl(g, vec3(q, zb), 0.34f, 0.34f, f.z - 0.4f - zb, g.detail ? 10 : 6, cPile, mConc, false);
+        }
+        if (!g.detail) continue;
+        // back railing (landward face), except where the walkway joins
+        if (fabsf(lm) > W + 0.5f) pierRail(g, f, vec2(fp.length - D + 0.08f, l0), vec2(fp.length - D + 0.08f, l1), cRail);
+        else {
+            // the walkway joins here: nothing
+        }
+        // berth face: fenders every 3 m and a bollard every 6 m; railing except at the boarding gate
+        for (float t = l0 + 1.5f; t < l1; t += 3.f) {
+            vec3 fc = f.P(fp.length + 0.18f, t, f.z - 1.2f);
+            cyl(g, fc, 0.18f, 0.18f, 1.25f, 8, rgb(0.05f), M(MAT_RUBBER), true);
+        }
+        vec3 bol = f.P(fp.length - 0.45f, lm, f.z);
+        cyl(g, bol, 0.16f, 0.14f, 0.5f, 8, rgb(0.15f, 0.15f, 0.16f), M(MAT_METAL_PAINTED), true);
+        cyl(g, bol + vec3(0, 0, 0.5f), 0.22f, 0.22f, 0.07f, 8, rgb(0.15f, 0.15f, 0.16f), M(MAT_METAL_PAINTED), true);
+        pcollide(g, f, fp.length - 0.45f, lm, f.z + 0.3f, vec3(0.2f, 0.2f, 0.3f));
+        float g0 = -1.6f, g1 = 1.6f;   // gate opening
+        if (l1 <= g0 || l0 >= g1) pierRail(g, f, vec2(fp.length - 0.08f, l0), vec2(fp.length - 0.08f, l1), cRail);
+        else {
+            if (l0 < g0) pierRail(g, f, vec2(fp.length - 0.08f, l0), vec2(fp.length - 0.08f, g0), cRail);
+            if (l1 > g1) pierRail(g, f, vec2(fp.length - 0.08f, g1), vec2(fp.length - 0.08f, l1), cRail);
+        }
+        // side railings of the head
+        if (l0 <= -H + 0.01f) pierRail(g, f, vec2(fp.length - D, -H + 0.08f), vec2(fp.length, -H + 0.08f), cRail);
+        if (l1 >= H - 0.01f) pierRail(g, f, vec2(fp.length - D, H - 0.08f), vec2(fp.length, H - 0.08f), cRail);
+        // edge paint
+        paintRect(g, f.Q(fp.length - 0.3f, lm), f.rt, lh, 0.12f, f.z + 0.004f, rgb(0.95f, 0.8f, 0.1f), M(MAT_PAINT_YELLOW));
+    }
+    // ---- boarding gate, gangway plate, shelter and signage (owned by the head center cell)
+    if (g.owns(f.Q(fp.length - D * 0.5f, 0.f))) {
+        u32 cSteel = rgb(0.25f, 0.27f, 0.3f);
+        // gate posts and header sign
+        for (int sd = -1; sd <= 1; sd += 2) {
+            pbox(g, f, fp.length - 0.25f, sd * 1.7f, f.z + 1.3f, vec3(0.08f, 0.08f, 1.3f), cSteel, M(MAT_METAL_PAINTED));
+            pcollide(g, f, fp.length - 0.25f, sd * 1.7f, f.z + 1.3f, vec3(0.1f, 0.1f, 1.3f));
+        }
+        pbox(g, f, fp.length - 0.25f, 0.f, f.z + 2.75f, vec3(0.06f, 1.9f, 0.22f), rgbv(kFerryTeal), M(MAT_METAL_PAINTED));
+        if (g.detail) {
+            for (int fs = -1; fs <= 1; fs += 2) {
+                vec3 nrm(f.dir * (float)fs, 0.f);
+                vec3 right = normalize(cross(vec3(0, 0, 1), nrm));
+                const char* txt = "FERRY BOARDING";
+                float th = 0.16f, w = textAdvance(txt, th);
+                vec3 c = f.P(fp.length - 0.25f + fs * 0.065f, 0.f, f.z + 2.75f);
+                strokeText(g, m, txt, c - right * (w * 0.5f) - vec3(0, 0, th * 0.5f), right, vec3(0, 0, 1), th, th * 0.15f, rgb(1.f, 1.f, 1.f, 0.2f), emMat(EA_NIGHT));
+            }
+        }
+        // gangway plate bridging to the ferry door
+        pbox(g, f, fp.length + 0.35f, 0.f, f.z - 0.05f, vec3(0.45f, 1.2f, 0.05f), rgb(0.45f, 0.46f, 0.48f), M(MAT_METAL_BRUSHED));
+        pcollide(g, f, fp.length + 0.35f, 0.f, f.z - 0.1f, vec3(0.5f, 1.2f, 0.1f));
+        // waiting shelter on the head (left of the gate)
+        float sa = fp.length - D * 0.5f - 0.3f, sl = -9.5f;
+        for (int k = 0; k < 4; k++) {
+            float da = (k & 1) ? 1.6f : -1.6f, dl = (k & 2) ? 4.4f : -4.4f;
+            pbox(g, f, sa + da, sl + dl, f.z + 1.4f, vec3(0.07f, 0.07f, 1.4f), cSteel, M(MAT_METAL_PAINTED));
+            pcollide(g, f, sa + da, sl + dl, f.z + 1.4f, vec3(0.09f, 0.09f, 1.4f));
+        }
+        pbox(g, f, sa, sl, f.z + 2.85f, vec3(2.1f, 5.f, 0.08f), rgb(0.93f, 0.94f, 0.95f), M(MAT_METAL_PAINTED));
+        pbox(g, f, sa, sl, f.z + 3.02f, vec3(2.15f, 5.05f, 0.1f), rgbv(kFerryTeal), M(MAT_METAL_PAINTED));
+        if (g.detail) {
+            // back glass screen (landward), benches, soffit light
+            pbox(g, f, sa - 1.65f, sl, f.z + 1.2f, vec3(0.02f, 4.3f, 0.9f), rgb(0.6f, 0.75f, 0.8f), M(MAT_GLASS));
+            for (int k = -1; k <= 1; k += 2) {
+                pbox(g, f, sa - 0.9f, sl + k * 2.2f, f.z + 0.45f, vec3(0.25f, 1.6f, 0.04f), rgb(0.55f, 0.4f, 0.28f), M(MAT_WOOD));
+                pbox(g, f, sa - 1.12f, sl + k * 2.2f, f.z + 0.75f, vec3(0.03f, 1.6f, 0.25f), rgb(0.55f, 0.4f, 0.28f), M(MAT_WOOD));
+                for (int q = -1; q <= 1; q += 2) pbox(g, f, sa - 0.9f, sl + k * 2.2f + q * 1.4f, f.z + 0.22f, vec3(0.2f, 0.04f, 0.22f), cSteel, M(MAT_METAL_PAINTED));
+                pcollide(g, f, sa - 0.95f, sl + k * 2.2f, f.z + 0.35f, vec3(0.3f, 1.6f, 0.35f));
+            }
+            m.quadFacing(f.P(sa - 1.8f, sl - 4.6f, f.z + 2.76f) - g.org, f.P(sa + 1.8f, sl - 4.6f, f.z + 2.76f) - g.org, f.P(sa + 1.8f, sl + 4.6f, f.z + 2.76f) - g.org,
+                         f.P(sa - 1.8f, sl + 4.6f, f.z + 2.76f) - g.org, vec2(0), vec2(1, 0), vec2(1, 1), vec2(0, 1), rgb(1.f, 0.96f, 0.9f, 0.02f), emMat(), vec3(0, 0, -1));
+            light(g, f.P(sa, sl, f.z + 2.6f), vec3(1.f, 0.95f, 0.85f) * 160.f, 9.f, 0);
+            // name on the shelter fascia (both long faces)
+            std::string nm = upper(fp.name) + " FERRY";
+            for (int fs = -1; fs <= 1; fs += 2) {
+                vec3 nrm(f.dir * (float)fs, 0.f);
+                vec3 right = normalize(cross(vec3(0, 0, 1), nrm));
+                float th = 0.13f, w = textAdvance(nm.c_str(), th);
+                vec3 c = f.P(sa + fs * 2.16f, sl, f.z + 3.02f);
+                strokeText(g, m, nm.c_str(), c - right * (w * 0.5f) - vec3(0, 0, th * 0.5f), right, vec3(0, 0, 1), th, th * 0.15f, rgb(1.f, 1.f, 1.f, 0.2f), emMat(EA_NIGHT));
+            }
+            // ticket machine and timetable board by the gate
+            pbox(g, f, fp.length - 1.2f, 3.2f, f.z + 0.8f, vec3(0.3f, 0.35f, 0.8f), rgbv(kFerryTeal), M(MAT_METAL_PAINTED));
+            pbox(g, f, fp.length - 1.2f - 0.31f, 3.2f, f.z + 1.15f, vec3(0.01f, 0.24f, 0.18f), rgb(0.3f, 0.7f, 0.85f, 0.35f), emMat());
+            pcollide(g, f, fp.length - 1.2f, 3.2f, f.z + 0.8f, vec3(0.32f, 0.37f, 0.8f));
+            {
+                vec3 nrm(-f.dir, 0.f);
+                vec3 right = normalize(cross(vec3(0, 0, 1), nrm));
+                vec3 c = f.P(fp.length - 1.2f, -3.4f, f.z + 1.5f);
+                pbox(g, f, fp.length - 1.2f, -3.4f, f.z + 0.75f, vec3(0.05f, 0.05f, 0.75f), cSteel, M(MAT_METAL_PAINTED));
+                pbox(g, f, fp.length - 1.2f, -3.4f, f.z + 1.5f, vec3(0.04f, 0.55f, 0.4f), cSteel, M(MAT_METAL_PAINTED));
+                vec3 face = c + nrm * 0.045f;
+                m.quadFacing(face - right * 0.5f - vec3(0, 0, 0.35f) - g.org, face + right * 0.5f - vec3(0, 0, 0.35f) - g.org, face + right * 0.5f + vec3(0, 0, 0.35f) - g.org,
+                             face - right * 0.5f + vec3(0, 0, 0.35f) - g.org, vec2(0), vec2(1, 0), vec2(1, 1), vec2(0, 1), rgb(0.95f, 0.96f, 0.93f, 0.06f), emMat(), nrm);
+                strokeText(g, m, "BAY FERRY", face - right * 0.44f + vec3(0, 0, 0.22f) + nrm * 0.002f, right, vec3(0, 0, 1), 0.07f, 0.011f, rgbv(kFerryTeal), M(MAT_METAL_PAINTED));
+                int k = 0;
+                for (const FerryPier& o : N.piers) {
+                    if (&o == &fp) continue;
+                    std::string ln = "TO " + upper(o.name);
+                    strokeText(g, m, ln.c_str(), face - right * 0.44f + vec3(0, 0, 0.08f - k * 0.1f) + nrm * 0.002f, right, vec3(0, 0, 1), 0.05f, 0.008f, rgb(0.1f, 0.1f, 0.12f),
+                               M(MAT_METAL_PAINTED));
+                    k++;
+                }
+                strokeText(g, m, "EVERY 6 MIN", face - right * 0.44f - vec3(0, 0, 0.26f) + nrm * 0.002f, right, vec3(0, 0, 1), 0.045f, 0.007f, rgb(0.3f, 0.3f, 0.32f), M(MAT_METAL_PAINTED));
+            }
+        }
+    }
+    // ---- name totem at the pier root
+    vec2 tq = f.Q(-3.f, W + 1.4f);
+    if (g.owns(tq)) {
+        float gz = gMap->heightAt(tq.x, tq.y);
+        vec3 tb(tq, gz);
+        g.m->box(tb + vec3(0, 0, 1.6f) - g.org, vec3(f.dir, 0), vec3(f.rt, 0), vec3(0, 0, 1), vec3(0.5f, 0.12f, 1.6f), rgbv(kFerryTeal), M(MAT_METAL_PAINTED), true);
+        collide(g, tb + vec3(0, 0, 1.6f), f.dir, vec3(0.5f, 0.14f, 1.6f));
+        if (g.detail) {
+            for (int fs = -1; fs <= 1; fs += 2) {
+                vec3 nrm(f.rt * (float)fs, 0.f);
+                vec3 right = normalize(cross(vec3(0, 0, 1), nrm));
+                vec3 c = tb + nrm * 0.125f;
+                strokeText(g, m, "FERRY", c - right * (textAdvance("FERRY", 0.16f) * 0.5f) + vec3(0, 0, 2.7f), right, vec3(0, 0, 1), 0.16f, 0.026f, rgb(1.f, 1.f, 1.f, 0.2f),
+                           emMat(EA_NIGHT));
+                std::string nm = upper(fp.name);
+                float th = Min(0.12f, 0.9f / Max(textAdvance(nm.c_str(), 1.f), 0.1f));
+                strokeText(g, m, nm.c_str(), c - right * (textAdvance(nm.c_str(), th) * 0.5f) + vec3(0, 0, 2.35f), right, vec3(0, 0, 1), th, th * 0.15f, rgb(1.f, 1.f, 1.f, 0.2f),
+                           emMat(EA_NIGHT));
+                strokeText(g, m, "PORTO SOL TRANSIT", c - right * (textAdvance("PORTO SOL TRANSIT", 0.05f) * 0.5f) + vec3(0, 0, 0.5f), right, vec3(0, 0, 1), 0.05f, 0.008f,
+                           rgb(0.9f), M(MAT_METAL_PAINTED));
+            }
+            lamp(g, tb + vec3(0, 0, 3.25f), 0.25f, vec3(0.3f, 0.95f, 1.f), 0.6f, EA_NIGHT);
+        }
+    }
+}
+
 }  // namespace transit_mesh
 }  // namespace World

@@ -53,6 +53,7 @@ struct State {
     std::vector<Loaded*> slots;   // by interior def index
     int playerInterior = -1, playerRoom = -1;
     float inside = 0.f;
+    int forceDef = -1;            // streamed in regardless of distance (elevator destination)
     bool testInit = false;
     int testDef = -1;
     float testTime = 0.f;
@@ -184,7 +185,7 @@ void stream(Render::Renderer& R, GameWorld* g, dvec3 cam) {
         float cd = cellDistance(d.center().xy(), cam);
         Loaded*& L = gIS.slots[i];
         if (!L) {
-            if (cd > kLoadRange || jobsStarted >= 2) continue;
+            if ((cd > kLoadRange && (int)i != gIS.forceDef) || jobsStarted >= 2) continue;
             L = new Loaded();
             L->def = (int)i;
             L->mesh = new World::InteriorMesh();
@@ -217,7 +218,7 @@ void stream(Render::Renderer& R, GameWorld* g, dvec3 cam) {
             L->state = 3;
         }
         if (L->state == 3) L->lastSeen = now;
-        if (L->state == 3 && cd > kUnloadRange) {
+        if (L->state == 3 && cd > kUnloadRange && (int)i != gIS.forceDef) {
             if (g) despawnNpcs(*g, L);
             removeCollision(L);
             freeLoaded(L);
@@ -570,6 +571,94 @@ void submitAll(Render::Renderer& R, dvec3 cam, float hour, float gameSeconds) {
 }
 
 // --interiortest <name|index>: walk the player from the street through the door into the interior, looking around
+// ---- express elevators between linked interiors (Solaris One lobby <-> penthouse): stand in the cab and press E;
+// the screen fades while the destination streams in, then the player steps out of the other cab
+struct Ride {
+    int phase = 0;      // 0 idle, 1 fading out / loading, 2 arrived
+    int to = -1;
+    u8 toMarker = 0;
+    float t = 0.f, hint = 0.f;
+};
+Ride gRide;
+
+bool rideElevator(GameWorld& g, int from, bool up) {
+    if (!World::gInteriors || from < 0 || from >= (int)World::gInteriors->defs.size() || gRide.phase != 0) return false;
+    const InteriorDef& d = World::gInteriors->defs[from];
+    if (d.link < 0) return false;
+    gRide.phase = 1;
+    gRide.to = d.link;
+    gRide.toMarker = up ? World::IM_ELEVATOR_TOP : World::IM_ELEVATOR;
+    gRide.t = 0.f;
+    gIS.forceDef = d.link;
+    g.fadeOut(1.8f);
+#ifdef HAVE_AUDIO
+    Audio::play2D(Audio::SFX_BELL, 0.25f);
+#endif
+    return true;
+}
+
+void updateElevators(GameWorld& g, float dt) {
+    Ped* pl = g.playerPed();
+    if (!pl || !World::gInteriors) return;
+    const auto& defs = World::gInteriors->defs;
+    gRide.hint = Max(0.f, gRide.hint - dt);
+    if (gRide.phase == 0) {
+        int di = gIS.playerInterior;
+        if (di < 0 || pl->state != PS_ONFOOT || defs[di].link < 0) return;
+        const InteriorDef& d = defs[di];
+        for (const World::InteriorMarker& mk : d.markers) {
+            if (mk.kind != World::IM_ELEVATOR && mk.kind != World::IM_ELEVATOR_TOP) continue;
+            vec3 p = d.toWorld(mk.pos);
+            if (length(pl->pos.toVec3().xy() - p.xy()) > 0.95f || fabsf((float)pl->pos.z - p.z) > 1.2f) continue;
+            bool up = mk.kind == World::IM_ELEVATOR;
+            if (gRide.hint <= 0.f) {
+                g.help(up ? "Press E to ride the express elevator to the penthouse." : "Press E to ride the elevator down to the lobby.", 3.f);
+                gRide.hint = 3.5f;
+            }
+            if (g.ctl.enter.pressed) rideElevator(g, di, up);
+            break;
+        }
+        return;
+    }
+    gRide.t += dt;
+    pl->vel = vec3(0.f);
+    if (gRide.phase == 1) {
+        if (!g.fadedOut()) return;
+        Loaded* L = gRide.to >= 0 && gRide.to < (int)gIS.slots.size() ? gIS.slots[gRide.to] : nullptr;
+        const InteriorDef& d = defs[gRide.to];
+        const World::InteriorMarker* mk = d.marker(gRide.toMarker);
+        if (!mk || gRide.t > 25.f) {
+            // nothing to arrive at: stay put
+            gRide = Ride();
+            gIS.forceDef = -1;
+            g.fadeIn(2.f);
+            return;
+        }
+        if (!L || L->state != 3) return;   // still streaming in behind the black screen
+        vec3 p = d.toWorld(mk->pos);
+        float yaw = d.yawToWorld(mk->yaw);
+        pl->pos = dvec3(p.x, p.y, p.z + 0.02f);
+        pl->yaw = yaw;
+        pl->vel = vec3(0.f);
+        g.rig.yaw = yaw;
+        g.rig.pitch = -0.1f;
+        g.rig.cut = true;
+        updateCollision(L, d, 0.f);   // floor and walls in the physics world before the next step
+        LOG("Elevator: '%s' -> '%s'", defs[d.link >= 0 ? d.link : gRide.to].name.c_str(), d.name.c_str());
+        gRide.phase = 2;
+        gRide.t = 0.f;
+        return;
+    }
+    if (gRide.t > 0.6f) {
+        g.fadeIn(1.6f);
+#ifdef HAVE_AUDIO
+        Audio::play2D(Audio::SFX_BELL, 0.3f);
+#endif
+        gRide = Ride();
+        gIS.forceDef = -1;
+    }
+}
+
 void testDrive(GameWorld& g, float dt) {
     const char* arg = Platform::argValue("interiortest");
     if (!arg || !World::gInteriors || World::gInteriors->defs.empty()) return;
@@ -593,6 +682,7 @@ void testDrive(GameWorld& g, float dt) {
         g.rig.yaw = pl->yaw;
         g.rig.cut = true;
         g.populationOff = true;
+        setFlag(g, EX_INTRO_DONE, 1);   // no prologue phone call during the walk-through
         gIS.testTime = 0.f;
         LOG("interiortest: '%s' (kind %d), player at %.1f %.1f %.1f", d.name.c_str(), (int)d.kind, start.x, start.y, start.z);
     }
@@ -617,6 +707,125 @@ void testDrive(GameWorld& g, float dt) {
     }
 }
 
+// --elevatortest: walk into the Solaris One express elevator, ride to the penthouse and step out (screenshots
+// elev_NN_<step>.bmp into --shotdir)
+struct ElevTest {
+    bool init = false;
+    int lobby = -1;
+    float t = 0.f, st = 0.f;
+    int stage = 0, shot = 0;
+    u32 taken = 0;
+};
+ElevTest gET;
+
+void elevatorTest(GameWorld& g, float dt) {
+    if (!Platform::hasArg("elevatortest") || !World::gInteriors) return;
+    Ped* pl = g.playerPed();
+    if (!pl) return;
+    const auto& defs = World::gInteriors->defs;
+    Controls& c = g.ctl;
+    auto shot = [&](int bit, const char* name) {
+        if (gET.taken & (1u << bit)) return;
+        gET.taken |= 1u << bit;
+        const char* dir = Platform::argValue("shotdir");
+        g.requestScreenshot = std::string(dir ? dir : "Z:\\tmp\\") + StrFormat("elev_%02d_%s.bmp", gET.shot++, name);
+    };
+    auto next = [&](int s) {
+        gET.stage = s;
+        gET.st = 0.f;
+    };
+    if (!gET.init) {
+        gET.init = true;
+        gET.lobby = World::gInteriors->byKind(World::IK_TOWER_LOBBY, 0);
+        const World::InteriorMarker* mk = gET.lobby >= 0 ? defs[gET.lobby].marker(World::IM_ELEVATOR) : nullptr;
+        if (!mk) {
+            LOG("elevatortest: no tower lobby");
+            gET.lobby = -1;
+            return;
+        }
+        const InteriorDef& d = defs[gET.lobby];
+        vec3 p = d.toWorld(mk->pos + vec3(0.f, -4.2f, 0.f));
+        float yaw = d.yawToWorld(0.f);
+        pl->pos = dvec3(p.x, p.y, p.z + 0.02f);
+        pl->yaw = yaw;
+        pl->vel = vec3(0.f);
+        g.rig.yaw = yaw;
+        g.rig.pitch = -0.08f;
+        g.rig.cut = true;
+        g.populationOff = true;
+        setFlag(g, EX_INTRO_DONE, 1);
+        LOG("elevatortest: start in '%s' at %.1f %.1f %.1f", d.name.c_str(), p.x, p.y, p.z);
+    }
+    if (gET.lobby < 0) return;
+    gET.t += dt;
+    gET.st += dt;
+    const InteriorDef& lob = defs[gET.lobby];
+    vec3 cabL = lob.toWorld(lob.marker(World::IM_ELEVATOR)->pos);
+    bool faded = g.fadeAlpha > 0.02f;
+    switch (gET.stage) {
+        case 0:   // the gold doors at the end of the elevator lobby
+            if (gET.t > 3.f) {
+                shot(0, "lobby_doors");
+                next(1);
+            }
+            break;
+        case 1: {  // walk in (the doors open on approach)
+            vec2 to = cabL.xy() - pl->pos.toVec3().xy();
+            if (length(to) < 0.45f || gET.st > 7.f) {
+                if (length(to) >= 0.45f) pl->pos = dvec3(cabL.x, cabL.y, cabL.z + 0.02f);
+                next(2);
+                break;
+            }
+            float dy = wrapAngle(atan2f(-to.x, to.y) - g.rig.cam.yaw);
+            c.look = vec2(-Clamp(dy, -0.08f, 0.08f), 0.f);
+            c.move = vec2(0.f, 0.55f);
+            break;
+        }
+        case 2:   // inside the cab: press E
+            if (gET.st > 0.8f && gRide.phase == 0 && gIS.playerInterior == gET.lobby) c.enter.pressed = true;
+            if (gRide.phase != 0) next(3);
+            else if (gET.st > 4.f) {
+                LOG("elevatortest: no ride (interior %d, dist %.2f)", gIS.playerInterior, length(cabL.xy() - pl->pos.toVec3().xy()));
+                next(9);
+            }
+            break;
+        case 3:   // arrival
+            if (gRide.phase == 0 && !faded && gET.st > 1.f) {
+                int in = gIS.playerInterior;
+                LOG("elevatortest: arrived in '%s' at %.1f %.1f %.1f", in >= 0 ? defs[in].name.c_str() : "(outside)", pl->pos.x, pl->pos.y, pl->pos.z);
+                shot(1, "penthouse_arrival");
+                next(4);
+            } else if (gET.st > 30.f) {
+                LOG("elevatortest: ride did not finish (phase %d)", gRide.phase);
+                next(9);
+            }
+            break;
+        case 4:   // step out into the hall
+            if (gET.st < 2.2f) c.move = vec2(0.f, 0.5f);
+            else {
+                shot(2, "penthouse_hall");
+                next(5);
+            }
+            break;
+        case 5:   // look around toward the south glass
+            if (gET.st < 2.5f) c.look = vec2(0.035f, 0.f);
+            else {
+                shot(3, "penthouse_view");
+                next(6);
+            }
+            break;
+        case 6:
+            if (gET.st < 2.5f) c.look = vec2(0.035f, 0.f);
+            else {
+                shot(4, "penthouse_desk");
+                LOG("elevatortest: done, interior %d room %d", gIS.playerInterior, gIS.playerRoom);
+                next(9);
+            }
+            break;
+        default: break;
+    }
+}
+
 }  // namespace interiors_game
 
 namespace holdups {   // holdups.cpp (store robberies on the shop clerks spawned here)
@@ -633,6 +842,7 @@ using namespace interiors_game;
 // Before the player update: the --interiortest walk-through drives the controls
 void preUpdate(GameWorld& g, float dt) {
     testDrive(g, dt);
+    elevatorTest(g, dt);
     holdups::testDrive(g, dt);
 }
 
@@ -649,7 +859,7 @@ void update(GameWorld& g, float dt) {
         Loaded* L = gIS.slots[i];
         if (!L || L->state != 3) continue;
         const InteriorDef& d = defs[i];
-        float pd = length(pp.xy() - d.center().xy());
+        float pd = length(pp - d.center());   // 3D: the penthouse stays asleep while the player is down in the lobby
         updateCollision(L, d, pd);
         if (pd < kCollisionRange) updateDoors(g, L, d, dt);
         updateNpcs(g, L, d, pd, hour);
@@ -659,6 +869,7 @@ void update(GameWorld& g, float dt) {
     gIS.playerInterior = pl && pl->state != PS_INVEHICLE ? World::gInteriors->at(pp + vec3(0, 0, 0.9f), &room) : -1;
     gIS.playerRoom = room;
     gIS.inside = approach(gIS.inside, gIS.playerInterior >= 0 ? 1.f : 0.f, dt * 2.5f);
+    updateElevators(g, dt);
     holdups::update(g, dt);
 }
 

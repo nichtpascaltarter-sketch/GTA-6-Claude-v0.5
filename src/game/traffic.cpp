@@ -224,6 +224,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                 va.errand = 2;
                 va.errandTimer = 0.f;
                 v.parked = true;
+                v.indicator = 2;   // hazard lights while double-parked
                 removePedFromVehicle(drv, true);
                 PedAI& da = pedAI(drv);
                 da.activity = ACT_ERRAND;
@@ -433,6 +434,22 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
         va.managed = false;
         v.ctl = Vehicles::VehicleControls();
         return;
+    }
+    // ---- hung up on a ledge or kerb (a wheel pair off the ground, nose tilted) and going nowhere although it wants to:
+    // back onto the lane a few meters on, out of view, or after a long while even in view (better than a jam)
+    bool hung = !d->dummy && d->vTarget > 1.f && v.sim.speed() < 0.5f && (v.sim.up().z < 0.94f || v.sim.wheelsOnGround < 3) && d->path >= 0;
+    va.hungTime = hung ? va.hungTime + dt : 0.f;
+    if (va.hungTime > 5.f && (!inView || camD > 70.f || va.hungTime > 20.f)) {
+        float u = Min(d->u + 4.f, laneGraph.pathLength(d->path) - 0.5f);
+        vec3 p = laneGraph.pathPos(d->path, u);
+        vec2 t = laneGraph.pathTangent(d->path, u);
+        Vehicles::resetVehicle(v.sim, dvec3(p.x, p.y, p.z + 0.35f), AI::dirYaw(t));
+        v.sim.body.vel = vec3(t * 2.f, 0.f);
+        d->u = u;
+        d->stuckTime = 0.f;
+        d->recoverTimer = 0.f;
+        va.hungTime = 0.f;
+        ai.stats.unhung++;
     }
     // ---- flipped or hopelessly stuck
     if (d->flipTime > 3.f || d->lostTime > 6.f) {

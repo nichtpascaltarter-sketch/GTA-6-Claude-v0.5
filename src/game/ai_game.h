@@ -38,7 +38,7 @@ enum BarkKind : int {
     BK_GANG_ATTACK, BK_GANG_TAUNT, BK_COP_FREEZE, BK_COP_GROUND, BK_COP_SPOTTED, BK_COP_LOST, BK_COP_CHATTER,
     BK_COP_ENGAGE, BK_COP_COVER, BK_COP_ARREST, BK_COP_DOWN, BK_MUGGER, BK_VICTIM, BK_ARGUE, BK_RACE, BK_MEDIC,
     BK_BREAKDOWN, BK_DIVE, BK_GUN_SEEN, BK_COP_SEARCH, BK_COP_BACKUP, BK_WITNESS_STOP, BK_JOG, BK_PHONE_CHAT, BK_BOUNCER, BK_ROAD_RAGE,
-    BK_COP_MEGAPHONE, BK_NICE_CAR,
+    BK_COP_MEGAPHONE, BK_NICE_CAR, BK_TICKET, BK_TICKETED,
     BK_COUNT
 };
 
@@ -129,6 +129,7 @@ struct VehAI {
     u8 pursuitMove = 0;        // police: 0 chase, 1 PIT run, 2 boxing slot (counted on entry)
     float megaphoneTimer = 0.f;   // police: next "pull over" order over the car loudspeaker
     float impactCd = 0.f;         // telemetry: one hard impact counted per crash
+    float hungTime = 0.f;         // hung up on a ledge / kerb: wheels off the ground, going nowhere
     u8 errand = 0;                // delivery stop: 1 pulling over, 2 driver out at a door
     float errandTimer = 0.f;
     vec3 errandDoor;
@@ -185,6 +186,7 @@ struct AIFrameStats {
     int panicSpread = 0, filming = 0, pitTries = 0, boxing = 0, roadblocks = 0, spikeHits = 0, tackles = 0, heliUnits = 0,
         unitsSent = 0, roadRage = 0, events = 0, arrests = 0;
     int hardImpacts = 0, impactsWithPlayer = 0;   // AI-driven cars: impulses > 3000 N s (sampled per frame)
+    int unhung = 0;                               // cars lifted off a ledge back onto their lane
 };
 
 struct AIState {

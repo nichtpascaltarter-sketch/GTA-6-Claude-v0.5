@@ -27,7 +27,7 @@ enum GroupType : u8 {
     GT_GULLS = 0, GT_PELICANS, GT_PIGEONS, GT_WADERS, GT_VULTURES, GT_PARROTS,
     GT_GATOR, GT_IGUANA, GT_DOLPHINS, GT_MANATEE, GT_TURTLE, GT_FISH,
     GT_DOG_LEASH, GT_DOG_STRAY, GT_CAT, GT_RACCOON, GT_DEER, GT_CATTLE, GT_HORSES,
-    GT_SHOREBIRDS, GT_GRACKLES, GT_FRIGATES, GT_CORMORANTS, GT_CEGRETS,
+    GT_SHOREBIRDS, GT_GRACKLES, GT_FRIGATES, GT_CORMORANTS, GT_CEGRETS, GT_SQUIRRELS,
     GT_COUNT
 };
 
@@ -177,6 +177,10 @@ struct WildState {
     bool spawning = true;
     // test automation (--wildlifetest)
     int testScene = -1, testPhase = 0, testFrame = 0;
+    float lastUpdateMs = 0.f, lastRenderMs = 0.f;          // this frame's cost (the perf scene averages them)
+    double perfUpd = 0.0, perfRen = 0.0;
+    float perfUpdMax = 0.f, perfRenMax = 0.f;
+    int perfFrames = 0;
 };
 WildState gW;
 
@@ -1011,7 +1015,7 @@ void flockBirdStep(GameWorld& g, int gi, int ai, float dt, const FlockCtx& fc) {
                     } else {
                         startTakeoff(a, frand() * 0.2f);
                         if (G.sp == SP_GULL && frand() < 0.4f) sfx(Audio::SFX_SEAGULL, a.pos, 0.9f);
-                        if (G.sp == SP_GRACKLE && frand() < 0.3f) sfx(Audio::SFX_PARROT_SQUAWK, a.pos, 0.45f, 1.4f);
+                        if (G.sp == SP_GRACKLE && frand() < 0.3f) sfx(Audio::SFX_GRACKLE_CALL, a.pos, 0.6f);
                         if (G.sp == SP_PELICAN) sfx(Audio::SFX_WING_FLAP, a.pos, 0.8f, 0.7f);
                     }
                     return;
@@ -1306,7 +1310,7 @@ void updateFlockBirds(GameWorld& g, int gi, float dt, const FlockCfg& cfg) {
         if (a.used && a.state != ST_DEAD && a.state != ST_FALL && length2(a.pos - gW.cam) < 140.f * 140.f) {
             if (G.sp == SP_GULL) sfx(Audio::SFX_SEAGULL, a.pos, 0.75f);
             else if (G.sp == SP_PIGEON && (a.state == ST_IDLE || a.state == ST_WALK)) sfx(Audio::SFX_PIGEON_COO, a.pos, 0.6f);
-            else if (G.sp == SP_GRACKLE && frand() < 0.6f) sfx(Audio::SFX_PARROT_SQUAWK, a.pos, 0.4f, frange(1.3f, 1.6f));   // creaky, rattling calls
+            else if (G.sp == SP_GRACKLE && frand() < 0.6f) sfx(Audio::SFX_GRACKLE_CALL, a.pos, 0.55f, frange(0.9f, 1.1f));
         }
     }
 }
@@ -1875,7 +1879,7 @@ void updateShorebirds(GameWorld& g, int gi, float dt) {
             }
         }
         sfx(Audio::SFX_WING_FLAP, G.members.empty() ? G.anchor : gW.animals[G.members[0]].pos, 0.6f, 1.6f);
-        if (frand() < 0.7f) sfx(Audio::SFX_PARROT_SQUAWK, G.members.empty() ? G.anchor : gW.animals[G.members[0]].pos, 0.25f, 2.1f);   // soft twick calls
+        if (frand() < 0.8f) sfx(Audio::SFX_SHOREBIRD_PEEP, G.members.empty() ? G.anchor : gW.animals[G.members[0]].pos, 0.6f);
     } else if (G.mode == 1 && airborne == 0 && G.modeT > 1.f) {
         G.mode = 0;
         G.timer = 0.f;
@@ -2933,7 +2937,9 @@ const QuadSpeeds& quadSpeeds(int sp) {
     static const QuadSpeeds kDeer = {1.1f, 3.f, 12.f, 0.35f, 65.f, 38.f};
     static const QuadSpeeds kCow = {1.f, 2.3f, 5.5f, 0.6f, 25.f, 12.f};
     static const QuadSpeeds kHorse = {1.5f, 4.f, 12.f, 0.55f, 35.f, 16.f};
+    static const QuadSpeeds kSquirrel = {0.5f, 1.3f, 4.5f, 0.05f, 7.f, 4.f};
     switch (sp) {
+        case SP_SQUIRREL: return kSquirrel;
         case SP_CAT: return kCat;
         case SP_RACCOON: return kRac;
         case SP_DEER: return kDeer;
@@ -3417,6 +3423,169 @@ void updateCritters(GameWorld& g, int gi, float dt) {
 }
 
 // Grazing herds: deer in the Cypress Ridge woods, cattle and horses on the farmland pastures.
+// Grey squirrels: forage in quick bounds around their tree, sit up to nibble, freeze and flick the tail at anything that
+// comes close, bolt up the trunk (spiralling round to the far side) when it comes closer still, scold from up there and
+// come back down head first once it is gone. On the trunk the model's ground plane is the bark: the body pitches 90
+// degrees and the ordinary gait runs the legs along it.
+// Group: target = trunk base (x, y, ground z), radius = trunk radius, height = how high they climb.
+// Per squirrel: aux2 = 0 ground, 1 climbing up, 2 clinging, 3 climbing down (head first); aux = height on the trunk;
+// goal.z = angle around the trunk.
+void updateSquirrels(GameWorld& g, int gi, float dt) {
+    Group& G = gW.groups[gi];
+    const QuadSpeeds& qs = quadSpeeds(SP_SQUIRREL);
+    vec2 trunk = G.target.xy();
+    for (int ai : G.members) {
+        Animal& a = gW.animals[ai];
+        if (!a.used) continue;
+        a.life += dt;
+        a.t += dt;
+        a.qa.t += dt;
+        if (a.state == ST_FALL || a.state == ST_DEAD) {
+            if (a.aux2 > 0.f) {   // knocked off the trunk
+                a.aux2 = 0.f;
+                a.pitch = 0.f;
+            }
+            fallStep(g, a, dt);
+            continue;
+        }
+        const ModelData& md = modelOf(a);
+        vec3 from;
+        bool gun = false;
+        float sc = scareLevel(a.pos, 0.75f, &from, &gun);
+        float threatAng = atan2f(from.y - trunk.y, from.x - trunk.x);
+        a.qa.alert = Lerp(a.qa.alert, sc < 1.8f ? 1.f : 0.f, expDecay(5.f, dt));
+        if (a.aux2 < 0.5f) {   // ---- on the ground
+            a.pitch = Lerp(a.pitch, 0.f, expDecay(8.f, dt));
+            if (sc < 1.f) {   // bolt for the tree
+                vec2 out = a.pos.xy() - trunk;
+                out = length2(out) > 1e-4f ? normalize(out) : dirOf(a.yaw);
+                vec2 base = trunk + out * (G.radius + 0.06f);
+                vec2 d = base - a.pos.xy();
+                float dist = length(d);
+                a.state = ST_FLEE;
+                a.qa.rear = Max(0.f, a.qa.rear - dt * 8.f);
+                a.qa.tailWag = 0.f;
+                quadMove(g, a, dist > 0.01f ? d / dist * qs.run : vec2(0.f), dt, 30.f, 18.f, 0);
+                if (dist < 0.3f) {
+                    a.aux2 = 1.f;
+                    a.aux = 0.f;
+                    a.goal.z = atan2f(out.y, out.x);
+                    a.timer = frange(5.f, 12.f);
+                    if (length2(a.pos - gW.cam) < 40.f * 40.f) sfx(Audio::SFX_RACCOON_CHITTER, a.pos, 0.35f, 1.6f);
+                }
+                continue;
+            }
+            if (sc < 1.8f) {   // freeze: sit up, watch, flick the tail
+                a.state = ST_ALERT;
+                quadIdle(a, dt);
+                a.qa.rear = Min(1.f, a.qa.rear + dt * 6.f);
+                a.qa.tailWag = 1.f;
+                quadLookAt(a, from, dt);
+                continue;
+            }
+            a.qa.tailWag = Max(0.f, a.qa.tailWag - dt * 2.f);
+            a.timer -= dt;
+            if (a.state == ST_WALK) {   // a quick bound to the next spot
+                vec2 d = a.goal.xy() - a.pos.xy();
+                float dist = length(d);
+                a.qa.rear = Max(0.f, a.qa.rear - dt * 8.f);
+                quadMove(g, a, dist > 0.1f ? d / dist * Min(qs.trot * 1.2f, dist * 3.f) : vec2(0.f), dt, 20.f, 14.f, 0);
+                if (dist < 0.12f || a.timer <= 0.f) {
+                    a.state = ST_FEED;
+                    a.timer = frange(1.f, 4.f);
+                    a.speedWant = frand() < 0.55f ? 1.f : 0.f;   // sit up and nibble, or dig
+                }
+            } else {   // feeding: nibbling upright or nosing through the leaves
+                a.state = ST_FEED;
+                quadIdle(a, dt);
+                bool nibble = a.speedWant > 0.5f;
+                a.qa.rear = nibble ? Min(1.f, a.qa.rear + dt * 5.f) : Max(0.f, a.qa.rear - dt * 5.f);
+                a.qa.headDown = nibble ? 0.f : Lerp(a.qa.headDown, 1.f, expDecay(6.f, dt));
+                a.qa.mouth = nibble ? 0.4f * (sinf(a.life * 18.f) > 0.3f ? 1.f : 0.f) : 0.f;
+                if (a.timer <= 0.f) {
+                    a.state = ST_WALK;
+                    a.timer = 2.f;
+                    float ang = frand() * kTwoPi, r = frange(1.f, 7.f);
+                    vec2 p = trunk + vec2(cosf(ang), sinf(ang)) * r;
+                    if (!onRoadOrBuilding(g, p, 1.f, 0.5f)) a.goal = vec3(p, a.pos.z);
+                    else a.goal = a.pos;
+                    a.qa.headDown = 0.f;
+                }
+            }
+            continue;
+        }
+        // ---- on the trunk
+        a.qa.rear = 0.f;
+        a.qa.headDown = 0.f;
+        if (sc < 1.f && a.aux2 > 2.5f) a.aux2 = 1.f;   // coming down, but here it comes again: back up
+        float climbSpeed = 0.f;
+        if (a.aux2 < 1.5f) {   // climbing, spiralling round to the side away from the threat
+            climbSpeed = 1.8f;
+            a.aux += climbSpeed * dt;
+            float away = threatAng + kPi;
+            a.goal.z += Clamp(wrapA(away - a.goal.z), -1.f, 1.f) * dt * 1.2f;
+            if (a.aux >= G.height * (0.6f + 0.4f * hashToFloat(a.uid))) {
+                a.aux2 = 2.f;
+                a.timer = frange(6.f, 14.f);
+            }
+        } else if (a.aux2 < 2.5f) {   // clinging: scold, flick, wait until the coast is clear
+            a.timer -= dt;
+            if (sc < 2.5f) a.timer = Max(a.timer, 3.f);
+            a.qa.tailWag = sc < 2.5f ? 1.f : 0.3f;
+            if (sc < 2.5f && frand() < dt * 0.4f && length2(a.pos - gW.cam) < 40.f * 40.f) sfx(Audio::SFX_RACCOON_CHITTER, a.pos, 0.3f, 1.7f);
+            if (a.timer <= 0.f) a.aux2 = 3.f;
+        } else {   // head first down the trunk
+            climbSpeed = 1.1f;
+            a.aux -= climbSpeed * dt;
+            if (a.aux <= 0.02f) {
+                a.aux = 0.f;
+                a.aux2 = 0.f;
+                vec2 out(cosf(a.goal.z), sinf(a.goal.z));
+                a.pos = vec3(trunk + out * (G.radius + 0.12f), G.target.z);
+                a.yaw = yawOf(out);
+                a.pitch = 0.f;
+                a.state = ST_FEED;
+                a.timer = frange(1.f, 3.f);
+                continue;
+            }
+        }
+        vec2 out(cosf(a.goal.z), sinf(a.goal.z));
+        a.pos = vec3(trunk + out * (G.radius + 0.01f), G.target.z + a.aux);
+        bool down = a.aux2 > 2.5f;
+        a.yaw = yawOf(down ? out : -out);   // belly to the bark: face the trunk going up, away from it going down
+        a.pitch = Lerp(a.pitch, down ? -kHalfPi : kHalfPi, expDecay(10.f, dt));
+        a.vel = vec3(0.f);
+        a.state = ST_WALK;
+        a.qa.speed = Lerp(a.qa.speed, climbSpeed, expDecay(10.f, dt));
+        a.qa.gait = climbSpeed > 0.f ? 3.f : 0.f;
+        a.qa.phase += dt * quadCycleRate(md, a.qa.speed, a.qa.gait);
+        a.qa.phase -= floorf(a.qa.phase);
+        if (climbSpeed <= 0.f) quadLookAt(a, from, dt);
+    }
+}
+
+int spawnSquirrels(GameWorld& g, const Phys::Collider& tree, int count) {
+    float gz = groundAt(g, tree.c.x, tree.c.y, tree.c.z + 1.f);
+    int gi = newGroup(GT_SQUIRRELS, SP_SQUIRREL, vec3(tree.c.xy(), gz));
+    if (gi < 0) return -1;
+    Group& G = gW.groups[gi];
+    G.target = vec3(tree.c.xy(), gz);
+    G.radius = Clamp(tree.he.x, 0.12f, 0.6f);
+    G.height = Clamp(tree.he.z * 0.75f, 2.5f, 8.f);
+    for (int k = 0; k < count; k++) {
+        float ang = frand() * kTwoPi, r = frange(1.f, 5.f);
+        vec2 p = tree.c.xy() + vec2(cosf(ang), sinf(ang)) * r;
+        int ai = newAnimal(gi, SP_SQUIRREL, 0, vec3(p, groundAt(g, p.x, p.y, gz + 1.f)), frand() * kTwoPi);
+        if (ai < 0) break;
+        Animal& a = gW.animals[ai];
+        a.scale = frange(0.9f, 1.1f);
+        a.state = ST_FEED;
+        a.timer = frange(0.5f, 3.f);
+        a.speedWant = frand() < 0.5f ? 1.f : 0.f;
+    }
+    return gi;
+}
+
 void updateHerd(GameWorld& g, int gi, float dt) {
     Group& G = gW.groups[gi];
     int sp = G.sp;
@@ -3603,6 +3772,7 @@ const TypeRule kRules[GT_COUNT] = {
     {150.f, 650.f, 1300.f, 1},  // frigatebirds
     {60.f, 300.f, 550.f, 2},    // cormorants
     {70.f, 280.f, 470.f, 2},    // cattle egrets (with a cattle herd)
+    {20.f, 100.f, 170.f, 4},    // squirrels
 };
 
 inline bool dayTime(float a = 7.f, float b = 19.f) { return gW.tod >= a && gW.tod <= b; }
@@ -3971,6 +4141,7 @@ int trySpawn(GameWorld& g, GroupType t, bool warm) {
         case GT_FRIGATES: if (!dayTime(8.f, 18.5f) || gW.rain > 0.3f) return -1; break;
         case GT_CORMORANTS: if (!dayTime(6.f, 20.f)) return -1; break;
         case GT_CEGRETS: if (!dayTime(6.5f, 19.5f)) return -1; break;
+        case GT_SQUIRRELS: if (!dayTime(7.f, 19.f) || rainy) return -1; break;
         case GT_FISH: {
             float wz;
             bool nearWater = false;
@@ -4210,6 +4381,25 @@ int trySpawn(GameWorld& g, GroupType t, bool warm) {
                 if (seen && length(a - focus) < 120.f) break;
                 return spawnFlock(g, GT_CORMORANTS, SP_CORMORANT, vec3(a, spawnHeight(g, a)), (int)frange(2.f, 7.99f), false);
             }
+            case GT_SQUIRRELS: {
+                if (!(suburbRegion(reg) || reg == World::REG_CALLE_LUNA || reg == World::REG_NORTH_CITY || reg == World::REG_MIDTOWN ||
+                      siteNear(p, 120.f, {World::SK_PARK}))) break;
+                if (!Phys::gCollision || length(p - gW.player.xy()) > 300.f) break;
+                std::vector<int> ids;
+                Phys::gCollision->collidersNear(p, 30.f, ids);
+                for (int id : ids) {
+                    const Phys::Collider& c = Phys::gCollision->collider(id);
+                    if (c.owner < 0 || c.kind != Phys::COL_CYLINDER || c.surface != Phys::SURF_WOOD || c.he.z < 3.5f) continue;
+                    if (g.roads->nearRoad(c.c.xy(), 2.5f)) continue;
+                    bool taken = false;
+                    for (const Group& S : gW.groups) taken |= S.used && S.type == GT_SQUIRRELS && length2(S.target.xy() - c.c.xy()) < 1.f;
+                    if (taken) continue;
+                    if (!warm && g.inCameraView(c.c + vec3(0, 0, 1.f), 2.f) && length(c.c.xy() - focus) < 45.f) continue;
+                    Phys::Collider tree = c;   // copy: spawning may touch the collision streaming
+                    return spawnSquirrels(g, tree, frand() < 0.35f ? 2 : 1);
+                }
+                break;
+            }
             case GT_CEGRETS: {   // join a cattle herd that has no egrets yet
                 for (int hi = 0; hi < (int)gW.groups.size(); hi++) {
                     const Group& H = gW.groups[hi];
@@ -4420,7 +4610,7 @@ LodDist lodDist(int sp) {
                                                                : (sp == SP_PIGEON || sp == SP_SANDPIPER || sp == SP_GRACKLE ? 380.f : (sp == SP_PARROT ? 420.f : 950.f));
             return {Clamp(s * 22.f, 14.f, 45.f), Clamp(s * 120.f, 90.f, 260.f), draw, 30.f};
         }
-        case PLAN_QUAD: return {si.length * 12.f + 15.f, 0.f, sp == SP_CAT || sp == SP_RACCOON ? 150.f : (sp == SP_DOG ? 230.f : 500.f), 60.f};
+        case PLAN_QUAD: return {si.length * 12.f + 15.f, 0.f, sp == SP_SQUIRREL ? 110.f : (sp == SP_CAT || sp == SP_RACCOON ? 150.f : (sp == SP_DOG ? 230.f : 500.f)), 60.f};
         case PLAN_REPTILE: return {sp == SP_GATOR ? 45.f : 20.f, 0.f, sp == SP_GATOR ? 320.f : 140.f, 60.f};
         case PLAN_FISH: return {25.f, 0.f, 90.f, 0.f};
         default: return {40.f, 0.f, sp == SP_DOLPHIN ? 500.f : 300.f, 40.f};
@@ -4592,6 +4782,7 @@ void updateGroup(GameWorld& g, int gi, float dt) {
         case GT_CORMORANTS: updateFlockBirds(g, gi, dt, kCormorantCfg); break;
         case GT_SHOREBIRDS: updateShorebirds(g, gi, dt); break;
         case GT_CEGRETS: updateCattleEgrets(g, gi, dt); break;
+        case GT_SQUIRRELS: updateSquirrels(g, gi, dt); break;
         case GT_FRIGATES: updateVultures(g, gi, dt); break;
         case GT_PELICANS: updatePelicans(g, gi, dt); break;
         case GT_WADERS: updateWaders(g, gi, dt); break;
@@ -4701,7 +4892,7 @@ const char* kSceneNames[] = {"wild_gulls_pier", "wild_gulls_close", "wild_pelica
                              "wild_gator_bank", "wild_gator_water", "wild_dolphins", "wild_fish", "wild_dogs", "wild_farm", "wild_deer",
                              "wild_night", "wild_vultures", "wild_lineup_bigbirds", "wild_lineup_smallbirds", "wild_lineup_big",
                              "wild_lineup_small", "wild_gulls_overhead", "wild_shorebirds", "wild_grackles", "wild_cormorants",
-                             "wild_frigates", "wild_lineup_newbirds"};
+                             "wild_frigates", "wild_lineup_newbirds", "wild_perf", "wild_squirrels"};
 const int kSceneCount = (int)ARRAY_COUNT(kSceneNames);
 
 // --wildscene a,b,c: only the scenes whose names contain one of the comma separated fragments
@@ -4776,7 +4967,7 @@ bool sceneStageA(GameWorld& g, int s) {
             return true;
         }
         case 10: {
-            setTod(17.5f);
+            setTod(11.5f);
             Ped* pl = g.playerPed();
             if (!pl) return false;
             vec2 dry;
@@ -4823,6 +5014,13 @@ bool sceneStageA(GameWorld& g, int s) {
             else if (s == 16) aimCam(vec3(3000.f, 313.8f, z + 0.55f), vec3(3000.f, 318.f, z + 0.18f), 55.f);
             else if (s == 17) aimCam(vec3(3000.f, 296.f, z + 3.2f), vec3(3000.f, 318.f, z + 0.8f), 60.f);
             else aimCam(vec3(3000.f, 311.5f, z + 1.1f), vec3(3000.f, 318.f, z + 0.25f), 58.f);
+            return true;
+        }
+        case 26: {   // squirrels around a palm on the plaza
+            setTod(10.5f);
+            teleportPlayer(g, vec2(3000.f, 300.f));
+            gTestSpot = vec3(3000.f, 300.f, gz(g, vec2(3000.f, 300.f)));
+            aimCam(gTestSpot + vec3(0, -6.f, 1.6f), gTestSpot + vec3(0, 0, 0.5f), 55.f);
             return true;
         }
         case 20: {   // sanderlings at the water's edge
@@ -4875,8 +5073,9 @@ bool sceneStageA(GameWorld& g, int s) {
             aimCam(gTestSpot + vec3(0, 0, 1.6f), gTestSpot + vec3(-10.f, 40.f, 45.f), 60.f);
             return true;
         }
+        case 25:   // performance: a crowd of every kind around a beach
         case 19: {
-            setTod(17.2f);
+            setTod(s == 25 ? 10.f : 17.2f);
             vec2 p;
             if (!findPoint(g, vec2(5250.f, 900.f), 400.f, [&](vec2 q) {
                     float sd = g.map->coastDistance(q.x, q.y);
@@ -4885,7 +5084,8 @@ bool sceneStageA(GameWorld& g, int s) {
                 return false;
             gTestSpot = vec3(p, g.map->heightAt(p.x, p.y));
             teleportPlayer(g, p);
-            aimCam(gTestSpot + vec3(0, 0, 1.6f), gTestSpot + vec3(6.f, 25.f, 9.f), 65.f);
+            if (s == 25) aimCam(gTestSpot + vec3(0, 0, 1.7f), gTestSpot + vec3(30.f, 60.f, 1.f), 65.f);
+            else aimCam(gTestSpot + vec3(0, 0, 1.6f), gTestSpot + vec3(6.f, 25.f, 9.f), 65.f);
             return true;
         }
         default: return false;
@@ -5030,6 +5230,10 @@ int sceneStageB(GameWorld& g, int s) {
                 attachLeashDog(g, ped);
             }
             spawnDogPack(g, vec3(gTestSpot.xy() + f * 9.f + vec2(f.y, -f.x) * 5.f, gTestSpot.z), 2);
+            // frame the owner and the dog from the side, eye height above whatever surface is there
+            vec2 side(f.y, -f.x);
+            vec2 e = pp + side * 4.f - f * 1.f;
+            aimCam(vec3(e, gz(g, e) + 1.5f), vec3(pp + f * 0.8f, gz(g, pp) + 0.5f), 55.f);
             return 45;
         }
         case 11: {
@@ -5048,6 +5252,9 @@ int sceneStageB(GameWorld& g, int s) {
                 const Phys::Collider& c = Phys::gCollision->collider(id);
                 if (c.owner < 0 || c.kind != Phys::COL_BOX || fabsf(c.he.x - 0.9f) > 0.05f || fabsf(c.he.y - 0.6f) > 0.05f) continue;
                 vec2 side = perp(c.ax);
+                auto open = [&](vec2 q) { return !g.buildings->pointInBuilding(q, 0.8f); };
+                if (!open(c.c.xy() + side * 3.5f)) side = -side;   // the open side of the bin, not the wall it stands against
+                if (!open(c.c.xy() + side * 3.5f)) continue;
                 vec3 base = vec3(c.c.xy() + side * (c.he.y + 0.4f), c.c.z - c.he.z);
                 int gi = newGroup(GT_RACCOON, SP_RACCOON, base);
                 gW.groups[gi].target = vec3(c.c.xy(), base.z);
@@ -5058,7 +5265,9 @@ int sceneStageB(GameWorld& g, int s) {
                     gW.animals[ai].timer = 100.f;
                 }
                 spawnSingle(g, GT_CAT, SP_CAT, 0, base + vec3(side * 2.5f + c.ax * 2.f, 0.f), yawOf(-side), 1.f, ST_REST);
-                aimCam(base + vec3(side * 3.8f + c.ax * 1.5f, 1.5f), base + vec3(c.ax * 0.6f, 0.35f), 55.f);
+                // look at the raccoons from their side of the bin, not across the bin
+                vec2 e = base.xy() + side * 3.2f + c.ax * 1.2f;
+                aimCam(vec3(e, gz(g, e) + 1.3f), base + vec3(c.ax * 0.3f, 0.3f), 55.f);
                 return 20;
             }
             return 0;
@@ -5086,6 +5295,81 @@ int sceneStageB(GameWorld& g, int s) {
                          vec2(2996.f, 318.f), vec2(0.9f, 0.f), kPi * 0.5f);
             return 5;
         case 20: spawnShorebirds(g, gTestSpot, gTestN, 14); return 90;
+        case 26: {
+            if (!Phys::gCollision) return 0;
+            std::vector<int> ids;
+            Phys::gCollision->collidersNear(gTestSpot.xy(), 70.f, ids);
+            int best = -1;
+            float bd = 1e9f;
+            for (int id : ids) {
+                const Phys::Collider& c = Phys::gCollision->collider(id);
+                if (c.owner < 0 || c.kind != Phys::COL_CYLINDER || c.surface != Phys::SURF_WOOD || c.he.z < 3.5f) continue;
+                float d = length(c.c.xy() - gTestSpot.xy());
+                if (d < bd) {
+                    bd = d;
+                    best = id;
+                }
+            }
+            if (best < 0) return 0;
+            Phys::Collider tree = Phys::gCollision->collider(best);
+            int gi = spawnSquirrels(g, tree, 2);
+            if (gi < 0) return 0;
+            Group& G = gW.groups[gi];
+            vec2 tc = tree.c.xy();
+            vec2 side = normalize(tc - gTestSpot.xy() + vec2(0.001f, 0.f));
+            // one mid-climb on the camera side of the trunk, one sitting up on the ground beside it
+            Animal& a = gW.animals[G.members[0]];
+            a.aux2 = 1.f;
+            a.aux = 1.3f;
+            a.goal.z = atan2f(-side.y, -side.x) + 0.5f;
+            a.timer = 1000.f;
+            if (G.members.size() > 1) {
+                Animal& b = gW.animals[G.members[1]];
+                vec2 p = tc - side * 1.4f + vec2(side.y, -side.x) * 0.8f;
+                b.pos = vec3(p, gz(g, p));
+                b.state = ST_FEED;
+                b.speedWant = 1.f;
+                b.timer = 1000.f;
+                b.yaw = yawOf(-side) + 0.6f;
+            }
+            vec2 e = tc - side * 4.f + vec2(side.y, -side.x) * 1.5f;
+            aimCam(vec3(e, gz(g, e) + 1.3f), vec3(tc - side * 0.6f, tree.c.z + 0.9f), 50.f);
+            return 20;
+        }
+        case 25: {
+            // 300+ birds and ~40 ground / water animals (plus fish) spread up to ~250 m around the camera
+            vec2 c = gTestSpot.xy();
+            auto at = [&](float ang, float r) {
+                vec2 p = c + vec2(cosf(ang), sinf(ang)) * r;
+                return vec3(p, spawnHeight(g, p));
+            };
+            for (int k = 0; k < 4; k++) spawnFlock(g, GT_GULLS, SP_GULL, at(1.6f * (float)k, 40.f + 45.f * (float)k), 24, true);
+            for (int k = 0; k < 3; k++) spawnFlock(g, GT_PIGEONS, SP_PIGEON, at(0.9f + 2.1f * (float)k, 60.f + 30.f * (float)k), 30, false);
+            for (int k = 0; k < 2; k++) spawnFlock(g, GT_GRACKLES, SP_GRACKLE, at(2.5f + 2.f * (float)k, 50.f + 40.f * (float)k), 12, false);
+            spawnFlock(g, GT_CORMORANTS, SP_CORMORANT, at(4.f, 90.f), 6, false);
+            spawnPelicanLine(g, at(5.f, 120.f), 6);
+            spawnParrots(g, at(3.3f, 70.f), 15);
+            spawnSoarers(g, GT_VULTURES, SP_VULTURE, at(0.f, 200.f), 7);
+            spawnSoarers(g, GT_FRIGATES, SP_FRIGATE, at(2.f, 150.f), 4);
+            for (int k = 0; k < 3; k++) {
+                vec3 e;
+                vec2 n;
+                if (findShoreEdge(g, c + vec2(35.f * (float)k - 35.f, 20.f), e, n)) spawnShorebirds(g, e, n, 15);
+            }
+            for (int k = 0; k < 3; k++) spawnSingle(g, GT_CAT, SP_CAT, k, at(1.f + (float)k, 30.f + 10.f * (float)k), 0.f, 1.f, ST_REST);
+            for (int k = 0; k < 3; k++) spawnSingle(g, GT_IGUANA, SP_IGUANA, k & 1, at(2.f + (float)k, 25.f + 8.f * (float)k), 0.f, 1.f, ST_REST);
+            spawnDogPack(g, at(0.5f, 60.f), 3);
+            for (int k = 0; k < 2; k++) spawnGator(g, at(3.f + (float)k, 110.f), true);
+            spawnPod(g, at(4.5f, 160.f) - vec3(0, 0, 1.5f), 6);
+            for (int k = 0; k < 2; k++) spawnSingle(g, GT_TURTLE, SP_TURTLE, k, at(4.2f + 0.3f * (float)k, 90.f) - vec3(0, 0, 2.f), 0.f, 1.f, ST_SWIM);
+            spawnSingle(g, GT_MANATEE, SP_MANATEE, 0, at(4.8f, 70.f) - vec3(0, 0, 1.f), 0.f, 1.f, ST_SWIM);
+            spawnHerd(g, GT_DEER, SP_DEER, at(1.2f, 180.f), 5);
+            int herd = spawnHerd(g, GT_CATTLE, SP_COW, at(2.2f, 200.f), 8);
+            if (herd >= 0) spawnCattleEgrets(g, herd, 4);
+            spawnHerd(g, GT_HORSES, SP_HORSE, at(2.6f, 190.f), 3);
+            for (int k = 0; k < 2; k++) spawnShoal(g, at(4.6f + 0.2f * (float)k, 40.f) - vec3(0, 0, 2.f), k == 0 ? 2 : 0, 40);
+            return 30;
+        }
         case 21: {
             vec2 q(3000.f, 256.f);
             spawnFlock(g, GT_GRACKLES, SP_GRACKLE, vec3(q, gz(g, q)), 10, false);
@@ -5164,8 +5448,11 @@ void testUpdate(GameWorld& g) {
                             a.t = k == 0 ? 0.55f : 0.5f + 0.1f * (float)k;
                         }
             if (s == 8) updateAllGroups(g, 1.f / 30.f);   // place the leapers (the shot holds the moment)
-            ph = 2;
+            ph = s == 25 ? 4 : 2;
             fr = 0;
+            gW.perfFrames = 0;
+            gW.perfUpd = gW.perfRen = 0.0;
+            gW.perfUpdMax = gW.perfRenMax = 0.f;
         }
     } else if (ph == 2) {
         int pending = g.renderer->world ? g.renderer->world->pendingCount() : 0;
@@ -5181,6 +5468,26 @@ void testUpdate(GameWorld& g) {
         }
     } else if (ph == 3) {
         if (g.requestScreenshot.empty()) ph = 5;
+    } else if (ph == 4) {   // performance sampling with everything live
+        if (fr > 10) {    // skip the first frames (streaming hitches)
+            gW.perfFrames++;
+            gW.perfUpd += gW.lastUpdateMs;
+            gW.perfRen += gW.lastRenderMs;
+            gW.perfUpdMax = Max(gW.perfUpdMax, gW.lastUpdateMs);
+            gW.perfRenMax = Max(gW.perfRenMax, gW.lastRenderMs);
+        }
+        if (gW.perfFrames >= 150) {
+            int n = 0, birds = 0, fish = 0;
+            for (const Animal& a : gW.animals) {
+                n += a.used;
+                birds += a.used && isBird(a.sp);
+                fish += a.used && a.sp == SP_FISH;
+            }
+            LOG("Wildlife perf: %d animals (%d birds, %d fish, %d others), %d drawn in %d draws | update avg %.3f ms (max %.3f), render avg %.3f ms (max %.3f)",
+                n, birds, fish, n - birds - fish, gW.drawn, gW.drawCalls, gW.perfUpd / gW.perfFrames, gW.perfUpdMax, gW.perfRen / gW.perfFrames, gW.perfRenMax);
+            ph = 2;
+            fr = 0;
+        }
     }
     if (ph == 5) {
         gW.testScene++;
@@ -5237,7 +5544,8 @@ void update(GameWorld& g, float dt) {
         updateAllGroups(g, dt);
         vehicleImpacts(g);
     }
-    gW.msUpdate = Lerp(gW.msUpdate, (float)((TimeSeconds() - t0) * 1000.0), 0.05f);
+    gW.lastUpdateMs = (float)((TimeSeconds() - t0) * 1000.0);
+    gW.msUpdate = Lerp(gW.msUpdate, gW.lastUpdateMs, 0.05f);
     gW.logT += dt;
     if (gW.logT > 30.f) {
         gW.logT = 0.f;
@@ -5258,7 +5566,8 @@ void submitRender(GameWorld& g) {
     if (!gW.assetsReady || !g.renderer || !g.renderer->dynamic) return;
     double t0 = TimeSeconds();
     submitAll(g);
-    gW.msRender = Lerp(gW.msRender, (float)((TimeSeconds() - t0) * 1000.0), 0.05f);
+    gW.lastRenderMs = (float)((TimeSeconds() - t0) * 1000.0);
+    gW.msRender = Lerp(gW.msRender, gW.lastRenderMs, 0.05f);
 }
 
 bool bulletHit(GameWorld& g, int shooter, dvec3 from, vec3 dir, float range, float damage) {

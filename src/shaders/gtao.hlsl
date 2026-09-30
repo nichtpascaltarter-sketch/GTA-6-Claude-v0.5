@@ -121,9 +121,11 @@ void csGTAO(uint3 id : SV_DispatchThreadID) {
                             float2 puv = pc.xy / pc.w * float2(0.5, -0.5) + 0.5;
                             if (all(puv > 0.0) && all(puv < 1.0) && pc.w > 0.0) {
                                 float3 L = tSceneColor.SampleLevel(sLinearClamp, puv, dist > 2.0 ? 1.0 : 0.0).rgb * expRatio;
-                                // Firefly-resistant accumulation: luminance-compressed average, rescaled by coverage
+                                // Firefly-resistant accumulation: a softly luminance-compressed average (glints and
+                                // lamp cores are tamed, sunlit pavement still bounces at nearly full strength into the
+                                // shade), rescaled by coverage
                                 float cw = (countbits(fresh) / kSectors) * facing;
-                                float comp = 1.0 / (1.0 + luminance(L));
+                                float comp = 1.0 / (1.0 + luminance(L) * (1.0 / 12.0));
                                 giSlice += L * cw * comp;
                                 compSlice += cw * comp;
                                 coverSlice += cw;

@@ -562,5 +562,321 @@ void carSpec(bool cab, Vehicles::VehicleModel& o) {
     o.boxHalf = vec3(kHalfW, kHalfLen + (cab ? 0.25f : 0.f), 1.55f);
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Bay Ferry "Sol Ferry": a 34 m passenger catamaran. Origin at the waterline between the hulls; +Y bow.
+namespace fer {
+constexpr float kFHalfLen = 17.f, kFHalfBeam = 4.8f;
+constexpr float kFHullC = 3.5f, kFHullHW = 1.2f;   // demi-hull center line and half width at the sheer
+constexpr float kFDeckZ = 1.65f, kFRoofZ = 4.35f;
+constexpr float kFCabY0 = -11.5f, kFCabY1 = 9.3f, kFCabHW = 4.3f;
+constexpr float kFWinZ0 = 2.4f, kFWinZ1 = 3.75f;
+constexpr float kFWheelY0 = 2.8f, kFWheelY1 = 7.6f, kFWheelHW = 2.4f, kFWheelZ1 = 6.5f;
+}
+
+void hullSection(float y, float& hw, float& keel, float& sheer) {
+    using namespace fer;
+    float tb = Saturate((y - 7.f) / (kFHalfLen - 7.f));   // 0 aft of the bow entry .. 1 at the stem
+    hw = kFHullHW * (1.f - powf(tb, 1.7f));
+    keel = -1.35f + 1.8f * powf(Saturate((y - 5.f) / (kFHalfLen - 5.f)), 1.6f);
+    sheer = kFDeckZ + 0.3f * tb * tb;
+    if (y < -15.f) keel = Lerp(-1.35f, -0.9f, Saturate((-15.f - y) / 1.5f));   // run toward the transom
+}
+
+void buildFerry(int lod, MeshData& m) {
+    using namespace fer;
+    MB b{m, lod};
+    u32 cWhite = kPrimary, cBand = kSecondary;
+    u32 cAnti = col(0.42f, 0.07f, 0.06f), cBoot = col(0.05f, 0.08f, 0.12f), cDeck = col(0.46f, 0.5f, 0.52f), cRail = col(0.82f, 0.84f, 0.86f);
+    u32 mPaint = makeMat(MAT_CARPAINT), mMetal = makeMat(MAT_METAL_PAINTED), mSteel = makeMat(MAT_METAL_BRUSHED);
+    // ---- demi-hulls: lofted sections (inboard top -> keel -> outboard top), colored by height (antifouling, boot top,
+    // white topsides); transom closes the stern
+    const int nY = lod == 0 ? 40 : (lod == 1 ? 22 : 12);
+    const float y0 = -16.5f, y1 = kFHalfLen;
+    for (int hs = -1; hs <= 1; hs += 2) {
+        float cx = hs * kFHullC;
+        auto sect = [&](float y, vec3* pts) {
+            float hw, kz, sh;
+            hullSection(y, hw, kz, sh);
+            // 9 points: inboard sheer, 0.3, 0.0, bilge, keel, bilge, 0.0, 0.3, outboard sheer
+            const float fx[9] = {-1.f, -1.f, -0.97f, -0.78f, 0.f, 0.78f, 0.97f, 1.f, 1.f};
+            float fz[9] = {sh, 0.3f, 0.f, kz * 0.55f, kz, kz * 0.55f, 0.f, 0.3f, sh};
+            for (int k = 0; k < 9; k++) pts[k] = vec3(cx + fx[k] * hw, y, fz[k] > sh ? sh : fz[k]);
+        };
+        vec3 A[9], B[9];
+        for (int i = 0; i < nY; i++) {
+            float ya = Lerp(y0, y1, (float)i / nY), yb = Lerp(y0, y1, (float)(i + 1) / nY);
+            sect(ya, A);
+            sect(yb, B);
+            for (int k = 0; k < 8; k++) {
+                float zm = (A[k].z + A[k + 1].z) * 0.5f;
+                u32 c = zm < -0.02f ? cAnti : (zm < 0.28f ? cBoot : cWhite);
+                u32 mt = zm < 0.28f ? mMetal : mPaint;
+                vec3 mid = (A[k] + A[k + 1] + B[k] + B[k + 1]) * 0.25f;
+                vec3 out = normalize(vec3(mid.x - cx, 0.f, mid.z - 0.2f));
+                if (k == 0 || k == 7) out = vec3(k == 0 ? -1.f : 1.f, 0, 0);
+                m.quadFacing(A[k], B[k], B[k + 1], A[k + 1], vec2(ya, 0), vec2(yb, 0), vec2(yb, 1), vec2(ya, 1), c, mt, out);
+            }
+        }
+        // transom
+        sect(y0, A);
+        for (int k = 1; k < 8; k++) {
+            float zm = (A[k].z + A[k + 1].z) * 0.5f;
+            u32 c = zm < -0.02f ? cAnti : (zm < 0.28f ? cBoot : cWhite);
+            m.quadFacing(A[0], A[k], A[k + 1], A[0], vec2(0), vec2(1, 0), vec2(1, 1), vec2(0, 1), c, zm < 0.28f ? mMetal : mPaint, vec3(0, -1, 0));
+        }
+        // foredeck on the hull bow
+        for (int i = 0; i < 8; i++) {
+            float ya = Lerp(13.f, y1, i / 8.f), yb = Lerp(13.f, y1, (i + 1) / 8.f);
+            float hwa, kza, sha, hwb, kzb, shb;
+            hullSection(ya, hwa, kza, sha);
+            hullSection(yb, hwb, kzb, shb);
+            m.quadFacing(vec3(cx - hwa, ya, sha), vec3(cx - hwb, yb, shb), vec3(cx + hwb, yb, shb), vec3(cx + hwa, ya, sha), vec2(0), vec2(1, 0), vec2(1, 1),
+                         vec2(0, 1), cDeck, makeMat(MAT_CONCRETE), vec3(0, 0, 1));
+        }
+        // name on the outboard topsides
+        if (lod < 2) {
+            float xo = hs * (kFHullC + kFHullHW + 0.004f);
+            vec3 right = normalize(cross(vec3(0, 0, 1), vec3((float)hs, 0, 0)));   // reads toward the bow on starboard, the stern on port
+            float th = 0.55f;
+            float w = World::sitegeo::textAdvance("SOL FERRY", th);
+            strokeTextM(m, "SOL FERRY", vec3(xo, 1.5f, 0.55f) - right * (w * 0.5f), right, vec3(0, 0, 1), th, th * 0.16f, cBand, mPaint);
+        }
+    }
+    // ---- bridge deck between the hulls and the main deck
+    {
+        float xi = kFHullC - kFHullHW;
+        b.quad(vec3(-xi, -16.2f, 0.95f), vec3(xi, -16.2f, 0.95f), vec3(xi, 12.2f, 0.95f), vec3(-xi, 12.2f, 0.95f), cAnti, mMetal, vec3(0, 0, -1));
+        b.quad(vec3(-xi, 12.2f, 0.95f), vec3(xi, 12.2f, 0.95f), vec3(xi, 13.4f, kFDeckZ), vec3(-xi, 13.4f, kFDeckZ), cWhite, mPaint, vec3(0, 1, -0.6f));
+        b.quad(vec3(-xi, -16.2f, kFDeckZ), vec3(xi, -16.2f, kFDeckZ), vec3(xi, -16.2f, 0.95f), vec3(-xi, -16.2f, 0.95f), cWhite, mPaint, vec3(0, -1, 0));
+        // main deck plate over the whole beam
+        b.quad(vec3(-kFHalfBeam, -16.5f, kFDeckZ), vec3(kFHalfBeam, -16.5f, kFDeckZ), vec3(kFHalfBeam, 13.4f, kFDeckZ), vec3(-kFHalfBeam, 13.4f, kFDeckZ), cDeck,
+               makeMat(MAT_CONCRETE), vec3(0, 0, 1));
+        // deck edge fascia (teal band) over the hulls
+        for (int sd = -1; sd <= 1; sd += 2) {
+            float x = sd * kFHalfBeam;
+            b.quad(vec3(x, -16.5f, kFDeckZ + 0.02f), vec3(x, 13.4f, kFDeckZ + 0.02f), vec3(x, 13.4f, kFDeckZ - 0.3f), vec3(x, -16.5f, kFDeckZ - 0.3f), cBand, mPaint,
+                   vec3((float)sd, 0, 0));
+        }
+    }
+    // ---- railings on the open decks (fore and aft of the saloon)
+    auto rail = [&](vec3 a, vec3 c) {
+        float L = length(c - a);
+        int n = Max(1, (int)(L / 1.6f));
+        if (lod < 2)
+            for (int k = 0; k <= n; k++) b.box(lerp(a, c, (float)k / n) + vec3(0, 0, 0.5f), vec3(0.025f, 0.025f, 0.5f), cRail, mSteel, false);
+        b.boxAx((a + c) * 0.5f + vec3(0, 0, 1.02f), c - a, normalize(cross(vec3(0, 0, 1), c - a)), vec3(L * 0.5f, 0.03f, 0.025f), cRail, mSteel);
+    };
+    for (int sd = -1; sd <= 1; sd += 2) {
+        rail(vec3(sd * (kFHalfBeam - 0.1f), -16.4f, kFDeckZ), vec3(sd * (kFHalfBeam - 0.1f), kFCabY0, kFDeckZ));
+        rail(vec3(sd * (kFHalfBeam - 0.1f), kFCabY1 + 0.6f, kFDeckZ), vec3(sd * (kFHalfBeam - 0.1f), 13.3f, kFDeckZ));
+    }
+    rail(vec3(-kFHalfBeam + 0.1f, -16.4f, kFDeckZ), vec3(-1.2f, -16.4f, kFDeckZ));
+    rail(vec3(1.2f, -16.4f, kFDeckZ), vec3(kFHalfBeam - 0.1f, -16.4f, kFDeckZ));
+    rail(vec3(-kFHalfBeam + 0.1f, 13.3f, kFDeckZ), vec3(kFHalfBeam - 0.1f, 13.3f, kFDeckZ));
+    // ---- saloon: lower wall, window band with mullions (doors amidships), upper wall, raked front, stern wall, roof
+    float clarity = lod >= 2 ? 0.3f : 0.62f;
+    u32 cGlass = col(0.55f, 0.66f, 0.7f, clarity);
+    for (int sd = -1; sd <= 1; sd += 2) {
+        float x = sd * kFCabHW;
+        vec3 n((float)sd, 0, 0);
+        b.quad(vec3(x, kFCabY0, kFDeckZ), vec3(x, kFCabY1, kFDeckZ), vec3(x, kFCabY1, kFWinZ0), vec3(x, kFCabY0, kFWinZ0), cWhite, mPaint, n);
+        b.quad(vec3(x, kFCabY0, kFWinZ0 - 0.3f), vec3(x, kFCabY1, kFWinZ0 - 0.3f), vec3(x, kFCabY1, kFWinZ0 - 0.12f), vec3(x, kFCabY0, kFWinZ0 - 0.12f), cBand, mPaint, n * 1.f);
+        b.quad(vec3(x, kFCabY0, kFWinZ1), vec3(x, kFCabY1, kFWinZ1), vec3(x, kFCabY1, kFRoofZ), vec3(x, kFCabY0, kFRoofZ), cWhite, mPaint, n);
+        b.quad(vec3(x, kFCabY0, kFWinZ0), vec3(x, kFCabY1, kFWinZ0), vec3(x, kFCabY1, kFWinZ1), vec3(x, kFCabY0, kFWinZ1), cGlass, makeMat(MAT_CAR_WINDOW), n);
+        if (lod < 2) {
+            for (float y = kFCabY0 + 2.f; y < kFCabY1 - 0.5f; y += 2.08f) {
+                bool door = fabsf(y) < 1.3f;
+                b.box(vec3(x, y, (kFWinZ0 + kFWinZ1) * 0.5f), vec3(0.04f, door ? 0.06f : 0.07f, (kFWinZ1 - kFWinZ0) * 0.5f), col(0.12f), mMetal);
+            }
+            // amidships doors (glass with steel frames reaching the deck)
+            b.quad(vec3(x + sd * 0.005f, -0.95f, kFDeckZ + 0.05f), vec3(x + sd * 0.005f, 0.95f, kFDeckZ + 0.05f), vec3(x + sd * 0.005f, 0.95f, kFWinZ1),
+                   vec3(x + sd * 0.005f, -0.95f, kFWinZ1), cGlass, makeMat(MAT_CAR_WINDOW), n);
+            for (int q = -1; q <= 1; q++) b.box(vec3(x + sd * 0.01f, q * 0.95f, (kFDeckZ + kFWinZ1) * 0.5f), vec3(0.03f, 0.04f, (kFWinZ1 - kFDeckZ) * 0.5f), col(0.2f), mSteel);
+            // PORTO SOL TRANSIT on the lower wall
+            vec3 right = normalize(cross(vec3(0, 0, 1), n));
+            float th = 0.2f, w = World::sitegeo::textAdvance("PORTO SOL TRANSIT", th);
+            strokeTextM(m, "PORTO SOL TRANSIT", vec3(x + sd * 0.006f, -6.f, kFDeckZ + 0.2f) - right * (w * 0.5f), right, vec3(0, 0, 1), th, th * 0.15f, cBand, mPaint);
+        }
+    }
+    // raked front: glass band between white panels
+    {
+        vec3 a0(-kFCabHW, kFCabY1 + 0.6f, kFDeckZ), a1(kFCabHW, kFCabY1 + 0.6f, kFDeckZ), b0(-kFCabHW, kFCabY1 - 0.2f, kFRoofZ), b1(kFCabHW, kFCabY1 - 0.2f, kFRoofZ);
+        auto at = [&](vec3 lo, vec3 hi, float z) { return lerp(lo, hi, (z - kFDeckZ) / (kFRoofZ - kFDeckZ)); };
+        vec3 n = normalize(vec3(0, 1, 0.3f));
+        b.quad(a0, a1, at(a1, b1, kFWinZ0 + 0.1f), at(a0, b0, kFWinZ0 + 0.1f), cWhite, mPaint, n);
+        b.quad(at(a0, b0, kFWinZ0 + 0.1f), at(a1, b1, kFWinZ0 + 0.1f), at(a1, b1, kFWinZ1), at(a0, b0, kFWinZ1), cGlass, makeMat(MAT_CAR_WINDOW), n);
+        b.quad(at(a0, b0, kFWinZ1), at(a1, b1, kFWinZ1), b1, b0, cWhite, mPaint, n);
+        for (int sd = -1; sd <= 1; sd += 2) {
+            float x = sd * kFCabHW;
+            b.quad(vec3(x, kFCabY1, kFDeckZ), vec3(x, kFCabY1 + 0.6f, kFDeckZ), vec3(x, kFCabY1 - 0.2f, kFRoofZ), vec3(x, kFCabY1, kFRoofZ), cWhite, mPaint, vec3((float)sd, 0, 0));
+        }
+    }
+    // stern wall with a door to the aft deck
+    {
+        vec3 n(0, -1, 0);
+        b.quad(vec3(kFCabHW, kFCabY0, kFDeckZ), vec3(-kFCabHW, kFCabY0, kFDeckZ), vec3(-kFCabHW, kFCabY0, kFRoofZ), vec3(kFCabHW, kFCabY0, kFRoofZ), cWhite, mPaint, n);
+        b.quad(vec3(3.6f, kFCabY0 - 0.01f, kFWinZ0), vec3(1.0f, kFCabY0 - 0.01f, kFWinZ0), vec3(1.0f, kFCabY0 - 0.01f, kFWinZ1), vec3(3.6f, kFCabY0 - 0.01f, kFWinZ1), cGlass,
+               makeMat(MAT_CAR_WINDOW), n);
+        b.quad(vec3(-1.0f, kFCabY0 - 0.01f, kFWinZ0), vec3(-3.6f, kFCabY0 - 0.01f, kFWinZ0), vec3(-3.6f, kFCabY0 - 0.01f, kFWinZ1), vec3(-1.0f, kFCabY0 - 0.01f, kFWinZ1), cGlass,
+               makeMat(MAT_CAR_WINDOW), n);
+        b.quad(vec3(0.8f, kFCabY0 - 0.01f, kFDeckZ + 0.05f), vec3(-0.8f, kFCabY0 - 0.01f, kFDeckZ + 0.05f), vec3(-0.8f, kFCabY0 - 0.01f, kFWinZ1),
+               vec3(0.8f, kFCabY0 - 0.01f, kFWinZ1), cGlass, makeMat(MAT_CAR_WINDOW), n);
+    }
+    // roof (upper deck floor) with a slight overhang and the teal fascia
+    b.box(vec3(0, (kFCabY0 + kFCabY1) * 0.5f, kFRoofZ + 0.08f), vec3(kFCabHW + 0.15f, (kFCabY1 - kFCabY0) * 0.5f + 0.3f, 0.08f), cWhite, mPaint);
+    for (int sd = -1; sd <= 1; sd += 2)
+        b.quad(vec3(sd * (kFCabHW + 0.151f), kFCabY0 - 0.3f, kFRoofZ + 0.16f), vec3(sd * (kFCabHW + 0.151f), kFCabY1 + 0.3f, kFRoofZ + 0.16f),
+               vec3(sd * (kFCabHW + 0.151f), kFCabY1 + 0.3f, kFRoofZ), vec3(sd * (kFCabHW + 0.151f), kFCabY0 - 0.3f, kFRoofZ), cBand, mPaint, vec3((float)sd, 0, 0));
+    // upper deck railings
+    for (int sd = -1; sd <= 1; sd += 2) rail(vec3(sd * (kFCabHW + 0.05f), kFCabY0 - 0.2f, kFRoofZ + 0.16f), vec3(sd * (kFCabHW + 0.05f), kFCabY1 + 0.2f, kFRoofZ + 0.16f));
+    rail(vec3(-kFCabHW, kFCabY0 - 0.2f, kFRoofZ + 0.16f), vec3(kFCabHW, kFCabY0 - 0.2f, kFRoofZ + 0.16f));
+    // ---- wheelhouse with its window band, mast and radar
+    {
+        float z0 = kFRoofZ + 0.16f, zw0 = z0 + 1.05f, zw1 = kFWheelZ1 - 0.3f;
+        for (int sd = -1; sd <= 1; sd += 2) {
+            float x = sd * kFWheelHW;
+            vec3 n((float)sd, 0, 0);
+            b.quad(vec3(x, kFWheelY0, z0), vec3(x, kFWheelY1, z0), vec3(x, kFWheelY1, zw0), vec3(x, kFWheelY0, zw0), cWhite, mPaint, n);
+            b.quad(vec3(x, kFWheelY0, zw0), vec3(x, kFWheelY1, zw0), vec3(x, kFWheelY1, zw1), vec3(x, kFWheelY0, zw1), col(0.2f, 0.26f, 0.3f, clarity * 0.8f),
+                   makeMat(MAT_CAR_WINDOW), n);
+            b.quad(vec3(x, kFWheelY0, zw1), vec3(x, kFWheelY1, zw1), vec3(x, kFWheelY1, kFWheelZ1), vec3(x, kFWheelY0, kFWheelZ1), cWhite, mPaint, n);
+        }
+        vec3 nf = normalize(vec3(0, 1, 0.35f));
+        b.quad(vec3(-kFWheelHW, kFWheelY1, z0), vec3(kFWheelHW, kFWheelY1, z0), vec3(kFWheelHW, kFWheelY1, zw0), vec3(-kFWheelHW, kFWheelY1, zw0), cWhite, mPaint, vec3(0, 1, 0));
+        b.quad(vec3(-kFWheelHW, kFWheelY1, zw0), vec3(kFWheelHW, kFWheelY1, zw0), vec3(kFWheelHW, kFWheelY1 - 0.35f, zw1), vec3(-kFWheelHW, kFWheelY1 - 0.35f, zw1),
+               col(0.2f, 0.26f, 0.3f, clarity * 0.8f), makeMat(MAT_CAR_WINDOW), nf);
+        b.quad(vec3(-kFWheelHW, kFWheelY1 - 0.35f, zw1), vec3(kFWheelHW, kFWheelY1 - 0.35f, zw1), vec3(kFWheelHW, kFWheelY1 - 0.35f, kFWheelZ1),
+               vec3(-kFWheelHW, kFWheelY1 - 0.35f, kFWheelZ1), cWhite, mPaint, vec3(0, 1, 0));
+        b.quad(vec3(kFWheelHW, kFWheelY0, z0), vec3(-kFWheelHW, kFWheelY0, z0), vec3(-kFWheelHW, kFWheelY0, kFWheelZ1), vec3(kFWheelHW, kFWheelY0, kFWheelZ1), cWhite, mPaint,
+               vec3(0, -1, 0));
+        b.box(vec3(0, (kFWheelY0 + kFWheelY1) * 0.5f - 0.15f, kFWheelZ1 + 0.06f), vec3(kFWheelHW + 0.25f, (kFWheelY1 - kFWheelY0) * 0.5f + 0.3f, 0.06f), cWhite, mPaint);
+        // mast, radar, nav light bar
+        b.rod(vec3(0, 5.2f, kFWheelZ1), vec3(0, 5.0f, kFWheelZ1 + 2.4f), 0.07f, 8, col(0.85f), mSteel);
+        b.box(vec3(0, 5.05f, kFWheelZ1 + 1.6f), vec3(0.9f, 0.08f, 0.05f), col(0.85f), mSteel);
+        b.box(vec3(0, 5.2f, kFWheelZ1 + 0.75f), vec3(0.8f, 0.14f, 0.05f), col(0.15f), mMetal);   // radar antenna
+        // interior: helm console
+        if (lod == 0) b.box(vec3(0, kFWheelY1 - 0.8f, z0 + 0.5f), vec3(1.4f, 0.3f, 0.5f), col(0.12f), mMetal);
+    }
+    // navigation lights (red port, green starboard, white masthead and stern)
+    b.box(vec3(-kFWheelHW - 0.08f, kFWheelY1 - 0.4f, kFWheelZ1 - 0.15f), vec3(0.08f, 0.12f, 0.08f), col(1.f, 0.08f, 0.05f, 0.9f), makeMat(MAT_EMISSIVE));
+    b.box(vec3(kFWheelHW + 0.08f, kFWheelY1 - 0.4f, kFWheelZ1 - 0.15f), vec3(0.08f, 0.12f, 0.08f), col(0.1f, 1.f, 0.3f, 0.9f), makeMat(MAT_EMISSIVE));
+    b.box(vec3(0, 5.0f, kFWheelZ1 + 2.45f), vec3(0.08f, 0.08f, 0.1f), col(1.f, 1.f, 0.95f, 0.9f), makeMat(MAT_EMISSIVE));
+    b.box(vec3(0, -16.45f, kFDeckZ + 0.9f), vec3(0.08f, 0.06f, 0.08f), col(1.f, 1.f, 0.95f, 0.9f), makeMat(MAT_EMISSIVE));
+    // life rings on the aft rail and lifebuoy canisters on the roof
+    if (lod < 2) {
+        for (int sd = -1; sd <= 1; sd += 2) {
+            b.box(vec3(sd * (kFHalfBeam - 0.12f), -14.f, kFDeckZ + 0.75f), vec3(0.06f, 0.35f, 0.35f), col(0.95f, 0.4f, 0.05f), makeMat(MAT_PLASTIC));
+            for (int k = 0; k < 3; k++) b.cylZ(vec3(sd * 3.4f, -9.f + k * 1.2f, kFRoofZ + 0.16f), 0.3f, 0.9f, 10, col(0.93f), makeMat(MAT_PLASTIC));
+        }
+    }
+    // ---- saloon interior: floor, seat rows with an aisle, ceiling light strips, kiosk
+    if (lod == 0) {
+        b.quad(vec3(-kFCabHW + 0.05f, kFCabY0 + 0.05f, kFDeckZ + 0.02f), vec3(kFCabHW - 0.05f, kFCabY0 + 0.05f, kFDeckZ + 0.02f), vec3(kFCabHW - 0.05f, kFCabY1, kFDeckZ + 0.02f),
+               vec3(-kFCabHW + 0.05f, kFCabY1, kFDeckZ + 0.02f), col(0.3f, 0.32f, 0.36f), makeMat(MAT_CARPET), vec3(0, 0, 1));
+        b.quad(vec3(-kFCabHW + 0.05f, kFCabY0 + 0.05f, kFRoofZ - 0.02f), vec3(-kFCabHW + 0.05f, kFCabY1, kFRoofZ - 0.02f), vec3(kFCabHW - 0.05f, kFCabY1, kFRoofZ - 0.02f),
+               vec3(kFCabHW - 0.05f, kFCabY0 + 0.05f, kFRoofZ - 0.02f), col(0.9f), makeMat(MAT_CEILING_TILE), vec3(0, 0, -1));
+        for (int sd = -1; sd <= 1; sd += 2)
+            b.quad(vec3(sd * 1.6f - 0.15f, kFCabY0 + 0.5f, kFRoofZ - 0.03f), vec3(sd * 1.6f - 0.15f, kFCabY1 - 0.5f, kFRoofZ - 0.03f), vec3(sd * 1.6f + 0.15f, kFCabY1 - 0.5f, kFRoofZ - 0.03f),
+                   vec3(sd * 1.6f + 0.15f, kFCabY0 + 0.5f, kFRoofZ - 0.03f), col(1.f, 0.97f, 0.92f, 0.5f), makeMat(MAT_EMISSIVE), vec3(0, 0, -1));
+        u32 cSeat = col(0.05f, 0.3f, 0.38f), cFrame = col(0.3f);
+        for (float y = kFCabY0 + 2.2f; y < kFCabY1 - 1.2f; y += 1.25f) {
+            if (fabsf(y) < 1.3f) continue;   // door lobby
+            for (int sd = -1; sd <= 1; sd += 2)
+                for (int k = 0; k < 3; k++) {
+                    float x = sd * (1.0f + k * 0.95f);
+                    b.box(vec3(x, y, kFDeckZ + 0.45f), vec3(0.42f, 0.24f, 0.06f), cSeat, makeMat(MAT_FABRIC));
+                    b.box(vec3(x, y - 0.26f, kFDeckZ + 0.85f), vec3(0.42f, 0.05f, 0.36f), cSeat, makeMat(MAT_FABRIC));
+                    b.box(vec3(x, y, kFDeckZ + 0.2f), vec3(0.05f, 0.05f, 0.2f), cFrame, mSteel);
+                }
+        }
+        b.box(vec3(0, kFCabY0 + 1.2f, kFDeckZ + 0.55f), vec3(1.4f, 0.4f, 0.55f), col(0.55f, 0.4f, 0.28f), makeMat(MAT_WOOD));
+    }
+}
+
+void ferrySpec(Vehicles::VehicleModel& o) {
+    using namespace fer;
+    o.name = "Sol Ferry";
+    o.maker = "Porto Sol Transit";
+    o.cls = Vehicles::VC_BOAT;
+    o.mass = 90000.f;
+    o.power = 1200.f;
+    o.torque = 20000.f;
+    o.maxRpm = 2200.f;
+    o.topSpeed = 14.f;
+    o.gears = 1;
+    o.brakeForce = 20000.f;
+    o.dragCoef = 0.8f;
+    o.frontalArea = 30.f;
+    o.centerOfMass = vec3(0, 0, 1.f);
+    o.engineSound = Audio::ENGINE_TRUCK_DIESEL;
+    o.spawnWeight = 0.f;
+    o.price = 0;
+    o.fixedLivery = true;
+    o.liveryPrimary = vec3(0.88f, 0.89f, 0.88f);
+    o.liverySecondary = vec3(0.01f, 0.34f, 0.4f);
+    o.paletteColors.push_back(o.liveryPrimary);
+    o.seats.clear();
+    o.seats.push_back(Vehicles::SeatSpec{vec3(0.6f, kFWheelY1 - 1.4f, kFRoofZ + 0.16f + 0.55f), true, false});   // master at the helm
+    const vec2 slots[7] = {vec2(1.95f, 4.6f), vec2(-1.95f, 3.35f), vec2(1.95f, -3.2f), vec2(-2.9f, -4.45f), vec2(1.0f, 7.1f), vec2(-1.0f, -7.0f), vec2(2.9f, 5.85f)};
+    for (int i = 0; i < 7; i++) o.seats.push_back(Vehicles::SeatSpec{vec3(slots[i].x, slots[i].y, kFDeckZ + 0.55f), false, slots[i].x < 0.f});
+    o.floatPoints.clear();
+    for (int sd = -1; sd <= 1; sd += 2)
+        for (int k = -1; k <= 1; k++) o.floatPoints.push_back(vec3(sd * kFHullC, k * 12.f, -0.6f));
+    o.boxCenter = vec3(0, -0.5f, 2.6f);
+    o.boxHalf = vec3(kFHalfBeam, kFHalfLen - 0.5f, 2.6f);
+}
+
+// City bus body for a route: the stock Civitas Boulevard body (rebuilt from the catalog) with its destination sign
+// re-lettered ("9 SOL BEACH"). The stock sign text is the emissive geometry in the header box above the windscreen.
+bool busBody(int catalogIndex, const std::string& sign, MeshData& out) {
+    Vehicles::VehicleModel spec;
+    Vehicles::buildModel(catalogIndex, spec);
+    const MeshData& src = spec.body;
+    if (src.empty()) return false;
+    float yFront = src.bounds.mx.y;
+    // sign text vertices: emissive, in the header band of the front face
+    std::vector<u8> drop(src.verts.size(), 0);
+    vec3 mn(1e9f), mx(-1e9f), nAcc(0.f);
+    int found = 0;
+    for (size_t i = 0; i < src.verts.size(); i++) {
+        const VtxStatic& v = src.verts[i];
+        if ((v.mat & 0xffu) != MAT_EMISSIVE) continue;
+        if (v.pos.z < 2.55f || v.pos.z > 3.0f || v.pos.y < yFront - 0.7f || fabsf(v.pos.x) > 1.12f) continue;
+        drop[i] = 1;
+        mn = vmin(mn, v.pos);
+        mx = vmax(mx, v.pos);
+        nAcc += unpackNormalOct(v.normal);
+        found++;
+    }
+    out.clear();
+    std::vector<u32> remap(src.verts.size(), 0xffffffffu);
+    for (size_t i = 0; i < src.verts.size(); i++) {
+        if (drop[i]) continue;
+        remap[i] = (u32)out.verts.size();
+        out.verts.push_back(src.verts[i]);
+        out.bounds.add(src.verts[i].pos);
+    }
+    for (size_t t = 0; t + 2 < src.indices.size(); t += 3) {
+        u32 a = src.indices[t], b = src.indices[t + 1], c = src.indices[t + 2];
+        if (remap[a] == 0xffffffffu || remap[b] == 0xffffffffu || remap[c] == 0xffffffffu) continue;
+        out.tri(remap[a], remap[b], remap[c]);
+    }
+    if (found < 4) return true;   // no sign found: plain stock body
+    vec3 n = normalize(length2(nAcc) > 1e-8f ? nAcc : vec3(0, 1, 0));
+    n = normalize(vec3(n.x * 0.2f, n.y, 0.f));
+    vec3 right = normalize(cross(vec3(0, 0, 1), n));   // reads left to right for a viewer in front of the bus
+    vec3 c = (mn + mx) * 0.5f;
+    float h = 0.15f;
+    float w = World::sitegeo::textAdvance(sign.c_str(), h);
+    float avail = 1.9f;
+    if (w > avail) {
+        h *= avail / w;
+        w = avail;
+    }
+    strokeTextM(out, sign.c_str(), c - right * (w * 0.5f) - vec3(0, 0, h * 0.5f) + n * 0.004f, right, vec3(0, 0, 1), h, h * 0.16f, packRGBA8(1.f, 0.62f, 0.12f, 0.45f),
+                makeMat(MAT_EMISSIVE));
+    return true;
+}
+
 }  // namespace TransitModels
 }  // namespace Game

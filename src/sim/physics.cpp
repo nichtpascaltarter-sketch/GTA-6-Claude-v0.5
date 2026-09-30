@@ -115,7 +115,7 @@ void CollisionWorld::addCell(int key, const std::vector<World::CollisionBox>& bo
                 c.kind = COL_BOX; c.he = p.type == World::PROP_DUMPSTER ? vec3(0.9f, 0.6f, 0.65f) : (p.type == World::PROP_BENCH ? vec3(0.9f, 0.25f, 0.45f) : vec3(0.3f, 0.3f, 0.5f));
                 c.c = p.pos + vec3(0, 0, c.he.z); c.flags = 1; break;
             case World::PROP_BUS_STOP:
-                c.kind = COL_BOX; c.he = vec3(1.8f, 0.3f, 1.25f); c.c = p.pos + vec3(0, 0.9f, 1.25f); break;
+                c.kind = COL_BOX; c.he = vec3(1.8f, 0.3f, 1.25f); c.c = p.pos + vec3(-c.ax.y * 0.9f, c.ax.x * 0.9f, 1.25f); break;   // back wall (local +y)
             case World::PROP_LIFEGUARD_TOWER:
                 c.kind = COL_BOX; c.he = vec3(1.3f, 1.3f, 2.1f); c.c = p.pos + vec3(0, 0, 2.1f); c.surface = SURF_WOOD; break;
             default: continue;

@@ -34,6 +34,8 @@
 #include "world/interiorshops.cpp"
 #include "world/interiorcivic.cpp"
 #include "world/interiorindustrial.cpp"
+#include "world/interiortower.cpp"
+#include "world/interiorgarages.cpp"
 #include "world/interiors.cpp"
 #include "sim/physics.cpp"
 #include "render/renderer.cpp"

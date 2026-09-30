@@ -11,6 +11,7 @@ namespace events_detail {
 
 enum EvType : u8 {
     EV_MUGGING = 0, EV_PURSE, EV_CRASH, EV_RACERS, EV_CHASE, EV_SHOOTOUT, EV_DRUNK, EV_MUSICIAN, EV_TOURISTS, EV_BREAKDOWN,
+    EV_TRAFFIC_STOP,   // a cruiser has pulled a car over: the officer walks up to the window, has words, both drive off
     EV_COUNT
 };
 
@@ -410,6 +411,7 @@ void GameWorld::updateEvents(float dt) {
         w[EV_MUSICIAN] = (tod > 10.f && tod < 23.5f) && (urban || scenic) ? 1.2f : 0.f;
         w[EV_TOURISTS] = (tod > 8.5f && tod < 19.5f) && scenic ? 1.4f : 0.f;
         w[EV_BREAKDOWN] = (tod > 6.f && tod < 22.f) ? 0.8f : 0.3f;
+        w[EV_TRAFFIC_STOP] = pinfo.wanted == 0 && !policeSuppressed ? (urban ? 1.0f : 0.4f) : 0.f;
         for (int k = 0; k < EV_COUNT; k++) {
             if (time - gEv.lastOfType[k] < 150.0) w[k] = 0.f;
             for (AmbientEvent& e : gEv.ev)
@@ -866,7 +868,7 @@ void GameWorld::updateEvents(float dt) {
                         Vehicle& v = vehicles[car];
                         v.parked = true;
                         v.sim.engineOn = false;
-                        v.indicator = 0;
+                        v.indicator = 2;   // hazard lights
                         v.lightsOn = env && (env->timeOfDay > 19.5f || env->timeOfDay < 6.5f);
                         VehAI& vai = vehAI(car);
                         vai.role = VR_BREAKDOWN;
@@ -879,6 +881,57 @@ void GameWorld::updateEvents(float dt) {
                         e.pos = p3;
                         e.dir = ls.t;
                         e.amount = 40 + (int)(ha % 81u);
+                        ok = true;
+                        break;
+                    }
+                    // ---------------------------------------------------------------- traffic stop
+                    case EV_TRAFFIC_STOP: {
+                        LaneSpot ls;
+                        if (!laneSpot(*this, ringPoint(ha, pp, fwd, 60.f, 140.f), 40.f, 30.f, true, ls)) break;
+                        const AI::Lane& L = laneGraph.lanes[ls.lane];
+                        if (L.flags & AI::LF_HIGHWAY) break;
+                        if (!hiddenFrom(*this, ls.pos, 50.f, warm)) break;
+                        int m = pickTrafficModel(*this, ha, (ha >> 7) % 4 == 0);
+                        int pm = findVehicleModel(Vehicles::VC_POLICE, ha >> 3);
+                        if (m < 0 || pm < 0) break;
+                        float hlA = vassets[m].spec.boxHalf.y, hlP = vassets[pm].spec.boxHalf.y;
+                        float uP = ls.u - hlA - hlP - 3.f;
+                        if (uP < L.u0 + 5.f || !traffic.laneFree(ls.lane, ls.u, hlA, 6.f) || !traffic.laneFree(ls.lane, uP, hlP, 6.f)) break;
+                        vec3 a3 = laneGraph.lanePos(ls.lane, ls.u, Max(L.width * 0.5f - vassets[m].spec.boxHalf.x - 0.15f, 0.f));
+                        vec3 c3 = laneGraph.lanePos(ls.lane, uP, Max(L.width * 0.5f - vassets[pm].spec.boxHalf.x - 0.15f, 0.f));
+                        int car = spawnVehicle(m, dvec3(a3.x, a3.y, a3.z + 0.35f), AI::dirYaw(ls.t), true);
+                        int cop = car >= 0 ? spawnVehicle(pm, dvec3(c3.x, c3.y, c3.z + 0.35f), AI::dirYaw(laneGraph.laneTangent(ls.lane, uP)), true, FAC_POLICE) : -1;
+                        if (car < 0 || cop < 0 || vehicles[car].seats[0] < 0 || vehicles[cop].seats[0] < 0) {
+                            if (car >= 0) despawnVehicle(car, true);
+                            if (cop >= 0) despawnVehicle(cop, true);
+                            break;
+                        }
+                        int drv = vehicles[car].seats[0], off = vehicles[cop].seats[0];
+                        for (int vid : {car, cop}) {
+                            Vehicle& v = vehicles[vid];
+                            v.parked = true;
+                            v.sim.engineOn = true;
+                            v.lightsOn = env && (env->timeOfDay > 19.5f || env->timeOfDay < 6.5f);
+                            VehAI& vai = vehAI(vid);
+                            vai.role = vid == cop ? VR_POLICE : VR_EVENT;
+                            vai.eventId = evId;
+                        }
+                        vehicles[cop].faction = FAC_POLICE;
+                        vehicles[cop].indicator = 2;   // (flashing lights while parked)
+                        peds[drv].brain.type = BRAIN_NONE;   // both stay put in their seats until the stop is over
+                        peds[off].brain.type = BRAIN_NONE;
+                        pedAI(drv).eventId = evId;
+                        pedAI(off).eventId = evId;
+                        pedAI(off).role = PR_COP;
+                        e.ped[0] = refPed(*this, drv);
+                        e.ped[1] = refPed(*this, off);
+                        e.np = 2;
+                        e.veh[0] = refVeh(*this, car);
+                        e.veh[1] = refVeh(*this, cop);
+                        e.nv = 2;
+                        e.pos = a3;
+                        e.dir = ls.t;
+                        e.amount = (int)(ha % 9u);
                         ok = true;
                         break;
                     }
@@ -1546,9 +1599,103 @@ void GameWorld::updateEvents(float dt) {
                 }
                 break;
             }
+            case EV_TRAFFIC_STOP: {
+                // A: running the plate in the cruiser, B: walking up to the window, C: words at the window,
+                // D: back to the cruiser, E: both drive off
+                int drv = livePed(*this, e.ped[0]), off = livePed(*this, e.ped[1]);
+                int car = liveVeh(*this, e.veh[0]), cop = liveVeh(*this, e.veh[1]);
+                if (car < 0 || cop < 0 || drv < 0 || off < 0 || isDown(peds[off]) || isDown(peds[drv]) || pinfo.wanted > 0) {
+                    over = true;
+                    break;
+                }
+                Vehicle& vc = vehicles[car];
+                Vehicle& vp = vehicles[cop];
+                if (e.stage < ST_E && (vc.seats[0] != drv || vp.sim.speed() > 1.f || vc.sim.speed() > 1.f)) {
+                    over = true;   // somebody drove off / took a car
+                    break;
+                }
+                const Vehicles::VehicleModel& sa = vassets[vc.model].spec;
+                float side = !sa.seats.empty() && sa.seats[0].pos.x > 0.f ? 1.f : -1.f;
+                vec2 window = (vc.sim.body.pos.toVec3() + rotate(vc.sim.body.rot, vec3(side * (sa.boxHalf.x + 0.6f), 0.4f, 0.f))).xy();
+                const Vehicles::VehicleModel& sp = vassets[vp.model].spec;
+                float sideP = !sp.seats.empty() && sp.seats[0].pos.x > 0.f ? 1.f : -1.f;
+                vec2 copDoor = (vp.sim.body.pos.toVec3() + rotate(vp.sim.body.rot, vec3(sideP * (sp.boxHalf.x + 0.55f), 0.3f, 0.f))).xy();
+                Ped& o = peds[off];
+                vec2 opos = o.pos.toVec3().xy();
+                if (e.stage == ST_A) {
+                    if (e.t > 4.f + (float)(e.amount % 3)) {
+                        removePedFromVehicle(off, true);
+                        setActor(*this, off, evId, window, yawTowards(window, vc.sim.body.pos.toVec3().xy()), 0, -1);
+                        setStage(e, ST_B);
+                    }
+                } else if (e.stage == ST_B) {
+                    if (!calmActor(*this, off)) {
+                        over = true;
+                        break;
+                    }
+                    if (length(opos - window) < 0.8f || e.t > 25.f) {
+                        pedAI(off).stance = 7;
+                        e.barkT = 0.f;
+                        e.flag = 0;
+                        setStage(e, ST_C);
+                    }
+                } else if (e.stage == ST_C) {
+                    if (!calmActor(*this, off)) {
+                        over = true;
+                        break;
+                    }
+                    if (e.barkT <= 0.f && plDist < 45.f) {
+                        // alternate: officer, driver, officer...
+                        bool officer = (e.flag & 1) == 0;
+                        aiSay(officer ? off : drv, officer ? BK_TICKET : BK_TICKETED, 1.f, plDist < 20.f);
+                        if (officer && o.pendingAction < 0 && (e.flag % 4) == 2) o.pendingAction = Anim::CLIP_POINT;
+                        e.flag++;
+                        e.barkT = 3.5f + hashToFloat(hash32(o.uid + (u32)e.flag)) * 2.5f;
+                    }
+                    if (e.t > 16.f + (float)e.amount) {
+                        PedAI& oa = pedAI(off);
+                        oa.anchor = copDoor;
+                        oa.anchorYaw = yawTowards(copDoor, vp.sim.body.pos.toVec3().xy());
+                        oa.stance = 0;
+                        setStage(e, ST_D);
+                    }
+                } else if (e.stage == ST_D) {
+                    if (length(opos - copDoor) < 1.2f || e.t > 20.f) {
+                        pedAI(off).eventId = -1;
+                        pedAI(drv).eventId = -1;
+                        warpPedIntoVehicle(off, cop, 0);
+                        o.brain.type = BRAIN_DRIVER;
+                        peds[drv].brain.type = BRAIN_DRIVER;
+                        vc.parked = vp.parked = false;
+                        vp.indicator = 0;
+                        attachTraffic(car);
+                        attachTraffic(cop);
+                        vehAI(car).role = VR_TRAFFIC;
+                        vehAI(cop).role = VR_POLICE;
+                        setStage(e, ST_E);
+                    }
+                } else if (e.t > 8.f) {
+                    over = true;
+                }
+                break;
+            }
             default: over = true; break;
         }
         if (plDist > keepR) over = true;
+        if (over && e.type == EV_TRAFFIC_STOP && e.stage < ST_E) {
+            // cut short: nobody may stay frozen in a seat (brain NONE) or parked forever
+            for (int k = 0; k < e.np; k++) {
+                int id = livePed(*this, e.ped[k]);
+                if (id >= 0 && peds[id].state == PS_INVEHICLE && peds[id].brain.type == BRAIN_NONE) peds[id].brain.type = BRAIN_DRIVER;
+            }
+            for (int k = 0; k < e.nv; k++) {
+                int id = liveVeh(*this, e.veh[k]);
+                if (id >= 0) {
+                    vehicles[id].parked = vehicles[id].seats[0] < 0;
+                    if (vehicles[id].indicator == 2) vehicles[id].indicator = 0;
+                }
+            }
+        }
         if (over) releaseEvent(*this, e);
     }
 }

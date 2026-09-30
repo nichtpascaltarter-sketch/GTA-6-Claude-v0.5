@@ -310,9 +310,9 @@ std::string GameWorld::aiTrafficHealthText() const {
         worstTxt = StrFormat("car %d at %.0f %.0f %s %d u %.1f mode %d stuck %.0f blocked %.0f wait %.0f", worstId, p.x, p.y,
                              d.path < (int)laneGraph.lanes.size() ? "lane" : "conn", d.path, d.u, (int)d.mode, d.stuckTime, d.blockedTime, d.waitTime);
     }
-    return StrFormat("traffic health: stuck>30s %d blocked>45s %d wait>90s %d holding %d rolled %d wrecked %d | impacts %d (with player %d) | "
+    return StrFormat("traffic health: stuck>30s %d blocked>45s %d wait>90s %d holding %d rolled %d wrecked %d unhung %d | impacts %d (with player %d) | "
                      "core red %ld stopsign %ld stuckEv %ld recov %ld reloc %ld deadlockBreaks %ld | worst: %s",
-                     stuck, blocked, waiting, holding, rolled, wrecked, ai.stats.hardImpacts, ai.stats.impactsWithPlayer, ts.redViolations,
+                     stuck, blocked, waiting, holding, rolled, wrecked, ai.stats.unhung, ai.stats.hardImpacts, ai.stats.impactsWithPlayer, ts.redViolations,
                      ts.stopSignViolations, ts.stuckEvents, ts.recoveries, ts.relocalizations, ts.deadlockBreaks, worstTxt.c_str());
 }
 

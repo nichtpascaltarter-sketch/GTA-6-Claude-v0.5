@@ -140,7 +140,7 @@ float3 interiorReflection(int k, float3 p, float3 R, float rough, float dist) {
 float3 skinDirect(GBufferData g, float3 N, float3 V, float3 L, float shadow, float thickness) {
     float thin = saturate(g.extra * 2.0 - 1.0);
     float NoLr = dot(N, L);
-    const float3 w = float3(0.5, 0.2, 0.12);
+    const float3 w = float3(0.3, 0.1, 0.06);
     float3 wrapD = saturate((NoLr + w) / (1.0 + w));
     float3 sh3 = pow(saturate(shadow), float3(0.55, 1.0, 1.25));
     float3 H = normalize(V + L);
@@ -149,9 +149,12 @@ float3 skinDirect(GBufferData g, float3 N, float3 V, float3 L, float shadow, flo
     float F = 0.028 + 0.972 * pow5(1.0 - VoH);
     float spec = (D_GGX(NoH, a1) * V_SmithGGXCorrelated(NoV, NoL, a1) * 0.8 + D_GGX(NoH, a2) * V_SmithGGXCorrelated(NoV, NoL, a2) * 0.2) * F;
     float3 r = g.albedo / PI * wrapD * (1.0 - F) * sh3 + spec * NoL * saturate(shadow);
-    float3 transm = exp(-thickness / float3(0.012, 0.0045, 0.003)) * thin;
-    float fwd = saturate(dot(V, -L)) * 0.5 + 0.5;
-    r += g.albedo * transm * saturate(0.25 - NoLr) * fwd * fwd * (0.8 / PI);
+    // A zero thickness is ambiguous (the part is not in the shadow map, e.g. distant crowd LODs, or the point is on
+    // the lit surface itself): assume 2 cm of tissue then, so nothing glows unless it is really thin and backlit.
+    float t = thickness < 0.003 ? 0.02 : thickness;
+    float3 transm = exp(-t / float3(0.012, 0.0045, 0.003)) * thin;
+    float fwd = saturate(dot(V, -L));
+    r += g.albedo * transm * saturate(0.1 - NoLr) * fwd * fwd * (0.35 / PI);
     return r;
 }
 
@@ -163,16 +166,17 @@ float3 hairDirect(GBufferData g, float3 N, float3 V, float3 L) {
     float tl = length(T);
     T = tl > 1e-3 ? T / tl : normalize(cross(N, float3(1, 0, 0)));
     float3 H = normalize(L + V);
-    float3 T1 = normalize(T + N * 0.1), T2 = normalize(T - N * 0.15);
+    float jit = (g.extra - 0.5) * 0.35;   // per-strand tilt: the highlight band breaks up into strands
+    float3 T1 = normalize(T + N * (0.1 + jit)), T2 = normalize(T - N * (0.15 - jit));
     float h1 = dot(T1, H), h2 = dot(T2, H);
-    float e1 = clamp(2.0 / max(sq(g.rough * 0.7), 1e-3) - 2.0, 8.0, 400.0);
-    float e2 = e1 * 0.25;
+    float e1 = clamp(2.0 / max(sq(g.rough * 0.5), 1e-3) - 2.0, 8.0, 400.0);   // narrow R lobe (~6 degrees)
+    float e2 = e1 * 0.3;
     float s1 = pow(sqrt(saturate(1.0 - h1 * h1)), e1) * (e1 + 2.0) / (2.0 * PI);
     float s2 = pow(sqrt(saturate(1.0 - h2 * h2)), e2) * (e2 + 2.0) / (2.0 * PI);
     float NoL = dot(N, L);
     float vis = saturate(NoL * 0.75 + 0.25);
     float F = 0.046 + 0.954 * pow5(1.0 - saturate(dot(V, H)));
-    float3 spec = (s1 * F * 0.5 + s2 * g.albedo * (0.3 + g.extra * 0.9) * 0.35) * vis;
+    float3 spec = (s1 * F * 0.35 * (0.4 + 0.8 * g.extra) + s2 * g.albedo * (0.3 + g.extra * 0.9) * 0.25) * vis;
     return g.albedo / PI * saturate(NoL * 0.6 + 0.4) * 0.85 + spec;
 }
 
@@ -297,7 +301,7 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
     float3 env = (sInterior >= 0 ? interiorReflection(sInterior, relPos, R, g.rough, length(relPos)) : envReflection(R, g.rough)) * specOcc;
     env = lerp(env, ssr.rgb / preExposure(), ssr.a);
     float3 ambientSpec = env * (f0 * ab.x + ab.y) * horizonOcclusion(R, N);
-    if (g.shadingModel == SM_HAIR) ambientSpec *= lerp(float3(0.35, 0.35, 0.35), g.albedo * 1.5, 0.5);   // strands, not a mirror
+    if (g.shadingModel == SM_HAIR) ambientSpec *= lerp(float3(0.2, 0.2, 0.2), g.albedo * 1.2, 0.5);   // strands, not a mirror
     else if (g.shadingModel == SM_SKIN) ambientSpec *= 0.7;                                          // F0 0.028, not 0.04
     return direct + ambientDiffuse + ambientSpec + coatSpecAmb;
 }

@@ -12,10 +12,13 @@ struct OpenWorldState {
     int lastOverlayFrames = -1;
     int overlayMissing = 100;       // frames without a drawMissionOverlay call
     float introTimer = 0.f;
+    bool introCine = false;         // the new-game opening shots have played
+    float introAfter = 0.f;         // time since they ended (Tomas calls a moment later)
     int lastDef = -1;
     u32 lastPlayerUid = 0;
 };
 OpenWorldState gOW;
+
 
 bool overlayWired() { return gOW.overlayMissing < 4; }
 
@@ -51,16 +54,24 @@ void updateOpenWorld(GameWorld& g, float dt) {
             }
             gOW.lastPlayerUid = p0->uid;
             gSwitching = false;
+            gOW.introTimer = 0.f;
+            gOW.introCine = false;
+            gOW.introAfter = 0.f;
         }
     }
     menuUpdate(g, dt);
     updateDrivers(g, dt);
     enforceOutfit(g);
     Ped* pl = g.playerPed();
-    // new game: the prologue starts with Tomas' phone call a few seconds in
+    // new game: the opening shots, then the prologue starts with Tomas' phone call a few seconds in
     if (pl && !flag(g, EX_INTRO_DONE) && !gMissions.active && !Platform::argValue("mission") && !Platform::argValue("missiontest")) {
         gOW.introTimer += dt;
-        if (gOW.introTimer > 4.f && g.playerControl && !g.mInCutscene()) {
+        if (!gOW.introCine && gOW.introTimer > 0.3f && !g.mInCutscene()) {
+            gOW.introCine = true;
+            mu::openingShots(g);
+        }
+        if (gOW.introCine && !g.mInCutscene()) gOW.introAfter += dt;
+        if (gOW.introTimer > 4.f && gOW.introAfter > 2.5f && g.playerControl && !g.mInCutscene()) {
             setFlag(g, EX_INTRO_DONE, 1);
             int di = gMissions.findDef("low_tide");
             if (di >= 0 && !storyDone(g, SF_LOW_TIDE)) {
@@ -81,6 +92,26 @@ void updateOpenWorld(GameWorld& g, float dt) {
 
 void openWorldOnMissionEnd(GameWorld& g, int def, bool passed) {
     using namespace mu;
+    // the pass summary of a story or stranger mission: time, kills, accuracy; story missions keep a best time
+    const MissionManager& M = gMissions;
+    if (passed && def >= 0 && def < (int)M.defs.size() && (M.defs[def].storyIndex >= 0 || !M.defs[def].repeatable) && !M.defs[def].hidden) {
+        const MissionDef& d = M.defs[def];
+        float secs = (float)Max(0.0, g.time - M.statStart);
+        int kills = g.pinfo.kills - M.statKills, heads = g.pinfo.headshots - M.statHeadshots;
+        int shots = g.pinfo.shotsFired - M.statShots, hits = g.pinfo.shotsHit - M.statHits;
+        std::string line = StrFormat("Time %d:%02d", (int)(secs / 60.f), (int)fmodf(secs, 60.f));
+        if (kills > 0) line += heads > 0 ? StrFormat("   Kills %d (%d headshot%s)", kills, heads, heads > 1 ? "s" : "") : StrFormat("   Kills %d", kills);
+        if (shots >= 5) line += StrFormat("   Accuracy %d%%", (int)(100.f * hits / (float)shots + 0.5f));
+        if (d.storyIndex >= 0 && d.setsFlag >= 0 && d.setsFlag < 32) {
+            int slot = EX_STORY_BEST + d.setsFlag, ds = Max(1, (int)(secs * 10.f));
+            int best = flag(g, slot);
+            if (best == 0 || ds < best) {
+                if (best > 0) line += "   NEW BEST";
+                setFlag(g, slot, ds);
+            }
+        }
+        g.notify("MISSION STATS", line);
+    }
     clearDrivers(g, 0);
     clearMissionPickups(g);
     if (menuIs(MO_CHOICE)) menuClose(g);

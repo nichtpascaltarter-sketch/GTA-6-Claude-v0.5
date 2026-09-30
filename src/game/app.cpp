@@ -59,6 +59,16 @@ struct App {
     // --autoplay tour: visit districts at different hours, one screenshot per stop (scorecard evidence)
     int tourStop = -1;
     int tourFirst = 0, tourCount = 99;   // --tourstart N --tourcount M: run a slice of the tour (repro a single stop)
+    // --benchmark: scripted scenes timed on this machine (results in %LOCALAPPDATA%\NeonTide\benchmark.txt)
+    int benchScene = -1;
+    float benchT = 0.f, benchReportT = 0.f;
+    bool benchMeasuring = false, benchDone = false;
+    std::vector<float> benchFrameMs;
+    double benchUpdateMs = 0.0, benchRenderMs = 0.0, rawFrameSec = 0.0;
+    int benchPeds = 0, benchVehs = 0, benchSamples = 0;
+    std::vector<std::string> benchLines;
+    float benchAvgFps = 0.f, benchWorstLow = 1e9f;
+    float benchSeconds = 20.f;   // --benchseconds N: measured time per scene
     float tourT = 0.f;
     bool tourShot = false, tourDone = false;
     int meleeVictim = -1;        // --autoplay melee: the civilian for the takedown
@@ -89,6 +99,8 @@ struct App {
         loadStart = TimeSeconds();
         parseShots();
         if (const char* a = Platform::argValue("autoplay")) autoplay = a;
+        if (Platform::hasArg("benchmark")) autoplay = "benchmark";
+        if (const char* d = Platform::argValue("benchseconds")) benchSeconds = Clamp((float)atof(d), 1.f, 300.f);
         if (const char* d = Platform::argValue("autoduration")) autoDuration = (float)atof(d);
         if (const char* d = Platform::argValue("autoevery")) autoShotEvery = (float)atof(d);
         if (const char* d = Platform::argValue("renderevery")) renderEvery = Max(1, atoi(d));
@@ -191,6 +203,7 @@ struct App {
         Audio::setPaused(false);
         Audio::setScore(0, 0.f);
 #endif
+        if (Platform::hasArg("wildlifetest")) mu::setFlag(game, mu::EX_INTRO_DONE, 1);   // wildlife test scenes: no prologue call
         if (!autoplay.empty()) setupAutoplay();
 #endif
     }
@@ -416,6 +429,16 @@ struct App {
                                         p.yaw, FAC_CIVILIAN);
             if (meleeVictim >= 0) game.peds[meleeVictim].persistent = true;
             game.rig.yaw = p.yaw;
+        }
+        if (autoplay == "benchmark") {
+            mu::setFlag(game, mu::EX_INTRO_DONE, 1);   // no prologue phone call: free roam only
+            benchScene = -1;
+            benchDone = false;
+            benchLines.clear();
+            benchAvgFps = 0.f;
+            benchWorstLow = 1e9f;
+            autoDuration = 1e9f;   // ends after the results screen
+            weather.locked = true;
         }
         if (autoplay == "tour") {
             mu::setFlag(game, mu::EX_INTRO_DONE, 1);   // no prologue phone call: free roam only
@@ -671,9 +694,20 @@ struct App {
                 c.steer = vc.steer;
                 c.usingPad = true;
             }
-            if ((int)(t / 4.f) != (int)((t - dt) / 4.f))
-                LOG("autoplay chase t=%.1f wanted %d speed %.1f | %s | %s", t, game.pinfo.wanted, pv >= 0 ? game.vehicles[pv].sim.speed() : 0.f,
-                    game.aiCensusText(120.f).c_str(), game.aiDebugText().c_str());
+            if ((int)(t / 4.f) != (int)((t - dt) / 4.f)) {
+                // every police unit: distance to us, speed, drive mode
+                std::string units;
+                Ped* me = game.playerPed();
+                for (int i = 0; i < (int)game.vehicles.size() && me; i++) {
+                    const Vehicle& o = game.vehicles[i];
+                    if (!o.used || o.faction != FAC_POLICE) continue;
+                    const AI::Driver* d = game.traffic.get(i);
+                    units += StrFormat(" [%d %s %.0fm %.0fm/s m%d]", i, game.isAircraft(i) ? "heli" : "car", length(rel(o.sim.body.pos, me->pos)), o.sim.speed(),
+                                       d ? (int)d->mode : -1);
+                }
+                LOG("autoplay chase t=%.1f wanted %d seen %d speed %.1f units:%s | %s | %s", t, game.pinfo.wanted, (int)game.pinfo.policeSeesPlayer,
+                    pv >= 0 ? game.vehicles[pv].sim.speed() : 0.f, units.c_str(), game.aiCensusText(120.f).c_str(), game.aiDebugText().c_str());
+            }
         } else if (autoplay == "rage") {
             // roll into the stopped car ahead at ~8 m/s, then stay put: its bold driver gets out, storms up to the
             // window, yells and pounds on the glass
@@ -776,8 +810,25 @@ struct App {
                             }
                         }
                         d->threat = threat;
-                    } else if (d->mode == AI::DM_FLEE) {
-                        d->mode = AI::DM_NORMAL;
+                    } else {
+                        // city errands: route to one downtown / midtown / beach / Calle Luna spot after another, so the
+                        // soak spends its time in dense traffic rather than wandering off onto the highways
+                        static float routeT = 1e9f;
+                        routeT += dt;
+                        vec2 me = game.vehicles[pv].sim.body.pos.toVec3().xy();
+                        bool arrived = d->mode == AI::DM_ROUTE && length(d->dest - me) < 60.f;
+                        if (d->mode == AI::DM_FLEE || d->mode == AI::DM_NORMAL || arrived || routeT > 240.f) {
+                            static const vec2 kSpots[] = {{2713, 763}, {3165, -243}, {3350, -760}, {2700, 1300}, {1720, 360},
+                                                          {5066, 1470}, {5372, 900}, {3093, 1600}, {2300, -150}, {3356, 662}};
+                            static int next = 0;
+                            vec2 dest = kSpots[next % 10];
+                            if (length(dest - me) < 150.f) dest = kSpots[++next % 10];
+                            next++;
+                            game.traffic.setDestination(*d, dest);
+                            d->mode = AI::DM_ROUTE;
+                            routeT = 0.f;
+                            LOG("autoplay soak t=%.0f: driving to %.0f %.0f", t, dest.x, dest.y);
+                        }
                     }
                 }
                 game.driveVehicleAI(pv, dt);
@@ -817,6 +868,8 @@ struct App {
                     pv >= 0 ? game.vehicles[pv].sim.speed() : 0.f, game.pinfo.wanted, unsticks, respawns, game.aiTrafficHealthText().c_str(),
                     game.aiCensusText(100.f).c_str(), game.aiDebugText().c_str());
             }
+        } else if (autoplay == "benchmark") {
+            updateBenchmark(c, dt);
         } else if (autoplay == "tour") {
             updateTour(c, dt);
         } else if (autoplay == "melee") {
@@ -927,6 +980,177 @@ struct App {
     }
 #endif
 
+#ifdef HAVE_GAMEPLAY
+    // ---- --benchmark: five scripted scenes (streaming settled first), 20 s of unlocked frames each ----
+    struct BenchScene {
+        const char* name;
+        const mu::Place* pl;
+        float hour;
+        WeatherKind wx;
+        bool fly;
+    };
+    static const int kBenchScenes = 5;
+    void benchScenes(BenchScene* out) {
+        mu::computePlaces(game);
+        const mu::Places& P = mu::gPlaces;
+        out[0] = {"Downtown street, noon", &P.policeHq, 12.5f, WX_FAIR, false};
+        out[1] = {"Sol Beach promenade, sunset", &P.beachPier, 18.9f, WX_CLEAR, false};
+        out[2] = {"Calle Luna, night rain", &P.mariApt, 22.f, WX_RAIN, false};
+        out[3] = {"City flyover, afternoon", &P.solarisOne, 15.f, WX_CLOUDY, true};
+        out[4] = {"Sawgrass, foggy dawn", &P.sawgrassRoad, 7.f, WX_FOG, false};
+    }
+
+    void updateBenchmark(Controls& c, float dt) {
+        c = Controls();
+        if (benchDone) {
+            benchReportT += dt;
+            return;
+        }
+        BenchScene scenes[kBenchScenes];
+        benchScenes(scenes);
+        const float kMeasure = benchSeconds;
+        Ped* pl = game.playerPed();
+        if (!pl) return;
+        if (benchScene < 0 || (benchMeasuring && benchT >= kMeasure)) {
+            if (benchScene >= 0) benchFinishScene(scenes[benchScene].name);
+            benchScene++;
+            benchT = 0.f;
+            benchMeasuring = false;
+            if (benchScene >= kBenchScenes) {
+                benchWriteReport();
+                benchDone = true;
+                game.rig.scriptActive = false;
+                return;
+            }
+            weather.setImmediate(scenes[benchScene].wx);
+            game.populationWarmup = 2.5f;
+            renderer.cameraCut = true;
+            LOG("benchmark scene %d: %s", benchScene, scenes[benchScene].name);
+        }
+        const BenchScene& sc = scenes[benchScene];
+        env.timeOfDay = sc.hour;   // frozen: comparable runs
+        benchT += dt;
+        game.pinfo.wanted = 0;
+        pl->health = pl->maxHealth;
+        // scripted camera: a slow dolly along the street at eye height (street side, looking ahead and a little
+        // toward the frontages), or a wide orbit over the towers for the flyover
+        vec3 base = sc.pl->pos;
+        vec2 sd = sc.pl->streetDir, out = sc.pl->outward;
+        float t = benchMeasuring ? benchT : 0.f;
+        dvec3 camPos, target;
+        vec2 walker;
+        if (!sc.fly) {
+            vec2 q = vec2(base.x, base.y) - out * 1.5f + sd * (t * 1.6f - 16.f);
+            float gz = game.groundHeight(q.x, q.y, base.z + 3.f);
+            camPos = dvec3(q.x, q.y, gz + 1.7f);
+            vec2 look = normalize(sd + out * 0.35f);
+            target = camPos + dvec3(look.x * 10.f, look.y * 10.f, -0.35f);
+            walker = q + out * 2.f;
+        } else {
+            float a = t * 0.05f;
+            camPos = dvec3(base.x + cosf(a) * 520.f, base.y + sinf(a) * 520.f, 210.f);
+            target = dvec3(base.x, base.y, 40.f);
+            walker = vec2(base.x, base.y);
+        }
+        game.rig.scriptActive = true;
+        game.rig.scriptPos = camPos;
+        game.rig.scriptTarget = target;
+        game.rig.scriptFov = 60.f;
+        // the hidden player walks the sidewalk beside the camera so population and streaming centre on the view
+        pl->pos = dvec3(walker.x, walker.y, game.groundHeight(walker.x, walker.y, base.z + 3.f));
+        pl->vel = vec3(0.f);
+        if (!benchMeasuring && benchT > 4.f && (renderer.world->pendingCount() == 0 || benchT > 25.f)) {
+            benchMeasuring = true;
+            benchT = 0.f;
+            benchFrameMs.clear();
+            benchUpdateMs = benchRenderMs = 0.0;
+            benchPeds = benchVehs = benchSamples = 0;
+        }
+    }
+
+    void benchFinishScene(const char* name) {
+        std::vector<float> f = benchFrameMs;
+        if (f.empty()) return;
+        std::sort(f.begin(), f.end());
+        double sum = 0.0;
+        for (float x : f) sum += x;
+        float avgMs = (float)(sum / f.size());
+        auto pct = [&](float q) { return f[Min((size_t)(q * (f.size() - 1) + 0.5f), f.size() - 1)]; };
+        float p99 = pct(0.99f), p999 = pct(0.999f);
+        float avgFps = 1000.f / Max(avgMs, 0.01f), low1 = 1000.f / Max(p99, 0.01f), low01 = 1000.f / Max(p999, 0.01f);
+        int n = Max(benchSamples, 1);
+        std::string line = StrFormat("%-30s avg %6.1f fps | 1%% low %6.1f | 0.1%% low %6.1f | worst %6.1f ms | cpu update %5.2f ms, render submit "
+                                     "%5.2f ms | %d peds, %d vehicles",
+                                     name, avgFps, low1, low01, f.back(), benchUpdateMs / n, benchRenderMs / n, benchPeds / n, benchVehs / n);
+        benchLines.push_back(line);
+        benchAvgFps += avgFps / kBenchScenes;
+        benchWorstLow = Min(benchWorstLow, low1);
+        LOG("benchmark %s", line.c_str());
+    }
+
+    void benchWriteReport() {
+        SYSTEMTIME st;
+        GetLocalTime(&st);
+        std::string r = StrFormat("NEON TIDE benchmark  %04d-%02d-%02d %02d:%02d\n", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute);
+        r += StrFormat("GPU: %s (%zu MB)   CPU threads: %u\n", gfx::adapterName().c_str(), gfx::adapterVideoMemoryMB(), std::thread::hardware_concurrency());
+        r += StrFormat("Resolution %dx%d, quality preset %d, render scale %.2f, vsync off\n\n", gfx::backbufferWidth(), gfx::backbufferHeight(),
+                       renderer.settings.quality, renderer.settings.renderScale);
+        for (const std::string& l : benchLines) r += l + "\n";
+        r += StrFormat("\nOverall: average %.1f fps, worst 1%% low %.1f fps\n", benchAvgFps, benchWorstLow < 1e8f ? benchWorstLow : 0.f);
+        std::string path = Platform::userDataDir() + "benchmark.txt";
+        if (FILE* f = fopen(path.c_str(), "wb")) {
+            fwrite(r.data(), 1, r.size(), f);
+            fclose(f);
+        }
+        if (FILE* f = fopen((Platform::userDataDir() + "benchmark_history.txt").c_str(), "ab")) {
+            fwrite(r.data(), 1, r.size(), f);
+            fputs("\n", f);
+            fclose(f);
+        }
+        LOG("benchmark done, results in %s\n%s", path.c_str(), r.c_str());
+    }
+#endif
+
+#if defined(HAVE_GAMEPLAY) && defined(HAVE_GAME_UI)
+    void drawBenchmarkOverlay() {
+        float W = (float)UI::screenWidth(), H = (float)UI::screenHeight(), k = H / 1080.f;
+        UI::TextStyle ts;
+        ts.size = 22.f * k;
+        ts.shadow = 2.f * k;
+        if (!benchDone) {
+            BenchScene scenes[kBenchScenes];
+            benchScenes(scenes);
+            if (benchScene < 0 || benchScene >= kBenchScenes) return;
+            std::string label = StrFormat("BENCHMARK  %d/%d  %s  %s", benchScene + 1, kBenchScenes, scenes[benchScene].name,
+                                          benchMeasuring ? StrFormat("%.0f s", Max(0.f, benchSeconds - benchT)).c_str() : "(loading)");
+            UI::text(40.f * k, 40.f * k, label.c_str(), ts);
+            return;
+        }
+        float pw = Min(W - 80.f * k, 1500.f * k), ph = (170.f + 44.f * (float)benchLines.size()) * k;
+        float x = (W - pw) * 0.5f, y = (H - ph) * 0.5f;
+        UI::roundRect(x, y, pw, ph, 14.f * k, UI::rgba(0.02f, 0.03f, 0.05f, 0.88f), 2.f * k, UI::rgba(1.f, 0.35f, 0.65f, 0.9f));
+        UI::TextStyle hs = ts;
+        hs.font = UI::FONT_HEADING;
+        hs.size = 40.f * k;
+        UI::text(x + 36.f * k, y + 26.f * k, "BENCHMARK RESULTS", hs);
+        ts.size = 20.f * k;
+        UI::text(x + 36.f * k, y + 80.f * k, StrFormat("%s   %dx%d   preset %d", gfx::adapterName().c_str(), gfx::backbufferWidth(), gfx::backbufferHeight(),
+                                                        renderer.settings.quality).c_str(), ts);
+        float ly = y + 124.f * k;
+        UI::TextStyle ls = ts;
+        ls.size = 19.f * k;
+        for (const std::string& l : benchLines) {
+            UI::text(x + 36.f * k, ly, l.c_str(), ls);
+            ly += 44.f * k;
+        }
+        UI::TextStyle os = ts;
+        os.size = 24.f * k;
+        os.color = UI::rgba(1.f, 0.8f, 0.3f);
+        UI::text(x + 36.f * k, ly + 4.f * k, StrFormat("Average %.1f fps, worst 1%% low %.1f fps  -  saved to benchmark.txt (press Enter to exit)",
+                                                      benchAvgFps, benchWorstLow < 1e8f ? benchWorstLow : 0.f).c_str(), os);
+    }
+#endif
+
     void run() {
         while (true) {
             Platform::beginFrameInput();
@@ -937,6 +1161,7 @@ struct App {
             }
             double now = TimeSeconds();
             float dt = (float)Min(now - lastTime, 0.1);
+            rawFrameSec = now - lastTime;
             lastTime = now;
             frameMs = Lerp(frameMs, dt * 1000.f, 0.05f);
             fps = frameMs > 0 ? 1000.f / frameMs : 0;
@@ -1001,7 +1226,7 @@ struct App {
                 if (photo) game.ctl = Controls();   // the phone flies the photo camera and takes all input (Esc exits it)
                 else if (game.phone.capturingInput) maskPhoneInput(game.ctl);
                 photoFreeze = photo && game.phone.photo.freeze;
-                game.hidePlayerModel = photo && game.phone.photo.hidePlayer;
+                game.hidePlayerModel = (photo && game.phone.photo.hidePlayer) || autoplay == "benchmark";
 #endif
                 bool pausePressed = game.ctl.pause.pressed, mapPressed = game.ctl.map.pressed;
                 if (menuOpen) {
@@ -1020,7 +1245,9 @@ struct App {
                     weather.update(env, simDt, game.rig.cam.pos);
                     if (weather.cur != wxBefore && (weather.cur == WX_RAIN || weather.cur == WX_STORM || weather.cur == WX_FOG))
                         game.socialReport(UI::TE_WEATHER, game.rig.cam.pos, weather.cur == WX_RAIN ? "rain" : (weather.cur == WX_STORM ? "storm" : "fog"));
+                    double tu0 = TimeSeconds();
                     game.update(simDt);
+                    if (benchMeasuring) benchUpdateMs += (TimeSeconds() - tu0) * 1000.0;
                     if (game.pinfo.deathTimer > 3.8f) game.fadeOut(1.2f);
                     if (game.pinfo.deathTimer > 5.f && game.fadedOut()) {
                         GameWorld_respawnPlayer(game);
@@ -1057,14 +1284,29 @@ struct App {
                 game.updateAudioListener(dt);
                 Render::Camera rc = game.rig.cam;
 #ifdef HAVE_GAME_UI
-                if (!game.phone.photo.active) rc.fovY = Clamp(rc.fovY * menu.settings.fov / 60.f, 25.f * kDegToRad, 110.f * kDegToRad);
+                if (!game.phone.photo.active) {
+                    // Settings FOVs scale the rig's own: 60 degrees third person, 68 degrees first person (camera.cpp)
+                    float fovScale = game.rig.fpActive ? menu.settings.fovFirstPerson / 68.f : menu.settings.fov / 60.f;
+                    rc.fovY = Clamp(rc.fovY * fovScale, 25.f * kDegToRad, 110.f * kDegToRad);
+                }
 #endif
                 cam = rc;
                 game.renderCam = rc;
                 skippedDt += dt;
                 if (doRender) {
                     // frames skipped by --renderevery still count for time-based adaptation (exposure, particles)
+                    double tr0 = TimeSeconds();
                     renderer.render(rc, env, Min(skippedDt, 0.75f));
+                    if (benchMeasuring) {
+                        benchRenderMs += (TimeSeconds() - tr0) * 1000.0;
+                        benchFrameMs.push_back((float)(rawFrameSec * 1000.0));
+                        int np = 0, nv = 0;
+                        for (auto& q : game.peds) np += q.used;
+                        for (auto& q : game.vehicles) nv += q.used;
+                        benchPeds += np;
+                        benchVehs += nv;
+                        benchSamples++;
+                    }
                     skippedDt = 0.f;
                 } else renderer.world->update(rc.pos, TimeSeconds());
 #ifdef HAVE_GAME_UI
@@ -1088,6 +1330,7 @@ struct App {
                 bool showHud = menu.screen == UI::MENU_NONE && menu.settings.showHud && game.hudVisible && !game.phone.photo.active;
                 if (showHud) UI::drawHud(hud, dt);
                 if (menu.screen == UI::MENU_NONE) drawMissionOverlay(game, dt);   // shop and choice menus
+                if (autoplay == "benchmark") drawBenchmarkOverlay();
                 if (menu.screen == UI::MENU_NONE) updatePhone(in, dt);           // after the HUD, before Menus::update
                 drawCinematicOverlay();
             }
@@ -1136,7 +1379,9 @@ struct App {
             }
 #ifdef HAVE_GAMEPLAY
             if (!autoplay.empty() && state == AS_PLAYING) {
-                if (autoplay == "tour") {
+                if (autoplay == "benchmark") {
+                    if (benchDone && (benchReportT > 20.f || (benchReportT > 1.f && (in.pressed(KEY_ESCAPE) || in.pressed(KEY_ENTER) || in.pressed(KEY_SPACE))))) break;
+                } else if (autoplay == "tour") {
                     if (tourDone && game.requestScreenshot.empty()) break;
                 } else if (autoTime >= autoShot * autoShotEvery + 1.5f && (renderer.world->pendingCount() == 0 || autoTime > autoShot * autoShotEvery + 6.f)) {
                     std::string path = shotPath(StrFormat("auto_%s_%02d", autoplay.c_str(), autoShot));
@@ -1171,7 +1416,7 @@ struct App {
                 }
             }
             if (quit) break;
-            gfx::present(autotest ? false : renderer.settings.vsync);
+            gfx::present(autotest || autoplay == "benchmark" ? false : renderer.settings.vsync);   // benchmarks run unlocked
         }
     }
 

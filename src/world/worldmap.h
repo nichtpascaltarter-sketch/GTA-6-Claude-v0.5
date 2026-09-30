@@ -84,6 +84,9 @@ struct WorldMap {
     // Modify terrain to follow a road surface: sets height inside `halfWidth`, blends to
     // original height over `blend` meters beyond it.
     void flattenAlong(vec2 a, vec2 b, float za, float zb, float halfWidth, float blend);
+    // Cut (never raise) the terrain along a road: at most the road height (za..zb) within `flat`, then a cut face rising
+    // at `slope` out to `reach`.
+    void lowerAlong(vec2 a, vec2 b, float za, float zb, float flat, float reach, float slope);
     void flattenRect(vec2 center, vec2 axisX, float hx, float hy, float z, float blend);
     void recomputeSplat();  // after flattening
 

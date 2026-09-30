@@ -212,6 +212,367 @@ float groundAt(const WorldMap& map, vec2 q) {
 using namespace transit_layout;
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Bay ferries: T-head piers pushed out from the shore to water deep enough for a 34 m catamaran, and water paths
+// between them (grid search over open water with clearance from the shores, bridges, ships and docks, then smoothed).
+namespace transit_ferry {
+
+constexpr float kFerryHalfLen = 17.f, kFerryHalfBeam = 4.8f;
+constexpr float kHeadHalf = 18.f;      // T-head half length (along the shore)
+constexpr float kHeadDepth = 8.f;      // T-head width (along the pier)
+
+struct PierDef {
+    const char* name;
+    const char* code;
+    vec2 land;          // a point inland; the pier runs from the shore along `out`
+    vec2 out;
+    int heading;        // berth heading: +1 = along the pier's right, -1 = against it
+};
+
+// The loop runs Sol Beach -> Port Isle -> Key Coral -> Sol Beach; the ferry always lies starboard side to the T-head
+const PierDef kPierDefs[] = {
+    {"Sol Beach", "SBF", vec2(5000.f, -1250.f), vec2(-1.f, 0.f), 1},
+    {"Port Isle", "PIF", vec2(4280.f, -1000.f), vec2(0.f, -1.f), 1},
+    {"Key Coral", "KCF", vec2(4350.f, -3120.f), vec2(0.f, 1.f), 1},
+};
+
+float depthAt(const WorldMap& map, vec2 p) {
+    float w = map.waterAt(p.x, p.y);
+    if (w <= kNoWater + 1.f) return -1.f;
+    return w - map.heightAt(p.x, p.y);
+}
+
+bool placePier(const WorldMap& map, const PierDef& d, FerryPier& fp) {
+    vec2 dir = normalize(d.out);
+    vec2 shore = d.land;
+    bool found = false;
+    for (float s = 0.f; s < 900.f; s += 1.f) {
+        vec2 q = d.land + dir * s;
+        if (map.isWater(q.x, q.y)) {
+            shore = q;
+            found = true;
+            break;
+        }
+    }
+    if (!found) return false;
+    fp.name = d.name;
+    fp.code = d.code;
+    fp.dir = dir;
+    fp.base = shore - dir * 5.f;
+    fp.waterZ = map.waterAt(shore.x, shore.y);
+    fp.deckZ = fp.waterZ + 2.3f;
+    fp.groundZ = map.heightAt(fp.base.x, fp.base.y);
+    vec2 rt(dir.y, -dir.x);
+    // pier length: the whole ferry footprint beyond the T-head needs 3.5 m of water
+    float len = 26.f;
+    for (; len < 140.f; len += 2.f) {
+        vec2 head = fp.base + dir * len;
+        vec2 c = head + dir * (0.6f + kFerryHalfBeam);
+        bool ok = true;
+        for (int a = -2; a <= 2 && ok; a++)
+            for (int b = 0; b <= 2 && ok; b++) {
+                vec2 q = c + rt * (a * kFerryHalfLen * 0.5f) + dir * ((b - 1) * kFerryHalfBeam);
+                if (depthAt(map, q) < 2.2f) ok = false;   // shallow bay: a 1.4 m draft catamaran
+            }
+        if (ok) break;
+    }
+    fp.length = len;
+    fp.halfWidth = 3.2f;
+    vec2 head = fp.head();
+    fp.berth = head + dir * (0.6f + kFerryHalfBeam);
+    vec2 hd = rt * (float)d.heading;
+    fp.berthYaw = atan2f(-hd.x, hd.y);
+    fp.side = 1;
+    fp.gate = head;
+    fp.seed = hash32(0xFE77u + (u32)(d.land.x * 3.f) + (u32)(d.land.y * 7.f));
+    return true;
+}
+
+// Water navigation grid
+struct Grid {
+    vec2 org;
+    float cell = 10.f;
+    int nx = 0, ny = 0;
+    std::vector<float> depth, clear;
+    std::vector<u8> hard;   // land, bridges, ships, docks
+    int idx(int x, int y) const { return y * nx + x; }
+    vec2 pos(int x, int y) const { return org + vec2((x + 0.5f) * cell, (y + 0.5f) * cell); }
+    bool cellOf(vec2 p, int& x, int& y) const {
+        x = (int)floorf((p.x - org.x) / cell);
+        y = (int)floorf((p.y - org.y) / cell);
+        return x >= 0 && y >= 0 && x < nx && y < ny;
+    }
+};
+
+void blockOBB(Grid& G, vec2 c, vec2 ax, float hx, float hy) {
+    vec2 ay = perp(ax);
+    float r = sqrtf(hx * hx + hy * hy);
+    int x0, y0, x1, y1;
+    G.cellOf(c - vec2(r), x0, y0);
+    G.cellOf(c + vec2(r), x1, y1);
+    for (int y = Max(0, y0); y <= Min(G.ny - 1, y1); y++)
+        for (int x = Max(0, x0); x <= Min(G.nx - 1, x1); x++) {
+            vec2 d = G.pos(x, y) - c;
+            if (fabsf(dot(d, ax)) <= hx && fabsf(dot(d, ay)) <= hy) G.hard[G.idx(x, y)] = 1;
+        }
+}
+
+void buildGrid(Grid& G, const WorldMap& map, const RoadNetwork& net, const SiteSet& S, const std::vector<FerryPier>& piers) {
+    vec2 mn(1e9f), mx(-1e9f);
+    for (const FerryPier& p : piers) {
+        mn = vmin(mn, p.berth);
+        mx = vmax(mx, p.berth);
+    }
+    mn -= vec2(700.f);
+    mx += vec2(700.f);
+    G.org = mn;
+    G.nx = (int)ceilf((mx.x - mn.x) / G.cell);
+    G.ny = (int)ceilf((mx.y - mn.y) / G.cell);
+    size_t n = (size_t)G.nx * G.ny;
+    G.depth.assign(n, -1.f);
+    G.hard.assign(n, 0);
+    for (int y = 0; y < G.ny; y++)
+        for (int x = 0; x < G.nx; x++) {
+            vec2 p = G.pos(x, y);
+            float d = depthAt(map, p);
+            G.depth[G.idx(x, y)] = d;
+            if (d < 1.9f) G.hard[G.idx(x, y)] = 1;
+        }
+    // bridges and causeways over the water
+    std::vector<int> cand;
+    net.edgesInRect(mn, mx, cand);
+    for (int ei : cand) {
+        const RoadEdge& e = net.edges[ei];
+        if (!(e.flags & RF_BRIDGE)) continue;
+        for (size_t k = 0; k + 1 < e.pts.size(); k++) {
+            vec2 a = e.pts[k].xy(), b = e.pts[k + 1].xy();
+            float len = length(b - a);
+            if (len < 1e-3f) continue;
+            blockOBB(G, (a + b) * 0.5f, (b - a) / len, len * 0.5f + 6.f, e.halfWidth + 14.f);
+        }
+    }
+    // moored ships, docks, marinas and piers of the site layout, and the other ferry piers
+    for (const SiteElem& e : S.elems) {
+        if (e.kind == SK_SHIP) blockOBB(G, e.c, e.ax, e.hx + 25.f, e.hy + 25.f);
+        else if (e.kind == SK_MARINA || e.kind == SK_DOCK || e.kind == SK_BEACH_PIER || e.kind == SK_RIVER_MARINA || e.kind == SK_BOAT)
+            blockOBB(G, e.c, e.ax, e.hx + 12.f, e.hy + 12.f);
+        else if (e.kind == SK_BEACH_PIER || e.isLine()) {
+        }
+    }
+    for (const FerryPier& p : piers) {
+        vec2 rt = p.right();
+        blockOBB(G, p.base + p.dir * (p.length * 0.5f), p.dir, p.length * 0.5f + 1.f, p.halfWidth + 2.f);
+        blockOBB(G, p.head() - p.dir * (kHeadDepth * 0.5f), p.dir, kHeadDepth * 0.5f + 1.f, kHeadHalf + 2.f);
+        (void)rt;
+    }
+    // clearance: distance to the nearest hard cell (two-pass chamfer, meters)
+    G.clear.assign(n, 1e6f);
+    for (size_t i = 0; i < n; i++)
+        if (G.hard[i]) G.clear[i] = 0.f;
+    const float c1 = G.cell, c2 = G.cell * 1.4142f;
+    for (int y = 0; y < G.ny; y++)
+        for (int x = 0; x < G.nx; x++) {
+            float& v = G.clear[G.idx(x, y)];
+            if (x > 0) v = Min(v, G.clear[G.idx(x - 1, y)] + c1);
+            if (y > 0) v = Min(v, G.clear[G.idx(x, y - 1)] + c1);
+            if (x > 0 && y > 0) v = Min(v, G.clear[G.idx(x - 1, y - 1)] + c2);
+            if (x + 1 < G.nx && y > 0) v = Min(v, G.clear[G.idx(x + 1, y - 1)] + c2);
+        }
+    for (int y = G.ny - 1; y >= 0; y--)
+        for (int x = G.nx - 1; x >= 0; x--) {
+            float& v = G.clear[G.idx(x, y)];
+            if (x + 1 < G.nx) v = Min(v, G.clear[G.idx(x + 1, y)] + c1);
+            if (y + 1 < G.ny) v = Min(v, G.clear[G.idx(x, y + 1)] + c1);
+            if (x + 1 < G.nx && y + 1 < G.ny) v = Min(v, G.clear[G.idx(x + 1, y + 1)] + c2);
+            if (x > 0 && y + 1 < G.ny) v = Min(v, G.clear[G.idx(x - 1, y + 1)] + c2);
+        }
+}
+
+// A* from a to b over cells with enough clearance (relaxed near the two ends: the berths lie close to the shore)
+bool waterPath(const Grid& G, vec2 a, vec2 b, std::vector<vec2>& out) {
+    int ax, ay, bx, by;
+    if (!G.cellOf(a, ax, ay) || !G.cellOf(b, bx, by)) return false;
+    size_t n = (size_t)G.nx * G.ny;
+    std::vector<float> cost(n, 1e30f);
+    std::vector<int> prev(n, -1);
+    auto passable = [&](int x, int y) {
+        int i = G.idx(x, y);
+        if (G.hard[i]) return false;
+        vec2 p = G.pos(x, y);
+        float nearEnd = Min(length(p - a), length(p - b));
+        float need = nearEnd < 110.f ? 8.f : 26.f;
+        return G.clear[i] >= need;
+    };
+    typedef std::pair<float, int> QE;
+    std::priority_queue<QE, std::vector<QE>, std::greater<QE>> open;
+    int s0 = G.idx(ax, ay), goal = G.idx(bx, by);
+    cost[s0] = 0.f;
+    open.push(QE(0.f, s0));
+    while (!open.empty()) {
+        QE t = open.top();
+        open.pop();
+        int i = t.second;
+        int x = i % G.nx, y = i / G.nx;
+        if (i == goal) break;
+        if (t.first > cost[i] + length(G.pos(x, y) - b) + 0.01f) continue;
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++) {
+                if (!dx && !dy) continue;
+                int x2 = x + dx, y2 = y + dy;
+                if (x2 < 0 || y2 < 0 || x2 >= G.nx || y2 >= G.ny) continue;
+                int j = G.idx(x2, y2);
+                if (j != goal && !passable(x2, y2)) continue;
+                float step = (dx && dy) ? G.cell * 1.4142f : G.cell;
+                float penalty = 1.f + 2.f * Saturate((60.f - G.clear[j]) / 60.f);
+                float nc = cost[i] + step * penalty;
+                if (nc < cost[j]) {
+                    cost[j] = nc;
+                    prev[j] = i;
+                    open.push(QE(nc + length(G.pos(x2, y2) - b), j));
+                }
+            }
+    }
+    if (prev[goal] < 0) return false;
+    std::vector<vec2> raw;
+    for (int i = goal; i >= 0; i = prev[i]) {
+        raw.push_back(G.pos(i % G.nx, i / G.nx));
+        if (i == s0) break;
+    }
+    std::reverse(raw.begin(), raw.end());
+    raw.front() = a;
+    raw.back() = b;
+    // string pulling: keep the farthest visible point (sampled line of sight over clear water)
+    auto visible = [&](vec2 p, vec2 q) {
+        float len = length(q - p);
+        int steps = Max(1, (int)(len / (G.cell * 0.5f)));
+        for (int k = 0; k <= steps; k++) {
+            vec2 r = lerp(p, q, (float)k / steps);
+            int x, y;
+            if (!G.cellOf(r, x, y)) return false;
+            int i = G.idx(x, y);
+            float nearEnd = Min(length(r - a), length(r - b));
+            if (G.hard[i] || G.clear[i] < (nearEnd < 110.f ? 8.f : 22.f)) return false;
+        }
+        return true;
+    };
+    out.clear();
+    out.push_back(raw[0]);
+    size_t cur = 0;
+    while (cur + 1 < raw.size()) {
+        size_t best = cur + 1;
+        for (size_t k = raw.size() - 1; k > cur + 1; k--)
+            if (visible(raw[cur], raw[k])) {
+                best = k;
+                break;
+            }
+        out.push_back(raw[best]);
+        cur = best;
+    }
+    return true;
+}
+
+// Chaikin corner cutting (end points kept), then even resampling
+std::vector<vec2> smoothPath(const std::vector<vec2>& in, int iters, float step) {
+    std::vector<vec2> p = in;
+    for (int it = 0; it < iters; it++) {
+        std::vector<vec2> q;
+        q.push_back(p.front());
+        for (size_t i = 0; i + 1 < p.size(); i++) {
+            vec2 a = p[i], b = p[i + 1];
+            if (i > 0) q.push_back(lerp(a, b, 0.25f));
+            if (i + 2 < p.size()) q.push_back(lerp(a, b, 0.75f));
+        }
+        q.push_back(p.back());
+        p.swap(q);
+    }
+    std::vector<vec2> out;
+    out.push_back(p[0]);
+    float acc = 0.f;
+    for (size_t i = 0; i + 1 < p.size(); i++) {
+        vec2 a = p[i], b = p[i + 1];
+        float len = length(b - a);
+        float t = step - acc;
+        while (t <= len) {
+            out.push_back(lerp(a, b, t / len));
+            t += step;
+        }
+        acc = len - (t - step);
+    }
+    if (length(out.back() - p.back()) > 0.5f) out.push_back(p.back());
+    return out;
+}
+
+// Round every corner of a polyline with a circular arc of radius up to R (less where the legs are short), keeping
+// the first and last `keep` meters straight (berth approaches). Output sampled every `step` meters along arcs.
+std::vector<vec2> filletPath(const std::vector<vec2>& in, float R, float keep, float step) {
+    std::vector<vec2> poly;
+    for (vec2 p : in)
+        if (poly.empty() || length(p - poly.back()) > 0.5f) poly.push_back(p);
+    size_t n = poly.size();
+    std::vector<vec2> out;
+    if (n < 3) return poly;
+    out.push_back(poly[0]);
+    for (size_t i = 1; i + 1 < n; i++) {
+        vec2 a = poly[i - 1], b = poly[i], c = poly[i + 1];
+        float la = length(b - a), lc = length(c - b);
+        vec2 d1 = (b - a) / la, d2 = (c - b) / lc;
+        float cs = Clamp(dot(d1, d2), -1.f, 1.f);
+        float th = acosf(cs);
+        if (th < 0.01f) {
+            out.push_back(b);
+            continue;
+        }
+        float availA = i == 1 ? la - keep : la * 0.5f, availC = i + 2 == n ? lc - keep : lc * 0.5f;
+        float t = Min(R * tanf(th * 0.5f), Max(Min(availA, availC), 0.5f));
+        float r = t / tanf(th * 0.5f);
+        vec2 p1 = b - d1 * t, p2 = b + d2 * t;
+        float sgn = cross(d1, d2) > 0.f ? 1.f : -1.f;
+        vec2 ctr = p1 + perp(d1) * (sgn * r);
+        vec2 v1 = p1 - ctr;
+        int seg = Max(1, (int)ceilf(th * r / step));
+        for (int k = 0; k <= seg; k++) {
+            float ang = sgn * th * (float)k / seg;
+            float cs2 = cosf(ang), sn2 = sinf(ang);
+            out.push_back(ctr + vec2(v1.x * cs2 - v1.y * sn2, v1.x * sn2 + v1.y * cs2));
+        }
+    }
+    out.push_back(poly[n - 1]);
+    return out;
+}
+
+// Spread the turns of an evenly sampled path (Laplacian relaxation with fixed berth approaches): points that would
+// drift toward the shore are held back. The result turns at most a few degrees per sample.
+void relaxPath(std::vector<vec2>& p, const Grid& G, int fixedEnds, int iters) {
+    int n = (int)p.size();
+    if (n < fixedEnds * 2 + 3) return;
+    std::vector<vec2> q = p;
+    std::vector<u8> pinned(n, 0);
+    for (int i = 0; i < fixedEnds; i++) pinned[i] = pinned[n - 1 - i] = 1;
+    auto clearAt = [&](vec2 v) {
+        int x, y;
+        if (!G.cellOf(v, x, y)) return 0.f;
+        int i = G.idx(x, y);
+        return G.hard[i] ? 0.f : G.clear[i];
+    };
+    for (int it = 0; it < iters; it++) {
+        for (int i = 1; i + 1 < n; i++) {
+            if (pinned[i]) continue;
+            vec2 target = (p[i - 1] + p[i + 1]) * 0.5f;
+            vec2 np = lerp(p[i], target, 0.5f);
+            float near_ = Min(length(np - p.front()), length(np - p.back()));
+            if (clearAt(np) < (near_ < 120.f ? 5.f : 14.f)) {
+                pinned[i] = 1;   // hold it where it is (the shore is close)
+                continue;
+            }
+            q[i] = np;
+        }
+        for (int i = 1; i + 1 < n; i++)
+            if (!pinned[i]) p[i] = q[i];
+    }
+}
+
+}  // namespace transit_ferry
+
+// ---------------------------------------------------------------------------------------------------------------------
 void transitLayout(SiteSet& S, WorldMap& map) {
     (void)map;
     TransitNet& N = *gTransit;
@@ -264,8 +625,20 @@ void transitLayout(SiteSet& S, WorldMap& map) {
         S.lotBlocks.push_back({st.pos, st.dir, kPlatformHalfLen + 6.f, 15.5f});
         S.vegBlocks.push_back({st.pos, st.dir, kPlatformHalfLen + 6.f, 14.5f});
     }
+    // ferry piers (reserve the landing: no buildings or trees at the pier root)
+    N.piers.clear();
+    for (const transit_ferry::PierDef& d : transit_ferry::kPierDefs) {
+        FerryPier fp;
+        if (!transit_ferry::placePier(map, d, fp)) {
+            LOG("Transit: ferry pier %s: no shore found", d.name);
+            continue;
+        }
+        N.piers.push_back(fp);
+        S.lotBlocks.push_back({fp.base, fp.dir, 26.f, 22.f});
+        S.vegBlocks.push_back({fp.base + fp.dir * (fp.length * 0.5f - 8.f), fp.dir, fp.length * 0.5f + 12.f, 20.f});
+    }
     N.laidOut = true;
-    LOG("Transit: SkyLine loop %.2f km, %zu stations, %d samples", L.length / 1000.f, L.stations.size(), n);
+    LOG("Transit: SkyLine loop %.2f km, %zu stations, %d samples; %zu ferry piers", L.length / 1000.f, L.stations.size(), n, N.piers.size());
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -361,6 +734,7 @@ using namespace transit_dims;
 struct Via {
     vec2 p;
     vec2 heading;           // travel direction the route passes here with
+    const char* road = nullptr;   // snap to this road (by name)
     bool stop = false;      // force a stop here
     const char* stopName = nullptr;
     bool terminus = false;
@@ -371,6 +745,7 @@ struct RouteDef {
     const char* name;
     u32 rgb;                // 0xRRGGBB (sRGB)
     std::vector<Via> via;
+    std::vector<const char*> prefer;   // roads the route keeps to (cheaper in the search)
 };
 
 bool busEdge(const RoadEdge& e) {
@@ -399,18 +774,20 @@ float cutIn(const RoadEdge& e, int dir) { return dir > 0 ? e.cut0 : e.cut1; }
 float cutOut(const RoadEdge& e, int dir) { return dir > 0 ? e.cut1 : e.cut0; }
 
 // Nearest drivable edge through p whose travel direction matches `heading`; returns the edge, direction and travel u
-bool snapVia(const RoadNetwork& net, vec2 p, vec2 heading, int& edge, int& dir, float& u) {
+bool snapVia(const RoadNetwork& net, vec2 p, vec2 heading, const char* road, int& edge, int& dir, float& u) {
     std::vector<int> cand;
-    net.edgesInRect(p - vec2(80.f), p + vec2(80.f), cand);
+    float range = road ? 220.f : 60.f;
+    net.edgesInRect(p - vec2(range + 20.f), p + vec2(range + 20.f), cand);
     float best = 1e30f;
     edge = -1;
     for (int ei : cand) {
         const RoadEdge& e = net.edges[ei];
         if (!busEdge(e) || e.pts.size() < 2) continue;
+        if (road && e.name != road) continue;
         for (size_t k = 0; k + 1 < e.pts.size(); k++) {
             float t;
             float d = distPointSegment2D(p, e.pts[k].xy(), e.pts[k + 1].xy(), &t);
-            if (d > 60.f || d >= best) continue;
+            if (d > range || d >= best) continue;
             vec2 sd = normalize(e.pts[k + 1].xy() - e.pts[k].xy());
             int dd = dot(sd, heading) >= 0.f ? 1 : -1;
             if (fabsf(dot(sd, heading)) < 0.6f || !canDrive(e, dd)) continue;
@@ -425,7 +802,7 @@ bool snapVia(const RoadNetwork& net, vec2 p, vec2 heading, int& edge, int& dir, 
 }
 
 // Turn-aware shortest path over directed edges (state = edge * 2 + (dir < 0)) from (e0, d0) to (e1, d1), both included
-bool legPath(const RoadNetwork& net, int e0, int d0, int e1, int d1, std::vector<RouteLeg>& out) {
+bool legPath(const RoadNetwork& net, int e0, int d0, int e1, int d1, const std::vector<const char*>& prefer, std::vector<RouteLeg>& out) {
     const int NS = (int)net.edges.size() * 2;
     std::vector<float> cost(NS, 1e30f);
     std::vector<int> prev(NS, -1);
@@ -461,12 +838,15 @@ bool legPath(const RoadNetwork& net, int e0, int d0, int e1, int d1, std::vector
             if (c < -0.55f) continue;   // too sharp for a 12 m bus
             float turn = c > 0.85f ? 0.f : (cross(tIn, tOut) > 0.f ? 45.f : 18.f);   // left turns wait longer
             int s2 = sid(e2, d2);
-            float nc = cost[s] + turn + F.length * classCost(F.cls);
+            float k = classCost(F.cls);
+            for (const char* pr : prefer)
+                if (F.name == pr) k *= 0.5f;
+            float nc = cost[s] + turn + F.length * k;
             if (nc < cost[s2]) {
                 cost[s2] = nc;
                 prev[s2] = s;
                 int n2 = endNode(F, d2);
-                open.push(QE(nc + length(net.nodes[n2].p - goalP) * 0.95f, s2));
+                open.push(QE(nc + length(net.nodes[n2].p - goalP) * 0.45f, s2));
             }
         }
     }
@@ -552,6 +932,14 @@ struct Builder {
 
     Builder(const RoadNetwork& n, WorldMap& m, SiteSet& s, TransitNet& t) : net(n), map(m), S(s), N(t) {}
 
+    // Curb of a road without sidewalks bordering a pedestrian plaza (airport terminal forecourt)
+    bool plazaCurb(const RoadEdge& e, int d, float u) {
+        vec3 c = edgePos(e, d, u);
+        vec2 al = edgeDir(e, d, u), rt(al.y, -al.x);
+        const Pad* p = S.padAt(c.xy() + rt * (e.halfWidth + 1.9f));
+        return p && p->kind == PAD_PLAZA;
+    }
+
     // geometry of a stop at travel coordinate u on (e, d): shelter center, flag pole, facing
     struct Geo {
         vec2 shelter, flag, face, along;
@@ -568,6 +956,12 @@ struct Builder {
         g.face = -rt;
         g.z = c.z + 0.15f;
         g.shelter = c.xy() + rt * (hw + sw - (ambient ? 1.2f : 1.15f));
+        if (!(sw > 2.f)) {
+            // terminal forecourt: the shelter stands on the plaza pad next to the curb
+            g.shelter = c.xy() + rt * (hw + 2.1f);
+            const Pad* p = S.padAt(g.shelter);
+            if (p) g.z = p->heightAt(g.shelter);
+        }
         vec3 cf = edgePos(e, d, Min(u + 3.2f, e.length));
         g.flag = cf.xy() + rt * (hw + 0.42f);
         g.ok = true;
@@ -575,31 +969,39 @@ struct Builder {
     }
 
     // Is travel coordinate u on (e, d) a valid stop spot? (ambient: an existing shelter slot)
-    bool valid(int ei, int d, float u, bool ambient) {
+    int reject[10] = {};
+    bool no(int why) {
+        reject[why]++;
+        return false;
+    }
+    bool valid(int ei, int d, float u, bool ambient, bool forced = false) {
         const RoadEdge& e = net.edges[ei];
-        if (!(e.sidewalk > 2.f) || e.cls == RC_HIGHWAY || e.cls == RC_RAMP || e.cls == RC_LANE) return false;
-        if (u < cutIn(e, d) + 24.f || u > e.length - cutOut(e, d) - 30.f) return false;
+        if (e.cls == RC_HIGHWAY || e.cls == RC_RAMP || e.cls == RC_LANE) return no(0);
+        if (!(e.sidewalk > 2.f) && !(forced && plazaCurb(e, d, u))) return no(0);
+        if (u < cutIn(e, d) + 15.f || u > e.length - cutOut(e, d) - 17.f) return no(1);   // the bus clears both crosswalks
         vec3 c = edgePos(e, d, u);
         float gnd = map.heightAt(c.x, c.y);
-        if (c.z - gnd > 1.2f || map.isWater(c.x, c.y)) return false;
+        if (c.z - gnd > 1.2f || map.isWater(c.x, c.y)) return no(2);
         vec3 c2 = edgePos(e, d, u + 6.f), c3 = edgePos(e, d, Max(u - 8.f, 0.f));
-        if (fabsf(c2.z - c.z) > 0.8f || fabsf(c3.z - c.z) > 0.8f) return false;   // steep ramps
+        if (fabsf(c2.z - c.z) > 0.8f || fabsf(c3.z - c.z) > 0.8f) return no(2);   // steep ramps
         Geo g = geometry(e, d, u, ambient);
-        if (net.onPavement(g.shelter, g.z, 0.9f, -1) || net.onPavement(g.flag, g.z, 0.2f, ei)) return false;
+        if (net.onPavement(g.shelter, g.z, 0.9f, -1) || net.onPavement(g.flag, g.z, 0.2f, ei)) return no(3);
         for (size_t k = 0; k < avoid.size(); k++)
-            if (length(g.shelter - avoid[k]) < avoidR[k] || length(g.flag - avoid[k]) < avoidR[k]) return false;
-        if (S.padAt(g.shelter) || S.padAt(g.flag)) return false;
+            if (length(g.shelter - avoid[k]) < avoidR[k] || length(g.flag - avoid[k]) < avoidR[k]) return no(4);
+        const Pad* p0 = S.padAt(g.shelter);
+        const Pad* p1 = S.padAt(g.flag);
+        if ((p0 && p0->kind != PAD_PLAZA) || (p1 && p1->kind != PAD_PLAZA)) return no(5);
         // sidewalk furniture on the curb side (other than the shelter we reuse)
         float s = d > 0 ? u : e.length - u;
         furnitureSlots(net, e, slots);
         for (const Slot& sl : slots) {
             if (sl.side != d) continue;
             if (ambient && fabsf(sl.s - s) < 0.5f) continue;
-            if (fabsf(sl.s - s) < (ambient ? 5.5f : 7.5f)) return false;
+            if (fabsf(sl.s - s) < (ambient ? 5.5f : 7.5f)) return no(6);
         }
-        // other stops on the same curb
+        // other stops on the same curb (stops across the street are fine)
         for (const BusStop& b : N.busStops)
-            if (length(b.pos - g.shelter) < 45.f) return false;
+            if (dot(b.along, g.along) > 0.3f && length(b.pos - g.shelter) < 45.f) return no(7);
         return true;
     }
 
@@ -671,7 +1073,7 @@ struct Builder {
         std::vector<int> ve(nv), vd(nv);
         std::vector<float> vu(nv);
         for (size_t i = 0; i < nv; i++)
-            if (!snapVia(net, def.via[i].p, def.via[i].heading, ve[i], vd[i], vu[i])) {
+            if (!snapVia(net, def.via[i].p, def.via[i].heading, def.via[i].road, ve[i], vd[i], vu[i])) {
                 LOG("Transit: bus route %s: waypoint %zu (%.0f, %.0f) is not on a drivable road", def.number, i, def.via[i].p.x, def.via[i].p.y);
                 return false;
             }
@@ -685,7 +1087,7 @@ struct Builder {
                 l.edge = ve[i];
                 l.dir = vd[i];
                 part.push_back(l);
-            } else if (!legPath(net, ve[i], vd[i], ve[j], vd[j], part)) {
+            } else if (!legPath(net, ve[i], vd[i], ve[j], vd[j], def.prefer, part)) {
                 LOG("Transit: bus route %s: no path from waypoint %zu to %zu", def.number, i, j);
                 return false;
             }
@@ -735,7 +1137,7 @@ struct Builder {
             u = R.wrap(rd) - R.legs[li].d0;
         };
         // candidate search in a route-distance window; prefers existing shelters, then the spot closest to `target`
-        auto search = [&](float lo, float hi, float target, int& outStop) {
+        auto search = [&](float lo, float hi, float target, int& outStop, bool forcedStop = false) {
             float bestScore = 1e30f;
             int bestLeg = -1;
             float bestU = 0.f;
@@ -746,7 +1148,7 @@ struct Builder {
                 locate(rd, li, u);
                 const RouteLeg& l = R.legs[li];
                 float score = fabsf(rd - target);
-                if (score < bestScore && valid(l.edge, l.dir, u, false)) {
+                if (score < bestScore && valid(l.edge, l.dir, u, false, forcedStop)) {
                     bestScore = score;
                     bestLeg = li;
                     bestU = u;
@@ -826,17 +1228,7 @@ struct Builder {
             // an existing stop close by on the same curb
             for (int q = 0; q < (int)N.busStops.size(); q++)
                 if (N.busStops[q].edge == R.legs[li].edge && N.busStops[q].dir == R.legs[li].dir && fabsf(N.busStops[q].u - u) < 90.f) si = q;
-            if (si < 0) {
-                // nearest valid spot around the waypoint
-                float bestD = 1e30f, bestU = -1.f;
-                const RoadEdge& e = net.edges[R.legs[li].edge];
-                for (float uu = 0.f; uu <= e.length; uu += 2.f)
-                    if (fabsf(uu - u) < bestD && valid(R.legs[li].edge, R.legs[li].dir, uu, false)) {
-                        bestD = fabsf(uu - u);
-                        bestU = uu;
-                    }
-                if (bestU >= 0.f) si = addStop(R.legs[li].edge, R.legs[li].dir, bestU, false, v.stopName, v.terminus);
-            }
+            if (si < 0) search(forced[k] - 160.f, forced[k] + 160.f, forced[k], si, true);   // nearest valid spot around the waypoint
             if (si >= 0) {
                 if (v.stopName) N.busStops[si].name = v.stopName;
                 N.busStops[si].terminus = N.busStops[si].terminus || v.terminus;
@@ -864,7 +1256,9 @@ struct Builder {
                 float lo = Max(last + 230.f, target - 170.f), hi = Min(b - 230.f, target + 170.f);
                 if (hi <= lo) continue;
                 int si = -1;
-                if (search(lo, hi, target, si)) {
+                bool ok = search(lo, hi, target, si);
+                if (!ok && b - last > 460.f) ok = search(last + 190.f, b - 190.f, target, si);   // anywhere in the gap
+                if (ok) {
                     float rd = routeDistOf(si, target);
                     if (rd < last) rd += R.length;
                     all.push_back({rd, si});
@@ -890,46 +1284,53 @@ struct Builder {
     }
 };
 
-// Porto Sol Transit bus routes. Headings give the direction of travel through each waypoint (routes are loops).
+// Porto Sol Transit bus routes. Headings give the direction of travel through each waypoint (routes are loops; a line
+// route lists its outbound and inbound waypoints on the same road).
 std::vector<RouteDef> routeDefs() {
     std::vector<RouteDef> r;
     const vec2 N(0, 1), S(0, -1), E(1, 0), W(-1, 0);
-    // 3 Airport Express: terminal curb <-> Midtown and the Civic Center
+    // 3 Airport: the terminal curb, Airport Boulevard and Flamingo Boulevard into Midtown and the Civic Center
     r.push_back({"3", "Airport", 0xF2B620,
-                 {{vec2(706.f, 1400.f), S, true, "PSI Airport Terminal", true},
-                  {vec2(870.f, 1500.f), E},
-                  {vec2(1600.f, 1050.f), E},
+                 {{vec2(706.f, 1330.f), S, "Arrivals Drive", true, "PSI Airport Terminal", true},
+                  {vec2(870.f, 1500.f), E, "Airport Boulevard"},
+                  {vec2(1600.f, 1050.f), E, "Flamingo Boulevard"},
                   {vec2(3000.f, 800.f), S},
-                  {vec2(3300.f, 600.f), N, true},
-                  {vec2(2500.f, 1050.f), W},
-                  {vec2(870.f, 1500.f), W},
-                  {vec2(745.f, 1650.f), N}}});
-    // 7 Calle Luna: Calle Luna market streets <-> Palmetto Flats
+                  {vec2(3300.f, 650.f), N, "15th Avenue"},
+                  {vec2(2500.f, 1050.f), W, "Flamingo Boulevard"},
+                  {vec2(870.f, 1500.f), W, "Airport Boulevard"},
+                  {vec2(745.f, 1650.f), N, "Departures Drive"}},
+                 {"Flamingo Boulevard", "Airport Boulevard"}});
+    // 7 Calle Luna: Sunrise Boulevard from the Calle Luna market streets to Palmetto Flats and back
     r.push_back({"7", "Calle Luna", 0xEE6A1C,
-                 {{vec2(1800.f, -1300.f), N, true, nullptr, true},
-                  {vec2(1800.f, 400.f), N},
-                  {vec2(1800.f, 1800.f), N},
-                  {vec2(2100.f, 1950.f), E},
-                  {vec2(2100.f, 1000.f), S},
-                  {vec2(2100.f, -1300.f), S},
-                  {vec2(1950.f, -1450.f), W}}});
-    // 9 Sol Beach: Civic Center -> Solano Causeway -> Collins-Solano Avenue -> Venetia Causeway -> Bayshore
+                 {{vec2(1800.f, -800.f), N, "Sunrise Boulevard", true, nullptr, true},
+                  {vec2(1800.f, 600.f), N, "Sunrise Boulevard"},
+                  {vec2(1800.f, 1800.f), N, "Sunrise Boulevard"},
+                  {vec2(1800.f, 1700.f), S, "Sunrise Boulevard"},
+                  {vec2(1800.f, 600.f), S, "Sunrise Boulevard"},
+                  {vec2(1800.f, -700.f), S, "Sunrise Boulevard"}},
+                 {"Sunrise Boulevard"}});
+    // 9 Sol Beach: Civic Center -> Solano Causeway -> Collins-Solano Avenue -> Venetia Causeway -> Bayshore Boulevard
     r.push_back({"9", "Sol Beach", 0xE0468E,
-                 {{vec2(3300.f, 250.f), N, true, nullptr, true},
-                  {vec2(3450.f, 750.f), E},
-                  {vec2(4300.f, 740.f), E},
-                  {vec2(4950.f, 1000.f), N},
-                  {vec2(4600.f, 1740.f), W},
-                  {vec2(3600.f, 1150.f), S},
-                  {vec2(3350.f, 50.f), W}}});
-    // 12 Bayshore: Bayshore Boulevard along the downtown waterfront
+                 {{vec2(3300.f, 470.f), N, "15th Avenue", true, nullptr, true},
+                  {vec2(4000.f, 760.f), E, "Solano Causeway"},
+                  {vec2(5200.f, 1300.f), N, "Collins-Solano Avenue"},
+                  {vec2(4400.f, 1745.f), W, "Venetia Causeway"},
+                  {vec2(3785.f, 1400.f), S, "Bayshore Boulevard"},
+                  {vec2(3745.f, 600.f), S, "Bayshore Boulevard"}},
+                 {"Solano Causeway", "Collins-Solano Avenue", "Venetia Causeway", "Bayshore Boulevard"}});
+    // 12 Bayshore: the waterfront boulevard from the Financial District to Midtown
     r.push_back({"12", "Bayshore", 0x12A39A,
-                 {{vec2(3500.f, -1300.f), N, true, nullptr, true},
-                  {vec2(3500.f, 0.f), N},
-                  {vec2(3500.f, 1200.f), N},
-                  {vec2(3500.f, 2300.f), N},
-                  {vec2(3500.f, 1200.f), S},
-                  {vec2(3500.f, 0.f), S}}});
+                 {{vec2(3600.f, -1550.f), N, "Bayshore Boulevard", true, nullptr, true},
+                  {vec2(3700.f, -400.f), N, "Bayshore Boulevard"},
+                  {vec2(3745.f, 600.f), N, "Bayshore Boulevard"},
+                  {vec2(3785.f, 1500.f), N, "Bayshore Boulevard"},
+                  {vec2(3825.f, 2400.f), N, "Bayshore Boulevard"},
+                  {vec2(3825.f, 2300.f), S, "Bayshore Boulevard"},
+                  {vec2(3785.f, 1500.f), S, "Bayshore Boulevard"},
+                  {vec2(3745.f, 600.f), S, "Bayshore Boulevard"},
+                  {vec2(3700.f, -400.f), S, "Bayshore Boulevard"},
+                  {vec2(3600.f, -1450.f), S, "Bayshore Boulevard"}},
+                 {"Bayshore Boulevard"}});
     return r;
 }
 
@@ -1178,6 +1579,66 @@ void transitFinalize(SiteSet& S, WorldMap& map, const RoadNetwork& net, const Bu
             for (int cy = -1; cy <= 1; cy += 2) e.pts.push_back(st.local(cx * (kPlatformHalfLen + 8.f), cy * 16.f, 0.f).xy());
         S.elems.push_back(e);
     }
+    // ---- ferry route and pier elements
+    {
+        double tf = TimeSeconds();
+        N.ferries.clear();
+        if (N.piers.size() >= 2) {
+            transit_ferry::Grid G;
+            transit_ferry::buildGrid(G, map, net, S, N.piers);
+            FerryRoute F;
+            F.name = "Bay Ferry";
+            int np = (int)N.piers.size();
+            bool ok = true;
+            for (int i = 0; i < np && ok; i++) {
+                const FerryPier& A = N.piers[i];
+                const FerryPier& B = N.piers[(i + 1) % np];
+                vec2 hA(-sinf(A.berthYaw), cosf(A.berthYaw)), hB(-sinf(B.berthYaw), cosf(B.berthYaw));
+                vec2 a0 = A.berth + hA * 70.f, b0 = B.berth - hB * 80.f;
+                std::vector<vec2> mid;
+                if (!transit_ferry::waterPath(G, a0, b0, mid)) {
+                    LOG("Transit: no water path from %s to %s", A.name.c_str(), B.name.c_str());
+                    ok = false;
+                    break;
+                }
+                std::vector<vec2> ctrl;
+                ctrl.push_back(A.berth);
+                for (vec2 p : mid) ctrl.push_back(p);
+                ctrl.push_back(B.berth);
+                std::vector<vec2> leg = transit_ferry::filletPath(ctrl, 70.f, 18.f, 3.f);
+                F.legs.push_back(transit_ferry::smoothPath(leg, 0, 5.f));
+                F.piers.push_back(i);
+            }
+            if (ok) N.ferries.push_back(F);
+        }
+        for (size_t i = 0; i < N.piers.size(); i++) {
+            const FerryPier& fp = N.piers[i];
+            SiteElem e;
+            e.kind = SK_FERRY_PIER;
+            e.variant = (u16)i;
+            e.seed = fp.seed;
+            e.c = fp.base + fp.dir * (fp.length * 0.5f);
+            e.ax = fp.dir;
+            e.hx = fp.length * 0.5f + 12.f;
+            e.hy = transit_ferry::kHeadHalf + 4.f;
+            e.z = fp.waterZ;
+            e.h = 8.f;
+            e.text = fp.name;
+            vec2 rt = fp.right();
+            for (int cx = -1; cx <= 1; cx += 2)
+                for (int cy = -1; cy <= 1; cy += 2)
+                    e.pts.push_back(fp.base + fp.dir * (cx < 0 ? -34.f : fp.length + 2.f) + rt * (cy * (transit_ferry::kHeadHalf + 3.f)));
+            S.elems.push_back(e);
+        }
+        float total = 0.f;
+        for (const FerryRoute& F : N.ferries)
+            for (const auto& leg : F.legs)
+                for (size_t k = 0; k + 1 < leg.size(); k++) total += length(leg[k + 1] - leg[k]);
+        LOG("Transit: %zu ferry piers, %zu routes, %.2f km of water path (%.2f s)", N.piers.size(), N.ferries.size(), total / 1000.f, TimeSeconds() - tf);
+        for (const FerryPier& fp : N.piers)
+            LOG("Transit: ferry pier %-10s base (%.0f, %.0f) length %.0f deck %.1f berth (%.0f, %.0f)", fp.name.c_str(), fp.base.x, fp.base.y, fp.length, fp.deckZ,
+                fp.berth.x, fp.berth.y);
+    }
     // ---- bus routes and their stops
     {
         double tb = TimeSeconds();
@@ -1222,7 +1683,9 @@ void transitFinalize(SiteSet& S, WorldMap& map, const RoadNetwork& net, const Bu
             S.vegBlocks.push_back({b.flag, b.along, 0.7f, 0.7f});
             own += b.ownShelter;
         }
-        LOG("Transit: %zu bus routes, %zu stops (%d new shelters) (%.2f s)", N.busRoutes.size(), N.busStops.size(), own, TimeSeconds() - tb);
+        LOG("Transit: %zu bus routes, %zu stops (%d new shelters) (%.2f s); rejects class %d cut %d deck %d road %d avoid %d pad %d furn %d stop %d",
+            N.busRoutes.size(), N.busStops.size(), own, TimeSeconds() - tb, B.reject[0], B.reject[1], B.reject[2], B.reject[3], B.reject[4], B.reject[5],
+            B.reject[6], B.reject[7]);
         for (const BusRoute& R : N.busRoutes)
             LOG("Transit: bus %-3s %-12s %.1f km, %zu stops, %d buses, headway %.1f min", R.number.c_str(), R.name.c_str(), R.length / 1000.f, R.stops.size(),
                 R.buses, R.headway / 60.f);

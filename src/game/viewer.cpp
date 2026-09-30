@@ -655,6 +655,17 @@ struct Viewer {
             UI::MenuState fresh;
             ui.ms = fresh;
             UI::Menus::reset();
+            // accessibility variants by shot name: cbp / cbd / cbt colour-blind modes, subxl large boxed subtitles
+            UI::GameSettings gs;
+            if (ui.has("cbp")) gs.colorblindMode = 1;
+            if (ui.has("cbd")) gs.colorblindMode = 2;
+            if (ui.has("cbt")) gs.colorblindMode = 3;
+            if (ui.has("subxl")) {
+                gs.subtitleSize = 3;
+                gs.subtitleBackground = 0.6f;
+            }
+            ui.ms.settings = gs;
+            UI::applyUiSettings(gs);
             InputState none;
             UI::Menus::update(ui.ms, none, 0.f);
         }

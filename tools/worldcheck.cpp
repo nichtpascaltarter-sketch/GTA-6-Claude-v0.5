@@ -1,5 +1,6 @@
-// World data checks (native, no GPU): drivable lanes must be free of colliders and props, and every road edge with a
-// fall beside it (decks, embankments, approaches) must be guarded by a collision barrier.
+// World data checks (native, no GPU): drivable lanes must be free of colliders and props, every road edge with a fall
+// beside it (decks, embankments, approaches) must be guarded by a collision barrier, and the ground the vehicle physics
+// drives on must meet the lane surfaces without steps.
 // Build from the repo root:  g++ -std=c++17 -O2 -I. tools/worldcheck.cpp -o /tmp/worldcheck -lpthread
 // Run from the repo root:    /tmp/worldcheck [max listed per category]     (exit code 1 when a check fails)
 // Keep the include list in sync with the world section of src/main.cpp.
@@ -34,6 +35,8 @@
 #include "../src/world/interiorshops.cpp"
 #include "../src/world/interiorcivic.cpp"
 #include "../src/world/interiorindustrial.cpp"
+#include "../src/world/interiortower.cpp"
+#include "../src/world/interiorgarages.cpp"
 #include "../src/world/interiors.cpp"
 #include <thread>
 #include <unordered_map>
@@ -44,7 +47,7 @@ namespace worldcheck {
 
 // A collider as the physics layer builds it (src/sim/physics.cpp CollisionWorld::addCell)
 struct Col {
-    int kind;      // 0 box, 1 cylinder (center c, radius he.x, half height he.z)
+    int kind;      // 0 box, 1 cylinder (base centre c, radius he.x, height he.z)
     vec3 c;
     vec2 ax;
     vec3 he;
@@ -74,8 +77,12 @@ bool propCollider(const PropInstance& p, Col& c) {
 }
 
 bool hits(const Col& c, vec2 p, float z0, float z1, float margin) {
+    if (c.kind == 1) {
+        // cylinders are base-anchored in physics.h: base centre c, he = (radius, radius, height), z in [c.z, c.z + he.z]
+        if (c.c.z + c.he.z < z0 || c.c.z > z1) return false;
+        return length(p - c.c.xy()) < c.he.x + margin;
+    }
     if (c.c.z + c.he.z < z0 || c.c.z - c.he.z > z1) return false;
-    if (c.kind == 1) return length(p - c.c.xy()) < c.he.x + margin;
     vec2 d = p - c.c.xy();
     return fabsf(dot(d, c.ax)) <= c.he.x + margin && fabsf(dot(d, perp(c.ax))) <= c.he.y + margin;
 }
@@ -253,8 +260,56 @@ int main(int argc, char** argv) {
     }
     printf("\n[falls] road edges with a fall of more than 1.2 m: guarded %.0f m, unguarded %.0f m\n", guarded, unguarded);
     for (vec3 p : fallList) printf("  unguarded at (%.1f, %.1f, %.1f)\n", p.x, p.y, p.z);
+
+    // ---- 3. lane surface vs the ground the vehicle physics drives on (terrain + RoadNetwork::surfaceHeight, as
+    // Phys::CollisionWorld::ground): a step of more than 0.45 m hangs a car up (junction discs vs ramps, buried roads)
+    struct ZHit { float step; vec3 p; int edge; float s; float terrain; };
+    std::vector<ZHit> zhits;
+    long zsamples = 0;
+    for (size_t ei = 0; ei < roads.edges.size(); ei++) {
+        const RoadEdge& e = roads.edges[ei];
+        if (e.flags & RF_UNPAVED) continue;
+        const RoadClassInfo& ri = roadInfo(e.cls);
+        bool twoWay = e.lanesF > 0 && e.lanesB > 0;
+        float W = ri.laneWidth, st = twoWay && ri.median > 0.f ? ri.median * 0.5f : 0.f;
+        std::vector<float> lats;
+        if (twoWay) {
+            for (int k = 0; k < e.lanesF; k++) lats.push_back(st + (k + 0.5f) * W);
+            for (int k = 0; k < e.lanesB; k++) lats.push_back(-(st + (k + 0.5f) * W));
+        } else {
+            int n = Max((int)e.lanesF, (int)e.lanesB);
+            for (int k = 0; k < n; k++) lats.push_back(-W * n * 0.5f + (k + 0.5f) * W);
+        }
+        for (float sd = e.cut0; sd <= e.length - e.cut1; sd += 2.f) {
+            vec3 P = e.posAt(sd), T = e.tangentAt(sd);
+            vec2 rt = normalize(vec2(T.y, -T.x));
+            for (float lat : lats) {
+                vec2 q = P.xy() + rt * lat;
+                float th = map.heightAt(q.x, q.y), g = th, rz = th;
+                if (roads.surfaceHeight(q, &rz, P.z + 2.5f) && rz > th - 0.5f) g = rz;
+                zsamples++;
+                float step = g - P.z;
+                if (fabsf(step) > 0.45f) zhits.push_back({step, vec3(q, P.z), (int)ei, sd, th});
+            }
+        }
+    }
+    std::sort(zhits.begin(), zhits.end(), [](const ZHit& a, const ZHit& b) { return fabsf(a.step) > fabsf(b.step); });
+    std::vector<ZHit> zreps;
+    for (const ZHit& h : zhits) {
+        bool dup = false;
+        for (const ZHit& r : zreps)
+            if (length(r.p.xy() - h.p.xy()) < 30.f) dup = true;
+        if (!dup) zreps.push_back(h);
+    }
+    printf("\n[steps] lane surface vs physics ground: %ld samples, %zu off by more than 0.45 m at %zu places\n", zsamples, zhits.size(), zreps.size());
+    for (size_t i = 0; i < zreps.size() && (int)i < maxList * 2; i++) {
+        const ZHit& h = zreps[i];
+        const RoadEdge& e = roads.edges[h.edge];
+        printf("  step %+.2f m at (%.1f, %.1f) z %.2f (terrain %.2f): %s edge %d s %.0f of %.0f (cut %.0f/%.0f) nodes %d->%d\n", h.step, h.p.x, h.p.y, h.p.z,
+               h.terrain, roadInfo(e.cls).name, h.edge, h.s, e.length, e.cut0, e.cut1, e.n0, e.n1);
+    }
     Jobs::shutdown();
-    bool fail = laneHits > 0 || propHits > 0 || unguarded > 0.f;
+    bool fail = laneHits > 0 || propHits > 0 || unguarded > 0.f || !zhits.empty();
     printf("\nworldcheck: %s\n", fail ? "FAILED" : "passed");
     return fail ? 1 : 0;
 }
