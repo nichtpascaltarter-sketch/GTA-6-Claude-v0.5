@@ -239,12 +239,12 @@ struct WeatherSystem {
         bool bolt = r.frame.lightning.x > 0.02f && !boltSegs.empty();
         if (!rain && !bolt) return;
         auto* c = gfx::ctx;
-        static const int drops[4] = {9000, 16000, 26000, 40000};
+        static const int drops[4] = {12000, 22000, 36000, 52000};
         int q = Clamp(r.settings.rainQuality, 0, 3);
         int n = (int)(drops[q] * Saturate(env.rain * 1.2f));
         float wind = 1.f + env.wind * 7.f;
         cb.data.r0 = vec4((float)n, 36.f, 26.f, Saturate(0.4f + env.rain * 0.6f));
-        cb.data.r1 = vec4(env.windDir.x * wind, env.windDir.y * wind, 8.5f + env.rain * 1.5f, 1.f / 45.f);
+        cb.data.r1 = vec4(env.windDir.x * wind, env.windDir.y * wind, 8.5f + env.rain * 1.5f, 1.f / 26.f);   // streaks ~0.4 m (1/26 s shutter)
         // lights for the drops: brightest nearby lights of this frame
         const std::vector<LightGPU>& lf = r.lightsFrame;
         std::vector<std::pair<float, int>> best;

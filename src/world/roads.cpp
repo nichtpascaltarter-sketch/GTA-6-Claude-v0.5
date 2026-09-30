@@ -649,14 +649,28 @@ void RoadNetwork::generate(WorldMap& map) {
             float r = t.radius * (0.72f + 0.28f * (perlin2(cosf(ang) * 1.7f + t.reg, sinf(ang) * 1.7f, 700) + 0.5f));
             return length(d) < r;
         };
+        // A grid line running alongside a section-line county road (below) a few metres off would put its junctions right
+        // next to the county road's (two stop-controlled nodes 20 m apart gridlock): leave such lines out of the town.
+        bool aligned = fabsf(t.ang) < 0.02f;
+        auto besideSection = [&](float v, bool column) {
+            if (!aligned) return false;
+            for (float q = column ? -6400.f : 4000.f; q <= (column ? 4800.f : 9600.f); q += 1600.f) {
+                if (column && hashToFloat(hash2i((int)q, 77)) < 0.2f) continue;   // (section roads left out)
+                float dd = fabsf(v - q);
+                if (dd > 1.f && dd < 40.f) return true;
+            }
+            return false;
+        };
         for (int i = -14; i <= 14; i++) {
             vec2 o = t.c + ax * (i * t.sx);
             RoadClass cls = (i == 0) ? RC_AVENUE : RC_STREET;
-            emitRuns(b, o - ay * 1400.f, o + ay * 1400.f, 15.f, cls, valid, 0.f,
-                     StrFormat("%s %s", kStreetNames[(i + 20 + t.reg * 3) % ARRAY_COUNT(kStreetNames)], i == 0 ? "Main Street" : "Street").c_str());
+            if (i == 0 || !besideSection(o.x, true))
+                emitRuns(b, o - ay * 1400.f, o + ay * 1400.f, 15.f, cls, valid, 0.f,
+                         StrFormat("%s %s", kStreetNames[(i + 20 + t.reg * 3) % ARRAY_COUNT(kStreetNames)], i == 0 ? "Main Street" : "Street").c_str());
             vec2 o2 = t.c + ay * (i * t.sy);
-            emitRuns(b, o2 - ax * 1400.f, o2 + ax * 1400.f, 15.f, (i == 0) ? RC_AVENUE : RC_STREET, valid, 0.f,
-                     StrFormat("%s Avenue", ordinal(Max(1, i + 15)).c_str()).c_str());
+            if (i == 0 || !besideSection(o2.y, false))
+                emitRuns(b, o2 - ax * 1400.f, o2 + ax * 1400.f, 15.f, (i == 0) ? RC_AVENUE : RC_STREET, valid, 0.f,
+                         StrFormat("%s Avenue", ordinal(Max(1, i + 15)).c_str()).c_str());
         }
     }
 

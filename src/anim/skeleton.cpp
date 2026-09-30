@@ -122,7 +122,7 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
     // gaussian-ish draw in -1..1 (sum of two uniforms: extremes are rarer)
     auto g2 = [&]() { return 0.5f * (r.range(-1.f, 1.f) + r.range(-1.f, 1.f)) * 1.4f; };
     D.faceW = 1.f + 0.085f * g() + 0.04f * wc;
-    D.jawW = Lerp(1.f, 0.88f, fem) * (1.f + 0.13f * g() + 0.09f * wc);
+    D.jawW = Lerp(1.f, 0.92f, fem) * (1.f + 0.13f * g() + 0.09f * wc);
     D.chinP = 1.f + 0.35f * g();
     // women: shorter lower face, smaller nose, fuller lips, slightly larger eyes; noses and ears keep growing with age
     D.chinH = (1.f + 0.12f * g()) * Lerp(1.f, 0.94f, fem);
@@ -146,7 +146,8 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
     // face height below the eyes (midface + lower face together), philtrum length, forehead height (hairline offset,
     // degrees), cheekbone height, brow shape, lip thickness ratio and nose profile / tip type
     D.faceH = 1.f + 0.06f * g2() + 0.02f * (1.f - fem);
-    D.philtrum = 1.f + 0.16f * g2();
+    // (women have a shorter upper lip; it lengthens with age)
+    D.philtrum = 1.f + 0.16f * g2() - 0.18f * fem + 0.12f * sstep(0.3f, 1.f, a);
     D.foreheadH = 3.2f * g2();
     D.cheekH = 0.0028f * g2();
     D.browArch = Saturate(0.5f + 0.5f * g()) * 1.2f + 0.4f;
@@ -253,6 +254,26 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
                 default: break;   // oval
             }
         }
+        // caricature guard: the independent draws and the archetype can stack into a face far longer and narrower (or
+        // shorter and wider) than people are; the height-to-width ratio is softly held in a band, the correction split
+        // between height and width so the face keeps its size. Sex dimorphism survives the draws the same way: a
+        // woman's jaw stays narrower than her cheekbones and her chin shorter than a man's average (soft limits keep
+        // some spread above them)
+        {
+            float asp = D.faceH / D.faceW, t = asp;
+            if (asp > 1.07f) t = 1.07f + 0.35f * (asp - 1.07f);
+            else if (asp < 0.93f) t = 0.93f - 0.35f * (0.93f - asp);
+            float f = sqrtf(t / asp);
+            D.faceH *= f;
+            D.faceW /= f;
+        }
+        {
+            // (a jaw wider than the cheekbones on anyone reads as a caricature: the square archetype on top of a wide
+            // draw is held too)
+            float jr = D.jawW / D.faceW, jHi = fem > 0.5f ? 0.97f : 1.1f;
+            if (jr > jHi) D.jawW = D.faceW * (jHi + (fem > 0.5f ? 0.25f : 0.3f) * (jr - jHi));
+        }
+        if (fem > 0.5f && D.chinH > 0.98f) D.chinH = 0.98f + 0.4f * (D.chinH - 0.98f);
         D.creaseDeg = creaseMm / 1.47f;
         D.creaseDepth = creaseMm > 0.f ? (0.00055f + 0.00045f * q.f()) * (1.f + 0.6f * sstep(0.4f, 1.f, a)) : 0.f;
         D.epicanthic = epi;

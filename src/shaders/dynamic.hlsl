@@ -299,7 +299,9 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         // right in front of the camera (first-person hands and forearms) pinched skinning makes the curvature
         // estimate spike: cap it below ~0.5 mm per pixel
         thin = min(thin, lerp(0.6, 1.0, saturate((pxLen * 0.5 - 0.0003) / 0.0004)));
-        rough = lerp(0.5, 0.36, saturate((curv - 20.0) / 90.0));
+        // character skin takes its oiliness from the gloss channel (T-zone, lips, lid margins), so its base stays
+        // satin; other skin gets it from convex curvature
+        rough = charSkin ? lerp(0.54, 0.44, saturate((curv - 20.0) / 90.0)) : lerp(0.5, 0.36, saturate((curv - 20.0) / 90.0));
         // Pores and fine creases as a bump from the bind-pose position, faded before they could alias; lips and
         // nails have none
         float detailW = saturate(1.6 - pxLen * 0.5 / 0.0009);
@@ -462,7 +464,9 @@ GBufferOut psHairCard(VSOut i, bool front : SV_IsFrontFace) {
     float3 hueJit = lerp(float3(1.04, 0.99, 0.94), float3(0.95, 1.0, 1.06), hairHash(rnd * 71.0 + 1.3));
     float3 albedo = i.color.rgb * lerp(0.75, 1.15, rnd) * hueJit * lerp(1.0, 1.12, smoothstep(0.5, 1.0, i.uv.y));
     float ao = kind == 1u ? lerp(0.5, 1.0, smoothstep(0.0, 0.55, i.uv.y)) : (kind == 2u ? 0.8 : 0.9);
-    float rough = kind == 2u ? 0.5 : 0.38;
+    // brows and beards are short, coarse, fairly matte hairs: broader, dimmer highlights (less per-strand sparkle)
+    float rough = kind == 2u ? 0.5 : (kind == 3u ? 0.55 : (kind == 4u ? 0.48 : 0.38));
+    if (kind == 3u || kind == 4u) rnd *= 0.5;
     // rain soaks the hair: darker, glossier
     float wet = gWeather.y * (gObjParams.z > 0 ? 1.0 : (gObjParams.z < 0 ? 0.0 : 0.5));
     albedo *= lerp(1.0, 0.7, wet);

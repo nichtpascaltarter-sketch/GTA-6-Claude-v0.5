@@ -83,7 +83,9 @@ times to `%LOCALAPPDATA%\NeonTide\benchmark.txt`. Options: `--quality 0..3`, `--
 - `--autoplay walk|drive|bike|fly|boat|shoot|melee|tour|panic|chase|soak|metro|bus|ferry` runs scripted play-tests
   with periodic screenshots and telemetry in the log. Related flags: `--autoduration S`, `--autoevery S`,
   `--renderevery N`, and `--tourstart N` / `--tourcount M` for tour slices. `--autoplay camfade` holds a
-  pedestrian across the camera's line of sight and in front of the first-person eyes to check the camera fade.
+  pedestrian across the camera's line of sight and in front of the first-person eyes to check the camera fade;
+  `--autoplay uishots` screenshots the HUD, pause menu, map, settings pages, stats, briefing, phone apps and the
+  wanted HUD.
 - `--missiontest ...`: automated campaign and side-activity runs.
 - `--shot x,y,z,yaw,pitch,hour,name`: free-camera screenshots. Related flags: `--viewer vehicles|characters`,
   `--weaponshowcase x,y,z`, `--wildlifetest`.

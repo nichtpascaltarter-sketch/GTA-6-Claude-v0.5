@@ -353,50 +353,55 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
         const int NL = (int)laneGraph.lanes.size();
         if (va.parking == 0 && spec.cls <= Vehicles::VC_MUSCLE && d->mode == AI::DM_NORMAL && d->lcLane < 0 && d->path < NL && d->stopPath < 0) {
             va.parkTimer += dt;
-            if (va.parkTimer > 25.f) {
+            if (va.parkTimer > 12.f) {
                 va.parkTimer = 0.f;
                 u32 hp = hash32(v.uid * 131u + (u32)(time * 0.1));
                 const AI::Lane& L = laneGraph.lanes[d->path];
                 bool street = L.cls == World::RC_STREET || L.cls == World::RC_AVENUE || L.cls == World::RC_LANE;
                 const World::RoadClassInfo& info = World::roadInfo((World::RoadClass)L.cls);
-                float spotU = d->u + d->info.frontLen + 30.f;   // front bumper of the parked car
-                if (hashToFloat(hp) < 0.2f * ai.lifeBoost && time - ai.lastParkArrive > 20.0 / Max(ai.lifeBoost, 0.1f) && plD > 40.f &&
-                    plD < 160.f && street && L.right < 0 && info.shoulder >= 1.8f &&
-                    !(L.flags & (AI::LF_DIRT | AI::LF_HIGHWAY | AI::LF_RAMP)) && spotU < L.u1 - 14.f &&
-                    dot(laneGraph.laneTangent(d->path, d->u), laneGraph.laneTangent(d->path, spotU)) > 0.97f) {
-                    float plat = L.width * 0.5f + info.shoulder * 0.5f;
-                    vec3 spot = laneGraph.lanePos(d->path, spotU - spec.boxHalf.y, plat);
-                    bool ok = !World::roadWorkZoneAt(spot.xy());
-                    for (float bs : L.busStops)
-                        if (fabsf(bs - spotU) < 22.f) ok = false;
-                    // the strip has to be empty from just ahead of us to past the spot
-                    if (ok) {
-                        vec3 base = laneGraph.lanePos(d->path, d->u);
-                        vec2 t0 = laneGraph.laneTangent(d->path, d->u), r0 = AI::rightOf(t0);
-                        float span = spotU - d->u;
-                        vec2 mid = base.xy() + t0 * (span * 0.5f);
-                        float qr = span * 0.5f + 12.f;
-                        int self = vi < (int)ai.vehBody.size() ? ai.vehBody[vi] : -1;
-                        traffic.hash.query(traffic.bodies, mid - vec2(qr), mid + vec2(qr), [&](int bi) {
-                            if (!ok || bi == self) return;
-                            const AI::Body& ob = traffic.bodies[bi];
-                            if (ob.kind != AI::BK_CAR || fabsf(ob.z - base.z) > 3.f) return;
-                            vec2 rl = ob.pos - base.xy();
-                            float al = dot(rl, t0), lt = dot(rl, r0);
-                            if (al > 3.f && al < span + 7.f && lt > L.width * 0.5f - 0.4f && lt < L.width * 0.5f + info.shoulder + 1.f) ok = false;
-                        });
-                    }
-                    vec3 door;
-                    if (ok && aiBuildingDoorNear(*this, spot.xy(), 30.f, hp, door)) {
-                        va.parking = 1;
-                        ai.lastParkArrive = time;
-                        va.parkLane = d->path;
-                        va.parkLat = plat;
-                        va.parkDoor = door;
-                        va.parkTimer = 0.f;
-                        va.pullTimer = 0.f;
-                        d->stopPath = d->path;
-                        d->stopU = spotU;
+                bool tryHere = hashToFloat(hp) < 0.2f * ai.lifeBoost && time - ai.lastParkArrive > 20.0 / Max(ai.lifeBoost, 0.1f) && plD > 40.f &&
+                               plD < 160.f && street && L.right < 0 && info.shoulder >= 1.8f && !(L.flags & (AI::LF_DIRT | AI::LF_HIGHWAY | AI::LF_RAMP));
+                // the first free gap in the parking strip a little way ahead (a driver looking for a space)
+                for (int cand = 0; cand < 3 && tryHere && va.parking == 0; cand++) {
+                    float spotU = d->u + d->info.frontLen + 30.f + cand * 13.f;   // front bumper of the parked car
+                    if (spotU < L.u1 - 14.f &&
+                        dot(laneGraph.laneTangent(d->path, d->u), laneGraph.laneTangent(d->path, spotU)) > 0.97f) {
+                        float plat = L.width * 0.5f + info.shoulder * 0.5f;
+                        vec3 spot = laneGraph.lanePos(d->path, spotU - spec.boxHalf.y, plat);
+                        bool ok = !World::roadWorkZoneAt(spot.xy());
+                        for (float bs : L.busStops)
+                            if (fabsf(bs - spotU) < 22.f) ok = false;
+                        // the strip has to be empty where the car eases over into it (16 m, plus its own length) and at the spot
+                        if (ok) {
+                            vec3 base = laneGraph.lanePos(d->path, d->u);
+                            vec2 t0 = laneGraph.laneTangent(d->path, d->u), r0 = AI::rightOf(t0);
+                            float span = spotU - d->u;
+                            vec2 mid = base.xy() + t0 * (span * 0.5f);
+                            float qr = span * 0.5f + 12.f;
+                            int self = vi < (int)ai.vehBody.size() ? ai.vehBody[vi] : -1;
+                            traffic.hash.query(traffic.bodies, mid - vec2(qr), mid + vec2(qr), [&](int bi) {
+                                if (!ok || bi == self) return;
+                                const AI::Body& ob = traffic.bodies[bi];
+                                if (ob.kind != AI::BK_CAR || fabsf(ob.z - base.z) > 3.f) return;
+                                vec2 rl = ob.pos - base.xy();
+                                float al = dot(rl, t0), lt = dot(rl, r0);
+                                if (al > Max(3.f, span - 16.f - spec.boxHalf.y * 2.f - ob.halfLen) && al < span + 3.f + ob.halfLen && lt > L.width * 0.5f - 0.4f &&
+                                    lt < L.width * 0.5f + info.shoulder + 1.f)
+                                    ok = false;
+                            });
+                        }
+                        vec3 door;
+                        if (ok && aiBuildingDoorNear(*this, spot.xy(), 30.f, hp, door)) {
+                            va.parking = 1;
+                            ai.lastParkArrive = time;
+                            va.parkLane = d->path;
+                            va.parkLat = plat;
+                            va.parkDoor = door;
+                            va.parkTimer = 0.f;
+                            va.pullTimer = 0.f;
+                            d->stopPath = d->path;
+                            d->stopU = spotU;
+                        }
                     }
                 }
             }
@@ -408,7 +413,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                 va.parking = 0;
                 va.parkTimer = 0.f;
                 if (d->stopPath == va.parkLane) d->stopPath = -1;
-            } else if (d->stopU - (d->u + d->info.frontLen) < 28.f) {
+            } else if (d->stopU - (d->u + d->info.frontLen) < 16.f) {
                 d->nudgeTarget = va.parkLat;   // ease over into the strip on the way to the spot
                 d->nudgeTimer = 0.5f;
             }

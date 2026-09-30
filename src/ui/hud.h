@@ -360,6 +360,9 @@ const std::vector<DisplayMode>& displayModes();
 // Forgets transient menu state (focus, highlights, the last settings page, a pending key capture); test harnesses
 // call it between scripted shots.
 void reset();
+// Test hook (--autoplay uishots): the settings screen shows page cat (0 Display & Graphics, 1 Audio, 2 Camera,
+// 3 Controls, 4 Key Bindings, 5 Accessibility, 6 Gameplay)
+void testSettingsPage(int cat);
 }
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -508,6 +511,9 @@ PhoneAction update(PhoneState& st, const HudState& hud, const InputState& in, fl
 const std::vector<std::string>& filterNames();   // photo mode filters
 bool isOpen();                                   // phone visible on screen (the HUD hides its bottom-right widgets)
 void reset();                                    // back to the home screen, closed (after loading a save / switching)
+// Test hook (--autoplay uishots): opens the phone on a built-in app (0 contacts, 1 messages, 2 Tidegram, 3 camera,
+// 4 map, 5 quick save; anything else: the home screen)
+void testShow(PhoneState& st, int app);
 }
 
 // Tidegram social feed: the game reports what just happened around the player; a little later NPC accounts (locals,

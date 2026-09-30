@@ -10,6 +10,7 @@
 #include <cstdarg>
 #include <chrono>
 #include <map>
+#include <functional>
 #include <sys/stat.h>
 #include <time.h>
 #include "audio/audio_all.cpp"
@@ -218,6 +219,13 @@ static void basicChecks(const std::string& name, const std::vector<float>& buf, 
     check(s.maxJump < maxJump, "discontinuity", name + StrFormat(" maxJump=%.3f", s.maxJump));
 }
 
+// Mono downmix of an interleaved stereo buffer (the spectral helpers below take mono signals).
+static std::vector<float> monoOf(const std::vector<float>& inter) {
+    std::vector<float> m(inter.size() / 2);
+    for (size_t i = 0; i < m.size(); i++) m[i] = 0.5f * (inter[i * 2] + inter[i * 2 + 1]);
+    return m;
+}
+
 // Fraction of energy (0..1) between f0 and f1 Hz, via a direct DFT over the first 4096-sample frames.
 static float bandFraction(const std::vector<float>& x, float f0, float f1) {
     const float edges[3] = {f0, f1, 24000.f};
@@ -284,7 +292,7 @@ static void boundaryClickCheck(const std::string& name, const std::vector<float>
 // ~30 one-shots per second. Times the mixer (audio thread work) and music production separately.
 // ---------------------------------------------------------------------------------------------
 // Virtual geometry for the environment tests (the game registers its collision-world raycast instead).
-enum VScene { VS_OPEN = 0, VS_STREET, VS_ROOM, VS_TUNNEL, VS_STATION, VS_COUNT, VS_BUILDING = VS_COUNT, VS_LOWWALL };
+enum VScene { VS_OPEN = 0, VS_STREET, VS_ROOM, VS_TUNNEL, VS_STATION, VS_COUNT, VS_BUILDING = VS_COUNT, VS_LOWWALL, VS_AWNING };
 static const char* kSceneName[VS_COUNT] = {"open", "street", "room", "tunnel", "station"};
 struct VBox {
     vec3 mn, mx;
@@ -344,6 +352,10 @@ static void setScene(int sc) {
             break;
         case VS_LOWWALL:  // a 3 m wall: the sound goes over it
             g_vboxes.push_back({vec3(-15, 12, 0), vec3(15, 13, 3)});
+            break;
+        case VS_AWNING:  // a shop awning 4 m up in front of a facade
+            g_vboxes.push_back({vec3(-4, -4, 4), vec3(4, 4, 4.2f)});
+            g_vboxes.push_back({vec3(-30, -5, 0), vec3(30, -4.2f, 20)});
             break;
         default: break;
     }
@@ -493,9 +505,9 @@ static void envTests() {
     check(lSupP < lNpcP - 10.f, "suppressed pistol much quieter", StrFormat("%.1f vs %.1f", lSupP, lNpcP));
     check(lSup < lNpc - 4.f, "suppressed rifle quieter (still cracks)", StrFormat("%.1f vs %.1f", lSup, lNpc));
     check(lDist < lNpc - 12.f && lDist > -60.f, "distant shot quieter but audible", StrFormat("%.1f", lDist));
-    float hiNear = bandFraction(std::vector<float>(npc.begin(), npc.begin() + Min(npc.size(), (size_t)48000)), 2000.f, 20000.f);
+    float hiNear = bandFraction(monoOf(std::vector<float>(npc.begin(), npc.begin() + Min(npc.size(), (size_t)96000))), 2000.f, 20000.f);
     std::vector<float> distWin(dist.begin() + (size_t)(1.0f * 48000.f) * 2, dist.begin() + (size_t)(2.5f * 48000.f) * 2);
-    float hiFar = bandFraction(distWin, 2000.f, 20000.f);
+    float hiFar = bandFraction(monoOf(distWin), 2000.f, 20000.f);
     printf("  energy above 2 kHz: near %.1f%%, 390 m %.1f%%\n", hiNear * 100.f, hiFar * 100.f);
     check(hiFar < hiNear * 0.5f, "distant shot is duller (boom)", StrFormat("%.3f vs %.3f", hiFar, hiNear));
     for (auto* v : {&npc, &fp, &sup, &supP, &npcP, &dist}) basicChecks("env_street_shots", *v, 1.95f);
@@ -533,11 +545,11 @@ static void envTests() {
             destroyEmitter(e);
             renderScene(0.5f, 0.f);
             lvl[k] = analyze(eng, 2).rmsDb;
-            hi[k] = bandFraction(eng, 1500.f, 20000.f);
+            hi[k] = bandFraction(monoOf(eng), 1500.f, 20000.f);
             playGunshot(SFX_RIFLE, vec3(0, 40, 1.5f), vec3(1, 0, 0), 0);
             std::vector<float> g = renderScene(2.f, 0.f);
             gun[k] = loudestWindowDb(g, 2, 0.1f);
-            gunHi[k] = bandFraction(std::vector<float>(g.begin() + 12000, g.begin() + 12000 + 24000), 2000.f, 20000.f);
+            gunHi[k] = bandFraction(monoOf(std::vector<float>(g.begin() + 12000, g.begin() + 12000 + 48000)), 2000.f, 20000.f);
             save(std::string("env_occlusion_engine_") + (k == 0 ? "clear" : k == 1 ? "building" : "lowwall"), eng);
             save(std::string("env_occlusion_rifle_") + (k == 0 ? "clear" : k == 1 ? "building" : "lowwall"), g);
             basicChecks("env_occlusion", eng);
@@ -575,6 +587,315 @@ static void envTests() {
     resetWorld();
 }
 
+// Vehicles: tyres by surface, wet spray, limiter rhythm, downshift blip, thumps, cabin relay, intake/exhaust balance.
+static std::vector<float> driveScene(int kind, float secs, const std::function<void(float, VehicleAudio&, vec3&, float&, float&, float&)>& fn,
+                                     Listener l) {
+    EmitterHandle h = createEmitter(EMIT_ENGINE);
+    std::vector<float> all;
+    int frames = (int)(secs * 60.f);
+    for (int f = 0; f < frames; f++) {
+        float t = (float)f / 60.f;
+        VehicleAudio va;
+        vec3 pos(0, 6, 0.5f);
+        float rpm = 0.4f, thr = 0.5f, load = 0.5f;
+        fn(t, va, pos, rpm, thr, load);
+        update(l, 1.f / 60.f);
+        setEmitter(h, pos, va.forward * va.speed, rpm, thr, load, (float)kind, 1.f);
+        setVehicleAudio(h, va);
+        std::vector<float> b = render(1.f / 60.f);
+        all.insert(all.end(), b.begin(), b.end());
+    }
+    destroyEmitter(h);
+    render(0.3f);
+    return all;
+}
+// Rhythm of an amplitude envelope (5 ms RMS, 1 ms hop): the autocorrelation peak between 1/f1 and 1/f0, as a frequency.
+static float envelopePeakHz(const std::vector<float>& x, float f0, float f1) {
+    std::vector<float> env;  // 5 ms windows every 1 ms
+    for (size_t i = 0; i + 240 <= x.size(); i += 48) {
+        double e = 0;
+        for (size_t k = i; k < i + 240; k++) e += (double)x[k] * x[k];
+        env.push_back(20.f * log10f((float)sqrt(e / 240.0) + 1e-5f));  // dB: every event counts alike
+    }
+    float mean = 0.f;
+    for (float v : env) mean += v;
+    mean /= (float)Max((size_t)1, env.size());
+    for (float& v : env) v -= mean;
+    int l0 = Max(1, (int)(1000.f / f1)), l1 = (int)(1000.f / f0);
+    std::vector<float> ac;
+    float best = -1e30f;
+    for (int L = l0; L <= l1 && L < (int)env.size() / 2; L++) {
+        double c = 0;
+        for (size_t i = 0; i + (size_t)L < env.size(); i++) c += (double)env[i] * env[i + (size_t)L];
+        c /= (double)(env.size() - (size_t)L);
+        ac.push_back((float)c);
+        best = Max(best, (float)c);
+    }
+    // the shortest period whose autocorrelation is (nearly) as strong as the best: avoids octave errors
+    for (size_t k = 1; k + 1 < ac.size(); k++)
+        if (ac[k] >= 0.85f * best && ac[k] >= ac[k - 1] && ac[k] >= ac[k + 1]) return 1000.f / (float)(l0 + (int)k);
+    return 0.f;
+}
+static void vehicleTests() {
+    printf("== Vehicles\n");
+    Listener l0;
+    l0.pos = vec3(0, 0, 1.6f);
+    // tyres by surface: a car rolling past at 20 m/s (engine quiet, cruising)
+    const char* sname[5] = {"asphalt", "wet", "gravel", "grass", "wood"};
+    float lvl[5], hi[5];
+    for (int k = 0; k < 5; k++) {
+        resetWorld();
+        std::vector<float> b = driveScene(ENGINE_I4, 4.f, [&](float t, VehicleAudio& va, vec3& pos, float& rpm, float& thr, float& load) {
+            va.speed = 20.f;
+            va.forward = vec3(1, 0, 0);
+            va.surface = k == 2 ? 3 : k == 3 ? 2 : k == 4 ? 6 : 0;
+            va.gravel = k == 2;
+            va.wetness = k == 1 ? 1.f : 0.f;
+            pos = vec3(-40.f + 20.f * t, 6.f, 0.5f);
+            rpm = 0.35f; thr = 0.25f; load = 0.2f;
+        }, l0);
+        basicChecks(std::string("veh_surface_") + sname[k], b);
+        save(std::string("veh_surface_") + sname[k], b);
+        std::vector<float> m = monoOf(b);
+        lvl[k] = analyze(b, 2).rmsDb;
+        hi[k] = bandFraction(m, 3000.f, 16000.f);
+    }
+    printf("  surfaces (asphalt / wet / gravel / grass / wood): rms %.1f / %.1f / %.1f / %.1f / %.1f dB, >3 kHz %.1f / %.1f / %.1f / %.1f / %.1f %%\n",
+           lvl[0], lvl[1], lvl[2], lvl[3], lvl[4], hi[0] * 100.f, hi[1] * 100.f, hi[2] * 100.f, hi[3] * 100.f, hi[4] * 100.f);
+    check(hi[1] > hi[0] * 1.5f, "wet road: spray hiss");
+    check(hi[2] > hi[0] * 1.5f, "gravel: crunch and stones");
+    // no chassis state vs chassis at speed: the tyres add a lot at 25 m/s
+    {
+        resetWorld();
+        auto run = [&](bool chassis) {
+            EmitterHandle h = createEmitter(EMIT_ENGINE);
+            std::vector<float> all;
+            for (int f = 0; f < 150; f++) {
+                update(l0, 1.f / 60.f);
+                setEmitter(h, vec3(0, 8, 0.5f), vec3(25, 0, 0), 0.4f, 0.4f, 0.4f, (float)ENGINE_V6, 1.f);
+                if (chassis) {
+                    VehicleAudio va;
+                    va.speed = 25.f;
+                    va.forward = vec3(1, 0, 0);
+                    setVehicleAudio(h, va);
+                }
+                std::vector<float> b = render(1.f / 60.f);
+                if (f > 60) all.insert(all.end(), b.begin(), b.end());
+            }
+            destroyEmitter(h);
+            render(0.3f);
+            return analyze(all, 2).rmsDb;
+        };
+        float e0 = run(false), e1 = run(true);
+        printf("  V6 at 25 m/s: engine only %.1f dB, with tyres and wind %.1f dB\n", e0, e1);
+        check(e1 > e0 + 1.5f, "tyre roar at speed");
+    }
+    // rev limiter: bouncing at ~16 Hz
+    {
+        resetWorld();
+        std::vector<float> b = driveScene(ENGINE_V8, 3.f, [&](float t, VehicleAudio& va, vec3& pos, float& rpm, float& thr, float& load) {
+            (void)t;
+            va.speed = 0.f;
+            rpm = 1.f; thr = 1.f; load = 0.3f;
+            pos = vec3(0, 5, 0.5f);
+        }, l0);
+        std::vector<float> m = monoOf(std::vector<float>(b.begin() + 48000, b.end()));
+        float fz = envelopePeakHz(m, 6.f, 40.f);
+        printf("  rev limiter envelope modulation %.1f Hz\n", fz);
+        check(fz > 12.f && fz < 20.f, "rev limiter bounces at ~16 Hz", StrFormat("%.1f", fz));
+        save("veh_rev_limiter", b);
+    }
+    // downshift blip: throttle off, gear 3 -> 2 at t = 1 s
+    {
+        resetWorld();
+        std::vector<float> b = driveScene(ENGINE_V8, 2.f, [&](float t, VehicleAudio& va, vec3& pos, float& rpm, float& thr, float& load) {
+            va.speed = 15.f;
+            va.gear = t < 1.f ? 3 : 2;
+            rpm = t < 1.f ? 0.35f : 0.55f;
+            thr = 0.f; load = 0.1f;
+            pos = vec3(0, 5, 0.5f);
+        }, l0);
+        float before = windowDb(b, 0.8f, 0.95f), after = windowDb(b, 1.0f, 1.12f);
+        printf("  downshift: %.1f dB before, %.1f dB during the blip\n", before, after);
+        check(after > before + 3.f, "rev-matching blip on a downshift");
+        save("veh_downshift_blip", b);
+    }
+    // suspension thump over a kerb
+    {
+        resetWorld();
+        std::vector<float> b = driveScene(ENGINE_I4, 2.f, [&](float t, VehicleAudio& va, vec3& pos, float& rpm, float& thr, float& load) {
+            va.speed = 8.f;
+            va.bump = (t > 1.f && t < 1.02f) ? 2.5f : 0.f;
+            rpm = 0.2f; thr = 0.2f; load = 0.2f;
+            pos = vec3(0, 5, 0.5f);
+        }, l0);
+        std::vector<float> seg(b.begin() + 96000, b.begin() + 96000 + 24000);
+        std::vector<float> ref(b.begin() + 72000, b.begin() + 72000 + 24000);
+        float lowHit = bandFraction(monoOf(seg), 30.f, 200.f), lowRef = bandFraction(monoOf(ref), 30.f, 200.f);
+        float eHit = windowDb(b, 1.0f, 1.25f), eRef = windowDb(b, 0.75f, 1.0f);
+        printf("  kerb thump: %.1f dB (<200 Hz %.0f%%) vs %.1f dB (<200 Hz %.0f%%) before\n", eHit, lowHit * 100.f, eRef, lowRef * 100.f);
+        check(eHit > eRef + 2.f && lowHit > lowRef, "suspension thump over a kerb");
+        save("veh_kerb_thump", b);
+    }
+    // cabin: the player's car with the indicator on, listener inside
+    {
+        resetWorld();
+        Listener in = l0;
+        in.inVehicle = 1.f;
+        in.interior = 0.6f;
+        in.pos = vec3(0, 5.2f, 1.2f);
+        std::vector<float> b = driveScene(ENGINE_I4, 3.f, [&](float t, VehicleAudio& va, vec3& pos, float& rpm, float& thr, float& load) {
+            (void)t;
+            va.speed = 0.f;
+            va.player = true;
+            va.indicator = 1;
+            rpm = 0.f; thr = 0.f; load = 0.05f;
+            pos = vec3(0, 5, 0.6f);
+        }, in);
+        std::vector<float> m = monoOf(b);
+        std::vector<float> hp(m.size());
+        OnePoleHP f;
+        f.set(1500.f);
+        for (size_t i = 0; i < m.size(); i++) hp[i] = f.process(m[i]);
+        float fz = envelopePeakHz(hp, 1.f, 8.f);
+        printf("  cabin relay rhythm %.2f Hz (tick-tock every 0.36 s)\n", fz);
+        check(fz > 2.5f && fz < 3.1f, "indicator relay ticks in the cabin", StrFormat("%.2f", fz));
+        save("veh_cabin_indicator", b);
+    }
+    // intake / exhaust balance: listener in front of the car vs behind it
+    {
+        float lowF = 0, lowB = 0, midF = 0, midB = 0;
+        for (int side = 0; side < 2; side++) {
+            resetWorld();
+            std::vector<float> b = driveScene(ENGINE_V8, 2.5f, [&](float t, VehicleAudio& va, vec3& pos, float& rpm, float& thr, float& load) {
+                (void)t;
+                va.speed = 0.f;
+                va.forward = side == 0 ? vec3(0, -1, 0) : vec3(0, 1, 0);  // facing the listener / facing away
+                rpm = 0.55f; thr = 0.8f; load = 0.6f;
+                pos = vec3(0, 6, 0.5f);
+            }, l0);
+            std::vector<float> m = monoOf(std::vector<float>(b.begin() + 48000, b.end()));
+            (side == 0 ? lowF : lowB) = bandFraction(m, 30.f, 300.f);
+            (side == 0 ? midF : midB) = bandFraction(m, 800.f, 4000.f);
+            save(side == 0 ? "veh_v8_front" : "veh_v8_behind", b);
+        }
+        printf("  V8 heard from the front / behind: <300 Hz %.0f%% / %.0f%%, 0.8-4 kHz %.0f%% / %.0f%%\n", lowF * 100.f, lowB * 100.f, midF * 100.f,
+               midB * 100.f);
+        check(lowB > lowF && midF > midB, "exhaust behind, intake and engine bay in front");
+    }
+    // air brakes when a bus stops
+    {
+        resetWorld();
+        std::vector<float> b = driveScene(ENGINE_TRUCK_DIESEL, 3.f, [&](float t, VehicleAudio& va, vec3& pos, float& rpm, float& thr, float& load) {
+            va.speed = Max(0.f, 6.f - 4.f * t);
+            va.heavy = true;
+            rpm = 0.1f; thr = 0.f; load = 0.1f;
+            pos = vec3(0, 7, 0.5f);
+        }, l0);
+        float hiStop = windowDb(b, 1.55f, 2.2f) + 10.f * log10f(bandFraction(monoOf(std::vector<float>(b.begin() + 148800, b.begin() + 211200)), 2000.f, 12000.f) + 1e-9f);
+        float hiBefore = windowDb(b, 0.6f, 1.3f) + 10.f * log10f(bandFraction(monoOf(std::vector<float>(b.begin() + 57600, b.begin() + 124800)), 2000.f, 12000.f) + 1e-9f);
+        printf("  bus stopping: 2-12 kHz energy %.1f dB rolling, %.1f dB after the stop (air brakes)\n", hiBefore, hiStop);
+        check(hiStop > hiBefore + 6.f, "air brakes vent when a bus stops");
+        save("veh_bus_air_brakes", b);
+    }
+}
+
+// Ambience presets by district, time and shelter, with spectral sanity checks.
+static void ambienceTests(bool quick) {
+    printf("== Ambience\n");
+    struct P {
+        const char* name;
+        Ambience a;
+        int scene;        // virtual geometry around the listener (VS_OPEN = none)
+        float interior, inVehicle;
+    };
+    auto mk = [](float urban, float nature, float coast, float wet, float rain, float wind, float tod, float uw, float down = 0.f, float port = 0.f,
+                 float traffic = -1.f) {
+        Ambience a;
+        a.urban = urban; a.nature = nature; a.coast = coast; a.wetland = wet; a.rain = rain; a.wind = wind; a.timeOfDay = tod; a.underwater = uw;
+        a.downtown = down; a.port = port; a.traffic = traffic;
+        return a;
+    };
+    P list[] = {
+        {"city_day", mk(1, 0, 0, 0, 0, 0.2f, 13, 0, 0, 0, 0.7f), VS_OPEN, 0, 0},
+        {"city_night", mk(1, 0.1f, 0, 0, 0, 0.1f, 23, 0, 0, 0, 0.3f), VS_OPEN, 0, 0},
+        {"downtown_day", mk(1, 0, 0, 0, 0, 0.2f, 11, 0, 1, 0, 0.9f), VS_STREET, 0, 0},
+        {"downtown_night", mk(1, 0, 0, 0, 0, 0.1f, 2, 0, 1, 0, 0.35f), VS_STREET, 0, 0},
+        {"port_day", mk(0.5f, 0, 0.4f, 0, 0, 0.4f, 10, 0, 0, 1, 0.3f), VS_OPEN, 0, 0},
+        {"forest_day", mk(0.05f, 1, 0, 0, 0, 0.3f, 8, 0), VS_OPEN, 0, 0},
+        {"forest_night", mk(0, 1, 0, 0, 0, 0.1f, 1, 0), VS_OPEN, 0, 0},
+        {"beach_day", mk(0.1f, 0.1f, 1, 0, 0, 0.5f, 15, 0), VS_OPEN, 0, 0},
+        {"sawgrass_day", mk(0, 0.4f, 0, 1, 0, 0.3f, 11, 0), VS_OPEN, 0, 0},
+        {"sawgrass_night", mk(0, 0.4f, 0, 1, 0, 0.1f, 23, 0), VS_OPEN, 0, 0},
+        {"wetland_evening", mk(0, 0.3f, 0, 1, 0, 0.1f, 19.5f, 0), VS_OPEN, 0, 0},
+        {"storm", mk(0.4f, 0, 0, 0, 1, 0.9f, 16, 0), VS_OPEN, 0, 0},
+        {"rain_open", mk(0.8f, 0, 0, 0, 0.8f, 0.3f, 16, 0), VS_OPEN, 0, 0},
+        {"rain_sheltered", mk(0.8f, 0, 0, 0, 0.8f, 0.3f, 16, 0), VS_AWNING, 0, 0},
+        {"rain_in_car", mk(0.8f, 0, 0, 0, 0.8f, 0.3f, 16, 0), VS_OPEN, 0.6f, 1},
+        {"rain_indoors", mk(0.8f, 0, 0, 0, 0.8f, 0.3f, 16, 0), VS_ROOM, 1, 0},
+        {"underwater", mk(0.5f, 0, 1, 0, 0, 0.3f, 12, 1), VS_OPEN, 0, 0},
+    };
+    const int N = (int)(sizeof(list) / sizeof(list[0]));
+    std::map<std::string, float> rms, lo, hi, mid, ins;
+    for (int k = 0; k < N; k++) {
+        const P& p = list[k];
+        resetWorld();
+        setScene(p.scene);
+        setRaycast(p.scene != VS_OPEN ? vRay : nullptr);
+        setAmbience(p.a);
+        Listener l;
+        l.pos = vec3(0, 0, 1.7f);
+        l.interior = p.interior;
+        l.inVehicle = p.inVehicle;
+        std::vector<float> buf;
+        int frames = (int)((quick ? 10.f : 17.f) * 60.f);
+        for (int f = 0; f < frames; f++) {
+            update(l, 1.f / 60.f);
+            std::vector<float> b = render(1.f / 60.f);
+            if (f >= 120) buf.insert(buf.end(), b.begin(), b.end());  // after the crossfade in
+        }
+        basicChecks(std::string("amb_") + p.name, buf);
+        Stats st = analyze(buf, 2);
+        rms[p.name] = st.rmsDb;
+        std::vector<float> mb = monoOf(buf);
+        lo[p.name] = bandFraction(mb, 20.f, 160.f);
+        mid[p.name] = bandFraction(mb, 500.f, 1600.f);
+        ins[p.name] = bandFraction(mb, 2200.f, 10000.f);
+        hi[p.name] = bandFraction(mb, 4000.f, 20000.f);
+        printf("  %-16s rms %.1f dB peak %.2f  <160 Hz %2.0f%%  0.5-1.6k %2.0f%%  2.2-10k %2.0f%%  >4k %2.0f%%\n", p.name, st.rmsDb, st.peak, lo[p.name] * 100.f,
+               mid[p.name] * 100.f, ins[p.name] * 100.f, hi[p.name] * 100.f);
+        check(st.rmsDb > -62.f && st.rmsDb < -16.f, "ambience level", std::string(p.name) + StrFormat(" %.1f", st.rmsDb));
+        if (g_report) fprintf(g_report, "amb %-16s rms %.1f peak %.2f\n", p.name, st.rmsDb, st.peak);
+        save(std::string("amb_") + p.name, buf);
+    }
+    setRaycast(nullptr);
+    setScene(VS_OPEN);
+    check(ins["sawgrass_night"] > ins["city_night"] + 0.05f, "night insects in the sawgrass");
+    check(ins["forest_night"] > ins["city_night"], "crickets and katydids at night in the woods");
+    check(lo["port_day"] > lo["beach_day"], "port generator drone");
+    check(rms["downtown_day"] > rms["city_night"], "downtown by day busier than the city at night");
+    auto bandDb = [&](const char* nm, std::map<std::string, float>& band) { return rms[nm] + 10.f * log10f(band[nm] + 1e-9f); };
+    check(bandDb("rain_in_car", hi) < bandDb("rain_open", hi) - 5.f, "rain heard from the car is muffled",
+          StrFormat("%.1f vs %.1f dB above 4 kHz", bandDb("rain_in_car", hi), bandDb("rain_open", hi)));
+    check(rms["rain_indoors"] < rms["rain_open"] - 8.f && hi["rain_indoors"] < hi["rain_open"] * 0.4f, "rain heard indoors is muffled");
+    check(mid["rain_sheltered"] > mid["rain_open"], "rain drums on the awning overhead");
+    // thunder by distance
+    float tl[3], th[3];
+    const float dists[3] = {500.f, 2000.f, 6000.f};
+    for (int k = 0; k < 3; k++) {
+        resetWorld();
+        playThunder(dists[k], 1.f);
+        std::vector<float> b = render(8.f);
+        basicChecks(StrFormat("thunder_%.0fm", dists[k]), b, 1.6f);
+        tl[k] = loudestWindowDb(b, 2);
+        th[k] = bandFraction(monoOf(b), 1000.f, 20000.f);
+        save(StrFormat("thunder_%.0fm", dists[k]), b);
+    }
+    printf("  thunder 500 / 2000 / 6000 m: loud %.1f / %.1f / %.1f dB, >1 kHz %.1f / %.1f / %.1f %%\n", tl[0], tl[1], tl[2], th[0] * 100.f,
+           th[1] * 100.f, th[2] * 100.f);
+    check(tl[0] > tl[2] + 3.f && th[0] > th[1] && th[1] >= th[2], "close thunder cracks, far thunder rumbles");
+}
+
 static void perfTest(float seconds, int engines = 20, int others = 8) {
     resetWorld();
     dsp::ScopedFlushDenormals ftz;  // as on the real audio / music threads
@@ -608,6 +929,15 @@ static void perfTest(float seconds, int engines = 20, int others = 8) {
                 vec3 p = l.pos + vec3(cosf(ang) * (8.f + 6.f * (float)i), sinf(ang) * (8.f + 6.f * (float)i), 0);
                 float p0 = (int)i < engines ? 0.5f + 0.4f * sinf(t + (float)i) : ((int)i == engines + 7 ? 6.f : 0.7f);
                 setEmitter(em[i], p, vec3(10, 0, 0), p0, 0.6f, 0.5f, (float)(i % ENGINE_COUNT), 1.f);
+                if ((int)i < engines) {
+                    VehicleAudio va;
+                    va.forward = vec3(1, 0, 0);
+                    va.speed = 8.f + 10.f * (float)(i % 3);
+                    va.surface = (int)(i % 4) == 3 ? 3 : 0;
+                    va.wetness = 0.6f;
+                    va.slip = (i % 7) == 0 ? 0.6f : 0.05f;
+                    setVehicleAudio(em[i], va);
+                }
             }
             if (r.chance(0.5f)) play((Sfx)r.irange(SFX_STEP_CONCRETE, SFX_BOAT_SLAM), l.pos + vec3(r.range(-30, 30), r.range(-30, 30), 0));
             if (r.chance(0.15f)) playGunshot(SFX_RIFLE, l.pos + vec3(r.range(-8, 8), r.range(10, 200), 1.5f), vec3(1, 0, 0), 0);
@@ -641,19 +971,23 @@ static void perfTest(float seconds, int engines = 20, int others = 8) {
 }
 
 int main(int argc, char** argv) {
-    bool quick = false, perfOnly = false, envOnly = false;
+    bool quick = false, perfOnly = false, envOnly = false, ambOnly = false, vehOnly = false;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--quick")) quick = true;
         else if (!strcmp(argv[i], "--perf")) perfOnly = true;
         else if (!strcmp(argv[i], "--env")) envOnly = true;
+        else if (!strcmp(argv[i], "--amb")) ambOnly = true;
+        else if (!strcmp(argv[i], "--veh")) vehOnly = true;
         else g_out = argv[i];
     }
-    if (envOnly) {
+    if (envOnly || ambOnly || vehOnly) {
         mkdir(g_out.c_str(), 0755);
         init();
         render(0.1f);
         resetWorld();
-        envTests();
+        if (envOnly) envTests();
+        if (ambOnly) ambienceTests(quick);
+        if (vehOnly) vehicleTests();
         printf("\n%d checks, %d failures\n", g_checks, g_fail);
         shutdown();
         return g_fail ? 1 : 0;
@@ -661,8 +995,9 @@ int main(int argc, char** argv) {
     if (perfOnly) {
         init();
         render(0.1f);
-        perfTest(20.f, 20, 8);
-        perfTest(20.f, 6, 2);
+        float secs = getenv("AUDIO_PERF_SECONDS") ? (float)atof(getenv("AUDIO_PERF_SECONDS")) : 20.f;
+        perfTest(secs, 20, 8);
+        if (!getenv("AUDIO_PERF_SECONDS")) perfTest(secs, 6, 2);
         shutdown();
         return 0;
     }
@@ -813,7 +1148,7 @@ int main(int argc, char** argv) {
             float secs = quick ? 20.f : 60.f;
             std::vector<float> buf = render(secs);
             std::string name = StrFormat("radio_%d", s);
-            basicChecks(name, buf);
+            basicChecks(name, buf, 1.25f);  // mastered music has steep transients (block-boundary clicks are tested separately)
             Stats st = analyze(buf, 2);
             std::string np = radioNowPlaying(s);
             printf("  %-28s %-24s rms %.1f dB peak %.2f  now: %s\n", radioStationName(s), radioStationGenre(s), st.rmsDb, st.peak, np.c_str());
@@ -845,31 +1180,7 @@ int main(int argc, char** argv) {
     }
 
     // ---------------------------------------------------------------- Ambience presets
-    {
-        printf("== Ambience\n");
-        struct P { const char* name; Ambience a; };
-        auto mk = [](float urban, float nature, float coast, float wet, float rain, float wind, float tod, float uw) {
-            Ambience a;
-            a.urban = urban; a.nature = nature; a.coast = coast; a.wetland = wet; a.rain = rain; a.wind = wind; a.timeOfDay = tod; a.underwater = uw;
-            return a;
-        };
-        P list[] = {{"city_day", mk(1, 0, 0, 0, 0, 0.2f, 13, 0)}, {"city_night", mk(1, 0.1f, 0, 0, 0, 0.1f, 23, 0)},
-                    {"forest_day", mk(0.05f, 1, 0, 0, 0, 0.3f, 8, 0)}, {"forest_night", mk(0, 1, 0, 0, 0, 0.1f, 1, 0)},
-                    {"beach_day", mk(0.1f, 0.1f, 1, 0, 0, 0.5f, 15, 0)}, {"wetland_evening", mk(0, 0.3f, 0, 1, 0, 0.1f, 19.5f, 0)},
-                    {"storm", mk(0.4f, 0, 0, 0, 1, 0.9f, 16, 0)}, {"underwater", mk(0.5f, 0, 1, 0, 0, 0.3f, 12, 1)}};
-        for (const P& p : list) {
-            resetWorld();
-            setAmbience(p.a);
-            render(2.f);  // crossfade in
-            std::vector<float> buf = render(quick ? 8.f : 15.f);
-            basicChecks(std::string("amb_") + p.name, buf);
-            Stats st = analyze(buf, 2);
-            printf("  %-16s rms %.1f dB peak %.2f\n", p.name, st.rmsDb, st.peak);
-            check(st.rmsDb > -60.f && st.rmsDb < -16.f, "ambience level", std::string(p.name) + StrFormat(" %.1f", st.rmsDb));
-            if (g_report) fprintf(g_report, "amb %-16s rms %.1f peak %.2f\n", p.name, st.rmsDb, st.peak);
-            save(std::string("amb_") + p.name, buf);
-        }
-    }
+    ambienceTests(quick);
 
     // ---------------------------------------------------------------- Speech + ducking
     {
@@ -901,6 +1212,7 @@ int main(int argc, char** argv) {
     }
 
     envTests();
+    vehicleTests();
 
     printf("== Drum kits (spectral sanity)\n");
     kitTests();

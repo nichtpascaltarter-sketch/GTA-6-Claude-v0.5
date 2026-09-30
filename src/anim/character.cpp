@@ -379,6 +379,22 @@ static void bakeOcclusion(const BuildCtx& c, MeshB& m) {
         float ao = 1.f - Saturate(occ * 1.25f - 0.05f);
         float k = mat == MAT_SKIN ? 0.42f : (mat == MAT_HAIR ? 0.3f : 0.35f);
         v.col = v.col * (1.f - k * (1.f - ao));
+        // sky occlusion under the jaw: the chin and the jaw keep the sky off the upper neck (and the occiput off the
+        // nape), which the samples along the normal miss; march up and out and darken by how soon the head is hit, so
+        // the jaw line reads against the neck in flat or overhead light
+        if (mat == MAT_SKIN && (v.part == PART_NECK || v.part == PART_HEAD) && n.z > -0.35f && n.z < 0.6f) {
+            vec3 dir = normalize(vec3(0, 0, 0.85f) + vec3(n.x, n.y, 0.f) * 0.45f);
+            const float ts[4] = {0.01f, 0.022f, 0.038f, 0.058f};
+            float hit = 0.f;
+            for (int j = 0; j < 4; j++) {
+                float t = ts[j] * s;
+                if (sdf.evalList(v.p + dir * t, list, cnt, cap) < -0.002f * s) {
+                    hit = 1.f - 0.2f * (float)j;
+                    break;
+                }
+            }
+            v.col = v.col * (1.f - 0.2f * hit);
+        }
     }
 }
 }  // namespace detail
@@ -588,7 +604,7 @@ static void computeLayerOffsets(MeshB& m) {
 static void inflateLayers(MeshB& m, int lod) {
     const float base = lod >= 2 ? 0.004f : 0.0015f, k = lod >= 2 ? 0.5f : 0.15f;
     for (BVert& v : m.v) {
-        if (lodIsSkinSurface(v) || v.mat == MAT_EYE) continue;
+        if (lodIsSkinSurface(v) || v.mat == MAT_EYE || (v.mat == MAT_SKIN && v.part == PART_FACEDETAIL)) continue;   // lid tucks stay on the eye
         vec3 n = length2(v.n) > 1e-12f ? normalize(v.n) : vec3(0);
         v.p = v.p + n * (base + k * Min(v.layer, 0.04f));
     }

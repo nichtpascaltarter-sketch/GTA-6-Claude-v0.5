@@ -138,6 +138,16 @@ void polyFlat(G& g, MeshData& m, const std::vector<vec2>& pts, float z, u32 col,
     size_t n = pts.size();
     for (size_t i = 0; i < n; i++) m.verts[m.verts.size() - n + i].uv = pts[i];
 }
+// MAT_PAVERS lays 2:1 bricks, 6 x 12 per texture tile (2 uv units): at kPaverUV uv units per metre a brick is 20 x 10 cm.
+constexpr float kPaverUV = 1.f / 0.6f;
+// Plaza pavers: a greyer, less saturated brick than the texture's terracotta (vertex tint over MAT_PAVERS)
+inline u32 paverTint() { return rgb(0.84f, 0.88f, 0.94f); }
+// Paver uvs for horizontal vertices [v0, end) of m, anchored to the world so the bond runs on across cells (wrapped every
+// 1200 m, a whole number of texture tiles, to keep the uvs small)
+void paverUV(const G& g, MeshData& m, size_t v0) {
+    vec2 w0(floorf(g.org.x / 1200.f) * 1200.f, floorf(g.org.y / 1200.f) * 1200.f);
+    for (size_t i = v0; i < m.verts.size(); i++) m.verts[i].uv = (m.verts[i].pos.xy() + g.org.xy() - w0) * kPaverUV;
+}
 // Extruded prism: walls (outward) + optional roof. fp CCW from above.
 void prism(G& g, const std::vector<vec2>& fp, float z0, float z1, u32 wallCol, u32 wallMat, u32 roofCol, u32 roofMat, bool roof = true) {
     int n = (int)fp.size();
@@ -470,7 +480,7 @@ void padStyle(const Pad& p, u32& col, u32& mat, float& dz) {
         case PAD_SERVICE: mat = M(MAT_ASPHALT_OLD); break;
         case PAD_PARKING: mat = M(MAT_ASPHALT_OLD); dz = 0.01f; break;
         case PAD_YARD: mat = M(MAT_CONCRETE); break;
-        case PAD_PLAZA: mat = M(MAT_PAVERS); if (col == kWhiteC) col = rgb(1.05f, 1.f, 0.95f); break;
+        case PAD_PLAZA: mat = M(MAT_PAVERS); if (col == kWhiteC) col = paverTint(); break;
         case PAD_DECK: mat = M(MAT_WOOD); break;
         case PAD_TURF: mat = M(MAT_GRASS); break;
         case PAD_RAMP: mat = M(MAT_CONCRETE); break;
@@ -503,7 +513,10 @@ void drawPads(G& g) {
         float dz;
         padStyle(p, col, mat, dz);
         float z = p.z + dz;
+        size_t v0 = g.m->verts.size();
         polyFlat(g, *g.m, poly, z, col, mat);
+        bool pavers = p.kind == PAD_PLAZA;
+        if (pavers) paverUV(g, *g.m, v0);
         if (!p.skirt && !(p.flags & 2)) continue;
         // Edge skirts (or raised curb faces) along the pad edges that fall inside this cell
         for (int k = 0; k < 4; k++) {
@@ -513,7 +526,7 @@ void drawPads(G& g) {
             vec2 on = normalize(vec2(b.y - a.y, a.x - b.x));
             float drop = (p.flags & 2) ? 0.15f + 0.3f : 0.55f;
             u32 smat = (p.flags & 2) ? M(MAT_CURB) : mat;
-            quad(g, *g.m, vec3(a, z), vec3(b, z), vec3(b, z - drop), vec3(a, z - drop), col, smat, vec3(on, 0));
+            quad(g, *g.m, vec3(a, z), vec3(b, z), vec3(b, z - drop), vec3(a, z - drop), col, smat, vec3(on, 0), (pavers && !(p.flags & 2)) ? kPaverUV : 1.f);
         }
     }
 }

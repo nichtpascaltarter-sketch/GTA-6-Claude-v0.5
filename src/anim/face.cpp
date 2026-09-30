@@ -111,7 +111,7 @@ void addHeadPrims(BuildCtx& c) {
     for (int sd = 0; sd < 2; sd++) {
         float sx = sd ? 1.f : -1.f;
         // malar fat ("apple" of the cheek): fuller on young, female and heavier faces
-        float mf = Saturate(0.35f + 0.35f * youth + 0.35f * full + 0.2f * fem - 0.25f * lean);
+        float mf = Saturate(0.35f + 0.35f * youth + 0.35f * full + 0.2f * fem - 0.25f * lean * (1.f - 0.5f * youth));
         S.ellipsoid(P(sx * 0.0345f, 0.0625f, 0.019f + 0.7f * D.cheekH), vec3(0.019f, 0.0125f, 0.017f) * (hs * (0.55f + 0.5f * mf)), HM, R(0.022f));
         // pad lateral to the nasolabial fold (ala -> past the mouth corner); its tight medial blend is the fold
         float nl = 0.45f + 0.5f * age + 0.25f * full;
@@ -119,7 +119,8 @@ void addHeadPrims(BuildCtx& c) {
         S.cone(Pv(a), Pv(b), R(0.0062f * nl), R(0.0072f * nl), HM, R(0.009f));
         // lower cheek over the buccal fat and the teeth (keeps young / fuller faces from looking gaunt below the
         // cheekbones)
-        float bf = Saturate(0.35f + 0.45f * youth + 0.6f * full + 0.2f * fem - 0.45f * lean);
+        // (thin young faces keep much of it: the hollow below the cheekbones comes with age more than with leanness)
+        float bf = Saturate(0.35f + 0.45f * youth + 0.6f * full + 0.2f * fem - 0.45f * lean * (1.f - 0.5f * youth));
         S.ellipsoid(P(sx * 0.0425f * jw, 0.05f, -0.013f), vec3(0.013f, 0.02f, 0.022f) * (hs * (0.5f + 0.5f * bf)), HM, R(0.02f));
         // jowls (age / weight)
         float jl = Saturate(0.9f * age + 0.6f * full - 0.35f);
@@ -1096,14 +1097,16 @@ static void addBrow(BuildCtx& c, int sd, vec3 col) {
     Rng r(hash32(c.d->seed * 7717u + 31u + (u32)sd));
     float thick = Lerp(1.f, 0.72f, D.fem) * D.browThick;
     float thIn = H.thetaEye - 14.5f * deg, thOut = H.thetaEye + 19.5f * deg;
-    float phBase = 13.8f * deg + 1.2f * deg * (D.browH - 1.f) * 5.f + (sd ? D.asymBrow / 0.09f : 0.f);
+    // the brow lies on the supraorbital ridge: its lower edge ~1.5 cm above the eye centre (about 1 cm above the lid
+    // margin), a little higher on women (browH)
+    float phBase = 18.4f * deg + 1.2f * deg * (D.browH - 1.f) * 5.f + (sd ? D.asymBrow / 0.09f : 0.f);
     // brow shape in (lateral angle, elevation): lower edge + height along u (0 medial head .. 1 tail)
     auto lower = [&](float u) {
         float arch = (Lerp(1.2f, 2.6f, D.fem) * D.browArch * sinf(kPi * powf(u, 0.8f)) - 0.8f * u + D.browTilt * u * u) * deg;
-        float hgt = Lerp(3.1f, 1.1f, powf(u, 1.1f)) * deg * thick;
+        float hgt = Lerp(4.2f, 1.5f, powf(u, 1.1f)) * deg * thick;
         return phBase + arch - 0.45f * hgt;
     };
-    auto height = [&](float u) { return Lerp(3.1f, 1.1f, powf(u, 1.1f)) * deg * thick; };
+    auto height = [&](float u) { return Lerp(4.2f, 1.5f, powf(u, 1.1f)) * deg * thick; };
     auto surf = [&](float at, float ph, vec3& p, vec3& n) {
         // outermost surface along the ray (from outside: the ray from the grid centre first leaves the solid inside
         // the carved eye socket under the brow ridge)
@@ -1215,6 +1218,7 @@ static void addLidDetails(BuildCtx& c, int sd, vec3 lashCol) {
             v.p = ec + d * (er * 0.985f);
             v.col = mulColor(c.skin, vec3(0.85f, 0.55f, 0.5f));
             v.flags = 0;
+            v.part = PART_FACEDETAIL;   // the tear film: glossy where the lid meets the eye (applySkinChannels)
             inner.push_back(m.add(v));
         }
         for (size_t i = 0; i + 1 < ring.size(); i++) {
@@ -1694,7 +1698,7 @@ void applySkinChannels(const BuildCtx& c, MeshB& fin) {
         float gloss = 0.f;
         if (v.flags & BuildCtx::F_LIP) gloss = 0.85f;
         if (v.part == PART_MOUTH) gloss = 0.8f;
-        if (v.part == PART_FACEDETAIL) gloss = 0.7f;   // lid margins (tuck strips)
+        if (v.part == PART_FACEDETAIL) gloss = 0.75f;   // lid margins' inner edge (tuck strips): the tear film's wet line
         if (v.flags & BuildCtx::F_NAIL) gloss = 0.62f;
         vec3 hp = (v.p - D.J[B_HEAD]) / hs;
         if (v.part == PART_HEAD && !(v.flags & BuildCtx::F_LIP)) {

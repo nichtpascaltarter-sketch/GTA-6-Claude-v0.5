@@ -1863,6 +1863,28 @@ static void buildHat(OutfitCtx& o, const CharacterDesc& d) {
 
 // ------------------------------------------------------------------------------------------------
 // Glasses
+//
+// Real frame sizes (lens box ~48-58 mm wide, 32-46 mm tall, 15-18 mm bridge, the front ~12 mm in front of the
+// corneas) so they span the face as real frames do. Plastic frames are flat bands (front, back and both edges, 4-6 mm
+// wide) that read at a distance; metal frames are thin wire rims. The front is pushed forward as one piece wherever
+// the rim would come closer than 3 mm to the skin (full cheeks, a high nose bridge).
+
+namespace GlassesDetail {
+// Lens outline (lateral x towards the temple is +, z up), unit half-sizes: 0 rounded rectangle (reading / office),
+// 1 wayfarer (wider at the top), 2 aviator teardrop (deeper towards the nose at the bottom).
+static vec2 outline(int shape, float a) {
+    float c = cosf(a), s = sinf(a);
+    float pw = shape == 2 ? 2.3f : (shape == 1 ? 3.2f : 3.6f);
+    float x = Sign(c) * powf(fabsf(c), 2.f / pw), z = Sign(s) * powf(fabsf(s), 2.f / pw);
+    if (shape == 1) x *= 1.f + 0.07f * z;                         // trapezoid: top wider
+    if (shape == 2 && z < 0.f) {                                  // teardrop: deeper, and the low point towards the nose
+        z *= 1.22f;
+        x = x * (1.f + 0.1f * z) - 0.12f * z * (1.f - fabsf(x));
+    }
+    if (shape == 0 && z < 0.f && x < 0.f) x *= 1.f + 0.06f * z;   // bottom inner corner cut back for the nose
+    return vec2(x, z);
+}
+}   // namespace GlassesDetail
 
 static void buildGlasses(OutfitCtx& o, const CharacterDesc& d) {
     BuildCtx& c = o.c;
@@ -1874,32 +1896,87 @@ static void buildGlasses(OutfitCtx& o, const CharacterDesc& d) {
     SkinW sw = skin1(B_HEAD);
     bool sun = d.glasses == GL_SUN, avi = d.glasses == GL_AVIATOR, read = d.glasses == GL_READING;
     Rng rng(hash32(d.seed * 53u + 17u));
-    vec3 frameCol = avi ? vec3(0.85f, 0.75f, 0.5f) : (read ? srgbToLinear(vec3(0.25f, 0.18f, 0.12f)) : vec3(1.f));
-    u8 frameMat = avi ? MAT_CHROME : (read ? MAT_METAL_PAINTED : MAT_PLASTIC);
-    float lw = (sun ? 0.026f : (avi ? 0.027f : 0.024f)) * hs, lh = (sun ? 0.019f : (avi ? 0.023f : 0.016f)) * hs;
-    std::vector<vec3> rimPts[2];
+    // style: aviators are gold / silver wire; sunglasses black or tortoise plastic; reading glasses metal (gunmetal,
+    // gold, dark brown) or plastic (black, tortoise, dark red, navy)
+    bool plastic = sun || (read && rng.chance(0.55f));
+    bool tortoise = plastic && rng.chance(sun ? 0.25f : 0.35f);
+    vec3 frameCol;
+    u8 frameMat;
+    if (avi) {
+        frameCol = rng.chance(0.6f) ? vec3(0.85f, 0.72f, 0.45f) : vec3(0.8f);
+        frameMat = MAT_CHROME;
+    } else if (plastic) {
+        const vec3 pc[4] = {vec3(0.012f), vec3(0.09f, 0.035f, 0.012f), vec3(0.16f, 0.02f, 0.02f), vec3(0.02f, 0.03f, 0.07f)};
+        frameCol = sun ? vec3(0.012f) : pc[rng.irange(0, 3)];
+        frameMat = MAT_PLASTIC;
+    } else {
+        // painted dark brown, gunmetal or gold
+        const vec3 mc[3] = {srgbToLinear(vec3(0.25f, 0.18f, 0.12f)), vec3(0.08f, 0.08f, 0.09f), vec3(0.7f, 0.55f, 0.3f)};
+        int mi = rng.irange(0, 2);
+        frameCol = mc[mi];
+        frameMat = mi == 0 ? MAT_METAL_PAINTED : MAT_CHROME;
+    }
+    const int shape = avi ? 2 : (sun ? 1 : 0);
+    const float lw = (avi ? 0.057f : (sun ? 0.053f : 0.049f)) * hs * rng.range(0.96f, 1.04f);
+    const float lh = (avi ? 0.045f : (sun ? 0.041f : 0.033f)) * hs * rng.range(0.94f, 1.06f);
+    const float bridge = (avi ? 0.015f : (sun ? 0.017f : 0.0175f)) * hs;
+    const float band = (sun ? 0.0052f : 0.0042f) * hs, depth = (sun ? 0.0042f : 0.0036f) * hs;   // plastic rim
+    const float wire = (avi ? 0.0011f : 0.0012f) * hs;                                          // metal rim radius
+    const float wrap = sun ? 0.2f : 0.12f;   // face-form wrap: the outer half of the front bends back
+    const int NL = 32;
+    std::vector<vec3> rim[2];
+    std::vector<vec3> rimOut[2];   // in-plane outward direction per rim point
     vec3 lensC[2];
     for (int sd = 0; sd < 2; sd++) {
         float sx = sd ? 1.f : -1.f;
         vec3 e = H.eyeC[sd];
-        vec3 cen = e + vec3(sx * 0.002f * hs, H.eyeR + 0.012f * hs, 0.002f * hs);
-        lensC[sd] = cen;
-        const int NL = 16;
+        // box centre: half a lens plus half the bridge from the midline, 1.5 mm below the pupils, 12 mm in front of the
+        // corneas
+        vec3 cen(H.origin.x + sx * 0.5f * (lw + bridge), e.y + H.eyeR + 0.012f * hs, e.z - 0.0015f * hs);
+        std::vector<vec2> q(NL);
+        for (int k = 0; k < NL; k++) q[k] = GlassesDetail::outline(shape, kTwoPi * k / NL);
+        rim[sd].resize(NL);
+        rimOut[sd].resize(NL);
         for (int k = 0; k < NL; k++) {
-            float a = kTwoPi * k / NL;
-            float cx = cosf(a), cy = sinf(a);
-            float rx = lw * 0.5f, ry = lh * 0.5f;
-            if (avi && cy < 0.f) { ry *= 1.25f; rx *= 1.f + 0.1f * cy; }
-            if (sun) { float sq = powf(fabsf(cx), 0.7f) * Sign(cx); cx = sq; }
-            // wrap slightly around the face
-            float x = cx * rx;
-            vec3 p = cen + vec3(x, -fabsf(x) * 0.25f * (sx * x > 0.f ? 1.f : 0.3f), cy * ry);
-            rimPts[sd].push_back(p);
+            float x = q[k].x * 0.5f * lw;   // + = towards the temple
+            float back = x > 0.f ? wrap * x * x / (0.5f * lw) : 0.03f * fabsf(x);
+            rim[sd][k] = cen + vec3(sx * x, -back, q[k].y * 0.5f * lh);
+            vec2 t = q[(k + 1) % NL] - q[(k + NL - 1) % NL];
+            vec2 nrm = normalize(vec2(t.y, -t.x));
+            if (dot(nrm, q[k]) < 0.f) nrm = -nrm;
+            rimOut[sd][k] = normalize(vec3(sx * nrm.x, 0.f, nrm.y));
         }
-        // lens
+        // clearance: move this front forward as one piece until every rim point is 3 mm off the skin
+        float push = 0.f;
+        for (int k = 0; k < NL; k++) {
+            float dist = c.sdf.eval(rim[sd][k] - vec3(0, plastic ? 0.5f * depth : wire, 0), MK_HEAD);
+            push = Max(push, 0.003f * hs - dist);
+        }
+        if (push > 0.f) {
+            for (vec3& p : rim[sd]) p.y += push;
+            cen.y += push;
+        }
+        lensC[sd] = cen;
+    }
+    // both fronts at the same depth (the frame is one rigid piece)
+    float fy = Max(lensC[0].y, lensC[1].y);
+    for (int sd = 0; sd < 2; sd++) {
+        float dy = fy - lensC[sd].y;
+        for (vec3& p : rim[sd]) p.y += dy;
+        lensC[sd].y = fy;
+    }
+    // tortoise shell: mottled amber / dark brown per vertex
+    auto rimCol = [&](vec3 p) {
+        if (!tortoise) return frameCol;
+        float n = sinf(p.x * 900.f + 1.3f) * sinf(p.z * 700.f + 0.7f) + 0.6f * sinf((p.x + p.z) * 1500.f);
+        return lerp(vec3(0.03f, 0.012f, 0.004f), vec3(0.28f, 0.11f, 0.025f), Saturate(0.5f + 0.6f * n));
+    };
+    for (int sd = 0; sd < 2; sd++) {
+        const std::vector<vec3>& R = rim[sd];
+        // lens (sunglasses and aviators are tinted; reading glasses stay open)
         if (!read) {
             BVert lc;
-            lc.p = cen + vec3(0, 0.0015f * hs, 0);
+            lc.p = lensC[sd] + vec3(0, 0.0015f * hs, 0);
             lc.bp = lc.p;
             lc.n = vec3(0, 1, 0);
             lc.t = vec3(1, 0, 0);
@@ -1909,10 +1986,11 @@ static void buildGlasses(OutfitCtx& o, const CharacterDesc& d) {
             lc.sw = sw;
             u32 ci = gm.add(lc);
             std::vector<u32> ring;
-            for (auto& p : rimPts[sd]) {
+            for (const vec3& p : R) {
                 BVert v = lc;
                 v.p = p;
-                v.n = normalize(vec3(0, 1, 0) + (p - cen) * 8.f);
+                v.bp = p;
+                v.n = normalize(vec3(0, 1, 0) + (p - lensC[sd]) * 8.f);
                 ring.push_back(gm.add(v));
             }
             for (size_t k = 0; k < ring.size(); k++) {
@@ -1922,40 +2000,140 @@ static void buildGlasses(OutfitCtx& o, const CharacterDesc& d) {
                 else gm.tri(ci, b, a);
             }
         }
-        // rim tube
-        std::vector<float> rad(rimPts[sd].size(), (avi ? 0.0011f : (sun ? 0.0024f : 0.0017f)) * hs);
-        std::vector<SkinW> sws(rimPts[sd].size(), sw);
-        addTube(gm, rimPts[sd], rad, 5, true, frameCol * (sun ? 0.05f : 1.f), frameMat, sws, vec3(0, 1, 0));
-    }
-    // bridge
-    {
-        std::vector<vec3> pts = {rimPts[0][0], (rimPts[0][0] + rimPts[1][8]) * 0.5f + vec3(0, 0.003f * hs, 0.004f * hs), rimPts[1][8]};
-        pts[0] = lensC[0] + vec3(0.5f * lw, 0, 0.003f * hs);
-        pts[2] = lensC[1] - vec3(0.5f * lw, 0, -0.003f * hs);
-        pts[1] = (pts[0] + pts[2]) * 0.5f + vec3(0, 0.002f * hs, 0.002f * hs);
-        std::vector<float> rad(3, (avi ? 0.0011f : 0.0018f) * hs);
-        std::vector<SkinW> sws(3, sw);
-        addTube(gm, pts, rad, 5, false, frameCol * (sun ? 0.05f : 1.f), frameMat, sws, vec3(0, 1, 0));
-        if (avi) {
-            for (auto& p : pts) p.z += 0.009f * hs;
-            addTube(gm, pts, rad, 5, false, frameCol, frameMat, sws, vec3(0, 1, 0));
+        if (plastic) {
+            // flat band: inner edge on the lens outline, outer edge `band` outwards, front and back faces `depth` apart
+            // (the band is a little wider at the top and the outer corners, as moulded fronts are)
+            std::vector<u32> fi(NL), fo(NL), bi(NL), bo(NL);
+            for (int k = 0; k < NL; k++) {
+                vec3 p = R[k], out = rimOut[sd][k];
+                float wdt = band * (1.f + 0.35f * Saturate(out.z) + 0.2f * Saturate(out.x * (sd ? 1.f : -1.f)));
+                vec3 fr(0, 0.5f * depth, 0);
+                BVert v;
+                v.col = rimCol(p);
+                v.mat = frameMat;
+                v.part = PART_ACC;
+                v.sw = sw;
+                v.t = normalize(R[(k + 1) % NL] - R[(k + NL - 1) % NL]);
+                v.uv = vec2(0.f);
+                v.p = p + fr; v.bp = v.p; v.n = normalize(vec3(0, 1, 0) - out * 0.3f); fi[k] = gm.add(v);
+                v.p = p + out * wdt + fr; v.bp = v.p; v.n = normalize(vec3(0, 1, 0) + out * 0.3f); fo[k] = gm.add(v);
+                v.p = p - fr; v.bp = v.p; v.n = -out; bi[k] = gm.add(v);
+                v.p = p + out * wdt - fr; v.bp = v.p; v.n = out; bo[k] = gm.add(v);
+            }
+            // back face vertices shared with the edges would smear the normals: separate copies for the back face
+            std::vector<u32> bbi(NL), bbo(NL);
+            for (int k = 0; k < NL; k++) {
+                BVert v = gm.v[bi[k]];
+                v.n = vec3(0, -1, 0);
+                bbi[k] = gm.add(v);
+                v = gm.v[bo[k]];
+                v.n = vec3(0, -1, 0);
+                bbo[k] = gm.add(v);
+            }
+            std::vector<u32> ei(NL), eo(NL);   // edge copies of the front rings with edge normals
+            for (int k = 0; k < NL; k++) {
+                BVert v = gm.v[fi[k]];
+                v.n = gm.v[bi[k]].n;
+                ei[k] = gm.add(v);
+                v = gm.v[fo[k]];
+                v.n = gm.v[bo[k]].n;
+                eo[k] = gm.add(v);
+            }
+            auto quadFacing = [&](u32 a, u32 b, u32 cc, u32 dd, vec3 want) {
+                vec3 nn = cross(gm.v[b].p - gm.v[a].p, gm.v[cc].p - gm.v[a].p);
+                if (dot(nn, want) >= 0.f) gm.quad(a, b, cc, dd);
+                else gm.quad(a, dd, cc, b);
+            };
+            for (int k = 0; k < NL; k++) {
+                int k1 = (k + 1) % NL;
+                vec3 out = rimOut[sd][k];
+                quadFacing(fi[k], fi[k1], fo[k1], fo[k], vec3(0, 1, 0));      // front
+                quadFacing(bbi[k], bbo[k], bbo[k1], bbi[k1], vec3(0, -1, 0));  // back
+                quadFacing(eo[k], eo[k1], bo[k1], bo[k], out);                // outer edge
+                quadFacing(ei[k], bi[k], bi[k1], ei[k1], -out);               // inner edge (lens groove)
+            }
+        } else {
+            std::vector<float> rad(NL, wire);
+            std::vector<SkinW> sws(NL, sw);
+            addTube(gm, R, rad, 5, true, frameCol, frameMat, sws, vec3(0, 1, 0));
         }
     }
-    // temples to the ears
+    // bridge: from the upper inner corner of one front to the other, arched up and forward over the nose
+    auto innerTop = [&](int sd) {
+        // rim point with the largest (nasal * 1 + up * 0.8) score
+        float sx = sd ? 1.f : -1.f;
+        int best = 0;
+        float bs = -1e9f;
+        for (int k = 0; k < NL; k++) {
+            vec3 v = rim[sd][k] - lensC[sd];
+            float sc = -sx * v.x + 0.8f * v.z;
+            if (sc > bs) {
+                bs = sc;
+                best = k;
+            }
+        }
+        return rim[sd][best];
+    };
+    {
+        vec3 a = innerTop(0), b = innerTop(1);
+        vec3 mid = (a + b) * 0.5f + vec3(0, 0.0015f * hs, 0.0025f * hs);
+        float dist = c.sdf.eval(mid, MK_HEAD);
+        if (dist < 0.004f * hs) mid.y += 0.004f * hs - dist;
+        std::vector<vec3> pts = {a, lerp(a, mid, 0.6f) + vec3(0, 0, 0.001f * hs), mid, lerp(b, mid, 0.6f) + vec3(0, 0, 0.001f * hs), b};
+        std::vector<float> rad(5, plastic ? 0.5f * depth * 1.15f : wire * 1.1f);
+        std::vector<SkinW> sws(5, sw);
+        addTube(gm, pts, rad, plastic ? 6 : 5, false, frameCol, frameMat, sws, vec3(0, 1, 0));
+        if (avi) {   // aviator brow bar
+            vec3 a2 = a + vec3(0, 0, 0.0085f * hs), b2 = b + vec3(0, 0, 0.0085f * hs);
+            std::vector<vec3> bar = {a2, (a2 + b2) * 0.5f + vec3(0, 0.001f * hs, 0.0005f * hs), b2};
+            std::vector<float> br(3, wire);
+            std::vector<SkinW> bsw(3, sw);
+            addTube(gm, bar, br, 5, false, frameCol, frameMat, bsw, vec3(0, 1, 0));
+        }
+        if (!plastic) {   // nose pads on metal frames
+            for (int sd = 0; sd < 2; sd++) {
+                float sx = sd ? 1.f : -1.f;
+                vec3 pad = lensC[sd] + vec3(-sx * 0.5f * lw * 0.9f, -0.006f * hs, -0.004f * hs);
+                std::vector<vec3> arm = {innerTop(sd), pad};
+                std::vector<float> ar(2, wire * 0.8f);
+                std::vector<SkinW> asw(2, sw);
+                addTube(gm, arm, ar, 4, false, frameCol, frameMat, asw, vec3(0, 1, 0));
+            }
+        }
+    }
+    // temples: from the hinge at the outer upper corner back past the head's widest point to the top of the ear, then
+    // down behind it; bars on plastic frames, wire on metal ones
     for (int sd = 0; sd < 2; sd++) {
         float sx = sd ? 1.f : -1.f;
-        vec3 hinge = lensC[sd] + vec3(sx * lw * 0.55f, -0.004f * hs, 0.004f * hs);
+        int best = 0;
+        float bs = -1e9f;
+        for (int k = 0; k < NL; k++) {
+            vec3 v = rim[sd][k] - lensC[sd];
+            float sc = sx * v.x + 0.45f * v.z;
+            if (sc > bs) {
+                bs = sc;
+                best = k;
+            }
+        }
+        vec3 hinge = rim[sd][best] + rimOut[sd][best] * (plastic ? band : wire) - vec3(0, plastic ? 0.5f * depth : 0.f, 0);
         vec3 ear = H.earPos[sd] + vec3(sx * 0.004f * hs, 0.008f * hs, 0.018f * hs);
         vec3 back = ear + vec3(-sx * 0.003f * hs, -0.02f * hs, -0.012f * hs);
-        // keep outside the head: push the midpoint outwards
-        vec3 mid = lerp(hinge, ear, 0.5f);
-        vec3 dir = normalize(mid - H.C);
-        float t = c.sdf.castOut(H.C, dir, MK_HEAD, 0.2f * hs);
-        mid = H.C + dir * (t + 0.004f * hs);
-        std::vector<vec3> pts = {hinge, mid, ear, back};
-        std::vector<float> rad(4, (sun ? 0.002f : 0.0012f) * hs);
-        std::vector<SkinW> sws(4, sw);
-        addTube(gm, pts, rad, 4, false, frameCol * (sun ? 0.05f : 1.f), frameMat, sws);
+        std::vector<vec3> pts = {hinge};
+        for (int k = 1; k <= 3; k++) {
+            vec3 p = lerp(hinge, ear, k / 4.f);
+            vec3 dir = normalize(p - H.C);
+            float t = c.sdf.castOut(H.C, dir, MK_HEAD, 0.2f * hs);
+            vec3 onSkin = H.C + dir * (t + 0.0035f * hs);
+            // never inside the head, and flaring slightly outwards from the hinge
+            if (dot(p - onSkin, dir) < 0.f) p = onSkin;
+            pts.push_back(p);
+        }
+        pts.push_back(ear);
+        pts.push_back(back);
+        std::vector<float> rad(pts.size(), plastic ? 0.0017f * hs : 0.0009f * hs);
+        rad[0] = plastic ? 0.0021f * hs : 0.0011f * hs;
+        std::vector<SkinW> sws(pts.size(), sw);
+        addTube(gm, pts, rad, plastic ? 6 : 4, false, plastic && tortoise ? rimCol(hinge) : frameCol, frameMat, sws);
     }
     gm.computeNormals(0, 0);
     o.out.append(gm);

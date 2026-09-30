@@ -392,12 +392,31 @@ void genCityHall(const SiteElem& e, G& g) {
             vec2 lc = e.c + face * (D + 22.f + qy * 44.f) + side * (qx * 38.f);
             std::vector<vec2> lawn = rectPoly(lc, side, 26.f, 17.f);
             polyFlat(g, *g.m, lawn, z0 + 0.06f, rgb(0.62f, 0.98f, 0.5f), M(MAT_GRASS));
+            // box-clipped hedges round each parterre (a gap mid-side toward the alley) with topiary cones at the corners
             for (int k = 0; k < 4; k++) {
                 vec2 a = lawn[k], b = lawn[(k + 1) % 4];
                 vec2 on = normalize(vec2(b.y - a.y, a.x - b.x));
                 if (dot(on, a - lc) < 0) on = -on;
                 vec2 ha = a - on * 0.5f, hb = b - on * 0.5f;
-                beam(g, vec3(ha, z0 + 0.45f), vec3(hb, z0 + 0.45f), 0.9f, 0.8f, rgb(0.35f, 0.6f, 0.28f), M(MAT_GRASS));
+                if (!detail) {
+                    beam(g, vec3(ha, z0 + 0.45f), vec3(hb, z0 + 0.45f), 0.8f, 0.85f, rgb(0.3f, 0.55f, 0.25f), M(MAT_LEAVES));
+                    continue;
+                }
+                vec2 dd = normalize(hb - ha);
+                ha += dd * 0.9f;
+                hb -= dd * 0.9f;
+                bool gapSide = fabsf(dot(on, side)) > 0.7f && dot(on, side) * (float)qx < 0.f;
+                u32 hs = e.seed * 16u + (u32)(qx + 1) * 4u + (u32)qy * 2u + (u32)k;
+                vec3 ht = vec3(0.6f, 0.86f, 0.5f);
+                if (gapSide) {
+                    vec2 mid = (ha + hb) * 0.5f;
+                    hedgeMesh(*g.m, g.org, *gMap, ha, mid - dd * 1.2f, 0.85f, 0.8f, HEDGE_FORMAL, ht, hash32(hs), z0);
+                    hedgeMesh(*g.m, g.org, *gMap, mid + dd * 1.2f, hb, 0.85f, 0.8f, HEDGE_FORMAL, ht, hash32(hs + 99u), z0);
+                    for (int s = -1; s <= 1; s += 2) topiaryMesh(*g.m, g.org, vec3(mid + dd * (s * 1.6f), z0), 4, 1.1f, ht * 1.05f, hash32(hs + 7u + (u32)s));
+                } else {
+                    hedgeMesh(*g.m, g.org, *gMap, ha, hb, 0.85f, 0.8f, HEDGE_FORMAL, ht, hash32(hs), z0);
+                }
+                topiaryMesh(*g.m, g.org, vec3(a - on * 0.5f, z0), 1, 1.7f, ht * 1.08f, hash32(hs + 31u));
             }
             if (detail) prop(g, vec3(lc, z0), 0.4f * qx, 1.2f, PROP_TREE_OAK, (u8)(qy + (qx > 0 ? 2 : 0)));
         }
@@ -511,7 +530,9 @@ void genPark(const SiteElem& e, G& g) {
             vec2 p0 = a + d * s, p1 = a + d * s1;
             if (!g.owns((p0 + p1) * 0.5f)) continue;
             float za = gMap->heightAt(p0.x, p0.y) + 0.1f, zb = gMap->heightAt(p1.x, p1.y) + 0.1f;
-            quad(g, *g.m, vec3(p0 - n * w, za), vec3(p1 - n * w, zb), vec3(p1 + n * w, zb), vec3(p0 + n * w, za), rgb(1.f, 0.93f, 0.85f), M(MAT_PAVERS), vec3(0, 0, 1));
+            size_t v0 = g.m->verts.size();
+            quad(g, *g.m, vec3(p0 - n * w, za), vec3(p1 - n * w, zb), vec3(p1 + n * w, zb), vec3(p0 + n * w, za), rgb(0.9f, 0.88f, 0.86f), M(MAT_PAVERS), vec3(0, 0, 1));
+            paverUV(g, *g.m, v0);
             for (int sd = -1; sd <= 1; sd += 2)
                 quad(g, *g.m, vec3(p0 + n * (sd * w), za), vec3(p1 + n * (sd * w), zb), vec3(p1 + n * (sd * w), zb - 0.25f), vec3(p0 + n * (sd * w), za - 0.25f),
                      rgb(0.9f), M(MAT_CURB), vec3(n * (float)sd, 0));
@@ -534,7 +555,9 @@ void genPark(const SiteElem& e, G& g) {
     // fountain plaza disc
     if (g.owns(e.c)) {
         std::vector<vec2> disc = circleFP(e.c, pr, detail ? 40 : 16);
-        polyFlat(g, *g.m, disc, e.z + 0.1f, rgb(1.f, 0.95f, 0.88f), M(MAT_PAVERS));
+        size_t v0 = g.m->verts.size();
+        polyFlat(g, *g.m, disc, e.z + 0.1f, rgb(0.92f, 0.9f, 0.88f), M(MAT_PAVERS));
+        paverUV(g, *g.m, v0);
         lathe(g, vec3(e.c, e.z - 0.2f), {vec2(pr, 0.f), vec2(pr, 0.3f)}, detail ? 40 : 16, rgb(0.9f), M(MAT_CURB), false);
     }
     // Bandshell (north side), sculpture (south-east), playground (south-west)

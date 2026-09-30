@@ -14,11 +14,20 @@ OPT="-O2 -DNDEBUG"
 GCCMEM="--param ggc-min-expand=20 --param ggc-min-heapsize=32768"
 STRIP="-s"
 if [ "$1" = "debug" ]; then OPT="-O0 -g"; STRIP=""; fi
+# QUICK=1: -O1 for iteration builds on a busy test machine (about a third less compile time; not for timings)
+if [ "${QUICK:-0}" = 1 ] && [ "$1" != "debug" ]; then OPT="-O1 -DNDEBUG"; fi
 # Machines that run several builds at once (the automated test rig) serialize them: each compile peaks near 1.8 GB.
 # Opt in by creating /tmp/neontide_build.lock; the lock is released when this script exits.
 if [ -e /tmp/neontide_build.lock ] && command -v flock >/dev/null 2>&1; then
   exec 9>>/tmp/neontide_build.lock
   flock 9
+  # one compile at a time: GCC may collect garbage less often (less compile time, ~2.5 GB peak), once that much
+  # memory is free now that the lock is ours (the wait for it can be long)
+  if [ -r /proc/meminfo ]; then
+    n=0
+    while [ "$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)" -lt 3000 ] && [ $n -lt 90 ]; do sleep 10; n=$((n+1)); done
+  fi
+  GCCMEM="--param ggc-min-expand=60 --param ggc-min-heapsize=131072"
 fi
 $CXX -std=c++17 $OPT $EXTRA $GCCMEM -march=x86-64-v2 -mfpmath=sse -fno-strict-aliasing -Wall -Wno-unused-function -Wno-unused-variable \
   -Wno-missing-braces -Wno-unused-but-set-variable -Wno-class-memaccess -Ibuild/gen \

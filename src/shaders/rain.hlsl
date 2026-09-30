@@ -62,7 +62,7 @@ float3 dropLight(float3 rel, float3 V) {
         float win = saturate(1.0 - sq(d2 / (Lt.radius * Lt.radius)));
         float3 ld = d * rsqrt(max(d2, 1e-4));
         // drops glint inside headlight beams and street lamp cones
-        L += Lt.color * win / max(d2, 0.25) * phaseHG(0.55, dot(-ld, V)) * 2.0 * lightAngular(Lt, ld);
+        L += Lt.color * win / max(d2, 0.25) * phaseHG(0.55, dot(-ld, V)) * 3.5 * lightAngular(Lt, ld);
     }
     L += gAmbientParams.y * 0.02;  // lightning flash
     return L;
@@ -116,7 +116,7 @@ RainVSOut vsRain(uint vid : SV_VertexID, uint inst : SV_InstanceID) {
     float3 p = lerp(tail, head, corner.y) + side * (corner.x * 2.0 - 1.0);
     o.pos = mul(gViewProj, float4(p, 1));
     o.uv = corner;
-    float alpha = gRain0.w * 0.3 * fade * saturate(0.0035 / width * 1.5);
+    float alpha = gRain0.w * 0.42 * fade * saturate(0.0035 / width * 1.5);
     float3 L = dropLight(d.rel, -V) * preExposure();
     float4 fv = froxelFog(o.pos.xy / o.pos.w * float2(0.5, -0.5) + 0.5, dot(d.rel, gCamForward.xyz));
     o.color = float4(L * fv.a, alpha);

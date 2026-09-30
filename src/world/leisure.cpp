@@ -726,10 +726,12 @@ void genBeachClub(const SiteElem& e, G& g) {
     bool detail = g.detail;
     vec2 face = e.ax, side = perp(face);
     float z = gMap->heightAt(e.c.x, e.c.y) + 0.45f;
-    u32 deckC = rgb(0.95f, 0.9f, 0.8f);
+    u32 deckC = rgb(0.95f, 0.92f, 0.88f);
     // raised deck
     std::vector<vec2> deck = rectPoly(e.c, face, e.hx * 0.8f, e.hy * 0.9f);
+    size_t dv0 = g.m->verts.size();
     polyFlat(g, *g.m, deck, z, deckC, M(MAT_PAVERS));
+    paverUV(g, *g.m, dv0);
     for (int k = 0; k < 4; k++) {
         vec2 a = deck[k], b = deck[(k + 1) % 4];
         vec2 on = normalize(vec2(b.y - a.y, a.x - b.x));

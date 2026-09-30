@@ -412,15 +412,8 @@ static void a_buoyBell(Buf& b) {
 // boom and a long roll; 2: far - a low rumble.
 static void a_thunder(Buf& b, int band) {
     float dur = band == 0 ? 7.5f : band == 1 ? 8.5f : 9.5f;
-    float lp = band == 0 ? 2400.f : band == 1 ? 900.f : 380.f;
+    float lp = band == 0 ? 1800.f : band == 1 ? 900.f : 380.f;
     float t0 = band == 0 ? 0.12f : band == 1 ? 0.05f : 0.3f;
-    if (band == 0) {
-        // the tearing crack (channel ripping) and the shock of the stroke
-        click(b, 0.f, 1.f, 12, true, b.rnd(-0.3f, 0.3f));
-        crackles(b, 0.f, 0.35f, 160.f, 0.9f, 400.f, 7000.f, 0.12f, 0.8f);
-        noise(b, 0.f, 0.4f, 0.8f, 0.001f, 0.06f, FHP, 1200.f, 600.f, 0.2f, 0.6f, 0, -0.4f);
-        noise(b, 0.f, 0.4f, 0.8f, 0.001f, 0.06f, FHP, 1300.f, 650.f, 0.2f, 0.6f, 0, 0.4f);
-    }
     // the main boom
     noise(b, t0, 2.f, band == 2 ? 0.5f : 1.f, band == 0 ? 0.01f : 0.08f, band == 0 ? 0.45f : 0.7f, FLP4, band == 0 ? 900.f : 400.f, 120.f, 0.4f, 0.7f, 2,
           -0.3f);
@@ -436,6 +429,14 @@ static void a_thunder(Buf& b, int band) {
               b.rnd(-0.7f, 0.7f));
     }
     lowpass(b, lp, 0.6f);
+    if (band == 0) {
+        // the tearing crack of the channel close by: broadband, bright, a few hundred ms before the boom settles
+        click(b, 0.f, 1.2f, 10, true, b.rnd(-0.3f, 0.3f));
+        crackles(b, 0.f, 0.5f, 260.f, 1.1f, 600.f, 9000.f, 0.18f, 0.8f);
+        noise(b, 0.f, 0.6f, 0.9f, 0.002f, 0.09f, FHP, 1500.f, 700.f, 0.25f, 0.6f, 0, -0.45f);
+        noise(b, 0.004f, 0.6f, 0.9f, 0.002f, 0.09f, FHP, 1650.f, 750.f, 0.25f, 0.6f, 0, 0.45f);
+        noise(b, 0.05f, 0.9f, 0.5f, 0.02f, 0.2f, FBP, 2500.f, 1200.f, 0.4f, 0.8f, 0, 0.f);
+    }
     reverb(b, 3.2f, 0.3f, 0.75f, 0.04f, 1.8f, 0.2f);
 }
 

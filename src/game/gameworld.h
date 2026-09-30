@@ -432,6 +432,7 @@ struct GameWorld {
     std::string aiCensusText(float radius) const;   // who is around the player and what they are doing (tests)
     std::string aiTrafficHealthText() const;         // stuck / blocked / rolled cars, impacts, core counters (soak tests)
     bool aiFenderBender(int carA, int carB);         // events.cpp: two AI cars knocked together -> stop, argue, drive on
+    std::string aiEventText(int* stage = nullptr, vec3* pos = nullptr, int* car = nullptr) const;   // events.cpp: the active takeover (tests)
 };
 
 extern GameWorld* gGame;

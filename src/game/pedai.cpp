@@ -834,7 +834,9 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                 case ACT_HAIL_TAXI:
                 case ACT_WATCH:
                 case ACT_QUEUE:
+                case ACT_VENUE:
                 case ACT_EVENT: {
+                    if (pa.activity == ACT_VENUE && aiVenueStep(*this, id, dt)) break;
                     vec2 to = pa.anchor - pos;
                     float d = length(to);
                     if (d > 0.35f) {
@@ -919,7 +921,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         pa.clipTimer = 6.f + hashToFloat(hq) * 10.f;
                         if (hq % 4 == 0 && p.pendingAction < 0) p.pendingAction = Anim::CLIP_IDLE_LOOK;
                     }
-                    if (pa.actTimer <= 0.f && pa.activity != ACT_EVENT && pa.activity != ACT_HAIL_TAXI && pa.activity != ACT_QUEUE) {
+                    if (pa.actTimer <= 0.f && pa.activity != ACT_EVENT && pa.activity != ACT_HAIL_TAXI && pa.activity != ACT_QUEUE && pa.activity != ACT_VENUE) {
                         pa.activity = ACT_WALK;
                         pa.clip = -1;
                         pa.stance = 0;

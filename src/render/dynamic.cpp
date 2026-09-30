@@ -55,7 +55,7 @@ struct DynamicRenderer {
     ID3D11PixelShader* psCardShadow = nullptr;     // alpha-tested card shadows
     gfx::CBuffer<ObjectCBData> cb;
     gfx::Buffer boneBuf, prevBoneBuf;
-    static const int kMaxBones = 16384;
+    static const int kMaxBones = 32768;   // ~475 characters at 69 bones (2 MB per palette buffer)
     std::vector<DrawItem> items;
     std::vector<mat4> bonesFrame, prevBonesFrame;
     std::vector<int> boneOffsets;
@@ -160,7 +160,8 @@ struct DynamicRenderer {
         for (size_t i = 0; i < items.size(); i++) {
             DrawItem& d = items[i];
             if (!d.bones || d.boneCount <= 0) continue;
-            if ((int)bonesFrame.size() + d.boneCount > kMaxBones) { d.bones = nullptr; continue; }
+            // out of palette space: skip the character (drawing it would borrow another character's bones)
+            if ((int)bonesFrame.size() + d.boneCount > kMaxBones) { boneOffsets[i] = -1; continue; }
             boneOffsets[i] = (int)bonesFrame.size();
             bonesFrame.insert(bonesFrame.end(), d.bones, d.bones + d.boneCount);
             auto it = d.id ? prev.find(d.id) : prev.end();
@@ -238,7 +239,7 @@ struct DynamicRenderer {
             mat4 w = worldRel(d.pos, d.rot, d.scale, r.camera.pos);
             AABB b = transformAABB(d.model->bounds.valid() ? d.model->bounds : AABB(vec3(-1), vec3(1)), w);
             if (d.model->skinned) { b.mn -= vec3(1.5f); b.mx += vec3(1.5f); }
-            if (!fr.testAABB(b)) continue;
+            if (!fr.testAABB(b) || boneOffsets[i] < 0) continue;
             setObjectCB(r, d, boneOffsets[i]);
             UINT stride = d.model->skinned ? sizeof(VtxSkinned) : sizeof(VtxStatic), offset = 0;
             c->IASetInputLayout(d.model->skinned ? vsSkinned.layout : vsRigid.layout);
@@ -282,7 +283,7 @@ struct DynamicRenderer {
             mat4 w = worldRel(d.pos, d.rot, d.scale, r.camera.pos);
             AABB b = transformAABB(d.model->bounds.valid() ? d.model->bounds : AABB(vec3(-1), vec3(1)), w);
             if (d.model->skinned) { b.mn -= vec3(1.5f); b.mx += vec3(1.5f); }
-            if (!fr.testAABB(b)) continue;
+            if (!fr.testAABB(b) || boneOffsets[i] < 0) continue;
             setObjectCB(r, d, boneOffsets[i]);
             UINT stride = d.model->skinned ? sizeof(VtxSkinned) : sizeof(VtxStatic), offset = 0;
             c->IASetInputLayout(d.model->skinned ? vsSkinnedShadow.layout : vsRigidShadow.layout);

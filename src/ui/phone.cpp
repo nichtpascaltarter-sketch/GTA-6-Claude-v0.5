@@ -1780,6 +1780,15 @@ const std::vector<std::string>& filterNames() {
 
 bool isOpen() { return phone_ui::g_phoneCovers; }
 
+void testShow(PhoneState& st, int app) {
+    using namespace phone_ui;
+    static const Screen kApp[APP_BUILTIN_COUNT] = {SC_CONTACTS, SC_MESSAGES, SC_TIDEGRAM, SC_CAMERA, SC_MAP, SC_QUICKSAVE};
+    st.open = true;
+    I.wasOpen = true;   // skip the open transition's reset to the home screen (the phone still slides up)
+    go(app >= 0 && app < APP_BUILTIN_COUNT ? kApp[app] : SC_HOME, 1);
+    I.screenT = 10.f;   // no slide-in: the screen is shown settled
+}
+
 void reset() {
     using namespace phone_ui;
     std::vector<int> gallery = I.gallery;   // photos of this session stay in the gallery

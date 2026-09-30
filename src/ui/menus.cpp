@@ -2200,6 +2200,13 @@ const std::vector<DisplayMode>& displayModes() {
 
 void reset() { menus_ui::I = menus_ui::Internal(); }
 
+void testSettingsPage(int cat) {
+    using namespace menus_ui;
+    I.setCat = Clamp(cat, 0, (int)SC_COUNT - 1);
+    I.setCursor = 0;
+    I.setScroll = 0.f;
+}
+
 MenuAction update(MenuState& st, const InputState& in, float dt) {
     using namespace menus_ui;
     MenuAction act;

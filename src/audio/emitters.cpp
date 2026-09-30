@@ -129,6 +129,15 @@ struct EngineCore {
     float wob = 1.f;
     float levelTrim = 1.f;
     float drive = 0.2f;
+    // rev limiter: fuel cut bouncing at ~16 Hz (bap-bap-bap) with a small rpm dip in each cut
+    float limPh = 0.f;
+    bool limCut = false;
+    // rev-matching blip on a downshift (throttle flare), engine damage (misfires, rattle)
+    float blip = 0.f, damage = 0.f, rattleEnv = 0.f;
+    Svf rattleBp;
+    // where the listener is: exhaust (behind) vs intake / engine bay (in front, in the cabin)
+    float exhW = 1.f, intW = 1.f, mechW = 1.f;
+    float tExhW = 1.f, tIntW = 1.f, tMechW = 1.f;
 
     void init(const EngineSpec& s, u32 seed) {
         spec = s;
@@ -157,6 +166,7 @@ struct EngineCore {
         dcHp.set(25.f);
         popBp.set(1800.f, 1.2f);
         knockBp.set(3200.f, 1.6f);
+        rattleBp.set(2600.f, 3.f);
         turboNoiseBp.set(3000.f, 2.f);
         bovHp.set(1800.f);
         bovBp.set(3500.f, 1.3f);
@@ -211,16 +221,31 @@ struct EngineCore {
     // Output gain of this engine kind relative to the I4's (sounds added inside the core scale with it).
     float outNorm() const { return 0.665f / Max(spec.level * gainNorm * levelTrim, 0.05f); }
     void control() {
+        const float kCtl = 16.f * kInvSR;
+        // rev limiter: fuel cut in a ~16 Hz rhythm while the pedal holds the engine on the limit
+        if (rpm01 > 0.975f && throttle > 0.7f) {
+            limPh += 16.f * kCtl;
+            if (limPh >= 1.f) limPh -= 1.f;
+            limCut = limPh < 0.55f;
+        } else {
+            limCut = false;
+            limPh = 0.f;
+        }
+        blip = Max(0.f, blip - kCtl / 0.26f);
+        exhW += (tExhW - exhW) * 0.02f;
+        intW += (tIntW - intW) * 0.02f;
+        mechW += (tMechW - mechW) * 0.02f;
         float fc = spec.intakeFreq * (0.7f + 0.9f * rpm01);
         if (fabsf(fc - intakeFc) > 5.f) { intakeBp.setG(svfG(fc), 1.4f); intakeFc = fc; }
-        float mfc = spec.mufflerLP * (0.55f + 0.6f * throttle + 0.35f * load) * (0.8f + 0.4f * rpm01);
+        const float thrE = Max(throttle, blip);
+        float mfc = spec.mufflerLP * (0.55f + 0.6f * thrE + 0.35f * load) * (0.8f + 0.4f * rpm01);
         if (fabsf(mfc - mufflerFc) > 10.f) { muffler.set(mfc); mufflerFc = mfc; }
         // pulse width: sharper under load
         float tauMs = spec.pulseMs * (1.35f - 0.7f * load * throttle) * (1.1f - 0.3f * rpm01);
         tauMs = Max(tauMs, 0.12f);
         aC = 1.f - expf(-1.f / (tauMs * 0.001f * kSR));
         pulseScale = 60.f / tauMs;
-        drive = 0.18f + 0.82f * (0.3f + 0.7f * load) * (0.25f + 0.75f * throttle);
+        drive = 0.18f + 0.82f * (0.3f + 0.7f * Max(load, blip * 0.85f)) * (0.25f + 0.75f * thrE);
         wobblePhase += 0.8f * 16.f * kInvSR;
         if (wobblePhase >= 1.f) wobblePhase -= 1.f;
         wob = 1.f + 0.012f * (1.f - SmoothStep(0.f, 0.15f, rpm01)) * sinWrapped(wobblePhase);
@@ -295,8 +320,13 @@ struct EngineCore {
     FORCEINLINE void fire(int ci, float fr) {
         float jit = spec.jitterIdle * (1.f - 0.7f * rpm01) * gaussish(nz);
         float a = cylGain[ci] * drive * (1.f + jit);
-        if (rpm01 > 0.985f && throttle > 0.7f && nz.uni() < 0.55f) a *= 0.05f;  // rev limiter cut
+        if (limCut) a *= 0.04f;                                                  // rev limiter: fuel cut
         if (rpm01 < 0.08f && nz.uni() < 0.01f) a *= 0.4f;                       // lumpy idle
+        if (damage > 0.05f && nz.uni() < damage * 0.22f) {                       // misfire (a damaged engine)
+            a *= 0.05f;
+            if (nz.uni() < damage * 0.3f) popEnv = Max(popEnv, 0.4f + 0.6f * damage);
+        }
+        if (damage > 0.3f) rattleEnv = Max(rattleEnv, (damage - 0.3f) * 1.4f * (0.4f + 0.6f * nz.uni()));
         if (bankOf[ci] && spec.bankImbalance > 0.f) {
             float dFrac = fr + 12.f;  // other bank arrives ~0.25 ms later
             int di = (int)dFrac;
@@ -321,7 +351,7 @@ struct EngineCore {
             throttle += (tThrottle - throttle) * kThrC;
             load += (tLoad - load) * kLoadC;
 
-            float dDeg = rpmHz() * wob * (360.f / 60.f) * kInvSR;
+            float dDeg = rpmHz() * wob * (limCut ? 0.985f : 1.f) * (1.f + 0.16f * blip * (2.f - blip)) * (360.f / 60.f) * kInvSR;
             float prev = crankDeg;
             crankDeg += dDeg;
             // carry from previous sample's fractional impulse
@@ -394,9 +424,14 @@ struct EngineCore {
                 knockEnv *= 0.9965f;
                 y += knockBp.bp(w) * knockEnv * spec.knock * 0.9f;
             }
-            float intake = intakeBp.bp(w) * (0.15f + pulseEnv * 3.f) * throttle * (0.3f + 0.7f * rpm01);
-            y += intake * spec.intakeGain;
-            y += w * pulseEnv * spec.mechGain * 2.f * (1.f - rpm01 * 0.5f);
+            y *= exhW;
+            float intake = intakeBp.bp(w) * (0.15f + pulseEnv * 3.f) * Max(throttle, blip) * (0.3f + 0.7f * rpm01);
+            y += intake * spec.intakeGain * intW;
+            y += w * pulseEnv * spec.mechGain * 2.f * (1.f - rpm01 * 0.5f) * mechW;
+            if (rattleEnv > 1e-4f) {  // a loose heat shield / valvetrain ticking in time with the engine
+                y += rattleBp.bp(w) * rattleEnv * 0.5f;
+                rattleEnv *= 0.992f;
+            }
             if (popEnv > 1e-4f) {
                 y += popBp.bp(nz.white()) * popEnv * 1.5f;
                 popEnv *= 0.992f;
@@ -478,12 +513,284 @@ struct ElectricCore {
 static const float kEngineTrim[ENGINE_COUNT] = {0.70f, 1.27f, 2.79f, 1.10f, 2.24f, 1.f, 0.46f, 2.88f, 0.48f};
 
 // =============================================================================================
+// Chassis: tyres on every surface, squeal and scrub, suspension thumps, wind at speed, gear clunks, air brakes, and
+// the cabin (indicator relay, cabin wind) for the player's own vehicle. Voiced by the vehicle's engine emitter.
+struct ChassisCore {
+    VehicleAudio va;
+    bool have = false;
+    Noise nz;
+    float speed = 0, slip = 0, lat = 0, wet = 0, surfMix[5] = {1, 0, 0, 0, 0};  // asphalt, gravel/dirt, soft (grass/sand/mud), wood, metal
+    PinkNoise pk, pk2;
+    BrownNoise br;
+    Svf roarBp, roarBp2, rumbleLp, softHp, softLp, sprayHp, crunchBp, stoneBp, gratingBp, windBp, windLp;
+    // squeal / scrub resonators (stick-slip excited)
+    Svf sq[3];
+    float sqF[3] = {950.f, 1520.f, 2280.f};
+    float wander[3] = {0, 0, 0};
+    float stick = 0, stickPh = 0;
+    float grain = 0, stoneEnv = 0;
+    float jointPh = 0, jointEnv = 0, plankPh = 0, plankEnv = 0;
+    // suspension thump + clunk + rattle
+    float thumpEnv = 0, clunkEnv = 0, rattleT = 0, rattleEnv = 0;
+    Svf thumpLp, clunkBp, rattleBp;
+    // gear clunk, air brake
+    int lastGear = 1;
+    float gearClunk = 0.f, airEnv = 0.f, stopTimer = 0.f;
+    bool wasMoving = false;
+    Svf gearBp, airHp;
+    // cabin (player vehicle, listener inside)
+    bool inside = false;
+    bool relayPhase = false;
+    float relayT = 0.f, relayEnv = 0.f, relayEnv2 = 0.f;
+    Svf relayBp1, relayBp2, cabWindBp, cabWindLp;
+    PinkNoise cabPk;
+    float cabGust = 0.f, cabGustT = 0.f, cabGustTimer = 0.f;
+    int ctl = 0;
+    int downshift = 0;   // set when a downshift is seen (the engine flares a rev-matching blip)
+
+    void init(u32 seed) {
+        nz.seed(seed * 747796405u + 2891336453u);
+        roarBp.set(850.f, 0.8f);
+        roarBp2.set(1600.f, 1.1f);
+        rumbleLp.set(140.f, 0.7f);
+        softHp.set(1800.f, 0.6f);
+        softLp.set(500.f, 0.7f);
+        sprayHp.set(3500.f, 0.6f);
+        crunchBp.set(2200.f, 0.7f);
+        stoneBp.set(3800.f, 6.f);
+        gratingBp.set(700.f, 4.f);
+        windBp.set(900.f, 0.5f);
+        windLp.set(400.f, 0.7f);
+        thumpLp.set(110.f, 0.8f);
+        clunkBp.set(520.f, 3.f);
+        rattleBp.set(1900.f, 4.f);
+        gearBp.set(1400.f, 3.f);
+        airHp.set(2200.f, 0.6f);
+        relayBp1.set(2300.f, 9.f);
+        relayBp2.set(1700.f, 9.f);
+        cabWindBp.set(700.f, 0.5f);
+        cabWindLp.set(220.f, 0.7f);
+        Rng r(seed ^ 0x51ED27u);
+        for (int i = 0; i < 3; i++) sqF[i] *= r.range(0.9f, 1.1f);
+        relayT = r.range(0.f, 0.3f);
+    }
+
+    void set(const VehicleAudio& v) {
+        // gear events: a clunk through the driveline; a downshift with the throttle off flares a rev-matching blip
+        if (have && v.gear != lastGear) {
+            gearClunk = Max(gearClunk, v.player ? 0.7f : 0.35f);
+            if (v.gear >= 1 && lastGear >= 2 && v.gear < lastGear) downshift = 1;
+        }
+        lastGear = v.gear;
+        // heavy vehicles: air brakes vent when they come to a stop
+        bool moving = v.speed > 1.2f;
+        if (v.heavy && wasMoving && v.speed < 0.4f) airEnv = 1.f;
+        if (moving) wasMoving = true;
+        else if (v.speed < 0.4f) wasMoving = false;
+        // suspension: a thump when a wheel is driven up hard (kerbs, potholes, landings)
+        if (v.bump > 0.45f) {
+            float m = Saturate((v.bump - 0.45f) / 2.f);
+            if (m > thumpEnv * 0.7f) {
+                thumpEnv = Max(thumpEnv, 0.4f + 0.6f * m) * (v.heavy ? 1.3f : 1.f);
+                clunkEnv = Max(clunkEnv, 0.3f + 0.7f * m);
+                rattleT = 0.02f + 0.02f * nz.uni();
+                rattleEnv = 0.f;
+            }
+        }
+        va = v;
+        have = true;
+    }
+
+    // Surface family weights (targets) from Phys::SurfaceType.
+    void surfaceTargets(float* t) const {
+        for (int k = 0; k < 5; k++) t[k] = 0.f;
+        switch (va.surface) {
+            case 0: case 1: t[0] = 1.f; break;                      // asphalt, concrete
+            case 3: t[1] = 1.f; break;                              // dirt / gravel
+            case 2: case 4: case 8: case 5: t[2] = 1.f; break;      // grass, sand, mud, water
+            case 6: t[3] = 1.f; break;                              // wood planks
+            case 7: t[4] = 1.f; break;                              // metal grating
+            default: t[0] = 1.f; break;
+        }
+    }
+
+    // One sample of the chassis sound (mono, emitter perspective). lod > 0: roar only.
+    FORCEINLINE float tick(int lod) {
+        if ((ctl++ & 31) == 0) control();
+        float v = speed;
+        if (v < 0.15f && slip < 0.02f && thumpEnv < 1e-4f && gearClunk < 1e-4f && airEnv < 1e-4f) return 0.f;
+        float w = nz.white();
+        float p = pk.process(w);
+        float spdK = Saturate(v / 32.f);
+        float roll = spdK * sqrtf(spdK);  // rolling noise grows ~ v^1.5
+        float out = 0.f;
+        // rolling roar (asphalt / concrete): tread band + road texture rumble
+        if (surfMix[0] > 1e-3f) {
+            float roar = roarBp.bp(p) * 0.9f + roarBp2.bp(p) * 0.35f + rumbleLp.lp(br.process(w)) * 1.2f;
+            out += roar * roll * surfMix[0] * 0.55f;
+            // expansion joints on concrete: ka-thunk every few metres
+            if (va.surface == 1 && v > 3.f) {
+                jointPh += v / 5.5f * kInvSR;
+                if (jointPh >= 1.f) {
+                    jointPh -= 1.f;
+                    jointEnv = 0.5f + 0.5f * spdK;
+                }
+            }
+        }
+        if (lod > 0) return out * (1.f - 0.3f * wet);
+        // gravel / dirt: crunch, stones pinging the underbody
+        if (surfMix[1] > 1e-3f) {
+            if (nz.uni() < (150.f + 2500.f * spdK) * kInvSR) grain = 0.4f + 0.6f * nz.uni();
+            grain *= 0.992f;
+            float crunch = crunchBp.bp(w) * (0.3f + grain) + rumbleLp.lp(br.process(w)) * 0.8f;
+            if (va.gravel && nz.uni() < (4.f + 40.f * spdK) * kInvSR) stoneEnv = 0.4f + 0.6f * nz.uni();
+            float stones = stoneBp.bp(stoneEnv) * 1.5f;
+            stoneEnv *= 0.6f;
+            out += (crunch * (0.2f + roll) + stones * spdK) * surfMix[1] * 0.6f;
+        }
+        // grass / sand / mud / water: soft swish and a low squelch
+        if (surfMix[2] > 1e-3f) {
+            float soft = softHp.hp(p) * 0.3f + softLp.lp(br.process(w)) * 1.1f;
+            out += soft * roll * surfMix[2] * 0.45f;
+        }
+        // wooden planks (boardwalks, docks): a rhythmic hollow clack
+        if (surfMix[3] > 1e-3f && v > 0.5f) {
+            plankPh += v / 0.9f * kInvSR;
+            if (plankPh >= 1.f) {
+                plankPh -= 1.f;
+                plankEnv = 0.6f + 0.4f * nz.uni();
+            }
+            out += (clunkBp.bp(plankEnv * w) * 0.45f + rumbleLp.lp(plankEnv) * 0.6f) * surfMix[3] * (0.3f + spdK);
+            plankEnv *= 0.994f;
+        }
+        // metal grating (bridge decks): a hum at the grating pitch
+        if (surfMix[4] > 1e-3f && v > 0.5f) out += gratingBp.bp(p) * roll * surfMix[4] * 1.2f;
+        if (jointEnv > 1e-4f) {
+            out += thumpLp.lp(jointEnv * w) * 2.f + clunkBp.bp(jointEnv * w) * 0.3f;
+            jointEnv *= 0.992f;
+        }
+        // wet road: spray and hiss off the tyres
+        if (wet > 1e-3f) out += sprayHp.hp(w) * wet * roll * 0.16f;
+        // squeal (smooth, dry surfaces) / slide (loose surfaces) / parking-speed scrub
+        float scrub = Saturate(lat / 3.f) * (1.f - SmoothStep(4.f, 10.f, v));
+        float sq01 = Max(SmoothStep(0.2f, 0.7f, slip), scrub * 0.6f);
+        if (sq01 > 1e-3f) {
+            stickPh += (40.f + 50.f * slip + 20.f * nz.uni()) * kInvSR;
+            if (stickPh >= 1.f) {
+                stickPh -= 1.f;
+                stick = 0.6f + 0.4f * nz.uni();
+            }
+            stick *= 0.9985f;
+            float exc = w * (0.4f + stick);
+            float squeal = (sq[0].bp(exc) + sq[1].bp(exc) * 0.7f + sq[2].bp(exc) * 0.35f) * 0.09f;
+            float smooth = surfMix[0] + surfMix[3] * 0.5f + surfMix[4] * 0.8f;
+            out += squeal * sq01 * smooth * (1.f - 0.6f * wet) * 2.f;
+            out += (crunchBp.bp(w) * 0.5f + rumbleLp.lp(w) * 0.8f) * SmoothStep(0.2f, 0.8f, slip) * (surfMix[1] + surfMix[2]) * 0.7f;
+        }
+        // suspension thump, clunk and a short rattle
+        if (thumpEnv > 1e-4f) {
+            out += thumpLp.lp(w) * thumpEnv * 4.2f + clunkBp.bp(w) * clunkEnv * 0.8f;
+            thumpEnv *= 0.99955f;   // ~45 ms body thud
+            clunkEnv *= 0.998f;     // ~10 ms suspension clunk
+            if (rattleT > 0.f) {
+                rattleT -= kInvSR;
+                if (rattleT <= 0.f) rattleEnv = clunkEnv * 0.8f;
+            }
+        }
+        if (rattleEnv > 1e-4f) {
+            out += rattleBp.bp(w * (nz.uni() < 0.3f ? 1.f : 0.f)) * rattleEnv * 1.2f;
+            rattleEnv *= 0.9985f;
+        }
+        // wind at speed (aerodynamic noise grows steeply)
+        float aero = SmoothStep(15.f, 45.f, v);
+        if (aero > 1e-3f) out += (windBp.bp(p) * 0.6f + windLp.lp(p) * 0.5f) * aero * aero * 0.5f;
+        // gear clunk through the driveline, air brakes on heavy vehicles
+        if (gearClunk > 1e-4f) {
+            out += (gearBp.bp(w) * 0.4f + thumpLp.lp(w) * 1.2f) * gearClunk;
+            gearClunk *= 0.993f;
+        }
+        if (airEnv > 1e-4f) {
+            float a = airEnv > 0.97f ? (1.f - airEnv) / 0.03f : 1.f;  // soft start
+            out += airHp.hp(w) * airEnv * a * 0.6f;
+            airEnv *= 0.99997f;    // the vent sighs out over about a second
+        }
+        return out;
+    }
+
+    void control() {
+        const float k = 1.f - expf(-32.f * kInvSR / 0.06f);
+        speed += (va.speed - speed) * k;
+        slip += (va.slip - slip) * k;
+        lat += (fabsf(va.lateralSlip) - lat) * k;
+        wet += (Saturate(va.wetness) - wet) * k * 0.2f;
+        float t[5];
+        surfaceTargets(t);
+        for (int i = 0; i < 5; i++) surfMix[i] += (t[i] - surfMix[i]) * k * 0.5f;
+        float spd = Saturate(speed / 32.f);
+        roarBp.setG(svfG(700.f + 500.f * spd), 0.8f);
+        roarBp2.setG(svfG(1400.f + 700.f * spd), 1.1f);
+        gratingBp.setG(svfG(300.f + 900.f * spd), 4.f);
+        for (int i = 0; i < 3; i++) {
+            wander[i] += nz.white() * 0.004f;
+            wander[i] *= 0.995f;
+            sq[i].setG(svfG(sqF[i] * (1.f + wander[i] + 0.08f * slip)), 28.f);
+        }
+    }
+
+    // Relay tick-tock and cabin wind for the player's own vehicle (2D, inside only).
+    bool cabin(float* out, int n) {
+        if (!inside || !have) return false;
+        bool any = false;
+        float windG = SmoothStep(8.f, 40.f, speed) * 0.05f;
+        bool relayOn = va.indicator != 0;
+        for (int i = 0; i < n; i++) {
+            float o = 0.f;
+            if (relayOn) {
+                relayT -= kInvSR;
+                if (relayT <= 0.f) {
+                    relayT += 0.36f;   // ~83 flashes a minute: tick when the lamps light, tock when they go out
+                    relayPhase = !relayPhase;
+                    if (relayPhase) relayEnv = 1.f;
+                    else relayEnv2 = 1.f;
+                }
+            }
+            if (relayEnv > 1e-4f) {
+                o += relayBp1.bp(relayEnv * nz.white()) * relayEnv * 0.6f;
+                relayEnv *= 0.9955f;
+            }
+            if (relayEnv2 > 1e-4f) {
+                o += relayBp2.bp(relayEnv2 * nz.white()) * relayEnv2 * 0.5f;
+                relayEnv2 *= 0.9955f;
+            }
+            if (windG > 1e-5f) {
+                if ((i & 255) == 0) {
+                    cabGustTimer -= 256.f * kInvSR;
+                    if (cabGustTimer <= 0.f) {
+                        cabGustT = nz.range(-0.3f, 0.4f);
+                        cabGustTimer = nz.range(0.5f, 2.f);
+                    }
+                    cabGust += (cabGustT - cabGust) * 0.05f;
+                }
+                float p = cabPk.process(nz.white());
+                o += (cabWindBp.bp(p) * 0.7f + cabWindLp.lp(p) * 0.8f) * windG * (1.f + cabGust);
+            }
+            out[i] += o;
+            any = any || o != 0.f;
+        }
+        return any;
+    }
+};
+
+// =============================================================================================
 struct EngineSynth : EmitterSynth {
     EngineCore core;
     ElectricCore ev;
+    ChassisCore chassis;
     int kind = -1;
     u32 seed;
-    explicit EngineSynth(u32 s) : seed(s) {}
+    bool chassisOn = false;
+    int lod = 0;
+    explicit EngineSynth(u32 s) : seed(s) { chassis.init(s); }
     void setParams(float p0, float p1, float p2, float p3) override {
         int k = Clamp((int)(p3 + 0.5f), 0, ENGINE_COUNT - 1);
         if (k != kind) {
@@ -500,12 +807,40 @@ struct EngineSynth : EmitterSynth {
     void setTune(float boost, float tune, bool shifted) override {
         if (kind >= 0 && kind != ENGINE_ELECTRIC) core.setTune(boost, tune, shifted);
     }
+    void setVehicle(const VehicleAudio& v) override {
+        chassis.set(v);
+        chassisOn = true;
+        if (chassis.downshift && kind >= 0 && kind != ENGINE_ELECTRIC && core.throttle < 0.35f) core.blip = 1.f;
+        chassis.downshift = 0;
+        core.damage = Saturate(v.damage);
+    }
+    void setListener(float cosFront, bool inside) override {
+        chassis.inside = inside && chassis.va.player;
+        if (chassis.inside) {  // in the cabin: engine bay and intake through the firewall, exhaust under the floor
+            core.tExhW = 0.65f;
+            core.tIntW = 1.35f;
+            core.tMechW = 1.4f;
+        } else {  // in front: intake and engine bay; behind: the exhaust
+            float f = SmoothStep(-0.6f, 0.8f, cosFront);
+            core.tExhW = Lerp(1.2f, 0.72f, f);
+            core.tIntW = Lerp(0.55f, 1.5f, f);
+            core.tMechW = Lerp(0.8f, 1.35f, f);
+        }
+    }
+    bool renderCabin(float* out, int n) override { return chassisOn && chassis.cabin(out, n); }
     void render(float* out, int n) override {
         if (kind < 0) { memset(out, 0, sizeof(float) * (size_t)n); return; }
         if (kind == ENGINE_ELECTRIC) ev.render(out, n);
         else core.render(out, n);
+        if (chassisOn && lod < 2) {  // lod 2: a faint car in the distance - the engine carries it
+            const float g = chassis.va.heavy ? 1.3f : 1.f;
+            for (int i = 0; i < n; i++) out[i] += chassis.tick(lod) * g;
+        }
     }
-    void setLod(int lod) override { core.lod = lod; }
+    void setLod(int l) override {
+        lod = l;
+        core.lod = l;
+    }
 };
 
 // =============================================================================================

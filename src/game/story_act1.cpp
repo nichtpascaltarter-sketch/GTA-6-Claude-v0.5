@@ -800,7 +800,7 @@ public:
                     vec3 fp = vehPos(g, fixerCar);
                     vec3 f = g.vehicles[fixerCar].sim.forward();
                     vec3 want = fp - f * 45.f;
-                    if (::length(playerPos(g) - want) > 20.f) t.teleport(vec3(want.x, want.y, groundAt(g, want.x, want.y)), yawTo(want.xy(), fp.xy()));
+                    if (::length(playerPos(g) - want) > 20.f) t.teleport(vec3(want.x, want.y, fp.z), yawTo(want.xy(), fp.xy()));   // street level (a z from above would land on a roof)
                 }
                 break;
             }

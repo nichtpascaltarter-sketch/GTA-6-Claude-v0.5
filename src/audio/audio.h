@@ -73,6 +73,8 @@ struct Listener {
     vec3 forward = vec3(0, 1, 0), up = vec3(0, 0, 1);
     float interior = 0.f;  // 0 outdoors .. 1 enclosed (tunnel, garage, car cabin) -> reverb/low-pass
     float inVehicle = 0.f; // 0..1 muffles outside sounds when inside a closed vehicle
+    float bodySpeed = -1.f; // speed of the player through the air (m/s) for wind at the ears on a motorbike, falling,
+                            // parachuting; -1 = use |vel| (the camera's velocity)
 };
 
 // Ambient bed mix, updated every frame from the world around the listener.
@@ -164,6 +166,29 @@ void setEmitter(EmitterHandle h, vec3 pos, vec3 vel, float p0, float p1 = 0.f, f
 //   shifted: VehicleState::shifted. A shift with the throttle down near the top of the rev range pops the exhaust of a
 //            tuned car (now and then a double pop).
 void setEngineTune(EmitterHandle h, float boost, float tune, bool shifted);
+// Chassis and cabin sounds of a road vehicle, voiced by its EMIT_ENGINE emitter; call right after its setEmitter every
+// frame. Tyres (rolling roar by surface - asphalt, concrete joints, gravel crunch and stones on the underbody, dirt,
+// grass, sand, mud, wooden planks, metal grating - wet-road spray, squeal and scrub by slip), suspension thumps over
+// kerbs and potholes, wind at speed, gear-change clunks, rev-matching blips on downshifts, air brakes on heavy
+// vehicles, a damaged engine misfiring; for the player's own vehicle also the indicator relay and cabin wind heard
+// from inside. The intake / exhaust balance follows where the listener stands relative to `forward`.
+struct VehicleAudio {
+    vec3 forward = vec3(0, 1, 0);  // unit heading of the vehicle
+    float speed = 0.f;             // m/s
+    float slip = 0.f;              // strongest wheel slip (VehicleState::wheels[].slip): squeal, slides
+    float lateralSlip = 0.f;       // sideways scrub speed (m/s): tyre squeak at parking speed, drifts
+    int surface = 0;               // Phys::SurfaceType under the wheels (0 asphalt, 1 concrete, 2 grass, 3 dirt, 4 sand, 5 water,
+                                   // 6 wood, 7 metal, 8 mud); gravel = dirt with `gravel` set
+    bool gravel = false;
+    float wetness = 0.f;           // 0..1 wet road: spray and hiss, less squeal
+    float bump = 0.f;              // largest suspension compression speed this frame (m/s): thumps over kerbs, potholes, landings
+    int gear = 1;                  // current gear (-1 reverse, 0 neutral)
+    int indicator = 0;             // -1 left, 1 right, 2 hazards (relay tick-tock in the cabin)
+    float damage = 0.f;            // 0 healthy .. 1 wrecked engine: misfires, rattles
+    bool heavy = false;            // bus / truck: air brakes, bigger thumps
+    bool player = false;           // the player's own vehicle (cabin sounds while the listener sits in it)
+};
+void setVehicleAudio(EmitterHandle engine, const VehicleAudio& v);
 void destroyEmitter(EmitterHandle h);
 
 // Radio: stations play "live" (their timeline advances even while not listened to).

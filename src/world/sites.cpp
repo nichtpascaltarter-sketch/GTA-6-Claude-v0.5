@@ -390,6 +390,42 @@ void layoutAirport(Lay& L) {
         Pad& w1 = L.padAA(LOOP_X + 5.5f, 1516.f, 765.f, 1735.f, zA + 0.15f, PAD_PLAZA);
         w1.flags = 2;
         L.padAA(751.f, 1010.f, 920.f, 1160.f, zA, PAD_PARKING);
+        // Forecourt dressing (airport.cpp genForecourt): kerbside bollards along both drop-off curbs, a taxi rank, trolley
+        // corrals, benches and planters, wayfinding pylons, a flag row in front of garage 1, sign gantries over the drives
+        const float zc = zA + 0.15f;
+        auto fc = [&](int variant, vec2 c, vec2 ax, float hx, float hy, float h, u32 seed) -> SiteElem& {
+            SiteElem& e = L.elem(SK_FORECOURT, c, ax, hx, hy, zc, h, seed);
+            e.variant = (u16)variant;
+            return e;
+        };
+        auto fcLine = [&](int variant, vec2 a, vec2 b, float p0, u32 seed) -> SiteElem& {
+            SiteElem& e = L.line(SK_FORECOURT, a, b, 1.f, zc, 1.f, seed);
+            e.variant = (u16)variant;
+            e.p[0] = p0;
+            return e;
+        };
+        fcLine(0, vec2(LOOP_X + 6.2f, 1192.f), vec2(LOOP_X + 6.2f, 1482.f), 2.4f, 2100u);
+        fcLine(0, vec2(LOOP_X + 6.2f, 1518.f), vec2(LOOP_X + 6.2f, 1733.f), 2.4f, 2101u);
+        fcLine(0, vec2(CURB_X - 6.3f, 1164.f), vec2(CURB_X - 6.3f, 1756.f), 2.4f, 2102u);
+        fc(1, vec2(760.f, 1250.f), vec2(-1, 0), 4.f, 3.f, 3.f, 2110u);
+        fc(2, vec2(761.f, 1212.f), vec2(0, 1), 3.5f, 2.f, 1.f, 2120u);
+        for (int k = 0; k < 4; k++) fc(2, vec2(689.5f, 1300.f + k * 125.f), vec2(0, 1), 3.5f, 2.f, 1.f, 2121u + (u32)k);
+        fc(3, vec2(757.5f, 1203.f), vec2(0, -1), 0.6f, 0.6f, 3.2f, 2130u).text = "TERMINAL|>ARRIVALS|>DEPARTURES|<GARAGE 1";
+        fc(3, vec2(757.5f, 1470.f), vec2(0, -1), 0.6f, 0.6f, 3.2f, 2131u).text = "GARAGE 1|LEVELS 1-5|>SHUTTLE BUS";
+        fc(3, vec2(694.5f, 1255.f), vec2(0, -1), 0.6f, 0.6f, 3.2f, 2132u).text = "ARRIVALS|BAGGAGE CLAIM|>TAXI|>BUS";
+        fc(3, vec2(694.5f, 1640.f), vec2(0, 1), 0.6f, 0.6f, 3.2f, 2133u).text = "DEPARTURES|CHECK-IN|A B C";
+        fcLine(4, vec2(763.2f, 1268.f), vec2(763.2f, 1296.f), 5.f, 2140u);
+        for (int k = 0; k < 3; k++) fc(5, vec2(763.2f, 1325.f + k * 48.f), vec2(0, 1), 4.f, 1.f, 1.f, 2150u + (u32)k);
+        for (int k = 0; k < 3; k++) fc(5, vec2(763.2f, 1560.f + k * 60.f), vec2(0, 1), 4.f, 1.f, 1.f, 2153u + (u32)k);
+        for (int k = 0; k < 5; k++) fc(5, vec2(682.6f, 1200.f + k * 128.f), vec2(0, 1), 4.f, 1.f, 1.f, 2156u + (u32)k);
+        {
+            SiteElem& g0 = fcLine(6, vec2(LOOP_X - 8.3f, 1300.f), vec2(LOOP_X + 7.3f, 1300.f), 10.f, 2160u);
+            g0.ax = vec2(0, -1);   // facing the traffic coming up the drive
+            g0.text = ">AIRPORT BOULEVARD|>PORTO SOL CITY|<RETURN TO TERMINAL";
+            SiteElem& g1 = fcLine(6, vec2(CURB_X - 6.6f, 1600.f), vec2(CURB_X + 7.5f, 1600.f), 10.f, 2161u);
+            g1.ax = vec2(0, 1);
+            g1.text = "DEPARTURES|CHECK-IN A B C|>DROP-OFF ONLY";
+        }
         SiteElem& pm = L.elem(SK_PARKING_MARKS, vec2(835.5f, 1085.f), vec2(1, 0), 84.5f, 75.f, zA, 1.f, 310);
         pm.p[0] = 5.2f;
         pm.p[1] = 7.f;
@@ -708,10 +744,115 @@ void layoutPort(Lay& L) {
     for (int i = 0; i < 8; i++) L.elem(SK_YARD_MAST, vec2(4289.f, 0.f - 130.f * i - 30.f), vec2(1, 0), 3.f, 3.f, zP, 36.f, 1700u + i);
     for (int i = 0; i < 5; i++) L.elem(SK_YARD_MAST, vec2(4537.f, -60.f - 235.f * i), vec2(1, 0), 3.f, 3.f, zP, 36.f, 1720u + i);
     for (int i = 0; i < 4; i++) L.elem(SK_YARD_MAST, vec2(4068.f + 0.f, -300.f - 230.f * i + 20.f), vec2(1, 0), 3.f, 3.f, zP, 30.f, 1730u + i);
+    // Working yard dressing along Port Boulevard (column A's west ends): block ID boards, a precast barrier line between the
+    // sidewalk and the stacks (open at the lanes), and in the lane mouths trucks waiting on their chassis, a reach stacker
+    // carrying a box, lashing cages, cones and drums, oil stains
+    {
+        Rng dr(0xD7E55u);
+        std::vector<vec2> blockSpans;  // (top, bottom) y of each column A block
+        for (int s = 0; s < 4; s++) {
+            float span = secs[s].top - secs[s].bot;
+            float used = secs[s].n * blockW + (secs[s].n - 1) * LANE;
+            float y = secs[s].top - (span - used) * 0.5f;
+            for (int k = 0; k < secs[s].n; k++) {
+                blockSpans.push_back(vec2(y, y - blockW));
+                y -= blockW + LANE;
+            }
+        }
+        const float xw = colX0[0] - 4.5f;   // barrier line, between the sidewalk and the block ends
+        for (size_t bi = 0; bi < blockSpans.size(); bi++) {
+            vec2 sp = blockSpans[bi];
+            SiteElem& jb = L.line(SK_PORT_DRESS, vec2(xw, sp.x - 0.6f), vec2(xw, sp.y + 0.6f), 1.f, zP, 1.f, 0xB0B0u + (u32)bi);
+            jb.variant = 0;
+            // ID boards at both corners facing the boulevard ("A" column, blocks numbered from the north)
+            for (int c = 0; c < 2; c++) {
+                SiteElem& id = L.elem(SK_PORT_DRESS, vec2(xw + 1.4f, c ? sp.y + 2.f : sp.x - 2.f), vec2(-1, 0), 1.f, 1.f, zP, 5.f, 0xB1D0u + (u32)bi * 2u + (u32)c);
+                id.variant = 5;
+                id.text = StrFormat("A%d%c", (int)bi + 1, c ? 'S' : 'N');
+            }
+            if (bi + 1 >= blockSpans.size()) continue;
+            // lane mouth south of this block
+            float ly = (sp.y + blockSpans[bi + 1].x) * 0.5f;
+            bool road = false;
+            for (float cy : kCrossY) road = road || fabsf(cy - ly) < 12.f;
+            if (road) continue;   // the terminal lanes are streets: keep them clear
+            SiteElem& st = L.elem(SK_PORT_DRESS, vec2(colX0[0] + 24.f, ly), vec2(1, 0), 22.f, 8.f, zP, 1.f, 0x5A1Du + (u32)bi);
+            st.variant = 3;
+            st.p[0] = 14.f;
+            auto clearOfStraddles = [&](vec2 p, float r) {
+                for (const SiteElem& o : S.elems)
+                    if (o.kind == SK_STRADDLE && length(o.c - p) < r) return false;
+                return true;
+            };
+            if (dr.chance(0.7f) && clearOfStraddles(vec2(colX0[0] + 22.f, ly), 20.f)) {
+                SiteElem& tk = L.elem(SK_PORT_TRUCK, vec2(colX0[0] + 22.f, ly + dr.range(3.5f, 5.5f)), vec2(-1, 0), 9.f, 2.f, zP, 4.f, 0x7C0Du + (u32)bi);
+                tk.variant = (u16)(dr.chance(0.2f) ? 2 : (dr.chance(0.3f) ? 1 : 0));
+                tk.p[0] = (float)dr.irange(0, 5);
+                tk.p[1] = dr.chance(0.25f) ? -1.f : (float)dr.irange(0, 9);
+            }
+            float rsx = colX0[0] + dr.range(52.f, 90.f);
+            if (dr.chance(0.45f) && clearOfStraddles(vec2(rsx, ly), 22.f)) {
+                SiteElem& rs = L.elem(SK_REACH_STACKER, vec2(rsx, ly - 2.5f), vec2(dr.chance(0.5f) ? -1.f : 1.f, 0), 9.f, 6.5f, zP, 10.f,
+                                      0x5EAC4u + (u32)bi);
+                rs.p[0] = dr.range(4.f, 9.f);
+                rs.p[1] = dr.chance(0.3f) ? -1.f : (float)dr.irange(0, 9);
+            }
+            if (dr.chance(0.5f)) {
+                SiteElem& lc = L.elem(SK_PORT_DRESS, vec2(xw + 1.9f, sp.y - 3.2f), vec2(0, -1), 4.f, 2.f, zP, 2.4f, 0xCA6Eu + (u32)bi);
+                lc.variant = 1;
+            }
+            if (dr.chance(0.35f)) {
+                SiteElem& cn = L.elem(SK_PORT_DRESS, vec2(colX0[0] + 6.f, ly - 7.5f), vec2(1, 0), 5.f, 1.f, zP, 1.f, 0xC0DEu + (u32)bi);
+                cn.variant = 4;
+            }
+        }
+        // terminal rules at the boulevard (north of the gate road and by the first lanes)
+        const char* rules[] = {"SPEED LIMIT|15", "HARD HAT AND HI-VIS|BEYOND THIS POINT", "STRADDLE CARRIERS|HAVE RIGHT OF WAY", "NO PEDESTRIANS|IN STACK LANES"};
+        const float ruleY[4] = {-186.f, -304.f, -420.f, -560.f};   // clear of the terminal lane streets
+        for (int k = 0; k < 4; k++) {
+            SiteElem& sg = L.elem(SK_PORT_DRESS, vec2(xw + 1.f, ruleY[k]), vec2(-1, 0), 1.6f, 1.f, zP, 1.2f, 0x5160u + (u32)k);
+            sg.variant = 2;
+            sg.hx = k == 0 ? 0.9f : 1.6f;
+            sg.hy = k == 0 ? 1.1f : 0.9f;
+            sg.p[0] = k == 0 ? 0.f : 1.f;
+            sg.text = rules[k];
+        }
+    }
     // Gate complex at the bridge landing, admin office, freight stations
     {
         SiteElem& g = L.elem(SK_PORT_GATE, vec2(4008.f, GATE_Y), vec2(1, 0), 30.f, 17.f, zP, 9.f, 1800);
         g.text = "PORT ISLE TERMINAL";
+        // perimeter fence from the gate north and south (gaps where roads pass), gate rules facing the arriving trucks,
+        // and a truck holding area south of the gate: rigs waiting on their chassis between precast barriers
+        L.line(SK_FENCE, vec2(4042.f, GATE_Y - 19.f), vec2(4042.f, -262.f), 3.f, zP, 2.6f, 1810u);
+        L.line(SK_FENCE, vec2(4042.f, GATE_Y + 19.f), vec2(4042.f, -48.f), 3.f, zP, 2.6f, 1811u);
+        const char* gateRules[] = {"ALL VEHICLES|STOP AT GATE", "PRESENT ID AND|BOOKING NUMBER", "TRUCK HOLDING AREA|WAIT FOR GATE CALL"};
+        const vec2 gatePos[] = {vec2(3968.f, GATE_Y - 20.f), vec2(3968.f, GATE_Y + 20.f), vec2(3981.f, -201.f)};
+        const vec2 gateFace[] = {vec2(-1, 0), vec2(-1, 0), vec2(0, 1)};
+        for (int k = 0; k < 3; k++) {
+            SiteElem& sg = L.elem(SK_PORT_DRESS, gatePos[k], gateFace[k], 1.8f, 1.f, zP, 1.3f, 0x6A7Eu + (u32)k);
+            sg.variant = 2;
+            sg.p[0] = k == 2 ? 2.f : 0.f;
+            sg.text = gateRules[k];
+        }
+        Rng hr(0x401Du);
+        for (int k = 0; k < 5; k++) {
+            if (k == 3) continue;   // an empty bay
+            SiteElem& tk = L.elem(SK_PORT_TRUCK, vec2(3993.f + k * 5.2f, -226.f + hr.range(-1.f, 1.f)), vec2(0, 1), 9.f, 2.f, zP, 4.f, 0x4E1Du + (u32)k);
+            tk.variant = (u16)(k == 1 ? 2 : (k == 4 ? 1 : 0));
+            tk.p[0] = (float)hr.irange(0, 5);
+            tk.p[1] = hr.chance(0.3f) ? -1.f : (float)hr.irange(0, 9);
+        }
+        SiteElem& hb0 = L.line(SK_PORT_DRESS, vec2(3985.f, -203.f), vec2(3985.f, -251.f), 1.f, zP, 1.f, 0x4E20u);
+        hb0.variant = 0;
+        SiteElem& hb1 = L.line(SK_PORT_DRESS, vec2(3987.f, -253.f), vec2(4034.f, -253.f), 1.f, zP, 1.f, 0x4E21u);
+        hb1.variant = 0;
+        SiteElem& hst = L.elem(SK_PORT_DRESS, vec2(4008.f, -226.f), vec2(1, 0), 22.f, 12.f, zP, 1.f, 0x4E22u);
+        hst.variant = 3;
+        hst.p[0] = 22.f;
+        SiteElem& gst = L.elem(SK_PORT_DRESS, vec2(4008.f, GATE_Y), vec2(1, 0), 30.f, 8.f, zP, 1.f, 0x4E23u);
+        gst.variant = 3;
+        gst.p[0] = 16.f;
         L.building(vec2(4010.f, -80.f), vec2(0, 1), 25.f, 17.f, BS_MIDRISE, ROOF_FLAT, 5, vec2(1, 0), REG_PORT, zP);
         L.building(vec2(4004.f, -820.f), vec2(0, 1), 178.f, 30.f, BS_WAREHOUSE, ROOF_FLAT, 1, vec2(1, 0), REG_PORT, zP);
         L.building(vec2(4004.f, -432.f), vec2(0, 1), 168.f, 30.f, BS_WAREHOUSE, ROOF_BARREL, 1, vec2(1, 0), REG_PORT, zP);

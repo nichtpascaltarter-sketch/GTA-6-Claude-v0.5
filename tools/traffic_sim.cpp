@@ -1389,6 +1389,30 @@ int main(int argc, char** argv) {
             }
             continue;
         }
+        if (!strcmp(argv[i], "--crossings") && i + 3 < argc) {
+            // the crossings a street takeover can use (events.cpp): four approaches of streets / avenues, signals or an
+            // all-way stop, lanes in and out of each - with the district, so a test knows where to stand
+            vec2 p((float)atof(argv[i + 1]), (float)atof(argv[i + 2]));
+            float r = (float)atof(argv[i + 3]);
+            i += 3;
+            int found = 0;
+            for (int n = 0; n < (int)w.lg.nodes.size(); n++) {
+                const AI::NodeInfo& N = w.lg.nodes[n];
+                const World::RoadNode& rn = w.roads.nodes[n];
+                if (length(rn.p - p) > r || N.approaches.size() != 4 || N.control == 0 || N.gradeSeparated) continue;
+                bool streets = true;
+                for (const AI::Approach& A : N.approaches) {
+                    const World::RoadEdge& ed = w.roads.edges[A.edge];
+                    if (ed.cls != World::RC_STREET && ed.cls != World::RC_AVENUE) streets = false;
+                    if (A.inLanes.empty() || A.outLanes.empty()) streets = false;
+                }
+                if (!streets) continue;
+                found++;
+                printf("crossing node %d at (%.1f, %.1f) z %.1f radius %.1f control %d region %d\n", n, rn.p.x, rn.p.y, rn.z, rn.radius, N.control, (int)w.map.regionAt(rn.p.x, rn.p.y));
+            }
+            printf("takeover crossings within %.0f m: %d\n", r, found);
+            continue;
+        }
         if (!strcmp(argv[i], "--ramps")) {
             // interchange ramps, clustered (for picking harness hotspots): where they are and how many lanes each has
             const AI::LaneGraph& G = w.lg;

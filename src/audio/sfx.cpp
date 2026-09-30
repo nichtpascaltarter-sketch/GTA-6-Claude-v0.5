@@ -819,25 +819,49 @@ static void s_scream(Buf& b, bool female) {
 
 // ---------------------------------------------------------------------------------------------
 // Vehicles
+// Car door opening: handle lever, latch release, the seal letting go, check-strap detents as the door swings.
 static void s_carDoorOpen(Buf& b) {
-    mechClack(b, 0.f, 0.3f, 0.8f);
-    float t1 = b.rnd(0.05f, 0.08f);
-    Mode m[3] = {{b.rnd(550.f, 650.f), 0.03f, 1.f}, {b.rnd(1400.f, 1600.f), 0.02f, 0.6f}, {b.rnd(3000.f, 3400.f), 0.012f, 0.4f}};
-    modes(b, t1, 0.5f, m, 3);
-    noise(b, t1, 0.06f, 0.6f, 0.0005f, 0.015f, FLP, 1200.f, -1.f, 0.1f, 0.7f);
-    noise(b, t1 + 0.02f, 0.25f, 0.18f, 0.02f, 0.06f, FBP, 800.f, 500.f, 0.1f, 0.8f);
-    if (b.chance(0.4f)) fmNote(b, t1 + 0.1f, 0.25f, b.rnd(850.f, 1200.f), 1.003f, 4.f, 0.2f, 0.04f, 0.04f, 0.1f);
+    // handle lever (plastic clack with a little friction)
+    Mode h[3] = {{b.rnd(1700.f, 2100.f), 0.008f, 1.f}, {b.rnd(2900.f, 3400.f), 0.006f, 0.6f}, {b.rnd(4800.f, 5400.f), 0.004f, 0.35f}};
+    modes(b, 0.f, 0.35f, h, 3);
+    noise(b, 0.f, 0.05f, 0.08f, 0.005f, 0.012f, FBP, 2400.f, 1800.f, 0.05f, 1.f);
+    // latch releasing: metallic clunk-click
+    float tl = b.rnd(0.045f, 0.075f);
+    Mode l[4] = {{b.rnd(1150.f, 1350.f), 0.02f, 1.f}, {b.rnd(2500.f, 2900.f), 0.014f, 0.7f}, {b.rnd(4200.f, 4700.f), 0.008f, 0.4f},
+                 {b.rnd(160.f, 200.f), 0.03f, 0.6f}};
+    modes(b, tl, 0.6f, l, 4);
+    click(b, tl, 0.35f, 3);
+    // the seal lets go: a soft low pop of air and a peel of rubber
+    noise(b, tl + 0.01f, 0.08f, 0.45f, 0.002f, 0.018f, FLP, 180.f, 90.f, 0.02f, 0.8f, 2);
+    noise(b, tl + 0.015f, 0.09f, 0.1f, 0.01f, 0.025f, FBP, b.rnd(900.f, 1300.f), 700.f, 0.05f, 1.2f);
+    // check strap: two detent ticks as the door swings open
+    float td = tl + b.rnd(0.18f, 0.26f);
+    for (int k = 0; k < 2; k++) {
+        Mode d[2] = {{b.rnd(2000.f, 2400.f), 0.01f, 1.f}, {b.rnd(900.f, 1100.f), 0.015f, 0.7f}};
+        modes(b, td, 0.22f - 0.06f * (float)k, d, 2);
+        td += b.rnd(0.12f, 0.2f);
+    }
+    if (b.chance(0.3f)) fmNote(b, tl + 0.08f, 0.3f, b.rnd(700.f, 1000.f), 1.003f, 4.f, 0.2f, 0.03f, 0.05f, 0.12f);  // hinge creak
 }
+// Car door slam: cabin air compressed just before, latch and striker, the heavy body thud, seal squish, trim rattle.
 static void s_carDoorClose(Buf& b) {
     float p = b.rnd(0.9f, 1.1f);
-    noise(b, 0.f, 0.3f, 1.f, 0.001f, 0.05f, FLP, 320.f * p, -1.f, 0.1f, 0.7f, 1);
-    tone(b, 0.f, 0.35f, 78.f * p, 55.f, 0.05f, 0.9f, 0.002f, 0.06f);
-    Mode m[4] = {{130.f * p, 0.12f, 1.f}, {212.f * p, 0.1f, 0.7f}, {338.f * p, 0.08f, 0.5f}, {520.f * p, 0.06f, 0.35f}};
-    modes(b, 0.f, 0.3f, m, 4);
-    Mode l[2] = {{b.rnd(2300.f, 2600.f), 0.015f, 1.f}, {b.rnd(4000.f, 4300.f), 0.01f, 0.6f}};
-    modes(b, 0.012f, 0.35f, l, 2);
-    click(b, 0.012f, 0.3f, 3);
-    grains(b, 0.03f, 0.18f, 50.f, 0.05f, 1500.f, 4000.f, 0.005f, 0.02f, 0.08f);
+    bool solid = b.chance(0.6f);  // well damped door vs a tinny one
+    float t0 = 0.012f;
+    noise(b, 0.f, 0.05f, 0.35f, 0.012f, 0.01f, FLP, 90.f, 60.f, 0.02f, 0.8f, 2);           // air pushed out of the cabin
+    // body thud
+    noise(b, t0, 0.3f, 1.f, 0.0008f, 0.045f, FLP, 300.f * p, 160.f, 0.05f, 0.7f, 1);
+    tone(b, t0, 0.35f, 82.f * p, 52.f, 0.04f, 0.95f, 0.0015f, solid ? 0.05f : 0.07f);
+    Mode m[5] = {{128.f * p, solid ? 0.08f : 0.14f, 1.f}, {215.f * p, solid ? 0.07f : 0.12f, 0.7f}, {340.f * p, 0.06f, 0.5f},
+                 {530.f * p, 0.05f, 0.35f}, {b.rnd(900.f, 1100.f) * p, solid ? 0.02f : 0.06f, solid ? 0.1f : 0.3f}};
+    modes(b, t0, 0.32f, m, 5);
+    // latch and striker
+    Mode l[3] = {{b.rnd(2300.f, 2700.f), 0.015f, 1.f}, {b.rnd(3900.f, 4400.f), 0.01f, 0.6f}, {b.rnd(1300.f, 1500.f), 0.02f, 0.5f}};
+    modes(b, t0 + 0.004f, 0.4f, l, 3);
+    click(b, t0 + 0.004f, 0.3f, 3);
+    // seal squish and a short rattle of trim / window glass
+    noise(b, t0 + 0.01f, 0.08f, 0.12f, 0.005f, 0.02f, FBP, 600.f, 400.f, 0.05f, 0.8f);
+    grains(b, t0 + 0.03f, 0.16f, solid ? 35.f : 70.f, 0.05f, 1600.f, 4500.f, 0.004f, 0.02f, 0.07f);
 }
 static void s_carCrash(Buf& b, bool heavy) {
     float sc = heavy ? 1.f : 0.55f;
@@ -2089,9 +2113,9 @@ static const SoundDef kDefs[BANK_COUNT] = {
     {"amb_mosquito",      W, 20,  3, 0.12f, 1.f,   1.f,    0.f,   0.05f, 1.f},
     {"amb_halyard",       W, 20,  3, 0.35f, 5.f,   120.f,  0.25f, 0.05f, 1.f},
     {"amb_buoy_bell",     W, 20,  2, 0.4f,  20.f,  800.f,  0.35f, 0.02f, 0.8f},
-    {"amb_thunder_close", W, 210, 2, 1.0f,  1.f,   1.f,    0.3f,  0.05f, 1.f},
-    {"amb_thunder_mid",   W, 200, 3, 0.95f, 1.f,   1.f,    0.3f,  0.05f, 1.f},
-    {"amb_thunder_far",   W, 190, 3, 0.8f,  1.f,   1.f,    0.3f,  0.05f, 1.f},
+    {"amb_thunder_close", W, 210, 2, 1.8f,  1.f,   1.f,    0.3f,  0.05f, 1.f},
+    {"amb_thunder_mid",   W, 200, 3, 0.8f,  1.f,   1.f,    0.3f,  0.05f, 1.f},
+    {"amb_thunder_far",   W, 190, 3, 0.6f,  1.f,   1.f,    0.3f,  0.05f, 1.f},
     // gunfire layers (Mixer::startGunshot)
     {"gun_near_pistol",   W, 200, 4, 1.06f, 5.f,   700.f,  0.4f,  0.03f, 1.2f},
     {"gun_near_revolver", W, 200, 4, 1.13f, 5.f,   800.f,  0.4f,  0.03f, 1.2f},
@@ -2099,12 +2123,12 @@ static const SoundDef kDefs[BANK_COUNT] = {
     {"gun_near_rifle",    W, 200, 4, 1.13f, 6.f,   950.f,  0.4f,  0.03f, 1.2f},
     {"gun_near_shotgun",  W, 200, 4, 1.18f, 6.f,   800.f,  0.4f,  0.03f, 1.2f},
     {"gun_near_sniper",   W, 210, 4, 1.23f, 7.f,   1300.f, 0.4f,  0.02f, 1.2f},
-    {"gun_fp_pistol",     W, 240, 3, 1.70f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
-    {"gun_fp_revolver",   W, 240, 3, 1.70f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
-    {"gun_fp_smg",        W, 240, 3, 1.70f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
-    {"gun_fp_rifle",      W, 240, 3, 1.70f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
-    {"gun_fp_shotgun",    W, 240, 3, 1.70f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
-    {"gun_fp_sniper",     W, 240, 3, 1.70f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_pistol",     W, 240, 3, 2.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_revolver",   W, 240, 3, 2.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_smg",        W, 240, 3, 2.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_rifle",      W, 240, 3, 2.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_shotgun",    W, 240, 3, 2.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_sniper",     W, 240, 3, 2.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
     {"gun_mech_pistol",   W, 190, 3, 0.45f, 1.5f,  30.f,   0.12f, 0.04f, 1.f},
     {"gun_mech_revolver", W, 190, 3, 0.40f, 1.5f,  30.f,   0.12f, 0.04f, 1.f},
     {"gun_mech_smg",      W, 190, 3, 0.45f, 1.5f,  30.f,   0.12f, 0.04f, 1.f},
@@ -2260,9 +2284,9 @@ static void synthesize(int id, int var, Buf& b) {
 }
 
 // DC removal, tail trim, fades and peak normalization into the final bank buffer.
-static void finish(Buf& b, SoundBuffer& out) {
+static void finish(Buf& b, SoundBuffer& out, int div = 1) {
     OnePoleHP hp;
-    hp.set(12.f);
+    hp.set(12.f / (float)Max(div, 1));
     for (auto& v : b.L) v = hp.process(v);
     if (b.stereo) {
         hp.reset();
@@ -2305,11 +2329,49 @@ static void finish(Buf& b, SoundBuffer& out) {
     }
 }
 
+// Storage rate divisor for band-limited sounds (everything they contain sits well below the reduced Nyquist).
+static int storeDiv(int id) {
+    switch (id) {
+        case SFX_THUNDER: case AMB_THUNDER_MID: case AMB_THUNDER_FAR: case AMB_TRAIN_PASS: case AMB_AIRBOAT: case AMB_BOAT_PASS:
+        case AMB_SIREN_DISTANT: case AMB_HORN_DISTANT:
+            return 4;
+        case AMB_BUOY_BELL: case AMB_CRANE: case AMB_REVERSE_BEEP: case AMB_CONTAINER:
+            return 2;
+        default: return id >= GUN_FAR_URBAN && id < GUN_CRACK ? 4 : 1;
+    }
+}
+
+// Anti-alias low-pass (two 4th-order sections) and decimation by `div`.
+static void decimate(Buf& b, int div) {
+    if (div <= 1) return;
+    float fc = 0.4f * SR / (float)div;
+    auto run = [&](std::vector<float>& x) {
+        Svf a1, a2, a3, a4;
+        float g = svfG(fc);
+        a1.setG(g, 0.54f);
+        a2.setG(g, 1.31f);
+        a3.setG(g, 0.54f);
+        a4.setG(g, 1.31f);
+        size_t n = x.size() / (size_t)div;
+        size_t o = 0;
+        for (size_t i = 0; i < x.size(); i++) {
+            float v = a4.lp(a3.lp(a2.lp(a1.lp(x[i]))));
+            if (i % (size_t)div == 0 && o < n) x[o++] = v;
+        }
+        x.resize(o);
+    };
+    run(b.L);
+    if (b.stereo) run(b.R);
+}
+
 static void renderVariation(int id, int var, SoundBuffer& out) {
     u32 seed = hash32((u32)id * 7919u + (u32)var * 104729u + 0x5eedu);
     Buf b(seed, isStereo(id));
     synthesize(id, var, b);
-    finish(b, out);
+    int div = storeDiv(id);
+    decimate(b, div);
+    finish(b, out, div);
+    out.rateDiv = div;
 }
 
 // Bank storage and background rendering

@@ -243,6 +243,12 @@ Driver& TrafficCore::attach(int vid, u32 uid, u32 seed, const VehicleInfo& info,
     d.vehicle = vid;
     d.info = info;
     d.pers = Personality::make(seed, forceCautious);
+    if (info.mass > 4000.f) {
+        // a loaded bus or truck stops in a good deal more road than a car: plan with the brakes it has, keep more room
+        // on the move (the gap at a standstill stays: the deadlock breakers and queue logic measure it)
+        d.pers.decel *= 0.72f;
+        d.pers.headway *= 1.3f;
+    }
     d.path = lane;
     d.u = lane >= 0 ? Clamp(u, g->lanes[lane].u0, g->lanes[lane].u1) : 0.f;
     d.planTimer = hashToFloat(hash32(seed + 99u)) * kPlanInterval;
@@ -1054,8 +1060,9 @@ bool TrafficCore::gapOk(const Driver& d, int lane, float v, float extra) const {
         float vb = dot(b.vel, t);
         float len = b.halfLen + d.info.halfLen;
         if (along >= 0.f) {
+            // (about a second behind the car we slot in behind: it may brake while we are still half across)
             float gap = along - len;
-            if (gap < Max(3.f, v * 0.55f + (v - vb) * 1.1f) + extra) ok = false;
+            if (gap < Max(3.5f, v * 0.85f + (v - vb) * 1.4f) + extra) ok = false;
         } else {
             float gap = -along - len;
             if (gap < Max(4.f, vb * 0.75f + (vb - v) * 1.6f) + extra) ok = false;

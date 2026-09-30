@@ -189,7 +189,9 @@ static void addBodyPrims(BuildCtx& c) {
         S.cone(nb, nt, D.neckR * 1.06f, D.neckR * 0.94f, MK_NECK | MK_HEAD, 0.03f * s, 1.f, 0.96f, vec3(1, 0, 0));
         for (int side = 0; side < 2; side++) {
             float sx = side ? 1.f : -1.f;
-            vec3 a = J[B_HEAD] + vec3(sx * 0.046f, -0.012f, 0.004f) * D.headS;
+            // sternocleidomastoid from behind the ear (a narrower origin on women, so the neck stays inside the jaw
+            // line in a frontal view) to the top of the sternum
+            vec3 a = J[B_HEAD] + vec3(sx * Lerp(0.046f, 0.042f, fem), -0.012f, 0.004f) * D.headS;
             vec3 b(sx * 0.016f * s, J[B_NECK].y + 0.075f * s, J[B_NECK].z - 0.012f * s);
             S.cone(a, b, 0.0135f * s, 0.012f * s, MK_NECK | MK_HEAD, 0.02f * s);
         }

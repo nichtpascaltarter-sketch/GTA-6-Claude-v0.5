@@ -299,12 +299,35 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         float3 room;
         if (storefront) room = shopInterior(float3(fx + (bayIdx - shopIdx * 3.0) * bay, fy, 0.02), dir, float3(bay * 3.0, fh, f.roomDepth * 1.4), shopHash);
         else room = interiorRoom(float3(fx, fy, 0.02), dir, float3(bay, fh, f.roomDepth), roomHash, la, office);
-        // Blinds / curtains (homes and offices)
-        float blindsAmt = hashF(roomHash + 5u);
-        bool blinds = !storefront && ((flags & 8u) ? blindsAmt < 0.6 : blindsAmt < 0.25);
-        float blindLevel = hashF(roomHash + 6u);
-        bool coveredByBlind = blinds && (wl.y / winH) > blindLevel;
-        float3 blindC = office ? float3(0.7, 0.7, 0.68) : lerp(float3(0.8, 0.75, 0.65), float3(0.5, 0.2, 0.15), hashF(roomHash + 7u));
+        // Window coverings (homes and offices): none, a roller blind pulled down to some height, venetian blinds
+        // (25 mm slats, tilted partly open) or a pair of curtains drawn in from the sides (folds). Lit rooms glow
+        // through them (translucent fabric, light between the slats).
+        float ctype = hashF(roomHash + 5u);
+        float pRoller = (flags & 8u) ? 0.35 : 0.15;
+        float pVenet = office ? 0.45 : 0.15;
+        float pCurt = office ? 0.0 : 0.3;
+        uint covering = storefront ? 0u : (ctype < pRoller ? 1u : (ctype < pRoller + pVenet ? 2u : (ctype < pRoller + pVenet + pCurt ? 3u : 0u)));
+        float3 coverC = office ? float3(0.7, 0.7, 0.68) : lerp(float3(0.82, 0.76, 0.66), float3(0.5, 0.22, 0.16), hashF(roomHash + 7u));
+        float cover = 0.0, coverTrans = 0.0;
+        if (covering == 1u) {
+            cover = step(1.0 - hashF(roomHash + 6u), wl.y / winH);   // hangs from the head of the window
+            coverTrans = 0.35;
+        } else if (covering == 2u) {
+            float openAmt = 0.15 + hashF(roomHash + 6u) * 0.5;
+            float raised = hashF(roomHash + 8u) < 0.3 ? hashF(roomHash + 9u) * 0.6 : 0.0;   // some pulled part way up
+            float slat = frac(wl.y / 0.025);
+            float px = max(length(rel) * 0.0012, 1e-4) / 0.025;     // slats per pixel: average out before they alias
+            float slatCover = lerp(step(openAmt, slat), 1.0 - openAmt, saturate(px * 2.0 - 0.5));
+            cover = slatCover * step(raised, wl.y / winH);
+            coverTrans = 0.12;
+            coverC *= 0.85 + 0.15 * slat;
+        } else if (covering == 3u) {
+            float drawn = lerp(0.18, 0.9, hashF(roomHash + 6u));
+            float fromSide = min(wl.x, winW - wl.x);
+            cover = step(fromSide, winW * 0.5 * drawn);
+            coverC *= 0.72 + 0.28 * sin(wl.x * 40.0 + hashF(roomHash + 8u) * 6.0) * sin(wl.x * 40.0 + hashF(roomHash + 8u) * 6.0);
+            coverTrans = 0.3;
+        }
         // Lighting schedule: every room has its own switch-on / switch-off times, so windows light up one by
         // one at dusk and go dark gradually through the night (some stay lit all night, early risers at dawn).
         float hour = gTime.y;
@@ -324,18 +347,21 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
                                : lerp(float3(1.0, 0.6, 0.3), float3(1.0, 0.82, 0.6), hashF(roomHash + 12u) * 0.8);
         if (!office && hashF(roomHash + 13u) > 0.93) lightC = float3(0.4, 0.55, 1.0);  // TV glow
         if (storefront) lightC = lerp(float3(1.0, 0.8, 0.58), float3(0.86, 0.94, 1.0), hashF(lh + 28u));  // halogen .. LED
-        float3 inside = coveredByBlind ? blindC : room;
-        // Interior radiance: lit rooms emit, unlit rooms show dim daylight interior
+        // Interior radiance: lit rooms emit; unlit rooms show a dim daylight interior. The room is radiance seen
+        // through the glass (not a surface lit on the facade), so shadows falling on the glass do not darken it.
         float dayInterior = saturate(gSunDir.z * 3.0 + 0.1) * (1.0 - gExposure.w);
         float3 glassTint = glassC;
-        float3 interiorAlbedo = inside * glassTint;
-        float3 em = 0;
+        float3 em = room * 40.0 * dayInterior;
         // shops are brightly lit inside (~160 nits of interior by day reads through the glass; 14 at night, when the
         // exposure has opened up), homes and offices keep a constant lamp level
         float shopNits = lerp(160.0, 14.0, gExposure.w);
-        if (lit) em = inside * lightC * (storefront ? shopNits : 9.0) * (0.45 + 0.9 * hashF(lh + 14u));
-        // Glass surface: dark reflective; interior visible through it
-        outAlbedo = interiorAlbedo * 0.35 * dayInterior + glassTint * 0.02;
+        float lampNits = (storefront ? shopNits : 9.0) * (0.45 + 0.9 * hashF(lh + 14u));
+        if (lit) em = room * lightC * lampNits;
+        // a covering right behind the glass is lit from the street (albedo) and glows with the room light behind it
+        float3 coverEm = lit ? coverC * coverTrans * lightC * lampNits : 0.0;
+        em = lerp(em, coverEm, cover);
+        // Glass surface: dark and reflective (Fresnel reflections of the street from SSR and the probe on top)
+        outAlbedo = lerp(glassTint * 0.02, coverC * glassTint * 0.8, cover);
         r.emissive = em * glassTint * 1.2;
         rough = 0.04;
         r.metal = 0.0;

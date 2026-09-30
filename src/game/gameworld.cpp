@@ -741,6 +741,8 @@ void GameWorld::updateAudioListener(float dt) {
         L.interior = rig.vehicleView == 2 ? 0.6f : 0.f;
     }
     L.interior = Max(L.interior, Interiors::insideAmount() * 0.8f);   // inside a building (interiors_game.cpp)
+    // wind at the ears follows the player's own speed (a motorbike, a fall, a parachute), not the orbiting camera
+    if (const Ped* pp = playerPed()) L.bodySpeed = pv >= 0 ? vehicles[pv].sim.speed() : length(pp->vel);
     Audio::update(L, dt);
     Audio::Ambience amb;
     vec2 p = L.pos.xy();
@@ -774,6 +776,23 @@ void GameWorld::updateAudioListener(float dt) {
     amb.rain = env->rain;
     amb.wind = Saturate(env->wind + Saturate((L.pos.z - 60.f) / 300.f));
     amb.timeOfDay = env->timeOfDay;
+    // district character: high-rise core, docks / container terminal, and the traffic actually around the listener
+    switch (reg) {
+        case World::REG_DOWNTOWN: case World::REG_FINANCIAL: amb.downtown = 1.f; break;
+        case World::REG_MIDTOWN: case World::REG_NORTH_CITY: amb.downtown = 0.45f; break;
+        case World::REG_PORT: amb.port = 1.f; break;
+        case World::REG_FORT_CASTELL: amb.port = 0.6f; break;
+        case World::REG_FLATS: case World::REG_GULF_TOWN: amb.port = 0.3f; break;
+        default: break;
+    }
+    {
+        std::vector<int> cars;
+        vehiclesNear(p, 80.f, cars);
+        int moving = 0;
+        for (int vi : cars)
+            if (vehicles[vi].sim.speed() > 2.f) moving++;
+        amb.traffic = Saturate((float)moving / 12.f) * Saturate(urban * 1.5f + 0.3f);
+    }
     float wz;
     amb.underwater = Phys::waterSurface(L.pos.x, L.pos.y, wz) && L.pos.z < wz - 0.1f ? 1.f : 0.f;
     Audio::setAmbience(amb);

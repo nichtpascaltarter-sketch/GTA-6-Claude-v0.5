@@ -16,7 +16,7 @@ using namespace dsp;
 constexpr int kMaxVoices = 192;
 constexpr int kMaxRealVoices = 64;
 constexpr int kMaxEmitters = 512;
-constexpr int kMaxRealEmitters = 20;
+constexpr int kMaxRealEmitters = 14;
 constexpr float kInaudible = 0.0015f;  // ~-56 dB: masked by any bed; not worth synthesizing
 constexpr int kHandleTable = 4096;
 constexpr int kItdLen = 64;
@@ -39,7 +39,7 @@ struct ProfScope {
 #endif
 
 // ---------------------------------------------------------------------------------------------
-enum class CmdType : u8 { Play, Gunshot, Thunder, Stop, EmitterCreate, EmitterSet, EmitterTune, EmitterDestroy, SpeechReady };
+enum class CmdType : u8 { Play, Gunshot, Thunder, Stop, EmitterCreate, EmitterSet, EmitterTune, EmitterVehicle, EmitterDestroy, SpeechReady };
 struct Cmd {
     CmdType type;
     bool is2D;
@@ -49,6 +49,7 @@ struct Cmd {
     float p[4];
     float volume, pitch;
     SpeechJob* job;
+    VehicleAudio va;
 };
 
 struct SharedState {
@@ -245,6 +246,29 @@ static void spatialize(SpatialState& st, const SpatialParams& p, const float* in
     float invN = 1.f / (float)n;
     bool bypassLp = st.cutoff > 19000.f;
     bool doEcho = c0 > 1e-6f || c1 > 1e-6f;
+    if (p.audibility * gain < 0.012f && gl0 + gr0 < 0.03f) {
+        // faint source: plain gains, no interaural delay or head shadow (inaudible at this level)
+        for (int i = 0; i < n; i++) {
+            float u = (float)i * invN;
+            float x = in[i];
+            if (!bypassLp) x = st.lp.lp(x);
+            st.itd[st.itdW] = x;  // keep the interaural history current for a later switch to the full path
+            st.itdW = (st.itdW + 1) & (kItdLen - 1);
+            outL[i] += x * (gl0 + (gl1 - gl0) * u);
+            outR[i] += x * (gr0 + (gr1 - gr0) * u);
+            sb.rev[i] += x * (s0 + (s1 - s0) * u);
+            sb.er[i] += x * (e0 + (e1 - e0) * u);
+            if (doEcho) sb.echo[i] += x * (c0 + (c1 - c0) * u);
+        }
+        st.gl = gl1;
+        st.gr = gr1;
+        st.send = s1;
+        st.er = e1;
+        st.echo = c1;
+        st.itdL = dL1;
+        st.itdR = dR1;
+        return;
+    }
     for (int i = 0; i < n; i++) {
         float u = (float)i * invN;
         float x = in[i];
@@ -331,6 +355,9 @@ struct Emitter {
     DCBlocker dc;
     u32 seed = 0;
     float occl = 0.f;     // smoothed occlusion
+    vec3 fwd = vec3(0, 1, 0);  // road vehicles: heading (intake / exhaust balance)
+    bool player = false;       // the player's own vehicle (cabin sounds)
+    bool vehicle = false;      // receives setVehicleAudio
 };
 
 struct Mixer {
@@ -485,7 +512,7 @@ struct Mixer {
         v->handle = handle;
         v->id = id;
         v->buf = &e.vars[rng.irange(0, e.count - 1)];
-        v->rate = pitch * (1.f + rng.range(-d.pitchVar, d.pitchVar));
+        v->rate = pitch * (1.f + rng.range(-d.pitchVar, d.pitchVar)) / (float)v->buf->rateDiv;
         v->volume = volume * d.gain;
         v->bus = Bus::World;
         v->is3D = true;
@@ -590,7 +617,7 @@ struct Mixer {
         v->id = id;
         v->buf = &e.vars[rng.irange(0, e.count - 1)];
         v->pos = 0.0;
-        v->rate = pitch * (1.f + rng.range(-d.pitchVar, d.pitchVar));
+        v->rate = pitch * (1.f + rng.range(-d.pitchVar, d.pitchVar)) / (float)v->buf->rateDiv;
         v->volume = volume * d.gain;
         v->bus = d.bus;
         v->is3D = !is2D && d.bus == Bus::World;
@@ -670,7 +697,7 @@ struct Mixer {
                     // by distance: a close strike tears before the boom, 1-3 km booms and rolls, farther only rumbles
                     float dist = c.p[0];
                     int id = dist < 1100.f ? AMB_THUNDER_CLOSE : dist < 3200.f ? AMB_THUNDER_MID : AMB_THUNDER_FAR;
-                    spawn2D(id, c.volume * Clamp(1.25f - dist / 9000.f, 0.35f, 1.f), rng.range(0.9f, 1.06f), rng.chance(0.5f));
+                    spawn2D(id, c.volume * Clamp(1.3f - dist / 6000.f, 0.3f, 1.f), rng.range(0.9f, 1.06f), rng.chance(0.5f));
                     break;
                 }
                 case CmdType::Stop:
@@ -701,6 +728,9 @@ struct Mixer {
                     e.fifoPos = 1.0;
                     e.sp.reset();
                     e.dc.reset();
+                    e.fwd = vec3(0, 1, 0);
+                    e.player = false;
+                    e.vehicle = false;
                     e.spkHp.setHP(130.f, 0.7f);
                     e.spkLp.setLP(6500.f, 0.7f);
                     if (e.synth) e.synth->setParams(e.p[0], e.p[1], e.p[2], e.p[3]);
@@ -722,6 +752,16 @@ struct Mixer {
                     Emitter& e = emitters[slot];
                     if (!e.active || e.handle != c.handle || e.releasing) break;
                     if (e.synth) e.synth->setTune(c.p[0], c.p[1], c.p[2] > 0.5f);
+                    break;
+                }
+                case CmdType::EmitterVehicle: {
+                    int slot = (int)(c.handle % (u32)kMaxEmitters);
+                    Emitter& e = emitters[slot];
+                    if (!e.active || e.handle != c.handle || e.releasing) break;
+                    if (length2(c.va.forward) > 0.25f) e.fwd = normalize(c.va.forward);
+                    e.player = c.va.player;
+                    e.vehicle = true;
+                    if (e.synth) e.synth->setVehicle(c.va);
                     break;
                 }
                 case CmdType::EmitterDestroy: {
@@ -1117,7 +1157,15 @@ struct Mixer {
                     mono[i] = fastTanh(e.spkLp.process(e.spkHp.process(m)) * 1.4f) * 0.8f;
                 }
             } else if (e.synth) {
-                e.synth->setLod(e.par.audibility * Max(e.volume, 0.f) < 0.06f ? 1 : 0);
+                bool cabin = false;
+                if (e.vehicle) {
+                    vec3 toL = lis.pos - e.pos;
+                    float dl = length(toL);
+                    cabin = e.player && env.inVehicle > 0.5f && dl < 4.f;
+                    e.synth->setListener(dl > 0.3f ? dot(toL / dl, e.fwd) : 0.f, cabin);
+                }
+                float aud = e.par.audibility * Max(e.volume, 0.f);
+                e.synth->setLod(cabin ? 0 : aud < 0.025f ? 2 : aud < 0.08f ? 1 : 0);
                 float rate = e.par.doppler * slowmo;
                 for (int i = 0; i < n; i++) {
                     if (e.fifoPos + 3.0 >= (double)e.fifoLen) {
@@ -1152,6 +1200,15 @@ struct Mixer {
             for (int i = 0; i < n; i++) mono[i] *= v0 + (e.volSmooth - v0) * ((float)i / (float)n);
             bool isMusic = e.type == EMIT_RADIO_WORLD;
             spatialize(e.sp, e.par, mono, isMusic ? wmL : wL, isMusic ? wmR : wR, sb, n, d.gain, fadeIn);
+            // cabin-only sounds of the player's vehicle (indicator relay, cabin wind): 2D, no outside muffling
+            if (e.vehicle && e.player && e.synth && env.inVehicle > 0.5f && length2(lis.pos - e.pos) < 16.f) {
+                for (int i = 0; i < n; i++) mono2[i] = 0.f;
+                if (e.synth->renderCabin(mono2, n))
+                    for (int i = 0; i < n; i++) {
+                        wL[i] += mono2[i];
+                        wR[i] += mono2[i];
+                    }
+            }
             e.wasReal = true;
             if (e.releasing && e.volSmooth <= 0.f) freeEmitter(e, slot, false);
         }
@@ -1282,7 +1339,7 @@ struct Mixer {
         v->active = true;
         v->id = id;
         v->buf = &e.vars[rng.irange(0, e.count - 1)];
-        v->rate = pitch * (1.f + rng.range(-d.pitchVar, d.pitchVar));
+        v->rate = pitch * (1.f + rng.range(-d.pitchVar, d.pitchVar)) / (float)v->buf->rateDiv;
         v->volume = vol * d.gain;
         v->bus = Bus::World;
         v->is3D = false;
@@ -1540,6 +1597,7 @@ void update(const Listener& listener, float dt) {
         l.up = listener.up;
         l.interior = listener.interior;
         l.inVehicle = listener.inVehicle;
+        l.bodySpeed = listener.bodySpeed;
         mix::g_shared.listenerSet = true;
     }
     mix::garbageDrain();
@@ -1717,6 +1775,16 @@ void setEngineTune(EmitterHandle h, float boost, float tune, bool shifted) {
     c.p[0] = Saturate(boost);
     c.p[1] = Saturate(tune);
     c.p[2] = shifted ? 1.f : 0.f;
+    mix::pushCmd(c);
+}
+
+void setVehicleAudio(EmitterHandle h, const VehicleAudio& v) {
+    if (!mix::apiLive() || !h) return;
+    mix::Cmd c = {};
+    c.type = mix::CmdType::EmitterVehicle;
+    c.handle = h;
+    c.va = v;
+    if (!std::isfinite(c.va.speed + c.va.slip + c.va.lateralSlip + c.va.wetness + c.va.bump + c.va.damage)) return;
     mix::pushCmd(c);
 }
 

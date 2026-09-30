@@ -74,6 +74,7 @@ struct App {
     bool tourShot = false, tourDone = false;
     int meleeVictim = -1;        // --autoplay melee: the civilian for the takedown
     int fadePed = -1;            // --autoplay camfade: the pedestrian placed around the camera
+    float uiShotAt = 0.f;        // --autoplay uishots: screenshot time into the current step
     int renderEvery = 1;         // --renderevery N: automated runs render every Nth gameplay frame (+ screenshot frames)
     float skippedDt = 0.f;       // game time since the last rendered frame
     int frameCap = 0;            // Settings: frame-rate cap (0 = unlimited)
@@ -458,6 +459,15 @@ struct App {
             autoDuration = 1e9f;   // ends after the results screen
             weather.locked = true;
         }
+        if (autoplay == "uishots") {
+            // the HUD, pause menu, map, settings pages, stats, phone apps and the wanted HUD (auto_uishots_NN_name.bmp)
+            mu::setFlag(game, mu::EX_INTRO_DONE, 1);
+            pl->invincible = true;
+            tourStop = -1;
+            tourT = 0.f;
+            tourShot = tourDone = false;
+            autoDuration = 1e9f;
+        }
         if (autoplay == "camfade") {
             // a pedestrian held across the line of sight at several distances, beside the player and in front of the
             // first-person eyes (auto_camfade_NN_name.bmp)
@@ -501,7 +511,7 @@ struct App {
             }
         }
         if (autoplay == "crowd" || autoplay == "panic" || autoplay == "chase" || autoplay == "rage" || autoplay == "soak" || autoplay == "parking" ||
-            autoplay == "bender" || autoplay == "hwysoak") {
+            autoplay == "bender" || autoplay == "hwysoak" || autoplay == "venues" || autoplay == "takeover") {
             // AI scenario tests: crowd variety at four places and hours / gunfire panic -> police response -> arrest /
             // night car chase at 4 stars (PIT, boxing, roadblocks, helicopter searchlight) / rear-ending a bold driver
             mu::setFlag(game, mu::EX_INTRO_DONE, 1);
@@ -511,6 +521,19 @@ struct App {
             game.populationWarmup = 2.5f;
             if (autoplay == "crowd") {
                 autoDuration = 4 * 7.f + 0.5f;   // four stops, 7 s each (applyAutoplay)
+            } else if (autoplay == "venues") {
+                autoDuration = 3 * 24.f + 0.5f;  // port gate, airport forecourt, Sawgrass causeway: 24 s each (applyAutoplay)
+            } else if (autoplay == "takeover") {
+                // a street takeover staged a block or two away at night: donuts, the crowd, then the police and the scatter
+                vec2 q(2300.f, -150.f);
+                float u = 0.f;
+                int lane = game.laneGraph.nearestLane(q, vec2(0.f), 60.f, &u);
+                if (lane >= 0) {
+                    vec3 c3 = game.laneGraph.lanePos(lane, u, game.laneGraph.lanes[lane].width * 0.5f + 3.f);
+                    p.pos = dvec3(c3.x, c3.y, game.groundHeight(c3.x, c3.y, c3.z + 2.f));
+                }
+                env.timeOfDay = 22.5f;
+                game.ai.forceEvent = 11;   // (EV_TAKEOVER)
             } else if (autoplay == "bender") {
                 // two ordinary cars in one lane: the front one waits (a light, a gap), the one behind is not paying
                 // attention and bumps into it at walking pace - the drivers stop, get out and have words
@@ -555,7 +578,7 @@ struct App {
                     // the player watches from the sidewalk
                     vec3 sw = game.laneGraph.lanePos(lane, Max(L.u0, u - 14.f), L.width * 0.5f + World::roadInfo((World::RoadClass)L.cls).shoulder + 2.5f);   // (not too close: a knock right next to the player is not "their own")
                     p.pos = dvec3(sw.x, sw.y, game.groundHeight(sw.x, sw.y, sw.z + 2.f));
-                    game.ai.testCam = vec3(game.laneGraph.lanePos(lane, u + 2.f, L.width * 0.5f + 3.f).xy(), sw.z + 2.4f);
+                    game.ai.testCam = vec3(game.laneGraph.lanePos(lane, u + 19.f, L.width * 0.5f + 3.5f).xy(), sw.z + 1.9f);   // (8 m short of the knock)
                     LOG("autoplay bender: cars %d (held) and %d (rolling) on lane %d", game.ai.testCar[0], game.ai.testCar[1], lane);
                 }
                 env.timeOfDay = 11.f;
@@ -780,6 +803,103 @@ struct App {
                 shot = true;
                 game.requestScreenshot = shotPath(StrFormat("auto_crowd_%02d_%s", stop, stops[stop].name));
                 LOG("autoplay crowd %s | %s | %s", stops[stop].name, game.aiCensusText(70.f).c_str(), game.aiDebugText().c_str());
+            }
+        } else if (autoplay == "takeover") {
+            // follow the takeover from across the crossing: shots every 8 s, its state every 2 s
+            static float logT = 0.f, shotT = 6.f, since = -1.f;
+            static int shots = 0;
+            static vec2 camAt;
+            int stage = -1, car = -1;
+            vec3 at;
+            std::string st = game.aiEventText(&stage, &at, &car);
+            if (stage >= 0) {
+                if (since < 0.f) {
+                    since = 0.f;
+                    // the camera on the sidewalk of the street leading toward the player, looking into the crossing
+                    Ped* pl = game.playerPed();
+                    vec2 from = pl ? pl->pos.toVec3().xy() : at.xy() + vec2(30.f, 0.f);
+                    vec2 dirc = normalize(from - at.xy() + vec2(1e-3f, 0.f));
+                    for (int n = 0; n < (int)game.laneGraph.nodes.size(); n++) {
+                        if (length(game.roads->nodes[n].p - at.xy()) > 1.f) continue;
+                        float best = -2.f;
+                        for (const AI::Approach& A : game.laneGraph.nodes[n].approaches)
+                            if (dot(A.dir, dirc) > best) {
+                                best = dot(A.dir, dirc);
+                                camAt = at.xy() + A.dir * 27.f + AI::rightOf(A.dir) * 7.5f;
+                            }
+                        break;
+                    }
+                    if (length2(camAt) < 1.f) camAt = at.xy() + dirc * 24.f;
+                    LOG("autoplay takeover: staged at %.0f %.0f (t=%.1f)", at.x, at.y, t);
+                }
+                since += dt;
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(camAt.x, camAt.y, game.groundHeight(camAt.x, camAt.y, at.z + 5.f) + 3.2f);
+                vec3 look = at + vec3(0.f, 0.f, 1.f);
+                if (stage > 0 && car >= 0 && car < (int)game.vehicles.size() && game.vehicles[car].used) look = game.vehicles[car].sim.body.pos.toVec3() + vec3(0.f, 0.f, 0.8f);
+                game.rig.scriptTarget = dvec3(look);
+                game.rig.scriptFov = 50.f;
+                shotT -= dt;
+                if (shotT <= 0.f && shots < 12) {
+                    shotT = 8.f;
+                    game.requestScreenshot = shotPath(StrFormat("auto_takeover_%02d_s%d", shots, stage));
+                    shots++;
+                }
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 2.f;
+                LOG("autoplay takeover t=%.1f | %s | wanted %d", t, st.c_str(), game.pinfo.wanted);
+            }
+        } else if (autoplay == "venues") {
+            // the places with a working crowd of their own, at the scorecard tour's stops and hours: the tour's view
+            // first, then two closer looks (scripted camera), a census of the venue crowd at each shot
+            static int stop = -1;
+            static float stopT = 0.f;
+            static int shots = 0;
+            struct VenueStop {
+                const char* name;
+                vec2 at;       // the tour stop (player / first camera)
+                vec2 look;     // what the first shot looks at
+                float hour;
+                vec2 cam[2], tgt[2];   // two closer looks
+            };
+            static const VenueStop stops[3] = {
+                {"port_gate", {4069.f, -200.f}, {4008.f, -160.f}, 8.5f, {{4036.f, -178.f}, {4046.f, -118.f}}, {{4010.f, -180.f}, {4050.f, -138.f}}},
+                {"airport_forecourt", {751.f, 1200.f}, {690.f, 1270.f}, 11.f, {{699.5f, 1232.f}, {790.f, 1172.f}}, {{692.f, 1300.f}, {766.f, 1146.f}}},
+                {"sawgrass", {-5058.f, 101.f}, {-5000.f, 100.f}, 7.2f, {{-4968.f, 76.f}, {-5016.f, -40.f}}, {{-4930.f, 112.f}, {-5000.f, -74.f}}}};
+            int want = Min((int)(t / 24.f), 2);
+            Ped* pl = game.playerPed();
+            if (want != stop && pl) {
+                stop = want;
+                stopT = 0.f;
+                shots = 0;
+                const VenueStop& st = stops[stop];
+                if (pl->vehicle >= 0) game.removePedFromVehicle(game.player, false);
+                vec2 back = normalize(st.at - st.look) * 3.f;   // the player just behind the first camera
+                pl->pos = dvec3(st.at.x + back.x, st.at.y + back.y, game.groundHeight(st.at.x + back.x, st.at.y + back.y, 30.f));
+                pl->vel = vec3(0.f);
+                env.timeOfDay = st.hour;
+                game.populationWarmup = 2.5f;
+                LOG("autoplay venues stop %d %s at %.0f %.0f, %.1f h", stop, st.name, st.at.x, st.at.y, st.hour);
+            }
+            stopT += dt;
+            if (stop >= 0) {
+                const VenueStop& st = stops[stop];
+                int view = stopT < 10.f ? 0 : (stopT < 17.f ? 1 : 2);
+                vec2 cp = view == 0 ? st.at : st.cam[view - 1];
+                vec2 tp = view == 0 ? st.look : st.tgt[view - 1];
+                float cz = game.groundHeight(cp.x, cp.y, 30.f), tz = game.groundHeight(tp.x, tp.y, 30.f);
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(cp.x, cp.y, cz + (view == 0 ? 2.2f : 1.8f));
+                game.rig.scriptTarget = dvec3(tp.x, tp.y, tz + 1.3f);
+                game.rig.scriptFov = view == 0 ? 55.f : 45.f;
+                const float at[3] = {7.5f, 14.5f, 21.5f};
+                if (shots < 3 && stopT > at[shots]) {
+                    game.requestScreenshot = shotPath(StrFormat("auto_venues_%s_%d", st.name, shots));
+                    LOG("autoplay venues %s shot %d | %s", st.name, shots, game.aiCensusText(90.f).c_str());
+                    shots++;
+                }
             }
         } else if (autoplay == "bender") {
             // roll the inattentive driver into the waiting car, then watch the scene play out
@@ -1193,6 +1313,8 @@ struct App {
             updateFpGuns(c, dt);
         } else if (autoplay == "camfade") {
             updateCamFade(c, dt);
+        } else if (autoplay == "uishots") {
+            updateUiShots(dt);
         } else if (autoplay == "melee") {
             // lock on, jab-cross-uppercut combos, a heavy hook, a held block, a dodge; then a rear takedown
             if (t < 9.5f) {
@@ -1289,6 +1411,90 @@ struct App {
             LOG("autoplay fpguns %s: hold %.2f aim %.2f scope %.2f dot %.2f block %.2f", st.name, game.fpw.w, game.fpw.ads, game.fpw.scope,
                 game.fpw.redDot, game.fpw.block);
         }
+    }
+
+    // --autoplay uishots: one screenshot per screen, with the game world behind the menus and the phone
+    void updateUiShots(float dt) {
+#ifdef HAVE_GAME_UI
+        struct Step {
+            const char* name;
+            int menu;    // UI::MenuScreen, -1 closed
+            int page;    // settings page
+            int phone;   // -2 closed, -1 home screen, else the built-in app
+            float at;    // screenshot time into the step
+        };
+        const Step steps[] = {
+            {"hud", -1, 0, -2, 5.f},
+            {"pause", UI::MENU_PAUSE, 0, -2, 1.5f},
+            {"map", UI::MENU_MAP, 0, -2, 2.f},
+            {"settings_display", UI::MENU_SETTINGS, 0, -2, 1.5f},
+            {"settings_audio", UI::MENU_SETTINGS, 1, -2, 1.5f},
+            {"settings_controls", UI::MENU_SETTINGS, 3, -2, 1.5f},
+            {"settings_accessibility", UI::MENU_SETTINGS, 5, -2, 1.5f},
+            {"stats", UI::MENU_STATS, 0, -2, 1.5f},
+            {"brief", UI::MENU_BRIEF, 0, -2, 1.5f},
+            {"phone_home", -1, 0, -1, 1.5f},
+            {"phone_contacts", -1, 0, 0, 1.5f},
+            {"phone_messages", -1, 0, 1, 1.5f},
+            {"phone_tidegram", -1, 0, 2, 1.5f},
+            {"phone_map", -1, 0, 4, 1.5f},
+            {"wanted", -1, 0, -2, 8.f},
+        };
+        const int n = (int)(sizeof(steps) / sizeof(steps[0]));
+        if (tourDone) return;
+        Ped* pl = game.playerPed();
+        if (!pl) return;
+        if (tourStop < 0 || (tourShot && game.requestScreenshot.empty() && tourT >= steps[tourStop].at + 0.3f)) {
+            tourStop++;
+            tourT = 0.f;
+            tourShot = false;
+            if (tourStop >= n) {
+                tourDone = true;
+                if (menu.screen != UI::MENU_NONE) {
+                    menu.screen = UI::MENU_NONE;
+#ifdef HAVE_AUDIO
+                    Audio::setPaused(false);
+#endif
+                }
+                game.phone.open = false;
+                LOG("autoplay uishots done");
+                return;
+            }
+            const Step& st = steps[tourStop];
+            UI::Menus::reset();
+            if (st.menu >= 0) {
+                if (menu.screen == UI::MENU_NONE) openPause((UI::MenuScreen)st.menu);
+                menu.screen = (UI::MenuScreen)st.menu;
+                menu.cursor = 0;
+                menu.tab = 0;
+                if (st.menu == UI::MENU_SETTINGS) UI::Menus::testSettingsPage(st.page);
+            } else if (menu.screen != UI::MENU_NONE) {
+                menu.screen = UI::MENU_NONE;
+#ifdef HAVE_AUDIO
+                Audio::setPaused(false);
+#endif
+            }
+            if (st.phone >= -1) UI::Phone::testShow(game.phone, st.phone);
+            else game.phone.open = false;
+            if (!strcmp(st.name, "wanted")) {
+                game.pinfo.wantedHeat = 5.5f;
+                game.pinfo.wanted = 3;
+                game.pinfo.lastSeenPos = pl->pos;
+                game.pinfo.lastSeenTime = (float)game.time;
+            }
+        }
+        tourT += dt;
+        const Step& st = steps[tourStop];
+        uiShotAt = st.at;
+        if (!tourShot && tourT >= st.at) {
+            tourShot = true;
+            game.requestScreenshot = shotPath(StrFormat("auto_uishots_%02d_%s", tourStop, st.name));
+            LOG("autoplay uishots %s", st.name);
+        }
+#else
+        (void)dt;
+        tourDone = true;
+#endif
     }
 
     // --autoplay camfade: the pedestrian 1.3 m and 2.3 m out along the line of sight to the player (see-through,
@@ -1709,7 +1915,9 @@ struct App {
                 // --renderevery N: skip rendering most frames of automated runs (software rendering dominates), but always
                 // render the frames around a screenshot and keep world streaming going
                 bool shotSoon = !game.requestScreenshot.empty() ||
-                                (!autoplay.empty() && (autoplay == "tour" ? tourT > 6.4f : autoTime >= autoShot * autoShotEvery + 1.2f));
+                                (!autoplay.empty() && (autoplay == "tour"      ? tourT > 6.4f
+                                                       : autoplay == "uishots" ? tourT > uiShotAt - 0.6f
+                                                                               : autoTime >= autoShot * autoShotEvery + 1.2f));
                 bool doRender = renderEvery <= 1 || (playFrames++ % (u32)renderEvery) == 0 || shotSoon;
                 if (doRender) game.submitRender();
                 game.updateAudioListener(dt);
@@ -1820,7 +2028,7 @@ struct App {
                         weather.locked = false;
                         openMainMenu();
                     }
-                } else if (autoplay == "tour" || autoplay == "fpguns" || autoplay == "camfade") {
+                } else if (autoplay == "tour" || autoplay == "fpguns" || autoplay == "camfade" || autoplay == "uishots") {
                     if (tourDone && game.requestScreenshot.empty()) break;
                 } else if (autoTime >= autoShot * autoShotEvery + 1.5f && (renderer.world->pendingCount() == 0 || autoTime > autoShot * autoShotEvery + 6.f)) {
                     std::string path = shotPath(StrFormat("auto_%s_%02d", autoplay.c_str(), autoShot));

@@ -762,11 +762,15 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                     auto deck = rectFP(pc, b.ax, pw + 1.5f, pdd + 1.5f);
                     auto pool = rectFP(pc, b.ax, pw, pdd);
                     std::vector<vec3> dpoly;
-                    // deck as 4 strips around the pool
+                    // deck as 4 strips around the pool; paver uvs in world metres at 20 x 10 cm bricks (see sitegeo kPaverUV),
+                    // wrapped every 1200 m (a whole number of texture tiles)
+                    vec2 uvOrg(floorf(org.x / 1200.f) * 1200.f, floorf(org.y / 1200.f) * 1200.f);
+                    auto puv = [&](vec2 p) { return (p - uvOrg) * (1.f / 0.6f); };
+                    u32 deckTint = packRGBA8(0.92f, 0.9f, 0.88f, 1.f);
                     for (int k = 0; k < 4; k++) {
                         vec2 a0 = deck[k], a1 = deck[(k + 1) % 4], b0 = pool[k], b1 = pool[(k + 1) % 4];
-                        m.quadFacing(vec3(a0, pz) - org, vec3(a1, pz) - org, vec3(b1, pz) - org, vec3(b0, pz) - org, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1),
-                                     kWhite, makeMat(MAT_PAVERS), vec3(0, 0, 1));
+                        m.quadFacing(vec3(a0, pz) - org, vec3(a1, pz) - org, vec3(b1, pz) - org, vec3(b0, pz) - org, puv(a0), puv(a1), puv(b1), puv(b0),
+                                     deckTint, makeMat(MAT_PAVERS), vec3(0, 0, 1));
                         // pool walls (inside)
                         m.quadFacing(vec3(b0, pz) - org, vec3(b1, pz) - org, vec3(b1, pz - 1.6f) - org, vec3(b0, pz - 1.6f) - org, vec2(0, 0), vec2(length(b1 - b0), 0),
                                      vec2(length(b1 - b0), 1.6f), vec2(0, 1.6f), kWhite, makeMat(MAT_TILE_POOL), vec3(pc - (b0 + b1) * 0.5f, 0));

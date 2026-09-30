@@ -783,33 +783,40 @@ void lawn(FD& d) {
         }
 }
 
-// Foliage (MAT_LEAVES) in world geometry reads its tint from the vertex color
-inline u32 foliageTint(vec3 c) { return pk(c); }
-
-// Hedge segment between two ground points, following the terrain in pieces
-void hedge(FD& d, vec2 a, vec2 b, float h, float wd, vec3 tint, bool collide) {
+// Hedge between two ground points: a leafy swept mass following the terrain (propmesh.cpp hedgeMesh), colliding in pieces
+void hedge(FD& d, vec2 a, vec2 b, float h, float wd, vec3 tint, bool collide, int style) {
     FD_STAT(d.k.m, FS_HEDGE);
     Sink& k = d.k;
     float L = length(b - a);
     if (L < 0.5f) return;
+    hedgeMesh(*k.m, k.org, *d.map, a, b, h, wd, style, tint, d.r.next());
+    if (!collide || !k.col) return;
     vec2 t = (b - a) / L;
     int n = Max(1, (int)ceilf(L / 11.f));
-    u32 mat = MM(MAT_LEAVES);
     for (int i = 0; i < n; i++) {
         vec2 p0 = a + t * (L * i / n), p1 = a + t * (L * (i + 1) / n);
         vec2 mc = (p0 + p1) * 0.5f;
         float gz = Min(d.map->heightAt(p0.x, p0.y), d.map->heightAt(p1.x, p1.y));
-        float hh = h * (0.92f + 0.16f * d.r.f());
-        vec3 tt = tint * (0.9f + 0.2f * d.r.f());
-        obox(k, vec3(mc, gz - 0.1f + hh * 0.5f + 0.05f), vec3(t, 0.f), vec3(perp(t), 0.f), vec3(length(p1 - p0) * 0.5f + 0.05f, wd * 0.5f, hh * 0.5f + 0.05f),
-             foliageTint(tt), mat, false);
-        if (collide && k.col) {
-            CollisionBox cb;
-            cb.c = vec3(mc, gz + hh * 0.5f);
-            cb.ax = t;
-            cb.he = vec3(length(p1 - p0) * 0.5f, wd * 0.5f, hh * 0.5f);
-            k.col->push_back(cb);
-        }
+        CollisionBox cb;
+        cb.c = vec3(mc, gz + h * 0.5f);
+        cb.ax = t;
+        cb.he = vec3(length(p1 - p0) * 0.5f, wd * 0.5f, h * 0.5f);
+        k.col->push_back(cb);
+    }
+}
+
+// Clipped topiary on the ground at p (propmesh.cpp topiaryMesh), with a small collider
+void topiary(FD& d, vec2 p, int kind, float size, vec3 tint) {
+    FD_STAT(d.k.m, FS_HEDGE);
+    Sink& k = d.k;
+    float gz = d.map->heightAt(p.x, p.y);
+    topiaryMesh(*k.m, k.org, vec3(p, gz), kind, size, tint, d.r.next());
+    if (k.col) {
+        CollisionBox cb;
+        cb.c = vec3(p, gz + size * 0.4f);
+        cb.ax = vec2(1, 0);
+        cb.he = vec3(size * 0.25f, size * 0.25f, size * 0.4f);
+        k.col->push_back(cb);
     }
 }
 
@@ -817,7 +824,6 @@ void hedge(FD& d, vec2 a, vec2 b, float h, float wd, vec3 tint, bool collide) {
 void bougainvillea(FD& d, const Wall& w, float s0, float s1, float zg, float zTop) {
     FD_STAT(d.k.m, FS_VINE);
     Sink& k = d.k;
-    u32 mat = MM(MAT_LEAVES);
     const vec3 blossom[] = {vec3(1.f, 0.25f, 0.75f), vec3(0.95f, 0.2f, 0.55f), vec3(0.85f, 0.25f, 0.95f), vec3(1.f, 0.45f, 0.35f)};
     vec3 bc = blossom[d.r.next() % ARRAY_COUNT(blossom)];
     int n = Clamp((int)((s1 - s0) * (zTop - zg) / 1.1f), 3, 12);
@@ -828,8 +834,12 @@ void bougainvillea(FD& d, const Wall& w, float s0, float s1, float zg, float zTo
         float sz = d.r.range(0.45f, 0.95f);
         bool green = d.r.chance(0.3f);
         vec3 col = green ? vec3(0.55f, 0.9f, 0.4f) : bc * d.r.range(0.85f, 1.1f);
-        wbox(k, w, s - sz, s + sz * d.r.range(0.7f, 1.2f), zg + hgt - sz * 0.6f, zg + hgt + sz * 0.6f, 0.f, d.r.range(0.25f, 0.5f), foliageTint(col), mat,
-             WF_FRONT | WF_TOP | WF_BOTTOM | WF_START | WF_END);
+        // a leafy clump flattened against the wall (flowers over most of it)
+        float s1c = s + sz * d.r.range(0.7f, 1.2f), dep = d.r.range(0.25f, 0.5f);
+        vec3 c = vec3(w.a + w.t * ((s - sz + s1c) * 0.5f) + w.n * (dep * 0.45f), zg + hgt);
+        vec3 ax(w.t, 0.f), ay(perp(w.t), 0.f);
+        leafBlobEx(*k.m, k.org, c, ax, ay, vec3((s1c - s + sz) * 0.5f, dep * 0.6f, sz * 0.62f), vec3(0.55f, 0.9f, 0.4f), d.r.next(), 0.06f, 8, 5,
+                   green ? vec3(-1.f) : col);
     }
     // woody stem
     wbox(k, w, s0 + 0.2f, s0 + 0.28f, zg - 0.2f, zg + (zTop - zg) * 0.6f, 0.02f, 0.1f, pk(0.35f, 0.25f, 0.18f), MM(MAT_BARK), WF_FRONT | WF_START | WF_END);
@@ -947,6 +957,29 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
     float hx = b.lotHx - 0.4f;
     vec3 hedgeTint = vec3(0.75f + 0.2f * d.r.f(), 0.95f + 0.15f * d.r.f(), 0.6f);
     bool hedges = villa ? d.r.chance(0.85f) : d.r.chance(0.5f);
+    // hedge style by district: box-clipped formal hedges round the island villas, clipped privet in the suburbs, untrimmed
+    // sea-grape and hibiscus screens in the Grove and out in the country
+    int hstyle = HEDGE_CLIPPED;
+    {
+        float wr = d.r.f();
+        switch (b.region) {
+            case REG_KEY_CORAL:
+            case REG_BAY_ISLAND: hstyle = villa ? (wr < 0.6f ? HEDGE_FORMAL : HEDGE_CLIPPED) : (wr < 0.2f ? HEDGE_WILD : HEDGE_CLIPPED); break;
+            case REG_GROVE: hstyle = wr < 0.45f ? HEDGE_WILD : (villa && wr > 0.8f ? HEDGE_FORMAL : HEDGE_CLIPPED); break;
+            case REG_FARMLAND:
+            case REG_REDLAND:
+            case REG_RIDGE:
+            case REG_HARLOW:
+            case REG_LAKE_TOWN:
+            case REG_SAWGRASS:
+            case REG_GULF_TOWN: hstyle = wr < 0.7f ? HEDGE_WILD : HEDGE_CLIPPED; break;
+            default: hstyle = wr < 0.18f ? HEDGE_WILD : HEDGE_CLIPPED; break;
+        }
+        if (hstyle == HEDGE_FORMAL) hedgeTint = vec3(0.62f, 0.86f, 0.5f) * (0.92f + 0.14f * d.r.f());
+        if (hstyle == HEDGE_WILD) hedgeTint = vec3(0.72f + 0.3f * d.r.f(), 0.88f + 0.2f * d.r.f(), 0.45f + 0.25f * d.r.f());
+    }
+    bool topiaries = hstyle != HEDGE_WILD && (villa ? d.r.chance(0.8f) : d.r.chance(0.25f));
+    const vec3 topiaryTint = vec3(0.66f, 0.92f, 0.52f);
     bool gardenWall = villa && (b.region == REG_KEY_CORAL || b.region == REG_BAY_ISLAND || b.region == REG_GROVE) && d.r.chance(0.6f);
     // lot corners (front-left, front-right, back-left, back-right) in world space
     vec2 fl = lotCenterAlong - b.ax * hx + b.front * (b.lotHy - 0.4f), frt = lotCenterAlong + b.ax * hx + b.front * (b.lotHy - 0.4f);
@@ -956,9 +989,10 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
     if (hedges) {
         float hh = villa ? 1.8f : d.r.range(1.1f, 1.6f);
         // (no hedge on the garage side: the garage wing and its driveway can reach the lot line)
-        if (!(garage && gside < 0.f)) hedge(d, fl + b.front * -1.f, bl, hh, 0.9f, hedgeTint, true);
-        if (!(garage && gside > 0.f)) hedge(d, frt + b.front * -1.f, brt, hh, 0.9f, hedgeTint, true);
-        if (d.r.chance(0.6f)) hedge(d, bl, brt, hh, 0.9f, hedgeTint, true);
+        float hw = hstyle == HEDGE_WILD ? 1.2f : 0.9f;
+        if (!(garage && gside < 0.f)) hedge(d, fl + b.front * -1.f, bl, hh, hw, hedgeTint, true, hstyle);
+        if (!(garage && gside > 0.f)) hedge(d, frt + b.front * -1.f, brt, hh, hw, hedgeTint, true, hstyle);
+        if (d.r.chance(0.6f)) hedge(d, bl, brt, hh, hw, hedgeTint, true, hstyle);
     }
     // front boundary: low hedge or stucco garden wall with gaps for the driveway and the front walk
     if ((hedges && d.r.chance(0.6f)) || gardenWall) {
@@ -970,10 +1004,26 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
         // sort gaps
         if (ng == 2 && gaps[1].a0 < gaps[0].a0) std::swap(gaps[0], gaps[1]);
         float cur = -hx;
+        // clipped balls or cones mark the openings in a front hedge (the hedge stops short of them)
+        int tkind = villa ? (int)(d.r.next() % 3u) : 0;
+        float tsize = tkind == 1 ? 1.5f : (tkind == 2 ? 1.6f : 0.9f);
+        bool gateTopiary = topiaries && !gardenWall;
+        auto lotFront = [&](float along) { return lotCenterAlong + b.ax * along + b.front * (b.lotHy - 0.4f); };
         for (int gi = 0; gi <= ng; gi++) {
             float end = gi < ng ? gaps[gi].a0 : hx;
+            if (gateTopiary && !gardenWall) {
+                float c0 = cur, c1 = end;
+                if (gi > 0 && c1 - c0 > 1.6f) {
+                    topiary(d, lotFront(c0 + 0.3f), tkind, tsize, topiaryTint);
+                    cur = c0 + 0.7f;
+                }
+                if (gi < ng && c1 - cur > 1.6f) {
+                    topiary(d, lotFront(c1 - 0.3f), tkind, tsize, topiaryTint);
+                    end = c1 - 0.7f;
+                }
+            }
             if (end - cur > 0.8f) {
-                vec2 p0 = lotCenterAlong + b.ax * cur + b.front * (b.lotHy - 0.4f), p1 = lotCenterAlong + b.ax * end + b.front * (b.lotHy - 0.4f);
+                vec2 p0 = lotFront(cur), p1 = lotFront(end);
                 if (gardenWall) {
                     float L = end - cur;
                     vec2 mc = (p0 + p1) * 0.5f;
@@ -992,7 +1042,7 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
                         k.col->push_back(cb);
                     }
                 } else {
-                    hedge(d, p0, p1, 0.75f, 0.7f, hedgeTint, false);
+                    hedge(d, p0, p1, hstyle == HEDGE_WILD ? 0.95f : 0.75f, hstyle == HEDGE_WILD ? 0.95f : 0.7f, hedgeTint, false, hstyle);
                 }
             }
             if (gi < ng) cur = gaps[gi].a1;
@@ -1014,8 +1064,10 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
                 vec3 fc = flowers[(d.r.next() + i) % ARRAY_COUNT(flowers)];
                 bool green = (i & 1) == 1;
                 float hgt = green ? d.r.range(0.5f, 0.9f) : d.r.range(0.3f, 0.55f);
-                wbox(k, fw, s - 0.42f, s + 0.42f, gz + 0.1f, gz + 0.1f + hgt, 0.1f, 0.9f, foliageTint(green ? vec3(0.6f, 0.95f, 0.45f) : fc), MM(MAT_LEAVES),
-                     WF_FRONT | WF_TOP | WF_START | WF_END);
+                // rounded shrub (flowering ones carry their blossom over the top)
+                vec3 c = vec3(fw.a + fw.t * s + fw.n * 0.5f, gz + 0.1f + hgt * 0.45f);
+                leafBlobEx(*k.m, k.org, c, vec3(fw.t, 0.f), vec3(perp(fw.t), 0.f), vec3(0.46f, 0.42f, hgt * 0.55f), vec3(0.6f, 0.95f, 0.45f), d.r.next(),
+                           0.05f, 9, 5, green ? vec3(-1.f) : fc);
             }
         }
     }

@@ -145,24 +145,23 @@ void roadFurniture(float2 ruv, float roadW, float px, inout float3 albedo, inout
     }
 }
 
-// Asphalt surface grain: aggregate stones (~6 mm) in dark binder, as octaves that each fade out before they get
-// below ~3 pixels. Nothing is magnified from a texture (no gravel blobs up close) and nothing shimmers far away:
-// at street distances only the tone and the wear remain. Returns an albedo factor; hgt receives the micro height (m).
+// Asphalt surface grain: light aggregate tops (~6 mm) in the dark binder, only where a stone covers ~3 pixels or
+// more (with a little relief), plus smooth cluster and binder-richness tone at 2 and 7 cm that fades the same way.
+// Nothing is magnified from a texture and nothing shimmers far away. Returns an albedo factor; hgt receives the
+// micro height (m).
 float asphaltGrain(float2 worldXY, float fp, out float hgt) {
     float2 p = worldXY - floor(worldXY / 48.0) * 48.0;
+    float ifp = 1.0 / max(fp, 1e-5);
     float g = 0.0;
     hgt = 0.0;
-    const float sz[3] = {0.006, 0.014, 0.032};
-    const float amp[3] = {0.22, 0.1, 0.06};
-    [unroll] for (int k = 0; k < 3; k++) {
-        float vis = saturate((sz[k] / max(fp, 1e-5) - 2.5) * 0.5);
-        if (vis > 0.0) {
-            float nv = valueNoise(p / sz[k] + k * 17.3);
-            float stone = smoothstep(0.52, 0.72, nv);
-            g += (stone - 0.3) * amp[k] * vis;
-            hgt += stone * sz[k] * 0.12 * vis;
-        }
+    float vis = saturate((0.006 * ifp - 2.5) * 0.5);
+    if (vis > 0.0) {
+        float stone = smoothstep(0.55, 0.7, valueNoise(p / 0.006)) * (0.7 + 0.3 * valueNoise(p / 0.0035 + 7.1));
+        g += (stone - 0.25) * 0.28 * vis;
+        hgt = stone * 0.0008 * vis;
     }
+    g += (valueNoise(p / 0.02 + 3.3) - 0.5) * 0.08 * saturate((0.02 * ifp - 2.0) * 0.5);
+    g += (valueNoise(p / 0.07 + 9.1) - 0.5) * 0.07 * saturate((0.07 * ifp - 2.0) * 0.5);
     return 1.0 + g;
 }
 
@@ -179,8 +178,8 @@ void roadWear(float2 ruv, float camDist, inout float3 albedo, inout float rough,
     drip *= 0.6 + 0.4 * smoothstep(0.4, 0.8, valueNoise(float2(v * 2.3, u * 2.3)));   // individual drips
     float oil = exp(-sq(lu / 0.24)) * drip;
     rut = track * fade;
-    albedo *= 1.0 - (0.17 * track + 0.28 * oil) * fade;
-    rough = saturate(rough * (1.0 - (0.22 * track + 0.2 * oil) * fade));
+    albedo *= 1.0 - (0.22 * track + 0.28 * oil) * fade;
+    rough = saturate(rough * (1.0 - (0.2 * track + 0.2 * oil) * fade));
     // utility-cut patches (one in ~14 cells of 14 m x 3.5 m)
     float2 pc = float2(floor(v / 14.0), floor(u / 3.5));
     uint ph = hash2u(asuint(int2(pc)) + 0x51u);

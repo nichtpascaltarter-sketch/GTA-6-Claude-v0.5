@@ -1405,34 +1405,61 @@ void genFence(const SiteElem& e, G& g) {
     u32 post = rgb(0.55f, 0.57f, 0.6f), wire = rgb(0.45f, 0.47f, 0.5f);
     float L = length(cb - ca);
     int n = Max(1, (int)(L / 4.f));
+    // Dead-end turning bulbs near the line: the fence bows out around them so long vehicles U-turning in the bulb clear it
+    // (a bus following a 5-6.5 m turning circle sweeps ~10.5 m from its centre; keep the fence 16 m away)
+    const float kBulbClear = 16.f;
+    std::vector<vec2> bulbs;
+    if (gRoads)
+        for (const RoadNode& nd : gRoads->nodes) {
+            if (nd.edges.size() != 1) continue;
+            vec2 q = nd.p;
+            float t = Clamp(dot(q - a, d), 0.f, length(b - a));
+            if (length(a + d * t - q) < kBulbClear) bulbs.push_back(q);
+        }
+    auto fp = [&](int j) {
+        vec2 p = lerp(ca, cb, (float)j / n);
+        for (vec2 q : bulbs) {
+            float along = dot(p - q, d), lat = dot(p - q, out);
+            float req = sqrtf(Max(0.f, kBulbClear * kBulbClear - along * along));
+            if (fabsf(lat) < req) p += out * ((lat >= 0.f ? 1.f : -1.f) * (req - fabsf(lat)));
+        }
+        return p;
+    };
     // runs of 4 m spans between gaps where a road (plus sidewalk) passes through the fence line
     int k = 0;
     while (k < n) {
-        vec2 pm = lerp(ca, cb, (k + 0.5f) / n);
+        vec2 pm = (fp(k) + fp(k + 1)) * 0.5f;
         if (gRoads && gRoads->nearRoad(pm, 0.8f)) { k++; continue; }
         int k1 = k;
-        while (k1 + 1 < n && !(gRoads && gRoads->nearRoad(lerp(ca, cb, (k1 + 1.5f) / n), 0.8f))) k1++;
-        vec2 ra = lerp(ca, cb, (float)k / n), rb = lerp(ca, cb, (float)(k1 + 1) / n);
+        while (k1 + 1 < n && !(gRoads && gRoads->nearRoad((fp(k1 + 1) + fp(k1 + 2)) * 0.5f, 0.8f))) k1++;
         for (int j = k; j <= k1 + 1; j++) {
-            vec2 p = lerp(ca, cb, (float)j / n);
+            vec2 p = fp(j);
             boxY(g, vec3(p, e.z + H * 0.5f - 0.2f), d, vec3(0.04f, 0.04f, H * 0.5f + 0.2f), post, M(MAT_METAL_PAINTED));
             if ((j & 1) == 0) beam(g, vec3(p, e.z + H), vec3(p + out * 0.45f, e.z + H + 0.45f), 0.05f, 0.05f, post, M(MAT_METAL_PAINTED));
         }
-        // chain-link wires and barbed top along the run, sparse cross wires per span
-        for (int s = 0; s < 4; s++) {
-            float z = e.z + 0.15f + s * (H - 0.3f) / 3.f;
-            beam(g, vec3(ra, z), vec3(rb, z), 0.03f, 0.03f, wire, M(MAT_METAL_PAINTED));
-        }
-        for (int s = 0; s < 3; s++) {
-            float o = 0.15f + s * 0.15f;
-            beam(g, vec3(ra + out * o, e.z + H + o), vec3(rb + out * o, e.z + H + o), 0.02f, 0.02f, wire, M(MAT_METAL_PAINTED));
+        // straight pieces (merged spans) carry the chain-link wires, the barbed top and one collider each
+        int j0 = k;
+        while (j0 <= k1) {
+            vec2 pa = fp(j0), dir = normalize(fp(j0 + 1) - pa);
+            int j1 = j0;
+            while (j1 + 1 <= k1 && dot(normalize(fp(j1 + 2) - fp(j1 + 1)), dir) > 0.9998f) j1++;
+            vec2 pb = fp(j1 + 1), po = perp(dir);
+            for (int s = 0; s < 4; s++) {
+                float z = e.z + 0.15f + s * (H - 0.3f) / 3.f;
+                beam(g, vec3(pa, z), vec3(pb, z), 0.03f, 0.03f, wire, M(MAT_METAL_PAINTED));
+            }
+            for (int s = 0; s < 3; s++) {
+                float o = 0.15f + s * 0.15f;
+                beam(g, vec3(pa + po * o, e.z + H + o), vec3(pb + po * o, e.z + H + o), 0.02f, 0.02f, wire, M(MAT_METAL_PAINTED));
+            }
+            collide(g, vec3((pa + pb) * 0.5f, e.z + H * 0.5f), dir, vec3(length(pb - pa) * 0.5f, 0.1f, H * 0.5f));
+            j0 = j1 + 1;
         }
         for (int j = k; j <= k1; j++) {
-            vec2 p0 = lerp(ca, cb, (float)j / n), p1 = lerp(ca, cb, (float)(j + 1) / n);
+            vec2 p0 = fp(j), p1 = fp(j + 1);
             beam(g, vec3(p0, e.z + 0.15f), vec3(p1, e.z + H), 0.015f, 0.015f, wire, M(MAT_METAL_PAINTED));
             beam(g, vec3(p1, e.z + 0.15f), vec3(p0, e.z + H), 0.015f, 0.015f, wire, M(MAT_METAL_PAINTED));
         }
-        collide(g, vec3((ra + rb) * 0.5f, e.z + H * 0.5f), d, vec3(length(rb - ra) * 0.5f, 0.1f, H * 0.5f));
         k = k1 + 1;
     }
 }
@@ -1767,6 +1794,229 @@ void genGarageRamp(const SiteElem& e, G& g) {
 void genGse(const SiteElem& e, G& g) {
     if (e.variant == 100) genJetBridge(e, g);
     else if (e.variant == 200) genGatehouse(e, g);
+}
+
+// ------------------------------------------------------------------------------------------------ landside forecourt
+// Rectangular panel facing `face`, bottom at z, with text lines ('|' separated) in fg; optional arrow per line ('<' / '>'
+// as the first character of a line puts an arrow before the text)
+void signPanel(G& g, vec2 c, vec2 face, float z, float w, float h, u32 bg, u32 fg, const std::string& text, u32 mat, float th) {
+    vec2 rt = perp(-face);
+    vec3 b(c + face * 0.005f, z);
+    quad(g, *g.m, b - vec3(rt * (w * 0.5f), 0.f), b + vec3(rt * (w * 0.5f), 0.f), b + vec3(rt * (w * 0.5f), h), b + vec3(-rt * (w * 0.5f), h), bg, mat,
+         vec3(face, 0.f));
+    std::vector<std::string> lines;
+    std::string cur;
+    for (char ch : text) {
+        if (ch == '|') {
+            lines.push_back(cur);
+            cur.clear();
+        } else cur += ch;
+    }
+    lines.push_back(cur);
+    for (size_t i = 0; i < lines.size(); i++) {
+        std::string ln = lines[i];
+        int arrow = 0;
+        if (!ln.empty() && (ln[0] == '<' || ln[0] == '>')) {
+            arrow = ln[0] == '<' ? -1 : 1;
+            ln = ln.substr(1);
+        }
+        float tz = z + h - (i + 1) * th * 1.55f;
+        float x0 = -w * 0.5f + 0.12f + (arrow ? th * 1.3f : 0.f);
+        float tw = textAdvance(ln.c_str(), th, 0.3f), avail = w * 0.5f - 0.12f - x0;
+        float sc = tw > avail ? avail / tw : 1.f;
+        strokeText(g, *g.m, ln.c_str(), vec3(c + face * 0.012f + rt * x0, tz), vec3(rt, 0.f), vec3(0, 0, 1), th * sc, th * sc * 0.14f, fg, mat, 0.f, 0.3f);
+        if (arrow) {
+            vec2 ac = c + rt * (-w * 0.5f + 0.12f + th * 0.55f) + face * 0.012f;
+            float s = th * 0.45f;
+            vec3 tip(ac + rt * (s * (float)arrow), tz + th * 0.5f), tail(ac - rt * (s * (float)arrow), tz + th * 0.5f);
+            beam(g, tail, tip, th * 0.16f, 0.004f, fg, mat, vec3(face, 0.f));
+            beam(g, tip, tip - vec3(rt * (s * 0.7f * arrow), s * 0.6f), th * 0.16f, 0.004f, fg, mat, vec3(face, 0.f));
+            beam(g, tip, tip - vec3(rt * (s * 0.7f * arrow), -s * 0.6f), th * 0.16f, 0.004f, fg, mat, vec3(face, 0.f));
+        }
+    }
+}
+
+// Forecourt dressing. variant 0: bollards along a..b every p[0] m; 1: taxi rank (shelter, lit TAXI totem, queue
+// stanchions); 2: luggage trolley corral with loose trolleys; 3: wayfinding pylon (e.text); 4: flag poles along a..b;
+// 5: bench, planter and bin group; 6: overhead sign gantry across the drive (posts at a and b, e.text)
+void genForecourt(const SiteElem& e, G& g) {
+    if (!g.detail) return;
+    u32 paint = M(MAT_METAL_PAINTED), brushed = M(MAT_METAL_BRUSHED);
+    switch (e.variant) {
+        case 0: {
+            vec2 d = normalize(e.b - e.a);
+            float L = length(e.b - e.a), step = Max(e.p[0], 1.f);
+            for (float s = 0.f; s <= L + 0.01f; s += step) {
+                vec2 p = e.a + d * s;
+                if (g.owns(p)) prop(g, vec3(p, e.z), 0.f, 1.f, PROP_BOLLARD);
+            }
+            break;
+        }
+        case 1: {
+            if (!g.owns(e.c)) return;
+            vec2 face = e.ax, rt = perp(-face);
+            // shelter (the street shelter prototype: frame, glass back wall, bench, ad light box)
+            prop(g, vec3(e.c, e.z), atan2f(face.x, -face.y), 1.f, PROP_BUS_STOP, (u8)(e.seed & 3u));
+            // TAXI totem at the kerb end of the rank, lit box on a pole
+            vec2 tp = e.c + face * 2.4f - rt * 4.2f;
+            cyl(g, vec3(tp, e.z), 0.07f, 0.06f, 3.2f, 8, rgb(0.25f), paint, false);
+            boxY(g, vec3(tp, e.z + 3.4f), face, vec3(0.12f, 0.55f, 0.3f), rgb(0.12f), paint, true);
+            for (int s = -1; s <= 1; s += 2) {
+                vec2 fc = tp + face * (s * 0.125f);
+                vec2 r2 = perp(-face * (float)s);
+                quad(g, *g.m, vec3(fc - r2 * 0.5f, e.z + 3.14f), vec3(fc + r2 * 0.5f, e.z + 3.14f), vec3(fc + r2 * 0.5f, e.z + 3.66f), vec3(fc - r2 * 0.5f, e.z + 3.66f),
+                     rgb(1.f, 0.82f, 0.1f, 0.25f), emMat(), vec3(face * (float)s, 0.f));
+                float th = 0.3f, tw = textAdvance("TAXI", th, 0.3f);
+                strokeText(g, *g.m, "TAXI", vec3(fc + face * (s * 0.006f) - r2 * (tw * 0.5f), e.z + 3.25f), vec3(r2, 0.f), vec3(0, 0, 1), th, 0.05f, rgb(0.05f), paint,
+                           0.f, 0.3f);
+            }
+            collide(g, vec3(tp, e.z + 1.6f), face, vec3(0.1f, 0.1f, 1.6f));
+            // queue stanchions with belts along the rank
+            for (int k = 0; k < 6; k++) {
+                vec2 p = e.c + face * 2.1f + rt * (-1.6f + k * 1.4f);
+                cyl(g, vec3(p, e.z), 0.035f, 0.035f, 0.95f, 6, rgb(0.75f), brushed, true);
+                cyl(g, vec3(p, e.z), 0.16f, 0.16f, 0.03f, 8, rgb(0.2f), paint, true);
+                if (k < 5) beam(g, vec3(p, e.z + 0.9f), vec3(p + rt * 1.4f, e.z + 0.9f), 0.05f, 0.012f, rgb(0.1f, 0.2f, 0.5f), M(MAT_FABRIC), vec3(face, 0.f));
+            }
+            break;
+        }
+        case 2: {
+            if (!g.owns(e.c)) return;
+            vec2 X = e.ax, Y = perp(e.ax);
+            Rng r(e.seed);
+            // corral rails
+            for (int s = -1; s <= 1; s += 2) {
+                beam(g, vec3(e.c + Y * (s * 0.55f) - X * 3.2f, e.z + 0.95f), vec3(e.c + Y * (s * 0.55f) + X * 3.2f, e.z + 0.95f), 0.05f, 0.05f, rgb(0.8f), brushed);
+                for (int k = 0; k < 3; k++) {
+                    vec2 p = e.c + Y * (s * 0.55f) + X * (-3.2f + k * 3.2f);
+                    cyl(g, vec3(p, e.z), 0.04f, 0.04f, 0.98f, 6, rgb(0.8f), brushed, false);
+                }
+                collide(g, vec3(e.c + Y * (s * 0.55f), e.z + 0.5f), X, vec3(3.2f, 0.05f, 0.5f));
+            }
+            // luggage trolley: wire basket frame, handle, low wheels; nested in a row in the corral, a few left loose
+            auto trolley = [&](vec2 p, vec2 f, float lift) {
+                vec2 s2 = perp(f);
+                u32 fr = rgb(0.72f), dark = rgb(0.08f);
+                vec3 base(p, e.z + lift);
+                for (int s = -1; s <= 1; s += 2) {
+                    beam(g, base + vec3(s2 * (s * 0.28f) - f * 0.45f, 0.18f), base + vec3(s2 * (s * 0.28f) + f * 0.5f, 0.18f), 0.03f, 0.03f, fr, brushed);
+                    beam(g, base + vec3(s2 * (s * 0.28f) - f * 0.45f, 0.18f), base + vec3(s2 * (s * 0.28f) - f * 0.55f, 1.05f), 0.03f, 0.03f, fr, brushed);
+                    for (float x : {-0.35f, 0.4f}) cyl(g, base + vec3(s2 * (s * 0.24f) + f * x, 0.f), 0.07f, 0.07f, 0.05f, 6, dark, M(MAT_RUBBER), true);
+                }
+                beam(g, base + vec3(-s2 * 0.3f - f * 0.55f, 1.05f), base + vec3(s2 * 0.3f - f * 0.55f, 1.05f), 0.035f, 0.035f, rgb(0.85f, 0.15f, 0.1f), paint);
+                quad(g, *g.m, base + vec3(-s2 * 0.28f - f * 0.45f, 0.2f), base + vec3(s2 * 0.28f - f * 0.45f, 0.2f), base + vec3(s2 * 0.28f + f * 0.5f, 0.2f),
+                     base + vec3(-s2 * 0.28f + f * 0.5f, 0.2f), rgb(0.55f), brushed, vec3(0, 0, 1));
+                quad(g, *g.m, base + vec3(-s2 * 0.28f - f * 0.47f, 0.2f), base + vec3(s2 * 0.28f - f * 0.47f, 0.2f), base + vec3(s2 * 0.28f - f * 0.5f, 0.75f),
+                     base + vec3(-s2 * 0.28f - f * 0.5f, 0.75f), rgb(0.6f), brushed, vec3(-f, 0.2f));
+            };
+            int nested = 6 + (int)(e.seed % 5u);
+            for (int k = 0; k < nested; k++) trolley(e.c - X * 2.6f + X * (k * 0.42f), X, 0.f);
+            for (int k = 0; k < 3; k++) {
+                float a = r.f() * kTwoPi;
+                vec2 p = e.c + X * r.range(-6.f, 6.f) + Y * r.range(1.4f, 3.2f) * (r.chance(0.5f) ? 1.f : -1.f);
+                trolley(p, vec2(cosf(a), sinf(a)), 0.f);
+            }
+            break;
+        }
+        case 3: {
+            if (!g.owns(e.c)) return;
+            vec2 face = e.ax;
+            float w = e.hx * 2.f, h = e.h;
+            boxY(g, vec3(e.c, e.z + h * 0.5f), face, vec3(0.12f, w * 0.5f + 0.06f, h * 0.5f), rgb(0.2f, 0.22f, 0.25f), paint, false);
+            for (int s = -1; s <= 1; s += 2)
+                signPanel(g, e.c + face * (s * 0.125f), face * (float)s, e.z + h - 1.6f, w, 1.5f, rgb(0.08f, 0.2f, 0.42f), rgb(0.95f), e.text, paint, 0.2f);
+            quad(g, *g.m, vec3(e.c + face * 0.13f - perp(-face) * (w * 0.5f), e.z + h - 0.12f), vec3(e.c + face * 0.13f + perp(-face) * (w * 0.5f), e.z + h - 0.12f),
+                 vec3(e.c + face * 0.13f + perp(-face) * (w * 0.5f), e.z + h - 0.02f), vec3(e.c + face * 0.13f - perp(-face) * (w * 0.5f), e.z + h - 0.02f),
+                 rgb(1.f, 0.8f, 0.2f), paint, vec3(face, 0.f));
+            collide(g, vec3(e.c, e.z + h * 0.5f), face, vec3(0.12f, w * 0.5f, h * 0.5f));
+            break;
+        }
+        case 4: {
+            vec2 d = normalize(e.b - e.a);
+            int n = Max(2, (int)e.p[0]);
+            const vec3 pal[] = {vec3(0.1f, 0.5f, 0.55f), vec3(0.95f), vec3(0.95f, 0.6f, 0.15f), vec3(0.15f, 0.25f, 0.55f), vec3(0.85f, 0.2f, 0.25f),
+                                vec3(0.2f, 0.55f, 0.3f), vec3(0.98f, 0.85f, 0.2f)};
+            for (int k = 0; k < n; k++) {
+                vec2 p = lerp(e.a, e.b, (float)k / (n - 1));
+                if (!g.owns(p)) continue;
+                float H = 10.f;
+                cyl(g, vec3(p, e.z), 0.09f, 0.05f, H, 8, rgb(0.85f), brushed, false);
+                cyl(g, vec3(p, e.z), 0.2f, 0.2f, 0.3f, 8, rgb(0.6f), M(MAT_CONCRETE), true);
+                boxY(g, vec3(p, e.z + H + 0.06f), vec2(1, 0), vec3(0.07f), rgb(0.85f, 0.75f, 0.4f), M(MAT_CHROME), true);
+                // flag waving slightly (three panels): a hoist band, the field and a sun disc (the airport and Palmera colours)
+                u32 h = hash32(e.seed * 31u + (u32)k);
+                vec3 field = pal[h % 7u], band = pal[(h >> 5) % 7u];
+                if (band == field) band = vec3(0.95f);
+                float fw = 2.2f, fh = 1.4f;
+                vec2 fd = normalize(vec2(-0.9f, 0.35f));   // the sea breeze from the east-south-east
+                vec2 fside = perp(fd);
+                float zt = e.z + H - 0.15f;
+                float wv[4];
+                for (int j = 0; j < 4; j++) wv[j] = sinf(j * 1.4f + (float)k) * 0.12f;
+                for (int seg = 0; seg < 3; seg++) {
+                    float u0 = fw * seg / 3.f, u1 = fw * (seg + 1) / 3.f;
+                    panel2(g, vec3(p + fd * u0 + fside * wv[seg], zt - fh), vec3(p + fd * u1 + fside * wv[seg + 1], zt - fh),
+                           vec3(p + fd * u1 + fside * wv[seg + 1], zt), vec3(p + fd * u0 + fside * wv[seg], zt), rgbv(seg == 0 ? band : field), M(MAT_FABRIC));
+                }
+                {
+                    // sun disc on the middle panel, both faces
+                    vec3 a0(p + fd * (fw / 3.f) + fside * wv[1], 0.f), a1(p + fd * (fw * 2.f / 3.f) + fside * wv[2], 0.f);
+                    vec3 c = (a0 + a1) * 0.5f + vec3(0, 0, zt - fh * 0.5f);
+                    vec3 ux = normalize(a1 - a0), nz = normalize(cross(ux, vec3(0, 0, 1)));
+                    MeshData& m = *g.m;
+                    u32 sunC = rgb(0.98f, 0.92f, 0.6f);
+                    for (int side = -1; side <= 1; side += 2) {
+                        vec3 n = nz * (float)side;
+                        u32 b0 = m.addVertex(c + n * 0.004f - g.org, n, ux, vec2(0, 0), sunC, M(MAT_FABRIC));
+                        for (int q = 0; q <= 10; q++) {
+                            float an = kTwoPi * q / 10.f;
+                            m.addVertex(c + n * 0.004f + ux * (cosf(an) * 0.3f) + vec3(0, 0, sinf(an) * 0.3f) - g.org, n, ux, vec2(0, 0), sunC, M(MAT_FABRIC));
+                        }
+                        for (int q = 0; q < 10; q++) {
+                            vec3 fn = cross(m.verts[b0 + 1 + q].pos - m.verts[b0].pos, m.verts[b0 + 2 + q].pos - m.verts[b0].pos);
+                            if (dot(fn, n) > 0.f) m.tri(b0, b0 + 1 + q, b0 + 2 + q);
+                            else m.tri(b0, b0 + 2 + q, b0 + 1 + q);
+                        }
+                    }
+                }
+                collide(g, vec3(p, e.z + H * 0.5f), d, vec3(0.1f, 0.1f, H * 0.5f));
+            }
+            break;
+        }
+        case 5: {
+            if (!g.owns(e.c)) return;
+            vec2 X = e.ax;
+            float yaw = atan2f(X.y, X.x);
+            prop(g, vec3(e.c - X * 1.3f, e.z), yaw, 1.f, PROP_BENCH);
+            prop(g, vec3(e.c + X * 1.3f, e.z), yaw, 1.f, PROP_BENCH);
+            prop(g, vec3(e.c + X * 3.4f, e.z), yaw, 1.f, PROP_PLANTER, (u8)(e.seed & 1u));
+            prop(g, vec3(e.c - X * 3.2f, e.z), yaw, 1.f, PROP_BIN);
+            break;
+        }
+        default: {
+            // overhead gantry: posts at a and b, a truss beam, a sign panel over the lanes facing the traffic (ax)
+            vec2 d = normalize(e.b - e.a);
+            vec2 mid = (e.a + e.b) * 0.5f;
+            if (!g.owns(mid)) return;
+            float H = 6.2f, L = length(e.b - e.a);
+            for (vec2 p : {e.a, e.b}) {
+                cyl(g, vec3(p, e.z), 0.22f, 0.2f, H + 0.9f, 10, rgb(0.55f, 0.57f, 0.6f), paint, true);
+                collide(g, vec3(p, e.z + (H + 0.9f) * 0.5f), d, vec3(0.22f, 0.22f, (H + 0.9f) * 0.5f));
+            }
+            for (float z : {H + 0.2f, H + 0.85f}) beam(g, vec3(e.a, e.z + z), vec3(e.b, e.z + z), 0.14f, 0.14f, rgb(0.55f, 0.57f, 0.6f), paint);
+            for (int k = 0; k < 8; k++) {
+                float s0 = L * k / 8.f, s1 = L * (k + 1) / 8.f;
+                beam(g, vec3(e.a + d * s0, e.z + H + 0.2f), vec3(e.a + d * s1, e.z + H + 0.85f), 0.06f, 0.06f, rgb(0.55f, 0.57f, 0.6f), paint);
+            }
+            float w = Min(L - 2.f, e.p[0] > 0.f ? e.p[0] : 8.f);
+            signPanel(g, mid + e.ax * 0.2f, e.ax, e.z + H - 1.1f, w, 1.9f, rgb(0.07f, 0.35f, 0.2f), rgb(0.97f), e.text, paint, 0.34f);
+            quad(g, *g.m, vec3(mid + e.ax * 0.18f - perp(-e.ax) * (w * 0.5f), e.z + H - 1.1f), vec3(mid + e.ax * 0.18f + perp(-e.ax) * (w * 0.5f), e.z + H - 1.1f),
+                 vec3(mid + e.ax * 0.18f + perp(-e.ax) * (w * 0.5f), e.z + H + 0.8f), vec3(mid + e.ax * 0.18f - perp(-e.ax) * (w * 0.5f), e.z + H + 0.8f),
+                 rgb(0.4f), paint, vec3(-e.ax, 0.f));
+            light(g, vec3(mid + e.ax * 1.2f, e.z + H - 1.3f), vec3(1.f, 0.95f, 0.9f) * 1500.f, 8.f, 1, normalize(vec3(-e.ax, 0.8f)), 0.3f);
+            break;
+        }
+    }
 }
 
 }  // namespace airport_mesh

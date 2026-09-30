@@ -85,6 +85,7 @@ struct SoundBuffer {
     std::vector<i16> data;  // 16-bit PCM, interleaved when channels == 2
     int channels = 1;
     int frames = 0;
+    int rateDiv = 1;        // stored at 48 kHz / rateDiv (band-limited sounds: distant thunder, pass-bys, far gunfire)
 };
 
 constexpr int kMaxVariations = 6;
@@ -121,6 +122,13 @@ struct EmitterSynth {
     virtual void setLod(int lod) { (void)lod; }
     // Engine upgrades (Audio::setEngineTune); ignored by other synths.
     virtual void setTune(float boost, float tune, bool shifted) { (void)boost, (void)tune, (void)shifted; }
+    // Chassis / cabin state of a road vehicle (Audio::setVehicleAudio); ignored by other synths.
+    virtual void setVehicle(const VehicleAudio& v) { (void)v; }
+    // Where the listener is relative to the source: cosine of the angle from the vehicle's forward axis to the
+    // listener, and whether the listener sits inside this vehicle.
+    virtual void setListener(float cosFront, bool inside) { (void)cosFront, (void)inside; }
+    // Sounds heard only from inside the vehicle (2D, not spatialized): accumulated into out. Returns false if silent.
+    virtual bool renderCabin(float* out, int n) { (void)out, (void)n; return false; }
 };
 
 struct EmitterDef {
@@ -141,6 +149,7 @@ void spawnAmbient2D(int bankId, float volume, float pitch, bool flip);
 struct ListenerState {
     vec3 pos, vel, forward = vec3(0, 1, 0), up = vec3(0, 0, 1), right = vec3(1, 0, 0);
     float interior = 0, inVehicle = 0;
+    float bodySpeed = -1.f;
 };
 
 // ---------------------------------------------------------------------------------------------

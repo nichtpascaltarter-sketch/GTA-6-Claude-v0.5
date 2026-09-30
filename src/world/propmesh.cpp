@@ -729,4 +729,281 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
     }
 }
 
+// ------------------------------------------------------------------------------------------------ hedges and topiary
+// Garden and park greenery built into the cell mesh (MAT_LEAVES, tinted by the vertex colour), shared by facadedetail.cpp
+// (house and villa gardens) and landmarks.cpp (formal parterres). Styles: HEDGE_CLIPPED (rounded top, small leaf lumps),
+// HEDGE_FORMAL (crisp, park parterres), HEDGE_WILD (untrimmed: big lumps, ragged uneven top, width wandering).
+enum HedgeStyle : int { HEDGE_CLIPPED = 0, HEDGE_FORMAL, HEDGE_WILD };
+
+namespace hedge_detail {
+struct Style {
+    float step, big, small, gb, round, taper;
+};
+inline Style styleOf(int style, float W) {
+    switch (style) {
+        case HEDGE_FORMAL: return {0.6f, 0.018f, 0.012f, 0.15f, Min(0.08f, W * 0.2f), 0.97f};
+        case HEDGE_WILD: return {0.45f, 0.15f, 0.06f, 0.1f, W * 0.7f, 0.9f};
+        default: return {0.6f, 0.05f, 0.028f, 0.2f, Min(0.22f, W * 0.45f), 0.93f};
+    }
+}
+// Cheap smooth value noise in [-1, 1] (hash lattice, smoothstep blend): hedges are built on streaming threads per cell
+inline float vnoise2(float x, float y, u32 seed) {
+    float fx0 = floorf(x), fy0 = floorf(y);
+    int xi = (int)fx0, yi = (int)fy0;
+    float fx = x - fx0, fy = y - fy0;
+    fx = fx * fx * (3.f - 2.f * fx);
+    fy = fy * fy * (3.f - 2.f * fy);
+    float a = hashToFloat(hash3i(xi, yi, (int)seed)), b = hashToFloat(hash3i(xi + 1, yi, (int)seed));
+    float c = hashToFloat(hash3i(xi, yi + 1, (int)seed)), d = hashToFloat(hash3i(xi + 1, yi + 1, (int)seed));
+    return Lerp(Lerp(a, b, fx), Lerp(c, d, fx), fy) * 2.f - 1.f;
+}
+// leaf-mass displacement over surface coordinates (u along, v around, metres): lumps plus leaf-cluster scale
+inline float lumps(float u, float v, u32 seed, float big, float small) {
+    return vnoise2(u * 1.7f, v * 1.7f, seed) * big + vnoise2(u * 4.6f + 31.f, v * 4.6f, seed + 17u) * small;
+}
+inline u32 leafC(vec3 c) { return packRGBA8(Saturate(c.x), Saturate(c.y), Saturate(c.z), 1.f); }
+}  // namespace hedge_detail
+
+// Leafy hedge from ground point a to b, height h and width wd: a swept profile displaced into lumps (rounded or ragged
+// top, the leaf mass lifted off the ground over a dark core with stems showing), shaded in the vertex colours: hollows
+// and the base darker, new growth lighter on clipped tops, patchy tones along the run. Follows the terrain. Returns the
+// number of vertices written. zFixed (when above -1e8) replaces the terrain height (hedges on plazas and decks).
+size_t hedgeMesh(MeshData& m, vec3 org, const WorldMap& map, vec2 a, vec2 b, float h, float wd, int style, vec3 tint, u32 seed, float zFixed = -1e9f) {
+    using namespace hedge_detail;
+    size_t v0 = m.verts.size();
+    float L = length(b - a);
+    if (L < 0.3f || h < 0.25f) return 0;
+    vec2 t2 = (b - a) / L;
+    vec3 T(t2, 0.f), N(perp(t2), 0.f), Z(0, 0, 1);
+    float W = wd * 0.5f;
+    Style st = styleOf(style, W);
+    bool wild = style == HEDGE_WILD, clipped = style == HEDGE_CLIPPED;
+    const int NP = 13;
+    int ns = Max(2, (int)ceilf(L / st.step)) + 1;
+    std::vector<vec3> P((size_t)ns * NP), Nr((size_t)ns * NP);
+    std::vector<float> D((size_t)ns * NP), gz(ns), wk(ns);
+    std::vector<vec2> prof((size_t)ns * NP);
+    for (int k = 0; k < ns; k++) {
+        float s = L * k / (ns - 1);
+        vec2 p2 = a + t2 * s;
+        gz[k] = zFixed > -1e8f ? zFixed : map.heightAt(p2.x, p2.y);
+        float e = Min(s, L - s), f = SmoothStep(0.f, 0.4f, e);
+        float su = dot(p2, t2);   // world-anchored distance along the run (pieces of one hedge line up)
+        float nw = vnoise2(su * 0.45f, 3.1f, seed), nh = vnoise2(su * 0.33f, 7.7f, seed + 5u);
+        float w = W * (wild ? 1.f + 0.2f * nw : 1.f + 0.02f * nw) * (0.8f + 0.2f * f);
+        float hh = wild ? h * (1.f + 0.14f * nh) + 0.1f * vnoise2(su * 1.1f, 1.3f, seed + 9u) : h * (1.f + 0.015f * nh);
+        hh *= 0.94f + 0.06f * f;
+        wk[k] = w;
+        float r = Min(st.round, Min(hh - st.gb, w) * 0.85f), wt = w * st.taper;
+        float dome = wild ? r * 0.25f : r * 0.08f;
+        vec2 pr[NP] = {vec2(-w * 0.8f, st.gb),
+                       vec2(-w, st.gb + 0.14f),
+                       vec2(-(w + wt) * 0.5f, (st.gb + hh - r) * 0.5f),
+                       vec2(-wt, hh - r),
+                       vec2(-wt + r * 0.293f, hh - r * 0.293f),
+                       vec2(-wt + r, hh),
+                       vec2(0.f, hh + dome),
+                       vec2(wt - r, hh),
+                       vec2(wt - r * 0.293f, hh - r * 0.293f),
+                       vec2(wt, hh - r),
+                       vec2((w + wt) * 0.5f, (st.gb + hh - r) * 0.5f),
+                       vec2(w, st.gb + 0.14f),
+                       vec2(w * 0.8f, st.gb)};
+        float arc = 0.f;
+        for (int i = 0; i < NP; i++) {
+            vec2 dP = pr[Min(i + 1, NP - 1)] - pr[Max(i - 1, 0)];
+            vec2 on = normalize(perp(dP));   // outward in the (lateral, up) plane
+            vec3 base = vec3(p2, gz[k]) + N * pr[i].x + Z * pr[i].y;
+            vec3 out = N * on.x + Z * on.y;
+            if (i > 0) arc += length(pr[i] - pr[i - 1]);
+            float d = lumps(su, arc, seed, st.big, st.small) * ((i == 0 || i == NP - 1) ? 0.5f : 1.f);
+            size_t q = (size_t)k * NP + i;
+            P[q] = base + out * d;
+            Nr[q] = out;
+            D[q] = d;
+            prof[q] = vec2(pr[i].y - st.gb, hh - st.gb);   // height above the leaf base, leaf-mass height
+        }
+    }
+    // normals from the displaced surface, oriented outward
+    for (int k = 0; k < ns; k++)
+        for (int i = 0; i < NP; i++) {
+            size_t q = (size_t)k * NP + i;
+            vec3 ta = P[(size_t)Min(k + 1, ns - 1) * NP + i] - P[(size_t)Max(k - 1, 0) * NP + i];
+            vec3 tp = P[(size_t)k * NP + Min(i + 1, NP - 1)] - P[(size_t)k * NP + Max(i - 1, 0)];
+            vec3 nn = cross(ta, tp);
+            if (dot(nn, Nr[q]) < 0.f) nn = -nn;
+            Nr[q] = normalize(nn + Nr[q] * 0.35f);
+        }
+    u32 leaf = makeMat(MAT_LEAVES), bark = makeMat(MAT_BARK);
+    u32 base = (u32)m.verts.size();
+    float amp = st.big + st.small;
+    for (int k = 0; k < ns; k++)
+        for (int i = 0; i < NP; i++) {
+            size_t q = (size_t)k * NP + i;
+            vec3 pw = P[q];
+            float zr = Saturate(prof[q].x / Max(prof[q].y, 0.1f));
+            float shade = 0.6f + 0.4f * SmoothStep(0.f, 0.6f, zr);
+            float ao = Clamp(1.f + D[q] / amp * 0.3f, 0.7f, 1.12f);
+            float su = dot(pw.xy(), t2);
+            float patch = 0.88f + 0.22f * (vnoise2(su * 0.35f, pw.z * 0.5f, seed + 3u) * 0.5f + 0.5f);
+            vec3 c = tint * (shade * ao * patch);
+            if (i >= 4 && i <= 8) c = c * (clipped ? vec3(1.1f, 1.13f, 0.86f) : vec3(1.04f, 1.05f, 0.96f));   // new growth on top
+            if (wild && vnoise2(su * 0.9f, pw.z + (float)i, seed + 11u) > 0.45f) c = c * vec3(1.12f, 1.02f, 0.7f);   // sun-yellowed tips
+            vec3 tg = normalize(T - Nr[q] * dot(T, Nr[q]));
+            m.addVertex(pw - org, Nr[q], tg, vec2(su, pw.z + (float)i * 0.3f), leafC(c), leaf);
+        }
+    for (int k = 0; k + 1 < ns; k++)
+        for (int i = 0; i + 1 < NP; i++) {
+            u32 A = base + (u32)(k * NP + i), B = A + NP, C = B + 1, E = A + 1;
+            m.quadIdx(A, B, C, E);
+        }
+    // end caps: fans from each end ring to a rounded tip
+    for (int end = 0; end < 2; end++) {
+        int k = end ? ns - 1 : 0;
+        vec3 dir = end ? T : -T;
+        vec3 ctr(0.f);
+        for (int i = 0; i < NP; i++) ctr += P[(size_t)k * NP + i];
+        ctr = ctr / (float)NP + dir * (wk[k] * 0.35f);
+        u32 cb = m.addVertex(ctr - org, dir, N, vec2(0.f), leafC(tint * 0.85f), leaf);
+        u32 r0 = (u32)m.verts.size();
+        for (int i = 0; i < NP; i++) {
+            size_t q = (size_t)k * NP + i;
+            m.addVertex(P[q] - org, normalize(Nr[q] + dir * 1.2f), N, vec2(P[q].z, (float)i * 0.3f), leafC(tint * (0.7f + 0.2f * Saturate(prof[q].x))), leaf);
+        }
+        for (int i = 0; i + 1 < NP; i++) {
+            vec3 fn = cross(m.verts[r0 + i].pos - m.verts[cb].pos, m.verts[r0 + i + 1].pos - m.verts[cb].pos);
+            if (dot(fn, dir) >= 0.f) m.tri(cb, r0 + i, r0 + i + 1);
+            else m.tri(cb, r0 + i + 1, r0 + i);
+        }
+        // underside closing the ring
+        vec3 fn = cross(m.verts[r0 + NP - 1].pos - m.verts[cb].pos, m.verts[r0].pos - m.verts[cb].pos);
+        if (dot(fn, dir) >= 0.f) m.tri(cb, r0 + NP - 1, r0);
+        else m.tri(cb, r0, r0 + NP - 1);
+    }
+    // dark core under the leaf mass (the shaded inside of the hedge) and the stems showing below it
+    u32 coreC = packRGBA8(0.3f, 0.26f, 0.19f, 1.f), stemC = packRGBA8(0.62f, 0.5f, 0.38f, 1.f);
+    for (int side = -1; side <= 1; side += 2) {
+        u32 cb0 = (u32)m.verts.size();
+        for (int k = 0; k < ns; k++) {
+            vec2 p2 = a + t2 * (L * k / (ns - 1));
+            vec3 pb = vec3(p2, gz[k] - 0.06f) + N * (side * wk[k] * 0.66f);
+            m.addVertex(pb - org, N * (float)side, T, vec2(dot(p2, t2), 0.f), coreC, bark);
+            m.addVertex(pb + Z * (st.gb + 0.2f) - org, N * (float)side, T, vec2(dot(p2, t2), st.gb + 0.2f), coreC, bark);
+        }
+        for (int k = 0; k + 1 < ns; k++) {
+            u32 A = cb0 + k * 2, B = A + 2;
+            if (side > 0) m.quadIdx(A, A + 1, B + 1, B);
+            else m.quadIdx(A, B, B + 1, A + 1);
+        }
+    }
+    Rng r(seed ^ 0x57E4u);
+    float stepStem = wild ? 0.5f : 0.7f;
+    for (float s = 0.25f; s < L - 0.2f; s += stepStem * r.range(0.8f, 1.2f)) {
+        vec2 p2 = a + t2 * s;
+        int side = r.chance(0.5f) ? 1 : -1;
+        int k = Clamp((int)roundf(s / L * (ns - 1)), 0, ns - 1);
+        float g0 = zFixed > -1e8f ? zFixed : map.heightAt(p2.x, p2.y);
+        vec3 pb = vec3(p2, g0 - 0.03f) + N * (side * wk[k] * r.range(0.68f, 0.78f));
+        vec3 lean = N * (side * r.range(0.0f, 0.06f)) + T * r.range(-0.05f, 0.05f);
+        float sw = wild ? r.range(0.03f, 0.05f) : r.range(0.025f, 0.04f);
+        vec3 top = pb + Z * (st.gb + 0.08f) + lean;
+        vec3 n = N * (float)side;
+        m.quadFacing(pb - T * sw - org, pb + T * sw - org, top + T * sw * 0.7f - org, top - T * sw * 0.7f - org, vec2(0, 0), vec2(sw, 0), vec2(sw, 0.3f), vec2(0, 0.3f),
+                     stemC, bark, n);
+    }
+    return m.verts.size() - v0;
+}
+
+// Displaced leaf ellipsoid (topiary balls and tiers, shrubs, climbers): centre c, radii R along ax, ay and up; su x sv
+// facets. blossom (x >= 0): flowers over the sunlit upper half.
+void leafBlobEx(MeshData& m, vec3 org, vec3 c, vec3 ax, vec3 ay, vec3 R, vec3 tint, u32 seed, float bump, int SU = 12, int SV = 7,
+                vec3 blossom = vec3(-1.f)) {
+    using namespace hedge_detail;
+    vec3 az(0, 0, 1);
+    u32 leaf = makeMat(MAT_LEAVES);
+    u32 base = (u32)m.verts.size();
+    float rr = (R.x + R.y) * 0.5f;
+    for (int j = 0; j <= SV; j++) {
+        float v = (float)j / SV, th = v * kPi;   // 0 top .. pi bottom
+        for (int i = 0; i <= SU; i++) {
+            float ph = kTwoPi * i / SU;
+            vec3 n0(sinf(th) * cosf(ph), sinf(th) * sinf(ph), cosf(th));
+            vec3 nr = normalize(ax * (n0.x / R.x) + ay * (n0.y / R.y) + az * (n0.z / R.z));
+            vec3 p = c + ax * (n0.x * R.x) + ay * (n0.y * R.y) + az * (n0.z * R.z);
+            float d = (j == 0 || j == SV) ? 0.f : lumps(kTwoPi * (float)(i % SU) / SU * rr, th * R.z, seed, bump, bump * 0.5f);   // seam-safe
+            p = p + nr * d;
+            float shade = 0.62f + 0.38f * Saturate(n0.z * 0.5f + 0.6f);
+            vec3 col = tint * (shade * Clamp(1.f + d / Max(bump * 1.5f, 1e-3f) * 0.3f, 0.75f, 1.1f));
+            if (n0.z > 0.5f) col = col * vec3(1.08f, 1.1f, 0.88f);
+            if (blossom.x >= 0.f && n0.z > -0.1f && vnoise2(ph * rr * 3.f, th * R.z * 3.f, seed + 23u) > -0.15f) col = blossom * (0.8f + 0.25f * shade);
+            vec3 tg = normalize(cross(az, nr) + ax * 1e-3f);
+            m.addVertex(p - org, nr, tg, vec2(ph * rr, th * R.z), leafC(col), leaf);
+        }
+    }
+    for (int j = 0; j < SV; j++)
+        for (int i = 0; i < SU; i++) {
+            u32 A = base + j * (SU + 1) + i, B = A + 1, C = A + SU + 1, E = C + 1;
+            m.quadIdx(A, C, E, B);
+        }
+}
+void leafBlob(MeshData& m, vec3 org, vec3 c, float rxy, float rz, vec3 tint, u32 seed, float bump) {
+    leafBlobEx(m, org, c, vec3(1, 0, 0), vec3(0, 1, 0), vec3(rxy, rxy, rz), tint, seed, bump);
+}
+
+// Clipped topiary standing on the ground at p: 0 ball, 1 cone, 2 standard (ball on a clear stem), 3 tiered stem,
+// 4 ball in a terracotta pot. size ~ overall height.
+void topiaryMesh(MeshData& m, vec3 org, vec3 p, int kind, float size, vec3 tint, u32 seed) {
+    using namespace hedge_detail;
+    u32 bark = makeMat(MAT_BARK), leaf = makeMat(MAT_LEAVES);
+    auto stem = [&](float h0, float h1, float r) {
+        m.cylinder(p + vec3(0, 0, h0) - org, r, r * 0.8f, h1 - h0, 6, packRGBA8(0.55f, 0.44f, 0.33f, 1.f), bark, false);
+    };
+    switch (kind) {
+        case 0: leafBlob(m, org, p + vec3(0, 0, size * 0.46f), size * 0.52f, size * 0.5f, tint, seed, size * 0.03f); break;
+        case 1: {
+            // cone: rings of a lathe, lumped slightly, dark at the foot
+            const int SU = 12, SV = 6;
+            float R = size * 0.34f;
+            u32 base = (u32)m.verts.size();
+            for (int j = 0; j <= SV; j++) {
+                float v = (float)j / SV;
+                float rr = R * (1.f - v) + 0.02f, z = size * v;
+                for (int i = 0; i <= SU; i++) {
+                    float ph = kTwoPi * i / SU;
+                    vec3 n0 = normalize(vec3(cosf(ph) * size, sinf(ph) * size, R));
+                    vec3 q = p + vec3(cosf(ph) * rr, sinf(ph) * rr, z);
+                    q = q + n0 * (j == SV ? 0.f : lumps(kTwoPi * (float)(i % SU) / SU * R, z, seed, size * 0.02f, size * 0.012f));
+                    vec3 col = tint * (0.62f + 0.4f * v) * (j == SV ? 1.05f : 1.f);
+                    m.addVertex(q - org, n0, vec3(-sinf(ph), cosf(ph), 0.f), vec2(ph * rr, z), leafC(col), leaf);
+                }
+            }
+            for (int j = 0; j < SV; j++)
+                for (int i = 0; i < SU; i++) {
+                    u32 A = base + j * (SU + 1) + i, B = A + 1, C = A + SU + 1, E = C + 1;
+                    m.quadIdx(A, B, E, C);
+                }
+            break;
+        }
+        case 2:
+            stem(-0.05f, size * 0.62f, 0.035f);
+            leafBlob(m, org, p + vec3(0, 0, size * 0.72f), size * 0.27f, size * 0.25f, tint, seed, size * 0.02f);
+            break;
+        case 3:
+            stem(-0.05f, size * 0.9f, 0.03f);
+            leafBlob(m, org, p + vec3(0, 0, size * 0.3f), size * 0.24f, size * 0.2f, tint, seed, size * 0.018f);
+            leafBlob(m, org, p + vec3(0, 0, size * 0.66f), size * 0.18f, size * 0.15f, tint, seed + 1u, size * 0.015f);
+            leafBlob(m, org, p + vec3(0, 0, size * 0.92f), size * 0.11f, size * 0.1f, tint, seed + 2u, size * 0.01f);
+            break;
+        default: {
+            // terracotta pot (tapered, rim) with a clipped ball
+            float pr = size * 0.22f, ph = size * 0.32f;
+            u32 potC = packRGBA8(0.78f, 0.45f, 0.3f, 1.f), potM = makeMat(MAT_CONCRETE);
+            m.cylinder(p - org, pr * 0.75f, pr, ph, 12, potC, potM, true);
+            m.cylinder(p + vec3(0, 0, ph - 0.05f) - org, pr * 1.08f, pr * 1.08f, 0.07f, 12, potC, potM, true);
+            leafBlob(m, org, p + vec3(0, 0, ph + size * 0.3f), size * 0.34f, size * 0.32f, tint, seed, size * 0.025f);
+            break;
+        }
+    }
+}
+
 }  // namespace World

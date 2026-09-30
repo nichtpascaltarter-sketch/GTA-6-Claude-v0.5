@@ -34,6 +34,7 @@ struct WeatherSystem {
     float flash = 0.f;
     float thunderDelay = -1.f;
     float thunderVolume = 1.f;
+    float thunderDist = 3000.f;
     u32 seed = 12345;
     bool locked = false;        // missions / debug can pin the weather
     float wetness = 0.f;
@@ -104,13 +105,14 @@ struct WeatherSystem {
                 float dist = 800.f + hashToFloat(hash32(seed)) * 6000.f;
                 thunderDelay = dist / 343.f;
                 thunderVolume = Saturate(1.4f - dist / 7000.f);
+                thunderDist = dist;
             }
         }
         if (thunderDelay >= 0.f) {
             thunderDelay -= dt;
             if (thunderDelay < 0.f) {
 #ifdef HAVE_AUDIO
-                Audio::play2D(Audio::SFX_THUNDER, thunderVolume);
+                Audio::playThunder(thunderDist, thunderVolume);   // close strikes crack before the boom, far ones rumble
 #endif
             }
         }

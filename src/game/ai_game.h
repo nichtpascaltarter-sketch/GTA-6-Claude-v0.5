@@ -11,6 +11,28 @@ enum PedRole : u8 {
     PR_MUSICIAN, PR_NIGHTLIFE, PR_SWAT, PR_FIREFIGHTER, PR_COUNT
 };
 
+// what a venue ped does at its spot (population.cpp lays the venues out, pedai.cpp plays them)
+enum VenueMode : u8 {
+    VM_STAND = 0,      // idling, glancing around now and then
+    VM_GUARD,          // gate / door duty: looks round, waves vehicles through, points the way
+    VM_SMOKE,          // smoke break
+    VM_TALK,           // chatting (in a ring with the others of the group)
+    VM_PHONE,          // on the phone
+    VM_LEAN,           // leaning back on a wall or a vehicle
+    VM_PACE,           // walks between two spots and idles at each (dock workers between the gate and the stacks)
+    VM_SIT,            // sitting on the ground
+    VM_WATCH,          // looking out over the water for long still spells (anglers)
+    VM_SPOTTER,        // looking out and pointing things out (birders)
+    VM_TRAVEL_IN,      // traveler from the curb into a terminal door (a stream, then gone inside)
+    VM_TRAVEL_OUT,     // traveler out of a door to the curb: waits on the phone, then hails a taxi
+    VM_FAREWELL,       // saying goodbye at the curb, then in through the doors
+    VM_SEEOFF          // ... the one seeing them off: a wave, then off along the sidewalk
+};
+
+struct GameWorld;
+// one frame of a venue ped at its spot (population.cpp): true when it has moved on to something else this frame
+bool aiVenueStep(GameWorld& g, int id, float dt);
+
 enum PedActivity : u8 {
     ACT_WALK = 0,      // sidewalk wandering (with destinations)
     ACT_SCENARIO,      // standing / sitting activity at an anchor (bench, wall, phone, smoke, sunbathe, dance, talk)
@@ -32,6 +54,8 @@ enum PedActivity : u8 {
     ACT_CROSS,         // jaywalking straight across a quiet street (BRAIN_GOTO), back to the sidewalk graph on the far side
     ACT_DRIVE_OFF,     // walking to a car parked at the curb: gets in and pulls out into traffic (traffic.cpp)
     ACT_LEAVE_CAR,     // just parked at the curb: round the back of the car to the sidewalk, then into a building nearby
+    ACT_VENUE,         // a place's own working crowd (population.cpp venues): gate guards, dock workers, taxi drivers,
+                       // travelers at the terminal curb, anglers on the causeway - see VenueMode
 };
 
 // Ambient speech categories (barks.cpp)
@@ -95,6 +119,11 @@ struct PedAI {
     vec2 lastPos;
     float stuckTimer = 0.f;
     float diveCooldown = 0.f;
+    // venue crowd (ACT_VENUE): which venue slot holds this ped, what it does there, a second spot (pacing / door)
+    int venue = -1;
+    u8 venueMode = 0;
+    vec2 anchorB;
+    float anchorBYaw = 0.f;
 };
 
 enum VehRole : u8 {
@@ -222,6 +251,7 @@ struct AIState {
     int testCar[2] = {-1, -1};          // autoplay tests: the cars a scenario set up (app.cpp)
     vec3 testCam;                       // autoplay tests: scenario camera position
     bool forceBender = false;           // autoplay tests: every low-speed knock between two traffic cars becomes a scene
+    int forceEvent = -1;                // autoplay tests: the ambient event type to stage next (events.cpp), soon and close
     double lastParkArrive = -1e9;       // last time a traffic car started pulling into a parking spot (global spacing)
     bool ready = false;
 };

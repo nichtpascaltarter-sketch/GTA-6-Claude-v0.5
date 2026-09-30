@@ -54,6 +54,7 @@ void buildSiteCell(int cx, int cy, bool detail, CellGeometry& out) {
             case SK_AIRPORT_SIGN: airport_mesh::genAirportSign(e, g); break;
             case SK_PARKING_MARKS: airport_mesh::genParkingMarks(e, g); break;
             case SK_GARAGE_RAMP: airport_mesh::genGarageRamp(e, g); break;
+            case SK_FORECOURT: airport_mesh::genForecourt(e, g); break;
             // port
             case SK_QUAY: port_mesh::genQuay(e, g); break;
             case SK_CONTAINER_BLOCK: port_mesh::genContainerBlock(e, g); break;
@@ -65,6 +66,9 @@ void buildSiteCell(int cx, int cy, bool detail, CellGeometry& out) {
             case SK_PORT_GATE: port_mesh::genPortGate(e, g); break;
             case SK_YARD_MAST: airport_mesh::genFloodMast(e, g); break;
             case SK_RMG_CRANE: port_mesh::genRmgCrane(e, g); break;
+            case SK_PORT_TRUCK: port_mesh::genPortTruck(e, g); break;
+            case SK_REACH_STACKER: port_mesh::genReachStacker(e, g); break;
+            case SK_PORT_DRESS: port_mesh::genPortDress(e, g); break;
             // Key Coral, marinas, beaches
             case SK_MARINA: leisure_mesh::genMarina(e, g); break;
             case SK_GOLF_HOLE: leisure_mesh::genGolfHole(e, g); break;

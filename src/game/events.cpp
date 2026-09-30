@@ -12,6 +12,8 @@ namespace events_detail {
 enum EvType : u8 {
     EV_MUGGING = 0, EV_PURSE, EV_CRASH, EV_RACERS, EV_CHASE, EV_SHOOTOUT, EV_DRUNK, EV_MUSICIAN, EV_TOURISTS, EV_BREAKDOWN,
     EV_TRAFFIC_STOP,   // a cruiser has pulled a car over: the officer walks up to the window, has words, both drive off
+    EV_TAKEOVER,       // a street takeover: donuts in a crossing, cars across two approaches, a crowd filming and cheering;
+                       // it breaks up when the police show (somebody always calls them) - the driver makes a run for it
     EV_COUNT
 };
 
@@ -44,6 +46,8 @@ struct AmbientEvent {
     float barkT = 0.f, fxT = 0.f;
     int flag = 0;
     Audio::EmitterHandle music = 0;
+    AI::DonutState donut;    // takeover: the driver doing donuts
+    vec2 threat;             // takeover: what the crowd scatters from
 };
 
 struct EventSystem {
@@ -426,6 +430,7 @@ void GameWorld::updateEvents(float dt) {
     bool warm = populationWarmup > 0.f;
     // ------------------------------------------------------------------ spawning
     gEv.timer -= dt * (warm ? 6.f : 1.f);
+    if (ai.forceEvent >= 0) gEv.timer = Min(gEv.timer, 2.f);
     int activeCount = 0;
     for (AmbientEvent& e : gEv.ev) activeCount += e.active;
     if (gEv.timer <= 0.f && activeCount < 2 && !populationOff) {
@@ -454,10 +459,16 @@ void GameWorld::updateEvents(float dt) {
         w[EV_TOURISTS] = (tod > 8.5f && tod < 19.5f) && scenic ? 1.4f : 0.f;
         w[EV_BREAKDOWN] = (tod > 6.f && tod < 22.f) ? 0.8f : 0.3f;
         w[EV_TRAFFIC_STOP] = pinfo.wanted == 0 && !policeSuppressed ? (urban ? 1.0f : 0.4f) : 0.f;
+        w[EV_TAKEOVER] = !calmOnly && pinfo.wanted == 0 && urban ? ((tod > 19.5f || tod < 3.5f) ? 1.1f : 0.12f) : 0.f;
         for (int k = 0; k < EV_COUNT; k++) {
             if (time - gEv.lastOfType[k] < 150.0) w[k] = 0.f;
             for (AmbientEvent& e : gEv.ev)
                 if (e.active && e.type == k) w[k] = 0.f;
+        }
+        if (ai.forceEvent >= 0 && ai.forceEvent < EV_COUNT) {   // (tests: that one, whatever the hour and the district)
+            bool running = false;
+            for (AmbientEvent& e : gEv.ev) running |= e.active && e.type == ai.forceEvent;
+            for (int k = 0; k < EV_COUNT; k++) w[k] = k == ai.forceEvent && !running ? 1.f : 0.f;
         }
         float sum = 0.f;
         for (float x : w) sum += x;
@@ -976,6 +987,129 @@ void GameWorld::updateEvents(float dt) {
                         e.pos = a3;
                         e.dir = ls.t;
                         e.amount = (int)(ha % 9u);
+                        ok = true;
+                        break;
+                    }
+                    // ---------------------------------------------------------------- street takeover
+                    case EV_TAKEOVER: {
+                        // a proper crossing of two streets (signals or an all-way stop), a block or two away
+                        vec2 probe = ringPoint(ha, pp, fwd, 120.f, 220.f);
+                        int node = -1;
+                        float bd = 110.f;
+                        for (int n = 0; n < (int)laneGraph.nodes.size(); n++) {
+                            const AI::NodeInfo& N = laneGraph.nodes[n];
+                            if (N.approaches.size() != 4 || N.control == 0 || N.gradeSeparated) continue;
+                            vec2 np = roads->nodes[n].p;
+                            float dd = length(np - probe);
+                            if (dd >= bd || length(np - pp) < 100.f) continue;
+                            bool streets = true;
+                            for (const AI::Approach& A : N.approaches) {
+                                const World::RoadEdge& ed = roads->edges[A.edge];
+                                if (ed.cls != World::RC_STREET && ed.cls != World::RC_AVENUE) streets = false;
+                                if (A.inLanes.empty() || A.outLanes.empty()) streets = false;
+                            }
+                            if (!streets) continue;
+                            bd = dd;
+                            node = n;
+                        }
+                        if (node < 0) break;
+                        const AI::NodeInfo& N = laneGraph.nodes[node];
+                        vec2 c = roads->nodes[node].p;
+                        float cz = groundHeight(c.x, c.y, roads->nodes[node].z + 3.f);
+                        if (!hiddenFrom(*this, vec3(c, cz), 100.f, warm)) break;
+                        std::vector<int> inBox;
+                        vehiclesNear(c, 18.f, inBox);
+                        if (!inBox.empty()) break;
+                        int dm = findVehicleModel(Vehicles::VC_MUSCLE, ha);
+                        if (dm < 0) dm = pickTrafficModel(*this, ha, true);
+                        if (dm < 0) break;
+                        float r0 = Max(roads->nodes[node].radius, 8.f);
+                        // the star of the night, in the middle of the crossing
+                        vec2 d0 = N.approaches[0].dir;
+                        int car = spawnVehicle(dm, dvec3(c.x - d0.x * 1.5f, c.y - d0.y * 1.5f, cz + 0.4f), AI::dirYaw(AI::rightOf(d0)), true);
+                        if (car < 0 || vehicles[car].seats[0] < 0) {
+                            if (car >= 0) despawnVehicle(car, true);
+                            break;
+                        }
+                        {
+                            Vehicle& v = vehicles[car];
+                            v.lightsOn = night;
+                            const vec3 kSmoke[4] = {vec3(0.85f, 0.2f, 0.75f), vec3(0.25f, 0.7f, 1.f), vec3(1.f, 0.55f, 0.15f), vec3(0.95f)};
+                            v.mods.smoke = kSmoke[(ha >> 4) % 4];   // coloured tire smoke
+                            VehAI& vai = vehAI(car);
+                            vai.role = VR_EVENT;
+                            vai.eventId = evId;
+                            int drv = v.seats[0];
+                            peds[drv].brain.type = BRAIN_NONE;   // (the event drives: donuts)
+                            pedAI(drv).eventId = evId;
+                            e.ped[0] = refPed(*this, drv);
+                            e.veh[0] = refVeh(*this, car);
+                        }
+                        e.np = 1;
+                        e.nv = 1;
+                        // two cars stopped across opposite approaches, hazards on: nobody gets through
+                        for (int k = 0; k < 2; k++) {
+                            const AI::Approach& A = N.approaches[k * 2];
+                            vec2 in = -A.dir;   // travel direction arriving at the crossing
+                            vec2 bp = c + A.dir * (r0 + 6.5f) + AI::rightOf(in) * 1.9f;
+                            int bm = pickTrafficModel(*this, hash32(ha + 11u * (k + 1)), false);
+                            if (bm < 0) continue;
+                            float bz = groundHeight(bp.x, bp.y, cz + 3.f);
+                            int bv = spawnVehicle(bm, dvec3(bp.x, bp.y, bz + 0.4f), AI::dirYaw(rotate(in, k ? 0.55f : -0.55f)), false);
+                            if (bv < 0) continue;
+                            Vehicle& v = vehicles[bv];
+                            v.parked = true;
+                            v.indicator = 2;
+                            v.lightsOn = night;
+                            VehAI& vai = vehAI(bv);
+                            vai.role = VR_EVENT;
+                            vai.eventId = evId;
+                            e.veh[e.nv++] = refVeh(*this, bv);
+                        }
+                        // the crowd: in the mouths of the other two streets and on the corners, all eyes on the car
+                        vec2 spots[7];
+                        int ns = 0;
+                        for (int k = 0; k < 2; k++) {
+                            const AI::Approach& A = N.approaches[k * 2 + 1];
+                            for (int s2 = -1; s2 <= 1; s2 += 2) spots[ns++] = c + A.dir * (r0 + 4.5f + (s2 > 0 ? 0.8f : 0.f)) + AI::rightOf(A.dir) * (1.6f * s2);
+                        }
+                        for (int k = 0; k < 3; k++) {
+                            vec2 cd = normalize(N.approaches[k].dir + N.approaches[(k + 1) % 4].dir + vec2(1e-4f, 0.f));
+                            spots[ns++] = c + cd * (r0 + 5.5f);
+                        }
+                        for (int k = 0; k < ns && e.np < 8; k++) {
+                            vec2 sp = spots[k];
+                            vec3 sp3(sp, groundHeight(sp.x, sp.y, cz + 3.f));
+                            if (length(sp - pp) < 6.f || (World::gBuildings && World::gBuildings->pointInBuilding(sp, 0.5f))) continue;
+                            u32 hk = hash32(ha * 31u + k * 977u);
+                            int id = spawnActor(*this, sp3, 0.f, hk, (hk % 3 == 0) ? 4 : 0, FAC_CIVILIAN, PR_NIGHTLIFE, evId);
+                            if (id < 0) continue;
+                            // phones up filming, cheering, dancing to the music, pointing
+                            const int kStance[5] = {8, 16, 9, 8, 17};
+                            setActor(*this, id, evId, sp, yawTowards(sp, c), kStance[hk % 5], -1);
+                            if (hk % 5 == 1) pedAI(id).activity = ACT_WATCH;   // (cheers now and then)
+                            pedAI(id).clipTimer = 1.f + k;
+                            e.ped[e.np++] = refPed(*this, id);
+                        }
+#ifdef HAVE_AUDIO
+                        e.music = Audio::createEmitter(Audio::EMIT_RADIO_WORLD);
+                        e.flag = 0;
+                        for (int st = 0; st < Audio::radioStationCount(); st++) {
+                            const char* genre = Audio::radioStationGenre(st);
+                            if (genre && (strstr(genre, "Hip") || strstr(genre, "Rap") || strstr(genre, "Trap") || strstr(genre, "Reggaeton"))) {
+                                e.flag = st;
+                                break;
+                            }
+                        }
+#endif
+                        e.donut = AI::DonutState();
+                        e.donut.dir = (ha & 1) ? 1 : -1;
+                        e.donut.switchAt = 9.f + hashToFloat(hash32(ha + 5u)) * 6.f;
+                        e.pos = vec3(c, cz);
+                        e.dir = d0;
+                        e.amount = ai.forceEvent == EV_TAKEOVER ? 25 : 55 + (int)(ha % 40u);   // until somebody's call brings the police (s)
+                        e.hold = 0.f;
+                        e.done = false;
                         ok = true;
                         break;
                     }
@@ -1804,9 +1938,224 @@ void GameWorld::updateEvents(float dt) {
                 }
                 break;
             }
+            // stages: A the show (donuts, music, the crowd filming and cheering; a call brings the police), B scatter
+            // (the driver floors it away from the police, two of the crowd run for the blocking cars, the rest run
+            // or walk off), over once the street has cleared
+            case EV_TAKEOVER: {
+                int car = liveVeh(*this, e.veh[0]);
+                int drv = livePed(*this, e.ped[0]);
+                vec2 c = e.pos.xy();
+                if (car < 0) {
+                    over = true;
+                    break;
+                }
+                Vehicle& v = vehicles[car];
+                bool driverIn = drv >= 0 && peds[drv].state == PS_INVEHICLE && peds[drv].vehicle == car && v.seats[0] == drv;
+                bool night = env && (env->timeOfDay > 19.5f || env->timeOfDay < 6.f);
+#ifdef HAVE_AUDIO
+                if (e.music)
+                    Audio::setEmitter(e.music, vec3(c, e.pos.z + 1.2f), vec3(0.f), (float)e.flag, 0.f, 0.f, 0.f, e.stage == ST_A && plDist < 90.f ? 0.9f : 0.f);
+#endif
+                if (e.stage == ST_A) {
+                    if (!driverIn) {   // somebody pulled the driver out, or took the car
+                        e.threat = pp;
+                        setStage(e, ST_B);
+                        break;
+                    }
+                    v.ctl = AI::donutControls(v.sim, c, dt, e.donut);
+                    v.lightsOn = night;
+                    // the crowd: a cheer here, a point there, the odd shout
+                    if (e.fxT <= 0.f && e.np > 1) {
+                        u32 hc = hash32((u32)(e.age * 17.f) + 3u);
+                        e.fxT = 0.8f + hashToFloat(hc) * 2.2f;
+                        int id = livePed(*this, e.ped[1 + (int)(hc % (u32)(e.np - 1))]);
+                        if (id >= 0 && peds[id].state == PS_ONFOOT && peds[id].brain.type == BRAIN_WANDER && peds[id].pendingAction < 0) {
+                            peds[id].pendingAction = (hc >> 3) % 3 ? Anim::CLIP_CHEER : Anim::CLIP_POINT;
+                            if (e.barkT <= 0.f && plDist < 60.f && e.donut.smoke > 0.4f) {
+                                aiSay(id, BK_NICE_CAR, 0.6f);
+                                e.barkT = 3.f + hashToFloat(hash32(hc)) * 4.f;
+                            }
+                        }
+                    }
+                    // somebody always calls it in
+                    if (!e.asked && e.t > (float)e.amount) {
+                        addCrimeIncident(*this, peds[drv].pos, drv);
+                        e.asked = true;
+                    }
+                    // the player joins in: donuts of their own in the ring - the crowd loves it (once)
+                    if (pv >= 0 && !e.done && plDist < 18.f) {
+                        const Vehicle& mine = vehicles[pv];
+                        bool spinning = fabsf(mine.sim.body.angVel.z) > 1.1f && mine.sim.speed() > 2.f;
+                        e.hold = spinning ? e.hold + dt : Max(0.f, e.hold - dt * 0.5f);
+                        if (e.hold > 3.f) {
+                            e.done = true;
+                            payReward(*this, 150 + (int)(hash32(v.uid) % 150u), "The crowd went wild");
+                            for (int k = 1; k < e.np; k++) {
+                                int id = livePed(*this, e.ped[k]);
+                                if (id >= 0 && peds[id].brain.type == BRAIN_WANDER) peds[id].pendingAction = Anim::CLIP_CHEER;
+                            }
+                        }
+                    }
+                    // what breaks it up: a patrol car close by, the player wanted near here, a knock from the player's
+                    // car, shots (the crowd runs), or it has simply gone on long enough
+                    bool scatter = false;
+                    vec2 threat = c + e.dir * 80.f;
+                    std::vector<int> nearCars;
+                    vehiclesNear(c, 85.f, nearCars);
+                    for (int vi : nearCars)
+                        if (vehicles[vi].faction == FAC_POLICE && vi != car) {
+                            scatter = true;
+                            threat = vehicles[vi].sim.body.pos.toVec3().xy();
+                        }
+                    if (pinfo.wanted > 0 && plDist < 120.f) {
+                        scatter = true;
+                        threat = pp;
+                    }
+                    if (pv >= 0 && v.sim.impactImpulse > 1500.f && length(vehicles[pv].sim.body.pos.toVec3().xy() - v.sim.body.pos.toVec3().xy()) < 9.f) {
+                        scatter = true;
+                        threat = pp;
+                    }
+                    int running = 0;
+                    for (int k = 1; k < e.np; k++) {
+                        int id = livePed(*this, e.ped[k]);
+                        running += id >= 0 && (peds[id].brain.type == BRAIN_FLEE || peds[id].brain.type == BRAIN_COWER);
+                    }
+                    if (running >= 2) {
+                        scatter = true;
+                        threat = pp;
+                    }
+                    if (e.t > (float)e.amount + 75.f) scatter = true;
+                    if (scatter) {
+                        e.threat = threat;
+                        setStage(e, ST_B);
+                    }
+                } else if (e.stage == ST_B) {
+                    if (e.flag >= 0 && e.t <= dt * 1.5f) {
+                        // the driver floors it down whichever street the car points at, away from the threat
+                        if (driverIn) {
+                            vec2 f = v.sim.forward().xy();
+                            f = length2(f) > 1e-6f ? normalize(f) : e.dir;
+                            int node = -1;
+                            float bd = 1e9f;
+                            for (int n = 0; n < (int)laneGraph.nodes.size() && node < 0; n++)
+                                if (length(roads->nodes[n].p - c) < 1.f) node = n;
+                            (void)bd;
+                            int lane = -1;
+                            if (node >= 0) {
+                                float best = -2.f;
+                                for (const AI::Approach& A : laneGraph.nodes[node].approaches) {
+                                    if (A.outLanes.empty()) continue;
+                                    float sc = dot(A.dir, f) - 0.6f * dot(A.dir, normalize(e.threat - c + vec2(1e-4f, 0.f)));
+                                    if (sc > best) {
+                                        best = sc;
+                                        lane = A.outLanes[0];
+                                    }
+                                }
+                            }
+                            Ped& d = peds[drv];
+                            d.brain.type = BRAIN_FLEE;
+                            d.brain.target = -1;
+                            d.brain.goal = dvec3(vec3(e.threat, e.pos.z));
+                            d.brain.timer = 0.f;
+                            pedAI(drv).eventId = -1;
+                            v.parked = false;
+                            traffic.detach(car);
+                            if (lane >= 0) attachTraffic(car, lane, laneGraph.lanes[lane].u0 + 1.f);
+                            VehAI& vai = vehAI(car);
+                            vai.role = VR_TRAFFIC;
+                            vai.eventId = -1;
+                            if (plDist < 70.f) aiSay(drv, BK_FLEE, 0.8f);
+                        }
+                        // two of the crowd run for the blocking cars, the rest run (close to the police) or walk off
+                        int runners = 0;
+                        for (int k = 1; k < e.np; k++) {
+                            int id = livePed(*this, e.ped[k]);
+                            if (id < 0 || isDown(peds[id]) || peds[id].state != PS_ONFOOT) continue;
+                            Ped& p = peds[id];
+                            PedAI& pa = pedAI(id);
+                            int bvi = runners + 1 < e.nv ? liveVeh(*this, e.veh[runners + 1]) : -1;
+                            if (bvi >= 0 && vehicles[bvi].seats[0] < 0) {
+                                const Vehicle& bv = vehicles[bvi];
+                                vec2 bf = bv.sim.forward().xy();
+                                vec2 door = bv.sim.body.pos.toVec3().xy() - AI::rightOf(normalize(bf + vec2(1e-4f, 0.f))) * (vassets[bv.model].spec.boxHalf.x + 0.6f);
+                                pa.activity = ACT_EVENT;
+                                pa.targetVeh = bvi;
+                                pa.stance = 0;
+                                p.brain.type = BRAIN_GOTO;
+                                p.brain.goal = dvec3(vec3(door, groundHeight(door.x, door.y, e.pos.z + 2.f)));
+                                p.brain.speed = 4.5f;   // (running)
+                                p.brain.timer = 0.f;
+                                runners++;
+                                continue;
+                            }
+                            bool close = length(p.pos.toVec3().xy() - e.threat) < 70.f || (hash32(p.uid) & 1);
+                            freeActor(*this, id);
+                            if (close) {
+                                p.brain.type = BRAIN_FLEE;
+                                p.brain.target = -1;
+                                p.brain.goal = dvec3(vec3(e.threat, e.pos.z));
+                                p.brain.timer = 0.f;
+                            }
+                        }
+                        e.flag = -1;   // (the music is off; scatter handled)
+                    }
+                    // the runners jump into the blocking cars and are gone too
+                    int waiting = 0;
+                    for (int k = 1; k < e.np; k++) {
+                        int id = livePed(*this, e.ped[k]);
+                        if (id < 0 || peds[id].state != PS_ONFOOT) continue;
+                        PedAI& pa = pedAI(id);
+                        int bvi = pa.targetVeh;
+                        if (pa.eventId != evId || bvi < 0 || bvi >= (int)vehicles.size() || !vehicles[bvi].used || peds[id].brain.type != BRAIN_GOTO) continue;
+                        waiting++;
+                        if (length(peds[id].pos.toVec3().xy() - peds[id].brain.goal.toVec3().xy()) < 1.4f && vehicles[bvi].seats[0] < 0) {
+                            warpPedIntoVehicle(id, bvi, 0);
+                            Vehicle& bv = vehicles[bvi];
+                            bv.parked = false;
+                            bv.indicator = 0;
+                            VehAI& vai = vehAI(bvi);
+                            vai.role = VR_TRAFFIC;
+                            vai.eventId = -1;
+                            peds[id].brain.type = BRAIN_FLEE;
+                            peds[id].brain.target = -1;
+                            peds[id].brain.goal = dvec3(vec3(e.threat, e.pos.z));
+                            peds[id].brain.timer = 0.f;
+                            pa.eventId = -1;
+                            pa.targetVeh = -1;
+                            pa.activity = ACT_WALK;
+                        } else if (peds[id].brain.timer > 12.f) {
+                            freeActor(*this, id);   // could not get to it: just runs
+                            pa.targetVeh = -1;
+                        }
+                    }
+                    if ((waiting == 0 && e.t > 3.f) || e.t > 25.f) over = true;
+                }
+                break;
+            }
             default: over = true; break;
         }
         if (plDist > keepR) over = true;
+        if (over && e.type == EV_TAKEOVER) {
+            // cut short (the player left, the car was taken): nobody frozen in a seat, no car left spinning or
+            // blinking across the street - out of sight they go, in sight they drive off / stay parked
+            for (int k = 0; k < e.nv; k++) {
+                int id = liveVeh(*this, e.veh[k]);
+                if (id < 0) continue;
+                Vehicle& vv = vehicles[id];
+                int d0 = vv.seats[0];
+                bool seen = inCameraView(vv.sim.body.pos.toVec3(), 3.f) && length(vv.sim.body.pos.toVec3().xy() - pp) < 150.f;
+                if (d0 >= 0 && peds[d0].brain.type == BRAIN_NONE) {
+                    if (!seen && !peds[d0].isPlayer) {
+                        despawnVehicle(id, true);
+                        continue;
+                    }
+                    peds[d0].brain.type = BRAIN_DRIVER;
+                    vv.parked = false;
+                }
+                if (vv.indicator == 2) vv.indicator = 0;
+                if (d0 < 0 && !seen && vehAI(id).role == VR_EVENT) despawnVehicle(id, true);
+            }
+        }
         if (over && e.type == EV_CRASH) {
             // nobody may stay frozen in a seat (a knock in traffic cut short), no hazards left blinking
             for (int k = 0; k < e.np; k++) {
@@ -1838,6 +2187,25 @@ void GameWorld::updateEvents(float dt) {
         }
         if (over) releaseEvent(*this, e);
     }
+}
+
+
+std::string GameWorld::aiEventText(int* stage, vec3* pos, int* car) const {
+    for (const AmbientEvent& e : gEv.ev) {
+        if (!e.active || e.type != EV_TAKEOVER) continue;
+        int c = liveVeh(*this, e.veh[0]);
+        if (stage) *stage = e.stage;
+        if (pos) *pos = e.pos;
+        if (car) *car = c;
+        int crowd = 0;
+        for (int k = 1; k < e.np; k++) crowd += livePed(*this, e.ped[k]) >= 0;
+        const Vehicle* v = c >= 0 ? &vehicles[c] : nullptr;
+        return StrFormat("takeover stage %d t %.1f at %.0f %.0f | car %d speed %.1f yaw %.2f smoke %.2f phase %d dir %d drift %.1f | crowd %d blockers %d | "
+                         "police called %d", (int)e.stage, e.t, e.pos.x, e.pos.y, c, v ? v->sim.speed() : 0.f, v ? v->sim.body.angVel.z : 0.f, e.donut.smoke,
+                         e.donut.phase, e.donut.dir, e.donut.drift, crowd, e.nv - 1, (int)e.asked);
+    }
+    if (stage) *stage = -1;
+    return "takeover: none";
 }
 
 }  // namespace Game

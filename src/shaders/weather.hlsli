@@ -34,9 +34,9 @@ float2 rainRipples(float2 p, float t, float intensity) {
         float2 d = q - center;
         float dist = length(d);
         float radius = phase * 0.4;
-        float x = (dist - radius) * 28.0;
+        float x = (dist - radius) * 36.0;
         float ring = sin(clamp(x, -PI, PI)) * (1.0 - phase) * (1.0 - phase) * saturate(1.0 - dist / 0.42);
-        n += (dist > 1e-4 ? d / dist : 0) * ring * 0.55 * intensity;
+        n += (dist > 1e-4 ? d / dist : 0) * ring * 0.32 * intensity;
     }
     return n;
 }
@@ -75,8 +75,9 @@ void applyWetness(inout float3 albedo, inout float rough, inout float3 n, float3
     } else {
         wet *= up;
     }
-    // Porous surfaces darken (water fills the pores), all surfaces get glossier
+    // Porous surfaces darken (water fills the pores and evens out their micro-relief), all surfaces get glossier
     albedo *= lerp(1.0, lerp(0.85, 0.45, porosity), wet);
+    n = normalize(lerp(n, Ngeom, wet * porosity * 0.6));
     rough = lerp(rough, lerp(0.35, 0.1, saturate(porosity + 0.3)), wet * 0.9);
     // Puddles: a thin water film on flat ground, mirror-like with raindrop ripples
     float pud = allowPuddles * puddleMask(worldP, Ngeom) * exposed;

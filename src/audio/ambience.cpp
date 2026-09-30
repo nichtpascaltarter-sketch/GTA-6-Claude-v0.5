@@ -73,7 +73,8 @@ struct AmbienceRenderer {
     // city
     BrownNoise brL, brR;
     PinkNoise pkL, pkR;
-    Svf cityLpL, cityLpR, cityMidL, cityMidR;
+    Svf cityLpL, cityLpR, cityMidL, cityMidR, tyreBpL, tyreBpR, airHpL, airHpR;
+    float tyreAm = 1.f;
     float cityMod = 1, cityModT = 1;
     amb::PassBy pass[6];
     float passTimer = 1.f;
@@ -116,6 +117,11 @@ struct AmbienceRenderer {
     BrownNoise uwBr;
     Svf uwLp;
     float uwPh = 0;
+    // wind of the listener's own speed (motorbikes, falling, parachuting): buffeting and rush at the ears
+    float gSpeed = 0.f, buffet = 0.f, buffetT = 0.f, buffetTimer = 0.f;
+    BrownNoise spdBrL, spdBrR;
+    PinkNoise spdPkL, spdPkR;
+    Svf spdLpL, spdLpR, spdBpL, spdBpR, spdHpL, spdHpR;
     // enclosure (indoors / in a vehicle) filter on the outdoor layers
     Svf encLpL, encLpR;
     float encCut = 22000.f;
@@ -174,8 +180,8 @@ struct AmbienceRenderer {
         patterBp.set(1500.f, 0.5f);
         dropL.set(3000.f, 6.f);
         dropR.set(3500.f, 6.f);
-        roofL.set(700.f, 4.f);
-        roofR.set(760.f, 4.f);
+        roofL.set(620.f, 1.6f);
+        roofR.set(1050.f, 1.6f);
         awnL.set(1100.f, 2.5f);
         awnR.set(1250.f, 2.5f);
         carTapL.set(3200.f, 9.f);
@@ -184,8 +190,12 @@ struct AmbienceRenderer {
         indoorLp.set(320.f, 0.7f);
         curtainBp.set(2800.f, 0.7f);
         uwLp.set(260.f, 0.7f);
-        cityMidL.set(480.f, 0.5f);
-        cityMidR.set(520.f, 0.5f);
+        cityMidL.set(520.f, 0.5f);
+        cityMidR.set(570.f, 0.5f);
+        tyreBpL.set(950.f, 0.7f);
+        tyreBpR.set(1050.f, 0.7f);
+        airHpL.set(2200.f, 0.6f);
+        airHpR.set(2400.f, 0.6f);
         fanLpL.set(520.f, 0.7f);
         fanLpR.set(560.f, 0.7f);
         genLp1.set(180.f);
@@ -193,6 +203,12 @@ struct AmbienceRenderer {
         genFanBp.set(900.f, 0.8f);
         encLpL.set(20000.f, 0.7f);
         encLpR.set(20000.f, 0.7f);
+        spdLpL.set(140.f, 0.7f);
+        spdLpR.set(150.f, 0.7f);
+        spdBpL.set(650.f, 0.5f);
+        spdBpR.set(720.f, 0.5f);
+        spdHpL.set(3200.f, 0.6f);
+        spdHpR.set(3500.f, 0.6f);
     }
 
     vec3 randomAround(float dmin, float dmax, float zmin, float zmax) {
@@ -261,6 +277,16 @@ struct AmbienceRenderer {
             encLpR.set(cut, 0.7f);
         }
         encG = Lerp(1.f, 0.5f, inVeh) * Lerp(1.f, 0.28f, inside);
+        // the listener's own speed through the air (not inside a closed vehicle or a building)
+        float spd = ls.bodySpeed >= 0.f ? ls.bodySpeed : length(ls.vel);
+        float gs = SmoothStep(7.f, 45.f, spd) * (1.f - Saturate(ls.inVehicle)) * (1.f - inside) * dry;
+        gSpeed += (gs - gSpeed) * (1.f - expf(-dt / 0.25f));
+        buffetTimer -= dt;
+        if (buffetTimer <= 0.f) {
+            buffetT = nz.range(-0.4f, 0.6f);
+            buffetTimer = nz.range(0.08f, 0.35f);
+        }
+        buffet += (buffetT - buffet) * (1.f - expf(-dt / 0.06f));
 
         // filters
         float cutoff = 110.f + 60.f * s.urban;
@@ -413,7 +439,7 @@ struct AmbienceRenderer {
         ls = lsIn;
         control((float)n * kInvSR, tgt, ac);
         const float open = (1.f - shelter) * (1.f - inside) * (1.f - inVeh);
-        const float rainOut = gRain * (open + 0.45f * shelter * (1.f - inside) + 0.3f * inside + 0.35f * inVeh);
+        const float rainOut = gRain * (open + 0.3f * shelter * (1.f - inside) + 0.3f * inside + 0.35f * inVeh);
         const bool encOn = encCut < 19000.f;
         for (int i = 0; i < n; i++) {
             float l = 0.f, r = 0.f;
@@ -422,9 +448,13 @@ struct AmbienceRenderer {
                 if ((i & 63) == 0) cityMod += (cityModT - cityMod) * 0.02f;
                 float wl = nz.white(), wr = nz.white();
                 float rl = cityLpL.lp(brL.process(wl)), rr = cityLpR.lp(brR.process(wr));
-                float ml = cityMidL.bp(pkL.process(wl)), mr = cityMidR.bp(pkR.process(wr));
-                l += (rl * 0.16f + ml * 0.2f * cityMod) * gCity;
-                r += (rr * 0.16f + mr * 0.2f * cityMod) * gCity;
+                float pl = pkL.process(wl), pr = pkR.process(wr);
+                float ml = cityMidL.bp(pl), mr = cityMidR.bp(pr);
+                if ((i & 127) == 0) tyreAm += ((0.6f + 0.8f * gTraffic) * cityMod - tyreAm) * 0.05f;
+                float tl = tyreBpL.bp(pl) * tyreAm, tr = tyreBpR.bp(pr) * tyreAm;
+                float al = airHpL.hp(pl), ar = airHpR.hp(pr);
+                l += (rl * 0.075f + ml * 0.2f * cityMod + tl * 0.11f + al * 0.02f) * gCity;
+                r += (rr * 0.075f + mr * 0.2f * cityMod + tr * 0.11f + ar * 0.02f) * gCity;
             }
             // ---- passing traffic
             if (gTraffic > 1e-4f || pass[0].active) {
@@ -445,7 +475,7 @@ struct AmbienceRenderer {
                     p.engPh += p.engF * dop * kInvSR;
                     if (p.engPh >= 1.f) p.engPh -= 1.f;
                     float eng = p.engLp.process(2.f * p.engPh - 1.f) * (p.kind == 1 ? 0.8f : p.kind == 2 ? 0.35f : 0.5f);
-                    float v = (tire * 0.5f + eng * 0.12f) * env * p.gain * gTraffic;
+                    float v = (tire * 0.7f + eng * 0.12f) * env * p.gain * gTraffic;
                     float pan = p.pan0 + (p.pan1 - p.pan0) * u;
                     l += v * (0.5f - 0.45f * pan);
                     r += v * (0.5f + 0.45f * pan);
@@ -490,7 +520,7 @@ struct AmbienceRenderer {
                     if (c.gate > 1e-4f) {
                         c.ph += c.f * kInvSR;
                         if (c.ph >= 1.f) c.ph -= 1.f;
-                        float v = sinWrapped(c.ph) * c.gate * c.amp * gNight * 0.022f;
+                        float v = sinWrapped(c.ph) * c.gate * c.amp * gNight * (0.022f + 0.012f * s.wetland);
                         l += v * (0.5f - 0.4f * c.pan);
                         r += v * (0.5f + 0.4f * c.pan);
                     }
@@ -549,8 +579,9 @@ struct AmbienceRenderer {
                     sl += v * (0.5f - 0.4f * bz.pan);
                     sr += v * (0.5f + 0.4f * bz.pan);
                 }
-                l += wetLp.lp(sl) * gWet * 0.012f;
-                r += sr * gWet * 0.012f;
+                float wg = gWet * (0.012f + 0.01f * gNight);
+                l += wetLp.lp(sl) * wg;
+                r += sr * wg;
             }
             // ---- coast: breaking waves (build-up, crash, foam wash, fizz) over the surf rumble
             if (gCoast > 1e-4f) {
@@ -593,8 +624,8 @@ struct AmbienceRenderer {
                     l += (vl + thump) * (0.55f - 0.35f * w.pan) * gCoast * 0.22f;
                     r += (vr + thump) * (0.55f + 0.35f * w.pan) * gCoast * 0.22f;
                 }
-                float rum = surfLp.lp(surfBr.process(nz.white())) * gCoast * 0.1f;
-                float fzl = fizzHpL.hp(nz.white()) * fizz * gCoast * 0.012f, fzr = fizzHpR.hp(nz.white()) * fizz * gCoast * 0.012f;
+                float rum = surfLp.lp(surfBr.process(nz.white())) * gCoast * 0.065f;
+                float fzl = fizzHpL.hp(nz.white()) * fizz * gCoast * 0.022f, fzr = fizzHpR.hp(nz.white()) * fizz * gCoast * 0.022f;
                 l += rum + fzl;
                 r += rum + fzr;
             }
@@ -664,6 +695,14 @@ struct AmbienceRenderer {
                 l += v;
                 r += v;
             }
+            // wind at the listener's own speed: low buffeting, rush and hiss (bikes, falls, parachutes)
+            if (gSpeed > 1e-4f) {
+                float wl = nz.white(), wr = nz.white();
+                float g = gSpeed * gSpeed;
+                float b1 = 1.f + buffet;
+                l += (spdLpL.lp(spdBrL.process(wl)) * 1.6f * b1 + spdBpL.bp(spdPkL.process(wl)) * 0.35f + spdHpL.hp(wl) * 0.05f) * g * 0.3f;
+                r += (spdLpR.lp(spdBrR.process(wr)) * 1.6f * (1.f - 0.5f * buffet) + spdBpR.bp(spdPkR.process(wr)) * 0.35f + spdHpR.hp(wr) * 0.05f) * g * 0.3f;
+            }
             // outdoor layers heard from inside a building or a vehicle
             if (encOn) {
                 l = encLpL.lp(l) * encG;
@@ -678,7 +717,7 @@ struct AmbienceRenderer {
                 fanPh2 += 152.5f * kInvSR;
                 if (fanPh2 >= 1.f) fanPh2 -= 1.f;
                 if ((i & 127) == 0) fanAm += (nz.range(0.6f, 1.f) - fanAm) * 0.02f;
-                float hum = sinWrapped(humPh * 2.f) * 0.35f + sinWrapped(humPh) * 0.2f + sinWrapped(humPh * 3.f) * 0.1f;
+                float hum = sinCycle(humPh * 2.f) * 0.35f + sinWrapped(humPh) * 0.2f + sinCycle(humPh * 3.f) * 0.1f;
                 float tones = (sinWrapped(fanPh1) + sinWrapped(fanPh2)) * 0.25f;
                 float fw = fanPk.process(nz.white());
                 float night = 1.f - SmoothStep(6.f, 8.f, s.timeOfDay) * (1.f - SmoothStep(19.f, 21.f, s.timeOfDay));
@@ -693,9 +732,9 @@ struct AmbienceRenderer {
                 if (genPh2 >= 1.f) genPh2 -= 1.f;
                 float d1 = genLp1.process(2.f * genPh1 - 1.f), d2 = genLp2.process(2.f * genPh2 - 1.f);
                 float fan = genFanBp.bp(genPk.process(nz.white()));
-                float g = gPort * 0.03f * (1.f - 0.6f * inVeh) * (1.f - 0.7f * inside);
-                l += (d1 * 0.8f + d2 * 0.4f + fan * 0.25f) * g;
-                r += (d1 * 0.4f + d2 * 0.8f + fan * 0.25f) * g;
+                float g = gPort * 0.016f * (1.f - 0.6f * inVeh) * (1.f - 0.7f * inside);
+                l += (d1 * 0.8f + d2 * 0.4f + fan * 0.9f) * g;
+                r += (d1 * 0.4f + d2 * 0.8f + fan * 0.9f) * g;
             }
             if (gRain > 1e-4f) {
                 // drumming on an awning / station roof right overhead, the drip line in front
@@ -708,14 +747,15 @@ struct AmbienceRenderer {
                     awnEnvR *= 0.72f;
                     float closeK = 0.5f + 0.5f * roofNear;
                     float cur = curtainBp.bp(nz.white()) * 0.05f;
-                    l += (awnL.bp(al) * 0.35f * closeK + cur) * gRain * shelter * (1.f - inside);
-                    r += (awnR.bp(ar) * 0.35f * closeK + cur) * gRain * shelter * (1.f - inside);
+                    l += (awnL.bp(al) * 0.75f * closeK + cur) * gRain * shelter * (1.f - inside);
+                    r += (awnR.bp(ar) * 0.75f * closeK + cur) * gRain * shelter * (1.f - inside);
                 }
                 // on the car roof
                 if (inVeh > 1e-3f) {
                     float il = dropEnvL * 3.f, ir = dropEnvR * 3.f;
-                    l += roofL.bp(il) * 0.6f * gRain * inVeh;
-                    r += roofR.bp(ir) * 0.6f * gRain * inVeh;
+                    float ws = dropL.bp(dropEnvL) * 0.06f;  // drops on the windscreen
+                    l += (roofL.bp(il) * 0.3f + ws) * gRain * inVeh;
+                    r += (roofR.bp(ir) * 0.3f + ws * 0.8f) * gRain * inVeh;
                 }
                 // indoors: the roof and windows, muffled
                 if (inside > 1e-3f) {

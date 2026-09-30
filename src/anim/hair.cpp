@@ -701,17 +701,20 @@ static void buildFacialHair(OutfitCtx& o) {
     bool must = true, chin = kind == FH_GOATEE || kind == FH_BEARD || kind == FH_SHORTBEARD, cheeks = kind == FH_BEARD || kind == FH_SHORTBEARD;
     g.cov = [=](const BVert& v) { return region(v, must, chin, cheeks); };
     // the shell is the dense inner volume (darker, thin at its edge); the strand cards on it carry the soft outline
-    float base = kind == FH_BEARD ? 0.0072f : (kind == FH_SHORTBEARD ? 0.003f : 0.003f);
+    // (a full beard: ~5 mm of volume, more under the chin, tapering to nothing over ~2 cm at the cheek line)
+    float base = kind == FH_BEARD ? 0.0052f : (kind == FH_SHORTBEARD ? 0.003f : 0.003f);
     g.extraFn = [=](const BVert& v) -> float {
         float cv = region(v, must, chin, cheeks);
         float at = v.pa > kPi ? kTwoPi - v.pa : v.pa;
-        float chinBoost = kind == FH_BEARD ? 0.007f * sstep(35.f * deg, 5.f * deg, at) * sstep(-35.f * deg, -55.f * deg, v.pb) : 0.f;
-        return (base + chinBoost) * hs * sstep(0.f, 0.014f, cv);
+        float chinBoost = kind == FH_BEARD ? 0.0045f * sstep(35.f * deg, 5.f * deg, at) * sstep(-35.f * deg, -55.f * deg, v.pb) : 0.f;
+        return (base + chinBoost) * hs * sstep(0.f, kind == FH_BEARD ? 0.02f : 0.014f, cv);
     };
     // the shell fades into the skin colour over its outer ~8 mm (the strand cards carry the outline), so the beard
     // edge is soft rather than a painted-on patch
     g.colFn = [=](const BVert& v, vec3 cc) {
-        vec3 hairC = cc * 0.75f * (0.85f + 0.3f * hashToFloat(hash32((u32)(v.bp.x * 9000.f) ^ (u32)(v.bp.z * 7000.f) * 2654435761u)));
+        // clumpy brightness (a beard is never one flat tone) with a little light scattered through dark hair
+        float hv = hashToFloat(hash32((u32)(v.bp.x * 9000.f) ^ (u32)(v.bp.z * 7000.f) * 2654435761u));
+        vec3 hairC = cc * 0.8f * (0.75f + 0.55f * hv) + vec3(0.01f, 0.008f, 0.006f) * (0.6f + 0.8f * hv);
         float t = sstep(0.0f, 0.008f, region(v, must, chin, cheeks));
         return lerp(lerp(v.col, hairC, 0.55f), hairC, t);
     };
@@ -729,7 +732,7 @@ static void buildFacialHair(OutfitCtx& o) {
     Rng rc(hash32(d.seed * 389u + 11u));
     const float lenBase = kind == FH_BEARD ? 0.014f : (kind == FH_SHORTBEARD ? 0.0065f : (kind == FH_MUSTACHE ? 0.0095f : 0.011f));
     // short beards: fewer, two-segment cards (the shell carries most of their volume)
-    const float pick = kind == FH_BEARD ? 0.55f : (kind == FH_SHORTBEARD ? 0.34f : 0.45f);
+    const float pick = kind == FH_BEARD ? 0.75f : (kind == FH_SHORTBEARD ? 0.34f : 0.45f);
     const int NSg = kind == FH_SHORTBEARD ? 2 : 3;
     CardPt pts[4];
     for (int j = 1; j < H.rows; j++)

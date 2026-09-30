@@ -290,9 +290,25 @@ void edgeFixtures(const RoadNetwork& net, int ei, const WorldMap& map, bool pole
         f.r = 0.9f;
         fx.push_back(f);
     }
-    // Median palms on boulevards
+    // Median palms on boulevards. Where the median ends at a node that turns traffic across it (an on/off ramp, a lane drop
+    // onto a road without a median, a dead end's U-turn), the lane graph's connectors sweep over the last stretch of the
+    // median: keep its trunks well clear of those curves.
+    auto sweepEnd = [&](int ni) {
+        const RoadNode& nd = net.nodes[ni];
+        if (nd.edges.size() <= 1) return true;
+        for (int oe : nd.edges) {
+            if (oe == ei) continue;
+            const RoadEdge& o = net.edges[oe];
+            if (o.cls == RC_RAMP || o.cls == RC_HIGHWAY) return true;
+            if (nd.edges.size() == 2 && roadInfo(o.cls).median <= 0.f) return true;
+        }
+        return false;
+    };
+    const float kMedianClear = 45.f;
+    float palmS0 = e.cut0 + (sweepEnd(e.n0) ? kMedianClear : 10.f), palmS1 = e.length - e.cut1 - (sweepEnd(e.n1) ? kMedianClear : 10.f);
     if (ri.median > 0.f && !hwy && twoWay) {
         for (float s = e.cut0 + 10.f; s < e.length - e.cut1 - 10.f; s += 14.f) {
+            if (s < palmS0 || s > palmS1) continue;
             vec3 c = e.posAt(s);
             if (c.z - map.heightAt(c.x, c.y) > 2.f) continue;
             if (net.onPavement(c.xy(), c.z, 0.5f, ei)) continue;

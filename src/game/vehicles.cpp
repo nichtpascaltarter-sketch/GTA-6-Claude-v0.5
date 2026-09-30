@@ -280,6 +280,30 @@ void GameWorld::updateVehicleFx(Vehicle& v, float dt) {
             // Tide Customs upgrades: sim-driven turbo whistle/blow-off and exhaust pops on hard shifts
             float tune = Saturate(Max(v.mods.turbo ? 0.6f : 0.f, (v.mods.engine + v.mods.transmission) / 6.f));
             if (tune > 0.f) Audio::setEngineTune(v.sndEngine, v.mods.turbo ? s.turboBoost : 0.f, tune, v.shiftLatch);
+            // chassis: tyres by surface, squeal / scrub, suspension thumps, wind, gear clunks, air brakes, cabin
+            Audio::VehicleAudio va;
+            va.forward = s.forward();
+            va.speed = s.speed();
+            int surfCount[9] = {};
+            for (int w = 0; w < s.wheelCount; w++) {
+                const Vehicles::WheelState& ws = s.wheels[w];
+                if (!ws.contact) continue;
+                va.slip = Max(va.slip, ws.slip);
+                va.lateralSlip = Max(va.lateralSlip, fabsf(ws.lateralSlip));
+                va.bump = Max(va.bump, ws.compressionVel);
+                if (ws.surface < 9) surfCount[ws.surface]++;
+            }
+            for (int k = 1; k < 9; k++)
+                if (surfCount[k] > surfCount[va.surface]) va.surface = k;
+            va.gravel = va.surface == Phys::SURF_DIRT;
+            va.wetness = env ? env->wetness : 0.f;
+            va.gear = s.gear;
+            va.indicator = v.indicator;
+            va.damage = Saturate(1.f - s.engineHealth / 1000.f);
+            va.heavy = spec.cls == Vehicles::VC_BUS || spec.cls == Vehicles::VC_TRUCK || spec.cls == Vehicles::VC_SERVICE ||
+                       spec.cls == Vehicles::VC_FIRETRUCK;
+            va.player = isPlayerCar;
+            Audio::setVehicleAudio(v.sndEngine, va);
         }
     } else if (v.sndEngine) {
         Audio::destroyEmitter(v.sndEngine);
@@ -293,7 +317,8 @@ void GameWorld::updateVehicleFx(Vehicle& v, float dt) {
             slip = Max(slip, s.wheels[w].slip);
             if (s.wheels[w].surface != Phys::SURF_ASPHALT && s.wheels[w].surface != Phys::SURF_CONCRETE) surf = 1;
         }
-    if (audible && slip > 0.25f && s.speed() > 2.f && !isBoat((int)(&v - &vehicles[0]))) {
+    // (a running engine emitter voices tyre squeal itself through setVehicleAudio)
+    if (audible && !v.sndEngine && slip > 0.25f && s.speed() > 2.f && !isBoat((int)(&v - &vehicles[0]))) {
         if (!v.sndSkid) v.sndSkid = Audio::createEmitter(Audio::EMIT_TIRE_SKID);
         Audio::setEmitter(v.sndSkid, pos, s.body.vel, Saturate((slip - 0.25f) * 1.6f), (float)surf, 0, 0, 0.8f);
     } else if (v.sndSkid) {

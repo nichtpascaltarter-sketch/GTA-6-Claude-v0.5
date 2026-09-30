@@ -827,7 +827,7 @@ public:
                     vec3 f = g.vehicles[bagCar].sim.forward();
                     vec3 want = bp - f * 50.f;
                     float d = ::length(playerPos(g) - bp);
-                    if (d > 100.f || d < 20.f) t.teleport(vec3(want.x, want.y, groundAt(g, want.x, want.y)), yawTo(want.xy(), bp.xy()));
+                    if (d > 100.f || d < 20.f) t.teleport(vec3(want.x, want.y, bp.z), yawTo(want.xy(), bp.xy()));   // street level (a z from above would land on a roof downtown)
                 }
                 break;
             case 1:
@@ -846,7 +846,7 @@ public:
                         vec3 bp = vehPos(g, bagCar);
                         vec3 want = bp - g.vehicles[bagCar].sim.forward() * 45.f;
                         float d = ::length(playerPos(g) - bp);
-                        if (d > 90.f || d < 20.f) t.teleport(vec3(want.x, want.y, groundAt(g, want.x, want.y)), yawTo(want.xy(), bp.xy()));
+                        if (d > 90.f || d < 20.f) t.teleport(vec3(want.x, want.y, bp.z), yawTo(want.xy(), bp.xy()));   // street level (a z from above would land on a roof downtown)
                     }
                 } else if ((metroPhase == 1 || metroPhase == 5) && fmodf(t.stageTime, 1.f) < dt && walk.wp < (int)walk.pts.size()) {
                     placePed(g, bagman, walk.pts[walk.wp], 0.f);   // skip ahead along the stair walk

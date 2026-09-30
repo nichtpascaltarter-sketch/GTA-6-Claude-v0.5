@@ -224,12 +224,13 @@ float brickPattern(float2 uv, float rows, float cols, float mortar, out float2 c
 // as coarse gravel), and so are cracks, sealant, patches, wheel tracks, oil drips, covers and drains (road space).
 Surf genAsphalt(float2 uv) {
     Surf s;
-    float mott = tfbm(uv, 6.0, 4, 0.5) * 0.5 + 0.5;
+    float mott = tfbm(uv, 24.0, 3, 0.55) * 0.5 + 0.5;    // ~17 cm binder richness
+    float fine = tfbm(uv, 96.0, 2, 0.5) * 0.5 + 0.5;     // ~4 cm
     float big = tfbm(uv, 2.0, 3, 0.5) * 0.5 + 0.5;
     float3 c = lerp(gColorA.rgb, gColorB.rgb, 0.3 + big * 0.4);
-    c *= 0.95 + mott * 0.1;
+    c *= 0.9 + mott * 0.16 + (fine - 0.5) * 0.1;
     s.albedo = c;
-    s.height = 0.5 + (mott - 0.5) * 0.15;
+    s.height = 0.5 + (fine - 0.5) * 0.02;   // flat at the centimetre scale: the relief is the aggregate's (world.hlsl)
     s.rough = 0.86 + (mott - 0.5) * 0.08;
     s.ao = 1.0;
     return s;
