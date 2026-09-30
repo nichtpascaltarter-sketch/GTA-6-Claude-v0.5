@@ -40,16 +40,17 @@ struct Via {
 };
 
 // Clockwise loop (right turns only): south on Collins-Solano Avenue, west on 17th Street past the ferry terminal,
-// north on Bay Road along the bay, east on 48th Street at the Venetia Causeway
+// north on Bay Road along the bay, east on 47th Street (a block short of the Venetia Causeway landing, whose junction
+// is too cramped for a tram)
 const Via kVia[] = {
-    {{5206.f, 1600.f}, {0.f, -1.f}, "Collins-Solano Avenue"},
+    {{5206.f, 1560.f}, {0.f, -1.f}, "Collins-Solano Avenue"},
     {{5206.f, 250.f}, {0.f, -1.f}, "Collins-Solano Avenue"},
     {{5206.f, -1160.f}, {0.f, -1.f}, "Collins-Solano Avenue"},
     {{5080.f, -1220.f}, {-1.f, 0.f}, "17th Street"},
     {{4946.f, -1160.f}, {0.f, 1.f}, "Bay Road"},
     {{4946.f, 250.f}, {0.f, 1.f}, "Bay Road"},
-    {{4946.f, 1640.f}, {0.f, 1.f}, "Bay Road"},
-    {{5080.f, 1725.f}, {1.f, 0.f}, "48th Street"},
+    {{4936.f, 1560.f}, {0.f, 1.f}, "Bay Road"},
+    {{5080.f, 1630.f}, {1.f, 0.f}, "47th Street"},
 };
 constexpr u32 kLineRgb = 0xFF6A4D;       // streetcar coral
 constexpr float kStopSpacing = 400.f;
@@ -354,15 +355,41 @@ struct Builder {
         std::vector<float> u0(nl), u1(nl);
         std::vector<vec3> conn;
         for (int i = 0; i < nl; i++) geo.laneRange(legs[i].edge, legs[i].dir, u0[i], u1[i]);
+        // lane stretches the track follows: the curb lanes, except where a car's connector is too tight for a tram (an
+        // acute corner): there the curve starts a few metres earlier and ends later, easing the radius
+        std::vector<float> ua = u0, ub = u1;
+        auto minRadius = [](const std::vector<vec3>& c) {
+            float r = 1e9f;
+            for (size_t k = 1; k + 1 < c.size(); k++) {
+                vec2 a = c[k].xy() - c[k - 1].xy(), b = c[k + 1].xy() - c[k].xy();
+                float la = length(a), lb = length(b);
+                if (la < 1e-4f || lb < 1e-4f) continue;
+                float ang = fabsf(atan2f(cross(a, b), dot(a, b)));
+                if (ang > 1e-5f) r = Min(r, 0.5f * (la + lb) / ang);
+            }
+            return r;
+        };
+        for (int i = 0; i < nl; i++) {
+            int bi = (i + 1) % nl;
+            const RouteLeg& l = legs[i];
+            const RouteLeg& b = legs[bi];
+            connector(geo.pos(l.edge, l.dir, u1[i]), geo.tangent(l.edge, l.dir, u1[i]), geo.pos(b.edge, b.dir, u0[bi]), geo.tangent(b.edge, b.dir, u0[bi]), conn);
+            for (float ext = 1.5f; ext <= 9.f && minRadius(conn) < 9.f; ext += 1.5f) {
+                float ea = Min(ext, (ub[i] - ua[i]) * 0.25f), eb = Min(ext, (ub[bi] - ua[bi]) * 0.25f);
+                ub[i] = u1[i] - ea;
+                ua[bi] = u0[bi] + eb;
+                connector(geo.pos(l.edge, l.dir, ub[i]), geo.tangent(l.edge, l.dir, ub[i]), geo.pos(b.edge, b.dir, ua[bi]), geo.tangent(b.edge, b.dir, ua[bi]), conn);
+            }
+        }
         for (int i = 0; i < nl; i++) {
             const RouteLeg& l = legs[i];
-            int nSeg = Max(1, (int)ceilf((u1[i] - u0[i]) / 2.f));
+            int nSeg = Max(1, (int)ceilf((ub[i] - ua[i]) / 2.f));
             laneStartIdx[i] = (int)raw.size();
-            for (int k = 0; k <= nSeg; k++) raw.push_back(geo.pos(l.edge, l.dir, Lerp(u0[i], u1[i], (float)k / nSeg)));
+            for (int k = 0; k <= nSeg; k++) raw.push_back(geo.pos(l.edge, l.dir, Lerp(ua[i], ub[i], (float)k / nSeg)));
             laneEndIdx[i] = (int)raw.size() - 1;
-            const RouteLeg& b = legs[(i + 1) % nl];
-            connector(geo.pos(l.edge, l.dir, u1[i]), geo.tangent(l.edge, l.dir, u1[i]), geo.pos(b.edge, b.dir, u0[(i + 1) % nl]),
-                      geo.tangent(b.edge, b.dir, u0[(i + 1) % nl]), conn);
+            int bi = (i + 1) % nl;
+            const RouteLeg& b = legs[bi];
+            connector(geo.pos(l.edge, l.dir, ub[i]), geo.tangent(l.edge, l.dir, ub[i]), geo.pos(b.edge, b.dir, ua[bi]), geo.tangent(b.edge, b.dir, ua[bi]), conn);
             for (size_t k = 1; k + 1 < conn.size(); k++) raw.push_back(conn[k]);
         }
         // cumulative arc length (closed)
@@ -397,7 +424,7 @@ struct Builder {
         T.legU1 = u1;
         for (int i = 0; i < nl; i++) {
             RouteLeg l = legs[i];
-            l.d0 = acc[laneStartIdx[i]];
+            l.d0 = acc[laneStartIdx[i]] - (ua[i] - u0[i]);   // track position of travel coordinate u0
             T.legs.push_back(l);
         }
         T.junctions.clear();
@@ -409,8 +436,8 @@ struct Builder {
             const RoadNode& nd = net.nodes[node];
             if ((int)nd.edges.size() < 3) continue;
             TramJunction J;
-            J.sIn = acc[laneEndIdx[i]];
-            J.sOut = acc[laneStartIdx[(i + 1) % nl]];
+            J.sIn = acc[laneEndIdx[i]] + (u1[i] - ub[i]);
+            J.sOut = acc[laneStartIdx[(i + 1) % nl]] - (ua[(i + 1) % nl] - u0[(i + 1) % nl]);
             if (J.sOut < J.sIn) J.sOut += total;
             J.node = node;
             J.fromEdge = a.edge;
@@ -456,7 +483,7 @@ struct Builder {
                     if (dot(b.along, al) > 0.3f && (length(b.pos - shelter) < 34.f || length(b.flag - sign) < 30.f)) nearBus = true;
                 if (nearBus) continue;
                 Cand cd;
-                cd.s = acc[laneStartIdx[i]] + (uf - u0[i]);
+                cd.s = acc[laneStartIdx[i]] + (uf - ua[i]);
                 cd.leg = i;
                 cd.u = uf;
                 cd.st.s = cd.s;
@@ -528,17 +555,17 @@ struct Builder {
         for (int i = 0; i < nl; i++) {
             const RouteLeg& l = legs[i];
             const RoadEdge& e = net.edges[l.edge];
-            float len = u1[i] - u0[i];
+            float len = ub[i] - ua[i];
             int cnt = Max(1, (int)roundf(len / kPoleSpacing));
             float step = len / cnt;
             for (int k = 0; k <= cnt; k++) {
-                float u = Clamp(u0[i] + step * k, u0[i] + 2.5f, u1[i] - 2.5f);
-                if (k > 0 && k < cnt) u = u0[i] + step * k;
+                float u = Clamp(ua[i] + step * k, ua[i] + 2.5f, ub[i] - 2.5f);
+                if (k > 0 && k < cnt) u = ua[i] + step * k;
                 // slide off lamps, furniture, stops
                 bool placed = false;
                 for (int tryk = 0; tryk < 7 && !placed; tryk++) {
                     float du = (tryk == 0 ? 0.f : ((tryk & 1) ? 1.f : -1.f) * (float)((tryk + 1) / 2) * 1.8f);
-                    float uu = Clamp(u + du, u0[i] + 1.f, u1[i] - 1.f);
+                    float uu = Clamp(u + du, ua[i] + 1.f, ub[i] - 1.f);
                     vec3 c = edgePos(e, l.dir, uu);
                     vec2 al = edgeDir(e, l.dir, uu), rt(al.y, -al.x);
                     float lat = e.sidewalk > 1.f ? e.halfWidth + 0.5f : e.halfWidth + 1.2f;
@@ -557,7 +584,7 @@ struct Builder {
                     TramPole P;
                     P.pos = pp;
                     P.z = z;
-                    P.holds.push_back(acc[laneStartIdx[i]] + (uu - u0[i]));
+                    P.holds.push_back(acc[laneStartIdx[i]] + (uu - ua[i]));
                     T.poles.push_back(P);
                     placed = true;
                 }

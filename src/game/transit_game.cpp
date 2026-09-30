@@ -1071,6 +1071,16 @@ void publishMapLines() {
             if (i == 0) ml.name = F.name;
             lines.push_back(ml);
         }
+    for (const World::TramLine& T : N.trams) {
+        UI::MapLine ml;
+        for (size_t k = 0; k < T.p.size(); k += 8) ml.pts.push_back(T.p[k].xy());
+        vec4 c = unpackRGBA8(T.colorSrgb);
+        ml.color = UI::rgba(c.x, c.y, c.z, 1.f);
+        ml.width = 3.f;
+        ml.closed = true;
+        ml.name = T.name;
+        lines.push_back(ml);
+    }
     {
         const World::MetroLine& L = N.metro;
         UI::MapLine ml;
@@ -1189,7 +1199,12 @@ void update(GameWorld& g, float dt);
 void submit(GameWorld& g);
 bool playerOnFerry();
 }  // namespace tf
-namespace tt {   // --autoplay metro | bus | ferry (transit_test.cpp, included at the end of this file)
+namespace tr {   // Sol Beach Streetcar (transit_tram.cpp, included at the end of this file)
+void update(GameWorld& g, float dt);
+void submit(GameWorld& g);
+bool playerOnTram();
+}  // namespace tr
+namespace tt {   // --autoplay metro | bus | ferry | tram (transit_test.cpp, included at the end of this file)
 void update(GameWorld& g, float dt);
 }  // namespace tt
 
@@ -1226,6 +1241,7 @@ void update(GameWorld& g, float dt) {
     ensureBlips(g, dt);
     tb::update(g, dt);
     tf::update(g, dt);
+    tr::update(g, dt);
     double ms = (TimeSeconds() - t0) * 1000.0;
     static double acc = 0.0;
     static int frames = 0;
@@ -1242,6 +1258,7 @@ void update(GameWorld& g, float dt) {
 
 void submit(GameWorld& g) {
     tf::submit(g);
+    tr::submit(g);
     if (!gS.init || gS.assetCab < 0 || !g.renderer || !g.renderer->dynamic) return;
     Render::DynamicRenderer* dyn = g.renderer->dynamic;
     dvec3 cam = g.rig.cam.pos;
@@ -1329,11 +1346,12 @@ void submit(GameWorld& g) {
 }
 
 // For tests and the HUD: true while the player rides the SkyLine or a city bus
-bool playerRiding() { return gS.rideTrain >= 0 || tb::playerOnBus() || tf::playerOnFerry(); }
+bool playerRiding() { return gS.rideTrain >= 0 || tb::playerOnBus() || tf::playerOnFerry() || tr::playerOnTram(); }
 
 }  // namespace Transit
 }  // namespace Game
 
 #include "transit_bus.cpp"
 #include "transit_ferry.cpp"
+#include "transit_tram.cpp"
 #include "transit_test.cpp"

@@ -26,6 +26,8 @@ struct Test {
     int bus = -1, busStop = -1, busStopsRidden = 0;
     // ferry
     int pier = -1, ferry = -1;
+    // streetcar
+    int tram = -1, tramStop = -1, tramStops = 0, lastPhase = -1;
     bool skipped = false;
     bool done = false;
     // shots are taken a moment after the camera is placed (exposure and temporal effects settle)
@@ -688,11 +690,180 @@ void ferry(GameWorld& g, float dt) {
     }
 }
 
+// ---------------------------------------------------------------------------------------------------------------- streetcar
+void tram(GameWorld& g, float dt) {
+    const World::TransitNet& N = *World::gTransit;
+    Ped* pl = g.playerPed();
+    if (!tr::gT2.init || N.trams.empty()) return;
+    const World::TramLine& L = N.trams[0];
+    switch (gT.stage) {
+        case 0: {
+            // the stop two after the ferry terminal (a straight block on Bay Road)
+            int si = 0;
+            for (int k = 0; k < (int)L.stops.size(); k++)
+                if (L.stops[k].name == "Ferry Terminal") si = (k + 2) % (int)L.stops.size();
+            gT.tramStop = si;
+            const World::TramStop& st = L.stops[si];
+            teleport(g, vec3(st.pos + st.face * 1.1f + st.along * 2.f, st.z), atan2f(st.face.x, -st.face.y));
+            // the tram due next comes ~130 m before the stop
+            int best = -1;
+            float bd = 1e9f;
+            for (int i = 0; i < (int)tr::gT2.trams.size(); i++) {
+                float a = L.ahead(tr::gT2.trams[i].s, st.s);
+                if (a < bd) {
+                    bd = a;
+                    best = i;
+                }
+            }
+            if (best >= 0) {
+                tr::Tram& t = tr::gT2.trams[best];
+                if (t.materialized()) tr::despawnTram(g, t);
+                t.s = L.wrap(st.s - 130.f);
+                t.v = 8.f;
+                t.phase = 0;
+                t.next = si;
+                t.passedJ = -1;
+                t.lineJ = -1;
+                gT.tram = best;
+            }
+            next(1);
+            break;
+        }
+        case 1: {
+            tr::Tram& t = tr::gT2.trams[gT.tram];
+            const World::TramStop& st = L.stops[gT.tramStop];
+            g.rig.yaw = atan2f(st.along.x, -st.along.y);   // look up the street toward the coming tram
+            if (t.materialized() && gT.shot == 0 && L.ahead(t.s, st.s) < 50.f && gT.stageT > 1.f) {
+                vec3 tp = g.vehicles[t.sec[0]].sim.body.pos.toVec3();
+                scriptCam(g, vec3(st.pos + st.along * 16.f + st.face * 0.4f, st.z + 1.9f), tp + vec3(0, 0, 1.6f), 55.f);
+                snap(g, "tram_arriving");
+            }
+            if (t.materialized() && t.phase == 1 && t.next == gT.tramStop && t.doors > 0.9f) {
+                releaseCam(g);
+                next(2);
+            }
+            if (gT.stageT > 240.f) {
+                LOG("Transit test [tram]: FAILED the streetcar never arrived (materialized %d phase %d next %d s %.0f v %.1f held %.1f)", (int)t.materialized(), t.phase,
+                    t.next, t.s, t.v, t.held);
+                gT.done = true;
+            }
+            break;
+        }
+        case 2: {
+            tr::Tram& t = tr::gT2.trams[gT.tram];
+            if (!t.materialized() || t.phase != 1) {
+                next(1);
+                return;
+            }
+            const World::TramStop& st = L.stops[gT.tramStop];
+            if (gT.stageT > 0.5f && gT.stageT - dt <= 0.5f) {
+                vec3 mid = g.vehicles[t.sec[1]].sim.body.pos.toVec3();
+                scriptCam(g, vec3(st.pos - st.along * 14.f + st.face * 1.4f, st.z + 2.2f), mid + vec3(0, 0, 1.5f), 58.f);
+                snap(g, "tram_at_stop");
+            }
+            if (gT.stageT < 2.f) return;
+            releaseCam(g);
+            int door;
+            float dd;
+            int mod = tr::nearestDoor(g, t, pl->pos.toVec3().xy(), door, dd);
+            if (mod < 0) return;
+            gT.path.assign(1, tr::tramDoorPoint(g, t.sec[mod], mod, door, 0.9f).xy());
+            gT.wp = 0;
+            if (followPath(g, dt, 0.6f) || dd < 1.6f || gT.stageT > 10.f) {
+                g.ctl.enter.pressed = true;
+                next(3);
+            }
+            break;
+        }
+        case 3: {
+            if (tr::gT2.ride >= 0) {
+                LOG("Transit test [tram]: boarded, money %lld", g.pinfo.money);
+                gT.tramStops = 0;
+                gT.lastPhase = 1;
+                next(4);
+            } else if (gT.stageT > 8.f) {
+                LOG("Transit test [tram]: boarding failed (state %d), retrying", (int)pl->state);
+                next(2);
+            } else if (gT.stageT > 1.f && fmodf(gT.stageT, 1.5f) < dt) {
+                g.ctl.enter.pressed = true;
+            }
+            break;
+        }
+        case 4: {
+            if (tr::gT2.ride < 0) {
+                LOG("Transit test [tram]: FAILED no longer aboard");
+                gT.done = true;
+                return;
+            }
+            tr::Tram& t = tr::gT2.trams[tr::gT2.ride];
+            gT.diagT -= dt;
+            if (gT.diagT <= 0.f) {
+                gT.diagT = 5.f;
+                LOG("Transit test [tram]: s %.0f v %.1f a %.2f phase %d next %d (%s) doors %.2f held %.1f lineJ %d passedJ %d", t.s, t.v, t.a, t.phase, t.next,
+                    L.stops[t.next].name.c_str(), t.doors, t.held, t.lineJ, t.passedJ);
+            }
+            if (t.phase == 1 && gT.lastPhase == 0) {
+                gT.tramStops++;
+                LOG("Transit test [tram]: stopped at %s", L.stops[t.next].name.c_str());
+            }
+            gT.lastPhase = t.phase;
+            // a look at the tram from the sidewalk while it runs
+            if (t.phase == 0 && t.v > 6.f && gT.shot == 2) {
+                vec3 c = g.vehicles[t.sec[1]].sim.body.pos.toVec3();
+                vec3 f = g.vehicles[t.sec[1]].sim.forward();
+                vec3 side = normalize(cross(f, vec3(0, 0, 1)));
+                scriptCam(g, c + side * 9.f + f * 22.f + vec3(0, 0, 3.f), c + vec3(0, 0, 1.4f), 55.f);
+                snap(g, "tram_riding");
+            } else if (gT.shot >= 3 && g.rig.scriptActive && gT.pendName.empty() && g.requestScreenshot.empty()) {
+                releaseCam(g);
+            }
+            if (gT.tramStops >= 1 && !gT.skipped && t.phase == 0 && t.v > 2.f && gT.shot >= 3) {
+                g.ctl.skip.down = true;
+                if (tr::gT2.skipStage == 1) {
+                    gT.skipped = true;
+                    LOG("Transit test [tram]: skipping to the next stop");
+                }
+            }
+            if (gT.skipped && t.phase == 1 && tr::gT2.skipStage == 0 && t.doors > 0.8f) {
+                snap(g, "after_skip");
+                next(5);
+            }
+            if (gT.stageT > 420.f) {
+                LOG("Transit test [tram]: FAILED ride timeout");
+                gT.done = true;
+            }
+            break;
+        }
+        case 5: {
+            if (tr::gT2.ride >= 0) {
+                if (gT.stageT > 1.5f && fmodf(gT.stageT, 1.5f) < dt) g.ctl.enter.pressed = true;
+                if (gT.stageT > 30.f) {
+                    LOG("Transit test [tram]: FAILED could not get off");
+                    gT.done = true;
+                }
+                return;
+            }
+            if (gT.stageT > 3.f && gT.stageT - dt <= 3.f) {
+                vec3 pp = pl->pos.toVec3();
+                scriptCam(g, pp + vec3(6.f, -6.f, 3.f), pp + vec3(0, 0, 1.f), 60.f);
+                snap(g, "tram_got_off");
+                LOG("Transit test [tram]: PASSED rode, skipped and got off at (%.0f, %.0f) (stops served %d, riders on/off %d/%d, bells %d)", pp.x, pp.y,
+                    tr::gT2.stopsServed, tr::gT2.riderOn, tr::gT2.riderOff, tr::gT2.bells);
+                next(6);
+            }
+            break;
+        }
+        default:
+            if (gT.stageT > 2.f) gT.done = true;
+            break;
+    }
+}
+
 void update(GameWorld& g, float dt) {
     if (!gT.checked) {
         gT.checked = true;
         const char* a = Platform::argValue("autoplay");
-        if (a && (strcmp(a, "metro") == 0 || strcmp(a, "bus") == 0 || strcmp(a, "ferry") == 0)) {
+        if (a && (strcmp(a, "metro") == 0 || strcmp(a, "bus") == 0 || strcmp(a, "ferry") == 0 || strcmp(a, "tram") == 0)) {
             gT.mode = a;
             LOG("Transit test [%s]: start", a);
             mu::setFlag(g, mu::EX_INTRO_DONE, 1);   // no opening shots or prologue call during the test
@@ -739,6 +910,7 @@ void update(GameWorld& g, float dt) {
     if (gT.mode == "metro") metro(g, dt);
     else if (gT.mode == "bus") bus(g, dt);
     else if (gT.mode == "ferry") ferry(g, dt);
+    else if (gT.mode == "tram") tram(g, dt);
     if (gT.done) {
         releaseCam(g);
         LOG("Transit test [%s]: done at t=%.1f", gT.mode.c_str(), gT.t);

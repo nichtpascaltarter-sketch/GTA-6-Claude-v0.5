@@ -219,7 +219,7 @@ bool emitGarment(OutfitCtx& o, const GarmentDef& g) {
     L.margin = g.hideMargin;
     L.t0 = t0;
     L.t1 = t1;
-    if (g.hides) o.layers.push_back(L);
+    o.layers.push_back(L);   // later garments hide it where they cover it (decals included: pocket stitching under a shirt)
     return true;
 }
 
@@ -778,7 +778,7 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
             vec3 upv(0, 0, 1);
             vec3 p0 = base - upv * 0.004f * s;
             vec3 p1 = base + upv * h + radial * 0.004f * s;
-            vec3 p2 = base + upv * (h * 0.15f) + radial * (0.018f * s + 0.01f * front * s);
+            vec3 p2 = base - upv * (0.006f * s) + radial * (0.008f * s + 0.005f * front * s);   // the fall rests on the shirt
             // collar points either side of the opening (shirts; the polo's are short and round)
             float thw = wrapAngle(bv.pb);
             float tip = bump(fabsf(thw), top == TOP_POLO ? 0.36f : 0.3f, 0.13f) * (top == TOP_POLO ? 0.55f : 1.f);

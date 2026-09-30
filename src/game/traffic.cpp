@@ -91,7 +91,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
         v.indicator = out.indicator;
         v.hornOn = out.horn;
         // autopilot hung on a ledge (see the AI car recovery below): back onto the lane a few meters on
-        bool hung = !d->dummy && d->vTarget > 1.f && v.sim.speed() < 0.5f && (v.sim.up().z < 0.94f || v.sim.wheelsOnGround < 3) && d->path >= 0;
+        bool hung = !d->dummy && d->vTarget > 1.f && v.sim.speed() < 0.5f && (v.sim.up().z < 0.94f || v.sim.wheelsOnGround < Min(3, v.sim.wheelCount)) && d->path >= 0;
         va.hungTime = hung ? va.hungTime + dt : 0.f;
         if (va.hungTime > 5.f) {
             float u = Min(d->u + 4.f, laneGraph.pathLength(d->path) - 0.5f);
@@ -470,7 +470,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
     }
     // ---- hung up on a ledge or kerb (a wheel pair off the ground, nose tilted) and going nowhere although it wants to:
     // back onto the lane a few meters on, out of view, or after a long while even in view (better than a jam)
-    bool hung = !d->dummy && d->vTarget > 1.f && v.sim.speed() < 0.5f && (v.sim.up().z < 0.94f || v.sim.wheelsOnGround < 3) && d->path >= 0;
+    bool hung = !d->dummy && d->vTarget > 1.f && v.sim.speed() < 0.5f && (v.sim.up().z < 0.94f || v.sim.wheelsOnGround < Min(3, v.sim.wheelCount)) && d->path >= 0;
     va.hungTime = hung ? va.hungTime + dt : 0.f;
     if (va.hungTime > 5.f && (!inView || camD > 70.f || va.hungTime > 20.f)) {
         float u = Min(d->u + 4.f, laneGraph.pathLength(d->path) - 0.5f);

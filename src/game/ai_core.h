@@ -347,6 +347,10 @@ struct Driver {
     float stuckTime = 0.f, blockedTime = 0.f, honkTimer = 0.f, hornHold = 0.f, recoverTimer = 0.f, offRouteTime = 0.f;
     float flipTime = 0.f, lostTime = 0.f, mutualTime = 0.f;
     int recoverDir = 0;
+    vec2 stuckAnchor = vec2(1e9f);  // where the car stood when it last made progress while wanting to move
+    int kturns = 0;             // three-point-turn back-ups on the current path
+    bool kturn = false;         // the running recovery is a three-point-turn back-up (keeps the path)
+    float kturnT = 0.f;         // time running wide at full lock (three-point-turn trigger)
     vec2 threat;                // flee / pull-over reference
     float modeTimer = 0.f;
     vec2 dest;                  // DM_ROUTE / DM_EMERGENCY destination
@@ -372,6 +376,7 @@ struct Driver {
 
 struct TrafficStats {
     long redViolations = 0, stopSignViolations = 0, stuckEvents = 0, recoveries = 0, relocalizations = 0, deadlockBreaks = 0;
+    long kTurns = 0;
 };
 
 class TrafficCore {
@@ -418,6 +423,7 @@ public:
     void clearRoute(Driver& d);
     // Spawning support: true if a vehicle of half length hl fits at (lane, u) with `gap` meters of free space
     bool laneFree(int lane, float u, float hl, float gap) const;
+    bool rearClear(const Driver& d, vec2 pos, vec2 fwd, float dist) const;   // nothing within dist behind the rear bumper
     // Signals and ped crossing support
     SignalState signalFor(const Driver& d) const;
 

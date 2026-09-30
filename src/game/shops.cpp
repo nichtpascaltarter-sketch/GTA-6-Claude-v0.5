@@ -977,6 +977,14 @@ void updateTideCustoms(GameWorld& g, ShopSite& s, int shopIndex, float dt) {
     int v = gShops.resprayVeh;
     bool vehOk = v >= 0 && v < (int)g.vehicles.size() && g.vehicles[v].used && !g.vehicles[v].exploded;
     if (gShops.garageShop != shopIndex) return;
+    if (vehOk && (gShops.resprayStage == 1 || gShops.resprayStage == 2)) {
+        // hold the car still: the brake pedal at a standstill means reverse, so stop it and keep the handbrake on
+        Vehicle& hv = g.vehicles[v];
+        float sp = vehicleSpeed(g, v);
+        hv.ctl = Vehicles::VehicleControls();
+        hv.ctl.handbrake = true;
+        hv.ctl.brake = sp > 0.6f ? 1.f : 0.f;
+    }
     if (gShops.resprayStage == 1 && g.fadedOut()) {
         if (!vehOk) {
             gShops.resprayStage = 3;
@@ -1026,8 +1034,8 @@ void updateTideCustoms(GameWorld& g, ShopSite& s, int shopIndex, float dt) {
         g.rig.scriptPos = dvec3(cp);
         g.rig.scriptTarget = dvec3(c + vec3(0.f, 0.f, 0.3f));
         g.rig.scriptFov = 50.f;
-        veh.ctl = Vehicles::VehicleControls();
-        veh.ctl.brake = 1.f;
+        veh.sim.body.vel = vec3(0.f);
+        veh.sim.body.angVel = vec3(0.f);
         int page = gShops.modPage;
         bool preview = page == MP_PRIMARY || page == MP_SECONDARY || page == MP_FINISH || page == MP_TINT || page == MP_NEON || page == MP_SMOKE;
         if (preview && gMenu.cursor != gShops.modCursor && gMenu.cursor >= 0 && gMenu.cursor < (int)gMenu.items.size()) {

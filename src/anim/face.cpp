@@ -147,7 +147,7 @@ void addHeadPrims(BuildCtx& c) {
         vec3 d2 = T + vec3(0, -0.0105f, 0.0098f);   // supratip: the dorsum blends into the lobule here
         // deepen the nasion (the brow ridge and mid-face blends fill it in)
         {
-            Prim& q = S.prims[S.ellipsoid(Pv(N + vec3(0, 0.0094f, 0.0005f)), vec3(0.0105f, 0.0065f, 0.009f) * hs, HM, R(0.008f))];
+            Prim& q = S.prims[S.ellipsoid(Pv(N + vec3(0, 0.0096f, -0.001f)), vec3(0.0095f, 0.0065f, 0.0085f) * hs, HM, R(0.013f))];
             q.op = OP_SUB;
         }
         // nasal pyramid: the sidewalls from the face up to the ridge (the ridge cone alone would float in front of
@@ -184,7 +184,7 @@ void addHeadPrims(BuildCtx& c) {
         // upper lid (hooded / monolid for high lidFold), thick margin
         float up = 0.0012f + 0.0016f * D.lidFold;
         S.ellipsoid(Pv(e + vec3(0, -0.0006f, 0.0032f)), vec3(er + 0.0019f, er + up + 0.0003f, er * 0.8f) * hs, HM, R(0.0035f));
-        S.ellipsoid(Pv(e + vec3(0, -0.001f, -0.0035f)), vec3(er + 0.0013f, er + 0.0011f, er * 0.62f) * hs, HM, R(0.003f));
+        S.ellipsoid(Pv(e + vec3(0, -0.001f, -0.0035f)), vec3(er + 0.0013f, er + 0.0011f, er * 0.62f) * hs, HM, R(0.0045f));
         float bag = Saturate(1.2f * age - 0.35f + 0.3f * full);
         if (bag > 0.02f) S.ellipsoid(Pv(e + vec3(sx * 0.002f, 0.0052f, -0.0128f)), vec3(0.0105f, 0.0042f, 0.0042f) * (hs * (0.6f + 0.4f * bag)), HM, R(0.005f));
     }

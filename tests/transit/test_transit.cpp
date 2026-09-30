@@ -2,7 +2,8 @@
 // (src/game/transit_schedule.h): generates the world, then checks the metro loop (continuity, level platforms, clearance
 // over the roads, piers off the pavement), the bus routes (closed chains of drivable directed edges, stops on the curb
 // side of their route legs, spacing, shelters off the pavement), the ferry legs (open water from berth to berth) and the
-// train timetables (every station served with its dwell, speed and acceleration limits, doors only while stopped).
+// train timetables (every station served with its dwell, speed and acceleration limits, doors only while stopped) and
+// the streetcar loop (track on the road surface, curves, right turns, stops and overhead line).
 // Build: g++ -O2 -std=c++17 -I. tests/transit/test_transit.cpp -o /tmp/test_transit -lpthread
 // Run:   /tmp/test_transit          (exit code 1 on failure)
 #include "../../tools/native_stubs.cpp"
@@ -217,6 +218,72 @@ void checkTimetable() {
     }
 }
 
+// Streetcar: a closed track of 1 m samples on the road surface, gentle enough curves, right turns only, stops on the
+// sidewalk beside the curb with room for a whole tram between junctions, poles off the pavement, wire spans held
+void checkTram(const WorldMap& map, const RoadNetwork& net) {
+    (void)map;
+    EXPECT(!gTransit->trams.empty(), "no streetcar line");
+    if (gTransit->trams.empty()) return;
+    const TramLine& T = gTransit->trams[0];
+    int n = (int)T.p.size();
+    EXPECT(T.length > 3000.f && T.length < 12000.f, "loop length %.0f", T.length);
+    EXPECT(fabsf(T.ds * n - T.length) < 0.5f, "sample spacing %.3f x %d vs %.1f", T.ds, n, T.length);
+    int offRoad = 0, jumps = 0, tight = 0;
+    float minR = 1e9f;
+    for (int i = 0; i < n; i++) {
+        vec3 a = T.p[i], b = T.p[(i + 1) % n];
+        if (length(b.xy() - a.xy()) > T.ds * 1.5f || fabsf(b.z - a.z) > 0.3f) jumps++;
+        float z;
+        if (!net.surfaceHeight(a.xy(), &z, a.z + 2.f) || fabsf(z - a.z) > 0.25f) offRoad++;
+        vec2 p0 = T.p[(i + n - 4) % n].xy(), p1 = a.xy(), p2 = T.p[(i + 4) % n].xy();
+        vec2 u = normalize(p1 - p0), w = normalize(p2 - p1);
+        float ang = fabsf(atan2f(cross(u, w), dot(u, w)));
+        float r = ang > 1e-4f ? (0.5f * (length(p1 - p0) + length(p2 - p1))) / ang : 1e9f;
+        minR = Min(minR, r);
+        if (r < 7.f) {
+            if (tight < 6) printf("  tight curve r %.1f m at s %.0f (%.0f, %.0f)\n", r, i * T.ds, a.x, a.y);
+            tight++;
+        }
+    }
+    EXPECT(jumps == 0, "%d track jumps", jumps);
+    EXPECT(offRoad == 0, "%d track samples off the road surface", offRoad);
+    EXPECT(tight == 0, "%d samples with a radius under 7 m (tightest %.1f m)", tight, minR);
+    printf("streetcar: %.2f km, tightest radius %.1f m, %zu stops, %zu junctions, %zu poles, %zu wire points\n", T.length / 1000.f, minR, T.stops.size(),
+           T.junctions.size(), T.poles.size(), T.wire.size());
+    // right turns only
+    for (const TramJunction& J : T.junctions) EXPECT(J.turn == 0 || J.turn == 1, "junction %d turn %d", J.node, J.turn);
+    // stops: in order, spaced, whole tram between the junctions, shelter on the sidewalk
+    EXPECT(T.stops.size() >= 8, "%zu stops", T.stops.size());
+    for (size_t k = 0; k < T.stops.size(); k++) {
+        const TramStop& st = T.stops[k];
+        const TramStop& nx = T.stops[(k + 1) % T.stops.size()];
+        float gap = T.ahead(st.s, nx.s);
+        EXPECT(gap > 240.f && gap < 700.f, "stops %s -> %s %.0f m apart", st.name.c_str(), nx.name.c_str(), gap);
+        // a tram at the stop (rear .. front) overlaps no junction box (sIn .. sOut)
+        float rear = T.wrap(st.s - tram_dims::kLength);
+        for (const TramJunction& J : T.junctions) {
+            float box = J.sOut - J.sIn;
+            bool overlap = T.ahead(rear, J.sIn) < tram_dims::kLength || T.ahead(rear, T.wrap(J.sOut)) < tram_dims::kLength || T.ahead(J.sIn, rear) < box;
+            EXPECT(!overlap, "stop %s: a waiting tram reaches into junction %d", st.name.c_str(), J.node);
+        }
+        EXPECT(!net.onPavement(st.pos, st.z, 0.5f), "stop %s shelter on the pavement", st.name.c_str());
+        float sm = st.s - tram_dims::kLength * 0.5f;   // the shelter stands beside the middle of the tram
+        vec2 curbPt = T.at(sm).xy() + vec2(T.dirAt(sm).y, -T.dirAt(sm).x) * st.curbLat;
+        EXPECT(length(curbPt - st.pos) < 8.f, "stop %s shelter %.1f m from the curb", st.name.c_str(), length(curbPt - st.pos));
+    }
+    // poles on the sidewalk, wire supports no further apart than a span can hang
+    for (const TramPole& P : T.poles) {
+        EXPECT(!net.onPavement(P.pos, P.z, 0.2f), "pole at (%.1f, %.1f) on the pavement", P.pos.x, P.pos.y);
+        EXPECT(!P.holds.empty(), "pole without a hold");
+    }
+    int longSpans = 0;
+    for (size_t k = 0; k < T.wire.size(); k++) {
+        float a = T.wire[k], b = k + 1 < T.wire.size() ? T.wire[k + 1] : T.wire[0] + T.length;
+        if (b - a > 70.f) longSpans++;
+    }
+    EXPECT(longSpans == 0, "%d contact wire spans longer than 70 m", longSpans);
+}
+
 int main() {
     Jobs::init(2);
     WorldMap m;
@@ -232,6 +299,7 @@ int main() {
     checkBuses(m, roads);
     checkFerries(m);
     checkTimetable();
+    checkTram(m, roads);
     printf("%d checks, %d failures\n", gChecks, gFail);
     Jobs::shutdown();
     return gFail ? 1 : 0;

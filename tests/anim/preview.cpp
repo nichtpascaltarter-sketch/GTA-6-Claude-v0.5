@@ -105,6 +105,7 @@ static float cardAlpha(u32 mat, vec2 uv, float dens) {
 }
 
 static bool wire = false;
+static bool opaqueCards = false;   // PREVIEW_OPAQUECARDS: draw strand cards like the current renderer (opaque, culled)
 static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const std::vector<vec3>& N, const std::vector<vec3>& A,
                      const std::vector<u32>& mats, const std::vector<u32>& idx, const std::vector<vec2>* UV = nullptr,
                      const std::vector<float>* AL = nullptr) {
@@ -124,7 +125,7 @@ static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const
         vec3 a = sp[i0], b = sp[i1], c = sp[i2];
         float area = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
         u32 matT = mats[i0];
-        bool card = UV && (matT & 0xff) == MAT_HAIR && ((matT >> 8) & 15u) != 0;
+        bool card = UV && (matT & 0xff) == MAT_HAIR && ((matT >> 8) & 15u) != 0 && !opaqueCards;
         if (area >= 0.f && !card) continue;   // backface (screen y down => CCW front has negative area); cards: two-sided
         if (fabsf(area) < 1e-12f) continue;
         int x0 = Max(0, (int)floorf(Min(a.x, Min(b.x, c.x)))), x1 = Min(img.w - 1, (int)ceilf(Max(a.x, Max(b.x, c.x))));
@@ -369,6 +370,7 @@ int main(int argc, char** argv) {
     W *= ss;
     H *= ss;
     wire = getenv("PREVIEW_WIRE") != nullptr;
+    opaqueCards = getenv("PREVIEW_OPAQUECARDS") != nullptr;
     if (pair) {
         // takedown pair: character 0 = victim, character 1 = attacker 0.55 m behind it (same seed variations)
         clipList = {CLIP_TAKEDOWN_VICTIM, CLIP_TAKEDOWN_ATTACKER};

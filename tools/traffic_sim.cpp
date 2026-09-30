@@ -564,8 +564,9 @@ struct Sim {
                 where += StrFormat(" pos (%.1f %.1f) latErr %.2f diag %.2f %.2f %.2f %.2f steer %.2f vF %.2f yawRate %.2f heading %.3f pathDir %.3f steerOut %.2f imp %.0f", c.s.body.pos.x, c.s.body.pos.y, d->latErr, d->diag[0], d->diag[1], d->diag[2], d->diag[3], c.ctl.steer,
                                    c.s.forwardSpeed(), c.s.body.angVel.z, atan2f(c.s.forward().y, c.s.forward().x), atan2f(G.pathTangent(d->path, d->u).y, G.pathTangent(d->path, d->u).x), c.s.steerOut, c.s.impactImpulse);
                 std::string nxt = d->routeLen > 0 && !G.isLane(d->route[0]) ? StrFormat("next conn %d sig %d", d->route[0] - (int)G.lanes.size(), (int)G.movementSignal(G.conn(d->route[0]).node, G.conn(d->route[0]).approach, G.conn(d->route[0]).turn, time)) : std::string("next -");
-                LOG("WATCH t=%.2f car %d %s %s v %.1f vT %.1f stop %.1f obst %.1f(%d) gateConn %d committed %d amberGo %d stopDone %d mode %d thr %.2f brk %.2f stk %.2f rec %.2f col %d", time, i, where.c_str(), nxt.c_str(), c.s.speed(), d->vTarget, d->stopDist,
-                    d->obstDist, d->obstBody, d->gateConn, (int)d->committed, (int)d->amberGo, (int)d->stopDone, d->mode, c.ctl.throttle, c.ctl.brake, d->stuckTime, d->recoverTimer, c.s.impactCollider);
+                LOG("WATCH t=%.2f car %d %s %s v %.1f vT %.1f stop %.1f obst %.1f(%d) gateConn %d committed %d amberGo %d stopDone %d mode %d thr %.2f brk %.2f stk %.2f rec %.2f col %d [%s wb %.2f maxSteer %.2f]", time, i, where.c_str(), nxt.c_str(), c.s.speed(), d->vTarget, d->stopDist,
+                    d->obstDist, d->obstBody, d->gateConn, (int)d->committed, (int)d->amberGo, (int)d->stopDone, d->mode, c.ctl.throttle, c.ctl.brake, d->stuckTime, d->recoverTimer, c.s.impactCollider,
+                    models[c.model].name.c_str(), c.info.wheelbase, c.info.maxSteer);
             }
             if (tc.stats.redViolations > redB) {
                 events.push_back({c.s.body.pos.toVec3().xy(), 1, time});
@@ -760,7 +761,7 @@ struct Sim {
                 trails[c.trailId].spd.push_back(v);
             }
             // hung on a ledge / kerb: back onto the lane a few meters on (game: out of view, or after 20 s)
-            bool hung = d && !d->dummy && d->vTarget > 1.f && v < 0.5f && (c.s.up().z < 0.94f || c.s.wheelsOnGround < 3) && d->path >= 0;
+            bool hung = d && !d->dummy && d->vTarget > 1.f && v < 0.5f && (c.s.up().z < 0.94f || c.s.wheelsOnGround < Min(3, c.s.wheelCount)) && d->path >= 0;
             c.hungTime = hung ? c.hungTime + h : 0.f;
             if (c.hungTime > 5.f) {
                 float u = Min(d->u + 4.f, w->lg.pathLength(d->path) - 0.5f);
@@ -916,7 +917,7 @@ struct Sim {
         printf("collisions: %ld (%.2f per vehicle-hour), hard (>3000 Ns): %ld (%.2f/veh-h)\n", collisions, collisions / Max(vh, 1e-6), hardCollisions, hardCollisions / Max(vh, 1e-6));
         printf("static impacts (walls/props >2500 Ns): %ld, props broken: %ld\n", staticImpacts, propHits);
         printf("red-light violations: %ld, stop-sign violations: %ld\n", tc.stats.redViolations, tc.stats.stopSignViolations);
-        printf("stuck recoveries: %ld, relocalizations: %ld, deadlocks (>60 s waits): %ld, respawns: %ld, lifted off ledges: %ld\n", tc.stats.stuckEvents, tc.stats.relocalizations, deadlocks, respawns, unhung);
+        printf("stuck recoveries: %ld, three-point turns: %ld, relocalizations: %ld, deadlocks (>60 s waits): %ld, respawns: %ld, lifted off ledges: %ld\n", tc.stats.stuckEvents, tc.stats.kTurns, tc.stats.relocalizations, deadlocks, respawns, unhung);
         printf("pedestrians hit: %ld\n", pedHits);
         const char* names[] = {"highway", "boulevard", "avenue", "street", "lane", "rural", "dirt", "ramp"};
         printf("average speed by road class (km/h):");

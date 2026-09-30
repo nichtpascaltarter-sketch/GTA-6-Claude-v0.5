@@ -497,6 +497,28 @@ bool TrafficCore::laneFree(int lane, float u, float hl, float gap) const {
     return ok;
 }
 
+bool TrafficCore::rearClear(const Driver& d, vec2 pos, vec2 fwd, float dist) const {
+    vec2 rgt = rightOf(fwd);
+    vec2 rb = pos - fwd * d.info.rearLen;   // rear bumper
+    int self = driverBody(d.vehicle);
+    float z = self >= 0 ? bodies[self].z : 0.f;
+    bool ok = true;
+    float r = dist + kMaxBodyExtent + d.info.halfWid;
+    vec2 mid = rb - fwd * (dist * 0.5f);
+    hash.query(bodies, mid - vec2(r), mid + vec2(r), [&](int bi) {
+        if (!ok || bi == self) return;
+        const Body& b = bodies[bi];
+        if (self >= 0 && fabsf(b.z - z) > 3.f) return;
+        vec2 bR = rightOf(b.fwd);
+        float extA = fabsf(dot(b.fwd, fwd)) * b.halfLen + fabsf(dot(bR, fwd)) * b.halfWid;   // its extent along our axes
+        float extL = fabsf(dot(b.fwd, rgt)) * b.halfLen + fabsf(dot(bR, rgt)) * b.halfWid;
+        vec2 rel = b.pos - rb;
+        float behind = -dot(rel, fwd), lat = dot(rel, rgt);
+        if (behind + extA > -0.2f && behind - extA < dist && fabsf(lat) < d.info.halfWid + extL + 0.25f) ok = false;
+    });
+    return ok;
+}
+
 SignalState TrafficCore::signalFor(const Driver& d) const {
     const int NL = (int)g->lanes.size();
     int c = -1;
@@ -532,6 +554,7 @@ void TrafficCore::advancePath(Driver& d) {
     }
     d.path = next;
     d.u = (next < NL ? G.lanes[next].u0 : 0.f) + Max(over, 0.f);
+    d.kturns = 0;
     d.enterTime = (float)time;
     d.committed = false;
     d.stopDone = false;
@@ -982,6 +1005,7 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     limit = Min(limit, d.info.topSpeed * 0.9f);
     float latAcc = P.latAcc * (d.mode == DM_FLEE ? 1.35f : 1.f);
     float lookDist = Clamp(v * v / (2.f * P.decel) + v * 2.5f + 30.f, 40.f, 260.f);
+    const float kCar = sinf(d.info.maxSteer) / Max(d.info.wheelbase, 1.f);   // tightest front-axle path at full lock
     // ---- walk the route: curvature, limits, corridor samples
     float vCurve = 99.f, vLimAhead = 99.f;
     Sample smp[96];
@@ -1007,6 +1031,8 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
                     float k = fabsf(G.pathCurv(path, uu));
                     if (k > 2e-4f) {
                         float vc = sqrtf(latAcc / k);
+                        // near the tightest path this vehicle can steer: crawl (little tyre slip, time to correct)
+                        if (k > 0.6f * kCar) vc = Min(vc, Lerp(5.f, 2.2f, Saturate((k / kCar - 0.6f) * 2.5f)));
                         vCurve = Min(vCurve, sqrtf(vc * vc + 2.f * P.decel * Max(0.f, x - front * 0.5f)));
                     }
                     if (x >= nextSample && ns < 96) {
@@ -1438,7 +1464,8 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
         // plus drag/rolling resistance; the integral term absorbs gearing, slopes and model differences
         float aCap = Min(d.info.powerW * 0.75f / (d.info.mass * Max(v, 3.f)), 0.8f * 9.81f * Clamp(d.info.grip, 0.5f, 1.5f));
         float resist = 0.12f + d.info.dragK * v * v;
-        d.integ = Clamp(d.integ + err * 0.05f * dt, -0.15f, 0.35f);
+        // (pulling away, a weak launch - a scooter's clutch, a loaded van uphill - may take a much firmer foot)
+        d.integ = Clamp(d.integ + err * (v < 3.f ? 0.1f : 0.05f) * dt, -0.15f, Lerp(0.7f, 0.35f, Saturate((v - 2.f) * 0.33f)));
         c.throttle = Clamp((aCmd + resist) / Max(aCap, 0.5f) + d.integ, 0.f, 1.f);
         // traction assist: back off when the driven wheels spin
         float slip = 0.f;
@@ -1468,22 +1495,57 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
             // reverse: brake pedal engages reverse at standstill and then drives backwards
             c.brake = 0.7f;
             c.steer = (float)d.recoverDir;
+            // something (or someone) close behind: stop backing up
+            if (vF < 0.3f && !rearClear(d, pos, fwd, 1.2f)) d.recoverTimer = 0.4f;
         } else {
             c.handbrake = true;   // stop and shift back to drive
             c.brake = 1.f;
         }
         if (d.recoverTimer <= 0.f) {
-            relocalize(d, pos, fwd, 20.f);
+            if (!d.kturn) relocalize(d, pos, fwd, 20.f);   // a three-point turn keeps its path
+            d.kturn = false;
             d.stuckTime = 0.f;
+            d.stuckAnchor = pos;
         }
         return;
     }
-    if (wants && fabsf(vF) < 0.35f && c.throttle > 0.25f) d.stuckTime += dt;
-    else d.stuckTime = Max(0.f, d.stuckTime - dt * 2.f);
+    // three-point turn: on a turn tighter than this vehicle can steer (a dead-end turning circle for a long wheelbase,
+    // a hairpin entered too fast) the nose runs wide at full lock; stop, back up on opposite lock, then go on
+    if (d.path >= NL && fabsf(c.steer) > 0.97f && vF < 5.f && vF > -0.5f && d.vTarget > 0.5f && d.obstDist > 3.f && d.kturns < 5) {
+        float kP = G.pathCurv(d.path, d.u);
+        float outward = kP > 0.03f ? d.latErr : (kP < -0.03f ? -d.latErr : 0.f);   // + = outside of the turn
+        d.kturnT = outward > 1.2f ? d.kturnT + dt : 0.f;
+        if (d.kturnT > 0.35f && rearClear(d, pos, fwd, 2.5f)) {
+            d.recoverTimer = 2.4f;
+            d.recoverDir = c.steer > 0.f ? -1 : 1;   // opposite lock: backing up keeps turning the nose the same way
+            d.kturn = true;
+            d.kturns++;
+            d.kturnT = 0.f;
+            stats.kTurns++;
+            return;
+        }
+    } else {
+        d.kturnT = 0.f;
+    }
+    // stuck: wanting to go and pushing, but not getting anywhere (measured by displacement: a car wedged against a
+    // kerb or a bollard jitters, and its wheels spin, so speed and throttle alone flicker in and out of the test)
+    if (wants && c.throttle > 0.2f) {
+        if (length2(pos - d.stuckAnchor) > 0.8f * 0.8f) {
+            d.stuckAnchor = pos;
+            d.stuckTime = Max(0.f, d.stuckTime - 1.f);
+        } else {
+            d.stuckTime += dt;
+        }
+    } else if (!wants) {
+        d.stuckAnchor = pos;
+        d.stuckTime = Max(0.f, d.stuckTime - dt * 2.f);
+    }
     if (d.stuckTime > 3.5f) {
         d.recoverTimer = 2.2f;
         d.recoverDir = c.steer > 0.f ? -1 : 1;
+        d.kturn = false;
         d.stuckTime = 0.f;
+        d.stuckAnchor = pos;
         stats.stuckEvents++;
         out.stuck = true;
     }
