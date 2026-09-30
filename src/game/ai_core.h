@@ -292,6 +292,19 @@ struct VehicleInfo {         // static per-vehicle data the core needs (from Veh
 
 VehicleInfo makeVehicleInfo(const Vehicles::VehicleModel& m, const Vehicles::VehicleState& s);
 
+// A driver doing donuts round a spot (street takeovers): full lock, the rear kicked loose with a tug of the handbrake
+// and kept sliding on the throttle; when the circle has wandered off the spot it straightens out, rolls back over it
+// and goes round the other way (a figure of eight over the crossing)
+struct DonutState {
+    int dir = 1;               // +1 clockwise (steering right), -1 anticlockwise
+    float hbT = 0.f;           // handbrake tug left (s)
+    float kickCd = 0.f;        // until the next tug is allowed (s)
+    float spinT = 0.f;         // time spent spinning the current way (s)
+    bool returning = false;    // rolling back over the spot
+    float smoke = 0.f;         // how hard the rear tires are going (0..1) - for the crowd and the sound
+};
+Vehicles::VehicleControls donutControls(const Vehicles::VehicleState& s, vec2 spot, float dt, DonutState& st);
+
 struct DriveOut {
     Vehicles::VehicleControls ctl;
     int indicator = 0;          // -1 left, 1 right
@@ -330,6 +343,12 @@ struct Driver {
     float obstDist = 1e9f, obstSpeed = 0.f;
     int obstBody = -1;
     bool obstBacking = false;   // the vehicle ahead is backing up towards us (close): brake and lean on the horn
+    bool sweepCar = false;      // long vehicle: a stopped car in the space its body is about to sweep through
+    float sweepGap = 1e9f;      // ... and how far ahead of the front bumper it is
+    float sweepHold = 0.f;      // time spent stopped short of it (lagging a turn) - after a while the crawl resumes
+    bool kturnSweep = false;    // the three-point turn under way is one to bring the nose round past such a car
+    float headFirst = 0.f;      // after it: steer for the heading first, the lateral error second (s left)
+    float frontErr = 0.f, headErr = 0.f;   // front-axle tracking: lateral error (+ right of the path), heading error (rad)
     float curveSpeed = 99.f;
     float integ = 0.f;          // speed controller integral
     float planTimer = 0.f;

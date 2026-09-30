@@ -2145,6 +2145,7 @@ bool RoadNetwork::surfaceHeight(vec2 p, float* z, float maxZ) const {
         // closest point over the whole polyline first, then decide road vs sidewalk once (per-segment tests
         // misclassified lane points near polyline vertices as the raised sidewalk of the neighboring segment)
         float bestD = 1e30f, bestZe = 0.f, bestS = 0.f;
+        bool beyondEnd = false;
         for (size_t k = 0; k + 1 < e.pts.size(); k++) {
             float t;
             float d = distPointSegment2D(p, e.pts[k].xy(), e.pts[k + 1].xy(), &t);
@@ -2152,12 +2153,14 @@ bool RoadNetwork::surfaceHeight(vec2 p, float* z, float maxZ) const {
                 bestD = d;
                 bestZe = Lerp(e.pts[k].z, e.pts[k + 1].z, t);
                 bestS = Lerp(e.dist[k], e.dist[k + 1], t);
+                beyondEnd = (k == 0 && t <= 0.f) || (k + 2 == e.pts.size() && t >= 1.f);
             }
         }
         // inside a junction (before the cut-backs) only the pavement counts: the corner sidewalks are the junction's own,
-        // and an approach's sidewalk band there would reach over the other approaches' lanes
+        // and an approach's sidewalk band there would reach over the other approaches' lanes; nor does a sidewalk reach
+        // past the edge's end (over the road that continues from there)
         bool inJunction = bestS < e.cut0 || bestS > e.length - e.cut1;
-        if (bestD <= e.halfWidth + (inJunction ? 0.f : e.sidewalk)) {
+        if (bestD <= e.halfWidth + ((inJunction || beyondEnd) ? 0.f : e.sidewalk)) {
             float zz = bestZe + (bestD > e.halfWidth ? 0.15f : 0.f);
             if (zz <= maxZ && zz > bestZ) {
                 bestZ = zz;

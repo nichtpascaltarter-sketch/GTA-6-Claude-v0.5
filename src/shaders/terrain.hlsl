@@ -180,7 +180,8 @@ GBufferOut psTerrain(VSOut i) {
     // Shore: wet sand below the highest recent run-up, a thin swash sheet that runs up and drains back every
     // ~9 s (phase varying along the beach) with foam on its leading edge, and a wrack line of dried seaweed and
     // shell fragments just above the wet band
-    if (wl > -999.0) {
+    bool submerged = wl > -999.0 && h - wl < -0.03;
+    if (wl > -999.0 && !submerged) {
         float above = h - wl;
         float waves = 0.15 + 0.35 * gWeather.w + 0.25 * gWeather.x;
         float cyc = frac(gTime.x / 9.0 + valueNoise(w * 0.013) * 2.0 + dot(w, float2(0.021, 0.017)));
@@ -210,7 +211,7 @@ GBufferOut psTerrain(VSOut i) {
         }
     }
     // Wetlands: dark glossy mud with standing water between the reeds
-    if (mudW > 0.0) {
+    if (mudW > 0.0 && !submerged) {
         albedo *= lerp(1.0, 0.75, mudW);
         rough = lerp(rough, 0.42, mudW);
         float pool = smoothstep(0.58, 0.64, fbmValue(wrapped * 0.06, 2) + valueNoise(w * 0.4) * 0.1) * mudW;
@@ -218,8 +219,16 @@ GBufferOut psTerrain(VSOut i) {
         rough = lerp(rough, 0.03, pool);
         n = normalize(lerp(n, N, pool));
     }
-    // Rain wetness / puddles
-    applyWetness(albedo, rough, n, N, float3(w, h), 0.9, 1.0 - weights[TL_ROCK_IDX] * 0.8);
+    if (submerged) {
+        // Sea and lake floor: wet sediment seen through the water. Under water the grains hardly reflect (water and
+        // mineral refractive indices are close), so the floor is matte; the water shader adds caustics and absorption
+        albedo *= 0.8;
+        rough = 1.0;
+        n = normalize(lerp(n, N, 0.5));
+    } else {
+        // Rain wetness / puddles
+        applyWetness(albedo, rough, n, N, float3(w, h), 0.9, 1.0 - weights[TL_ROCK_IDX] * 0.8);
+    }
 
     GBufferOut o;
     o = packGBuffer(albedo, 1.0, n, rough, 0.0, SM_DEFAULT, 0.0, 0.0, i.curClip, i.prevClip);

@@ -1134,6 +1134,64 @@ struct Sim {
         }
     }
 
+    // street-takeover donuts: one car per model (or the named one) on the crossing nearest `at`, driven by
+    // AI::donutControls for `secs` seconds; how much of the time it spins, how far it wanders, how hard the tires go
+    void donutTest(vec2 at, const char* onlyModel, float secs) {
+        AI::LaneGraph& G = w->lg;
+        int node = -1;
+        float bd = 1e9f;
+        for (int n = 0; n < (int)G.nodes.size(); n++) {
+            if (G.nodes[n].approaches.size() < 3) continue;
+            float d = length(w->roads.nodes[n].p - at);
+            if (d < bd) {
+                bd = d;
+                node = n;
+            }
+        }
+        if (node < 0) return;
+        vec2 spot = w->roads.nodes[node].p;
+        printf("donut test on node %d (%.0f, %.0f)\n", node, spot.x, spot.y);
+        const float h = 1.f / 120.f;
+        for (int m = 0; m < (int)models.size(); m++) {
+            const Vehicles::VehicleModel& md = models[m];
+            if (md.cls >= Vehicles::VC_BOAT || md.cls == Vehicles::VC_MOTORBIKE || md.cls == Vehicles::VC_SCOOTER || md.cls == Vehicles::VC_BUS ||
+                md.cls == Vehicles::VC_TRUCK)
+                continue;
+            if (onlyModel && md.name.find(onlyModel) == std::string::npos) continue;
+            cars.assign(1, SimCar());
+            SimCar& c = cars[0];
+            c.used = true;
+            c.model = m;
+            float z = 0.f;
+            if (!w->roads.surfaceHeight(spot, &z, 1e9f)) z = w->roads.nodes[node].z;
+            Vehicles::initVehicle(c.s, md, m, dvec3(spot.x - 4.f, spot.y, z + 0.3), 0.f);
+            AI::DonutState ds;
+            ds.dir = (m & 1) ? 1 : -1;
+            float spinning = 0.f, maxDist = 0.f, smokeSum = 0.f, yawSum = 0.f, maxV = 0.f;
+            int flips = 0, returns = 0;
+            bool wasReturning = false;
+            for (int st = 0; st < (int)(secs * 120.f); st++) {
+                if (st % 2 == 0) c.ctl = AI::donutControls(c.s, spot, 2.f * h, ds);
+                Vehicles::stepVehicle(c.s, c.ctl, h);
+                float yr = fabsf(c.s.body.angVel.z);
+                if (yr > 1.2f) spinning += h;
+                yawSum += yr * h;
+                smokeSum += ds.smoke * h;
+                vec2 p = c.s.body.pos.toVec3().xy();
+                maxDist = Max(maxDist, length(p - spot));
+                maxV = Max(maxV, c.s.speed());
+                if (c.s.up().z < 0.3f) flips++;
+                if (ds.returning && !wasReturning) returns++;
+                wasReturning = ds.returning;
+                if (verbose && st % 60 == 0)
+                    printf("  %-18s t %5.1f off %5.1f %5.1f v %4.1f vF %5.1f yaw %5.2f thr %.2f hb %d steer %5.2f smoke %.2f ret %d dir %d gear %d\n", md.name.c_str(), st * h, p.x - spot.x,
+                           p.y - spot.y, c.s.speed(), c.s.forwardSpeed(), c.s.body.angVel.z, c.ctl.throttle, (int)c.ctl.handbrake, c.ctl.steer, ds.smoke, (int)ds.returning, ds.dir, c.s.gear);
+            }
+            printf("%-22s cls %2d mass %5.0f kW %4.0f: spinning %4.1f%% mean yaw %.2f rad/s smoke %.2f maxDist %5.1f maxV %4.1f returns %d rolled %d\n", md.name.c_str(), (int)md.cls,
+                   md.mass, md.power, spinning / secs * 100.f, yawSum / secs, smokeSum / secs, maxDist, maxV, returns, flips > 0);
+        }
+    }
+
     void plot(const char* path, float viewR, vec2 at = vec2(1e9f)) {
         Canvas cv;
         cv.init(1600, at.x < 1e8f ? at : center, viewR);
@@ -1298,6 +1356,22 @@ int main(int argc, char** argv) {
             static Sim sim;
             sim.init(&w, c, 50.f, 0, 0);
             sim.turnTest(c, only);
+            break;
+        }
+        if (!strcmp(argv[i], "--donut") && i + 2 < argc) {
+            vec2 c((float)atof(argv[i + 1]), (float)atof(argv[i + 2]));
+            const char* only = i + 3 < argc && argv[i + 3][0] != '-' ? argv[i + 3] : nullptr;
+            float secs = 40.f;
+            bool verbose = false;
+            for (int k = i + 3; k < argc; k++) {
+                if (!strcmp(argv[k], "--secs") && k + 1 < argc) secs = (float)atof(argv[++k]);
+                else if (!strcmp(argv[k], "-v")) verbose = true;
+            }
+            w.loadCells(c, 120.f);
+            static Sim sim;
+            sim.verbose = verbose;
+            sim.init(&w, c, 50.f, 0, 0);
+            sim.donutTest(c, only, secs);
             break;
         }
         if (!strcmp(argv[i], "--sim") && i + 3 < argc) {

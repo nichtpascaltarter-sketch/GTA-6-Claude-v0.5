@@ -430,7 +430,10 @@ void emitMesh(const MeshB& m, SkinnedMeshData& out) {
         }
         int fix = (int)wts[best] + (255 - sum);
         wts[best] = (u8)Clamp(fix, 0, 255);
-        out.addVertex(b.p, n, t, b.uv, packColor(b.col, b.alpha), makeMat(b.mat, b.matParam), bones, wts);
+        // character skin: material param bit 0 tells the skin shader that colour alpha = 1 - gloss and uv = the
+        // crease channel (applySkinChannels) instead of a texture mapping (animals share MAT_SKIN without it)
+        u32 param = b.mat == MAT_SKIN ? (b.matParam | 1u) : b.matParam;
+        out.addVertex(b.p, n, t, b.uv, packColor(b.col, b.alpha), makeMat(b.mat, param), bones, wts);
     }
     // strand cards last (the renderer draws them in a separate alpha-tested, two-sided pass)
     out.indices.reserve(m.idx.size());

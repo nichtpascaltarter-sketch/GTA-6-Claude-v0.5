@@ -794,6 +794,7 @@ public:
 class MissionCollateral : public StoryMission {
 public:
     int dex = -1, tomas = -1, lucha = -1;
+    bool inDiner = false;   // the opening was staged inside Mama Lucha's
     vec3 house, houseCurb;
     int phase = 0;
     const char* title() const override { return "Collateral"; }
@@ -841,18 +842,33 @@ public:
             beginAssault(g);
             return;
         }
-        lucha = spawnCast(g, CAST_LUCHA, P.diner.door, P.diner.yaw + kPi, FAC_FRIEND);
-        dex = spawnPartner(g, 1, placeOffset(g, P.diner, 3.f, 1.f), P.diner.yaw + kPi * 0.5f, WPN_SMG);
+        // inside the diner when the world has it: Lucha behind the counter, Mari at the register, Dex by the door
+        InteriorStage in = interiorStage("Mama Lucha's");
+        vec3 counterL, waiterL;
+        inDiner = in.ok() && in.marker(World::IM_COUNTER, counterL) && in.scenario(World::SR_WAITER, 0, waiterL);
+        if (inDiner) {
+            lucha = spawnCast(g, CAST_LUCHA, in.at(vec3(counterL.x, waiterL.y, 0.f)), in.yaw(kPi), FAC_FRIEND);
+            dex = spawnPartner(g, 1, in.at(in.entry() + vec3(0.6f, 0.4f, 0.f)), in.yaw(0.f), WPN_SMG);
+            placePlayer(g, in.at(counterL), in.yaw(0.f));
+        } else {
+            lucha = spawnCast(g, CAST_LUCHA, P.diner.door, P.diner.yaw + kPi, FAC_FRIEND);
+            dex = spawnPartner(g, 1, placeOffset(g, P.diner, 3.f, 1.f), P.diner.yaw + kPi * 0.5f, WPN_SMG);
+            placePlayer(g, placeOffset(g, P.diner, -2.f, 0.5f), P.diner.yaw);
+        }
         if (lucha >= 0) g.peds[lucha].invincible = true;
         // Dex came in his pickup; it's parked at the curb
         playerCar = spawnCar(g, pickModel(g, {Vehicles::VC_PICKUP, Vehicles::VC_SUV}, 2), curbOffset(g, P.diner, 12.f), P.diner.curbYaw,
                              lin(0.18f, 0.2f, 0.22f));
-        placePlayer(g, placeOffset(g, P.diner, -2.f, 0.5f), P.diner.yaw);
         vec3 lp = pedPos(g, lucha), dp = pedPos(g, dex), mp = playerPos(g);
         facePed(g, lucha, mp);
         facePed(g, dex, mp);
         std::vector<CutsceneShot> shots;
-        establish(g, shots, lp, P.diner.yaw, 30.f, 11.f, 3.5f);
+        if (inDiner) {
+            float side = counterL.x > (in.d->x0 + in.d->x1) * 0.5f ? -1.f : 1.f;   // look along the counter from its long side
+            shots.push_back(shotRoom(in, vec3(counterL.x + side * 4.2f, Max(0.9f, counterL.y - 2.6f), 2.1f), lp, mp, 4.5f));
+        } else {
+            establish(g, shots, lp, P.diner.yaw, 30.f, 11.f, 3.5f);
+        }
         shots.push_back(shotTwo(lp, mp, 6.f));
         shots.push_back(shotOver(mp, lp, 6.f));
         shots.push_back(shotTwo(dp, mp, 7.f, 4.f, 42.f, -1.f));
@@ -884,7 +900,10 @@ public:
             case 0:
                 if (!g.mInCutscene() && !g.mTalking()) {
                     setFollow(g, dex, g.player);
-                    if (lucha >= 0) setGoto(g, lucha, gPlaces.diner.door + vec3(gPlaces.diner.outward * 3.f, 0.f), 1.2f);
+                    if (lucha >= 0) {
+                        if (inDiner) setIdle(g, lucha, 0);   // she stays behind her counter
+                        else setGoto(g, lucha, gPlaces.diner.door + vec3(gPlaces.diner.outward * 3.f, 0.f), 1.2f);
+                    }
                     goTo(g, houseCurb, 6.f, "Go to the ~y~stash house~s~ in south Calle Luna.", false, false);
                     if (g.playerVehicle() < 0 && vehicleAlive(g, playerCar)) {
                         g.mBlipVehicle(playerCar, UI::BLIP_GARAGE);

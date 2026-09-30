@@ -616,6 +616,21 @@ int main(int argc, char** argv) {
             pose.rot[B_EYE_L] = normalize(pose.rot[B_EYE_L] * quatAxisAngle(vec3(0, 0, 1), a));
             pose.rot[B_EYE_R] = normalize(pose.rot[B_EYE_R] * quatAxisAngle(vec3(0, 0, 1), a));
         }
+        if (const char* cv = getenv("PREVIEW_CURL")) {
+            // finger / thumb curl controllers (the clips' convention: fingers * 1.45, thumb * 0.9 rad), both hands;
+            // "f,t" for everyone, or a per-character list "f,t;f,t;..."
+            float fc = 0.35f, tc = 0.2f;
+            const char* e = cv;
+            for (int k = 0; k < i && strchr(e, ';'); k++) e = strchr(e, ';') + 1;
+            sscanf(e, "%f,%f", &fc, &tc);
+            for (int sd = 0; sd < 2; sd++) {
+                vec3 fing = normalize(ch.sk.bindLocalPos[sd ? B_FINGERS_R : B_FINGERS_L]);
+                vec3 pn = normalize(sd ? cross(vec3(0, 1, 0), fing) : cross(fing, vec3(0, 1, 0)));
+                vec3 td = normalize(fing * 0.62f + vec3(0, 1, 0) * 0.66f + pn * 0.42f);
+                pose.rot[sd ? B_FINGERS_R : B_FINGERS_L] = quatAxisAngle(normalize(cross(fing, pn)), fc * 1.45f);
+                pose.rot[sd ? B_THUMB_R : B_THUMB_L] = quatAxisAngle(normalize(cross(td, pn)), tc * 0.9f);
+            }
+        }
         vec3 fpEye(0), fpW0(0), fpWx(1, 0, 0), fpWy(0, 1, 0), fpWz(0, 0, 1);
         if (fpMode > 0) {
             // first-person weapon hold as src/game/fpweapon.cpp does it: weapon placed in camera space (the camera at
@@ -714,10 +729,10 @@ int main(int argc, char** argv) {
             Img tile(tw, H);
             Cam tc;
             tc.fov = fov;
-            vec3 hp = ms[B_HEAD].c[3].xyz() + off;
-            float hs = ch.sk.boneLength[B_HEAD] > 0.f ? 1.f : 1.f;
-            (void)hs;
-            tc.target = hp + vec3(0, 0.03f, 0.035f);
+            // PREVIEW_TILEBONE: aim at another bone's joint (e.g. 14 = right hand) instead of the face
+            int tb = getenv("PREVIEW_TILEBONE") ? Clamp(atoi(getenv("PREVIEW_TILEBONE")), 0, B_COUNT - 1) : (int)B_HEAD;
+            vec3 hp = ms[tb].c[3].xyz() + off;
+            tc.target = tb == B_HEAD ? hp + vec3(0, 0.03f, 0.035f) : hp;
             if (const char* tg = getenv("PREVIEW_TGT")) {
                 vec3 o(0);
                 sscanf(tg, "%f,%f,%f", &o.x, &o.y, &o.z);

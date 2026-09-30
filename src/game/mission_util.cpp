@@ -348,6 +348,51 @@ Place resolveBuilding(GameWorld& g, vec2 hint, int kind, const char* name = null
     return resolveFrontage(g, hint);
 }
 
+// ------------------------------------------------------------------------------------------------------------------
+// Staging scenes inside the enterable interiors (the diner, Rook's garage...): points in the interior's own frame (x
+// along the frontage, y inward from the entrance, z up from the floor) become world points. Nothing is staged when the
+// world has no interior of that name; the missions keep their street scenes then.
+struct InteriorStage {
+    const World::InteriorDef* d = nullptr;
+    bool ok() const { return d != nullptr; }
+    vec3 at(vec3 local) const { return d->toWorld(local); }
+    float yaw(float localYaw) const { return d->yawToWorld(localYaw); }
+    bool marker(u8 kind, vec3& local, float* localYaw = nullptr) const {
+        const World::InteriorMarker* m = d ? d->marker(kind) : nullptr;
+        if (!m) return false;
+        local = m->pos;
+        if (localYaw) *localYaw = m->yaw;
+        return true;
+    }
+    // the nth scenario spot of a role (behind the counter, by the lift...)
+    bool scenario(u8 role, int nth, vec3& local, float* localYaw = nullptr) const {
+        if (!d) return false;
+        for (const World::InteriorScenario& sc : d->scenarios)
+            if (sc.role == role && nth-- == 0) {
+                local = sc.pos;
+                if (localYaw) *localYaw = sc.yaw;
+                return true;
+            }
+        return false;
+    }
+    // just inside the entrance
+    vec3 entry() const {
+        vec3 p;
+        if (marker(World::IM_ENTRY, p)) return p;
+        if (marker(World::IM_DOOR_OUT, p)) return vec3(p.x, 1.2f, p.z);
+        return vec3((d->x0 + d->x1) * 0.5f, 1.2f, 0.f);
+    }
+};
+
+InteriorStage interiorStage(const char* name) {
+    InteriorStage s;
+    if (World::gInteriors) {
+        int i = World::gInteriors->byName(name);
+        if (i >= 0) s.d = &World::gInteriors->defs[i];
+    }
+    return s;
+}
+
 // Deep enough water near hint (spiral search), z at the water surface.
 bool findWater(GameWorld& g, vec2 hint, float minDepth, vec3& out, float maxR = 900.f) {
     for (float r = 0.f; r <= maxR; r += 12.f) {
@@ -450,7 +495,7 @@ void computePlaces(GameWorld& g) {
     P.cafeBeach = resolveFrontage(g, vec2(5200, 300));
     P.flatsYard = resolvePlace(g, vec2(400, 3700));
     P.kitStudio = resolveFrontage(g, vec2(600, 3400));
-    P.downtownPenthouse = resolveBuilding(g, vec2(3800, 200), World::IK_APARTMENT, "Downtown Penthouse");   // the interiors agent's tower once it has one
+    P.downtownPenthouse = resolveBuilding(g, vec2(3528, -706), World::IK_CONDO, "Downtown Penthouse");   // top floor of a downtown condo tower
     P.stadium = resolvePlace(g, vec2(3565, 620));
     findWater(g, vec2(1650, 150), 1.5f, P.riverLaunch, 200.f);
     findWater(g, vec2(3950, 160), 2.f, P.riverMouth, 400.f);
@@ -1001,6 +1046,13 @@ CutsceneShot shotVehicle(GameWorld& g, int v, float duration, float side = 1.f, 
     vec3 cam = p + vec3(-fd * 7.f + r * (3.f * side), 2.2f);
     vec3 cam2 = p + vec3(-fd * 5.f + r * (4.5f * side), 1.6f);
     return shotMove(cam, p + vec3(0, 0, 0.8f), cam2, p + vec3(fd * 2.f, 0.9f), duration, fov);
+}
+
+// A slow push-in from a point inside an interior toward two people talking (the room's wide opening shot)
+CutsceneShot shotRoom(const InteriorStage& in, vec3 cameraLocal, vec3 a, vec3 b, float duration) {
+    vec3 cam = in.at(cameraLocal), mid = (a + b) * 0.5f + vec3(0.f, 0.f, 1.35f);
+    vec3 d = mid - cam;
+    return shotMove(cam, mid, cam + d * 0.12f, mid, duration, 48.f);
 }
 
 }  // namespace mu

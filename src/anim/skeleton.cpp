@@ -316,7 +316,7 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
             }
             // thumb: metacarpal along thumbDir, then the phalanges lie along the index finger's side (pad towards it)
             vec3 td = D.thumbDir[side];
-            vec3 d1 = normalize(dir * 0.9f + wy * 0.22f + pn * 0.26f);
+            vec3 d1 = normalize(dir * 0.92f + wy * 0.3f + pn * 0.05f);
             vec3 ax = normalize(cross(d1, thumbPadDir(pn)));
             int t0 = phalanxBone(side == 1, 4, 0);
             J[t0] = J[thumb] + td * (kThumbMeta * handLen);

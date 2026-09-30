@@ -44,15 +44,29 @@ public:
             beginPhotos(g);
             return;
         }
-        rook = spawnCast(g, CAST_ROOK, P.rookShop.door, P.rookShop.yaw + kPi, FAC_FRIEND);
-        kit = spawnCast(g, CAST_KIT, placeOffset(g, P.rookShop, -2.f, 3.f), P.rookShop.yaw + kPi, FAC_FRIEND);
-        jonah = spawnCast(g, CAST_JONAH, placeOffset(g, P.rookShop, 5.f, 3.f), P.rookShop.yaw + kPi, FAC_FRIEND);
-        placePlayer(g, placeOffset(g, P.rookShop, 0.f, 0.5f), P.rookShop.yaw);
+        // the planning meeting around the car on Rook's lift, when the world has his garage
+        InteriorStage in = interiorStage("Rook's Garage");
+        vec3 liftL;
+        bool inside = in.ok() && in.marker(World::IM_CAR, liftL);
+        if (inside) {
+            vec3 f = vec3(liftL.x, liftL.y - 4.6f, 0.f);   // the open floor between the roll-up door and the lift
+            rook = spawnCast(g, CAST_ROOK, in.at(f + vec3(1.7f, 2.2f, 0.f)), in.yaw(kPi), FAC_FRIEND);
+            kit = spawnCast(g, CAST_KIT, in.at(f + vec3(-1.7f, 2.0f, 0.f)), in.yaw(kPi), FAC_FRIEND);
+            jonah = spawnCast(g, CAST_JONAH, in.at(f + vec3(2.6f, 0.4f, 0.f)), in.yaw(kPi), FAC_FRIEND);
+            placePed(g, mari, in.at(f + vec3(-2.4f, 0.2f, 0.f)), in.yaw(0.f));
+            placePlayer(g, in.at(f + vec3(0.2f, -0.9f, 0.f)), in.yaw(0.f));
+        } else {
+            rook = spawnCast(g, CAST_ROOK, P.rookShop.door, P.rookShop.yaw + kPi, FAC_FRIEND);
+            kit = spawnCast(g, CAST_KIT, placeOffset(g, P.rookShop, -2.f, 3.f), P.rookShop.yaw + kPi, FAC_FRIEND);
+            jonah = spawnCast(g, CAST_JONAH, placeOffset(g, P.rookShop, 5.f, 3.f), P.rookShop.yaw + kPi, FAC_FRIEND);
+            placePlayer(g, placeOffset(g, P.rookShop, 0.f, 0.5f), P.rookShop.yaw);
+        }
         provideRide(g, P.rookShop, -14.f);
         vec3 rp = pedPos(g, rook), kp = pedPos(g, kit), mp = pedPos(g, mari), dp = playerPos(g);
-        for (int p : {rook, kit, jonah}) facePed(g, p, dp);
+        for (int p : {rook, kit, jonah, mari}) facePed(g, p, dp);
         std::vector<CutsceneShot> shots;
-        shots.push_back(shotArc(rp, 9.f, 2.5f, 0.2f, 1.1f, 6.f));
+        if (inside) shots.push_back(shotRoom(in, vec3(liftL.x + (liftL.x > (in.d->x0 + in.d->x1) * 0.5f ? -5.f : 5.f), liftL.y - 7.5f, 2.6f), rp, kp, 5.5f));
+        else shots.push_back(shotArc(rp, 9.f, 2.5f, 0.2f, 1.1f, 6.f));
         shots.push_back(shotTwo(kp, dp, 7.f));
         shots.push_back(shotTwo(rp, dp, 6.f, 4.5f, 42.f, -1.f));
         shots.push_back(shotTwo(mp, dp, 6.f));
@@ -511,11 +525,26 @@ public:
             return;
         }
         vehicle = spawnCar(g, model, curbOffset(g, P.rookShop, 8.f), P.rookShop.curbYaw, quiet ? lin(0.95f, 0.95f, 0.95f) : lin(0.25f, 0.27f, 0.22f));
-        placePlayer(g, placeOffset(g, P.rookShop, 0.f, 0.5f), P.rookShop.yaw);
-        int rook = spawnCast(g, CAST_ROOK, P.rookShop.door, P.rookShop.yaw + kPi, FAC_FRIEND);
+        // the send-off inside Rook's garage when the world has it, else at his door
+        InteriorStage in = interiorStage("Rook's Garage");
+        vec3 liftL;
+        bool inside = in.ok() && in.marker(World::IM_CAR, liftL);
+        int rook;
+        if (inside) {
+            vec3 f = vec3(liftL.x, liftL.y - 4.2f, 0.f);
+            rook = spawnCast(g, CAST_ROOK, in.at(f + vec3(0.9f, 1.9f, 0.f)), in.yaw(kPi), FAC_FRIEND);
+            placePed(g, mari, in.at(f + vec3(-1.6f, 0.1f, 0.f)), in.yaw(0.f));
+            placePlayer(g, in.at(f + vec3(0.4f, -0.6f, 0.f)), in.yaw(0.f));
+        } else {
+            placePlayer(g, placeOffset(g, P.rookShop, 0.f, 0.5f), P.rookShop.yaw);
+            rook = spawnCast(g, CAST_ROOK, P.rookShop.door, P.rookShop.yaw + kPi, FAC_FRIEND);
+        }
         vec3 rp = pedPos(g, rook), dp = playerPos(g), mp = pedPos(g, mari);
+        facePed(g, rook, dp);
+        facePed(g, mari, rp);
         std::vector<CutsceneShot> shots;
-        establish(g, shots, rp, P.rookShop.yaw, 34.f, 14.f, 4.f);
+        if (inside) shots.push_back(shotRoom(in, vec3(liftL.x + (liftL.x > (in.d->x0 + in.d->x1) * 0.5f ? -4.5f : 4.5f), liftL.y - 7.f, 2.4f), rp, dp, 4.5f));
+        else establish(g, shots, rp, P.rookShop.yaw, 34.f, 14.f, 4.f);
         shots.push_back(shotTwo(rp, dp, 7.f));
         shots.push_back(shotTwo(mp, dp, 6.f, 4.f, 42.f, -1.f));
         if (vehicle >= 0) shots.push_back(shotVehicle(g, vehicle, 5.f));

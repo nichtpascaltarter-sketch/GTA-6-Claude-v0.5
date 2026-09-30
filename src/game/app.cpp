@@ -530,7 +530,11 @@ struct App {
                             d->mode = AI::DM_HOLD;
                             d->holdTimer = 10.f;
                         }
-                    if (game.ai.testCar[1] >= 0) game.vehicles[game.ai.testCar[1]].scripted = true;   // (applyAutoplay rolls it into the other)
+                    // (applyAutoplay rolls it into the other: its driver's brain is off meanwhile, so the traffic AI
+                    //  does not brake for the car ahead - the physics still runs)
+                    if (game.ai.testCar[1] >= 0 && game.vehicles[game.ai.testCar[1]].seats[0] >= 0)
+                        game.peds[game.vehicles[game.ai.testCar[1]].seats[0]].brain.type = BRAIN_NONE;
+                    game.ai.forceBender = true;
                     // the player watches from the sidewalk
                     vec3 sw = game.laneGraph.lanePos(lane, Max(L.u0, u - 14.f), L.width * 0.5f + World::roadInfo((World::RoadClass)L.cls).shoulder + 2.5f);   // (not too close: a knock right next to the player is not "their own")
                     p.pos = dvec3(sw.x, sw.y, game.groundHeight(sw.x, sw.y, sw.z + 2.f));
@@ -771,12 +775,18 @@ struct App {
             if (okA && okB && !released) {
                 Vehicle& vb = game.vehicles[b];
                 vb.ctl = Vehicles::VehicleControls();
+                vb.ctl.hasDriver = vb.seats[0] >= 0;
                 float gap = length(rel(vb.sim.body.pos, game.vehicles[a].sim.body.pos)) - game.vassets[vb.model].spec.boxHalf.y -
                             game.vassets[game.vehicles[a].model].spec.boxHalf.y;
                 vb.ctl.throttle = vb.sim.speed() < 4.5f ? 0.45f : 0.f;
-                if (gap < 0.3f || vb.sim.impactImpulse > 800.f || t > 12.f) {
+                // (released on the knock itself - the impulse, or the speed it lost in one frame: the impact check in the
+                //  AI update then sees two ordinary drivers)
+                static float lastSpeed = 0.f;
+                float drop = lastSpeed - vb.sim.speed();
+                lastSpeed = vb.sim.speed();
+                if (vb.sim.impactImpulse > 800.f || drop > 0.8f || t > 16.f) {
                     released = true;
-                    vb.scripted = false;
+                    if (vb.seats[0] >= 0) game.peds[vb.seats[0]].brain.type = BRAIN_DRIVER;
                     hitT = t;
                     LOG("autoplay bender: contact at t=%.1f gap %.2f speed %.1f impulse %.0f", t, gap, vb.sim.speed(), vb.sim.impactImpulse);
                 }

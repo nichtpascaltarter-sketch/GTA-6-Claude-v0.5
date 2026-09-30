@@ -146,6 +146,54 @@ VehicleInfo makeVehicleInfo(const Vehicles::VehicleModel& m, const Vehicles::Veh
     return vi;
 }
 
+Vehicles::VehicleControls donutControls(const Vehicles::VehicleState& s, vec2 spot, float dt, DonutState& st) {
+    Vehicles::VehicleControls c;
+    c.hasDriver = true;
+    vec2 pos = s.body.pos.toVec3().xy();
+    vec2 fwd = s.forward().xy();
+    fwd = length2(fwd) > 1e-6f ? normalize(fwd) : vec2(0, 1);
+    float v = s.speed(), vF = s.forwardSpeed();
+    float spin = -s.body.angVel.z * (float)st.dir;   // + = going round the right way (angVel.z + = anticlockwise)
+    vec2 off = pos - spot;
+    float dist = length(off);
+    st.kickCd -= dt;
+    st.hbT -= dt;
+    float rearSlip = 0.f;
+    for (int w = 0; w < s.wheelCount; w++)
+        if (s.wheels[w].contact && s.tune.rear[w]) rearSlip = Max(rearSlip, s.wheels[w].slip);
+    st.smoke = approach(st.smoke, Saturate(rearSlip * 0.6f), dt * 3.f);
+    // wandered off the spot: let the spin die, roll back over it and go round the other way
+    if (!st.returning && (dist > 7.f || (st.spinT > 9.f && dist > 2.5f))) st.returning = true;
+    if (st.returning) {
+        vec2 to = -off / Max(dist, 0.1f);
+        float side = dot(to, rightOf(fwd)), ahead = dot(to, fwd);
+        c.steer = ahead > 0.2f ? Clamp(side * 2.5f, -1.f, 1.f) : (side >= 0.f ? 1.f : -1.f);
+        bool spinning = fabsf(s.body.angVel.z) > 0.8f;
+        c.throttle = spinning ? 0.f : (v < 4.5f ? 0.55f : 0.f);
+        c.brake = spinning && vF > 1.f ? 0.4f : 0.f;
+        c.handbrake = false;
+        if (dist < 2.5f || (dist < 4.f && ahead < 0.f)) {
+            st.returning = false;
+            st.dir = -st.dir;
+            st.spinT = 0.f;
+            st.kickCd = 0.f;
+        }
+        return c;
+    }
+    st.spinT += dt;
+    c.steer = (float)st.dir;
+    // the kick: rolling, not yet rotating fast - a tug of the handbrake swings the tail out (and lets the wheels spin)
+    if (spin < 1.1f && vF > 1.2f && v < 8.f && st.kickCd <= 0.f) {
+        st.hbT = 0.3f;
+        st.kickCd = 1.3f;
+    }
+    c.handbrake = st.hbT > 0.f;
+    // then full throttle to keep the tail out; ease off before the circle opens up into a slide down the street
+    if (vF < 1.2f && spin < 0.6f) c.throttle = 0.65f;   // (pulling away: get rolling first)
+    else c.throttle = v > 9.f ? 0.35f : 1.f;
+    return c;
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 Driver& TrafficCore::attach(int vid, u32 uid, u32 seed, const VehicleInfo& info, int lane, float u, bool forceCautious) {
     if (vid >= (int)drivers.size()) drivers.resize(vid + 1);
@@ -1216,7 +1264,11 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     // ---- body sweep (long vehicles): the actual body pushed a little further along its current heading. Coming out of
     // a tight turn a bus or truck points across its lane (the rear axle lags the front one), so its nose sweeps wide of
     // the planned path - into cars waiting at the stop line of the lane next to it. Creep past them at walking pace
-    // (a stop would only swap the scrape for a standoff: those cars are usually boxed in by their own queue)
+    // (a stop would only swap the scrape for a standoff: those cars are usually boxed in by their own queue) - unless
+    // the vehicle is lagging its turn and about to touch one: then stop short, and control() backs it up on opposite
+    // lock (a three-point turn) so the nose comes round
+    d.sweepCar = false;
+    d.sweepGap = 1e9f;
     if (d.info.wheelbase > 3.8f && selfBody >= 0) {
         float sweep = Clamp(v * 1.1f, 1.2f, 4.f);
         float hl = (d.info.rearLen + d.info.frontLen + sweep) * 0.5f;
@@ -1242,9 +1294,23 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
                     obstPed = true;
                 }
             } else {
-                d.speedCap = Min(d.speedCap, 1.1f);
+                float ext = fabsf(dot(bfw, fwd)) * b.halfLen + fabsf(dot(rightOf(bfw), fwd)) * b.halfWid;
+                d.sweepCar = true;
+                d.sweepGap = Min(d.sweepGap, Max(ahead - ext - d.info.frontLen, 0.f));
             }
         });
+        if (d.sweepCar) {
+            bool lagging = fabsf(d.headErr) > 0.2f || fabsf(d.frontErr) > 0.8f;
+            // (only when backing up would bring the nose round: room behind, and the nose not over the path already)
+            bool canBack = d.kturns < 5 && (d.headErr > 0.f ? d.frontErr > -0.4f : d.frontErr < 0.4f) && rearClear(d, pos, fwd, 2.5f);
+            bool stopShort = lagging && canBack && d.sweepGap < 0.6f;
+            if (!stopShort) d.sweepHold = 0.f;
+            else if (v < 0.3f) d.sweepHold += kPlanInterval;
+            // (boxed in behind, no room to back up: after a few seconds the crawl again)
+            d.speedCap = Min(d.speedCap, stopShort && d.sweepHold < 6.f ? 0.f : 1.1f);
+        } else {
+            d.sweepHold = 0.f;
+        }
     }
     d.obstDist = obstGap;
     d.obstSpeed = obstV;
@@ -1545,7 +1611,17 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
         // (the heading term already carries the steady-state angle: the path tangent at the front axle is rotated by
         //  the steering angle relative to the body; the feed-forward only covers the actuator lag at turn entry)
         float ff = asinf(Clamp(d.info.wheelbase * kPrev, -0.95f, 0.95f)) - asinf(Clamp(d.info.wheelbase * G.pathCurv(fp, fuP), -0.95f, 0.95f));
-        float st = -(psi + atanf(2.2f * e / (vs + 1.5f))) - ff;
+        // (unwinding at a turn exit only while the heading keeps up with the path: a long vehicle still lagging its turn
+        //  at full lock would straighten out early and swing its nose even wider)
+        if (ff * psi < 0.f) ff *= Saturate(1.f - (fabsf(psi) - 0.08f) * 6.f);
+        d.frontErr = e;
+        d.headErr = psi;
+        float latT = atanf(2.2f * e / (vs + 1.5f));
+        // (a long vehicle about to sweep into a car beside its path, or just backed up to get its nose round: bring
+        //  the heading round first, the meter or so the nose is off the line can wait)
+        if (fabsf(psi) < 0.08f) d.headFirst = 0.f;
+        if ((d.sweepCar || d.headFirst > 0.f) && latT * psi < 0.f) latT *= 0.3f;
+        float st = -(psi + latT) - ff;
         // yaw damping against oscillation at speed
         st += (s.body.angVel.z - vs * kPath) * 0.06f;
         d.diag[0] = e;
@@ -1623,17 +1699,24 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
             // reverse: brake pedal engages reverse at standstill and then drives backwards - at a walking pace, the
             // way a driver backs up looking over the shoulder (in reverse gear the pedal is the throttle)
             float vRev = d.kturn ? 2.8f : 2.2f;
-            c.brake = 0.7f * Saturate((vRev + vF) * 0.8f);
+            c.brake = Saturate((vRev + vF) * 0.8f) * (d.info.mass > 4500.f ? 1.f : 0.7f);   // (a loaded truck needs the full pedal)
             c.steer = (float)d.recoverDir;
             // something (or someone) behind - or rolling up to our bumper: stop backing up (look further the faster
             // we go: braking from reverse takes a meter or so)
             if (vF < 0.3f && !rearClear(d, pos, fwd, 1.2f + Max(0.f, -vF) * 0.9f)) d.recoverTimer = 0.4f;
+            // a three-point turn backs up a set distance, however long a heavy vehicle takes to get rolling; one that
+            // brings the nose round past a waiting car only until the nose is back over the path (backing up swings
+            // it across fast - much further and the next leg would have to come back the other way)
+            if (d.kturn && length2(pos - d.stuckAnchor) > 3.f * 3.f) d.recoverTimer = 0.4f;
+            if (d.kturnSweep && (fabsf(d.headErr) < 0.12f || (d.recoverDir < 0 ? d.frontErr > 0.4f : d.frontErr < -0.4f))) d.recoverTimer = 0.4f;
         } else {
             c.handbrake = true;   // stop and shift back to drive
             c.brake = 1.f;
         }
         if (d.recoverTimer <= 0.f) {
             if (!d.kturn) relocalize(d, pos, fwd, 20.f);   // a three-point turn keeps its path
+            if (d.kturnSweep) d.headFirst = 4.f;
+            d.kturnSweep = false;
             d.kturn = false;
             d.stuckTime = 0.f;
             d.stuckAnchor = pos;
@@ -1647,7 +1730,8 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
         float outward = kP > 0.03f ? d.latErr : (kP < -0.03f ? -d.latErr : 0.f);   // + = outside of the turn
         d.kturnT = outward > 1.2f ? d.kturnT + dt : 0.f;
         if (d.kturnT > 0.35f && rearClear(d, pos, fwd, 2.5f)) {
-            d.recoverTimer = 2.4f;
+            d.recoverTimer = 4.f;
+            d.stuckAnchor = pos;                     // (the reverse leg ends 3 m from here)
             d.recoverDir = c.steer > 0.f ? -1 : 1;   // opposite lock: backing up keeps turning the nose the same way
             d.kturn = true;
             d.kturns++;
@@ -1657,6 +1741,24 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
         }
     } else {
         d.kturnT = 0.f;
+    }
+    // a long vehicle that could not steer its turn tight enough (full lock, heading or nose off the path) and whose body
+    // is about to sweep into a car waiting ahead - at the stop line of the street it turns into, typically: rather than
+    // shove it, stop and back up on opposite lock (the nose comes round), then go on
+    // backing up on the lock opposite to the way the nose has to come round (+ heading error: the path heads left) helps
+    // only while the nose is not over the path already on the side it swings to
+    int sweepDir = fabsf(d.headErr) > 0.1f ? (d.headErr > 0.f ? 1 : -1) : (c.steer > 0.f ? -1 : 1);
+    if (d.sweepCar && d.kturns < 5 && vF < 3.f && vF > -0.5f && (fabsf(d.headErr) > 0.2f || fabsf(d.frontErr) > 0.8f) &&
+        (fabsf(c.steer) > 0.97f || d.sweepGap < 0.8f) && (sweepDir < 0 ? d.frontErr < 0.4f : d.frontErr > -0.4f) && rearClear(d, pos, fwd, 2.5f)) {
+        d.recoverTimer = 4.f;
+        d.stuckAnchor = pos;
+        d.recoverDir = sweepDir;
+        d.kturn = true;
+        d.kturnSweep = true;
+        d.kturns++;
+        d.kturnT = 0.f;
+        stats.kTurns++;
+        return;
     }
     // stuck: wanting to go and pushing, but not getting anywhere (measured by displacement: a car wedged against a
     // kerb or a bollard jitters, and its wheels spin, so speed and throttle alone flicker in and out of the test)
@@ -1701,6 +1803,7 @@ void TrafficCore::drive(int vid, Vehicles::VehicleState& s, float dt, DriveOut& 
     d.lastDriveTime = (float)time;
     d.lcCooldown = Max(0.f, d.lcCooldown - dt);
     d.pedCreep = Max(0.f, d.pedCreep - dt);
+    d.headFirst = Max(0.f, d.headFirst - dt);
     d.busStopCooldown = Max(0.f, d.busStopCooldown - dt);
     d.destRecalc -= dt;
     if (d.path < 0) {

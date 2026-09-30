@@ -389,13 +389,19 @@ int main(int argc, char** argv) {
         for (int ei : cand) {
             const RoadEdge& e = roads.edges[ei];
             float bd = 1e30f, bze = 0.f, bs = 0.f;
+            bool beyondEnd = false;
             for (size_t k = 0; k + 1 < e.pts.size(); k++) {
                 float t;
                 float d = distPointSegment2D(q, e.pts[k].xy(), e.pts[k + 1].xy(), &t);
-                if (d < bd) { bd = d; bze = Lerp(e.pts[k].z, e.pts[k + 1].z, t); bs = Lerp(e.dist[k], e.dist[k + 1], t); }
+                if (d < bd) {
+                    bd = d;
+                    bze = Lerp(e.pts[k].z, e.pts[k + 1].z, t);
+                    bs = Lerp(e.dist[k], e.dist[k + 1], t);
+                    beyondEnd = (k == 0 && t <= 0.f) || (k + 2 == e.pts.size() && t >= 1.f);
+                }
             }
             bool inJunction = bs < e.cut0 || bs > e.length - e.cut1;
-            if (bd <= e.halfWidth + (inJunction ? 0.f : e.sidewalk)) {
+            if (bd <= e.halfWidth + ((inJunction || beyondEnd) ? 0.f : e.sidewalk)) {
                 float zz = bze + (bd > e.halfWidth ? 0.15f : 0.f);
                 if (zz <= maxZ && zz > bz) { bz = zz; what = StrFormat("%s edge %d%s", roadInfo(e.cls).name, ei, bd > e.halfWidth ? " (sidewalk)" : ""); }
             }

@@ -895,8 +895,9 @@ static void lyingPose(const AuthorCtx& A, Rig& r, bool onBack, float variant, fl
         l.ik = false;
         ArmCtl& a = r.arm[sd];
         a.ik = false;
-        a.fingers = 0.45f;
-        a.thumb = 0.3f;
+        // limp hands: a loose curl that rests on the ground instead of digging the jointed fingers into it
+        a.fingers = 0.28f;
+        a.thumb = 0.12f;
         if (onBack) {
             l.hipFlex = 0.06f + 0.12f * variant * sd;
             l.hipAbd = 0.14f + 0.06f * sd;

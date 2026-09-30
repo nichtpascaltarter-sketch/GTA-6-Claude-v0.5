@@ -1156,7 +1156,7 @@ static void addBrow(BuildCtx& c, int sd, vec3 col) {
                 pts[np].sw = sw;
                 np++;
             }
-            emitCard(m, pts, np, CARD_BROW, r.next(), colRoot, colTip, Lerp(0.95f, 0.75f, u) * (row == 2 ? 0.7f : 1.f), PART_FACEDETAIL, nullptr);
+            emitCard(m, pts, np, CARD_BROW, r.next(), colRoot, colTip, Lerp(1.f, 0.85f, u) * (row == 2 ? 0.8f : 1.f), PART_FACEDETAIL, nullptr);
         }
     }
     // tint the skin under the brow (the cards are sparse at their tips)
@@ -1172,7 +1172,7 @@ static void addBrow(BuildCtx& c, int sd, vec3 col) {
             float uc = Saturate(u);
             float lo = lower(uc), hi = lo + height(uc);
             float inside = Min(Min(v.pb - lo, hi - v.pb) / (0.6f * deg), Min(u + 0.04f, 1.04f - u) * 12.f);
-            float w = sstep(-0.6f, 1.f, inside) * 0.4f;
+            float w = sstep(-0.6f, 1.f, inside) * 0.58f;
             if (w > 0.f) v.col = lerp(v.col, mulColor(v.col, col * 2.f) * 0.5f + col * 0.5f, w);
         }
 }
@@ -1625,7 +1625,8 @@ static void addSkinSpots(BuildCtx& c, float freckles) {
 // Skin detail channels for the renderer's skin shader (MAT_SKIN vertices of the final mesh, after the outfit has
 // copied the skin's uvs): colour alpha = 1 - gloss (lips, mouth lining and the lids' wet margins, nails, the oily
 // T-zone), uv = (crease phase, crease depth in mm) for the age lines: forehead lines, frown lines between the brows,
-// crow's feet, fine lines under the eyes and above the upper lip, neck rings. Crease centres sit at frac(phase) = 0.5.
+// crow's feet, fine lines under the eyes and above the upper lip, neck rings (the fingers' joint creases and knuckle
+// wrinkles come from buildFingers). Crease centres sit at frac(phase) = 0.5.
 void applySkinChannels(const BuildCtx& c, MeshB& fin) {
     const CharacterDesc& d = *c.d;
     const BodyDims& D = *c.D;
@@ -1658,6 +1659,11 @@ void applySkinChannels(const BuildCtx& c, MeshB& fin) {
             gloss = Max(gloss, 0.22f * Max(nose, fore * 0.7f));
         }
         v.alpha = 1.f - Saturate(gloss);
+        // fingers and thumbs carry their joint creases from buildFingers
+        if (v.part == PART_FINGER || v.part == PART_THUMB) {
+            v.uPer = 0.f;
+            continue;
+        }
         // wrinkles (head and neck skin only; everything else no creases)
         float phase = 0.f, depth = 0.f;
         if (v.part == PART_HEAD || v.part == PART_NECK) {

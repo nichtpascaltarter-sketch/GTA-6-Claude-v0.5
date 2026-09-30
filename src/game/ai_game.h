@@ -147,6 +147,8 @@ struct VehAI {
     float parkLat = 0.f;          // lateral offset of the spot from the lane center
     vec3 parkDoor;                // where the driver is headed
     float alarmT = 0.f;           // how long a parked car's alarm has been going
+    vec2 lastVel = vec2(0.f);     // horizontal velocity last frame (knocks judged from the change: ai.cpp)
+    bool lastVelOk = false;
 };
 
 // A crime the police do not know about yet: a witness is phoning it in.
@@ -219,6 +221,7 @@ struct AIState {
     float lifeBoost = 1.f;              // autoplay tests: cars park / owners drive off this many times as often
     int testCar[2] = {-1, -1};          // autoplay tests: the cars a scenario set up (app.cpp)
     vec3 testCam;                       // autoplay tests: scenario camera position
+    bool forceBender = false;           // autoplay tests: every low-speed knock between two traffic cars becomes a scene
     double lastParkArrive = -1e9;       // last time a traffic car started pulling into a parking spot (global spacing)
     bool ready = false;
 };

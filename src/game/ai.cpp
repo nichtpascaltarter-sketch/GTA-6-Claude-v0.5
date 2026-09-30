@@ -308,7 +308,17 @@ void GameWorld::updateAI(float dt) {
         } else {
             va.alarmT = 0.f;
         }
-        if (i == pv || !traffic.get(i) || v.sim.impactImpulse < 1800.f || va.impactCd > 0.f) continue;
+        // this frame's knock: the physics keeps only the largest contact impulse of its last substep (one in an earlier
+        // substep is cleared again), so also judge it from the change in horizontal velocity since the last frame -
+        // braking never takes more than a few tenths of a m/s off in one
+        vec2 hv = v.sim.body.vel.xy();
+        const AI::Driver* kd = traffic.get(i);
+        bool kinematic = kd && kd->dummy;   // (a dummy moves on rails: its velocity jumps when it turns physical again)
+        float knockEst = va.lastVelOk && !kinematic && !v.sim.sleeping ? length(hv - va.lastVel) * v.sim.body.mass : 0.f;
+        if (knockEst < v.sim.body.mass * 1.f) knockEst = 0.f;
+        va.lastVel = hv;
+        va.lastVelOk = !kinematic;
+        if (i == pv || !traffic.get(i) || va.impactCd > 0.f || (v.sim.impactImpulse < 1800.f && knockEst < 1800.f)) continue;
         va.impactCd = 2.f;
         bool withPlayer = pv >= 0 && length(rel(v.sim.body.pos, vehicles[pv].sim.body.pos)) < 9.f;
         if (v.sim.impactImpulse >= 3000.f) (withPlayer ? st.impactsWithPlayer : st.hardImpacts)++;
@@ -339,7 +349,7 @@ void GameWorld::updateAI(float dt) {
                 if (fabsf(dot(cb - ca, ax)) > ea + eb) touch = false;
             }
             if (!touch) continue;
-            if (hashToFloat(hash32(v.uid * 7u + o.uid * 13u + (u32)(time * 2.0))) < 0.6f) aiFenderBender(i, j);
+            if (ai.forceBender || hashToFloat(hash32(v.uid * 7u + o.uid * 13u + (u32)(time * 2.0))) < 0.6f) aiFenderBender(i, j);
             break;
         }
     }
