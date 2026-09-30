@@ -884,12 +884,74 @@ void lawn(FD& d) {
 }
 
 // Hedge between two ground points: a leafy swept mass following the terrain (propmesh.cpp hedgeMesh), colliding in pieces
+// The stretches of a lot boundary a..b that keep out of the turning room at nearby dead ends: the lane graph turns cars
+// round in a half circle of up to 6.5 m radius ahead of the dead end (pulled back along the street if something stands
+// in the way), and the car body needs another metre either side. Appends [t0, t1] parameter ranges of a..b.
+void clearOfTurnarounds(vec2 a, vec2 b, float halfThick, std::vector<vec2>& keep) {
+    keep.clear();
+    float L = length(b - a);
+    std::vector<vec4> caps;   // turning room: capsule p..q, radius in z
+    if (gRoads && L > 1e-3f) {
+        std::vector<int> cand;
+        gRoads->edgesInRect(vmin(a, b) - vec2(20.f), vmax(a, b) + vec2(20.f), cand);
+        for (int ei : cand) {
+            const RoadEdge& e = gRoads->edges[ei];
+            if (e.pts.size() < 2 || (e.flags & RF_ONEWAY) || e.lanesF == 0 || e.lanesB == 0) continue;
+            for (int end = 0; end < 2; end++) {
+                int nn = end ? e.n1 : e.n0;
+                const RoadNode& nd = gRoads->nodes[nn];
+                if (nd.edges.size() != 1) continue;
+                vec2 inward = normalize((end ? e.pts[e.pts.size() - 2] : e.pts[1]).xy() - nd.p);
+                const RoadClassInfo& ri = roadInfo(e.cls);
+                float R = Clamp((ri.median > 0.f ? ri.median * 0.5f : 0.f) + ri.laneWidth * 0.5f + 3.4f, 4.8f, 6.5f);
+                caps.push_back(vec4(nd.p.x, nd.p.y, R + 1.1f + 0.4f + halfThick, 0.f));
+                caps.back().w = atan2f(inward.y, inward.x);
+            }
+        }
+    }
+    if (caps.empty()) {
+        keep.push_back(vec2(0.f, 1.f));
+        return;
+    }
+    int n = Max(2, (int)ceilf(L / 0.4f));
+    float run = -1.f;
+    for (int i = 0; i <= n; i++) {
+        float t = (float)i / n;
+        vec2 p = lerp(a, b, t);
+        bool clear = true;
+        for (const vec4& c : caps) {
+            vec2 c0(c.x, c.y), c1 = c0 + vec2(cosf(c.w), sinf(c.w)) * 6.f;   // the room and its pulled-back positions
+            if (distPointSegment2D(p, c0, c1) < c.z) { clear = false; break; }
+        }
+        if (clear && run < 0.f) run = t;
+        if ((!clear || i == n) && run >= 0.f) {
+            float t1 = clear ? t : (float)(i - 1) / n;
+            if ((t1 - run) * L > 0.6f) keep.push_back(vec2(run, t1));
+            run = -1.f;
+        }
+    }
+}
+
+void hedgePiece(FD& d, vec2 a, vec2 b, float h, float wd, vec3 tint, bool collide, int style, u32 seed);
+
+// Hedge along a..b (collide: with colliders), left open where it would reach into a dead end's turning room
 void hedge(FD& d, vec2 a, vec2 b, float h, float wd, vec3 tint, bool collide, int style) {
     FD_STAT(d.k.m, FS_HEDGE);
-    Sink& k = d.k;
     float L = length(b - a);
     if (L < 0.5f) return;
-    hedgeMesh(*k.m, k.org, *d.map, a, b, h, wd, style, tint, d.r.next());
+    u32 seed = d.r.next();
+    std::vector<vec2> keep;
+    clearOfTurnarounds(a, b, wd * 0.5f, keep);
+    for (size_t i = 0; i < keep.size(); i++) {
+        vec2 pa = lerp(a, b, keep[i].x), pb = lerp(a, b, keep[i].y);
+        if (length(pb - pa) >= 0.5f) hedgePiece(d, pa, pb, h, wd, tint, collide, style, i == 0 ? seed : hash32(seed + (u32)i));
+    }
+}
+
+void hedgePiece(FD& d, vec2 a, vec2 b, float h, float wd, vec3 tint, bool collide, int style, u32 seed) {
+    Sink& k = d.k;
+    float L = length(b - a);
+    hedgeMesh(*k.m, k.org, *d.map, a, b, h, wd, style, tint, seed);
     if (!collide || !k.col) return;
     vec2 t = (b - a) / L;
     int n = Max(1, (int)ceilf(L / 11.f));
@@ -1125,21 +1187,27 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
             if (end - cur > 0.8f) {
                 vec2 p0 = lotFront(cur), p1 = lotFront(end);
                 if (gardenWall) {
-                    float L = end - cur;
-                    vec2 mc = (p0 + p1) * 0.5f;
-                    float gz = Min(d.map->heightAt(p0.x, p0.y), d.map->heightAt(p1.x, p1.y));
-                    obox(k, vec3(mc, gz + 0.7f), vec3(b.ax, 0.f), vec3(b.front, 0.f), vec3(L * 0.5f, 0.15f, 0.9f), d.wallTone, d.wallMat, false);
-                    obox(k, vec3(mc, gz + 1.65f), vec3(b.ax, 0.f), vec3(b.front, 0.f), vec3(L * 0.5f + 0.05f, 0.2f, 0.06f), d.trim, d.trimMat, true);
-                    for (float a = 0.f; a <= L + 0.01f; a += Max(2.f, L / Max(1.f, floorf(L / 4.f)))) {
-                        vec2 pp = p0 + b.ax * a;
-                        obox(k, vec3(pp, gz + 0.85f), vec3(b.ax, 0.f), vec3(b.front, 0.f), vec3(0.25f, 0.25f, 1.05f), d.trim, d.trimMat, false);
-                    }
-                    if (k.col) {
-                        CollisionBox cb;
-                        cb.c = vec3(mc, gz + 0.8f);
-                        cb.ax = b.ax;
-                        cb.he = vec3(L * 0.5f, 0.2f, 0.9f);
-                        k.col->push_back(cb);
+                    // (left open where a dead end's turning room reaches the lot line)
+                    std::vector<vec2> keep;
+                    clearOfTurnarounds(p0, p1, 0.25f, keep);
+                    for (const vec2& kp : keep) {
+                        vec2 q0 = lerp(p0, p1, kp.x), q1 = lerp(p0, p1, kp.y);
+                        float L = length(q1 - q0);
+                        vec2 mc = (q0 + q1) * 0.5f;
+                        float gz = Min(d.map->heightAt(q0.x, q0.y), d.map->heightAt(q1.x, q1.y));
+                        obox(k, vec3(mc, gz + 0.7f), vec3(b.ax, 0.f), vec3(b.front, 0.f), vec3(L * 0.5f, 0.15f, 0.9f), d.wallTone, d.wallMat, false);
+                        obox(k, vec3(mc, gz + 1.65f), vec3(b.ax, 0.f), vec3(b.front, 0.f), vec3(L * 0.5f + 0.05f, 0.2f, 0.06f), d.trim, d.trimMat, true);
+                        for (float a = 0.f; a <= L + 0.01f; a += Max(2.f, L / Max(1.f, floorf(L / 4.f)))) {
+                            vec2 pp = q0 + b.ax * a;
+                            obox(k, vec3(pp, gz + 0.85f), vec3(b.ax, 0.f), vec3(b.front, 0.f), vec3(0.25f, 0.25f, 1.05f), d.trim, d.trimMat, false);
+                        }
+                        if (k.col) {
+                            CollisionBox cb;
+                            cb.c = vec3(mc, gz + 0.8f);
+                            cb.ax = b.ax;
+                            cb.he = vec3(L * 0.5f, 0.2f, 0.9f);
+                            k.col->push_back(cb);
+                        }
                     }
                 } else {
                     hedge(d, p0, p1, hstyle == HEDGE_WILD ? 0.95f : 0.75f, hstyle == HEDGE_WILD ? 0.95f : 0.7f, hedgeTint, false, hstyle);

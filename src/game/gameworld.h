@@ -223,10 +223,13 @@ struct GameWorld {
         mat3 rot;
         bool magInHand = false;                    // reloading: the magazine is out, carried by the support hand
         vec3 magOffset = vec3(0.f);                // ... drawn at the weapon's transform moved by this (world)
+        float meleeW = 0.f, meleeBlock = 0.f;      // first-person fists: guard weight, block raise
+        float meleeSeen = -1e9f;                   // last time the player was fighting (the guard stays up a while)
     } fpw;
     bool fpWeaponUsable(const Ped& p) const;
     bool fpWeaponMuzzle(dvec3& out) const;
     void updateFirstPersonWeapon(float dt);
+    void updateFirstPersonMelee(float dt);   // fpweapon.cpp: the fists' guard and strikes in front of the eyes
     void updateCameraFades(float realDt);   // camera.cpp: peds covering the player / touching the lens dither out
     bool weaponShowcase = false;   // test: a rack of every gun (stock / all components + tints) at showcasePos
     dvec3 showcasePos;
@@ -439,6 +442,7 @@ struct GameWorld {
     std::string aiTrafficHealthText() const;         // stuck / blocked / rolled cars, impacts, core counters (soak tests)
     bool aiFenderBender(int carA, int carB);         // events.cpp: two AI cars knocked together -> stop, argue, drive on
     std::string aiEventText(int* stage = nullptr, vec3* pos = nullptr, int* car = nullptr) const;   // events.cpp: the active takeover (tests)
+    std::string aiK9Text(vec3* dogPos = nullptr) const;   // police.cpp: the K9 unit and the scent trail (tests)
 };
 
 extern GameWorld* gGame;

@@ -4380,8 +4380,9 @@ static void arrange(Comp& c) {
         if (r.chance(st.impact)) c.hit(fx(), bar, 0.f, DK_IMPACT, 100, 0.f);
         if (a.bars >= 2 && r.chance(st.dropout)) {
             float beats = r.chance(0.35f) ? 2.f : 1.f;
-            u32 to = (u32)((double)bar * barS);
-            gaps.push_back({to - (u32)(beats * c.spb), to});
+            // the gap ends 30 ms early: humanized downbeat hits of the chorus may start a few ms ahead of the bar line
+            u32 to = (u32)((double)bar * barS) - (u32)(0.03f * kSR);
+            gaps.push_back({to - (u32)(beats * c.spb) + (u32)(0.03f * kSR), to});
         }
     }
     if (!gaps.empty()) {

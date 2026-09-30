@@ -364,4 +364,155 @@ void GameWorld::updateFirstPersonWeapon(float dt) {
     Anim::computeMatrices(ce.skel, pose, p.bones, p.skin);
 }
 
+// First-person melee. Fists: a boxing guard in front of the eyes while fighting (lead hand left, rear hand right;
+// higher and tighter while blocking, knocked aside by a stagger), staying up a moment after the last exchange. Each
+// strike drives its hand along its own path out to the target and back, timed by the move's contact frame: jab and
+// cross straight out turning palm-down, the uppercut rising from below, the hook swinging round from the side, the
+// counter shove with both open hands. A knife is held low in view whenever it is out (slash across, stab forward); a
+// bat rests on the right shoulder with both hands on the handle (a level swing, an overhead smash). The weapon mesh
+// follows the right hand's grip (gameworld.cpp), so it rides the IK.
+void GameWorld::updateFirstPersonMelee(float dt) {
+    using namespace melee_detail;
+    if (player < 0 || player >= (int)peds.size() || !peds[player].used) return;
+    Ped& p = peds[player];
+    dt = Clamp(dt, 0.f, 0.1f);
+    bool fists = p.weapon == WPN_FISTS, knife = p.weapon == WPN_KNIFE, bat = p.weapon == WPN_BAT;
+    bool can = rig.fpActive && !fpw.active && (fists || knife || bat) && p.state == PS_ONFOOT && !p.ragdoll && p.takedownT < 0.f &&
+               p.moveMode == 0 && !p.phoneCall && !p.phoneBrowse && rig.scriptBlend <= 0.f && p.charIndex >= 0;
+    int act = p.anim.actionDone() ? -1 : p.anim.action;
+    if (act == Anim::CLIP_CLIMB || act == Anim::CLIP_VAULT || act == Anim::CLIP_THROW || act == Anim::CLIP_GET_UP_FRONT ||
+        act == Anim::CLIP_GET_UP_BACK || act == Anim::CLIP_HANDS_UP)
+        can = false;
+    bool fighting = p.aiming || p.meleeMove >= 0 || p.blocking || p.meleeStagger > 0.f || p.dodgeT >= 0.f;
+    if (can && fighting) fpw.meleeSeen = (float)time;
+    bool want = can && (fighting || !fists || (float)time - fpw.meleeSeen < 2.5f);   // a blade or bat is always in view
+    fpw.meleeW += ((want ? 1.f : 0.f) - fpw.meleeW) * (1.f - expf(-dt * 10.f));
+    if (!can) fpw.meleeW = 0.f;
+    if (fpw.meleeW < 0.01f) return;
+    fpw.meleeBlock += ((p.blocking ? 1.f : 0.f) - fpw.meleeBlock) * (1.f - expf(-dt * 16.f));
+
+    // ---- guard (camera space: x right, y forward, z up); a fist is a grip round its own axis: thumb side, palm normal
+    float bw = fpw.meleeBlock;
+    vec3 gR = lerp(vec3(0.12f, 0.3f, -0.17f), vec3(0.06f, 0.23f, -0.03f), bw);
+    vec3 gL = lerp(vec3(-0.09f, 0.36f, -0.12f), vec3(-0.06f, 0.25f, -0.01f), bw);
+    float bounce = sinf((float)time * 5.2f) * 0.006f * (1.f - bw);   // the stance's light bounce
+    gR.z += bounce;
+    gL.z += bounce * 0.8f;
+    float st = Saturate(p.meleeStagger / 0.6f);                        // a stagger knocks the guard aside
+    gR += vec3(0.08f, -0.08f, -0.1f) * st;
+    gL += vec3(-0.08f, -0.06f, -0.12f) * st;
+    vec3 aR(-0.25f, 0.15f, 1.f), pR(-1.f, 0.f, -0.15f);   // thumb side up and in, palm facing in
+    vec3 aL(0.25f, 0.15f, 1.f), pL(1.f, 0.f, -0.15f);
+    float curlR = 1.f, curlL = 1.f;
+    bool leftOnBat = false;   // the support hand's target is set along the bat's handle after the strike paths
+    if (knife) {   // held low on the right, blade forward and up; the other hand a loose guard
+        gR = lerp(vec3(0.12f, 0.33f, -0.17f), vec3(0.07f, 0.26f, -0.06f), bw);
+        aR = vec3(-0.15f, 0.75f, 0.6f);
+        pR = vec3(-1.f, 0.f, 0.1f);
+        curlR = 0.9f;
+        gL = lerp(vec3(-0.1f, 0.33f, -0.13f), vec3(-0.06f, 0.25f, -0.02f), bw);
+    } else if (bat) {   // on the right shoulder, the barrel up and back over it
+        gR = lerp(vec3(0.14f, 0.19f, -0.2f), vec3(0.02f, 0.28f, -0.08f), bw);
+        aR = lerp(vec3(0.25f, -0.35f, 1.f), vec3(1.f, 0.15f, 0.25f), bw);   // blocking: held across the body
+        pR = vec3(-1.f, 0.f, 0.f);
+        curlR = 0.92f;
+        leftOnBat = true;
+    }
+
+    // ---- strikes: out to the contact frame, back over the first 60% of the recovery
+    int mm = p.meleeMove;
+    bool handMove = fists ? (mm == MM_JAB_L || mm == MM_JAB_R || mm == MM_FINISHER || mm == MM_HEAVY || mm == MM_COUNTER)
+                          : knife ? (mm == MM_SLASH || mm == MM_STAB) : (mm == MM_SWING || mm == MM_SMASH);
+    if (handMove) {
+        const MeleeMove& mv = kMoves[mm];
+        float c = Max(moveContact(mv), 0.05f), d = Max(moveDuration(mv), c + 0.05f);
+        float t = p.meleeT;
+        float u = t < c ? t / c : 1.f - Saturate((t - c) / ((d - c) * 0.6f));
+        u = Saturate(u);
+        float out = u * u * (3.f - 2.f * u);
+        vec3 palmDownR(0.f, 0.f, -1.f), palmDownL(0.f, 0.f, -1.f);
+        switch (mm) {
+            case MM_JAB_L:   // lead hand straight out, turning palm-down
+                gL = lerp(gL, vec3(-0.015f, 0.6f, -0.03f), out);
+                aL = lerp(aL, vec3(1.f, 0.f, 0.f), out);
+                pL = lerp(pL, palmDownL, out);
+                break;
+            case MM_JAB_R:   // the cross: rear hand across the centre line
+                gR = lerp(gR, vec3(0.01f, 0.62f, -0.02f), out);
+                aR = lerp(aR, vec3(-1.f, 0.f, 0.f), out);
+                pR = lerp(pR, palmDownR, out);
+                break;
+            case MM_FINISHER: {   // uppercut: dips, then drives up with the palm toward the face
+                vec3 low = gR + vec3(-0.03f, 0.04f, -0.07f), top = vec3(0.02f, 0.46f, 0.06f);
+                gR = t < c ? lerp(lerp(gR, low, Saturate(out * 2.f)), top, Saturate(out * 2.f - 1.f)) : lerp(gR, top, out);
+                aR = lerp(aR, vec3(-0.2f, 0.9f, 0.4f), out);
+                pR = lerp(pR, vec3(0.f, -1.f, 0.2f), out);
+                break;
+            }
+            case MM_HEAVY: {   // hook: swings round from the side (a curve through `side`), forearm level
+                vec3 side = vec3(0.3f, 0.36f, -0.06f), tgt = vec3(-0.01f, 0.5f, -0.03f);
+                float v = out;
+                vec3 q = gR * ((1.f - v) * (1.f - v)) + side * (2.f * (1.f - v) * v) + tgt * (v * v);
+                gR = t < c ? q : lerp(gR, tgt, out);
+                aR = lerp(aR, vec3(0.f, 0.f, 1.f), out);
+                pR = lerp(pR, vec3(-0.3f, -1.f, 0.f), out);
+                break;
+            }
+            case MM_SLASH: {   // knife: across from high right to low left, the blade leading
+                vec3 wind = vec3(0.28f, 0.42f, 0.02f), end = vec3(-0.16f, 0.46f, -0.12f);
+                gR = gR * ((1.f - out) * (1.f - out)) + wind * (2.f * (1.f - out) * out) + end * (out * out);
+                aR = normalize(lerp(aR, vec3(-1.f, 0.3f, 0.1f), out));
+                break;
+            }
+            case MM_STAB:   // knife: straight thrust, blade level
+                gR = lerp(gR, vec3(0.04f, 0.62f, -0.06f), out);
+                aR = normalize(lerp(aR, vec3(0.f, 1.f, 0.1f), out));
+                pR = normalize(lerp(pR, vec3(-0.2f, 0.f, -1.f), out));
+                break;
+            case MM_SWING: {   // bat: level swing from the shoulder round to the left
+                vec3 mid = vec3(0.16f, 0.42f, -0.1f), end = vec3(-0.14f, 0.4f, -0.12f);
+                gR = gR * ((1.f - out) * (1.f - out)) + mid * (2.f * (1.f - out) * out) + end * (out * out);
+                aR = normalize(lerp(aR, vec3(-0.8f, 0.6f, 0.05f), out));
+                break;
+            }
+            case MM_SMASH: {   // bat: raised over the head, then down in front
+                vec3 up = vec3(0.05f, 0.12f, 0.06f), down = vec3(0.f, 0.42f, -0.28f);
+                gR = t < c ? lerp(lerp(gR, up, Saturate(out * 1.6f)), down, Saturate(out * 2.5f - 1.5f)) : lerp(gR, down, out);
+                aR = normalize(t < c ? lerp(aR, vec3(0.f, -0.6f, 1.f), Saturate(out * 1.6f)) : lerp(aR, vec3(0.f, 0.9f, -0.4f), out));
+                break;
+            }
+            default:   // MM_COUNTER: both open hands shove forward
+                gR = lerp(gR, vec3(0.12f, 0.55f, -0.07f), out);
+                gL = lerp(gL, vec3(-0.12f, 0.55f, -0.07f), out);
+                aR = lerp(aR, vec3(0.f, 0.f, 1.f), out);
+                aL = lerp(aL, vec3(0.f, 0.f, 1.f), out);
+                pR = lerp(pR, vec3(0.f, 1.f, 0.f), out);
+                pL = lerp(pL, vec3(0.f, 1.f, 0.f), out);
+                curlR = curlL = Lerp(1.f, 0.2f, out);
+                break;
+        }
+    }
+
+    if (leftOnBat) {   // the support hand just above the other on the handle
+        gL = gR + normalize(aR) * 0.09f;
+        aL = aR;
+        pL = -pR;
+        curlL = 0.92f;
+    }
+
+    // ---- both hands onto their targets (model space of the ped)
+    const CharEntry& ce = chars[p.charIndex];
+    quat qyi = conj(quatAxisAngle(vec3(0, 0, 1), p.yaw));
+    vec3 F = rig.cam.forward(), R = rig.cam.right(), U = cross(R, F);
+    mat3 camB(R, F, U);
+    auto toModelP = [&](vec3 cp) { return rotate(qyi, rel(rig.cam.pos + dvec3(camB * cp), p.pos)); };
+    auto toModelD = [&](vec3 cd) { return normalize(rotate(qyi, camB * normalize(cd))); };
+    Anim::Pose pose = p.anim.pose;
+    vec3 shR = p.bones[Anim::B_UPPERARM_R].c[3].xyz(), shL = p.bones[Anim::B_UPPERARM_L].c[3].xyz();
+    vec3 mR = toModelP(gR), mL = toModelP(gL);
+    Anim::holdGrip(ce.skel, pose, true, mR, toModelD(aR), toModelD(pR), (shR + mR) * 0.5f + vec3(0.15f, -0.05f, -0.4f), curlR, 1.f, fpw.meleeW);
+    Anim::holdGrip(ce.skel, pose, false, mL, toModelD(aL), toModelD(pL), (shL + mL) * 0.5f + vec3(-0.15f, -0.05f, -0.4f), curlL, 1.f, fpw.meleeW);
+    Anim::computeMatrices(ce.skel, pose, p.bones, p.skin);
+}
+
 }  // namespace Game

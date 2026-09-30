@@ -996,8 +996,8 @@ void drip(G& g, vec2 c, vec2 ax, float z, u32 h) {
         vec3 rc = lerp(kYard * 0.8f, vec3(0.55f, 0.3f, 0.15f), 0.5f + 0.3f * s);
         blob(g, c, ax, 0.5f + 1.1f * s, 0.12f + 0.12f * s, 7, z + kZSpot, rgbv(rc), M(MAT_CONCRETE), h);
     } else {
-        // oil: dark, a little brown, soaked in
-        vec3 oc = kYard * vec3(0.46f, 0.44f, 0.41f) * (0.9f + 0.45f * t);
+        // oil: dark, a little brown, soaked in (older ones greyer)
+        vec3 oc = kYard * vec3(0.5f, 0.48f, 0.45f) * (0.95f + 0.55f * t);
         blob(g, c, normalize(ax + perp(ax) * (s - 0.5f)), 0.12f + 0.3f * s, 0.1f + 0.22f * t, 7, z + kZSpot, rgbv(oc), M(MAT_CONCRETE), h);
     }
 }
@@ -2135,7 +2135,7 @@ void genPortDress(const SiteElem& e, G& g) {
                 bool oil = r.chance(0.7f);
                 float rad = oil ? r.range(0.25f, 0.9f) : r.range(0.5f, 1.5f);
                 float sx = r.range(0.6f, 1.4f);
-                float dk = r.range(0.7f, 1.05f);
+                float dk = r.range(0.85f, 1.3f);
                 u32 col = oil ? rgbv(yard::kYard * vec3(0.46f, 0.44f, 0.41f) * dk) : rgb(0.42f, 0.44f, 0.45f);
                 u32 mat = M(oil ? MAT_CONCRETE : MAT_GLASS);
                 const float zs = e.z + yard::kZSpot + 0.0008f;   // over the lanes' drips

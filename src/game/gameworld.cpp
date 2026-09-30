@@ -189,6 +189,7 @@ void GameWorld::update(float realDt) {
     sanitizeEntities();
     updateCamera(realDt);
     updateFirstPersonWeapon(realDt);   // after the camera: the gun is placed in front of the eyes
+    updateFirstPersonMelee(realDt);
     updateCameraFades(realDt);
     Wildlife::update(*this, dt);   // animals around the player (wildlife.cpp; after the camera: LOD / spawning use it)
     updateRumble(realDt);

@@ -250,6 +250,6 @@ void k9Command(GameWorld& g, int group, u32 uid, int cmd, vec3 at, int targetPed
 bool k9Alive(int group, u32 uid);         // still there and on its feet
 vec3 k9Pos(int group);
 bool k9Loose(int group);                  // released (not on the leash)
-void k9Dismiss(int group, u32 uid);       // the unit is done: an ordinary leashed dog again (despawns with the rest)
+void k9Dismiss(GameWorld& g, int group, u32 uid);   // the unit is done: an ordinary leashed dog again (despawns with the rest)
 }  // namespace Wildlife
 }  // namespace Game

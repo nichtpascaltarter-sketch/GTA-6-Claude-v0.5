@@ -114,6 +114,7 @@ struct PedAI {
     int coverVeh = -1;
     float shoutTimer = 0.f;
     float tackleTimer = 0.f;   // foot chase: cooldown between tackle attempts
+    bool k9Handler = false;    // works a police dog (police.cpp K9 unit)
     int searchSpot = -1;       // lost the suspect: the corner / doorway this officer is checking (police.cpp search plan)
     float searchT = 0.f;       // ... time spent getting there
     float searchLook = -1.f;   // ... the look round it once there (counts down; -1 not there yet)

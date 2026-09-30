@@ -409,11 +409,12 @@ static void musicTests(bool quick) {
                     if (sd->tracks[e.track].drums && (e.note == DK_REV_CYM || e.note == DK_RISER || e.note == DK_IMPACT) && e.start + win >= at &&
                         e.start <= at)
                         found = true;
-                // a rhythm-section stop also counts as a transition: no kick in the last beat before the downbeat
+                // a rhythm-section stop also counts as a transition: no kick in the last beat before the downbeat (the
+                // downbeat's own kick may be humanized a few ms early)
                 bool kickInLastBeat = false;
-                u32 beat = (u32)(60.0 / pl.bpm * kSR);
+                u32 beat = (u32)(60.0 / pl.bpm * kSR), early = (u32)(0.03f * kSR);
                 for (const NoteEv& e : sd->events)
-                    if (e.track == 0 && e.note == DK_KICK && e.start + beat > at && e.start < at) kickInLastBeat = true;
+                    if (e.track == 0 && e.note == DK_KICK && e.start + beat > at && e.start + early < at) kickInLastBeat = true;
                 if (found || !kickInLastBeat) trans++;
             }
         }
@@ -502,6 +503,9 @@ static void footstepTests() {
     check(hf[FOOTWEAR_HEEL] > hf[FOOTWEAR_SNEAKER] + 0.1f, "heels click brighter than sneakers");
     check(hf[FOOTWEAR_LEATHER] > hf[FOOTWEAR_SNEAKER], "leather soles brighter than sneakers");
     check(lf[FOOTWEAR_BOOT] > lf[FOOTWEAR_HEEL], "boots heavier than heels");
+    check(walkDb[FOOTWEAR_HEEL] > walkDb[FOOTWEAR_SNEAKER] + 0.5f && walkDb[FOOTWEAR_LEATHER] > walkDb[FOOTWEAR_SNEAKER],
+          "hard soles carry further than sneakers on concrete", StrFormat("heel %.1f leather %.1f sneaker %.1f", walkDb[FOOTWEAR_HEEL],
+                                                                          walkDb[FOOTWEAR_LEATHER], walkDb[FOOTWEAR_SNEAKER]));
     // gait: a sprinting step lands harder than a stroll
     auto stepDb = [&](float speed, int surf, float wet, int ev, float impact) {
         float db = 0.f;

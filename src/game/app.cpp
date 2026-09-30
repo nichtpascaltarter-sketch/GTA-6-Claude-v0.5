@@ -430,8 +430,14 @@ struct App {
         }
         if (autoplay == "melee") {
             // a fist-fighter squaring up ahead, and an unaware civilian off to the side for the takedown at t = 10 s
+            // (--meleeweapon knife|bat: the player fights with that instead of fists)
             Ped& p = game.peds[game.player];
             p.weapon = WPN_FISTS;
+            if (const char* mw = Platform::argValue("meleeweapon")) {
+                WeaponType w = !strcmp(mw, "knife") ? WPN_KNIFE : (!strcmp(mw, "bat") ? WPN_BAT : WPN_FISTS);
+                if (w != WPN_FISTS) game.giveWeapon(game.player, w, 1);
+                p.weapon = w;
+            }
             vec2 f(-sinf(p.yaw), cosf(p.yaw)), r(cosf(p.yaw), sinf(p.yaw));
             vec2 q = p.pos.toVec3().xy() + f * 3.5f;
             int e = game.spawnPed(game.randomCivilianChar(0x6100u, 2), dvec3(q.x, q.y, game.groundHeight(q.x, q.y, (float)p.pos.z + 3.f)), p.yaw + kPi,
@@ -511,7 +517,7 @@ struct App {
             }
         }
         if (autoplay == "crowd" || autoplay == "panic" || autoplay == "chase" || autoplay == "rage" || autoplay == "soak" || autoplay == "parking" ||
-            autoplay == "bender" || autoplay == "hwysoak" || autoplay == "venues" || autoplay == "takeover" || autoplay == "surrender" || autoplay == "search") {
+            autoplay == "bender" || autoplay == "hwysoak" || autoplay == "venues" || autoplay == "takeover" || autoplay == "surrender" || autoplay == "search" || autoplay == "k9") {
             // AI scenario tests: crowd variety at four places and hours / gunfire panic -> police response -> arrest /
             // night car chase at 4 stars (PIT, boxing, roadblocks, helicopter searchlight) / rear-ending a bold driver
             mu::setFlag(game, mu::EX_INTRO_DONE, 1);
@@ -541,6 +547,32 @@ struct App {
                 game.pinfo.lastSeenPos = p.pos;
                 game.pinfo.lastSeenTime = (float)game.time;
                 LOG("autoplay %s: wanted 2 at %.0f %.0f, money %lld", autoplay.c_str(), q.x, q.y, game.pinfo.money);
+            } else if (autoplay == "k9") {
+                // wanted at two stars and slipping away on foot down a sidewalk before any unit arrives: the K9 unit
+                // follows the scent trail, the dog finds the player; then the player makes a run for it (applyAutoplay)
+                vec2 q(2713.f, 763.f);
+                float x = 0.f;
+                int wl = game.laneGraph.nearestWalk(q, 60.f, &x);
+                vec2 dir(0.f, 1.f);
+                if (wl >= 0) {
+                    const AI::WalkLink& L = game.laneGraph.walkLinks[wl];
+                    x = Clamp(x, 0.f, Max(L.length - 1.f, 0.f));
+                    vec3 w3 = game.laneGraph.walkPos(wl, Min(x, 3.f), 0.f, true);
+                    dir = game.laneGraph.walkTangent(wl, Min(x, 3.f), true);
+                    q = w3.xy();
+                }
+                p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+                p.yaw = atan2f(-dir.x, dir.y);
+                game.rig.yaw = p.yaw;
+                env.timeOfDay = 17.f;
+                p.weapon = WPN_FISTS;
+                p.maxHealth = p.health = 400.f;
+                game.timeScale = 1.5f;
+                game.pinfo.wantedHeat = 2.4f;
+                game.pinfo.wanted = 2;
+                game.pinfo.lastSeenPos = p.pos;
+                game.pinfo.lastSeenTime = (float)game.time;
+                LOG("autoplay k9: wanted 2 at %.0f %.0f heading %.2f %.2f (walk link %d)", q.x, q.y, dir.x, dir.y, wl);
             } else if (autoplay == "takeover") {
                 // a street takeover staged a block or two away at night: donuts, the crowd, then the police and the scatter
                 vec2 q(2300.f, -150.f);
@@ -914,6 +946,50 @@ struct App {
                 logT = 2.f;
                 LOG("autoplay search t=%.1f wanted %d seen %d | %s", t, game.pinfo.wanted, (int)game.pinfo.policeSeesPlayer, game.aiCensusText(90.f).c_str());
             }
+        } else if (autoplay == "k9") {
+            // run 12 s down the sidewalk, then stand still (out of sight of any unit): the K9 unit tracks the trail and the
+            // dog finds the player; 12 s after that the player runs for it and the dog is sent after them
+            static float logT = 0.f, shotT = 0.f, foundAt = -1.f;
+            static int shots = 0;
+            Ped* pl = game.playerPed();
+            vec3 dogP;
+            std::string st = game.aiK9Text(&dogP);
+            bool active = st.rfind("k9: none", 0) != 0;
+            if (pl && pl->state == PS_ONFOOT && !game.pinfo.busted) {
+                bool dash = foundAt >= 0.f && t > foundAt + 12.f && t < foundAt + 22.f;
+                if (t > 1.f && t < 13.f) {
+                    c.move = vec2(0.f, 1.f);
+                    c.sprint.down = true;
+                } else if (dash) {
+                    c.move = vec2(0.f, 1.f);
+                    c.sprint.down = true;
+                }
+            }
+            if (foundAt < 0.f && st.find("found 0.0") == std::string::npos && active && st.find("found") != std::string::npos) foundAt = t;
+            if (active && pl) {
+                // the camera behind the dog, looking the way it goes (at the player once it has found them)
+                vec2 dp = dogP.xy(), pp = pl->pos.toVec3().xy();
+                vec2 dirc = normalize(pp - dp + vec2(1e-4f, 0.f));
+                vec2 cam = dp - dirc * 7.f + AI::rightOf(dirc) * 2.5f;
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(cam.x, cam.y, game.groundHeight(cam.x, cam.y, dogP.z + 3.f) + 2.4f);
+                game.rig.scriptTarget = dvec3(dogP + vec3(dirc * 4.f, 0.6f));
+                game.rig.scriptFov = 55.f;
+                shotT -= dt;
+                if (shotT <= 0.f && shots < 14) {
+                    shotT = 4.f;
+                    game.requestScreenshot = shotPath(StrFormat("auto_k9_%02d", shots));
+                    shots++;
+                }
+            } else {
+                game.rig.scriptActive = false;
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 2.f;
+                LOG("autoplay k9 t=%.1f wanted %d seen %d player %.1f %.1f state %d | %s", t, game.pinfo.wanted, (int)game.pinfo.policeSeesPlayer, pl ? pl->pos.x : 0.0,
+                    pl ? pl->pos.y : 0.0, pl ? (int)pl->state : -1, st.c_str());
+            }
         } else if (autoplay == "takeover") {
             // follow the takeover from across the crossing: shots every 8 s, its state every 2 s
             static float logT = 0.f, shotT = 6.f, since = -1.f;
@@ -980,7 +1056,7 @@ struct App {
             };
             const VenueStop stops[3] = {
                 {"port_gate", &P.portGate, 8.5f, WX_OVERCAST, 0.6f, {{4069.5f, -190.f}, {4030.f, -198.f}}, {{4086.f, -218.f}, {4003.f, -219.f}}},
-                {"airport_forecourt", &P.airport, 11.f, WX_FAIR, 0.6f, {{753.f, 1229.f}, {714.f, 1262.f}}, {{754.f, 1250.f}, {698.f, 1300.f}}},
+                {"airport_forecourt", &P.airport, 11.f, WX_FAIR, 0.6f, {{753.f, 1212.f}, {691.f, 1262.f}}, {{753.f, 1236.f}, {698.f, 1305.f}}},
                 {"sawgrass", &P.sawgrassRoad, 7.2f, WX_FOG, 0.5f, {{-5052.f, 104.5f}, {-4990.f, -56.f}}, {{-5028.f, 101.f}, {-5000.f, -72.f}}}};
             int want = Min((int)(t / 24.f), 2);
             Ped* pl = game.playerPed();

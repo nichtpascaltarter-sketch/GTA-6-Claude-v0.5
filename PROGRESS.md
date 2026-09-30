@@ -272,9 +272,10 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
 - Story: Downtown Penthouse needs an interior named "Downtown Penthouse"; penthouse vault marker (interiortower.cpp)
   pending; cutscene camera fix-up can't see glass/awnings/foliage (no collision).
 - Wildlife: the new species and the `--wildscene perf` stress scene still need a Wine check.
-- Machine for testing has only 4 cores / 16 GB shared by several agents: gate builds and Wine runs with
-  scratchpad `memgate.sh` (full build ~1.6 GB, Wine ~1.5 GB); Wine runs are 2-15 s per frame under load, so use
-  `--renderevery N`, `--tourstart/--tourcount`, `--benchseconds` for automated checks.
+- Machine for testing has only 4 cores / 16 GB shared by several agents. With /tmp/neontide_build.lock present,
+  build.sh runs one compile at a time (then waits for 3 GB free), and tools/run.sh runs at most four games at once
+  (a compile peaks near 2 GB, a game near 1.8 GB). `QUICK=1` builds at -O1 for test exes. Wine runs are 2-15 s per
+  frame under load, so use `--renderevery N`, `--tourstart/--tourcount`, `--benchseconds` for automated checks.
 
 ## Scorecards
 (appended at each milestone; graded against GTA 6 itself)

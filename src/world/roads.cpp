@@ -1,5 +1,6 @@
 #include "roads.h"
 #include "sites.h"
+#include "transit.h"
 #include "../core/noise.h"
 #include <unordered_map>
 
@@ -1304,6 +1305,9 @@ void RoadNetwork::generate(WorldMap& map) {
             return false;
         };
         auto waterworks = [&](vec2 p) {
+            if (gTransit && gTransit->laidOut)
+                for (const FerryPier& fp : gTransit->piers)
+                    if (length(fp.base - p) < 90.f) return true;
             if (!gSites) return false;
             for (const SiteElem& s : gSites->elems) {
                 if (s.kind != SK_BOAT_RAMP && s.kind != SK_MARINA && s.kind != SK_RIVER_MARINA && s.kind != SK_DOCK && s.kind != SK_BEACH_PIER &&
@@ -1475,6 +1479,100 @@ void RoadNetwork::generate(WorldMap& map) {
             kept.push_back(std::move(e));
         }
         edges.swap(kept);
+    }
+    // A two-way arterial that ends where the only way on is a one-way ramp (an interchange whose other ramps could not come
+    // down in time) would merge all its lanes into the ramp inside the junction, and its lanes back would carry no traffic.
+    // Its last 80 m narrow to a street (a lane drop on the straight, which the lane graph handles), and a stub carries on
+    // straight past the ramp mouth to a turning circle, so drivers who do not take the ramp can turn back.
+    {
+        std::vector<std::vector<int>> inc(nodes.size());
+        for (size_t i = 0; i < edges.size(); i++) {
+            inc[edges[i].n0].push_back((int)i);
+            inc[edges[i].n1].push_back((int)i);
+        }
+        const size_t origEdges = edges.size(), origNodes = nodes.size();
+        std::vector<char> touched(origEdges, 0);
+        int fixed = 0;
+        for (size_t nd = 0; nd < origNodes; nd++) {
+            if (inc[nd].size() != 2) continue;
+            int er = -1, es = -1;
+            for (int ei : inc[nd]) {
+                const RoadEdge& e = edges[ei];
+                if (e.cls == RC_RAMP && (e.flags & RF_ONEWAY)) er = ei;
+                else if ((e.cls == RC_BOULEVARD || e.cls == RC_AVENUE) && !(e.flags & RF_ONEWAY) && e.n0 != e.n1) es = ei;
+            }
+            if (er < 0 || es < 0 || (size_t)es >= origEdges || (size_t)er >= origEdges || touched[es] || touched[er]) continue;
+            touched[es] = touched[er] = 1;
+            // the arterial from the end node back along it
+            bool atN1 = edges[es].n1 == (int)nd;
+            std::vector<vec2> q;
+            for (size_t k = 0; k < edges[es].pts.size(); k++) q.push_back(edges[es].pts[atN1 ? edges[es].pts.size() - 1 - k : k].xy());
+            std::vector<float> cum(q.size(), 0.f);
+            for (size_t k = 1; k < q.size(); k++) cum[k] = cum[k - 1] + length(q[k] - q[k - 1]);
+            const float kNarrow = 80.f, kStub = 30.f;
+            if (cum.back() < kNarrow + 30.f) continue;
+            vec2 dirIn = normalize(q[0] - q[1]);   // travel toward the end node
+            bool straight = true;
+            for (size_t k = 1; k < q.size() && cum[k - 1] < kNarrow; k++) straight = straight && dot(normalize(q[k - 1] - q[k]), dirIn) > 0.985f;
+            if (!straight) continue;
+            // the stub: straight on if that is clear, else to the side away from the ramp; dry ground, outside site
+            // structures, not through a site fence (a fence merely passing the turning circle bows round it)
+            const RoadEdge& R = edges[er];
+            vec2 rampDir = normalize((R.n0 == (int)nd ? R.pts[1] : R.pts[R.pts.size() - 2]).xy() - q[0]);
+            vec2 side = dot(perp(dirIn), rampDir) > 0.f ? -perp(dirIn) : perp(dirIn);
+            vec2 stubDir(0.f), tip(0.f);
+            for (vec2 cdir : {dirIn, side}) {
+                vec2 t2 = q[0] + cdir * kStub;
+                bool ok = !map.isWater(t2.x, t2.y) && !map.isWater(q[0].x + cdir.x * kStub * 0.5f, q[0].y + cdir.y * kStub * 0.5f);
+                if (ok && gSites) {
+                    ok = !gSites->blocksRoads(t2);
+                    for (const SiteElem& s : gSites->elems)
+                        if (ok && s.kind == SK_FENCE && s.isLine() && segmentIntersect2D(q[0], t2, s.a, s.b, nullptr, nullptr)) ok = false;
+                }
+                if (ok) {
+                    stubDir = cdir;
+                    tip = t2;
+                    break;
+                }
+            }
+            if (length2(stubDir) < 0.5f) continue;
+            // split the arterial kNarrow short of the end: far part stays, the near part becomes a street
+            size_t k = 1;
+            while (k + 1 < q.size() && cum[k] < kNarrow) k++;
+            float t = (kNarrow - cum[k - 1]) / Max(cum[k] - cum[k - 1], 1e-4f);
+            vec2 D = lerp(q[k - 1], q[k], Saturate(t));
+            int nD = (int)nodes.size();
+            RoadNode rnD;
+            rnD.p = D;
+            nodes.push_back(rnD);
+            RoadEdge nearE = edges[es];   // end node -> D, as a street
+            nearE.cls = RC_STREET;
+            nearE.pts.clear();
+            for (size_t j = 0; j < k; j++) nearE.pts.push_back(vec3(q[j], 0.f));
+            if (length(q[k - 1] - D) > 0.1f) nearE.pts.push_back(vec3(D, 0.f));
+            nearE.n0 = (int)nd;
+            nearE.n1 = nD;
+            RoadEdge& farE = edges[es];    // D -> the arterial's far node
+            int farNode = atN1 ? farE.n0 : farE.n1;
+            farE.pts.clear();
+            farE.pts.push_back(vec3(D, 0.f));
+            for (size_t j = (length(q[k] - D) > 0.1f ? k : k + 1); j < q.size(); j++) farE.pts.push_back(vec3(q[j], 0.f));
+            farE.n0 = nD;
+            farE.n1 = farNode;
+            // the turnaround stub straight on past the ramp mouth
+            int nT = (int)nodes.size();
+            RoadNode rnT;
+            rnT.p = tip;
+            nodes.push_back(rnT);
+            RoadEdge stub = nearE;
+            stub.pts = {vec3(q[0], 0.f), vec3(q[0] + stubDir * (kStub * 0.5f), 0.f), vec3(tip, 0.f)};
+            stub.n0 = (int)nd;
+            stub.n1 = nT;
+            edges.push_back(std::move(nearE));
+            edges.push_back(std::move(stub));
+            fixed++;
+        }
+        if (fixed) LOG("Road gen: %d arterial ends at a lone on/off ramp given a turnaround", fixed);
     }
     for (auto& n : nodes) n.edges.clear();
     for (size_t i = 0; i < edges.size(); i++) {

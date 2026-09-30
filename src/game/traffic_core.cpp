@@ -174,6 +174,20 @@ Vehicles::VehicleControls donutControls(const Vehicles::VehicleState& s, vec2 sp
         }
         return c;
     }
+    if (st.phase == 3) {
+        // backing off: out of a corner the full-lock circle cannot get round, or off a kerb / pole / car it ran into
+        // (the brake pedal at a standstill is reverse), the wheel held over so the nose swings round toward the spot
+        st.backDist += v * dt;
+        c.throttle = 0.f;
+        c.brake = 0.8f;
+        c.steer = st.backSteer;
+        if (st.phaseT > 2.4f || st.backDist > 4.f) {
+            st.phase = 2;
+            st.phaseT = 0.f;
+            st.blockT = 0.f;
+        }
+        return c;
+    }
     if (st.phase == 2) {
         // lining up: roll back over the spot (the donut circles pass through it), then kick
         vec2 to = spot - pos;
@@ -185,13 +199,21 @@ Vehicles::VehicleControls donutControls(const Vehicles::VehicleState& s, vec2 sp
             st.drift = 0.f;
         } else {
             float ang = atan2f(dot(to, rightOf(fwd)), dot(to, fwd));
-            // (the spot inside the circle the car turns at full lock: it would only orbit it - straight on for room)
+            // (the spot inside the circle the car turns at full lock: it would only orbit it - back up for room)
             float rt = s.tune.wheelbase / Max(tanf(s.tune.maxSteer * 0.9f), 0.2f) + 0.6f;
             vec2 turnMid = pos + rightOf(fwd) * (ang >= 0.f ? rt : -rt);
-            bool cramped = length(spot - turnMid) < rt;
-            c.steer = cramped ? 0.f : Clamp(ang * 1.6f, -1.f, 1.f);
+            bool cramped = length(spot - turnMid) < rt && fabsf(ang) > 0.35f;
+            c.steer = Clamp(ang * 1.6f, -1.f, 1.f);
             c.throttle = v < 3.5f ? 0.45f : 0.f;
             c.brake = v > 6.f ? 0.3f : 0.f;
+            st.blockT = v < 0.4f ? st.blockT + dt : 0.f;
+            if ((cramped && v < 2.5f) || st.blockT > 1.f) {
+                st.phase = 3;
+                st.phaseT = 0.f;
+                st.backDist = 0.f;
+                st.backSteer = ang >= 0.f ? -1.f : 1.f;   // (reversing with the wheel the other way swings the nose toward it)
+                c.throttle = 0.f;
+            }
             return c;
         }
     }

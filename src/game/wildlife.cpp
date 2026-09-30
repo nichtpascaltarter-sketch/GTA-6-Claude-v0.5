@@ -130,6 +130,16 @@ struct Group {
     vec2 shoreN = vec2(0.f, 1.f);   // sanderlings: unit normal pointing up the beach at the anchor (on the water's edge)
     int host = -1;            // cattle egrets: the cattle herd they follow
     u32 hostUid = 0;
+    // police dog (K9): the handler it works with, what it has been told to do (Wildlife::k9Command)
+    bool k9 = false;
+    int k9Handler = -1;
+    u32 k9HandlerUid = 0;
+    u8 k9Cmd = 0;
+    vec3 k9At;
+    int k9Target = -1;
+    u32 k9TargetUid = 0;
+    float k9T = 0.f;          // time on the current release
+    float k9DownT = -10.f;    // when it last took the target down
 };
 
 struct Threat {
@@ -3006,6 +3016,144 @@ void dogBite(GameWorld& g, Animal& a, int ped) {
     if (p.isPlayer) g.rumble(0.35f, 0.4f);
 }
 
+// Police dogs (K9, commanded by police.cpp through Wildlife::k9Command): at heel on the leash, tracking ahead of the
+// handler with the nose down, standing and barking at something, or released - running a suspect down, a bite, a
+// fleeing one taken to the ground - and back to the handler to be leashed again.
+void k9Step(GameWorld& g, Group& G, Animal& a, float dt) {
+    const QuadSpeeds& qs = quadSpeeds(a.sp);
+    const ModelData& md = modelOf(a);
+    a.qa.lie = Lerp(a.qa.lie, 0.f, expDecay(3.f, dt));
+    // ---- released on a suspect
+    if (G.k9Cmd == Wildlife::K9_ATTACK) {
+        bool ok = pedOk(g, G.k9Target, G.k9TargetUid) && g.peds[G.k9Target].health > 0.f;
+        G.k9T += dt;
+        if (!ok || G.k9T > 25.f) {
+            G.k9Cmd = Wildlife::K9_HEEL;
+        } else {
+            Ped& p = g.peds[G.k9Target];
+            vec3 pp = p.pos.toVec3();
+            vec2 d = pp.xy() - a.pos.xy();
+            float dist = length(d);
+            bool down = p.state == PS_RAGDOLL || p.state == PS_GETUP;
+            float stopAt = down ? 1.5f : 0.8f;
+            if (dist > stopAt && p.vehicle < 0) quadMove(g, a, d / Max(dist, 1e-3f) * qs.run * 1.1f, dt, 16.f, 8.f, 0);
+            else {
+                quadIdle(a, dt);
+                quadFaceTowards(a, pp, 6.f, dt);
+            }
+            a.qa.sit = 0.f;
+            a.qa.headDown = Lerp(a.qa.headDown, 0.f, expDecay(5.f, dt));
+            a.qa.crouch = down ? 0.45f : 0.25f;
+            a.qa.alert = 1.f;
+            a.qa.tailWag = 0.f;
+            if (a.cooldown <= 0.f) {
+                if (!down && dist < 1.3f && p.vehicle < 0) {
+                    dogBite(g, a, G.k9Target);
+                    // a suspect on the run goes down (the dog hangs on to an arm: pulled off balance)
+                    if ((length(p.vel.xy()) > 2.f || G.k9DownT < 0.f) && G.k9T - G.k9DownT > 6.f) {
+                        vec2 dn = d / Max(dist, 1e-3f);
+                        g.knockDown(G.k9Target, vec3(dn * 150.f, 25.f));
+                        G.k9DownT = G.k9T;
+                    }
+                    a.cooldown = 1.5f;
+                } else {
+                    bark(a, 1.f);
+                    a.cooldown = frange(0.5f, 1.1f);
+                }
+            }
+            return;
+        }
+    }
+    bool handlerOk = pedOk(g, G.k9Handler, G.k9HandlerUid) && g.peds[G.k9Handler].vehicle < 0 && g.peds[G.k9Handler].health > 0.f;
+    if (!handlerOk) {
+        // handler down or gone: the dog stays put, alert (and goes with the group when it despawns)
+        quadIdle(a, dt);
+        a.qa.alert = 1.f;
+        a.qa.sit = Lerp(a.qa.sit, 0.f, expDecay(3.f, dt));
+        if (a.cooldown <= 0.f && frand() < 0.3f) {
+            bark(a, 0.8f);
+            a.cooldown = frange(2.f, 5.f);
+        }
+        return;
+    }
+    const Ped& h = g.peds[G.k9Handler];
+    vec3 op = h.pos.toVec3();
+    vec2 of = dirOf(h.yaw), orr(of.y, -of.x);
+    // ---- loose after a release: back to the handler, leash on
+    if (G.owner < 0) {
+        vec2 d = op.xy() - orr * 0.7f - a.pos.xy();
+        float dist = length(d);
+        if (dist > 1.4f) {
+            quadMove(g, a, d / dist * Min(qs.run, dist * 2.5f + 1.f), dt, 12.f, 7.f, 0);
+            a.qa.alert = 0.7f;
+            a.qa.crouch = Lerp(a.qa.crouch, 0.f, expDecay(3.f, dt));
+            return;
+        }
+        G.owner = G.k9Handler;
+        G.ownerUid = G.k9HandlerUid;
+        G.hand = pedBoneWorld(g, h, G.leashHand ? Anim::B_HAND_R : Anim::B_HAND_L);
+        G.hasHand = true;
+    }
+    // ---- on the leash
+    float oSpeed = length(h.vel.xy());
+    vec2 want;
+    float maxSpd = 5.5f;
+    bool lead = G.k9Cmd == Wildlife::K9_TRACK || G.k9Cmd == Wildlife::K9_ALERT;
+    if (lead) {
+        vec2 to = G.k9At.xy() - op.xy();
+        vec2 dir = length2(to) > 0.01f ? normalize(to) : of;
+        float weave = G.k9Cmd == Wildlife::K9_TRACK ? sinf(a.life * 1.7f) * 0.45f : 0.f;   // (casting for the scent)
+        want = op.xy() + dir * (G.k9Cmd == Wildlife::K9_TRACK ? 1.6f : 1.3f) + vec2(dir.y, -dir.x) * weave;
+        maxSpd = qs.run * 0.7f;
+    } else {
+        float side = G.leashHand ? 1.f : -1.f;
+        want = op.xy() + orr * (0.7f * side) + of * (oSpeed > 0.3f ? 0.5f : 0.2f);
+    }
+    vec2 d = want - a.pos.xy();
+    float dist = length(d);
+    float spd = dist < 0.25f ? 0.f : Clamp(dist * 2.5f, 0.f, maxSpd);
+    if (spd > 0.05f) quadMove(g, a, d / dist * spd, dt, 9.f, 6.f, 1);
+    else quadIdle(a, dt);
+    if (G.k9Cmd == Wildlife::K9_ALERT) {
+        quadFaceTowards(a, G.k9At, 4.f, dt);
+        quadLookAt(a, G.k9At, dt);
+        a.qa.crouch = Lerp(a.qa.crouch, 0.35f, expDecay(3.f, dt));
+        a.qa.alert = 1.f;
+        a.qa.tailWag = 0.f;
+        a.qa.headDown = Lerp(a.qa.headDown, 0.f, expDecay(5.f, dt));
+        if (a.cooldown <= 0.f) {
+            bark(a, 1.f);
+            a.cooldown = frange(0.6f, 1.3f);
+        }
+    } else if (G.k9Cmd == Wildlife::K9_TRACK) {
+        if (spd <= 0.05f) quadFaceTowards(a, G.k9At, 3.f, dt);
+        a.qa.headDown = Lerp(a.qa.headDown, 0.85f, expDecay(4.f, dt));
+        a.qa.crouch = Lerp(a.qa.crouch, 0.f, expDecay(3.f, dt));
+        a.qa.alert = 0.6f;
+        a.qa.tailWag = 0.15f;
+    } else {
+        if (spd <= 0.05f) quadFaceTowards(a, op + vec3(of * 2.f, 0.f), 2.f, dt);
+        a.timer = oSpeed < 0.25f ? a.timer + dt : 0.f;
+        a.qa.headDown = Lerp(a.qa.headDown, 0.f, expDecay(3.f, dt));
+        a.qa.crouch = Lerp(a.qa.crouch, 0.f, expDecay(3.f, dt));
+        a.qa.alert = 0.5f;
+        a.qa.tailWag = 0.3f;
+    }
+    a.qa.sit = Lerp(a.qa.sit, G.k9Cmd == Wildlife::K9_HEEL && a.timer > 2.5f ? 1.f : 0.f, expDecay(3.f, dt));
+    // keep the collar within the leash's reach
+    if (G.hasHand) {
+        vec3 collar = worldPoint(a, md.collar);
+        vec3 dh = collar - G.hand;
+        float L = length(dh);
+        const float rope = 1.75f;
+        if (L > rope) {
+            vec3 corr = -dh / L * (L - rope);
+            a.pos.x += corr.x;
+            a.pos.y += corr.y;
+        }
+    }
+}
+
 // Dogs: leashed pets following their owner, and stray packs roaming the Flats.
 void updateDogs(GameWorld& g, int gi, float dt) {
     Group& G = gW.groups[gi];
@@ -3040,6 +3188,10 @@ void updateDogs(GameWorld& g, int gi, float dt) {
         a.qa.mouth = Max(0.f, a.qa.mouth - dt * 3.f);
         if (a.state == ST_FALL || a.state == ST_DEAD) {
             fallStep(g, a, dt);
+            continue;
+        }
+        if (G.k9) {   // police dog: police.cpp is in charge (k9Step)
+            k9Step(g, G, a, dt);
             continue;
         }
         const QuadSpeeds& qs = quadSpeeds(a.sp);
@@ -5690,6 +5842,93 @@ int visibleSpecies(const Render::Camera& cam, float maxDist, int* outSpecies, in
 const char* speciesName(int species) { return species >= 0 && species < Fauna::SP_COUNT ? Fauna::speciesInfo(species).name : ""; }
 
 int speciesCount() { return Fauna::SP_COUNT; }
+
+// ---- police dogs (the K9 unit logic is in police.cpp; the dog itself is k9Step above)
+int spawnK9(GameWorld& g, int handler, u32* uidOut) {
+    using namespace wild_detail;
+    if (!gW.assetsReady || handler < 0 || handler >= (int)g.peds.size() || !g.peds[handler].used) return -1;
+    const Ped& p = g.peds[handler];
+    vec3 pp = p.pos.toVec3();
+    int gi = newGroup(GT_DOG_LEASH, SP_DOG, pp);
+    if (gi < 0) return -1;
+    Group& G = gW.groups[gi];
+    G.owner = handler;
+    G.ownerUid = p.uid;
+    G.leashHand = 0;   // (left hand: the right is for the gun)
+    G.k9 = true;
+    G.k9Handler = handler;
+    G.k9HandlerUid = p.uid;
+    G.k9Cmd = K9_HEEL;
+    vec2 of = dirOf(p.yaw), orr(of.y, -of.x);
+    vec2 dp = pp.xy() - orr * 0.7f + of * 0.4f;
+    int ai = newAnimal(gi, SP_DOG, 2, vec3(dp, pp.z), p.yaw);   // (variant 2: German shepherd)
+    if (ai < 0) {
+        releaseGroup(gi);
+        return -1;
+    }
+    Animal& a = gW.animals[ai];
+    a.scale = 1.06f;
+    a.state = ST_WALK;
+    a.aggression = 1.f;
+    a.health = speciesInfo(SP_DOG).hp * 1.5f;   // a working dog in a vest
+    if (uidOut) *uidOut = G.uid;
+    return gi;
+}
+
+bool k9Alive(int group, u32 uid) {
+    using namespace wild_detail;
+    if (group < 0 || group >= (int)gW.groups.size()) return false;
+    const Group& G = gW.groups[group];
+    if (!G.used || G.uid != uid || !G.k9 || G.members.empty()) return false;
+    const Animal& a = gW.animals[G.members[0]];
+    return a.used && a.state != ST_DEAD && a.state != ST_FALL;
+}
+
+void k9Command(GameWorld& g, int group, u32 uid, int cmd, vec3 at, int targetPed) {
+    using namespace wild_detail;
+    if (!k9Alive(group, uid)) return;
+    Group& G = gW.groups[group];
+    Animal& a = gW.animals[G.members[0]];
+    if (cmd == K9_ATTACK) {
+        if (targetPed < 0 || targetPed >= (int)g.peds.size() || !g.peds[targetPed].used) return;
+        if (G.k9Cmd != K9_ATTACK) {
+            G.k9T = 0.f;
+            G.k9DownT = -10.f;
+            G.owner = -1;   // slips the leash
+            G.hasHand = false;
+            bark(a, 1.f);
+            a.cooldown = 0.4f;
+        }
+        G.k9Target = targetPed;
+        G.k9TargetUid = g.peds[targetPed].uid;
+    }
+    G.k9Cmd = (u8)cmd;
+    G.k9At = at;
+}
+
+vec3 k9Pos(int group) {
+    using namespace wild_detail;
+    if (group < 0 || group >= (int)gW.groups.size() || !gW.groups[group].used || gW.groups[group].members.empty()) return vec3(0.f);
+    return gW.animals[gW.groups[group].members[0]].pos;
+}
+
+bool k9Loose(int group) {
+    using namespace wild_detail;
+    if (group < 0 || group >= (int)gW.groups.size() || !gW.groups[group].used) return false;
+    return gW.groups[group].owner < 0;
+}
+
+void k9Dismiss(GameWorld& g, int group, u32 uid) {
+    using namespace wild_detail;
+    if (group < 0 || group >= (int)gW.groups.size()) return;
+    Group& G = gW.groups[group];
+    if (!G.used || G.uid != uid || !G.k9) return;
+    G.k9 = false;   // an ordinary dog on its handler's leash from here (despawns like any other)
+    if (G.owner < 0 && pedOk(g, G.k9Handler, G.k9HandlerUid)) {
+        G.owner = G.k9Handler;
+        G.ownerUid = G.k9HandlerUid;
+    }
+}
 
 }  // namespace Wildlife
 }  // namespace Game

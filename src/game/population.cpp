@@ -641,7 +641,12 @@ void buildVenues(GameWorld& g) {
             vec2 face = sh->ax, rt = perp(-face);
             vec2 totem = sh->c + face * 2.4f - rt * 4.2f;
             float u = 0.f;
-            int ln = g.laneGraph.nearestLane(totem + face * 9.f, rt, 8.f, &u);
+            int ln = -1;
+            // the kerb lane of the drive in front of the rank: the lane nearest out from the totem, then its right-hand
+            // neighbours to the kerb
+            for (float k = 3.f; k <= 14.f && ln < 0; k += 1.f) ln = g.laneGraph.nearestLane(totem + face * k, rt, 3.f, &u);
+            for (int guard = 0; guard < 4 && ln >= 0 && g.laneGraph.lanes[ln].right >= 0; guard++) ln = g.laneGraph.lanes[ln].right;
+            if (ln >= 0) u = g.laneGraph.projectPath(ln, totem, u, nullptr);
             if (ln >= 0 && dot(g.laneGraph.laneTangent(ln, u), rt) > 0.8f) {
                 const AI::Lane& L = g.laneGraph.lanes[ln];
                 float uHead = g.laneGraph.projectPath(ln, totem, u, nullptr) + 1.1f;   // front cab's rear door level with the totem
@@ -660,8 +665,11 @@ void buildVenues(GameWorld& g) {
                     V.slots.push_back(s);
                     V.cabs++;
                 }
+                // the dispatcher on the walk by the head of the rank, just inside the kerb bollards
+                vec2 kt = g.laneGraph.laneTangent(ln, uHead);
+                vec2 dsp = g.laneGraph.lanePos(ln, uHead - 1.6f).xy() + AI::rightOf(kt) * (L.width * 0.5f + 4.2f);
                 V.dispatcher = (int)V.slots.size();
-                V.slots.push_back(mkSlot(totem + face * 5.f - rt * 1.6f, face, VM_GUARD, VL_WORKER, 5.f, 24.f, 0.95f));
+                V.slots.push_back(mkSlot(dsp, -AI::rightOf(kt), VM_GUARD, VL_WORKER, 5.f, 24.f, 0.95f));
                 // the line: under the shelter's front edge, between the belts and the posts, facing the head
                 V.q0 = (int)V.slots.size();
                 vec2 qa = sh->c + face * 1.0f - rt * 2.9f;

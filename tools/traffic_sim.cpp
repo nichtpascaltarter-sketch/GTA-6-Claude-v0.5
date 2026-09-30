@@ -390,11 +390,24 @@ struct Sim {
             u = Clamp(u, L.u0 + 6.f, L.u1 - 30.f);   // room to stop for a red light ahead
             if (u < L.u0 || u > L.u1) continue;
             vec3 pos = w->lg.lanePos(lane, u);
+            vec2 tl = w->lg.laneTangent(lane, u);
+            // (motorways and ramps: in at most of the lane's speed; elsewhere a gentle start)
+            bool fast = (L.flags & (AI::LF_HIGHWAY | AI::LF_RAMP)) != 0;
+            float v0 = fast ? L.speed * 0.8f : Min(L.speed * 0.6f, 9.f);
             bool ok = true;
             for (int k = 0; k < (int)cars.size() && ok; k++) {
                 if (k == i || !cars[k].used) continue;
                 vec3 q = cars[k].s.body.pos.toVec3();
                 if (length(q.xy() - pos.xy()) < 11.f && fabsf(q.z - pos.z) < 3.f) ok = false;
+                // not in front of a faster car coming up the same lane (it could not stop for a car dropped in its path), nor
+                // at speed behind a slower one (the new car could not): the gap either needs is its braking distance at a
+                // firm 4 m/s2, a second of reaction and a car length
+                vec2 rel = q.xy() - pos.xy();
+                float along = dot(rel, tl), vk = dot(cars[k].s.body.vel.xy(), tl);
+                if (fabsf(along) < 150.f && fabsf(dot(rel, AI::rightOf(tl))) < 2.5f && fabsf(q.z - pos.z) < 3.f) {
+                    float vBack = along < 0.f ? vk : v0, vFront = along < 0.f ? v0 : vk;
+                    if (vBack > vFront + 1.f && fabsf(along) < (vBack * vBack - Max(vFront, 0.f) * Max(vFront, 0.f)) / 8.f + vBack + 8.f) ok = false;
+                }
             }
             if (!ok) continue;
             if (!initial && length(pos.xy() - center) < radius * 0.5f) continue;
@@ -403,10 +416,9 @@ struct Sim {
             c.used = true;
             c.model = m;
             c.uid = uidNext++;
-            vec2 t = w->lg.laneTangent(lane, u);
+            vec2 t = tl;
             Vehicles::initVehicle(c.s, models[m], m, dvec3(pos.x, pos.y, pos.z + 0.3), AI::dirYaw(t));
             c.info = AI::makeVehicleInfo(models[m], c.s);
-            float v0 = Min(L.speed * 0.6f, 9.f);
             c.s.body.vel = vec3(t * v0, 0.f);
             for (int k = 0; k < c.s.wheelCount; k++) c.s.wheels[k].spinVel = v0 / Max(models[m].wheels[k].radius, 0.2f);
             tc.attach(i, c.uid, hash32(c.uid * 7919u), c.info, lane, u);

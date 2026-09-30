@@ -359,7 +359,7 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         // exposure has opened up), homes and offices keep a constant lamp level
         float shopNits = lerp(160.0, 14.0, gExposure.w);
         float lampNits = (storefront ? shopNits : 9.0) * (0.45 + 0.9 * hashF(lh + 14u));
-        if (lit) em = room * lightC * lampNits;
+        if (lit) em += room * lightC * lampNits;
         // a covering right behind the glass is lit from the street (albedo) and glows with the room light behind it
         float3 coverEm = lit ? coverC * coverTrans * lightC * lampNits : 0.0;
         em = lerp(em, coverEm, cover);

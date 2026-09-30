@@ -5,6 +5,8 @@
 // (arrest attempts, warnings, cover behind their cars, flanking, search patterns) and responses to NPC crimes.
 #include "gameworld.h"
 
+#include "wildlife.h"
+
 namespace Game {
 
 namespace police_detail {
@@ -140,6 +142,104 @@ void buildSearchPlan(const GameWorld& g, vec2 center, int wanted) {
         for (const SearchSpot& s : gS.spots) dup |= length(s.p - c.s.p) < 4.f;
         if (!dup) gS.spots.push_back(c.s);
         if (gS.spots.size() >= 28) break;
+    }
+}
+
+// ---- K9: the scent trail - where the player went on foot after the police last had eyes on them (a point every 2 m) -
+// and the dog unit sent to follow it at two stars and up: the handler walks the trail behind the dog tracking ahead of
+// them; close enough, the dog finds the suspect (barks: the police know where they are again); a suspect who runs for
+// it within reach has the dog sent after them, which takes them to the ground
+struct ScentPt {
+    vec2 p;
+    float z;
+};
+std::vector<ScentPt> gTrail;
+bool gTrailEnds = false;   // the player got into a vehicle: the trail stops there
+struct K9Unit {
+    int handler = -1;
+    u32 handlerUid = 0;
+    int dog = -1;
+    u32 dogUid = 0;
+    int next = 0;            // trail point the handler is walking to
+    float cooldown = 30.f;   // until the next unit may be sent
+    float foundT = 0.f;      // the dog has had the suspect in its nose this long
+    float lostT = 0.f;       // at the end of a trail that goes nowhere (drove off)
+    float sentT = -1.f;      // released on the suspect this long ago (-1: on the leash)
+};
+K9Unit gK9;
+
+bool k9Active(const GameWorld& g) {
+    return gK9.handler >= 0 && gK9.handler < (int)g.peds.size() && g.peds[gK9.handler].used && g.peds[gK9.handler].uid == gK9.handlerUid &&
+           g.peds[gK9.handler].health > 0.f;
+}
+
+// K9 unit bookkeeping (every frame from updateWanted): stand the unit down when the heat is off, send one when a
+// suspect on foot has been lost for a while at two stars or more (a handler with a German shepherd, on a sidewalk out of
+// sight 25-45 m from where the trail starts, with a clear line to it)
+void updateK9Unit(GameWorld& g, float dt, bool seen) {
+    gK9.cooldown -= dt;
+    Ped* pl = g.playerPed();
+    bool active = k9Active(g);
+    if (active && (g.pinfo.wanted <= 0 || !pl)) {
+        if (Wildlife::k9Alive(gK9.dog, gK9.dogUid)) Wildlife::k9Dismiss(g, gK9.dog, gK9.dogUid);
+        Ped& h = g.peds[gK9.handler];
+        h.brain.type = BRAIN_GOTO;
+        h.brain.target = -2;   // (no car: walks off, the dog on its leash)
+        g.pedAI(gK9.handler).k9Handler = false;
+        LOG("police: K9 unit stood down");
+        gK9 = K9Unit();
+        gK9.cooldown = 60.f;
+        return;
+    }
+    if (active) return;
+    if (gK9.handler >= 0) {   // the handler is down or gone: the unit is over
+        if (Wildlife::k9Alive(gK9.dog, gK9.dogUid)) Wildlife::k9Dismiss(g, gK9.dog, gK9.dogUid);
+        gK9 = K9Unit();
+        gK9.cooldown = 45.f;
+        return;
+    }
+    if (!pl || g.pinfo.wanted < 2 || seen || gK9.cooldown > 0.f || g.time - g.pinfo.lastSeenTime < 6.0 || gTrail.size() < 2 || g.policeSuppressed) return;
+    gK9.cooldown = 5.f;   // (no spot this time: try again shortly)
+    vec2 start = gTrail[0].p;
+    float sz = gTrail[0].z;
+    vec2 plp = pl->pos.toVec3().xy();
+    for (int k = 0; k < 12; k++) {
+        u32 h = hash32((u32)(g.time * 10.0) + (u32)k * 7919u);
+        float ang = hashToFloat(h) * kTwoPi, r = 25.f + hashToFloat(hash32(h)) * 20.f;
+        vec2 q = start + vec2(cosf(ang), sinf(ang)) * r;
+        float x = 0.f;
+        int wl = g.laneGraph.nearestWalk(q, 20.f, &x);
+        if (wl < 0) continue;
+        vec3 sp = g.laneGraph.walkPos(wl, x, 0.f, true);
+        if (length(sp.xy() - plp) < 40.f || g.inCameraView(sp + vec3(0, 0, 1.f), 2.f)) continue;
+        if (!g.lineOfSight(dvec3(sp + vec3(0, 0, 1.f)), dvec3(vec3(start, sz + 1.f)), -1, -1)) continue;
+        vec2 to = start - sp.xy();
+        int id = g.spawnPed(g.randomCivilianChar(h, 1), dvec3(sp), atan2f(-to.x, to.y), FAC_POLICE);
+        if (id < 0) return;
+        g.giveWeapon(id, WPN_PISTOL, 60);
+        g.peds[id].weapon = WPN_PISTOL;
+        g.peds[id].brain.type = BRAIN_COMBAT;
+        g.peds[id].brain.target = g.player;
+        PedAI& pa = g.pedAI(id);
+        pa.role = PR_COP;
+        pa.k9Handler = true;
+        pa.homeVeh = -1;
+        u32 duid = 0;
+        int dog = Wildlife::spawnK9(g, id, &duid);
+        if (dog < 0) {
+            g.despawnPed(id);
+            gK9.cooldown = 20.f;
+            return;
+        }
+        gK9 = K9Unit();
+        gK9.handler = id;
+        gK9.handlerUid = g.peds[id].uid;
+        gK9.dog = dog;
+        gK9.dogUid = duid;
+        gK9.cooldown = 60.f;
+        g.ai.stats.unitsSent++;
+        LOG("police: K9 unit sent (officer %d, dog group %d) at %.0f %.0f, the trail %d points from %.0f %.0f", id, dog, sp.x, sp.y, (int)gTrail.size(), start.x, start.y);
+        return;
     }
 }
 
@@ -358,6 +458,20 @@ void GameWorld::updateWanted(float dt) {
             }
         }
     }
+    // ---- the scent trail from the last-seen point (K9), and the K9 unit
+    if (pinfo.wanted <= 0) {
+        gTrail.clear();
+        gTrailEnds = false;
+    } else if (seen) {
+        gTrail.clear();
+        gTrail.push_back({ppos.xy(), ppos.z});
+        gTrailEnds = false;
+    } else if (pl->vehicle >= 0) {
+        gTrailEnds = true;
+    } else if (!gTrailEnds && gTrail.size() < 400 && (gTrail.empty() || length(gTrail.back().p - ppos.xy()) > 2.f)) {
+        gTrail.push_back({ppos.xy(), ppos.z});
+    }
+    updateK9Unit(*this, dt, seen);
     // ---- crimes: witnessed by police -> immediate; otherwise a civilian may phone it in
     for (const CrimeEvent& e : crimes) {
         if (policeSuppressed) break;
@@ -1452,6 +1566,17 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
 
 // ------------------------------------------------------------------------------------------------------------------
 // Officers on foot: arrest (low wanted), cover behind their car, flanking, engaging, searching, returning to the car.
+std::string GameWorld::aiK9Text(vec3* dogPos) const {
+    bool active = k9Active(*this);
+    bool dog = active && Wildlife::k9Alive(gK9.dog, gK9.dogUid);
+    vec3 dp = dog ? Wildlife::k9Pos(gK9.dog) : vec3(0.f);
+    if (dogPos) *dogPos = dp;
+    if (!active) return StrFormat("k9: none (trail %d%s, cooldown %.0f)", (int)gTrail.size(), gTrailEnds ? " ends" : "", gK9.cooldown);
+    vec3 hp = peds[gK9.handler].pos.toVec3();
+    return StrFormat("k9: handler %d at %.1f %.1f dog %d at %.1f %.1f%s | trail %d/%d%s | found %.1f lost %.1f sent %.1f", gK9.handler, hp.x, hp.y, dog ? gK9.dog : -1, dp.x,
+                     dp.y, dog && Wildlife::k9Loose(gK9.dog) ? " loose" : "", gK9.next, (int)gTrail.size(), gTrailEnds ? " ends" : "", gK9.foundT, gK9.lostT, gK9.sentT);
+}
+
 void GameWorld::aiPoliceBrain(int id, float dt) {
     Ped& p = peds[id];
     Brain& b = p.brain;
@@ -1604,6 +1729,79 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
         p.yaw = AI::wrapPi(p.yaw + Clamp(dyaw, -9.f * dt, 9.f * dt));
         movePed(p, desired, dt, false);
         return;
+    }
+    // ---- K9 handler: with the suspect lost, walk the scent trail behind the dog tracking ahead; the dog finds them
+    //      (stands barking: the police know where they are again) or is sent after one who runs for it
+    if (pa.k9Handler && targetIsPlayer && gK9.handler == id && k9Active(*this)) {
+        bool dogOk = Wildlife::k9Alive(gK9.dog, gK9.dogUid);
+        float runSpeed = t.state == PS_ONFOOT ? length(t.vel.xy()) : 0.f;
+        vec2 dogP = dogOk ? Wildlife::k9Pos(gK9.dog).xy() : pos;
+        float dogD = length(tp - dogP), realD = length(tp - pos);
+        if (dogOk && gK9.sentT < 0.f && t.state == PS_ONFOOT && runSpeed > 3.f && realD < 28.f && (los || dogD < 12.f) && !ai.surrender) {
+            Wildlife::k9Command(*this, gK9.dog, gK9.dogUid, Wildlife::K9_ATTACK, t.pos.toVec3(), b.target);
+            gK9.sentT = 0.f;
+            aiSay(id, BK_COP_FREEZE, 1.f, true);
+            LOG("police: K9 released on the player (%.1f m, running %.1f m/s)", realD, runSpeed);
+        }
+        if (gK9.sentT >= 0.f) {
+            gK9.sentT += dt;
+            bool down = t.state == PS_RAGDOLL || t.state == PS_GETUP;
+            if (gK9.sentT > 20.f || (down && gK9.sentT > 5.f) || !dogOk || ai.surrender) {
+                if (dogOk) Wildlife::k9Command(*this, gK9.dog, gK9.dogUid, Wildlife::K9_HEEL, vec3(0.f), -1);
+                gK9.sentT = -1.f;
+            }
+        } else if (dogOk && !seen) {
+            vec2 stand(0.f);
+            bool moved = false;
+            if (dogD < 10.f || realD < 9.f) {
+                // found them: the dog barks, the handler covers them - and everyone knows where they are
+                gK9.foundT += dt;
+                Wildlife::k9Command(*this, gK9.dog, gK9.dogUid, Wildlife::K9_ALERT, t.pos.toVec3(), -1);
+                pinfo.lastSeenPos = t.pos;
+                pinfo.lastSeenTime = (float)time;
+                if (pa.shoutTimer <= 0.f) {
+                    aiSay(id, BK_COP_FREEZE, 1.f, true);
+                    pa.shoutTimer = 4.f;
+                }
+                faceYaw = atan2f(-(tp - pos).x, (tp - pos).y);
+                p.aiming = wi.clipSize > 0;
+                p.aimDir = normalize(pedChestPos(t) - pedHeadPos(p));
+            } else {
+                int n = (int)gTrail.size();
+                gK9.next = Clamp(gK9.next, 0, Max(n - 1, 0));
+                while (gK9.next + 1 < n && length(gTrail[gK9.next].p - pos) < 2.2f) gK9.next++;
+                vec2 goal = n > 0 ? gTrail[gK9.next].p : pos;
+                vec2 tt = goal - pos;
+                float dd = length(tt);
+                if (gK9.next >= n - 1 && dd < 2.5f && gTrailEnds) {
+                    // the trail stops at the kerb (they drove off): the dog casts about, barks at the spot, gives up
+                    gK9.lostT += dt;
+                    Wildlife::k9Command(*this, gK9.dog, gK9.dogUid, gK9.lostT < 5.f ? Wildlife::K9_ALERT : Wildlife::K9_HEEL, vec3(goal, gTrail[n - 1].z), -1);
+                } else {
+                    int ahead = Min(gK9.next + 2, n - 1);
+                    Wildlife::k9Command(*this, gK9.dog, gK9.dogUid, Wildlife::K9_TRACK, vec3(gTrail[ahead].p, gTrail[ahead].z), -1);
+                    if (dd > 0.5f) {
+                        stand = tt / dd * 2.7f;   // a jog behind the dog
+                        moved = true;
+                    }
+                    faceYaw = atan2f(-tt.x, tt.y);
+                    if (pa.shoutTimer <= 0.f) {
+                        aiSay(id, BK_COP_SEARCH, 0.4f);
+                        pa.shoutTimer = 15.f;
+                    }
+                }
+            }
+            p.animIn.stance = 0;
+            p.animIn.crouch = false;
+            float dy2 = AI::wrapPi(faceYaw - p.yaw);
+            p.yaw = AI::wrapPi(p.yaw + Clamp(dy2, -8.f * dt, 8.f * dt));
+            movePed(p, moved ? stand : vec2(0.f), dt, false);
+            return;
+        } else if (dogOk) {
+            // they are in view: the dog barks at them from the handler's side, or heels when they are further off
+            gK9.foundT = 0.f;
+            Wildlife::k9Command(*this, gK9.dog, gK9.dogUid, realD < 16.f ? Wildlife::K9_ALERT : Wildlife::K9_HEEL, t.pos.toVec3(), -1);
+        }
     }
     bool arrest = b.type == BRAIN_ARREST && wanted <= 1 && targetIsPlayer && !t.firing && !(t.aiming && t.weapon != WPN_FISTS);
     if (b.type == BRAIN_ARREST && !arrest) b.type = BRAIN_COMBAT;

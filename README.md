@@ -80,7 +80,7 @@ times to `%LOCALAPPDATA%\NeonTide\benchmark.txt`. Options: `--quality 0..3`, `--
 
 - `--play`: skip the menu into a new game. `--firstperson`: first person on foot and in vehicles (`--autoplay fpguns` then
   screenshots every gun at the hip, aiming, sprinting, reloading and through scopes; `--tourstart N` /
-  `--tourcount M` pick steps).
+  `--tourcount M` pick steps; `--autoplay melee --meleeweapon knife|bat` fights with a blade or a bat).
 - `--autoplay walk|drive|bike|fly|boat|shoot|melee|tour|panic|chase|soak|metro|bus|ferry` runs scripted play-tests
   with periodic screenshots and telemetry in the log. Related flags: `--autoduration S`, `--autoevery S`,
   `--renderevery N`, and `--tourstart N` / `--tourcount M` for tour slices. `--autoplay camfade` holds a

@@ -1273,6 +1273,43 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
         }
         for (auto& p : poly) p = p - o3 + vec3(0, 0, 0.005f);
         out.road.polygon(poly, vec3(0, 0, 1), white, matAsphalt, 1.f);
+        // Where only the expressway and its ramps meet (a ramp merging or leaving), the median barrier and the yellow lines
+        // beside it run straight on through the node: no gap, no blunt barrier end facing the traffic
+        {
+            int hA = -1, hB = -1;
+            bool hwyOnly = true;
+            for (int i = 0; i < n; i++) {
+                const RoadEdge& e = net.edges[ap[i].edge];
+                if (e.cls == RC_HIGHWAY && e.lanesF > 0 && e.lanesB > 0) {
+                    if (hA < 0) hA = i;
+                    else if (hB < 0) hB = i;
+                    else hwyOnly = false;
+                } else if (e.cls != RC_RAMP) hwyOnly = false;
+            }
+            if (hwyOnly && hB >= 0 && dot(ap[hA].dir, ap[hB].dir) < -0.9f) {
+                const float bw = 0.3f, bh = 0.85f;
+                vec3 mid(nd.p, (ap[hA].cutPt.z + ap[hB].cutPt.z) * 0.5f);
+                const vec3 run[3] = {ap[hA].cutPt, mid, ap[hB].cutPt};
+                for (int k = 0; k < 2; k++) {
+                    vec3 a3 = run[k], b3 = run[k + 1];
+                    vec2 d = b3.xy() - a3.xy();
+                    float L = length(d);
+                    if (L < 0.05f) continue;
+                    d = d / L;
+                    vec3 r(d.y, -d.x, 0.f);
+                    vec3 p0 = a3 - r * bw - o3, p1 = b3 - r * bw - o3, q0 = a3 + r * bw - o3, q1 = b3 + r * bw - o3, up(0, 0, bh);
+                    out.road.quadFacing(p0 + up, q0 + up, q1 + up, p1 + up, vec2(0, 0), vec2(0.6f, 0), vec2(0.6f, L), vec2(0, L), white, matConcrete, vec3(0, 0, 1));
+                    out.road.quadFacing(q1, q0, q0 + up, q1 + up, vec2(L, 0), vec2(0, 0), vec2(0, bh), vec2(L, bh), white, matConcrete, r);
+                    out.road.quadFacing(p0, p1, p1 + up, p0 + up, vec2(0, 0), vec2(L, 0), vec2(L, bh), vec2(0, bh), white, matConcrete, r * -1.f);
+                    roadRailCollision(out, a3, b3, r, -bw, bw, bh);
+                    for (int s = -1; s <= 1; s += 2) {
+                        vec3 l0 = a3 + r * (s * 0.5f - 0.075f) - o3 + vec3(0, 0, 0.025f), l1 = a3 + r * (s * 0.5f + 0.075f) - o3 + vec3(0, 0, 0.025f);
+                        vec3 m1 = b3 + r * (s * 0.5f + 0.075f) - o3 + vec3(0, 0, 0.025f), m0 = b3 + r * (s * 0.5f - 0.075f) - o3 + vec3(0, 0, 0.025f);
+                        out.decals.quadFacing(l0, l1, m1, m0, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), white, matYellow, vec3(0, 0, 1));
+                    }
+                }
+            }
+        }
         // Sidewalk corners with curb faces
         for (auto& cr : corners) {
             auto& in2 = cr.first;
