@@ -344,6 +344,33 @@ static void runScenario(int sc, float t, AnimInput& in) {
             in.stance = 19;
             in.action = (t >= 0.3f && t < 0.32f) ? CLIP_KNOCKOUT : -1;
             break;
+        // locomotion through the world (render with --rm to move the ped; PREVIEW_SPEED sets the speed, PREVIEW_GAIT
+        // the walk style); speeds change like the game's ped controller (11 m/s^2 up, 16 down)
+        case 30: {   // walk straight on
+            const char* sv = getenv("PREVIEW_SPEED");
+            in.speed = Min(sv ? (float)atof(sv) : 1.4f, t * 11.f);
+            break;
+        }
+        case 31: {   // walk, stop at 2.5 s and stand
+            const char* sv = getenv("PREVIEW_SPEED");
+            float v = sv ? (float)atof(sv) : 1.4f;
+            in.speed = t < 2.5f ? Min(v, t * 11.f) : Max(0.f, v - (t - 2.5f) * 16.f);
+            break;
+        }
+        case 32:   // stand, turn on the spot to the left from 0.5 s to 2.5 s
+            in.turnRate = t > 0.5f && t < 2.5f ? 1.6f : 0.f;
+            break;
+        case 33: {   // walk, a 90 degree left turn at 2 s (the AI's turn rate)
+            const char* sv = getenv("PREVIEW_SPEED");
+            in.speed = Min(sv ? (float)atof(sv) : 1.4f, t * 11.f);
+            in.turnRate = t > 2.f && t < 2.f + kHalfPi / 3.f ? 3.f : 0.f;
+            break;
+        }
+        case 34: {   // stand, then set off at 1 s
+            const char* sv = getenv("PREVIEW_SPEED");
+            in.speed = t < 1.f ? 0.f : Min(sv ? (float)atof(sv) : 1.4f, (t - 1.f) * 11.f);
+            break;
+        }
         default: break;
     }
 }
@@ -431,6 +458,12 @@ int main(int argc, char** argv) {
         if (const char* tv = getenv("PREVIEW_TOP")) ch.d.top = atoi(tv);
         if (const char* bv = getenv("PREVIEW_BOTTOM")) ch.d.bottom = atoi(bv);
         if (const char* sv = getenv("PREVIEW_SHOES")) ch.d.shoes = atoi(sv);
+        if (const char* ov = getenv("PREVIEW_OUTER")) ch.d.outer = atoi(ov);
+        if (const char* bv = getenv("PREVIEW_BAG")) ch.d.bag = atoi(bv);
+        if (const char* ev = getenv("PREVIEW_EXTRAS")) ch.d.extras = (u32)strtoul(ev, nullptr, 0);
+        if (const char* wv = getenv("PREVIEW_WEIGHT")) ch.d.weight = (float)atof(wv);
+        if (const char* mv = getenv("PREVIEW_MUSCLE")) ch.d.muscle = (float)atof(mv);
+        if (const char* hv = getenv("PREVIEW_HEIGHT")) ch.d.height = (float)atof(hv);
         if (const char* hcv = getenv("PREVIEW_HAIRCOL")) sscanf(hcv, "%f,%f,%f", &ch.d.hairColor.x, &ch.d.hairColor.y, &ch.d.hairColor.z);
         if (const char* gv = getenv("PREVIEW_GENDER")) ch.d.gender = atoi(gv) ? FEMALE : MALE;
         if (const char* av = getenv("PREVIEW_AGE")) ch.d.age = (float)atof(av);
@@ -533,11 +566,14 @@ int main(int argc, char** argv) {
     cam.eye = target + dir * dd;
     cam.target = target;
     cam.setup(W, H);
+    vec3 floorC(0.f);   // floor centre (follows a scenario's root motion)
     for (int i = 0; i < count; i++) {
         Char& ch = chars[i];
         Pose pose;
         for (int b = 0; b < B_COUNT; b++) pose.rot[b] = quat();
         pose.rootOffset = vec3(0);
+        vec3 scenRoot(0.f);    // scenario root motion (with --rm): the ped's position and heading in the world
+        float scenYaw = 0.f;
 #ifdef ANIM_HAVE_CLIPS
         int ci = !clipList.empty() ? clipList[i] : clip;
         float ti = t;
@@ -573,14 +609,39 @@ int main(int argc, char** argv) {
             // run the Animator with scripted inputs up to time ti (character i: ti = t + i * dt)
             Animator an;
             an.init(&ch.sk, 7u);
+            an.setCharacter(ch.d);
+            if (const char* gv = getenv("PREVIEW_GAIT")) an.gaitStyle = atoi(gv);   // walk style override (detail::GaitStyle)
+            if (const char* gl = getenv("PREVIEW_GAITS")) {                          // per-character list "0,3,4,..."
+                int k = 0;
+                for (const char* q = gl; *q; k++) {
+                    if (k == i) an.gaitStyle = atoi(q);
+                    while (*q && *q != ',') q++;
+                    if (*q == ',') q++;
+                }
+            }
             float T = strip ? t + i * (stripDt > 0.f ? stripDt : 0.5f) : t;
             const float dt = 1.f / 60.f;
             for (float tt = 0.f; tt < T; tt += dt) {
                 AnimInput in;
+                in.footProbes = true;
                 runScenario(scenario, tt, in);
                 if (melee >= 0) in.meleeKind = melee;
+                // the ped moves and turns like the game moves its capsule (the animator sees the same speed / turn rate)
+                vec2 md = length(in.localMoveDir) > 1e-3f ? normalize(in.localMoveDir) : vec2(0, 1);
+                scenYaw += in.turnRate * dt;
+                scenRoot = scenRoot + rotate(quatAxisAngle(vec3(0, 0, 1), scenYaw), vec3(md.x, md.y, 0.f)) * (in.speed * dt);
                 an.update(in, dt);
             }
+            if (!rootMotion) {
+                scenRoot = vec3(0.f);
+                scenYaw = 0.f;
+            }
+            if (getenv("PREVIEW_FOLLOW") && count == 1) {   // camera (and floor) follow the walking ped
+                cam.eye = cam.eye + scenRoot;
+                cam.target = cam.target + scenRoot;
+                cam.setup(W, H);
+            }
+            floorC = scenRoot;
             pose = an.pose;
             printf("scenario %d t=%.2f action %d stance %d\n", scenario, T, an.action, an.stance);
         }
@@ -711,8 +772,8 @@ int main(int argc, char** argv) {
                 const mat4& s = skin[vx.bones[k]];
                 for (int c = 0; c < 4; c++) m.c[c] = m.c[c] + s.c[c] * w;
             }
-            P[v] = transformPoint(m, vx.pos) + off;
-            N[v] = normalize(transformDir(m, unpackNormalOct(vx.normal)));
+            P[v] = rotate(quatAxisAngle(vec3(0, 0, 1), scenYaw), transformPoint(m, vx.pos)) + scenRoot + off;
+            N[v] = rotate(quatAxisAngle(vec3(0, 0, 1), scenYaw), normalize(transformDir(m, unpackNormalOct(vx.normal))));
             vec4 cc = unpackRGBA8(vx.color);
             A[v] = matAlbedo(vx.mat, cc.xyz());
             if (getenv("PREVIEW_MATS")) {
@@ -829,7 +890,9 @@ int main(int argc, char** argv) {
         std::vector<vec3> P, N, A;
         std::vector<u32> M, I;
         float ext = (count - 1) * spacing * 0.5f + 1.5f;
-        float x0 = cx - ext, x1 = cx + ext, y0 = -ext - 1.f, y1 = ext + 1.f, tile = 0.25f;
+        float tile = 0.25f;
+        float fx = floorf(floorC.x / tile) * tile, fy = floorf(floorC.y / tile) * tile;
+        float x0 = cx - ext + fx, x1 = cx + ext + fx, y0 = -ext - 1.f + fy, y1 = ext + 1.f + fy;
         for (float y = y0; y < y1 - 1e-4f; y += tile)
             for (float x = x0; x < x1 - 1e-4f; x += tile) {
                 int k = (int)floorf(x / tile + 1000.f) + (int)floorf(y / tile + 1000.f);

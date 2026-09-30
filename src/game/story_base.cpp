@@ -12,6 +12,8 @@ enum StoryFlag : int {
     SF_LOW_TIDE = 0, SF_REPO_MAN, SF_DRY_DOCK, SF_PRESSURE, SF_COLLATERAL, SF_PINK_SLIPS, SF_LAST_CALL,
     SF_DEAD_AIR, SF_VELVET_ROPE, SF_BAGMAN, SF_SAWGRASS_RUN, SF_RIPTIDE, SF_HEAVY_LIFT, SF_FIREWORKS,
     SF_SECOND_CHANCE, SF_PAPER_TRAIL, SF_BLUEPRINTS, SF_DRESS_REHEARSAL, SF_SOLARIS_ONE, SF_OVERSEAS, SF_SIGNAL,
+    // Act 4 "Undertow" (story_act4.cpp), after either ending
+    SF_WAKE, SF_BOX_NUMBERS, SF_BLUE_LINE, SF_CLEAR_AIR, SF_GATOR_COUNTRY, SF_KING_TIDE,
     SF_STORY_COUNT
 };
 
@@ -31,6 +33,10 @@ enum SideFlag : int {
     SIDE_WISHLIST_ALL,              // every order on Rook's Wishlist delivered
     SIDE_SERIES,                    // the Porto Sol Night Series championship won
     SIDE_HARBOR_ALL,                // all five Ortega harbor runs delivered (the yard's debt paid)
+    SIDE_ENCOUNTERS_ALL,            // every kind of street encounter seen through (encounters.cpp)
+    SIDE_FISH_ALL,                  // every species on the Palmera Angler trophy board caught (fishing.cpp)
+    SIDE_FISH_TROPHY,               // a trophy-class fish landed
+    SIDE_TOURS_ALL,                 // every Sawgrass airboat tour route run with a five-star rating (airboat_tours.cpp)
     SIDE_COUNT
 };
 
@@ -74,6 +80,21 @@ enum ExtFlag : int {
     EX_WISHLIST_LEVEL = 258,        // orders delivered on Rook's Wishlist (the next order is this modulo the list)
     EX_STORY_BEST = 352,            // 352..383: best time (deciseconds) per story mission, by its story flag
     EX_VEHICLE_MODS = 384,          // 384..503: Tide Customs parts of owned vehicles, 3 ints per garage slot (see shops.cpp)
+    // (appended: slots that were free in earlier saves, which read as 0)
+    EX_ACT4_CARD = 229,             // the Act 4 title card has played after the ending
+    EX_ACT4_CHOICE = 233,           // King Tide: 1 Sable turned over to the task force, 2 Mari took her money and let her sail
+    EX_ACT4_SABLE = 234,            // Box Numbers: 1 the containers were opened unseen, 2 the yard was alarmed
+    EX_ENC_COUNT = 334,             // street encounters seen through (encounters.cpp)
+    EX_ENC_DONE = 335,              // bitmask of the encounter kinds seen through
+    EX_ENC_GOOD = 336,              // ... of them ended on the helping side
+    EX_ENC_EARNED = 337,            // dollars earned from encounters
+    EX_FISH_CAUGHT = 338,           // fish landed (fishing.cpp)
+    EX_FISH_SPECIES = 339,          // bitmask of species landed
+    EX_FISH_BEST = 340,             // 340..347: best weight per species in tenths of a pound, two species per int (low / high 16 bits)
+    EX_FISH_EARNED = 348,           // dollars from the fish market
+    EX_TOUR_COUNT = 349,            // Sawgrass airboat tours run (airboat_tours.cpp)
+    EX_TOUR_STARS = 350,            // best rating per tour route, 3 bits each
+    EX_GATORS_SPOTTED = 351,        // alligators the tourists saw up close
 };
 
 const int kStoryMissionCount = SF_STORY_COUNT;
@@ -82,6 +103,8 @@ bool storyDone(GameWorld& g, int sf) { return flag(g, sf) != 0; }
 
 // number of side-activity completion flags (GameWorld::completion divides by it)
 int sideFlagTotal() { return SIDE_COUNT - kSideBase; }
+// number of story missions (GameWorld::completion divides by it)
+int storyFlagTotal() { return SF_STORY_COUNT; }
 
 // Places that are not on the road network (raw positions snapped to the ground)
 vec3 rawSpot(GameWorld& g, vec2 p) { return vec3(p, groundAt(g, p.x, p.y)); }

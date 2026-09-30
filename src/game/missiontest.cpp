@@ -3,8 +3,12 @@
 //                         protagonist is selected and the player is moved next to the start).
 //   --missiontest <ids>   same, then drives each mission with scripted teleports/controls (Mission::autotest), logs
 //                         every stage transition, saves screenshots at key moments (--shotdir) and quits when done.
-//                         <ids> is a mission id, a comma separated list, "story", "act1".."act3", "side" or "all".
+//                         <ids> is a mission id, a comma separated list, "story", "act1".."act4", "side" or "all".
 //   --approach loud|quiet heist approach for the Act 3 missions (default quiet).
+//   --ending broadcast|leverage  the Act 3 ending the Act 4 missions follow (default broadcast).
+//   --act4choice law|money       the choice at the end of King Tide (default law).
+// Street encounters run through the same queue: "enc_<kind>" steers toward the first outcome, "enc_<kind>_b" toward
+// the second; the groups "encounters", "encounters_b" and "encounters_all" queue them all.
 #include "missions.h"
 #include <cstdarg>
 
@@ -39,6 +43,9 @@ struct TestRun {
     double prepT0 = 0.0;
     std::vector<std::string> shotQueue;   // screenshots wait for streaming too
     double shotT0 = 0.0;
+    // street encounters (encounters.cpp)
+    bool enc = false;
+    int encKind = -1, encWant = 1, encPhase = 0, encStage = -2;
 };
 TestRun gRun;
 
@@ -221,7 +228,7 @@ std::vector<std::string> expandQueue(const std::string& arg) {
         std::sort(v.begin(), v.end());
         for (auto& p : v) out.push_back(p.second);
     };
-    // comma separated items; each is a mission id or a group: all, story, side, act1..act3
+    // comma separated items; each is a mission id or a group: all, story, side, act1..act4
     size_t s = 0;
     while (s <= arg.size()) {
         size_t e = arg.find(',', s);
@@ -229,6 +236,13 @@ std::vector<std::string> expandQueue(const std::string& arg) {
         std::string item = arg.substr(s, e - s);
         s = e + 1;
         if (item.empty()) continue;
+        if (item == "encounters" || item == "encounters_b" || item == "encounters_all") {
+            for (int pass = 0; pass < 2; pass++) {
+                if ((pass == 0 && item == "encounters_b") || (pass == 1 && item == "encounters")) continue;
+                for (int k = 0; k < mu::ENC_COUNT; k++) out.push_back(std::string(mu::kEncKinds[k].id) + (pass ? "_b" : ""));
+            }
+            continue;
+        }
         if (item == "all") addIf([](const MissionDef&) { return true; });
         else if (item == "story") addIf([](const MissionDef& d) { return d.storyIndex >= 0; });
         else if (item == "side") addIf([](const MissionDef& d) { return d.storyIndex < 0; });
@@ -263,6 +277,12 @@ bool prepareMission(GameWorld& g, const std::string& id) {
         const char* ap = Platform::argValue("approach");
         g.storyFlags[mu::EX_HEIST_APPROACH] = ap && strcmp(ap, "loud") == 0 ? 2 : 1;
     }
+    if (d.storyIndex > mu::SF_SIGNAL) {
+        // Act 4 follows the Act 3 ending picked with --ending; its title card has been shown
+        const char* en = Platform::argValue("ending");
+        g.storyFlags[mu::EX_ENDING] = en && (strcmp(en, "leverage") == 0 || strcmp(en, "2") == 0) ? 2 : 1;
+        g.storyFlags[mu::EX_ACT4_CARD] = 1;
+    }
     g.storyFlags[mu::EX_INTRO_DONE] = 1;
     if (d.protagonist >= 0 && d.protagonist != g.protagonistIndex) mu::switchProtagonist(g, d.protagonist, true);
     if (d.timeFrom != d.timeTo) g.env->timeOfDay = fmodf(d.timeFrom + 0.75f, 24.f);
@@ -291,6 +311,46 @@ bool prepareMission(GameWorld& g, const std::string& id) {
     M.cooldown = 3600.f;
     M.retry.def = -1;
     M.retry.pending = false;
+    return true;
+}
+
+// Street encounters: the story far enough along for every kind (Rook known, the boatyard in the family), the player
+// where the kind fits (in a car for the ride-along ones), the hour it happens at.
+bool prepareEncounter(GameWorld& g, const std::string& id, int& kind, int& want) {
+    std::string base = id;
+    want = 1;
+    if (base.size() > 2 && base.compare(base.size() - 2, 2, "_b") == 0) {
+        want = 2;
+        base = base.substr(0, base.size() - 2);
+    }
+    kind = mu::encKindById(base);
+    if (kind < 0) {
+        LOG("[missiontest] unknown encounter id '%s'", id.c_str());
+        return false;
+    }
+    if ((int)g.storyFlags.size() < kFlagCount) g.storyFlags.resize(kFlagCount, 0);
+    for (int i = 0; i < mu::SF_STORY_COUNT; i++) g.storyFlags[i] = i <= mu::SF_PAPER_TRAIL ? 1 : 0;
+    g.storyFlags[mu::EX_INTRO_DONE] = 1;
+    if (g.protagonistIndex != 0) mu::switchProtagonist(g, 0, true);
+    vec3 pos;
+    float yaw = 0.f, hour = 12.f;
+    bool car = false;
+    mu::encTestSpot(g, kind, pos, yaw, hour, car);
+    g.env->timeOfDay = hour;
+    Ped* pl = g.playerPed();
+    if (pl) {
+        pl->health = pl->maxHealth;
+        pl->armor = 100.f;
+        g.giveWeapon(g.player, WPN_PISTOL, 120);
+    }
+    g.pinfo.wanted = 0;
+    g.pinfo.wantedHeat = 0.f;
+    g.pinfo.money = Max<long long>(g.pinfo.money, 20000);
+    if (car) mu::placePlayer(g, pos, yaw, mu::pickModel(g, {Vehicles::VC_SEDAN, Vehicles::VC_COUPE}, 3), mu::lin(0.2f, 0.35f, 0.55f));
+    else mu::placePlayer(g, pos, yaw);
+    gMissions.cooldown = 3600.f;
+    gMissions.retry.def = -1;
+    gMissions.retry.pending = false;
     return true;
 }
 
@@ -1096,6 +1156,20 @@ void updateMissionTest(GameWorld& g, float dt) {
             T.log("started (free-roam checks)");
             return;
         }
+        if (T.id.compare(0, 4, "enc_") == 0) {
+            if (!prepareEncounter(g, T.id, R.encKind, R.encWant)) {
+                R.failed++;
+                R.results.push_back(T.id + ": could not start");
+                R.setupDelay = 0.f;
+                return;
+            }
+            R.enc = true;
+            R.encPhase = 1;
+            R.encStage = -2;
+            R.running = true;
+            R.prepT0 = TimeSeconds();
+            return;
+        }
         if (!prepareMission(g, T.id)) {
             R.failed++;
             R.results.push_back(T.id + ": could not start");
@@ -1107,6 +1181,64 @@ void updateMissionTest(GameWorld& g, float dt) {
         return;
     }
     T.missionTime += dt;
+    if (R.enc) {
+        pl->health = Max(pl->health, pl->maxHealth * 0.6f);
+        pl->invincible = true;
+        auto finishEnc = [&](bool ok, const std::string& what) {
+            if (ok) R.passed++;
+            else R.failed++;
+            R.results.push_back(StrFormat("%s: %s (%s, %.0f s)", T.id.c_str(), ok ? "passed" : "FAILED", what.c_str(), T.missionTime));
+            T.log("%s - %s", ok ? "PASSED" : "FAILED", what.c_str());
+            T.screenshot(ok ? "passed" : "failed");
+            R.enc = false;
+            R.running = false;
+            R.setupDelay = 0.f;
+            g.pinfo.wanted = 0;
+            g.pinfo.wantedHeat = 0.f;
+        };
+        if (R.encPhase == 1) {
+            if (!worldStreamed(g) && TimeSeconds() - R.prepT0 < 20.0) return;
+            if (!mu::encTestStart(g, R.encKind, R.encWant)) {
+                finishEnc(false, "no spot to stage it");
+                return;
+            }
+            T.log("staged (%s, steering toward outcome %d) after %.1f s of streaming", mu::kEncKinds[R.encKind].name, R.encWant, TimeSeconds() - R.prepT0);
+            R.encPhase = 2;
+            T.missionTime = 0.f;
+            T.stageTime = 0.f;
+            R.shotDelay = 1.2f;
+            R.shotTag = "staged";
+            return;
+        }
+        int st = mu::encTestStage();
+        if (st != R.encStage && st >= 0) {
+            T.log("stage %d -> %d", R.encStage, st);
+            R.encStage = st;
+            T.stageTime = 0.f;
+            R.shotDelay = 0.8f;
+            R.shotTag = StrFormat("stage%d", st);
+        }
+        T.stageTime += dt;
+        if (R.shotDelay >= 0.f) {
+            R.shotDelay -= dt;
+            if (R.shotDelay < 0.f) {
+                T.screenshot(R.shotTag.c_str());
+                R.shotDelay = -1.f;
+            }
+        }
+        if (mu::encTestRunning()) {
+            mu::encTestStep(g, T);
+            if (T.missionTime > 300.f) {
+                mu::encTestAbort(g);
+                finishEnc(false, StrFormat("timeout at stage %d", st));
+            }
+            return;
+        }
+        int res = mu::encTestResult();
+        std::string what = res > 0 ? StrFormat("outcome %d", res) : (res == -1 ? "failed: " + mu::encTestText() : std::string("ended without the player"));
+        finishEnc(res == R.encWant, what);
+        return;
+    }
     if (R.roam) {
         pl->health = Max(pl->health, pl->maxHealth * 0.6f);
         pl->invincible = true;

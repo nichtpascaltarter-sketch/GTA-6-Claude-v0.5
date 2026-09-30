@@ -378,6 +378,9 @@ bool wallet(GameWorld& g, AmbientEvent& e, int victim, int evId, float dt) {
 
 using namespace events_detail;
 
+// encounters.cpp (the missions agent's street encounters; compiled after this file): a staged encounter near p
+bool encounterBusyNear(vec2 p, float radius);
+
 // ------------------------------------------------------------------------------------------------------------------
 // Two AI cars knocked into each other in traffic: turn it into a fender-bender scene (they stop, the drivers get out
 // and argue, maybe a fight, then drive on - the EV_CRASH stages). Returns false if no event slot is free.
@@ -465,6 +468,10 @@ void GameWorld::updateEvents(float dt) {
             for (AmbientEvent& e : gEv.ev)
                 if (e.active && e.type == k) w[k] = 0.f;
         }
+        // a street encounter staged around here (they come 90-250 m ahead of the player): no ambient event piled onto
+        // the same streets this time round
+        if (ai.forceEvent < 0 && encounterBusyNear(pp, 260.f))
+            for (float& x : w) x = 0.f;
         if (ai.forceEvent >= 0 && ai.forceEvent < EV_COUNT) {   // (tests: that one, whatever the hour and the district)
             bool running = false;
             for (AmbientEvent& e : gEv.ev) running |= e.active && e.type == ai.forceEvent;

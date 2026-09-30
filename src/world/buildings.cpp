@@ -1,5 +1,6 @@
 #include "buildings.h"
 #include "sites.h"
+#include "places.h"
 #include "interiors.h"
 #include "transit.h"
 #include "../core/noise.h"
@@ -642,6 +643,8 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
     for (size_t qi = 0; qi < gSites->buildingReqs.size(); qi++) addSiteBuilding(map, gSites->buildingReqs[qi], hash32((u32)qi * 2246822519u + 0x51E5u));
     // Keep the SkyLine viaduct corridor and its stations clear (transit.cpp)
     transitPruneBuildings(buildings);
+    // Places fitted to the finished streets (churchyards, town and suburban hospitals) clear their ground (places.h)
+    placesAfterLots(map, roads, buildings, facades);
     // Per-cell lists
     const int cps = (int)(2.f * kWorldHalf / 256.f);
     cellLists.assign((size_t)cps * cps, {});
@@ -680,6 +683,8 @@ void BuildingSet::addSiteBuilding(WorldMap& map, const SiteBuildingReq& q, u32 s
     b.style = (u8)st;
     b.roof = q.roof;
     b.floors = q.floors;
+    b.siteElem = q.siteElem;
+    b.siteHost = q.siteHost;
     FacadeGPU f = {};
     f.seed = seed;
     f.signIndex = (float)(br.next() % 480);

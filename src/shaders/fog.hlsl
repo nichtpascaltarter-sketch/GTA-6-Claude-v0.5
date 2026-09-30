@@ -132,18 +132,22 @@ void csFogInject(uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex, uint3 
     for (uint i = 0; i < nl; i++) {
         if (gFogInt.x > 0.5 && tFogLightVolume[gsFogLights[i]] != (uint)(vol + 1)) continue;   // lamps stay in their volume
         LightGPU L = tLights[gsFogLights[i]];
+        // lights at the lens (muzzle flashes, impact flashes in first person) light surfaces only: their glow in the
+        // air right in front of the eye is a lens effect, not something to integrate through the whole volume
+        if (dot(L.pos, L.pos) < 1.0) continue;
         float3 Lv = L.pos - relPos;
         float d2 = dot(Lv, Lv);
         if (d2 > L.radius * L.radius) continue;
         float d = sqrt(d2);
-        Lv /= d;
+        Lv /= max(d, 1e-4);
         float x = d / L.radius;
         float win = saturate(1.0 - x * x * x * x);
-        float att = win * win / max(d2, 0.5);
+        float att = win * win / max(d2, max(0.5, sq(0.05 * L.radius)));
         att *= lightAngular(L, Lv);
         Lin += L.color * att * phaseHG(gFogMisc.z, dot(-Lv, V));
     }
-    float4 cur = float4(sigmaS * Lin * preExposure(), sigmaT);
+    // radiance scattered here, capped (pre-exposed): no single froxel may outshine the scene around a lamp
+    float4 cur = float4(sigmaS * min(Lin * preExposure(), 512.0), sigmaT);
     // temporal reprojection (volume position of this point last frame)
     if (gFogVol.w > 0.5) {
         float4 pc = mul(gPrevViewProj, float4(relPos, 1));
@@ -153,7 +157,10 @@ void csFogInject(uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex, uint3 
             if (all(puv > 0.0) && all(puv < 1.0) && pw < 1.0) {
                 float4 h = tFogHistory.SampleLevel(sLinearClamp, float3(puv, pw), 0);
                 h.rgb *= prevExposureRatio();
-                cur = lerp(h, cur, 0.12);
+                // a history froxel far brighter than this frame's (an exposure jump, a light that just went out) is
+                // not carried over
+                if (!anyNonFinite(h.rgb) && h.a >= 0.0 && h.a < 4.0 && luminance(h.rgb) < max(luminance(cur.rgb) * 16.0, 1e-3))
+                    cur = lerp(h, cur, 0.12);
             }
         }
     }

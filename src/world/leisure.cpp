@@ -718,6 +718,23 @@ void genDock(const SiteElem& e, G& g) {
         lamp(g, vec3(lp, zDeck + 2.5f), 0.2f, vec3(1.f, 0.85f, 0.6f), 0.7f, EA_NIGHT);
         light(g, vec3(lp, zDeck + 2.5f), vec3(1.f, 0.85f, 0.6f) * 900.f, 9.f, 0);
     }
+    // The decks are solid underfoot: colliders whose tops are the deck surfaces (people and the airboat operator stand on
+    // them; the physics ground takes collider tops within a step). The ramp from the shore in four steps along its slope.
+    auto deckBox = [&](vec2 p0, vec2 p1, float hw, float zTop) {
+        vec2 dd = p1 - p0;
+        float len = length(dd);
+        if (len < 0.1f) return;
+        collide(g, vec3((p0 + p1) * 0.5f, zTop - 0.2f), dd / len, vec3(len * 0.5f, hw, 0.2f));
+    };
+    for (int k = 0; k < 4; k++) deckBox(lerp(a, e.c, k / 4.f), lerp(a, e.c, (k + 1) / 4.f), 1.2f, Lerp(zLand, zDeck, (k + 0.5f) / 4.f));
+    deckBox(e.c, b, w, zDeck);
+    if (e.variant == 2) deckBox(b - n * 10.f, b + n * 10.f, 1.8f, zDeck);
+    if (e.variant == 3)
+        for (float s = 5.f; s < L; s += 8.f)
+            for (int sd = -1; sd <= 1; sd += 2) {
+                vec2 root = e.c + d * s + n * (sd * w);
+                deckBox(root, root + n * (sd * 7.f), 0.5f, zDeck - 0.2f);
+            }
 }
 
 // ------------------------------------------------------------------------------------------------ beach clubs

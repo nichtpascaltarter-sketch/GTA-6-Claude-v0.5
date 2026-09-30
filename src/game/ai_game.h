@@ -30,7 +30,8 @@ enum VenueMode : u8 {
     VM_QUEUE,          // in line at a taxi rank: steps up as the head of the line leaves
     VM_BOARD,          // on the way to a vehicle's kerb-side door, then in (and the vehicle pulls away)
     VM_WORK,           // hands-on work at the spot: crouched over it a while (twist-locks, tackle), then up for a look round
-    VM_MEET            // at the curb beside a car, waiting for someone coming out of the terminal: a hug, then off together
+    VM_MEET,           // at the curb beside a car, waiting for someone coming out of the terminal: a hug, then off together
+    VM_ROUTE           // out of one door along the walkways (zebras and all) to another, and in (a stream)
 };
 
 struct GameWorld;
@@ -131,6 +132,7 @@ struct PedAI {
     int venue = -1;
     u8 venueMode = 0;
     bool venueDriver = false;   // VM_BOARD: takes the wheel (else a passenger seat)
+    bool goInside = false;      // a walker headed for a door (walk.dest): gone once there (population.cpp)
     vec2 anchorB;
     float anchorBYaw = 0.f;
 };
@@ -269,6 +271,8 @@ struct AIState {
     float surrenderHold = 0.f;          // phone key held this long
     bool surrenderCtl = false;          // the controls are ours while the hands are up
     bool forceSurrender = false;        // autoplay tests: hands up at once
+    bool dispatchOff = false;           // autoplay tests: no response cars are sent (the K9 test: the dog team alone works
+                                        // the trail)
     bool surrenderBust = false;         // the current bust came from a surrender
     bool bustWatch = false;             // (busted: waiting for the release to hand things back)
     long long bustMoney = 0;

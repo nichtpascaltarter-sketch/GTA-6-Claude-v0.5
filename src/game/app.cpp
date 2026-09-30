@@ -572,6 +572,7 @@ struct App {
                 game.pinfo.wanted = 2;
                 game.pinfo.lastSeenPos = p.pos;
                 game.pinfo.lastSeenTime = (float)game.time;
+                game.ai.dispatchOff = true;   // (no patrol cars cruising past: the dog team alone works the trail)
                 LOG("autoplay k9: wanted 2 at %.0f %.0f heading %.2f %.2f (walk link %d)", q.x, q.y, dir.x, dir.y, wl);
             } else if (autoplay == "takeover") {
                 // a street takeover staged a block or two away at night: donuts, the crowd, then the police and the scatter
@@ -871,6 +872,14 @@ struct App {
                     nearTactic = game.ai.ped[i].tactic;
                 }
             }
+            if (!asked && pl) {
+                // (a caller stays on the line with the police until then: the units come straight in instead of searching
+                //  the area, and the stars hold)
+                game.pinfo.lastSeenPos = pl->pos;
+                game.pinfo.lastSeenTime = (float)game.time;
+                game.pinfo.wantedHeat = Max(game.pinfo.wantedHeat, 2.4f);
+                game.pinfo.wantedCooldown = 0.f;
+            }
             if (!asked && pl && (nearest < 40.f || t > 45.f) && t > 6.f) {
                 asked = true;
                 game.ai.forceSurrender = true;
@@ -918,6 +927,13 @@ struct App {
             Ped* pl = game.playerPed();
             int copsFoot = 0;
             for (const Ped& q : game.peds) copsFoot += q.used && q.faction == FAC_POLICE && q.health > 0.f && q.state == PS_ONFOOT;
+            if (!gone && pl) {
+                // (reported until then: the units come to the player, and the stars hold)
+                game.pinfo.lastSeenPos = pl->pos;
+                game.pinfo.lastSeenTime = (float)game.time;
+                game.pinfo.wantedHeat = Max(game.pinfo.wantedHeat, 2.4f);
+                game.pinfo.wantedCooldown = 0.f;
+            }
             if (!gone && pl && ((copsFoot >= 2 && t > 10.f) || t > 40.f)) {
                 gone = true;
                 lastSeen = pl->pos.toVec3().xy();
@@ -1052,11 +1068,12 @@ struct App {
                 float hour;
                 WeatherKind wx;
                 float yawOff;
-                vec2 cam[2], tgt[2];   // two closer looks
+                vec2 cam[2], tgt[2];   // two closer looks (the port: the gate booths, the holding area; the airport: the
+                                       // rank, the terminal curb; Sawgrass: the anglers, the airboat landing)
             };
             const VenueStop stops[3] = {
-                {"port_gate", &P.portGate, 8.5f, WX_OVERCAST, 0.6f, {{4069.5f, -190.f}, {4030.f, -198.f}}, {{4086.f, -218.f}, {4003.f, -219.f}}},
-                {"airport_forecourt", &P.airport, 11.f, WX_FAIR, 0.6f, {{753.f, 1212.f}, {691.f, 1262.f}}, {{753.f, 1236.f}, {698.f, 1305.f}}},
+                {"port_gate", &P.portGate, 8.5f, WX_OVERCAST, 0.6f, {{4025.f, -188.f}, {4021.f, -204.f}}, {{4009.f, -175.f}, {4004.f, -218.f}}},
+                {"airport_forecourt", &P.airport, 11.f, WX_FAIR, 0.6f, {{752.5f, 1204.f}, {716.f, 1352.f}}, {{749.5f, 1238.f}, {694.f, 1334.f}}},
                 {"sawgrass", &P.sawgrassRoad, 7.2f, WX_FOG, 0.5f, {{-5052.f, 104.5f}, {-4990.f, -56.f}}, {{-5028.f, 101.f}, {-5000.f, -72.f}}}};
             int want = Min((int)(t / 24.f), 2);
             Ped* pl = game.playerPed();
@@ -1101,7 +1118,7 @@ struct App {
                 const float at[3] = {7.5f, 14.5f, 21.5f};
                 if (shots < 3 && stopT > at[shots]) {
                     game.requestScreenshot = shotPath(StrFormat("auto_venues_%s_%d", st.name, shots));
-                    LOG("autoplay venues %s shot %d | %s", st.name, shots, game.aiCensusText(90.f).c_str());
+                    LOG("autoplay venues %s shot %d | %s", st.name, shots, game.aiCensusText(140.f).c_str());
                     shots++;
                 }
             }
@@ -2090,6 +2107,11 @@ struct App {
                     }
                     env.gameSeconds += simDt * game.timeScale;
                     WeatherKind wxBefore = weather.cur;
+                    if (mu::gWeatherRequest >= 0 && mu::gWeatherRequest < WX_COUNT) {   // story missions (the Act 4 storm, dawn fog)
+                        if (mu::gWeatherInstant) weather.setImmediate((WeatherKind)mu::gWeatherRequest);
+                        else weather.transitionTo((WeatherKind)mu::gWeatherRequest, 30.f);
+                        mu::gWeatherRequest = -1;
+                    }
                     weather.update(env, simDt, game.rig.cam.pos);
                     if (weather.cur != wxBefore && (weather.cur == WX_RAIN || weather.cur == WX_STORM || weather.cur == WX_FOG))
                         game.socialReport(UI::TE_WEATHER, game.rig.cam.pos, weather.cur == WX_RAIN ? "rain" : (weather.cur == WX_STORM ? "storm" : "fog"));
@@ -2432,6 +2454,7 @@ struct App {
         add("Highest wanted level", StrFormat("%.0f stars", pi.maxWanted));
         add("Wasted / busted", StrFormat("%d / %d", pi.deaths, pi.arrests));
         add("Stores robbed", StrFormat("%d", Interiors::storeRobberies(game)));
+        for (const auto& st : mu::activityStats(game)) menu.stats.push_back({st.first, st.second});   // encounters, fishing, tours
         menu.briefTitle = game.missionTitle();   // empty between missions: FREE ROAM
         menu.briefText = game.missionBrief();
         menu.money = game.pinfo.money;

@@ -69,6 +69,7 @@ int GameWorld::spawnPed(int charIndex, dvec3 pos, float yaw, Faction f) {
     p.charIndex = charIndex;
     const CharEntry& ce = chars[charIndex];
     p.anim.init(&ce.skel, p.uid * 2654435761u);
+    p.anim.setCharacter(ce.desc);   // walking style, posture, fidgets from age / build / role
     p.pos = pos;
     p.yaw = yaw;
     p.faction = f;
@@ -602,15 +603,23 @@ void GameWorld::animatePed(Ped& p, float dt) {
             in.grabWeight = 1.f;
         }
     }
-    // foot IK: probe ground under both feet (only for nearby peds)
+    // foot IK: probe the ground where each foot is planted / about to land (Animator::footProbe) and the slope under
+    // them (only for nearby peds)
     in.groundOffsetL = in.groundOffsetR = 0.f;
+    in.groundNormal = vec3(0, 0, 1);
+    in.footProbes = false;
     if (p.visibleDist < 30.f && p.grounded && p.state == PS_ONFOOT) {
         quat q = yawQuat(p.yaw);
         vec3 base = p.pos.toVec3();
-        vec3 fl = base + rotate(q, vec3(-0.11f, 0, 0)), fr = base + rotate(q, vec3(0.11f, 0, 0));
-        float gl = groundHeight(fl.x, fl.y, base.z + 0.3f), gr = groundHeight(fr.x, fr.y, base.z + 0.3f);
-        in.groundOffsetL = Clamp(gl - base.z, -0.3f, 0.3f);
-        in.groundOffsetR = Clamp(gr - base.z, -0.3f, 0.3f);
+        vec3 pl = p.anim.footProbe(0), pr = p.anim.footProbe(1);
+        vec3 fl = base + rotate(q, vec3(pl.x, pl.y, 0.f)), fr = base + rotate(q, vec3(pr.x, pr.y, 0.f));
+        Phys::GroundHit hl = Phys::gCollision->ground(fl.x, fl.y, base.z + 0.3f, kStepUp);
+        Phys::GroundHit hr = Phys::gCollision->ground(fr.x, fr.y, base.z + 0.3f, kStepUp);
+        in.groundOffsetL = hl.z > -1e8f ? Clamp(hl.z - base.z, -0.3f, 0.3f) : 0.f;
+        in.groundOffsetR = hr.z > -1e8f ? Clamp(hr.z - base.z, -0.3f, 0.3f) : 0.f;
+        vec3 n = normalize(hl.normal + hr.normal + vec3(0, 0, 1e-3f));
+        in.groundNormal = vec3(dot(vec2(n.x, n.y), rightV), dot(vec2(n.x, n.y), fwd), n.z);
+        in.footProbes = true;
     }
     p.anim.update(in, dt, !p.isPlayer && p.visibleDist > 40.f);   // far peds: no IK / face work (LOD2 mesh)
     Anim::computeMatrices(ce.skel, p.anim.pose, p.bones, p.skin);
@@ -791,24 +800,25 @@ void GameWorld::updatePed(int id, float dt) {
     // ground; it builds the layered step (Audio::playFootstep)
     if (p.state == PS_ONFOOT && p.grounded && (p.isPlayer || p.visibleDist < 30.f)) {
         float spd = length(vec2(p.vel.x, p.vel.y));
-        if (spd > 0.6f) {
-            float stride = spd < 2.f ? 0.75f : (spd < 5.f ? 1.2f : 1.7f);
-            p.stepPhase += spd * dt / stride;
-            if (p.stepPhase >= 1.f) {
-                p.stepPhase -= 1.f;
+        // a step sounds when an animated foot comes down (the animator's contacts: the gait's heel strikes, the steps
+        // of a turn on the spot or of settling after a stop), under that foot
+        u32 ev = doAnim ? p.anim.footEvents : 0u;
+        for (int s = 0; s < 2; s++) {
+            if (!(ev & (1u << s))) continue;
 #ifdef HAVE_AUDIO
-                Phys::GroundHit g = Phys::gCollision->ground((float)p.pos.x, (float)p.pos.y, (float)p.pos.z + 0.2f);
-                Audio::Footstep f;
-                f.pos = p.pos.toVec3();
-                f.speed = spd;
-                f.surface = footSurfaceOf(g);
-                f.footwear = footwearOf(*this, p);
-                f.weight = bodyWeightOf(*this, p);
-                f.wetness = env ? env->wetness : 0.f;
-                f.player = p.isPlayer;
-                Audio::playFootstep(f);
+            vec3 fm = p.anim.footProbe(s);
+            vec3 fpos = p.pos.toVec3() + rotate(yawQuat(p.yaw), vec3(fm.x, fm.y, 0.f));
+            Phys::GroundHit g = Phys::gCollision->ground(fpos.x, fpos.y, (float)p.pos.z + 0.2f);
+            Audio::Footstep f;
+            f.pos = fpos;
+            f.speed = Max(spd, 0.4f);
+            f.surface = footSurfaceOf(g);
+            f.footwear = footwearOf(*this, p);
+            f.weight = bodyWeightOf(*this, p);
+            f.wetness = env ? env->wetness : 0.f;
+            f.player = p.isPlayer;
+            Audio::playFootstep(f);
 #endif
-            }
         }
     }
 }

@@ -242,6 +242,514 @@ void testGait() {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
+// Locomotion quality through the Animator, with the ped moving through the world: stance-foot skate, cadence and
+// step length against published gait data, ground penetration, knee / elbow direction, hand-thigh and knee-knee
+// clearance, stops that end with both feet planted, on-the-spot turns that step instead of spinning.
+
+struct FootProbe {
+    vec3 heel, ball, toe;
+};
+// Heel, ball and toe points of a foot in model space (bind rotations are identity: heel 0.21, ball 0.52, toe tip
+// 0.79 foot lengths from the ankle, the ball 0.52 foot lengths ahead).
+FootProbe footPoints(const Skeleton& sk, const mat4* m, int s) {
+    int fb = s ? B_FOOT_R : B_FOOT_L;
+    float ball = sk.bindLocalPos[s ? B_TOE_R : B_TOE_L].y, heel = ball * (0.21f / 0.52f), toe = ball * (0.79f / 0.52f);
+    float ankH = sk.bindLocalPos[B_ROOT].z + sk.bindLocalPos[B_PELVIS].z + sk.bindLocalPos[B_THIGH_L].z + sk.bindLocalPos[B_CALF_L].z +
+                 sk.bindLocalPos[B_FOOT_L].z;
+    FootProbe f;
+    // bone-space offsets from the joint (bone space = model axes at bind)
+    f.heel = m[fb].c[3].xyz() + transformDir(m[fb], vec3(0.f, -heel, -ankH));
+    f.ball = m[fb].c[3].xyz() + transformDir(m[fb], vec3(0.f, ball, -ankH));
+    int tb = s ? B_TOE_R : B_TOE_L;
+    float toeZ = sk.bindLocalPos[B_ROOT].z + sk.bindLocalPos[B_PELVIS].z + sk.bindLocalPos[B_THIGH_L].z + sk.bindLocalPos[B_CALF_L].z +
+                 sk.bindLocalPos[B_FOOT_L].z + sk.bindLocalPos[B_TOE_L].z;
+    f.toe = m[tb].c[3].xyz() + transformDir(m[tb], vec3(0.f, toe - ball, -toeZ));
+    return f;
+}
+
+float segDist(vec3 p, vec3 a, vec3 b) {
+    vec3 ab = b - a;
+    float u = Saturate(dot(p - a, ab) / Max(length2(ab), 1e-8f));
+    return length(a + ab * u - p);
+}
+
+struct GaitStats {
+    int frames = 0, contactN = 0;
+    float skateSum = 0.f, skateMax = 0.f, skate95 = 0.f, lowest = 1e9f;
+    int steps = 0;
+    float stepTime0 = -1.f, stepTime1 = -1.f;
+    float kneeBack = 0.f, elbowIn = 0.f, handThigh = 1e9f, kneeKnee = 1e9f;
+    std::vector<float> skates;
+};
+
+// Walk a character through the world at speed v (m/s) along +Y for `secs` s at 60 Hz, measuring after a warm-up.
+// Body surface (signed distance model the mesh is cast from) for interpenetration checks: a point in posed model space
+// is mapped into a bone's bind frame (bind rotations are identity) and tested against that part's primitives.
+struct BodySdf {
+    detail::BodyDims D;
+    detail::BuildCtx bc;
+    detail::Sdf part[3];   // torso (moves with the pelvis), left / right leg-only primitives (move with the thighs)
+    void build(const CharacterDesc& d, const Skeleton& sk) {
+        detail::computeDims(d, D);
+        bc.d = &d;
+        bc.D = &D;
+        bc.sk = &sk;
+        detail::addBodyPrims(bc);
+        for (const detail::Prim& q : bc.sdf.prims) {
+            if (q.mask & detail::MK_TORSO) part[0].prims.push_back(q);
+            else if (q.mask & detail::MK_LEG_L) part[1].prims.push_back(q);
+            else if (q.mask & detail::MK_LEG_R) part[2].prims.push_back(q);
+        }
+    }
+    // distance of a posed point from part k (0 torso, 1 left leg, 2 right leg), in that part's bone's bind frame
+    float dist(const Skeleton& sk, const mat4* m, int k, vec3 p) const {
+        const int bone = k == 0 ? B_PELVIS : (k == 1 ? B_THIGH_L : B_THIGH_R);
+        const mat4& M = m[bone];
+        vec3 dd = p - M.c[3].xyz();
+        vec3 local(dot(dd, M.c[0].xyz()), dot(dd, M.c[1].xyz()), dot(dd, M.c[2].xyz()));
+        vec3 J = -sk.invBindModel[bone].c[3].xyz();
+        return part[k].eval(J + local, detail::MK_ALL);
+    }
+};
+
+GaitStats runGait(const Skeleton& sk, Animator& an, float v, float secs, float turnRate = 0.f, const BodySdf* body = nullptr) {
+    GaitStats st;
+    const float dt = 1.f / 60.f;
+    vec3 root(0.f);
+    float yaw = 0.f;
+    FootProbe prev[2];
+    bool prevIn[2] = {false, false}, wasUp[2] = {true, true};
+    AnimInput in;
+    in.speed = v;
+    in.turnRate = turnRate;
+    in.footProbes = true;
+    const int n = (int)(secs / dt);
+    const float warm = 2.f;
+    for (int f = 0; f < n; f++) {
+        float t = f * dt;
+        yaw += turnRate * dt;   // like the game: turn, then move along the new heading
+        vec2 fwd(-sinf(yaw), cosf(yaw));
+        root = root + vec3(fwd.x, fwd.y, 0.f) * (v * dt);
+        an.update(in, dt);
+        mat4 m[B_COUNT];
+        computeMatrices(sk, an.pose, m, nullptr);
+        quat qy = quatAxisAngle(vec3(0, 0, 1), yaw);
+        for (int s = 0; s < 2; s++) {
+            FootProbe fpm = footPoints(sk, m, s), w;
+            w.heel = root + rotate(qy, fpm.heel);
+            w.ball = root + rotate(qy, fpm.ball);
+            w.toe = root + rotate(qy, fpm.toe);
+            if (t > warm) {
+                st.lowest = Min(st.lowest, Min(w.heel.z, Min(w.ball.z, w.toe.z)));
+                // contact: the lowest sole point within 4 mm of the ground, this frame and the previous one
+                bool in0 = Min(w.heel.z, w.ball.z) < 0.004f;
+                if (in0 && prevIn[s]) {
+                    vec3 a = w.heel.z < w.ball.z ? w.heel : w.ball, b = w.heel.z < w.ball.z ? prev[s].heel : prev[s].ball;
+                    float sp = length(vec2(a.x - b.x, a.y - b.y)) / dt;
+                    st.skateSum += sp;
+                    st.skateMax = Max(st.skateMax, sp);
+                    st.skates.push_back(sp);
+                    st.contactN++;
+                }
+                // steps: a heel coming down after being clear of the ground
+                if (wasUp[s] && Min(w.heel.z, w.ball.z) < 0.012f) {
+                    st.steps++;
+                    if (st.stepTime0 < 0.f) st.stepTime0 = t;
+                    st.stepTime1 = t;
+                    wasUp[s] = false;
+                }
+                if (Min(w.heel.z, w.ball.z) > 0.03f) wasUp[s] = true;
+                prevIn[s] = in0;
+            } else {
+                prevIn[s] = false;
+                wasUp[s] = Min(w.heel.z, w.ball.z) > 0.03f;
+            }
+            prev[s] = w;
+        }
+        if (t > warm) {
+            st.frames++;
+            // knees point forward of the hip-ankle line, elbows behind / outside the shoulder-wrist line
+            vec3 pelvisFwd = normalize(m[B_PELVIS].c[1].xyz());
+            for (int s = 0; s < 2; s++) {
+                vec3 hip = m[s ? B_THIGH_R : B_THIGH_L].c[3].xyz(), knee = m[s ? B_CALF_R : B_CALF_L].c[3].xyz(),
+                     ank = m[s ? B_FOOT_R : B_FOOT_L].c[3].xyz();
+                vec3 legD = normalize(ank - hip);
+                vec3 off = knee - (hip + legD * dot(knee - hip, legD));
+                st.kneeBack = Max(st.kneeBack, -dot(off, pelvisFwd));
+                vec3 el = m[s ? B_FOREARM_R : B_FOREARM_L].c[3].xyz(), wr = m[s ? B_HAND_R : B_HAND_L].c[3].xyz();
+                // elbow flexion about its hinge in the upper arm's frame (bind axes): negative = bent backwards
+                const mat4& mu = m[s ? B_UPPERARM_R : B_UPPERARM_L];
+                vec3 fw = normalize(wr - el);
+                vec3 fl(dot(fw, normalize(mu.c[0].xyz())), dot(fw, normalize(mu.c[1].xyz())), dot(fw, normalize(mu.c[2].xyz())));
+                vec3 b = normalize(sk.bindLocalPos[s ? B_FOREARM_R : B_FOREARM_L]);
+                vec3 hinge = normalize(cross(b, vec3(0, 1, 0)));
+                float flex = atan2f(dot(cross(b, fl), hinge), dot(b, fl));
+                st.elbowIn = Max(st.elbowIn, -flex);   // hyperextension (rad)
+                // hand (palm centre, middle fingertip) against the thighs and hips: the body's own surface model
+                if (body) {
+                    vec3 fingD = normalize(transformDir(m[s ? B_HAND_R : B_HAND_L], sk.bindLocalPos[s ? B_FINGERS_R : B_FINGERS_L]));
+                    vec3 palm = wr + fingD * (0.45f * length(sk.bindLocalPos[s ? B_FINGERS_R : B_FINGERS_L]));
+                    int mid3 = phalanxBone(s == 1, 1, 2);
+                    vec3 tip = m[mid3].c[3].xyz() + transformDir(m[mid3], normalize(sk.bindLocalPos[mid3]) * sk.boneLength[mid3]);
+                    const vec3 pts[2] = {palm, tip};
+                    const float rad[2] = {sk.boneRadius[s ? B_HAND_R : B_HAND_L] * 0.75f, 0.008f};
+                    for (int q = 0; q < 2; q++) {
+                        float dd = Min(body->dist(sk, m, 0, pts[q]), Min(body->dist(sk, m, 1, pts[q]), body->dist(sk, m, 2, pts[q])));
+                        st.handThigh = Min(st.handThigh, dd - rad[q]);
+                    }
+                }
+            }
+            st.kneeKnee = Min(st.kneeKnee, length(m[B_CALF_L].c[3].xyz() - m[B_CALF_R].c[3].xyz()));
+        }
+    }
+    std::sort(st.skates.begin(), st.skates.end());
+    if (!st.skates.empty()) st.skate95 = st.skates[(size_t)(st.skates.size() * 0.95f)];
+    return st;
+}
+
+void testLocomotion() {
+    // published cadence (steps/min) at a speed: walking from the walk ratio (step length / cadence, 0.0045-0.0078
+    // m/(steps/min) scaled by height / 1.75, the low end for older adults: Sekiya & Nagasaki 1998), running from
+    // treadmill / overground data (e.g. Cavanagh &
+    // Kram 1989, Dorn et al. 2012): 150-172 at 2.4-3 m/s, 165-192 at 5 m/s, 180-215 at 7 m/s
+    struct Case {
+        u32 seed;
+        int role;
+        float age;
+        int gender;
+    };
+    const Case people[] = {{12u, 0, 0.3f, 0}, {45u, 0, 0.25f, 1}, {77u, 3, 0.4f, 0}, {91u, 0, 0.92f, 1}, {140u, 2, 0.1f, 0}, {166u, 5, 0.5f, 0}};
+    const float speeds[] = {0.9f, 1.2f, 1.4f, 1.7f, 2.0f, 2.4f, 3.0f, 5.0f, 7.0f};
+    float worstSkate = 0.f, worst95 = 0.f, worstLow = 1e9f, worstKnee = 0.f, worstElbow = 0.f, worstHand = 1e9f, worstKK = 1e9f;
+    int cadFail = 0, cadN = 0;
+    for (const Case& c : people) {
+        CharacterDesc d = randomCharacter(c.seed, c.role);
+        d.age = c.age;
+        d.gender = c.gender ? FEMALE : MALE;
+        Skeleton sk;
+        buildSkeleton(d, sk);
+        BodySdf body;
+        body.build(d, sk);
+        for (float v : speeds) {
+            Animator an;
+            an.init(&sk, c.seed * 7u + 1u);
+            an.setCharacter(d);
+            GaitStats st = runGait(sk, an, v, 6.f, 0.f, &body);
+            float dur = st.stepTime1 - st.stepTime0;
+            float cad = st.steps > 2 && dur > 0.f ? (st.steps - 1) / dur * 60.f : 0.f;
+            float stepLen = cad > 0.f ? v * 60.f / cad : 0.f;
+            float mean = st.contactN ? st.skateSum / st.contactN : 0.f;
+            // expected cadence band
+            float hs = d.height / 1.75f, lo, hi;
+            if (v <= 2.05f) {
+                lo = sqrtf(60.f * v / (0.0078f * hs));
+                hi = sqrtf(60.f * v / (0.0045f * hs));   // older / shorter-stepping people reach ~0.0045-0.005
+            } else {
+                lo = v < 2.7f ? 145.f : (v < 4.f ? 150.f : (v < 6.f ? 162.f : 178.f));
+                hi = v < 2.7f ? 172.f : (v < 4.f ? 178.f : (v < 6.f ? 195.f : 218.f));
+            }
+            bool ok = cad >= lo && cad <= hi;
+            cadN++;
+            if (!ok) cadFail++;
+            printf("  gait seed %3u %s age %.2f style %d v %.1f: cadence %5.1f (%.0f-%.0f)%s step %.2f m, skate mean %.3f p95 %.3f max %.3f m/s, "
+                   "lowest %.3f, hand-thigh %.3f\n",
+                   c.seed, c.gender ? "F" : "M", c.age, an.gaitStyle, v, cad, lo, hi, ok ? "" : " !", stepLen, mean, st.skate95, st.skateMax, st.lowest,
+                   st.handThigh);
+            CHECK(ok, "cadence %.1f outside %.0f-%.0f steps/min at %.1f m/s (seed %u)", cad, lo, hi, v, c.seed);
+            if (v <= 5.f) {
+                worstSkate = Max(worstSkate, mean);
+                worst95 = Max(worst95, st.skate95);
+            }
+            worstLow = Min(worstLow, st.lowest);
+            worstKnee = Max(worstKnee, st.kneeBack);
+            worstElbow = Max(worstElbow, st.elbowIn);
+            worstHand = Min(worstHand, st.handThigh);
+            worstKK = Min(worstKK, st.kneeKnee);
+        }
+    }
+    printf("locomotion: stance skate mean <= %.3f m/s (p95 %.3f) up to 5 m/s, lowest sole point %.3f m, knee behind the leg line %.3f m, "
+           "elbow hyperextension %.3f rad, hand-thigh clearance %.3f m, knee-knee %.3f m, cadence in range %d/%d\n",
+           worstSkate, worst95, worstLow, worstKnee, worstElbow, worstHand, worstKK, cadN - cadFail, cadN);
+    CHECK(worstSkate < 0.02f, "stance feet skate at %.3f m/s", worstSkate);
+    CHECK(worstLow > -0.012f, "feet sink %.3f m into the ground", worstLow);
+    CHECK(worstKnee < 0.01f, "a knee bends backwards (%.3f m)", worstKnee);
+    CHECK(worstElbow < 0.05f, "an elbow bends backwards (%.3f rad)", worstElbow);
+    CHECK(worstHand > -0.01f, "a hand passes into a thigh or hip (%.3f m)", worstHand);
+    CHECK(worstKK > 0.1f, "knees collide (%.3f m apart)", worstKK);
+}
+
+// Stopping: within 1.5 s both feet are planted (no skating) and brought together into the standing stance; turning on
+// the spot: the feet stay put between steps and step round instead of spinning.
+void testStopsAndTurns() {
+    float worstStopSkate = 0.f, worstSep = 0.f, worstTurnSkate = 0.f;   // worst single-frame planted-foot speed (m/s)
+    double stopSum = 0.0, turnSum = 0.0;                                 // mean over contact frames
+    int stopN = 0, turnN = 0;
+    int minSteps = 1000;
+    for (u32 sd = 1; sd <= 6; sd++) {
+        CharacterDesc d = randomCharacter(sd * 313u, (int)(sd % 5));
+        Skeleton sk;
+        buildSkeleton(d, sk);
+        // stop from a walk
+        {
+            Animator an;
+            an.init(&sk, sd);
+            an.setCharacter(d);
+            const float dt = 1.f / 60.f;
+            vec3 root(0.f);
+            AnimInput in;
+            in.footProbes = true;
+            FootProbe prevF[2];
+            float v = 0.f;
+            for (int f = 0; f < 300; f++) {
+                float t = f * dt;
+                float want = t < 2.5f ? 1.4f : 0.f;
+                // the game's ped controller: 11 m/s^2 speeding up, 16 slowing down
+                v = want > v ? Min(want, v + 11.f * dt) : Max(want, v - 16.f * dt);
+                root.y += v * dt;
+                in.speed = v;
+                an.update(in, dt);
+                mat4 m[B_COUNT];
+                computeMatrices(sk, an.pose, m, nullptr);
+                for (int s = 0; s < 2; s++) {
+                    FootProbe fpm = footPoints(sk, m, s), w;
+                    w.heel = root + fpm.heel;
+                    w.ball = root + fpm.ball;
+                    // the sole point on the ground, compared with the same point in the previous frame
+                    bool h = w.heel.z < w.ball.z;
+                    vec3 a = h ? w.heel : w.ball, b = h ? prevF[s].heel : prevF[s].ball;
+                    if (t > 3.8f && f > 0 && a.z < 0.004f) {
+                        float sp = length(vec2(a.x - b.x, a.y - b.y)) / dt;
+                        worstStopSkate = Max(worstStopSkate, sp);
+                        stopSum += sp;
+                        stopN++;
+                    }
+                    prevF[s] = w;
+                }
+                if (f == 299) {
+                    vec3 a = m[B_FOOT_L].c[3].xyz(), b = m[B_FOOT_R].c[3].xyz();
+                    worstSep = Max(worstSep, fabsf(a.y - b.y));
+                }
+            }
+        }
+        // turn on the spot
+        {
+            Animator an;
+            an.init(&sk, sd + 50u);
+            an.setCharacter(d);
+            const float dt = 1.f / 60.f;
+            AnimInput in;
+            in.footProbes = true;
+            float yaw = 0.f;
+            FootProbe prevF[2];
+            bool prevOk[2] = {false, false};
+            int steps = 0;
+            for (int f = 0; f < 240; f++) {
+                float t = f * dt;
+                in.turnRate = t > 0.5f && t < 3.5f ? 1.6f : 0.f;
+                yaw += in.turnRate * dt;
+                an.update(in, dt);
+                steps += __builtin_popcount(an.footEvents);
+                mat4 m[B_COUNT];
+                computeMatrices(sk, an.pose, m, nullptr);
+                quat q = quatAxisAngle(vec3(0, 0, 1), yaw);
+                for (int s = 0; s < 2; s++) {
+                    FootProbe fpm = footPoints(sk, m, s), w;
+                    w.heel = rotate(q, fpm.heel);
+                    w.ball = rotate(q, fpm.ball);
+                    bool h = w.heel.z < w.ball.z;
+                    vec3 a = h ? w.heel : w.ball, b = h ? prevF[s].heel : prevF[s].ball;
+                    bool ok = a.z < 0.004f;
+                    if (ok && prevOk[s] && t > 0.6f) {
+                        float sp = length(vec2(a.x - b.x, a.y - b.y)) / dt;
+                        worstTurnSkate = Max(worstTurnSkate, sp);
+                        turnSum += sp;
+                        turnN++;
+                    }
+                    prevF[s] = w;
+                    prevOk[s] = ok;
+                }
+            }
+            minSteps = Min(minSteps, steps);
+        }
+    }
+    float stopMean = stopN ? (float)(stopSum / stopN) : 0.f, turnMean = turnN ? (float)(turnSum / turnN) : 0.f;
+    printf("stops and turns: planted feet after a stop %.4f m/s mean (worst frame %.1f mm), final fore-aft foot offset %.2f m; turning on the "
+           "spot: planted feet %.4f m/s mean (worst frame %.1f mm), at least %d steps for 4.8 rad\n",
+           stopMean, worstStopSkate * 1000.f / 60.f, worstSep, turnMean, worstTurnSkate * 1000.f / 60.f, minSteps);
+    CHECK(stopMean < 0.02f && worstStopSkate < 0.12f, "feet slide after stopping (%.3f m/s mean, %.3f m/s worst)", stopMean, worstStopSkate);
+    CHECK(worstSep < 0.16f, "feet not brought together after a stop (%.2f m apart)", worstSep);
+    CHECK(turnMean < 0.02f && worstTurnSkate < 0.12f, "feet slide while turning on the spot (%.3f m/s mean, %.3f m/s worst)", turnMean, worstTurnSkate);
+    CHECK(minSteps >= 6, "turning on the spot takes too few steps (%d)", minSteps);
+}
+
+// Standing around for a while: weight shifts, settling steps, postures and fidgets from each person's habits, all
+// with the feet planted (no skating), no sole below the ground, no knee or elbow bent backwards, hands clear of the
+// body; people out of step with each other; breathing at 12-18 a minute at rest and faster after a run.
+void testStanding() {
+    const float dt = 1.f / 60.f, secs = 120.f;
+    const int NP = 10;
+    float skateSum = 0.f, skateWorst = 0.f, lowest = 1e9f, kneeBack = 0.f, elbowIn = 0.f, handBody = 1e9f, pocketBody = 1e9f;
+    int skateN = 0, shifts = 0, settles = 0, postures = 0, fidgets = 0, badFrames = 0;
+    int kinds[64] = {};
+    float handKind[65];   // closest palm to the body per posture / fidget playing (index 64: none)
+    for (float& h : handKind) h = 1e9f;
+    std::vector<std::vector<float>> standSeries(NP);
+    float rateLo = 1e9f, rateHi = 0.f;
+    for (int i = 0; i < NP; i++) {
+        CharacterDesc d = randomCharacter(900u + (u32)i * 53u, i % 7);
+        if (i == 3) d.age = 0.9f;
+        Skeleton sk;
+        buildSkeleton(d, sk);
+        BodySdf body;
+        body.build(d, sk);
+        Animator an;
+        an.init(&sk, 4000u + (u32)i * 17u);
+        an.setCharacter(d);
+        rateLo = Min(rateLo, an.breathRate * 60.f);
+        rateHi = Max(rateHi, an.breathRate * 60.f);
+        AnimInput in;
+        in.footProbes = true;
+        if (i == 5) in.stance = 23;   // queueing
+        FootProbe prevF[2];
+        bool prevOk[2] = {false, false};
+        float lastTarget = an.standTarget;
+        int lastVar = -1, lastFid = -1;
+        for (int f = 0; f < (int)(secs / dt); f++) {
+            float t = f * dt;
+            an.update(in, dt);
+            if (an.standTarget != lastTarget) shifts++, lastTarget = an.standTarget;
+            if (an.idleVar >= 0 && an.idleVar != lastVar) postures++, kinds[an.idleVar & 63]++;
+            if (an.fidgetVar >= 0 && an.fidgetVar != lastFid) fidgets++, kinds[an.fidgetVar & 63]++;
+            lastVar = an.idleVar;
+            lastFid = an.fidgetVar;
+            settles += (an.footEvents & 1u) + ((an.footEvents >> 1) & 1u);
+            standSeries[i].push_back(an.standW);
+            mat4 m[B_COUNT];
+            computeMatrices(sk, an.pose, m, nullptr);
+            bool finite = true;
+            for (int b = 0; b < B_COUNT; b++) finite = finite && std::isfinite(m[b].c[3].x) && std::isfinite(m[b].c[3].z);
+            if (!finite) badFrames++;
+            for (int s = 0; s < 2; s++) {
+                FootProbe w = footPoints(sk, m, s);
+                bool h = w.heel.z < w.ball.z;
+                vec3 a = h ? w.heel : w.ball, b = h ? prevF[s].heel : prevF[s].ball;
+                bool ok = a.z < 0.004f;
+                if (ok && prevOk[s] && t > 1.f) {
+                    float sp = length(vec2(a.x - b.x, a.y - b.y)) / dt;
+                    skateWorst = Max(skateWorst, sp);
+                    skateSum += sp;
+                    skateN++;
+                }
+                if (t > 1.f) lowest = Min(lowest, Min(w.heel.z, Min(w.ball.z, w.toe.z)));
+                prevF[s] = w;
+                prevOk[s] = ok;
+            }
+            if (t > 1.f && f % 3 == 0) {
+                vec3 pelvisFwd = normalize(m[B_PELVIS].c[1].xyz());
+                for (int s = 0; s < 2; s++) {
+                    vec3 hip = m[s ? B_THIGH_R : B_THIGH_L].c[3].xyz(), knee = m[s ? B_CALF_R : B_CALF_L].c[3].xyz(),
+                         ank = m[s ? B_FOOT_R : B_FOOT_L].c[3].xyz();
+                    vec3 legD = normalize(ank - hip);
+                    vec3 off = knee - (hip + legD * dot(knee - hip, legD));
+                    kneeBack = Max(kneeBack, -dot(off, pelvisFwd));
+                    vec3 el = m[s ? B_FOREARM_R : B_FOREARM_L].c[3].xyz(), wr = m[s ? B_HAND_R : B_HAND_L].c[3].xyz();
+                    const mat4& mu = m[s ? B_UPPERARM_R : B_UPPERARM_L];
+                    vec3 fw = normalize(wr - el);
+                    vec3 fl(dot(fw, normalize(mu.c[0].xyz())), dot(fw, normalize(mu.c[1].xyz())), dot(fw, normalize(mu.c[2].xyz())));
+                    vec3 bb = normalize(sk.bindLocalPos[s ? B_FOREARM_R : B_FOREARM_L]);
+                    vec3 hinge = normalize(cross(bb, vec3(0, 1, 0)));
+                    elbowIn = Max(elbowIn, -atan2f(dot(cross(bb, fl), hinge), dot(bb, fl)));
+                    // the palm centre against the body (hands in pockets sit on the thigh, a clasp at the belly)
+                    vec3 fingD = normalize(transformDir(m[s ? B_HAND_R : B_HAND_L], sk.bindLocalPos[s ? B_FINGERS_R : B_FINGERS_L]));
+                    vec3 palm = wr + fingD * (0.45f * length(sk.bindLocalPos[s ? B_FINGERS_R : B_FINGERS_L]));
+                    float dd = Min(body.dist(sk, m, 0, palm), Min(body.dist(sk, m, 1, palm), body.dist(sk, m, 2, palm)));
+                    dd -= sk.boneRadius[s ? B_HAND_R : B_HAND_L] * 0.75f;
+                    int kind = an.fidgetVar >= 0 && an.fidgetW > 0.5f ? an.fidgetVar : (an.idleVar >= 0 && an.idleVarW > 0.5f ? an.idleVar : -1);
+                    // hands in the pockets are meant to disappear into them (checked on their own)
+                    if (an.idleVar == detail::IC_IDLE_POCKETS && an.idleVarW > 0.3f) pocketBody = Min(pocketBody, dd);
+                    else handBody = Min(handBody, dd);
+                    float& hk = handKind[kind >= 0 ? (kind & 63) : 64];
+                    hk = Min(hk, dd);
+                }
+            }
+        }
+    }
+    // people out of step: correlation of the weight-shift curves between pairs
+    float corrSum = 0.f;
+    int corrN = 0;
+    for (int a = 0; a < NP; a++)
+        for (int b = a + 1; b < NP; b++) {
+            const std::vector<float>&x = standSeries[a], &y = standSeries[b];
+            double mx = 0, my = 0;
+            for (size_t k = 0; k < x.size(); k++) mx += x[k], my += y[k];
+            mx /= x.size();
+            my /= y.size();
+            double sxy = 0, sxx = 0, syy = 0;
+            for (size_t k = 0; k < x.size(); k++) sxy += (x[k] - mx) * (y[k] - my), sxx += (x[k] - mx) * (x[k] - mx), syy += (y[k] - my) * (y[k] - my);
+            if (sxx > 1e-9 && syy > 1e-9) corrSum += fabsf((float)(sxy / sqrt(sxx * syy))), corrN++;
+        }
+    float corr = corrN ? corrSum / corrN : 0.f;
+    // breathing after a run: 20 s at 6 m/s, then standing
+    float rateRest = 0.f, rateAfter = 0.f, rateLater = 0.f;
+    {
+        CharacterDesc d = randomCharacter(4242u, 0);
+        Skeleton sk;
+        buildSkeleton(d, sk);
+        Animator an;
+        an.init(&sk, 77u);
+        an.setCharacter(d);
+        AnimInput in;
+        auto rate = [&](float secs) {
+            int n = 0;
+            float prev = an.breathPh;
+            for (int f = 0; f < (int)(secs / dt); f++) {
+                an.update(in, dt);
+                if (an.breathPh < prev) n++;
+                prev = an.breathPh;
+            }
+            return n / secs * 60.f;
+        };
+        rateRest = rate(60.f);
+        in.speed = 6.f;
+        rate(20.f);
+        in.speed = 0.f;
+        rateAfter = rate(10.f);
+        rate(50.f);
+        rateLater = rate(30.f);
+    }
+    std::string kindStr;
+    const struct { int id; const char* n; } names[] = {{detail::IC_IDLE_PHONE, "phone"}, {detail::IC_IDLE_CROSSARMS, "arms crossed"},
+        {detail::IC_IDLE_POCKETS, "pockets"}, {detail::IC_IDLE_HIP, "hip"}, {detail::IC_IDLE_BEHIND, "behind"}, {detail::IC_IDLE_CLASP, "clasp"},
+        {detail::IC_FIDGET_WATCH, "watch"}, {detail::IC_FIDGET_SCRATCH, "scratch"}, {detail::IC_FIDGET_TUG, "tug"}, {detail::IC_FIDGET_CHIN, "chin"},
+        {detail::IC_FIDGET_YAWN, "yawn"}, {detail::IC_FIDGET_ARMS, "stretch"}, {detail::IC_FIDGET_TAP, "tap"}, {detail::IC_FIDGET_ROCK, "rock"},
+        {detail::IC_IDLE_STRETCH, "neck roll"}};
+    std::string handStr = handKind[64] < 1e8f ? StrFormat(" none %.3f", handKind[64]) : std::string();
+    for (const auto& k : names) {
+        kindStr += StrFormat(" %s %d", k.n, kinds[k.id & 63]);
+        if (handKind[k.id & 63] < 1e8f) handStr += StrFormat(" %s %.3f", k.n, handKind[k.id & 63]);
+    }
+    float skate = skateN ? skateSum / skateN : 0.f;
+    printf("standing (%d people x %.0f s): %d weight shifts, %d settling steps, %d postures, %d fidgets;%s\n", NP, secs, shifts, settles, postures, fidgets,
+           kindStr.c_str());
+    printf("  planted feet %.4f m/s mean (worst frame %.1f mm), lowest sole point %.3f m, knee behind the leg line %.3f m, elbow hyperextension "
+           "%.3f rad, palm-body clearance %.3f m (in the pockets %.3f); weight shifts in step between people |r| %.2f; breathing %.1f-%.1f /min "
+           "at rest, one person %.1f -> %.1f just after a 20 s run -> %.1f a minute later\n",
+           skate, skateWorst * 1000.f * dt, lowest, kneeBack, elbowIn, handBody, pocketBody, corr, rateLo, rateHi, rateRest, rateAfter, rateLater);
+    printf("  palm-body clearance by posture / fidget (m):%s\n", handStr.c_str());
+    CHECK(badFrames == 0, "%d frames with non-finite bones", badFrames);
+    CHECK(skate < 0.005f && skateWorst < 0.12f, "standing feet slide (%.4f m/s mean, %.3f m/s worst)", skate, skateWorst);
+    CHECK(lowest > -0.012f, "feet sink %.3f m into the ground while standing", lowest);
+    CHECK(kneeBack < 0.01f, "a knee bends backwards while standing (%.3f m)", kneeBack);
+    CHECK(elbowIn < 0.05f, "an elbow bends backwards while standing (%.3f rad)", elbowIn);
+    CHECK(handBody > -0.02f, "a hand passes into the body (%.3f m)", handBody);
+    CHECK(pocketBody > -0.04f, "hands sink too deep for the pockets (%.3f m)", pocketBody);
+    CHECK(shifts >= NP * 5 && postures >= NP && fidgets >= NP * 2, "too little going on: %d shifts, %d postures, %d fidgets", shifts, postures, fidgets);
+    CHECK(corr < 0.35f, "people shift their weight in step (|r| %.2f)", corr);
+    CHECK(rateLo >= 11.9f && rateHi <= 18.1f, "resting breathing %.1f-%.1f /min", rateLo, rateHi);
+    CHECK(rateAfter > rateRest * 1.3f && rateLater < rateAfter, "breathing after a run %.1f (rest %.1f, later %.1f)", rateAfter, rateRest, rateLater);
+}
+
 void testPoses() {
     for (int g = 0; g < 2; g++) {
         CharacterDesc d = randomCharacter(21 + g, 0);
@@ -642,8 +1150,13 @@ void testVisemes() {
 
 }  // namespace animtest
 
-int main() {
+int main(int argc, char** argv) {
     using namespace animtest;
+    // optional filter: only the tests whose names contain argv[1] (e.g. "anim_test Locomotion")
+    const char* only = argc > 1 ? argv[1] : nullptr;
+    auto run = [&](const char* name, void (*fn)()) {
+        if (!only || strstr(name, only)) fn();
+    };
     double t0 = TimeSeconds();
     Pose warm;
     CharacterDesc d0;
@@ -651,19 +1164,22 @@ int main() {
     buildSkeleton(d0, s0);
     sampleClip(s0, CLIP_IDLE, 0.f, warm);
     printf("clip library bake: %.1f ms\n", (TimeSeconds() - t0) * 1000.0);
-    testBindPose();
-    testPoseRoundTrip();
-    testIK();
-    testClips();
-    testGait();
-    testPoses();
-    testAnimator();
-    testDriving();
-    testMelee();
-    testVisemes();
-    testDerivedBones();
-    testLods();
-    testMesh();
+    run("BindPose", testBindPose);
+    run("PoseRoundTrip", testPoseRoundTrip);
+    run("IK", testIK);
+    run("Clips", testClips);
+    run("Gait", testGait);
+    run("Locomotion", testLocomotion);
+    run("StopsAndTurns", testStopsAndTurns);
+    run("Standing", testStanding);
+    run("Poses", testPoses);
+    run("Animator", testAnimator);
+    run("Driving", testDriving);
+    run("Melee", testMelee);
+    run("Visemes", testVisemes);
+    run("DerivedBones", testDerivedBones);
+    run("Lods", testLods);
+    run("Mesh", testMesh);
     printf("%s (%d failures)\n", gFail ? "FAILED" : "ALL PASSED", gFail);
     return gFail ? 1 : 0;
 }

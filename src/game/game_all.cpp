@@ -1,6 +1,7 @@
 // Gameplay layer (unity include). Included by app.cpp when characters, vehicles and audio are available.
 #include "input.cpp"
 #include "assets.cpp"
+#include "carry.cpp"          // props in the hands (after assets.cpp: its mesh helpers)
 #include "weaponmods.cpp"      // weapon components + tints (meshes, prices, fitted-component queries)
 // wildlife: animal models + procedural animation, simulation (before combat.cpp / gameworld.cpp, which call it)
 #include "animal_models.cpp"
@@ -46,6 +47,8 @@
 #include "economy.cpp"
 #include "phone_game.cpp"
 #include "strangers.cpp"
+#include "encounters.cpp"     // street encounters (random events around the player in free roam)
+#include "story_act4.cpp"     // Act 4 "Undertow" (after either Act 3 ending)
 #include "story.cpp"
 #include "missiontest.cpp"
 #include "openworld.cpp"

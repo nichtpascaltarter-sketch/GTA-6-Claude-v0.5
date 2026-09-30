@@ -59,6 +59,21 @@ static int danceClip(u32 seed) {
     static const int kDances[4] = {CLIP_DANCE, IC_DANCE2, IC_DANCE3, IC_DANCE4};
     return kDances[hash32(seed * 2654435761u + 91u) & 3u];
 }
+// Standing habits (Animator::fidgetMask bits): held postures, then fidgets.
+enum {
+    FG_PHONE = 0, FG_CROSSARMS, FG_POCKETS, FG_HIP, FG_BEHIND, FG_CLASP, FG_POSTURES,
+    FG_WATCH = FG_POSTURES, FG_SCRATCH, FG_TUG, FG_CHIN, FG_YAWN, FG_ARMS, FG_TAP, FG_ROCK, FG_STRETCH, FG_COUNT
+};
+static const int kPostureClip[FG_POSTURES] = {IC_IDLE_PHONE, IC_IDLE_CROSSARMS, IC_IDLE_POCKETS, IC_IDLE_HIP, IC_IDLE_BEHIND, IC_IDLE_CLASP};
+static const int kFidgetClip[FG_COUNT - FG_POSTURES] = {IC_FIDGET_WATCH, IC_FIDGET_SCRATCH, IC_FIDGET_TUG, IC_FIDGET_CHIN, IC_FIDGET_YAWN,
+                                                       IC_FIDGET_ARMS,  IC_FIDGET_TAP,     IC_FIDGET_ROCK, IC_IDLE_STRETCH};
+// Arms a posture holds (bit 0 left, bit 1 right): fidgets leave them alone (a hand behind the back or in a pocket
+// cannot come out through the body).
+static const u8 kPostureArms[FG_POSTURES] = {3, 3, 3, 2, 3, 3};
+// Arms a fidget takes over (bit 0 left, bit 1 right; bit 2 the clavicles as offsets) and its legs (bit 0 / 1).
+static const u8 kFidgetArms[FG_COUNT - FG_POSTURES] = {1, 2, 3, 3, 2, 3, 0, 0, 4};
+static const u8 kFidgetLegs[FG_COUNT - FG_POSTURES] = {0, 0, 0, 0, 0, 0, 2, 3, 0};
+
 // Scenario stances whose upper body stays on while walking.
 static bool stanceUpperWhileMoving(int s) { return s == 5 || s == 7 || s == 8 || s == 10 || s == 15 || s == 17 || s == 19 || s == 20; }
 // Scenario stances that keep the character in place (locomotion is ignored).
@@ -111,6 +126,23 @@ static float stride(Clip c) {
 }
 
 static void rotateLocal(Pose& p, int b, quat q) { p.rot[b] = normalize(p.rot[b] * q); }
+
+// blendPoses over the controller bones only: the derived bones (forearm roll, phalanges) take their rotations from
+// the controllers, so their entries are just carried along (from a).
+static void blendCtl(const Pose& a, const Pose& b, float w, Pose& out) {
+    if (w <= 0.f) {
+        if (&out != &a) out = a;
+        return;
+    }
+    if (w >= 1.f) {
+        if (&out != &b) out = b;
+        return;
+    }
+    for (int i = 0; i < B_FIRST_DERIVED; i++) out.rot[i] = nlerp(a.rot[i], b.rot[i], w);
+    if (&out != &a)
+        for (int i = B_FIRST_DERIVED; i < B_COUNT; i++) out.rot[i] = a.rot[i];
+    out.rootOffset = lerp(a.rootOffset, b.rootOffset, w);
+}
 
 // Yaw of the pelvis (model space, rotation about +Z of its forward axis).
 static float pelvisYaw(const Pose& p) {
@@ -185,6 +217,478 @@ static void blendArms(Pose& p, const Pose& layer, float w) {
     for (u8 b : kArmBones) p.rot[b] = nlerp(p.rot[b], layer.rot[b], w);
 }
 
+// Two-bone IK of a leg (thigh, calf, foot) whose parent (pelvis) model transform is known; the same analytic solve
+// as solveTwoBoneIK without walking the chain from the root again. The foot keeps its model rotation.
+static void legIK(const Skeleton& sk, Pose& p, int up, int lo, int end, quat Qp, vec3 Pp, vec3 target, vec3 pole) {
+    vec3 A = Pp + rotate(Qp, sk.bindLocalPos[up]);
+    quat Qa = Qp * p.rot[up];
+    vec3 B = A + rotate(Qa, sk.bindLocalPos[lo]);
+    quat Qb = Qa * p.rot[lo];
+    vec3 C = B + rotate(Qb, sk.bindLocalPos[end]);
+    quat Qc = Qb * p.rot[end];
+    float la = length(sk.bindLocalPos[lo]), lb = length(sk.bindLocalPos[end]);
+    vec3 AT = target - A;
+    float dT = length(AT);
+    if (dT < 1e-5f || la < 1e-5f || lb < 1e-5f) return;
+    float d = Clamp(dT, fabsf(la - lb) + 1e-4f, (la + lb) * 0.9995f);
+    // knee angle
+    vec3 BA = A - B, BC = C - B;
+    vec3 m = cross(BA, BC);
+    if (length2(m) < 1e-10f * la * lb) m = cross(BC, pole - B);
+    if (length2(m) < 1e-12f) m = anyPerp(BC);
+    m = normalize(m);
+    float curB = acosf(Clamp(dot(BA, BC) / (la * lb), -1.f, 1.f));
+    float desB = acosf(Clamp((la * la + lb * lb - d * d) / (2.f * la * lb), -1.f, 1.f));
+    quat r1 = quatAxisAngle(m, desB - curB);
+    vec3 C1 = B + rotate(r1, BC);
+    // aim the chain at the target, then swing the knee towards the pole about the hip -> target axis
+    vec3 u = AT / dT;
+    quat r2 = quatFromTo(normalize(C1 - A), u);
+    vec3 kb = rotate(r2, B - A), kp = pole - A;
+    kb = kb - u * dot(kb, u);
+    kp = kp - u * dot(kp, u);
+    quat r3;
+    if (length2(kb) > 1e-10f && length2(kp) > 1e-10f) {
+        kb = normalize(kb);
+        kp = normalize(kp);
+        r3 = quatAxisAngle(u, atan2f(dot(cross(kb, kp), u), dot(kb, kp)));
+    }
+    quat rr = r3 * r2;
+    quat Qa2 = normalize(rr * Qa), Qb2 = normalize(rr * r1 * Qb);
+    p.rot[up] = normalize(conj(Qp) * Qa2);
+    p.rot[lo] = normalize(conj(Qa2) * Qb2);
+    p.rot[end] = normalize(conj(Qb2) * Qc);
+}
+
+// ------------------------------------------------------------------------------------------------
+// Feet on the ground
+//
+// A foot in contact stays where it is in the world while the ped moves and turns: its footprint (heel point and yaw)
+// is carried back through the root motion (speed along the move direction, turn rate) and the animated foot is moved
+// onto it by a rigid correction about its contact pivot (the heel, rolling onto the ball as the heel lifts, so heel
+// strike, foot flat and toe-off keep their roll), then the leg is IK'd. Contacts come from the gait phase while
+// walking (touch-down at the heel strike, release at toe-off, after which the correction fades out early in the
+// swing). While standing both feet stay down, and a foot the pose has moved away from (turning on the spot, feet
+// coming together after a stop, a changed stance) steps over in a low arc, one foot at a time, with the pelvis
+// shifting over the standing foot. Ground offsets under each foot lift / lower it (the pelvis drops to reach the
+// lower one) and feet on the ground tilt with the slope.
+static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bool planting, bool terrain, float duty) {
+    const Skeleton& sk = *A.skel;
+    const Bone ends[2] = {B_FOOT_L, B_FOOT_R};
+    const Bone ups[2] = {B_THIGH_L, B_THIGH_R}, lows[2] = {B_CALF_L, B_CALF_R};
+    // ground under the feet (smoothed) and the slope plane
+    float gl = terrain ? Clamp(in.groundOffsetL, -0.35f, 0.35f) : 0.f;
+    float gr = terrain ? Clamp(in.groundOffsetR, -0.35f, 0.35f) : 0.f;
+    float kg = 1.f - expf(-dt * 14.f);
+    A.footL += (gl - A.footL) * kg;
+    A.footR += (gr - A.footR) * kg;
+    vec3 gn = in.groundNormal;
+    float gnl = length(gn);
+    gn = gnl > 1e-4f && gn.z > 0.3f ? gn / gnl : vec3(0, 0, 1);
+    A.slopeN = lerp(A.slopeN, vec2(gn.x, gn.y), 1.f - expf(-dt * 8.f));
+    A.slopeS += ((terrain ? 1.f : 0.f) - A.slopeS) * (1.f - expf(-dt * 8.f));
+    float nz = sqrtf(Max(0.1f, 1.f - length2(A.slopeN)));
+    float slopeY = -A.slopeN.y / nz * A.slopeS, slopeX = -A.slopeN.x / nz * A.slopeS;   // dz/dy and dz/dx of the ground
+    // planting weight (a linear ramp: a weight short of 1 would leak part of a large correction); everything resets
+    // once it is off
+    A.plantOn = approach(A.plantOn, planting ? 1.f : 0.f, dt * (planting ? 4.f : 8.f));
+    if (!planting && A.plantOn < 0.02f) {
+        A.plantOn = 0.f;
+        A.stepReq = -1;
+        for (int s = 0; s < 2; s++) {
+            A.planted[s] = false;
+            A.stepT[s] = -1.f;
+            A.plantCorr[s] = vec3(0);
+            A.corrYaw[s] = 0.f;
+        }
+    }
+    // root motion of this update, in the new model space: world-fixed points move back by it and turn against it
+    vec2 md = in.localMoveDir;
+    float mdl = length(md);
+    md = mdl > 1e-3f ? md / mdl : vec2(0, 1);
+    const float spd = Max(0.f, in.speed);
+    const vec3 d = vec3(md.x, md.y, 0.f) * (spd * dt);
+    const float dpsi = in.turnRate * dt;
+    const quat qBack = qz(-dpsi);
+    for (int s = 0; s < 2; s++) {
+        A.plantP[s] = rotate(qBack, A.plantP[s]) - d;
+        A.plantYaw[s] = wrapAngle(A.plantYaw[s] - dpsi);
+        A.stepFrom[s] = rotate(qBack, A.stepFrom[s]) - d;
+        A.stepFromYaw[s] = wrapAngle(A.stepFromYaw[s] - dpsi);
+    }
+    // the animated feet: ankle, rotation, heel point, contact pivot (heel .. ball by wBall), yaw
+    const float L = A.footHeel + A.footBall;   // heel -> ball on the ground
+    const float scale = L / 0.197f;            // foot size relative to the male reference
+    vec3 fp[2], heel[2], ball[2];
+    quat fq[2];
+    float fyaw[2], wBall[2];
+    // pelvis model transform (root -> pelvis), the legs from it
+    const quat qr = p.rot[B_ROOT];
+    const vec3 pr = sk.bindLocalPos[B_ROOT];
+    const quat qp = qr * p.rot[B_PELVIS];
+    const vec3 pp0 = pr + rotate(qr, sk.bindLocalPos[B_PELVIS] + p.rootOffset);
+    quat qcalf[2];
+    vec3 knee[2];
+    for (int s = 0; s < 2; s++) {
+        vec3 hip = pp0 + rotate(qp, sk.bindLocalPos[ups[s]]);
+        quat qt = qp * p.rot[ups[s]];
+        knee[s] = hip + rotate(qt, sk.bindLocalPos[lows[s]]);
+        qcalf[s] = qt * p.rot[lows[s]];
+        fp[s] = knee[s] + rotate(qcalf[s], sk.bindLocalPos[ends[s]]);
+        fq[s] = qcalf[s] * p.rot[ends[s]];
+        vec3 F = rotate(fq[s], vec3(0, 1, 0));
+        fyaw[s] = atan2f(-F.x, F.y);
+        float pitch = asinf(Clamp(F.z, -1.f, 1.f));
+        heel[s] = fp[s] + rotate(fq[s], vec3(0.f, -A.footHeel, -A.footAnkleH));
+        ball[s] = fp[s] + rotate(fq[s], vec3(0.f, A.footBall, -A.footAnkleH));
+        wBall[s] = Saturate((-pitch - 0.02f) / 0.07f);
+    }
+    auto pivotA = [&](int s) { return lerp(heel[s], ball[s], wBall[s]); };
+    // planted pivot: the same point of the sole on a footprint (heel point h, yaw y)
+    auto pivotP = [&](int s, vec3 h, float y) { return h + rotate(qz(y), vec3(0.f, wBall[s] * L, 0.f)); };
+    // displayed heel / yaw of a foot (animation + current correction)
+    auto shownHeel = [&](int s) {
+        vec3 pa = pivotA(s);
+        return pa + A.plantCorr[s] + rotate(qz(A.corrYaw[s]), heel[s] - pa);
+    };
+    const bool walking = A.moveW > 0.3f && duty > 0.05f;
+    if (A.plantOn > 0.f) {
+        for (int s = 0; s < 2; s++) {
+            bool nearGround = pivotA(s).z < 0.05f * scale;
+            if (walking) {
+                // gait contacts: plant at the heel strike (where the foot is shown; early when a late swing already
+                // meets the ground, e.g. a slow walk blended with the idle, or ground higher than the pose expects),
+                // release at toe-off
+                float ph = A.phase - (s ? 0.5f : 0.f);
+                ph -= floorf(ph);
+                float swingU = ph > duty ? (ph - duty) / Max(1.f - duty, 0.05f) : 0.f;
+                bool touching = Min(heel[s].z, ball[s].z) < 0.004f * scale;
+                bool contact = (ph > 0.004f && ph < duty - 0.01f && nearGround) || (A.planted[s] && ph <= 0.004f) ||
+                               (swingU > 0.7f && touching);
+                A.stepT[s] = -1.f;   // a pending step gives way to the gait (its offset fades out)
+                if (contact && !A.planted[s]) {
+                    A.planted[s] = true;
+                    vec3 h = shownHeel(s);
+                    A.plantP[s] = vec3(h.x, h.y, 0.f);
+                    A.plantYaw[s] = wrapAngle(fyaw[s] + A.corrYaw[s]);
+                    A.footEvents |= 1u << s;
+                } else if (!contact && A.planted[s]) {
+                    A.planted[s] = false;
+                }
+            } else if (A.stepT[s] < 0.f && !A.planted[s] && nearGround) {
+                // standing: a foot that comes down stays down where it is shown
+                A.planted[s] = true;
+                vec3 h = shownHeel(s);
+                A.plantP[s] = vec3(h.x, h.y, 0.f);
+                A.plantYaw[s] = wrapAngle(fyaw[s] + A.corrYaw[s]);
+            }
+        }
+        // standing: step the foot that the pose has moved furthest from its footprint (one at a time)
+        if (!walking && planting) {
+            float err[2] = {0.f, 0.f};
+            for (int s = 0; s < 2; s++)
+                if (A.planted[s]) {
+                    vec3 e = A.plantP[s] - heel[s];
+                    err[s] = Max(length(vec2(e.x, e.y)) / (0.085f * scale), fabsf(wrapAngle(A.plantYaw[s] - fyaw[s])) / 0.3f);
+                }
+            int s = err[0] >= err[1] ? 0 : 1, o = 1 - s;
+            float need = 1.f;
+            if (A.stepReq >= 0) {
+                // settling after a weight shift: the unloaded foot moves to where the pose now has it (a smaller
+                // error than the one that forces a step), if it is far enough off to bother
+                if (A.stepReq < 2) s = A.stepReq, o = 1 - s;
+                need = 0.3f;
+                if (err[s] <= need || !A.planted[s]) A.stepReq = -1;
+            }
+            if (err[s] > need && A.planted[o] && A.stepT[o] < 0.f && A.stepT[s] < 0.f) {
+                vec3 e = A.plantP[s] - heel[s];
+                float dist = length(vec2(e.x, e.y)), dy = fabsf(wrapAngle(A.plantYaw[s] - fyaw[s]));
+                float turn = fabsf(in.turnRate);
+                A.planted[s] = false;
+                A.stepT[s] = 0.f;
+                A.stepFrom[s] = A.plantP[s];
+                A.stepFromYaw[s] = A.plantYaw[s];
+                // quicker steps while turning faster; a settling foot slides over low
+                A.stepDur[s] = Clamp(0.26f + 0.6f * dist / scale + 0.12f * dy - 0.04f * turn, 0.22f, 0.48f);
+                A.stepLift[s] = need < 1.f ? Clamp(0.016f + 0.1f * dist / scale, 0.016f, 0.035f) * scale
+                                           : Clamp(0.03f + 0.15f * dist / scale + 0.02f * dy, 0.03f, 0.075f) * scale;
+                A.stepReq = -1;
+            }
+        } else {
+            A.stepReq = -1;
+        }
+    }
+    // corrections: planted feet sit on their footprints, stepping feet travel to the pose's footprint, free feet let
+    // their last correction fade
+    float lift[2] = {0.f, 0.f};
+    float shiftT = 0.f;
+    for (int s = 0; s < 2; s++) {
+        vec3 pa = pivotA(s);
+        if (A.stepT[s] >= 0.f) {
+            A.stepT[s] += dt / A.stepDur[s];
+            float u = Min(A.stepT[s], 1.f), e = u * u * (3.f - 2.f * u);
+            // the foot heads for the pose's footprint, which stops moving for the last quarter (it lands still)
+            if (u < 0.75f) {
+                // turning: land ahead of the turn (about the root), so the foot stays down longer before its next step
+                float lead = Clamp(in.turnRate * 0.28f, -0.45f, 0.45f);
+                vec3 h = rotate(qz(lead), vec3(heel[s].x, heel[s].y, 0.f));
+                A.stepTo[s] = vec3(h.x, h.y, 0.f);
+                A.stepToYaw[s] = wrapAngle(fyaw[s] + lead);
+            } else {
+                A.stepTo[s] = rotate(qBack, A.stepTo[s]) - d;
+                A.stepToYaw[s] = wrapAngle(A.stepToYaw[s] - dpsi);
+            }
+            vec3 h = lerp(A.stepFrom[s], A.stepTo[s], e);
+            float y = A.stepFromYaw[s] + wrapAngle(A.stepToYaw[s] - A.stepFromYaw[s]) * e;
+            vec3 pp = pivotP(s, h, y);
+            A.plantCorr[s] = vec3(pp.x - pa.x, pp.y - pa.y, 0.f);
+            A.corrYaw[s] = wrapAngle(y - fyaw[s]);
+            lift[s] = A.stepLift[s] * sinf(kPi * u);
+            shiftT = (s ? -1.f : 1.f) * 0.03f * scale * sinf(kPi * Min(1.f, u * 1.3f));   // weight over the other foot
+            if (A.stepT[s] >= 1.f) {
+                A.stepT[s] = -1.f;
+                A.planted[s] = true;
+                A.plantP[s] = A.stepTo[s];
+                A.plantYaw[s] = A.stepToYaw[s];
+                A.footEvents |= 1u << s;
+            }
+        } else if (A.planted[s]) {
+            vec3 pp = pivotP(s, A.plantP[s], A.plantYaw[s]);
+            A.plantCorr[s] = vec3(pp.x - pa.x, pp.y - pa.y, 0.f);
+            A.corrYaw[s] = wrapAngle(A.plantYaw[s] - fyaw[s]);
+            // too far from the pose (a fast turn, a shove): let go (standing feet wait longer for their step)
+            float lim = walking ? 0.3f : 0.38f, limY = walking ? 0.75f : 1.15f;
+            if (length2(A.plantCorr[s]) > lim * lim * scale * scale || fabsf(A.corrYaw[s]) > limY) A.planted[s] = false;
+        } else if (Min(heel[s].z, ball[s].z) > 0.012f * scale || A.moveW < 0.3f) {
+            // released: the correction fades once the foot is off the ground (a toe still on it would slide)
+            float k = expf(-dt / 0.07f);
+            A.plantCorr[s] = A.plantCorr[s] * k;
+            A.corrYaw[s] *= k;
+        }
+    }
+    A.stepShift += (shiftT - A.stepShift) * (1.f - expf(-dt * 10.f));
+    // terrain heights under the feet (probed there, or extrapolated along the slope from probes below the hips)
+    float offs[2] = {A.footL, A.footR};
+    if (!in.footProbes)
+        for (int s = 0; s < 2; s++) offs[s] += Clamp(fp[s].y * slopeY, -0.3f, 0.3f);
+    float drop = Min(0.f, Min(offs[0], offs[1]));
+    const float w = A.plantOn;
+    // the sole on the ground: a planted foot's pivot sits exactly on it (proportions that differ from the clips'
+    // reference leave it a few mm off), no foot sinks into it
+    float pin[2] = {0.f, 0.f};
+    for (int s = 0; s < 2; s++) {
+        // toe tip on the sole under the (bent) toe bone
+        const int tb = s ? B_TOE_R : B_TOE_L;
+        vec3 toeJ = fp[s] + rotate(fq[s], sk.bindLocalPos[tb]);
+        vec3 toe = toeJ + rotate(fq[s] * p.rot[tb], vec3(0.f, sk.boneLength[tb], -(A.footAnkleH + sk.bindLocalPos[tb].z)));
+        float low = Min(Min(heel[s].z, ball[s].z), toe.z);
+        float pz = pivotA(s).z;
+        float down = A.planted[s] ? -pz : 0.f;
+        pin[s] = Max(down, -low) * w;
+        if (!A.planted[s]) pin[s] = Max(0.f, -low) * w;
+    }
+    bool any = fabsf(drop) > 1e-4f || fabsf(slopeY) > 0.01f || fabsf(slopeX) > 0.01f || fabsf(A.stepShift) > 1e-4f;
+    for (int s = 0; s < 2; s++)
+        any = any || offs[s] - drop > 0.002f || length2(A.plantCorr[s]) * w * w > 1e-6f || fabsf(A.corrYaw[s]) * w > 0.002f || lift[s] > 1e-3f ||
+              fabsf(pin[s]) > 5e-4f;
+    // probe points for the next update: under the shown foot, ahead of a swinging one
+    for (int s = 0; s < 2; s++) {
+        vec3 pa = pivotA(s), mid = (heel[s] + ball[s]) * 0.5f;
+        vec3 m = pa + A.plantCorr[s] * w + rotate(qz(A.corrYaw[s] * w), mid - pa);
+        if (!A.planted[s] && A.stepT[s] < 0.f) m = m + vec3(md.x, md.y, 0.f) * Min(0.35f, spd * 0.2f);
+        A.probeP[s] = vec3(m.x, m.y, 0.f);
+    }
+    // (a planted foot always goes through the IK: switching it off when the correction happens to be tiny would let
+    // the leg's own solution differ from the IK's for a frame)
+    if (!any && A.legSink < 1e-4f && !A.planted[0] && !A.planted[1]) return;
+    p.rootOffset.z += drop;
+    p.rootOffset.x += A.stepShift * w;
+    vec3 targets[2];
+    for (int s = 0; s < 2; s++) {
+        vec3 pa = pivotA(s);
+        targets[s] = pa + A.plantCorr[s] * w + rotate(qz(A.corrYaw[s] * w), fp[s] - pa);
+        targets[s].z = fp[s].z + offs[s] + lift[s] * w + pin[s];
+    }
+    // a foot kept where the pose no longer has it (the body turned or shifted over it) may be out of reach of a
+    // nearly straight leg: the pelvis comes down instead of the foot being dragged (at once, back up smoothly)
+    vec3 pp = pr + rotate(qr, sk.bindLocalPos[B_PELVIS] + p.rootOffset);
+    {
+        float sink = 0.f;
+        for (int s = 0; s < 2; s++) {
+            vec3 hp = pp + rotate(qp, sk.bindLocalPos[ups[s]]);
+            vec3 dd = targets[s] - hp;
+            float L = (length(sk.bindLocalPos[lows[s]]) + length(sk.bindLocalPos[ends[s]])) * 0.994f;
+            float h2 = L * L - dd.x * dd.x - dd.y * dd.y;
+            sink = Max(sink, h2 > 0.f ? -dd.z - sqrtf(h2) : 0.08f * scale);
+        }
+        sink = Min(sink, 0.08f * scale) * w;
+        A.legSink = sink > A.legSink ? sink : A.legSink + (sink - A.legSink) * (1.f - expf(-dt * 6.f));
+        p.rootOffset.z -= A.legSink;
+        pp = pp - rotate(qr, vec3(0.f, 0.f, A.legSink));
+    }
+    quat tilt = qx(atanf(slopeY)) * qy(-atanf(slopeX));
+    for (int s = 0; s < 2; s++) {
+        vec3 pa = pivotA(s);
+        quat rc = qz(A.corrYaw[s] * w);
+        vec3 target = targets[s];
+        float grounded = 1.f - sstep(0.02f, 0.08f, pa.z);
+        quat want = rc * fq[s];
+        if (grounded > 0.f && (fabsf(slopeY) > 0.01f || fabsf(slopeX) > 0.01f)) want = nlerp(want, tilt * want, grounded);
+        // the knee and the calf's forward axis give the pole
+        vec3 pole = knee[s] + rotate(qcalf[s], vec3(0.f, 0.4f, 0.f));
+        p.rot[ends[s]] = normalize(conj(qcalf[s]) * want);   // the IK keeps the foot's model rotation
+        legIK(sk, p, ups[s], lows[s], ends[s], qp, pp, target, pole);
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+// Standing life
+
+// Bones a standing posture / fidget offsets from the plain standing pose (Animator::restUp, same order).
+static const u8 kUpperAdd[8] = {B_SPINE1, B_SPINE2, B_CHEST, B_NECK, B_HEAD, B_JAW, B_EYE_L, B_EYE_R};
+static const u8 kArmChain[2][3] = {{B_UPPERARM_L, B_FOREARM_L, B_HAND_L}, {B_UPPERARM_R, B_FOREARM_R, B_HAND_R}};
+
+static float quatAngleBetween(quat a, quat b) { return 2.f * acosf(Min(1.f, fabsf(dot(a, b)))); }
+
+// A posture or fidget (clips authored from the plain standing pose) over the standing base: the arms in `arms`
+// (bit 0 left, bit 1 right) as posed, hanging from the base's chest; while such an arm is still near the plain
+// standing pose (a fidget starting or ending), the base's own arm offset (the weight shift's, a wide body's
+// clearance) rides along, so the arm leaves and rejoins the base without a jump; `clear` swings the posed arms out
+// (a posture coming or going: hands pass round the hips, not through them); bit 2: the clavicles as offsets (a shrug
+// over whatever the arms do); the spine, neck, head, jaw and eyes as offsets, so the base's weight shift and
+// counter-tilts stay; the legs in `legs` (bit 0 left, bit 1 right) as posed, with the pelvis offset (a tapping foot,
+// rising onto the toes; planted feet keep their footprints).
+static void layerStanding(const Animator& A, Pose& base, const Pose& layer, float w, int arms, int legs, float clear = 0.f) {
+    if (w <= 1e-4f) return;
+    static const u8 kArmRest[2][3] = {{B_CLAVICLE_L, B_FINGERS_L, B_THUMB_L}, {B_CLAVICLE_R, B_FINGERS_R, B_THUMB_R}};
+    static const u8 kLeg[2][4] = {{B_THIGH_L, B_CALF_L, B_FOOT_L, B_TOE_L}, {B_THIGH_R, B_CALF_R, B_FOOT_R, B_TOE_R}};
+    for (int s = 0; s < 2; s++) {
+        if (arms & (1 << s)) {
+            float away = Saturate(quatAngleBetween(layer.rot[kArmChain[s][0]], A.restArm[s][0]) / 0.3f +
+                                  quatAngleBetween(layer.rot[kArmChain[s][1]], A.restArm[s][1]) / 0.5f);
+            for (int j = 0; j < 3; j++) {
+                int b = kArmChain[s][j];
+                quat q = layer.rot[b];
+                if (away < 1.f) q = normalize(q * nlerp(quat(), conj(A.restArm[s][j]) * base.rot[b], 1.f - away));
+                base.rot[b] = nlerp(base.rot[b], q, w);
+            }
+            for (u8 b : kArmRest[s]) base.rot[b] = nlerp(base.rot[b], layer.rot[b], w);
+            if (clear > 1e-4f) {
+                int ub = kArmChain[s][0];
+                base.rot[ub] = normalize(qy(s ? -clear : clear) * base.rot[ub]);
+            }
+        } else if (arms & 4) {
+            int c = s ? B_CLAVICLE_R : B_CLAVICLE_L;
+            base.rot[c] = normalize(base.rot[c] * nlerp(quat(), layer.rot[c], w));   // rest clavicles: identity
+        }
+        if (legs & (1 << s))
+            for (u8 b : kLeg[s]) base.rot[b] = nlerp(base.rot[b], layer.rot[b], w);
+    }
+    for (int i = 0; i < 8; i++) {
+        int b = kUpperAdd[i];
+        base.rot[b] = normalize(base.rot[b] * nlerp(quat(), conj(A.restUp[i]) * layer.rot[b], w));
+    }
+    if (legs) base.rootOffset = base.rootOffset + (layer.rootOffset - A.restRoot) * w;
+}
+
+// Move a hand by `delta` (model space, scaled by w) with the arm's two-bone IK; the hand keeps its model rotation and
+// the elbow its bend direction.
+static void nudgeHand(const Skeleton& sk, Pose& p, int s, vec3 delta, float w) {
+    if (w <= 1e-3f || length2(delta) * w * w < 1e-6f) return;
+    const Bone up = s ? B_UPPERARM_R : B_UPPERARM_L, lo = s ? B_FOREARM_R : B_FOREARM_L, hb = s ? B_HAND_R : B_HAND_L;
+    quat qu, qf, qh;
+    vec3 pu, pf, ph;
+    boneModel(sk, p, up, qu, pu);
+    boneModel(sk, p, lo, qf, pf);
+    boneModel(sk, p, hb, qh, ph);
+    vec3 bend = pf - (pu + ph) * 0.5f;
+    vec3 pole = pf + (length2(bend) > 1e-6f ? normalize(bend) : vec3(s ? 1.f : -1.f, -0.3f, 0.f)) * 0.3f;
+    solveTwoBoneIK(sk, p, up, lo, hb, ph + delta * w, pole, 1.f);
+    boneModel(sk, p, lo, qf, pf);
+    p.rot[hb] = normalize(conj(qf) * qh);
+}
+
+// Pick an index by weight (r in 0..1); -1 when every weight is 0.
+static int pickWeighted(const float* w, int n, float r) {
+    float tot = 0.f;
+    for (int i = 0; i < n; i++) tot += Max(w[i], 0.f);
+    if (tot <= 0.f) return -1;
+    r *= tot;
+    int last = -1;
+    for (int i = 0; i < n; i++) {
+        if (w[i] <= 0.f) continue;
+        last = i;
+        r -= w[i];
+        if (r <= 0.f) return i;
+    }
+    return last;
+}
+
+// Weight from leg to leg while standing still: on the left or right leg (now and then both) for a while on each
+// person's own timing, moving over in about a second (a critically damped spring, per-person rate). `want` >= 0
+// holds a side for a posture / fidget (0 left, 0.5 both, 1 right). When most of the weight has moved, the unloaded
+// foot is asked to settle into its new place (a small step, footPlanting).
+static void weightShift(Animator& A, bool still, float want, float dt) {
+    auto shiftTo = [&](float t) {
+        A.standTarget = t;
+        A.settleT = 2.5f / A.standK;   // ~70 % of the way
+        A.stepReq = -1;
+    };
+    if (want >= 0.f) {
+        if (fabsf(A.standTarget - want) > 0.01f) shiftTo(want);
+        A.standNext = Max(A.standNext, 3.f);
+    } else if (still) {
+        A.standNext -= dt;
+        if (A.standNext <= 0.f) {
+            u32 h = hash32(A.seed * 0x3C6EF372u + (u32)(A.time * 5.f));
+            float r = hashToFloat(h);
+            bool centred = fabsf(A.standTarget - 0.5f) < 0.01f;
+            shiftTo(centred ? (r < 0.5f ? 0.f : 1.f) : (r < 0.8f ? 1.f - A.standTarget : 0.5f));
+            A.standNext = (4.f + 9.f * hashToFloat(hash32(h + 1u))) / Max(A.fidgetRate, 0.3f);
+        }
+    } else {
+        A.standNext = Max(A.standNext, 1.5f);
+    }
+    // exact step of the spring (stable for any dt)
+    float x = A.standW - A.standTarget, v = A.standV, k = A.standK, e = expf(-k * dt);
+    float c = v + k * x;
+    A.standW = A.standTarget + (x + c * dt) * e;
+    A.standV = (v - k * c * dt) * e;
+    if (A.settleT >= 0.f) {
+        A.settleT -= dt;
+        if (A.settleT < 0.f) {
+            A.settleT = -1.f;
+            if (still) A.stepReq = A.standTarget > 0.75f ? 0 : (A.standTarget < 0.25f ? 1 : 2);
+        }
+    }
+}
+
+// Breathing on the upper body at the person's own rate (12-18 breaths a minute at rest), faster and deeper for a
+// while after running: the chest lifts, the shoulders rise (the arms keep hanging), the head stays level.
+// `amount` scales the visible motion (the timing always runs).
+static void breathe(Animator& A, Pose& p, float dt, float speed, float amount) {
+    float run = Saturate((speed - 2.2f) / 4.5f);
+    A.exertion += (run - A.exertion) * (1.f - expf(-dt / (run > A.exertion ? 18.f : 35.f)));
+    A.breathPh += dt * A.breathRate * (1.f + 1.4f * A.exertion);
+    A.breathPh -= floorf(A.breathPh);
+    const float ph = A.breathPh;
+    // inhale over 40 % of the cycle, a slower exhale, a short pause at the bottom
+    A.breath = ph < 0.4f ? sstep(0.f, 0.4f, ph) : 1.f - sstep(0.4f, 0.92f, ph);
+    float amp = amount * (1.f + 2.2f * A.exertion);
+    if (amp < 1e-3f) return;
+    float c = (A.breath - 0.5f) * amp;   // about the mean: the posture itself does not change
+    rotateLocal(p, B_SPINE2, qx(0.006f * c));
+    rotateLocal(p, B_CHEST, qx(0.016f * c));
+    rotateLocal(p, B_NECK, qx(-0.012f * c));
+    rotateLocal(p, B_HEAD, qx(-0.01f * c));
+    for (int s = 0; s < 2; s++) {
+        float d = (s ? -0.022f : 0.022f) * c * (1.f + 0.6f * A.exertion);
+        int cb = s ? B_CLAVICLE_R : B_CLAVICLE_L, ub = s ? B_UPPERARM_R : B_UPPERARM_L;
+        p.rot[cb] = normalize(p.rot[cb] * qy(d));
+        p.rot[ub] = normalize(qy(-d) * p.rot[ub]);
+    }
+}
+
 }  // namespace detail
 
 void Animator::init(const Skeleton* s, u32 variationSeed) {
@@ -222,15 +726,191 @@ void Animator::init(const Skeleton* s, u32 variationSeed) {
     browseW = browseL = grabW = 0.f;
     nodNext = 2.f + 2.f * hashToFloat(hash32(variationSeed * 57u + 3u));
     nodPhase = -1.f;
+    // per-person motion from the seed alone (setCharacter refines it from the character)
+    {
+        u32 h = hash32(variationSeed * 0x2545F491u + 0x6Bu);
+        float r = hashToFloat(h);
+        gaitStyle = r < 0.4f ? GS_NEUTRAL : (r < 0.65f ? GS_RELAXED : (r < 0.85f ? GS_HURRIED : GS_TIRED));
+        armSwingK = 0.82f + 0.36f * hashToFloat(hash32(h + 1u));
+        postureLean = (hashToFloat(hash32(h + 2u)) - 0.5f) * 0.05f;
+        headPitchAdd = (hashToFloat(hash32(h + 3u)) - 0.5f) * 0.08f;
+        cadenceK = 0.96f + 0.08f * hashToFloat(hash32(h + 4u));
+        energy = 0.3f + 0.4f * hashToFloat(hash32(h + 5u));
+        lookiness = 0.3f + 0.5f * hashToFloat(hash32(h + 6u));
+        fidgetRate = 0.7f + 0.6f * hashToFloat(hash32(h + 7u));
+        fidgetMask = 0xffffffffu;
+        armOut = heavyK = athleticK = 0.f;
+        // standing: which leg the weight is on and when it next moves, how quickly; breathing rate and phase
+        float rs = hashToFloat(hash32(h + 8u));
+        standW = standTarget = rs < 0.42f ? 0.f : (rs < 0.84f ? 1.f : 0.5f);
+        standV = 0.f;
+        standNext = 1.f + 9.f * hashToFloat(hash32(h + 9u));
+        standK = 4.5f + 2.5f * energy;
+        settleT = -1.f;
+        stepReq = -1;
+        breathRate = 0.2f + 0.1f * hashToFloat(hash32(h + 10u));
+        breathPh = hashToFloat(hash32(h + 11u));
+        breath = exertion = 0.f;
+        fidgetVar = -1;
+        fidgetCount = 0;
+        fidgetT = fidgetDur = fidgetW = 0.f;
+        fidgetNext = 3.f + 12.f * hashToFloat(hash32(h + 12u));
+    }
+    for (int k = 0; k < 2; k++) {
+        plantP[k] = plantCorr[k] = stepFrom[k] = vec3(0);
+        probeP[k] = vec3(k ? 0.11f : -0.11f, 0.f, 0.f);
+        plantYaw[k] = corrYaw[k] = stepFromYaw[k] = stepLift[k] = stepToYaw[k] = 0.f;
+        stepTo[k] = vec3(0);
+        stepT[k] = -1.f;
+        stepDur[k] = 0.35f;
+        planted[k] = false;
+        armRest[k] = quat();
+    }
+    plantOn = bodyLag = headLead = accS = accV = prevSpeed = stepShift = legSink = 0.f;
+    footEvents = 0;
     if (s) {
         legScale = skeletonLegScale(*s);
         styleF = skeletonStyle(*s);
         sampleClip(*s, CLIP_IDLE, time, pose, seed);
+        // foot geometry: heel 0.21, ball 0.52 of the foot length from the ankle (skeleton.cpp), ankle height = bind z
+        footBall = Max(0.05f, s->bindLocalPos[B_TOE_L].y);
+        footHeel = footBall * (0.21f / 0.52f);
+        footAnkleH = s->bindLocalPos[B_ROOT].z + s->bindLocalPos[B_PELVIS].z + s->bindLocalPos[B_THIGH_L].z + s->bindLocalPos[B_CALF_L].z +
+                     s->bindLocalPos[B_FOOT_L].z;
+        Pose rest;
+        sampleClip(*s, CLIP_IDLE, 0.f, rest, 0u);
+        armRest[0] = rest.rot[B_UPPERARM_L];
+        armRest[1] = rest.rot[B_UPPERARM_R];
+        armOut = skeletonArmClearance(*s);
+        // the plain standing pose the postures and fidgets are layered against (their clips start from it)
+        sampleClipId(*s, IC_FIDGET_WATCH, 0.f, rest, 0u);
+        for (int i = 0; i < 8; i++) restUp[i] = rest.rot[kUpperAdd[i]];
+        restRoot = rest.rootOffset;
+        for (int k = 0; k < 2; k++)
+            for (int j = 0; j < 3; j++) restArm[k][j] = rest.rot[kArmChain[k][j]];
     } else {
         for (int b = 0; b < B_COUNT; b++) pose.rot[b] = quat();
         pose.rootOffset = vec3(0);
+        for (int i = 0; i < 8; i++) restUp[i] = quat();
+        restRoot = vec3(0);
+        for (int k = 0; k < 2; k++)
+            for (int j = 0; j < 3; j++) restArm[k][j] = quat();
     }
     snap = pose;
+}
+
+// Walking style and body language from the character: age, build, sex and role, plus a per-person roll.
+void Animator::setCharacter(const CharacterDesc& d) {
+    using namespace detail;
+    u32 h = hash32(d.seed * 0x9E3779B1u + 0x51A7u);
+    auto rnd = [&](u32 k) { return hashToFloat(hash32(h + k * 0x85EBCA6Bu)); };
+    const float age = Clamp(d.age, 0.f, 1.f), wt = Clamp(d.weight, 0.f, 1.f);
+    const bool fem = d.gender == FEMALE;
+    // walking style: the old shuffle more and more from about 60, else by role and a personal roll
+    float r = rnd(1);
+    int st = GS_NEUTRAL;
+    if (rnd(2) < sstep(0.66f, 0.9f, age)) st = GS_ELDERLY;
+    else {
+        float young = 1.f - sstep(0.12f, 0.5f, age);   // under ~25 .. over ~50
+        // cumulative weights: neutral, relaxed, hurried, swagger, tired
+        float w[5] = {0.34f, 0.24f, 0.16f, (fem ? 0.05f : 0.11f) * (0.5f + young), 0.07f + 0.1f * sstep(0.35f, 0.7f, age) + 0.12f * sstep(0.6f, 0.95f, wt)};
+        switch (d.role) {
+            case 1: w[0] = 0.5f; w[1] = 0.1f; w[2] = 0.12f; w[3] = 0.25f; w[4] = 0.05f; break;   // police
+            case 2: w[0] = 0.15f; w[1] = 0.22f; w[2] = 0.05f; w[3] = 0.55f; w[4] = 0.03f; break; // gang
+            case 3: w[0] = 0.3f; w[1] = 0.05f; w[2] = 0.5f; w[3] = 0.12f; w[4] = 0.05f; break;   // business
+            case 4: w[0] = 0.25f; w[1] = 0.55f; w[2] = 0.03f; w[3] = 0.14f; w[4] = 0.05f; break; // beach
+            case 5: w[0] = 0.4f; w[1] = 0.08f; w[2] = 0.1f; w[3] = 0.1f; w[4] = 0.32f; break;    // worker
+            case 6: w[0] = 0.45f; w[1] = 0.05f; w[2] = 0.4f; w[3] = 0.05f; w[4] = 0.05f; break;  // medic
+            default: break;
+        }
+        float tot = w[0] + w[1] + w[2] + w[3] + w[4], acc = 0.f;
+        static const int kSt[5] = {GS_NEUTRAL, GS_RELAXED, GS_HURRIED, GS_SWAGGER, GS_TIRED};
+        for (int k = 0; k < 5; k++) {
+            acc += w[k] / tot;
+            if (r <= acc || k == 4) {
+                st = kSt[k];
+                break;
+            }
+        }
+    }
+    gaitStyle = st;
+    // energy: young and light people move with more spring, older and heavier ones less
+    energy = Clamp(0.55f + 0.35f * (rnd(3) - 0.5f) - 0.35f * age - 0.2f * Max(0.f, wt - 0.5f), 0.05f, 1.f);
+    armSwingK = Clamp(0.78f + 0.4f * rnd(4) + 0.12f * (energy - 0.5f), 0.7f, 1.25f);
+    // posture: the skeleton already stoops with age (skeleton.cpp's kyphosis from ~55): only a little on top
+    postureLean = (rnd(5) - 0.5f) * 0.05f + 0.04f * sstep(0.45f, 1.f, age) * (1.f - 0.6f * sstep(0.6f, 1.f, age)) + 0.02f * Max(0.f, wt - 0.6f);
+    // build: heavy bodies walk on a wider base with more side-to-side sway, athletic ones with more spring
+    heavyK = sstep(0.62f, 0.9f, wt);
+    athleticK = sstep(0.6f, 0.8f, Clamp(d.muscle, 0.f, 1.f)) * (1.f - sstep(0.5f, 0.62f, wt));
+    armSwingK = Clamp(armSwingK * (1.f + 0.1f * athleticK - 0.1f * heavyK), 0.65f, 1.3f);
+    headPitchAdd = (rnd(6) - 0.5f) * 0.08f;
+    cadenceK = 0.96f + 0.08f * rnd(7);
+    // how much they look around (young and relaxed people more, the hurried less) and how fidgety they are
+    lookiness = Clamp(0.25f + 0.5f * rnd(8) + (st == GS_RELAXED ? 0.15f : 0.f) - (st == GS_HURRIED ? 0.15f : 0.f), 0.05f, 1.f);
+    fidgetRate = Clamp(0.6f + 0.8f * rnd(9) + 0.3f * (energy - 0.5f), 0.4f, 1.5f);
+    // standing habits: a few postures and fidgets per person, likelier by age, sex, role, style and clothes (bits:
+    // FG_* order below; the postures and fidgets in update)
+    const float old = sstep(0.5f, 0.8f, age), young = 1.f - sstep(0.1f, 0.4f, age);
+    {
+        const bool pockets = d.bottom == BOT_JEANS || d.bottom == BOT_SHORTS || d.bottom == BOT_CARGO || d.bottom == BOT_SLACKS ||
+                             d.bottom == BOT_POLICE || d.bottom == BOT_BAGGY || d.bottom == BOT_WORK;
+        const bool hem = d.top != TOP_NONE && d.top != TOP_BIKINI && d.top != TOP_ONEPIECE;
+        const bool watch = (d.extras & ACC_EXPLICIT) ? (d.extras & ACC_WATCH) != 0 : rnd(40) < 0.5f;
+        const float biz = d.role == 3 ? 1.f : 0.f, cop = d.role == 1 ? 1.f : 0.f;
+        float p[FG_COUNT];
+        p[FG_PHONE] = 0.45f + 0.35f * young - 0.35f * old;
+        p[FG_CROSSARMS] = 0.4f + 0.2f * cop;
+        p[FG_POCKETS] = pockets ? 0.4f + (fem ? 0.f : 0.15f) : 0.f;
+        p[FG_HIP] = 0.15f + (fem ? 0.3f : 0.f);
+        p[FG_BEHIND] = 0.08f + 0.5f * old + 0.35f * cop;
+        p[FG_CLASP] = 0.12f + (fem ? 0.18f : 0.f) + 0.2f * old + 0.2f * biz;
+        p[FG_WATCH] = watch ? 0.45f + 0.3f * biz : 0.f;
+        p[FG_SCRATCH] = 0.35f;
+        p[FG_TUG] = hem ? 0.2f + 0.25f * heavyK + (fem ? 0.1f : 0.f) : 0.f;
+        p[FG_CHIN] = 0.25f + 0.1f * old;
+        p[FG_YAWN] = 0.12f + (st == GS_TIRED ? 0.45f : 0.f) + 0.1f * old;
+        p[FG_ARMS] = 0.15f + 0.2f * young - 0.12f * old;
+        p[FG_TAP] = 0.2f + 0.3f * energy + (st == GS_HURRIED ? 0.2f : 0.f);
+        p[FG_ROCK] = 0.15f + (fem ? 0.f : 0.1f) + 0.1f * cop;
+        p[FG_STRETCH] = 0.3f + 0.1f * old;
+        u32 mask = 0;
+        for (int k = 0; k < FG_COUNT; k++)
+            if (rnd(20 + (u32)k) < p[k]) mask |= 1u << k;
+        // at least one posture and two fidgets
+        if (!(mask & ((1u << FG_POSTURES) - 1u))) mask |= 1u << (p[FG_POCKETS] > 0.f && rnd(60) < 0.5f ? FG_POCKETS : FG_CROSSARMS);
+        auto fidgets = [&]() {
+            int n = 0;
+            for (int k = FG_POSTURES; k < FG_COUNT; k++) n += (mask >> k) & 1u;
+            return n;
+        };
+        for (u32 tries = 0; tries < 6 && fidgets() < 2; tries++) {
+            int k = FG_POSTURES + (int)(hash32(h + 70u + tries) % (u32)(FG_COUNT - FG_POSTURES));
+            if (p[k] > 0.f) mask |= 1u << k;
+        }
+        if (fidgets() == 0) mask |= 1u << FG_SCRATCH;
+        fidgetMask = mask;
+    }
+    // this body's skin where posed hands rest on it (the clips have the reference body's): rays out from inside its
+    // signed distance model (torso and legs) at the heights the clips use
+    for (int i = 0; i < 3; i++) skinP[i] = vec3(0);
+    if (skel) {
+        BodyDims D;
+        computeDims(d, D);
+        BuildCtx bc;
+        bc.d = &d;
+        bc.D = &D;
+        bc.sk = skel;
+        addBodyPrims(bc);
+        const u32 mk = MK_TORSO | MK_LEG_L | MK_LEG_R;
+        const float s = D.s;
+        const vec3 from[3] = {vec3(0.f, D.J[B_THIGH_R].y + 0.015f * s, D.J[B_THIGH_R].z + 0.1f * s), vec3(0.f, 0.f, D.zHip + 0.07f * s),
+                              vec3(0.06f * s, 0.f, D.zWaist + 0.05f * s)};
+        const vec3 dir[3] = {vec3(1, 0, 0), vec3(0, -1, 0), vec3(0, 1, 0)};
+        for (int i = 0; i < 3; i++) skinP[i] = from[i] + dir[i] * bc.sdf.castOut(from[i], dir[i], mk, 0.5f) - D.J[B_PELVIS];
+    }
+    // breathing: 12-18 a minute, a little quicker for heavy and older people; weight shifts: quicker when energetic
+    breathRate = Clamp(0.2f + 0.08f * rnd(10) + 0.02f * heavyK + 0.02f * old, 0.2f, 0.3f);
+    standK = 4.2f + 2.8f * energy;
 }
 
 void Animator::update(const AnimInput& in, float dt, bool cheap) {
@@ -327,26 +1007,35 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
     const float ls = Max(legScale, 0.3f);
     bool vehicleStance = stanceIsVehicle(stance);
     bool footIK = false;
+    float locoDuty = 0.f;
     if (vehicleStance) {
         sampleClip(sk, kStanceClip[stance], stanceTime, base, seed);
         moveW = 0.f;
     } else {
-        // ---- locomotion (forward gait bands by speed)
+        // ---- locomotion (forward gait bands by speed): idle, this person's walk style (slow / normal / brisk), the
+        //      easy jog, jog, run and sprint; strides scale with the leg length, cadence varies a little per person
         const float v = speedS;
         float rate;   // cycles per second
-        // forward component
-        static const Clip bands[5] = {CLIP_IDLE, CLIP_WALK, CLIP_JOG, CLIP_RUN, CLIP_SPRINT};
-        float bandSpeed[5];
-        for (int i = 0; i < 5; i++) bandSpeed[i] = clipInfo(bands[i]).speed;
+        const int kBands = 8;
+        const int gs = Clamp(gaitStyle, 0, GS_COUNT - 1);
+        const int bands[kBands] = {CLIP_IDLE, gaitClip(gs, 0), gaitClip(gs, 1), gaitClip(gs, 2), IC_JOG_SLOW, CLIP_JOG, CLIP_RUN, CLIP_SPRINT};
+        float bandSpeed[kBands], bandStride[kBands], bandDuty[kBands];
+        for (int i = 0; i < kBands; i++) {
+            const ClipInfo& bi = clipInfoId(bands[i]);
+            bandSpeed[i] = i ? bi.speed : 0.f;
+            bandStride[i] = bi.speed * bi.duration;
+            bandDuty[i] = clipDuty(bands[i]);
+        }
         int b1 = 1;
-        while (b1 < 4 && v > bandSpeed[b1]) b1++;
+        while (b1 < kBands - 1 && v > bandSpeed[b1]) b1++;
         int b0 = b1 - 1;
         float wb = b0 == 0 ? 1.f : Saturate((v - bandSpeed[b0]) / Max(bandSpeed[b1] - bandSpeed[b0], 1e-3f));
-        if (v > bandSpeed[4]) wb = 1.f;
-        float strideF = b0 == 0 ? stride(CLIP_WALK) : Lerp(stride(bands[b0]), stride(bands[b1]), wb);
-        // below walking speed: walk clip slowed down, blended with idle
-        float walkW = b0 == 0 ? Saturate(v / 0.9f) : 1.f;
-        float rateF = Max(v, b0 == 0 ? 0.85f : 0.f) / Max(strideF, 0.1f);
+        if (v > bandSpeed[kBands - 1]) wb = 1.f;
+        float strideF = b0 == 0 ? bandStride[1] : Lerp(bandStride[b0], bandStride[b1], wb);
+        // below the slow walk: the slow walk at its own cadence, blended with idle (shorter steps, same foot speed)
+        float walkW = b0 == 0 ? Saturate(v / bandSpeed[1]) : 1.f;
+        float rateF = (b0 == 0 ? bandSpeed[1] : v) / Max(strideF, 0.1f);
+        float dutyF = b0 == 0 ? bandDuty[1] : Lerp(bandDuty[b0], bandDuty[b1], wb);
         // directional weights (forward, back, left, right)
         float cf = dirS.y, sf = dirS.x;
         float wF = Max(0.f, cf), wBk = Max(0.f, -cf), wR = Max(0.f, sf), wL = Max(0.f, -sf);
@@ -356,59 +1045,66 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         float cw = crouchBlend;
         float rateB = Max(v, 0.85f) / stride(CLIP_WALK_BACK), rateS = Max(v, 0.85f) / stride(CLIP_STRAFE_L);
         float rateC = Max(v, 0.6f) / stride(CLIP_CROUCH_WALK);
-        rate = (wF * rateF + wBk * rateB + (wL + wR) * rateS) * (1.f - cw) + rateC * cw;
+        rate = (wF * rateF * cadenceK + wBk * rateB + (wL + wR) * rateS) * (1.f - cw) + rateC * cw;
         rate = Min(rate, 2.4f) / ls;
         if (in.swimming) rate = Max(v, 0.5f) / stride(CLIP_SWIM) / ls;
         moveW = walkW;
-        // turning on the spot: step the feet around instead of sliding them (sideways steps towards the turn)
-        float turnStep = (1.f - Saturate(v / 0.4f)) * Saturate((fabsf(in.turnRate) - 0.8f) / 1.5f) * (1.f - crouchBlend) *
-                         (in.swimming || in.inAir || stance != 0 ? 0.f : 1.f);
+        // stance fraction of the blended gait (foot planting reads the contacts from the phase)
+        locoDuty = (wF * dutyF + wBk * clipDuty(CLIP_WALK_BACK) + (wL + wR) * clipDuty(CLIP_STRAFE_L)) * (1.f - cw) + clipDuty(CLIP_CROUCH_WALK) * cw;
+        // turning on the spot: planted feet step round (foot planting below); distant peds without it side-step
+        float turnStep = cheap ? (1.f - Saturate(v / 0.4f)) * Saturate((fabsf(in.turnRate) - 0.8f) / 1.5f) * (1.f - crouchBlend) *
+                                     (in.swimming || in.inAir || stance != 0 ? 0.f : 1.f)
+                               : 0.f;
         if (v > 0.02f || in.swimming) phase += dt * rate;
         phase += dt * turnStep * 1.3f / ls;
         phase -= floorf(phase);
 
-        // standing locomotion pose
+        // standing: the weight on one leg or the other (each person's own timing), moving over through both
         Pose idle;
-        bool needIdle = walkW < 0.999f || cw > 0.001f;
-        if (needIdle) sampleClip(sk, CLIP_IDLE, time, idle, seed);
-        // now and then an idle look-around (per-character timing)
-        if (needIdle && stance == 0 && !in.aiming) {
-            const float period = 17.f + 6.f * hashToFloat(seed * 31u + 5u);
-            float lp = time / period + hashToFloat(seed * 13u + 1u);
-            float fr = lp - floorf(lp);
-            float lookDur = clipInfo(CLIP_IDLE_LOOK).duration / period;
-            float lw = sstep(0.f, 0.06f, fr) * (1.f - sstep(lookDur - 0.06f, lookDur, fr));
-            if (lw > 0.001f) {
-                sampleClip(sk, CLIP_IDLE_LOOK, Min(fr * period, clipInfo(CLIP_IDLE_LOOK).duration - 0.01f), tmp, seed);
-                blendPoses(idle, tmp, lw, idle);
+        const bool needIdle = walkW < 0.999f || cw > 0.001f;
+        const bool standStill = (stance == 0 || stance == 23) && speedS < 0.05f && !in.aiming && !in.crouch && !in.inAir &&
+                                !in.swimming && (action < 0 || actionFinished || actionUpper);
+        weightShift(*this, standStill,
+                    idleVar == IC_IDLE_HIP ? 1.f : (fidgetVar == IC_FIDGET_TAP ? 0.f : (fidgetVar == IC_FIDGET_ROCK ? 0.5f : -1.f)), dt);
+        if (needIdle) {
+            float sw = Saturate(standW);
+            if (sw < 0.004f) sampleClipId(sk, IC_STAND_L, time, idle, seed);
+            else if (sw > 0.996f) sampleClipId(sk, IC_STAND_R, time, idle, seed);
+            else {
+                sampleClipId(sk, IC_STAND_L, time, tmp, seed);
+                sampleClipId(sk, IC_STAND_R, time, tmp2, seed);
+                blendCtl(tmp, tmp2, sw, idle);
             }
         }
         if (cw < 0.999f) {
             Pose fwd;
-            if (b0 == 0) sampleClip(sk, CLIP_WALK, phase * clipInfo(CLIP_WALK).duration, fwd, seed);
-            else {
-                sampleClip(sk, bands[b0], phase * clipInfo(bands[b0]).duration, tmp, seed);
-                sampleClip(sk, bands[b1], phase * clipInfo(bands[b1]).duration, tmp2, seed);
-                blendPoses(tmp, tmp2, wb, fwd);
+            if (b0 == 0) sampleClipId(sk, bands[1], phase * clipInfoId(bands[1]).duration, fwd, seed);
+            else if (wb < 0.002f || wb > 0.998f) {
+                int bb = wb < 0.5f ? bands[b0] : bands[b1];
+                sampleClipId(sk, bb, phase * clipInfoId(bb).duration, fwd, seed);
+            } else {
+                sampleClipId(sk, bands[b0], phase * clipInfoId(bands[b0]).duration, tmp, seed);
+                sampleClipId(sk, bands[b1], phase * clipInfoId(bands[b1]).duration, tmp2, seed);
+                blendCtl(tmp, tmp2, wb, fwd);
             }
             Pose mv = fwd;
             float acc = wF;
             if (wBk > 0.001f) {
                 sampleClip(sk, CLIP_WALK_BACK, phase * clipInfo(CLIP_WALK_BACK).duration, tmp, seed);
                 acc += wBk;
-                blendPoses(mv, tmp, wBk / acc, mv);
+                blendCtl(mv, tmp, wBk / acc, mv);
             }
             if (wL > 0.001f) {
                 sampleClip(sk, CLIP_STRAFE_L, phase * clipInfo(CLIP_STRAFE_L).duration, tmp, seed);
                 acc += wL;
-                blendPoses(mv, tmp, wL / acc, mv);
+                blendCtl(mv, tmp, wL / acc, mv);
             }
             if (wR > 0.001f) {
                 sampleClip(sk, CLIP_STRAFE_R, phase * clipInfo(CLIP_STRAFE_R).duration, tmp, seed);
                 acc += wR;
-                blendPoses(mv, tmp, wR / acc, mv);
+                blendCtl(mv, tmp, wR / acc, mv);
             }
-            if (needIdle) blendPoses(idle, mv, walkW, base);
+            if (needIdle) blendCtl(idle, mv, walkW, base);
             else base = mv;
         } else {
             base = idle;
@@ -416,22 +1112,50 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         if (turnStep > 0.01f) {
             Clip sc = in.turnRate > 0.f ? CLIP_STRAFE_L : CLIP_STRAFE_R;
             sampleClip(sk, sc, phase * clipInfo(sc).duration, tmp, seed);
-            blendPoses(base, tmp, turnStep * 0.45f, base);
+            blendCtl(base, tmp, turnStep * 0.45f, base);
             moveW = Max(moveW, turnStep);
         }
         if (cw > 0.001f) {
             Pose ci, cwk, cp;
             sampleClip(sk, CLIP_CROUCH_IDLE, time, ci, seed);
             sampleClip(sk, CLIP_CROUCH_WALK, phase * clipInfo(CLIP_CROUCH_WALK).duration, cwk, seed);
-            blendPoses(ci, cwk, Saturate(v / 0.5f), cp);
-            blendPoses(base, cp, cw, base);
+            blendCtl(ci, cwk, Saturate(v / 0.5f), cp);
+            blendCtl(base, cp, cw, base);
         }
-        // ---- scenario stances
-        // ---- idle variations (crossed arms, hands in pockets, hand on hip, phone check, neck stretch) while
-        //      standing around; more often in a queue
+        // ---- the person in the gait: arm swing amplitude, arms clear of a wide body, trunk and head carriage
         {
-            bool canVary = (stance == 0 || stance == 23) && speedS < 0.05f && !in.aiming && !in.crouch && !in.inAir && !in.swimming &&
-                           (action < 0 || actionFinished) && in.weaponKind != 2 && !in.phoneCall;
+            float ks = 1.f + (armSwingK - 1.f) * moveW * (1.f - cw);
+            if (fabsf(ks - 1.f) > 1e-3f)
+                for (int s = 0; s < 2; s++) {
+                    int ub = s ? B_UPPERARM_R : B_UPPERARM_L;
+                    quat q = base.rot[ub];
+                    if (dot(q, armRest[s]) < 0.f) q = quat(-q.x, -q.y, -q.z, -q.w);
+                    base.rot[ub] = nlerp(armRest[s], q, ks);
+                }
+            if (armOut > 1e-4f) {
+                base.rot[B_UPPERARM_L] = normalize(qy(armOut) * base.rot[B_UPPERARM_L]);
+                base.rot[B_UPPERARM_R] = normalize(qy(-armOut) * base.rot[B_UPPERARM_R]);
+            }
+            if (fabsf(postureLean) > 1e-4f) rotateLocal(base, B_SPINE2, qx(-postureLean));
+            if (fabsf(headPitchAdd) > 1e-4f) rotateLocal(base, B_HEAD, qx(-headPitchAdd));
+            // build: a heavy body's thighs apart (wider base) and more lateral sway, an athletic one bouncier
+            float gw = moveW * (1.f - cw);
+            if (heavyK > 1e-3f) {
+                float a = 0.035f * heavyK;
+                base.rot[B_THIGH_L] = normalize(qy(a) * base.rot[B_THIGH_L]);
+                base.rot[B_THIGH_R] = normalize(qy(-a) * base.rot[B_THIGH_R]);
+                base.rootOffset.x *= 1.f + 0.5f * heavyK * gw;
+            }
+            if (athleticK > 1e-3f) base.rootOffset.z *= 1.f + 0.25f * athleticK * gw;
+        }
+        // ---- standing around (stance 0 / 23, still): held postures (arms crossed, hands in the pockets / behind the
+        //      back / clasped in front, a hand on the hip, a look at the phone) and, in their own slot, fidgets (the
+        //      watch, a scratch at the head, tugging the top straight, a hand to the chin, a yawn, a stretch, a neck
+        //      roll, a tapping foot, rocking onto the toes), from each person's habits (fidgetMask) at their own rate,
+        //      more often in a queue. They layer over the weight shift (layerStanding); the hand on the hip brings its
+        //      own (the weight on the right leg), a tapping foot / rocking wait for the weight to move first.
+        {
+            const bool canVary = standStill && in.weaponKind != 2 && !in.phoneCall;
             // listeners keep a listening posture going; speakers only shift onto a hip now and then
             if (in.listening && idleVar < 0 && canVary) idleNext = Min(idleNext, 1.2f);
             if (in.speaking && idleVar >= 0 && idleVar != IC_IDLE_HIP) idleVarDur = Min(idleVarDur, idleVarT + 0.3f);
@@ -441,21 +1165,31 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             }
             if (idleVar < 0 && canVary) {
                 idleNext -= dt;
+                // not while a fidget has the arms (the posture's arms would come in from wherever the fidget has them)
+                int fkA = 0;
+                while (fidgetVar >= 0 && fkA < FG_COUNT - FG_POSTURES - 1 && kFidgetClip[fkA] != fidgetVar) fkA++;
+                if (fidgetVar >= 0 && (kFidgetArms[fkA] & 3)) idleNext = Max(idleNext, 0.3f);
                 if (idleNext <= 0.f) {
                     u32 h = hash32(seed * 0x9E3779B1u + (u32)idleCount * 0x85EBCA6Bu);
+                    // phone, crossed arms, pockets, hip, behind the back, clasped: standing around / queueing / listening
+                    static const float kWN[FG_POSTURES] = {0.24f, 0.2f, 0.2f, 0.14f, 0.1f, 0.12f};
+                    static const float kWQ[FG_POSTURES] = {0.4f, 0.2f, 0.17f, 0.1f, 0.06f, 0.07f};
+                    static const float kWL[FG_POSTURES] = {0.f, 0.4f, 0.2f, 0.25f, 0.1f, 0.15f};
+                    const float* kw = in.listening ? kWL : (stance == 23 ? kWQ : kWN);
+                    float w[FG_POSTURES];
+                    for (int k = 0; k < FG_POSTURES; k++) w[k] = (fidgetMask >> k) & 1u ? kw[k] : 0.f;
                     float r = hashToFloat(h);
-                    bool q = stance == 23;
-                    static const int kVars[5] = {IC_IDLE_PHONE, IC_IDLE_CROSSARMS, IC_IDLE_POCKETS, IC_IDLE_HIP, IC_IDLE_STRETCH};
-                    const float cumN[5] = {0.25f, 0.45f, 0.65f, 0.85f, 1.f}, cumQ[5] = {0.4f, 0.6f, 0.8f, 0.95f, 1.f};
-                    int k = 0;
-                    while (k < 4 && r > (q ? cumQ[k] : cumN[k])) k++;
-                    idleVar = kVars[k];
-                    if (in.listening) idleVar = r < 0.45f ? IC_IDLE_CROSSARMS : (r < 0.75f ? IC_IDLE_HIP : IC_IDLE_POCKETS);
-                    if (in.speaking) idleVar = IC_IDLE_HIP;
-                    idleVarT = 0.f;
-                    idleVarDur = idleVar == IC_IDLE_STRETCH ? clipInfoId(IC_IDLE_STRETCH).duration : 5.f + 5.f * hashToFloat(hash32(h + 3u));
-                    if (in.listening) idleVarDur += 4.f;
+                    int k = pickWeighted(w, FG_POSTURES, r);
+                    if (k < 0 && in.listening) k = pickWeighted(kWL, FG_POSTURES, r);   // a listener still takes one
+                    if (in.speaking) k = FG_HIP;
                     idleCount++;
+                    if (k >= 0) {
+                        idleVar = kPostureClip[k];
+                        idleVarT = 0.f;
+                        idleVarDur = 5.f + 6.f * hashToFloat(hash32(h + 3u)) + (in.listening ? 4.f : 0.f);
+                    } else {
+                        idleNext = 6.f + 8.f * hashToFloat(hash32(h + 5u));
+                    }
                 }
             }
             float target = 0.f;
@@ -471,7 +1205,113 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             idleVarW += (target - idleVarW) * (1.f - expf(-dt * (target > idleVarW ? 3.5f : 5.f)));
             if (idleVar >= 0 && idleVarW > 0.001f) {
                 sampleClipId(sk, idleVar, idleVarT, tmp, seed);
-                blendPoses(base, tmp, idleVarW * (1.f - moveW), base);
+                float w = idleVarW * (1.f - moveW);
+                if (idleVar == IC_IDLE_HIP) blendCtl(base, tmp, w, base);
+                else layerStanding(*this, base, tmp, w, 3, 0, 1.2f * idleVarW * (1.f - idleVarW) * (1.f - moveW));
+            }
+            // fidgets (inside a posture too: the arms they need leave it for a moment)
+            const bool canFidget = canVary && !in.speaking && idleVar != IC_IDLE_PHONE;
+            if (fidgetVar >= 0 && !canFidget) fidgetDur = Min(fidgetDur, Max(fidgetT, 0.f) + 0.25f);
+            if (fidgetVar < 0 && canFidget) {
+                fidgetNext -= dt * (in.listening ? 0.35f : 1.f) * (stance == 23 ? 1.4f : 1.f);
+                if (fidgetNext <= 0.f) {
+                    u32 h = hash32(seed * 0x2C1B3C6Du + (u32)fidgetCount * 0x297A2D39u);
+                    const int nF = FG_COUNT - FG_POSTURES;
+                    // watch, scratch, tug, chin, yawn, arms, tap, rock, neck roll
+                    static const float kW[FG_COUNT - FG_POSTURES] = {0.14f, 0.14f, 0.1f, 0.1f, 0.07f, 0.07f, 0.14f, 0.09f, 0.14f};
+                    float w[FG_COUNT - FG_POSTURES];
+                    for (int k = 0; k < nF; k++) w[k] = (fidgetMask >> (FG_POSTURES + k)) & 1u ? kW[k] : 0.f;
+                    // the feet only near the camera (distant peds have no foot planting), not with the weight held on
+                    // the right for a hand on the hip; no arm the posture holds
+                    if (cheap || idleVar == IC_IDLE_HIP) w[FG_TAP - FG_POSTURES] = w[FG_ROCK - FG_POSTURES] = 0.f;
+                    if (idleVar >= 0) {
+                        int pk = 0;
+                        while (pk < FG_POSTURES - 1 && kPostureClip[pk] != idleVar) pk++;
+                        for (int f = 0; f < nF; f++)
+                            if (kFidgetArms[f] & 3 & kPostureArms[pk]) w[f] = 0.f;
+                    }
+                    int k = pickWeighted(w, nF, hashToFloat(h));
+                    fidgetCount++;
+                    fidgetNext = (8.f + 16.f * hashToFloat(hash32(h + 1u))) / Max(fidgetRate, 0.3f);
+                    if (k >= 0) {
+                        fidgetVar = kFidgetClip[k];
+                        const ClipInfo& fi = clipInfoId(fidgetVar);
+                        fidgetDur = fidgetVar == IC_FIDGET_TAP ? 1.8f + 2.6f * hashToFloat(hash32(h + 2u)) : fi.duration;
+                        // tapping (the right foot) waits for the weight on the left leg, rocking for both
+                        float off = fidgetVar == IC_FIDGET_TAP ? standW : (fidgetVar == IC_FIDGET_ROCK ? fabsf(standW - 0.5f) : 0.f);
+                        fidgetT = off > 0.15f ? -1.1f : 0.f;
+                    }
+                }
+            }
+            float ft = 0.f;
+            if (fidgetVar >= 0) {
+                fidgetT += dt;
+                ft = fidgetT >= 0.f && fidgetT < fidgetDur - 0.25f ? 1.f : 0.f;
+                if (fidgetT >= fidgetDur && fidgetW < 0.01f) fidgetVar = -1;
+            }
+            fidgetW = approach(fidgetW, ft, dt * 5.f);
+            if (fidgetVar >= 0 && fidgetW > 0.001f) {
+                int k = 0;
+                while (k < FG_COUNT - FG_POSTURES - 1 && kFidgetClip[k] != fidgetVar) k++;
+                const ClipInfo& fi = clipInfoId(fidgetVar);
+                float t = fi.loop ? Max(fidgetT, 0.f) : Clamp(fidgetT, 0.f, fi.duration - 0.001f);
+                sampleClipId(sk, fidgetVar, t, tmp, seed);
+                layerStanding(*this, base, tmp, sstep(0.f, 1.f, fidgetW) * (1.f - moveW), kFidgetArms[k], kFidgetLegs[k]);
+            }
+            // posed hands on this person's own body (the clips have the reference body's): the hand on the hip onto the
+            // flank, hands behind the back onto the small of the back; clasped hands, the forearm under a hand at the
+            // chin and hands at the hem clear of the belly
+            if (!cheap && (idleVarW > 0.01f || fidgetW > 0.01f)) {
+                quat qp;
+                vec3 pp;
+                boneModel(sk, base, B_PELVIS, qp, pp);
+                const vec3 X = rotate(qp, vec3(1, 0, 0)), Y = rotate(qp, vec3(0, 1, 0));
+                int fk = 0;
+                while (fidgetVar >= 0 && fk < FG_COUNT - FG_POSTURES - 1 && kFidgetClip[fk] != fidgetVar) fk++;
+                const float wf = fidgetVar >= 0 ? sstep(0.f, 1.f, fidgetW) * (1.f - moveW) : 0.f;
+                for (int sd = 0; sd < 2; sd++) {
+                    // where the palm is and how far it sits from the skin point along the axis
+                    auto gap = [&](int i, vec3 ax) {
+                        quat qh;
+                        vec3 ph;
+                        boneModel(sk, base, sd ? B_HAND_R : B_HAND_L, qh, ph);
+                        vec3 palm = ph + rotate(qh, sk.bindLocalPos[sd ? B_FINGERS_R : B_FINGERS_L]) * 0.45f;
+                        return dot(palm - (pp + rotate(qp, skinP[i])), ax) - sk.boneRadius[sd ? B_HAND_R : B_HAND_L] * 0.75f;
+                    };
+                    // a fidget that has taken this arm leaves the posture's contact
+                    float wp = idleVar >= 0 ? idleVarW * (1.f - moveW) * (fidgetVar >= 0 && (kFidgetArms[fk] & (1 << sd)) ? 1.f - wf : 1.f) : 0.f;
+                    if (wp > 0.01f) {
+                        if (idleVar == IC_IDLE_HIP && sd == 1) nudgeHand(sk, base, sd, X * Clamp(0.004f - gap(0, X), -0.06f, 0.06f), wp);
+                        else if (idleVar == IC_IDLE_BEHIND) nudgeHand(sk, base, sd, Y * -Clamp(0.006f - gap(1, -Y), -0.04f, 0.06f), wp);
+                        else if (idleVar == IC_IDLE_CLASP) nudgeHand(sk, base, sd, Y * Clamp(0.008f - gap(2, Y), 0.f, 0.08f), wp);
+                    }
+                    if (wf > 0.01f && ((fidgetVar == IC_FIDGET_CHIN && sd == 0) || fidgetVar == IC_FIDGET_TUG))
+                        nudgeHand(sk, base, sd, Y * Clamp(0.006f - gap(2, Y), 0.f, 0.08f), wf);
+                }
+            }
+            // now and then a look around (per-person timing, the curious more often): the eyes first, then the head,
+            // the neck and a little of the spine
+            if (stance == 0 && !in.aiming && moveW < 0.999f) {
+                const float period = (17.f + 6.f * hashToFloat(seed * 31u + 5u)) / (0.55f + lookiness);
+                float lp = time / period + hashToFloat(seed * 13u + 1u);
+                const float lookLen = clipInfo(CLIP_IDLE_LOOK).duration, lt = (lp - floorf(lp)) * period;
+                if (lt < lookLen) {
+                    float u = lt / lookLen, w = 1.f - moveW;
+                    float yaw = (0.9f * sstep(0.12f, 0.22f, u) * (1.f - sstep(0.35f, 0.45f, u)) -
+                                 0.8f * sstep(0.55f, 0.65f, u) * (1.f - sstep(0.8f, 0.9f, u))) * w;
+                    float up = -0.05f * sstep(0.55f, 0.65f, u) * (1.f - sstep(0.8f, 0.9f, u)) * w;
+                    float eyes = (0.9f * sstep(0.08f, 0.14f, u) * (1.f - sstep(0.33f, 0.4f, u)) -
+                                  0.8f * sstep(0.51f, 0.57f, u) * (1.f - sstep(0.78f, 0.85f, u))) * w * 0.25f;
+                    if (fabsf(yaw) + fabsf(eyes) > 1e-4f) {
+                        rotateLocal(base, B_SPINE1, qz(yaw * 0.036f));
+                        rotateLocal(base, B_SPINE2, qz(yaw * 0.036f));
+                        rotateLocal(base, B_CHEST, qz(yaw * 0.048f));
+                        rotateLocal(base, B_NECK, qz(yaw * 0.35f));
+                        rotateLocal(base, B_HEAD, qz(yaw * 0.6f) * qx(up));
+                        rotateLocal(base, B_EYE_L, qz(eyes));
+                        rotateLocal(base, B_EYE_R, qz(eyes));
+                    }
+                }
             }
         }
         if (stance >= 4 && stance != 23) {
@@ -482,24 +1322,24 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             float still = stanceLocksLegs(stance) ? 1.f : 1.f - Saturate((speedS - 0.25f) / 0.6f);
             if (stanceUpperWhileMoving(stance)) {
                 blendUpperBody(base, tmp, 1.f, tmp2);
-                blendPoses(tmp2, tmp, still, base);
+                blendCtl(tmp2, tmp, still, base);
             } else {
-                blendPoses(base, tmp, still, base);
+                blendCtl(base, tmp, still, base);
             }
             if (stanceLocksLegs(stance)) moveW = 0.f;
         }
         // ---- airborne
         if (airBlend > 0.001f) {
             sampleClip(sk, CLIP_FALL, airT, tmp, seed);
-            blendPoses(base, tmp, airBlend, base);
+            blendCtl(base, tmp, airBlend, base);
         }
         // ---- swimming
         if (swimBlend > 0.001f) {
             Pose si, sw;
             sampleClip(sk, CLIP_SWIM_IDLE, time, si, seed);
             sampleClip(sk, CLIP_SWIM, phase * clipInfo(CLIP_SWIM).duration, sw, seed);
-            blendPoses(si, sw, Saturate((v - 0.2f) / 0.6f), tmp);
-            blendPoses(base, tmp, swimBlend, base);
+            blendCtl(si, sw, Saturate((v - 0.2f) / 0.6f), tmp);
+            blendCtl(base, tmp, swimBlend, base);
         }
         footIK = !in.inAir && !in.swimming && stance != 6 && stance != 11 && stance != 12 && stance != 21 && stance != 22;
     }
@@ -521,7 +1361,7 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             }
             // standing still: take the aiming legs (shooting stance) too
             float full = aimBlend * (1.f - moveW) * (1.f - crouchBlend) * (1.f - airBlend);
-            if (full > 0.001f) blendPoses(base, tmp, full, base);
+            if (full > 0.001f) blendCtl(base, tmp, full, base);
             blendUpperBody(base, tmp, aimBlend, base);
             // aim pitch on the spine (+ = up)
             float pitch = Clamp(in.aimPitch, -1.2f, 1.2f) * aimBlend;
@@ -547,6 +1387,14 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             sampleClip(sk, CLIP_RELOAD, Min(reloadT, clipInfo(CLIP_RELOAD).duration), tmp, seed);
             blendUpperBody(base, tmp, reloadW, base);
         }
+    }
+
+    // ---------------------------------------------------------------- breathing (the timing runs for everyone; the
+    //                                                                  scenario clips breathe on their own, softer here)
+    {
+        bool ownClip = !vehicleStance && stance >= 4 && stance != 18 && stance != 19 && stance != 20 && stance != 23;
+        float amt = cheap || swimBlend > 0.5f ? 0.f : (vehicleStance ? 0.5f : (ownClip ? 0.4f : 1.f)) * (1.f - 0.6f * moveW);
+        breathe(*this, base, dt, speedS, amt);
     }
 
     // ---------------------------------------------------------------- conversation: gestures, listener cues, phone
@@ -675,57 +1523,60 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
     }
 
     // ---------------------------------------------------------------- lean into turns
+    const bool upright = !vehicleStance && (action < 0 || actionUpper) && swimBlend < 0.5f && airBlend < 0.5f;
     if (!vehicleStance && fabsf(leanS) > 1e-4f && (action < 0 || actionUpper)) {
         outp.rot[B_PELVIS] = normalize(qy(leanS * 0.5f) * outp.rot[B_PELVIS]);
         rotateLocal(outp, B_SPINE2, qy(leanS * 0.3f));
         rotateLocal(outp, B_NECK, qy(-leanS * 0.5f));
     }
 
-    // ---------------------------------------------------------------- foot IK (terrain probes + slope plane)
-    float gl = footIK ? Clamp(in.groundOffsetL, -0.35f, 0.35f) : 0.f;
-    float gr = footIK ? Clamp(in.groundOffsetR, -0.35f, 0.35f) : 0.f;
-    footL += (gl - footL) * (1.f - expf(-dt * 14.f));
-    footR += (gr - footR) * (1.f - expf(-dt * 14.f));
-    // slope along the facing (the lateral slope is already in the probes): n = groundNormal (model space)
-    vec3 gn = in.groundNormal;
-    float gnl = length(gn);
-    gn = gnl > 1e-4f && gn.z > 0.3f ? gn / gnl : vec3(0, 0, 1);
-    slopeN = lerp(slopeN, vec2(gn.x, gn.y), 1.f - expf(-dt * 8.f));
-    slopeS += ((footIK ? 1.f : 0.f) - slopeS) * (1.f - expf(-dt * 8.f));
-    float slopeY = -slopeN.y / sqrtf(Max(0.1f, 1.f - length2(slopeN))) * slopeS;   // dz/dy of the ground
-    if (!cheap && (fabsf(footL) > 0.003f || fabsf(footR) > 0.003f || fabsf(slopeY) > 0.01f)) {
-        const Bone ups[2] = {B_THIGH_L, B_THIGH_R}, lows[2] = {B_CALF_L, B_CALF_R}, ends[2] = {B_FOOT_L, B_FOOT_R};
-        float offs[2] = {footL, footR};
-        vec3 fp[2];
-        quat fq[2];
-        for (int s = 0; s < 2; s++) {
-            boneModel(sk, outp, ends[s], fq[s], fp[s]);
-            offs[s] += Clamp(fp[s].y * slopeY, -0.3f, 0.3f);
+    // ---------------------------------------------------------------- start / stop lean, head leading into turns,
+    //                                                                  body following a turn on the spot
+    footEvents = 0;
+    if (!cheap) {
+        // acceleration: the body leans into a start and back against a stop, then settles (damped spring)
+        float acc = dt > 1e-4f ? Clamp((spdIn - prevSpeed) / dt, -12.f, 12.f) : 0.f;
+        float target = upright && !in.aiming && crouchBlend < 0.5f ? Clamp(acc * 0.012f, -0.1f, 0.12f) : 0.f;
+        accV += (55.f * (target - accS) - 8.5f * accV) * dt;
+        accS = Clamp(accS + accV * dt, -0.15f, 0.18f);
+        if (fabsf(accS) > 1e-4f) {
+            rotateLocal(outp, B_SPINE1, qx(-accS * 0.45f));
+            rotateLocal(outp, B_SPINE2, qx(-accS * 0.45f));
+            rotateLocal(outp, B_HEAD, qx(accS * 0.6f));
         }
-        float drop = Min(0.f, Min(offs[0], offs[1]));
-        outp.rootOffset.z += drop;
-        // tilt the feet with the slope (pitch about the lateral axis)
-        quat tilt = qx(atanf(slopeY));
-        for (int s = 0; s < 2; s++) {
-            float o = offs[s] - drop;
-            quat qa, qk;
-            vec3 pa, pk;
-            boneModel(sk, outp, ends[s], qa, pa);
-            boneModel(sk, outp, lows[s], qk, pk);
-            if (o > 0.002f) {
-                vec3 target = pa + vec3(0, 0, o);
-                vec3 pole = pk + rotate(qk, vec3(0, 0.4f, 0));
-                solveTwoBoneIK(sk, outp, ups[s], lows[s], ends[s], target, pole, 1.f);
-            }
-            if (fabsf(slopeY) > 0.01f) {
-                // foot model rotation = tilt * current (only for grounded feet: blend out as the foot lifts)
-                float restZ = sk.bindLocalPos[B_PELVIS].z + sk.bindLocalPos[ups[s]].z + sk.bindLocalPos[lows[s]].z + sk.bindLocalPos[ends[s]].z;
-                float grounded = 1.f - sstep(0.03f, 0.12f, fp[s].z - restZ);
-                quat qc;
-                vec3 pc;
-                boneModel(sk, outp, lows[s], qc, pc);
-                quat want = nlerp(qa, tilt * qa, grounded);
-                outp.rot[ends[s]] = normalize(conj(qc) * want);
+        // standing turns: the body keeps its heading and catches up while the planted feet step round
+        bool lagOK = upright && plantOn > 0.5f && moveW < 0.3f && !in.aiming && stance != 19 && stance != 20;
+        if (lagOK) bodyLag = Clamp(bodyLag - in.turnRate * dt, -1.2f, 1.2f);
+        bodyLag *= expf(-dt * (lagOK ? 4.f : 14.f));
+        if (fabsf(bodyLag) > 1e-4f) outp.rot[B_ROOT] = normalize(qz(bodyLag) * outp.rot[B_ROOT]);
+        // the head turns into a turn before the body (and faces the new heading while the body lags)
+        float leadT = upright && !in.aiming ? Clamp(in.turnRate * 0.2f, -0.45f, 0.45f) : 0.f;
+        headLead += (leadT - headLead) * (1.f - expf(-dt * 7.f));
+        float hy = Clamp(headLead - bodyLag * 0.8f, -0.95f, 0.95f);
+        if (fabsf(hy) > 1e-4f) {
+            rotateLocal(outp, B_NECK, qz(hy * 0.4f));
+            rotateLocal(outp, B_HEAD, qz(hy * 0.6f));
+        }
+        prevSpeed = spdIn;
+    } else {
+        accS = accV = bodyLag = headLead = 0.f;
+        prevSpeed = spdIn;
+    }
+
+    // ---------------------------------------------------------------- feet: planted on the ground, stepping, terrain
+    {
+        bool plantStance = stance == 0 || stance == 5 || stance == 7 || stance == 8 || stance == 10 || stance == 14 || stance == 15 ||
+                           stance == 17 || stance == 23;
+        bool planting = !cheap && footIK && plantStance && (action < 0 || actionFinished || actionUpper) && swimBlend < 0.01f;
+        if (!cheap) footPlanting(*this, in, dt, outp, planting, footIK, locoDuty);
+        else if (plantOn > 0.f || planted[0] || planted[1]) {
+            // distant (LOD2) peds: no foot work; start from free feet when they come close again
+            plantOn = legSink = stepShift = 0.f;
+            for (int s = 0; s < 2; s++) {
+                planted[s] = false;
+                stepT[s] = -1.f;
+                plantCorr[s] = vec3(0);
+                corrYaw[s] = 0.f;
             }
         }
     }
@@ -734,7 +1585,7 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
     if (snapW > 0.f) {
         snapW = Max(0.f, snapW - dt * snapRate);
         float w = snapW * snapW * (3.f - 2.f * snapW);
-        blendPoses(outp, snap, w, pose);
+        blendCtl(outp, snap, w, pose);
     } else {
         pose = outp;
     }
@@ -928,7 +1779,8 @@ void Animator::faceOverlay(const AnimInput& in, float dt) {
     float ek = talking ? 0.5f : 1.f;
     float comb[6] = {mouth[0], mouth[1] + exprS[1] * ek, mouth[2] + exprS[2] * ek, mouth[3] + exprS[3] * ek, mouth[4] + exprS[4] * ek, mouth[5]};
     any = any || fabsf(exprS[1]) + fabsf(exprS[2]) + fabsf(exprS[3]) + fabsf(exprS[4]) > 1e-4f;
-    float jawE = exprS[0] * ek;
+    // out of breath after running: the mouth opens with each breath
+    float jawE = exprS[0] * ek + (dead || out ? 0.f : exertion * (0.04f + 0.12f * breath));
     float jaw = in.mouthOpen >= 0.f ? in.mouthOpen : (talking || fabsf(mouth[0]) > 1e-3f ? mouth[0] + jawE : (jawE > 1e-3f ? jawE : -1.f));
     if (any || jaw >= 0.f) applyMouthShape(pose, comb, jaw);
 }

@@ -490,6 +490,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
     x.lights = lights;
     x.interior = b.interior;
     if (b.interior >= 0 && interiorOwnsShell(b.interior)) return;   // the whole structure streams with its interior
+    if (b.siteElem >= 0) return;   // hand-built by its site element (places.h): hotels, hospitals, campus halls, chapels
     thread_local std::vector<FacadeMass> masses;
     masses.clear();
     x.masses = detail ? &masses : nullptr;

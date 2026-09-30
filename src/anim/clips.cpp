@@ -94,6 +94,13 @@ struct AuthorCtx {
     float fem = 0.f;     // style (0 male .. 1 female)
     vec3 chestP, headP;
     float shoulderZ;
+    // locomotion strides are given for the male reference (ClipInfo::speed * duration); the female reference covers
+    // the same stride per leg length (its gaits are authored at speed * strideScale)
+    float strideScale = 1.f;
+    float thighLen = 0.43f, shinLen = 0.43f;   // hip -> knee, knee -> ankle
+    // skin of the reference body (bind pose) where hands rest on it: the right flank above the hip joint, the small of
+    // the back, the front of the belly a little left of the middle (a forearm across the waist, clasped hands)
+    vec3 skinFlankR, skinBack, skinBelly;
 };
 
 static inline quat eulerZXY(float yaw, float pitchFwd, float roll) { return qz(yaw) * qx(-pitchFwd) * qy(roll); }
@@ -649,17 +656,38 @@ struct GaitP {
     bool run = false;
     float headBob = 1.f;
     float shift = 0.f;   // stance centre behind the hips along the travel direction (m, reference size)
+    // walking style (WalkStyle): foot progression angle, where in the swing the foot is highest (the knee folds
+    // early in a walk), trunk flexion, head carried forward / gaze lowered, shoulders rounded / raised, forward arm
+    // swing towards the midline, wrist flexion
+    float toeOut = 0.08f;
+    float swingPeak = 0.5f;
+    float postLean = 0.f;
+    float neckFwd = 0.f, headDown = 0.f;
+    float clavFwd = 0.f, clavUp = 0.f;
+    float armCross = 0.f;
+    float wristFlex = 0.f;
+    // walking pelvis height from the stance legs: extra stance knee flexion (rad) and the loading-response dip scale
+    float kneeFlex = 0.f, bobK = 1.f;
 };
+
+// Ankle position of a foot with the given pitch and yaw whose heel (pivot 0) or ball (pivot 1) touches the ground at p.
+static vec3 ankleFromPivotYaw(const AuthorCtx& A, vec3 p, float pitch, float yaw, int pivot) {
+    vec3 v = pivot == 0 ? vec3(0, A.heelBack, A.footH) : vec3(0, -A.ballFwd, A.footH);
+    return vec3(p.x, p.y, 0.f) + rotate(qz(yaw) * qx(pitch), v);
+}
 
 static void gaitPose(const AuthorCtx& A, const GaitP& g, float phase, Rig& r) {
     standPose(A, r);
     const float T = g.T;
-    const float v = g.speed;
+    const float v = g.speed * A.strideScale;
     const float Sst = v * g.duty * T;   // distance the body travels during one stance
     vec3 dir3(g.dir.x, g.dir.y, 0.f);
     bool fwd = g.dir.y > 0.5f, back = g.dir.y < -0.5f, lateral = fabsf(g.dir.x) > 0.5f;
     const float heelToBall = A.heelBack + A.ballFwd;
+    // swing height profile: sin(pi u^k) peaks at u = swingPeak
+    const float swingK = logf(0.5f) / logf(Clamp(g.swingPeak, 0.2f, 0.8f));
     vec3 ankles[2];
+    float stanceU[2] = {-1.f, -1.f};   // stance progress 0..1 of a leg on the ground
     for (int s = 0; s < 2; s++) {
         float sx = s ? 1.f : -1.f;
         float p = phase - (s ? 0.5f : 0.f);
@@ -667,11 +695,14 @@ static void gaitPose(const AuthorCtx& A, const GaitP& g, float phase, Rig& r) {
         float xc = sx * g.footSpread * A.D.s;
         LegCtl& l = r.leg[s];
         l.ik = true;
-        l.yaw = -sx * (lateral ? 0.02f : 0.08f);
-        l.knee = normalize(vec3(sx * 0.1f, 1.f, 0.f));
+        const float fy = -sx * (lateral ? 0.02f : g.toeOut);
+        l.yaw = fy;
+        l.knee = normalize(vec3(sx * (0.1f + 0.5f * Max(0.f, g.toeOut - 0.08f)), 1.f, 0.f));   // knees follow the toes out
+        const vec3 ballOff = rotate(qz(fy), vec3(0, heelToBall, 0));   // heel -> ball contact along the foot
         if (p < g.duty) {
             // stance: the contact point slides backwards (relative to the body) at the ground speed
             float u = p / g.duty;
+            stanceU[s] = u;
             float along = Sst * 0.5f - u * Sst - g.shift * A.D.s;
             float pitch = 0.f, toe = 0.f;
             int pivot = 0;
@@ -685,16 +716,16 @@ static void gaitPose(const AuthorCtx& A, const GaitP& g, float phase, Rig& r) {
                     pitch = g.toeOffPitch * easeInOut((u - uHeelOff) / (1.f - uHeelOff));
                     pivot = 1;
                     toe = -pitch;
-                    pc = pc + vec3(0, heelToBall, 0);
+                    pc = pc + ballOff;
                 }
             } else if (back && u < 0.15f) {
                 // backwards: toe first contact, then heel down
                 pitch = -0.25f * (1.f - easeInOut(u / 0.15f));
                 pivot = 1;
                 toe = -pitch;
-                pc = pc + vec3(0, heelToBall, 0);
+                pc = pc + ballOff;
             }
-            l.ankle = ankleFromPivot(A, pc.x, pc.y, pitch, pivot);
+            l.ankle = ankleFromPivotYaw(A, pc, pitch, fy, pivot);
             l.pitch = pitch;
             l.toe = toe;
         } else {
@@ -705,15 +736,23 @@ static void gaitPose(const AuthorCtx& A, const GaitP& g, float phase, Rig& r) {
             float pEnd = fwd ? g.strikePitch : (back ? -0.25f : 0.f);
             vec3 ps = vec3(xc, 0.f, 0.f) + dir3 * (-Sst * 0.5f - g.shift * A.D.s);
             vec3 pe = vec3(xc, 0.f, 0.f) + dir3 * (Sst * 0.5f - g.shift * A.D.s);
-            if (fwd) ps = ps + vec3(0, heelToBall, 0);
-            if (back) pe = pe + vec3(0, heelToBall, 0);
-            vec3 a0 = ankleFromPivot(A, ps.x, ps.y, pStart, fwd ? 1 : 0);
-            vec3 a1 = ankleFromPivot(A, pe.x, pe.y, pEnd, back ? 1 : 0);
-            vec3 ank = lerp(a0, a1, e);
-            float h = g.lift * A.D.s * powf(smoothPulse(u), 0.8f);
+            if (fwd) ps = ps + ballOff;
+            if (back) pe = pe + ballOff;
+            vec3 a0 = ankleFromPivotYaw(A, ps, pStart, fy, fwd ? 1 : 0);
+            vec3 a1 = ankleFromPivotYaw(A, pe, pEnd, fy, back ? 1 : 0);
+            // horizontally a Hermite curve that leaves the ground and lands at ground speed (the foot is still in the
+            // world at toe-off and at the heel strike), vertically eased
+            const float u2 = u * u, u3 = u2 * u;
+            const float h00 = 2.f * u3 - 3.f * u2 + 1.f, h10 = u3 - 2.f * u2 + u, h01 = 3.f * u2 - 2.f * u3, h11 = u3 - u2;
+            const vec3 m0 = dir3 * (-v * (1.f - g.duty) * T);   // d(position)/du of a point at rest on the ground
+            // a runner's foot is thrown up off the toes and paws back into the next contact at part of the ground speed
+            const float k0 = g.run ? 0.35f : 1.f, k1 = g.run ? 0.6f : 1.f;
+            vec3 ank = a0 * h00 + m0 * (h10 * k0 + h11 * k1) + a1 * h01;
+            ank.z = Lerp(a0.z, a1.z, e);
+            float h = g.lift * A.D.s * powf(smoothPulse(powf(u, swingK)), 0.8f);
             if (g.run) h += g.kick * A.D.s * smoothPulse(Saturate(u * 1.6f)) * 0.9f;
             ank.z += h;
-            if (g.run && fwd) ank = ank - dir3 * (g.kick * A.D.s * 0.6f * smoothPulse(Saturate(u * 1.3f)));   // heel kick
+            if (g.run && fwd) ank = ank - dir3 * (g.kick * A.D.s * 0.15f * smoothPulse(Saturate(u * 1.6f)));   // heel kick (the knee folds)
             if (lateral) ank = ank + vec3(0, 0.04f * A.D.s * smoothPulse(u), 0);
             float pm = fwd ? Lerp(pStart, pEnd, easeInOut(Saturate((u - 0.1f) / 0.8f))) : Lerp(pStart, pEnd, e);
             if (fwd && !g.run) pm += 0.12f * smoothPulse(u);   // toes up during mid swing
@@ -732,29 +771,52 @@ static void gaitPose(const AuthorCtx& A, const GaitP& g, float phase, Rig& r) {
     float fem = A.fem;
     r.pelvis = vec3(0, 0, z * A.D.s);
     r.pelvis.x += -g.sway * A.D.s * (1.f + 0.6f * fem) * s1 * (lateral ? 0.4f : 1.f);
-    // lower the pelvis where a leg would overstretch (limited: beyond that the foot simply leaves the ground a bit
-    // early/late, which reads better than a crouching gait)
-    float nominalZ = r.pelvis.z;
-    for (int s = 0; s < 2; s++) {
-        vec3 hip = A.hip[s] + vec3(r.pelvis.x, r.pelvis.y, 0.f);
-        vec3 d = ankles[s] - hip;
-        float L = A.legLen * 0.99f;
-        float dz = sqrtf(Max(0.f, L * L - d.x * d.x - d.y * d.y));
-        float maxZ = ankles[s].z + dz - A.hip[s].z;
-        if (r.pelvis.z > maxZ) r.pelvis.z = maxZ;
-    }
-    r.pelvis.z = Max(r.pelvis.z, nominalZ - (g.run ? 0.03f : 0.05f) * A.D.s);
     r.pelvisYaw = (fwd || back ? -1.f : 0.3f) * g.yawA * (1.f + 0.5f * fem) * c1 * (back ? -1.f : 1.f);
     r.pelvisRoll = g.rollA * (1.f + 0.8f * fem) * s1;
-    r.pelvisPitch = g.lean * 0.4f;
-    r.spinePitch = g.lean * 0.6f + (g.run ? 0.03f * c2 : 0.01f * c2);
+    r.pelvisPitch = g.lean * 0.4f + g.postLean * 0.25f;
+    if (fwd && !g.run) {
+        // walking: the pelvis rides on the stance legs, whose knees follow a normative stance flexion (about 5 deg at
+        // the heel strike, a ~15 deg loading dip at a fifth of the stance, ~5 deg at mid-stance: an inverted
+        // pendulum, highest over the stance foot); a leg rolling off its toes no longer holds the pelvis up
+        const float la = A.thighLen, lb = A.shinLen;
+        quat pr = pelvisRot(r);
+        float best = 1e9f;
+        for (int s = 0; s < 2; s++) {
+            float u = stanceU[s];
+            if (u < 0.f) continue;
+            float dk = (u - 0.2f) / 0.11f;
+            float th = 0.08f + g.kneeFlex + 0.2f * g.bobK * expf(-dk * dk);
+            float dLeg = sqrtf(la * la + lb * lb + 2.f * la * lb * cosf(th));
+            vec3 hip = A.pelvisBind + vec3(r.pelvis.x, r.pelvis.y, 0.f) + rotate(pr, A.hip[s] - A.pelvisBind);
+            vec3 d = ankles[s] - hip;
+            float hz = ankles[s].z + sqrtf(Max(0.f, dLeg * dLeg - d.x * d.x - d.y * d.y)) - hip.z;
+            hz += 0.12f * A.D.s * sstep(0.72f, 0.92f, u);
+            best = sminf(best, hz, 0.02f * A.D.s);
+        }
+        if (best < 1e8f) r.pelvis.z = best;
+    } else {
+        // lower the pelvis where a leg would overstretch (limited: beyond that the foot simply leaves the ground a
+        // bit early/late, which reads better than a crouching gait)
+        float nominalZ = r.pelvis.z;
+        for (int s = 0; s < 2; s++) {
+            vec3 hip = A.hip[s] + vec3(r.pelvis.x, r.pelvis.y, 0.f);
+            vec3 d = ankles[s] - hip;
+            float L = A.legLen * 0.99f;
+            float dz = sqrtf(Max(0.f, L * L - d.x * d.x - d.y * d.y));
+            float maxZ = ankles[s].z + dz - A.hip[s].z;
+            if (r.pelvis.z > maxZ) r.pelvis.z = maxZ;
+        }
+        r.pelvis.z = Max(r.pelvis.z, nominalZ - (g.run ? 0.03f : 0.05f) * A.D.s);
+    }
+    r.spinePitch = g.lean * 0.6f + g.postLean * 0.75f + (g.run ? 0.03f * c2 : 0.01f * c2);
     r.spineYaw = -r.pelvisYaw + g.chestYaw * c1 * (fwd ? 1.f : (back ? -1.f : 0.2f));
     r.spineRoll = -r.pelvisRoll * 0.7f;
-    // head stabilization: keep facing forward and level
+    // head stabilization: keep facing forward and level (a stooped trunk carries the head forward, the neck extends
+    // to look ahead)
     r.neckYaw = -(r.pelvisYaw + r.spineYaw) * 0.45f;
     r.headYaw = -(r.pelvisYaw + r.spineYaw) * 0.5f;
-    r.headPitch = -(r.pelvisPitch + r.spinePitch) * 0.55f * g.headBob + 0.03f;
-    r.neckPitch = -(r.pelvisPitch + r.spinePitch) * 0.2f;
+    r.headPitch = -(r.pelvisPitch + r.spinePitch) * 0.55f * g.headBob + 0.03f - g.neckFwd * 1.15f + g.headDown;
+    r.neckPitch = -(r.pelvisPitch + r.spinePitch) * 0.2f + g.neckFwd;
     r.headRoll = -(r.pelvisRoll + r.spineRoll) * 0.7f;
     // arms swing opposite to the same-side leg
     for (int s = 0; s < 2; s++) {
@@ -762,15 +824,95 @@ static void gaitPose(const AuthorCtx& A, const GaitP& g, float phase, Rig& r) {
         float w = (s ? 1.f : -1.f) * c1;   // + = forward
         if (back) w = -w;
         if (lateral) w *= 0.3f;
-        float swing = g.armSwing * w + (g.run ? 0.1f : 0.02f);
+        float swing = g.armSwing * w + (g.run ? 0.1f : 0.02f) - g.postLean * 0.6f;   // a stooped trunk: the arms still hang
         float elbow = g.elbow + g.elbowSwing * Max(0.f, w);
-        float abd = g.armAbd * (1.f - 0.4f * fem) + (g.run ? 0.05f : 0.f);
+        // the hands pass beside the thighs and hips, not through them: a little more abduction on the forward swing
+        // of a walk, elbows out on the back swing of a run
+        float abd = g.run ? g.armAbd + 0.08f + 0.07f * fem + 0.12f * Max(0.f, -w) : g.armAbd * (1.f - 0.25f * fem) + 0.05f * Max(0.f, w);
         armFK(r.arm[s], s, swing, abd, elbow, g.run ? 0.35f : 0.15f, g.fist);
-        if (g.run) r.arm[s].pole = normalize(vec3(sx * 0.5f, -1.f, 0.2f));
-        r.arm[s].dir = normalize(r.arm[s].dir + vec3(-sx * (0.1f * fem + (g.run ? 0.12f : 0.f)) * Max(0.f, w), 0, 0));
-        r.arm[s].clavFwd = 0.04f * w;
-        r.arm[s].clavUp = g.run ? 0.02f : 0.f;
+        // elbow pointing back (a little out): the forearm flexes forward, the hand only slightly towards the midline
+        r.arm[s].pole = g.run ? normalize(vec3(sx * 0.28f, -1.f, 0.2f)) : normalize(vec3(sx * 0.12f, -cosf(swing), -sinf(swing)));
+        r.arm[s].dir = normalize(r.arm[s].dir + vec3(-sx * (0.05f * fem + g.armCross + (g.run ? 0.06f : 0.f)) * Max(0.f, w), 0, 0));
+        r.arm[s].clavFwd = 0.04f * w + g.clavFwd;
+        r.arm[s].clavUp = (g.run ? 0.02f : 0.f) + g.clavUp;
+        r.arm[s].wristFlex = g.wristFlex;
     }
+}
+
+// ------------------------------------------------------------------------------------------------
+// Walking styles
+//
+// Step length and cadence follow the walk ratio (step length / cadence, nearly constant for a person over 0.8-2 m/s:
+// Sekiya & Nagasaki 1998): step = sqrt(60 v WR), cadence = sqrt(60 v / WR) steps per minute. The neutral ratio gives
+// the male reference 92 / 109 / 127 steps per minute with 0.65 / 0.77 / 0.92 m steps at 1.0 / 1.4 / 1.95 m/s.
+static const float kWalkRatio = 0.007058f;   // m per (step/min), male reference (1.78 m)
+struct WalkStyle {
+    float wr, dutyAdd;                    // walk ratio multiplier (< 1: short quick steps), longer double support
+    float lift, strike, toeOff;           // swing clearance, heel strike and toe-off pitch multipliers
+    float bob, sway, yaw, roll, chest;    // pelvis bob / sway / rotation / list and shoulder counter-rotation multipliers
+    float arm, elbowAdd, armOut, fist;    // arm swing multiplier, elbow flexion added (rad), extra abduction, hand curl
+    float lean, neckFwd, headDown;        // trunk flexion, head carried forward, gaze lowered (rad)
+    float clavFwd, clavUp;                // shoulders rounded forward / raised (rad)
+    float toeOut, spread, kneeBend;       // foot progression angle (rad), base width multiplier, pelvis drop (m)
+    float armCross;                       // forward swing towards the midline
+};
+static const WalkStyle kWalkStyles[GS_COUNT] = {
+    // wr     duty+   lift   strk   toe   bob    sway   yaw    roll  chest  arm    elb+    out    fist   lean    neck    down    clvF    clvU    toeO   sprd   knee    cross
+    {1.00f, 0.f,    1.f,   1.f,   1.f,  1.f,   1.f,   1.f,   1.f,  1.f,   1.f,   0.f,    0.f,   0.34f, 0.f,    0.f,    0.f,    0.f,    0.f,    0.08f, 1.f,   0.f,    0.f},  // neutral
+    {1.04f, 0.f,    0.9f,  0.9f,  0.9f, 0.9f,  1.15f, 1.1f,  1.1f, 1.1f,  0.85f, -0.05f, 0.05f, 0.26f, -0.02f, 0.f,    -0.03f, 0.f,    0.f,    0.13f, 1.05f, 0.f,    0.f},  // relaxed stroll
+    {0.97f, -0.01f, 1.05f, 1.1f,  1.1f, 0.8f,  0.7f,  1.15f, 0.9f, 0.9f,  0.9f,  0.4f,   0.04f, 0.42f, 0.07f,  0.06f,  0.03f,  0.03f,  0.03f,  0.06f, 0.9f,  0.f,    0.05f},  // hurried commuter
+    {0.8f,  0.045f, 0.5f,  0.4f,  0.5f, 0.55f, 1.3f,  0.6f,  0.8f, 0.5f,  0.45f, 0.15f, 0.16f,  0.32f, 0.1f , 0.08f ,  0.02f,  0.12f,  0.02f,  0.18f, 1.2f,  0.03f,  0.f},  // elderly shuffle
+    {1.12f, 0.f,    1.05f, 1.05f, 1.f,  1.25f, 1.3f,  1.25f, 1.3f, 1.9f,  1.3f,  0.1f,   0.12f, 0.4f,  -0.05f, -0.02f, -0.05f, -0.07f, 0.f,    0.2f,  1.2f,  0.005f, 0.f},  // confident swagger
+    {0.88f, 0.02f,  0.62f, 0.6f,  0.7f, 0.75f, 1.2f,  0.8f,  1.1f, 0.7f,  0.5f,  -0.05f, 0.02f, 0.22f, 0.09f,  0.04f,  0.14f,  0.07f,  -0.04f, 0.1f,  1.05f, 0.012f, 0.f},  // tired drag
+};
+
+// Cycle time of a walk band for a style (male reference): stride = 2 * step.
+static float walkCycle(int style, int band) {
+    float v = kGaitBandSpeed[band];
+    float step = sqrtf(60.f * v * kWalkRatio * kWalkStyles[style].wr);
+    return 2.f * step / v;
+}
+
+static void walkGait(int style, int band, GaitP& g) {
+    const WalkStyle& ws = kWalkStyles[Clamp(style, 0, GS_COUNT - 1)];
+    band = Clamp(band, 0, kGaitBands - 1);
+    // neutral values at slow / normal / brisk
+    static const float duty[3] = {0.645f, 0.62f, 0.595f}, lift[3] = {0.085f, 0.1f, 0.115f}, bob[3] = {0.028f, 0.035f, 0.042f};
+    static const float sway[3] = {0.026f, 0.022f, 0.018f}, yawA[3] = {0.055f, 0.07f, 0.09f}, rollA[3] = {0.045f, 0.05f, 0.055f};
+    static const float lean[3] = {0.025f, 0.04f, 0.065f}, chest[3] = {0.08f, 0.1f, 0.13f}, arm[3] = {0.22f, 0.3f, 0.42f};
+    static const float elbow[3] = {0.22f, 0.25f, 0.4f}, elbowSw[3] = {0.15f, 0.2f, 0.3f}, strike[3] = {0.24f, 0.3f, 0.36f};
+    static const float toeOff[3] = {-0.7f, -0.82f, -0.92f}, shift[3] = {0.09f, 0.11f, 0.13f};
+    g = GaitP();
+    g.speed = kGaitBandSpeed[band];
+    g.T = walkCycle(style, band);
+    g.duty = duty[band] + ws.dutyAdd;
+    g.lift = lift[band] * ws.lift;
+    g.bob = bob[band] * ws.bob;
+    g.drop = 0.012f + ws.kneeBend;
+    g.sway = sway[band] * ws.sway;
+    g.yawA = yawA[band] * ws.yaw;
+    g.rollA = rollA[band] * ws.roll;
+    g.lean = lean[band];
+    g.chestYaw = chest[band] * ws.chest;
+    g.armSwing = arm[band] * ws.arm;
+    g.armAbd = 0.15f + ws.armOut;
+    g.elbow = Max(0.08f, elbow[band] + ws.elbowAdd);
+    g.elbowSwing = elbowSw[band] * Lerp(1.f, ws.arm, 0.5f);
+    g.fist = ws.fist + 0.04f * (float)band;
+    g.footSpread = 0.1f * ws.spread;
+    g.strikePitch = strike[band] * ws.strike;
+    g.toeOffPitch = toeOff[band] * ws.toeOff;
+    g.shift = shift[band];
+    g.toeOut = ws.toeOut;
+    g.swingPeak = 0.22f;
+    g.kneeFlex = ws.kneeBend * 4.f;
+    g.bobK = ws.bob;
+    g.postLean = ws.lean;
+    g.neckFwd = ws.neckFwd;
+    g.headDown = ws.headDown;
+    g.clavFwd = ws.clavFwd;
+    g.clavUp = ws.clavUp;
+    g.armCross = ws.armCross;
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -805,14 +947,38 @@ static const ClipInfo kClipInfo[CLIP_COUNT] = {
 
 // Internal clips (see anim_internal.h) used by the animator: ids CLIP_COUNT + i.
 static const int kExtraCount = IC_END - CLIP_COUNT;
-static const ClipInfo kExtraInfo[kExtraCount] = {
+static const ClipInfo kExtraInfo[IC_GAIT_FIRST - CLIP_COUNT] = {
     {"rifle_carry", 2.0f, true, 0.f}, {"guard", 1.2f, true, 0.f},     {"guard_knife", 1.4f, true, 0.f},
     {"guard_bat", 1.6f, true, 0.f},   {"block_bat", 1.5f, true, 0.f},  {"idle_crossarms", 5.0f, true, 0.f},
     {"idle_pockets", 5.0f, true, 0.f}, {"idle_hip", 6.0f, true, 0.f},  {"idle_phone", 6.0f, true, 0.f},
-    {"idle_stretch", 4.0f, true, 0.f}, {"dance2", 2.0f, true, 0.f},    {"dance3", 1.0f, true, 0.f},
+    {"idle_stretch", 4.0f, false, 0.f}, {"dance2", 2.0f, true, 0.f},    {"dance3", 1.0f, true, 0.f},
     {"dance4", 2.0f, true, 0.f},      {"sit_ground", 6.0f, true, 0.f}, {"lie_front", 6.0f, true, 0.f},
+    {"jog_slow", 0.774f, true, 2.4f},
+    {"stand_l", 7.0f, true, 0.f},      {"stand_r", 7.0f, true, 0.f},      {"idle_behind", 6.0f, true, 0.f},
+    {"idle_clasp", 6.0f, true, 0.f},   {"fidget_watch", 2.6f, false, 0.f}, {"fidget_scratch", 2.8f, false, 0.f},
+    {"fidget_tug", 1.8f, false, 0.f},  {"fidget_chin", 3.2f, false, 0.f},  {"fidget_yawn", 3.0f, false, 0.f},
+    {"fidget_arms", 3.4f, false, 0.f}, {"fidget_tap", 3.0f, true, 0.f},    {"fidget_rock", 3.75f, true, 0.f},
 };
-static const ClipInfo& infoOf(int id) { return id < CLIP_COUNT ? kClipInfo[id] : kExtraInfo[id - CLIP_COUNT]; }
+// Walk style clips: cycle time from the style's walk ratio at the band speed.
+static const ClipInfo* gaitInfoTable() {
+    static const char* const kNames[GS_COUNT * kGaitBands] = {
+        "walk_neutral_slow", "walk_neutral",  "walk_neutral_brisk", "walk_relaxed_slow", "walk_relaxed",  "walk_relaxed_brisk",
+        "walk_hurried_slow", "walk_hurried",  "walk_hurried_brisk", "walk_elderly_slow", "walk_elderly",  "walk_elderly_brisk",
+        "walk_swagger_slow", "walk_swagger",  "walk_swagger_brisk", "walk_tired_slow",   "walk_tired",    "walk_tired_brisk",
+    };
+    static const ClipInfo* tbl = []() {
+        static ClipInfo t[GS_COUNT * kGaitBands];
+        for (int s = 0; s < GS_COUNT; s++)
+            for (int b = 0; b < kGaitBands; b++) t[s * kGaitBands + b] = {kNames[s * kGaitBands + b], walkCycle(s, b), true, kGaitBandSpeed[b]};
+        return t;
+    }();
+    return tbl;
+}
+static const ClipInfo& infoOf(int id) {
+    if (id < CLIP_COUNT) return kClipInfo[id];
+    if (id < IC_GAIT_FIRST) return kExtraInfo[id - CLIP_COUNT];
+    return gaitInfoTable()[Min(id, (int)IC_GAIT_LAST) - IC_GAIT_FIRST];
+}
 
 // ------------------------------------------------------------------------------------------------
 // Common poses
@@ -985,15 +1151,29 @@ static void clipIdle(const AuthorCtx& A, float t, float dur, Rig& r, bool look) 
     }
 }
 
-static void clipLocomotion(const AuthorCtx& A, Clip c, float t, Rig& r) {
-    GaitP g;
-    const ClipInfo& ci = kClipInfo[c];
+// Gait parameters of a locomotion clip (the public gaits, the easy jog and the walk styles); false for other clips.
+static bool gaitParams(int id, GaitP& g) {
+    if (id >= IC_GAIT_FIRST && id <= IC_GAIT_LAST) {
+        int k = id - IC_GAIT_FIRST;
+        walkGait(k / kGaitBands, k % kGaitBands, g);
+        return true;
+    }
+    g = GaitP();
+    const ClipInfo& ci = infoOf(id);
     g.T = ci.duration;
     g.speed = ci.speed;
-    float phase = t / ci.duration;
     g.shift = 0.13f;
-    switch (c) {
-        case CLIP_WALK: break;
+    switch (id) {
+        case CLIP_WALK:
+            walkGait(GS_NEUTRAL, 1, g);
+            g.T = ci.duration;
+            break;
+        case IC_JOG_SLOW:
+            g.shift = 0.17f;
+            g.duty = 0.42f; g.lift = 0.09f; g.kick = 0.06f; g.bob = 0.028f; g.drop = 0.03f; g.sway = 0.014f; g.yawA = 0.09f; g.rollA = 0.045f;
+            g.lean = 0.09f; g.chestYaw = 0.14f; g.armSwing = 0.45f; g.elbow = 1.25f; g.elbowSwing = 0.12f; g.fist = 0.65f; g.footSpread = 0.08f;
+            g.strikePitch = 0.18f; g.toeOffPitch = -0.55f; g.run = true;
+            break;
         case CLIP_JOG:
             g.shift = 0.2f;
             g.duty = 0.38f; g.lift = 0.1f; g.kick = 0.1f; g.bob = 0.03f; g.drop = 0.035f; g.sway = 0.012f; g.yawA = 0.1f; g.rollA = 0.04f;
@@ -1024,7 +1204,7 @@ static void clipLocomotion(const AuthorCtx& A, Clip c, float t, Rig& r) {
             break;
         case CLIP_STRAFE_L: case CLIP_STRAFE_R:
             g.shift = 0.f;
-            g.dir = vec2(c == CLIP_STRAFE_L ? -1.f : 1.f, 0.f); g.duty = 0.58f; g.lift = 0.06f; g.bob = 0.02f; g.sway = 0.0f;
+            g.dir = vec2(id == CLIP_STRAFE_L ? -1.f : 1.f, 0.f); g.duty = 0.58f; g.lift = 0.06f; g.bob = 0.02f; g.sway = 0.0f;
             g.armSwing = 0.12f; g.footSpread = 0.13f; g.yawA = 0.03f; g.rollA = 0.03f;
             break;
         case CLIP_CROUCH_WALK:
@@ -1032,8 +1212,15 @@ static void clipLocomotion(const AuthorCtx& A, Clip c, float t, Rig& r) {
             g.duty = 0.66f; g.lift = 0.06f; g.bob = 0.02f; g.drop = 0.36f; g.sway = 0.03f; g.lean = 0.45f; g.armSwing = 0.15f; g.elbow = 0.9f;
             g.footSpread = 0.13f; g.strikePitch = 0.15f; g.toeOffPitch = -0.35f; g.headBob = 1.4f;
             break;
-        default: break;
+        default: return false;
     }
+    return true;
+}
+
+static void clipLocomotion(const AuthorCtx& A, int c, float t, Rig& r) {
+    GaitP g;
+    gaitParams(c, g);
+    float phase = t / infoOf(c).duration;
     gaitPose(A, g, phase, r);
     if (c == CLIP_CROUCH_WALK) {
         for (int sd = 0; sd < 2; sd++) r.leg[sd].knee = normalize(vec3((sd ? 1.f : -1.f) * 0.35f, 1.f, 0.f));
@@ -2950,14 +3137,14 @@ static void clipAmbient(const AuthorCtx& A, int id, float t, Rig& r) {
     const float sw = sinf(kTwoPi * u);                   // slow sway over the loop
     switch (id) {
         case IC_IDLE_CROSSARMS: {
-            clipIdle(A, t, dur, r, false);
-            r.spinePitch = -0.02f + 0.012f * br;
+            standPose(A, r);
+            r.spinePitch = -0.02f;
             r.headRoll = 0.04f * sw;
             r.headPitch = 0.04f;
             vec3 c = bonePos(A, r, B_CHEST);
             // forearms folded across the chest: the left hand tucked under the right upper arm, the right over the left
-            armIK(r.arm[0], c + vec3(0.13f, 0.15f, -0.06f + 0.003f * br) * s, vec3(-1.f, -0.3f, -0.6f), 0.55f);
-            armIK(r.arm[1], c + vec3(-0.12f, 0.19f, -0.02f + 0.003f * br) * s, vec3(1.f, -0.3f, -0.6f), 0.4f);
+            armIK(r.arm[0], c + vec3(0.13f, 0.15f, -0.06f) * s, vec3(-1.f, -0.3f, -0.6f), 0.55f);
+            armIK(r.arm[1], c + vec3(-0.12f, 0.19f, -0.02f) * s, vec3(1.f, -0.3f, -0.6f), 0.4f);
             r.arm[0].orient = r.arm[1].orient = true;
             r.arm[0].handRot = handFrame(A, 0, vec3(1.f, 0.1f, 0.05f), vec3(0.f, -1.f, 0.1f));
             r.arm[1].handRot = handFrame(A, 1, vec3(-1.f, 0.05f, -0.1f), vec3(0.f, -1.f, -0.2f));
@@ -2965,8 +3152,7 @@ static void clipAmbient(const AuthorCtx& A, int id, float t, Rig& r) {
             break;
         }
         case IC_IDLE_POCKETS: {
-            clipIdle(A, t, dur, r, false);
-            r.spinePitch = 0.02f * br;
+            standPose(A, r);
             r.headYaw = 0.1f * sw;
             for (int sd = 0; sd < 2; sd++) {
                 float sx = sd ? 1.f : -1.f;
@@ -2987,20 +3173,25 @@ static void clipAmbient(const AuthorCtx& A, int id, float t, Rig& r) {
             r.pelvisYaw = 0.05f * sw;
             r.spineRoll = 0.09f;
             r.headRoll = -0.04f + 0.03f * sw;
-            r.spinePitch = 0.012f * br;
             setFootFlat(A, r.leg[1], vec3(A.ankle[1].x + 0.01f * s, 0.f, 0.f), 0.25f);
             setFootToes(A, r.leg[0], A.ankle[0].x - 0.02f * s, 0.07f * s + A.ballFwd, -0.25f, -0.2f);
             r.leg[0].knee = normalize(vec3(0.3f, 1.f, 0.f));
-            vec3 hipR = A.hip[1];
-            armIK(r.arm[1], vec3(hipR.x + 0.075f * s, hipR.y + 0.015f * s, hipR.z + 0.1f * s), vec3(1.f, -0.4f, 0.f), 0.3f);
+            // the palm on the flank above the hip bone (the skin carried by the posed pelvis), fingers forward and down
+            vec3 pp;
+            quat pq;
+            boneOf(A, r, B_PELVIS, pp, pq);
+            vec3 flank = pp + rotate(pq, A.skinFlankR - A.pelvisBind);
+            vec3 fing = normalize(vec3(-0.35f, 0.5f, -0.8f)), palmN = normalize(vec3(-1.f, 0.f, 0.2f));
+            vec3 palmC = flank - rotate(pq, palmN) * (0.5f * A.D.handT + 0.004f);
+            armIK(r.arm[1], palmC - fing * (0.45f * A.D.palmLen), vec3(1.f, -0.4f, 0.f), 0.3f);
             r.arm[1].orient = true;
-            r.arm[1].handRot = handFrame(A, 1, vec3(-0.35f, 0.5f, -0.8f), vec3(-1.f, 0.f, 0.2f));
+            r.arm[1].handRot = handFrame(A, 1, fing, palmN);
             armFK(r.arm[0], 0, 0.05f + 0.02f * sw, 0.12f, 0.25f, 0.2f, 0.4f);
             break;
         }
         case IC_IDLE_PHONE: {
             // glancing at a phone held low in both hands, thumb scrolling
-            clipIdle(A, t, dur, r, false);
+            standPose(A, r);
             r.spinePitch = 0.1f;
             r.neckPitch = 0.2f;
             r.headPitch = 0.3f + 0.03f * sinf(kTwoPi * u * 3.f);
@@ -3016,12 +3207,12 @@ static void clipAmbient(const AuthorCtx& A, int id, float t, Rig& r) {
             break;
         }
         case IC_IDLE_STRETCH: {
-            // neck roll and a shoulder shrug
-            clipIdle(A, t, dur, r, false);
-            float a = kTwoPi * u;
-            r.headRoll = 0.22f * sinf(a);
-            r.headPitch = 0.1f + 0.15f * cosf(a);
-            r.neckRoll = 0.1f * sinf(a);
+            // neck roll and a shoulder shrug (a fidget: from and back to the plain standing pose)
+            standPose(A, r);
+            float a = kTwoPi * u, e = sstep(0.f, 0.12f, u) * (1.f - sstep(0.5f, 0.62f, u));
+            r.headRoll = 0.22f * sinf(a) * e;
+            r.headPitch = (0.1f + 0.15f * cosf(a)) * e;
+            r.neckRoll = 0.1f * sinf(a) * e;
             float shrug = sstep(0.55f, 0.7f, u) * (1.f - sstep(0.8f, 0.95f, u));
             r.arm[0].clavUp = r.arm[1].clavUp = 0.25f * shrug;
             r.spinePitch = -0.05f * shrug;
@@ -3124,6 +3315,276 @@ static void clipAmbient(const AuthorCtx& A, int id, float t, Rig& r) {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
+// Standing: weight on one leg, held postures and fidgets (internal clips, see anim_internal.h). They carry no
+// breathing (the animator breathes at each person's own rate); fidgets start and end in the plain standing pose.
+
+// Weight on one leg (side 0 left, 1 right): the pelvis over the standing foot, the free hip dropped and a little
+// forward, the free knee eased with its foot forward and turned out, the shoulders counter-tilted, arms hanging.
+static void standWeight(const AuthorCtx& A, float t, float dur, Rig& r, int side) {
+    standPose(A, r);
+    const float s = A.D.s, fem = A.fem;
+    const float sx = side ? 1.f : -1.f;   // the standing side
+    const float sw = sinf(kTwoPi * t / dur), sw2 = sinf(kTwoPi * t / dur * 2.f + 1.3f);
+    r.pelvis = vec3(sx * (0.03f + 0.01f * fem) * s + 0.003f * s * sw, 0.f, -0.008f * s);
+    r.pelvisRoll = -sx * (0.05f + 0.035f * fem);
+    r.pelvisYaw = -sx * (0.04f + 0.01f * sw2);
+    r.spineRoll = -r.pelvisRoll * 1.15f;
+    r.spineYaw = -r.pelvisYaw * 0.6f;
+    r.spinePitch = 0.01f;
+    r.headRoll = -(r.pelvisRoll + r.spineRoll) * 0.8f + 0.012f * sw;
+    r.headYaw = 0.03f * sw2;
+    r.headPitch = 0.02f;
+    const int st = side, fr = 1 - side;
+    setFootFlat(A, r.leg[st], vec3(A.ankle[st].x + sx * 0.008f * s, -0.01f * s, 0.f), -sx * 0.1f);
+    r.leg[st].knee = normalize(vec3(sx * 0.1f, 1.f, 0.f));
+    setFootFlat(A, r.leg[fr], vec3(A.ankle[fr].x - sx * 0.03f * s, 0.055f * s, 0.f), sx * 0.24f);
+    r.leg[fr].knee = normalize(vec3(-sx * 0.35f, 1.f, 0.f));
+    for (int sd = 0; sd < 2; sd++) {
+        // the arm on the standing side swings a little clear of the hip pushed out under it
+        float out = (sd == st ? 0.04f : 0.f) + 0.12f + 0.02f * (1.f - fem);
+        armFK(r.arm[sd], sd, 0.03f + 0.02f * sinf(kTwoPi * t / dur + sd * 1.3f), out, 0.2f + 0.05f * sd, 0.15f, 0.36f);
+    }
+}
+
+// Upper-body fidget envelope: rises over `in` s, holds, returns over `outT` s before the end.
+static float fidgetEnv(float t, float dur, float in, float outT) { return sstep(0.f, in, t) * (1.f - sstep(dur - outT, dur, t)); }
+
+static void clipStanding(const AuthorCtx& A, int id, float t, Rig& r) {
+    const float s = A.D.s;
+    const float dur = infoOf(id).duration;
+    switch (id) {
+        case IC_STAND_L: case IC_STAND_R: standWeight(A, t, dur, r, id == IC_STAND_R ? 1 : 0); break;
+        case IC_IDLE_BEHIND: {
+            // hands clasped behind the back (the left hand holding the right wrist), chest open
+            standPose(A, r);
+            float sw = sinf(kTwoPi * t / dur);
+            r.pelvis = vec3(0.005f * s * sw, 0.f, -0.006f * s);
+            r.spinePitch = -0.035f;
+            r.headPitch = 0.02f;
+            r.headYaw = 0.12f * sinf(kTwoPi * t / dur + 0.7f);
+            float zb = A.D.zHip + 0.07f * s, yb = -(A.D.waistDepth + 0.055f * s);
+            armIK(r.arm[1], vec3(0.03f * s, yb, zb), vec3(1.f, -0.6f, 0.1f), 0.45f);
+            armIK(r.arm[0], vec3(-0.04f * s, yb - 0.005f * s, zb - 0.015f * s), vec3(-1.f, -0.6f, 0.1f), 0.7f);
+            r.arm[1].orient = r.arm[0].orient = true;
+            r.arm[1].handRot = handFrame(A, 1, vec3(-0.45f, -0.15f, -0.9f), vec3(0.f, -1.f, 0.25f));
+            r.arm[0].handRot = handFrame(A, 0, vec3(0.85f, -0.1f, -0.5f), vec3(0.35f, 0.25f, 0.5f));
+            r.arm[0].clavFwd = r.arm[1].clavFwd = -0.05f;
+            break;
+        }
+        case IC_IDLE_CLASP: {
+            // hands loosely clasped in front of the lower belly
+            standPose(A, r);
+            float sw = sinf(kTwoPi * t / dur);
+            r.pelvis = vec3(0.005f * s * sw, 0.f, -0.006f * s);
+            r.spinePitch = 0.02f;
+            r.headPitch = 0.04f;
+            float zc = A.D.zHip + 0.01f * s, yc = A.D.waistDepth + 0.085f * s;
+            armIK(r.arm[1], vec3(0.045f * s, yc, zc + 0.01f * s), vec3(1.f, -0.5f, -0.3f), 0.55f);
+            armIK(r.arm[0], vec3(-0.045f * s, yc - 0.01f * s, zc), vec3(-1.f, -0.5f, -0.3f), 0.55f);
+            r.arm[1].orient = r.arm[0].orient = true;
+            r.arm[1].handRot = handFrame(A, 1, vec3(-0.75f, 0.35f, -0.55f), vec3(-0.55f, -0.25f, 0.3f));
+            r.arm[0].handRot = handFrame(A, 0, vec3(0.75f, 0.35f, -0.5f), vec3(0.55f, -0.2f, 0.35f));
+            break;
+        }
+        case IC_FIDGET_WATCH: {
+            // raise the left wrist, turn the watch face up and look at it
+            standPose(A, r);
+            float e = fidgetEnv(t, dur, 0.4f, 0.5f);
+            vec3 c = bonePos(A, r, B_CHEST);
+            r.headPitch = 0.34f * e;
+            r.neckPitch = 0.12f * e;
+            r.headYaw = 0.14f * e;
+            r.eyes = vec2(0.05f, -0.18f) * e;
+            Rig rest = r;
+            armFK(rest.arm[0], 0, 0.03f, 0.12f, 0.2f, 0.15f, 0.36f);
+            armIK(r.arm[0], c + vec3(-0.03f, 0.27f, -0.13f) * s, vec3(-1.f, -0.3f, -0.4f), 0.45f);
+            r.arm[0].orient = true;
+            r.arm[0].handRot = handFrame(A, 0, vec3(0.9f, 0.3f, 0.15f), vec3(0.15f, 0.1f, -1.f));   // palm down: the watch face up
+            // blend the arm from hanging to the watch pose through the envelope
+            Rig* rr[2] = {&rest, &r};
+            unifyRigs(A, rr, 2);
+            const ArmCtl* ap[2] = {&rest.arm[0], &r.arm[0]};
+            float w[2] = {1.f - e, e};
+            combineArm(ap, w, 2, e > 0.5f ? 1 : 0, r.arm[0]);
+            armFK(r.arm[1], 1, 0.03f, 0.12f, 0.25f, 0.15f, 0.36f);
+            break;
+        }
+        case IC_FIDGET_SCRATCH: {
+            // right hand to the back of the head, fingers scratching, head tipped towards it
+            standPose(A, r);
+            float e = fidgetEnv(t, dur, 0.45f, 0.55f);
+            vec3 hp;
+            quat hq;
+            r.headPitch = 0.12f * e;
+            r.headRoll = 0.1f * e;
+            r.spineRoll = -0.03f * e;
+            boneOf(A, r, B_HEAD, hp, hq);
+            float scr = 0.012f * sinf(kTwoPi * t * 5.f) * sstep(0.5f, 0.7f, t) * (1.f - sstep(dur - 0.8f, dur - 0.55f, t));
+            Rig rest = r;
+            armFK(rest.arm[1], 1, 0.03f, 0.12f, 0.25f, 0.15f, 0.36f);
+            armIK(r.arm[1], hp + rotate(hq, vec3(0.07f, -0.06f + scr, 0.02f) * s), vec3(1.f, 0.1f, 0.4f), 0.55f + 0.1f * sinf(kTwoPi * t * 5.f));
+            r.arm[1].orient = true;
+            r.arm[1].handRot = hq * handFrame(A, 1, vec3(-0.3f, -0.4f, 1.f), vec3(-1.f, 0.2f, 0.f));
+            Rig* rr[2] = {&rest, &r};
+            unifyRigs(A, rr, 2);
+            const vec3 from = rest.arm[1].target, to = r.arm[1].target;
+            const ArmCtl* ap[2] = {&rest.arm[1], &r.arm[1]};
+            float w[2] = {1.f - e, e};
+            combineArm(ap, w, 2, e > 0.5f ? 1 : 0, r.arm[1]);
+            // the hand goes up out to the side and in front of the shoulder, then back to the head (a straight line
+            // would run through the ribs and the shoulder)
+            vec3 via = A.gh[1] + vec3(0.24f, 0.14f, -0.02f) * s;
+            r.arm[1].target = from * ((1.f - e) * (1.f - e)) + via * (2.f * (1.f - e) * e) + to * (e * e);
+            armFK(r.arm[0], 0, 0.03f, 0.12f, 0.2f, 0.15f, 0.36f);
+            break;
+        }
+        case IC_FIDGET_TUG: {
+            // both hands take the hem at the front and tug it down, then smooth it
+            standPose(A, r);
+            float e = fidgetEnv(t, dur, 0.4f, 0.5f);
+            float pull = sstep(0.55f, 0.8f, t) * (1.f - sstep(1.05f, 1.3f, t));
+            r.headPitch = 0.22f * e;
+            r.spinePitch = 0.05f * e;
+            Rig rest = r;
+            for (int sd = 0; sd < 2; sd++) armFK(rest.arm[sd], sd, 0.03f, 0.12f, 0.2f + 0.05f * sd, 0.15f, 0.36f);
+            for (int sd = 0; sd < 2; sd++) {
+                float sx = sd ? 1.f : -1.f;
+                vec3 tg(sx * 0.1f * s, A.D.waistDepth + 0.055f * s, A.D.zWaist - (0.07f + 0.04f * pull) * s);
+                armIK(r.arm[sd], tg, vec3(sx, -0.6f, -0.2f), 0.75f);
+                r.arm[sd].orient = true;
+                r.arm[sd].handRot = handFrame(A, sd, vec3(-sx * 0.3f, 0.35f, -0.9f), vec3(-sx * 0.2f, -1.f, 0.f));
+            }
+            Rig* rr[2] = {&rest, &r};
+            unifyRigs(A, rr, 2);
+            for (int sd = 0; sd < 2; sd++) {
+                const ArmCtl* ap[2] = {&rest.arm[sd], &r.arm[sd]};
+                float w[2] = {1.f - e, e};
+                combineArm(ap, w, 2, e > 0.5f ? 1 : 0, r.arm[sd]);
+            }
+            break;
+        }
+        case IC_FIDGET_CHIN: {
+            // the right hand to the chin, the left forearm across the waist under the right elbow
+            standPose(A, r);
+            float e = fidgetEnv(t, dur, 0.5f, 0.6f);
+            vec3 hp;
+            quat hq;
+            r.headPitch = 0.06f * e;
+            r.headYaw = -0.08f * e;
+            boneOf(A, r, B_HEAD, hp, hq);
+            Rig rest = r;
+            for (int sd = 0; sd < 2; sd++) armFK(rest.arm[sd], sd, 0.03f, 0.12f, 0.2f + 0.05f * sd, 0.15f, 0.36f);
+            armIK(r.arm[1], hp + rotate(hq, vec3(0.015f, 0.1f, -0.16f) * s), vec3(0.7f, 0.1f, -1.f), 0.6f);
+            r.arm[1].orient = true;
+            r.arm[1].handRot = hq * handFrame(A, 1, vec3(-0.25f, 0.45f, 1.f), vec3(-0.9f, -0.1f, -0.3f));
+            armIK(r.arm[0], vec3(0.08f * s, A.skinBelly.y + A.D.rWrist + 0.012f, A.D.zWaist + 0.06f * s), vec3(-1.f, -0.4f, -0.3f), 0.5f);
+            r.arm[0].orient = true;
+            r.arm[0].handRot = handFrame(A, 0, vec3(1.f, 0.2f, 0.1f), vec3(0.f, -0.2f, 1.f));
+            Rig* rr[2] = {&rest, &r};
+            unifyRigs(A, rr, 2);
+            // the hands travel round the front of the belly and chest, not through them
+            const vec3 via[2] = {vec3(-0.06f * s, A.skinBelly.y + 0.12f * s, A.D.zWaist - 0.02f * s),
+                                 vec3(0.12f * s, A.skinBelly.y + 0.2f * s, A.D.zChestLine - 0.05f * s)};
+            for (int sd = 0; sd < 2; sd++) {
+                const vec3 from = rest.arm[sd].target, to = r.arm[sd].target;
+                const ArmCtl* ap[2] = {&rest.arm[sd], &r.arm[sd]};
+                float w[2] = {1.f - e, e};
+                combineArm(ap, w, 2, e > 0.5f ? 1 : 0, r.arm[sd]);
+                r.arm[sd].target = from * ((1.f - e) * (1.f - e)) + via[sd] * (2.f * (1.f - e) * e) + to * (e * e);
+            }
+            break;
+        }
+        case IC_FIDGET_YAWN: {
+            // head back, jaw wide, shoulders up, the right hand over the mouth, eyes squeezed
+            standPose(A, r);
+            float e = fidgetEnv(t, dur, 0.7f, 0.9f);
+            float jaw = sstep(0.4f, 1.0f, t) * (1.f - sstep(1.9f, 2.4f, t));
+            r.headPitch = -0.22f * e;
+            r.neckPitch = -0.08f * e;
+            r.spinePitch = -0.05f * e;
+            r.jaw = 0.4f * jaw;
+            r.eyes = vec2(0.f, -0.5f * jaw);
+            vec3 hp;
+            quat hq;
+            boneOf(A, r, B_HEAD, hp, hq);
+            Rig rest = r;
+            for (int sd = 0; sd < 2; sd++) armFK(rest.arm[sd], sd, 0.03f, 0.12f, 0.2f + 0.05f * sd, 0.15f, 0.36f);
+            float cover = sstep(0.5f, 0.95f, t) * (1.f - sstep(1.9f, 2.4f, t));
+            armIK(r.arm[1], hp + rotate(hq, vec3(0.02f, 0.16f, -0.1f) * s), vec3(0.8f, 0.f, -1.f), 0.35f);
+            r.arm[1].orient = true;
+            r.arm[1].handRot = hq * handFrame(A, 1, vec3(-0.9f, 0.1f, 0.35f), vec3(0.f, -1.f, 0.f));
+            armFK(r.arm[0], 0, 0.05f, 0.14f, 0.3f, 0.15f, 0.36f);
+            r.arm[0].clavUp = r.arm[1].clavUp = 0.12f * jaw;
+            Rig* rr[2] = {&rest, &r};
+            unifyRigs(A, rr, 2);
+            const ArmCtl* ap[2] = {&rest.arm[1], &r.arm[1]};
+            float w[2] = {1.f - cover, cover};
+            combineArm(ap, w, 2, cover > 0.5f ? 1 : 0, r.arm[1]);
+            break;
+        }
+        case IC_FIDGET_ARMS: {
+            // fingers laced, arms pushed out in front, then up over the head, back arched a little
+            standPose(A, r);
+            float e = fidgetEnv(t, dur, 0.6f, 0.7f);
+            float up = sstep(1.1f, 1.7f, t) * (1.f - sstep(dur - 1.1f, dur - 0.6f, t));
+            vec3 sh = (A.gh[0] + A.gh[1]) * 0.5f;
+            r.spinePitch = -0.08f * up * e;
+            r.headPitch = -0.1f * up * e;
+            r.pelvis = vec3(0.f, 0.f, 0.01f * s * up * e);
+            Rig rest = r;
+            for (int sd = 0; sd < 2; sd++) armFK(rest.arm[sd], sd, 0.03f, 0.12f, 0.2f + 0.05f * sd, 0.15f, 0.36f);
+            vec3 front = sh + vec3(0.f, 0.52f, -0.02f) * s, over = sh + vec3(0.f, 0.08f, 0.55f) * s;
+            vec3 hands = lerp(front, over, up);
+            for (int sd = 0; sd < 2; sd++) {
+                float sx = sd ? 1.f : -1.f;
+                armIK(r.arm[sd], hands + vec3(sx * 0.045f * s, -0.03f * s * (1.f - up), 0.f), vec3(sx, -0.4f, -0.5f), 0.55f);
+                r.arm[sd].orient = true;
+                vec3 fing = lerp(vec3(-sx * 0.6f, 0.75f, 0.f), vec3(-sx * 0.6f, 0.f, 0.8f), up);
+                vec3 palm = lerp(vec3(0.f, 1.f, 0.f), vec3(0.f, 0.f, 1.f), up);
+                r.arm[sd].handRot = handFrame(A, sd, fing, palm);
+                r.arm[sd].clavUp = 0.1f * up;
+            }
+            Rig* rr[2] = {&rest, &r};
+            unifyRigs(A, rr, 2);
+            for (int sd = 0; sd < 2; sd++) {
+                const ArmCtl* ap[2] = {&rest.arm[sd], &r.arm[sd]};
+                float w[2] = {1.f - e, e};
+                combineArm(ap, w, 2, e > 0.5f ? 1 : 0, r.arm[sd]);
+            }
+            break;
+        }
+        case IC_FIDGET_TAP: {
+            // the right forefoot taps (heel down) about 2.3 times a second
+            standPose(A, r);
+            float tap = Max(0.f, sinf(kTwoPi * t * 2.3f));
+            float pitch = 0.3f * tap * tap;
+            LegCtl& l = r.leg[1];
+            l.ik = true;
+            l.footQ = false;
+            l.yaw = -0.18f;
+            l.pitch = pitch;
+            l.toe = 0.f;
+            l.ankle = ankleFromPivotYaw(A, vec3(A.ankle[1].x + 0.02f * s, 0.05f * s, 0.f) - rotate(qz(l.yaw), vec3(0.f, A.heelBack, 0.f)), pitch, l.yaw, 0);
+            r.leg[1].knee = normalize(vec3(0.3f, 1.f, 0.f));
+            r.pelvis = vec3(-0.015f * s, 0.f, -0.006f * s);
+            break;
+        }
+        default: {   // IC_FIDGET_ROCK: up onto the toes and back down, slowly
+            standPose(A, r);
+            float k = 0.5f - 0.5f * cosf(kTwoPi * t / (dur / 3.f));
+            float pitch = -0.28f * k;
+            for (int sd = 0; sd < 2; sd++) {
+                float sx = sd ? 1.f : -1.f;
+                setFootToes(A, r.leg[sd], A.ankle[sd].x, A.ankle[sd].y + A.ballFwd, pitch, -sx * 0.1f);
+            }
+            placeHips(A, r, vec3(0.f, 0.f, A.hip[0].z + (A.ballFwd * sinf(-pitch)) - 0.004f * s));
+            r.spinePitch = -0.02f * k;
+            break;
+        }
+    }
+}
+
 // Rifle held at the low ready while not aiming (arms only; used as an arm layer by the animator).
 static void rifleCarryPose(const AuthorCtx& A, float t, Rig& r) {
     standPose(A, r);
@@ -3147,7 +3608,15 @@ static void authorClip(const AuthorCtx& A, int id, float t, Rig& r) {
             case IC_GUARD: case IC_GUARD_KNIFE: case IC_GUARD_BAT: case IC_BLOCK_BAT: clipGuardLoop(A, id, t, r); break;
             case IC_IDLE_CROSSARMS: case IC_IDLE_POCKETS: case IC_IDLE_HIP: case IC_IDLE_PHONE: case IC_IDLE_STRETCH: case IC_DANCE2:
             case IC_DANCE3: case IC_DANCE4: case IC_SIT_GROUND: case IC_LIE_FRONT: clipAmbient(A, id, t, r); break;
-            default: standPose(A, r); break;
+            case IC_JOG_SLOW: clipLocomotion(A, id, t, r); break;
+            case IC_STAND_L: case IC_STAND_R: case IC_IDLE_BEHIND: case IC_IDLE_CLASP: case IC_FIDGET_WATCH: case IC_FIDGET_SCRATCH:
+            case IC_FIDGET_TUG: case IC_FIDGET_CHIN: case IC_FIDGET_YAWN: case IC_FIDGET_ARMS: case IC_FIDGET_TAP: case IC_FIDGET_ROCK:
+                clipStanding(A, id, t, r);
+                break;
+            default:
+                if (id >= IC_GAIT_FIRST && id <= IC_GAIT_LAST) clipLocomotion(A, id, t, r);
+                else standPose(A, r);
+                break;
         }
         return;
     }
@@ -3207,6 +3676,7 @@ struct BakedClip {
 struct ClipLib {
     AuthorCtx ctx[2];                                // male / female reference
     BakedClip clips[2][CLIP_COUNT + kExtraCount];    // [style][clip id]
+    float duty[CLIP_COUNT + kExtraCount];            // stance fraction of the locomotion clips (0: not a gait)
 };
 
 static void makeAuthorCtx(AuthorCtx& A, bool female) {
@@ -3238,6 +3708,22 @@ static void makeAuthorCtx(AuthorCtx& A, bool female) {
     A.chestP = J[B_CHEST];
     A.headP = J[B_HEAD];
     A.shoulderZ = J[B_UPPERARM_R].z;
+    A.thighLen = length(A.sk.bindLocalPos[B_CALF_L]);
+    A.shinLen = length(A.sk.bindLocalPos[B_FOOT_L]);
+    {
+        // the body's signed distance model (torso and legs): rays out from inside find the skin
+        BuildCtx bc;
+        bc.d = &d;
+        bc.D = &A.D;
+        bc.sk = &A.sk;
+        addBodyPrims(bc);
+        const u32 mk = MK_TORSO | MK_LEG_L | MK_LEG_R;
+        const float s = A.D.s;
+        auto skin = [&](vec3 from, vec3 dir) { return from + dir * bc.sdf.castOut(from, dir, mk, 0.5f); };
+        A.skinFlankR = skin(vec3(0.f, A.hip[1].y + 0.015f * s, A.hip[1].z + 0.1f * s), vec3(1, 0, 0));
+        A.skinBack = skin(vec3(0.f, 0.f, A.D.zHip + 0.07f * s), vec3(0, -1, 0));
+        A.skinBelly = skin(vec3(0.06f * s, 0.f, A.D.zWaist + 0.05f * s), vec3(0, 1, 0));
+    }
 }
 
 static bool styleDependent(int c) {
@@ -3245,9 +3731,11 @@ static bool styleDependent(int c) {
         case CLIP_IDLE: case CLIP_IDLE_LOOK: case CLIP_WALK: case CLIP_JOG: case CLIP_RUN: case CLIP_SPRINT: case CLIP_WALK_BACK:
         case CLIP_STRAFE_L: case CLIP_STRAFE_R: case CLIP_TALK: case CLIP_TALK_PHONE: case CLIP_SMOKE: case CLIP_DANCE: case CLIP_FLEE:
         case IC_IDLE_CROSSARMS: case IC_IDLE_POCKETS: case IC_IDLE_HIP: case IC_IDLE_PHONE: case IC_IDLE_STRETCH: case IC_DANCE2:
-        case IC_DANCE3: case IC_DANCE4:
+        case IC_DANCE3: case IC_DANCE4: case IC_JOG_SLOW: case IC_STAND_L: case IC_STAND_R: case IC_IDLE_BEHIND: case IC_IDLE_CLASP:
+        case IC_FIDGET_WATCH: case IC_FIDGET_SCRATCH: case IC_FIDGET_TUG: case IC_FIDGET_CHIN: case IC_FIDGET_YAWN: case IC_FIDGET_ARMS:
+        case IC_FIDGET_TAP: case IC_FIDGET_ROCK:
             return true;
-        default: return false;
+        default: return c >= IC_GAIT_FIRST && c <= IC_GAIT_LAST;
     }
 }
 
@@ -3285,9 +3773,12 @@ static ClipLib* buildLib() {
     ClipLib* L = new ClipLib();
     makeAuthorCtx(L->ctx[0], false);
     makeAuthorCtx(L->ctx[1], true);
+    L->ctx[1].strideScale = L->ctx[1].legLen / Max(L->ctx[0].legLen, 1e-3f);
     for (int c = 0; c < CLIP_COUNT + kExtraCount; c++) {
         bakeClip(L->ctx[0], c, L->clips[0][c]);
         if (styleDependent(c)) bakeClip(L->ctx[1], c, L->clips[1][c]);
+        GaitP g;
+        L->duty[c] = gaitParams(c, g) ? g.duty : 0.f;
     }
     return L;
 }
@@ -3296,6 +3787,8 @@ const ClipLib& clipLib() {
     static ClipLib* lib = buildLib();
     return *lib;
 }
+
+float clipDuty(int id) { return id >= 0 && id < CLIP_COUNT + kExtraCount ? clipLib().duty[id] : 0.f; }
 
 // Femininity of a skeleton's proportions (hip joint spacing relative to shoulder spacing).
 float skeletonStyle(const Skeleton& sk) {
@@ -3308,11 +3801,27 @@ float skeletonStyle(const Skeleton& sk) {
 
 static float skelLegLen(const Skeleton& sk) { return length(sk.bindLocalPos[B_CALF_L]) + length(sk.bindLocalPos[B_FOOT_L]); }
 
-// Leg length of a skeleton relative to the reference its locomotion clips were authored on.
+// Leg length of a skeleton relative to the male reference: locomotion strides (ClipInfo::speed * duration, for the
+// male reference) scale with it for both styles (the female bakes cover the same stride per leg length).
 float skeletonLegScale(const Skeleton& sk) {
     const ClipLib& L = clipLib();
-    int st = skeletonStyle(sk) > 0.5f ? 1 : 0;
-    return skelLegLen(sk) / Max(skelLegLen(L.ctx[st].sk), 1e-3f);
+    return skelLegLen(sk) / Max(skelLegLen(L.ctx[0].sk), 1e-3f);
+}
+
+// Hanging hands pass the body at hip height, where it is widest at the hips or the outer thighs: an abduction that
+// gives a wide body the reference body's clearance there (relative to the shoulder joints the arms hang from).
+float skeletonArmClearance(const Skeleton& sk) {
+    const ClipLib& L = clipLib();
+    const Skeleton& R = L.ctx[skeletonStyle(sk) > 0.5f ? 1 : 0].sk;
+    auto excess = [](const Skeleton& s) {
+        float hips = s.boneRadius[B_PELVIS] / 0.9f;
+        float thighs = fabsf(s.bindLocalPos[B_THIGH_L].x) + s.boneRadius[B_THIGH_L] / 0.85f;
+        float shoulder = fabsf((s.bindLocalPos[B_CLAVICLE_L] + s.bindLocalPos[B_UPPERARM_L]).x);
+        return Max(hips, thighs) - shoulder;
+    };
+    float more = excess(sk) - excess(R);
+    float arm = length(sk.bindLocalPos[B_FOREARM_L]) + length(sk.bindLocalPos[B_HAND_L]);
+    return Clamp(atan2f(Max(0.f, more) * 1.15f, arm * 0.9f), 0.f, 0.28f);
 }
 
 static void sampleBaked(const BakedClip& bc, const ClipInfo& ci, float t, Pose& out) {
@@ -3337,7 +3846,9 @@ static void sampleBaked(const BakedClip& bc, const ClipInfo& ci, float t, Pose& 
     f = Saturate(f);
     const quat* a = &bc.rot[(size_t)i0 * B_COUNT];
     const quat* b = &bc.rot[(size_t)i1 * B_COUNT];
-    for (int k = 0; k < B_COUNT; k++) out.rot[k] = nlerp(a[k], b[k], f);
+    // the derived bones' rotations come from their controllers (computeMatrices ignores these entries): copied
+    for (int k = 0; k < B_FIRST_DERIVED; k++) out.rot[k] = nlerp(a[k], b[k], f);
+    for (int k = B_FIRST_DERIVED; k < B_COUNT; k++) out.rot[k] = a[k];
     out.rootOffset = lerp(bc.root[i0], bc.root[i1], f);
 }
 

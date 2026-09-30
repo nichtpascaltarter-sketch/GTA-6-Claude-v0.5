@@ -57,6 +57,8 @@ struct Building {
     float lotHx = 0; // lot half-width along ax (gardens, hedges)
     i16 interior = -1;  // enterable interior hosted on the ground floor (world/interiors.h), -1 none
     u32 facade2 = 0xffffffffu;  // secondary cladding (tower podium, midrise base band), same floor grid; ~0 = none
+    int siteElem = -1;          // >= 0: hand-built by this site element (places.h): buildmesh.cpp and facade detail skip it
+    bool siteHost = false;      // a hand-built building that may host an enterable interior (its element cuts the openings)
 };
 
 // A facade-covered mass of a building mesh (main block, podium, tower tier, deco tower, house body), recorded by

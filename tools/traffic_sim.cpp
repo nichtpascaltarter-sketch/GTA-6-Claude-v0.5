@@ -265,7 +265,9 @@ void drawLanes(Canvas& cv, const World3& w, bool walk) {
         for (const AI::WalkLink& L : g.walkLinks) {
             vec2 a = g.walkNodes[L.a].p.xy();
             if (a.x < cv.mn.x || a.y < cv.mn.y || a.x > cv.mx.x || a.y > cv.mx.y) continue;
-            vec3 col = L.kind == AI::WL_CROSSWALK ? vec3(0.2f, 1.f, 1.f) : (L.kind == AI::WL_CORNER ? vec3(0.6f, 1.f, 0.6f) : vec3(0.4f, 0.8f, 0.4f));
+            vec3 col = L.kind == AI::WL_CROSSWALK ? vec3(0.2f, 1.f, 1.f)
+                     : (L.kind == AI::WL_ZEBRA ? vec3(1.f, 1.f, 0.2f)
+                     : (L.kind == AI::WL_PATH ? vec3(1.f, 0.6f, 0.2f) : (L.kind == AI::WL_CORNER ? vec3(0.6f, 1.f, 0.6f) : vec3(0.4f, 0.8f, 0.4f))));
             int n = Max(2, (int)(L.length / 1.f));
             vec2 prev = g.walkPos((int)(&L - &g.walkLinks[0]), 0.f, 0.f, true).xy();
             for (int k = 1; k <= n; k++) {
@@ -343,6 +345,7 @@ struct Sim {
     bool verbose = false;
     int watchCar = -1;
     float watchT0 = 0.f, watchT1 = 0.f;
+    float bikeScale = 1.f;   // --bikes: more (or fewer) motorbikes and scooters in the mix
 
     void init(World3* world, vec2 c, float r, int ncars, int npeds) {
         w = world;
@@ -357,6 +360,7 @@ struct Sim {
             float wt = models[i].spawnWeight;
             if (models[i].cls >= Vehicles::VC_BOAT) wt = 0.f;
             if (models[i].cls == Vehicles::VC_POLICE) wt *= 0.3f;
+            if (models[i].cls == Vehicles::VC_MOTORBIKE || models[i].cls == Vehicles::VC_SCOOTER) wt *= bikeScale;
             weights.push_back(wt);
         }
         cars.resize(ncars);
@@ -402,9 +406,17 @@ struct Sim {
                 // not in front of a faster car coming up the same lane (it could not stop for a car dropped in its path), nor
                 // at speed behind a slower one (the new car could not): the gap either needs is its braking distance at a
                 // firm 4 m/s2, a second of reaction and a car length
+                // (a car on the same lane by its lane position - exact round a curve, where a queue further on is well off
+                //  the straight line; others by the straight line ahead / behind)
                 vec2 rel = q.xy() - pos.xy();
                 float along = dot(rel, tl), vk = dot(cars[k].s.body.vel.xy(), tl);
-                if (fabsf(along) < 150.f && fabsf(dot(rel, AI::rightOf(tl))) < 2.5f && fabsf(q.z - pos.z) < 3.f) {
+                const AI::Driver* dk = tc.get(k);
+                bool sameLane = dk && dk->path == lane;
+                if (sameLane) {
+                    along = dk->u - u;
+                    vk = cars[k].s.speed();
+                }
+                if (fabsf(along) < 150.f && (sameLane || (fabsf(dot(rel, AI::rightOf(tl))) < 2.5f && fabsf(q.z - pos.z) < 3.f))) {
                     float vBack = along < 0.f ? vk : v0, vFront = along < 0.f ? v0 : vk;
                     if (vBack > vFront + 1.f && fabsf(along) < (vBack * vBack - Max(vFront, 0.f) * Max(vFront, 0.f)) / 8.f + vBack + 8.f) ok = false;
                 }
@@ -1524,6 +1536,7 @@ int main(int argc, char** argv) {
                 else if (!strcmp(argv[k], "--dummy") && k + 1 < argc) dummyR = (float)atof(argv[++k]);
                 else if (!strcmp(argv[k], "-v")) verbose = true;
                 else if (!strcmp(argv[k], "--snaps") && k + 1 < argc) snapLimit = atoi(argv[++k]);
+                else if (!strcmp(argv[k], "--bikes") && k + 1 < argc) sim.bikeScale = (float)atof(argv[++k]);
                 else if (!strcmp(argv[k], "--watch") && k + 3 < argc) {
                     sim.watchCar = atoi(argv[++k]);
                     sim.watchT0 = (float)atof(argv[++k]);

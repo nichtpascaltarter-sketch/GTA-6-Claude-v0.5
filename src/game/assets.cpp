@@ -608,7 +608,8 @@ void GameWorld::buildAssets() {
         int forceGender;  // -1 any
     };
     std::vector<Req> reqs;
-    for (int i = 0; i < 44; i++) reqs.push_back({0x1000u + (u32)i * 7919u, (i % 11 == 3) ? 3 : (i % 11 == 7 ? 5 : 0), i & 1});
+    // 72 civilians (the first 44 keep their seeds): a crowd of ~100 repeats each model only about once
+    for (int i = 0; i < 72; i++) reqs.push_back({0x1000u + (u32)i * 7919u, (i % 11 == 3) ? 3 : (i % 11 == 7 ? 5 : 0), i & 1});
     for (int i = 0; i < 10; i++) reqs.push_back({0x2000u + (u32)i * 104729u, 4, i & 1});       // beach
     for (int i = 0; i < 10; i++) reqs.push_back({0x3000u + (u32)i * 15485863u, 1, i % 4 == 3 ? 1 : 0});  // police
     for (int i = 0; i < 8; i++) reqs.push_back({0x4000u + (u32)i * 32452843u, 2, i % 5 == 4 ? 1 : 0});   // gang (Cuervos)
@@ -721,6 +722,7 @@ void GameWorld::buildAssets() {
         MeshData m;
         buildPhoneMesh(m);
         phoneModel = dyn->createModel(m);
+        loadCarryModels();
     }
     LOG("Game assets built in %.2f s", TimeSeconds() - t0);
 }

@@ -1993,6 +1993,56 @@ void genForecourt(const SiteElem& e, G& g) {
             prop(g, vec3(e.c - X * 3.2f, e.z), yaw, 1.f, PROP_BIN);
             break;
         }
+        case 7: {
+            // zebra crossing from a (east kerb) to b (west kerb) over the two legs whose centrelines are at x p[2], p[3] (half
+            // width p[4]): white bars along the traffic, a give-way line of triangles before it, crossing signs with amber
+            // beacons facing the approaching traffic (the east leg runs north, the west leg south)
+            vec2 d = normalize(e.b - e.a), n = perp(d);
+            float zr = e.p[1] + 0.012f, hw = e.p[4];
+            const float legX[2] = {e.p[2], e.p[3]};
+            const float dirY[2] = {1.f, -1.f};
+            for (int l = 0; l < 2; l++) {
+                vec2 c(legX[l], e.a.y);
+                if (!g.owns(c)) continue;
+                int bars = (int)(2.f * hw / 1.f);
+                for (int k = 0; k < bars; k++) {
+                    float x = -hw + 0.5f + k * (2.f * hw - 1.f) / Max(1, bars - 1);
+                    paintRect(g, c + d * x, n, e.p[0] * 0.5f, 0.25f, zr, kWhiteC, M(MAT_PAINT_WHITE));
+                }
+                // give-way triangles on the approach side
+                vec2 up = vec2(0.f, -dirY[l]);
+                for (float x = -hw + 0.6f; x < hw - 0.3f; x += 1.1f) {
+                    vec2 tc = c + d * x + up * (e.p[0] * 0.5f + 2.2f);
+                    paintRect(g, tc, up, 0.35f, 0.18f, zr, kWhiteC, M(MAT_PAINT_WHITE));
+                }
+                // signs on both kerbs facing the traffic that comes toward the crossing
+                for (int s2 = -1; s2 <= 1; s2 += 2) {
+                    vec2 sp = c + d * (s2 * (hw + 0.9f)) + up * (e.p[0] * 0.5f + 0.6f);
+                    float zs = gMap->heightAt(sp.x, sp.y);   // on the median ground, or on a kerb plaza
+                    float pz;
+                    if (gSites->padHeight(sp, &pz, e.p[1] + 1.f)) zs = Max(zs, pz);
+                    cyl(g, vec3(sp, zs), 0.05f, 0.05f, 2.9f, 6, rgb(0.6f), paint, false);
+                    vec3 f3(up, 0.f);
+                    vec3 r3(perp(up), 0.f);
+                    vec3 sc(sp + up * 0.05f, zs + 2.4f);
+                    // diamond panel (fluorescent yellow-green) with a walking figure in black
+                    u32 sgn = rgb(0.75f, 0.95f, 0.1f), blk = rgb(0.03f);
+                    MeshData& m = *g.m;
+                    vec3 pts4[4] = {sc + vec3(0, 0, 0.42f), sc + r3 * 0.42f, sc - vec3(0, 0, 0.42f), sc - r3 * 0.42f};
+                    quad(g, m, pts4[3], pts4[2], pts4[1], pts4[0], sgn, paint, f3);
+                    quad(g, m, pts4[0], pts4[1], pts4[2], pts4[3], rgb(0.55f), paint, -f3);
+                    vec3 fc = sc + f3 * 0.01f;
+                    beam(g, fc + vec3(0, 0, 0.18f), fc - vec3(0, 0, 0.05f), 0.06f, 0.01f, blk, paint, f3);
+                    beam(g, fc - vec3(0, 0, 0.05f), fc - r3 * 0.12f - vec3(0, 0, 0.25f), 0.05f, 0.01f, blk, paint, f3);
+                    beam(g, fc - vec3(0, 0, 0.05f), fc + r3 * 0.12f - vec3(0, 0, 0.25f), 0.05f, 0.01f, blk, paint, f3);
+                    beam(g, fc + vec3(0, 0, 0.1f), fc + r3 * 0.14f, 0.04f, 0.01f, blk, paint, f3);
+                    boxY(g, fc + vec3(0, 0, 0.26f), up, vec3(0.05f, 0.05f, 0.05f), blk, paint, true);
+                    lamp(g, vec3(sp + up * 0.08f, zs + 3.02f), 0.14f, vec3(1.f, 0.6f, 0.05f), 0.9f, EA_SLOWBLINK, (u32)(l * 64 + s2 * 16 + 32));
+                    collide(g, vec3(sp, zs + 1.45f), up, vec3(0.05f, 0.05f, 1.45f));
+                }
+            }
+            break;
+        }
         default: {
             // overhead gantry: posts at a and b, a truss beam, a sign panel over the lanes facing the traffic (ax)
             vec2 d = normalize(e.b - e.a);

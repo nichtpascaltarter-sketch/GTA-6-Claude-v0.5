@@ -164,6 +164,7 @@ int pickBuilding(const BuildingSet& bs, const PlaceLite& pl, const Target& tg, c
     for (int i : cand) {
         const Building& b = bs.buildings[i];
         if (used[i] || b.interior >= 0) continue;
+        if (b.siteElem >= 0 && !b.siteHost) continue;   // hand-built (places.h) without room for an interior
         bool styleOk = (tg.styles & styleBit(b.style)) != 0;
         if (pass < 2 && !styleOk) continue;
         if (b.style == BS_TOWER && !towerGroundRect(b)) continue;

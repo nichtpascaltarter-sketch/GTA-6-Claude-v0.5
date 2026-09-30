@@ -2177,6 +2177,92 @@ void RoadNetwork::generate(WorldMap& map) {
         e.length = e.dist.back();
     }
 
+    // ============================================================= Junction plateaus
+    // Every at-grade road is level with its junction across the junction's reach, then eases back onto its own profile:
+    // each approach's pavement stands at the node's height out to its half width round its end (surfaceHeight's end caps
+    // and the junction disc), so a road that is still climbing or dipping inside that reach comes out from under the cap with
+    // a step (the Port Isle Bridge landing at S 2nd Street, where buses hung their front wheels). The easing adds at most 5%
+    // to the road's own grade. A link too short for its plateaus and their easing runs straight from one plateau to the other
+    // (plateaus shortened so that ramp stays under 10%), so short links over the same ground (a causeway merging into a
+    // street between two junctions) keep the same height side by side.
+    {
+        std::vector<float> nodeReach(nodes.size(), -1.f);
+        for (size_t n = 0; n < nodes.size(); n++) {
+            const RoadNode& nd = nodes[n];
+            if (nd.edges.size() < 2) continue;
+            bool hwy = false;
+            float reach = 0.f;
+            for (int ei : nd.edges) {
+                const RoadEdge& e = edges[ei];
+                hwy |= e.cls == RC_HIGHWAY || e.cls == RC_RAMP;
+                reach = Max(reach, e.halfWidth + (nd.edges.size() >= 3 ? e.sidewalk * 0.3f + 2.f : 0.f));
+            }
+            if (!hwy) nodeReach[n] = reach + 1.f;
+        }
+        const float kEase = 0.05f, kShortGrade = 0.10f;
+        int changed = 0, shortLinks = 0;
+        float worst = 0.f;
+        std::vector<float> s2, nz;
+        for (auto& e : edges) {
+            const size_t cnt = e.pts.size();
+            if (cnt < 3 || (e.flags & RF_UNPAVED) || e.n0 == e.n1) continue;
+            const bool actA = nodeReach[e.n0] >= 0.f, actB = nodeReach[e.n1] >= 0.f;
+            if (!actA && !actB) continue;
+            s2.assign(cnt, 0.f);
+            for (size_t j = 1; j < cnt; j++) s2[j] = s2[j - 1] + length(e.pts[j].xy() - e.pts[j - 1].xy());
+            const float L = s2.back();
+            if (L < 1.f) continue;
+            auto zAt = [&](float s) {   // the profile as it stands, at distance s along the plan
+                size_t j = 1;
+                while (j + 1 < cnt && s2[j] < s) j++;
+                float t = Clamp((s - s2[j - 1]) / Max(s2[j] - s2[j - 1], 1e-4f), 0.f, 1.f);
+                return Lerp(e.pts[j - 1].z, e.pts[j].z, t);
+            };
+            const float zA = actA ? nodes[e.n0].z : e.pts.front().z, zB = actB ? nodes[e.n1].z : e.pts.back().z;
+            float RA = actA ? Min(nodeReach[e.n0], L * 0.45f) : 0.f, RB = actB ? Min(nodeReach[e.n1], L * 0.45f) : 0.f;
+            const float offA = actA ? zA - zAt(RA) : 0.f, offB = actB ? zB - zAt(L - RB) : 0.f;
+            nz.assign(cnt, 0.f);
+            if (RA + fabsf(offA) / kEase + RB + fabsf(offB) / kEase > L) {
+                // short link: plateau, straight ramp, plateau
+                float room = L - fabsf(zB - zA) / kShortGrade;
+                if (room <= 0.f) RA = RB = 0.f;
+                else if (RA + RB > room) {
+                    float k = room / (RA + RB);
+                    RA *= k;
+                    RB *= k;
+                }
+                float ramp = Max(L - RA - RB, 1e-3f);
+                for (size_t j = 1; j + 1 < cnt; j++) {
+                    float d = s2[j];
+                    nz[j] = d <= RA ? zA : (d >= L - RB ? zB : Lerp(zA, zB, (d - RA) / ramp));
+                }
+                shortLinks++;
+            } else {
+                for (size_t j = 1; j + 1 < cnt; j++) {
+                    float d = s2[j], z = e.pts[j].z;
+                    if (actA) z = d <= RA ? zA : z + copysignf(Max(0.f, fabsf(offA) - kEase * (d - RA)), offA);
+                    if (actB && L - d <= RB) z = zB;
+                    else if (actB) z += copysignf(Max(0.f, fabsf(offB) - kEase * (L - d - RB)), offB);
+                    nz[j] = z;
+                }
+            }
+            for (size_t j = 1; j + 1 < cnt; j++) {
+                float dz = fabsf(nz[j] - e.pts[j].z);
+                if (dz < 0.02f) continue;
+                worst = Max(worst, dz);
+                e.pts[j].z = nz[j];
+                changed++;
+            }
+        }
+        for (auto& e : edges) {
+            e.dist[0] = 0;
+            for (size_t i = 1; i < e.pts.size(); i++) e.dist[i] = e.dist[i - 1] + length(e.pts[i] - e.pts[i - 1]);
+            e.length = e.dist.back();
+        }
+        LOG("Road gen: junction plateaus, %d profile points levelled (largest change %.2f m, %d short links ramped plateau to plateau)",
+            changed, worst, shortLinks);
+    }
+
     // ============================================================= Intersections: radius, cut-backs, control
     for (size_t n = 0; n < nodes.size(); n++) {
         RoadNode& nd = nodes[n];

@@ -84,6 +84,8 @@ void updateOpenWorld(GameWorld& g, float dt) {
         shopsUpdate(g, dt);
         activitiesUpdate(g, dt);
         economyUpdate(g, dt);
+        encountersUpdate(g, dt);
+        act4Update(g, dt);
     }
     drawMarkers(g, gWorldMarkers);
     updateMissionTest(g, dt);

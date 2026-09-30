@@ -76,7 +76,7 @@ u32 checksum(const u8* d, size_t n) {
 
 using namespace save_detail;
 
-namespace mu { int sideFlagTotal(); }   // story_base.cpp
+namespace mu { int sideFlagTotal(); int storyFlagTotal(); }   // story_base.cpp
 
 float GameWorld::completion() const {
     // story 60%, collectibles 15%, side activities 25% (tracked via storyFlags ranges)
@@ -86,7 +86,7 @@ float GameWorld::completion() const {
         if (i < 64 && storyFlags[i]) storyDone++;
         if (i >= 64 && i < 128 && storyFlags[i]) sideDone++;   // [128, 384) hold extended ints (money, days, masks)
     }
-    story = Min(1.f, storyDone / 21.f);   // 21 story missions
+    story = Min(1.f, storyDone / (float)Max(1, mu::storyFlagTotal()));   // every story mission in story_base.cpp (Acts 1-4)
     float coll = shellCount > 0 ? (float)pinfo.collectiblesFound / shellCount : 0.f;
     float side = Min(1.f, sideDone / (float)Max(1, mu::sideFlagTotal()));   // every side flag in story_base.cpp
     return story * 60.f + coll * 15.f + side * 25.f;

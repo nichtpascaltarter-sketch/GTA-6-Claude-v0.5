@@ -467,7 +467,7 @@ vec3 LaneGraph::walkPos(int link, float x, float lateral, bool fromA) const {
     } else {
         p = lerp(A.p, B.p, f);
         tan = normalize(B.p.xy() - A.p.xy());
-        p.z -= 0.15f;  // crosswalk is on the road surface
+        if (w.kind != WL_PATH) p.z -= 0.15f;  // a crosswalk / zebra is on the road surface (a plaza path at its own level)
     }
     if (!fromA) tan = -tan;
     float lat = Clamp(lateral, -w.halfWidth, w.halfWidth);
@@ -491,6 +491,19 @@ int LaneGraph::nearestWalk(vec2 p, float maxDist, float* xOut, float* latOut) co
     float bestD = maxDist, bestX = 0.f, bestLat = 0.f;
     for (int li : cand) {
         const WalkLink& w = walkLinks[li];
+        if (w.kind == WL_PATH) {
+            // a plaza walkway: straight between its nodes
+            vec2 a = walkNodes[w.a].p.xy(), b = walkNodes[w.b].p.xy();
+            float t;
+            float d = distPointSegment2D(p, a, b, &t);
+            if (d < bestD) {
+                bestD = d;
+                best = li;
+                bestX = t * w.length;
+                bestLat = cross(b - a, p - a) >= 0.f ? -d : d;   // (right of a->b is +)
+            }
+            continue;
+        }
         if (w.kind != WL_SIDEWALK) continue;
         const World::RoadEdge& e = roads->edges[w.edge];
         const std::vector<vec2>& vn = edgeNormal[w.edge];
@@ -954,7 +967,9 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                 float ang = atan2f(cross(tin, tout), dot(tin, tout));
                 u8 turn = TK_STRAIGHT;
                 if (na == 2) turn = TK_STRAIGHT;
-                else if (fabsf(ang) > 155.f * kDegToRad) continue;  // U-turn through an intersection: not allowed
+                else if (fabsf(ang) > 140.f * kDegToRad) continue;  // U-turn through an intersection: not allowed (nor the
+                                                                     // hairpin back into a skewed road: it sweeps across the
+                                                                     // start of the other road's lane on its way round)
                 else if (ang > 35.f * kDegToRad) turn = TK_LEFT;
                 else if (ang < -35.f * kDegToRad) turn = TK_RIGHT;
                 if (interchange) {
@@ -989,12 +1004,35 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                     hasRight |= m.turn == TK_RIGHT;
                     hasStraight |= m.turn == TK_STRAIGHT;
                 }
+            // a diverge / fork (an exit ramp off the motorway, a Y): with more than one way on ahead, the best aligned is
+            // the carriageway itself (every lane carries on), the others are reached only from the lanes on their side -
+            // an exit on the right from the right-hand lane(s), never across the other lanes from the far side (where
+            // this approach is itself the side stream into that road - a merge - it keeps the merge's mapping below)
+            const Move* mainOn = nullptr;
+            {
+                float bestA = 1e9f;
+                for (const Move& m : moves) {
+                    if (m.ai != ai || m.turn != TK_STRAIGHT) continue;
+                    float score = fabsf(m.ang) - N.approaches[m.aj].rank * 0.3f;
+                    if (score < bestA) {
+                        bestA = score;
+                        mainOn = &m;
+                    }
+                }
+            }
             std::vector<int> laneUse(Lin, 0);
             for (const Move& m : moves) {
                 if (m.ai != ai) continue;
                 const Approach& B = N.approaches[m.aj];
                 int Lout = (int)B.outLanes.size();
-                if (m.turn == TK_STRAIGHT) {
+                if (m.turn == TK_STRAIGHT && mainOn && &m != mainOn && primarySrc[m.aj] == ai) {
+                    bool onRight = m.ang < mainOn->ang;
+                    for (int j = 0; j < Min(Lin, Lout); j++) {
+                        int k = onRight ? Lin - 1 - j : j, ko = onRight ? Lout - 1 - j : j;
+                        addConn(ai, A.inLanes[k], m.aj, B.outLanes[ko], TK_STRAIGHT);
+                        laneUse[k]++;
+                    }
+                } else if (m.turn == TK_STRAIGHT) {
                     bool primary = primarySrc[m.aj] == ai;
                     // which side does a secondary source come from?  compare lateral positions in the outgoing frame
                     bool fromRight = false;
@@ -1476,6 +1514,85 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
         }
     }
 
+    // ---- walkways off the street network (World::SiteSet::walks: plaza paths, mid-block zebras over site roads): split
+    //      where they meet (a path crossing another, a stub ending on one), walk nodes at the ends and the meeting points
+    //      (joined to a walk node already within 1.5 m - a sidewalk end, the next path), straight links between them
+    int sitePaths = 0, siteZebras = 0;
+    if (World::gSites && !World::gSites->walks.empty()) {
+        const std::vector<World::SiteWalk>& SW = World::gSites->walks;
+        auto nodeAt = [&](vec3 q) -> int {
+            int best = -1;
+            float bd = 1.5f;
+            for (int ni = 0; ni < (int)walkNodes.size(); ni++) {
+                float d = length(walkNodes[ni].p.xy() - q.xy());
+                if (d < bd && fabsf(walkNodes[ni].p.z - q.z) < 1.2f) {
+                    bd = d;
+                    best = ni;
+                }
+            }
+            if (best >= 0) return best;
+            WalkNode n;
+            n.p = q;
+            walkNodes.push_back(n);
+            return (int)walkNodes.size() - 1;
+        };
+        // where along each walkway another one meets it (t in 0..1): crossings of two paths, ends lying on one
+        std::vector<std::vector<float>> cuts(SW.size());
+        for (size_t i = 0; i < SW.size(); i++) {
+            cuts[i].push_back(0.f);
+            cuts[i].push_back(1.f);
+        }
+        for (size_t i = 0; i < SW.size(); i++) {
+            vec2 a = SW[i].a.xy(), b = SW[i].b.xy();
+            float li = length(b - a);
+            if (li < 0.5f) continue;
+            for (size_t j = 0; j < SW.size(); j++) {
+                if (j == i) continue;
+                vec2 c = SW[j].a.xy(), e = SW[j].b.xy();
+                // an end of j on the inside of i
+                for (vec2 q : {c, e}) {
+                    float t;
+                    float d = distPointSegment2D(q, a, b, &t);
+                    if (d < 1.5f && t * li > 1.5f && (1.f - t) * li > 1.5f) cuts[i].push_back(t);
+                }
+                // the two crossing mid-way (paths only: a zebra meets its paths end to end)
+                if (SW[i].kind == World::SW_PATH && SW[j].kind == World::SW_PATH) {
+                    vec2 r = b - a, sv = e - c;
+                    float den = cross(r, sv);
+                    if (fabsf(den) > 1e-4f) {
+                        float t = cross(c - a, sv) / den, u = cross(c - a, r) / den;
+                        if (t > 0.f && t < 1.f && u > 0.f && u < 1.f && t * li > 1.5f && (1.f - t) * li > 1.5f) cuts[i].push_back(t);
+                    }
+                }
+            }
+        }
+        for (size_t i = 0; i < SW.size(); i++) {
+            const World::SiteWalk& sw = SW[i];
+            if (length(sw.b.xy() - sw.a.xy()) < 0.5f) continue;
+            std::vector<float>& ts = cuts[i];
+            std::sort(ts.begin(), ts.end());
+            int prev = -1;
+            for (size_t k = 0; k < ts.size(); k++) {
+                if (k > 0 && ts[k] - ts[k - 1] < 1e-3f) continue;
+                int n = nodeAt(lerp(sw.a, sw.b, ts[k]));
+                if (prev >= 0 && n != prev) {
+                    WalkLink L;
+                    L.a = prev;
+                    L.b = n;
+                    L.kind = sw.kind == World::SW_CROSSING ? WL_ZEBRA : WL_PATH;
+                    L.halfWidth = Max(sw.halfWidth - 0.3f, 0.3f);
+                    L.length = length(walkNodes[n].p.xy() - walkNodes[prev].p.xy());
+                    int id = (int)walkLinks.size();
+                    walkLinks.push_back(L);
+                    walkNodes[prev].links.push_back(id);
+                    walkNodes[n].links.push_back(id);
+                    (L.kind == WL_ZEBRA ? siteZebras : sitePaths)++;
+                }
+                prev = n;
+            }
+        }
+    }
+
     // ---- spatial hashes
     hashRes = rn.hashRes;
     laneHash.assign((size_t)hashRes * hashRes, {});
@@ -1516,6 +1633,42 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
         std::sort(v.begin(), v.end());
         v.erase(std::unique(v.begin(), v.end()), v.end());
     }
+    // ---- the lanes each zebra crosses: where on the lane the crossing starts (traffic_core.cpp stops short of it while
+    //      somebody is on it)
+    for (int wi = 0; wi < (int)walkLinks.size(); wi++) {
+        const WalkLink& w = walkLinks[wi];
+        if (w.kind != WL_ZEBRA) continue;
+        vec2 a = walkNodes[w.a].p.xy(), b = walkNodes[w.b].p.xy();
+        int n = Max(2, (int)(w.length / 0.5f));
+        int laneSeen[16];
+        float laneU[16];
+        int nl = 0;
+        for (int k = 0; k <= n; k++) {
+            vec2 q = lerp(a, b, k / (float)n);
+            float u = 0.f, lat = 0.f;
+            int ln = nearestLane(q, vec2(0.f), 4.f, &u, &lat);
+            if (ln < 0 || fabsf(lat) > lanes[ln].width * 0.5f || u < lanes[ln].u0 || u > lanes[ln].u1) continue;
+            int j = 0;
+            for (; j < nl && laneSeen[j] != ln; j++) {
+            }
+            if (j == nl && nl < 16) {
+                laneSeen[nl] = ln;
+                laneU[nl] = u;
+                nl++;
+            } else if (j < nl) {
+                laneU[j] = Min(laneU[j], u);
+            }
+        }
+        for (int j = 0; j < nl; j++) {
+            LaneZebra z;
+            z.u = laneU[j] - w.halfWidth - 0.3f;   // (the stripes' near edge)
+            z.link = wi;
+            std::vector<LaneZebra>& v = lanes[laneSeen[j]].zebras;
+            v.push_back(z);
+            std::sort(v.begin(), v.end(), [](const LaneZebra& p, const LaneZebra& q) { return p.u < q.u; });
+        }
+    }
+    if (sitePaths + siteZebras > 0) LOG("Lane graph: %d plaza walkways and %d zebra crossings from the sites", sitePaths, siteZebras);
     buildSeconds = TimeSeconds() - t0;
     size_t cpts = 0;
     for (auto& c : conns) cpts += c.pts.size();

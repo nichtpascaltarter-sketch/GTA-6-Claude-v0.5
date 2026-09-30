@@ -132,6 +132,17 @@ struct GameWorld {
     Render::Model* weaponModels[WPN_COUNT] = {};
     Render::Model* weaponTintModels[WPN_COUNT][kWeaponTints] = {};    // [w][0] == weaponModels[w]
     // magazine-fed guns split for first-person reloads: the gun without its magazine, and the magazine alone
+    // carried props (carry.cpp): two looks each; the umbrella's canopy with its shaft drawn apart, a furled one
+    Render::Model* carryModels[CARRY_COUNT] = {};
+    Render::Model* carryAlt[CARRY_COUNT] = {};
+    Render::Model* umbrellaShaft = nullptr;
+    Render::Model* umbrellaFurled = nullptr;
+    void loadCarryModels();
+    // a prop for someone at a place (0 street, 1 airport traveler, 2 shopping, 3 office, 4 beach, 5 angler, 6 birder)
+    u8 pickCarry(u32 uid, int context) const;
+    void submitCarry(int pedIndex, const Render::DrawItem& body);
+    u8 effectiveCarry(const Ped& p) const;   // the prop in hand this frame (rain umbrellas, street defaults, busy hands)
+    bool umbrellaWeather() const;
     Render::Model* weaponBodyModels[WPN_COUNT][kWeaponTints] = {};
     Render::Model* weaponMagModels[WPN_COUNT][kWeaponTints] = {};
     Render::Model* weaponCompModels[WPN_COUNT][kWeaponCompCount] = {}; // attachment meshes in the weapon's frame
@@ -231,6 +242,7 @@ struct GameWorld {
     void updateFirstPersonWeapon(float dt);
     void updateFirstPersonMelee(float dt);   // fpweapon.cpp: the fists' guard and strikes in front of the eyes
     void updateCameraFades(float realDt);   // camera.cpp: peds covering the player / touching the lens dither out
+    void resetCameraRig();                  // keeps the Settings > Camera preferences
     bool weaponShowcase = false;   // test: a rack of every gun (stock / all components + tints) at showcasePos
     dvec3 showcasePos;
     void submitWeaponShowcase();

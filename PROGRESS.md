@@ -232,6 +232,27 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   - builds: `QUICK=1` -O1 builds, less GC work under the build lock, and a memory wait after taking it;
   - `tools/run.sh` sets up a fresh Wine prefix completely before the first launch.
 
+## Graphics API: moving to Direct3D 12 (user request, 2026-09-30 evening, in progress)
+- Why: D3D12 opens bindless descriptor tables (resource binding tier 3), async compute (GI, fog and particles
+  beside the graphics queue), ExecuteIndirect GPU-driven culling and multithreaded command recording. DXR and mesh
+  shaders need DXIL (SM 6), which the allowed toolchain can't produce (d3dcompiler_47 stops at SM 5.1, and DXC is
+  not part of Windows), so shaders stay HLSL SM 5.1.
+- Test rig: Wine 9.0's built-in vkd3d on lavapipe runs D3D12 headless. A smoke test (device, flip-model swap chain,
+  cs_5_1 through d3dcompiler_47, root signature, compute PSO, UAV dispatch, clear, readback, present) passes. It
+  reports resource binding tier 3 and shader model 5.1.
+- Plan (D3D12 only, per the user: no D3D11 fallback, so nothing is held to D3D11's limits). The D3D12 renderer is
+  built in a private copy while the main tree stays on D3D11 for the other agents. It lands in one switchover that
+  deletes every D3D11 path (no `--d3d11`, no -ld3d11); without a D3D12 device the game shows a clear requirement
+  message and exits. The gfx layer is designed around D3D12:
+  - bindless descriptor indices (tier 3 heap, SM 5.1 unbounded arrays), root constants;
+  - an async compute queue with cross-queue fences, ExecuteIndirect, placed or aliased transient targets;
+  - to port the existing passes quickly: a state tracker with a PSO cache keyed by state hash, root signatures over
+    the space0 register ranges (the HLSL is unchanged), per-draw descriptor tables from a shader-visible ring, upload
+    rings, automatic barriers (including UAV barriers between dependent dispatches), compute mip generation,
+    timestamp queries and screenshot readback.
+  Validation before landing: tour slices, first-person guns, UI shots and the benchmark, with screenshots compared to
+  the current D3D11 build.
+
 ## Gameplay architecture (src/game, src/sim)
 - `app.cpp`: states LOADING (world generated on a thread, loading screen) -> MENU (cinematic flyover + main menu)
   -> PLAYING (pause/map menus overlay) ; FREECAM for --shot/--viewer/F9. Gameplay compiles only when characters,

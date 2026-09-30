@@ -52,7 +52,37 @@ enum SiteKind : u16 {
     SK_SILO, SK_WINDMILL, SK_BOARDWALK, SK_OBS_TOWER, SK_BOAT_RAMP, SK_RIVER_MARINA, SK_PIER_GAMES,
     // Public transit (transit.cpp / transitmesh.cpp)
     SK_METRO_VIADUCT = 160, SK_METRO_STATION, SK_BUS_STOP, SK_FERRY_PIER, SK_TRAM_TRACK, SK_TRAM_STOP,
+    // Hand-built places (places.h): Ocean Promenade hotels and beachfront park, Porto Sol University, cemeteries,
+    // hospitals, the state prison and the speedway
+    SK_DECO_HOTEL = 200, SK_DECO_PARK,
+    SK_CAMPUS_GROUNDS = 210, SK_CAMPUS_HALL, SK_CAMPUS_TOWER, SK_CAMPUS_FIELD,
+    SK_CEMETERY = 220, SK_CEMETERY_WALL, SK_CHURCHYARD, SK_CHAPEL,
+    SK_HOSPITAL = 230, SK_HOSPITAL_GROUNDS,
+    SK_PRISON = 240, SK_PRISON_WALL, SK_SPEEDWAY = 245, SK_SPEEDWAY_STAND,
     SK_COUNT_MAX
+};
+
+// Named places the site layouts build (map labels, blips, missions). pos: centre; door: the public entrance on the
+// street side (hospitals: the emergency entrance, where an ambulance drops off and a patient walks out)
+enum PlaceKind : u8 { PK_HOTEL_ROW = 0, PK_CAMPUS, PK_CEMETERY, PK_CHURCHYARD, PK_HOSPITAL, PK_PRISON, PK_SPEEDWAY, PK_COUNT };
+struct NamedPlace {
+    std::string name;
+    u8 kind = 0;
+    vec2 pos, door;
+    float radius = 0.f;
+};
+
+// Scenario anchors for people at the places: diners at cafe tables, students on the quad lawns and benches, mourners at
+// the graves, guards in the towers and at the sally port, pit crews in the pit boxes, nurses and paramedics at the
+// emergency bay. pos: feet (seats: the seat's footprint, sit at pos.z + 0.45), face: facing direction; anchors sharing a
+// group belong together (one table, one grave, one pit box).
+enum PlaceAnchorKind : u8 { PA_SIT = 0, PA_STAND, PA_WAYPOINT, PA_GUARD, PA_MOURN, PA_WORK, PA_EXERCISE, PA_SIT_GROUND, PA_COUNT };
+struct PlaceAnchor {
+    vec3 pos;
+    vec2 face;
+    u8 kind = PA_STAND;
+    u8 place = 0;
+    u16 group = 0;
 };
 
 struct SiteElem {
@@ -69,6 +99,15 @@ struct SiteElem {
     std::string text;          // names / signage
     float radius() const { return sqrtf(hx * hx + hy * hy); }
     bool isLine() const { return length2(b - a) > 1e-6f; }
+};
+
+// Walkways off the street network for the pedestrian graph (the lane graph links them to the sidewalks): plaza paths and
+// mid-block zebra crossings over site roads. a/b: centreline ends at walking height.
+enum SiteWalkKind : u8 { SW_PATH = 0, SW_CROSSING };
+struct SiteWalk {
+    vec3 a, b;
+    float halfWidth = 1.f;
+    u8 kind = SW_PATH;
 };
 
 // Axis-aligned or oriented exclusion rectangle
@@ -91,6 +130,8 @@ struct SiteBuildingReq {
     vec2 front;     // unit direction the main facade faces
     float baseZ;    // < -100: use terrain
     u8 region;
+    int siteElem = -1;     // >= 0: this site element builds the building's mesh (buildmesh.cpp leaves it alone)
+    bool siteHost = false; // a site-built building that may host an enterable interior (the element cuts its openings)
 };
 
 // A road the site layout adds to the network (airport loop, perimeter road, port roads, Key Coral streets)
@@ -110,6 +151,9 @@ struct SiteSet {
     std::vector<SiteRect> vegBlocks;     // no natural vegetation scatter
     std::vector<SiteBuildingReq> buildingReqs;
     std::vector<SiteRoad> roads;
+    std::vector<SiteWalk> walks;              // plaza paths and zebra crossings for the pedestrian graph
+    std::vector<NamedPlace> places;           // hospitals, campus, cemeteries, prison, speedway, hotel row (places.h)
+    std::vector<PlaceAnchor> anchors;         // where people sit, stand and work at those places
     std::vector<std::vector<int>> cellElems;  // per streaming cell: elements whose bounds overlap it
     std::vector<int> farCells;                // cells holding tall landmarks (kept as far-LOD cells out to farRange)
     float farRange = 8000.f;
