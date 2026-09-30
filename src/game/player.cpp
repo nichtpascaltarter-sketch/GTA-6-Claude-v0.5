@@ -342,6 +342,8 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
     quat qy = quatAxisAngle(vec3(0, 0, 1), p.yaw);
     vec3 hand = p.pos.toVec3() + rotate(qy, p.bones[Anim::B_HAND_R].c[3].xyz());
     vec3 muzzle = hand + normalize(rel(aimPoint, dvec3(hand))) * (p.weapon >= WPN_SMG && p.weapon <= WPN_RPG ? 0.5f : 0.22f);
+    dvec3 fpMuzzle;
+    if (fpWeaponMuzzle(fpMuzzle)) muzzle = fpMuzzle.toVec3();   // first person: the gun held in front of the eyes
     vec3 aimDir = normalize(rel(aimPoint, dvec3(muzzle)));
     p.aimDir = aimDir;
     p.aimPitch = asinf(Clamp(camF.z, -1.f, 1.f));

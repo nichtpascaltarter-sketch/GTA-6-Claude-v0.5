@@ -166,4 +166,29 @@ void solveTwoBoneIK(const Skeleton& skel, Pose& pose, Bone upper, Bone lower, Bo
     }
 }
 
+void holdGrip(const Skeleton& skel, Pose& pose, bool right, vec3 pos, vec3 axis, vec3 palm, vec3 pole, float fingers, float thumb,
+              float weight) {
+    using namespace detail;
+    if (weight <= 0.f) return;
+    weight = Min(weight, 1.f);
+    int hb = right ? B_HAND_R : B_HAND_L, fb = right ? B_FINGERS_R : B_FINGERS_L, tb = right ? B_THUMB_R : B_THUMB_L;
+    int lo = right ? B_FOREARM_R : B_FOREARM_L, up = right ? B_UPPERARM_R : B_UPPERARM_L;
+    // the hand's grip frame (as handGrip): handle axis +Y, fingers along the bind finger joint, palm normal between
+    vec3 fl = skel.bindLocalPos[fb];
+    float pl = length(fl);
+    vec3 fing = pl > 1e-5f ? fl / pl : vec3(0, 0, -1);
+    vec3 pn = normalize(right ? cross(vec3(0, 1, 0), fing) : cross(fing, vec3(0, 1, 0)));
+    quat qh = quatFromTwoPairs(vec3(0, 1, 0), pn, axis, palm);
+    vec3 wrist = pos - rotate(qh, fing * (kGripAlong * pl) + pn * (kGripPalm * pl));
+    solveTwoBoneIK(skel, pose, (Bone)up, (Bone)lo, (Bone)hb, wrist, pole, weight);
+    quat qf;
+    vec3 pf;
+    boneModel(skel, pose, lo, qf, pf);
+    pose.rot[hb] = nlerp(pose.rot[hb], normalize(conj(qf) * qh), weight);
+    // curl round the handle (the clips' finger / thumb flexion axes)
+    vec3 thumbDir = normalize(fing * 0.62f + vec3(0, 1, 0) * 0.66f + pn * 0.42f);
+    pose.rot[fb] = nlerp(pose.rot[fb], qaa(normalize(cross(fing, pn)), fingers * 1.45f), weight);
+    pose.rot[tb] = nlerp(pose.rot[tb], qaa(normalize(cross(thumbDir, pn)), thumb * 0.9f), weight);
+}
+
 }  // namespace Anim

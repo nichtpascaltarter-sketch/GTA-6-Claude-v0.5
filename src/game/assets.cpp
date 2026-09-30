@@ -47,6 +47,46 @@ void cylinderAB(MeshData& m, vec3 a, vec3 b, float r0, float r1, int seg, u32 co
     }
 }
 
+// Open tube (optic housings you can look through): outer and inner walls with flat rings closing both ends.
+void hollowTube(MeshData& m, vec3 a, vec3 b, float rOut, float rIn, int seg, u32 color, u32 mat) {
+    vec3 axis = b - a;
+    float h = length(axis);
+    if (h < 1e-5f) return;
+    vec3 z = axis / h;
+    vec3 x = normalize(fabsf(z.z) < 0.9f ? cross(z, vec3(0, 0, 1)) : cross(z, vec3(1, 0, 0)));
+    vec3 y = cross(z, x);
+    for (int wall = 0; wall < 2; wall++) {   // outer wall faces out, inner wall faces the axis
+        float r = wall ? rIn : rOut, sg = wall ? -1.f : 1.f;
+        u32 start = (u32)m.verts.size();
+        for (int i = 0; i <= seg; i++) {
+            float t = kTwoPi * i / seg;
+            vec3 d = x * cosf(t) + y * sinf(t), tg = x * -sinf(t) + y * cosf(t);
+            m.addVertex(a + d * r, d * sg, tg, vec2((float)i / seg, 0), color, mat);
+            m.addVertex(b + d * r, d * sg, tg, vec2((float)i / seg, h), color, mat);
+        }
+        for (int i = 0; i < seg; i++) {
+            u32 i0 = start + i * 2;
+            if (wall) m.quadIdx(i0, i0 + 1, i0 + 3, i0 + 2);
+            else m.quadIdx(i0, i0 + 2, i0 + 3, i0 + 1);
+        }
+    }
+    for (int e = 0; e < 2; e++) {   // end rings
+        vec3 c = e ? b : a, n = e ? z : -z;
+        u32 start = (u32)m.verts.size();
+        for (int i = 0; i <= seg; i++) {
+            float t = kTwoPi * i / seg;
+            vec3 d = x * cosf(t) + y * sinf(t);
+            m.addVertex(c + d * rOut, n, x, vec2((float)i / seg, 0), color, mat);
+            m.addVertex(c + d * rIn, n, x, vec2((float)i / seg, rOut - rIn), color, mat);
+        }
+        for (int i = 0; i < seg; i++) {
+            u32 i0 = start + i * 2;
+            if (e) m.quadIdx(i0, i0 + 2, i0 + 3, i0 + 1);
+            else m.quadIdx(i0, i0 + 1, i0 + 3, i0 + 2);
+        }
+    }
+}
+
 // Oriented box from center, forward (Y) direction and up hint.
 void obox(MeshData& m, vec3 c, vec3 fwd, vec3 upHint, vec3 he, u32 color, u32 mat) {
     vec3 y = normalize(fwd);
@@ -124,8 +164,12 @@ void buildWeaponMesh(WeaponType w, MeshData& m) {
             obox(m, vec3(0, 0.1f, -0.045f), vec3(0, 1, 0.25f), U, vec3(0.013f, 0.022f, 0.07f), black, matMetal);  // curved mag
             grip(vec3(0, -0.02f, 0.02f), 0.1f, 0.3f, vec3(0.014f, 0.018f, 0.05f), poly, matPlastic);
             obox(m, vec3(0, -0.2f, 0.035f), vec3(0, 1, 0.12f), U, vec3(0.018f, 0.13f, 0.035f), poly, matPlastic);  // stock
-            obox(m, vec3(0, 0.12f, 0.1f), F, U, vec3(0.012f, 0.06f, 0.012f), black, matMetal);          // optic body
-            cylinderAB(m, vec3(0, 0.06f, 0.11f), vec3(0, 0.18f, 0.11f), 0.016f, 0.016f, 12, black, matMetal);
+            // red-dot optic: an open tube on a mount, a thin see-through lens near its front (first person looks
+            // through it)
+            obox(m, vec3(0, 0.12f, 0.088f), F, U, vec3(0.01f, 0.05f, 0.006f), black, matMetal);         // mount
+            hollowTube(m, vec3(0, 0.06f, 0.11f), vec3(0, 0.18f, 0.11f), 0.016f, 0.0135f, 16, black, matMetal);
+            cylinderAB(m, vec3(0, 0.1745f, 0.11f), vec3(0, 0.1755f, 0.11f), 0.0136f, 0.0136f, 16, packRGBA8(0.55f, 0.62f, 0.75f, 1),
+                       makeMat(MAT_CAR_WINDOW));
             break;
         }
         case WPN_SHOTGUN: {

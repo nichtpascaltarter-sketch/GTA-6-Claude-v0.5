@@ -858,8 +858,8 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
             if (!oneway && !A.inLanes.empty() && !A.outLanes.empty()) {
                 for (size_t k = 0; k < A.inLanes.size(); k++) {
                     int lo = A.outLanes[Min(k, A.outLanes.size() - 1)];
-                    // the turning circle must be clear of buildings: pull it back toward the street and tighten it
-                    // until it fits (a building standing in a cul-de-sac bulb would otherwise trap every car)
+                    // the turning circle must be clear of buildings and site structures (walls, signs, fences): pull it
+                    // back toward the street until it fits (one standing in a cul-de-sac bulb would otherwise trap every car)
                     bool placed = false;
                     const int kTries = 9;
                     for (int attempt = 0; attempt < kTries && !placed; attempt++) {
@@ -868,12 +868,12 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                         addConn(0, A.inLanes[k], 0, lo, TK_UTURN);
                         const Connector& c = conns.back();
                         bool blocked = false;
-                        if (World::gBuildings)
-                            for (const vec3& q : c.pts)
-                                if (World::gBuildings->pointInBuilding(q.xy(), 4.2f)) {   // body corners + overshoot at the apex
-                                    blocked = true;
-                                    break;
-                                }
+                        for (const vec3& q : c.pts)
+                            if ((World::gBuildings && World::gBuildings->pointInBuilding(q.xy(), 4.2f)) ||   // body corners + overshoot at the apex
+                                World::siteColliderNear(q, 4.2f, 2.5f)) {                                  // site walls, signs, fences too
+                                blocked = true;
+                                break;
+                            }
                         if (!blocked) {
                             placed = true;
                             uturnPulled += attempt > 0;

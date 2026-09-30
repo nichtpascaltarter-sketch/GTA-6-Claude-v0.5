@@ -201,7 +201,8 @@ void GameWorld::updateCameraRig(float dt) {
             r.cut = true;
         }
         bool gliding = !p.grounded && p.hasParachute && p.airTime > 0.5f;
-        bool fp = r.footFirstPerson && p.state == PS_ONFOOT && p.moveMode == 0 && !gliding && p.takedownT < 0.f && !p.ragdoll;
+        bool sniperScope = aimMode && p.weapon == WPN_SNIPER;   // the sniper rifle always aims through its scope, from the eyes
+        bool fp = (r.footFirstPerson || sniperScope) && p.state == PS_ONFOOT && p.moveMode == 0 && !gliding && p.takedownT < 0.f && !p.ragdoll;
         if (fp) {
             quat qy = quatAxisAngle(vec3(0, 0, 1), p.yaw);
             vec3 eye = rotate(qy, p.bones[Anim::B_HEAD].c[3].xyz() + vec3(0.f, 0.13f, 0.075f));

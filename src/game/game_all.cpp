@@ -12,6 +12,7 @@
 #include "melee.cpp"
 #include "social.cpp"
 #include "camera.cpp"
+#include "fpweapon.cpp"       // first-person gun holds (after the camera update)
 #include "player.cpp"
 #include "police.cpp"
 #include "ai.cpp"

@@ -188,6 +188,7 @@ void GameWorld::update(float realDt) {
     double t6 = TimeSeconds();
     sanitizeEntities();
     updateCamera(realDt);
+    updateFirstPersonWeapon(realDt);   // after the camera: the gun is placed in front of the eyes
     Wildlife::update(*this, dt);   // animals around the player (wildlife.cpp; after the camera: LOD / spawning use it)
     updateRumble(realDt);
     updatePostFx(realDt);
@@ -580,12 +581,18 @@ void GameWorld::submitRender() {
                 wd.pos = p.pos + dvec3(wpos - wax * gripOff);
                 wd.rot = frameFromForward(wax, wpalm);
             }
+            bool hideGun = false;
+            if (p.isPlayer && fpw.active) {   // first person: held in front of the eyes (fpweapon.cpp)
+                wd.pos = fpw.pos;
+                wd.rot = fpw.rot;
+                hideGun = fpw.hideWeapon;     // looking through a scope
+            }
             wd.id = 0x600000000ull | p.uid;
             wd.castShadow = p.visibleDist < 40.f;
-            dyn->submit(wd);
+            if (!hideGun) dyn->submit(wd);
             // fitted attachments share the weapon's transform
             u8 comps = weaponComps(p, p.weapon);
-            for (int c = 0; c < kWeaponCompCount && comps; c++) {
+            for (int c = 0; c < kWeaponCompCount && comps && !hideGun; c++) {
                 if (!(comps & (1 << c)) || !weaponCompModels[p.weapon][c]) continue;
                 Render::DrawItem cd = wd;
                 cd.model = weaponCompModels[p.weapon][c];

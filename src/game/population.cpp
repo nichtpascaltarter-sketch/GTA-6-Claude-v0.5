@@ -1062,7 +1062,7 @@ void GameWorld::updatePopulation(float dt) {
     gPop.departTimer -= dt;
     if (!warm && gPop.departTimer <= 0.f && nTraffic < wantTraffic + 4) {
         u32 h = nextSeed();
-        gPop.departTimer = 5.f + hashToFloat(h) * 8.f;
+        gPop.departTimer = (5.f + hashToFloat(h) * 8.f) / Max(ai.lifeBoost, 0.1f);
         int car = -1;
         float bestR = 2.f;
         for (int i = 0; i < (int)vehicles.size(); i++) {

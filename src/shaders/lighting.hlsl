@@ -457,12 +457,16 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         else if (dbg == 14) o = ssr.a;
         else if (dbg == 15) o = froxelFog(uv, viewDepth).rgb * 4.0;
         else if (dbg == 16) o = froxelFog(uv, viewDepth).a;
-        else if (dbg == 17) {
-            // ambient sources for the pixel normal (x4): left third the reflection probe's SH (near-camera ambient),
-            // middle the sky SH, right the probe cube's filtered radiance (mip 2, what the SH is projected from)
-            if (uv.x < 0.333) o = evalSH9From(gProbeSH, g.normal) * preExposure() * 4.0;
-            else if (uv.x < 0.667) o = evalSH9(g.normal) * preExposure() * 4.0;
-            else o = gEnvProbeTex.SampleLevel(sLinearClamp, g.normal, 2.0).rgb * preExposure() * 4.0 / PI;
+        else if (dbg == 17 || dbg == 18) {
+            // Reflection probe as an equirectangular map over the screen (azimuth across, elevation +90 at the top
+            // to -90 at the bottom of each half; geometry pixels only, so aim the camera at the ground). 17: left
+            // half the capture (mip 0), right half the filtered mip 2 that the SH is projected from. 18: left half
+            // the probe SH irradiance, right half the sky SH irradiance (x4).
+            float2 e = float2(frac(uv.x * 2.0), uv.y);
+            float az = e.x * TWO_PI, el = (0.5 - e.y) * PI;
+            float3 d = float3(cos(el) * cos(az), cos(el) * sin(az), sin(el));
+            if (dbg == 17) o = gEnvProbeTex.SampleLevel(sLinearClamp, d, uv.x < 0.5 ? 0.0 : 2.0).rgb * preExposure();
+            else o = (uv.x < 0.5 ? evalSH9From(gProbeSH, d) : evalSH9(d)) * preExposure() * 4.0;
         }
         if (any(isnan(o))) o = float3(1, 0, 1);
         uHDR[id.xy] = float4(o, 1);

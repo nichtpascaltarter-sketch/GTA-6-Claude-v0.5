@@ -326,6 +326,7 @@ typedef std::function<float(const BVert&)> CovFn;
 struct GarmentDef {
     CovFn cov;                                    // meters, positive = covered
     u8 mat = MAT_CLOTH;
+    u32 matParam = 0;                             // MAT_CLOTH weave (dynamic.hlsl): 0 jersey knit, 1 plain weave, 2 twill, 3 rib knit
     vec3 col = vec3(0.8f);
     float thick = 0.004f;                         // offset from the skin
     std::function<float(const BVert&)> extraFn;   // additional per-vertex offset (looseness / hair volume)

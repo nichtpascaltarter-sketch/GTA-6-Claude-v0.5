@@ -116,6 +116,12 @@ void GameWorld::fillHud(UI::HudState& h, float dt) {
         h.aiming = true;          // first person: a plain centre dot while not aiming
         h.reticleSpread = 0.f;
     }
+    if (fpw.active) {
+        if (fpw.ads > 0.5f) h.reticleSpread = 0.f;   // down the sights: the sights are the aim point, keep a dot
+        h.scopeView = fpw.scope;
+        h.scopeKind = fpw.scopeKind;
+        h.redDot = fpw.redDot;
+    }
     if (h.aiming) {
         WorldHit hit;
         vec3 f = rig.cam.forward();

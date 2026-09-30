@@ -1905,8 +1905,20 @@ void RoadNetwork::generate(WorldMap& map) {
             map.flattenAlong(a.xy(), c.xy(), a.z - 0.3f, c.z - 0.3f, hw, 14.f);
         }
     }
+    // dead-end turning bulbs sit on the ground (at the lower of the road's heights across them: the road may still climb into it)
+    auto bulbGround = [&](const RoadNode& nd) {
+        const RoadEdge& e = edges[nd.edges[0]];
+        float br = bulbRadius(nd);
+        vec3 back = e.n1 == (int)(&nd - &nodes[0]) ? e.posAt(e.length - br) : e.posAt(br);
+        return Min(nd.z, back.z) - 0.3f;
+    };
     for (auto& nd : nodes) {
         if (nd.radius > 0 && !nd.highway) map.flattenAlong(nd.p, nd.p + vec2(0.01f, 0), nd.z - 0.3f, nd.z - 0.3f, nd.radius + 4.f, 12.f);
+        float br = bulbRadius(nd);
+        if (br > 0.f) {
+            float zg = bulbGround(nd);
+            map.flattenAlong(nd.p, nd.p + vec2(0.01f, 0), zg, zg, br + edges[nd.edges[0]].sidewalk + 1.5f, 12.f);
+        }
     }
     // Roads are never buried (later flattening, embankment blends and node discs raise the terrain around their neighbours):
     // cut the terrain to just below every road, flat one heightmap texel beyond the sidewalk so the bilinear terrain cannot
@@ -1918,8 +1930,14 @@ void RoadNetwork::generate(WorldMap& map) {
             float flat = e.halfWidth + e.sidewalk + kHeightCell;
             map.lowerAlong(a.xy(), c.xy(), a.z - 0.3f, c.z - 0.3f, flat, flat + 10.f, 0.7f);
         }
-    for (auto& nd : nodes)
+    for (auto& nd : nodes) {
         if (nd.radius > 0) map.lowerAlong(nd.p, nd.p + vec2(0.01f, 0), nd.z - 0.3f, nd.z - 0.3f, nd.radius + kHeightCell, nd.radius + kHeightCell + 10.f, 0.7f);
+        float br = bulbRadius(nd);
+        if (br > 0.f) {
+            float r = br + edges[nd.edges[0]].sidewalk + kHeightCell, zg = bulbGround(nd);
+            map.lowerAlong(nd.p, nd.p + vec2(0.01f, 0), zg, zg, r, r + 10.f, 0.7f);
+        }
+    }
     map.recomputeSplat();
     buildHash();
     int lights = 0;
@@ -1936,6 +1954,7 @@ void RoadNetwork::buildHash() {
     for (size_t i = 0; i < edges.size(); i++) {
         const RoadEdge& e = edges[i];
         float r = e.halfWidth + e.sidewalk + 2.f;
+        if (bulbRadius(nodes[e.n0]) > 0.f || bulbRadius(nodes[e.n1]) > 0.f) r += 4.5f;   // the turning bulb reaches past the width
         vec2 mn(1e9f), mx(-1e9f);
         for (auto& p : e.pts) { mn = vmin(mn, p.xy()); mx = vmax(mx, p.xy()); }
         mn -= vec2(r);
@@ -2053,7 +2072,14 @@ bool RoadNetwork::surfaceHeight(vec2 p, float* z, float maxZ) const {
         const RoadEdge& e = edges[ei];
         const RoadNode* ns[2] = {&nodes[e.n0], &nodes[e.n1]};
         for (auto* n : ns) {
-            if (n->radius <= 0 || length(p - n->p) >= n->radius) continue;
+            float dn = length(p - n->p);
+            // a dead end's turning bulb (and its sidewalk ring) follows the road into it like a junction disc
+            float br = bulbRadius(*n);
+            if (br > 0.f && dn < br + e.sidewalk) {
+                float nz = junctionZ(*n, p) + (dn > br ? 0.15f : 0.f);
+                if (nz <= maxZ && nz > bestZ) { bestZ = nz; found = true; }
+            }
+            if (n->radius <= 0 || dn >= n->radius) continue;
             // the junction surface follows its roads (height of the nearest incident centreline), so a junction on a grade
             // or at a ramp start meets every approach without a step
             float nz = junctionZ(*n, p);
@@ -2074,8 +2100,12 @@ bool RoadNetwork::onPavement(vec2 p, float z, float margin, int ignoreEdge, floa
     cand.clear();
     edgesInRect(p - vec2(margin + 30.f), p + vec2(margin + 30.f), cand);
     for (int ei : cand) {
-        if (ei == ignoreEdge) continue;
         const RoadEdge& e = edges[ei];
+        for (int nn : {e.n0, e.n1}) {
+            float br = bulbRadius(nodes[nn]);
+            if (br > 0.f && length(p - nodes[nn].p) < br + margin && fabsf(nodes[nn].z - z) < zTol) return true;
+        }
+        if (ei == ignoreEdge) continue;
         if (e.flags & RF_UNPAVED) continue;
         float r = e.halfWidth + margin;
         for (size_t k = 0; k + 1 < e.pts.size(); k++) {
@@ -2095,8 +2125,20 @@ bool RoadNetwork::nearRoad(vec2 p, float margin) const {
         float r = e.halfWidth + e.sidewalk + margin;
         for (size_t k = 0; k + 1 < e.pts.size(); k++)
             if (distPointSegment2D(p, e.pts[k].xy(), e.pts[k + 1].xy()) < r) return true;
+        for (int nn : {e.n0, e.n1}) {
+            float br = bulbRadius(nodes[nn]);
+            if (br > 0.f && length(p - nodes[nn].p) < br + e.sidewalk + margin) return true;
+        }
     }
     return false;
+}
+
+float RoadNetwork::bulbRadius(const RoadNode& n) const {
+    if (n.edges.size() != 1) return 0.f;
+    const RoadEdge& e = edges[n.edges[0]];
+    if ((e.flags & (RF_UNPAVED | RF_ONEWAY)) || e.lanesF == 0 || e.lanesB == 0) return 0.f;
+    if (e.cls != RC_LANE && e.cls != RC_STREET && e.cls != RC_RURAL) return 0.f;
+    return e.halfWidth + 4.5f;
 }
 
 float RoadNetwork::totalLength(RoadClass c) const {

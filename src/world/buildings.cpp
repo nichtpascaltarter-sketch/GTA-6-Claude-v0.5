@@ -109,15 +109,14 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
     Rng signRng(0xC0FFEEu);
     for (int i = 0; i < 512; i++) signNames.push_back(makeSignName(signRng));
 
-    // Cul-de-sac bulbs: roadmesh.cpp paves a circle of halfWidth + 4.5 m (plus its sidewalk ring) around every dead end of a
-    // lane or street, so lots must stay clear of them (with a 1 m margin)
+    // Turning bulbs: roadmesh.cpp paves a circle of halfWidth + 4.5 m (plus its sidewalk ring) around every dead end of a
+    // lane, street or rural road (RoadNetwork::bulbRadius), so lots must stay clear of them (with a 1 m margin)
     struct Bulb { vec2 c; float r; };
     std::vector<Bulb> bulbs;
     for (const RoadNode& nd : roads.nodes) {
-        if (nd.edges.size() != 1) continue;
-        const RoadEdge& de = roads.edges[nd.edges[0]];
-        if (de.cls != RC_LANE && de.cls != RC_STREET) continue;
-        bulbs.push_back({nd.p, de.halfWidth + 4.5f + de.sidewalk + 1.0f});
+        float br = roads.bulbRadius(nd);
+        if (br <= 0.f) continue;
+        bulbs.push_back({nd.p, br + roads.edges[nd.edges[0]].sidewalk + 1.0f});
     }
     const float kBulbCell = 64.f;
     auto bulbKey = [](int x, int y) { return (long long)(y + 100000) * 400000LL + (x + 100000); };

@@ -215,6 +215,8 @@ struct AIState {
     float playerExplosiveTime = -100.f;
     float playerLastShotTime = -100.f;
     AIFrameStats stats;
+    float lifeBoost = 1.f;              // autoplay tests: cars park / owners drive off this many times as often
+    double lastParkArrive = -1e9;       // last time a traffic car started pulling into a parking spot (global spacing)
     bool ready = false;
 };
 

@@ -476,6 +476,7 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
         float kick = wi.recoil * ((comps & WC_GRIP) ? 0.65f : 1.f) * (suppressed ? 0.9f : 1.f);
         rumble(kick * 6.f + 0.1f, kick * 10.f + 0.15f);
         rig.recoil += kick;
+        fpw.kick = Min(fpw.kick + ((comps & WC_GRIP) ? 0.75f : 1.f), 1.6f);   // first-person gun kicks back
         if (hitSomeone) {
             pinfo.shotsHit++;
             pinfo.hitMarker = 1.f;

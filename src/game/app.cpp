@@ -403,6 +403,7 @@ struct App {
                 game.pinfo.wpnTintOwned[w] = 0xff;
             }
         }
+        if (autoplay == "fpguns") pl->invincible = true;
         if (autoplay == "shoot") {
             game.giveWeapon(game.player, WPN_RIFLE, 300);
             game.peds[game.player].weapon = WPN_RIFLE;
@@ -482,7 +483,7 @@ struct App {
                 game.pinfo.lastSeenTime = (float)game.time;
             }
         }
-        if (autoplay == "crowd" || autoplay == "panic" || autoplay == "chase" || autoplay == "rage" || autoplay == "soak") {
+        if (autoplay == "crowd" || autoplay == "panic" || autoplay == "chase" || autoplay == "rage" || autoplay == "soak" || autoplay == "parking") {
             // AI scenario tests: crowd variety at four places and hours / gunfire panic -> police response -> arrest /
             // night car chase at 4 stars (PIT, boxing, roadblocks, helicopter searchlight) / rear-ending a bold driver
             mu::setFlag(game, mu::EX_INTRO_DONE, 1);
@@ -492,6 +493,34 @@ struct App {
             game.populationWarmup = 2.5f;
             if (autoplay == "crowd") {
                 autoDuration = 4 * 7.f + 0.5f;   // four stops, 7 s each (applyAutoplay)
+            } else if (autoplay == "parking") {
+                // on the sidewalk of a street with a parking strip: owners come back to their cars and drive off, cars
+                // pull into free spots and their drivers walk off (applyAutoplay follows each one with the camera)
+                vec2 q(1720.f, 360.f);
+                int lane = -1;
+                float u = 0.f;
+                for (int k = 0; k < 80 && lane < 0; k++) {
+                    vec2 probe = q + vec2(cosf(k * 2.4f), sinf(k * 2.4f)) * (5.f + k * 3.f);
+                    float uu = 0.f;
+                    int li = game.laneGraph.nearestLane(probe, vec2(0.f), 30.f, &uu);
+                    if (li < 0) continue;
+                    const AI::Lane& L = game.laneGraph.lanes[li];
+                    bool street = L.cls == World::RC_STREET || L.cls == World::RC_AVENUE || L.cls == World::RC_LANE;
+                    if (!street || L.right >= 0 || World::roadInfo((World::RoadClass)L.cls).shoulder < 1.8f || L.u1 - L.u0 < 80.f) continue;
+                    lane = li;
+                    u = Clamp(uu, L.u0 + 20.f, L.u1 - 40.f);
+                }
+                if (lane >= 0) {
+                    const AI::Lane& L = game.laneGraph.lanes[lane];
+                    vec3 sw = game.laneGraph.lanePos(lane, u, L.width * 0.5f + World::roadInfo((World::RoadClass)L.cls).shoulder + 1.8f);
+                    p.pos = dvec3(sw.x, sw.y, game.groundHeight(sw.x, sw.y, sw.z + 2.f));
+                    p.yaw = AI::dirYaw(game.laneGraph.laneTangent(lane, u));
+                    game.rig.yaw = p.yaw;
+                    LOG("autoplay parking: sidewalk at %.0f %.0f beside lane %d", sw.x, sw.y, lane);
+                }
+                env.timeOfDay = 10.5f;
+                game.timeScale = 1.5f;
+                game.ai.lifeBoost = 6.f;
             } else if (autoplay == "panic") {
                 vec2 q(2713.f, 763.f);
                 p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
@@ -685,6 +714,100 @@ struct App {
                 shot = true;
                 game.requestScreenshot = shotPath(StrFormat("auto_crowd_%02d_%s", stop, stops[stop].name));
                 LOG("autoplay crowd %s | %s | %s", stops[stop].name, game.aiCensusText(70.f).c_str(), game.aiDebugText().c_str());
+            }
+        } else if (autoplay == "parking") {
+            // follow one owner / arriving car at a time from the sidewalk, a shot at each step
+            static int trackVeh = -1, trackPed = -1, phase = -1, shots = 0;
+            static bool arriving = false;
+            static float trackT = 0.f, logT = 0.f, doneT = 0.f;
+            Ped* pl = game.playerPed();
+            auto release = [&](const char* why) {
+                if (trackVeh >= 0) LOG("autoplay parking: done with car %d (%s) after %.1f s", trackVeh, why, trackT);
+                trackVeh = trackPed = phase = -1;
+            };
+            if (trackVeh >= 0 && (!game.vehicles[trackVeh].used || trackT > 60.f)) release("timeout");
+            if (trackVeh < 0 && pl) {
+                for (int i = 0; i < (int)game.peds.size() && i < (int)game.ai.ped.size() && trackVeh < 0; i++)
+                    if (game.peds[i].used && game.ai.ped[i].uid == game.peds[i].uid && game.ai.ped[i].activity == ACT_DRIVE_OFF && game.ai.ped[i].homeVeh >= 0) {
+                        trackVeh = game.ai.ped[i].homeVeh;
+                        trackPed = i;
+                        arriving = false;
+                    }
+                for (int i = 0; i < (int)game.vehicles.size() && trackVeh < 0; i++)
+                    if (game.vehicles[i].used && i < (int)game.ai.veh.size() && game.ai.veh[i].uid == game.vehicles[i].uid && game.ai.veh[i].parking == 1) {
+                        trackVeh = i;
+                        trackPed = game.vehicles[i].seats[0];
+                        arriving = true;
+                    }
+                if (trackVeh >= 0) {
+                    trackT = doneT = 0.f;
+                    phase = -1;
+                    // stand on the sidewalk a little behind the car
+                    const Vehicle& v = game.vehicles[trackVeh];
+                    vec3 cp = v.sim.body.pos.toVec3();
+                    vec2 f = v.sim.forward().xy();
+                    f = length2(f) > 1e-6f ? normalize(f) : vec2(0, 1);
+                    vec2 at = cp.xy() - f * (arriving ? 18.f : 9.f) + AI::rightOf(f) * 5.f;
+                    if (pl->vehicle >= 0) game.removePedFromVehicle(game.player, false);
+                    pl->pos = dvec3(at.x, at.y, game.groundHeight(at.x, at.y, cp.z + 2.f));
+                    pl->vel = vec3(0.f);
+                    game.rig.cut = true;
+                    LOG("autoplay parking: following %s car %d (%s) at %.0f %.0f, ped %d", arriving ? "arriving" : "departing", trackVeh,
+                        game.vassets[v.model].spec.name.c_str(), cp.x, cp.y, trackPed);
+                }
+            }
+            if (trackVeh >= 0 && pl) {
+                trackT += dt;
+                const Vehicle& v = game.vehicles[trackVeh];
+                const VehAI& va = game.vehAI(trackVeh);
+                vec3 look = v.sim.body.pos.toVec3();
+                bool pedOk = trackPed >= 0 && trackPed < (int)game.peds.size() && game.peds[trackPed].used;
+                const PedAI* pa = pedOk && trackPed < (int)game.ai.ped.size() && game.ai.ped[trackPed].uid == game.peds[trackPed].uid ? &game.ai.ped[trackPed] : nullptr;
+                int ph = phase;
+                const char* name = "";
+                if (!arriving) {
+                    if (pa && pa->activity == ACT_DRIVE_OFF) {
+                        ph = pa->clipTimer < 0.f ? 0 : 1;
+                        name = ph == 0 ? "owner_walks_up" : "getting_in";
+                        if (ph == 0) look = (look + game.peds[trackPed].pos.toVec3()) * 0.5f;
+                    } else if (va.pullOut == 1) {
+                        ph = 2, name = "blinker_waiting";
+                    } else if (va.pullOut == 2) {
+                        ph = 3, name = "pulling_out";
+                    } else if (v.seats[0] >= 0 && game.traffic.get(trackVeh)) {
+                        ph = 4, name = "in_traffic";
+                    }
+                } else {
+                    if (va.parking == 1) {
+                        ph = 0, name = "easing_into_spot";
+                    } else if (pa && pa->activity == ACT_LEAVE_CAR) {
+                        ph = 1, name = "out_and_round";
+                        look = (look + game.peds[trackPed].pos.toVec3()) * 0.5f;
+                    } else if (pedOk && game.peds[trackPed].brain.type == BRAIN_GOTO) {
+                        ph = 2, name = "off_inside";
+                        look = game.peds[trackPed].pos.toVec3();
+                    } else if (!pedOk && v.parked) {
+                        ph = 3, name = "parked";
+                    }
+                }
+                vec3 dv = look - pl->pos.toVec3();
+                game.rig.yaw = atan2f(-dv.x, dv.y);
+                game.rig.pitch = -0.12f;
+                if (ph != phase) {
+                    phase = ph;
+                    if (ph >= 0) {
+                        game.requestScreenshot = shotPath(StrFormat("auto_parking_%02d_%s_%s", shots++, arriving ? "arrive" : "depart", name));
+                        LOG("autoplay parking: car %d %s -> %s (t %.1f) | pullOut %d parking %d parked %d speed %.1f", trackVeh, arriving ? "arrive" : "depart", name, trackT,
+                            (int)va.pullOut, (int)va.parking, (int)v.parked, v.sim.speed());
+                    }
+                }
+                if ((!arriving && phase == 4) || (arriving && phase >= 2)) doneT += dt;
+                if (doneT > 4.f) release("seen through");
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 10.f;
+                LOG("autoplay parking t=%.0f | %s", t, game.aiCensusText(90.f).c_str());
             }
         } else if (autoplay == "panic") {
             // look around, fire three shots into the air, holster and stand still: the crowd scatters (panic spreads,
@@ -919,6 +1042,8 @@ struct App {
             updateBenchmark(c, dt);
         } else if (autoplay == "tour") {
             updateTour(c, dt);
+        } else if (autoplay == "fpguns") {
+            updateFpGuns(c, dt);
         } else if (autoplay == "melee") {
             // lock on, jab-cross-uppercut combos, a heavy hook, a held block, a dodge; then a rear takedown
             if (t < 9.5f) {
@@ -962,6 +1087,61 @@ struct App {
 #ifdef HAVE_GAMEPLAY
     // District tour: teleport to story places across the map at chosen hours/weather, let streaming and the population
     // settle, walk a few steps and take one screenshot per stop (auto_tour_NN_name.bmp via requestScreenshot).
+    // --autoplay fpguns (with --firstperson): the guns at the hip, down the sights, sprinting, reloading and through
+    // scopes, one screenshot per step (auto_fpguns_NN_name.bmp)
+    void updateFpGuns(Controls& c, float dt) {
+        struct Step {
+            WeaponType w;
+            int state;   // 0 hip, 1 aiming, 2 sprinting, 3 reloading
+            u8 comps;
+            const char* name;
+        };
+        const Step steps[] = {
+            {WPN_PISTOL, 0, 0, "pistol_hip"},        {WPN_PISTOL, 1, 0, "pistol_aim"},
+            {WPN_PISTOL, 2, 0, "pistol_sprint"},     {WPN_SMG, 0, WC_SCOPE | WC_GRIP, "smg_hip"},
+            {WPN_SMG, 1, WC_SCOPE | WC_GRIP, "smg_reflex"}, {WPN_RIFLE, 0, 0, "rifle_hip"},
+            {WPN_RIFLE, 1, 0, "rifle_reddot"},       {WPN_RIFLE, 3, 0, "rifle_reload"},
+            {WPN_SHOTGUN, 1, 0, "shotgun_aim"},      {WPN_SNIPER, 1, 0, "sniper_scope"},
+            {WPN_REVOLVER, 1, 0, "revolver_aim"},    {WPN_RPG, 0, 0, "rpg_shoulder"},
+        };
+        const int n = (int)(sizeof(steps) / sizeof(steps[0]));
+        const float stepLen = 2.2f;
+        if (tourDone) return;
+        Ped* pl = game.playerPed();
+        if (!pl) return;
+        if (tourStop < 0 || tourT >= stepLen) {
+            tourStop++;
+            tourT = 0.f;
+            tourShot = false;
+            if (tourStop >= n) {
+                tourDone = true;
+                LOG("autoplay fpguns done");
+                return;
+            }
+            const Step& st = steps[tourStop];
+            game.giveWeapon(game.player, st.w, 200);
+            pl->weapon = st.w;
+            game.pinfo.wpnCompOwned[st.w] = game.pinfo.wpnCompFitted[st.w] = st.comps;
+            if (st.state == 3) pl->clip[st.w] = Min(pl->clip[st.w], 3);   // something to reload
+        }
+        const Step& st = steps[tourStop];
+        tourT += dt;
+        c.aim.down = st.state == 1;
+        c.aim.pressed = st.state == 1 && tourT <= dt * 1.5f;
+        if (st.state == 2) {
+            c.move = vec2(0.f, 1.f);
+            c.sprint.down = true;
+        }
+        if (st.state == 3) c.reload.pressed = tourT > 0.3f && tourT - dt <= 0.3f;
+        float shotAt = st.state == 3 ? 0.3f + weaponInfo(st.w).reloadTime * 0.45f : 1.6f;
+        if (!tourShot && tourT >= shotAt) {
+            tourShot = true;
+            game.requestScreenshot = shotPath(StrFormat("auto_fpguns_%02d_%s", tourStop, st.name));
+            LOG("autoplay fpguns %s: hold %.2f aim %.2f scope %.2f dot %.2f block %.2f", st.name, game.fpw.w, game.fpw.ads, game.fpw.scope,
+                game.fpw.redDot, game.fpw.block);
+        }
+    }
+
     void updateTour(Controls& c, float dt) {
         mu::computePlaces(game);
         const mu::Places& P = mu::gPlaces;
@@ -1444,7 +1624,7 @@ struct App {
                         weather.locked = false;
                         openMainMenu();
                     }
-                } else if (autoplay == "tour") {
+                } else if (autoplay == "tour" || autoplay == "fpguns") {
                     if (tourDone && game.requestScreenshot.empty()) break;
                 } else if (autoTime >= autoShot * autoShotEvery + 1.5f && (renderer.world->pendingCount() == 0 || autoTime > autoShot * autoShotEvery + 6.f)) {
                     std::string path = shotPath(StrFormat("auto_%s_%02d", autoplay.c_str(), autoShot));

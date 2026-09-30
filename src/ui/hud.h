@@ -122,6 +122,11 @@ struct HudState {
     bool reticleOnFriendly = false;
     float hitMarker = 0.f;       // > 0 shows a hit marker (fades, game sets 1 on hit)
     bool killMarker = false;
+    // First-person sights (0..1 fades): scopeView = looking through a magnifying scope (dark surround, round field of
+    // view, reticle: scopeKind 0 duplex crosshair, 1 mil-dot sniper reticle); redDot = reflex / red-dot sight picture
+    float scopeView = 0.f;
+    int scopeKind = 0;
+    float redDot = 0.f;
     // Lock-on target marker (chevron above the target's head with a health bar)
     bool lockOn = false;         // soft lock (guns, pad) or melee lock-on active
     vec2 lockScreen;             // target head position in pixels (backbuffer coordinates)

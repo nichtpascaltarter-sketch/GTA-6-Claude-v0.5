@@ -1141,10 +1141,10 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
         if (!inCell(nd.p, cx, cy)) continue;
         int deg = (int)nd.edges.size();
         if (deg == 1) {
-            // Dead end: cul-de-sac bulb for residential lanes
+            // Dead end: turning bulb (lanes, streets, rural roads)
             const RoadEdge& e = net.edges[nd.edges[0]];
-            if (e.cls == RC_LANE || e.cls == RC_STREET) {
-                float r = e.halfWidth + 4.5f;
+            float r = net.bulbRadius(nd);
+            if (r > 0.f) {
                 vec3 c(nd.p, nd.z);
                 std::vector<vec3> ring;
                 for (int k = 0; k < 20; k++) {

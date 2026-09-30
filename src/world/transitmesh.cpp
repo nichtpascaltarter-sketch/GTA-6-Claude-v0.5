@@ -705,13 +705,14 @@ void genStation(const SiteElem& e, G& g) {
                     beam(g, f.P(a, l0, roofZ(l0) - 0.34f), f.P(a, l1, roofZ(l1) - 0.34f), 0.16f, 0.24f, cWhite, mPaint, vec3(0, 0, 1));
                 }
         }
-        // lighting under the roof: lamp strips + lights along both platforms
+        // lighting under the roof: lamp strips + lights along both platforms (on all day: the platforms sit in the shade
+        // of the wing roof, brighter at night)
         for (int sd = -1; sd <= 1; sd += 2) {
             float lat = sd * 5.3f;
             float zl = roofZ(lat) - 0.3f;
             for (float a = -H + 4.5f; a <= H - 4.4f; a += 8.4f) {
-                sbox(g, f, a, lat, zl, vec3(1.2f, 0.09f, 0.04f), rgb(1.f, 0.97f, 0.9f, 0.7f), emMat(EA_NIGHT));
-                light(g, f.P(a, lat, zl - 0.35f), vec3(0.95f, 0.97f, 1.f) * 2600.f, 13.f, 1);
+                sbox(g, f, a, lat, zl, vec3(1.2f, 0.09f, 0.04f), rgb(1.f, 0.97f, 0.9f, 0.55f), emMat());
+                light(g, f.P(a, lat, zl - 0.35f), vec3(0.95f, 0.97f, 1.f) * 2600.f, 13.f, 2);
             }
         }
         // hanging name panels, next-train displays and speakers

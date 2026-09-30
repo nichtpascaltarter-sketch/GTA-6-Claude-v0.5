@@ -194,6 +194,8 @@ const UiOptions& uiOptions();
 float drawSubtitleBlock(float cx, float bottom, float maxW, float sc, const std::string& speaker, u32 speakerColor, const std::string& text,
                         bool padPrompts, float a);
 void drawReticleShape(vec2 c, float sc, float spread, int target, float a);
+// First-person scope sight picture (hud.cpp): kind 0 duplex crosshair, 1 mil-dot; `a` fades the whole overlay
+void drawScopeView(const Layout& L, vec2 c, int kind, float a, bool onEnemy);
 // Input prompts for bindable actions: rich text "~a:<action>~" (settings.ini key, e.g. ~a:enter_vehicle~) shows the
 // player's key or the pad button of their layout; legacy "~i:KEY|BTN~" pairs that name a bindable action follow rebinding
 int actionFromKey(const std::string& iniKey);                           // -1 when unknown

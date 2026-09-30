@@ -937,7 +937,15 @@ void drawCenter(const HudState& s, const Layout& L, float dt, float t) {
     g.hitIntensity = Max(s.hitMarker, g.hitIntensity - dt * 3.f);
     if (s.killMarker) g.killT = 0.f;
     g.killT += dt;
-    if (g.reticleAlpha > 0.01f) drawReticleShape(c, sc, g.spreadShown, s.reticleOnEnemy ? 1 : s.reticleOnFriendly ? 2 : 0, g.reticleAlpha);
+    float sightA = Max(Saturate(s.scopeView), Saturate(s.redDot));
+    if (s.scopeView > 0.01f) drawScopeView(L, c, s.scopeKind, Saturate(s.scopeView), s.reticleOnEnemy);
+    if (s.redDot > 0.01f) {
+        float a = Saturate(s.redDot);
+        circleSoft(c.x, c.y, 7.f * sc, 8.f * sc, C(1.f, 0.08f, 0.05f, 0.22f * a));   // glow on the glass
+        circleSoft(c.x, c.y, 2.2f * sc, 1.2f * sc, C(1.f, 0.16f, 0.1f, 0.95f * a));
+    }
+    if (g.reticleAlpha > 0.01f && sightA < 0.99f)
+        drawReticleShape(c, sc, g.spreadShown, s.reticleOnEnemy ? 1 : s.reticleOnFriendly ? 2 : 0, g.reticleAlpha * (1.f - sightA));
     float hitA = Saturate(g.hitIntensity);
     float killA = 1.f - Saturate(g.killT / 0.6f);
     if (hitA > 0.01f || killA > 0.01f) {
@@ -1178,6 +1186,37 @@ float drawSubtitleBlock(float cx, float bottom, float maxW, float sc, const std:
     }
     richDraw(cx, y, line.c_str(), st, subW, ro);
     return y;
+}
+
+// Looking through a magnifying scope: a round field of view in a dark surround (soft edge, darker lens rim), with a
+// duplex crosshair (kind 0) or a mil-dot sniper reticle (kind 1); the centre turns red over a hostile.
+void drawScopeView(const Layout& L, vec2 c, int kind, float a, bool onEnemy) {
+    float sc = L.s;
+    float R = Min(L.W, L.H) * 0.46f;
+    u32 black = C(0.f, 0.f, 0.f, a);
+    // surround: the four sides of the aperture's square, then a ring out to its corners
+    rect(0.f, 0.f, L.W, c.y - R, black);
+    rect(0.f, c.y + R, L.W, L.H - (c.y + R), black);
+    rect(0.f, c.y - R, c.x - R, 2.f * R, black);
+    rect(c.x + R, c.y - R, L.W - (c.x + R), 2.f * R, black);
+    ringSoft(c.x, c.y, R * 1.25f, R * 0.5f + 4.f, 6.f * sc, black);
+    ringSoft(c.x, c.y, R - 14.f * sc, 40.f * sc, 60.f * sc, C(0.f, 0.f, 0.f, 0.55f * a));   // lens rim shading
+    u32 ink = C(0.02f, 0.02f, 0.02f, 0.95f * a);
+    float thin = 1.6f * sc, thick = 6.f * sc;
+    float inner = R * (kind == 1 ? 0.62f : 0.36f);
+    for (int q = 0; q < 4; q++) {
+        vec2 d = q == 0 ? vec2(1, 0) : q == 1 ? vec2(-1, 0) : q == 2 ? vec2(0, 1) : vec2(0, -1);
+        vec2 e = c + d * R, m = c + d * inner;
+        line(m.x, m.y, e.x, e.y, thick, ink);                       // heavy outer posts
+        line(c.x, c.y, m.x, m.y, thin, ink);                        // fine centre lines
+        if (kind == 1)
+            for (int k = 1; k <= 4; k++) {                          // mil dots
+                vec2 p = c + d * (inner * k / 5.f);
+                circle(p.x, p.y, 2.6f * sc, ink);
+            }
+    }
+    u32 dot = onEnemy ? C(1.f, 0.12f, 0.1f, a) : C(0.9f, 0.9f, 0.85f, 0.9f * a);
+    circle(c.x, c.y, 2.2f * sc, dot);
 }
 
 void drawReticleShape(vec2 c, float sc, float spread, int target, float a) {

@@ -1,6 +1,7 @@
-// Automated end-to-end transit tests (--autoplay metro | bus | ferry): the player walks to a SkyLine platform, boards,
-// rides two stations and gets off; waits at a bus stop, rides a route bus, skips a stop and gets off; boards the bay
-// ferry at a pier, crosses and goes ashore. Scripted camera shots at each step (--shotdir), progress in the log.
+// Automated end-to-end transit tests (--autoplay metro | bus | ferry | tram): the player walks to a SkyLine platform,
+// boards, rides two stations and gets off; waits at a bus stop, rides a route bus, skips a stop and gets off; boards the
+// bay ferry at a pier, crosses and goes ashore; waits at a streetcar stop, boards, rides, skips a stop and gets off.
+// Scripted camera shots at each step (--shotdir), progress in the log; the run quits when the test is done.
 // app.cpp zeroes the controls for unknown autoplay modes; the test writes GameWorld::ctl from Transit::update, which
 // runs before the player update. Included by transit_game.cpp.
 

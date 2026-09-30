@@ -76,12 +76,16 @@ struct RoadNetwork {
     int nearestEdge(vec2 p, float maxDist, float* outS = nullptr, float* outDist = nullptr, float* outSide = nullptr) const;
     // Road surface height if p lies on a paved road/intersection/bridge deck; returns false otherwise.
     bool surfaceHeight(vec2 p, float* z, float maxZ = 1e9f) const;
-    // True if p is within `margin` meters of any road surface or sidewalk.
+    // True if p is within `margin` meters of any road surface or sidewalk (dead-end bulbs included).
     bool nearRoad(vec2 p, float margin) const;
-    // True if p lies on the paved width (+ margin) of a road whose surface there is within 2.5 m of z (street furniture filter)
+    // True if p lies on the paved width (+ margin) of a road whose surface there is within 2.5 m of z (street furniture filter);
+    // dead-end turning bulbs count whatever the ignored edge
     bool onPavement(vec2 p, float z, float margin, int ignoreEdge = -1, float zTol = 2.5f) const;
     // Junction surface height at p inside node n's disc: height of the nearest incident road centreline
     float junctionZ(const RoadNode& n, vec2 p) const;
+    // Radius of the paved turning bulb at a dead end (two-way lanes, streets and rural roads that end: roadmesh paves the
+    // circle, with the road's sidewalk around it), 0 at any other node
+    float bulbRadius(const RoadNode& n) const;
     void edgesInRect(vec2 mn, vec2 mx, std::vector<int>& out) const;
     float totalLength(RoadClass c) const;
 

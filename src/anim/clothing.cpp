@@ -157,6 +157,7 @@ bool emitGarment(OutfitCtx& o, const GarmentDef& g) {
     for (size_t i = 0; i < gn; i++) {
         BVert& v = gm.v[i];
         v.mat = g.mat;
+        v.matParam = g.mat == MAT_CLOTH ? g.matParam : 0u;
         v.col = g.colFn ? g.colFn(v, g.col) : g.col;
         v.alpha = 1.f;
         if (g.swapUV) {
@@ -642,6 +643,11 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
         default: break;
     }
     if (top == TOP_BIKINI || top == TOP_ONEPIECE || top == TOP_SUNDRESS) return;   // handled with bottoms/dresses
+    // weave: woven shirts, jackets and uniforms; ribbed tanks; knit jersey for tees, polos, hoodies
+    if (top == TOP_HAWAIIAN || top == TOP_DRESS_SHIRT || top == TOP_SUIT || top == TOP_POLICE || top == TOP_MEDIC || top == TOP_BLOUSE)
+        g.matParam = 1;
+    else if (top == TOP_TANK)
+        g.matParam = 3;
     if (tucked) hemZ = R.zHip + 0.02f * s;
     vec3 shirtCol = rng.chance(0.7f) ? vec3(0.85f, 0.85f, 0.83f) : srgbToLinear(vec3(0.7f, 0.8f, 0.95f));
     if (top == TOP_SUIT) {
@@ -651,6 +657,7 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
         nButtons = 2;
         GarmentDef sh;
         sh.parts = torsoArms;
+        sh.matParam = 1;
         sh.col = shirtCol;
         sh.thick = 0.003f;
         sh.smooth = 1;
@@ -838,6 +845,7 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
         dg.cov = cov;
         dg.col = dcol;
         dg.mat = mat;
+        dg.matParam = g.matParam;   // plackets, pockets and trims share the shirt's fabric
         dg.thick = 0.0035f;
         float eo = extraOff;
         auto base = g.extraFn;
@@ -1019,6 +1027,12 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
         case BOT_BIKINI: briefs = true; break;
         default: break;
     }
+    // weave (MAT_CLOTH; denim has its own twill): twill trousers, shorts and work wear, woven skirts and swim trunks
+    switch (bot) {
+        case BOT_SHORTS: case BOT_CARGO: case BOT_SLACKS: case BOT_POLICE: case BOT_WORK: case BOT_HOTPANTS: g.matParam = 2; break;
+        case BOT_SKIRT: case BOT_TRUNKS: g.matParam = 1; break;
+        default: break;
+    }
     if (d.top == TOP_SUNDRESS) skirt = true;
     if (d.top == TOP_ONEPIECE) briefs = true;
     if (briefs) {
@@ -1052,6 +1066,7 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
         float hemZ = R.zKnee + (d.top == TOP_SUNDRESS ? 0.02f : (rng.chance(0.5f) ? 0.1f : -0.03f)) * s;
         GarmentDef top;
         top.parts = 1u << PART_TORSO;
+        top.matParam = 1;   // woven
         top.col = scol;
         top.thick = 0.003f;
         top.smooth = 1;
@@ -1093,6 +1108,7 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
                 v.uPer = kTwoPi * 0.18f * s;
                 v.col = scol;
                 v.mat = MAT_CLOTH;
+                v.matParam = 1;
                 v.part = PART_GARMENT;
                 WAcc acc;
                 float legW = t * 0.55f;
@@ -1193,6 +1209,7 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
         dg.cov = cov;
         dg.col = dcol;
         dg.mat = mat;
+        dg.matParam = g.matParam;
         dg.thick = g.thick;
         float eo = extraOff;
         auto base = g.extraFn;

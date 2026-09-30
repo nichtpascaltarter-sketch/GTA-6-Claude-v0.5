@@ -133,10 +133,13 @@ void buildWeaponCompMesh(WeaponType w, int compBit, MeshData& m) {
         }
         case WC_SCOPE: {
             float z = w == WPN_REVOLVER ? 0.087f : (w == WPN_SMG ? 0.1f : 0.13f);
-            if (w == WPN_SMG) {   // compact reflex sight
+            if (w == WPN_SMG) {   // compact reflex sight: base, an open frame round a see-through window
                 obox(m, vec3(0, 0.1f, 0.093f), F, U, vec3(0.011f, 0.022f, 0.004f), dark, matMetal);
-                obox(m, vec3(0, 0.117f, 0.108f), F, U, vec3(0.012f, 0.004f, 0.013f), dark, matMetal);
-                obox(m, vec3(0, 0.112f, 0.108f), F, U, vec3(0.0095f, 0.0008f, 0.0105f), glassC, matGlass);
+                obox(m, vec3(0, 0.117f, 0.1195f), F, U, vec3(0.012f, 0.004f, 0.0015f), dark, matMetal);     // top
+                obox(m, vec3(0, 0.117f, 0.0965f), F, U, vec3(0.012f, 0.004f, 0.0015f), dark, matMetal);     // bottom
+                obox(m, vec3(-0.0105f, 0.117f, 0.108f), F, U, vec3(0.0015f, 0.004f, 0.0115f), dark, matMetal);
+                obox(m, vec3(0.0105f, 0.117f, 0.108f), F, U, vec3(0.0015f, 0.004f, 0.0115f), dark, matMetal);
+                obox(m, vec3(0, 0.117f, 0.108f), F, U, vec3(0.009f, 0.0006f, 0.01f), glassC, makeMat(MAT_CAR_WINDOW));
                 break;
             }
             float y0 = w == WPN_REVOLVER ? 0.03f : -0.01f, y1 = w == WPN_REVOLVER ? 0.19f : 0.21f;

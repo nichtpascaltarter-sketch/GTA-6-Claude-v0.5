@@ -207,7 +207,68 @@ int main(int argc, char** argv) {
                 }
         }
     }
-    printf("\n[lanes] colliders intruding into drivable lanes: %d, props standing in lanes: %d\n", laneHits, propHits);
+    // dead-end turning circles, placed as the lane graph does (src/game/lanes.cpp): a half circle of radius
+    // clamp(inner lane offset + 3.4, 4.8, 6.5) m around the dead end, pulled back toward the street in 1.5 m steps while a
+    // building or a site structure stands within 4.2 m of it. None must be left without a placement, and the one chosen
+    // must keep the car body (1.1 m either side of the path) clear of every collider (props, barriers)
+    int turnBlocked = 0, turnPulled = 0, turnObstructed = 0;
+    std::vector<vec2> turnList;
+    std::vector<int> turnBy;   // what stands in the way of the placement (-1: no placement at all)
+    for (size_t ni = 0; ni < roads.nodes.size(); ni++) {
+        const RoadNode& nd = roads.nodes[ni];
+        if (nd.edges.size() != 1) continue;
+        const RoadEdge& e = roads.edges[nd.edges[0]];
+        if ((e.flags & RF_ONEWAY) || e.lanesF == 0 || e.lanesB == 0 || e.pts.size() < 2) continue;
+        const RoadClassInfo& ri = roadInfo(e.cls);
+        bool atEnd = e.n1 == (int)ni;
+        vec2 t0 = atEnd ? normalize(e.pts.back().xy() - e.pts[e.pts.size() - 2].xy()) : normalize(e.pts[0].xy() - e.pts[1].xy());
+        float R = Clamp((ri.median > 0.f ? ri.median * 0.5f : 0.f) + ri.laneWidth * 0.5f + 3.4f, 4.8f, 6.5f);
+        vec2 lf = vec2(-t0.y, t0.x);
+        auto circle = [&](int attempt, int k) {
+            float th = -kHalfPi + kPi * k / 12.f;
+            return nd.p - t0 * (1.5f * attempt) + t0 * (R * cosf(th)) + lf * (R * sinf(th));
+        };
+        int placedAt = -1;
+        for (int attempt = 0; attempt < 9 && placedAt < 0; attempt++) {
+            bool blocked = false;
+            for (int k = 0; k <= 12 && !blocked; k++) {
+                vec2 q = circle(attempt, k);
+                blocked = gBuildings->pointInBuilding(q, 4.2f) || siteColliderNear(vec3(q, nd.z), 4.2f, 2.5f);
+            }
+            if (!blocked) placedAt = attempt;
+        }
+        int by = -1;
+        if (placedAt >= 0) {
+            turnPulled += placedAt > 0;
+            for (int k = 0; k <= 12 && by < 0; k++) {
+                vec2 q = circle(placedAt, k);
+                for (int gy = (int)floorf((q.y - 1.1f) / G); gy <= (int)floorf((q.y + 1.1f) / G) && by < 0; gy++)
+                    for (int gx = (int)floorf((q.x - 1.1f) / G); gx <= (int)floorf((q.x + 1.1f) / G) && by < 0; gx++) {
+                        auto it = grid.find(key(gx, gy));
+                        if (it == grid.end()) continue;
+                        for (int ci : it->second)
+                            if (hits(cols[ci], q, nd.z + 0.3f, nd.z + 1.8f, 1.1f)) { by = ci; break; }
+                    }
+            }
+            if (by < 0) continue;
+            turnObstructed++;
+        } else turnBlocked++;
+        if ((int)turnList.size() < maxList) {
+            turnList.push_back(nd.p);
+            turnBy.push_back(by);
+        }
+    }
+    printf("\n[lanes] colliders intruding into drivable lanes: %d, props standing in lanes: %d; dead-end turning circles without room: "
+           "%d, obstructed: %d (%d pulled back to fit)\n", laneHits, propHits, turnBlocked, turnObstructed, turnPulled);
+    for (size_t i = 0; i < turnList.size(); i++) {
+        if (turnBy[i] < 0) {
+            printf("  no room for a turning circle at dead end (%.1f, %.1f)\n", turnList[i].x, turnList[i].y);
+            continue;
+        }
+        const Col& c = cols[turnBy[i]];
+        printf("  turning circle at dead end (%.1f, %.1f) obstructed by %s at (%.1f, %.1f, %.1f) he (%.1f, %.1f, %.1f)\n", turnList[i].x, turnList[i].y,
+               typeName(c.src), c.c.x, c.c.y, c.c.z, c.he.x, c.he.y, c.he.z);
+    }
     for (auto& kv : laneHitsBySrc) printf("  colliders from %-16s %d\n", typeName(kv.first), kv.second);
     for (auto& kv : lanePropsByType) printf("  props of type %-18s %d\n", typeName(kv.first), kv.second);
     for (int i = 0; i < (int)laneList.size() && i < maxList; i++)
@@ -325,7 +386,12 @@ int main(int argc, char** argv) {
             }
             for (int nn : {e.n0, e.n1}) {
                 const RoadNode& n = roads.nodes[nn];
-                if (n.radius <= 0 || length(q - n.p) >= n.radius) continue;
+                float dn = length(q - n.p), br = roads.bulbRadius(n);
+                if (br > 0.f && dn < br + e.sidewalk) {
+                    float nz = roads.junctionZ(n, q) + (dn > br ? 0.15f : 0.f);
+                    if (nz <= maxZ && nz > bz) { bz = nz; what = StrFormat("turning bulb %d", nn); }
+                }
+                if (n.radius <= 0 || dn >= n.radius) continue;
                 float nz = roads.junctionZ(n, q);
                 if (nz <= maxZ && nz > bz) { bz = nz; what = StrFormat("junction %d", nn); }
             }
@@ -406,7 +472,7 @@ int main(int argc, char** argv) {
         printf("  %d crossings\n", crossings);
     }
     Jobs::shutdown();
-    bool fail = laneHits > 0 || propHits > 0 || unguarded > 0.f || !zhits.empty() || steep > 0 || crossings > 0;
+    bool fail = laneHits > 0 || propHits > 0 || turnBlocked > 0 || turnObstructed > 0 || unguarded > 0.f || !zhits.empty() || steep > 0 || crossings > 0;
     printf("\nworldcheck: %s\n", fail ? "FAILED" : "passed");
     return fail ? 1 : 0;
 }

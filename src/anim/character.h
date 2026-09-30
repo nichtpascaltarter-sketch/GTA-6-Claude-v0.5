@@ -122,6 +122,11 @@ void handGrip(const Skeleton& skel, const mat4* modelSpace, bool right, vec3& po
 // phone, `longAxis` = its length direction (towards the top edge), `screen` = screen normal. It lies in the right palm
 // (screen away from the palm), or between both palms when the hands hold it together.
 void phoneFrame(const Skeleton& skel, const mat4* modelSpace, vec3& pos, vec3& longAxis, vec3& screen);
+// Hand on a handle (first-person weapon holds): IK the arm so the fist centre (handGrip's `pos`) lands on `pos`, with
+// the handle axis out of the thumb side along `axis` and the palm facing `palm` (all model space); the elbow bends
+// towards the model-space point `pole`; fingers / thumb curl 0 (open) .. 1 (closed round the handle).
+void holdGrip(const Skeleton& skel, Pose& pose, bool right, vec3 pos, vec3 axis, vec3 palm, vec3 pole, float fingers, float thumb,
+              float weight);
 
 // High level animation state machine driven by gameplay each frame.
 struct AnimInput {

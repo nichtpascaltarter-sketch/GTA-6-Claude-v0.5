@@ -130,4 +130,35 @@ void generateCell(int cx, int cy, bool detail, CellGeometry& out) {
     }
 }
 
+// Site structures (walls, signs, fences, parked aircraft, stops...) standing within margin of p, between p.z and p.z + height:
+// for placing what drivers use, such as dead-end turning circles. The colliders are those the site cells stream with,
+// built once per cell on first use.
+bool siteColliderNear(vec3 p, float margin, float height) {
+    if (!gSites || gSites->cellElems.empty()) return false;
+    static std::mutex mtx;
+    static std::unordered_map<int, std::vector<CollisionBox>> cache;
+    const int cps = kCellsPerSide;
+    int cx0 = (int)floorf((p.x - margin + kWorldHalf) / kCellSize), cx1 = (int)floorf((p.x + margin + kWorldHalf) / kCellSize);
+    int cy0 = (int)floorf((p.y - margin + kWorldHalf) / kCellSize), cy1 = (int)floorf((p.y + margin + kWorldHalf) / kCellSize);
+    for (int cy = Max(cy0, 0); cy <= Min(cy1, cps - 1); cy++)
+        for (int cx = Max(cx0, 0); cx <= Min(cx1, cps - 1); cx++) {
+            int idx = cy * cps + cx;
+            if (gSites->cellElems[(size_t)idx].empty()) continue;
+            std::lock_guard<std::mutex> lock(mtx);
+            auto it = cache.find(idx);
+            if (it == cache.end()) {
+                CellGeometry geo;
+                buildSiteCell(cx, cy, true, geo);
+                it = cache.emplace(idx, std::move(geo.collision)).first;
+            }
+            for (const CollisionBox& b : it->second) {
+                if (b.c.z + b.he.z < p.z || b.c.z - b.he.z > p.z + height) continue;
+                vec2 d = p.xy() - b.c.xy();
+                float ex = Max(0.f, fabsf(dot(d, b.ax)) - b.he.x), ey = Max(0.f, fabsf(dot(d, perp(b.ax))) - b.he.y);
+                if (ex * ex + ey * ey <= margin * margin) return true;
+            }
+        }
+    return false;
+}
+
 }  // namespace World

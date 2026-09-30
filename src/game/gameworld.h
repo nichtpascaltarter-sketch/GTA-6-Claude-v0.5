@@ -206,6 +206,22 @@ struct GameWorld {
     vec2 missionTarget;
     bool settingsSubtitles = true, settingsRadar = true, settingsMetric = true;
     bool reduceFlashing = false;   // accessibility: dimmer muzzle flashes (the renderer dampens lightning / strobes)
+    // first person: the gun held in front of the eyes, hands on its grips (fpweapon.cpp)
+    struct FpWeapon {
+        bool active = false, hideWeapon = false;   // hideWeapon: a scope sight picture covers the view
+        float w = 0.f;                             // hold weight (hands IK'd onto the gun, drawn at pos / rot)
+        float ads = 0.f, kick = 0.f, sprintW = 0.f, reloadW = 0.f, block = 0.f;
+        float scope = 0.f, redDot = 0.f;           // HUD sight pictures (0..1)
+        int scopeKind = 0;
+        WeaponType weapon = WPN_FISTS;
+        vec2 sway = vec2(0.f, 0.f), swayVel = vec2(0.f, 0.f);
+        float lastYaw = 0.f, lastPitch = 0.f;
+        dvec3 pos;                                 // weapon origin (world) and axes (x right, y barrel, z up)
+        mat3 rot;
+    } fpw;
+    bool fpWeaponUsable(const Ped& p) const;
+    bool fpWeaponMuzzle(dvec3& out) const;
+    void updateFirstPersonWeapon(float dt);
     bool weaponShowcase = false;   // test: a rack of every gun (stock / all components + tints) at showcasePos
     dvec3 showcasePos;
     void submitWeaponShowcase();
