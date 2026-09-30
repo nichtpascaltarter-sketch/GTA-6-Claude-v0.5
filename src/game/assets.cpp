@@ -306,9 +306,9 @@ void buildWeaponMesh(WeaponType w, MeshData& m) {
             obox(m, vec3(0, -0.316f, 0.045f), F, U, vec3(0.0195f, 0.006f, 0.052f), packRGBA8(0.03f, 0.03f, 0.03f, 1), matRubber);
             // red-dot optic: an open tube on a mount, a thin see-through lens near its front (first person looks
             // through it)
-            obox(m, vec3(0, 0.12f, 0.088f), F, U, vec3(0.01f, 0.05f, 0.006f), black, matMetal);         // mount
-            hollowTube(m, vec3(0, 0.06f, 0.11f), vec3(0, 0.18f, 0.11f), 0.016f, 0.0135f, 16, black, matMetal);
-            cylinderAB(m, vec3(0, 0.1745f, 0.11f), vec3(0, 0.1755f, 0.11f), 0.0136f, 0.0136f, 16, packRGBA8(0.55f, 0.62f, 0.75f, 1),
+            obox(m, vec3(0, 0.12f, 0.088f), F, U, vec3(0.01f, 0.035f, 0.006f), black, matMetal);        // mount
+            hollowTube(m, vec3(0, 0.08f, 0.11f), vec3(0, 0.16f, 0.11f), 0.0168f, 0.0148f, 20, black, matMetal);
+            cylinderAB(m, vec3(0, 0.1545f, 0.11f), vec3(0, 0.1555f, 0.11f), 0.0149f, 0.0149f, 20, packRGBA8(0.55f, 0.62f, 0.75f, 1),
                        makeMat(MAT_CAR_WINDOW));
             break;
         }

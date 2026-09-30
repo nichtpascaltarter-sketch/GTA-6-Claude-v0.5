@@ -139,6 +139,21 @@ float4 psProbeLight(VSOut i) : SV_Target {
 }
 
 // ------------------------------------------------------------------------------------------------
+// Mip chain of the capture (2x2 box per face, one dispatch per level). Done here rather than with GenerateMips,
+// which leaves cube mips black on some drivers: the prefilter below reads those mips, and the near-camera ambient
+// SH is projected from its output.
+Texture2DArray<float4> tMipSrc : register(t10);   // the capture's previous mip (single-level view)
+[numthreads(8, 8, 1)]
+void csCubeDown(uint3 id : SV_DispatchThreadID) {
+    uint size = (uint)gProbe0.w;
+    if (id.x >= size || id.y >= size) return;
+    int3 s = int3(id.xy * 2, id.z);
+    float4 c = tMipSrc.Load(int4(s, 0)) + tMipSrc.Load(int4(s + int3(1, 0, 0), 0)) +
+               tMipSrc.Load(int4(s + int3(0, 1, 0), 0)) + tMipSrc.Load(int4(s + int3(1, 1, 0), 0));
+    uDestCube[id] = c * 0.25;
+}
+
+// ------------------------------------------------------------------------------------------------
 // GGX prefilter (split-sum, N = V = R) with filtered importance sampling from the captured cube's mips.
 float radicalInverse(uint b) {
     b = (b << 16u) | (b >> 16u);

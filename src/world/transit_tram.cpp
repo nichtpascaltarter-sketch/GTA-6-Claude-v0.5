@@ -719,6 +719,8 @@ void buildTramLines(SiteSet& S, WorldMap& map, const RoadNetwork& net, TransitNe
     }
     LOG("Transit: %s %.2f km, %zu stops, %zu junctions (%d signalled, %d stop signs), %zu poles, %d streetcars, headway %.1f min (%.2f s)", L.name.c_str(),
         L.length / 1000.f, L.stops.size(), L.junctions.size(), signals, stopSigns, L.poles.size(), L.trams, L.headway / 60.f, TimeSeconds() - t0);
+    for (const TramStop& st : L.stops)
+        LOG("Transit: streetcar stop %-20s s %6.0f shelter (%.1f, %.1f, %.1f) travel (%.2f, %.2f)", st.name.c_str(), st.s, st.pos.x, st.pos.y, st.z, st.along.x, st.along.y);
 }
 
 }  // namespace World

@@ -269,6 +269,16 @@ void GameWorld::updateAI(float dt) {
         if (!v.used || ai.veh[i].uid != v.uid) continue;
         VehAI& va = ai.veh[i];
         va.impactCd = Max(0.f, va.impactCd - dt);
+        // a parked car's alarm (set off by a knock) wails for half a minute or so, then gives up
+        if (v.alarm && v.parked && v.seats[0] < 0) {
+            va.alarmT += dt;
+            if (va.alarmT > 25.f + hashToFloat(hash32(v.uid * 5u)) * 20.f) {
+                v.alarm = false;
+                va.alarmT = 0.f;
+            }
+        } else {
+            va.alarmT = 0.f;
+        }
         if (i == pv || !traffic.get(i) || v.sim.impactImpulse < 3000.f || va.impactCd > 0.f) continue;
         va.impactCd = 2.f;
         bool withPlayer = pv >= 0 && length(rel(v.sim.body.pos, vehicles[pv].sim.body.pos)) < 9.f;
@@ -311,9 +321,9 @@ std::string GameWorld::aiTrafficHealthText() const {
                              d.path < (int)laneGraph.lanes.size() ? "lane" : "conn", d.path, d.u, (int)d.mode, d.stuckTime, d.blockedTime, d.waitTime);
     }
     return StrFormat("traffic health: stuck>30s %d blocked>45s %d wait>90s %d holding %d rolled %d wrecked %d unhung %d | impacts %d (with player %d) | "
-                     "core red %ld stopsign %ld stuckEv %ld recov %ld reloc %ld deadlockBreaks %ld | worst: %s",
+                     "core red %ld stopsign %ld stuckEv %ld recov %ld reloc %ld deadlockBreaks %ld kturns %ld | worst: %s",
                      stuck, blocked, waiting, holding, rolled, wrecked, ai.stats.unhung, ai.stats.hardImpacts, ai.stats.impactsWithPlayer, ts.redViolations,
-                     ts.stopSignViolations, ts.stuckEvents, ts.recoveries, ts.relocalizations, ts.deadlockBreaks, worstTxt.c_str());
+                     ts.stopSignViolations, ts.stuckEvents, ts.recoveries, ts.relocalizations, ts.deadlockBreaks, ts.kTurns, worstTxt.c_str());
 }
 
 std::string GameWorld::aiDebugText() const {

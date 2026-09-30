@@ -69,7 +69,7 @@ Spec specFor(WeaponType w) {
             s.right = pistolGrip(vec3(0.f, -0.02f, 0.02f), 0.3f);
             s.left = underGrip(vec3(0.f, 0.28f, 0.037f));
             s.foregrip = foreGrip(0.3f, 0.029f);
-            s.sight = vec3(0.f, 0.12f, 0.11f), s.sightDist = 0.23f;   // through the built-in red-dot tube
+            s.sight = vec3(0.f, 0.12f, 0.11f), s.sightDist = 0.17f;   // through the built-in red-dot tube (rear end 13 cm out)
             s.muzzle = vec3(0.f, 0.6f, 0.055f);
             break;
         case WPN_SHOTGUN:

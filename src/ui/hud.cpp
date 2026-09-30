@@ -1199,8 +1199,9 @@ void drawScopeView(const Layout& L, vec2 c, int kind, float a, bool onEnemy) {
     rect(0.f, c.y + R, L.W, L.H - (c.y + R), black);
     rect(0.f, c.y - R, c.x - R, 2.f * R, black);
     rect(c.x + R, c.y - R, L.W - (c.x + R), 2.f * R, black);
-    ringSoft(c.x, c.y, R * 1.25f, R * 0.5f + 4.f, 6.f * sc, black);
-    ringSoft(c.x, c.y, R - 14.f * sc, 40.f * sc, 60.f * sc, C(0.f, 0.f, 0.f, 0.55f * a));   // lens rim shading
+    // (ringSoft fills the band [r - thickness, r])
+    ringSoft(c.x, c.y, R * 1.5f, R * 0.5f + 2.f, 4.f * sc, black);
+    ringSoft(c.x, c.y, R, 46.f * sc, 60.f * sc, C(0.f, 0.f, 0.f, 0.55f * a));   // lens rim shading
     u32 ink = C(0.02f, 0.02f, 0.02f, 0.95f * a);
     float thin = 1.6f * sc, thick = 6.f * sc;
     float inner = R * (kind == 1 ? 0.62f : 0.36f);

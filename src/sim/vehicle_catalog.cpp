@@ -688,6 +688,36 @@ inline void mdlTomo(VehicleModel& o) {
 }
 
 // police / taxi (Governor & Sawgrass based)
+// Patrol-car cabin: prisoner partition behind the front seats (steel lower panel, polycarbonate upper panel in a
+// tube frame) and a laptop on its mount by the centre console. Close range only.
+inline void policeCabin(PMesh& m, CarBody& b) {
+    if (lodLevel() > 0 || b.s.openTop) return;
+    const CarSpec& s = b.s;
+    float y = s.bPillar - 0.06f;
+    float zf = s.zSill + 0.16f, zb = b.beltZAt(y) - 0.04f, zt = b.topZAt(y, 0.3f) - 0.07f;
+    float xw = b.beltXAt(y) - 0.085f;
+    if (zt < zb + 0.15f || xw < 0.3f) return;
+    m.newGroup(40.f);
+    m.use(MAT_METAL_PAINTED, col(0.12f, 0.12f, 0.13f));
+    quad2(m, vec3(-xw, y, zf), vec3(xw, y, zf), vec3(xw, y, zb), vec3(-xw, y, zb), vec3(0, -1, 0));
+    float xt = Min(xw, b.railXAt(y) - 0.12f);
+    cyl(m, vec3(-xw, y, zb), vec3(-xt, y, zt), 0.012f, 6);
+    cyl(m, vec3(xw, y, zb), vec3(xt, y, zt), 0.012f, 6);
+    cyl(m, vec3(-xt, y, zt), vec3(xt, y, zt), 0.012f, 6);
+    cyl(m, vec3(-xw, y, zb), vec3(xw, y, zb), 0.012f, 6);
+    m.use(MAT_CAR_WINDOW, col(0.9f, 0.93f, 0.95f, 0.8f));
+    quad2(m, vec3(-xw, y, zb), vec3(xw, y, zb), vec3(xt, y, zt), vec3(-xt, y, zt), vec3(0, -1, 0));
+    // laptop on a pole mount at the front of the console, screen towards the driver
+    float yl = s.yCowl - 0.62f, zl = b.beltZAt(yl) - 0.02f;
+    m.use(MAT_METAL_PAINTED, col(0.2f, 0.2f, 0.2f));
+    cyl(m, vec3(0.08f, yl + 0.05f, zl - 0.35f), vec3(0.08f, yl, zl - 0.02f), 0.012f, 6);
+    Frame lf(vec3(0.08f, yl, zl + 0.08f), normalize(vec3(1, 0.3f, 0)), vec3(0, 0, 1), normalize(vec3(-0.3f, 1, 0)));
+    lf.y = normalize(cross(lf.z, lf.x));
+    roundedBox(m, lf, vec3(0.16f, 0.11f, 0.012f), 0.008f, 1);
+    m.use(MAT_EMISSIVE, col(0.45f, 0.6f, 0.9f, 0.04f));
+    roundedBox(m, Frame(lf.o - lf.z * 0.0125f, lf.x, lf.y, -lf.z), vec3(0.145f, 0.095f, 0.001f), 0.f, 1);
+}
+
 inline void mdlGovPatrol(VehicleModel& o) {
     o.name = "Governor Patrol"; o.maker = "Brennan"; o.cls = VC_POLICE;
     CarDef d;
@@ -703,6 +733,7 @@ inline void mdlGovPatrol(VehicleModel& o) {
         sideText(m, b, "POLICE", yc - 0.05f, b.s.zChar - 0.08f, 0.14f, MAT_METAL_PAINTED, col(0.02f, 0.03f, 0.08f));
         doorStar(m, b, b.s.liveryY1 - 0.35f, b.s.zChar + 0.02f, 0.07f, vec3(0.95f, 0.75f, 0.25f));
         sideText(m, b, "911", b.yWr + b.Ra + 0.02f, b.s.zChar + 0.07f, 0.075f, MAT_METAL_PAINTED, col(0.9f, 0.9f, 0.9f));
+        policeCabin(m, b);
     };
     physics(o, 1880.f, 235.f, 440.f, 5800.f, 62.f, 6, 0.f, 1.05f, 0.19f, 1.1f, 0.34f, 0.f, vec3(0, 0.15f, 0.55f), Audio::ENGINE_V8);
     o.sirenMode = 0;
@@ -735,6 +766,7 @@ inline void mdlSawPursuit(VehicleModel& o) {
         sideStripe(m, b, b.yR + 0.25f, b.yF - 0.35f, b.s.zChar - 0.105f, 0.012f, MAT_METAL_PAINTED, col(0.95f, 0.95f, 0.95f), 0.0018f);
         sideText(m, b, "POLICE", (y0 + y1) * 0.5f, b.s.zChar - 0.20f, 0.13f, MAT_METAL_PAINTED, col(0.95f, 0.95f, 0.95f));
         doorStar(m, b, y1 - 0.25f, b.s.zChar + 0.10f, 0.07f, vec3(0.95f, 0.75f, 0.25f));
+        policeCabin(m, b);
     };
     physics(o, 2480.f, 300.f, 540.f, 5800.f, 60.f, 10, 0.35f, 1.0f, 0.23f, 1.2f, 0.38f, 0.f, vec3(0, 0.1f, 0.78f), Audio::ENGINE_V8);
     o.sirenMode = 1;

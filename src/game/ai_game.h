@@ -146,6 +146,7 @@ struct VehAI {
     int parkLane = -1;
     float parkLat = 0.f;          // lateral offset of the spot from the lane center
     vec3 parkDoor;                // where the driver is headed
+    float alarmT = 0.f;           // how long a parked car's alarm has been going
 };
 
 // A crime the police do not know about yet: a witness is phoning it in.

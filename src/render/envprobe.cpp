@@ -20,7 +20,7 @@ struct EnvProbeSystem {
     gfx::CBuffer<FrameConstants> frameCB;
     gfx::CBuffer<ProbeCBData> cb;
     ID3D11PixelShader* psLight = nullptr;
-    ID3D11ComputeShader *csPrefilter = nullptr, *csSH = nullptr;
+    ID3D11ComputeShader *csPrefilter = nullptr, *csSH = nullptr, *csDown = nullptr;
     gfx::Buffer shBuf;       // SH9 irradiance of the probe (one-bounce ambient around the camera)
     bool shValid = false;
     static constexpr float kNear = 0.5f;
@@ -32,6 +32,7 @@ struct EnvProbeSystem {
         psLight = gfx::loadPS("envprobe.hlsl", "psProbeLight");
         csPrefilter = gfx::loadCS("envprobe.hlsl", "csPrefilter");
         csSH = gfx::loadCS("envprobe.hlsl", "csProbeSH");
+        csDown = gfx::loadCS("envprobe.hlsl", "csCubeDown");
         float zeroSH[9 * 4] = {};   // defined contents: the SH is blended over time from its previous value
         shBuf = gfx::createBuffer(9 * 16, 16, gfx::BUF_STRUCTURED | gfx::BUF_UAV, zeroSH);
         lightBuf = gfx::createBuffer(kMaxProbeLights * sizeof(LightGPU), sizeof(LightGPU), gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
@@ -50,7 +51,7 @@ struct EnvProbeSystem {
         res = resolution;
         mips = Min(6, gfx::mipCount(res, res) - 2);
         using namespace gfx;
-        capture = createTexture2D(res, res, DXGI_FORMAT_R16G16B16A16_FLOAT, TEX_SRV | TEX_RTV | TEX_CUBE | TEX_GENMIPS | TEX_SLICE_RTVS, 0, 6);
+        capture = createTexture2D(res, res, DXGI_FORMAT_R16G16B16A16_FLOAT, TEX_SRV | TEX_RTV | TEX_UAV | TEX_CUBE | TEX_MIP_UAVS | TEX_SLICE_RTVS, 0, 6);
         for (auto& f : filtered) f = createTexture2D(res, res, DXGI_FORMAT_R16G16B16A16_FLOAT, TEX_SRV | TEX_UAV | TEX_CUBE | TEX_MIP_UAVS, mips, 6);
         gAlbedo = createTexture2D(res, res, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, TEX_RTV | TEX_SRV);
         gNormal = createTexture2D(res, res, DXGI_FORMAT_R16G16_UNORM, TEX_RTV | TEX_SRV);
@@ -175,7 +176,22 @@ struct EnvProbeSystem {
 
     void prefilter(Renderer& r) {
         auto* c = gfx::ctx;
-        c->GenerateMips(capture.srv);
+        // capture mip chain: 2x2 box per face and level
+        ID3D11Buffer* dcbs[] = {r.frameCB.get(), nullptr, cb.get()};
+        c->CSSetConstantBuffers(0, 3, dcbs);
+        c->CSSetShader(csDown, nullptr, 0);
+        for (int m = 1; m < capture.mips; m++) {
+            int size = Max(1, res >> m);
+            cb.data.p0 = vec4(0, (float)res, 0, (float)size);
+            cb.upload();
+            c->CSSetShaderResources(10, 1, &capture.mipSrvs[m - 1]);
+            c->CSSetUnorderedAccessViews(0, 1, &capture.mipUavs[m], nullptr);
+            c->Dispatch(gfx::divUp(size, 8), gfx::divUp(size, 8), 6);
+            ID3D11UnorderedAccessView* nu = nullptr;
+            c->CSSetUnorderedAccessViews(0, 1, &nu, nullptr);
+            ID3D11ShaderResourceView* ns = nullptr;
+            c->CSSetShaderResources(10, 1, &ns);
+        }
         gfx::Texture& dst = filtered[front ^ 1];
         // mip 0: straight copy of the capture
         for (int f = 0; f < 6; f++)

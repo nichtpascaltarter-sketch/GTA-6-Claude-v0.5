@@ -543,31 +543,34 @@ void updateStopCrowds(GameWorld& g, float dt, vec3 pp) {
         u32 h = hash32(st.seed * 31u + (u32)(g.time * 2.0) + (u32)have * 97u);
         // along the platform in front of the shelter, some on the bench
         bool bench = (h >> 9) % 4 == 0 && have < 2;
+        // between the shelter and the kerb (never out on the road where the sidewalk is narrow)
+        float toCurb = dot(L.at(st.s - td::kLength * 0.5f).xy() - st.pos, st.face) - st.curbLat;
+        float out = Min(1.2f + hashToFloat(hash32(h)) * 1.3f, Max(0.9f, toCurb - 0.55f));
         vec2 spot = bench ? st.pos - st.face * 0.45f + st.along * ((hashToFloat(h) - 0.5f) * 2.4f)
-                          : st.pos + st.face * (1.2f + hashToFloat(hash32(h)) * 1.3f) + st.along * ((hashToFloat(h) - 0.5f) * 16.f);
+                          : st.pos + st.face * out + st.along * ((hashToFloat(h) - 0.5f) * 16.f);
         vec3 sp(spot, st.z);
         if (g.inCameraView(sp + vec3(0, 0, 1.f), 1.f) && length(sp - g.rig.cam.pos.toVec3()) < 80.f && g.populationWarmup <= 0.f) continue;
         int id = spawnCivilian(g, h, sp, 0.f);
         if (id < 0) continue;
-        Ped& p = g.peds[id];
-        p.brain.type = BRAIN_WANDER;
-        p.brain.edge = -1;
-        PedAI& pa = g.pedAI(id);
-        pa.activity = ACT_SCENARIO;
-        pa.anchor = spot;
-        // facing up the street toward the arriving tram, or the street
+        // facing up the street toward the arriving tram, or the street; seated on the bench or waiting by the curb
         vec2 look = bench ? st.face : normalize(-st.along * 0.8f + st.face * 0.6f);
-        pa.anchorYaw = atan2f(-look.x, look.y) + (hashToFloat(hash32(h * 5u)) - 0.5f) * 0.6f;
-        p.yaw = pa.anchorYaw;
-        pa.stance = bench ? 6 : waitStance(h);   // seated on the bench, or waiting by the curb
-        pa.clip = -1;
-        pa.actTimer = 600.f;
+        holdWaiting(g, id, spot, atan2f(-look.x, look.y) + (hashToFloat(hash32(h * 5u)) - 0.5f) * 0.6f, bench ? 6 : waitStance(h));
         Waiter w;
         w.ped = id;
-        w.uid = p.uid;
+        w.uid = g.peds[id].uid;
         w.station = si;
         w.spot = spot;
         gT2.waiters.push_back(w);
+        if (!bench && have + 1 < want && wantsCompany(h)) {
+            float off = dot(spot - st.pos, st.along);
+            int c = spawnCompanion(g, h, id, st.along * (off > 0.f ? -1.f : 1.f), st.z, -st.along);
+            if (c >= 0) {
+                w.ped = c;
+                w.uid = g.peds[c].uid;
+                w.spot = g.pedAI(c).anchor;
+                gT2.waiters.push_back(w);
+            }
+        }
     }
 }
 
@@ -627,7 +630,8 @@ float scanAhead(GameWorld& g, const Tram& t, float look, int* hitBody, bool* hit
             if (te > ta + 1.5f || te > 4.f) return;
         }
         float gap = Max(along - extT, 0.f);
-        if (along < 0.5f && !ped) return;   // beside the nose (a car alongside)
+        // beside the nose: a car alongside, or someone at the kerb who is not actually in the tram's way
+        if (along < 0.5f && (!ped || bestD > td::kHalfWidth + extN + 0.1f)) return;
         if (gap < best) {
             best = gap;
             *hitBody = bi;
@@ -834,10 +838,13 @@ void driveTram(GameWorld& g, Tram& t, float dt, bool playerAboard, vec3 listener
     bool hp = false;
     float look = Clamp(t.v * t.v / (2.f * kTDecel) + 14.f, 16.f, 90.f);
     float gap = scanAhead(g, t, look, &hb, &hp, t.pedHold > 6.f ? 0.f : 0.55f);
-    t.pedHold = (hp && gap < 4.f && t.v < 0.3f) ? t.pedHold + dt : 0.f;
+    t.pedHold = (hp && gap < 5.f) ? t.pedHold + dt : 0.f;
     if (gap < 1e8f) {
-        vT = Min(vT, brakeSpeed(gap - 2.5f, kTDecel));
-        if (gap < 3.f) vT = 0.f;
+        float vObs = gap < 3.f ? 0.f : brakeSpeed(gap - 2.5f, kTDecel);
+        // a person dawdling at the nose: edge forward at walking pace with the bell going, so they step aside (the
+        // tram stops dead if anyone is within touching distance)
+        if (hp && t.pedHold > 5.f && gap > 1.2f) vObs = Max(vObs, 0.7f);
+        vT = Min(vT, vObs);
         // bell: people on the rails, or a car sitting in the way
         if (t.bell <= 0.f && gap < 30.f && (hp || (hb >= 0 && g.traffic.bodies[hb].speed < 1.f))) ringBell(g, t, hp ? 2 : 1);
     }

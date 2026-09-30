@@ -394,6 +394,39 @@ int spawnCivilian(GameWorld& g, u32 seed, vec3 pos, float yaw) {
     return id;
 }
 
+// A waiting passenger's scenario: stand (or sit) at `spot` turned to `yaw` in `stance` while the stop keeps them
+void holdWaiting(GameWorld& g, int id, vec2 spot, float yaw, int stance) {
+    Ped& p = g.peds[id];
+    p.brain.type = BRAIN_WANDER;
+    p.brain.edge = -1;
+    p.yaw = yaw;
+    PedAI& pa = g.pedAI(id);
+    pa.activity = ACT_SCENARIO;
+    pa.anchor = spot;
+    pa.anchorYaw = yaw;
+    pa.stance = stance;
+    pa.clip = -1;
+    pa.actTimer = 600.f;
+}
+
+// Waiting together: a companion ~1.05 m beside someone already waiting (`side` points from them to the companion's
+// spot), the two turned to each other and a little toward `facing` (where the ride comes from), talking. Returns the
+// companion's ped id, -1 none.
+int spawnCompanion(GameWorld& g, u32 h, int first, vec2 side, float z, vec2 facing) {
+    if (first < 0 || g.peds[first].health <= 0.f) return -1;
+    vec2 a = g.pedAI(first).anchor;
+    vec2 spot = a + side * 1.05f;
+    int id = spawnCivilian(g, hash32(h ^ 0x6c8e9cf5u), vec3(spot, z), 0.f);
+    if (id < 0) return -1;
+    vec2 fa = normalize(side * 0.8f + facing * 0.45f), fb = normalize(-side * 0.8f + facing * 0.45f);
+    holdWaiting(g, first, a, atan2f(-fa.x, fa.y), 7);
+    holdWaiting(g, id, spot, atan2f(-fb.x, fb.y), 7);
+    return id;
+}
+
+// One in five waiting passengers has company
+bool wantsCompany(u32 h) { return hash32(h * 0x9e3779b1u + 0x51u) % 5u == 0u; }
+
 void seatRiders(GameWorld& g, Train& t, int want) {
     for (int c = 0; c < kCarsPerTrain && (int)t.riders.size() < want; c++) {
         int vi = t.cars[c];
@@ -634,25 +667,25 @@ void updateCrowds(GameWorld& g, float dt, vec3 pp) {
             if (visible && g.populationWarmup <= 0.f) continue;
             int id = spawnCivilian(g, h, spot, 0.f);
             if (id < 0) continue;
-            Ped& p = g.peds[id];
-            p.brain.type = BRAIN_WANDER;
-            p.brain.edge = -1;
-            PedAI& pa = g.pedAI(id);
-            pa.activity = ACT_SCENARIO;
-            pa.anchor = spot.xy();
             vec2 toTrack = -st.right() * S;
-            pa.anchorYaw = atan2f(-toTrack.x, toTrack.y) + (hashToFloat(hash32(h * 3u)) - 0.5f) * 0.8f;
-            p.yaw = pa.anchorYaw;
-            pa.stance = waitStance(h);
-            pa.clip = -1;
-            pa.actTimer = 600.f;
+            holdWaiting(g, id, spot.xy(), atan2f(-toTrack.x, toTrack.y) + (hashToFloat(hash32(h * 3u)) - 0.5f) * 0.8f, waitStance(h));
             Waiter w;
             w.ped = id;
-            w.uid = p.uid;
+            w.uid = g.peds[id].uid;
             w.station = si;
             w.side = side;
             w.spot = spot.xy();
             gS.waiters.push_back(w);
+            if (have + 1 < want && wantsCompany(h) && fabsf(along) < kPlatformHalfLen - 8.f) {
+                vec2 sideDir = st.dir * (along > 0.f ? -1.f : 1.f);
+                int c = spawnCompanion(g, h, id, sideDir, spot.z, toTrack);
+                if (c >= 0) {
+                    w.ped = c;
+                    w.uid = g.peds[c].uid;
+                    w.spot = g.pedAI(c).anchor;
+                    gS.waiters.push_back(w);
+                }
+            }
         }
     }
 }
@@ -1265,7 +1298,57 @@ void update(GameWorld& g, float dt) {
     }
 }
 
+// The station under its wing roof is lit like a room (renderer interior volume): daylight through the open sides, the
+// track ends and the skylight bounced around the platforms instead of a sky the roof hides, the platform lamps lighting
+// the station only, and the exposure free to open up while the camera is on the platform. Nearest station only, put
+// first so the renderer's volume cap never drops it.
+void submitStationVolume(GameWorld& g) {
+    if (!g.renderer || !World::gTransit || World::gTransit->metro.stations.empty()) return;
+    Render::Renderer& R = *g.renderer;
+    const World::MetroLine& L = World::gTransit->metro;
+    vec2 c2((float)g.rig.cam.pos.x, (float)g.rig.cam.pos.y);
+    int best = -1;
+    float bd = 160.f;
+    for (int i = 0; i < (int)L.stations.size(); i++) {
+        float d = length(L.stations[i].pos - c2);
+        if (d < bd) {
+            bd = d;
+            best = i;
+        }
+    }
+    if (best < 0) return;
+    const World::MetroStation& st = L.stations[best];
+    const float zp = st.platformZ(), zBot = st.railZ - kDeckTopBelowRail - 0.3f, zTop = zp + 4.05f;
+    const float hx = kPlatformHalfLen + 2.f, hy = kPlatformOuter + 0.15f;
+    Render::InteriorVolume v;
+    v.center = dvec3(st.local(0.f, 0.f, (zBot + zTop) * 0.5f));
+    v.axis = st.dir;
+    v.halfExtents = vec3(hx, hy, (zTop - zBot) * 0.5f);
+    v.ambient = vec3(18.f, 19.f, 20.f);   // the platform lamps are on all day
+    v.skyBounce = 0.32f;                  // sunlit street, deck and platform floor reflecting up under the roof
+    v.firstPortal = (int)R.interiorPortals.size();
+    vec3 d(st.dir, 0.f), r(st.right(), 0.f), up(0, 0, 1);
+    auto portal = [&](vec3 corner, vec3 u, vec3 w, float t) {
+        Render::InteriorPortal p;
+        p.corner = dvec3(corner);
+        p.edgeU = u;
+        p.edgeV = w;
+        p.transmission = t;
+        R.interiorPortals.push_back(p);
+    };
+    // open sides above the platform upstands (cross(edgeU, edgeV) points into the station), the two ends over the
+    // tracks and platforms, the skylight strip over the tracks
+    portal(st.local(hx, hy, zp + 0.7f), -d * (2.f * hx), up * (zTop - zp - 0.7f), 0.9f);
+    portal(st.local(-hx, -hy, zp + 0.7f), d * (2.f * hx), up * (zTop - zp - 0.7f), 0.9f);
+    portal(st.local(hx, -hy, zp - 0.4f), r * (2.f * hy), up * (zTop - zp + 0.4f), 0.85f);
+    portal(st.local(-hx, hy, zp - 0.4f), -r * (2.f * hy), up * (zTop - zp + 0.4f), 0.85f);
+    portal(st.local(-hx, -1.4f, zp + 5.3f), d * (2.f * hx), r * 2.8f, 0.7f);
+    v.portalCount = (int)R.interiorPortals.size() - v.firstPortal;
+    R.interiorVolumes.insert(R.interiorVolumes.begin(), v);
+}
+
 void submit(GameWorld& g) {
+    submitStationVolume(g);
     tf::submit(g);
     tr::submit(g);
     if (!gS.init || gS.assetCab < 0 || !g.renderer || !g.renderer->dynamic) return;

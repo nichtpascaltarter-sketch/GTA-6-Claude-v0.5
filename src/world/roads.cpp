@@ -1731,12 +1731,22 @@ void RoadNetwork::generate(WorldMap& map) {
                 }
             }
         };
+        // the junction discs the intersection pass will give the nodes
+        std::vector<float> discR(nodes.size(), 0.f);
+        for (size_t n = 0; n < nodes.size(); n++) {
+            if (nodes[n].edges.size() < 3) continue;
+            for (int ei : nodes[n].edges) discR[n] = Max(discR[n], edges[ei].halfWidth + edges[ei].sidewalk * 0.3f + 2.f);
+        }
         // candidate pairs (plan geometry does not change): A's segment [i, i+1] passing within reach of B's segment k
         struct Cand { int i, b, k; };
         std::vector<std::vector<Cand>> cands(edges.size());
         for (size_t ei = 0; ei < edges.size(); ei++) {
             const RoadEdge& A = edges[ei];
             if (A.flags & RF_UNPAVED) continue;
+            // a link so short that the discs of the junctions at its ends cover it is carried by their surfaces
+            float linkLen = 0.f;
+            for (size_t i = 0; i + 1 < A.pts.size(); i++) linkLen += length(A.pts[i + 1].xy() - A.pts[i].xy());
+            if (discR[A.n0] > 0.f && discR[A.n1] > 0.f && linkLen < discR[A.n0] + discR[A.n1]) continue;
             bool hwyA = A.cls == RC_HIGHWAY;   // highways only yield to other highways (interchange overlaps)
             size_t n = A.pts.size();
             for (size_t i = 0; i < n; i++) {

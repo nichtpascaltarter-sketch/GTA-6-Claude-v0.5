@@ -387,23 +387,23 @@ void updatePierCrowds(GameWorld& g, float dt, vec3 pp) {
         if (g.inCameraView(sp + vec3(0, 0, 1.f), 1.f) && length(sp - g.rig.cam.pos.toVec3()) < 90.f && g.populationWarmup <= 0.f) continue;
         int id = spawnCivilian(g, h, sp, 0.f);
         if (id < 0) continue;
-        Ped& p = g.peds[id];
-        p.brain.type = BRAIN_WANDER;
-        p.brain.edge = -1;
-        PedAI& pa = g.pedAI(id);
-        pa.activity = ACT_SCENARIO;
-        pa.anchor = spot;
-        pa.anchorYaw = atan2f(-fp.dir.x, fp.dir.y) + (hashToFloat(hash32(h * 5u)) - 0.5f) * 1.2f;   // looking out over the water
-        p.yaw = pa.anchorYaw;
-        pa.stance = waitStance(h);
-        pa.clip = -1;
-        pa.actTimer = 600.f;
+        // looking out over the water
+        holdWaiting(g, id, spot, atan2f(-fp.dir.x, fp.dir.y) + (hashToFloat(hash32(h * 5u)) - 0.5f) * 1.2f, waitStance(h));
         Waiter w;
         w.ped = id;
-        w.uid = p.uid;
+        w.uid = g.peds[id].uid;
         w.station = pi;
         w.spot = spot;
         gF.waiters.push_back(w);
+        if (have + 1 < want && wantsCompany(h)) {
+            int c = spawnCompanion(g, h, id, rt, fp.deckZ, fp.dir);
+            if (c >= 0) {
+                w.ped = c;
+                w.uid = g.peds[c].uid;
+                w.spot = g.pedAI(c).anchor;
+                gF.waiters.push_back(w);
+            }
+        }
     }
 }
 

@@ -741,8 +741,10 @@ void tram(GameWorld& g, float dt) {
                 LOG("Transit test [tram]: waiting: to stop %.1f m | %s", L.ahead(t.s, st.s), diag.c_str());
             }
             if (t.materialized() && gT.shot == 0 && L.ahead(t.s, st.s) < 50.f && gT.stageT > 1.f) {
+                // low, from the next lane over just beyond the stop: the nose coming in with the stop beside it
                 vec3 tp = g.vehicles[t.sec[0]].sim.body.pos.toVec3();
-                scriptCam(g, vec3(st.pos + st.along * 16.f + st.face * 0.4f, st.z + 1.9f), tp + vec3(0, 0, 1.6f), 55.f);
+                vec3 c = L.at(st.s + 9.f);
+                scriptCam(g, vec3(c.xy() + st.face * 3.6f, c.z + 1.7f), tp + vec3(0, 0, 1.5f), 50.f);
                 snap(g, "tram_arriving");
             }
             // taking long: a look from above at where the tram is
@@ -773,8 +775,9 @@ void tram(GameWorld& g, float dt) {
             }
             const World::TramStop& st = L.stops[gT.tramStop];
             if (gT.stageT > 0.5f && gT.stageT - dt <= 0.5f) {
+                // from the sidewalk just ahead of the stop, a little raised: the door side, the shelter and the riders
                 vec3 mid = g.vehicles[t.sec[1]].sim.body.pos.toVec3();
-                scriptCam(g, vec3(st.pos - st.along * 14.f + st.face * 1.4f, st.z + 2.2f), mid + vec3(0, 0, 1.5f), 58.f);
+                scriptCam(g, vec3(st.pos + st.along * 19.f - st.face * 1.2f, st.z + 3.3f), mid + vec3(0, 0, 1.1f), 58.f);
                 snap(g, "tram_at_stop");
             }
             if (gT.stageT < 2.f) return;
@@ -828,7 +831,8 @@ void tram(GameWorld& g, float dt) {
                 vec3 c = g.vehicles[t.sec[1]].sim.body.pos.toVec3();
                 vec3 f = g.vehicles[t.sec[1]].sim.forward();
                 vec3 side = normalize(cross(f, vec3(0, 0, 1)));
-                scriptCam(g, c + side * 9.f + f * 22.f + vec3(0, 0, 3.f), c + vec3(0, 0, 1.4f), 55.f);
+                // from over the far lanes ahead (clear of the kerbside palms, poles and shelters)
+                scriptCam(g, c - side * 7.5f + f * 21.f + vec3(0, 0, 4.2f), c + f * 2.f + vec3(0, 0, 1.2f), 52.f);
                 snap(g, "tram_riding");
             } else if (gT.shot >= 3 && g.rig.scriptActive && gT.pendName.empty() && g.requestScreenshot.empty()) {
                 releaseCam(g);
