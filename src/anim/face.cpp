@@ -856,7 +856,6 @@ static void addEar(BuildCtx& c, int sd) {
         return vec2(-cu * rx, su * ry);           // offset from cen
     };
     const float eo = D.earOut * (sd ? 1.f + D.asymEar : 1.f);
-    const float deg = kDegToRad;
     // relief (meters along `out`, before the ear's own protrusion) at (angle a, radius s)
     auto relief = [&](float a, float s) {
         float ad = wrapAngle(a) * kRadToDeg;            // -180..180 (0 front, 90 top, -90 lobe)

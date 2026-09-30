@@ -1063,6 +1063,7 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
             const Body& b = bodies[bi];
             // nearest sample segment
             float bestD = 1e9f, bestX = 0.f, bestLat = 0.f, bestZ = 0.f, bestShift = 0.f;
+            int bestPath = -1;
             vec2 bestT(0, 1);
             for (int k = 0; k + 1 < ns; k++) {
                 vec2 a = smp[k].p, c = smp[k + 1].p;
@@ -1079,6 +1080,7 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
                     bestLat = dot(b.pos - q, rightOf(tt));
                     bestZ = Lerp(smp[k].z, smp[k + 1].z, t);
                     bestShift = Lerp(smp[k].shift, smp[k + 1].shift, t);
+                    bestPath = smp[k].path;
                 }
             }
             if (bestD > 1e8f) return;
@@ -1097,6 +1099,13 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
             bool ped = b.kind == BK_PED;
             float margin = ped ? 0.75f : 0.3f + Min(v * 0.015f, 0.35f);
             float half = myHW + extN + margin;
+            // a car parked in the parking strip (inner edge beyond the lane edge) is not in the way of a vehicle that
+            // fits its lane - buses and trucks pass them daily with half a meter to spare
+            if (!ped && (b.flags & BF_PARKED) && b.speed < 0.3f && bestPath >= 0) {
+                int lp = bestPath < NL ? bestPath : G.conn(bestPath).to;
+                float laneHalf = G.lanes[lp].width * 0.5f;
+                if (fabsf(bestLat) - extN > laneHalf - 0.15f && myHW < laneHalf + 0.35f) half = myHW + extN + 0.08f;
+            }
             // oncoming vehicles: judged against the planned path with a tight margin (they keep to their lane)
             if (!ped && dot(bf, bt) < -0.5f) {
                 bestLat += bestShift;
@@ -1636,6 +1645,20 @@ void TrafficCore::drive(int vid, Vehicles::VehicleState& s, float dt, DriveOut& 
         if (clear) {
             d.nudgeTarget = shift;
             d.nudgeTimer = 7.f;
+            d.blockedTime = 0.f;
+        }
+    }
+    // on a junction connector (no lane to borrow): squeeze past a parked car sticking out just beyond the junction
+    if (d.path >= (int)g->lanes.size() && d.obstBody >= 0 && (bodies[d.obstBody].flags & BF_PARKED) && d.blockedTime > d.pers.patience + 1.f &&
+        d.nudgeTarget == 0.f) {
+        const Body& ob = bodies[d.obstBody];
+        vec3 cp = g->pathPos(d.path, d.u);
+        vec2 ct = g->pathTangent(d.path, d.u);
+        float lat = dot(ob.pos - cp.xy(), rightOf(ct));
+        float need = d.info.halfWid + ob.halfWid + 0.2f - fabsf(lat);
+        if (need > 0.f && need < 1.0f) {
+            d.nudgeTarget = (lat > 0.f ? -1.f : 1.f) * need;
+            d.nudgeTimer = 5.f;
             d.blockedTime = 0.f;
         }
     }

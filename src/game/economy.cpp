@@ -331,7 +331,7 @@ std::vector<MenuItem> jobItems(GameWorld& g) {
     }
     MenuItem j;
     j.label = "Taxi / Vigilante / Paramedic";
-    j.detail = "Get into a taxi, police car or ambulance and press G (D-pad up) to start the job.";
+    j.detail = "Get into a taxi, police car or ambulance and press G (R3 on a controller) to start the job.";
     j.enabled = false;
     j.id = -5;
     items.push_back(j);

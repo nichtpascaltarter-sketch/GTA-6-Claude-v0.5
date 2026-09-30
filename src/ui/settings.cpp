@@ -309,7 +309,7 @@ int actionFromKey(const std::string& iniKey) {
 int legacyPromptAction(const std::string& kb, const std::string& pad) {
     static const struct { const char* kb; const char* pad; InputAction a; } kPairs[] = {
         {"F", "Y", IA_ENTER_VEHICLE}, {"TAB", "LB", IA_WEAPON_WHEEL}, {"RMB", "LT", IA_AIM},        {"LMB", "RT", IA_ATTACK},
-        {"SHIFT", "A", IA_SPRINT},    {"SPACE", "X", IA_JUMP},        {"Q", "RB", IA_COVER},         {"G", "UP", IA_INTERACT},
+        {"SHIFT", "A", IA_SPRINT},    {"SPACE", "X", IA_JUMP},        {"Q", "RB", IA_COVER},         {"G", "RS", IA_INTERACT},
         {"UP", "UP", IA_PHONE},       {"PGUP", "RIGHT", IA_RADIO_NEXT}, {"PGDN", "LEFT", IA_RADIO_PREV}, {"H", "DOWN", IA_HEADLIGHTS},
         {"E", "LS", IA_HORN},         {"V", "BACK", IA_CAMERA_VIEW},  {"CTRL", "LS", IA_CROUCH},     {"R", "B", IA_RELOAD},
         {"C", "RS", IA_LOOK_BEHIND},

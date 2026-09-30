@@ -564,8 +564,8 @@ struct Sim {
                 where += StrFormat(" pos (%.1f %.1f) latErr %.2f diag %.2f %.2f %.2f %.2f steer %.2f vF %.2f yawRate %.2f heading %.3f pathDir %.3f steerOut %.2f imp %.0f", c.s.body.pos.x, c.s.body.pos.y, d->latErr, d->diag[0], d->diag[1], d->diag[2], d->diag[3], c.ctl.steer,
                                    c.s.forwardSpeed(), c.s.body.angVel.z, atan2f(c.s.forward().y, c.s.forward().x), atan2f(G.pathTangent(d->path, d->u).y, G.pathTangent(d->path, d->u).x), c.s.steerOut, c.s.impactImpulse);
                 std::string nxt = d->routeLen > 0 && !G.isLane(d->route[0]) ? StrFormat("next conn %d sig %d", d->route[0] - (int)G.lanes.size(), (int)G.movementSignal(G.conn(d->route[0]).node, G.conn(d->route[0]).approach, G.conn(d->route[0]).turn, time)) : std::string("next -");
-                LOG("WATCH t=%.2f car %d %s %s v %.1f vT %.1f stop %.1f obst %.1f(%d) gateConn %d committed %d amberGo %d stopDone %d mode %d thr %.2f brk %.2f", time, i, where.c_str(), nxt.c_str(), c.s.speed(), d->vTarget, d->stopDist,
-                    d->obstDist, d->obstBody, d->gateConn, (int)d->committed, (int)d->amberGo, (int)d->stopDone, d->mode, c.ctl.throttle, c.ctl.brake);
+                LOG("WATCH t=%.2f car %d %s %s v %.1f vT %.1f stop %.1f obst %.1f(%d) gateConn %d committed %d amberGo %d stopDone %d mode %d thr %.2f brk %.2f stk %.2f rec %.2f col %d", time, i, where.c_str(), nxt.c_str(), c.s.speed(), d->vTarget, d->stopDist,
+                    d->obstDist, d->obstBody, d->gateConn, (int)d->committed, (int)d->amberGo, (int)d->stopDone, d->mode, c.ctl.throttle, c.ctl.brake, d->stuckTime, d->recoverTimer, c.s.impactCollider);
             }
             if (tc.stats.redViolations > redB) {
                 events.push_back({c.s.body.pos.toVec3().xy(), 1, time});
@@ -1306,6 +1306,23 @@ int main(int argc, char** argv) {
                 // detail view around the most visited intersection near the center
                 std::string dp = std::string(plotPath) + ".detail.ppm";
                 sim.plot(dp.c_str(), 60.f, detailAt.x < 1e8f ? detailAt : c + vec2(detailOff, detailOff));
+            }
+            break;
+        }
+        if (!strcmp(argv[i], "--conn") && i + 1 < argc) {
+            int id = atoi(argv[++i]);
+            const AI::LaneGraph& G = w.lg;
+            if (id < 0 || id >= (int)G.conns.size()) break;
+            const AI::Connector& C = G.conns[id];
+            w.loadCells(C.pts.empty() ? vec2(0.f) : C.pts[0].xy(), 60.f);
+            printf("conn %d node %d turn %d appr %d->%d from lane %d to lane %d len %.1f maxSpeed %.1f minRadius %.1f holdS %.1f conflicts %zu\n", id, C.node, C.turn, C.approach, C.outApproach, C.from,
+                   C.to, C.length, C.maxSpeed, C.minRadius, C.holdS, C.conflicts.size());
+            for (size_t k = 0; k < C.pts.size(); k++)
+                printf("  s %5.1f (%.2f %.2f %.2f) curv %+.3f\n", C.s[k], C.pts[k].x, C.pts[k].y, C.pts[k].z, C.curv[k]);
+            for (int ln : {C.from, C.to}) {
+                const AI::Lane& L = G.lanes[ln];
+                vec3 a = G.lanePos(ln, L.u0), b = G.lanePos(ln, L.u1);
+                printf("lane %d u %.1f..%.1f (%.1f %.1f)->(%.1f %.1f) width %.2f idx %d/%d cls %d\n", ln, L.u0, L.u1, a.x, a.y, b.x, b.y, L.width, L.index, L.count, L.cls);
             }
             break;
         }

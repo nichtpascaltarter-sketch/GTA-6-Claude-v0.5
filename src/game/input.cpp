@@ -163,7 +163,7 @@ void readControls(const InputState& in, const InputConfig& cfg, bool inVehicle, 
     c.lights = either(kb.get(UI_IA(IA_HEADLIGHTS), KEY_H), pad(in, PAD_DOWN));
     c.lookBehind = either(kb.get(UI_IA(IA_LOOK_BEHIND), KEY_C), pad(in, padRThumb));
     c.camMode = either(kb.get(UI_IA(IA_CAMERA_VIEW), KEY_V), pad(in, PAD_BACK));
-    c.special = either(kb.get(UI_IA(IA_INTERACT), KEY_G), pad(in, PAD_UP));
+    c.special = either(kb.get(UI_IA(IA_INTERACT), KEY_G), pad(in, padRThumb));   // R3 (D-pad up is the phone)
     {
         Button caps = kb.get(UI_IA(IA_FOCUS), 0x14);  // VK_CAPITAL
         Button sticks;

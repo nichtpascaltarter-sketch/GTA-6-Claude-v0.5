@@ -121,7 +121,7 @@ void MissionManager::registerAll(GameWorld& g) {
         s.icon = icon;
         return s;
     };
-    // jobs started from their vehicles (G / D-pad up in a taxi, police car or ambulance)
+    // jobs started from their vehicles (G / R3 in a taxi, police car or ambulance)
     MissionDef job = side("taxi", "Taxi Fares", "Sol Cabs", P.taxiDepot.pos.xy(), -1, SIDE_TAXI, UI::BLIP_TAXI_JOB, makeMission<MissionTaxi>);
     job.hidden = true;
     defs.push_back(job);

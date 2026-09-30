@@ -60,8 +60,10 @@ CharacterDesc randomCharacter(u32 seed, int role = 0);
 void buildSkeleton(const CharacterDesc& d, Skeleton& out);
 void buildCharacterMesh(const CharacterDesc& d, const Skeleton& skel, SkinnedMeshData& out);
 // Level-of-detail meshes on the same skeleton and skin weights (same silhouette and colours): out[0] full detail
-// (~14-18k tris, close), out[1] ~4.5k tris (about 15-40 m), out[2] ~1.5k tris (40 m+, no lashes/brows/mouth interior
-// or small accessories). lodCount 1..3; building them together costs one full build plus the decimation.
+// (~21-30k tris, close: ~8k of head and face, plus hair / beard / brow / lash strand cards as the last triangles of
+// the index buffer, see the card conventions in anim_internal.h), out[1] ~4.5k tris (about 15-40 m, no strand cards:
+// the hair shells remain), out[2] ~1.5k tris (40 m+, no lid tucks / mouth interior / fingers / small accessories).
+// lodCount 1..3; building them together costs one full build plus the decimation.
 void buildCharacterMeshLods(const CharacterDesc& d, const Skeleton& skel, SkinnedMeshData* out, int lodCount = 3);
 void buildCharacterMeshLod(const CharacterDesc& d, const Skeleton& skel, int lod, SkinnedMeshData& out);
 

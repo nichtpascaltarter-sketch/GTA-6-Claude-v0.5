@@ -913,6 +913,7 @@ void RoadNetwork::generate(WorldMap& map) {
     std::vector<Seg> segs;
     for (size_t pi = 0; pi < b.polys.size(); pi++) {
         const auto& p = b.polys[pi];
+        size_t firstSeg = segs.size();
         for (size_t i = 0; i + 1 < p.pts.size(); i++) {
             if (length2(p.pts[i + 1] - p.pts[i]) < 0.01f) continue;
             Seg s;
@@ -920,6 +921,10 @@ void RoadNetwork::generate(WorldMap& map) {
             s.b = p.pts[i + 1];
             s.poly = (int)pi;
             segs.push_back(s);
+        }
+        if (segs.size() > firstSeg) {
+            segs[firstSeg].first = true;
+            segs.back().last = true;
         }
     }
     const float H = 40.f;
@@ -977,6 +982,8 @@ void RoadNetwork::generate(WorldMap& map) {
                         if (p.layer >= 0 && q.layer >= 0 && p.layer != q.layer) continue;
                         if (p.layer < 0 && q.layer < 0) continue;
                         if (p.layer >= 0 && q.layer < 0) continue;
+                        // a planned ramp joins its highway at one end and lands on an at-grade road at the other
+                        if (p.layer < 0 && p.attachEnd >= 0 && (end == p.attachEnd) != (q.layer == 1)) continue;
                         // ramp end at ground connects to at-grade roads, start connects to highway: choose nearest
                         float t;
                         float d = distPointSegment2D(e, segs[j].a, segs[j].b, &t);
@@ -1002,20 +1009,30 @@ void RoadNetwork::generate(WorldMap& map) {
     int nres = (int)(2.f * kWorldHalf / NH) + 2;
     auto nkey = [&](int x, int y) { return (long long)y * nres + x; };
     std::vector<vec2> npos;
-    std::vector<int> nlayer;  // layer of node: 0 street, 1 highway (for merging rules)
-    auto getNode = [&](vec2 p, int layer) -> int {
+    std::vector<int> nlayer;  // layer of node: 0 street, 1 highway, -1 connector end, -2 connector interior (for merging rules)
+    std::vector<int> npoly;
+    auto getNode = [&](vec2 p, int layer, int poly) -> int {
         int cx = (int)((p.x + kWorldHalf) / NH), cy = (int)((p.y + kWorldHalf) / NH);
         float mergeR = 3.5f;
         for (int y = cy - 1; y <= cy + 1; y++)
             for (int x = cx - 1; x <= cx + 1; x++) {
                 auto it = nodeHash.find(nkey(x, y));
                 if (it == nodeHash.end()) continue;
-                for (int n : it->second)
-                    if (length2(npos[n] - p) < mergeR * mergeR && (nlayer[n] == layer || layer < 0 || nlayer[n] < 0)) return n;
+                for (int n : it->second) {
+                    if (length2(npos[n] - p) >= mergeR * mergeR) continue;
+                    // a connector's interior points only chain to each other: a ramp passing over a street corner does not
+                    // join it
+                    if (layer == -2 || nlayer[n] == -2) {
+                        if (layer == nlayer[n] && npoly[n] == poly) return n;
+                        continue;
+                    }
+                    if (nlayer[n] == layer || layer < 0 || nlayer[n] < 0) return n;
+                }
             }
         int id = (int)npos.size();
         npos.push_back(p);
         nlayer.push_back(layer);
+        npoly.push_back(poly);
         nodeHash[nkey(cx, cy)].push_back(id);
         return id;
     };
@@ -1032,7 +1049,11 @@ void RoadNetwork::generate(WorldMap& map) {
         for (size_t k = 0; k + 1 < ts.size(); k++) {
             vec2 pa = lerp(s.a, s.b, ts[k]), pb = lerp(s.a, s.b, ts[k + 1]);
             int la = p.layer, lb = p.layer;
-            int na = getNode(pa, la), nb = getNode(pb, lb);
+            if (p.layer < 0) {
+                if (!(s.first && k == 0)) la = -2;
+                if (!(s.last && k + 2 == ts.size())) lb = -2;
+            }
+            int na = getNode(pa, la, s.poly), nb = getNode(pb, lb, s.poly);
             if (na == nb) continue;
             links.push_back({na, nb, s.poly});
         }
@@ -1306,8 +1327,10 @@ void RoadNetwork::generate(WorldMap& map) {
             target[i] = z;
         }
         // Ramps: from the end attached to a highway node, hold the highway's level for as long as the ramp still runs against
-        // the highway pavement (auxiliary lane up to the gore); the rest follows its own profile. Where what is left of the
-        // ramp is too short to come down (or up) to its other end at 7%, the hold is released early.
+        // the highway pavement (auxiliary lane up to the gore); from there stay as high as the ramp can while still reaching
+        // its landing at the design grade (the envelope the interchange planner laid it out for: it clears the roads it
+        // passes that way), flat where it lands: across the junction disc and wherever its surface lies over the landing
+        // road's. Where what is left is too short to come down (or up) at 7%, the hold is released early.
         if (e.cls == RC_RAMP && !hGrid.empty()) {
             size_t cnt = e.pts.size();
             size_t idx = &e - &edges[0];
@@ -1342,12 +1365,43 @@ void RoadNetwork::generate(WorldMap& map) {
                     run.push_back(i);
                 }
                 if (run.empty()) continue;
-                float zFar = target[end == 0 ? cnt - 1 : 0];
+                // the landing: the at-grade roads' level there (already elevated), and the flat run
+                int farN = end == 0 ? e.n1 : e.n0;
+                size_t farI = end == 0 ? cnt - 1 : 0;
+                float zFar = target[farI], flat = 0.f;
+                {
+                    float zs = 0.f, r = 0.f;
+                    int zc = 0;
+                    for (int oe : nodes[farN].edges) {
+                        const RoadEdge& o = edges[oe];
+                        r = Max(r, o.halfWidth + o.sidewalk * 0.3f);
+                        if (o.cls == RC_RAMP || o.cls == RC_HIGHWAY) continue;
+                        zs += o.n0 == farN ? o.pts.front().z : o.pts.back().z;
+                        zc++;
+                    }
+                    if (zc > 0) {
+                        zFar = zs / (float)zc;
+                        if (nodes[farN].edges.size() >= 3) flat = r + 2.f;
+                        for (size_t j = 0; j < cnt; j++) {
+                            size_t i = end == 0 ? cnt - 1 - j : j;
+                            bool over = false;
+                            for (int oe : nodes[farN].edges) {
+                                const RoadEdge& o = edges[oe];
+                                if (o.cls == RC_RAMP || o.cls == RC_HIGHWAY) continue;
+                                for (size_t k = 0; k + 1 < o.pts.size() && !over; k++)
+                                    over = distPointSegment2D(e.pts[i].xy(), o.pts[k].xy(), o.pts[k + 1].xy()) < e.halfWidth + o.halfWidth + o.sidewalk;
+                            }
+                            if (!over) break;
+                            flat = Max(flat, end == 0 ? L - sAlong[i] : sAlong[i]);
+                        }
+                        target[farI] = zFar;
+                    }
+                }
                 size_t keep = run.size();
                 while (keep > 1) {
                     size_t i = run[keep - 1];
                     float left = end == 0 ? L - sAlong[i] : sAlong[i];
-                    if (fabsf(hzv[i] - zFar) <= 0.07f * left) break;
+                    if (fabsf(hzv[i] - zFar) <= 0.07f * Max(0.f, left - flat)) break;
                     keep--;
                 }
                 for (size_t r = 0; r < keep; r++) {
@@ -1355,6 +1409,14 @@ void RoadNetwork::generate(WorldMap& map) {
                     target[i] = Max(target[i], hzv[i]);
                     hm[i] = 1;
                 }
+                float zTop = hzv[run[keep - 1]];
+                for (size_t i = 0; i < cnt; i++) {
+                    if (hm[i]) continue;
+                    float left = end == 0 ? L - sAlong[i] : sAlong[i];
+                    if (left <= flat) target[i] = zFar;
+                    else target[i] = Max(target[i], Min(zTop, zFar + kRampEnvGrade * (left - flat)));
+                }
+                if (getenv("RAMPDBG")) printf("RAMPDBG edge %zu end %d cnt %zu run %zu keep %zu zTop %.2f zFar %.2f flat %.1f L %.1f t[mid] %.2f\n", idx, end, cnt, run.size(), keep, zTop, zFar, flat, L, target[cnt / 2]);
             }
         }
         // Highways: raise over road crossings (deck 7 m over the street surface, at least 8 m over the ground); the grade limit
@@ -1382,15 +1444,88 @@ void RoadNetwork::generate(WorldMap& map) {
         }
         for (size_t i = 0; i < e.pts.size(); i++) e.pts[i].z = z[i];
         // held ramp points sit exactly on the highway (the grade limit may have lifted them toward a hilltop end)
-        const std::vector<char>& hm = held[&e - &edges[0]];
-        for (size_t i = 0; i < hm.size() && i < e.pts.size(); i++)
-            if (hm[i]) e.pts[i].z = heldZ[&e - &edges[0]][i];
+        if (e.cls == RC_RAMP) {
+            size_t idx = &e - &edges[0];
+            const std::vector<char>& hm = held[idx];
+            for (size_t i = 0; i < hm.size() && i < e.pts.size(); i++)
+                if (hm[i]) e.pts[i].z = heldZ[idx][i];
+        }
     };
     for (auto& e : edges)
         if (e.cls != RC_RAMP && e.cls != RC_HIGHWAY) elevate(e);
     buildStreetGrid();
-    for (auto& e : edges)
-        if (e.cls == RC_HIGHWAY) elevate(e);
+    // Highways are elevated along whole chains, through the nodes where only ramps join them: the approach grades carry
+    // across a ramp's attach node instead of leaving a step there (which the node blend would smear under the ramp's
+    // held section)
+    {
+        std::vector<int> hwyDeg(nodes.size(), 0);
+        for (const RoadEdge& e : edges)
+            if (e.cls == RC_HIGHWAY) { hwyDeg[e.n0]++; hwyDeg[e.n1]++; }
+        // the other highway edge at a pass-through node
+        auto nextAt = [&](int node, int from) {
+            if (hwyDeg[node] != 2) return -1;
+            for (int oe : nodes[node].edges)
+                if (oe != from && edges[oe].cls == RC_HIGHWAY) return oe;
+            return -1;
+        };
+        std::vector<char> done(edges.size(), 0);
+        for (size_t e0 = 0; e0 < edges.size(); e0++) {
+            if (edges[e0].cls != RC_HIGHWAY || done[e0]) continue;
+            // back up to the chain's first edge
+            int cur = (int)e0, node = edges[e0].n0;
+            for (size_t guard = 0; guard < edges.size(); guard++) {
+                int prev = nextAt(node, cur);
+                if (prev < 0 || prev == (int)e0) break;
+                node = edges[prev].n0 == node ? edges[prev].n1 : edges[prev].n0;
+                cur = prev;
+            }
+            // walk forward: (edge, reversed)
+            std::vector<std::pair<int, bool>> chain;
+            int start = node;
+            node = start;
+            for (int e = cur; e >= 0 && !done[e];) {
+                bool rev = edges[e].n1 == node;
+                chain.push_back({e, rev});
+                done[e] = 1;
+                node = rev ? edges[e].n0 : edges[e].n1;
+                e = nextAt(node, e);
+            }
+            RoadEdge C;
+            C.cls = RC_HIGHWAY;
+            C.flags = 0;
+            std::vector<size_t> startIdx;
+            for (auto& ce : chain) {
+                std::vector<vec3> p = edges[ce.first].pts;
+                if (ce.second) std::reverse(p.begin(), p.end());
+                startIdx.push_back(C.pts.empty() ? 0 : C.pts.size() - 1);
+                for (size_t i = 0; i + 1 < p.size(); i++) {
+                    vec2 a = p[i].xy(), c = p[i + 1].xy();
+                    int n = Max(1, (int)ceilf(length(c - a) / 11.5f));
+                    for (int k = 0; k < n; k++) {
+                        if (k == 0 && i == 0 && !C.pts.empty()) continue;   // the node point the previous edge ended on
+                        C.pts.push_back(vec3(lerp(a, c, (float)k / n), 0));
+                    }
+                }
+                C.pts.push_back(vec3(p.back().xy(), 0));
+            }
+            startIdx.push_back(C.pts.size() - 1);
+            elevate(C);
+            // back onto the edges (elevate kept every point: all pieces are under its 12 m spacing)
+            for (size_t c = 0; c < chain.size(); c++) {
+                RoadEdge& e = edges[chain[c].first];
+                std::vector<vec3> p(C.pts.begin() + startIdx[c], C.pts.begin() + startIdx[c + 1] + 1);
+                if (chain[c].second) std::reverse(p.begin(), p.end());
+                e.pts.swap(p);
+                for (const vec3& q : e.pts) {
+                    float g = map.heightAt(q.x, q.y), wl = map.waterAt(q.x, q.y);
+                    if (wl > kNoWater + 1.f && wl > g - 0.05f) e.flags |= RF_BRIDGE;
+                    Region r = map.regionAt(q.x, q.y);
+                    if (isUrbanRegion(r) || r == REG_SUBURBS || r == REG_GROVE || r == REG_AIRPORT) e.flags |= RF_ELEVATED;
+                    if (streetUnder(q.xy(), 26.f) > -1e8f) e.flags |= RF_BRIDGE;
+                }
+            }
+        }
+    }
     hGrid.assign((size_t)xRes * xRes, {});
     for (size_t ei = 0; ei < edges.size(); ei++) {
         const RoadEdge& h = edges[ei];
@@ -1541,19 +1676,22 @@ void RoadNetwork::generate(WorldMap& map) {
         nodes[n].z = c ? s / c : map.heightAt(nodes[n].p.x, nodes[n].p.y);
     }
     for (auto& e : edges) {
-        // blend the first/last ~40 m toward the node heights
+        // blend the first/last ~40 m toward the node heights (ramps keep their planned grades: their profile is shifted onto
+        // the node's height rather than flattened toward it)
+        bool shift = e.cls == RC_RAMP;
         float z0 = nodes[e.n0].z, z1 = nodes[e.n1].z;
+        float e0 = e.pts.front().z, e1 = e.pts.back().z;
         float acc = 0;
         for (size_t i = 0; i < e.pts.size(); i++) {
             if (i > 0) acc += length(e.pts[i].xy() - e.pts[i - 1].xy());
             float w = SmoothStep(40.f, 0.f, acc);
-            e.pts[i].z = Lerp(e.pts[i].z, z0, w);
+            e.pts[i].z = shift ? e.pts[i].z + (z0 - e0) * w : Lerp(e.pts[i].z, z0, w);
         }
         acc = 0;
         for (size_t i = e.pts.size(); i-- > 0;) {
             if (i + 1 < e.pts.size()) acc += length(e.pts[i].xy() - e.pts[i + 1].xy());
             float w = SmoothStep(40.f, 0.f, acc);
-            e.pts[i].z = Lerp(e.pts[i].z, z1, w);
+            e.pts[i].z = shift ? e.pts[i].z + (z1 - e1) * w : Lerp(e.pts[i].z, z1, w);
         }
         e.pts.front() = vec3(nodes[e.n0].p, z0);
         e.pts.back() = vec3(nodes[e.n1].p, z1);

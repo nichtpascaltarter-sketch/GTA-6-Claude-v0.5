@@ -619,7 +619,7 @@ public:
 };
 
 // ------------------------------------------------------------------------------------------------------------------
-// Taxi fares: in any taxi, press G / D-pad up to go on duty.
+// Taxi fares: in any taxi, press G / R3 to go on duty.
 const vec2 kHospitals[] = {vec2(1650, 1050), vec2(3650, 3200), vec2(-2400, 1800), vec2(5200, -900), vec2(-6400, 5200),
                            vec2(900, 6800), vec2(-3900, -3100), vec2(7400, 4800)};
 
@@ -681,7 +681,7 @@ public:
     void start(GameWorld& g) override {
         taxi = g.playerVehicle();
         score(SC_NOIR, 0.2f, 13);
-        g.notify("TAXI", "On duty. Leave the cab or press ~i:G|UP~ again to end the shift.");
+        g.notify("TAXI", "On duty. Leave the cab or press ~i:G|RS~ again to end the shift.");
         newFare(g);
     }
 
@@ -823,7 +823,7 @@ public:
 };
 
 // ------------------------------------------------------------------------------------------------------------------
-// Vigilante: in a police car, press G / D-pad up. Stop fleeing suspects, level by level.
+// Vigilante: in a police car, press G / R3. Stop fleeing suspects, level by level.
 class MissionVigilante : public StoryMission {
 public:
     int cruiser = -1, level = 0, suspectCar = -1;
@@ -922,7 +922,7 @@ public:
 };
 
 // ------------------------------------------------------------------------------------------------------------------
-// Paramedic: in an ambulance, press G / D-pad up. Pick up the injured and rush them to a hospital.
+// Paramedic: in an ambulance, press G / R3. Pick up the injured and rush them to a hospital.
 class MissionParamedic : public StoryMission {
 public:
     int amb = -1, level = 0;
@@ -2308,7 +2308,7 @@ void activitiesUpdate(GameWorld& g, float dt) {
             b.label = "Stunt jump";
             g.missionBlips.push_back(b);
         }
-    // job vehicles: G / D-pad up in a taxi, police car or ambulance starts the job
+    // job vehicles: G / R3 in a taxi, police car or ambulance starts the job
     int pv = g.playerVehicle();
     if (pv >= 0 && !gMissions.active && g.peds[g.player].seat == 0 && g.playerControl) {
         Vehicles::VehicleClass c = g.vassets[g.vehicles[pv].model].spec.cls;
@@ -2318,11 +2318,9 @@ void activitiesUpdate(GameWorld& g, float dt) {
             const char* jobName = c == Vehicles::VC_TAXI ? "taxi" : (c == Vehicles::VC_POLICE ? "vigilante" : "paramedic");
             if (lastHintVeh != pv) {
                 lastHintVeh = pv;
-                // D-pad up opens the phone on a gamepad, so pad players start the job from the phone's job tile
-                if (g.ctl.usingPad) g.help(StrFormat("Open the phone (~i:UP|UP~) and choose the %s job to start it.", jobName), 5.f);
-                else g.help(StrFormat("Press ~i:G|UP~ to start the %s job, or use the phone.", jobName), 5.f);
+                g.help(StrFormat("Press ~i:G|RS~ to start the %s job, or use the phone.", jobName), 5.f);   // pad: R3
             }
-            if (g.ctl.special.pressed && !g.ctl.usingPad && g.pinfo.wanted == 0) {
+            if (g.ctl.special.pressed && g.pinfo.wanted == 0) {
                 int di = gMissions.findDef(job);
                 if (di >= 0) {
                     gMissions.startCheckpoint = 0;

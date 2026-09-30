@@ -793,7 +793,7 @@ void GameWorld::updateTutorialHints(float dt) {
         vehiclesNear(p.pos.toVec3().xy(), 4.5f, list);
         for (int vi : list)
             if (!vehicles[vi].locked && !vehicles[vi].exploded) {
-                tutorialHint(0, "Press ~i:F|Y~ to enter a vehicle. Hold ~i:G|UP~ nearby to ride as a passenger.");
+                tutorialHint(0, "Press ~i:F|Y~ to enter a vehicle. Hold ~i:G|RS~ nearby to ride as a passenger.");
                 break;
             }
         if (pinfo.playTime > 20.0) tutorialHint(1, "Hold ~i:SHIFT|A~ to sprint. Press ~i:SPACE|X~ at low walls to vault or climb.");

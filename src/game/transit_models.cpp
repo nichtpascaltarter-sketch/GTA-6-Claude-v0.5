@@ -337,7 +337,6 @@ void buildCar(bool cab, int lod, MeshData& m) {
     if (!cab) flatEnd(kHalfLen, 1.f);
     else {
         // --- cab nose: raked windscreen, lamp clusters, destination display, anti-climber, coupler cover
-        float y0 = 8.38f;   // where the nose starts tapering
         float zc = kShoulderZ;
         // side and roof taper from y0 to the front face
         int nz = 8;
@@ -944,3 +943,5 @@ bool busBody(int catalogIndex, const std::string& sign, MeshData& out) {
 
 }  // namespace TransitModels
 }  // namespace Game
+
+#include "transit_tram_model.cpp"   // Sol Beach Streetcar modules

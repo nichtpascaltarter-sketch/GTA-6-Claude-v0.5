@@ -38,6 +38,8 @@ struct Test {
     float diagT = 0.f;
     float stuckT = 0.f;
     bool stuckShot = false;
+    float quitT = 0.f;
+    bool quitSent = false;
 };
 Test gT;
 
@@ -700,7 +702,18 @@ void update(GameWorld& g, float dt) {
                 if (g.env) g.env->timeOfDay = (float)atof(h);
         }
     }
-    if (gT.mode.empty() || gT.done) return;
+    if (gT.mode.empty()) return;
+    if (gT.done) {
+        // let the last shot land, then end the automated run
+        gT.quitT += dt;
+        flushShot(g, dt);
+        if (gT.quitT > 4.f && gT.pendName.empty() && g.requestScreenshot.empty() && !gT.quitSent) {
+            gT.quitSent = true;
+            LOG("Transit test [%s]: finished, quitting", gT.mode.c_str());
+            PostQuitMessage(0);
+        }
+        return;
+    }
     gT.t += dt;
     flushShot(g, dt);
     if (gT.t < 1.f) return;   // let the world settle

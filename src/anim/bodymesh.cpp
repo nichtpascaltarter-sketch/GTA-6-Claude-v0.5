@@ -633,12 +633,12 @@ static void buildLeg(BuildCtx& c, TorsoGrid& T, int side) {
     float a = a0;
     while (a < li.kneeA - 0.085f * s) { rings.push_back(a); a += 0.027f * s; }
     // dense around the knee (bending, trouser folds) and over the lower shin (hem stacking)
-    for (float k = -0.084f; k <= 0.0841f; k += 0.014f) rings.push_back(li.kneeA + k * s);
+    for (float k = -0.084f; k <= 0.0841f; k += 0.0105f) rings.push_back(li.kneeA + k * s);
     a = li.kneeA + 0.11f * s;
     float stackA = arcA0 - 0.13f * s;
     while (a < stackA - 0.01f * s) { rings.push_back(a); a += 0.03f * s; }
     a = Max(a, stackA);
-    while (a < arcA0 - 0.03f * s) { rings.push_back(a); a += 0.018f * s; }
+    while (a < arcA0 - 0.03f * s) { rings.push_back(a); a += 0.011f * s; }
     for (int k = 0; k <= 6; k++) rings.push_back(arcA0 - 0.015f * s + (arcLen + 0.02f * s) * k / 6.f);
     a = arcA0 + arcLen + 0.028f * s;
     while (a < endA - 0.006f * s) { rings.push_back(a); a += 0.022f * s; }
@@ -710,7 +710,7 @@ static void buildArm(BuildCtx& c, TorsoGrid& T, int side) {
     float a = 0.085f * s;
     while (a < eA - 0.075f * s) { rings.push_back(a); a += 0.026f * s; }
     // dense around the elbow (bending, sleeve folds)
-    for (float k = -0.072f; k <= 0.0721f; k += 0.012f) rings.push_back(eA + k * s);
+    for (float k = -0.072f; k <= 0.0721f; k += 0.009f) rings.push_back(eA + k * s);
     a = eA + 0.098f * s;
     while (a < wA - 0.035f * s) { rings.push_back(a); a += 0.026f * s; }
     for (float k = -0.035f; k <= 0.0151f; k += 0.017f) rings.push_back(wA + k * s);
