@@ -457,6 +457,13 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         else if (dbg == 14) o = ssr.a;
         else if (dbg == 15) o = froxelFog(uv, viewDepth).rgb * 4.0;
         else if (dbg == 16) o = froxelFog(uv, viewDepth).a;
+        else if (dbg == 17) {
+            // ambient sources for the pixel normal (x4): left third the reflection probe's SH (near-camera ambient),
+            // middle the sky SH, right the probe cube's filtered radiance (mip 2, what the SH is projected from)
+            if (uv.x < 0.333) o = evalSH9From(gProbeSH, g.normal) * preExposure() * 4.0;
+            else if (uv.x < 0.667) o = evalSH9(g.normal) * preExposure() * 4.0;
+            else o = gEnvProbeTex.SampleLevel(sLinearClamp, g.normal, 2.0).rgb * preExposure() * 4.0 / PI;
+        }
         if (any(isnan(o))) o = float3(1, 0, 1);
         uHDR[id.xy] = float4(o, 1);
         return;

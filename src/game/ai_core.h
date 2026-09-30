@@ -349,6 +349,10 @@ struct Driver {
     int recoverDir = 0;
     vec2 stuckAnchor = vec2(1e9f);  // where the car stood when it last made progress while wanting to move
     float pedCreep = 0.f;       // inching forward at a pedestrian dawdling in front of the bumper (s left)
+    int stuckRepeats = 0;       // stuck recoveries at the same spot in a row (the host may lift the car past, out of view)
+    vec2 stuckAt = vec2(1e9f);  // where the last one happened (and on which path, before the recovery relocalized)
+    int stuckPath = -1;
+    float stuckU = 0.f;
     int kturns = 0;             // three-point-turn back-ups on the current path
     bool kturn = false;         // the running recovery is a three-point-turn back-up (keeps the path)
     float kturnT = 0.f;         // time running wide at full lock (three-point-turn trigger)
@@ -425,6 +429,8 @@ public:
     // Spawning support: true if a vehicle of half length hl fits at (lane, u) with `gap` meters of free space
     bool laneFree(int lane, float u, float hl, float gap) const;
     bool rearClear(const Driver& d, vec2 pos, vec2 fwd, float dist) const;   // nothing within dist behind the rear bumper
+    // `ahead` meters on from where the driver last got stuck (following its route): where to lift a hopelessly stuck car
+    bool liftPoint(const Driver& d, float ahead, int& pathOut, float& uOut) const;
     // Signals and ped crossing support
     SignalState signalFor(const Driver& d) const;
 

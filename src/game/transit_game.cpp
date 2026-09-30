@@ -435,8 +435,8 @@ std::vector<vec2> exitPath(const World::MetroStation& st, int side, vec2 from) {
     const float H = kPlatformHalfLen;
     std::vector<vec2> path;
     path.push_back(from);
-    // through one of the fare gate lanes square on (the gaps between the cabinets are ~1 m wide)
-    float gateA = E * (H - 3.3f + 0.65f + 1.3f * (float)(hash32((u32)(from.x * 10.f)) % 3u));
+    // through one of the two fare gate lanes square on (the gaps between the cabinets are ~1 m wide)
+    float gateA = E * (H - 3.3f + 0.675f + 1.35f * (float)(hash32((u32)(from.x * 10.f)) % 2u));
     path.push_back(st.local(gateA, S * 6.0f, 0.f).xy());
     path.push_back(st.local(gateA, S * 10.0f, 0.f).xy());
     path.push_back(st.local(E * (H - 3.0f), S * 9.4f, 0.f).xy());

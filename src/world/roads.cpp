@@ -170,7 +170,7 @@ std::string ordinal(int n) {
 constexpr float kRampHalfWidth = 3.3f;    // one 3.8 m lane + 1.4 m shoulders (the Ramp class, one way)
 constexpr float kRampHoldReach = 17.6f;   // highway half width + ramp half width + 0.3: the ramp still runs on the highway
 constexpr float kRampEnvGrade = 0.069f;   // design descent (the elevation pass limits ramps to 7%)
-constexpr float kRampClear = 4.6f;        // deck over a road it crosses (the overlap pass settles anything closer)
+constexpr float kRampClear = 4.75f;       // deck over a road it crosses (the overlap pass settles anything under 4.5 m)
 constexpr float kRampOffset = 18.f;       // centreline offset from the highway's while running alongside, clear of its deck
 
 struct RampPlanner {
@@ -987,9 +987,11 @@ void RoadNetwork::generate(WorldMap& map) {
     // ============================================================= Planarize
     // Collect segments per layer; find intersections within the same layer; endpoints snap across layers.
     std::vector<Seg> segs;
+    std::vector<size_t> polySegs(b.polys.size() + 1, 0);   // each poly's segments: [polySegs[pi], polySegs[pi + 1])
     for (size_t pi = 0; pi < b.polys.size(); pi++) {
         const auto& p = b.polys[pi];
         size_t firstSeg = segs.size();
+        polySegs[pi] = firstSeg;
         for (size_t i = 0; i + 1 < p.pts.size(); i++) {
             if (length2(p.pts[i + 1] - p.pts[i]) < 0.01f) continue;
             Seg s;
@@ -1003,6 +1005,7 @@ void RoadNetwork::generate(WorldMap& map) {
             segs.back().last = true;
         }
     }
+    polySegs[b.polys.size()] = segs.size();
     const float H = 40.f;
     int hres = (int)(2.f * kWorldHalf / H) + 1;
     std::unordered_map<long long, std::vector<int>> segHash;
@@ -1038,6 +1041,7 @@ void RoadNetwork::generate(WorldMap& map) {
             }
     }
     // Endpoint snapping (T-junctions): polyline endpoints lying near another segment split it
+    std::vector<size_t> moved;
     for (size_t pi = 0; pi < b.polys.size(); pi++) {
         const PolyIn& p = b.polys[pi];
         for (int end = 0; end < 2; end++) {
@@ -1071,12 +1075,47 @@ void RoadNetwork::generate(WorldMap& map) {
                 // move the polyline endpoint onto the segment
                 vec2 snap = lerp(segs[bestSeg].a, segs[bestSeg].b, bestT);
                 // find our own segment that has this endpoint and adjust it
-                for (auto& s : segs) {
-                    if (s.poly != (int)pi) continue;
-                    if (end == 0 && length2(s.a - e) < 1e-4f) s.a = snap;
-                    if (end == 1 && length2(s.b - e) < 1e-4f) s.b = snap;
+                for (size_t si = polySegs[pi]; si < polySegs[pi + 1]; si++) {
+                    Seg& s = segs[si];
+                    bool hit = false;
+                    if (end == 0 && length2(s.a - e) < 1e-4f) { s.a = snap; hit = true; }
+                    if (end == 1 && length2(s.b - e) < 1e-4f) { s.b = snap; hit = true; }
+                    if (hit) moved.push_back(si);
                 }
             }
+        }
+    }
+    // A snapped end moves its last piece by up to 14 m: where that now crosses another road of its layer, split both there
+    // too (else the two cross without a junction)
+    for (size_t si : moved) {
+        const PolyIn& pa = b.polys[segs[si].poly];
+        if (pa.layer < 0) continue;
+        vec2 mn = vmin(segs[si].a, segs[si].b), mx = vmax(segs[si].a, segs[si].b);
+        int x0 = (int)((mn.x + kWorldHalf) / H), x1 = (int)((mx.x + kWorldHalf) / H);
+        int y0 = (int)((mn.y + kWorldHalf) / H), y1 = (int)((mx.y + kWorldHalf) / H);
+        for (int y = y0 - 1; y <= y1 + 1; y++)
+            for (int x = x0 - 1; x <= x1 + 1; x++) {
+                auto it = segHash.find(hkey(x, y));
+                if (it == segHash.end()) continue;
+                for (int j : it->second) {
+                    if (segs[j].poly == segs[si].poly || b.polys[segs[j].poly].layer != pa.layer) continue;
+                    float ta, tb;
+                    if (segmentIntersect2D(segs[si].a, segs[si].b, segs[j].a, segs[j].b, &ta, &tb)) {
+                        segs[si].splits.push_back(ta);
+                        segs[j].splits.push_back(tb);
+                    }
+                }
+            }
+    }
+    if (const char* pd = getenv("PLDBG")) {   // DBGPL
+        float px, py;
+        sscanf(pd, "%f,%f", &px, &py);
+        for (size_t i = 0; i < segs.size(); i++) {
+            if (distPointSegment2D(vec2(px, py), segs[i].a, segs[i].b) > 30.f) continue;
+            const PolyIn& p = b.polys[segs[i].poly];
+            printf("PLDBG seg %zu poly %d '%s' layer %d cls %d (%.2f, %.2f)-(%.2f, %.2f) first %d last %d splits", i, segs[i].poly, p.name.c_str(), p.layer, (int)p.cls, segs[i].a.x, segs[i].a.y, segs[i].b.x, segs[i].b.y, segs[i].first, segs[i].last);
+            for (float t : segs[i].splits) printf(" %.4f", t);
+            printf("\n");
         }
     }
     // Build nodes with merging
@@ -1090,21 +1129,27 @@ void RoadNetwork::generate(WorldMap& map) {
     auto getNode = [&](vec2 p, int layer, int poly) -> int {
         int cx = (int)((p.x + kWorldHalf) / NH), cy = (int)((p.y + kWorldHalf) / NH);
         float mergeR = 3.5f;
+        // the nearest node within reach (two roads' crossing points must land on the same node, not each on a vertex of
+        // its own road nearby)
+        int best = -1;
+        float bestD2 = mergeR * mergeR;
         for (int y = cy - 1; y <= cy + 1; y++)
             for (int x = cx - 1; x <= cx + 1; x++) {
                 auto it = nodeHash.find(nkey(x, y));
                 if (it == nodeHash.end()) continue;
                 for (int n : it->second) {
-                    if (length2(npos[n] - p) >= mergeR * mergeR) continue;
+                    float d2 = length2(npos[n] - p);
+                    if (d2 >= bestD2) continue;
                     // a connector's interior points only chain to each other: a ramp passing over a street corner does not
                     // join it
-                    if (layer == -2 || nlayer[n] == -2) {
-                        if (layer == nlayer[n] && npoly[n] == poly) return n;
-                        continue;
-                    }
-                    if (nlayer[n] == layer || layer < 0 || nlayer[n] < 0) return n;
+                    bool ok = (layer == -2 || nlayer[n] == -2) ? (layer == nlayer[n] && npoly[n] == poly)
+                                                               : (nlayer[n] == layer || layer < 0 || nlayer[n] < 0);
+                    if (!ok) continue;
+                    best = n;
+                    bestD2 = d2;
                 }
             }
+        if (best >= 0) return best;
         int id = (int)npos.size();
         npos.push_back(p);
         nlayer.push_back(layer);
@@ -1112,6 +1157,10 @@ void RoadNetwork::generate(WorldMap& map) {
         nodeHash[nkey(cx, cy)].push_back(id);
         return id;
     };
+    // Crossing and T-junction points first, so both roads' split points (and their own vertices close by) land on one node
+    for (auto& s : segs)
+        for (float t : s.splits)
+            if (t > 1e-4f && t < 1.f - 1e-4f) getNode(lerp(s.a, s.b, t), b.polys[s.poly].layer, s.poly);
     struct Link { int a, b, poly; };
     std::vector<Link> links;
     for (auto& s : segs) {
@@ -1161,6 +1210,16 @@ void RoadNetwork::generate(WorldMap& map) {
             const PolyIn& p1 = b.polys[links[adj[n][1]].poly];
             if (p0.cls != p1.cls || p0.layer != p1.layer || links[adj[n][0]].poly != links[adj[n][1]].poly) junction[n] = true;
         }
+    }
+    if (const char* pd = getenv("PLDBG")) {   // DBGPL
+        float px, py;
+        sscanf(pd, "%f,%f", &px, &py);
+        for (size_t n = 0; n < npos.size(); n++)
+            if (length(npos[n] - vec2(px, py)) < 6.f) {
+                printf("PLDBG node %zu (%.2f, %.2f) layer %d adj %zu junction %d:", n, npos[n].x, npos[n].y, nlayer[n], adj[n].size(), (int)junction[n]);
+                for (int li : adj[n]) printf(" [%d-%d poly %d]", links[li].a, links[li].b, links[li].poly);
+                printf("\n");
+            }
     }
     // Chain extraction
     nodes.clear();

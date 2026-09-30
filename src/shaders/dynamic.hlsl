@@ -322,12 +322,31 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         // Fold / crease occlusion from the signed curvature (concave = inside a fold)
         float curvS = (dot(ddx(N), dPx) + dot(ddy(N), dPy)) / max(dot(dPx, dPx) + dot(dPy, dPy), 1e-10);
         ao *= clamp(1.0 + min(curvS, 0.0) * 0.012, 0.55, 1.0);
-        // Weave micro-relief (bind-pose position), faded with the pixel footprint
-        float detailW = saturate(1.6 - pxLen * 0.5 / 0.0015);
+        // Yarn relief in garment UV space (metres along the surface): jersey knit by default (T-shirts), plain weave
+        // (param 1: shirts), 3/1 twill (denim), rib knit (param 3: sweaters, cuffs). Yarn paths wander by a fraction
+        // of a period so no long straight lines form, and the relief fades out before a period drops below ~5
+        // pixels: no moire or shimmer at any distance (the texture itself carries no yarn-scale pattern).
+        uint style = denim ? 2u : ((i.mat >> 8) & 3u);
+        float period = style == 1u ? 0.0008 : (style == 2u ? 0.0009 : (style == 3u ? 0.0022 : 0.0012));
+        float mPerPx = pxLen * 0.5;
+        float detailW = saturate((period / mPerPx - 5.0) / 3.0);
         if (detailW > 0.0) {
-            float3 wp = i.localPos * (denim ? 3000.0 : 2500.0);   // ~2-2.5 mm weave / rib period
-            float wv = sin(wp.x + wp.y) * sin(wp.z - wp.y * 0.5) * 0.5 + valueNoise3(wp * 0.35) * 0.5;
-            n = perturbBump(n, N, dPx, dPy, wv * 3e-5 * detailW);
+            float2 wob = float2(valueNoise(i.uv * 70.0), valueNoise(i.uv * 70.0 + 5.3)) - 0.5;
+            float2 q = i.uv / period + wob * 0.8;
+            float h;
+            if (style == 1u) {
+                h = 0.5 + 0.5 * cos(PI * q.x) * cos(PI * q.y);                       // over / under basket cells
+            } else if (style == 2u) {
+                h = pow(0.5 + 0.5 * cos(TWO_PI * (q.x - q.y * 0.34)), 1.5) * 0.85 + 0.15 * (0.5 + 0.5 * cos(TWO_PI * q.x));
+            } else if (style == 3u) {
+                h = pow(0.5 + 0.5 * cos(TWO_PI * q.x), 0.7) * (0.9 + 0.1 * cos(TWO_PI * q.y * 1.6));   // ribs
+            } else {
+                // jersey: columns (wales) of V-shaped loops, one course per 0.8 period
+                float xl = abs(frac(q.x) - 0.5), yl = frac(q.y * 1.25);
+                h = exp(-sq((xl - 0.1 - 0.22 * yl) / 0.13));
+            }
+            n = perturbBump(n, N, dPx, dPy, (h - 0.5) * 4e-5 * detailW);
+            albedo *= 1.0 + (h - 0.5) * 0.1 * detailW;   // yarn tops catch a little more dye / light
         }
         rough = saturate((denim ? 0.78 : 0.86) * lerp(0.94, 1.06, valueNoise3(i.localPos * 20.0)));
         extra = denim ? 0.35 : 0.75;   // sheen strength

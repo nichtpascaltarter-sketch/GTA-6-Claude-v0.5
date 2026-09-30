@@ -601,6 +601,12 @@ struct Sim {
                     }
                     LOG("STUCK t=%.1f car %d at %.1f %.1f z %.2f laneZ %.2f groundZ %.2f path %d u %.1f lat %.2f vT %.1f stop %.1f obst %.1f(%d) up %.2f gear %d wheels %d sleep %d imp %.0f col %d thr %.2f |%s", time, i, cp.x, cp.y, cp.z, laneZ, gh.z, d->path, d->u, d->latErr, d->vTarget, d->stopDist, d->obstDist, d->obstBody, c.s.up().z,
                         c.s.gear, c.s.wheelsOnGround, (int)c.s.sleeping, c.s.impactImpulse, c.s.impactCollider, c.ctl.throttle, wh.c_str());
+                    if (c.s.impactCollider >= 0) {
+                        const Phys::Collider& cl = w->cw.collider(c.s.impactCollider);
+                        vec3 f = c.s.forward();
+                        LOG("   collider %d kind %d prop %d c (%.2f %.2f %.2f) he (%.2f %.2f %.2f) ax (%.2f %.2f) | car heading (%.2f %.2f) %s", c.s.impactCollider, cl.kind, cl.propIndex, cl.c.x, cl.c.y, cl.c.z,
+                            cl.he.x, cl.he.y, cl.he.z, cl.ax.x, cl.ax.y, f.x, f.y, models[c.model].name.c_str());
+                    }
                 }
             }
             if (d->waitTime > 60.f && !c.deadlockFlag) {
@@ -780,6 +786,22 @@ struct Sim {
                 c.hungTime = 0.f;
                 unhung++;
                 if (verbose) LOG("UNHUNG t=%.1f car %d at %.1f %.1f path %d u %.1f", time, i, p.x, p.y, d->path, u);
+            }
+            // stuck again and again at one spot (the game does this out of view): a few meters on along the route
+            int pth = -1;
+            float uu = 0.f;
+            if (d && !d->dummy && d->stuckRepeats >= 3 && d->recoverTimer <= 0.f && tc.liftPoint(*d, 9.f, pth, uu)) {
+                vec3 p = w->lg.pathPos(pth, uu);
+                vec2 t = w->lg.pathTangent(pth, uu);
+                if (verbose) LOG("LIFTED t=%.1f car %d from %.1f %.1f path %d u %.1f to path %d u %.1f", time, i, c.s.body.pos.x, c.s.body.pos.y, d->path, d->u, pth, uu);
+                Vehicles::resetVehicle(c.s, dvec3(p.x, p.y, p.z + 0.35f), AI::dirYaw(t));
+                c.s.body.vel = vec3(t * 2.f, 0.f);
+                tc.relocalize(*d, p.xy(), t, 10.f);
+                d->stuckRepeats = 0;
+                d->stuckPath = -1;
+                d->stuckAt = vec2(1e9f);
+                d->stuckTime = 0.f;
+                unhung++;
             }
             float dist = length(c.s.body.pos.toVec3().xy() - center);
             bool lost = d && (d->lostTime > 5.f || d->flipTime > 6.f);

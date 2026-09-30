@@ -385,6 +385,8 @@ int main(int argc, char** argv) {
                     vec3 a0 = A.pts[v[i].second], a1 = A.pts[v[i].second + 1], b0 = B.pts[v[j].second], b1 = B.pts[v[j].second + 1];
                     float ta, tb;
                     if (!segmentIntersect2D(a0.xy(), a1.xy(), b0.xy(), b1.xy(), &ta, &tb)) continue;
+                    vec2 da = a1.xy() - a0.xy(), db = b1.xy() - b0.xy();
+                    if (fabsf(cross(da, db)) < 0.05f * length(da) * length(db)) continue;   // running along each other, not across
                     vec2 p = lerp(a0.xy(), a1.xy(), ta);
                     bool atNode = false;
                     for (int na : {A.n0, A.n1})

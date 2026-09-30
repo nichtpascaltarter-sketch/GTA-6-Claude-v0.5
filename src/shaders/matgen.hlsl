@@ -455,15 +455,49 @@ Surf genStone(float2 uv) {
     return s;
 }
 
+// Anisotropic tileable value noise (period P.x x P.y lattice cells)
+float hashP2(float2 i, float2 P) { i = i - floor(i / P) * P; return (hash2u(asuint(int2(i)) + gSeed * 7919u) >> 8) * (1.0 / 16777216.0); }
+float tvalue2(float2 p, float2 P) {
+    float2 i = floor(p), f = frac(p);
+    float2 u = f * f * (3.0 - 2.0 * f);
+    return lerp(lerp(hashP2(i, P), hashP2(i + float2(1, 0), P), u.x), lerp(hashP2(i + float2(0, 1), P), hashP2(i + float2(1, 1), P), u.x), u.y);
+}
+
+// Fabric: clothing, denim, upholstery, carpet, awning canvas. No periodic yarn-scale weave in the texture: a
+// millimetre weave in a tiling texture reaches Nyquist in the box-filtered mips and turns into moire stripes across
+// shirts and "pleated" collars. The weave / knit relief is added analytically by the object shaders, faded by the
+// pixel footprint. The texture holds what survives filtering: heathered yarn tone (fine noise, longer along the
+// warp), dye and wear variation at the centimetre scale, and optional wide stripes (gParams.x, awnings).
+// gParams.y: 0 cloth, 1 denim (indigo warp streaks with pale weft flecks), 2 pile (carpet).
 Surf genFabric(float2 uv) {
     Surf s;
-    float wx = sin(uv.x * 256.0 * PI) * 0.5 + 0.5, wy = sin(uv.y * 256.0 * PI) * 0.5 + 0.5;
-    float weave = lerp(wx, wy, step(0.5, frac((floor(uv.x * 256.0) + floor(uv.y * 256.0)) * 0.5)));
+    float style = gParams.y;
+    float heather = tvalue2(uv * float2(150.0, 42.0), float2(150.0, 42.0)) * 0.6 + tvalue2(uv * float2(300.0, 84.0), float2(300.0, 84.0)) * 0.4;
+    float wear = tfbm(uv, 4.0, 3, 0.5) * 0.5 + 0.5;
     float stripes = step(0.5, frac(uv.x * 8.0));
-    s.albedo = lerp(gColorA.rgb, gColorB.rgb, stripes * gParams.x) * (0.85 + weave * 0.2);
-    s.height = weave * 0.5;
-    s.rough = 0.95;
-    s.ao = 0.85 + weave * 0.15;
+    float3 base = lerp(gColorA.rgb, gColorB.rgb, stripes * gParams.x);
+    float tone = 0.94 + heather * 0.1 + (wear - 0.5) * 0.08;
+    float h = 0.5 + (heather - 0.5) * 0.35;
+    float rough = 0.95;
+    if (style > 0.5 && style < 1.5) {
+        // denim: rope-dyed warp gives vertical streaks a few mm wide and several cm long; the undyed weft shows as
+        // pale flecks; wear lightens the high spots
+        float streak = tvalue2(uv * float2(96.0, 5.0), float2(96.0, 5.0)) * 0.7 + tvalue2(uv * float2(190.0, 11.0), float2(190.0, 11.0)) * 0.3;
+        float fleck = smoothstep(0.72, 0.92, tvalue2(uv * float2(260.0, 150.0), float2(260.0, 150.0)));
+        tone = 0.86 + streak * 0.26 + (wear - 0.5) * 0.12;
+        base = lerp(base, gColorC.rgb * 2.2, fleck * 0.18);
+        h = 0.5 + (streak - 0.5) * 0.3 + fleck * 0.1;
+        rough = 0.88;
+    } else if (style > 1.5) {
+        // pile: isotropic tufts
+        float tuft = tvalue2(uv * 180.0, float2(180.0, 180.0));
+        tone = 0.9 + tuft * 0.16 + (wear - 0.5) * 0.1;
+        h = tuft;
+    }
+    s.albedo = base * tone;
+    s.height = h;
+    s.rough = rough;
+    s.ao = 0.9 + h * 0.1;
     return s;
 }
 

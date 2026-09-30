@@ -688,8 +688,8 @@ void layoutTowerLobby(IB& b) {
     hs.revealMat = M(MAT_METAL_BRUSHED);
     shell(b, hall, hs);
     ShellStyle es;
-    es.wallCol = C(0.36f, 0.24f, 0.15f);
-    es.wallMat = M(MAT_WOOD);
+    es.wallCol = C(0.2f, 0.17f, 0.15f);
+    es.wallMat = M(MAT_MARBLE);   // dark polished stone (the wood texture reads as brick on walls)
     es.floorMat = M(MAT_STONE);
     es.floorCol = C(0.16f, 0.15f, 0.15f);
     es.floorUV = 0.5f;

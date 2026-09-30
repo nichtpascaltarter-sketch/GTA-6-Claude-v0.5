@@ -1115,6 +1115,122 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     attachTraffic(hv);
                     return;
                 }
+                case ACT_LEAVE_CAR: {
+                    // parked and out: round the back of the car (not through it) toward the building, then inside
+                    int hv = pa.homeVeh;
+                    vec2 target = pa.anchor;
+                    vec2 goal = target;
+                    if (hv >= 0 && hv < (int)vehicles.size() && vehicles[hv].used) {
+                        const Vehicle& hvv = vehicles[hv];
+                        const Vehicles::VehicleModel& hs = vassets[hvv.model].spec;
+                        vec2 cc = hvv.sim.body.pos.toVec3().xy();
+                        vec2 cfw = hvv.sim.forward().xy();
+                        cfw = length2(cfw) > 1e-6f ? normalize(cfw) : vec2(0, 1);
+                        vec2 crt = AI::rightOf(cfw);
+                        vec2 lp = pos - cc;
+                        float ly = dot(lp, cfw), lx = dot(lp, crt);
+                        float targetSide = dot(target - cc, crt) >= 0.f ? 1.f : -1.f, pedSide = lx >= 0.f ? 1.f : -1.f;
+                        if (pedSide != targetSide && fabsf(lx) > hs.boxHalf.x * 0.5f) {
+                            float side = fabsf(ly) < hs.boxHalf.y + 0.7f ? pedSide : targetSide;
+                            goal = cc - cfw * (hs.boxHalf.y + 1.f) + crt * (side * (hs.boxHalf.x + 0.6f));
+                        }
+                    }
+                    if (goal.x == target.x && goal.y == target.y) {
+                        // clear of the car: off to the door and out of the simulation (population.cpp)
+                        pa.activity = ACT_ENTER_VEH;
+                        pa.targetVeh = -1;
+                        pa.homeVeh = -1;
+                        b.type = BRAIN_GOTO;
+                        b.goal = dvec3(vec3(target, groundHeight(target.x, target.y, (float)p.pos.z + 1.5f)));
+                        b.speed = 1.4f;
+                        b.timer = 0.f;
+                        break;
+                    }
+                    if (pa.actTimer <= 0.f) {
+                        pa.activity = ACT_WALK;
+                        pa.homeVeh = -1;
+                        pa.navOk = false;
+                        break;
+                    }
+                    vec2 tg = goal - pos;
+                    float dg = Max(length(tg), 1e-3f);
+                    desired = tg / dg * Min(1.4f, dg * 2.f + 0.4f);
+                    faceYaw = atan2f(-desired.x, desired.y);
+                    faceSet = true;
+                    break;
+                }
+                case ACT_DRIVE_OFF: {
+                    // owner of a car parked at the curb: round to the driver's door, open it, get in; the car then
+                    // blinks, waits for a gap and pulls out (traffic.cpp)
+                    int hv = pa.homeVeh;
+                    bool carOk = hv >= 0 && hv < (int)vehicles.size() && vehicles[hv].used && !vehicles[hv].exploded && !vehicles[hv].sim.wrecked &&
+                                 vehicles[hv].seats[0] < 0 && vehicles[hv].parked && !vehicles[hv].playerUsed;
+                    if (!carOk || pa.actTimer <= 0.f) {
+                        pa.activity = ACT_WALK;
+                        pa.homeVeh = -1;
+                        pa.navOk = false;
+                        break;
+                    }
+                    const Vehicle& hvv = vehicles[hv];
+                    const Vehicles::VehicleModel& hs = vassets[hvv.model].spec;
+                    bool left = !hs.seats.empty() ? hs.seats[0].exitLeft : true;
+                    float sy = !hs.seats.empty() ? hs.seats[0].pos.y : 0.f;
+                    vec2 door = (hvv.sim.body.pos.toVec3() + rotate(hvv.sim.body.rot, vec3(left ? -(hs.boxHalf.x + 0.4f) : hs.boxHalf.x + 0.4f, sy - 0.2f, 0.f))).xy();
+                    vec3 cf = hvv.sim.forward();
+                    float doorYaw = atan2f(-cf.x, cf.y) + (left ? -kPi * 0.5f : kPi * 0.5f);
+                    if (pa.clipTimer < 0.f) {
+                        vec2 to = door - pos;
+                        float d = length(to);
+                        if (d > 0.5f) {
+                            // walk round the car rather than through it: aim for the door via the nearer end
+                            vec2 cc = hvv.sim.body.pos.toVec3().xy();
+                            vec2 cfw = normalize(cf.xy() + vec2(1e-4f, 0.f));
+                            vec2 lp = pos - cc;
+                            float ly = dot(lp, cfw), lx = dot(lp, AI::rightOf(cfw));
+                            float doorSide = left ? -1.f : 1.f, pedSide = lx >= 0.f ? 1.f : -1.f, endSign = ly >= 0.f ? 1.f : -1.f;
+                            vec2 goal = door;
+                            if (pedSide != doorSide && fabsf(lx) > hs.boxHalf.x * 0.5f) {
+                                // on the far side: along the car to its nearer end, then across in front of / behind it
+                                float side = fabsf(ly) < hs.boxHalf.y + 0.7f ? pedSide : doorSide;
+                                goal = cc + cfw * (endSign * (hs.boxHalf.y + 1.f)) + AI::rightOf(cfw) * (side * (hs.boxHalf.x + 0.6f));
+                            }
+                            vec2 tg = goal - pos;
+                            float dg = Max(length(tg), 1e-3f);
+                            desired = tg / dg * Min(1.5f, d * 2.f + 0.4f);
+                            faceYaw = atan2f(-desired.x, desired.y);
+                        } else {
+                            // at the door: open it and climb in
+                            pa.clipTimer = 1.05f;
+                            p.yaw = doorYaw;
+                            if (p.pendingAction < 0) p.pendingAction = left ? Anim::CLIP_ENTER_CAR_L : Anim::CLIP_ENTER_CAR_R;
+#ifdef HAVE_AUDIO
+                            Audio::play(Audio::SFX_CAR_DOOR_OPEN, vec3(door, (float)p.pos.z + 0.8f), 0.6f);
+#endif
+                            faceYaw = doorYaw;
+                        }
+                        faceSet = true;
+                        break;
+                    }
+                    faceYaw = doorYaw;
+                    faceSet = true;
+                    pa.clipTimer -= dt;
+                    if (pa.clipTimer > 0.f) break;
+                    Vehicle& car = vehicles[hv];
+                    warpPedIntoVehicle(id, hv, 0);
+                    b.type = BRAIN_DRIVER;
+                    pa.activity = ACT_WALK;
+                    pa.homeVeh = -1;
+                    pa.clipTimer = 0.f;
+                    car.sim.engineOn = true;
+                    float tod = env ? env->timeOfDay : 12.f;
+                    car.lightsOn = tod > 19.2f || tod < 6.6f || (env && env->rain > 0.5f);
+                    VehAI& cva = vehAI(hv);
+                    cva.pullOut = 1;
+                    cva.pullTimer = 0.f;
+                    cva.role = VR_TRAFFIC;
+                    ai.stats.departures++;
+                    return;
+                }
                 case ACT_CALL_POLICE: {
                     // walk away from the scene a bit, then talk on the phone
                     vec2 away = pos - pa.threatPos;

@@ -497,6 +497,35 @@ bool TrafficCore::laneFree(int lane, float u, float hl, float gap) const {
     return ok;
 }
 
+bool TrafficCore::liftPoint(const Driver& d, float ahead, int& pathOut, float& uOut) const {
+    const LaneGraph& G = *g;
+    int pth = d.stuckPath >= 0 ? d.stuckPath : d.path;
+    if (pth < 0) return false;
+    float uu = (d.stuckPath >= 0 ? d.stuckU : d.u) + ahead;
+    for (int guard = 0; guard < 4; guard++) {
+        float end = G.pathLength(pth);
+        if (uu <= end - 0.5f) break;
+        int nx = -1;
+        if (!G.isLane(pth)) {
+            nx = G.conn(pth).to;
+        } else {
+            for (int k = 0; k < d.routeLen && nx < 0; k++)
+                if (!G.isLane(d.route[k]) && G.conn(d.route[k]).from == pth) nx = d.route[k];
+            if (nx < 0 && !G.lanes[pth].out.empty()) nx = G.connPath(G.lanes[pth].out[0]);
+        }
+        if (nx < 0) {
+            uu = end - 0.5f;
+            break;
+        }
+        uu -= end;
+        pth = nx;
+        uu += G.isLane(pth) ? G.lanes[pth].u0 : 0.f;
+    }
+    pathOut = pth;
+    uOut = Min(uu, G.pathLength(pth) - 0.5f);
+    return true;
+}
+
 bool TrafficCore::rearClear(const Driver& d, vec2 pos, vec2 fwd, float dist) const {
     vec2 rgt = rightOf(fwd);
     vec2 rb = pos - fwd * d.info.rearLen;   // rear bumper
@@ -1592,6 +1621,10 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
         d.kturn = false;
         d.stuckTime = 0.f;
         d.stuckAnchor = pos;
+        d.stuckRepeats = length2(pos - d.stuckAt) < 10.f * 10.f ? d.stuckRepeats + 1 : 1;
+        d.stuckAt = pos;
+        d.stuckPath = d.path;
+        d.stuckU = d.u;
         stats.stuckEvents++;
         out.stuck = true;
     }

@@ -81,7 +81,7 @@ enum PedSpawnKind : u8 {
 };
 
 struct PopState {
-    float pedTimer = 0.f, carTimer = 0.f, parkTimer = 0.f, incidentTimer = 0.f;
+    float pedTimer = 0.f, carTimer = 0.f, parkTimer = 0.f, incidentTimer = 0.f, departTimer = 8.f;
     u32 counter = 1;
 };
 PopState gPop;
@@ -1056,6 +1056,91 @@ void GameWorld::updatePopulation(float dt) {
         vehicles[vid].parked = true;
         vehicles[vid].sim.engineOn = false;
         nParked++;
+    }
+    // ------------------------------------------------------------------ owners coming back to their parked cars
+    // (someone walks up - or steps out of a door - gets in, blinks and pulls out into the traffic: traffic.cpp)
+    gPop.departTimer -= dt;
+    if (!warm && gPop.departTimer <= 0.f && nTraffic < wantTraffic + 4) {
+        u32 h = nextSeed();
+        gPop.departTimer = 5.f + hashToFloat(h) * 8.f;
+        int car = -1;
+        float bestR = 2.f;
+        for (int i = 0; i < (int)vehicles.size(); i++) {
+            const Vehicle& v = vehicles[i];
+            if (!v.used || !v.parked || v.seats[0] >= 0 || v.playerUsed || v.persistent || v.scripted || v.exploded || v.sim.wrecked || v.locked) continue;
+            if (vassets[v.model].spec.cls > Vehicles::VC_MUSCLE) continue;
+            const VehAI& va = vehAI(i);
+            if (va.eventId >= 0 || va.errand != 0 || va.pullTimer < 0.f) continue;   // (pullTimer < 0: its driver just walked off)
+            float d = length(v.sim.body.pos.toVec3().xy() - pp.xy());
+            if (d < 25.f || d > 110.f) continue;
+            float r = hashToFloat(hash32(h + v.uid * 7u));
+            if (r < bestR) {
+                bestR = r;
+                car = i;
+            }
+        }
+        if (car >= 0) {
+            Vehicle& v = vehicles[car];
+            const Vehicles::VehicleModel& spec = vassets[v.model].spec;
+            vec3 cp = v.sim.body.pos.toVec3();
+            vec2 cf = v.sim.forward().xy();
+            cf = length2(cf) > 1e-6f ? normalize(cf) : vec2(0, 1);
+            float lu = 0.f, llat = 0.f;
+            int lane = laneGraph.nearestLane(cp.xy(), cf, 7.f, &lu, &llat);
+            // parked along a lane's curb (to its right) with room ahead to swing out
+            bool ok = lane >= 0 && llat > 1.2f && llat < 5.f;
+            int self = car < (int)ai.vehBody.size() ? ai.vehBody[car] : -1;
+            if (ok)
+                traffic.hash.query(traffic.bodies, cp.xy() - vec2(14.f), cp.xy() + vec2(14.f), [&](int bi) {
+                    if (!ok || bi == self) return;
+                    const AI::Body& ob = traffic.bodies[bi];
+                    if (ob.kind != AI::BK_CAR) return;
+                    vec2 rl = ob.pos - cp.xy();
+                    float al = dot(rl, cf), lt = dot(rl, AI::rightOf(cf));
+                    if (al > 0.f && al - ob.halfLen - spec.boxHalf.y < 6.5f && fabsf(lt) < 2.2f) ok = false;
+                });
+            int who = -1;
+            if (ok) {
+                // a passer-by nearby who "owns" it...
+                float bd = 32.f;
+                for (int i = 0; i < (int)peds.size(); i++) {
+                    const Ped& p = peds[i];
+                    if (!p.used || p.isPlayer || p.persistent || p.state != PS_ONFOOT || p.faction != FAC_CIVILIAN || p.brain.type != BRAIN_WANDER) continue;
+                    if (i >= (int)ai.ped.size() || ai.ped[i].uid != p.uid) continue;
+                    const PedAI& pa = ai.ped[i];
+                    if (pa.activity != ACT_WALK || pa.leader >= 0 || pa.eventId >= 0 || pa.homeVeh >= 0 ||
+                        (pa.role != PR_CIVILIAN && pa.role != PR_BUSINESS && pa.role != PR_TOURIST && pa.role != PR_NIGHTLIFE))
+                        continue;
+                    float d = length(p.pos.toVec3().xy() - cp.xy());
+                    if (d < bd) {
+                        bd = d;
+                        who = i;
+                    }
+                }
+                // ...or someone stepping out of a door close by
+                vec3 door;
+                if (who < 0 && aiBuildingDoorNear(*this, cp.xy(), 24.f, h, door) && length(door.xy() - pp.xy()) > 14.f && freeStandingSpot(*this, door)) {
+                    World::Region creg = map->regionAt(cp.x, cp.y);
+                    int charRole = (creg == World::REG_FINANCIAL || creg == World::REG_DOWNTOWN) && (h >> 7) % 3 == 0 ? 3 : 0;
+                    who = spawnPed(randomCivilianChar(h >> 3, charRole), dvec3(door), AI::dirYaw(normalize(cp.xy() - door.xy() + vec2(1e-3f, 0.f))), FAC_CIVILIAN);
+                    if (who >= 0) {
+                        peds[who].brain.type = BRAIN_WANDER;
+                        peds[who].brain.edge = -1;
+                        pedAI(who).role = charRole == 3 ? PR_BUSINESS : PR_CIVILIAN;
+                    }
+                }
+            }
+            if (who >= 0) {
+                PedAI& pa = pedAI(who);
+                pa.activity = ACT_DRIVE_OFF;
+                pa.homeVeh = car;
+                pa.actTimer = 45.f;
+                pa.clipTimer = -1.f;
+                pa.walkStance = 0;
+                vehAI(car).pullOut = 0;
+                vehAI(car).role = VR_TRAFFIC;
+            }
+        }
     }
 }
 

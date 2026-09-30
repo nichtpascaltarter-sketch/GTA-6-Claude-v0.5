@@ -30,6 +30,8 @@ enum PedActivity : u8 {
     ACT_QUEUE,         // standing in line outside a club (population.cpp moves the line along)
     ACT_ERRAND,        // delivery driver: van double-parked, walks to a door, waits there, walks back and drives on
     ACT_CROSS,         // jaywalking straight across a quiet street (BRAIN_GOTO), back to the sidewalk graph on the far side
+    ACT_DRIVE_OFF,     // walking to a car parked at the curb: gets in and pulls out into traffic (traffic.cpp)
+    ACT_LEAVE_CAR,     // just parked at the curb: round the back of the car to the sidewalk, then into a building nearby
 };
 
 // Ambient speech categories (barks.cpp)
@@ -137,6 +139,13 @@ struct VehAI {
     vec3 flyTgtPrev;              // helicopter autopilot: last target position and its smoothed velocity
     vec2 flyTgtVel;
     bool flyTgtInit = false;
+    u8 pullOut = 0;               // leaving a parking spot: 1 blinker on, waiting for a gap, 2 steering out into the lane
+    float pullTimer = 0.f;
+    u8 parking = 0;               // arriving: 1 pulling into a free spot in the parking strip (the driver then walks off)
+    float parkTimer = 0.f;
+    int parkLane = -1;
+    float parkLat = 0.f;          // lateral offset of the spot from the lane center
+    vec3 parkDoor;                // where the driver is headed
 };
 
 // A crime the police do not know about yet: a witness is phoning it in.
@@ -188,6 +197,7 @@ struct AIFrameStats {
         unitsSent = 0, roadRage = 0, events = 0, arrests = 0;
     int hardImpacts = 0, impactsWithPlayer = 0;   // AI-driven cars: impulses > 3000 N s (sampled per frame)
     int unhung = 0;                               // cars lifted off a ledge back onto their lane
+    int departures = 0, arrivals = 0;             // cars driven away from / parked at the curb by their owners
 };
 
 struct AIState {

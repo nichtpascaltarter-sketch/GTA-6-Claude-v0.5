@@ -420,11 +420,11 @@ std::string GameWorld::aiCensusText(float radius) const {
                      "lean %d sun %d queue %d watch %d bus %d taxi %d event %d | tourist %d business %d beach %d night %d gang %d worker %d | "
                      "react flee %d cower %d film %d inspect %d call %d hands %d rage %d fight %d | cops on foot %d (approach %d cover %d flank %d "
                      "arrest %d search %d engage %d) | cars %d parked %d police %d swat %d heli %d boat %d roadblock %d ems %d horn %d | "
-                     "totals panic %d film %d pit %d box %d rb %d spikes %d tackle %d heli %d units %d rage %d events %d arrests %d",
+                     "totals panic %d film %d pit %d box %d rb %d spikes %d tackle %d heli %d units %d rage %d events %d arrests %d depart %d arrive %d",
                      radius, total, inWater, walk, wPhone, wSmoke, group, wTalk, jog, sit, talk, phone, dance, smoke, lean, sun, queue, watch, busStop, taxi, event,
                      tourist, business, beach, night, gang, worker, flee, cower, film, inspect, call, hands, rage, fight, copFoot, approach, cover, flank,
                      arrest, search, engage, traffic, parked, copCars, swat, heli, boats, blocks, ems, honking, s.panicSpread, s.filming, s.pitTries,
-                     s.boxing, s.roadblocks, s.spikeHits, s.tackles, s.heliUnits, s.unitsSent, s.roadRage, s.events, s.arrests);
+                     s.boxing, s.roadblocks, s.spikeHits, s.tackles, s.heliUnits, s.unitsSent, s.roadRage, s.events, s.arrests, s.departures, s.arrivals);
 }
 
 // ------------------------------------------------------------------------------------------------------------------

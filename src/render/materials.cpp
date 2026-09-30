@@ -76,7 +76,7 @@ struct MaterialLibrary {
             {MAT_SKIN, 11, vec3(0.9f), vec3(0.8f, 0.7f, 0.65f), vec3(0.5f), vec4(0, 0, 0, 1), 0.25f, 1.f, 0, MF_SKIN, 0},
             {MAT_HAIR, 19, vec3(0.8f), vec3(0.8f), vec3(0.6f), vec4(0, 0, 0, 2), 0.15f, 1.f, 0, MF_HAIR, 0},
             {MAT_CLOTH, 23, vec3(0.85f), vec3(0.85f), vec3(0.3f), vec4(0, 0, 0, 2), 0.3f, 1.f, 0, MF_CLOTH, 0},
-            {MAT_DENIM, 23, vec3(0.12f, 0.18f, 0.35f), vec3(0.08f, 0.13f, 0.28f), vec3(0.3f), vec4(0, 0, 0, 3), 0.25f, 1.f, 0, MF_CLOTH, 0},
+            {MAT_DENIM, 23, vec3(0.12f, 0.18f, 0.35f), vec3(0.08f, 0.13f, 0.28f), vec3(0.3f), vec4(0, 1, 0, 3), 0.25f, 1.f, 0, MF_CLOTH, 0},
             {MAT_EYE, 17, vec3(0.85f), vec3(0.85f), vec3(0.8f), vec4(0, 0, 0, 1), 1.f, 0.3f, 0, 0, 0},
             {MAT_TIRE, 15, vec3(0.025f), vec3(0.03f), vec3(0.02f), vec4(0, 0, 0, 6), 0.4f, 1.f, 0, 0, 0},
             {MAT_RIM, 19, vec3(0.8f), vec3(0.8f), vec3(0.7f), vec4(0, 0, 0, 1), 0.5f, 0.5f, 1.f, 0, 0},
@@ -88,7 +88,7 @@ struct MaterialLibrary {
             // interiors: tile grid generators reused with neutral colours (the vertex colour tints them)
             {MAT_TILE, 25, vec3(0.84f, 0.84f, 0.82f), vec3(0.8f, 0.8f, 0.78f), vec3(0.24f, 0.235f, 0.22f), vec4(0, 0, 0, 0.7f), 9.6f, 2.8f, 0, 0, 0},
             {MAT_CEILING_TILE, 25, vec3(0.88f, 0.88f, 0.86f), vec3(0.84f, 0.84f, 0.82f), vec3(0.62f, 0.62f, 0.6f), vec4(0, 0, 0, 2), 19.2f, 9.f, 0, 0, 0},
-            {MAT_CARPET, 23, vec3(0.7f), vec3(0.62f), vec3(0.3f), vec4(0, 0, 0, 4), 0.35f, 1.f, 0, 0, 0},
+            {MAT_CARPET, 23, vec3(0.7f), vec3(0.62f), vec3(0.3f), vec4(0, 2, 0, 4), 0.35f, 1.f, 0, 0, 0},
             {MAT_WOOD_FLOOR, 24, vec3(0.5f, 0.36f, 0.22f), vec3(0.6f, 0.45f, 0.29f), vec3(0.3f), vec4(0, 0, 0, 4), 1.8f, 0.55f, 0, 0, 0},
         };
         layerCount = (int)defs.size();

@@ -782,13 +782,13 @@ void genStation(const SiteElem& e, G& g) {
         // outer railing of the landing
         sbox(g, f, a1, S * 9.9f, f.zp + 0.55f, vec3(0.04f, 2.55f, 0.55f), rgb(0.8f), M(MAT_METAL_BRUSHED));
         scollide(g, f, a1, S * 9.9f, f.zp + 0.6f, vec3(0.06f, 2.55f, 0.6f));
-        // fare gates across the opening: cabinets with flap panels and a teal light on top
-        for (int q = 0; q < 4; q++) {
-            float a = E * (H - 3.3f + q * 1.3f);
+        // fare gates across the opening in the back wall: three cabinets, two lanes (flap panels, a teal light on top)
+        for (int q = 0; q < 3; q++) {
+            float a = E * (H - 3.3f + q * 1.35f);
             sbox(g, f, a, S * (kPlatformOuter + 0.55f), f.zp + 0.5f, vec3(0.14f, 0.55f, 0.5f), rgb(0.72f, 0.74f, 0.77f), M(MAT_METAL_BRUSHED));
             sbox(g, f, a, S * (kPlatformOuter + 0.55f), f.zp + 1.01f, vec3(0.15f, 0.56f, 0.02f), rgbv(kTealGlow, 0.4f), emMat());
             scollide(g, f, a, S * (kPlatformOuter + 0.55f), f.zp + 0.5f, vec3(0.16f, 0.55f, 0.5f));
-            if (g.detail && q < 3) {
+            if (g.detail && q < 2) {
                 for (int fl = -1; fl <= 1; fl += 2)
                     sbox(g, f, a + E * (0.14f + 0.2f) + fl * 0.0f, S * (kPlatformOuter + 0.55f + fl * 0.12f), f.zp + 0.75f, vec3(0.2f, 0.01f, 0.2f), rgb(0.5f, 0.7f, 0.75f),
                          M(MAT_GLASS));

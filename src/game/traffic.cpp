@@ -34,6 +34,82 @@ float skylineAt(const GameWorld& g, vec2 q, float r) {
     return top;
 }
 
+// Leaving a parking spot at the curb: blinker on, wait for a gap in the lane (nothing beside, nothing coming up fast
+// behind), then steer out at a shallow angle and hand over to the traffic core once in the lane. Returns false when
+// done (or given up): the caller then attaches the car to the lane traffic.
+bool pullOutStep(GameWorld& g, int vi, float dt) {
+    Vehicle& v = g.vehicles[vi];
+    VehAI& va = g.vehAI(vi);
+    const AI::LaneGraph& G = g.laneGraph;
+    const AI::TrafficCore& T = g.traffic;
+    const Vehicles::VehicleModel& m = g.vassets[v.model].spec;
+    vec3 p3 = v.sim.body.pos.toVec3();
+    vec2 fwd = v.sim.forward().xy();
+    fwd = length2(fwd) > 1e-6f ? normalize(fwd) : vec2(0, 1);
+    float u = 0.f, lat = 0.f;
+    int lane = G.nearestLane(p3.xy(), fwd, 9.f, &u, &lat, AI::LF_NOTRAFFIC);
+    va.pullTimer += dt;
+    if (lane < 0 || va.pullTimer > 45.f) {
+        va.pullOut = 0;
+        v.parked = false;
+        v.indicator = 0;
+        return false;
+    }
+    vec2 lt = G.laneTangent(lane, u), rn = AI::rightOf(lt);
+    vec2 lp = G.lanePos(lane, u).xy();
+    float psi = atan2f(cross(lt, fwd), dot(lt, fwd));   // + = the nose points left of the lane
+    float speed = v.sim.forwardSpeed();
+    int self = vi < (int)g.ai.vehBody.size() ? g.ai.vehBody[vi] : -1;
+    // traffic in the lane we join, and anything right in front of our bumper
+    bool laneBusy = false, frontBlocked = false;
+    float r = 70.f;
+    T.hash.query(T.bodies, lp - vec2(r), lp + vec2(r), [&](int bi) {
+        if (bi == self) return;
+        const AI::Body& b = T.bodies[bi];
+        if (fabsf(b.z - p3.z) > 3.f) return;
+        vec2 rel = b.pos - lp;
+        float along = dot(rel, lt), latb = dot(rel, rn);
+        if (b.kind == AI::BK_CAR && fabsf(latb) < 2.3f) {
+            float vb = dot(b.vel, lt);
+            if (along > -10.f && along < 10.f) laneBusy = true;                                   // beside us
+            else if (along <= -10.f && vb > 0.5f && -along - 8.f < vb * 3.5f + 5.f) laneBusy = true;   // coming up
+        }
+        vec2 relC = b.pos - p3.xy();
+        float ahead = dot(relC, fwd), side = dot(relC, AI::rightOf(fwd));
+        if (ahead > 0.f && ahead - b.halfLen - m.boxHalf.y < (b.kind == AI::BK_PED ? 2.5f : 1.6f) && fabsf(side) < m.boxHalf.x + b.halfWid + 0.3f) frontBlocked = true;
+    });
+    Vehicles::VehicleControls c;
+    v.indicator = -1;
+    if (va.pullOut == 1) {
+        // blinker on for a moment, then go at the first safe gap
+        c.brake = 1.f;
+        c.handbrake = true;
+        if (va.pullTimer > 1.6f && !laneBusy && !frontBlocked) {
+            va.pullOut = 2;
+            va.pullTimer = 0.f;
+            v.parked = false;
+        }
+        v.ctl = c;
+        return true;
+    }
+    // steering out: head left of the lane while right of it, straighten up as we get there
+    float want = Clamp(lat * 0.32f, -0.42f, 0.42f);
+    c.steer = Clamp((psi - want) * 2.2f, -1.f, 1.f);
+    float vWant = frontBlocked ? 0.f : 3.f;
+    if (speed < vWant - 0.3f) c.throttle = Clamp(0.25f + (vWant - speed) * 0.12f, 0.f, 0.6f);
+    else if (speed > vWant + 0.8f || frontBlocked) c.brake = frontBlocked ? 1.f : 0.4f;
+    if (frontBlocked && fabsf(speed) < 0.3f) c.handbrake = true;
+    v.ctl = c;
+    bool inLane = fabsf(lat) < 0.8f && fabsf(psi) < 0.25f;
+    if (inLane || va.pullTimer > 10.f) {
+        va.pullOut = 0;
+        v.indicator = 0;
+        g.attachTraffic(vi, lane, u);
+        return false;
+    }
+    return true;
+}
+
 }  // namespace traffic_detail
 
 using namespace traffic_detail;
@@ -151,6 +227,8 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
         aiPoliceDrive(vi, dt);
         return;
     }
+    // ---- pulling out of a parking spot (owner just got in)
+    if (va.pullOut > 0 && b.type == BRAIN_DRIVER && pullOutStep(*this, vi, dt)) return;
     // ---- lane traffic
     AI::Driver* d = traffic.get(vi);
     if (!d) {
@@ -266,6 +344,71 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                 dp.brain.type = BRAIN_WANDER;
                 dp.brain.edge = -1;
                 return;
+            }
+        }
+    }
+    // ---- arriving: an ordinary car pulls into a free stretch of the parking strip, the driver gets out and walks off
+    // into a building close by (the car stays behind, parked - population.cpp counts it with the parked cars)
+    if (va.role == VR_TRAFFIC && !d->dummy && b.type == BRAIN_DRIVER && va.errand == 0 && va.pullOut == 0) {
+        const int NL = (int)laneGraph.lanes.size();
+        if (va.parking == 0 && spec.cls <= Vehicles::VC_MUSCLE && d->mode == AI::DM_NORMAL && d->lcLane < 0 && d->path < NL && d->stopPath < 0) {
+            va.parkTimer += dt;
+            if (va.parkTimer > 25.f) {
+                va.parkTimer = 0.f;
+                u32 hp = hash32(v.uid * 131u + (u32)(time * 0.1));
+                const AI::Lane& L = laneGraph.lanes[d->path];
+                bool street = L.cls == World::RC_STREET || L.cls == World::RC_AVENUE || L.cls == World::RC_LANE;
+                const World::RoadClassInfo& info = World::roadInfo((World::RoadClass)L.cls);
+                float spotU = d->u + d->info.frontLen + 30.f;   // front bumper of the parked car
+                if (hashToFloat(hp) < 0.12f && plD > 40.f && plD < 160.f && street && L.right < 0 && info.shoulder >= 1.8f &&
+                    !(L.flags & (AI::LF_DIRT | AI::LF_HIGHWAY | AI::LF_RAMP)) && spotU < L.u1 - 14.f &&
+                    dot(laneGraph.laneTangent(d->path, d->u), laneGraph.laneTangent(d->path, spotU)) > 0.97f) {
+                    float plat = L.width * 0.5f + info.shoulder * 0.5f;
+                    vec3 spot = laneGraph.lanePos(d->path, spotU - spec.boxHalf.y, plat);
+                    bool ok = !World::roadWorkZoneAt(spot.xy());
+                    for (float bs : L.busStops)
+                        if (fabsf(bs - spotU) < 22.f) ok = false;
+                    // the strip has to be empty from just ahead of us to past the spot
+                    if (ok) {
+                        vec3 base = laneGraph.lanePos(d->path, d->u);
+                        vec2 t0 = laneGraph.laneTangent(d->path, d->u), r0 = AI::rightOf(t0);
+                        float span = spotU - d->u;
+                        vec2 mid = base.xy() + t0 * (span * 0.5f);
+                        float qr = span * 0.5f + 12.f;
+                        int self = vi < (int)ai.vehBody.size() ? ai.vehBody[vi] : -1;
+                        traffic.hash.query(traffic.bodies, mid - vec2(qr), mid + vec2(qr), [&](int bi) {
+                            if (!ok || bi == self) return;
+                            const AI::Body& ob = traffic.bodies[bi];
+                            if (ob.kind != AI::BK_CAR || fabsf(ob.z - base.z) > 3.f) return;
+                            vec2 rl = ob.pos - base.xy();
+                            float al = dot(rl, t0), lt = dot(rl, r0);
+                            if (al > 3.f && al < span + 7.f && lt > L.width * 0.5f - 0.4f && lt < L.width * 0.5f + info.shoulder + 1.f) ok = false;
+                        });
+                    }
+                    vec3 door;
+                    if (ok && aiBuildingDoorNear(*this, spot.xy(), 22.f, hp, door)) {
+                        va.parking = 1;
+                        va.parkLane = d->path;
+                        va.parkLat = plat;
+                        va.parkDoor = door;
+                        va.parkTimer = 0.f;
+                        va.pullTimer = 0.f;
+                        d->stopPath = d->path;
+                        d->stopU = spotU;
+                    }
+                }
+            }
+        }
+        if (va.parking == 1) {
+            bool valid = d->mode == AI::DM_NORMAL && d->path == va.parkLane && d->stopPath == va.parkLane;
+            va.parkTimer += dt;
+            if (!valid || va.parkTimer > 50.f) {
+                va.parking = 0;
+                va.parkTimer = 0.f;
+                if (d->stopPath == va.parkLane) d->stopPath = -1;
+            } else if (d->stopU - (d->u + d->info.frontLen) < 28.f) {
+                d->nudgeTarget = va.parkLat;   // ease over into the strip on the way to the spot
+                d->nudgeTimer = 0.5f;
             }
         }
     }
@@ -457,6 +600,36 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
     v.ctl = out.ctl;
     v.indicator = out.indicator;
     v.hornOn = out.horn || (d->mode == AI::DM_FLEE && ((int)(time * 3.0 + v.uid) % 4 == 0) && v.sim.speed() > 3.f);
+    // ---- parking: blinker while easing in; stopped at the spot -> engine off, out, round the car and away
+    if (va.parking == 1) {
+        v.indicator = 1;
+        bool atSpot = d->stopU - (d->u + d->info.frontLen) < 3.f && v.sim.speed() < 0.3f;
+        va.pullTimer = atSpot ? va.pullTimer + dt : 0.f;
+        if (va.pullTimer > 0.8f) {
+            va.parking = 0;
+            va.pullTimer = -1.f;   // (population.cpp: nobody else drives this one off)
+            d->stopPath = -1;
+            v.parked = true;
+            v.sim.engineOn = false;
+            v.lightsOn = false;
+            v.indicator = 0;
+            v.ctl = Vehicles::VehicleControls();
+            v.ctl.handbrake = true;
+            removePedFromVehicle(drv, true);
+            traffic.detach(vi);
+            va.managed = false;
+            PedAI& da = pedAI(drv);
+            da.activity = ACT_LEAVE_CAR;
+            da.homeVeh = vi;
+            da.anchor = va.parkDoor.xy();
+            da.actTimer = 40.f;
+            da.navOk = false;
+            dp.brain.type = BRAIN_WANDER;
+            dp.brain.edge = -1;
+            ai.stats.arrivals++;
+            return;
+        }
+    }
     // ---- fleeing driver boxed in: bail out and run
     if (out.wantsAbandon && b.type == BRAIN_FLEE) {
         removePedFromVehicle(drv, true);
@@ -482,6 +655,22 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
         d->stuckTime = 0.f;
         d->recoverTimer = 0.f;
         va.hungTime = 0.f;
+        ai.stats.unhung++;
+    }
+    // ---- stuck again and again at the same spot (a wall or post the path runs too close to): out of view, lift it
+    // a few meters on along its route
+    int pth = -1;
+    float uu = 0.f;
+    if (d->stuckRepeats >= 3 && d->recoverTimer <= 0.f && (!inView || camD > 70.f) && traffic.liftPoint(*d, 9.f, pth, uu)) {
+        vec3 p = laneGraph.pathPos(pth, uu);
+        vec2 t = laneGraph.pathTangent(pth, uu);
+        Vehicles::resetVehicle(v.sim, dvec3(p.x, p.y, p.z + 0.35f), AI::dirYaw(t));
+        v.sim.body.vel = vec3(t * 2.f, 0.f);
+        traffic.relocalize(*d, p.xy(), t, 10.f);
+        d->stuckRepeats = 0;
+        d->stuckPath = -1;
+        d->stuckAt = vec2(1e9f);
+        d->stuckTime = 0.f;
         ai.stats.unhung++;
     }
     // ---- flipped or hopelessly stuck
