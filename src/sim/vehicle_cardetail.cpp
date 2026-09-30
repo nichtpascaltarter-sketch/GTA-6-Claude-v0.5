@@ -1457,6 +1457,9 @@ inline void buildInterior(PMesh& m, CarBody& b, const CarLook& L, const Interior
     m.newGroup(40.f);
     m.use(MAT_INTERIOR, kCol1);
     float y0 = I.dashY0, y1 = I.rearSeat ? I.yHipR - 0.35f : I.yHipF - 0.4f;
+    // truck cabs: the side glass reaches back to the cab's rear wall, so the cabin (floor, door cards, partition)
+    // runs all the way back to it
+    if (b.s.style == BS_BOXY) y1 = Min(y1, b.yR + b.s.rearD * 0.6f + 0.04f);
     float xin = b.beltXAt((y0 + y1) * 0.5f) - 0.05f;
     // door card: vertical panel from the floor to the belt following the belt line
     int n = lod == 0 ? 14 : (lod == 1 ? 6 : 3);
@@ -1489,9 +1492,30 @@ inline void buildInterior(PMesh& m, CarBody& b, const CarLook& L, const Interior
     // (the floor runs forward to the firewall so the footwell never shows the underbody)
     float yFw = Max(b.s.yCowl - 0.005f, y0) + 0.002f;
     float xinF = Min(xin, b.sideXAt(yFw, I.zFloor + 0.02f) - 0.03f);
-    m.quadFacing(m.add(vec3(0, yfr, I.zFloor)), m.add(vec3(xin, yfr, I.zFloor)), m.add(vec3(xin, y0, I.zFloor)), m.add(vec3(0, y0, I.zFloor)), vec3(0, 0, 1));
-    if (yFw > y0 + 0.002f)
-        m.quadFacing(m.add(vec3(0, y0, I.zFloor)), m.add(vec3(xin, y0, I.zFloor)), m.add(vec3(xinF, yFw, I.zFloor)), m.add(vec3(0, yFw, I.zFloor)), vec3(0, 0, 1));
+    // over the front wheel well the floor stops at the well's inner wall (else it shows through the well from below)
+    bool wellUnderFloor = b.s.frontArch && I.zFloor < b.s.wheelR + b.Ra;
+    float yWell0 = b.yWf - b.Ra - 0.03f, yWell1 = b.yWf + b.Ra + 0.03f;
+    float xWellF = b.s.trackF - b.s.wheelW * 0.5f - 0.06f;
+    auto floorStrip = [&](float ya, float yb2, float xa, float xb) {
+        if (yb2 <= ya + 1e-4f) return;
+        // split at the well's ends; over the well the floor stops at the well's inner wall
+        float cuts[4] = {ya, Clamp(yWell0, ya, yb2), Clamp(yWell1, ya, yb2), yb2};
+        for (int k = 0; k < 3; k++) {
+            float p0 = cuts[k], p1 = cuts[k + 1];
+            if (p1 <= p0 + 1e-4f) continue;
+            float x0 = xa + (xb - xa) * (p0 - ya) / (yb2 - ya), x1 = xa + (xb - xa) * (p1 - ya) / (yb2 - ya);
+            if (k == 1 && wellUnderFloor) { x0 = Min(x0, xWellF); x1 = Min(x1, xWellF); }
+            m.quadFacing(m.add(vec3(0, p0, I.zFloor)), m.add(vec3(x0, p0, I.zFloor)), m.add(vec3(x1, p1, I.zFloor)), m.add(vec3(0, p1, I.zFloor)), vec3(0, 0, 1));
+        }
+    };
+    // the floor's outer edge runs under the door cards all along (cab sides can be wider than the cabin middle)
+    auto floorX = [&](float y) { return Min(Max(xin, b.beltXAt(y) - 0.07f), b.sideXAt(y, I.zFloor + 0.02f) - 0.02f); };
+    int nfs = lod == 0 ? 4 : 1;
+    for (int k = 0; k < nfs; k++) {
+        float ya = lerp(yfr, y0, k / (float)nfs), yb2 = lerp(yfr, y0, (k + 1) / (float)nfs);
+        floorStrip(ya, yb2, floorX(ya), floorX(yb2));
+    }
+    if (yFw > y0 + 0.002f) floorStrip(y0, yFw, floorX(y0), Min(floorX(yFw), xinF));
     if (y1 < yfr) {
         float zk = floorZ(b.yWr) - 0.02f;
         float xk = Min(xin, xWell);

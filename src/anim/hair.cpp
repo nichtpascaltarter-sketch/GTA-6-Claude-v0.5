@@ -22,6 +22,7 @@ struct HairParams {
     bool coversEars = false;
     float volume = 1.f;
     float partX = 0.f;        // head-space x of the parting (long hair / bob), 0 = centre
+    float hairlineOff = 0.f;  // forehead height: hairline raised (+) / lowered (-) at the front (degrees)
     vec3 col;
 };
 
@@ -40,6 +41,7 @@ static HairParams hairParams(const BuildCtx& c) {
     h.volume = r.range(0.9f, 1.12f);
     h.partX = r.chance(0.45f) ? 0.f : (r.chance(0.5f) ? -1.f : 1.f) * r.range(0.015f, 0.028f);
     h.col = d.hairColor;
+    h.hairlineOff = c.D->foreheadH;
     return h;
 }
 
@@ -56,8 +58,9 @@ static float hairlinePhi(const HairParams& h, float at) {
             ph = Lerp(T[i][1], T[i + 1][1], t);
             break;
         }
-    // temple recession (M shape) and a slightly higher front for older men
+    // temple recession (M shape) and a slightly higher front for older men; the forehead height moves the front
     ph += h.recession * (14.f * bump(a, 34.f, 14.f) + 5.f * bump(a, 0.f, 25.f));
+    ph += h.hairlineOff * (1.f - sstep(55.f, 110.f, a));
     if (h.coversEars && a > 72.f && a < 120.f) ph = Min(ph, -6.f + 10.f * bump(a, 72.f, 6.f));
     if (h.fringe && a < 42.f) ph = Min(ph, 27.f + 9.f * Sq(a / 42.f));
     return ph * kDegToRad;
@@ -705,8 +708,12 @@ static void buildFacialHair(OutfitCtx& o) {
         float chinBoost = kind == FH_BEARD ? 0.007f * sstep(35.f * deg, 5.f * deg, at) * sstep(-35.f * deg, -55.f * deg, v.pb) : 0.f;
         return (base + chinBoost) * hs * sstep(0.f, 0.014f, cv);
     };
+    // the shell fades into the skin colour over its outer ~8 mm (the strand cards carry the outline), so the beard
+    // edge is soft rather than a painted-on patch
     g.colFn = [=](const BVert& v, vec3 cc) {
-        return cc * 0.75f * (0.85f + 0.3f * hashToFloat(hash32((u32)(v.bp.x * 9000.f) ^ (u32)(v.bp.z * 7000.f) * 2654435761u)));
+        vec3 hairC = cc * 0.75f * (0.85f + 0.3f * hashToFloat(hash32((u32)(v.bp.x * 9000.f) ^ (u32)(v.bp.z * 7000.f) * 2654435761u)));
+        float t = sstep(0.0f, 0.008f, region(v, must, chin, cheeks));
+        return lerp(lerp(v.col, hairC, 0.55f), hairC, t);
     };
     // tint the skin under the beard edge
     for (size_t i = 0; i < c.surfaceIdxEnd; i++) {
@@ -721,13 +728,15 @@ static void buildFacialHair(OutfitCtx& o) {
     MeshB cm;
     Rng rc(hash32(d.seed * 389u + 11u));
     const float lenBase = kind == FH_BEARD ? 0.014f : (kind == FH_SHORTBEARD ? 0.0065f : (kind == FH_MUSTACHE ? 0.0095f : 0.011f));
-    const float pick = kind == FH_BEARD ? 0.3f : 0.42f;
+    const float pick = kind == FH_BEARD ? 0.55f : 0.45f;
     CardPt pts[4];
     for (int j = 1; j < H.rows; j++)
         for (int k = 0; k < H.cols; k++) {
             const BVert& v = c.m.v[H.grid[(size_t)j * H.cols + k]];
             float cv = region(v, must, chin, cheeks);
-            if (cv < -0.002f || rc.f() > pick) continue;
+            // denser along the edge, where the cards make the outline
+            float pk = pick * (1.f + 0.8f * bump(cv, 0.002f, 0.004f));
+            if (cv < -0.002f || rc.f() > pk) continue;
             u32 seed = rc.next();
             float T = g.thick + g.extraFn(v);
             float edgeDens = sstep(-0.002f, 0.006f, cv);

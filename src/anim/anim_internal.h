@@ -91,7 +91,11 @@ struct BodyDims {
     float headS = 1;        // head scale
     vec3 J[B_COUNT];        // bind joint positions, model space
     // limbs
-    float upperArm, forearm, palmLen, fingerLen, thumbLen, handW, handT;
+    float upperArm, forearm, palmLen, fingerLen, thumbLen, handW, handT, handLen;
+    // fingers ([side][0 index .. 3 pinky, 4 thumb]): fingertip (end of the distal phalanx), flexion axis (bind) and
+    // proximal radius; the joints are the phalanx bones' J entries
+    vec3 fingTip[2][5], fingAx[2][5];
+    float fingR[2][5];
     float thigh, shin, footLen, footW, heelBack, ballFwd, toeFwd;
     float armAngle;         // A-pose angle from vertical (radians)
     vec3 armDir[2];         // [0] left, [1] right: A-pose direction of upper arm/forearm/hand
@@ -122,11 +126,47 @@ struct BodyDims {
     float faceH, philtrum, foreheadH, cheekH;          // face height below the eyes, philtrum length, hairline offset (deg), cheekbone height (m)
     float browArch, browThick, browTilt, lipRatio;     // brow arch / thickness multipliers, outer end tilt (deg), upper / lower lip
     float noseScoop, noseBulb;                         // concave dorsum 0..1, tip lobule size multiplier
+    float mouthCornerUp, eyeDepth;                     // mouth corner height (m, + up), eyeball forward offset (m)
     int ancestry;           // resolved CharacterDesc::ancestry (0..4)
 };
 void computeDims(const CharacterDesc& d, BodyDims& D);
+// Face height (head space, unscaled): points on the face below the eye line move away from / towards it by
+// BodyDims::faceH and the mouth region shifts with the philtrum length; the eyes, the back of the head, the ears and the
+// neck stay. Applied to everything placed on the face in head space (face.cpp's headToModel, the speech bones).
+inline vec3 faceMap(const BodyDims& D, vec3 hp) {
+    const float zE = 0.058f;
+    if (hp.z >= zE) return hp;
+    float w = Saturate(hp.y / 0.05f);
+    w = w * w * (3.f - 2.f * w);
+    float z = zE + (hp.z - zE) * (1.f + (D.faceH - 1.f) * w);
+    float dm = (hp.z + 0.02f) / 0.022f;
+    z -= (D.philtrum - 1.f) * 0.012f * w * expf(-dm * dm);
+    return vec3(hp.x, hp.y, z);
+}
 // Shoe sole thickness for a shoe index.
 float shoeLift(int shoes);
+
+// Hand layout shared by the skeleton (phalanx joints) and the hand mesh. Per finger (index, middle, ring, pinky): the
+// knuckle (MCP joint) distance from the wrist (x palmLen), its offset towards the thumb side (x handW), the splay
+// (rad, + towards the thumb), the length knuckle -> tip (x fingerLen), the proximal radius (x handW) and the proximal /
+// middle phalanx fractions of the length (the distal one takes the rest).
+struct FingerDef {
+    float along, lat, splay, len, rad, f1, f2;
+};
+const FingerDef kFingerDefs[4] = {
+    {0.962f, 0.335f, 0.06f, 0.93f, 0.104f, 0.455f, 0.285f},
+    {1.0f, 0.108f, 0.0f, 1.0f, 0.107f, 0.465f, 0.29f},
+    {0.972f, -0.118f, -0.055f, 0.95f, 0.1f, 0.46f, 0.29f},
+    {0.9f, -0.33f, -0.13f, 0.77f, 0.088f, 0.44f, 0.265f},
+};
+// Bind-pose rest curl of the finger joints (MCP, PIP, DIP; rad): a ragdoll's rigid hands look relaxed, not splinted.
+const float kFingerRestCurl[3] = {0.07f, 0.13f, 0.08f};
+// Thumb: metacarpal (B_THUMB, from the CMC joint along BodyDims::thumbDir), proximal and distal phalanx lengths (x hand
+// length) and the rest flexion of the distal joint.
+const float kThumbMeta = 0.235f, kThumbProx = 0.158f, kThumbDist = 0.135f, kThumbRestIP = 0.2f;
+// Direction the thumb pad faces in the bind pose (towards the index finger and the palm side): the thumb phalanges
+// flex about cross(phalanx direction, this).
+inline vec3 thumbPadDir(vec3 palmN) { return normalize(vec3(0.f, -0.8f, 0.f) + palmN * 0.6f); }
 
 // ------------------------------------------------------------------------------------------------
 // Signed distance primitives used to shape the body. Masks select which body part rays see a primitive.
@@ -330,6 +370,9 @@ SkinW torsoSkinWeights(const BodyDims& D, vec3 p);
 void addHeadPrims(BuildCtx& c);
 void buildHeadGrid(BuildCtx& c);            // creates the head grid (row 0 = neck top ring)
 void buildFaceDetails(BuildCtx& c);         // eyes, ears, brows, lashes, mouth interior, teeth
+// Skin shader channels on the final mesh (after the outfit copied the skin's uvs): MAT_SKIN colour alpha = 1 - gloss,
+// uv = (crease phase, crease depth mm) for age lines (see face.cpp)
+void applySkinChannels(const BuildCtx& c, MeshB& fin);
 void buildBody(BuildCtx& c);                // full skin body incl. head
 // ---- Garment engine (clothing.cpp): offset shells extracted from the skin surface over a coverage field.
 typedef std::function<float(const BVert&)> CovFn;

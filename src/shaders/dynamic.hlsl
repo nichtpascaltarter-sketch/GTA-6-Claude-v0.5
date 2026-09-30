@@ -281,27 +281,54 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         }
     } else if (matId == M_SKIN) {
         sm = SM_SKIN;
-        // Mottling: subtle hemoglobin / melanin variation (bind-pose position: sticks to the animated skin)
+        // Character skin (material param bit 0) carries extra vertex data: colour.a = 1 - gloss (0 skin, ~0.2 oily
+        // T-zone, ~0.65 nails, ~0.9 lip vermilion) and uv = wrinkle channel (uv.x crease phase, crease centres at
+        // frac = 0.5; uv.y crease depth in mm), so its uv is not a surface mapping and the material textures are not
+        // used. Other skin (animals) keeps its texture mapping.
+        bool charSkin = ((i.mat >> 8) & 1u) != 0u;
+        float gloss = charSkin ? 1.0 - i.color.a : 0.0;
+        float nail = smoothstep(0.5, 0.6, gloss) * (1.0 - smoothstep(0.8, 0.85, gloss));
+        float drift = a.r;
+        if (charSkin) {
+            n = N;
+            ao = 1.0;
+            drift = valueNoise3(i.localPos * 9.0 + 1.7);
+        }
+        // Mottling: subtle hemoglobin / melanin variation (bind-pose position: sticks to the animated skin); none on
+        // nails
         float mott = valueNoise3(i.localPos * 38.0) * 0.6 + valueNoise3(i.localPos * 95.0 + 3.1) * 0.4;
-        albedo = i.color.rgb * lerp(0.9, 1.04, a.r) * lerp(float3(0.975, 1.0, 1.01), float3(1.035, 0.975, 0.965), mott);
+        albedo = i.color.rgb * lerp(0.9, 1.04, drift) * lerp(1.0, lerp(float3(0.975, 1.0, 1.01), float3(1.035, 0.975, 0.965), mott), 1.0 - nail);
         // Curvature (1/m) from screen-space derivatives: thin, tightly curved parts (ears, nostrils, fingers) let
         // light through (stored for the transmission term), convex ridges (nose, brow, cheekbones) read oilier
         float3 dPx = ddx(i.rel), dPy = ddy(i.rel);
         float pxLen = max(length(dPx) + length(dPy), 1e-6);
         float curv = (length(ddx(N)) + length(ddy(N))) / pxLen;
         float thin = saturate((curv - 90.0) / 260.0);   // fingers ~125 /m, ear rims and nostril wings higher
+        // right in front of the camera (first-person hands and forearms) pinched skinning makes the curvature
+        // estimate spike: cap it below ~0.5 mm per pixel
+        thin = min(thin, lerp(0.6, 1.0, saturate((pxLen * 0.5 - 0.0003) / 0.0004)));
         rough = lerp(0.5, 0.36, saturate((curv - 20.0) / 90.0));
-        // Pores and fine creases as a bump from the bind-pose position, faded before they could alias
+        // Pores and fine creases as a bump from the bind-pose position, faded before they could alias; lips and
+        // nails have none
         float detailW = saturate(1.6 - pxLen * 0.5 / 0.0009);
         float pore = 0;
         if (detailW > 0.0) {
             float h1 = valueNoise3(i.localPos * 1400.0);
             float h2 = valueNoise3(i.localPos * float3(240.0, 240.0, 1700.0) + 17.3);
-            pore = smoothstep(0.6, 0.9, h1);
-            n = perturbBump(n, N, dPx, dPy, ((h2 - 0.5) * 0.4 - pore * 0.8) * 4e-5 * detailW);
+            pore = smoothstep(0.6, 0.9, h1) * (1.0 - gloss);
+            n = perturbBump(n, N, dPx, dPy, ((h2 - 0.5) * 0.4 - pore * 0.8) * 4e-5 * detailW * (1.0 - gloss));
             rough = saturate(rough + pore * 0.08 * detailW);
             ao *= 1.0 - pore * 0.3 * detailW;   // micro-occlusion inside the pores
         }
+        rough = lerp(rough, 0.24, gloss);
+        // Wrinkles: creases across the lines, faded before they get closer than ~3 pixels apart
+        float cv = saturate(1.0 - abs(frac(i.uv.x) - 0.5) / 0.17);
+        cv *= cv;
+        float cDepth = saturate(i.uv.y / 0.25);
+        float cw = charSkin ? saturate((0.35 - fwidth(i.uv.x)) / 0.2) * step(1e-4, i.uv.y) : 0.0;
+        n = perturbBump(n, N, dPx, dPy, -cv * i.uv.y * 0.001 * cw);
+        ao *= 1.0 - 0.4 * cv * cDepth * cw;
+        albedo *= 1.0 - 0.06 * cv * cDepth * cw;
         extra = 0.5 + 0.5 * thin;   // SM_SKIN: 0.5 + thinness / 2 (subsurface always on)
     } else if (matId == M_HAIR) {
         sm = SM_HAIR;

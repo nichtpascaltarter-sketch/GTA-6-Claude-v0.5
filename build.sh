@@ -14,6 +14,12 @@ OPT="-O2 -DNDEBUG"
 GCCMEM="--param ggc-min-expand=20 --param ggc-min-heapsize=32768"
 STRIP="-s"
 if [ "$1" = "debug" ]; then OPT="-O0 -g"; STRIP=""; fi
+# Machines that run several builds at once (the automated test rig) serialize them: each compile peaks near 1.8 GB.
+# Opt in by creating /tmp/neontide_build.lock; the lock is released when this script exits.
+if [ -e /tmp/neontide_build.lock ] && command -v flock >/dev/null 2>&1; then
+  exec 9>>/tmp/neontide_build.lock
+  flock 9
+fi
 $CXX -std=c++17 $OPT $EXTRA $GCCMEM -march=x86-64-v2 -mfpmath=sse -fno-strict-aliasing -Wall -Wno-unused-function -Wno-unused-variable \
   -Wno-missing-braces -Wno-unused-but-set-variable -Wno-class-memaccess -Ibuild/gen \
   src/main.cpp -o ${OUT:-bin/NeonTide.exe} $STRIP -static -static-libgcc -static-libstdc++ -mwindows \

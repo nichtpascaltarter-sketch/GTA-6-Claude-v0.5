@@ -329,6 +329,7 @@ struct Driver {
     float stopDist = 1e9f;      // distance (front bumper) to the binding stop point
     float obstDist = 1e9f, obstSpeed = 0.f;
     int obstBody = -1;
+    bool obstBacking = false;   // the vehicle ahead is backing up towards us (close): brake and lean on the horn
     float curveSpeed = 99.f;
     float integ = 0.f;          // speed controller integral
     float planTimer = 0.f;

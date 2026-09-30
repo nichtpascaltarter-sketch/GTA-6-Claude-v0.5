@@ -12,7 +12,7 @@ struct WheelDesign {
     float R = 0.33f;        // tire outer radius
     float W = 0.22f;        // tire width
     float rimR = 0.216f;    // bead seat radius
-    int seg = 30;           // angular segments of the tire
+    int seg = 40;           // angular segments of the tire
     bool offroad = false;   // chunky shoulder blocks
     bool moto = false;      // round motorcycle profile
     bool whitewall = false;
@@ -63,9 +63,9 @@ inline void buildTire(PMesh& m, const WheelDesign& d) {
         P(-w * 0.86f, rr + 0.002f, 0);
         P(-w * 1.00f, rr + h * 0.45f, 0);
         P(-w * 0.90f, R - h * 0.06f, 1);
-        // tread with circumferential grooves
+        // tread with circumferential grooves (three on wide tyres)
         float t0 = -w * 0.78f, t1 = w * 0.78f;
-        int grooves = 2;
+        int grooves = d.W > 0.24f ? 3 : 2;
         float gw = 0.005f, gd = d.offroad ? 0.014f : 0.008f;
         P(t0, R, 2);
         for (int g = 0; g < grooves; g++) {
@@ -82,6 +82,7 @@ inline void buildTire(PMesh& m, const WheelDesign& d) {
         P(w * 0.86f, rr + 0.002f, 0);
     }
     int rows = (int)prof.size(), cols = d.seg;
+    const float t0Tread = -w * 0.78f, t1Tread = w * 0.78f, ribW = (t1Tread - t0Tread) / (d.W > 0.24f ? 4.f : 3.f);
     std::vector<float> arc(rows, 0.f);
     for (int i = 1; i < rows; i++) arc[i] = arc[i - 1] + length(prof[i] - prof[i - 1]);
     std::vector<u32> id(rows * cols);
@@ -89,12 +90,19 @@ inline void buildTire(PMesh& m, const WheelDesign& d) {
         for (int j = 0; j < cols; j++) {
             float th = kTwoPi * j / cols;
             float r = prof[i].y, a = prof[i].x;
-            // tread blocks: alternate shoulder lugs, staggered centre blocks
+            // tread blocks: alternate shoulder lugs, staggered centre blocks (road tyres: shallow lateral sipes
+            // every other segment between the ribs, offset rib to rib)
             bool odd = (j & 1) != 0;
             if (kind[i] == 1) r += odd ? -(d.offroad ? 0.010f : 0.0035f) : 0.f;
             if (d.offroad && kind[i] == 2) {
                 bool side = a < 0.f;
                 if (odd == side) r -= 0.006f;
+            }
+            if (!d.offroad && kind[i] == 2) {
+                int rib = (int)floorf((a - t0Tread) / Max(ribW, 1e-3f));
+                bool sipe = ((j + rib) % 4) == 0;
+                bool edge = fabsf(a - t0Tread) < 1e-4f || fabsf(a - t1Tread) < 1e-4f;
+                if (sipe && !edge) r -= 0.0025f;
             }
             vec3 p(a, cosf(th) * r, sinf(th) * r);
             id[i * cols + j] = m.add(p, vec2(th * R, arc[i]));

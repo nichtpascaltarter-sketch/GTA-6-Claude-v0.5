@@ -217,6 +217,8 @@ struct AIState {
     float playerLastShotTime = -100.f;
     AIFrameStats stats;
     float lifeBoost = 1.f;              // autoplay tests: cars park / owners drive off this many times as often
+    int testCar[2] = {-1, -1};          // autoplay tests: the cars a scenario set up (app.cpp)
+    vec3 testCam;                       // autoplay tests: scenario camera position
     double lastParkArrive = -1e9;       // last time a traffic car started pulling into a parking spot (global spacing)
     bool ready = false;
 };

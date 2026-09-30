@@ -483,7 +483,8 @@ struct App {
                 game.pinfo.lastSeenTime = (float)game.time;
             }
         }
-        if (autoplay == "crowd" || autoplay == "panic" || autoplay == "chase" || autoplay == "rage" || autoplay == "soak" || autoplay == "parking") {
+        if (autoplay == "crowd" || autoplay == "panic" || autoplay == "chase" || autoplay == "rage" || autoplay == "soak" || autoplay == "parking" ||
+            autoplay == "bender") {
             // AI scenario tests: crowd variety at four places and hours / gunfire panic -> police response -> arrest /
             // night car chase at 4 stars (PIT, boxing, roadblocks, helicopter searchlight) / rear-ending a bold driver
             mu::setFlag(game, mu::EX_INTRO_DONE, 1);
@@ -493,6 +494,50 @@ struct App {
             game.populationWarmup = 2.5f;
             if (autoplay == "crowd") {
                 autoDuration = 4 * 7.f + 0.5f;   // four stops, 7 s each (applyAutoplay)
+            } else if (autoplay == "bender") {
+                // two ordinary cars in one lane: the front one waits (a light, a gap), the one behind is not paying
+                // attention and bumps into it at walking pace - the drivers stop, get out and have words
+                vec2 q(2713.f, 763.f);
+                int lane = -1;
+                float u = 0.f;
+                for (int k = 0; k < 60 && lane < 0; k++) {
+                    vec2 probe = q + vec2(cosf(k * 2.4f), sinf(k * 2.4f)) * (6.f + k * 5.f);
+                    float uu = 0.f;
+                    int li = game.laneGraph.nearestLane(probe, vec2(0.f), 30.f, &uu);
+                    if (li < 0) continue;
+                    const AI::Lane& L = game.laneGraph.lanes[li];
+                    if (L.flags & (AI::LF_DIRT | AI::LF_HIGHWAY)) continue;
+                    uu = Max(uu, L.u0 + 6.f);
+                    if (L.u1 - uu < 70.f) continue;
+                    if (dot(game.laneGraph.laneTangent(li, uu), game.laneGraph.laneTangent(li, uu + 50.f)) < 0.995f) continue;
+                    lane = li;
+                    u = uu;
+                }
+                if (lane >= 0) {
+                    const AI::Lane& L = game.laneGraph.lanes[lane];
+                    int ma = game.findVehicleModel(Vehicles::VC_SEDAN, 5), mb = game.findVehicleModel(Vehicles::VC_COMPACT, 9);
+                    vec3 a3 = game.laneGraph.lanePos(lane, u + 30.f), b3 = game.laneGraph.lanePos(lane, u + 12.f);
+                    float yaw = AI::dirYaw(game.laneGraph.laneTangent(lane, u + 20.f));
+                    game.ai.testCar[0] = ma >= 0 ? game.spawnVehicle(ma, dvec3(a3.x, a3.y, a3.z + 0.4f), yaw, true, FAC_CIVILIAN) : -1;
+                    game.ai.testCar[1] = mb >= 0 ? game.spawnVehicle(mb, dvec3(b3.x, b3.y, b3.z + 0.4f), yaw, true, FAC_CIVILIAN) : -1;
+                    for (int c : {game.ai.testCar[0], game.ai.testCar[1]}) {
+                        if (c < 0 || game.vehicles[c].seats[0] < 0) continue;
+                        game.peds[game.vehicles[c].seats[0]].brain.type = BRAIN_DRIVER;
+                        game.attachTraffic(c, lane, c == game.ai.testCar[0] ? u + 30.f : u + 12.f);
+                    }
+                    if (game.ai.testCar[0] >= 0)
+                        if (AI::Driver* d = game.traffic.get(game.ai.testCar[0])) {
+                            d->mode = AI::DM_HOLD;
+                            d->holdTimer = 10.f;
+                        }
+                    if (game.ai.testCar[1] >= 0) game.vehicles[game.ai.testCar[1]].scripted = true;   // (applyAutoplay rolls it into the other)
+                    // the player watches from the sidewalk
+                    vec3 sw = game.laneGraph.lanePos(lane, Max(L.u0, u - 14.f), L.width * 0.5f + World::roadInfo((World::RoadClass)L.cls).shoulder + 2.5f);   // (not too close: a knock right next to the player is not "their own")
+                    p.pos = dvec3(sw.x, sw.y, game.groundHeight(sw.x, sw.y, sw.z + 2.f));
+                    game.ai.testCam = vec3(game.laneGraph.lanePos(lane, u + 2.f, L.width * 0.5f + 3.f).xy(), sw.z + 2.4f);
+                    LOG("autoplay bender: cars %d (held) and %d (rolling) on lane %d", game.ai.testCar[0], game.ai.testCar[1], lane);
+                }
+                env.timeOfDay = 11.f;
             } else if (autoplay == "parking") {
                 // on the sidewalk of a street with a parking strip: owners come back to their cars and drive off, cars
                 // pull into free spots and their drivers walk off (applyAutoplay follows each one with the camera)
@@ -714,6 +759,54 @@ struct App {
                 shot = true;
                 game.requestScreenshot = shotPath(StrFormat("auto_crowd_%02d_%s", stop, stops[stop].name));
                 LOG("autoplay crowd %s | %s | %s", stops[stop].name, game.aiCensusText(70.f).c_str(), game.aiDebugText().c_str());
+            }
+        } else if (autoplay == "bender") {
+            // roll the inattentive driver into the waiting car, then watch the scene play out
+            static bool released = false;
+            static float shotAt[6] = {1.f, 3.f, 6.f, 12.f, 25.f, 45.f};
+            static int shotIdx = 0;
+            static float hitT = -1.f, logT = 0.f;
+            int a = game.ai.testCar[0], b = game.ai.testCar[1];
+            bool okA = a >= 0 && game.vehicles[a].used, okB = b >= 0 && game.vehicles[b].used;
+            if (okA && okB && !released) {
+                Vehicle& vb = game.vehicles[b];
+                vb.ctl = Vehicles::VehicleControls();
+                float gap = length(rel(vb.sim.body.pos, game.vehicles[a].sim.body.pos)) - game.vassets[vb.model].spec.boxHalf.y -
+                            game.vassets[game.vehicles[a].model].spec.boxHalf.y;
+                vb.ctl.throttle = vb.sim.speed() < 4.5f ? 0.45f : 0.f;
+                if (gap < 0.3f || vb.sim.impactImpulse > 800.f || t > 12.f) {
+                    released = true;
+                    vb.scripted = false;
+                    hitT = t;
+                    LOG("autoplay bender: contact at t=%.1f gap %.2f speed %.1f impulse %.0f", t, gap, vb.sim.speed(), vb.sim.impactImpulse);
+                }
+            }
+            if (okA && okB) {
+                vec3 mid = (game.vehicles[a].sim.body.pos.toVec3() + game.vehicles[b].sim.body.pos.toVec3()) * 0.5f;
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(game.ai.testCam);
+                game.rig.scriptTarget = dvec3(mid + vec3(0.f, 0.f, 0.7f));
+                game.rig.scriptFov = 45.f;
+            }
+            if (hitT >= 0.f && shotIdx < 6 && t - hitT >= shotAt[shotIdx]) {
+                game.requestScreenshot = shotPath(StrFormat("auto_bender_%02d_%.0fs", shotIdx, shotAt[shotIdx]));
+                shotIdx++;
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 2.f;
+                std::string who;
+                for (int c : {a, b}) {
+                    if (c < 0 || !game.vehicles[c].used) continue;
+                    const Vehicle& v = game.vehicles[c];
+                    who += StrFormat(" | car %d speed %.1f parked %d hazard %d role %d driver %d", c, v.sim.speed(), (int)v.parked, (int)(v.indicator == 2), (int)game.vehAI(c).role, v.seats[0]);
+                }
+                for (int i = 0; i < (int)game.peds.size() && i < (int)game.ai.ped.size(); i++) {
+                    const Ped& pp = game.peds[i];
+                    if (!pp.used || game.ai.ped[i].uid != pp.uid || game.ai.ped[i].eventId < 0) continue;
+                    who += StrFormat(" | ped %d act %d brain %d state %d at %.1f %.1f", i, (int)game.ai.ped[i].activity, (int)pp.brain.type, (int)pp.state, pp.pos.x, pp.pos.y);
+                }
+                LOG("autoplay bender t=%.1f%s", t, who.c_str());
             }
         } else if (autoplay == "parking") {
             // follow one owner / arriving car at a time from the sidewalk, a shot at each step

@@ -214,7 +214,7 @@ float brickPattern(float2 uv, float rows, float cols, float mortar, out float2 c
     cell = floor(p);
     float2 f = frac(p);
     id = hashP(cell + 17.0, cols * 2.0);
-    float2 m = float2(mortar * rows / cols, mortar);
+    float2 m = float2(mortar * cols / rows, mortar);   // same joint width across and along (cells are not square)
     float edge = min(min(f.x, 1.0 - f.x) / m.x, min(f.y, 1.0 - f.y) / m.y);
     return saturate(edge);
 }
@@ -268,19 +268,36 @@ Surf genSidewalk(float2 uv) {
     return s;
 }
 
+// Running-bond brick at real size on the 2 m tile: 26 courses x 9 bricks (222 x 77 mm with 10 mm joints). Joints are
+// recessed with rounded, slightly chipped arrises and occluded; each brick has its own tint (a few darker clinkers),
+// a sandy face texture and a little soot / wear.
 Surf genBrick(float2 uv) {
     Surf s;
-    float2 cell; float id;
-    float e = brickPattern(uv, 16.0, 4.0, 0.06, cell, id);
-    float fine = tfbm(uv, 32, 3, 0.5) * 0.5 + 0.5;
+    const float rows = 26.0, cols = 9.0, tile = 2.0;
+    float2 p = uv * float2(cols, rows);
+    float row = floor(p.y);
+    p.x += fmod(row, 2.0) * 0.5;
+    float2 cell = floor(p);
+    float2 f = frac(p);
+    float2 wc = float2(fmod(cell.x, cols), cell.y);   // the half brick at the tile's right edge continues on the left
+    float id = hashP(wc + 17.0, 64.0);
+    float id2 = hashP(wc + 91.0, 64.0);
+    // distance to the nearest joint centre line (m), chipped along the arrises
+    float dx = min(f.x, 1.0 - f.x) * tile / cols, dy = min(f.y, 1.0 - f.y) * tile / rows;
+    float chip = tvalue(uv * 900.0, 900.0);
+    float d = min(dx, dy) - smoothstep(0.55, 0.9, chip) * 0.0025;
+    float face = smoothstep(0.0045, 0.0085, d);        // 0 in the joint, 1 on the brick face (rounded arris)
+    float grain = tvalue(uv * 1400.0, 1400.0) * 0.5 + tvalue(uv * 420.0, 420.0) * 0.5;
     float3 bc = lerp(gColorA.rgb, gColorB.rgb, id);
-    bc *= 0.85 + fine * 0.3;
-    float3 mortarC = gColorC.rgb * (0.9 + fine * 0.2);
-    float isBrick = smoothstep(0.0, 0.25, e);
-    s.albedo = lerp(mortarC, bc, isBrick);
-    s.height = isBrick * (0.8 + fine * 0.2);
-    s.rough = lerp(0.95, 0.8, isBrick);
-    s.ao = lerp(0.6, 1.0, isBrick);
+    bc *= lerp(float3(1.04, 0.98, 0.95), float3(0.95, 1.0, 1.05), id2) * (0.88 + grain * 0.22);
+    bc = lerp(bc, bc * float3(0.55, 0.5, 0.52), step(0.92, id2));   // clinkers
+    float soot = smoothstep(0.55, 0.85, tfbm(uv, 3.0, 3, 0.5) * 0.5 + 0.5);
+    bc *= 1.0 - soot * 0.18;
+    float3 mortarC = gColorC.rgb * (0.85 + tvalue(uv * 700.0, 700.0) * 0.25) * (1.0 - soot * 0.25);
+    s.albedo = lerp(mortarC, bc, face);
+    s.height = face * (0.75 + grain * 0.1) + (1.0 - face) * 0.25;
+    s.rough = lerp(0.97, 0.85, face);
+    s.ao = lerp(0.5, 1.0, smoothstep(0.002, 0.012, d));
     return s;
 }
 

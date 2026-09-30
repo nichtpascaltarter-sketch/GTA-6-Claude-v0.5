@@ -545,8 +545,8 @@ bool TrafficCore::rearClear(const Driver& d, vec2 pos, vec2 fwd, float dist) con
     int self = driverBody(d.vehicle);
     float z = self >= 0 ? bodies[self].z : 0.f;
     bool ok = true;
-    float r = dist + kMaxBodyExtent + d.info.halfWid;
-    vec2 mid = rb - fwd * (dist * 0.5f);
+    float r = dist + kMaxBodyExtent + d.info.halfWid + 4.f;
+    vec2 mid = rb - fwd * (dist * 0.5f + 2.f);
     hash.query(bodies, mid - vec2(r), mid + vec2(r), [&](int bi) {
         if (!ok || bi == self) return;
         const Body& b = bodies[bi];
@@ -556,7 +556,10 @@ bool TrafficCore::rearClear(const Driver& d, vec2 pos, vec2 fwd, float dist) con
         float extL = fabsf(dot(b.fwd, rgt)) * b.halfLen + fabsf(dot(bR, rgt)) * b.halfWid;
         vec2 rel = b.pos - rb;
         float behind = -dot(rel, fwd), lat = dot(rel, rgt);
-        if (behind + extA > -0.2f && behind - extA < dist && fabsf(lat) < d.info.halfWid + extL + 0.25f) ok = false;
+        // a vehicle rolling up to our rear bumper counts where it will be in a moment
+        float closing = dot(b.vel, fwd);
+        float reach = behind > 0.f && closing > 0.3f ? closing * 0.8f : 0.f;
+        if (behind + extA > -0.2f && behind - extA - reach < dist && fabsf(lat) < d.info.halfWid + extL + 0.25f) ok = false;
     });
     return ok;
 }
@@ -1113,7 +1116,7 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     int selfBody = driverBody(d.vehicle);
     float obstGap = 1e9f, obstV = 0.f;
     int obstB = -1;
-    bool obstPed = false;
+    bool obstPed = false, obstBack = false;
     thread_local std::vector<u32> seen;
     thread_local u32 seenStamp = 0;
     if (seen.size() < bodies.size()) seen.resize(bodies.size() + 64, 0);
@@ -1197,7 +1200,8 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
                 if (tLeave < ta - 0.6f) return;
                 vl = 0.f;
             }
-            // oncoming traffic encroaching our lane: react as to a stopped obstacle
+            // oncoming traffic encroaching our lane (or the car ahead backing up): react as to a stopped obstacle
+            bool backing = !ped && vl < -0.6f && dot(bf, bt) > 0.5f;
             if (vl < -1.f) vl = 0.f;
             // AI vehicles that yield to us inside an intersection do not block the approach
             if (gap < obstGap) {
@@ -1205,6 +1209,7 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
                 obstV = vl;
                 obstB = bi;
                 obstPed = ped;
+                obstBack = backing;
             }
         });
     }
@@ -1244,6 +1249,7 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     d.obstDist = obstGap;
     d.obstSpeed = obstV;
     d.obstBody = obstB;
+    d.obstBacking = obstBack && obstGap < 7.f;
     // ---- stops
     float stopDist = 1e9f;
     if (d.path < NL) {
@@ -1614,11 +1620,14 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
         d.recoverTimer -= dt;
         c = Vehicles::VehicleControls();
         if (d.recoverTimer > 0.4f) {
-            // reverse: brake pedal engages reverse at standstill and then drives backwards
-            c.brake = 0.7f;
+            // reverse: brake pedal engages reverse at standstill and then drives backwards - at a walking pace, the
+            // way a driver backs up looking over the shoulder (in reverse gear the pedal is the throttle)
+            float vRev = d.kturn ? 2.8f : 2.2f;
+            c.brake = 0.7f * Saturate((vRev + vF) * 0.8f);
             c.steer = (float)d.recoverDir;
-            // something (or someone) close behind: stop backing up
-            if (vF < 0.3f && !rearClear(d, pos, fwd, 1.2f)) d.recoverTimer = 0.4f;
+            // something (or someone) behind - or rolling up to our bumper: stop backing up (look further the faster
+            // we go: braking from reverse takes a meter or so)
+            if (vF < 0.3f && !rearClear(d, pos, fwd, 1.2f + Max(0.f, -vF) * 0.9f)) d.recoverTimer = 0.4f;
         } else {
             c.handbrake = true;   // stop and shift back to drive
             c.brake = 1.f;
@@ -1866,6 +1875,11 @@ void TrafficCore::drive(int vid, Vehicles::VehicleState& s, float dt, DriveOut& 
     if (out.blocker >= 0 && d.blockedTime > d.pers.patience && d.honkTimer <= 0.f) {
         d.hornHold = 0.35f + hashToFloat(hash32(d.uid + frame)) * 0.6f;
         d.honkTimer = 2.5f + hashToFloat(hash32(d.uid * 3u + frame)) * 4.f;
+    }
+    // the car in front backing up at us: a long blast straight away (no patience for that)
+    if (d.obstBacking && d.obstDist < 5.f && d.honkTimer <= 0.f && d.mode != DM_FLEE) {
+        d.hornHold = 0.7f + hashToFloat(hash32(d.uid * 7u + frame)) * 0.6f;
+        d.honkTimer = 1.8f + hashToFloat(hash32(d.uid * 11u + frame)) * 1.5f;
     }
     if (d.mode == DM_FLEE && d.blockedTime > 2.5f) out.wantsAbandon = true;
     // two vehicles blocking each other (nose to nose after a wide turn): the later/higher-id one backs up

@@ -1039,8 +1039,8 @@ struct CarBody {
                 m.quadFacing(b0, b1, c1, c0, facing);
             }
             // inner wall polygon in (y,z), facing +x (extended below the underbody)
-            I.insert(I.begin(), vec3(xIn, I[0].y, I[0].z - 0.04f));
-            I.push_back(vec3(xIn, I.back().y, I.back().z - 0.04f));
+            I.insert(I.begin(), vec3(xIn, I[0].y, I[0].z - 0.006f));
+            I.push_back(vec3(xIn, I.back().y, I.back().z - 0.006f));
             n = (int)I.size();
             std::vector<vec2> poly;
             for (int k = 0; k < n; k++) poly.push_back(vec2(I[k].y, I[k].z));
@@ -1055,6 +1055,22 @@ struct CarBody {
                 if (fn.x >= 0.f) m.tri(p0, p1, p2);
                 else m.tri(p0, p2, p1);
             }
+            // underbody closure inboard of the well: the bottom-band cells opened for the wheel reach further in
+            // than the well's inner wall, which would leave a window into the body from below (rolled-over cars)
+            int NC1 = NP - 1;
+            m.use(MAT_PLASTIC, col(0.35f, 0.35f, 0.35f));
+            for (int i = Min(i0, i1); i < Max(i0, i1); i++)
+                for (int j = 0; j < pCor0; j++) {
+                    if (cls[i * NC1 + j] != CC_HOLE) continue;
+                    vec3 a = G[i * NP + j], bq = G[(i + 1) * NP + j];
+                    if (a.x >= xIn - 1e-3f && bq.x >= xIn - 1e-3f) continue;
+                    // down to the underbody plane of these rows, slightly below so it tucks under the shell edge
+                    vec3 c(xIn, bq.y, bq.z - 0.002f), d(xIn, a.y, a.z - 0.002f);
+                    a.z -= 0.002f;
+                    bq.z -= 0.002f;
+                    m.quadFacing(m.add(a), m.add(bq), m.add(c), m.add(d), vec3(0, 0, -1));
+                    break;  // the innermost hole cell of the row carries the whole strip
+                }
         }
     }
 

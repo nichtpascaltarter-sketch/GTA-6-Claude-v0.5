@@ -10,7 +10,8 @@
 namespace Anim {
 namespace detail {
 
-static inline vec3 headToModel(const BuildCtx& c, vec3 hp) { return c.D->J[B_HEAD] + hp * c.D->headS; }
+// Head space (unscaled, face height mapped: see faceMap) to model space.
+static inline vec3 headToModel(const BuildCtx& c, vec3 hp) { return c.D->J[B_HEAD] + faceMap(*c.D, hp) * c.D->headS; }
 
 // Face landmark positions in head space (meters, unscaled), adjusted by per-character face params.
 struct FaceLm {
@@ -28,7 +29,7 @@ static void faceLandmarks(const BuildCtx& c, FaceLm& L) {
         float sx = sd ? 1.f : -1.f;
         L.eye[sd] = (D.J[B_EYE_L + sd] - D.J[B_HEAD]) / D.headS;
         L.ala[sd] = vec3(sx * 0.0116f * D.noseW + 0.4f * D.asymNose, 0.0908f + 0.003f * (D.noseP - 1.f), 0.0108f - 0.004f * (D.noseL - 1.f));
-        L.mouthCorner[sd] = vec3(sx * 0.0252f * D.lipW * D.faceW, 0.0845f, -0.0185f + (sd ? D.asymMouth : 0.f));
+        L.mouthCorner[sd] = vec3(sx * 0.0252f * D.lipW * D.faceW, 0.0845f, -0.0185f + D.mouthCornerUp + (sd ? D.asymMouth : 0.f));
         L.ear[sd] = vec3(sx * 0.0695f * D.faceW, -0.01f, 0.036f);
     }
     L.eyeR = 0.0119f * D.eyeSize;
@@ -74,7 +75,7 @@ void addHeadPrims(BuildCtx& c) {
     for (int sd = 0; sd < 2; sd++) {
         float sx = sd ? 1.f : -1.f;
         // malar eminence below and lateral to the orbit
-        S.ellipsoid(P(sx * 0.0445f * fw, 0.0565f, 0.034f), vec3(0.0185f, 0.0165f, 0.0125f) * (hs * (0.85f + 0.2f * D.cheekB)), HM, R(0.022f));
+        S.ellipsoid(P(sx * 0.0445f * fw, 0.0565f, 0.034f + D.cheekH), vec3(0.0185f, 0.0165f, 0.0125f) * (hs * (0.85f + 0.2f * D.cheekB)), HM, R(0.022f));
         // zygomatic arch towards the ear
         S.cone(P(sx * 0.052f * fw, 0.045f, 0.036f), P(sx * 0.064f * fw, 0.0f, 0.03f), R(0.008f), R(0.006f), HM, R(0.014f));
     }
@@ -111,7 +112,7 @@ void addHeadPrims(BuildCtx& c) {
         float sx = sd ? 1.f : -1.f;
         // malar fat ("apple" of the cheek): fuller on young, female and heavier faces
         float mf = Saturate(0.35f + 0.35f * youth + 0.35f * full + 0.2f * fem - 0.25f * lean);
-        S.ellipsoid(P(sx * 0.0345f, 0.0625f, 0.019f), vec3(0.019f, 0.0125f, 0.017f) * (hs * (0.55f + 0.5f * mf)), HM, R(0.022f));
+        S.ellipsoid(P(sx * 0.0345f, 0.0625f, 0.019f + 0.7f * D.cheekH), vec3(0.019f, 0.0125f, 0.017f) * (hs * (0.55f + 0.5f * mf)), HM, R(0.022f));
         // pad lateral to the nasolabial fold (ala -> past the mouth corner); its tight medial blend is the fold
         float nl = 0.45f + 0.5f * age + 0.25f * full;
         vec3 a(sx * 0.0235f, 0.0842f, 0.0085f), b(sx * 0.0335f, 0.0732f, -0.0235f);
@@ -129,7 +130,7 @@ void addHeadPrims(BuildCtx& c) {
     S.ellipsoid(Pv(L.subnasale + vec3(0, -0.0098f, -0.0112f)), vec3(0.0175f * D.lipW, 0.0105f, 0.0115f) * hs, HM, R(0.008f));
     // lips: upper (tubercle + cupid's bow) and lower (two lobes), curved chains towards the corners
     float lf = D.lipFull;
-    float ulR = 0.0051f * lf, llR = 0.0066f * lf;
+    float ulR = 0.0051f * lf * D.lipRatio, llR = 0.0066f * lf;
     vec3 ulC(0, L.stomion.y + 0.0004f, L.stomion.z + 0.006f), llC(0, L.stomion.y - 0.0024f, L.stomion.z - 0.0072f);
     S.ellipsoid(Pv(ulC + vec3(0, 0.0004f, -0.0018f)), vec3(0.0062f * D.lipW, 0.0041f * lf, 0.0038f * lf) * hs, HM, R(0.003f));
     for (int sd = 0; sd < 2; sd++) {
@@ -160,10 +161,17 @@ void addHeadPrims(BuildCtx& c) {
         S.cone(Pv(N + vec3(0, -0.0042f, -0.0015f)), Pv(d2), R(0.0048f * (0.85f + 0.15f * nw)), R(0.0056f * nw), HM, R(0.009f), 0.9f, 1.f, vec3(1, 0, 0));
         if (D.noseHump > 0.05f)
             S.ellipsoid(Pv(lerp(N, d2, 0.45f) + vec3(0, 0.0008f, 0)), vec3(0.0042f, 0.0032f, 0.0068f) * (hs * D.noseHump), HM, R(0.005f));
-        S.ellipsoid(Pv(T + vec3(0, -0.0064f, -0.0012f)), vec3(0.0084f * nw, 0.0064f, 0.0074f) * hs, HM, R(0.007f));
+        const float bulb = D.noseBulb;
+        S.ellipsoid(Pv(T + vec3(0, -0.0064f * bulb, -0.0012f)), vec3(0.0084f * nw, 0.0064f, 0.0074f) * (hs * bulb), HM, R(0.007f));
         for (int sd = 0; sd < 2; sd++) {
             float sx = sd ? 1.f : -1.f;
-            S.ellipsoid(Pv(T + vec3(sx * 0.0033f, -0.0053f, 0.0002f)), vec3(0.0046f, 0.0046f, 0.0050f) * hs, HM, R(0.0045f));
+            S.ellipsoid(Pv(T + vec3(sx * 0.0033f * bulb, -0.0053f * bulb, 0.0002f)), vec3(0.0046f, 0.0046f, 0.0050f) * (hs * bulb), HM, R(0.0045f));
+        }
+        if (D.noseScoop > 0.f) {
+            // concave (scooped) dorsum: carve the middle of the ridge
+            Prim& q = S.prims[S.ellipsoid(Pv(lerp(N, d2, 0.55f) + vec3(0, 0.0052f, 0.0004f)), vec3(0.0065f, 0.0034f, 0.0105f) * (hs * D.noseScoop), HM,
+                                          R(0.006f))];
+            q.op = OP_SUB;
         }
         S.cone(Pv(vec3(T.x, T.y - 0.0078f, Sn.z + 0.0068f)), Pv(Sn + vec3(0, 0.0012f, 0.0032f)), R(0.0028f), R(0.0031f), HM, R(0.004f), 0.8f, 1.f, vec3(1, 0, 0));
         for (int sd = 0; sd < 2; sd++) {
@@ -249,12 +257,27 @@ static float lipLine(const HeadLayout& L, float at, float& gap, float& pinch) {
     return L.phMC - d * 0.08f;
 }
 
+static void mapLandmarks(const BodyDims& D, FaceLm& L) {
+    for (int sd = 0; sd < 2; sd++) {
+        L.ala[sd] = faceMap(D, L.ala[sd]);
+        L.mouthCorner[sd] = faceMap(D, L.mouthCorner[sd]);
+    }
+    L.nasion = faceMap(D, L.nasion);
+    L.noseTip = faceMap(D, L.noseTip);
+    L.subnasale = faceMap(D, L.subnasale);
+    L.stomion = faceMap(D, L.stomion);
+    L.chin = faceMap(D, L.chin);
+    L.menton = faceMap(D, L.menton);
+}
+
 void buildHeadGrid(BuildCtx& c) {
     const BodyDims& D = *c.D;
     MeshB& m = c.m;
     HeadInfo& H = c.head;
     FaceLm Lm;
     faceLandmarks(c, Lm);
+    FaceLm Lf = Lm;   // landmarks where they end up (face height mapped), for comparisons with mesh positions
+    mapLandmarks(D, Lf);
     const float hs = D.headS;
     H.origin = D.J[B_HEAD];
     H.C = headToModel(c, vec3(0, 0.006f, 0.048f));
@@ -580,7 +603,7 @@ void buildHeadGrid(BuildCtx& c) {
             float front = sstep(95.f * deg, 50.f * deg, ath);
             float below = (j < H.rowMouthHi) ? 1.f : 0.f;
             float jawW = below * front;
-            if (j < H.rowMouthLo) jawW = front * sstep(-0.004f, -0.012f, hp.z - Lm.stomion.z + 0.01f * (1.f - front));
+            if (j < H.rowMouthLo) jawW = front * sstep(-0.004f, -0.012f, hp.z - Lf.stomion.z + 0.01f * (1.f - front));
             if (j <= H.rowMouthLo) jawW = Max(jawW, front * sstep(80.f * deg, 30.f * deg, ath));
             jawW *= sstep(-0.02f, 0.03f, hp.y);   // towards the ear the jaw influence fades
             if (j <= 2) jawW *= 0.6f;
@@ -609,14 +632,14 @@ void buildHeadGrid(BuildCtx& c) {
                 // nostrils: dark ovals on the underside of the nose either side of the columella, converging towards the
                 // tip (a shade: the grid has no holes), with a soft darker rim inside the alae
                 vec3 hq = hp;
-                if (hq.z < Lm.noseTip.z + 0.002f && hq.z > Lm.subnasale.z - 0.004f && hq.y > Lm.subnasale.y - 0.002f &&
-                    hq.y < Lm.noseTip.y + 0.004f && fabsf(hq.x) < 0.02f) {
+                if (hq.z < Lf.noseTip.z + 0.002f && hq.z > Lf.subnasale.z - 0.004f && hq.y > Lf.subnasale.y - 0.002f &&
+                    hq.y < Lf.noseTip.y + 0.004f && fabsf(hq.x) < 0.02f) {
                     vec3 gn = normalize(c.sdf.grad(p, HM));
                     float down = sstep(-0.15f, -0.55f, gn.z);
                     float best = 0.f;
                     for (int sd = 0; sd < 2; sd++) {
                         float sx = sd ? 1.f : -1.f;
-                        vec2 nc(Lm.noseTip.x + sx * 0.0057f * D.noseW, Lerp(Lm.subnasale.y, Lm.noseTip.y, 0.4f));
+                        vec2 nc(Lf.noseTip.x + sx * 0.0057f * D.noseW, Lerp(Lf.subnasale.y, Lf.noseTip.y, 0.4f));
                         float ang = sx * 0.42f;   // long axis leans in towards the tip
                         vec2 dq(hq.x - nc.x, hq.y - nc.y);
                         vec2 lq(dq.x * cosf(ang) - dq.y * sinf(ang), dq.x * sinf(ang) + dq.y * cosf(ang));
@@ -1062,12 +1085,12 @@ static void addBrow(BuildCtx& c, int sd, vec3 col) {
     const float sx = sd ? 1.f : -1.f;
     const float deg = kDegToRad;
     Rng r(hash32(c.d->seed * 7717u + 31u + (u32)sd));
-    float thick = Lerp(1.f, 0.72f, D.fem) * (0.85f + 0.3f * (float)(c.d->seed % 7u) / 6.f);
+    float thick = Lerp(1.f, 0.72f, D.fem) * D.browThick;
     float thIn = H.thetaEye - 14.5f * deg, thOut = H.thetaEye + 19.5f * deg;
     float phBase = 13.8f * deg + 1.2f * deg * (D.browH - 1.f) * 5.f + (sd ? D.asymBrow / 0.09f : 0.f);
     // brow shape in (lateral angle, elevation): lower edge + height along u (0 medial head .. 1 tail)
     auto lower = [&](float u) {
-        float arch = (Lerp(1.2f, 2.6f, D.fem) * sinf(kPi * powf(u, 0.8f)) - 0.8f * u) * deg;
+        float arch = (Lerp(1.2f, 2.6f, D.fem) * D.browArch * sinf(kPi * powf(u, 0.8f)) - 0.8f * u + D.browTilt * u * u) * deg;
         float hgt = Lerp(3.1f, 1.1f, powf(u, 1.1f)) * deg * thick;
         return phBase + arch - 0.45f * hgt;
     };
@@ -1403,27 +1426,45 @@ static float skinNoise3(vec3 p, float freq, u32 seed) {
 // skin; darker skin only warms slightly), darker and cooler orbits (upper lid crease, tear trough, inner corners), a
 // crisper vermilion, freckles on some fair young faces, age spots on some older ones, and palms / soles lighter than
 // the back of the hand / foot on darker skin (palms are painted with the fingers; the soles here).
-static void paintSkinDetail(BuildCtx& c) {
+static float paintSkinDetail(BuildCtx& c) {
     const CharacterDesc& d = *c.d;
     const BodyDims& D = *c.D;
     FaceLm Lm;
     faceLandmarks(c, Lm);
+    mapLandmarks(D, Lm);
     const float hs = D.headS;
     const float lum = dot(c.skin, vec3(0.3f, 0.59f, 0.11f));
     const float fair = sstep(0.08f, 0.45f, lum);    // 0 deep .. 1 fair
     Rng r(hash32(d.seed * 0x27d4eb2du + 0x165667b1u));
-    const float blushAmt = Lerp(0.3f, 1.f, fair) * r.range(0.7f, 1.25f) * Lerp(1.f, 1.15f, D.fem);
+    const float blushAmt = Lerp(0.3f, 1.f, fair) * r.range(0.55f, 1.45f) * Lerp(1.f, 1.12f, D.fem);   // pale .. ruddy people
     const float orbAmt = Lerp(0.8f, 0.55f, fair) * r.range(0.7f, 1.2f) * (0.8f + 0.5f * D.age);
     const float freckles = (fair > 0.55f && d.age < 0.5f && r.chance(0.28f)) ? r.range(0.35f, 1.f) : 0.f;
     const float ageSpots = (fair > 0.3f && d.age > 0.55f && r.chance(0.55f)) ? sstep(0.55f, 0.95f, d.age) * r.range(0.5f, 1.f) : 0.f;
     const vec3 red(1.1f, 0.84f, 0.82f);
     const vec3 warm = vec3(1.05f, 0.95f, 0.9f);
     const u32 seed = hash32(d.seed * 131u + 71u);
+    // sun exposure: face, ears, neck, forearms and the backs of the hands a little darker and warmer than the
+    // covered body on light and medium skin (varies per person: outdoor workers more)
+    const float sun = Lerp(0.02f, 0.1f, fair) * r.range(0.3f, 1.3f) * (d.role == 5 || d.role == 4 ? 1.5f : 1.f);
+    const vec3 sunMul(1.f - 0.6f * sun, 1.f - 1.1f * sun, 1.f - 1.5f * sun);
     for (BVert& v : c.m.v) {
         if (v.mat != MAT_SKIN) continue;
         if (v.flags & BuildCtx::F_SOLE) {
             v.col = lerp(v.col, c.palmCol, 0.8f);
             continue;
+        }
+        {
+            // uneven pigmentation and redness at the centimetre scale (skin is never one flat colour); the renderer's
+            // mottling adds the finer scale
+            float n1 = skinNoise3(v.p, 28.f, seed ^ 0x51u), n2 = skinNoise3(v.p, 61.f, seed ^ 0xA7u);
+            float val = 1.f + 0.07f * (n1 - 0.5f) + 0.04f * (n2 - 0.5f);
+            vec3 hue = lerp(vec3(1.02f, 0.99f, 0.97f), vec3(0.985f, 1.005f, 1.02f), skinNoise3(v.p, 17.f, seed ^ 0x3Bu));
+            v.col = mulColor(v.col, hue) * val;
+            float exp = 0.f;
+            if (v.part == PART_HEAD || v.part == PART_EAR || v.part == PART_NECK) exp = 1.f;
+            else if (v.part == PART_ARM) exp = sstep(0.35f, 0.6f, v.pc);   // forearms
+            else if (v.part == PART_HAND || v.part == PART_FINGER || v.part == PART_THUMB) exp = (v.flags & BuildCtx::F_PALM) ? 0.2f : 0.9f;
+            if (exp > 0.f) v.col = lerp(v.col, mulColor(v.col, sunMul), exp);
         }
         if (v.part != PART_HEAD && v.part != PART_EAR) continue;
         vec3 hp = (v.p - D.J[B_HEAD]) / hs;
@@ -1470,7 +1511,6 @@ static void paintSkinDetail(BuildCtx& c) {
                 float zone = expf(-(Sq(hp.x / 0.045f) + Sq((hp.z - 0.035f) / 0.03f))) * sstep(0.05f, 0.08f, hp.y) * freckles;
                 float n = skinNoise3(hp, 900.f, seed);
                 col = lerp(col, mulColor(col, vec3(0.9f, 0.82f, 0.74f)), zone * (0.25f + 0.35f * sstep(0.45f, 0.75f, n)));
-                v.alpha = 1.f - 0.5f * zone;
             }
             if (ageSpots > 0.f && hp.z > -0.01f) {
                 float nz = skinNoise3(hp, 110.f, seed);
@@ -1479,6 +1519,196 @@ static void paintSkinDetail(BuildCtx& c) {
             }
         }
         v.col = col;
+    }
+    return freckles;
+}
+
+// Small raised skin spots, LOD0 only (tiny PART_ACC components are dropped from LOD1): moles by seed on the face and
+// neck, freckle specks over the nose and cheeks of freckled faces, a few reddish blemishes on some young faces. Each
+// spot is a low dome on the head surface, skinned like the nearest head grid vertex.
+static void addSkinSpots(BuildCtx& c, float freckles) {
+    const CharacterDesc& d = *c.d;
+    const BodyDims& D = *c.D;
+    const HeadInfo& H = c.head;
+    MeshB& m = c.m;
+    const float hs = D.headS;
+    Rng r(hash32(d.seed * 0x9E3779B9u + 0x7F4A7C15u));
+    FaceLm Lm;
+    faceLandmarks(c, Lm);
+    mapLandmarks(D, Lm);
+    auto nearestGrid = [&](vec3 p) {
+        u32 best = H.grid[0];
+        float bd = 1e9f;
+        for (u32 vi : H.grid) {
+            float dd = length2(m.v[vi].p - p);
+            if (dd < bd) {
+                bd = dd;
+                best = vi;
+            }
+        }
+        return best;
+    };
+    auto spot = [&](float th, float ph, float rad, vec3 col, float dome) {
+        vec3 dir(cosf(ph) * sinf(th), cosf(ph) * cosf(th), sinf(ph));
+        float t = c.sdf.castOut(H.C, dir, MK_HEAD, 0.25f * hs);
+        vec3 p = H.C + dir * t;
+        vec3 n = c.sdf.grad(p, MK_HEAD);
+        n = length2(n) > 1e-12f ? normalize(n) : dir;
+        // keep clear of the eyes, the mouth slit and the nostrils
+        vec3 hp = (p - D.J[B_HEAD]) / hs;
+        for (int sd = 0; sd < 2; sd++)
+            if (length(hp - Lm.eye[sd]) < Lm.eyeR + 0.006f) return;
+        if (length(hp - Lm.stomion) < 0.012f || (fabsf(hp.x) < 0.012f && hp.z < Lm.noseTip.z + 0.004f && hp.z > Lm.subnasale.z - 0.004f)) return;
+        const BVert& g = m.v[nearestGrid(p)];
+        if (g.flags & BuildCtx::F_LIP) return;
+        vec3 u = normalize(anyPerp(n)), w = cross(n, u);
+        const int NS = 6;
+        BVert v;
+        v.mat = MAT_SKIN;
+        v.part = PART_ACC;
+        v.side = g.side;
+        v.sw = g.sw;
+        v.col = col;
+        v.t = u;
+        v.n = n;
+        v.p = p + n * ((0.00025f + dome) * hs);
+        u32 ci = m.add(v);
+        u32 first = (u32)m.v.size();
+        for (int k = 0; k < NS; k++) {
+            float a = kTwoPi * k / NS + r.f() * 0.4f;
+            vec3 dd = u * cosf(a) + w * sinf(a);
+            v.p = p + dd * (rad * hs * (0.85f + 0.3f * r.f())) + n * (0.00008f * hs);
+            v.n = normalize(n + dd * 0.35f);
+            v.col = lerp(col, g.col, 0.35f);
+            m.add(v);
+        }
+        for (int k = 0; k < NS; k++) {
+            u32 a = first + k, b = first + (k + 1) % NS;
+            vec3 fn = cross(m.v[a].p - m.v[ci].p, m.v[b].p - m.v[ci].p);
+            if (dot(fn, n) >= 0.f) m.tri(ci, a, b);
+            else m.tri(ci, b, a);
+        }
+    };
+    const float deg = kDegToRad;
+    // moles: 0-3 on the face, darker and more raised on fair skin, some flat
+    {
+        float x = r.f();
+        int n = x < 0.04f ? 3 : (x < 0.13f ? 2 : (x < 0.4f ? 1 : 0));
+        for (int i = 0; i < n; i++) {
+            float th = r.range(-75.f, 75.f) * deg, ph = r.range(-45.f, 28.f) * deg;
+            vec3 col = lerp(mulColor(c.skin, vec3(0.45f, 0.38f, 0.34f)), vec3(0.06f, 0.035f, 0.025f), r.range(0.2f, 0.6f));
+            spot(th < 0.f ? th + kTwoPi : th, ph, r.range(0.0011f, 0.0022f), col, r.chance(0.6f) ? r.range(0.0002f, 0.0006f) : 0.f);
+        }
+    }
+    // freckle specks over the nose and the upper cheeks
+    if (freckles > 0.f) {
+        int n = (int)(freckles * r.range(50.f, 110.f));
+        for (int i = 0; i < n; i++) {
+            float th = r.range(-55.f, 55.f) * deg, ph = r.range(-22.f, 8.f) * deg;
+            float zone = expf(-Sq(th / (38.f * deg)) - Sq((ph + 7.f * deg) / (10.f * deg)));
+            if (r.f() > zone) continue;
+            vec3 col = mulColor(c.skin, vec3(0.8f, 0.66f, 0.55f) * r.range(0.9f, 1.05f));
+            spot(th < 0.f ? th + kTwoPi : th, ph, r.range(0.0005f, 0.0011f), col, 0.f);
+        }
+    }
+    // blemishes on some young faces (forehead, cheeks, chin)
+    if (d.age < 0.3f && r.chance(0.25f)) {
+        int n = r.irange(2, 6);
+        for (int i = 0; i < n; i++) {
+            float th = r.range(-60.f, 60.f) * deg, ph = r.pick(std::vector<float>{r.range(-50.f, -35.f), r.range(-15.f, 0.f), r.range(22.f, 40.f)}) * deg;
+            vec3 col = lerp(c.skin, mulColor(c.skin, vec3(1.15f, 0.68f, 0.66f)), 0.7f);
+            spot(th < 0.f ? th + kTwoPi : th, ph, r.range(0.0009f, 0.0017f), col, 0.0002f);
+        }
+    }
+}
+
+// Skin detail channels for the renderer's skin shader (MAT_SKIN vertices of the final mesh, after the outfit has
+// copied the skin's uvs): colour alpha = 1 - gloss (lips, mouth lining and the lids' wet margins, nails, the oily
+// T-zone), uv = (crease phase, crease depth in mm) for the age lines: forehead lines, frown lines between the brows,
+// crow's feet, fine lines under the eyes and above the upper lip, neck rings. Crease centres sit at frac(phase) = 0.5.
+void applySkinChannels(const BuildCtx& c, MeshB& fin) {
+    const CharacterDesc& d = *c.d;
+    const BodyDims& D = *c.D;
+    FaceLm Lm;
+    faceLandmarks(c, Lm);
+    mapLandmarks(D, Lm);
+    const float hs = D.headS, a = Saturate(D.age);
+    Rng r(hash32(d.seed * 0x85EBCA77u + 0xC2B2AE3Du));
+    const float kFore = sstep(0.22f, 0.85f, a) * r.range(0.6f, 1.25f) * (1.f + 0.4f * Saturate(1.f - 2.f * D.weight));
+    const float kFrown = sstep(0.3f, 0.8f, a) * (r.chance(0.6f) ? r.range(0.5f, 1.2f) : 0.f);
+    const float kCrow = sstep(0.28f, 0.8f, a) * r.range(0.6f, 1.2f) * (0.8f + 0.4f * sstep(0.1f, 0.4f, dot(c.skin, vec3(0.3f, 0.59f, 0.11f))));
+    const float kUnder = sstep(0.4f, 0.9f, a) * r.range(0.5f, 1.1f);
+    const float kLip = sstep(0.55f, 1.f, a) * r.range(0.4f, 1.1f) * Lerp(1.f, 1.3f, D.fem);
+    const float kNeck = sstep(0.4f, 1.f, a) * r.range(0.5f, 1.1f);
+    const float browZ = 0.083f + 0.012f * (D.browH - 1.f) * 5.f * 0.2f;
+    const float foreheadTop = 0.13f + 0.002f * D.foreheadH;
+    const float waveS = r.range(0.f, 6.28f);
+    for (BVert& v : fin.v) {
+        if (v.mat != MAT_SKIN) continue;
+        // gloss
+        float gloss = 0.f;
+        if (v.flags & BuildCtx::F_LIP) gloss = 0.85f;
+        if (v.part == PART_MOUTH) gloss = 0.8f;
+        if (v.part == PART_FACEDETAIL) gloss = 0.7f;   // lid margins (tuck strips)
+        if (v.flags & BuildCtx::F_NAIL) gloss = 0.62f;
+        vec3 hp = (v.p - D.J[B_HEAD]) / hs;
+        if (v.part == PART_HEAD && !(v.flags & BuildCtx::F_LIP)) {
+            float nose = expf(-Sq(hp.x / 0.012f) - Sq((hp.z - Lm.noseTip.z - 0.012f) / 0.02f)) * sstep(0.09f, 0.1f, hp.y);
+            float fore = expf(-Sq(hp.x / 0.025f) - Sq((hp.z - 0.1f) / 0.018f)) * sstep(0.07f, 0.085f, hp.y);
+            gloss = Max(gloss, 0.22f * Max(nose, fore * 0.7f));
+        }
+        v.alpha = 1.f - Saturate(gloss);
+        // wrinkles (head and neck skin only; everything else no creases)
+        float phase = 0.f, depth = 0.f;
+        if (v.part == PART_HEAD || v.part == PART_NECK) {
+            auto take = [&](float ph, float dp) {
+                if (dp > depth) {
+                    depth = dp;
+                    phase = ph;
+                }
+            };
+            if (v.part == PART_HEAD && hp.y > 0.02f) {
+                // forehead: horizontal lines ~9 mm apart between the brows and the hairline, gently wavy, fading at
+                // the temples
+                float w = sstep(browZ + 0.004f, browZ + 0.012f, hp.z) * (1.f - sstep(foreheadTop - 0.02f, foreheadTop, hp.z)) *
+                          (1.f - sstep(0.035f, 0.052f, fabsf(hp.x)));
+                if (w > 0.f && kFore > 0.f) take((hp.z - browZ) / 0.009f + 0.12f * sinf(hp.x * 90.f + waveS), 0.35f * kFore * w);
+                // frown lines: a vertical crease each side of the glabella
+                float wg = sstep(Lm.nasion.z + 0.002f, Lm.nasion.z + 0.008f, hp.z) * (1.f - sstep(browZ + 0.006f, browZ + 0.016f, hp.z)) *
+                           (1.f - sstep(0.009f, 0.013f, fabsf(hp.x)));
+                if (wg > 0.f && kFrown > 0.f) take((fabsf(hp.x) - 0.0055f) / 0.012f + 0.5f + 0.15f * sinf(hp.z * 300.f), 0.22f * kFrown * wg);
+                for (int sd = 0; sd < 2; sd++) {
+                    float sx = sd ? 1.f : -1.f;
+                    vec3 e = Lm.eye[sd];
+                    // crow's feet: lines radiating from the outer eye corner, 8 degrees apart
+                    vec3 oc = e + vec3(sx * 0.0145f, -0.004f, 0.001f);
+                    float dx = (hp.x - oc.x) * sx, dz = hp.z - oc.z;
+                    float rr = sqrtf(dx * dx + dz * dz);
+                    if (dx > -0.002f && rr < 0.026f) {
+                        float ang = atan2f(dz, Max(dx, 1e-4f));
+                        float wc = sstep(0.004f, 0.009f, rr) * (1.f - sstep(0.017f, 0.025f, rr)) * sstep(-1.0f, -0.6f, ang) * (1.f - sstep(0.5f, 0.9f, ang));
+                        if (wc > 0.f && kCrow > 0.f) take(ang / (8.f * kDegToRad) + 0.5f, 0.15f * kCrow * wc);
+                    }
+                    // under the eye: fine arcs below the lower lid
+                    float de = e.z - hp.z;
+                    float wu = sstep(0.006f, 0.009f, de) * (1.f - sstep(0.013f, 0.017f, de)) * (1.f - sstep(0.008f, 0.013f, fabsf(hp.x - e.x)));
+                    if (wu > 0.f && kUnder > 0.f) take((de - 0.006f) / 0.0028f, 0.08f * kUnder * wu);
+                }
+                // above the upper lip: fine vertical lines
+                float wl = sstep(Lm.stomion.z + 0.006f, Lm.stomion.z + 0.009f, hp.z) * (1.f - sstep(Lm.subnasale.z - 0.004f, Lm.subnasale.z, hp.z)) *
+                           (1.f - sstep(0.013f, 0.02f, fabsf(hp.x)));
+                if (wl > 0.f && kLip > 0.f) take(hp.x / 0.0024f, 0.08f * kLip * wl);
+            }
+            // neck: horizontal rings on the front and sides
+            if (v.part == PART_NECK || (v.part == PART_HEAD && hp.z < -0.05f && hp.y > 0.f)) {
+                float wn = v.part == PART_NECK ? 1.f : sstep(-0.05f, -0.07f, hp.z);
+                vec3 lp = v.p;
+                float front = Saturate(lp.y - D.J[B_NECK].y + 0.02f);
+                if (kNeck > 0.f) take(lp.z / 0.013f, 0.2f * kNeck * wn * sstep(0.f, 0.03f, front));
+            }
+        }
+        v.uv = vec2(depth > 0.f ? phase : 0.f, depth);
+        v.uPer = 0.f;
     }
 }
 
@@ -1506,7 +1736,8 @@ void buildFaceDetails(BuildCtx& c) {
     addLidDetails(c, 0, lash);
     addLidDetails(c, 1, lash);
     addMouth(c);
-    paintSkinDetail(c);
+    float freckles = paintSkinDetail(c);
+    addSkinSpots(c, freckles);
     (void)D;
 }
 

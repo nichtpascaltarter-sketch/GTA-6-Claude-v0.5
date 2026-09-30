@@ -1194,42 +1194,70 @@ void GameWorld::updateEvents(float dt) {
                     over = true;
                     break;
                 }
-                if (e.stage == ST_A && e.flag == 2) {
-                    // a real knock between two cars in traffic: both stop with the hazards on, then the drivers get
-                    // out and meet between the cars on the curb side
+                if (e.stage == ST_A && e.flag >= 2) {
+                    // a real knock between two cars in traffic: both stop with the hazards on (flag 2), then the
+                    // drivers get out and walk round their cars to the curb side between them (flag 3)
                     for (int c : {ca, cb}) {
-                        vehicles[c].ctl = Vehicles::VehicleControls();
-                        vehicles[c].ctl.brake = 1.f;
-                        vehicles[c].ctl.handbrake = true;
+                        if (vehicles[c].seats[0] >= 0) {
+                            vehicles[c].ctl = Vehicles::VehicleControls();
+                            vehicles[c].ctl.brake = 1.f;
+                            vehicles[c].ctl.handbrake = true;
+                        }
                         vehicles[c].indicator = 2;
                     }
-                    bool inA = da >= 0 && peds[da].state == PS_INVEHICLE && peds[da].vehicle == ca;
-                    bool inB = db >= 0 && peds[db].state == PS_INVEHICLE && peds[db].vehicle == cb;
-                    if (!inA || !inB) {   // someone drove off or was pulled out
-                        for (int k = 0; k < 2; k++) {
-                            int me = k == 0 ? da : db;
-                            if (me >= 0 && peds[me].state == PS_INVEHICLE && peds[me].brain.type == BRAIN_NONE) peds[me].brain.type = BRAIN_DRIVER;
+                    vec2 pa2 = vehicles[ca].sim.body.pos.toVec3().xy(), pb2 = vehicles[cb].sim.body.pos.toVec3().xy();
+                    vec2 dir = length2(pb2 - pa2) > 1e-4f ? normalize(pb2 - pa2) : e.dir;
+                    float hw = Max(vassets[vehicles[ca].model].spec.boxHalf.x, vassets[vehicles[cb].model].spec.boxHalf.x);
+                    vec2 mid = (pa2 + pb2) * 0.5f + AI::rightOf(e.dir) * (hw + 1.1f);
+                    vec2 spot[2] = {mid - dir * 0.8f, mid + dir * 0.8f};
+                    if (e.flag == 2) {
+                        bool inA = da >= 0 && peds[da].state == PS_INVEHICLE && peds[da].vehicle == ca;
+                        bool inB = db >= 0 && peds[db].state == PS_INVEHICLE && peds[db].vehicle == cb;
+                        if (!inA || !inB) {   // someone drove off or was pulled out
+                            for (int me : {da, db})
+                                if (me >= 0 && peds[me].state == PS_INVEHICLE && peds[me].brain.type == BRAIN_NONE) peds[me].brain.type = BRAIN_DRIVER;
+                            over = true;
+                            break;
                         }
-                        over = true;
+                        if (e.t > 2.2f && vehicles[ca].sim.speed() < 0.5f && vehicles[cb].sim.speed() < 0.5f) {
+                            for (int k = 0; k < 2; k++) {
+                                int me = k == 0 ? da : db, car = k == 0 ? ca : cb;
+                                removePedFromVehicle(me, true);
+                                vehicles[car].parked = true;
+                                setActor(*this, me, evId, spot[k], yawTowards(spot[k], spot[1 - k]), 7, -1);
+                                aiSay(me, BK_CRASH, 0.8f, plDist < 25.f);
+                            }
+                            e.flag = 3;
+                            e.t = 0.f;
+                        }
                         break;
                     }
-                    if (e.t > 2.2f && vehicles[ca].sim.speed() < 0.5f && vehicles[cb].sim.speed() < 0.5f) {
-                        vec2 pa2 = vehicles[ca].sim.body.pos.toVec3().xy(), pb2 = vehicles[cb].sim.body.pos.toVec3().xy();
-                        vec2 dir = length2(pb2 - pa2) > 1e-4f ? normalize(pb2 - pa2) : e.dir;
-                        float hw = Max(vassets[vehicles[ca].model].spec.boxHalf.x, vassets[vehicles[cb].model].spec.boxHalf.x);
-                        vec2 side = AI::rightOf(e.dir);
-                        vec2 mid = (pa2 + pb2) * 0.5f + side * (hw + 1.1f);
-                        vec2 sa = mid - dir * 0.8f, sb = mid + dir * 0.8f;
-                        for (int k = 0; k < 2; k++) {
-                            int me = k == 0 ? da : db, car = k == 0 ? ca : cb;
-                            vec2 st = k == 0 ? sa : sb;
-                            removePedFromVehicle(me, true);
-                            vehicles[car].parked = true;
-                            setActor(*this, me, evId, st, yawTowards(st, k == 0 ? sb : sa), 7, -1);
-                            aiSay(me, BK_CRASH, 0.8f, plDist < 25.f);
+                    // flag 3: round the nearer free end of the own car when getting out on the road side
+                    bool there = true;
+                    for (int k = 0; k < 2; k++) {
+                        int me = k == 0 ? da : db, car = k == 0 ? ca : cb;
+                        if (me < 0 || !calmActor(*this, me)) continue;
+                        const Vehicle& cv = vehicles[car];
+                        const Vehicles::VehicleModel& cs = vassets[cv.model].spec;
+                        vec2 cc = cv.sim.body.pos.toVec3().xy(), cf = cv.sim.forward().xy();
+                        cf = length2(cf) > 1e-6f ? normalize(cf) : vec2(0, 1);
+                        vec2 lp = peds[me].pos.toVec3().xy() - cc;
+                        float lx = dot(lp, AI::rightOf(cf)), ly = dot(lp, cf);
+                        float spotSide = dot(spot[k] - cc, AI::rightOf(cf)) >= 0.f ? 1.f : -1.f;
+                        PedAI& ma = pedAI(me);
+                        if ((lx >= 0.f ? 1.f : -1.f) != spotSide && fabsf(lx) > cs.boxHalf.x * 0.5f) {
+                            float endSign = aiCarEndToWalkRound(*this, car, dot(spot[k] - cc, cf) >= 0.f ? 1.f : -1.f);
+                            float side = fabsf(ly) < cs.boxHalf.y + 0.6f || ly * endSign < 0.f ? -spotSide : spotSide;
+                            ma.anchor = cc + cf * (endSign * (cs.boxHalf.y + 0.8f)) + AI::rightOf(cf) * (side * (cs.boxHalf.x + 0.6f));
+                            there = false;
+                        } else {
+                            ma.anchor = spot[k];
+                            if (length(peds[me].pos.toVec3().xy() - spot[k]) > 0.6f) there = false;
                         }
+                    }
+                    if (there || e.t > 9.f) {
                         e.flag = (int)(hash32((u32)(e.age * 100.f) + (u32)ca * 31u) % 5u == 0u);   // one in five comes to blows
-                        e.barkT = 2.5f;
+                        e.barkT = 1.f;
                         setStage(e, ST_A);
                     }
                     break;

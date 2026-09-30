@@ -277,7 +277,10 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
     float3 direct = (diffColor / PI * (1.0 - F) + spec) * NoL * sunE * shadow;
     float3 coatSpecAmb = 0;
     if (g.shadingModel == SM_SKIN) {
-        direct = skinDirect(g, N, V, L, shadow, dot(N, L) < 0.25 ? shadowThickness(relPos) : 1.0) * sunE;
+        // shadow-map thickness is too coarse for limbs right in front of the camera: ask for more tissue there
+        float thick = dot(N, L) < 0.25 ? shadowThickness(relPos) : 1.0;
+        if (thick >= 0.003) thick = max(thick, lerp(0.012, 0.004, saturate(length(relPos) / 1.5)));
+        direct = skinDirect(g, N, V, L, shadow, thick) * sunE;
     } else if (g.shadingModel == SM_CLOTH) {
         direct = clothDirect(g, N, V, L) * sunE * shadow;
     } else if (g.shadingModel == SM_HAIR) {
@@ -418,6 +421,13 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         // Local lights
         uint n = min(gsLightCount, 256u);
         float3 local = 0;
+        // Submerged surfaces (seabed, pilings, hulls below the waterline): a lamp above the water reaches them only
+        // through the surface (partly reflected, spread by refraction, absorbed on the way down); a lamp in the
+        // water is absorbed along its path
+        float3 wpos = relPos + gCamPos.xyz;
+        float4 wl4 = gWaterLevelG.Gather(sPointClamp, (wpos.xy + 10240.0) / 20480.0);
+        float waterZ = max(max(wl4.x, wl4.y), max(wl4.z, wl4.w));
+        float submerged = waterZ > -999.0 && sInterior < 0 ? waterZ - wpos.z : 0.0;
         for (uint i = 0; i < n; i++) {
             if (tLightVolume[gsLights[i]] != (uint)(sInterior + 1)) continue;   // lights stay in their own volume
             LightGPU Lt = tLights[gsLights[i]];
@@ -431,6 +441,10 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
             float att = win * win / max(d2, 0.3);
             att *= lightAngular(Lt, Lv);
             if (att <= 0) continue;
+            if (submerged > 0.02) {
+                bool lampAbove = Lt.pos.z + gCamPos.z > waterZ;
+                att *= lampAbove ? 0.25 * exp(-0.7 * submerged / max(Lv.z, 0.2)) : exp(-0.35 * d);
+            }
             local += localLightBRDF(g, g.normal, V, Lv) * Lt.color * att;
         }
         color += local * lerp(0.6, 1.0, ao);

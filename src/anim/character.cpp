@@ -408,6 +408,7 @@ static void buildFinalMesh(const CharacterDesc& d, const Skeleton& skel, MeshB& 
     buildOutfit(c, extra, hide);
     compactInto(c.m, hide, fin);
     fin.append(extra);
+    applySkinChannels(c, fin);
     bakeOcclusion(c, fin);
 }
 

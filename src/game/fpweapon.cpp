@@ -73,7 +73,7 @@ Spec specFor(WeaponType w) {
             s.muzzle = vec3(0.f, 0.6f, 0.055f);
             break;
         case WPN_SHOTGUN:
-            s.right = {vec3(0.f, -0.06f, 0.002f), vec3(0.f, 0.55f, 0.83f), vec3(-1.f, 0.1f, 0.f)};   // wrist of the stock
+            s.right = {vec3(0.f, -0.085f, -0.01f), vec3(0.f, 0.6f, 0.8f), vec3(-1.f, 0.1f, 0.f)};   // wrist of the stock, low
             s.left = underGrip(vec3(0.f, 0.27f, 0.02f));   // rear half of the pump
             s.hip = vec3(0.13f, 0.16f, -0.2f);
             s.foregrip = foreGrip(0.3f, 0.017f);

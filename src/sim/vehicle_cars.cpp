@@ -177,6 +177,63 @@ inline void carSideDetails(PMesh& m, CarBody& b, const CarDef& d) {
     }
 }
 
+// Underbody hardware (close range): oil pan and front subframe, transmission tunnel, the exhaust from the engine
+// to the tail pipes with a resonator and a rear silencer, fuel tank, rear subframe and suspension arms. Seen when a
+// car rolls over or from a low camera; everything hangs just below the floor pan and above the ground clearance.
+inline void underbody(PMesh& m, CarBody& b, const CarLook& L) {
+    const CarSpec& s = b.s;
+    if (s.style == BS_BOXY) return;
+    float zf = s.zSill;  // floor pan height (bottom band) between the axles
+    float zl = Max(zf - 0.075f, 0.09f);
+    m.newGroup(35.f);
+    m.use(MAT_METAL_PAINTED, col(0.07f, 0.07f, 0.075f));
+    // front subframe cross member and lower arms
+    roundedBoxAt(m, vec3(0, b.yWf - 0.22f, zf - 0.025f), vec3(s.trackF - 0.28f, 0.06f, 0.03f), 0.01f, 1);
+    for (int sg = -1; sg <= 1; sg += 2) {
+        vec3 a(sg * 0.38f, b.yWf - 0.2f, zf - 0.02f), c(sg * (s.trackF - s.wheelW * 0.5f - 0.02f), b.yWf, s.wheelR - 0.1f);
+        cyl(m, a, c, 0.022f, 6);
+        cyl(m, a + vec3(0, 0.3f, 0), c, 0.02f, 6);
+    }
+    // oil pan / gearbox (front engine) or rear subframe
+    m.use(MAT_METAL_BRUSHED, col(0.35f, 0.35f, 0.36f));
+    roundedBoxAt(m, vec3(0, b.yWf - 0.02f, zf - 0.045f), vec3(0.2f, 0.16f, 0.05f), 0.02f, 1);
+    // transmission tunnel down the middle
+    m.use(MAT_METAL_PAINTED, col(0.08f, 0.08f, 0.085f));
+    roundedBoxAt(m, vec3(0, (b.yWf - 0.3f + b.yWr + 0.5f) * 0.5f, zf - 0.012f), vec3(0.13f, (b.yWf - 0.3f - b.yWr - 0.5f) * 0.5f, 0.02f), 0.01f, 1);
+    // fuel tank ahead of the rear axle
+    m.use(MAT_PLASTIC, col(0.35f, 0.35f, 0.35f));
+    roundedBoxAt(m, vec3(0.05f, b.yWr + 0.62f, zf - 0.035f), vec3(0.42f, 0.24f, 0.045f), 0.03f, 1);
+    // rear axle beam and trailing arms
+    m.use(MAT_METAL_PAINTED, col(0.07f, 0.07f, 0.075f));
+    float xa = s.trackR - s.wheelW * 0.5f - 0.03f;
+    cyl(m, vec3(-xa, b.yWr, s.wheelR - 0.02f), vec3(xa, b.yWr, s.wheelR - 0.02f), 0.035f, 8);
+    for (int sg = -1; sg <= 1; sg += 2)
+        cyl(m, vec3(sg * (xa - 0.08f), b.yWr + 0.45f, zf - 0.02f), vec3(sg * (xa - 0.08f), b.yWr, s.wheelR - 0.02f), 0.025f, 6);
+    // exhaust: down-pipe from the engine, along the tunnel's side, resonator, over the axle to the silencer and
+    // the tail pipe(s) of exhausts()
+    if (L.exhaust != 0) {
+        float r = Max(L.exhaustR * 0.8f, 0.024f);
+        float zTip = L.exhaustZ > 0.f ? L.exhaustZ : s.zRearLow + L.exhaustR + 0.01f;
+        float xTip = L.exhaust == 3 ? 0.06f : L.exhaustX;
+        float sx = L.exhaust == 1 ? -1.f : 1.f;  // single pipes exit on the left
+        m.use(MAT_METAL_BRUSHED, col(0.42f, 0.38f, 0.34f));
+        std::vector<vec3> path;
+        path.push_back(vec3(0.12f * sx, b.yWf + 0.05f, zf + 0.1f));
+        path.push_back(vec3(0.16f * sx, b.yWf - 0.25f, zl + 0.02f));
+        path.push_back(vec3(0.16f * sx, b.yWr + 1.0f, zl + 0.02f));
+        path.push_back(vec3(0.2f * sx, b.yWr + 0.2f, zl + 0.03f));
+        path.push_back(vec3(xTip * sx, b.yR + 0.45f, Max(zTip, zl + 0.03f)));
+        path.push_back(vec3(xTip * sx, b.yR + 0.12f, zTip));
+        tube1(m, catmull(path, 4), r, 8, false);
+        // resonator mid-way and the rear silencer across the tail
+        m.use(MAT_METAL_BRUSHED, col(0.5f, 0.48f, 0.45f));
+        std::vector<vec2> res;
+        res.push_back(vec2(0.f, r)); res.push_back(vec2(0.04f, r * 2.4f)); res.push_back(vec2(0.32f, r * 2.4f)); res.push_back(vec2(0.36f, r));
+        lathe(m, vec3(0.16f * sx, (b.yWf + b.yWr) * 0.5f + 0.18f, zl + 0.02f), vec3(0, -1, 0), vec3(1, 0, 0), res, 10);
+        roundedBoxAt(m, vec3(xTip * sx * 0.6f, b.yR + 0.36f, Max(zTip, zl + 0.03f) + 0.01f), vec3(Max(xTip * 0.7f, 0.22f), 0.11f, 0.06f), 0.04f, 1);
+    }
+}
+
 // Rear bumper reflectors, parking sensors (front and rear) and the high-mounted third brake lamp.
 inline void rearSmallParts(PMesh& m, CarBody& b, const CarDef& d) {
     const CarSpec& s = b.s;
@@ -520,6 +577,7 @@ inline void carBodyParts(const CarDef& d, CarBody& b, PMesh& m, bool interior) {
     }
     if (!s.openTop) wipers(m, b);
     rearSmallParts(m, b, d);
+    underbody(m, b, L);
     rearDiffuser(m, b, L);
     exhausts(m, b, L);
     if (L.antennaFin && !s.openTop && s.style != BS_PICKUP) antennaFin(m, b);

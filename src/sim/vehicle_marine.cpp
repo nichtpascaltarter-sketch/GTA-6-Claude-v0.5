@@ -305,6 +305,45 @@ inline void boatSeat(PMesh& m, vec3 hip, float hw, vec3 tint, bool back = true) 
 }
 
 // ------------------------------------------------------------------------------------------------
+// Painted boot stripe on both hull sides between heights z0 and z1 (follows the topsides; stops where the hull
+// narrows to the stem), in the given material and colour.
+inline void hullStripe(PMesh& m, const Hull& H, float z0, float z1, u8 mat, u32 color) {
+    const HullSpec& h = H.h;
+    float step = lodLevel() == 0 ? 0.1f : 0.35f;
+    m.newGroup(40.f);
+    m.use(mat, color);
+    for (int sd = -1; sd <= 1; sd += 2) {
+        float sgn = (float)sd;
+        std::vector<vec3> lo, hi;
+        for (float y = h.yT + 0.02f; y < h.yB - 0.05f; y += step) {
+            float xa = H.sideXAt(y, z0), xb = H.sideXAt(y, z1);
+            if (xa < 0.05f || xb < 0.05f) break;
+            lo.push_back(vec3(sgn * (xa + 0.0025f), y, z0));
+            hi.push_back(vec3(sgn * (xb + 0.0025f), y, z1));
+        }
+        for (size_t k = 0; k + 1 < lo.size(); k++)
+            m.quadFacing(m.add(lo[k]), m.add(lo[k + 1]), m.add(hi[k + 1]), m.add(hi[k]), vec3(sgn, 0, 0));
+    }
+}
+// Lifting strakes: two thin spray rails per side along the bottom from the bow back over most of the length.
+inline void hullStrakes(PMesh& m, const Hull& H, u8 mat, u32 color) {
+    if (lodLevel() >= 2) return;
+    const HullSpec& h = H.h;
+    m.newGroup(30.f);
+    m.use(mat, color);
+    for (int sd = -1; sd <= 1; sd += 2)
+        for (int k = 1; k <= 2; k++) {
+            float f = k / 3.f;
+            std::vector<vec3> path;
+            for (float y = h.yT + (h.yB - h.yT) * 0.3f; y < h.yB - 0.25f; y += 0.2f) {
+                float x = h.chineX(y) * f;
+                if (x < 0.03f) break;
+                path.push_back(vec3(sd * x, y, H.bottomZ(x, y) - 0.004f));
+            }
+            if (path.size() >= 2) tube1(m, path, 0.012f, 4, true);
+        }
+}
+
 // State registration number on both bow sides (reads towards the bow on the right, towards it from the left too).
 inline void hullRegistration(PMesh& m, const Hull& H, float y, float z, const std::string& name, vec3 color) {
     if (lodLevel() > 0) return;
@@ -401,6 +440,8 @@ inline void mdlSunchaser(VehicleModel& o) {
     // outboard + prop rotor
     vec3 hub = outboard(m, 0.f, -3.32f, 0.72f, 1.0f, vec3(0.08f, 0.08f, 0.09f));
     hullRegistration(m, H, 2.35f, 0.66f, o.name, vec3(0.05f, 0.06f, 0.08f));
+    hullStripe(m, H, 0.08f, 0.14f, MAT_CARPAINT, kCol2);
+    hullStrakes(m, H, h.bottomMat, h.bottomCol);
     finalizeMesh(m, o.body);
     propRotor(o.rotor, 0.19f, 3, 0.05f);
     o.rotorPos = hub;
@@ -519,6 +560,8 @@ inline void mdlBonefish(VehicleModel& o) {
         }
     }
     hullRegistration(m, H, 3.0f, 0.86f, o.name, vec3(0.9f, 0.9f, 0.9f));
+    hullStripe(m, H, 0.06f, 0.1f, MAT_METAL_PAINTED, col(0.93f, 0.93f, 0.93f));
+    hullStrakes(m, H, h.bottomMat, h.bottomCol);
     finalizeMesh(m, o.body);
     boatFloats(o, H, 6);
     o.seats.push_back(SeatSpec{vec3(0.45f, -0.75f, 1.0f), true, false});

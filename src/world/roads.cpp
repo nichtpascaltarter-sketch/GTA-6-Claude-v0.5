@@ -1455,6 +1455,8 @@ void RoadNetwork::generate(WorldMap& map) {
     };
     std::vector<std::vector<char>> held(edges.size());   // ramp points held at highway level (kept by the overlap pass)
     std::vector<std::vector<float>> heldZ(edges.size());
+    std::vector<float> rampFlat(edges.size(), -1.f);   // ramps: flat run at the landing (>= 0 once planned from a highway end)
+    std::vector<char> rampLandEnd(edges.size(), 0);    // ... and which end lands (0 = n0, 1 = n1)
     auto elevate = [&](RoadEdge& e) {
         // densify to <= 12 m spacing for smooth elevation profiles
         std::vector<vec3> dense;
@@ -1553,6 +1555,8 @@ void RoadNetwork::generate(WorldMap& map) {
                             flat = Max(flat, end == 0 ? L - sAlong[i] : sAlong[i]);
                         }
                         target[farI] = zFar;
+                        rampFlat[idx] = flat;
+                        rampLandEnd[idx] = (char)(end == 0 ? 1 : 0);
                     }
                 }
                 size_t keep = run.size();
@@ -1587,18 +1591,25 @@ void RoadNetwork::generate(WorldMap& map) {
                 e.flags |= RF_BRIDGE;
             }
         }
-        // Smooth: dilate high points (bridges need ramps), then average; grade limit
+        // Smooth: dilate high points (bridges need ramps), then average; grade limit (over the actual point spacing)
         float maxGrade = hwy ? 0.045f : 0.07f;
-        std::vector<float> z = target;
-        for (int pass = 0; pass < 2; pass++) {
-            for (size_t i = 1; i < z.size(); i++) z[i] = Max(z[i], z[i - 1] - maxGrade * 12.f);
-            for (size_t i = z.size() - 1; i-- > 0;) z[i] = Max(z[i], z[i + 1] - maxGrade * 12.f);
-        }
+        std::vector<float> z = target, gap(e.pts.size(), 0.f);
+        for (size_t i = 1; i < e.pts.size(); i++) gap[i] = length(e.pts[i].xy() - e.pts[i - 1].xy());
+        auto gradeLimit = [&]() {
+            for (int pass = 0; pass < 2; pass++) {
+                for (size_t i = 1; i < z.size(); i++) z[i] = Max(z[i], z[i - 1] - maxGrade * gap[i]);
+                for (size_t i = z.size() - 1; i-- > 0;) z[i] = Max(z[i], z[i + 1] - maxGrade * gap[i + 1]);
+            }
+        };
+        gradeLimit();
         std::vector<float> zs = z;
         for (int it = 0; it < 3; it++) {
             for (size_t i = 1; i + 1 < z.size(); i++) zs[i] = (z[i - 1] + z[i] * 2.f + z[i + 1]) * 0.25f;
-            for (size_t i = 1; i + 1 < z.size(); i++) z[i] = Max(zs[i], target[i] - (hwy ? 0.5f : 0.15f));
+            // (a ramp only rounds its sags: its crests stay on the planned envelope, whose grade is at the limit already)
+            for (size_t i = 1; i + 1 < z.size(); i++) z[i] = Max(zs[i], target[i] - (hwy ? 0.5f : (e.cls == RC_RAMP ? 0.f : 0.15f)));
         }
+        // the averaging can leave a point next to one pinned at its target too far below it: limit the grade again
+        gradeLimit();
         for (size_t i = 0; i < e.pts.size(); i++) e.pts[i].z = z[i];
         // held ramp points sit exactly on the highway (the grade limit may have lifted them toward a hilltop end)
         if (e.cls == RC_RAMP) {
@@ -1813,7 +1824,7 @@ void RoadNetwork::generate(WorldMap& map) {
                 // so short that the discs of the junctions at its ends cover it: it stays with them)
                 std::vector<float> sA(n, 0.f);
                 for (size_t i = 1; i < n; i++) sA[i] = sA[i - 1] + length(A.pts[i].xy() - A.pts[i - 1].xy());
-                float anchorGrade = discR[A.n0] > 0.f && discR[A.n1] > 0.f && sA[n - 1] < discR[A.n0] + discR[A.n1] ? 0.03f : 0.1f;
+                float anchorGrade = discR[A.n0] > 0.f && discR[A.n1] > 0.f && sA[n - 1] < discR[A.n0] + discR[A.n1] ? 0.03f : 0.06f;
                 for (size_t h = 0; h < n; h++) {
                     if (!(isHeld(ei, h) || (fixedEnds && (h == 0 || h + 1 == n)))) continue;
                     for (size_t i = 0; i < n; i++)
@@ -1843,6 +1854,26 @@ void RoadNetwork::generate(WorldMap& map) {
         }
         nodes[n].z = c ? s / c : map.heightAt(nodes[n].p.x, nodes[n].p.y);
     }
+    // Two nodes joined by a short edge cannot differ by more than the grade limit allows over it: the lower one is lifted (a
+    // bridge landing right by a junction raises the junction rather than squeezing the difference into the link)
+    {
+        std::vector<float> len(edges.size(), 0.f);
+        for (size_t ei = 0; ei < edges.size(); ei++)
+            for (size_t i = 0; i + 1 < edges[ei].pts.size(); i++) len[ei] += length(edges[ei].pts[i + 1].xy() - edges[ei].pts[i].xy());
+        for (int it = 0; it < 8; it++) {
+            bool changed = false;
+            for (size_t ei = 0; ei < edges.size(); ei++) {
+                const RoadEdge& e = edges[ei];
+                if (e.flags & RF_UNPAVED) continue;
+                float lim = (e.cls == RC_HIGHWAY ? 0.04f : 0.05f) * len[ei];   // inside the approach clamp below (6%)
+                float& za = nodes[e.n0].z;
+                float& zb = nodes[e.n1].z;
+                if (za < zb - lim - 0.01f) { za = zb - lim; changed = true; }
+                else if (zb < za - lim - 0.01f) { zb = za - lim; changed = true; }
+            }
+            if (!changed) break;
+        }
+    }
     for (auto& e : edges) {
         // blend the first/last ~40 m toward the node heights (ramps keep their planned grades: their profile is shifted onto
         // the node's height rather than flattened toward it)
@@ -1864,16 +1895,27 @@ void RoadNetwork::generate(WorldMap& map) {
             acc = 0;
         }
         float e0 = e.pts.front().z, e1 = e.pts.back().z;
-        for (size_t i = 0; i < e.pts.size(); i++) {
-            if (i > 0) acc += length(e.pts[i].xy() - e.pts[i - 1].xy());
-            float w = SmoothStep(40.f, 0.f, acc);
-            e.pts[i].z = shift ? e.pts[i].z + (z0 - e0) * w : Lerp(e.pts[i].z, z0, w);
-        }
-        acc = 0;
-        for (size_t i = e.pts.size(); i-- > 0;) {
-            if (i + 1 < e.pts.size()) acc += length(e.pts[i].xy() - e.pts[i + 1].xy());
-            float w = SmoothStep(40.f, 0.f, acc);
-            e.pts[i].z = shift ? e.pts[i].z + (z1 - e1) * w : Lerp(e.pts[i].z, z1, w);
+        float L = 0.f;
+        for (size_t i = 1; i < e.pts.size(); i++) L += length(e.pts[i].xy() - e.pts[i - 1].xy());
+        if (!shift && L < 80.f && L > 1e-3f) {
+            // short enough for both ends' blends to overlap: toward the line between the two node heights
+            for (size_t i = 0; i < e.pts.size(); i++) {
+                if (i > 0) acc += length(e.pts[i].xy() - e.pts[i - 1].xy());
+                float w = Max(SmoothStep(40.f, 0.f, acc), SmoothStep(40.f, 0.f, L - acc));
+                e.pts[i].z = Lerp(e.pts[i].z, Lerp(z0, z1, acc / L), w);
+            }
+        } else {
+            for (size_t i = 0; i < e.pts.size(); i++) {
+                if (i > 0) acc += length(e.pts[i].xy() - e.pts[i - 1].xy());
+                float w = SmoothStep(40.f, 0.f, acc);
+                e.pts[i].z = shift ? e.pts[i].z + (z0 - e0) * w : Lerp(e.pts[i].z, z0, w);
+            }
+            acc = 0;
+            for (size_t i = e.pts.size(); i-- > 0;) {
+                if (i + 1 < e.pts.size()) acc += length(e.pts[i].xy() - e.pts[i + 1].xy());
+                float w = SmoothStep(40.f, 0.f, acc);
+                e.pts[i].z = shift ? e.pts[i].z + (z1 - e1) * w : Lerp(e.pts[i].z, z1, w);
+            }
         }
         e.pts.front() = vec3(nodes[e.n0].p, z0);
         e.pts.back() = vec3(nodes[e.n1].p, z1);
@@ -1896,6 +1938,31 @@ void RoadNetwork::generate(WorldMap& map) {
     }
     easeFixedEnds = true;
     settleOverlaps(true);
+    // Planned ramps end within the grade limit of both their ends whatever the blends did: the landing node's height (reached
+    // across the flat run) and the last point held on the highway
+    for (size_t ei = 0; ei < edges.size(); ei++) {
+        RoadEdge& e = edges[ei];
+        if (e.cls != RC_RAMP || rampFlat[ei] < 0.f || held[ei].size() != e.pts.size()) continue;
+        size_t n = e.pts.size();
+        std::vector<float> sA(n, 0.f);
+        for (size_t i = 1; i < n; i++) sA[i] = sA[i - 1] + length(e.pts[i].xy() - e.pts[i - 1].xy());
+        bool landN1 = rampLandEnd[ei] != 0;
+        float zLand = nodes[landN1 ? e.n1 : e.n0].z;
+        int lastHeld = -1;
+        for (size_t j = 0; j < n; j++) {
+            size_t i = landN1 ? j : n - 1 - j;   // from the highway end
+            if (!held[ei][i]) break;
+            lastHeld = (int)i;
+        }
+        if (lastHeld < 0) continue;
+        float zHold = e.pts[lastHeld].z;
+        for (size_t i = 0; i < n; i++) {
+            if (held[ei][i]) continue;
+            float dLand = Max(0.f, (landN1 ? sA[n - 1] - sA[i] : sA[i]) - rampFlat[ei]), dHold = fabsf(sA[i] - sA[lastHeld]);
+            float lo = Max(zLand - 0.07f * dLand, zHold - 0.07f * dHold), hi = Min(zLand + 0.07f * dLand, zHold + 0.07f * dHold);
+            if (lo <= hi) e.pts[i].z = Clamp(e.pts[i].z, lo, hi);
+        }
+    }
     for (auto& e : edges) {
         e.dist[0] = 0;
         for (size_t i = 1; i < e.pts.size(); i++) e.dist[i] = e.dist[i - 1] + length(e.pts[i] - e.pts[i - 1]);

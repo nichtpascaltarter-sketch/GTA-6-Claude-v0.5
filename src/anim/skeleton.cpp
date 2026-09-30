@@ -77,6 +77,7 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
     D.upperArm = H * 0.186f * armVar;
     D.forearm = H * Lerp(0.146f, 0.142f, fem) * armVar;
     float handLen = H * Lerp(0.108f, 0.104f, fem);
+    D.handLen = handLen;
     D.palmLen = handLen * 0.53f;
     D.fingerLen = handLen * 0.47f;
     D.thumbLen = handLen * 0.34f;
@@ -187,7 +188,9 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
         float creaseMm = Lerp(5.0f, 5.8f, fem) + 0.6f * h();
         float epi = 0.f;
         D.hood = Saturate(0.15f + 0.25f * q.f() + 0.55f * sstep(0.35f, 0.95f, a));
-        D.apertureH = 1.f + 0.06f * h() + 0.04f * fem - 0.08f * sstep(0.5f, 1.f, a);
+        D.apertureH = 1.f + 0.11f * h() + 0.04f * fem - 0.08f * sstep(0.5f, 1.f, a);
+        D.mouthCornerUp = 0.0014f * h() - 0.0008f * sstep(0.4f, 1.f, a);   // up-turned (smiling) .. down-turned mouth
+        D.eyeDepth = 0.0014f * h();                                          // protruding (+) .. deep-set (-) eyes
         switch (anc) {
             case 1:   // African / Caribbean: broader, lower-bridged nose, fuller lips, lower crease
                 D.noseW *= 1.13f;
@@ -228,6 +231,27 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
                 D.lipFull *= 1.04f;
                 creaseMm -= 0.3f;
                 break;
+        }
+        // face shape archetype: correlated proportions on top of the independent variation (round, square, heart,
+        // long, diamond or plain oval), so a crowd reads as different people from a distance
+        {
+            Rng fsr(hash32(d.seed * 0x61C88647u + 0x1234567u));
+            float k = fsr.range(0.6f, 1.f);
+            switch ((int)(fsr.f() * 6.f)) {
+                case 1:   // round: wide and short, soft jaw, full cheeks
+                    D.faceW *= 1.f + 0.06f * k; D.faceH *= 1.f - 0.05f * k; D.chinH *= 1.f - 0.07f * k; D.jawW *= 1.f + 0.03f * k;
+                    D.chinSquare *= 0.5f; D.cheekB += 0.15f * k; break;
+                case 2:   // square: broad angular jaw, square chin
+                    D.jawW *= 1.f + 0.1f * k; D.jawFlare = Lerp(D.jawFlare, 1.f, 0.7f * k); D.chinSquare = Lerp(D.chinSquare, 1.f, 0.7f * k);
+                    D.faceH *= 1.f - 0.02f * k; break;
+                case 3:   // heart: wide cheekbones and forehead, narrow jaw, pointed chin
+                    D.jawW *= 1.f - 0.09f * k; D.cheekB += 0.25f * k; D.chinSquare *= 0.3f; D.chinP *= 1.f + 0.08f * k; D.faceW *= 1.f + 0.02f * k; break;
+                case 4:   // long: tall narrow face, long chin
+                    D.faceH *= 1.f + 0.07f * k; D.faceW *= 1.f - 0.04f * k; D.chinH *= 1.f + 0.08f * k; D.noseL *= 1.f + 0.05f * k; break;
+                case 5:   // diamond: prominent cheekbones, narrow forehead and jaw
+                    D.cheekB += 0.3f * k; D.jawW *= 1.f - 0.06f * k; D.cheekH += 0.0015f * k; D.faceW *= 1.f + 0.02f * k; break;
+                default: break;   // oval
+            }
         }
         D.creaseDeg = creaseMm / 1.47f;
         D.creaseDepth = creaseMm > 0.f ? (0.00055f + 0.00045f * q.f()) * (1.f + 0.6f * sstep(0.4f, 1.f, a)) : 0.f;
@@ -271,6 +295,36 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
         J[hand] = J[fa] + dir * D.forearm;
         J[fing] = J[hand] + dir * D.palmLen;
         J[thumb] = J[hand] + dir * (0.016f * s) + vec3(0, 1, 0) * (0.019f * s) + D.palmN[side] * (0.009f * s);
+        // derived bones: the forearm roll half way down the forearm, the finger phalanges (MCP / PIP / DIP joints
+        // along each finger, bind pose with a slight rest curl in the flexion plane) and the thumb's MCP / IP joints
+        J[side == 0 ? B_FOREARM_ROLL_L : B_FOREARM_ROLL_R] = J[fa] + dir * (D.forearm * 0.5f);
+        {
+            const vec3 pn = D.palmN[side], wy(0, 1, 0);
+            for (int f = 0; f < 4; f++) {
+                const FingerDef& fd = kFingerDefs[f];
+                vec3 fdir = normalize(dir * cosf(fd.splay) + wy * sinf(fd.splay));
+                vec3 ax = normalize(cross(fdir, pn));   // + rotates the finger towards the palm (flexion)
+                float L = D.fingerLen * fd.len, l1 = L * fd.f1, l2 = L * fd.f2, l3 = L - l1 - l2;
+                float c0 = kFingerRestCurl[0], c1 = c0 + kFingerRestCurl[1], c2 = c1 + kFingerRestCurl[2];
+                int b0 = phalanxBone(side == 1, f, 0);
+                J[b0] = J[hand] + dir * (D.palmLen * fd.along) + wy * (D.handW * fd.lat) - pn * (D.handT * 0.06f);
+                J[b0 + 1] = J[b0] + rotate(qaa(ax, c0), fdir) * l1;
+                J[b0 + 2] = J[b0 + 1] + rotate(qaa(ax, c1), fdir) * l2;
+                D.fingTip[side][f] = J[b0 + 2] + rotate(qaa(ax, c2), fdir) * l3;
+                D.fingAx[side][f] = ax;
+                D.fingR[side][f] = D.handW * fd.rad;
+            }
+            // thumb: metacarpal along thumbDir, then the phalanges lie along the index finger's side (pad towards it)
+            vec3 td = D.thumbDir[side];
+            vec3 d1 = normalize(dir * 0.9f + wy * 0.22f + pn * 0.26f);
+            vec3 ax = normalize(cross(d1, thumbPadDir(pn)));
+            int t0 = phalanxBone(side == 1, 4, 0);
+            J[t0] = J[thumb] + td * (kThumbMeta * handLen);
+            J[t0 + 1] = J[t0] + d1 * (kThumbProx * handLen);
+            D.fingTip[side][4] = J[t0 + 1] + rotate(qaa(ax, kThumbRestIP), d1) * (kThumbDist * handLen);
+            D.fingAx[side][4] = ax;
+            D.fingR[side][4] = D.handW * 0.118f;
+        }
         J[th] = vec3(sx * hipJHalf, 0.006f * s, zHip + lift);
         J[calf] = vec3(sx * kneeHalf, 0.012f * s, zKnee + lift);
         J[foot] = vec3(sx * ankleHalf, -0.004f * s, zAnkle + lift);
@@ -280,16 +334,16 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
     D.thigh = length(J[B_CALF_L] - J[B_THIGH_L]);
     D.shin = length(J[B_FOOT_L] - J[B_CALF_L]);
     J[B_JAW] = J[B_HEAD] + vec3(0, 0.010f, 0.020f) * hs;
-    J[B_EYE_L] = J[B_HEAD] + vec3(-0.0315f * D.eyeSpace, 0.0705f, 0.058f) * hs;
-    J[B_EYE_R] = J[B_HEAD] + vec3(0.0315f * D.eyeSpace, 0.0705f, 0.058f + D.asymEye) * hs;
+    J[B_EYE_L] = J[B_HEAD] + vec3(-0.0315f * D.eyeSpace, 0.0705f + D.eyeDepth, 0.058f) * hs;
+    J[B_EYE_R] = J[B_HEAD] + vec3(0.0315f * D.eyeSpace, 0.0705f + D.eyeDepth, 0.058f + D.asymEye) * hs;
     // speech bones (pivots, head space as in face.cpp's landmarks): the upper lip hangs from above/behind it (pitch
     // forward = protrude), the lower lip rides the jaw from below/behind (pitch back = tuck), the corners swing about a
     // point behind the mouth (yaw = narrow/spread, pitch = up/down), the tongue from the floor of the mouth
-    J[B_LIP_UPPER] = J[B_HEAD] + vec3(0.f, 0.093f, 0.022f) * hs;    // straight above the lip: pitch pushes it forward
-    J[B_LIP_LOWER] = J[B_HEAD] + vec3(0.f, 0.09f, -0.058f) * hs;    // straight below the lip
-    J[B_LIP_CORNER_L] = J[B_HEAD] + vec3(-0.004f * D.lipW * D.faceW, 0.065f, -0.02f) * hs;
-    J[B_LIP_CORNER_R] = J[B_HEAD] + vec3(0.004f * D.lipW * D.faceW, 0.065f, -0.02f) * hs;
-    J[B_TONGUE] = J[B_HEAD] + vec3(0.f, 0.052f, -0.036f) * hs;
+    J[B_LIP_UPPER] = J[B_HEAD] + faceMap(D, vec3(0.f, 0.093f, 0.022f)) * hs;    // straight above the lip: pitch pushes it forward
+    J[B_LIP_LOWER] = J[B_HEAD] + faceMap(D, vec3(0.f, 0.09f, -0.058f)) * hs;    // straight below the lip
+    J[B_LIP_CORNER_L] = J[B_HEAD] + faceMap(D, vec3(-0.004f * D.lipW * D.faceW, 0.065f, -0.02f)) * hs;
+    J[B_LIP_CORNER_R] = J[B_HEAD] + faceMap(D, vec3(0.004f * D.lipW * D.faceW, 0.065f, -0.02f)) * hs;
+    J[B_TONGUE] = J[B_HEAD] + faceMap(D, vec3(0.f, 0.052f, -0.036f)) * hs;
     // brows pivot 6 cm behind the brow line (pitch = raise along the forehead, roll = knit / lift the inner end)
     J[B_BROW_L] = J[B_HEAD] + vec3(-0.031f * D.faceW, 0.022f, 0.06f) * hs;
     J[B_BROW_R] = J[B_HEAD] + vec3(0.031f * D.faceW, 0.022f, 0.06f) * hs;
@@ -308,6 +362,11 @@ static const int kParent[B_COUNT] = {
     B_HEAD, B_HEAD, B_HEAD,
     B_HEAD, B_JAW, B_HEAD, B_HEAD, B_JAW,  // LIP_UPPER, LIP_LOWER, LIP_CORNER_L/R, TONGUE
     B_HEAD, B_HEAD,                        // BROW_L/R
+    B_FOREARM_L, B_FOREARM_R,              // FOREARM_ROLL_L/R
+    B_HAND_L, B_INDEX1_L, B_INDEX2_L, B_HAND_L, B_MIDDLE1_L, B_MIDDLE2_L,
+    B_HAND_L, B_RING1_L, B_RING2_L, B_HAND_L, B_PINKY1_L, B_PINKY2_L, B_THUMB_L, B_THUMB2_L,
+    B_HAND_R, B_INDEX1_R, B_INDEX2_R, B_HAND_R, B_MIDDLE1_R, B_MIDDLE2_R,
+    B_HAND_R, B_RING1_R, B_RING2_R, B_HAND_R, B_PINKY1_R, B_PINKY2_R, B_THUMB_R, B_THUMB2_R,
 };
 
 }  // namespace detail
@@ -353,6 +412,20 @@ void buildSkeleton(const CharacterDesc& d, Skeleton& out) {
     out.boneLength[B_LIP_CORNER_L] = out.boneLength[B_LIP_CORNER_R] = 0.03f * hs;
     out.boneLength[B_TONGUE] = 0.04f * hs;
     out.boneLength[B_BROW_L] = out.boneLength[B_BROW_R] = 0.06f * hs;
+    for (int side = 0; side < 2; side++) {
+        int roll = side ? B_FOREARM_ROLL_R : B_FOREARM_ROLL_L;
+        out.boneLength[roll] = D.forearm * 0.5f;
+        out.boneRadius[roll] = (D.rForearm + D.rWrist) * 0.5f;
+        for (int f = 0; f < 5; f++) {
+            int nj = f < 4 ? 3 : 2;
+            for (int j = 0; j < nj; j++) {
+                int b = phalanxBone(side == 1, f, j);
+                vec3 end = j + 1 < nj ? J[b + 1] : D.fingTip[side][f];
+                out.boneLength[b] = length(end - J[b]);
+                out.boneRadius[b] = D.fingR[side][f] * (1.f - 0.08f * (float)(j + (f == 4 ? 1 : 0)));
+            }
+        }
+    }
 
     out.boneRadius[B_ROOT] = 0.05f * s;
     out.boneRadius[B_PELVIS] = D.hipHalfW * 0.9f;

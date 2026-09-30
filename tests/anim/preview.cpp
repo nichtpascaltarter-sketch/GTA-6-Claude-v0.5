@@ -91,25 +91,33 @@ struct Cam {
     }
 };
 
-// Strand cards (MAT_HAIR with a card kind in the material param, see hair.cpp): emulate the renderer's alpha from
-// uv (x across the card 0..1, y root 0 .. tip 1), the per-card seed and the vertex alpha (density).
-static float cardAlpha(u32 mat, vec2 uv, float dens) {
-    u32 kind = (mat >> 8) & 15u, seed = (mat >> 12) & 0xffffu;
-    if ((mat & 0xff) != MAT_HAIR || kind == 0) return 1.f;
-    int ns = kind == 2 ? 3 : (kind == 3 ? 2 : 6);   // strand clumps across a card
-    float s = Saturate(uv.x) * ns;
-    int si = Min((int)s, ns - 1);
-    float sf = s - si;
-    u32 h = hash32(seed * 131u + (u32)si * 7919u + 17u);
-    float len = 0.55f + 0.45f * hashToFloat(h);
-    float y = Saturate(uv.y);
-    if (y > len) return 0.f;
-    float half = 0.42f * (1.f - 0.8f * y / len) + 0.05f;
-    float d = fabsf(sf - 0.5f - 0.2f * (hashToFloat(h * 3u + 1u) - 0.5f));
-    float cov = d < half ? 1.f : 0.f;
-    float edge = detail::sstep(0.f, 0.08f, uv.x) * detail::sstep(1.f, 0.92f, uv.x);
-    return cov * edge * Saturate(dens * 1.3f);
+// Strand cards (MAT_HAIR with a card kind in the material param, see hair.cpp): the renderer's coverage function
+// (src/shaders/dynamic.hlsl hairCardCoverage) ported, dithered per pixel (supersampling with --ss stands in for TAA).
+static float hairHashF(float x) {
+    float v = sinf(x * 91.3458f + 17.17f) * 47453.5453f;
+    return v - floorf(v);
 }
+static float cardCoverage(u32 mat, vec2 uv, float density, float footprint) {
+    u32 kind = (mat >> 8) & 15u;
+    float seed = (float)((mat >> 12) & 0xffffu) * (1.f / 65535.f);
+    float strands = kind == 2u ? 3.f : (kind == 3u ? 5.f : (kind == 4u ? 6.f : 8.f));
+    float x = uv.x * strands;
+    float id = floorf(x) + seed * 977.f;
+    float rnd = hairHashF(id);
+    float len = Lerp(kind == 1u ? 0.7f : 0.82f, 1.f, hairHashF(id + 3.1f));
+    float along = uv.y / len;
+    float alive = along < 1.f ? 1.f : 0.f;
+    float taper = Saturate(1.f - along);
+    float wave = (kind == 4u ? 0.16f : 0.06f) * sinf(uv.y * (kind == 4u ? 23.f : 9.f) + rnd * 6.283f);
+    float c = 0.5f + (hairHashF(id + 7.7f) - 0.5f) * 0.3f + wave;
+    float halfW = Lerp(0.24f, 0.4f, hairHashF(id + 5.3f)) * (0.3f + 0.7f * sqrtf(taper));
+    float fx = x - floorf(x);
+    float prof = Saturate((1.f - fabsf(fx - c) / Max(halfW, 1e-3f)) * 1.6f) * alive;
+    float cov = Lerp(prof, halfW * 1.6f * alive, Saturate(footprint * strands * 1.5f - 0.5f));
+    float edge = detail::sstep(0.f, 0.14f, uv.x) * detail::sstep(1.f, 0.86f, uv.x);
+    return cov * edge * density * Lerp(1.f, 0.7f, detail::sstep(0.55f, 1.f, uv.y));
+}
+static float ditherAt(int x, int y) { return hashToFloat(hash32((u32)x * 73856093u ^ (u32)y * 19349663u)); }
 
 static bool wire = false;
 static bool opaqueCards = false;   // PREVIEW_OPAQUECARDS: draw strand cards like the current renderer (opaque, culled)
@@ -142,6 +150,13 @@ static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const
             printf("big tri %zu: (%.3f %.3f %.3f) (%.3f %.3f %.3f) (%.3f %.3f %.3f) mat %u\n", t / 3, P[i0].x, P[i0].y, P[i0].z, P[i1].x, P[i1].y, P[i1].z, P[i2].x, P[i2].y, P[i2].z, mats[i0] & 0xff);
         float ia = 1.f / area;
         u32 mat = mats[i0];
+        float uvFoot = 0.f;   // fwidth(uv.x) over this triangle (affine)
+        if (card) {
+            float d0x = (b.y - c.y) * ia, d0y = (c.x - b.x) * ia, d1x = (c.y - a.y) * ia, d1y = (a.x - c.x) * ia;
+            float ux = (*UV)[i0].x * d0x + (*UV)[i1].x * d1x + (*UV)[i2].x * (-d0x - d1x);
+            float uy = (*UV)[i0].x * d0y + (*UV)[i1].x * d1y + (*UV)[i2].x * (-d0y - d1y);
+            uvFoot = fabsf(ux) + fabsf(uy);
+        }
         for (int y = y0; y <= y1; y++)
             for (int x = x0; x <= x1; x++) {
                 float px = x + 0.5f, py = y + 0.5f;
@@ -155,7 +170,7 @@ static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const
                 if (card) {
                     vec2 uv = (*UV)[i0] * w0 + (*UV)[i1] * w1 + (*UV)[i2] * w2;
                     float dn = AL ? (*AL)[i0] * w0 + (*AL)[i1] * w1 + (*AL)[i2] * w2 : 1.f;
-                    if (cardAlpha(matT, uv, dn) < 0.5f) continue;
+                    if (cardCoverage(matT, uv, dn, uvFoot) - ditherAt(x, y) - 0.002f < 0.f) continue;
                 }
                 img.z[o] = z;
                 vec3 n = normalize(N[i0] * w0 + N[i1] * w1 + N[i2] * w2);
@@ -167,11 +182,23 @@ static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const
                 float wrapK = skinM ? 0.45f : 0.15f;
                 float d1 = Max(0.f, (dot(n, L1) + wrapK) / (1.f + wrapK)), d2 = Max(0.f, dot(n, L2));
                 float amb = 0.42f + 0.18f * n.z;
+                float skinGloss = 0.f;
+                if (skinM && UV && AL) {
+                    // skin channels as the renderer's skin shader reads them: crease valleys from uv, gloss from alpha
+                    vec2 uv = (*UV)[i0] * w0 + (*UV)[i1] * w1 + (*UV)[i2] * w2;
+                    if (uv.y > 0.f) {
+                        float fr = uv.x - floorf(uv.x);
+                        float vv = Saturate(1.f - fabsf(fr - 0.5f) / 0.17f);
+                        vv *= vv;
+                        alb = alb * (1.f - 0.45f * vv * Saturate(uv.y / 0.25f));
+                    }
+                    skinGloss = 1.f - ((*AL)[i0] * w0 + (*AL)[i1] * w1 + (*AL)[i2] * w2);
+                }
                 vec3 col = alb * (d1 * 1.0f + d2 * 0.25f + amb);
                 if (skinM) col += mulColor(alb, vec3(0.12f, 0.03f, 0.02f)) * (1.f - Max(0.f, dot(n, L1)));
                 vec3 H = normalize(L1 + V);
-                float gloss = (mat & 0xff) == MAT_EYE || (mat & 0xff) == MAT_CAR_GLASS ? 200.f : ((mat & 0xff) == MAT_CHROME ? 60.f : 24.f);
-                float ks = skinM ? 0.04f : ((mat & 0xff) == MAT_EYE || (mat & 0xff) == MAT_CAR_GLASS ? 0.5f : 0.03f);
+                float gloss = (mat & 0xff) == MAT_EYE || (mat & 0xff) == MAT_CAR_GLASS ? 200.f : ((mat & 0xff) == MAT_CHROME ? 60.f : 24.f + 60.f * skinGloss);
+                float ks = skinM ? 0.04f + 0.1f * skinGloss : ((mat & 0xff) == MAT_EYE || (mat & 0xff) == MAT_CAR_GLASS ? 0.5f : 0.03f);
                 if ((mat & 0xff) == MAT_CHROME) ks = 0.5f;
                 col += vec3(powf(Max(0.f, dot(n, H)), gloss) * ks * (dot(n, L1) > 0 ? 1.f : 0.f));
                 float rim = powf(1.f - Max(0.f, dot(n, V)), 3.f) * 0.08f;

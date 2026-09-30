@@ -347,6 +347,7 @@ void GameWorld::updateAI(float dt) {
 
 std::string GameWorld::aiTrafficHealthText() const {
     int stuck = 0, blocked = 0, waiting = 0, rolled = 0, wrecked = 0, holding = 0;
+    std::string rolledTxt;
     float worst = 0.f;
     int worstId = -1;
     for (int i = 0; i < (int)vehicles.size(); i++) {
@@ -354,7 +355,14 @@ std::string GameWorld::aiTrafficHealthText() const {
         if (!v.used) continue;
         if (v.sim.wrecked || v.exploded) wrecked++;
         vec3 up = rotate(v.sim.body.rot, vec3(0, 0, 1));
-        if (up.z < 0.3f && !isAircraft(i) && !isBoat(i)) rolled++;
+        if (up.z < 0.3f && !isAircraft(i) && !isBoat(i)) {
+            if (rolled == 0) {
+                vec3 rp = v.sim.body.pos.toVec3();
+                rolledTxt = StrFormat(" (car %d %s at %.0f %.0f, %s)", i, vassets[v.model].spec.name.c_str(), rp.x, rp.y,
+                                      v.seats[0] >= 0 ? "driven" : (v.parked ? "parked" : "empty"));
+            }
+            rolled++;
+        }
         if (i >= (int)traffic.drivers.size() || !traffic.drivers[i].active) continue;
         const AI::Driver& d = traffic.drivers[i];
         if (d.dummy) continue;
@@ -378,10 +386,31 @@ std::string GameWorld::aiTrafficHealthText() const {
         vec3 p = vehicles[worstId].sim.body.pos.toVec3();
         worstTxt = StrFormat("car %d at %.0f %.0f %s %d u %.1f mode %d stuck %.0f blocked %.0f wait %.0f", worstId, p.x, p.y,
                              d.path < (int)laneGraph.lanes.size() ? "lane" : "conn", d.path, d.u, (int)d.mode, d.stuckTime, d.blockedTime, d.waitTime);
+        // what it is waiting for: the obstacle ahead (and what that is doing) or the stop point
+        if (d.obstBody >= 0 && d.obstBody < (int)traffic.bodies.size() && d.obstDist < 40.f) {
+            const AI::Body& ob = traffic.bodies[d.obstBody];
+            std::string what;
+            if (ob.kind == AI::BK_PED) {
+                what = (ob.flags & AI::BF_PLAYER) ? "player" : StrFormat("ped %d%s", ob.host, (ob.flags & AI::BF_CROSSING) ? " crossing" : "");
+            } else if (ob.host >= 0 && ob.host < (int)vehicles.size() && vehicles[ob.host].used) {
+                const Vehicle& o = vehicles[ob.host];
+                const AI::Driver* od = ob.host < (int)traffic.drivers.size() && traffic.drivers[ob.host].active ? &traffic.drivers[ob.host] : nullptr;
+                what = StrFormat("car %d %s%s%s", ob.host, vassets[o.model].spec.name.c_str(), (ob.flags & AI::BF_PLAYER) ? " player" : "",
+                                 (ob.flags & AI::BF_PARKED) ? " parked" : "");
+                if (od) what += StrFormat(" (mode %d stuck %.0f blocked %.0f wait %.0f)", (int)od->mode, od->stuckTime, od->blockedTime, od->waitTime);
+                else if (o.seats[0] < 0) what += " empty";
+                if (ob.host < (int)ai.veh.size()) what += StrFormat(" role %d", (int)ai.veh[ob.host].role);
+            } else {
+                what = "body";
+            }
+            worstTxt += StrFormat(", obstacle %.1f m: %s v %.1f", d.obstDist, what.c_str(), ob.speed);
+        } else if (d.stopDist < 40.f) {
+            worstTxt += StrFormat(", stop point %.1f m (gate conn %d node %d)", d.stopDist, d.gateConn, d.gateNode);
+        }
     }
-    return StrFormat("traffic health: stuck>30s %d blocked>45s %d wait>90s %d holding %d rolled %d wrecked %d unhung %d | impacts %d (with player %d) | "
+    return StrFormat("traffic health: stuck>30s %d blocked>45s %d wait>90s %d holding %d rolled %d%s wrecked %d unhung %d | impacts %d (with player %d) | "
                      "core red %ld stopsign %ld stuckEv %ld recov %ld reloc %ld deadlockBreaks %ld kturns %ld | worst: %s",
-                     stuck, blocked, waiting, holding, rolled, wrecked, ai.stats.unhung, ai.stats.hardImpacts, ai.stats.impactsWithPlayer, ts.redViolations,
+                     stuck, blocked, waiting, holding, rolled, rolledTxt.c_str(), wrecked, ai.stats.unhung, ai.stats.hardImpacts, ai.stats.impactsWithPlayer, ts.redViolations,
                      ts.stopSignViolations, ts.stuckEvents, ts.recoveries, ts.relocalizations, ts.deadlockBreaks, ts.kTurns, worstTxt.c_str());
 }
 

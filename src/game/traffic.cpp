@@ -360,7 +360,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                 bool street = L.cls == World::RC_STREET || L.cls == World::RC_AVENUE || L.cls == World::RC_LANE;
                 const World::RoadClassInfo& info = World::roadInfo((World::RoadClass)L.cls);
                 float spotU = d->u + d->info.frontLen + 30.f;   // front bumper of the parked car
-                if (hashToFloat(hp) < 0.12f * ai.lifeBoost && time - ai.lastParkArrive > 10.0 / Max(ai.lifeBoost, 0.1f) && plD > 40.f &&
+                if (hashToFloat(hp) < 0.2f * ai.lifeBoost && time - ai.lastParkArrive > 20.0 / Max(ai.lifeBoost, 0.1f) && plD > 40.f &&
                     plD < 160.f && street && L.right < 0 && info.shoulder >= 1.8f &&
                     !(L.flags & (AI::LF_DIRT | AI::LF_HIGHWAY | AI::LF_RAMP)) && spotU < L.u1 - 14.f &&
                     dot(laneGraph.laneTangent(d->path, d->u), laneGraph.laneTangent(d->path, spotU)) > 0.97f) {
@@ -387,7 +387,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                         });
                     }
                     vec3 door;
-                    if (ok && aiBuildingDoorNear(*this, spot.xy(), 22.f, hp, door)) {
+                    if (ok && aiBuildingDoorNear(*this, spot.xy(), 30.f, hp, door)) {
                         va.parking = 1;
                         ai.lastParkArrive = time;
                         va.parkLane = d->path;
