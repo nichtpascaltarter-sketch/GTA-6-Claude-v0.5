@@ -115,6 +115,11 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   speaker, bystanders glance at the player (and the player at people close by), phone prop in hand.
 - Camera: on-foot first person (V / Back toggles; body faces the view, walk/jog limits backwards and sideways,
   centre-dot reticle; orbit camera in cover, ragdolls, water, parachute glides, vehicles, takedowns), `--firstperson`.
+- Weapons (src/game/weaponmods.cpp): components per gun (suppressor: quiet crack, no flash, 9 m startle instead of a
+  gunfire report; extended magazine +60 %; scope: aim zoom + tighter spread; flashlight beam while aiming in the dark,
+  H / D-pad down toggles; grip: less recoil/spread) and 6 tints, all visible on the model, saved in a tagged trailing
+  save block; `--weaponmods TINT` test hook. Police officers on foot sweep torch beams at night while the player is
+  wanted. Store hold-ups at shop clerks (holdups.cpp, interiors agent).
 - Vehicles: LOD meshes (LOD1 wheels, LOD2 without wheels) by distance; visual body pitch/roll/heave; wet-road grip
   and aquaplaning; repair resets damage; crash damage pulls the steering and saps power; turbo whistle, blow-off,
   flutter and shift pops for tuned cars (Audio::setEngineTune; gear changes latched across physics substeps).

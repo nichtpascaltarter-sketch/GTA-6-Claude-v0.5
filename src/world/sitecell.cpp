@@ -86,6 +86,9 @@ void buildSiteCell(int cx, int cy, bool detail, CellGeometry& out) {
             case SK_CAROUSEL: leisure_mesh::genCarousel(e, g); break;
             case SK_SWING_RIDE: leisure_mesh::genSwingRide(e, g); break;
             case SK_PIER_GAMES: leisure_mesh::genPierGames(e, g); break;
+            // public transit
+            case SK_METRO_VIADUCT: transit_mesh::genViaduct(e, g); break;
+            case SK_METRO_STATION: transit_mesh::genStation(e, g); break;
             case SK_LIGHTHOUSE: rural_mesh::genLighthouse(e, g); break;
             case SK_RADIO_MAST: rural_mesh::genRadioMast(e, g); break;
             case SK_SUGAR_MILL: rural_mesh::genSugarMill(e, g); break;

@@ -427,6 +427,11 @@ static const SpeciesInfo kSpecies[SP_COUNT] = {
     {"white-tailed deer",PLAN_QUAD,     2,   1.80f, 0.95f, 0.f,   70.f,  70.f},
     {"cow",              PLAN_QUAD,     3,   2.40f, 1.35f, 0.f,   160.f, 600.f},
     {"horse",            PLAN_QUAD,     3,   2.40f, 1.60f, 0.f,   150.f, 500.f},
+    {"sanderling",       PLAN_BIRD,     1,   0.20f, 0.13f, 0.40f, 3.f,   0.06f},
+    {"grackle",          PLAN_BIRD,     2,   0.40f, 0.24f, 0.55f, 4.f,   0.2f},
+    {"frigatebird",      PLAN_BIRD,     2,   1.00f, 0.40f, 2.20f, 15.f,  1.4f},
+    {"cormorant",        PLAN_BIRD,     1,   0.80f, 0.60f, 1.25f, 12.f,  1.8f},
+    {"cattle egret",     PLAN_BIRD,     1,   0.50f, 0.46f, 0.90f, 6.f,   0.35f},
 };
 const SpeciesInfo& speciesInfo(int sp) { return kSpecies[Clamp(sp, 0, (int)SP_COUNT - 1)]; }
 
@@ -440,7 +445,7 @@ struct BirdSpec {
     float headLen, headR;
     float billLen, billW, billH, billDroop, billHook, billSpoon, billPitch;
     float jawDepth;                             // lower mandible depth (pelican pouch)
-    float tailLen, tailW, tailShape, tailTilt;  // tailShape: 0 square, 1 rounded, 2 pointed
+    float tailLen, tailW, tailShape, tailTilt;  // tailShape: 0 square, 1 rounded, 2 pointed, 3 deeply forked
     float span, chordRoot, chordMid, chordTip, sweep;
     int fingers;                                // separated primaries (soaring birds)
     float fingerLen;
@@ -492,7 +497,32 @@ const BirdSpec& birdSpec(int sp) {
                                        0.018f, 0.008f, 0.016f, 0.f, 1.2f, 0.f, -0.5f, 0.006f,
                                        0.14f, 0.018f, 2.f, 0.1f, 0.48f, 0.07f, 0.075f, 0.02f, 0.2f, 0, 0.f, 0.22f, 0.28f,
                                        0.025f, 0.014f, 0.004f, 0.02f, 0.015f, 0.f, false, false, 0.005f, 0.6f};
+    static const BirdSpec kSanderling = {0.11f, 0.034f, 0.032f, 0.038f, 0.025f, 0.014f, 0.9f, 0.f, 0.026f, 0.014f,
+                                         0.025f, 0.0035f, 0.004f, 0.f, 0.f, 0.f, -0.05f, 0.002f,
+                                         0.05f, 0.022f, 1.f, 0.f, 0.40f, 0.06f, 0.06f, 0.02f, 0.3f, 0, 0.f, 0.22f, 0.28f,
+                                         0.03f, 0.025f, 0.0028f, 0.018f, 0.012f, 0.f, false, false, 0.0035f, 0.15f};
+    static const BirdSpec kGrackle = {0.15f, 0.04f, 0.04f, 0.045f, 0.04f, 0.017f, 1.f, 0.f, 0.035f, 0.017f,
+                                      0.032f, 0.005f, 0.008f, 0.1f, 0.f, 0.f, -0.05f, 0.003f,
+                                      0.19f, 0.035f, 1.f, 0.12f, 0.52f, 0.085f, 0.09f, 0.03f, 0.2f, 0, 0.f, 0.22f, 0.28f,
+                                      0.04f, 0.038f, 0.004f, 0.03f, 0.017f, 0.f, false, false, 0.0045f, 0.35f};
+    static const BirdSpec kFrigate = {0.38f, 0.075f, 0.07f, 0.08f, 0.08f, 0.03f, 0.7f, 0.f, 0.07f, 0.03f,
+                                      0.11f, 0.009f, 0.013f, 0.f, 0.9f, 0.f, -0.05f, 0.005f,
+                                      0.40f, 0.07f, 3.f, 0.f, 2.2f, 0.26f, 0.22f, 0.05f, 0.45f, 0, 0.f, 0.24f, 0.3f,
+                                      0.04f, 0.025f, 0.006f, 0.04f, 0.035f, 0.f, true, false, 0.006f, 0.3f};
+    static const BirdSpec kCormorant = {0.40f, 0.075f, 0.07f, 0.08f, 0.20f, 0.024f, 1.1f, 0.35f, 0.07f, 0.026f,
+                                        0.065f, 0.008f, 0.011f, 0.f, 0.6f, 0.f, -0.05f, 0.005f,
+                                        0.15f, 0.06f, 1.f, -0.1f, 1.25f, 0.2f, 0.22f, 0.08f, 0.1f, 3, 0.06f, 0.28f, 0.32f,
+                                        0.07f, 0.055f, 0.008f, 0.07f, 0.045f, -0.05f, true, false, 0.006f, 0.95f};
+    static const BirdSpec kCattleEgret = {0.22f, 0.052f, 0.05f, 0.058f, 0.16f, 0.017f, 1.1f, 0.7f, 0.05f, 0.019f,
+                                          0.06f, 0.006f, 0.009f, 0.f, 0.f, 0.f, -0.08f, 0.004f,
+                                          0.08f, 0.04f, 1.f, 0.f, 0.9f, 0.15f, 0.16f, 0.06f, 0.05f, 0, 0.f, 0.3f, 0.34f,
+                                          0.1f, 0.08f, 0.0045f, 0.05f, 0.025f, -0.01f, false, true, 0.0045f, 0.5f};
     switch (sp) {
+        case SP_SANDPIPER: return kSanderling;
+        case SP_GRACKLE: return kGrackle;
+        case SP_FRIGATE: return kFrigate;
+        case SP_CORMORANT: return kCormorant;
+        case SP_CEGRET: return kCattleEgret;
         case SP_PELICAN: return kPelican;
         case SP_PIGEON: return kPigeon;
         case SP_HERON: return kHeron;
@@ -534,6 +564,9 @@ vec3 birdPaint(int sp, int var, const BirdPaintIn& in, u8& mat) {
             case SP_HERON: case SP_EGRET: case SP_FLAMINGO: iris = C(0.95f, 0.82f, 0.2f); break;
             case SP_SPOONBILL: iris = C(0.8f, 0.1f, 0.1f); break;
             case SP_IBIS: iris = C(0.55f, 0.75f, 0.9f); break;
+            case SP_GRACKLE: iris = var == 0 ? C(0.95f, 0.88f, 0.35f) : C(0.3f, 0.2f, 0.12f); break;
+            case SP_CORMORANT: iris = C(0.2f, 0.7f, 0.42f); break;
+            case SP_CEGRET: iris = C(0.95f, 0.85f, 0.3f); break;
             default: iris = C(0.25f, 0.15f, 0.08f); break;
         }
         if (in.s < 0.16f) return C(0.02f, 0.02f, 0.025f);
@@ -731,6 +764,83 @@ vec3 birdPaint(int sp, int var, const BirdPaintIn& in, u8& mat) {
                     return C(0.5f, 0.5f, 0.52f);
                 case BP_TOE: mat = MAT_SKIN; return C(0.5f, 0.5f, 0.52f);
                 default: return green;
+            }
+        }
+        case SP_SANDPIPER: {   // sanderling (winter): pale grey above, white below, black shoulder, bill and legs
+            vec3 grey = C(0.66f, 0.66f, 0.64f), dark = C(0.12f, 0.12f, 0.13f);
+            float fleck = streak > 0.78f ? 0.35f : 0.f;
+            switch (in.part) {
+                case BP_BODY: return feather(sinf(in.th) > 0.15f && in.p.y > -0.05f ? mixc(grey, dark, fleck) : white);
+                case BP_NECK: return feather(sinf(in.th) > 0.3f ? grey : white);
+                case BP_HEAD: return feather(sinf(in.th) > 0.45f && in.s < 0.7f ? grey : white);
+                case BP_BILL: case BP_JAW: mat = MAT_SKIN; return dark;
+                case BP_WING:
+                    if (!in.upper) return feather(white);
+                    if (in.s > 0.62f) return in.chord > 0.5f && in.chord < 0.66f && in.s < 0.85f ? white : dark;   // white wing bar
+                    if (in.chord > 0.52f && in.chord < 0.68f) return feather(white);
+                    return feather(in.s < 0.18f ? dark : grey);
+                case BP_FOLD: return in.s < 0.14f ? dark : (in.s > 0.8f ? dark : feather(mixc(grey, dark, fleck)));
+                case BP_TAIL: return feather(fabsf(cosf(in.th)) < 0.4f ? C(0.35f, 0.35f, 0.36f) : white);
+                case BP_LEG: case BP_TOE: mat = MAT_SKIN; return dark;
+                default: return grey;
+            }
+        }
+        case SP_GRACKLE: {   // boat-tailed grackle: glossy blue-black male, brown female
+            bool male = var == 0;
+            float irid = 0.5f + 0.5f * sinf(in.p.y * 40.f + in.th * 2.f + mottle * 4.f);
+            vec3 gloss = mixc(C(0.035f, 0.03f, 0.075f), C(0.02f, 0.06f, 0.08f), irid);
+            vec3 fb = C(0.33f, 0.23f, 0.15f), fbelly = C(0.62f, 0.47f, 0.32f), fdark = C(0.19f, 0.14f, 0.1f);
+            switch (in.part) {
+                case BP_BILL: case BP_JAW: mat = MAT_SKIN; return C(0.03f, 0.03f, 0.03f);
+                case BP_LEG: case BP_TOE: mat = MAT_SKIN; return C(0.05f, 0.05f, 0.05f);
+                case BP_WING: case BP_FOLD: case BP_FINGER: case BP_TAIL: return male ? feather(gloss * 0.9f) : feather(fdark);
+                case BP_BODY: case BP_NECK: return male ? feather(gloss) : feather(sinf(in.th) < -0.2f ? fbelly : fb);
+                case BP_HEAD: return male ? feather(gloss) : feather(sinf(in.th) < 0.f ? fbelly : fb);
+                default: return male ? gloss : fb;
+            }
+        }
+        case SP_FRIGATE: {   // magnificent frigatebird: black; the male has a red throat pouch, the female a white breast
+            bool male = var == 0;
+            vec3 blk = C(0.03f, 0.03f, 0.035f), brown = C(0.33f, 0.26f, 0.19f);
+            switch (in.part) {
+                case BP_BODY: return feather(!male && sinf(in.th) < -0.15f && in.p.y > -0.06f ? white : blk);
+                case BP_NECK: {
+                    if (male && sinf(in.th) < -0.35f && in.s > 0.25f) { mat = MAT_SKIN; return C(0.72f, 0.07f, 0.05f); }
+                    return feather(!male && sinf(in.th) < -0.3f && in.s < 0.45f ? white : blk);
+                }
+                case BP_HEAD: return feather(blk);
+                case BP_BILL: case BP_JAW: mat = MAT_SKIN; return male ? C(0.42f, 0.42f, 0.45f) : C(0.62f, 0.64f, 0.7f);
+                case BP_WING: return feather(!male && in.upper && in.s < 0.42f && in.chord > 0.35f && in.chord < 0.7f ? brown : blk);
+                case BP_FOLD: return feather(!male && in.s > 0.25f && in.s < 0.5f ? brown : blk);
+                case BP_LEG: case BP_TOE: mat = MAT_SKIN; return male ? C(0.1f, 0.1f, 0.1f) : C(0.75f, 0.35f, 0.35f);
+                default: return feather(blk);
+            }
+        }
+        case SP_CORMORANT: {   // double-crested cormorant: black with bronze scaled back, orange throat skin, hooked bill
+            vec3 blk = C(0.035f, 0.035f, 0.03f), bronze = C(0.2f, 0.17f, 0.11f);
+            float sv = in.p.y * 28.f + fabsf(in.p.x) * 18.f;
+            float scale = sv - floorf(sv);   // scaly edging of the back feathers
+            switch (in.part) {
+                case BP_BODY: return feather(sinf(in.th) > 0.35f && in.p.y > -0.1f ? (scale < 0.8f ? bronze : blk) : blk);
+                case BP_FOLD: return feather(in.s < 0.55f ? (scale < 0.78f ? bronze : blk) : blk);
+                case BP_WING: return feather(in.upper && in.s < 0.45f && in.chord < 0.6f ? (scale < 0.75f ? bronze : blk) : blk);
+                case BP_HEAD: if (in.s > 0.72f && sinf(in.th) < 0.1f) { mat = MAT_SKIN; return C(0.9f, 0.5f, 0.12f); } return feather(blk);
+                case BP_JAW: mat = MAT_SKIN; return in.s < 0.5f ? C(0.88f, 0.48f, 0.12f) : C(0.3f, 0.28f, 0.25f);
+                case BP_BILL: mat = MAT_SKIN; return C(0.22f, 0.21f, 0.2f);
+                case BP_LEG: case BP_TOE: mat = MAT_SKIN; return C(0.04f, 0.04f, 0.04f);
+                default: return feather(blk);
+            }
+        }
+        case SP_CEGRET: {   // cattle egret in breeding plumage: white with buff crown, back and breast plumes
+            vec3 buff = C(0.93f, 0.66f, 0.38f), wh = C(0.96f, 0.95f, 0.92f);
+            switch (in.part) {
+                case BP_HEAD: return feather(sinf(in.th) > 0.25f && in.s < 0.75f ? buff : wh);
+                case BP_NECK: return feather(sinf(in.th) < -0.35f && in.s < 0.55f ? mixc(wh, buff, 0.8f) : (sinf(in.th) > 0.3f && in.s > 0.6f ? mixc(wh, buff, 0.5f) : wh));
+                case BP_BODY: return feather(sinf(in.th) > 0.55f && in.p.y > -0.05f && in.p.y < 0.08f ? mixc(wh, buff, 0.75f) : wh);
+                case BP_BILL: case BP_JAW: mat = MAT_SKIN; return C(0.97f, 0.7f, 0.18f);
+                case BP_LEG: if (in.s < 0.2f) return feather(wh); mat = MAT_SKIN; return C(0.72f, 0.55f, 0.28f);
+                case BP_TOE: mat = MAT_SKIN; return C(0.6f, 0.45f, 0.24f);
+                default: return feather(wh);
             }
         }
         default: return white;
@@ -1002,8 +1112,25 @@ void buildBirdMesh(int sp, int var, const Skel& sk, const BirdSpec& B, int lod, 
             }, true, true);
         }
     }
-    // ---- tail
-    {
+    // ---- tail (forked tails: two long outer streamers)
+    if (B.tailShape > 2.5f) {
+        vec3 t0 = sk.bind[TAIL];
+        for (int sd = -1; sd <= 1; sd += 2) {
+            vec3 dirT = normalize(vec3((float)sd * 0.16f, -1.f, B.tailTilt));
+            std::vector<vec3> tp = {t0 + vec3(0, B.tailLen * 0.04f, 0), t0 + dirT * (B.tailLen * 0.5f), t0 + dirT * B.tailLen};
+            std::vector<Sect> S = sectionsAlong(tp, L.tailRings + 1, vec3(0, 0, 1), [&](float t, Sect& s) {
+                s.w = Lerp(B.tailW * 0.55f, B.tailW * 0.1f, powf(t, 0.7f));
+                s.hT = Lerp(B.bodyHT * 0.2f, 0.003f, smooth01(t * 2.f)) + 0.002f;
+                s.hB = Lerp(B.bodyHB * 0.15f, 0.002f, smooth01(t * 2.f)) + 0.0015f;
+                s.ex = 2.2f;
+            });
+            float tl = S.back().u;
+            loft(mb, S, L.tailSides, [&](int, float u, float th, vec3 p, VAttr& a) {
+                paint(BP_TAIL, u / tl, 0.f, sinf(th) > 0.f, th, p, a);
+                a.sw = u < tl * 0.1f ? skin2(BODY, TAIL, 0.5f + 5.f * u / tl) : skin1(TAIL);
+            }, true, true);
+        }
+    } else {
         vec3 t0 = sk.bind[TAIL];
         vec3 dirT = normalize(vec3(0, -1, B.tailTilt));
         std::vector<vec3> tp = {t0 + dirT * (-B.tailLen * 0.05f), t0 + dirT * B.tailLen};

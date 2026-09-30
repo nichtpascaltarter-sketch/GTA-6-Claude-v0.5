@@ -27,6 +27,7 @@ enum GroupType : u8 {
     GT_GULLS = 0, GT_PELICANS, GT_PIGEONS, GT_WADERS, GT_VULTURES, GT_PARROTS,
     GT_GATOR, GT_IGUANA, GT_DOLPHINS, GT_MANATEE, GT_TURTLE, GT_FISH,
     GT_DOG_LEASH, GT_DOG_STRAY, GT_CAT, GT_RACCOON, GT_DEER, GT_CATTLE, GT_HORSES,
+    GT_SHOREBIRDS, GT_GRACKLES, GT_FRIGATES, GT_CORMORANTS, GT_CEGRETS,
     GT_COUNT
 };
 
@@ -77,6 +78,7 @@ struct Animal {
     float deadT = 0.f;
     bool drowned = false;
     float accDt = 0.f;        // throttled updates for distant animals
+    float aux = 0.f, aux2 = 0.f;   // species extras: cormorant wing drying / dive time, cattle egret riding / hop flight
     float visDist = 1e9f;
     int poseFrame = -1000;    // frame of the cached pose (distant animals re-pose at a lower rate)
     mat4 skin[kMaxBones];     // cached skinning matrices (model space)
@@ -125,6 +127,9 @@ struct Group {
     bool hasHand = false;
     float accDt = 0.f;        // distant groups update at a lower rate
     bool frozen = false;      // test line-ups: animation only, no behaviour
+    vec2 shoreN = vec2(0.f, 1.f);   // sanderlings: unit normal pointing up the beach at the anchor (on the water's edge)
+    int host = -1;            // cattle egrets: the cattle herd they follow
+    u32 hostUid = 0;
 };
 
 struct Threat {
@@ -474,6 +479,19 @@ float scareLevel(vec3 p, float sensitivity, vec3* from = nullptr, bool* gunfire 
     return best;
 }
 
+// Colour of the feathers a hit bird sheds
+vec3 featherTint(int sp) {
+    switch (sp) {
+        case SP_PIGEON: return vec3(0.55f, 0.57f, 0.62f);
+        case SP_VULTURE: case SP_PELICAN: return vec3(0.27f, 0.24f, 0.21f);
+        case SP_SPOONBILL: case SP_FLAMINGO: return vec3(0.95f, 0.55f, 0.6f);
+        case SP_PARROT: return vec3(0.35f, 0.75f, 0.3f);
+        case SP_GRACKLE: case SP_FRIGATE: case SP_CORMORANT: return vec3(0.08f, 0.08f, 0.09f);
+        case SP_SANDPIPER: return vec3(0.8f, 0.8f, 0.78f);
+        default: return vec3(0.95f);
+    }
+}
+
 void killAnimal(GameWorld& g, int ai, vec3 impulse, int attacker, bool vehicleHit) {
     Animal& a = gW.animals[ai];
     if (a.state == ST_DEAD || a.state == ST_FALL) return;
@@ -487,10 +505,7 @@ void killAnimal(GameWorld& g, int ai, vec3 impulse, int attacker, bool vehicleHi
     vec3 fxp = a.pos + vec3(0, 0, si.plan == PLAN_BIRD ? 0.f : si.height * 0.4f * a.scale);
     if (si.plan == PLAN_BIRD) {
         // puff of feathers
-        vec3 tint = a.sp == SP_PIGEON ? vec3(0.55f, 0.57f, 0.62f) : (a.sp == SP_VULTURE || a.sp == SP_PELICAN ? vec3(0.25f, 0.22f, 0.2f) : vec3(0.95f));
-        if (a.sp == SP_SPOONBILL || a.sp == SP_FLAMINGO) tint = vec3(0.95f, 0.55f, 0.6f);
-        if (a.sp == SP_PARROT) tint = vec3(0.35f, 0.75f, 0.3f);
-        spawnFx(FX_LEAVES, dvec3(fxp), vec3(0, 0, 1.f), 8, 0.35f * Max(a.scale, 0.6f), tint);
+        spawnFx(FX_LEAVES, dvec3(fxp), vec3(0, 0, 1.f), 8, 0.35f * Max(a.scale, 0.6f), featherTint(a.sp));
     }
     if (si.plan == PLAN_QUAD || si.plan == PLAN_REPTILE || a.sp == SP_DOLPHIN || a.sp == SP_MANATEE) spawnFx(FX_BLOOD, dvec3(fxp), normalize(impulse + vec3(0, 0, 0.3f)), 4, 1.f);
     if (a.sp == SP_DOG) sfx(Audio::SFX_DOG_YELP, fxp, 1.f);
@@ -550,6 +565,14 @@ const FlyParams& flyParams(int sp) {
         {10.f, 7.f, 15.f, 3.f, 1.8f, 0.95f},   // vulture
         {12.f, 7.f, 17.f, 10.f, 8.f, 0.1f},    // parakeet
     };
+    static const FlyParams k2[] = {
+        {9.f, 5.f, 14.f, 12.f, 9.f, 0.2f},      // sanderling: fast twinkling beats low over the surf
+        {10.f, 5.5f, 15.f, 9.f, 5.f, 0.25f},    // grackle
+        {9.f, 6.f, 16.f, 3.f, 1.4f, 0.97f},     // frigatebird: hangs in the wind, hardly ever flaps
+        {12.f, 8.f, 16.f, 6.f, 4.2f, 0.1f},     // cormorant: steady beats low over the water
+        {10.f, 6.f, 13.f, 6.f, 3.2f, 0.3f},     // cattle egret
+    };
+    if (sp >= (int)SP_SANDPIPER) return k2[Clamp(sp - (int)SP_SANDPIPER, 0, (int)ARRAY_COUNT(k2) - 1)];
     return k[Clamp(sp, 0, (int)SP_PARROT)];
 }
 
@@ -943,6 +966,32 @@ void flockBirdStep(GameWorld& g, int gi, int ai, float dt, const FlockCtx& fc) {
     bool floating = a.state == ST_SWIM || (a.perch >= 0 && a.perch < (int)G.perches.size() && G.perches[a.perch].kind == 2);
     switch (a.state) {
         case ST_IDLE: case ST_WALK: case ST_SWIM: {
+            if (G.sp == SP_CORMORANT && a.aux2 > 0.f) {   // swimming under water after a surface dive
+                a.aux2 -= dt;
+                float wz;
+                if (!waterAt(a.pos.x, a.pos.y, wz)) wz = a.pos.z;
+                a.yaw = wrapA(a.yaw + 0.5f * sinf(a.life * 0.6f + birdHash(a, 51) * 6.f) * dt);
+                vec2 np = a.pos.xy() + dirOf(a.yaw) * (1.3f * dt);
+                if (waterDepth(*g.map, np.x, np.y) > 1.2f) {
+                    a.pos.x = np.x;
+                    a.pos.y = np.y;
+                } else {
+                    a.yaw = wrapA(a.yaw + 2.f * dt);
+                }
+                a.pos.z = Lerp(a.pos.z, wz - 1.1f, expDecay(4.f, dt));
+                a.ba.fold = 1.f;
+                a.ba.legs = 0.f;
+                a.ba.sit = 1.f;
+                a.pitch = Lerp(a.pitch, -0.15f, expDecay(3.f, dt));
+                if (a.aux2 <= 0.f) {   // back up, sometimes with a fish
+                    a.pos.z = wz + birdStandHeight(a, true);
+                    a.pitch = 0.f;
+                    a.ba.mouth = frand() < 0.3f ? 1.f : 0.f;
+                    a.t = 0.f;
+                    spawnFx(FX_WATER_SPLASH, dvec3(vec3(a.pos.x, a.pos.y, wz)), vec3(0, 0, 1), 2, 0.25f);
+                }
+                return;
+            }
             if (a.think <= 0.f) {
                 a.think = 0.15f + frand() * 0.15f;
                 bool gun = false;
@@ -962,6 +1011,7 @@ void flockBirdStep(GameWorld& g, int gi, int ai, float dt, const FlockCtx& fc) {
                     } else {
                         startTakeoff(a, frand() * 0.2f);
                         if (G.sp == SP_GULL && frand() < 0.4f) sfx(Audio::SFX_SEAGULL, a.pos, 0.9f);
+                        if (G.sp == SP_GRACKLE && frand() < 0.3f) sfx(Audio::SFX_PARROT_SQUAWK, a.pos, 0.45f, 1.4f);
                         if (G.sp == SP_PELICAN) sfx(Audio::SFX_WING_FLAP, a.pos, 0.8f, 0.7f);
                     }
                     return;
@@ -978,6 +1028,11 @@ void flockBirdStep(GameWorld& g, int gi, int ai, float dt, const FlockCtx& fc) {
                 vec2 drift = g.env ? g.env->windDir * (0.15f * g.env->wind) : vec2(0.f);
                 a.pos += vec3(drift * dt, 0.f);
                 perchedAnim(a, dt, true);
+                if (G.sp == SP_CORMORANT && a.t > 3.f && G.alarm <= 0.f && frand() < dt * 0.06f && waterDepth(*g.map, a.pos.x, a.pos.y) > 1.5f) {
+                    a.aux2 = frange(8.f, 22.f);   // a surface dive: a little forward leap and gone
+                    a.t = 0.f;
+                    spawnFx(FX_WATER_SPLASH, dvec3(a.pos), vec3(0, 0, 1), 2, 0.25f);
+                }
             } else if (a.state == ST_WALK) {
                 vec2 d = a.goal.xy() - a.pos.xy();
                 float dist = length(d);
@@ -985,7 +1040,7 @@ void flockBirdStep(GameWorld& g, int gi, int ai, float dt, const FlockCtx& fc) {
                 groundStep(g, a, want, dt, 3.f, 7.f, 0.06f, 0);
                 perchedAnim(a, dt, false);
                 a.ba.walkAmt = Min(1.f, a.ba.walkAmt + dt * 4.f);
-                a.ba.walk += dt * kTwoPi * (G.sp == SP_PIGEON ? 3.2f : 2.2f);
+                a.ba.walk += dt * kTwoPi * (G.sp == SP_PIGEON ? 3.2f : (G.sp == SP_GRACKLE ? 2.7f : 2.2f));
                 if (dist < 0.2f || a.t > 6.f) {
                     a.state = ST_IDLE;
                     a.t = 0.f;
@@ -994,14 +1049,27 @@ void flockBirdStep(GameWorld& g, int gi, int ai, float dt, const FlockCtx& fc) {
                 perchedAnim(a, dt, false);
                 a.ba.walkAmt = Max(0.f, a.ba.walkAmt - dt * 4.f);
                 bool onPost = a.perch >= 0 && a.perch < (int)G.perches.size() && G.perches[a.perch].kind != 0;
+                bool ground = G.sp == SP_PIGEON || G.sp == SP_GRACKLE;   // feeding on the ground around the flock's spot
                 if (!onPost && cfg.walks && a.t > 1.f && frand() < dt * 0.25f) {   // pecking about, short walks
                     a.state = ST_WALK;
                     a.t = 0.f;
-                    vec2 r = gW.rng.inCircle() * (G.sp == SP_PIGEON ? 2.5f : 4.f);
-                    vec2 c = (G.sp == SP_PIGEON ? G.anchor.xy() * 0.3f + a.pos.xy() * 0.7f : a.pos.xy()) + r;
+                    vec2 r = gW.rng.inCircle() * (G.sp == SP_PIGEON ? 2.5f : (G.sp == SP_GRACKLE ? 3.f : 4.f));
+                    vec2 c = (ground ? G.anchor.xy() * 0.3f + a.pos.xy() * 0.7f : a.pos.xy()) + r;
                     a.goal = vec3(c, a.pos.z);
                 }
-                float pk = G.sp == SP_PIGEON ? (sinf(a.life * 3.1f + birdHash(a, 5) * 9.f) > 0.55f ? 1.f : 0.f) : 0.f;
+                if (G.sp == SP_CORMORANT && onPost) {   // perched cormorants hang their wings out to dry
+                    if (a.aux > 0.f) {
+                        a.aux -= dt;
+                        a.timer = Max(a.timer, 5.f);
+                        a.ba.fold = Max(0.f, a.ba.fold - dt * 6.f);
+                        a.ba.flap = kHalfPi + 0.1f * sinf(a.life * 1.6f);
+                        a.ba.flapAmp = 0.85f;
+                        a.ba.headYaw = 0.4f * sinf(a.life * 0.3f);
+                    } else if (a.t > 5.f && frand() < dt * 0.03f) {
+                        a.aux = frange(20.f, 60.f);
+                    }
+                }
+                float pk = ground ? (sinf(a.life * (G.sp == SP_GRACKLE ? 2.4f : 3.1f) + birdHash(a, 5) * 9.f) > 0.55f ? 1.f : 0.f) : 0.f;
                 a.ba.peck = Lerp(a.ba.peck, pk, expDecay(10.f, dt));
                 if (!onPost)   // side-step people walking through
                     for (int pi : gW.pedsNear) {
@@ -1209,6 +1277,7 @@ void updateFlockBirds(GameWorld& g, int gi, float dt, const FlockCfg& cfg) {
         if (a.used && a.state != ST_DEAD && a.state != ST_FALL && length2(a.pos - gW.cam) < 140.f * 140.f) {
             if (G.sp == SP_GULL) sfx(Audio::SFX_SEAGULL, a.pos, 0.75f);
             else if (G.sp == SP_PIGEON && (a.state == ST_IDLE || a.state == ST_WALK)) sfx(Audio::SFX_PIGEON_COO, a.pos, 0.6f);
+            else if (G.sp == SP_GRACKLE && frand() < 0.6f) sfx(Audio::SFX_PARROT_SQUAWK, a.pos, 0.4f, frange(1.3f, 1.6f));   // creaky, rattling calls
         }
     }
 }
@@ -1524,7 +1593,8 @@ void updateWaders(GameWorld& g, int gi, float dt) {
 // Vultures: soaring circles in a thermal, then a long glide to the next one.
 void updateVultures(GameWorld& g, int gi, float dt) {
     Group& G = gW.groups[gi];
-    const FlyParams& fp = flyParams(SP_VULTURE);
+    const FlyParams& fp = flyParams(G.sp);
+    bool frigate = G.sp == SP_FRIGATE;   // frigatebirds hang over the beach and the bay instead of open country
     G.modeT += dt;
     vec2 wind = g.env ? g.env->windDir * (0.6f + g.env->wind) : vec2(0.5f, 0.3f);
     if (G.mode == 0) {
@@ -1532,8 +1602,13 @@ void updateVultures(GameWorld& g, int gi, float dt) {
         if (G.modeT > G.timer) {
             G.mode = 1;
             G.modeT = 0.f;
-            float ang = frand() * kTwoPi;
-            vec2 nt = G.anchor.xy() + vec2(cosf(ang), sinf(ang)) * frange(150.f, 450.f);
+            vec2 nt = G.anchor.xy();
+            for (int tries = 0; tries < 10; tries++) {
+                float ang = frand() * kTwoPi;
+                nt = G.anchor.xy() + vec2(cosf(ang), sinf(ang)) * frange(150.f, 450.f);
+                float sd = g.map->coastDistance(nt.x, nt.y);
+                if (!frigate || (sd > -300.f && sd < 60.f)) break;
+            }
             G.threat = vec3(nt, g.map->heightAt(nt.x, nt.y));   // next thermal
         }
     } else {
@@ -1554,8 +1629,9 @@ void updateVultures(GameWorld& g, int gi, float dt) {
             continue;
         }
         a.state = ST_FLY;
-        float R = Lerp(28.f, 65.f, birdHash(a, 21));
-        float alt = Lerp(55.f, 150.f, birdHash(a, 22)) + 20.f * sinf(a.life * 0.02f + birdHash(a, 23) * 6.f);
+        float R = frigate ? Lerp(22.f, 55.f, birdHash(a, 21)) : Lerp(28.f, 65.f, birdHash(a, 21));
+        float alt = frigate ? Lerp(30.f, 95.f, birdHash(a, 22)) + 12.f * sinf(a.life * 0.03f + birdHash(a, 23) * 6.f)
+                            : Lerp(55.f, 150.f, birdHash(a, 22)) + 20.f * sinf(a.life * 0.02f + birdHash(a, 23) * 6.f);
         float ground = Max(g.map->heightAt(G.target.x, G.target.y), 0.f);
         vec2 rel = a.pos.xy() - G.target.xy();
         float ang = atan2f(rel.y, rel.x) + dirSign * 0.35f;
@@ -1564,11 +1640,407 @@ void updateVultures(GameWorld& g, int gi, float dt) {
         vec3 steer = (normalize(want - a.pos) * fp.cruise - a.vel) * 0.9f;
         flyStep(g, a, steer, dt, fp, 25.f, fp.minSpd);
         a.ba.soar = 1.f;
-        if (a.life - floorf(a.life / 23.f) * 23.f < 1.2f) a.ba.flapAmp = 0.5f;   // an occasional lazy flap
+        float every = frigate ? 41.f : 23.f;
+        if (a.life - floorf(a.life / every) * every < 1.2f) a.ba.flapAmp = 0.5f;   // an occasional lazy flap
+        if (frigate) a.ba.tail = 0.15f + 0.45f * (0.5f + 0.5f * sinf(a.life * 0.3f + birdHash(a, 25) * 6.f));   // the forked tail scissors as it steers
         // scatter upwards from gunfire
         bool gun = false;
         vec3 from;
         if (scareLevel(a.pos, 1.f, &from, &gun) < 1.f && gun) G.target += vec3(normalize(G.target.xy() - from.xy() + vec2(0.01f, 0.f)) * 40.f * dt, 0.f);
+    }
+}
+
+// ---- Sanderlings ----------------------------------------------------------------------------------------------------
+// The water's edge near p: follows the coast-distance gradient to where the sand meets the sea. edge = that point
+// (terrain height), inlandN = unit normal pointing up the beach. False without a clear, gently sloping edge of open sand.
+bool findShoreEdge(GameWorld& g, vec2 p, vec3& edge, vec2& inlandN) {
+    const World::WorldMap& m = *g.map;
+    const float e = 3.f;
+    vec2 grad(m.coastDistance(p.x + e, p.y) - m.coastDistance(p.x - e, p.y), m.coastDistance(p.x, p.y + e) - m.coastDistance(p.x, p.y - e));
+    if (length2(grad) < 1e-4f) return false;
+    vec2 n = normalize(grad);
+    float sWet = 1e9f, sDry = 1e9f;   // a wet sample seaward and the first dry one up the beach
+    for (float s = -30.f; s <= 30.f; s += 2.f) {
+        vec2 q = p + n * s;
+        if (waterDepth(m, q.x, q.y) > 0.02f) sWet = s;
+        else if (sWet < 1e8f) {
+            sDry = s;
+            break;
+        }
+    }
+    if (sWet > 1e8f || sDry > 1e8f) return false;
+    for (int it = 0; it < 8; it++) {
+        float mid = 0.5f * (sWet + sDry);
+        vec2 q = p + n * mid;
+        if (waterDepth(m, q.x, q.y) > 0.02f) sWet = mid;
+        else sDry = mid;
+    }
+    vec2 q = p + n * sDry;
+    vec2 up = q + n * 6.f;
+    float rise = m.heightAt(up.x, up.y) - m.heightAt(q.x, q.y);
+    if (rise > 1.8f || rise < 0.02f) return false;   // seawalls and flat mud are not beaches
+    if (onRoadOrBuilding(g, q, 6.f, 4.f)) return false;
+    edge = vec3(q, m.heightAt(q.x, q.y));
+    inlandN = n;
+    return true;
+}
+
+// How far up the beach the water reaches at this moment (m from the still-water edge): a slow surge up the sand, a
+// quicker backwash, the waves arriving at an angle along the beach.
+float swashLine(const Group& G, float along, float t) {
+    float ph = t * (kTwoPi / 7.5f) + along * 0.11f + (float)(G.uid % 13u);
+    float s = sinf(ph);
+    return 0.4f + 1.2f * (s >= 0.f ? powf(s, 0.8f) : -powf(-s, 1.4f));
+}
+
+// Sanderlings: a tight little flock running up and down with the swash at the water's edge, probing the wet sand as
+// the water drains away, sprinting ahead of every surge; the flock works its way along the beach and, when flushed,
+// flies low over the surf to settle further along the shore.
+void updateShorebirds(GameWorld& g, int gi, float dt) {
+    Group& G = gW.groups[gi];
+    const FlyParams& fp = flyParams(G.sp);
+    float now = (float)gW.time;
+    G.modeT += dt;
+    G.alarm = Max(0.f, G.alarm - dt);
+    if (G.mode == 0) {   // drifting along the beach while feeding (heading holds the drift direction, +-1)
+        vec2 T(G.shoreN.y, -G.shoreN.x);
+        G.anchor += vec3(T * (G.heading * 0.12f * dt), 0.f);
+        G.timer -= dt;
+        if (G.timer <= 0.f) {
+            G.timer = 4.f;
+            vec3 e;
+            vec2 n;
+            if (findShoreEdge(g, G.anchor.xy(), e, n)) {
+                G.anchor = e;
+                G.shoreN = n;
+            } else {
+                G.heading = -G.heading;   // end of the sand: work back the other way
+            }
+        }
+    }
+    gatherFlyingBoids(G);
+    BoidParams bp;
+    bp.sepDist = 0.7f;
+    bp.viewDist = 5.f;
+    bool flush = false;
+    vec3 from = G.threat;
+    int airborne = 0;
+    for (int ai : G.members) {
+        Animal& a = gW.animals[ai];
+        if (!a.used) continue;
+        a.life += dt;
+        a.t += dt;
+        a.standH = modelOf(a).legLen * a.scale;
+        if (a.state == ST_FALL || a.state == ST_DEAD) {
+            fallStep(g, a, dt);
+            continue;
+        }
+        vec2 N = G.shoreN, T(N.y, -N.x);
+        float along = (birdHash(a, 41) - 0.5f) * 9.f + 2.f * sinf(a.life * 0.05f + birdHash(a, 42) * 6.f);
+        float behind = 0.25f + birdHash(a, 43) * 1.1f;
+        switch (a.state) {
+            case ST_IDLE: case ST_WALK: {
+                a.think -= dt;
+                if (a.think <= 0.f && G.mode == 0) {
+                    a.think = 0.2f + frand() * 0.2f;
+                    bool gun = false;
+                    vec3 fr;
+                    if (scareLevel(a.pos, 1.1f, &fr, &gun) < 1.f) {
+                        flush = true;
+                        from = fr;
+                        if (gun) G.alarm = Max(G.alarm, 8.f);
+                    }
+                }
+                float swash = swashLine(G, along, now), swashNext = swashLine(G, along, now + 0.3f);
+                vec2 goal = G.anchor.xy() + T * along + N * (swash + behind);
+                vec2 d = goal - a.pos.xy();
+                float dist = length(d);
+                float spd = dist > 0.2f ? Min(2.6f, dist * 2.5f) : 0.f;
+                groundStep(g, a, dist > 0.01f ? d / dist * spd : vec2(0.f), dt, 16.f, 16.f, 0.04f, 1);
+                float sp = length(a.vel.xy());
+                a.state = sp > 0.1f ? ST_WALK : ST_IDLE;
+                perchedAnim(a, dt, false);
+                a.ba.walkAmt = Lerp(a.ba.walkAmt, Saturate(sp / 0.4f), expDecay(12.f, dt));
+                a.ba.walk += dt * kTwoPi * (2.f + sp * 5.5f);   // the legs blur when they sprint
+                bool draining = swashNext < swash;               // probe the wet sand behind the backwash
+                float probe = sp < 0.15f && draining && sinf(a.life * 13.f + birdHash(a, 44) * 9.f) > 0.1f ? 1.f : 0.f;
+                a.ba.peck = Lerp(a.ba.peck, probe, expDecay(18.f, dt));
+                if (sp < 0.1f) a.yaw = approachAngle(a.yaw, yawOf(-N) + (birdHash(a, 45) - 0.5f), 4.f * dt);
+                break;
+            }
+            case ST_TAKEOFF: case ST_FLY: {
+                airborne++;
+                if (a.t < 0.f) {   // staggered start
+                    perchedAnim(a, dt, false);
+                    break;
+                }
+                if (a.state == ST_TAKEOFF && a.t > 0.35f) a.state = ST_FLY;
+                // low over the surf towards the new stretch of beach, a tight twinkling flock
+                vec3 goal = vec3(G.target.xy() + T * (along * 0.6f) - N * 2.5f, G.target.z + 1.4f + 0.5f * sinf(a.life * 1.3f + birdHash(a, 46) * 6.f));
+                vec3 steer = (normalize(goal - a.pos + vec3(0.001f, 0, 0)) * fp.cruise - a.vel) * 2.f;
+                for (int q = 0; q < (int)gBoid.idx.size(); q++)
+                    if (gBoid.idx[q] == ai) {
+                        steer += boidSteer(gBoid.pos.data(), gBoid.vel.data(), (int)gBoid.pos.size(), q, bp) * 2.f;
+                        break;
+                    }
+                flyStep(g, a, steer, dt, fp, 0.8f, fp.minSpd);
+                a.ba.tail = 0.f;
+                if (length(goal.xy() - a.pos.xy()) < 6.f) {
+                    a.state = ST_LAND;
+                    a.t = 0.f;
+                }
+                break;
+            }
+            case ST_LAND: {
+                airborne++;
+                vec2 gp = G.target.xy() + T * along + N * (swashLine(G, along, now) + behind);
+                vec3 goal(gp, groundAt(g, gp.x, gp.y, G.target.z + 2.f) + a.standH);
+                vec3 to = goal - a.pos;
+                float dist = length(to);
+                vec3 wantV = dist > 0.01f ? to / dist * Min(fp.cruise, dist * 1.5f + 0.8f) : vec3(0.f);
+                FlyParams lp = fp;
+                lp.accel *= 2.f;
+                flyStep(g, a, (wantV - a.vel) * 4.f, dt, lp, 0.f, 0.3f);
+                float fl = Saturate(1.f - dist / 3.f);
+                a.ba.flare = fl;
+                a.ba.tail = fl;
+                a.ba.legs = fl;
+                if (dist < 0.3f || a.t > 8.f) {
+                    a.pos = goal;
+                    a.vel = vec3(0.f);
+                    a.state = ST_WALK;
+                    a.t = 0.f;
+                    a.pitch = a.roll = 0.f;
+                }
+                break;
+            }
+            default: a.state = ST_WALK; break;
+        }
+    }
+    if (flush && G.mode == 0) {
+        // settle 35-90 m further along the beach, away from the disturbance (the other way if there is no beach)
+        vec2 N = G.shoreN, T(N.y, -N.x);
+        float dir = dot(G.anchor.xy() - from.xy(), T) >= 0.f ? 1.f : -1.f;
+        vec3 e = G.anchor;
+        vec2 n = N;
+        bool ok = false;
+        for (int k = 0; k < 4 && !ok; k++) {
+            float dd = (k < 2 ? dir : -dir) * frange(35.f, 90.f);
+            ok = findShoreEdge(g, G.anchor.xy() + T * dd, e, n);
+        }
+        if (!ok) {   // nowhere else on this beach: a loop out over the surf and back to the same spot
+            e = G.anchor;
+            n = N;
+        }
+        G.target = e;
+        G.anchor = e;
+        G.shoreN = n;
+        G.heading = dir;
+        G.mode = 1;
+        G.modeT = 0.f;
+        for (int aj : G.members) {
+            Animal& b = gW.animals[aj];
+            if (b.used && (b.state == ST_IDLE || b.state == ST_WALK)) {
+                b.state = ST_TAKEOFF;
+                b.t = -frand() * 0.25f;
+            }
+        }
+        sfx(Audio::SFX_WING_FLAP, G.members.empty() ? G.anchor : gW.animals[G.members[0]].pos, 0.6f, 1.6f);
+        if (frand() < 0.7f) sfx(Audio::SFX_PARROT_SQUAWK, G.members.empty() ? G.anchor : gW.animals[G.members[0]].pos, 0.25f, 2.1f);   // soft twick calls
+    } else if (G.mode == 1 && airborne == 0 && G.modeT > 1.f) {
+        G.mode = 0;
+        G.timer = 0.f;
+    }
+}
+
+// ---- Cattle egrets ---------------------------------------------------------------------------------------------------
+// Small white herons that keep company with grazing cattle: they walk at the cows' front feet snapping up the insects
+// the cattle stir up, now and then ride on a back, hop along in short flights when the herd moves on, and flush
+// together when something scares them, circling before they settle back among the herd.
+const FlockCfg kCattleEgretCfg = {1.5f, 8.f, 10.f, 22.f, 5.f, 12.f, 6.f, 14.f, 1e9f, 1e9f, 6.f, 0.f, false, false, true, 0.6f};
+
+void updateCattleEgrets(GameWorld& g, int gi, float dt) {
+    Group& G = gW.groups[gi];
+    const FlyParams& fp = flyParams(G.sp);
+    const Group* H = nullptr;
+    if (G.host >= 0 && G.host < (int)gW.groups.size() && gW.groups[G.host].used && gW.groups[G.host].uid == G.hostUid) H = &gW.groups[G.host];
+    G.alarm = Max(0.f, G.alarm - dt);
+    G.modeT += dt;
+    if (H) {   // follow the herd: its centroid is the flock's home, landing spots lie in front of the cows
+        vec3 c(0.f);
+        int n = 0;
+        for (int ci : H->members) {
+            const Animal& cw = gW.animals[ci];
+            if (cw.used && cw.state != ST_DEAD && cw.state != ST_FALL) {
+                c += cw.pos;
+                n++;
+            }
+        }
+        if (n) G.anchor = c / (float)n;
+    } else if (!g.inCameraView(G.anchor + vec3(0, 0, 1.f), 8.f)) {   // the herd is gone: leave once nobody is looking
+        releaseGroup(gi);
+        return;
+    }
+    G.target = G.anchor;
+    G.timer -= dt;
+    if (G.timer <= 0.f) {
+        G.timer = 2.f;
+        G.perches.clear();
+        if (H)
+            for (int ci : H->members) {
+                const Animal& cw = gW.animals[ci];
+                if (!cw.used || cw.state == ST_DEAD) continue;
+                vec2 f = dirOf(cw.yaw);
+                vec2 p = cw.pos.xy() + f * (1.4f * cw.scale + frand()) + vec2(f.y, -f.x) * frange(-1.2f, 1.2f);
+                G.perches.push_back({vec3(p, groundAt(g, p.x, p.y, cw.pos.z + 2.f)), 0});
+            }
+        if (G.perches.empty()) {
+            vec2 p = G.anchor.xy() + gW.rng.inCircle() * 6.f;
+            G.perches.push_back({vec3(p, groundAt(g, p.x, p.y, G.anchor.z + 2.f)), 0});
+        }
+    }
+    FlockCtx fc;
+    fc.cfg = kCattleEgretCfg;
+    fc.fp = &fp;
+    fc.bp.sepDist = 1.5f;
+    fc.bp.viewDist = 8.f;
+    fc.baseZ = G.anchor.z;
+    gatherFlyingBoids(G);
+    int flying = 0;
+    for (int ai : G.members) {
+        Animal& a = gW.animals[ai];
+        if (!a.used) continue;
+        a.standH = modelOf(a).legLen * a.scale;
+        if (a.state == ST_FALL || a.state == ST_DEAD) {
+            a.life += dt;
+            fallStep(g, a, dt);
+            continue;
+        }
+        bool inAir = a.state == ST_TAKEOFF || a.state == ST_FLY || a.state == ST_LAND;
+        if (inAir && a.aux2 < 0.5f) {   // flushed: circling with the flock (shared flock code)
+            flying++;
+            flockBirdStep(g, gi, ai, dt, fc);
+            continue;
+        }
+        a.life += dt;
+        a.t += dt;
+        // the cow this egret keeps company with
+        const Animal* cow = nullptr;
+        if (H && a.target >= 0 && a.target < (int)gW.animals.size()) {
+            const Animal& c = gW.animals[a.target];
+            if (c.used && c.uid == a.targetUid && c.group == G.host && c.state != ST_DEAD && c.state != ST_FALL) cow = &c;
+        }
+        if (!cow && H && !H->members.empty()) {
+            int ci = H->members[(size_t)(gW.rng.next() % H->members.size())];
+            const Animal& c = gW.animals[ci];
+            if (c.used && c.state != ST_DEAD && c.state != ST_FALL) {
+                a.target = ci;
+                a.targetUid = c.uid;
+                cow = &c;
+                a.aux = frand() < 0.15f ? 1.f : 0.f;   // some want a ride
+            }
+        }
+        bool fleeingCow = cow && (cow->state == ST_FLEE || length(cow->vel.xy()) > 2.5f);
+        if (a.aux > 0.5f && (fleeingCow || G.alarm > 0.f)) a.aux = 0.f;
+        vec3 goal = a.pos;
+        if (cow) {
+            vec2 f = dirOf(cow->yaw), side(f.y, -f.x);
+            if (a.aux > 0.5f) {   // on the back, between the withers and the hips
+                vec2 p = cow->pos.xy() + f * ((birdHash(a, 32) - 0.6f) * 0.5f * cow->scale);
+                goal = vec3(p, cow->pos.z + modelOf(*cow).legLen * cow->scale * 0.97f + a.standH);
+            } else {
+                float len = speciesInfo(SP_COW).length * cow->scale;
+                float sgn = birdHash(a, 31) < 0.5f ? -1.f : 1.f;
+                vec2 p = cow->pos.xy() + f * (len * 0.45f + 0.4f + 0.6f * birdHash(a, 33)) + side * (sgn * (0.5f + 0.8f * birdHash(a, 34)));
+                goal = vec3(p, groundAt(g, p.x, p.y, cow->pos.z + 2.f) + a.standH);
+            }
+        }
+        if (inAir) {   // a short hop to catch up with the cow (or onto its back)
+            flying++;
+            a.goal = goal;
+            if (a.state == ST_TAKEOFF && a.t > 0.25f) a.state = ST_FLY;
+            vec3 to = goal - a.pos;
+            float d = length(to);
+            vec3 wantV = d > 0.01f ? to / d * Min(fp.cruise * 0.7f, d * 1.6f + 0.8f) : vec3(0.f);
+            if (d > 3.f) wantV.z += 1.2f;   // a low arc
+            FlyParams lp = fp;
+            lp.accel *= 2.f;
+            flyStep(g, a, (wantV - a.vel) * 3.f, dt, lp, 0.f, 0.3f);
+            float fl = Saturate(1.f - d / 2.5f);
+            a.ba.flare = fl;
+            a.ba.legs = fl;
+            a.ba.tail = fl;
+            if (fl > 0.2f) a.ba.flapAmp = Lerp(a.ba.flapAmp, 1.1f, expDecay(6.f, dt));
+            if (d < 0.3f || a.t > 10.f) {
+                a.pos = goal;
+                a.vel = vec3(0.f);
+                a.state = ST_IDLE;
+                a.t = 0.f;
+                a.aux2 = 0.f;
+                a.pitch = a.roll = 0.f;
+                if (a.aux > 0.5f) a.aux = 2.f;   // settled on the back
+            }
+            continue;
+        }
+        // on the ground (or riding)
+        if (a.perch >= 0) releasePerch(a);
+        a.think -= dt;
+        if (a.think <= 0.f) {
+            a.think = 0.2f + frand() * 0.2f;
+            bool gun = false;
+            vec3 fr;
+            if (scareLevel(a.pos, 0.9f, &fr, &gun) < 1.f) {   // the whole group flushes and circles
+                G.alarm = gun ? 15.f : 6.f;
+                G.threat = fr;
+                G.mode = 1;
+                G.modeT = 0.f;
+                for (int aj : G.members) {
+                    Animal& b = gW.animals[aj];
+                    if (b.used && (b.state == ST_IDLE || b.state == ST_WALK)) {
+                        b.aux2 = 0.f;
+                        if (b.aux > 0.5f) b.aux = 0.f;
+                        startTakeoff(b, frand() * 0.4f);
+                    }
+                }
+                sfx(Audio::SFX_WING_FLAP, a.pos, 0.8f);
+                continue;
+            }
+        }
+        if (a.aux > 1.5f && cow) {   // riding: carried along on the back
+            a.pos = goal;
+            a.vel = cow->vel;
+            a.yaw = approachAngle(a.yaw, cow->yaw + (birdHash(a, 35) - 0.5f) * 1.2f, 2.f * dt);
+            a.state = ST_IDLE;
+            perchedAnim(a, dt, false);
+            a.ba.neck = Lerp(a.ba.neck, -0.45f, expDecay(3.f, dt));
+            if (frand() < dt * 0.02f) a.aux = 0.f;   // hop down after a while
+            continue;
+        }
+        vec2 d = goal.xy() - a.pos.xy();
+        float dist = length(d);
+        bool hop = dist > 7.f || (a.aux > 0.5f && dist < 3.f);   // too far behind, or right next to the cow it wants to ride
+        if (hop && cow) {
+            a.aux2 = 1.f;
+            a.state = ST_TAKEOFF;
+            a.t = 0.f;
+            a.vel = vec3(0.f, 0.f, 1.5f);
+            continue;
+        }
+        float spd = dist > 0.3f ? Min(0.9f, dist * 1.2f) : 0.f;
+        groundStep(g, a, dist > 0.01f ? d / dist * spd : vec2(0.f), dt, 3.f, 6.f, 0.06f, 0);
+        float sp = length(a.vel.xy());
+        a.state = sp > 0.08f ? ST_WALK : ST_IDLE;
+        perchedAnim(a, dt, false);
+        a.ba.walkAmt = Lerp(a.ba.walkAmt, Saturate(sp / 0.4f), expDecay(8.f, dt));
+        a.ba.walk += dt * kTwoPi * (1.2f + sp * 2.f);
+        float strike = sinf(a.life * 2.3f + birdHash(a, 36) * 9.f) > 0.82f ? 1.f : 0.f;   // quick jabs at insects
+        a.ba.peck = Lerp(a.ba.peck, strike, expDecay(14.f, dt));
+        a.ba.neck = Lerp(a.ba.neck, -0.35f * (1.f - a.ba.peck), expDecay(3.f, dt));   // the hunched, short-necked look
+        if (sp < 0.08f && cow) a.yaw = approachAngle(a.yaw, yawOf(cow->pos.xy() - a.pos.xy()), 3.f * dt);
+    }
+    if (G.mode == 2 && flying == 0) {
+        G.mode = 0;
+        G.modeT = 0.f;
     }
 }
 
@@ -3074,6 +3546,11 @@ const TypeRule kRules[GT_COUNT] = {
     {70.f, 240.f, 380.f, 2},    // deer
     {70.f, 280.f, 470.f, 2},    // cattle
     {70.f, 280.f, 470.f, 1},    // horses
+    {40.f, 220.f, 380.f, 3},    // sanderlings
+    {35.f, 170.f, 280.f, 2},    // grackles
+    {150.f, 650.f, 1300.f, 1},  // frigatebirds
+    {60.f, 300.f, 550.f, 2},    // cormorants
+    {70.f, 280.f, 470.f, 2},    // cattle egrets (with a cattle herd)
 };
 
 inline bool dayTime(float a = 7.f, float b = 19.f) { return gW.tod >= a && gW.tod <= b; }
@@ -3108,18 +3585,22 @@ int spawnFlock(GameWorld& g, GroupType t, int sp, vec3 anchor, int count, bool a
     int gi = newGroup(t, sp, anchor);
     if (gi < 0) return -1;
     Group& G = gW.groups[gi];
-    G.radius = sp == SP_PIGEON ? 12.f : 60.f;
-    bool pigeons = sp == SP_PIGEON;
-    findPerches(g, G, pigeons ? 10.f : 55.f, pigeons ? count + 6 : count + 8, true, !pigeons, !pigeons, !pigeons, false);
+    bool pigeons = sp == SP_PIGEON, grackles = sp == SP_GRACKLE, cormorants = sp == SP_CORMORANT;
+    G.radius = pigeons ? 12.f : (grackles ? 16.f : (cormorants ? 40.f : 60.f));
+    if (pigeons) findPerches(g, G, 10.f, count + 6, true, false, false, false, false);
+    else if (grackles) findPerches(g, G, 18.f, count + 8, true, false, true, true, true);        // lots, lamps, roofs, palms
+    else if (cormorants) findPerches(g, G, 45.f, count + 6, false, true, true, true, false);     // pilings, rails, the water
+    else findPerches(g, G, 55.f, count + 8, true, true, true, true, false);
     G.timer = frange(60.f, 150.f);
     for (int k = 0; k < count; k++) {
         int var = 0;
         if (sp == SP_GULL) var = frand() < 0.4f ? 1 : 0;
         if (sp == SP_PIGEON) var = frand() < 0.6f ? 0 : (frand() < 0.65f ? 1 : 2);
+        if (sp == SP_GRACKLE) var = frand() < 0.55f ? 0 : 1;   // glossy males, smaller brown females
         int ai = newAnimal(gi, sp, var, anchor, frand() * kTwoPi);
         if (ai < 0) break;
         Animal& a = gW.animals[ai];
-        a.scale = (sp == SP_GULL && var == 1 ? 0.78f : 1.f) * frange(0.92f, 1.08f);
+        a.scale = (sp == SP_GULL && var == 1 ? 0.78f : (sp == SP_GRACKLE && var == 1 ? 0.8f : 1.f)) * frange(0.92f, 1.08f);
         bool fly = airborne ? frand() < 0.65f : false;
         if (!fly) {
             a.perch = pickPerch(G, anchor, ai, false);
@@ -3186,21 +3667,80 @@ int spawnWaders(GameWorld& g, int sp, vec3 spot, int count) {
     return gi;
 }
 
-int spawnVultures(GameWorld& g, vec3 anchor, int count) {
-    int gi = newGroup(GT_VULTURES, SP_VULTURE, anchor);
+// Soaring birds circling in thermals: vultures over open country, frigatebirds over the coast
+int spawnSoarers(GameWorld& g, GroupType t, int sp, vec3 anchor, int count) {
+    int gi = newGroup(t, sp, anchor);
     if (gi < 0) return -1;
     Group& G = gW.groups[gi];
     G.timer = frange(60.f, 150.f);
-    int var = frand() < 0.35f ? 1 : 0;
+    int var = sp == SP_VULTURE && frand() < 0.35f ? 1 : 0;
     for (int k = 0; k < count; k++) {
-        int ai = newAnimal(gi, SP_VULTURE, var, anchor, frand() * kTwoPi);
+        if (sp == SP_FRIGATE) var = frand() < 0.5f ? 0 : 1;
+        int ai = newAnimal(gi, sp, var, anchor, frand() * kTwoPi);
         if (ai < 0) break;
         Animal& a = gW.animals[ai];
         float ang = frand() * kTwoPi;
-        a.pos = anchor + vec3(cosf(ang) * 45.f, sinf(ang) * 45.f, frange(60.f, 150.f));
+        a.pos = anchor + vec3(cosf(ang) * 45.f, sinf(ang) * 45.f, sp == SP_FRIGATE ? frange(30.f, 90.f) : frange(60.f, 150.f));
         a.vel = vec3(-sinf(ang) * 10.f, cosf(ang) * 10.f, 0.f);
         a.state = ST_FLY;
         a.scale = frange(0.95f, 1.05f);
+    }
+    return gi;
+}
+
+int spawnVultures(GameWorld& g, vec3 anchor, int count) { return spawnSoarers(g, GT_VULTURES, SP_VULTURE, anchor, count); }
+
+int spawnShorebirds(GameWorld& g, vec3 edge, vec2 inlandN, int count) {
+    int gi = newGroup(GT_SHOREBIRDS, SP_SANDPIPER, edge);
+    if (gi < 0) return -1;
+    Group& G = gW.groups[gi];
+    G.shoreN = inlandN;
+    G.heading = frand() < 0.5f ? -1.f : 1.f;   // drift direction along the beach
+    G.timer = 4.f;
+    vec2 T(inlandN.y, -inlandN.x);
+    for (int k = 0; k < count; k++) {
+        int ai = newAnimal(gi, SP_SANDPIPER, 0, edge, yawOf(-inlandN) + frange(-0.8f, 0.8f));
+        if (ai < 0) break;
+        Animal& a = gW.animals[ai];
+        a.scale = frange(0.92f, 1.08f);
+        a.standH = modelOf(a).legLen * a.scale;
+        vec2 p = edge.xy() + T * ((birdHash(a, 41) - 0.5f) * 9.f) + inlandN * (0.6f + birdHash(a, 43) * 1.1f);
+        a.pos = vec3(p, groundAt(g, p.x, p.y, edge.z + 2.f) + a.standH);
+        a.state = ST_WALK;
+        a.ba.fold = 1.f;
+        a.ba.legs = 1.f;
+    }
+    return gi;
+}
+
+int spawnCattleEgrets(GameWorld& g, int herd, int count) {
+    if (herd < 0 || herd >= (int)gW.groups.size() || !gW.groups[herd].used || gW.groups[herd].members.empty()) return -1;
+    u32 hostUid = gW.groups[herd].uid;
+    std::vector<int> cows = gW.groups[herd].members;   // copies: allocating groups / animals may move the arrays
+    vec3 c0 = gW.animals[cows[0]].pos;
+    int gi = newGroup(GT_CEGRETS, SP_CEGRET, c0);
+    if (gi < 0) return -1;
+    gW.groups[gi].host = herd;
+    gW.groups[gi].hostUid = hostUid;
+    for (int k = 0; k < count; k++) {
+        int ci = cows[(size_t)k % cows.size()];
+        vec3 cp = gW.animals[ci].pos;
+        float cyaw = gW.animals[ci].yaw, cs = gW.animals[ci].scale;
+        u32 cuid = gW.animals[ci].uid;
+        vec2 f = dirOf(cyaw);
+        vec2 p = cp.xy() + f * (1.4f * cs + frand()) + vec2(f.y, -f.x) * frange(-1.f, 1.f);
+        int ai = newAnimal(gi, SP_CEGRET, 0, vec3(p, cp.z), yawOf(cp.xy() - p));
+        if (ai < 0) break;
+        Animal& a = gW.animals[ai];
+        a.scale = frange(0.92f, 1.06f);
+        a.standH = modelOf(a).legLen * a.scale;
+        a.pos.z = groundAt(g, p.x, p.y, cp.z + 2.f) + a.standH;
+        a.state = ST_IDLE;
+        a.target = ci;
+        a.targetUid = cuid;
+        a.aux = frand() < 0.15f ? 1.f : 0.f;
+        a.ba.fold = 1.f;
+        a.ba.legs = 1.f;
     }
     return gi;
 }
@@ -3375,6 +3915,10 @@ int trySpawn(GameWorld& g, GroupType t, bool warm) {
         case GT_RACCOON: if (dayTime(5.5f, 20.5f)) return -1; break;
         case GT_DOG_LEASH: if (!dayTime(6.5f, 21.5f) || rainy) return -1; break;
         case GT_WADERS: if (!dayTime(6.f, 20.f)) return -1; break;
+        case GT_GRACKLES: if (!dayTime(6.5f, 19.5f) || rainy) return -1; break;
+        case GT_FRIGATES: if (!dayTime(8.f, 18.5f) || gW.rain > 0.3f) return -1; break;
+        case GT_CORMORANTS: if (!dayTime(6.f, 20.f)) return -1; break;
+        case GT_CEGRETS: if (!dayTime(6.5f, 19.5f)) return -1; break;
         case GT_FISH: {
             float wz;
             bool nearWater = false;
@@ -3583,6 +4127,49 @@ int trySpawn(GameWorld& g, GroupType t, bool warm) {
                 }
                 break;
             }
+            case GT_SHOREBIRDS: {
+                bool ok = reg == World::REG_BEACH || reg == World::REG_KEYS || reg == World::REG_KEY_CORAL || reg == World::REG_KEY_TOWN || reg == World::REG_GULF_TOWN;
+                if (!ok || sd < -20.f || sd > 40.f) break;
+                vec3 edge;
+                vec2 n;
+                if (!findShoreEdge(g, p, edge, n)) break;
+                if (seen && length(edge.xy() - focus) < 120.f) break;
+                if (siteNear(edge.xy(), 25.f, {World::SK_BEACH_PIER, World::SK_MARINA, World::SK_DOCK, World::SK_QUAY})) break;
+                return spawnShorebirds(g, edge, n, (int)frange(6.f, 18.99f));
+            }
+            case GT_GRACKLES: {
+                if (!(urbanRegion(reg) || suburbRegion(reg) || reg == World::REG_BEACH || reg == World::REG_KEY_TOWN)) break;
+                float rz;
+                if (g.roads->surfaceHeight(p, &rz) || g.buildings->pointInBuilding(p, 1.f) || waterDepth(*g.map, p.x, p.y) > 0.f) break;
+                if (!g.roads->nearRoad(p, 15.f)) break;   // parking lots and verges
+                if (seen && r < 90.f) break;
+                return spawnFlock(g, GT_GRACKLES, SP_GRACKLE, vec3(p, groundAt(g, p.x, p.y, g.map->heightAt(p.x, p.y) + 3.f)), (int)frange(5.f, 14.99f), false);
+            }
+            case GT_FRIGATES: {
+                if (sd < -350.f || sd > 80.f) break;
+                return spawnSoarers(g, GT_FRIGATES, SP_FRIGATE, vec3(p, 0.f), (int)frange(1.f, 5.99f));
+            }
+            case GT_CORMORANTS: {
+                const World::SiteElem* site = siteNear(p, 220.f, {World::SK_MARINA, World::SK_DOCK, World::SK_QUAY, World::SK_RIVER_MARINA, World::SK_BEACH_PIER});
+                vec2 a;
+                if (site) a = site->c + gW.rng.inCircle() * 20.f;
+                else if (reg == World::REG_SAWGRASS && waterDepth(*g.map, p.x, p.y) > 1.2f) a = p;
+                else break;
+                if (seen && length(a - focus) < 120.f) break;
+                return spawnFlock(g, GT_CORMORANTS, SP_CORMORANT, vec3(a, spawnHeight(g, a)), (int)frange(2.f, 7.99f), false);
+            }
+            case GT_CEGRETS: {   // join a cattle herd that has no egrets yet
+                for (int hi = 0; hi < (int)gW.groups.size(); hi++) {
+                    const Group& H = gW.groups[hi];
+                    if (!H.used || H.type != GT_CATTLE || H.members.empty()) continue;
+                    bool has = false;
+                    for (const Group& E : gW.groups) has |= E.used && E.type == GT_CEGRETS && E.host == hi && E.hostUid == H.uid;
+                    if (has || frand() < 0.3f) continue;
+                    if (!warm && g.inCameraView(H.center + vec3(0, 0, 1.f), 6.f) && length(H.center.xy() - focus) < 80.f) continue;
+                    return spawnCattleEgrets(g, hi, (int)frange(2.f, 6.99f));
+                }
+                return -1;
+            }
             case GT_DEER: case GT_CATTLE: case GT_HORSES: {
                 int sp = t == GT_DEER ? SP_DEER : (t == GT_CATTLE ? SP_COW : SP_HORSE);
                 bool ok;
@@ -3777,7 +4364,8 @@ LodDist lodDist(int sp) {
     switch (si.plan) {
         case PLAN_BIRD: {
             float s = Max(si.wingspan, 0.5f);
-            float draw = sp == SP_VULTURE ? 1500.f : (sp == SP_PIGEON ? 380.f : (sp == SP_PARROT ? 420.f : 950.f));
+            float draw = sp == SP_VULTURE || sp == SP_FRIGATE ? 1500.f
+                                                               : (sp == SP_PIGEON || sp == SP_SANDPIPER || sp == SP_GRACKLE ? 380.f : (sp == SP_PARROT ? 420.f : 950.f));
             return {Clamp(s * 22.f, 14.f, 45.f), Clamp(s * 120.f, 90.f, 260.f), draw, 30.f};
         }
         case PLAN_QUAD: return {si.length * 12.f + 15.f, 0.f, sp == SP_CAT || sp == SP_RACCOON ? 150.f : (sp == SP_DOG ? 230.f : 500.f), 60.f};
@@ -3925,6 +4513,8 @@ void submitAll(GameWorld& g) {
 // Group dispatch
 const FlockCfg kGullCfg = {3.f, 14.f, 18.f, 55.f, 8.f, 30.f, 20.f, 70.f, 15.f, 60.f, 8.f, 1.f / 45.f, true, true, false, 0.7f};
 const FlockCfg kPigeonCfg = {1.1f, 8.f, 10.f, 22.f, 7.f, 15.f, 8.f, 14.f, 1e9f, 1e9f, 3.5f, 0.f, true, false, true, 0.45f};
+const FlockCfg kGrackleCfg = {1.2f, 8.f, 8.f, 20.f, 6.f, 14.f, 5.f, 15.f, 20.f, 90.f, 4.f, 0.f, true, false, false, 0.8f};
+const FlockCfg kCormorantCfg = {2.5f, 10.f, 20.f, 60.f, 3.f, 10.f, 15.f, 40.f, 60.f, 240.f, 10.f, 0.f, false, true, false, 0.5f};
 
 void frozenStep(Animal& a, float dt) {
     a.life += dt;
@@ -3946,6 +4536,11 @@ void updateGroup(GameWorld& g, int gi, float dt) {
     switch (G.type) {
         case GT_GULLS: updateFlockBirds(g, gi, dt, kGullCfg); break;
         case GT_PIGEONS: updateFlockBirds(g, gi, dt, kPigeonCfg); break;
+        case GT_GRACKLES: updateFlockBirds(g, gi, dt, kGrackleCfg); break;
+        case GT_CORMORANTS: updateFlockBirds(g, gi, dt, kCormorantCfg); break;
+        case GT_SHOREBIRDS: updateShorebirds(g, gi, dt); break;
+        case GT_CEGRETS: updateCattleEgrets(g, gi, dt); break;
+        case GT_FRIGATES: updateVultures(g, gi, dt); break;
         case GT_PELICANS: updatePelicans(g, gi, dt); break;
         case GT_WADERS: updateWaders(g, gi, dt); break;
         case GT_VULTURES: updateVultures(g, gi, dt); break;
@@ -3988,6 +4583,7 @@ struct TestCam {
 };
 TestCam gTestCam;
 vec3 gTestSpot;   // scene anchor found in stage A
+vec2 gTestN;      // beach normal (sanderlings)
 
 void clearAll() {
     for (int gi = 0; gi < (int)gW.groups.size(); gi++)
@@ -4052,7 +4648,8 @@ void frozenLineup(GameWorld& g, const std::vector<std::pair<int, int>>& list, ve
 const char* kSceneNames[] = {"wild_gulls_pier", "wild_gulls_close", "wild_pelicans", "wild_pigeons", "wild_pigeons_flush", "wild_sawgrass",
                              "wild_gator_bank", "wild_gator_water", "wild_dolphins", "wild_fish", "wild_dogs", "wild_farm", "wild_deer",
                              "wild_night", "wild_vultures", "wild_lineup_bigbirds", "wild_lineup_smallbirds", "wild_lineup_big",
-                             "wild_lineup_small", "wild_gulls_overhead"};
+                             "wild_lineup_small", "wild_gulls_overhead", "wild_shorebirds", "wild_grackles", "wild_cormorants",
+                             "wild_frigates", "wild_lineup_newbirds"};
 const int kSceneCount = (int)ARRAY_COUNT(kSceneNames);
 
 // Stage A: time, player and camera placement. Returns false to skip the scene.
@@ -4144,14 +4741,64 @@ bool sceneStageA(GameWorld& g, int s) {
             aimCam(gTestSpot + vec3(0, -4.f, 1.7f), gTestSpot, 55.f);
             return true;
         }
-        case 15: case 16: case 17: case 18: {
+        case 15: case 16: case 17: case 18: case 24: {
             setTod(11.f);
             teleportPlayer(g, vec2(3000.f, 300.f));
             float z = g.map->heightAt(3000.f, 318.f);
-            if (s == 15) aimCam(vec3(3000.f, 306.5f, z + 1.3f), vec3(3000.f, 318.f, z + 0.55f), 60.f);
+            if (s == 15 || s == 24) aimCam(vec3(3000.f, 306.5f, z + 1.3f), vec3(3000.f, 318.f, z + 0.55f), 60.f);
             else if (s == 16) aimCam(vec3(3000.f, 313.8f, z + 0.55f), vec3(3000.f, 318.f, z + 0.18f), 55.f);
             else if (s == 17) aimCam(vec3(3000.f, 296.f, z + 3.2f), vec3(3000.f, 318.f, z + 0.8f), 60.f);
             else aimCam(vec3(3000.f, 311.5f, z + 1.1f), vec3(3000.f, 318.f, z + 0.25f), 58.f);
+            return true;
+        }
+        case 20: {   // sanderlings at the water's edge
+            setTod(9.5f);
+            vec2 p, n;
+            vec3 edge;
+            bool found = false;
+            for (int tries = 0; tries < 30 && !found; tries++) {
+                if (!findPoint(g, vec2(5250.f + 97.f * (float)tries, 900.f - 53.f * (float)tries), 500.f, [&](vec2 q) {
+                        float sd = g.map->coastDistance(q.x, q.y);
+                        return sd > -5.f && sd < 12.f && g.map->regionAt(q.x, q.y) == World::REG_BEACH;
+                    }, p))
+                    continue;
+                found = findShoreEdge(g, p, edge, n);
+            }
+            if (!found) return false;
+            gTestSpot = edge;
+            gTestN = n;
+            vec2 T(n.y, -n.x);
+            teleportPlayer(g, edge.xy() + n * 25.f);
+            aimCam(edge + vec3(T * 7.f + n * 3.5f, 1.1f), edge + vec3(n * 0.8f, 0.1f), 50.f);
+            return true;
+        }
+        case 21: {   // grackles strutting on the plaza
+            setTod(12.5f);
+            teleportPlayer(g, vec2(3000.f, 238.f));
+            float z = g.map->heightAt(3000.f, 250.f);
+            aimCam(vec3(2992.f, 248.f, z + 1.4f), vec3(3000.f, 256.f, z + 0.2f), 50.f);
+            return true;
+        }
+        case 22: {   // cormorants on the pilings of a marina
+            setTod(15.5f);
+            const World::SiteElem* site = siteNear(vec2(5600.f, 1240.f), 8000.f, {World::SK_MARINA, World::SK_RIVER_MARINA, World::SK_DOCK});
+            if (!site) return false;
+            gTestSpot = vec3(site->c, spawnHeight(g, site->c));
+            teleportPlayer(g, site->c + vec2(0.f, -20.f));
+            aimCam(gTestSpot + vec3(-14.f, -14.f, 5.f), gTestSpot + vec3(0, 0, 1.f), 55.f);
+            return true;
+        }
+        case 23: {   // frigatebirds hanging over the beach
+            setTod(13.f);
+            vec2 p;
+            if (!findPoint(g, vec2(5250.f, 900.f), 400.f, [&](vec2 q) {
+                    float sd = g.map->coastDistance(q.x, q.y);
+                    return sd > 2.f && sd < 12.f && g.map->regionAt(q.x, q.y) == World::REG_BEACH && !g.roads->nearRoad(q, 30.f);
+                }, p))
+                return false;
+            gTestSpot = vec3(p, g.map->heightAt(p.x, p.y));
+            teleportPlayer(g, p);
+            aimCam(gTestSpot + vec3(0, 0, 1.6f), gTestSpot + vec3(-10.f, 40.f, 45.f), 60.f);
             return true;
         }
         case 19: {
@@ -4172,7 +4819,7 @@ bool sceneStageA(GameWorld& g, int s) {
 }
 
 // After the fast-forward: frame the animals that moved (flocks, pods) from at most maxDist away
-void trackCam(GameWorld& g, float maxDist, float minHeight) {
+void trackCam(GameWorld& g, float maxDist, float minHeight, bool move = true) {
     vec3 c(0.f);
     int n = 0;
     for (const Animal& a : gW.animals)
@@ -4185,7 +4832,7 @@ void trackCam(GameWorld& g, float maxDist, float minHeight) {
     vec3 away = gTestCam.pos - c;
     float d = length(away);
     vec3 eye = gTestCam.pos;
-    if (d > maxDist) eye = c + away * (maxDist / d);
+    if (d > maxDist && move) eye = c + away * (maxDist / d);
     float floorZ = Max(g.map->heightAt(eye.x, eye.y), g.map->waterAt(eye.x, eye.y));
     eye.z = Max(eye.z, floorZ + minHeight);
     aimCam(eye, c, gTestCam.fov * kRadToDeg);
@@ -4300,10 +4947,12 @@ int sceneStageB(GameWorld& g, int s) {
             spawnDogPack(g, vec3(gTestSpot.xy() + f * 9.f + vec2(f.y, -f.x) * 5.f, gTestSpot.z), 2);
             return 45;
         }
-        case 11:
-            spawnHerd(g, GT_CATTLE, SP_COW, gTestSpot, 8);
+        case 11: {
+            int herd = spawnHerd(g, GT_CATTLE, SP_COW, gTestSpot, 8);
+            if (herd >= 0) spawnCattleEgrets(g, herd, 5);
             spawnHerd(g, GT_HORSES, SP_HORSE, gTestSpot + vec3(10.f, -8.f, 0.f), 3);
             return 90;
+        }
         case 12: spawnHerd(g, GT_DEER, SP_DEER, gTestSpot, 5); return 60;
         case 13: {
             // a dumpster near the player for the raccoons, and a cat
@@ -4350,6 +4999,24 @@ int sceneStageB(GameWorld& g, int s) {
         case 18:
             frozenLineup(g, {{SP_DOG, 0}, {SP_DOG, 1}, {SP_DOG, 2}, {SP_DOG, 3}, {SP_DOG, 4}, {SP_CAT, 0}, {SP_CAT, 1}, {SP_CAT, 2}, {SP_RACCOON, 0}, {SP_IGUANA, 0}},
                          vec2(2996.f, 318.f), vec2(0.9f, 0.f), kPi * 0.5f);
+            return 5;
+        case 20: spawnShorebirds(g, gTestSpot, gTestN, 14); return 90;
+        case 21: {
+            vec2 q(3000.f, 256.f);
+            spawnFlock(g, GT_GRACKLES, SP_GRACKLE, vec3(q, gz(g, q)), 10, false);
+            return 60;
+        }
+        case 22: {
+            int gi = spawnFlock(g, GT_CORMORANTS, SP_CORMORANT, gTestSpot, 7, false);
+            if (gi >= 0)
+                for (int ai : gW.groups[gi].members)
+                    if (gW.animals[ai].state == ST_IDLE) gW.animals[ai].aux = 40.f;   // wings out to dry
+            return 45;
+        }
+        case 23: spawnSoarers(g, GT_FRIGATES, SP_FRIGATE, gTestSpot + vec3(-10.f, 60.f, 0.f), 5); return 120;
+        case 24:
+            frozenLineup(g, {{SP_SANDPIPER, 0}, {SP_GRACKLE, 0}, {SP_GRACKLE, 1}, {SP_CEGRET, 0}, {SP_CORMORANT, 0}, {SP_FRIGATE, 0}, {SP_FRIGATE, 1}},
+                         vec2(2997.f, 318.f), vec2(1.0f, 0.f), kPi);
             return 5;
         case 19: {
             int gi = spawnFlock(g, GT_GULLS, SP_GULL, gTestSpot + vec3(4.f, 22.f, -6.f), 20, true);
@@ -4399,6 +5066,8 @@ void testUpdate(GameWorld& g) {
             if (s == 0) trackCam(g, 38.f, 2.f);
             if (s == 2) trackCam(g, 30.f, 3.f);
             if (s == 14) trackCam(g, 70.f, 2.f);
+            if (s == 22) trackCam(g, 22.f, 2.f);
+            if (s == 23) trackCam(g, 0.f, 1.5f, false);
             if (s == 8)   // a couple of dolphins mid-leap for the shot
                 for (const Group& G : gW.groups)
                     if (G.used && G.type == GT_DOLPHINS)
@@ -4543,8 +5212,7 @@ bool bulletHit(GameWorld& g, int shooter, dvec3 from, vec3 dir, float range, flo
     spawnTracer(from, dvec3(hp));
     const SpeciesInfo& si = speciesInfo(a.sp);
     if (si.plan == PLAN_BIRD) {
-        vec3 tint = a.sp == SP_PIGEON ? vec3(0.55f, 0.57f, 0.62f) : (a.sp == SP_VULTURE || a.sp == SP_PELICAN ? vec3(0.3f, 0.26f, 0.22f) : vec3(0.95f));
-        spawnFx(FX_LEAVES, dvec3(hp), -dir, 6, 0.3f, tint);
+        spawnFx(FX_LEAVES, dvec3(hp), -dir, 6, 0.3f, featherTint(a.sp));
     } else {
         spawnFx(FX_BLOOD, dvec3(hp), -dir, 3, 1.f);
         WorldHit h2;
@@ -4562,6 +5230,75 @@ int liveCount() {
     for (const wild_detail::Animal& a : wild_detail::gW.animals) n += a.used;
     return n;
 }
+
+int sightings(const Render::Camera& cam, float maxDist, Sighting* out, int maxOut, float aspect, float minSize) {
+    using namespace wild_detail;
+    if (!out || maxOut <= 0) return 0;
+    vec3 o = cam.pos.toVec3();
+    vec3 f = cam.forward(), r = cam.right(), u = cross(r, f);
+    float tanV = tanf(Clamp(cam.fovY, 0.02f, 2.8f) * 0.5f);
+    aspect = Max(aspect, 0.1f);
+    float cw;
+    bool camUnder = waterAt(o.x, o.y, cw) && o.z < cw;
+    Sighting found[SP_COUNT];
+    for (int k = 0; k < SP_COUNT; k++) found[k] = {k, 0, 0.f, 1.f, 0.f};
+    int rays = 0;
+    for (const Animal& a : gW.animals) {
+        if (!a.used || a.state == ST_DEAD || a.state == ST_FALL) continue;
+        const SpeciesInfo& si = speciesInfo(a.sp);
+        bool grounded = si.plan == PLAN_QUAD || si.plan == PLAN_REPTILE;
+        bool flying = si.plan == PLAN_BIRD && (a.state == ST_FLY || a.state == ST_TAKEOFF || a.state == ST_LAND);
+        float extent = Max(si.length, flying ? si.wingspan : si.height) * a.scale;
+        vec3 c = a.pos + vec3(0.f, 0.f, grounded ? si.height * 0.5f * a.scale : 0.f);
+        float wz;
+        if (waterAt(c.x, c.y, wz)) {
+            if (!camUnder && c.z < wz - 1.2f) continue;   // too deep to see from above the surface
+            if (camUnder && c.z > wz + 0.3f) continue;    // above the surface, seen from below it
+        }
+        vec3 d = c - o;
+        float len = length(d);
+        if (len > maxDist || len < 0.3f) continue;
+        float z = dot(d, f);
+        if (z < 0.3f) continue;
+        float x = dot(d, r) / (z * tanV * aspect), y = dot(d, u) / (z * tanV);
+        if (fabsf(x) > 1.f || fabsf(y) > 1.f) continue;
+        float size = extent / (2.f * z * tanV);
+        if (size < minSize) continue;
+        if (Phys::gCollision && rays < 64) {   // hidden behind walls, trees, terrain?
+            rays++;
+            Phys::RayHit rh;
+            float clear = len - extent * 0.5f;
+            if (clear > 0.2f && Phys::gCollision->raycast(o, d / len, clear, rh, true)) continue;
+        }
+        Sighting& S = found[a.sp];
+        S.count++;
+        if (size > S.size) {
+            S.size = size;
+            S.centre = Max(fabsf(x), fabsf(y));
+            S.dist = len;
+        }
+    }
+    Sighting list[SP_COUNT];
+    int n = 0;
+    for (int k = 0; k < SP_COUNT; k++)
+        if (found[k].count > 0) list[n++] = found[k];
+    std::sort(list, list + n, [](const Sighting& a, const Sighting& b) { return a.size > b.size; });
+    n = Min(n, maxOut);
+    for (int k = 0; k < n; k++) out[k] = list[k];
+    return n;
+}
+
+int visibleSpecies(const Render::Camera& cam, float maxDist, int* outSpecies, int maxOut) {
+    if (!outSpecies || maxOut <= 0) return 0;
+    Sighting list[Fauna::SP_COUNT];
+    int n = sightings(cam, maxDist, list, Min(maxOut, (int)Fauna::SP_COUNT));
+    for (int k = 0; k < n; k++) outSpecies[k] = list[k].species;
+    return n;
+}
+
+const char* speciesName(int species) { return species >= 0 && species < Fauna::SP_COUNT ? Fauna::speciesInfo(species).name : ""; }
+
+int speciesCount() { return Fauna::SP_COUNT; }
 
 }  // namespace Wildlife
 }  // namespace Game

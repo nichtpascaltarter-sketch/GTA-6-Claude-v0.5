@@ -1,7 +1,11 @@
 // Strangers: short side stories with recurring characters, unlocked one part at a time.
-// "Repo Karma" (Dex, below): the nurse whose car Dex repossessed. "Abuela Rosa" (Mari, Calle Luna): Rosa Villanueva, 81, wants her late husband Ernesto's car back from the crooked
+// "Abuela Rosa" (Mari, Calle Luna): Rosa Villanueva, 81, wants her late husband Ernesto's car back from the crooked
 // Sunshine Towing, then a ride to dominoes night past the tow company's trucks, then one last drive to the beach where
 // Ernesto proposed. She gives Mari the car at the end.
+// "Velma" (Dex): the night-shift nurse whose car Dex repossessed. He steals it back, gets her to her shift on time and
+// runs the Coastline Savings collector off her doorstep.
+// "Jaz" (either protagonist): Jazmin Okafor, a Sol Beach influencer. Sunset photo stops against the clock, a stunt jump
+// for her followers, then her stolen phone. Her shout-out raises the income of every business the player owns.
 #include "missions.h"
 
 namespace Game {
@@ -748,6 +752,554 @@ public:
                 break;
             case 2:
                 if (file >= 0 && t.stageTime > 0.5f) t.teleport(g.pickups[file].pos.toVec3(), 0.f);
+                break;
+            default: break;
+        }
+    }
+};
+
+// ==================================================================================================================
+// "Jaz" (either protagonist)
+const u32 kColJaz = 0xffff80e0u;
+
+int jazChar(GameWorld& g) {
+    Anim::CharacterDesc d;
+    d.seed = 0x1A22u;
+    d.gender = Anim::FEMALE;
+    d.height = 1.71f;
+    d.weight = 0.35f;
+    d.muscle = 0.3f;
+    d.age = 0.22f;
+    d.skinTone = vec3(0.32f, 0.2f, 0.13f);
+    d.hairStyle = 9;                          // bob, dyed magenta
+    d.hairColor = vec3(0.55f, 0.12f, 0.4f);
+    d.top = 15;                               // crop top
+    d.topColor = lin(0.98f, 0.82f, 0.18f);
+    d.bottom = 4;                             // skirt
+    d.bottomColor = lin(0.93f, 0.93f, 0.95f);
+    d.shoes = 0;
+    d.shoeColor = lin(0.97f, 0.97f, 0.97f);
+    d.glasses = 0;
+    d.role = 4;
+    return g.namedCharacter("stranger_jaz", d);
+}
+
+void jazSay(GameWorld& g, int ped, const std::string& text, float pause = 0.25f) {
+    DialogueLine l = line("Jaz", text, pedAlive(g, ped) ? ped : -1, kColJaz);
+    Speech::Persona p = Speech::persona("stranger_jaz", true);
+    l.hasVoice = true;
+    l.voice = p.voice;
+    l.spoken = p.tags() + "[bright]" + speakableText(text);
+    l.pause = pause;
+    g.mSay(l);
+}
+
+Place jazSpot(GameWorld& g) { return gPlaces.cafeBeach; }
+
+// Jaz climbs into the player's vehicle when it pulls up next to her (shared by all three parts)
+bool jazRides(GameWorld& g, int jaz) {
+    int pv = g.playerVehicle();
+    if (pv < 0 || !pedAlive(g, jaz)) return false;
+    if (g.peds[jaz].vehicle == pv) return true;
+    if (g.peds[jaz].vehicle < 0 && ::length(pedPos(g, jaz) - vehPos(g, pv)) < 9.f) {
+        int seat = g.freeSeat(pv, false);
+        if (seat > 0) g.warpPedIntoVehicle(jaz, pv, seat);
+    }
+    return g.peds[jaz].vehicle == pv;
+}
+
+// Part 1: "Golden Hour" - three sunset photo stops before the light goes.
+class MissionJazGoldenHour : public StoryMission {
+public:
+    int jaz = -1;
+    Place cafe;
+    std::vector<Place> stops;
+    int stop = 0;
+    float clock = 0.f;
+    const char* title() const override { return "Jaz: Golden Hour"; }
+    const char* brief() const override { return "Tidegram star Jaz Okafor needs three sunset photos before the light goes, and her driver ghosted her."; }
+    long long reward() const override { return 1200; }
+
+    void start(GameWorld& g) override {
+        cafe = jazSpot(g);
+        if (g.env->timeOfDay < 16.5f || g.env->timeOfDay > 19.f) g.env->timeOfDay = 17.4f;   // golden hour
+        score(SC_CHASE, 0.3f, 21);
+        stops = {gPlaces.beachPier, gPlaces.midtownPark, gPlaces.solarisOne};
+        jaz = g.mPed(jazChar(g), dvec3(placeOffset(g, cafe, 1.2f, 1.6f)), cafe.yaw + kPi, FAC_FRIEND);
+        if (jaz >= 0) {
+            g.peds[jaz].voice = Speech::persona("stranger_jaz", true).voice;
+            g.peds[jaz].maxHealth = g.peds[jaz].health = 250.f;
+        }
+        placePlayer(g, placeOffset(g, cafe, -1.4f, 2.6f), cafe.yaw);
+        provideRide(g, cafe, -12.f);
+        vec3 jp = pedPos(g, jaz), mp = playerPos(g);
+        facePed(g, jaz, mp);
+        facePed(g, g.player, jp);
+        std::vector<CutsceneShot> shots;
+        establish(g, shots, jp, cafe.yaw, 26.f, 8.f, 4.f);
+        shots.push_back(shotTwo(jp, mp, 6.f));
+        shots.push_back(shotOver(mp, jp, 5.f));
+        g.mCutscene(shots);
+        jazSay(g, jaz, "[happy]Oh my gosh. You have a car. Perfect. My driver ghosted me and golden hour waits for no one.");
+        sayMe(g, "[calm]Golden hour?");
+        jazSay(g, jaz, "[happy:0.6]The sun is going down. I need three spots before it does. The pier, the park, the Solaris tower. Go go go!");
+    }
+
+    void headToStop(GameWorld& g) {
+        static const char* const kNames[3] = {"Sol Beach Pier", "Midtown Park", "Solaris One"};
+        goTo(g, stops[stop].curb, 6.f, StrFormat("Get Jaz to ~y~%s~s~ while the light lasts.", kNames[Clamp(stop, 0, 2)]), true);
+    }
+
+    MissionStatus update(GameWorld& g, float dt) override {
+        if (allyDown(g, jaz, "Jaz")) return MS_FAILED;
+        bool riding = jazRides(g, jaz);
+        switch (stage) {
+            case 0:
+                if (!g.mInCutscene() && !g.mTalking()) {
+                    setFollow(g, jaz, g.player);
+                    g.mObjective("Get in a car with ~b~Jaz~s~.");
+                    next();
+                }
+                break;
+            case 1:
+                if (riding) {
+                    float total = 0.f;
+                    vec3 at = playerPos(g);
+                    for (const Place& p : stops) {
+                        total += ::length(p.curb - at);
+                        at = p.curb;
+                    }
+                    clock = 50.f + total / 15.f;
+                    jazSay(g, jaz, "[happy]First stop, the pier. The light on the water is everything.");
+                    headToStop(g);
+                    next();
+                }
+                break;
+            case 2: {
+                clock -= dt;
+                g.missionTimerHud = clock;
+                if (clock <= 0.f) return fail("The sun went down. No golden hour, no content.");
+                if (!riding) {
+                    if (g.peds[jaz].vehicle < 0) setFollow(g, jaz, g.player);
+                    if (g.hudHelpTimer <= 0.f) g.help("Jaz needs the ride. Get her into a car.", 2.f);
+                }
+                if (stop == 0 && stageTime > 9.f && stageTime < 9.1f) jazSay(g, jaz, "[happy:0.4]Can you drive, like, more cinematically? Slower on the curves. Faster on the straights.");
+                if (stop == 1 && stageTime > 7.f && stageTime < 7.1f) jazSay(g, jaz, "[calm]Two hundred thousand people are waiting for this sunset. No pressure.");
+                if (stop == 2 && stageTime > 6.f && stageTime < 6.1f) jazSay(g, jaz, "[scared:0.4]The sun is touching the water. Hurry, hurry, hurry!");
+                if (arrived(g) && riding && g.vehicles[g.playerVehicle()].sim.speed() < 4.f) {
+                    clearGoal(g);
+                    g.missionTimerHud = -1.f;
+                    std::vector<CutsceneShot> shots;
+                    shots.push_back(shotVehicle(g, g.playerVehicle(), 2.8f, stop % 2 ? -1.f : 1.f, 42.f));
+                    g.mCutscene(shots);
+                    static const char* const kPose[3] = {"[happy]Hold still. Chin up. Got it!", "[happy:0.5]Palm trees, golden light, a stranger's car. Iconic.",
+                                                         "[happy]Oh, that's the one. That's the cover."};
+                    jazSay(g, jaz, kPose[Clamp(stop, 0, 2)]);
+                    timer = 0.f;
+                    next();
+                }
+                break;
+            }
+            case 3:   // the photo
+                if (stageTime > 0.7f && timer == 0.f) {
+                    timer = 1.f;
+#ifdef HAVE_AUDIO
+                    Audio::play2D(Audio::SFX_CAMERA_SHUTTER, 0.9f);
+#endif
+                }
+                if (timer > 0.f && stageTime < 0.85f + 0.12f) spawnLight(dvec3(pedPos(g, jaz) + vec3(0, 0, 1.5f)), vec3(1.f, 0.97f, 0.9f) * 400.f, 6.f);
+                if (!g.mInCutscene() && !g.mTalking() && stageTime > 1.2f) {
+                    stop++;
+                    if (stop < (int)stops.size()) {
+                        headToStop(g);
+                        setStage(2);
+                    } else {
+                        int pv = g.playerVehicle();
+                        if (pv >= 0) {
+                            g.removePedFromVehicle(jaz, true);
+                            g.removePedFromVehicle(g.player, false);
+                        }
+                        facePed(g, jaz, playerPos(g));
+                        std::vector<CutsceneShot> shots;
+                        shots.push_back(shotTwo(pedPos(g, jaz), playerPos(g), 7.f));
+                        g.mCutscene(shots);
+                        jazSay(g, jaz, "[happy]Two million views by morning, easy. You're in the background of all of them, by the way.");
+                        sayMe(g, "[calm]Great. My face on the internet.");
+                        jazSay(g, jaz, "[happy:0.5]Our face. Follow me. Literally. I'll text you.");
+                        next();
+                    }
+                }
+                break;
+            case 4:
+                if (!g.mInCutscene() && !g.mTalking()) {
+                    setGoto(g, jaz, placeOffset(g, stops.back(), 6.f, 3.f), 1.3f);
+                    return MS_PASSED;
+                }
+                break;
+        }
+        return MS_RUNNING;
+    }
+
+    void finish(GameWorld& g, bool passed) override {
+        (void)passed;
+        g.missionTimerHud = -1.f;
+    }
+
+    void autotest(GameWorld& g, MissionTest& t) override {
+        float dt = g.dtLast;
+        switch (stage) {
+            case 1:
+                if (t.stageTime > 0.5f && rideCar >= 0) {
+                    t.enter(rideCar);
+                    if (g.playerVehicle() >= 0) g.warpPedIntoVehicle(jaz, g.playerVehicle(), 1);
+                }
+                break;
+            case 2:
+                testGoal(g, t, dt, 60.f);
+                if (arrived(g) && g.playerVehicle() >= 0) g.vehicles[g.playerVehicle()].sim.body.vel = vec3(0.f);
+                break;
+            default: break;
+        }
+    }
+};
+
+// Part 2: "Viral" - a stunt ramp jump for Jaz's camera.
+class MissionJazViral : public StoryMission {
+public:
+    int jaz = -1;
+    Place cafe;
+    int ramp = -1;                // index into gRamps (-1: any big jump counts)
+    vec3 runUp, filmSpot, rampFoot;
+    double since = 0.0;           // jumps landed after this time count
+    int tries = 0;
+    float bestDist = 0.f;
+    const char* title() const override { return "Jaz: Viral"; }
+    const char* brief() const override { return "Jaz wants a stunt jump for her followers. A car, a ramp, her camera. What could go wrong."; }
+    long long reward() const override { return 2000; }
+
+    void start(GameWorld& g) override {
+        cafe = jazSpot(g);
+        score(SC_CHASE, 0.45f, 21);
+        jaz = g.mPed(jazChar(g), dvec3(placeOffset(g, cafe, 1.2f, 1.6f)), cafe.yaw + kPi, FAC_FRIEND);
+        if (jaz >= 0) {
+            g.peds[jaz].voice = Speech::persona("stranger_jaz", true).voice;
+            g.peds[jaz].invincible = true;
+        }
+        // the nearest stunt ramp (they are set up on open ground around the island)
+        float best = 1e9f;
+        for (int i = 0; i < (int)gRamps.size(); i++) {
+            float d = ::length(gRamps[i].foot.xy() - cafe.pos.xy()) + (gRamps[i].waterGap ? 400.f : 0.f);
+            if (d < best) {
+                best = d;
+                ramp = i;
+            }
+        }
+        if (ramp >= 0) {
+            const StuntRamp& r = gRamps[ramp];
+            rampFoot = r.foot;
+            vec2 st = r.foot.xy() - r.dir * 70.f;
+            runUp = vec3(st, groundAt(g, st.x, st.y, r.foot.z + 5.f));
+            vec2 fs = r.foot.xy() + r.dir * 30.f + perp(r.dir) * 16.f;
+            filmSpot = vec3(fs, groundAt(g, fs.x, fs.y, r.foot.z + 5.f));
+        }
+        placePlayer(g, placeOffset(g, cafe, -1.4f, 2.6f), cafe.yaw);
+        provideRide(g, cafe, -12.f);
+        vec3 jp = pedPos(g, jaz), mp = playerPos(g);
+        facePed(g, jaz, mp);
+        facePed(g, g.player, jp);
+        std::vector<CutsceneShot> shots;
+        shots.push_back(shotTwo(jp, mp, 6.f));
+        shots.push_back(shotOver(jp, mp, 5.f, -1.f));
+        g.mCutscene(shots);
+        jazSay(g, jaz, "[happy]Okay. Content idea. You, a car, a ramp, me filming. Instant legend.");
+        sayMe(g, "[calm]And if I crash?");
+        jazSay(g, jaz, "[happy:0.5]Then it's a blooper reel. Also content.");
+    }
+
+    MissionStatus update(GameWorld& g, float dt) override {
+        (void)dt;
+        bool riding = jazRides(g, jaz);
+        switch (stage) {
+            case 0:
+                if (!g.mInCutscene() && !g.mTalking()) {
+                    setFollow(g, jaz, g.player);
+                    g.mObjective("Get in a car with ~b~Jaz~s~.");
+                    next();
+                }
+                break;
+            case 1:
+                if (riding) {
+                    if (ramp >= 0) {
+                        goTo(g, runUp, 14.f, "Drive Jaz to the ~y~stunt ramp~s~.");
+                        jazSay(g, jaz, "[happy:0.5]There's a ramp out past the edge of town. I found it on a map. For science.");
+                        next();
+                    } else {
+                        // no ramp set up: any big jump counts, she films from the passenger seat
+                        g.mObjective("Find something to jump. Jaz is filming from the passenger seat.");
+                        jazSay(g, jaz, "[happy:0.5]Find us a jump. Any jump. I'm rolling.");
+                        since = g.time;
+                        setStage(3);
+                    }
+                }
+                break;
+            case 2:
+                if (!riding && g.peds[jaz].vehicle < 0) setFollow(g, jaz, g.player);
+                if (arrived(g) && riding) {
+                    clearGoal(g);
+                    g.removePedFromVehicle(jaz, true);
+                    setGoto(g, jaz, filmSpot, 2.2f);
+                    g.mTarget(rampFoot.xy(), UI::BLIP_RACE);
+                    g.mObjective("Hit the ~y~ramp~s~ and make it big. Jaz is filming from the side.");
+                    jazSay(g, jaz, "[happy]I'll film from over there. Wait for my signal. Actually, don't wait. I'm always rolling.");
+                    since = g.time;
+                    next();
+                }
+                break;
+            case 3: {
+                if (gAct.lastJumpTime > since) {
+                    since = gAct.lastJumpTime;
+                    float dist = gAct.lastJumpDist, air = gAct.lastJumpAir;
+                    bestDist = Max(bestDist, dist);
+                    if (dist >= 25.f && air >= 1.f) {
+                        g.mClearTarget();
+                        vec3 land = gAct.lastJumpLanding;
+                        g.socialReport(UI::TE_STUNT_JUMP, dvec3(land), nullptr, dist);
+                        if (ramp >= 0 && g.peds[jaz].vehicle < 0) setGoto(g, jaz, land, 4.f);
+                        jazSay(g, jaz, gAct.lastJumpUpright ? StrFormat("[shout]That was insane! %d meters! Posting it right now!", (int)dist)
+                                                            : std::string("[scared:0.6]Oh no. Oh no. Are you okay? [pause:0.4][happy]That is amazing footage."));
+                        timer = 0.f;
+                        next();
+                    } else if (dist > 4.f) {
+                        tries++;
+                        static const char* const kMore[3] = {"[sad:0.3]That was a hop. My grandma hops higher. Again!",
+                                                             "[calm]More speed. Like, a lot more speed.", "[happy:0.4]Closer! Go again, faster this time!"};
+                        jazSay(g, jaz, kMore[tries % 3]);
+                    }
+                }
+                break;
+            }
+            case 4:
+                timer += dt;
+                if (timer > 3.5f && !g.mTalking()) {
+                    sayMe(g, "[calm]How many views?");
+                    jazSay(g, jaz, "[happy]Forty thousand. In one minute. You're a star. Well, the car is.");
+                    next();
+                }
+                break;
+            case 5:
+                if (!g.mTalking()) return MS_PASSED;
+                break;
+        }
+        return MS_RUNNING;
+    }
+
+    void autotest(GameWorld& g, MissionTest& t) override {
+        float dt = g.dtLast;
+        switch (stage) {
+            case 1:
+                if (t.stageTime > 0.5f && rideCar >= 0) {
+                    t.enter(rideCar);
+                    if (g.playerVehicle() >= 0) g.warpPedIntoVehicle(jaz, g.playerVehicle(), 1);
+                }
+                break;
+            case 2: testGoal(g, t, dt, 70.f); break;
+            case 3: {
+                // the ramp itself is covered by the roam test; here landed jumps are reported directly: a short hop
+                // first (Jaz asks for another go), then a big one
+                bool hop = t.stageTime > 1.5f && tries == 0, big = t.stageTime > 3.f && tries > 0;
+                if ((hop || big) && gAct.lastJumpTime <= since) {
+                    gAct.lastJumpTime = g.time;
+                    gAct.lastJumpDist = big ? 34.f : 12.f;
+                    gAct.lastJumpAir = big ? 1.6f : 0.6f;
+                    gAct.lastJumpUpright = true;
+                    gAct.lastJumpLanding = playerPos(g);
+                }
+                break;
+            }
+            default: break;
+        }
+    }
+};
+
+// Part 3: "Deleted" - a Tide Gossip snoop on a scooter grabbed Jaz's phone.
+class MissionJazDeleted : public StoryMission {
+public:
+    int jaz = -1, thief = -1, scooter = -1, phone = -1;
+    Place cafe;
+    float farTime = 0.f, closeTime = 0.f, stuckTime = 0.f;
+    const char* title() const override { return "Jaz: Deleted"; }
+    const char* brief() const override { return "A gossip-site snoop on a scooter snatched Jaz's phone. Everything she has ever filmed is on it."; }
+    long long reward() const override { return 3000; }
+
+    void start(GameWorld& g) override {
+        cafe = jazSpot(g);
+        score(SC_CHASE, 0.7f, 21);
+        jaz = g.mPed(jazChar(g), dvec3(placeOffset(g, cafe, 1.2f, 1.6f)), cafe.yaw + kPi, FAC_FRIEND);
+        if (jaz >= 0) {
+            g.peds[jaz].voice = Speech::persona("stranger_jaz", true).voice;
+            g.peds[jaz].invincible = true;
+            setIdle(g, jaz, 7);
+        }
+        placePlayer(g, placeOffset(g, cafe, -1.4f, 2.6f), cafe.yaw);
+        provideRide(g, cafe, -10.f);
+        // the snoop, already riding off down the street
+        int model = pickModel(g, {Vehicles::VC_SCOOTER, Vehicles::VC_MOTORBIKE}, 3);
+        scooter = spawnCar(g, model, curbOffset(g, cafe, 55.f), cafe.curbYaw, lin(0.9f, 0.1f, 0.5f));
+        thief = g.mPed(g.randomCivilianChar(0x60551Bu, 0), dvec3(vehPos(g, scooter)), cafe.curbYaw, FAC_CIVILIAN);
+        if (thief >= 0 && scooter >= 0) {
+            g.peds[thief].brain.type = BRAIN_NONE;
+            g.peds[thief].maxHealth = g.peds[thief].health = 160.f;
+            g.warpPedIntoVehicle(thief, scooter, 0);
+        }
+        vec3 jp = pedPos(g, jaz), mp = playerPos(g);
+        facePed(g, jaz, mp);
+        facePed(g, g.player, jp);
+        std::vector<CutsceneShot> shots;
+        CutsceneShot s1 = shotTwo(jp, mp, 5.f);
+        s1.handheld = 0.7f;
+        shots.push_back(s1);
+        g.mCutscene(shots);
+        jazSay(g, jaz, "[scared]He took my phone! A guy on a scooter, right out of my hand! My whole life is on that phone!");
+        jazSay(g, jaz, "[angry:0.6]Pink jacket. Tide Gossip. They've been following me for weeks. Go!");
+    }
+
+    void thiefBails(GameWorld& g) {
+        releaseDriver(g, scooter);
+        if (pedAlive(g, thief) && g.peds[thief].vehicle >= 0) g.removePedFromVehicle(thief, true);
+        if (pedAlive(g, thief)) setFlee(g, thief, g.player);
+        g.mClearBlips();
+        g.mBlipPed(thief, UI::BLIP_ENEMY);
+        g.mObjective("Catch the ~r~snoop~s~ on foot and get the phone back.");
+    }
+
+    void dropPhone(GameWorld& g) {
+        vec3 p = pedPos(g, thief);
+        if (p.z < -1e5f) p = playerPos(g);
+        phone = spawnPackage(g, p + vec3(0.8f, 0.f, 0.f));
+        g.mClearBlips();
+        goTo(g, g.pickups[phone].pos.toVec3(), 1.5f, "Grab ~g~Jaz's phone~s~.");
+    }
+
+    MissionStatus update(GameWorld& g, float dt) override {
+        switch (stage) {
+            case 0:
+                if (!g.mInCutscene() && !g.mTalking()) {
+                    if (vehicleAlive(g, scooter)) {
+                        RoutePath path;
+                        vec3 sp = vehPos(g, scooter);
+                        vec2 away = sp.xy() + normalize(sp.xy() - cafe.pos.xy() + vec2(0.01f, 0.f)) * 1600.f;
+                        buildRoadPath(g, sp.xy(), away, path);
+                        ScriptDriver& dr = addDriver(g, scooter, path, 21.f);
+                        dr.rubberPed = g.player;
+                        dr.rubberGap = 80.f;
+                        g.mBlipVehicle(scooter, UI::BLIP_ENEMY);
+                    }
+                    g.mObjective("Chase down the ~r~Tide Gossip snoop~s~. Knock him off that scooter.");
+                    next();
+                }
+                break;
+            case 1: {
+                if (!pedAlive(g, thief)) {
+                    dropPhone(g);
+                    setStage(3);
+                    break;
+                }
+                Ped& tp = g.peds[thief];
+                float d = ::length(pedPos(g, thief) - playerPos(g));
+                bool wrecked = !vehicleAlive(g, scooter) || vehicleDisabled(g, scooter) || tp.vehicle < 0;
+                if (tp.vehicle >= 0 && vehicleAlive(g, scooter) && g.vehicles[scooter].sim.speed() < 2.f && d < 25.f) stuckTime += dt;
+                else stuckTime = 0.f;
+                if (wrecked || stuckTime > 2.5f) {
+                    thiefBails(g);
+                    say(g, CAST_THUG_C, thief, "[scared]It's just gossip, man! It's not personal!");
+                    next();
+                    break;
+                }
+                if (d > 450.f) farTime += dt;
+                else farTime = 0.f;
+                if (farTime > 15.f) return fail("The snoop got away with Jaz's phone.");
+                break;
+            }
+            case 2: {
+                if (!pedAlive(g, thief)) {
+                    dropPhone(g);
+                    next();
+                    break;
+                }
+                Ped& tp = g.peds[thief];
+                float d = ::length(pedPos(g, thief) - playerPos(g));
+                if (g.playerVehicle() < 0 && d < 2.8f) closeTime += dt;
+                else closeTime = Max(0.f, closeTime - dt);
+                if (closeTime > 1.2f || tp.health < tp.maxHealth * 0.5f || (d < 3.5f && tp.ragdoll)) {
+                    say(g, CAST_THUG_C, thief, "[scared]Take it! Take it! I never even unlocked it!");
+                    tp.invincible = true;
+                    setFlee(g, thief, g.player);
+                    dropPhone(g);
+                    next();
+                    break;
+                }
+                if (d > 300.f) farTime += dt;
+                else farTime = 0.f;
+                if (farTime > 15.f) return fail("The snoop got away with Jaz's phone.");
+                break;
+            }
+            case 3:
+                if (grabNear(g, phone, 1.8f)) {
+                    goTo(g, cafe.curb, 6.f, "Bring the phone back to ~b~Jaz~s~.", true);
+                    sayMe(g, "[calm]Forty thousand unread messages. Wow.");
+                    next();
+                }
+                break;
+            case 4:
+                if (arrived(g)) {
+                    clearGoal(g);
+                    if (g.playerVehicle() >= 0) g.removePedFromVehicle(g.player, false);
+                    vec3 jp = pedPos(g, jaz), mp = playerPos(g);
+                    facePed(g, jaz, mp);
+                    std::vector<CutsceneShot> shots;
+                    establish(g, shots, jp, cafe.yaw, 24.f, 7.f, 3.5f);
+                    shots.push_back(shotTwo(jp, mp, 6.f));
+                    shots.push_back(shotOver(mp, jp, 6.f));
+                    g.mCutscene(shots);
+                    jazSay(g, jaz, "[happy]My phone! My life! My forty thousand unread messages!");
+                    jazSay(g, jaz, "[calm]Hey. You didn't have to do any of this. So here's the deal.");
+                    jazSay(g, jaz, "[happy:0.6]I'm giving every business you own a shout-out. Every single one. Watch the money roll in.");
+                    sayMe(g, "[happy:0.4]Does that include the car wash?");
+                    jazSay(g, jaz, "[happy]Especially the car wash.");
+                    next();
+                }
+                break;
+            case 5:
+                if (!g.mInCutscene() && !g.mTalking()) {
+                    g.notify("JAZ", "Her shout-out is live: every business you own now earns 25 percent more.");
+                    return MS_PASSED;
+                }
+                break;
+        }
+        return MS_RUNNING;
+    }
+
+    void autotest(GameWorld& g, MissionTest& t) override {
+        float dt = g.dtLast;
+        switch (stage) {
+            case 1:
+                if (t.stageTime > 1.f && pedAlive(g, thief)) {
+                    t.teleportNear(pedPos(g, thief).xy(), 10.f);
+                    if (scooter >= 0 && g.vehicles[scooter].used) g.vehicles[scooter].sim.body.vel = vec3(0.f);
+                }
+                break;
+            case 2:
+                if (t.stageTime > 0.5f && pedAlive(g, thief)) g.peds[thief].health = g.peds[thief].maxHealth * 0.4f;
+                break;
+            case 3:
+                if (phone >= 0 && t.stageTime > 0.5f) t.teleport(g.pickups[phone].pos.toVec3(), 0.f);
+                break;
+            case 4:
+                if (g.playerVehicle() < 0 && t.stageTime > 0.3f) {
+                    int v = spawnCar(g, pickModel(g, {Vehicles::VC_SEDAN}), playerPos(g) + vec3(3, 0, 0), 0.f);
+                    t.enter(v);
+                }
+                testGoal(g, t, dt, 60.f);
                 break;
             default: break;
         }

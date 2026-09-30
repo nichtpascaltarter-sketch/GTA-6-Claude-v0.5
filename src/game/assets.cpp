@@ -295,6 +295,9 @@ void buildPhoneMesh(MeshData& m) {
 
 using namespace asset_detail;
 
+void tintWeaponMesh(MeshData& m, int tint);                            // weaponmods.cpp
+void buildWeaponCompMesh(WeaponType w, int compBit, MeshData& m);
+
 void GameWorld::buildAssets() {
     double t0 = TimeSeconds();
     Render::DynamicRenderer* dyn = renderer->dynamic;
@@ -408,6 +411,18 @@ void GameWorld::buildAssets() {
         MeshData m;
         buildWeaponMesh((WeaponType)w, m);
         weaponModels[w] = m.empty() ? nullptr : dyn->createModel(m);
+        weaponTintModels[w][0] = weaponModels[w];
+        if (m.empty() || w == WPN_GRENADE || w == WPN_MOLOTOV || weaponInfo((WeaponType)w).clipSize == 0) continue;
+        for (int t = 1; t < kWeaponTints; t++) {   // gun shop tints
+            MeshData tm = m;
+            tintWeaponMesh(tm, t);
+            weaponTintModels[w][t] = dyn->createModel(tm);
+        }
+        for (int c = 0; c < kWeaponCompCount; c++) {   // attachments, drawn with the weapon's transform
+            MeshData cm;
+            buildWeaponCompMesh((WeaponType)w, 1 << c, cm);
+            weaponCompModels[w][c] = cm.empty() ? nullptr : dyn->createModel(cm);
+        }
     }
     for (int p = 0; p < 6; p++) {
         MeshData m;

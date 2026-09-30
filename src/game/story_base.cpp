@@ -25,6 +25,9 @@ enum SideFlag : int {
     SIDE_BOUNTY_ALL,
     SIDE_ROSA_1, SIDE_ROSA_2, SIDE_ROSA_3,
     SIDE_VELMA_1, SIDE_VELMA_2, SIDE_VELMA_3,
+    SIDE_JAZ_1, SIDE_JAZ_2, SIDE_JAZ_3,   // SIDE_JAZ_3: businesses earn 25% more (her shout-out)
+    SIDE_FIELD_GUIDE,               // every species in the Wild Porto Sol photo census
+    SIDE_RIVALS_ALL,                // every race rival's final won
     SIDE_COUNT
 };
 
@@ -61,12 +64,16 @@ enum ExtFlag : int {
     EX_VEHICLE_PAINT = 260,         // 260..299: paint (packed RGB565) of owned vehicles by garage slot
     EX_RIVAL_WINS = 300,            // 300..307: races won against each race's rival (by the race's best-time slot)
     EX_RIVAL_FINALS = 308,          // bitmask: rival finals won (a pink slip on the road, a trophy on the water)
+    EX_FIELD_GUIDE = 309,           // bitmask of species photographed for the Wild Porto Sol census (phone_game.cpp)
     EX_VEHICLE_MODS = 384,          // 384..503: Tide Customs parts of owned vehicles, 3 ints per garage slot (see shops.cpp)
 };
 
 const int kStoryMissionCount = SF_STORY_COUNT;
 
 bool storyDone(GameWorld& g, int sf) { return flag(g, sf) != 0; }
+
+// number of side-activity completion flags (GameWorld::completion divides by it)
+int sideFlagTotal() { return SIDE_COUNT - kSideBase; }
 
 // Places that are not on the road network (raw positions snapped to the ground)
 vec3 rawSpot(GameWorld& g, vec2 p) { return vec3(p, groundAt(g, p.x, p.y)); }

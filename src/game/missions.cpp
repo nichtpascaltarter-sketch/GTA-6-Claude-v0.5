@@ -57,11 +57,79 @@ bool classAvailable(const GameWorld& g, u32 mask) {
 int gPendingStart = -1;
 bool cinematicStart(const MissionDef& d) { return d.storyIndex >= 0 || !d.repeatable; }
 
+// ---- keeping cutscene cameras out of walls. The shot helpers place cameras by geometry alone (two-shots on one side of
+// the line between two people, over-the-shoulder behind the listener), so with buildings and interiors around a
+// camera can end up inside a wall or a shop. Every scripted and runtime shot is checked when its cutscene starts.
+bool insideBuilding(const GameWorld& g, vec3 p, float margin = 0.f) {
+    float top = 0.f;
+    return g.buildings && g.buildings->pointInBuilding(p.xy(), margin, &top) && p.z < top + 0.3f;
+}
+
+// a camera at `cam` sees `subject`: it is not inside a building and nothing solid stands in between (the ray runs from
+// the subject out, so walls around a buried camera count)
+bool camSees(const GameWorld& g, dvec3 cam, dvec3 subject) {
+    if (insideBuilding(g, cam.toVec3())) return false;
+    vec3 d = rel(cam, subject);
+    float len = length(d);
+    if (len < 0.8f) return true;
+    WorldHit h;
+    return !g.raycast(subject, d / len, len - 0.2f, h, -1, -1, false, false);
+}
+
+void mirrorAround(dvec3& cam, dvec3 target) {
+    vec3 d = rel(cam, target);
+    cam = target + dvec3(vec3(-d.x, -d.y, d.z));
+}
+
+// the smallest change that gives the shot a clear view: pull the camera in along its own line (to 60%), the mirror
+// angle on the other side of the subject, the mirror pulled in, then any pull-in down to 25%. A shot of a scene inside
+// an interior (or one nothing fixes) is left alone.
+void fixShot(const GameWorld& g, CutsceneShot& s) {
+    if (insideBuilding(g, s.target.toVec3(), -1.f) || insideBuilding(g, s.target2.toVec3(), -1.f)) return;   // a doorway is outside
+    if (camSees(g, s.pos, s.target) && camSees(g, s.pos2, s.target2)) return;
+    auto tryPull = [&](CutsceneShot& c, float kMin) {
+        vec3 d1 = rel(c.pos, c.target), d2 = rel(c.pos2, c.target2);
+        for (float k = 0.95f; k >= kMin - 1e-3f; k -= 0.05f) {
+            dvec3 p1 = c.target + dvec3(d1 * k), p2 = c.target2 + dvec3(d2 * k);
+            if (camSees(g, p1, c.target) && camSees(g, p2, c.target2)) {
+                c.pos = p1;
+                c.pos2 = p2;
+                return true;
+            }
+        }
+        return false;
+    };
+    CutsceneShot c = s;
+    if (tryPull(c, 0.6f)) {
+        s = c;
+        return;
+    }
+    c = s;
+    mirrorAround(c.pos, c.target);
+    mirrorAround(c.pos2, c.target2);
+    if (camSees(g, c.pos, c.target) && camSees(g, c.pos2, c.target2)) {
+        s = c;
+        return;
+    }
+    CutsceneShot m = c;
+    if (tryPull(m, 0.4f)) {
+        s = m;
+        return;
+    }
+    c = s;
+    if (tryPull(c, 0.25f)) s = c;
+}
+
 // leave a scripted camera: ease from the last shot back into the gameplay camera, or cut when that shot was far from
 // the player (the scene teleported somebody)
 void releaseScriptCamera(GameWorld& g) {
     g.rig.scriptActive = false;
     Ped* pp = g.playerPed();
+    // first person on foot comes back looking where the player faces (the scripted camera left its own yaw in the rig)
+    if (pp && g.rig.footFirstPerson && pp->state == PS_ONFOOT) {
+        g.rig.yaw = pp->yaw;
+        g.rig.pitch = 0.f;
+    }
     if (pp && length(rel(g.rig.scriptFrom.pos, pp->pos)) < 45.f) g.rig.scriptBlend = g.rig.scriptBlendTotal = 0.9f;
     else g.rig.cut = true;
 }
@@ -165,6 +233,7 @@ bool GameWorld::mTalking() const { return !gMissions.lines.empty(); }
 
 void GameWorld::mCutscene(const std::vector<CutsceneShot>& shots, bool skippable) {
     gMissions.shots = shots;
+    for (CutsceneShot& s : gMissions.shots) mission_detail::fixShot(*this, s);
     gMissions.shotIndex = shots.empty() ? -1 : 0;
     gMissions.shotTime = 0.f;
     gMissions.skippable = skippable;

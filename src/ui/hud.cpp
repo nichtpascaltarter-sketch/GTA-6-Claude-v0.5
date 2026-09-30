@@ -98,6 +98,16 @@ float fadeTo(float v, bool on, float dt, float inRate = 8.f, float outRate = 5.f
     return on ? Min(1.f, v + dt * inRate) : Max(0.f, v - dt * outRate);
 }
 
+// Settings > Accessibility > Reduce Flashing: blinking and alternating effects become steady or slow blends
+bool calm() { return uiOptions().reduceFlashing; }
+// Police red / blue: alternating, or a slow even blend when flashing is reduced
+u32 policeColor(float t) {
+    if (calm()) return lerpColor(kRed, kBlue, 0.5f + 0.5f * sinf(t * 1.2f));
+    return fmodf(t * 1.6f, 1.f) < 0.5f ? kRed : kBlue;
+}
+// 0..1 pulse wave, a constant mid level when flashing is reduced
+float pulseWave(float t, float rate) { return calm() ? 0.5f : 0.5f + 0.5f * sinf(t * rate); }
+
 // Signed distance to a rounded rectangle (center c, half size hs, radius r)
 float sdRR(vec2 p, vec2 c, vec2 hs, float r) {
     vec2 q = vec2(fabsf(p.x - c.x), fabsf(p.y - c.y)) - hs + vec2(r);
@@ -188,11 +198,11 @@ void drawRadar(const HudState& s, const Layout& L, float dt, float t) {
     vec2 cmin(rr.x, rr.y), cmax(rr.x + rr.w, rr.y + rr.h);
     // police search areas
     if (s.wanted > 0) {
-        bool redPhase = fmodf(t * 1.6f, 1.f) < 0.5f;
+        u32 policeCol = policeColor(t);
         for (size_t i = 0; i < s.searchAreaCenters.size() && i < s.searchAreaRadii.size(); i++) {
             vec2 c = v.toScreen(s.searchAreaCenters[i]);
             float r = s.searchAreaRadii[i] / v.mpp;
-            u32 col = redPhase ? kRed : kBlue;
+            u32 col = policeCol;
             circle(c.x, c.y, r, withAlpha(col, 0.13f * a));
             circle(c.x, c.y, r, withAlpha(col, 0.45f * a), 1.5f * sc);
         }
@@ -247,8 +257,8 @@ void drawRadar(const HudState& s, const Layout& L, float dt, float t) {
     // wanted: the radar rim glows red / blue
     if (s.wanted > 0) {
         float ph = fmodf(t * 1.6f, 1.f);
-        u32 col = ph < 0.5f ? kRed : kBlue;
-        float pulse = 0.65f + 0.35f * sinf(ph * kTwoPi * 2.f);
+        u32 col = policeColor(t);
+        float pulse = calm() ? 0.8f : 0.65f + 0.35f * sinf(ph * kTwoPi * 2.f);
         float e = 34.f * sc;
         u32 c0 = withAlpha(col, 0.42f * pulse * a), c1 = withAlpha(col, 0.f);
         gradientRect(rr.x, rr.y, rr.w, e, c0, c1);
@@ -262,9 +272,8 @@ void drawRadar(const HudState& s, const Layout& L, float dt, float t) {
     setClip(prevClip);
     roundRect(rr.x, rr.y, rr.w, rr.h, rr.r, 0, 1.2f * sc, withAlpha(kWhite, 0.16f * a));
     if (s.wanted > 0) {
-        float ph = fmodf(t * 1.6f, 1.f);
         roundRect(rr.x - 1.5f * sc, rr.y - 1.5f * sc, rr.w + 3 * sc, rr.h + 3 * sc, rr.r + 1.5f * sc, 0, 2.f * sc,
-                  withAlpha(ph < 0.5f ? kRed : kBlue, 0.75f * a));
+                  withAlpha(policeColor(t), 0.75f * a));
     }
 
     // ---------------------------------------------------------------- status bars (GTA-style: health | armor | Focus)
@@ -283,7 +292,7 @@ void drawRadar(const HudState& s, const Layout& L, float dt, float t) {
         if (lag > val + 0.002f) roundRect(x + inner, by + inner, Max(ih, iw * lag), ih, ih * 0.5f, withAlpha(lagCol, 0.85f * a));
         if (val > 0.002f) {
             u32 c = col;
-            if (pulse) c = lerpColor(col, kWhite, 0.35f * (0.5f + 0.5f * sinf(t * 9.f)));
+            if (pulse && !calm()) c = lerpColor(col, kWhite, 0.35f * (0.5f + 0.5f * sinf(t * 9.f)));
             roundRect(x + inner, by + inner, Max(ih, iw * val), ih, ih * 0.5f, withAlpha(c, a));
             // highlight
             rect(x + inner + ih * 0.5f, by + inner, Max(0.f, iw * val - ih), ih * 0.35f, withAlpha(kWhite, 0.18f * a));
@@ -300,7 +309,7 @@ void drawRadar(const HudState& s, const Layout& L, float dt, float t) {
         bar(sx, bw2, g.specialShown, g.specialShown, col, col, s.specialActive);
         if (s.specialActive) {
             setAdditive(true);
-            float pulse = 0.5f + 0.5f * sinf(t * 7.f);
+            float pulse = pulseWave(t, 7.f);
             roundRect(sx - 2.f * sc, by - 2.f * sc, bw2 + 4.f * sc, bh + 4.f * sc, bh * 0.5f + 2.f * sc, withAlpha(kFocus, (0.25f + 0.25f * pulse) * a));
             setAdditive(false);
         }
@@ -359,7 +368,7 @@ void drawTopRight(const HudState& s, const Layout& L, float dt, float t) {
     if (g.wantedAlpha > 0.01f) {
         float a = g.wantedAlpha;
         float size = 40.f * sc, step = 37.f * sc;
-        bool flashOff = s.wantedSearching && fmodf(t * 2.2f, 1.f) > 0.55f;
+        bool flashOff = s.wantedSearching && (calm() || fmodf(t * 2.2f, 1.f) > 0.55f);   // steady grey when calm
         for (int i = 0; i < 5; i++) {
             float cx = xr - size * 0.5f - (4 - i) * step;
             float cy = y + size * 0.5f;
@@ -468,7 +477,7 @@ void drawTopRight(const HudState& s, const Layout& L, float dt, float t) {
             small.size = 24.f * sc;
             small.color = withAlpha(kTextDim, a);
             if (s.reloading) {
-                float pulse = 0.55f + 0.45f * sinf(t * 10.f);
+                float pulse = calm() ? 1.f : 0.55f + 0.45f * sinf(t * 10.f);
                 TextStyle rs = small;
                 rs.color = withAlpha(kYellow, a * pulse);
                 text(tx, cy - rs.size * 0.55f, "RELOADING", rs);
@@ -737,7 +746,7 @@ void drawBottomRight(const HudState& s, const Layout& L, float dt, float t) {
     if (s.missionTimer >= 0.f) g.timerVal = s.missionTimer;
     if (g.timerAlpha > 0.01f) {
         bool urgent = g.timerVal < 10.f;
-        u32 col = urgent ? lerpColor(kRed, kWhite, 0.3f * (0.5f + 0.5f * sinf(t * 12.f))) : kWhite;
+        u32 col = urgent ? lerpColor(kRed, kWhite, 0.3f * pulseWave(t, 12.f)) : kWhite;
         bar("TIME", fmtTime(g.timerVal), col, g.timerAlpha);
     }
 }
@@ -756,24 +765,32 @@ void drawBottomCenter(const HudState& s, const Layout& L, float dt) {
     if (subOn) g.sub = s.subtitle;
     g.subAlpha = fadeTo(g.subAlpha, subOn, dt, 10.f, 6.f);
     if (g.subAlpha > 0.01f && !g.sub.text.empty()) {
+        // accessibility: subtitle size, a backing box and plain or colored speaker names (Settings > Accessibility)
+        const UiOptions& uo = uiOptions();
         float a = g.subAlpha;
-        TextStyle st = style(FONT_BODY, 28.f * sc, kWhite, ALIGN_CENTER);
-        st.outline = 2.f * sc;
+        float k = uo.subtitleScale;
+        float subW = maxW * Min(1.3f, 0.8f + 0.2f * k);
+        TextStyle st = style(FONT_BODY, 28.f * sc * k, kWhite, ALIGN_CENTER);
+        st.outline = 2.f * sc * k;
         st.outlineColor = C(0.f, 0.f, 0.03f, 0.9f);
-        st.shadow = 2.f * sc;
+        st.shadow = 2.f * sc * k;
         st.shadowSoft = 0.7f;
         std::string line;
         if (!g.sub.speaker.empty()) {
-            u32 sc32 = g.sub.speakerColor;
+            u32 sc32 = uo.speakerColors ? g.sub.speakerColor : kWhite;
             line = StrFormat("~#%02x%02x%02x~%s:~s~ ", sc32 & 255, (sc32 >> 8) & 255, (sc32 >> 16) & 255, g.sub.speaker.c_str()) + g.sub.text;
         } else line = g.sub.text;
         ro.alpha = a;
         st.color = withAlpha(kWhite, a);
         st.outlineColor = withAlpha(st.outlineColor, a);
-        vec2 sz = richMeasure(line.c_str(), st, maxW, ro);
+        vec2 sz = richMeasure(line.c_str(), st, subW, ro);
         y -= sz.y;
-        richDraw(cx, y, line.c_str(), st, maxW, ro);
-        y -= 12.f * sc;
+        if (uo.subtitleBackground > 0.01f) {
+            float px = 18.f * sc * k, py = 9.f * sc * k;
+            roundRect(cx - sz.x * 0.5f - px, y - py, sz.x + 2.f * px, sz.y + 2.f * py, 10.f * sc, C(0.01f, 0.01f, 0.04f, 0.9f * uo.subtitleBackground * a));
+        }
+        richDraw(cx, y, line.c_str(), st, subW, ro);
+        y -= (uo.subtitleBackground > 0.01f ? 22.f : 12.f) * sc;
     } else if (g.subAlpha <= 0.01f) {
         g.sub = Subtitle();
     }
@@ -874,7 +891,7 @@ void drawCenter(const HudState& s, const Layout& L, float dt, float t) {
     if (s.health < g.lastHealth - 0.01f) g.hurtFlash = Min(1.f, g.hurtFlash + (g.lastHealth - s.health) * 4.f + 0.3f);
     g.lastHealth = s.health;
     g.hurtFlash = Max(0.f, g.hurtFlash - dt * 2.5f);
-    float vig = g.lowHealth * (0.55f + 0.45f * sinf(t * 5.f)) * 0.5f + g.hurtFlash * 0.35f;
+    float vig = g.lowHealth * (0.55f + 0.45f * (calm() ? 0.f : sinf(t * 5.f))) * 0.5f + g.hurtFlash * (calm() ? 0.15f : 0.35f);
     if (vig > 0.01f && !s.rendererScreenFx) {
         float e = L.H * 0.22f;
         u32 r0 = C(0.55f, 0.02f, 0.05f, Saturate(vig)), r1 = C(0.55f, 0.02f, 0.05f, 0.f);
@@ -945,17 +962,19 @@ void drawCenter(const HudState& s, const Layout& L, float dt, float t) {
     g.killT += dt;
     if (g.reticleAlpha > 0.01f) {
         float a = g.reticleAlpha;
-        u32 col = s.reticleOnEnemy ? kRed : s.reticleOnFriendly ? kCyan : kWhite;
-        u32 ol = C(0.f, 0.f, 0.02f, 0.7f * a);
-        circle(c.x, c.y, 3.4f * sc, ol);
-        circle(c.x, c.y, 2.3f * sc, withAlpha(col, a));
-        float sp = 7.f * sc + g.spreadShown * sc;
-        if (g.spreadShown > 0.5f) {
-            for (int k = 0; k < 4; k++) {
-                vec2 d = k == 0 ? vec2(1, 0) : k == 1 ? vec2(-1, 0) : k == 2 ? vec2(0, 1) : vec2(0, -1);
-                vec2 p0 = c + d * sp, p1 = c + d * (sp + 9.f * sc);
-                capsule(p0.x, p0.y, p1.x, p1.y, 4.2f * sc, ol);
-                capsule(p0.x, p0.y, p1.x, p1.y, 2.2f * sc, withAlpha(col, a));
+        bool hc = uiOptions().highContrastReticle;   // bigger, bolder, yellow on black (Settings > Accessibility)
+        u32 col = s.reticleOnEnemy ? (hc ? C(1.f, 0.1f, 0.1f) : kRed) : s.reticleOnFriendly ? kCyan : (hc ? C(1.f, 0.93f, 0.1f) : kWhite);
+        u32 ol = C(0.f, 0.f, 0.02f, (hc ? 1.f : 0.7f) * a);
+        float k = hc ? 1.6f : 1.f;
+        circle(c.x, c.y, (3.4f * k + (hc ? 1.2f : 0.f)) * sc, ol);
+        circle(c.x, c.y, 2.3f * k * sc, withAlpha(col, a));
+        float sp = 7.f * sc * k + g.spreadShown * sc;
+        if (g.spreadShown > 0.5f || hc) {
+            for (int q = 0; q < 4; q++) {
+                vec2 d = q == 0 ? vec2(1, 0) : q == 1 ? vec2(-1, 0) : q == 2 ? vec2(0, 1) : vec2(0, -1);
+                vec2 p0 = c + d * sp, p1 = c + d * (sp + 9.f * sc * k);
+                capsule(p0.x, p0.y, p1.x, p1.y, (4.2f * k + (hc ? 1.5f : 0.f)) * sc, ol);
+                capsule(p0.x, p0.y, p1.x, p1.y, 2.2f * k * sc, withAlpha(col, a));
             }
         }
     }
@@ -1042,9 +1061,9 @@ void drawBigMessage(const HudState& s, const Layout& L, float dt) {
     st.tracking = 0.02f + 0.18f * (1.f - easeOutCubic(tt / 0.6f));
     float titleY = cy - st.size * 0.62f - (g.bigSub.empty() ? 0.f : 14.f * sc);
     float tw = text(L.W * 0.5f, titleY, up.c_str(), st);
-    // light sweep
+    // light sweep (skipped with reduced flashing)
     float sw = (tt - 0.35f) / 0.7f;
-    if (sw > 0.f && sw < 1.f) {
+    if (sw > 0.f && sw < 1.f && !calm()) {
         ClipState pc = getClip();
         setClipRect(L.W * 0.5f - tw * 0.5f, titleY, tw, st.size * 1.1f);
         setAdditive(true);
@@ -1187,6 +1206,7 @@ void drawHud(const HudState& s, float dt) {
     dt = Clamp(dt, 0.f, 0.1f);
     if (uix::photoModeActive()) return;   // photo mode shows the bare, graded frame
     Layout L = layout();
+    L.s *= uiOptions().hudScale;          // Settings > Accessibility > HUD Scale (anchors stay in the safe area)
     float t = uiTime();
     if (g.first) {
         g.first = false;

@@ -41,7 +41,7 @@ enum IconId : int {
     // phone
     ICO_CAMERA, ICO_CONTACTS, ICO_TIDE, ICO_REPOST, ICO_COMMENT, ICO_HANGUP, ICO_APERTURE, ICO_FILTER, ICO_SNOW, ICO_GRID,
     ICO_FOCUS, ICO_IMAGE, ICO_VERIFIED, ICO_CASE, ICO_REPLAY, ICO_SWITCH, ICO_TROPHY, ICO_DOLLAR, ICO_EYE_OFF,
-    ICO_HEART_OUTLINE, ICO_COUNT
+    ICO_HEART_OUTLINE, ICO_KEYBOARD, ICO_ACCESS, ICO_COUNT
 };
 static_assert(ICO_COUNT <= 96, "icon atlas holds 6 rows of 16 icons above the weapon cells");
 constexpr int kWeaponIconCount = 13;
@@ -173,6 +173,17 @@ double tideClock();
 void tideMarkSeen();
 bool tideToggleLike(int postId);            // returns the new liked state
 void tidePostPlayerPhoto(int snapshotId, int filter, vec2 pos, float timeOfDay);
+
+// Options from GameSettings that the UI applies itself (applyUiSettings)
+struct UiOptions {
+    float subtitleScale = 1.f;
+    float subtitleBackground = 0.f;
+    bool speakerColors = true;
+    float hudScale = 1.f;
+    bool highContrastReticle = false;
+    bool reduceFlashing = false;
+};
+const UiOptions& uiOptions();
 
 // Phone state shared with the HUD (the HUD hides its bottom-right widgets under the phone, and everything in photo mode)
 bool phoneCoversBottomRight();

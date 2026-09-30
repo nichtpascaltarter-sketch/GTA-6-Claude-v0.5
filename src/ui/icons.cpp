@@ -748,6 +748,24 @@ Shape makeIcon(int id) {
         s.sub(inner);
         break;
     }
+    case ICO_KEYBOARD:
+        s.add(rrectP(5, 22, 95, 78, 9));
+        s.sub(rrectP(11, 28, 89, 72, 4));
+        for (int r = 0; r < 2; r++)
+            for (int k = 0; k < 7; k++) s.add(rrectP(16.f + k * 10.f, 33.f + r * 11.f, 23.f + k * 10.f, 40.f + r * 11.f, 1.5f));
+        s.add(rrectP(16, 55, 23, 62, 1.5f));
+        s.add(rrectP(27, 55, 73, 62, 1.5f));
+        s.add(rrectP(77, 55, 84, 62, 1.5f));
+        break;
+    case ICO_ACCESS:
+        s.add(circleP(C0, 46));
+        s.sub(circleP(C0, 39));
+        s.add(circleP(vec2(50, 25), 7.5f));
+        s.add(capsuleP(vec2(26, 38), vec2(74, 38), 4.5f));
+        s.add(capsuleP(vec2(50, 38), vec2(50, 58), 5.5f));
+        s.add(capsuleP(vec2(50, 57), vec2(38, 77), 4.5f));
+        s.add(capsuleP(vec2(50, 57), vec2(62, 77), 4.5f));
+        break;
     default: s.add(circleP(C0, 20)); break;
     }
     return s;

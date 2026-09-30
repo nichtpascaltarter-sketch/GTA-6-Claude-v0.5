@@ -52,8 +52,9 @@ void Renderer::fxDemo(float dt) {
         spawnParticles(PT_LEAVES, at(11.f, -6.f) + dvec3(0, 0, 4.0), vec3(0.5f, 0.2f, 0), 10, 1.f);
     }
     if (t >= nextTracer) {
-        nextTracer = t + 0.25f;
+        nextTracer = t + 0.07f;   // a tracer in flight in nearly every captured frame
         addTracer(at(3.f, -4.f) + dvec3(0, 0, 1.5), at(60.f, 8.f) + dvec3(0, 0, 1.8));
+        addTracer(at(-1.f, 0.9f) + dvec3(0, 0, 1.6), at(45.f, -2.5f) + dvec3(0, 0, 1.4));   // shot fired right past the camera
     }
     if (t >= nextFlash) {
         nextFlash = t + 0.12f;

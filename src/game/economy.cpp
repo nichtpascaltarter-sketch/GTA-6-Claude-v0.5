@@ -122,7 +122,7 @@ void updateStoryCalls(GameWorld& g, float dt) {
             const char* from;
             const char* text;
             int where;   // 0 courier, 1 gun shop, 2 street race, 3 Tide Customs, 4 beach race, 5 condo, 6 river race, 7 flight school,
-                         // 8 taxi depot, 9 range
+                         // 8 taxi depot, 9 range, 10 Sawgrass dock (wildlife census)
         };
         static const WorldText kTexts[] = {
             {SF_LOW_TIDE, "Rapido Couriers", "Fast wheels, faster legs? Rapido Couriers pays per drop. Come by the depot.", 0},
@@ -135,6 +135,10 @@ void updateStoryCalls(GameWorld& g, float dt) {
             {SF_SAWGRASS_RUN, "Jonah", "When you're bored of shooting at people, there's a boat race on the Rio Sol.", 6},
             {SF_SECOND_CHANCE, "Skyline Flight School", "Loved the rescue on the news. Lessons at the airport, first one's the circuit.", 7},
             {SF_PAPER_TRAIL, "Palmetto Arms", "The range is open late. Score three fifty and the ammo's on us.", 9},
+            {SF_REPO_MAN, "Wildlife Trust",
+             "Wild Porto Sol census! Photograph every species you meet with your phone camera. $250 for each new one, $10,000 for the full "
+             "field guide.",
+             10},
         };
         int sent = flag(g, EX_WORLD_TEXTS);
         for (int i = 0; i < (int)ARRAY_COUNT(kTexts); i++) {
@@ -157,6 +161,7 @@ void updateStoryCalls(GameWorld& g, float dt) {
                 case 6: loc = defStart("boat_river"); break;
                 case 7: loc = defStart("flight_1"); break;
                 case 8: loc = P.taxiDepot.pos.xy(); break;
+                case 10: loc = P.sawgrassDock.xy(); break;
                 default: loc = defStart("range"); break;
             }
             addMessage(g, t.from, t.text, -1, false, -1, &loc, 0, nullptr);
@@ -186,7 +191,7 @@ void updateIncome(GameWorld& g) {
     int count = 0;
     for (size_t i = 0; i < gShops.businesses.size(); i++) {
         if (!businessOwned(g, (int)i)) continue;
-        total += (long long)gShops.businesses[i].income * days;
+        total += (long long)businessIncome(g, gShops.businesses[i].income) * days;
         count++;
     }
     if (total <= 0) return;
@@ -278,11 +283,11 @@ std::vector<MenuItem> realtyItems(GameWorld& g) {
         MenuItem it;
         it.label = b.name;
         it.id = 100 + (int)i;
-        if (owned) it.right = StrFormat("+$%d/day", b.income);
+        if (owned) it.right = StrFormat("+$%d/day", businessIncome(g, b.income));
         else if (avail) it.price = b.price;
         else it.right = "LOCKED";
         it.enabled = owned || avail;
-        it.detail = std::string(b.desc) + StrFormat(" Income $%d a day.", b.income);
+        it.detail = std::string(b.desc) + StrFormat(" Income $%d a day.", businessIncome(g, b.income));
         items.push_back(it);
     }
     return items;
@@ -300,6 +305,8 @@ std::vector<MenuItem> jobItems(GameWorld& g) {
         it.enabled = avail || (d.requiresFlag < 0 || flag(g, d.requiresFlag));
         it.right = avail ? "" : (d.timeFrom != d.timeTo ? StrFormat("%02.0f:00-%02.0f:00", d.timeFrom, d.timeTo) : std::string("LOCKED"));
         it.detail = d.setsFlag >= 0 && flag(g, d.setsFlag) ? "Completed. Select to mark it on the map." : "Select to mark it on the map.";
+        std::string rival = rivalStatus(g, d.id);
+        if (!rival.empty()) it.detail = rival;
         items.push_back(it);
     }
     MenuItem j;

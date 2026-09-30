@@ -23,6 +23,7 @@
 #include "../src/world/leisure.cpp"
 #include "../src/world/rural.cpp"
 #include "../src/world/transit.cpp"
+#include "../src/world/transitmesh.cpp"
 #include "../src/world/sitecell.cpp"
 #include "../src/world/facadedetail.cpp"
 #include "../src/world/interiorkit.cpp"
@@ -223,7 +224,16 @@ int main(int argc, char** argv) {
                 float zq;
                 if (roads.surfaceHeight(q, &zq, P.z + 1.f) && zq > P.z - 1.2f) continue;
                 vec2 bp = P.xy() + rt * (sd * (edgeLat + 0.3f));
-                if (roads.onPavement(bp + rt * (sd * 0.175f), P.z - 0.1f, 0.f, (int)(&e - &roads.edges[0]), 1.1f)) continue;
+                // merge zone within +-6 m along the edge: the generator opens whole barrier sub-spans there
+                bool mergeNear = false;
+                for (float ds = -6.f; ds <= 6.f && !mergeNear; ds += 3.f) {
+                    float s2 = Clamp(s + ds, 0.f, e.length);
+                    vec3 P2 = e.posAt(s2), T2 = e.tangentAt(s2);
+                    vec2 rt2 = normalize(vec2(T2.y, -T2.x));
+                    vec2 b2 = P2.xy() + rt2 * (sd * (edgeLat + 0.475f));
+                    mergeNear = roads.onPavement(b2, P2.z - 0.1f, 0.f, (int)(&e - &roads.edges[0]), 1.1f);
+                }
+                if (mergeNear) continue;
                 bool ok = false;
                 auto it = grid.find(key((int)floorf(bp.x / G), (int)floorf(bp.y / G)));
                 if (it != grid.end())

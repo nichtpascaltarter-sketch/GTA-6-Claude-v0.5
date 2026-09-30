@@ -1054,6 +1054,7 @@ bool GameWorld::speakerShot(int speaker, const CutsceneShot* prev, float lineTim
         out = mu::shotMove(cam, sp + vec3(0, 0, 1.55f), cam + vec3(f * -0.2f, 0.f), sp + vec3(0, 0, 1.58f), dur, 40.f);
     }
     out.speaker = speaker;
+    mission_detail::fixShot(*this, out);
     return true;
 }
 

@@ -750,15 +750,19 @@ void layoutClub(IB& b) {
     const float fx0 = -8.f, fx1 = 8.f, fy0 = 12.f, fy1 = 28.f;
     {
         InPart ip(b, IP_SHELL);
-        float z = main.z + 0.004f;
+        // tiles sit 1.2 cm above the frame plate (no depth fighting at distance); colour waves ripple out from the
+        // centre (colour-cycle phase by ring), a sparse set of tiles strobes on top
+        float z = main.z + 0.018f;
         for (int j = 0; j < 16; j++)
             for (int i = 0; i < 16; i++) {
-                float xa = fx0 + i + 0.03f, xc = fx0 + i + 0.97f, ya = fy0 + j + 0.03f, yc = fy0 + j + 0.97f;
-                u32 phase = (u32)((i * 7 + j * 13 + ((i ^ j) & 3) * 40) & 255);
-                quad(b, vec3(xa, ya, z), vec3(xc, ya, z), vec3(xc, yc, z), vec3(xa, yc, z), vec2(0.f), vec2(1, 0), vec2(1, 1), vec2(0, 1), C(0.9f, 0.9f, 0.95f, 0.55f),
-                     EM((i + j) & 1 ? 8u : 3u, phase));
+                float xa = fx0 + i + 0.04f, xc = fx0 + i + 0.96f, ya = fy0 + j + 0.04f, yc = fy0 + j + 0.96f;
+                float ring = std::max(fabsf(i - 7.5f), fabsf(j - 7.5f));
+                u32 phase = (u32)((int)(ring * 18.f) + ((i ^ j) & 1) * 128) & 255u;
+                bool strobe = ((i * 5 + j * 3) % 11) == 0;
+                quad(b, vec3(xa, ya, z), vec3(xc, ya, z), vec3(xc, yc, z), vec3(xa, yc, z), vec2(0.f), vec2(1, 0), vec2(1, 1), vec2(0, 1),
+                     strobe ? C(0.95f, 0.95f, 1.f, 0.07f) : C(0.9f, 0.9f, 0.95f, 0.045f), EM(strobe ? 2u : 3u, phase));
             }
-        box(b, vec3((fx0 + fx1) * 0.5f, (fy0 + fy1) * 0.5f, main.z + 0.002f), vec3((fx1 - fx0) * 0.5f + 0.1f, (fy1 - fy0) * 0.5f + 0.1f, 0.002f), Gy(0.03f), M(MAT_METAL_PAINTED), SK_NZ);
+        box(b, vec3((fx0 + fx1) * 0.5f, (fy0 + fy1) * 0.5f, main.z + 0.003f), vec3((fx1 - fx0) * 0.5f + 0.1f, (fy1 - fy0) * 0.5f + 0.1f, 0.003f), Gy(0.03f), M(MAT_METAL_PAINTED), SK_NZ);
     }
     {
         InPart ip(b, IP_FURNITURE);
@@ -804,7 +808,7 @@ void layoutClub(IB& b) {
         // DJ booth facing the floor (-x)
         At at(b, vec3(11.2f, 20.f, djZ), kHalfPi);
         rbox(b, vec3(0, 0, 0.5f), vec3(1.2f, 0.35f, 0.5f), 0.02f, Gy(0.05f), M(MAT_PLASTIC), true);
-        box(b, vec3(0, 0.351f, 0.5f), vec3(1.1f, 0.001f, 0.35f), C(0.8f, 0.1f, 1.f, 0.8f), EM(8, 70), SK_NZ);
+        box(b, vec3(0, 0.351f, 0.5f), vec3(1.1f, 0.001f, 0.35f), C(0.8f, 0.1f, 1.f, 0.12f), EM(4, 70), SK_NZ);
         textC(b, "RIPTIDE", vec3(0, 0.353f, 0.5f), vec3(-1, 0, 0), vec3(0, 0, 1), 0.2f, 0.03f, C(1.f, 1.f, 1.f, 0.95f), EM(4, 30));
         collide(b, vec3(0, 0, 0.5f), vec3(1.2f, 0.35f, 0.5f));
         InPart ip2(b, IP_DETAIL);
@@ -827,8 +831,8 @@ void layoutClub(IB& b) {
             for (int i = 0; i < 8; i++) {
                 float ya = wy1 - (wy1 - wy0) * i / 8.f - 0.02f, yc = wy1 - (wy1 - wy0) * (i + 1) / 8.f + 0.02f;
                 float za = wz0 + (wz1 - wz0) * j / 4.f + 0.02f, zc = wz0 + (wz1 - wz0) * (j + 1) / 4.f - 0.02f;
-                quadF(b, vec3(wx - 0.001f, ya, za), vec3(wx - 0.001f, yc, za), vec3(wx - 0.001f, yc, zc), vec3(wx - 0.001f, ya, zc), vec3(-1, 0, 0), C(0.8f, 0.6f, 1.f, 0.8f),
-                      EM(j % 2 ? 2u : 3u, (u32)(i * 16 + j * 50)));
+                quadF(b, vec3(wx - 0.001f, ya, za), vec3(wx - 0.001f, yc, za), vec3(wx - 0.001f, yc, zc), vec3(wx - 0.001f, ya, zc), vec3(-1, 0, 0), C(0.8f, 0.6f, 1.f, 0.06f),
+                      EM(3u, (u32)(i * 9 + j * 23 + ((i + j) & 1) * 96)));
             }
         light(b, vec3(wx - 2.f, 20.f, (wz0 + wz1) * 0.5f), vec3(0.7f, 0.5f, 1.f) * 260.f, 14.f, rMain, vec3(0.f), 0.f, 0.f, 5, 90);
     }
@@ -857,7 +861,7 @@ void layoutClub(IB& b) {
         for (int lv = 0; lv < 2; lv++) {
             float sz = z + 1.3f + lv * 0.45f;
             box(b, vec3((bx0 + bx1) * 0.5f, 5.0f, sz), vec3((bx1 - bx0) * 0.5f - 0.6f, 0.15f, 0.015f), C(0.35f, 0.25f, 0.15f), M(MAT_WOOD), SK_NONE);
-            box(b, vec3((bx0 + bx1) * 0.5f, 4.86f, sz + 0.2f), vec3((bx1 - bx0) * 0.5f - 0.6f, 0.004f, 0.2f), C(1.f, 0.6f, 0.3f, 0.6f), EM(4, (u32)lv * 60u), SK_NONE);
+            box(b, vec3((bx0 + bx1) * 0.5f, 4.86f, sz + 0.2f), vec3((bx1 - bx0) * 0.5f - 0.6f, 0.004f, 0.2f), C(1.f, 0.6f, 0.3f, 0.16f), EM(4, (u32)lv * 60u), SK_NONE);
             InPart ipd(b, IP_DETAIL);
             Rng br(d.seed + (u32)lv);
             for (float x = bx0 + 0.8f; x < bx1 - 0.8f; x += 0.14f) {

@@ -97,6 +97,10 @@ const Line kCopMegaphone[] = {{"[megaphone][shout]Pull over! Pull over now!", 0}
                               {"[megaphone][shout]Driver, stop your vehicle immediately!", 0}, {"[megaphone][shout]Pull over and turn off the engine!", 0},
                               {"[megaphone][shout]Stop the car! Hands where we can see them!", 0}};
 
+const Line kNiceCar[] = {{"[happy:0.5]Nice ride!", 0}, {"[happy:0.5]Whoa, check out that car!", 0}, {"[happy:0.4]Dang, that thing is clean.", 0},
+                         {"[laugh]Must be nice.", 0}, {"[happy:0.5]Hey, how fast does it go?", LB_BOLD}, {"[happy:0.5]Que carro, mira eso!", LB_LUNA},
+                         {"[happy:0.4]Somebody's doing well.", LB_DOWNTOWN}, {"[happy:0.5]Beautiful machine.", LB_BEACH}};
+
 #define BANK(k, arr) {k, arr, (int)ARRAY_COUNT(arr)}
 const Bank kBanks[] = {
     BANK(BK_GREET, kGreet), BANK(BK_BUMP, kBump), BANK(BK_INSULT, kInsult), BANK(BK_PANIC, kPanic), BANK(BK_FLEE, kFlee),
@@ -110,6 +114,7 @@ const Bank kBanks[] = {
     BANK(BK_BREAKDOWN, kBreakdown), BANK(BK_DIVE, kDive), BANK(BK_GUN_SEEN, kGunSeen), BANK(BK_COP_SEARCH, kCopSearch),
     BANK(BK_COP_BACKUP, kCopBackup), BANK(BK_WITNESS_STOP, kWitnessStop), BANK(BK_JOG, kJog), BANK(BK_PHONE_CHAT, kPhoneChat),
     BANK(BK_BOUNCER, kBouncer), BANK(BK_ROAD_RAGE, kRoadRage), BANK(BK_COP_MEGAPHONE, kCopMegaphone),
+    BANK(BK_NICE_CAR, kNiceCar),
 };
 #undef BANK
 

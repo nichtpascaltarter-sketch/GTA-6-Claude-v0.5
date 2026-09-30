@@ -103,6 +103,9 @@ struct PlayerInfo {
     std::vector<u8> collectibleFlags;   // per collectible id
     float maxWanted = 0;
     double playTime = 0;
+    // weapon components: bought (owned) and fitted (equipped) WeaponComp bits, tint per weapon (0 stock)
+    u8 wpnCompOwned[WPN_COUNT] = {}, wpnCompFitted[WPN_COUNT] = {}, wpnTint[WPN_COUNT] = {}, wpnTintOwned[WPN_COUNT] = {};
+    bool flashlightOn = true;
 };
 
 struct GameWorld {
@@ -120,6 +123,8 @@ struct GameWorld {
     std::vector<int> charsMaleCivil, charsFemaleCivil;
     int protagonistChar[2] = {-1, -1};
     Render::Model* weaponModels[WPN_COUNT] = {};
+    Render::Model* weaponTintModels[WPN_COUNT][kWeaponTints] = {};    // [w][0] == weaponModels[w]
+    Render::Model* weaponCompModels[WPN_COUNT][kWeaponCompCount] = {}; // attachment meshes in the weapon's frame
     Render::Model* pickupModels[6] = {};
     Render::Model* parachuteModel = nullptr;
     Render::Model* phoneModel = nullptr;      // smartphone prop (calls, idle scrolling)
@@ -237,6 +242,8 @@ struct GameWorld {
     bool lineOfSight(dvec3 a, dvec3 b, int ignorePed, int ignoreVeh) const;
     void fireWeapon(int ped, dvec3 muzzle, vec3 dir);
     void giveWeapon(int ped, WeaponType w, int ammo);
+    u8 weaponComps(const Ped& p, WeaponType w) const;   // fitted components (player only; NPCs carry stock guns)
+    int clipCapacity(const Ped& p, WeaponType w) const;  // magazine size with an extended mag
     void reportCrime(int type, dvec3 pos, int victim);
     void onPickupCollected(const Pickup& pk);
     void placeWorldPickups();

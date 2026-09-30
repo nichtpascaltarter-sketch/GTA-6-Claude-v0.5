@@ -419,6 +419,73 @@ bool roamUpdate(GameWorld& g, float dt, MissionTest& T) {
             } else if (R.phase == 2 && R.t > 0.4f) {
                 const WeaponInfo& wi = weaponInfo((WeaponType)R.value0);
                 roamCheck(pl->hasWeapon[R.value0] && R.money0 - g.pinfo.money == wi.price, StrFormat("bought a %s for $%d", wi.name, wi.price));
+                // customization: the first gun on the list with a component to sell
+                int cz = -1;
+                for (const MenuItem& it : gMenu.items)
+                    if (cz < 0 && it.id >= 300 && it.id < 300 + WPN_COUNT && weaponCompsAvailable((WeaponType)(it.id - 300))) cz = it.id;
+                if (cz < 0) {
+                    roamCheck(false, "gun store: no weapon to customize");
+                    gMenuInject = -2;
+                    R.phase = 3;
+                } else {
+                    R.count0 = cz - 300;
+                    gMenuInject = cz;
+                    R.phase = 10;
+                }
+                R.t = 0.f;
+            } else if (R.phase == 10 && R.t > 0.4f) {
+                int w = R.count0;
+                int comp = roamPick([](const MenuItem& it) { return it.id >= 500 && it.id < 500 + kWeaponCompCount && it.right.empty(); });
+                roamCheck(gShops.gunPage == 1 && g.rig.scriptActive && comp >= 0,
+                          StrFormat("%s components page open (%d items), weapon camera on", weaponInfo((WeaponType)w).name, (int)gMenu.items.size()));
+                if (comp < 0) {
+                    gMenuInject = -2;
+                    R.phase = 16;
+                } else {
+                    R.value0 = comp - 500;
+                    R.money0 = g.pinfo.money;
+                    gMenuInject = comp;
+                    R.phase = 11;
+                }
+                R.t = 0.f;
+            } else if (R.phase == 11 && R.t > 0.4f) {
+                int w = R.count0, bit = 1 << R.value0;
+                int price = weaponCompPrice((WeaponType)w, bit);
+                roamCheck((g.pinfo.wpnCompOwned[w] & bit) && (g.pinfo.wpnCompFitted[w] & bit) && R.money0 - g.pinfo.money == price,
+                          StrFormat("bought and fitted a %s for $%d", weaponCompName(bit), price));
+                R.money0 = g.pinfo.money;
+                gMenuInject = 500 + R.value0;   // owned now: take it off
+                R.phase = 12;
+                R.t = 0.f;
+            } else if (R.phase == 12 && R.t > 0.4f) {
+                int w = R.count0, bit = 1 << R.value0;
+                roamCheck(!(g.pinfo.wpnCompFitted[w] & bit) && (g.pinfo.wpnCompOwned[w] & bit) && g.pinfo.money == R.money0,
+                          StrFormat("%s taken off for free and kept", weaponCompName(bit)));
+                gMenuInject = 600;
+                R.phase = 13;
+                R.t = 0.f;
+            } else if (R.phase == 13 && R.t > 0.4f) {
+                roamCheck(gShops.gunPage == 2 && (int)gMenu.items.size() == kWeaponTints + 1, "tints page lists every tint");
+                R.money0 = g.pinfo.money;
+                gMenuInject = 703;
+                R.phase = 14;
+                R.t = 0.f;
+            } else if (R.phase == 14 && R.t > 0.4f) {
+                int w = R.count0;
+                int price = weaponTintPrice((WeaponType)w, 3);
+                roamCheck(g.pinfo.wpnTint[w] == 3 && ((g.pinfo.wpnTintOwned[w] >> 3) & 1) && R.money0 - g.pinfo.money == price,
+                          StrFormat("%s tint bought and equipped for $%d", weaponTintName(3), price));
+                gMenuInject = -2;
+                R.phase = 15;
+                R.t = 0.f;
+            } else if (R.phase == 15 && R.t > 0.4f) {
+                gMenuInject = -2;
+                R.phase = 16;
+                R.t = 0.f;
+            } else if (R.phase == 16 && R.t > 0.4f) {
+                int w = R.count0;
+                roamCheck(gShops.gunPage == 0 && gMenu.open && !g.rig.scriptActive && g.pinfo.wpnTint[w] == 3,
+                          "back on the store list, camera returned, tint kept");
                 gMenuInject = -2;
                 R.phase = 3;
                 R.t = 0.f;
@@ -680,7 +747,8 @@ bool roamUpdate(GameWorld& g, float dt, MissionTest& T) {
                 R.t = 0.f;
             } else if (R.phase == 3 && R.t > 0.5f) {
                 long long got = g.pinfo.money - R.money0;
-                roamCheck(got == b.income, StrFormat("next morning: business income $%lld (expected $%d)", got, b.income));
+                int want = businessIncome(g, b.income);
+                roamCheck(got == want, StrFormat("next morning: business income $%lld (expected $%d)", got, want));
                 roamNext();
             }
             break;
@@ -835,6 +903,67 @@ bool roamUpdate(GameWorld& g, float dt, MissionTest& T) {
                     roamCheck(false, StrFormat("stunt ramp jump not registered (car at %.0f, %.0f, %.1f)", p.x, p.y, p.z));
                     roamNext();
                 }
+            }
+            break;
+        }
+        case 14: {   // wildlife census: photograph an animal with the phone camera, the species joins the field guide
+            if (R.phase == 0) {
+                setFlag(g, EX_WORLD_TEXTS, flag(g, EX_WORLD_TEXTS) | (1 << 10));   // the Wildlife Trust's text
+                placePlayer(g, gPlaces.beachPier.curb, gPlaces.beachPier.curbYaw);
+                R.money0 = g.pinfo.money;
+                R.value0 = flag(g, EX_FIELD_GUIDE);
+                R.phase = 1;
+                R.t = 0.f;
+            } else if (R.phase == 1) {
+                // the nearest living animal of a species not logged yet
+                const wild_detail::Animal* pick = nullptr;
+                float bd = 80.f;
+                vec3 pp = playerPos(g);
+                for (const wild_detail::Animal& a : wild_detail::gW.animals) {
+                    if (!a.used || a.state == wild_detail::ST_DEAD || a.state == wild_detail::ST_FALL || a.sp == Fauna::SP_FISH) continue;
+                    if (((R.value0 >> a.sp) & 1) || (a.inWater && a.pos.z < a.waterZ - 2.f)) continue;
+                    float d = ::length(a.pos.xy() - pp.xy());
+                    if (d < bd) {
+                        bd = d;
+                        pick = &a;
+                    }
+                }
+                if (!pick) {
+                    if (R.t > 40.f) {
+                        roamCheck(false, "field guide: no animal turned up near the beach pier");
+                        roamNext();
+                    }
+                    break;
+                }
+                // frame it from 5 m on the player's side, a little above
+                const Fauna::SpeciesInfo& si = Fauna::speciesInfo(pick->sp);
+                bool grounded = si.plan == Fauna::PLAN_QUAD || si.plan == Fauna::PLAN_REPTILE;
+                vec3 c = pick->pos + vec3(0.f, 0.f, grounded ? si.height * 0.5f * pick->scale : 0.f);
+                vec2 away = pp.xy() - c.xy();
+                away = ::length(away) > 0.5f ? normalize(away) : vec2(0.f, -1.f);
+                vec3 cam = c + vec3(away * 5.f, 1.2f);
+                vec3 d = normalize(c - cam);
+                UI::PhotoMode& ph = g.phone.photo;
+                ph.camPos = cam;
+                ph.camYaw = atan2f(-d.x, d.y);
+                ph.camPitch = asinf(Clamp(d.z, -1.f, 1.f));
+                ph.camFov = 0.87f;
+                R.count0 = pick->sp;
+                UI::PhoneAction a;
+                a.type = UI::PA_TAKE_PHOTO;
+                bool consumed = phoneHandle(g, g.phone, a);
+                roamCheck(!consumed, "a photo still reaches the app (the picture is saved)");
+                R.phase = 2;
+                R.t = 0.f;
+            } else if (R.phase == 2 && R.t > 0.3f) {
+                bool logged = (flag(g, EX_FIELD_GUIDE) >> R.count0) & 1;
+                roamCheck(logged && g.pinfo.money - R.money0 == 250,
+                          StrFormat("field guide: photographed a %s (+$%lld, toast '%s')", Fauna::speciesInfo(R.count0).name, g.pinfo.money - R.money0,
+                                    g.phone.toast.c_str()));
+                bool app = false;
+                for (const UI::PhoneListApp& ap : g.phone.apps) app |= ap.name == "Field Guide" && (int)ap.items.size() == 21;
+                roamCheck(app, "the Field Guide app lists 21 species");
+                roamNext();
             }
             break;
         }

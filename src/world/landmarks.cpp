@@ -664,39 +664,15 @@ const Ad kAds[24] = {
     {"NEON TIDE NIGHTS", "SOL BEACH - EVERY FRIDAY", vec3(0.2f, 0.05f, 0.35f), vec3(0.1f, 0.8f, 0.9f), vec3(1.f, 0.4f, 0.9f), 6},
 };
 
-// One billboard face: background bands, graphic, headline and sub line. o = face center, rt/up axes, n = normal
-void adFace(G& g, const Ad& ad, vec3 o, vec3 rt, vec3 up, vec3 n, float W, float H, bool detail) {
+// Ad graphic (sun, palm, waves, ...) centred at gc with size gs in the plane (rt, up), facing n; em = emissive strength.
+void adGraphic(G& g, const Ad& ad, vec3 gc, float gs, vec3 rt, vec3 up, vec3 n, float em) {
     MeshData& m = *g.m;
-    // background: two-colour diagonal split (vertex colours) with a lower band
-    vec3 bl = o - rt * (W * 0.5f) - up * (H * 0.5f), br = o + rt * (W * 0.5f) - up * (H * 0.5f);
-    vec3 tr = o + rt * (W * 0.5f) + up * (H * 0.5f), tl = o - rt * (W * 0.5f) + up * (H * 0.5f);
-    u32 i0 = m.addVertex(bl - g.org, n, rt, vec2(0, 0), rgbv(ad.bg0, 0.12f), emMat(EA_NIGHT));
-    u32 i1 = m.addVertex(br - g.org, n, rt, vec2(1, 0), rgbv(ad.bg1, 0.12f), emMat(EA_NIGHT));
-    u32 i2 = m.addVertex(tr - g.org, n, rt, vec2(1, 1), rgbv(ad.bg1, 0.12f), emMat(EA_NIGHT));
-    u32 i3 = m.addVertex(tl - g.org, n, rt, vec2(0, 1), rgbv(ad.bg0, 0.12f), emMat(EA_NIGHT));
-    vec3 fn = cross(m.verts[i1].pos - m.verts[i0].pos, m.verts[i3].pos - m.verts[i0].pos);
-    if (dot(fn, n) > 0) m.quadIdx(i0, i1, i2, i3);
-    else m.quadIdx(i0, i3, i2, i1);
-    if (!detail) return;
-    vec3 off = n * 0.03f;
-    float lineW = W * 0.62f;
-    // headline, auto-fitted to the text column
-    float th = Min(H * 0.26f, lineW / Max(1.f, textAdvance(ad.head, 1.f, 0.3f)));
-    float tw = textAdvance(ad.head, th, 0.3f);
-    vec3 tc = o - rt * (W * 0.16f);
-    strokeText(g, m, ad.head, tc + off - rt * (tw * 0.5f) + up * (H * 0.06f), rt, up, th, th * 0.16f, rgbv(ad.text, 0.35f), emMat(EA_NIGHT), 0.f, 0.3f);
-    float sh = Min(H * 0.11f, lineW / Max(1.f, textAdvance(ad.sub, 1.f, 0.3f)));
-    float sw = textAdvance(ad.sub, sh, 0.3f);
-    strokeText(g, m, ad.sub, tc + off - rt * (sw * 0.5f) - up * (H * 0.28f), rt, up, sh, sh * 0.15f, rgbv(ad.text * 0.9f, 0.3f), emMat(EA_NIGHT), 0.f, 0.3f);
-    // graphic in the right third
-    vec3 gc = o + rt * (W * 0.33f) + off * 1.5f;
-    float gs = H * 0.36f;
     vec3 gcol = ad.graphic == 5 ? ad.text : vec3(1.f, 0.85f, 0.25f);
     auto disc = [&](vec3 c, float r, vec3 col, int segs) {
-        u32 b0 = m.addVertex(c - g.org, n, rt, vec2(0, 0), rgbv(col, 0.3f), emMat(EA_NIGHT));
+        u32 b0 = m.addVertex(c - g.org, n, rt, vec2(0, 0), rgbv(col, em), emMat(EA_NIGHT));
         for (int k = 0; k <= segs; k++) {
             float a = kTwoPi * k / segs;
-            m.addVertex(c + rt * (cosf(a) * r) + up * (sinf(a) * r) - g.org, n, rt, vec2(0, 0), rgbv(col, 0.3f), emMat(EA_NIGHT));
+            m.addVertex(c + rt * (cosf(a) * r) + up * (sinf(a) * r) - g.org, n, rt, vec2(0, 0), rgbv(col, em), emMat(EA_NIGHT));
         }
         for (int k = 0; k < segs; k++) {
             vec3 f2 = cross(m.verts[b0 + 1 + k].pos - m.verts[b0].pos, m.verts[b0 + 2 + k].pos - m.verts[b0].pos);
@@ -707,7 +683,7 @@ void adFace(G& g, const Ad& ad, vec3 o, vec3 rt, vec3 up, vec3 n, float W, float
     auto stroke = [&](vec3 a, vec3 b, float w, vec3 col) {
         vec3 d = normalize(b - a);
         vec3 s = normalize(cross(n, d)) * (w * 0.5f);
-        m.quadFacing(a - s - g.org, b - s - g.org, b + s - g.org, a + s - g.org, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), rgbv(col, 0.3f), emMat(EA_NIGHT), n);
+        m.quadFacing(a - s - g.org, b - s - g.org, b + s - g.org, a + s - g.org, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), rgbv(col, em), emMat(EA_NIGHT), n);
     };
     switch (ad.graphic) {
         case 0:  // sun with rays
@@ -769,6 +745,35 @@ void adFace(G& g, const Ad& ad, vec3 o, vec3 rt, vec3 up, vec3 n, float W, float
     }
 }
 
+
+// One billboard face: background bands, graphic, headline and sub line. o = face center, rt/up axes, n = normal
+void adFace(G& g, const Ad& ad, vec3 o, vec3 rt, vec3 up, vec3 n, float W, float H, bool detail) {
+    MeshData& m = *g.m;
+    // background: two-colour diagonal split (vertex colours) with a lower band
+    vec3 bl = o - rt * (W * 0.5f) - up * (H * 0.5f), br = o + rt * (W * 0.5f) - up * (H * 0.5f);
+    vec3 tr = o + rt * (W * 0.5f) + up * (H * 0.5f), tl = o - rt * (W * 0.5f) + up * (H * 0.5f);
+    u32 i0 = m.addVertex(bl - g.org, n, rt, vec2(0, 0), rgbv(ad.bg0, 0.12f), emMat(EA_NIGHT));
+    u32 i1 = m.addVertex(br - g.org, n, rt, vec2(1, 0), rgbv(ad.bg1, 0.12f), emMat(EA_NIGHT));
+    u32 i2 = m.addVertex(tr - g.org, n, rt, vec2(1, 1), rgbv(ad.bg1, 0.12f), emMat(EA_NIGHT));
+    u32 i3 = m.addVertex(tl - g.org, n, rt, vec2(0, 1), rgbv(ad.bg0, 0.12f), emMat(EA_NIGHT));
+    vec3 fn = cross(m.verts[i1].pos - m.verts[i0].pos, m.verts[i3].pos - m.verts[i0].pos);
+    if (dot(fn, n) > 0) m.quadIdx(i0, i1, i2, i3);
+    else m.quadIdx(i0, i3, i2, i1);
+    if (!detail) return;
+    vec3 off = n * 0.03f;
+    float lineW = W * 0.62f;
+    // headline, auto-fitted to the text column
+    float th = Min(H * 0.26f, lineW / Max(1.f, textAdvance(ad.head, 1.f, 0.3f)));
+    float tw = textAdvance(ad.head, th, 0.3f);
+    vec3 tc = o - rt * (W * 0.16f);
+    strokeText(g, m, ad.head, tc + off - rt * (tw * 0.5f) + up * (H * 0.06f), rt, up, th, th * 0.16f, rgbv(ad.text, 0.35f), emMat(EA_NIGHT), 0.f, 0.3f);
+    float sh = Min(H * 0.11f, lineW / Max(1.f, textAdvance(ad.sub, 1.f, 0.3f)));
+    float sw = textAdvance(ad.sub, sh, 0.3f);
+    strokeText(g, m, ad.sub, tc + off - rt * (sw * 0.5f) - up * (H * 0.28f), rt, up, sh, sh * 0.15f, rgbv(ad.text * 0.9f, 0.3f), emMat(EA_NIGHT), 0.f, 0.3f);
+    // graphic in the right third
+    adGraphic(g, ad, o + rt * (W * 0.33f) + off * 1.5f, H * 0.36f, rt, up, n, 0.3f);
+}
+
 void genBillboard(const SiteElem& e, G& g) {
     if (!g.owns(e.c)) return;
     bool detail = g.detail;
@@ -803,5 +808,85 @@ void genBillboard(const SiteElem& e, G& g) {
     }
 }
 
+// Portrait poster (bus-shelter lightbox, wall ad): vertical two-colour background, graphic on top, headline wrapped onto up
+// to two lines, sub line at the bottom. Emissive strengths: bg = a, lettering/graphic = a * 1.6.
+void splitLine(const char* txt, std::string& l0, std::string& l1) {
+    std::string t(txt);
+    l0 = t;
+    l1.clear();
+    if (t.size() <= 11) return;
+    size_t best = std::string::npos;
+    for (size_t i = 0; i < t.size(); i++)
+        if (t[i] == ' ' && (best == std::string::npos || std::abs((int)i * 2 - (int)t.size()) < std::abs((int)best * 2 - (int)t.size()))) best = i;
+    if (best == std::string::npos) return;
+    l0 = t.substr(0, best);
+    l1 = t.substr(best + 1);
+}
+
+void adPoster(G& g, const Ad& ad, vec3 o, vec3 rt, vec3 up, vec3 n, float W, float H, float a, u32 mat) {
+    MeshData& m = *g.m;
+    vec3 bl = o - rt * (W * 0.5f) - up * (H * 0.5f), br = o + rt * (W * 0.5f) - up * (H * 0.5f);
+    vec3 tr = o + rt * (W * 0.5f) + up * (H * 0.5f), tl = o - rt * (W * 0.5f) + up * (H * 0.5f);
+    vec3 ml = o - rt * (W * 0.5f) - up * (H * 0.05f), mr = o + rt * (W * 0.5f) - up * (H * 0.05f);
+    // lower block (text area) in bg0, upper block (graphic) in bg1, blended across a narrow band
+    vec3 blend = ad.bg0 * 0.6f + ad.bg1 * 0.4f;
+    m.quadFacing(bl - g.org, br - g.org, mr - g.org, ml - g.org, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), rgbv(ad.bg0, a), mat, n);
+    u32 c0 = rgbv(blend, a), c1 = rgbv(ad.bg1, a);
+    u32 i0 = m.addVertex(ml - g.org, n, rt, vec2(0, 0), c0, mat), i1 = m.addVertex(mr - g.org, n, rt, vec2(1, 0), c0, mat);
+    u32 i2 = m.addVertex(tr - g.org, n, rt, vec2(1, 1), c1, mat), i3 = m.addVertex(tl - g.org, n, rt, vec2(0, 1), c1, mat);
+    if (dot(cross(mr - ml, tl - ml), n) > 0) m.quadIdx(i0, i1, i2, i3);
+    else m.quadIdx(i0, i3, i2, i1);
+    vec3 off = n * (W * 0.01f);
+    float ta = a * 1.6f;
+    float lineW = W * 0.84f;
+    std::string h0, h1, s0, s1;
+    splitLine(ad.head, h0, h1);
+    splitLine(ad.sub, s0, s1);
+    float adv = Max(textAdvance(h0.c_str(), 1.f, 0.3f), h1.empty() ? 0.f : textAdvance(h1.c_str(), 1.f, 0.3f));
+    float th = Min(H * 0.1f, lineW / Max(1.f, adv));
+    float y = -H * 0.12f;
+    for (int l = 0; l < 2; l++) {
+        const std::string& t = l ? h1 : h0;
+        if (t.empty()) continue;
+        float tw = textAdvance(t.c_str(), th, 0.3f);
+        strokeText(g, m, t.c_str(), o + off - rt * (tw * 0.5f) + up * (y - th * 0.5f), rt, up, th, th * 0.17f, rgbv(ad.text, ta), mat, 0.f, 0.3f);
+        y -= th * 1.35f;
+    }
+    float sadv = Max(textAdvance(s0.c_str(), 1.f, 0.3f), s1.empty() ? 0.f : textAdvance(s1.c_str(), 1.f, 0.3f));
+    float sh = Min(H * 0.045f, lineW / Max(1.f, sadv));
+    float sy = -H * 0.5f + H * 0.06f + (s1.empty() ? 0.f : sh * 1.4f);
+    for (int l = 0; l < 2; l++) {
+        const std::string& t = l ? s1 : s0;
+        if (t.empty()) continue;
+        float sw = textAdvance(t.c_str(), sh, 0.3f);
+        strokeText(g, m, t.c_str(), o + off - rt * (sw * 0.5f) + up * sy, rt, up, sh, sh * 0.16f, rgbv(ad.text * 0.9f, ta), mat, 0.f, 0.3f);
+        sy -= sh * 1.4f;
+    }
+    size_t v0 = m.verts.size();
+    adGraphic(g, ad, o + up * (H * 0.24f) + off * 1.5f, Min(W * 0.36f, H * 0.2f), rt, up, n, ta);
+    for (size_t k = v0; k < m.verts.size(); k++) m.verts[k].mat = (m.verts[k].mat & 0x80000000u) | (mat & 0x7fffffffu);  // keep the bitangent sign
+}
+
 }  // namespace landmark_mesh
+
+// Prop prototypes (propmesh.cpp) reuse the ad art and the stroke font. Prop emissive runs through props.hlsl
+// (colour * a * 400 * (0.03 + night) * 6): glow ~0.02 gives a billboard-like lightbox at night and a faint glow by day.
+void propAdPanel(MeshData& m, vec3 center, vec3 right, vec3 up, float w, float h, int ad, float glow) {
+    sitegeo::G g;
+    g.m = &m;
+    g.d = &m;
+    g.org = vec3(0.f);
+    vec3 n = normalize(cross(right, up));
+    int idx = ((ad % 24) + 24) % 24;
+    landmark_mesh::adPoster(g, landmark_mesh::kAds[idx], center, right, up, n, w, h, glow, makeMat(MAT_EMISSIVE));
+}
+
+void propText(MeshData& m, const char* txt, vec3 origin, vec3 right, vec3 up, float h, u32 col, u32 mat) {
+    sitegeo::G g;
+    g.m = &m;
+    g.d = &m;
+    g.org = vec3(0.f);
+    sitegeo::strokeText(g, m, txt, origin, right, up, h, h * 0.14f, col, mat, 0.f, 0.3f);
+}
+
 }  // namespace World

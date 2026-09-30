@@ -1928,6 +1928,61 @@ static void s_deerSnort(Buf& b) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Public transit
+// Door-closing chime of the SkyLine trains and stations: three descending metallophone notes (E5 C5 G4)
+static void s_transitChime(Buf& b) {
+    const float notes[3] = {76.f, 72.f, 67.f};
+    for (int i = 0; i < 3; i++) {
+        float f = midiToHz(notes[i]);
+        float t = i * 0.34f;
+        Mode m[4] = {{f, 0.9f, 1.f}, {f * 2.003f, 0.45f, 0.22f}, {f * 3.94f, 0.12f, 0.07f}, {f * 0.5f, 0.6f, 0.08f}};
+        modes(b, t, 0.34f, m, 4);
+        click(b, t, 0.05f, 6);
+    }
+    lowpass(b, 6000.f);
+    reverb(b, 1.4f, 0.22f, 0.45f, 0.02f, 1.3f, 0.25f);
+}
+// Sliding plug doors: motor whine and seal hiss, then the leaves thud home against the rubber seals
+static void s_trainDoors(Buf& b) {
+    float d = b.rnd(1.15f, 1.35f);
+    float f0 = b.rnd(170.f, 200.f);
+    tone(b, 0.f, d, f0, f0 * 1.25f, d * 0.8f, 0.11f, 0.08f, d * 1.5f, 0.f, 0.5f, 0.25f);
+    noise(b, 0.f, d * 0.7f, 0.35f, 0.02f, 0.12f, FBP, 2400.f, 1300.f, d * 0.4f, 0.8f, 1);
+    noise(b, 0.05f, d, 0.18f, 0.2f, d * 0.6f, FBP, 900.f, 1500.f, d * 0.6f, 1.2f, 1);
+    Mode th[3] = {{b.rnd(85.f, 105.f), 0.07f, 1.f}, {b.rnd(210.f, 250.f), 0.04f, 0.6f}, {b.rnd(900.f, 1100.f), 0.015f, 0.25f}};
+    modes(b, d, 0.55f, th, 3);
+    click(b, d, 0.25f, 12);
+    noise(b, d, 0.08f, 0.2f, 0.001f, 0.02f, FLP, 1200.f, -1.f, 0.1f, 0.7f, 2);
+    reverb(b, 0.5f, 0.12f, 0.5f, 0.01f, 0.6f, 0.2f);
+}
+// One wheelset over a rail joint: heavy knock with a short ring of the rail
+static void s_railClack(Buf& b) {
+    float p = b.rnd(0.9f, 1.12f);
+    Mode m[5] = {{165.f * p, 0.06f, 1.f}, {410.f * p, 0.04f, 0.7f}, {1120.f * p, 0.022f, 0.35f}, {2650.f * p, 0.012f, 0.2f}, {5200.f * p, 0.006f, 0.08f}};
+    modes(b, 0.f, 0.7f, m, 5);
+    click(b, 0.f, 0.5f, 10);
+    noise(b, 0.f, 0.09f, 0.35f, 0.0005f, 0.025f, FLP, 900.f, 300.f, 0.05f, 0.7f, 2);
+    if (b.chance(0.5f)) {
+        Mode r[2] = {{b.rnd(3100.f, 3600.f), 0.12f, 0.12f}, {b.rnd(4700.f, 5300.f), 0.08f, 0.06f}};
+        modes(b, 0.005f, 0.3f, r, 2);
+    }
+}
+// Ferry horn: a deep reed-like note with a slightly beating second voice and a harbour echo
+static void s_shipHorn(Buf& b) {
+    float f = b.rnd(112.f, 128.f), d = b.rnd(2.1f, 2.5f);
+    const float harm[6] = {1.f, 0.62f, 0.46f, 0.3f, 0.2f, 0.12f};
+    for (int h = 0; h < 6; h++) {
+        tone(b, 0.f, d, f * (h + 1) * 1.01f, f * (h + 1), 0.4f, 0.16f * harm[h], 0.18f, 6.f);
+        tone(b, 0.02f, d, f * (h + 1) * 1.006f, f * (h + 1) * 1.004f, 0.4f, 0.08f * harm[h], 0.22f, 6.f);
+    }
+    noise(b, 0.f, d, 0.05f, 0.15f, 5.f, FBP, f * 6.f, -1.f, 0.1f, 1.4f, 1);
+    saturate(b, 1.6f);
+    lowpass(b, 2200.f);
+    echoes(b, 3, 0.9f, 0.7f, 0.35f, 0.55f, 900.f, d);
+    reverb(b, 2.4f, 0.3f, 0.6f, 0.04f, 1.8f, 0.3f);
+}
+
+// ---------------------------------------------------------------------------------------------
 // Definitions table (order must match BankId)
 #define W Bus::World
 #define U Bus::Ui
@@ -2033,6 +2088,10 @@ static const SoundDef kDefs[BANK_COUNT] = {
     {"animal_blow",       W, 50,  3, 0.6f,  4.f,   120.f,  0.15f, 0.08f, 1.f},
     {"raccoon_chitter",   W, 40,  3, 0.4f,  2.f,   50.f,   0.1f,  0.08f, 1.f},
     {"deer_snort",        W, 80,  3, 0.9f,  5.f,   250.f,  0.25f, 0.06f, 1.f},
+    {"transit_chime",     W, 130, 1, 0.55f, 6.f,   90.f,   0.3f,  0.f,   1.f},
+    {"train_doors",       W, 90,  3, 0.7f,  3.f,   60.f,   0.2f,  0.04f, 1.f},
+    {"rail_clack",        W, 70,  6, 0.9f,  4.f,   220.f,  0.25f, 0.08f, 0.8f},
+    {"ship_horn",         W, 200, 2, 1.0f,  40.f,  3500.f, 0.45f, 0.02f, 0.4f},
     {"amb_cricket",       W, 20,  4, 0.2f,  3.f,   60.f,   0.2f,  0.04f, 1.f},
     {"amb_treefrog",      W, 20,  4, 0.25f, 4.f,   90.f,   0.2f,  0.05f, 1.f},
     {"amb_bullfrog",      W, 20,  3, 0.4f,  5.f,   160.f,  0.25f, 0.05f, 1.f},
@@ -2152,6 +2211,10 @@ static void synthesize(int id, int var, Buf& b) {
         case SFX_ANIMAL_BLOW: s_animalBlow(b); break;
         case SFX_RACCOON_CHITTER: s_raccoonChitter(b); break;
         case SFX_DEER_SNORT: s_deerSnort(b); break;
+        case SFX_TRANSIT_CHIME: s_transitChime(b); break;
+        case SFX_TRAIN_DOORS: s_trainDoors(b); break;
+        case SFX_RAIL_CLACK: s_railClack(b); break;
+        case SFX_SHIP_HORN: s_shipHorn(b); break;
         case AMB_CRICKET_CHIRP: s_cricket(b); break;
         case AMB_TREEFROG: s_treefrog(b); break;
         case AMB_BULLFROG: s_bullfrog(b); break;

@@ -52,6 +52,21 @@ float sampleCascade(int c, float3 relPos, float3 N, float noiseAngle) {
     return s / 12.0;
 }
 
+// Distance (m) the sun's light travels inside geometry before reaching relPos: light-space depth of the point minus
+// the nearest occluder depth in the first cascade that covers it (thin skin lit from behind: ears, fingers).
+float shadowThickness(float3 relPos) {
+    int count = (int)gShadowParams.y;
+    [loop] for (int c = 0; c < count; c++) {
+        float4 sp = mul(gCascadeVP[c], float4(relPos, 1));
+        float2 suv = sp.xy * float2(0.5, -0.5) + 0.5;
+        if (all(suv > 0.0) && all(suv < 1.0) && sp.z < 1.0 && sp.z > 0.0) {
+            float d = gShadowMap.SampleLevel(sPointClamp, float3(suv, c), 0);
+            return max(sp.z - d, 0.0) * gCascadeDepth[c];
+        }
+    }
+    return 1.0;
+}
+
 float cloudShadowAt(float3 relPos) {
     float2 w = relPos.xy + gCamPos.xy;
     float2 uv = (w - gCloudShadow.xy) / gCloudShadow.z + 0.5;

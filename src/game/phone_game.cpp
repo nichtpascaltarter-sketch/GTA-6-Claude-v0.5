@@ -9,7 +9,120 @@
 namespace Game {
 namespace mu {
 
-enum PhoneApp : int { APP_SWITCH = 1, APP_WHEELS, APP_REALTY, APP_JOBS, APP_REPLAY, APP_VEHICLE_JOB };
+enum PhoneApp : int { APP_SWITCH = 1, APP_WHEELS, APP_REALTY, APP_JOBS, APP_REPLAY, APP_VEHICLE_JOB, APP_FIELD_GUIDE };
+
+// ------------------------------------------------------------------------------------------------------------------
+// Wild Porto Sol: the Wildlife Trust's photo census. The first photo of a species taken with the phone camera (photo
+// mode) pays $250, the full field guide $10,000. The Field Guide app lists every species with a hint where to look.
+struct FieldGuideEntry {
+    int species;
+    const char* hint;
+};
+const FieldGuideEntry kFieldGuide[] = {
+    {Fauna::SP_GULL, "Beaches, piers and marinas, all day long."},
+    {Fauna::SP_PELICAN, "Lines of them glide low over the bay and the sea."},
+    {Fauna::SP_PIGEON, "City plazas, parks and fountains."},
+    {Fauna::SP_HERON, "Standing very still in the shallows of the Sawgrass, the Keys and the farm country."},
+    {Fauna::SP_EGRET, "Wading in shallow marsh water, often two or three together."},
+    {Fauna::SP_SPOONBILL, "Pink waders sifting the Sawgrass shallows in small groups."},
+    {Fauna::SP_FLAMINGO, "Flocks in the far south: the Keys and the southern Sawgrass."},
+    {Fauna::SP_IBIS, "White flocks probing the mud of the marshes and ditches."},
+    {Fauna::SP_VULTURE, "Circling over open country. Look up."},
+    {Fauna::SP_PARROT, "Noisy green flocks in the suburbs, Calle Luna, midtown and the beach."},
+    {Fauna::SP_GATOR, "Canals and ponds of the Sawgrass, Redland and the farms. They bask on the banks on warm days. Keep your distance."},
+    {Fauna::SP_IGUANA, "Sunning next to canals in the suburbs, on the beach and in the Keys."},
+    {Fauna::SP_DOLPHIN, "Deep water well offshore. Take a boat out."},
+    {Fauna::SP_MANATEE, "Slow shapes in calm, shallow water close to the shore."},
+    {Fauna::SP_TURTLE, "Clear water off the beach, the Keys and Key Coral."},
+    {Fauna::SP_DOG, "Out for walks with their owners all over town. Strays roam the Flats and Harlow."},
+    {Fauna::SP_CAT, "On porches and walls in the suburbs, Calle Luna and North City."},
+    {Fauna::SP_RACCOON, "Raiding dumpsters and trash cans in town."},
+    {Fauna::SP_DEER, "The Ridge any time; Redland and the farms at dawn and dusk."},
+    {Fauna::SP_COW, "Grazing in the farmland and Redland pastures."},
+    {Fauna::SP_HORSE, "Paddocks in the farmland, Harlow and Redland."},
+};
+const int kFieldGuideCount = (int)ARRAY_COUNT(kFieldGuide);
+const long long kSpeciesPay = 250, kFieldGuidePay = 10000;
+
+bool censusOpen(GameWorld& g) { return (flag(g, EX_WORLD_TEXTS) >> 10) & 1; }   // the Wildlife Trust's text arrived
+
+std::string speciesTitle(int species) {
+    std::string n = Fauna::speciesInfo(species).name;
+    bool cap = true;
+    for (char& c : n) {
+        if (cap && c >= 'a' && c <= 'z') c = (char)(c - 'a' + 'A');
+        cap = c == ' ' || c == '-';
+    }
+    return n;
+}
+
+int fieldGuideLogged(GameWorld& g) {
+    int n = 0, mask = flag(g, EX_FIELD_GUIDE);
+    for (const FieldGuideEntry& e : kFieldGuide) n += (mask >> e.species) & 1;
+    return n;
+}
+
+// The animal a photo is of: alive, inside the middle of the frame, big enough to fill part of it and not hidden
+// behind anything. A species the census still needs wins over one already logged. -1 when no animal qualifies.
+int photoSubject(GameWorld& g, const UI::PhotoMode& cam) {
+    vec3 o = cam.camPos;
+    vec3 f(-sinf(cam.camYaw) * cosf(cam.camPitch), cosf(cam.camYaw) * cosf(cam.camPitch), sinf(cam.camPitch));
+    vec3 r = normalize(cross(f, vec3(0, 0, 1)));
+    vec3 u = cross(r, f);
+    float tanV = tanf(Clamp(cam.camFov, 0.05f, 2.5f) * 0.5f), aspect = 16.f / 9.f;
+    int mask = flag(g, EX_FIELD_GUIDE);
+    int best = -1;
+    float bestScore = 0.f;
+    for (const wild_detail::Animal& a : wild_detail::gW.animals) {
+        if (!a.used || a.state == wild_detail::ST_DEAD || a.state == wild_detail::ST_FALL || a.sp == Fauna::SP_FISH) continue;
+        const Fauna::SpeciesInfo& si = Fauna::speciesInfo(a.sp);
+        bool grounded = si.plan == Fauna::PLAN_QUAD || si.plan == Fauna::PLAN_REPTILE;   // origin on the ground, not the body
+        vec3 c = a.pos + vec3(0.f, 0.f, grounded ? si.height * 0.5f * a.scale : 0.f);
+        if (a.inWater && c.z < a.waterZ - 3.f) continue;   // too deep to see
+        vec3 d = c - o;
+        float z = dot(d, f), len = length(d);
+        if (z < 0.5f || len > 90.f) continue;
+        float x = dot(d, r) / (z * tanV * aspect), y = dot(d, u) / (z * tanV);
+        if (fabsf(x) > 0.8f || fabsf(y) > 0.8f) continue;
+        float size = Max(si.length, si.height) * a.scale / (2.f * z * tanV);   // share of the frame height
+        if (size < 0.04f) continue;
+        Phys::RayHit rh;
+        if (Phys::gCollision && Phys::gCollision->raycast(o, d / len, Max(0.f, len - Max(si.length, si.height) * 0.5f * a.scale), rh, true)) continue;
+        float score = size * (1.6f - Max(fabsf(x), fabsf(y))) + (((mask >> a.sp) & 1) ? 0.f : 10.f);
+        if (score > bestScore) {
+            bestScore = score;
+            best = a.sp;
+        }
+    }
+    return best;
+}
+
+// PA_TAKE_PHOTO: log the species in the frame (the app still saves the picture)
+void photoTaken(GameWorld& g, UI::PhoneState& ph) {
+    if (!censusOpen(g)) return;
+    int sp = photoSubject(g, ph.photo);
+    if (sp < 0) return;
+    bool listed = false;
+    for (const FieldGuideEntry& e : kFieldGuide) listed |= e.species == sp;
+    if (!listed) return;
+    int mask = flag(g, EX_FIELD_GUIDE);
+    std::string name = speciesTitle(sp);
+    if ((mask >> sp) & 1) {
+        ph.toast = StrFormat("%s: already in the field guide", name.c_str());
+        return;
+    }
+    setFlag(g, EX_FIELD_GUIDE, mask | (1 << sp));
+    money(g, kSpeciesPay);
+    int n = fieldGuideLogged(g);
+    ph.toast = StrFormat("New species: %s (%d/%d)  +$%lld", name.c_str(), n, kFieldGuideCount, kSpeciesPay);
+    g.notify("WILDLIFE TRUST", StrFormat("%s logged for the census. %d of %d species.", name.c_str(), n, kFieldGuideCount));
+    LOG("[fieldguide] %s logged (%d/%d)", name.c_str(), n, kFieldGuideCount);
+    if (n >= kFieldGuideCount && !flag(g, SIDE_FIELD_GUIDE)) {
+        setFlag(g, SIDE_FIELD_GUIDE, 1);
+        money(g, kFieldGuidePay);
+        g.bigMessage("FIELD GUIDE COMPLETE", StrFormat("Every species in Porto Sol  +$%lld", kFieldGuidePay), 0xff66ff99u);
+    }
+}
 enum MessageAction : int { MSGACT_NONE = 0, MSGACT_SWITCH, MSGACT_WAYPOINT_JOB };
 constexpr int kContactOther = 50;     // the other protagonist
 
@@ -258,6 +371,26 @@ void buildPhone(GameWorld& g, UI::PhoneState& ph) {
         a.items = toPhoneItems(jobItems(g));
         ph.apps.push_back(a);
     }
+    if (censusOpen(g)) {
+        UI::PhoneListApp a;
+        a.id = APP_FIELD_GUIDE;
+        a.name = "Field Guide";
+        int n = fieldGuideLogged(g);
+        a.subtitle = StrFormat("Wild Porto Sol census: %d of %d species. Photograph them with the Camera app.", n, kFieldGuideCount);
+        a.glyph = UI::PG_STAR;
+        int mask = flag(g, EX_FIELD_GUIDE);
+        for (int i = 0; i < kFieldGuideCount; i++) {
+            const FieldGuideEntry& e = kFieldGuide[i];
+            bool logged = (mask >> e.species) & 1;
+            UI::PhoneListItem it;
+            it.id = i;
+            it.label = speciesTitle(e.species);
+            it.detail = logged ? "Logged for the census." : e.hint;
+            it.right = logged ? "LOGGED" : StrFormat("$%lld", kSpeciesPay);
+            a.items.push_back(it);
+        }
+        ph.apps.push_back(a);
+    }
     {
         UI::PhoneListApp a;
         a.id = APP_REPLAY;
@@ -360,6 +493,9 @@ void phoneRefreshImpl(GameWorld& g, UI::PhoneState& ph) {
 
 bool phoneHandleImpl(GameWorld& g, UI::PhoneState& ph, const UI::PhoneAction& a) {
     switch (a.type) {
+        case UI::PA_TAKE_PHOTO:
+            photoTaken(g, ph);
+            return false;   // the app saves the picture
         case UI::PA_CALL: {
             bool ok = a.id == kContactOther || (a.id >= 0 && a.id < (int)ARRAY_COUNT(kContacts));
             if (!ok || gMissions.active || gPhone.inCall) {
@@ -490,6 +626,9 @@ bool phoneHandleImpl(GameWorld& g, UI::PhoneState& ph, const UI::PhoneAction& a)
                     if (a.id >= 100 && a.id - 100 < (int)gShops.businesses.size()) setWaypoint(g, gShops.businesses[a.id - 100].marker.xy());
                     else if (a.id >= 0 && a.id < (int)gShops.safehouses.size()) setWaypoint(g, gShops.safehouses[a.id].save.xy());
                     ph.toast = "Marked on your map";
+                    return true;
+                case APP_FIELD_GUIDE:
+                    if (a.id >= 0 && a.id < kFieldGuideCount) ph.toast = kFieldGuide[a.id].hint;
                     return true;
                 case APP_JOBS:
                     if (a.id >= 0 && a.id < (int)gMissions.defs.size()) {

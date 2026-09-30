@@ -24,7 +24,7 @@ struct Nav {
     float lt = 0.f, rt = 0.f;
 };
 
-enum DialogKind { DLG_NONE = 0, DLG_OVERWRITE, DLG_LOAD, DLG_QUIT_MENU, DLG_QUIT_GAME, DLG_NEW_GAME };
+enum DialogKind { DLG_NONE = 0, DLG_OVERWRITE, DLG_LOAD, DLG_QUIT_MENU, DLG_QUIT_GAME, DLG_NEW_GAME, DLG_BIND_CONFLICT };
 
 struct Internal {
     MenuScreen lastScreen = MENU_NONE;
@@ -46,6 +46,12 @@ struct Internal {
     int setCursor = 0;
     int dragSlider = -1;
     float setCatHl = -1.f, setRowHl = -1.f;
+    float setScroll = 0.f, setScrollShown = 0.f;   // items list scroll (pixels)
+    int bindCol = 0;                      // key bindings page: 0 primary, 1 secondary column
+    bool bindCapture = false;             // waiting for a key
+    bool bindCaptureFresh = false;        // the press that started the capture is ignored
+    int bindAction = -1, bindSlot = 0;    // binding being captured
+    int bindPendingKey = 0, bindOtherAction = -1, bindOtherSlot = 0;   // conflict dialog
     float slotHl = -1.f;                 // eased save/load slot highlight (row units)
     float briefScroll = 0.f, briefScrollShown = 0.f;
     bool briefScrollable = false;
@@ -1058,7 +1064,7 @@ MenuAction drawMap(MenuState& st, const Layout& L, const Nav& n, float dt, float
 
 // ------------------------------------------------------------------------------------------------------------------
 // Settings
-enum SetType { ST_TOGGLE, ST_SLIDER, ST_OPTIONS, ST_ACTION };
+enum SetType { ST_TOGGLE, ST_SLIDER, ST_OPTIONS, ST_ACTION, ST_HEADER, ST_BIND };
 struct SetItem {
     const char* label;
     const char* desc;
@@ -1069,15 +1075,23 @@ struct SetItem {
     float mn = 0, mx = 1, step = 0.05f;
     std::vector<std::string> opts;
     int optBase = 0;          // value of opts[0] (resolution list starts at -1)
+    std::vector<int> ivals;   // explicit int values per option (frame rate limit)
+    std::vector<float> fvals; // explicit float values per option (upscaling presets on renderScale)
     const char* fmt = "%d%%";
     float fmtScale = 100.f;
     const char* onLabel = "On";
     const char* offLabel = "Off";
+    int action = -1;          // ST_BIND: InputAction
 };
 
+enum SetCategory { SC_DISPLAY = 0, SC_AUDIO, SC_CAMERA, SC_CONTROLS, SC_BINDINGS, SC_ACCESS, SC_GAMEPLAY, SC_COUNT };
+const char* kCatNames[SC_COUNT] = {"Display & Graphics", "Audio", "Camera", "Controls", "Key Bindings", "Accessibility", "Gameplay"};
+const int kCatIcons[SC_COUNT] = {ICO_MONITOR, ICO_SPEAKER, ICO_CAMERA, ICO_GAMEPAD, ICO_KEYBOARD, ICO_ACCESS, BLIP_VIGILANTE};
 
-const char* kCatNames[4] = {"Display & Graphics", "Audio", "Controls", "Gameplay"};
-const int kCatIcons[4] = {ICO_MONITOR, ICO_SPEAKER, ICO_GAMEPAD, BLIP_VIGILANTE};
+const char* const kPadLayoutDesc[3] = {
+    "Standard: A sprint, X jump, B reload, Y enter vehicle, LB weapon wheel, RB cover, LT aim, RT shoot. Left stick moves, right stick looks.",
+    "Alternate: A jump, X sprint; everything else as Standard.",
+    "Southpaw: the right stick moves and the left stick looks; buttons as Standard."};
 
 void buildItems(GameSettings& gs, int cat, std::vector<SetItem>& items) {
     items.clear();
@@ -1096,42 +1110,109 @@ void buildItems(GameSettings& gs, int cat, std::vector<SetItem>& items) {
         it.label = l; it.desc = d; it.type = ST_OPTIONS; it.i = i; it.opts = o; it.optBase = base;
         items.push_back(it);
     };
+    auto ioptions = [&](const char* l, const char* d, int* i, const std::vector<std::string>& o, const std::vector<int>& v) {
+        SetItem it;
+        it.label = l; it.desc = d; it.type = ST_OPTIONS; it.i = i; it.opts = o; it.ivals = v;
+        items.push_back(it);
+    };
+    auto foptions = [&](const char* l, const char* d, float* f, const std::vector<std::string>& o, const std::vector<float>& v) {
+        SetItem it;
+        it.label = l; it.desc = d; it.type = ST_OPTIONS; it.f = f; it.opts = o; it.fvals = v;
+        items.push_back(it);
+    };
+    auto header = [&](const char* l) {
+        SetItem it;
+        it.label = l; it.desc = ""; it.type = ST_HEADER;
+        items.push_back(it);
+    };
+    auto bind = [&](int a) {
+        SetItem it;
+        it.label = inputActionName((InputAction)a);
+        it.desc = "Enter / A to rebind, Delete clears the selected key. Left / right picks the primary or secondary key.";
+        it.type = ST_BIND;
+        it.action = a;
+        items.push_back(it);
+    };
     auto action = [&](const char* l, const char* d) {
         SetItem it;
         it.label = l; it.desc = d; it.type = ST_ACTION;
         items.push_back(it);
     };
     switch (cat) {
-    case 0: {
+    case SC_DISPLAY: {
         std::vector<std::string> res;
         res.push_back("Native (Desktop)");
         for (const auto& m : Menus::displayModes()) res.push_back(StrFormat("%d x %d", m.width, m.height));
         options("Resolution", "Output resolution. Native matches the desktop and gives the sharpest image.", &gs.resolutionIndex, res, -1);
         toggle("Window Mode", "Borderless fullscreen or a regular desktop window.", &gs.fullscreen, "Fullscreen", "Windowed");
         toggle("V-Sync", "Locks the frame rate to the display refresh rate to prevent screen tearing.", &gs.vsync);
+        ioptions("Frame Rate Limit", "Caps the frame rate to save power and keep frame pacing even.", &gs.frameRateCap,
+                 {"30 FPS", "60 FPS", "120 FPS", "Unlimited"}, {30, 60, 120, 0});
+        foptions("Upscaling", "Internal rendering resolution, upscaled with temporal AA. Lower presets run faster.", &gs.renderScale,
+                 {"Native (100%)", "Ultra Quality (90%)", "Quality (77%)", "Balanced (67%)", "Performance (58%)", "Ultra Performance (50%)"},
+                 {1.f, 0.9f, 0.77f, 0.67f, 0.58f, 0.5f});
         options("Graphics Quality", "Overall detail level: shadows, draw distance, clouds, vegetation and post effects.", &gs.quality,
                 {"Low", "Medium", "High", "Ultra"}, 0);
-        slider("Render Scale", "Internal rendering resolution. Lower values are faster and are upscaled with temporal AA.", &gs.renderScale,
-               0.5f, 1.f, 0.05f, "%d%%", 100.f);
-        slider("Field of View", "Vertical field of view of the gameplay camera in degrees.", &gs.fov, 50.f, 90.f, 1.f, "%d DEG", 1.f);
         toggle("Motion Blur", "Camera and object motion blur.", &gs.motionBlur);
         slider("Brightness", "Exposure bias applied on top of the automatic exposure.", &gs.brightness, -1.f, 1.f, 0.05f, "%+d", 100.f);
         break;
     }
-    case 1:
+    case SC_AUDIO:
         slider("Master Volume", "Overall output volume.", &gs.masterVolume, 0.f, 1.f, 0.05f, "%d%%", 100.f);
         slider("Sound Effects", "Weapons, vehicles, impacts and the city ambience.", &gs.sfxVolume, 0.f, 1.f, 0.05f, "%d%%", 100.f);
         slider("Music", "Score and mission music.", &gs.musicVolume, 0.f, 1.f, 0.05f, "%d%%", 100.f);
         slider("Radio", "In-vehicle radio stations.", &gs.radioVolume, 0.f, 1.f, 0.05f, "%d%%", 100.f);
         slider("Dialogue", "Voices of characters and pedestrians.", &gs.dialogueVolume, 0.f, 1.f, 0.05f, "%d%%", 100.f);
-        toggle("Subtitles", "Shows dialogue as text at the bottom of the screen.", &gs.subtitles);
         break;
-    case 2:
-        slider("Mouse Sensitivity", "Camera speed when looking with the mouse.", &gs.mouseSensitivity, 0.1f, 3.f, 0.05f, "%.2fx", 1.f);
-        slider("Controller Sensitivity", "Camera speed when looking with the right stick.", &gs.padSensitivity, 0.1f, 3.f, 0.05f, "%.2fx", 1.f);
+    case SC_CAMERA:
+        toggle("On-Foot View", "Camera used on foot when the game starts. The camera button still switches views in play.",
+               &gs.firstPersonOnFoot, "First Person", "Third Person");
+        toggle("Vehicle View", "Camera used when you get into a vehicle. The camera button still cycles views while driving.",
+               &gs.firstPersonVehicle, "First Person", "Third Person");
+        slider("Field of View", "Vertical field of view of the third-person camera.", &gs.fov, 50.f, 90.f, 1.f, "%d DEG", 1.f);
+        slider("First Person Field of View", "Vertical field of view in first person, on foot and in vehicles.", &gs.fovFirstPerson, 55.f, 100.f,
+               1.f, "%d DEG", 1.f);
+        slider("Camera Shake", "Strength of camera shake from impacts, explosions, gunfire and speed.", &gs.cameraShake, 0.f, 1.f, 0.05f, "%d%%",
+               100.f);
+        toggle("Vehicle Camera Auto-Centre", "The vehicle camera swings back behind the car after you stop looking around.",
+               &gs.vehicleAutoCenter);
+        toggle("First Person Head Bob", "Head movement while walking and running in first person. Turn off if it causes motion sickness.",
+               &gs.headBob);
+        break;
+    case SC_CONTROLS:
+        slider("Mouse Sensitivity (Horizontal)", "Camera turn speed with the mouse.", &gs.mouseSensitivity, 0.1f, 3.f, 0.05f, "%.2fx", 1.f);
+        slider("Mouse Sensitivity (Vertical)", "Camera pitch speed with the mouse.", &gs.mouseSensitivityY, 0.1f, 3.f, 0.05f, "%.2fx", 1.f);
+        slider("Controller Sensitivity (Horizontal)", "Camera turn speed with the look stick.", &gs.padSensitivity, 0.1f, 3.f, 0.05f, "%.2fx", 1.f);
+        slider("Controller Sensitivity (Vertical)", "Camera pitch speed with the look stick.", &gs.padSensitivityY, 0.1f, 3.f, 0.05f, "%.2fx", 1.f);
         toggle("Invert Look", "Inverts the vertical camera axis.", &gs.invertY);
+        toggle("Aim", "Hold the aim button, or press once to aim and again to stop.", &gs.aimToggle, "Toggle", "Hold");
+        toggle("Sprint", "Hold the sprint button, or press once to keep running.", &gs.sprintToggle, "Toggle", "Hold");
+        toggle("Crouch", "Hold the crouch button, or press once to stay crouched.", &gs.crouchToggle, "Toggle", "Hold");
+        options("Controller Layout", kPadLayoutDesc[Clamp(gs.padLayout, 0, 2)], &gs.padLayout, {"Standard", "Alternate", "Southpaw"}, 0);
         toggle("Vibration", "Controller rumble for impacts, gunfire and engines.", &gs.vibration);
         toggle("Aim Assist", "Slows the reticle over targets when aiming with a controller.", &gs.aimAssist);
+        break;
+    case SC_BINDINGS:
+        header("On Foot");
+        for (int k = IA_MOVE_FORWARD; k <= IA_COVER; k++) bind(k);
+        header("On Foot and in Vehicles");
+        for (int k = IA_ENTER_VEHICLE; k <= IA_WEAPON_WHEEL; k++) bind(k);
+        header("Vehicles");
+        for (int k = IA_ACCELERATE; k <= IA_RADIO_PREV; k++) bind(k);
+        header("General");
+        for (int k = IA_CAMERA_VIEW; k < IA_COUNT; k++) bind(k);
+        break;
+    case SC_ACCESS:
+        toggle("Subtitles", "Shows dialogue as text at the bottom of the screen.", &gs.subtitles);
+        options("Subtitle Size", "Text size of subtitles.", &gs.subtitleSize, {"Small", "Medium", "Large", "Extra Large"}, 0);
+        slider("Subtitle Background", "Opacity of the box behind subtitles.", &gs.subtitleBackground, 0.f, 1.f, 0.1f, "%d%%", 100.f);
+        toggle("Speaker Name Colours", "Shows each speaker's name in their own colour, or all names in white.", &gs.speakerColors);
+        slider("HUD Scale", "Size of the heads-up display.", &gs.hudScale, 0.75f, 1.25f, 0.05f, "%d%%", 100.f);
+        toggle("High-Contrast Reticle", "A larger, yellow aiming reticle with a black outline.", &gs.highContrastReticle);
+        options("Colour-Blind Mode", "Shifts colours so they stay distinguishable with the chosen type of colour blindness.", &gs.colorblindMode,
+                {"Off", "Protanopia", "Deuteranopia", "Tritanopia"}, 0);
+        toggle("Reduce Flashing", "Dampens lightning, strobes, muzzle flashes and flashing HUD elements.", &gs.reduceFlashing);
+        slider("Music Ducking", "How much the radio and music quieten while characters speak.", &gs.musicDucking, 0.f, 1.f, 0.05f, "%d%%", 100.f);
         break;
     default:
         toggle("Show Radar", "Shows the radar and the health and armor bars.", &gs.showRadar);
@@ -1145,22 +1226,52 @@ void buildItems(GameSettings& gs, int cat, std::vector<SetItem>& items) {
 void restoreDefaults(GameSettings& gs, int cat) {
     GameSettings d;
     switch (cat) {
-    case 0:
+    case SC_DISPLAY:
         gs.resolutionIndex = d.resolutionIndex; gs.fullscreen = d.fullscreen; gs.vsync = d.vsync; gs.quality = d.quality;
-        gs.renderScale = d.renderScale; gs.fov = d.fov; gs.motionBlur = d.motionBlur; gs.brightness = d.brightness;
+        gs.renderScale = d.renderScale; gs.motionBlur = d.motionBlur; gs.brightness = d.brightness; gs.frameRateCap = d.frameRateCap;
         break;
-    case 1:
+    case SC_AUDIO:
         gs.masterVolume = d.masterVolume; gs.sfxVolume = d.sfxVolume; gs.musicVolume = d.musicVolume; gs.radioVolume = d.radioVolume;
-        gs.dialogueVolume = d.dialogueVolume; gs.subtitles = d.subtitles;
+        gs.dialogueVolume = d.dialogueVolume;
         break;
-    case 2:
-        gs.mouseSensitivity = d.mouseSensitivity; gs.padSensitivity = d.padSensitivity; gs.invertY = d.invertY;
-        gs.vibration = d.vibration; gs.aimAssist = d.aimAssist;
+    case SC_CAMERA:
+        gs.firstPersonOnFoot = d.firstPersonOnFoot; gs.firstPersonVehicle = d.firstPersonVehicle; gs.fov = d.fov;
+        gs.fovFirstPerson = d.fovFirstPerson; gs.cameraShake = d.cameraShake; gs.vehicleAutoCenter = d.vehicleAutoCenter;
+        gs.headBob = d.headBob;
+        break;
+    case SC_CONTROLS:
+        gs.mouseSensitivity = d.mouseSensitivity; gs.padSensitivity = d.padSensitivity; gs.mouseSensitivityY = d.mouseSensitivityY;
+        gs.padSensitivityY = d.padSensitivityY; gs.invertY = d.invertY; gs.aimToggle = d.aimToggle; gs.sprintToggle = d.sprintToggle;
+        gs.crouchToggle = d.crouchToggle; gs.padLayout = d.padLayout; gs.vibration = d.vibration; gs.aimAssist = d.aimAssist;
+        break;
+    case SC_BINDINGS: memcpy(gs.keyBinds, d.keyBinds, sizeof(gs.keyBinds)); break;
+    case SC_ACCESS:
+        gs.subtitles = d.subtitles; gs.subtitleSize = d.subtitleSize; gs.subtitleBackground = d.subtitleBackground;
+        gs.speakerColors = d.speakerColors; gs.hudScale = d.hudScale; gs.highContrastReticle = d.highContrastReticle;
+        gs.colorblindMode = d.colorblindMode; gs.reduceFlashing = d.reduceFlashing; gs.musicDucking = d.musicDucking;
         break;
     default:
         gs.showRadar = d.showRadar; gs.showHud = d.showHud; gs.metricUnits = d.metricUnits;
         break;
     }
+}
+
+// Current option index of an ST_OPTIONS item (explicit value lists pick the nearest value)
+int optionIndex(const SetItem& it) {
+    int n = (int)it.opts.size();
+    if (!it.ivals.empty()) {
+        for (int k = 0; k < (int)it.ivals.size(); k++)
+            if (it.ivals[k] == *it.i) return k;
+        return n - 1;
+    }
+    if (!it.fvals.empty()) {
+        int best = 0;
+        for (int k = 1; k < (int)it.fvals.size(); k++)
+            if (fabsf(it.fvals[k] - *it.f) < fabsf(it.fvals[best] - *it.f)) best = k;
+        return best;
+    }
+    int idx = *it.i - it.optBase;
+    return (idx < 0 || idx >= n) ? 0 : idx;
 }
 
 std::string valueText(const SetItem& it) {
@@ -1171,11 +1282,7 @@ std::string valueText(const SetItem& it) {
         if (strchr(it.fmt, 'f')) return StrFormat(it.fmt, v);
         return StrFormat(it.fmt, (int)lrintf(v));
     }
-    case ST_OPTIONS: {
-        int idx = *it.i - it.optBase;
-        if (idx < 0 || idx >= (int)it.opts.size()) idx = 0;
-        return it.opts.empty() ? std::string() : it.opts[idx];
-    }
+    case ST_OPTIONS: return it.opts.empty() ? std::string() : it.opts[optionIndex(it)];
     default: return "";
     }
 }
@@ -1197,20 +1304,58 @@ bool changeItem(SetItem& it, int dir, GameSettings& gs, int cat) {
     case ST_OPTIONS: {
         int n = (int)it.opts.size();
         if (n == 0) return false;
-        int idx = *it.i - it.optBase;
-        idx = ((idx + (dir == 0 ? 1 : dir)) % n + n) % n;
-        *it.i = idx + it.optBase;
+        int idx = ((optionIndex(it) + (dir == 0 ? 1 : dir)) % n + n) % n;
+        if (!it.ivals.empty()) *it.i = it.ivals[idx];
+        else if (!it.fvals.empty()) *it.f = it.fvals[idx];
+        else *it.i = idx + it.optBase;
         return true;
     }
     case ST_ACTION:
         if (dir != 0) return false;
         restoreDefaults(gs, cat);
         return true;
+    default: return false;
     }
-    return false;
 }
 
-// Settings page inside [x, y, w, h]. Returns true when a value changed; sets `exit` when the page should close.
+bool contextsClash(int a, int b) {
+    InputContext ca = inputActionContext((InputAction)a), cb = inputActionContext((InputAction)b);
+    return ca == cb || ca == ICTX_ANY || cb == ICTX_ANY;
+}
+
+// Another action in a clashing context that uses `key` (returns the action, slot in *slotOut), or -1
+int bindingConflict(const GameSettings& gs, int action, int key, int* slotOut) {
+    if (key <= 0) return -1;
+    for (int b = 0; b < IA_COUNT; b++) {
+        if (b == action || !contextsClash(action, b)) continue;
+        for (int k = 0; k < 2; k++)
+            if (gs.keyBinds[b][k] == key) {
+                if (slotOut) *slotOut = k;
+                return b;
+            }
+    }
+    return -1;
+}
+
+// Newly pressed key for the capture: generic modifier codes win over left / right variants; Escape cancels (-1),
+// Delete clears (0 is returned through *clear)
+int capturedKey(const InputState& in, bool* cancel, bool* clear) {
+    *cancel = in.pressed(KEY_ESCAPE) || in.pad.pressed(PAD_B);
+    *clear = in.pressed(KEY_DELETE) || in.pad.pressed(PAD_X);
+    if (*cancel || *clear) return 0;
+    int found = 0;
+    for (int vk = 1; vk < KEY_COUNT; vk++) {
+        if (!in.pressed(vk)) continue;
+        if (vk >= 0xA0 && vk <= 0xA5) {
+            int generic = vk <= 0xA1 ? KEY_SHIFT : vk <= 0xA3 ? KEY_CONTROL : KEY_ALT;
+            if (in.down(generic)) continue;
+        }
+        found = vk;
+        break;
+    }
+    return found;
+}
+
 bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y, float w, float h, float a, float dt, bool& exit) {
     float sc = L.s;
     bool changed = false;
@@ -1220,18 +1365,21 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
     panel(x, y, cw, h, a);
     float catY0 = y + 18.f * sc;
     bool dialogFree = I.dialog == DLG_NONE;
-    for (int c = 0; c < 4; c++) {
+    bool capturing = I.bindCapture;
+    for (int c = 0; c < SC_COUNT; c++) {
         float ry = catY0 + c * (rowH + 6.f * sc);
-        if (dialogFree && inRect(n.mouse, x + 10.f * sc, ry, cw - 20.f * sc, rowH) && n.click) {
+        if (dialogFree && !capturing && inRect(n.mouse, x + 10.f * sc, ry, cw - 20.f * sc, rowH) && n.click) {
             I.setCat = c;
             I.setItemsFocus = false;
             I.setCursor = 0;
+            I.setScroll = 0.f;
         }
     }
     bool consumed = false;   // the key that moved focus must not also edit a value
-    if (dialogFree && !I.setItemsFocus) {
-        if (n.up) { I.setCat = (I.setCat + 3) % 4; I.setCursor = 0; }
-        if (n.down) { I.setCat = (I.setCat + 1) % 4; I.setCursor = 0; }
+    if (capturing) consumed = true;
+    else if (dialogFree && !I.setItemsFocus) {
+        if (n.up) { I.setCat = (I.setCat + SC_COUNT - 1) % SC_COUNT; I.setCursor = 0; I.setScroll = 0.f; }
+        if (n.down) { I.setCat = (I.setCat + 1) % SC_COUNT; I.setCursor = 0; I.setScroll = 0.f; }
         if (n.right || n.confirm) { I.setItemsFocus = true; I.setCursor = 0; consumed = true; }
         else if (n.back) exit = true;
     } else if (dialogFree && n.back) {
@@ -1243,7 +1391,7 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
     I.setCatHl = approachExp(I.setCatHl, catTarget, 18.f, dt);
     if (!I.setItemsFocus) selectionBar(x + 10.f * sc, I.setCatHl, cw - 20.f * sc, rowH, a);
     else roundRect(x + 10.f * sc, I.setCatHl, cw - 20.f * sc, rowH, 6.f * sc, C(1.f, 1.f, 1.f, 0.08f * a), 1.f * sc, withAlpha(kPink, 0.6f * a));
-    for (int c = 0; c < 4; c++) {
+    for (int c = 0; c < SC_COUNT; c++) {
         float ry = catY0 + c * (rowH + 6.f * sc);
         bool sel = c == I.setCat;
         drawIcon(kCatIcons[c], x + 42.f * sc, ry + rowH * 0.5f, 28.f * sc, withAlpha(sel ? kWhite : kTextDim, a));
@@ -1258,45 +1406,157 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
     static std::vector<SetItem> items;
     buildItems(gs, I.setCat, items);
     int count = (int)items.size();
+    bool bindings = I.setCat == SC_BINDINGS;
     float ix = x + cw + 20.f * sc, iw = w - cw - 20.f * sc;
     panel(ix, y, iw, h, a);
     TextStyle hs = style(FONT_HEADING, 30.f * sc, withAlpha(kWhite, a));
     hs.tracking = 0.06f;
     std::string title = upper(kCatNames[I.setCat]);
     text(ix + 30.f * sc, y + 22.f * sc, title.c_str(), hs);
+    if (bindings) {
+        TextStyle cs = style(FONT_HEADING, 17.f * sc, withAlpha(kTextDim, a), ALIGN_CENTER);
+        cs.tracking = 0.12f;
+        float colW = 190.f * sc, c1 = ix + iw - 30.f * sc - colW * 0.5f, c0 = c1 - colW - 14.f * sc;
+        text(c0, y + 36.f * sc, "PRIMARY", cs);
+        text(c1, y + 36.f * sc, "SECONDARY", cs);
+    }
     rect(ix + 30.f * sc, y + 66.f * sc, iw - 60.f * sc, 1.f * sc, withAlpha(kWhite, 0.1f * a));
-    float listY = y + 82.f * sc, ih = 54.f * sc;
-    if (dialogFree && I.setItemsFocus && !consumed) {
-        if (n.up) I.setCursor = (I.setCursor + count - 1) % count;
-        if (n.down) I.setCursor = (I.setCursor + 1) % count;
+    float listY = y + 82.f * sc, ih = 54.f * sc, rowStep = ih + 4.f * sc;
+    float listH = h - 82.f * sc - 96.f * sc;
+    auto selectable = [&](int k) { return items[k].type != ST_HEADER; };
+    bool follow = consumed && !capturing;   // focus just moved into the list
+    if (dialogFree && I.setItemsFocus && !consumed && count > 0) {
+        follow = n.up || n.down;
+        if (n.up)
+            for (int t = 0; t < count; t++) {
+                I.setCursor = (I.setCursor + count - 1) % count;
+                if (selectable(I.setCursor)) break;
+            }
+        if (n.down)
+            for (int t = 0; t < count; t++) {
+                I.setCursor = (I.setCursor + 1) % count;
+                if (selectable(I.setCursor)) break;
+            }
     }
     I.setCursor = Clamp(I.setCursor, 0, count - 1);
+    while (I.setCursor < count - 1 && !selectable(I.setCursor)) I.setCursor++;
+    // scroll the cursor row into view after keyboard / pad navigation; the mouse wheel scrolls freely
+    if (follow) {
+        float curTop = I.setCursor * rowStep, curBottom = curTop + ih;
+        if (I.setCursor > 0 && !selectable(I.setCursor - 1)) curTop -= rowStep;   // keep its section title visible
+        if (curTop - I.setScroll < 0.f) I.setScroll = curTop;
+        if (curBottom - I.setScroll > listH) I.setScroll = curBottom - listH;
+    }
+    float maxScroll = Max(0.f, count * rowStep - 4.f * sc - listH);
+    if (n.wheel != 0.f && !capturing && inRect(n.mouse, ix, listY, iw, listH)) I.setScroll -= n.wheel * rowStep * 1.5f;
+    I.setScroll = Clamp(I.setScroll, 0.f, maxScroll);
+    I.setScrollShown = approachExp(I.setScrollShown, I.setScroll, 18.f, dt);
+    float off = I.setScrollShown;
     float valW = 420.f * sc;
     float valX = ix + iw - 30.f * sc - valW;
     if (!n.mouseDown) I.dragSlider = -1;
     for (int k = 0; k < count; k++) {
-        float ry = listY + k * (ih + 4.f * sc);
-        if (dialogFree && inRect(n.mouse, ix + 14.f * sc, ry, iw - 28.f * sc, ih) && (n.mouseMoved || n.click)) {
+        float ry = listY + k * rowStep - off;
+        if (ry + ih < listY || ry > listY + listH) continue;
+        if (dialogFree && !capturing && selectable(k) && inRect(n.mouse, ix + 14.f * sc, ry, iw - 28.f * sc, ih) && (n.mouseMoved || n.click)) {
             I.setItemsFocus = true;
             I.setCursor = k;
         }
     }
-    float rowTarget = listY + I.setCursor * (ih + 4.f * sc);
+    ClipState pc = getClip();
+    setClipRect(ix, listY - 2.f * sc, iw, listH + 4.f * sc);
+    float rowTarget = listY + I.setCursor * rowStep - off;
     if (I.setRowHl < 0.f) I.setRowHl = rowTarget;
     I.setRowHl = approachExp(I.setRowHl, rowTarget, 20.f, dt);
-    if (I.setItemsFocus) selectionBar(ix + 14.f * sc, I.setRowHl, iw - 28.f * sc, ih, a);
+    if (I.setItemsFocus && !bindings) selectionBar(ix + 14.f * sc, I.setRowHl, iw - 28.f * sc, ih, a);
+    if (I.setItemsFocus && bindings) roundRect(ix + 14.f * sc, I.setRowHl, iw - 28.f * sc, ih, 6.f * sc, C(1.f, 1.f, 1.f, 0.07f * a), 1.f * sc,
+                                               withAlpha(kPink, 0.55f * a));
+    std::string conflictNote;
     for (int k = 0; k < count; k++) {
         SetItem& it = items[k];
-        float ry = listY + k * (ih + 4.f * sc);
+        float ry = listY + k * rowStep - off;
+        if (ry + ih < listY - 2.f * sc || ry > listY + listH) continue;
         bool sel = I.setItemsFocus && k == I.setCursor;
         float cy = ry + ih * 0.5f;
-        TextStyle ls = style(FONT_HEADING, 24.f * sc, withAlpha(it.type == ST_ACTION ? (sel ? kWhite : kPink) : (sel ? kWhite : kText), a));
+        if (it.type == ST_HEADER) {
+            TextStyle hts = style(FONT_HEADING, 18.f * sc, withAlpha(kPink, a));
+            hts.tracking = 0.2f;
+            std::string hl = upper(it.label);
+            float tw = text(ix + 34.f * sc, cy - hts.size * 0.2f, hl.c_str(), hts);
+            rect(ix + 44.f * sc + tw, cy + hts.size * 0.35f, iw - 78.f * sc - tw, 1.f * sc, withAlpha(kPink, 0.35f * a));
+            continue;
+        }
+        TextStyle ls = style(FONT_HEADING, 24.f * sc, withAlpha(it.type == ST_ACTION ? (sel && !bindings ? kWhite : kPink) : (sel && !bindings ? kWhite : kText), a));
         ls.tracking = 0.03f;
         std::string lab = upper(it.label);
+        float labMax = (it.type == ST_BIND ? iw - 480.f * sc : valX - ix - 50.f * sc);
+        float lw = textWidth(lab.c_str(), ls);
+        if (lw > labMax) ls.size *= labMax / lw;
         text(ix + 34.f * sc, cy - ls.size * 0.56f, lab.c_str(), ls);
         if (it.type == ST_ACTION) {
-            if (dialogFree && sel && n.confirm && !consumed) changed |= changeItem(it, 0, gs, I.setCat);
-            if (dialogFree && n.click && inRect(n.mouse, ix + 14.f * sc, ry, iw - 28.f * sc, ih)) changed |= changeItem(it, 0, gs, I.setCat);
+            if (dialogFree && !capturing && sel && n.confirm && !consumed) changed |= changeItem(it, 0, gs, I.setCat);
+            if (dialogFree && !capturing && n.click && inRect(n.mouse, ix + 14.f * sc, ry, iw - 28.f * sc, ih)) changed |= changeItem(it, 0, gs, I.setCat);
+            continue;
+        }
+        if (it.type == ST_BIND) {
+            float colW = 190.f * sc, bh = 38.f * sc;
+            float c1 = ix + iw - 30.f * sc - colW, c0 = c1 - colW - 14.f * sc;
+            for (int slot = 0; slot < 2; slot++) {
+                float bx = slot == 0 ? c0 : c1, by = cy - bh * 0.5f;
+                int key = gs.keyBinds[it.action][slot];
+                bool cellSel = sel && I.bindCol == slot;
+                bool waiting = capturing && I.bindAction == it.action && I.bindSlot == slot;
+                int otherSlot = 0;
+                int other = bindingConflict(gs, it.action, key, &otherSlot);
+                u32 frame = waiting ? kPink : cellSel ? kWhite : other >= 0 ? kRed : C(1.f, 1.f, 1.f, 0.14f);
+                if (cellSel || waiting) selectionBar(bx, by, colW, bh, a);
+                else roundRect(bx, by, colW, bh, 6.f * sc, C(0.03f, 0.04f, 0.10f, 0.55f * a), 1.2f * sc, withAlpha(frame, a));
+                if (waiting) {
+                    float blink = uiOptions().reduceFlashing ? 1.f : 0.55f + 0.45f * sinf(uiTime() * 7.f);
+                    TextStyle ws = style(FONT_HEADING, 17.f * sc, withAlpha(kWhite, blink * a), ALIGN_CENTER);
+                    ws.tracking = 0.1f;
+                    text(bx + colW * 0.5f, cy - ws.size * 0.56f, "PRESS A KEY", ws);
+                } else if (key > 0) {
+                    std::string kn = keyName(key);
+                    float ph = 28.f * sc;
+                    float pw = promptWidth(kn.c_str(), false, ph);
+                    if (pw > colW - 16.f * sc) {
+                        TextStyle ks = style(FONT_HEADING, 18.f * sc, withAlpha(kWhite, a), ALIGN_CENTER);
+                        text(bx + colW * 0.5f, cy - ks.size * 0.56f, kn.c_str(), ks);
+                    } else drawPrompt(bx + colW * 0.5f - pw * 0.5f, cy - ph * 0.5f, kn.c_str(), false, ph, a);
+                    if (other >= 0) {
+                        drawIcon(ICO_BOLT, bx + colW - 14.f * sc, cy, 18.f * sc, withAlpha(kRed, a));
+                        if (sel) conflictNote = StrFormat("%s is also bound to %s.", kn.c_str(), inputActionName((InputAction)other));
+                    }
+                } else {
+                    TextStyle es = style(FONT_HEADING, 18.f * sc, withAlpha(kTextMute, a), ALIGN_CENTER);
+                    text(bx + colW * 0.5f, cy - es.size * 0.56f, "-", es);
+                }
+                if (dialogFree && !capturing && n.click && inRect(n.mouse, bx, by, colW, bh)) {
+                    I.setItemsFocus = true;
+                    I.setCursor = k;
+                    I.bindCol = slot;
+                    I.bindCapture = true;
+                    I.bindCaptureFresh = true;
+                    I.bindAction = it.action;
+                    I.bindSlot = slot;
+                }
+            }
+            if (dialogFree && sel && !capturing && !consumed) {
+                if (n.left) I.bindCol = 0;
+                if (n.right) I.bindCol = 1;
+                if (n.confirm) {
+                    I.bindCapture = true;
+                    I.bindCaptureFresh = true;
+                    I.bindAction = it.action;
+                    I.bindSlot = I.bindCol;
+                }
+                bool clearKey = n.in && (n.in->pressed(KEY_DELETE) || n.in->pad.pressed(PAD_X));
+                if (clearKey && gs.keyBinds[it.action][I.bindCol] != 0) {
+                    gs.keyBinds[it.action][I.bindCol] = 0;
+                    changed = true;
+                }
+            }
             continue;
         }
         std::string val = valueText(it);
@@ -1311,7 +1571,7 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
             circle(kx, cy, ph * 0.5f - 4.f * sc, on ? withAlpha(sel ? kPinkHot : kWhite, a) : withAlpha(kTextDim, a));
             vs.align = ALIGN_RIGHT;
             text(px - 16.f * sc, cy - vs.size * 0.56f, upper(val).c_str(), vs);
-            if (dialogFree && n.click && inRect(n.mouse, ix + 14.f * sc, ry, iw - 28.f * sc, ih)) changed |= changeItem(it, 0, gs, I.setCat);
+            if (dialogFree && !capturing && n.click && inRect(n.mouse, ix + 14.f * sc, ry, iw - 28.f * sc, ih)) changed |= changeItem(it, 0, gs, I.setCat);
         } else if (it.type == ST_SLIDER) {
             float bw = 270.f * sc, bh = 8.f * sc;
             float bx = valX + 10.f * sc, by = cy - bh * 0.5f;
@@ -1322,7 +1582,7 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
             circle(bx + bw * f, cy, 10.f * sc, C(0.f, 0.f, 0.f, 0.25f * a), 1.5f * sc);
             vs.align = ALIGN_RIGHT;
             text(valX + valW, cy - vs.size * 0.56f, val.c_str(), vs);
-            if (dialogFree && n.click && inRect(n.mouse, bx - 12.f * sc, ry, bw + 24.f * sc, ih)) I.dragSlider = k;
+            if (dialogFree && !capturing && n.click && inRect(n.mouse, bx - 12.f * sc, ry, bw + 24.f * sc, ih)) I.dragSlider = k;
             if (I.dragSlider == k && n.mouseDown) {
                 float nf = Saturate((n.mouse.x - bx) / bw);
                 float nv = it.mn + roundf(nf * (it.mx - it.mn) / it.step) * it.step;
@@ -1332,12 +1592,15 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
         } else if (it.type == ST_OPTIONS) {
             float bx = valX + 10.f * sc, bw = valW - 10.f * sc;
             vs.align = ALIGN_CENTER;
-            text(bx + bw * 0.5f, cy - vs.size * 0.56f, upper(val).c_str(), vs);
+            std::string uv = upper(val);
+            float tw = textWidth(uv.c_str(), vs);
+            if (tw > bw - 70.f * sc) vs.size *= (bw - 70.f * sc) / tw;
+            text(bx + bw * 0.5f, cy - vs.size * 0.56f, uv.c_str(), vs);
             float ax0 = bx + 14.f * sc, ax1 = bx + bw - 14.f * sc;
             drawIcon(ICO_CHEVRON, ax0, cy, 22.f * sc, withAlpha(sel ? kWhite : kTextDim, a), 0.f, 0, kPi);
             drawIcon(ICO_CHEVRON, ax1, cy, 22.f * sc, withAlpha(sel ? kWhite : kTextDim, a));
-            if (dialogFree && n.click && inRect(n.mouse, bx - 10.f * sc, ry, 50.f * sc, ih)) changed |= changeItem(it, -1, gs, I.setCat);
-            if (dialogFree && n.click && inRect(n.mouse, bx + bw - 40.f * sc, ry, 50.f * sc, ih)) changed |= changeItem(it, 1, gs, I.setCat);
+            if (dialogFree && !capturing && n.click && inRect(n.mouse, bx - 10.f * sc, ry, 50.f * sc, ih)) changed |= changeItem(it, -1, gs, I.setCat);
+            if (dialogFree && !capturing && n.click && inRect(n.mouse, bx + bw - 40.f * sc, ry, 50.f * sc, ih)) changed |= changeItem(it, 1, gs, I.setCat);
         }
         if (dialogFree && sel && !consumed) {
             if (n.left) changed |= changeItem(it, -1, gs, I.setCat);
@@ -1345,13 +1608,74 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
             if (n.confirm && it.type != ST_SLIDER) changed |= changeItem(it, 0, gs, I.setCat);
         }
     }
+    setClip(pc);
+    // scroll bar
+    if (maxScroll > 0.f) {
+        float trackH = listH, thumbH = Max(40.f * sc, trackH * listH / (listH + maxScroll));
+        float ty = listY + (trackH - thumbH) * (off / maxScroll);
+        roundRect(ix + iw - 16.f * sc, listY, 4.f * sc, trackH, 2.f * sc, withAlpha(kWhite, 0.08f * a));
+        roundRect(ix + iw - 16.f * sc, ty, 4.f * sc, thumbH, 2.f * sc, withAlpha(kPink, 0.9f * a));
+    }
+    // key capture (after drawing so the waiting cell shows this frame)
+    if (capturing && dialogFree) {
+        if (I.bindCaptureFresh) I.bindCaptureFresh = false;
+        else if (n.in) {
+            bool cancel = false, clear = false;
+            int key = capturedKey(*n.in, &cancel, &clear);
+            if (cancel) I.bindCapture = false;
+            else if (clear) {
+                gs.keyBinds[I.bindAction][I.bindSlot] = 0;
+                I.bindCapture = false;
+                changed = true;
+            } else if (key > 0) {
+                I.bindCapture = false;
+                int otherSlot = 0;
+                int other = bindingConflict(gs, I.bindAction, key, &otherSlot);
+                if (other >= 0) {
+                    I.bindPendingKey = key;
+                    I.bindOtherAction = other;
+                    I.bindOtherSlot = otherSlot;
+                    openDialog(DLG_BIND_CONFLICT, -1, 0);
+                } else if (gs.keyBinds[I.bindAction][I.bindSlot] != key) {
+                    gs.keyBinds[I.bindAction][I.bindSlot] = (u16)key;
+                    if (gs.keyBinds[I.bindAction][1 - I.bindSlot] == key) gs.keyBinds[I.bindAction][1 - I.bindSlot] = 0;
+                    changed = true;
+                }
+            }
+        }
+    }
     // description
     if (I.setItemsFocus && I.setCursor < count) {
         TextStyle ds = style(FONT_BODY, 20.f * sc, withAlpha(kTextDim, a));
         rect(ix + 30.f * sc, y + h - 78.f * sc, iw - 60.f * sc, 1.f * sc, withAlpha(kWhite, 0.1f * a));
-        textWrapped(ix + 30.f * sc, y + h - 62.f * sc, iw - 60.f * sc, items[I.setCursor].desc, ds);
+        std::string desc = items[I.setCursor].desc;
+        if (capturing) desc = "Press a key or mouse button to bind it. Escape cancels, Delete clears the key.";
+        else if (!conflictNote.empty()) {
+            ds.color = withAlpha(C(1.f, 0.55f, 0.55f), a);
+            desc = conflictNote + " Rebind one of them to resolve the conflict.";
+        }
+        textWrapped(ix + 30.f * sc, y + h - 62.f * sc, iw - 60.f * sc, desc.c_str(), ds);
     }
     return changed;
+}
+
+// Footer prompts of the settings page (fills up to 3 items)
+int settingsPrompts(PromptItem* pi, const char* backLabel) {
+    if (I.bindCapture) {
+        pi[0] = {"DEL", "X", "Clear"};
+        pi[1] = {"ESC", "B", "Cancel"};
+        return 2;
+    }
+    if (I.setCat == SC_BINDINGS && I.setItemsFocus) {
+        pi[0] = {"ENTER", "A", "Rebind"};
+        pi[1] = {"DEL", "X", "Clear"};
+        pi[2] = {"ESC", "B", backLabel};
+        return 3;
+    }
+    pi[0] = {"ENTER", "A", "Select"};
+    pi[1] = {"LEFTRIGHT", "DPADLR", "Change"};
+    pi[2] = {"ESC", "B", backLabel};
+    return 3;
 }
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -1699,8 +2023,9 @@ MenuAction updatePause(MenuState& st, const Layout& L, const Nav& n, float dt, f
                            {"C", "Y", "Center"}, {"L", "BACK", "Legend"}, {"ESC", "B", "Resume"}};
         footer(L, pi, 6, n.pad, a);
     } else if (tab == PT_SETTINGS) {
-        PromptItem pi[] = {{"ENTER", "A", "Select"}, {"LEFTRIGHT", "DPADLR", "Change"}, {"ESC", "B", I.setItemsFocus ? "Back" : "Resume"}};
-        footer(L, pi, 3, n.pad, a);
+        PromptItem pi[3];
+        int np = settingsPrompts(pi, I.setItemsFocus ? "Back" : "Resume");
+        footer(L, pi, np, n.pad, a);
     } else if (tab == PT_SAVE) {
         PromptItem pi[] = {{"ENTER", "A", "Save"}, {"ESC", "B", "Resume"}};
         footer(L, pi, 2, n.pad, a);
@@ -1818,10 +2143,12 @@ MenuAction update(MenuState& st, const InputState& in, float dt) {
     bool wasdNav = !(I.root == MENU_PAUSE && st.tab == PT_MAP && st.screen != MENU_CONFIRM_QUIT);
     Nav n = readInput(in, dt, wasdNav);
     Nav blocked = n;
-    if (I.dialog != DLG_NONE) {
-        // the dialog owns keyboard/pad input; pages still draw and receive mouse position
+    if (I.dialog != DLG_NONE || I.bindCapture) {
+        // the dialog (or a key-binding capture, which reads raw input) owns keyboard/pad input; pages still draw and
+        // receive the mouse position
         blocked.up = blocked.down = blocked.left = blocked.right = false;
         blocked.confirm = blocked.back = blocked.tabL = blocked.tabR = blocked.btnX = blocked.btnY = false;
+        blocked.start = blocked.pageUp = blocked.pageDown = false;
         blocked.click = blocked.release = blocked.rclick = false;
         blocked.wheel = 0.f;
         blocked.stick = vec2(0.f);
@@ -1842,8 +2169,9 @@ MenuAction update(MenuState& st, const InputState& in, float dt) {
             bool exit = false;
             float cy = 200.f * L.s;
             changed |= drawSettings(st, L, blocked, L.left, cy + (1.f - a) * 20.f * L.s, L.right - L.left, L.H - cy - 110.f * L.s, a, dt, exit);
-            PromptItem pi[] = {{"ENTER", "A", "Select"}, {"LEFTRIGHT", "DPADLR", "Change"}, {"ESC", "B", "Back"}};
-            footer(L, pi, 3, n.pad, a);
+            PromptItem pi[3];
+            int np = settingsPrompts(pi, "Back");
+            footer(L, pi, np, n.pad, a);
             if (exit) {
                 st.screen = MENU_MAIN;
                 st.cursor = st.canContinue ? 3 : 2;
@@ -1913,6 +2241,22 @@ MenuAction update(MenuState& st, const InputState& in, float dt) {
             title = "START A NEW GAME?";
             msg = "Any progress since your last save will be lost.";
             break;
+        case DLG_BIND_CONFLICT: {
+            title = "KEY ALREADY IN USE";
+            int others = 0;
+            for (int b = 0; b < IA_COUNT; b++)
+                if (b != I.bindAction && contextsClash(I.bindAction, b) &&
+                    (st.settings.keyBinds[b][0] == I.bindPendingKey || st.settings.keyBinds[b][1] == I.bindPendingKey))
+                    others++;
+            int old = I.bindAction >= 0 ? st.settings.keyBinds[I.bindAction][I.bindSlot] : 0;
+            msg = StrFormat("~p~%s~s~ is already bound to ~p~%s~s~%s. %s", keyName(I.bindPendingKey).c_str(),
+                            inputActionName((InputAction)I.bindOtherAction), others > 1 ? StrFormat(" and %d more", others - 1).c_str() : "",
+                            old > 0 ? StrFormat("Swap it so %s uses ~p~%s~s~?", inputActionName((InputAction)I.bindOtherAction), keyName(old).c_str()).c_str()
+                                    : "Move it here and leave the other action unbound?");
+            yes = old > 0 ? "Swap" : "Move";
+            no = "Cancel";
+            break;
+        }
         default: break;
         }
         DialogResult r = drawDialog(L, n, title, msg.c_str(), yes, no, dt);
@@ -1923,6 +2267,20 @@ MenuAction update(MenuState& st, const InputState& in, float dt) {
             case DLG_QUIT_MENU: act.type = MA_QUIT_TO_MENU; break;
             case DLG_QUIT_GAME: act.type = MA_QUIT_GAME; break;
             case DLG_NEW_GAME: act.type = MA_NEW_GAME; break;
+            case DLG_BIND_CONFLICT:
+                if (I.bindAction >= 0 && I.bindAction < IA_COUNT) {
+                    GameSettings& gs = st.settings;
+                    u16 key = (u16)I.bindPendingKey, old = gs.keyBinds[I.bindAction][I.bindSlot];
+                    for (int b = 0; b < IA_COUNT; b++) {
+                        if (b == I.bindAction || !contextsClash(I.bindAction, b)) continue;
+                        for (int k = 0; k < 2; k++)
+                            if (gs.keyBinds[b][k] == key) gs.keyBinds[b][k] = gs.keyBinds[b][1 - k] == old ? 0 : old;
+                    }
+                    gs.keyBinds[I.bindAction][I.bindSlot] = key;
+                    if (gs.keyBinds[I.bindAction][1 - I.bindSlot] == key) gs.keyBinds[I.bindAction][1 - I.bindSlot] = 0;
+                    changed = true;
+                }
+                break;
             default: break;
             }
             I.dialog = DLG_NONE;
@@ -1943,6 +2301,7 @@ MenuAction update(MenuState& st, const InputState& in, float dt) {
         }
     }
     if (act.type == MA_NONE && changed) act.type = MA_SETTINGS_CHANGED;
+    if (changed) applyUiSettings(st.settings);   // HUD-side options preview live; the app applies the rest on MA_SETTINGS_CHANGED
     st.anim = I.screenT;
     return act;
 }

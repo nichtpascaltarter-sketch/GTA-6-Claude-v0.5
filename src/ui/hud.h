@@ -178,29 +178,89 @@ void drawHud(const HudState& s, float dt);
 void hudReset();                       // forget HUD animation state (after loading a save / respawn teleport)
 
 // ------------------------------------------------------------------------------------------------------------------
-// Settings shared with the game (menus edit them; the game applies them).
+// Keyboard / mouse actions that can be rebound in Settings > Key Bindings. Each action has up to two keys (Win32 VK
+// codes as in platform.h, 0 = unbound). Actions of the same context (or of ANY context) may not share a key.
+enum InputAction : u8 {
+    // on foot
+    IA_MOVE_FORWARD = 0, IA_MOVE_BACK, IA_MOVE_LEFT, IA_MOVE_RIGHT, IA_SPRINT, IA_JUMP, IA_WALK, IA_CROUCH, IA_COVER,
+    // on foot and in vehicles
+    IA_ENTER_VEHICLE, IA_ATTACK, IA_AIM, IA_RELOAD, IA_WEAPON_WHEEL,
+    // vehicles
+    IA_ACCELERATE, IA_BRAKE, IA_STEER_LEFT, IA_STEER_RIGHT, IA_HANDBRAKE, IA_HORN, IA_HEADLIGHTS, IA_LOOK_BEHIND,
+    IA_VEHICLE_ABILITY, IA_RADIO_NEXT, IA_RADIO_PREV,
+    // general
+    IA_CAMERA_VIEW, IA_FOCUS, IA_PHONE, IA_MAP,
+    IA_COUNT
+};
+enum InputContext : u8 { ICTX_FOOT = 0, ICTX_VEHICLE, ICTX_ANY };
+
+// Settings shared with the game (menus edit them; the game applies them). Saved as text (settingsToText /
+// settingsFromText): unknown keys are ignored and missing keys keep their defaults, so adding fields is safe.
 struct GameSettings {
     // Display
     int resolutionIndex = -1;    // index into the display mode list, -1 = native desktop
     bool fullscreen = true;      // borderless fullscreen
     bool vsync = true;
     int quality = 2;             // 0 low, 1 medium, 2 high, 3 ultra
-    float renderScale = 1.f;     // 0.5 .. 1.0 (upscaled with TAA)
-    float fov = 60.f;            // vertical degrees 50..90
+    float renderScale = 1.f;     // 0.5 .. 1.0 (upscaled with TAA); the menu offers presets (Native .. Ultra Performance)
+    float fov = 60.f;            // third-person vertical field of view, degrees 50..90
     bool motionBlur = true;
     float brightness = 0.f;      // exposure bias -1..1
+    int frameRateCap = 0;        // frames per second: 30, 60, 120, 0 = unlimited
     // Audio (0..1)
     float masterVolume = 1.f, sfxVolume = 0.9f, musicVolume = 0.7f, radioVolume = 0.8f, dialogueVolume = 1.f;
     bool subtitles = true;
     // Controls
-    float mouseSensitivity = 1.f, padSensitivity = 1.f;
+    float mouseSensitivity = 1.f, padSensitivity = 1.f;       // horizontal (and the base) look speed
     bool invertY = false;
     bool vibration = true;
     bool aimAssist = true;
+    float mouseSensitivityY = 1.f, padSensitivityY = 1.f;     // vertical look speed
+    bool aimToggle = false, sprintToggle = false, crouchToggle = false;   // false = hold
+    int padLayout = 0;           // 0 standard, 1 alternate (A jump / X sprint), 2 southpaw (sticks swapped)
+    u16 keyBinds[IA_COUNT][2] = {
+        {KEY_W, 0}, {KEY_S, 0}, {KEY_A, 0}, {KEY_D, 0}, {KEY_SHIFT, 0}, {KEY_SPACE, 0}, {KEY_ALT, 0}, {KEY_CONTROL, 0},
+        {KEY_Q, 0}, {KEY_F, 0}, {KEY_MOUSE_LEFT, 0}, {KEY_MOUSE_RIGHT, 0}, {KEY_R, 0}, {KEY_TAB, 0},
+        {KEY_W, 0}, {KEY_S, 0}, {KEY_A, 0}, {KEY_D, 0}, {KEY_SPACE, 0}, {KEY_E, 0}, {KEY_H, 0}, {KEY_C, 0},
+        {KEY_G, 0}, {KEY_PGUP, 0}, {KEY_PGDN, 0},
+        {KEY_V, 0}, {0x14, 0}, {KEY_UP, 0}, {KEY_M, 0}};
+    // Camera
+    bool firstPersonOnFoot = false;      // start on foot in first person (V / Back still toggles in play)
+    bool firstPersonVehicle = false;     // vehicles start in the first person view (rig.vehicleView = 2)
+    float fovFirstPerson = 75.f;         // first-person vertical field of view, degrees 55..100
+    float cameraShake = 1.f;             // 0..1 scale of all camera shake (impacts, explosions, speed)
+    bool vehicleAutoCenter = true;       // the vehicle camera swings back behind the car after looking around
+    bool headBob = true;                 // first-person head bob (off helps with motion sickness)
     // Gameplay
     bool showRadar = true, showHud = true;
     bool metricUnits = true;
+    // Accessibility
+    int subtitleSize = 1;                // 0 small, 1 medium, 2 large, 3 extra large
+    float subtitleBackground = 0.f;      // 0..1 opacity of the box behind subtitles
+    bool speakerColors = true;           // colored speaker names in subtitles
+    float hudScale = 1.f;                // 0.75 .. 1.25
+    bool highContrastReticle = false;
+    int colorblindMode = 0;              // 0 off, 1 protanopia, 2 deuteranopia, 3 tritanopia (see colorblindMatrix)
+    bool reduceFlashing = false;         // dampens lightning, strobes, muzzle flashes and HUD flashing
+    float musicDucking = 0.5f;           // 0..1 how much radio and music drop under dialogue
 };
+
+// Key binding helpers (Settings > Key Bindings; input code reads the table through these)
+const char* inputActionName(InputAction a);
+InputContext inputActionContext(InputAction a);
+std::string keyName(int vk);                                  // "SHIFT", "LMB", "PAGE UP", ...
+bool bindingDown(const GameSettings& s, const InputState& in, InputAction a);
+bool bindingPressed(const GameSettings& s, const InputState& in, InputAction a);
+bool bindingReleased(const GameSettings& s, const InputState& in, InputAction a);
+// Colour-blind correction for the renderer's final pass: row-major 3x3 applied to linear RGB (out = M * rgb).
+// Daltonization (error of the Machado 2009 full-severity simulation moved into the visible channels); identity for 0.
+void colorblindMatrix(int mode, float m[9]);
+// Persistence: key=value text (settings.ini in the user data folder).
+std::string settingsToText(const GameSettings& s);
+void settingsFromText(const std::string& text, GameSettings& s);
+// Latches the options the UI applies itself (subtitle size/background/speaker colors, HUD scale, high-contrast reticle,
+// reduced HUD flashing). Call after loading settings and on MA_SETTINGS_CHANGED; Menus::update also latches them.
+void applyUiSettings(const GameSettings& s);
 
 enum MenuScreen : u8 { MENU_NONE = 0, MENU_MAIN, MENU_PAUSE, MENU_MAP, MENU_SETTINGS, MENU_LOAD, MENU_SAVE, MENU_STATS,
                        MENU_BRIEF, MENU_CONFIRM_QUIT, MENU_LOADING };

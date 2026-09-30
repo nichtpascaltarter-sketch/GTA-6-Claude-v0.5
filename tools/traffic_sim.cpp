@@ -38,6 +38,9 @@
 #include "../src/world/landmarks.cpp"
 #include "../src/world/leisure.cpp"
 #include "../src/world/rural.cpp"
+#if __has_include("../src/world/transitmesh.cpp")
+#include "../src/world/transitmesh.cpp"
+#endif
 #include "../src/world/sitecell.cpp"
 #endif
 #if __has_include("../src/world/facadedetail.cpp")

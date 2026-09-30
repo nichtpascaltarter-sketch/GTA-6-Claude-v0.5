@@ -77,7 +77,7 @@ float trafficTimeFactor(float tod) {
 
 enum PedSpawnKind : u8 {
     PK_WALKER = 0, PK_GROUP, PK_CHAT, PK_SPOT, PK_HAIL, PK_WALL, PK_JOGGER, PK_SUNBATHER, PK_GANG, PK_WORKER, PK_NIGHTLIFE,
-    PK_BUSINESS, PK_QUEUE, PK_BEAT, PK_COUNT
+    PK_BUSINESS, PK_QUEUE, PK_BEAT, PK_BATHER, PK_COUNT
 };
 
 struct PopState {
@@ -473,8 +473,12 @@ void GameWorld::updatePopulation(float dt) {
         w[PK_SPOT] = 0.2f;
         w[PK_HAIL] = (reg == World::REG_DOWNTOWN || reg == World::REG_FINANCIAL || reg == World::REG_MIDTOWN || reg == World::REG_BEACH) && !night ? 0.05f : 0.f;
         w[PK_WALL] = 0.14f;
-        w[PK_JOGGER] = ((tod > 6.f && tod < 10.f) || (tod > 17.f && tod < 20.f)) ? (beach ? 0.6f : (reg == World::REG_GROVE || reg == World::REG_SUBURBS ? 0.25f : 0.06f)) : 0.f;
+        // joggers: mornings and evenings, most on the beach front and along the water, some through the neighbourhoods
+        bool jogHours = (tod > 6.f && tod < 10.f) || (tod > 17.f && tod < 20.5f);
+        bool waterfront = map->coastDistance(center.x, center.y) < 90.f;
+        w[PK_JOGGER] = jogHours ? (beach ? 0.6f : (waterfront ? 0.35f : (reg == World::REG_GROVE || reg == World::REG_SUBURBS ? 0.25f : 0.12f))) : 0.f;
         w[PK_SUNBATHER] = reg == World::REG_BEACH && tod > 9.f && tod < 18.f && rain < 0.2f ? 0.8f : 0.f;
+        w[PK_BATHER] = beach && tod > 9.5f && tod < 18.5f && rain < 0.2f && map->coastDistance(center.x, center.y) < 160.f ? 0.5f : 0.f;
         w[PK_GANG] = turf != FAC_CIVILIAN && nGang < 8 ? (night ? 0.22f : 0.12f) : 0.f;
         w[PK_WORKER] = (reg == World::REG_PORT && tod > 6.f && tod < 18.5f) ? 0.9f : ((reg == World::REG_FLATS || reg == World::REG_FORT_CASTELL) && !night ? 0.15f : 0.f);
         w[PK_NIGHTLIFE] = night && nightlifeArea(reg) ? 0.8f : 0.f;
@@ -536,6 +540,52 @@ void GameWorld::updatePopulation(float dt) {
                 pa.clip = -1;
                 pa.actTimer = 90.f + hashToFloat(hash32(h * 3u)) * 200.f;
                 spawned = 1;
+                break;
+            }
+            case PK_BATHER: {
+                // in the sea off the beach: waders standing in the shallows, swimmers a little further out
+                bool ok = false;
+                vec2 sp;
+                float wz = 0.f, depth = 0.f;
+                for (int k = 0; k < 8 && !ok; k++) {
+                    u32 hk = hash32(h + k * 7919u);
+                    float a2 = hashToFloat(hk) * kTwoPi, r2 = rMin + hashToFloat(hash32(hk)) * (rMax - rMin);
+                    sp = center.xy() + vec2(cosf(a2), sinf(a2)) * r2;
+                    World::Region wr = map->regionAt(sp.x, sp.y);
+                    if (wr != World::REG_BEACH && wr != World::REG_KEY_CORAL) continue;
+                    wz = map->waterAt(sp.x, sp.y);
+                    if (wz < World::kNoWater + 1.f) continue;
+                    depth = wz - map->heightAt(sp.x, sp.y);
+                    float cd = map->coastDistance(sp.x, sp.y);
+                    if (depth < 0.45f || depth > 2.4f || cd > -2.f || cd < -35.f) continue;
+                    ok = true;
+                }
+                if (!ok) break;
+                bool swim = depth > 1.45f;
+                float gz = map->heightAt(sp.x, sp.y);
+                vec3 p3(sp, swim ? wz - 1.3f : gz);
+                if (visibleNear(p3) || tooClose(p3)) break;
+                vec2 toShore = center.xy() - sp;
+                float faceShore = AI::dirYaw(normalize(toShore + vec2(1e-3f, 0.f)));
+                int n = (h >> 9) % 3 == 0 ? 2 : 1;   // now and then a pair
+                for (int k = 0; k < n; k++) {
+                    vec2 q = sp + AI::rightOf(AI::yawDir(faceShore)) * (k * 1.3f);
+                    int id = spawnPed(randomCivilianChar(hash32(h + k * 57u) >> 3, 4), dvec3(q.x, q.y, p3.z), faceShore + (k ? kPi * 0.5f : 0.f), FAC_CIVILIAN);
+                    if (id < 0) break;
+                    Ped& p = peds[id];
+                    p.brain.type = BRAIN_WANDER;
+                    p.brain.edge = -1;
+                    PedAI& pa = pedAI(id);
+                    pa.role = PR_BEACH;
+                    pa.activity = ACT_SCENARIO;
+                    pa.anchor = q;
+                    pa.anchorYaw = n == 2 ? faceShore + (k ? -1.4f : 1.4f) : faceShore + kPi * ((h >> 12) & 1);   // facing each other / the waves
+                    pa.stance = !swim && n == 2 ? 7 : 0;
+                    pa.clip = -1;
+                    pa.actTimer = 60.f + hashToFloat(hash32(h * 3u + k)) * 120.f;
+                    nPeds++;
+                    spawned++;
+                }
                 break;
             }
             case PK_QUEUE: {

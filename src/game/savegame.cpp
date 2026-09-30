@@ -86,7 +86,7 @@ float GameWorld::completion() const {
     }
     story = Min(1.f, storyDone / 21.f);   // 21 story missions
     float coll = shellCount > 0 ? (float)pinfo.collectiblesFound / shellCount : 0.f;
-    float side = Min(1.f, sideDone / 24.f);
+    float side = Min(1.f, sideDone / 34.f);   // SIDE_TAXI..SIDE_RIVALS_ALL (story_base.cpp)
     return story * 60.f + coll * 15.f + side * 25.f;
 }
 
@@ -142,6 +142,17 @@ bool GameWorld::saveGame(int slot, const std::string& title) {
     w.vec(ownedVehicleModels);
     w.pod(protagonistIndex);
     w.pod(pinfo.hintsShown);
+    // weapon components and tints: a tagged trailing block (saves written before it simply end here)
+    u32 wtag = 0x43504E57u;
+    w.pod(wtag);
+    for (int i = 0; i < WPN_COUNT; i++) {
+        w.pod(pinfo.wpnCompOwned[i]);
+        w.pod(pinfo.wpnCompFitted[i]);
+        w.pod(pinfo.wpnTint[i]);
+        w.pod(pinfo.wpnTintOwned[i]);
+    }
+    u8 flashOn = pinfo.flashlightOn ? 1 : 0;
+    w.pod(flashOn);
     u32 cs = checksum(w.buf.data(), w.buf.size());
     w.pod(cs);
     std::string path = slotPath(slot);
@@ -253,6 +264,21 @@ bool GameWorld::loadGame(int slot) {
     r.pod(proto);
     u32 hints = 0;
     r.pod(hints);
+    u8 compOwned[WPN_COUNT] = {}, compFitted[WPN_COUNT] = {}, tints[WPN_COUNT] = {}, tintOwned[WPN_COUNT] = {};
+    u8 flashOn = 1;
+    if (r.ok && r.p + 4 <= r.end) {
+        u32 wtag = 0;
+        r.pod(wtag);
+        if (wtag == 0x43504E57u) {
+            for (int i = 0; i < WPN_COUNT; i++) {
+                r.pod(compOwned[i]);
+                r.pod(compFitted[i]);
+                r.pod(tints[i]);
+                r.pod(tintOwned[i]);
+            }
+            r.pod(flashOn);
+        }
+    }
     if (!r.ok) {
         LOG("Save slot %d is corrupt", slot);
         return false;
@@ -265,6 +291,13 @@ bool GameWorld::loadGame(int slot) {
     env->rain = rain;
     pinfo = pi;
     pinfo.hintsShown = hints;
+    for (int i = 0; i < WPN_COUNT; i++) {
+        pinfo.wpnCompOwned[i] = compOwned[i];
+        pinfo.wpnCompFitted[i] = compFitted[i];
+        pinfo.wpnTint[i] = tints[i] < kWeaponTints ? tints[i] : 0;
+        pinfo.wpnTintOwned[i] = tintOwned[i];
+    }
+    pinfo.flashlightOn = flashOn != 0;
     storyTitle = story;
     storyFlags = flags;
     ownedVehicleModels = owned;

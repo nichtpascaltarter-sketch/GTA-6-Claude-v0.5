@@ -394,7 +394,7 @@ struct ParticleSystem {
         if (dist < 0.5f) return;
         const float speed = 700.f;
         vec3 dir = dv / dist;
-        emit(IPT_TRACER, t.from + dir * 1.5f, dir * speed, 0.035f, 0.03f, Max((dist - 1.5f) / speed, 0.02f), 46, vec3(1), 1.f, 40000.f);
+        emit(IPT_TRACER, t.from + dir * 1.5f, dir * speed, 0.03f, 0.025f, Max((dist - 1.5f) / speed, 0.02f), 46, vec3(1), 1.f, 15000.f);
     }
 
     // --------------------------------------------------------------------------------------------

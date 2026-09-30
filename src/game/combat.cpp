@@ -236,7 +236,7 @@ void GameWorld::giveWeapon(int pid, WeaponType w, int ammo) {
     const WeaponInfo& wi = weaponInfo(w);
     if (wi.clipSize > 0) {
         p.ammo[w] = Min(p.ammo[w] + ammo, 9999);
-        if (p.clip[w] == 0) p.clip[w] = Min(wi.clipSize, p.ammo[w]);
+        if (p.clip[w] == 0) p.clip[w] = Min(clipCapacity(p, w), p.ammo[w]);
     }
 }
 
@@ -306,16 +306,31 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
     p.clip[p.weapon]--;
     p.ammo[p.weapon]--;
     if (p.isPlayer) pinfo.shotsFired++;
+    u8 comps = weaponComps(p, p.weapon);
+    bool suppressed = (comps & WC_SUPPRESSOR) != 0;
     float spread = wi.spread * (p.aiming ? 0.45f : 1.f) * (1.f + p.spreadHeat) * (p.isPlayer ? 1.f : 1.6f - p.brain.accuracy);
+    if (comps & WC_GRIP) spread *= 0.85f;
+    if ((comps & WC_SCOPE) && p.aiming) spread *= 0.7f;
     if (p.state == PS_INVEHICLE) spread *= 1.6f;
     p.spreadHeat = Min(p.spreadHeat + (wi.automatic ? 0.25f : 0.6f), 2.5f);
     vec3 up = fabsf(dir.z) < 0.95f ? vec3(0, 0, 1) : vec3(1, 0, 0);
     vec3 rx = normalize(cross(dir, up)), ry = cross(rx, dir);
 #ifdef HAVE_AUDIO
-    Audio::play((Audio::Sfx)wi.sfx, muzzle.toVec3(), 1.f, 0.96f + (hash32(p.uid + (u32)(time * 1000)) % 8) * 0.01f);
+    float pitchJ = (hash32(p.uid + (u32)(time * 1000)) % 8) * 0.01f;
+    if (suppressed) {
+        // a suppressed shot: the report is gone, what is left is a thin, high crack and the action cycling
+        Audio::play((Audio::Sfx)wi.sfx, muzzle.toVec3(), 0.2f, 1.55f + pitchJ);
+        Audio::play(Audio::SFX_WHOOSH, muzzle.toVec3(), 0.35f, 1.8f + pitchJ);
+    } else {
+        Audio::play((Audio::Sfx)wi.sfx, muzzle.toVec3(), 1.f, 0.96f + pitchJ);
+    }
 #endif
-    spawnFx(FX_MUZZLE_FLASH, muzzle, dir, 1, p.weapon == WPN_SHOTGUN ? 1.5f : 1.f);
-    spawnLight(muzzle + dir * 0.3f, vec3(1.f, 0.7f, 0.35f) * 2500.f, 6.f);
+    if (!suppressed) {
+        spawnFx(FX_MUZZLE_FLASH, muzzle, dir, 1, p.weapon == WPN_SHOTGUN ? 1.5f : 1.f);
+        spawnLight(muzzle + dir * 0.3f, vec3(1.f, 0.7f, 0.35f) * 2500.f, 6.f);
+    } else {
+        spawnLight(muzzle + dir * 0.3f, vec3(1.f, 0.7f, 0.35f) * 180.f, 2.f);
+    }
     bool hitSomeone = false;
     for (int k = 0; k < wi.pellets; k++) {
         u32 hs = hash32(p.uid * 977u + (u32)(time * 4000.0) + k * 131u);
@@ -457,17 +472,21 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
         }
     }
     if (p.isPlayer) {
-        rumble(wi.recoil * 6.f + 0.1f, wi.recoil * 10.f + 0.15f);
-        rig.recoil += wi.recoil;
+        float kick = wi.recoil * ((comps & WC_GRIP) ? 0.65f : 1.f) * (suppressed ? 0.9f : 1.f);
+        rumble(kick * 6.f + 0.1f, kick * 10.f + 0.15f);
+        rig.recoil += kick;
         if (hitSomeone) {
             pinfo.shotsHit++;
             pinfo.hitMarker = 1.f;
         }
     }
-    // gunfire is reported at most once every few seconds per shooter (a burst is one incident)
+    // gunfire is reported at most once every few seconds per shooter (a burst is one incident); suppressed shots
+    // only startle whoever is right next to the shooter (hits and bodies are reported as crimes of their own)
     if (time - p.lastGunfireReport > 4.0) {
         p.lastGunfireReport = time;
-        if (p.isPlayer) {
+        if (suppressed) {
+            aiStimulus(p.pos, STIM_GUNFIRE, pid, 9.f, p.isPlayer);
+        } else if (p.isPlayer) {
             reportCrime(1, p.pos, -1);
             socialReport(UI::TE_SHOOTING, p.pos);
         }

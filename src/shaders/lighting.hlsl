@@ -132,7 +132,67 @@ float3 interiorReflection(int k, float3 p, float3 R, float rough, float dist) {
     return lerp(e, envReflection(R, rough), cover);
 }
 
+// ---- Character shading models -----------------------------------------------------------------------------------
+// Skin: per-channel wrapped diffuse (red light scatters furthest under the skin, so the terminator and the shadow
+// edges turn warm), a two-lobe specular (broad + tight oily sheen, F0 0.028) and transmission through thin parts
+// lit from behind (ears, nostrils, fingers). g.extra = 0.5 + thinness / 2. `thickness` (m): how much tissue the
+// light crosses (from the shadow map; large = none).
+float3 skinDirect(GBufferData g, float3 N, float3 V, float3 L, float shadow, float thickness) {
+    float thin = saturate(g.extra * 2.0 - 1.0);
+    float NoLr = dot(N, L);
+    const float3 w = float3(0.5, 0.2, 0.12);
+    float3 wrapD = saturate((NoLr + w) / (1.0 + w));
+    float3 sh3 = pow(saturate(shadow), float3(0.55, 1.0, 1.25));
+    float3 H = normalize(V + L);
+    float NoV = max(dot(N, V), 1e-4), NoL = saturate(NoLr), NoH = saturate(dot(N, H)), VoH = saturate(dot(V, H));
+    float a1 = max(g.rough * g.rough, 0.01), a2 = max(sq(g.rough * 0.55), 0.004);
+    float F = 0.028 + 0.972 * pow5(1.0 - VoH);
+    float spec = (D_GGX(NoH, a1) * V_SmithGGXCorrelated(NoV, NoL, a1) * 0.8 + D_GGX(NoH, a2) * V_SmithGGXCorrelated(NoV, NoL, a2) * 0.2) * F;
+    float3 r = g.albedo / PI * wrapD * (1.0 - F) * sh3 + spec * NoL * saturate(shadow);
+    float3 transm = exp(-thickness / float3(0.012, 0.0045, 0.003)) * thin;
+    float fwd = saturate(dot(V, -L)) * 0.5 + 0.5;
+    r += g.albedo * transm * saturate(0.25 - NoLr) * fwd * fwd * (0.8 / PI);
+    return r;
+}
+
+// Hair (Kajiya-Kay with Marschner-style shifts): strands follow the surface projection of "down"; a white primary
+// highlight shifted towards the root (R) and a broader highlight tinted by the hair colour, shifted towards the tip
+// and sparkling per strand (TRT, g.extra); soft wrapped diffuse for the scattering hair volume.
+float3 hairDirect(GBufferData g, float3 N, float3 V, float3 L) {
+    float3 T = float3(0, 0, -1) + N * N.z;
+    float tl = length(T);
+    T = tl > 1e-3 ? T / tl : normalize(cross(N, float3(1, 0, 0)));
+    float3 H = normalize(L + V);
+    float3 T1 = normalize(T + N * 0.1), T2 = normalize(T - N * 0.15);
+    float h1 = dot(T1, H), h2 = dot(T2, H);
+    float e1 = clamp(2.0 / max(sq(g.rough * 0.7), 1e-3) - 2.0, 8.0, 400.0);
+    float e2 = e1 * 0.25;
+    float s1 = pow(sqrt(saturate(1.0 - h1 * h1)), e1) * (e1 + 2.0) / (2.0 * PI);
+    float s2 = pow(sqrt(saturate(1.0 - h2 * h2)), e2) * (e2 + 2.0) / (2.0 * PI);
+    float NoL = dot(N, L);
+    float vis = saturate(NoL * 0.75 + 0.25);
+    float F = 0.046 + 0.954 * pow5(1.0 - saturate(dot(V, H)));
+    float3 spec = (s1 * F * 0.5 + s2 * g.albedo * (0.3 + g.extra * 0.9) * 0.35) * vis;
+    return g.albedo / PI * saturate(NoL * 0.6 + 0.4) * 0.85 + spec;
+}
+
+// Cloth: Lambert + Charlie sheen (Estevez & Kulla) with the Ashikhmin visibility; g.extra = sheen strength.
+float3 clothDirect(GBufferData g, float3 N, float3 V, float3 L) {
+    float NoL = saturate(dot(N, L)), NoV = max(dot(N, V), 1e-4);
+    float3 H = normalize(V + L);
+    float NoH = saturate(dot(N, H));
+    float r = max(g.rough, 0.3);
+    float invA = 1.0 / (r * r);
+    float D = (2.0 + invA) * pow(max(1.0 - NoH * NoH, 1e-4), invA * 0.5) / (2.0 * PI);
+    float Vs = 1.0 / (4.0 * (NoL + NoV - NoL * NoV) + 1e-4);
+    float3 sheenC = lerp(float3(0.04, 0.04, 0.04), g.albedo, 0.6) * g.extra;
+    return (g.albedo / PI + sheenC * D * Vs) * NoL;
+}
+
 float3 localLightBRDF(GBufferData g, float3 N, float3 V, float3 L) {
+    if (g.shadingModel == SM_SKIN) return skinDirect(g, N, V, L, 1.0, 1.0);
+    if (g.shadingModel == SM_HAIR) return hairDirect(g, N, V, L);
+    if (g.shadingModel == SM_CLOTH) return clothDirect(g, N, V, L);
     float3 H = normalize(V + L);
     float NoV = max(dot(N, V), 1e-4);
     float NoL = saturate(dot(N, L));
@@ -197,19 +257,11 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
     float3 direct = (diffColor / PI * (1.0 - F) + spec) * NoL * sunE * shadow;
     float3 coatSpecAmb = 0;
     if (g.shadingModel == SM_SKIN) {
-        // Wrapped diffuse with a reddish subsurface falloff
-        float w = 0.45;
-        float nlw = saturate((dot(N, L) + w) / (1.0 + w));
-        float3 sss = float3(1.0, 0.45, 0.3) * (nlw - NoL) * g.extra;
-        direct = (diffColor / PI * (NoL + max(sss, 0.0)) + spec * NoL) * sunE * shadow;
+        direct = skinDirect(g, N, V, L, shadow, dot(N, L) < 0.25 ? shadowThickness(relPos) : 1.0) * sunE;
     } else if (g.shadingModel == SM_CLOTH) {
-        float sheen = pow(1.0 - NoV, 4.0) * 0.35 * g.extra;
-        direct += diffColor * sheen * NoL * sunE * shadow;
+        direct = clothDirect(g, N, V, L) * sunE * shadow;
     } else if (g.shadingModel == SM_HAIR) {
-        // Broad secondary highlight shifted towards the light (approximates anisotropic hair)
-        float3 H2 = normalize(L + V + N * 0.3);
-        float spec2 = pow(saturate(dot(N, H2)), 20.0) * 0.08;
-        direct += g.albedo * spec2 * sunE * shadow * NoL;
+        direct = hairDirect(g, N, V, L) * sunE * shadow;
     } else if (g.shadingModel == SM_CARPAINT) {
         // Clear coat layer over the base
         float ca = 0.035 * 0.035;
@@ -237,6 +289,7 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
     // + daylight through the openings)
     float3 ambIrr = sInterior >= 0 ? interiorIrradiance(sInterior, relPos, N, length(relPos)) : ambientIrradiance(N, length(relPos));
     float3 ambientDiffuse = diffColor * (ambIrr * aoMB + gi);
+    if (g.shadingModel == SM_SKIN) ambientDiffuse *= float3(1.06, 0.98, 0.95);   // ambient light scattered through skin
     float3 R = reflect(-V, N);
     float2 ab = envBRDFApprox(g.rough, NoV);
     float specOcc = saturate(pow(NoV + ao, exp2(-16.0 * g.rough - 1.0)) - 1.0 + ao);
@@ -244,6 +297,8 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
     float3 env = (sInterior >= 0 ? interiorReflection(sInterior, relPos, R, g.rough, length(relPos)) : envReflection(R, g.rough)) * specOcc;
     env = lerp(env, ssr.rgb / preExposure(), ssr.a);
     float3 ambientSpec = env * (f0 * ab.x + ab.y) * horizonOcclusion(R, N);
+    if (g.shadingModel == SM_HAIR) ambientSpec *= lerp(float3(0.35, 0.35, 0.35), g.albedo * 1.5, 0.5);   // strands, not a mirror
+    else if (g.shadingModel == SM_SKIN) ambientSpec *= 0.7;                                          // F0 0.028, not 0.04
     return direct + ambientDiffuse + ambientSpec + coatSpecAmb;
 }
 

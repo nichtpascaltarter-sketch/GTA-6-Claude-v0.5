@@ -71,6 +71,22 @@ struct RoadCellOutput {
 };
 
 // Oriented collision slab along a road segment: lateral band [lat0, lat1] (right = +), from z0 to z0 + h above the road
+// Collision matching a barrier quad strip exactly: inner line p0 -> p1, outer line q0 -> q1 (world space, road-level z)
+inline void roadRailCollisionQuad(RoadCellOutput& out, vec3 p0, vec3 p1, vec3 q0, vec3 q1, float h) {
+    vec3 m0 = (p0 + q0) * 0.5f, m1 = (p1 + q1) * 0.5f;
+    vec2 d = m1.xy() - m0.xy();
+    float L = length(d);
+    if (L < 0.05f) return;
+    float w = (length(q0.xy() - p0.xy()) + length(q1.xy() - p1.xy())) * 0.5f;
+    float zlo = Min(Min(p0.z, p1.z), Min(q0.z, q1.z)), zhi = Max(Max(p0.z, p1.z), Max(q0.z, q1.z));
+    CollisionBox cb;
+    vec3 c = (m0 + m1) * 0.5f;
+    cb.c = vec3(c.x, c.y, (zlo - 0.3f + zhi + h) * 0.5f);
+    cb.ax = d / L;
+    cb.he = vec3(L * 0.5f + 0.05f, Max(0.08f, w * 0.5f), (zhi + h - zlo + 0.3f) * 0.5f);
+    out.collision.push_back(cb);
+}
+
 inline void roadRailCollision(RoadCellOutput& out, vec3 a, vec3 b, vec3 right, float lat0, float lat1, float h) {
     vec2 d = b.xy() - a.xy();
     float L = length(d);
@@ -331,11 +347,13 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
                         if (merge) continue;
                         vec3 c0 = lerp(a.c, b.c, t0), c1 = lerp(a.c, b.c, t1);
                         float s0 = Lerp(a.s, b.s, t0), s1 = Lerp(a.s, b.s, t1);
-                        roadRailCollision(out, c0, c1, rAB, lat - bw * 0.5f, lat + bw * 0.5f, bh);
                         vec3 p0 = lerp(sectionPoint(a, lat - bw * 0.5f), sectionPoint(b, lat - bw * 0.5f), t0) - o3;
                         vec3 p1 = lerp(sectionPoint(a, lat - bw * 0.5f), sectionPoint(b, lat - bw * 0.5f), t1) - o3;
                         vec3 q0 = lerp(sectionPoint(a, lat + bw * 0.5f), sectionPoint(b, lat + bw * 0.5f), t0) - o3;
                         vec3 q1 = lerp(sectionPoint(a, lat + bw * 0.5f), sectionPoint(b, lat + bw * 0.5f), t1) - o3;
+                        roadRailCollisionQuad(out, p0 + o3, p1 + o3, q0 + o3, q1 + o3, bh);
+                        (void)c0;
+                        (void)c1;
                         vec3 up(0, 0, bh);
                         out.road.quadFacing(p0 + up, q0 + up, q1 + up, p1 + up, vec2(0, s0), vec2(bw, s0), vec2(bw, s1), vec2(0, s1), white, matConcrete, vec3(0, 0, 1));
                         out.road.quadFacing(q1, q0, q0 + up, q1 + up, vec2(s1, 0), vec2(s0, 0), vec2(s0, bh), vec2(s1, bh), white, matConcrete, a.right * sgn);

@@ -164,6 +164,7 @@ void GameWorld::update(float realDt) {
     updateTutorialHints(realDt);
     double t0 = TimeSeconds();
     Interiors::preUpdate(*this, dt);   // interiors_game.cpp (test walk-through controls)
+    Transit::update(*this, dt);        // transit_game.cpp: trains, buses, ferries; handles boarding input before the player
     updatePlayer(dt);
     double t1 = TimeSeconds();
     updateAI(dt);
@@ -472,6 +473,7 @@ void GameWorld::submitRender() {
         }
     }
     // ---- peds
+    int copTorches = 0;
     for (int i = 0; i < (int)peds.size(); i++) {
         Ped& p = peds[i];
         if (!p.used || p.charIndex < 0) continue;
@@ -515,7 +517,8 @@ void GameWorld::submitRender() {
             vec3 dirF = normalize(hand - fore);
             vec3 fwd = p.aiming && !p.ragdoll ? p.aimDir : dirF;
             Render::DrawItem wd;
-            wd.model = weaponModels[p.weapon];
+            int tint = p.isPlayer ? Clamp((int)pinfo.wpnTint[p.weapon], 0, kWeaponTints - 1) : 0;
+            wd.model = weaponTintModels[p.weapon][tint] ? weaponTintModels[p.weapon][tint] : weaponModels[p.weapon];
             wd.pos = p.pos + (hand + dirF * 0.04f);
             wd.rot = frameFromForward(fwd, vec3(0, 0, 1));
             if (p.weapon == WPN_BAT || p.weapon == WPN_KNIFE) {
@@ -531,6 +534,45 @@ void GameWorld::submitRender() {
             wd.id = 0x600000000ull | p.uid;
             wd.castShadow = p.visibleDist < 40.f;
             dyn->submit(wd);
+            // fitted attachments share the weapon's transform
+            u8 comps = weaponComps(p, p.weapon);
+            for (int c = 0; c < kWeaponCompCount && comps; c++) {
+                if (!(comps & (1 << c)) || !weaponCompModels[p.weapon][c]) continue;
+                Render::DrawItem cd = wd;
+                cd.model = weaponCompModels[p.weapon][c];
+                cd.id = wd.id + ((u64)(c + 1) << 40);
+                dyn->submit(cd);
+            }
+            // officers on foot sweep torches along their gun barrels at night while the player is wanted (the
+            // first four within 70 m only: every beam is a shadowless spot light in the tiled pass)
+            if (!p.isPlayer && isCop(p) && p.state == PS_ONFOOT && pinfo.wanted > 0 && p.visibleDist < 70.f &&
+                nightTime(env->timeOfDay) && copTorches < 4) {
+                copTorches++;
+                Render::DynamicLight fl;
+                vec3 bf = wd.rot * vec3(0.f, 1.f, 0.f);
+                fl.pos = wd.pos + dvec3(bf * 0.2f);
+                vec3 look = p.aiming ? p.aimDir : vec3(-sinf(p.yaw), cosf(p.yaw), -0.18f);
+                float sweep = sinf((float)time * 0.9f + (float)(p.uid % 17u)) * (p.aiming ? 0.f : 0.35f);
+                fl.dir = normalize(vec3(look.x * cosf(sweep) - look.y * sinf(sweep), look.x * sinf(sweep) + look.y * cosf(sweep), look.z));
+                fl.color = vec3(1.f, 0.97f, 0.92f) * 4200.f;
+                fl.radius = 28.f;
+                fl.spotCos = cosf(15.f * kDegToRad);
+                fl.spotInner = cosf(6.f * kDegToRad);
+                renderer->addLight(fl);
+            }
+            // weapon flashlight: a narrow beam from the barrel while aiming in the dark (night or indoors)
+            if ((comps & WC_FLASHLIGHT) && pinfo.flashlightOn && p.aiming && p.state == PS_ONFOOT &&
+                (nightTime(env->timeOfDay) || Interiors::isInside())) {
+                Render::DynamicLight fl;
+                vec3 bf = wd.rot * vec3(0.f, 1.f, 0.f);
+                fl.pos = wd.pos + dvec3(bf * 0.35f);
+                fl.dir = normalize(p.aimDir);
+                fl.color = vec3(1.f, 0.96f, 0.9f) * 5200.f;
+                fl.radius = 32.f;
+                fl.spotCos = cosf(17.f * kDegToRad);
+                fl.spotInner = cosf(7.f * kDegToRad);
+                renderer->addLight(fl);
+            }
         }
         // smartphone in hand: at the ear during calls, browsing, the idle phone check (Anim::phoneFrame fits all)
         if (phoneModel && p.visibleDist < 35.f && !p.ragdoll && (p.state == PS_ONFOOT || p.state == PS_SWIM) &&
@@ -548,6 +590,7 @@ void GameWorld::submitRender() {
         }
     }
     Wildlife::submitRender(*this);   // birds, flocks, fish shoals, pets, herds, alligators (wildlife.cpp)
+    Transit::submit(*this);          // train door leaves, far trains, head lamps (transit_game.cpp)
     // ---- pickups
     for (auto& pk : pickups) {
         if (!pk.used || pk.timer > 0.f) continue;

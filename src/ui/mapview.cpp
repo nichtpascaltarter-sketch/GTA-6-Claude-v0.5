@@ -771,9 +771,10 @@ void drawBlipGlyph(const Blip& b, vec2 p, float size, float alpha, float time, b
     bool semantic = ic == BLIP_ENEMY || ic == BLIP_FRIEND || ic == BLIP_POLICE || ic == BLIP_POLICE_HELI || ic == BLIP_OBJECTIVE ||
                     ic == BLIP_WAYPOINT || ic == BLIP_MISSION;
     u32 col = (b.color == 0 || (semantic && b.color == 0xffffffffu)) ? blipDefaultColor(ic) : b.color;
-    if (ic == BLIP_POLICE || ic == BLIP_POLICE_HELI) col = fmodf(time * 2.5f, 1.f) < 0.5f ? kRed : kBlue;
+    if (ic == BLIP_POLICE || ic == BLIP_POLICE_HELI)
+        col = uiOptions().reduceFlashing ? lerpColor(kRed, kBlue, 0.5f + 0.5f * sinf(time * 1.2f)) : (fmodf(time * 2.5f, 1.f) < 0.5f ? kRed : kBlue);
     float a = alpha;
-    if (b.flash) a *= 0.35f + 0.65f * (fmodf(time * 2.f, 1.f) < 0.6f ? 1.f : 0.f);
+    if (b.flash) a *= uiOptions().reduceFlashing ? 0.85f : 0.35f + 0.65f * (fmodf(time * 2.f, 1.f) < 0.6f ? 1.f : 0.f);
     if (onEdge) size *= 0.85f;
     size *= Clamp(b.scale, 0.3f, 3.f);
     u32 outline = C(0.02f, 0.03f, 0.07f, 0.9f * a);

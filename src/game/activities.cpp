@@ -9,6 +9,10 @@ namespace mu {
 // garage helpers (shops.cpp)
 int packPaint(vec3 c);
 void saveOwnedMods(GameWorld& g, int v);
+// handset (phone_game.cpp)
+bool phoneWired();
+void addMessage(GameWorld& g, const std::string& from, const std::string& text, int contactId, bool mission, int missionDef, vec2* location,
+                int action, const char* actionLabel);
 
 // ------------------------------------------------------------------------------------------------------------------
 // Small models for activity props (built once, rendered as dynamic draw items)
@@ -226,6 +230,20 @@ std::vector<RaceSpec> raceSpecs() {
     return v;
 }
 
+// One line for the Jobs app: where the rivalry with this race's rival stands ("" when the race has no rival).
+std::string rivalStatus(GameWorld& g, const char* raceId) {
+    const RaceRival* rr = rivalFor(raceId);
+    if (!rr) return "";
+    for (const RaceSpec& rs : raceSpecs()) {
+        if (strcmp(rs.id, raceId) != 0) continue;
+        int wins = flag(g, EX_RIVAL_WINS + rs.bestSlot);
+        if ((flag(g, EX_RIVAL_FINALS) >> rs.bestSlot) & 1) return StrFormat("Rival %s: beaten for good.", rr->name);
+        if (wins >= 3) return StrFormat("Rival %s: the final is on, %s on the line.", rr->name, rr->trophy[0] ? rr->trophy : "their car");
+        return StrFormat("Rival %s: %d of 3 wins to the final.", rr->name, wins);
+    }
+    return "";
+}
+
 class MissionRace : public StoryMission {
 public:
     RaceSpec spec;
@@ -415,11 +433,23 @@ public:
         if (!rr) return;
         setFlag(g, EX_RIVAL_WINS + spec.bestSlot, Min(rivalWins + 1, 99));
         if (!finalRace) {
-            if (rivalWins + 1 == 3)
+            if (rivalWins + 1 == 3) {
                 g.notify(rr->name, StrFormat("%s wants a final: next time the %s is on the line.", rr->name, rr->trophy[0] ? rr->trophy : "pink slip"));
+                if (phoneWired()) {
+                    int di = gMissions.findDef(spec.id);
+                    vec2 loc = di >= 0 ? gMissions.defs[di].startPos : playerPos(g).xy();
+                    std::string txt = rr->trophy[0] ? StrFormat("Three times? Fine. Next race the %s is on the line. Old rules.", rr->trophy)
+                                                    : std::string("Three times? Fine. Next race, pink slips. My car against your prize. Don't chicken out.");
+                    addMessage(g, rr->name, txt, -1, false, -1, &loc, 0, nullptr);
+                }
+            }
             return;
         }
         setFlag(g, EX_RIVAL_FINALS, flag(g, EX_RIVAL_FINALS) | (1 << spec.bestSlot));
+        bool all = true;
+        for (const RaceSpec& rs : raceSpecs())
+            if (rivalFor(rs.id) && !((flag(g, EX_RIVAL_FINALS) >> rs.bestSlot) & 1)) all = false;
+        if (all) setFlag(g, SIDE_RIVALS_ALL, 1);
         int m = rivalCar >= 0 && g.vehicles[rivalCar].used ? g.vehicles[rivalCar].model : -1;
         bool road = spec.domain == 0 && !rr->trophy[0];
         if (road && m >= 0 && std::find(g.ownedVehicleModels.begin(), g.ownedVehicleModels.end(), m) == g.ownedVehicleModels.end()) {
@@ -1504,6 +1534,11 @@ struct ActivitiesState {
     int lastVehicle = -1;
     float blink = 0.f;
     vec3 lastPos;            // vehicle position last frame (a teleport cancels the jump being tracked)
+    // the last landed jump (strangers.cpp: Jaz films one)
+    double lastJumpTime = -1.0;
+    float lastJumpDist = 0.f, lastJumpAir = 0.f, lastJumpHeight = 0.f;
+    bool lastJumpUpright = false;
+    vec3 lastJumpLanding;
 };
 ActivitiesState gAct;
 
@@ -1968,6 +2003,12 @@ void updateStunts(GameWorld& g, float dt) {
             float dist = ::length(p.xy() - gAct.takeoff.xy());
             float height = gAct.maxZ - Max(gAct.takeoff.z, p.z);
             bool upright = s.up().z > 0.5f;
+            gAct.lastJumpTime = g.time;
+            gAct.lastJumpDist = dist;
+            gAct.lastJumpAir = gAct.airTime;
+            gAct.lastJumpHeight = height;
+            gAct.lastJumpUpright = upright;
+            gAct.lastJumpLanding = p;
             if (gMissions.test.active && gAct.airTime > 0.3f)
                 LOG("[missiontest] stunt: %.2f s in the air, %.1f m, %.1f m high, unique spot %d, upright %d", gAct.airTime, dist, height,
                     gAct.uniqueCandidate, (int)upright);

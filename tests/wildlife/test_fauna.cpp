@@ -9,6 +9,7 @@
 #include "../../src/core/noise.cpp"
 #include "../../src/game/animal_models.cpp"
 #include <cstring>
+#include <string>
 
 using namespace Fauna;
 
@@ -328,8 +329,21 @@ int main(int argc, char** argv) {
     {
         const char* only = argc > 3 ? argv[3] : nullptr;
         std::vector<const ModelData*> sheet;
+        auto wanted = [&](const char* name) {   // comma separated name fragments
+            if (!only) return true;
+            std::string list = only;
+            size_t a = 0;
+            while (a <= list.size()) {
+                size_t b = list.find(',', a);
+                if (b == std::string::npos) b = list.size();
+                std::string frag = list.substr(a, b - a);
+                if (!frag.empty() && strstr(name, frag.c_str())) return true;
+                a = b + 1;
+            }
+            return false;
+        };
         for (const ModelData& md : models)
-            if (!only || strstr(speciesInfo(md.species).name, only)) sheet.push_back(&md);
+            if (wanted(speciesInfo(md.species).name)) sheet.push_back(&md);
         int cell = argc > 4 ? atoi(argv[4]) : 220;
         int cols = Min(7, Max((int)sheet.size(), 1));
         int rows = ((int)sheet.size() + cols - 1) / cols;

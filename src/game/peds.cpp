@@ -664,8 +664,7 @@ void GameWorld::updatePed(int id, float dt) {
     if (p.reloadTimer > 0.f) {
         p.reloadTimer -= dt;
         if (p.reloadTimer <= 0.f) {
-            const WeaponInfo& wi = weaponInfo(p.weapon);
-            int need = wi.clipSize - p.clip[p.weapon];
+            int need = clipCapacity(p, p.weapon) - p.clip[p.weapon];
             int avail = p.ammo[p.weapon] - p.clip[p.weapon];
             p.clip[p.weapon] += Min(need, avail);
         }

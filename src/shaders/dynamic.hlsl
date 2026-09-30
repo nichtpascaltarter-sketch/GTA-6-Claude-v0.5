@@ -159,6 +159,17 @@ float4 vsSkinnedShadow(VSInSkinned i) : SV_Position {
     return mul(gShadowViewProj, float4(rel, 1));
 }
 
+// Bump mapping from a scalar height field (meters) via screen-space derivatives (Mikkelsen's surface gradient):
+// no tangent frame or texture needed, so procedural detail can be applied to any skinned surface.
+float3 perturbBump(float3 n, float3 N, float3 dPx, float3 dPy, float height) {
+    float2 dh = float2(ddx(height), ddy(height));
+    float3 r1 = cross(dPy, N), r2 = cross(N, dPx);
+    float det = dot(dPx, r1);
+    if (abs(det) < 1e-14) return n;
+    float3 grad = (r1 * dh.x + r2 * dh.y) / det;
+    return normalize(n - grad);
+}
+
 GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
     uint matId = i.mat & 0xffu;
     MaterialInfo m = tMaterials[matId];
@@ -264,19 +275,74 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
             else if (pat == 9u) emissive *= 0.6 + 0.4 * sin(t * 37.0 + ph * 40.0) * sin(t * 23.0 + ph * 7.0);   // TV flicker
         }
     } else if (matId == M_SKIN) {
-        albedo = i.color.rgb * lerp(0.85, 1.05, a.r);
         sm = SM_SKIN;
-        rough = 0.5;
-        extra = 0.6;
+        // Mottling: subtle hemoglobin / melanin variation (bind-pose position: sticks to the animated skin)
+        float mott = valueNoise3(i.localPos * 38.0) * 0.6 + valueNoise3(i.localPos * 95.0 + 3.1) * 0.4;
+        albedo = i.color.rgb * lerp(0.9, 1.04, a.r) * lerp(float3(0.975, 1.0, 1.01), float3(1.035, 0.975, 0.965), mott);
+        // Curvature (1/m) from screen-space derivatives: thin, tightly curved parts (ears, nostrils, fingers) let
+        // light through (stored for the transmission term), convex ridges (nose, brow, cheekbones) read oilier
+        float3 dPx = ddx(i.rel), dPy = ddy(i.rel);
+        float pxLen = max(length(dPx) + length(dPy), 1e-6);
+        float curv = (length(ddx(N)) + length(ddy(N))) / pxLen;
+        float thin = saturate((curv - 45.0) / 220.0);
+        rough = lerp(0.5, 0.36, saturate((curv - 20.0) / 90.0));
+        // Pores and fine creases as a bump from the bind-pose position, faded before they could alias
+        float detailW = saturate(1.6 - pxLen * 0.5 / 0.0009);
+        float pore = 0;
+        if (detailW > 0.0) {
+            float h1 = valueNoise3(i.localPos * 1400.0);
+            float h2 = valueNoise3(i.localPos * float3(240.0, 240.0, 1700.0) + 17.3);
+            pore = smoothstep(0.6, 0.9, h1);
+            n = perturbBump(n, N, dPx, dPy, ((h2 - 0.5) * 0.4 - pore * 0.8) * 4e-5 * detailW);
+            rough = saturate(rough + pore * 0.08 * detailW);
+            ao *= 1.0 - pore * 0.3 * detailW;   // micro-occlusion inside the pores
+        }
+        extra = 0.5 + 0.5 * thin;   // SM_SKIN: 0.5 + thinness / 2 (subsurface always on)
     } else if (matId == M_HAIR) {
-        albedo = i.color.rgb * (0.6 + a.r * 0.6);
         sm = SM_HAIR;
-        rough = 0.35;
+        // Strand groups hang along the bind-pose vertical: per-strand brightness / hue jitter and dark gaps
+        // between clumps (self-shadowing inside the hair volume)
+        float strand = valueNoise3(i.localPos * float3(1100.0, 1100.0, 45.0));
+        float clump = valueNoise3(i.localPos * float3(260.0, 260.0, 12.0) + 7.7);
+        float3 hueJit = lerp(float3(1.03, 0.99, 0.95), float3(0.96, 1.0, 1.05), valueNoise3(i.localPos * float3(600.0, 600.0, 30.0) + 2.9));
+        albedo = i.color.rgb * (0.65 + a.r * 0.5) * lerp(0.72, 1.15, strand) * hueJit;
+        ao *= lerp(0.62, 1.0, saturate(clump * 1.4 - 0.1)) * lerp(0.85, 1.0, strand);
+        rough = 0.32;
+        extra = strand;   // sparkle of the secondary (coloured) highlight
     } else if (matId == M_CLOTH || matId == M_DENIM) {
         sm = SM_CLOTH;
-        extra = 0.5;
+        bool denim = matId == M_DENIM;
+        float3 dPx = ddx(i.rel), dPy = ddy(i.rel);
+        float pxLen = max(length(dPx) + length(dPy), 1e-6);
+        // Fold / crease occlusion from the signed curvature (concave = inside a fold)
+        float curvS = (dot(ddx(N), dPx) + dot(ddy(N), dPy)) / max(dot(dPx, dPx) + dot(dPy, dPy), 1e-10);
+        ao *= clamp(1.0 + min(curvS, 0.0) * 0.012, 0.55, 1.0);
+        // Weave micro-relief (bind-pose position), faded with the pixel footprint
+        float detailW = saturate(1.6 - pxLen * 0.5 / 0.0015);
+        if (detailW > 0.0) {
+            float3 wp = i.localPos * (denim ? 3000.0 : 2500.0);   // ~2-2.5 mm weave / rib period
+            float wv = sin(wp.x + wp.y) * sin(wp.z - wp.y * 0.5) * 0.5 + valueNoise3(wp * 0.35) * 0.5;
+            n = perturbBump(n, N, dPx, dPy, wv * 3e-5 * detailW);
+        }
+        rough = saturate((denim ? 0.78 : 0.86) * lerp(0.94, 1.06, valueNoise3(i.localPos * 20.0)));
+        extra = denim ? 0.35 : 0.75;   // sheen strength
     } else if (matId == M_EYE) {
-        rough = 0.05;
+        // Eye sphere (face.cpp): uv = (phase, polar) * 0.01, polar measured from the eye axis. Vertex colours give
+        // pupil / iris / limbus / sclera rings; add iris fibres, a brighter collarette, sclera veins and lid shading.
+        float pd = i.uv.y * 100.0 * 57.29578;
+        float phase = i.uv.x * 100.0;
+        if (pd > 11.0 && pd < 29.0) {
+            float fib = valueNoise(float2(phase * 11.0, pd * 0.35)) * 0.6 + valueNoise(float2(phase * 31.0, pd * 1.1)) * 0.4;
+            float collar = exp(-sq((pd - 17.5) / 1.6));
+            albedo = albedo * lerp(0.72, 1.25, fib) * (1.0 + collar * 0.25);
+            albedo *= lerp(1.0, 0.55, smoothstep(24.0, 28.5, pd));   // limbal ring
+        } else if (pd >= 29.0) {
+            float vein = smoothstep(0.9, 0.97, valueNoise(float2(phase * 16.0, pd * 0.45))) * saturate((pd - 42.0) / 35.0);
+            albedo = lerp(albedo * float3(1.0, 0.97, 0.95), float3(0.62, 0.16, 0.13), vein * 0.4);
+        }
+        ao *= lerp(1.0, 0.55, saturate((pd - 50.0) / 35.0));   // the lids shade the edges of the eyeball
+        rough = 0.03;   // wet cornea: sharp catchlights from the env probe / SSR
+        metal = 0;
         n = N;
     }
     // Blood from wounds (skin, hair and clothing): irregular stains that spread downward, darker and glossier

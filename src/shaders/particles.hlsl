@@ -405,6 +405,7 @@ struct VSOut {
     float3 basisR : TEXCOORD3;
     float3 basisU : TEXCOORD4;
     nointerpolation float4 fog : TEXCOORD5;      // rgb in-scatter (pre-exposed), a transmittance
+    float nearFade : TEXCOORD6;                  // emissive streaks passing right by the camera fade out
 };
 
 float2 atlasUV(uint cell, float2 corner) {
@@ -427,6 +428,7 @@ VSOut vsParticle(uint vid : SV_VertexID, uint inst : SV_InstanceID) {
     float3 R, U;
     float stretch = t.render.z;
     float speed = length(p.vel);
+    o.nearFade = 1.0;
     if (stretch != 0.0 && speed > 0.5) {
         // velocity-aligned: long axis along the motion; stretch > 0 trails behind the head (sparks, tracers),
         // stretch < 0 extends forward from the emitter (muzzle side flash)
@@ -434,8 +436,17 @@ VSOut vsParticle(uint vid : SV_VertexID, uint inst : SV_InstanceID) {
         float3 side = normalize(cross(vdir, V) + 1e-5);
         float len = size + speed * abs(stretch);
         R = vdir * len * 0.5;
-        U = side * size * 0.5;
         center += vdir * len * (stretch < 0.0 ? 0.25 : -0.25);
+        float halfW = size * 0.5;
+        if (t.render.x > 0.5) {
+            // emissive streaks (tracers, sparks) stay thin lines: at most ~2 pixels wide at each end, and a streak
+            // passing right by the camera fades out instead of sweeping across the screen as a wide hot band
+            float endDist = max(length(center + R * q.x), 0.05);
+            float pixelAngle = 2.0 * tan(gCamForward.w * 0.5) * gScreen.w;
+            halfW = min(halfW, endDist * pixelAngle);
+            if (len > 3.0) o.nearFade = saturate((endDist - 1.5) / 4.0);   // long streaks only (tracers)
+        }
+        U = side * halfW;
     } else {
         float s, c;
         sincos(p.rot, s, c);
@@ -495,7 +506,7 @@ struct ParticleOut {
 ParticleOut psParticle(VSOut i) {
     float4 a = tAtlas.Sample(sLinearClamp, i.uv);
     if (i.light.a > 0.0) a = lerp(a, tAtlas.Sample(sLinearClamp, i.uv2), i.light.a);
-    float alpha = a.a * i.color.a;
+    float alpha = a.a * i.color.a * i.nearFade;
     // soft particles
     float sd = tSceneDepthP[uint2(i.pos.xy)];
     float sceneZ = sd > 0.0 ? linearDepth(sd) : 1e6;
@@ -507,6 +518,7 @@ ParticleOut psParticle(VSOut i) {
     if (i.info.x > 0.0) {
         // emissive (fire, sparks, flashes, tracers)
         col = a.rgb * i.color.rgb * i.info.x * preExposure();
+        col *= 1.0 / (1.0 + luminance(col) / 24.0);   // soft ceiling: hot cores bloom, never white out the frame
         col = col * i.fog.a;
     } else {
         float3 albedo = i.color.rgb;

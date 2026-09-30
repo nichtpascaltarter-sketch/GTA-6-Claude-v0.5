@@ -19,6 +19,8 @@ enum Species : u8 {
     SP_DOLPHIN, SP_MANATEE, SP_TURTLE, SP_FISH,
     // mammals on land
     SP_DOG, SP_CAT, SP_RACCOON, SP_DEER, SP_COW, SP_HORSE,
+    // more birds (appended so the values above stay stable: the photo census stores species bits)
+    SP_SANDPIPER, SP_GRACKLE, SP_FRIGATE, SP_CORMORANT, SP_CEGRET,
     SP_COUNT
 };
 
@@ -208,3 +210,29 @@ struct BoidParams {
 vec3 boidSteer(const vec3* pos, const vec3* vel, int n, int self, const BoidParams& bp);
 
 }  // namespace Fauna
+
+// ---- Read-only queries for other gameplay systems (defined in wildlife.cpp) -----------------------------------------
+namespace Render {
+struct Camera;
+}
+namespace Game {
+namespace Wildlife {
+struct Sighting {
+    int species;    // Fauna::Species
+    int count;      // animals of this species that qualified
+    float size;     // largest share of the frame height covered by one of them
+    float centre;   // that animal's offset from the frame centre (0 centre .. 1 frame edge, the larger of x / y)
+    float dist;     // metres from the camera to that animal
+};
+// Species of the living animals inside the camera's frame (vertical fov cam.fovY, the given aspect), within maxDist,
+// not hidden behind world geometry (a collision raycast per candidate) and covering at least minSize of the frame
+// height. Animals under water only count when the camera is under water too (or they are just below the surface).
+// Sorted by on-screen size, largest first; returns the number written (at most maxOut, one entry per species).
+int sightings(const Render::Camera& cam, float maxDist, Sighting* out, int maxOut, float aspect = 16.f / 9.f, float minSize = 0.04f);
+// The same, species ids only (16:9 frame, 4% of the frame height at least).
+int visibleSpecies(const Render::Camera& cam, float maxDist, int* outSpecies, int maxOut);
+// Common name ("roseate spoonbill"), or "" for an invalid id; speciesCount() == Fauna::SP_COUNT.
+const char* speciesName(int species);
+int speciesCount();
+}  // namespace Wildlife
+}  // namespace Game

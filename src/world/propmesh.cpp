@@ -11,6 +11,10 @@ enum FoliageLayer { FOL_PALM_FROND = 0, FOL_BROADLEAF, FOL_PINE, FOL_GRASS, FOL_
 // color.a = layer / 8.
 inline u32 foliageColor(vec3 tint, int layer) { return packRGBA8(tint.x, tint.y, tint.z, (layer + 0.5f) / 8.f); }
 
+// Defined in landmarks.cpp (needs the stroke font and the billboard ad art); prototypes are built at renderer start-up.
+void propAdPanel(MeshData& m, vec3 center, vec3 right, vec3 up, float w, float h, int ad, float glow);
+void propText(MeshData& m, const char* txt, vec3 origin, vec3 right, vec3 up, float h, u32 col, u32 mat);
+
 struct PropPrototype {
     MeshData mesh;
     float radius = 1.f;     // bounding radius
@@ -412,23 +416,43 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
             break;
         }
         case PROP_BUS_STOP: {
+            // Shelter (also used by the transit agent's stops): frame, roof, glass back wall, bench, backlit ad box on the right end.
+            // The ad glows like a real lightbox (a few percent of a lamp); the prop shader adds the night boost.
             u32 frame = packRGBA8(0.25f, 0.25f, 0.27f, 1);
             for (int s = -1; s <= 1; s += 2) m.box(vec3(s * 1.6f, 0.5f, 1.2f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.05f, 0.05f, 1.2f), frame, metal, true);
             m.box(vec3(0, 0.2f, 2.45f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(1.8f, 0.8f, 0.05f), frame, metal, true);
             m.box(vec3(0, 0.95f, 1.3f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(1.6f, 0.02f, 1.0f), packRGBA8(0.6f, 0.75f, 0.8f, 1), makeMat(MAT_GLASS), true);
-            // ad panel (emissive at night)
-            m.box(vec3(1.62f, 0.3f, 1.3f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.04f, 0.6f, 0.9f), packRGBA8(0.9f, 0.85f, 0.7f, 0.25f), makeMat(MAT_EMISSIVE), true);
+            // ad box: dark metal case, lit poster on both faces
+            m.box(vec3(1.62f, 0.3f, 1.3f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.06f, 0.62f, 0.95f), frame, metal, true);
+            propAdPanel(m, vec3(1.685f, 0.3f, 1.3f), vec3(0, 1, 0), vec3(0, 0, 1), 1.12f, 1.72f, variant * 5 + 3, 0.02f);
+            propAdPanel(m, vec3(1.555f, 0.3f, 1.3f), vec3(0, -1, 0), vec3(0, 0, 1), 1.12f, 1.72f, variant * 5 + 11, 0.02f);
             m.box(vec3(0, 0.6f, 0.45f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(1.2f, 0.2f, 0.03f), packRGBA8(0.5f, 0.5f, 0.5f, 1), metal, true);
+            // roof edge light strip (soft)
+            m.quadFacing(vec3(-1.7f, -0.55f, 2.39f), vec3(1.7f, -0.55f, 2.39f), vec3(1.7f, 0.9f, 2.39f), vec3(-1.7f, 0.9f, 2.39f), vec2(0, 0), vec2(1, 0), vec2(1, 1),
+                         vec2(0, 1), packRGBA8(1.f, 0.95f, 0.85f, 0.012f), makeMat(MAT_EMISSIVE), vec3(0, 0, -1));
             p.radius = 2.5f;
-            p.lodDistance = 120.f;
+            p.lodDistance = 150.f;
             break;
         }
         case PROP_POWER_POLE: {
-            tube(m, {vec3(0, 0, -0.5f), vec3(0, 0, 10.f)}, {0.16f, 0.12f}, 6, packRGBA8(0.35f, 0.28f, 0.2f, 1), makeMat(MAT_WOOD));
-            m.box(vec3(0, 0, 9.3f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(1.2f, 0.06f, 0.06f), packRGBA8(0.35f, 0.28f, 0.2f, 1), makeMat(MAT_WOOD), true);
-            m.cylinder(vec3(0.4f, 0, 8.2f), 0.25f, 0.25f, 0.8f, 8, packRGBA8(0.5f, 0.52f, 0.55f, 1), metal, true);
+            // Wooden distribution pole: crossarm (local x across the street) with three pin insulators at x = -1.1 / 0 / +1.1,
+            // z 9.5 (roadmesh.cpp strings the conductors there), telecom cable at 7.2 m; transformer can on variant 1
+            u32 wood = packRGBA8(0.36f, 0.29f, 0.21f, 1), steel = packRGBA8(0.5f, 0.52f, 0.55f, 1), ins = packRGBA8(0.55f, 0.62f, 0.55f, 1);
+            tube(m, {vec3(0, 0, -0.5f), vec3(0, 0, 10.f)}, {0.16f, 0.12f}, 7, wood, makeMat(MAT_WOOD));
+            m.box(vec3(0, 0, 9.3f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(1.3f, 0.06f, 0.06f), wood, makeMat(MAT_WOOD), true);
+            for (int k = -1; k <= 1; k++) m.cylinder(vec3(k * 1.1f, 0, 9.36f), 0.05f, 0.035f, 0.16f, 6, ins, makeMat(MAT_GLASS), true);
+            // braces
+            tube(m, {vec3(0, 0, 8.7f), vec3(0.8f, 0, 9.25f)}, {0.025f, 0.025f}, 4, steel, metal);
+            tube(m, {vec3(0, 0, 8.7f), vec3(-0.8f, 0, 9.25f)}, {0.025f, 0.025f}, 4, steel, metal);
+            // telecom clamp and ground wire
+            m.box(vec3(0.2f, 0, 7.2f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.08f, 0.1f, 0.06f), steel, metal, true);
+            m.box(vec3(0, 0.13f, 4.f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.015f, 0.015f, 4.2f), packRGBA8(0.3f, 0.3f, 0.3f, 1), metal, false);
+            if (variant & 1) {
+                m.cylinder(vec3(0.42f, 0, 7.7f), 0.28f, 0.28f, 0.9f, 10, packRGBA8(0.55f, 0.57f, 0.58f, 1), metal, true);
+                m.box(vec3(0.25f, 0, 8.1f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.1f, 0.08f, 0.2f), steel, metal, true);
+            }
             p.radius = 10.f;
-            p.lodDistance = 250.f;
+            p.lodDistance = 300.f;
             break;
         }
         case PROP_UMBRELLA: {
@@ -454,6 +478,226 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
         case PROP_DUMPSTER: {
             vec3 c = variant ? vec3(0.1f, 0.3f, 0.5f) : vec3(0.15f, 0.35f, 0.2f);
             m.box(vec3(0, 0, 0.65f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.9f, 0.6f, 0.6f), packRGBA8(c.x, c.y, c.z, 1), metal, true);
+            p.radius = 1.2f;
+            p.lodDistance = 90.f;
+            break;
+        }
+        case PROP_NEWS_BOX: {
+            const vec3 cols[4] = {vec3(0.75f, 0.1f, 0.08f), vec3(0.1f, 0.3f, 0.65f), vec3(0.95f, 0.75f, 0.1f), vec3(0.92f, 0.92f, 0.9f)};
+            vec3 c = cols[variant & 3];
+            u32 body = packRGBA8(c.x, c.y, c.z, 1);
+            m.box(vec3(0, 0, 0.25f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.06f, 0.06f, 0.25f), packRGBA8(0.2f, 0.2f, 0.2f, 1), metal, true);
+            m.box(vec3(0, 0, 0.9f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.26f, 0.22f, 0.42f), body, metal, true);
+            m.quad(vec3(-0.2f, -0.225f, 0.85f), vec3(0.2f, -0.225f, 0.85f), vec3(0.2f, -0.225f, 1.2f), vec3(-0.2f, -0.225f, 1.2f), vec2(0, 0), vec2(1, 0), vec2(1, 1),
+                   vec2(0, 1), packRGBA8(0.2f, 0.25f, 0.28f, 1), makeMat(MAT_GLASS));
+            m.box(vec3(0, -0.23f, 0.62f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.2f, 0.01f, 0.03f), packRGBA8(0.15f, 0.15f, 0.15f, 1), metal, true);
+            p.radius = 0.8f;
+            p.lodDistance = 70.f;
+            break;
+        }
+        case PROP_PARKING_METER: {
+            u32 gray = packRGBA8(0.45f, 0.47f, 0.5f, 1);
+            m.cylinder(vec3(0, 0, 0), 0.04f, 0.04f, 1.15f, 6, gray, metal, true);
+            for (int s = -1; s <= 1; s += 2) {
+                m.box(vec3(s * 0.12f, 0, 1.28f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.1f, 0.08f, 0.14f), packRGBA8(0.25f, 0.27f, 0.3f, 1), metal, true);
+                m.quad(vec3(s * 0.12f - 0.06f, -0.081f, 1.3f), vec3(s * 0.12f + 0.06f, -0.081f, 1.3f), vec3(s * 0.12f + 0.06f, -0.081f, 1.38f),
+                       vec3(s * 0.12f - 0.06f, -0.081f, 1.38f), vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), packRGBA8(0.3f, 0.35f, 0.3f, 1), makeMat(MAT_GLASS));
+            }
+            p.radius = 0.5f;
+            p.lodDistance = 60.f;
+            break;
+        }
+        case PROP_PLANTER: {
+            if ((variant & 1) == 0) {
+                m.box(vec3(0, 0, 0.3f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.9f, 0.4f, 0.3f), packRGBA8(0.75f, 0.73f, 0.68f, 1), makeMat(MAT_CONCRETE), true);
+                for (int k = 0; k < 4; k++)
+                    leafCluster(m, vec3(-0.6f + k * 0.4f, r.range(-0.1f, 0.1f), 0.75f), 0.7f,
+                                foliageColor(k == 2 ? vec3(1.f, 0.4f, 0.55f) : vec3(0.8f, 1.f, 0.7f), k == 2 ? FOL_FLOWERS : FOL_BROADLEAF), makeMat(MAT_LEAVES), r);
+            } else {
+                m.cylinder(vec3(0, 0, 0), 0.45f, 0.55f, 0.75f, 12, packRGBA8(0.72f, 0.45f, 0.3f, 1), makeMat(MAT_CONCRETE), true);
+                tube(m, {vec3(0, 0, 0.7f), vec3(0.1f, 0, 2.2f)}, {0.07f, 0.05f}, 6, packRGBA8(0.5f, 0.42f, 0.32f, 1), makeMat(MAT_BARK));
+                for (int k = 0; k < 7; k++) {
+                    float a = kTwoPi * k / 7;
+                    frond(m, vec3(0.1f, 0, 2.2f), normalize(vec3(cosf(a), sinf(a), 0.35f)), 1.2f, 0.35f, 0.3f, foliageColor(vec3(0.9f, 1.f, 0.8f), FOL_PALM_FROND));
+                }
+            }
+            p.radius = 1.4f;
+            p.lodDistance = 90.f;
+            p.foliage = true;
+            break;
+        }
+        case PROP_BOLLARD: {
+            m.cylinder(vec3(0, 0, 0), 0.1f, 0.1f, 0.9f, 8, packRGBA8(0.3f, 0.3f, 0.32f, 1), metal, true);
+            m.cylinder(vec3(0, 0, 0.78f), 0.105f, 0.105f, 0.08f, 8, packRGBA8(0.95f, 0.75f, 0.1f, 1), metal, false);
+            p.radius = 0.3f;
+            p.lodDistance = 60.f;
+            break;
+        }
+        case PROP_TRASH_BAGS: {
+            for (int k = 0; k < 5; k++) {
+                float a = r.f() * kTwoPi;
+                vec3 c(cosf(a) * r.range(0.f, 0.45f), sinf(a) * r.range(0.f, 0.35f), 0.22f + (k == 4 ? 0.3f : 0.f));
+                vec3 ax = normalize(vec3(cosf(a + 0.5f), sinf(a + 0.5f), r.range(-0.2f, 0.2f)));
+                vec3 ay = normalize(cross(vec3(0, 0, 1), ax));
+                vec3 col = (k % 3 == 0) ? vec3(0.1f, 0.2f, 0.12f) : vec3(0.05f);
+                m.box(c, ax, ay, normalize(cross(ax, ay)), vec3(0.3f, 0.24f, 0.22f), packRGBA8(col.x, col.y, col.z, 1), makeMat(MAT_RUBBER), true);
+                m.box(c + vec3(0, 0, 0.24f), ax, ay, normalize(cross(ax, ay)), vec3(0.08f, 0.06f, 0.05f), packRGBA8(col.x, col.y, col.z, 1), makeMat(MAT_RUBBER), false);
+            }
+            p.radius = 0.9f;
+            p.lodDistance = 60.f;
+            p.castsShadow = false;
+            break;
+        }
+        case PROP_AC_UNIT: {
+            m.box(vec3(0, 0, 0.45f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.45f, 0.45f, 0.4f), packRGBA8(0.82f, 0.82f, 0.78f, 1), metal, false);
+            m.quad(vec3(-0.34f, -0.34f, 0.855f), vec3(0.34f, -0.34f, 0.855f), vec3(0.34f, 0.34f, 0.855f), vec3(-0.34f, 0.34f, 0.855f), vec2(0, 0), vec2(1, 0), vec2(1, 1),
+                   vec2(0, 1), packRGBA8(0.12f, 0.12f, 0.12f, 1), makeMat(MAT_METAL_BRUSHED));
+            m.box(vec3(0, 0, 0.03f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.55f, 0.55f, 0.04f), packRGBA8(0.7f, 0.7f, 0.68f, 1), makeMat(MAT_CONCRETE), false);
+            p.radius = 0.8f;
+            p.lodDistance = 70.f;
+            break;
+        }
+        case PROP_BARRIER: {
+            // water-filled plastic barrier segment (orange/white)
+            u32 c0 = (variant & 1) ? packRGBA8(0.95f, 0.95f, 0.93f, 1) : packRGBA8(1.f, 0.42f, 0.08f, 1);
+            m.box(vec3(0, 0, 0.25f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.95f, 0.26f, 0.25f), c0, makeMat(MAT_PLASTIC), false);
+            m.box(vec3(0, 0, 0.72f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.95f, 0.16f, 0.22f), c0, makeMat(MAT_PLASTIC), false);
+            m.box(vec3(0, 0, 0.72f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.96f, 0.17f, 0.05f), packRGBA8(0.95f, 0.95f, 0.95f, 1), makeMat(MAT_PLASTIC), false);
+            p.radius = 1.1f;
+            p.lodDistance = 90.f;
+            break;
+        }
+        case PROP_BIKE_RACK: {
+            u32 steel = packRGBA8(0.55f, 0.57f, 0.6f, 1);
+            for (int k = 0; k < 4; k++) {
+                float x = -0.9f + k * 0.6f;
+                tube(m, {vec3(x, -0.3f, 0.f), vec3(x, -0.3f, 0.65f), vec3(x, -0.15f, 0.82f), vec3(x, 0.15f, 0.82f), vec3(x, 0.3f, 0.65f), vec3(x, 0.3f, 0.f)},
+                     {0.025f, 0.025f, 0.025f, 0.025f, 0.025f, 0.025f}, 5, steel, makeMat(MAT_METAL_BRUSHED));
+            }
+            m.box(vec3(0, 0, 0.02f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(1.05f, 0.03f, 0.02f), steel, metal, false);
+            p.radius = 1.2f;
+            p.lodDistance = 60.f;
+            break;
+        }
+        case PROP_CONE: {
+            u32 orange = packRGBA8(1.f, 0.35f, 0.05f, 1);
+            m.box(vec3(0, 0, 0.02f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.19f, 0.19f, 0.02f), packRGBA8(0.1f, 0.1f, 0.1f, 1), makeMat(MAT_RUBBER), false);
+            m.cylinder(vec3(0, 0, 0.04f), 0.15f, 0.1f, 0.24f, 10, orange, makeMat(MAT_PLASTIC), false);
+            m.cylinder(vec3(0, 0, 0.28f), 0.1f, 0.075f, 0.12f, 10, packRGBA8(0.95f, 0.95f, 0.95f, 1), makeMat(MAT_PLASTIC), false);
+            m.cylinder(vec3(0, 0, 0.4f), 0.075f, 0.02f, 0.3f, 10, orange, makeMat(MAT_PLASTIC), false);
+            p.radius = 0.4f;
+            p.lodDistance = 70.f;
+            p.castsShadow = false;
+            break;
+        }
+        case PROP_MAILBOX: {
+            // curbside collection box (Palmera Post): rounded top, legs, slot
+            u32 body = packRGBA8(0.08f, 0.22f, 0.4f, 1);
+            m.box(vec3(0, 0, 0.72f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.3f, 0.26f, 0.38f), body, metal, true);
+            std::vector<vec3> arc;
+            for (int k = 0; k <= 8; k++) {
+                float a = kPi * k / 8;
+                arc.push_back(vec3(0, -cosf(a) * 0.26f, 1.1f + sinf(a) * 0.14f));
+            }
+            for (int k = 0; k < 8; k++) {
+                vec3 a0 = arc[k], a1 = arc[k + 1];
+                vec3 n = normalize(vec3(0, (a0.y + a1.y) * 0.5f, ((a0.z + a1.z) * 0.5f - 1.1f)));
+                m.quadFacing(a0 + vec3(-0.3f, 0, 0), a1 + vec3(-0.3f, 0, 0), a1 + vec3(0.3f, 0, 0), a0 + vec3(0.3f, 0, 0), vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1),
+                             body, metal, n);
+            }
+            for (int s = -1; s <= 1; s += 2)
+                for (int t = -1; t <= 1; t += 2)
+                    m.box(vec3(s * 0.24f, t * 0.2f, 0.17f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.03f, 0.03f, 0.17f), packRGBA8(0.15f, 0.15f, 0.17f, 1),
+                          metal, false);
+            m.box(vec3(0, -0.262f, 1.0f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.16f, 0.005f, 0.025f), packRGBA8(0.05f, 0.05f, 0.05f, 1), metal, false);
+            propText(m, "POST", vec3(-0.17f, -0.265f, 0.62f), vec3(1, 0, 0), vec3(0, 0, 1), 0.1f, packRGBA8(0.95f, 0.95f, 0.95f, 1), makeMat(MAT_PAINT_WHITE));
+            p.radius = 0.6f;
+            p.lodDistance = 70.f;
+            break;
+        }
+        case PROP_STREET_TREE: {
+            // shade tree in a square cast-iron grate; variant 2 adds a steel tree guard
+            float h = r.range(5.5f, 7.5f);
+            u32 bark = packRGBA8(0.42f, 0.35f, 0.27f, 1);
+            tube(m, {vec3(0, 0, -0.2f), vec3(r.range(-0.15f, 0.15f), r.range(-0.15f, 0.15f), h * 0.45f)}, {0.14f, 0.1f}, 7, bark, makeMat(MAT_BARK), 2.f);
+            for (int k = 0; k < 4; k++) {
+                float a = kTwoPi * k / 4 + r.f();
+                vec3 b0(0, 0, h * 0.42f), b1 = b0 + vec3(cosf(a) * 1.2f, sinf(a) * 1.2f, h * 0.2f);
+                tube(m, {b0, b1}, {0.07f, 0.035f}, 5, bark, makeMat(MAT_BARK), 2.f);
+            }
+            vec3 lc(r.range(0.85f, 1.05f), r.range(0.95f, 1.1f), 0.8f);
+            for (int k = 0; k < 11; k++) {
+                vec3 d = r.onSphere();
+                d.z *= 0.6f;
+                leafCluster(m, vec3(0, 0, h * 0.7f) + d * 1.7f, 1.5f + r.range(0.f, 0.4f), foliageColor(lc * r.range(0.9f, 1.05f), FOL_BROADLEAF), makeMat(MAT_LEAVES), r);
+            }
+            u32 iron = packRGBA8(0.12f, 0.12f, 0.13f, 1);
+            m.quadFacing(vec3(-0.65f, -0.65f, 0.01f), vec3(0.65f, -0.65f, 0.01f), vec3(0.65f, 0.65f, 0.01f), vec3(-0.65f, 0.65f, 0.01f), vec2(0, 0), vec2(1.3f, 0),
+                         vec2(1.3f, 1.3f), vec2(0, 1.3f), iron, makeMat(MAT_METAL_BRUSHED), vec3(0, 0, 1));
+            for (int k = 0; k < 4; k++) {
+                float a = kHalfPi * k;
+                vec3 ax(cosf(a), sinf(a), 0), ay(-sinf(a), cosf(a), 0);
+                m.box(ax * 0.62f + vec3(0, 0, 0.012f), ay, ax, vec3(0, 0, 1), vec3(0.65f, 0.03f, 0.012f), iron, metal, false);
+            }
+            if (variant == 2)
+                for (int k = 0; k < 6; k++) {
+                    float a = kTwoPi * k / 6;
+                    m.box(vec3(cosf(a) * 0.45f, sinf(a) * 0.45f, 0.7f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.015f, 0.015f, 0.7f), iron, metal, false);
+                }
+            p.radius = h + 2.f;
+            p.lodDistance = 260.f;
+            p.foliage = true;
+            break;
+        }
+        case PROP_SIGNAL_SPAN: {
+            // span-wire signal head hung from a messenger wire: hanger at the top (z 0 = wire attachment), lamps facing -y;
+            // variant 1 is a doghouse-free twin (two heads side by side for wide approaches)
+            u32 housing = packRGBA8(0.72f, 0.62f, 0.1f, 1), dark = packRGBA8(0.08f, 0.08f, 0.08f, 1);
+            int heads = variant == 1 ? 2 : 1;
+            m.box(vec3(0, 0, -0.15f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.04f, 0.04f, 0.15f), dark, metal, true);
+            if (heads == 2) m.box(vec3(0, 0, -0.32f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.45f, 0.04f, 0.03f), dark, metal, true);
+            for (int hI = 0; hI < heads; hI++) {
+                float x = heads == 1 ? 0.f : (hI ? 0.4f : -0.4f);
+                vec3 hc(x, 0, -0.95f);
+                m.box(hc, vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.2f, 0.16f, 0.62f), housing, metal, true);
+                m.box(hc + vec3(0, 0.12f, 0), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.3f, 0.02f, 0.72f), dark, metal, true);
+                for (int l = 0; l < 3; l++) {
+                    vec3 lc = hc + vec3(0, -0.17f, 0.38f - l * 0.38f);
+                    vec3 col = l == 0 ? vec3(1, 0.1f, 0.05f) : (l == 1 ? vec3(1, 0.65f, 0.05f) : vec3(0.1f, 1, 0.45f));
+                    float aId = (l + 1) * 0.25f;
+                    u32 base = (u32)m.verts.size();
+                    for (int k = 0; k < 10; k++) {
+                        float a = kTwoPi * k / 10.f;
+                        m.addVertex(lc + vec3(cosf(a) * 0.13f, 0, sinf(a) * 0.13f), vec3(0, -1, 0), vec3(1, 0, 0), vec2(0, 0), packRGBA8(col.x, col.y, col.z, aId),
+                                    makeMat(MAT_EMISSIVE, 1));
+                    }
+                    for (int k = 1; k + 1 < 10; k++) m.tri(base, base + k + 1, base + k);
+                    m.box(lc + vec3(0, -0.28f, 0.1f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.15f, 0.12f, 0.015f), dark, metal, true);
+                }
+            }
+            p.radius = 2.f;
+            p.lodDistance = 260.f;
+            break;
+        }
+        case PROP_WORK_SIGN: {
+            // A-frame "ROAD WORK" sign (orange diamond panels)
+            u32 legs = packRGBA8(0.2f, 0.2f, 0.2f, 1);
+            for (int s = -1; s <= 1; s += 2) {
+                vec3 up = normalize(vec3(0, s * 0.3f, 1.f));
+                vec3 base(0, s * 0.35f, 0.f);
+                for (int t = -1; t <= 1; t += 2)
+                    tube(m, {base + vec3(t * 0.4f, 0, 0), base + vec3(t * 0.4f, 0, 0) + up * 1.3f}, {0.02f, 0.02f}, 4, legs, metal);
+                vec3 c = base + up * 0.95f;
+                vec3 n(0, (float)s, 0.3f);
+                vec3 rt(s > 0 ? 1.f : -1.f, 0, 0);
+                vec3 dn = normalize(cross(n, rt));
+                (void)dn;
+                vec3 d0 = c + up * 0.42f, d1 = c + rt * 0.42f, d2 = c - up * 0.42f, d3 = c - rt * 0.42f;
+                m.quadFacing(d0, d1, d2, d3, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), packRGBA8(1.f, 0.5f, 0.05f, 1), makeMat(MAT_PAINT_WHITE), normalize(n));
+                vec3 tn = normalize(n);
+                propText(m, "ROAD", c + tn * 0.01f - rt * 0.2f + up * 0.02f, rt, up, 0.12f, packRGBA8(0.05f, 0.05f, 0.05f, 1), makeMat(MAT_PAINT_WHITE));
+                propText(m, "WORK", c + tn * 0.01f - rt * 0.2f - up * 0.16f, rt, up, 0.12f, packRGBA8(0.05f, 0.05f, 0.05f, 1), makeMat(MAT_PAINT_WHITE));
+            }
             p.radius = 1.2f;
             p.lodDistance = 90.f;
             break;

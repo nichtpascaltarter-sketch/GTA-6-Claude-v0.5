@@ -1,6 +1,7 @@
 // Gameplay layer (unity include). Included by app.cpp when characters, vehicles and audio are available.
 #include "input.cpp"
 #include "assets.cpp"
+#include "weaponmods.cpp"      // weapon components + tints (meshes, prices, fitted-component queries)
 // wildlife: animal models + procedural animation, simulation (before combat.cpp / gameworld.cpp, which call it)
 #include "animal_models.cpp"
 #include "wildlife.cpp"
@@ -48,5 +49,7 @@
 #include "missiontest.cpp"
 #include "openworld.cpp"
 #include "interiors_game.cpp"   // enterable interiors: streaming, doors, NPCs, render submission
+#include "transit_models.cpp"   // SkyLine cars and ferry models
+#include "transit_game.cpp"     // public transit: SkyLine metro, buses, ferries (update + render submission)
 #include "holdups.cpp"          // store hold-ups on the interiors' shop clerks
 #include "gameworld.cpp"

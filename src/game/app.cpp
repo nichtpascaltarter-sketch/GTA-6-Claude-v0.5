@@ -363,6 +363,14 @@ struct App {
                 }
             }
         }
+        if (const char* wm = Platform::argValue("weaponmods")) {
+            // test hook: every component fitted and the given tint on all guns (--weaponmods TINT)
+            for (int w = 0; w < WPN_COUNT; w++) {
+                game.pinfo.wpnCompOwned[w] = game.pinfo.wpnCompFitted[w] = weaponCompsAvailable((WeaponType)w);
+                game.pinfo.wpnTint[w] = (u8)Clamp(atoi(wm), 0, kWeaponTints - 1);
+                game.pinfo.wpnTintOwned[w] = 0xff;
+            }
+        }
         if (autoplay == "shoot") {
             game.giveWeapon(game.player, WPN_RIFLE, 300);
             game.peds[game.player].weapon = WPN_RIFLE;
@@ -599,16 +607,15 @@ struct App {
                 pl->pos = dvec3(pos.x, pos.y, game.groundHeight(pos.x, pos.y, pos.z + 2.f));
                 pl->vel = vec3(0.f);
                 pl->yaw = atan2f(-st.pl->streetDir.x, st.pl->streetDir.y);
-                game.rig.yaw = pl->yaw + 0.6f;
-                game.rig.pitch = -0.08f;
+                game.rig.yaw = pl->yaw + 0.25f;   // looking down the sidewalk, not into the facades
+                game.rig.pitch = -0.1f;
                 game.rig.cut = true;
                 env.timeOfDay = st.hour;
                 game.populationWarmup = 2.5f;
                 LOG("autoplay crowd stop %d %s at %.0f %.0f, %.1f h", stop, st.name, pos.x, pos.y, st.hour);
             }
             stopT += dt;
-            c.look = vec2(0.0035f, 0.f);
-            if (!shot && stop >= 0 && stopT > 5.5f) {
+            if (!shot && stop >= 0 && stopT > 6.2f) {
                 shot = true;
                 game.requestScreenshot = shotPath(StrFormat("auto_crowd_%02d_%s", stop, stops[stop].name));
                 LOG("autoplay crowd %s | %s | %s", stops[stop].name, game.aiCensusText(70.f).c_str(), game.aiDebugText().c_str());
@@ -677,8 +684,10 @@ struct App {
                     LOG("autoplay rage: impact at t=%.1f (%.1f -> %.1f m/s)", t, lastSpeed, spd);
                 }
                 lastSpeed = spd;
-                c.accel = t > 1.f && !hit ? 0.55f : 0.f;
-                c.brake = hit ? 1.f : 0.f;
+                float fwdSpeed = game.vehicles[pv].sim.forwardSpeed();
+                c.accel = t > 1.f && !hit && spd < 8.f ? 0.45f : 0.f;   // roll in at ~25-30 km/h
+                c.brake = hit && fwdSpeed > 0.3f ? 1.f : 0.f;          // (holding brake at a standstill would reverse)
+                c.handbrake.down = hit && fwdSpeed <= 0.3f;
                 c.usingPad = true;
                 c.look = vec2(hit ? 0.003f : 0.f, 0.f);
             }
@@ -1029,7 +1038,7 @@ struct App {
                 skippedDt += dt;
                 if (doRender) {
                     // frames skipped by --renderevery still count for time-based adaptation (exposure, particles)
-                    renderer.render(rc, env, Min(skippedDt, 0.25f));
+                    renderer.render(rc, env, Min(skippedDt, 0.75f));
                     skippedDt = 0.f;
                 } else renderer.world->update(rc.pos, TimeSeconds());
 #ifdef HAVE_GAME_UI

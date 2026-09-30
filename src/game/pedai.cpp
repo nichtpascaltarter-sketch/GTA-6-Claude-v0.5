@@ -386,6 +386,23 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                 default: break;
             }
         }
+        // a flashy car rolling by slowly: people turn to look, point, the bold film it and shout something
+        if (!gang && pl && calm && pl->state == PS_INVEHICLE && pl->vehicle >= 0 && plDist < 14.f && pa.leader < 0 &&
+            (pa.activity == ACT_WALK || pa.activity == ACT_SCENARIO) && p.faction == FAC_CIVILIAN && pa.barkCooldown <= 0.f) {
+            const Vehicle& pv = vehicles[pl->vehicle];
+            Vehicles::VehicleClass cls = vassets[pv.model].spec.cls;
+            bool flashy = cls == Vehicles::VC_SUPER || cls == Vehicles::VC_SPORTS || cls == Vehicles::VC_MUSCLE;
+            u32 hn = hash32(p.uid * 131u + (u32)(time * 0.25));
+            if (flashy && pv.sim.speed() < 11.f && hashToFloat(hn) < 0.12f) {
+                pa.activity = ACT_WATCH;
+                pa.anchor = pos;
+                pa.anchorYaw = yawTo(pos, ppos);
+                pa.stance = pa.temper == 2 ? 8 : 17;   // phone up / pointing
+                pa.clip = -1;
+                pa.actTimer = 3.f + hashToFloat(hash32(hn)) * 3.f;
+                aiSay(id, BK_NICE_CAR, 0.7f);
+            }
+        }
         // gang turf: an armed player hanging around gets confronted, then attacked
         if (gang && pl && b.type != BRAIN_COMBAT && b.type != BRAIN_FLEE && pl->state == PS_ONFOOT && plDist < 14.f) {
             bool onTurf = territoryOwner(map->regionAt(pos.x, pos.y)) == p.faction;
@@ -1013,6 +1030,55 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         return;
                     }
                     break;
+                }
+                case ACT_ERRAND: {
+                    // delivery: to the door, a while there, back to the van and away
+                    int hv = pa.homeVeh;
+                    bool carOk = hv >= 0 && hv < (int)vehicles.size() && vehicles[hv].used && !vehicles[hv].exploded && vehicles[hv].seats[0] < 0;
+                    if (!carOk || pa.actTimer <= 0.f) {
+                        pa.activity = ACT_WALK;
+                        pa.homeVeh = -1;
+                        pa.navOk = false;
+                        if (carOk) vehAI(hv).errand = 0;
+                        break;
+                    }
+                    VehAI& hva = vehAI(hv);
+                    if (hva.errand == 2) {
+                        vec2 to = pa.anchor - pos;
+                        float d = length(to);
+                        if (d > 0.7f) {
+                            desired = to / d * Min(1.5f, d * 2.f + 0.3f);
+                            faceYaw = atan2f(-desired.x, desired.y);
+                        } else {
+                            faceYaw = yawTo(pos, pa.anchor + (pa.anchor - vehicles[hv].sim.body.pos.toVec3().xy()));   // facing the door
+                            pa.clipTimer -= dt;
+                            if (pa.clipTimer <= 0.f) hva.errand = 3;   // signed for: head back
+                        }
+                        faceSet = true;
+                        break;
+                    }
+                    // back to the driver's door
+                    const Vehicle& hvv = vehicles[hv];
+                    const Vehicles::VehicleModel& hs = vassets[hvv.model].spec;
+                    float side = !hs.seats.empty() && hs.seats[0].pos.x > 0.f ? 1.f : -1.f;
+                    vec2 door = (hvv.sim.body.pos.toVec3() + rotate(hvv.sim.body.rot, vec3(side * (hs.boxHalf.x + 0.5f), 0.3f, 0.f))).xy();
+                    vec2 to = door - pos;
+                    float d = length(to);
+                    if (d > 0.8f) {
+                        desired = to / d * Min(1.6f, d * 2.f + 0.3f);
+                        faceYaw = atan2f(-desired.x, desired.y);
+                        faceSet = true;
+                        break;
+                    }
+                    warpPedIntoVehicle(id, hv, 0);
+                    b.type = BRAIN_DRIVER;
+                    pa.activity = ACT_WALK;
+                    pa.homeVeh = -1;
+                    vehicles[hv].parked = false;
+                    hva.errand = 0;
+                    hva.errandTimer = -60.f;   // no new stop for a while
+                    attachTraffic(hv);
+                    return;
                 }
                 case ACT_CALL_POLICE: {
                     // walk away from the scene a bit, then talk on the phone

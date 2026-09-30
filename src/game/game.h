@@ -49,6 +49,16 @@ struct WeaponInfo {
 };
 const WeaponInfo& weaponInfo(WeaponType w);
 
+// Weapon components (player weapons; bought and fitted at gun shops, weaponmods.cpp)
+enum WeaponComp : u8 { WC_SUPPRESSOR = 1, WC_EXTMAG = 2, WC_SCOPE = 4, WC_FLASHLIGHT = 8, WC_GRIP = 16 };
+const int kWeaponCompCount = 5;
+const int kWeaponTints = 6;
+u8 weaponCompsAvailable(WeaponType w);                  // WeaponComp bits a weapon accepts
+const char* weaponCompName(int compBit);
+int weaponCompPrice(WeaponType w, int compBit);
+const char* weaponTintName(int tint);
+int weaponTintPrice(WeaponType w, int tint);
+
 enum PedState : u8 {
     PS_ONFOOT = 0,
     PS_ENTERING,      // walking to / opening the door / sitting in

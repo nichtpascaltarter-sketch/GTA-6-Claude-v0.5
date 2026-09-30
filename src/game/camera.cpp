@@ -212,6 +212,7 @@ void GameWorld::updateCameraRig(float dt) {
             r.cam.pitch = r.pitch + r.recoil + smoothNoise(tt, 37.f) * sh * 0.04f;
             r.cam.roll = 0.f;
             float fpFov = Lerp(68.f + Saturate((spd - 5.f) / 3.f) * 4.f, 52.f, r.aimBlend);
+            if (aimMode && (weaponComps(p, p.weapon) & WC_SCOPE)) fpFov = p.weapon == WPN_RIFLE ? 24.f : (p.weapon == WPN_REVOLVER ? 30.f : 36.f);
             if (p.weapon == WPN_SNIPER && aimMode) fpFov = 16.f;
             r.fovTarget = fpFov * kDegToRad;
             r.fov = Lerp(r.fov, r.fovTarget, Saturate(rdt * 8.f));
@@ -236,6 +237,7 @@ void GameWorld::updateCameraRig(float dt) {
         wantDist = Lerp(3.7f + Saturate(spd / 7.f) * 0.6f, 1.55f, r.aimBlend);
         shoulder = vec3(Lerp(0.f, 0.52f, r.aimBlend), 0, 0);
         wantFov = Lerp(58.f + Saturate((spd - 5.f) / 3.f) * 5.f, 44.f, r.aimBlend);
+        if (aimMode && (weaponComps(p, p.weapon) & WC_SCOPE)) wantFov = p.weapon == WPN_RIFLE ? 24.f : (p.weapon == WPN_REVOLVER ? 30.f : 36.f);
         if (p.weapon == WPN_SNIPER && aimMode) wantFov = 16.f;
         if (p.state == PS_RAGDOLL || p.state == PS_GETUP) wantDist = 4.2f;
         if (p.moveMode == 4) {

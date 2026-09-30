@@ -28,6 +28,7 @@ enum PedActivity : u8 {
     ACT_INSPECT,       // walking to look at something (body, crash, event)
     ACT_ROADRAGE,      // driver who got out to yell at (and maybe fight) the player after a crash
     ACT_QUEUE,         // standing in line outside a club (population.cpp moves the line along)
+    ACT_ERRAND,        // delivery driver: van double-parked, walks to a door, waits there, walks back and drives on
 };
 
 // Ambient speech categories (barks.cpp)
@@ -37,7 +38,7 @@ enum BarkKind : int {
     BK_GANG_ATTACK, BK_GANG_TAUNT, BK_COP_FREEZE, BK_COP_GROUND, BK_COP_SPOTTED, BK_COP_LOST, BK_COP_CHATTER,
     BK_COP_ENGAGE, BK_COP_COVER, BK_COP_ARREST, BK_COP_DOWN, BK_MUGGER, BK_VICTIM, BK_ARGUE, BK_RACE, BK_MEDIC,
     BK_BREAKDOWN, BK_DIVE, BK_GUN_SEEN, BK_COP_SEARCH, BK_COP_BACKUP, BK_WITNESS_STOP, BK_JOG, BK_PHONE_CHAT, BK_BOUNCER, BK_ROAD_RAGE,
-    BK_COP_MEGAPHONE,
+    BK_COP_MEGAPHONE, BK_NICE_CAR,
     BK_COUNT
 };
 
@@ -128,6 +129,12 @@ struct VehAI {
     u8 pursuitMove = 0;        // police: 0 chase, 1 PIT run, 2 boxing slot (counted on entry)
     float megaphoneTimer = 0.f;   // police: next "pull over" order over the car loudspeaker
     float impactCd = 0.f;         // telemetry: one hard impact counted per crash
+    u8 errand = 0;                // delivery stop: 1 pulling over, 2 driver out at a door
+    float errandTimer = 0.f;
+    vec3 errandDoor;
+    vec3 flyTgtPrev;              // helicopter autopilot: last target position and its smoothed velocity
+    vec2 flyTgtVel;
+    bool flyTgtInit = false;
 };
 
 // A crime the police do not know about yet: a witness is phoning it in.

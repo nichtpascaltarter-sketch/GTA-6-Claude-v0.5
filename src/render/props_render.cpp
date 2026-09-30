@@ -46,6 +46,10 @@ struct PropRenderer {
                 case World::PROP_PALM: case World::PROP_TREE_OAK: case World::PROP_BUSH: nv = 4; break;
                 case World::PROP_PALM_TALL: case World::PROP_TREE_PINE: case World::PROP_MANGROVE: case World::PROP_CYPRESS: case World::PROP_SAWGRASS: nv = 3; break;
                 case World::PROP_STREETLIGHT: case World::PROP_TRAFFIC_LIGHT: case World::PROP_DUMPSTER: nv = 2; break;
+                // street furniture variants (world/propmesh.cpp): ad art per shelter, box colours, pole with transformer, planter kinds
+                case World::PROP_BUS_STOP: case World::PROP_NEWS_BOX: nv = 4; break;
+                case World::PROP_POWER_POLE: case World::PROP_PLANTER: case World::PROP_BARRIER: case World::PROP_SIGNAL_SPAN: nv = 2; break;
+                case World::PROP_STREET_TREE: nv = 3; break;
                 default: nv = 1; break;
             }
             variantCount[t] = nv;
@@ -137,7 +141,7 @@ struct PropRenderer {
                 g.pos = vec4(rp, pi.scale);
                 float phase = hashToFloat(hash2i((int)(pi.pos.x * 3.f), (int)(pi.pos.y * 3.f))) * kTwoPi;
                 // traffic lamps follow the AI signal phases when the gameplay layer provides them
-                float sigW = (pi.type == World::PROP_TRAFFIC_LIGHT && signalFn && *signalFn) ? (float)(*signalFn)((int)pi.flags, pi.pos.xy()) + 0.25f : -1.f;
+                float sigW = ((pi.type == World::PROP_TRAFFIC_LIGHT || pi.type == World::PROP_SIGNAL_SPAN) && signalFn && *signalFn) ? (float)(*signalFn)((int)pi.flags, pi.pos.xy()) + 0.25f : -1.f;
                 g.rot = vec4(cosf(pi.yaw), sinf(pi.yaw), phase, sigW);
                 buckets[pr].push_back(g);
             }

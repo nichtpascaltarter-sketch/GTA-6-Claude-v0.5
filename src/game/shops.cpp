@@ -59,10 +59,18 @@ struct ShopsState {
     vec3 savedColor0, savedColor1;
     float camAngle = 0.f;
     bool clearedWanted = false;
+    // gun shop customization: 0 the store list, 1 a weapon's components, 2 its tints
+    int gunPage = 0;
+    int gunWeapon = -1;
+    int gunCursor = -1;                  // item last previewed
+    u8 gunSavedFitted = 0, gunSavedTint = 0;   // the weapon as it really is (the preview is undone to this)
 };
 ShopsState gShops;
 
 bool businessOwned(GameWorld& g, int i) { return flag(g, EX_BUSINESS + i) != 0; }
+
+// daily income of a business: Jaz's shout-out (strangers.cpp, "Deleted") adds a quarter
+int businessIncome(GameWorld& g, int base) { return flag(g, SIDE_JAZ_3) ? base + base / 4 : base; }
 bool safehouseOwned(GameWorld& g, int i) {
     const Safehouse& s = gShops.safehouses[i];
     return s.price == 0 || flag(g, EX_SAFEHOUSE + i) != 0;
@@ -185,7 +193,262 @@ std::vector<MenuItem> gunItems(GameWorld& g) {
     armor.detail = StrFormat("Soaks up gunfire. Current armor %d%%.", (int)pl->armor);
     armor.id = 200;
     items.push_back(armor);
+    // customization of the guns the player owns
+    bool header = false;
+    for (int w = WPN_KNIFE; w < WPN_COUNT; w++) {
+        const WeaponInfo& wi = weaponInfo((WeaponType)w);
+        if (!pl->hasWeapon[w] || wi.clipSize == 0) continue;
+        if (!header) {
+            header = true;
+            items.push_back(MenuItem());   // spacer (skipped by the cursor)
+        }
+        MenuItem it;
+        it.id = 300 + w;
+        it.label = StrFormat("Customize %s", wi.name);
+        int fitted = 0;
+        for (int i = 0; i < kWeaponCompCount; i++) fitted += (g.pinfo.wpnCompFitted[w] >> i) & 1;
+        it.right = fitted ? StrFormat("%d FITTED", fitted) : (g.pinfo.wpnTint[w] ? std::string(weaponTintName(g.pinfo.wpnTint[w])) : std::string(">"));
+        it.detail = "Suppressors, magazines, scopes, lights, grips and tints.";
+        items.push_back(it);
+    }
     return items;
+}
+
+// ---- weapon components and tints (per weapon pages of the gun store)
+const char* gunCompDesc(int bit) {
+    switch (bit) {
+        case WC_SUPPRESSOR: return "Quiet shots and no muzzle flash: people a few steps away barely notice.";
+        case WC_EXTMAG: return "Holds sixty percent more rounds per magazine.";
+        case WC_SCOPE: return "Closer zoom and a tighter spread when aiming.";
+        case WC_FLASHLIGHT: return "A beam while aiming at night or indoors. H (D-pad down) switches it on and off.";
+        case WC_GRIP: return "Less recoil and spread.";
+        default: return "";
+    }
+}
+
+std::vector<MenuItem> gunCompItems(GameWorld& g, int w) {
+    std::vector<MenuItem> items;
+    WeaponType wt = (WeaponType)w;
+    u8 avail = weaponCompsAvailable(wt);
+    for (int i = 0; i < kWeaponCompCount; i++) {
+        int bit = 1 << i;
+        if (!(avail & bit)) continue;
+        MenuItem it;
+        it.id = 500 + i;
+        it.label = weaponCompName(bit);
+        bool owned = (g.pinfo.wpnCompOwned[w] & bit) != 0, fitted = (gShops.gunSavedFitted & bit) != 0;
+        if (owned) {
+            it.right = fitted ? "FITTED" : "REMOVED";
+            it.checked = fitted;
+            it.detail = fitted ? "Yours. Select to take it off (free)." : "Yours. Select to fit it (free).";
+        } else {
+            it.price = weaponCompPrice(wt, bit);
+            it.enabled = g.pinfo.money >= it.price;
+            it.detail = gunCompDesc(bit);
+        }
+        items.push_back(it);
+    }
+    if (!avail) {
+        MenuItem none;
+        none.label = "No components fit this weapon";
+        none.enabled = false;
+        none.id = 598;
+        items.push_back(none);
+    }
+    MenuItem tints;
+    tints.id = 600;
+    tints.label = "Tints";
+    tints.right = weaponTintName(gShops.gunSavedTint);
+    tints.detail = "Gold, platinum and colours for this weapon.";
+    items.push_back(tints);
+    MenuItem back;
+    back.id = 699;
+    back.label = "Back";
+    items.push_back(back);
+    return items;
+}
+
+std::vector<MenuItem> gunTintItems(GameWorld& g, int w) {
+    std::vector<MenuItem> items;
+    for (int t = 0; t < kWeaponTints; t++) {
+        MenuItem it;
+        it.id = 700 + t;
+        it.label = weaponTintName(t);
+        bool owned = t == 0 || ((g.pinfo.wpnTintOwned[w] >> t) & 1);
+        if (owned) {
+            bool cur = gShops.gunSavedTint == t;
+            it.right = cur ? "EQUIPPED" : "EQUIP";
+            it.checked = cur;
+        } else {
+            it.price = weaponTintPrice((WeaponType)w, t);
+            it.enabled = g.pinfo.money >= it.price;
+        }
+        items.push_back(it);
+    }
+    MenuItem back;
+    back.id = 799;
+    back.label = "Back";
+    items.push_back(back);
+    return items;
+}
+
+// what the weapon in the player's hand shows: the real parts, plus the highlighted option on trial
+void gunPreview(GameWorld& g, int id) {
+    int w = gShops.gunWeapon;
+    if (w < 0 || w >= WPN_COUNT) return;
+    g.pinfo.wpnCompFitted[w] = gShops.gunSavedFitted;
+    g.pinfo.wpnTint[w] = gShops.gunSavedTint;
+    if (gShops.gunPage == 1 && id >= 500 && id < 500 + kWeaponCompCount && !(g.pinfo.wpnCompOwned[w] & (1 << (id - 500))))
+        g.pinfo.wpnCompFitted[w] |= (u8)(1 << (id - 500));
+    if (gShops.gunPage == 2 && id >= 700 && id < 700 + kWeaponTints) g.pinfo.wpnTint[w] = (u8)(id - 700);
+}
+
+// a close camera on the weapon in the player's right hand, from the side where nothing is in the way
+void gunCamera(GameWorld& g) {
+    Ped* pl = g.playerPed();
+    if (!pl) return;
+    quat qy = quatAxisAngle(vec3(0, 0, 1), pl->yaw);
+    vec3 hand = pl->pos.toVec3() + rotate(qy, pl->bones[Anim::B_HAND_R].c[3].xyz());
+    vec2 f = dirFromYaw(pl->yaw), r(f.y, -f.x);
+    vec3 target = hand + vec3(f * 0.12f, 0.f);
+    const vec2 sides[4] = {r, r * 0.6f + f * 0.8f, -r * 0.6f + f * 0.8f, -r};
+    vec3 cam = target + vec3(r * 1.0f, 0.2f);
+    for (vec2 sd : sides) {
+        vec3 c = target + vec3(normalize(sd) * 1.0f, 0.2f);
+        vec3 d = c - target;
+        float len = length(d);
+        WorldHit h;
+        if (!g.raycast(dvec3(target), d / len, len + 0.2f, h, g.player, -1, false, false)) {
+            cam = c;
+            break;
+        }
+    }
+    g.rig.scriptActive = true;
+    g.rig.scriptPos = dvec3(cam);
+    g.rig.scriptTarget = dvec3(target);
+    g.rig.scriptFov = 36.f;
+}
+
+void openGunPage(GameWorld& g, int w, int page) {
+    Ped* pl = g.playerPed();
+    const WeaponInfo& wi = weaponInfo((WeaponType)w);
+    if (gShops.gunPage == 0) {
+        gShops.gunSavedFitted = g.pinfo.wpnCompFitted[w];
+        gShops.gunSavedTint = g.pinfo.wpnTint[w];
+    }
+    gShops.gunWeapon = w;
+    gShops.gunPage = page;
+    gShops.gunCursor = -1;
+    if (pl && pl->hasWeapon[w]) pl->weapon = (WeaponType)w;
+    gMenu.items = page == 1 ? gunCompItems(g, w) : gunTintItems(g, w);
+    gMenu.cursor = page == 2 ? Clamp((int)gShops.gunSavedTint, 0, (int)gMenu.items.size() - 1) : 0;
+    gMenu.title = page == 1 ? std::string(wi.name) : StrFormat("%s Tints", wi.name);
+    gMenu.subtitle = StrFormat("Cash $%lld", g.pinfo.money);
+    gunCamera(g);
+}
+
+// back to the store list (or the shop was closed): undo the preview, give the camera back
+void closeGunPages(GameWorld& g, bool toList) {
+    gunPreview(g, -1);
+    int w = gShops.gunWeapon;
+    gShops.gunPage = 0;
+    gShops.gunWeapon = -1;
+    gShops.gunCursor = -1;
+    if (g.rig.scriptActive) {
+        g.rig.scriptActive = false;
+        g.rig.scriptBlend = g.rig.scriptBlendTotal = 0.5f;
+    }
+    if (toList && gShops.activeShop >= 0) {
+        gMenu.items = gunItems(g);
+        gMenu.title = gShops.shops[gShops.activeShop].name;
+        gMenu.subtitle = StrFormat("Cash $%lld", g.pinfo.money);
+        gMenu.cursor = 0;
+        for (int i = 0; i < (int)gMenu.items.size(); i++)
+            if (gMenu.items[i].id == 300 + w) gMenu.cursor = i;
+    }
+}
+
+// the customization pages of the gun store; true when this frame's menu input was handled here
+bool gunCustomizeUpdate(GameWorld& g) {
+    Ped* pl = g.playerPed();
+    if (!pl) return false;
+    if (gShops.gunPage == 0) {
+        if (gMenu.chosen >= 300 && gMenu.chosen < 300 + WPN_COUNT) {
+            openGunPage(g, gMenu.chosen - 300, 1);
+            return true;
+        }
+        return false;
+    }
+    int w = gShops.gunWeapon;
+    WeaponType wt = (WeaponType)w;
+    if (gMenu.cursor != gShops.gunCursor && gMenu.cursor >= 0 && gMenu.cursor < (int)gMenu.items.size()) {
+        gShops.gunCursor = gMenu.cursor;
+        gunPreview(g, gMenu.items[gMenu.cursor].id);
+    }
+    gunCamera(g);
+    int id = gMenu.chosen;
+    if (gMenu.cancelled || id == 699 || id == 799) {
+        if (gShops.gunPage == 2) {
+            gunPreview(g, -1);
+            openGunPage(g, w, 1);
+            for (int i = 0; i < (int)gMenu.items.size(); i++)
+                if (gMenu.items[i].id == 600) gMenu.cursor = i;
+        } else {
+            closeGunPages(g, true);
+        }
+        return true;
+    }
+    if (id == 600) {
+        gunPreview(g, -1);
+        openGunPage(g, w, 2);
+        return true;
+    }
+    bool bought = false, changed = false;
+    if (id >= 500 && id < 500 + kWeaponCompCount) {
+        u8 bit = (u8)(1 << (id - 500));
+        if (g.pinfo.wpnCompOwned[w] & bit) {
+            gShops.gunSavedFitted ^= bit;   // owned: fit or take off, free
+            changed = true;
+        } else {
+            int price = weaponCompPrice(wt, bit);
+            if (g.pinfo.money >= price) {
+                money(g, -price);
+                g.pinfo.wpnCompOwned[w] |= bit;
+                gShops.gunSavedFitted |= bit;
+                bought = true;
+            }
+        }
+    } else if (id >= 700 && id < 700 + kWeaponTints) {
+        int t = id - 700;
+        bool owned = t == 0 || ((g.pinfo.wpnTintOwned[w] >> t) & 1);
+        if (!owned) {
+            int price = weaponTintPrice(wt, t);
+            if (g.pinfo.money >= price) {
+                money(g, -price);
+                g.pinfo.wpnTintOwned[w] |= (u8)(1 << t);
+                owned = bought = true;
+            }
+        }
+        if (owned) {
+            gShops.gunSavedTint = (u8)t;
+            changed = true;
+        }
+    }
+    if (bought || changed) {
+        g.pinfo.wpnCompFitted[w] = gShops.gunSavedFitted;
+        g.pinfo.wpnTint[w] = gShops.gunSavedTint;
+        // a magazine that no longer fits keeps only what the standard one holds
+        pl->clip[w] = Min(pl->clip[w], g.clipCapacity(*pl, wt));
+#ifdef HAVE_AUDIO
+        Audio::play2D(bought ? Audio::SFX_PURCHASE : Audio::SFX_UI_SELECT, 0.8f);
+#endif
+        int cur = gMenu.cursor;
+        gMenu.items = gShops.gunPage == 1 ? gunCompItems(g, w) : gunTintItems(g, w);
+        gMenu.cursor = Clamp(cur, 0, Max(0, (int)gMenu.items.size() - 1));
+        gMenu.subtitle = StrFormat("Cash $%lld", g.pinfo.money);
+        gShops.gunCursor = gMenu.cursor;
+    }
+    return true;
 }
 
 void gunPurchase(GameWorld& g, int id) {
@@ -859,11 +1122,16 @@ void shopsUpdate(GameWorld& g, float dt) {
         g.missionBlips.push_back(bl);
     }
     // ---- menus in progress
+    if (gShops.gunPage != 0 && (gShops.activeShop < 0 || !menuIs(MO_SHOP_GUNS))) closeGunPages(g, false);   // closed from outside
     if (gShops.activeShop >= 0) {
         ShopSite& s = gShops.shops[gShops.activeShop];
         int owner = s.kind == SHOP_GUNS ? MO_SHOP_GUNS : (s.kind == SHOP_CLOTHES ? MO_SHOP_CLOTHES : MO_SHOP_CARS);
-        if (!menuIs(owner)) gShops.activeShop = -1;
-        else if (gMenu.cancelled) {
+        if (!menuIs(owner)) {
+            if (gShops.gunPage != 0) closeGunPages(g, false);
+            gShops.activeShop = -1;
+        } else if (s.kind == SHOP_GUNS && gunCustomizeUpdate(g)) {
+            // a customization page handled the input
+        } else if (gMenu.cancelled) {
             menuClose(g);
             gShops.activeShop = -1;
         } else if (gMenu.chosen >= 0) {
@@ -966,7 +1234,7 @@ void shopsUpdate(GameWorld& g, float dt) {
 #ifdef HAVE_AUDIO
             Audio::play2D(Audio::SFX_PURCHASE, 0.8f);
 #endif
-            g.bigMessage("BUSINESS PURCHASED", StrFormat("%s  +$%d a day", b.name, b.income), 0xff33ccffu);
+            g.bigMessage("BUSINESS PURCHASED", StrFormat("%s  +$%d a day", b.name, businessIncome(g, b.income)), 0xff33ccffu);
             g.socialReport(UI::TE_PURCHASE, dvec3(b.marker), b.name, (float)b.price);
             int n = 0;
             for (size_t i = 0; i < gShops.businesses.size(); i++) n += businessOwned(g, (int)i) ? 1 : 0;
@@ -1082,7 +1350,7 @@ void shopsUpdate(GameWorld& g, float dt) {
         if (b.inside) continue;
         b.inside = true;
         if (owned) {
-            g.notify(b.name, StrFormat("Yours. Earns $%d a day, paid into your account every morning.", b.income));
+            g.notify(b.name, StrFormat("Yours. Earns $%d a day, paid into your account every morning.", businessIncome(g, b.income)));
             continue;
         }
         gShops.activeBusiness = (int)i;
@@ -1090,7 +1358,7 @@ void shopsUpdate(GameWorld& g, float dt) {
         items[0].label = "Not now";
         items[0].id = 0;
         items[1].label = StrFormat("Buy for $%lld", b.price);
-        items[1].right = StrFormat("+$%d/day", b.income);
+        items[1].right = StrFormat("+$%d/day", businessIncome(g, b.income));
         items[1].enabled = g.pinfo.money >= b.price;
         items[1].detail = b.desc;
         items[1].id = 1;

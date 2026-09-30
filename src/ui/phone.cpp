@@ -1869,7 +1869,7 @@ PhoneAction update(PhoneState& st, const HudState& hud, const InputState& in, fl
             Layout L = layout();
             float s = L.s;
             if (I.flashT > 0.f && I.captureStage == 0) {
-                rect(0, 0, L.W, L.H, withAlpha(kWhite, I.flashT / 0.35f * 0.85f));
+                rect(0, 0, L.W, L.H, withAlpha(kWhite, I.flashT / 0.35f * (uiOptions().reduceFlashing ? 0.2f : 0.85f)));
                 I.flashT -= dt;
             }
             if (I.savedT > 0.f) {
@@ -1975,7 +1975,7 @@ PhoneAction update(PhoneState& st, const HudState& hud, const InputState& in, fl
     drawStatusBar(st, p, 1.f, true);
     // camera shutter flash on the screen
     if (I.flashT > 0.f) {
-        rect(p.sx, p.sy, p.sw, p.sh, withAlpha(kWhite, I.flashT / 0.35f * 0.9f));
+        rect(p.sx, p.sy, p.sw, p.sh, withAlpha(kWhite, I.flashT / 0.35f * (uiOptions().reduceFlashing ? 0.2f : 0.9f)));
         I.flashT -= dt;
     }
     // toast

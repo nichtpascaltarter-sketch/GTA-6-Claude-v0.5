@@ -400,6 +400,7 @@ void GameWorld::updateDispatch(float dt) {
                 d->mode = AI::DM_NORMAL;
                 d->hasDest = false;
                 d->destEdges.clear();
+                d->pers = AI::Personality::make(d->uid);   // back to patrol manners
             }
         } else if (inCar) {
             p.brain.type = BRAIN_PASSENGER;
@@ -849,15 +850,21 @@ void GameWorld::updateDispatch(float dt) {
     // spawn on a lane 150-280 m away, out of view, ahead of the player's motion or near where they were last seen
     vec2 around = pinfo.policeSeesPlayer || time - pinfo.lastSeenTime < 4.0 ? pp.xy() : pinfo.lastSeenPos.toVec3().xy();
     vec2 fwd = length(pvel) > 4.f ? normalize(pvel) : vec2(0, 0);
+    float pspeed = length(pvel);
+    // a fast getaway: most units come up from behind at speed (out of view behind the chase camera), the rest
+    // wait ahead on the road facing the suspect (interceptors)
+    bool fast = pspeed > 12.f && pv >= 0;
+    bool fromBehind = fast && (gD.counter % 5u) < 3u;
     for (int attempt = 0; attempt < 8; attempt++) {
         u32 h = hash32(gD.counter * 2246822519u + attempt * 97u);
         float ang = hashToFloat(h) * kTwoPi;
         vec2 dir(cosf(ang), sinf(ang));
-        if (length2(fwd) > 0.f && attempt < 5) dir = normalize(fwd * 1.2f + dir);   // prefer ahead
-        float r = 150.f + hashToFloat(hash32(h)) * 130.f;
+        if (length2(fwd) > 0.f && attempt < 5) dir = normalize(fwd * (fromBehind ? -2.5f : 1.2f) + dir * (fast ? 0.5f : 1.f));   // prefer ahead
+        float r = fromBehind ? 110.f + hashToFloat(hash32(h)) * 60.f : 150.f + hashToFloat(hash32(h)) * 130.f;
         vec2 probe = around + dir * r;
         float u = 0.f;
-        int lane = laneGraph.nearestLane(probe, vec2(0), 50.f, &u);
+        vec2 wantHeading = fast && attempt < 5 ? (fromBehind ? fwd : -fwd) : vec2(0.f);
+        int lane = laneGraph.nearestLane(probe, wantHeading, 50.f, &u);
         if (lane < 0) continue;
         const AI::Lane& L = laneGraph.lanes[lane];
         if (L.flags & (AI::LF_DIRT | AI::LF_NOTRAFFIC)) continue;
@@ -880,7 +887,7 @@ void GameWorld::updateDispatch(float dt) {
         va.role = swat ? VR_SWAT : VR_POLICE;
         va.task = PT_PURSUE;
         attachTraffic(vid, lane, u);
-        v.sim.body.vel = vec3(t * 10.f, 0.f);
+        v.sim.body.vel = vec3(t * (fromBehind ? Min(pspeed + 2.f, 40.f) : 10.f), 0.f);
         int drv = v.seats[0];
         WeaponType wpn = swat ? WPN_RIFLE : (wanted >= 3 ? (h & 1 ? WPN_SHOTGUN : WPN_RIFLE) : WPN_PISTOL);
         auto arm = [&](int pid) {
@@ -1042,6 +1049,13 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
     if (direct && va.taskTimer < 0.5f && dist > 20.f) direct = false;
     if (!direct && d) {
         if (d->mode != AI::DM_EMERGENCY) d->mode = AI::DM_EMERGENCY;
+        if (chasingPlayer) {
+            // pursuit driving: well over the limit when the suspect is fleeing fast (reset on stand-down)
+            float tsp = length(tv.xy());
+            d->pers.speedFactor = Clamp(1.1f + tsp / 25.f, 1.2f, 1.9f);
+            d->pers.accel = Max(d->pers.accel, 3.6f);
+            d->pers.latAcc = Max(d->pers.latAcc, 4.2f);
+        }
         // every third unit drives to where the suspect is heading (cut-off / pincer), the others follow the trail
         vec2 goal = tp.xy();
         if (targetVeh >= 0 && (v.uid % 3) == 0 && length(tv.xy()) > 8.f) goal += tv.xy() * Clamp(dist / 28.f, 1.5f, 7.f);

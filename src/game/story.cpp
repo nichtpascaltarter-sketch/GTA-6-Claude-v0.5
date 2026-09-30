@@ -162,6 +162,18 @@ void MissionManager::registerAll(GameWorld& g) {
         defs.push_back(stranger("velma_2", "Night Shift", SIDE_VELMA_2, SIDE_VELMA_1, SF_COLLATERAL, makeMission<MissionVelmaShift>));
         defs.push_back(stranger("velma_3", "Collections", SIDE_VELMA_3, SIDE_VELMA_2, SF_LAST_CALL, makeMission<MissionVelmaCollections>));
     }
+    {
+        vec2 jaz = jazSpot(g).pos.xy();
+        auto stranger = [&](const char* id, const char* title, int sets, int req, int req2, std::function<Mission*()> create) {
+            MissionDef s = storyDef(id, title, "Jaz", '?', jaz, -1, req, req2, -1, 0, create);
+            s.setsFlag = sets;
+            s.icon = UI::BLIP_FRIEND;
+            return s;
+        };
+        defs.push_back(stranger("jaz_1", "Jaz: Golden Hour", SIDE_JAZ_1, SF_PRESSURE, -1, makeMission<MissionJazGoldenHour>));
+        defs.push_back(stranger("jaz_2", "Jaz: Viral", SIDE_JAZ_2, SIDE_JAZ_1, SF_DEAD_AIR, makeMission<MissionJazViral>));
+        defs.push_back(stranger("jaz_3", "Jaz: Deleted", SIDE_JAZ_3, SIDE_JAZ_2, SF_VELVET_ROPE, makeMission<MissionJazDeleted>));
+    }
     for (const RaceSpec& rs : raceSpecs()) {
         Place startPlace = resolvePlace(g, rs.via[0]);
         vec2 sp = rs.domain == 1 ? startPlace.pos.xy() : startPlace.curb.xy();

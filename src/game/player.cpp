@@ -371,12 +371,14 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
         if (!meleeLock && p.meleeMove < 0) p.yaw = atan2f(-camF.x, camF.y);
         meleeStart(player, true);   // heavy attack
     }
-    if (c.reload.pressed && wi.clipSize > 0 && p.clip[p.weapon] < wi.clipSize && p.ammo[p.weapon] > p.clip[p.weapon] && p.reloadTimer <= 0.f) {
+    if (c.reload.pressed && wi.clipSize > 0 && p.clip[p.weapon] < clipCapacity(p, p.weapon) && p.ammo[p.weapon] > p.clip[p.weapon] && p.reloadTimer <= 0.f) {
         p.reloadTimer = wi.reloadTime;
 #ifdef HAVE_AUDIO
         Audio::play(Audio::SFX_RELOAD, hand, 0.6f);
 #endif
     }
+    // weapon flashlight on / off (H / D-pad down, as for vehicle lights)
+    if (c.lights.pressed && (weaponComps(p, p.weapon) & WC_FLASHLIGHT)) pinfo.flashlightOn = !pinfo.flashlightOn;
     // ----- movement
     float cy = rig.yaw;
     vec2 fwd(-sinf(cy), cosf(cy)), right(cosf(cy), sinf(cy));

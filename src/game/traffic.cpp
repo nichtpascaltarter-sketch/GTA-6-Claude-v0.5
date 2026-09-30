@@ -190,6 +190,54 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
         va.rage = 0;
         d->mode = AI::DM_NORMAL;
     }
+    // ---- deliveries: a van or service truck double-parks on a multi-lane street, the driver takes something to a
+    // door, comes back and drives on (traffic changes lanes around it)
+    if (va.role == VR_TRAFFIC && !d->dummy && b.type == BRAIN_DRIVER) {
+        Vehicles::VehicleClass cls = spec.cls;
+        bool van = cls == Vehicles::VC_VAN || cls == Vehicles::VC_SERVICE;
+        va.errandTimer += dt;
+        if (van && va.errand == 0 && va.errandTimer > 20.f) {
+            va.errandTimer = 0.f;
+            bool onLane = d->path < (int)laneGraph.lanes.size() && d->lcLane < 0;
+            u32 he = hash32(v.uid * 77u + (u32)(time * 0.1));
+            if (onLane && hashToFloat(he) < 0.3f && plD > 45.f && plD < 170.f && d->mode == AI::DM_NORMAL) {
+                const AI::Lane& L = laneGraph.lanes[d->path];
+                bool curbLane = L.right < 0 && L.left >= 0;   // rightmost of two or more lanes this way
+                if (curbLane && d->u > L.u0 + 20.f && d->u < L.u1 - 40.f && !(L.flags & AI::LF_DIRT)) {
+                    vec2 t = laneGraph.laneTangent(d->path, d->u + 12.f);
+                    vec3 door;
+                    vec2 curb = laneGraph.lanePos(d->path, d->u + 12.f, L.width * 0.5f + 2.5f).xy();
+                    if (aiBuildingDoorNear(*this, curb, 22.f, he, door) && dot(door.xy() - curb, AI::rightOf(t)) > -1.f) {
+                        va.errand = 1;
+                        va.errandDoor = door;
+                        d->mode = AI::DM_PULLOVER;
+                        d->holdTimer = -1.f;
+                    }
+                }
+            }
+        }
+        if (va.errand == 1) {
+            if (d->mode != AI::DM_PULLOVER) {
+                va.errand = 0;   // interrupted (sirens, a threat...)
+            } else if (v.sim.speed() < 0.3f && va.errandTimer > 2.5f) {
+                // parked: out with the parcel
+                va.errand = 2;
+                va.errandTimer = 0.f;
+                v.parked = true;
+                removePedFromVehicle(drv, true);
+                PedAI& da = pedAI(drv);
+                da.activity = ACT_ERRAND;
+                da.homeVeh = vi;
+                da.anchor = va.errandDoor.xy();
+                da.actTimer = 60.f;
+                da.clipTimer = 7.f + hashToFloat(hash32(v.uid * 5u)) * 9.f;   // time at the door
+                da.linger = 0.f;
+                dp.brain.type = BRAIN_WANDER;
+                dp.brain.edge = -1;
+                return;
+            }
+        }
+    }
     // ---- role behaviors (may change modes / stop points)
     switch (va.role) {
         case VR_TAXI: {
@@ -467,16 +515,30 @@ void GameWorld::aiFlyHeli(int vi, float dt, dvec3 target, float altitude, float 
     vec2 to = tp.xy() - p.xy();
     float dist = length(to);
     vec2 dir = dist > 1e-3f ? to / dist : vec2(0, 1);
+    // the target's ground velocity (smoothed): flown along with, so a fast car chase does not leave us behind
+    VehAI& va = vehAI(vi);
+    if (!va.flyTgtInit || length(tp - va.flyTgtPrev) > 80.f) {
+        va.flyTgtPrev = tp;
+        va.flyTgtVel = vec2(0.f);
+        va.flyTgtInit = true;
+    }
+    if (dt > 1e-4f) {
+        vec2 inst = (tp.xy() - va.flyTgtPrev.xy()) / dt;
+        va.flyTgtVel += (inst - va.flyTgtVel) * expDecay(2.5f, dt);
+        if (length(va.flyTgtVel) > 60.f) va.flyTgtVel = normalize(va.flyTgtVel) * 60.f;
+    }
+    va.flyTgtPrev = tp;
     vec2 vd;
-    if (orbit) {
-        // tangential flight around the target, pulled onto the circle
+    if (orbit && dist < orbitRadius * 2.5f) {
+        // tangential flight around the target, pulled onto the circle (the circle moves with the target)
         vec2 tang(-dir.y, dir.x);
         float radial = dist - orbitRadius;
-        vd = tang * 14.f + dir * Clamp(radial * 0.25f, -8.f, 12.f);
+        vd = tang * 14.f + dir * Clamp(radial * 0.25f, -8.f, 12.f) + va.flyTgtVel;
     } else {
-        float sp = Clamp(dist * 0.35f, 0.f, 38.f);
-        vd = dir * sp;
+        float sp = Clamp(dist * 0.35f, 0.f, 45.f);
+        vd = dir * sp + (orbit ? va.flyTgtVel : vec2(0.f));
     }
+    if (length(vd) > 62.f) vd = normalize(vd) * 62.f;
     vec3 fw = s.forward();
     vec2 fh = normalize(fw.xy() + vec2(1e-5f, 0.f));
     vec2 rh = AI::rightOf(fh);

@@ -23,6 +23,7 @@
 #include "world/leisure.cpp"
 #include "world/rural.cpp"
 #include "world/transit.cpp"
+#include "world/transitmesh.cpp"
 #include "world/sitecell.cpp"
 #include "world/facadedetail.cpp"
 #include "world/interiorkit.cpp"
