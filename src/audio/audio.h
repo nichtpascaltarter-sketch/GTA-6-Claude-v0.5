@@ -40,6 +40,7 @@ enum Sfx : int {
     SFX_DEER_SNORT, SFX_GRACKLE_CALL, SFX_SHOREBIRD_PEEP,
     // Public transit (game/transit_game.cpp)
     SFX_TRANSIT_CHIME, SFX_TRAIN_DOORS, SFX_RAIL_CLACK, SFX_SHIP_HORN,
+    SFX_REVOLVER,   // heavy-calibre handgun (.44): routed through playGunshot like the other guns
     SFX_COUNT
 };
 
@@ -123,6 +124,27 @@ SoundHandle play(Sfx id, vec3 pos, float volume = 1.f, float pitch = 1.f);
 SoundHandle play2D(Sfx id, float volume = 1.f, float pitch = 1.f);
 void stop(SoundHandle h);
 bool isPlaying(SoundHandle h);
+
+// Gunfire. Every shot is layered at runtime: the report (close) crossfading into a distant boom with distance (urban
+// rolling echoes or open-country rumble), the action cycling heard up close, a supersonic crack where a rifle round
+// passes near the listener (needs dir), speed-of-sound delay, and an environment tail from the acoustic probe (street
+// slap-back between facades, open-field decay, room / tunnel reverb). weapon: SFX_PISTOL, SFX_REVOLVER, SFX_SMG,
+// SFX_RIFLE, SFX_SHOTGUN, SFX_SNIPER or SFX_SILENCED (a suppressed pistol). play() with one of these ids routes here
+// too (no direction; GUN_PLAYER when the muzzle is at the listener).
+enum GunshotFlags : u32 {
+    GUN_SUPPRESSED = 1,  // suppressor fitted: thin report, the action dominates; supersonic rounds still crack
+    GUN_PLAYER = 2,      // the player's own gun: first-person perspective (louder, tighter, full action detail)
+};
+SoundHandle playGunshot(Sfx weapon, vec3 muzzle, vec3 dir, u32 flags = 0, float volume = 1.f, float pitch = 1.f);
+
+// Environment acoustics. The audio module probes the geometry around the listener with a few rays per frame (called
+// from update(), on the same thread) and derives reverb zones from it - street canyons between tall buildings (slap-
+// back and flutter echoes timed from the facade distances), tunnels and underpasses, SkyLine stations under their
+// roof, rooms of the interiors - plus occlusion / low-pass for sources behind buildings and walls. Register a ray
+// query against the static world: return true and the hit distance when the ray (unit dir) hits within maxDist.
+// Without a raycast the environment falls back to Listener::interior and Ambience::urban.
+typedef bool (*RaycastFn)(vec3 origin, vec3 dir, float maxDist, float* hitDist);
+void setRaycast(RaycastFn fn);
 
 // Emitters
 EmitterHandle createEmitter(EmitterType type);

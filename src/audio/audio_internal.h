@@ -21,7 +21,11 @@ constexpr int kSampleRate = dsp::kSampleRate;
 constexpr int kMaxBlock = 256;  // mixer sub-block size (frames)
 
 // ---------------------------------------------------------------------------------------------
-// Sound bank: every public Sfx plus internal one-shots used by ambience / crowds.
+// Firearms: weapon classes and the distant-shot groups shared between them (sfx_guns.cpp, Mixer::startGunshot).
+enum GunClass : int { GC_PISTOL = 0, GC_REVOLVER, GC_SMG, GC_RIFLE, GC_SHOTGUN, GC_SNIPER, GC_COUNT };
+enum GunFar : int { GF_LIGHT = 0, GF_HEAVY, GF_BIG, GF_COUNT };
+
+// Sound bank: every public Sfx plus internal one-shots used by ambience / crowds / gunfire layers.
 enum BankId : int {
     AMB_CRICKET_CHIRP = SFX_COUNT,
     AMB_TREEFROG,
@@ -35,6 +39,13 @@ enum BankId : int {
     AMB_DOG_DISTANT,
     AMB_WATER_LAP,
     AMB_CROW,
+    GUN_NEAR,                                 // + GunClass: close report (dry: the mixer adds the environment)
+    GUN_FP = GUN_NEAR + GC_COUNT,             // + GunClass: the shooter's own perspective (stereo, tight)
+    GUN_MECH = GUN_FP + GC_COUNT,             // + GunClass: action cycling (slide / bolt / pump), heard up close
+    GUN_SUP = GUN_MECH + GC_COUNT,            // + GunClass: suppressed report
+    GUN_FAR_URBAN = GUN_SUP + GC_COUNT,       // + GunFar: distant shot among buildings (rolling slap echoes)
+    GUN_FAR_OPEN = GUN_FAR_URBAN + GF_COUNT,  // + GunFar: distant shot over open country (boom + long rumble)
+    GUN_CRACK = GUN_FAR_OPEN + GF_COUNT,      // supersonic bullet crack (N-wave) near the bullet path
     BANK_COUNT
 };
 
@@ -111,6 +122,39 @@ void spawnWorldOneShot(int bankId, vec3 worldPos, float volume, float pitch);
 struct ListenerState {
     vec3 pos, vel, forward = vec3(0, 1, 0), up = vec3(0, 0, 1), right = vec3(1, 0, 0);
     float interior = 0, inVehicle = 0;
+};
+
+// ---------------------------------------------------------------------------------------------
+// Environment acoustics (acoustics.cpp). The probe runs on the game thread inside update(); the mixer consumes the
+// derived AcousticState (reverb zones, early-reflection geometry, open-field echo) and uses it for occlusion.
+namespace acoustics {
+constexpr int kProbeH = 16;          // horizontal rays (22.5 degree steps)
+constexpr int kProbeE = 8;           // elevated rays (40 degrees up, 45 degree steps)
+constexpr int kProbeRays = kProbeH + kProbeE + 1;  // + one straight up
+constexpr float kProbeHMax = 80.f, kProbeEMax = 60.f, kProbeUpMax = 60.f;
+constexpr float kProbeElev = 0.6981317f;  // 40 degrees
+}  // namespace acoustics
+
+struct AcousticState {
+    float h[acoustics::kProbeH];     // horizontal hit distances (kProbeHMax = nothing within range)
+    float e[acoustics::kProbeE];     // elevated hit distances
+    float up = acoustics::kProbeUpMax;
+    bool probed = false;             // geometry came from rays (false: fallback from the interior / urban hints)
+    float enclosed = 0.f;            // 0 open sky .. 1 room / tunnel
+    float canyon = 0.f;              // street canyon between facades (outdoors)
+    float cover = 0.f;               // roof / deck overhead
+    float rtIn = 0.8f, dampIn = 0.3f, wetIn = 0.f, preIn = 0.008f;   // enclosed reverb
+    float rtOut = 1.1f, dampOut = 0.55f, wetOut = 0.35f;             // outdoor reverb
+    float er = 0.5f;                 // early-reflection level
+    int flutterA = -1;               // flutter axis: probe rays (flutterA, flutterA + kProbeH / 2)
+    float flutterDelay = 0.f, flutterFb = 0.f;
+    float echo = 0.5f;               // open-field far echo level (hills, tree lines, distant facades)
+    float urbanFar = 0.5f;           // distant gunfire flavour: 0 open country .. 1 among buildings
+    float sendScale = 1.f;           // overall reverb send scale for the environment
+    AcousticState() {
+        for (float& v : h) v = acoustics::kProbeHMax;
+        for (float& v : e) v = acoustics::kProbeEMax;
+    }
 };
 
 // ---------------------------------------------------------------------------------------------

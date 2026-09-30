@@ -434,8 +434,8 @@ void GameWorld::submitRender() {
                 if (map->isWater((float)bow.x, (float)bow.y)) renderer->addWake((int)(v.uid & 0x3fffffffu), bow, normalize(f2), sp, a.spec.boxHalf.x);
             }
         }
-        // neon underglow: coloured light pools under the body
-        if (length2(v.mods.neon) > 1e-4f && dist < 180.f) {
+        // neon underglow: coloured light pools under the body (not for boats: their hull bottom is under water)
+        if (length2(v.mods.neon) > 1e-4f && dist < 180.f && !isBoat(vi)) {
             for (int k = -1; k <= 1; k += 2) {
                 Render::DynamicLight nl;
                 nl.pos = s.body.pos + dvec3(R * vec3(0.f, a.spec.boxCenter.y + a.spec.boxHalf.y * 0.45f * (float)k, a.spec.boxCenter.z - a.spec.boxHalf.z + 0.12f));

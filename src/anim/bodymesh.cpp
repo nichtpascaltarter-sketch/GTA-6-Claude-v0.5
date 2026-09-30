@@ -972,7 +972,7 @@ static void buildFingers(BuildCtx& c, int side) {
             g.P[2] = J[b0 + 1];
             g.P[3] = J[b0 + 2];
             g.P[4] = D.fingTip[side][4];
-            g.P[0] = g.P[1] - D.thumbDir[side] * (0.006f * s);
+            g.P[0] = g.P[1] - normalize(g.P[2] - g.P[1]) * (0.006f * s);
             g.bone[0] = hb;
             g.bone[1] = b0;
             g.bone[2] = b0 + 1;

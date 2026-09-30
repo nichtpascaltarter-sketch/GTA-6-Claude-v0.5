@@ -316,8 +316,8 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
             }
             // thumb: metacarpal from the CMC joint along thumbDir, then the phalanges lie along the index finger's side
             // (pad towards it)
-            vec3 td = D.thumbDir[side];
-            vec3 d1 = normalize(dir * 0.92f + wy * 0.3f + pn * 0.05f);
+            vec3 td = normalize(dir * 0.64f + wy * 0.7f + pn * 0.26f);   // nearer the palm's plane than thumbDir
+            vec3 d1 = normalize(dir * 0.93f + wy * 0.3f - pn * 0.04f);
             vec3 ax = normalize(cross(d1, thumbPadDir(pn)));
             int t0 = phalanxBone(side == 1, 4, 0);
             J[t0] = J[thumb];

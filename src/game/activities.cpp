@@ -855,7 +855,17 @@ public:
         g.mClearMarkers();
         g.mClearTarget();
         g.mObjective(StrFormat("~y~Leg %d of 3: %s~s~  %s", leg + 1, S.name, S.place));
-        // the grid: the pole sitter's car low and close, then behind the player's
+        setStage(8);   // the grid comes up once the world around it has streamed in
+    }
+
+    bool streamed(GameWorld& g) const { return !g.renderer || !g.renderer->world || g.renderer->world->pendingCount() <= 2; }
+
+    // the grid: the pole sitter's car low and close, then behind the player's; Lalo calls the leg
+    void gridIntro(GameWorld& g) {
+        using namespace series_detail;
+        vec2 t0;
+        race.path.at(18.f, nullptr, &t0);
+        vec2 right(t0.y, -t0.x);
         std::vector<CutsceneShot> shots;
         int pole = aiCar[leg % 3];
         if (pole >= 0) {
@@ -968,9 +978,13 @@ public:
                 }
                 break;
             case 5:
-                if (g.fadedOut()) {
-                    setupLeg(g);
+                if (g.fadedOut()) setupLeg(g);
+                break;
+            case 8:
+                if (playerCar >= 0 && g.vehicles[playerCar].used && g.vehicles[playerCar].sim.speed() > 0.5f) g.vehicles[playerCar].sim.body.vel *= 0.5f;
+                if (streamed(g) || stageTime > 5.f) {
                     g.fadeIn(1.2f);
+                    gridIntro(g);
                 }
                 break;
             case 1: {

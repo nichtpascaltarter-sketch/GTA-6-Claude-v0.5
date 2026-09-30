@@ -545,72 +545,9 @@ static void s_step(Buf& b, int surf) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Firearms
-struct GunP {
-    float crackAmp, crackTau, crackHp;
-    float blastAmp, blastTau, blastLp0, blastLp1;
-    float thumpAmp, thumpF0, thumpF1, thumpTau;
-    float mechAmp, mechT;
-    float tailRt, tailWet, tailDamp;
-    int echoN;
-    float echoFirst, echoSpacing, echoGain, echoLp;
-    bool supersonic;
-};
-static void gunshot(Buf& b, const GunP& g0) {
-    GunP g = g0;
-    float v = b.rnd(0.9f, 1.1f);
-    // supersonic crack / muzzle pressure wave
-    click(b, 0.f, g.crackAmp * (g.supersonic ? 1.2f : 0.7f), g.supersonic ? 5 : 8, true);
-    noise(b, 0.f, 0.08f, g.crackAmp, 0.0002f, g.crackTau * v, FHP, g.crackHp * v, -1.f, 0.1f, 0.6f);
-    // blast body
-    noise(b, 0.f, g.blastTau * 8.f, g.blastAmp, 0.0005f, g.blastTau * v, FLP, g.blastLp0 * v, g.blastLp1, g.blastTau * 0.8f, 0.8f, 1);
-    noise(b, 0.0005f, g.blastTau * 4.f, g.blastAmp * 0.45f, 0.001f, g.blastTau * 0.5f, FBP, 900.f * v, 500.f, 0.05f, 0.8f);
-    // low thump
-    tone(b, 0.f, g.thumpTau * 7.f, g.thumpF0 * v, g.thumpF1, g.thumpTau * 0.5f, g.thumpAmp, 0.0008f, g.thumpTau, 0.f, 0.2f);
-    // mechanism
-    if (g.mechAmp > 0.f) {
-        mechClack(b, g.mechT * b.rnd(0.9f, 1.1f), g.mechAmp, b.rnd(0.9f, 1.15f));
-        mechClack(b, g.mechT * 2.1f * b.rnd(0.9f, 1.1f), g.mechAmp * 0.6f, b.rnd(1.f, 1.3f));
-    }
-    // environment: slapback echoes + diffuse tail
-    if (g.echoN > 0) echoes(b, g.echoN, g.echoFirst * b.rnd(0.85f, 1.2f), g.echoSpacing, g.echoGain, 0.72f, g.echoLp, 0.12f);
-    reverb(b, g.tailRt, g.tailWet, g.tailDamp, 0.008f, 1.2f, 0.25f);
-    saturate(b, 1.3f);
-}
-
+// Firearms: see sfx_guns.cpp (layered at runtime by the mixer). Rocket launcher:
 static void s_weapon(Buf& b, int id) {
     switch (id) {
-        case SFX_PISTOL: {
-            GunP g = {1.0f, 0.006f, 1500.f, 1.0f, 0.035f, 2600.f, 500.f, 0.8f, 150.f, 55.f, 0.03f, 0.12f, 0.022f, 0.9f, 0.16f, 0.55f, 3, 0.09f, 0.07f, 0.18f, 1800.f, false};
-            gunshot(b, g);
-            break;
-        }
-        case SFX_SMG: {
-            GunP g = {0.9f, 0.004f, 2000.f, 0.8f, 0.024f, 3000.f, 700.f, 0.6f, 180.f, 70.f, 0.02f, 0.1f, 0.016f, 0.6f, 0.12f, 0.5f, 2, 0.08f, 0.06f, 0.12f, 2000.f, false};
-            gunshot(b, g);
-            break;
-        }
-        case SFX_RIFLE: {
-            GunP g = {1.3f, 0.007f, 1200.f, 1.1f, 0.05f, 3000.f, 450.f, 1.0f, 120.f, 45.f, 0.045f, 0.1f, 0.02f, 1.4f, 0.2f, 0.55f, 4, 0.12f, 0.1f, 0.22f, 1600.f, true};
-            gunshot(b, g);
-            break;
-        }
-        case SFX_SHOTGUN: {
-            GunP g = {0.7f, 0.008f, 900.f, 1.3f, 0.09f, 1800.f, 350.f, 1.3f, 95.f, 38.f, 0.08f, 0.f, 0.f, 1.3f, 0.2f, 0.6f, 3, 0.1f, 0.09f, 0.2f, 1400.f, false};
-            gunshot(b, g);
-            // pump action
-            float tp = b.rnd(0.42f, 0.5f);
-            noise(b, tp, 0.08f, 0.15f, 0.01f, 0.03f, FBP, 2500.f, -1.f, 0.1f, 1.f);
-            mechClack(b, tp + 0.06f, 0.35f, 0.8f);
-            noise(b, tp + 0.12f, 0.08f, 0.12f, 0.01f, 0.03f, FBP, 2800.f, -1.f, 0.1f, 1.f);
-            mechClack(b, tp + 0.19f, 0.4f, 0.9f);
-            break;
-        }
-        case SFX_SNIPER: {
-            GunP g = {1.4f, 0.009f, 1000.f, 1.2f, 0.07f, 2500.f, 350.f, 1.2f, 90.f, 35.f, 0.07f, 0.f, 0.f, 2.2f, 0.24f, 0.6f, 6, 0.18f, 0.22f, 0.3f, 1200.f, true};
-            gunshot(b, g);
-            break;
-        }
         case SFX_ROCKET_LAUNCH: {
             tone(b, 0.f, 0.3f, 110.f, 50.f, 0.03f, 0.9f, 0.001f, 0.04f);
             noise(b, 0.f, 0.3f, 1.f, 0.001f, 0.06f, FBP, 1500.f, 900.f, 0.05f, 0.7f);
@@ -633,15 +570,6 @@ static void s_weapon(Buf& b, int id) {
             }
             noise(b, 0.02f, 1.2f, 0.4f, 0.02f, 0.4f, FLP, 400.f, 150.f, 0.5f, 0.7f, 2);
             reverb(b, 1.5f, 0.2f, 0.6f, 0.01f, 1.3f, 0.3f);
-            break;
-        }
-        case SFX_SILENCED: {
-            noise(b, 0.f, 0.1f, 0.8f, 0.0005f, 0.012f, FLP, 900.f, 300.f, 0.02f, 0.8f, 1);
-            noise(b, 0.f, 0.04f, 0.2f, 0.0003f, 0.003f, FHP, 3000.f, -1.f, 0.1f, 0.7f);
-            tone(b, 0.f, 0.08f, 170.f, 90.f, 0.01f, 0.5f, 0.0005f, 0.015f);
-            mechClack(b, 0.012f, 0.4f, 1.1f);
-            mechClack(b, 0.034f, 0.3f, 1.25f);
-            reverb(b, 0.3f, 0.05f, 0.5f, 0.005f, 0.6f, 0.3f);
             break;
         }
     }
@@ -2019,6 +1947,8 @@ static void s_shipHorn(Buf& b) {
     reverb(b, 2.4f, 0.3f, 0.6f, 0.04f, 1.8f, 0.3f);
 }
 
+#include "sfx_guns.cpp"
+
 // ---------------------------------------------------------------------------------------------
 // Definitions table (order must match BankId)
 #define W Bus::World
@@ -2033,13 +1963,13 @@ static const SoundDef kDefs[BANK_COUNT] = {
     {"step_sand",         W, 40,  6, 0.305f, 1.5f,  25.f,   0.06f, 0.05f, 1.f},
     {"step_water",        W, 40,  6, 0.395f, 1.5f,  30.f,   0.08f, 0.05f, 1.f},
     {"step_gravel",       W, 40,  6, 0.454f, 1.5f,  35.f,   0.1f,  0.05f, 1.f},
-    {"pistol",            W, 200, 5, 1.303f,  4.f,   650.f,  0.35f, 0.03f, 0.7f},
-    {"smg",               W, 200, 5, 1.582f,  4.f,   600.f,  0.3f,  0.03f, 0.7f},
-    {"rifle",             W, 200, 5, 1.288f,  5.f,   900.f,  0.35f, 0.03f, 0.7f},
-    {"shotgun",           W, 200, 4, 1.059f,  5.f,   800.f,  0.35f, 0.03f, 0.7f},
-    {"sniper",            W, 210, 4, 1.216f,  6.f,   1500.f, 0.4f,  0.02f, 0.6f},
+    {"pistol",            W, 200, 1, 1.303f,  4.f,   650.f,  0.35f, 0.03f, 0.7f},
+    {"smg",               W, 200, 1, 1.582f,  4.f,   600.f,  0.3f,  0.03f, 0.7f},
+    {"rifle",             W, 200, 1, 1.288f,  5.f,   900.f,  0.35f, 0.03f, 0.7f},
+    {"shotgun",           W, 200, 1, 1.059f,  5.f,   800.f,  0.35f, 0.03f, 0.7f},
+    {"sniper",            W, 210, 1, 1.216f,  6.f,   1500.f, 0.4f,  0.02f, 0.6f},
     {"rocket_launch",     W, 210, 3, 1.349f,  5.f,   700.f,  0.35f, 0.03f, 0.7f},
-    {"silenced",          W, 150, 5, 0.733f, 2.f,   60.f,   0.1f,  0.04f, 1.f},
+    {"silenced",          W, 150, 1, 0.733f, 2.f,   60.f,   0.1f,  0.04f, 1.f},
     {"reload",            W, 100, 3, 1.057f,  1.5f,  25.f,   0.1f,  0.03f, 1.f},
     {"dry_fire",          W, 90,  3, 1.600f,  1.f,   15.f,   0.05f, 0.04f, 1.f},
     {"weapon_switch",     W, 90,  3, 0.628f, 1.f,   15.f,   0.05f, 0.04f, 1.f},
@@ -2131,6 +2061,7 @@ static const SoundDef kDefs[BANK_COUNT] = {
     {"train_doors",       W, 90,  3, 0.7f,  3.f,   60.f,   0.2f,  0.04f, 1.f},
     {"rail_clack",        W, 70,  6, 0.9f,  4.f,   220.f,  0.25f, 0.08f, 0.8f},
     {"ship_horn",         W, 200, 2, 1.0f,  40.f,  3500.f, 0.45f, 0.02f, 0.4f},
+    {"revolver",          W, 200, 1, 1.0f,  4.f,   700.f,  0.35f, 0.03f, 0.7f},
     {"amb_cricket",       W, 20,  4, 0.2f,  3.f,   60.f,   0.2f,  0.04f, 1.f},
     {"amb_treefrog",      W, 20,  4, 0.25f, 4.f,   90.f,   0.2f,  0.05f, 1.f},
     {"amb_bullfrog",      W, 20,  3, 0.4f,  5.f,   160.f,  0.25f, 0.05f, 1.f},
@@ -2143,6 +2074,38 @@ static const SoundDef kDefs[BANK_COUNT] = {
     {"amb_dog_distant",   W, 25,  3, 0.5f,  6.f,   700.f,  0.35f, 0.05f, 0.8f},
     {"amb_water_lap",     W, 20,  4, 0.3f,  3.f,   50.f,   0.15f, 0.06f, 1.f},
     {"amb_crow",          W, 20,  3, 0.35f, 6.f,   300.f,  0.3f,  0.05f, 1.f},
+    // gunfire layers (Mixer::startGunshot)
+    {"gun_near_pistol",   W, 200, 4, 1.20f, 5.f,   700.f,  0.4f,  0.03f, 0.7f},
+    {"gun_near_revolver", W, 200, 4, 1.30f, 5.f,   800.f,  0.4f,  0.03f, 0.7f},
+    {"gun_near_smg",      W, 200, 4, 1.15f, 5.f,   650.f,  0.4f,  0.03f, 0.7f},
+    {"gun_near_rifle",    W, 200, 4, 1.30f, 6.f,   950.f,  0.4f,  0.03f, 0.7f},
+    {"gun_near_shotgun",  W, 200, 4, 1.35f, 6.f,   800.f,  0.4f,  0.03f, 0.7f},
+    {"gun_near_sniper",   W, 210, 4, 1.40f, 7.f,   1300.f, 0.4f,  0.02f, 0.6f},
+    {"gun_fp_pistol",     W, 240, 3, 1.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_revolver",   W, 240, 3, 1.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_smg",        W, 240, 3, 1.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_rifle",      W, 240, 3, 1.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_shotgun",    W, 240, 3, 1.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_fp_sniper",     W, 240, 3, 1.00f, 1.f,   60.f,   0.45f, 0.02f, 1.f},
+    {"gun_mech_pistol",   W, 190, 3, 0.45f, 1.5f,  30.f,   0.12f, 0.04f, 1.f},
+    {"gun_mech_revolver", W, 190, 3, 0.40f, 1.5f,  30.f,   0.12f, 0.04f, 1.f},
+    {"gun_mech_smg",      W, 190, 3, 0.45f, 1.5f,  30.f,   0.12f, 0.04f, 1.f},
+    {"gun_mech_rifle",    W, 190, 3, 0.45f, 1.5f,  30.f,   0.12f, 0.04f, 1.f},
+    {"gun_mech_shotgun",  W, 190, 3, 0.50f, 1.5f,  30.f,   0.12f, 0.03f, 1.f},
+    {"gun_mech_sniper",   W, 190, 3, 0.50f, 1.5f,  30.f,   0.12f, 0.03f, 1.f},
+    {"gun_sup_pistol",    W, 190, 4, 0.80f, 2.f,   150.f,  0.3f,  0.04f, 1.f},
+    {"gun_sup_revolver",  W, 190, 4, 0.90f, 3.f,   300.f,  0.35f, 0.04f, 0.9f},
+    {"gun_sup_smg",       W, 190, 4, 0.75f, 2.f,   150.f,  0.3f,  0.04f, 1.f},
+    {"gun_sup_rifle",     W, 190, 4, 0.95f, 3.f,   350.f,  0.35f, 0.04f, 0.9f},
+    {"gun_sup_shotgun",   W, 190, 4, 0.90f, 2.f,   200.f,  0.3f,  0.04f, 1.f},
+    {"gun_sup_sniper",    W, 200, 4, 1.00f, 3.f,   450.f,  0.35f, 0.03f, 0.9f},
+    {"gun_far_urban_light", W, 180, 3, 1.00f, 40.f, 1800.f, 0.12f, 0.04f, 0.5f},
+    {"gun_far_urban_heavy", W, 180, 3, 1.05f, 40.f, 2300.f, 0.12f, 0.04f, 0.5f},
+    {"gun_far_urban_big",   W, 185, 3, 1.10f, 45.f, 3000.f, 0.12f, 0.03f, 0.45f},
+    {"gun_far_open_light",  W, 180, 3, 1.00f, 40.f, 1800.f, 0.12f, 0.04f, 0.5f},
+    {"gun_far_open_heavy",  W, 180, 3, 1.05f, 40.f, 2300.f, 0.12f, 0.04f, 0.5f},
+    {"gun_far_open_big",    W, 185, 3, 1.10f, 45.f, 3000.f, 0.12f, 0.03f, 0.45f},
+    {"gun_crack",         W, 200, 4, 1.00f, 3.f,   60.f,   0.15f, 0.05f, 1.f},
 };
 #undef W
 #undef U
@@ -2155,7 +2118,7 @@ static bool isStereo(int id) {
         case SFX_MISSION_PASSED: case SFX_MISSION_FAILED: case SFX_WASTED: case SFX_BUSTED: case SFX_WANTED_UP:
         case SFX_WANTED_LOST: case SFX_PURCHASE:
             return true;
-        default: return false;
+        default: return id >= GUN_FP && id < GUN_MECH;
     }
 }
 
@@ -2168,8 +2131,7 @@ static void synthesize(int id, int var, Buf& b) {
         case SFX_STEP_SAND: s_step(b, SurfSand); break;
         case SFX_STEP_WATER: s_step(b, SurfWater); break;
         case SFX_STEP_GRAVEL: s_step(b, SurfGravel); break;
-        case SFX_PISTOL: case SFX_SMG: case SFX_RIFLE: case SFX_SHOTGUN: case SFX_SNIPER: case SFX_ROCKET_LAUNCH:
-        case SFX_SILENCED: s_weapon(b, id); break;
+        case SFX_ROCKET_LAUNCH: s_weapon(b, id); break;
         case SFX_RELOAD: s_reload(b); break;
         case SFX_DRY_FIRE: s_dryFire(b); break;
         case SFX_WEAPON_SWITCH: s_weaponSwitch(b); break;
@@ -2268,7 +2230,10 @@ static void synthesize(int id, int var, Buf& b) {
         case AMB_DOG_DISTANT: s_dogBark(b, true); break;
         case AMB_WATER_LAP: s_waterLap(b); break;
         case AMB_CROW: s_crow(b); break;
-        default: tone(b, 0.f, 0.01f, 440.f, 440.f, 0.f, 0.f, 0.001f, 0.01f); break;
+        default:
+            if (id >= GUN_NEAR && id <= GUN_CRACK) s_gunLayer(b, id);
+            else tone(b, 0.f, 0.01f, 440.f, 440.f, 0.f, 0.f, 0.001f, 0.01f);  // routed ids (guns): silent stub buffer
+            break;
     }
 }
 
@@ -2337,11 +2302,14 @@ std::atomic<bool> g_started{false};
 static float estCost(int id) {
     switch (id) {
         case SFX_EXPLOSION: case SFX_THUNDER: case SFX_HELI_FLYBY: return 10.f;
-        case SFX_BELL: case SFX_EXPLOSION_SMALL: case SFX_SNIPER: case AMB_SIREN_DISTANT: case SFX_MISSION_PASSED:
+        case SFX_BELL: case SFX_EXPLOSION_SMALL: case AMB_SIREN_DISTANT: case SFX_MISSION_PASSED:
         case SFX_WASTED: case SFX_BUSTED: case SFX_MISSION_FAILED: return 6.f;
-        case SFX_CAR_CRASH_HEAVY: case SFX_SPLASH_BIG: case SFX_ENGINE_START: case SFX_RIFLE: case SFX_SHOTGUN:
+        case SFX_CAR_CRASH_HEAVY: case SFX_SPLASH_BIG: case SFX_ENGINE_START:
         case SFX_ROCKET_LAUNCH: case SFX_GLASS_BREAK: return 4.f;
-        default: return 1.f;
+        default:
+            if (id >= GUN_FAR_URBAN && id < GUN_CRACK) return 8.f;
+            if (id >= GUN_NEAR && id < GUN_MECH) return 2.f;
+            return 1.f;
     }
 }
 

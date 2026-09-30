@@ -420,7 +420,8 @@ public:
 
 // ==================================================================================================================
 // Act 2-3: "The Bagman" (Dex). Tail Holt's collector on his rounds, take him down before he reaches the precinct,
-// grab the bag and shake the police.
+// grab the bag and shake the police. He never drives the bag to the precinct: he parks under the SkyLine at Civic
+// Center and rides one stop to Solaris, so the last leg is a chase onto the metro (ride his train, or beat it there).
 class MissionBagman : public StoryMission {
 public:
     int bagCar = -1, bagman = -1, bag = -1;
@@ -429,6 +430,15 @@ public:
     int stopIndex = 0;
     int phase = 0;      // 0 driving to a stop, 1 walking to the door, 2 walking back
     vec3 door;
+    // the SkyLine leg (station -1: no metro in this world, he drives to the precinct)
+    int station = -1, side = 1, dest = -1;
+    int metroPhase = 0; // 0 driving to the station, 1 up to the platform, 2 waiting, 3 boarding, 4 riding, 5 down to the street, 6 running
+    int train = -1, boardDoor = 0;
+    u32 trainUid = 0, bagmanUid = 0;
+    vec3 parkSpot;
+    PedPath walk;
+    float waitT = 0.f, boardT = 0.f, stopT = 0.f;
+    bool rideLine = false;
     const char* title() const override { return "The Bagman"; }
     const char* brief() const override {
         return "Every week Holt's bagman collects protection money from half of Porto Sol. Follow him on his rounds, then take the bag "
@@ -451,11 +461,38 @@ public:
         stopPlace[0] = resolveFrontage(g, vec2(2800.f, 40.f));
         stopPlace[1] = resolveFrontage(g, vec2(2540.f, 380.f));
         stops = {stopPlace[0].curb, stopPlace[1].curb};
+        // the SkyLine: Civic Center, one stop to Solaris (the precinct stands a short walk from it)
+        station = metroStationByName("Civic Center");
+        int solaris = metroStationByName("Solaris");
+        if (station >= 0 && solaris >= 0) {
+            const World::MetroLine& L = World::gTransit->metro;
+            side = L.delta(L.stations[station].s, L.stations[solaris].s) < 0.f ? 1 : 0;   // the service that reaches Solaris first
+            parkSpot = metroStairPath(station, side, true, 0.f)[0];
+        } else {
+            station = -1;
+        }
         score(SC_STEALTH, 0.35f, 3);
         int model = pickModel(g, {Vehicles::VC_SEDAN}, 4);
         float byaw;
         vec3 sp = curbOffset(g, P.policeHq, 60.f, &byaw);
-        if (checkpoint >= 1) {
+        if (checkpoint == 2 && station >= 0) {
+            // restart on the last leg: the bagman pulls away from his second collection
+            float yaw2 = stopPlace[1].curbYaw;
+            bagCar = spawnCar(g, model, stopPlace[1].curb, yaw2, lin(0.55f, 0.55f, 0.58f));
+            bagman = spawnCast(g, CAST_GUARD_B, stopPlace[1].curb, 0.f, FAC_ENEMY);
+            if (bagman >= 0 && bagCar >= 0) {
+                g.warpPedIntoVehicle(bagman, bagCar, 0);
+                arm(g, bagman, WPN_PISTOL);
+                g.peds[bagman].brain.accuracy = 0.3f;
+                bagmanUid = g.peds[bagman].uid;
+            }
+            vec3 behind = stopPlace[1].curb - vec3(dirFromYaw(yaw2) * 45.f, 0.f);
+            placePlayer(g, vec3(behind.xy(), groundAt(g, behind.x, behind.y)), yaw2, pickModel(g, {Vehicles::VC_MUSCLE, Vehicles::VC_SEDAN}, 2),
+                        lin(0.08f, 0.35f, 0.3f));
+            lastLeg(g);
+            return;
+        }
+        if (checkpoint == 1) {
             // restart with the bag, cops closing in
             placePlayer(g, stopPlace[1].curb + vec3(0, 0, 0.5f), stopPlace[1].curbYaw, pickModel(g, {Vehicles::VC_MUSCLE, Vehicles::VC_SEDAN}, 2));
             setWanted(g, 3);
@@ -469,6 +506,7 @@ public:
             g.warpPedIntoVehicle(bagman, bagCar, 0);
             arm(g, bagman, WPN_PISTOL);
             g.peds[bagman].brain.accuracy = 0.3f;
+            bagmanUid = g.peds[bagman].uid;
         }
         float pyaw;
         vec3 pspot = curbOffset(g, P.policeHq, 150.f, &pyaw);
@@ -480,6 +518,205 @@ public:
         driveTo(g, stops[0], 13.f, false);
         g.mBlipVehicle(bagCar, UI::BLIP_VEHICLE);
         g.mObjective("Follow the ~b~bagman~s~. Keep your distance.");
+    }
+
+    // after the last collection: to the SkyLine at Civic Center (or, without a metro, straight to the precinct)
+    void lastLeg(GameWorld& g) {
+        g.mClearBlips();
+        if (station >= 0) {
+            driveTo(g, parkSpot, 20.f, true);
+            phoneLine(g, CAST_ROOK, "[calm]Heads up. He never drives the bag to the precinct. He parks under the SkyLine at Civic Center and rides one stop to Solaris.");
+            phoneLine(g, CAST_ROOK, "[calm]Nobody tails a man onto a train. That's the idea, anyway.");
+            sayMe(g, "[happy:0.4]Then I take him before he gets on it. Or on it.");
+            g.mObjective("Take down the ~r~bagman~s~ before he reaches the precinct!");
+        } else {
+            driveTo(g, gPlaces.policeHq.curb, 22.f, true);
+            sayMe(g, "[whisper:0.4]That's the last stop. He's heading back to the precinct.");
+            g.mObjective("Take down the ~r~bagman~s~ before he reaches the precinct!");
+        }
+        if (bagCar >= 0) g.mBlipVehicle(bagCar, UI::BLIP_ENEMY);
+        score(SC_CHASE, 0.85f, 3);
+        metroPhase = 0;
+        setStage(1);
+    }
+
+    // no metro: he drives the bag to the precinct
+    MissionStatus carChase(GameWorld& g) {
+        if (!vehicleAlive(g, bagCar) && !pedAlive(g, bagman)) {
+            // wreck: the bag lands next to it
+            bag = spawnPackage(g, vehPos(g, bagCar) + vec3(2.f, 0, 0.2f));
+            setStage(3);
+            return MS_RUNNING;
+        }
+        ScriptDriver* d = driverFor(bagCar);
+        if (d && d->done) return fail("The bagman made it to the precinct.");
+        if (::length(vehPos(g, bagCar) - gPlaces.policeHq.curb) < 35.f) return fail("The bagman made it to the precinct.");
+        bool stopped = vehicleDisabled(g, bagCar) || g.vehicles[bagCar].sim.health < 420.f || !pedAlive(g, bagman) ||
+                       (pedAlive(g, bagman) && g.peds[bagman].vehicle != bagCar);
+        if (stopped) {
+            releaseDriver(g, bagCar);
+            if (pedAlive(g, bagman)) {
+                if (g.peds[bagman].vehicle >= 0) g.removePedFromVehicle(bagman, true);
+                setFlee(g, bagman, g.player);
+                say(g, CAST_GUARD_B, bagman, "[shout]You're dead! You know whose money this is?");
+            }
+            bag = spawnPackage(g, vehPos(g, bagCar) + vec3(g.vehicles[bagCar].sim.right().xy() * -2.2f, 0.3f));
+            setStage(3);
+        }
+        return MS_RUNNING;
+    }
+
+    const World::MetroStation& stationAt(int i) const { return World::gTransit->metro.stations[i]; }
+
+    // The SkyLine leg: he parks at Civic Center, walks up, rides one stop to Solaris and walks to the precinct. Down
+    // anywhere, the bag drops where he fell; a train that runs off with him (the player far behind) takes him away.
+    MissionStatus metroChase(GameWorld& g, float dt) {
+        const Places& P = gPlaces;
+        if (bagman < 0 || !g.peds[bagman].used || g.peds[bagman].uid != bagmanUid) return fail("The bagman got away on the SkyLine.");
+        if (g.peds[bagman].health <= 0.f) {
+            vec3 at = pedPos(g, bagman);
+            if (metroPhase == 0 && vehicleAlive(g, bagCar)) at = vehPos(g, bagCar) + vec3(g.vehicles[bagCar].sim.right().xy() * -2.2f, 0.f);
+            releaseDriver(g, bagCar);
+            if (train >= 0) unblipVehicle(train);
+            bag = spawnPackage(g, at + vec3(0.6f, 0.4f, 0.3f));
+            LOG("[bagman] down in SkyLine phase %d", metroPhase);
+            setStage(3);
+            return MS_RUNNING;
+        }
+        vec3 bp = pedPos(g, bagman);
+        switch (metroPhase) {
+            case 0: {   // driving to Civic Center
+                ScriptDriver* d = driverFor(bagCar);
+                bool there = (d && d->done) || ::length(vehPos(g, bagCar).xy() - parkSpot.xy()) < 16.f;
+                bool stopped = !vehicleAlive(g, bagCar) || vehicleDisabled(g, bagCar) || g.vehicles[bagCar].sim.health < 420.f ||
+                               g.peds[bagman].vehicle != bagCar;
+                if (!there && !stopped) break;
+                releaseDriver(g, bagCar);
+                if (g.peds[bagman].vehicle >= 0) g.removePedFromVehicle(bagman, true);
+                bp = pedPos(g, bagman);
+                if (!there && ::length(bp.xy() - parkSpot.xy()) > 450.f) {
+                    // too far from the station to run for it: he bolts and the bag stays in the car
+                    setFlee(g, bagman, g.player);
+                    say(g, CAST_GUARD_B, bagman, "[shout]You're dead! You know whose money this is?");
+                    bag = spawnPackage(g, vehPos(g, bagCar) + vec3(g.vehicles[bagCar].sim.right().xy() * -2.2f, 0.3f));
+                    setStage(3);
+                    return MS_RUNNING;
+                }
+                unblipVehicle(bagCar);
+                g.mBlipPed(bagman, UI::BLIP_ENEMY);
+                walk.start(g, bagman, metroStairPath(station, side, true, 0.f), there ? 1.8f : 4.6f);
+                if (there) sayMe(g, "[whisper:0.5]He's parking under the SkyLine. Here we go.");
+                else say(g, CAST_GUARD_B, bagman, "[shout]Back off! This is police business!");
+                g.mObjective("Stop the ~r~bagman~s~ before he gets on the SkyLine!");
+                LOG("[bagman] on foot to %s (%s)", stationAt(station).name.c_str(), there ? "parked" : "car stopped");
+                metroPhase = 1;
+                break;
+            }
+            case 1:   // up the stair, through the gates, onto the platform
+                if (walk.update(g, dt)) {
+                    setIdle(g, bagman, 0);
+                    facePed(g, bagman, bp - vec3(stationAt(station).right() * metroSideSign(side), 0.f));
+                    waitT = 0.f;
+                    metroPhase = 2;
+                    LOG("[bagman] waiting on the %s platform", stationAt(station).name.c_str());
+                }
+                break;
+            case 2: {   // waiting for the train toward Solaris
+                waitT += dt;
+                int c = metroCarAt(g, station, side, bp.xy());
+                if (c >= 0) {
+                    train = c;
+                    trainUid = g.vehicles[c].uid;
+                    float bd = 1e9f;
+                    for (int k = -1; k <= 1; k++) {
+                        float dd = ::length(metroDoor(g, c, station, side, k, 0.6f).xy() - bp.xy());
+                        if (dd < bd) {
+                            bd = dd;
+                            boardDoor = k;
+                        }
+                    }
+                    setGoto(g, bagman, metroDoor(g, c, station, side, boardDoor, 0.6f), 2.6f);
+                    boardT = 0.f;
+                    metroPhase = 3;
+                } else if (waitT > 200.f) {
+                    // no train is coming: down the stair and on foot to the precinct
+                    walk.start(g, bagman, metroStairPath(station, side, false, 0.f), 3.4f);
+                    dest = station;
+                    metroPhase = 5;
+                }
+                break;
+            }
+            case 3: {   // to the door and aboard
+                boardT += dt;
+                if (!isMetroCar(g, train) || g.vehicles[train].uid != trainUid || metroCarStation(g, train) != station) {
+                    // the doors closed on him: the next train
+                    setIdle(g, bagman, 0);
+                    metroPhase = 2;
+                    break;
+                }
+                vec3 dp = metroDoor(g, train, station, side, boardDoor, 0.6f);
+                float toDoor = ::length(dp.xy() - bp.xy());
+                if (toDoor > 1.1f && (boardT < 5.f || toDoor > 6.f)) {
+                    if (g.peds[bagman].brain.type != BRAIN_GOTO) setGoto(g, bagman, dp, 3.2f);   // he runs for the doors, whatever happens
+                    break;
+                }
+                int seat = metroFreeSeat(g, train);
+                if (seat < 0) {
+                    metroPhase = 2;
+                    break;
+                }
+                g.warpPedIntoVehicle(bagman, train, seat);
+                g.peds[bagman].invincible = true;
+                g.peds[bagman].brain.type = BRAIN_NONE;
+                stopT = 0.f;
+                g.mBlipVehicle(train, UI::BLIP_ENEMY);
+                g.mObjective("The ~r~bagman~s~ is on the SkyLine. Ride his train, or beat it to ~y~Solaris station~s~.");
+                sayMe(g, "[angry:0.4]He's on the train. Fine. I can do trains.");
+                LOG("[bagman] boarded a SkyLine car at %s (seat %d)", stationAt(station).name.c_str(), seat);
+                metroPhase = 4;
+                break;
+            }
+            case 4: {   // riding to the next station
+                if (!isMetroCar(g, train) || g.vehicles[train].uid != trainUid || g.peds[bagman].vehicle != train)
+                    return fail("The bagman got away on the SkyLine.");
+                if (!rideLine && isMetroCar(g, g.playerVehicle())) {
+                    rideLine = true;
+                    sayMe(g, "[whisper:0.5]Same train. Easy. Wait for the doors.");
+                }
+                int sd = -1;
+                int s2 = metroCarStation(g, train, &sd);
+                if (s2 < 0 || s2 == station) {
+                    stopT = 0.f;
+                    break;
+                }
+                stopT += dt;
+                if (stopT < 1.8f) break;
+                // off onto the platform, down to the street, on to the precinct
+                vec3 out = metroDoor(g, train, s2, sd, boardDoor, 0.9f);
+                unblipVehicle(train);
+                placePed(g, bagman, out, yawTo(vehPos(g, train).xy(), out.xy()));
+                g.peds[bagman].invincible = false;
+                g.mBlipPed(bagman, UI::BLIP_ENEMY);
+                walk.start(g, bagman, metroStairPath(s2, sd, false, dot(out.xy() - stationAt(s2).pos, stationAt(s2).dir)), 3.4f);
+                dest = s2;
+                g.mObjective("Stop the ~r~bagman~s~ before he reaches the precinct!");
+                sayMe(g, "[shout:0.4]There he is! Off at Solaris!");
+                LOG("[bagman] off the train at %s", stationAt(s2).name.c_str());
+                metroPhase = 5;
+                break;
+            }
+            case 5:   // down to the street
+                if (walk.update(g, dt)) {
+                    setGoto(g, bagman, P.policeHq.door, 4.2f);
+                    metroPhase = 6;
+                }
+                break;
+            case 6:   // running for the precinct door
+                if (::length(bp.xy() - P.policeHq.door.xy()) < 3.f) return fail("The bagman made it to the precinct.");
+                if (g.peds[bagman].brain.type != BRAIN_GOTO) setGoto(g, bagman, P.policeHq.door, 4.2f);
+                break;
+        }
+        return MS_RUNNING;
     }
 
     MissionStatus update(GameWorld& g, float dt) override {
@@ -518,45 +755,17 @@ public:
                             driveTo(g, stops[stopIndex], 13.f, false);
                             sayMe(g, stopIndex == 1 ? "[whisper:0.5]One down. Where to next, pal?" : "");
                         } else {
-                            // heading back to the precinct: take him now
-                            driveTo(g, gPlaces.policeHq.curb, 22.f, true);
-                            sayMe(g, "[whisper:0.4]That's the last stop. He's heading back to the precinct.");
-                            g.mObjective("Take down the ~r~bagman~s~ before he reaches the precinct!");
-                            g.mClearBlips();
-                            g.mBlipVehicle(bagCar, UI::BLIP_ENEMY);
-                            score(SC_CHASE, 0.85f, 3);
-                            next();
+                            cp(g, 2);
+                            lastLeg(g);
                         }
                     }
                 }
                 if (stageTime > 18.f && stageTime < 18.1f) sayMe(g, "[whisper:0.5]Nice and easy. Just another car in traffic.");
                 break;
             }
-            case 1: {
-                if (!vehicleAlive(g, bagCar) && !pedAlive(g, bagman)) {
-                    // wreck: the bag lands next to it
-                    bag = spawnPackage(g, vehPos(g, bagCar) + vec3(2.f, 0, 0.2f));
-                    setStage(3);
-                    break;
-                }
-                ScriptDriver* d = driverFor(bagCar);
-                if (d && d->done) return fail("The bagman made it to the precinct.");
-                if (::length(vehPos(g, bagCar) - gPlaces.policeHq.curb) < 35.f) return fail("The bagman made it to the precinct.");
-                bool stopped = vehicleDisabled(g, bagCar) || g.vehicles[bagCar].sim.health < 420.f || !pedAlive(g, bagman) ||
-                               (pedAlive(g, bagman) && g.peds[bagman].vehicle != bagCar);
+            case 1:
                 if (stageTime > 6.f && stageTime < 6.1f) sayMe(g, "[angry:0.4]Time to repossess some dirty money.");
-                if (stopped) {
-                    releaseDriver(g, bagCar);
-                    if (pedAlive(g, bagman)) {
-                        if (g.peds[bagman].vehicle >= 0) g.removePedFromVehicle(bagman, true);
-                        setFlee(g, bagman, g.player);
-                        say(g, CAST_GUARD_B, bagman, "[shout]You're dead! You know whose money this is?");
-                    }
-                    bag = spawnPackage(g, vehPos(g, bagCar) + vec3(g.vehicles[bagCar].sim.right().xy() * -2.2f, 0.3f));
-                    next();
-                }
-                break;
-            }
+                return station >= 0 ? metroChase(g, dt) : carChase(g);
             case 2:
                 setStage(3);
                 break;
@@ -621,7 +830,31 @@ public:
                 }
                 break;
             case 1:
-                if (t.stageTime > 2.f && bagCar >= 0) g.damageVehicle(bagCar, 800.f, g.player, vec3(0), vec3(0));
+                if (station < 0) {
+                    if (t.stageTime > 2.f && bagCar >= 0) g.damageVehicle(bagCar, 800.f, g.player, vec3(0), vec3(0));
+                    break;
+                }
+                // the SkyLine leg played out in full: follow him onto his train, get off with him, take him down
+                if (metroPhase == 0) {
+                    fastForwardDriver(g, bagCar, 25.f, dt);
+                    if (bagCar >= 0 && fmodf(t.stageTime, 1.f) < dt) {
+                        vec3 bp = vehPos(g, bagCar);
+                        vec3 want = bp - g.vehicles[bagCar].sim.forward() * 45.f;
+                        float d = ::length(playerPos(g) - bp);
+                        if (d > 90.f || d < 20.f) t.teleport(vec3(want.x, want.y, groundAt(g, want.x, want.y)), yawTo(want.xy(), bp.xy()));
+                    }
+                } else if ((metroPhase == 1 || metroPhase == 5) && fmodf(t.stageTime, 1.f) < dt && walk.wp < (int)walk.pts.size()) {
+                    placePed(g, bagman, walk.pts[walk.wp], 0.f);   // skip ahead along the stair walk
+                } else if (metroPhase == 4 && !isMetroCar(g, g.playerVehicle()) && t.stageTime > 1.f) {
+                    int seat = metroFreeSeat(g, train);
+                    if (seat >= 0) t.enter(train, seat);
+                } else if (metroPhase >= 5) {
+                    if (isMetroCar(g, g.playerVehicle())) t.exitVehicle();
+                    else if (fmodf(t.stageTime, 1.f) < dt) {
+                        t.teleportNear(pedPos(g, bagman).xy(), 4.f);
+                        t.shoot(bagman);
+                    }
+                }
                 break;
             case 3:
                 if (bag >= 0 && !packageTaken(g, bag) && t.stageTime > 0.5f) {

@@ -560,7 +560,7 @@ struct Sim {
                 const AI::LaneGraph& G = w->lg;
                 std::string where = G.isLane(d->path) ? StrFormat("lane %d u %.1f/%.1f stopU %.1f", d->path, d->u, G.lanes[d->path].u1, G.lanes[d->path].stopU)
                                                        : StrFormat("conn %d (turn %d node %d) u %.1f/%.1f", d->path - (int)G.lanes.size(), G.conn(d->path).turn, G.conn(d->path).node, d->u, G.conn(d->path).length);
-                where += StrFormat(" fp %.0f fu %.2f", d->diag[4], d->diag[5]);
+                where += StrFormat(" fp %.0f fu %.2f lat %.2f nudge %.2f lc %d (%.2f->%.2f from u %.1f len %.1f)", d->diag[4], d->diag[5], d->lat, d->nudge, d->lcLane, d->lcFrom, d->lcTo, d->lcU0, d->lcLen);
                 where += StrFormat(" pos (%.1f %.1f) latErr %.2f diag %.2f %.2f %.2f %.2f steer %.2f vF %.2f yawRate %.2f heading %.3f pathDir %.3f steerOut %.2f imp %.0f", c.s.body.pos.x, c.s.body.pos.y, d->latErr, d->diag[0], d->diag[1], d->diag[2], d->diag[3], c.ctl.steer,
                                    c.s.forwardSpeed(), c.s.body.angVel.z, atan2f(c.s.forward().y, c.s.forward().x), atan2f(G.pathTangent(d->path, d->u).y, G.pathTangent(d->path, d->u).x), c.s.steerOut, c.s.impactImpulse);
                 std::string nxt = d->routeLen > 0 && !G.isLane(d->route[0]) ? StrFormat("next conn %d sig %d", d->route[0] - (int)G.lanes.size(), (int)G.movementSignal(G.conn(d->route[0]).node, G.conn(d->route[0]).approach, G.conn(d->route[0]).turn, time)) : std::string("next -");
@@ -762,7 +762,16 @@ struct Sim {
             if (c.s.impactCollider >= 0 && c.s.impactImpulse > 2500.f) {
                 staticImpacts++;
                 events.push_back({c.s.body.pos.toVec3().xy(), 5, time});
-                if (verbose && d) LOG("STATIC t=%.1f car %d at %.1f %.1f v=%.1f imp %.0f path %d u %.1f lat %.2f", time, i, c.s.body.pos.x, c.s.body.pos.y, v, c.s.impactImpulse, d->path, d->u, d->latErr);
+                if (verbose && d) {
+                    std::string cs = "-";
+                    if (c.s.impactCollider >= 0) {
+                        const Phys::Collider& cl = w->cw.collider(c.s.impactCollider);
+                        cs = StrFormat("collider %d kind %d prop %d c (%.1f %.1f %.1f) he (%.2f %.2f %.2f) ax (%.2f %.2f)", c.s.impactCollider, cl.kind, cl.propIndex, cl.c.x, cl.c.y, cl.c.z, cl.he.x,
+                                       cl.he.y, cl.he.z, cl.ax.x, cl.ax.y);
+                    }
+                    LOG("STATIC t=%.1f car %d at %.1f %.1f v=%.1f imp %.0f path %d u %.1f lat %.2f %s | %s", time, i, c.s.body.pos.x, c.s.body.pos.y, v, c.s.impactImpulse, d->path, d->u, d->latErr,
+                        models[c.model].name.c_str(), cs.c_str());
+                }
             }
             if (c.s.brokenCount > 0) propHits += c.s.brokenCount;
             c.trailTimer -= h;

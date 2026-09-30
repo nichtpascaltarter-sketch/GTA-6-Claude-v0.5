@@ -9,5 +9,6 @@
 #include "music.cpp"
 #include "radio.cpp"
 #include "crowd.cpp"
+#include "acoustics.cpp"
 #include "audio.cpp"
 #include "wasapi.cpp"

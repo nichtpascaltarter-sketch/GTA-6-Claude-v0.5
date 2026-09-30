@@ -895,9 +895,9 @@ static void lyingPose(const AuthorCtx& A, Rig& r, bool onBack, float variant, fl
         l.ik = false;
         ArmCtl& a = r.arm[sd];
         a.ik = false;
-        // limp hands: a loose curl that rests on the ground instead of digging the jointed fingers into it
-        a.fingers = 0.28f;
-        a.thumb = 0.12f;
+        // limp hands lying on the ground: nearly flat (the jointed fingers would dig into it)
+        a.fingers = 0.12f;
+        a.thumb = 0.05f;
         if (onBack) {
             l.hipFlex = 0.06f + 0.12f * variant * sd;
             l.hipAbd = 0.14f + 0.06f * sd;
@@ -928,6 +928,7 @@ static void lyingPose(const AuthorCtx& A, Rig& r, bool onBack, float variant, fl
                 a.pole = normalize(vec3(sx * 0.3f, -1.f, 0.f));
                 a.elbow = 0.15f;
                 a.twist = 0.9f;
+                a.wristFlex = -0.3f;   // the fingers lie along the ground instead of pointing into it
             }
         }
     }

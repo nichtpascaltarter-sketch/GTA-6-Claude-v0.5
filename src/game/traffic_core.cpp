@@ -758,6 +758,20 @@ bool TrafficCore::conflictsClear(const Driver& d, const Connector& c, int connId
     const NodeInfo& N = G.nodes[c.node];
     const bool meLong = d.info.wheelbase > 3.8f;
     const int myBody = driverBody(self);
+    // stopped in a queue that ends at our own body (the car behind us, the one behind that, ...): it cannot move before
+    // we do, so it is not what we are waiting for (a car at the end of an on-ramp holding up the lane it merges into)
+    auto queuedBehindMe = [&](int di) -> bool {
+        if (myBody < 0) return false;
+        for (int hop = 0; hop < 6 && di >= 0 && di < (int)drivers.size(); hop++) {
+            const Driver& q = drivers[di];
+            if (!q.active || q.obstBody < 0 || q.obstBody >= (int)bodies.size() || q.obstDist > 9.f) return false;
+            int qb = driverBody(di);
+            if (qb >= 0 && bodies[qb].speed > 1.f) return false;
+            if (q.obstBody == myBody) return true;
+            di = bodies[q.obstBody].driver;
+        }
+        return false;
+    };
     // returns false when this conflict (with the vehicles on its other movement) blocks us
     auto clearOf = [&](const Conflict& x, bool wideOnly) -> bool {
         if (myPos - d.info.halfLen * 2.f > x.sEnd + 0.5f) return true;   // we already cleared this conflict zone
@@ -771,6 +785,7 @@ bool TrafficCore::conflictsClear(const Driver& d, const Connector& c, int connId
             // stopped right behind our own body: it cannot move before we do, so it is not what we are waiting for
             // (breaks box deadlocks: a left-turner at its hold point blocking the opposing left-turner it yields to)
             if (e.speed < 0.5f && myBody >= 0 && od.obstBody == myBody && od.obstDist < 8.f) continue;
+            if (e.speed < 1.f && queuedBehindMe(e.driver)) continue;
             float oRear = e.dist - od.info.halfLen * 2.f;
             if (oRear > x.sOtherEnd + 0.5f) continue;  // already cleared the conflict zone
             bool theyYield = o.prio < c.prio && !(N.control == 2 && G.nodes[c.node].approaches[o.approach].axis != G.nodes[c.node].approaches[c.approach].axis);
@@ -1002,8 +1017,11 @@ float TrafficCore::gate(Driver& d, int conn, float distToEntry, float v, bool in
             for (const Conflict& x : c.conflicts) yields |= x.yield != 0 || x.merge != 0;
             if (!yields && c.conflicts.empty()) return FREE;
             if (exitBlocked() && impatience < 1.f && c.turn != TK_STRAIGHT) return Max(lineDist, 0.f);
-            float margin = d.pers.gapTime - 2.f;
-            if (conflictsClear(d, c, conn, distToEntry, v, false, margin) || d.waitTime > 20.f) return FREE;
+            // (the end of an on-ramp: merging drivers take tighter gaps, and one standing there pushes in after a few
+            //  seconds - the traffic behind in the lane it joins lets it in)
+            bool rampMerge = c.turn == TK_MERGE || (L.flags & LF_RAMP);
+            float margin = d.pers.gapTime - (rampMerge ? 2.6f : 2.f);
+            if (conflictsClear(d, c, conn, distToEntry, v, false, margin) || d.waitTime > (rampMerge ? 7.f : 20.f)) return FREE;
             return Max(lineDist, 0.f);
         }
     }
@@ -1060,7 +1078,9 @@ void TrafficCore::laneChangeLogic(Driver& d, float v, float distToEnd) {
         d.lcFrom = d.lat;
         d.lcTo = (G.lanes[target].offset - L.offset) * (float)L.dir;
         d.lcU0 = d.u;
-        d.lcLen = Clamp(v * 3.2f, 16.f, 60.f);
+        // (at motorway speed a lane change takes three seconds or so: a quicker one overshoots into the next lane -
+        //  or the median barrier)
+        d.lcLen = Clamp(v * 3.3f, 16.f, Max(16.f, Min(110.f, distToEnd - 12.f)));
         d.indicator = d.lcTo > 0.f ? 1 : -1;
         d.indicatorTimer = 0.f;
     };
@@ -1464,8 +1484,9 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     float vt = Min(Min(limit, vCurve), Min(vLimAhead, Min(vObst, vStop)));
     vt = Min(vt, d.speedCap);
     d.vTarget = Max(0.f, vt);
-    // waiting bookkeeping (deadlock handling)
-    if (v < 0.5f && d.vTarget < 0.5f) d.waitTime += kPlanInterval;
+    // waiting bookkeeping (deadlock handling; standing just short of the stop point counts as waiting too - the
+    // plan's speed there is a crawl the controller never gets to use)
+    if (v < 0.5f && (d.vTarget < 0.5f || stopDist < 1.2f)) d.waitTime += kPlanInterval;
     else if (v > 2.f) d.waitTime = 0.f;
     (void)s;
     (void)dt;
@@ -1594,7 +1615,8 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
     // the curb) instead of swinging the front wide into oncoming lanes. Long wheelbases use it at every speed, cars
     // blend back to pure pursuit (smoother on lane changes and fast curves) above ~10 m/s.
     bool longWB = d.info.wheelbase > 3.3f;
-    float wSt = d.info.bike ? 0.f : (longWB ? 1.f : 1.f - SmoothStep(9.f, 13.f, vF));
+    // (at speed a share of it stays: its heading term damps the swing at the end of a lane change)
+    float wSt = d.info.bike ? 0.f : (longWB ? 1.f : 1.f - 0.7f * SmoothStep(9.f, 13.f, vF));
     if (wSt > 0.f) {
         // path position `dist` meters ahead of the model origin along the planned route
         auto along = [&](float dist, int& pOut, float& uOut) {

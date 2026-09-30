@@ -1055,6 +1055,155 @@ CutsceneShot shotRoom(const InteriorStage& in, vec3 cameraLocal, vec3 a, vec3 b,
     return shotMove(cam, mid, cam + d * 0.12f, mid, duration, 48.f);
 }
 
+// ------------------------------------------------------------------------------------------------------------------
+// The SkyLine (the elevated metro loop run by game/transit_game.cpp) as missions see it: its trains are ordinary
+// vehicles (three "SkyLine" cars each, moved along the viaduct by the transit system) and its stations are world data
+// (world/transit.h). A mission ped rides by being seated in a car while it dwells at a platform and steps off by being
+// taken out at a later one; the transit system only fills and empties the seats of its own riders.
+bool metroReady() { return World::gTransit && World::gTransit->metro.stations.size() >= 2; }
+
+bool isMetroCar(const GameWorld& g, int v) {
+    if (v < 0 || v >= (int)g.vehicles.size() || !g.vehicles[v].used) return false;
+    int m = g.vehicles[v].model;
+    return m >= 0 && m < (int)g.vassets.size() && g.vassets[m].spec.name.compare(0, 7, "SkyLine") == 0;
+}
+
+int metroStationByName(const char* name) {
+    if (!metroReady()) return -1;
+    const World::MetroLine& L = World::gTransit->metro;
+    for (int i = 0; i < (int)L.stations.size(); i++)
+        if (L.stations[i].name == name) return i;
+    return -1;
+}
+
+int metroStationNear(vec2 p) {
+    if (!metroReady()) return -1;
+    const World::MetroLine& L = World::gTransit->metro;
+    int best = -1;
+    float bd = 1e9f;
+    for (int i = 0; i < (int)L.stations.size(); i++) {
+        float d = length(L.stations[i].pos - p);
+        if (d < bd) {
+            bd = d;
+            best = i;
+        }
+    }
+    return best;
+}
+
+// Platform side: 0 the outer platform (counter-clockwise service), 1 the inner one (clockwise service)
+float metroSideSign(int side) { return side == 0 ? 1.f : -1.f; }
+
+// A car standing in a station (stopped inside the platform zone): the station, and the platform side of its track;
+// -1 while it moves or stands between stations.
+int metroCarStation(const GameWorld& g, int v, int* sideOut = nullptr) {
+    if (!isMetroCar(g, v) || !metroReady()) return -1;
+    const Vehicle& c = g.vehicles[v];
+    if (length(c.sim.body.vel) > 0.3f) return -1;
+    const World::MetroLine& L = World::gTransit->metro;
+    vec2 p = c.sim.body.pos.toVec3().xy();
+    for (int i = 0; i < (int)L.stations.size(); i++) {
+        const World::MetroStation& S = L.stations[i];
+        vec2 d = p - S.pos;
+        float along = dot(d, S.dir), lat = dot(d, S.right());
+        if (fabsf(along) > World::transit_dims::kPlatformHalfLen || fabsf(lat) > 4.f) continue;
+        if (sideOut) *sideOut = lat > 0.f ? 0 : 1;
+        return i;
+    }
+    return -1;
+}
+
+// The car of a train dwelling at a station's platform side that is nearest to `from` (-1 when no train stands there)
+int metroCarAt(const GameWorld& g, int st, int side, vec2 from) {
+    int best = -1;
+    float bd = 1e9f;
+    for (int v = 0; v < (int)g.vehicles.size(); v++) {
+        int sd = -1;
+        if (!isMetroCar(g, v) || metroCarStation(g, v, &sd) != st || sd != side) continue;
+        float d = length(g.vehicles[v].sim.body.pos.toVec3().xy() - from);
+        if (d < bd) {
+            bd = d;
+            best = v;
+        }
+    }
+    return best;
+}
+
+// Where a door of a car standing at a platform opens onto it (door -1, 0, 1 along the car), `out` metres out from the
+// car side, at platform height
+vec3 metroDoor(const GameWorld& g, int v, int st, int side, int door, float out) {
+    const World::MetroStation& S = World::gTransit->metro.stations[st];
+    const Vehicle& c = g.vehicles[v];
+    vec2 f = normalize(c.sim.forward().xy());
+    vec2 p = c.sim.body.pos.toVec3().xy() + f * (5.6f * door) + S.right() * (metroSideSign(side) * (1.45f + out));
+    return vec3(p, S.platformZ());
+}
+
+// A free passenger seat of a car (-1 when full)
+int metroFreeSeat(const GameWorld& g, int v) {
+    if (v < 0 || !g.vehicles[v].used) return -1;
+    const Vehicle& c = g.vehicles[v];
+    int n = Min((int)g.vassets[c.model].spec.seats.size(), 8);
+    for (int s = 1; s < n; s++)
+        if (c.seats[s] < 0) return s;
+    return -1;
+}
+
+// On foot between the street and a platform: the stair beside the station, the fare gates, the platform (the station
+// layout of world/transit.h, the same way the transit riders walk). Up ends at `platformAlong` on the platform, down
+// ends on the street at the stair foot.
+std::vector<vec3> metroStairPath(int st, int side, bool up, float platformAlong) {
+    const World::MetroStation& S = World::gTransit->metro.stations[st];
+    const float L = metroSideSign(side), H = World::transit_dims::kPlatformHalfLen;
+    const int E = S.exitEnd[side];
+    const float pz = S.platformZ(), sz = S.streetZ, gate = E * (H - 3.3f + 0.675f);
+    std::vector<vec3> p = {S.local(E * (H - 3.4f - 36.f), L * 10.8f, sz), S.local(E * (H - 3.4f - 31.5f), L * 9.4f, sz),
+                           S.local(E * (H - 3.0f), L * 9.4f, pz),         S.local(gate, L * 10.f, pz),
+                           S.local(gate, L * 6.f, pz),                    S.local(Clamp(platformAlong, -H + 4.f, H - 4.f), L * 4.8f, pz)};
+    if (!up) std::reverse(p.begin(), p.end());
+    return p;
+}
+
+// A ped walking a list of points (BRAIN_GOTO leg by leg). A ped that makes no headway for a while is set down at the
+// point it was heading for, so a scripted walk always arrives.
+struct PedPath {
+    int ped = -1;
+    std::vector<vec3> pts;
+    int wp = 0;
+    float speed = 1.5f, stuck = 0.f, lastDist = 1e9f;
+    void start(GameWorld& g, int p, const std::vector<vec3>& path, float spd) {
+        ped = p;
+        pts = path;
+        wp = 0;
+        speed = spd;
+        stuck = 0.f;
+        lastDist = 1e9f;
+        if (!pts.empty()) setGoto(g, p, pts[0], spd);
+    }
+    bool done() const { return wp >= (int)pts.size(); }
+    // true once the last point is reached
+    bool update(GameWorld& g, float dt) {
+        if (done() || !pedAlive(g, ped) || g.peds[ped].state != PS_ONFOOT) return done();
+        vec3 pp = pedPos(g, ped);
+        float d = length(pts[wp].xy() - pp.xy());
+        stuck = d < lastDist - 0.05f ? 0.f : stuck + dt;
+        lastDist = Min(lastDist, d);
+        if (stuck > 5.f) {
+            placePed(g, ped, pts[wp], g.peds[ped].yaw);
+            d = 0.f;
+        }
+        if (d < 0.9f) {
+            wp++;
+            stuck = 0.f;
+            lastDist = 1e9f;
+            if (!done()) setGoto(g, ped, pts[wp], speed);
+        } else if (g.peds[ped].brain.type != BRAIN_GOTO) {
+            setGoto(g, ped, pts[wp], speed);
+        }
+        return done();
+    }
+};
+
 }  // namespace mu
 
 // Runtime framing for dialogue that outlasts a cutscene's scripted shots: an over-the-shoulder shot of the speaker

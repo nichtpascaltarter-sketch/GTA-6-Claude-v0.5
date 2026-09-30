@@ -271,6 +271,232 @@ static void boundaryClickCheck(const std::string& name, const std::vector<float>
 
 // Busy-scene CPU benchmark: city+rain ambience, in-car radio, score, 20 engines and 8 other emitters,
 // ~30 one-shots per second. Times the mixer (audio thread work) and music production separately.
+// ---------------------------------------------------------------------------------------------
+// Virtual geometry for the environment tests (the game registers its collision-world raycast instead).
+enum VScene { VS_OPEN = 0, VS_STREET, VS_ROOM, VS_TUNNEL, VS_STATION, VS_COUNT };
+static const char* kSceneName[VS_COUNT] = {"open", "street", "room", "tunnel", "station"};
+struct VBox {
+    vec3 mn, mx;
+};
+static std::vector<VBox> g_vboxes;
+static bool vRay(vec3 o, vec3 d, float maxD, float* hit) {
+    float best = maxD;
+    bool any = false;
+    for (const VBox& b : g_vboxes) {
+        float t0 = 0.f, t1 = maxD;
+        bool miss = false;
+        for (int a = 0; a < 3 && !miss; a++) {
+            float oa = a == 0 ? o.x : a == 1 ? o.y : o.z, da = a == 0 ? d.x : a == 1 ? d.y : d.z;
+            float lo = a == 0 ? b.mn.x : a == 1 ? b.mn.y : b.mn.z, hi = a == 0 ? b.mx.x : a == 1 ? b.mx.y : b.mx.z;
+            if (fabsf(da) < 1e-8f) {
+                if (oa < lo || oa > hi) miss = true;
+                continue;
+            }
+            float ta = (lo - oa) / da, tb = (hi - oa) / da;
+            if (ta > tb) std::swap(ta, tb);
+            t0 = Max(t0, ta);
+            t1 = Min(t1, tb);
+            if (t0 > t1) miss = true;
+        }
+        if (!miss && t0 < best) {
+            best = t0;
+            any = true;
+        }
+    }
+    if (any) *hit = best;
+    return any;
+}
+static void setScene(int sc) {
+    g_vboxes.clear();
+    switch (sc) {
+        case VS_STREET:  // 18 m wide street between 32 m blocks
+            g_vboxes.push_back({vec3(-70, -400, 0), vec3(-9, 400, 32)});
+            g_vboxes.push_back({vec3(9, -400, 0), vec3(70, 400, 32)});
+            break;
+        case VS_ROOM:  // 8 x 6 x 3 m room
+            g_vboxes.push_back({vec3(-4.3f, -3.3f, -0.3f), vec3(-4.f, 3.3f, 3.3f)});
+            g_vboxes.push_back({vec3(4.f, -3.3f, -0.3f), vec3(4.3f, 3.3f, 3.3f)});
+            g_vboxes.push_back({vec3(-4.3f, -3.3f, -0.3f), vec3(4.3f, -3.f, 3.3f)});
+            g_vboxes.push_back({vec3(-4.3f, 3.f, -0.3f), vec3(4.3f, 3.3f, 3.3f)});
+            g_vboxes.push_back({vec3(-4.3f, -3.3f, 3.f), vec3(4.3f, 3.3f, 3.3f)});
+            break;
+        case VS_TUNNEL:  // 12 m wide, 7 m high road tunnel
+            g_vboxes.push_back({vec3(-7, -500, 0), vec3(-6, 500, 8)});
+            g_vboxes.push_back({vec3(6, -500, 0), vec3(7, 500, 8)});
+            g_vboxes.push_back({vec3(-7, -500, 7), vec3(7, 500, 8)});
+            break;
+        case VS_STATION:  // platform roof on open sides
+            g_vboxes.push_back({vec3(-8, -60, 6), vec3(8, 60, 6.4f)});
+            break;
+        default: break;
+    }
+}
+static Listener sceneListener(float interior) {
+    Listener l;
+    l.pos = vec3(0, 0, 1.7f);
+    l.forward = vec3(0, 1, 0);
+    l.up = vec3(0, 0, 1);
+    l.interior = interior;
+    return l;
+}
+static void settleScene(int sc, float interior, float urban) {
+    setScene(sc);
+    setRaycast(vRay);
+    Ambience a;
+    a.urban = urban; a.nature = 0.f; a.coast = 0.f; a.wetland = 0.f; a.rain = 0.f; a.wind = 0.f; a.timeOfDay = 12.f; a.underwater = 0.f;
+    setAmbience(a);
+    Listener l = sceneListener(interior);
+    for (int f = 0; f < 150; f++) {
+        update(l, 1.f / 60.f);
+        render(1.f / 60.f);
+    }
+}
+static std::vector<float> renderScene(float secs, float interior) {
+    Listener l = sceneListener(interior);
+    std::vector<float> all;
+    int frames = (int)(secs * 60.f + 0.5f);
+    for (int f = 0; f < frames; f++) {
+        update(l, 1.f / 60.f);
+        std::vector<float> b = render(1.f / 60.f);
+        all.insert(all.end(), b.begin(), b.end());
+    }
+    return all;
+}
+// Energy (dB) of both channels in [t0, t1) seconds.
+static float windowDb(const std::vector<float>& x, float t0, float t1) {
+    size_t a = (size_t)(t0 * 48000.f) * 2, b = Min(x.size(), (size_t)(t1 * 48000.f) * 2);
+    double e = 0;
+    for (size_t i = a; i < b; i++) e += (double)x[i] * x[i];
+    return (float)(10.0 * log10(e / (double)Max((size_t)1, b - a) + 1e-14));
+}
+// First time |x| exceeds rel * peak.
+static float onsetTime(const std::vector<float>& x, float rel) {
+    float pk = 0.f;
+    for (float v : x) pk = Max(pk, fabsf(v));
+    for (size_t i = 0; i < x.size(); i++)
+        if (fabsf(x[i]) > rel * pk) return (float)(i / 2) / 48000.f;
+    return -1.f;
+}
+// Reverberation time from the Schroeder energy decay curve after the loudest point (T20 x 3).
+static float decayRt(const std::vector<float>& x) {
+    size_t n = x.size() / 2, pk = 0;
+    float pv = 0.f;
+    for (size_t i = 0; i < n; i++) {
+        float v = fabsf(x[i * 2]) + fabsf(x[i * 2 + 1]);
+        if (v > pv) { pv = v; pk = i; }
+    }
+    std::vector<double> edc(n + 1, 0.0);
+    for (size_t i = n; i-- > pk;) edc[i] = edc[i + 1] + (double)x[i * 2] * x[i * 2] + (double)x[i * 2 + 1] * x[i * 2 + 1];
+    double e0 = edc[pk] + 1e-30;
+    float t5 = -1.f, t25 = -1.f;
+    for (size_t i = pk; i < n; i++) {
+        double db = 10.0 * log10(edc[i] / e0 + 1e-30);
+        if (t5 < 0.f && db <= -5.0) t5 = (float)(i - pk) / 48000.f;
+        if (t25 < 0.f && db <= -25.0) { t25 = (float)(i - pk) / 48000.f; break; }
+    }
+    return (t5 >= 0.f && t25 > t5) ? 3.f * (t25 - t5) : -1.f;
+}
+
+static void envTests() {
+    printf("== Environment acoustics and gunfire\n");
+    const float interiorOf[VS_COUNT] = {0.f, 0.f, 1.f, 0.f, 0.f};
+    const float urbanOf[VS_COUNT] = {0.f, 1.f, 0.f, 0.8f, 0.8f};
+    float rt[VS_COUNT], slap[VS_COUNT];
+    for (int sc = 0; sc < VS_COUNT; sc++) {
+        settleScene(sc, interiorOf[sc], urbanOf[sc]);
+        playGunshot(SFX_PISTOL, vec3(0.2f, 0.4f, 1.5f), vec3(0, 1, 0), GUN_PLAYER);
+        std::vector<float> b = renderScene(4.f, interiorOf[sc]);
+        basicChecks(std::string("env_fp_pistol_") + kSceneName[sc], b, 1.6f);
+        save(std::string("env_fp_pistol_") + kSceneName[sc], b);
+        rt[sc] = decayRt(b);
+        slap[sc] = windowDb(b, 0.045f, 0.075f) - windowDb(b, 0.f, 0.02f);
+        printf("  %-8s player pistol: decay RT %.2f s, 45-75 ms energy %.1f dB re direct, loud %.1f dB\n", kSceneName[sc], rt[sc], slap[sc],
+               loudestWindowDb(b, 2));
+        renderScene(2.f, interiorOf[sc]);
+    }
+    check(rt[VS_STREET] > rt[VS_OPEN], "street reverberates longer than open ground", StrFormat("%.2f vs %.2f", rt[VS_STREET], rt[VS_OPEN]));
+    check(rt[VS_TUNNEL] > 1.6f && rt[VS_TUNNEL] > rt[VS_STREET], "tunnel reverb long", StrFormat("%.2f", rt[VS_TUNNEL]));
+    check(rt[VS_ROOM] > 0.15f && rt[VS_ROOM] < 1.2f, "room reverb short", StrFormat("%.2f", rt[VS_ROOM]));
+    check(slap[VS_STREET] > slap[VS_OPEN] + 4.f, "street slap-back between the facades", StrFormat("%.1f vs %.1f dB", slap[VS_STREET], slap[VS_OPEN]));
+
+    // speed of sound: an NPC shot 170 m away arrives ~0.5 s later, duller than a close one
+    settleScene(VS_OPEN, 0.f, 0.f);
+    playGunshot(SFX_PISTOL, vec3(0, 170, 1.7f), vec3(0, -1, 0), 0);
+    std::vector<float> far = renderScene(3.5f, 0.f);
+    float on = onsetTime(far, 0.03f);
+    printf("  open: pistol at 170 m arrives after %.3f s (expected %.3f)\n", on, 170.f / 343.f);
+    check(fabsf(on - 170.f / 343.f) < 0.02f, "propagation delay", StrFormat("%.3f", on));
+    basicChecks("env_npc_pistol_170m_open", far, 1.6f);
+    save("env_npc_pistol_170m_open", far);
+    // near vs player vs suppressed in the street
+    settleScene(VS_STREET, 0.f, 1.f);
+    playGunshot(SFX_RIFLE, vec3(-3, 9.5f, 1.5f), vec3(1, 0, 0), 0);
+    std::vector<float> npc = renderScene(3.f, 0.f);
+    playGunshot(SFX_RIFLE, vec3(0.2f, 0.4f, 1.5f), vec3(0, 1, 0), GUN_PLAYER);
+    std::vector<float> fp = renderScene(3.f, 0.f);
+    playGunshot(SFX_RIFLE, vec3(-3, 9.5f, 1.5f), vec3(1, 0, 0), GUN_SUPPRESSED);
+    std::vector<float> sup = renderScene(3.f, 0.f);
+    playGunshot(SFX_PISTOL, vec3(-3, 9.5f, 1.5f), vec3(1, 0, 0), GUN_SUPPRESSED);
+    std::vector<float> supP = renderScene(3.f, 0.f);
+    playGunshot(SFX_PISTOL, vec3(-3, 9.5f, 1.5f), vec3(1, 0, 0), 0);
+    std::vector<float> npcP = renderScene(3.f, 0.f);
+    playGunshot(SFX_RIFLE, vec3(-40, 390, 1.5f), vec3(1, 0, 0), 0);
+    std::vector<float> dist = renderScene(4.5f, 0.f);
+    float lNpc = loudestWindowDb(npc, 2, 0.1f), lFp = loudestWindowDb(fp, 2, 0.1f), lSup = loudestWindowDb(sup, 2, 0.1f);
+    float lSupP = loudestWindowDb(supP, 2, 0.1f), lNpcP = loudestWindowDb(npcP, 2, 0.1f), lDist = loudestWindowDb(dist, 2, 0.1f);
+    printf("  street: rifle player %.1f dB, NPC at 10 m %.1f dB, suppressed %.1f dB, 390 m away %.1f dB; pistol %.1f / suppressed %.1f dB\n", lFp,
+           lNpc, lSup, lDist, lNpcP, lSupP);
+    check(lFp > lNpc + 3.f, "player's shot louder than an NPC's 10 m away", StrFormat("%.1f vs %.1f", lFp, lNpc));
+    check(lSupP < lNpcP - 10.f, "suppressed pistol much quieter", StrFormat("%.1f vs %.1f", lSupP, lNpcP));
+    check(lSup < lNpc - 4.f, "suppressed rifle quieter (still cracks)", StrFormat("%.1f vs %.1f", lSup, lNpc));
+    check(lDist < lNpc - 12.f && lDist > -60.f, "distant shot quieter but audible", StrFormat("%.1f", lDist));
+    float lowNear = bandFraction(std::vector<float>(npc.begin(), npc.begin() + Min(npc.size(), (size_t)48000)), 20.f, 600.f);
+    std::vector<float> distWin(dist.begin() + (size_t)(1.0f * 48000.f) * 2, dist.begin() + (size_t)(2.5f * 48000.f) * 2);
+    float lowFar = bandFraction(distWin, 20.f, 600.f);
+    printf("  energy below 600 Hz: near %.0f%%, 390 m %.0f%%\n", lowNear * 100.f, lowFar * 100.f);
+    check(lowFar > lowNear, "distant shot is duller (boom)", StrFormat("%.2f vs %.2f", lowFar, lowNear));
+    for (auto* v : {&npc, &fp, &sup, &supP, &npcP, &dist}) basicChecks("env_street_shots", *v, 1.6f);
+    save("env_street_rifle_npc10m", npc);
+    save("env_street_rifle_player", fp);
+    save("env_street_rifle_suppressed", sup);
+    save("env_street_pistol_suppressed", supP);
+    save("env_street_rifle_390m", dist);
+    // supersonic crack: a sniper round passing 3 m away arrives well before the muzzle report
+    settleScene(VS_OPEN, 0.f, 0.f);
+    playGunshot(SFX_SNIPER, vec3(3, -300, 1.7f), vec3(0, 1, 0), 0);
+    std::vector<float> cr = renderScene(3.f, 0.f);
+    float onC = onsetTime(cr, 0.05f);
+    float eCrack = windowDb(cr, 0.36f, 0.42f), eGap = windowDb(cr, 0.6f, 0.8f), eRep = windowDb(cr, 0.86f, 1.0f);
+    printf("  sniper round passing 3 m away: first arrival %.3f s (crack), crack %.1f dB, gap %.1f dB, report %.1f dB\n", onC, eCrack, eGap, eRep);
+    check(onC > 0.33f && onC < 0.42f, "crack arrives before the report", StrFormat("%.3f", onC));
+    check(eRep > eGap + 6.f, "report follows at the speed of sound");
+    basicChecks("env_sniper_crack", cr, 1.6f);
+    save("env_sniper_crack", cr);
+    // a short gunfight in the street: NPCs at various distances, the player answering
+    settleScene(VS_STREET, 0.f, 1.f);
+    {
+        Listener l = sceneListener(0.f);
+        std::vector<float> all;
+        Rng r(77);
+        for (int f = 0; f < 60 * 8; f++) {
+            update(l, 1.f / 60.f);
+            if (f % 9 == 0 && r.chance(0.6f)) {
+                Sfx w = r.chance(0.5f) ? SFX_RIFLE : SFX_PISTOL;
+                vec3 p(r.range(-8.f, 8.f), r.range(20.f, 120.f), 1.5f);
+                playGunshot(w, p, normalize(l.pos - p + vec3(r.range(-4.f, 4.f), 0, 0)), 0);
+            }
+            if (f % 12 == 5 && f > 120) playGunshot(SFX_SMG, vec3(0.2f, 0.4f, 1.5f), vec3(0, 1, 0), GUN_PLAYER);
+            std::vector<float> b = render(1.f / 60.f);
+            all.insert(all.end(), b.begin(), b.end());
+        }
+        basicChecks("env_street_gunfight", all, 1.6f);
+        save("env_street_gunfight", all);
+    }
+    setRaycast(nullptr);
+    setScene(VS_OPEN);
+    resetWorld();
+}
+
 static void perfTest(float seconds, int engines = 20, int others = 8) {
     resetWorld();
     dsp::ScopedFlushDenormals ftz;  // as on the real audio / music threads
@@ -279,6 +505,8 @@ static void perfTest(float seconds, int engines = 20, int others = 8) {
     setAmbience(a);
     setRadioStation(6);
     setScore(3, 0.8f);
+    setScene(VS_STREET);
+    setRaycast(vRay);
     std::vector<EmitterHandle> em;
     Rng r(5);
     for (int i = 0; i < engines; i++) em.push_back(createEmitter(EMIT_ENGINE));
@@ -303,6 +531,7 @@ static void perfTest(float seconds, int engines = 20, int others = 8) {
                 setEmitter(em[i], p, vec3(10, 0, 0), p0, 0.6f, 0.5f, (float)(i % ENGINE_COUNT), 1.f);
             }
             if (r.chance(0.5f)) play((Sfx)r.irange(SFX_STEP_CONCRETE, SFX_BOAT_SLAM), l.pos + vec3(r.range(-30, 30), r.range(-30, 30), 0));
+            if (r.chance(0.15f)) playGunshot(SFX_RIFLE, l.pos + vec3(r.range(-8, 8), r.range(10, 200), 1.5f), vec3(1, 0, 0), 0);
         }
         double t0 = TimeSeconds();
         detail::speechPumpSync();
@@ -316,6 +545,8 @@ static void perfTest(float seconds, int engines = 20, int others = 8) {
     for (auto h : em) destroyEmitter(h);
     setRadioStation(-1);
     setScore(0, 0.f);
+    setRaycast(nullptr);
+    setScene(VS_OPEN);
     printf("  perf (%d engines + %d emitters): mixer %.2f%% of one core, music production (radio + score) %.2f%%\n", engines, others,
            100.0 * tMix / seconds, 100.0 * tMusic / seconds);
     if (g_report) fprintf(g_report, "perf %d+%d mixer %.2f%% music %.2f%%\n", engines, others, 100.0 * tMix / seconds, 100.0 * tMusic / seconds);
@@ -330,11 +561,22 @@ static void perfTest(float seconds, int engines = 20, int others = 8) {
 }
 
 int main(int argc, char** argv) {
-    bool quick = false, perfOnly = false;
+    bool quick = false, perfOnly = false, envOnly = false;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--quick")) quick = true;
         else if (!strcmp(argv[i], "--perf")) perfOnly = true;
+        else if (!strcmp(argv[i], "--env")) envOnly = true;
         else g_out = argv[i];
+    }
+    if (envOnly) {
+        mkdir(g_out.c_str(), 0755);
+        init();
+        render(0.1f);
+        resetWorld();
+        envTests();
+        printf("\n%d checks, %d failures\n", g_checks, g_fail);
+        shutdown();
+        return g_fail ? 1 : 0;
     }
     if (perfOnly) {
         init();
@@ -577,6 +819,8 @@ int main(int argc, char** argv) {
         check(st.peak <= 0.96f, "limiter ceiling", StrFormat("peak %.3f", st.peak));
         save("stress", buf);
     }
+
+    envTests();
 
     printf("== Drum kits (spectral sanity)\n");
     kitTests();

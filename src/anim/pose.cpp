@@ -66,10 +66,10 @@ static void derivedLocals(const Skeleton& sk, const Pose& pose, quat* out) {
     };
     static const float kLean[4] = {0.0f, 0.04f, 0.09f, 0.15f};   // flexed fingers lean towards the thumb's base
     // thumb key directions in the hand frame (fingers, thumb side, palm) for the metacarpal, the proximal and the distal
-    // phalanx at thumb = kCt (a zero vector = the bind direction)
+    // phalanx at thumb = kCt (a zero vector = the bind direction: the open thumb, near the palm's plane)
     static const float kCt[4] = {0.f, 0.2f, 0.55f, 1.f};
-    static const float kTM[4][3] = {{0.f, 0.f, 0.f}, {0.62f, 0.62f, 0.48f}, {0.59f, 0.46f, 0.66f}, {0.55f, 0.13f, 0.82f}};
-    static const float kT1[4][3] = {{0.f, 0.f, 0.f}, {0.95f, 0.12f, 0.05f}, {0.93f, 0.1f, 0.35f}, {0.93f, -0.3f, 0.2f}};
+    static const float kTM[4][3] = {{0.f, 0.f, 0.f}, {0.63f, 0.64f, 0.4f}, {0.59f, 0.46f, 0.66f}, {0.55f, 0.13f, 0.82f}};
+    static const float kT1[4][3] = {{0.f, 0.f, 0.f}, {0.95f, 0.12f, 0.02f}, {0.93f, 0.1f, 0.35f}, {0.93f, -0.3f, 0.2f}};
     static const float kT2[4][3] = {{0.f, 0.f, 0.f}, {0.97f, 0.f, 0.12f}, {0.97f, 0.f, 0.25f}, {0.87f, -0.49f, 0.f}};
     for (int side = 0; side < 2; side++) {
         const bool right = side == 1;
