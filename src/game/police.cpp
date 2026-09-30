@@ -886,7 +886,9 @@ void GameWorld::updateDispatch(float dt) {
     if (model < 0) model = findVehicleModel(Vehicles::VC_POLICE, gD.counter);
     if (model < 0) return;
     // spawn on a lane 150-280 m away, out of view, ahead of the player's motion or near where they were last seen
-    vec2 around = pinfo.policeSeesPlayer || time - pinfo.lastSeenTime < 4.0 ? pp.xy() : pinfo.lastSeenPos.toVec3().xy();
+    // (dispatch has a fair idea where a fresh getaway is: units come in around the suspect for a while after contact is
+    // lost, then around the last sighting)
+    vec2 around = pinfo.policeSeesPlayer || time - pinfo.lastSeenTime < 10.0 ? pp.xy() : pinfo.lastSeenPos.toVec3().xy();
     vec2 fwd = length(pvel) > 4.f ? normalize(pvel) : vec2(0, 0);
     float pspeed = length(pvel);
     // a fast getaway: most units come up from behind at speed (out of view behind the chase camera), the rest

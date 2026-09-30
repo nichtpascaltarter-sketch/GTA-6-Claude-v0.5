@@ -4,7 +4,10 @@
 // MAT_CAR_WINDOW see-through glass (rgb tint, alpha clarity), MAT_LIGHT_TAIL lamps (vertex green > 0.5 = white lamp lit
 // by the reverse bit, used for the leading cab's headlights; red lamps lit by the lights / brake bits), MAT_EMISSIVE
 // interior lighting and destination displays. Three levels of detail: 0 full interior, 1 simplified cabin, 2 shell.
-#include "gameworld.h"
+#include "../render/mesh.h"
+#include "../sim/vehicle_models.h"
+#include "../audio/audio.h"
+// (also builds natively with src/world/sitegeo.cpp for model previews: no engine or game state dependencies)
 
 namespace Game {
 namespace TransitModels {
@@ -347,6 +350,10 @@ void buildCar(bool cab, int lod, MeshData& m) {
                 vec3 a0(sideX(za) * sd, kHalfLen - 0.62f, za), a1(noseX(za) * sd, faceY(za), za), b1(noseX(zb) * sd, faceY(zb), zb), b0(sideX(zb) * sd, kHalfLen - 0.62f, zb);
                 u32 cc = (za >= 1.52f && zb <= 1.74f + 0.01f) ? kSecondary : kPrimary;
                 b.quad(a0, a1, b1, b0, cc, makeMat(MAT_CARPAINT), vec3((float)sd, 0.35f, 0));
+                if (lod <= 1) {
+                    vec3 in(-0.03f * sd, 0, 0);
+                    b.quad(a0 + in, a1 + in, b1 + in, b0 + in, col(0.3f, 0.31f, 0.33f), makeMat(MAT_PLASTIC), vec3((float)-sd, -0.35f, 0));
+                }
             }
         // roof cap over the cab
         {
@@ -360,12 +367,16 @@ void buildCar(bool cab, int lod, MeshData& m) {
             for (int i = 0; i < 6; i++) {
                 vec3 p0 = rim[i], p1 = rim[i + 1];
                 vec3 q0(p0.x * (sideX(zc) / Max(noseX(zc), 0.1f)), kHalfLen - 0.9f, p0.z), q1(p1.x * (sideX(zc) / Max(noseX(zc), 0.1f)), kHalfLen - 0.9f, p1.z);
-                b.quad(q0, p0, p1, q1, col(0.78f, 0.8f, 0.82f), makeMat(MAT_METAL_PAINTED), vec3(0, 0.3f, 1));
+                float am = ((float)i + 0.5f) / 6 * kPi;
+                b.quad(q0, p0, p1, q1, col(0.78f, 0.8f, 0.82f), makeMat(MAT_METAL_PAINTED), vec3(cosf(am), 0.3f, sinf(am)));
+                // lunette: the face between the display band top and the cap rim
+                vec3 f0(p0.x, faceY(zc), zc + 0.01f), f1(p1.x, faceY(zc), zc + 0.01f);
+                b.quad(f0, f1, p1, p0, col(0.78f, 0.8f, 0.82f), makeMat(MAT_METAL_PAINTED), vec3(0, 1, 0.3f));
             }
         }
         // front face: lower panel (white + teal), windscreen band, destination display strip
         auto facePt = [&](float x, float z) { return vec3(x, faceY(z), z); };
-        float fx0 = noseX(kSkirtZ), fxW = noseX(2.f);
+        float fx0 = noseX(kSkirtZ) + 0.02f, fxW = noseX(2.f) + 0.02f;
         b.quad(facePt(-fx0, kSkirtZ), facePt(fx0, kSkirtZ), facePt(fxW, 1.52f), facePt(-fxW, 1.52f), kPrimary, makeMat(MAT_CARPAINT), vec3(0, 1, 0));
         b.quad(facePt(-fxW, 1.52f), facePt(fxW, 1.52f), facePt(fxW, 1.9f), facePt(-fxW, 1.9f), kSecondary, makeMat(MAT_CARPAINT), vec3(0, 1, 0));
         float wz0 = 1.9f, wz1 = 3.12f;
@@ -493,6 +504,19 @@ void buildCar(bool cab, int lod, MeshData& m) {
                        col(0.2f, 0.6f, 0.9f, 0.2f), makeMat(MAT_EMISSIVE), vec3(0, -0.4f, 1));
             }
             b.box(vec3(0, 7.46f, 2.05f), vec3(xi, 0.04f, 0.95f), col(0.3f, 0.32f, 0.35f), makeMat(MAT_PLASTIC));
+            // cab shell seen through the windscreen and the cab side windows: floor, ceiling, inner walls
+            const float yb = 7.5f, yf = 8.8f, xc = xi - 0.06f;
+            u32 cabC = col(0.3f, 0.31f, 0.33f);
+            b.quad(vec3(-xc, yb, kCeilZ), vec3(xc, yb, kCeilZ), vec3(xc, yf, kCeilZ), vec3(-xc, yf, kCeilZ), col(0.24f, 0.25f, 0.27f), makeMat(MAT_PLASTIC), vec3(0, 0, -1));
+            b.quad(vec3(-xc, yb, kFloorZ), vec3(xc, yb, kFloorZ), vec3(xc, yf, kFloorZ), vec3(-xc, yf, kFloorZ), col(0.12f), makeMat(MAT_RUBBER), vec3(0, 0, 1));
+            for (int sd = -1; sd <= 1; sd += 2) {
+                float x = sd * xc;
+                b.quad(vec3(x, yb, kFloorZ), vec3(x, yf, kFloorZ), vec3(x, yf, kWinZ0), vec3(x, yb, kWinZ0), cabC, makeMat(MAT_PLASTIC), vec3((float)-sd, 0, 0));
+                b.quad(vec3(x, yb, kWinZ1), vec3(x, yf, kWinZ1), vec3(x, yf, kCeilZ), vec3(x, yb, kCeilZ), cabC, makeMat(MAT_PLASTIC), vec3((float)-sd, 0, 0));
+            }
+            // front bulkhead inside the nose, below the windscreen and above it
+            b.quad(vec3(-xc, yf, kFloorZ), vec3(xc, yf, kFloorZ), vec3(xc, yf, 1.9f), vec3(-xc, yf, 1.9f), cabC, makeMat(MAT_PLASTIC), vec3(0, -1, 0));
+            b.quad(vec3(-xc, yf, 3.12f), vec3(xc, yf, 3.12f), vec3(xc, yf, kCeilZ), vec3(-xc, yf, kCeilZ), cabC, makeMat(MAT_PLASTIC), vec3(0, -1, 0));
         }
     } else {
         // far LOD: dark cabin block behind the tinted glass
@@ -727,6 +751,9 @@ void buildFerry(int lod, MeshData& m) {
     for (int sd = -1; sd <= 1; sd += 2)
         b.quad(vec3(sd * (kFCabHW + 0.151f), kFCabY0 - 0.3f, kFRoofZ + 0.16f), vec3(sd * (kFCabHW + 0.151f), kFCabY1 + 0.3f, kFRoofZ + 0.16f),
                vec3(sd * (kFCabHW + 0.151f), kFCabY1 + 0.3f, kFRoofZ), vec3(sd * (kFCabHW + 0.151f), kFCabY0 - 0.3f, kFRoofZ), cBand, mPaint, vec3((float)sd, 0, 0));
+    // upper deck: non-slip walking surface and railings
+    b.quad(vec3(-kFCabHW, kFCabY0 - 0.25f, kFRoofZ + 0.165f), vec3(kFCabHW, kFCabY0 - 0.25f, kFRoofZ + 0.165f), vec3(kFCabHW, kFCabY1 + 0.25f, kFRoofZ + 0.165f),
+           vec3(-kFCabHW, kFCabY1 + 0.25f, kFRoofZ + 0.165f), cDeck, makeMat(MAT_CONCRETE), vec3(0, 0, 1));
     // upper deck railings
     for (int sd = -1; sd <= 1; sd += 2) rail(vec3(sd * (kFCabHW + 0.05f), kFCabY0 - 0.2f, kFRoofZ + 0.16f), vec3(sd * (kFCabHW + 0.05f), kFCabY1 + 0.2f, kFRoofZ + 0.16f));
     rail(vec3(-kFCabHW, kFCabY0 - 0.2f, kFRoofZ + 0.16f), vec3(kFCabHW, kFCabY0 - 0.2f, kFRoofZ + 0.16f));
@@ -765,16 +792,53 @@ void buildFerry(int lod, MeshData& m) {
     // life rings on the aft rail and lifebuoy canisters on the roof
     if (lod < 2) {
         for (int sd = -1; sd <= 1; sd += 2) {
-            b.box(vec3(sd * (kFHalfBeam - 0.12f), -14.f, kFDeckZ + 0.75f), vec3(0.06f, 0.35f, 0.35f), col(0.95f, 0.4f, 0.05f), makeMat(MAT_PLASTIC));
-            for (int k = 0; k < 3; k++) b.cylZ(vec3(sd * 3.4f, -9.f + k * 1.2f, kFRoofZ + 0.16f), 0.3f, 0.9f, 10, col(0.93f), makeMat(MAT_PLASTIC));
+            b.box(vec3(sd * (kFHalfBeam - 0.12f), -14.f, kFDeckZ + 0.75f), vec3(0.06f, 0.35f, 0.35f), col(0.95f, 0.4f, 0.05f), makeMat(MAT_METAL_PAINTED));
+            for (int k = 0; k < 3; k++) b.cylZ(vec3(sd * 3.4f, -9.f + k * 1.2f, kFRoofZ + 0.16f), 0.3f, 0.9f, 10, col(0.93f), makeMat(MAT_METAL_PAINTED));
         }
     }
-    // ---- saloon interior: floor, seat rows with an aisle, ceiling light strips, kiosk
+    // ---- saloon interior: floor, ceiling and inner walls (the windows are see-through), seat rows with an aisle,
+    // ceiling light strips, kiosk. The far LOD gets a dark cabin block instead.
+    if (lod == 2) {
+        b.box(vec3(0, (kFCabY0 + kFCabY1) * 0.5f, (kFDeckZ + kFRoofZ) * 0.5f), vec3(kFCabHW - 0.1f, (kFCabY1 - kFCabY0) * 0.5f - 0.1f, (kFRoofZ - kFDeckZ) * 0.5f - 0.05f),
+              col(0.14f, 0.15f, 0.17f), makeMat(MAT_METAL_PAINTED));
+        b.box(vec3(0, (kFWheelY0 + kFWheelY1) * 0.5f, (kFRoofZ + kFWheelZ1) * 0.5f + 0.1f), vec3(kFWheelHW - 0.1f, (kFWheelY1 - kFWheelY0) * 0.5f - 0.1f, 0.9f),
+              col(0.12f), makeMat(MAT_METAL_PAINTED));
+    }
+    if (lod <= 1) {
+        float xi = kFCabHW - 0.06f, yA = kFCabY0 + 0.06f, yB = kFCabY1 - 0.05f;
+        u32 wallC = col(0.86f, 0.87f, 0.85f);
+        b.quad(vec3(-xi, yA, kFDeckZ + 0.02f), vec3(xi, yA, kFDeckZ + 0.02f), vec3(xi, yB, kFDeckZ + 0.02f), vec3(-xi, yB, kFDeckZ + 0.02f), col(0.3f, 0.32f, 0.36f),
+               makeMat(MAT_CARPET), vec3(0, 0, 1));
+        b.quad(vec3(-xi, yA, kFRoofZ - 0.02f), vec3(-xi, yB, kFRoofZ - 0.02f), vec3(xi, yB, kFRoofZ - 0.02f), vec3(xi, yA, kFRoofZ - 0.02f), col(0.9f),
+               makeMat(MAT_CEILING_TILE), vec3(0, 0, -1));
+        for (int sd = -1; sd <= 1; sd += 2) {
+            float x = sd * xi;
+            vec3 n((float)-sd, 0, 0);
+            b.quad(vec3(x, yA, kFDeckZ), vec3(x, yB, kFDeckZ), vec3(x, yB, kFWinZ0), vec3(x, yA, kFWinZ0), wallC, makeMat(MAT_PLASTIC), n);
+            b.quad(vec3(x, yA, kFWinZ1), vec3(x, yB, kFWinZ1), vec3(x, yB, kFRoofZ), vec3(x, yA, kFRoofZ), wallC, makeMat(MAT_PLASTIC), n);
+        }
+        // inner faces of the front and stern walls (outside the window bands)
+        b.quad(vec3(-xi, yB - 0.3f, kFDeckZ), vec3(xi, yB - 0.3f, kFDeckZ), vec3(xi, yB - 0.3f, kFWinZ0 + 0.1f), vec3(-xi, yB - 0.3f, kFWinZ0 + 0.1f), wallC, makeMat(MAT_PLASTIC),
+               vec3(0, -1, 0));
+        b.quad(vec3(-xi, yB - 0.3f, kFWinZ1), vec3(xi, yB - 0.3f, kFWinZ1), vec3(xi, yB - 0.3f, kFRoofZ), vec3(-xi, yB - 0.3f, kFRoofZ), wallC, makeMat(MAT_PLASTIC),
+               vec3(0, -1, 0));
+        b.quad(vec3(-xi, yA, kFDeckZ), vec3(xi, yA, kFDeckZ), vec3(xi, yA, kFRoofZ), vec3(-xi, yA, kFRoofZ), wallC, makeMat(MAT_PLASTIC), vec3(0, 1, 0));
+        // wheelhouse shell
+        float wz0 = kFRoofZ + 0.16f, wxi = kFWheelHW - 0.05f, wyA = kFWheelY0 + 0.05f, wyB = kFWheelY1 - 0.4f;
+        u32 whC = col(0.35f, 0.36f, 0.38f);
+        b.quad(vec3(-wxi, wyA, kFWheelZ1 - 0.02f), vec3(-wxi, wyB, kFWheelZ1 - 0.02f), vec3(wxi, wyB, kFWheelZ1 - 0.02f), vec3(wxi, wyA, kFWheelZ1 - 0.02f), whC,
+               makeMat(MAT_PLASTIC), vec3(0, 0, -1));
+        b.quad(vec3(-wxi, wyA, wz0 + 0.01f), vec3(wxi, wyA, wz0 + 0.01f), vec3(wxi, wyB, wz0 + 0.01f), vec3(-wxi, wyB, wz0 + 0.01f), col(0.2f), makeMat(MAT_RUBBER),
+               vec3(0, 0, 1));
+        for (int sd = -1; sd <= 1; sd += 2) {
+            float x = sd * wxi;
+            b.quad(vec3(x, wyA, wz0), vec3(x, wyB, wz0), vec3(x, wyB, wz0 + 1.05f), vec3(x, wyA, wz0 + 1.05f), whC, makeMat(MAT_PLASTIC), vec3((float)-sd, 0, 0));
+            b.quad(vec3(x, wyA, kFWheelZ1 - 0.3f), vec3(x, wyB, kFWheelZ1 - 0.3f), vec3(x, wyB, kFWheelZ1), vec3(x, wyA, kFWheelZ1), whC, makeMat(MAT_PLASTIC),
+                   vec3((float)-sd, 0, 0));
+        }
+        b.quad(vec3(-wxi, wyA, wz0), vec3(wxi, wyA, wz0), vec3(wxi, wyA, kFWheelZ1), vec3(-wxi, wyA, kFWheelZ1), whC, makeMat(MAT_PLASTIC), vec3(0, 1, 0));
+    }
     if (lod == 0) {
-        b.quad(vec3(-kFCabHW + 0.05f, kFCabY0 + 0.05f, kFDeckZ + 0.02f), vec3(kFCabHW - 0.05f, kFCabY0 + 0.05f, kFDeckZ + 0.02f), vec3(kFCabHW - 0.05f, kFCabY1, kFDeckZ + 0.02f),
-               vec3(-kFCabHW + 0.05f, kFCabY1, kFDeckZ + 0.02f), col(0.3f, 0.32f, 0.36f), makeMat(MAT_CARPET), vec3(0, 0, 1));
-        b.quad(vec3(-kFCabHW + 0.05f, kFCabY0 + 0.05f, kFRoofZ - 0.02f), vec3(-kFCabHW + 0.05f, kFCabY1, kFRoofZ - 0.02f), vec3(kFCabHW - 0.05f, kFCabY1, kFRoofZ - 0.02f),
-               vec3(kFCabHW - 0.05f, kFCabY0 + 0.05f, kFRoofZ - 0.02f), col(0.9f), makeMat(MAT_CEILING_TILE), vec3(0, 0, -1));
         for (int sd = -1; sd <= 1; sd += 2)
             b.quad(vec3(sd * 1.6f - 0.15f, kFCabY0 + 0.5f, kFRoofZ - 0.03f), vec3(sd * 1.6f - 0.15f, kFCabY1 - 0.5f, kFRoofZ - 0.03f), vec3(sd * 1.6f + 0.15f, kFCabY1 - 0.5f, kFRoofZ - 0.03f),
                    vec3(sd * 1.6f + 0.15f, kFCabY0 + 0.5f, kFRoofZ - 0.03f), col(1.f, 0.97f, 0.92f, 0.5f), makeMat(MAT_EMISSIVE), vec3(0, 0, -1));

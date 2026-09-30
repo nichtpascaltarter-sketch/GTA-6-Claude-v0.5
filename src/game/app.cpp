@@ -550,6 +550,7 @@ struct App {
                         if (npc >= 0 && game.vehicles[npc].seats[0] >= 0) {
                             int drv = game.vehicles[npc].seats[0];
                             game.peds[drv].brain.type = BRAIN_DRIVER;
+                            game.vehicles[npc].persistent = true;   // test prop: never recycled
                             game.attachTraffic(npc, lane, u + 22.f);
                             game.pedAI(drv).temper = 2;   // bold: gets out and has words
                             if (AI::Driver* d = game.traffic.get(npc)) {
@@ -737,7 +738,14 @@ struct App {
             }
             if ((int)(t / 2.5f) != (int)((t - dt) / 2.5f)) {
                 // the car ahead: gap, speed, drive mode and road-rage state
-                std::string ahead = "none";
+                std::string ahead = "none", npcTxt = "gone";
+                for (int i = 0; i < (int)game.vehicles.size() && pv >= 0; i++) {
+                    const Vehicle& o = game.vehicles[i];
+                    if (!o.used || i == pv || !o.persistent) continue;
+                    const AI::Driver* d = game.traffic.get(i);
+                    npcTxt = StrFormat("car %d at %.1f m, speed %.1f, mode %d, rage %d, driver %d", i, length(rel(o.sim.body.pos, game.vehicles[pv].sim.body.pos)),
+                                       o.sim.speed(), d ? (int)d->mode : -1, i < (int)game.ai.veh.size() ? (int)game.ai.veh[i].rage : -1, o.seats[0]);
+                }
                 if (pv >= 0) {
                     const Vehicle& me = game.vehicles[pv];
                     vec2 mp = me.sim.body.pos.toVec3().xy(), mf = normalize(me.sim.forward().xy() + vec2(1e-4f, 0.f));
@@ -754,7 +762,7 @@ struct App {
                                           i < (int)game.ai.veh.size() ? (int)game.ai.veh[i].rage : -1, o.seats[0]);
                     }
                 }
-                LOG("autoplay rage t=%.1f ahead: %s | %s", t, ahead.c_str(), game.aiCensusText(40.f).c_str());
+                LOG("autoplay rage t=%.1f npc: %s | ahead: %s | %s", t, npcTxt.c_str(), ahead.c_str(), game.aiCensusText(40.f).c_str());
             }
         } else if (autoplay == "soak") {
             // long drive on the traffic AI through the city while the clock runs (rush hour -> night), with a 3-star
@@ -1698,6 +1706,9 @@ struct App {
             game.rig.footFirstPerson = s.firstPersonOnFoot;
         }
 #endif
+        renderer.settings.reduceFlashing = s.reduceFlashing;    // lightning, strobe / flicker emissives (renderer)
+        renderer.settings.colorblindOn = s.colorblindMode != 0;  // scene colour-blind correction (the UI corrects itself)
+        UI::colorblindMatrix(s.colorblindMode, renderer.settings.colorblind);
         UI::applyUiSettings(s);   // subtitle size/backing/speaker colours, HUD scale, reticle, reduced HUD flashing, UI colour-blind matrix
     }
 

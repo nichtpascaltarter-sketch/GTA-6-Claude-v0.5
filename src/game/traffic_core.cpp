@@ -330,6 +330,18 @@ void TrafficCore::setDestination(Driver& d, vec2 dest) {
     open.push(QE(length(R.nodes[startNode].p - goalP), startNode));
     int reached = -1;
     int expanded = 0;
+    // a move ea -> eb at node n is only possible when a connector links a lane of ea arriving there to a lane of eb
+    // (grade-separated crossings share nodes on the road network but have no turns; the route must use the ramps)
+    auto canTurn = [&](int n, int ea, int eb) -> bool {
+        if (ea < 0) return true;
+        const NodeInfo& NI = G.nodes[n];
+        if (NI.connCount <= 0) return true;
+        for (int ci = NI.firstConn; ci < NI.firstConn + NI.connCount; ci++) {
+            const Connector& cn = G.conns[ci];
+            if (cn.from >= 0 && cn.to >= 0 && G.lanes[cn.from].edge == ea && G.lanes[cn.to].edge == eb) return true;
+        }
+        return false;
+    };
     while (!open.empty() && expanded < 20000) {
         QE top = open.top();
         open.pop();
@@ -346,6 +358,7 @@ void TrafficCore::setDestination(Driver& d, vec2 dest) {
             int dir = e.n0 == n ? 1 : -1;
             if (G.groupFirst[ei * 2 + (dir < 0 ? 1 : 0)] < 0) continue;   // no lanes that way (one-way)
             if (e.cls == World::RC_DIRT && d.mode != DM_FLEE) continue;
+            if (!canTurn(n, prevEdge[n], ei)) continue;
             int m = dir > 0 ? e.n1 : e.n0;
             float c = gcost[n] + e.length / Max(World::roadInfo(e.cls).speed, 5.f) * 12.f;
             touch(m);

@@ -943,23 +943,31 @@ bool roamUpdate(GameWorld& g, float dt, MissionTest& T) {
                     }
                     break;
                 }
-                // frame it from 5 m on the player's side, a little above
+                // frame it from a few meters, a little above, trying the sides around it until nothing is in the way
+                // (a raccoon behind its dumpster, a bird behind a post)
                 const Fauna::SpeciesInfo& si = Fauna::speciesInfo(pick->sp);
                 bool grounded = si.plan == Fauna::PLAN_QUAD || si.plan == Fauna::PLAN_REPTILE;
                 vec3 c = pick->pos + vec3(0.f, 0.f, grounded ? si.height * 0.5f * pick->scale : 0.f);
                 vec2 away = pp.xy() - c.xy();
                 away = ::length(away) > 0.5f ? normalize(away) : vec2(0.f, -1.f);
-                vec3 cam = c + vec3(away * (si.length < 0.5f ? 2.5f : 5.f), si.length < 0.5f ? 0.6f : 1.2f);
-                vec3 d = normalize(c - cam);
-                UI::PhotoMode& ph = g.phone.photo;
-                ph.camPos = cam;
-                ph.camYaw = atan2f(-d.x, d.y);
-                ph.camPitch = asinf(Clamp(d.z, -1.f, 1.f));
-                ph.camFov = 0.87f;
+                float dist = si.length < 0.5f ? 2.5f : 4.f;
                 R.count0 = pick->sp;
-                UI::PhoneAction a;
-                a.type = UI::PA_TAKE_PHOTO;
-                bool consumed = phoneHandle(g, g.phone, a);
+                bool consumed = true;
+                for (int k = 0; k < 8 && !((flag(g, EX_FIELD_GUIDE) >> pick->sp) & 1); k++) {
+                    float ang = k * kTwoPi / 8.f;
+                    vec2 dir(away.x * cosf(ang) - away.y * sinf(ang), away.x * sinf(ang) + away.y * cosf(ang));
+                    vec3 cam = c + vec3(dir * dist, si.length < 0.5f ? 0.6f : 1.2f);
+                    vec3 d = normalize(c - cam);
+                    UI::PhotoMode& ph = g.phone.photo;
+                    ph.camPos = cam;
+                    ph.camYaw = atan2f(-d.x, d.y);
+                    ph.camPitch = asinf(Clamp(d.z, -1.f, 1.f));
+                    ph.camRoll = 0.f;
+                    ph.camFov = 0.87f;
+                    UI::PhoneAction a;
+                    a.type = UI::PA_TAKE_PHOTO;
+                    consumed = phoneHandle(g, g.phone, a);
+                }
                 roamCheck(!consumed, "a photo still reaches the app (the picture is saved)");
                 R.phase = 2;
                 R.t = 0.f;

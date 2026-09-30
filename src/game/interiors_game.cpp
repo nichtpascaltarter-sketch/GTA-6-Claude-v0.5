@@ -501,15 +501,20 @@ void submitAll(Render::Renderer& R, dvec3 cam, float hour, float gameSeconds) {
                 Render::DynamicLight dl;
                 vec3 dir = li.dir;
                 float k = on;
+                bool calm = R.settings.reduceFlashing;   // accessibility: flicker / strobe / TV become gentle pulses
                 switch (li.anim) {
-                    case 1: k *= (hash32((u32)(gameSeconds * 12.f) + li.phase) % 23u) == 0 ? 0.25f : 1.f; break;   // flicker
+                    case 1: if (!calm) k *= (hash32((u32)(gameSeconds * 12.f) + li.phase) % 23u) == 0 ? 0.25f : 1.f; break;   // flicker
                     case 2: {   // club sweep: rotating moving-head
                         float a = gameSeconds * (0.7f + (li.phase % 5) * 0.13f) + li.phase * 0.7f;
                         dir = normalize(vec3(cosf(a) * 0.55f, sinf(a * 1.3f) * 0.55f, -1.f));
                         break;
                     }
-                    case 3: k *= fmodf(gameSeconds * 3.f + li.phase * 0.37f, 1.f) < 0.12f ? 1.6f : 0.f; break;   // strobe
-                    case 4: k = 0.6f + 0.4f * sinf(gameSeconds * 7.f + li.phase) * sinf(gameSeconds * 3.1f + li.phase * 2.f); break;   // TV
+                    case 3:   // strobe
+                        k *= calm ? 0.55f + 0.35f * sinf(gameSeconds * 1.4f + li.phase) : (fmodf(gameSeconds * 3.f + li.phase * 0.37f, 1.f) < 0.12f ? 1.6f : 0.f);
+                        break;
+                    case 4:   // TV
+                        k = calm ? 0.8f + 0.1f * sinf(gameSeconds * 0.8f + li.phase) : 0.6f + 0.4f * sinf(gameSeconds * 7.f + li.phase) * sinf(gameSeconds * 3.1f + li.phase * 2.f);
+                        break;
                     case 5: k *= 0.75f + 0.25f * sinf(gameSeconds * 2.f + li.phase); break;   // neon pulse
                     case 6: k *= 0.8f + 0.2f * sinf(gameSeconds * 11.f + li.phase) * sinf(gameSeconds * 4.3f); break;   // fire
                     default: break;

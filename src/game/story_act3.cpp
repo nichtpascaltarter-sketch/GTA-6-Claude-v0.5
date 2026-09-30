@@ -460,7 +460,8 @@ public:
         vec3 dp = playerPos(g), mp = pedPos(g, mari);
         vec2 out = normalize(gPlaces.mariApt.pos.xy() - dp.xy() + vec2(0.01f, 0.f));
         std::vector<CutsceneShot> shots;
-        shots.push_back(shotMove(dp + vec3(-out * 1.5f, 1.7f), dp + vec3(out * 400.f, -300.f), dp + vec3(out * 0.5f, 1.6f), dp + vec3(out * 400.f, -330.f),
+        // out over the city lights, a few degrees below the horizon (steeper only shows the floor by the glass)
+        shots.push_back(shotMove(dp + vec3(-out * 1.5f, 1.7f), dp + vec3(out * 500.f, -60.f), dp + vec3(out * 0.5f, 1.6f), dp + vec3(out * 500.f, -85.f),
                                  6.f, 55.f));
         shots.push_back(shotTwo(dp, mp, 6.f));
         g.mCutscene(shots);

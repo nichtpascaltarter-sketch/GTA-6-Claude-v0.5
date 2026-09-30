@@ -781,6 +781,53 @@ struct Sim {
         }
     }
 
+    // Route following check: one car (kinematic dummy mode, no other traffic) routed from a to b with DM_ROUTE.
+    // Prints the planned edge count and progress; returns the arrival time or -1.
+    float routeTest(vec2 a, vec2 b, bool quiet) {
+        cars.assign(1, SimCar());
+        float u = 0.f;
+        int lane = w->lg.nearestLane(a, vec2(0), 60.f, &u);
+        if (lane < 0) {
+            if (!quiet) printf("route: no lane near (%.0f, %.0f)\n", a.x, a.y);
+            return -2.f;
+        }
+        const AI::Lane& L = w->lg.lanes[lane];
+        u = Clamp(u, L.u0 + 1.f, L.u1 - 1.f);
+        SimCar& c = cars[0];
+        c = SimCar();
+        c.used = true;
+        c.model = pickModel();
+        c.uid = uidNext++;
+        vec3 pos = w->lg.lanePos(lane, u);
+        vec2 t = w->lg.laneTangent(lane, u);
+        Vehicles::initVehicle(c.s, models[c.model], c.model, dvec3(pos.x, pos.y, pos.z + 0.3), AI::dirYaw(t));
+        c.info = AI::makeVehicleInfo(models[c.model], c.s);
+        tc.detach(0);
+        tc.attach(0, c.uid, 1234u, c.info, lane, u);
+        AI::Driver* d = tc.get(0);
+        d->mode = AI::DM_ROUTE;
+        tc.setDestination(*d, b);
+        if (!quiet) printf("route (%.0f, %.0f) -> (%.0f, %.0f): start lane %d (edge %d), %zu edges planned\n", a.x, a.y, b.x, b.y, lane, L.edge, d->destEdges.size());
+        tc.toDummy(0, c.s);
+        float best = 1e9f;
+        for (int st = 0; st < 18000; st++) {   // 0.1 s steps, 30 minutes
+            time += 0.1;
+            aiTick(0.1f);
+            vec3 p = w->lg.pathPos(d->path, d->u);
+            float dist = length(p.xy() - b);
+            best = Min(best, dist);
+            if (!quiet && st % 300 == 0)
+                printf("  t %5.0f s at (%6.0f, %6.0f) %s %d dist %.0f (best %.0f) edges %zu mode %d\n", st * 0.1f, p.x, p.y, w->lg.isLane(d->path) ? "lane" : "conn",
+                       d->path, dist, best, d->destEdges.size(), d->mode);
+            if (dist < 60.f) {
+                if (!quiet) printf("  arrived after %.0f s\n", st * 0.1f);
+                return st * 0.1f;
+            }
+        }
+        if (!quiet) printf("  NOT arrived (closest %.0f m)\n", best);
+        return -1.f;
+    }
+
     void run(float seconds) {
         const float h = 1.f / 120.f;
         long steps = (long)(seconds / h);
@@ -1092,6 +1139,41 @@ int main(int argc, char** argv) {
                 printf("  step %+.2f m at (%.1f, %.1f) z %.2f lane %d edge %d cls %d u %.1f (u0 %.1f u1 %.1f) nodes %d->%d\n", r.step, r.p.x, r.p.y, r.p.z, r.lane, l.edge,
                        l.cls, r.u, l.u0, l.u1, l.fromNode, l.toNode);
             }
+            continue;
+        }
+        if (!strcmp(argv[i], "--route") && i + 4 < argc) {
+            vec2 a((float)atof(argv[i + 1]), (float)atof(argv[i + 2])), b((float)atof(argv[i + 3]), (float)atof(argv[i + 4]));
+            static Sim sim;
+            sim.init(&w, a, 50.f, 0, 0);
+            sim.routeTest(a, b, false);
+            i += 4;
+            continue;
+        }
+        if (!strcmp(argv[i], "--routes") && i + 1 < argc) {
+            // n random city-to-city routes (deterministic): arrival rate and time
+            int n = atoi(argv[i + 1]);
+            static Sim sim;
+            sim.init(&w, vec2(2700, 700), 50.f, 0, 0);
+            u32 hsh = 0x1234567u;
+            int ok = 0, tried = 0;
+            double tsum = 0.0;
+            for (int k = 0; k < n; k++) {
+                hsh = hash32(hsh + 17u);
+                vec2 a(800.f + hashToFloat(hsh) * 4800.f, -1500.f + hashToFloat(hash32(hsh)) * 5000.f);
+                hsh = hash32(hsh + 29u);
+                vec2 b(800.f + hashToFloat(hsh) * 4800.f, -1500.f + hashToFloat(hash32(hsh)) * 5000.f);
+                float t = sim.routeTest(a, b, true);
+                if (t == -2.f) continue;   // no road near the start point
+                tried++;
+                if (t >= 0.f) {
+                    ok++;
+                    tsum += t;
+                } else {
+                    printf("  route %d FAILED (%.0f, %.0f) -> (%.0f, %.0f)\n", k, a.x, a.y, b.x, b.y);
+                }
+            }
+            printf("routes: %d / %d arrived, mean %.0f s\n", ok, tried, ok ? tsum / ok : 0.0);
+            i += 1;
             continue;
         }
         if (!strcmp(argv[i], "--deadends")) {

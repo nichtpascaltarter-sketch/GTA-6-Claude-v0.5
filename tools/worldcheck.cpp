@@ -303,11 +303,41 @@ int main(int argc, char** argv) {
         if (!dup) zreps.push_back(h);
     }
     printf("\n[steps] lane surface vs physics ground: %ld samples, %zu off by more than 0.45 m at %zu places\n", zsamples, zhits.size(), zreps.size());
+    // what the physics stands on at a spot: the highest road surface (edge / junction) or site pad below maxZ
+    auto culprit = [&](vec2 q, float maxZ) {
+        std::vector<int> cand;
+        roads.edgesInRect(q - vec2(1.f), q + vec2(1.f), cand);
+        float bz = -1e9f;
+        std::string what = "terrain";
+        for (int ei : cand) {
+            const RoadEdge& e = roads.edges[ei];
+            float bd = 1e30f, bze = 0.f, bs = 0.f;
+            for (size_t k = 0; k + 1 < e.pts.size(); k++) {
+                float t;
+                float d = distPointSegment2D(q, e.pts[k].xy(), e.pts[k + 1].xy(), &t);
+                if (d < bd) { bd = d; bze = Lerp(e.pts[k].z, e.pts[k + 1].z, t); bs = Lerp(e.dist[k], e.dist[k + 1], t); }
+            }
+            bool inJunction = bs < e.cut0 || bs > e.length - e.cut1;
+            if (bd <= e.halfWidth + (inJunction ? 0.f : e.sidewalk)) {
+                float zz = bze + (bd > e.halfWidth ? 0.15f : 0.f);
+                if (zz <= maxZ && zz > bz) { bz = zz; what = StrFormat("%s edge %d%s", roadInfo(e.cls).name, ei, bd > e.halfWidth ? " (sidewalk)" : ""); }
+            }
+            for (int nn : {e.n0, e.n1}) {
+                const RoadNode& n = roads.nodes[nn];
+                if (n.radius <= 0 || length(q - n.p) >= n.radius) continue;
+                float nz = roads.junctionZ(n, q);
+                if (nz <= maxZ && nz > bz) { bz = nz; what = StrFormat("junction %d", nn); }
+            }
+        }
+        float pz;
+        if (gSites && gSites->padHeight(q, &pz, maxZ) && pz > bz) what = "site pad";
+        return what;
+    };
     for (size_t i = 0; i < zreps.size() && (int)i < maxList * 2; i++) {
         const ZHit& h = zreps[i];
         const RoadEdge& e = roads.edges[h.edge];
-        printf("  step %+.2f m at (%.1f, %.1f) z %.2f (terrain %.2f): %s edge %d s %.0f of %.0f (cut %.0f/%.0f) nodes %d->%d\n", h.step, h.p.x, h.p.y, h.p.z,
-               h.terrain, roadInfo(e.cls).name, h.edge, h.s, e.length, e.cut0, e.cut1, e.n0, e.n1);
+        printf("  step %+.2f m at (%.1f, %.1f) z %.2f (terrain %.2f): %s edge %d s %.0f of %.0f (cut %.0f/%.0f) nodes %d->%d; ground from %s\n", h.step, h.p.x,
+               h.p.y, h.p.z, h.terrain, roadInfo(e.cls).name, h.edge, h.s, e.length, e.cut0, e.cut1, e.n0, e.n1, culprit(h.p.xy(), h.p.z + 2.5f).c_str());
     }
     Jobs::shutdown();
     bool fail = laneHits > 0 || propHits > 0 || unguarded > 0.f || !zhits.empty();

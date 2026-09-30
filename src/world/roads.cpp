@@ -799,31 +799,41 @@ void RoadNetwork::generate(WorldMap& map) {
     }
 
     // ============================================================= Elevation
-    // At-grade roads that highways must bridge over: their segments in a coarse grid (highways and ramps excluded)
+    // At-grade roads that highways must bridge over: their (elevated) segments in a coarse grid, built after the streets'
+    // own elevation pass so the highway clears their actual surface
     const float kXCell = 64.f;
     const int xRes = (int)(2.f * kWorldHalf / kXCell) + 1;
     std::vector<std::vector<int>> xGrid((size_t)xRes * xRes);
-    std::vector<std::pair<vec2, vec2>> xSegs;
-    for (const RoadEdge& o : edges) {
-        if (o.cls == RC_HIGHWAY || o.cls == RC_RAMP) continue;
-        for (size_t k = 0; k + 1 < o.pts.size(); k++) {
-            vec2 a = o.pts[k].xy(), c = o.pts[k + 1].xy();
-            int id = (int)xSegs.size();
-            xSegs.push_back({a, c});
-            int x0 = Clamp((int)((Min(a.x, c.x) + kWorldHalf) / kXCell), 0, xRes - 1), x1 = Clamp((int)((Max(a.x, c.x) + kWorldHalf) / kXCell), 0, xRes - 1);
-            int y0 = Clamp((int)((Min(a.y, c.y) + kWorldHalf) / kXCell), 0, xRes - 1), y1 = Clamp((int)((Max(a.y, c.y) + kWorldHalf) / kXCell), 0, xRes - 1);
-            for (int y = y0; y <= y1; y++)
-                for (int x = x0; x <= x1; x++) xGrid[(size_t)y * xRes + x].push_back(id);
+    std::vector<std::pair<vec3, vec3>> xSegs;
+    auto buildStreetGrid = [&]() {
+        for (auto& c : xGrid) c.clear();
+        xSegs.clear();
+        for (const RoadEdge& o : edges) {
+            if (o.cls == RC_HIGHWAY || o.cls == RC_RAMP) continue;
+            for (size_t k = 0; k + 1 < o.pts.size(); k++) {
+                vec2 a = o.pts[k].xy(), c = o.pts[k + 1].xy();
+                int id = (int)xSegs.size();
+                xSegs.push_back({o.pts[k], o.pts[k + 1]});
+                int x0 = Clamp((int)((Min(a.x, c.x) + kWorldHalf) / kXCell), 0, xRes - 1), x1 = Clamp((int)((Max(a.x, c.x) + kWorldHalf) / kXCell), 0, xRes - 1);
+                int y0 = Clamp((int)((Min(a.y, c.y) + kWorldHalf) / kXCell), 0, xRes - 1), y1 = Clamp((int)((Max(a.y, c.y) + kWorldHalf) / kXCell), 0, xRes - 1);
+                for (int y = y0; y <= y1; y++)
+                    for (int x = x0; x <= x1; x++) xGrid[(size_t)y * xRes + x].push_back(id);
+            }
         }
-    }
-    auto crossesStreet = [&](vec2 p, float r) {
+    };
+    // highest street surface within r of p (-1e9 if none)
+    auto streetUnder = [&](vec2 p, float r) {
+        float zmax = -1e9f;
         int cx0 = Clamp((int)((p.x - r + kWorldHalf) / kXCell), 0, xRes - 1), cx1 = Clamp((int)((p.x + r + kWorldHalf) / kXCell), 0, xRes - 1);
         int cy0 = Clamp((int)((p.y - r + kWorldHalf) / kXCell), 0, xRes - 1), cy1 = Clamp((int)((p.y + r + kWorldHalf) / kXCell), 0, xRes - 1);
         for (int y = cy0; y <= cy1; y++)
             for (int x = cx0; x <= cx1; x++)
-                for (int id : xGrid[(size_t)y * xRes + x])
-                    if (distPointSegment2D(p, xSegs[id].first, xSegs[id].second) < r) return true;
-        return false;
+                for (int id : xGrid[(size_t)y * xRes + x]) {
+                    float t;
+                    if (distPointSegment2D(p, xSegs[id].first.xy(), xSegs[id].second.xy(), &t) < r)
+                        zmax = Max(zmax, Lerp(xSegs[id].first.z, xSegs[id].second.z, t));
+                }
+        return zmax;
     };
     // Highway pavement (after the first pass) for ramps: a ramp holds the highway's level while it still overlaps the
     // highway pavement (auxiliary lane up to the gore), then descends at the grade limit; otherwise the ramp dives under
@@ -917,12 +927,14 @@ void RoadNetwork::generate(WorldMap& map) {
                 }
             }
         }
-        // Highways: raise over at-grade road crossings (clearance ~6.5 m under the deck); the grade limit below builds the approaches
+        // Highways: raise over road crossings (deck 7 m over the street surface, at least 8 m over the ground); the grade limit
+        // below builds the approaches
         if (hwy) {
             for (size_t i = 0; i < e.pts.size(); i++) {
                 vec2 p = e.pts[i].xy();
-                if (!crossesStreet(p, 18.f)) continue;
-                target[i] = Max(target[i], map.heightAt(p.x, p.y) + 8.f);
+                float sz = streetUnder(p, 18.f);
+                if (sz < -1e8f) continue;
+                target[i] = Max(target[i], Max(map.heightAt(p.x, p.y) + 8.f, sz + 7.f));
                 e.flags |= RF_BRIDGE;
             }
         }
@@ -945,7 +957,10 @@ void RoadNetwork::generate(WorldMap& map) {
             if (hm[i]) e.pts[i].z = heldZ[&e - &edges[0]][i];
     };
     for (auto& e : edges)
-        if (e.cls != RC_RAMP) elevate(e);
+        if (e.cls != RC_RAMP && e.cls != RC_HIGHWAY) elevate(e);
+    buildStreetGrid();
+    for (auto& e : edges)
+        if (e.cls == RC_HIGHWAY) elevate(e);
     hGrid.assign((size_t)xRes * xRes, {});
     for (size_t ei = 0; ei < edges.size(); ei++) {
         const RoadEdge& h = edges[ei];
@@ -1002,7 +1017,7 @@ void RoadNetwork::generate(WorldMap& map) {
                         if (oSegs[id].first == (int)ei) continue;
                         int k = oSegs[id].second;
                         vec2 b0 = B.pts[k].xy(), b1 = B.pts[k + 1].xy();
-                        float lim = A.halfWidth + B.halfWidth - 1.f;
+                        float lim = A.halfWidth + A.sidewalk + B.halfWidth - 1.f;   // A's surface over B's lanes
                         for (size_t j = i; j <= i + 1 && j < n; j++) {
                             // closest approach between A's segment [i, i+1] (or the vertex alone for the last one) and B's segment
                             vec2 a0 = A.pts[i].xy(), a1 = A.pts[Min(i + 1, n - 1)].xy();
@@ -1247,16 +1262,20 @@ bool RoadNetwork::surfaceHeight(vec2 p, float* z, float maxZ) const {
         const RoadEdge& e = edges[ei];
         // closest point over the whole polyline first, then decide road vs sidewalk once (per-segment tests
         // misclassified lane points near polyline vertices as the raised sidewalk of the neighboring segment)
-        float bestD = 1e30f, bestZe = 0.f;
+        float bestD = 1e30f, bestZe = 0.f, bestS = 0.f;
         for (size_t k = 0; k + 1 < e.pts.size(); k++) {
             float t;
             float d = distPointSegment2D(p, e.pts[k].xy(), e.pts[k + 1].xy(), &t);
             if (d < bestD) {
                 bestD = d;
                 bestZe = Lerp(e.pts[k].z, e.pts[k + 1].z, t);
+                bestS = Lerp(e.dist[k], e.dist[k + 1], t);
             }
         }
-        if (bestD <= e.halfWidth + e.sidewalk) {
+        // inside a junction (before the cut-backs) only the pavement counts: the corner sidewalks are the junction's own,
+        // and an approach's sidewalk band there would reach over the other approaches' lanes
+        bool inJunction = bestS < e.cut0 || bestS > e.length - e.cut1;
+        if (bestD <= e.halfWidth + (inJunction ? 0.f : e.sidewalk)) {
             float zz = bestZe + (bestD > e.halfWidth ? 0.15f : 0.f);
             if (zz <= maxZ && zz > bestZ) {
                 bestZ = zz;

@@ -339,6 +339,9 @@ void GameWorld::updatePopulation(float dt) {
         float limit = v.playerUsed ? 600.f : (busy ? 520.f : (v.parked || drv < 0 ? 220.f : carDespawn));
         bool unseen = !inCameraView(v.sim.body.pos.toVec3(), 3.f);
         if (d > limit || ((v.exploded || v.sim.wrecked) && v.wreckTime > 90.f && d > 60.f && unseen)) {
+            if (v.faction == FAC_POLICE && pinfo.wanted > 0)
+                LOG("population: police vehicle %d recycled at %.0f m (limit %.0f, driver %d brain %d, wrecked %d)", i, d, limit, drv,
+                    drv >= 0 ? (int)peds[drv].brain.type : -1, (int)(v.exploded || v.sim.wrecked));
             despawnVehicle(i, true);
             continue;
         }
