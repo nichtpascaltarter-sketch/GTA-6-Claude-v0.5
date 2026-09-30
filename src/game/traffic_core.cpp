@@ -896,7 +896,9 @@ bool TrafficCore::gapOk(const Driver& d, int lane, float v, float extra) const {
         vec2 rel = b.pos - pos;
         float along = dot(rel, t);
         float lat = dot(rel, r) - shift;
-        if (fabsf(lat) > b.halfWid + d.info.halfWid + 0.7f) return;
+        // a car moving into the same lane from the far side counts as already in it
+        bool intoSame = b.driver >= 0 && b.driver < (int)drivers.size() && drivers[b.driver].active && drivers[b.driver].lcLane == lane;
+        if (!intoSame && fabsf(lat) > b.halfWid + d.info.halfWid + 0.7f) return;
         if (fabsf(along) > range) return;
         float vb = dot(b.vel, t);
         float len = b.halfLen + d.info.halfLen;
@@ -1300,6 +1302,38 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
     // ---- lane change / nudge lateral offsets
     if (d.lcLane >= 0 && d.path < NL) {
         float f = Saturate((d.u - d.lcU0) / Max(d.lcLen, 1.f));
+        // two cars moving into the same lane from both sides at once (the later one, higher id, goes back), or one
+        // drawing alongside in the target lane: back to the middle of our own lane
+        if (f < 0.45f && d.lcLane != d.path) {
+            int self = driverBody(d.vehicle);
+            bool clash = false;
+            if (self >= 0) {
+                const Body& me = bodies[self];
+                float r = d.info.halfLen + kMaxBodyExtent + 4.f;
+                hash.query(bodies, me.pos - vec2(r), me.pos + vec2(r), [&](int bi) {
+                    if (clash || bi == self) return;
+                    const Body& b = bodies[bi];
+                    if (b.driver < 0 || b.driver >= (int)drivers.size() || b.driver == d.vehicle) return;
+                    const Driver& od = drivers[b.driver];
+                    if (!od.active) return;
+                    bool sameTarget = od.lcLane == d.lcLane && od.path != d.lcLane;   // moving over too
+                    bool arrived = od.path == d.lcLane;                                // already there, alongside
+                    if (!sameTarget && !arrived) return;
+                    if (sameTarget && od.uid > d.uid) return;                          // that one goes back instead
+                    float along = dot(b.pos - me.pos, fwd);
+                    if (fabsf(along) < d.info.halfLen + b.halfLen + 4.f) clash = true;
+                });
+            }
+            if (clash) {
+                d.lcFrom = d.lat;
+                d.lcTo = 0.f;
+                d.lcLane = d.path;   // steer back to the middle of our own lane
+                d.lcU0 = d.u;
+                d.lcLen = Clamp(v * 1.6f, 8.f, 25.f);
+                d.lcCooldown = 4.f;
+                f = 0.f;
+            }
+        }
         float w = f * f * (3.f - 2.f * f);
         d.lat = Lerp(d.lcFrom, d.lcTo, w);
         if (f >= 0.5f && d.path != d.lcLane && G.lanes[d.lcLane].group == G.lanes[d.path].group) {
@@ -1456,7 +1490,9 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
     // required deceleration for the stop point
     if (d.stopDist < 1e8f && d.stopDist < v * v / (2.f * d.pers.decel) + 3.f) {
         float req = v * v / (2.f * Max(d.stopDist - 0.3f, 0.15f));
-        aCmd = Min(aCmd, -req);
+        // standing a few meters short of the line (stopped behind someone who has gone since): roll up to it
+        if (v < 0.4f && d.stopDist > 0.8f) aCmd = Min(aCmd, 1.0f);
+        else aCmd = Min(aCmd, -req);
     }
     if (d.obstDist < 1e8f && v > d.obstSpeed) {
         float gapNow = d.obstDist - d.pers.minGap * 0.6f;
@@ -1686,8 +1722,12 @@ void TrafficCore::drive(int vid, Vehicles::VehicleState& s, float dt, DriveOut& 
         if (ob.flags & (BF_PARKED | BF_WRECK | BF_PLAYER)) staticBlocker = true;
         else if (ob.driver >= 0 && ob.driver < (int)drivers.size() && drivers[ob.driver].active) {
             const Driver& od = drivers[ob.driver];
-            // an AI car that is itself blocked by something static (breakdown, flipped, abandoned) - not a queue
-            staticBlocker = od.vTarget < 0.3f && od.stopDist > 40.f && od.obstDist > 25.f && ob.speed < 0.2f;
+            // an AI car that is itself blocked by something static (breakdown, flipped, abandoned), or one that wants
+            // to go but cannot (wedged against a barrier after a spin, backing out, sideways across the lane) - not a queue
+            bool waiting = od.stopDist < 40.f || od.obstDist < 25.f;
+            bool helpless = od.stuckTime > 2.f || od.recoverTimer > 0.f || od.flipTime > 1.f || od.lostTime > 1.f;
+            bool sideways = fabsf(dot(ob.fwd, g->pathTangent(d.path, d.u))) < 0.5f;
+            staticBlocker = ob.speed < 0.2f && ((!waiting && (od.vTarget < 0.3f || helpless)) || sideways);
         } else if (ob.kind == BK_CAR && ob.driver < 0) staticBlocker = true;   // unmanaged vehicle (abandoned)
     }
     float toEnd = d.path < (int)g->lanes.size() ? g->lanes[d.path].u1 - d.u : 0.f;
@@ -1714,6 +1754,8 @@ void TrafficCore::drive(int vid, Vehicles::VehicleState& s, float dt, DriveOut& 
             }
             if (along > -8.f && along < 30.f) clear = false;
             if (along >= 30.f && along < range && dot(b.vel, t) < -1.f) clear = false;  // oncoming
+            // coming up from behind in that lane (a multi-lane road): let it pass first
+            if (along <= -8.f && dot(b.vel, t) > 1.f && (-along - b.halfLen - d.info.halfLen) < dot(b.vel, t) * 4.f + 6.f) clear = false;
         });
         if (clear) {
             d.nudgeTarget = shift;

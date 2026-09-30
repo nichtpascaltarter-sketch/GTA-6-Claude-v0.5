@@ -45,15 +45,25 @@ void Renderer::fxDemo(float dt) {
         return p;
     };
     // A virtual boat circling 55 m ahead when that spot is open water: exercises the wake map (Kelvin wedge,
-    // foam trail) and the bow spray
+    // foam trail) and the bow spray. It arrives with 16 s of wake behind it, so a still frame shows the pattern.
     {
         dvec3 centre = at(55.f, 0.f);
         if (centre.z < -0.8f) {
-            float ang = t * 0.28f;
-            dvec3 bow = centre + dvec3(cosf(ang) * 30.0, sinf(ang) * 30.0, 0.0);
-            vec2 heading(-sinf(ang), cosf(ang));
-            bow.z = 0.0;
-            addWake(0x7fff0001, bow, heading, 30.f * 0.28f, 1.4f);
+            const float omega = 0.28f, radius = 30.f;
+            auto bowAt = [&](float tt) {
+                float a = tt * omega;
+                return dvec3(centre.x + cosf(a) * radius, centre.y + sinf(a) * radius, 0.0);
+            };
+            auto headingAt = [&](float tt) { float a = tt * omega; return vec2(-sinf(a), cosf(a)); };
+            static dvec3 prefilledAt(1e9, 1e9, 0.0);
+            if (length(rel(prefilledAt, centre)) > 1.f) {
+                prefilledAt = centre;
+                for (int k = 40; k >= 1; k--)
+                    water->addWake(0x7fff0001, bowAt(t - k * 0.4f), headingAt(t - k * 0.4f), radius * omega, 1.4f, frame.time.x - k * 0.4f);
+            }
+            dvec3 bow = bowAt(t);
+            vec2 heading = headingAt(t);
+            addWake(0x7fff0001, bow, heading, radius * omega, 1.4f);
             if (tick20Spray(dt)) spawnParticles(PT_WAKE_SPRAY, bow + dvec3(0, 0, 0.3), vec3(heading.x, heading.y, 0.6f) * 2.f, 2, 1.f);
         }
     }

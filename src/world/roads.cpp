@@ -780,8 +780,14 @@ void RoadNetwork::generate(WorldMap& map) {
             return false;
         };
         // a landing junction needs its own stretch of the arterial: clear of the highway deck, of other junctions and ramps
-        auto landingOk = [&](vec2 PL, int apoly, float landR) {
+        auto landingOk = [&](vec2 PL, int apoly, float landR, int hpoly) {
             if (map.isWater(PL.x, PL.y) || gSites->blocksRoads(PL)) return false;
+            // within ~90 m of the highway: a ramp does not wander off through the neighbourhood
+            float dh = 1e9f;
+            plan.query(PL, 100.f, [&](const RampPlanner::RSeg& s) {
+                if (s.layer == 1 && s.poly == hpoly) dh = Min(dh, distPointSegment2D(PL, s.a, s.b));
+            });
+            if (dh > 92.f) return false;
             bool ok = true;
             plan.query(PL, 60.f, [&](const RampPlanner::RSeg& s) {
                 if (!ok || s.poly == apoly) return;
@@ -892,9 +898,10 @@ void RoadNetwork::generate(WorldMap& map) {
                     vec2 x = lerp(path[i], path[i + 1], ta);
                     if (map.isWater(x.x, x.y)) continue;
                     float sx = acc0 + ta * segLen;
-                    // none right at a highway's ends (the Sol Expressway starts on the turnpike, the Sawgrass Expressway ends
-                    // on the ridge roads)
-                    if (sx < 600.f || sx > hwS[h].back() - 400.f) continue;
+                    // none right at a highway's ends (the Sawgrass Expressway starts on the turnpike and ends on the ridge
+                    // roads; the Sol Expressway starts on the turnpike too, with its first crossings in the junction's reach)
+                    float endGap = strcmp(hwys[h].name, "Sol Expressway") == 0 ? 600.f : 300.f;
+                    if (sx < endGap || sx > hwS[h].back() - 300.f) continue;
                     vec2 hp, hd;
                     hwyAt(h, sx, hp, hd);
                     vec2 side = perp(hd), ad = normalize(ap.pts[as.k + 1] - ap.pts[as.k]);
@@ -913,7 +920,7 @@ void RoadNetwork::generate(WorldMap& map) {
                         std::vector<float> okOther;   // landings where the other ramp fitted on its own
                         for (float G : kLandings) {
                             vec2 PL, tL;
-                            if (!arterialPoint(as, tb, adSign, G, PL, tL) || !landingOk(PL, as.poly, landR)) { dbgLand++; continue; }
+                            if (!arterialPoint(as, tb, adSign, G, PL, tL) || !landingOk(PL, as.poly, landR, (int)h)) { dbgLand++; continue; }
                             RampPlan cur[2];
                             for (int d = 0; d < 2; d++) planRamp(h, sx, sgn, d == 0 ? -1 : 1, PL, tL, as.poly, landR, cur[d]);
                             if (cur[0].ok && cur[1].ok) {
@@ -958,7 +965,7 @@ void RoadNetwork::generate(WorldMap& map) {
                             RampPlan other;
                             for (float G : okOther) {
                                 vec2 PL, tL;
-                                if (!arterialPoint(as, tb, adSign, G, PL, tL) || !landingOk(PL, as.poly, landR)) continue;
+                                if (!arterialPoint(as, tb, adSign, G, PL, tL) || !landingOk(PL, as.poly, landR, (int)h)) continue;
                                 planRamp(h, sx, sgn, -firstDir, PL, tL, as.poly, landR, other);
                                 if (other.ok) break;
                             }

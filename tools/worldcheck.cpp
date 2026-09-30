@@ -1,6 +1,7 @@
 // World data checks (native, no GPU): drivable lanes must be free of colliders and props, every road edge with a fall
 // beside it (decks, embankments, approaches) must be guarded by a collision barrier, the ground the vehicle physics
-// drives on must meet the lane surfaces without steps, and no road profile hides a cliff.
+// drives on must meet the lane surfaces without steps, no road profile hides a cliff, and roads that cross without a
+// junction are grade separated.
 // Build from the repo root:  g++ -std=c++17 -O2 -I. tools/worldcheck.cpp -o /tmp/worldcheck -lpthread
 // Run from the repo root:    /tmp/worldcheck [max listed per category]     (exit code 1 when a check fails)
 // Keep the include list in sync with the world section of src/main.cpp.
@@ -356,8 +357,54 @@ int main(int argc, char** argv) {
         }
     }
     printf("  %d segments\n", steep);
+    // ---- 5. crossings: two roads whose centrelines cross away from a shared junction must be grade separated (4.5 m or
+    // more between the surfaces); anything closer is a flat crossing without a junction or a deck in the other's traffic
+    int crossings = 0;
+    {
+        const float C = 64.f;
+        std::unordered_map<long long, std::vector<std::pair<int, int>>> sgrid;
+        for (size_t ei = 0; ei < roads.edges.size(); ei++) {
+            const RoadEdge& e = roads.edges[ei];
+            for (size_t k = 0; k + 1 < e.pts.size(); k++) {
+                vec2 a = e.pts[k].xy(), c = e.pts[k + 1].xy();
+                int x0 = (int)floorf(Min(a.x, c.x) / C), x1 = (int)floorf(Max(a.x, c.x) / C);
+                int y0 = (int)floorf(Min(a.y, c.y) / C), y1 = (int)floorf(Max(a.y, c.y) / C);
+                for (int y = y0; y <= y1; y++)
+                    for (int x = x0; x <= x1; x++) sgrid[key(x, y)].push_back({(int)ei, (int)k});
+            }
+        }
+        std::vector<vec3> seen;
+        printf("\n[crossings] roads crossing without a junction less than 4.5 m apart:\n");
+        for (auto& kv : sgrid) {
+            const auto& v = kv.second;
+            for (size_t i = 0; i < v.size(); i++)
+                for (size_t j = i + 1; j < v.size(); j++) {
+                    if (v[i].first == v[j].first) continue;
+                    const RoadEdge& A = roads.edges[v[i].first];
+                    const RoadEdge& B = roads.edges[v[j].first];
+                    vec3 a0 = A.pts[v[i].second], a1 = A.pts[v[i].second + 1], b0 = B.pts[v[j].second], b1 = B.pts[v[j].second + 1];
+                    float ta, tb;
+                    if (!segmentIntersect2D(a0.xy(), a1.xy(), b0.xy(), b1.xy(), &ta, &tb)) continue;
+                    vec2 p = lerp(a0.xy(), a1.xy(), ta);
+                    bool atNode = false;
+                    for (int na : {A.n0, A.n1})
+                        for (int nb : {B.n0, B.n1})
+                            if (na == nb && length(roads.nodes[na].p - p) < roads.nodes[na].radius + 3.f) atNode = true;
+                    if (atNode) continue;
+                    float dz = fabsf(Lerp(a0.z, a1.z, ta) - Lerp(b0.z, b1.z, tb));
+                    if (dz >= 4.5f) continue;
+                    bool dup = false;
+                    for (vec3 q : seen) dup |= length(q.xy() - p) < 1.f;
+                    if (dup) continue;
+                    seen.push_back(vec3(p, dz));
+                    if (crossings++ < maxList)
+                        printf("  %s edge %d x %s edge %d at (%.1f, %.1f): %.2f m apart\n", roadInfo(A.cls).name, v[i].first, roadInfo(B.cls).name, v[j].first, p.x, p.y, dz);
+                }
+        }
+        printf("  %d crossings\n", crossings);
+    }
     Jobs::shutdown();
-    bool fail = laneHits > 0 || propHits > 0 || unguarded > 0.f || !zhits.empty() || steep > 0;
+    bool fail = laneHits > 0 || propHits > 0 || unguarded > 0.f || !zhits.empty() || steep > 0 || crossings > 0;
     printf("\nworldcheck: %s\n", fail ? "FAILED" : "passed");
     return fail ? 1 : 0;
 }
