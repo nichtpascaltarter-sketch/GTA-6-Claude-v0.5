@@ -148,6 +148,13 @@ struct App {
 #ifdef HAVE_GAMEPLAY
         game.init(&renderer, &env, &map, &roads, &buildings);
         game.rig.footFirstPerson = Platform::hasArg("firstperson");   // start in the on-foot first-person view (tests)
+        if (const char* ws = Platform::argValue("weaponshowcase")) {   // --weaponshowcase x,y,z (test render of every gun)
+            double x = 0, y = 0, z = 0;
+            if (sscanf(ws, "%lf,%lf,%lf", &x, &y, &z) == 3) {
+                game.weaponShowcase = true;
+                game.showcasePos = dvec3(x, y, z);
+            }
+        }
         weather.seed = (u32)(TimeSeconds() * 1000.0) | 1u;
         if (Platform::argValue("rain") || Platform::argValue("clouds") || Platform::argValue("fog") || !shots.empty() || autotest) {
             weather.locked = true;
@@ -368,6 +375,8 @@ struct App {
     void setupAutoplay() {
         Ped* pl = game.playerPed();
         if (!pl) return;
+        // automated runs test free roam: the prologue's opening call and cutscene would take over the camera
+        if (!Platform::hasArg("prologue")) mu::setFlag(game, mu::EX_INTRO_DONE, 1);
         if (autoplay == "drive" || autoplay == "fly" || autoplay == "boat" || autoplay == "bike") {
             Vehicles::VehicleClass cls = autoplay == "fly" ? Vehicles::VC_HELI
                                        : (autoplay == "boat" ? Vehicles::VC_BOAT : (autoplay == "bike" ? Vehicles::VC_MOTORBIKE : Vehicles::VC_SPORTS));
@@ -562,6 +571,28 @@ struct App {
                     }
                 }
                 env.timeOfDay = chase ? 22.f : (soak ? 7.5f : 11.f);   // soak: morning rush hour, then the clock runs
+                if (chase && lane >= 0) {
+                    // the cruiser that clocked us, 45 m back in the same lane with its lights on
+                    int pm = game.findVehicleModel(Vehicles::VC_POLICE, 7);
+                    const AI::Lane& L = game.laneGraph.lanes[lane];
+                    float cu = u - 45.f;
+                    if (pm >= 0 && cu > L.u0 + 2.f) {
+                        vec3 c3 = game.laneGraph.lanePos(lane, cu);
+                        int cop = game.spawnVehicle(pm, dvec3(c3.x, c3.y, c3.z + 0.4f), AI::dirYaw(game.laneGraph.laneTangent(lane, cu)), true, FAC_POLICE);
+                        if (cop >= 0 && game.vehicles[cop].seats[0] >= 0) {
+                            Vehicle& cv = game.vehicles[cop];
+                            cv.faction = FAC_POLICE;
+                            cv.sirenOn = true;
+                            int cd = cv.seats[0];
+                            game.peds[cd].brain.type = BRAIN_COMBAT;
+                            game.peds[cd].brain.target = game.player;
+                            game.attachTraffic(cop, lane, cu);
+                            game.vehAI(cop).role = VR_POLICE;
+                            game.vehAI(cop).task = PT_PURSUE;
+                            LOG("autoplay chase: pursuing cruiser %d 45 m behind", cop);
+                        }
+                    }
+                }
                 if (chase) {
                     game.timeScale = 1.5f;
                     p.armor = 100.f;
@@ -831,7 +862,7 @@ struct App {
                         static float routeT = 1e9f;
                         routeT += dt;
                         vec2 me = game.vehicles[pv].sim.body.pos.toVec3().xy();
-                        bool arrived = d->mode == AI::DM_ROUTE && length(d->dest - me) < 60.f;
+                        bool arrived = d->mode == AI::DM_ROUTE && (length(d->dest - me) < 60.f || (d->destEdges.size() <= 1 && length(d->dest - me) < 250.f));
                         if (d->mode == AI::DM_FLEE || d->mode == AI::DM_NORMAL || arrived || routeT > 240.f) {
                             static const vec2 kSpots[] = {{2713, 763}, {3165, -243}, {3350, -760}, {2700, 1300}, {1720, 360},
                                                           {5066, 1470}, {5372, 900}, {3093, 1600}, {2300, -150}, {3356, 662}};
@@ -1210,6 +1241,7 @@ struct App {
 #ifdef HAVE_GAMEPLAY
                 if (in.pressed(KEY_F9) && game.player >= 0) state = AS_PLAYING;
                 if (game.player >= 0) game.submitRender();
+                else if (game.weaponShowcase) game.submitWeaponShowcase();   // --shot runs without a game
                 else Interiors::submitFreecam(renderer, cam, env);   // enterable interiors without a game (--shot)
 #endif
                 renderer.render(cam, env, dt);

@@ -140,7 +140,29 @@ float3 sampleWaveNormal(float2 w, float t, float dist) {
     float3 c = tWaveNormals.Sample(sLinearWrap, uvC).xyz * 2.0 - 1.0;
     float detail = saturate(1.0 - dist / 400.0);
     float2 n = a.xy * 0.6 + b.xy * 0.5 + c.xy * 0.35 * detail;
+    // Far field: two much larger, rotated scales blended by a slow noise, and the near scales fading out, so the
+    // 23 m tile never repeats visibly towards the horizon
+    float far = saturate((dist - 150.0) / 900.0);
+    if (far > 0.0) {
+        float2 r1 = float2(w.x * 0.8 - w.y * 0.6, w.x * 0.6 + w.y * 0.8);
+        float2 r2 = float2(w.x * 0.34 + w.y * 0.94, -w.x * 0.94 + w.y * 0.34);
+        float3 d = tWaveNormals.Sample(sLinearWrap, r1 / 97.0 + wind * t * 0.008).xyz * 2.0 - 1.0;
+        float3 e = tWaveNormals.Sample(sLinearWrap, r2 / 263.0 - wind * t * 0.004).xyz * 2.0 - 1.0;
+        float mixN = valueNoise(w / 700.0);
+        float2 nf = lerp(d.xy, e.xy, mixN) * 0.8 + a.xy * 0.25;
+        n = lerp(n, nf, far);
+    }
     return normalize(float3(n, 1.0));
+}
+
+// Animated caustics on the sea floor (two warped wave interference patterns), 0..~2.
+float caustics(float2 p, float t) {
+    float2 q = p * 1.7;
+    float2 wq = q + float2(sin(q.y * 1.3 + t * 0.9), cos(q.x * 1.1 - t * 0.8)) * 0.45;
+    float c1 = 0.5 + 0.5 * sin(wq.x * 2.3 + sin(wq.y * 1.9 + t * 0.7) * 1.2);
+    float2 wr = q * 1.37 + float2(cos(q.y * 0.9 - t * 0.6), sin(q.x * 1.4 + t * 0.75)) * 0.5;
+    float c2 = 0.5 + 0.5 * sin(wr.y * 2.1 + sin(wr.x * 1.7 - t * 0.9) * 1.3);
+    return pow(c1, 8.0) + pow(c2, 8.0);
 }
 
 float4 psWater(VSOut i) : SV_Target {
@@ -169,14 +191,22 @@ float4 psWater(VSOut i) : SV_Target {
     if (refrD > 0 && linearDepth(refrD) < waterDist) refrUV = screenUV;  // don't refract foreground objects
     float3 refr = tSceneColor.SampleLevel(sLinearClamp, refrUV, 0).rgb;
     float viewThick = max((refrD > 0 ? linearDepth(tSceneDepth.SampleLevel(sPointClamp, refrUV, 0)) : 1e6) - waterDist, 0.0);
-    // Absorption & scattering (tropical: turquoise shallows, deep blue offshore; greener in rivers/lake)
     bool fresh = i.level > 1.0;
-    float3 absorb = fresh ? float3(0.45, 0.2, 0.25) : float3(0.38, 0.09, 0.07);
-    float3 scatterCol = fresh ? float3(0.03, 0.06, 0.04) : float3(0.012, 0.05, 0.065);
+    float3 sunE = mainLightIlluminance();
+    float viewDepth = dot(i.rel, gCamForward.xyz);
+    float shadow = sampleSunShadow(i.rel, float3(0, 0, 1), viewDepth, (uint2)i.pos.xy);
+    // Sun caustics on a shallow sandy floor: focused light lines, strongest in the shallows and in direct sun
+    if (!fresh && i.depth < 6.0) {
+        float cz = caustics(i.world + N.xy * 0.6, t) * saturate(1.0 - i.depth / 6.0) * saturate(i.depth * 2.0);
+        refr *= 1.0 + cz * 0.45 * shadow * saturate(gSunDir.z * 3.0);
+    }
+    // Absorption & scattering (tropical: bright turquoise over sand in the shallows, deep blue offshore; greener in
+    // rivers and the lake)
+    float3 absorb = fresh ? float3(0.45, 0.2, 0.25) : float3(0.42, 0.075, 0.06);
+    float3 scatterCol = fresh ? float3(0.03, 0.06, 0.04) : lerp(float3(0.02, 0.09, 0.085), float3(0.012, 0.05, 0.065), saturate(i.depth / 8.0));
     float murk = saturate(i.depth / 6.0);
     float3 trans = exp(-absorb * viewThick * (fresh ? 1.6 : 1.0));
     // Inscatter lit by sun + sky
-    float3 sunE = mainLightIlluminance();
     float3 skyE = evalSH9(float3(0, 0, 1)) * PI;
     float3 inscatter = scatterCol * (sunE * saturate(gSunDir.z) * 0.08 + skyE * 0.12) / PI;
     float3 underwater = refr * trans + inscatter * preExposure() * (1.0 - trans);
@@ -194,14 +224,20 @@ float4 psWater(VSOut i) : SV_Target {
     float3 H = normalize(L + V);
     float rough = lerp(0.06, 0.12, saturate(dist / 1500.0));
     float spec = D_GGX(saturate(dot(N, H)), rough * rough) * V_SmithGGXCorrelated(NoV, saturate(dot(N, L)), rough * rough) * saturate(dot(N, L));
-    float viewDepth = dot(i.rel, gCamForward.xyz);
-    float shadow = sampleSunShadow(i.rel, float3(0, 0, 1), viewDepth, (uint2)i.pos.xy);
     float3 glint = sunE * spec * F * shadow * preExposure();
-    // Foam: shoreline (thin water) + wave crests
+    // Foam: shoreline (thin water) + wave crests + breaking lines rolling in over the shallows (bands of constant
+    // depth that move shoreward, broken up along the beach, dissolving as they reach the swash zone)
     float3 foamTex = tWaveNormals.Sample(sLinearWrap, i.world / 6.0 + t * 0.01).zzz;
     float shore = saturate(1.0 - thickness / 0.8) * saturate(1.0 - i.depth / 1.5 + 0.5);
     float crest = saturate((gn.z < 0.9 ? (0.9 - gn.z) * 6.0 : 0.0)) * saturate(amp - 0.3);
-    float foam = saturate((shore * 0.9 + crest) * foamTex.x * 1.6);
+    float breakers = 0;
+    if (!fresh && i.depth < 3.0) {
+        float waves = 0.4 + 0.6 * saturate(gWaterParams.w + gWind.z * 0.5);
+        float band = pow(0.5 + 0.5 * sin(TWO_PI * (i.depth / 1.15 + t * 0.11) + valueNoise(i.world * 0.05) * 5.0), 10.0);
+        float along = saturate(valueNoise(i.world * 0.11 + t * 0.05) * 1.8 - 0.35);
+        breakers = band * along * saturate(1.0 - i.depth / 3.0) * saturate(i.depth * 3.0) * waves;
+    }
+    float foam = saturate((shore * 0.9 + crest + breakers * 1.3) * foamTex.x * 1.6);
     float3 foamCol = (sunE * saturate(gSunDir.z) * shadow + skyE) * 0.8 / PI * preExposure();
     float3 col = lerp(underwater, refl, F) + glint;
     col = lerp(col, foamCol, foam);

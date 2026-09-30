@@ -178,8 +178,10 @@ float3 hairDirect(GBufferData g, float3 N, float3 V, float3 L) {
     float s2 = pow(sqrt(saturate(1.0 - h2 * h2)), e2) * (e2 + 2.0) / (2.0 * PI);
     float NoL = dot(N, L);
     float vis = saturate(NoL * 0.75 + 0.25);
-    float F = 0.046 + 0.954 * pow5(1.0 - saturate(dot(V, H)));
-    float3 spec = (s1 * F * 0.35 * (0.4 + 0.8 * g.extra) + s2 * g.albedo * (0.3 + g.extra * 0.9) * 0.25) * vis;
+    // cuticle reflectance stays low at grazing angles (fibres, not a smooth shell): no Schlick rim blow-up on
+    // lashes, brows and the silhouette of the hair volume
+    const float F = 0.05;
+    float3 spec = (s1 * F * 0.35 * (0.4 + 0.8 * g.extra) + s2 * g.albedo * (0.3 + g.extra * 0.9) * 0.2) * vis;
     return g.albedo / PI * saturate(NoL * 0.6 + 0.4) * 0.85 + spec;
 }
 

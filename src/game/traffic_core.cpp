@@ -203,7 +203,9 @@ int TrafficCore::chooseConnector(Driver& d, int lane, bool fromCurrentLane) {
     int gc = G.groupCount[L.group];
     // lane changes possible on this lane?  (short links: stay in lane)
     float room = L.u1 - (fromCurrentLane ? d.u : L.u0);
+    bool routed = (d.mode == DM_ROUTE || d.mode == DM_EMERGENCY || d.hasDest) && !d.destEdges.empty();
     int maxShift = room > 150.f ? 3 : (room > 90.f ? 2 : (room > 45.f ? 1 : 0));
+    if (routed) maxShift = room > 100.f ? 3 : (room > 55.f ? 2 : (room > 25.f ? 1 : 0));   // a turn to make: change lanes sooner
     if (d.mode == DM_FLEE || d.mode == DM_EMERGENCY) maxShift = Min(maxShift, room > 60.f ? 1 : 0);
     struct Opt {
         int conn;
@@ -271,8 +273,35 @@ void TrafficCore::planRoute(Driver& d) {
     const LaneGraph& G = *g;
     const int NL = (int)G.lanes.size();
     if (d.path < 0) return;
-    // destination routing: recompute the node route occasionally
+    // destination routing: recompute the route every few seconds from where the car is
     if (d.hasDest && (d.destEdges.empty() || d.destRecalc <= 0.f)) setDestination(d, d.dest);
+    // planned turns that leave the route (chosen before the plan changed) are re-chosen, unless it is the next junction
+    // and the car is committed to it or too close to change lanes
+    if (d.hasDest && !d.destEdges.empty() && d.routeLen > 0) {
+        for (int k = 0; k < d.routeLen; k++) {
+            int p = d.route[k];
+            if (p < NL) continue;
+            const Connector& C = G.conn(p);
+            int fromEdge = G.lanes[C.from].edge, want = -1;
+            for (size_t q = 0; q + 1 < d.destEdges.size(); q++)
+                if (d.destEdges[q] == fromEdge) {
+                    want = d.destEdges[q + 1];
+                    break;
+                }
+            if (want < 0 || G.lanes[C.to].edge == want) continue;
+            bool nextJunction = d.path < NL && k == 0;
+            float toEnd = d.path < NL ? G.lanes[d.path].u1 - d.u : 0.f;
+            if (d.path >= NL && k == 0) continue;                                   // already crossing it
+            if (nextJunction && (d.committed || toEnd < 12.f)) continue;
+            d.routeLen = k;
+            if (nextJunction) {
+                d.gateConn = -1;
+                d.stopDone = false;
+                d.lcLane = -1;
+            }
+            break;
+        }
+    }
     int guard = 0;
     while (d.routeLen < Driver::kRouteMax - 1 && guard++ < 12) {
         int last = d.routeLen > 0 ? d.route[d.routeLen - 1] : d.path;
@@ -300,40 +329,31 @@ void TrafficCore::setDestination(Driver& d, vec2 dest) {
     float sB = 0.f;
     int goalEdge = R.nearestEdge(dest, 400.f, &sB);
     if (goalEdge < 0) return;
-    // A* over nodes (driving direction honored via lane groups)
-    const int N = (int)R.nodes.size();
+    // A* over directed road edges: a state is "travelled edge e in direction dir, now at its far node". Which turns
+    // exist depends on the edge we arrive on (turn lanes, grade-separated crossings that share a road-network node but
+    // have no connectors), so the arrival edge is part of the state.
+    const int E = (int)R.edges.size();
+    const int NS = E * 2;
     thread_local std::vector<float> gcost;
-    thread_local std::vector<int> prevEdge, prevNode;
+    thread_local std::vector<int> prevState;
     thread_local std::vector<u32> stamp;
     thread_local u32 curStamp = 0;
-    if ((int)gcost.size() != N) {
-        gcost.assign(N, 0.f);
-        prevEdge.assign(N, -1);
-        prevNode.assign(N, -1);
-        stamp.assign(N, 0);
+    if ((int)gcost.size() != NS) {
+        gcost.assign(NS, 0.f);
+        prevState.assign(NS, -1);
+        stamp.assign(NS, 0);
     }
     curStamp++;
-    typedef std::pair<float, int> QE;
-    std::priority_queue<QE, std::vector<QE>, std::greater<QE>> open;
-    auto touch = [&](int n) {
-        if (stamp[n] != curStamp) {
-            stamp[n] = curStamp;
-            gcost[n] = 1e30f;
-            prevEdge[n] = prevNode[n] = -1;
+    auto touch = [&](int st) {
+        if (stamp[st] != curStamp) {
+            stamp[st] = curStamp;
+            gcost[st] = 1e30f;
+            prevState[st] = -1;
         }
     };
-    const World::RoadEdge& GE = R.edges[goalEdge];
-    vec2 goalP = GE.posAt(sB).xy();
-    touch(startNode);
-    gcost[startNode] = 0.f;
-    prevEdge[startNode] = startEdge;
-    open.push(QE(length(R.nodes[startNode].p - goalP), startNode));
-    int reached = -1;
-    int expanded = 0;
-    // a move ea -> eb at node n is only possible when a connector links a lane of ea arriving there to a lane of eb
-    // (grade-separated crossings share nodes on the road network but have no turns; the route must use the ramps)
+    auto endNode = [&](int st) { const World::RoadEdge& e = R.edges[st >> 1]; return (st & 1) ? e.n0 : e.n1; };
+    // a move ea -> eb at node n needs a connector from a lane of ea arriving there to a lane of eb
     auto canTurn = [&](int n, int ea, int eb) -> bool {
-        if (ea < 0) return true;
         const NodeInfo& NI = G.nodes[n];
         if (NI.connCount <= 0) return true;
         for (int ci = NI.firstConn; ci < NI.firstConn + NI.connCount; ci++) {
@@ -342,15 +362,27 @@ void TrafficCore::setDestination(Driver& d, vec2 dest) {
         }
         return false;
     };
-    while (!open.empty() && expanded < 20000) {
+    const World::RoadEdge& GE = R.edges[goalEdge];
+    vec2 goalP = GE.posAt(sB).xy();
+    typedef std::pair<float, int> QE;
+    std::priority_queue<QE, std::vector<QE>, std::greater<QE>> open;
+    int startDir = G.isLane(d.path) ? G.lanes[d.path].dir : G.lanes[G.conn(d.path).to].dir;
+    int startState = startEdge * 2 + (startDir < 0 ? 1 : 0);
+    touch(startState);
+    gcost[startState] = 0.f;
+    open.push(QE(length(R.nodes[startNode].p - goalP) * 0.4f, startState));
+    int reached = -1;
+    int expanded = 0;
+    while (!open.empty() && expanded < 30000) {
         QE top = open.top();
         open.pop();
-        int n = top.second;
-        if (stamp[n] != curStamp) continue;
-        if (top.first > gcost[n] + length(R.nodes[n].p - goalP) + 0.01f) continue;
+        int st = top.second;
+        if (stamp[st] != curStamp) continue;
+        int n = endNode(st);
+        if (top.first > gcost[st] + length(R.nodes[n].p - goalP) * 0.4f + 0.01f) continue;
         expanded++;
-        if (n == GE.n0 || n == GE.n1) {
-            reached = n;
+        if ((st >> 1) == goalEdge) {   // travelling on the goal edge (the last turn onto it was a real one)
+            reached = st;
             break;
         }
         for (int ei : R.nodes[n].edges) {
@@ -358,29 +390,46 @@ void TrafficCore::setDestination(Driver& d, vec2 dest) {
             int dir = e.n0 == n ? 1 : -1;
             if (G.groupFirst[ei * 2 + (dir < 0 ? 1 : 0)] < 0) continue;   // no lanes that way (one-way)
             if (e.cls == World::RC_DIRT && d.mode != DM_FLEE) continue;
-            if (!canTurn(n, prevEdge[n], ei)) continue;
-            int m = dir > 0 ? e.n1 : e.n0;
-            float c = gcost[n] + e.length / Max(World::roadInfo(e.cls).speed, 5.f) * 12.f;
-            touch(m);
-            if (c < gcost[m]) {
-                gcost[m] = c;
-                prevEdge[m] = ei;
-                prevNode[m] = n;
-                open.push(QE(c + length(R.nodes[m].p - goalP) * 0.4f, m));
+            if (!canTurn(n, st >> 1, ei)) continue;
+            int ns = ei * 2 + (dir < 0 ? 1 : 0);
+            float c = gcost[st] + e.length / Max(World::roadInfo(e.cls).speed, 5.f) * 12.f;
+            touch(ns);
+            if (c < gcost[ns]) {
+                gcost[ns] = c;
+                prevState[ns] = st;
+                int m = dir > 0 ? e.n1 : e.n0;
+                open.push(QE(c + length(R.nodes[m].p - goalP) * 0.4f, ns));
             }
         }
     }
     if (reached < 0) return;
     std::vector<int> edges;
-    for (int n = reached; n >= 0 && prevNode[n] >= 0; n = prevNode[n]) {
-        edges.push_back(prevEdge[n]);
-        d.destNodes.push_back(n);
+    for (int st = reached; st >= 0; st = prevState[st]) {
+        edges.push_back(st >> 1);
+        d.destNodes.push_back(endNode(st));
+        if (st == startState) break;
     }
-    edges.push_back(startEdge);
     std::reverse(edges.begin(), edges.end());
     std::reverse(d.destNodes.begin(), d.destNodes.end());
     if (edges.back() != goalEdge) edges.push_back(goalEdge);
     d.destEdges = edges;
+    // re-plan the turns ahead onto the new route: everything when the car is still well before the next junction
+    // (room to get into the right lane), otherwise keep the next connector (it may be committed to it) and drop the rest
+    if (d.routeLen > 0) {
+        bool onLane = G.isLane(d.path);
+        float toEnd = onLane ? G.lanes[d.path].u1 - d.u : 0.f;
+        if (onLane && toEnd > 35.f && !d.committed && d.gateConn < 0) {
+            d.routeLen = 0;
+            d.lcLane = -1;
+        } else {
+            const int NL = (int)G.lanes.size();
+            for (int k = 0; k < d.routeLen; k++)
+                if (d.route[k] >= NL) {
+                    d.routeLen = Min(d.routeLen, k + 2);
+                    break;
+                }
+        }
+    }
 }
 
 bool TrafficCore::relocalize(Driver& d, vec2 pos, vec2 heading, float maxDist) {

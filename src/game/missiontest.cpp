@@ -286,7 +286,9 @@ bool prepareMission(GameWorld& g, const std::string& id) {
         int v = mu::placePlayer(g, pl.curb, pl.curbYaw, mu::pickModel(g, {(Vehicles::VehicleClass)jobClass}));
         if (v < 0) LOG("[missiontest] no vehicle of class %d for %s", jobClass, id.c_str());
     }
-    M.cooldown = 0.f;
+    // no start marker may fire while the world streams in (the stranger parts share one marker: standing on it would
+    // start the first part the test has not passed yet)
+    M.cooldown = 3600.f;
     M.retry.def = -1;
     M.retry.pending = false;
     return true;
@@ -297,8 +299,9 @@ bool startPrepared(GameWorld& g, const std::string& id) {
     int di = M.findDef(id.c_str());
     if (di < 0) return false;
     M.startCheckpoint = 0;
+    M.cooldown = 0.f;
     g.startMission(di);
-    return M.active != nullptr;
+    return M.active != nullptr && M.activeDef == di;
 }
 
 // World cells (render meshes and collision) around the camera are loaded

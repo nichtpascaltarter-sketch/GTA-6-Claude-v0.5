@@ -1073,7 +1073,7 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
     float dist = length(to);
     float mySpeed = v.sim.speed();
     // ---- catch-up: a unit far behind and out of view is moved closer along the roads
-    if (chasingPlayer && dist > 230.f && !inCameraView(vp, 10.f) && va.repath <= 0.f && d) {
+    if (chasingPlayer && va.task == PT_PURSUE && dist > 230.f && !inCameraView(vp, 10.f) && va.repath <= 0.f && d) {   // (not while searching)
         va.repath = 6.f;
         vec2 back = length2(tv.xy()) > 4.f ? -normalize(tv.xy()) : normalize(vp.xy() - tp.xy());
         float u = 0.f;

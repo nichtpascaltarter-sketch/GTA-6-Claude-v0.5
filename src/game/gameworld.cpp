@@ -203,6 +203,34 @@ void GameWorld::update(float realDt) {
     ema(profCamera, (t7 - t6) * 1000.0);
 }
 
+// Test render (--weaponshowcase x,y,z): a gun rack for checking attachment placement and tints.
+void GameWorld::submitWeaponShowcase() {
+    Render::DynamicRenderer* dyn = renderer->dynamic;
+    // gun rack for checking attachment placement: one gun per column along +X (pistol .. RPG), stock in the lower
+    // row, every component fitted in the upper row with the column's tint; barrels point +X (view it looking north)
+    int col = 0;
+    for (int w = WPN_PISTOL; w <= WPN_RPG; w++, col++) {
+        for (int row = 0; row < 2; row++) {
+            int tint = row ? (col % (kWeaponTints - 1)) + 1 : 0;
+            Render::DrawItem d;
+            d.model = weaponTintModels[w][tint] ? weaponTintModels[w][tint] : weaponModels[w];
+            if (!d.model) continue;
+            d.pos = showcasePos + dvec3(col * 1.15 - 3.45, 0.0, row * 0.45);   // side-on to a camera looking north
+            d.rot = frameFromForward(vec3(1, 0, 0), vec3(0, 0, 1));
+            d.id = 0x6f0000000ull + (u64)(w * 2 + row);
+            dyn->submit(d);
+            u8 comps = row ? weaponCompsAvailable((WeaponType)w) : 0;
+            for (int c = 0; c < kWeaponCompCount; c++) {
+                if (!(comps & (1 << c)) || !weaponCompModels[w][c]) continue;
+                Render::DrawItem cd = d;
+                cd.model = weaponCompModels[w][c];
+                cd.id = d.id + ((u64)(c + 1) << 40);
+                dyn->submit(cd);
+            }
+        }
+    }
+}
+
 // Autosave into the last slot once things are calm: after a mission is passed (never mid-mission, wanted, dead,
 // in a cutscene or a fade) and every 10 minutes of free roam.
 void GameWorld::updateAutosave(float realDt) {
@@ -610,6 +638,7 @@ void GameWorld::submitRender() {
             dyn->submit(pd);
         }
     }
+    if (weaponShowcase) submitWeaponShowcase();
     Wildlife::submitRender(*this);   // birds, flocks, fish shoals, pets, herds, alligators (wildlife.cpp)
     Transit::submit(*this);          // train door leaves, far trains, head lamps (transit_game.cpp)
     // ---- pickups

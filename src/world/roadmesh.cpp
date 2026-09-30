@@ -606,7 +606,8 @@ void dressEdge(const RoadNetwork& net, int ei, const WorldMap& map, int cx, int 
         vec3 q(p, f.c.z + (sw > 0.5f ? 0.15f : 0.f));
         if (sw <= 0.5f) q.z = Min(f.c.z, map.heightAt(p.x, p.y));
         if (!occ.free(p, r)) return false;
-        if (net.onPavement(p, q.z, 0.15f + r * 0.5f)) return false;
+        // no other road's pavement within reach, including ramps and decks passing a few metres above or below
+        if (net.onPavement(p, q.z, 0.15f + r * 0.5f, -1, 6.f)) return false;
         if (gBuildings && gBuildings->pointInBuilding(p, 0.3f)) return false;
         if (gSites && gSites->blocksVegetation(p)) return false;
         *pos = q;

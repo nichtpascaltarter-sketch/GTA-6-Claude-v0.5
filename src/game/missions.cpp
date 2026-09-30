@@ -126,7 +126,12 @@ void fixShot(const GameWorld& g, CutsceneShot& s) {
     };
     const float d25 = 25.f * kDegToRad, d50 = 50.f * kDegToRad;
     const Try tries[] = {{0.f, 0.6f}, {d25, 0.7f}, {-d25, 0.7f}, {d50, 0.7f}, {-d50, 0.7f}, {kPi, 0.4f}, {0.f, 0.25f}};
-    for (const Try& t : tries)
+    // a camera that started inside a building while the scene is out on the street is on the wrong side of the
+    // facade: the reverse angle (the street) first, before small swings that only find the doorway recess
+    const Try reverseFirst[] = {{kPi, 0.6f}, {kPi - d25, 0.7f}, {kPi + d25, 0.7f}, {0.f, 0.6f}, {d50, 0.7f}, {-d50, 0.7f}, {0.f, 0.25f}};
+    vec3 c0 = s.pos.toVec3();
+    bool wrongSide = interiorAt(s.target.toVec3()) < 0 && (insideBuilding(g, c0) || interiorAt(c0) >= 0);
+    for (const Try& t : wrongSide ? reverseFirst : tries)
         for (float k = 0.95f + (t.ang != 0.f ? 0.05f : 0.f); k >= t.kMin - 1e-3f; k -= 0.05f) {
             dvec3 p1 = swingCam(s.pos, s.target, t.ang, k), p2 = swingCam(s.pos2, s.target2, t.ang, k);
             if (camSees(g, p1, s.target) && camSees(g, p2, s.target2)) {

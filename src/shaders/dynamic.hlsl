@@ -312,7 +312,7 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         float3 hueJit = lerp(float3(1.03, 0.99, 0.95), float3(0.96, 1.0, 1.05), valueNoise3(i.localPos * float3(600.0, 600.0, 30.0) + 2.9));
         albedo = i.color.rgb * (0.65 + a.r * 0.5) * lerp(0.72, 1.15, strand) * hueJit;
         ao *= lerp(0.62, 1.0, saturate(clump * 1.4 - 0.1)) * lerp(0.85, 1.0, strand);
-        rough = 0.32;
+        rough = 0.4;
         extra = strand;   // sparkle of the secondary (coloured) highlight
     } else if (matId == M_CLOTH || matId == M_DENIM) {
         sm = SM_CLOTH;
@@ -343,7 +343,8 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
             albedo *= lerp(1.0, 0.55, smoothstep(24.0, 28.5, pd));   // limbal ring
         } else if (pd >= 29.0) {
             float vein = smoothstep(0.9, 0.97, valueNoise(float2(phase * 16.0, pd * 0.45))) * saturate((pd - 42.0) / 35.0);
-            albedo = lerp(albedo * float3(0.84, 0.81, 0.79), float3(0.55, 0.14, 0.12), vein * 0.4);   // sclera: off-white
+            // sclera: off-white, and darker overall: the socket / brow shadow the shadow maps cannot resolve
+            albedo = lerp(albedo * float3(0.62, 0.6, 0.58), float3(0.45, 0.12, 0.1), vein * 0.4);
         }
         ao *= lerp(1.0, 0.45, saturate((pd - 45.0) / 35.0));   // the lids shade the edges of the eyeball
         // wet cornea over the iris: sharp catchlights from the env probe / SSR; the sclera is moist but diffuse

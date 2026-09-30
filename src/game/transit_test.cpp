@@ -28,6 +28,14 @@ struct Test {
     int pier = -1, ferry = -1;
     bool skipped = false;
     bool done = false;
+    // shots are taken a moment after the camera is placed (exposure and temporal effects settle)
+    std::string pendName;
+    float pendT = 0.f;
+    // teleports wait for the destination to stream in, then put the player back on the (now solid) ground
+    bool tpPending = false;
+    vec3 tpTarget;
+    float tpT = 0.f;
+    float diagT = 0.f;
 };
 Test gT;
 
@@ -39,17 +47,32 @@ std::string shotName(const char* name) {
 }
 
 void snap(GameWorld& g, const char* name) {
-    g.requestScreenshot = shotName(name);
-    LOG("Transit test [%s]: shot %s at t=%.1f", gT.mode.c_str(), name, gT.t);
+    (void)g;
+    if (!gT.pendName.empty()) return;   // one shot at a time
+    gT.pendName = name;
+    gT.pendT = 1.4f;
+}
+
+void flushShot(GameWorld& g, float dt) {
+    if (gT.pendName.empty()) return;
+    gT.pendT -= dt;
+    if (gT.pendT > 0.f || !g.requestScreenshot.empty()) return;
+    g.requestScreenshot = shotName(gT.pendName.c_str());
+    LOG("Transit test [%s]: shot %s at t=%.1f", gT.mode.c_str(), gT.pendName.c_str(), gT.t);
+    gT.pendName.clear();
 }
 
 void scriptCam(GameWorld& g, vec3 from, vec3 at, float fov = 55.f) {
+    // a new shot position: fresh exposure and temporal history (the gameplay camera only cuts for its own jumps)
+    bool jump = !g.rig.scriptActive || length((g.rig.scriptPos - dvec3(from)).toVec3()) > 4.f;
+    if (jump && g.renderer) g.renderer->cameraCut = true;
     g.rig.scriptActive = true;
     g.rig.scriptPos = dvec3(from);
     g.rig.scriptTarget = dvec3(at);
     g.rig.scriptFov = fov;
 }
 void releaseCam(GameWorld& g) {
+    if (!gT.pendName.empty()) return;   // hold the shot's camera until it is taken
     if (g.rig.scriptActive) {
         g.rig.scriptActive = false;
         g.rig.cut = true;
@@ -73,6 +96,9 @@ void teleport(GameWorld& g, vec3 p, float yaw) {
     g.rig.yaw = yaw;
     g.rig.cut = true;
     g.populationWarmup = Max(g.populationWarmup, 1.5f);
+    gT.tpPending = true;
+    gT.tpTarget = p;
+    gT.tpT = 0.f;
 }
 
 // Follow a waypoint path on foot; returns true at the end. Stuck for too long at a waypoint: hop to it.
@@ -82,7 +108,7 @@ bool followPath(GameWorld& g, float dt, float mag = 0.8f) {
     vec2 p = pl->pos.toVec3().xy();
     vec2 goal = gT.path[gT.wp];
     gT.wpT += dt;
-    if (length(goal - p) < 0.7f || gT.wpT > 14.f) {
+    if (length(goal - p) < 0.45f || gT.wpT > 14.f) {
         if (gT.wpT > 14.f) {
             LOG("Transit test [%s]: stuck before waypoint %d, hopping", gT.mode.c_str(), gT.wp);
             pl->pos = dvec3(goal.x, goal.y, g.groundHeight(goal.x, goal.y, pl->pos.z + 2.f));
@@ -364,7 +390,9 @@ void bus(GameWorld& g, float dt) {
             const Vehicles::VehicleModel& spec = g.vassets[v.model].spec;
             vec3 door = v.sim.body.pos.toVec3() + rotate(v.sim.body.rot, vec3(spec.boxHalf.x + 0.7f, spec.boxCenter.y + spec.boxHalf.y - 1.2f, 0.f));
             if (gT.stageT > 1.f && gT.stageT - dt <= 1.f) {
-                scriptCam(g, door + rotate(v.sim.body.rot, vec3(4.f, 7.f, 1.6f)), door + vec3(0, 0, 1.f), 60.f);
+                // three-quarter front view from the sidewalk ahead of the bus: sign, doors and the shelter behind
+                vec3 mid = v.sim.body.pos.toVec3() + rotate(v.sim.body.rot, vec3(0.f, spec.boxCenter.y, spec.boxHalf.z));
+                scriptCam(g, door + rotate(v.sim.body.rot, vec3(1.6f, 12.f, 1.9f)), mid, 55.f);
                 snap(g, "bus_at_stop");
             }
             if (gT.stageT < 2.f) return;
@@ -398,6 +426,18 @@ void bus(GameWorld& g, float dt) {
                 return;
             }
             if (gT.stageT > 4.f && gT.stageT - dt <= 4.f) snap(g, "riding");
+            gT.diagT -= dt;
+            if (gT.diagT <= 0.f && b.materialized()) {
+                gT.diagT = 5.f;
+                const AI::Driver* d = g.traffic.get(b.veh);
+                const Vehicle& v = g.vehicles[b.veh];
+                if (d)
+                    LOG("Transit test [bus]: phase %d next %d leg %d off %.1f | mode %d path %d(%s) u %.1f speed %.1f vT %.1f stopD %.1f obstD %.1f body %d gate %d wait %.1f "
+                        "route %d dest %zu lc %d dummy %d stopPath %d stopU %.1f",
+                        b.phase, b.next, b.leg, b.offRoute, (int)d->mode, d->path, g.laneGraph.isLane(d->path) ? "lane" : "conn", d->u, v.sim.speed(), d->vTarget,
+                        d->stopDist, d->obstDist, d->obstBody, d->gateConn, d->waitTime, d->routeLen, d->destEdges.size(), d->lcLane, (int)d->dummy, d->stopPath,
+                        d->stopU);
+            }
             static int lastPhase = 2;
             if (b.phase == 2 && lastPhase == 0) {
                 gT.busStopsRidden++;
@@ -571,6 +611,7 @@ void update(GameWorld& g, float dt) {
             gT.mode = a;
             LOG("Transit test [%s]: start", a);
             mu::setFlag(g, mu::EX_INTRO_DONE, 1);   // no opening shots or prologue call during the test
+            if (g.renderer) g.renderer->settings.motionBlur = false;   // sharp shots: scripted cameras track moving vehicles
             // --transithour H: run the test at that time of day (night lighting checks)
             if (const char* h = Platform::argValue("transithour"))
                 if (g.env) g.env->timeOfDay = (float)atof(h);
@@ -578,9 +619,27 @@ void update(GameWorld& g, float dt) {
     }
     if (gT.mode.empty() || gT.done) return;
     gT.t += dt;
-    gT.stageT += dt;
+    flushShot(g, dt);
     if (gT.t < 1.f) return;   // let the world settle
     g.pinfo.wanted = 0;
+    if (gT.tpPending) {
+        // hold the player at the destination until its cells (and their collision) are in
+        gT.tpT += dt;
+        Ped* pl = g.playerPed();
+        int pending = g.renderer && g.renderer->world ? g.renderer->world->pendingCount() : 0;
+        if (pl && ((pending == 0 && gT.tpT > 1.5f) || gT.tpT > 12.f)) {
+            pl->pos = dvec3(gT.tpTarget.x, gT.tpTarget.y, g.groundHeight(gT.tpTarget.x, gT.tpTarget.y, gT.tpTarget.z + 1.5f));
+            pl->vel = vec3(0.f);
+            pl->state = PS_ONFOOT;
+            gT.tpPending = false;
+            LOG("Transit test [%s]: arrived at (%.1f, %.1f, %.1f) after %.1f s of streaming", gT.mode.c_str(), gT.tpTarget.x, gT.tpTarget.y, pl->pos.z, gT.tpT);
+        } else if (pl) {
+            pl->pos = dvec3(gT.tpTarget.x, gT.tpTarget.y, gT.tpTarget.z + 0.3f);
+            pl->vel = vec3(0.f);
+        }
+        return;
+    }
+    gT.stageT += dt;
     if (gT.mode == "metro") metro(g, dt);
     else if (gT.mode == "bus") bus(g, dt);
     else if (gT.mode == "ferry") ferry(g, dt);

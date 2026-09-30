@@ -608,6 +608,7 @@ void playerLogic(GameWorld& g, float dt) {
         const World::FerryRoute& R = route();
         for (int k = 0; k < (int)R.piers.size(); k++)
             if (R.piers[k] == pi) legIdx = k;
+        if (legIdx < 0) continue;   // a pier the route does not call at
         float best = 1e9f;
         for (int i = 0; i < kFerries; i++) {
             float tau = fmodf(nowF(g) + gF.ferries[i].phase, gF.cycle);

@@ -175,7 +175,9 @@ void initBuses(GameWorld& g) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------- driving
-// Host route for the traffic driver: the route's edges from the bus's leg to the next stop's leg (and one beyond)
+// Host route for the traffic driver: the route's edges from the bus's leg to the next stop's leg (and one beyond).
+// The core looks up the edge a car is on by its first occurrence in destEdges, so the list ends before an edge comes
+// round a second time (out and back along a road near a terminus); it is rebuilt at every new leg anyway.
 void setRoute(GameWorld& g, Bus& b, AI::Driver& d) {
     const World::BusRoute& R = routeOf(b);
     int n = (int)R.legs.size();
@@ -183,12 +185,18 @@ void setRoute(GameWorld& g, Bus& b, AI::Driver& d) {
     int li = b.leg >= 0 ? b.leg : R.legAt(b.d);
     d.destEdges.clear();
     d.destNodes.clear();
-    for (int k = li, guard = 0; guard <= n; k = (k + 1) % n, guard++) {
-        d.destEdges.push_back(R.legs[k].edge);
+    auto push = [&](int edge) {
+        if (std::find(d.destEdges.begin(), d.destEdges.end(), edge) != d.destEdges.end()) return false;
+        d.destEdges.push_back(edge);
+        return true;
+    };
+    bool open = true;
+    for (int k = li, guard = 0; guard <= n && open; k = (k + 1) % n, guard++) {
+        open = push(R.legs[k].edge);
         if (k == target && guard > 0) break;
         if (k == target && ahead(R, b.d, R.stopDist[b.next]) < R.length * 0.5f) break;
     }
-    d.destEdges.push_back(R.legs[(target + 1) % n].edge);
+    if (open) push(R.legs[(target + 1) % n].edge);
     d.dest = stopOf(R, b.next).flag;
     d.hasDest = true;
     d.destRecalc = 1e6f;
@@ -211,7 +219,7 @@ void rejoin(GameWorld& g, Bus& b, AI::Driver& d, int edge, int dir) {
     d.destRecalc = 1e6f;
     d.hasDest = true;
     d.mode = AI::DM_ROUTE;
-    g.traffic.clearRoute(d);
+    g.traffic.planRoute(d);   // keeps the next junction if the bus is already committed to it
 }
 
 void startLaneChange(const AI::LaneGraph& G, AI::Driver& d, int target, float v) {
@@ -408,9 +416,15 @@ void driveBus(GameWorld& g, Bus& b, float dt, bool playerAboard, float plDist) {
             if (R.legs[li].edge == L.edge && R.legs[li].dir == L.dir) found = li;
         }
         if (found >= 0) {
+            bool newLeg = found != b.leg;
             b.leg = found;
             b.d = R.wrap(R.legs[found].d0 + d.u + front - kStopAhead);
             b.offRoute = 0.f;
+            if (newLeg && b.phase == 0 && d.mode == AI::DM_ROUTE) {
+                // the list always starts at the current leg; the core re-chooses planned turns that now leave it
+                setRoute(g, b, d);
+                g.traffic.planRoute(d);
+            }
         } else if (b.phase == 0) {
             b.offRoute += dt;
             if (b.offRoute > 1.f && b.offRoute - dt <= 1.f) rejoin(g, b, d, L.edge, L.dir);

@@ -330,7 +330,10 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         float3 glassTint = glassC;
         float3 interiorAlbedo = inside * glassTint;
         float3 em = 0;
-        if (lit) em = inside * lightC * (storefront ? 14.0 : 9.0) * (0.45 + 0.9 * hashF(lh + 14u));
+        // shops are brightly lit inside (~160 nits of interior by day reads through the glass; 14 at night, when the
+        // exposure has opened up), homes and offices keep a constant lamp level
+        float shopNits = lerp(160.0, 14.0, gExposure.w);
+        if (lit) em = inside * lightC * (storefront ? shopNits : 9.0) * (0.45 + 0.9 * hashF(lh + 14u));
         // Glass surface: dark reflective; interior visible through it
         outAlbedo = interiorAlbedo * 0.35 * dayInterior + glassTint * 0.02;
         r.emissive = em * glassTint * 1.2;

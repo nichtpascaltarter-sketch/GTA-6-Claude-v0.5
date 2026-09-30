@@ -92,6 +92,7 @@ struct State {
     double lastStationPa = -100.0;
     // stats (autoplay / log)
     int boardings = 0, alightings = 0, riderBoard = 0, riderAlight = 0;
+    int savedView = -1;            // vehicle camera view before boarding (the train rides in the cab / saloon view)
 };
 State gS;
 
@@ -425,9 +426,10 @@ std::vector<vec2> exitPath(const World::MetroStation& st, int side, vec2 from) {
     const float H = kPlatformHalfLen;
     std::vector<vec2> path;
     path.push_back(from);
+    // through one of the fare gate lanes square on (the gaps between the cabinets are ~1 m wide)
     float gateA = E * (H - 3.3f + 0.65f + 1.3f * (float)(hash32((u32)(from.x * 10.f)) % 3u));
-    path.push_back(st.local(gateA, S * 6.3f, 0.f).xy());
-    path.push_back(st.local(gateA, S * 8.6f, 0.f).xy());
+    path.push_back(st.local(gateA, S * 6.0f, 0.f).xy());
+    path.push_back(st.local(gateA, S * 10.0f, 0.f).xy());
     path.push_back(st.local(E * (H - 3.0f), S * 9.4f, 0.f).xy());
     // stair foot: the stair descends toward the station center
     path.push_back(st.local(E * (H - 3.4f - 31.5f), S * 9.4f, 0.f).xy());
@@ -484,7 +486,7 @@ void updateWalkers(GameWorld& g, float dt) {
         vec2 pos = p.pos.toVec3().xy();
         vec2 goal = w.path[w.wp];
         bool last = w.wp + 1 >= (int)w.path.size();
-        float reach = last ? 0.7f : 0.9f;
+        float reach = last ? 0.7f : 0.55f;   // gate lanes are about a meter wide
         if (length(goal - pos) < reach || (w.timer > 12.f && !last)) {
             w.timer = 0.f;
             if (!last) {
@@ -819,6 +821,9 @@ void boardPlayer(GameWorld& g, int ti, int car) {
     gS.boardings++;
     gS.rideTrain = ti;
     g.rig.cut = true;
+    // a chase camera behind an 18 m car would sit inside the next car: ride in the interior view (cab or saloon)
+    gS.savedView = g.rig.vehicleView;
+    g.rig.vehicleView = 2;
 #ifdef HAVE_AUDIO
     Audio::play2D(Audio::SFX_PURCHASE, 0.35f);
 #endif
@@ -867,6 +872,8 @@ void alightPlayer(GameWorld& g, int ti) {
     alightPed(g, g.player, veh, door);
     pl->pendingAction = -1;
     g.rig.cut = true;
+    if (gS.savedView >= 0) g.rig.vehicleView = gS.savedView;
+    gS.savedView = -1;
     gS.rideTrain = -1;
     gS.alightings++;
     const World::MetroStation& st = stationOf(gS.prof[t.dir], t.st.stop);
@@ -901,6 +908,10 @@ void playerLogic(GameWorld& g, float dt) {
     int pv = pl->state == PS_INVEHICLE ? pl->vehicle : -1;
     int ti = trainOfVehicle(pv);
     gS.rideTrain = ti;
+    if (ti < 0 && gS.savedView >= 0) {   // left the train some other way (warped out, respawned)
+        g.rig.vehicleView = gS.savedView;
+        gS.savedView = -1;
+    }
     // ---- skip fade sequence
     if (gS.skipStage == 1 && g.fadedOut()) {
         skipToNextStation(g);

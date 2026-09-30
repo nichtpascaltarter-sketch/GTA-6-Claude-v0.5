@@ -46,6 +46,43 @@
 #if __has_include("../src/world/facadedetail.cpp")
 #include "../src/world/facadedetail.cpp"
 #endif
+// enterable interiors (planned with the buildings; same order as src/main.cpp)
+#if __has_include("../src/world/interiorkit.cpp")
+#include "../src/world/interiorkit.cpp"
+#endif
+#if __has_include("../src/world/interiorfurniture.cpp")
+#include "../src/world/interiorfurniture.cpp"
+#endif
+#if __has_include("../src/world/interiorlayouts.cpp")
+#include "../src/world/interiorlayouts.cpp"
+#endif
+#if __has_include("../src/world/interiorhomes.cpp")
+#include "../src/world/interiorhomes.cpp"
+#endif
+#if __has_include("../src/world/interiorvenues.cpp")
+#include "../src/world/interiorvenues.cpp"
+#endif
+#if __has_include("../src/world/interiorshops.cpp")
+#include "../src/world/interiorshops.cpp"
+#endif
+#if __has_include("../src/world/interiorcivic.cpp")
+#include "../src/world/interiorcivic.cpp"
+#endif
+#if __has_include("../src/world/interiorindustrial.cpp")
+#include "../src/world/interiorindustrial.cpp"
+#endif
+#if __has_include("../src/world/interiortower.cpp")
+#include "../src/world/interiortower.cpp"
+#endif
+#if __has_include("../src/world/interiorgarages.cpp")
+#include "../src/world/interiorgarages.cpp"
+#endif
+#if __has_include("../src/world/interiorresidences.cpp")
+#include "../src/world/interiorresidences.cpp"
+#endif
+#if __has_include("../src/world/interiors.cpp")
+#include "../src/world/interiors.cpp"
+#endif
 #include "../src/sim/physics.cpp"
 #include "../src/sim/vehicle_models.cpp"
 #include "../src/sim/vehicle_sim.cpp"
@@ -809,10 +846,41 @@ struct Sim {
         tc.setDestination(*d, b);
         if (!quiet) printf("route (%.0f, %.0f) -> (%.0f, %.0f): start lane %d (edge %d), %zu edges planned\n", a.x, a.y, b.x, b.y, lane, L.edge, d->destEdges.size());
         tc.toDummy(0, c.s);
+        // arrival: at the point on the goal road nearest to b (b itself may lie off the road)
+        float gs = 0.f;
+        int ge = w->roads.nearestEdge(b, 400.f, &gs);
+        if (ge >= 0) b = w->roads.edges[ge].posAt(gs).xy();
         float best = 1e9f;
+        int lastLane = lane, deviations = 0;
+        std::vector<int> planAtLastLane = d->destEdges;
         for (int st = 0; st < 18000; st++) {   // 0.1 s steps, 30 minutes
             time += 0.1;
             aiTick(0.1f);
+            // deviation check: entering a lane whose edge is not the one the plan wanted after the previous lane's edge
+            if (w->lg.isLane(d->path) && d->path != lastLane) {
+                int prevEdge = w->lg.lanes[lastLane].edge, newEdge = w->lg.lanes[d->path].edge;
+                int want = -1;
+                for (size_t k = 0; k + 1 < planAtLastLane.size(); k++)
+                    if (planAtLastLane[k] == prevEdge) {
+                        want = planAtLastLane[k + 1];
+                        break;
+                    }
+                if (want >= 0 && newEdge != want && newEdge != prevEdge) {
+                    deviations++;
+                    if (!quiet) {
+                        const AI::Lane& PL = w->lg.lanes[lastLane];
+                        std::string opts;
+                        int gf = w->lg.groupFirst[PL.group], gc = w->lg.groupCount[PL.group];
+                        for (int k = 0; k < gc; k++)
+                            for (int cc : w->lg.lanes[gf + k].out)
+                                opts += StrFormat(" [lane idx %d -> edge %d turn %d]", k, w->lg.lanes[w->lg.conns[cc].to].edge, w->lg.conns[cc].turn);
+                        printf("  DEVIATION t %.0f at node %d: from edge %d (lane idx %d/%d, lane len %.0f) wanted edge %d, took edge %d; options:%s\n", st * 0.1f,
+                               PL.toNode, prevEdge, PL.index, PL.count, PL.u1 - PL.u0, want, newEdge, opts.c_str());
+                    }
+                }
+                lastLane = d->path;
+                planAtLastLane = d->destEdges;
+            }
             vec3 p = w->lg.pathPos(d->path, d->u);
             float dist = length(p.xy() - b);
             best = Min(best, dist);
