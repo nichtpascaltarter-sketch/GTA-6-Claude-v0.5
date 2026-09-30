@@ -1111,7 +1111,9 @@ void GameWorld::updatePopulation(float dt) {
                     if (pa.activity != ACT_WALK || pa.leader >= 0 || pa.eventId >= 0 || pa.homeVeh >= 0 ||
                         (pa.role != PR_CIVILIAN && pa.role != PR_BUSINESS && pa.role != PR_TOURIST && pa.role != PR_NIGHTLIFE))
                         continue;
-                    float d = length(p.pos.toVec3().xy() - cp.xy());
+                    vec2 rp = p.pos.toVec3().xy() - cp.xy();
+                    float d = length(rp);
+                    if (dot(rp, AI::rightOf(cf)) < 1.f) continue;   // on the sidewalk side of the car, not across the road
                     if (d < bd) {
                         bd = d;
                         who = i;

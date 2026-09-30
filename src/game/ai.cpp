@@ -279,10 +279,40 @@ void GameWorld::updateAI(float dt) {
         } else {
             va.alarmT = 0.f;
         }
-        if (i == pv || !traffic.get(i) || v.sim.impactImpulse < 3000.f || va.impactCd > 0.f) continue;
+        if (i == pv || !traffic.get(i) || v.sim.impactImpulse < 1800.f || va.impactCd > 0.f) continue;
         va.impactCd = 2.f;
         bool withPlayer = pv >= 0 && length(rel(v.sim.body.pos, vehicles[pv].sim.body.pos)) < 9.f;
-        (withPlayer ? st.impactsWithPlayer : st.hardImpacts)++;
+        if (v.sim.impactImpulse >= 3000.f) (withPlayer ? st.impactsWithPlayer : st.hardImpacts)++;
+        // two ordinary cars knocked into each other (not the player's doing): both stop and the drivers have words
+        Ped* pl = playerPed();
+        float plD = pl ? length(rel(v.sim.body.pos, pl->pos)) : 1e9f;
+        if (withPlayer || v.sim.impactCollider >= 0 || va.role != VR_TRAFFIC || plD < 18.f || plD > 170.f || v.sim.speed() > 16.f) continue;
+        int drvA = v.seats[0];
+        if (drvA < 0 || peds[drvA].brain.type != BRAIN_DRIVER) continue;
+        const Vehicles::VehicleModel& sa = vassets[v.model].spec;
+        vec2 ca = v.sim.body.pos.toVec3().xy(), fa = v.sim.forward().xy();
+        fa = length2(fa) > 1e-6f ? normalize(fa) : vec2(0, 1);
+        std::vector<int> around;
+        vehiclesNear(ca, 9.f, around);
+        for (int j : around) {
+            if (j == i || j == pv || j >= (int)ai.veh.size() || ai.veh[j].uid != vehicles[j].uid) continue;
+            const Vehicle& o = vehicles[j];
+            if (ai.veh[j].role != VR_TRAFFIC || !traffic.get(j) || o.seats[0] < 0 || peds[o.seats[0]].brain.type != BRAIN_DRIVER || o.sim.speed() > 16.f) continue;
+            const Vehicles::VehicleModel& sb = vassets[o.model].spec;
+            vec2 cb = o.sim.body.pos.toVec3().xy(), fb = o.sim.forward().xy();
+            fb = length2(fb) > 1e-6f ? normalize(fb) : vec2(0, 1);
+            // the two bodies (a hand's width of slack) touch
+            vec2 axes[4] = {fa, AI::rightOf(fa), fb, AI::rightOf(fb)};
+            bool touch = true;
+            for (const vec2& ax : axes) {
+                float ea = sa.boxHalf.y * fabsf(dot(fa, ax)) + sa.boxHalf.x * fabsf(dot(AI::rightOf(fa), ax)) + 0.15f;
+                float eb = sb.boxHalf.y * fabsf(dot(fb, ax)) + sb.boxHalf.x * fabsf(dot(AI::rightOf(fb), ax)) + 0.15f;
+                if (fabsf(dot(cb - ca, ax)) > ea + eb) touch = false;
+            }
+            if (!touch) continue;
+            if (hashToFloat(hash32(v.uid * 7u + o.uid * 13u + (u32)(time * 2.0))) < 0.6f) aiFenderBender(i, j);
+            break;
+        }
     }
 }
 

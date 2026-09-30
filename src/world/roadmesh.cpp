@@ -997,9 +997,11 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
                             out.road.box(pp + vec3(0, 0, zb + (railing ? 0.53f : 0.4f) - 0.25f), fwd, rs, vec3(0, 0, 1),
                                          vec3(0.05f, 0.06f, (railing ? 0.53f : 0.45f) + 0.25f), colorGray(railing ? 0.55f : 0.62f), makeMat(MAT_METAL_PAINTED));
                         }
-                        vec3 wa = lerp(sectionPoint(a, 0.f), sectionPoint(b, 0.f), t0), wb = lerp(sectionPoint(a, 0.f), sectionPoint(b, 0.f), t1);
-                        roadRailCollision(out, wa + vec3(0, 0, zb), wb + vec3(0, 0, zb), rm, sgn > 0 ? edgeLat + 0.15f : -(edgeLat + 0.45f),
-                                          sgn > 0 ? edgeLat + 0.45f : -(edgeLat + 0.15f), railing ? 1.1f : 0.9f);
+                        // collision along the mitred rail line (a box square to the centreline would leave a wedge open on the
+                        // outside of every bend)
+                        auto railAt = [&](float lat, float t) { return lerp(sectionPoint(a, sgn * lat), sectionPoint(b, sgn * lat), t) + vec3(0, 0, zb); };
+                        roadRailCollisionQuad(out, railAt(edgeLat + 0.15f, t0), railAt(edgeLat + 0.15f, t1), railAt(edgeLat + 0.45f, t0),
+                                              railAt(edgeLat + 0.45f, t1), railing ? 1.1f : 0.9f);
                     }
                 }
                 if (deck) {

@@ -375,6 +375,48 @@ bool wallet(GameWorld& g, AmbientEvent& e, int victim, int evId, float dt) {
 using namespace events_detail;
 
 // ------------------------------------------------------------------------------------------------------------------
+// Two AI cars knocked into each other in traffic: turn it into a fender-bender scene (they stop, the drivers get out
+// and argue, maybe a fight, then drive on - the EV_CRASH stages). Returns false if no event slot is free.
+bool GameWorld::aiFenderBender(int ca, int cb) {
+    if (ca < 0 || cb < 0 || ca == cb) return false;
+    int slot = -1;
+    for (int k = 0; k < 3; k++)
+        if (!gEv.ev[k].active) slot = k;
+    if (slot < 0 || time - gEv.lastOfType[EV_CRASH] < 45.0) return false;
+    for (const AmbientEvent& o : gEv.ev)
+        if (o.active && o.type == EV_CRASH) return false;
+    int da = vehicles[ca].seats[0], db = vehicles[cb].seats[0];
+    if (da < 0 || db < 0 || peds[da].isPlayer || peds[db].isPlayer) return false;
+    AmbientEvent& e = gEv.ev[slot];
+    e = AmbientEvent();
+    e.type = EV_CRASH;
+    e.stage = ST_A;
+    e.flag = 2;
+    e.ped[0] = refPed(*this, da);
+    e.ped[1] = refPed(*this, db);
+    e.np = 2;
+    e.veh[0] = refVeh(*this, ca);
+    e.veh[1] = refVeh(*this, cb);
+    e.nv = 2;
+    vec3 pa = vehicles[ca].sim.body.pos.toVec3(), pb = vehicles[cb].sim.body.pos.toVec3();
+    e.pos = (pa + pb) * 0.5f;
+    vec2 f = vehicles[ca].sim.forward().xy();
+    e.dir = length2(f) > 1e-6f ? normalize(f) : vec2(0, 1);
+    for (int k = 0; k < 2; k++) {
+        int c = k == 0 ? ca : cb, d = k == 0 ? da : db;
+        VehAI& va = vehAI(c);
+        va.role = VR_EVENT;
+        va.eventId = slot;
+        peds[d].brain.type = BRAIN_NONE;   // (stays put in the seat until the event lets the driver out)
+        pedAI(d).eventId = slot;
+    }
+    e.active = true;
+    gEv.lastOfType[EV_CRASH] = time;
+    ai.stats.events++;
+    LOG("ai: fender bender between cars %d and %d at %.0f %.0f", ca, cb, e.pos.x, e.pos.y);
+    return true;
+}
+
 void GameWorld::updateEvents(float dt) {
     Ped* pl = playerPed();
     if (!pl || !ai.ready) return;
@@ -1152,6 +1194,46 @@ void GameWorld::updateEvents(float dt) {
                     over = true;
                     break;
                 }
+                if (e.stage == ST_A && e.flag == 2) {
+                    // a real knock between two cars in traffic: both stop with the hazards on, then the drivers get
+                    // out and meet between the cars on the curb side
+                    for (int c : {ca, cb}) {
+                        vehicles[c].ctl = Vehicles::VehicleControls();
+                        vehicles[c].ctl.brake = 1.f;
+                        vehicles[c].ctl.handbrake = true;
+                        vehicles[c].indicator = 2;
+                    }
+                    bool inA = da >= 0 && peds[da].state == PS_INVEHICLE && peds[da].vehicle == ca;
+                    bool inB = db >= 0 && peds[db].state == PS_INVEHICLE && peds[db].vehicle == cb;
+                    if (!inA || !inB) {   // someone drove off or was pulled out
+                        for (int k = 0; k < 2; k++) {
+                            int me = k == 0 ? da : db;
+                            if (me >= 0 && peds[me].state == PS_INVEHICLE && peds[me].brain.type == BRAIN_NONE) peds[me].brain.type = BRAIN_DRIVER;
+                        }
+                        over = true;
+                        break;
+                    }
+                    if (e.t > 2.2f && vehicles[ca].sim.speed() < 0.5f && vehicles[cb].sim.speed() < 0.5f) {
+                        vec2 pa2 = vehicles[ca].sim.body.pos.toVec3().xy(), pb2 = vehicles[cb].sim.body.pos.toVec3().xy();
+                        vec2 dir = length2(pb2 - pa2) > 1e-4f ? normalize(pb2 - pa2) : e.dir;
+                        float hw = Max(vassets[vehicles[ca].model].spec.boxHalf.x, vassets[vehicles[cb].model].spec.boxHalf.x);
+                        vec2 side = AI::rightOf(e.dir);
+                        vec2 mid = (pa2 + pb2) * 0.5f + side * (hw + 1.1f);
+                        vec2 sa = mid - dir * 0.8f, sb = mid + dir * 0.8f;
+                        for (int k = 0; k < 2; k++) {
+                            int me = k == 0 ? da : db, car = k == 0 ? ca : cb;
+                            vec2 st = k == 0 ? sa : sb;
+                            removePedFromVehicle(me, true);
+                            vehicles[car].parked = true;
+                            setActor(*this, me, evId, st, yawTowards(st, k == 0 ? sb : sa), 7, -1);
+                            aiSay(me, BK_CRASH, 0.8f, plDist < 25.f);
+                        }
+                        e.flag = (int)(hash32((u32)(e.age * 100.f) + (u32)ca * 31u) % 5u == 0u);   // one in five comes to blows
+                        e.barkT = 2.5f;
+                        setStage(e, ST_A);
+                    }
+                    break;
+                }
                 if (e.stage == ST_A) {
                     bool calmA = calmActor(*this, da), calmB = calmActor(*this, db);
                     if (!calmA || !calmB) {
@@ -1685,6 +1767,20 @@ void GameWorld::updateEvents(float dt) {
             default: over = true; break;
         }
         if (plDist > keepR) over = true;
+        if (over && e.type == EV_CRASH) {
+            // nobody may stay frozen in a seat (a knock in traffic cut short), no hazards left blinking
+            for (int k = 0; k < e.np; k++) {
+                int id = livePed(*this, e.ped[k]);
+                if (id >= 0 && peds[id].state == PS_INVEHICLE && peds[id].brain.type == BRAIN_NONE) peds[id].brain.type = BRAIN_DRIVER;
+            }
+            for (int k = 0; k < e.nv; k++) {
+                int id = liveVeh(*this, e.veh[k]);
+                if (id >= 0) {
+                    if (vehicles[id].seats[0] >= 0) vehicles[id].parked = false;
+                    if (vehicles[id].indicator == 2) vehicles[id].indicator = 0;
+                }
+            }
+        }
         if (over && e.type == EV_TRAFFIC_STOP && e.stage < ST_E) {
             // cut short: nobody may stay frozen in a seat (brain NONE) or parked forever
             for (int k = 0; k < e.np; k++) {

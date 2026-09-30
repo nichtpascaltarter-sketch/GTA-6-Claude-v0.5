@@ -158,7 +158,7 @@ bool garageIntrudes(const BuildingSet& bs, int bi) {
 // Building closest to the place whose front faces the place's street
 int pickBuilding(const BuildingSet& bs, const PlaceLite& pl, const Target& tg, const std::vector<u8>& used, int pass) {
     std::vector<int> cand;
-    bs.buildingsNear(pl.sp, pass == 0 ? 70.f : 160.f, cand);
+    bs.buildingsNear(pl.sp, pass == 0 ? 70.f : (pass < 3 ? 160.f : 700.f), cand);   // pass 3: upper units only, farther out
     int best = -1;
     float bestScore = 1e30f;
     for (int i : cand) {
@@ -170,6 +170,10 @@ int pickBuilding(const BuildingSet& bs, const PlaceLite& pl, const Target& tg, c
         if (!(tg.flags & TF_OWNSHELL) && garageIntrudes(bs, i)) continue;
         if (tg.upper < 0 && b.floors < 14) continue;                     // penthouses: tall towers with a view
         if (tg.upper > 0 && b.floors < tg.upper + 2) continue;
+        // upper units need a plain extruded mass: towers inset above their podium and step back in tiers, so a unit
+        // planned from the ground-floor frontage would hang outside the upper floors (condos / midrises hosting an
+        // interior are single boxes, see buildmesh.cpp)
+        if (tg.upper != 0 && b.style != BS_CONDO && b.style != BS_MIDRISE) continue;
         if (b.style == BS_CHURCH || (b.style == BS_GASSTATION && !(tg.styles & styleBit(BS_GASSTATION)))) continue;
         if (2.f * b.hx < tg.minW || 2.f * b.hy < tg.minD) continue;
         bool store = (bs.facades[b.facade].flags & 1u) != 0;
@@ -178,12 +182,13 @@ int pickBuilding(const BuildingSet& bs, const PlaceLite& pl, const Target& tg, c
         if ((tg.flags & (TF_ONEFLOOR | TF_OWNSHELL)) && b.floors > 1 && pass < 2) continue;
         float facing = dot(b.front, -pl.out);
         if (pass == 0 && facing < 0.85f) continue;
-        if (facing < 0.3f) continue;
+        if (pass < 3 && facing < 0.3f) continue;
         vec2 fc = b.c + b.front * b.hy;
         float along = fabsf(dot(fc - pl.sp, pl.dir));
         float across = dot(fc - pl.sp, pl.out);
         if (pass == 0 && (across < -2.f || across > 18.f)) continue;
         float score = Max(0.f, along - b.hx * 0.5f) + fabsf(across) * 0.4f + (styleOk ? 0.f : 40.f) + (1.f - facing) * 30.f;
+        if (pass == 3) score = length(b.c - pl.sp) + (styleOk ? 0.f : 40.f);
         if (hasLoadingDoors(b) && !(tg.flags & TF_ROLLUP)) score += 80.f;   // painted dock doors would cover the entrance
         if (score < bestScore) {
             bestScore = score;
@@ -622,7 +627,7 @@ void planInteriors(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs) {
         PlaceLite pl = resolve(roads, tg.hint, (tg.flags & TF_BRIDGE) != 0);
         if (!pl.ok) continue;
         int bi = -1;
-        for (int pass = 0; pass < 3 && bi < 0; pass++) bi = pickBuilding(bs, pl, tg, used, pass);
+        for (int pass = 0; pass < (tg.upper != 0 ? 4 : 3) && bi < 0; pass++) bi = pickBuilding(bs, pl, tg, used, pass);
         if (bi < 0) {
             LOG("Interiors: no building for %s near (%.0f, %.0f)", tg.name, tg.hint.x, tg.hint.y);
             continue;

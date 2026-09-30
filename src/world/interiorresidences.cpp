@@ -305,7 +305,7 @@ void layoutCondoUnit(IB& b) {
         int doorBay = (int)floorf(((xb + X1) * 0.5f - d.bayX0) / d.bw);
         for (int k = first; k <= last; k++) {
             float wx0 = d.bayX0 + k * d.bw + (d.bw - winW) * 0.5f, wx1 = wx0 + winW;
-            if (balcony && k == doorBay) openingLocal(b, vec2(wx0, 0.f), vec2(wx1, 0.f), 0.f, Min(2.35f, H - 0.1f), OP_DOOR);
+            if ((balcony || top) && k == doorBay) openingLocal(b, vec2(wx0, 0.f), vec2(wx1, 0.f), 0.f, Min(2.35f, H - 0.1f), OP_DOOR);
             else if (zTop - sill > 0.4f) openingLocal(b, vec2(wx0, 0.f), vec2(wx1, 0.f), sill, zTop, OP_GLASS);
         }
     }
@@ -346,7 +346,7 @@ void layoutCondoUnit(IB& b) {
     // ---- shells
     const u32 wood = top ? C(0.2f, 0.13f, 0.08f) : C(0.52f, 0.38f, 0.24f);
     ShellStyle ls;
-    ls.wallCol = top ? C(0.9f, 0.89f, 0.86f) : C(0.94f, 0.92f, 0.87f);
+    ls.wallCol = top ? C(0.8f, 0.76f, 0.7f) : C(0.93f, 0.9f, 0.84f);
     ls.floorMat = M(MAT_WOOD_FLOOR);
     ls.floorCol = top ? C(0.42f, 0.3f, 0.2f) : C(0.8f, 0.68f, 0.52f);
     ls.ceilMat = M(MAT_PLASTER);
@@ -417,10 +417,30 @@ void layoutCondoUnit(IB& b) {
         patioChair(b, vec3(px - 1.3f, -0.8f, 0.f), kPi, Gy(0.95f));
         sideTable(b, vec3(px - 0.65f, -0.75f, 0.f), Gy(0.9f));
         plant(b, vec3(bx0 + 0.45f, -0.6f, 0.f), 1.1f, r.next(), Gy(0.9f), 1);
+    } else if (top) {
+        // Juliet balcony: a stone sill and a frameless glass balustrade with a steel rail outside the terrace door
+        for (const InteriorOpening& op : d.openings)
+            if (op.kind == OP_DOOR) {
+                vec3 a = d.toLocal(vec3(op.a, op.z0)), c = d.toLocal(vec3(op.b, op.z0));
+                const float x0 = Min(a.x, c.x) - 0.1f, x1 = Max(a.x, c.x) + 0.1f, xm = (x0 + x1) * 0.5f;
+                InPart ip(b, IP_FURNITURE);
+                const u32 steel = Gy(0.7f);
+                box(b, vec3(xm, -0.16f, -0.03f), vec3((x1 - x0) * 0.5f, 0.16f, 0.03f), Gy(0.82f), M(MAT_MARBLE), SK_NONE);
+                box(b, vec3(xm, -0.27f, 1.08f), vec3((x1 - x0) * 0.5f + 0.02f, 0.03f, 0.02f), steel, M(MAT_METAL_BRUSHED), SK_NONE);
+                for (int e = 0; e < 2; e++) box(b, vec3(e ? x1 : x0, -0.15f, 0.54f), vec3(0.02f, 0.14f, 0.56f), steel, M(MAT_METAL_BRUSHED), SK_NONE);
+                const u32 gc = glassCol(0.3f, vec3(0.8f, 0.9f, 0.92f));
+                quadF(b, vec3(x0, -0.27f, 0.03f), vec3(x1, -0.27f, 0.03f), vec3(x1, -0.27f, 1.06f), vec3(x0, -0.27f, 1.06f), vec3(0, 1, 0), gc, kGlassMat);
+                quadF(b, vec3(x0, -0.27f, 0.03f), vec3(x1, -0.27f, 0.03f), vec3(x1, -0.27f, 1.06f), vec3(x0, -0.27f, 1.06f), vec3(0, -1, 0), gc, kGlassMat);
+                collideMM(b, vec3(x0, -0.32f, -0.3f), vec3(x1, 0.f, 0.f));
+                collideMM(b, vec3(x0 - 0.05f, -0.34f, 0.f), vec3(x1 + 0.05f, -0.24f, 1.12f));
+            }
     }
-    // ---- living: sofa facing the TV wall (the bedroom partition), kitchen along the far side wall, island, dining
+    // ---- living: a feature wall with the TV on the bedroom partition, an L sectional facing it with armchairs across a
+    // coffee table on a large rug, the kitchen with its island, dining by the window, a sideboard with art and a bar
+    // cart on the far wall, art on the back wall, lamps and tall plants; penthouses add a window lounge and a piano
     const float LX0 = xb + pt * 0.5f, LX1 = X1, LY1 = yS - pt * 0.5f;
     const float lw = LX1 - LX0;
+    float farWallY1 = LY1 - 0.6f;   // free run of the far side wall (x = X1) from the window corner
     if (alcove) {
         // kitchen along the back wall of the alcove, fridge at its end, the island out in the living room
         u32 cabC = top ? C(0.12f, 0.12f, 0.13f) : C(0.92f, 0.92f, 0.9f);
@@ -441,6 +461,7 @@ void layoutCondoUnit(IB& b) {
         u32 cabC = top ? C(0.12f, 0.12f, 0.13f) : C(0.92f, 0.92f, 0.9f);
         kitchenRun(b, vec3(kitchenX, kyc, 0.f), kHalfPi, kl, cabC, top ? C(0.9f, 0.9f, 0.88f) : C(0.2f, 0.2f, 0.22f), true, true, true, r.next(), living);
         fridge(b, vec3(kitchenX, kyc - kl * 0.5f - 0.4f, 0.f), kHalfPi, top ? Gy(0.7f) : Gy(0.88f), r.next());
+        farWallY1 = kyc - kl * 0.5f - 0.9f;
         // island with stools
         float ix = kitchenX - 2.2f, iy = kyc;
         if (ix - 0.5f > LX0 + 3.0f) {
@@ -453,35 +474,83 @@ void layoutCondoUnit(IB& b) {
         }
     }
     {
-        // lounge: TV on the partition wall (facing +x), sofa facing it, coffee table, armchair, rug, lamp
-        float ly = Y0 + Clamp((LY1 - Y0) * 0.42f, 2.2f, 4.0f);
-        float tvX = LX0 + 0.25f;
-        tvUnit(b, vec3(tvX, ly, 0.f), -kHalfPi, 1.8f, r.next(), living, false);
-        float sx = Min(tvX + 3.2f, LX1 - 3.2f);
-        u32 fab = top ? C(0.86f, 0.84f, 0.8f) : C(hsv(r.f(), 0.25f, 0.55f));
-        rug(b, vec3((tvX + sx) * 0.5f + 0.2f, ly, 0.f), 2.8f, 2.6f, r.next());
-        sofa(b, vec3(sx, ly, 0.f), kHalfPi, 2.3f, fab, r.next());
-        coffeeTable(b, vec3((tvX + sx) * 0.5f + 0.3f, ly, 0.f), kHalfPi, 1.1f, 0.6f, r.next());
-        armchair(b, vec3((tvX + sx) * 0.5f + 0.2f, ly - 1.7f, 0.f), 0.2f, top ? C(0.1f, 0.08f, 0.07f) : C(hsv(r.f(), 0.3f, 0.45f)), r.next());
-        floorLamp(b, vec3(sx + 0.3f, ly + 1.45f, 0.f), living, C(0.95f, 0.9f, 0.8f));
-        plant(b, vec3(LX0 + 0.45f, Y0 + 0.5f, 0.f), 1.2f, r.next(), top ? Gy(0.15f) : 0, 1);
-        {
-            At at(b, vec3(LX0, ly, 0.f), -kHalfPi);
-            picture(b, vec3(1.6f, 0.f, 1.7f), 0.8f, 1.0f, r.next());
+        const float ly = Y0 + Clamp((LY1 - Y0) * 0.42f, 2.2f, 4.0f);
+        // feature wall from the window corner to the bedroom door: dark stone slabs (penthouse) or oak slats
+        const float fy0 = Y0 + 0.35f, fy1 = bdY - 0.75f;
+        if (fy1 - fy0 > 2.5f) {
+            At at(b, vec3(LX0, (fy0 + fy1) * 0.5f, 0.f), -kHalfPi);   // local +y into the room, local x along -y
+            featureWall(b, fy1 - fy0, H - (top ? 0.14f : 0.02f), top ? 0 : 1, living);
         }
-        // dining by the window beyond the lounge
+        {
+            // wall-mounted TV over a floating media console with a sound bar
+            At at(b, vec3(LX0 + 0.05f, ly, 0.f), -kHalfPi);
+            InPart ip(b, IP_FURNITURE);
+            const float tw = top ? 1.95f : 1.65f, th = tw * 0.5625f, zc = 1.32f;
+            rbox(b, vec3(0.f, 0.04f, zc), vec3(tw * 0.5f, 0.025f, th * 0.5f), 0.006f, Gy(0.03f), M(MAT_PLASTIC), true);
+            box(b, vec3(0.f, 0.066f, zc), vec3(tw * 0.5f - 0.012f, 0.001f, th * 0.5f - 0.012f), Gy(0.02f), M(MAT_GLASS), SK_NZ);
+            const float cw = Clamp(fy1 - fy0 - 0.4f, 1.6f, tw + 0.8f);
+            rbox(b, vec3(0.f, 0.21f, 0.42f), vec3(cw * 0.5f, 0.2f, 0.16f), 0.01f, top ? C(0.1f, 0.09f, 0.08f) : C(0.52f, 0.36f, 0.22f), M(MAT_PLASTIC), true);
+            box(b, vec3(0.f, 0.411f, 0.42f), vec3(cw * 0.5f - 0.03f, 0.002f, 0.005f), C(0.8f, 0.62f, 0.32f), M(MAT_CHROME), SK_NZ);
+            rbox(b, vec3(0.f, 0.3f, 0.615f), vec3(tw * 0.3f, 0.05f, 0.035f), 0.012f, Gy(0.05f), M(MAT_PLASTIC), true);
+            collide(b, vec3(0.f, 0.21f, 0.34f), vec3(cw * 0.5f, 0.2f, 0.24f));
+            for (int k = 0; k < 3; k++)
+                box(b, vec3(cw * 0.5f - 0.3f, 0.2f, 0.6f + 0.02f + k * 0.04f), vec3(0.13f - k * 0.015f, 0.1f - k * 0.01f, 0.02f), C(hsv(r.f(), 0.3f, 0.3f + k * 0.2f)),
+                    M(MAT_FABRIC), SK_NONE);
+            lathe(b, vec3(-cw * 0.5f + 0.25f, 0.2f, 0.58f), {vec2(0.05f, 0.f), vec2(0.08f, 0.1f), vec2(0.03f, 0.3f), vec2(0.04f, 0.34f)}, 12, top ? Gy(0.9f) : C(0.3f, 0.45f, 0.5f),
+                  M(MAT_PAINT_WHITE), false);
+        }
+        // L sectional facing the TV (the return at the back), armchairs across the coffee table, a big rug, a lamp
+        const float sx = Min(LX0 + 3.6f, LX1 - 3.2f), sw = top ? 2.8f : 2.6f;
+        const vec3 pal[4] = {vec3(0.55f, 0.53f, 0.5f), vec3(0.72f, 0.66f, 0.56f), vec3(0.22f, 0.27f, 0.36f), vec3(0.36f, 0.4f, 0.32f)};
+        const u32 fab = top ? C(0.86f, 0.84f, 0.8f) : C(pal[r.irange(0, 3)]);
+        const float tx = sx - 1.275f, ty = ly - 0.35f;
+        areaRug(b, vec3((LX0 + 0.6f + sx + 0.5f) * 0.5f, ly - 0.3f, 0.f), sx + 0.5f - LX0 - 0.6f, 3.9f, top ? C(0.62f, 0.58f, 0.52f) : C(0.8f, 0.76f, 0.68f),
+                top ? C(0.28f, 0.24f, 0.2f) : C(0.42f, 0.46f, 0.5f));
+        sectional(b, vec3(sx, ly, 0.f), kHalfPi, sw, 1.9f, fab, r.next());
+        coffeeTable(b, vec3(tx, ty, 0.f), kHalfPi, 1.2f, 0.7f, r.next());
+        if (ly - 2.3f > Y0 + 0.25f)
+            for (int e = -1; e <= 1; e += 2) armchair(b, vec3(tx + e * 0.6f, ly - 1.8f, 0.f), 0.f, top ? C(0.1f, 0.08f, 0.07f) : C(0.72f, 0.56f, 0.38f), r.next());
+        floorLamp(b, vec3(sx + 0.15f, ly - sw * 0.5f - 0.3f, 0.f), living, C(0.95f, 0.9f, 0.8f));
+        plant(b, vec3(LX0 + 0.45f, Y0 + 0.45f, 0.f), 1.7f, r.next(), top ? Gy(0.15f) : Gy(0.9f), 1);
+        plant(b, vec3(X1 - 0.45f, Y0 + 0.45f, 0.f), 1.5f, r.next(), top ? Gy(0.15f) : Gy(0.9f), 0);
+        // dining by the window beyond the lounge, a pendant over it
         float dx = LX1 - 2.3f, dy = Y0 + 1.2f;
         if (dx > sx + 1.8f) {
             u32 tc = top ? C(0.15f, 0.1f, 0.06f) : C(0.55f, 0.4f, 0.26f);
             diningTable(b, vec3(dx, dy + 0.3f, 0.f), 0.f, 1.4f, 0.85f, tc, true, r.next());
             for (int k = 0; k < 4; k++) chair(b, vec3(dx + ((k & 1) ? 0.35f : -0.35f), dy + 0.3f + ((k & 2) ? 0.65f : -0.65f), 0.f), (k & 2) ? kPi : 0.f, tc, 1, true);
+            pendant(b, vec3(dx, dy + 0.3f, H), H - 1.75f, living, top ? C(0.8f, 0.62f, 0.32f) : Gy(0.12f), 200.f, vec3(1.f, 0.84f, 0.6f), 5.f, 1);
+        }
+        // far wall: sideboard with a lamp and decor, a large picture over it, the bar cart beside it
+        const float wy0 = Y0 + 0.95f;
+        if (farWallY1 - wy0 > 1.9f) {
+            const float sbw = Min(1.8f, farWallY1 - wy0 - 0.3f), sy = wy0 + sbw * 0.5f + 0.1f;
+            sideboard(b, vec3(X1 - 0.24f, sy, 0.f), kHalfPi, sbw, top ? C(0.08f, 0.07f, 0.07f) : C(0.9f, 0.88f, 0.84f), top ? Gy(0.85f) : C(0.25f, 0.24f, 0.23f), living,
+                      r.next());
+            {
+                At at(b, vec3(X1, sy, 0.f), kHalfPi);
+                picture(b, vec3(0.f, 0.f, 1.85f), Min(1.5f, sbw), 0.95f, r.next());
+            }
+            const float cy = sy + sbw * 0.5f + 0.7f;
+            if (cy + 0.45f < farWallY1) barCart(b, vec3(X1 - 0.32f, cy, 0.f), kHalfPi, r.next());
+        }
+        // art on the back wall between the doors
+        {
+            const float cabMid = (cabX0 + cabX1) * 0.5f, wallEnd = alcove ? alX0 + 0.15f : X1 - 1.1f;
+            const float segs[2][2] = {{cabMid + 0.75f, closet ? clX - 0.6f : wallEnd}, {closet ? clX + 0.6f : wallEnd, wallEnd}};
+            for (const auto& sg : segs)
+                if (sg[1] - sg[0] > 1.1f) {
+                    At at(b, vec3((sg[0] + sg[1]) * 0.5f, LY1, 0.f), kPi);
+                    const float pw = Min(1.3f, sg[1] - sg[0] - 0.4f);
+                    picture(b, vec3(0.f, 0.f, 1.65f), pw, pw * 0.72f, r.next());
+                }
         }
         // penthouse: a second lounge mid-room facing the view, and a grand piano by the glass when there is space
         const float mx0 = sx + 1.6f, mx1 = dx - 1.4f;
         if (top && dx > sx + 1.8f && mx1 - mx0 > 4.6f && LY1 - Y0 > 7.4f) {
             const bool piano = mx1 - mx0 > 6.6f;
             const float lcx = piano ? mx0 + 2.2f : (mx0 + mx1) * 0.5f, ry = Y0 + 2.5f;
-            rug(b, vec3(lcx, ry, 0.f), 3.6f, 3.0f, r.next());
+            areaRug(b, vec3(lcx, ry + 0.2f, 0.f), 4.4f, 3.2f, C(0.7f, 0.67f, 0.6f), C(0.2f, 0.18f, 0.16f));
             sofa(b, vec3(lcx, Y0 + 3.65f, 0.f), kPi, 2.6f, C(0.78f, 0.76f, 0.72f), r.next());
             coffeeTable(b, vec3(lcx, ry - 0.1f, 0.f), 0.f, 1.2f, 0.65f, r.next());
             for (int e = -1; e <= 1; e += 2) armchair(b, vec3(lcx + e * 1.7f, ry - 0.2f, 0.f), e * kHalfPi, C(0.1f, 0.08f, 0.07f), r.next());
@@ -492,20 +561,45 @@ void layoutCondoUnit(IB& b) {
         for (int k = 0; k < nd; k++) downlight(b, vec3(LX0 + lw * (k + 0.5f) / nd, ly, H), living, 260.f, vec3(1.f, 0.85f, 0.64f), 6.f);
         downlight(b, vec3(LX0 + lw * 0.5f, Y0 + 1.0f, H), living, 220.f, vec3(1.f, 0.85f, 0.64f), 6.f);
     }
-    // ---- bedroom: bed against the back partition facing the windows, nightstands, dresser + mirror
+    // floor-length drapes framing every window and the terrace door
+    for (const InteriorOpening& op : d.openings) {
+        vec3 a = d.toLocal(vec3(op.a, op.z0)), c = d.toLocal(vec3(op.b, op.z1));
+        curtains(b, Min(a.x, c.x), Max(a.x, c.x), 0.17f, Min(c.z, H - 0.25f), Y0 + 0.12f, top ? C(0.86f, 0.83f, 0.76f) : C(0.9f, 0.88f, 0.82f), r.next(), 0.12f);
+    }
+    // ---- bedroom: bed against the back partition facing the windows, nightstands, dresser with a mirror, a reading
+    // corner by the window, art, a tall plant
     {
         float bcx = (X0 + xb) * 0.5f, BY1 = yS - pt * 0.5f;
+        const float bw = top ? 1.9f : 1.6f;
         u32 duvet = top ? C(0.92f, 0.9f, 0.86f) : C(hsv(r.f(), 0.25f, 0.8f));
-        bed(b, vec3(bcx, BY1 - 1.12f, 0.f), kPi, top ? 1.9f : 1.6f, 2.1f, wood, duvet, r.next(), false);
-        float ns = (top ? 1.9f : 1.6f) * 0.5f + 0.32f;
+        areaRug(b, vec3(bcx, BY1 - 1.5f, 0.f), bw + 1.3f, 2.6f, top ? C(0.66f, 0.62f, 0.56f) : C(0.82f, 0.78f, 0.7f), top ? C(0.3f, 0.27f, 0.24f) : C(0.5f, 0.55f, 0.6f));
+        bed(b, vec3(bcx, BY1 - 1.12f, 0.f), kPi, bw, 2.1f, wood, duvet, r.next(), false);
+        float ns = bw * 0.5f + 0.32f;
         if (bcx - ns - 0.25f > X0) nightstand(b, vec3(bcx - ns, BY1 - 0.22f, 0.f), kPi, wood, bedroom, r.next());
         if (bcx + ns + 0.25f < xb - pt * 0.5f) nightstand(b, vec3(bcx + ns, BY1 - 0.22f, 0.f), kPi, wood, bedroom, r.next());
-        rug(b, vec3(bcx, BY1 - 2.6f, 0.f), 2.2f, 1.2f, r.next());
         dresser(b, vec3(X0, Y0 + 1.6f, 0.f), -kHalfPi, 1.3f, wood, r.next());
+        {
+            At at(b, vec3(X0, Y0 + 1.6f, 0.f), -kHalfPi);   // mirror over the dresser
+            InPart ip(b, IP_FURNITURE);
+            box(b, vec3(0.f, 0.02f, 1.62f), vec3(0.46f, 0.02f, 0.56f), top ? C(0.8f, 0.62f, 0.32f) : Gy(0.2f), M(MAT_METAL_BRUSHED), SK_NY);
+            box(b, vec3(0.f, 0.042f, 1.62f), vec3(0.42f, 0.002f, 0.52f), Gy(0.95f), M(MAT_CHROME), SK_NY);
+        }
         {
             At at(b, vec3(bcx, BY1, 0.f), kPi);
             picture(b, vec3(0.f, 0.f, 1.6f), 1.4f, 0.55f, r.next());
         }
+        const float rcx = xb - pt * 0.5f - 0.85f, rcy = Y0 + 0.95f;
+        if (rcx - 0.7f > X0 + 1.2f) {
+            armchair(b, vec3(rcx, rcy, 0.f), kPi * 0.25f, top ? C(0.3f, 0.26f, 0.22f) : C(0.62f, 0.66f, 0.7f), r.next());
+            floorLamp(b, vec3(xb - pt * 0.5f - 0.3f, Y0 + 1.75f, 0.f), bedroom, C(0.95f, 0.9f, 0.8f), 70.f);
+        }
+        const float py0 = Y0 + 2.2f, py1 = bdY - 0.6f;
+        if (py1 - py0 > 1.0f) {
+            At at(b, vec3(xb - pt * 0.5f, (py0 + py1) * 0.5f, 0.f), kHalfPi);
+            const float pw = Min(1.1f, py1 - py0 - 0.2f);
+            picture(b, vec3(0.f, 0.f, 1.6f), pw, pw * 0.75f, r.next());
+        }
+        plant(b, vec3(X0 + 0.45f, Y0 + 0.45f, 0.f), 1.5f, r.next(), top ? Gy(0.15f) : Gy(0.9f), 1);
         pendant(b, vec3(bcx, BY1 - 2.2f, H), 0.55f, bedroom, top ? Gy(0.15f) : C(0.9f, 0.85f, 0.75f), 170.f, vec3(1.f, 0.82f, 0.58f), 5.f, 2);
         marker(b, IM_BED, vec3(bcx, BY1 - 2.25f - 0.45f, 0.f), 0.f);
         marker(b, IM_MIRROR, vec3(X0 + 1.0f, Y0 + 1.6f, 0.f), -kHalfPi);

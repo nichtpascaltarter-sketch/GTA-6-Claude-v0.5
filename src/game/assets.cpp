@@ -333,8 +333,9 @@ void buildWeaponMesh(WeaponType w, MeshData& m) {
             obox(m, vec3(0, 0.02f, 0.0006f), F, U, vec3(0.0042f, 0.026f, 0.002f), black, matMetal);      // trigger guard
             obox(m, vec3(0, 0.044f, 0.01f), F, U, vec3(0.0042f, 0.0022f, 0.011f), black, matMetal);
             obox(m, vec3(0, 0.016f, 0.01f), F, normalize(vec3(0, -0.3f, 1.f)), vec3(0.0024f, 0.0018f, 0.0085f), black, matMetal);
-            obox(m, vec3(0, -0.19f, 0.02f), vec3(0, 1, 0.2f), U, vec3(0.02f, 0.16f, 0.04f), wood, matWood);  // stock
-            obox(m, vec3(0, -0.351f, -0.012f), vec3(0, 1, 0.2f), U, vec3(0.0205f, 0.005f, 0.041f), packRGBA8(0.03f, 0.03f, 0.03f, 1),
+            // stock: its comb stays below the rib line (the bead is sighted over it) and drops toward the butt
+            obox(m, vec3(0, -0.19f, 0.0f), vec3(0, 1, 0.15f), U, vec3(0.02f, 0.16f, 0.04f), wood, matWood);
+            obox(m, vec3(0, -0.353f, -0.025f), vec3(0, 1, 0.15f), U, vec3(0.0205f, 0.005f, 0.041f), packRGBA8(0.03f, 0.03f, 0.03f, 1),
                  matRubber);
             break;
         }

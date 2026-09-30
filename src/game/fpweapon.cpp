@@ -61,7 +61,7 @@ Spec specFor(WeaponType w) {
             s.right = pistolGrip(vec3(0.f, -0.02f, 0.02f), 0.25f);
             s.left = underGrip(vec3(0.f, 0.17f, 0.026f));
             s.foregrip = foreGrip(0.16f, 0.025f);
-            s.sight = vec3(0.f, 0.12f, 0.094f), s.sightDist = 0.27f;
+            s.sight = vec3(0.f, 0.12f, 0.094f), s.sightDist = 0.33f;   // rear sight ~18 cm from the eye
             s.muzzle = vec3(0.f, 0.27f, 0.055f);
             s.kickBack = 0.018f, s.kickPitch = 0.035f;
             break;
@@ -73,11 +73,11 @@ Spec specFor(WeaponType w) {
             s.muzzle = vec3(0.f, 0.6f, 0.055f);
             break;
         case WPN_SHOTGUN:
-            s.right = {vec3(0.f, -0.055f, 0.018f), vec3(0.f, 0.45f, 0.89f), vec3(-1.f, 0.1f, 0.f)};   // wrist of the stock
+            s.right = {vec3(0.f, -0.06f, 0.002f), vec3(0.f, 0.55f, 0.83f), vec3(-1.f, 0.1f, 0.f)};   // wrist of the stock
             s.left = underGrip(vec3(0.f, 0.27f, 0.02f));   // rear half of the pump
             s.hip = vec3(0.13f, 0.16f, -0.2f);
             s.foregrip = foreGrip(0.3f, 0.017f);
-            s.sight = vec3(0.f, 0.607f, 0.0752f), s.sightDist = 0.82f;   // brass bead at the muzzle
+            s.sight = vec3(0.f, 0.607f, 0.0752f), s.sightDist = 0.88f;   // brass bead at the muzzle
             s.muzzle = vec3(0.f, 0.62f, 0.06f);
             s.kickBack = 0.05f, s.kickPitch = 0.12f;
             break;
@@ -203,7 +203,7 @@ void GameWorld::updateFirstPersonWeapon(float dt) {
     mat3 hipRot = camRot(atan2f(s.hip.x, 12.f), atan2f(-s.hip.z, 12.f), s.longGun ? -0.08f : -0.05f);
     // aiming down the sights: `sight` on the view axis at sightDist
     vec3 adsPos = vec3(0.f, s.sightDist, 0.f) - s.sight;
-    if (reflex && w == WPN_SMG) adsPos = vec3(0.f, 0.28f, 0.f) - vec3(0.f, 0.112f, 0.108f);   // through the reflex window
+    if (reflex && w == WPN_SMG) adsPos = vec3(0.f, 0.31f, 0.f) - vec3(0.f, 0.112f, 0.108f);   // through the reflex window
     if (magnified) adsPos = vec3(0.f, 0.26f, 0.f) - vec3(s.sight.x, 0.1f, w == WPN_SNIPER ? 0.115f : 0.13f);
     vec3 pos = lerp(hipPos, adsPos, ads);
     quat q = normalize(nlerp(quatFromMat3(hipRot), quat(), ads));
