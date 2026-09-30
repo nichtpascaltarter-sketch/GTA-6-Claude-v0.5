@@ -140,9 +140,12 @@ float3 interiorReflection(int k, float3 p, float3 R, float rough, float dist) {
 float3 skinDirect(GBufferData g, float3 N, float3 V, float3 L, float shadow, float thickness) {
     float thin = saturate(g.extra * 2.0 - 1.0);
     float NoLr = dot(N, L);
-    const float3 w = float3(0.3, 0.1, 0.06);
+    // narrow per-channel wrap (a pre-integrated-skin look at face-scale curvature), wider on thin tight parts
+    float3 w = float3(0.12, 0.04, 0.02) + float3(0.22, 0.06, 0.03) * thin;
     float3 wrapD = saturate((NoLr + w) / (1.0 + w));
-    float3 sh3 = pow(saturate(shadow), float3(0.55, 1.0, 1.25));
+    // shadow edges warm slightly (light scattered under the skin from the lit side); deep shadow stays neutral
+    float sh = saturate(shadow);
+    float3 sh3 = saturate(sh + sh * (1.0 - sh) * float3(0.35, 0.0, -0.08));
     float3 H = normalize(V + L);
     float NoV = max(dot(N, V), 1e-4), NoL = saturate(NoLr), NoH = saturate(dot(N, H)), VoH = saturate(dot(V, H));
     float a1 = max(g.rough * g.rough, 0.01), a2 = max(sq(g.rough * 0.55), 0.004);

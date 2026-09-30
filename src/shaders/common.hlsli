@@ -40,6 +40,7 @@ cbuffer FrameCB : register(b0) {
                                // z probe irradiance weight (0 = sky SH only), w probe irradiance falloff distance (m)
     float4 gSkyGlow;           // x urban light pollution (0..1), yz direction towards the brighter city (length = bias),
                                // w night factor
+    float4 gRenderFlags;       // x reduce flashing (accessibility), yzw unused
 };
 
 // Global resources bound once per frame at high slots (see Renderer::bindGlobals)

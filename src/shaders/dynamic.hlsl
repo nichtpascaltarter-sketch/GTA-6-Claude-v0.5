@@ -262,7 +262,12 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         emissive = albedo * i.color.a * 400.0 * m.emissive;
         // animated signage / light patterns (same param encoding as world.hlsl emissiveAnim; interiors use it)
         uint pat = (i.mat >> 8) & 15u;
-        if (pat != 0u) {
+        bool gentle = gRenderFlags.x > 0.5 && (pat == 1u || pat == 2u || pat == 5u || pat == 7u || pat == 8u || pat == 9u);
+        if (gentle) {
+            // Reduce flashing (accessibility): strobes, blinkers, fast hue cycles and TV flicker pulse gently
+            float ph = ((i.mat >> 12) & 255u) / 256.0;
+            emissive *= 0.55 + 0.25 * sin(gTime.x * 1.2 + ph * 6.2832);
+        } else if (pat != 0u) {
             float ph = ((i.mat >> 12) & 255u) / 256.0, t = gTime.x;
             if (pat == 1u) emissive *= frac(t * 0.8 + ph) < 0.18 ? 1.6 : 0.03;
             else if (pat == 2u) emissive *= 0.2 + 1.3 * step(0.5, frac(t * 1.5 - ph * 4.0));

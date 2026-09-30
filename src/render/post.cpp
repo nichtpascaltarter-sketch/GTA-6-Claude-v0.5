@@ -4,6 +4,7 @@ namespace Render {
 struct PostCBData {
     vec4 p0, p1, p2, p3;
     vec4 fx0, fx1, fx2, fx3;  // gameplay PostFxControls
+    vec4 cb0, cb1, cb2;       // colour-blind correction rows (w of cb0 = enabled)
 };
 struct MotionBlurCBData {
     vec4 params;
@@ -185,6 +186,10 @@ struct PostSystem {
         cb.data.fx1 = vec4(fx.tint, Saturate(fx.blur));
         cb.data.fx2 = vec4(fx.vignetteColor, Saturate(fx.underwater));
         cb.data.fx3 = vec4(fx.flashColor, Saturate(fx.grain));
+        const float* m = r.settings.colorblind;
+        cb.data.cb0 = vec4(m[0], m[1], m[2], r.settings.colorblindOn ? 1.f : 0.f);
+        cb.data.cb1 = vec4(m[3], m[4], m[5], 0.f);
+        cb.data.cb2 = vec4(m[6], m[7], m[8], 0.f);
         cb.upload();
         runTAA(r);
         runMotionBlur(r, dt);

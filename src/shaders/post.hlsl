@@ -16,6 +16,9 @@ cbuffer PostCB : register(b1) {
     float4 gFx1;    // rgb tint, w blur
     float4 gFx2;    // rgb vignette color, w underwater
     float4 gFx3;    // rgb flash color, w extra grain
+    float4 gCb0;    // colour-blind correction matrix rows (xyz), gCb0.w = enabled
+    float4 gCb1;
+    float4 gCb2;
 };
 Texture2D<float> tSceneDepth : register(t5);
 
@@ -261,6 +264,8 @@ float4 psTonemap(VSOut i) : SV_Target {
     if (gFx0.y > 0.0) c = lerp(c, gFx2.rgb, saturate(gFx0.y * smoothstep(0.05, 0.5, r2 * 2.0)));
     // flash
     c = lerp(c, gFx3.rgb, gFx0.w);
+    // colour-blind correction (linear light, after tonemapping; the UI is drawn afterwards and corrects itself)
+    if (gCb0.w > 0.5) c = saturate(float3(dot(gCb0.xyz, c), dot(gCb1.xyz, c), dot(gCb2.xyz, c)));
     float3 outc = linearToSrgb(saturate(c));
     // film grain + dither to hide banding
     float n = ign(i.pos.xy, gTime.z) - 0.5;

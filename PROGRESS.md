@@ -122,6 +122,12 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   speaker, bystanders glance at the player (and the player at people close by), phone prop in hand.
 - Camera: on-foot first person (V / Back toggles; body faces the view, walk/jog limits backwards and sideways,
   centre-dot reticle; orbit camera in cover, ragdolls, water, parachute glides, vehicles, takedowns), `--firstperson`.
+- Settings (UI agent's menus, wired by the lead): key-binding table read by input.cpp (every IA_* action), separate
+  X/Y sensitivities, hold/toggle aim/sprint/crouch, controller layouts (standard/alternate/southpaw), first person on
+  foot / in vehicles by default, camera shake scale, vehicle auto-centre, head bob, frame-rate cap (sleep + spin),
+  dialogue ducking depth (Audio::setDialogueDucking), reduced flashing (muzzle flashes; renderer hooks pending),
+  settings.ini persistence, "Run Benchmark" in Settings. Autosave into slot 8 after passed missions and every 10
+  minutes of calm free roam.
 - Weapons (src/game/weaponmods.cpp): components per gun (suppressor: quiet crack, no flash, 9 m startle instead of a
   gunfire report; extended magazine +60 %; scope: aim zoom + tighter spread; flashlight beam while aiming in the dark,
   H / D-pad down toggles; grip: less recoil/spread) and 6 tints, all visible on the model, saved in a tagged trailing

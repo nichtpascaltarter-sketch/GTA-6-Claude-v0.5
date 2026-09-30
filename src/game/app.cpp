@@ -210,6 +210,7 @@ struct App {
         Audio::setScore(0, 0.f);
 #endif
         if (Platform::hasArg("wildlifetest")) mu::setFlag(game, mu::EX_INTRO_DONE, 1);   // wildlife test scenes: no prologue call
+        game.autosaveEnabled = autoplay.empty() && !autotest;   // automated runs never write the autosave slot
         if (!autoplay.empty()) setupAutoplay();
 #endif
     }

@@ -830,7 +830,8 @@ void RoadNetwork::generate(WorldMap& map) {
     // the highway's deck edge and its parapet ends up across the ramp lanes
     std::vector<std::vector<int>> hGrid;
     std::vector<std::pair<int, int>> hSegs;   // (edge, segment)
-    auto highwayAt = [&](vec2 p, float rampHw, float* hz) {
+    auto highwayAt = [&](vec2 p, float rampHw, float refZ, float* hz) {
+        // highway pavement under p; where two highways overlap in plan (interchanges), the one nearest in height to refZ
         int cx = Clamp((int)((p.x + kWorldHalf) / kXCell), 0, xRes - 1), cy = Clamp((int)((p.y + kWorldHalf) / kXCell), 0, xRes - 1);
         float best = 1e9f;
         bool found = false;
@@ -841,9 +842,12 @@ void RoadNetwork::generate(WorldMap& map) {
                     int k = hSegs[id].second;
                     float t;
                     float d = distPointSegment2D(p, h.pts[k].xy(), h.pts[k + 1].xy(), &t);
-                    if (d < h.halfWidth + rampHw + 1.f && d < best) {
-                        best = d;
-                        *hz = Lerp(h.pts[k].z, h.pts[k + 1].z, t);
+                    if (d >= h.halfWidth + rampHw + 1.f) continue;
+                    float z = Lerp(h.pts[k].z, h.pts[k + 1].z, t);
+                    float score = fabsf(z - refZ) * 4.f + d;
+                    if (score < best) {
+                        best = score;
+                        *hz = z;
                         found = true;
                     }
                 }
@@ -893,10 +897,20 @@ void RoadNetwork::generate(WorldMap& map) {
                 std::vector<float>& hzv = heldZ[&e - &edges[0]];
                 hm.resize(cnt, 0);
                 hzv.resize(cnt, 0.f);
+                // reference height: the attach node's highway ends
+                float refZ = 0.f;
+                int nref = 0;
+                for (int oe : nodes[nid].edges)
+                    if (edges[oe].cls == RC_HIGHWAY) {
+                        refZ += edges[oe].n0 == nid ? edges[oe].pts.front().z : edges[oe].pts.back().z;
+                        nref++;
+                    }
+                refZ /= (float)Max(1, nref);
                 for (size_t j = 0; j < cnt; j++) {
                     size_t i = end == 0 ? j : cnt - 1 - j;
                     float hz;
-                    if (!highwayAt(e.pts[i].xy(), e.halfWidth, &hz)) break;
+                    if (!highwayAt(e.pts[i].xy(), e.halfWidth, refZ, &hz)) break;
+                    refZ = hz;
                     target[i] = Max(target[i], hz);
                     hm[i] = 1;
                     hzv[i] = hz;
@@ -973,7 +987,8 @@ void RoadNetwork::generate(WorldMap& map) {
             bool changed = false;
             for (size_t ei = 0; ei < edges.size(); ei++) {
                 RoadEdge& A = edges[ei];
-                if (A.flags & RF_UNPAVED) continue;
+                // highways keep their profile (their bridges clear everything they cross); unpaved tracks are ignored
+                if ((A.flags & RF_UNPAVED) || A.cls == RC_HIGHWAY) continue;
                 size_t n = A.pts.size();
                 std::vector<float> cap(n, 1e9f);
                 bool any = false;

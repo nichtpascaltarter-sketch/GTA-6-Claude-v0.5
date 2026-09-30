@@ -430,6 +430,7 @@ void Renderer::updateFrameConstants(const Camera& cam, const Environment& env, f
     }
     cityGlow = frameIndex == 0 ? glow : lerp(cityGlow, glow, Clamp(dt * 0.3f, 0.f, 1.f));
     f.skyGlow = vec4(cityGlow.x, cityGlow.y, cityGlow.z, nightFactor);
+    f.renderFlags = vec4(settings.reduceFlashing ? 1.f : 0.f, 0.f, 0.f, 0.f);
     frameCB.data = f;
     frameCB.upload();
 }

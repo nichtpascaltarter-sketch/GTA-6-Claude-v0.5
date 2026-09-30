@@ -206,6 +206,10 @@ struct GameWorld {
     vec2 missionTarget;
     bool settingsSubtitles = true, settingsRadar = true, settingsMetric = true;
     bool reduceFlashing = false;   // accessibility: dimmer muzzle flashes (the renderer dampens lightning / strobes)
+    // autosave (slot 8): after every passed mission and every 10 minutes of calm free roam (off in automated runs)
+    bool autosaveEnabled = true, autosaveRequested = false;
+    float autosaveTimer = 0.f;
+    void updateAutosave(float realDt);
     std::vector<CrimeEvent> crimes;
 
     // Setup

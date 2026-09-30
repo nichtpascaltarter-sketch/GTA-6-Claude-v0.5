@@ -71,6 +71,9 @@ float3 emissiveAnim(uint param, float3 col) {
     uint pat = param & 15u;
     float ph = ((param >> 4) & 255u) / 256.0;
     float t = gTime.x;
+    // Reduce flashing (accessibility): blinking / strobing patterns become a slow gentle pulse
+    if (gRenderFlags.x > 0.5 && (pat == 1u || pat == 2u || pat == 5u || pat == 7u))
+        return col * (0.55 + 0.25 * sin(t * 1.2 + ph * 6.2832));
     if (pat == 1u) return col * (frac(t * 0.8 + ph) < 0.18 ? 1.6 : 0.03);
     if (pat == 2u) return col * (0.2 + 1.3 * step(0.5, frac(t * 1.5 - ph * 4.0)));
     if (pat == 3u) return hsvToRgbF(frac(t * 0.08 + ph)) * dot(col, 0.3333) * 1.4;

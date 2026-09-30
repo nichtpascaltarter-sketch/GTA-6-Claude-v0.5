@@ -234,7 +234,8 @@ struct GameSettings {
     bool vibration = true;
     bool aimAssist = true;
     float mouseSensitivityY = 1.f, padSensitivityY = 1.f;     // vertical look speed
-    bool aimToggle = false, sprintToggle = false, crouchToggle = false;   // false = hold
+    bool aimToggle = false, sprintToggle = false;   // false = hold the button
+    bool crouchToggle = true;                        // crouch has always been a stealth toggle
     int padLayout = 0;           // 0 standard, 1 alternate (A jump / X sprint), 2 southpaw (sticks swapped)
     u16 keyBinds[IA_COUNT][2] = {
         {KEY_W, 0}, {KEY_S, 0}, {KEY_A, 0}, {KEY_D, 0}, {KEY_SHIFT, 0}, {KEY_SPACE, 0}, {KEY_ALT, 0}, {KEY_CONTROL, 0},

@@ -50,6 +50,7 @@ struct FrameConstants {
     vec4 halfScreen;   // half-resolution size and inverse
     vec4 ambientParams; // x urban enclosure (facade share of the horizon, 0..1), y lightning ambient (lux), zw unused
     vec4 skyGlow;      // x urban light pollution (0..1), yz direction towards the brighter city (xy, length = bias), w night
+    vec4 renderFlags;  // x reduce flashing (accessibility), yzw unused
 };
 
 struct ShadowConstants {
@@ -95,6 +96,11 @@ struct Settings {
     int particleBudget = 20000;   // max simultaneous particles (pool rounded up to a power of two)
     int maxDecals = 512;
     int rainQuality = 2;          // 0 low .. 3 ultra (number of rain streaks)
+
+    // Accessibility
+    bool colorblindOn = false;    // apply colorblind[] to the scene (after tonemapping, linear light; not the UI)
+    float colorblind[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};   // row-major 3x3 colour correction (e.g. Machado 2009)
+    bool reduceFlashing = false;  // lightning at ~30% with a slow fade; strobe / flicker emissive patterns pulse gently
 
     // Quality ladder. High is the default and the 1440p / RTX 4070-class target (all effects on, ~6-7 ms for
     // clouds + fog + SSR + SSGI); Medium trims step counts and resolutions; Low keeps the look with the

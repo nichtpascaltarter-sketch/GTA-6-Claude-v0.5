@@ -65,30 +65,40 @@ bool insideBuilding(const GameWorld& g, vec3 p, float margin = 0.f) {
     return g.buildings && g.buildings->pointInBuilding(p.xy(), margin, &top) && p.z < top + 0.3f;
 }
 
-// inside one of the enterable interiors (shops, the diner, the Solaris penthouse...)
-bool insideInterior(vec3 p) { return World::gInteriors && World::gInteriors->at(p) >= 0; }
+// which enterable interior (shops, the diner, the Solaris penthouse...) holds a point, -1 outside all of them
+int interiorAt(vec3 p) { return World::gInteriors ? World::gInteriors->at(p) : -1; }
 
-// a camera at `cam` sees `subject`: it is not inside a building and nothing solid stands in between (the ray runs from
-// the subject out, so walls around a buried camera count)
-bool camSees(const GameWorld& g, dvec3 cam, dvec3 subject) {
-    if (insideBuilding(g, cam.toVec3()) || insideInterior(cam.toVec3())) return false;
-    vec3 d = rel(cam, subject);
-    float len = length(d);
-    if (len < 0.8f) return true;
-    // parked cars block a shot too, except the one the shot is of (the subject point sits inside it)
-    int own = -1;
-    float best = 1e9f;
+// the vehicle whose body box holds a point (the car a shot is of), -1 none
+int vehicleHolding(const GameWorld& g, vec3 p) {
     for (int i = 0; i < (int)g.vehicles.size(); i++) {
         const Vehicle& v = g.vehicles[i];
         if (!v.used) continue;
-        float dv = length(rel(v.sim.body.pos, subject));
-        if (dv < length(g.vassets[v.model].spec.boxHalf) + 0.3f && dv < best) {
-            best = dv;
-            own = i;
-        }
+        const Vehicles::VehicleModel& spec = g.vassets[v.model].spec;
+        if (length(rel(v.sim.body.pos, dvec3(p))) > length(spec.boxHalf) + 1.f) continue;
+        mat3 R = v.sim.body.rotMat();
+        vec3 local = transpose(R) * (p - (v.sim.body.pos.toVec3() + R * spec.boxCenter));
+        vec3 h = spec.boxHalf * 1.1f;
+        if (fabsf(local.x) <= h.x && fabsf(local.y) <= h.y && fabsf(local.z) <= h.z) return i;
     }
+    return -1;
+}
+
+// A camera at `cam` sees `subject`: nothing solid in between (the ray runs from the subject out, so walls around a
+// buried camera count; parked cars count too, except the one the shot is of), and the camera stands where the scene
+// is: outside every building for a street scene, inside the same interior for a scene indoors.
+bool camSees(const GameWorld& g, dvec3 cam, dvec3 subject) {
+    vec3 c = cam.toVec3(), t = subject.toVec3();
+    int room = interiorAt(t);
+    if (room >= 0) {
+        if (interiorAt(c) != room) return false;
+    } else if (insideBuilding(g, c) || interiorAt(c) >= 0) {
+        return false;
+    }
+    vec3 d = c - t;
+    float len = length(d);
+    if (len < 0.8f) return true;
     WorldHit h;
-    return !g.raycast(subject, d / len, len - 0.2f, h, -1, own, false, true);
+    return !g.raycast(subject, d / len, len - 0.2f, h, -1, vehicleHolding(g, t), false, true);
 }
 
 // the camera swung around its target by `ang` radians (horizontal), then pulled in toward it by factor k
@@ -100,19 +110,17 @@ dvec3 swingCam(dvec3 cam, dvec3 target, float ang, float k) {
 }
 
 // The smallest change that gives the shot a clear view: pulled in along its own line (to 60%), swung 25 or 50 degrees
-// either way around its subject, the reverse angle, then any pull-in down to 25%. A shot of a scene inside an interior
-// (or one nothing fixes) is left alone.
+// either way around its subject, the reverse angle, then any pull-in down to 25%. A shot nothing fixes is left alone.
 void fixShot(const GameWorld& g, CutsceneShot& s) {
+    // a subject deep inside a building footprint that is not an interior is not a scene anyone can film
+    if (interiorAt(s.target.toVec3()) < 0 && insideBuilding(g, s.target.toVec3(), -1.f)) return;
+    bool ok = camSees(g, s.pos, s.target) && camSees(g, s.pos2, s.target2);
     if (gMissions.test.active) {
         vec3 c = s.pos.toVec3(), t = s.target.toVec3();
-        LOG("[cutscene] shot cam (%.1f %.1f %.1f) in %d/%d, target (%.1f %.1f %.1f) in %d/%d/%d, sees %d", c.x, c.y, c.z, (int)insideBuilding(g, c),
-            (int)insideInterior(c), t.x, t.y, t.z, (int)insideBuilding(g, t), (int)insideBuilding(g, t, -1.f), (int)insideInterior(t),
-            (int)camSees(g, s.pos, s.target));
+        LOG("[cutscene] shot cam (%.1f %.1f %.1f) building %d interior %d, target (%.1f %.1f %.1f) interior %d: %s", c.x, c.y, c.z,
+            (int)insideBuilding(g, c), interiorAt(c), t.x, t.y, t.z, interiorAt(t), ok ? "clear" : "blocked");
     }
-    // a scene inside an interior is framed by hand (a doorway just outside a building still counts as outside)
-    if (insideBuilding(g, s.target.toVec3(), -1.f) || insideBuilding(g, s.target2.toVec3(), -1.f)) return;
-    if (insideInterior(s.target.toVec3()) || insideInterior(s.target2.toVec3())) return;
-    if (camSees(g, s.pos, s.target) && camSees(g, s.pos2, s.target2)) return;
+    if (ok) return;
     struct Try {
         float ang, kMin;
     };
@@ -122,11 +130,13 @@ void fixShot(const GameWorld& g, CutsceneShot& s) {
         for (float k = 0.95f + (t.ang != 0.f ? 0.05f : 0.f); k >= t.kMin - 1e-3f; k -= 0.05f) {
             dvec3 p1 = swingCam(s.pos, s.target, t.ang, k), p2 = swingCam(s.pos2, s.target2, t.ang, k);
             if (camSees(g, p1, s.target) && camSees(g, p2, s.target2)) {
+                if (gMissions.test.active) LOG("[cutscene]   fixed: swung %.0f degrees, %.0f%% of the distance", t.ang * kRadToDeg, k * 100.f);
                 s.pos = p1;
                 s.pos2 = p2;
                 return;
             }
         }
+    if (gMissions.test.active) LOG("[cutscene]   no clear angle found");
 }
 
 // leave a scripted camera: ease from the last shot back into the gameplay camera, or cut when that shot was far from
@@ -292,6 +302,7 @@ void GameWorld::mEnd(bool passed, const std::string& reason) {
             storyFlags[d.setsFlag] = 1;
         }
         if (d.storyIndex >= 0 && !M.replay) storyTitle = M.active->title();
+        if (!M.replay) autosaveRequested = true;   // gameworld.cpp saves once the player is back in calm free roam
         M.retry.def = -1;
         M.retry.timer = 0.f;
         M.retry.pending = false;

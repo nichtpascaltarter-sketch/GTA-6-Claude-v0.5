@@ -19,6 +19,7 @@ struct WeatherSystem {
     dvec3 overheadOrigin;          // world min corner of the map
     float overheadTop = 0.f, overheadRange = 600.f;
     u32 overheadUploads = 0;       // WorldRenderer::nearUploads when the map was rendered
+    float gentleFlash = 0.f;       // reduce-flashing: smoothed lightning intensity
     bool overheadValid = false;
     int overheadAge = 0;
     ID3D11ComputeShader* csOverhead = nullptr;
@@ -177,11 +178,14 @@ struct WeatherSystem {
         f.weather2 = vec4(overcast, storm, puddles, rippleTime);
         f.cloudShadow.w = Lerp(0.88f, 1.f, Max(overcast, storm));   // how much of the cloud shadow map applies
         f.overhead = overheadValid ? vec4((float)overheadOrigin.x, (float)overheadOrigin.y, kOverheadSize, 1.f) : vec4(0.f);
-        // Lightning: flash brightness + direction to the current bolt
+        // Lightning: flash brightness + direction to the current bolt (reduce-flashing: ~30% and a slow fade)
         float flash = Saturate(env.lightning);
+        if (r.settings.reduceFlashing) {
+            gentleFlash = Max(flash * 0.3f, gentleFlash * expf(-dt * 1.2f));
+            flash = gentleFlash;
+        }
         f.lightning = vec4(flash, boltDir.x, boltDir.y, boltDir.z);
         f.ambientParams.y = flash * 2500.f;
-        (void)r;
     }
 
     // New bolt on each rising edge of the flash intensity.
@@ -232,7 +236,7 @@ struct WeatherSystem {
     // Forward pass (after particles, before TAA): rain streaks, splashes and the lightning bolt.
     void draw(Renderer& r, const Environment& env, ID3D11RenderTargetView* reactive) {
         bool rain = env.rain > 0.01f;
-        bool bolt = env.lightning > 0.02f && !boltSegs.empty();
+        bool bolt = r.frame.lightning.x > 0.02f && !boltSegs.empty();
         if (!rain && !bolt) return;
         auto* c = gfx::ctx;
         static const int drops[4] = {9000, 16000, 26000, 40000};
@@ -258,7 +262,7 @@ struct WeatherSystem {
             cb.data.lights[i * 3 + 1] = vec4(L.color, L.spotCos);
             cb.data.lights[i * 3 + 2] = vec4(L.dir, L.spotInner);
         }
-        cb.data.r2 = vec4(4.f, 22.f, (float)nl, Saturate(env.lightning));
+        cb.data.r2 = vec4(4.f, 22.f, (float)nl, Saturate(r.frame.lightning.x));
         cb.data.r3 = vec4(overheadTop, overheadRange, 0, 0);
         cb.upload();
         ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get()};

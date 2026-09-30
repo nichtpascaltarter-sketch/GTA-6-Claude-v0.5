@@ -12,7 +12,7 @@ namespace mu {
 enum PhoneApp : int { APP_SWITCH = 1, APP_WHEELS, APP_REALTY, APP_JOBS, APP_REPLAY, APP_VEHICLE_JOB, APP_FIELD_GUIDE };
 
 // ------------------------------------------------------------------------------------------------------------------
-// Wild Porto Sol: the Wildlife Trust's photo census of 26 species (everything but the fish). The first photo of a
+// Wild Porto Sol: the Wildlife Trust's photo census of 27 species (everything but the fish). The first photo of a
 // species taken with the phone camera (photo mode) pays $250, the full field guide $10,000. The Field Guide app lists every species with a hint where to look.
 struct FieldGuideEntry {
     int species;
@@ -45,6 +45,7 @@ const FieldGuideEntry kFieldGuide[] = {
     {Fauna::SP_FRIGATE, "Long-winged pirates of the sky, soaring high over the coast."},
     {Fauna::SP_CORMORANT, "Around docks, marinas and piers, and diving in the Sawgrass channels."},
     {Fauna::SP_CEGRET, "Small white birds that follow the cattle herds on the farms."},
+    {Fauna::SP_SQUIRREL, "Up and down the big trees in parks and leafy streets, in daylight and dry weather."},
 };
 const int kFieldGuideCount = (int)ARRAY_COUNT(kFieldGuide);
 const long long kSpeciesPay = 250, kFieldGuidePay = 10000;

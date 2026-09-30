@@ -191,6 +191,7 @@ void GameWorld::update(float realDt) {
     Wildlife::update(*this, dt);   // animals around the player (wildlife.cpp; after the camera: LOD / spawning use it)
     updateRumble(realDt);
     updatePostFx(realDt);
+    updateAutosave(realDt);
     double t7 = TimeSeconds();
     auto ema = [](float& v, double ms) { v = Lerp(v, (float)ms, 0.1f); };
     ema(profPlayer, (t1 - t0) * 1000.0);
@@ -200,6 +201,20 @@ void GameWorld::update(float realDt) {
     ema(profMisc, (t5 - t4) * 1000.0);
     ema(profMissions, (t6 - t5) * 1000.0);
     ema(profCamera, (t7 - t6) * 1000.0);
+}
+
+// Autosave into the last slot once things are calm: after a mission is passed (never mid-mission, wanted, dead,
+// in a cutscene or a fade) and every 10 minutes of free roam.
+void GameWorld::updateAutosave(float realDt) {
+    if (!autosaveEnabled) return;
+    autosaveTimer += realDt;
+    const Ped* pl = playerPed();
+    bool calm = pl && pl->health > 0.f && pl->state != PS_RAGDOLL && pl->state != PS_GETUP && !missionActive() && pinfo.wanted == 0 &&
+                playerControl && fadeAlpha < 0.01f && !rig.scriptActive;
+    if (!calm || (!autosaveRequested && autosaveTimer < 600.f)) return;
+    autosaveRequested = false;
+    autosaveTimer = 0.f;
+    if (saveGame(7, "Autosave - " + storyTitle)) notify("AUTOSAVE", "Progress saved");
 }
 
 // Guards against numerical blow-ups or entities escaping the world: non-finite or far-out-of-bounds entities are
