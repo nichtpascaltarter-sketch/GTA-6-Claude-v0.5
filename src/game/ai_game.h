@@ -29,6 +29,7 @@ enum PedActivity : u8 {
     ACT_ROADRAGE,      // driver who got out to yell at (and maybe fight) the player after a crash
     ACT_QUEUE,         // standing in line outside a club (population.cpp moves the line along)
     ACT_ERRAND,        // delivery driver: van double-parked, walks to a door, waits there, walks back and drives on
+    ACT_CROSS,         // jaywalking straight across a quiet street (BRAIN_GOTO), back to the sidewalk graph on the far side
 };
 
 // Ambient speech categories (barks.cpp)

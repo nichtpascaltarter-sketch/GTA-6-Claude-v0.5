@@ -66,6 +66,7 @@ void GameWorld::updateCameraRig(float dt) {
     int veh = p.vehicle;
     bool inVeh = veh >= 0 && p.state == PS_INVEHICLE;
     bool dead = p.state == PS_DEAD || pinfo.deathTimer > 0.f;
+    if (!inVeh) r.wasInVehicle = false;
     // --- manual look
     if (playerControl && !pinfo.weaponWheel) {
         float sens = (p.aiming ? 0.55f : 1.f);
@@ -89,6 +90,12 @@ void GameWorld::updateCameraRig(float dt) {
         wantFov = 50.f;
     } else if (inVeh) {
         r.mode = CAM_VEHICLE;
+        if (!r.wasInVehicle) {
+            r.wasInVehicle = true;
+            r.lookedInVehicle = false;
+            if (r.fpVehicleDefault) r.vehicleView = 2;
+        }
+        if (c.lookActive) r.lookedInVehicle = true;
         const Vehicle& v = vehicles[veh];
         const Vehicles::VehicleModel& spec = vassets[v.model].spec;
         bool air = isAircraft(veh), boat = isBoat(veh), bike = isBike(veh);
@@ -105,6 +112,7 @@ void GameWorld::updateCameraRig(float dt) {
         float targetPitch = air ? Clamp(asinf(Clamp(f.z, -1.f, 1.f)) * 0.6f - 0.12f, -0.9f, 0.6f) : -0.16f;
         // auto-follow after a short delay without manual look input
         float follow = r.noInputTime > 1.2f ? (air ? 3.f : 2.4f) : 0.f;
+        if (!r.vehicleAutoCenter && r.lookedInVehicle) follow = 0.f;   // settings: stay where the player looked
         if (spd < 1.5f && !air) follow *= 0.2f;
         r.yaw += wrapAngle(targetYaw - r.yaw) * Saturate(rdt * follow);
         r.pitch += (targetPitch - r.pitch) * Saturate(rdt * follow * 0.8f);
@@ -198,6 +206,12 @@ void GameWorld::updateCameraRig(float dt) {
             quat qy = quatAxisAngle(vec3(0, 0, 1), p.yaw);
             vec3 eye = rotate(qy, p.bones[Anim::B_HEAD].c[3].xyz() + vec3(0.f, 0.13f, 0.075f));
             dvec3 target = p.pos + dvec3(eye);
+            if (!r.headBob) {
+                // steady eye height: follow crouching / stairs slowly, drop the stride bob
+                float z = (float)target.z;
+                r.fpEyeZ = !r.fpActive || fabsf(z - r.fpEyeZ) > 1.f ? z : Lerp(r.fpEyeZ, z, Saturate(rdt * 2.5f));
+                target.z = r.fpEyeZ;
+            }
             vec3 de = rel(target, r.fpEye);
             if (!r.fpActive || r.cut || length(de) > 1.f) r.fpEye = target;
             else r.fpEye = r.fpEye + dvec3(de * Saturate(rdt * 30.f));   // animation jitter out, head bob kept
@@ -206,7 +220,7 @@ void GameWorld::updateCameraRig(float dt) {
             r.pitch = Clamp(r.pitch, -1.35f, 1.3f);
             r.yaw = wrapAngle(r.yaw);
             r.shake = Max(0.f, r.shake - rdt * 0.9f);
-            float sh = r.shake * r.shake, tt = (float)time * 18.f;
+            float sh = r.shake * r.shake * r.shakeScale, tt = (float)time * 18.f;
             r.cam.pos = r.fpEye;
             r.cam.yaw = r.yaw + smoothNoise(tt, 11.f) * sh * 0.04f;
             r.cam.pitch = r.pitch + r.recoil + smoothNoise(tt, 37.f) * sh * 0.04f;
@@ -254,7 +268,7 @@ void GameWorld::updateCameraRig(float dt) {
     float camPitch = r.pitch + r.recoil;
     // shake
     r.shake = Max(0.f, r.shake - rdt * 0.9f);
-    float sh = r.shake * r.shake;
+    float sh = r.shake * r.shake * r.shakeScale;
     float tt = (float)time * 18.f;
     camYaw += smoothNoise(tt, 11.f) * sh * 0.05f;
     camPitch += smoothNoise(tt, 37.f) * sh * 0.05f;

@@ -850,6 +850,7 @@ void RoadNetwork::generate(WorldMap& map) {
         return found;
     };
     std::vector<std::vector<char>> held(edges.size());   // ramp points held at highway level (kept by the overlap pass)
+    std::vector<std::vector<float>> heldZ(edges.size());
     auto elevate = [&](RoadEdge& e) {
         // densify to <= 12 m spacing for smooth elevation profiles
         std::vector<vec3> dense;
@@ -889,13 +890,16 @@ void RoadNetwork::generate(WorldMap& map) {
                 if (!atHighway) continue;
                 size_t cnt = e.pts.size();
                 std::vector<char>& hm = held[&e - &edges[0]];
+                std::vector<float>& hzv = heldZ[&e - &edges[0]];
                 hm.resize(cnt, 0);
+                hzv.resize(cnt, 0.f);
                 for (size_t j = 0; j < cnt; j++) {
                     size_t i = end == 0 ? j : cnt - 1 - j;
                     float hz;
                     if (!highwayAt(e.pts[i].xy(), e.halfWidth, &hz)) break;
                     target[i] = Max(target[i], hz);
                     hm[i] = 1;
+                    hzv[i] = hz;
                 }
             }
         }
@@ -921,6 +925,10 @@ void RoadNetwork::generate(WorldMap& map) {
             for (size_t i = 1; i + 1 < z.size(); i++) z[i] = Max(zs[i], target[i] - (hwy ? 0.5f : 0.15f));
         }
         for (size_t i = 0; i < e.pts.size(); i++) e.pts[i].z = z[i];
+        // held ramp points sit exactly on the highway (the grade limit may have lifted them toward a hilltop end)
+        const std::vector<char>& hm = held[&e - &edges[0]];
+        for (size_t i = 0; i < hm.size() && i < e.pts.size(); i++)
+            if (hm[i]) e.pts[i].z = heldZ[&e - &edges[0]][i];
     };
     for (auto& e : edges)
         if (e.cls != RC_RAMP) elevate(e);
@@ -969,22 +977,40 @@ void RoadNetwork::generate(WorldMap& map) {
                 size_t n = A.pts.size();
                 std::vector<float> cap(n, 1e9f);
                 bool any = false;
+                // each vertex, and each segment (short overlaps fall between vertices): the lower road's height at the
+                // closest approach caps both ends of the segment
                 for (size_t i = 0; i < n; i++) {
                     vec2 p = A.pts[i].xy();
-                    float za = A.pts[i].z;
                     int cx = Clamp((int)((p.x + kWorldHalf) / kXCell), 0, xRes - 1), cy = Clamp((int)((p.y + kWorldHalf) / kXCell), 0, xRes - 1);
                     for (int id : oGrid[(size_t)cy * xRes + cx]) {
                         const RoadEdge& B = edges[oSegs[id].first];
                         if (oSegs[id].first == (int)ei) continue;
                         int k = oSegs[id].second;
-                        float t;
-                        float d = distPointSegment2D(p, B.pts[k].xy(), B.pts[k + 1].xy(), &t);
-                        if (d > A.halfWidth + B.halfWidth - 1.f) continue;
-                        float zb = Lerp(B.pts[k].z, B.pts[k + 1].z, t);
-                        float dz = za - zb;
-                        if (dz > 0.3f && dz < 4.5f) {
-                            cap[i] = Min(cap[i], zb);
-                            any = true;
+                        vec2 b0 = B.pts[k].xy(), b1 = B.pts[k + 1].xy();
+                        float lim = A.halfWidth + B.halfWidth - 1.f;
+                        for (size_t j = i; j <= i + 1 && j < n; j++) {
+                            // closest approach between A's segment [i, i+1] (or the vertex alone for the last one) and B's segment
+                            vec2 a0 = A.pts[i].xy(), a1 = A.pts[Min(i + 1, n - 1)].xy();
+                            float ta = 0.f, tb = 0.f, d;
+                            if (segmentIntersect2D(a0, a1, b0, b1, &ta, &tb)) d = 0.f;
+                            else {
+                                float t0, t1, t2, t3;
+                                float d0 = distPointSegment2D(a0, b0, b1, &t0), d1 = distPointSegment2D(a1, b0, b1, &t1);
+                                float d2 = distPointSegment2D(b0, a0, a1, &t2), d3 = distPointSegment2D(b1, a0, a1, &t3);
+                                d = d0; ta = 0.f; tb = t0;
+                                if (d1 < d) { d = d1; ta = 1.f; tb = t1; }
+                                if (d2 < d) { d = d2; ta = t2; tb = 0.f; }
+                                if (d3 < d) { d = d3; ta = t3; tb = 1.f; }
+                            }
+                            if (d > lim) break;
+                            size_t v = (j == i) ? i : j;
+                            float za = A.pts[v].z;
+                            float zb = Lerp(B.pts[k].z, B.pts[k + 1].z, tb);
+                            float dz = za - zb;
+                            if (dz > 0.3f && dz < 4.5f) {
+                                cap[v] = Min(cap[v], zb);
+                                any = true;
+                            }
                         }
                     }
                 }

@@ -25,6 +25,15 @@ const u32 kGlassMat = makeMat(MAT_CAR_WINDOW);
 
 enum Skip : u32 { SK_NONE = 0, SK_PX = 1, SK_NX = 2, SK_PY = 4, SK_NY = 8, SK_PZ = 16, SK_NZ = 32 };
 
+// Buildings for layouts: gBuildings once the world is up; during world generation (plan mode runs inside
+// BuildingSet::generate, before gBuildings is published) the set being planned
+thread_local const BuildingSet* tPlanBuildings = nullptr;
+inline const BuildingSet* layoutBuildings() { return gBuildings ? gBuildings : tPlanBuildings; }
+inline const Building* layoutBuilding(const InteriorDef& d) {
+    const BuildingSet* bs = layoutBuildings();
+    return (bs && d.building >= 0 && d.building < (int)bs->buildings.size()) ? &bs->buildings[d.building] : nullptr;
+}
+
 // ------------------------------------------------------------------------------------------------ builder
 struct Frame {
     vec3 o = vec3(0.f), x = vec3(1, 0, 0), y = vec3(0, 1, 0), z = vec3(0, 0, 1);

@@ -65,6 +65,7 @@ struct SharedState {
     float crowdDensity = 0.f;
     int crowdPlace = 0;
     float crowdPanic = 0.f;
+    float duck = 0.62f;           // how far music/radio drop under dialogue (settings: music ducking)
 };
 
 std::mutex g_cmdMutex;
@@ -713,7 +714,7 @@ struct Mixer {
             float w = Max(fabsf(wL[i]), fabsf(wR[i])) * vSfx;
             lEnvMax = Max(lEnvMax, loudEnv.process(w));
         }
-        float sd = 1.f - 0.62f * SmoothStep(0.004f, 0.05f, sEnvMax);
+        float sd = 1.f - Clamp(st.duck, 0.f, 0.95f) * SmoothStep(0.004f, 0.05f, sEnvMax);
         float ld = SmoothStep(0.3f, 1.2f, lEnvMax);
         float speechDuck0 = speechDuck, loudDuck0 = loudDuck;
         speechDuck += (sd - speechDuck) * (sd < speechDuck ? 0.5f : 0.08f);
@@ -1264,6 +1265,11 @@ void setVoiceVolume(float v) {
     if (!mix::g_inited.load()) return;
     std::lock_guard<std::mutex> lk(mix::g_cmdMutex);
     mix::g_shared.voice = Saturate(v);
+}
+void setDialogueDucking(float amount) {
+    if (!mix::g_inited.load()) return;
+    std::lock_guard<std::mutex> lk(mix::g_cmdMutex);
+    mix::g_shared.duck = Clamp(amount * 1.24f, 0.f, 0.95f);
 }
 
 static SoundHandle playImpl(Sfx id, vec3 pos, float volume, float pitch, bool is2D) {

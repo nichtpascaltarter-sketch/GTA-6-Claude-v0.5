@@ -668,6 +668,7 @@ void GameWorld::updateEvents(float dt) {
                         Vehicle& pc = vehicles[cop];
                         pc.faction = FAC_POLICE;
                         pc.sirenOn = true;
+                        pc.sirenSilent = false;
                         VehAI& pva = vehAI(cop);
                         pva.role = VR_POLICE;
                         pva.task = PT_PURSUE;
@@ -917,7 +918,8 @@ void GameWorld::updateEvents(float dt) {
                             vai.eventId = evId;
                         }
                         vehicles[cop].faction = FAC_POLICE;
-                        vehicles[cop].indicator = 2;   // (flashing lights while parked)
+                        vehicles[cop].sirenOn = true;
+                        vehicles[cop].sirenSilent = true;   // light bar flashing, no siren
                         peds[drv].brain.type = BRAIN_NONE;   // both stay put in their seats until the stop is over
                         peds[off].brain.type = BRAIN_NONE;
                         pedAI(drv).eventId = evId;
@@ -1667,7 +1669,8 @@ void GameWorld::updateEvents(float dt) {
                         o.brain.type = BRAIN_DRIVER;
                         peds[drv].brain.type = BRAIN_DRIVER;
                         vc.parked = vp.parked = false;
-                        vp.indicator = 0;
+                        vp.sirenOn = false;
+                        vp.sirenSilent = false;
                         attachTraffic(car);
                         attachTraffic(cop);
                         vehAI(car).role = VR_TRAFFIC;
@@ -1693,6 +1696,7 @@ void GameWorld::updateEvents(float dt) {
                 if (id >= 0) {
                     vehicles[id].parked = vehicles[id].seats[0] < 0;
                     if (vehicles[id].indicator == 2) vehicles[id].indicator = 0;
+                    if (vehicles[id].sirenSilent) vehicles[id].sirenOn = vehicles[id].sirenSilent = false;
                 }
             }
         }

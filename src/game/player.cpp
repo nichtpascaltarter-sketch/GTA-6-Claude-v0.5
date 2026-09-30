@@ -481,7 +481,14 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
             return;
         }
     }
-    if (c.crouch.pressed && !swimming) p.animIn.crouch = !p.animIn.crouch;
+    if (!swimming) {
+        if (c.crouchHold) {   // settings: crouch while held
+            if (c.crouch.pressed) p.animIn.crouch = true;
+            if (c.crouch.released) p.animIn.crouch = false;
+        } else if (c.crouch.pressed) {
+            p.animIn.crouch = !p.animIn.crouch;
+        }
+    }
     // ----- diving
     if (swimming) {
         if (c.crouch.down) p.diveDepth = Min(p.diveDepth + dt * 1.6f, 9.f);

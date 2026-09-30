@@ -671,7 +671,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 m.box(vec3(cc, z0 + 5.2f) - org, vec3(b.ax, 0), vec3(ay, 0), vec3(0, 0, 1), vec3(cw, cd, 0.45f), kWhite, makeMat(MAT_METAL_PAINTED), true);
                 vec3 bc = hsvToRgb(r.f(), 0.8f, 0.9f);
                 auto rim = rectFP(cc, b.ax, cw + 0.02f, cd + 0.02f);
-                plainWalls(x, rim, z0 + 4.8f, z0 + 5.3f, packRGBA8(bc.x, bc.y, bc.z, 0.3f), makeMat(MAT_EMISSIVE, 6u));
+                plainWalls(x, rim, z0 + 4.8f, z0 + 5.3f, packRGBA8(bc.x, bc.y, bc.z, 0.15f), makeMat(MAT_EMISSIVE, 6u));
                 for (int k = -1; k <= 1; k += 2)
                     for (int j = -1; j <= 1; j += 2) {
                         vec2 cp = cc + b.ax * (k * cw * 0.6f) + b.front * (j * cd * 0.45f);

@@ -116,6 +116,7 @@ void setMasterVolume(float v);
 void setSfxVolume(float v);
 void setMusicVolume(float v);  // radio + score
 void setVoiceVolume(float v);
+void setDialogueDucking(float amount);   // 0..1 how much music/radio drop under dialogue (0.5 = the default mix)
 
 // One-shots
 SoundHandle play(Sfx id, vec3 pos, float volume = 1.f, float pitch = 1.f);

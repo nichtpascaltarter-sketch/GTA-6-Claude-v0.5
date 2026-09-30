@@ -570,6 +570,10 @@ void update(GameWorld& g, float dt) {
         if (a && (strcmp(a, "metro") == 0 || strcmp(a, "bus") == 0 || strcmp(a, "ferry") == 0)) {
             gT.mode = a;
             LOG("Transit test [%s]: start", a);
+            mu::setFlag(g, mu::EX_INTRO_DONE, 1);   // no opening shots or prologue call during the test
+            // --transithour H: run the test at that time of day (night lighting checks)
+            if (const char* h = Platform::argValue("transithour"))
+                if (g.env) g.env->timeOfDay = (float)atof(h);
         }
     }
     if (gT.mode.empty() || gT.done) return;

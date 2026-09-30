@@ -630,7 +630,7 @@ void ensureBlips(GameWorld& g, float dt) {
     const World::TransitNet& N = *World::gTransit;
     if (gF.blipNames.empty()) {
         gF.blipNames.reserve(N.piers.size());
-        for (const World::FerryPier& fp : N.piers) gF.blipNames.push_back("Bay Ferry: " + fp.name);
+        for (const World::FerryPier& fp : N.piers) gF.blipNames.push_back(fp.name + " Ferry Terminal");
     }
     if (gF.blipNames.empty()) return;
     for (const UI::Blip& b : g.staticBlips)
@@ -638,9 +638,9 @@ void ensureBlips(GameWorld& g, float dt) {
     for (size_t i = 0; i < N.piers.size(); i++) {
         UI::Blip b;
         b.pos = N.piers[i].base;
-        b.icon = UI::BLIP_BOAT;
-        b.color = packRGBA8(0.1f, 0.85f, 0.92f, 1.f);
-        b.scale = 1.1f;
+        b.icon = UI::BLIP_FERRY;
+        b.color = 0;
+        b.scale = 1.f;
         b.shortRange = true;
         b.label = gF.blipNames[i].c_str();
         g.staticBlips.push_back(b);

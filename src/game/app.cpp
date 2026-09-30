@@ -69,11 +69,14 @@ struct App {
     std::vector<std::string> benchLines;
     float benchAvgFps = 0.f, benchWorstLow = 1e9f;
     float benchSeconds = 20.f;   // --benchseconds N: measured time per scene
+    bool benchFromMenu = false;  // started from Settings: return to the main menu afterwards instead of exiting
     float tourT = 0.f;
     bool tourShot = false, tourDone = false;
     int meleeVictim = -1;        // --autoplay melee: the civilian for the takedown
     int renderEvery = 1;         // --renderevery N: automated runs render every Nth gameplay frame (+ screenshot frames)
     float skippedDt = 0.f;       // game time since the last rendered frame
+    int frameCap = 0;            // Settings: frame-rate cap (0 = unlimited)
+    bool lastFpSetting = false;  // last applied "first person on foot" default
     u32 playFrames = 0;
     // autoplay test scripts (--autoplay walk|drive|bike|fly|boat|shoot)
     std::string autoplay;
@@ -144,7 +147,7 @@ struct App {
         if (const char* ff = Platform::argValue("fog")) env.fogDensity = (float)atof(ff);
 #ifdef HAVE_GAMEPLAY
         game.init(&renderer, &env, &map, &roads, &buildings);
-        game.rig.footFirstPerson = Platform::hasArg("firstperson");   // start in the on-foot first-person view
+        game.rig.footFirstPerson = Platform::hasArg("firstperson");   // start in the on-foot first-person view (tests)
         weather.seed = (u32)(TimeSeconds() * 1000.0) | 1u;
         if (Platform::argValue("rain") || Platform::argValue("clouds") || Platform::argValue("fog") || !shots.empty() || autotest) {
             weather.locked = true;
@@ -190,6 +193,9 @@ struct App {
     void startNewGame() {
 #ifdef HAVE_GAMEPLAY
         game.newGame();
+#ifdef HAVE_GAME_UI
+        game.rig.footFirstPerson = menu.settings.firstPersonOnFoot || Platform::hasArg("firstperson");
+#endif
         if (const char* t = Platform::argValue("time")) env.timeOfDay = (float)atof(t);   // test override
 #ifdef HAVE_GAME_UI
         UI::hudReset();
@@ -1216,6 +1222,13 @@ struct App {
                 icfg.mouseSensitivity = menu.settings.mouseSensitivity;
                 icfg.padSensitivity = menu.settings.padSensitivity;
                 icfg.invertY = menu.settings.invertY;
+                icfg.mouseSensitivityY = menu.settings.mouseSensitivityY;
+                icfg.padSensitivityY = menu.settings.padSensitivityY;
+                icfg.aimToggle = menu.settings.aimToggle;
+                icfg.sprintToggle = menu.settings.sprintToggle;
+                icfg.crouchToggle = menu.settings.crouchToggle;
+                icfg.padLayout = menu.settings.padLayout;
+                icfg.bindings = &menu.settings;
 #endif
                 int pv = game.playerVehicle();
                 readControls(in, icfg, pv >= 0, pv >= 0 && game.isAircraft(pv), dt, game.ctl);
@@ -1380,7 +1393,15 @@ struct App {
 #ifdef HAVE_GAMEPLAY
             if (!autoplay.empty() && state == AS_PLAYING) {
                 if (autoplay == "benchmark") {
-                    if (benchDone && (benchReportT > 20.f || (benchReportT > 1.f && (in.pressed(KEY_ESCAPE) || in.pressed(KEY_ENTER) || in.pressed(KEY_SPACE))))) break;
+                    if (benchDone && (benchReportT > 20.f || (benchReportT > 1.f && (in.pressed(KEY_ESCAPE) || in.pressed(KEY_ENTER) || in.pressed(KEY_SPACE))))) {
+                        if (!benchFromMenu) break;
+                        benchFromMenu = benchDone = false;
+                        benchReportT = 0.f;
+                        autoplay.clear();
+                        game.rig.scriptActive = false;
+                        weather.locked = false;
+                        openMainMenu();
+                    }
                 } else if (autoplay == "tour") {
                     if (tourDone && game.requestScreenshot.empty()) break;
                 } else if (autoTime >= autoShot * autoShotEvery + 1.5f && (renderer.world->pendingCount() == 0 || autoTime > autoShot * autoShotEvery + 6.f)) {
@@ -1417,6 +1438,13 @@ struct App {
             }
             if (quit) break;
             gfx::present(autotest || autoplay == "benchmark" ? false : renderer.settings.vsync);   // benchmarks run unlocked
+            if (frameCap > 0 && !autotest && autoplay != "benchmark") {
+                // frame-rate cap: sleep most of the remaining budget, then spin the last millisecond
+                double budget = 1.0 / (double)frameCap, until = lastTime + budget;
+                double rest = until - TimeSeconds();
+                if (rest > 0.002) Sleep((DWORD)((rest - 0.0015) * 1000.0));
+                while (TimeSeconds() < until) {}
+            }
         }
     }
 
@@ -1623,6 +1651,11 @@ struct App {
                 game.hasWaypoint = false;
                 game.gpsRoute.clear();
                 break;
+            case UI::MA_RUN_BENCHMARK:   // from the settings menu: run the scenes, show the results, back to the main menu
+                benchFromMenu = true;
+                autoplay = "benchmark";
+                startNewGame();
+                break;
             default: break;
         }
         return false;
@@ -1645,11 +1678,24 @@ struct App {
         Audio::setMusicVolume(s.radioVolume);
         Audio::setVoiceVolume(s.dialogueVolume);
 #endif
+#ifdef HAVE_AUDIO
+        Audio::setDialogueDucking(s.musicDucking);
+#endif
+        frameCap = s.frameRateCap;
 #ifdef HAVE_GAMEPLAY
         game.settingsSubtitles = s.subtitles;
         game.settingsRadar = s.showRadar;
         game.settingsMetric = s.metricUnits;
         game.vibration = s.vibration;
+        game.reduceFlashing = s.reduceFlashing;
+        game.rig.shakeScale = Saturate(s.cameraShake);
+        game.rig.vehicleAutoCenter = s.vehicleAutoCenter;
+        game.rig.headBob = s.headBob;
+        game.rig.fpVehicleDefault = s.firstPersonVehicle;
+        if (s.firstPersonOnFoot != lastFpSetting) {   // a changed default applies now; V / Back still toggles in play
+            lastFpSetting = s.firstPersonOnFoot;
+            game.rig.footFirstPerson = s.firstPersonOnFoot;
+        }
 #endif
         UI::applyUiSettings(s);   // subtitle size/backing/speaker colours, HUD scale, reticle, reduced HUD flashing, UI colour-blind matrix
     }

@@ -5291,7 +5291,7 @@ int sceneStageB(GameWorld& g, int s) {
                          vec2(2990.2f, 318.f), vec2(2.8f, 0.f), kPi * 0.5f);
             return 5;
         case 18:
-            frozenLineup(g, {{SP_DOG, 0}, {SP_DOG, 1}, {SP_DOG, 2}, {SP_DOG, 3}, {SP_DOG, 4}, {SP_CAT, 0}, {SP_CAT, 1}, {SP_CAT, 2}, {SP_RACCOON, 0}, {SP_IGUANA, 0}},
+            frozenLineup(g, {{SP_DOG, 0}, {SP_DOG, 1}, {SP_DOG, 2}, {SP_DOG, 3}, {SP_DOG, 4}, {SP_CAT, 0}, {SP_CAT, 1}, {SP_CAT, 2}, {SP_RACCOON, 0}, {SP_IGUANA, 0}, {SP_SQUIRREL, 0}},
                          vec2(2996.f, 318.f), vec2(0.9f, 0.f), kPi * 0.5f);
             return 5;
         case 20: spawnShorebirds(g, gTestSpot, gTestN, 14); return 90;

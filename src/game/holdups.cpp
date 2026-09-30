@@ -327,6 +327,22 @@ void update(GameWorld& g, float dt) {
         return;
     }
     Ped& ck = g.peds[gS.clerk];
+    // the clerk belongs to the robbery until released: the street AI's gunpoint / gunfire reactions (cower, flee)
+    // ran in this frame's ped update, so the clerk is put back on the spot behind the register afterwards
+    if (gS.phase == HP_PLEAD || gS.phase == HP_EMPTY || gS.phase == HP_HANDOVER || (gS.phase == HP_ALARM && gS.t <= 3.f)) {
+        ck.brain.type = BRAIN_SCENARIO;
+        ck.brain.sub = kHoldSub;
+        ck.brain.target = -1;
+        ck.pos = dvec3(gS.clerkHome);
+        ck.vel = vec3(0.f);
+        ck.grounded = true;
+        ck.aiming = false;
+        ck.animIn.expression = 4;
+        if (gS.phase == HP_PLEAD || gS.phase == HP_HANDOVER || gS.phase == HP_ALARM) {
+            ck.brain.scenario = gS.phase == HP_ALARM ? 4 : 5;
+            ck.animIn.stance = ck.brain.scenario;
+        }
+    }
     vec2 toPl = pl ? pl->pos.toVec3().xy() : ck.pos.toVec3().xy();
     bool aimed = pl && pl->aiming && armedWithGun(*pl) && inside && aimedAt(g, ck);
     // warning shot (fired, and not into the clerk) and shouting speed the clerk up
@@ -568,8 +584,8 @@ void testDrive(GameWorld& g, float dt) {
                 next(5);
             }
             break;
-        case 5:   // out of the door, looking back
-            if (gT.stageT < dt * 1.5f) place(door - vec3(d.ay, 0.f) * 4.f, atan2f(d.ay.x, -d.ay.y));
+        case 5:   // out of the door onto the sidewalk, turned back toward the shop
+            if (gT.stageT < dt * 1.5f) place(door - vec3(d.ay, 0.f) * 6.5f, atan2f(-d.ay.x, d.ay.y));
             if (gT.stageT >= 1.2f) {
                 shotOnce(5, 1.2f, "escape");
                 next(6);

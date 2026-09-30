@@ -114,6 +114,8 @@ struct Target {
     float maxW, maxD;    // region caps (0 = building size)
     u16 flags;
     const char* alias;
+    int upper = 0;       // residential tower unit: floor number (> 0) or from the top (-1 = top floor); the ground
+                         // floor then holds its lobby (IK_RES_LOBBY, "<name> Lobby"), linked by the elevator
 };
 
 // Painted loading doors of warehouse meshes (buildmesh.cpp): count and footprint coordinate along Building::ax
@@ -440,6 +442,36 @@ bool planClub(const WorldMap& map, const RoadNetwork& roads, InteriorDef& d) {
     return true;
 }
 
+// Upper-floor unit of a residential tower above its lobby: same frame and bay grid, the floor flush with the condo
+// balcony slabs (buildmesh.cpp BS_CONDO), a region of whole bays around the center of the front facade
+bool planUpperUnit(InteriorDef& u, const InteriorDef& lobby, const Building& b, const FacadeGPU& f, const Target& tg) {
+    if (b.floors < 3) return false;
+    int fl = tg.upper > 0 ? Min(tg.upper, (int)b.floors - 1) : Max(1, (int)b.floors + tg.upper);
+    u.kind = tg.kind;
+    u.name = tg.name;
+    if (tg.alias) u.alias = tg.alias;
+    u.building = lobby.building;
+    u.seed = hash32(lobby.seed ^ 0x0917u ^ (u32)fl);
+    u.ax = lobby.ax;
+    u.ay = lobby.ay;
+    u.bw = lobby.bw;
+    u.bayX0 = lobby.bayX0;
+    u.bays = lobby.bays;
+    u.storefront = false;
+    float lineZ = b.baseZ + f.groundH + (fl - 1) * f.floorH;
+    u.origin = vec3(lobby.origin.x, lobby.origin.y, lineZ + 0.12f);
+    float regionW = Min(2.f * b.hx - 1.f, tg.maxW > 0.f ? tg.maxW : 18.f);
+    int nb = Clamp((int)floorf(regionW / u.bw), 3, u.bays);
+    int first = Clamp(u.bays / 2 - nb / 2, 0, u.bays - nb);
+    u.x0 = u.bayX0 + first * u.bw;
+    u.x1 = u.x0 + nb * u.bw;
+    u.depth = Min(2.f * b.hy - 1.f, tg.maxD > 0.f ? tg.maxD : 12.f);
+    u.ceil = Clamp(f.floorH - 0.45f, 2.6f, 3.4f);
+    u.shellTop = f.floorH - 0.16f;
+    u.radius = length(vec2((u.x1 - u.x0) * 0.5f, u.depth * 0.5f)) + 2.f;
+    return true;
+}
+
 // Solaris One (sites.cpp SK_SOLARIS, drawn by landmarks.cpp genSolaris): the lobby behind the south face of the 72 m
 // podium (its bay grid starts at x = -28 m; floor on the plaza pad) and Sandoval's penthouse in the top tower segment
 // of the detailed model (30 segments; the floor on the facade's 4.1 m floor grid above its 9 m ground floor). The
@@ -508,6 +540,7 @@ void planInteriors(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs) {
     static InteriorSet set;
     set.defs.clear();
     gInteriors = &set;
+    ikit::tPlanBuildings = &bs;   // layouts read their host building in plan mode
     for (Building& b : bs.buildings) b.interior = -1;
     std::vector<u8> used(bs.buildings.size(), 0);
     const u32 kRetailWide = kRetail | styleBit(BS_TOWER) | styleBit(BS_CONDO);
@@ -538,6 +571,10 @@ void planInteriors(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs) {
         {IK_MODSHOP, "Tide Customs Calle Luna", vec2(2300.f, -150.f), kRetail | kIndustrial, 11.f, 13.f, 18.f, 18.f, TF_TALL | TF_ROLLUP, nullptr},
         {IK_MODSHOP, "Tide Customs Sol Beach", vec2(5100.f, 2000.f), kRetail | kIndustrial, 11.f, 13.f, 18.f, 18.f, TF_TALL | TF_ROLLUP, nullptr},
         {IK_CARWASH, "Sunwash Car Wash", vec2(1800.f, 1500.f), kIndustrial | kRetail, 10.f, 14.f, 16.f, 20.f, TF_TALL | TF_ROLLUP, nullptr},
+        {IK_APARTMENT, "Key Coral Villa", vec2(4450.f, -4200.f), styleBit(BS_VILLA) | styleBit(BS_HOUSE), 12.f, 11.f, 15.f, 12.f, TF_NOSTORE, nullptr},
+        // residential towers: lobby downstairs, the unit upstairs (upper: floor, -1 = top floor)
+        {IK_CONDO, "Sol Beach Condo", vec2(5120.f, 1500.f), styleBit(BS_CONDO), 18.f, 16.f, 16.f, 12.f, TF_NOSTORE, nullptr, 9},
+        {IK_CONDO, "Downtown Penthouse", vec2(3528.f, -706.f), styleBit(BS_CONDO), 20.f, 16.f, 22.f, 14.f, TF_NOSTORE, nullptr, -1},
     };
     auto finish = [&](InteriorDef& d) {
         // rooms, doors, scenario points, markers (layout in plan mode), daylight portals
@@ -564,6 +601,38 @@ void planInteriors(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs) {
         d.building = bi;
         d.seed = hash32(b.seed ^ ((u32)tg.kind * 0x9E3779B9u) ^ hashString(tg.name));
         setFrame(d, b, f);
+        if (tg.upper != 0) {
+            // residential tower: the lobby on the ground floor, the unit upstairs (openings: layouts, plan mode)
+            InteriorDef u;
+            Target lt = tg;
+            lt.maxW = Min(2.f * b.hx, 12.f);
+            lt.maxD = 10.f;
+            lt.flags = (u16)(TF_WIDEDOOR | TF_NOSTORE);
+            d.kind = IK_RES_LOBBY;
+            d.name = std::string(tg.name) + " Lobby";
+            d.alias.clear();
+            planShell(d, b, f, lt);
+            if (!planUpperUnit(u, d, b, f, tg)) {
+                LOG("Interiors: %s: no upper floor in building %d", tg.name, bi);
+                continue;
+            }
+            finish(d);
+            finish(u);
+            int li = (int)set.defs.size();
+            d.link = li + 1;
+            u.link = li;
+            if (const InteriorMarker* out = d.marker(IM_DOOR_OUT)) {
+                // the unit's way out is the lobby's street door (story "door" points by name)
+                InteriorMarker mk = *out;
+                mk.pos = u.toLocal(d.toWorld(out->pos));
+                u.markers.push_back(mk);
+            }
+            b.interior = (i16)li;
+            used[bi] = 1;
+            set.defs.push_back(std::move(d));
+            set.defs.push_back(std::move(u));
+            continue;
+        }
         if (tg.flags & TF_OWNSHELL) {
             // the whole lot: the layout builds the structure and its yard
             d.ownShell = true;
@@ -605,6 +674,7 @@ void planInteriors(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs) {
     if (gSites) gSites->buildRectHash();   // vegetation and beach furniture keep off whole-structure interiors
     int counts[IK_COUNT] = {};
     for (auto& d : set.defs) counts[d.kind]++;
+    ikit::tPlanBuildings = nullptr;
     LOG("Interiors: %zu planned (convenience %d, gun shops %d) in %.1f ms", set.defs.size(), counts[IK_CONVENIENCE], counts[IK_GUNSHOP],
         (TimeSeconds() - t0) * 1000.0);
     for (auto& d : set.defs)
@@ -624,14 +694,18 @@ bool interiorFacadeWall(int interior, MeshData& m, vec3 org, vec2 a, vec2 b, flo
     t = t / len;
     vec2 n(t.y, -t.x);
     std::vector<ikit::Hole> holes;
-    for (const InteriorOpening& op : d.openings) {
-        if (fabsf(dot(op.a - a, n)) > 0.06f || fabsf(dot(op.b - a, n)) > 0.06f) continue;
-        float s0 = dot(op.a - a, t), s1 = dot(op.b - a, t);
-        if (s0 > s1) std::swap(s0, s1);
-        if (s1 <= 0.01f || s0 >= len - 0.01f) continue;
-        if (op.z1 <= z0 || op.z0 >= z1) continue;
-        holes.push_back({Max(s0, 0.f), Min(s1, len), op.z0 - z0, op.z1 - z0});
-    }
+    auto collect = [&](const InteriorDef& dd) {
+        for (const InteriorOpening& op : dd.openings) {
+            if (fabsf(dot(op.a - a, n)) > 0.06f || fabsf(dot(op.b - a, n)) > 0.06f) continue;
+            float s0 = dot(op.a - a, t), s1 = dot(op.b - a, t);
+            if (s0 > s1) std::swap(s0, s1);
+            if (s1 <= 0.01f || s0 >= len - 0.01f) continue;
+            if (op.z1 <= z0 || op.z0 >= z1) continue;
+            holes.push_back({Max(s0, 0.f), Min(s1, len), op.z0 - z0, op.z1 - z0});
+        }
+    };
+    collect(d);
+    if (d.link >= 0 && d.building >= 0 && gInteriors->defs[d.link].building == d.building) collect(gInteriors->defs[d.link]);   // upper unit
     if (holes.empty()) return false;
     float H = z1 - z0;
     float xs[48], zs[48];
@@ -674,37 +748,27 @@ bool interiorFacadeWall(int interior, MeshData& m, vec3 org, vec2 a, vec2 b, flo
     return true;
 }
 
-bool interiorShellCollision(int interior, vec2 c, vec2 ax, float hx, float hy, float z0, float z1, std::vector<CollisionBox>& out) {
-    if (!gInteriors || interior < 0 || interior >= (int)gInteriors->defs.size()) return false;
-    const InteriorDef& d = gInteriors->defs[interior];
-    if (d.ownShell) return true;   // the structure streams with the interior (collision included)
-    float floorZ = d.origin.z;
-    if (z0 > floorZ + 0.3f || z1 < floorZ + 2.2f) return false;
+// Hollow band of one interior inside a mass box: the solid remainder around its region and its exterior walls (front
+// with door gaps) from its floor to the top of its shell
+void hollowBand(const InteriorDef& d, vec2 c, vec2 ax, float hx, float hy, float za, float zb, std::vector<CollisionBox>& out) {
     vec3 cl = d.toLocal(vec3(c, 0.f));
     bool alongX = fabsf(dot(ax, d.ax)) > 0.7f;
     float ex = alongX ? hx : hy, ey = alongX ? hy : hx;
     float bx0 = cl.x - ex, bx1 = cl.x + ex, by0 = cl.y - ey, by1 = cl.y + ey;
     float rx0 = Max(d.x0, bx0), rx1 = Min(d.x1, bx1), ry0 = Max(0.f, by0), ry1 = Min(d.depth, by1);
-    if (rx1 - rx0 < 1.f || ry1 - ry0 < 1.f) return false;
-    auto emit = [&](float x0, float x1, float y0, float y1, float za, float zb) {
-        if (x1 - x0 < 0.02f || y1 - y0 < 0.02f || zb - za < 0.02f) return;
+    auto emit = [&](float x0, float x1, float y0, float y1, float z0e, float z1e) {
+        if (x1 - x0 < 0.02f || y1 - y0 < 0.02f || z1e - z0e < 0.02f) return;
         CollisionBox cb;
         cb.c = d.toWorld(vec3((x0 + x1) * 0.5f, (y0 + y1) * 0.5f, 0.f));
-        cb.c.z = (za + zb) * 0.5f;
+        cb.c.z = (z0e + z1e) * 0.5f;
         cb.ax = d.ax;
-        cb.he = vec3((x1 - x0) * 0.5f, (y1 - y0) * 0.5f, (zb - za) * 0.5f);
+        cb.he = vec3((x1 - x0) * 0.5f, (y1 - y0) * 0.5f, (z1e - z0e) * 0.5f);
         out.push_back(cb);
     };
-    float top = floorZ + d.shellTop;
-    // solid remainder of the mass around the hollow region
-    emit(bx0, rx0, by0, by1, z0, z1);
-    emit(rx1, bx1, by0, by1, z0, z1);
-    emit(rx0, rx1, ry1, by1, z0, z1);
-    emit(rx0, rx1, by0, ry0, z0, z1);
-    // floor slab and the upper floors above the hollow part
-    emit(rx0, rx1, ry0, ry1, z0, floorZ);
-    emit(rx0, rx1, ry0, ry1, top, z1);
-    // exterior walls of the hollow part (front with door gaps)
+    emit(bx0, rx0, by0, by1, za, zb);
+    emit(rx1, bx1, by0, by1, za, zb);
+    emit(rx0, rx1, ry1, by1, za, zb);
+    emit(rx0, rx1, by0, ry0, za, zb);
     float T = kWallT;
     std::vector<std::pair<float, float>> gaps;
     for (const InteriorOpening& op : d.openings) {
@@ -716,13 +780,51 @@ bool interiorShellCollision(int interior, vec2 c, vec2 ax, float hx, float hy, f
     std::sort(gaps.begin(), gaps.end());
     float cur = rx0;
     for (auto& g : gaps) {
-        emit(cur, Min(g.first, rx1), ry0, ry0 + T, floorZ, top);
+        emit(cur, Min(g.first, rx1), ry0, ry0 + T, za, zb);
         cur = Max(cur, g.second);
     }
-    emit(cur, rx1, ry0, ry0 + T, floorZ, top);
-    if (rx0 <= bx0 + 0.01f) emit(rx0, rx0 + T, ry0, ry1, floorZ, top);
-    if (rx1 >= bx1 - 0.01f) emit(rx1 - T, rx1, ry0, ry1, floorZ, top);
-    if (ry1 >= by1 - 0.01f) emit(rx0, rx1, ry1 - T, ry1, floorZ, top);
+    emit(cur, rx1, ry0, ry0 + T, za, zb);
+    if (rx0 <= bx0 + 0.01f) emit(rx0, rx0 + T, ry0, ry1, za, zb);
+    if (rx1 >= bx1 - 0.01f) emit(rx1 - T, rx1, ry0, ry1, za, zb);
+    if (ry1 >= by1 - 0.01f) emit(rx0, rx1, ry1 - T, ry1, za, zb);
+}
+
+bool interiorShellCollision(int interior, vec2 c, vec2 ax, float hx, float hy, float z0, float z1, std::vector<CollisionBox>& out) {
+    if (!gInteriors || interior < 0 || interior >= (int)gInteriors->defs.size()) return false;
+    const InteriorDef& d0 = gInteriors->defs[interior];
+    if (d0.ownShell) return true;   // the structure streams with the interior (collision included)
+    // the interior and, in a residential tower, its unit upstairs: hollow bands stacked in the mass box
+    const InteriorDef* ds[2] = {&d0, nullptr};
+    int n = 1;
+    if (d0.link >= 0 && d0.building >= 0 && gInteriors->defs[d0.link].building == d0.building) ds[n++] = &gInteriors->defs[d0.link];
+    std::vector<const InteriorDef*> hit;
+    for (int k = 0; k < n; k++) {
+        float fz = ds[k]->origin.z;
+        if (z0 > fz + 0.3f || z1 < fz + 2.2f) continue;
+        vec3 cl = ds[k]->toLocal(vec3(c, 0.f));
+        bool alongX = fabsf(dot(ax, ds[k]->ax)) > 0.7f;
+        float ex = alongX ? hx : hy, ey = alongX ? hy : hx;
+        if (Min(ds[k]->x1, cl.x + ex) - Max(ds[k]->x0, cl.x - ex) < 1.f || Min(ds[k]->depth, cl.y + ey) - Max(0.f, cl.y - ey) < 1.f) continue;
+        hit.push_back(ds[k]);
+    }
+    if (hit.empty()) return false;
+    std::sort(hit.begin(), hit.end(), [](const InteriorDef* p, const InteriorDef* q) { return p->origin.z < q->origin.z; });
+    auto solid = [&](float za, float zb) {
+        if (zb - za < 0.02f) return;
+        CollisionBox cb;
+        cb.c = vec3(c, (za + zb) * 0.5f);
+        cb.ax = ax;
+        cb.he = vec3(hx, hy, (zb - za) * 0.5f);
+        out.push_back(cb);
+    };
+    float zc = z0;
+    for (const InteriorDef* d : hit) {
+        float fz = d->origin.z, top = Min(fz + d->shellTop, z1);
+        solid(zc, fz);   // slab (and the floors in between)
+        hollowBand(*d, c, ax, hx, hy, Max(zc, fz), top, out);
+        zc = top;
+    }
+    solid(zc, z1);
     return true;
 }
 

@@ -244,6 +244,18 @@ void updateQueues(GameWorld& g, float dt, vec2 pp, bool night, bool warm) {
         }
         (void)warm;
     }
+    // jaywalkers who made it across rejoin the sidewalk graph
+    for (int i = 0; i < (int)g.peds.size() && i < (int)g.ai.ped.size(); i++) {
+        Ped& p = g.peds[i];
+        if (!p.used || p.brain.type != BRAIN_GOTO || g.ai.ped[i].uid != p.uid || g.ai.ped[i].activity != ACT_CROSS) continue;
+        if (length(p.pos.toVec3().xy() - p.brain.goal.toVec3().xy()) < 0.9f || p.brain.timer > 20.f) {
+            p.brain.type = BRAIN_WANDER;
+            p.brain.edge = -1;
+            g.ai.ped[i].activity = ACT_WALK;
+            g.ai.ped[i].navOk = false;
+            g.ai.ped[i].actTimer = 15.f;
+        }
+    }
     // walkers who reached the door disappear inside
     for (int i = 0; i < (int)g.peds.size(); i++) {
         Ped& p = g.peds[i];

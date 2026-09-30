@@ -37,6 +37,7 @@
 #include "../src/world/interiorindustrial.cpp"
 #include "../src/world/interiortower.cpp"
 #include "../src/world/interiorgarages.cpp"
+#include "../src/world/interiorresidences.cpp"
 #include "../src/world/interiors.cpp"
 #include <thread>
 #include <unordered_map>

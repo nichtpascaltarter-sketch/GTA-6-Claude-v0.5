@@ -893,6 +893,8 @@ void layoutPenthouse(IB& b);
 void layoutDealership(IB& b);   // interiorgarages.cpp
 void layoutModShop(IB& b);
 void layoutCarWash(IB& b);
+void layoutResLobby(IB& b);     // interiorresidences.cpp
+void layoutCondoUnit(IB& b);
 
 void runLayout(IB& b) {
     b.roomCounter = 0;
@@ -916,6 +918,8 @@ void runLayout(IB& b) {
         case IK_DEALERSHIP: layoutDealership(b); break;
         case IK_MODSHOP: layoutModShop(b); break;
         case IK_CARWASH: layoutCarWash(b); break;
+        case IK_RES_LOBBY: layoutResLobby(b); break;
+        case IK_CONDO: layoutCondoUnit(b); break;
         default: layoutConvenience(b); break;
     }
 }

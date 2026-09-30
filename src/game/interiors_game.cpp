@@ -612,7 +612,8 @@ void updateElevators(GameWorld& g, float dt) {
             if (length(pl->pos.toVec3().xy() - p.xy()) > 0.95f || fabsf((float)pl->pos.z - p.z) > 1.2f) continue;
             bool up = mk.kind == World::IM_ELEVATOR;
             if (gRide.hint <= 0.f) {
-                g.help(up ? "Press E to ride the express elevator to the penthouse." : "Press E to ride the elevator down to the lobby.", 3.f);
+                const std::string& dest = defs[d.link].name;
+                g.help(up ? "Press E to ride the elevator up to " + dest + "." : "Press E to ride the elevator down to the lobby.", 3.f);
                 gRide.hint = 3.5f;
             }
             if (g.ctl.enter.pressed) rideElevator(g, di, up);

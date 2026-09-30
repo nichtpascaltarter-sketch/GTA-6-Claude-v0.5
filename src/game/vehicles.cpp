@@ -300,7 +300,7 @@ void GameWorld::updateVehicleFx(Vehicle& v, float dt) {
         Audio::destroyEmitter(v.sndSkid);
         v.sndSkid = 0;
     }
-    if (audible && v.sirenOn && spec.sirenMode >= 0) {
+    if (audible && v.sirenOn && !v.sirenSilent && spec.sirenMode >= 0) {
         if (!v.sndSiren) v.sndSiren = Audio::createEmitter(Audio::EMIT_SIREN);
         Audio::setEmitter(v.sndSiren, pos, s.body.vel, (float)spec.sirenMode, 0, 0, 0, 1.f);
     } else if (v.sndSiren) {

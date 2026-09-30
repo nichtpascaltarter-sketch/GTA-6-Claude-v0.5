@@ -69,6 +69,13 @@ struct CameraRig {
     // (seconds) when a cutscene ends instead of cutting
     float scriptBlend = 0.f, scriptBlendTotal = 0.f;
     Render::Camera scriptFrom;
+    // player preferences (Settings > Camera)
+    float shakeScale = 1.f;               // 0..1 of all camera shake
+    bool vehicleAutoCenter = true;        // swing back behind the vehicle after looking around
+    bool headBob = true;                  // first-person vertical bob
+    bool fpVehicleDefault = false;        // vehicles start in the first-person view
+    bool wasInVehicle = false, lookedInVehicle = false;
+    float fpEyeZ = 0.f;                   // eye height with the bob filtered out (headBob off)
 };
 
 struct PlayerInfo {
@@ -198,6 +205,7 @@ struct GameWorld {
     bool missionTargetActive = false;
     vec2 missionTarget;
     bool settingsSubtitles = true, settingsRadar = true, settingsMetric = true;
+    bool reduceFlashing = false;   // accessibility: dimmer muzzle flashes (the renderer dampens lightning / strobes)
     std::vector<CrimeEvent> crimes;
 
     // Setup

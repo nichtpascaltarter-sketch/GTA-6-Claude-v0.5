@@ -362,6 +362,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                     traffic.setDestination(*d, inc->pos.toVec3().xy());
                 }
                 v.sirenOn = true;
+                v.sirenSilent = false;
                 if (length(vp.xy() - inc->pos.toVec3().xy()) < 32.f) {
                     d->mode = AI::DM_PULLOVER;
                     d->holdTimer = -1.f;
@@ -370,7 +371,8 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                 }
             } else if (va.task == 1) {
                 va.taskTimer += dt;
-                v.sirenOn = va.taskTimer < 6.f || ((int)(time * 2.0) & 1);
+                v.sirenOn = true;
+                v.sirenSilent = va.taskTimer > 6.f;   // on scene: the light bar keeps flashing, the siren stops
                 if (v.sim.speed() < 0.5f && va.taskTimer > 1.5f && va.taskTimer - dt <= 1.5f) {
                     // crew gets out and attends the scene
                     for (int s = 0; s < 8; s++) {
@@ -392,6 +394,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                 if (va.taskTimer > 30.f && !crewOut) {
                     va.task = 2;
                     v.sirenOn = false;
+                    v.sirenSilent = false;
                     d->mode = AI::DM_NORMAL;
                     d->hasDest = false;
                     if (inc) inc->active = false;

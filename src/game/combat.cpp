@@ -326,8 +326,9 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
     }
 #endif
     if (!suppressed) {
-        spawnFx(FX_MUZZLE_FLASH, muzzle, dir, 1, p.weapon == WPN_SHOTGUN ? 1.5f : 1.f);
-        spawnLight(muzzle + dir * 0.3f, vec3(1.f, 0.7f, 0.35f) * 2500.f, 6.f);
+        float fl = reduceFlashing ? 0.45f : 1.f;   // accessibility: gentler flashes
+        spawnFx(FX_MUZZLE_FLASH, muzzle, dir, 1, (p.weapon == WPN_SHOTGUN ? 1.5f : 1.f) * fl);
+        spawnLight(muzzle + dir * 0.3f, vec3(1.f, 0.7f, 0.35f) * 2500.f * fl * fl, 6.f);
     } else {
         spawnLight(muzzle + dir * 0.3f, vec3(1.f, 0.7f, 0.35f) * 180.f, 2.f);
     }

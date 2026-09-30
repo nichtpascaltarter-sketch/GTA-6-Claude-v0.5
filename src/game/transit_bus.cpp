@@ -638,22 +638,23 @@ void ensureBlips(GameWorld& g, float dt) {
     const World::TransitNet& N = *World::gTransit;
     if (gB.blipNames.empty()) {
         gB.blipNames.reserve(N.busStops.size());
-        for (const World::BusStop& s : N.busStops) gB.blipNames.push_back("Bus stop: " + s.name);
+        for (const World::BusStop& s : N.busStops) {
+            std::string routes;
+            for (int r = 0; r < (int)N.busRoutes.size(); r++)
+                if (s.routeMask & (1u << r)) routes += (routes.empty() ? "" : ", ") + N.busRoutes[r].number;
+            gB.blipNames.push_back(s.name + " (bus " + routes + ")");
+        }
     }
     if (gB.blipNames.empty()) return;
     for (const UI::Blip& b : g.staticBlips)
         if (b.label == gB.blipNames[0].c_str()) return;
     for (size_t i = 0; i < N.busStops.size(); i++) {
         const World::BusStop& s = N.busStops[i];
-        int r0 = 0;
-        while (r0 < 31 && !(s.routeMask & (1u << r0))) r0++;
-        vec3 c = r0 < (int)N.busRoutes.size() ? N.busRoutes[r0].color : vec3(0.8f);
-        vec3 sc = vec3(powf(Saturate(c.x), 1.f / 2.2f), powf(Saturate(c.y), 1.f / 2.2f), powf(Saturate(c.z), 1.f / 2.2f));
         UI::Blip b;
         b.pos = s.pos;
-        b.icon = UI::BLIP_DOT;
-        b.color = packRGBA8(sc.x, sc.y, sc.z, 1.f);
-        b.scale = 0.7f;
+        b.icon = UI::BLIP_BUS;
+        b.color = 0;
+        b.scale = 0.75f;
         b.shortRange = true;
         b.edge = false;
         b.label = gB.blipNames[i].c_str();

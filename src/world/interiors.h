@@ -36,6 +36,8 @@ enum InteriorKind : u8 {
     IK_DEALERSHIP,     // Palm Motors showroom
     IK_MODSHOP,        // Tide Customs body and paint shops
     IK_CARWASH,        // Sunwash Car Wash
+    IK_RES_LOBBY,      // ground-floor lobby of a residential tower (elevator up to its unit)
+    IK_CONDO,          // upper-floor condo / penthouse unit (safehouses: Sol Beach Condo, Downtown Penthouse)
     IK_COUNT
 };
 

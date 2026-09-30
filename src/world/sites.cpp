@@ -1046,6 +1046,8 @@ void layoutLandmarks(Lay& L) {
         r.p[2] = deckZ;
         L.blockAA(S.lotBlocks, x0 - rampLen - 10.f, py - 20.f, x1, py + 20.f);
         L.blockAA(S.vegBlocks, x0 - rampLen - 10.f, py - 40.f, x1, py + 40.f);
+        // streets stop where the access ramp starts (a street running on under the rising ramp puts a step in the road)
+        L.blockAA(S.roadBlocks, x0 - rampLen + 3.f, py - 9.f, x1, py + 9.f);
         float ps = p.p[1];
         SiteElem& fw = L.elem(SK_FERRIS_WHEEL, vec2(ps + 34.f, py + 20.f), vec2(1, 0), 32.f, 6.f, deckZ, 64.f, 0xFE221u);
         fw.p[0] = 28.f;  // wheel radius

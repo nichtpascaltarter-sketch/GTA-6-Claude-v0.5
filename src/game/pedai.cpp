@@ -782,6 +782,35 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                                     pa.actTimer = 12.f + hashToFloat(hash32(h * 7u)) * 25.f;
                                 }
                             }
+                        } else if (r >= 0.47f && r < 0.51f && pa.leader < 0 && p.faction == FAC_CIVILIAN && pa.walk.state == AI::WS_WALK &&
+                                   pa.walk.link >= 0 && laneGraph.walkLinks[pa.walk.link].kind == AI::WL_SIDEWALK && pa.eventId < 0) {
+                            // jaywalking: straight across a quiet, narrow street to the sidewalk opposite
+                            const AI::WalkLink& L = laneGraph.walkLinks[pa.walk.link];
+                            const World::RoadEdge& e = roads->edges[L.edge];
+                            float along = L.length > 1e-3f ? Clamp(pa.walk.x / L.length, 0.f, 1.f) : 0.f;
+                            float s = pa.walk.fromA ? Lerp(L.sa, L.sb, along) : Lerp(L.sb, L.sa, along);
+                            bool narrow = e.halfWidth < 7.5f && e.cls != World::RC_HIGHWAY && e.cls != World::RC_RAMP && e.cls != World::RC_BOULEVARD;
+                            if (narrow && s > 12.f && s < e.length - 12.f) {
+                                vec3 c3 = e.posAt(s);
+                                vec3 t3 = e.tangentAt(s);
+                                vec2 rt = AI::rightOf(normalize(t3.xy() + vec2(1e-5f, 0.f)));
+                                vec2 target = c3.xy() - rt * L.lat;   // the mirrored sidewalk
+                                // nothing coming within 45 m either way along the street
+                                bool clear = true;
+                                traffic.hash.query(traffic.bodies, c3.xy() - vec2(45.f), c3.xy() + vec2(45.f), [&](int bi) {
+                                    const AI::Body& ob = traffic.bodies[bi];
+                                    if (ob.kind == AI::BK_PED) return;
+                                    if (fabsf(dot(ob.pos - c3.xy(), rt)) < e.halfWidth + 1.f) clear = false;
+                                });
+                                if (clear && length(target - pos) > 4.f) {
+                                    pa.activity = ACT_CROSS;
+                                    b.type = BRAIN_GOTO;
+                                    b.goal = dvec3(vec3(target, groundHeight(target.x, target.y, c3.z + 1.5f)));
+                                    b.speed = 1.7f;   // a brisk walk across
+                                    b.timer = 0.f;
+                                    break;
+                                }
+                            }
                         } else if (r < 0.47f && pa.leader < 0 && p.faction == FAC_CIVILIAN && pa.walk.state == AI::WS_WALK && pa.role != PR_JOGGER &&
                                    pa.role != PR_DRUNK && pa.eventId < 0) {
                             // errands: head into a shop / lobby / front door close by (and out of the simulation)

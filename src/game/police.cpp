@@ -426,6 +426,7 @@ void GameWorld::updateDispatch(float dt) {
         if (inCar && p.seat == 0) {
             p.brain.type = BRAIN_DRIVER;
             vehicles[p.vehicle].sirenOn = false;
+            vehicles[p.vehicle].sirenSilent = false;
             VehAI& va = vehAI(p.vehicle);
             va.task = PT_NONE;
             if (AI::Driver* d = traffic.get(p.vehicle)) {
@@ -482,6 +483,7 @@ void GameWorld::updateDispatch(float dt) {
             if (inCar && p.seat == 0 && !isAircraft(p.vehicle)) {
                 carUnits++;
                 vehicles[p.vehicle].sirenOn = true;
+                vehicles[p.vehicle].sirenSilent = false;
             } else if (!inCar) {
                 footUnits++;
             }
@@ -560,6 +562,7 @@ void GameWorld::updateDispatch(float dt) {
             if (best < 0) continue;
             Vehicle& v = vehicles[best];
             v.sirenOn = true;
+            v.sirenSilent = false;
             VehAI& va = vehAI(best);
             va.role = VR_POLICE;
             va.task = PT_PURSUE;
@@ -669,6 +672,7 @@ void GameWorld::updateDispatch(float dt) {
                 v.color0 = vec3(0.9f, 0.91f, 0.92f);
                 v.color1 = vec3(0.05f, 0.14f, 0.45f);
                 v.sirenOn = true;
+                v.sirenSilent = false;
                 v.lightsOn = true;
                 VehAI& va = vehAI(vid);
                 va.role = VR_POLICE_BOAT;
@@ -835,6 +839,7 @@ void GameWorld::updateDispatch(float dt) {
                     rb->uids[k] = v.uid;
                     v.faction = FAC_POLICE;
                     v.sirenOn = true;
+                    v.sirenSilent = true;   // parked across the road: light bar only
                     v.persistent = true;
                     v.parked = true;
                     VehAI& va = vehAI(vid);
@@ -920,6 +925,7 @@ void GameWorld::updateDispatch(float dt) {
         Vehicle& v = vehicles[vid];
         v.faction = FAC_POLICE;
         v.sirenOn = true;
+        v.sirenSilent = false;
         if (swat) {
             v.color0 = vec3(0.03f, 0.03f, 0.035f);
             v.color1 = vec3(0.02f);
@@ -1110,6 +1116,7 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
         if (targetVeh >= 0 && (v.uid % 3) == 0 && length(tv.xy()) > 8.f) goal += tv.xy() * Clamp(dist / 28.f, 1.5f, 7.f);
         if (!d->hasDest || length(d->dest - goal) > 40.f || d->destRecalc <= 0.f) traffic.setDestination(*d, goal);
         v.sirenOn = true;
+        v.sirenSilent = false;
         AI::DriveOut out;
         traffic.drive(vi, v.sim, dt, out);
         v.ctl = out.ctl;
@@ -1197,6 +1204,7 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
         c.brake = 0.8f;
         c.steer = err > 0.f ? 1.f : -1.f;   // reversing: opposite lock swings the nose toward the target
         v.sirenOn = true;
+        v.sirenSilent = false;
         return;
     }
     c.steer = Clamp(-err * 2.0f + v.sim.body.angVel.z * 0.08f, -1.f, 1.f);
@@ -1226,6 +1234,7 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
         va.reverseTimer = 1.4f;
     }
     v.sirenOn = true;
+    v.sirenSilent = false;
     // chatter
     gD.chatterTimer -= dt;
     if (chasingPlayer && gD.chatterTimer <= 0.f && dist < 120.f) {
@@ -1246,6 +1255,8 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
         }
         if (d) traffic.detach(vi);
         vehAI(vi).managed = false;
+        v.sirenOn = true;
+        v.sirenSilent = true;   // left at the scene: light bar only
         if (chasingPlayer) aiSay(drv, pinfo.wanted <= 1 ? BK_COP_FREEZE : BK_COP_ENGAGE, 1.f, true);
     }
 }
@@ -1283,6 +1294,7 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
                     b.type = seat == 0 ? BRAIN_DRIVER : BRAIN_PASSENGER;
                     b.target = -1;
                     vehicles[hv].sirenOn = false;
+                    vehicles[hv].sirenSilent = false;
                     vehicles[hv].parked = false;
                     vehAI(hv).task = PT_NONE;
                     vehAI(hv).role = VR_POLICE;

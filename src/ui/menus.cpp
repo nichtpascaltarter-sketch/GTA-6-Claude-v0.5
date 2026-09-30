@@ -2211,11 +2211,13 @@ MenuAction update(MenuState& st, const InputState& in, float dt) {
     if (st.screen == MENU_NONE) {
         I.lastScreen = MENU_NONE;
         I.dialog = DLG_NONE;
+        I.bindCapture = false;   // a capture never outlives the menu (it blocks navigation while active)
         return act;
     }
     // screen transitions
     if (st.screen != I.lastScreen) {
         MenuScreen prev = I.lastScreen;
+        I.bindCapture = false;
         bool fromNone = prev == MENU_NONE || prev == MENU_LOADING;
         if (st.screen == MENU_MAIN) I.root = MENU_MAIN;
         else if (st.screen == MENU_PAUSE || st.screen == MENU_MAP || st.screen == MENU_BRIEF || st.screen == MENU_STATS || st.screen == MENU_SAVE)

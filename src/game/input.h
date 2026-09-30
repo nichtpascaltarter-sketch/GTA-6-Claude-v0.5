@@ -24,13 +24,17 @@ struct Controls {
     Button focus;          // protagonist ability (Caps Lock / both sticks clicked)
     // Global
     Button pause, map, skip, confirm, back;
+    bool crouchHold = false;   // crouch while the button is held (settings: crouch toggle off)
     vec2 menuNav;          // edge-triggered (-1/0/1) menu navigation
 };
 
 struct InputConfig {
-    float mouseSensitivity = 1.f;
-    float padSensitivity = 1.f;
+    float mouseSensitivity = 1.f, padSensitivity = 1.f;       // horizontal look speed
+    float mouseSensitivityY = 1.f, padSensitivityY = 1.f;     // vertical look speed
     bool invertY = false;
+    bool aimToggle = false, sprintToggle = false, crouchToggle = true;   // false = hold the button
+    int padLayout = 0;               // 0 standard, 1 alternate (A jump / X sprint), 2 southpaw (sticks + L3/R3 swapped)
+    const void* bindings = nullptr;  // UI::GameSettings with the keyboard/mouse bindings (null: default keys)
 };
 
 void readControls(const InputState& in, const InputConfig& cfg, bool inVehicle, bool aircraft, float dt, Controls& out);
