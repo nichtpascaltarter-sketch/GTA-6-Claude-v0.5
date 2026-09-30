@@ -276,6 +276,8 @@ public:
     vec3 sunDir, lightTOA;
     bool moonLight = false;
     float nightFactor = 0.f;
+    float sunElevation = 0.f;    // degrees above the horizon
+    bool cameraInInterior() const;  // camera inside one of this frame's interior volumes
     float urbanEnclosure = 0.f;  // smoothed urban density around the camera (ambient bounce model)
     vec3 cityGlow = vec3(0.f);   // smoothed light pollution: x amount, yz direction bias (sky glow at night)
 

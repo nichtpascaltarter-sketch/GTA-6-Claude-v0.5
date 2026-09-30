@@ -4,6 +4,9 @@ cbuffer UICB : register(b1) {
     float4 gUIScreen;   // w, h, 1/w, 1/h
     float4 gUIClip;
     float4 gUIClipMode; // x mode (0 none, 1 circle, 2 rect, 3 rounded rect), y rounded-rect radius
+    float4 gUICm0;      // colour-blind correction rows (linear RGB); gUICm0.w = 1 when enabled
+    float4 gUICm1;
+    float4 gUICm2;
 };
 Texture2D<float> tAtlas : register(t0);
 Texture2D<float4> tImage : register(t1);
@@ -22,6 +25,13 @@ cbuffer UIPhotoCB : register(b3) {
 };
 
 float photoLuma(float3 c) { return dot(c, float3(0.299, 0.587, 0.114)); }
+
+// Colour-blind correction of display-referred UI colours (the matrix works on linear light)
+float3 cbCorrect(float3 c) {
+    float3 lin = pow(max(c, 0.0), 2.2);
+    lin = float3(dot(gUICm0.xyz, lin), dot(gUICm1.xyz, lin), dot(gUICm2.xyz, lin));
+    return pow(saturate(lin), 1.0 / 2.2);
+}
 
 // Photo mode filters (display-referred colors)
 float3 photoFilter(int f, float3 c) {
@@ -125,7 +135,7 @@ float4 psUI(VSOut i) : SV_Target {
     if (mode == 1) {
         float d = tAtlas.SampleLevel(sLinear, i.uv, 0);
         sdfShade(d, c, i.color2, i.p.y, i.p.z, i.p.w, rgb, a);
-    } else if (mode == 2) {
+    } else if (mode == 2 || mode == 12) {
         rgb = timg.rgb * c.rgb;
         a = timg.a * c.a;
     } else if (mode == 3) {
@@ -201,7 +211,7 @@ float4 psUI(VSOut i) : SV_Target {
         float3 b = tBlur.SampleLevel(sLinear, i.screen * gUIScreen.zw, 0).rgb;
         float l = dot(b, float3(0.299, 0.587, 0.114));
         b = lerp(float3(l, l, l), b, sat) * c.rgb;
-        rgb = lerp(b, i.color2.rgb, i.color2.a);
+        rgb = lerp(b, gUICm0.w > 0.5 ? cbCorrect(i.color2.rgb) : i.color2.rgb, i.color2.a);
         a = c.a * cov;
     } else if (mode == 10) {
         float d = min(i.p.y, min(i.p.z, i.p.w));
@@ -251,6 +261,8 @@ float4 psUI(VSOut i) : SV_Target {
         rgb = saturate(col);
         a = 1.0;
     }
+    // scene-derived pixels (backdrop blur, photo grading, snapshots) were corrected by the renderer's post-process
+    if (gUICm0.w > 0.5 && mode != 9 && mode != 11 && mode != 12) rgb = cbCorrect(rgb);
     int clipMode = (int)(gUIClipMode.x + 0.5);
     if (clipMode == 1) {
         float dist = length(i.screen - gUIClip.xy);

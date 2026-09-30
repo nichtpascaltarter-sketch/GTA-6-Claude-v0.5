@@ -64,6 +64,11 @@ struct ShopsState {
     int gunWeapon = -1;
     int gunCursor = -1;                  // item last previewed
     u8 gunSavedFitted = 0, gunSavedTint = 0;   // the weapon as it really is (the preview is undone to this)
+    bool gunCamSet = false;              // the weapon camera is smoothed after its first frame
+    vec3 gunCamPos, gunCamAt;
+    // clothes store / wardrobe: the highlighted outfit is worn on trial in front of a mirror camera
+    bool mirror = false;
+    vec3 mirrorPos, mirrorAt;
 };
 ShopsState gShops;
 
@@ -200,7 +205,10 @@ std::vector<MenuItem> gunItems(GameWorld& g) {
         if (!pl->hasWeapon[w] || wi.clipSize == 0) continue;
         if (!header) {
             header = true;
-            items.push_back(MenuItem());   // spacer (skipped by the cursor)
+            MenuItem spacer;   // blank row (skipped by the cursor)
+            spacer.id = -10;
+            spacer.enabled = false;
+            items.push_back(spacer);
         }
         MenuItem it;
         it.id = 300 + w;
@@ -323,9 +331,19 @@ void gunCamera(GameWorld& g) {
             break;
         }
     }
+    // follow the hand smoothly (idle breathing and the draw animation must not shake the picture)
+    if (!gShops.gunCamSet) {
+        gShops.gunCamSet = true;
+        gShops.gunCamPos = cam;
+        gShops.gunCamAt = target;
+    } else {
+        float k = Saturate(g.dtLast * 2.5f);
+        gShops.gunCamPos = gShops.gunCamPos + (cam - gShops.gunCamPos) * k;
+        gShops.gunCamAt = gShops.gunCamAt + (target - gShops.gunCamAt) * k;
+    }
     g.rig.scriptActive = true;
-    g.rig.scriptPos = dvec3(cam);
-    g.rig.scriptTarget = dvec3(target);
+    g.rig.scriptPos = dvec3(gShops.gunCamPos);
+    g.rig.scriptTarget = dvec3(gShops.gunCamAt);
     g.rig.scriptFov = 36.f;
 }
 
@@ -354,6 +372,7 @@ void closeGunPages(GameWorld& g, bool toList) {
     gShops.gunPage = 0;
     gShops.gunWeapon = -1;
     gShops.gunCursor = -1;
+    gShops.gunCamSet = false;
     if (g.rig.scriptActive) {
         g.rig.scriptActive = false;
         g.rig.scriptBlend = g.rig.scriptBlendTotal = 0.5f;
@@ -1058,6 +1077,48 @@ void updateTideCustoms(GameWorld& g, ShopSite& s, int shopIndex, float dt) {
 }
 
 // ------------------------------------------------------------------------------------------------------------------
+// Clothes store and wardrobe: the highlighted outfit is worn on trial (switching.cpp enforceOutfit) and a camera looks
+// at the player like a mirror; both end with the menu.
+void outfitPreviewUpdate(GameWorld& g) {
+    Ped* pl = g.playerPed();
+    bool open = pl && pl->state == PS_ONFOOT && (menuIs(MO_SHOP_CLOTHES) || menuIs(MO_WARDROBE));
+    if (!open) {
+        gOutfitPreview = -1;
+        if (gShops.mirror) {
+            gShops.mirror = false;
+            g.rig.scriptActive = false;
+            g.rig.scriptBlend = g.rig.scriptBlendTotal = 0.6f;
+        }
+        return;
+    }
+    int id = gMenu.cursor >= 0 && gMenu.cursor < (int)gMenu.items.size() ? gMenu.items[gMenu.cursor].id : -1;
+    gOutfitPreview = id >= 0 && id < kOutfitCount ? id : -1;
+    if (!gShops.mirror) {
+        // pick a clear spot in front of (or beside) the player, then turn the player to face it
+        vec2 f = dirFromYaw(pl->yaw), r(f.y, -f.x);
+        vec3 at = pl->pos.toVec3() + vec3(0.f, 0.f, 1.05f);
+        const vec2 dirs[5] = {f * 0.95f + r * 0.3f, f * 0.95f - r * 0.3f, r, -r, -f};
+        vec3 cam = at + vec3(f * 2.4f, 0.2f);
+        for (vec2 d : dirs) {
+            vec3 dn = normalize(vec3(d, 0.08f));
+            WorldHit h;
+            if (!g.raycast(dvec3(at), dn, 2.7f, h, g.player, -1, false, false)) {
+                cam = at + dn * 2.4f;
+                break;
+            }
+        }
+        gShops.mirror = true;
+        gShops.mirrorPos = cam;
+        gShops.mirrorAt = at;
+        vec2 to = cam.xy() - pl->pos.toVec3().xy();
+        if (::length(to) > 0.1f) pl->yaw = atan2f(-to.x, to.y);
+    }
+    g.rig.scriptActive = true;
+    g.rig.scriptPos = dvec3(gShops.mirrorPos);
+    g.rig.scriptTarget = dvec3(gShops.mirrorAt + vec3(0.f, 0.f, -0.1f));
+    g.rig.scriptFov = 42.f;
+}
+
 void shopsUpdate(GameWorld& g, float dt) {
     if (!gShops.init) {
         gShops.init = true;
@@ -1065,6 +1126,7 @@ void shopsUpdate(GameWorld& g, float dt) {
     }
     Ped* pl = g.playerPed();
     if (!pl) return;
+    outfitPreviewUpdate(g);
     vec3 pp = pl->pos.toVec3();
     bool onFoot = pl->state == PS_ONFOOT;
     bool free = !gMissions.active && g.playerControl && !g.mInCutscene();

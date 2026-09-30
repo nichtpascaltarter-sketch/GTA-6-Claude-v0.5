@@ -13,6 +13,13 @@ namespace mu {
 
 const u32 kColRosa = 0xffb4a0ffu;
 
+// a stranger's text after a part is done: where to find them for the next one
+void strangerText(GameWorld& g, const char* from, const char* text, vec3 where) {
+    if (!phoneWired()) return;
+    vec2 loc = where.xy();
+    addMessage(g, from, text, -1, false, -1, &loc, 0, nullptr);
+}
+
 int rosaChar(GameWorld& g) {
     Anim::CharacterDesc d;
     d.seed = 0x7053Au;
@@ -67,6 +74,12 @@ public:
                "back.";
     }
     long long reward() const override { return 1500; }
+
+    void finish(GameWorld& g, bool passed) override {
+        if (passed)
+            strangerText(g, "Rosa", "Mija, thank you for Ernesto's car. Thursday is dominoes night at the club. Would you drive an old woman? "
+                                    "Those tow trucks are still circling.", rosaHome(g).door);
+    }
 
     void start(GameWorld& g) override {
         gMissions.suppressPolice = true;
@@ -190,6 +203,10 @@ public:
         return "Sonny Ruiz of Sunshine Towing swore Rosa would never make it to dominoes night in that car again. Drive her there.";
     }
     long long reward() const override { return 2500; }
+
+    void finish(GameWorld& g, bool passed) override {
+        if (passed) strangerText(g, "Rosa", "Sunday, if you have time. There is one more drive I need to take in that car.", rosaHome(g).door);
+    }
 
     void start(GameWorld& g) override {
         gMissions.suppressPolice = true;
@@ -384,6 +401,9 @@ public:
                     shots.push_back(shotMove(rp + vec3(-sea * 7.f + vec2(sea.y, -sea.x) * 2.f, 1.8f), rp + vec3(sea * 20.f, 2.f),
                                              rp + vec3(-sea * 5.f + vec2(sea.y, -sea.x) * 1.5f, 1.6f), rp + vec3(sea * 20.f, 1.5f), 9.f, 45.f));
                     shots.push_back(shotTwo(rp + vec3(sea * 5.f, 0.f), playerPos(g), 7.f));
+                    // the last beat: pulling back and up from behind the two of them, into the sunset
+                    shots.push_back(shotMove(rp + vec3(-sea * 3.f, 2.1f), rp + vec3(sea * 30.f, 2.5f), rp + vec3(-sea * 15.f, 7.5f),
+                                             rp + vec3(sea * 45.f, 3.5f), 9.f, 50.f));
                     g.mCutscene(shots);
                     rosaSay(g, rosa, "[sad:0.6]He said the ocean was the only thing bigger than his heart. [pause:0.6] He was a terrible poet.");
                     sayMe(g, "[calm]Sounds like a good man.");
@@ -480,6 +500,10 @@ public:
     const char* title() const override { return "Repo Karma"; }
     const char* brief() const override { return "The nurse whose car Dex repossessed lost two shifts without it. Get it back off Rook's lot, quietly."; }
     long long reward() const override { return 800; }
+
+    void finish(GameWorld& g, bool passed) override {
+        if (passed) strangerText(g, "Velma", "The car made a noise and now it won't start at all. My shift is at eight. Any chance?", velmaHome(g).door);
+    }
 
     void start(GameWorld& g) override {
         gMissions.suppressPolice = true;
@@ -641,8 +665,10 @@ public:
     }
 
     void finish(GameWorld& g, bool passed) override {
-        (void)passed;
         g.missionTimerHud = -1.f;
+        if (passed)
+            strangerText(g, "Velma", "A man from Coastline Savings keeps coming to my door. He says the loan is due again. I'm scared, Dex.",
+                         velmaHome(g).door);
     }
 
     void autotest(GameWorld& g, MissionTest& t) override {
@@ -822,7 +848,7 @@ public:
 
     void start(GameWorld& g) override {
         cafe = jazSpot(g);
-        if (g.env->timeOfDay < 16.5f || g.env->timeOfDay > 19.f) g.env->timeOfDay = 17.4f;   // golden hour
+        if (g.env->timeOfDay < 16.5f || g.env->timeOfDay > 19.f) g.env->timeOfDay = 16.9f;   // golden hour
         score(SC_CHASE, 0.3f, 21);
         stops = {gPlaces.beachPier, gPlaces.midtownPark, gPlaces.solarisOne};
         jaz = g.mPed(jazChar(g), dvec3(placeOffset(g, cafe, 1.2f, 1.6f)), cafe.yaw + kPi, FAC_FRIEND);
@@ -941,8 +967,8 @@ public:
     }
 
     void finish(GameWorld& g, bool passed) override {
-        (void)passed;
         g.missionTimerHud = -1.f;
+        if (passed) strangerText(g, "Jaz", "Two million views!! Next idea: a stunt jump. You in? Cafe, whenever.", jazSpot(g).door);
     }
 
     void autotest(GameWorld& g, MissionTest& t) override {
@@ -977,6 +1003,10 @@ public:
     const char* brief() const override { return "Jaz wants a stunt jump for her followers. A car, a ramp, her camera. What could go wrong."; }
     long long reward() const override { return 2000; }
 
+    void finish(GameWorld& g, bool passed) override {
+        if (passed) strangerText(g, "Jaz", "HELP. Someone stole my phone. This is my backup. Come to the cafe, now, please!", jazSpot(g).door);
+    }
+
     void start(GameWorld& g) override {
         cafe = jazSpot(g);
         score(SC_CHASE, 0.45f, 21);
@@ -994,6 +1024,7 @@ public:
                 ramp = i;
             }
         }
+        if (best > 3000.f) ramp = -1;   // nothing close: any big jump will do, filmed from the passenger seat
         if (ramp >= 0) {
             const StuntRamp& r = gRamps[ramp];
             rampFoot = r.foot;

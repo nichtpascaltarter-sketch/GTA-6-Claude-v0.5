@@ -1242,6 +1242,35 @@ void updateFlockBirds(GameWorld& g, int gi, float dt, const FlockCfg& cfg) {
         vec2 away = G.anchor.xy() - G.threat.xy();
         away = length2(away) > 1.f ? normalize(away) : dirOf(G.heading);
         tgt = G.anchor + vec3(away * 45.f, 12.f);
+    } else if (G.sp == SP_GULL) {
+        // a boat under way near the flock's spot (the player's too): the gulls trail it, hanging low over the wake,
+        // and drift back home once it has gone
+        int best = -1;
+        float bd = 170.f;
+        for (int vi : gW.vehNear) {
+            if (!g.isBoat(vi) || !g.vehicles[vi].used) continue;
+            const Vehicle& v = g.vehicles[vi];
+            float d = length(v.sim.body.pos.toVec3().xy() - G.anchor.xy());
+            if (length(v.sim.body.vel.xy()) > 3.f && d < bd) {
+                bd = d;
+                best = vi;
+            }
+        }
+        if (best >= 0) {
+            const Vehicle& v = g.vehicles[best];
+            vec2 vd = normalize(v.sim.body.vel.xy());
+            tgt = vec3(v.sim.body.pos.toVec3().xy() - vd * 10.f, G.anchor.z);
+            fc.cfg.orbitR0 = 4.f;
+            fc.cfg.orbitR1 = 14.f;
+            fc.cfg.h0 = 4.f;
+            fc.cfg.h1 = 12.f;
+            for (int ai : G.members) {
+                Animal& a = gW.animals[ai];
+                if (!a.used) continue;
+                if ((a.state == ST_IDLE || a.state == ST_SWIM) && frand() < dt * 0.4f) startTakeoff(a, 0.f);   // the perched ones join in
+                if (a.state == ST_FLY) a.timer = Max(a.timer, 3.f);
+            }
+        }
     }
     G.target = lerp(G.target, tgt, expDecay(0.3f, dt));
     for (int ai : G.members)
@@ -2806,6 +2835,30 @@ void updateFish(GameWorld& g, int gi, float dt) {
         Animal& a = gW.animals[gBoid.idx[q]];
         a.life += dt;
         a.sa.t += dt;
+        if (a.state == ST_DIVE) {   // a mullet leaping clear of the water, tail still beating
+            a.vel.z -= 9.81f * dt;
+            a.pos += a.vel * dt;
+            a.pitch = Clamp(atan2f(a.vel.z, Max(length(a.vel.xy()), 0.2f)), -1.3f, 1.3f);
+            a.sa.phase += dt * 14.f;
+            a.sa.amp = 1.3f;
+            float wz2;
+            if (waterAt(a.pos.x, a.pos.y, wz2) && a.pos.z < wz2 - 0.15f && a.vel.z < 0.f) {
+                spawnFx(FX_WATER_SPLASH, dvec3(vec3(a.pos.x, a.pos.y, wz2)), vec3(0, 0, 1), 3, 0.35f);
+                if (length2(a.pos - gW.cam) < 60.f * 60.f) sfx(Audio::SFX_SPLASH_SMALL, a.pos, 0.5f, 1.3f);
+                a.state = ST_SWIM;
+                a.vel *= 0.3f;
+            }
+            continue;
+        }
+        float wzs;
+        if (G.variant == 2 && !anyScare && waterAt(a.pos.x, a.pos.y, wzs) && a.pos.z > wzs - 1.6f && frand() < dt * 0.012f) {
+            a.state = ST_DIVE;   // mullet jump: out of the water and back in a metre or two on
+            vec2 h = length2(a.vel.xy()) > 1e-4f ? normalize(a.vel.xy()) : dirOf(a.yaw);
+            a.vel = vec3(h * frange(1.5f, 2.8f), frange(3.f, 4.2f));
+            a.pos.z = wzs - 0.1f;
+            spawnFx(FX_WATER_SPLASH, dvec3(vec3(a.pos.x, a.pos.y, wzs)), vec3(0, 0, 1), 2, 0.25f);
+            continue;
+        }
         vec3 steer = boidSteer(gBoid.pos.data(), gBoid.vel.data(), (int)gBoid.pos.size(), q, bp);
         vec3 toT = G.target - a.pos;
         steer += toT * (0.12f / Max(1.f, length(toT) * 0.2f));
@@ -2850,7 +2903,6 @@ void updateFish(GameWorld& g, int gi, float dt) {
         a.pitch = Clamp(atan2f(a.vel.z, Max(length(a.vel.xy()), 0.2f)), -0.5f, 0.5f);
         a.sa.phase += dt * (4.f + sp * 7.f) * (tarpon ? 0.5f : 1.f);
         a.sa.amp = Clamp(0.5f + sp * 0.5f, 0.5f, 1.4f);
-        a.state = ST_SWIM;
     }
     for (int ai : G.members) {
         Animal& a = gW.animals[ai];
@@ -4652,6 +4704,22 @@ const char* kSceneNames[] = {"wild_gulls_pier", "wild_gulls_close", "wild_pelica
                              "wild_frigates", "wild_lineup_newbirds"};
 const int kSceneCount = (int)ARRAY_COUNT(kSceneNames);
 
+// --wildscene a,b,c: only the scenes whose names contain one of the comma separated fragments
+bool sceneWanted(int s) {
+    const char* only = Platform::argValue("wildscene");
+    if (!only) return true;
+    std::string list = only;
+    size_t a = 0;
+    while (a <= list.size()) {
+        size_t b = list.find(',', a);
+        if (b == std::string::npos) b = list.size();
+        std::string frag = list.substr(a, b - a);
+        if (!frag.empty() && strstr(kSceneNames[s], frag.c_str())) return true;
+        a = b + 1;
+    }
+    return false;
+}
+
 // Stage A: time, player and camera placement. Returns false to skip the scene.
 bool sceneStageA(GameWorld& g, int s) {
     auto setTod = [&](float t) {
@@ -4711,6 +4779,11 @@ bool sceneStageA(GameWorld& g, int s) {
             setTod(17.5f);
             Ped* pl = g.playerPed();
             if (!pl) return false;
+            vec2 dry;
+            if (findPoint(g, vec2(3000.f, 300.f), 250.f, [&](vec2 q) {
+                    return waterDepth(*g.map, q.x, q.y) < -0.5f && !g.roads->nearRoad(q, 2.f) && g.roads->nearRoad(q, 12.f) && !g.buildings->pointInBuilding(q, 6.f);
+                }, dry))
+                teleportPlayer(g, dry);
             gTestSpot = pl->pos.toVec3();
             vec2 f = dirOf(pl->yaw);
             aimCam(gTestSpot + vec3(-f * 1.5f + vec2(f.y, -f.x) * 4.5f, 1.6f), gTestSpot + vec3(f * 3.f, 0.4f), 55.f);
@@ -4737,6 +4810,7 @@ bool sceneStageA(GameWorld& g, int s) {
             setTod(23.3f);
             Ped* pl = g.playerPed();
             if (!pl) return false;
+            teleportPlayer(g, vec2(3000.f, 300.f));
             gTestSpot = pl->pos.toVec3();
             aimCam(gTestSpot + vec3(0, -4.f, 1.7f), gTestSpot, 55.f);
             return true;
@@ -4820,15 +4894,26 @@ bool sceneStageA(GameWorld& g, int s) {
 
 // After the fast-forward: frame the animals that moved (flocks, pods) from at most maxDist away
 void trackCam(GameWorld& g, float maxDist, float minHeight, bool move = true) {
+    // the densest cluster: the animal with the most others within 12 m, and the centroid of that neighbourhood
+    int best = -1, bestN = -1;
+    for (int i = 0; i < (int)gW.animals.size(); i++) {
+        if (!gW.animals[i].used) continue;
+        int n = 0;
+        for (const Animal& b : gW.animals) n += b.used && length2(b.pos - gW.animals[i].pos) < 144.f;
+        if (n > bestN) {
+            bestN = n;
+            best = i;
+        }
+    }
+    if (best < 0) return;
     vec3 c(0.f);
     int n = 0;
-    for (const Animal& a : gW.animals)
-        if (a.used) {
-            c += a.pos;
+    for (const Animal& b : gW.animals)
+        if (b.used && length2(b.pos - gW.animals[best].pos) < 144.f) {
+            c += b.pos;
             n++;
         }
-    if (!n) return;
-    c = c / (float)n;
+    c = c / (float)Max(n, 1);
     vec3 away = gTestCam.pos - c;
     float d = length(away);
     vec3 eye = gTestCam.pos;
@@ -5078,6 +5163,7 @@ void testUpdate(GameWorld& g) {
                             a.speedWant = 1.6f;
                             a.t = k == 0 ? 0.55f : 0.5f + 0.1f * (float)k;
                         }
+            if (s == 8) updateAllGroups(g, 1.f / 30.f);   // place the leapers (the shot holds the moment)
             ph = 2;
             fr = 0;
         }
@@ -5100,10 +5186,7 @@ void testUpdate(GameWorld& g) {
         gW.testScene++;
         ph = 0;
         fr = 0;
-        const char* only = Platform::argValue("wildscene");
-        if (only) {
-            while (gW.testScene < kSceneCount && !strstr(kSceneNames[gW.testScene], only)) gW.testScene++;
-        }
+        while (gW.testScene < kSceneCount && !sceneWanted(gW.testScene)) gW.testScene++;
         if (gW.testScene >= kSceneCount) {
             LOG("Wildlife test: done");
             PostQuitMessage(0);
@@ -5132,8 +5215,7 @@ void update(GameWorld& g, float dt) {
         init = true;
         if (Platform::hasArg("wildlifetest")) {
             gW.testScene = 0;
-            if (const char* only = Platform::argValue("wildscene"))
-                while (gW.testScene < kSceneCount && !strstr(kSceneNames[gW.testScene], only)) gW.testScene++;
+            while (gW.testScene < kSceneCount && !sceneWanted(gW.testScene)) gW.testScene++;
             if (gW.testScene >= kSceneCount) gW.testScene = -1;
         }
     }

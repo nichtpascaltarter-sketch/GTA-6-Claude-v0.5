@@ -137,6 +137,8 @@ void MissionManager::registerAll(GameWorld& g) {
                         makeMission<MissionRange>));
     defs.push_back(side("bounty", "Bail Bonds", "Palmera Bail Bonds", resolveFrontage(g, vec2(3160.f, -430.f)).pos.xy(), SF_REPO_MAN, -1,
                         UI::BLIP_HIDEOUT, makeMission<MissionBounty>));
+    defs.push_back(side("wishlist", "Rook's Wishlist", "Rook", startAt(P.rookShop, -14.f), SF_REPO_MAN, -1, UI::BLIP_GARAGE,
+                        makeMission<MissionWishlist>));
     // strangers: one-time short stories, one part at a time (Mari)
     {
         vec2 rosa = rosaHome(g).pos.xy();

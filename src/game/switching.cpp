@@ -39,6 +39,7 @@ const Outfit kOutfits[2][8] = {
 const int kOutfitCount = 8;
 
 int gBaseChar[2] = {-1, -1};
+int gOutfitPreview = -1;   // shops.cpp: the outfit highlighted in a clothes menu, worn on trial by the player (-1 none)
 bool gSwitching = false;   // set while the player ped is being replaced by a character switch
 
 Anim::CharacterDesc outfitDesc(GameWorld& g, int who, int outfit) {
@@ -101,6 +102,10 @@ void enforceOutfit(GameWorld& g) {
     Ped* pl = g.playerPed();
     if (!pl) return;
     int want = g.protagonistChar[Clamp(g.protagonistIndex, 0, 1)];
+    if (gOutfitPreview >= 0) {
+        int trial = outfitChar(g, Clamp(g.protagonistIndex, 0, 1), gOutfitPreview);
+        if (trial >= 0) want = trial;
+    }
     if (want >= 0 && pl->charIndex != want && pl->state != PS_RAGDOLL && pl->state != PS_DEAD && !pl->ragdoll) {
         pl->charIndex = want;
         pl->anim.init(&g.chars[want].skel, pl->uid * 2654435761u);

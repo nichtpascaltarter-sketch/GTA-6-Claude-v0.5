@@ -765,32 +765,8 @@ void drawBottomCenter(const HudState& s, const Layout& L, float dt) {
     if (subOn) g.sub = s.subtitle;
     g.subAlpha = fadeTo(g.subAlpha, subOn, dt, 10.f, 6.f);
     if (g.subAlpha > 0.01f && !g.sub.text.empty()) {
-        // accessibility: subtitle size, a backing box and plain or colored speaker names (Settings > Accessibility)
-        const UiOptions& uo = uiOptions();
-        float a = g.subAlpha;
-        float k = uo.subtitleScale;
-        float subW = maxW * Min(1.3f, 0.8f + 0.2f * k);
-        TextStyle st = style(FONT_BODY, 28.f * sc * k, kWhite, ALIGN_CENTER);
-        st.outline = 2.f * sc * k;
-        st.outlineColor = C(0.f, 0.f, 0.03f, 0.9f);
-        st.shadow = 2.f * sc * k;
-        st.shadowSoft = 0.7f;
-        std::string line;
-        if (!g.sub.speaker.empty()) {
-            u32 sc32 = uo.speakerColors ? g.sub.speakerColor : kWhite;
-            line = StrFormat("~#%02x%02x%02x~%s:~s~ ", sc32 & 255, (sc32 >> 8) & 255, (sc32 >> 16) & 255, g.sub.speaker.c_str()) + g.sub.text;
-        } else line = g.sub.text;
-        ro.alpha = a;
-        st.color = withAlpha(kWhite, a);
-        st.outlineColor = withAlpha(st.outlineColor, a);
-        vec2 sz = richMeasure(line.c_str(), st, subW, ro);
-        y -= sz.y;
-        if (uo.subtitleBackground > 0.01f) {
-            float px = 18.f * sc * k, py = 9.f * sc * k;
-            roundRect(cx - sz.x * 0.5f - px, y - py, sz.x + 2.f * px, sz.y + 2.f * py, 10.f * sc, C(0.01f, 0.01f, 0.04f, 0.9f * uo.subtitleBackground * a));
-        }
-        richDraw(cx, y, line.c_str(), st, subW, ro);
-        y -= (uo.subtitleBackground > 0.01f ? 22.f : 12.f) * sc;
+        y = drawSubtitleBlock(cx, y, maxW, sc, g.sub.speaker, g.sub.speakerColor, g.sub.text, s.padPrompts, g.subAlpha);
+        y -= (uiOptions().subtitleBackground > 0.01f ? 22.f : 12.f) * sc;
     } else if (g.subAlpha <= 0.01f) {
         g.sub = Subtitle();
     }
@@ -960,24 +936,7 @@ void drawCenter(const HudState& s, const Layout& L, float dt, float t) {
     g.hitIntensity = Max(s.hitMarker, g.hitIntensity - dt * 3.f);
     if (s.killMarker) g.killT = 0.f;
     g.killT += dt;
-    if (g.reticleAlpha > 0.01f) {
-        float a = g.reticleAlpha;
-        bool hc = uiOptions().highContrastReticle;   // bigger, bolder, yellow on black (Settings > Accessibility)
-        u32 col = s.reticleOnEnemy ? (hc ? C(1.f, 0.1f, 0.1f) : kRed) : s.reticleOnFriendly ? kCyan : (hc ? C(1.f, 0.93f, 0.1f) : kWhite);
-        u32 ol = C(0.f, 0.f, 0.02f, (hc ? 1.f : 0.7f) * a);
-        float k = hc ? 1.6f : 1.f;
-        circle(c.x, c.y, (3.4f * k + (hc ? 1.2f : 0.f)) * sc, ol);
-        circle(c.x, c.y, 2.3f * k * sc, withAlpha(col, a));
-        float sp = 7.f * sc * k + g.spreadShown * sc;
-        if (g.spreadShown > 0.5f || hc) {
-            for (int q = 0; q < 4; q++) {
-                vec2 d = q == 0 ? vec2(1, 0) : q == 1 ? vec2(-1, 0) : q == 2 ? vec2(0, 1) : vec2(0, -1);
-                vec2 p0 = c + d * sp, p1 = c + d * (sp + 9.f * sc * k);
-                capsule(p0.x, p0.y, p1.x, p1.y, (4.2f * k + (hc ? 1.5f : 0.f)) * sc, ol);
-                capsule(p0.x, p0.y, p1.x, p1.y, 2.2f * k * sc, withAlpha(col, a));
-            }
-        }
-    }
+    if (g.reticleAlpha > 0.01f) drawReticleShape(c, sc, g.spreadShown, s.reticleOnEnemy ? 1 : s.reticleOnFriendly ? 2 : 0, g.reticleAlpha);
     float hitA = Saturate(g.hitIntensity);
     float killA = 1.f - Saturate(g.killT / 0.6f);
     if (hitA > 0.01f || killA > 0.01f) {
@@ -1188,6 +1147,57 @@ void drawWeaponWheel(const HudState& s, const Layout& L, float dt, float t) {
 }
 
 }  // namespace hud_ui
+
+namespace uix {
+
+float drawSubtitleBlock(float cx, float bottom, float maxW, float sc, const std::string& speaker, u32 speakerColor, const std::string& text,
+                        bool padPrompts, float a) {
+    // accessibility: subtitle size, a backing box and plain or colored speaker names (Settings > Accessibility)
+    const UiOptions& uo = uiOptions();
+    float k = uo.subtitleScale;
+    float subW = maxW * Min(1.f, 0.8f + 0.2f * k);   // larger text wraps to more lines (keeps clear of the corner HUD)
+    TextStyle st = hud_ui::style(FONT_BODY, 28.f * sc * k, withAlpha(kWhite, a), ALIGN_CENTER);
+    st.outline = 2.f * sc * k;
+    st.outlineColor = C(0.f, 0.f, 0.03f, 0.9f * a);
+    st.shadow = 2.f * sc * k;
+    st.shadowSoft = 0.7f;
+    std::string line;
+    if (!speaker.empty()) {
+        u32 c = uo.speakerColors ? speakerColor : kWhite;
+        line = StrFormat("~#%02x%02x%02x~%s:~s~ ", c & 255, (c >> 8) & 255, (c >> 16) & 255, speaker.c_str()) + text;
+    } else line = text;
+    RichOpts ro;
+    ro.pad = padPrompts;
+    ro.alpha = a;
+    vec2 sz = richMeasure(line.c_str(), st, subW, ro);
+    float y = bottom - sz.y;
+    if (uo.subtitleBackground > 0.01f) {
+        float px = 18.f * sc * k, py = 9.f * sc * k;
+        roundRect(cx - sz.x * 0.5f - px, y - py, sz.x + 2.f * px, sz.y + 2.f * py, 10.f * sc, C(0.01f, 0.01f, 0.04f, 0.9f * uo.subtitleBackground * a));
+    }
+    richDraw(cx, y, line.c_str(), st, subW, ro);
+    return y;
+}
+
+void drawReticleShape(vec2 c, float sc, float spread, int target, float a) {
+    bool hc = uiOptions().highContrastReticle;   // bigger, bolder, yellow on black (Settings > Accessibility)
+    u32 col = target == 1 ? (hc ? C(1.f, 0.1f, 0.1f) : kRed) : target == 2 ? kCyan : (hc ? C(1.f, 0.93f, 0.1f) : kWhite);
+    u32 ol = C(0.f, 0.f, 0.02f, (hc ? 1.f : 0.7f) * a);
+    float k = hc ? 1.6f : 1.f;
+    circle(c.x, c.y, (3.4f * k + (hc ? 1.2f : 0.f)) * sc, ol);
+    circle(c.x, c.y, 2.3f * k * sc, withAlpha(col, a));
+    float sp = 7.f * sc * k + spread * sc;
+    if (spread > 0.5f || hc) {
+        for (int q = 0; q < 4; q++) {
+            vec2 d = q == 0 ? vec2(1, 0) : q == 1 ? vec2(-1, 0) : q == 2 ? vec2(0, 1) : vec2(0, -1);
+            vec2 p0 = c + d * sp, p1 = c + d * (sp + 9.f * sc * k);
+            capsule(p0.x, p0.y, p1.x, p1.y, (4.2f * k + (hc ? 1.5f : 0.f)) * sc, ol);
+            capsule(p0.x, p0.y, p1.x, p1.y, 2.2f * k * sc, withAlpha(col, a));
+        }
+    }
+}
+
+}  // namespace uix
 
 // ------------------------------------------------------------------------------------------------------------------
 void hudInit() {

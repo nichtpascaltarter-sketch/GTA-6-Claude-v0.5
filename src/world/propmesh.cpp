@@ -444,12 +444,20 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
             // braces
             tube(m, {vec3(0, 0, 8.7f), vec3(0.8f, 0, 9.25f)}, {0.025f, 0.025f}, 4, steel, metal);
             tube(m, {vec3(0, 0, 8.7f), vec3(-0.8f, 0, 9.25f)}, {0.025f, 0.025f}, 4, steel, metal);
-            // telecom clamp and ground wire
-            m.box(vec3(0.2f, 0, 7.2f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.08f, 0.1f, 0.06f), steel, metal, true);
+            // telecom clamp (field side) and ground wire
+            m.box(vec3(-0.2f, 0, 7.2f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.08f, 0.1f, 0.06f), steel, metal, true);
             m.box(vec3(0, 0.13f, 4.f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.015f, 0.015f, 4.2f), packRGBA8(0.3f, 0.3f, 0.3f, 1), metal, false);
             if (variant & 1) {
                 m.cylinder(vec3(0.42f, 0, 7.7f), 0.28f, 0.28f, 0.9f, 10, packRGBA8(0.55f, 0.57f, 0.58f, 1), metal, true);
                 m.box(vec3(0.25f, 0, 8.1f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.1f, 0.08f, 0.2f), steel, metal, true);
+            }
+            if (variant & 2) {
+                // cobra-head street lamp on a bracket arm over the street (+x)
+                u32 alu = packRGBA8(0.62f, 0.63f, 0.64f, 1);
+                tube(m, {vec3(0.1f, 0, 7.35f), vec3(0.9f, 0, 7.62f), vec3(1.75f, 0, 7.72f)}, {0.045f, 0.04f, 0.035f}, 6, alu, metal);
+                m.box(vec3(1.95f, 0, 7.66f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.34f, 0.16f, 0.08f), alu, metal, true);
+                m.quadFacing(vec3(1.7f, -0.12f, 7.575f), vec3(2.22f, -0.12f, 7.575f), vec3(2.22f, 0.12f, 7.575f), vec3(1.7f, 0.12f, 7.575f), vec2(0, 0), vec2(1, 0),
+                             vec2(1, 1), vec2(0, 1), packRGBA8(1.f, 0.8f, 0.5f, 0.6f), makeMat(MAT_EMISSIVE), vec3(0, 0, -1));
             }
             p.radius = 10.f;
             p.lodDistance = 300.f;
@@ -476,8 +484,18 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
             break;
         }
         case PROP_DUMPSTER: {
+            // front-load container: steel body on casters, sloped front, two black plastic lids, fork pockets
             vec3 c = variant ? vec3(0.1f, 0.3f, 0.5f) : vec3(0.15f, 0.35f, 0.2f);
-            m.box(vec3(0, 0, 0.65f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.9f, 0.6f, 0.6f), packRGBA8(c.x, c.y, c.z, 1), metal, true);
+            u32 body = packRGBA8(c.x, c.y, c.z, 1), dark = packRGBA8(0.06f, 0.06f, 0.06f, 1);
+            m.box(vec3(0, 0.08f, 0.68f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.9f, 0.52f, 0.55f), body, metal, true);
+            vec3 sl = normalize(vec3(0, -0.5f, 1.f));
+            m.box(vec3(0, -0.5f, 0.55f), vec3(1, 0, 0), normalize(cross(sl, vec3(1, 0, 0))), sl, vec3(0.9f, 0.04f, 0.42f), body, metal, true);
+            for (int s = -1; s <= 1; s += 2) {
+                m.box(vec3(s * 0.45f, 0.05f, 1.26f), vec3(1, 0, 0), normalize(vec3(0, 1, 0.12f)), normalize(vec3(0, -0.12f, 1)), vec3(0.44f, 0.62f, 0.03f), dark,
+                      makeMat(MAT_PLASTIC), true);
+                m.box(vec3(s * 0.93f, 0.1f, 0.95f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.04f, 0.32f, 0.08f), body, metal, true);
+                for (int t = -1; t <= 1; t += 2) m.cylinder(vec3(s * 0.75f, t * 0.4f, 0.f), 0.07f, 0.07f, 0.13f, 6, dark, makeMat(MAT_RUBBER), true);
+            }
             p.radius = 1.2f;
             p.lodDistance = 90.f;
             break;

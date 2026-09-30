@@ -349,6 +349,10 @@ void tokenize(const char* str, const TextStyle& st, const RichOpts& o, std::vect
                     flushWord();
                     unsigned rgb = (unsigned)strtoul(code.c_str() + 1, nullptr, 16);
                     col = C(((rgb >> 16) & 255) / 255.f, ((rgb >> 8) & 255) / 255.f, (rgb & 255) / 255.f, ((st.color >> 24) & 255) / 255.f);
+                } else if (code.size() > 2 && code[1] == ':' && code[0] == 'a' && actionFromKey(code.substr(2)) >= 0) {
+                    flushWord();
+                    std::string key = actionPromptKey(actionFromKey(code.substr(2)), o.pad);
+                    out.push_back({T_PROMPT, key, col, o.pad, promptWidth(key.c_str(), o.pad, promptH)});
                 } else if (code.size() > 2 && code[1] == ':' && (code[0] == 'k' || code[0] == 'p' || code[0] == 'i')) {
                     flushWord();
                     std::string key = code.substr(2);
@@ -357,7 +361,9 @@ void tokenize(const char* str, const TextStyle& st, const RichOpts& o, std::vect
                         size_t bar = key.find('|');
                         if (bar != std::string::npos) {
                             pad = o.pad;
-                            key = o.pad ? key.substr(bar + 1) : key.substr(0, bar);
+                            int act = legacyPromptAction(key.substr(0, bar), key.substr(bar + 1));
+                            if (act >= 0) key = actionPromptKey(act, o.pad);
+                            else key = o.pad ? key.substr(bar + 1) : key.substr(0, bar);
                         }
                     }
                     out.push_back({T_PROMPT, key, col, pad, promptWidth(key.c_str(), pad, promptH)});

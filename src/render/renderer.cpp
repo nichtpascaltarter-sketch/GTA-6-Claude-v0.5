@@ -334,6 +334,16 @@ void Renderer::computeSunAndSky(const Environment& env) {
         lightTOA = vec3(0.75f, 0.82f, 1.0f) * 3.0f * fade * SmoothStep(-0.05f, 0.15f, moon.z);
     }
     nightFactor = SmoothStep(-2.f, -9.f, sunElev);
+    sunElevation = sunElev;
+}
+
+bool Renderer::cameraInInterior() const {
+    for (const InteriorVolume& v : interiorVolumes) {
+        vec3 d = rel(camera.pos, v.center);
+        float lx = d.x * v.axis.x + d.y * v.axis.y, ly = -d.x * v.axis.y + d.y * v.axis.x;
+        if (fabsf(lx) <= v.halfExtents.x && fabsf(ly) <= v.halfExtents.y && fabsf(d.z) <= v.halfExtents.z) return true;
+    }
+    return false;
 }
 
 void Renderer::updateFrameConstants(const Camera& cam, const Environment& env, float dt) {

@@ -122,7 +122,7 @@ void updateStoryCalls(GameWorld& g, float dt) {
             const char* from;
             const char* text;
             int where;   // 0 courier, 1 gun shop, 2 street race, 3 Tide Customs, 4 beach race, 5 condo, 6 river race, 7 flight school,
-                         // 8 taxi depot, 9 range, 10 Sawgrass dock (wildlife census)
+                         // 8 taxi depot, 9 range, 10 Sawgrass dock (wildlife census), 11..13 the strangers Rosa, Velma, Jaz
         };
         static const WorldText kTexts[] = {
             {SF_LOW_TIDE, "Rapido Couriers", "Fast wheels, faster legs? Rapido Couriers pays per drop. Come by the depot.", 0},
@@ -139,6 +139,12 @@ void updateStoryCalls(GameWorld& g, float dt) {
              "Wild Porto Sol census! Photograph every species you meet with your phone camera. $250 for each new one, $10,000 for the full "
              "field guide.",
              10},
+            // (append only: the delivered texts are a bitmask by index in saves)
+            {SF_LOW_TIDE, "Mama Lucha", "Mija, Rosa Villanueva from down the street is asking for you. Something about Ernesto's car. Be nice, "
+                                        "she's eighty one.", 11},
+            {SF_DRY_DOCK, "Rook", "That blue hatchback we pulled last week? The owner's a nurse. Keeps calling the shop. Not my problem. Maybe yours.",
+             12},
+            {SF_PRESSURE, "Tidegram", "@jazonthetide is looking for a driver at the Sol Beach cafe. Paid in exposure. And cash.", 13},
         };
         int sent = flag(g, EX_WORLD_TEXTS);
         for (int i = 0; i < (int)ARRAY_COUNT(kTexts); i++) {
@@ -162,6 +168,9 @@ void updateStoryCalls(GameWorld& g, float dt) {
                 case 7: loc = defStart("flight_1"); break;
                 case 8: loc = P.taxiDepot.pos.xy(); break;
                 case 10: loc = P.sawgrassDock.xy(); break;
+                case 11: loc = defStart("rosa_1"); break;
+                case 12: loc = defStart("velma_1"); break;
+                case 13: loc = defStart("jaz_1"); break;
                 default: loc = defStart("range"); break;
             }
             addMessage(g, t.from, t.text, -1, false, -1, &loc, 0, nullptr);
@@ -307,6 +316,10 @@ std::vector<MenuItem> jobItems(GameWorld& g) {
         it.detail = d.setsFlag >= 0 && flag(g, d.setsFlag) ? "Completed. Select to mark it on the map." : "Select to mark it on the map.";
         std::string rival = rivalStatus(g, d.id);
         if (!rival.empty()) it.detail = rival;
+        size_t idLen = strlen(d.id);
+        if (d.letter == '?' && idLen > 2 && d.id[idLen - 2] == '_' && d.id[idLen - 1] >= '1' && d.id[idLen - 1] <= '9')   // strangers: rosa_1 ...
+            it.detail = StrFormat("%s's story, part %c of 3. %s", d.contact, d.id[idLen - 1],
+                                  d.setsFlag >= 0 && flag(g, d.setsFlag) ? "Done." : "Select to mark it on the map.");
         items.push_back(it);
     }
     MenuItem j;

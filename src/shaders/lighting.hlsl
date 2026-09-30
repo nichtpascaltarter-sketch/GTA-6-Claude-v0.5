@@ -436,7 +436,10 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
     }
     float4 ap = aerialPerspective(uv, dist);
     color = color * ap.a + ap.rgb;
-    float3 outC = min(color * preExposure() + emissive * ap.a, 60000.0);
+    // Emitters are capped in absolute radiance (neon / lamps at night up to 20000 nits, by day no sign or panel
+    // exceeds 2500 nits), lit surfaces are capped before bloom (sun glints stay bright without flooding the frame)
+    float emissiveCap = lerp(2500.0, 20000.0, gSkyGlow.w) * preExposure();
+    float3 outC = min(color * preExposure(), 8000.0) + min(emissive, emissiveCap) * ap.a;
     float4 fv = froxelFog(uv, viewDepth);
     uHDR[id.xy] = float4(sanitizeHDR(outC * fv.a + fv.rgb), 1);
 }

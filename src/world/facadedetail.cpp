@@ -1087,10 +1087,141 @@ void warehouseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls
     }
 }
 
+
+// ------------------------------------------------------------------------------------------------ yards, billboards, wall ads
+// Service yard behind commercial and industrial buildings: a dumpster against the back wall, trash bags, AC condensers.
+void serviceYard(FD& d) {
+    const Building& b = *d.b;
+    if (!d.k.props) return;
+    bool commercial = b.style == BS_SHOPS || b.style == BS_MIDRISE || b.style == BS_STRIPMALL || b.style == BS_MOTEL || b.style == BS_GASSTATION ||
+                      b.style == BS_DECO || b.style == BS_CONDO;
+    bool industrial = b.style == BS_WAREHOUSE || b.style == BS_FACTORY;
+    if (!commercial && !industrial) return;
+    Rng r(b.seed ^ 0x5E4F1CE5u);
+    float back = dot(b.c - b.lotC, b.front) - b.hy + b.lotHy;   // lot depth left behind the building
+    if (back < 2.6f) return;
+    vec2 placed[6];
+    int np = 0;
+    auto ok = [&](vec2 p, float rad) {
+        for (int i = 0; i < np; i++)
+            if (length(placed[i] - p) < rad + 0.9f) return false;
+        if (gRoads && gRoads->nearRoad(p, rad + 0.3f)) return false;
+        if (gBuildings && gBuildings->pointInBuilding(p, rad)) return false;
+        if (gSites && gSites->blocksVegetation(p)) return false;
+        return !d.map->isWater(p.x, p.y);
+    };
+    auto put = [&](PropType t, vec2 p, float yaw, int var, float scale) {
+        PropInstance pi;
+        pi.pos = vec3(p, d.map->heightAt(p.x, p.y));
+        pi.yaw = yaw;
+        pi.scale = scale;
+        pi.type = (u8)t;
+        pi.variant = (u8)var;
+        pi.flags = 0;
+        d.k.props->push_back(pi);
+        if (np < 6) placed[np++] = p;
+    };
+    float wallYaw = atan2f(-b.front.x, b.front.y) + kPi;   // local -y (lid side) away from the back wall
+    if (r.chance(industrial ? 0.85f : 0.7f)) {
+        vec2 p = b.c - b.front * (b.hy + 1.2f) + b.ax * r.range(-b.hx * 0.6f, b.hx * 0.6f);
+        if (ok(p, 1.1f)) {
+            put(PROP_DUMPSTER, p, wallYaw, (int)(r.next() & 1u), 1.f);
+            if (r.chance(0.55f)) {
+                vec2 q = p + b.ax * (r.chance(0.5f) ? 1.75f : -1.75f) - b.front * 0.3f;
+                if (ok(q, 0.5f)) put(PROP_TRASH_BAGS, q, r.f() * kTwoPi, 0, r.range(0.8f, 1.1f));
+            }
+        }
+    }
+    int nAC = commercial ? r.irange(0, 2) : r.irange(0, 1);
+    for (int i = 0; i < nAC; i++) {
+        vec2 q = b.c - b.front * (b.hy + 0.8f) + b.ax * r.range(-b.hx * 0.85f, b.hx * 0.85f);
+        if (!ok(q, 0.6f)) continue;
+        put(PROP_AC_UNIT, q, atan2f(b.ax.y, b.ax.x), 0, 1.f);
+        if (d.k.col) {
+            CollisionBox cb;
+            cb.c = vec3(q, d.map->heightAt(q.x, q.y) + 0.45f);
+            cb.ax = b.ax;
+            cb.he = vec3(0.5f, 0.5f, 0.45f);
+            d.k.col->push_back(cb);
+        }
+    }
+}
+
+// Rooftop billboard over a low shop on a main road, facing the street (lit like the highway boards at night)
+void rooftopBillboard(FD& d, const FacadeMass& ms, const Wall& fw) {
+    const Building& b = *d.b;
+    if (b.style != BS_SHOPS || b.floors > 2 || b.roof != ROOF_FLAT || !gRoads) return;
+    bool reg = d.reg == REG_CALLE_LUNA || d.reg == REG_FLATS || d.reg == REG_NORTH_CITY || d.reg == REG_MIDTOWN || d.reg == REG_SUBURBS ||
+               d.reg == REG_FORT_CASTELL || d.reg == REG_LAKE_TOWN || d.reg == REG_HARLOW || d.reg == REG_KEY_TOWN;
+    Rng r(b.seed ^ 0xB111B0A2u);
+    if (!reg || !r.chance(0.16f) || fw.len < 7.f) return;
+    float ds, dd, side;
+    int ne = gRoads->nearestEdge(b.c + b.front * (b.hy + 7.f), 14.f, &ds, &dd, &side);
+    if (ne < 0 || gRoads->edges[ne].cls > RC_AVENUE) return;
+    Sink& k = d.k;
+    float W = Min(fw.len * 0.85f, 12.f), H = W * 0.34f;
+    vec2 n2 = fw.n, t2 = fw.t;
+    vec3 n(n2, 0), rt(t2, 0), up(0, 0, 1);
+    vec2 base = fw.a + t2 * (fw.len * 0.5f) - n2 * Min(3.f, b.hy * 0.5f);
+    float zr = ms.z1, zb = zr + 3.2f;
+    vec3 o(base, zb + H * 0.5f);
+    const u32 steel = pk(0.3f, 0.31f, 0.33f), metal = MM(MAT_METAL_PAINTED);
+    // I-beam posts with a knee brace, back frame, catwalk
+    for (int s = -1; s <= 1; s += 2) {
+        vec2 pp = base + t2 * (s * W * 0.3f) - n2 * 0.25f;
+        obox(k, vec3(pp, (zr + zb + H) * 0.5f), vec3(t2, 0), vec3(n2, 0), vec3(0.12f, 0.12f, (zb + H - zr) * 0.5f), steel, metal);
+        obox(k, vec3(pp - n2 * 0.9f, zr + 1.2f), vec3(t2, 0), normalize(vec3(n2, 1.2f)), vec3(0.06f, 0.06f, 1.35f), steel, metal);
+    }
+    obox(k, o - n * 0.14f, rt, n, vec3(W * 0.5f + 0.12f, 0.1f, H * 0.5f + 0.12f), steel, metal);
+    obox(k, vec3(base + n2 * 0.45f, zb - 0.25f), vec3(t2, 0), vec3(n2, 0), vec3(W * 0.5f, 0.45f, 0.04f), steel, metal);
+    sitegeo::G g;
+    g.m = k.m;
+    g.d = k.m;
+    g.org = k.org;
+    g.detail = true;
+    landmark_mesh::adFace(g, landmark_mesh::kAds[r.next() % 24u], o + n * 0.02f, rt, up, n, W, H, true);
+    for (int i = -1; i <= 1; i++) {
+        vec3 lp = vec3(base + t2 * (i * W * 0.33f) + n2 * 1.1f, zb - 0.15f);
+        obox(k, lp, rt, n, vec3(0.16f, 0.12f, 0.08f), steel, metal);
+    }
+}
+
+// Painted wall ad on a blank side wall, above whatever the neighbour hides
+void wallAd(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
+    const Building& b = *d.b;
+    if (!(b.style == BS_MIDRISE || b.style == BS_SHOPS || b.style == BS_WAREHOUSE || b.style == BS_FACTORY) || !gBuildings) return;
+    float p = d.reg == REG_CALLE_LUNA || d.reg == REG_MIDTOWN ? 0.3f : (d.reg == REG_FLATS || d.reg == REG_NORTH_CITY || d.reg == REG_FORT_CASTELL ? 0.2f : 0.08f);
+    Rng r(b.seed ^ 0xAD5A11u);
+    if (!r.chance(p)) return;
+    int start = (int)(r.next() % (u32)Max(1, (int)walls.size()));
+    for (int j = 0; j < (int)walls.size(); j++) {
+        const Wall& w = walls[(start + j) % walls.size()];
+        if (fabsf(w.facing) > 0.3f || w.len < 7.f) continue;
+        float cover = ms.vBase;
+        for (int q = 1; q <= 3; q++) {
+            float top;
+            vec2 qp = w.a + w.t * (w.len * q * 0.25f) + w.n * 1.6f;
+            if (gBuildings->pointInBuilding(qp, 0.8f, &top)) cover = Max(cover, top + 1.2f);
+        }
+        float z0 = Max(cover + 0.5f, ms.vBase + 2.8f), z1 = ms.z1 - 0.5f;
+        if (z1 - z0 < 3.5f) continue;
+        float H = Min(z1 - z0, 9.f), W = Min(w.len * 0.8f, H * 1.5f);
+        if (W < 4.f) continue;
+        vec3 c = vec3(w.a + w.t * (w.len * 0.5f) + w.n * 0.035f, z0 + H * 0.5f);
+        sitegeo::G g;
+        g.m = d.k.m;
+        g.d = d.k.m;
+        g.org = d.k.org;
+        g.detail = true;
+        landmark_mesh::adPoster(g, landmark_mesh::kAds[r.next() % 24u], c, vec3(w.t, 0), vec3(0, 0, 1), vec3(w.n, 0), W, H, 1.f, MM(MAT_PAINT_WHITE));
+        return;
+    }
+}
+
 }  // namespace facade_detail
 
 // ---------------------------------------------------------------------------------------------------------------
-void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& map, vec3 org, MeshData& m, std::vector<CollisionBox>* col,
+void buildFacadeDetail(const Building& b, const FacadeGPU& fac0, const WorldMap& map, vec3 org, MeshData& m, std::vector<CollisionBox>* col,
                        std::vector<PropInstance>* props, std::vector<LightInstance>* lights, const std::vector<FacadeMass>& masses) {
     using namespace facade_detail;
     FD d;
@@ -1101,7 +1232,7 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
     d.k.lights = lights;
     d.b = &b;
     d.doorBay = interiorDoorBay(b);
-    d.f = &fac;
+    d.f = &fac0;
     d.map = &map;
     d.r = Rng(b.seed ^ 0xFAC4DE71u);
     d.v0 = m.verts.size();
@@ -1109,13 +1240,19 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
     d.old = b.region == REG_CALLE_LUNA || b.region == REG_FLATS || b.region == REG_MIDTOWN || b.region == REG_NORTH_CITY || b.region == REG_FORT_CASTELL;
     d.graffiti = b.region == REG_CALLE_LUNA || b.region == REG_FLATS || b.region == REG_FORT_CASTELL;
     // colors: facade tone reproduced on the wall material, trims, accents
-    d.wallRGB = rgbOf(fac.wallColor);
-    MaterialId wm = (MaterialId)Clamp((int)fac.wallLayer, 0, (int)MAT_COUNT - 1);
-    if (wm == MAT_FACADE) wm = MAT_STUCCO;
-    d.wallMat = MM(wm);
-    d.wallTone = pk(d.wallRGB * 1.55f);
-    vec3 frameRGB = rgbOf(fac.frameColor);
-    d.frame = pk(frameRGB);
+    MaterialId wm = MAT_STUCCO;
+    vec3 frameRGB;
+    auto scheme = [&](const FacadeGPU& f) {
+        d.wallRGB = rgbOf(f.wallColor);
+        wm = (MaterialId)Clamp((int)f.wallLayer, 0, (int)MAT_COUNT - 1);
+        if (wm == MAT_FACADE) wm = MAT_STUCCO;
+        d.wallMat = MM(wm);
+        d.wallTone = pk(d.wallRGB * 1.55f);
+        frameRGB = rgbOf(f.frameColor);
+        d.frame = pk(frameRGB);
+        d.dark = pk(d.wallRGB * 0.55f + vec3(0.05f));
+    };
+    scheme(fac0);
     bool brick = wm == MAT_BRICK;
     float tr = d.r.f();
     vec3 trimRGB = tr < 0.55f ? vec3(0.97f, 0.95f, 0.9f) : (tr < 0.8f ? d.wallRGB * 1.35f : d.wallRGB * 0.95f + vec3(0.1f));
@@ -1141,6 +1278,12 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
     bool plinth = d.r.chance(0.7f);
 
     for (const FacadeMass& ms : masses) {
+        // mixed cladding: a mass with its own facade record (podium, base band) uses that grid and colour scheme
+        bool own = ms.facade != 0xffffffffu && ms.facade != b.facade && gBuildings && ms.facade < gBuildings->facades.size();
+        const FacadeGPU& fac = own ? gBuildings->facades[ms.facade] : fac0;
+        d.f = &fac;
+        scheme(fac);
+        if (!own) d.accent = b.style == BS_DECO ? pk(frameRGB) : pk(lerp(d.wallRGB, frameRGB, 0.6f));
         walls.clear();
         for (int i = 0; i < (int)ms.fp.size(); i++) walls.push_back(makeWall(ms.fp, i, fac.bayW, b.front));
         bool bottom = fabsf(ms.z0 - ms.vBase) < 0.6f;
@@ -1340,6 +1483,24 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 wbox(d.k, w, wc - 0.4f, wc + 0.4f, ms.vBase + 0.35f, ms.vBase + 0.75f, 0.f, 0.14f, pk(0.85f, 0.84f, 0.8f), MM(MAT_METAL_PAINTED), WF_BOX);
             }
         }
+    }
+    // yards, rooftop billboards and painted wall ads (once per building, on its first street-level mass)
+    serviceYard(d);
+    for (const FacadeMass& ms : masses) {
+        if (fabsf(ms.z0 - ms.vBase) > 0.6f || ms.kind == FM_HOUSE || ms.kind == FM_DECO_TOWER) continue;
+        const FacadeGPU& fac = (ms.facade != 0xffffffffu && ms.facade != b.facade && gBuildings && ms.facade < gBuildings->facades.size()) ? gBuildings->facades[ms.facade] : fac0;
+        walls.clear();
+        for (int i = 0; i < (int)ms.fp.size(); i++) walls.push_back(makeWall(ms.fp, i, fac.bayW, b.front));
+        int fi = 0;
+        for (int i = 1; i < (int)walls.size(); i++)
+            if (walls[i].facing > walls[fi].facing) fi = i;
+        // the roof the billboard stands on is the top of the building's main mass
+        const FacadeMass* top = &ms;
+        for (const FacadeMass& o : masses)
+            if (o.z1 > top->z1 && o.kind != FM_DECO_TOWER) top = &o;
+        rooftopBillboard(d, *top, walls[fi]);
+        wallAd(d, *top, walls);
+        break;
     }
 }
 

@@ -46,9 +46,9 @@ struct PropRenderer {
                 case World::PROP_PALM: case World::PROP_TREE_OAK: case World::PROP_BUSH: nv = 4; break;
                 case World::PROP_PALM_TALL: case World::PROP_TREE_PINE: case World::PROP_MANGROVE: case World::PROP_CYPRESS: case World::PROP_SAWGRASS: nv = 3; break;
                 case World::PROP_STREETLIGHT: case World::PROP_TRAFFIC_LIGHT: case World::PROP_DUMPSTER: nv = 2; break;
-                // street furniture variants (world/propmesh.cpp): ad art per shelter, box colours, pole with transformer, planter kinds
-                case World::PROP_BUS_STOP: case World::PROP_NEWS_BOX: nv = 4; break;
-                case World::PROP_POWER_POLE: case World::PROP_PLANTER: case World::PROP_BARRIER: case World::PROP_SIGNAL_SPAN: nv = 2; break;
+                // street furniture variants (world/propmesh.cpp): shelter ad art, box colours, pole transformer/lamp, planter kinds
+                case World::PROP_BUS_STOP: case World::PROP_NEWS_BOX: case World::PROP_POWER_POLE: nv = 4; break;
+                case World::PROP_PLANTER: case World::PROP_BARRIER: case World::PROP_SIGNAL_SPAN: nv = 2; break;
                 case World::PROP_STREET_TREE: nv = 3; break;
                 default: nv = 1; break;
             }

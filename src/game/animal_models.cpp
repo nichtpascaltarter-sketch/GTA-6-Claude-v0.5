@@ -3211,7 +3211,8 @@ void animateReptile(const ModelData& m, const ReptileAnim& a, Pose& P) {
             y = strk * (-0.5f + smooth01(s));
             z = 0.12f * R.bodyZ * sinf(kPi * s) * moving;
         }
-        vec3 target = rest + vec3((float)sd * 0.03f * (1.f - lift) * L / 3.4f, y, z);
+        float sprawl = (1.f - lift) * (1.f - moving);   // belly down at rest: feet out to the sides, elbows up
+        vec3 target = rest + vec3((float)sd * (0.03f + 0.16f * sprawl) * L / 3.4f, y + (front ? 0.05f : -0.04f) * sprawl * L / 3.4f, z);
         vec3 d3 = normalize(vec3((float)sd * 0.25f, front ? 0.25f : 0.35f, -1.f));
         vec3 pole = normalize(vec3((float)sd * 1.f, front ? -0.6f : 0.4f, 0.8f));
         legIK3(sk, P, F, b1, b2, b3, m.legEnd[leg], target, d3, pole);

@@ -43,6 +43,35 @@ Dispatch gD;
 
 float searchRadiusFor(int wanted) { return 120.f + wanted * 90.f; }
 
+// The lane position `dist` meters behind p on the road it is travelling (the lane graph walked backwards, straight-on
+// predecessors first): pursuit units come up from behind on the same road, not on a parallel street or a road below.
+bool laneBehind(const AI::LaneGraph& G, vec2 p, vec2 fwd, float dist, int& outLane, float& outU) {
+    float u = 0.f;
+    int cur = G.nearestLane(p, fwd, 20.f, &u);
+    float back = 0.f;
+    for (int guard = 0; guard < 14 && cur >= 0; guard++) {
+        const AI::Lane& L = G.lanes[cur];
+        back += Max(0.f, u - L.u0);
+        if (back >= dist) {
+            outLane = cur;
+            outU = L.u0 + (back - dist);
+            return true;
+        }
+        int prev = -1;
+        if (L.fromNode >= 0 && L.fromNode < (int)G.nodes.size()) {
+            const AI::NodeInfo& N = G.nodes[L.fromNode];
+            for (int ci = N.firstConn; ci < N.firstConn + N.connCount; ci++) {
+                const AI::Connector& cn = G.conns[ci];
+                if (cn.to != cur || cn.from < 0) continue;
+                if (prev < 0 || cn.turn == AI::TK_STRAIGHT) prev = cn.from;
+            }
+        }
+        cur = prev;
+        if (cur >= 0) u = G.lanes[cur].u1;
+    }
+    return false;
+}
+
 bool isCop(const Ped& p) { return p.used && p.faction == FAC_POLICE && p.health > 0.f; }
 
 }  // namespace police_detail
@@ -781,7 +810,8 @@ void GameWorld::updateDispatch(float dt) {
             vec3 c = laneGraph.lanePos(cur, u);
             vec2 t = laneGraph.laneTangent(cur, u);
             vec2 r = AI::rightOf(t);
-            if (!inCameraView(c, 10.f) && length(c.xy() - pp.xy()) > 120.f) {
+            float rbDist = length(c.xy() - pp.xy());
+            if ((!inCameraView(c, 10.f) && rbDist > 120.f) || rbDist > 230.f) {   // (a long straight: set up far down the road)
                 // two cruisers angled across all lanes of this direction (a V with narrow gaps), officers behind them
                 float span = L.count * L.width;
                 float latC = ((L.count - 1) * 0.5f - (float)L.index) * L.width;   // carriageway center, right of this lane
@@ -855,6 +885,10 @@ void GameWorld::updateDispatch(float dt) {
     // wait ahead on the road facing the suspect (interceptors)
     bool fast = pspeed > 12.f && pv >= 0;
     bool fromBehind = fast && (gD.counter % 5u) < 3u;
+    // behind the player on their own road: walk the lane graph backwards (straight-on predecessors first)
+    int behindLane = -1;
+    float behindU = 0.f;
+    if (fromBehind) laneBehind(laneGraph, pp.xy(), fwd, 110.f + hashToFloat(hash32(gD.counter * 31u)) * 60.f, behindLane, behindU);
     for (int attempt = 0; attempt < 8; attempt++) {
         u32 h = hash32(gD.counter * 2246822519u + attempt * 97u);
         float ang = hashToFloat(h) * kTwoPi;
@@ -864,7 +898,8 @@ void GameWorld::updateDispatch(float dt) {
         vec2 probe = around + dir * r;
         float u = 0.f;
         vec2 wantHeading = fast && attempt < 5 ? (fromBehind ? fwd : -fwd) : vec2(0.f);
-        int lane = laneGraph.nearestLane(probe, wantHeading, 50.f, &u);
+        int lane = attempt == 0 && behindLane >= 0 ? behindLane : laneGraph.nearestLane(probe, wantHeading, 50.f, &u);
+        if (attempt == 0 && behindLane >= 0) u = behindU;
         if (lane < 0) continue;
         const AI::Lane& L = laneGraph.lanes[lane];
         if (L.flags & (AI::LF_DIRT | AI::LF_NOTRAFFIC)) continue;
@@ -1022,13 +1057,15 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
         va.repath = 6.f;
         vec2 back = length2(tv.xy()) > 4.f ? -normalize(tv.xy()) : normalize(vp.xy() - tp.xy());
         float u = 0.f;
-        int lane = laneGraph.nearestLane(tp.xy() + back * 140.f, length2(tv.xy()) > 4.f ? normalize(tv.xy()) : vec2(0), 60.f, &u);
+        int lane = -1;
+        if (length2(tv.xy()) > 16.f) laneBehind(laneGraph, tp.xy(), normalize(tv.xy()), 140.f, lane, u);
+        if (lane < 0) lane = laneGraph.nearestLane(tp.xy() + back * 140.f, length2(tv.xy()) > 4.f ? normalize(tv.xy()) : vec2(0), 60.f, &u);
         if (lane >= 0) {
             vec3 c = laneGraph.lanePos(lane, u);
             if (!inCameraView(c, 10.f) && traffic.laneFree(lane, u, 3.f, 5.f)) {
                 vec2 t = laneGraph.laneTangent(lane, u);
                 Vehicles::resetVehicle(v.sim, dvec3(c.x, c.y, c.z + 0.3f), AI::dirYaw(t));
-                v.sim.body.vel = vec3(t * Min(length(tv), 25.f), 0.f);
+                v.sim.body.vel = vec3(t * Min(length(tv) + 2.f, 40.f), 0.f);   // arrives at chase speed
                 traffic.toPhysics(vi, v.sim);
                 d->path = lane;
                 d->u = u;

@@ -1112,6 +1112,8 @@ public:
     int choice = 0;
     float airTime = 0.f;
     int wave = 0;
+    int endPhase = 0;
+    float endT = 0.f;
     const char* title() const override { return "Signal"; }
     const char* brief() const override {
         return "Everything the crew took is on Kit's desk at Pulse FM. Broadcast it to the whole city, or use it to make Holt pay. Either way, "
@@ -1226,6 +1228,9 @@ public:
                                  P.solarisPlaza + vec3(0, 0, 120.f), 7.f, 55.f));
         shots.push_back(shotMove(by + vec3(-40.f, -30.f, 12.f), by, by + vec3(-25.f, -20.f, 6.f), by + vec3(0, 0, 1.2f), 8.f, 45.f));
         establish(g, shots, P.riverLaunch, yawTo(P.riverLaunch.xy(), P.riverMouth.xy()), 60.f, 20.f, 8.f, 55.f);
+        // the last shot drifts up over the river mouth for as long as the voices and the title card need
+        shots.push_back(shotMove(P.riverMouth + vec3(-90.f, -70.f, 9.f), P.riverMouth + vec3(0.f, 0.f, 4.f), P.riverMouth + vec3(-75.f, -55.f, 34.f),
+                                 P.riverMouth + vec3(60.f, 30.f, 14.f), 90.f, 55.f));
         g.mCutscene(shots, true);
         if (choice == 1) {
             narrator(g, "Pulse FM News", "Breaking news. Porto Sol police captain Reyna Holt was arrested this morning after a Pulse FM broadcast aired "
@@ -1244,6 +1249,56 @@ public:
             sayP(g, 1, -1, "[calm]We won, Mari. Mostly. Keep the copies somewhere safe.");
             sayP(g, 0, -1, "[sad:0.4]Somewhere safe. In this town. That'll be the day.");
         }
+    }
+
+    // The ending: fade to black, the epilogue comes up out of it, the title card over the last shot, a fade out, and the
+    // world fades back in for free roam.
+    MissionStatus ending(GameWorld& g, float dt, const char* afterword) {
+        endT += dt;
+        switch (endPhase) {
+            case 0:
+                if (g.mTalking()) break;
+                g.fadeOut(1.1f);
+                endPhase = 1;
+                endT = 0.f;
+                break;
+            case 1:
+                if (g.fadedOut() || endT > 2.5f) {
+                    epilogue(g);
+                    g.fadeIn(0.8f);
+                    endPhase = 2;
+                    endT = 0.f;
+                }
+                break;
+            case 2:
+                if (!g.mTalking() && endT > 2.f) {
+                    gMissions.cardTitle = "NEON TIDE";
+                    gMissions.cardSub = "The End";
+                    gMissions.cardT = 0.f;
+                    gMissions.cardDelay = 0.4f;
+                    gMissions.cardCentered = true;
+                    endPhase = 3;
+                    endT = 0.f;
+                }
+                break;
+            case 3:
+                if (endT > 6.4f || gMissions.cardT < 0.f) {
+                    g.fadeOut(1.2f);
+                    endPhase = 4;
+                    endT = 0.f;
+                }
+                break;
+            case 4:
+                if (g.fadedOut() || endT > 2.5f) {
+                    gMissions.shots.clear();   // the epilogue camera ends under black
+                    gMissions.shotIndex = -1;
+                    g.fadeIn(0.7f);
+                    g.storyBriefText = afterword;
+                    return MS_PASSED;
+                }
+                break;
+        }
+        return MS_RUNNING;
     }
 
     MissionStatus update(GameWorld& g, float dt) override {
@@ -1306,19 +1361,9 @@ public:
                 break;
             }
             case 4:
-                if (!g.mTalking()) {
-                    epilogue(g);
-                    next();
-                }
-                break;
-            case 5:
-                if (!g.mInCutscene() && !g.mTalking()) {
-                    g.bigMessage("NEON TIDE", "The End", 0xffffcc55u);
-                    g.storyBriefText = "Mari broadcast everything on Pulse FM. Holt is in custody, Sandoval faces trial, and the Calle Luna deeds "
-                                       "are back with their families. Porto Sol is yours to explore.";
-                    return MS_PASSED;
-                }
-                break;
+                return ending(g, dt,
+                              "Mari broadcast everything on Pulse FM. Holt is in custody, Sandoval faces trial, and the Calle Luna deeds are back with "
+                              "their families. Porto Sol is yours to explore.");
             case 11:
                 updateBuddy(g);
                 if (arrived(g)) {
@@ -1363,19 +1408,9 @@ public:
                 }
                 break;
             case 14:
-                if (!g.mTalking()) {
-                    epilogue(g);
-                    next();
-                }
-                break;
-            case 15:
-                if (!g.mInCutscene() && !g.mTalking()) {
-                    g.bigMessage("NEON TIDE", "The End", 0xffffcc55u);
-                    g.storyBriefText = "Mari traded the evidence for the deeds, the boatyard and two million dollars. Holt kept her badge, "
-                                       "but not her grip on Calle Luna. Porto Sol is yours to explore.";
-                    return MS_PASSED;
-                }
-                break;
+                return ending(g, dt,
+                              "Mari traded the evidence for the deeds, the boatyard and two million dollars. Holt kept her badge, but not her grip on "
+                              "Calle Luna. Porto Sol is yours to explore.");
         }
         return MS_RUNNING;
     }

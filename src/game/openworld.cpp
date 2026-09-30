@@ -92,9 +92,9 @@ void openWorldOnMissionEnd(GameWorld& g, int def, bool passed) {
 bool openWorldBusy() { return mu::gMenu.open; }
 
 void drawMissionOverlay(GameWorld& g, float dt) {
-    (void)dt;
     gMissions.overlayFrames++;
     float W = (float)UI::screenWidth(), H = (float)UI::screenHeight();
+    mu::titleCardDraw(W, H, dt);
     mu::menuDraw(g, W, H);
 }
 

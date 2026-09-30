@@ -480,7 +480,7 @@ const char* kTips[] = {
     "Police lose track of you faster outside the ~r~search area~s~. Break line of sight and lie low.",
     "Set a waypoint on the ~p~map~s~ and follow the GPS route on the radar.",
     "Armor absorbs most of the damage from gunfire. Pick it up at ~b~gun stores~s~.",
-    "Radio stations keep playing while you are on foot. Change them with ~i:R|LEFT~.",
+    "Change the radio station in any vehicle with ~a:radio_next~ or the mouse wheel.",
     "The Overseas Highway links Porto Sol with the Coral Keys and Key Solano.",
     "Airboats are the fastest way across The Sawgrass. Watch out for the gators.",
     "Save your progress at any ~g~safehouse~s~ bed.",
@@ -1088,6 +1088,8 @@ enum SetCategory { SC_DISPLAY = 0, SC_AUDIO, SC_CAMERA, SC_CONTROLS, SC_BINDINGS
 const char* kCatNames[SC_COUNT] = {"Display & Graphics", "Audio", "Camera", "Controls", "Key Bindings", "Accessibility", "Gameplay"};
 const int kCatIcons[SC_COUNT] = {ICO_MONITOR, ICO_SPEAKER, ICO_CAMERA, ICO_GAMEPAD, ICO_KEYBOARD, ICO_ACCESS, BLIP_VIGILANTE};
 
+const char* const kFmtDegrees = "%d deg";   // slider values drawn with a degree ring
+
 const char* const kPadLayoutDesc[3] = {
     "Standard: A sprint, X jump, B reload, Y enter vehicle, LB weapon wheel, RB cover, LT aim, RT shoot. Left stick moves, right stick looks.",
     "Alternate: A jump, X sprint; everything else as Standard.",
@@ -1113,6 +1115,11 @@ void buildItems(GameSettings& gs, int cat, std::vector<SetItem>& items) {
     auto ioptions = [&](const char* l, const char* d, int* i, const std::vector<std::string>& o, const std::vector<int>& v) {
         SetItem it;
         it.label = l; it.desc = d; it.type = ST_OPTIONS; it.i = i; it.opts = o; it.ivals = v;
+        items.push_back(it);
+    };
+    auto boptions = [&](const char* l, const char* d, bool* b, const char* offName, const char* onName) {
+        SetItem it;
+        it.label = l; it.desc = d; it.type = ST_OPTIONS; it.b = b; it.opts = {offName, onName};
         items.push_back(it);
     };
     auto foptions = [&](const char* l, const char* d, float* f, const std::vector<std::string>& o, const std::vector<float>& v) {
@@ -1144,7 +1151,7 @@ void buildItems(GameSettings& gs, int cat, std::vector<SetItem>& items) {
         res.push_back("Native (Desktop)");
         for (const auto& m : Menus::displayModes()) res.push_back(StrFormat("%d x %d", m.width, m.height));
         options("Resolution", "Output resolution. Native matches the desktop and gives the sharpest image.", &gs.resolutionIndex, res, -1);
-        toggle("Window Mode", "Borderless fullscreen or a regular desktop window.", &gs.fullscreen, "Fullscreen", "Windowed");
+        boptions("Window Mode", "Borderless fullscreen or a regular desktop window.", &gs.fullscreen, "Windowed", "Fullscreen");
         toggle("V-Sync", "Locks the frame rate to the display refresh rate to prevent screen tearing.", &gs.vsync);
         ioptions("Frame Rate Limit", "Caps the frame rate to save power and keep frame pacing even.", &gs.frameRateCap,
                  {"30 FPS", "60 FPS", "120 FPS", "Unlimited"}, {30, 60, 120, 0});
@@ -1165,13 +1172,13 @@ void buildItems(GameSettings& gs, int cat, std::vector<SetItem>& items) {
         slider("Dialogue", "Voices of characters and pedestrians.", &gs.dialogueVolume, 0.f, 1.f, 0.05f, "%d%%", 100.f);
         break;
     case SC_CAMERA:
-        toggle("On-Foot View", "Camera used on foot when the game starts. The camera button still switches views in play.",
-               &gs.firstPersonOnFoot, "First Person", "Third Person");
-        toggle("Vehicle View", "Camera used when you get into a vehicle. The camera button still cycles views while driving.",
-               &gs.firstPersonVehicle, "First Person", "Third Person");
-        slider("Field of View", "Vertical field of view of the third-person camera.", &gs.fov, 50.f, 90.f, 1.f, "%d DEG", 1.f);
+        boptions("On-Foot View", "Camera used on foot when the game starts. The camera button still switches views in play.",
+                 &gs.firstPersonOnFoot, "Third Person", "First Person");
+        boptions("Vehicle View", "Camera used when you get into a vehicle. The camera button still cycles views while driving.",
+                 &gs.firstPersonVehicle, "Third Person", "First Person");
+        slider("Field of View", "Vertical field of view of the third-person camera.", &gs.fov, 50.f, 90.f, 1.f, kFmtDegrees, 1.f);
         slider("First Person Field of View", "Vertical field of view in first person, on foot and in vehicles.", &gs.fovFirstPerson, 55.f, 100.f,
-               1.f, "%d DEG", 1.f);
+               1.f, kFmtDegrees, 1.f);
         slider("Camera Shake", "Strength of camera shake from impacts, explosions, gunfire and speed.", &gs.cameraShake, 0.f, 1.f, 0.05f, "%d%%",
                100.f);
         toggle("Vehicle Camera Auto-Centre", "The vehicle camera swings back behind the car after you stop looking around.",
@@ -1185,9 +1192,9 @@ void buildItems(GameSettings& gs, int cat, std::vector<SetItem>& items) {
         slider("Controller Sensitivity (Horizontal)", "Camera turn speed with the look stick.", &gs.padSensitivity, 0.1f, 3.f, 0.05f, "%.2fx", 1.f);
         slider("Controller Sensitivity (Vertical)", "Camera pitch speed with the look stick.", &gs.padSensitivityY, 0.1f, 3.f, 0.05f, "%.2fx", 1.f);
         toggle("Invert Look", "Inverts the vertical camera axis.", &gs.invertY);
-        toggle("Aim", "Hold the aim button, or press once to aim and again to stop.", &gs.aimToggle, "Toggle", "Hold");
-        toggle("Sprint", "Hold the sprint button, or press once to keep running.", &gs.sprintToggle, "Toggle", "Hold");
-        toggle("Crouch", "Hold the crouch button, or press once to stay crouched.", &gs.crouchToggle, "Toggle", "Hold");
+        boptions("Aim", "Hold the aim button, or press once to aim and again to stop.", &gs.aimToggle, "Hold", "Toggle");
+        boptions("Sprint", "Hold the sprint button, or press once to keep running.", &gs.sprintToggle, "Hold", "Toggle");
+        boptions("Crouch", "Hold the crouch button, or press once to stay crouched.", &gs.crouchToggle, "Hold", "Toggle");
         options("Controller Layout", kPadLayoutDesc[Clamp(gs.padLayout, 0, 2)], &gs.padLayout, {"Standard", "Alternate", "Southpaw"}, 0);
         toggle("Vibration", "Controller rumble for impacts, gunfire and engines.", &gs.vibration);
         toggle("Aim Assist", "Slows the reticle over targets when aiming with a controller.", &gs.aimAssist);
@@ -1196,7 +1203,7 @@ void buildItems(GameSettings& gs, int cat, std::vector<SetItem>& items) {
         header("On Foot");
         for (int k = IA_MOVE_FORWARD; k <= IA_COVER; k++) bind(k);
         header("On Foot and in Vehicles");
-        for (int k = IA_ENTER_VEHICLE; k <= IA_WEAPON_WHEEL; k++) bind(k);
+        for (int k = IA_ENTER_VEHICLE; k <= IA_INTERACT; k++) bind(k);
         header("Vehicles");
         for (int k = IA_ACCELERATE; k <= IA_RADIO_PREV; k++) bind(k);
         header("General");
@@ -1217,7 +1224,7 @@ void buildItems(GameSettings& gs, int cat, std::vector<SetItem>& items) {
     default:
         toggle("Show Radar", "Shows the radar and the health and armor bars.", &gs.showRadar);
         toggle("Show HUD", "Shows the rest of the heads-up display.", &gs.showHud);
-        toggle("Units", "Speed and distance units.", &gs.metricUnits, "Metric", "Imperial");
+        boptions("Units", "Speed and distance units.", &gs.metricUnits, "Imperial", "Metric");
         break;
     }
     action("Restore Defaults", "Resets every option on this page to its default value.");
@@ -1258,6 +1265,7 @@ void restoreDefaults(GameSettings& gs, int cat) {
 
 // Current option index of an ST_OPTIONS item (explicit value lists pick the nearest value)
 int optionIndex(const SetItem& it) {
+    if (it.b) return *it.b ? 1 : 0;
     int n = (int)it.opts.size();
     if (!it.ivals.empty()) {
         for (int k = 0; k < (int)it.ivals.size(); k++)
@@ -1305,7 +1313,8 @@ bool changeItem(SetItem& it, int dir, GameSettings& gs, int cat) {
         int n = (int)it.opts.size();
         if (n == 0) return false;
         int idx = ((optionIndex(it) + (dir == 0 ? 1 : dir)) % n + n) % n;
-        if (!it.ivals.empty()) *it.i = it.ivals[idx];
+        if (it.b) *it.b = idx == 1;
+        else if (!it.ivals.empty()) *it.i = it.ivals[idx];
         else if (!it.fvals.empty()) *it.f = it.fvals[idx];
         else *it.i = idx + it.optBase;
         return true;
@@ -1354,6 +1363,70 @@ int capturedKey(const InputState& in, bool* cancel, bool* clear) {
         break;
     }
     return found;
+}
+
+// Live preview of the selected accessibility option (drawn under the category list): subtitles, the reticle and the
+// colour-blind correction, all rendered by the same code as the HUD
+void drawSettingsPreview(const GameSettings& gs, const SetItem& it, float x, float y, float w, float h, float sc, float a) {
+    enum { PV_NONE, PV_SUBTITLE, PV_RETICLE, PV_COLORS } kind = PV_NONE;
+    if (it.b == &gs.subtitles || it.i == &gs.subtitleSize || it.f == &gs.subtitleBackground || it.b == &gs.speakerColors) kind = PV_SUBTITLE;
+    else if (it.b == &gs.highContrastReticle) kind = PV_RETICLE;
+    else if (it.i == &gs.colorblindMode) kind = PV_COLORS;
+    if (kind == PV_NONE || h < 150.f * sc) return;
+    TextStyle cap = style(FONT_HEADING, 16.f * sc, withAlpha(kTextDim, a));
+    cap.tracking = 0.2f;
+    text(x + 4.f * sc, y, "PREVIEW", cap);
+    float by = y + 28.f * sc, bh = h - 28.f * sc;
+    // a dusk street scene behind the sample
+    roundRectGradient(x, by, w, bh, 10.f * sc, withAlpha(C(0.34f, 0.16f, 0.36f), a), withAlpha(C(0.05f, 0.05f, 0.12f), a), 1.f * sc,
+                      withAlpha(kWhite, 0.12f * a));
+    ClipState pc = getClip();
+    setClipRoundRect(x, by, w, bh, 10.f * sc);
+    const float kTowers[9][2] = {{0.02f, 0.46f}, {0.12f, 0.30f}, {0.2f, 0.58f}, {0.33f, 0.40f}, {0.45f, 0.66f},
+                                 {0.58f, 0.36f}, {0.7f, 0.52f}, {0.82f, 0.28f}, {0.9f, 0.62f}};
+    for (const auto& tw : kTowers) {
+        float tx = x + tw[0] * w, th = tw[1] * bh * 0.8f;
+        rect(tx, by + bh * 0.72f - th, w * 0.1f, th, withAlpha(C(0.08f, 0.07f, 0.16f), 0.9f * a));
+        for (int wy = 0; wy < 5; wy++)
+            if (((int)(tw[0] * 97.f) + wy) % 3 != 0)
+                rect(tx + w * 0.03f, by + bh * 0.72f - th + (8.f + wy * 14.f) * sc, w * 0.04f, 3.f * sc, withAlpha(C(1.f, 0.78f, 0.45f), 0.35f * a));
+    }
+    gradientRect(x, by + bh * 0.72f, w, bh * 0.28f, withAlpha(C(0.10f, 0.08f, 0.16f), a), withAlpha(C(0.03f, 0.03f, 0.07f), a));
+    float cx = x + w * 0.5f;
+    if (kind == PV_SUBTITLE) {
+        if (gs.subtitles)
+            drawSubtitleBlock(cx, by + bh - 16.f * sc, w - 36.f * sc, sc, "Marisol", 0xffca7affu, "Keep the engine running. Two minutes, tops.", false, a);
+        else {
+            TextStyle off = style(FONT_HEADING, 18.f * sc, withAlpha(kTextDim, a), ALIGN_CENTER);
+            text(cx, by + bh * 0.5f - 9.f * sc, "SUBTITLES OFF", off);
+        }
+    } else if (kind == PV_RETICLE) {
+        vec2 c(cx, by + bh * 0.48f);
+        drawReticleShape(c - vec2(w * 0.22f, 0.f), sc * 1.4f, 5.f, 0, a);
+        drawReticleShape(c + vec2(w * 0.22f, 0.f), sc * 1.4f, 5.f, 1, a);
+        TextStyle lab = style(FONT_HEADING, 15.f * sc, withAlpha(kTextDim, a), ALIGN_CENTER);
+        lab.tracking = 0.1f;
+        text(c.x - w * 0.22f, c.y + 60.f * sc, "AIMING", lab);
+        text(c.x + w * 0.22f, c.y + 60.f * sc, "ON TARGET", lab);
+    } else {
+        const u32 kSw[6] = {kRed, kOrange, kYellow, kGreen, kCyan, kBlue};
+        float sw = (w - 40.f * sc) / 6.f;
+        for (int k = 0; k < 6; k++) roundRect(x + 20.f * sc + k * sw + 3.f * sc, by + 20.f * sc, sw - 6.f * sc, 34.f * sc, 5.f * sc, withAlpha(kSw[k], a));
+        const BlipIcon kB[4] = {BLIP_ENEMY, BLIP_FRIEND, BLIP_OBJECTIVE, BLIP_MISSION};
+        const char* kL[4] = {"ENEMY", "ALLY", "GOAL", "MISSION"};
+        float bw4 = (w - 40.f * sc) / 4.f;
+        TextStyle lab = style(FONT_HEADING, 14.f * sc, withAlpha(kText, a), ALIGN_CENTER);
+        lab.tracking = 0.08f;
+        for (int k = 0; k < 4; k++) {
+            float bx = x + 20.f * sc + bw4 * (k + 0.5f), bcy = by + 96.f * sc;
+            drawIcon(kB[k], bx, bcy, 34.f * sc, withAlpha(blipDefaultColor(kB[k]), a), 1.5f * sc, withAlpha(C(0.f, 0.f, 0.f), 0.8f * a));
+            text(bx, bcy + 24.f * sc, kL[k], lab);
+        }
+        float barY = by + bh - 34.f * sc, barW = (w - 52.f * sc) / 2.f;
+        roundRect(x + 20.f * sc, barY, barW, 8.f * sc, 4.f * sc, withAlpha(kHealth, a));
+        roundRect(x + 32.f * sc + barW, barY, barW, 8.f * sc, 4.f * sc, withAlpha(kHealthLow, a));
+    }
+    setClip(pc);
 }
 
 bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y, float w, float h, float a, float dt, bool& exit) {
@@ -1472,10 +1545,14 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
     if (I.setItemsFocus && bindings) roundRect(ix + 14.f * sc, I.setRowHl, iw - 28.f * sc, ih, 6.f * sc, C(1.f, 1.f, 1.f, 0.07f * a), 1.f * sc,
                                                withAlpha(kPink, 0.55f * a));
     std::string conflictNote;
+    const float aPage = a;
     for (int k = 0; k < count; k++) {
         SetItem& it = items[k];
         float ry = listY + k * rowStep - off;
         if (ry + ih < listY - 2.f * sc || ry > listY + listH) continue;
+        // rows sliding out of the scrolled list fade instead of being cut hard
+        float cut = Max(listY - ry, ry + ih - (listY + listH));
+        a = aPage * (cut > 0.f ? Saturate(1.f - cut / (ih * 0.7f)) : 1.f);
         bool sel = I.setItemsFocus && k == I.setCursor;
         float cy = ry + ih * 0.5f;
         if (it.type == ST_HEADER) {
@@ -1581,7 +1658,13 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
             circle(bx + bw * f, cy, 10.f * sc, withAlpha(sel ? kWhite : kText, a));
             circle(bx + bw * f, cy, 10.f * sc, C(0.f, 0.f, 0.f, 0.25f * a), 1.5f * sc);
             vs.align = ALIGN_RIGHT;
-            text(valX + valW, cy - vs.size * 0.56f, val.c_str(), vs);
+            if (it.fmt == kFmtDegrees) {
+                float r = vs.size * 0.15f;
+                float rx = valX + valW - r - 1.f * sc;
+                std::string num = StrFormat("%d", (int)lrintf(*it.f * it.fmtScale));
+                text(rx - r - 2.5f * sc, cy - vs.size * 0.56f, num.c_str(), vs);
+                circle(rx, cy - vs.size * 0.2f, r, withAlpha(kWhite, a), Max(1.5f * sc, vs.size * 0.09f));
+            } else text(valX + valW, cy - vs.size * 0.56f, val.c_str(), vs);
             if (dialogFree && !capturing && n.click && inRect(n.mouse, bx - 12.f * sc, ry, bw + 24.f * sc, ih)) I.dragSlider = k;
             if (I.dragSlider == k && n.mouseDown) {
                 float nf = Saturate((n.mouse.x - bx) / bw);
@@ -1608,13 +1691,14 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
             if (n.confirm && it.type != ST_SLIDER) changed |= changeItem(it, 0, gs, I.setCat);
         }
     }
+    a = aPage;
     setClip(pc);
-    // scroll bar
+    // scroll bar (in the panel margin, right of the rows)
     if (maxScroll > 0.f) {
         float trackH = listH, thumbH = Max(40.f * sc, trackH * listH / (listH + maxScroll));
-        float ty = listY + (trackH - thumbH) * (off / maxScroll);
-        roundRect(ix + iw - 16.f * sc, listY, 4.f * sc, trackH, 2.f * sc, withAlpha(kWhite, 0.08f * a));
-        roundRect(ix + iw - 16.f * sc, ty, 4.f * sc, thumbH, 2.f * sc, withAlpha(kPink, 0.9f * a));
+        float ty = listY + (trackH - thumbH) * Saturate(off / maxScroll);
+        roundRect(ix + iw - 9.f * sc, listY, 4.f * sc, trackH, 2.f * sc, withAlpha(kWhite, 0.08f * a));
+        roundRect(ix + iw - 9.f * sc, ty, 4.f * sc, thumbH, 2.f * sc, withAlpha(kPink, 0.9f * a));
     }
     // key capture (after drawing so the waiting cell shows this frame)
     if (capturing && dialogFree) {
@@ -1655,6 +1739,8 @@ bool drawSettings(MenuState& st, const Layout& L, const Nav& n, float x, float y
             desc = conflictNote + " Rebind one of them to resolve the conflict.";
         }
         textWrapped(ix + 30.f * sc, y + h - 62.f * sc, iw - 60.f * sc, desc.c_str(), ds);
+        float pvY = catY0 + SC_COUNT * (rowH + 6.f * sc) + 16.f * sc;
+        drawSettingsPreview(gs, items[I.setCursor], x + 14.f * sc, pvY, cw - 28.f * sc, y + h - 14.f * sc - pvY, sc, a);
     }
     return changed;
 }
@@ -2089,6 +2175,8 @@ const std::vector<DisplayMode>& displayModes() {
     if (modes.empty()) modes = {{2560, 1440}, {1920, 1080}, {1600, 900}, {1280, 720}};
     return modes;
 }
+
+void reset() { menus_ui::I = menus_ui::Internal(); }
 
 MenuAction update(MenuState& st, const InputState& in, float dt) {
     using namespace menus_ui;

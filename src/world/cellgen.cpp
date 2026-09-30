@@ -96,8 +96,10 @@ void generateCell(int cx, int cy, bool detail, CellGeometry& out) {
     vec2 org2 = cellOrigin(cx, cy);
     vec3 org(org2, 0);
     RoadCellOutput roads;
+    roads.detail = detail;
     buildRoadCell(*gRoads, map, cx, cy, roads);
     out.opaque.append(roads.road);
+    if (detail) out.opaque.append(roads.street);
     // deck parapets, median barriers and guardrails collide at every LOD (vehicles far from the camera stay on the decks)
     out.collision.insert(out.collision.end(), roads.collision.begin(), roads.collision.end());
     if (detail) {

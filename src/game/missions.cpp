@@ -72,52 +72,50 @@ bool camSees(const GameWorld& g, dvec3 cam, dvec3 subject) {
     vec3 d = rel(cam, subject);
     float len = length(d);
     if (len < 0.8f) return true;
+    // parked cars block a shot too, except the one the shot is of (the subject point sits inside it)
+    int own = -1;
+    float best = 1e9f;
+    for (int i = 0; i < (int)g.vehicles.size(); i++) {
+        const Vehicle& v = g.vehicles[i];
+        if (!v.used) continue;
+        float dv = length(rel(v.sim.body.pos, subject));
+        if (dv < length(g.vassets[v.model].spec.boxHalf) + 0.3f && dv < best) {
+            best = dv;
+            own = i;
+        }
+    }
     WorldHit h;
-    return !g.raycast(subject, d / len, len - 0.2f, h, -1, -1, false, false);
+    return !g.raycast(subject, d / len, len - 0.2f, h, -1, own, false, true);
 }
 
-void mirrorAround(dvec3& cam, dvec3 target) {
+// the camera swung around its target by `ang` radians (horizontal), then pulled in toward it by factor k
+dvec3 swingCam(dvec3 cam, dvec3 target, float ang, float k) {
     vec3 d = rel(cam, target);
-    cam = target + dvec3(vec3(-d.x, -d.y, d.z));
+    float c = cosf(ang), s = sinf(ang);
+    vec3 r(d.x * c - d.y * s, d.x * s + d.y * c, d.z);
+    return target + dvec3(r * k);
 }
 
-// the smallest change that gives the shot a clear view: pull the camera in along its own line (to 60%), the mirror
-// angle on the other side of the subject, the mirror pulled in, then any pull-in down to 25%. A shot of a scene inside
-// an interior (or one nothing fixes) is left alone.
+// The smallest change that gives the shot a clear view: pulled in along its own line (to 60%), swung 25 or 50 degrees
+// either way around its subject, the reverse angle, then any pull-in down to 25%. A shot of a scene inside an interior
+// (or one nothing fixes) is left alone.
 void fixShot(const GameWorld& g, CutsceneShot& s) {
     if (insideBuilding(g, s.target.toVec3(), -1.f) || insideBuilding(g, s.target2.toVec3(), -1.f)) return;   // a doorway is outside
     if (camSees(g, s.pos, s.target) && camSees(g, s.pos2, s.target2)) return;
-    auto tryPull = [&](CutsceneShot& c, float kMin) {
-        vec3 d1 = rel(c.pos, c.target), d2 = rel(c.pos2, c.target2);
-        for (float k = 0.95f; k >= kMin - 1e-3f; k -= 0.05f) {
-            dvec3 p1 = c.target + dvec3(d1 * k), p2 = c.target2 + dvec3(d2 * k);
-            if (camSees(g, p1, c.target) && camSees(g, p2, c.target2)) {
-                c.pos = p1;
-                c.pos2 = p2;
-                return true;
+    struct Try {
+        float ang, kMin;
+    };
+    const float d25 = 25.f * kDegToRad, d50 = 50.f * kDegToRad;
+    const Try tries[] = {{0.f, 0.6f}, {d25, 0.7f}, {-d25, 0.7f}, {d50, 0.7f}, {-d50, 0.7f}, {kPi, 0.4f}, {0.f, 0.25f}};
+    for (const Try& t : tries)
+        for (float k = 0.95f + (t.ang != 0.f ? 0.05f : 0.f); k >= t.kMin - 1e-3f; k -= 0.05f) {
+            dvec3 p1 = swingCam(s.pos, s.target, t.ang, k), p2 = swingCam(s.pos2, s.target2, t.ang, k);
+            if (camSees(g, p1, s.target) && camSees(g, p2, s.target2)) {
+                s.pos = p1;
+                s.pos2 = p2;
+                return;
             }
         }
-        return false;
-    };
-    CutsceneShot c = s;
-    if (tryPull(c, 0.6f)) {
-        s = c;
-        return;
-    }
-    c = s;
-    mirrorAround(c.pos, c.target);
-    mirrorAround(c.pos2, c.target2);
-    if (camSees(g, c.pos, c.target) && camSees(g, c.pos2, c.target2)) {
-        s = c;
-        return;
-    }
-    CutsceneShot m = c;
-    if (tryPull(m, 0.4f)) {
-        s = m;
-        return;
-    }
-    c = s;
-    if (tryPull(c, 0.25f)) s = c;
 }
 
 // leave a scripted camera: ease from the last shot back into the gameplay camera, or cut when that shot was far from
@@ -784,9 +782,18 @@ void GameWorld::startMission(int i) {
 #endif
     M.active->start(*this);
     // a story or stranger mission that opens on a cutscene comes up out of a short fade instead of a hard cut
-    if (mission_detail::cinematicStart(M.defs[i]) && M.shotIndex >= 0 && !M.test.active) {
-        fadeAlpha = 1.f;
-        fadeIn(1.3f);   // alpha per second: about 0.8 s
+    if (mission_detail::cinematicStart(M.defs[i]) && M.shotIndex >= 0) {
+        if (!M.test.active) {
+            fadeAlpha = 1.f;
+            fadeIn(1.3f);   // alpha per second: about 0.8 s
+        }
+        // the title comes up over the opening shot (the HUD message would stay hidden until the cutscene ends)
+        M.cardTitle = M.active->title();
+        M.cardSub = M.defs[i].contact;
+        M.cardT = 0.f;
+        M.cardDelay = 0.9f;
+        M.cardCentered = false;
+        hudBigTime = -1.f;
     }
 }
 

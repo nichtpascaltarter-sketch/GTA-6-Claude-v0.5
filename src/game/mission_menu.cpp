@@ -160,6 +160,54 @@ void menuFallback(GameWorld& g) {
     g.help(s, 0.2f);
 }
 
+// Title card over a cutscene: the contact above the mission title at the lower left (an opening), or a centered card
+// with the line below it (the ending). Fades in after a short delay, holds, fades out.
+void titleCardDraw(float W, float H, float dt) {
+    MissionManager& M = gMissions;
+    if (M.cardT < 0.f) return;
+    M.cardT += dt;
+    const float in = 0.7f, hold = M.cardCentered ? 4.5f : 3.4f, out = 0.9f;
+    float t = M.cardT - M.cardDelay;
+    if (t > in + hold + out) {
+        M.cardT = -1.f;
+        return;
+    }
+    if (t <= 0.f) return;
+    float a = t < in ? t / in : (t < in + hold ? 1.f : 1.f - (t - in - hold) / out);
+    a = Saturate(a);
+    a = a * a * (3.f - 2.f * a);
+    float u = H / 1080.f;
+    UI::TextStyle ts;
+    ts.font = UI::FONT_TITLE;
+    ts.size = (M.cardCentered ? 120.f : 78.f) * u;
+    ts.color = UI::rgba(1.f, 1.f, 1.f, a);
+    ts.colorBottom = UI::rgba(1.f, 0.8f, 0.6f, a);
+    ts.shadow = 3.f * u;
+    ts.shadowSoft = 0.6f;
+    ts.glow = 20.f * u;
+    ts.glowColor = UI::rgba(1.f, 0.3f, 0.6f, 0.35f * a);
+    ts.tracking = 0.02f;
+    UI::TextStyle ss;
+    ss.font = UI::FONT_HEADING;
+    ss.size = 26.f * u;
+    ss.color = UI::rgba(0.35f, 0.95f, 1.f, 0.95f * a);
+    ss.tracking = 0.3f;
+    ss.shadow = 2.f * u;
+    std::string sub = M.cardSub;
+    for (char& c : sub)
+        if (c >= 'a' && c <= 'z') c = (char)(c - 'a' + 'A');
+    float slide = (1.f - a) * 36.f * u;
+    if (M.cardCentered) {
+        ts.align = ss.align = UI::ALIGN_CENTER;
+        UI::text(W * 0.5f, H * 0.38f - slide * 0.5f, M.cardTitle.c_str(), ts);
+        UI::text(W * 0.5f, H * 0.38f + ts.size * 1.15f, sub.c_str(), ss);
+    } else {
+        float x = 110.f * u - slide, y = H * 0.64f;
+        UI::text(x, y, sub.c_str(), ss);
+        UI::text(x, y + ss.size * 1.3f, M.cardTitle.c_str(), ts);
+    }
+}
+
 void menuDraw(GameWorld& g, float W, float H) {
     (void)g;
     if (!gMenu.open) return;

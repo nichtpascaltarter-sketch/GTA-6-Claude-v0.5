@@ -404,7 +404,11 @@ bool roamUpdate(GameWorld& g, float dt, MissionTest& T) {
                 R.t = 0.f;
             } else if (R.phase == 1) {
                 if (!waitMenu(MO_SHOP_GUNS, s.name)) break;
-                int pick = roamPick([](const MenuItem& it) { return it.id < 100; });
+                // a gun that takes components (the customization pages are tested next), else anything for sale
+                int pick = roamPick([](const MenuItem& it) {
+                    return it.id >= 0 && it.id < WPN_COUNT && weaponInfo((WeaponType)it.id).clipSize > 0 && weaponCompsAvailable((WeaponType)it.id);
+                });
+                if (pick < 0) pick = roamPick([](const MenuItem& it) { return it.id >= 0 && it.id < 100; });
                 roamCheck(pick >= 0, StrFormat("%s lists %d items", s.name, (int)gMenu.items.size()));
                 if (pick < 0) {
                     gMenuInject = -2;
@@ -519,11 +523,15 @@ bool roamUpdate(GameWorld& g, float dt, MissionTest& T) {
             } else if (R.phase == 2 && R.t > 0.6f) {
                 roamCheck(outfitOwned(g, who, R.value0) && currentOutfit(g, who) == R.value0 && g.pinfo.money < R.money0,
                           StrFormat("bought and wearing '%s'", kOutfits[who][R.value0].name));
+                roamCheck(gShops.mirror && g.rig.scriptActive && gOutfitPreview >= 0, "mirror camera on, highlighted outfit worn on trial");
                 gMenuInject = -2;
                 R.phase = 3;
                 R.t = 0.f;
             } else if (R.phase == 3 && R.t > 1.f) {
-                roamCheck(!gMenu.open && g.playerPed() != nullptr && g.playerPed()->health > 0.f, "outfit applied, store closed");
+                Ped* pp = g.playerPed();
+                roamCheck(!gMenu.open && pp != nullptr && pp->health > 0.f && pp->charIndex == outfitChar(g, who, R.value0) && !gShops.mirror &&
+                              !g.rig.scriptActive,
+                          "outfit applied, store closed, camera back");
                 roamNext();
             }
             break;
@@ -941,7 +949,7 @@ bool roamUpdate(GameWorld& g, float dt, MissionTest& T) {
                 vec3 c = pick->pos + vec3(0.f, 0.f, grounded ? si.height * 0.5f * pick->scale : 0.f);
                 vec2 away = pp.xy() - c.xy();
                 away = ::length(away) > 0.5f ? normalize(away) : vec2(0.f, -1.f);
-                vec3 cam = c + vec3(away * 5.f, 1.2f);
+                vec3 cam = c + vec3(away * (si.length < 0.5f ? 2.5f : 5.f), si.length < 0.5f ? 0.6f : 1.2f);
                 vec3 d = normalize(c - cam);
                 UI::PhotoMode& ph = g.phone.photo;
                 ph.camPos = cam;
@@ -958,11 +966,12 @@ bool roamUpdate(GameWorld& g, float dt, MissionTest& T) {
             } else if (R.phase == 2 && R.t > 0.3f) {
                 bool logged = (flag(g, EX_FIELD_GUIDE) >> R.count0) & 1;
                 roamCheck(logged && g.pinfo.money - R.money0 == 250,
-                          StrFormat("field guide: photographed a %s (+$%lld, toast '%s')", Fauna::speciesInfo(R.count0).name, g.pinfo.money - R.money0,
+                          StrFormat("field guide: photographed a %s (+$%lld, toast '%s')", Wildlife::speciesName(R.count0), g.pinfo.money - R.money0,
                                     g.phone.toast.c_str()));
+                phoneRefresh(g, g.phone);   // the app's per-frame handset refresh (this runner does not drive it)
                 bool app = false;
-                for (const UI::PhoneListApp& ap : g.phone.apps) app |= ap.name == "Field Guide" && (int)ap.items.size() == 21;
-                roamCheck(app, "the Field Guide app lists 21 species");
+                for (const UI::PhoneListApp& ap : g.phone.apps) app |= ap.name == "Field Guide" && (int)ap.items.size() == kFieldGuideCount;
+                roamCheck(app, StrFormat("the Field Guide app lists %d species", kFieldGuideCount));
                 roamNext();
             }
             break;
@@ -1152,7 +1161,9 @@ void updateMissionTest(GameWorld& g, float dt) {
             R.cutTag = tag;
             T.screenshot(StrFormat("stage%d_cut%d", m.stage, M.shotIndex).c_str());
         }
-        if (R.cutsceneTime > 1.7f) {
+        // (a cutscene screenshot still waiting for streaming holds the fast-forward, so it shows the cutscene)
+        bool shotWaiting = !R.shotQueue.empty() || !R.pendingShotPath.empty();
+        if (R.cutsceneTime > 1.7f && (!shotWaiting || R.cutsceneTime > 10.f)) {
             if (M.shotIndex + 1 < (int)M.shots.size() && M.shotIndex < 1) {
                 M.shotIndex++;
                 M.shotTime = 0.f;

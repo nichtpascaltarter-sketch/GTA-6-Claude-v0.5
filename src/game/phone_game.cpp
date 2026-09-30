@@ -12,8 +12,8 @@ namespace mu {
 enum PhoneApp : int { APP_SWITCH = 1, APP_WHEELS, APP_REALTY, APP_JOBS, APP_REPLAY, APP_VEHICLE_JOB, APP_FIELD_GUIDE };
 
 // ------------------------------------------------------------------------------------------------------------------
-// Wild Porto Sol: the Wildlife Trust's photo census. The first photo of a species taken with the phone camera (photo
-// mode) pays $250, the full field guide $10,000. The Field Guide app lists every species with a hint where to look.
+// Wild Porto Sol: the Wildlife Trust's photo census of 26 species (everything but the fish). The first photo of a
+// species taken with the phone camera (photo mode) pays $250, the full field guide $10,000. The Field Guide app lists every species with a hint where to look.
 struct FieldGuideEntry {
     int species;
     const char* hint;
@@ -40,6 +40,11 @@ const FieldGuideEntry kFieldGuide[] = {
     {Fauna::SP_DEER, "The Ridge any time; Redland and the farms at dawn and dusk."},
     {Fauna::SP_COW, "Grazing in the farmland and Redland pastures."},
     {Fauna::SP_HORSE, "Paddocks in the farmland, Harlow and Redland."},
+    {Fauna::SP_SANDPIPER, "Tiny shorebirds racing the waves along quiet stretches of beach."},
+    {Fauna::SP_GRACKLE, "Glossy black birds strutting around parking lots and roadside verges."},
+    {Fauna::SP_FRIGATE, "Long-winged pirates of the sky, soaring high over the coast."},
+    {Fauna::SP_CORMORANT, "Around docks, marinas and piers, and diving in the Sawgrass channels."},
+    {Fauna::SP_CEGRET, "Small white birds that follow the cattle herds on the farms."},
 };
 const int kFieldGuideCount = (int)ARRAY_COUNT(kFieldGuide);
 const long long kSpeciesPay = 250, kFieldGuidePay = 10000;
@@ -47,7 +52,7 @@ const long long kSpeciesPay = 250, kFieldGuidePay = 10000;
 bool censusOpen(GameWorld& g) { return (flag(g, EX_WORLD_TEXTS) >> 10) & 1; }   // the Wildlife Trust's text arrived
 
 std::string speciesTitle(int species) {
-    std::string n = Fauna::speciesInfo(species).name;
+    std::string n = Wildlife::speciesName(species);
     bool cap = true;
     for (char& c : n) {
         if (cap && c >= 'a' && c <= 'z') c = (char)(c - 'a' + 'A');
@@ -62,39 +67,29 @@ int fieldGuideLogged(GameWorld& g) {
     return n;
 }
 
-// The animal a photo is of: alive, inside the middle of the frame, big enough to fill part of it and not hidden
-// behind anything. A species the census still needs wins over one already logged. -1 when no animal qualifies.
+bool fieldGuideListed(int species) {
+    for (const FieldGuideEntry& e : kFieldGuide)
+        if (e.species == species) return true;
+    return false;
+}
+
+// The animal a photo is of (the wildlife system's sightings: alive, in frame, big enough, not hidden): a species the
+// census still needs wins over one already logged, else the biggest in the frame. -1 when no animal qualifies.
 int photoSubject(GameWorld& g, const UI::PhotoMode& cam) {
-    vec3 o = cam.camPos;
-    vec3 f(-sinf(cam.camYaw) * cosf(cam.camPitch), cosf(cam.camYaw) * cosf(cam.camPitch), sinf(cam.camPitch));
-    vec3 r = normalize(cross(f, vec3(0, 0, 1)));
-    vec3 u = cross(r, f);
-    float tanV = tanf(Clamp(cam.camFov, 0.05f, 2.5f) * 0.5f), aspect = 16.f / 9.f;
+    Render::Camera c;
+    c.pos = dvec3(cam.camPos);
+    c.yaw = cam.camYaw;
+    c.pitch = cam.camPitch;
+    c.roll = cam.camRoll;
+    c.fovY = cam.camFov;
+    Wildlife::Sighting seen[16];
+    int n = Wildlife::sightings(c, 90.f, seen, 16);
     int mask = flag(g, EX_FIELD_GUIDE);
-    int best = -1;
-    float bestScore = 0.f;
-    for (const wild_detail::Animal& a : wild_detail::gW.animals) {
-        if (!a.used || a.state == wild_detail::ST_DEAD || a.state == wild_detail::ST_FALL || a.sp == Fauna::SP_FISH) continue;
-        const Fauna::SpeciesInfo& si = Fauna::speciesInfo(a.sp);
-        bool grounded = si.plan == Fauna::PLAN_QUAD || si.plan == Fauna::PLAN_REPTILE;   // origin on the ground, not the body
-        vec3 c = a.pos + vec3(0.f, 0.f, grounded ? si.height * 0.5f * a.scale : 0.f);
-        if (a.inWater && c.z < a.waterZ - 3.f) continue;   // too deep to see
-        vec3 d = c - o;
-        float z = dot(d, f), len = length(d);
-        if (z < 0.5f || len > 90.f) continue;
-        float x = dot(d, r) / (z * tanV * aspect), y = dot(d, u) / (z * tanV);
-        if (fabsf(x) > 0.8f || fabsf(y) > 0.8f) continue;
-        float size = Max(si.length, si.height) * a.scale / (2.f * z * tanV);   // share of the frame height
-        if (size < 0.04f) continue;
-        Phys::RayHit rh;
-        if (Phys::gCollision && Phys::gCollision->raycast(o, d / len, Max(0.f, len - Max(si.length, si.height) * 0.5f * a.scale), rh, true)) continue;
-        float score = size * (1.6f - Max(fabsf(x), fabsf(y))) + (((mask >> a.sp) & 1) ? 0.f : 10.f);
-        if (score > bestScore) {
-            bestScore = score;
-            best = a.sp;
-        }
-    }
-    return best;
+    for (int i = 0; i < n; i++)
+        if (fieldGuideListed(seen[i].species) && !((mask >> seen[i].species) & 1)) return seen[i].species;
+    for (int i = 0; i < n; i++)
+        if (fieldGuideListed(seen[i].species)) return seen[i].species;
+    return -1;
 }
 
 // PA_TAKE_PHOTO: log the species in the frame (the app still saves the picture)
@@ -102,9 +97,6 @@ void photoTaken(GameWorld& g, UI::PhoneState& ph) {
     if (!censusOpen(g)) return;
     int sp = photoSubject(g, ph.photo);
     if (sp < 0) return;
-    bool listed = false;
-    for (const FieldGuideEntry& e : kFieldGuide) listed |= e.species == sp;
-    if (!listed) return;
     int mask = flag(g, EX_FIELD_GUIDE);
     std::string name = speciesTitle(sp);
     if ((mask >> sp) & 1) {

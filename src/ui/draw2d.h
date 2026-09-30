@@ -117,6 +117,10 @@ void photoEffect(float x, float y, float w, float h, float u0, float v0, float u
 // Depth buffer of the 3D frame for photoEffect's depth of field: reversed-Z infinite projection (value = nearZ /
 // view distance, 0 at infinity), any resolution. Call every frame before endFrame; nullptr = none.
 void setSceneDepth(ID3D11ShaderResourceView* depthSrv, float nearZ);
+// Colour-blind correction applied to everything the UI draws (row-major 3x3 in linear RGB; nullptr = off). The frame
+// underneath is corrected by the renderer's post-process, so captured scene pixels (backdrop blur, photo grading,
+// snapshots) are left untouched.
+void setColorMatrix(const float* m9);
 // Snapshots: at the end of this frame's endFrame the finished frame is copied into a small persistent texture
 // (quarter resolution). Returns its id; the 8 most recent snapshots are kept.
 int requestSnapshot();

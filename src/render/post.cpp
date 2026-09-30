@@ -16,7 +16,7 @@ struct BloomCBData {
 };
 
 struct PostSystem {
-    gfx::Buffer exposureBuf, lumPartial;
+    gfx::Buffer exposureBuf, lumHist;
     gfx::Texture whiteTex, blackTex;
     gfx::Texture history[2];
     gfx::Texture bloomDown, bloomUp;
@@ -33,7 +33,6 @@ struct PostSystem {
     gfx::CBuffer<PostCBData> cb;
     gfx::CBuffer<TAACBData> taaCB;
     gfx::CBuffer<BloomCBData> bloomCB;
-    int partialCount = 0;
     float exposureCompensation = 0.3f;
     ID3D11ShaderResourceView* finalSrv = nullptr;
 
@@ -43,7 +42,9 @@ struct PostSystem {
         u32 white = 0xffffffffu, black = 0xff000000u;
         whiteTex = gfx::createTexture2D(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV, 1, 1, &white, 4);
         blackTex = gfx::createTexture2D(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV, 1, 1, &black, 4);
-        csReduce = gfx::loadCS("post.hlsl", "csLumReduce");
+        csReduce = gfx::loadCS("post.hlsl", "csLumHist");
+        u32 zeroHist[64] = {};
+        lumHist = gfx::createBuffer(64 * 4, 4, gfx::BUF_STRUCTURED | gfx::BUF_UAV, zeroHist);
         csExposure = gfx::loadCS("post.hlsl", "csExposure");
         csBloomDown = gfx::loadCS("post.hlsl", "csBloomDown");
         csBloomUp = gfx::loadCS("post.hlsl", "csBloomUp");
@@ -59,10 +60,6 @@ struct PostSystem {
     }
 
     void resize(int w, int h) {
-        lumPartial.release();
-        int gx = (w + 63) / 64, gy = (h + 63) / 64;
-        partialCount = gx * gy;
-        lumPartial = gfx::createBuffer((u32)(partialCount * 8), 4, gfx::BUF_STRUCTURED | gfx::BUF_UAV);
         for (auto& hh : history) hh.release();
         for (auto& hh : history) hh = gfx::createTexture2D(w, h, DXGI_FORMAT_R16G16B16A16_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV);
         historyValid = false;
@@ -176,8 +173,13 @@ struct PostSystem {
         float storm = r.frame.weather2.y;
         cb.data.p0 = vec4(exposureCompensation - 0.55f * night - 0.35f * storm * (1.f - night), 2.2f, 1.4f, Clamp(dt, 0.f, 0.25f));
         cb.data.p1 = vec4(Lerp(0.045f, 0.075f, night), 0.22f + 0.08f * night, 0.012f, 1.08f + 0.06f * night);
-        cb.data.p2 = vec4(1.04f, 0.6f, -3.f, 16.f);
-        cb.data.p3 = vec4((float)partialCount, r.cameraCut ? 1.f : 0.f, 0.35f, 0);
+        // Exposure limits. By day a dark surface right in front of the camera (an awning, a wall, a car) must not
+        // drive the exposure to night levels: the sunlit world around it would blow out. The floor follows the sun
+        // (fully shaded daytime streets meter around EV 12.5); inside interiors the exposure may open up further.
+        float minEV = Lerp(-3.f, 12.f, SmoothStep(-6.f, 15.f, r.sunElevation));
+        if (r.cameraInInterior()) minEV = Min(minEV, 5.f);
+        cb.data.p2 = vec4(1.04f, 0.6f, minEV, 16.f);
+        cb.data.p3 = vec4(0.f, r.cameraCut ? 1.f : 0.f, 0.35f, 0);
         const PostFxControls& fx = r.postFx;
         cb.data.fx0 = vec4(Max(fx.saturation, 0.f), Saturate(fx.vignette), Saturate(fx.chromatic), Saturate(fx.flash));
         cb.data.fx1 = vec4(fx.tint, Saturate(fx.blur));
@@ -190,20 +192,19 @@ struct PostSystem {
         ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get()};
         c->CSSetConstantBuffers(0, 2, cbs);
         c->PSSetConstantBuffers(0, 2, cbs);
-        // Exposure from the anti-aliased image
+        // Exposure from the anti-aliased image: luminance histogram, then metering + adaptation
         c->CSSetShader(csReduce, nullptr, 0);
         c->CSSetShaderResources(0, 1, &displaySrv);
         c->CSSetShaderResources(40, 1, &exposureBuf.srv);
-        c->CSSetUnorderedAccessViews(0, 1, &lumPartial.uav, nullptr);
+        c->CSSetUnorderedAccessViews(0, 1, &lumHist.uav, nullptr);
         c->Dispatch(gfx::divUp(r.width, 64), gfx::divUp(r.height, 64), 1);
         ID3D11ShaderResourceView* nullSrv[3] = {};
         ID3D11UnorderedAccessView* nullUav[2] = {};
-        c->CSSetUnorderedAccessViews(0, 1, nullUav, nullptr);
         c->CSSetShaderResources(0, 3, nullSrv);
         c->CSSetShaderResources(40, 1, nullSrv);
         c->CSSetShader(csExposure, nullptr, 0);
-        c->CSSetShaderResources(2, 1, &lumPartial.srv);
-        c->CSSetUnorderedAccessViews(1, 1, &exposureBuf.uav, nullptr);
+        ID3D11UnorderedAccessView* expUavs[2] = {lumHist.uav, exposureBuf.uav};
+        c->CSSetUnorderedAccessViews(0, 2, expUavs, nullptr);
         c->Dispatch(1, 1, 1);
         c->CSSetUnorderedAccessViews(0, 2, nullUav, nullptr);
         c->CSSetShaderResources(0, 3, nullSrv);

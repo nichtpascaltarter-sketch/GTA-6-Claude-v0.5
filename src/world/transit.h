@@ -94,47 +94,81 @@ struct MetroLine {
 };
 
 // ---- buses ---------------------------------------------------------------------------------------------------------
+// A stop on the curb side of a road edge for one travel direction. Stops at an existing roadmesh shelter (the ambient
+// sidewalk furniture sequence) only add the route flag; the others bring their own shelter (SK_BUS_STOP).
 struct BusStop {
-    std::string name;
+    std::string name;       // "Bayshore Blvd & N 12th St"
     vec2 pos;               // shelter center (on the sidewalk)
     vec2 face;              // unit direction from the shelter toward the curb
     vec2 along;             // unit direction of travel of the buses serving it
-    vec2 curb;              // point on the curb lane where the bus doors stop
+    vec2 flag;              // route flag pole (at the curb, where the front door stops)
     float z = 0.f;          // sidewalk level
     int edge = -1;          // road edge it stands on
-    float edgeS = 0.f;
-    u32 routeMask = 0;      // routes serving it
+    int dir = 1;            // travel direction on the edge: +1 n0 -> n1, -1 n1 -> n0
+    float u = 0.f;          // travel coordinate of the stop point (distance along the edge in the travel direction)
+    u32 routeMask = 0;      // routes serving it (bit per BusRoute)
+    bool ownShelter = true; // false: an ambient roadmesh shelter stands here
+    bool terminus = false;
     u32 seed = 0;
+};
+
+// A directed road edge of a bus route (dir +1 = n0 -> n1)
+struct RouteLeg {
+    int edge = -1;
+    int dir = 1;
+    float d0 = 0.f;         // route distance at the start of the edge (travel coordinate 0)
 };
 
 struct BusRoute {
     std::string number;     // "12"
     std::string name;       // "Bayshore"
     vec3 color;             // route colour (linear)
-    std::vector<int> stops; // stop indices in service order (loop: the last stop connects back to the first)
+    u32 colorSrgb = 0;      // same, packed sRGB (UI)
+    std::vector<int> stops; // stop indices in service order (a loop: the last stop connects back to the first)
+    std::vector<float> stopDist;   // route distance of each stop
+    std::vector<RouteLeg> legs;    // directed edges in order (closed loop)
+    std::vector<vec2> line;        // centerline samples every ~15 m (map drawing, far bus positions)
+    std::vector<float> lineDist;   // route distance of each line sample
+    float length = 0.f;
     float headway = 360.f;  // seconds between buses
     int buses = 3;
+    // position and travel direction at route distance d (wraps)
+    vec2 pointAt(float d, vec2* dirOut = nullptr) const;
+    // index of the leg containing route distance d (wraps)
+    int legAt(float d) const;
+    float wrap(float d) const {
+        if (length <= 0.f) return 0.f;
+        d = fmodf(d, length);
+        return d < 0.f ? d + length : d;
+    }
 };
 
 // ---- ferries -------------------------------------------------------------------------------------------------------
 struct FerryPier {
-    std::string name;
+    std::string name;       // "Port Isle"
+    std::string code;
     vec2 base;              // landward end of the pier (on the shore)
     vec2 dir;               // unit direction from the shore out to the berth
-    float length = 40.f;    // pier length
+    float length = 40.f;    // pier length (base to the head)
+    float halfWidth = 3.2f; // walkway half width
     float deckZ = 2.2f;     // pier deck height
-    vec2 berth;             // where the ferry's bow door / side gate stops
-    float berthYaw = 0.f;   // ferry heading while docked (radians, 0 = +Y)
-    float groundZ = 0.f;
+    float waterZ = 0.f;
+    vec2 berth;             // ferry center while docked
+    float berthYaw = 0.f;   // ferry heading while docked (radians, 0 = +Y); the ferry lies alongside the pier head
+    int side = 1;           // pier side the ferry lies on (+1 right of dir, -1 left)
+    vec2 gate;              // boarding gate on the pier head (where passengers step aboard)
+    float groundZ = 0.f;    // shore level at the base
     u32 seed = 0;
+    vec2 head() const { return base + dir * length; }
+    vec2 right() const { return vec2(dir.y, -dir.x); }
 };
 
 struct FerryRoute {
     std::string name;
-    std::vector<int> piers;                 // service order (the route runs back and forth)
-    std::vector<std::vector<vec2>> legs;    // water path from piers[i] to piers[i + 1] (dense, ~20 m)
-    float cruise = 11.f;                    // m/s
-    float dwell = 25.f;
+    std::vector<int> piers;                 // service order (the route runs back and forth: 0 1 2 1 0 ...)
+    std::vector<std::vector<vec2>> legs;    // water path from piers[i] to piers[i + 1] (dense, ~10 m)
+    float cruise = 9.f;                     // m/s
+    float dwell = 40.f;
 };
 
 struct TransitNet {

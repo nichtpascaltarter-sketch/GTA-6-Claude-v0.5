@@ -3,15 +3,14 @@
 
 Texture2D<float4> tHDR : register(t0);
 Texture2D<float4> tBloom : register(t1);
-StructuredBuffer<float> tLumPartial : register(t2);
-RWStructuredBuffer<float> uLumPartial : register(u0);
+RWStructuredBuffer<uint> uLumHist : register(u0);   // 64-bin log2 luminance histogram (fixed-point weights)
 RWStructuredBuffer<float4> uExposure : register(u1);
 
 cbuffer PostCB : register(b1) {
     float4 gPost0;  // x exposure compensation EV, y adaptation speed up, z speed down, w dt
     float4 gPost1;  // x bloom strength, y vignette, z grain, w saturation
     float4 gPost2;  // x contrast, y warmth, z min EV, w max EV
-    float4 gPost3;  // x partial count, y camera cut, z sharpen, w unused
+    float4 gPost3;  // x unused, y camera cut, z sharpen, w unused
     // Gameplay screen effects (Renderer::postFx)
     float4 gFx0;    // x saturation, y vignette, z chromatic aberration, w flash
     float4 gFx1;    // rgb tint, w blur
@@ -20,53 +19,74 @@ cbuffer PostCB : register(b1) {
 };
 Texture2D<float> tSceneDepth : register(t5);
 
-// 1) Partial reduction: each 16x16 group averages log luminance over a 64x64 region (4x4 subsample).
-//    Output per group: (sum of weighted log2 luminance, sum of weights).
-groupshared float2 gsLum[256];
+// Auto exposure from a luminance histogram (GTA-style metering): a trimmed geometric mean for the mid-tones plus a
+// highlight constraint that keeps the bright end (95th percentile: sunlit streets, bright sky) below the tonemapper's
+// shoulder, so a dark foreground cannot blow out the sunlit majority and a bright sky cannot crush a street.
+static const float kHistMin = -12.0;   // log2 luminance of bin 0 (cd/m2)
+static const float kHistScale = 2.0;   // bins per log2 unit (64 bins cover -12 .. +20)
+
+// 1) Histogram: each 16x16 group bins a 64x64 region (4x4 subsample), center / lower-screen weighted.
+groupshared uint gsHist[64];
 [numthreads(16, 16, 1)]
-void csLumReduce(uint3 gid : SV_GroupID, uint3 tid : SV_GroupThreadID, uint gi : SV_GroupIndex) {
+void csLumHist(uint3 gid : SV_GroupID, uint3 tid : SV_GroupThreadID, uint gi : SV_GroupIndex) {
+    if (gi < 64) gsHist[gi] = 0;
+    GroupMemoryBarrierWithGroupSync();
     uint2 base = gid.xy * 64 + tid.xy * 4;
-    float2 acc = 0;
     if (base.x < (uint)gScreen.x && base.y < (uint)gScreen.y) {
         float2 uv = (base + 2.0) * gScreen.zw;
         float3 c = tHDR.SampleLevel(sLinearClamp, uv, 0).rgb;
         float lum = luminance(c) / max(gExposureBuf[0].x, 1e-12);
         float2 d = uv - 0.5;
-        float w = lerp(0.3, 1.0, saturate(1.0 - dot(d, d) * 2.5));
-        w *= lerp(0.45, 1.0, smoothstep(0.05, 0.55, uv.y));   // the upper screen (mostly sky) meters less
-        if (!(lum >= 0.0) || lum > 1e9) { lum = 1.0; w = 0.0; }  // NaN / Inf guard
-        if (gRenderParams.w > 0.5 && uv.x >= gRenderParams.y) w = 0.0;  // debug view area does not drive exposure
-        // Hot spots (sun haze, lamps, bright sky) count at most ~6x the previous average: backlit scenes keep
-        // their foreground readable instead of being metered down by a small very bright area
-        float l2 = log2(max(lum, 1e-4));
-        if (gExposureBuf[0].w > 0.5) l2 = min(l2, log2(max(gExposureBuf[0].z, 1e-4)) + 2.6);
-        acc = float2(l2 * w, w);
+        float w = lerp(0.35, 1.0, saturate(1.0 - dot(d, d) * 2.5));
+        w *= lerp(0.6, 1.0, smoothstep(0.05, 0.55, uv.y));   // the upper screen (mostly sky) meters a bit less
+        if (!(lum >= 0.0) || lum > 1e9) w = 0.0;               // NaN / Inf guard
+        if (gRenderParams.w > 0.5 && uv.x >= gRenderParams.y) w = 0.0;   // debug view area does not drive exposure
+        if (w > 0.0) {
+            uint bin = (uint)clamp((log2(max(lum, 1e-6)) - kHistMin) * kHistScale, 0.0, 63.0);
+            InterlockedAdd(gsHist[bin], (uint)(w * 64.0 + 0.5));
+        }
     }
-    gsLum[gi] = acc;
     GroupMemoryBarrierWithGroupSync();
-    [unroll] for (uint s = 128; s > 0; s >>= 1) {
-        if (gi < s) gsLum[gi] += gsLum[gi + s];
-        GroupMemoryBarrierWithGroupSync();
-    }
-    if (gi == 0) {
-        uint groupsX = (uint)ceil(gScreen.x / 64.0);
-        uint idx = gid.y * groupsX + gid.x;
-        uLumPartial[idx * 2] = gsLum[0].x;
-        uLumPartial[idx * 2 + 1] = gsLum[0].y;
-    }
+    if (gi < 64 && gsHist[gi] > 0) InterlockedAdd(uLumHist[gi], gsHist[gi]);
 }
 
-// 2) Final: average partials, adapt exposure. gPost3.y > 0.5 means "camera cut": snap exposure.
+float histLog(float bin) { return (bin + 0.5) / kHistScale + kHistMin; }
+
+// 2) Metering + adaptation (clears the histogram for the next frame). gPost3.y > 0.5: camera cut, snap exposure.
 [numthreads(1, 1, 1)]
 void csExposure() {
-    uint n = (uint)gPost3.x;
-    float s = 0, ws = 0;
-    for (uint i = 0; i < n; i++) { s += tLumPartial[i * 2]; ws += tLumPartial[i * 2 + 1]; }
-    float avgLog = s / max(ws, 1e-6);
+    float h[64];
+    float total = 0;
+    [unroll] for (int b = 0; b < 64; b++) {
+        h[b] = (float)uLumHist[b];
+        total += h[b];
+        uLumHist[b] = 0;
+    }
+    float4 prev = uExposure[0];
+    if (total <= 0.0) return;
+    // trimmed geometric mean between the 8th and 94th percentiles
+    float lo = total * 0.08, hi = total * 0.94;
+    float cum = 0, s = 0, ws = 0, p95 = histLog(63.0);
+    bool p95Found = false;
+    [unroll] for (int k = 0; k < 64; k++) {
+        float a = cum, bnd = cum + h[k];
+        float take = max(min(bnd, hi) - max(a, lo), 0.0);
+        s += histLog((float)k) * take;
+        ws += take;
+        if (!p95Found && bnd >= total * 0.95) {
+            p95 = histLog((float)k) + (h[k] > 0.0 ? (total * 0.95 - a) / h[k] - 0.5 : 0.0) / kHistScale;
+            p95Found = true;
+        }
+        cum = bnd;
+    }
+    float avgLog = ws > 0.0 ? s / ws : histLog(31.0);
     float avgLum = exp2(avgLog);
     float targetEV = log2(max(avgLum, 1e-4) * 100.0 / 12.5) - gPost0.x;
+    // highlight constraint: the 95th percentile should land at or below ~3.2 (pre-exposed), where the filmic curve
+    // still shows texture; the mid-tones may darken towards that, but only partly (70%)
+    float evHL = p95 - log2(1.2 * 3.2);
+    if (evHL > targetEV) targetEV = lerp(targetEV, evHL, 0.7);
     targetEV = clamp(targetEV, gPost2.z, gPost2.w);
-    float4 prev = uExposure[0];
     float ev = prev.y;
     if (prev.w < 0.5 || gPost3.y > 0.5 || !(ev == ev)) ev = targetEV;
     float speed = targetEV > ev ? gPost0.y : gPost0.z;

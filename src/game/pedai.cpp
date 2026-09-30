@@ -675,6 +675,8 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         break;
                     }
                     float fy = p.yaw;
+                    bool raining = env && env->rain > 0.35f;
+                    if (raining && pa.role != PR_JOGGER) pa.walk.hurry = Max(pa.walk.hurry, 1.3f);   // hurrying through the rain
                     desired = pedNav.step(pa.walk, pos, dt, selfBody, &fy);
                     // on the phone or smoking on the move now and then (the upper body keeps it up while walking)
                     pa.walkStanceTimer -= dt;
@@ -736,6 +738,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                                     break;
                                 }
                             }
+                            if (pick >= 0 && raining && laneGraph.spots[pick].kind == AI::SP_BENCH) pick = -1;   // nobody sits in the rain
                             if (pick >= 0 && r < 0.2f) {
                                 const AI::ScenarioPoint& sp = laneGraph.spots[pick];
                                 pa.activity = sp.kind == AI::SP_BUS_STOP ? ACT_WAIT_BUS : ACT_SCENARIO;
@@ -760,7 +763,10 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                                     float q = hashToFloat(hash32(h * 5u));
                                     World::Region reg = map->regionAt(pos.x, pos.y);
                                     bool night = env->timeOfDay > 20.f || env->timeOfDay < 4.f;
-                                    if (night && (reg == World::REG_BEACH || reg == World::REG_CALLE_LUNA) && q < 0.35f) {
+                                    if (raining) {
+                                        pa.stance = q < 0.5f ? 8 : 0;   // sheltering under the facade, waiting it out
+                                        pa.clip = -1;
+                                    } else if (night && (reg == World::REG_BEACH || reg == World::REG_CALLE_LUNA) && q < 0.35f) {
                                         pa.stance = 9;   // dancing outside the clubs
                                         pa.clip = -1;
                                     } else if (q < 0.4f) {

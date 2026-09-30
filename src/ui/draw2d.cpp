@@ -35,6 +35,7 @@ struct ClipCBData {
     vec4 screen;   // w, h, 1/w, 1/h
     vec4 clip;
     vec4 clipMode; // x mode, y rounded-rect radius
+    vec4 cm0, cm1, cm2;   // colour-blind correction rows (cm0.w = 1 when enabled)
 };
 
 struct BlurCBData {
@@ -51,7 +52,7 @@ struct PhotoCBData {
 
 // Pixel shader modes (Vtx::p0); +32 = additive (alpha output 0)
 enum Mode { M_SOLID = 0, M_FONT = 1, M_IMAGE = 2, M_RRECT = 3, M_CIRCLE = 4, M_CAPSULE = 5, M_ARC = 6, M_ICON = 7,
-            M_MAP = 8, M_BACKDROP = 9, M_TRI = 10, M_PHOTO = 11 };
+            M_MAP = 8, M_BACKDROP = 9, M_TRI = 10, M_PHOTO = 11, M_SCENE_IMAGE = 12 };
 
 Font g_fonts[FONT_COUNT];
 gfx::Texture g_atlas;
@@ -88,6 +89,7 @@ PhotoCBData g_photo;
 bool g_photoUsed = false;
 ID3D11ShaderResourceView* g_depthSrv = nullptr;
 float g_depthNear = 0.f;
+vec4 g_colorRows[3] = {vec4(1, 0, 0, 0), vec4(0, 1, 0, 0), vec4(0, 0, 1, 0)};
 // Snapshots of finished frames (quarter resolution ring)
 const int kSnapCount = 8;
 gfx::Texture g_snap[kSnapCount];
@@ -728,9 +730,16 @@ void polygon(const vec2* pts, int n, u32 color) {
         aaTri(pts[idx[0]], pts[idx[1]], pts[idx[2]], color, color, color, isBoundary(idx[0], idx[1]), isBoundary(idx[1], idx[2]),
               isBoundary(idx[2], idx[0]));
 }
+// Snapshots hold finished (already colour-corrected) frames
+int imageMode(ID3D11ShaderResourceView* srv) {
+    for (int i = 0; i < kSnapCount; i++)
+        if (srv && g_snap[i].srv == srv) return M_SCENE_IMAGE;
+    return M_IMAGE;
+}
 void image(ID3D11ShaderResourceView* srv, float x, float y, float w, float h, float u0, float v0, float u1, float v1, u32 tint) {
-    pushQuad(V(x, y, u0, v0, tint, 0, M_IMAGE), V(x + w, y, u1, v0, tint, 0, M_IMAGE), V(x + w, y + h, u1, v1, tint, 0, M_IMAGE),
-             V(x, y + h, u0, v1, tint, 0, M_IMAGE), srv);
+    int m = imageMode(srv);
+    pushQuad(V(x, y, u0, v0, tint, 0, m), V(x + w, y, u1, v0, tint, 0, m), V(x + w, y + h, u1, v1, tint, 0, m),
+             V(x, y + h, u0, v1, tint, 0, m), srv);
 }
 void imageRotated(ID3D11ShaderResourceView* srv, float cx, float cy, float w, float h, float ang, float u0, float v0, float u1,
                   float v1, u32 tint) {
@@ -738,8 +747,9 @@ void imageRotated(ID3D11ShaderResourceView* srv, float cx, float cy, float w, fl
     vec2 c(cx, cy);
     vec2 p0 = c - ax * (w * 0.5f) - ay * (h * 0.5f), p1 = c + ax * (w * 0.5f) - ay * (h * 0.5f);
     vec2 p2 = c + ax * (w * 0.5f) + ay * (h * 0.5f), p3 = c - ax * (w * 0.5f) + ay * (h * 0.5f);
-    pushQuad(V(p0.x, p0.y, u0, v0, tint, 0, M_IMAGE), V(p1.x, p1.y, u1, v0, tint, 0, M_IMAGE), V(p2.x, p2.y, u1, v1, tint, 0, M_IMAGE),
-             V(p3.x, p3.y, u0, v1, tint, 0, M_IMAGE), srv);
+    int m = imageMode(srv);
+    pushQuad(V(p0.x, p0.y, u0, v0, tint, 0, m), V(p1.x, p1.y, u1, v0, tint, 0, m), V(p2.x, p2.y, u1, v1, tint, 0, m),
+             V(p3.x, p3.y, u0, v1, tint, 0, m), srv);
 }
 void iconSdf(float x, float y, float w, float h, float u0, float v0, float u1, float v1, u32 color, float pxRange, float outline,
              u32 outlineColor, float soft, float angle) {
@@ -779,6 +789,16 @@ void photoEffect(float x, float y, float w, float h, float u0, float v0, float u
     float ra = w / Max(h, 1.f);   // p1, p2: position inside the rect (vignette), p3: rect aspect
     pushQuad(V(x, y, u0, v0, c, 0, M_PHOTO, 0, 0, ra), V(x + w, y, u1, v0, c, 0, M_PHOTO, 1, 0, ra),
              V(x + w, y + h, u1, v1, c, 0, M_PHOTO, 1, 1, ra), V(x, y + h, u0, v1, c, 0, M_PHOTO, 0, 1, ra), anyTex());
+}
+
+void setColorMatrix(const float* m) {
+    bool on = false;
+    if (m)
+        for (int i = 0; i < 9; i++)
+            if (fabsf(m[i] - ((i % 4 == 0) ? 1.f : 0.f)) > 1e-4f) on = true;
+    for (int r = 0; r < 3; r++)
+        g_colorRows[r] = on ? vec4(m[r * 3], m[r * 3 + 1], m[r * 3 + 2], r == 0 ? 1.f : 0.f)
+                            : vec4(r == 0 ? 1.f : 0.f, r == 1 ? 1.f : 0.f, r == 2 ? 1.f : 0.f, 0.f);
 }
 
 void setSceneDepth(ID3D11ShaderResourceView* depthSrv, float nearZ) {
@@ -963,6 +983,9 @@ void endFrame() {
         g_cb.data.screen = vec4((float)g_w, (float)g_h, 1.f / g_w, 1.f / g_h);
         g_cb.data.clip = b.clip;
         g_cb.data.clipMode = vec4((float)b.clipMode, b.clipRadius, 0, 0);
+        g_cb.data.cm0 = g_colorRows[0];
+        g_cb.data.cm1 = g_colorRows[1];
+        g_cb.data.cm2 = g_colorRows[2];
         g_cb.upload();
         ID3D11Buffer* cbs[] = {g_cb.get()};
         c->VSSetConstantBuffers(1, 1, cbs);

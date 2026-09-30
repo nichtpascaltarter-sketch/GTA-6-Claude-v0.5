@@ -654,6 +654,7 @@ struct Viewer {
             ui.ms.screen = UI::MENU_NONE;
             UI::MenuState fresh;
             ui.ms = fresh;
+            UI::Menus::reset();
             InputState none;
             UI::Menus::update(ui.ms, none, 0.f);
         }

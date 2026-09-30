@@ -88,4 +88,7 @@ struct RoadNetwork {
 
 extern RoadNetwork* gRoads;
 
+// True inside the closed parking strip of a road-works zone (roadmesh.cpp street dressing); parked-car spawns keep clear.
+bool roadWorkZoneAt(vec2 p);
+
 }  // namespace World

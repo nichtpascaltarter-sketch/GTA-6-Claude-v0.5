@@ -161,20 +161,26 @@ void releaseClerk(GameWorld& g, bool cower) {
     }
 }
 
-void callPolice(GameWorld& g, bool now) {
+// Report the robbery: police and bystanders who saw it react through reportCrime; the clerk's own call (or the
+// silent alarm) goes straight to dispatch (the victim never counts as a witness there)
+void callPolice(GameWorld& g, bool alarm, bool clerkCalls) {
     if (gS.reported) return;
     gS.reported = true;
-    vec3 pos = gS.clerkHome;
-    g.reportCrime(11, dvec3(pos), gS.clerk);
-    if (now) {
-        // the silent alarm goes straight to dispatch
-        g.pinfo.wantedHeat = Max(g.pinfo.wantedHeat, 2.05f);
-        g.pinfo.wantedCooldown = 0.f;
-        if (Ped* pl = g.playerPed()) {
-            g.pinfo.lastSeenPos = pl->pos;
-            g.pinfo.lastSeenTime = (float)g.time;
-        }
-    }
+    g.reportCrime(11, dvec3(gS.clerkHome), gS.clerk);
+    if (!alarm && !clerkCalls) return;
+    g.pinfo.wantedHeat += alarm ? 2.8f : 2.1f;
+    g.pinfo.wantedCooldown = 0.f;
+    Ped* pl = g.playerPed();
+    if (alarm && pl) g.pinfo.lastSeenPos = pl->pos;
+    else if (g.pinfo.wanted == 0 || g.time - g.pinfo.lastSeenTime > 5.0) g.pinfo.lastSeenPos = dvec3(gS.clerkHome);
+    g.pinfo.lastSeenTime = (float)g.time;
+    LOG("holdup: %s", alarm ? "silent alarm" : (clerkCalls ? "clerk phoned it in" : "reported"));
+}
+
+// the clerk picks up the phone a little later (once the robber is out of the door)
+void phoneLater(GameWorld& g, float lo, float hi) {
+    if (gS.reported || gS.reportAt > 0.0) return;
+    gS.reportAt = g.time + lo + hashToFloat(hash32(gS.clerkUid * 3u + 1u)) * (hi - lo);
 }
 
 void finish(GameWorld& g) {
@@ -224,7 +230,7 @@ void start(GameWorld& g, int def, int clerk) {
         ck.animIn.expression = -1;
         static const char* kDefiant[] = {"[angry] Not in my store!", "[angry] Wrong store, cabron!", "[angry] I've been waiting for you, punk!"};
         speak(g, clerk, kDefiant[h % 3u], "Clerk", 0xffd0d0d0u);
-        callPolice(g, false);
+        callPolice(g, false, false);
         LOG("holdup: armed clerk in '%s'", d.name.c_str());
         return;
     }
@@ -271,8 +277,7 @@ void onPaid(GameWorld& g) {
     setFlag(g, kExRobberyTake, flag(g, kExRobberyTake) + take);
     const InteriorDef& d = World::gInteriors->defs[gS.def];
     g.socialReport(UI::TE_ROBBERY, dvec3(gS.clerkHome), d.name.c_str(), (float)take);
-    // the clerk phones it in once the robber is out of the door
-    if (!gS.reported) gS.reportAt = g.time + 10.0 + hashToFloat(hash32(gS.clerkUid)) * 12.0;
+    phoneLater(g, 10.f, 22.f);
     LOG("holdup: cash bag taken ($%d) in '%s'", take, d.name.c_str());
 }
 
@@ -303,14 +308,14 @@ void update(GameWorld& g, float dt) {
     bool clerkOk = gS.clerk >= 0 && gS.clerk < (int)g.peds.size() && g.peds[gS.clerk].used && g.peds[gS.clerk].uid == gS.clerkUid && g.peds[gS.clerk].health > 0.f;
     bool inside = Interiors::currentInterior() == gS.def;
     float away = pl ? length(pl->pos.toVec3() - gS.clerkHome) : 1e9f;
-    // phoned-in report after the robber left
+    // the clerk's call after the robber left (a dead clerk calls nobody: witnesses only)
     if (gS.reportAt > 0.0 && g.time >= gS.reportAt) {
         gS.reportAt = -1.0;
-        callPolice(g, false);
+        callPolice(g, false, clerkOk);
     }
     if (!clerkOk) {
         // shot or gone: the robbery is over (murder / assault reports come from combat)
-        if (gS.phase == HP_PLEAD || gS.phase == HP_EMPTY) callPolice(g, false);
+        if (gS.phase == HP_PLEAD || gS.phase == HP_EMPTY) callPolice(g, false, false);
         if (gS.bag >= 0 && !gS.paid && !g.pickups[gS.bag].used) onPaid(g);
         if (away > 40.f || gS.phase == HP_ARMED) finish(g);
         return;
@@ -340,7 +345,7 @@ void update(GameWorld& g, float dt) {
         case HP_EMPTY: {
             if (!inside && away > 6.f) {
                 // walked out before the bag was ready
-                callPolice(g, false);
+                phoneLater(g, 3.f, 7.f);
                 gS.phase = HP_AFTER;
                 gS.t = 0.f;
                 break;
@@ -359,7 +364,7 @@ void update(GameWorld& g, float dt) {
                 ck.brain.scenario = 4;
                 ck.animIn.stance = 4;
                 speak(g, gS.clerk, "[panicked] Help! Somebody call the police!", "Clerk", 0xffd0d0d0u);
-                callPolice(g, true);
+                callPolice(g, true, true);
                 g.help("The clerk hit the silent alarm!", 4.f);
                 break;
             }
@@ -402,7 +407,7 @@ void update(GameWorld& g, float dt) {
             }
             if (!inside && away > 8.f && !gS.paid) {
                 // left the bag behind
-                callPolice(g, false);
+                phoneLater(g, 3.f, 7.f);
                 gS.phase = HP_AFTER;
                 gS.t = 0.f;
             }
@@ -425,19 +430,23 @@ void update(GameWorld& g, float dt) {
 }
 
 // ---- --holduptest: rob a store end to end with screenshots
+// Compact script (the walk-in through the real doors is covered by the interior tests): settle outside, step up to
+// the counter, aim at the clerk, shout, fire a warning shot into the ceiling, take the bag, leave, wait for the
+// police. The phoned-in report comes after 3 s instead of 10-22 s so the run stays short.
 std::string shotName(const char* stage) {
-    std::string path = std::string("Z:\\tmp\\") + StrFormat("holdup_%02d_%s", gT.shot++, stage) + ".bmp";
-    if (const char* dir = Platform::argValue("shotdir")) path = std::string(dir) + StrFormat("holdup_%02d_%s", gT.shot - 1, stage) + ".bmp";
+    const char* dir = Platform::argValue("shotdir");
+    std::string path = std::string(dir ? dir : "Z:\\tmp\\") + StrFormat("holdup_%02d_%s", gT.shot, stage) + ".bmp";
+    gT.shot++;
     return path;
 }
 
-void steerLook(GameWorld& g, vec3 target, float dt) {
+// Turn the camera toward a world point (converges within a few frames; the aim camera turns at 0.55x)
+void steerLook(GameWorld& g, vec3 target) {
     const Render::Camera& cam = g.rig.cam;
     vec3 d = rel(dvec3(target), cam.pos);
     float wantYaw = atan2f(-d.x, d.y), wantPitch = atan2f(d.z, length(d.xy()));
     float dy = wrapAngle(wantYaw - cam.yaw), dp = wantPitch - cam.pitch;
-    g.ctl.look = vec2(-Clamp(dy, -0.06f, 0.06f), Clamp(dp, -0.04f, 0.04f));
-    (void)dt;
+    g.ctl.look = vec2(-Clamp(dy * 1.4f, -0.5f, 0.5f), Clamp(dp * 1.4f, -0.3f, 0.3f));
 }
 
 void testDrive(GameWorld& g, float dt) {
@@ -446,6 +455,14 @@ void testDrive(GameWorld& g, float dt) {
     Ped* pl = g.playerPed();
     if (!pl) return;
     const auto& defs = World::gInteriors->defs;
+    auto place = [&](vec3 p, float yaw) {
+        pl->pos = dvec3(p.x, p.y, g.groundHeight(p.x, p.y, p.z + 1.5f));
+        pl->yaw = yaw;
+        pl->vel = vec3(0.f);
+        g.rig.yaw = yaw;
+        g.rig.pitch = -0.1f;
+        g.rig.cut = true;
+    };
     if (!gT.init) {
         gT.init = true;
         gT.def = World::gInteriors->byName(arg);
@@ -453,12 +470,8 @@ void testDrive(GameWorld& g, float dt) {
         if (gT.def < 0) return;
         const InteriorDef& d = defs[gT.def];
         const World::InteriorMarker* out = d.marker(World::IM_DOOR_OUT);
-        vec3 start = (out ? d.toWorld(out->pos) : d.toWorld(vec3(0.f, -3.f, 0.f))) - vec3(d.ay, 0.f) * 3.f;
-        pl->pos = dvec3(start.x, start.y, g.groundHeight(start.x, start.y, start.z + 3.f));
-        pl->yaw = atan2f(-d.ay.x, d.ay.y);
-        pl->vel = vec3(0.f);
-        g.rig.yaw = pl->yaw;
-        g.rig.cut = true;
+        vec3 start = (out ? d.toWorld(out->pos) : d.toWorld(vec3(0.f, -3.f, 0.f))) - vec3(d.ay, 0.f) * 2.f;
+        place(start, atan2f(-d.ay.x, d.ay.y));
         g.populationOff = true;
         g.giveWeapon(g.player, WPN_PISTOL, 120);
         pl->weapon = WPN_PISTOL;
@@ -466,82 +479,103 @@ void testDrive(GameWorld& g, float dt) {
         g.pinfo.wantedHeat = 0.f;
         int ts = robberySlot(gT.def);
         if (ts >= 0) setFlag(g, kExRobbedDay + ts, 0);
-        LOG("holduptest: '%s', player at %.1f %.1f", d.name.c_str(), start.x, start.y);
+        LOG("holduptest: '%s', player at %.1f %.1f, money %lld", d.name.c_str(), start.x, start.y, g.pinfo.money);
     }
     if (gT.def < 0) return;
     const InteriorDef& d = defs[gT.def];
     gT.t += dt;
     gT.stageT += dt;
     Controls& c = g.ctl;
-    vec3 pp = pl->pos.toVec3();
     const World::InteriorMarker* entry = d.marker(World::IM_ENTRY);
     const World::InteriorMarker* ctr = d.marker(World::IM_COUNTER);
     vec3 door = entry ? d.toWorld(entry->pos) : d.toWorld(vec3(0.f, 1.2f, 0.f));
     vec3 counter = ctr ? d.toWorld(ctr->pos) : d.center();
-    auto walkTo = [&](vec3 goal, float speed) {
-        vec2 to = goal.xy() - pp.xy();
-        if (length(to) < 0.5f) return true;
-        float want = atan2f(-to.x, to.y);
-        float dy = wrapAngle(want - g.rig.cam.yaw);
-        c.look = vec2(-Clamp(dy, -0.06f, 0.06f), -Clamp(g.rig.cam.pitch + 0.1f, -0.02f, 0.02f));
-        c.move = vec2(0.f, speed);
-        return false;
-    };
     auto next = [&](int s) {
         gT.stage = s;
         gT.stageT = 0.f;
     };
+    auto once = [&](float at) { return gT.stageT >= at && gT.stageT < at + dt * 1.01f; };
+    if (gS.phase != HP_NONE && gS.paid && gS.reportAt > g.time + 3.0) gS.reportAt = g.time + 3.0;   // short phone-in delay under test
     switch (gT.stage) {
-        case 0:   // settle outside, then walk in through the door
-            if (gT.t < 3.f) break;
-            if (gT.stageT > 0.f && gT.stageT < dt * 1.5f) g.requestScreenshot = shotName("outside");
-            if (walkTo(door, 0.7f) || gT.stageT > 14.f) next(1);
+        case 0:   // settle outside the shop
+            if (gT.t > 3.f) {
+                g.requestScreenshot = shotName("outside");
+                next(1);
+            }
             break;
-        case 1:   // up to the counter
-            if (walkTo(counter + (door - counter) * 0.25f, 0.6f) || gT.stageT > 12.f) next(2);
+        case 1: {  // at the counter, facing the clerk side
+            vec3 at = counter + (door - counter) * 0.12f;
+            vec2 to = counter.xy() - door.xy();
+            place(at, atan2f(-to.x, to.y));
+            next(2);
             break;
+        }
         case 2: {  // draw and aim at the clerk
             int ck = findClerk(g, gT.def);
-            if (ck >= 0) steerLook(g, g.peds[ck].pos.toVec3() + vec3(0, 0, 1.3f), dt);
+            if (ck >= 0) steerLook(g, g.peds[ck].pos.toVec3() + vec3(0, 0, 1.3f));
             c.aim.down = true;
             if (gS.phase != HP_NONE) {
-                g.requestScreenshot = shotName("hands_up");
                 next(3);
-            } else if (gT.stageT > 15.f) {
+            } else if (gT.stageT > 8.f) {
                 LOG("holduptest: no clerk reaction (clerk %d)", ck);
-                next(6);
+                next(7);
             }
             break;
         }
-        case 3: {  // keep the gun on the clerk, shout once, watch the register being emptied
-            if (gS.clerk >= 0) steerLook(g, g.peds[gS.clerk].pos.toVec3() + vec3(0, 0, 1.3f), dt);
+        case 3: {  // hands up; shout; warning shot into the ceiling; the clerk fills the bag
+            vec3 ckp = gS.clerk >= 0 ? g.peds[gS.clerk].pos.toVec3() : counter;
+            bool warning = gT.stageT > 2.2f && gT.stageT < 2.9f;
+            steerLook(g, ckp + vec3(0, 0, warning ? 4.5f : 1.3f));
             c.aim.down = true;
-            if (gT.stageT > 2.f && gT.stageT < 2.f + dt * 1.5f) c.enter.pressed = true;
-            if (gT.stageT > 4.5f && gT.stageT < 4.5f + dt * 1.5f) g.requestScreenshot = shotName("emptying");
+            if (once(0.9f)) g.requestScreenshot = shotName("hands_up");
+            if (once(1.5f)) c.enter.pressed = true;
+            if (gT.stageT > 2.7f && gT.stageT < 2.75f + dt) {
+                c.attack.pressed = true;
+                c.attack.down = true;
+            }
+            if (once(4.5f)) g.requestScreenshot = shotName("emptying");
             if (gS.phase == HP_HANDOVER || gS.phase == HP_ALARM || gS.phase == HP_ARMED || gS.phase == HP_NONE || gT.stageT > 40.f) {
-                g.requestScreenshot = shotName(gS.phase == HP_HANDOVER ? "bag_on_counter" : "outcome");
-                next(4);
+                LOG("holduptest: phase %d after %.1f s (progress %.2f, shots %d)", gS.phase, gT.stageT, gS.progress, g.pinfo.shotsFired);
+                next(gS.phase == HP_HANDOVER ? 4 : 6);
             }
             break;
         }
-        case 4:   // grab the bag
-            if (gS.phase == HP_HANDOVER && gS.bag >= 0) {
-                vec3 bag = gS.reg;
-                if (walkTo(bag, 0.5f) || gS.paid || gT.stageT > 10.f) next(5);
-            } else if (gT.stageT > 2.f) {
+        case 4:   // the bag on the counter, then grab it
+            if (gS.clerk >= 0) steerLook(g, gS.reg);
+            if (once(0.6f)) g.requestScreenshot = shotName("bag_on_counter");
+            if (gT.stageT > 1.5f && !gS.paid) {
+                vec2 to = gS.reg.xy() - counter.xy();
+                vec3 at = gS.reg - vec3(normalize(to + vec2(1e-4f, 0.f)) * 0.9f, 0.f);
+                place(at, atan2f(-to.x, to.y));
+            }
+            if (gS.paid && gT.stageT > 2.f) {
+                g.requestScreenshot = shotName("cash_taken");
+                next(5);
+            } else if (gT.stageT > 6.f) {
+                LOG("holduptest: bag not picked up");
                 next(5);
             }
             break;
-        case 5:   // leave through the door and look back
-            if (walkTo(door - vec3(d.ay, 0.f) * 5.f, 1.f) || gT.stageT > 16.f) {
+        case 5:   // out of the door, looking back
+            if (gT.stageT < dt * 1.5f) place(door - vec3(d.ay, 0.f) * 4.f, atan2f(d.ay.x, -d.ay.y));
+            if (once(1.2f)) {
                 g.requestScreenshot = shotName("escape");
                 next(6);
             }
             break;
-        case 6:
-            if (gT.stageT > 20.f && gT.stageT < 20.f + dt * 1.5f) {
+        case 6:   // the report goes out and the police get the call
+            if (g.pinfo.wanted > 0 && gT.stageT > 1.f) {
                 g.requestScreenshot = shotName("police");
-                LOG("holduptest: done, wanted %d heat %.2f money %lld robberies %d", g.pinfo.wanted, g.pinfo.wantedHeat, g.pinfo.money, flag(g, kExRobberies));
+                next(7);
+            } else if (gT.stageT > 30.f) {
+                next(7);
+            }
+            break;
+        case 7:
+            if (gT.stageT < dt * 1.5f) {
+                const auto* pd = gS.def >= 0 ? &defs[gS.def] : &d;
+                LOG("holduptest: done in '%s', wanted %d heat %.2f money %lld robberies %d take %d, cooldown %d", pd->name.c_str(), g.pinfo.wanted,
+                    g.pinfo.wantedHeat, g.pinfo.money, flag(g, kExRobberies), flag(g, kExRobberyTake), robberySlot(gT.def) >= 0 && onCooldown(g, robberySlot(gT.def)) ? 1 : 0);
             }
             break;
     }

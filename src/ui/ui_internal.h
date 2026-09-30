@@ -182,8 +182,20 @@ struct UiOptions {
     float hudScale = 1.f;
     bool highContrastReticle = false;
     bool reduceFlashing = false;
+    int padLayout = 0;                             // prompts show the buttons of the chosen controller layout
+    u16 keyBinds[IA_COUNT][2] = {};                // prompts show the player's keyboard bindings
 };
 const UiOptions& uiOptions();
+// HUD pieces shared with the settings previews (hud.cpp): subtitle block above `bottom` (returns its top y) and the
+// aiming reticle (target 0 none, 1 enemy, 2 friendly), both honouring the accessibility options
+float drawSubtitleBlock(float cx, float bottom, float maxW, float sc, const std::string& speaker, u32 speakerColor, const std::string& text,
+                        bool padPrompts, float a);
+void drawReticleShape(vec2 c, float sc, float spread, int target, float a);
+// Input prompts for bindable actions: rich text "~a:<action>~" (settings.ini key, e.g. ~a:enter_vehicle~) shows the
+// player's key or the pad button of their layout; legacy "~i:KEY|BTN~" pairs that name a bindable action follow rebinding
+int actionFromKey(const std::string& iniKey);                           // -1 when unknown
+int legacyPromptAction(const std::string& kb, const std::string& pad);  // -1 when the pair is not an action
+std::string actionPromptKey(int action, bool pad);
 
 // Phone state shared with the HUD (the HUD hides its bottom-right widgets under the phone, and everything in photo mode)
 bool phoneCoversBottomRight();

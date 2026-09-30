@@ -83,7 +83,8 @@ bool hits(const Col& c, vec2 p, float z0, float z1, float margin) {
 const char* typeName(int t) {
     static const char* n[] = {"streetlight", "streetlight2", "traffic light", "stop sign", "palm", "tall palm", "oak", "pine", "bush", "bench", "bin",
                               "hydrant", "bus stop", "bollard", "power pole", "mangrove", "cypress", "sawgrass", "parking meter", "news box",
-                              "phone booth", "trash bags", "dumpster", "ac unit", "barrier", "highway sign", "planter", "umbrella", "lifeguard tower"};
+                              "phone booth", "trash bags", "dumpster", "ac unit", "barrier", "highway sign", "planter", "umbrella", "lifeguard tower",
+                              "bike rack", "cone", "mailbox", "street tree", "span signal", "work sign"};
     if (t < 0) return "static box";
     return t < (int)(sizeof(n) / sizeof(n[0])) ? n[t] : "prop";
 }

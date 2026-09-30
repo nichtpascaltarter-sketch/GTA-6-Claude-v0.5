@@ -255,7 +255,7 @@ void rooftopClutter(Ctx& x, vec2 c, vec2 ax, float hx, float hy, float z, Rng& r
     }
 }
 
-void recordMass(Ctx& x, const std::vector<vec2>& fp, float z0, float z1, float vBase, u8 kind, bool parapetOn) {
+void recordMass(Ctx& x, const std::vector<vec2>& fp, float z0, float z1, float vBase, u8 kind, bool parapetOn, u32 facadeId = 0xffffffffu) {
     if (!x.masses) return;
     FacadeMass fm;
     fm.fp = fp;
@@ -264,16 +264,90 @@ void recordMass(Ctx& x, const std::vector<vec2>& fp, float z0, float z1, float v
     fm.vBase = vBase;
     fm.kind = kind;
     fm.parapet = parapetOn;
+    fm.facade = facadeId;
     x.masses->push_back(std::move(fm));
 }
 
 // Mass with facade walls + flat roof + parapet + collision
 void flatMass(Ctx& x, const std::vector<vec2>& fp, float z0, float z1, float vBase, u32 facadeId, float bay, bool parapetOn, u32 roofColor,
-              u8 kind = FM_MAIN) {
-    recordMass(x, fp, z0, z1, vBase, kind, parapetOn);
-    facadeWalls(x, fp, z0 - 3.f, z1 + (parapetOn ? 1.0f : 0.f), vBase, facadeId, bay);
+              u8 kind = FM_MAIN, float skirt = 3.f) {
+    recordMass(x, fp, z0, z1, vBase, kind, parapetOn, facadeId);
+    facadeWalls(x, fp, z0 - skirt, z1 + (parapetOn ? 1.0f : 0.f), vBase, facadeId, bay);
     flatRoof(x, fp, z1 + 0.02f, roofColor, makeMat(MAT_ROOF_GRAVEL));
     if (parapetOn && x.detail) parapet(x, fp, z1, 1.0f, 0.3f, packRGBA8(0.8f, 0.8f, 0.78f, 1), makeMat(MAT_CONCRETE));
+}
+
+// Roof antennas: lattice or pole masts with dishes and panel antennas, red obstruction lamp on the tallest
+void rooftopAntennas(Ctx& x, vec2 c, vec2 ax, float hx, float hy, float z, Rng& r, bool beacon) {
+    if (!x.detail) return;
+    vec2 ay = perp(ax);
+    vec3 X(ax, 0), Y(ay, 0), Z(0, 0, 1);
+    const u32 steel = packRGBA8(0.62f, 0.63f, 0.65f, 1), white = packRGBA8(0.92f, 0.92f, 0.9f, 1), metal = makeMat(MAT_METAL_PAINTED);
+    int n = r.irange(1, 3);
+    float tallest = 0.f;
+    vec2 tallP = c;
+    for (int i = 0; i < n; i++) {
+        vec2 p = c + ax * r.range(-hx * 0.6f, hx * 0.6f) + ay * r.range(-hy * 0.6f, hy * 0.6f);
+        float h = r.range(4.f, 11.f);
+        if (r.chance(0.5f)) {
+            // three-leg lattice mast
+            for (int k = 0; k < 3; k++) {
+                float a = kTwoPi * k / 3.f;
+                vec2 lp = p + vec2(cosf(a), sinf(a)) * 0.35f;
+                x.m->box(vec3(lp, z + h * 0.5f) - x.org, X, Y, Z, vec3(0.04f, 0.04f, h * 0.5f), steel, metal);
+            }
+            for (float zz = 1.2f; zz < h; zz += 1.4f) x.m->cylinder(vec3(p, z + zz) - x.org, 0.36f, 0.36f, 0.05f, 3, steel, metal, false);
+        } else {
+            x.m->cylinder(vec3(p, z) - x.org, 0.09f, 0.05f, h, 6, steel, metal, false);
+        }
+        // panel antennas and a dish
+        for (int k = 0; k < 3; k++) {
+            float a = kTwoPi * k / 3.f + r.f();
+            vec2 d(cosf(a), sinf(a));
+            x.m->box(vec3(p + d * 0.42f, z + h - 1.1f) - x.org, vec3(d, 0), vec3(perp(d), 0), Z, vec3(0.06f, 0.15f, 0.6f), white, metal, true);
+        }
+        if (r.chance(0.6f)) {
+            vec2 d = normalize(ax * r.range(-1.f, 1.f) + ay * r.range(-1.f, 1.f) + vec2(0.01f, 0));
+            vec3 dc = vec3(p + d * 0.55f, z + h * 0.6f);
+            x.m->cylinder(dc - x.org - vec3(0, 0, 0.05f), 0.55f, 0.1f, 0.25f, 10, white, metal, true);
+        }
+        if (h > tallest) { tallest = h; tallP = p; }
+    }
+    if (beacon && x.lights && tallest > 0.f) {
+        x.m->box(vec3(tallP, z + tallest + 0.1f) - x.org, X, Y, Z, vec3(0.1f), packRGBA8(1.f, 0.1f, 0.05f, 0.5f), makeMat(MAT_EMISSIVE, 1u), true);
+        LightInstance li;
+        li.pos = vec3(tallP, z + tallest + 0.3f);
+        li.color = vec3(1, 0.1f, 0.05f) * 300.f;
+        li.radius = 10.f;
+        li.dir = vec3(0);
+        li.cone = 0;
+        li.type = 4;  // aviation beacon
+        x.lights->push_back(li);
+    }
+}
+
+// Helipad markings on a round pad: yellow ring, white H, perimeter lamps
+void helipadMarks(Ctx& x, vec2 c, float rad, float z, vec2 ax) {
+    if (!x.detail) return;
+    vec2 ay = perp(ax);
+    const u32 yellow = packRGBA8(0.95f, 0.78f, 0.1f, 1), white = packRGBA8(0.95f, 0.95f, 0.95f, 1), paint = makeMat(MAT_PAINT_WHITE);
+    const int seg = 24;
+    float r0 = rad * 0.72f, r1 = rad * 0.78f;
+    for (int k = 0; k < seg; k++) {
+        float a0 = kTwoPi * k / seg, a1 = kTwoPi * (k + 1) / seg;
+        vec2 d0(cosf(a0), sinf(a0)), d1(cosf(a1), sinf(a1));
+        x.m->quadFacing(vec3(c + d0 * r0, z) - x.org, vec3(c + d1 * r0, z) - x.org, vec3(c + d1 * r1, z) - x.org, vec3(c + d0 * r1, z) - x.org, vec2(0, 0),
+                        vec2(1, 0), vec2(1, 1), vec2(0, 1), yellow, paint, vec3(0, 0, 1));
+    }
+    float hs = rad * 0.32f, bw = rad * 0.07f;
+    vec3 X(ax, 0), Y(ay, 0), Z(0, 0, 1);
+    for (int s = -1; s <= 1; s += 2) x.m->box(vec3(c + ax * (s * hs * 0.6f), z) - x.org, X, Y, Z, vec3(bw, hs, 0.01f), white, paint);
+    x.m->box(vec3(c, z) - x.org, X, Y, Z, vec3(hs * 0.6f, bw, 0.01f), white, paint);
+    for (int k = 0; k < 8; k++) {
+        float a = kTwoPi * k / 8.f;
+        vec2 p = c + vec2(cosf(a), sinf(a)) * (rad * 0.93f);
+        x.m->box(vec3(p, z + 0.06f) - x.org, X, Y, Z, vec3(0.08f, 0.08f, 0.06f), packRGBA8(0.3f, 1.f, 0.4f, 0.35f), makeMat(MAT_EMISSIVE, 6u), true);
+    }
 }
 
 void awning(Ctx& x, vec2 a, vec2 b, vec2 out, float z, float depth, u32 color) {
@@ -319,9 +393,15 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             float podH = fac.groundH + (podiumFloors - 1) * fac.floorH;
             bool hasPodium = b.floors > podiumFloors + 3 && r.chance(0.75f);
             float topZ = z0 + b.height;
+            // massing variety (separate stream so the far LOD builds the same silhouette): stone podium under a curtain wall,
+            // setbacks on the street side only (stepped profile), extra tiers on mid-height towers
+            Rng mr(b.seed ^ 0x3A55E7u);
+            bool mixed = hasPodium && b.facade2 != 0xffffffffu && b.interior < 0 && gBuildings && b.facade2 < gBuildings->facades.size();
+            bool stepped = mr.chance(0.45f);
             if (hasPodium) {
                 auto fp = rectFP(b.c, b.ax, b.hx, b.hy);
-                flatMass(x, fp, z0, z0 + podH, z0, b.facade, bay, true, roofGray, FM_PODIUM);
+                u32 pf = mixed ? b.facade2 : b.facade;
+                flatMass(x, fp, z0, z0 + podH, z0, pf, mixed ? gBuildings->facades[pf].bayW : bay, true, roofGray, FM_PODIUM);
                 addCollision(x, b.c, b.ax, b.hx, b.hy, z0 - 3.f, z0 + podH);
             }
             float inset = hasPodium ? r.range(2.5f, Min(9.f, Min(b.hx, b.hy) * 0.35f)) : 0.f;
@@ -331,6 +411,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             float towerBase = hasPodium ? z0 + podH : z0;
             // Setback tiers
             int tiers = b.floors > 35 ? r.irange(1, 3) : 1;
+            if (tiers == 1 && b.floors > 20 && mr.chance(0.5f)) tiers = 2;
             float remaining = topZ - towerBase;
             float zc = towerBase;
             for (int t = 0; t < tiers; t++) {
@@ -343,8 +424,17 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 flatMass(x, fp, zc, zc + h, z0, b.facade, bay, true, roofGray, hasPodium || t > 0 ? FM_TIER : FM_MAIN);
                 addCollision(x, tc, b.ax, thx, thy, zc - (t == 0 && !hasPodium ? 3.f : 0.f), zc + h);
                 zc += h;
-                thx *= r.range(0.72f, 0.88f);
-                thy *= r.range(0.72f, 0.88f);
+                float sx = r.range(0.72f, 0.88f), sy = r.range(0.72f, 0.88f);
+                if (stepped) {
+                    // keep the width, step back from the street: the rear face stays flush
+                    float ny = thy * sy;
+                    tc = tc - b.front * (thy - ny);
+                    thy = ny;
+                    thx *= mr.range(0.92f, 1.f);
+                } else {
+                    thx *= sx;
+                    thy *= sy;
+                }
             }
             // Crown
             int crown = r.irange(0, 5);
@@ -354,6 +444,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 plainWalls(x, fp, zc, zc + 4.5f, packRGBA8(0.7f, 0.7f, 0.68f, 1), makeMat(MAT_CONCRETE_PANEL));
                 flatRoof(x, fp, zc + 4.5f, roofGray, makeMat(MAT_ROOF_GRAVEL));
                 rooftopClutter(x, tc, b.ax, thx * 0.9f, thy * 0.9f, zc, r);
+                if (mr.chance(0.55f)) rooftopAntennas(x, tc, b.ax, thx * 0.4f, thy * 0.4f, zc + 4.5f, mr, true);
             } else if (crown == 2) {
                 // spire
                 m.cylinder(vec3(tc, zc) - org, 0.9f, 0.08f, r.range(15.f, 45.f), 8, packRGBA8(0.7f, 0.72f, 0.75f, 1), makeMat(MAT_METAL_BRUSHED), false);
@@ -372,6 +463,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 auto fp = roundFP(tc, Min(thx, thy) * 0.7f, 16, 0.f);
                 flatRoof(x, fp, zc + 0.35f, packRGBA8(0.25f, 0.25f, 0.27f, 1), makeMat(MAT_CONCRETE));
                 plainWalls(x, fp, zc, zc + 0.35f, kWhite, makeMat(MAT_CONCRETE));
+                helipadMarks(x, tc, Min(thx, thy) * 0.7f, zc + 0.37f, b.ax);
             } else if (crown == 4 && detail) {
                 // glass lantern top with emissive crown lights
                 auto fp = rectFP(tc, b.ax, thx * 0.8f, thy * 0.8f);
@@ -383,6 +475,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 plainWalls(x, rim, zc + 6.f, zc + 6.3f, packRGBA8(lc.x, lc.y, lc.z, 0.6f), makeMat(MAT_EMISSIVE));
             } else {
                 rooftopClutter(x, tc, b.ax, thx, thy, zc, r);
+                if (mr.chance(0.3f)) rooftopAntennas(x, tc, b.ax, thx * 0.5f, thy * 0.5f, zc, mr, true);
             }
             break;
         }
@@ -392,11 +485,46 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             auto fp = rectFP(b.c, b.ax, b.hx, b.hy);
             // garages whose roof is an open parking deck (airport) get parapet, ramp and deck furniture from the site generator
             bool deck = b.style == BS_GARAGE && gSites && gSites->roofDeckAt(b.c, z0 + b.height);
-            flatMass(x, fp, z0, z0 + b.height, z0, b.facade, bay, !deck, roofGray);
-            addCollision(x, b.c, b.ax, b.hx, b.hy, z0 - 3.f, z0 + b.height);
+            // midrise massing: storefront base band in its own cladding, top floors set back from the street behind a terrace
+            Rng mr(b.seed ^ 0x3A55E7u);
+            bool plainMid = b.style == BS_MIDRISE && b.interior < 0;
+            bool mixed = plainMid && b.facade2 != 0xffffffffu && gBuildings && b.facade2 < gBuildings->facades.size() && b.floors >= 2;
+            int topFloors = (plainMid && b.floors >= 6 && mr.chance(0.4f)) ? mr.irange(1, 2) : 0;
+            float setD = topFloors ? Min(mr.range(2.2f, 3.8f), b.hy * 0.4f) : 0.f;
+            float zTop = z0 + b.height;
+            float zSet = topFloors ? z0 + fac.groundH + (b.floors - 1 - topFloors) * fac.floorH : zTop;
+            float zBase = z0 + fac.groundH;
+            vec2 roofC = b.c;
+            float roofHy = b.hy;
+            if (!mixed && !topFloors) {
+                flatMass(x, fp, z0, zTop, z0, b.facade, bay, !deck, roofGray);
+                addCollision(x, b.c, b.ax, b.hx, b.hy, z0 - 3.f, zTop);
+            } else {
+                float zLow = z0;
+                if (mixed) {
+                    u32 f2 = b.facade2;
+                    facadeWalls(x, fp, z0 - 3.f, zBase, z0, f2, gBuildings->facades[f2].bayW);
+                    recordMass(x, fp, z0, zBase, z0, FM_PODIUM, false, f2);
+                    zLow = zBase;
+                }
+                // body (full footprint) up to the setback or the roof
+                recordMass(x, fp, zLow, zSet, z0, FM_MAIN, true, b.facade);
+                facadeWalls(x, fp, zLow - (mixed ? 0.f : 3.f), zSet + 1.f, z0, b.facade, bay);
+                flatRoof(x, fp, zSet + 0.02f, roofGray, makeMat(MAT_ROOF_GRAVEL));
+                if (detail) parapet(x, fp, zSet, 1.0f, 0.3f, packRGBA8(0.8f, 0.8f, 0.78f, 1), makeMat(MAT_CONCRETE));
+                addCollision(x, b.c, b.ax, b.hx, b.hy, z0 - 3.f, zSet);
+                if (topFloors) {
+                    roofC = b.c - b.front * (setD * 0.5f);
+                    roofHy = b.hy - setD * 0.5f;
+                    auto tfp = rectFP(roofC, b.ax, b.hx, roofHy);
+                    flatMass(x, tfp, zSet, zTop, z0, b.facade, bay, true, roofGray, FM_TIER, 0.f);
+                    addCollision(x, roofC, b.ax, b.hx, roofHy, zSet, zTop);
+                }
+            }
             if (!deck) {
                 bool oldFabric = b.region == REG_CALLE_LUNA || b.region == REG_NORTH_CITY || b.region == REG_MIDTOWN || b.region == REG_FLATS;
-                rooftopClutter(x, b.c, b.ax, b.hx, b.hy, z0 + b.height, r, b.style == BS_MIDRISE && oldFabric ? 0.4f : 0.12f);
+                rooftopClutter(x, roofC, b.ax, b.hx, roofHy, zTop, r, b.style == BS_MIDRISE && oldFabric ? 0.4f : 0.12f);
+                if (b.style != BS_GARAGE && mr.chance(b.style == BS_CONDO ? 0.15f : 0.25f)) rooftopAntennas(x, roofC, b.ax, b.hx * 0.6f, roofHy * 0.6f, zTop, mr, false);
             }
             if (b.style == BS_CONDO && detail) {
                 // balcony slabs on the front and back facades
@@ -464,6 +592,23 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             }
             // (shop awnings, security gates and signs are part of the street-level detail pass)
             if (detail && b.style == BS_SHOPS) rooftopClutter(x, b.c, b.ax, b.hx, b.hy, z0 + b.height, r);
+            if (b.style == BS_SHOPS && flat) {
+                // false front: a raised, stepped parapet centred on the street face (older main streets)
+                Rng mr(b.seed ^ 0x3A55E7u);
+                bool oldMain = b.region == REG_CALLE_LUNA || b.region == REG_KEY_TOWN || b.region == REG_LAKE_TOWN || b.region == REG_HARLOW ||
+                               b.region == REG_NORTH_CITY || b.region == REG_FLATS || b.region == REG_FORT_CASTELL;
+                if (oldMain && b.hx > 3.5f && mr.chance(0.45f)) {
+                    float w = b.hx * mr.range(0.35f, 0.7f), hgt = mr.range(0.8f, 1.8f);
+                    vec2 fc = b.c + b.front * (b.hy - 0.15f);
+                    u32 pc = packRGBA8(0.93f, 0.92f, 0.88f, 1);
+                    float zt = z0 + b.height + 1.f;
+                    m.box(vec3(fc, zt + hgt * 0.5f) - org, vec3(b.ax, 0), vec3(ay, 0), vec3(0, 0, 1), vec3(w, 0.15f, hgt * 0.5f), pc, makeMat(MAT_PLASTER), false);
+                    if (mr.chance(0.6f))
+                        m.box(vec3(fc, zt + hgt + 0.3f) - org, vec3(b.ax, 0), vec3(ay, 0), vec3(0, 0, 1), vec3(w * 0.45f, 0.15f, 0.3f), pc, makeMat(MAT_PLASTER), false);
+                    m.box(vec3(fc + b.front * 0.02f, zt + hgt + 0.02f) - org, vec3(b.ax, 0), vec3(ay, 0), vec3(0, 0, 1), vec3(w + 0.08f, 0.2f, 0.05f), pc,
+                          makeMat(MAT_CONCRETE), false);
+                }
+            }
             if (detail && b.style == BS_MOTEL) {
                 // walkway slab + railing along the front at the 2nd floor
                 vec2 wc = b.c + b.front * (b.hy + 1.1f);

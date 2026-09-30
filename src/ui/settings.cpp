@@ -20,17 +20,25 @@ const ActionInfo kActions[IA_COUNT] = {
     {"Take Cover", "cover", ICTX_FOOT},              {"Enter / Exit Vehicle", "enter_vehicle", ICTX_ANY},
     {"Attack", "attack", ICTX_ANY},                  {"Aim", "aim", ICTX_ANY},
     {"Reload", "reload", ICTX_ANY},                  {"Weapon Wheel", "weapon_wheel", ICTX_ANY},
+    {"Interact / Vehicle Ability", "interact", ICTX_ANY},
     {"Accelerate", "accelerate", ICTX_VEHICLE},      {"Brake / Reverse", "brake", ICTX_VEHICLE},
     {"Steer Left", "steer_left", ICTX_VEHICLE},      {"Steer Right", "steer_right", ICTX_VEHICLE},
     {"Handbrake", "handbrake", ICTX_VEHICLE},        {"Horn", "horn", ICTX_VEHICLE},
     {"Headlights", "headlights", ICTX_VEHICLE},      {"Look Behind", "look_behind", ICTX_VEHICLE},
-    {"Vehicle Ability", "vehicle_ability", ICTX_VEHICLE}, {"Next Radio Station", "radio_next", ICTX_VEHICLE},
+    {"Next Radio Station", "radio_next", ICTX_VEHICLE},
     {"Previous Radio Station", "radio_prev", ICTX_VEHICLE}, {"Camera View", "camera_view", ICTX_ANY},
     {"Focus", "focus", ICTX_ANY},                    {"Phone", "phone", ICTX_ANY},
     {"Map", "map", ICTX_ANY},
 };
 
-UiOptions g_opts;
+// UI options before the settings file is applied: the default bindings, so prompts are right from the first frame
+UiOptions defaultOptions() {
+    UiOptions o;
+    GameSettings d;
+    memcpy(o.keyBinds, d.keyBinds, sizeof(o.keyBinds));
+    return o;
+}
+UiOptions g_opts = defaultOptions();
 
 // One persisted field: key, type (b bool, i int, f float) and address inside a GameSettings
 struct Field {
@@ -270,10 +278,67 @@ void applyUiSettings(const GameSettings& s) {
     o.hudScale = Clamp(s.hudScale, 0.75f, 1.25f);
     o.highContrastReticle = s.highContrastReticle;
     o.reduceFlashing = s.reduceFlashing;
+    o.padLayout = Clamp(s.padLayout, 0, 2);
+    memcpy(o.keyBinds, s.keyBinds, sizeof(o.keyBinds));
+    float m[9];
+    colorblindMatrix(s.colorblindMode, m);
+    setColorMatrix(s.colorblindMode > 0 ? m : nullptr);
 }
 
 namespace uix {
 const UiOptions& uiOptions() { return settings_detail::g_opts; }
+
+int actionFromKey(const std::string& iniKey) {
+    for (int a = 0; a < IA_COUNT; a++)
+        if (iniKey == settings_detail::kActions[a].key) return a;
+    return -1;
+}
+
+int legacyPromptAction(const std::string& kb, const std::string& pad) {
+    static const struct { const char* kb; const char* pad; InputAction a; } kPairs[] = {
+        {"F", "Y", IA_ENTER_VEHICLE}, {"TAB", "LB", IA_WEAPON_WHEEL}, {"RMB", "LT", IA_AIM},        {"LMB", "RT", IA_ATTACK},
+        {"SHIFT", "A", IA_SPRINT},    {"SPACE", "X", IA_JUMP},        {"Q", "RB", IA_COVER},         {"G", "UP", IA_INTERACT},
+        {"UP", "UP", IA_PHONE},       {"PGUP", "RIGHT", IA_RADIO_NEXT}, {"PGDN", "LEFT", IA_RADIO_PREV}, {"H", "DOWN", IA_HEADLIGHTS},
+        {"E", "LS", IA_HORN},         {"V", "BACK", IA_CAMERA_VIEW},  {"CTRL", "LS", IA_CROUCH},     {"R", "B", IA_RELOAD},
+        {"C", "RS", IA_LOOK_BEHIND},
+    };
+    for (const auto& p : kPairs)
+        if (kb == p.kb && pad == p.pad) return p.a;
+    return -1;
+}
+
+std::string actionPromptKey(int a, bool pad) {
+    const UiOptions& o = settings_detail::g_opts;
+    if (a < 0 || a >= IA_COUNT) return "?";
+    if (pad) {
+        bool alt = o.padLayout == 1, south = o.padLayout == 2;
+        const char* moveStick = south ? "RS" : "LS";
+        const char* lookStick = south ? "LS" : "RS";
+        switch (a) {
+        case IA_MOVE_FORWARD: case IA_MOVE_BACK: case IA_MOVE_LEFT: case IA_MOVE_RIGHT: case IA_WALK:
+        case IA_STEER_LEFT: case IA_STEER_RIGHT: return moveStick;
+        case IA_SPRINT: return alt ? "X" : "A";
+        case IA_JUMP: return alt ? "A" : "X";
+        case IA_CROUCH: case IA_HORN: return moveStick;
+        case IA_COVER: case IA_HANDBRAKE: return "RB";
+        case IA_ENTER_VEHICLE: return "Y";
+        case IA_ATTACK: case IA_ACCELERATE: return "RT";
+        case IA_AIM: case IA_BRAKE: return "LT";
+        case IA_RELOAD: return "B";
+        case IA_WEAPON_WHEEL: return "LB";
+        case IA_INTERACT: case IA_PHONE: return "UP";
+        case IA_HEADLIGHTS: return "DOWN";
+        case IA_LOOK_BEHIND: case IA_FOCUS: return lookStick;
+        case IA_RADIO_NEXT: return "RIGHT";
+        case IA_RADIO_PREV: return "LEFT";
+        case IA_CAMERA_VIEW: return "BACK";
+        case IA_MAP: return "START";
+        default: return "?";
+        }
+    }
+    int vk = o.keyBinds[a][0] ? o.keyBinds[a][0] : o.keyBinds[a][1];
+    return vk ? keyName(vk) : std::string("UNBOUND");
+}
 }  // namespace uix
 
 }  // namespace UI

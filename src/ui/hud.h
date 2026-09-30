@@ -184,10 +184,10 @@ enum InputAction : u8 {
     // on foot
     IA_MOVE_FORWARD = 0, IA_MOVE_BACK, IA_MOVE_LEFT, IA_MOVE_RIGHT, IA_SPRINT, IA_JUMP, IA_WALK, IA_CROUCH, IA_COVER,
     // on foot and in vehicles
-    IA_ENTER_VEHICLE, IA_ATTACK, IA_AIM, IA_RELOAD, IA_WEAPON_WHEEL,
+    IA_ENTER_VEHICLE, IA_ATTACK, IA_AIM, IA_RELOAD, IA_WEAPON_WHEEL, IA_INTERACT,   // interact: jobs, passenger seat, vehicle ability
     // vehicles
     IA_ACCELERATE, IA_BRAKE, IA_STEER_LEFT, IA_STEER_RIGHT, IA_HANDBRAKE, IA_HORN, IA_HEADLIGHTS, IA_LOOK_BEHIND,
-    IA_VEHICLE_ABILITY, IA_RADIO_NEXT, IA_RADIO_PREV,
+    IA_RADIO_NEXT, IA_RADIO_PREV,
     // general
     IA_CAMERA_VIEW, IA_FOCUS, IA_PHONE, IA_MAP,
     IA_COUNT
@@ -220,9 +220,9 @@ struct GameSettings {
     int padLayout = 0;           // 0 standard, 1 alternate (A jump / X sprint), 2 southpaw (sticks swapped)
     u16 keyBinds[IA_COUNT][2] = {
         {KEY_W, 0}, {KEY_S, 0}, {KEY_A, 0}, {KEY_D, 0}, {KEY_SHIFT, 0}, {KEY_SPACE, 0}, {KEY_ALT, 0}, {KEY_CONTROL, 0},
-        {KEY_Q, 0}, {KEY_F, 0}, {KEY_MOUSE_LEFT, 0}, {KEY_MOUSE_RIGHT, 0}, {KEY_R, 0}, {KEY_TAB, 0},
+        {KEY_Q, 0}, {KEY_F, 0}, {KEY_MOUSE_LEFT, 0}, {KEY_MOUSE_RIGHT, 0}, {KEY_R, 0}, {KEY_TAB, 0}, {KEY_G, 0},
         {KEY_W, 0}, {KEY_S, 0}, {KEY_A, 0}, {KEY_D, 0}, {KEY_SPACE, 0}, {KEY_E, 0}, {KEY_H, 0}, {KEY_C, 0},
-        {KEY_G, 0}, {KEY_PGUP, 0}, {KEY_PGDN, 0},
+        {KEY_PGUP, KEY_Q}, {KEY_PGDN, 0},
         {KEY_V, 0}, {0x14, 0}, {KEY_UP, 0}, {KEY_M, 0}};
     // Camera
     bool firstPersonOnFoot = false;      // start on foot in first person (V / Back still toggles in play)
@@ -332,6 +332,9 @@ MenuAction update(MenuState& state, const InputState& in, float dt);
 // Display modes offered by the settings screen; GameSettings::resolutionIndex indexes this list (-1 = native desktop).
 struct DisplayMode { int width, height; };
 const std::vector<DisplayMode>& displayModes();
+// Forgets transient menu state (focus, highlights, the last settings page, a pending key capture); test harnesses
+// call it between scripted shots.
+void reset();
 }
 
 // ------------------------------------------------------------------------------------------------------------------

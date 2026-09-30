@@ -58,6 +58,7 @@ struct App {
     bool pendingPhoto = false;   // photo mode: save the next finished frame
     // --autoplay tour: visit districts at different hours, one screenshot per stop (scorecard evidence)
     int tourStop = -1;
+    int tourFirst = 0, tourCount = 99;   // --tourstart N --tourcount M: run a slice of the tour (repro a single stop)
     float tourT = 0.f;
     bool tourShot = false, tourDone = false;
     int meleeVictim = -1;        // --autoplay melee: the civilian for the takedown
@@ -91,6 +92,8 @@ struct App {
         if (const char* d = Platform::argValue("autoduration")) autoDuration = (float)atof(d);
         if (const char* d = Platform::argValue("autoevery")) autoShotEvery = (float)atof(d);
         if (const char* d = Platform::argValue("renderevery")) renderEvery = Max(1, atoi(d));
+        if (const char* d = Platform::argValue("tourstart")) tourFirst = Max(0, atoi(d));
+        if (const char* d = Platform::argValue("tourcount")) tourCount = Max(1, atoi(d));
         // Generate the world on a background thread while the loading screen animates
         loader = std::thread([this] {
             map.generate();
@@ -691,7 +694,27 @@ struct App {
                 c.usingPad = true;
                 c.look = vec2(hit ? 0.003f : 0.f, 0.f);
             }
-            if ((int)(t / 2.5f) != (int)((t - dt) / 2.5f)) LOG("autoplay rage t=%.1f | %s", t, game.aiCensusText(40.f).c_str());
+            if ((int)(t / 2.5f) != (int)((t - dt) / 2.5f)) {
+                // the car ahead: gap, speed, drive mode and road-rage state
+                std::string ahead = "none";
+                if (pv >= 0) {
+                    const Vehicle& me = game.vehicles[pv];
+                    vec2 mp = me.sim.body.pos.toVec3().xy(), mf = normalize(me.sim.forward().xy() + vec2(1e-4f, 0.f));
+                    float best = 90.f;
+                    for (int i = 0; i < (int)game.vehicles.size(); i++) {
+                        const Vehicle& o = game.vehicles[i];
+                        if (!o.used || i == pv) continue;
+                        vec2 rp = o.sim.body.pos.toVec3().xy() - mp;
+                        float along = dot(rp, mf);
+                        if (along <= 0.f || along > best || fabsf(dot(rp, AI::rightOf(mf))) > 2.5f) continue;
+                        best = along;
+                        const AI::Driver* d = game.traffic.get(i);
+                        ahead = StrFormat("car %d gap %.1f speed %.1f mode %d rage %d driver %d", i, along, o.sim.speed(), d ? (int)d->mode : -1,
+                                          i < (int)game.ai.veh.size() ? (int)game.ai.veh[i].rage : -1, o.seats[0]);
+                    }
+                }
+                LOG("autoplay rage t=%.1f ahead: %s | %s", t, ahead.c_str(), game.aiCensusText(40.f).c_str());
+            }
         } else if (autoplay == "soak") {
             // long drive on the traffic AI through the city while the clock runs (rush hour -> night), with a 3-star
             // chase at 8-10 min and a 4-star chase at 18-20 min; telemetry every 20 s, the own car unstuck if needed
@@ -864,12 +887,12 @@ struct App {
         Ped* pl = game.playerPed();
         if (!pl) return;
         if (tourStop < 0 || (tourShot && tourT > 8.5f)) {
-            tourStop++;
+            tourStop = tourStop < 0 ? Min(tourFirst, n) : tourStop + 1;
             tourT = 0.f;
             tourShot = false;
-            if (tourStop >= n) {
+            if (tourStop >= n || tourStop >= tourFirst + tourCount) {
                 tourDone = true;
-                LOG("autoplay tour done: %d stops", n);
+                LOG("autoplay tour done: %d stops", Min(n, tourFirst + tourCount) - Min(tourFirst, n));
                 return;
             }
             const Stop& st = stops[tourStop];
@@ -878,7 +901,10 @@ struct App {
             pl->pos = dvec3(pos.x, pos.y, game.groundHeight(pos.x, pos.y, pos.z + 2.f));
             pl->vel = vec3(0.f);
             pl->yaw = atan2f(-st.pl->streetDir.x, st.pl->streetDir.y);
-            game.rig.yaw = pl->yaw + st.yawOff;
+            // camera on the street side of the player looking back at the frontages (not jammed into awnings/signs)
+            vec2 sd = st.pl->streetDir, left(-sd.y, sd.x);
+            float side = dot(left, st.pl->outward) >= 0.f ? 1.f : -1.f;
+            game.rig.yaw = pl->yaw + fabsf(st.yawOff) * side;
             game.rig.pitch = -0.1f;
             game.rig.cut = true;
             env.timeOfDay = st.hour;
@@ -1380,27 +1406,27 @@ struct App {
         game.settingsMetric = s.metricUnits;
         game.vibration = s.vibration;
 #endif
+        UI::applyUiSettings(s);   // subtitle size/backing/speaker colours, HUD scale, reticle, reduced HUD flashing, UI colour-blind matrix
     }
 
-    std::string settingsPath() { return Platform::userDataDir() + "settings.bin"; }
+    // %LOCALAPPDATA%\NeonTide\settings.ini: readable key=value text; unknown or missing keys keep their defaults
+    std::string settingsPath() { return Platform::userDataDir() + "settings.ini"; }
     void saveSettings() {
         FILE* f = fopen(settingsPath().c_str(), "wb");
         if (!f) return;
-        u32 magic = 0x53544E31u, size = (u32)sizeof(UI::GameSettings);
-        fwrite(&magic, 4, 1, f);
-        fwrite(&size, 4, 1, f);
-        fwrite(&menu.settings, sizeof(UI::GameSettings), 1, f);
+        std::string text = UI::settingsToText(menu.settings);
+        fwrite(text.data(), 1, text.size(), f);
         fclose(f);
     }
     void loadSettings() {
         FILE* f = fopen(settingsPath().c_str(), "rb");
         if (f) {
-            u32 magic = 0, size = 0;
-            UI::GameSettings s;
-            if (fread(&magic, 4, 1, f) == 1 && fread(&size, 4, 1, f) == 1 && magic == 0x53544E31u && size == sizeof(UI::GameSettings) &&
-                fread(&s, sizeof(UI::GameSettings), 1, f) == 1)
-                menu.settings = s;
+            std::string text;
+            char buf[4096];
+            size_t got;
+            while ((got = fread(buf, 1, sizeof(buf), f)) > 0) text.append(buf, got);
             fclose(f);
+            UI::settingsFromText(text, menu.settings);
         }
         if (autotest) menu.settings.fullscreen = false;
         applySettings();

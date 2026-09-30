@@ -28,6 +28,7 @@ enum SideFlag : int {
     SIDE_JAZ_1, SIDE_JAZ_2, SIDE_JAZ_3,   // SIDE_JAZ_3: businesses earn 25% more (her shout-out)
     SIDE_FIELD_GUIDE,               // every species in the Wild Porto Sol photo census
     SIDE_RIVALS_ALL,                // every race rival's final won
+    SIDE_WISHLIST_ALL,              // every order on Rook's Wishlist delivered
     SIDE_COUNT
 };
 
@@ -65,6 +66,7 @@ enum ExtFlag : int {
     EX_RIVAL_WINS = 300,            // 300..307: races won against each race's rival (by the race's best-time slot)
     EX_RIVAL_FINALS = 308,          // bitmask: rival finals won (a pink slip on the road, a trophy on the water)
     EX_FIELD_GUIDE = 309,           // bitmask of species photographed for the Wild Porto Sol census (phone_game.cpp)
+    EX_WISHLIST_LEVEL = 310,        // orders delivered on Rook's Wishlist (the next order is this modulo the list)
     EX_VEHICLE_MODS = 384,          // 384..503: Tide Customs parts of owned vehicles, 3 ints per garage slot (see shops.cpp)
 };
 

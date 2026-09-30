@@ -56,6 +56,7 @@ struct Building {
     u32 roofColor;
     float lotHx = 0; // lot half-width along ax (gardens, hedges)
     i16 interior = -1;  // enterable interior hosted on the ground floor (world/interiors.h), -1 none
+    u32 facade2 = 0xffffffffu;  // secondary cladding (tower podium, midrise base band), same floor grid; ~0 = none
 };
 
 // A facade-covered mass of a building mesh (main block, podium, tower tier, deco tower, house body), recorded by
@@ -67,6 +68,7 @@ struct FacadeMass {
     float vBase;           // facade v origin (building base)
     u8 kind;
     bool parapet;
+    u32 facade = 0xffffffffu;  // facade record of this mass when it differs from the building's (mixed cladding)
 };
 
 struct BuildingSet {

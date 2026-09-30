@@ -334,6 +334,16 @@ public:
             g.mObjective(StrFormat("~y~%s~s~  Rivalry final: $%lld buy-in against %s's %s", spec.name, fee, rr->name, rr->trophy[0] ? rr->trophy : "car"));
         else
             g.mObjective(StrFormat("~y~%s~s~  Entry fee $%lld, prize $%lld", spec.name, fee, spec.prize));
+        // the grid: a low shot of the rival's car, then behind the player's, while the rival says their piece
+        std::vector<CutsceneShot> shots;
+        if (rivalCar >= 0) {
+            vec3 rp = vehPos(g, rivalCar);
+            vec3 f(t0, 0.f), r(right, 0.f);
+            shots.push_back(shotMove(rp + f * 9.f + r * 3.f + vec3(0.f, 0.f, 0.7f), rp + vec3(0.f, 0.f, 0.8f), rp + f * 7.f + r * 1.5f + vec3(0.f, 0.f, 0.9f),
+                                     rp + vec3(0.f, 0.f, 0.9f), 3.2f, 42.f));
+        }
+        if (playerCar >= 0) shots.push_back(shotVehicle(g, playerCar, 2.2f, -1.f, 48.f));
+        if (!shots.empty()) g.mCutscene(shots);
         rivalSay(g, 0);
         score(SC_CHASE, 0.45f, 5 + spec.bestSlot);
         countdown = 4.f;
@@ -359,6 +369,8 @@ public:
         if (vehicleLost(g, playerCar, spec.domain == 1 ? "boat" : "car")) return MS_FAILED;
         switch (stage) {
             case 1: {
+                if (playerCar >= 0 && g.vehicles[playerCar].sim.speed() > 0.5f) g.vehicles[playerCar].sim.body.vel *= 0.5f;
+                if (g.mInCutscene()) break;   // the grid shots first
                 countdown -= dt;
                 int c = (int)ceilf(countdown);
                 if (c != lastCount && c >= 1 && c <= 3) {
@@ -432,6 +444,7 @@ public:
         const RaceRival* rr = rivalFor(spec.id);
         if (!rr) return;
         setFlag(g, EX_RIVAL_WINS + spec.bestSlot, Min(rivalWins + 1, 99));
+        LOG("[rivals] %s beaten in %s: %d win%s%s", rr->name, spec.name, rivalWins + 1, rivalWins ? "s" : "", finalRace ? ", the final" : "");
         if (!finalRace) {
             if (rivalWins + 1 == 3) {
                 g.notify(rr->name, StrFormat("%s wants a final: next time the %s is on the line.", rr->name, rr->trophy[0] ? rr->trophy : "pink slip"));
@@ -462,8 +475,9 @@ public:
             rv.mods.transmission = 2;
             rv.mods.turbo = true;
             rv.mods.finish = 1;
-            rv.mods.neon = rv.color0;
+            rv.mods.neon = vec3((rr->color & 255) / 255.f, ((rr->color >> 8) & 255) / 255.f, ((rr->color >> 16) & 255) / 255.f);   // sRGB, like the kits
             saveOwnedMods(g, rivalCar);
+            LOG("[rivals] pink slip: %s's %s joins the garages (slot %d)", rr->name, g.vassets[m].spec.name.c_str(), slot);
             g.notify("PINK SLIP", StrFormat("%s's car is yours, tuned as they left it. It waits in every safehouse garage.", rr->name));
         } else {
             long long purse = 10000;
@@ -1504,6 +1518,190 @@ public:
                 }
                 if (g.playerVehicle() >= 0 && g.peds[fugitive].vehicle != g.playerVehicle()) g.warpPedIntoVehicle(fugitive, g.playerVehicle(), 1);
                 testGoal(g, t, dt);
+                break;
+            default: break;
+        }
+    }
+};
+
+// ------------------------------------------------------------------------------------------------------------------
+// Rook's Wishlist: car theft to order from Rook's garage. Each order names a kind of car and where one was last seen;
+// find it, take it (some have alarms, owners or trackers), lose any police and deliver it in one piece. Pay follows the
+// car's value and condition; every lap of the list pays a little more.
+struct WishOrder {
+    Vehicles::VehicleClass cls;
+    int where;               // 0 Sol Beach, 1 Grove Hills, 2 Midtown, 3 North City, 4 Redland, 5 Harlow, 6 Port Isle, 7 Downtown
+    int twist;               // 0 none, 1 alarm (one star), 2 the owner is around, 3 tracker (two stars)
+    const char* order;       // Rook's call
+    const char* got;         // Rook at the garage door
+};
+const WishOrder kWishlist[] = {
+    {Vehicles::VC_SPORTS, 0, 0, "[calm]Buyer wants something fast and loud. There's a sports car sleeping on a Sol Beach curb. Wake it up.",
+     "[happy:0.5]Beautiful. Still warm."},
+    {Vehicles::VC_COUPE, 1, 1, "[calm]Two door coupe in Grove Hills. Rich street, fancy alarms. Be quick about it.",
+     "[happy:0.4]Alarm's still ringing in my ears. Nice work."},
+    {Vehicles::VC_MUSCLE, 4, 2, "[calm]Muscle car out in Redland. The owner sleeps next to it. Wake him up gently.", "[happy:0.4]He loved that car. Now I love it."},
+    {Vehicles::VC_SUV, 2, 0, "[calm]An SUV for a family man. Don't ask. Midtown.", "[calm]Clean. Just how the family man likes it."},
+    {Vehicles::VC_SUPER, 7, 3, "[calm]The big one. A supercar downtown. It has a tracker, so the cops will come. Lose them before you bring it here.",
+     "[happy]Now that is a paycheck on wheels."},
+    {Vehicles::VC_PICKUP, 5, 2, "[calm]Pickup truck in Harlow. The owner has a bat and opinions.", "[happy:0.3]Opinions noted. Truck received."},
+    {Vehicles::VC_VAN, 6, 1, "[calm]A delivery van from Port Isle, logo and all. Don't ask why.", "[calm]Perfect. The logo is the whole point."},
+    {Vehicles::VC_SEDAN, 3, 3, "[calm]A nice sedan in North City. Tracker on board, so shake the tail first.", "[happy:0.4]Quiet car, loud chase. Good job."},
+};
+
+const char* wishClassName(Vehicles::VehicleClass c) {
+    switch (c) {
+        case Vehicles::VC_SPORTS: return "sports car";
+        case Vehicles::VC_COUPE: return "coupe";
+        case Vehicles::VC_MUSCLE: return "muscle car";
+        case Vehicles::VC_SUV: return "SUV";
+        case Vehicles::VC_SUPER: return "supercar";
+        case Vehicles::VC_PICKUP: return "pickup";
+        case Vehicles::VC_VAN: return "van";
+        default: return "sedan";
+    }
+}
+
+class MissionWishlist : public StoryMission {
+public:
+    int level = 0;
+    const WishOrder* w = nullptr;
+    int car = -1, owner = -1, rook = -1;
+    vec3 hint;
+    bool ownerAngry = false;
+    long long won = 0;
+    const char* title() const override { return "Rook's Wishlist"; }
+    const char* brief() const override {
+        return "Rook takes orders for cars. Find the one on his list, take it, lose any police and bring it to his garage in one piece.";
+    }
+    long long reward() const override { return won; }
+    const char* passBanner() const override { return "CAR DELIVERED"; }
+    bool allowRetry() const override { return false; }
+
+    void start(GameWorld& g) override {
+        level = flag(g, EX_WISHLIST_LEVEL);
+        w = &kWishlist[level % (int)ARRAY_COUNT(kWishlist)];
+        const Places& P = gPlaces;
+        const Place* spots[8] = {&P.beachCondo, &P.grove, &P.midtownPark, &P.northCity, &P.redland, &P.harlow, &P.portGate, &P.solarisOne};
+        const Place& spot = *spots[Clamp(w->where, 0, 7)];
+        u32 h = hash32((u32)level * 7919u + 0x315Eu);
+        float yaw = spot.curbYaw;
+        vec3 at = curbOffset(g, spot, hashToFloat(h) * 60.f - 30.f, &yaw);
+        int model = pickModel(g, {w->cls}, h);
+        if (model < 0) model = pickModel(g, {Vehicles::VC_SEDAN, Vehicles::VC_COUPE}, h);
+        car = spawnCar(g, model, at, yaw);
+        if (car >= 0) g.vehicles[car].sim.engineOn = false;
+        // the search area: a point up to 70 m off the car
+        vec2 off(hashToFloat(h >> 8) * 2.f - 1.f, hashToFloat(h >> 16) * 2.f - 1.f);
+        hint = at + vec3(normalize(off + vec2(0.01f, 0.f)) * (30.f + hashToFloat(h >> 4) * 40.f), 0.f);
+        if (w->twist == 2) {
+            // the owner hangs around the car with a bat
+            owner = g.mPed(g.randomCivilianChar(h ^ 0x0A11u, 0), dvec3(placeOffset(g, spot, hashToFloat(h) * 60.f - 30.f, 2.f)), spot.yaw + kPi,
+                           FAC_CIVILIAN);
+            if (owner >= 0) {
+                arm(g, owner, WPN_BAT);
+                g.peds[owner].brain.accuracy = 0.2f;
+                setIdle(g, owner, 10);
+            }
+        }
+        static const char* const kWhere[8] = {"Sol Beach", "Grove Hills", "Midtown", "North City", "Redland", "Harlow", "Port Isle", "Downtown"};
+        goTo(g, hint, 55.f, StrFormat("Find the ~b~%s~s~ on Rook's list. Last seen around %s.", wishClassName(w->cls), kWhere[Clamp(w->where, 0, 7)]),
+             false, false);
+#ifdef HAVE_AUDIO
+        Audio::play2D(Audio::SFX_PHONE_RING, 0.7f);
+#endif
+        phoneLine(g, CAST_ROOK, w->order);
+        score(SC_NOIR, 0.35f, 22);
+    }
+
+    // the owner (twist 2) notices anyone at the car
+    void updateOwner(GameWorld& g) {
+        if (ownerAngry || !pedAlive(g, owner)) return;
+        if (::length(playerPos(g) - vehPos(g, car)) < 10.f || g.playerInVehicle(car)) {
+            ownerAngry = true;
+            g.peds[owner].faction = FAC_ENEMY;
+            enemies.push_back(owner);
+            setCombat(g, owner, g.player, 0.2f);
+            g.mSay(line("Owner", "[angry][shout]Hey! Get away from my car!", owner, 0xffc8c8c8u));
+        }
+    }
+
+    MissionStatus update(GameWorld& g, float dt) override {
+        (void)dt;
+        if (vehicleLost(g, car, "the car on the list")) return MS_FAILED;
+        switch (stage) {
+            case 0:
+                updateOwner(g);
+                if (::length(playerPos(g) - vehPos(g, car)) < 55.f) {
+                    clearGoal(g);
+                    g.mBlipVehicle(car, UI::BLIP_VEHICLE);
+                    g.mObjective(StrFormat("Take the ~b~%s~s~.", wishClassName(w->cls)));
+                    sayMe(g, "[calm]There it is.");
+                    next();
+                }
+                break;
+            case 1:
+                updateOwner(g);
+                if (g.playerInVehicle(car)) {
+                    g.mClearBlips();
+                    if (w->twist == 1) {
+                        setWanted(g, 1);
+                        g.notify("ALARM", "The car alarm went off. Lose the police before you deliver.");
+                    } else if (w->twist == 3) {
+                        setWanted(g, 2);
+                        phoneLine(g, CAST_ROOK, "[calm]The tracker is live. Lose the cops before you come anywhere near my garage.");
+                    }
+                    goTo(g, gPlaces.rookShop.curb, 6.f, "Bring it to ~y~Rook's garage~s~ in one piece.", true);
+                    next();
+                }
+                break;
+            case 2: {
+                updateOwner(g);
+                if (!g.playerInVehicle(car) && g.hudHelpTimer <= 0.f) g.help("Get back in the car on the list.", 2.f);
+                if (arrived(g) && g.playerInVehicle(car)) {
+                    if (g.pinfo.wanted > 0) {
+                        if (g.hudHelpTimer <= 0.f) g.help("Rook won't open up with the police on your tail. Lose them first.", 2.5f);
+                        break;
+                    }
+                    clearGoal(g);
+                    const Vehicle& v = g.vehicles[car];
+                    float cond = Clamp((Clamp(v.sim.health, 0.f, 1000.f) - 250.f) / 750.f, 0.25f, 1.f);
+                    long long base = Clamp((long long)(g.vassets[v.model].spec.price * 0.12f), 1500ll, 18000ll) + (level / (int)ARRAY_COUNT(kWishlist)) * 500;
+                    won = (long long)(base * cond) / 50 * 50;
+                    setFlag(g, EX_WISHLIST_LEVEL, level + 1);
+                    if (level + 1 >= (int)ARRAY_COUNT(kWishlist)) setFlag(g, SIDE_WISHLIST_ALL, 1);
+                    g.removePedFromVehicle(g.player, false);
+                    rook = spawnCast(g, CAST_ROOK, gPlaces.rookShop.door, gPlaces.rookShop.yaw + kPi, FAC_FRIEND);
+                    if (rook >= 0) facePed(g, rook, playerPos(g));
+                    say(g, CAST_ROOK, rook, cond > 0.8f ? w->got : "[angry:0.4]You call this one piece? I'm taking the dents out of your cut.");
+                    g.notify("ROOK'S WISHLIST", StrFormat("Order %d delivered: $%lld (%d%% condition).", level + 1, won, (int)(cond * 100.f)));
+                    next();
+                }
+                break;
+            }
+            case 3:
+                if (!g.mTalking()) {
+                    if (car >= 0 && g.vehicles[car].used) g.vehicles[car].persistent = false;
+                    return MS_PASSED;
+                }
+                break;
+        }
+        return MS_RUNNING;
+    }
+
+    void autotest(GameWorld& g, MissionTest& t) override {
+        float dt = g.dtLast;
+        switch (stage) {
+            case 0: if (t.stageTime > 0.5f) t.teleportNear(vehPos(g, car).xy(), 20.f); break;
+            case 1:
+                if (t.stageTime > 0.5f) {
+                    t.killEnemies();
+                    t.enter(car);
+                }
+                break;
+            case 2:
+                if (g.pinfo.wanted > 0 && t.stageTime > 1.f) setWanted(g, 0);   // losing the police is the police system's test
+                testGoal(g, t, dt, 50.f);
                 break;
             default: break;
         }

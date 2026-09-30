@@ -386,6 +386,28 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
                     case BS_CHURCH: floors = 1; break;
                     default: floors = 1; break;
                 }
+                // Neighbours of the same style never repeat: the previous lot on this block face is the neighbour
+                const Building* nb = nullptr;
+                if (!buildings.empty()) {
+                    const Building& pb = buildings.back();
+                    if (pb.style == st && length(pb.lotC - lot.c) < lot.hx + pb.lotHx + 8.f) nb = &pb;
+                }
+                Rng vr(b.seed ^ 0x6E16B0A5u);
+                if (nb) {
+                    int d = floors - (int)nb->floors, sgn = vr.chance(0.5f) ? 1 : -1;
+                    switch (st) {
+                        case BS_TOWER:
+                            if (abs(d) < Max(3, floors / 6)) floors = Clamp(floors + sgn * vr.irange(Max(4, floors / 5), Max(6, floors / 3)), 12, 85);
+                            break;
+                        case BS_MIDRISE: case BS_CONDO:
+                            if (abs(d) < 2) floors = Max(3, floors + (floors <= 4 ? 1 : sgn) * vr.irange(2, 4));
+                            break;
+                        case BS_SHOPS: case BS_DECO:
+                            if (d == 0 && vr.chance(0.6f)) floors = floors == 1 ? 2 : floors - 1;
+                            break;
+                        default: break;
+                    }
+                }
                 b.floors = (u16)floors;
                 // Facade record
                 FacadeGPU f = {};
@@ -529,6 +551,32 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
                         break;
                     default: break;
                 }
+                // per-building tone and rhythm: palette colours drift a little, and a same-style neighbour never shares its colour
+                // or its window bay
+                if (wallMat != MAT_BRICK && st != BS_WAREHOUSE && st != BS_BARN) {
+                    wall = vmin(wall * vr.range(0.92f, 1.04f) + vec3(vr.range(-0.03f, 0.03f), vr.range(-0.03f, 0.03f), vr.range(-0.03f, 0.03f)), vec3(1.f));
+                    if (nb) {
+                        vec4 pw = unpackRGBA8(facades[nb->facade].wallColor);
+                        vec3 pc(pw.x, pw.y, pw.z);
+                        if (length(pc - wall) < 0.14f) {
+                            const vec3* pal = kPastels;
+                            int np = ARRAY_COUNT(kPastels);
+                            if (st == BS_TOWER || st == BS_STRIPMALL) { pal = kNeutral; np = ARRAY_COUNT(kNeutral); }
+                            else if (reg == REG_CALLE_LUNA || reg == REG_MIDTOWN || reg == REG_KEY_TOWN) { pal = kBright; np = ARRAY_COUNT(kBright); }
+                            float bestD = -1.f;
+                            for (int k = 0; k < np; k++) {
+                                float dk = length(pal[k] - pc) + vr.f() * 0.1f;
+                                if (dk > bestD) { bestD = dk; wall = pal[k]; }
+                            }
+                        }
+                    }
+                }
+                if (nb && st != BS_HOUSE && st != BS_WAREHOUSE && st != BS_BARN) {
+                    float pb = facades[nb->facade].bayW;
+                    if (fabsf(pb - bay) < 0.35f) bay = bay + (bay < 3.2f ? 1.f : -1.f) * vr.range(0.5f, 0.9f);
+                    winW = Clamp(winW * vr.range(0.88f, 1.14f), 0.3f, 0.85f);
+                    winH = Clamp(winH * vr.range(0.9f, 1.1f), 0.45f, 0.85f);
+                }
                 f.floorH = floorH;
                 f.groundH = groundH;
                 f.bayW = bay;
@@ -543,6 +591,27 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
                 f.wallLayer = (float)wallMat;  // converted to the texture layer at upload
                 b.facade = (u32)facades.size();
                 facades.push_back(f);
+                // Mixed cladding: stone / brick / panel podium under a curtain-wall tower, storefront base band on midrises
+                bool clad2 = (st == BS_TOWER && style == 1 && floors > 12 && vr.chance(0.65f)) || (st == BS_MIDRISE && floors >= 4 && vr.chance(0.35f));
+                if (clad2) {
+                    FacadeGPU g = f;
+                    g.seed = b.seed * 747796405u + 2891336453u;
+                    g.style = st == BS_TOWER ? (vr.chance(0.5f) ? 0.f : 2.f) : 0.f;
+                    g.bayW = st == BS_TOWER ? vr.range(2.8f, 3.8f) : vr.range(3.2f, 4.6f);
+                    g.winW = vr.range(0.5f, 0.68f);
+                    g.winH = vr.range(0.58f, 0.72f);
+                    float cm = vr.f();
+                    MaterialId m2 = cm < 0.3f ? MAT_STONE : (cm < 0.55f ? MAT_MARBLE : (cm < 0.8f ? MAT_CONCRETE_PANEL : MAT_BRICK));
+                    vec3 w2 = m2 == MAT_BRICK ? vec3(1.f) : kNeutral[vr.next() % ARRAY_COUNT(kNeutral)] * vr.range(0.8f, 1.f);
+                    if (st == BS_MIDRISE && m2 != MAT_BRICK) w2 = w2 * 0.8f;   // darker base under a light body
+                    g.wallColor = rgb8(w2.x, w2.y, w2.z);
+                    vec3 fr2 = vr.chance(0.6f) ? vec3(0.1f, 0.1f, 0.11f) : vec3(0.75f, 0.7f, 0.6f);
+                    g.frameColor = rgb8(fr2.x, fr2.y, fr2.z);
+                    g.wallLayer = (float)m2;
+                    g.flags = f.flags | 1u;
+                    b.facade2 = (u32)facades.size();
+                    facades.push_back(g);
+                }
                 b.height = groundH + (floors - 1) * floorH;
                 if (st == BS_WAREHOUSE || st == BS_BARN) b.height = floorH;
                 // Roof

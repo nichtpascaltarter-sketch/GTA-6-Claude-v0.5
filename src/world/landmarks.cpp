@@ -836,7 +836,7 @@ void adPoster(G& g, const Ad& ad, vec3 o, vec3 rt, vec3 up, vec3 n, float W, flo
     u32 i2 = m.addVertex(tr - g.org, n, rt, vec2(1, 1), c1, mat), i3 = m.addVertex(tl - g.org, n, rt, vec2(0, 1), c1, mat);
     if (dot(cross(mr - ml, tl - ml), n) > 0) m.quadIdx(i0, i1, i2, i3);
     else m.quadIdx(i0, i3, i2, i1);
-    vec3 off = n * (W * 0.01f);
+    vec3 off = n * Min(W * 0.01f, 0.025f);
     float ta = a * 1.6f;
     float lineW = W * 0.84f;
     std::string h0, h1, s0, s1;
