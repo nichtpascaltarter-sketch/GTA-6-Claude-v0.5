@@ -16,6 +16,18 @@ inline u8 makerId(const std::string& s) {
     return MK_NONE;
 }
 
+// Registration text for a model: three letters (no I, O or Q), a space and three digits, from a hash of the name.
+inline void plateText(CarLook& L, const std::string& key) {
+    u32 h = 2166136261u;
+    for (char c : key) h = (h ^ (u8)c) * 16777619u;
+    static const char kLet[] = "ABCDEFGHJKLMNPRSTUVWXYZ";
+    char* o = L.plate;
+    for (int i = 0; i < 3; i++) { o[i] = kLet[h % 23u]; h = h / 23u + 0x9e3779b9u * (i + 1); }
+    o[3] = ' ';
+    for (int i = 0; i < 3; i++) { o[4 + i] = (char)('0' + h % 10u); h = h / 10u + 0x7f4a7c15u * (i + 1); }
+    o[7] = 0;
+}
+
 // Frame on a surface point: x = viewer's right (horizontal), y = up along the surface, z = surface normal.
 inline Frame surfaceFrame(vec3 p, vec3 n, float lift) {
     vec3 r = cross(vec3(0, 0, 1), n);

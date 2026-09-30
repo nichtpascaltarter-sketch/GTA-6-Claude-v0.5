@@ -205,7 +205,9 @@ struct DynamicRenderer {
         cb.data.tint0 = d.tint0;
         cb.data.tint1 = d.tint1;
         cb.data.params = vec4((float)d.lightBits, (float)boneOffset, d.wetExposed, d.emissiveScale);
-        cb.data.params2 = vec4(d.model->skinned ? 1.f : 0.f, d.glassTint, 1.f, d.paintFinish);
+        // y: window tint (rigid) / hair strand cards present over the hair shell (skinned)
+        float y2 = d.model->skinned ? (d.model->cardStart < d.model->indexCount ? 1.f : 0.f) : d.glassTint;
+        cb.data.params2 = vec4(d.model->skinned ? 1.f : 0.f, y2, 1.f, d.paintFinish);
         cb.data.damage0 = d.damage0;
         cb.data.damage1 = d.damage1;
         cb.data.dmgBoxC = d.dmgBoxC;

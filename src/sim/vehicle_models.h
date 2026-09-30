@@ -54,6 +54,9 @@ struct VehicleModel {
     vec3 rotorPos;          // where the rotor mesh is attached
     MeshData tailRotor;     // helicopters: tail rotor (spin axis +X); empty otherwise
     vec3 tailRotorPos;
+    MeshData caliper;       // brake caliper in the same local frame as `wheel` (left wheels turned the same way): draw it
+                            // at every wheel with the wheel transform WITHOUT the spin (steer + suspension only), close
+                            // range only (LOD0); empty if none
     std::vector<WheelSpec> wheels;
     std::vector<SeatSpec> seats;
     std::vector<LightSpec> lights;

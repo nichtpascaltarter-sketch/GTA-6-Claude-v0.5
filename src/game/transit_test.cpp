@@ -734,10 +734,25 @@ void tram(GameWorld& g, float dt) {
             tr::Tram& t = tr::gT2.trams[gT.tram];
             const World::TramStop& st = L.stops[gT.tramStop];
             g.rig.yaw = atan2f(st.along.x, -st.along.y);   // look up the street toward the coming tram
+            gT.diagT -= dt;
+            if (gT.diagT <= 0.f) {
+                gT.diagT = 5.f;
+                std::string diag = tr::tramDiag(g, t);
+                LOG("Transit test [tram]: waiting: to stop %.1f m | %s", L.ahead(t.s, st.s), diag.c_str());
+            }
             if (t.materialized() && gT.shot == 0 && L.ahead(t.s, st.s) < 50.f && gT.stageT > 1.f) {
                 vec3 tp = g.vehicles[t.sec[0]].sim.body.pos.toVec3();
                 scriptCam(g, vec3(st.pos + st.along * 16.f + st.face * 0.4f, st.z + 1.9f), tp + vec3(0, 0, 1.6f), 55.f);
                 snap(g, "tram_arriving");
+            }
+            // taking long: a look from above at where the tram is
+            if (t.materialized() && gT.stageT > 70.f && !gT.stuckShot && gT.pendName.empty()) {
+                const Vehicle& v0 = g.vehicles[t.sec[0]];
+                vec3 bp = v0.sim.body.pos.toVec3(), f = v0.sim.forward();
+                vec3 side = normalize(cross(f, vec3(0, 0, 1)));
+                scriptCam(g, bp - f * 12.f - side * 6.f + vec3(0, 0, 16.f), bp + f * 12.f, 60.f);
+                snap(g, "tram_waiting");
+                gT.stuckShot = true;
             }
             if (t.materialized() && t.phase == 1 && t.next == gT.tramStop && t.doors > 0.9f) {
                 releaseCam(g);
@@ -800,8 +815,8 @@ void tram(GameWorld& g, float dt) {
             gT.diagT -= dt;
             if (gT.diagT <= 0.f) {
                 gT.diagT = 5.f;
-                LOG("Transit test [tram]: s %.0f v %.1f a %.2f phase %d next %d (%s) doors %.2f held %.1f lineJ %d passedJ %d", t.s, t.v, t.a, t.phase, t.next,
-                    L.stops[t.next].name.c_str(), t.doors, t.held, t.lineJ, t.passedJ);
+                std::string diag = tr::tramDiag(g, t);
+                LOG("Transit test [tram]: riding: next %s | %s", L.stops[t.next].name.c_str(), diag.c_str());
             }
             if (t.phase == 1 && gT.lastPhase == 0) {
                 gT.tramStops++;

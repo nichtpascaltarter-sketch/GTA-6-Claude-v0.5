@@ -1236,6 +1236,33 @@ void submit(GameWorld& g) {
 
 bool playerOnTram() { return gT2.ride >= 0; }
 
+// One line on what a tram is doing (tests): position, speed, stop, the junction it deals with, what is on the rails
+std::string tramDiag(GameWorld& g, Tram& t) {
+    const World::TramLine& L = line();
+    std::string s = StrFormat("mat %d s %.1f v %.2f a %.2f phase %d next %d dwell %.1f doors %.2f held %.1f lineJ %d passedJ %d lineStop %.1f", (int)t.materialized(),
+                              t.s, t.v, t.a, t.phase, t.next, t.dwell, t.doors, t.held, t.lineJ, t.passedJ, t.lineStop);
+    if (t.lineJ >= 0 && t.lineJ < (int)L.junctions.size()) {
+        const World::TramJunction& J = L.junctions[t.lineJ];
+        int ci = t.lineJ < (int)gT2.jConn.size() ? gT2.jConn[t.lineJ] : -1;
+        int sig = -1;
+        if (ci >= 0) {
+            const AI::Connector& C = g.laneGraph.conns[ci];
+            sig = (int)g.laneGraph.movementSignal(C.node, C.approach, C.turn, g.traffic.time);
+        }
+        s += StrFormat(" | J node %d control %d minor %d turn %d line in %.1f m sig %d", J.node, (int)J.control, (int)J.minor, J.turn, L.ahead(t.s, J.sIn - 1.6f), sig);
+    }
+    if (t.materialized()) {
+        int hb;
+        bool hp;
+        float gap = scanAhead(g, t, 40.f, &hb, &hp);
+        if (hb >= 0) {
+            const AI::Body& b = g.traffic.bodies[hb];
+            s += StrFormat(" | on the rails: %s %d at %.1f m (%.1f, %.1f) v %.1f fl %d", hp ? "ped" : "car", b.host, gap, b.pos.x, b.pos.y, b.speed, (int)b.flags);
+        }
+    }
+    return s;
+}
+
 }  // namespace tr
 }  // namespace Transit
 }  // namespace Game

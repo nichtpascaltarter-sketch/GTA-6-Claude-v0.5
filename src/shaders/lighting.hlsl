@@ -189,7 +189,10 @@ float3 hairDirect(GBufferData g, float3 N, float3 V, float3 L) {
     // cuticle reflectance stays low at grazing angles (fibres, not a smooth shell): no Schlick rim blow-up on
     // lashes, brows and the silhouette of the hair volume
     const float F = 0.05;
-    float3 spec = (s1 * F * 0.35 * (0.4 + 0.8 * g.extra) + s2 * g.albedo * (0.3 + g.extra * 0.9) * 0.2) * vis;
+    // per-strand sparkle: on cards a few strands carry most of the highlight, so it breaks up instead of forming a
+    // satin band (curly and coily hair especially)
+    float sparkle = sHairCard ? 0.12 + 1.5 * g.extra * g.extra : 0.4 + 0.8 * g.extra;
+    float3 spec = (s1 * F * 0.35 * sparkle + s2 * g.albedo * (0.3 + g.extra * 0.9) * 0.2) * vis;
     return g.albedo / PI * saturate(NoL * 0.6 + 0.4) * 0.85 + spec;
 }
 

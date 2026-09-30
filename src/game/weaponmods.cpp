@@ -82,6 +82,7 @@ void tintWeaponMesh(MeshData& m, int tint) {
     if (tint <= 0 || tint >= kWeaponTints) return;
     vec3 tc = wmods_detail::kTintColors[tint];
     for (VtxStatic& v : m.verts) {
+        if ((v.mat & 0xffu) == MAT_RUBBER) continue;   // openings, grooves, grip texture and pads keep their colour
         vec4 c = unpackRGBA8(v.color);
         float lum = c.x * 0.3f + c.y * 0.59f + c.z * 0.11f;
         if (lum > 0.1f) continue;

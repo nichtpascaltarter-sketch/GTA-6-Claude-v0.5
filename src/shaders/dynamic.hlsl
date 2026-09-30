@@ -314,6 +314,14 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         ao *= lerp(0.62, 1.0, saturate(clump * 1.4 - 0.1)) * lerp(0.85, 1.0, strand);
         rough = 0.4;
         extra = strand;   // sparkle of the secondary (coloured) highlight
+        if (gObjParams2.y > 0.5) {
+            // LOD0: strand cards cover this shell, which stands for the inner hair volume: occluded, darker and
+            // without a continuous highlight band of its own (the cards carry the highlights)
+            albedo *= 0.8;
+            ao *= 0.6;
+            extra *= 0.3;
+            rough = 0.75;   // broad, dim lobe
+        }
     } else if (matId == M_CLOTH || matId == M_DENIM) {
         sm = SM_CLOTH;
         bool denim = matId == M_DENIM;

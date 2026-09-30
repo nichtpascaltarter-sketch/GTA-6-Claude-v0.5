@@ -119,8 +119,10 @@ void buildWeaponMesh(WeaponType w, MeshData& m) {
     u32 steel = packRGBA8(0.55f, 0.56f, 0.58f, 1), wood = packRGBA8(0.42f, 0.24f, 0.12f, 1);
     u32 poly = packRGBA8(0.05f, 0.05f, 0.05f, 1), tan = packRGBA8(0.45f, 0.38f, 0.26f, 1);
     u32 olive = packRGBA8(0.2f, 0.24f, 0.14f, 1);
+    u32 white = packRGBA8(0.85f, 0.85f, 0.82f, 1);
     u32 matMetal = makeMat(MAT_METAL_PAINTED), matSteel = makeMat(MAT_METAL_BRUSHED), matPlastic = makeMat(MAT_PLASTIC);
     u32 matWood = makeMat(MAT_WOOD);
+    u32 matRubber = makeMat(MAT_RUBBER);   // openings, grooves, grip texture and pads: tints leave these alone
     vec3 F(0, 1, 0), U(0, 0, 1);
     auto grip = [&](vec3 base, float len, float ang, vec3 he, u32 col, u32 mat) {
         // grip tilted back by ang (rotation around X)
@@ -130,40 +132,178 @@ void buildWeaponMesh(WeaponType w, MeshData& m) {
     };
     switch (w) {
         case WPN_PISTOL: {
-            obox(m, vec3(0, 0.075f, 0.055f), F, U, vec3(0.013f, 0.095f, 0.017f), gun, matMetal);        // slide
-            obox(m, vec3(0, 0.07f, 0.03f), F, U, vec3(0.012f, 0.085f, 0.012f), poly, matPlastic);       // frame
-            cylinderAB(m, vec3(0, 0.16f, 0.055f), vec3(0, 0.175f, 0.055f), 0.006f, 0.006f, 8, black, matSteel);
+            // polymer-frame striker pistol, detailed for first person: bevelled slide with front and rear serrations,
+            // ejection port over the barrel hood, three-dot sights, rail, controls, stippled grip
+            obox(m, vec3(0, 0.075f, 0.052f), F, U, vec3(0.013f, 0.095f, 0.014f), gun, matMetal);        // slide
+            obox(m, vec3(0, 0.075f, 0.069f), F, U, vec3(0.0092f, 0.095f, 0.003f), gun, matMetal);      // slide top
+            for (int sd = -1; sd <= 1; sd += 2) {
+                float sx = (float)sd;
+                obox(m, vec3(sx * 0.0112f, 0.075f, 0.0663f), F, normalize(vec3(-sx, 0.f, 1.f)), vec3(0.0027f, 0.095f, 0.0012f), gun, matMetal);
+                for (int k = 0; k < 7; k++)   // rear serrations
+                    obox(m, vec3(sx * 0.0131f, -0.0165f + k * 0.0036f, 0.053f), F, U, vec3(0.0004f, 0.0011f, 0.011f), black, matRubber);
+                for (int k = 0; k < 4; k++)   // front serrations
+                    obox(m, vec3(sx * 0.0131f, 0.122f + k * 0.0036f, 0.053f), F, U, vec3(0.0004f, 0.0011f, 0.0095f), black, matRubber);
+            }
+            obox(m, vec3(0.0072f, 0.075f, 0.0705f), F, U, vec3(0.0052f, 0.019f, 0.0018f), black, matRubber);   // ejection port
+            obox(m, vec3(0.003f, 0.075f, 0.071f), F, U, vec3(0.0042f, 0.017f, 0.0017f), steel, matSteel);     // barrel hood
+            obox(m, vec3(0, -0.0203f, 0.055f), F, U, vec3(0.009f, 0.0008f, 0.011f), black, matMetal);          // slide plate
+            // rear sight (notch between two posts) and front post, white dots facing the eye
+            for (int sd = -1; sd <= 1; sd += 2) {
+                obox(m, vec3(sd * 0.0048f, -0.011f, 0.0748f), F, U, vec3(0.0026f, 0.0045f, 0.0028f), black, matMetal);
+                obox(m, vec3(sd * 0.0048f, -0.0157f, 0.0752f), F, U, vec3(0.0009f, 0.0003f, 0.0009f), white, matPlastic);
+            }
+            obox(m, vec3(0, 0.158f, 0.0748f), F, U, vec3(0.0017f, 0.0045f, 0.0028f), black, matMetal);
+            obox(m, vec3(0, 0.1533f, 0.0755f), F, U, vec3(0.0009f, 0.0003f, 0.0009f), white, matPlastic);
+            // frame: dust cover with an accessory rail, barrel crown and bore
+            obox(m, vec3(0, 0.075f, 0.029f), F, U, vec3(0.012f, 0.075f, 0.011f), poly, matPlastic);
+            for (int k = 0; k < 3; k++)
+                obox(m, vec3(0, 0.108f + k * 0.014f, 0.0172f), F, U, vec3(0.0105f, 0.0035f, 0.0014f), poly, matPlastic);
+            cylinderAB(m, vec3(0, 0.166f, 0.055f), vec3(0, 0.1715f, 0.055f), 0.0064f, 0.0064f, 12, steel, matSteel);
+            cylinderAB(m, vec3(0, 0.1715f, 0.055f), vec3(0, 0.172f, 0.055f), 0.0043f, 0.0043f, 10, black, matRubber);
+            // grip with stippled panels, beavertail and magazine base
             grip(vec3(0, 0.0f, 0.03f), 0.11f, 0.3f, vec3(0.014f, 0.017f, 0.055f), poly, matPlastic);
-            obox(m, vec3(0, 0.035f, 0.005f), F, U, vec3(0.004f, 0.025f, 0.003f), poly, matPlastic);    // trigger guard
-            obox(m, vec3(0, 0.16f, 0.075f), F, U, vec3(0.003f, 0.004f, 0.004f), black, matMetal);      // sight
+            {
+                vec3 dir = normalize(vec3(0, -sinf(0.3f), -cosf(0.3f))), ax = cross(vec3(1, 0, 0), dir) * -1.f;
+                vec3 base(0, 0.0f, 0.03f);
+                for (int sd = -1; sd <= 1; sd += 2)
+                    obox(m, base + dir * 0.058f + vec3(sd * 0.0143f, 0.f, 0.f), ax, dir * -1.f, vec3(0.0006f, 0.012f, 0.034f),
+                         packRGBA8(0.035f, 0.035f, 0.036f, 1), matRubber);
+                obox(m, base + dir * 0.112f, ax, dir * -1.f, vec3(0.0155f, 0.0195f, 0.0035f), poly, matPlastic);   // mag base
+                obox(m, vec3(0, -0.021f, 0.029f), vec3(0, 1, 0.25f), U, vec3(0.011f, 0.008f, 0.0035f), poly, matPlastic);   // beavertail
+            }
+            // trigger guard (bar and front post), trigger blade
+            obox(m, vec3(0, 0.037f, -0.006f), F, U, vec3(0.0042f, 0.024f, 0.0022f), poly, matPlastic);
+            obox(m, vec3(0, 0.0605f, 0.006f), F, U, vec3(0.0042f, 0.0025f, 0.012f), poly, matPlastic);
+            obox(m, vec3(0, 0.031f, 0.007f), F, normalize(vec3(0, -0.3f, 1.f)), vec3(0.0024f, 0.0018f, 0.0085f), black, matMetal);
+            // controls on the left: slide stop, takedown lever, magazine release
+            obox(m, vec3(-0.0133f, 0.047f, 0.037f), F, U, vec3(0.0012f, 0.012f, 0.0028f), black, matMetal);
+            obox(m, vec3(-0.0127f, 0.072f, 0.03f), F, U, vec3(0.0009f, 0.004f, 0.0028f), black, matMetal);
+            obox(m, vec3(-0.0142f, 0.013f, 0.021f), F, U, vec3(0.0018f, 0.0042f, 0.0042f), black, matPlastic);
             break;
         }
         case WPN_REVOLVER: {
-            cylinderAB(m, vec3(0, 0.05f, 0.05f), vec3(0, 0.22f, 0.05f), 0.009f, 0.009f, 10, steel, matSteel);  // barrel
-            obox(m, vec3(0, 0.13f, 0.06f), F, U, vec3(0.006f, 0.09f, 0.006f), steel, matSteel);                 // rib
-            cylinderAB(m, vec3(0, 0.02f, 0.045f), vec3(0, 0.065f, 0.045f), 0.02f, 0.02f, 12, steel, matSteel);  // drum
-            obox(m, vec3(0, 0.01f, 0.03f), F, U, vec3(0.011f, 0.03f, 0.022f), steel, matSteel);                 // frame
+            // stainless magnum, detailed for first person: barrel with ejector shroud and top rib, blade front sight
+            // with a red insert, notch rear sight in the top strap (line of sight z 0.0715), fluted cylinder,
+            // hammer, trigger guard, cylinder latch, checkered wooden grips
+            cylinderAB(m, vec3(0, 0.07f, 0.05f), vec3(0, 0.22f, 0.05f), 0.0095f, 0.0095f, 12, steel, matSteel);  // barrel
+            cylinderAB(m, vec3(0, 0.22f, 0.05f), vec3(0, 0.2205f, 0.05f), 0.0055f, 0.0055f, 10, black, matRubber);
+            obox(m, vec3(0, 0.135f, 0.038f), F, U, vec3(0.006f, 0.085f, 0.006f), steel, matSteel);                 // ejector shroud
+            obox(m, vec3(0, 0.135f, 0.0615f), F, U, vec3(0.0055f, 0.085f, 0.004f), steel, matSteel);               // top rib
+            obox(m, vec3(0, 0.212f, 0.0685f), F, U, vec3(0.0015f, 0.006f, 0.003f), steel, matSteel);               // front blade
+            obox(m, vec3(0, 0.2058f, 0.069f), F, U, vec3(0.0012f, 0.0003f, 0.0016f), packRGBA8(0.8f, 0.08f, 0.05f, 1), matPlastic);
+            obox(m, vec3(0, 0.04f, 0.066f), F, U, vec3(0.006f, 0.035f, 0.0035f), steel, matSteel);                 // top strap
+            for (int sd = -1; sd <= 1; sd += 2)
+                obox(m, vec3(sd * 0.0035f, 0.008f, 0.0705f), F, U, vec3(0.002f, 0.004f, 0.0015f), black, matMetal);   // rear notch
+            cylinderAB(m, vec3(0, 0.02f, 0.045f), vec3(0, 0.065f, 0.045f), 0.02f, 0.02f, 18, steel, matSteel);     // cylinder
+            for (int k = 0; k < 6; k++) {
+                float a = kPi / 6.f + k * kPi / 3.f;
+                vec3 rd(cosf(a), 0.f, sinf(a));
+                obox(m, vec3(0, 0.0425f, 0.045f) + rd * 0.0196f, F, rd, vec3(0.0035f, 0.017f, 0.0012f), packRGBA8(0.3f, 0.3f, 0.31f, 1), matRubber);
+            }
+            obox(m, vec3(0, 0.01f, 0.03f), F, U, vec3(0.011f, 0.03f, 0.022f), steel, matSteel);                    // frame
+            obox(m, vec3(0, -0.02f, 0.058f), vec3(0, 1, 0.8f), U, vec3(0.003f, 0.004f, 0.012f), steel, matSteel);   // hammer
+            obox(m, vec3(0, 0.03f, 0.0f), F, U, vec3(0.004f, 0.022f, 0.002f), steel, matSteel);                     // trigger guard
+            obox(m, vec3(0, 0.05f, 0.01f), F, U, vec3(0.004f, 0.002f, 0.01f), steel, matSteel);
+            obox(m, vec3(0, 0.026f, 0.011f), F, normalize(vec3(0, -0.3f, 1.f)), vec3(0.0024f, 0.0018f, 0.0085f), steel, matSteel);
+            obox(m, vec3(-0.0115f, 0.0f, 0.045f), F, U, vec3(0.0012f, 0.006f, 0.003f), steel, matSteel);            // cylinder latch
             grip(vec3(0, -0.01f, 0.02f), 0.1f, 0.45f, vec3(0.013f, 0.016f, 0.05f), wood, matWood);
+            {
+                vec3 dir = normalize(vec3(0, -sinf(0.45f), -cosf(0.45f))), ax = cross(vec3(1, 0, 0), dir) * -1.f;
+                for (int sd = -1; sd <= 1; sd += 2)
+                    obox(m, vec3(sd * 0.0133f, -0.01f, 0.02f) + dir * 0.05f, ax, dir * -1.f, vec3(0.0005f, 0.011f, 0.03f),
+                         packRGBA8(0.3f, 0.16f, 0.08f, 1), matRubber);   // checkering
+            }
             break;
         }
         case WPN_SMG: {
-            obox(m, vec3(0, 0.08f, 0.05f), F, U, vec3(0.02f, 0.13f, 0.03f), gun, matMetal);            // receiver
-            cylinderAB(m, vec3(0, 0.2f, 0.055f), vec3(0, 0.27f, 0.055f), 0.01f, 0.01f, 10, black, matSteel);
+            // compact SMG, detailed for first person: split receiver with a top rail, iron sights (line of sight
+            // z 0.094), charging handle, port, barrel shroud, ribbed magazine, twin-bar stock with a rubber pad
+            u32 lower = packRGBA8(0.085f, 0.086f, 0.09f, 1);
+            obox(m, vec3(0, 0.08f, 0.063f), F, U, vec3(0.0175f, 0.13f, 0.017f), gun, matMetal);         // upper
+            obox(m, vec3(0, 0.06f, 0.033f), F, U, vec3(0.019f, 0.1f, 0.013f), lower, matMetal);          // lower
+            obox(m, vec3(0, 0.085f, 0.0825f), F, U, vec3(0.0095f, 0.105f, 0.0025f), black, matMetal);   // rail
+            for (int k = 0; k < 20; k++)
+                obox(m, vec3(0, -0.012f + k * 0.0104f, 0.0862f), F, U, vec3(0.01f, 0.0028f, 0.0012f), black, matMetal);
+            for (int sd = -1; sd <= 1; sd += 2) {
+                obox(m, vec3(sd * 0.0045f, -0.03f, 0.0915f), F, U, vec3(0.0022f, 0.004f, 0.0045f), black, matMetal);   // rear posts
+                obox(m, vec3(sd * 0.0075f, 0.19f, 0.0905f), F, U, vec3(0.0012f, 0.004f, 0.0045f), black, matMetal);    // front ears
+            }
+            obox(m, vec3(0, -0.03f, 0.0885f), F, U, vec3(0.0068f, 0.004f, 0.0015f), black, matMetal);
+            obox(m, vec3(0, 0.19f, 0.0875f), F, U, vec3(0.009f, 0.005f, 0.0015f), black, matMetal);
+            obox(m, vec3(0, 0.19f, 0.091f), F, U, vec3(0.0013f, 0.0025f, 0.003f), black, matMetal);     // front post
+            obox(m, vec3(-0.019f, 0.13f, 0.068f), F, U, vec3(0.004f, 0.006f, 0.003f), black, matMetal);  // charging handle
+            obox(m, vec3(0.0178f, 0.07f, 0.066f), F, U, vec3(0.0006f, 0.02f, 0.0065f), black, matRubber); // ejection port
+            cylinderAB(m, vec3(-0.019f, 0.005f, 0.036f), vec3(-0.0205f, 0.005f, 0.036f), 0.005f, 0.005f, 10, black, matMetal);  // selector
+            cylinderAB(m, vec3(0, 0.205f, 0.055f), vec3(0, 0.235f, 0.055f), 0.015f, 0.015f, 10, black, matMetal);   // shroud
+            cylinderAB(m, vec3(0, 0.235f, 0.055f), vec3(0, 0.27f, 0.055f), 0.0095f, 0.0095f, 10, black, matSteel);
+            cylinderAB(m, vec3(0, 0.27f, 0.055f), vec3(0, 0.2705f, 0.055f), 0.0048f, 0.0048f, 10, black, matRubber);
             obox(m, vec3(0, 0.07f, -0.04f), vec3(0, 1, -0.1f), U, vec3(0.012f, 0.018f, 0.07f), black, matMetal);  // magazine
+            for (int sd = -1; sd <= 1; sd += 2)
+                obox(m, vec3(sd * 0.0122f, 0.07f, -0.045f), vec3(0, 1, -0.1f), U, vec3(0.0006f, 0.01f, 0.055f), packRGBA8(0.05f, 0.05f, 0.052f, 1),
+                     matRubber);
+            obox(m, vec3(0, 0.028f, -0.006f), F, U, vec3(0.0042f, 0.018f, 0.002f), lower, matMetal);    // trigger guard
+            obox(m, vec3(0, 0.046f, 0.006f), F, U, vec3(0.0042f, 0.0022f, 0.012f), lower, matMetal);
+            obox(m, vec3(0, 0.026f, 0.007f), F, normalize(vec3(0, -0.3f, 1.f)), vec3(0.0024f, 0.0018f, 0.0085f), black, matMetal);
             grip(vec3(0, -0.02f, 0.02f), 0.1f, 0.25f, vec3(0.014f, 0.018f, 0.05f), poly, matPlastic);
-            obox(m, vec3(0, -0.12f, 0.045f), F, U, vec3(0.008f, 0.09f, 0.012f), black, matMetal);     // stock bar
-            obox(m, vec3(0, -0.21f, 0.03f), F, U, vec3(0.014f, 0.012f, 0.04f), black, matMetal);      // butt
-            obox(m, vec3(0, 0.1f, 0.085f), F, U, vec3(0.006f, 0.05f, 0.006f), black, matMetal);        // rail
+            for (int sd = -1; sd <= 1; sd += 2)
+                obox(m, vec3(sd * 0.009f, -0.12f, 0.05f), F, U, vec3(0.003f, 0.09f, 0.005f), black, matMetal);   // stock bars
+            obox(m, vec3(0, -0.21f, 0.035f), F, U, vec3(0.014f, 0.008f, 0.038f), black, matMetal);
+            obox(m, vec3(0, -0.2195f, 0.035f), F, U, vec3(0.0145f, 0.0025f, 0.039f), packRGBA8(0.03f, 0.03f, 0.03f, 1), matRubber);
             break;
         }
         case WPN_RIFLE: {
-            obox(m, vec3(0, 0.07f, 0.05f), F, U, vec3(0.022f, 0.16f, 0.035f), gun, matMetal);          // receiver
-            obox(m, vec3(0, 0.3f, 0.055f), F, U, vec3(0.024f, 0.09f, 0.026f), black, matPlastic);      // handguard
-            cylinderAB(m, vec3(0, 0.38f, 0.055f), vec3(0, 0.56f, 0.055f), 0.008f, 0.008f, 10, black, matSteel);
-            cylinderAB(m, vec3(0, 0.56f, 0.055f), vec3(0, 0.6f, 0.055f), 0.012f, 0.011f, 10, black, matSteel);  // muzzle brake
-            obox(m, vec3(0, 0.1f, -0.045f), vec3(0, 1, 0.25f), U, vec3(0.013f, 0.022f, 0.07f), black, matMetal);  // curved mag
+            // carbine, detailed for first person: split receiver with a full-length top rail, charging handle,
+            // forward assist and port cover, vented octagonal handguard, gas block, birdcage flash hider, curved
+            // magazine, buffer tube and collapsible stock
+            u32 lower = packRGBA8(0.085f, 0.086f, 0.09f, 1);
+            obox(m, vec3(0, 0.07f, 0.067f), F, U, vec3(0.0175f, 0.155f, 0.018f), gun, matMetal);        // upper receiver
+            obox(m, vec3(0, 0.045f, 0.032f), F, U, vec3(0.0195f, 0.105f, 0.017f), lower, matMetal);     // lower receiver
+            obox(m, vec3(0, 0.07f, 0.087f), F, U, vec3(0.0105f, 0.155f, 0.0022f), black, matMetal);     // receiver rail
+            obox(m, vec3(0, 0.3f, 0.0845f), F, U, vec3(0.0105f, 0.088f, 0.0047f), black, matMetal);     // handguard rail
+            for (int k = 0; k < 44; k++)
+                obox(m, vec3(0, -0.078f + k * 0.0104f, 0.0902f), F, U, vec3(0.011f, 0.0028f, 0.0012f), black, matMetal);
+            obox(m, vec3(0, -0.088f, 0.078f), F, U, vec3(0.017f, 0.005f, 0.0035f), black, matMetal);    // charging handle
+            obox(m, vec3(0.0178f, 0.055f, 0.068f), F, U, vec3(0.0007f, 0.033f, 0.009f), black, matMetal);   // port cover
+            cylinderAB(m, vec3(0.0172f, -0.045f, 0.072f), vec3(0.0265f, -0.037f, 0.072f), 0.0055f, 0.0055f, 10, gun, matMetal);
+            obox(m, vec3(0.0205f, 0.075f, 0.03f), F, U, vec3(0.0015f, 0.004f, 0.004f), black, matMetal);    // mag release
+            obox(m, vec3(-0.0205f, 0.07f, 0.04f), F, U, vec3(0.0012f, 0.008f, 0.005f), black, matMetal);   // bolt catch
+            cylinderAB(m, vec3(-0.0195f, 0.0f, 0.035f), vec3(-0.0215f, 0.0f, 0.035f), 0.0055f, 0.0055f, 10, black, matMetal);  // selector
+            // handguard: octagonal tube with vent slots, gas block, barrel, flash hider with slots and bore
+            cylinderAB(m, vec3(0, 0.21f, 0.055f), vec3(0, 0.39f, 0.055f), 0.025f, 0.025f, 8, black, matPlastic);
+            for (int sd = -1; sd <= 1; sd += 2)
+                for (int k = 0; k < 5; k++)
+                    obox(m, vec3(sd * 0.0232f, 0.235f + k * 0.031f, 0.058f), F, U, vec3(0.0022f, 0.009f, 0.0035f), black, matRubber);
+            obox(m, vec3(0, 0.405f, 0.06f), F, U, vec3(0.009f, 0.01f, 0.013f), black, matMetal);        // gas block
+            cylinderAB(m, vec3(0, 0.39f, 0.055f), vec3(0, 0.556f, 0.055f), 0.0085f, 0.0085f, 12, black, matSteel);
+            cylinderAB(m, vec3(0, 0.556f, 0.055f), vec3(0, 0.6f, 0.055f), 0.0115f, 0.0105f, 12, black, matSteel);
+            for (int k = 0; k < 4; k++) {
+                float a = kHalfPi * k + 0.4f;
+                obox(m, vec3(cosf(a) * 0.0108f, 0.584f, 0.055f + sinf(a) * 0.0108f), F, vec3(cosf(a), 0.f, sinf(a)), vec3(0.0022f, 0.011f, 0.0012f),
+                     black, matRubber);
+            }
+            cylinderAB(m, vec3(0, 0.6f, 0.055f), vec3(0, 0.6006f, 0.055f), 0.0056f, 0.0056f, 10, black, matRubber);
+            // curved magazine (two segments) with side ribs
+            obox(m, vec3(0, 0.1f, -0.028f), vec3(0, 1, 0.15f), U, vec3(0.0125f, 0.022f, 0.048f), black, matMetal);
+            obox(m, vec3(0, 0.113f, -0.088f), vec3(0, 1, 0.42f), U, vec3(0.0125f, 0.021f, 0.022f), black, matMetal);
+            for (int sd = -1; sd <= 1; sd += 2)
+                obox(m, vec3(sd * 0.0127f, 0.1f, -0.03f), vec3(0, 1, 0.15f), U, vec3(0.0006f, 0.012f, 0.04f), packRGBA8(0.05f, 0.05f, 0.052f, 1),
+                     matRubber);
+            // trigger guard and trigger, pistol grip
+            obox(m, vec3(0, 0.04f, -0.01f), F, U, vec3(0.0042f, 0.028f, 0.002f), lower, matMetal);
+            obox(m, vec3(0, 0.066f, 0.003f), F, U, vec3(0.0042f, 0.0022f, 0.012f), lower, matMetal);
+            obox(m, vec3(0, 0.035f, 0.004f), F, normalize(vec3(0, -0.3f, 1.f)), vec3(0.0024f, 0.0018f, 0.009f), black, matMetal);
             grip(vec3(0, -0.02f, 0.02f), 0.1f, 0.3f, vec3(0.014f, 0.018f, 0.05f), poly, matPlastic);
-            obox(m, vec3(0, -0.2f, 0.035f), vec3(0, 1, 0.12f), U, vec3(0.018f, 0.13f, 0.035f), poly, matPlastic);  // stock
+            {
+                vec3 dir = normalize(vec3(0, -sinf(0.3f), -cosf(0.3f))), ax = cross(vec3(1, 0, 0), dir) * -1.f;
+                for (int sd = -1; sd <= 1; sd += 2)
+                    obox(m, vec3(sd * 0.0143f, -0.02f, 0.02f) + dir * 0.05f, ax, dir * -1.f, vec3(0.0006f, 0.013f, 0.032f),
+                         packRGBA8(0.035f, 0.035f, 0.036f, 1), matRubber);
+            }
+            // buffer tube, collapsible stock with cheek piece and rubber butt pad
+            cylinderAB(m, vec3(0, -0.09f, 0.062f), vec3(0, -0.28f, 0.062f), 0.015f, 0.015f, 12, black, matMetal);
+            obox(m, vec3(0, -0.24f, 0.064f), F, U, vec3(0.018f, 0.07f, 0.021f), poly, matPlastic);
+            obox(m, vec3(0, -0.255f, 0.03f), vec3(0, 1, 0.3f), U, vec3(0.016f, 0.058f, 0.03f), poly, matPlastic);
+            obox(m, vec3(0, -0.316f, 0.045f), F, U, vec3(0.0195f, 0.006f, 0.052f), packRGBA8(0.03f, 0.03f, 0.03f, 1), matRubber);
             // red-dot optic: an open tube on a mount, a thin see-through lens near its front (first person looks
             // through it)
             obox(m, vec3(0, 0.12f, 0.088f), F, U, vec3(0.01f, 0.05f, 0.006f), black, matMetal);         // mount
@@ -173,23 +313,69 @@ void buildWeaponMesh(WeaponType w, MeshData& m) {
             break;
         }
         case WPN_SHOTGUN: {
-            cylinderAB(m, vec3(0, 0.05f, 0.06f), vec3(0, 0.62f, 0.06f), 0.011f, 0.011f, 10, gun, matSteel);  // barrel
-            cylinderAB(m, vec3(0, 0.08f, 0.037f), vec3(0, 0.55f, 0.037f), 0.01f, 0.01f, 10, gun, matSteel);  // tube
-            obox(m, vec3(0, 0.3f, 0.037f), F, U, vec3(0.02f, 0.07f, 0.02f), wood, matWood);             // pump
-            obox(m, vec3(0, 0.02f, 0.045f), F, U, vec3(0.02f, 0.07f, 0.03f), gun, matMetal);            // receiver
+            // pump shotgun, detailed for first person: ventilated rib with a brass bead, receiver with port and tang
+            // safety, grooved pump, barrel clamp, trigger guard, stock with a rubber recoil pad
+            cylinderAB(m, vec3(0, 0.05f, 0.06f), vec3(0, 0.62f, 0.06f), 0.011f, 0.011f, 12, gun, matSteel);    // barrel
+            cylinderAB(m, vec3(0, 0.62f, 0.06f), vec3(0, 0.6205f, 0.06f), 0.0085f, 0.0085f, 12, black, matRubber);
+            obox(m, vec3(0, 0.34f, 0.0735f), F, U, vec3(0.0035f, 0.27f, 0.0008f), gun, matSteel);         // vent rib
+            for (int k = 0; k < 14; k++)
+                obox(m, vec3(0, 0.09f + k * 0.038f, 0.0715f), F, U, vec3(0.0025f, 0.004f, 0.0013f), gun, matSteel);
+            sphere(m, vec3(0, 0.607f, 0.0752f), 0.0024f, 8, packRGBA8(0.8f, 0.65f, 0.3f, 1), matSteel);  // bead
+            cylinderAB(m, vec3(0, 0.08f, 0.037f), vec3(0, 0.55f, 0.037f), 0.01f, 0.01f, 12, gun, matSteel);   // magazine tube
+            obox(m, vec3(0, 0.52f, 0.048f), F, U, vec3(0.012f, 0.007f, 0.02f), black, matMetal);         // barrel clamp
+            obox(m, vec3(0, 0.3f, 0.037f), F, U, vec3(0.02f, 0.07f, 0.02f), wood, matWood);              // pump
+            for (int k = 0; k < 8; k++)
+                obox(m, vec3(0, 0.25f + k * 0.0145f, 0.037f), F, U, vec3(0.0203f, 0.0025f, 0.0165f), packRGBA8(0.2f, 0.11f, 0.05f, 1),
+                     matRubber);
+            obox(m, vec3(0, 0.02f, 0.045f), F, U, vec3(0.02f, 0.07f, 0.03f), gun, matMetal);             // receiver
+            obox(m, vec3(0.0202f, 0.035f, 0.055f), F, U, vec3(0.0007f, 0.025f, 0.011f), black, matRubber);   // port
+            obox(m, vec3(0, -0.035f, 0.077f), F, U, vec3(0.004f, 0.005f, 0.003f), black, matMetal);      // tang safety
+            obox(m, vec3(0, 0.02f, 0.0006f), F, U, vec3(0.0042f, 0.026f, 0.002f), black, matMetal);      // trigger guard
+            obox(m, vec3(0, 0.044f, 0.01f), F, U, vec3(0.0042f, 0.0022f, 0.011f), black, matMetal);
+            obox(m, vec3(0, 0.016f, 0.01f), F, normalize(vec3(0, -0.3f, 1.f)), vec3(0.0024f, 0.0018f, 0.0085f), black, matMetal);
             obox(m, vec3(0, -0.19f, 0.02f), vec3(0, 1, 0.2f), U, vec3(0.02f, 0.16f, 0.04f), wood, matWood);  // stock
+            obox(m, vec3(0, -0.351f, -0.012f), vec3(0, 1, 0.2f), U, vec3(0.0205f, 0.005f, 0.041f), packRGBA8(0.03f, 0.03f, 0.03f, 1),
+                 matRubber);
             break;
         }
         case WPN_SNIPER: {
-            cylinderAB(m, vec3(0, 0.1f, 0.06f), vec3(0, 0.78f, 0.06f), 0.011f, 0.008f, 10, black, matSteel);
-            obox(m, vec3(0, 0.05f, 0.045f), F, U, vec3(0.024f, 0.15f, 0.03f), olive, matPlastic);       // chassis
-            obox(m, vec3(0, -0.22f, 0.03f), vec3(0, 1, 0.15f), U, vec3(0.02f, 0.14f, 0.045f), olive, matPlastic);
-            cylinderAB(m, vec3(0, -0.03f, 0.115f), vec3(0, 0.2f, 0.115f), 0.02f, 0.02f, 14, black, matMetal);   // scope
-            cylinderAB(m, vec3(0, 0.2f, 0.115f), vec3(0, 0.25f, 0.115f), 0.02f, 0.026f, 14, black, matMetal);
-            cylinderAB(m, vec3(0, -0.08f, 0.115f), vec3(0, -0.03f, 0.115f), 0.024f, 0.02f, 14, black, matMetal);
-            cylinderAB(m, vec3(0.03f, 0.02f, 0.07f), vec3(0.05f, 0.02f, 0.07f), 0.006f, 0.006f, 6, steel, matSteel);  // bolt
-            obox(m, vec3(0, 0.03f, -0.02f), F, U, vec3(0.012f, 0.03f, 0.03f), black, matMetal);        // mag
+            // bolt-action precision rifle: heavy barrel with a ported brake, steel action and bolt, olive chassis with a
+            // folded bipod, cheek riser and recoil pad; scope with rings, turrets and lenses
+            cylinderAB(m, vec3(0, 0.1f, 0.06f), vec3(0, 0.74f, 0.06f), 0.011f, 0.009f, 12, black, matSteel);   // barrel
+            cylinderAB(m, vec3(0, 0.74f, 0.06f), vec3(0, 0.79f, 0.06f), 0.0125f, 0.0125f, 12, black, matSteel);  // brake
+            for (int sd = -1; sd <= 1; sd += 2)
+                for (int k = 0; k < 3; k++)
+                    obox(m, vec3(sd * 0.0118f, 0.752f + k * 0.013f, 0.06f), F, U, vec3(0.0015f, 0.004f, 0.006f), black, matRubber);
+            cylinderAB(m, vec3(0, 0.79f, 0.06f), vec3(0, 0.7905f, 0.06f), 0.0055f, 0.0055f, 10, black, matRubber);
+            obox(m, vec3(0, 0.05f, 0.045f), F, U, vec3(0.024f, 0.15f, 0.03f), olive, matPlastic);         // chassis
+            obox(m, vec3(0, 0.27f, 0.048f), F, U, vec3(0.021f, 0.08f, 0.02f), olive, matPlastic);          // forend
+            for (int sd = -1; sd <= 1; sd += 2)   // folded bipod legs
+                cylinderAB(m, vec3(sd * 0.011f, 0.33f, 0.027f), vec3(sd * 0.011f, 0.17f, 0.022f), 0.004f, 0.004f, 8, black, matMetal);
+            obox(m, vec3(0, 0.05f, 0.078f), F, U, vec3(0.013f, 0.08f, 0.011f), steel, matSteel);          // action
+            cylinderAB(m, vec3(0.013f, 0.02f, 0.072f), vec3(0.042f, 0.012f, 0.062f), 0.004f, 0.004f, 8, steel, matSteel);  // bolt
+            sphere(m, vec3(0.045f, 0.011f, 0.06f), 0.008f, 10, black, matPlastic);                         // bolt knob
+            obox(m, vec3(0, 0.03f, -0.02f), F, U, vec3(0.012f, 0.03f, 0.03f), black, matMetal);            // magazine
+            obox(m, vec3(0, 0.0f, -0.005f), F, U, vec3(0.0042f, 0.022f, 0.002f), black, matMetal);         // trigger guard
+            obox(m, vec3(0, -0.004f, 0.006f), F, normalize(vec3(0, -0.3f, 1.f)), vec3(0.0024f, 0.0018f, 0.0085f), black, matMetal);
             grip(vec3(0, -0.05f, 0.02f), 0.09f, 0.35f, vec3(0.014f, 0.018f, 0.045f), olive, matPlastic);
+            obox(m, vec3(0, -0.22f, 0.03f), vec3(0, 1, 0.15f), U, vec3(0.02f, 0.14f, 0.045f), olive, matPlastic);   // stock
+            obox(m, vec3(0, -0.2f, 0.083f), F, U, vec3(0.012f, 0.07f, 0.008f), olive, matPlastic);                   // cheek riser
+            obox(m, vec3(0, -0.363f, 0.009f), vec3(0, 1, 0.15f), U, vec3(0.0205f, 0.006f, 0.046f), packRGBA8(0.03f, 0.03f, 0.03f, 1), matRubber);
+            // scope: tube, objective bell, eyepiece, rings, elevation / windage turrets, lenses
+            cylinderAB(m, vec3(0, -0.03f, 0.115f), vec3(0, 0.2f, 0.115f), 0.02f, 0.02f, 16, black, matMetal);
+            cylinderAB(m, vec3(0, 0.2f, 0.115f), vec3(0, 0.25f, 0.115f), 0.02f, 0.026f, 16, black, matMetal);
+            cylinderAB(m, vec3(0, -0.08f, 0.115f), vec3(0, -0.03f, 0.115f), 0.024f, 0.02f, 16, black, matMetal);
+            for (int k = 0; k < 2; k++) {
+                float y = k ? 0.15f : 0.01f;
+                cylinderAB(m, vec3(0, y - 0.006f, 0.115f), vec3(0, y + 0.006f, 0.115f), 0.0225f, 0.0225f, 16, black, matMetal);
+                obox(m, vec3(0, y, 0.094f), F, U, vec3(0.009f, 0.006f, 0.008f), black, matMetal);
+            }
+            cylinderAB(m, vec3(0, 0.085f, 0.133f), vec3(0, 0.085f, 0.152f), 0.009f, 0.009f, 12, black, matMetal);   // elevation
+            cylinderAB(m, vec3(0.018f, 0.085f, 0.115f), vec3(0.037f, 0.085f, 0.115f), 0.008f, 0.008f, 12, black, matMetal);   // windage
+            cylinderAB(m, vec3(0, 0.2495f, 0.115f), vec3(0, 0.2505f, 0.115f), 0.0245f, 0.0245f, 16, packRGBA8(0.45f, 0.55f, 0.7f, 1),
+                       makeMat(MAT_CAR_GLASS));
+            cylinderAB(m, vec3(0, -0.0805f, 0.115f), vec3(0, -0.0795f, 0.115f), 0.0215f, 0.0215f, 16, packRGBA8(0.45f, 0.55f, 0.7f, 1),
+                       makeMat(MAT_CAR_GLASS));
             break;
         }
         case WPN_RPG: {
@@ -359,6 +545,7 @@ void GameWorld::buildAssets() {
         a.wheelLod1 = wlods[(size_t)i].empty() ? nullptr : dyn->createModel(wlods[(size_t)i]);
         a.body = dyn->createModel(a.spec.body);
         a.wheel = a.spec.wheel.empty() ? nullptr : dyn->createModel(a.spec.wheel);
+        a.caliper = a.spec.caliper.empty() ? nullptr : dyn->createModel(a.spec.caliper);
         a.rotor = a.spec.rotor.empty() ? nullptr : dyn->createModel(a.spec.rotor);
         a.tailRotor = a.spec.tailRotor.empty() ? nullptr : dyn->createModel(a.spec.tailRotor);
         // free CPU copies of the meshes (metadata stays)

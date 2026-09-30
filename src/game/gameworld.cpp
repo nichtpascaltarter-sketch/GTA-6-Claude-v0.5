@@ -450,6 +450,17 @@ void GameWorld::submitRender() {
                 wd.id = 0x200000000ull | ((u64)v.uid << 4) | (u64)w;
                 wd.castShadow = dist < 120.f;
                 dyn->submit(wd);
+                // brake caliper behind the spokes: steers and rides with the wheel but does not spin
+                if (a.caliper && vlod == 0 && dist < 60.f) {
+                    Render::DrawItem cd = wd;
+                    cd.model = a.caliper;
+                    mat3 cr = R * mat3FromQuat(quatAxisAngle(vec3(0, 0, 1), -s.wheels[w].steerAngle));
+                    if (a.spec.wheels[w].left) cr = cr * mat3FromQuat(quatAxisAngle(vec3(0, 0, 1), kPi));
+                    cd.rot = cr;
+                    cd.id = wd.id | (1ull << 40);
+                    cd.castShadow = false;
+                    dyn->submit(cd);
+                }
             }
         }
         if (a.rotor) {

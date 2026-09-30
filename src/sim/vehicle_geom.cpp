@@ -3,6 +3,7 @@
 // parametric primitives (lathe, tube, rounded box, ellipsoid, extrusion) and surface-projected decals.
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <functional>
 #include <string>

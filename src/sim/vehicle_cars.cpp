@@ -145,6 +145,20 @@ inline void carSideDetails(PMesh& m, CarBody& b, const CarDef& d) {
         st.floorOff = 0.001f;
         lampHousing(m, dc, O, st);
     }
+    if (d.L.chromeBelt) {
+        // chrome body-side molding low on the doors, between the arches
+        Decal dc;
+        dc.pr = &b.proj;
+        dc.fr = fr;
+        dc.back = 3.f;
+        float y0 = b.yWr + b.Ra + 0.1f, y1 = b.yWf - b.Ra - 0.1f, z = s.zSill + 0.13f;
+        decalRange(dc, vec2(y0 - 0.05f, z - 0.1f), vec2(y1 + 0.05f, z + 0.1f));
+        std::vector<vec2> l;
+        for (int k = 0; k <= 12; k++) l.push_back(vec2(lerp(y0, y1, k / 12.f), z));
+        m.newGroup(40.f);
+        m.use(MAT_CHROME, kCol1);
+        decalBar(m, dc, l, 0.012f, 0.003f, 0.f, 0.08f);
+    }
     if (d.L.fenderVent) {
         Decal dc;
         dc.pr = &b.proj;
@@ -160,6 +174,53 @@ inline void carSideDetails(PMesh& m, CarBody& b, const CarDef& d) {
             l.push_back(vec2(yc - 0.08f - k * 0.02f, zc + 0.03f - k * 0.03f));
             decalBar(m, dc, l, 0.012f, 0.006f, 0.f, 0.04f);
         }
+    }
+}
+
+// Rear bumper reflectors, parking sensors (front and rear) and the high-mounted third brake lamp.
+inline void rearSmallParts(PMesh& m, CarBody& b, const CarDef& d) {
+    const CarSpec& s = b.s;
+    const CarLook& L = d.L;
+    if (s.style == BS_BOXY) return;
+    m.newGroup(40.f);
+    // red retro-reflectors low on the rear bumper corners (they light with the tail lamps' red)
+    for (int sg = -1; sg <= 1; sg += 2) {
+        Frame fr = projRear(0.45f * sg, 0.f);
+        Decal dc;
+        float x = sg * s.halfW * 0.8f, z = s.zTailBot + 0.07f;
+        if (!decalAt(dc, b.proj, fr, vec3(x, b.yR - 0.5f, z), vec3(0, 1, 0))) continue;
+        decalRange(dc, vec2(-0.1f, -0.05f), vec2(0.1f, 0.05f));
+        m.use(MAT_LIGHT_TAIL, col(1.f, 0.f, 0.f));
+        loopFill(m, dc, shapeRoundRect(vec2(0, 0), 0.055f, 0.011f, 0.006f, 2), 0.0025f, 1);
+    }
+    // parking sensors: small flush discs with a dark ring (body colour)
+    for (int e = 0; e < 2; e++) {
+        bool rear = e == 1;
+        if (L.chromeBumpers || L.blackBumpers) break;
+        float z = rear ? s.zTailBot + 0.13f : s.zNoseBot + 0.07f;
+        for (int k = 0; k < 4; k++) {
+            float u = (k - 1.5f) * s.halfW * 0.34f;
+            Frame fr = rear ? projRear(0.f, 0.f) : projFront(0.f, 0.f);
+            Decal dc;
+            if (!decalAt(dc, b.proj, fr, vec3(u, rear ? b.yR - 0.5f : b.yF + 0.5f, z), vec3(0, rear ? 1.f : -1.f, 0))) continue;
+            decalRange(dc, vec2(-0.03f, -0.03f), vec2(0.03f, 0.03f));
+            m.use(MAT_PLASTIC, col(0.1f, 0.1f, 0.1f));
+            std::vector<Samp> r0, r1;
+            sampleLoop(dc, shapeEllipse(vec2(0, 0), 0.0115f, 0.0115f, 10), r0);
+            sampleLoop(dc, shapeEllipse(vec2(0, 0), 0.0095f, 0.0095f, 10), r1);
+            loopBand(m, r0, 0.0012f, r1, 0.0012f, FM_NORMAL, dc.fr.o);
+            m.use(MAT_CARPAINT, kCol1);
+            loopFill(m, dc, shapeEllipse(vec2(0, 0), 0.0095f, 0.0095f, 10), 0.0014f, 1);
+        }
+    }
+    // third brake lamp: a slim red bar just inside the top of the rear window (sedans, hatches, wagons, SUVs)
+    if (s.rearGlass && !s.openTop && s.style != BS_PICKUP) {
+        float y = s.yRoofR - 0.03f;
+        float z = b.roofZAt(y) - 0.028f;
+        m.use(MAT_PLASTIC, col(0.3f, 0.3f, 0.3f));
+        roundedBoxAt(m, vec3(0, y, z), vec3(0.13f, 0.02f, 0.012f), 0.006f, 1);
+        m.use(MAT_LIGHT_TAIL, col(1.f, 0.f, 0.f));
+        roundedBoxAt(m, vec3(0, y - 0.021f, z), vec3(0.115f, 0.002f, 0.006f), 0.f, 1);
     }
 }
 
@@ -260,6 +321,8 @@ inline std::string badgeText(const std::string& name) {
 inline void buildCar(const CarDef& def, VehicleModel& out) {
     CarDef d = def;
     d.L.maker = makerId(out.maker);
+    plateText(d.L, out.name);
+    if (d.L.chromeBelt) d.s.dloTrim = 2;  // chrome window surround
     CarBody b(d.s);
     PMesh m;
     carBodyParts(d, b, m, true);
@@ -270,7 +333,14 @@ inline void buildCar(const CarDef& def, VehicleModel& out) {
     const CarSpec& s = b.s;
     const CarLook& L = d.L;
     finalizeMesh(m, out.body);
+    d.wd.maker = d.L.maker;
     buildWheel(d.wd, out.wheel);
+    {
+        WheelDesign wc = d.wd;
+        bool fast = out.cls == VC_SPORTS || out.cls == VC_SUPER;
+        if (fast && wc.caliperTint.x < 0.2f) wc.caliperTint = (out.name.size() & 1) ? vec3(0.62f, 0.05f, 0.04f) : vec3(0.85f, 0.62f, 0.05f);
+        buildCaliper(wc, out.caliper);
+    }
     // ---- metadata
     setWheels(out, s, out.driveFront);
     vec3 hl = lightAnchor(b, L.headC, false);
@@ -377,6 +447,11 @@ inline void carBodyPartsLod(const CarDef& d, CarBody& b, PMesh& m, bool interior
         panelPatchLod(m, b, false, vec2(0.f, (L.intakeTop + L.intakeBot) * 0.5f), L.intakeW, (L.intakeTop - L.intakeBot) * 0.5f,
                       MAT_PLASTIC, col(0.2f, 0.2f, 0.2f), 0.003f);
     if (L.frontPlate) panelPatchLod(m, b, false, vec2(0.f, L.plateFZ), 0.16f, 0.075f, MAT_METAL_PAINTED, col(0.9f, 0.9f, 0.86f), 0.006f);
+    if (lod == 1) {
+        // keep the dark lower aero parts so nothing pops at the LOD switch
+        if (L.diffuser) panelPatchLod(m, b, true, vec2(0.f, s.zRearLow + 0.055f), s.halfW * 0.56f, 0.05f, MAT_CAR_GLASS, kCol1, 0.006f);
+        splitterLip(m, b, L);
+    }
     if (d.rearPlate) panelPatchLod(m, b, true, vec2(0.f, L.plateRZ), 0.16f, 0.075f, MAT_METAL_PAINTED, col(0.9f, 0.9f, 0.86f), 0.006f);
     spoilerWing(m, b, L);
     if (L.spoiler == SP_ROOF) roofSpoiler(m, b);
@@ -415,10 +490,26 @@ inline void carBodyParts(const CarDef& d, CarBody& b, PMesh& m, bool interior) {
     // ---- centre / full width items
     buildGrille(m, b, L);
     buildIntake(m, b, L);
+    splitterLip(m, b, L);
     if (L.frontPlate) buildPlate(m, b, false, L.plateFZ, L);
     if (d.rearPlate) buildPlate(m, b, true, L.plateRZ, L);
-    if (d.carSeams) carTopSeams(m, b);
+    if (d.carSeams) {
+        carTopSeams(m, b);
+        if (s.style != BS_BOXY && s.style != BS_VAN && !L.chromeBumpers && !L.blackBumpers) {
+            // front bumper cover shut line under the headlamps (hidden behind the grille where it crosses it)
+            Frame ff = projFront();
+            std::vector<vec2> l;
+            float zb = L.headC.y - L.headH - 0.03f, xc = Min(L.headC.x + L.headW * 0.85f, s.halfW * 0.9f);
+            for (int k = 0; k <= 12; k++) {
+                float u = lerp(-xc, xc, k / 12.f);
+                l.push_back(vec2(u, zb - 0.012f * Sq(u / xc)));
+            }
+            seam(m, b.proj, ff, l);
+        }
+    }
     if (!s.openTop) wipers(m, b);
+    rearSmallParts(m, b, d);
+    rearDiffuser(m, b, L);
     exhausts(m, b, L);
     if (L.antennaFin && !s.openTop && s.style != BS_PICKUP) antennaFin(m, b);
     spoilerWing(m, b, L);

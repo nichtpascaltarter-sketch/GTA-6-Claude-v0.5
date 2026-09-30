@@ -727,17 +727,18 @@ struct App {
             };
             if (trackVeh >= 0 && (!game.vehicles[trackVeh].used || trackT > 60.f)) release("timeout");
             if (trackVeh < 0 && pl) {
-                for (int i = 0; i < (int)game.peds.size() && i < (int)game.ai.ped.size() && trackVeh < 0; i++)
-                    if (game.peds[i].used && game.ai.ped[i].uid == game.peds[i].uid && game.ai.ped[i].activity == ACT_DRIVE_OFF && game.ai.ped[i].homeVeh >= 0) {
-                        trackVeh = game.ai.ped[i].homeVeh;
-                        trackPed = i;
-                        arriving = false;
-                    }
+                // (arrivals first: rarer than owners driving off)
                 for (int i = 0; i < (int)game.vehicles.size() && trackVeh < 0; i++)
                     if (game.vehicles[i].used && i < (int)game.ai.veh.size() && game.ai.veh[i].uid == game.vehicles[i].uid && game.ai.veh[i].parking == 1) {
                         trackVeh = i;
                         trackPed = game.vehicles[i].seats[0];
                         arriving = true;
+                    }
+                for (int i = 0; i < (int)game.peds.size() && i < (int)game.ai.ped.size() && trackVeh < 0; i++)
+                    if (game.peds[i].used && game.ai.ped[i].uid == game.peds[i].uid && game.ai.ped[i].activity == ACT_DRIVE_OFF && game.ai.ped[i].homeVeh >= 0) {
+                        trackVeh = game.ai.ped[i].homeVeh;
+                        trackPed = i;
+                        arriving = false;
                     }
                 if (trackVeh >= 0) {
                     trackT = doneT = 0.f;
@@ -747,7 +748,7 @@ struct App {
                     vec3 cp = v.sim.body.pos.toVec3();
                     vec2 f = v.sim.forward().xy();
                     f = length2(f) > 1e-6f ? normalize(f) : vec2(0, 1);
-                    vec2 at = cp.xy() - f * (arriving ? 18.f : 9.f) + AI::rightOf(f) * 5.f;
+                    vec2 at = cp.xy() - f * (arriving ? 14.f : 7.f) + AI::rightOf(f) * 4.5f;
                     if (pl->vehicle >= 0) game.removePedFromVehicle(game.player, false);
                     pl->pos = dvec3(at.x, at.y, game.groundHeight(at.x, at.y, cp.z + 2.f));
                     pl->vel = vec3(0.f);
@@ -791,7 +792,7 @@ struct App {
                     }
                 }
                 vec3 dv = look - pl->pos.toVec3();
-                game.rig.yaw = atan2f(-dv.x, dv.y);
+                game.rig.yaw = atan2f(-dv.x, dv.y) + 0.32f;   // over the shoulder: the player off to one side of the frame
                 game.rig.pitch = -0.12f;
                 if (ph != phase) {
                     phase = ph;
@@ -1097,12 +1098,12 @@ struct App {
             const char* name;
         };
         const Step steps[] = {
-            {WPN_PISTOL, 0, 0, "pistol_hip"},        {WPN_PISTOL, 1, 0, "pistol_aim"},
-            {WPN_PISTOL, 2, 0, "pistol_sprint"},     {WPN_SMG, 0, WC_SCOPE | WC_GRIP, "smg_hip"},
-            {WPN_SMG, 1, WC_SCOPE | WC_GRIP, "smg_reflex"}, {WPN_RIFLE, 0, 0, "rifle_hip"},
-            {WPN_RIFLE, 1, 0, "rifle_reddot"},       {WPN_RIFLE, 3, 0, "rifle_reload"},
-            {WPN_SHOTGUN, 1, 0, "shotgun_aim"},      {WPN_SNIPER, 1, 0, "sniper_scope"},
-            {WPN_REVOLVER, 1, 0, "revolver_aim"},    {WPN_RPG, 0, 0, "rpg_shoulder"},
+            {WPN_RIFLE, 1, 0, "rifle_reddot"},       {WPN_SMG, 1, WC_SCOPE | WC_GRIP, "smg_reflex"},
+            {WPN_SNIPER, 1, 0, "sniper_scope"},      {WPN_RIFLE, 0, 0, "rifle_hip"},
+            {WPN_PISTOL, 1, 0, "pistol_aim"},        {WPN_SHOTGUN, 1, 0, "shotgun_aim"},
+            {WPN_SMG, 1, 0, "smg_irons"},            {WPN_REVOLVER, 1, 0, "revolver_aim"},
+            {WPN_PISTOL, 0, 0, "pistol_hip"},        {WPN_RIFLE, 3, 0, "rifle_reload"},
+            {WPN_PISTOL, 2, 0, "pistol_sprint"},     {WPN_RPG, 0, 0, "rpg_shoulder"},
         };
         const int n = (int)(sizeof(steps) / sizeof(steps[0]));
         const float stepLen = 2.2f;

@@ -826,8 +826,18 @@ struct Sim {
                 mat3 R = c.s.body.rotMat();
                 vec3 l = transpose(R) * d3 - m.boxCenter;
                 if (fabsf(l.x) < m.boxHalf.x + 0.25f && fabsf(l.y) < m.boxHalf.y + 0.25f) {
-                    float relv = length(c.s.body.vel.xy() - p.vel);
-                    if (relv > 1.5f) {
+                    // as in the game (vehicles.cpp): closing faster than 3.2 m/s along the contact normal knocks the
+                    // person down, anything slower shoves them out of the way
+                    float px = m.boxHalf.x + 0.25f - fabsf(l.x), py = m.boxHalf.y + 0.25f - fabsf(l.y);
+                    vec3 nl = px < py ? vec3(l.x >= 0.f ? 1.f : -1.f, 0.f, 0.f) : vec3(0.f, l.y >= 0.f ? 1.f : -1.f, 0.f);
+                    vec3 n3 = R * nl;
+                    vec2 n2 = length2(n3.xy()) > 1e-8f ? normalize(n3.xy()) : vec2(1.f, 0.f);
+                    float relv = dot(c.s.body.vel.xy() - p.vel, n2);
+                    if (relv <= 3.2f) {
+                        p.pos += n2 * Min(px, py);
+                        continue;
+                    }
+                    {
                         pedHits++;
                         events.push_back({p.pos, 3, time});
                         snapshot("pedhit", p.pos);
@@ -1334,6 +1344,41 @@ int main(int argc, char** argv) {
                 // detail view around the most visited intersection near the center
                 std::string dp = std::string(plotPath) + ".detail.ppm";
                 sim.plot(dp.c_str(), 60.f, detailAt.x < 1e8f ? detailAt : c + vec2(detailOff, detailOff));
+            }
+            break;
+        }
+        if (!strcmp(argv[i], "--lane") && i + 3 < argc) {
+            int id = atoi(argv[i + 1]);
+            float a = (float)atof(argv[i + 2]), b = (float)atof(argv[i + 3]);
+            i += 3;
+            const AI::LaneGraph& G = w.lg;
+            if (id < 0 || id >= (int)G.lanes.size()) break;
+            const AI::Lane& L = G.lanes[id];
+            printf("lane %d edge %d dir %d idx %d/%d cls %d flags %d u %.1f..%.1f from node %d to node %d speed %.1f out", id, L.edge, L.dir, L.index, L.count, L.cls, L.flags, L.u0, L.u1,
+                   L.fromNode, L.toNode, L.speed);
+            for (int c : L.out) printf(" %d(to lane %d turn %d)", c, G.conns[c].to, G.conns[c].turn);
+            printf("\n");
+            for (float u = Max(a, L.u0); u <= Min(b, L.u1) + 0.01f; u += 2.f) {
+                vec3 q = G.lanePos(id, u);
+                vec2 t = G.laneTangent(id, u);
+                printf("  u %7.1f (%.2f %.2f %.2f) t (%.3f %.3f) curv %+.4f\n", u, q.x, q.y, q.z, t.x, t.y, G.pathCurv(id, u));
+            }
+            break;
+        }
+        if (!strcmp(argv[i], "--node") && i + 1 < argc) {
+            int id = atoi(argv[++i]);
+            const AI::LaneGraph& G = w.lg;
+            if (id < 0 || id >= (int)G.nodes.size()) break;
+            const AI::NodeInfo& N = G.nodes[id];
+            printf("node %d at (%.1f %.1f) control %d axes %d deadEnd %d cycle %.1f offset %.1f phases %zu leftPhase %d %d %d\n", id, w.roads.nodes[id].p.x, w.roads.nodes[id].p.y, N.control,
+                   N.axisCount, (int)N.deadEnd, N.cycle, N.offset, N.phases.size(), N.leftPhase[0], N.leftPhase[1], N.leftPhase[2]);
+            for (const AI::Phase& ph : N.phases) printf("  phase axis %d kind %d t %.1f..%.1f\n", ph.axis, ph.kind, ph.t0, ph.t1);
+            for (size_t a = 0; a < N.approaches.size(); a++) {
+                const AI::Approach& A = N.approaches[a];
+                std::string tl;
+                for (int t = 0; t < 120; t += 2) tl += "RAGa-N"[Min((int)G.movementSignal(id, (int)a, AI::TK_STRAIGHT, t), 5)];
+                printf("  appr %zu edge %d out %d axis %d rank %d dir (%.2f %.2f) in %zu out %zu | %s\n", a, A.edge, (int)A.outgoing, A.axis, A.rank, A.dir.x, A.dir.y, A.inLanes.size(),
+                       A.outLanes.size(), tl.c_str());
             }
             break;
         }

@@ -6,6 +6,7 @@ namespace detail {
 enum RimStyle : u8 { RIM_SPOKE = 0, RIM_MESH, RIM_TURBINE, RIM_STEEL, RIM_TRUCK, RIM_DISH, RIM_BIKE, RIM_WIRE, RIM_CLASSIC };
 
 inline void strokeText3D(PMesh& m, vec3 origin, vec3 right, vec3 up, const char* text, float h, float depth);
+inline void buildLogo(PMesh& m, const Frame& F, float r, u8 maker);
 
 struct WheelDesign {
     float R = 0.33f;        // tire outer radius
@@ -30,6 +31,8 @@ struct WheelDesign {
     vec3 capTint = vec3(0.12f, 0.12f, 0.13f);
     bool disc = true;
     bool hubcap = false;    // plastic full cover on steel wheels
+    vec3 caliperTint = vec3(0.14f, 0.14f, 0.15f);
+    u8 maker = 0;           // maker emblem on the centre cap (0 = plain cap)
 };
 
 // Builds the tire as a closed-ring grid so the tread can be modulated per angle.
@@ -234,7 +237,12 @@ inline void buildSpokeFace(PMesh& m, const WheelDesign& d, float rOut, float aLi
         vec3 p0 = m.P[i0], p1 = m.P[i1];
         u32 b0 = m.add(p0 - vec3(depth, 0, 0), vec2(p0.y, 0)), b1 = m.add(p1 - vec3(depth, 0, 0), vec2(p1.y, depth));
         u32 a0 = m.add(p0, vec2(p0.y, 0)), a1 = m.add(p1, vec2(p1.y, depth));
-        m.quadFacing(a0, a1, b1, b0, facing);  // the back plate hides the hollow spoke backs
+        m.quadFacing(a0, a1, b1, b0, facing);
+        // the spokes are hollow shells: seen at a grazing angle through one window the next window's wall shows
+        // its back, so the walls are two-sided (the back plate hides the rest)
+        u32 c0 = m.add(p0 - vec3(depth, 0, 0), vec2(p0.y, 0)), c1 = m.add(p1 - vec3(depth, 0, 0), vec2(p1.y, depth));
+        u32 d0 = m.add(p0, vec2(p0.y, 0)), d1 = m.add(p1, vec2(p1.y, depth));
+        m.quadFacing(d0, d1, c1, c0, -facing);
     };
     for (int k = 0; k + 1 < R; k++)
         for (int c = 0; c < cols; c++) {
@@ -391,6 +399,7 @@ inline void buildWheel(const WheelDesign& d, MeshData& out) {
         cap.push_back(vec2(aFace + 0.011f, cr * 0.6f));
         cap.push_back(vec2(aFace + 0.012f, 0.f));
         lathe(m, vec3(0, 0, 0), vec3(1, 0, 0), vec3(0, 1, 0), cap, 16);
+        if (d.maker != 0) buildLogo(m, Frame(vec3(aFace + 0.0122f, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(1, 0, 0)), cr * 0.55f, d.maker);
         m.use(MAT_CHROME, kCol1);
         float lr = rr * (d.style == RIM_TRUCK ? 0.36f : 0.25f);
         for (int i = 0; i < d.lugs; i++) {
@@ -435,6 +444,41 @@ inline void buildWheel(const WheelDesign& d, MeshData& out) {
     disk(m, vec3(-w * 0.80f, 0, 0), vec3(-1, 0, 0), rr - 0.01f, 16);
     m.use(MAT_METAL_PAINTED, col(0.12f, 0.12f, 0.12f));
     disk(m, vec3(-w * 0.79f, 0, 0), vec3(1, 0, 0), rr - 0.01f, 16);
+    finalizeMesh(m, out);
+}
+
+// Brake caliper for disc-braked car wheels, in the wheel's local frame: a curved block straddling the disc rim at
+// the top (so the same mesh fits both sides after the usual left-wheel half-turn). Drawn with the wheel transform
+// minus the spin, so it steers and rides with the wheel but stays put while the disc turns behind the spokes.
+inline void buildCaliper(const WheelDesign& d, MeshData& out) {
+    out.clear();
+    if (!d.disc || d.moto || d.style == RIM_TRUCK || d.style == RIM_WIRE || lodLevel() > 0) return;
+    PMesh m;
+    float rr = d.rimR, rd = rr * 0.80f;
+    float r0 = rd - 0.046f, r1 = Min(rd + 0.012f, rr - 0.03f);
+    float th0 = kHalfPi - 0.36f, th1 = kHalfPi + 0.36f;
+    auto sector = [&](float ra, float rb, float ta, float tb, int n) {
+        std::vector<vec2> p;
+        for (int i = 0; i <= n; i++) {
+            float t = lerp(ta, tb, (float)i / n);
+            p.push_back(vec2(cosf(t) * rb, sinf(t) * rb));
+        }
+        for (int i = n; i >= 0; i--) {
+            float t = lerp(ta, tb, (float)i / n);
+            p.push_back(vec2(cosf(t) * ra, sinf(t) * ra));
+        }
+        return p;
+    };
+    Frame fr(vec3(0, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(1, 0, 0));
+    m.newGroup(35.f);
+    m.use(MAT_METAL_PAINTED, colv(d.caliperTint));
+    // body straddling the disc (disc faces at x = -0.024 .. 0.002)
+    extrude(m, sector(r0, r1, th0, th1, 8), fr, -0.05f, 0.036f);
+    // outboard bridge with rounded ends, proud of the body
+    extrude(m, sector(r0 + 0.008f, r1 - 0.006f, th0 + 0.06f, th1 - 0.06f, 8), fr, 0.036f, 0.046f, false, true);
+    // pad retaining plate across the disc slot (dark)
+    m.use(MAT_METAL_PAINTED, col(0.3f, 0.3f, 0.31f));
+    extrude(m, sector(r1 - 0.004f, r1 + 0.004f, kHalfPi - 0.14f, kHalfPi + 0.14f, 4), fr, -0.03f, 0.016f);
     finalizeMesh(m, out);
 }
 

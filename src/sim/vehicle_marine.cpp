@@ -305,6 +305,26 @@ inline void boatSeat(PMesh& m, vec3 hip, float hw, vec3 tint, bool back = true) 
 }
 
 // ------------------------------------------------------------------------------------------------
+// State registration number on both bow sides (reads towards the bow on the right, towards it from the left too).
+inline void hullRegistration(PMesh& m, const Hull& H, float y, float z, const std::string& name, vec3 color) {
+    if (lodLevel() > 0) return;
+    CarLook L;
+    plateText(L, name);
+    char reg[16];
+    snprintf(reg, sizeof(reg), "PM %c%c%c%c %c%c", L.plate[4], L.plate[5], L.plate[6], L.plate[4] == '0' ? '7' : L.plate[4], L.plate[0], L.plate[1]);
+    m.newGroup(40.f);
+    m.use(MAT_METAL_PAINTED, colv(color));
+    for (int sd = -1; sd <= 1; sd += 2) {
+        float x0 = H.sideXAt(y, z), x1 = H.sideXAt(y + 0.05f, z), x2 = H.sideXAt(y, z + 0.05f);
+        vec3 p0(x0 * sd, y, z), ty = normalize(vec3((x1 - x0) * sd, 0.05f, 0.f)), tz = normalize(vec3((x2 - x0) * sd, 0.f, 0.05f));
+        vec3 right = sd > 0 ? ty : -ty;
+        vec3 up = normalize(tz - right * dot(tz, right));
+        vec3 out = cross(right, up);
+        if (out.x * sd < 0.f) { right = -right; out = -out; }
+        strokeText3D(m, p0 + out * 0.0008f, right, up, reg, 0.075f, 0.0015f);
+    }
+}
+
 inline void mdlSunchaser(VehicleModel& o) {
     o.name = "Sunchaser 24"; o.maker = "Coralline Marine"; o.cls = VC_BOAT;
     Hull H;
@@ -380,6 +400,7 @@ inline void mdlSunchaser(VehicleModel& o) {
               vec3(-0.9f, -3.05f, H.deckZ(-3.05f)));
     // outboard + prop rotor
     vec3 hub = outboard(m, 0.f, -3.32f, 0.72f, 1.0f, vec3(0.08f, 0.08f, 0.09f));
+    hullRegistration(m, H, 2.35f, 0.66f, o.name, vec3(0.05f, 0.06f, 0.08f));
     finalizeMesh(m, o.body);
     propRotor(o.rotor, 0.19f, 3, 0.05f);
     o.rotorPos = hub;
@@ -497,6 +518,7 @@ inline void mdlBonefish(VehicleModel& o) {
                        vec3(0.07f, 0.1f, 0.006f), 0.02f, 1);
         }
     }
+    hullRegistration(m, H, 3.0f, 0.86f, o.name, vec3(0.9f, 0.9f, 0.9f));
     finalizeMesh(m, o.body);
     boatFloats(o, H, 6);
     o.seats.push_back(SeatSpec{vec3(0.45f, -0.75f, 1.0f), true, false});

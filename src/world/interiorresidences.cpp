@@ -322,6 +322,18 @@ void layoutCondoUnit(IB& b) {
             diningTable(b, vec3(dx, dy + 0.3f, 0.f), 0.f, 1.4f, 0.85f, tc, true, r.next());
             for (int k = 0; k < 4; k++) chair(b, vec3(dx + ((k & 1) ? 0.35f : -0.35f), dy + 0.3f + ((k & 2) ? 0.65f : -0.65f), 0.f), (k & 2) ? kPi : 0.f, tc, 1, true);
         }
+        // penthouse: a second lounge mid-room facing the view, and a grand piano by the glass when there is space
+        const float mx0 = sx + 1.6f, mx1 = dx - 1.4f;
+        if (top && dx > sx + 1.8f && mx1 - mx0 > 4.6f && LY1 - Y0 > 7.4f) {
+            const bool piano = mx1 - mx0 > 6.6f;
+            const float lcx = piano ? mx0 + 2.2f : (mx0 + mx1) * 0.5f, ry = Y0 + 2.5f;
+            rug(b, vec3(lcx, ry, 0.f), 3.6f, 3.0f, r.next());
+            sofa(b, vec3(lcx, Y0 + 3.65f, 0.f), kPi, 2.6f, C(0.78f, 0.76f, 0.72f), r.next());
+            coffeeTable(b, vec3(lcx, ry - 0.1f, 0.f), 0.f, 1.2f, 0.65f, r.next());
+            for (int e = -1; e <= 1; e += 2) armchair(b, vec3(lcx + e * 1.7f, ry - 0.2f, 0.f), e * kHalfPi, C(0.1f, 0.08f, 0.07f), r.next());
+            floorLamp(b, vec3(lcx + 1.55f, Y0 + 3.75f, 0.f), living, C(0.95f, 0.9f, 0.8f));
+            if (piano) grandPiano(b, vec3(mx1 - 0.85f, Y0 + 2.5f, 0.f), 0.f);
+        }
         int nd = Max(2, (int)(lw / 3.f));
         for (int k = 0; k < nd; k++) downlight(b, vec3(LX0 + lw * (k + 0.5f) / nd, ly, H), living, 260.f, vec3(1.f, 0.85f, 0.64f), 6.f);
         downlight(b, vec3(LX0 + lw * 0.5f, Y0 + 1.0f, H), living, 220.f, vec3(1.f, 0.85f, 0.64f), 6.f);

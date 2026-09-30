@@ -921,7 +921,7 @@ void plant(IB& b, vec3 p, float size, u32 seed, u32 potCol = 0, int kind = 0) {
           M(MAT_METAL_PAINTED), false);
     disc(b, p + vec3(0, 0, potH * 0.9f), potR * 0.95f, 12, C(0.18f, 0.12f, 0.08f), M(MAT_DIRT));
     u32 leafMat = M(MAT_LEAVES);
-    vec3 leafC = kind == 1 ? vec3(0.35f, 0.62f, 0.25f) : vec3(0.3f, 0.55f, 0.2f);
+    vec3 leafC = kind == 1 ? vec3(0.85f, 1.f, 0.66f) : vec3(0.74f, 0.95f, 0.62f);   // tint over the leaf texture
     int stems = kind == 1 ? 7 : 5 + (int)(size * 4.f);
     for (int i = 0; i < stems; i++) {
         float a = r.f() * kTwoPi, tilt = r.range(0.15f, 0.55f);
@@ -941,7 +941,7 @@ void plant(IB& b, vec3 p, float size, u32 seed, u32 potCol = 0, int kind = 0) {
             vec3 side = normalize(cross(ld, vec3(0, 0, 1))) * W;
             vec3 tip = at + ld * L;
             vec3 mid = at + ld * (L * 0.5f) + vec3(0, 0, 0.02f);
-            vec3 cc = leafC * r.range(0.8f, 1.2f);
+            vec3 cc = leafC * r.range(0.82f, 1.08f);
             // double-sided diamond leaf
             tri(b, at, mid + side, tip, C(cc), leafMat);
             tri(b, at, tip, mid + side, C(cc), leafMat);

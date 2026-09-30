@@ -141,7 +141,7 @@ void diningTable(IB& b, vec3 p, float yaw, float w, float dp, u32 col, bool sett
     // centerpiece
     if (r.chance(0.6f)) {
         lathe(b, vec3(0, 0, 0.768f), {vec2(0.05f, 0.f), vec2(0.07f, 0.08f), vec2(0.04f, 0.2f), vec2(0.045f, 0.24f)}, 12, C(hsv(r.f(), 0.5f, 0.7f)), M(MAT_PAINT_WHITE), false);
-        for (int k = 0; k < 5; k++) sphere(b, vec3(r.range(-0.05f, 0.05f), r.range(-0.05f, 0.05f), 1.04f + r.range(-0.03f, 0.05f)), 0.035f, 6, C(hsv(r.f(), 0.8f, 0.9f)), M(MAT_LEAVES));
+        for (int k = 0; k < 5; k++) sphere(b, vec3(r.range(-0.05f, 0.05f), r.range(-0.05f, 0.05f), 1.04f + r.range(-0.03f, 0.05f)), 0.035f, 6, C(hsv(r.f(), 0.8f, 0.9f)), M(MAT_FABRIC));
     }
     collide(b, vec3(0, 0, 0.38f), vec3(w * 0.5f - 0.08f, dp * 0.5f - 0.08f, 0.38f));
 }

@@ -44,16 +44,16 @@ Spec specFor(WeaponType w) {
         case WPN_PISTOL:
             s.right = pistolGrip(vec3(0.f, 0.f, 0.03f), 0.3f);
             s.left = s.foregrip = cupGrip(s.right);
-            s.sight = vec3(0.f, 0.16f, 0.078f), s.sightDist = 0.5f;
-            s.hip = vec3(0.13f, 0.36f, -0.2f);
+            s.sight = vec3(0.f, 0.16f, 0.078f), s.sightDist = 0.58f;
+            s.hip = vec3(0.14f, 0.4f, -0.19f);
             s.muzzle = vec3(0.f, 0.175f, 0.055f);
             s.kickBack = 0.03f, s.kickPitch = 0.12f, s.longGun = false;
             break;
         case WPN_REVOLVER:
             s.right = pistolGrip(vec3(0.f, -0.01f, 0.02f), 0.45f);
             s.left = s.foregrip = cupGrip(s.right);
-            s.sight = vec3(0.f, 0.21f, 0.069f), s.sightDist = 0.52f;
-            s.hip = vec3(0.13f, 0.36f, -0.2f);
+            s.sight = vec3(0.f, 0.212f, 0.0715f), s.sightDist = 0.6f;   // blade over the rear notch
+            s.hip = vec3(0.14f, 0.4f, -0.19f);
             s.muzzle = vec3(0.f, 0.22f, 0.05f);
             s.kickBack = 0.04f, s.kickPitch = 0.2f, s.longGun = false;
             break;
@@ -76,7 +76,7 @@ Spec specFor(WeaponType w) {
             s.right = {vec3(0.f, -0.055f, 0.018f), vec3(0.f, 0.45f, 0.89f), vec3(-1.f, 0.1f, 0.f)};   // wrist of the stock
             s.left = underGrip(vec3(0.f, 0.3f, 0.02f));
             s.foregrip = foreGrip(0.3f, 0.017f);
-            s.sight = vec3(0.f, 0.6f, 0.075f), s.sightDist = 0.82f;   // bead at the muzzle
+            s.sight = vec3(0.f, 0.607f, 0.0752f), s.sightDist = 0.82f;   // brass bead at the muzzle
             s.muzzle = vec3(0.f, 0.62f, 0.06f);
             s.kickBack = 0.05f, s.kickPitch = 0.12f;
             break;
@@ -207,8 +207,8 @@ void GameWorld::updateFirstPersonWeapon(float dt) {
     // sprint: muzzle down and across the body
     if (fpw.sprintW > 0.001f) {
         float sw = fpw.sprintW;
-        pos += vec3(-0.05f, -0.07f, -0.05f) * sw;
-        q = normalize(quatAxisAngle(vec3(0, 0, 1), 0.45f * sw) * quatAxisAngle(vec3(1, 0, 0), (s.longGun ? -0.5f : -0.75f) * sw) *
+        pos += vec3(-0.04f, -0.07f, -0.025f) * sw;
+        q = normalize(quatAxisAngle(vec3(0, 0, 1), 0.45f * sw) * quatAxisAngle(vec3(1, 0, 0), (s.longGun ? -0.45f : -0.6f) * sw) *
                       quatAxisAngle(vec3(0, 1, 0), (s.longGun ? 0.35f : 0.1f) * sw) * q);
     }
     // reload: rolled over and tipped down in front of the chest (a quick dip at the start, back up at the end)

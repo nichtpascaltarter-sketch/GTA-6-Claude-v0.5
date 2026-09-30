@@ -64,6 +64,8 @@ inline void archSedan(CarDef& d, float L = 4.85f, float W = 1.84f, float H = 1.4
     s.bPillar = s.yRoofF - roof * 0.40f;
     s.dloRearBot = s.yRoofR - 0.26f; s.dloRearTop = s.yRoofR + 0.02f;
     s.zChar = s.zBeltR - 0.20f; s.charOut = 0.006f; s.flareOut = 0.008f; s.flareW = 0.08f;
+    // crisper plan corners (modern squared-off bumpers) with the corner radius kept by frontD / rearD
+    s.frontD = 0.46f; s.frontExp = 3.6f; s.rearD = 0.40f; s.rearExp = 3.9f;
     autoLook(d);
     InteriorLayout& I = d.I;
     I.zFloor = s.zSill + 0.10f; I.hipH = 0.26f;
@@ -197,6 +199,7 @@ inline void archSports(CarDef& d, float L = 4.5f, float W = 1.92f, float H = 1.2
     Lk.tail = TL_BAR; Lk.tailW = 0.18f; Lk.tailH = 0.045f; Lk.tailC = vec2(s.halfW * 0.72f, s.zTailTop + 0.10f);
     Lk.plateRZ = s.zTailBot + 0.20f;
     Lk.exhaust = 4; Lk.exhaustX = s.halfW * 0.42f; Lk.exhaustR = 0.045f; Lk.spoiler = SP_DUCK; Lk.diffuser = true; Lk.rockerSkirt = true;
+    Lk.splitter = true;
     InteriorLayout& I = d.I;
     I.zFloor = 0.22f; I.hipH = 0.18f; I.yHipF = s.yRoofF - 0.22f; I.rearSeat = false;
     I.dashY0 = s.yCowl - 0.05f; I.dashY1 = s.yCowl - 0.48f; I.seatX = s.halfW * 0.40f;

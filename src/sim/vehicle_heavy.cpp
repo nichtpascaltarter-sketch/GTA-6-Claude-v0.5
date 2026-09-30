@@ -366,6 +366,7 @@ inline void mdlParcel(VehicleModel& o) {
     CarBody b(d.s);
     PMesh m;
     d.L.maker = makerId(o.maker);
+    plateText(d.L, o.name);
     d.L.logoR = Max(d.L.logoR, 0.05f);
     carBodyParts(d, b, m, true);
     finalizeMesh(m, o.body);
@@ -462,6 +463,7 @@ inline void mdlPackhorse(VehicleModel& o) {
     CarBody b(d.s);
     PMesh m;
     d.L.maker = makerId(o.maker);
+    plateText(d.L, o.name);
     d.L.logoR = Max(d.L.logoR, 0.05f);
     carBodyParts(d, b, m, true);
     finalizeMesh(m, o.body);
@@ -565,6 +567,7 @@ inline void mdlLongbow(VehicleModel& o) {
     CarBody b(d.s);
     PMesh m;
     d.L.maker = makerId(o.maker);
+    plateText(d.L, o.name);
     d.L.logoR = Max(d.L.logoR, 0.05f);
     carBodyParts(d, b, m, true);
     finalizeMesh(m, o.body);
@@ -679,6 +682,7 @@ inline void mdlCompactor(VehicleModel& o) {
     CarBody b(d.s);
     PMesh m;
     d.L.maker = makerId(o.maker);
+    plateText(d.L, o.name);
     d.L.logoR = Max(d.L.logoR, 0.05f);
     carBodyParts(d, b, m, true);
     finalizeMesh(m, o.body);
@@ -795,6 +799,7 @@ inline void mdlLifeline(VehicleModel& o) {
     CarBody b(d.s);
     PMesh m;
     d.L.maker = makerId(o.maker);
+    plateText(d.L, o.name);
     d.L.logoR = Max(d.L.logoR, 0.05f);
     carBodyParts(d, b, m, true);
     finalizeMesh(m, o.body);
@@ -935,6 +940,7 @@ inline void mdlGuardian(VehicleModel& o) {
     CarBody b(d.s);
     PMesh m;
     d.L.maker = makerId(o.maker);
+    plateText(d.L, o.name);
     d.L.logoR = Max(d.L.logoR, 0.05f);
     carBodyParts(d, b, m, true);
     finalizeMesh(m, o.body);
@@ -1070,6 +1076,7 @@ inline void mdlBoulevard(VehicleModel& o) {
     CarBody b(d.s);
     PMesh m;
     d.L.maker = makerId(o.maker);
+    plateText(d.L, o.name);
     d.L.logoR = 0.075f;
     carBodyParts(d, b, m, false);
     noseLogo(m, b, d.L);

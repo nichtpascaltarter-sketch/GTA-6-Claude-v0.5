@@ -110,6 +110,8 @@ struct CarSpec {
     // arches
     float flareW = 0.06f, flareOut = 0.f, haunch = 0.f, haunchF = -1.f;
     bool plasticArches = false, plasticSills = false, plasticBumpers = false;
+    bool valance = true;   // dark lower lip band under the front and rear bumpers
+    u8 dloTrim = 1;        // side window surround: 0 none, 1 gloss black, 2 chrome
     // recess (pickup bed / cockpit)
     float recF = 0.f, recR = 0.f, recDepth = 0.f;
     bool cockpit = false;
@@ -133,13 +135,14 @@ struct CarBody {
     std::vector<float> rows;
     // column layout
     // points per band (reduced for the distant levels of detail in setup())
-    int NB = 3, NC = 2, NSA = 2, NSF = 1, NSC = 3, NST = 3, NSH = 4, NL = 1, NG1 = 2, NG2 = 2, NR = 3, NT = 6;
+    int NB = 3, NC = 2, NSA = 2, NSF = 1, NSC = 3, NST = 4, NSH = 5, NL = 1, NG1 = 2, NG2 = 2, NR = 3, NT = 8;
     int pCor0 = 0, pSide0 = 0, jArch = 0, jFlare = 0, jChar = 0, pSh0 = 0, pLed0 = 0, pGh0 = 0, jSplit = 0, pRail0 = 0,
         pTop0 = 0, NP = 0;
     std::vector<u8> cellBand;
     std::vector<vec3> G, GN;
     std::vector<float> rowL, rowXw, rowZsh;
     std::vector<u8> cls;
+    std::vector<u8> diagAC;  // per cell: 1 = split along (i,j)-(i+1,j+1), chosen for the smoothest reflections
     int nr = 0;
     Projector proj, glassProj;
 
@@ -420,7 +423,9 @@ struct CarBody {
         std::vector<float> u;
         for (vec2 y : uu) u.push_back(y.x);
         rows.clear();
-        const float maxGap = lod == 0 ? 0.1f : (lod == 1 ? 0.24f : 0.7f);
+        // (flat-sided vans, trucks and buses don't need the dense car sampling along their length)
+        bool boxy = s.style == BS_BOXY || s.style == BS_VAN;
+        const float maxGap = lod == 0 ? (boxy ? 0.13f : 0.075f) : (lod == 1 ? 0.24f : 0.7f);
         for (size_t i = 0; i < u.size(); i++) {
             if (i > 0) {
                 float g = u[i] - u[i - 1];
@@ -432,7 +437,8 @@ struct CarBody {
         nr = (int)rows.size();
     }
 
-    // side band x at height z for row y (base shape + flare displacement)
+    static constexpr float kCharW = 0.013f;  // half width of the feature-line ridge
+// side band x at height z for row y (base shape + flare displacement)
     float sideX(float y, float z, float W, float sc, float z0, float z1, float zw) const {
         float x = W;
         if (z < zw) {
@@ -443,8 +449,9 @@ struct CarBody {
             x -= s.tuTop * sc * t * t;
         }
         if (s.charOut != 0.f && s.zChar > 0.f) {
-            float d = fabsf(z - s.zChar);
-            x += s.charOut * sc * Max(0.f, 1.f - d / 0.05f);
+            // crisp feature line: a narrow ridge (hard crease at its crest) over a soft swell below it
+            float d = z - s.zChar;
+            x += s.charOut * sc * (Max(0.f, 1.f - fabsf(d) / kCharW) + 0.35f * expf(-Sq(Min(d, 0.f) / 0.09f)) * (d < 0.f ? 1.f : 0.f));
         }
         if (s.flareOut != 0.f) {
             float d = archDist(y, z);
@@ -486,9 +493,13 @@ struct CarBody {
         float anchors[5] = {z0, aA, aF, aC, z1};
         int counts[4] = {NSA, NSF, NSC, NST};
         int j = pSide0;
+        bool crease = s.charOut != 0.f && s.zChar > 0.f && lodLevel() == 0;
         for (int sgi = 0; sgi < 4; sgi++)
             for (int k = 0; k < counts[sgi]; k++) {
                 float z = lerp(anchors[sgi], anchors[sgi + 1], (float)k / counts[sgi]);
+                // columns hugging the feature line so the crease stays crisp
+                if (crease && sgi == 2 && k == counts[sgi] - 1 && k > 0) z = Max(aC - Min(kCharW, (aC - aF) * 0.4f), lerp(anchors[2], anchors[3], (k - 0.5f) / counts[sgi]));
+                if (crease && sgi == 3 && k == 1) z = Min(aC + Min(kCharW, (z1 - aC) * 0.3f), lerp(anchors[3], anchors[4], 0.5f / counts[sgi]));
                 out[j++] = vec3(sideX(y, z, W, sc, z0, z1, zw), y, z);
             }
         out[j] = vec3(sideX(y, z1, W, sc, z0, z1, zw), y, z1);
@@ -582,12 +593,46 @@ struct CarBody {
         out[NP - 1].x = 0.f;
     }
 
+    // Fairing of the nose and tail caps, where the shrinking sections leave ripples in the reflections: a few
+    // Taubin (lambda / mu) passes over the grid ahead of the front arches and behind the rear ones. The ends and the
+    // centre line stay put (x = 0 there); the arch zones and the greenhouse are untouched.
+    void fairEnds() {
+        int iters = lodLevel() == 0 ? 8 : (lodLevel() == 1 ? 4 : 0);
+        if (iters == 0 || nr < 4) return;
+        float yFz = (s.frontArch ? yWf + Ra + s.flareW + 0.06f : yWf), yRz = (s.rearArch ? yWr - Ra - s.flareW - 0.06f : yWr);
+        std::vector<u8> mv(nr, 0);
+        for (int i = 1; i + 1 < nr; i++) mv[i] = (rows[i] > yFz || rows[i] < yRz) && fabsf(rowL[i]) < 1e-4f ? 1 : 0;
+        std::vector<vec3> T(G.size());
+        auto pass = [&](float f) {
+            T = G;
+            for (int i = 1; i + 1 < nr; i++) {
+                if (!mv[i]) continue;
+                for (int j = 0; j < NP; j++) {
+                    vec3 sum = G[(i - 1) * NP + j] + G[(i + 1) * NP + j];
+                    float w = 2.f;
+                    if (j > 0) { sum += G[i * NP + j - 1]; w += 1.f; }
+                    if (j + 1 < NP) { sum += G[i * NP + j + 1]; w += 1.f; }
+                    vec3 d = sum / w - G[i * NP + j];
+                    vec3 p = G[i * NP + j] + d * f;
+                    if (j == 0 || j == NP - 1) p.x = 0.f;
+                    T[i * NP + j] = p;
+                }
+            }
+            G.swap(T);
+        };
+        for (int k = 0; k < iters; k++) {
+            pass(0.5f);
+            pass(-0.53f);
+        }
+    }
+
     void buildGrid() {
         G.resize(nr * NP);
         rowL.assign(nr, 0.f);
         rowXw.assign(nr, 0.f);
         rowZsh.assign(nr, 0.f);
         for (int i = 0; i < nr; i++) computeSection(i, &G[i * NP]);
+        fairEnds();
         // grid normals (angle weighted over adjacent quads)
         GN.assign(nr * NP, vec3(0, 0, 0));
         for (int i = 0; i + 1 < nr; i++)
@@ -648,6 +693,7 @@ struct CarBody {
                 }
                 if (b == BD_CORNER || b == BD_SIDE) {
                     if (inOpening(yc, cc.z)) { c = CC_HOLE; continue; }
+                    if (s.valance && b == BD_CORNER && (yc > yWf + Ra + 0.12f || yc < yWr - Ra - 0.12f)) { c = CC_PLASTIC; continue; }
                     bool flareZone = archAt(yc, s.flareW) >= 0 && j >= jArch && j < jFlare;
                     if (s.plasticArches && (flareZone || (archAt(yc, s.flareW) >= 0 && j < jArch))) c = CC_PLASTIC;
                     if (s.plasticSills && (b == BD_CORNER || j < jArch)) c = CC_PLASTIC;
@@ -742,7 +788,7 @@ struct CarBody {
     void emitShell(PMesh& m) {
         // close-ups: glass inset behind the seals; distant levels have no seals, so the glass sits flush (no open step)
         const float inset = lodLevel() >= 1 ? 0.f : 0.011f;
-        m.newGroup(32.f);
+        m.newGroup(48.f);
         int NC1 = NP - 1;
         // shared vertex ids for outer surface
         std::vector<u32> vid(nr * NP, 0xffffffffu), gid(nr * NP, 0xffffffffu);
@@ -756,6 +802,7 @@ struct CarBody {
             if (v == 0xffffffffu) v = m.add(G[i * NP + j] - GN[i * NP + j] * inset);
             return v;
         };
+        diagAC.assign((nr - 1) * NC1, 1);
         for (int i = 0; i + 1 < nr; i++)
             for (int j = 0; j < NC1; j++) {
                 u8 c = cls[i * NC1 + j];
@@ -765,8 +812,26 @@ struct CarBody {
                 matFor(c, mt, cl);
                 if (c == CC_GLASS) cl = windowColor(i, j);
                 m.use(mt, cl);
-                if (c == CC_GLASS) m.quad(GV(i, j), GV(i + 1, j), GV(i + 1, j + 1), GV(i, j + 1));
-                else m.quad(V(i, j), V(i + 1, j), V(i + 1, j + 1), V(i, j + 1));
+                // split along the diagonal whose triangles agree best with the surface normals (no zig-zag
+                // highlights on long thin cells such as the converging rings at both ends)
+                int ci[4] = {i * NP + j, (i + 1) * NP + j, (i + 1) * NP + j + 1, i * NP + j + 1};
+                auto triErr = [&](int a, int b2, int c2) {
+                    vec3 n = cross(G[ci[b2]] - G[ci[a]], G[ci[c2]] - G[ci[a]]);
+                    float l = length(n);
+                    if (l < 1e-12f) return 3.f;
+                    n = n / l;
+                    return 3.f - fabsf(dot(n, GN[ci[a]])) - fabsf(dot(n, GN[ci[b2]])) - fabsf(dot(n, GN[ci[c2]]));
+                };
+                float eAC = triErr(0, 1, 2) + triErr(0, 2, 3), eBD = triErr(0, 1, 3) + triErr(1, 2, 3);
+                bool ac = eAC <= eBD + 1e-5f;
+                diagAC[i * NC1 + j] = ac ? 1 : 0;
+                u32 q[4];
+                for (int k = 0; k < 4; k++) {
+                    int ii = k == 1 || k == 2 ? i + 1 : i, jj = k >= 2 ? j + 1 : j;
+                    q[k] = c == CC_GLASS ? GV(ii, jj) : V(ii, jj);
+                }
+                if (ac) { m.tri(q[0], q[1], q[2]); m.tri(q[0], q[2], q[3]); }
+                else { m.tri(q[0], q[1], q[3]); m.tri(q[1], q[2], q[3]); }
             }
         // glass seals: walls between glass cells and non-glass neighbours (not needed away from close-ups)
         if (lodLevel() >= 1) {
@@ -800,6 +865,71 @@ struct CarBody {
                 if (j > 0 && !isGlass(i, j - 1)) wall(i, j, i + 1, j);
                 if (j + 1 < NC1 && !isGlass(i, j + 1)) wall(i, j + 1, i + 1, j + 1);
             }
+        // side window surround trim: a narrow strip on the painted cells along every side-glass edge
+        if (s.dloTrim != 0 && !s.openTop) {
+            m.newGroup(28.f);
+            if (s.dloTrim == 2) m.use(MAT_CHROME, kCol1);
+            else m.use(MAT_CAR_GLASS, kCol1);
+            const float tw = 0.014f, lift = 0.0009f;
+            auto painted = [&](int i, int j) {
+                if (i < 0 || i + 1 >= nr || j < 0 || j >= NC1) return false;
+                u8 c = cls[i * NC1 + j];
+                return c == CC_PAINT || c == CC_PAINT2 || c == CC_GLOSS;
+            };
+            // edge (ia,ja)-(ib,jb) shared with painted cell whose far edge is (ia2,ja2)-(ib2,jb2)
+            auto strip = [&](int ia, int ja, int ib, int jb, int ia2, int ja2, int ib2, int jb2) {
+                vec3 a = G[ia * NP + ja], bq = G[ib * NP + jb], a2 = G[ia2 * NP + ja2], b2 = G[ib2 * NP + jb2];
+                float la = length(a2 - a), lb = length(b2 - bq);
+                if (la < 1e-4f || lb < 1e-4f) return;
+                vec3 na = GN[ia * NP + ja], nb = GN[ib * NP + jb];
+                vec3 ai = a + (a2 - a) * Min(tw / la, 0.8f), bi = bq + (b2 - bq) * Min(tw / lb, 0.8f);
+                u32 v0 = m.add(a + na * lift), v1 = m.add(bq + nb * lift), v2 = m.add(bi + nb * lift), v3 = m.add(ai + na * lift);
+                m.quadFacing(v0, v1, v2, v3, na + nb);
+            };
+            for (int i = 0; i + 1 < nr; i++)
+                for (int j = pGh0; j < pRail0; j++) {
+                    if (cls[i * NC1 + j] != CC_GLASS) continue;
+                    if (painted(i - 1, j)) strip(i, j, i, j + 1, i - 1, j, i - 1, j + 1);
+                    if (painted(i + 1, j)) strip(i + 1, j, i + 1, j + 1, i + 2, j, i + 2, j + 1);
+                    if (painted(i, j - 1)) strip(i, j, i + 1, j, i, j - 1, i + 1, j - 1);
+                    if (painted(i, j + 1)) strip(i, j + 1, i + 1, j + 1, i, j + 2, i + 1, j + 2);
+                }
+        }
+        // black ceramic frit band along the edges of the windscreen and rear window (on the glass, opaque)
+        if (!s.openTop) {
+            m.newGroup(28.f);
+            m.use(MAT_CAR_GLASS, kCol1);
+            const float fw = 0.045f, lift = 0.0012f;
+            auto glassAt = [&](int i, int j) {
+                if (i < 0 || i + 1 >= nr) return false;
+                if (j >= NC1) return true;  // mirrored half across the centre line
+                if (j < 0) return false;
+                return cls[i * NC1 + j] == CC_GLASS;
+            };
+            auto band = [&](int ia, int ja, int ib, int jb, int ia2, int ja2, int ib2, int jb2) {
+                vec3 na = GN[ia * NP + ja], nb = GN[ib * NP + jb];
+                vec3 a = G[ia * NP + ja] - na * (inset - lift), bq = G[ib * NP + jb] - nb * (inset - lift);
+                vec3 a2 = G[ia2 * NP + ja2] - GN[ia2 * NP + ja2] * (inset - lift), b2 = G[ib2 * NP + jb2] - GN[ib2 * NP + jb2] * (inset - lift);
+                float la = length(a2 - a), lb = length(b2 - bq);
+                if (la < 1e-4f || lb < 1e-4f) return;
+                vec3 ai = a + (a2 - a) * Min(fw / la, 1.f), bi = bq + (b2 - bq) * Min(fw / lb, 1.f);
+                u32 v0 = m.add(a), v1 = m.add(bq), v2 = m.add(bi), v3 = m.add(ai);
+                m.quadFacing(v0, v1, v2, v3, na + nb);
+                // the frit is printed on the glass: black from the cabin side as well
+                vec3 in = (na + nb) * -0.5f;
+                u32 w0 = m.add(a + in * 0.0016f), w1 = m.add(bq + in * 0.0016f), w2 = m.add(bi + in * 0.0016f), w3 = m.add(ai + in * 0.0016f);
+                m.quadFacing(w0, w1, w2, w3, -(na + nb));
+            };
+            for (int i = 0; i + 1 < nr; i++)
+                for (int j = pRail0; j < NC1; j++) {
+                    if (cls[i * NC1 + j] != CC_GLASS) continue;
+                    float yc = (rows[i] + rows[i + 1]) * 0.5f;
+                    if (yc < s.yRoofF - 0.01f && yc > s.yRoofR + 0.01f) continue;  // sunroof
+                    if (!glassAt(i - 1, j)) band(i, j, i, j + 1, i + 1, j, i + 1, j + 1);
+                    if (!glassAt(i + 1, j)) band(i + 1, j, i + 1, j + 1, i, j, i, j + 1);
+                    if (!glassAt(i, j - 1)) band(i, j, i + 1, j, i, j + 1, i + 1, j + 1);
+                }
+        }
         emitArches(m);
     }
 

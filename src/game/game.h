@@ -327,6 +327,7 @@ struct VehicleAsset {
     Render::Model* bodyLod[2] = {nullptr, nullptr};   // LOD1 (40-120 m, wheels = wheelLod1), LOD2 (beyond, wheels merged)
     Render::Model* wheelLod1 = nullptr;
     Render::Model* wheel = nullptr;
+    Render::Model* caliper = nullptr;   // brake caliper: drawn at each wheel without the spin (LOD0 only)
     Render::Model* rotor = nullptr;
     Render::Model* tailRotor = nullptr;
 };

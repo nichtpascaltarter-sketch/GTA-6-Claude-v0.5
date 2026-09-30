@@ -9,7 +9,7 @@ static const vec2 kViewerOrigin(-300.f, 1500.f);
 
 struct Viewer {
     std::string mode;
-    std::vector<Render::Model*> bodies, wheels, rotors, tailRotors;
+    std::vector<Render::Model*> bodies, wheels, rotors, tailRotors, calipers;
 #ifdef HAVE_VEHICLE_MODELS
     std::vector<Vehicles::VehicleModel> vmodels;
     int vehicleLod = 0;  // --vlod 1|2 shows the distant levels of detail (buildVehicleLods)
@@ -50,6 +50,8 @@ struct Viewer {
                 wheels.push_back(vm.wheel.indices.empty() || vehicleLod == 2 ? nullptr : r.dynamic->createModel(vm.wheel));
                 rotors.push_back(vm.rotor.indices.empty() ? nullptr : r.dynamic->createModel(vm.rotor));
                 tailRotors.push_back(vm.tailRotor.indices.empty() ? nullptr : r.dynamic->createModel(vm.tailRotor));
+                // brake calipers: wheel transform without the spin (the viewer's wheels do not spin anyway)
+                calipers.push_back(vm.caliper.indices.empty() || vehicleLod > 0 ? nullptr : r.dynamic->createModel(vm.caliper));
                 LOG("Vehicle %d: %s %s (%zu tris)", i, vm.maker.c_str(), vm.name.c_str(), vm.body.indices.size() / 3);
                 vmodels.push_back(std::move(vm));
             }
@@ -814,6 +816,12 @@ struct Viewer {
                 wd.tint0 = d.tint0;
                 wd.id = 0x9000 + i * 16 + (&w - &vm.wheels[0]);
                 r.dynamic->submit(wd);
+                if (calipers[i]) {
+                    Render::DrawItem cd = wd;
+                    cd.model = calipers[i];
+                    cd.id = 0xB000 + i * 16 + (&w - &vm.wheels[0]);
+                    r.dynamic->submit(cd);
+                }
             }
             // main rotor spins about +Z; plane, boat and airboat propellers about +Y; the tail rotor about +X
             quat qy = quatAxisAngle(vec3(0, 0, 1), yaw);

@@ -3,6 +3,20 @@
 namespace Vehicles {
 namespace detail {
 
+// Small motorcycle registration: characters embossed on the plate whose centre is `c`, facing backwards (-y), `up`
+// along the plate.
+inline void bikePlateText(PMesh& m, vec3 c, vec3 up, const std::string& name) {
+    if (lodLevel() > 0) return;
+    CarLook L;
+    plateText(L, name);
+    L.plate[3] = 0;  // two rows on a small plate: letters over digits
+    vec3 right(1, 0, 0);
+    vec3 out = normalize(cross(right, up));
+    m.use(MAT_METAL_PAINTED, col(0.05f, 0.08f, 0.2f));
+    strokeText3D(m, c + out * 0.0035f + up * 0.019f, right, up, L.plate, 0.034f, 0.001f);
+    strokeText3D(m, c + out * 0.0035f - up * 0.021f, right, up, L.plate + 4, 0.034f, 0.001f);
+}
+
 // Rectangular beam swept along a path (centred), `up` hint orients the section.
 inline void beamPath(PMesh& m, const std::vector<vec3>& pts, vec3 up, float w, float h) {
     int n = (int)pts.size();
@@ -270,6 +284,12 @@ inline void mdlRaijin(VehicleModel& o) {
     cyl(m, vec3(0, -0.8f, 0.9f), vec3(0, -0.95f, 0.76f), 0.012f, 6);
     m.use(MAT_METAL_PAINTED, col(0.9f, 0.9f, 0.86f));
     roundedBox(m, Frame(vec3(0, -0.96f, 0.72f), vec3(1, 0, 0), vec3(0, 0.2f, 1), normalize(vec3(0, -1, 0.2f))), vec3(0.09f, 0.055f, 0.003f), 0.004f, 1);
+    bikePlateText(m, vec3(0, -0.96f, 0.72f), normalize(vec3(0, 0.2f, 1)), o.name);
+    // clear lens over the twin headlamps
+    m.newGroup(50.f);
+    m.use(MAT_CAR_WINDOW, col(0.97f, 0.98f, 1.f, 1.f));
+    for (int s = -1; s <= 1; s += 2)
+        roundedBox(m, Frame(vec3(s * 0.075f, 0.957f, 0.87f), vec3(1, 0, 0), vec3(0, 0, 1), normalize(vec3(s * 0.4f, 1, 0.1f))), vec3(0.058f, 0.024f, 0.017f), 0.014f, 1);
     finalizeMesh(m, o.body);
     WheelDesign wd;
     wd.R = R; wd.W = W; wd.rimR = 0.216f; wd.moto = true; wd.style = RIM_BIKE; wd.spokes = 5; wd.spokeHub = 0.012f; wd.spokeRim = 0.009f;
@@ -541,6 +561,7 @@ inline void mdlMochi(VehicleModel& o) {
     roundedBox(m, Frame(vec3(0, -0.875f, 0.66f), vec3(1, 0, 0), vec3(0, 0, 1), vec3(0, -1, 0)), vec3(0.06f, 0.025f, 0.012f), 0.01f, 1);
     m.use(MAT_METAL_PAINTED, col(0.9f, 0.9f, 0.86f));
     roundedBox(m, Frame(vec3(0, -0.88f, 0.55f), vec3(1, 0, 0), vec3(0, 0, 1), vec3(0, -1, 0)), vec3(0.085f, 0.05f, 0.003f), 0.004f, 1);
+    bikePlateText(m, vec3(0, -0.88f, 0.55f), vec3(0, 0, 1), o.name);
     finalizeMesh(m, o.body);
     WheelDesign wd;
     wd.R = R; wd.W = W; wd.rimR = 0.152f; wd.moto = true; wd.style = RIM_BIKE; wd.spokes = 5; wd.spokeHub = 0.012f; wd.spokeRim = 0.01f;

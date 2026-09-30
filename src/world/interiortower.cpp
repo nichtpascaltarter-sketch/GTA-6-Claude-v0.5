@@ -248,7 +248,7 @@ void speedGates(IB& b, vec3 p, float halfW, int cabinets) {
 void greenWall(IB& b, float w, float z0, float z1, int roomIdx, u32 seed) {
     Rng r(seed);
     InPart ip(b, IP_SHELL);
-    box(b, vec3(0.f, 0.03f, (z0 + z1) * 0.5f), vec3(w * 0.5f, 0.03f, (z1 - z0) * 0.5f), C(0.1f, 0.08f, 0.06f), M(MAT_DIRT), SK_NY);
+    box(b, vec3(0.f, 0.03f, (z0 + z1) * 0.5f), vec3(w * 0.5f, 0.03f, (z1 - z0) * 0.5f), C(0.75f, 0.85f, 0.6f), M(MAT_GRASS), SK_NY);   // moss mat
     u32 trim = Gy(0.7f);
     box(b, vec3(0.f, 0.08f, z1 + 0.04f), vec3(w * 0.5f + 0.06f, 0.08f, 0.04f), trim, M(MAT_METAL_BRUSHED), SK_NY);
     box(b, vec3(0.f, 0.08f, z0 - 0.04f), vec3(w * 0.5f + 0.06f, 0.08f, 0.04f), trim, M(MAT_METAL_BRUSHED), SK_NY);
@@ -261,7 +261,8 @@ void greenWall(IB& b, float w, float z0, float z1, int roomIdx, u32 seed) {
         for (int i = 0; i < nx; i++) {
             vec3 c(-w * 0.5f + step * (i + 0.5f) + r.range(-0.1f, 0.1f), 0.07f + r.range(0.f, 0.08f), z0 + step * (j + 0.5f) + r.range(-0.1f, 0.1f));
             float kind = r.f();
-            vec3 base = kind < 0.12f ? vec3(0.55f, 0.6f, 0.2f) : (kind < 0.2f ? vec3(0.35f, 0.25f, 0.4f) : vec3(0.18f, r.range(0.35f, 0.5f), 0.14f));
+            // tints over the green leaf texture: lime, silver-blue fern, and greens
+            vec3 base = kind < 0.12f ? vec3(1.f, 1.f, 0.5f) : (kind < 0.2f ? vec3(0.6f, 0.8f, 1.f) : vec3(r.range(0.6f, 0.85f), r.range(0.82f, 1.f), r.range(0.5f, 0.75f)));
             int nl = 5;
             for (int k = 0; k < nl; k++) {
                 float a = r.f() * kTwoPi;
@@ -269,7 +270,7 @@ void greenWall(IB& b, float w, float z0, float z1, int roomIdx, u32 seed) {
                 float L = r.range(0.16f, 0.28f), W = L * 0.42f;
                 vec3 side = normalize(cross(dir, vec3(0, 1, 0))) * W;
                 vec3 tip = c + dir * L, mid = c + dir * (L * 0.5f) + vec3(0, 0.03f, 0.f);
-                u32 col = C(base * r.range(0.8f, 1.2f));
+                u32 col = C(base * r.range(0.85f, 1.1f));
                 vec3 n1 = cross(mid + side - c, tip - c);
                 if (n1.y > 0.f) tri(b, c, mid + side, tip, col, lm);
                 else tri(b, c, tip, mid + side, col, lm);
@@ -278,7 +279,7 @@ void greenWall(IB& b, float w, float z0, float z1, int roomIdx, u32 seed) {
                 else tri(b, c, mid - side, tip, col, lm);
             }
             if (kind > 0.93f)
-                for (int k = 0; k < 3; k++) sphere(b, c + vec3(r.range(-0.08f, 0.08f), 0.12f, r.range(-0.08f, 0.08f)), 0.025f, 5, C(hsv(r.range(0.9f, 1.05f), 0.6f, 0.95f)), lm);
+                for (int k = 0; k < 3; k++) sphere(b, c + vec3(r.range(-0.08f, 0.08f), 0.12f, r.range(-0.08f, 0.08f)), 0.025f, 5, C(hsv(r.range(0.9f, 1.05f), 0.6f, 0.95f)), M(MAT_FABRIC));
         }
     // grow light washing the garden from the top trim
     InPart ip3(b, IP_SHELL);
@@ -532,7 +533,7 @@ void pierModel(IB& b, vec3 p, float yaw, int roomIdx, u32 seed) {
         At at2(b, vec3(-0.5f, hy * 0.2f, zt + 0.04f + k * 0.075f), a);
         box(b, vec3(0.f, 0.f, 0.0375f), vec3(s, s, 0.0375f), white, M(MAT_PAINT_WHITE), SK_NZ);
     }
-    for (int k = 0; k < 14; k++) sphere(b, vec3(r.range(-hx + 0.1f, hx - 0.1f), r.range(0.05f, 0.2f), zt + 0.07f), 0.03f, 5, C(0.25f, 0.5f, 0.2f), M(MAT_LEAVES));
+    for (int k = 0; k < 14; k++) sphere(b, vec3(r.range(-hx + 0.1f, hx - 0.1f), r.range(0.05f, 0.2f), zt + 0.07f), 0.03f, 5, C(0.8f, 1.f, 0.7f), M(MAT_LEAVES));
     // glass case
     InPart ip2(b, IP_FURNITURE);
     const float gz = zt + 0.8f;
@@ -745,13 +746,13 @@ void layoutTowerLobby(IB& b) {
         InPart ip(b, IP_SHELL);
         At at(b, vec3(0.f, yB - 0.15f, 0.f), kPi);   // back wall; local +y points into the hall
         textC(b, "SOLARIS ONE", vec3(0.f, 0.02f, 5.7f), vec3(-1, 0, 0), vec3(0, 0, 1), 0.62f, 0.07f, gold, M(MAT_CHROME), 0.05f, 0.45f);
-        // dark backing and walnut slats on both sides of the opening
-        u32 wal = C(0.3f, 0.19f, 0.11f);
+        // dark backing and bronze fins on both sides of the opening
+        u32 wal = C(0.5f, 0.36f, 0.22f);
         for (int e = -1; e <= 1; e += 2) {
             float xa = eX + 0.2f, xb = X1 - 0.15f;
             box(b, vec3(e * (xa + xb) * 0.5f, 0.006f, H * 0.5f), vec3((xb - xa) * 0.5f, 0.005f, H * 0.5f - 0.13f), C(0.06f, 0.05f, 0.05f), M(MAT_PAINT_WHITE),
                 SK_NY | SK_PZ | SK_NZ);
-            for (float x = eX + 0.35f; x < X1 - 0.3f; x += 0.12f) box(b, vec3(e * x, 0.036f, H * 0.5f), vec3(0.035f, 0.025f, H * 0.5f - 0.14f), wal, M(MAT_WOOD), SK_NY | SK_PZ | SK_NZ);
+            for (float x = eX + 0.35f; x < X1 - 0.3f; x += 0.12f) box(b, vec3(e * x, 0.036f, H * 0.5f), vec3(0.035f, 0.025f, H * 0.5f - 0.14f), wal, M(MAT_METAL_BRUSHED), SK_NY | SK_PZ | SK_NZ);
         }
         for (int k = -1; k <= 1; k += 2) light(b, vec3(k * 2.6f, 2.2f, H - 0.25f), vec3(1.f, 0.88f, 0.7f) * 700.f, 9.f, hall, normalize(vec3(0.f, -1.f, -0.35f)), 30.f, 15.f);
     }

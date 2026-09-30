@@ -41,6 +41,19 @@ struct Sample {
     int path;
 };
 
+// Oriented rectangles (center, unit forward, half length along it, half width) overlap (separating axis test).
+bool rectsOverlap(vec2 c1, vec2 f1, float hl1, float hw1, vec2 c2, vec2 f2, float hl2, float hw2) {
+    vec2 r1 = vec2(f1.y, -f1.x), r2 = vec2(f2.y, -f2.x);
+    const vec2 axes[4] = {f1, r1, f2, r2};
+    vec2 dc = c2 - c1;
+    for (const vec2& a : axes) {
+        float e1 = hl1 * fabsf(dot(f1, a)) + hw1 * fabsf(dot(r1, a));
+        float e2 = hl2 * fabsf(dot(f2, a)) + hw2 * fabsf(dot(r2, a));
+        if (fabsf(dot(dc, a)) > e1 + e2) return false;
+    }
+    return true;
+}
+
 }  // namespace tc_detail
 
 using namespace tc_detail;
@@ -1195,6 +1208,39 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
             }
         });
     }
+    // ---- body sweep (long vehicles): the actual body pushed a little further along its current heading. Coming out of
+    // a tight turn a bus or truck points across its lane (the rear axle lags the front one), so its nose sweeps wide of
+    // the planned path - into cars waiting at the stop line of the lane next to it. Creep past them at walking pace
+    // (a stop would only swap the scrape for a standoff: those cars are usually boxed in by their own queue)
+    if (d.info.wheelbase > 3.8f && selfBody >= 0) {
+        float sweep = Clamp(v * 1.1f, 1.2f, 4.f);
+        float hl = (d.info.rearLen + d.info.frontLen + sweep) * 0.5f;
+        vec2 bc = pos + fwd * (hl - d.info.rearLen);
+        float hw = d.info.halfWid + 0.25f;
+        float qr = hl + kMaxBodyExtent;
+        float myZ = bodies[selfBody].z;
+        hash.query(bodies, bc - vec2(qr), bc + vec2(qr), [&](int bi) {
+            if (bi == selfBody) return;
+            const Body& b = bodies[bi];
+            if (b.speed > 1.f || fabsf(b.z - myZ) > 3.f) return;
+            float ahead = dot(b.pos - pos, fwd);
+            if (ahead < d.info.frontAxleY) return;   // beside or behind the front axle: not ours to stop for
+            vec2 bfw = length2(b.fwd) > 0.5f ? b.fwd : vec2(0, 1);
+            if (!rectsOverlap(bc, fwd, hl, hw, b.pos, bfw, b.halfLen, b.halfWid)) return;
+            if (b.kind == BK_PED) {
+                float ext = fabsf(dot(bfw, fwd)) * b.halfLen + fabsf(dot(rightOf(bfw), fwd)) * b.halfWid;
+                float gap = Max(ahead - ext - d.info.frontLen, 0.f);
+                if (gap < obstGap) {   // a person: stop
+                    obstGap = gap;
+                    obstV = 0.f;
+                    obstB = bi;
+                    obstPed = true;
+                }
+            } else {
+                d.speedCap = Min(d.speedCap, 1.1f);
+            }
+        });
+    }
     d.obstDist = obstGap;
     d.obstSpeed = obstV;
     d.obstBody = obstB;
@@ -1401,7 +1447,7 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
         return Lerp(d.lcFrom, d.lcTo, f * f * (3.f - 2.f * f));
     };
     // ---- steering: pure pursuit from the rear axle
-    float Ld = Clamp(2.6f + 0.36f * v, 4.f, 24.f);
+    float Ld = Clamp(2.6f + 0.36f * v + 0.012f * v * v, 4.f, 32.f);   // (longer at highway speed: no weaving at the end of a lane change)
     float ahead = Ld + d.info.rearAxleY;  // rear axle is behind the origin (rearAxleY < 0)
     vec2 target;
     {
