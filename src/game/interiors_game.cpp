@@ -832,6 +832,140 @@ void elevatorTest(GameWorld& g, float dt) {
     }
 }
 
+// --tidetest "<Tide Customs name>": drive a car from the street through the roll-up door onto the service lift, buy
+// a paint job in the mod menu (with its preview), leave the menu and back out (screenshots tide_NN_<step>.bmp)
+struct TideTest {
+    bool init = false;
+    int def = -1, veh = -1, shop = -1;
+    float t = 0.f, st = 0.f;
+    int stage = 0, shot = 0;
+    u32 taken = 0;
+    long long money0 = 0;
+    vec3 lift, street;
+};
+TideTest gTT;
+
+void tideTest(GameWorld& g, float dt) {
+    const char* arg = Platform::argValue("tidetest");
+    if (!arg || !World::gInteriors) return;
+    Ped* pl = g.playerPed();
+    if (!pl) return;
+    const auto& defs = World::gInteriors->defs;
+    Controls& c = g.ctl;
+    auto shot = [&](int bit, const char* name) {
+        if (gTT.taken & (1u << bit)) return;
+        gTT.taken |= 1u << bit;
+        const char* dir = Platform::argValue("shotdir");
+        g.requestScreenshot = std::string(dir ? dir : "Z:\\tmp\\") + StrFormat("tide_%02d_%s.bmp", gTT.shot++, name);
+    };
+    auto next = [&](int s2) {
+        gTT.stage = s2;
+        gTT.st = 0.f;
+    };
+    if (!gTT.init) {
+        gTT.init = true;
+        gTT.def = World::gInteriors->byName(arg);
+        if (gTT.def < 0) gTT.def = World::gInteriors->byKind(World::IK_MODSHOP, 0);
+        const World::InteriorMarker* mk = gTT.def >= 0 ? defs[gTT.def].marker(World::IM_SERVICE) : nullptr;
+        if (!mk) {
+            LOG("tidetest: no Tide Customs interior");
+            gTT.def = -1;
+            return;
+        }
+        const InteriorDef& d = defs[gTT.def];
+        gTT.lift = d.toWorld(mk->pos);
+        vec3 ll = mk->pos;
+        gTT.street = d.toWorld(vec3(ll.x, -9.f, 0.f));
+        float yaw = d.yawToWorld(0.f);
+        int model = g.findVehicleModel(Vehicles::VC_SEDAN, 3);
+        if (model < 0) model = g.findVehicleModel(Vehicles::VC_COUPE, 1);
+        gTT.veh = model >= 0 ? g.spawnVehicle(model, dvec3(gTT.street.x, gTT.street.y, g.groundHeight(gTT.street.x, gTT.street.y, gTT.street.z + 3.f) + 0.5), yaw, false) : -1;
+        if (gTT.veh < 0) {
+            LOG("tidetest: no car");
+            gTT.def = -1;
+            return;
+        }
+        g.warpPedIntoVehicle(g.player, gTT.veh, 0);
+        g.rig.yaw = yaw;
+        g.rig.cut = true;
+        g.populationOff = true;
+        setFlag(g, EX_INTRO_DONE, 1);
+        g.pinfo.money = Max(g.pinfo.money, 25000ll);
+        g.pinfo.wanted = 0;
+        g.pinfo.wantedHeat = 0.f;
+        gTT.money0 = g.pinfo.money;
+        LOG("tidetest: '%s', car %d from %.1f %.1f to the lift at %.1f %.1f %.1f", d.name.c_str(), gTT.veh, gTT.street.x, gTT.street.y, gTT.lift.x, gTT.lift.y, gTT.lift.z);
+    }
+    if (gTT.def < 0 || gTT.veh < 0 || !g.vehicles[gTT.veh].used) return;
+    gTT.t += dt;
+    gTT.st += dt;
+    const Vehicle& v = g.vehicles[gTT.veh];
+    vec3 vp = v.sim.body.pos.toVec3();
+    switch (gTT.stage) {
+        case 0:   // settle on the street in front of the roll-up door
+            if (gTT.t > 3.5f) {
+                shot(0, "approach");
+                next(1);
+            }
+            break;
+        case 1: {  // drive in (the roll-up door opens for the car), stop on the lift
+            vec2 to = gTT.lift.xy() - vp.xy();
+            float dist = length(to);
+            vec3 f = v.sim.forward();
+            float err = wrapAngle(atan2f(-to.x, to.y) - atan2f(-f.x, f.y));
+            float spd = length(v.sim.body.vel);
+            c.steer = Clamp(-err * 2.f, -1.f, 1.f);
+            c.accel = dist > 4.f ? (spd < 4.f ? 0.45f : 0.f) : (spd < 1.2f && dist > 0.8f ? 0.25f : 0.f);
+            c.brake = (dist < 4.f && spd > 1.6f) || dist < 0.8f ? 1.f : 0.f;
+            if (mu::gShops.resprayStage != 0) {
+                LOG("tidetest: service started %.1f m from the lift after %.1f s", dist, gTT.st);
+                next(2);
+            } else if (gTT.st > 40.f) {
+                LOG("tidetest: did not reach the lift (%.1f m, speed %.1f)", dist, spd);
+                next(9);
+            }
+            break;
+        }
+        case 2:   // the menu opens inside the shop: the car on the lift, the preview camera orbiting
+            if (mu::gShops.resprayStage == 2 && g.fadeAlpha < 0.02f && gTT.st > 1.2f) {
+                LOG("tidetest: menu open, car at %.2f %.2f %.2f (lift %.2f %.2f %.2f)", vp.x, vp.y, vp.z, gTT.lift.x, gTT.lift.y, gTT.lift.z);
+                shot(1, "menu");
+                mu::gMenuInject = mu::MP_PRIMARY;
+                next(3);
+            } else if (gTT.st > 20.f) {
+                LOG("tidetest: menu did not open (stage %d)", mu::gShops.resprayStage);
+                next(9);
+            }
+            break;
+        case 3:   // primary colour page: highlight Tide Teal (live preview), buy it, back out, leave
+            if (gTT.st > 0.6f && gTT.st < 0.6f + dt * 1.5f && mu::gShops.modPage == mu::MP_PRIMARY) mu::gMenu.cursor = 9;
+            if (gTT.st > 2.0f) shot(2, "preview");
+            if (gTT.st > 2.6f && gTT.st < 2.6f + dt * 1.5f) mu::gMenuInject = 9;
+            if (gTT.st > 3.4f && gTT.st < 3.4f + dt * 1.5f) mu::gMenuInject = -2;
+            if (gTT.st > 4.2f && gTT.st < 4.2f + dt * 1.5f) mu::gMenuInject = mu::MI_LEAVE;
+            if (gTT.st > 5.f && mu::gShops.resprayStage == 0 && g.fadeAlpha < 0.02f) {
+                LOG("tidetest: left the menu, paid $%lld, colour %.2f %.2f %.2f", gTT.money0 - g.pinfo.money, v.color0.x, v.color0.y, v.color0.z);
+                shot(3, "painted");
+                next(4);
+            } else if (gTT.st > 20.f) {
+                LOG("tidetest: menu did not close (stage %d page %d)", mu::gShops.resprayStage, mu::gShops.modPage);
+                next(9);
+            }
+            break;
+        case 4:   // back out onto the street
+            if (gTT.st < 4.5f) {
+                c.brake = 1.f;   // reverse
+                c.steer = 0.f;
+            } else {
+                shot(4, "out");
+                LOG("tidetest: done, car at %.1f %.1f, %.1f m from the lift", vp.x, vp.y, length(vp.xy() - gTT.lift.xy()));
+                next(9);
+            }
+            break;
+        default: break;
+    }
+}
+
 }  // namespace interiors_game
 
 namespace holdups {   // holdups.cpp (store robberies on the shop clerks spawned here)
@@ -849,6 +983,7 @@ using namespace interiors_game;
 void preUpdate(GameWorld& g, float dt) {
     testDrive(g, dt);
     elevatorTest(g, dt);
+    tideTest(g, dt);
     holdups::testDrive(g, dt);
 }
 

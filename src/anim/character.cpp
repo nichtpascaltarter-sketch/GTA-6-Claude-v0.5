@@ -406,18 +406,25 @@ static void buildFinalMesh(const CharacterDesc& d, const Skeleton& skel, MeshB& 
     bakeOcclusion(c, fin);
 }
 
-// Remove what a LOD does not need: tiny accessory pieces (buttons, rivets) from LOD1, and at LOD2 the face details
-// (lashes, brows, lid tucks: their colour is painted onto the skin first), the mouth interior (the far LOD never
-// talks), the fingers (paddle hands) and small accessories (jewellery, glasses, badges, holster items); hats, bags
-// and garments stay. The eyeballs become low-poly spheres with the same sclera / iris colours.
+// Remove what a LOD does not need: from LOD1 every strand card (scalp and beard cards: the shells stay; brows and
+// lashes: their colour is painted onto the skin first) and tiny accessory pieces (buttons, rivets); at LOD2 also the
+// lid tucks, the mouth interior (the far LOD never talks), the fingers (paddle hands) and small accessories
+// (jewellery, glasses, badges, holster items); hats, bags and garments stay. The eyeballs become low-poly spheres with
+// the same sclera / iris colours.
 static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
     const u32 NT = (u32)(m.idx.size() / 3);
     std::vector<u8> drop(NT, 0);
-    if (lod >= 2) {
-        // brows and lashes -> skin tint (so the face still reads at a distance)
+    if (lod >= 1) {
+        // brows and lashes (strand cards; at LOD2 also the lid tucks) -> skin tint, so the face still reads at a
+        // distance; every strand card goes (the hair / beard shells stay, brightened back to the cards' tone)
         std::vector<u32> det;
         for (u32 i = 0; i < (u32)m.v.size(); i++)
-            if (m.v[i].part == PART_FACEDETAIL) det.push_back(i);
+            if (m.v[i].part == PART_FACEDETAIL && (lod >= 2 || cardKind(m.v[i]) != CARD_NONE)) det.push_back(i);
+        for (BVert& v : m.v)
+            if (v.flags & BuildCtx::F_CARDSHELL) {
+                v.col = v.col * (1.f / 0.72f);
+                v.flags &= (u8)~BuildCtx::F_CARDSHELL;
+            }
         for (BVert& v : m.v) {
             if (v.part != PART_HEAD || !(v.flags & BuildCtx::F_FACE)) continue;
             float best = 1e9f;
@@ -463,6 +470,7 @@ static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
         }
         if (lod >= 2 && (v0.part == PART_FACEDETAIL || v0.part == PART_MOUTH || v0.part == PART_FINGER || v0.part == PART_THUMB))
             drop[t] = 1;
+        if (cardKind(v0) != CARD_NONE) drop[t] = 1;
         if (v0.part == PART_EYE) drop[t] = 1;   // replaced below
     }
     MeshB out;

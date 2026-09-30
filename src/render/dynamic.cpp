@@ -14,6 +14,7 @@ struct Model {
     gfx::Buffer vb, ib;
     u32 indexCount = 0;
     u32 glassCount = 0;   // see-through windows (MAT_CAR_WINDOW): the last glassCount indices, drawn forward after lighting
+    u32 cardStart = 0;    // skinned: first index of the hair strand cards (they come last); indexCount = no cards
     AABB bounds;
     bool skinned = false;
     void release() { vb.release(); ib.release(); }
@@ -47,6 +48,9 @@ struct DynamicRenderer {
     gfx::VertexShader vsRigid, vsSkinned, vsRigidShadow, vsSkinnedShadow;
     ID3D11PixelShader* ps = nullptr;
     ID3D11PixelShader* psGlass = nullptr;
+    ID3D11PixelShader* psHairCard = nullptr;       // hair strand cards (dithered alpha, strand tangent)
+    gfx::VertexShader vsCardShadow;
+    ID3D11PixelShader* psCardShadow = nullptr;     // alpha-tested card shadows
     gfx::CBuffer<ObjectCBData> cb;
     gfx::Buffer boneBuf, prevBoneBuf;
     static const int kMaxBones = 16384;
@@ -90,6 +94,9 @@ struct DynamicRenderer {
         vsSkinnedShadow = gfx::loadVS("dynamic.hlsl", "vsSkinnedShadow", skinned, 8);
         ps = gfx::loadPS("dynamic.hlsl", "psDynamic");
         psGlass = gfx::loadPS("dynamic.hlsl", "psGlass");
+        psHairCard = gfx::loadPS("dynamic.hlsl", "psHairCard");
+        vsCardShadow = gfx::loadVS("dynamic.hlsl", "vsSkinnedShadowCard", skinned, 8);
+        psCardShadow = gfx::loadPS("dynamic.hlsl", "psHairCardShadow");
         cb.create();
         boneBuf = gfx::createBuffer(kMaxBones * 64, 64, gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
         prevBoneBuf = gfx::createBuffer(kMaxBones * 64, 64, gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
@@ -123,6 +130,12 @@ struct DynamicRenderer {
         md->vb = gfx::createBuffer((u32)(m.verts.size() * sizeof(VtxSkinned)), sizeof(VtxSkinned), gfx::BUF_VERTEX, m.verts.data());
         md->ib = gfx::createBuffer((u32)(m.indices.size() * 4), 4, gfx::BUF_INDEX, m.indices.data());
         md->indexCount = (u32)m.indices.size();
+        md->cardStart = md->indexCount;
+        // Hair strand cards (MAT_HAIR with a card kind in bits 8-11) are the last triangles of the index buffer
+        for (size_t t = 0; t + 2 < m.indices.size(); t += 3) {
+            u32 mt = m.verts[m.indices[t]].mat;
+            if ((mt & 0xffu) == MAT_HAIR && ((mt >> 8) & 15u) != 0) { md->cardStart = (u32)t; break; }
+        }
         md->bounds = m.bounds;
         return md;
     }
@@ -229,9 +242,21 @@ struct DynamicRenderer {
             c->IASetVertexBuffers(0, 1, &d.model->vb.buf, &stride, &offset);
             c->IASetIndexBuffer(d.model->ib.buf, DXGI_FORMAT_R32_UINT, 0);
             u32 opaqueCount = d.model->indexCount - d.model->glassCount;
+            u32 cards = d.model->skinned ? d.model->indexCount - d.model->cardStart : 0;
+            opaqueCount -= cards;
             if (opaqueCount) c->DrawIndexed(opaqueCount, 0, 0);
             r.stats.drawCalls++;
             r.stats.triangles += (int)opaqueCount / 3;
+            if (cards) {
+                // hair strand cards: two-sided, dithered coverage
+                c->PSSetShader(psHairCard, nullptr, 0);
+                c->RSSetState(gfx::states.cullNone);
+                c->DrawIndexed(cards, d.model->cardStart, 0);
+                c->PSSetShader(ps, nullptr, 0);
+                c->RSSetState(gfx::states.cullBack);
+                r.stats.drawCalls++;
+                r.stats.triangles += (int)cards / 3;
+            }
         }
         ID3D11ShaderResourceView* nulls[3] = {};
         c->PSSetShaderResources(10, 3, nulls);
@@ -261,8 +286,18 @@ struct DynamicRenderer {
             c->IASetVertexBuffers(0, 1, &d.model->vb.buf, &stride, &offset);
             c->IASetIndexBuffer(d.model->ib.buf, DXGI_FORMAT_R32_UINT, 0);
             u32 opaqueCount = d.model->indexCount - d.model->glassCount;   // windows let the sun into the cabin
+            u32 cards = d.model->skinned ? d.model->indexCount - d.model->cardStart : 0;
+            opaqueCount -= cards;
             if (opaqueCount) c->DrawIndexed(opaqueCount, 0, 0);
             r.stats.drawCalls++;
+            if (cards && cascade < 2) {
+                // strand cards: alpha-tested in the two near cascades (below a far texel they add nothing)
+                c->VSSetShader(vsCardShadow.vs, nullptr, 0);
+                c->PSSetShader(psCardShadow, nullptr, 0);
+                c->DrawIndexed(cards, d.model->cardStart, 0);
+                c->PSSetShader(nullptr, nullptr, 0);
+                r.stats.drawCalls++;
+            }
         }
         ID3D11ShaderResourceView* nul = nullptr;
         c->VSSetShaderResources(20, 1, &nul);

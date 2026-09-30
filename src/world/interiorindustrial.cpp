@@ -164,12 +164,13 @@ void forklift(IB& b, vec3 p, float yaw, float liftZ, u32 seed) {
 }
 
 // Two-post car lift (arms toward +/-y), posts at x = +-1.6; carriage and arms at liftZ
-void carLift(IB& b, vec3 p, float yaw, float liftZ, u32 col) {
+void carLift(IB& b, vec3 p, float yaw, float liftZ, u32 col, float topZ = 3.95f) {
     At at(b, p, yaw);
     u32 steel = M(MAT_METAL_PAINTED);
+    const float ph = topZ * 0.5f;   // post half height (the crossbar sits on top; 3.95 m unless the ceiling is lower)
     for (int sx = -1; sx <= 1; sx += 2) {
         float x = sx * 1.75f;
-        box(b, vec3(x, 0.f, 1.95f), vec3(0.16f, 0.18f, 1.95f), col, steel, SK_NZ);
+        box(b, vec3(x, 0.f, ph), vec3(0.16f, 0.18f, ph), col, steel, SK_NZ);
         box(b, vec3(x, 0.f, 0.02f), vec3(0.3f, 0.35f, 0.02f), Gy(0.3f), steel, SK_NZ);
         box(b, vec3(x - sx * 0.2f, 0.f, liftZ + 0.15f), vec3(0.08f, 0.2f, 0.25f), Gy(0.2f), steel, SK_NONE);   // carriage
         for (int sy = -1; sy <= 1; sy += 2) {
@@ -182,10 +183,10 @@ void carLift(IB& b, vec3 p, float yaw, float liftZ, u32 col) {
             b.pop();
             cyl(b, c + vec3(0, 0, 0.04f), 0.08f, 0.08f, 0.06f, 10, Gy(0.1f), M(MAT_RUBBER), true);
         }
-        collide(b, vec3(x, 0.f, 1.95f), vec3(0.18f, 0.2f, 1.95f));
+        collide(b, vec3(x, 0.f, ph), vec3(0.18f, 0.2f, ph));
     }
-    box(b, vec3(0.f, 0.f, 3.95f), vec3(1.95f, 0.12f, 0.08f), col, steel, SK_NONE);   // overhead crossbar
-    tube(b, vec3(-1.75f, 0.12f, 3.9f), vec3(1.75f, 0.12f, 3.9f), 0.012f, 5, Gy(0.1f), M(MAT_RUBBER));
+    box(b, vec3(0.f, 0.f, topZ), vec3(1.95f, 0.12f, 0.08f), col, steel, SK_NONE);   // overhead crossbar
+    tube(b, vec3(-1.75f, 0.12f, topZ - 0.05f), vec3(1.75f, 0.12f, topZ - 0.05f), 0.012f, 5, Gy(0.1f), M(MAT_RUBBER));
     box(b, vec3(1.95f, 0.f, 1.3f), vec3(0.06f, 0.1f, 0.14f), Gy(0.85f), M(MAT_PLASTIC), SK_NONE);   // controls
     box(b, vec3(2.012f, 0.f, 1.32f), vec3(0.001f, 0.03f, 0.03f), C(0.1f, 0.9f, 0.2f, 0.8f), EM(), SK_NONE);
 }

@@ -30,10 +30,17 @@ static BVert lerpVert(const BVert& a, const BVert& b, float t) {
     v.uv = lerp(a.uv, ub, t);
     v.col = lerp(a.col, b.col, t);
     v.sw = lerpSkin(a.sw, b.sw, t);
-    v.pa = Lerp(a.pa, b.pa, t);
-    v.pb = (a.part == PART_TORSO || a.part == PART_HEAD || a.part == PART_NECK || a.part == PART_ARM || a.part == PART_LEG) ? angLerp(a.pb, b.pb, t)
-                                                                                                                         : Lerp(a.pb, b.pb, t);
-    if (v.pb < 0.f) v.pb += kTwoPi;
+    if (a.part == PART_HEAD) {
+        // head grid: pa = azimuth (periodic, 0 at the front), pb = elevation (not periodic)
+        v.pa = angLerp(a.pa, b.pa, t);
+        if (v.pa < 0.f) v.pa += kTwoPi;
+        if (v.pa >= kTwoPi) v.pa -= kTwoPi;
+        v.pb = Lerp(a.pb, b.pb, t);
+    } else {
+        v.pa = Lerp(a.pa, b.pa, t);
+        v.pb = (a.part == PART_TORSO || a.part == PART_NECK || a.part == PART_ARM || a.part == PART_LEG) ? angLerp(a.pb, b.pb, t) : Lerp(a.pb, b.pb, t);
+        if (v.pb < 0.f) v.pb += kTwoPi;
+    }
     v.pc = Lerp(a.pc, b.pc, t);
     v.axisPt = lerp(a.axisPt, b.axisPt, t);
     v.flags = a.flags & b.flags;
@@ -505,6 +512,88 @@ static float covSuitJacket(const Ref& R, const BVert& v, float hemZ, float sleev
     return -1.f;
 }
 
+// ------------------------------------------------------------------------------------------------
+// Fabric folds: extra shell offset (meters) where cloth bunches, plus a shade for the fold troughs (vertex colour; the
+// renderer adds its curvature occlusion on top). Compression ridges in the crook of the elbow and behind the knee,
+// stacking above long cuffs and trouser hems, bunching over the waist / blousing over a tucked hem, soft drape from
+// the shoulder towards the armpit and denim whiskers at the front of the hips. Ridges are wavy (per-garment phase)
+// rather than rings, sharp crests over wide troughs like real compression folds.
+struct FoldSpec {
+    float amp = 1.f;          // overall scale (0 = none): looser garments fold more
+    float sleeveEnd = 0.f;    // arm: along-length of the sleeve (0 = no sleeve)
+    float legCuffZ = 0.f;     // leg: height of the trouser hem (0 = no trouser legs)
+    bool legLong = false;     // full-length trousers (stack on the shoe)
+    float waistZ = 0.f;       // torso: height of the hem / waistband the top bunches over (0 = none)
+    bool tucked = false;      // tucked hem: blousing just above the waistband
+    bool denim = false;       // jeans whiskers
+    u32 seed = 0;
+};
+static FORCEINLINE float foldCrest(float x) {
+    // periodic 0..1 with narrow crests (x in cycles)
+    float s = 0.5f + 0.5f * sinf(kTwoPi * x);
+    return s * s * s;
+}
+static void fabricFold(const BuildCtx& c, const FoldSpec& f, const BVert& v, float& off, float& shade) {
+    off = 0.f;
+    shade = 0.f;
+    if (f.amp <= 0.f) return;
+    const BodyDims& D = *c.D;
+    const float s = D.s;
+    const float ph0 = hashToFloat(hash32(f.seed * 747796405u + (u32)v.side * 2891336453u)) * kTwoPi;
+    float fold = 0.f, trough = 0.f;
+    auto ridge = [&](float x, float lambda, float wav, float envW) {
+        float cr = foldCrest(x / lambda + wav);
+        fold += envW * cr;
+        trough += envW * (1.f - cr) * 0.6f;
+    };
+    if (v.part == PART_ARM && f.sleeveEnd > 0.f) {
+        float al = v.pa, th = v.pb;
+        float eA = D.upperArm;
+        float crook = sstep(-0.2f, 0.85f, cosf(th));
+        float envE = bump(al, eA - 0.004f * s, 0.05f * s) * (0.25f + 0.75f * crook) * (al < f.sleeveEnd - 0.01f * s ? 1.f : 0.f);
+        if (envE > 0.01f) ridge(al - eA, 0.024f * s, 0.35f * sinf(th * 1.5f + ph0), envE * 0.0034f);
+        // stacking above a long cuff
+        if (f.sleeveEnd > D.upperArm + 0.1f * s) {
+            float envC = bump(al, f.sleeveEnd - 0.04f * s, 0.028f * s) * (0.55f + 0.45f * crook);
+            ridge(al, 0.021f * s, 0.5f * sinf(th + ph0 * 1.7f), envC * 0.0026f);
+        }
+        // drape from the shoulder towards the armpit (under the arm)
+        float under = sstep(0.2f, -0.9f, sinf(th));
+        float envS = bump(al, 0.06f * s, 0.05f * s) * under;
+        if (envS > 0.01f) ridge(al * 0.7f + th * 0.012f * s, 0.03f * s, ph0, envS * 0.002f);
+    }
+    if (v.part == PART_LEG && f.legCuffZ > 0.f) {
+        float al = v.pa, th = v.pb, z = v.bp.z;
+        float kA = D.thigh;
+        float back = sstep(-0.1f, -0.85f, cosf(th)), front = sstep(0.1f, 0.85f, cosf(th));
+        float envK = bump(al, kA + 0.01f * s, 0.045f * s) * (0.2f + 0.8f * back) * (z > f.legCuffZ + 0.02f * s ? 1.f : 0.f);
+        if (envK > 0.01f) ridge(al - kA, 0.02f * s, 0.3f * sinf(th * 2.f + ph0), envK * 0.003f);
+        // stacking on the shoe (long trousers)
+        if (f.legLong) {
+            float envH = bump(z, f.legCuffZ + 0.05f * s, 0.045f * s) * (0.5f + 0.5f * front);
+            ridge(z, 0.03f * s, 0.9f * sinf(th * 1.3f + ph0 * 2.3f), envH * 0.0042f);
+        }
+        // denim whiskers: fine diagonal creases at the front of the hip
+        if (f.denim) {
+            float envW = bump(al, 0.07f * s, 0.05f * s) * bump(th, (v.side ? 1.f : -1.f) * 0.55f, 0.45f);
+            if (envW > 0.02f) ridge(al + th * 0.03f * s * (v.side ? 1.f : -1.f), 0.018f * s, ph0, envW * 0.0012f);
+        }
+    }
+    if (v.part == PART_TORSO && f.waistZ > 0.f) {
+        float z = v.bp.z, th = v.pb;
+        if (f.tucked) {
+            float envB = bump(z, f.waistZ + 0.035f * s, 0.035f * s);
+            fold += envB * 0.004f;   // blousing
+            ridge(th * 0.16f * s, 0.028f * s, 0.2f * sinf(z * 60.f + ph0), envB * 0.0022f);   // vertical creases into the waistband
+        } else {
+            float envW = bump(z, f.waistZ + 0.06f * s, 0.05f * s) * (0.55f + 0.45f * fabsf(sinf(th)));
+            ridge(z - f.waistZ, 0.034f * s, 0.45f * sinf(th * 2.f + ph0), envW * 0.0026f);
+        }
+    }
+    off = fold * f.amp;
+    shade = Saturate(trough * f.amp / 0.0025f) * 0.18f;
+}
+
 static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
     BuildCtx& c = o.c;
     const BodyDims& D = *c.D;
@@ -622,6 +711,29 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
     if (top == TOP_HAWAIIAN) {
         u32 sd = d.seed;
         g.colFn = [=](const BVert& v, vec3 base) { return floral(v, base, sd); };
+    }
+    {
+        // folds: elbows / cuffs / armpits on the sleeves, bunching or blousing at the waist
+        FoldSpec fs;
+        fs.amp = Lerp(0.45f, 1.2f, Saturate(loose / 0.012f));
+        fs.sleeveEnd = tank ? 0.f : sleeve;
+        fs.waistZ = hemZ;
+        fs.tucked = tucked;
+        fs.seed = d.seed * 3u + 1u;
+        const BuildCtx* cp = &c;
+        auto baseExtra = g.extraFn;
+        g.extraFn = [=](const BVert& v) {
+            float off, sh;
+            fabricFold(*cp, fs, v, off, sh);
+            return baseExtra(v) + off;
+        };
+        auto baseCol = g.colFn;
+        g.colFn = [=](const BVert& v, vec3 cc) {
+            vec3 r = baseCol ? baseCol(v, cc) : cc;
+            float off, sh;
+            fabricFold(*cp, fs, v, off, sh);
+            return r * (1.f - sh);
+        };
     }
     if (top == TOP_HIVIS) {
         // tee under the vest
@@ -1006,6 +1118,27 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
         }
         return torsoE;
     };
+    {
+        // folds: behind the knees, stacking on the shoe for full-length trousers, whiskers on jeans
+        FoldSpec fs;
+        fs.amp = bot == BOT_LEGGINGS ? 0.f : Lerp(0.55f, 1.25f, Saturate(loose / 0.016f));
+        fs.legCuffZ = zCuff;
+        fs.legLong = zCuff < R.zAnkle + 0.05f * s && bot != BOT_LEGGINGS;
+        fs.denim = g.mat == MAT_DENIM;
+        fs.seed = d.seed * 5u + 2u;
+        const BuildCtx* cp = &c;
+        auto baseExtra = g.extraFn;
+        g.extraFn = [=](const BVert& v) {
+            float off, sh;
+            fabricFold(*cp, fs, v, off, sh);
+            return baseExtra(v) + off;
+        };
+        g.colFn = [=](const BVert& v, vec3 cc) {
+            float off, sh;
+            fabricFold(*cp, fs, v, off, sh);
+            return cc * (1.f - sh);
+        };
+    }
     if (g.smooth < 1) g.smooth = 1;
     emitGarment(o, g);
     o.botTorsoOff = g.thick + torsoE + (belt || dutyBelt ? 0.009f : 0.004f);

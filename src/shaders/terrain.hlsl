@@ -160,15 +160,21 @@ GBufferOut psTerrain(VSOut i) {
     float3 T = normalize(cross(float3(0, 1, 0), N));
     float3 B = cross(N, T);
     float3 n = normalize(T * nTS.x + B * nTS.y + N * nTS.z);
-    float wl = tWaterLevel.SampleLevel(sLinearClamp, uvT, 0);
+    // highest water level of the 4 nearest texels (filtering between sea level and the -1000 "no water" marker
+    // would put the shoreline hundreds of metres down)
+    float4 wl4 = tWaterLevel.Gather(sPointClamp, uvT);
+    float wl = max(max(wl4.x, wl4.y), max(wl4.z, wl4.w));
     float h = i.rel.z + gCamPos.z;
     float sandW = saturate(weights[0] * 1.5);
     float mudW = saturate(weights[4] * 1.5 + weights[5] * 0.6);
-    // Dry sand: wind ripples across the prevailing sea breeze (fixed direction: ripples do not swing with gusts)
+    // Dry sand: wind ripples across the prevailing sea breeze (fixed direction: ripples do not swing with gusts),
+    // bending and fading in patches, faded out before they could alias (period below ~4 pixels)
     if (sandW > 0.0 && dist < 40.0) {
         float2 breeze = float2(0.96, 0.28);
-        float ph = dot(w, breeze) * (TWO_PI / 0.11) + valueNoise(w * 0.7) * 4.0 + valueNoise(w * 3.1) * 0.8;
-        float slope = cos(ph) * 0.22 * sandW * saturate(1.0 - dist / 40.0);
+        float ph = dot(wrapped, breeze) * (TWO_PI / 0.11) + valueNoise(w * 0.7) * 4.0 + valueNoise(w * 3.1) * 0.8;
+        float aa = saturate(1.6 - fwidth(ph) * 0.6);
+        float patchR = smoothstep(0.25, 0.65, valueNoise(w * 0.3 + 3.7));
+        float slope = cos(ph) * 0.14 * sandW * saturate(1.0 - dist / 40.0) * aa * patchR;
         n = normalize(n + float3(breeze * slope, 0.0));
     }
     // Shore: wet sand below the highest recent run-up, a thin swash sheet that runs up and drains back every
@@ -178,8 +184,8 @@ GBufferOut psTerrain(VSOut i) {
         float above = h - wl;
         float waves = 0.15 + 0.35 * gWeather.w + 0.25 * gWeather.x;
         float cyc = frac(gTime.x / 9.0 + valueNoise(w * 0.013) * 2.0 + dot(w, float2(0.021, 0.017)));
-        float runup = waves * (smoothstep(0.0, 0.22, cyc) * (1.0 - smoothstep(0.3, 1.0, cyc)));
-        float wetTop = 0.12 + waves * 1.1;
+        float runup = waves * 0.42 * (smoothstep(0.0, 0.22, cyc) * (1.0 - smoothstep(0.3, 1.0, cyc)));
+        float wetTop = 0.08 + waves * 0.45;
         float wet = saturate((wetTop - above) / (0.08 + 0.1 * valueNoise(w * 0.9)));
         float sheet = saturate((runup - above) / 0.025);
         float front = sheet * (1.0 - saturate((runup - above) / 0.06));

@@ -17,6 +17,23 @@ float yawOfVehicle(const Vehicles::VehicleState& s) {
     return atan2f(-f.x, f.y);
 }
 
+// Highest roof within r meters of q (helicopter terrain following over the towers).
+float skylineAt(const GameWorld& g, vec2 q, float r) {
+    const World::BuildingSet* bs = g.buildings ? g.buildings : World::gBuildings;
+    if (!bs) return -1e9f;
+    thread_local std::vector<int> nb;
+    nb.clear();
+    bs->buildingsNear(q, r + 60.f, nb);
+    float top = -1e9f;
+    for (int i : nb) {
+        const World::Building& b = bs->buildings[i];
+        vec2 dd = q - b.c;
+        float ex = fabsf(dot(dd, b.ax)) - b.hx, ey = fabsf(dot(dd, vec2(-b.ax.y, b.ax.x))) - b.hy;
+        if (Max(ex, ey) < r) top = Max(top, b.baseZ + b.height);
+    }
+    return top;
+}
+
 }  // namespace traffic_detail
 
 using namespace traffic_detail;
@@ -582,9 +599,13 @@ void GameWorld::aiFlyHeli(int vi, float dt, dvec3 target, float altitude, float 
     c.pitch = Clamp(atanf(-aF / 9.81f) / maxTilt, -1.f, 1.f);
     c.roll = Clamp(atanf(aR / 9.81f) / maxTilt, -1.f, 1.f);
     if (fabsf(c.pitch) < 0.05f) c.pitch = c.pitch < 0.f ? -0.05f : 0.05f;
-    // altitude: keep above the ground / buildings under us
+    // altitude: keep above the ground and the roofs under us and along the way (fast pursuits over downtown)
     float ground = map->heightAt(p.x, p.y);
     float alt = Max(altitude, ground + 35.f);
+    for (int k = 0; k < 3; k++) {
+        vec2 q = p.xy() + s.body.vel.xy() * (1.5f * k);
+        alt = Max(alt, skylineAt(*this, q, 15.f) + 25.f);
+    }
     float vz = Clamp((alt - p.z) * 0.5f, -5.f, 7.f);
     c.lift = vz > 0.f ? vz / 8.f : vz / 6.f;
     c.lift = Clamp(c.lift + 0.02f, -1.f, 1.f);

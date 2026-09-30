@@ -175,6 +175,10 @@ void initBuses(GameWorld& g) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------- driving
+// The obstacle corridor is the body width plus margins: at the bus's full mirror width, cars parked in the parking strip
+// just past a junction read as blocking the curb lane (and on a junction connector nobody overtakes them)
+void tuneDriver(AI::Driver& d) { d.info.halfWid = Min(d.info.halfWid, 1.2f); }
+
 // Host route for the traffic driver: the route's edges from the bus's leg to the next stop's leg (and one beyond).
 // The core looks up the edge a car is on by its first occurrence in destEdges, so the list ends before an edge comes
 // round a second time (out and back along a road near a terminus); it is rebuilt at every new leg anyway.
@@ -276,6 +280,7 @@ bool spawnBus(GameWorld& g, Bus& b, bool atStop) {
     b.refresh = 0.f;
     AI::Driver* d = g.traffic.get(vi);
     if (!d) return true;
+    tuneDriver(*d);
     if (atStop) {
         const World::BusStop& s = stopOf(R, b.next);
         b.phase = 2;
@@ -398,6 +403,7 @@ void driveBus(GameWorld& g, Bus& b, float dt, bool playerAboard, float plDist) {
         if (!g.attachTraffic(b.veh)) return;
         dp = g.traffic.get(b.veh);
         if (!dp) return;
+        tuneDriver(*dp);
         setRoute(g, b, *dp);
     }
     AI::Driver& d = *dp;
@@ -483,6 +489,18 @@ void driveBus(GameWorld& g, Bus& b, float dt, bool playerAboard, float plDist) {
         }
         // stuck behind something for a long time far from the player: let the timetable take over again
         b.stuck = speed < 0.3f ? b.stuck + dt : 0.f;
+        // still boxed in by a parked car (a wide turn out of a junction next to the parking strip): out of sight, it is
+        // towed away
+        if (b.stuck > 10.f && d.obstBody >= 0 && d.obstBody < (int)g.traffic.bodies.size() && d.obstDist < 8.f) {
+            const AI::Body& ob = g.traffic.bodies[d.obstBody];
+            int ov = ob.host;
+            if (ob.kind == AI::BK_CAR && (ob.flags & AI::BF_PARKED) && ov >= 0 && ov < (int)g.vehicles.size() && g.vehicles[ov].used && !g.vehicles[ov].persistent &&
+                g.vehicles[ov].seats[0] < 0 && g.playerVehicle() != ov && !g.inCameraView(g.vehicles[ov].sim.body.pos.toVec3() + vec3(0, 0, 0.8f), 3.f)) {
+                LOG("Transit: bus %s/%d blocked by a parked car for %.0f s, towed", R.number.c_str(), b.idx, b.stuck);
+                g.despawnVehicle(ov, true);
+                b.stuck = 0.f;
+            }
+        }
     } else {
         b.timer -= dt;
         d.mode = AI::DM_HOLD;
@@ -535,6 +553,7 @@ void skipToNextStop(GameWorld& g, Bus& b) {
     g.traffic.detach(b.veh);
     g.attachTraffic(b.veh, lane, u);
     AI::Driver* d = g.traffic.get(b.veh);
+    if (d) tuneDriver(*d);
     b.leg = R.legAt(R.stopDist[b.next]);
     b.d = R.stopDist[b.next];
     if (d) {

@@ -43,6 +43,28 @@ struct GBufferData {
     float extra;
 };
 
+// Hair strand cards store the strand direction (a line, sign-free) in the metal channel of their SM_HAIR pixels, as
+// an angle in the normal's tangent plane (0.7 degree steps). Codes below 1.5/255 mean "no tangent" (the opaque hair
+// shell, lit along the surface projection of "down"). The lighting pass clears g.metal after decoding.
+float3 hairRefAxis(float3 N) {
+    float3 a = abs(N.z) < 0.8 ? float3(0, 0, 1) : float3(1, 0, 0);
+    return normalize(cross(a, N));
+}
+float encodeHairTangent(float3 N, float3 T) {
+    float3 r0 = hairRefAxis(N), r1 = cross(N, r0);
+    float ang = atan2(dot(T, r1), dot(T, r0));
+    if (ang < 0.0) ang += PI;
+    return (2.0 + min(ang / PI, 0.999) * 253.0) / 255.0;
+}
+bool decodeHairTangent(float3 N, float code, out float3 T) {
+    T = 0;
+    if (code < 1.5 / 255.0) return false;
+    float ang = (code * 255.0 - 2.0) / 253.0 * PI;
+    float3 r0 = hairRefAxis(N), r1 = cross(N, r0);
+    T = r0 * cos(ang) + r1 * sin(ang);
+    return true;
+}
+
 GBufferData unpackGBuffer(float4 a, float2 n, float4 m) {
     GBufferData g;
     g.albedo = a.rgb;

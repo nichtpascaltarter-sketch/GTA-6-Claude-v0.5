@@ -374,6 +374,80 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
 }
 
 // ------------------------------------------------------------------------------------------------------------------
+// Hair strand cards (LOD0 characters; drawn after the opaque hair shell, culling off). mat = MAT_HAIR | param << 8:
+// kind = (mat >> 8) & 15 (1 scalp / long hair, 2 eyelash, 3 eyebrow, 4 beard), seed = (mat >> 12) & 0xffff per card.
+// uv.x runs across the card, uv.y along the strands (0 root .. 1 tip); the tangent is the strand direction; colour.a
+// is the strand density. Coverage is a row of tapering, slightly wavy strands of individual lengths that resolves
+// to its average once the strands get thinner than a pixel; it is dithered against a per-frame threshold, which TAA
+// turns into soft, see-through edges and tips.
+float hairHash(float x) { return frac(sin(x * 91.3458 + 17.17) * 47453.5453); }
+
+float hairCardCoverage(float2 uv, uint kind, float seed, float density, float footprint, out float strandRnd) {
+    float strands = kind == 2u ? 3.0 : (kind == 3u ? 5.0 : (kind == 4u ? 6.0 : 8.0));
+    float x = uv.x * strands;
+    float id = floor(x) + seed * 977.0;
+    strandRnd = hairHash(id);
+    float len = lerp(kind == 1u ? 0.7 : 0.82, 1.0, hairHash(id + 3.1));   // strands end at different lengths
+    float along = uv.y / len;
+    float alive = along < 1.0 ? 1.0 : 0.0;
+    float taper = saturate(1.0 - along);
+    float wave = (kind == 4u ? 0.16 : 0.06) * sin(uv.y * (kind == 4u ? 23.0 : 9.0) + strandRnd * 6.283);
+    float c = 0.5 + (hairHash(id + 7.7) - 0.5) * 0.3 + wave;
+    float halfW = lerp(0.24, 0.4, hairHash(id + 5.3)) * (0.3 + 0.7 * sqrt(taper));
+    float prof = saturate((1.0 - abs(frac(x) - c) / max(halfW, 1e-3)) * 1.6) * alive;
+    // strand cells per pixel: sharp strands up close, their average coverage once they are sub-pixel
+    float cov = lerp(prof, halfW * 1.6 * alive, saturate(footprint * strands * 1.5 - 0.5));
+    // thinner towards the card's side edges and the tips
+    float edge = smoothstep(0.0, 0.14, uv.x) * smoothstep(1.0, 0.86, uv.x);
+    return cov * edge * density * lerp(1.0, 0.7, smoothstep(0.55, 1.0, uv.y));
+}
+
+GBufferOut psHairCard(VSOut i, bool front : SV_IsFrontFace) {
+    uint kind = (i.mat >> 8) & 15u;
+    float seed = (float)((i.mat >> 12) & 0xffffu) * (1.0 / 65535.0);
+    float rnd;
+    float cov = hairCardCoverage(i.uv, kind, seed, i.color.a, fwidth(i.uv.x), rnd);
+    clip(cov - ign(i.pos.xy, gTime.z) - 0.002);
+    float3 N = normalize(i.nrm) * (front ? 1.0 : -1.0);
+    float3 T = i.tan - N * dot(i.tan, N);
+    float tl = length(T);
+    T = tl > 1e-5 ? T / tl : hairRefAxis(N);
+    // Per-strand brightness and hue, tips lightened by the sun; roots darker and occluded by the layers above
+    float3 hueJit = lerp(float3(1.04, 0.99, 0.94), float3(0.95, 1.0, 1.06), hairHash(rnd * 71.0 + 1.3));
+    float3 albedo = i.color.rgb * lerp(0.75, 1.15, rnd) * hueJit * lerp(1.0, 1.12, smoothstep(0.5, 1.0, i.uv.y));
+    float ao = kind == 1u ? lerp(0.5, 1.0, smoothstep(0.0, 0.55, i.uv.y)) : (kind == 2u ? 0.8 : 0.9);
+    float rough = kind == 2u ? 0.5 : 0.38;
+    // rain soaks the hair: darker, glossier
+    float wet = gWeather.y * (gObjParams.z > 0 ? 1.0 : (gObjParams.z < 0 ? 0.0 : 0.5));
+    albedo *= lerp(1.0, 0.7, wet);
+    rough = lerp(rough, 0.2, wet * 0.6);
+    return packGBuffer(albedo, ao, N, rough, encodeHairTangent(N, T), SM_HAIR, rnd, 0.0, i.curClip, i.prevClip);
+}
+
+// Card shadows: alpha-tested at the card's average strand coverage (strands are far below a shadow texel)
+struct VSCardShadowOut {
+    float4 pos : SV_Position;
+    float2 uv : TEXCOORD0;
+    float density : TEXCOORD1;
+};
+VSCardShadowOut vsSkinnedShadowCard(VSInSkinned i) {
+    VSCardShadowOut o;
+    uint off = (uint)gObjParams.y;
+    float4x4 m = tBones[off + i.bones.x] * i.weights.x + tBones[off + i.bones.y] * i.weights.y +
+                 tBones[off + i.bones.z] * i.weights.z + tBones[off + i.bones.w] * i.weights.w;
+    float3 rel = mul(gWorld, float4(mul(m, float4(i.pos, 1)).xyz, 1)).xyz;
+    o.pos = mul(gShadowViewProj, float4(rel, 1));
+    o.uv = i.uv;
+    o.density = i.color.a;
+    return o;
+}
+void psHairCardShadow(VSCardShadowOut i) {
+    float edge = smoothstep(0.0, 0.14, i.uv.x) * smoothstep(1.0, 0.86, i.uv.x);
+    float cov = i.density * edge * lerp(0.75, 0.2, smoothstep(0.4, 1.0, i.uv.y));
+    clip(cov - 0.45);
+}
+
+// ------------------------------------------------------------------------------------------------------------------
 // Vehicle windows, forward-shaded after the deferred lighting over the lit cabin (premultiplied alpha): environment
 // reflection and sun glint with Fresnel, tint absorption (vertex colour alpha = clarity: 1 clear windscreen .. 0
 // privacy glass), a dust film from the vehicle's dirt, aerial perspective and volumetric fog.

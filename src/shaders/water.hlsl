@@ -164,7 +164,7 @@ float caustics(float2 p, float t) {
     float c1 = 0.5 + 0.5 * sin(wq.x * 2.3 + sin(wq.y * 1.9 + t * 0.7) * 1.2);
     float2 wr = q * 1.37 + float2(cos(q.y * 0.9 - t * 0.6), sin(q.x * 1.4 + t * 0.75)) * 0.5;
     float c2 = 0.5 + 0.5 * sin(wr.y * 2.1 + sin(wr.x * 1.7 - t * 0.9) * 1.3);
-    return pow(c1, 8.0) + pow(c2, 8.0);
+    return pow(saturate(c1), 8.0) + pow(saturate(c2), 8.0);   // saturate: pow of a rounding-negative base is NaN
 }
 
 float4 psWater(VSOut i) : SV_Target {
@@ -249,7 +249,7 @@ float4 psWater(VSOut i) : SV_Target {
     float breakers = 0;
     if (!fresh && i.depth < 3.0) {
         float waves = 0.4 + 0.6 * saturate(gWaterParams.w + gWind.z * 0.5);
-        float band = pow(0.5 + 0.5 * sin(TWO_PI * (i.depth / 1.15 + t * 0.11) + valueNoise(i.world * 0.05) * 5.0), 10.0);
+        float band = pow(saturate(0.5 + 0.5 * sin(TWO_PI * (i.depth / 1.15 + t * 0.11) + valueNoise(i.world * 0.05) * 5.0)), 10.0);
         float along = saturate(valueNoise(i.world * 0.11 + t * 0.05) * 1.8 - 0.35);
         breakers = band * along * saturate(1.0 - i.depth / 3.0) * saturate(i.depth * 3.0) * waves;
     }
@@ -264,7 +264,7 @@ float4 psWater(VSOut i) : SV_Target {
     col = col * fv.a + fv.rgb;
     // Soft edge where water meets the shore (avoid hard line)
     float edge = saturate(thickness / 0.15);
-    return float4(min(col, 60000.0), edge);
+    return float4(sanitizeHDR(min(col, 60000.0)), edge);
 }
 
 // ------------------------------------------------------------------------------------------------

@@ -524,7 +524,7 @@ std::vector<vec2> filletPath(const std::vector<vec2>& in, float R, float keep, f
         float availA = i == 1 ? la - keep : la * 0.5f, availC = i + 2 == n ? lc - keep : lc * 0.5f;
         float t = Min(R * tanf(th * 0.5f), Max(Min(availA, availC), 0.5f));
         float r = t / tanf(th * 0.5f);
-        vec2 p1 = b - d1 * t, p2 = b + d2 * t;
+        vec2 p1 = b - d1 * t;
         float sgn = cross(d1, d2) > 0.f ? 1.f : -1.f;
         vec2 ctr = p1 + perp(d1) * (sgn * r);
         vec2 v1 = p1 - ctr;
@@ -1336,6 +1336,12 @@ std::vector<RouteDef> routeDefs() {
 
 }  // namespace transit_bus
 
+}  // namespace World
+
+#include "transit_tram.cpp"
+
+namespace World {
+
 // ---------------------------------------------------------------------------------------------------------------------
 void transitFinalize(SiteSet& S, WorldMap& map, const RoadNetwork& net, const BuildingSet& bs) {
     (void)bs;
@@ -1689,6 +1695,8 @@ void transitFinalize(SiteSet& S, WorldMap& map, const RoadNetwork& net, const Bu
         for (const BusRoute& R : N.busRoutes)
             LOG("Transit: bus %-3s %-12s %.1f km, %zu stops, %d buses, headway %.1f min", R.number.c_str(), R.name.c_str(), R.length / 1000.f, R.stops.size(),
                 R.buses, R.headway / 60.f);
+        // ---- the Sol Beach Streetcar (after the buses: its stops keep clear of theirs)
+        buildTramLines(S, map, net, N, B.avoid, B.avoidR);
     }
     N.ready = true;
     float zMin = 1e9f, zMax = -1e9f;

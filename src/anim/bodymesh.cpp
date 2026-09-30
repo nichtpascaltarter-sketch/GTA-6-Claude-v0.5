@@ -401,7 +401,7 @@ static void buildTorso(BuildCtx& c, TorsoGrid& T) {
     for (int i = 0; i < N; i++) T.theta[i] = kTwoPi * i / N;
     // rows: horizontal from crotch to armpit, then a "cap" of rays from the armpit center up to the neck base
     std::vector<float> zs;
-    int nLow = Max(12, (int)lrintf((D.zArmpit - D.zCrotch) / (0.029f * s)));
+    int nLow = Max(16, (int)lrintf((D.zArmpit - D.zCrotch) / (0.022f * s)));
     for (int k = 0; k <= nLow; k++) zs.push_back(Lerp(D.zCrotch, D.zArmpit, (float)k / nLow));
     const float capFr[] = {0.2f, 0.4f, 0.58f, 0.78f, 1.0f};
     const int nCap = 5;
@@ -631,10 +631,14 @@ static void buildLeg(BuildCtx& c, TorsoGrid& T, int side) {
     std::vector<float> rings;
     float a0 = (hip.z - D.zCrotch) + 0.05f * s;
     float a = a0;
-    while (a < li.kneeA - 0.07f * s) { rings.push_back(a); a += 0.03f * s; }
-    for (float k = -0.07f; k <= 0.0701f; k += 0.02f) rings.push_back(li.kneeA + k * s);
-    a = li.kneeA + 0.1f * s;
-    while (a < arcA0 - 0.03f * s) { rings.push_back(a); a += 0.032f * s; }
+    while (a < li.kneeA - 0.085f * s) { rings.push_back(a); a += 0.027f * s; }
+    // dense around the knee (bending, trouser folds) and over the lower shin (hem stacking)
+    for (float k = -0.084f; k <= 0.0841f; k += 0.014f) rings.push_back(li.kneeA + k * s);
+    a = li.kneeA + 0.11f * s;
+    float stackA = arcA0 - 0.13f * s;
+    while (a < stackA - 0.01f * s) { rings.push_back(a); a += 0.03f * s; }
+    a = Max(a, stackA);
+    while (a < arcA0 - 0.03f * s) { rings.push_back(a); a += 0.018f * s; }
     for (int k = 0; k <= 6; k++) rings.push_back(arcA0 - 0.015f * s + (arcLen + 0.02f * s) * k / 6.f);
     a = arcA0 + arcLen + 0.028f * s;
     while (a < endA - 0.006f * s) { rings.push_back(a); a += 0.022f * s; }
@@ -704,10 +708,11 @@ static void buildArm(BuildCtx& c, TorsoGrid& T, int side) {
     float eA = D.upperArm, wA = D.upperArm + D.forearm, endA = wA + D.palmLen - 0.004f * s;
     std::vector<float> rings;
     float a = 0.085f * s;
-    while (a < eA - 0.06f * s) { rings.push_back(a); a += 0.03f * s; }
-    for (float k = -0.06f; k <= 0.0601f; k += 0.02f) rings.push_back(eA + k * s);
-    a = eA + 0.09f * s;
-    while (a < wA - 0.035f * s) { rings.push_back(a); a += 0.03f * s; }
+    while (a < eA - 0.075f * s) { rings.push_back(a); a += 0.026f * s; }
+    // dense around the elbow (bending, sleeve folds)
+    for (float k = -0.072f; k <= 0.0721f; k += 0.012f) rings.push_back(eA + k * s);
+    a = eA + 0.098f * s;
+    while (a < wA - 0.035f * s) { rings.push_back(a); a += 0.026f * s; }
     for (float k = -0.035f; k <= 0.0151f; k += 0.017f) rings.push_back(wA + k * s);
     a = wA + 0.032f * s;
     while (a < endA - 0.004f * s) { rings.push_back(a); a += 0.02f * s; }
@@ -976,6 +981,20 @@ void buildBody(BuildCtx& c) {
     buildNeck(c);
     c.surfaceIdxEnd = c.m.idx.size();
     c.m.computeNormals(0, c.surfaceIdxEnd);
+    {
+        // head grid: analytic normals from the face field (the grid's thin triangles near the eye corners and the
+        // nose would otherwise put triangulation creases into the shading); blended in above the neck junction
+        const HeadInfo& H = c.head;
+        for (int j = 2; j < H.rows; j++)
+            for (int k = 0; k < H.cols; k++) {
+                BVert& v = c.m.v[H.grid[(size_t)j * H.cols + k]];
+                vec3 g = c.sdf.grad(v.p, MK_HEAD);
+                if (length2(g) < 1e-10f) continue;
+                vec3 gn = normalize(g);
+                if (dot(gn, v.n) < 0.2f) continue;   // off the field (a grid vertex that did not land on it): keep
+                v.n = normalize(lerp(v.n, gn, j >= 4 ? 1.f : 0.5f));
+            }
+    }
     size_t fingerIdx0 = c.m.idx.size();
     buildFingers(c, 0);
     buildFingers(c, 1);

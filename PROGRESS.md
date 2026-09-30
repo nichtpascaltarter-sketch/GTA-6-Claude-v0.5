@@ -179,12 +179,22 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
 - Real-GPU performance validation (target 60 fps @1440p on RTX 4070-class); offline shader precompile option.
 
 ## Known issues / next
-- Perf: clouds (half-res full raymarch) too expensive for 60 fps at 1440p -> quarter-res + checkerboard.
-- No SSR/GTAO/GI yet (shadows are sky-blue-ish); no grass; wetland terrain looks flat; foliage quality basic.
-- Water close-up normals repetitive; no underwater.
-- Airport/port/Key Coral have no roads or special content yet; no landmarks.
-- Machine for testing has only 4 cores: Wine play-tests are very slow while agents build (use tools/playtest.sh
-  with short DURATION). Full game init under Wine ~67 s (28 s shader compile, cached afterwards).
+- Not verified on real hardware: run `NeonTide.exe --benchmark` on an RTX 4070-class PC (target 60 fps @1440p High).
+  Renderer estimate ~8 ms GPU; under Wine/llvmpipe the benchmark reports CPU update ~4 ms, render submit ~10 ms
+  with ~110 peds / 70 vehicles (software D3D translation, not representative).
+- Visual gap vs GTA 6 (largest): characters still stylized at close range (realism pass 2 in progress: sculpted faces
+  done, strand-card hair / eyelashes / clothing folds next); procedural building massing repeats; vehicles procedural.
+- Renderer limitations: hair has no soft edges yet (needs strand-card UVs), no iris parallax, env probe without
+  parallax correction and dynamic objects, froxel fog halos soft at 1440p, oil drips per lane (no stop-line data).
+- World: 18 lane/ground steps and a few interchange layouts where streets attach to ramps beside highways
+  (planarisation fix in progress); worldcheck must exit clean.
+- Story: Tide Customs visits happen at the curb (not inside the new mod-shop interior); Downtown Penthouse needs an
+  interior named "Downtown Penthouse"; penthouse vault marker (interiortower.cpp) pending; cutscene camera fix-up
+  can't see glass/awnings/foliage (no collision).
+- Wildlife: the new species and the `--wildscene perf` stress scene still need a Wine check.
+- Machine for testing has only 4 cores / 16 GB shared by several agents: gate builds and Wine runs with
+  scratchpad `memgate.sh` (full build ~1.6 GB, Wine ~1.5 GB); Wine runs are 2-15 s per frame under load, so use
+  `--renderevery N`, `--tourstart/--tourcount`, `--benchseconds` for automated checks.
 
 ## Scorecards
 (appended at each milestone; graded against GTA 6 itself)

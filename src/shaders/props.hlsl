@@ -135,6 +135,19 @@ GBufferOut psProp(VSOut i, bool front : SV_IsFrontFace) {
         // fake curved normals for crossed cards (rounded canopy look)
         n = normalize(N + float3(0, 0, 0.35));
         ao = 0.85;
+        if (matId == 34u) {
+            // Palm frond (uv.x across, 0.5 = midrib; uv.y 1 at the stalk .. 0 at the tip): a pale waxy rachis,
+            // leaflet tips browned by salt and sun (more on some palms than others), and the crown's interior -
+            // where the stalks meet - shaded by the fronds above
+            float tip = 1.0 - i.uv.y;
+            float rib = 1.0 - smoothstep(0.012, 0.035, abs(i.uv.x - 0.5));
+            albedo = lerp(albedo, float3(0.36, 0.36, 0.16) * lerp(0.9, 1.15, pv), rib * 0.7);
+            float edge = smoothstep(0.25, 0.48, abs(i.uv.x - 0.5));   // leaflet ends dry first
+            float dry = smoothstep(0.62, 1.0, tip + edge * 0.25) * lerp(0.25, 0.9, frac(pv * 13.7));
+            albedo = lerp(albedo, float3(0.4, 0.3, 0.14), dry);
+            extra = lerp(extra, 0.35, dry);                 // dead tissue transmits less light
+            ao *= lerp(1.0, 0.6, smoothstep(0.55, 1.0, i.uv.y));
+        }
     } else {
         float2 uv = i.uv * m.uvScale;
         float4 a = tMatAlbedo.Sample(sAnisoWrap, float3(uv, m.layer));

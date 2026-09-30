@@ -413,12 +413,17 @@ void layoutModShop(IB& b) {
     gs.revealCol = Gy(0.5f);
     shell(b, shop, gs);
     const float side = bayX > (X0 + X1) * 0.5f ? -1.f : 1.f;   // work areas on the side away from the drive-in bay
-    // ---- the drive-in bay: yellow lane markings from the roll-up door, a car waiting for its new paint
+    // ---- the drive-in bay: lane markings from the roll-up door to the service lift (IM_SERVICE: customers drive onto
+    // it and the Tide Customs menu opens, shops.cpp); the car waiting for its new paint is parked aside
+    const float liftY = Y0 + Clamp((Y1 - Y0) * 0.34f, 4.4f, 6.2f);
     {
         InPart ip(b, IP_SHELL);
-        for (int e = -1; e <= 1; e += 2) box(b, vec3(bayX + e * 1.6f, (Y0 + Y1) * 0.35f, 0.003f), vec3(0.05f, (Y1 - Y0) * 0.33f, 0.003f), C(0.95f, 0.75f, 0.1f), M(MAT_PAINT_YELLOW), SK_NZ);
+        for (int e = -1; e <= 1; e += 2) box(b, vec3(bayX + e * 1.6f, (Y0 + liftY + 2.6f) * 0.5f, 0.003f), vec3(0.05f, (liftY + 2.6f - Y0) * 0.5f, 0.003f), C(0.95f, 0.75f, 0.1f),
+                                             M(MAT_PAINT_YELLOW), SK_NZ);
+        box(b, vec3(bayX, liftY + 2.7f, 0.003f), vec3(1.65f, 0.08f, 0.003f), C(0.95f, 0.75f, 0.1f), M(MAT_PAINT_YELLOW), SK_NZ);   // stop line
     }
-    displayCar(b, vec3(bayX, Y0 + Clamp((Y1 - Y0) * 0.32f, 4.f, 6.f), 0.f), r.chance(0.5f) ? 0.f : kPi);
+    carLift(b, vec3(bayX, liftY, 0.f), 0.f, 0.18f, C(0.1f, 0.45f, 0.5f), Min(3.95f, H - 0.2f));
+    marker(b, IM_SERVICE, vec3(bayX, liftY, 0.f), 0.f);
     // ---- paint booth (or a second lift when the shop is narrow)
     const float boothW = 5.2f, boothL = Min(7.6f, Y1 - Y0 - 2.4f);
     float bx0 = side > 0.f ? bayX + 2.6f : bayX - 2.6f - boothW, bx1 = bx0 + boothW;
@@ -442,6 +447,12 @@ void layoutModShop(IB& b) {
             marker(b, IM_CAR, vec3(lx, Y1 - 3.5f, 1.6f - 0.2f), kPi);
             scenario(b, vec3(lx + 1.2f, Y1 - 5.8f, 0.f), 0.4f, 14, SR_MECHANIC, SF_STAFF);
         }
+    }
+    {
+        // the customer car waiting for paint, parked aside of the service lane (clear of the booth)
+        float ax = bayX + side * 4.7f, ay = Y0 + 6.6f;
+        float limitY = booth ? Y1 - boothL - 0.4f - 2.5f : Y1 - 6.5f;
+        if (ax - 1.3f > X0 && ax + 1.3f < X1 && ay < limitY) displayCar(b, vec3(ax, ay, 0.f), side * 0.25f + (r.chance(0.5f) ? 0.f : kPi));
     }
     // ---- rim wall under the neon logo on the wall across from the booth side
     {

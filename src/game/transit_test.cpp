@@ -322,6 +322,43 @@ void metro(GameWorld& g, float dt) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------- bus
+// One line on what an AI-driven vehicle is doing: what it plans, what it waits for, what is in its way
+std::string bodyDesc(GameWorld& g, int bi) {
+    if (bi < 0 || bi >= (int)g.traffic.bodies.size()) return "none";
+    const AI::Body& B = g.traffic.bodies[bi];
+    if (B.kind == AI::BK_CAR && B.host >= 0 && B.host < (int)g.vehicles.size()) {
+        const Vehicle& ov = g.vehicles[B.host];
+        return StrFormat("car %d '%s' (%.1f, %.1f, %.1f) v %.1f fl %d parked %d seat0 %d", B.host, g.vassets[ov.model].spec.name.c_str(), B.pos.x, B.pos.y, B.z, B.speed,
+                         (int)B.flags, (int)ov.parked, ov.seats[0]);
+    }
+    if (B.kind == AI::BK_PED && B.host >= 0 && B.host < (int)g.peds.size()) {
+        int act = B.host < (int)g.ai.ped.size() ? (int)g.ai.ped[B.host].activity : -1;
+        return StrFormat("ped %d (%.1f, %.1f, %.1f) v %.1f state %d act %d fl %d", B.host, B.pos.x, B.pos.y, B.z, B.speed, (int)g.peds[B.host].state, act, (int)B.flags);
+    }
+    return "?";
+}
+std::string driverDiag(GameWorld& g, int veh) {
+    const AI::Driver* d = g.traffic.get(veh);
+    if (!d) return "no driver";
+    const AI::LaneGraph& G = g.laneGraph;
+    std::string route;
+    for (int k = 0; k < d->routeLen && k < 4; k++) route += StrFormat("%s%d", k ? "," : "", d->route[k]);
+    std::string dest;
+    for (size_t k = 0; k < d->destEdges.size() && k < 4; k++) dest += StrFormat("%s%d", k ? "," : "", d->destEdges[k]);
+    std::string gate = "-";
+    if (d->gateConn >= 0 && d->gateConn < (int)G.conns.size()) {
+        const AI::Connector& C = G.conns[d->gateConn];
+        gate = StrFormat("%d(node %d turn %d sig %d)", d->gateConn, C.node, (int)C.turn, (int)G.movementSignal(C.node, C.approach, C.turn, g.traffic.time));
+    }
+    const VehAI& va = g.vehAI(veh);
+    int edge = G.isLane(d->path) ? G.lanes[d->path].edge : -1;
+    return StrFormat("mode %d dummy %d path %d%s(e%d) u %.1f route [%s] dest [%s] vT %.1f stopD %.1f obstD %.1f obstV %.1f gate %s commit %d stopDone %d wait %.1f "
+                     "blocked %.1f recover %.1f yield %.1f cap %.1f lc %d nudge %.2f/%.2f stopPath %d/%.1f role %d rage %d | obst %s",
+                     (int)d->mode, (int)d->dummy, d->path, G.isLane(d->path) ? "L" : "C", edge, d->u, route.c_str(), dest.c_str(), d->vTarget, d->stopDist, d->obstDist,
+                     d->obstSpeed, gate.c_str(), (int)d->committed, (int)d->stopDone, d->waitTime, d->blockedTime, d->recoverTimer, d->yieldHold, d->speedCap, d->lcLane,
+                     d->nudge, d->nudgeTarget, d->stopPath, d->stopU, (int)va.role, (int)va.rage, bodyDesc(g, d->obstBody).c_str());
+}
+
 void bus(GameWorld& g, float dt) {
     const World::TransitNet& N = *World::gTransit;
     Ped* pl = g.playerPed();
@@ -461,18 +498,15 @@ void bus(GameWorld& g, float dt) {
                         gate = StrFormat("node %d turn %d signal %d", C.node, (int)C.turn, (int)g.laneGraph.movementSignal(C.node, C.approach, C.turn, g.traffic.time));
                     }
                     LOG("Transit test [bus]: bus at (%.1f, %.1f) | obstacle %s | gate %s", bp.x, bp.y, ob.c_str(), gate.c_str());
-                    // every route bus on the street nearby
-                    std::string all;
+                    // every route bus on the street nearby, with what its driver is doing
                     for (const tb::Bus& o : tb::gB.buses) {
                         if (!o.materialized() || !tb::busValid(g, o)) continue;
                         const Vehicle& ov = g.vehicles[o.veh];
                         vec3 op = ov.sim.body.pos.toVec3();
                         if (length(op.xy() - bp.xy()) > 250.f) continue;
-                        const AI::Driver* od = g.traffic.get(o.veh);
-                        all += StrFormat(" [%s/%d veh %d (%.0f, %.0f) phase %d timer %.1f next %d mode %d v %.1f]", tb::routeOf(o).number.c_str(), o.idx, o.veh, op.x, op.y,
-                                         o.phase, o.timer, o.next, od ? (int)od->mode : -1, ov.sim.speed());
+                        LOG("Transit test [bus]: route bus %s/%d veh %d (%.1f, %.1f) phase %d timer %.1f next %d leg %d v %.1f | %s", tb::routeOf(o).number.c_str(), o.idx, o.veh,
+                            op.x, op.y, o.phase, o.timer, o.next, o.leg, ov.sim.speed(), driverDiag(g, o.veh).c_str());
                     }
-                    LOG("Transit test [bus]: route buses near:%s", all.c_str());
                 }
             }
             // held up for long: a look at the street ahead from above the bus

@@ -147,20 +147,41 @@ vec3 Sdf::grad(vec3 p, u32 mask) const {
     return g * (1.f / (4.f * h));
 }
 
-float Sdf::castOut(vec3 o, vec3 dir, u32 mask, float tMax) const {
+float Sdf::castOut(vec3 o, vec3 dir, u32 mask, float tMax, float tStart) const {
     float t = 0.f;
     float f = eval(o, mask);
     if (f >= 0.f) return 0.f;
+    if (tStart > 0.f) {
+        // start closer to the surface when the caller knows the ray stays inside up to tStart
+        float fs = eval(o + dir * tStart, mask);
+        if (fs < 0.f) {
+            t = tStart;
+            f = fs;
+        }
+    }
     for (int it = 0; it < 160; it++) {
         float step = Max(-f * 0.8f, 0.0006f);
         float tn = Min(t + step, tMax);
         float fn = eval(o + dir * tn, mask);
         if (fn >= 0.f) {
-            float lo = t, hi = tn;
-            for (int b = 0; b < 14; b++) {
-                float mid = 0.5f * (lo + hi);
-                if (eval(o + dir * mid, mask) >= 0.f) hi = mid;
-                else lo = mid;
+            // bracketed crossing: Illinois false position (the field is close to linear across the surface)
+            float lo = t, hi = tn, flo = f, fhi = fn;
+            int side = 0;
+            for (int b = 0; b < 8; b++) {
+                float mid = lo + (hi - lo) * Saturate(-flo / Max(fhi - flo, 1e-12f));
+                float fm = eval(o + dir * mid, mask);
+                if (fabsf(fm) < 1e-6f || hi - lo < 1e-6f) return mid;
+                if (fm >= 0.f) {
+                    hi = mid;
+                    fhi = fm;
+                    if (side == 1) flo *= 0.5f;
+                    side = 1;
+                } else {
+                    lo = mid;
+                    flo = fm;
+                    if (side == -1) fhi *= 0.5f;
+                    side = -1;
+                }
             }
             return 0.5f * (lo + hi);
         }
@@ -331,6 +352,63 @@ void fixUvSeams(MeshB& m) {
     }
 }
 
+u32 emitCard(MeshB& m, const CardPt* pts, int n, u8 kind, u32 seed, vec3 colRoot, vec3 colTip, float density, u8 part,
+             const HeadInfo* head) {
+    u32 first = (u32)m.v.size();
+    if (n < 2) return first;
+    float total = 0.f;
+    std::vector<float> s(n, 0.f);
+    for (int i = 1; i < n; i++) s[i] = total += length(pts[i].p - pts[i - 1].p);
+    if (total < 1e-6f) return first;
+    u32 param = (u32)(kind & 15u) | ((seed & 0xffffu) << 4);
+    Rng r(hash32(seed * 2654435761u + kind));
+    float bright = r.range(0.86f, 1.12f);
+    for (int i = 0; i < n; i++) {
+        vec3 t = i + 1 < n ? pts[i + 1].p - pts[i].p : pts[i].p - pts[i - 1].p;
+        if (i > 0 && i + 1 < n) t = pts[i + 1].p - pts[i - 1].p;
+        vec3 nn = pts[i].n;
+        t = t - nn * dot(t, nn);
+        t = length2(t) > 1e-12f ? normalize(t) : anyPerp(nn);
+        vec3 b = normalize(cross(nn, t));
+        float u = s[i] / total;
+        for (int e = 0; e < 2; e++) {
+            BVert v;
+            v.p = pts[i].p + b * (pts[i].w * (e ? 0.5f : -0.5f));
+            v.bp = v.p;
+            v.n = nn;
+            v.t = t;
+            v.uv = vec2((float)e, u);
+            v.col = lerp(colRoot, colTip, sstep(0.f, 0.7f, u)) * bright;
+            v.alpha = Saturate(density);
+            v.mat = MAT_HAIR;
+            v.matParam = param;
+            v.part = part;
+            v.sw = pts[i].sw;
+            if (head) {
+                vec3 d = v.p - head->C;
+                float th = atan2f(d.x, d.y);
+                v.pa = th < 0.f ? th + kTwoPi : th;
+                v.pb = atan2f(d.z, sqrtf(d.x * d.x + d.y * d.y));
+                v.pc = 1.5f;
+            }
+            m.add(v);
+        }
+    }
+    for (int i = 0; i + 1 < n; i++) {
+        u32 a = first + (u32)i * 2, bb = a + 1, c = a + 2, d = a + 3;
+        // winding: the triangle normal follows the card normal
+        vec3 fn = cross(m.v[c].p - m.v[a].p, m.v[bb].p - m.v[a].p);
+        if (dot(fn, pts[i].n) >= 0.f) {
+            m.tri(a, c, bb);
+            m.tri(bb, c, d);
+        } else {
+            m.tri(a, bb, c);
+            m.tri(bb, d, c);
+        }
+    }
+    return first;
+}
+
 void emitMesh(const MeshB& m, SkinnedMeshData& out) {
     out.verts.clear();
     out.indices.clear();
@@ -352,9 +430,18 @@ void emitMesh(const MeshB& m, SkinnedMeshData& out) {
         }
         int fix = (int)wts[best] + (255 - sum);
         wts[best] = (u8)Clamp(fix, 0, 255);
-        out.addVertex(b.p, n, t, b.uv, packColor(b.col, b.alpha), makeMat(b.mat), bones, wts);
+        out.addVertex(b.p, n, t, b.uv, packColor(b.col, b.alpha), makeMat(b.mat, b.matParam), bones, wts);
     }
-    out.indices = m.idx;
+    // strand cards last (the renderer draws them in a separate alpha-tested, two-sided pass)
+    out.indices.reserve(m.idx.size());
+    for (int pass = 0; pass < 2; pass++)
+        for (size_t t = 0; t + 2 < m.idx.size(); t += 3) {
+            bool card = cardKind(m.v[m.idx[t]]) != CARD_NONE;
+            if (card != (pass == 1)) continue;
+            out.indices.push_back(m.idx[t]);
+            out.indices.push_back(m.idx[t + 1]);
+            out.indices.push_back(m.idx[t + 2]);
+        }
 }
 
 }  // namespace detail

@@ -387,6 +387,10 @@ int main(int argc, char** argv) {
         if (getenv("PREVIEW_NOHAT")) { ch.d.hat = -1; ch.d.glasses = -1; }
         if (const char* hsv = getenv("PREVIEW_HAIR")) ch.d.hairStyle = atoi(hsv);
         if (const char* fhv = getenv("PREVIEW_FH")) ch.d.facialHair = atoi(fhv);
+        if (const char* tv = getenv("PREVIEW_TOP")) ch.d.top = atoi(tv);
+        if (const char* bv = getenv("PREVIEW_BOTTOM")) ch.d.bottom = atoi(bv);
+        if (const char* sv = getenv("PREVIEW_SHOES")) ch.d.shoes = atoi(sv);
+        if (const char* hcv = getenv("PREVIEW_HAIRCOL")) sscanf(hcv, "%f,%f,%f", &ch.d.hairColor.x, &ch.d.hairColor.y, &ch.d.hairColor.z);
         if (const char* gv = getenv("PREVIEW_GENDER")) ch.d.gender = atoi(gv) ? FEMALE : MALE;
         if (const char* av = getenv("PREVIEW_AGE")) ch.d.age = (float)atof(av);
         buildSkeleton(ch.d, ch.sk);
@@ -589,6 +593,11 @@ int main(int argc, char** argv) {
             float hs = ch.sk.boneLength[B_HEAD] > 0.f ? 1.f : 1.f;
             (void)hs;
             tc.target = hp + vec3(0, 0.03f, 0.035f);
+            if (const char* tg = getenv("PREVIEW_TGT")) {
+                vec3 o(0);
+                sscanf(tg, "%f,%f,%f", &o.x, &o.y, &o.z);
+                tc.target = hp + o;
+            }
             tc.eye = tc.target + dir * (dist > 0 ? dist : 0.55f);
             tc.setup(tw, H);
             drawMesh(tile, tc, P, N, A, M, ch.mesh.indices, &UVs, &ALs);

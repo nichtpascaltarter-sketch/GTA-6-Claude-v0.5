@@ -925,6 +925,7 @@ void layoutPenthouse(IB& b) {
         collide(b, vec3(0.f, 0.2f, 1.3f), vec3(1.3f, 0.2f, 1.3f));
         light(b, vec3(0.f, 1.2f, 3.4f), vec3(1.f, 0.9f, 0.75f) * 260.f, 5.f, hall, normalize(vec3(0, -0.4f, -1.f)), 40.f, 20.f);
     }
+    marker(b, IM_COUNTER, vec3(-E + 1.3f, 2.9f, 0.f), kHalfPi);   // the vault spot (Solaris One heist)
     scenario(b, vec3(-E + 1.4f, 5.2f, 0.f), -kHalfPi + 0.4f, 19, SR_GUARD, SF_STAFF);
     // ---- lounge under the chandelier, facing the south glass; the grand piano by the window
     {

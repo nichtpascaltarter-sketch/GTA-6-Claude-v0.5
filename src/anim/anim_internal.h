@@ -155,8 +155,9 @@ struct Sdf {
     // Evaluate only the listed primitives (in order), starting from `cap` (distances beyond it are not needed).
     float evalList(vec3 p, const u16* list, int n, float cap) const;
     vec3 grad(vec3 p, u32 mask) const;
-    // First exit along a ray from an interior point (returns t). If o is outside, searches inwards first.
-    float castOut(vec3 o, vec3 d, u32 mask, float tMax) const;
+    // First exit along a ray from an interior point (returns t); tStart > 0: the caller knows the ray is still inside
+    // there, marching starts from it when that holds.
+    float castOut(vec3 o, vec3 d, u32 mask, float tMax, float tStart = 0.f) const;
     // Newton projection onto the surface starting near it.
     vec3 project(vec3 p, u32 mask, int iters = 4) const;
 };
@@ -201,6 +202,7 @@ struct BVert {
     float pc = 0;       // normalized length fraction: torso 0 (crotch) .. 1 (neck base); limbs along/length
     float uPer = 0;     // period of uv.x for closed tubes (0 = none); used to fix wrap seams on output
     float layer = 0;    // LOD stage: distance of a clothing / hair / accessory vertex from the skin (layer offset)
+    u32 matParam = 0;   // material parameter (VtxSkinned::mat bits 8-30): strand cards, see CardKind
     vec3 axisPt;        // point on the part axis (used for ray casts / hems)
     vec3 bp;            // underlying body surface position (garments/hair keep the skin point they came from)
 };
@@ -223,6 +225,28 @@ struct MeshB {
     void computeNormalsAll() { computeNormals(0, idx.size()); }
     void append(const MeshB& o);
 };
+
+// Strand cards (scalp hair, beards, eyebrows, lashes): ribbons drawn after the opaque mesh (the renderer alpha-tests /
+// dithers them with strand patterns and lights them anisotropically along the strands). Vertex conventions:
+//   mat      = MAT_HAIR | param << 8, param bits 0-3 = CardKind, bits 4-19 = per-card random seed (0..65535)
+//   tangent  = strand direction (root -> tip), in the card plane
+//   normal   = card normal (outward from the head / hair volume; the renderer draws cards two-sided)
+//   uv       = (x across the card: 0 one edge .. 1 the other edge, y along the strands: 0 root .. 1 tip)
+//   colour   = strand colour (darker at the root), alpha = strand density of the card (1 dense .. ~0.4 sparse)
+// Card triangles are the last ones in every mesh's index buffer (emitMesh moves them there).
+enum CardKind : u8 { CARD_NONE = 0, CARD_SCALP = 1, CARD_LASH = 2, CARD_BROW = 3, CARD_BEARD = 4 };
+struct CardPt {
+    vec3 p;       // centre line point
+    vec3 n;       // card normal
+    float w;      // full width at this point
+    SkinW sw;
+};
+inline u8 cardKind(const BVert& v) { return v.mat == MAT_HAIR ? (u8)(v.matParam & 15u) : (u8)0; }
+struct HeadInfo;
+// Ribbon along pts[0..n-1] (root first); `head` (optional) gives card vertices head angles (pa, pb, pc) so hats and
+// other head coverage functions hide them like the hair shell. Returns the first vertex index.
+u32 emitCard(MeshB& m, const CardPt* pts, int n, u8 kind, u32 seed, vec3 colRoot, vec3 colTip, float density, u8 part,
+             const HeadInfo* head);
 
 // Stitch two loops (vertex index arrays) with triangles. Both loops must run in the same rotational direction
 // and roughly start at the same angle. `flip` inverts the winding.
@@ -270,6 +294,7 @@ struct HeadInfo {
     vec3 earPos[2];         // ear root centers (model)
     vec3 lipCorner[2];
     float thetaEye = 0, thetaMouth = 0;
+    float phiMouth = 0;     // elevation of the lip line (stomion) from C
 };
 
 // Everything the mesh builders share.
@@ -286,7 +311,8 @@ struct BuildCtx {
     std::vector<u32> torsoTop;   // torso top ring (neck base) vertex indices
     size_t surfaceIdxEnd = 0;    // index count of the connected skin surface
     // per-vertex region flags
-    enum : u8 { F_PALM = 1, F_SOLE = 2, F_LIP = 4, F_SCALP = 8, F_FACE = 16, F_BEARD = 32, F_NAIL = 64 };
+    enum : u8 { F_PALM = 1, F_SOLE = 2, F_LIP = 4, F_SCALP = 8, F_FACE = 16, F_BEARD = 32, F_NAIL = 64,
+                F_CARDSHELL = 128 };   // hair shell darkened under strand cards (brightened again where LODs drop the cards)
 };
 
 // Skin weights of a torso surface point (bind pose), shared with garment/accessory builders.

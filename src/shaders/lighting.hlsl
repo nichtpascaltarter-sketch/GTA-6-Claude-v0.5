@@ -67,6 +67,8 @@ StructuredBuffer<InteriorGPU> tInteriors : register(t11);
 StructuredBuffer<PortalGPU> tPortals : register(t12);
 StructuredBuffer<uint> tLightVolume : register(t13);
 static int sInterior = -1;   // interior volume of the pixel being shaded (-1 outdoors)
+static bool sHairCard = false;   // SM_HAIR pixel from a strand card: sHairT holds its strand direction
+static float3 sHairT = float3(0, 0, -1);
 
 int interiorAt(float3 relPos) {
     [loop] for (uint k = 0; k < gInteriorCount; k++) {
@@ -161,13 +163,19 @@ float3 skinDirect(GBufferData g, float3 N, float3 V, float3 L, float shadow, flo
     return r;
 }
 
-// Hair (Kajiya-Kay with Marschner-style shifts): strands follow the surface projection of "down"; a white primary
-// highlight shifted towards the root (R) and a broader highlight tinted by the hair colour, shifted towards the tip
-// and sparkling per strand (TRT, g.extra); soft wrapped diffuse for the scattering hair volume.
+// Hair (Kajiya-Kay with Marschner-style shifts): strands run along the card tangent (strand cards) or the surface
+// projection of "down" (the opaque shell); a white primary highlight shifted towards the root (R) and a broader
+// highlight tinted by the hair colour, shifted towards the tip and sparkling per strand (TRT, g.extra); soft
+// wrapped diffuse for the scattering hair volume.
 float3 hairDirect(GBufferData g, float3 N, float3 V, float3 L) {
-    float3 T = float3(0, 0, -1) + N * N.z;
-    float tl = length(T);
-    T = tl > 1e-3 ? T / tl : normalize(cross(N, float3(1, 0, 0)));
+    float3 T;
+    if (sHairCard) {
+        T = sHairT * (sHairT.z > 0.0 ? -1.0 : 1.0);   // stored sign-free: roots above tips
+    } else {
+        T = float3(0, 0, -1) + N * N.z;
+        float tl = length(T);
+        T = tl > 1e-3 ? T / tl : normalize(cross(N, float3(1, 0, 0)));
+    }
     float3 H = normalize(L + V);
     float jit = (g.extra - 0.5) * 0.35;   // per-strand tilt: the highlight band breaks up into strands
     float3 T1 = normalize(T + N * (0.1 + jit)), T2 = normalize(T - N * (0.15 - jit));
@@ -381,6 +389,10 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
     }
     GBufferData g = unpackGBuffer(tAlbedo[id.xy], tNormal[id.xy], tMaterial[id.xy]);
     sInterior = gInteriorCount > 0 ? interiorAt(relPos) : -1;
+    if (g.shadingModel == SM_HAIR) {
+        sHairCard = decodeHairTangent(g.normal, g.metal, sHairT);
+        g.metal = 0;
+    }
     float3 emissive = tEmissive[id.xy];
     float dist = length(relPos);
     float3 color;

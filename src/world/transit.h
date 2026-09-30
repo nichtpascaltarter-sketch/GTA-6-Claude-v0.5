@@ -171,12 +171,86 @@ struct FerryRoute {
     float dwell = 40.f;
 };
 
+// ---- streetcar -----------------------------------------------------------------------------------------------------
+// The Sol Beach Streetcar: a one-way loop with right turns only, laid in the curb lane of city streets (embedded track,
+// overhead contact wire on curbside poles). The track follows the traffic's curb lanes and junction connectors exactly
+// as game/lanes.cpp builds them, so the streetcars run where the lane graph's curb lane runs. Track position s is the
+// arc length along the loop in the direction of travel.
+namespace tram_dims {
+constexpr float kGauge = 1.435f;
+constexpr float kWireHeight = 5.6f;       // contact wire above the top of rail
+constexpr float kSectionLen[3] = {9.6f, 7.2f, 9.6f};   // front cab module, centre module, rear module (body lengths)
+constexpr float kSectionGap = 0.5f;       // articulation (bellows) between modules
+constexpr float kLength = 27.4f;          // front to rear
+constexpr float kHalfWidth = 1.2f;
+}  // namespace tram_dims
+
+struct TramStop {
+    std::string name;       // "41st Street"
+    float s = 0.f;          // track position where the front of a streetcar stops
+    vec2 pos;               // shelter center (sidewalk, beside the middle of the streetcar)
+    vec2 face;              // unit direction from the shelter toward the curb
+    vec2 along;             // direction of travel
+    float z = 0.f;          // sidewalk level
+    int edge = -1, dir = 1; // road edge / travel direction the stop lies on
+    float u = 0.f;          // travel coordinate of the stop point on the edge
+    float curbLat = 0.f;    // lateral distance from the track to the curb
+    u32 seed = 0;
+};
+
+// A junction the loop passes through (degree >= 3 nodes)
+struct TramJunction {
+    float sIn = 0.f;        // track position where the curb lane ends at the junction (stop line just before)
+    float sOut = 0.f;       // track position where the next curb lane starts (the streetcar's rear must pass it)
+    int node = -1;
+    int fromEdge = -1, fromDir = 1, toEdge = -1, toDir = 1;
+    int turn = 0;           // 0 straight, 1 right
+    u8 control = 0;         // RoadNode::control (0 none, 1 stop signs, 2 signals)
+    bool minor = false;     // uncontrolled junction where the loop's road is the smaller one (give way)
+};
+
+// Overhead line support: a curbside pole with a bracket arm, or a corner pole holding pull-offs on a curve
+struct TramPole {
+    vec2 pos;               // pole foot
+    float z = 0.f;          // foot level (sidewalk)
+    std::vector<float> holds;   // track positions of the contact wire points it holds
+};
+
+struct TramLine {
+    std::string name = "Sol Beach Streetcar";
+    vec3 color;             // linear
+    u32 colorSrgb = 0;
+    float ds = 1.f;
+    float length = 0.f;
+    std::vector<vec3> p;    // track centreline samples every ds (top of rail), closed loop
+    std::vector<vec2> t;    // unit tangents
+    std::vector<RouteLeg> legs;        // directed edges in order (d0 = track position of the lane start)
+    std::vector<float> legU0;          // curb lane start (travel coordinate) per leg
+    std::vector<float> legU1;          // curb lane end per leg
+    std::vector<TramStop> stops;       // in increasing s
+    std::vector<TramJunction> junctions;   // in increasing sIn
+    std::vector<TramPole> poles;
+    std::vector<float> wire;           // track positions of the contact wire's support points (sorted)
+    int trams = 4;
+    float headway = 300.f;
+    float wrap(float s) const {
+        if (length <= 0.f) return 0.f;
+        s = fmodf(s, length);
+        return s < 0.f ? s + length : s;
+    }
+    vec3 at(float s) const;
+    vec2 dirAt(float s) const;
+    // distance ahead along the loop from a to b (0..length)
+    float ahead(float a, float b) const { return wrap(b - a); }
+};
+
 struct TransitNet {
     MetroLine metro;
     std::vector<BusStop> busStops;
     std::vector<BusRoute> busRoutes;
     std::vector<FerryPier> piers;
     std::vector<FerryRoute> ferries;
+    std::vector<TramLine> trams;
     // corridor reservation (xy): capsules along the centerline + station footprints, used to keep buildings out
     std::vector<vec2> corridor;             // coarse centerline polyline (closed)
     float corridorHalf = 7.f;

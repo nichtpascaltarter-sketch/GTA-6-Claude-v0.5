@@ -67,7 +67,7 @@ void testMesh() {
             for (u32 i : m.indices)
                 if (i >= m.verts.size()) okI = false;
             CHECK(okI, "index out of range");
-            CHECK(tris >= 6000 && tris <= 26000, "triangle count %d out of budget (role %d)", tris, role);
+            CHECK(tris >= 6000 && tris <= 34000, "triangle count %d out of budget (role %d)", tris, role);   // LOD0: face ~6-8k, strand cards ~1.5-5k
         }
     }
     printf("mesh: %d characters, tris avg %d (min %d, max %d), build avg %.1f ms\n", n, triTotal / n, triMin, triMax, tTotal / n * 1000.0);

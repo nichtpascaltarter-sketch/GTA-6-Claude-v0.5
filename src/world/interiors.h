@@ -101,8 +101,9 @@ struct InteriorScenario {
 // Gameplay markers inside (shop counter, bed, wardrobe, elevator buttons...)
 // IM_CAR / IM_CAR_STRIPPED: display vehicle (pos = ground contact center under the body, yaw = heading), drawn by
 // gameplay with a real vehicle model (stripped: no wheels, parked on stands)
+// IM_SERVICE: vehicle service spot a customer drives onto (Tide Customs lift): ground center, heading when parked
 enum InteriorMarkerKind : u8 { IM_COUNTER = 0, IM_BED, IM_WARDROBE, IM_ELEVATOR, IM_ELEVATOR_TOP, IM_SNACKS, IM_ENTRY, IM_DOOR_OUT, IM_MIRROR,
-                               IM_CAR, IM_CAR_STRIPPED, IM_COUNT };
+                               IM_CAR, IM_CAR_STRIPPED, IM_SERVICE, IM_COUNT };
 struct InteriorMarker {
     u8 kind;
     vec3 pos;         // model space

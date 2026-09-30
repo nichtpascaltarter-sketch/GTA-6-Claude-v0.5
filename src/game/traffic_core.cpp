@@ -602,6 +602,7 @@ bool TrafficCore::conflictsClear(const Driver& d, const Connector& c, int connId
     float vmaxC = Max(Min(c.maxSpeed, G.lanes[c.to].speed), 4.f);
     const NodeInfo& N = G.nodes[c.node];
     const bool meLong = d.info.wheelbase > 3.8f;
+    const int myBody = driverBody(self);
     // returns false when this conflict (with the vehicles on its other movement) blocks us
     auto clearOf = [&](const Conflict& x, bool wideOnly) -> bool {
         if (myPos - d.info.halfLen * 2.f > x.sEnd + 0.5f) return true;   // we already cleared this conflict zone
@@ -612,6 +613,9 @@ bool TrafficCore::conflictsClear(const Driver& d, const Connector& c, int connId
             if (e.conn != x.other || e.driver == self) continue;
             const Driver& od = drivers[e.driver];
             if (wideOnly && !meLong && od.info.wheelbase <= 3.8f) continue;   // only long bodies sweep that far
+            // stopped right behind our own body: it cannot move before we do, so it is not what we are waiting for
+            // (breaks box deadlocks: a left-turner at its hold point blocking the opposing left-turner it yields to)
+            if (e.speed < 0.5f && myBody >= 0 && od.obstBody == myBody && od.obstDist < 8.f) continue;
             float oRear = e.dist - od.info.halfLen * 2.f;
             if (oRear > x.sOtherEnd + 0.5f) continue;  // already cleared the conflict zone
             bool theyYield = o.prio < c.prio && !(N.control == 2 && G.nodes[c.node].approaches[o.approach].axis != G.nodes[c.node].approaches[c.approach].axis);

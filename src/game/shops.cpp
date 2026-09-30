@@ -15,6 +15,8 @@ struct ShopSite {
     vec3 marker;
     int requiresFlag;
     bool inside = false;
+    int bayInterior = -1;    // Tide Customs with an interior: the service lift in its drive-in bay (marker, heading)
+    float bayYaw = 0.f;
 };
 
 struct Safehouse {
@@ -92,6 +94,13 @@ void initShops(GameWorld& g) {
         // walk-in shops with an interior: the counter inside
         vec3 counter;
         if (kind != SHOP_RESPRAY && World::interiorMarkerWorld(name, World::IM_COUNTER, counter)) s.marker = counter;
+        // body shops with an interior: drive through the roll-up door onto the service lift (interiors.h IM_SERVICE)
+        float yaw = 0.f;
+        if (kind == SHOP_RESPRAY && World::gInteriors && World::interiorMarkerWorld(name, World::IM_SERVICE, counter, &yaw)) {
+            s.marker = counter;
+            s.bayInterior = World::gInteriors->byName(name);
+            s.bayYaw = yaw;
+        }
         s.requiresFlag = req;
         gShops.shops.push_back(s);
     };
@@ -941,7 +950,9 @@ bool buyMod(GameWorld& g, int v, int page, int id) {
 
 void updateTideCustoms(GameWorld& g, ShopSite& s, int shopIndex, float dt) {
     int pv = g.playerVehicle();
-    bool at = pv >= 0 && g.peds[g.player].seat == 0 && ::length(vehPos(g, pv).xy() - s.marker.xy()) < 5.f && !g.isBoat(pv) && !g.isAircraft(pv);
+    const bool bay = s.bayInterior >= 0;
+    bool at = pv >= 0 && g.peds[g.player].seat == 0 && ::length(vehPos(g, pv).xy() - s.marker.xy()) < (bay ? 2.4f : 5.f) && !g.isBoat(pv) && !g.isAircraft(pv) &&
+              (!bay || fabsf(vehPos(g, pv).z - s.marker.z) < 2.5f);
     if (gShops.resprayStage == 0) {
         if (!at) {
             s.inside = false;
@@ -980,6 +991,7 @@ void updateTideCustoms(GameWorld& g, ShopSite& s, int shopIndex, float dt) {
             g.notify("TIDE CUSTOMS", "The garage door rolls down. The cops lost track of you.");
         }
         Vehicle& veh = g.vehicles[v];
+        if (bay) teleportVehicle(g, v, s.marker, s.bayYaw);   // squared up on the service lift
         veh.sim.body.vel = vec3(0.f);
         veh.sim.body.angVel = vec3(0.f);
         gShops.camAngle = atan2f(veh.sim.forward().y, veh.sim.forward().x) + 0.9f;
@@ -1000,7 +1012,18 @@ void updateTideCustoms(GameWorld& g, ShopSite& s, int shopIndex, float dt) {
         gShops.camAngle += dt * 0.22f;
         vec3 c = veh.sim.body.pos.toVec3();
         float r = length(g.vassets[veh.model].spec.boxHalf.xy()) * 1.9f + 2.2f;
-        g.rig.scriptPos = dvec3(c + vec3(cosf(gShops.camAngle) * r, sinf(gShops.camAngle) * r, 1.6f));
+        vec3 cp = c + vec3(cosf(gShops.camAngle) * r, sinf(gShops.camAngle) * r, 1.6f);
+        if (bay && World::gInteriors && s.bayInterior < (int)World::gInteriors->defs.size()) {
+            // inside the shop: a tighter orbit kept between its walls and under the ceiling
+            const World::InteriorDef& d = World::gInteriors->defs[s.bayInterior];
+            r = Min(r, 4.6f);
+            vec3 l = d.toLocal(c + vec3(cosf(gShops.camAngle) * r, sinf(gShops.camAngle) * r, 1.5f));
+            l.x = Clamp(l.x, d.x0 + 0.9f, d.x1 - 0.9f);
+            l.y = Clamp(l.y, 0.9f, d.depth - 0.9f);
+            l.z = Min(l.z, d.ceil - 0.35f);
+            cp = d.toWorld(l);
+        }
+        g.rig.scriptPos = dvec3(cp);
         g.rig.scriptTarget = dvec3(c + vec3(0.f, 0.f, 0.3f));
         g.rig.scriptFov = 50.f;
         veh.ctl = Vehicles::VehicleControls();
@@ -1151,7 +1174,7 @@ void shopsUpdate(GameWorld& g, float dt) {
         g.missionBlips.push_back(b);
         float d = ::length(s.marker - pp);
         if (d < 120.f && !gMissions.active) {
-            worldMarker(s.marker, s.kind == SHOP_RESPRAY ? 3.f : 1.1f, s.kind == SHOP_RESPRAY ? vec3(0.9f, 0.5f, 1.f) : vec3(0.3f, 0.8f, 1.f));
+            worldMarker(s.marker, s.kind == SHOP_RESPRAY ? (s.bayInterior >= 0 ? 2.2f : 3.f) : 1.1f, s.kind == SHOP_RESPRAY ? vec3(0.9f, 0.5f, 1.f) : vec3(0.3f, 0.8f, 1.f));
         }
     }
     for (size_t i = 0; i < gShops.safehouses.size(); i++) {

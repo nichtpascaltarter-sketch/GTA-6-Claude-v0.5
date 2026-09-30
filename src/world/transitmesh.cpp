@@ -55,7 +55,7 @@ void sweep(G& g, MeshData& m, const TF& a, const TF& b, float n0, float v0, floa
 
 // Oriented box aligned with a corridor frame (center given as lateral/up offsets at the mid frame)
 void frameBox(G& g, const TF& f, float lateral, float up, vec3 he, u32 col, u32 mat, bool bottom = false) {
-    g.m->box(f.at(lateral, up) - g.org, f.t, f.r, f.u, he, col, mat, bottom);
+    g.m->box(f.at(lateral, up) - g.org, f.t, -f.r, f.u, he, col, mat, bottom);   // (t, -r, u) is right-handed: outward faces
 }
 
 float segmentShade(float s) { return 0.93f + 0.09f * hashToFloat(hash32((u32)(s * 0.3334f) * 2654435761u + 77u)); }
@@ -220,12 +220,12 @@ void genPier(G& g, const MetroLine& L, const MetroPier& pr) {
         }
         for (int k = 0; k < seg; k++) {
             u32 i0 = start + k * 2;
-            m.quadIdx(i0, i0 + 2, i0 + 3, i0 + 1);
+            m.quadIdx(i0, i0 + 1, i0 + 3, i0 + 2);   // the ring runs clockwise seen from above: wind outward
         }
         if (g.col) collide(g, vec3(base, (footZ + capBot) * 0.5f), t2, vec3(rx * 0.97f, ry * 0.97f, (capBot - footZ) * 0.5f));
         if (g.detail && !water) {
             // plinth ring and a light grime band at the foot
-            g.m->box(vec3(base, gz + 0.12f) - g.org, vec3(t2, 0), vec3(r2, 0), vec3(0, 0, 1), vec3(rx + 0.12f, ry + 0.12f, 0.14f), cConcrete(0.8f), mConc, false);
+            g.m->box(vec3(base, gz + 0.12f) - g.org, vec3(t2, 0), vec3(-r2, 0), vec3(0, 0, 1), vec3(rx + 0.12f, ry + 0.12f, 0.14f), cConcrete(0.8f), mConc, false);
         }
     };
     auto capBeam = [&](vec2 c, float half, float thick) {
@@ -255,7 +255,7 @@ void genPier(G& g, const MetroLine& L, const MetroPier& pr) {
             float web = pr.station ? 3.6f : 2.2f;
             for (int sd = -1; sd <= 1; sd += 2)
                 for (int fb = -1; fb <= 1; fb += 2)
-                    g.m->box(vec3(c, capTop + 0.06f) + R3 * (sd * web) + T3 * (fb * thick * 0.5f) - g.org, T3, R3, vec3(0, 0, 1), vec3(0.3f, 0.35f, 0.06f), rgb(0.15f),
+                    g.m->box(vec3(c, capTop + 0.06f) + R3 * (sd * web) + T3 * (fb * thick * 0.5f) - g.org, T3, -R3, vec3(0, 0, 1), vec3(0.3f, 0.35f, 0.06f), rgb(0.15f),
                              M(MAT_RUBBER), false);
         }
         if (g.col) collide(g, vec3(c, (capBot + capTop) * 0.5f), t2, vec3(thick, half, capH * 0.5f));
@@ -313,7 +313,7 @@ struct SF {
 };
 
 void sbox(G& g, const SF& f, float along, float lateral, float z, vec3 he, u32 col, u32 mat, bool bottom = false) {
-    g.m->box(f.P(along, lateral, z) - g.org, f.d, f.r, vec3(0, 0, 1), he, col, mat, bottom);
+    g.m->box(f.P(along, lateral, z) - g.org, f.d, -f.r, vec3(0, 0, 1), he, col, mat, bottom);   // right-handed frame: outward faces
 }
 void scollide(G& g, const SF& f, float along, float lateral, float z, vec3 he) {
     if (!g.col) return;
@@ -490,7 +490,7 @@ void stairFlight(G& g, const SF& f, const MetroStation& st, int side, bool farLo
             for (int q = 0; q <= posts; q++) {
                 float t = (float)q / posts;
                 vec3 P = lerp(A, B, t);
-                g.m->box(P + vec3(0, 0, 0.5f) - g.org, f.d, f.r, vec3(0, 0, 1), vec3(0.025f, 0.025f, 0.5f), cRail, M(MAT_METAL_BRUSHED), false);
+                g.m->box(P + vec3(0, 0, 0.5f) - g.org, f.d, -f.r, vec3(0, 0, 1), vec3(0.025f, 0.025f, 0.5f), cRail, M(MAT_METAL_BRUSHED), false);
             }
             // side guard collision following the slope (4 boxes per flight)
             for (int q = 0; q < 4; q++) {
@@ -551,7 +551,7 @@ void stairFlight(G& g, const SF& f, const MetroStation& st, int side, bool farLo
             if (i % 2 == 0) {
                 vec3 base = f.P(p1.x, S * 12.35f, 0.f);
                 float zb = i + 2 == railPts.size() ? gz : p1.y - 0.3f;
-                g.m->box(vec3(base.x, base.y, (zb + zr1 + 0.25f) * 0.5f) - g.org, f.d, f.r, vec3(0, 0, 1), vec3(0.06f, 0.06f, (zr1 + 0.25f - zb) * 0.5f), rgb(0.3f),
+                g.m->box(vec3(base.x, base.y, (zb + zr1 + 0.25f) * 0.5f) - g.org, f.d, -f.r, vec3(0, 0, 1), vec3(0.06f, 0.06f, (zr1 + 0.25f - zb) * 0.5f), rgb(0.3f),
                          mSteel, false);
             }
             // stair light under each roof panel
@@ -566,8 +566,8 @@ void stairFlight(G& g, const SF& f, const MetroStation& st, int side, bool farLo
         vec3 tb = f.P(aT, S * 11.9f, 0.f);
         float tz = gMap->heightAt(tb.x, tb.y);
         // totem: a slim panel (faces +-along) on a plinth with the roundel, the brand and the station name
-        g.m->box(vec3(tb.x, tb.y, tz + 0.15f) - g.org, f.d, f.r, vec3(0, 0, 1), vec3(0.22f, 0.8f, 0.15f), rgb(0.3f), M(MAT_CONCRETE), false);
-        g.m->box(vec3(tb.x, tb.y, tz + 2.0f) - g.org, f.d, f.r, vec3(0, 0, 1), vec3(0.12f, 0.72f, 1.7f), rgbv(kTeal), M(MAT_METAL_PAINTED), false);
+        g.m->box(vec3(tb.x, tb.y, tz + 0.15f) - g.org, f.d, -f.r, vec3(0, 0, 1), vec3(0.22f, 0.8f, 0.15f), rgb(0.3f), M(MAT_CONCRETE), false);
+        g.m->box(vec3(tb.x, tb.y, tz + 2.0f) - g.org, f.d, -f.r, vec3(0, 0, 1), vec3(0.12f, 0.72f, 1.7f), rgbv(kTeal), M(MAT_METAL_PAINTED), false);
         collide(g, vec3(tb.x, tb.y, tz + 1.85f), vec2(f.d.x, f.d.y), vec3(0.22f, 0.8f, 1.85f));
         std::string nm = upper(st.name);
         float nh = Min(0.2f, 0.2f * 1.2f / Max(textAdvance(nm.c_str(), 0.2f), 0.1f));
@@ -594,12 +594,12 @@ void stairFlight(G& g, const SF& f, const MetroStation& st, int side, bool farLo
         for (int q = 0; q < 2; q++) {
             vec3 mb = f.P(aFoot + dirSign * (3.3f + q * 1.1f), S * 12.0f, 0.f);
             float mz = gMap->heightAt(mb.x, mb.y);
-            g.m->box(vec3(mb.x, mb.y, mz + 0.85f) - g.org, f.d, f.r, vec3(0, 0, 1), vec3(0.45f, 0.3f, 0.85f), rgb(0.2f, 0.22f, 0.25f), M(MAT_METAL_PAINTED), false);
+            g.m->box(vec3(mb.x, mb.y, mz + 0.85f) - g.org, f.d, -f.r, vec3(0, 0, 1), vec3(0.45f, 0.3f, 0.85f), rgb(0.2f, 0.22f, 0.25f), M(MAT_METAL_PAINTED), false);
             vec3 sc = vec3(mb.x, mb.y, mz + 1.3f) + f.r * (S * 0.305f);
             vec3 nrm = f.r * S;
             g.m->quadFacing(sc - f.d * 0.28f - vec3(0, 0, 0.2f) - g.org, sc + f.d * 0.28f - vec3(0, 0, 0.2f) - g.org, sc + f.d * 0.28f + vec3(0, 0, 0.2f) - g.org,
                             sc - f.d * 0.28f + vec3(0, 0, 0.2f) - g.org, vec2(0), vec2(1, 0), vec2(1, 1), vec2(0, 1), rgb(0.35f, 0.75f, 0.9f, 0.3f), emMat(), nrm);
-            g.m->box(vec3(mb.x, mb.y, mz + 1.78f) - g.org, f.d, f.r, vec3(0, 0, 1), vec3(0.47f, 0.32f, 0.08f), rgbv(kTeal), M(MAT_METAL_PAINTED), false);
+            g.m->box(vec3(mb.x, mb.y, mz + 1.78f) - g.org, f.d, -f.r, vec3(0, 0, 1), vec3(0.47f, 0.32f, 0.08f), rgbv(kTeal), M(MAT_METAL_PAINTED), false);
             collide(g, vec3(mb.x, mb.y, mz + 0.85f), vec2(f.d.x, f.d.y), vec3(0.47f, 0.32f, 0.85f));
         }
     }
@@ -860,9 +860,9 @@ void genBusStop(const SiteElem& e, G& g) {
     vec3 inward = -fc;                       // from the curb toward the buildings
     const float bw = 0.62f, z0 = 2.2f, z1 = 3.08f;
     vec3 bc = base + inward * (bw * 0.5f + 0.05f) + vec3(0, 0, (z0 + z1) * 0.5f);
-    box(g, bc, inward, vec3(0, 0, 1), vec3(bw * 0.5f, (z1 - z0) * 0.5f, 0.016f), rgb(0.93f, 0.94f, 0.95f), mPaint);
+    boxY(g, bc, inward.xy(), vec3(bw * 0.5f, 0.016f, (z1 - z0) * 0.5f), rgb(0.93f, 0.94f, 0.95f), mPaint, true);
     // mounting brackets
-    for (int k = 0; k < 2; k++) box(g, base + inward * 0.04f + vec3(0, 0, z0 + 0.12f + k * 0.62f), inward, vec3(0, 0, 1), vec3(0.06f, 0.03f, 0.03f), galv, mBr);
+    for (int k = 0; k < 2; k++) boxY(g, base + inward * 0.04f + vec3(0, 0, z0 + 0.12f + k * 0.62f), inward.xy(), vec3(0.06f, 0.03f, 0.03f), galv, mBr, true);
     if (!g.detail) return;
     // route list (routes serving this stop)
     std::vector<int> routes;
@@ -905,7 +905,7 @@ void genBusStop(const SiteElem& e, G& g) {
     // timetable case on the sidewalk side of the pole (lit panel with one line per route)
     {
         vec3 tc = base + inward * 0.1f + vec3(0, 0, 1.45f);
-        box(g, tc, al, vec3(0, 0, 1), vec3(0.2f, 0.3f, 0.035f), rgb(0.2f, 0.22f, 0.25f), mPaint);
+        boxY(g, tc, b.along, vec3(0.2f, 0.035f, 0.3f), rgb(0.2f, 0.22f, 0.25f), mPaint, true);
         vec3 nrm = inward;
         vec3 right = normalize(cross(vec3(0, 0, 1), nrm));
         vec3 face = tc + nrm * 0.037f;
@@ -941,7 +941,7 @@ struct PF {   // pier frame: along = distance from the base toward the head, lat
 };
 
 void pbox(G& g, const PF& f, float along, float lateral, float z, vec3 he, u32 col, u32 mat, bool bottom = true) {
-    g.m->box(f.P(along, lateral, z) - g.org, vec3(f.dir, 0), vec3(f.rt, 0), vec3(0, 0, 1), he, col, mat, bottom);
+    g.m->box(f.P(along, lateral, z) - g.org, vec3(f.dir, 0), vec3(-f.rt, 0), vec3(0, 0, 1), he, col, mat, bottom);   // right-handed: outward faces
 }
 void pcollide(G& g, const PF& f, float along, float lateral, float z, vec3 he) { collide(g, f.P(along, lateral, z), f.dir, he); }
 
@@ -1009,8 +1009,6 @@ void genFerryPier(const SiteElem& e, G& g) {
                 m.quadFacing(q0 - g.org, q1 - g.org, vec3(q1.x, q1.y, Min(b1, z1 - 0.3f)) - g.org, vec3(q0.x, q0.y, Min(b0, z0 - 0.3f)) - g.org, vec2(0), vec2(2, 0),
                              vec2(2, 1), vec2(0, 1), cEdge, mConc, vec3(f.rt * (float)sd, 0));
                 if (g.detail) {
-                    PF fr = f;
-                    fr.z = z1;
                     beam(g, f.P(a0, sd * (W - 0.1f), z0 + 1.02f), f.P(a1, sd * (W - 0.1f), z1 + 1.02f), 0.06f, 0.05f, cRail, M(MAT_METAL_BRUSHED));
                     g.m->box(f.P(a1, sd * (W - 0.1f), z1 + 0.51f) - g.org, vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.03f, 0.03f, 0.51f), cRail,
                              M(MAT_METAL_BRUSHED), false);
@@ -1186,7 +1184,7 @@ void genFerryPier(const SiteElem& e, G& g) {
     if (g.owns(tq)) {
         float gz = gMap->heightAt(tq.x, tq.y);
         vec3 tb(tq, gz);
-        g.m->box(tb + vec3(0, 0, 1.6f) - g.org, vec3(f.dir, 0), vec3(f.rt, 0), vec3(0, 0, 1), vec3(0.5f, 0.12f, 1.6f), rgbv(kFerryTeal), M(MAT_METAL_PAINTED), true);
+        g.m->box(tb + vec3(0, 0, 1.6f) - g.org, vec3(f.dir, 0), vec3(-f.rt, 0), vec3(0, 0, 1), vec3(0.5f, 0.12f, 1.6f), rgbv(kFerryTeal), M(MAT_METAL_PAINTED), true);
         collide(g, tb + vec3(0, 0, 1.6f), f.dir, vec3(0.5f, 0.14f, 1.6f));
         if (g.detail) {
             for (int fs = -1; fs <= 1; fs += 2) {
@@ -1209,3 +1207,5 @@ void genFerryPier(const SiteElem& e, G& g) {
 
 }  // namespace transit_mesh
 }  // namespace World
+
+#include "transitmesh_tram.cpp"

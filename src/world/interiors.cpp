@@ -123,6 +123,38 @@ bool hasLoadingDoors(const Building& b) { return b.style == BS_WAREHOUSE || b.st
 int loadingDoorCount(const Building& b) { return Max(1, (int)(b.hx / 7.f)); }
 float loadingDoorU(const Building& b, int k) { return -b.hx + (k + 0.5f) * (2.f * b.hx / loadingDoorCount(b)); }
 
+// A neighbour's attached garage wing (buildmesh.cpp: suburban houses and villas) reaching into a building's footprint:
+// its walls, roof and collision would stand inside the interior
+bool garageIntrudes(const BuildingSet& bs, int bi) {
+    const Building& b = bs.buildings[bi];
+    std::vector<int> around;
+    bs.buildingsNear(b.c, b.hx + b.hy + 20.f, around);
+    vec2 by = perp(b.ax);
+    for (int j : around) {
+        if (j == bi) continue;
+        const Building& h = bs.buildings[j];
+        bool garage = (h.style == BS_HOUSE && (h.seed % 10u) < 7u) || h.style == BS_VILLA;
+        if (!garage) continue;
+        float side = (h.seed & 64u) ? 1.f : -1.f;
+        float gw = 3.2f, gd = Min(h.hy, 3.4f);
+        vec2 gc = h.c + h.ax * (side * (h.hx + gw)) + h.front * (h.hy - gd);
+        vec2 hy2 = perp(h.ax);
+        // separating axis test between the two rectangles (garage wing vs footprint, 0.2 m tolerance)
+        vec2 axes[4] = {b.ax, by, h.ax, hy2};
+        bool overlap = true;
+        for (vec2 a : axes) {
+            float rb = b.hx * fabsf(dot(b.ax, a)) + b.hy * fabsf(dot(by, a));
+            float rg = gw * fabsf(dot(h.ax, a)) + gd * fabsf(dot(hy2, a));
+            if (fabsf(dot(gc - b.c, a)) > rb + rg - 0.2f) {
+                overlap = false;
+                break;
+            }
+        }
+        if (overlap) return true;
+    }
+    return false;
+}
+
 // Building closest to the place whose front faces the place's street
 int pickBuilding(const BuildingSet& bs, const PlaceLite& pl, const Target& tg, const std::vector<u8>& used, int pass) {
     std::vector<int> cand;
@@ -135,6 +167,9 @@ int pickBuilding(const BuildingSet& bs, const PlaceLite& pl, const Target& tg, c
         bool styleOk = (tg.styles & styleBit(b.style)) != 0;
         if (pass < 2 && !styleOk) continue;
         if (b.style == BS_TOWER && !towerGroundRect(b)) continue;
+        if (!(tg.flags & TF_OWNSHELL) && garageIntrudes(bs, i)) continue;
+        if (tg.upper < 0 && b.floors < 14) continue;                     // penthouses: tall towers with a view
+        if (tg.upper > 0 && b.floors < tg.upper + 2) continue;
         if (b.style == BS_CHURCH || (b.style == BS_GASSTATION && !(tg.styles & styleBit(BS_GASSTATION)))) continue;
         if (2.f * b.hx < tg.minW || 2.f * b.hy < tg.minD) continue;
         bool store = (bs.facades[b.facade].flags & 1u) != 0;
