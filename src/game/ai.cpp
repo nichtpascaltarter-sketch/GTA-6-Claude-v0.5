@@ -35,6 +35,35 @@ void connectSignalLamps(R*, std::function<int(int, vec2)>, long) {}
 
 using namespace ai_detail;
 
+// Which end of a car (+1 front, -1 rear) to walk round, preferring `pref` unless another vehicle stands right there
+// (parked cars can be bumper to bumper). Used by people walking round cars to a door or to the curb.
+float aiCarEndToWalkRound(const GameWorld& g, int veh, float pref) {
+    const Vehicle& v = g.vehicles[veh];
+    const Vehicles::VehicleModel& spec = g.vassets[v.model].spec;
+    vec2 cc = v.sim.body.pos.toVec3().xy();
+    vec2 f = v.sim.forward().xy();
+    f = length2(f) > 1e-6f ? normalize(f) : vec2(0, 1);
+    thread_local std::vector<int> around;
+    for (int k = 0; k < 2; k++) {
+        float e = k == 0 ? pref : -pref;
+        vec2 q = cc + f * (e * (spec.boxHalf.y + 0.8f));
+        around.clear();
+        g.vehiclesNear(q, 8.f, around);
+        bool blocked = false;
+        for (int o : around) {
+            if (o == veh || blocked) continue;
+            const Vehicle& ov = g.vehicles[o];
+            const Vehicles::VehicleModel& os = g.vassets[ov.model].spec;
+            vec2 of = ov.sim.forward().xy();
+            of = length2(of) > 1e-6f ? normalize(of) : vec2(0, 1);
+            vec2 d = q - ov.sim.body.pos.toVec3().xy();
+            if (fabsf(dot(d, of)) < os.boxHalf.y + 0.4f && fabsf(dot(d, AI::rightOf(of))) < os.boxHalf.x + 0.4f) blocked = true;
+        }
+        if (!blocked) return e;
+    }
+    return pref;
+}
+
 // A street door of a building near p: the middle of the street facade at ground level, on the side p is on, with a
 // clear straight walk to p. Used by peds stepping out of and walking into buildings (population.cpp, pedai.cpp).
 // Industrial blocks, garages, sheds and buildings hosting an enterable interior (interiors_game.cpp) are skipped.

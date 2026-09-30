@@ -274,50 +274,61 @@ int main(int argc, char** argv) {
     for (int i = 0; i < (int)laneList.size() && i < maxList; i++)
         printf("  at (%.1f, %.1f, %.1f): %s\n", laneList[i].first.x, laneList[i].first.y, laneList[i].first.z, typeName(laneList[i].second));
 
-    // ---- 2. falls beside road edges
+    // ---- 2. falls beside road edges (measured on the mesher's cross-sections: at a bend the edge and its rails follow the
+    // mitre, not the perpendicular of one segment)
     float unguarded = 0.f, guarded = 0.f;
     std::vector<vec3> fallList;
+    std::vector<Section> secs;
     for (const RoadEdge& e : roads.edges) {
         if (e.flags & RF_UNPAVED) continue;
         bool hwy = e.cls == RC_HIGHWAY || e.cls == RC_RAMP;
         float edgeLat = e.halfWidth + (e.sidewalk > 0.f && !hwy ? e.sidewalk : 0.f);
+        buildSections(e, secs);
+        if (secs.size() < 2) continue;
+        // the point `lat` metres out (right positive) at distance s, and the centre height there
+        auto at = [&](float s, float lat, float* zc) {
+            size_t k = 0;
+            while (k + 2 < secs.size() && secs[k + 1].s < s) k++;
+            const Section& a = secs[k];
+            const Section& b = secs[k + 1];
+            float t = Saturate((s - a.s) / Max(b.s - a.s, 1e-4f));
+            if (zc) *zc = Lerp(a.c.z, b.c.z, t);
+            return lerp(sectionPoint(a, lat), sectionPoint(b, lat), t).xy();
+        };
         for (float s = e.cut0 + 2.f; s < e.length - e.cut1 - 2.f; s += 4.f) {
-            vec3 P = e.posAt(s), T = e.tangentAt(s);
-            vec2 rt = normalize(vec2(T.y, -T.x));
+            float pz = 0.f;
+            at(s, 0.f, &pz);
             for (int sd = -1; sd <= 1; sd += 2) {
-                vec2 q = P.xy() + rt * (sd * (edgeLat + 2.0f));
+                vec2 q = at(s, sd * (edgeLat + 2.0f), nullptr);
                 float ground = map.heightAt(q.x, q.y), wl = map.waterAt(q.x, q.y);
-                float drop = P.z - ground;
-                if (wl > kNoWater + 1.f) drop = Max(drop, P.z - wl + 0.5f);
+                float drop = pz - ground;
+                if (wl > kNoWater + 1.f) drop = Max(drop, pz - wl + 0.5f);
                 if (drop < 1.2f) continue;
                 // another road or pad continues beside the edge (merges, interchanges, plazas) or a lower road lies right
                 // there within reach (a barrier would stand in its lanes): the generator leaves these open, so do we
                 float zq;
-                if (roads.surfaceHeight(q, &zq, P.z + 1.f) && zq > P.z - 1.2f) continue;
-                vec2 bp = P.xy() + rt * (sd * (edgeLat + 0.3f));
+                if (roads.surfaceHeight(q, &zq, pz + 1.f) && zq > pz - 1.2f) continue;
+                vec2 bp = at(s, sd * (edgeLat + 0.3f), nullptr);
                 // merge zone within +-6 m along the edge: the generator opens whole barrier sub-spans there
                 bool mergeNear = false;
                 for (float ds = -6.f; ds <= 6.f && !mergeNear; ds += 3.f) {
-                    float s2 = Clamp(s + ds, 0.f, e.length);
-                    vec3 P2 = e.posAt(s2), T2 = e.tangentAt(s2);
-                    vec2 rt2 = normalize(vec2(T2.y, -T2.x));
-                    vec2 b2 = P2.xy() + rt2 * (sd * (edgeLat + 0.475f));
-                    mergeNear = roads.onPavement(b2, P2.z - 0.1f, 0.f, (int)(&e - &roads.edges[0]), 1.1f);
+                    float s2 = Clamp(s + ds, 0.f, e.length), z2 = 0.f;
+                    vec2 b2 = at(s2, sd * (edgeLat + 0.475f), &z2);
+                    mergeNear = roads.onPavement(b2, z2 - 0.1f, 0.f, (int)(&e - &roads.edges[0]), 1.1f);
                 }
                 if (mergeNear) continue;
-                // a barrier there (within half a metre: at a bend the rails follow the mitred edge, not this perpendicular)
                 bool ok = false;
-                for (int gy = (int)floorf((bp.y - 0.5f) / G); gy <= (int)floorf((bp.y + 0.5f) / G) && !ok; gy++)
-                    for (int gx = (int)floorf((bp.x - 0.5f) / G); gx <= (int)floorf((bp.x + 0.5f) / G) && !ok; gx++) {
+                for (int gy = (int)floorf((bp.y - 0.2f) / G); gy <= (int)floorf((bp.y + 0.2f) / G) && !ok; gy++)
+                    for (int gx = (int)floorf((bp.x - 0.2f) / G); gx <= (int)floorf((bp.x + 0.2f) / G) && !ok; gx++) {
                         auto it = grid.find(key(gx, gy));
                         if (it == grid.end()) continue;
                         for (int ci : it->second)
-                            if (cols[ci].src == -1 && hits(cols[ci], bp, P.z + 0.3f, P.z + 0.7f, 0.5f)) { ok = true; break; }
+                            if (cols[ci].src == -1 && hits(cols[ci], bp, pz + 0.3f, pz + 0.7f, 0.2f)) { ok = true; break; }
                     }
                 if (ok) guarded += 4.f;
                 else {
                     unguarded += 4.f;
-                    if ((int)fallList.size() < maxList) fallList.push_back(vec3(bp, P.z));
+                    if ((int)fallList.size() < maxList) fallList.push_back(vec3(bp, pz));
                     if (verbose && (int)fallList.size() <= maxList)
                         printf("  fall: %s edge %d s %.0f/%.0f side %d drop %.1f edgeLat %.1f sidewalk %.1f flags %d\n", roadInfo(e.cls).name, (int)(&e - &roads.edges[0]), s,
                                e.length, sd, drop, edgeLat, e.sidewalk, (int)e.flags);

@@ -114,6 +114,12 @@ struct BodyDims {
     // side: eye height, brow height, mouth corner height, nose tip / chin deviation in x, ear protrusion factor)
     float jawFlare, chinSquare, chinCleft, noseHump, noseTipUp, lipBow;
     float asymEye, asymBrow, asymMouth, asymNose, asymChin, asymEar;
+    // eyelids and lips: upper lid crease height above the lash line (degrees from the head grid centre, ~1.5 mm per
+    // degree; 0 = monolid), its depth (m), the skin fold over it (hooding, 0..1), the epicanthic fold over the inner
+    // corner (0..1), the fissure height scale; lip border definition (white roll) and mouth corner depth
+    float creaseDeg, creaseDepth, hood, epicanthic, apertureH, lipBorder, cornerDepth;
+    float earAngle;         // cephaloauricular angle (radians): how far the auricle stands off the head
+    int ancestry;           // resolved CharacterDesc::ancestry (0..4)
 };
 void computeDims(const CharacterDesc& d, BodyDims& D);
 // Shoe sole thickness for a shoe index.
@@ -307,6 +313,7 @@ struct BuildCtx {
     HeadInfo head;
     vec3 skin;              // linear skin albedo
     vec3 lipCol, palmCol;
+    vec3 lipInner;          // inner (wet) vermilion: lighter and pinker than the outer lip on darker skin
     u32 neckTopFirst = 0;   // first vertex of the head grid row 0
     std::vector<u32> torsoTop;   // torso top ring (neck base) vertex indices
     size_t surfaceIdxEnd = 0;    // index count of the connected skin surface

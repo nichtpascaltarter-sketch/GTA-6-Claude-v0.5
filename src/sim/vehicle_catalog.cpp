@@ -63,7 +63,7 @@ inline void archSedan(CarDef& d, float L = 4.85f, float W = 1.84f, float H = 1.4
     float roof = s.yRoofF - s.yRoofR;
     s.bPillar = s.yRoofF - roof * 0.40f;
     s.dloRearBot = s.yRoofR - 0.26f; s.dloRearTop = s.yRoofR + 0.02f;
-    s.zChar = s.zBeltR - 0.20f; s.charOut = 0.006f; s.flareOut = 0.008f; s.flareW = 0.08f;
+    s.zChar = s.zBeltR - 0.20f; s.charOut = 0.006f; s.flareOut = 0.014f; s.flareW = 0.09f;
     // crisper plan corners (modern squared-off bumpers) with the corner radius kept by frontD / rearD
     s.frontD = 0.46f; s.frontExp = 3.6f; s.rearD = 0.40f; s.rearExp = 3.9f;
     autoLook(d);

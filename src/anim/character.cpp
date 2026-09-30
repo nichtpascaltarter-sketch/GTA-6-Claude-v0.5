@@ -128,11 +128,11 @@ CharacterDesc randomCharacter(u32 seed, int role) {
     // skin tone: region mix (Latino, Black/Caribbean, White, Asian, mixed) -> continuous palette position
     float g = r.f();
     float st;
-    if (g < 0.4f) st = r.range(0.2f, 0.62f);         // Latino / Mediterranean
-    else if (g < 0.64f) st = r.range(0.52f, 1.0f);   // Black / Afro-Caribbean
-    else if (g < 0.86f) st = r.range(0.0f, 0.32f);   // White
-    else if (g < 0.95f) st = r.range(0.12f, 0.42f);  // Asian
-    else st = r.range(0.2f, 0.85f);                  // mixed / other
+    if (g < 0.4f) st = r.range(0.2f, 0.62f), d.ancestry = 0;          // Latino / Mediterranean
+    else if (g < 0.64f) st = r.range(0.52f, 1.0f), d.ancestry = 1;    // Black / Afro-Caribbean
+    else if (g < 0.86f) st = r.range(0.0f, 0.32f), d.ancestry = 2;    // White
+    else if (g < 0.95f) st = r.range(0.12f, 0.42f), d.ancestry = 3;   // East Asian
+    else st = r.range(0.2f, 0.85f), d.ancestry = 4;                   // mixed / other
     d.skinTone = skinFromT(st);
     bool darkSkin = st > 0.55f;
     // hair color
@@ -327,8 +327,9 @@ CharacterDesc randomCharacter(u32 seed, int role) {
 namespace detail {
 static void bakeOcclusion(const BuildCtx& c, MeshB& m) {
     const float s = c.D->s;
-    const float dk[3] = {0.01f, 0.025f, 0.055f};
-    const float wk[3] = {0.45f, 0.35f, 0.2f};
+    // a 4 mm step catches the fine creases (lid crease, alar groove, mouth corners, ear folds, cloth seams)
+    const float dk[4] = {0.004f, 0.01f, 0.025f, 0.055f};
+    const float wk[4] = {0.25f, 0.33f, 0.26f, 0.16f};
     const float reach = 0.06f * s, cap = 0.065f * s;
     // uniform grid of candidate primitive lists (cells of 4 cm; a list holds every primitive whose bounding
     // sphere comes within reach + cap + blend of the cell), so each sample evaluates only nearby primitives
@@ -370,7 +371,7 @@ static void bakeOcclusion(const BuildCtx& c, MeshB& m) {
         if (cnt == 0) continue;
         float s0 = Max(0.f, sdf.evalList(v.p, list, cnt, cap));
         float occ = 0.f;
-        for (int k = 0; k < 3; k++) {
+        for (int k = 0; k < 4; k++) {
             float d = dk[k] * s;
             float sd = sdf.evalList(v.p + n * d, list, cnt, Min(cap, s0 + d));
             occ += wk[k] * Saturate((s0 + d - sd) / d);
@@ -394,7 +395,11 @@ static void buildFinalMesh(const CharacterDesc& d, const Skeleton& skel, MeshB& 
     c.sk = &skel;
     c.skin = saturate(d.skinTone);
     float lum = dot(c.skin, vec3(0.3f, 0.59f, 0.11f));
-    c.lipCol = lerp(mulColor(c.skin, vec3(0.78f, 0.52f, 0.56f)), mulColor(c.skin, vec3(0.92f, 0.68f, 0.74f)), sstep(0.02f, 0.4f, lum));
+    // lips: rosy on fair skin (hemoglobin shows through the thin vermilion), deeper and cooler on dark skin, whose inner
+    // lip is lighter and pinker (two-tone lips)
+    const float fairL = sstep(0.04f, 0.4f, lum);
+    c.lipCol = lerp(mulColor(c.skin, vec3(0.8f, 0.6f, 0.66f)), mulColor(c.skin, vec3(0.84f, 0.52f, 0.56f)), fairL);
+    c.lipInner = lerp(vmax(mulColor(c.skin, vec3(1.25f, 0.8f, 0.82f)), vec3(0.16f, 0.06f, 0.06f)), c.lipCol * vec3(1.02f, 0.94f, 0.96f), fairL);
     vec3 palmTarget = vec3(0.52f, 0.33f, 0.24f);
     c.palmCol = lerp(c.skin, vmax(c.skin, palmTarget), 0.7f);
     buildBody(c);

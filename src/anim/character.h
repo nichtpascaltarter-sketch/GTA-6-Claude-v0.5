@@ -53,6 +53,8 @@ struct CharacterDesc {
     int top = 0, bottom = 0, shoes = 0, hat = -1, glasses = -1, facialHair = -1;
     vec3 topColor = vec3(0.8f), bottomColor = vec3(0.2f, 0.25f, 0.4f), shoeColor = vec3(0.1f);
     int role = 0;                 // 0 civilian, 1 police, 2 gang, 3 business, 4 beach, 5 worker, 6 medic
+    int ancestry = -1;            // face shape tendencies: 0 Latin American / Mediterranean, 1 African / Caribbean,
+                                  // 2 European, 3 East Asian, 4 mixed / other; -1 = from the skin tone
 };
 
 // Generate a varied random civilian description for a region/role (deterministic from seed).

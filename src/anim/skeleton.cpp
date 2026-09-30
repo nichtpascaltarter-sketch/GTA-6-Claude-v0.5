@@ -117,22 +117,23 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
 
     // ---- face variation
     auto g = [&]() { return r.range(-1.f, 1.f); };
-    D.faceW = 1.f + 0.05f * g() + 0.04f * wc;
-    D.jawW = Lerp(1.f, 0.9f, fem) * (1.f + 0.07f * g() + 0.08f * wc);
+    D.faceW = 1.f + 0.055f * g() + 0.04f * wc;
+    D.jawW = Lerp(1.f, 0.88f, fem) * (1.f + 0.1f * g() + 0.09f * wc);
     D.chinP = 1.f + 0.3f * g();
-    D.chinH = 1.f + 0.08f * g();
-    D.noseL = 1.f + 0.09f * g();
-    D.noseW = Lerp(1.f, 0.86f, fem) * (1.f + 0.12f * g());
-    D.noseP = Lerp(1.f, 0.88f, fem) * (1.f + 0.12f * g());
+    // women: shorter lower face, smaller nose, fuller lips, slightly larger eyes; noses and ears keep growing with age
+    D.chinH = (1.f + 0.08f * g()) * Lerp(1.f, 0.94f, fem);
+    D.noseL = (1.f + 0.09f * g()) * Lerp(1.f, 0.93f, fem) * (1.f + 0.05f * a);
+    D.noseW = Lerp(1.f, 0.84f, fem) * (1.f + 0.12f * g()) * (1.f + 0.04f * a);
+    D.noseP = Lerp(1.f, 0.86f, fem) * (1.f + 0.12f * g());
     D.noseBridge = 1.f + 0.35f * g();
-    D.lipFull = Lerp(1.f, 1.05f, fem) * (1.f + 0.18f * g());
+    D.lipFull = Lerp(1.f, 1.1f, fem) * (1.f + 0.18f * g());
     D.lipW = 1.f + 0.07f * g();
-    D.eyeSize = Lerp(1.f, 1.04f, fem) * (1.f + 0.05f * g());
+    D.eyeSize = Lerp(1.f, 1.05f, fem) * (1.f + 0.05f * g());
     D.eyeTilt = 0.06f * g();
     D.eyeSpace = 1.f + 0.04f * g();
-    D.browH = 1.f + 0.12f * g();
+    D.browH = 1.f + 0.12f * g() + 0.05f * fem;
     D.browRidge = Lerp(1.f, 0.35f, fem) * (1.f + 0.3f * g());
-    D.cheekB = 1.f + 0.25f * g();
+    D.cheekB = 1.f + 0.32f * g();
     D.earSize = (1.f + 0.07f * g()) * (1.f + 0.08f * a);
     D.earOut = 1.f + 0.35f * g();
     D.foreheadSlope = 0.5f + 0.5f * g();
@@ -154,6 +155,68 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
         D.asymNose = 0.0009f * h();
         D.asymChin = 0.0012f * h();
         D.asymEar = 0.12f * h();
+        // ancestry: resolved from the skin tone when not given (dark -> African, light -> European, else Latin)
+        int anc = d.ancestry;
+        if (anc < 0 || anc > 4) {
+            float lum = dot(saturate(d.skinTone), vec3(0.3f, 0.59f, 0.11f));
+            anc = lum < 0.13f ? 1 : (lum > 0.42f ? 2 : 0);
+        }
+        D.ancestry = anc;
+        // eyelids: crease 4.5-6 mm above the lashes on young European faces (higher on women), lower on African and
+        // Latin faces, often absent (monolid) or low with an epicanthic fold on East Asian faces; hooding grows with age
+        float creaseMm = Lerp(5.0f, 5.8f, fem) + 0.6f * h();
+        float epi = 0.f;
+        D.hood = Saturate(0.15f + 0.25f * q.f() + 0.55f * sstep(0.35f, 0.95f, a));
+        D.apertureH = 1.f + 0.06f * h() + 0.04f * fem - 0.08f * sstep(0.5f, 1.f, a);
+        switch (anc) {
+            case 1:   // African / Caribbean: broader, lower-bridged nose, fuller lips, lower crease
+                D.noseW *= 1.13f;
+                D.noseBridge -= 0.25f;
+                D.noseP *= 0.96f;
+                D.lipFull *= 1.17f;
+                D.lipW *= 1.04f;
+                creaseMm -= 0.8f;
+                D.browRidge *= 1.05f;
+                break;
+            case 2:   // European: narrower, higher-bridged nose, thinner lips, higher crease, deeper-set eyes
+                D.noseW *= 0.95f;
+                D.noseBridge += 0.18f;
+                D.noseP *= 1.04f;
+                D.lipFull *= 0.93f;
+                creaseMm += 0.6f;
+                break;
+            case 3: {   // East Asian: low nasal bridge, monolid or low crease, epicanthic fold, fuller cheekbones
+                D.noseBridge -= 0.4f;
+                D.noseW *= 1.03f;
+                D.noseP *= 0.93f;
+                D.browRidge *= 0.7f;
+                D.cheekB += 0.18f;
+                D.faceW *= 1.025f;
+                bool mono = q.chance(0.55f);
+                creaseMm = mono ? 0.f : q.range(1.8f, 3.2f);
+                epi = q.range(0.5f, 1.f);
+                D.hood = Saturate(D.hood + 0.2f);
+                D.eyeTilt += 0.04f;
+                break;
+            }
+            case 4:   // mixed / other
+                D.noseBridge -= 0.08f;
+                D.lipFull *= 1.04f;
+                break;
+            default:   // Latin American / Mediterranean
+                D.noseW *= 1.03f;
+                D.lipFull *= 1.04f;
+                creaseMm -= 0.3f;
+                break;
+        }
+        D.creaseDeg = creaseMm / 1.47f;
+        D.creaseDepth = creaseMm > 0.f ? (0.00055f + 0.00045f * q.f()) * (1.f + 0.6f * sstep(0.4f, 1.f, a)) : 0.f;
+        D.epicanthic = epi;
+        D.lipBorder = Saturate(0.6f + 0.3f * h() - 0.35f * sstep(0.5f, 1.f, a));   // the border blurs with age
+        D.cornerDepth = 0.0006f + 0.0004f * q.f() + 0.0006f * sstep(0.4f, 1.f, a);
+        D.earAngle = (17.f + 4.f * h()) * kDegToRad * (0.8f + 0.2f * D.earOut);
+        // lips thin with age
+        D.lipFull *= 1.f - 0.18f * sstep(0.45f, 1.f, a);
     }
 
     // ---- joints (model space, bind pose, raised by the shoe sole)

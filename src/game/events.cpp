@@ -1302,9 +1302,21 @@ void GameWorld::updateEvents(float dt) {
                             attachTraffic(car);
                             drivingAway++;
                         } else {
+                            // round the nearer free end of the car when coming from the curb side, then to the door
+                            vec3 goal = door;
+                            vec2 cc = v.sim.body.pos.toVec3().xy(), cf = v.sim.forward().xy();
+                            cf = length2(cf) > 1e-6f ? normalize(cf) : vec2(0, 1);
+                            vec2 lp = p.pos.toVec3().xy() - cc;
+                            float lx = dot(lp, AI::rightOf(cf)), ly = dot(lp, cf);
+                            if (lx > spec.boxHalf.x * 0.5f) {   // (the driver's door is on the left)
+                                float endSign = aiCarEndToWalkRound(*this, car, ly >= 0.f ? 1.f : -1.f);
+                                float side = fabsf(ly) < spec.boxHalf.y + 0.6f || ly * endSign < 0.f ? 1.f : -1.f;
+                                vec2 wp = cc + cf * (endSign * (spec.boxHalf.y + 0.8f)) + AI::rightOf(cf) * (side * (spec.boxHalf.x + 0.6f));
+                                goal = vec3(wp, door.z);
+                            }
                             pedAI(me).activity = ACT_WALK;
                             p.brain.type = BRAIN_GOTO;
-                            p.brain.goal = dvec3(door);
+                            p.brain.goal = dvec3(goal);
                             p.brain.speed = 1.5f;
                         }
                     }

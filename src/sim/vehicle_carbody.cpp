@@ -633,7 +633,7 @@ struct CarBody {
     // along the length (same column) keeps the section shape (and the feature-line crease) intact; the opening
     // boundary and everything below it stay pinned.
     void fairArches() {
-        int iters = lodLevel() == 0 ? 6 : 0;
+        int iters = lodLevel() == 0 ? 10 : 0;
         if (iters == 0 || nr < 4) return;
         std::vector<vec3> T;
         auto pinned = [&](int i, int j) {

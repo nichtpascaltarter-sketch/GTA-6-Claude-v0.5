@@ -116,6 +116,10 @@ void addHeadPrims(BuildCtx& c) {
         float nl = 0.45f + 0.5f * age + 0.25f * full;
         vec3 a(sx * 0.0235f, 0.0842f, 0.0085f), b(sx * 0.0335f, 0.0732f, -0.0235f);
         S.cone(Pv(a), Pv(b), R(0.0062f * nl), R(0.0072f * nl), HM, R(0.009f));
+        // lower cheek over the buccal fat and the teeth (keeps young / fuller faces from looking gaunt below the
+        // cheekbones)
+        float bf = Saturate(0.35f + 0.45f * youth + 0.6f * full + 0.2f * fem - 0.45f * lean);
+        S.ellipsoid(P(sx * 0.0425f * jw, 0.05f, -0.013f), vec3(0.013f, 0.02f, 0.022f) * (hs * (0.5f + 0.5f * bf)), HM, R(0.02f));
         // jowls (age / weight)
         float jl = Saturate(0.9f * age + 0.6f * full - 0.35f);
         if (jl > 0.02f) S.ellipsoid(P(sx * 0.0385f * jw, 0.061f, -0.037f), vec3(0.012f, 0.012f, 0.012f) * (hs * (0.6f + 0.5f * jl)), HM, R(0.016f));
@@ -125,8 +129,8 @@ void addHeadPrims(BuildCtx& c) {
     S.ellipsoid(Pv(L.subnasale + vec3(0, -0.0098f, -0.0112f)), vec3(0.0175f * D.lipW, 0.0105f, 0.0115f) * hs, HM, R(0.008f));
     // lips: upper (tubercle + cupid's bow) and lower (two lobes), curved chains towards the corners
     float lf = D.lipFull;
-    float ulR = 0.0048f * lf, llR = 0.0064f * lf;
-    vec3 ulC(0, L.stomion.y - 0.0008f, L.stomion.z + 0.0062f), llC(0, L.stomion.y - 0.0032f, L.stomion.z - 0.0072f);
+    float ulR = 0.0051f * lf, llR = 0.0066f * lf;
+    vec3 ulC(0, L.stomion.y + 0.0004f, L.stomion.z + 0.006f), llC(0, L.stomion.y - 0.0024f, L.stomion.z - 0.0072f);
     S.ellipsoid(Pv(ulC + vec3(0, 0.0004f, -0.0018f)), vec3(0.0062f * D.lipW, 0.0041f * lf, 0.0038f * lf) * hs, HM, R(0.003f));
     for (int sd = 0; sd < 2; sd++) {
         float sx = sd ? 1.f : -1.f;
@@ -181,12 +185,17 @@ void addHeadPrims(BuildCtx& c) {
         vec3 e = L.eye[sd];
         float er = L.eyeR;
         S.ellipsoid(Pv(e), vec3(er + 0.0009f) * hs, HM, R(0.003f));
-        // upper lid (hooded / monolid for high lidFold), thick margin
-        float up = 0.0012f + 0.0016f * D.lidFold;
-        S.ellipsoid(Pv(e + vec3(0, -0.0006f, 0.0032f)), vec3(er + 0.0019f, er + up + 0.0003f, er * 0.8f) * hs, HM, R(0.0035f));
-        S.ellipsoid(Pv(e + vec3(0, -0.001f, -0.0035f)), vec3(er + 0.0013f, er + 0.0011f, er * 0.62f) * hs, HM, R(0.0045f));
+        // upper lid (fuller for hooded / monolid eyes), thick margin
+        float up = 0.0011f + 0.0016f * D.hood;
+        // (narrower than the eyeball across, so the lids end at the eye corners instead of meeting in a crease beyond them)
+        S.ellipsoid(Pv(e + vec3(0, -0.0006f, 0.0032f)), vec3(er + 0.0002f, er + up + 0.0003f, er * 0.8f) * hs, HM, R(0.0045f));
+        S.ellipsoid(Pv(e + vec3(0, -0.001f, -0.0035f)), vec3(er - 0.0004f, er + 0.0011f, er * 0.62f) * hs, HM, R(0.0055f));
         float bag = Saturate(1.2f * age - 0.35f + 0.3f * full);
         if (bag > 0.02f) S.ellipsoid(Pv(e + vec3(sx * 0.002f, 0.0052f, -0.0128f)), vec3(0.0105f, 0.0042f, 0.0042f) * (hs * (0.6f + 0.4f * bag)), HM, R(0.005f));
+        // epicanthic fold: skin from the upper lid draped over the inner corner
+        if (D.epicanthic > 0.f)
+            S.ellipsoid(Pv(e + vec3(-sx * 0.0112f, 0.0068f, 0.0012f)), vec3(0.0038f, 0.0026f, 0.0048f) * (hs * (0.6f + 0.4f * D.epicanthic)), HM,
+                        R(0.003f), vec3(0.8f * sx, 0.6f, 0.f), vec3(0, 0, 1));
     }
     // ear roots (the ears themselves are separate meshes)
     for (int sd = 0; sd < 2; sd++) S.ellipsoid(Pv(L.ear[sd] + vec3(0, 0.002f, 0)), vec3(0.008f, 0.016f, 0.021f) * hs, HM, R(0.008f));
@@ -256,13 +265,16 @@ void buildHeadGrid(BuildCtx& c) {
     {
         vec3 e = headToModel(c, Lm.eye[1]);
         float er = Lm.eyeR * hs;
-        vec3 inner = e + vec3(-0.0132f * D.eyeSize, 0.0078f, -0.0012f) * hs;
-        vec3 outer = e + vec3(0.0138f * D.eyeSize, 0.0018f, 0.0010f + 0.03f * D.eyeTilt) * hs;
+        // fissure ~28 mm wide and ~9-10 mm high at the pupil (the upper lid covers the top 1-2 mm of the iris, the lower
+        // lid meets its bottom); an epicanthic fold hides the inner corner, hooding lowers the upper margin
+        vec3 inner = e + vec3(-0.0138f * D.eyeSize + 0.0019f * D.epicanthic, 0.0076f, -0.0012f + 0.0006f * D.epicanthic) * hs;
+        vec3 outer = e + vec3(0.0143f * D.eyeSize, 0.0016f, 0.0010f + 0.03f * D.eyeTilt) * hs;
         float th, ph;
         angOf(inner - C, L.thI, L.phI);
         angOf(outer - C, L.thO, L.phO);
-        vec3 top = e + vec3(0.001f, er * 0.93f, er * 0.3f);
-        vec3 bot = e + vec3(0.0015f, er * 0.9f, -er * 0.43f);
+        float hTop = (0.41f - 0.08f * D.hood) * D.apertureH, hBot = 0.48f * D.apertureH;
+        vec3 top = e + vec3(0.001f, er * sqrtf(Max(0.f, 1.f - hTop * hTop)), er * hTop);
+        vec3 bot = e + vec3(0.0015f, er * sqrtf(Max(0.f, 1.f - hBot * hBot)), -er * hBot);
         angOf(top - C, th, ph);
         float phCmid = 0.5f * (L.phI + L.phO);
         L.Hh = ph - phCmid;
@@ -335,7 +347,7 @@ void buildHeadGrid(BuildCtx& c) {
         float off;        // feature offset (degrees)
         float lipW, lidW, browW;
     };
-    const RowDef rows[] = {
+    RowDef rows[] = {
         {-68.0f, RK_PLAIN, 0, 1, 0.3f, 0, 0, 0, 0},      {-65.0f, RK_PLAIN, 0, 1, 0.6f, 0, 0, 0, 0},
         {-62.0f, RK_PLAIN, 1, 2, 0.15f, 0, 0, 0, 0},     {-59.2f, RK_PLAIN, 1, 2, 0.35f, 0, 0, 0, 0},
         {-56.4f, RK_PLAIN, 1, 2, 0.55f, 0, 0, 0, 0},     {-53.8f, RK_PLAIN, 1, 2, 0.75f, 0, 0, 0, 0},
@@ -379,6 +391,17 @@ void buildHeadGrid(BuildCtx& c) {
     const int NRD = (int)(sizeof(rows) / sizeof(rows[0]));
     const int NR = NRD + 1;   // + row 0 (neck ring)
     H.rows = NR;
+    // per-character upper lid rows: lash line, tarsal plate, the crease and the skin fold above it (a monolid keeps
+    // evenly spaced rows and no crease)
+    const bool hasCrease = D.creaseDeg > 0.f && D.creaseDepth > 0.f;
+    const float creaseOff = hasCrease ? Clamp(D.creaseDeg, 2.3f, 4.6f) : 3.1f;
+    const float foldOff = creaseOff + 1.15f;
+    {
+        const float upOff[4] = {0.85f, 0.85f + (creaseOff - 0.85f) * 0.55f, creaseOff, foldOff};
+        int n = 0;
+        for (int r = 0; r < NRD && n < 4; r++)
+            if (rows[r].kind == RK_LIDUP) rows[r].off = upOff[n++];
+    }
     // named rows (grid row j = index into rows[] + 1)
     H.rowLipLo = H.rowLipHi = H.rowLidLo = H.rowLidHi = -1;
     H.rowNoseBase = H.rowBrow = H.rowHairline = H.rowChin = -1;
@@ -508,7 +531,37 @@ void buildHeadGrid(BuildCtx& c) {
             ph = Max(ph, ph0 + 0.6f * deg * (float)j);
             vec3 dir(cosf(ph) * sinf(th), cosf(ph) * cosf(th), sinf(ph));
             float t = c.sdf.castOut(C, dir, HM, 0.22f * hs);
-            vec3 p = C + dir * t;
+            // relief finer than the face field resolves, along the ray: the upper lid crease (valley) with the skin fold
+            // over it, the lower lid's pretarsal roll and its junction with the cheek, the white roll along the
+            // vermilion border and the dimpled mouth corners
+            float relief = 0.f, shadeK = 1.f;
+            {
+                float ue = (ath - L.thI) / Max(L.thO - L.thI, 1e-4f);   // 0 inner .. 1 outer eye corner
+                float wLid = sstep(-0.12f, 0.12f, ue) * (1.f - sstep(0.88f, 1.15f, ue));
+                if (rd.kind == RK_LIDUP && hasCrease && rd.off == creaseOff) {
+                    relief = -D.creaseDepth * wLid * (0.8f + 0.3f * ue);
+                    shadeK = 1.f - 0.12f * wLid;
+                }
+                if (rd.kind == RK_LIDUP && rd.off == foldOff) relief = (0.00015f + 0.00055f * D.hood) * wLid;
+                if (rd.kind == RK_LIDLO && rd.off < 1.5f) relief = 0.0003f * wLid;
+                if (rd.kind == RK_LIDLO && rd.off > 3.f) {
+                    relief = -0.0002f * wLid;
+                    shadeK = 1.f - 0.06f * wLid;
+                }
+                float um = ath / Max(L.thMC, 1e-4f);                   // 0 centre .. 1 mouth corner
+                bool lipRow = rd.kind == RK_LIP || rd.kind == RK_MOUTHLO || rd.kind == RK_MOUTHHI;
+                if (rd.kind == RK_LIP && (rd.off > 4.f || rd.off < -5.5f)) {
+                    float wb = 1.f - sstep(0.75f, 1.02f, um);
+                    relief = D.lipBorder * 0.00045f * wb;
+                    shadeK = 1.f + 0.05f * D.lipBorder * wb;
+                }
+                if (lipRow && fabsf(rd.off) < 5.5f) {
+                    float cw = bump(um, 1.f, 0.12f);
+                    relief -= D.cornerDepth * cw;
+                    shadeK *= 1.f - 0.22f * cw;
+                }
+            }
+            vec3 p = C + dir * (t + relief * hs);
             BVert v;
             v.p = p;
             v.col = c.skin;
@@ -543,7 +596,8 @@ void buildHeadGrid(BuildCtx& c) {
                 float ao = fabsf(rd.off);
                 if (rd.kind == RK_LIP) lipMask *= rd.off < 0.f ? 1.f - sstep(5.2f, 5.8f, ao) : 1.f - sstep(3.7f, 4.3f, ao);
                 if (lipMask > 0.f) {
-                    col = lerp(col, c.lipCol, lipMask);
+                    float inner = rd.kind != RK_LIP ? 1.f : 1.f - sstep(1.1f, 3.3f, ao);   // 1 at the mouth line
+                    col = lerp(col, lerp(c.lipCol, c.lipInner, inner * (rd.off < 0.f ? 0.85f : 0.65f)), lipMask);
                     // the seam between the closed lips and the wet inner edge read darker
                     float inMouth = 1.f - sstep(0.8f, 1.02f, u);
                     if (rd.kind != RK_LIP) col = col * Lerp(1.f, 0.62f, inMouth);
@@ -552,15 +606,28 @@ void buildHeadGrid(BuildCtx& c) {
                 }
             }
             {
-                // nostrils: underside of the nose between columella and alae (a shade: the grid has no holes)
+                // nostrils: dark ovals on the underside of the nose either side of the columella, converging towards the
+                // tip (a shade: the grid has no holes), with a soft darker rim inside the alae
                 vec3 hq = hp;
-                float nx = fabsf(hq.x);
-                if (hq.z < Lm.ala[1].z + 0.002f && hq.z > Lm.subnasale.z - 0.001f && hq.y > Lm.subnasale.y + 0.0015f &&
-                    hq.y < Lm.noseTip.y - 0.005f && nx > 0.003f && nx < fabsf(Lm.ala[1].x) - 0.002f) {
+                if (hq.z < Lm.noseTip.z + 0.002f && hq.z > Lm.subnasale.z - 0.004f && hq.y > Lm.subnasale.y - 0.002f &&
+                    hq.y < Lm.noseTip.y + 0.004f && fabsf(hq.x) < 0.02f) {
                     vec3 gn = normalize(c.sdf.grad(p, HM));
-                    col = col * Lerp(1.f, 0.55f, sstep(-0.25f, -0.7f, gn.z));
+                    float down = sstep(-0.15f, -0.55f, gn.z);
+                    float best = 0.f;
+                    for (int sd = 0; sd < 2; sd++) {
+                        float sx = sd ? 1.f : -1.f;
+                        vec2 nc(Lm.noseTip.x + sx * 0.0057f * D.noseW, Lerp(Lm.subnasale.y, Lm.noseTip.y, 0.4f));
+                        float ang = sx * 0.42f;   // long axis leans in towards the tip
+                        vec2 dq(hq.x - nc.x, hq.y - nc.y);
+                        vec2 lq(dq.x * cosf(ang) - dq.y * sinf(ang), dq.x * sinf(ang) + dq.y * cosf(ang));
+                        float e = Sq(lq.x / (0.0031f * D.noseW)) + Sq(lq.y / 0.0058f);
+                        best = Max(best, 1.f - sstep(0.55f, 1.25f, e));
+                    }
+                    col = col * Lerp(1.f, 0.16f, best * down);
+                    col = col * Lerp(1.f, 0.8f, down * (1.f - best) * sstep(0.004f, 0.009f, fabsf(hq.x)));
                 }
             }
+            col = col * shadeK;
             if (j >= H.rowMouthHi + 2 && j <= H.rowHairline) v.flags |= BuildCtx::F_FACE;
             if (ath < 110.f * deg && j < H.rowLidLo && j >= 1) v.flags |= BuildCtx::F_BEARD;
             if (j > H.rowLidHi) v.flags |= BuildCtx::F_SCALP;
@@ -838,14 +905,22 @@ static void addEar(BuildCtx& c, int sd) {
         float t = c.sdf.castOut(c.head.C, dir, MK_HEAD, 0.2f);
         root = c.head.C + dir * t;
     }
-    // ear frame: out (lateral, slightly forward), up (tilted back), back
-    float tiltBack = 0.26f;
-    vec3 out = normalize(vec3(sx, 0.28f, 0.f));
-    vec3 up = normalize(vec3(0, -sinf(tiltBack), cosf(tiltBack)));
-    vec3 back = normalize(cross(up, out) * -sx);
-    if (dot(back, vec3(0, -1, 0)) < 0.f) back = -back;
-    up = normalize(cross(out, back) * -sx);
-    if (up.z < 0.f) up = -up;
+    // ear frame from the head surface at the root: the auricle lies in the local tangent plane (long axis leaning back
+    // ~15 degrees), rolled out about its front attachment line by the cephaloauricular angle, so the helix stands
+    // 12-18 mm off the head at its top back instead of sticking out sideways
+    vec3 nS = c.sdf.grad(root, MK_HEAD);
+    nS = length2(nS) > 1e-12f ? normalize(nS) : vec3(sx, 0, 0);
+    nS = normalize(lerp(nS, vec3(sx, 0.f, 0.f), 0.35f));
+    vec3 back0 = vec3(0, -1, 0) - nS * dot(vec3(0, -1, 0), nS);
+    back0 = normalize(back0);
+    vec3 up0 = normalize(cross(nS, back0));
+    if (up0.z < 0.f) up0 = -up0;
+    const float tiltBack = 0.26f;
+    vec3 up = normalize(up0 * cosf(tiltBack) + back0 * sinf(tiltBack));
+    vec3 back = normalize(back0 - up * dot(back0, up));
+    const float ang = D.earAngle * (sd ? 1.f + D.asymEar : 1.f);
+    vec3 out = normalize(nS * cosf(ang) - back * sinf(ang));
+    back = normalize(back * cosf(ang) + nS * sinf(ang));
     const int NE = 22;
     const float h = 0.062f * hs, w = 0.034f * hs;
     const vec2 cen(0.46f * w, 0.1f * h);   // canal (centre of the polar grid) behind / above the root
@@ -879,12 +954,14 @@ static void addEar(BuildCtx& c, int sd) {
         return 1.3f * (hlx + scapha + anti + supCrus + infCrus + fossa + concha + crusHelix + tragus + antitragus + notch + canal + lobeBody) *
                D.headS;
     };
-    // the ear's protrusion from the head: the front edge is attached, the top / back stand out (earOut)
+    // the auricle's own thickness off its plane (the stand-off comes from the frame's angle): a little fuller at the
+    // back of the rim, the lobe flatter
     auto protrude = [&](float a, float s) {
         float frontness = sstep(0.2f, 1.f, cosf(a));
         float lobe = sstep(0.2f, 1.f, -sinf(a));
-        return s * Lerp(0.0035f, 0.0105f * eo, 1.f - frontness * 0.85f) * (1.f - 0.35f * lobe) * D.headS + 0.0015f * D.headS;
+        return (0.0012f + s * Lerp(0.0012f, 0.0026f, 1.f - frontness) * (1.f - 0.4f * lobe)) * D.headS;
     };
+    (void)eo;
     const float fr[] = {0.06f, 0.18f, 0.31f, 0.43f, 0.55f, 0.65f, 0.73f, 0.81f, 0.87f, 0.93f, 0.985f};
     const int NFr = (int)(sizeof(fr) / sizeof(fr[0]));
     std::vector<std::vector<u32>> rings;
@@ -937,8 +1014,16 @@ static void addEar(BuildCtx& c, int sd) {
             };
             rim[k] = mk(q1, oF - thick * 0.45f, 1.02f);
             back1[k] = mk(q2, oF - thick, 0.95f);
-            back2[k] = mk(q3, Lerp(oF - thick, 0.f, 0.55f), 0.92f);
-            rootR[k] = mk(q4, -0.003f * D.headS, 0.9f);
+            // the back of the auricle curves in to meet the head (postauricular groove): the root ring sits on the
+            // skull, 2 mm under the skin, and the ring before it halfway between
+            u32 rr = mk(q4, 0.f, 0.86f);
+            vec3 onHead = c.sdf.project(m.v[rr].p, MK_HEAD, 6);
+            vec3 nh = c.sdf.grad(onHead, MK_HEAD);
+            nh = length2(nh) > 1e-12f ? normalize(nh) : out;
+            m.v[rr].p = onHead - nh * (0.002f * D.headS);
+            rootR[k] = rr;
+            back2[k] = mk(q3, 0.f, 0.9f);
+            m.v[back2[k]].p = lerp(m.v[back1[k]].p, onHead + nh * (0.0015f * D.headS), 0.55f);
         }
         rings.push_back(rim);
         rings.push_back(back1);

@@ -400,6 +400,32 @@ int main(int argc, char** argv) {
         if (const char* hcv = getenv("PREVIEW_HAIRCOL")) sscanf(hcv, "%f,%f,%f", &ch.d.hairColor.x, &ch.d.hairColor.y, &ch.d.hairColor.z);
         if (const char* gv = getenv("PREVIEW_GENDER")) ch.d.gender = atoi(gv) ? FEMALE : MALE;
         if (const char* av = getenv("PREVIEW_AGE")) ch.d.age = (float)atof(av);
+        if (const char* anv = getenv("PREVIEW_ANC")) {
+            // ancestry (and a matching skin tone): comma list per character, cycling
+            std::vector<int> al;
+            for (const char* q = anv; *q;) {
+                al.push_back(atoi(q));
+                while (*q && *q != ',') q++;
+                if (*q == ',') q++;
+            }
+            if (!al.empty()) {
+                ch.d.ancestry = al[(size_t)i % al.size()];
+                const vec3 tones[5] = {srgbToLinear(vec3(0.78f, 0.57f, 0.42f)), srgbToLinear(vec3(0.36f, 0.23f, 0.16f)),
+                                       srgbToLinear(vec3(0.93f, 0.76f, 0.64f)), srgbToLinear(vec3(0.88f, 0.7f, 0.55f)),
+                                       srgbToLinear(vec3(0.6f, 0.42f, 0.3f))};
+                ch.d.skinTone = tones[Clamp(ch.d.ancestry, 0, 4)];
+            }
+        }
+        if (const char* gl = getenv("PREVIEW_GENDERS")) ch.d.gender = gl[(size_t)i % strlen(gl)] == 'f' ? FEMALE : MALE;
+        if (const char* ag = getenv("PREVIEW_AGES")) {
+            std::vector<float> al;
+            for (const char* q = ag; *q;) {
+                al.push_back((float)atof(q));
+                while (*q && *q != ',') q++;
+                if (*q == ',') q++;
+            }
+            if (!al.empty()) ch.d.age = al[(size_t)i % al.size()];
+        }
         buildSkeleton(ch.d, ch.sk);
         double t0 = TimeSeconds();
         if (getenv("PREVIEW_PARTS")) {
