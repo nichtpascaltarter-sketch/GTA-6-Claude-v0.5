@@ -145,23 +145,23 @@ void roadFurniture(float2 ruv, float roadW, float px, inout float3 albedo, inout
     }
 }
 
-// Asphalt surface grain: light aggregate tops (~6 mm) in the dark binder, only where a stone covers ~3 pixels or
-// more (with a little relief), plus smooth cluster and binder-richness tone at 2 and 7 cm that fades the same way.
-// Nothing is magnified from a texture and nothing shimmers far away. Returns an albedo factor; hgt receives the
-// micro height (m).
+// Asphalt surface grain: worn light aggregate tops (12 mm surface course) in the dark binder, resolved while a stone
+// covers ~1.5 pixels or more (TAA resolves the rest), plus cluster and binder-richness tone at 3 and 9 cm that fades
+// the same way. Faded octaves keep their average, so the tone does not change with distance. Nothing is magnified
+// from a texture and nothing shimmers far away. Returns an albedo factor; hgt receives the micro height (m).
 float asphaltGrain(float2 worldXY, float fp, out float hgt) {
     float2 p = worldXY - floor(worldXY / 48.0) * 48.0;
     float ifp = 1.0 / max(fp, 1e-5);
     float g = 0.0;
     hgt = 0.0;
-    float vis = saturate((0.006 * ifp - 2.5) * 0.5);
+    float vis = saturate((0.012 * ifp - 1.5) * 0.6);
     if (vis > 0.0) {
-        float stone = smoothstep(0.55, 0.7, valueNoise(p / 0.006)) * (0.7 + 0.3 * valueNoise(p / 0.0035 + 7.1));
-        g += (stone - 0.25) * 0.28 * vis;
-        hgt = stone * 0.0008 * vis;
+        float stone = smoothstep(0.56, 0.7, valueNoise(p / 0.012)) * (0.65 + 0.35 * valueNoise(p / 0.005 + 7.1));
+        g += (stone - 0.12) * 0.34 * vis;
+        hgt = stone * 0.0012 * vis;
     }
-    g += (valueNoise(p / 0.02 + 3.3) - 0.5) * 0.08 * saturate((0.02 * ifp - 2.0) * 0.5);
-    g += (valueNoise(p / 0.07 + 9.1) - 0.5) * 0.07 * saturate((0.07 * ifp - 2.0) * 0.5);
+    g += (valueNoise(p / 0.03 + 3.3) - 0.5) * 0.12 * saturate((0.03 * ifp - 1.5) * 0.5);
+    g += (valueNoise(p / 0.09 + 9.1) - 0.5) * 0.1 * saturate((0.09 * ifp - 1.5) * 0.5);
     return 1.0 + g;
 }
 

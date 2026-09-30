@@ -186,6 +186,7 @@ struct Patch {
     float fA = 0.003f, fD = 0.3f, fS = 0.f, fR = 0.3f;
     float pEnv = 0.f, pDecay = 0.03f;
     float vibRate = 5.2f, vibDepth = 0.f, vibDelay = 0.3f;
+    float cutLfoRate = 0.f, cutLfoDepth = 0.f;  // slow filter drift (octaves), free-running per voice
     float drive = 0.f;
     // FM
     float fmRatio = 1.f, fmIndex = 2.f, fmIdxDecay = 0.4f, fmIdxSus = 0.2f;
@@ -336,14 +337,14 @@ struct Voice {
     float uniMul[5] = {1, 1, 1, 1, 1}, uniPan[5] = {0, 0, 0, 0, 0};
     Svf fL, fR;
     float pEnvLvl = 0.f, pEnvK = 0.f;
-    float vibPh = 0.f, vibT = 0.f, pwmPh = 0.f, curPw = 0.5f;
+    float vibPh = 0.f, vibT = 0.f, pwmPh = 0.f, curPw = 0.5f, lfoPh = 0.f;
     float dt = 0.01f;
-    // fm
-    float pc = 0, pc2 = 0, pm = 0, pm2 = 0, idxEnv = 1, idxK = 1, idx2Env = 1, idx2K = 1, fbPrev = 0, tremPh = 0;
+    // fm (dcX / dcY: DC blocker - a detuned second carrier drifting against the modulator has a DC term)
+    float pc = 0, pc2 = 0, pm = 0, pm2 = 0, idxEnv = 1, idxK = 1, idx2Env = 1, idx2K = 1, fbPrev = 0, tremPh = 0, dcX = 0, dcY = 0;
     // pluck
     float* ks = nullptr;
     int ksW = 0;
-    float ksDelay = 100.f, ksLoss = 0.99f, ksDamp = 0.3f, ksPrev = 0.f, ksRelLoss = 0.9f;
+    float ksDelay = 100.f, ksLoss = 0.99f, ksDamp = 0.3f, ksPrev = 0.f, ksRelLoss = 0.9f, ksCur = 100.f;
     // piano
     const PianoZone* zone = nullptr;
     double spos = 0.0;
@@ -404,6 +405,7 @@ static void voiceStart(Voice& v, const Patch& p, const NoteOnInfo& ni, float* ks
                 }
                 v.osc2.phase = v.nz.uni();
                 v.subOsc.phase = 0.f;
+                v.lfoPh = v.nz.uni();
                 v.fL.reset();
                 v.fR.reset();
             }
@@ -417,6 +419,7 @@ static void voiceStart(Voice& v, const Patch& p, const NoteOnInfo& ni, float* ks
             v.idx2Env = 1.f;
             v.idx2K = expf(-1.f / Max(p.fmIdx2Decay * kSR, 1.f));
             v.fbPrev = 0.f;
+            v.dcX = v.dcY = 0.f;
             break;
         }
         case Eng::Pluck: {
@@ -425,6 +428,7 @@ static void voiceStart(Voice& v, const Patch& p, const NoteOnInfo& ni, float* ks
             float L = kSR / f;
             v.ksDamp = 0.5f * (1.f - Saturate(p.kBright)) * (1.f - 0.3f * ni.vel) + 0.02f;
             v.ksDelay = Clamp(L - v.ksDamp - 1.f, 2.f, (float)kKsCap - 4.f);
+            v.ksCur = v.ksDelay;
             float t60 = p.kDecay * sqrtf(220.f / f) * (1.f - 0.85f * p.kMute);
             v.ksLoss = powf(10.f, -3.f / (Max(t60, 0.05f) * f));
             v.ksRelLoss = powf(10.f, -3.f / (0.12f * f));
@@ -526,6 +530,11 @@ static bool voiceRender(Voice& v, const Patch& p, float* L, float* R, int n) {
                     float fe = v.filt.level;
                     float kt = semis(((float)v.note - 60.f) * p.keyTrk);
                     float co = p.cutoff * kt * exp2f(p.fEnv * fe + p.velCut * (v.vel - 0.7f));
+                    if (p.cutLfoDepth > 0.f) {
+                        v.lfoPh += p.cutLfoRate * 16.f * kInvSR;
+                        if (v.lfoPh >= 1.f) v.lfoPh -= 1.f;
+                        co *= exp2f(p.cutLfoDepth * sinWrapped(v.lfoPh));
+                    }
                     float g = svfG(Clamp(co, 30.f, 20000.f));
                     v.fL.setG(g, p.reso);
                     if (stereo) v.fR.setG(g, p.reso);
@@ -628,6 +637,10 @@ static bool voiceRender(Voice& v, const Patch& p, float* L, float* R, int n) {
                     y *= 1.f - p.tremDepth * (0.5f + 0.5f * sinWrapped(v.tremPh));
                 }
                 float o = y * a * gain;
+                float hp = o - v.dcX + 0.998f * v.dcY;  // ~15 Hz DC blocker
+                v.dcX = o;
+                v.dcY = hp;
+                o = hp;
                 L[i] += o * gl;
                 R[i] += o * gr;
             }
@@ -635,15 +648,17 @@ static bool voiceRender(Voice& v, const Patch& p, float* L, float* R, int n) {
         }
         case Eng::Pluck: {
             if (!v.ks) return false;
+            float d = p.vibDepth > 0.f ? v.ksCur : v.ksDelay;
             for (int i = 0; i < n; i++) {
                 float a = v.amp.process();
                 float loss = v.released ? v.ksRelLoss : v.ksLoss;
-                float d = v.ksDelay;
-                if (p.vibDepth > 0.f) {
-                    v.vibT += kInvSR;
-                    v.vibPh += p.vibRate * kInvSR;
+                if (p.vibDepth > 0.f && (v.ctl++ & 15) == 0) {
+                    // vibrato at a 3 kHz control rate; semis(x) - 1 ~ x ln2 / 12 for these small depths
+                    v.vibT += 16.f * kInvSR;
+                    v.vibPh += p.vibRate * 16.f * kInvSR;
                     if (v.vibPh >= 1.f) v.vibPh -= 1.f;
-                    d *= 1.f - (semis(p.vibDepth * SmoothStep(p.vibDelay, p.vibDelay + 0.3f, v.vibT) * sinWrapped(v.vibPh)) - 1.f);
+                    float st = p.vibDepth * SmoothStep(p.vibDelay, p.vibDelay + 0.3f, v.vibT) * sinWrapped(v.vibPh);
+                    d = v.ksCur = v.ksDelay * (1.f - st * 0.05776227f);
                 }
                 int di = (int)d;
                 float fr = d - (float)di;
@@ -916,6 +931,25 @@ static void gatedReverb(std::vector<float>& b, float rt, float wet, float gateSe
     b.resize((size_t)Min(n, gateN + 900));
 }
 
+// Inharmonic cymbal partials: cnt random modes between f0 and f1 with decays in [t0, t1], rendered for at most
+// 5 x t1 with a smooth fade over the last 40% (long crash partials would otherwise make multi-second buffers).
+static void cymbalModes(G& g, int cnt, float f0, float f1, float t0, float t1, float amp) {
+    int n = (int)(t1 * 5.f * kSR), fadeStart = (int)((float)n * 0.6f);
+    g.ensure(n);
+    for (int k = 0; k < cnt; k++) {
+        float f = f0 * powf(f1 / f0, g.nz.uni()), tau = g.nz.range(t0, t1), a = g.nz.range(0.3f, 1.f) * amp;
+        float rr = expf(-1.f / (tau * kSR)), w = kTwoPi * Min(f, 20000.f) * kInvSR;
+        float c = 2.f * rr * cosf(w), r2 = rr * rr, y2 = 0.f, y1 = rr * sinf(w) * a;
+        for (int i = 1; i < n; i++) {
+            float y = c * y1 - r2 * y2;
+            y2 = y1;
+            y1 = y;
+            float fw = i < fadeStart ? 1.f : 0.5f + 0.5f * cosf(kPi * (float)(i - fadeStart) / (float)(n - fadeStart));
+            g.b[(size_t)i] += y * fw;
+        }
+    }
+}
+
 static void renderPiece(int id, KitStyle st, float bpm, int var, std::vector<float>& out, u32 seed) {
     out.clear();
     G g(out, seed);
@@ -924,14 +958,48 @@ static void renderPiece(int id, KitStyle st, float bpm, int var, std::vector<flo
     switch (id) {
         case DK_KICK:
             switch (st) {
-                case KitStyle::Trap: g.sine(0, 1.4f, 120.f * r, 48.f, 0.05f, 1.f, 0.001f, 0.45f, 0.35f); g.click(0.5f, 6); break;
-                case KitStyle::House: g.sine(0, 0.6f, 190.f * r, 50.f, 0.028f, 1.f, 0.001f, 0.2f, 0.2f); g.click(0.6f, 5); g.noise(0, 0.02f, 0.3f, 0.0005f, 0.004f, 2, 3000.f, 0.7f); break;
-                case KitStyle::Retro80s: g.sine(0, 0.5f, 160.f * r, 52.f, 0.03f, 1.f, 0.001f, 0.16f, 0.25f); g.click(0.7f, 6); g.noise(0, 0.03f, 0.25f, 0.0005f, 0.006f, 3, 2500.f, 0.8f); break;
-                case KitStyle::Dembow: g.sine(0, 0.6f, 150.f * r, 50.f, 0.03f, 1.f, 0.001f, 0.2f, 0.3f); g.click(0.5f, 6); break;
-                case KitStyle::BoomBap: case KitStyle::LoFi: g.sine(0, 0.5f, 110.f * r, 55.f, 0.04f, 1.f, 0.002f, 0.15f, 0.4f); g.noise(0, 0.05f, 0.25f, 0.001f, 0.01f, 1, 1200.f, 0.7f); break;
-                case KitStyle::Jazz: g.sine(0, 0.4f, 95.f * r, 60.f, 0.04f, 0.8f, 0.003f, 0.12f); g.noise(0, 0.04f, 0.15f, 0.002f, 0.01f, 1, 700.f, 0.7f); break;
+                case KitStyle::Trap:  // tight punchy kick (the 808 carries the sub)
+                    g.sine(0, 0.5f, 165.f * r, 50.f, 0.022f, 1.f, 0.0008f, 0.14f, 0.45f);
+                    g.sine(0, 0.012f, 900.f * r, 220.f, 0.003f, 0.35f, 0.0002f, 0.004f);
+                    g.click(0.55f, 5);
+                    g.noise(0, 0.015f, 0.3f, 0.0003f, 0.003f, 2, 4000.f, 0.7f);
+                    break;
+                case KitStyle::House:  // 909-style: fast pitch blip into a round body
+                    g.sine(0, 0.6f, 190.f * r, 50.f, 0.028f, 1.f, 0.001f, 0.2f, 0.2f);
+                    g.sine(0, 0.01f, 1100.f * r, 280.f, 0.0025f, 0.4f, 0.0002f, 0.003f);
+                    g.click(0.6f, 5);
+                    g.noise(0, 0.02f, 0.3f, 0.0005f, 0.004f, 2, 3000.f, 0.7f);
+                    break;
+                case KitStyle::Retro80s:
+                    g.sine(0, 0.5f, 160.f * r, 52.f, 0.03f, 1.f, 0.001f, 0.16f, 0.25f);
+                    g.sine(0, 0.12f, 240.f * r, 150.f, 0.02f, 0.22f, 0.0005f, 0.03f);
+                    g.click(0.7f, 6);
+                    g.noise(0, 0.03f, 0.25f, 0.0005f, 0.006f, 3, 2500.f, 0.8f);
+                    break;
+                case KitStyle::Dembow:
+                    g.sine(0, 0.6f, 150.f * r, 50.f, 0.03f, 1.f, 0.001f, 0.2f, 0.3f);
+                    g.sine(0, 0.01f, 800.f * r, 250.f, 0.003f, 0.3f, 0.0002f, 0.003f);
+                    g.click(0.5f, 6);
+                    break;
+                case KitStyle::BoomBap: case KitStyle::LoFi:
+                    g.sine(0, 0.5f, 110.f * r, 55.f, 0.04f, 1.f, 0.002f, 0.15f, 0.4f);
+                    g.sine(0, 0.1f, 190.f * r, 130.f, 0.02f, 0.2f, 0.001f, 0.025f);
+                    g.noise(0, 0.05f, 0.25f, 0.001f, 0.01f, 1, 1200.f, 0.7f);
+                    break;
+                case KitStyle::Jazz:  // small bass drum, felt beater, open resonant head
+                    g.sine(0, 0.5f, 92.f * r, 62.f, 0.03f, 0.8f, 0.003f, 0.16f);
+                    g.sine(0, 0.25f, 150.f * r, 128.f, 0.03f, 0.18f, 0.002f, 0.07f);
+                    g.noise(0, 0.04f, 0.15f, 0.002f, 0.01f, 1, 700.f, 0.7f);
+                    g.noise(0, 0.01f, 0.08f, 0.0005f, 0.0025f, 2, 2500.f, 0.7f);
+                    break;
                 case KitStyle::Score: g.sine(0, 0.8f, 130.f * r, 42.f, 0.05f, 1.f, 0.001f, 0.3f, 0.4f); g.click(0.4f, 8); break;
-                default: g.sine(0, 0.5f, 125.f * r, 52.f, 0.035f, 1.f, 0.001f, 0.15f, 0.3f); g.click(0.6f, 6); g.noise(0, 0.03f, 0.3f, 0.0005f, 0.008f, 3, 3500.f, 0.7f); break;
+                default:  // acoustic rock / country kick: shell body, knock, beater click
+                    g.sine(0, 0.55f, 105.f * r, 54.f, 0.03f, 1.f, 0.001f, 0.17f, 0.3f);
+                    g.sine(0, 0.16f, 185.f * r, 125.f, 0.018f, 0.3f, 0.0006f, 0.035f);
+                    g.click(0.6f, 6);
+                    g.noise(0, 0.03f, 0.3f, 0.0005f, 0.008f, 3, 3500.f, 0.7f);
+                    g.noise(0, 0.008f, 0.35f, 0.0002f, 0.0018f, 2, 5000.f, 0.7f);
+                    break;
             }
             g.normalize(0.95f);
             break;
@@ -950,6 +1018,12 @@ static void renderPiece(int id, KitStyle st, float bpm, int var, std::vector<flo
             g.noise(0, 0.5f, 0.75f, 0.0008f, ntau, 2, 1600.f, 0.7f, -1.f, 0.1f, wireLp);
             g.noise(0, 0.3f, 0.35f, 0.0008f, ntau * 0.6f, 3, 4200.f, 0.9f);
             if (var == 1) g.noise(0, 0.1f, 0.15f, 0.001f, 0.02f, 3, 6000.f, 1.f);
+            if (!electronic) {  // shell modes of a wooden / metal snare and the stick attack
+                float fm[4] = {body * 1.59f * r, body * 2.14f * r, body * 2.3f * r, body * 2.65f * r};
+                float tm[4] = {0.06f, 0.04f, 0.035f, 0.025f}, am[4] = {0.4f, 0.28f, 0.2f, 0.15f};
+                g.modes(0, fm, tm, am, 4, 0.45f);
+                g.noise(0, 0.006f, 0.55f, 0.0002f, 0.0014f, 2, 4500.f, 0.7f);
+            }
             if (st == KitStyle::Retro80s) gatedReverb(out, 1.4f, 0.9f, 0.32f, seed);
             else if (st == KitStyle::Rock) gatedReverb(out, 0.9f, 0.35f, 0.45f, seed);
             g.normalize(0.95f);
@@ -963,11 +1037,22 @@ static void renderPiece(int id, KitStyle st, float bpm, int var, std::vector<flo
             break;
         }
         case DK_HAT_C:
-            g.metal(0, 0.2f, 320.f * r, 1.f, st == KitStyle::Trap ? 0.035f : 0.045f, 7000.f, st == KitStyle::LoFi || st == KitStyle::Jazz ? 0.3f : 0.8f);
+            if (st == KitStyle::Rock || st == KitStyle::Country || st == KitStyle::Jazz) {  // real hats: dense bright partials + "chick"
+                cymbalModes(g, 12, 4200.f, 12500.f, 0.018f, 0.05f, 0.3f);
+                g.noise(0, 0.12f, 0.55f, 0.0004f, 0.025f, 2, 7000.f, 0.7f);
+                g.metal(0, 0.1f, 330.f * r, 0.25f, 0.02f, 7500.f, 0.3f);
+            } else {
+                g.metal(0, 0.2f, 320.f * r, 1.f, st == KitStyle::Trap ? 0.035f : 0.045f, 7000.f, st == KitStyle::LoFi || st == KitStyle::Jazz ? 0.3f : 0.8f);
+            }
             g.normalize(0.8f);
             break;
         case DK_HAT_O:
-            g.metal(0, 0.8f, 320.f * r, 1.f, 0.28f, 6500.f, 0.7f);
+            if (st == KitStyle::Rock || st == KitStyle::Country || st == KitStyle::Jazz) {
+                cymbalModes(g, 14, 3800.f, 12000.f, 0.25f, 0.5f, 0.3f);
+                g.noise(0, 0.9f, 0.5f, 0.0005f, 0.3f, 2, 6500.f, 0.7f);
+            } else {
+                g.metal(0, 0.8f, 320.f * r, 1.f, 0.28f, 6500.f, 0.7f);
+            }
             g.normalize(0.8f);
             break;
         case DK_HAT_P:
@@ -1002,6 +1087,10 @@ static void renderPiece(int id, KitStyle st, float bpm, int var, std::vector<flo
         case DK_CRASH:
             g.noise(0, 3.f, 0.6f, 0.002f, 0.9f, 2, 4500.f, 0.7f);
             g.metal(0, 3.f, 380.f * r, 0.6f, 1.1f, 4000.f, 0.6f);
+            if (st == KitStyle::Rock || st == KitStyle::Country || st == KitStyle::Jazz) {
+                cymbalModes(g, 10, 2200.f, 9500.f, 0.45f, 1.0f, 0.14f);
+                g.noise(0, 0.02f, 0.5f, 0.0003f, 0.004f, 2, 3000.f, 0.7f);  // stick on the edge
+            }
             g.normalize(0.8f);
             break;
         case DK_TOM_L: case DK_TOM_M: case DK_TOM_H: {
@@ -1134,6 +1223,18 @@ static void renderPiece(int id, KitStyle st, float bpm, int var, std::vector<flo
         lp.setLP(st == KitStyle::LoFi ? 6500.f : 9000.f, 0.6f);
         for (float& v : out) v = lp.process(v);
     }
+    // 10 Hz DC blocker: pitched-down sine bodies start with an asymmetric first half-cycle (removing the offset can
+    // push the opposite peak up, so the piece is scaled back under full scale)
+    float x1 = 0.f, y1 = 0.f, pk = 0.f;
+    for (float& v : out) {
+        float y = v - x1 + 0.99869f * y1;
+        x1 = v;
+        y1 = y;
+        v = y;
+        pk = Max(pk, fabsf(y));
+    }
+    if (pk > 0.97f)
+        for (float& v : out) v *= 0.97f / pk;
 }
 }  // namespace dk
 
@@ -1179,6 +1280,9 @@ struct TrackDef {
     int layer = -1;
     float panSpread = 0.f;
     bool drums = false;
+    float room = 0.f;   // send to the drum room (short, early-reflection heavy ambience of acoustic kits)
+    float punch = 0.f;  // parallel ("New York") compression blended under the dry drums
+    float width = 0.f;  // side gain of this track (0 = as rendered, 0.5 = 50% wider, negative narrows)
 };
 
 struct Automation {
@@ -1198,11 +1302,14 @@ struct SongData {
     KitStyle kitStyle = KitStyle::Rock;
     bool kitUsed[DK_COUNT] = {};
     float revSize = 1.f, revDecay = 1.6f, revDamp = 0.4f, revPre = 0.015f;
+    float roomSize = 0.4f, roomDecay = 0.55f;
     float dlyL = 0.75f, dlyR = 1.f, dlyFb = 0.3f;
     float master = 1.f;
     float vinyl = 0.f, wow = 0.f;
     std::vector<Automation> autom;
     bool looping = false;
+    u32 keyShiftAt = 0;  // last-chorus key change (sample position, semitones), 0 = none
+    int keyShift = 0;
     void sortEvents() {
         std::stable_sort(events.begin(), events.end(), [](const NoteEv& a, const NoteEv& b) { return a.start < b.start; });
     }
@@ -1214,18 +1321,21 @@ struct TrackState {
     std::vector<u32> offAt;
     Biquad eq[2][5];
     int eqN = 0;
-    Biquad cab[2][3];
+    Biquad cab[2][5];
     Chorus chorus;
     bool hasChorus = false;
+    Compressor punch;
     float gainNow = 1.f;
     float bufL[kProdBlock], bufR[kProdBlock];
     u32 rnd = 1;
+    int quietBlocks = 0;  // consecutive blocks with an all-zero input (processing stops once filter tails have rung out)
 };
 
 struct DrumVoice {
     const float* d = nullptr;
     int len = 0;
     float pos = 0, rate = 1, gain = 0, gl = 0, gr = 0, fade = 1.f, fadeK = 1.f;
+    float lpA = 1.f, lpZ = 0.f;  // softer hits are darker (one-pole low-pass set from the velocity)
     int piece = -1;
     int track = 0;
     bool active = false;
@@ -1239,6 +1349,8 @@ struct SongPlayer {
     std::vector<TrackState> ts;
     DrumVoice dv[28];
     FdnReverb rev;
+    FdnReverb room;
+    bool useRoom = false;
     StereoDelay dly;
     Compressor bus;
     bool fxInit = false;
@@ -1256,11 +1368,12 @@ struct SongPlayer {
     DelayLine wowL, wowR;
     float wowPh = 0.f;
     bool started = false;
-    float sendL[kProdBlock], sendR[kProdBlock], dSendL[kProdBlock], dSendR[kProdBlock];
+    float sendL[kProdBlock], sendR[kProdBlock], dSendL[kProdBlock], dSendR[kProdBlock], rSendL[kProdBlock], rSendR[kProdBlock];
 
     void init() {
         if (fxInit) return;
         rev.init(1.f, 0xBEEFu);
+        room.init(0.4f, 0xD00Du);
         dly.init(96000);
         wowL.init(4096);
         wowR.init(4096);
@@ -1285,11 +1398,14 @@ struct SongPlayer {
             if (d.lpf > 0.f) t.eq[c][k++].setLP(d.lpf, 0.7f);
             t.eqN = k;
             if (d.cab) {
-                t.cab[c][0].setHP(95.f, 0.7f);
-                t.cab[c][1].setPeak(1700.f, 1.f, 5.f);
-                t.cab[c][2].setLP(4600.f, 0.8f);
+                t.cab[c][0].setLowShelf(140.f, 2.5f);
+                t.cab[c][1].setPeak(2300.f, 0.9f, 3.5f);
+                t.cab[c][2].setLP(5200.f, 0.75f);
+                t.cab[c][3].setPeak(480.f, 1.1f, -3.f);
+                t.cab[c][4].setHP(80.f, 0.7f);
             }
         }
+        if (d.punch > 0.f) t.punch.set(-30.f, 6.f, 1.5f, 90.f, 6.f, 0.f);
         t.hasChorus = d.chorus > 0.f;
         if (t.hasChorus) {
             t.chorus.init();
@@ -1321,6 +1437,16 @@ struct SongPlayer {
         rev.setDecay(sd.revDecay, sd.revDamp);
         rev.setPreDelay(sd.revPre);
         rev.erLevel = 0.35f;
+        useRoom = false;
+        for (const TrackDef& td : sd.tracks) useRoom = useRoom || td.room > 0.f;
+        if (useRoom) {
+            room.clear();
+            room.init(sd.roomSize, (sd.seed * 7u) | 1u);
+            room.setDecay(sd.roomDecay, 0.45f);
+            room.setPreDelay(0.003f);
+            room.erLevel = 1.1f;
+            room.lateLevel = 0.8f;
+        }
         float spb = 60.f / sd.bpm * kSR;
         dly.l.clear();
         dly.r.clear();
@@ -1377,6 +1503,14 @@ struct SongPlayer {
             slot->rate = 1.f + ((float)((t.rnd >> 11) & 1023) / 1023.f - 0.5f) * 0.02f;
             float vel = (float)e.vel / 127.f;
             slot->gain = vel * vel;
+            slot->lpA = 1.f;
+            slot->lpZ = 0.f;
+            if (piece != DK_KICK && piece != DK_KICK_SUB && piece != DK_RISER && piece != DK_IMPACT && piece != DK_REV_CYM && vel < 0.97f) {
+                bool acoustic = kit.style == KitStyle::Rock || kit.style == KitStyle::Jazz || kit.style == KitStyle::Country ||
+                                kit.style == KitStyle::BoomBap || kit.style == KitStyle::LoFi;
+                float fc = acoustic ? 700.f * exp2f(6.f * vel) : 5000.f * exp2f(3.f * vel);  // drum machines: accent only
+                if (fc < 17000.f) slot->lpA = onePoleCoef(fc);
+            }
             float pan = Clamp(panJ + drumPan(piece), -1.f, 1.f);
             panGains(pan, slot->gl, slot->gr);
             slot->gl *= 1.41f;
@@ -1461,6 +1595,7 @@ struct SongPlayer {
                 if (ip + 1 >= d.len) { d.active = false; break; }
                 float fr = d.pos - (float)ip;
                 float s = (d.d[ip] + (d.d[ip + 1] - d.d[ip]) * fr) * d.gain * d.fade;
+                if (d.lpA < 1.f) s = d.lpZ += d.lpA * (s - d.lpZ);
                 d.fade *= d.fadeK;
                 bl[i] += s * d.gl;
                 br[i] += s * d.gr;
@@ -1521,7 +1656,7 @@ struct SongPlayer {
             }
         }
         // ---- mix tracks
-        for (int i = 0; i < n; i++) sendL[i] = sendR[i] = dSendL[i] = dSendR[i] = 0.f;
+        for (int i = 0; i < n; i++) sendL[i] = sendR[i] = dSendL[i] = dSendR[i] = rSendL[i] = rSendR[i] = 0.f;
         float scStart = scEnv;
         for (size_t ti = 0; ti < ts.size(); ti++) {
             TrackState& t = ts[ti];
@@ -1530,21 +1665,39 @@ struct SongPlayer {
             float g0 = t.gainNow, g1 = targetG;
             t.gainNow = targetG;
             if (g0 < 1e-5f && g1 < 1e-5f) continue;
+            {
+                float mx = 0.f;
+                for (int i = 0; i < n; i++) mx = Max(mx, Max(fabsf(t.bufL[i]), fabsf(t.bufR[i])));
+                t.quietBlocks = mx > 0.f ? 0 : t.quietBlocks + 1;
+                if (t.quietBlocks > 12) continue;
+            }
             float gl, gr;
             panGains(td.pan, gl, gr);
             gl *= 1.41f * td.gain;
             gr *= 1.41f * td.gain;
             float sc = scStart;
+            const float punchMake = 5.6f;  // +15 dB make-up on the squashed copy
+            const float wide = 1.f + td.width;
             for (int i = 0; i < n; i++) {
                 float l = t.bufL[i], r = t.bufR[i];
+                if (td.punch > 0.f) {
+                    float pg = t.punch.computeGain(Max(fabsf(l), fabsf(r))) * punchMake * td.punch;
+                    l += l * pg;
+                    r += r * pg;
+                }
+                if (td.width != 0.f) {
+                    float m = 0.5f * (l + r), sd2 = 0.5f * (l - r) * wide;
+                    l = m + sd2;
+                    r = m - sd2;
+                }
                 if (td.drive > 0.f) {
                     float dg = 1.f + td.drive * 14.f, comp = 1.f / fastTanh(dg * 0.5f);
                     l = fastTanh(l * dg) * comp * 0.5f;
                     r = fastTanh(r * dg) * comp * 0.5f;
                 }
                 if (td.cab) {
-                    l = t.cab[0][2].process(t.cab[0][1].process(t.cab[0][0].process(l)));
-                    r = t.cab[1][2].process(t.cab[1][1].process(t.cab[1][0].process(r)));
+                    l = t.cab[0][4].process(t.cab[0][3].process(t.cab[0][2].process(t.cab[0][1].process(t.cab[0][0].process(l)))));
+                    r = t.cab[1][4].process(t.cab[1][3].process(t.cab[1][2].process(t.cab[1][1].process(t.cab[1][0].process(r)))));
                 }
                 for (int k = 0; k < t.eqN; k++) {
                     l = t.eq[0][k].process(l);
@@ -1565,6 +1718,8 @@ struct SongPlayer {
                 sendR[i] += r * td.rev;
                 dSendL[i] += l * td.dly;
                 dSendR[i] += r * td.dly;
+                rSendL[i] += l * td.room;
+                rSendR[i] += r * td.room;
             }
         }
         for (int i = 0; i < n; i++) scEnv *= scK;
@@ -1578,6 +1733,15 @@ struct SongPlayer {
             sendR[i] += orr * 0.3f;
         }
         float rl[kProdBlock], rr[kProdBlock];
+        if (useRoom) {
+            room.process(rSendL, rSendR, rl, rr, n);
+            for (int i = 0; i < n; i++) {
+                L[i] += rl[i];
+                R[i] += rr[i];
+                sendL[i] += (rl[i] + rr[i]) * 0.1f;
+                sendR[i] += (rl[i] + rr[i]) * 0.1f;
+            }
+        }
         rev.process(sendL, sendR, rl, rr, n);
         for (int i = 0; i < n; i++) {
             L[i] += rl[i];
@@ -1670,6 +1834,7 @@ struct SongPlan {
     float swing = 0.f;
     bool swing16 = false;
     int variant = 0;
+    int sub = 0;  // sub-style: synthwave outrun / darksynth / dreamwave, trap / drill, house / deep, rock / punk, lo-fi / jazzhop
     Mode mode = Mode::Song;
     std::vector<Section> sections;
     int totalBars = 0;
@@ -1703,28 +1868,30 @@ static void finalizeSections(SongPlan& p) {
     p.totalBars = b;
 }
 
-// Builds a form from a template and fits it to ~150..235 seconds by musically sensible edits:
-// shrinking long bridges/solos/intros first, then verses (never below 8 bars), then dropping a
-// middle verse(+pre); when too short, inserting an instrumental section or a verse+chorus pair.
+// Builds a form from a template and fits it to ~150..235 seconds by musically sensible edits. Too long: halve long
+// intros / outros / bridges / solos first, then verses (never below 8 bars) and pre-choruses, then choruses, and only
+// then drop a middle verse block (taking its chorus along when the cut would leave two choruses back to back) or a
+// middle solo / bridge. Too short: add an instrumental section before the last chorus, then a verse + chorus pair
+// after it.
 static void fitForm(SongPlan& p, std::vector<Section> form, Rng& r) {
     p.sections = form;
     finalizeSections(p);
     float minD = r.range(150.f, 170.f), maxD = r.range(205.f, 235.f);
     auto isMid = [&](size_t i) { return i > 0 && i + 1 < p.sections.size(); };
-    for (int guard = 0; guard < 24 && p.durationSec() > maxD; guard++) {
+    auto isHook = [](Part pt) { return pt == Part::Chorus || pt == Part::Drop; };
+    for (int guard = 0; guard < 32 && p.durationSec() > maxD; guard++) {
         bool done = false;
-        // 1) long bridge/solo/breakdown/intro/outro
         for (size_t i = 0; i < p.sections.size() && !done; i++) {
             Section& s = p.sections[i];
             bool soft = s.part == Part::Bridge || s.part == Part::Solo || s.part == Part::Breakdown || s.part == Part::Intro || s.part == Part::Outro;
             if (soft && s.bars > 8) { s.bars /= 2; done = true; }
         }
-        // 2) verses / pre-choruses longer than 8
         for (size_t i = p.sections.size(); i-- > 0 && !done;) {
             Section& s = p.sections[i];
             if ((s.part == Part::Verse && s.bars > 8) || (s.part == Part::Pre && s.bars > 4)) { s.bars /= 2; done = true; }
         }
-        // 3) drop a middle verse (with its pre-chorus) or a middle solo/bridge
+        for (size_t i = p.sections.size(); i-- > 0 && !done;)
+            if (isHook(p.sections[i].part) && p.sections[i].bars > 8) { p.sections[i].bars /= 2; done = true; }
         if (!done) {
             int firstVerse = -1;
             for (size_t i = 0; i < p.sections.size(); i++)
@@ -1732,47 +1899,69 @@ static void fitForm(SongPlan& p, std::vector<Section> form, Rng& r) {
             for (size_t i = p.sections.size(); i-- > 0 && !done;) {
                 if (!isMid(i)) continue;
                 Part pt = p.sections[i].part;
-                if ((pt == Part::Verse && (int)i != firstVerse) || pt == Part::Solo || pt == Part::Bridge) {
-                    size_t n = (pt == Part::Verse && i + 1 < p.sections.size() && p.sections[i + 1].part == Part::Pre) ? 2 : 1;
+                if (pt == Part::Verse && (int)i != firstVerse) {
+                    size_t n = (i + 1 < p.sections.size() && p.sections[i + 1].part == Part::Pre) ? 2 : 1;
+                    if (i > 0 && isHook(p.sections[i - 1].part) && i + n + 1 < p.sections.size() && isHook(p.sections[i + n].part)) n++;
                     p.sections.erase(p.sections.begin() + (long)i, p.sections.begin() + (long)(i + n));
                     done = true;
+                } else if (pt == Part::Solo || pt == Part::Bridge || pt == Part::Breakdown) {
+                    bool hookAround = i > 0 && isHook(p.sections[i - 1].part) && isHook(p.sections[i + 1].part);
+                    if (!hookAround) {
+                        p.sections.erase(p.sections.begin() + (long)i);
+                        done = true;
+                    }
                 }
             }
         }
-        // 4) shorten long choruses / drops
         for (size_t i = 0; i < p.sections.size() && !done; i++)
-            if (p.sections[i].bars > 8) { p.sections[i].bars /= 2; done = true; }
+            if (p.sections[i].bars > 4 && p.sections[i].part != Part::Verse && isMid(i)) { p.sections[i].bars /= 2; done = true; }
         if (!done) break;
         finalizeSections(p);
     }
     bool addedInstrumental = false;
     for (int guard = 0; guard < 10 && p.durationSec() < minD; guard++) {
-        int lastChorus = -1, verseIdx = -1;
+        int last = -1, verseIdx = -1;
         for (int i = (int)p.sections.size() - 1; i >= 0; i--)
-            if (p.sections[(size_t)i].part == Part::Chorus || p.sections[(size_t)i].part == Part::Drop) { lastChorus = i; break; }
+            if (isHook(p.sections[(size_t)i].part)) { last = i; break; }
         for (int i = 0; i < (int)p.sections.size(); i++)
             if (p.sections[(size_t)i].part == Part::Verse) { verseIdx = i; break; }
-        if (lastChorus < 0) lastChorus = (int)p.sections.size() - 1;
+        if (last < 0) {  // no chorus (jazz heads): the last section before the outro
+            last = (int)p.sections.size() - 1;
+            if (last > 0 && p.sections[(size_t)last].part == Part::Outro) last--;
+        }
+        Part instr = p.genre == Genre::Rock || p.genre == Genre::Jazz || p.genre == Genre::Country ? Part::Solo
+                     : p.genre == Genre::House                                                 ? Part::Breakdown
+                                                                                               : Part::Bridge;
         if (!addedInstrumental) {
             addedInstrumental = true;
-            Section& before = p.sections[(size_t)Max(0, lastChorus - 1)];
-            if ((before.part == Part::Bridge || before.part == Part::Solo) && before.bars < 8) {
+            int at = last;
+            if (at > 0 && p.sections[(size_t)at - 1].part == Part::Build) at--;  // the build keeps leading into the drop
+            Section& before = p.sections[(size_t)Max(0, at - 1)];
+            if ((before.part == Part::Bridge || before.part == Part::Solo || before.part == Part::Breakdown) && before.bars < 8) {
                 before.bars = 8;
-            } else if (before.part != Part::Bridge && before.part != Part::Solo) {
-                Section ins = p.sections[(size_t)lastChorus];
-                ins.part = p.genre == Genre::Rock || p.genre == Genre::Jazz || p.genre == Genre::Country ? Part::Solo : Part::Bridge;
+            } else if (before.part != Part::Bridge && before.part != Part::Solo && before.part != Part::Breakdown) {
+                Section ins = p.sections[(size_t)last];
+                ins.part = instr;
                 ins.bars = 8;
-                p.sections.insert(p.sections.begin() + lastChorus, ins);
+                p.sections.insert(p.sections.begin() + at, ins);
             }
-        } else if (verseIdx >= 0) {
-            Section v = p.sections[(size_t)verseIdx];
-            v.bars = Min(v.bars, 16);
-            Section c = p.sections[(size_t)lastChorus];
-            p.sections.insert(p.sections.begin() + lastChorus, c);
-            p.sections.insert(p.sections.begin() + lastChorus, v);
         } else {
-            Section c = p.sections[(size_t)lastChorus];
-            p.sections.insert(p.sections.begin() + lastChorus + 1, c);
+            Section hook = p.sections[(size_t)last];
+            hook.bars = Min(hook.bars, 16);
+            if (verseIdx >= 0 && isHook(hook.part)) {
+                Section v = p.sections[(size_t)verseIdx];
+                v.bars = Min(v.bars, 16);
+                p.sections.insert(p.sections.begin() + last + 1, hook);
+                p.sections.insert(p.sections.begin() + last + 1, v);
+            } else if (verseIdx >= 0) {  // song form without a chorus (jazz head): B A
+                Section a = p.sections[(size_t)verseIdx], b = a;
+                b.part = Part::Bridge;
+                b.prog = 1;
+                p.sections.insert(p.sections.begin() + last + 1, a);
+                p.sections.insert(p.sections.begin() + last + 1, b);
+            } else {
+                p.sections.insert(p.sections.begin() + last + 1, hook);
+            }
         }
         finalizeSections(p);
     }
@@ -1796,31 +1985,63 @@ SongPlan planSong(Genre g, u32 seed) {
         p.key.scale = r.chance(mixoChance) ? Scale::Mixolydian : Scale::Major;
     };
     typedef Section S;
+    typedef std::vector<Section> F;
+    auto pickForm = [&](std::initializer_list<F> forms) {
+        std::vector<F> v(forms);
+        fitForm(p, v[(size_t)r.irange(0, (int)v.size() - 1)], r);
+    };
     switch (g) {
         case Genre::Synthwave: {
-            p.bpm = (float)r.irange(88, 116);
             p.variant = r.irange(0, 2);
-            if (r.chance(0.8f)) minorKey(0.2f);
-            else majorKey(0.f);
-            fitForm(p, {S{Part::Intro, 8, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 1}, S{Part::Chorus, 16, 0, 0, 2}, S{Part::Verse, 16, 0, 0, 1},
-                        S{Part::Chorus, 16, 0, 0, 2}, S{Part::Bridge, 8, 0, 0, 3}, S{Part::Chorus, 16, 0, 0, 2}, S{Part::Outro, 8, 0, 0, 0}}, r);
+            float sr = r.f();
+            p.sub = sr < 0.55f ? 0 : (sr < 0.8f ? 1 : 2);
+            if (p.sub == 1) {  // darksynth: faster, harder, darker modes
+                p.bpm = (float)r.irange(110, 126);
+                minorKey(0.f);
+                if (r.chance(0.4f)) p.key.scale = r.chance(0.5f) ? Scale::Phrygian : Scale::HarmonicMinor;
+                if (p.variant == 2) p.variant = 0;
+            } else if (p.sub == 2) {  // dreamwave: slow, lush
+                p.bpm = (float)r.irange(80, 96);
+                if (r.chance(0.55f)) majorKey(0.f);
+                else minorKey(0.5f);
+            } else {
+                p.bpm = (float)r.irange(88, 116);
+                if (r.chance(0.8f)) minorKey(0.2f);
+                else majorKey(0.f);
+            }
+            pickForm({F{S{Part::Intro, 8, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 1}, S{Part::Chorus, 16, 0, 0, 2}, S{Part::Verse, 16, 0, 0, 1},
+                        S{Part::Chorus, 16, 0, 0, 2}, S{Part::Bridge, 8, 0, 0, 3}, S{Part::Chorus, 16, 0, 0, 2}, S{Part::Outro, 8, 0, 0, 0}},
+                      F{S{Part::Intro, 8, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 1}, S{Part::Pre, 8, 0, 0, 3}, S{Part::Chorus, 16, 0, 0, 2},
+                        S{Part::Verse, 16, 0, 0, 1}, S{Part::Pre, 8, 0, 0, 3}, S{Part::Chorus, 16, 0, 0, 2}, S{Part::Solo, 16, 0, 0, 2},
+                        S{Part::Chorus, 16, 0, 0, 2}, S{Part::Outro, 8, 0, 0, 0}},
+                      F{S{Part::Intro, 16, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 1}, S{Part::Chorus, 16, 0, 0, 2}, S{Part::Breakdown, 8, 0, 0, 3},
+                        S{Part::Verse, 8, 0, 0, 1}, S{Part::Pre, 4, 0, 0, 3}, S{Part::Chorus, 16, 0, 0, 2}, S{Part::Chorus, 16, 0, 0, 2},
+                        S{Part::Outro, 8, 0, 0, 0}}});
             break;
         }
         case Genre::HipHop: {
             p.variant = r.chance(0.6f) ? 0 : 1;  // 0 trap, 1 boom-bap
             if (p.variant == 0) {
-                p.bpm = (float)r.irange(132, 150);
+                p.sub = r.chance(0.35f) ? 1 : 0;  // 1: drill (sliding 808s, triplet hats, half-time snares)
+                p.bpm = p.sub ? (float)r.irange(138, 146) : (float)r.irange(132, 150);
                 minorKey(0.f);
-                if (r.chance(0.35f)) p.key.scale = Scale::HarmonicMinor;
-                fitForm(p, {S{Part::Intro, 4, 0, 0, 0}, S{Part::Chorus, 8, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 1}, S{Part::Chorus, 8, 0, 0, 0},
-                            S{Part::Verse, 16, 0, 0, 1}, S{Part::Bridge, 4, 0, 0, 0}, S{Part::Chorus, 8, 0, 0, 0}, S{Part::Outro, 4, 0, 0, 0}}, r);
+                if (r.chance(p.sub ? 0.6f : 0.35f)) p.key.scale = Scale::HarmonicMinor;
+                pickForm({F{S{Part::Intro, 4, 0, 0, 0}, S{Part::Chorus, 8, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 1}, S{Part::Chorus, 8, 0, 0, 0},
+                            S{Part::Verse, 16, 0, 0, 1}, S{Part::Bridge, 4, 0, 0, 0}, S{Part::Chorus, 8, 0, 0, 0}, S{Part::Outro, 4, 0, 0, 0}},
+                          F{S{Part::Intro, 8, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 1}, S{Part::Chorus, 8, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 1},
+                            S{Part::Chorus, 8, 0, 0, 0}, S{Part::Bridge, 4, 0, 0, 1}, S{Part::Chorus, 8, 0, 0, 0}, S{Part::Outro, 4, 0, 0, 0}},
+                          F{S{Part::Intro, 4, 0, 0, 0}, S{Part::Chorus, 8, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 1}, S{Part::Chorus, 8, 0, 0, 0},
+                            S{Part::Verse, 16, 0, 0, 1}, S{Part::Chorus, 8, 0, 0, 0}, S{Part::Outro, 8, 0, 0, 0}}});
             } else {
                 p.bpm = (float)r.irange(84, 96);
                 p.swing = r.range(0.35f, 0.6f);
                 p.swing16 = true;
                 minorKey(0.4f);
-                fitForm(p, {S{Part::Intro, 4, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 0}, S{Part::Chorus, 8, 0, 0, 1}, S{Part::Verse, 16, 0, 0, 0},
-                            S{Part::Chorus, 8, 0, 0, 1}, S{Part::Verse, 8, 0, 0, 0}, S{Part::Chorus, 8, 0, 0, 1}, S{Part::Outro, 4, 0, 0, 0}}, r);
+                pickForm({F{S{Part::Intro, 4, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 0}, S{Part::Chorus, 8, 0, 0, 1}, S{Part::Verse, 16, 0, 0, 0},
+                            S{Part::Chorus, 8, 0, 0, 1}, S{Part::Verse, 8, 0, 0, 0}, S{Part::Chorus, 8, 0, 0, 1}, S{Part::Outro, 4, 0, 0, 0}},
+                          F{S{Part::Intro, 8, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 0}, S{Part::Chorus, 8, 0, 0, 1}, S{Part::Verse, 16, 0, 0, 0},
+                            S{Part::Chorus, 8, 0, 0, 1}, S{Part::Bridge, 8, 0, 0, 1}, S{Part::Verse, 8, 0, 0, 0}, S{Part::Chorus, 8, 0, 0, 1},
+                            S{Part::Outro, 4, 0, 0, 0}}});
             }
             break;
         }
@@ -1829,29 +2050,47 @@ SongPlan planSong(Genre g, u32 seed) {
             p.variant = r.irange(0, 1);
             if (r.chance(0.75f)) minorKey(0.1f);
             else majorKey(0.f);
-            fitForm(p, {S{Part::Intro, 8, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 0}, S{Part::Pre, 8, 0, 0, 1}, S{Part::Chorus, 16, 0, 0, 2},
+            pickForm({F{S{Part::Intro, 8, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 0}, S{Part::Pre, 8, 0, 0, 1}, S{Part::Chorus, 16, 0, 0, 2},
                         S{Part::Verse, 16, 0, 0, 0}, S{Part::Pre, 8, 0, 0, 1}, S{Part::Chorus, 16, 0, 0, 2}, S{Part::Bridge, 8, 0, 0, 1},
-                        S{Part::Chorus, 16, 0, 0, 2}, S{Part::Outro, 4, 0, 0, 0}}, r);
+                        S{Part::Chorus, 16, 0, 0, 2}, S{Part::Outro, 4, 0, 0, 0}},
+                      F{S{Part::Intro, 4, 0, 0, 0}, S{Part::Chorus, 8, 0, 0, 2}, S{Part::Verse, 16, 0, 0, 0}, S{Part::Pre, 4, 0, 0, 1},
+                        S{Part::Chorus, 16, 0, 0, 2}, S{Part::Verse, 16, 0, 0, 0}, S{Part::Pre, 4, 0, 0, 1}, S{Part::Chorus, 16, 0, 0, 2},
+                        S{Part::Outro, 4, 0, 0, 0}},
+                      F{S{Part::Intro, 8, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 0}, S{Part::Chorus, 16, 0, 0, 2}, S{Part::Verse, 16, 0, 0, 0},
+                        S{Part::Chorus, 16, 0, 0, 2}, S{Part::Bridge, 8, 0, 0, 1}, S{Part::Chorus, 16, 0, 0, 2}, S{Part::Outro, 4, 0, 0, 0}}});
             break;
         }
         case Genre::House: {
-            p.bpm = (float)r.irange(120, 127);
             p.variant = r.irange(0, 1);  // 0 piano house, 1 big-room supersaw
-            if (r.chance(0.7f)) minorKey(0.2f);
+            p.sub = r.chance(0.3f) ? 1 : 0;  // 1: deep house (organ / EP chords, sub bass, softer drops)
+            if (p.sub) p.variant = 0;
+            p.bpm = p.sub ? (float)r.irange(118, 122) : (float)r.irange(120, 127);
+            if (r.chance(0.7f)) minorKey(p.sub ? 0.5f : 0.2f);
             else majorKey(0.f);
-            fitForm(p, {S{Part::Intro, 16, 0, 0, 0}, S{Part::Build, 8, 0, 0, 0}, S{Part::Drop, 16, 0, 0, 1}, S{Part::Breakdown, 16, 0, 0, 2},
-                        S{Part::Build, 8, 0, 0, 2}, S{Part::Drop, 16, 0, 0, 1}, S{Part::Outro, 16, 0, 0, 0}}, r);
+            pickForm({F{S{Part::Intro, 16, 0, 0, 0}, S{Part::Build, 8, 0, 0, 0}, S{Part::Drop, 16, 0, 0, 1}, S{Part::Breakdown, 16, 0, 0, 2},
+                        S{Part::Build, 8, 0, 0, 2}, S{Part::Drop, 16, 0, 0, 1}, S{Part::Outro, 16, 0, 0, 0}},
+                      F{S{Part::Intro, 8, 0, 0, 0}, S{Part::Drop, 16, 0, 0, 1}, S{Part::Breakdown, 16, 0, 0, 2}, S{Part::Build, 8, 0, 0, 2},
+                        S{Part::Drop, 16, 0, 0, 1}, S{Part::Outro, 8, 0, 0, 0}},
+                      F{S{Part::Intro, 16, 0, 0, 0}, S{Part::Build, 8, 0, 0, 0}, S{Part::Drop, 16, 0, 0, 1}, S{Part::Breakdown, 8, 0, 0, 2},
+                        S{Part::Build, 4, 0, 0, 2}, S{Part::Drop, 16, 0, 0, 1}, S{Part::Drop, 8, 0, 0, 0}, S{Part::Outro, 16, 0, 0, 0}}});
             break;
         }
         case Genre::Rock: {
-            p.bpm = (float)r.irange(108, 150);
             p.variant = r.irange(0, 1);
+            p.sub = r.chance(0.3f) ? 1 : 0;  // 1: punk (fast straight eighths)
+            p.bpm = p.sub ? (float)r.irange(160, 184) : (float)r.irange(108, 150);
             static const int kRockTonics[] = {4, 9, 2, 7, 0};
             p.key.tonic = r.pick(kRockTonics);
-            p.key.scale = r.chance(0.45f) ? Scale::Minor : (r.chance(0.3f) ? Scale::Mixolydian : Scale::Major);
-            fitForm(p, {S{Part::Intro, 8, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 1}, S{Part::Pre, 8, 0, 0, 2}, S{Part::Chorus, 16, 0, 0, 0},
+            p.key.scale = r.chance(p.sub ? 0.25f : 0.45f) ? Scale::Minor : (r.chance(0.3f) ? Scale::Mixolydian : Scale::Major);
+            pickForm({F{S{Part::Intro, 8, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 1}, S{Part::Pre, 8, 0, 0, 2}, S{Part::Chorus, 16, 0, 0, 0},
                         S{Part::Verse, 16, 0, 0, 1}, S{Part::Chorus, 16, 0, 0, 0}, S{Part::Solo, 16, 0, 0, 1}, S{Part::Chorus, 16, 0, 0, 0},
-                        S{Part::Outro, 4, 0, 0, 0}}, r);
+                        S{Part::Outro, 4, 0, 0, 0}},
+                      F{S{Part::Intro, 4, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 1}, S{Part::Chorus, 16, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 1},
+                        S{Part::Chorus, 16, 0, 0, 0}, S{Part::Bridge, 8, 0, 0, 2}, S{Part::Solo, 8, 0, 0, 1}, S{Part::Chorus, 16, 0, 0, 0},
+                        S{Part::Outro, 4, 0, 0, 0}},
+                      F{S{Part::Intro, 8, 0, 0, 0}, S{Part::Verse, 8, 0, 0, 1}, S{Part::Pre, 4, 0, 0, 2}, S{Part::Chorus, 8, 0, 0, 0},
+                        S{Part::Verse, 8, 0, 0, 1}, S{Part::Pre, 4, 0, 0, 2}, S{Part::Chorus, 8, 0, 0, 0}, S{Part::Bridge, 8, 0, 0, 2},
+                        S{Part::Chorus, 16, 0, 0, 0}, S{Part::Outro, 4, 0, 0, 0}}});
             break;
         }
         case Genre::Jazz: {
@@ -1865,9 +2104,14 @@ SongPlan planSong(Genre g, u32 seed) {
             } else {
                 p.bpm = (float)r.irange(118, 138);
             }
-            fitForm(p, {S{Part::Intro, 4, 0, 0, 1}, S{Part::Verse, 8, 0, 0, 0}, S{Part::Verse, 8, 0, 0, 0}, S{Part::Bridge, 8, 0, 0, 1},
+            pickForm({F{S{Part::Intro, 4, 0, 0, 1}, S{Part::Verse, 8, 0, 0, 0}, S{Part::Verse, 8, 0, 0, 0}, S{Part::Bridge, 8, 0, 0, 1},
                         S{Part::Verse, 8, 0, 0, 0}, S{Part::Solo, 16, 0, 0, 0}, S{Part::Solo, 16, 0, 0, 1}, S{Part::Verse, 8, 0, 0, 0},
-                        S{Part::Verse, 8, 0, 0, 0}, S{Part::Outro, 4, 0, 0, 2}}, r);
+                        S{Part::Verse, 8, 0, 0, 0}, S{Part::Outro, 4, 0, 0, 2}},
+                      F{S{Part::Intro, 4, 0, 0, 1}, S{Part::Verse, 8, 0, 0, 0}, S{Part::Verse, 8, 0, 0, 0}, S{Part::Bridge, 8, 0, 0, 1},
+                        S{Part::Verse, 8, 0, 0, 0}, S{Part::Solo, 16, 0, 0, 0}, S{Part::Bridge, 8, 0, 0, 1}, S{Part::Verse, 8, 0, 0, 0},
+                        S{Part::Outro, 4, 0, 0, 2}},
+                      F{S{Part::Intro, 8, 0, 0, 1}, S{Part::Verse, 8, 0, 0, 0}, S{Part::Bridge, 8, 0, 0, 1}, S{Part::Verse, 8, 0, 0, 0},
+                        S{Part::Solo, 16, 0, 0, 0}, S{Part::Solo, 8, 0, 0, 1}, S{Part::Verse, 8, 0, 0, 0}, S{Part::Outro, 4, 0, 0, 2}}});
             break;
         }
         case Genre::Country: {
@@ -1877,18 +2121,28 @@ SongPlan planSong(Genre g, u32 seed) {
             static const int kCountryTonics[] = {7, 2, 9, 0, 4};
             p.key.tonic = r.pick(kCountryTonics);
             p.key.scale = Scale::Major;
-            fitForm(p, {S{Part::Intro, 4, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 0}, S{Part::Chorus, 16, 0, 0, 1}, S{Part::Verse, 16, 0, 0, 0},
-                        S{Part::Chorus, 16, 0, 0, 1}, S{Part::Solo, 8, 0, 0, 0}, S{Part::Chorus, 16, 0, 0, 1}, S{Part::Outro, 4, 0, 0, 0}}, r);
+            pickForm({F{S{Part::Intro, 4, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 0}, S{Part::Chorus, 16, 0, 0, 1}, S{Part::Verse, 16, 0, 0, 0},
+                        S{Part::Chorus, 16, 0, 0, 1}, S{Part::Solo, 8, 0, 0, 0}, S{Part::Chorus, 16, 0, 0, 1}, S{Part::Outro, 4, 0, 0, 0}},
+                      F{S{Part::Intro, 4, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 0}, S{Part::Chorus, 16, 0, 0, 1}, S{Part::Verse, 16, 0, 0, 0},
+                        S{Part::Chorus, 16, 0, 0, 1}, S{Part::Bridge, 8, 0, 0, 0}, S{Part::Chorus, 16, 0, 0, 1}, S{Part::Outro, 4, 0, 0, 0}},
+                      F{S{Part::Intro, 8, 0, 0, 0}, S{Part::Verse, 8, 0, 0, 0}, S{Part::Chorus, 8, 0, 0, 1}, S{Part::Verse, 8, 0, 0, 0},
+                        S{Part::Chorus, 8, 0, 0, 1}, S{Part::Solo, 8, 0, 0, 0}, S{Part::Chorus, 8, 0, 0, 1}, S{Part::Chorus, 8, 0, 0, 1},
+                        S{Part::Outro, 4, 0, 0, 0}}});
             break;
         }
         case Genre::LoFi: {
             p.bpm = (float)r.irange(70, 88);
             p.swing = r.range(0.4f, 0.7f);
             p.swing16 = true;
+            p.sub = r.chance(0.4f) ? 1 : 0;  // 1: jazzhop (piano and upright bass)
             p.key.tonic = r.irange(0, 11);
             p.key.scale = r.chance(0.5f) ? Scale::Major : Scale::Dorian;
-            fitForm(p, {S{Part::Intro, 4, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 0}, S{Part::Chorus, 16, 0, 0, 1}, S{Part::Verse, 16, 0, 0, 0},
-                        S{Part::Chorus, 16, 0, 0, 1}, S{Part::Outro, 4, 0, 0, 0}}, r);
+            pickForm({F{S{Part::Intro, 4, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 0}, S{Part::Chorus, 16, 0, 0, 1}, S{Part::Verse, 16, 0, 0, 0},
+                        S{Part::Chorus, 16, 0, 0, 1}, S{Part::Outro, 4, 0, 0, 0}},
+                      F{S{Part::Intro, 8, 0, 0, 0}, S{Part::Verse, 16, 0, 0, 0}, S{Part::Chorus, 16, 0, 0, 1}, S{Part::Bridge, 8, 0, 0, 0},
+                        S{Part::Chorus, 16, 0, 0, 1}, S{Part::Outro, 8, 0, 0, 0}},
+                      F{S{Part::Intro, 4, 0, 0, 0}, S{Part::Verse, 8, 0, 0, 0}, S{Part::Chorus, 16, 0, 0, 1}, S{Part::Verse, 8, 0, 0, 0},
+                        S{Part::Chorus, 16, 0, 0, 1}, S{Part::Verse, 8, 0, 0, 0}, S{Part::Outro, 8, 0, 0, 0}}});
             break;
         }
         default: {
@@ -1939,6 +2193,7 @@ static Patch pSupersaw(float att, float rel, float cutoff) {
     p.w1 = Wave::Saw;
     p.unison = 5; p.uniDet = 0.13f; p.uniSpread = 0.9f;
     p.cutoff = cutoff; p.reso = 0.6f; p.keyTrk = 0.3f; p.fEnv = 0.6f; p.fA = att * 0.5f; p.fD = 0.8f; p.fS = 0.6f;
+    p.cutLfoRate = 0.13f; p.cutLfoDepth = att > 0.1f ? 0.35f : 0.f;  // slow pads breathe
     p.aA = att; p.aD = 0.5f; p.aS = 0.85f; p.aR = rel;
     p.poly = 6;
     p.gain = 0.44f;
@@ -2075,6 +2330,7 @@ static Patch pStrings() {
     p.w1 = Wave::Saw;
     p.unison = 3; p.uniDet = 0.08f; p.uniSpread = 0.7f;
     p.cutoff = 2800.f; p.reso = 0.6f; p.keyTrk = 0.4f;
+    p.cutLfoRate = 0.2f; p.cutLfoDepth = 0.2f;
     p.aA = 0.3f; p.aD = 0.5f; p.aS = 0.9f; p.aR = 0.6f;
     p.vibDepth = 0.07f; p.vibDelay = 0.3f; p.vibRate = 5.f;
     p.poly = 8;
@@ -2153,6 +2409,8 @@ struct Comp {
     Rng rng;
     float spb;
     std::vector<Chord> beatChord;
+    // track roles for the shared arrangement pass (-1 = none)
+    int tDrum = -1, tBass = -1, tLead = -1, tPerc = -1;
     Comp(SongData& s, const SongPlan& p) : sd(s), pl(p), rng(p.seed ^ 0xC0FFEEu, 99) { spb = 60.f / p.bpm * kSR; }
     int track(const TrackDef& t) {
         sd.tracks.push_back(t);
@@ -2631,19 +2889,37 @@ static void composeSynthwave(Comp& c) {
     std::vector<Prog> pp = popProgs(r, pl.key, 4);
     c.buildChords(pp);
     if (pl.mode != Mode::Bed) forceTonicEnding(c, pl.totalBars - 1);
+    const bool dark = pl.sub == 1, dream = pl.sub == 2;
     sd.kitStyle = KitStyle::Retro80s;
-    sd.revSize = 1.4f; sd.revDecay = 2.4f; sd.revDamp = 0.35f;
-    sd.dlyL = 0.75f; sd.dlyR = 1.f; sd.dlyFb = 0.38f;
-    int tD = c.track(tdDrums(0.9f, 0.1f));
+    sd.revSize = 1.4f; sd.revDecay = dark ? 1.8f : (dream ? 3.2f : 2.4f); sd.revDamp = dark ? 0.45f : 0.35f;
+    sd.dlyL = 0.75f; sd.dlyR = 1.f; sd.dlyFb = dream ? 0.45f : 0.38f;
+    TrackDef drm = tdDrums(0.9f, dream ? 0.16f : 0.1f); drm.punch = dark ? 0.2f : 0.12f;
+    int tD = c.track(drm);
     TrackDef bass; bass.patch = pSawBass(); bass.gain = 0.8f; bass.hpf = 30.f; bass.rev = 0.02f;
+    if (dark) { bass.drive = 0.35f; bass.patch.cutoff = 420.f; bass.patch.fEnv = 3.2f; bass.gain = 0.7f; }
     int tB = c.track(bass);
-    TrackDef pad; pad.patch = pSupersaw(0.45f, 1.0f, 1900.f); pad.gain = 0.17f; pad.chorus = 0.45f; pad.rev = 0.35f; pad.hpf = 170.f;
+    TrackDef pad; pad.patch = pSupersaw(dream ? 0.8f : 0.45f, dream ? 1.6f : 1.0f, dream ? 2400.f : 1900.f); pad.gain = dream ? 0.22f : 0.17f;
+    pad.chorus = 0.45f; pad.rev = dream ? 0.5f : 0.35f; pad.hpf = 170.f; pad.width = dream ? 0.6f : 0.4f;
+    pad.sidechain = dream ? 0.15f : 0.25f;
     int tP = c.track(pad);
     TrackDef arp; arp.patch = pPluck(Wave::Pulse, 650.f, 0.2f); arp.gain = 0.4f; arp.pan = 0.2f; arp.dly = 0.3f; arp.rev = 0.2f; arp.hpf = 220.f;
     int tA = c.track(arp);
     TrackDef lead; lead.patch = pl.variant == 2 ? pVox() : (pl.variant == 1 ? pSquareLead() : pSawLead());
-    lead.gain = pl.variant == 2 ? 0.9f : 0.84f; lead.dly = 0.25f; lead.rev = 0.3f; lead.hpf = 160.f;
+    if (dream && pl.variant != 2) lead.patch = pSoftLead(Wave::Triangle);
+    lead.gain = pl.variant == 2 ? 0.9f : (dream ? 1.0f : 0.84f); lead.dly = dream ? 0.35f : 0.25f; lead.rev = 0.3f; lead.hpf = 160.f;
+    if (dark) lead.drive = 0.25f;
     int tL = c.track(lead);
+    c.tDrum = tD; c.tBass = tB; c.tLead = tL;
+    // the 80s sax (or a screaming lead for darksynth) for forms with a solo section
+    int tSolo = -1;
+    for (const Section& s : pl.sections)
+        if (s.part == Part::Solo && tSolo < 0) {
+            TrackDef sx;
+            if (dark) { sx.patch = pSawLead(); sx.drive = 0.5f; sx.gain = 0.7f; }
+            else { sx.patch = pSax(); sx.gain = 0.85f; }
+            sx.rev = 0.35f; sx.dly = 0.2f; sx.pan = -0.1f; sx.hpf = 140.f;
+            tSolo = c.track(sx);
+        }
     TrackDef bell; bell.patch = pFmBell(); bell.gain = 0.9f; bell.pan = -0.25f; bell.rev = 0.4f; bell.dly = 0.3f;
     int tBell = c.track(bell);
     Motif mV = makeMotif(r, MelStyle::Pop, 8.f), mC = makeMotif(r, MelStyle::Pop, 8.f);
@@ -2662,7 +2938,7 @@ static void composeSynthwave(Comp& c) {
                 c.hit(tD, b, 1.f, DK_SNARE, 112);
                 if (!last) c.hit(tD, b, 3.f, DK_SNARE, 116);
             }
-            float hr = energy > 0.9f ? 0.25f : 0.5f;
+            float hr = (energy > 0.9f && !dream) || (dark && energy > 0.6f) ? 0.25f : 0.5f;
             for (float t = 0.f; t < (last ? 2.f : 4.f) - 0.01f; t += hr)
                 c.hit(tD, b, t, DK_HAT_C, (fmodf(t, 1.f) < 0.01f ? 82 : 62) + r.irange(-6, 6));
             if (energy > 0.7f && !last && (b & 1)) c.hit(tD, b, 3.5f, DK_HAT_O, 70);
@@ -2671,7 +2947,7 @@ static void composeSynthwave(Comp& c) {
         }
     };
     auto bassline = [&](int bar, int bars, bool sixteen, int vel) {
-        float step = sixteen ? 0.25f : 0.5f;
+        float step = (sixteen || dark) ? 0.25f : 0.5f;
         for (int b = bar; b < bar + bars; b++)
             for (float t = 0.f; t < 3.999f; t += step) {
                 const Chord& ch = c.chordAt(b, t);
@@ -2734,6 +3010,22 @@ static void composeSynthwave(Comp& c) {
                 drums(b0 + nb / 2, nb - nb / 2, 0.5f, true, false, true);
                 improvise(c, tL, b0, nb, 62, 84, MelStyle::Sparse, 86);
                 break;
+            case Part::Pre:  // build: rising arps, straight bass, snare roll into the chorus
+                padChords(c, tP, b0, nb, 55, 76, 4, 78);
+                arpeggiate(c, tA, b0, nb, 62, 19, 0.25f, (arpPat + 2) % 3, 62, 0.5f);
+                drums(b0, nb, 0.75f, false, true, false);
+                if (nb >= 2) snareRoll(c, tD, b0 + nb - 1, 1, DK_SNARE, 60, 112);
+                bassline(b0, nb, false, 96);
+                mw.velBase = 96.f;
+                mw.section(mV, b0, nb, vDeg + 2);
+                break;
+            case Part::Solo:
+                padChords(c, tP, b0, nb, 55, 79, 5, 84);
+                arpeggiate(c, tA, b0, nb, 64, 19, 0.25f, arpPat, 58, 0.5f);
+                drums(b0, nb, 1.f, true, true, false);
+                bassline(b0, nb, true, 100);
+                improvise(c, tSolo >= 0 ? tSolo : tL, b0, nb, 62, 86, MelStyle::Busy, 102);
+                break;
             default:  // outro
                 padChords(c, tP, b0, nb, 52, 76, 4, 70);
                 arpeggiate(c, tA, b0, nb - 1, 60, 19, 0.5f, arpPat, 58, 0.6f);
@@ -2769,7 +3061,9 @@ static void composeHipHop(Comp& c) {
     sd.revSize = trap ? 1.1f : 0.8f; sd.revDecay = trap ? 1.6f : 1.0f; sd.revDamp = 0.5f;
     sd.dlyL = 0.75f; sd.dlyR = 0.5f; sd.dlyFb = 0.3f;
     if (!trap) sd.vinyl = 0.6f;
-    int tD = c.track(tdDrums(0.95f, 0.06f));
+    TrackDef drm = tdDrums(0.95f, 0.06f);
+    if (!trap) { drm.punch = 0.15f; drm.room = 0.12f; sd.roomSize = 0.35f; sd.roomDecay = 0.45f; }
+    int tD = c.track(drm);
     int tB;
     if (trap) {
         TrackDef b; b.patch = p808(); b.gain = 2.1f; b.rev = 0.f; b.hpf = 25.f;
@@ -2781,14 +3075,16 @@ static void composeHipHop(Comp& c) {
     TrackDef mel;
     if (trap) { mel.patch = r.chance(0.6f) ? pFmBell() : pPluck(Wave::Saw, 1200.f, 0.35f); mel.gain = 0.75f; mel.rev = 0.3f; mel.dly = 0.2f; mel.hpf = 250.f; }
     else { mel.patch = r.chance(0.5f) ? pPiano() : pFmEP(); mel.gain = 0.5f; mel.lpf = 5000.f; mel.rev = 0.2f; mel.hpf = 120.f; }
+    mel.width = 0.3f;
     int tM = c.track(mel);
-    TrackDef pad; pad.patch = r.chance(0.5f) ? pChoir() : pStrings(); pad.gain = 0.24f; pad.rev = 0.4f; pad.hpf = 200.f;
+    TrackDef pad; pad.patch = r.chance(0.5f) ? pChoir() : pStrings(); pad.gain = 0.24f; pad.rev = 0.4f; pad.hpf = 200.f; pad.width = 0.5f;
     int tP = c.track(pad);
     TrackDef lead; lead.patch = pSoftLead(trap ? Wave::Sine : Wave::Triangle); lead.gain = 1.0f; lead.rev = 0.3f; lead.dly = 0.25f;
     int tL = c.track(lead);
     TrackDef perc = tdDrums(1.6f, 0.1f);
-    perc.panSpread = 0.4f;
+    perc.panSpread = 0.6f;
     int tPc = c.track(perc);
+    c.tDrum = tD; c.tBass = tB; c.tLead = tL; c.tPerc = tPc;
     Motif loop = makeMotif(r, trap ? MelStyle::Busy : MelStyle::Pop, 8.f);
     Motif hook = makeMotif(r, MelStyle::Sparse, 8.f);
     MelodyWriter mw(c, tM, trap ? 70 : 60, trap ? 91 : 79);
@@ -2798,6 +3094,11 @@ static void composeHipHop(Comp& c) {
     // kick patterns (16 steps)
     static const u32 kKickPat[] = {0x0421u, 0x0489u, 0x4421u, 0x0911u, 0x2421u, 0x0425u};
     u32 kick = kKickPat[r.irange(0, (int)ARRAY_COUNT(kKickPat) - 1)];
+    const bool drill = trap && pl.sub == 1;
+    if (drill) {  // sparse, syncopated drill kicks
+        static const u32 kDrillKick[] = {0x0081u, 0x0209u, 0x2081u, 0x0841u, 0x1081u};
+        kick = kDrillKick[r.irange(0, (int)ARRAY_COUNT(kDrillKick) - 1)];
+    }
     auto trapDrums = [&](int bar, int bars, float energy, bool fill) {
         for (int b = bar; b < bar + bars; b++) {
             bool last = fill && b == bar + bars - 1;
@@ -2811,14 +3112,20 @@ static void composeHipHop(Comp& c) {
             for (int beat = 0; beat < 4; beat++) {
                 float rr = r.f();
                 int div = rr < 0.55f ? 2 : rr < 0.8f ? 4 : rr < 0.93f ? 6 : 8;
+                if (drill) div = rr < 0.45f ? 3 : rr < 0.7f ? 2 : rr < 0.88f ? 6 : 4;  // triplet-heavy drill hats
                 if (last && beat >= 2) div = 8;
                 if (energy < 0.5f && div > 4) div = 2;
                 for (int k = 0; k < div; k++) {
+                    if (drill && div >= 3 && k > 0 && r.chance(0.18f)) continue;
                     int v = 70 + (k == 0 ? 14 : 0) + (div >= 6 ? (k * 20) / div : 0) + r.irange(-6, 6);
                     c.hit(tD, b, (float)beat + (float)k / (float)div, DK_HAT_C, v, 1.f);
                 }
             }
-            if (energy > 0.8f && (b % 2 == 1)) c.hit(tD, b, 3.5f, DK_HAT_O, 72);
+            if (energy > 0.8f && (b % 2 == 1) && !drill) c.hit(tD, b, 3.5f, DK_HAT_O, 72);
+            if (drill && energy > 0.4f) {  // the late second snare of drill and ghost hits
+                if (b & 1) c.hit(tD, b, 3.5f, DK_SNARE, 100, 1.f);
+                if (r.chance(0.3f)) c.hit(tD, b, 1.75f, DK_SNARE, 56, 1.f);
+            }
             if (energy > 0.6f && r.chance(0.5f)) c.hit(tPc, b, (float)r.irange(0, 15) * 0.25f, r.chance(0.5f) ? DK_RIM : DK_SNAP, 70);
             if (last && energy > 0.5f) c.hit(tD, b, 3.75f, DK_SNARE, 90, 1.f);
         }
@@ -2847,8 +3154,8 @@ static void composeHipHop(Comp& c) {
                 const Chord& ch = c.chordAt(b, (float)st * 0.25f);
                 int root = c.bassPitch(ch, 29);
                 int p = root;
-                if (i > 0 && r.chance(0.2f)) p += 12;
-                bool slide = i > 0 && r.chance(0.25f);
+                if (i > 0 && r.chance(drill ? 0.35f : 0.2f)) p += 12;
+                bool slide = i > 0 && r.chance(drill ? 0.55f : 0.25f);
                 c.note(tB, b, (float)st * 0.25f, (float)(nextSt - st) * 0.25f * 0.95f, p, 110, slide ? NF_SLIDE : 0, 1.f);
             }
         }
@@ -2936,7 +3243,8 @@ static void composeReggaeton(Comp& c) {
     sd.kitStyle = KitStyle::Dembow;
     sd.revSize = 1.0f; sd.revDecay = 1.5f; sd.revDamp = 0.45f;
     sd.dlyL = 0.75f; sd.dlyR = 0.5f; sd.dlyFb = 0.3f;
-    int tD = c.track(tdDrums(0.9f, 0.08f));
+    TrackDef drm = tdDrums(0.9f, 0.08f); drm.punch = 0.1f;
+    int tD = c.track(drm);
     TrackDef bass; bass.patch = pSubBass(); bass.gain = 1.2f; bass.rev = 0.f; bass.hpf = 28.f;
     int tB = c.track(bass);
     TrackDef keys;
@@ -2946,13 +3254,14 @@ static void composeReggaeton(Comp& c) {
     int tK = c.track(keys);
     TrackDef pluck; pluck.patch = pPluck(Wave::Square, 1400.f, 0.25f); pluck.gain = 1.1f; pluck.dly = 0.25f; pluck.rev = 0.2f; pluck.pan = 0.2f;
     int tPl = c.track(pluck);
-    TrackDef pad; pad.patch = pSupersaw(0.3f, 0.6f, 1600.f); pad.gain = 0.24f; pad.rev = 0.3f; pad.hpf = 250.f; pad.chorus = 0.3f;
+    TrackDef pad; pad.patch = pSupersaw(0.3f, 0.6f, 1600.f); pad.gain = 0.24f; pad.rev = 0.3f; pad.hpf = 250.f; pad.chorus = 0.3f; pad.width = 0.4f;
     int tP = c.track(pad);
     TrackDef vox; vox.patch = pVox(); vox.gain = 1.15f; vox.rev = 0.25f; vox.dly = 0.18f; vox.hpf = 180.f;
     int tV = c.track(vox);
     TrackDef perc = tdDrums(0.8f, 0.12f);
-    perc.panSpread = 0.3f;
+    perc.panSpread = 0.5f;
     int tPc = c.track(perc);
+    c.tDrum = tD; c.tBass = tB; c.tLead = tV; c.tPerc = tPc;
     Motif mV = makeMotif(r, MelStyle::Latin, 8.f), mC = makeMotif(r, MelStyle::Latin, 8.f), mHook = makeMotif(r, MelStyle::Latin, 4.f);
     int vDeg = r.irange(0, 4), cDeg = r.irange(3, 7);
     MelodyWriter vw(c, tV, 60, 79);
@@ -3089,24 +3398,31 @@ static void composeHouse(Comp& c) {
     sd.revSize = 1.2f; sd.revDecay = 1.9f; sd.revDamp = 0.4f;
     sd.dlyL = 0.75f; sd.dlyR = 0.75f; sd.dlyFb = 0.35f;
     bool bigRoom = pl.variant == 1;
-    int tD = c.track(tdDrums(0.95f, 0.06f));
+    const bool deep = pl.sub == 1;
+    TrackDef drm = tdDrums(0.95f, 0.06f); drm.punch = 0.08f;
+    int tD = c.track(drm);
     TrackDef bass; bass.patch = bigRoom ? pSawBass() : pFmBass(); bass.gain = bigRoom ? 1.6f : 2.0f; bass.sidechain = 0.7f; bass.hpf = 32.f; bass.rev = 0.f;
+    if (deep) { bass.patch = pSubBass(); bass.patch.mix2 = 0.45f; bass.gain = 1.5f; bass.sidechain = 0.5f; }
     int tB = c.track(bass);
     TrackDef stab;
     if (bigRoom) { stab.patch = pSupersaw(0.005f, 0.2f, 3500.f); stab.gain = 0.3f; }
+    else if (deep) { stab.patch = r.chance(0.6f) ? pFmEP() : pOrgan(); stab.gain = 0.62f; stab.chorus = 0.3f; stab.dly = 0.18f; }
     else { stab.patch = r.chance(0.5f) ? pPiano() : pOrgan(); stab.gain = 0.6f; }
     stab.sidechain = 0.6f; stab.rev = 0.2f; stab.hpf = 180.f; stab.chorus = bigRoom ? 0.2f : 0.f;
+    stab.width = 0.3f;
     int tS = c.track(stab);
-    TrackDef pad; pad.patch = r.chance(0.5f) ? pChoir() : pStrings(); pad.gain = 0.28f; pad.rev = 0.45f; pad.sidechain = 0.4f; pad.hpf = 200.f;
+    TrackDef pad; pad.patch = r.chance(0.5f) ? pChoir() : pStrings(); pad.gain = 0.28f; pad.rev = 0.45f; pad.sidechain = 0.4f; pad.hpf = 200.f; pad.width = 0.5f;
     int tP = c.track(pad);
     TrackDef lead; lead.patch = bigRoom ? pSupersaw(0.005f, 0.2f, 5000.f) : pPluck(Wave::Saw, 1600.f, 0.25f);
     if (bigRoom) { lead.patch.mono = false; lead.patch.poly = 4; }
     lead.gain = bigRoom ? 0.7f : 1.1f; lead.dly = 0.25f; lead.rev = 0.25f; lead.sidechain = 0.35f; lead.hpf = 200.f;
+    if (deep) { lead.patch = pMallet(3.f, 0.5f); lead.gain = 0.8f; lead.dly = 0.35f; lead.rev = 0.3f; }
     int tL = c.track(lead);
     TrackDef vox; vox.patch = pVox(); vox.patch.glide = 0.03f; vox.gain = 1.1f; vox.rev = 0.35f; vox.dly = 0.3f; vox.hpf = 200.f;
     int tV = c.track(vox);
     TrackDef fx = tdDrums(0.6f, 0.3f);
     int tFx = c.track(fx);
+    c.tDrum = tD; c.tBass = tB; c.tLead = tL; c.tPerc = tFx;
     Motif mHook = makeMotif(r, MelStyle::Busy, 8.f), mVox = makeMotif(r, MelStyle::Sparse, 8.f);
     int hDeg = r.irange(4, 9);
     MelodyWriter lw(c, tL, 64, 88);
@@ -3183,7 +3499,7 @@ static void composeHouse(Comp& c) {
                 sd.autom.push_back(Automation{t1, 0.f, 20000.f});
                 break;
             case Part::Drop:
-                four(b0, nb, 1.f, true);
+                four(b0, nb, deep ? 0.85f : 1.f, true);
                 offbeatBass(b0, nb);
                 chords(b0, nb, 100);
                 lw.section(mHook, b0, nb, hDeg);
@@ -3230,8 +3546,10 @@ static void composeRock(Comp& c) {
     sd.kitStyle = KitStyle::Rock;
     sd.revSize = 1.0f; sd.revDecay = 1.3f; sd.revDamp = 0.5f;
     sd.dlyL = 0.75f; sd.dlyR = 0.5f; sd.dlyFb = 0.25f;
-    int tD = c.track(tdDrums(0.95f, 0.1f));
-    TrackDef bass; bass.patch = pString(3.f, 0.35f, 0.22f, 2600.f); bass.patch.poly = 2; bass.gain = 0.75f; bass.drive = 0.12f; bass.lpf = 3200.f; bass.lsF = 100.f; bass.lsDb = 3.f; bass.rev = 0.f;
+    sd.roomSize = 0.45f; sd.roomDecay = 0.6f;
+    TrackDef drm = tdDrums(0.95f, 0.07f); drm.punch = 0.2f; drm.room = 0.3f;
+    int tD = c.track(drm);
+    TrackDef bass; bass.patch = pString(3.f, 0.35f, 0.22f, 2600.f); bass.patch.poly = 2; bass.gain = 0.95f; bass.drive = 0.12f; bass.lpf = 3200.f; bass.lsF = 100.f; bass.lsDb = 4.f; bass.rev = 0.f;
     int tB = c.track(bass);
     TrackDef g1; g1.patch = pString(5.f, 0.7f, 0.18f, 7000.f); g1.gain = 0.28f; g1.drive = 0.75f; g1.cab = true; g1.pan = -0.75f; g1.rev = 0.08f; g1.hpf = 90.f;
     TrackDef g2 = g1; g2.pan = 0.75f; g2.patch.kBright = 0.65f;
@@ -3239,6 +3557,8 @@ static void composeRock(Comp& c) {
     TrackDef lg; lg.patch = pString(9.f, 0.8f, 0.14f, 8000.f); lg.patch.vibDepth = 0.35f; lg.patch.vibDelay = 0.18f; lg.patch.vibRate = 5.5f; lg.patch.poly = 2;
     lg.gain = 0.36f; lg.drive = 0.9f; lg.cab = true; lg.dly = 0.22f; lg.rev = 0.2f; lg.hpf = 150.f; lg.pan = 0.1f;
     int tLG = c.track(lg);
+    c.tDrum = tD; c.tBass = tB; c.tLead = tLG;
+    const bool punk = pl.sub == 1;
     TrackDef cl; cl.patch = pString(3.f, 0.6f, 0.2f, 6000.f); cl.gain = 0.4f; cl.chorus = 0.35f; cl.rev = 0.25f; cl.pan = -0.3f; cl.hpf = 120.f;
     int tCl = c.track(cl);
     TrackDef org; org.patch = pOrgan(); org.gain = 0.28f; org.chorus = 0.5f; org.rev = 0.2f; org.pan = 0.3f; org.hpf = 150.f;
@@ -3333,13 +3653,22 @@ static void composeRock(Comp& c) {
                 }
                 break;
             case Part::Verse:
-                drums(b0, nb, 0.6f, true, true);
+                drums(b0, nb, punk ? 0.85f : 0.6f, true, true);
                 bassline(b0, nb, 100);
-                power(tG1, b0, nb, true, false, 104, 0.f);
-                power(tG2, b0, nb, true, false, 100, 3.f);
-                if (pl.variant == 1) cleanArp(b0, nb);
+                power(tG1, b0, nb, !punk, false, 104, 0.f);
+                power(tG2, b0, nb, !punk, false, 100, 3.f);
+                if (pl.variant == 1 && !punk) cleanArp(b0, nb);
                 lw.velBase = 92.f;
                 lw.section(mV, b0, nb, vDeg);
+                break;
+            case Part::Bridge:  // half-time breakdown: clean arpeggios, organ, the band pulled back
+                drums(b0, nb, 0.45f, true, false);
+                bassline(b0, nb, 90);
+                cleanArp(b0, nb);
+                padChords(c, tO, b0, nb, 55, 72, 4, 78);
+                power(tG1, b0 + nb - Min(nb, 2), Min(nb, 2), false, true, 100, 0.f);
+                lw.velBase = 86.f;
+                lw.section(mV, b0, nb, vDeg + 2);
                 break;
             case Part::Pre:
                 drums(b0, nb, 0.75f, true, false);
@@ -3415,8 +3744,10 @@ static void composeJazz(Comp& c) {
     sd.kitStyle = KitStyle::Jazz;
     sd.revSize = 0.85f; sd.revDecay = 1.3f; sd.revDamp = 0.55f;
     sd.dlyL = 0.75f; sd.dlyR = 1.f; sd.dlyFb = 0.2f;
-    int tD = c.track(tdDrums(0.62f, 0.14f));
-    TrackDef bass; bass.patch = pString(1.8f, 0.22f, 0.3f, 1500.f); bass.patch.poly = 2; bass.gain = 0.72f; bass.lsF = 110.f; bass.lsDb = 4.f; bass.lpf = 2400.f; bass.rev = 0.05f;
+    sd.roomSize = 0.5f; sd.roomDecay = 0.7f;
+    TrackDef drm = tdDrums(0.62f, 0.1f); drm.punch = 0.1f; drm.room = 0.35f;
+    int tD = c.track(drm);
+    TrackDef bass; bass.patch = pString(1.8f, 0.22f, 0.3f, 1500.f); bass.patch.poly = 2; bass.gain = 0.95f; bass.lsF = 110.f; bass.lsDb = 4.f; bass.lpf = 2400.f; bass.rev = 0.05f;
     int tB = c.track(bass);
     TrackDef comp;
     if (bossa) { comp.patch = pString(2.4f, 0.45f, 0.22f, 4000.f); comp.gain = 0.45f; comp.panSpread = 0.1f; comp.pan = -0.2f; }
@@ -3431,6 +3762,7 @@ static void composeJazz(Comp& c) {
     else { lead.patch = pSoftLead(Wave::Sine); lead.gain = 0.6f; }
     lead.rev = 0.22f; lead.pan = 0.2f; lead.hpf = 150.f;
     int tL = c.track(lead);
+    c.tDrum = tD; c.tBass = tB; c.tLead = tL;
     Motif mA = makeMotif(r, bossa ? MelStyle::Pop : MelStyle::Swing, 8.f), mB = makeMotif(r, bossa ? MelStyle::Sparse : MelStyle::Swing, 8.f);
     int aDeg = r.irange(2, 6), bDeg = r.irange(0, 4);
     MelodyWriter lw(c, tL, 60, 84);
@@ -3627,8 +3959,10 @@ static void composeCountry(Comp& c) {
     sd.revSize = 0.9f; sd.revDecay = 1.3f; sd.revDamp = 0.5f;
     sd.dlyL = 0.25f; sd.dlyR = 0.33f; sd.dlyFb = 0.15f;  // slapback
     bool bluegrass = pl.variant == 2;
-    int tD = c.track(tdDrums(bluegrass ? 0.55f : 0.8f, 0.1f));
-    TrackDef bass; bass.patch = pString(bluegrass ? 1.4f : 2.6f, 0.3f, 0.25f, 2000.f); bass.patch.poly = 2; bass.gain = 0.85f; bass.lsF = 100.f; bass.lsDb = 3.f; bass.lpf = 2600.f; bass.rev = 0.03f;
+    sd.roomSize = 0.42f; sd.roomDecay = 0.55f;
+    TrackDef drm = tdDrums(bluegrass ? 0.55f : 0.8f, 0.07f); drm.punch = 0.15f; drm.room = 0.25f;
+    int tD = c.track(drm);
+    TrackDef bass; bass.patch = pString(bluegrass ? 1.4f : 2.6f, 0.3f, 0.25f, 2000.f); bass.patch.poly = 2; bass.gain = 1.05f; bass.lsF = 100.f; bass.lsDb = 3.f; bass.lpf = 2600.f; bass.rev = 0.03f;
     int tB = c.track(bass);
     TrackDef ac; ac.patch = pString(2.6f, 0.78f, 0.13f, 8000.f); ac.gain = 0.45f; ac.lsF = 120.f; ac.lsDb = 2.f; ac.pkF = 220.f; ac.pkQ = 1.2f; ac.pkDb = 3.f; ac.hsF = 5000.f; ac.hsDb = 3.f; ac.pan = -0.35f; ac.rev = 0.15f; ac.hpf = 80.f; ac.panSpread = 0.05f;
     int tAc = c.track(ac);
@@ -3644,6 +3978,7 @@ static void composeCountry(Comp& c) {
     int tTw = c.track(tw);
     TrackDef vox; vox.patch = pVox(); vox.gain = 0.7f; vox.rev = 0.2f; vox.dly = 0.12f; vox.hpf = 150.f;
     int tV = c.track(vox);
+    c.tDrum = tD; c.tBass = tB; c.tLead = tV;
     bool femaleSinger = r.chance(0.5f);
     Motif mV = makeMotif(r, MelStyle::Pop, 8.f), mC = makeMotif(r, MelStyle::Pop, 8.f), lick = makeMotif(r, MelStyle::Busy, 4.f);
     MelodyWriter vw(c, tV, femaleSinger ? 62 : 55, femaleSinger ? 81 : 74);
@@ -3768,6 +4103,13 @@ static void composeCountry(Comp& c) {
                 vw.section(mC, b0, nb, cDeg);
                 vw.velBase = 95.f;
                 break;
+            case Part::Bridge:  // the "middle eight": pulled back, new melodic area, steel swells
+                drums(b0, nb, 0.5f, true);
+                bassBoomChick(b0, nb);
+                strumBars(b0, nb, 78);
+                steelSwells(b0, nb);
+                vw.section(mV, b0, nb, vDeg + 3);
+                break;
             case Part::Solo:
                 drums(b0, nb, 0.8f, true);
                 bassBoomChick(b0, nb);
@@ -3808,18 +4150,27 @@ static void composeLoFi(Comp& c) {
     sd.dlyL = 0.75f; sd.dlyR = 0.5f; sd.dlyFb = 0.3f;
     sd.vinyl = 1.f;
     sd.wow = 1.f;
-    int tD = c.track(tdDrums(0.85f, 0.08f));
+    sd.roomSize = 0.35f; sd.roomDecay = 0.5f;
+    TrackDef drm = tdDrums(0.85f, 0.06f); drm.punch = 0.12f; drm.room = 0.15f;
+    int tD = c.track(drm);
+    const bool jazzhop = pl.sub == 1;
     TrackDef bass; bass.patch = pSubBass(); bass.patch.mix2 = 0.2f; bass.gain = 0.8f; bass.rev = 0.02f;
+    if (jazzhop) {  // upright bass
+        bass.patch = pString(1.8f, 0.22f, 0.3f, 1500.f); bass.patch.poly = 2; bass.gain = 0.95f; bass.lsF = 110.f; bass.lsDb = 4.f; bass.lpf = 2400.f;
+    }
     int tB = c.track(bass);
-    TrackDef ep; ep.patch = pFmEP(); ep.gain = 0.42f; ep.rev = 0.22f; ep.lpf = 5500.f; ep.chorus = 0.2f;
+    TrackDef ep; ep.patch = jazzhop ? pPiano() : pFmEP(); ep.gain = jazzhop ? 0.5f : 0.42f; ep.rev = 0.22f; ep.lpf = jazzhop ? 4800.f : 5500.f;
+    ep.chorus = jazzhop ? 0.f : 0.3f; ep.width = 0.3f;
     int tE = c.track(ep);
     TrackDef lead;
     int lk = r.irange(0, 2);
     if (lk == 0) lead.patch = pSoftLead(Wave::Sine);
     else if (lk == 1) lead.patch = pVibes();
     else lead.patch = pString(1.6f, 0.45f, 0.2f, 3500.f);
+    if (jazzhop && r.chance(0.5f)) lead.patch = pSax();
     lead.gain = 0.95f; lead.rev = 0.3f; lead.dly = 0.25f; lead.lpf = 6000.f; lead.pan = 0.2f;
     int tL = c.track(lead);
+    c.tDrum = tD; c.tBass = tB; c.tLead = tL;
     Motif m = makeMotif(r, MelStyle::Sparse, 8.f), m2 = makeMotif(r, MelStyle::Pop, 8.f);
     MelodyWriter lw(c, tL, 64, 84);
     lw.velBase = 80.f;
@@ -3939,6 +4290,167 @@ static void composeTalk(Comp& c) {
     c.hit(tD, pl.totalBars - 1, 0.f, DK_TOM_L, 118);
 }
 
+
+// =============================================================================================
+// Arrangement pass shared by the genres (song mode only), run after the genre composer:
+//  - into a chorus or drop: a reverse cymbal swelling into the downbeat, a two-bar noise riser, a sub impact on
+//    the downbeat, and a "stop": the rhythm section drops out for the last beat (or two) before the chorus lands;
+//  - a harmony line a third over the lead in the last chorus (twin leads, backing vocal);
+//  - the classic pop key change: the last chorus (and the outro) up a semitone or a whole tone;
+//  - a percussion layer (tambourine or shaker) that enters with the second verse.
+struct ArrangeStyle {
+    float revCym, riser, impact, dropout, keyChange, harmony, perc;
+    int percPiece;
+};
+static ArrangeStyle arrangeStyle(Genre g, int variant) {
+    switch (g) {
+        case Genre::Synthwave: return {0.8f, 0.5f, 0.4f, 0.45f, 0.35f, 0.5f, 0.6f, DK_TAMB};
+        case Genre::HipHop:
+            return variant == 0 ? ArrangeStyle{0.5f, 0.3f, 0.5f, 0.75f, 0.f, 0.f, 0.f, DK_SHAKER}
+                                : ArrangeStyle{0.3f, 0.f, 0.f, 0.5f, 0.f, 0.f, 0.4f, DK_SHAKER};
+        case Genre::Reggaeton: return {0.7f, 0.5f, 0.35f, 0.6f, 0.3f, 0.6f, 0.f, DK_SHAKER};
+        case Genre::House: return {0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, DK_SHAKER};
+        case Genre::Rock: return {0.f, 0.f, 0.f, 0.45f, 0.3f, 0.f, 0.7f, DK_TAMB};
+        case Genre::Country: return {0.f, 0.f, 0.f, 0.35f, 0.45f, 0.7f, 0.6f, DK_TAMB};
+        case Genre::LoFi: return {0.f, 0.f, 0.f, 0.5f, 0.f, 0.f, 0.5f, DK_SHAKER};
+        default: return {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, DK_SHAKER};
+    }
+}
+
+// Harmony a third above (below, when the lead sits high) each lead note in [a, b): chord tones first, then scale
+// tones (a fourth where the third would clash).
+static void harmonyLine(Comp& c, int tLead, u32 a, u32 b) {
+    SongData& sd = c.sd;
+    TrackDef h = sd.tracks[(size_t)tLead];
+    h.gain *= 0.5f;
+    h.pan = Clamp(-h.pan * 0.5f + (h.pan > 0.f ? -0.35f : 0.35f), -0.7f, 0.7f);
+    h.rev += 0.06f;
+    int tH = c.track(h);
+    // one side for the whole passage (no voice crossing): below when the lead sits high
+    double sum = 0.0;
+    int cnt = 0;
+    for (const NoteEv& e : sd.events)
+        if (e.track == (u8)tLead && e.start >= a && e.start < b) { sum += e.note; cnt++; }
+    const bool below = cnt > 0 && sum / cnt >= 77.0;
+    std::vector<NoteEv> add;
+    for (const NoteEv& e : sd.events) {
+        if (e.track != (u8)tLead || e.start < a || e.start >= b) continue;
+        double beatAbs = (double)e.start / (double)c.spb;
+        int bar = (int)(beatAbs / 4.0);
+        const Chord& ch = c.chordAt(bar, (float)(beatAbs - bar * 4.0));
+        static const int kIv[3] = {4, 3, 5};  // major third, minor third, fourth
+        int best = -1;
+        for (int pass = 0; pass < 2 && best < 0; pass++)
+            for (int k = 0; k < 3; k++) {
+                int p = below ? (int)e.note - kIv[k] : (int)e.note + kIv[k];
+                bool ok = pass == 0 ? ch.hasPc(p) : inScale(c.pl.key, p);
+                if (ok) { best = p; break; }
+            }
+        if (best < 0) continue;
+        NoteEv x = e;
+        x.track = (u8)tH;
+        x.note = (u8)Clamp(best, 0, 127);
+        x.vel = (u8)Clamp((int)e.vel - 12, 1, 127);
+        add.push_back(x);
+    }
+    sd.events.insert(sd.events.end(), add.begin(), add.end());
+}
+
+static void arrange(Comp& c) {
+    const SongPlan& pl = c.pl;
+    SongData& sd = c.sd;
+    if (pl.mode != Mode::Song || c.tDrum < 0 || pl.sections.size() < 3) return;
+    ArrangeStyle st = arrangeStyle(pl.genre, pl.variant);
+    Rng r(pl.seed ^ 0xA77A11u, 7);
+    const double barS = 4.0 * (double)c.spb;
+    const auto& S = pl.sections;
+    int tFx = -1;
+    auto fx = [&]() {
+        if (tFx < 0) tFx = c.track(tdDrums(0.55f, 0.25f));
+        return tFx;
+    };
+    std::vector<std::pair<u32, u32>> gaps;
+    for (size_t i = 1; i < S.size(); i++) {
+        const Section& a = S[i - 1];
+        const Section& b = S[i];
+        if (!((b.part == Part::Chorus || b.part == Part::Drop) && a.part != b.part)) continue;
+        int bar = b.startBar;
+        if (a.bars >= 2 && r.chance(st.revCym)) c.hit(fx(), bar - 1, 0.f, DK_REV_CYM, 96, 0.f);
+        if (a.bars >= 4 && r.chance(st.riser)) c.hit(fx(), bar - 2, 0.f, DK_RISER, 90, 0.f);
+        if (r.chance(st.impact)) c.hit(fx(), bar, 0.f, DK_IMPACT, 100, 0.f);
+        if (a.bars >= 2 && r.chance(st.dropout)) {
+            float beats = r.chance(0.35f) ? 2.f : 1.f;
+            u32 to = (u32)((double)bar * barS);
+            gaps.push_back({to - (u32)(beats * c.spb), to});
+        }
+    }
+    if (!gaps.empty()) {
+        std::vector<NoteEv> keep;
+        keep.reserve(sd.events.size());
+        for (NoteEv e : sd.events) {
+            bool rhythm = e.track == (u8)c.tDrum || (c.tPerc >= 0 && e.track == (u8)c.tPerc) || (c.tBass >= 0 && e.track == (u8)c.tBass);
+            if (rhythm) {
+                bool drop = false;
+                for (auto& g : gaps) {
+                    if (e.start >= g.first && e.start < g.second) drop = true;
+                    else if (e.track == (u8)c.tBass && e.start < g.first && e.start + e.dur > g.first) e.dur = g.first - e.start;
+                }
+                if (drop) continue;
+            }
+            keep.push_back(e);
+        }
+        sd.events.swap(keep);
+    }
+    int lastC = -1, nC = 0, secondVerse = -1, nV = 0;
+    for (int i = 0; i < (int)S.size(); i++) {
+        if (S[(size_t)i].part == Part::Chorus) { lastC = i; nC++; }
+        if (S[(size_t)i].part == Part::Verse && ++nV == 2) secondVerse = i;
+    }
+    // harmony over the last chorus (before the key change so both lines move together)
+    if (c.tLead >= 0 && lastC >= 0 && r.chance(st.harmony)) {
+        u32 a = (u32)((double)S[(size_t)lastC].startBar * barS), b = (u32)((double)(S[(size_t)lastC].startBar + S[(size_t)lastC].bars) * barS);
+        harmonyLine(c, c.tLead, a, b);
+    }
+    // percussion layer from the second verse on
+    if (secondVerse >= 0 && r.chance(st.perc)) {
+        TrackDef pd = tdDrums(0.5f, 0.12f);
+        pd.pan = r.chance(0.5f) ? 0.4f : -0.4f;
+        int tP = c.track(pd);
+        bool tamb = st.percPiece == DK_TAMB;
+        for (int i = secondVerse; i < (int)S.size(); i++) {
+            const Section& sc = S[(size_t)i];
+            if (sc.part != Part::Verse && sc.part != Part::Chorus && sc.part != Part::Pre && sc.part != Part::Drop) continue;
+            bool big = sc.part == Part::Chorus || sc.part == Part::Drop;
+            for (int b = sc.startBar; b < sc.startBar + sc.bars; b++) {
+                if (tamb) {
+                    if (big && i == lastC) {
+                        for (float t = 0.f; t < 3.99f; t += 0.5f) c.hit(tP, b, t, DK_TAMB, (fmodf(t, 1.f) > 0.01f ? 72 : 58) + r.irange(-5, 5));
+                    } else {
+                        c.hit(tP, b, 1.f, DK_TAMB, 70 + r.irange(-5, 5));
+                        c.hit(tP, b, 3.f, DK_TAMB, 74 + r.irange(-5, 5));
+                    }
+                } else {
+                    for (float t = 0.f; t < 3.99f; t += (big ? 0.25f : 0.5f))
+                        c.hit(tP, b, t, DK_SHAKER, (fmodf(t, 0.5f) < 0.01f ? 56 : 44) + r.irange(-5, 5));
+                }
+            }
+        }
+    }
+    // key change into the last chorus
+    if (nC >= 2 && lastC >= 2 && r.chance(st.keyChange)) {
+        int shift = r.chance(0.6f) ? 1 : 2;
+        u32 at = (u32)((double)S[(size_t)lastC].startBar * barS);
+        u32 pickup = (u32)(c.spb * 0.26f);
+        for (NoteEv& e : sd.events) {
+            if (sd.tracks[e.track].drums) continue;
+            if (e.start + pickup >= at) e.note = (u8)Clamp((int)e.note + shift, 0, 127);
+            else if (e.start + e.dur > at) e.dur = at - e.start;
+        }
+        sd.keyShiftAt = at;
+        sd.keyShift = shift;
+    }
+}
+
 // =============================================================================================
 // Entry points
 static void runComposer(Comp& c) {
@@ -3961,7 +4473,7 @@ static float genreMaster(Genre g) {
         case Genre::HipHop: return 1.0f;
         case Genre::Reggaeton: return 1.0f;
         case Genre::House: return 1.0f;
-        case Genre::Rock: return 1.0f;
+        case Genre::Rock: return 0.85f;  // dense guitars + punchy kit: keep the song bus off its soft clipper
         case Genre::Jazz: return 1.0f;
         case Genre::Country: return 1.0f;
         case Genre::LoFi: return 1.0f;
@@ -3978,6 +4490,7 @@ static std::shared_ptr<SongData> composeFromPlan(const SongPlan& pl) {
     sd->swing = pl.swing;
     Comp c(*sd, pl);
     runComposer(c);
+    arrange(c);
     sd->sortEvents();
     sd->musicEnd = (u32)((float)pl.totalBars * 4.f * c.spb);
     sd->length = sd->musicEnd + (u32)((pl.mode == Mode::Song ? 2.5f : 1.2f) * kSR);

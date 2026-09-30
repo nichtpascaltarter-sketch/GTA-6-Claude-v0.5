@@ -3,6 +3,7 @@
 #ifndef FACADE_HLSLI
 #define FACADE_HLSLI
 #include "common.hlsli"
+#include "skycommon.hlsli"
 
 struct FacadeGPU {
     float floorH, groundH, bayW, winW;   // winW: window width fraction of bay
@@ -351,7 +352,9 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         // through the glass (not a surface lit on the facade), so shadows falling on the glass do not darken it.
         float dayInterior = saturate(gSunDir.z * 3.0 + 0.1) * (1.0 - gExposure.w);
         float3 glassTint = glassC;
-        float3 em = room * 40.0 * dayInterior;
+        // daylight in the room: sky light through the windows plus sun patches on the floor bouncing around
+        float3 dayE = evalSH9(N) * 0.4 + mainLightIlluminance() * saturate(dot(N, gSunDir.xyz)) * (0.12 / PI);
+        float3 em = room * dayE * dayInterior;
         // shops are brightly lit inside (~160 nits of interior by day reads through the glass; 14 at night, when the
         // exposure has opened up), homes and offices keep a constant lamp level
         float shopNits = lerp(160.0, 14.0, gExposure.w);

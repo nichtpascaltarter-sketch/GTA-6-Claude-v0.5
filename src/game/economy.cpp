@@ -385,13 +385,18 @@ void setWaypoint(GameWorld& g, vec2 p) {
     g.notify("GPS", "Waypoint set.");
 }
 
-// The phone key (Up / D-pad up) opens the handset; the app draws it and routes its actions to phoneHandle().
+// The phone key (Up / D-pad up) opens the handset; the app draws it and routes its actions to phoneHandle(). While
+// wanted and empty-handed on foot, holding the key surrenders (police.cpp), so the phone opens on a tap's release.
 void updatePhoneKey(GameWorld& g) {
+    static double pressT = -1.0;
+    if (g.ctl.phone.pressed) pressT = g.time;
     Ped* pl = g.playerPed();
     if (!pl || g.phone.open || gMenu.open) return;
     int pv = g.playerVehicle();
     bool vehicleOk = pv < 0 || !g.isAircraft(pv);
-    if (g.ctl.phone.pressed && g.playerControl && !g.mInCutscene() && vehicleOk && pl->health > 0.f && g.pinfo.deathTimer <= 0.f) g.phone.open = true;
+    bool surrenderable = g.pinfo.wanted > 0 && pl->state == PS_ONFOOT && pl->weapon == WPN_FISTS && g.phone.call == UI::CALL_NONE;
+    bool open = surrenderable ? g.ctl.phone.released && pressT >= 0.0 && g.time - pressT < 0.35 : g.ctl.phone.pressed;
+    if (open && g.playerControl && !g.mInCutscene() && vehicleOk && pl->health > 0.f && g.pinfo.deathTimer <= 0.f) g.phone.open = true;
 }
 
 void economyUpdate(GameWorld& g, float dt) {

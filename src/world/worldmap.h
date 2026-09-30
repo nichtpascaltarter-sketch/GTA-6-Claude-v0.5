@@ -80,6 +80,9 @@ struct WorldMap {
     vec3 normalAt(float x, float y) const;
     Region regionAt(float x, float y) const;
     float coastDistance(float x, float y) const;  // signed: + on land, meters (coarse)
+    // Beach sand cover 0..1 of the ground splat (wide beaches on the barrier islands and the keys, narrow strands elsewhere,
+    // a strip along the seawalls of the dense districts, none in the wetlands); streets end where it begins
+    float beachSand(float x, float y) const;
     bool isWater(float x, float y) const { float w = waterAt(x, y); return w > kNoWater + 1 && w > heightAt(x, y); }
     // Modify terrain to follow a road surface: sets height inside `halfWidth`, blends to
     // original height over `blend` meters beyond it.

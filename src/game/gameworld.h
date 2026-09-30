@@ -131,6 +131,9 @@ struct GameWorld {
     int protagonistChar[2] = {-1, -1};
     Render::Model* weaponModels[WPN_COUNT] = {};
     Render::Model* weaponTintModels[WPN_COUNT][kWeaponTints] = {};    // [w][0] == weaponModels[w]
+    // magazine-fed guns split for first-person reloads: the gun without its magazine, and the magazine alone
+    Render::Model* weaponBodyModels[WPN_COUNT][kWeaponTints] = {};
+    Render::Model* weaponMagModels[WPN_COUNT][kWeaponTints] = {};
     Render::Model* weaponCompModels[WPN_COUNT][kWeaponCompCount] = {}; // attachment meshes in the weapon's frame
     Render::Model* pickupModels[6] = {};
     Render::Model* parachuteModel = nullptr;
@@ -218,6 +221,8 @@ struct GameWorld {
         float lastYaw = 0.f, lastPitch = 0.f;
         dvec3 pos;                                 // weapon origin (world) and axes (x right, y barrel, z up)
         mat3 rot;
+        bool magInHand = false;                    // reloading: the magazine is out, carried by the support hand
+        vec3 magOffset = vec3(0.f);                // ... drawn at the weapon's transform moved by this (world)
     } fpw;
     bool fpWeaponUsable(const Ped& p) const;
     bool fpWeaponMuzzle(dvec3& out) const;
@@ -351,6 +356,7 @@ struct GameWorld {
     void newGame();
     // Missions (missions.cpp): scripting helpers used by mission scripts
     bool missionActive() const;
+    std::string missionTitle() const;
     std::string missionBrief() const;
     std::string storyBriefText;
     void updateMissions(float dt);

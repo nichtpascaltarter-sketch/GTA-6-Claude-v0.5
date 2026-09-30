@@ -192,7 +192,9 @@ void csBloomUp(uint3 id : SV_DispatchThreadID) {
     s += tBloomLow.SampleLevel(sLinearClamp, uv + float2(t.x, t.y), 0).rgb;
     s /= 16.0;
     float3 cur = tBloomSrc.SampleLevel(sLinearClamp, uv, 0).rgb;
-    uBloomDst[id.xy] = float4(cur + s, 1);
+    // each wider level contributes a little less: glow and halo around lamps and neon without a wide haze smeared
+    // across the frame
+    uBloomDst[id.xy] = float4(cur + s * 0.72, 1);
 }
 
 // ------------------------------------------------------------------------------------------------

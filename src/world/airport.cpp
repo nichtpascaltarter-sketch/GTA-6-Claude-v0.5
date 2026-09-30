@@ -1800,7 +1800,7 @@ void genGse(const SiteElem& e, G& g) {
 // Rectangular panel facing `face`, bottom at z, with text lines ('|' separated) in fg; optional arrow per line ('<' / '>'
 // as the first character of a line puts an arrow before the text)
 void signPanel(G& g, vec2 c, vec2 face, float z, float w, float h, u32 bg, u32 fg, const std::string& text, u32 mat, float th) {
-    vec2 rt = perp(-face);
+    vec2 rt = perp(face);   // the reader's right as they face the panel
     vec3 b(c + face * 0.005f, z);
     quad(g, *g.m, b - vec3(rt * (w * 0.5f), 0.f), b + vec3(rt * (w * 0.5f), 0.f), b + vec3(rt * (w * 0.5f), h), b + vec3(-rt * (w * 0.5f), h), bg, mat,
          vec3(face, 0.f));
@@ -1854,7 +1854,7 @@ void genForecourt(const SiteElem& e, G& g) {
         }
         case 1: {
             if (!g.owns(e.c)) return;
-            vec2 face = e.ax, rt = perp(-face);
+            vec2 face = e.ax, rt = perp(face);
             // shelter (the street shelter prototype: frame, glass back wall, bench, ad light box)
             prop(g, vec3(e.c, e.z), atan2f(face.x, -face.y), 1.f, PROP_BUS_STOP, (u8)(e.seed & 3u));
             // TAXI totem at the kerb end of the rank, lit box on a pole
@@ -1863,7 +1863,7 @@ void genForecourt(const SiteElem& e, G& g) {
             boxY(g, vec3(tp, e.z + 3.4f), face, vec3(0.12f, 0.55f, 0.3f), rgb(0.12f), paint, true);
             for (int s = -1; s <= 1; s += 2) {
                 vec2 fc = tp + face * (s * 0.125f);
-                vec2 r2 = perp(-face * (float)s);
+                vec2 r2 = perp(face * (float)s);   // the reader's right on this side of the box
                 quad(g, *g.m, vec3(fc - r2 * 0.5f, e.z + 3.14f), vec3(fc + r2 * 0.5f, e.z + 3.14f), vec3(fc + r2 * 0.5f, e.z + 3.66f), vec3(fc - r2 * 0.5f, e.z + 3.66f),
                      rgb(1.f, 0.82f, 0.1f, 0.25f), emMat(), vec3(face * (float)s, 0.f));
                 float th = 0.3f, tw = textAdvance("TAXI", th, 0.3f);

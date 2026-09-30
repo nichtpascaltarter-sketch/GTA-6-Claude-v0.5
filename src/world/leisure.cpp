@@ -886,5 +886,88 @@ void genGolfPond(const SiteElem& e, G& g) {
     }
 }
 
+// ------------------------------------------------------------------------------------------------ beach access
+// Where a street stops short of the sand (RoadNetwork::beachEnds): a low boardwalk of weathered planks laid on the sand
+// from the sidewalk to a few metres short of the water, bollards across its mouth, a sign with the street's name and an
+// outdoor shower with its foot tap on a small slab beside the entrance
+void genBeachAccess(const SiteElem& e, G& g) {
+    vec2 d = normalize(e.b - e.a), n = perp(d);
+    float L = length(e.b - e.a);
+    const float W = 1.25f, lift = 0.1f;
+    const u32 wood = M(MAT_WOOD);
+    auto ground = [&](vec2 p) { return gMap->heightAt(p.x, p.y); };
+    // boardwalk: 1.8 m panels following the sand, each a deck, two edge boards and a dark joint strip where panels meet
+    int np = Max(1, (int)ceilf(L / 1.8f));
+    for (int k = 0; k < np; k++) {
+        float s0 = L * k / np, s1 = L * (k + 1) / np;
+        vec2 p0 = e.a + d * s0, p1 = e.a + d * s1;
+        if (!g.owns((p0 + p1) * 0.5f)) continue;
+        float z0 = ground(p0) + lift, z1 = ground(p1) + lift;
+        u32 h = hash2i(k, (int)(e.seed & 0x7fffffu));
+        float tone = 0.78f + 0.2f * hashToFloat(h);
+        u32 c = rgb(0.82f * tone, 0.74f * tone, 0.63f * tone);   // sun-greyed boards
+        MeshData& m = *g.m;
+        u32 b = (u32)m.verts.size();
+        const vec2 q[4] = {p0 - n * W, p1 - n * W, p1 + n * W, p0 + n * W};
+        const float zq[4] = {z0, z1, z1, z0};
+        vec3 nrm = normalize(cross(vec3(d * (s1 - s0), z1 - z0), vec3(n, 0.f)));
+        for (int i = 0; i < 4; i++)
+            m.addVertex(vec3(q[i], zq[i]) - g.org, nrm, vec3(n, 0.f), vec2(dot(q[i], n), dot(q[i], d) * 0.25f), c, wood);
+        m.quadIdx(b, b + 1, b + 2, b + 3);
+        for (int s = -1; s <= 1; s += 2) {
+            vec2 a0 = p0 + n * (s * W), a1 = p1 + n * (s * W);
+            quad(g, *g.m, vec3(a0, z0 - lift - 0.06f), vec3(a1, z1 - lift - 0.06f), vec3(a1, z1), vec3(a0, z0), rgb(0.5f * tone, 0.44f * tone, 0.37f * tone), wood,
+                 vec3(n * (float)s, 0.f));
+        }
+        if (g.detail && k > 0)
+            quad(g, *g.m, vec3(p0 - n * W + d * 0.012f, z0 + 0.004f), vec3(p0 - n * W - d * 0.012f, z0 + 0.004f), vec3(p0 + n * W - d * 0.012f, z0 + 0.004f),
+                 vec3(p0 + n * W + d * 0.012f, z0 + 0.004f), rgb(0.12f), wood, vec3(0, 0, 1));
+    }
+    if (!g.detail || !g.owns(e.a)) return;
+    // three bollards across the mouth
+    for (int k = -1; k <= 1; k++) {
+        vec2 p = e.a - d * 0.3f + n * (k * 1.15f);
+        prop(g, vec3(p, ground(p)), 0.f, 1.f, PROP_BOLLARD);
+    }
+    // sign: blue panel on a post, the street's name over BEACH ACCESS, reading from the street
+    {
+        vec2 sp = e.a - d * 0.2f + n * (W + 0.9f);
+        float z = ground(sp);
+        cyl(g, vec3(sp, z), 0.045f, 0.04f, 2.6f, 6, rgb(0.62f), M(MAT_METAL_BRUSHED), true);
+        vec2 face = -d, rt = perp(face);   // the reader's right as they face the sign from the street
+        vec3 c(sp + face * 0.06f, z + 2.15f);
+        const float hw = 0.55f, hh = 0.36f;
+        quad(g, *g.m, c - vec3(rt * hw, hh), c + vec3(rt * hw, -hh), c + vec3(rt * hw, hh), c + vec3(-rt * hw, hh), rgb(0.1f, 0.3f, 0.62f), M(MAT_METAL_PAINTED),
+             vec3(face, 0.f));
+        quad(g, *g.m, c - vec3(rt * hw, hh) - vec3(face * 0.02f, 0.f), c + vec3(rt * hw, -hh) - vec3(face * 0.02f, 0.f), c + vec3(rt * hw, hh) - vec3(face * 0.02f, 0.f),
+             c + vec3(-rt * hw, hh) - vec3(face * 0.02f, 0.f), rgb(0.55f), M(MAT_METAL_PAINTED), vec3(-face, 0.f));
+        std::string top = e.text;
+        for (char& ch : top) ch = (char)toupper((unsigned char)ch);
+        const char* lines[2] = {top.c_str(), "BEACH ACCESS"};
+        for (int li = 0; li < 2; li++) {
+            float th = li == 0 ? 0.15f : 0.13f;
+            float tw = textAdvance(lines[li], th, 0.3f);
+            float sc = tw > hw * 1.8f ? hw * 1.8f / tw : 1.f;
+            float tz = c.z + (li == 0 ? 0.06f : -0.2f);
+            strokeText(g, *g.m, lines[li], vec3(sp + face * 0.07f - rt * (tw * sc * 0.5f), tz), vec3(rt, 0.f), vec3(0, 0, 1), th * sc, th * sc * 0.15f, rgb(0.95f),
+                       M(MAT_METAL_PAINTED), 0.f, 0.3f);
+        }
+        collide(g, vec3(sp, z + 1.3f), d, vec3(0.05f, 0.05f, 1.3f));
+    }
+    // outdoor shower: steel post, arm and rose, a foot tap low down, on a slab with a drain
+    {
+        vec2 sp = e.a + d * 1.6f - n * (W + 1.3f);
+        float z = ground(sp);
+        boxY(g, vec3(sp, z + 0.05f), d, vec3(0.7f, 0.7f, 0.05f), rgb(0.72f, 0.7f, 0.66f), M(MAT_CONCRETE), true);
+        cyl(g, vec3(sp, z + 0.1f), 0.05f, 0.05f, 2.25f, 8, rgb(0.8f), M(MAT_METAL_BRUSHED), true);
+        vec3 top(sp, z + 2.3f);
+        beam(g, top - vec3(0, 0, 0.05f), top + vec3(d * 0.35f, -0.05f), 0.035f, 0.035f, rgb(0.8f), M(MAT_METAL_BRUSHED));
+        cyl(g, top + vec3(d * 0.35f, -0.16f), 0.09f, 0.05f, 0.08f, 8, rgb(0.75f), M(MAT_METAL_BRUSHED), true);
+        beam(g, vec3(sp, z + 0.55f), vec3(sp + d * 0.18f, z + 0.55f), 0.03f, 0.03f, rgb(0.8f), M(MAT_METAL_BRUSHED));
+        cyl(g, vec3(sp + d * 0.3f, z + 0.1f), 0.09f, 0.09f, 0.005f, 8, rgb(0.15f), M(MAT_METAL_BRUSHED), true);
+        collide(g, vec3(sp, z + 1.15f), d, vec3(0.06f, 0.06f, 1.15f));
+    }
+}
+
 }  // namespace leisure_mesh
 }  // namespace World

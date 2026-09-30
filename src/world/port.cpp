@@ -507,7 +507,7 @@ void ctrFrontEnd(G& g, const CFace& f, const Ctr& k, const CPaint& pt, int lod) 
 CPaint ctrPaint(const Ctr& k, int face) {
     CPaint p;
     u32 h = hash2i((int)(k.seed & 0x7fffffffu), face + 17);
-    float fade = Saturate(k.fade + (face == 4 ? 0.3f : 0.f) + (hashToFloat(h) - 0.5f) * 0.12f);
+    float fade = Saturate(k.fade + (face == 4 ? 0.12f : 0.f) + (hashToFloat(h) - 0.5f) * 0.12f);
     p.base = bleachC(k.col, fade * 0.5f) * (1.f - fade * 0.08f);
     if (face < 2 && hashToFloat(hash32(h + 1)) < 0.2f) {
         // a repainted section (fresher paint over a repair)
@@ -523,27 +523,8 @@ CPaint ctrPaint(const Ctr& k, int face) {
     return p;
 }
 
-#ifdef NT_CTR_STATS
-long long gCtrStat[8];   // vertices emitted per face detail level (dev statistics: -DNT_CTR_STATS)
-#endif
-void drawContainerFaces(G& g, const Ctr& k);
 // Draws one container: every face at its own detail level (see CtrLod); far cells get one shaded quad per visible face
 void drawContainer(G& g, const Ctr& k) {
-#ifdef NT_CTR_STATS
-    for (int fi = 0; fi < 5; fi++) {
-        if (!k.lod[fi]) continue;
-        Ctr one = k;
-        for (int q = 0; q < 5; q++) one.lod[q] = q == fi ? k.lod[q] : (u8)CL_NONE;
-        one.lod[4] = fi == 4 ? k.lod[4] : 0;
-        size_t v0 = g.m->verts.size();
-        drawContainerFaces(g, one);
-        gCtrStat[fi == 4 ? 0 : k.lod[fi]] += (long long)(g.m->verts.size() - v0);
-    }
-#else
-    drawContainerFaces(g, k);
-#endif
-}
-void drawContainerFaces(G& g, const Ctr& k) {
     using namespace ctr;
     vec3 X(k.ax, 0.f), Y(perp(k.ax), 0.f), Z(0, 0, 1);
     float hx = k.len * 0.5f, hy = k.wid * 0.5f, H = k.hgt;
@@ -564,7 +545,7 @@ void drawContainerFaces(G& g, const Ctr& k) {
         }
         if (k.lod[4]) {
             CPaint pt = ctrPaint(k, 4);
-            u32 c = pkc(bleachC(pt.base, 0.25f) * 0.95f);
+            u32 c = pkc(bleachC(pt.base, 0.15f) * 0.9f);
             quad(g, *g.m, b0 + Z * H - X * hx - Y * hy, b0 + Z * H + X * hx - Y * hy, b0 + Z * H + X * hx + Y * hy, b0 + Z * H - X * hx + Y * hy, c, mat, Z);
         }
         return;
@@ -606,7 +587,7 @@ void drawContainerFaces(G& g, const Ctr& k) {
         for (int i = 0; i <= ns; i++)
             for (int s = 0; s < 2; s++) {
                 u32 hh = hash3i((int)(k.seed & 0xffffu), i, s + 40);
-                vec3 c = bleachC(pt.base, 0.2f + 0.2f * hashToFloat(hh));
+                vec3 c = bleachC(pt.base, 0.08f + 0.14f * hashToFloat(hh)) * 0.94f;   // sun-faded, dusty, still the line's colour from the air
                 if (hashToFloat(hash32(hh)) < k.rust * 0.5f) c = lerp(c, kRust, 0.4f);
                 else if (hashToFloat(hash32(hh + 1)) < 0.3f) c = c * vec3(0.8f, 0.78f, 0.72f);
                 cols[i][s] = c;
@@ -796,6 +777,423 @@ void genStsCrane(const SiteElem& e, G& g) {
     }
 }
 
+// ------------------------------------------------------------------------------------------------ yard floor
+// The terminal floor as decals over the yard pad (detail cells only; each paint layer sits a few millimetres above the one
+// below so coplanar pieces never fight): sealed expansion joints on a 6 m slab grid with replaced, cracked and asphalt-
+// patched slabs; painted stack slots with bay and row numbers; stack lanes with edge lines, centre dashes, arrows, a stop
+// bar and a crossing at the boulevard end, tyre-worn tracks, oil drips and rust marks, drains with puddles; a hatched
+// walkway along the boulevard and hatched safety zones round the light masts.
+namespace yard {
+constexpr float kSlab = 6.f;
+constexpr float kZPatch = 0.003f, kZWear = 0.0045f, kZDamp = 0.0052f, kZJoint = 0.006f, kZLine = 0.0085f, kZMark = 0.0102f, kZSpot = 0.0116f,
+                kZDrain = 0.0135f;
+const vec3 kYard(0.93f, 0.92f, 0.9f);  // the yard pad's tint (layoutPort): ground-coloured decals match it exactly
+
+// Flat quad at height z with world-space uvs (tiling materials line up with the yard surface), wound to face up
+void quadW(G& g, vec2 p0, vec2 p1, vec2 p2, vec2 p3, float z, u32 col, u32 mat) {
+    MeshData& d = *g.d;
+    const vec2 q[4] = {p0, p1, p2, p3};
+    u32 b = (u32)d.verts.size();
+    for (int k = 0; k < 4; k++) d.addVertex(vec3(q[k], z) - g.org, vec3(0, 0, 1), vec3(1, 0, 0), q[k], col, mat);
+    vec2 e1 = p1 - p0, e2 = p2 - p0;
+    if (e1.x * e2.y - e1.y * e2.x >= 0.f) d.quadIdx(b, b + 1, b + 2, b + 3);
+    else d.quadIdx(b, b + 3, b + 2, b + 1);
+}
+// Strip from a to b, width w
+void strip(G& g, vec2 a, vec2 b, float w, float z, u32 col, u32 mat) {
+    vec2 d = b - a;
+    float len = length(d);
+    if (len < 1e-3f) return;
+    vec2 n = perp(d / len) * (w * 0.5f);
+    quadW(g, a - n, b - n, b + n, a + n, z, col, mat);
+}
+// Rectangle: centre, unit axis, half extents
+void rectW(G& g, vec2 c, vec2 ax, float hx, float hy, float z, u32 col, u32 mat) {
+    vec2 ay = perp(ax);
+    quadW(g, c - ax * hx - ay * hy, c + ax * hx - ay * hy, c + ax * hx + ay * hy, c - ax * hx + ay * hy, z, col, mat);
+}
+// Irregular blob (oil, rust, damp, puddles): ellipse rx along ax and ry across with a wobbled edge
+void blob(G& g, vec2 c, vec2 ax, float rx, float ry, int seg, float z, u32 col, u32 mat, u32 seed) {
+    MeshData& d = *g.d;
+    vec2 ay = perp(ax);
+    u32 b0 = d.addVertex(vec3(c, z) - g.org, vec3(0, 0, 1), vec3(1, 0, 0), c, col, mat);
+    float ph = hashToFloat(seed) * kTwoPi;
+    for (int s = 0; s < seg; s++) {
+        float a = kTwoPi * s / seg;
+        float w = 0.8f + 0.14f * sinf(a * 3.f + ph) + 0.2f * hashToFloat(hash2i((int)(seed & 0x7fffffffu), s));
+        vec2 p = c + ax * (cosf(a) * rx * w) + ay * (sinf(a) * ry * w);
+        d.addVertex(vec3(p, z) - g.org, vec3(0, 0, 1), vec3(1, 0, 0), p, col, mat);
+    }
+    // ay = perp(ax): the rim runs counter-clockwise seen from above
+    for (int s = 0; s < seg; s++) d.tri(b0, b0 + 1 + (u32)s, b0 + 1 + (u32)((s + 1) % seg));
+}
+// Painted text lying on the ground: baseline centred on `at`, reading along `right`, letter tops toward perp(right)
+void text(G& g, const char* s, vec2 at, vec2 right, float h, float z, u32 col, u32 mat) {
+    float tw = textAdvance(s, h, 0.3f) - h / 9.f * 1.8f;  // without the last letter's spacing
+    vec2 o = at - right * (tw * 0.5f);
+    strokeText(g, *g.d, s, vec3(o, z), vec3(right, 0.f), vec3(perp(right), 0.f), h, h * 0.15f, col, mat, 0.f, 0.3f);
+}
+// Lane arrow: tail at p, pointing along dir, overall length len
+void arrow(G& g, vec2 p, vec2 dir, float len, float z, u32 col, u32 mat) {
+    vec2 n = perp(dir);
+    float headL = len * 0.36f, headW = len * 0.3f;
+    vec2 hb = p + dir * (len - headL), tip = p + dir * len;
+    strip(g, p, hb + dir * 0.05f, len * 0.08f, z, col, mat);
+    MeshData& d = *g.d;
+    u32 b = (u32)d.verts.size();
+    const vec2 q[3] = {hb - n * (headW * 0.5f), tip, hb + n * (headW * 0.5f)};  // right, tip, left: counter-clockwise
+    for (int k = 0; k < 3; k++) d.addVertex(vec3(q[k], z) - g.org, vec3(0, 0, 1), vec3(1, 0, 0), q[k], col, mat);
+    d.tri(b, b + 1, b + 2);
+}
+// Diagonal hatching over a rectangle (c, ax, hx, hy): stripes of width w every `pitch` metres at 45 degrees, cut at the
+// rectangle's edges (the border lines drawn over them hide the square stripe ends)
+void hatch(G& g, vec2 c, vec2 ax, float hx, float hy, float pitch, float w, float z, u32 col, u32 mat) {
+    vec2 ay = perp(ax);
+    float km = hx + hy;
+    for (float k = -km + pitch * 0.5f; k < km; k += pitch) {
+        vec2 a(k - km, -km), b(k + km, km);
+        if (!clipSegment(a, b, vec2(-hx, -hy), vec2(hx, hy)) || length(b - a) < w) continue;
+        vec2 wa = c + ax * a.x + ay * a.y, wb = c + ax * b.x + ay * b.y;
+        if (g.owns((wa + wb) * 0.5f)) strip(g, wa, wb, w, z, col, mat);
+    }
+}
+// Smooth 1D value noise in [0, 1] (tyre wear along a lane)
+float noise1(float x, u32 seed) {
+    float fl = floorf(x), t = x - fl;
+    t = t * t * (3.f - 2.f * t);
+    return Lerp(hashToFloat(hash2i((int)fl, (int)(seed & 0x7fffffffu))), hashToFloat(hash2i((int)fl + 1, (int)(seed & 0x7fffffffu))), t);
+}
+
+// The roads round a cell as a 1 m keep-out mask (paved width, sidewalk and margin; junction and turning discs): yard paint
+// stays off them
+struct RoadMask {
+    vec2 mn;
+    int n = 0;
+    std::vector<u8> m;
+    void build(const G& g, float margin) {
+        vec2 mx;
+        cellBounds(g, mn, mx);
+        n = (int)kCellSize;
+        m.assign((size_t)n * n, 0);
+        if (!gRoads) return;
+        std::vector<int> cand;
+        gRoads->edgesInRect(mn - vec2(40.f), mx + vec2(40.f), cand);
+        auto mark = [&](vec2 a, vec2 b, float r) {
+            vec2 lo = vmin(a, b) - vec2(r + 1.f), hi = vmax(a, b) + vec2(r + 1.f);
+            int x0 = Max(0, (int)floorf(lo.x - mn.x)), x1 = Min(n - 1, (int)floorf(hi.x - mn.x));
+            int y0 = Max(0, (int)floorf(lo.y - mn.y)), y1 = Min(n - 1, (int)floorf(hi.y - mn.y));
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++) {
+                    u8& t = m[(size_t)y * n + x];
+                    if (!t && distPointSegment2D(mn + vec2(x + 0.5f, y + 0.5f), a, b) < r + 0.71f) t = 1;
+                }
+        };
+        for (int ei : cand) {
+            const RoadEdge& e = gRoads->edges[ei];
+            float r = e.halfWidth + e.sidewalk + margin;
+            for (size_t k = 0; k + 1 < e.pts.size(); k++) mark(e.pts[k].xy(), e.pts[k + 1].xy(), r);
+            for (int nn : {e.n0, e.n1}) {
+                const RoadNode& nd = gRoads->nodes[nn];
+                float br = Max(nd.radius, gRoads->bulbRadius(nd));
+                if (br > 0.f) mark(nd.p, nd.p, br + e.sidewalk + margin);
+            }
+        }
+    }
+    bool hit(vec2 p) const {
+        int x = (int)floorf(p.x - mn.x), y = (int)floorf(p.y - mn.y);
+        if (x < 0 || y < 0 || x >= n || y >= n) return false;
+        return m[(size_t)y * n + x] != 0;
+    }
+};
+
+// Slab floor of an axis-aligned area (c, hx, hy): joints on the world's 6 m grid (runs of free metres, clipped to this
+// cell), then per slab owned here: 3.5 % replaced (newer or older concrete), 4 % cracked, 2.5 % with an asphalt repair
+void slabFloor(const SiteElem& e, G& g) {
+    vec2 mn, mx;
+    cellBounds(g, mn, mx);
+    vec2 A0 = e.c - vec2(e.hx, e.hy), A1 = e.c + vec2(e.hx, e.hy);
+    vec2 lo = vmax(mn, A0), hi = vmin(mx, A1);
+    if (lo.x >= hi.x || lo.y >= hi.y) return;
+    // one mask per cell: the areas meeting in a cell share it (a worker thread builds one cell at a time)
+    thread_local RoadMask rm;
+    thread_local int rmCx = -1, rmCy = -1;
+    thread_local const RoadNetwork* rmNet = nullptr;
+    if (rmCx != g.cx || rmCy != g.cy || rmNet != gRoads || rm.m.empty()) {
+        rm.build(g, 0.4f);
+        rmCx = g.cx;
+        rmCy = g.cy;
+        rmNet = gRoads;
+    }
+    const float z = e.z;
+    const u32 conc = M(MAT_CONCRETE), jointC = rgbv(kYard * 0.5f), crackC = rgbv(kYard * 0.42f);
+    for (int axis = 0; axis < 2; axis++) {
+        float a0 = axis == 0 ? lo.x : lo.y, a1 = axis == 0 ? hi.x : hi.y;  // across the joints
+        float b0 = axis == 0 ? lo.y : lo.x, b1 = axis == 0 ? hi.y : hi.x;  // along them
+        for (float q = ceilf(a0 / kSlab) * kSlab; q < a1; q += kSlab) {
+            auto at = [&](float s) { return axis == 0 ? vec2(q, s) : vec2(s, q); };
+            float run = -1.f;
+            for (float s = b0;; s += 1.f) {
+                bool end = s >= b1;
+                bool freeM = !end && !rm.hit(at(Min(s + 0.5f, b1)));
+                if (freeM && run < 0.f) run = s;
+                if ((!freeM || end) && run >= 0.f) {
+                    float s1 = Min(s, b1);
+                    if (s1 - run > 0.4f) strip(g, at(run), at(s1), 0.05f, z + kZJoint, jointC, conc);
+                    run = -1.f;
+                }
+                if (end) break;
+            }
+        }
+    }
+    for (float sy = floorf(lo.y / kSlab) * kSlab; sy < hi.y; sy += kSlab)
+        for (float sx = floorf(lo.x / kSlab) * kSlab; sx < hi.x; sx += kSlab) {
+            vec2 sc(sx + kSlab * 0.5f, sy + kSlab * 0.5f);
+            if (sc.x < lo.x || sc.x >= hi.x || sc.y < lo.y || sc.y >= hi.y) continue;          // owned by another cell
+            if (sx < A0.x || sx + kSlab > A1.x || sy < A0.y || sy + kSlab > A1.y) continue;  // a part slab at the edge
+            u32 h = hash2i((int)floorf(sx / kSlab) * 7 + 3, (int)floorf(sy / kSlab) * 13 + 5);
+            float r = hashToFloat(h);
+            if (r >= 0.1f) continue;
+            bool clear = true;
+            for (int k = 0; k < 5 && clear; k++) clear = !rm.hit(sc + (k == 4 ? vec2(0.f) : vec2(k & 1 ? 2.9f : -2.9f, k & 2 ? 2.9f : -2.9f)));
+            if (!clear) continue;
+            Rng rr(h);
+            if (r < 0.035f) {
+                float t = rr.f();
+                vec3 c = kYard * (t < 0.6f ? Lerp(1.03f, 1.08f, t / 0.6f) : Lerp(0.83f, 0.9f, (t - 0.6f) / 0.4f));
+                rectW(g, sc, vec2(1, 0), kSlab * 0.5f - 0.03f, kSlab * 0.5f - 0.03f, z + kZPatch, rgbv(c), conc);
+            } else if (r < 0.075f) {
+                // a crack wandering edge to edge, sometimes with a branch
+                bool vert = rr.chance(0.5f);
+                vec2 a = vert ? vec2(sx + rr.range(0.8f, 5.2f), sy) : vec2(sx, sy + rr.range(0.8f, 5.2f));
+                vec2 b = vert ? vec2(sx + rr.range(0.8f, 5.2f), sy + kSlab) : vec2(sx + kSlab, sy + rr.range(0.8f, 5.2f));
+                vec2 side = perp(normalize(b - a)), prev = a, mid = a;
+                for (int k = 1; k <= 5; k++) {
+                    vec2 p = lerp(a, b, k / 5.f);
+                    if (k < 5) p += side * rr.range(-0.4f, 0.4f);
+                    strip(g, prev, p, 0.035f, z + kZJoint, crackC, conc);
+                    if (k == 2) mid = p;
+                    prev = p;
+                }
+                if (rr.chance(0.4f)) {
+                    vec2 q = mid + side * rr.range(-1.6f, 1.6f) + normalize(b - a) * rr.range(0.3f, 1.2f);
+                    q = vmax(vec2(sx + 0.2f, sy + 0.2f), vmin(vec2(sx + kSlab - 0.2f, sy + kSlab - 0.2f), q));
+                    strip(g, mid, q, 0.03f, z + kZJoint, crackC, conc);
+                }
+            } else {
+                // asphalt repair: a dark rectangle cut into the slab
+                float hx = rr.range(0.5f, 1.4f), hy = rr.range(0.4f, 1.0f);
+                vec2 c(sx + rr.range(hx + 0.3f, kSlab - hx - 0.3f), sy + rr.range(hy + 0.3f, kSlab - hy - 0.3f));
+                rectW(g, c, vec2(1, 0), hx, hy, z + kZPatch, rgb(rr.range(0.8f, 1.1f)), M(MAT_ASPHALT_OLD));
+            }
+        }
+}
+
+// Oil drips and rust marks around a path point (straddle legs, truck axles): one blob, 14 % of them rust
+void drip(G& g, vec2 c, vec2 ax, float z, u32 h) {
+    float t = hashToFloat(h), s = hashToFloat(hash32(h + 1));
+    if (t < 0.14f) {
+        // rust: a streak where rusty gear sat or dragged
+        vec3 rc = lerp(kYard * 0.8f, vec3(0.55f, 0.3f, 0.15f), 0.5f + 0.3f * s);
+        blob(g, c, ax, 0.5f + 1.1f * s, 0.12f + 0.12f * s, 7, z + kZSpot, rgbv(rc), M(MAT_CONCRETE), h);
+    } else {
+        // oil: dark, a little brown, soaked in
+        vec3 oc = kYard * vec3(0.46f, 0.44f, 0.41f) * (0.9f + 0.45f * t);
+        blob(g, c, normalize(ax + perp(ax) * (s - 0.5f)), 0.12f + 0.3f * s, 0.1f + 0.22f * t, 7, z + kZSpot, rgbv(oc), M(MAT_CONCRETE), h);
+    }
+}
+
+// Stack lane from a (the boulevard end) to b, half width e.hy. p[0] = 1: a stack lane (centre dashes, arrows both ways, a
+// stop bar and STOP for the traffic leaving, a speed marking for the traffic coming in, a crossing for the walkway just
+// before a, drains down the middle with puddles at some); 0: the gap between the block columns (edge lines, wear, drips).
+// p[1]..p[2]: distances from a where the edge lines break for a crossing lane.
+void stackLane(const SiteElem& e, G& g) {
+    vec2 d = normalize(e.b - e.a), n = perp(d);
+    float L = length(e.b - e.a), hw = e.hy, z = e.z;
+    bool full = e.p[0] > 0.5f;
+    float br0 = e.p[1], br1 = e.p[2];
+    const u32 yellow = M(MAT_PAINT_YELLOW), white = M(MAT_PAINT_WHITE), conc = M(MAT_CONCRETE);
+    auto P = [&](float s, float l) { return e.a + d * s + n * l; };
+    // tyre-worn tracks: bands whose edges keep the yard colour, darker along the middle (smooth along the lane)
+    {
+        float paths[2] = {-hw * 0.5f, hw * 0.5f};
+        int np = full ? 2 : 1;
+        if (!full) paths[0] = 0.f;
+        for (int pi = 0; pi < np; pi++) {
+            float l = paths[pi], w = full ? 1.5f : 2.2f;
+            for (float s = 0.f; s < L; s += 6.f) {
+                float s1 = Min(L, s + 6.f);
+                if (!g.owns(P((s + s1) * 0.5f, l))) continue;
+                MeshData& m = *g.d;
+                u32 b = (u32)m.verts.size();
+                for (int k = 0; k < 2; k++) {
+                    float ss = k ? s1 : s;
+                    float dk = 0.87f + 0.08f * noise1(ss / 21.f, e.seed + (u32)pi * 7u);
+                    for (int c = 0; c < 3; c++) {
+                        vec2 p = P(ss, l + (c - 1) * w);
+                        vec3 col = c == 1 ? kYard * dk : kYard;
+                        m.addVertex(vec3(p, z + kZWear) - g.org, vec3(0, 0, 1), vec3(1, 0, 0), p, rgbv(col), conc);
+                    }
+                }
+                // rows (s, l - w .. l + w) then (s1, ...): quads counter-clockwise seen from above (d along u, n along v)
+                m.quadIdx(b, b + 3, b + 4, b + 1);
+                m.quadIdx(b + 1, b + 4, b + 5, b + 2);
+            }
+        }
+    }
+    // oil drips and rust along the driving paths
+    for (float s = 0.f; s < L; s += 4.f) {
+        u32 h = hash2i((int)(s * 0.25f), (int)(e.seed & 0x7fffffu));
+        if (hashToFloat(h) > (full ? 0.42f : 0.3f)) continue;
+        float l = (full ? (h & 16u ? 1.f : -1.f) * hw * 0.5f : 0.f) + (hashToFloat(hash32(h + 2)) - 0.5f) * 2.4f;
+        vec2 c = P(s + hashToFloat(hash32(h + 3)) * 4.f, l);
+        if (g.owns(c)) drip(g, c, d, z, hash32(h + 4));
+    }
+    // edge lines in 12 m pieces (broken over the crossing lane)
+    for (int side = -1; side <= 1; side += 2) {
+        float l = side * (hw - 0.5f);
+        for (float s = 0.f; s < L; s += 12.f) {
+            float s1 = Min(L, s + 12.f);
+            if (!g.owns(P((s + s1) * 0.5f, l))) continue;
+            u32 col = rgb(1.f, 0.93f, 0.62f, 1.f);
+            if (s1 <= br0 || s >= br1) strip(g, P(s, l), P(s1, l), 0.15f, z + kZLine, col, yellow);
+            else {
+                if (br0 > s + 0.1f) strip(g, P(s, l), P(br0, l), 0.15f, z + kZLine, col, yellow);
+                if (br1 < s1 - 0.1f) strip(g, P(br1, l), P(s1, l), 0.15f, z + kZLine, col, yellow);
+            }
+        }
+    }
+    if (!full) return;
+    const u32 wc = rgb(0.93f);
+    // centre dashes (3 m on, 6 m off)
+    for (float s = 9.f; s + 3.f < L - 4.f; s += 9.f)
+        if (g.owns(P(s + 1.5f, 0.f))) strip(g, P(s, 0.f), P(s + 3.f, 0.f), 0.12f, z + kZLine, wc, white);
+    // arrows: right-hand traffic, eastbound (+d) on the -n half, westbound on the +n half
+    for (float s = 26.f; s + 6.f < L; s += 50.f) {
+        if (g.owns(P(s, -hw * 0.5f))) arrow(g, P(s, -hw * 0.5f), d, 5.f, z + kZMark, wc, white);
+        float s2 = s + 25.f;
+        if (s2 + 6.f < L && g.owns(P(s2, hw * 0.5f))) arrow(g, P(s2 + 5.f, hw * 0.5f), -d, 5.f, z + kZMark, wc, white);
+    }
+    // leaving at a: stop bar across the westbound half, STOP read by the drivers coming up to it; coming in: the speed limit
+    if (g.owns(P(1.2f, hw * 0.5f))) {
+        strip(g, P(1.2f, 0.3f), P(1.2f, hw - 0.9f), 0.45f, z + kZMark, wc, white);
+        text(g, "STOP", P(3.4f, hw * 0.5f), n, 1.5f, z + kZMark, wc, white);
+    }
+    if (g.owns(P(14.f, -hw * 0.5f))) text(g, "15", P(14.f, -hw * 0.5f), -n, 1.6f, z + kZMark, wc, white);
+    // walkway crossing just before a: bars along the lane, 0.5 m wide every metre across it
+    for (float l = -hw + 0.8f; l <= hw - 0.8f; l += 1.f)
+        if (g.owns(P(-2.4f, l))) rectW(g, P(-2.4f, l), d, 1.2f, 0.25f, z + kZMark, wc, white);
+    // drains down the middle; a damp patch and a puddle round some of them
+    for (float s = 30.f; s < L - 10.f; s += 48.f) {
+        vec2 c = P(s, 0.f);
+        if (!g.owns(c)) continue;
+        u32 h = hash2i((int)s, (int)(e.seed & 0x7fffffu) ^ 0x0DA1);
+        if (hashToFloat(h) < 0.4f) {
+            Rng rr(h);
+            float pr = rr.range(0.8f, 1.7f);
+            blob(g, c + d * rr.range(-0.4f, 0.4f), d, pr * 1.9f, pr * 1.3f, 14, z + kZDamp, rgbv(kYard * 0.74f), conc, h + 1u);
+            blob(g, c + d * rr.range(-0.3f, 0.3f), d, pr * 1.3f, pr * 0.85f, 14, z + kZSpot, rgb(0.42f, 0.44f, 0.45f), M(MAT_GLASS), h + 2u);
+        }
+        rectW(g, c, d, 0.5f, 0.28f, z + kZDrain - 0.0006f, rgb(0.42f), M(MAT_METAL_BRUSHED));
+        rectW(g, c, d, 0.42f, 0.2f, z + kZDrain, rgb(0.05f), M(MAT_ASPHALT_OLD));
+        for (int k = -2; k <= 2; k++) strip(g, c + d * (k * 0.14f) - n * 0.2f, c + d * (k * 0.14f) + n * 0.2f, 0.04f, z + kZDrain + 0.0004f, rgb(0.35f), M(MAT_METAL_BRUSHED));
+    }
+}
+
+// Hatched zone (c, ax, hx, hy). p[0] 0: safety zone (yellow border, yellow hatching); 1: walkway along ax (green between
+// white edge lines, WALKWAY every 24 m) with a hatched buffer strip on its yard side (p[1] = +1 / -1: the yard side along
+// perp(ax)), 1 m of it
+void hatchZone(const SiteElem& e, G& g) {
+    vec2 ax = e.ax, ay = perp(ax);
+    const u32 yellow = M(MAT_PAINT_YELLOW), white = M(MAT_PAINT_WHITE);
+    const u32 yc = rgb(1.f, 0.93f, 0.62f), wc = rgb(0.93f);
+    const float z = e.z;
+    auto border = [&](vec2 c, float hx, float hy) {
+        for (int s = -1; s <= 1; s += 2) {
+            vec2 p0 = c + ay * (s * hy) - ax * hx, p1 = c + ay * (s * hy) + ax * hx;
+            for (float t = 0.f; t < 2.f * hx; t += 12.f) {
+                vec2 a = lerp(p0, p1, t / (2.f * hx)), b = lerp(p0, p1, Min(1.f, (t + 12.f) / (2.f * hx)));
+                if (g.owns((a + b) * 0.5f)) strip(g, a, b, 0.15f, z + kZMark, yc, yellow);
+            }
+            vec2 q0 = c + ax * (s * hx) - ay * hy, q1 = c + ax * (s * hx) + ay * hy;
+            if (g.owns((q0 + q1) * 0.5f)) strip(g, q0 - ay * 0.075f, q1 + ay * 0.075f, 0.15f, z + kZMark, yc, yellow);
+        }
+    };
+    if (e.p[0] < 0.5f) {
+        hatch(g, e.c, ax, e.hx, e.hy, 0.8f, 0.22f, z + kZLine, yc, yellow);
+        border(e.c, e.hx, e.hy);
+        return;
+    }
+    float ys = e.p[1] < 0.f ? -1.f : 1.f;
+    float bufW = 1.f, gap = 0.2f, walkW = 2.f * e.hy - bufW - gap;
+    vec2 wcen = e.c - ay * (ys * (e.hy - walkW * 0.5f)), bcen = e.c + ay * (ys * (e.hy - bufW * 0.5f));
+    const u32 green = rgb(0.34f, 0.62f, 0.4f);
+    for (float t = -e.hx; t < e.hx; t += 12.f) {
+        float t1 = Min(e.hx, t + 12.f);
+        vec2 m = wcen + ax * ((t + t1) * 0.5f);
+        if (!g.owns(m)) continue;
+        rectW(g, m, ax, (t1 - t) * 0.5f, walkW * 0.5f, z + kZLine, green, white);
+        for (int s = -1; s <= 1; s += 2) strip(g, wcen + ax * t + ay * (s * walkW * 0.5f), wcen + ax * t1 + ay * (s * walkW * 0.5f), 0.1f, z + kZMark, wc, white);
+    }
+    for (float t = -e.hx + 8.f; t < e.hx - 4.f; t += 24.f)
+        if (g.owns(wcen + ax * t)) text(g, "WALKWAY", wcen + ax * t - ay * (walkW * 0.28f), ax, walkW * 0.52f, z + kZMark, wc, white);
+    hatch(g, bcen, ax, e.hx, bufW * 0.5f, 0.8f, 0.2f, z + kZLine, yc, yellow);
+    border(bcen, e.hx, bufW * 0.5f);
+}
+
+// Ground paint of a stack block (drawn with the block by the cell that owns it): slot outlines (row edges and slot ends),
+// 40 ft bay numbers (02, 06, 10 ...) along both lane sides, row numbers at the block ends (bits 0 / 1 of p[2] leave out the
+// -X / +X end), the block ID by the lanes, drips down the straddle carriers' leg lanes between the rows
+void blockPaint(const SiteElem& e, G& g, vec2 origin, vec2 X, vec2 Y, int bays, int rows) {
+    const float pitchX = 12.4f, pitchY = 4.3f, CW = 2.438f, z = e.z;
+    const u32 white = M(MAT_PAINT_WHITE);
+    auto P = [&](float u, float v) { return origin + X * u + Y * v; };
+    const float U = bays * pitchX - 0.208f;  // the last slot's far end
+    for (int j = 0; j < rows; j++) {
+        u32 wc = rgb(0.95f * (0.78f + 0.17f * hashToFloat(hash2i((int)(e.seed & 0x7fffffu), j))));
+        float v0 = j * pitchY + 0.8f, v1 = j * pitchY + 0.9f + CW + 0.1f;
+        strip(g, P(-0.1f, v0), P(U + 0.1f, v0), 0.1f, z + kZLine, wc, white);
+        strip(g, P(-0.1f, v1), P(U + 0.1f, v1), 0.1f, z + kZLine, wc, white);
+        for (int i = 0; i <= bays; i++) {
+            float u = i == 0 ? -0.05f : (i == bays ? U + 0.05f : i * pitchX - 0.104f);
+            strip(g, P(u, v0 - 0.05f), P(u, v1 + 0.05f), 0.1f, z + kZLine, wc, white);
+        }
+    }
+    const u32 nc = rgb(0.92f);
+    char buf[16];
+    for (int side = 0; side < 2; side++) {
+        // read from the lane: side 0 from -Y looking +Y, side 1 from +Y looking -Y (baselines nearest the reader)
+        vec2 right = side == 0 ? X : -X;
+        float vb = side == 0 ? -1.75f : rows * pitchY + 1.75f;
+        for (int i = 0; i < bays; i++) {
+            snprintf(buf, sizeof(buf), "%02d", i * 4 + 2);
+            text(g, buf, P(i * pitchX + 6.096f, vb), right, 0.8f, z + kZMark, nc, white);
+        }
+        if (!e.text.empty()) text(g, e.text.c_str(), P(4.5f, side == 0 ? -4.6f : rows * pitchY + 4.6f), right, 2.f, z + kZMark, nc, white);
+    }
+    int skip = (int)e.p[2];
+    for (int en = 0; en < 2; en++) {
+        if (skip & (1 << en)) continue;
+        // -X end read from the west (right = -Y), +X end from the east (right = +Y)
+        vec2 right = en == 0 ? -Y : Y;
+        float ub = en == 0 ? -1.8f : U + 1.8f;
+        for (int j = 0; j < rows; j++) {
+            snprintf(buf, sizeof(buf), "%d", j + 1);
+            text(g, buf, P(ub, j * pitchY + 0.9f + CW * 0.5f), right, 0.9f, z + kZMark, nc, white);
+        }
+    }
+    // straddle carriers' leg lanes (between the rows and along both block edges)
+    for (int j = 0; j <= rows; j++) {
+        float v = j * pitchY - 0.03f;
+        for (int i = 0; i < bays; i++) {
+            u32 h = hash3i(i, j, (int)(e.seed & 0x7fffffu) ^ 0x0D1);
+            if (hashToFloat(h) > 0.3f) continue;
+            vec2 c = P(i * pitchX + hashToFloat(hash32(h)) * pitchX, v + (hashToFloat(hash32(h + 1)) - 0.5f) * 0.9f);
+            drip(g, c, X, z, hash32(h + 2));
+        }
+    }
+}
+}  // namespace yard
+
 // ------------------------------------------------------------------------------------------------ container stacks
 // Stack height per stack by block variant: 0 import / export mix, 1 reefers (low), 2 empties (tall, by line), 3 sparse
 int stackHeight(u32 h, int variant) {
@@ -897,7 +1295,14 @@ void genContainerBlock(const SiteElem& e, G& g) {
                     boxLine(s, j, t, line, lease);
                     k.line = line;
                     if (line >= 0) {
-                        k.col = e.variant == 1 ? vec3(0.93f, 0.93f, 0.91f) : kLines[line].color;
+                        k.col = kLines[line].color;
+                        if (e.variant == 1) {
+                            // reefers: mostly white, some cream or pale grey, a few in the line's own colour
+                            float rc = hashToFloat(hash32(k.seed + 21));
+                            if (rc < 0.55f) k.col = vec3(0.93f, 0.93f, 0.91f);
+                            else if (rc < 0.72f) k.col = vec3(0.9f, 0.87f, 0.78f);
+                            else if (rc < 0.86f) k.col = vec3(0.74f, 0.77f, 0.78f);
+                        }
                         k.code = kLines[line].code;
                     } else {
                         k.col = kLeaseCol[lease];
@@ -947,6 +1352,7 @@ void genContainerBlock(const SiteElem& e, G& g) {
             }
         }
     }
+    if (g.detail) yard::blockPaint(e, g, origin, X, Y, bays, rows);
     // collision: one box per run of equal stack tops along each row (stack tops are walkable)
     for (int j = 0; j < rows; j++) {
         int s = 0;
@@ -1592,7 +1998,8 @@ void genReachStacker(const SiteElem& e, G& g) {
 }
 
 // Yard dressing: variant 0 jersey barrier run a..b, 1 lashing cages, 2 sign on a post (text, p[0] kind), 3 oil stains and
-// wet patches over an area, 4 cone and drum cluster, 5 block ID board on a pole
+// wet patches over an area, 4 cone and drum cluster, 5 block ID board on a pole; floor paint (see yard::): 6 slab floor of
+// an area, 7 stack lane a..b, 8 hatched safety zone or walkway, 9 parking bays behind a stop line a..b (e.text beyond it)
 void genPortDress(const SiteElem& e, G& g) {
     if (!g.detail) return;
     u32 conc = M(MAT_CONCRETE), paint = M(MAT_METAL_PAINTED);
@@ -1672,7 +2079,7 @@ void genPortDress(const SiteElem& e, G& g) {
         case 2: {
             // sign on a post (or two): e.text, kind p[0]: 0 white regulatory, 1 yellow warning, 2 blue terminal info
             if (!g.owns(e.c)) return;
-            vec2 face = e.ax, rt = perp(-face);
+            vec2 face = e.ax, rt = perp(face);   // the reader's right as they face the sign (its text faces them)
             int kind = (int)e.p[0];
             float w = e.hx, hgt = e.hy;
             u32 bg = kind == 1 ? rgb(0.95f, 0.78f, 0.08f) : (kind == 2 ? rgb(0.08f, 0.25f, 0.55f) : rgb(0.93f));
@@ -1728,23 +2135,45 @@ void genPortDress(const SiteElem& e, G& g) {
                 bool oil = r.chance(0.7f);
                 float rad = oil ? r.range(0.25f, 0.9f) : r.range(0.5f, 1.5f);
                 float sx = r.range(0.6f, 1.4f);
-                u32 col = oil ? rgb(r.range(0.12f, 0.25f)) : rgb(0.42f, 0.44f, 0.45f);
-                u32 mat = M(oil ? MAT_ASPHALT_OLD : MAT_GLASS);
+                float dk = r.range(0.7f, 1.05f);
+                u32 col = oil ? rgbv(yard::kYard * vec3(0.46f, 0.44f, 0.41f) * dk) : rgb(0.42f, 0.44f, 0.45f);
+                u32 mat = M(oil ? MAT_CONCRETE : MAT_GLASS);
+                const float zs = e.z + yard::kZSpot + 0.0008f;   // over the lanes' drips
                 MeshData& d = *g.d;
-                u32 b0 = d.addVertex(vec3(c, e.z + 0.012f) - g.org, vec3(0, 0, 1), vec3(1, 0, 0), c, col, mat);
+                u32 b0 = d.addVertex(vec3(c, zs) - g.org, vec3(0, 0, 1), vec3(1, 0, 0), c, col, mat);
                 const int seg = 10;
                 float ph = r.f() * kTwoPi;
                 for (int s = 0; s <= seg; s++) {
                     float a = kTwoPi * s / seg;
                     float rr = rad * (0.75f + 0.35f * sinf(a * 3.f + ph) * 0.5f + 0.2f * hashToFloat(hash2i(k, s % seg)));
                     vec2 p = c + X * (cosf(a) * rr * sx) + Y * (sinf(a) * rr);
-                    d.addVertex(vec3(p, e.z + 0.012f) - g.org, vec3(0, 0, 1), vec3(1, 0, 0), p, col, mat);
+                    d.addVertex(vec3(p, zs) - g.org, vec3(0, 0, 1), vec3(1, 0, 0), p, col, mat);
                 }
                 for (int s = 0; s < seg; s++) {
                     vec3 fn = cross(d.verts[b0 + 1 + s].pos - d.verts[b0].pos, d.verts[b0 + 2 + s].pos - d.verts[b0].pos);
                     if (fn.z > 0.f) d.tri(b0, b0 + 1 + s, b0 + 2 + s);
                     else d.tri(b0, b0 + 2 + s, b0 + 1 + s);
                 }
+            }
+            break;
+        }
+        case 6: yard::slabFloor(e, g); break;
+        case 7: yard::stackLane(e, g); break;
+        case 8: yard::hatchZone(e, g); break;
+        case 9: {
+            // painted parking bays: a stop line a..b with p[0] bays behind it (away from perp(a->b)), p[1] metres deep; the
+            // instruction beyond the line reads for the drivers waiting in the bays (they face perp(a->b))
+            vec2 d = normalize(e.b - e.a), back = -perp(d);
+            float L = length(e.b - e.a), depth = e.p[1];
+            int nb = Max(1, (int)e.p[0]);
+            const u32 white = M(MAT_PAINT_WHITE), wc = rgb(0.9f);
+            if (g.owns((e.a + e.b) * 0.5f)) {
+                yard::strip(g, e.a, e.b, 0.4f, e.z + yard::kZMark, wc, white);
+                yard::text(g, e.text.c_str(), (e.a + e.b) * 0.5f + perp(d) * 1.f, d, 0.9f, e.z + yard::kZMark, wc, white);
+            }
+            for (int k = 0; k <= nb; k++) {
+                vec2 p = e.a + d * (L * k / nb);
+                if (g.owns(p + back * (depth * 0.5f))) yard::strip(g, p, p + back * depth, 0.12f, e.z + yard::kZLine, wc, white);
             }
             break;
         }
@@ -1764,7 +2193,7 @@ void genPortDress(const SiteElem& e, G& g) {
         default: {
             // block ID board on a pole (row and bay labels for the straddle drivers)
             if (!g.owns(e.c)) return;
-            vec2 face = e.ax, rt = perp(-face);
+            vec2 face = e.ax, rt = perp(face);   // the reader's right
             cyl(g, vec3(e.c, e.z), 0.1f, 0.08f, 5.2f, 8, rgb(0.85f, 0.7f, 0.1f), paint, false);
             vec3 c(e.c + face * 0.12f, e.z + 4.4f);
             quad(g, *g.m, c + vec3(-rt * 0.9f, -0.7f), c + vec3(rt * 0.9f, -0.7f), c + vec3(rt * 0.9f, 0.7f), c + vec3(-rt * 0.9f, 0.7f), rgb(0.95f, 0.78f, 0.1f), paint,

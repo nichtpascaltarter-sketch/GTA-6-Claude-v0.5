@@ -511,7 +511,7 @@ struct App {
             }
         }
         if (autoplay == "crowd" || autoplay == "panic" || autoplay == "chase" || autoplay == "rage" || autoplay == "soak" || autoplay == "parking" ||
-            autoplay == "bender" || autoplay == "hwysoak" || autoplay == "venues" || autoplay == "takeover") {
+            autoplay == "bender" || autoplay == "hwysoak" || autoplay == "venues" || autoplay == "takeover" || autoplay == "surrender" || autoplay == "search") {
             // AI scenario tests: crowd variety at four places and hours / gunfire panic -> police response -> arrest /
             // night car chase at 4 stars (PIT, boxing, roadblocks, helicopter searchlight) / rear-ending a bold driver
             mu::setFlag(game, mu::EX_INTRO_DONE, 1);
@@ -523,6 +523,24 @@ struct App {
                 autoDuration = 4 * 7.f + 0.5f;   // four stops, 7 s each (applyAutoplay)
             } else if (autoplay == "venues") {
                 autoDuration = 3 * 24.f + 0.5f;  // port gate, airport forecourt, Sawgrass causeway: 24 s each (applyAutoplay)
+            } else if (autoplay == "surrender" || autoplay == "search") {
+                // wanted at two stars on a downtown corner, empty-handed: units converge; then the player gives up (hands up,
+                // cuffed, the lighter bust) / slips away out of sight at night (the officers on foot fan out and check the
+                // corners and doorways round the last-seen point, torches on)
+                vec2 q(2713.f, 763.f);
+                p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+                p.yaw = 2.4f;
+                game.rig.yaw = p.yaw;
+                env.timeOfDay = autoplay == "search" ? 22.5f : 13.f;
+                game.giveWeapon(game.player, WPN_PISTOL, 60);
+                p.weapon = WPN_FISTS;
+                p.maxHealth = p.health = 400.f;
+                game.timeScale = 1.5f;
+                game.pinfo.wantedHeat = 2.4f;
+                game.pinfo.wanted = 2;
+                game.pinfo.lastSeenPos = p.pos;
+                game.pinfo.lastSeenTime = (float)game.time;
+                LOG("autoplay %s: wanted 2 at %.0f %.0f, money %lld", autoplay.c_str(), q.x, q.y, game.pinfo.money);
             } else if (autoplay == "takeover") {
                 // a street takeover staged a block or two away at night: donuts, the crowd, then the police and the scatter
                 vec2 q(2300.f, -150.f);
@@ -804,6 +822,98 @@ struct App {
                 game.requestScreenshot = shotPath(StrFormat("auto_crowd_%02d_%s", stop, stops[stop].name));
                 LOG("autoplay crowd %s | %s | %s", stops[stop].name, game.aiCensusText(70.f).c_str(), game.aiDebugText().c_str());
             }
+        } else if (autoplay == "surrender") {
+            // hands up once the first officers are close; the cuffs; the release (weapons back, half the fine)
+            static bool asked = false, bustedSeen = false, released = false;
+            static float logT = 0.f, shotT = 0.f;
+            static int shots = 0;
+            Ped* pl = game.playerPed();
+            float nearest = 1e9f;
+            int nearTactic = -1;
+            for (int i = 0; i < (int)game.peds.size() && i < (int)game.ai.ped.size(); i++) {
+                const Ped& q = game.peds[i];
+                if (!q.used || q.faction != FAC_POLICE || q.health <= 0.f || q.state != PS_ONFOOT || !pl) continue;
+                float d = length(rel(q.pos, pl->pos));
+                if (d < nearest) {
+                    nearest = d;
+                    nearTactic = game.ai.ped[i].tactic;
+                }
+            }
+            if (!asked && pl && (nearest < 40.f || t > 45.f) && t > 6.f) {
+                asked = true;
+                game.ai.forceSurrender = true;
+                shotT = 0.5f;
+                LOG("autoplay surrender: hands up at t=%.1f (nearest officer %.1f m)", t, nearest);
+            }
+            if (game.pinfo.busted && !bustedSeen) {
+                bustedSeen = true;
+                shotT = 0.3f;
+                LOG("autoplay surrender: busted at t=%.1f money %lld", t, game.pinfo.money);
+            }
+            if (bustedSeen && !game.pinfo.busted && !released && pl) {
+                released = true;
+                LOG("autoplay surrender: released at t=%.1f | pistol %d ammo %d | money %lld", t, (int)pl->hasWeapon[WPN_PISTOL], pl->ammo[WPN_PISTOL] + pl->clip[WPN_PISTOL], game.pinfo.money);
+            }
+            if (asked && !released && pl && pl->state == PS_ONFOOT) {
+                // a camera off the player's shoulder, looking at the officers coming in
+                vec2 at = pl->pos.toVec3().xy();
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(at.x + 5.f, at.y - 6.f, pl->pos.z + 3.2f);
+                game.rig.scriptTarget = dvec3(at.x, at.y, pl->pos.z + 1.1f);
+                game.rig.scriptFov = 55.f;
+            } else {
+                game.rig.scriptActive = false;
+            }
+            shotT -= dt;
+            if (asked && shotT <= 0.f && shots < 10 && !released) {
+                shotT = 4.f;
+                game.requestScreenshot = shotPath(StrFormat("auto_surrender_%02d", shots));
+                shots++;
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 2.f;
+                LOG("autoplay surrender t=%.1f wanted %d surrender %d busted %d | nearest officer %.1f m tactic %d | %s", t, game.pinfo.wanted, (int)game.ai.surrender,
+                    (int)game.pinfo.busted, nearest, nearTactic, game.aiCensusText(60.f).c_str());
+            }
+        } else if (autoplay == "search") {
+            // once the units have seen the player, slip away out of sight (110 m off, round the block) and watch the
+            // officers on foot search the corners and doorways round the last-seen point
+            static bool gone = false;
+            static vec2 lastSeen;
+            static float logT = 0.f, shotT = 0.f;
+            static int shots = 0;
+            Ped* pl = game.playerPed();
+            int copsFoot = 0;
+            for (const Ped& q : game.peds) copsFoot += q.used && q.faction == FAC_POLICE && q.health > 0.f && q.state == PS_ONFOOT;
+            if (!gone && pl && ((copsFoot >= 2 && t > 10.f) || t > 40.f)) {
+                gone = true;
+                lastSeen = pl->pos.toVec3().xy();
+                vec2 hide = lastSeen + vec2(-110.f, 8.f);
+                pl->pos = dvec3(hide.x, hide.y, game.groundHeight(hide.x, hide.y, (float)pl->pos.z + 20.f));
+                pl->vel = vec3(0.f);
+                shotT = 3.f;
+                LOG("autoplay search: slipped away at t=%.1f (%d officers on foot), last seen %.0f %.0f", t, copsFoot, lastSeen.x, lastSeen.y);
+            }
+            if (gone) {
+                vec2 ls = game.pinfo.lastSeenPos.toVec3().xy();
+                float gz = game.groundHeight(ls.x, ls.y, 30.f);
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(ls.x + 18.f, ls.y - 22.f, gz + 16.f);
+                game.rig.scriptTarget = dvec3(ls.x, ls.y, gz + 1.f);
+                game.rig.scriptFov = 60.f;
+                shotT -= dt;
+                if (shotT <= 0.f && shots < 10) {
+                    shotT = 5.f;
+                    game.requestScreenshot = shotPath(StrFormat("auto_search_%02d", shots));
+                    shots++;
+                }
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 2.f;
+                LOG("autoplay search t=%.1f wanted %d seen %d | %s", t, game.pinfo.wanted, (int)game.pinfo.policeSeesPlayer, game.aiCensusText(90.f).c_str());
+            }
         } else if (autoplay == "takeover") {
             // follow the takeover from across the crossing: shots every 8 s, its state every 2 s
             static float logT = 0.f, shotT = 6.f, since = -1.f;
@@ -852,22 +962,26 @@ struct App {
                 LOG("autoplay takeover t=%.1f | %s | wanted %d", t, st.c_str(), game.pinfo.wanted);
             }
         } else if (autoplay == "venues") {
-            // the places with a working crowd of their own, at the scorecard tour's stops and hours: the tour's view
-            // first, then two closer looks (scripted camera), a census of the venue crowd at each shot
+            // the places with a working crowd of their own, at the scorecard tour's stops, hours and weather: the tour's own
+            // view first (the player at the tour place, the same camera, a few slow steps), then two closer looks (scripted
+            // camera), a census of the venue crowd at each shot
             static int stop = -1;
             static float stopT = 0.f;
             static int shots = 0;
+            mu::computePlaces(game);
+            const mu::Places& P = mu::gPlaces;
             struct VenueStop {
                 const char* name;
-                vec2 at;       // the tour stop (player / first camera)
-                vec2 look;     // what the first shot looks at
+                const mu::Place* pl;
                 float hour;
+                WeatherKind wx;
+                float yawOff;
                 vec2 cam[2], tgt[2];   // two closer looks
             };
-            static const VenueStop stops[3] = {
-                {"port_gate", {4069.f, -200.f}, {4008.f, -160.f}, 8.5f, {{4036.f, -178.f}, {4046.f, -118.f}}, {{4010.f, -180.f}, {4050.f, -138.f}}},
-                {"airport_forecourt", {751.f, 1200.f}, {690.f, 1270.f}, 11.f, {{699.5f, 1232.f}, {790.f, 1172.f}}, {{692.f, 1300.f}, {766.f, 1146.f}}},
-                {"sawgrass", {-5058.f, 101.f}, {-5000.f, 100.f}, 7.2f, {{-4968.f, 76.f}, {-5016.f, -40.f}}, {{-4930.f, 112.f}, {-5000.f, -74.f}}}};
+            const VenueStop stops[3] = {
+                {"port_gate", &P.portGate, 8.5f, WX_OVERCAST, 0.6f, {{4069.5f, -190.f}, {4030.f, -198.f}}, {{4086.f, -218.f}, {4003.f, -219.f}}},
+                {"airport_forecourt", &P.airport, 11.f, WX_FAIR, 0.6f, {{753.f, 1229.f}, {714.f, 1262.f}}, {{754.f, 1250.f}, {698.f, 1300.f}}},
+                {"sawgrass", &P.sawgrassRoad, 7.2f, WX_FOG, 0.5f, {{-5052.f, 104.5f}, {-4990.f, -56.f}}, {{-5028.f, 101.f}, {-5000.f, -72.f}}}};
             int want = Min((int)(t / 24.f), 2);
             Ped* pl = game.playerPed();
             if (want != stop && pl) {
@@ -876,24 +990,38 @@ struct App {
                 shots = 0;
                 const VenueStop& st = stops[stop];
                 if (pl->vehicle >= 0) game.removePedFromVehicle(game.player, false);
-                vec2 back = normalize(st.at - st.look) * 3.f;   // the player just behind the first camera
-                pl->pos = dvec3(st.at.x + back.x, st.at.y + back.y, game.groundHeight(st.at.x + back.x, st.at.y + back.y, 30.f));
+                // (as the tour places the player: on the sidewalk facing along the street, the camera turned toward
+                //  the frontage side)
+                vec3 pos = st.pl->pos;
+                pl->pos = dvec3(pos.x, pos.y, game.groundHeight(pos.x, pos.y, pos.z + 2.f));
                 pl->vel = vec3(0.f);
+                pl->yaw = atan2f(-st.pl->streetDir.x, st.pl->streetDir.y);
+                vec2 sd = st.pl->streetDir, left(-sd.y, sd.x);
+                float side = dot(left, st.pl->outward) >= 0.f ? 1.f : -1.f;
+                game.rig.yaw = pl->yaw + st.yawOff * side;
+                game.rig.pitch = -0.1f;
+                game.rig.cut = true;
+                game.rig.scriptActive = false;
                 env.timeOfDay = st.hour;
+                weather.setImmediate(st.wx);
                 game.populationWarmup = 2.5f;
-                LOG("autoplay venues stop %d %s at %.0f %.0f, %.1f h", stop, st.name, st.at.x, st.at.y, st.hour);
+                game.pinfo.wanted = 0;
+                LOG("autoplay venues stop %d %s at %.0f %.0f, %.1f h", stop, st.name, pos.x, pos.y, st.hour);
             }
             stopT += dt;
             if (stop >= 0) {
                 const VenueStop& st = stops[stop];
                 int view = stopT < 10.f ? 0 : (stopT < 17.f ? 1 : 2);
-                vec2 cp = view == 0 ? st.at : st.cam[view - 1];
-                vec2 tp = view == 0 ? st.look : st.tgt[view - 1];
-                float cz = game.groundHeight(cp.x, cp.y, 30.f), tz = game.groundHeight(tp.x, tp.y, 30.f);
-                game.rig.scriptActive = true;
-                game.rig.scriptPos = dvec3(cp.x, cp.y, cz + (view == 0 ? 2.2f : 1.8f));
-                game.rig.scriptTarget = dvec3(tp.x, tp.y, tz + 1.3f);
-                game.rig.scriptFov = view == 0 ? 55.f : 45.f;
+                if (view == 0) {
+                    c.move = vec2(0.f, stopT > 3.f && stopT < 6.f ? 0.3f : 0.f);   // (the tour's few slow steps)
+                } else {
+                    vec2 cp = st.cam[view - 1], tp = st.tgt[view - 1];
+                    float cz = game.groundHeight(cp.x, cp.y, pl ? (float)pl->pos.z + 3.f : 30.f), tz = game.groundHeight(tp.x, tp.y, pl ? (float)pl->pos.z + 3.f : 30.f);
+                    game.rig.scriptActive = true;
+                    game.rig.scriptPos = dvec3(cp.x, cp.y, cz + 1.8f);
+                    game.rig.scriptTarget = dvec3(tp.x, tp.y, tz + 1.2f);
+                    game.rig.scriptFov = 45.f;
+                }
                 const float at[3] = {7.5f, 14.5f, 21.5f};
                 if (shots < 3 && stopT > at[shots]) {
                     game.requestScreenshot = shotPath(StrFormat("auto_venues_%s_%d", st.name, shots));
@@ -1363,7 +1491,7 @@ struct App {
     void updateFpGuns(Controls& c, float dt) {
         struct Step {
             WeaponType w;
-            int state;   // 0 hip, 1 aiming, 2 sprinting, 3 reloading
+            int state;   // 0 hip, 1 aiming, 2 sprinting, 3 reloading, 4 reloading (shot as the fresh magazine comes up)
             u8 comps;
             const char* name;
         };
@@ -1374,17 +1502,23 @@ struct App {
             {WPN_SMG, 1, 0, "smg_irons"},            {WPN_REVOLVER, 1, 0, "revolver_aim"},
             {WPN_PISTOL, 0, 0, "pistol_hip"},        {WPN_RIFLE, 3, 0, "rifle_reload"},
             {WPN_PISTOL, 2, 0, "pistol_sprint"},     {WPN_RPG, 0, 0, "rpg_shoulder"},
+            {WPN_SHOTGUN, 3, 0, "shotgun_reload"},   {WPN_REVOLVER, 3, 0, "revolver_reload"},
+            {WPN_PISTOL, 3, 0, "pistol_reload"},     {WPN_RPG, 3, 0, "rpg_reload"},
+            {WPN_RIFLE, 4, 0, "rifle_mag_in_hand"},  {WPN_PISTOL, 4, 0, "pistol_mag_in_hand"},
         };
         const int n = (int)(sizeof(steps) / sizeof(steps[0]));
         const float stepLen = 2.2f;
         if (tourDone) return;
         Ped* pl = game.playerPed();
         if (!pl) return;
-        if (tourStop < 0 || tourT >= stepLen) {
-            tourStop++;
+        // reload steps last the whole reload
+        float curLen = tourStop >= 0 && tourStop < n && steps[tourStop].state >= 3 ? Max(stepLen, 0.8f + weaponInfo(steps[tourStop].w).reloadTime)
+                                                                                   : stepLen;
+        if (tourStop < 0 || tourT >= curLen) {
+            tourStop = tourStop < 0 ? Min(tourFirst, n) : tourStop + 1;   // --tourstart / --tourcount pick steps
             tourT = 0.f;
             tourShot = false;
-            if (tourStop >= n) {
+            if (tourStop >= n || tourStop >= tourFirst + tourCount) {
                 tourDone = true;
                 LOG("autoplay fpguns done");
                 return;
@@ -1393,7 +1527,7 @@ struct App {
             game.giveWeapon(game.player, st.w, 200);
             pl->weapon = st.w;
             game.pinfo.wpnCompOwned[st.w] = game.pinfo.wpnCompFitted[st.w] = st.comps;
-            if (st.state == 3) pl->clip[st.w] = Min(pl->clip[st.w], 3);   // something to reload
+            if (st.state >= 3) pl->clip[st.w] = Min(pl->clip[st.w], weaponInfo(st.w).clipSize > 3 ? 3 : 0);   // something to reload
         }
         const Step& st = steps[tourStop];
         tourT += dt;
@@ -1403,8 +1537,9 @@ struct App {
             c.move = vec2(0.f, 1.f);
             c.sprint.down = true;
         }
-        if (st.state == 3) c.reload.pressed = tourT > 0.3f && tourT - dt <= 0.3f;
-        float shotAt = st.state == 3 ? 0.3f + weaponInfo(st.w).reloadTime * 0.45f : 1.6f;
+        if (st.state >= 3) c.reload.pressed = tourT > 0.3f && tourT - dt <= 0.3f;
+        // reloads: as the feed is worked (4: a little earlier, the fresh magazine on its way up in the hand)
+        float shotAt = st.state >= 3 ? 0.3f + weaponInfo(st.w).reloadTime * (st.state == 4 ? 0.53f : 0.6f) : 1.6f;
         if (!tourShot && tourT >= shotAt) {
             tourShot = true;
             game.requestScreenshot = shotPath(StrFormat("auto_fpguns_%02d_%s", tourStop, st.name));
@@ -1445,10 +1580,10 @@ struct App {
         Ped* pl = game.playerPed();
         if (!pl) return;
         if (tourStop < 0 || (tourShot && game.requestScreenshot.empty() && tourT >= steps[tourStop].at + 0.3f)) {
-            tourStop++;
+            tourStop = tourStop < 0 ? Min(tourFirst, n) : tourStop + 1;   // --tourstart / --tourcount pick screens
             tourT = 0.f;
             tourShot = false;
-            if (tourStop >= n) {
+            if (tourStop >= n || tourStop >= tourFirst + tourCount) {
                 tourDone = true;
                 if (menu.screen != UI::MENU_NONE) {
                     menu.screen = UI::MENU_NONE;
@@ -2221,7 +2356,7 @@ struct App {
         add("Highest wanted level", StrFormat("%.0f stars", pi.maxWanted));
         add("Wasted / busted", StrFormat("%d / %d", pi.deaths, pi.arrests));
         add("Stores robbed", StrFormat("%d", Interiors::storeRobberies(game)));
-        menu.briefTitle = game.storyTitle;
+        menu.briefTitle = game.missionTitle();   // empty between missions: FREE ROAM
         menu.briefText = game.missionBrief();
         menu.money = game.pinfo.money;
         menu.timeOfDay = env.timeOfDay;
@@ -2317,7 +2452,7 @@ struct App {
         game.rig.shakeScale = Saturate(s.cameraShake);
         game.rig.vehicleAutoCenter = s.vehicleAutoCenter;
         game.rig.headBob = s.headBob;
-        game.rig.fpVehicleDefault = s.firstPersonVehicle;
+        game.rig.fpVehicleDefault = s.firstPersonVehicle || Platform::hasArg("firstperson");   // tests: --firstperson everywhere
         if (s.firstPersonOnFoot != lastFpSetting) {   // a changed default applies now; V / Back still toggles in play
             lastFpSetting = s.firstPersonOnFoot;
             game.rig.footFirstPerson = s.firstPersonOnFoot;

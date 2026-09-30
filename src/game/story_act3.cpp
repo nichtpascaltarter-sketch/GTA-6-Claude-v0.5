@@ -50,11 +50,12 @@ public:
         bool inside = in.ok() && in.marker(World::IM_CAR, liftL);
         if (inside) {
             vec3 f = vec3(liftL.x, liftL.y - 4.6f, 0.f);   // the open floor between the roll-up door and the lift
-            rook = spawnCast(g, CAST_ROOK, in.at(f + vec3(1.7f, 2.2f, 0.f)), in.yaw(kPi), FAC_FRIEND);
-            kit = spawnCast(g, CAST_KIT, in.at(f + vec3(-1.7f, 2.0f, 0.f)), in.yaw(kPi), FAC_FRIEND);
-            jonah = spawnCast(g, CAST_JONAH, in.at(f + vec3(2.6f, 0.4f, 0.f)), in.yaw(kPi), FAC_FRIEND);
-            placePed(g, mari, in.at(f + vec3(-2.4f, 0.2f, 0.f)), in.yaw(0.f));
-            placePlayer(g, in.at(f + vec3(0.2f, -0.9f, 0.f)), in.yaw(0.f));
+            // a half circle in front of the raised car, clear of the lift's posts and arms
+            rook = spawnCast(g, CAST_ROOK, in.at(f + vec3(1.4f, 1.4f, 0.f)), in.yaw(kPi), FAC_FRIEND);
+            kit = spawnCast(g, CAST_KIT, in.at(f + vec3(-1.4f, 1.3f, 0.f)), in.yaw(kPi), FAC_FRIEND);
+            jonah = spawnCast(g, CAST_JONAH, in.at(f + vec3(2.6f, 0.2f, 0.f)), in.yaw(kPi), FAC_FRIEND);
+            placePed(g, mari, in.at(f + vec3(-2.5f, 0.1f, 0.f)), in.yaw(0.f));
+            placePlayer(g, in.at(f + vec3(0.1f, -1.0f, 0.f)), in.yaw(0.f));
         } else {
             rook = spawnCast(g, CAST_ROOK, P.rookShop.door, P.rookShop.yaw + kPi, FAC_FRIEND);
             kit = spawnCast(g, CAST_KIT, placeOffset(g, P.rookShop, -2.f, 3.f), P.rookShop.yaw + kPi, FAC_FRIEND);
@@ -532,7 +533,7 @@ public:
         int rook;
         if (inside) {
             vec3 f = vec3(liftL.x, liftL.y - 4.2f, 0.f);
-            rook = spawnCast(g, CAST_ROOK, in.at(f + vec3(0.9f, 1.9f, 0.f)), in.yaw(kPi), FAC_FRIEND);
+            rook = spawnCast(g, CAST_ROOK, in.at(f + vec3(0.9f, 1.1f, 0.f)), in.yaw(kPi), FAC_FRIEND);   // clear of the lift arms
             placePed(g, mari, in.at(f + vec3(-1.6f, 0.1f, 0.f)), in.yaw(0.f));
             placePlayer(g, in.at(f + vec3(0.4f, -0.6f, 0.f)), in.yaw(0.f));
         } else {

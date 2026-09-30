@@ -224,7 +224,7 @@ struct PostSystem {
         // Storms: a little darker too (brooding sky instead of a blown-out grey dome)
         float storm = r.frame.weather2.y;
         cb.data.p0 = vec4(exposureCompensation - 0.55f * night - 0.35f * storm * (1.f - night), 2.2f, 1.4f, Clamp(dt, 0.f, 0.25f));
-        cb.data.p1 = vec4(Lerp(0.045f, 0.075f, night), 0.22f + 0.08f * night, 0.012f, 1.08f + 0.06f * night);
+        cb.data.p1 = vec4(Lerp(0.06f, 0.115f, night), 0.22f + 0.08f * night, 0.012f, 1.08f + 0.06f * night);   // bloom: tighter chain (csBloomUp), stronger core
         // Exposure limits. By day a dark surface right in front of the camera (an awning, a wall, a car) must not
         // drive the exposure to night levels: the sunlit world around it would blow out. The floor follows the sun
         // (fully shaded daytime streets meter around EV 12.5); inside interiors the exposure may open up further.

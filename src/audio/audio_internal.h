@@ -63,6 +63,24 @@ enum BankId : int {
     GUN_FAR_URBAN = GUN_SUP + GC_COUNT,       // + GunFar: distant shot among buildings (rolling slap echoes)
     GUN_FAR_OPEN = GUN_FAR_URBAN + GF_COUNT,  // + GunFar: distant shot over open country (boom + long rumble)
     GUN_CRACK = GUN_FAR_OPEN + GF_COUNT,      // supersonic bullet crack (N-wave) near the bullet path
+    STEP_HEEL,                                // + Footwear: heel strike on hard ground (Mixer::startFootstep)
+    STEP_TOE = STEP_HEEL + FOOTWEAR_COUNT,    // + Footwear: roll-off and toe (sandals: the flap against the heel)
+    STEP_SOFT = STEP_TOE + FOOTWEAR_COUNT,    // any sole on soft ground (grass, dirt, sand, mud)
+    STEP_TEX,                                 // + FootSurface: the surface's own sound
+    STEP_PUDDLE = STEP_TEX + FOOT_SURFACE_COUNT,  // splash on wet hard ground
+    STEP_CLOTH_WALK,                          // clothing per step
+    STEP_CLOTH_RUN,
+    STEP_GEAR,                                // keys, coins, equipment
+    STEP_LAND_HARD,                           // both feet after a jump or a drop
+    STEP_LAND_SOFT,
+    STEP_SCUFF,                               // sole twisting on the ground (sharp stop / turn)
+    BODY_THUD_HARD,                           // a body hitting asphalt / concrete
+    BODY_THUD_SOFT,                           // grass, dirt, sand, mud
+    BODY_THUD_WOOD,
+    BODY_THUD_METAL,
+    BODY_SLAP,                                // an arm or leg slapping down
+    FOLEY_CLOTH_BURST,                        // vault / climb / dive into cover
+    FOLEY_GRAB_HAND,                          // a palm slapping onto a ledge
     BANK_COUNT
 };
 

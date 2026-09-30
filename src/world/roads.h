@@ -63,9 +63,20 @@ struct RoadEdge {
     vec3 tangentAt(float s) const;
 };
 
+// Where a street that ran out onto a beach now ends (generate() pulls such dead ends back off the sand): the node the way on
+// to the water starts from and the direction of the water. `bulb`: a dead end with its turning circle; otherwise the street
+// was dropped back to the junction it hung off.
+struct BeachEnd {
+    int node = -1;
+    vec2 dir;
+    bool bulb = false;
+    std::string name;   // the street's
+};
+
 struct RoadNetwork {
     std::vector<RoadNode> nodes;
     std::vector<RoadEdge> edges;
+    std::vector<BeachEnd> beachEnds;
     // Spatial hash: 64 m cells -> edge indices
     static constexpr float kHashCell = 64.f;
     int hashRes = 0;

@@ -74,6 +74,7 @@ void buildSiteCell(int cx, int cy, bool detail, CellGeometry& out) {
             case SK_GOLF_HOLE: leisure_mesh::genGolfHole(e, g); break;
             case SK_GOLF_POND: leisure_mesh::genGolfPond(e, g); break;
             case SK_BEACH_CLUB: leisure_mesh::genBeachClub(e, g); break;
+            case SK_BEACH_ACCESS: leisure_mesh::genBeachAccess(e, g); break;
             case SK_DOCK: leisure_mesh::genDock(e, g); break;
             case SK_RIVER_MARINA: leisure_mesh::genRiverMarina(e, g); break;
             // landmarks

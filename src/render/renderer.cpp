@@ -619,6 +619,15 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
             g.pos = rel(dl.pos, cam.pos);
             g.radius = dl.radius;
             g.color = dl.color;
+            // a broken gameplay light (non-finite, negative or absurd values) must not poison the lighting, the fog
+            // volume or its history
+            bool finite = std::isfinite(g.pos.x) && std::isfinite(g.pos.y) && std::isfinite(g.pos.z) && std::isfinite(g.radius) &&
+                          std::isfinite(g.color.x) && std::isfinite(g.color.y) && std::isfinite(g.color.z) &&
+                          std::isfinite(dl.dir.x) && std::isfinite(dl.dir.y) && std::isfinite(dl.dir.z) &&
+                          std::isfinite(dl.spotCos) && std::isfinite(dl.spotInner);
+            if (!finite || !(g.radius > 0.01f)) continue;
+            g.radius = Min(g.radius, 400.f);
+            g.color = vec3(Clamp(g.color.x, 0.f, 2e6f), Clamp(g.color.y, 0.f, 2e6f), Clamp(g.color.z, 0.f, 2e6f));
             g.dir = dl.dir;
             g.spotCos = dl.headlight ? 0.f : dl.spotCos;
             g.spotInner = dl.headlight ? 2.f : dl.spotInner;

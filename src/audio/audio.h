@@ -210,6 +210,36 @@ float estimateSpeechDuration(const char* text, const VoiceParams& voice);
 // close strikes tear and crack before the boom, 1-3 km boom and roll, farther ones only rumble.
 void playThunder(float distance, float volume = 1.f);
 
+// ---------------------------------------------------------------------------------------------
+// Footsteps and body foley. The game reports each foot contact; the mixer builds the step from layers: the sole
+// meeting the ground (heel strike and roll-off, by footwear), the surface's own sound (grit on asphalt and concrete,
+// boardwalk planks, steel plate, grass, dirt, sand, shallow water, mud), clothing and gear at speed, and a splash when
+// the ground is wet. The gait (walk, jog, run, sprint) sets the heel-toe timing and how hard the foot comes down.
+enum FootSurface : u8 { FOOT_ASPHALT = 0, FOOT_CONCRETE, FOOT_GRASS, FOOT_DIRT, FOOT_SAND, FOOT_WATER, FOOT_WOOD, FOOT_METAL,
+                        FOOT_MUD, FOOT_SURFACE_COUNT };  // same order as Phys::SurfaceType
+enum Footwear : u8 { FOOTWEAR_SNEAKER = 0, FOOTWEAR_LEATHER, FOOTWEAR_HEEL, FOOTWEAR_BOOT, FOOTWEAR_SANDAL, FOOTWEAR_BARE,
+                     FOOTWEAR_COUNT };
+enum FootEvent : u8 { FOOT_STEP = 0, FOOT_LAND, FOOT_SCUFF };
+struct Footstep {
+    vec3 pos;                 // the foot on the ground
+    float speed = 1.4f;       // ground speed (m/s)
+    float weight = 1.f;       // body weight relative to an average adult (force and pitch)
+    float wetness = 0.f;      // 0 dry .. 1 standing water on the ground (rain)
+    float impact = 0.f;       // FOOT_LAND: vertical speed at touchdown (m/s)
+    float volume = 1.f;
+    u8 surface = FOOT_ASPHALT;
+    u8 footwear = FOOTWEAR_SNEAKER;
+    u8 event = FOOT_STEP;     // FOOT_SCUFF: a sharp stop or turn (sole twisting on the ground)
+    bool player = false;      // the player's own feet: clothing rustle at a walk, gear jingle at a run
+};
+void playFootstep(const Footstep& f);
+// A body hitting the ground (ragdolls, knock-downs, falls): impact speed (m/s) and FootSurface; torso = the trunk (a
+// heavy thud with clothing and a second smaller impact as the limbs follow), otherwise a limb slapping down.
+void playBodyImpact(vec3 pos, float speed, u8 surface, bool torso = true, float volume = 1.f);
+// Bursts of clothing and equipment movement (vaulting, climbing, diving into cover) and a hand grabbing a ledge.
+enum FoleyKind : u8 { FOLEY_CLOTH = 0, FOLEY_GEAR, FOLEY_GRAB, FOLEY_COUNT };
+void playFoley(vec3 pos, u8 kind, float intensity = 1.f);
+
 // Score: dynamic mission music (intensity 0 = off .. 1 = full action), mood seed per mission.
 void setScore(int moodSeed, float intensity);
 

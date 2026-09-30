@@ -91,6 +91,11 @@ struct Ragdoll {
     float time = 0.f;
     bool frozen = false;
     int contactVehicle = -1;
+    // ground impacts this frame for the body-fall sounds: [0] trunk and head, [1] limbs
+    float hitSpeed[2] = {0.f, 0.f};
+    vec3 hitPos[2];
+    u8 hitSurf[2] = {0, 0};
+    float thudCool = 0.f, slapCool = 0.f;
 };
 
 void freeRagdoll(Ragdoll*& r) {
@@ -266,6 +271,15 @@ void GameWorld_updateRagdoll(GameWorld& g, Ped& p, float dt) {
                     vec3& q = r.p[i];
                     Phys::GroundHit gh = Phys::gCollision->ground(q.x, q.y, q.z + 0.4f, 0.2f);
                     if (q.z < gh.z + rad) {
+                        if (it == 0) {  // touchdown speed for the impact sounds
+                            int cls = (i <= RP_HEAD) ? 0 : 1;
+                            float vz = (r.prev[i].z - q.z) / h;
+                            if (vz > r.hitSpeed[cls]) {
+                                r.hitSpeed[cls] = vz;
+                                r.hitPos[cls] = q;
+                                r.hitSurf[cls] = gh.water ? (u8)Phys::SURF_WATER : gh.surface;
+                            }
+                        }
                         float pen = gh.z + rad - q.z;
                         q.z += pen;
                         // friction: kill tangential motion proportionally to the penetration
@@ -310,6 +324,22 @@ void GameWorld_updateRagdoll(GameWorld& g, Ped& p, float dt) {
         if (maxV < 0.35f) r.settle += dt;
         else r.settle = 0.f;
         if (p.state == PS_DEAD && r.settle > 2.f) r.frozen = true;
+#ifdef HAVE_AUDIO
+        // the body hitting the ground: a thud for the trunk, slaps for arms and legs (rate-limited per body)
+        r.thudCool -= dt;
+        r.slapCool -= dt;
+        if (p.visibleDist < 60.f || p.isPlayer) {
+            if (r.hitSpeed[0] > 1.6f && r.thudCool <= 0.f) {
+                Audio::playBodyImpact(r.hitPos[0], r.hitSpeed[0], r.hitSurf[0], true);
+                r.thudCool = 0.35f;
+            }
+            if (r.hitSpeed[1] > 2.2f && r.slapCool <= 0.f) {
+                Audio::playBodyImpact(r.hitPos[1], r.hitSpeed[1], r.hitSurf[1], false, 0.8f);
+                r.slapCool = 0.18f;
+            }
+        }
+        r.hitSpeed[0] = r.hitSpeed[1] = 0.f;
+#endif
     }
     // keep the ped origin at the pelvis ground projection
     vec3 pel = r.p[RP_PELVIS];

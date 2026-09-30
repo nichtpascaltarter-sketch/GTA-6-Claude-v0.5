@@ -113,8 +113,32 @@ void sphere(MeshData& m, vec3 c, float r, int seg, u32 color, u32 mat) {
         }
 }
 
-// Weapon meshes: grip at the origin, barrel along +Y, up +Z.
-void buildWeaponMesh(WeaponType w, MeshData& m) {
+// Splits the index ranges `parts` ([i0, i1) pairs) out of m: `rest` gets every other triangle, `part` those; both are
+// compacted to the vertices they use.
+void splitMeshParts(const MeshData& m, const std::vector<u32>& parts, MeshData& rest, MeshData& part) {
+    std::vector<u8> inPart(m.indices.size(), 0);
+    for (size_t k = 0; k + 1 < parts.size(); k += 2)
+        for (u32 i = parts[k]; i < parts[k + 1] && i < (u32)m.indices.size(); i++) inPart[i] = 1;
+    for (int pass = 0; pass < 2; pass++) {
+        MeshData& out = pass ? part : rest;
+        out.clear();
+        std::vector<u32> remap(m.verts.size(), ~0u);
+        for (size_t i = 0; i < m.indices.size(); i++) {
+            if (inPart[i] != (u8)pass) continue;
+            u32 v = m.indices[i];
+            if (remap[v] == ~0u) {
+                remap[v] = (u32)out.verts.size();
+                out.verts.push_back(m.verts[v]);
+                out.bounds.add(m.verts[v].pos);
+            }
+            out.indices.push_back(remap[v]);
+        }
+    }
+}
+
+// Weapon meshes: grip at the origin, barrel along +Y, up +Z. magIdx (optional) receives the index ranges ([i0, i1)
+// pairs) of the magazine, which first-person reloads draw apart from the gun.
+void buildWeaponMesh(WeaponType w, MeshData& m, std::vector<u32>* magIdx = nullptr) {
     u32 black = packRGBA8(0.035f, 0.036f, 0.04f, 1), gun = packRGBA8(0.07f, 0.072f, 0.078f, 1);
     u32 steel = packRGBA8(0.55f, 0.56f, 0.58f, 1), wood = packRGBA8(0.42f, 0.24f, 0.12f, 1);
     u32 poly = packRGBA8(0.05f, 0.05f, 0.05f, 1), tan = packRGBA8(0.45f, 0.38f, 0.26f, 1);
@@ -129,6 +153,13 @@ void buildWeaponMesh(WeaponType w, MeshData& m) {
         vec3 dir = normalize(vec3(0, -sinf(ang), -cosf(ang)));
         vec3 c = base + dir * len * 0.5f;
         obox(m, c, cross(vec3(1, 0, 0), dir) * -1.f, dir * -1.f, he, col, mat);
+    };
+    u32 magI0 = 0;
+    auto magBegin = [&]() { magI0 = (u32)m.indices.size(); };
+    auto magEnd = [&]() {
+        if (!magIdx) return;
+        magIdx->push_back(magI0);
+        magIdx->push_back((u32)m.indices.size());
     };
     switch (w) {
         case WPN_PISTOL: {
@@ -168,7 +199,12 @@ void buildWeaponMesh(WeaponType w, MeshData& m) {
                 for (int sd = -1; sd <= 1; sd += 2)
                     obox(m, base + dir * 0.058f + vec3(sd * 0.0143f, 0.f, 0.f), ax, dir * -1.f, vec3(0.0006f, 0.012f, 0.034f),
                          packRGBA8(0.035f, 0.035f, 0.036f, 1), matRubber);
+                magBegin();
                 obox(m, base + dir * 0.112f, ax, dir * -1.f, vec3(0.0155f, 0.0195f, 0.0035f), poly, matPlastic);   // mag base
+                // the magazine body and the top round inside the grip (seen when it is out)
+                obox(m, base + dir * 0.062f, ax, dir * -1.f, vec3(0.0105f, 0.0155f, 0.05f), black, matMetal);
+                obox(m, base + dir * 0.011f, ax, dir * -1.f, vec3(0.0045f, 0.011f, 0.0045f), packRGBA8(0.72f, 0.55f, 0.24f, 1), matSteel);
+                magEnd();
                 obox(m, vec3(0, -0.021f, 0.029f), vec3(0, 1, 0.25f), U, vec3(0.011f, 0.008f, 0.0035f), poly, matPlastic);   // beavertail
             }
             // trigger guard (bar and front post), trigger blade
@@ -237,10 +273,12 @@ void buildWeaponMesh(WeaponType w, MeshData& m) {
             cylinderAB(m, vec3(0, 0.205f, 0.055f), vec3(0, 0.235f, 0.055f), 0.015f, 0.015f, 10, black, matMetal);   // shroud
             cylinderAB(m, vec3(0, 0.235f, 0.055f), vec3(0, 0.27f, 0.055f), 0.0095f, 0.0095f, 10, black, matSteel);
             cylinderAB(m, vec3(0, 0.27f, 0.055f), vec3(0, 0.2705f, 0.055f), 0.0048f, 0.0048f, 10, black, matRubber);
+            magBegin();
             obox(m, vec3(0, 0.07f, -0.04f), vec3(0, 1, -0.1f), U, vec3(0.012f, 0.018f, 0.07f), black, matMetal);  // magazine
             for (int sd = -1; sd <= 1; sd += 2)
                 obox(m, vec3(sd * 0.0122f, 0.07f, -0.045f), vec3(0, 1, -0.1f), U, vec3(0.0006f, 0.01f, 0.055f), packRGBA8(0.05f, 0.05f, 0.052f, 1),
                      matRubber);
+            magEnd();
             obox(m, vec3(0, 0.028f, -0.006f), F, U, vec3(0.0042f, 0.018f, 0.002f), lower, matMetal);    // trigger guard
             obox(m, vec3(0, 0.046f, 0.006f), F, U, vec3(0.0042f, 0.0022f, 0.012f), lower, matMetal);
             obox(m, vec3(0, 0.026f, 0.007f), F, normalize(vec3(0, -0.3f, 1.f)), vec3(0.0024f, 0.0018f, 0.0085f), black, matMetal);
@@ -283,11 +321,13 @@ void buildWeaponMesh(WeaponType w, MeshData& m) {
             }
             cylinderAB(m, vec3(0, 0.6f, 0.055f), vec3(0, 0.6006f, 0.055f), 0.0056f, 0.0056f, 10, black, matRubber);
             // curved magazine (two segments) with side ribs
+            magBegin();
             obox(m, vec3(0, 0.1f, -0.028f), vec3(0, 1, 0.15f), U, vec3(0.0125f, 0.022f, 0.048f), black, matMetal);
             obox(m, vec3(0, 0.113f, -0.088f), vec3(0, 1, 0.42f), U, vec3(0.0125f, 0.021f, 0.022f), black, matMetal);
             for (int sd = -1; sd <= 1; sd += 2)
                 obox(m, vec3(sd * 0.0127f, 0.1f, -0.03f), vec3(0, 1, 0.15f), U, vec3(0.0006f, 0.012f, 0.04f), packRGBA8(0.05f, 0.05f, 0.052f, 1),
                      matRubber);
+            magEnd();
             // trigger guard and trigger, pistol grip
             obox(m, vec3(0, 0.04f, -0.01f), F, U, vec3(0.0042f, 0.028f, 0.002f), lower, matMetal);
             obox(m, vec3(0, 0.066f, 0.003f), F, U, vec3(0.0042f, 0.0022f, 0.012f), lower, matMetal);
@@ -355,7 +395,9 @@ void buildWeaponMesh(WeaponType w, MeshData& m) {
             obox(m, vec3(0, 0.05f, 0.078f), F, U, vec3(0.013f, 0.08f, 0.011f), steel, matSteel);          // action
             cylinderAB(m, vec3(0.013f, 0.02f, 0.072f), vec3(0.042f, 0.012f, 0.062f), 0.004f, 0.004f, 8, steel, matSteel);  // bolt
             sphere(m, vec3(0.045f, 0.011f, 0.06f), 0.008f, 10, black, matPlastic);                         // bolt knob
+            magBegin();
             obox(m, vec3(0, 0.03f, -0.02f), F, U, vec3(0.012f, 0.03f, 0.03f), black, matMetal);            // magazine
+            magEnd();
             obox(m, vec3(0, 0.0f, -0.005f), F, U, vec3(0.0042f, 0.022f, 0.002f), black, matMetal);         // trigger guard
             obox(m, vec3(0, -0.004f, 0.006f), F, normalize(vec3(0, -0.3f, 1.f)), vec3(0.0024f, 0.0018f, 0.0085f), black, matMetal);
             grip(vec3(0, -0.05f, 0.02f), 0.09f, 0.35f, vec3(0.014f, 0.018f, 0.045f), olive, matPlastic);
@@ -641,7 +683,8 @@ void GameWorld::buildAssets() {
 #endif
     for (int w = 1; w < WPN_COUNT; w++) {
         MeshData m;
-        buildWeaponMesh((WeaponType)w, m);
+        std::vector<u32> magIdx;
+        buildWeaponMesh((WeaponType)w, m, &magIdx);
         weaponModels[w] = m.empty() ? nullptr : dyn->createModel(m);
         weaponTintModels[w][0] = weaponModels[w];
         if (m.empty() || w == WPN_GRENADE || w == WPN_MOLOTOV || weaponInfo((WeaponType)w).clipSize == 0) continue;
@@ -649,6 +692,14 @@ void GameWorld::buildAssets() {
             MeshData tm = m;
             tintWeaponMesh(tm, t);
             weaponTintModels[w][t] = dyn->createModel(tm);
+        }
+        for (int t = 0; t < kWeaponTints && !magIdx.empty(); t++) {   // magazine-fed: split for first-person reloads
+            MeshData tm = m;
+            if (t) tintWeaponMesh(tm, t);
+            MeshData body, mag;
+            splitMeshParts(tm, magIdx, body, mag);
+            weaponBodyModels[w][t] = body.empty() ? nullptr : dyn->createModel(body);
+            weaponMagModels[w][t] = mag.empty() ? nullptr : dyn->createModel(mag);
         }
         for (int c = 0; c < kWeaponCompCount; c++) {   // attachments, drawn with the weapon's transform
             MeshData cm;

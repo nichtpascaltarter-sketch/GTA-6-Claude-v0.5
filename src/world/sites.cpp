@@ -407,7 +407,7 @@ void layoutAirport(Lay& L) {
         fcLine(0, vec2(LOOP_X + 6.2f, 1192.f), vec2(LOOP_X + 6.2f, 1482.f), 2.4f, 2100u);
         fcLine(0, vec2(LOOP_X + 6.2f, 1518.f), vec2(LOOP_X + 6.2f, 1733.f), 2.4f, 2101u);
         fcLine(0, vec2(CURB_X - 6.3f, 1164.f), vec2(CURB_X - 6.3f, 1756.f), 2.4f, 2102u);
-        fc(1, vec2(760.f, 1250.f), vec2(-1, 0), 4.f, 3.f, 3.f, 2110u);
+        fc(1, vec2(755.5f, 1234.f), vec2(-1, 0), 4.f, 3.f, 3.f, 2110u);   // south of garage 1's stair tower (x 758-765, y 1245-1257)
         fc(2, vec2(761.f, 1212.f), vec2(0, 1), 3.5f, 2.f, 1.f, 2120u);
         for (int k = 0; k < 4; k++) fc(2, vec2(689.5f, 1300.f + k * 125.f), vec2(0, 1), 3.5f, 2.f, 1.f, 2121u + (u32)k);
         fc(3, vec2(757.5f, 1203.f), vec2(0, -1), 0.6f, 0.6f, 3.2f, 2130u).text = "TERMINAL|>ARRIVALS|>DEPARTURES|<GARAGE 1";
@@ -416,7 +416,7 @@ void layoutAirport(Lay& L) {
         fc(3, vec2(694.5f, 1640.f), vec2(0, 1), 0.6f, 0.6f, 3.2f, 2133u).text = "DEPARTURES|CHECK-IN|A B C";
         fcLine(4, vec2(763.2f, 1268.f), vec2(763.2f, 1296.f), 5.f, 2140u);
         for (int k = 0; k < 3; k++) fc(5, vec2(763.2f, 1325.f + k * 48.f), vec2(0, 1), 4.f, 1.f, 1.f, 2150u + (u32)k);
-        for (int k = 0; k < 3; k++) fc(5, vec2(763.2f, 1560.f + k * 60.f), vec2(0, 1), 4.f, 1.f, 1.f, 2153u + (u32)k);
+        for (int k = 0; k < 3; k++) fc(5, vec2(763.2f, 1590.f + k * 60.f), vec2(0, 1), 4.f, 1.f, 1.f, 2153u + (u32)k);   // north of garage 2's stair tower
         for (int k = 0; k < 5; k++) fc(5, vec2(682.6f, 1200.f + k * 128.f), vec2(0, 1), 4.f, 1.f, 1.f, 2156u + (u32)k);
         {
             SiteElem& g0 = fcLine(6, vec2(LOOP_X - 8.3f, 1300.f), vec2(LOOP_X + 7.3f, 1300.f), 10.f, 2160u);
@@ -724,6 +724,8 @@ void layoutPort(Lay& L) {
                 SiteElem& e = L.elem(SK_CONTAINER_BLOCK, vec2(cx, cy), vec2(1, 0), bays * BAY * 0.5f, blockW * 0.5f, zP, 17.f, yr.next());
                 e.p[0] = (float)bays;
                 e.p[1] = (float)rows;
+                e.p[2] = c == 0 ? 1.f : 0.f;   // no row numbers painted at column A's boulevard end (the walkway runs there)
+                e.text = StrFormat("%c%d", 'A' + c, blockNo / 2 + 1);   // as on the ID boards
                 float r = yr.f();
                 e.variant = (u16)(r < 0.14f ? 1 : (r < 0.28f ? 2 : (r < 0.36f ? 3 : 0)));
                 blockNo++;
@@ -740,10 +742,19 @@ void layoutPort(Lay& L) {
         SiteElem& e = L.elem(SK_STRADDLE, vec2(x, yy), i < 9 ? vec2(yr.chance(0.5f) ? 1.f : -1.f, 0.f) : vec2(0, 1), 6.f, 5.f, zP, 15.f, yr.next());
         e.p[0] = yr.chance(0.6f) ? 1.f : 0.f;
     }
-    // High-mast lighting
-    for (int i = 0; i < 8; i++) L.elem(SK_YARD_MAST, vec2(4289.f, 0.f - 130.f * i - 30.f), vec2(1, 0), 3.f, 3.f, zP, 36.f, 1700u + i);
-    for (int i = 0; i < 5; i++) L.elem(SK_YARD_MAST, vec2(4537.f, -60.f - 235.f * i), vec2(1, 0), 3.f, 3.f, zP, 36.f, 1720u + i);
-    for (int i = 0; i < 4; i++) L.elem(SK_YARD_MAST, vec2(4068.f + 0.f, -300.f - 230.f * i + 20.f), vec2(1, 0), 3.f, 3.f, zP, 30.f, 1730u + i);
+    // High-mast lighting: down the gap between the block columns (the one by Terminal Lane 1 stands off the street), on the
+    // quay apron, and between Port Boulevard and the barrier line (clear of the junctions); a hatched safety zone round each
+    std::vector<vec2> masts;
+    for (int i = 0; i < 8; i++) masts.push_back(vec2(4289.f, i == 2 ? -301.f : -30.f - 130.f * i));
+    for (int i = 0; i < 5; i++) masts.push_back(vec2(4537.f, -60.f - 235.f * i));
+    const float blvdMastY[4] = {-250.f, -500.f, -693.f, -940.f};   // beside a block (behind the barrier line), not a lane mouth
+    for (int i = 0; i < 4; i++) masts.push_back(vec2(BLVD_X + 10.5f, blvdMastY[i]));
+    for (size_t i = 0; i < masts.size(); i++) {
+        bool blvd = i >= 13;
+        L.elem(SK_YARD_MAST, masts[i], vec2(1, 0), 3.f, 3.f, zP, blvd ? 30.f : 36.f, (u32)(i < 8 ? 1700 + i : (i < 13 ? 1720 + i - 8 : 1730 + i - 13)));
+        SiteElem& hz = L.elem(SK_PORT_DRESS, masts[i], vec2(1, 0), blvd ? 1.5f : 2.f, blvd ? 1.5f : 2.f, zP, 0.1f, 0x5AFEu + (u32)i);
+        hz.variant = 8;
+    }
     // Working yard dressing along Port Boulevard (column A's west ends): block ID boards, a precast barrier line between the
     // sidewalk and the stacks (open at the lanes), and in the lane mouths trucks waiting on their chassis, a reach stacker
     // carrying a box, lashing cages, cones and drums, oil stains
@@ -764,9 +775,10 @@ void layoutPort(Lay& L) {
             vec2 sp = blockSpans[bi];
             SiteElem& jb = L.line(SK_PORT_DRESS, vec2(xw, sp.x - 0.6f), vec2(xw, sp.y + 0.6f), 1.f, zP, 1.f, 0xB0B0u + (u32)bi);
             jb.variant = 0;
-            // ID boards at both corners facing the boulevard ("A" column, blocks numbered from the north)
+            // ID boards at both corners facing the boulevard ("A" column, blocks numbered from the north), just behind the
+            // barriers so the walkway runs clear
             for (int c = 0; c < 2; c++) {
-                SiteElem& id = L.elem(SK_PORT_DRESS, vec2(xw + 1.4f, c ? sp.y + 2.f : sp.x - 2.f), vec2(-1, 0), 1.f, 1.f, zP, 5.f, 0xB1D0u + (u32)bi * 2u + (u32)c);
+                SiteElem& id = L.elem(SK_PORT_DRESS, vec2(xw + 0.45f, c ? sp.y + 2.f : sp.x - 2.f), vec2(-1, 0), 1.f, 1.f, zP, 5.f, 0xB1D0u + (u32)bi * 2u + (u32)c);
                 id.variant = 5;
                 id.text = StrFormat("A%d%c", (int)bi + 1, c ? 'S' : 'N');
             }
@@ -798,7 +810,8 @@ void layoutPort(Lay& L) {
                 rs.p[1] = dr.chance(0.3f) ? -1.f : (float)dr.irange(0, 9);
             }
             if (dr.chance(0.5f)) {
-                SiteElem& lc = L.elem(SK_PORT_DRESS, vec2(xw + 1.9f, sp.y - 3.2f), vec2(0, -1), 4.f, 2.f, zP, 2.4f, 0xCA6Eu + (u32)bi);
+                // lashing cages set down at the lane side, past the crossing and the block's painted ID
+                SiteElem& lc = L.elem(SK_PORT_DRESS, vec2(colX0[0] + 11.f, sp.y - 3.f), vec2(1, 0), 4.f, 2.f, zP, 2.4f, 0xCA6Eu + (u32)bi);
                 lc.variant = 1;
             }
             if (dr.chance(0.35f)) {
@@ -810,12 +823,50 @@ void layoutPort(Lay& L) {
         const char* rules[] = {"SPEED LIMIT|15", "HARD HAT AND HI-VIS|BEYOND THIS POINT", "STRADDLE CARRIERS|HAVE RIGHT OF WAY", "NO PEDESTRIANS|IN STACK LANES"};
         const float ruleY[4] = {-186.f, -304.f, -420.f, -560.f};   // clear of the terminal lane streets
         for (int k = 0; k < 4; k++) {
-            SiteElem& sg = L.elem(SK_PORT_DRESS, vec2(xw + 1.f, ruleY[k]), vec2(-1, 0), 1.6f, 1.f, zP, 1.2f, 0x5160u + (u32)k);
+            SiteElem& sg = L.elem(SK_PORT_DRESS, vec2(xw + 0.45f, ruleY[k]), vec2(-1, 0), 1.6f, 1.f, zP, 1.2f, 0x5160u + (u32)k);
             sg.variant = 2;
             sg.hx = k == 0 ? 0.9f : 1.6f;
             sg.hy = k == 0 ? 1.1f : 0.9f;
             sg.p[0] = k == 0 ? 0.f : 1.f;
             sg.text = rules[k];
+        }
+        // Floor paint: stack lanes between the blocks across both columns (edge lines broken over the gap between the
+        // columns), that gap's own lane beside each block pair, and the walkway behind the barrier line (it crosses the
+        // lane mouths on the lanes' zebras)
+        const float colEnd0 = colX0[0] + bays * BAY, colEnd1 = colX0[1] + bays * BAY, gapC = (colEnd0 + colX0[1]) * 0.5f;
+        for (size_t bi = 0; bi < blockSpans.size(); bi++) {
+            vec2 sp = blockSpans[bi];
+            SiteElem& gl = L.line(SK_PORT_DRESS, vec2(gapC, sp.x), vec2(gapC, sp.y), (colX0[1] - colEnd0) * 0.5f, zP, 0.1f, 0x6A9Au + (u32)bi);
+            gl.variant = 7;
+            SiteElem& wk = L.elem(SK_PORT_DRESS, vec2(xw + 0.6f + 1.45f, (sp.x + sp.y) * 0.5f), vec2(0, 1), (sp.x - sp.y) * 0.5f, 1.45f, zP, 0.1f, 0x3A1Cu + (u32)bi);
+            wk.variant = 8;
+            wk.p[0] = 1.f;
+            wk.p[1] = -1.f;   // perp(+y) is -x: the stacks lie on the -perp side
+            if (bi + 1 >= blockSpans.size()) continue;
+            float ly = (sp.y + blockSpans[bi + 1].x) * 0.5f;
+            bool road = false;
+            for (float cy : kCrossY) road = road || fabsf(cy - ly) < 12.f;
+            if (road) continue;
+            SiteElem& ln = L.line(SK_PORT_DRESS, vec2(colX0[0], ly), vec2(colEnd1, ly), LANE * 0.5f, zP, 0.1f, 0x1A4Eu + (u32)bi);
+            ln.variant = 7;
+            ln.p[0] = 1.f;
+            ln.p[1] = colEnd0 - colX0[0];
+            ln.p[2] = colX0[1] - colX0[0];
+        }
+    }
+    // The slab floor everywhere on the island: the four yard sections inside Port Boulevard, the strips outside it and the
+    // quay apron (joints and repairs keep off the roads and the quay copings)
+    {
+        const float e0 = kPortX0 + 0.9f, e1 = kPortX1 - 0.9f, f0 = kPortY0 + 0.9f, f1 = kPortY1 - 0.9f;
+        const vec4 areas[] = {vec4(BLVD_X, kCrossY[0], QUAY_RD_X, NORTH_RD_Y),     vec4(BLVD_X, kCrossY[1], QUAY_RD_X, kCrossY[0]),
+                              vec4(BLVD_X, kCrossY[2], QUAY_RD_X, kCrossY[1]),     vec4(BLVD_X, SOUTH_RD_Y, QUAY_RD_X, kCrossY[2]),
+                              vec4(e0, f0, BLVD_X, f1),                             vec4(QUAY_RD_X, f0, e1, f1),
+                              vec4(BLVD_X, NORTH_RD_Y, QUAY_RD_X, f1),              vec4(BLVD_X, f0, QUAY_RD_X, SOUTH_RD_Y)};
+        for (size_t i = 0; i < ARRAY_COUNT(areas); i++) {
+            const vec4& a = areas[i];
+            SiteElem& sf = L.elem(SK_PORT_DRESS, vec2((a.x + a.z) * 0.5f, (a.y + a.w) * 0.5f), vec2(1, 0), (a.z - a.x) * 0.5f, (a.w - a.y) * 0.5f, zP, 0.1f,
+                                  0x51ABu + (u32)i);
+            sf.variant = 6;
         }
     }
     // Gate complex at the bridge landing, admin office, freight stations
@@ -850,6 +901,12 @@ void layoutPort(Lay& L) {
         SiteElem& hst = L.elem(SK_PORT_DRESS, vec2(4008.f, -226.f), vec2(1, 0), 22.f, 12.f, zP, 1.f, 0x4E22u);
         hst.variant = 3;
         hst.p[0] = 22.f;
+        // the bays painted under the waiting rigs: dividers between them, a stop line ahead of the cabs
+        SiteElem& hby = L.line(SK_PORT_DRESS, vec2(3993.f - 2.6f, -214.5f), vec2(3993.f + 4.f * 5.2f + 2.6f, -214.5f), 1.f, zP, 0.1f, 0x4E24u);
+        hby.variant = 9;
+        hby.p[0] = 5.f;
+        hby.p[1] = 21.f;
+        hby.text = "WAIT FOR GATE CALL";
         SiteElem& gst = L.elem(SK_PORT_DRESS, vec2(4008.f, GATE_Y), vec2(1, 0), 30.f, 8.f, zP, 1.f, 0x4E23u);
         gst.variant = 3;
         gst.p[0] = 16.f;
@@ -1523,6 +1580,47 @@ void SiteSet::finalize(WorldMap& map, const RoadNetwork& net, const BuildingSet&
             }
         }
         LOG("Sites: %d silos, %d windmills", silos, mills);
+    }
+    // ---------------------------------------------------------------- beach access where the streets stop short of the sand
+    {
+        int paths = 0;
+        std::vector<vec2> placed;
+        for (const BeachEnd& be : net.beachEnds) {
+            if (be.node < 0 || be.node >= (int)net.nodes.size()) continue;
+            const RoadNode& n = net.nodes[be.node];
+            if (n.edges.empty() || length2(be.dir) < 0.5f) continue;
+            vec2 dir = normalize(be.dir);
+            // from the edge of the turning circle's sidewalk, or of the pavement and sidewalk the street was dropped back to
+            float off = 0.f;
+            if (be.bulb && n.edges.size() == 1) {
+                const RoadEdge& e = net.edges[n.edges[0]];
+                float br = net.bulbRadius(n);
+                off = (br > 0.f ? br : e.halfWidth) + e.sidewalk + 0.4f;
+            } else {
+                for (int ei : n.edges) off = Max(off, net.edges[ei].halfWidth + net.edges[ei].sidewalk);
+                off += 0.6f;
+            }
+            vec2 a = n.p + dir * off;
+            // out across the sand to a few metres short of the water
+            float len = 0.f;
+            for (float s = 2.f; s < 160.f; s += 2.f) {
+                vec2 q = a + dir * s;
+                if (map.isWater(q.x, q.y) || map.coastDistance(q.x, q.y) < 7.f) break;
+                len = s;
+            }
+            if (len < 8.f) continue;
+            vec2 b = a + dir * len;
+            bool clash = blocksRoads(a) || blocksLots(a + dir * (len * 0.5f)) || bs.pointInBuilding(a, 1.5f) || bs.pointInBuilding(a + dir * (len * 0.5f), 1.5f) ||
+                         net.nearRoad(a + dir * 3.f, 0.3f);
+            for (const vec2& p : placed) clash = clash || length(p - a) < 12.f;
+            if (clash) continue;
+            SiteElem& ba = L.line(SK_BEACH_ACCESS, a, b, 1.6f, map.heightAt(a.x, a.y), 3.f, hash32((u32)be.node * 2654435761u + 0xBEAC5u));
+            ba.text = be.name;
+            L.block(vegBlocks, (a + b) * 0.5f, dir, len * 0.5f + 1.f, 2.4f);
+            placed.push_back(a);
+            paths++;
+        }
+        LOG("Sites: %d beach access paths", paths);
     }
     // SkyLine profile, piers, bus stops and ferry piers need the roads (transit.cpp)
     transitFinalize(*this, map, net, bs);

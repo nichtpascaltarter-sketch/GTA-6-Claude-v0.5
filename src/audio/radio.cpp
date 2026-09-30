@@ -265,7 +265,13 @@ static void genNames(Genre g, Rng& r, std::string& artist, std::string& title, i
             artist = ar.chance(0.3f) ? PICK(ar, solo) : PICK(ar, p) + std::string(" ") + PICK(ar, n);
             static const char* t[] = {"Drip in the Rain", "Big Moves", "No Sleep in Porto Sol", "Gold Teeth, Cold Heart", "Swamp King", "Wavy",
                                       "Heatwave Season", "Top Floor", "Palm Trees and Problems", "Run It Up", "Humidity", "Money on the Water",
-                                      "Late Checkout", "Southside Sunrise", "Count It Twice", "Boat Shoes", "Tinted", "Causeway Flex", "Low Tide, High Life", "Mosquito Bite"};
+                                      "Late Checkout", "Southside Sunrise", "Count It Twice", "Boat Shoes", "Tinted", "Causeway Flex", "Low Tide, High Life", "Mosquito Bite",
+                                      "Marina Money", "Wet Paint on the Coupe", "Hurricane Party", "Ferry to Nowhere", "Porto Sol Pressure",
+                                      "Blue Lights in the Rearview", "Pelican Walk", "Tide Charts", "No Signal in the Glades", "Salt Water Cure",
+                                      "Sawgrass Summit", "Rooftop Humidity", "Coconut Chrome", "Ice Machine", "Sunburnt Crown", "Every Block a Story",
+                                      "Gator Skin Wallet", "Three AM on Calle Luna", "Condo Keys", "Hood Forecast", "Mangrove Mafia", "Lanes Closed",
+                                      "Pay the Toll", "Heat Index", "Neon Receipts", "Sidewalk Sermon", "Box Fan Blues", "Hustle and Humidity",
+                                      "Low Rider Tide", "Last Ferry Out"};
             title = PICK(r, t);
             break;
         }
@@ -275,7 +281,13 @@ static void genNames(Genre g, Rng& r, std::string& artist, std::string& title, i
             artist = PICK(ar, f) + std::string(" ") + PICK(ar, s);
             static const char* t[] = {"Fuego en la Playa", "Bailame Lento", "Noche de Calor", "Mi Isla", "Sal y Arena", "Contigo en Porto Sol", "La Ola",
                                       "Perreo Tropical", "Luna Llena", "Sin Frenos", "Corazon de Coco", "Tu y Yo y el Mar", "Verano Eterno", "Dame Mas",
-                                      "Brillo", "Marea Alta", "Ritmo del Malecon", "Cuarenta Grados", "Besos de Sal", "Fiesta en la Azotea"};
+                                      "Brillo", "Marea Alta", "Ritmo del Malecon", "Cuarenta Grados", "Besos de Sal", "Fiesta en la Azotea",
+                                      "Calor en la Pista", "Mojito de Medianoche", "Bajo la Palmera", "Arena en los Pies", "Tu Nombre en la Arena",
+                                      "Olas y Besos", "Malecon de Noche", "Solo por Esta Noche", "Tiburon", "Candela", "Luces de Porto Sol",
+                                      "Me Llama la Playa", "Azucar y Sal", "Mas Alla del Muelle", "Baila Conmigo Hasta el Sol", "Ritmo Salado",
+                                      "Noche Tropical", "Tu Perfume de Coco", "Loco por la Luna", "El Muelle", "Maremoto", "Dos Corazones, Una Isla",
+                                      "Caribe Electrico", "Fuego Lento", "Pa' la Orilla", "Calle Luna", "Palmera Mia", "Sudor y Sal", "Brisa de Mar",
+                                      "La Ultima Ola", "Tiempo de Playa"};
             title = PICK(r, t);
             break;
         }
@@ -285,7 +297,12 @@ static void genNames(Genre g, Rng& r, std::string& artist, std::string& title, i
             artist = PICK(ar, a1) + std::string(" ") + PICK(ar, a2);
             static const char* t[] = {"Feel It Rising", "Take Me Higher", "Sunrise Session", "Keep Moving", "Lose Control Tonight", "Glowstick Hearts",
                                       "Crowd Control", "Bassline Therapy", "Open Air", "Midnight Ferry", "Hands in the Humidity", "Warehouse Prayer",
-                                      "Afterglow", "Rooftop Pool", "Strobe Light Lullaby", "Sweat and Satellites", "Only Up From Here", "Body Language"};
+                                      "Afterglow", "Rooftop Pool", "Strobe Light Lullaby", "Sweat and Satellites", "Only Up From Here", "Body Language",
+                                      "Ferry Lights", "Warehouse on Pier Nine", "Night Swim", "Salt Air Dancing", "Lift Me to the Rooftop", "Deep Blue Bay",
+                                      "Sundown Session", "Neon Tide Pool", "Keep the Lights Low", "After Hours Marina", "Heat Lightning", "Pulse of the City",
+                                      "Glass Towers", "Sunrise over the Causeway", "Club Palmera", "Waves Keep Coming", "Humid Nights", "Strobe and Surf",
+                                      "Midnight Mangrove", "Weightless in the Bay", "Move Your Soul Tonight", "Coastline Frequency", "The Last Dance Floor",
+                                      "Signals in the Fog", "Bass on the Boardwalk", "Hold On to Tonight", "Lighthouse Beam", "Rising Tide"};
             title = PICK(r, t);
             break;
         }
@@ -295,7 +312,13 @@ static void genNames(Genre g, Rng& r, std::string& artist, std::string& title, i
             artist = std::string("The ") + PICK(ar, a1) + " " + PICK(ar, a2);
             static const char* t[] = {"Highway Burn", "Tear It Down", "Salt in the Wound", "Hurricane Heart", "Long Way Down", "Engine Blood",
                                       "Last Call in Fort Castell", "Nothing Left to Burn", "Rattlesnake Kiss", "Gasoline Sunset", "Drowning in Neon",
-                                      "Swamp Thunder", "Concrete Palms", "Bad Blood Boulevard", "Break the Radio", "Riptide", "Hollow Man Walking", "Rust and Chrome"};
+                                      "Swamp Thunder", "Concrete Palms", "Bad Blood Boulevard", "Break the Radio", "Riptide", "Hollow Man Walking", "Rust and Chrome",
+                                      "Burn Rubber on the Causeway", "Hurricane Season", "Wreckage", "Sawgrass Fire", "Knuckles and Neon",
+                                      "Fort Castell Blues", "Black Coffee Highway", "Salt Stained Guitar", "Last Stand at the Pier", "Mile Marker Zero",
+                                      "Nitro Heart", "Drag Strip Prayer", "Barbed Wire Summer", "Thunder in the Glades", "Stolen Car Anthem",
+                                      "Ashes on the Dashboard", "No Brakes", "Graveyard Shift", "Rattle the Cage", "Chrome Coffin", "Burning Pier",
+                                      "Riot on Calle Luna", "Sunburnt and Broken", "Head On", "Tailspin", "Motel Neon", "Rebel Radio", "Swamp Witch",
+                                      "Heavy Weather"};
             title = PICK(r, t);
             break;
         }
@@ -306,7 +329,13 @@ static void genNames(Genre g, Rng& r, std::string& artist, std::string& title, i
             artist = PICK(ar, f) + std::string(" ") + PICK(ar, s) + PICK(ar, suf);
             static const char* t[] = {"Blue Lagoon Nocturne", "Porto Sol After Dark", "Midnight at the Marina", "Velvet Hours", "Rain on Magnolia Street",
                                       "Last Ferry Home", "Moonlight over the Keys", "Slow Dance for Two", "Smoke and Mangroves", "The Humid Hour",
-                                      "Blue Heron", "Satin Sunset", "Cocktails at Eight", "Harbor Lights", "Sway of the Palms", "A Room at the Flamingo"};
+                                      "Blue Heron", "Satin Sunset", "Cocktails at Eight", "Harbor Lights", "Sway of the Palms", "A Room at the Flamingo",
+                                      "Cigar Smoke and Satin", "Twilight on Palmera Avenue", "The Velvet Lounge", "Moonlit Terrace",
+                                      "Slow Waltz by the Water", "Brass and Moonlight", "Mangrove Serenade", "Sapphire Nights", "Porch Swing Ballad",
+                                      "Silk Stockings", "Champagne at the Pier", "Low Light Lullaby", "Rain Check", "The Last Cocktail", "A Quiet Corner",
+                                      "Harbor Mist", "Gardenia Steps", "Starlight Terrace", "Evening Tide", "Lamplight", "Sway Me Gently",
+                                      "Linen Suit Strut", "Late Show", "Coastal Fog", "Pearl Diver", "Blue Hour Waltz", "Moonrise Samba",
+                                      "Bossa for the Boardwalk", "Samba de Porto Sol"};
             title = PICK(r, t);
             break;
         }
@@ -317,17 +346,29 @@ static void genNames(Genre g, Rng& r, std::string& artist, std::string& title, i
             artist = ar.chance(0.25f) ? PICK(ar, bands) : PICK(ar, f) + std::string(" ") + PICK(ar, s);
             static const char* t[] = {"Gator Moon", "Two Lane Highway Home", "Whiskey and Mosquitoes", "My Truck Knows the Way", "Sawgrass Sunday",
                                       "Porch Light", "Cypress Ridge Rain", "Bait Shop Romance", "Dirt Road Diary", "Heartache in Okahatchee",
-                                      "Fried and Forgiven", "Hurricane Honey", "Last Dance at the Feed Store", "Airboat Angel", "Rusty Tailgate", "Sweet Tea and Sorrow"};
+                                      "Fried and Forgiven", "Hurricane Honey", "Last Dance at the Feed Store", "Airboat Angel", "Rusty Tailgate", "Sweet Tea and Sorrow",
+                                      "Catfish and Kisses", "Muddy Boots Waltz", "Pickup Truck Prayer", "Honky Tonk in the Glades", "Cypress Knees",
+                                      "Front Porch Forever", "Two Steps from Sawgrass", "Tailgate Moon", "Rattlesnake Road", "Screen Door Slammin'",
+                                      "Swamp Rose", "Mama's Kitchen Radio", "Long Haul Love", "Fishing for Forgiveness", "Rodeo Rain",
+                                      "County Line Heartache", "Boots in the Bayou", "Gravel Road Gospel", "Sun Tea and Sunsets", "Dust on the Dashboard",
+                                      "Sundown at the Feed Store", "Lonesome Airboat", "Heartland Hurricane", "Barn Dance Saturday", "Wildflower Highway",
+                                      "Moonshine Moon", "Crawfish Crossing", "Blue Heron Blues"};
             title = PICK(r, t);
             break;
         }
         case Genre::LoFi: {
             static const char* a[] = {"tidepool kid", "slow ferry", "sleepy mangrove", "cassette coast", "quiet heron", "low tide study",
-                                      "palm shadow", "sunday laundromat", "humid dreams", "night bus", "soft pelican", "warm static"};
+                                      "palm shadow", "sunday laundromat", "humid dreams", "night bus", "soft pelican", "warm static",
+                                      "rooftop radio", "velvet ferry", "salt and static", "cloudy harbor", "moth lamp", "pocket tide",
+                                      "sleepy lighthouse", "blue tarp", "dusk bicycle", "paper boat", "porch light club", "tin roof tapes"};
             artist = PICK(ar, a);
             static const char* t[] = {"rain on the windshield", "sea breeze", "homework at the marina", "pelican nap", "warm tape", "cloudy sunday",
                                       "late ferry", "coffee with salt", "streetlights", "porch fan", "blue hour", "wet sidewalk", "window seat",
-                                      "slow motion", "lighthouse", "leftover rice"};
+                                      "slow motion", "lighthouse", "leftover rice", "rainy bus stop", "laundry day", "sleepy harbor", "study with seagulls",
+                                      "3 am ramen", "window fog", "cassette nap", "paper lanterns", "ocean notebook", "sunday slow", "tape hiss dreams",
+                                      "low battery", "quiet marina", "gentle static", "late library", "headphones on", "morning ferry", "dim lamp",
+                                      "cold brew clouds", "empty arcade", "soft rain on tin", "sand in my shoes", "sketchbook", "humming fridge",
+                                      "moonlit laundromat", "slow tide", "blue notebook", "fading polaroid", "night market"};
             title = PICK(r, t);
             break;
         }
@@ -619,22 +660,34 @@ static void initStation(int i) {
     s.segs.clear();
     if (s.def.genre != Genre::Talk) {
         Rng r(s.seed, 21);
-        int artists = 10;
+        // 14 artists with three songs each (42 per station); every song is its own seed: tempo, key, form,
+        // sub-style, instruments and arrangement all follow from it
+        const int artists = 14, songsPer = 3;
+        std::vector<std::string> artistNames;
         for (int a = 0; a < artists; a++) {
             int artistId = (int)(s.seed % 1000u) * 16 + a;
-            int songsPer = 2;
+            {  // distinct artist names within the station
+                Rng ar0(hash32((u32)artistId), 3);
+                std::string an, tt;
+                for (int attempt = 0; attempt < 16; attempt++) {
+                    genNames(s.def.genre, ar0, an, tt, artistId);
+                    if (std::find(artistNames.begin(), artistNames.end(), an) == artistNames.end()) break;
+                    artistId += 4096;
+                }
+                artistNames.push_back(an);
+            }
             for (int k = 0; k < songsPer; k++) {
                 SongInfo si;
                 si.seed = hash32(s.seed + (u32)(a * 31 + k * 7 + 1));
                 Rng nr(si.seed, 4);
                 std::string artist, title;
-                for (int attempt = 0; attempt < 12; attempt++) {
+                for (int attempt = 0; attempt < 24; attempt++) {
                     genNames(s.def.genre, nr, artist, title, artistId);
                     bool dup = false;
                     for (auto& o : s.catalog)
                         if (o.title == title) { dup = true; break; }
                     if (!dup) break;
-                    if (attempt == 11) title += (k == 0 ? " (Night Mix)" : " (Reprise)");
+                    if (attempt == 23) title += (k == 0 ? " (Night Mix)" : (k == 1 ? " (Reprise)" : " (Extended)"));
                 }
                 si.artist = artist;
                 si.title = title;
@@ -1196,7 +1249,7 @@ struct SegPlayer {
 };
 
 // =============================================================================================
-// Station producer with broadcast processing (AGC, compressor, EQ, limiter)
+// Station producer with broadcast processing (multiband mastering for music stations, AM chain for talk)
 struct StationProducer {
     int station = -1;
     u32 gen = 0;
@@ -1206,11 +1259,13 @@ struct StationProducer {
     float prevFade = 1.f;
     std::vector<SpeechJob*> nextJobs;
     int nextJobsSeg = -1;
-    // broadcast chain
+    // broadcast chain: music stations get the multiband mastering chain (mastering.cpp), the AM talk station a
+    // narrow mono chain
+    master::Chain fm;
     float agcRms = 1e-4f, agcGain = 1.f;
     Compressor comp;
     LookaheadLimiter lim;
-    Biquad lsL, lsR, hsL, hsR, lpL, lpR, lp2L, lp2R, hpL, hpR;
+    Biquad lpL, lp2L, hpL;
     bool am = false;
     float tmpL[kProdBlock], tmpR[kProdBlock];
 
@@ -1229,16 +1284,14 @@ struct StationProducer {
         station = st;
         stTime = t;
         am = g_st[st].def.am;
-        comp.set(-16.f, 3.f, 5.f, 150.f, 6.f, 3.f);
-        lim.init(72, 0.89f, 60.f);
         if (am) {
-            hpL.setHP(140.f, 0.7f); hpR = hpL;
-            lpL.setLP(4300.f, 0.7f); lpR = lpL; lp2L = lpL; lp2R = lpL;
+            comp.set(-16.f, 3.f, 5.f, 150.f, 6.f, 3.f);
+            lim.init(72, 0.89f, 60.f);
+            hpL.setHP(140.f, 0.7f);
+            lpL.setLP(4300.f, 0.7f);
+            lp2L = lpL;
         } else {
-            hpL.setHP(25.f, 0.7f); hpR = hpL;
-            lsL.setLowShelf(90.f, 1.5f); lsR = lsL;
-            hsL.setHighShelf(7000.f, 1.5f); hsR = hsL;
-            lpL.setLP(15000.f, 0.7f); lpR = lpL; lp2L = lpL; lp2R = lpL;
+            fm.init((int)g_st[st].def.genre);
         }
         agcGain = 1.f;
         agcRms = 1e-4f;
@@ -1291,6 +1344,11 @@ struct StationProducer {
         stTime += (double)n * kInvSR;
     }
     void process(float* L, float* R, int n) {
+        if (!am) {
+            fm.speech = cur && cur->seg.type != SegType::Song;
+            fm.process(L, R, n);
+            return;
+        }
         // AGC: slow leveling toward -17 dBFS RMS, frozen in near-silence
         const float target = 0.141f;
         for (int i = 0; i < n; i++) {
@@ -1303,17 +1361,10 @@ struct StationProducer {
             agcGain += (want - agcGain) * (want < agcGain ? 0.02f : 0.006f);
         }
         for (int i = 0; i < n; i++) {
-            float l = L[i] * agcGain, r = R[i] * agcGain;
-            if (am) {
-                float m = 0.5f * (l + r);
-                m = lp2L.process(lpL.process(hpL.process(m)));
-                l = r = m;
-            } else {
-                l = lpL.process(hsL.process(lsL.process(hpL.process(l))));
-                r = lpR.process(hsR.process(lsR.process(hpR.process(r))));
-            }
-            L[i] = l;
-            R[i] = r;
+            float m = 0.5f * (L[i] + R[i]) * agcGain;
+            m = lp2L.process(lpL.process(hpL.process(m)));
+            L[i] = m;
+            R[i] = m;
         }
         comp.processStereo(L, R, n);
         lim.process(L, R, n);

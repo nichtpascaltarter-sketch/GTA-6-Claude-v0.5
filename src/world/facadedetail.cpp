@@ -433,6 +433,106 @@ void awningStriped(FD& d, const Wall& w, float s0, float s1, float z, float dept
     }
 }
 
+// Older walk-ups and shop parades (Calle Luna, the Flats, Midtown, North City, Fort Castell): what makes one old block differ
+// from the next. A painted board hanging from an iron bracket over the shop door, little fabric awnings over some upper
+// windows, window boxes in flower, and a faded painted sign high on a side wall.
+void oldFabricDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls, int fi, int floors, bool store) {
+    const Building& b = *d.b;
+    const FacadeGPU& f = *d.f;
+    Sink& k = d.k;
+    const Wall& fw = walls[fi];
+    Rng r(b.seed ^ 0x01DFAB1Cu);
+    sitegeo::G g;
+    g.m = k.m;
+    g.d = k.m;
+    g.org = k.org;
+    g.detail = true;
+    const u32 paint = MM(MAT_METAL_PAINTED), iron = pk(0.08f);
+    // projecting painted sign on a scrolled bracket
+    if (store && fw.len > 5.f && r.chance(0.55f)) {
+        static const char* kBoards[] = {"BAKERY", "BARBER", "BOOKS", "TAILOR", "HARDWARE", "PHARMACY", "CAFE", "SHOES", "FLOWERS", "REPAIRS", "LAUNDRY", "DELI"};
+        float s = r.chance(0.5f) ? 1.1f : fw.len - 1.1f;
+        float zb = ms.vBase + f.groundH + 0.35f;
+        wbox(k, fw, s - 0.03f, s + 0.03f, zb + 0.55f, zb + 0.61f, 0.f, 1.2f, iron, paint, WF_FRONT | WF_TOP | WF_BOTTOM | WF_START | WF_END);
+        wbox(k, fw, s - 0.02f, s + 0.02f, zb + 0.1f, zb + 0.6f, 0.f, 0.06f, iron, paint, WF_POST);
+        {
+            // brace from the wall up to the arm's tip
+            vec3 a = vec3(fw.a + fw.t * s, zb + 0.15f), c = vec3(fw.a + fw.t * s + fw.n * 0.9f, zb + 0.58f);
+            obox(k, (a + c) * 0.5f, normalize(c - a), vec3(fw.t, 0.f), vec3(length(c - a) * 0.5f, 0.012f, 0.012f), iron, paint);
+        }
+        const vec3 boardPal[] = {vec3(0.1f, 0.25f, 0.18f), vec3(0.42f, 0.08f, 0.1f), vec3(0.1f, 0.14f, 0.3f), vec3(0.9f, 0.86f, 0.74f), vec3(0.05f)};
+        int pi = (int)(r.next() % 5u);
+        vec3 bc = boardPal[pi], tc = pi == 3 ? vec3(0.15f, 0.1f, 0.06f) : vec3(0.95f, 0.88f, 0.6f);
+        float bw = 0.95f, bh = 0.62f, o = 0.72f;
+        vec3 top = vec3(fw.a + fw.t * s + fw.n * o, zb + 0.55f);
+        // chains, then the board (two faces toward +t and -t, the sign reads along the street)
+        for (int e = -1; e <= 1; e += 2) obox(k, top + vec3(fw.n * (e * bw * 0.38f), -0.1f), vec3(0, 0, 1), vec3(fw.t, 0.f), vec3(0.1f, 0.006f, 0.006f), iron, paint);
+        vec3 bcen = top + vec3(0, 0, -0.2f - bh * 0.5f);
+        obox(k, bcen, vec3(fw.n, 0.f), vec3(fw.t, 0.f), vec3(bw * 0.5f, 0.025f, bh * 0.5f), pk(bc), MM(MAT_WOOD));
+        const char* word = kBoards[r.next() % ARRAY_COUNT(kBoards)];
+        for (int side = -1; side <= 1; side += 2) {
+            vec3 face = vec3(fw.t * (float)side, 0.f);
+            vec3 right = vec3(fw.n * (float)side, 0.f) * -1.f;   // reading direction on this face
+            float th = 0.16f, tw = sitegeo::textAdvance(word, th, 0.25f);
+            if (tw > bw * 0.85f) th *= bw * 0.85f / tw, tw = bw * 0.85f;
+            sitegeo::strokeText(g, *k.m, word, bcen + face * 0.028f - right * (tw * 0.5f) - vec3(0, 0, th * 0.5f), right, vec3(0, 0, 1), th, th * 0.16f, pk(tc), paint, 0.f,
+                                0.25f);
+            // painted border
+            for (int e = -1; e <= 1; e += 2)
+                sitegeo::quad(g, *k.m, bcen + face * 0.027f + right * (bw * 0.44f * e) + vec3(0, 0, -bh * 0.42f), bcen + face * 0.027f + right * (bw * 0.44f * e + 0.03f * e) + vec3(0, 0, -bh * 0.42f),
+                              bcen + face * 0.027f + right * (bw * 0.44f * e + 0.03f * e) + vec3(0, 0, bh * 0.42f), bcen + face * 0.027f + right * (bw * 0.44f * e) + vec3(0, 0, bh * 0.42f),
+                              pk(tc), paint, face);
+        }
+    }
+    if (floors < 2 || (int)f.style != 0) return;
+    FloorRow rows[64];
+    int nr = massFloors(f, ms.z0 - ms.vBase, ms.z1 - ms.vBase, rows, 64);
+    // little awnings over upper windows (one scheme per building)
+    bool winAwn = r.chance(d.reg == REG_CALLE_LUNA ? 0.4f : 0.22f);
+    vec3 ac = hsvToRgb(r.f(), r.range(0.45f, 0.75f), r.range(0.45f, 0.8f));
+    bool stripes = r.chance(0.5f);
+    // window boxes in flower (Calle Luna and Midtown walk-ups)
+    bool boxes = (d.reg == REG_CALLE_LUNA || d.reg == REG_MIDTOWN || d.reg == REG_NORTH_CITY) && r.chance(0.45f);
+    const vec3 blooms[] = {vec3(0.95f, 0.25f, 0.4f), vec3(1.f, 0.75f, 0.2f), vec3(0.95f, 0.95f, 0.9f), vec3(0.85f, 0.2f, 0.15f), vec3(0.75f, 0.4f, 0.95f)};
+    for (int ri = 0; ri < nr && (winAwn || boxes); ri++) {
+        if (rows[ri].idx == 0 || !d.room()) continue;
+        WinSpec ws = winSpec(f, false);
+        for (int i = 0; i < fw.bays; i++) {
+            float s0 = (i + ws.x0) * fw.bw, s1 = s0 + ws.w * fw.bw;
+            float zs = ms.vBase + rows[ri].v0 + ws.sill, zh = zs + ws.h;
+            u32 h = hash3i((int)(b.seed & 0xffffu), ri, i);
+            if (winAwn && rows[ri].idx <= 2 && (h % 5u) < 3u)
+                awningStriped(d, fw, s0 - 0.08f, s1 + 0.08f, zh + 0.32f, 0.65f, pk(ac), stripes ? pk(0.95f, 0.94f, 0.9f) : pk(ac * 0.8f), true);
+            if (boxes && ((h >> 3) % 3u) == 0u) {
+                wbox(k, fw, s0 + 0.05f, s1 - 0.05f, zs - 0.22f, zs - 0.02f, 0.f, 0.24f, pk(0.55f, 0.32f, 0.2f), MM(MAT_WOOD), WF_BOX | WF_BOTTOM);
+                vec3 c = vec3(fw.a + fw.t * ((s0 + s1) * 0.5f) + fw.n * 0.14f, zs + 0.05f);
+                leafBlobEx(*k.m, k.org, c, vec3(fw.t, 0.f), vec3(perp(fw.t), 0.f), vec3((s1 - s0) * 0.46f, 0.16f, 0.16f), vec3(0.6f, 0.95f, 0.45f), h, 0.03f, 8, 4,
+                           blooms[(h >> 7) % 5u]);
+            }
+        }
+    }
+    // faded painted sign high on a side wall (the old trade of the building)
+    if (r.chance(0.35f)) {
+        static const char* kGhost[] = {"DRY GOODS", "FURNITURE", "ICE CO", "HOTEL", "COLD SODA", "GROCERY", "TOBACCO", "CIGARS", "HARDWARE", "LAUNDRY"};
+        for (const Wall& w : walls) {
+            if (fabsf(w.facing) > 0.3f || w.len < 6.f) continue;
+            float H = ms.z1 - ms.vBase;
+            if (H < 7.f) break;
+            const char* word = kGhost[r.next() % ARRAY_COUNT(kGhost)];
+            float th = Min(1.1f, H * 0.14f), tw = sitegeo::textAdvance(word, th, 0.3f);
+            if (tw > w.len * 0.85f) th *= w.len * 0.85f / tw, tw = w.len * 0.85f;
+            vec3 right(w.t, 0.f);
+            vec3 o = vec3(w.a + w.t * ((w.len - tw) * 0.5f) + w.n * 0.03f, ms.z1 - th * 1.9f);
+            vec3 faded = lerp(d.wallRGB * 1.5f, vec3(0.92f, 0.88f, 0.78f), 0.55f);
+            // a painted band behind the letters, then the letters
+            sitegeo::quad(g, *k.m, o - right * 0.3f - vec3(0, 0, th * 0.35f), o + right * (tw + 0.3f) - vec3(0, 0, th * 0.35f), o + right * (tw + 0.3f) + vec3(0, 0, th * 1.35f),
+                          o - right * 0.3f + vec3(0, 0, th * 1.35f), pk(lerp(d.wallRGB * 1.3f, vec3(0.35f, 0.18f, 0.12f), 0.35f)), MM(MAT_PAINT_WHITE), vec3(w.n, 0.f));
+            sitegeo::strokeText(g, *k.m, word, o + vec3(w.n * 0.004f, 0.f), right, vec3(0, 0, 1), th, th * 0.15f, pk(faded), MM(MAT_PAINT_WHITE), 0.f, 0.3f);
+            break;
+        }
+    }
+}
+
 // Roll-down security gate: housing at the top of the storefront glass; optionally pulled partly down
 void securityGate(FD& d, const Wall& w, float s0, float s1, float zTop, float closedTo, u32 panelCol) {
     FD_STAT(d.k.m, FS_GATE);
@@ -1492,6 +1592,8 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac0, const WorldMap&
             int b0 = d.r.chance(0.5f) ? 1 : Max(1, fw.bays - 3);
             fireEscape(d, fw, ms, b0, 2);
         }
+        // ---- older walk-ups and shop parades: hanging painted boards, window awnings and boxes, faded side-wall signs
+        if (d.old && (b.style == BS_SHOPS || b.style == BS_MIDRISE) && d.room()) oldFabricDetail(d, ms, walls, fi, floors, store);
         // ---- window AC units (older fabric), downpipes at the back corners
         if (d.old && (b.style == BS_MIDRISE || b.style == BS_SHOPS || b.style == BS_MOTEL) && (int)fac.style == 0) {
             FloorRow rows[64];

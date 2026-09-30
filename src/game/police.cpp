@@ -75,6 +75,100 @@ bool laneBehind(const AI::LaneGraph& G, vec2 p, vec2 fwd, float dist, int& outLa
 
 bool isCop(const Ped& p) { return p.used && p.faction == FAC_POLICE && p.health > 0.f; }
 
+// ---- the search once the suspect is lost: the places worth a look round the last-seen position - the corners of the
+// buildings (a peek along the far facade) and their doorways - handed out one per officer, nearest to them first and
+// away from what the others are checking, so the units on foot fan out instead of converging on one point
+struct SearchSpot {
+    vec2 p;          // where to stand
+    vec2 look;       // what to look along (the torch / the gun follows it)
+    int by = -1;     // officer checking it
+    u32 byUid = 0;
+    bool checked = false;
+};
+struct SearchPlan {
+    vec2 center;
+    double made = -1e9;
+    int wanted = 0;
+    std::vector<SearchSpot> spots;
+};
+SearchPlan gS;
+
+void buildSearchPlan(const GameWorld& g, vec2 center, int wanted) {
+    gS.center = center;
+    gS.made = g.time;
+    gS.wanted = wanted;
+    gS.spots.clear();
+    const World::BuildingSet* bs = g.buildings ? g.buildings : World::gBuildings;
+    if (!bs) return;
+    float R = Min(searchRadiusFor(Max(wanted, 1)) * 0.5f, 75.f);
+    std::vector<int> nb;
+    bs->buildingsNear(center, R, nb);
+    struct Cand {
+        SearchSpot s;
+        float d;
+    };
+    std::vector<Cand> cands;
+    auto ok = [&](vec2 p) {
+        float d = length(p - center);
+        return d > 5.f && d < R && !bs->pointInBuilding(p, 0.35f) && !g.map->isWater(p.x, p.y);
+    };
+    for (int bi : nb) {
+        const World::Building& b = bs->buildings[bi];
+        vec2 X = b.ax, Y = perp(b.ax);
+        // corners: stand just off the corner, look along whichever facade leads away from the last-seen point
+        for (int sx = -1; sx <= 1; sx += 2)
+            for (int sy = -1; sy <= 1; sy += 2) {
+                vec2 corner = b.c + X * (b.hx * sx) + Y * (b.hy * sy);
+                vec2 out = normalize(X * (float)sx + Y * (float)sy);
+                vec2 p = corner + out * 1.8f;
+                if (!ok(p)) continue;
+                vec2 alongX = -X * (float)sx, alongY = -Y * (float)sy;   // the two facades meeting at the corner
+                vec2 away = normalize(corner - center + vec2(1e-4f, 0.f));
+                vec2 look = dot(alongX, away) > dot(alongY, away) ? alongX : alongY;
+                cands.push_back({{p, look}, length(p - center)});
+            }
+        // the doorway on the street side (not sheds and warehouses: their fronts are loading bays)
+        u8 st = b.style;
+        if (st == World::BS_WAREHOUSE || st == World::BS_FACTORY || st == World::BS_BARN || st == World::BS_SHACK) continue;
+        vec2 door = b.c + b.front * (b.hy + 0.45f);
+        vec2 p = door + b.front * 1.6f;
+        if (ok(p)) cands.push_back({{p, -b.front}, length(p - center)});
+    }
+    std::sort(cands.begin(), cands.end(), [](const Cand& a, const Cand& b) { return a.d < b.d; });
+    for (const Cand& c : cands) {
+        bool dup = false;
+        for (const SearchSpot& s : gS.spots) dup |= length(s.p - c.s.p) < 4.f;
+        if (!dup) gS.spots.push_back(c.s);
+        if (gS.spots.size() >= 28) break;
+    }
+}
+
+// the next place for officer `id` to check: close to them, not taken, not right next to another officer's
+int claimSearchSpot(const GameWorld& g, int id) {
+    const Ped& p = g.peds[id];
+    vec2 pos = p.pos.toVec3().xy();
+    int best = -1;
+    float bestScore = 1e9f;
+    for (int k = 0; k < (int)gS.spots.size(); k++) {
+        const SearchSpot& s = gS.spots[k];
+        if (s.checked) continue;
+        bool taken = s.by >= 0 && s.by < (int)g.peds.size() && g.peds[s.by].used && g.peds[s.by].uid == s.byUid && s.by != id && isCop(g.peds[s.by]);
+        if (taken) continue;
+        float score = length(s.p - pos) + 0.5f * length(s.p - gS.center);
+        for (const SearchSpot& o : gS.spots)
+            if (&o != &s && o.by >= 0 && o.by != id && !o.checked && length(o.p - s.p) < 12.f) score += 18.f;
+        if (score < bestScore) {
+            bestScore = score;
+            best = k;
+        }
+    }
+    if (best >= 0) {
+        gS.spots[best].by = id;
+        gS.spots[best].byUid = p.uid;
+    }
+    return best;
+}
+
 // Where a sight line to a ped should end: the head on foot; for someone in a vehicle, a point just outside the
 // vehicle's body on the observer's side (a ray to the seat would hit the car's own shell and never see them).
 dvec3 sightPoint(const GameWorld& g, const Ped& t, vec3 from) {
@@ -221,6 +315,49 @@ void GameWorld::updateWanted(float dt) {
         int spv = pl->vehicle;
         gD.lastSeenVel = spv >= 0 && spv < (int)vehicles.size() ? vehicles[spv].sim.body.vel : pl->vel;
     }
+    // ---- surrender: wanted, on foot, empty-handed, no call on - holding the phone key a moment puts the hands up (and
+    // keeps them up); stepping off, drawing, firing, jumping or a second press takes them down again
+    {
+        bool can = pinfo.wanted > 0 && pl->state == PS_ONFOOT && pl->health > 0.f && !pinfo.busted && pl->weapon == WPN_FISTS &&
+                   phone.call == UI::CALL_NONE && !mInCutscene();
+        if (!ai.surrender) {
+            ai.surrenderHold = can && ctl.phone.down ? ai.surrenderHold + dt : 0.f;
+            if (can && (ai.surrenderHold > 0.35f || ai.forceSurrender)) {
+                ai.surrender = true;
+                ai.forceSurrender = false;
+                ai.surrenderHold = 0.f;
+                if (playerControl) {
+                    playerControl = false;
+                    ai.surrenderCtl = true;
+                }
+                phone.open = false;   // (the press that started it)
+                pl->aiming = pl->firing = false;
+                pl->pendingAction = Anim::CLIP_HANDS_UP;
+                LOG("police: the player surrenders (wanted %d)", pinfo.wanted);
+            }
+        } else {
+            bool quit = !can || length(ctl.move) > 0.35f || ctl.sprint.down || ctl.jump.pressed || ctl.attack.down || ctl.aim.down || ctl.enter.pressed ||
+                        (ctl.phone.pressed && ai.surrenderHold > 0.8f);
+            ai.surrenderHold += dt;
+            if (quit) {
+                ai.surrender = false;
+                ai.surrenderHold = 0.f;
+                if (ai.surrenderCtl) {
+                    playerControl = true;
+                    ai.surrenderCtl = false;
+                }
+                pl->animIn.stance = 0;
+                // walking away from a surrender is resisting
+                if (pinfo.wanted > 0 && !pinfo.busted) {
+                    pinfo.wantedHeat += 0.3f;
+                    LOG("police: the player broke off the surrender");
+                }
+            } else {
+                pl->animIn.stance = 5;   // hands up, standing still (the controls are ours meanwhile)
+                pl->vel = vec3(0.f, 0.f, pl->vel.z);
+            }
+        }
+    }
     // ---- crimes: witnessed by police -> immediate; otherwise a civilian may phone it in
     for (const CrimeEvent& e : crimes) {
         if (policeSuppressed) break;
@@ -348,7 +485,7 @@ void GameWorld::updateWanted(float dt) {
     pinfo.maxWanted = Max(pinfo.maxWanted, (float)pinfo.wanted);
     // ---- busted: low wanted level, an officer right next to a slow, non-shooting player on foot (or stopped in a car)
     bool bustable = false;
-    if (pinfo.wanted > 0 && pinfo.wanted <= 2 && pl->health > 0.f && !pinfo.busted) {
+    if (pinfo.wanted > 0 && (pinfo.wanted <= 2 || ai.surrender) && pl->health > 0.f && !pinfo.busted) {
         int pv = pl->vehicle;
         bool downed = pl->state == PS_RAGDOLL || pl->state == PS_GETUP;   // tackled
         float spd = pv >= 0 ? vehicles[pv].sim.speed() : (downed ? 0.f : length(vec2(pl->vel.x, pl->vel.y)));
@@ -367,12 +504,27 @@ void GameWorld::updateWanted(float dt) {
     }
     gD.bustTimer = bustable ? gD.bustTimer + dt : 0.f;
     // (a tackled player is cuffed the moment they are back on their feet: never switch states mid-ragdoll)
-    if (gD.bustTimer > 2.2f && pl->state != PS_RAGDOLL && pl->state != PS_GETUP) {
+    if (gD.bustTimer > (ai.surrender ? 1.6f : 2.2f) && pl->state != PS_RAGDOLL && pl->state != PS_GETUP) {
         gD.bustTimer = 0.f;
         pinfo.busted = true;
         pinfo.arrests++;
         ai.stats.arrests++;
-        bigMessage("BUSTED", "", 0xffffcc33u);
+        // gave themselves up: a lighter booking - the weapons come back with the release, and half the fine
+        ai.surrenderBust = ai.surrender;
+        ai.bustWatch = true;
+        ai.bustMoney = pinfo.money;
+        for (int w = 0; w < WPN_COUNT && w < 16; w++) {
+            ai.bustHas[w] = pl->hasWeapon[w];
+            ai.bustAmmo[w] = pl->ammo[w];
+            ai.bustClip[w] = pl->clip[w];
+        }
+        ai.bustWeapon = pl->weapon;
+        if (ai.surrender) {
+            ai.surrender = false;
+            ai.surrenderCtl = false;   // (the busted flow owns the controls now)
+            LOG("police: surrender -> cuffed");
+        }
+        bigMessage("BUSTED", ai.surrenderBust ? "You gave yourself up" : "", 0xffffcc33u);
 #ifdef HAVE_AUDIO
         Audio::play2D(Audio::SFX_BUSTED, 0.9f);
 #endif
@@ -380,6 +532,21 @@ void GameWorld::updateWanted(float dt) {
         pl->pendingAction = Anim::CLIP_HANDS_UP;
         playerControl = false;
         pinfo.deathTimer = 0.001f;   // reuse the respawn flow (police station release)
+    }
+    if (ai.bustWatch && !pinfo.busted) {
+        ai.bustWatch = false;
+        if (ai.surrenderBust) {
+            for (int w = 0; w < WPN_COUNT && w < 16; w++) {
+                if (!ai.bustHas[w]) continue;
+                pl->hasWeapon[w] = true;
+                pl->ammo[w] = ai.bustAmmo[w];
+                pl->clip[w] = ai.bustClip[w];
+            }
+            long long fine = ai.bustMoney - pinfo.money;
+            if (fine > 0) pinfo.money += fine / 2;
+            LOG("police: released after a surrender - weapons returned, %lld of the %lld fine refunded", fine > 0 ? fine / 2 : 0ll, fine);
+        }
+        ai.surrenderBust = false;
     }
     // ---- evasion: out of sight and outside the search area around the last seen position
     if (pinfo.wanted > 0) {
@@ -1382,6 +1549,26 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
     bool los = b.alerted;
     // NPC suspects: unarmed ones are run down and cuffed rather than shot
     bool suspectArmed = t.weapon != WPN_FISTS && (weaponInfo(t.weapon).clipSize > 0 || t.brain.type == BRAIN_COMBAT);
+    // an armed one who is hurt, or has three officers on them, may throw the gun down and put the hands up instead
+    if (!targetIsPlayer && suspectArmed && !t.firing && t.state == PS_ONFOOT && los && dist < 30.f && !t.isPlayer && !t.persistent) {
+        int onThem = 0;
+        for (int i = 0; i < (int)peds.size() && onThem < 3; i++)
+            onThem += isCop(peds[i]) && peds[i].state == PS_ONFOOT && length(rel(peds[i].pos, t.pos)) < 22.f;
+        bool hurt = t.health < t.maxHealth * 0.55f;
+        if ((hurt || onThem >= 3) && hashToFloat(hash32(t.uid * 31u + (u32)(time * 0.5))) < 0.3f) {
+            Ped& tm = peds[b.target];
+            PedAI& ta = pedAI(b.target);
+            tm.weapon = WPN_FISTS;
+            tm.aiming = tm.firing = false;
+            tm.brain.type = BRAIN_WANDER;
+            tm.brain.target = id;
+            tm.brain.edge = -1;
+            ta.activity = ACT_HANDS_UP;
+            ta.actTimer = 90.f;   // (not cuffed by then: runs for it)
+            aiSay(b.target, BK_HANDS_UP, 1.f, true);
+            suspectArmed = false;
+        }
+    }
     if (!targetIsPlayer && !suspectArmed) {
         if (t.state == PS_INVEHICLE) {
             // stay by the car until the suspect gets out (or the unit gives up)
@@ -1394,9 +1581,13 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
                 pa.shoutTimer = 5.f;
             }
             if (dist < 1.5f && t.state == PS_ONFOOT) {
-                // tackle and cuff: the suspect stays down, this officer heads back to the car
-                knockDown(b.target, vec3(to / Max(dist, 1e-3f) * 160.f, 30.f));
-                ai.stats.tackles++;
+                // tackle and cuff (a suspect standing there with the hands up is just cuffed): the suspect stays down,
+                // this officer heads back to the car
+                if (pedAI(b.target).activity != ACT_HANDS_UP) {
+                    knockDown(b.target, vec3(to / Max(dist, 1e-3f) * 160.f, 30.f));
+                    ai.stats.tackles++;
+                }
+                pedAI(b.target).activity = ACT_WALK;
                 Brain& tb = peds[b.target].brain;
                 tb.type = BRAIN_COWER;
                 tb.target = id;
@@ -1416,6 +1607,13 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
     }
     bool arrest = b.type == BRAIN_ARREST && wanted <= 1 && targetIsPlayer && !t.firing && !(t.aiming && t.weapon != WPN_FISTS);
     if (b.type == BRAIN_ARREST && !arrest) b.type = BRAIN_COMBAT;
+    // hands up where an officer can see it (or close by): hold fire, close in with the gun on them, cuff them
+    if (targetIsPlayer && ai.surrender && (los || dist < 25.f)) {
+        arrest = true;
+        pa.tactic = FT_ARREST;
+        if (pa.searchSpot >= 0 && pa.searchSpot < (int)gS.spots.size() && gS.spots[pa.searchSpot].by == id) gS.spots[pa.searchSpot].by = -1;
+        pa.searchSpot = -1;
+    }
     // tactics
     if (pa.tacticTimer <= 0.f) {
         pa.tacticTimer = 2.5f + hashToFloat(hash32(p.uid + (u32)(time * 2.0))) * 2.5f;
@@ -1426,12 +1624,32 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
             pa.tactic = FT_COVER;
         else if (pa.tactic == FT_COVER && dist > 50.f) pa.tactic = FT_APPROACH;
         else if (pa.tactic != FT_COVER && pa.tactic != FT_FLANK) pa.tactic = (p.uid % 3 == 0) ? FT_FLANK : FT_ENGAGE;
-        // search point
+        // search point: a corner or doorway from the search plan (a fresh plan when the suspect was last seen elsewhere);
+        // with nothing left to check there, a random point in the search area
         if (pa.tactic == FT_SEARCH) {
-            float R = searchRadiusFor(Max(wanted, 1)) * 0.5f;
-            u32 h = hash32(p.uid * 131u + (u32)(time * 0.3));
-            float ang = hashToFloat(h) * kTwoPi;
-            pa.tacticPos = pinfo.lastSeenPos.toVec3().xy() + vec2(cosf(ang), sinf(ang)) * (sqrtf(hashToFloat(hash32(h))) * R);
+            vec2 last = pinfo.lastSeenPos.toVec3().xy();
+            if (!targetIsPlayer) last = tp;
+            if (length(gS.center - last) > 20.f || time - gS.made > 150.0) {
+                buildSearchPlan(*this, last, wanted);
+                for (int i = 0; i < (int)peds.size() && i < (int)ai.ped.size(); i++) ai.ped[i].searchSpot = -1;
+            }
+            bool have = pa.searchSpot >= 0 && pa.searchSpot < (int)gS.spots.size() && gS.spots[pa.searchSpot].by == id && !gS.spots[pa.searchSpot].checked;
+            if (!have) {
+                pa.searchSpot = claimSearchSpot(*this, id);
+                pa.searchT = 0.f;
+                pa.searchLook = -1.f;
+            }
+            if (pa.searchSpot >= 0) {
+                pa.tacticPos = gS.spots[pa.searchSpot].p;
+            } else {
+                float R = searchRadiusFor(Max(wanted, 1)) * 0.5f;
+                u32 h = hash32(p.uid * 131u + (u32)(time * 0.3));
+                float ang = hashToFloat(h) * kTwoPi;
+                pa.tacticPos = last + vec2(cosf(ang), sinf(ang)) * (sqrtf(hashToFloat(hash32(h))) * R);
+            }
+        } else if (pa.searchSpot >= 0) {
+            if (pa.searchSpot < (int)gS.spots.size() && gS.spots[pa.searchSpot].by == id) gS.spots[pa.searchSpot].by = -1;   // (found them: let it go)
+            pa.searchSpot = -1;
         }
     }
     float prefer = wi.clipSize > 0 ? Clamp(wi.range * 0.3f, 8.f, 22.f) : 1.2f;
@@ -1462,8 +1680,17 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
                 }
                 break;
             }
-            if (dist > 1.9f) desired = to / dist * (dist > 10.f ? 4.5f : 1.6f);
+            float stopAt = 1.9f;
+            if (targetIsPlayer && ai.surrender) {
+                // one officer goes in for the cuffs, the rest cover from a few metres off
+                bool nearest = true;
+                for (int i = 0; i < (int)peds.size() && nearest; i++)
+                    if (i != id && isCop(peds[i]) && peds[i].state == PS_ONFOOT && length(rel(peds[i].pos, t.pos)) < dist - 0.3f) nearest = false;
+                if (!nearest) stopAt = 4.5f + (float)(p.uid % 3u);
+            }
+            if (dist > stopAt) desired = to / dist * (dist > 10.f ? 4.5f : 1.6f);
             p.aiming = wi.clipSize > 0 && dist < 25.f;
+            if (p.aiming) p.aimDir = normalize(pedChestPos(t) - pedHeadPos(p));
             if (pa.shoutTimer <= 0.f && dist < 25.f) {
                 aiSay(id, dist < 8.f ? BK_COP_GROUND : BK_COP_FREEZE, 1.f, true);
                 pa.shoutTimer = 5.f;
@@ -1473,8 +1700,47 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
         case FT_SEARCH: {
             vec2 tt = pa.tacticPos - pos;
             float d = length(tt);
-            if (d > 2.f) desired = tt / d * 2.4f;
-            faceYaw = d > 2.f ? atan2f(-tt.x, tt.y) : p.yaw + sinf((float)time * 0.8f + p.uid) * 0.03f;
+            bool spot = pa.searchSpot >= 0 && pa.searchSpot < (int)gS.spots.size() && gS.spots[pa.searchSpot].by == id;
+            pa.searchT += dt;
+            if (spot && d > 1.2f && pa.searchT > 40.f) {
+                gS.spots[pa.searchSpot].checked = true;   // (could not get there: walled off, fenced)
+                gS.spots[pa.searchSpot].by = -1;
+                pa.searchSpot = claimSearchSpot(*this, id);
+                pa.searchT = 0.f;
+                pa.searchLook = -1.f;
+                if (pa.searchSpot >= 0) pa.tacticPos = gS.spots[pa.searchSpot].p;
+                spot = pa.searchSpot >= 0;
+                tt = pa.tacticPos - pos;
+                d = length(tt);
+            }
+            if (d > 1.2f) {
+                // on the way (a brisk walk, a jog when it is further off)
+                desired = tt / d * (d > 25.f ? 3.6f : 2.4f);
+                faceYaw = atan2f(-tt.x, tt.y);
+            } else if (spot) {
+                // there: gun up, a slow sweep along the facade / into the doorway (the torch follows at night), then on
+                SearchSpot& S = gS.spots[pa.searchSpot];
+                float look = atan2f(-S.look.x, S.look.y) + sinf((float)time * 1.1f + p.uid * 0.7f) * 0.8f;
+                faceYaw = look;
+                p.aiming = wi.clipSize > 0;
+                p.aimDir = normalize(vec3(-sinf(look), cosf(look), -0.12f));
+                if (pa.searchLook < 0.f) pa.searchLook = 3.5f + hashToFloat(hash32(p.uid + (u32)time)) * 3.f;
+                pa.searchLook -= dt;
+                if (pa.searchLook <= 0.f) {
+                    S.checked = true;
+                    S.by = -1;
+                    pa.searchSpot = claimSearchSpot(*this, id);
+                    pa.searchT = 0.f;
+                    pa.searchLook = -1.f;
+                    if (pa.searchSpot >= 0) pa.tacticPos = gS.spots[pa.searchSpot].p;
+                    if (pa.shoutTimer <= 0.f && hashToFloat(hash32(p.uid * 7u + (u32)time)) < 0.35f) {
+                        aiSay(id, BK_COP_SEARCH, 0.35f);   // ("clear!")
+                        pa.shoutTimer = 12.f;
+                    }
+                }
+            } else {
+                faceYaw = p.yaw + sinf((float)time * 0.8f + p.uid) * 0.03f;
+            }
             if (pa.shoutTimer <= 0.f) {
                 aiSay(id, BK_COP_SEARCH, 0.3f);
                 pa.shoutTimer = 18.f;

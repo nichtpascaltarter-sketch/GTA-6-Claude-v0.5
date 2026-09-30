@@ -175,6 +175,58 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   District), ferry (to Port Isle and ashore); station fare gates with two lanes, platform strip lights by day,
   varied waiting crowds; the Sol Beach streetcar loop (6.24 km, 16 stops, 4 trams) is being brought up.
 
+## Integrated 2026-09-30 afternoon (wave 4)
+- First person: reloads stay in view. The gun comes up in front of the chest, rolled so the feed faces the support
+  hand. The support hand follows a per-weapon choreography: magazine out, down to the belt, fresh one seated; three
+  shells into the shotgun's port; the revolver's cylinder; the RPG's muzzle. Magazine-fed guns build the magazine as
+  a separate model (split from the gun mesh per tint), so it leaves with the hand. Pedestrians between the camera and
+  the player dither out (DrawItem fade); face to face in first person they stay solid. Verified with
+  `--autoplay fpguns` (every gun and every reload kind; the magazine-in-hand steps 16-17 still need a shot) and
+  `--autoplay camfade`.
+- Audio (realism pass, items 1-5):
+  - gunshots assembled at runtime from layers, with supersonic cracks and speed-of-sound delay;
+  - ray-probed acoustics (early reflections from measured facades, flutter echo, far echoes, reverbs sized to the
+    space) and occlusion behind buildings and walls;
+  - district ambience beds: city, port, coast, Sawgrass, nature, and rain by surface and overhead cover;
+  - vehicles: rev limiter, downshift blips, damage misfires, and a chassis layer (tyres by surface, squeal,
+    suspension, wind, gears, air brakes, cabin relay);
+  - radio: broadcast mastering per station and 42 original songs per station, with new sub-styles, key changes and
+    arrangement passes.
+- World:
+  - port: shipping containers at ISO sizes with corrugation, rails, castings, working doors, liveries and wear, plus
+    a painted yard floor (slots, numbers, lanes, stains, drains);
+  - greenery: leafy hedges (clipped, formal, wild) and topiary instead of green boxes;
+  - airport: forecourt dressing (taxi rank, trolleys, wayfinding, gantry), and pavers at real scale everywhere;
+  - buildings: rooftop equipment mixes; old shopfronts with hanging signs, awnings, window boxes and faded wall signs;
+  - roads: median palms kept clear of ramp nodes, the airport fence clear of turning bulbs, no grid streets hugging
+    section roads.
+- Renderer (street pass):
+  - asphalt with aggregate, tyre tracks, oil drips, manholes, kerb drains, gutter grime and water, worn paint;
+  - night rain with denser, lamp-lit streaks, fog scattering and finer puddle rings;
+  - window coverings glowing at night;
+  - fog and light robustness: non-finite lights dropped;
+  - a bone palette for about 475 characters.
+- Characters (pass 3): skin gloss, pores and creases live on characters; brows on the brow ridge; age folds; full
+  beards; hands with phalanges, nails and a forearm roll; glasses at real frame sizes; a caricature guard on face
+  proportions; bikini cuts; individual teeth and lashes on both lids.
+- AI and police:
+  - venue crowds at the port gate and yard, the airport curb and taxi rank, and the Sawgrass causeway and airboat
+    landing;
+  - traffic: street takeovers with blocking cars and filming crowds; the highway re-soak (ramp merges down the taper,
+    paced lane changes, heavy-vehicle braking, long vehicles backing out of tight turns, turning circles one car at a
+    time, sidewalks round turning bulbs);
+  - police: a search plan of corners and doorways once the suspect is lost; surrender by holding the phone key while
+    wanted and empty-handed (officers cover and cuff, with a lighter penalty); NPC suspects surrender too.
+- Missions: campaign regression 20/21 story missions (the one failure was a harness artifact, fixed); the Night
+  Series championship, the Ortega Harbor Runs, a SkyLine set piece for the Bagman chase, and cutscenes staged inside
+  interiors.
+- UI and tests:
+  - `--autoplay uishots` reviewed the HUD, pause map, settings, stats, brief and phone apps; the brief now shows the
+    active mission or FREE ROAM;
+  - tram and metro rides pass end to end;
+  - builds: `QUICK=1` -O1 builds, less GC work under the build lock, and a memory wait after taking it;
+  - `tools/run.sh` sets up a fresh Wine prefix completely before the first launch.
+
 ## Gameplay architecture (src/game, src/sim)
 - `app.cpp`: states LOADING (world generated on a thread, loading screen) -> MENU (cinematic flyover + main menu)
   -> PLAYING (pause/map menus overlay) ; FREECAM for --shot/--viewer/F9. Gameplay compiles only when characters,
@@ -203,7 +255,7 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
 ## Backlog (after the current agent wave)
 - Characters realism pass 3 (faces, skin, hands at close range): next agent slot that frees up.
 - Character customization shops beyond Threads clothing: barber, tattoo parlour.
-- First-person detail for the RPG, grenades and melee weapons (the guns are done).
+- First-person melee and throwables polish (guns, sights and reloads are done); a K9 unit for police searches (AI).
 - Real-GPU performance validation (target 60 fps @1440p on RTX 4070-class); offline shader precompile option.
 
 ## Known issues / next

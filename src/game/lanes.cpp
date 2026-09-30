@@ -1254,6 +1254,14 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
 
     // ---- pedestrian walk graph
     {
+        // a dead end's sidewalks run on until they meet the sidewalk ring round its turning bulb (roads.cpp bulbRadius):
+        // how far short of the node that is (no bulb: 2 m)
+        auto deadEndBack = [&](int ni, float hw, float sw, float len) {
+            float br = rn.bulbRadius(rn.nodes[ni]);
+            if (br <= 0.f) return Min(2.f, len * 0.3f);
+            float R = br + sw * 0.5f, lat = hw + sw * 0.5f;
+            return Min(sqrtf(Max(R * R - lat * lat, 4.f)), len * 0.3f);
+        };
         // walk nodes per (road node, approach, side)
         std::vector<std::vector<int>> wn(NN);  // per node: 2 * approaches entries (CW, CCW), -1 if none
         for (int ni = 0; ni < NN; ni++) {
@@ -1265,7 +1273,7 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                 const Approach& A = N.approaches[ai];
                 if (A.sw <= 0.5f) continue;
                 const World::RoadEdge& e = rn.edges[A.edge];
-                float d = N.deadEnd ? Min(2.f, e.length * 0.3f) : Min(Max(A.crossS, A.cut + 1.f), e.length * 0.45f);
+                float d = N.deadEnd ? deadEndBack(ni, A.hw, A.sw, e.length) : Min(Max(A.crossS, A.cut + 1.f), e.length * 0.45f);
                 float s = A.outgoing ? d : e.length - d;
                 for (int side = -1; side <= 1; side += 2) {
                     // CCW side (left of the outward direction) in edge frame: outgoing -> -N, incoming -> +N
@@ -1314,13 +1322,76 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                 int a = wn[ni][0], b = wn[ni][1];
                 if (a >= 0 && b >= 0) {
                     const Approach& A = N.approaches[0];
-                    WalkLink L;
-                    L.a = a;
-                    L.b = b;
-                    L.kind = WL_CORNER;
-                    L.ctrl = rnode.p - A.dir * (A.hw + A.sw + 4.5f) * 1.6f;
-                    L.halfWidth = Max(A.sw * 0.5f - 0.3f, 0.3f);
-                    addLink(L);
+                    float br = rn.bulbRadius(rnode);
+                    if (br > 0.f) {
+                        // round the turning bulb on its sidewalk ring (nobody walks across the circle the cars turn in):
+                        // arcs of at most 45 degrees between ring nodes, each a quadratic through the arc's tangent point
+                        vec2 C = rnode.p;
+                        float R = br + A.sw * 0.5f;
+                        float fa = atan2f(walkNodes[a].p.y - C.y, walkNodes[a].p.x - C.x);
+                        float fb = atan2f(walkNodes[b].p.y - C.y, walkNodes[b].p.x - C.x);
+                        float beyond = atan2f(-A.dir.y, -A.dir.x);
+                        auto wrap = [](float x) {
+                            while (x < 0.f) x += kTwoPi;
+                            while (x >= kTwoPi) x -= kTwoPi;
+                            return x;
+                        };
+                        float sweep = wrap(fb - fa);                   // counter-clockwise from a to b ...
+                        if (wrap(beyond - fa) > sweep) sweep -= kTwoPi;   // ... unless that misses the far side of the bulb
+                        int segs = Max(2, (int)ceilf(fabsf(sweep) / (45.f * kDegToRad)));
+                        float zRing = (walkNodes[a].p.z + walkNodes[b].p.z) * 0.5f;
+                        // (a ring running into another road, a building or a wall: no way round - the sidewalk just ends)
+                        bool clear = true;
+                        std::vector<int> roadsNear;
+                        for (float t = 0.f; t <= 1.f && clear; t += 1.f / Max(8.f, fabsf(sweep) * R / 1.5f)) {
+                            float f = fa + sweep * t;
+                            vec2 q = C + vec2(cosf(f), sinf(f)) * R;
+                            if ((World::gBuildings && World::gBuildings->pointInBuilding(q, 0.3f)) || World::siteColliderNear(vec3(q, zRing), 0.6f, 2.f)) clear = false;
+                            roadsNear.clear();
+                            rn.edgesInRect(q - vec2(1.f), q + vec2(1.f), roadsNear);
+                            for (int oe : roadsNear) {
+                                if (oe == A.edge || !clear) continue;
+                                const World::RoadEdge& o = rn.edges[oe];
+                                for (size_t k = 0; k + 1 < o.pts.size() && clear; k++) {
+                                    float tt;
+                                    if (distPointSegment2D(q, o.pts[k].xy(), o.pts[k + 1].xy(), &tt) < o.halfWidth + 0.8f) clear = false;
+                                }
+                            }
+                        }
+                        int prev = a;
+                        for (int k = 1; k <= segs && clear; k++) {
+                            int cur = b;
+                            if (k < segs) {
+                                float f = fa + sweep * k / segs;
+                                WalkNode w;
+                                w.p = vec3(C + vec2(cosf(f), sinf(f)) * R, zRing);
+                                w.roadNode = ni;
+                                w.approach = 0;
+                                w.side = 0;
+                                cur = (int)walkNodes.size();
+                                walkNodes.push_back(w);
+                            }
+                            float f0 = atan2f(walkNodes[prev].p.y - C.y, walkNodes[prev].p.x - C.x);
+                            float half = 0.5f * (sweep / segs);
+                            float mid = f0 + half;
+                            WalkLink L;
+                            L.a = prev;
+                            L.b = cur;
+                            L.kind = WL_CORNER;
+                            L.ctrl = C + vec2(cosf(mid), sinf(mid)) * (R / Max(cosf(half), 0.5f));
+                            L.halfWidth = Max(A.sw * 0.5f - 0.3f, 0.3f);
+                            addLink(L);
+                            prev = cur;
+                        }
+                    } else {
+                        WalkLink L;
+                        L.a = a;
+                        L.b = b;
+                        L.kind = WL_CORNER;
+                        L.ctrl = rnode.p - A.dir * (A.hw + A.sw + 4.5f) * 1.6f;
+                        L.halfWidth = Max(A.sw * 0.5f - 0.3f, 0.3f);
+                        addLink(L);
+                    }
                 }
             } else {
                 for (int ai = 0; ai < na; ai++) {
@@ -1384,8 +1455,8 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                 if (wa < 0 || wb < 0 || wa == wb) continue;
                 const Approach& A0 = nodes[e.n0].approaches[a0];
                 const Approach& A1 = nodes[e.n1].approaches[a1];
-                float da = nodes[e.n0].deadEnd ? Min(2.f, e.length * 0.3f) : Min(Max(A0.crossS, A0.cut + 1.f), e.length * 0.45f);
-                float db = nodes[e.n1].deadEnd ? Min(2.f, e.length * 0.3f) : Min(Max(A1.crossS, A1.cut + 1.f), e.length * 0.45f);
+                float da = nodes[e.n0].deadEnd ? deadEndBack(e.n0, A0.hw, A0.sw, e.length) : Min(Max(A0.crossS, A0.cut + 1.f), e.length * 0.45f);
+                float db = nodes[e.n1].deadEnd ? deadEndBack(e.n1, A1.hw, A1.sw, e.length) : Min(Max(A1.crossS, A1.cut + 1.f), e.length * 0.45f);
                 WalkLink L;
                 L.a = wa;
                 L.b = wb;

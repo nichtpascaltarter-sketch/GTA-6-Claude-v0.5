@@ -39,7 +39,10 @@ struct ProfScope {
 #endif
 
 // ---------------------------------------------------------------------------------------------
-enum class CmdType : u8 { Play, Gunshot, Thunder, Stop, EmitterCreate, EmitterSet, EmitterTune, EmitterVehicle, EmitterDestroy, SpeechReady };
+enum class CmdType : u8 {
+    Play, Gunshot, Thunder, Footstep, BodyImpact, Foley, Stop, EmitterCreate, EmitterSet, EmitterTune, EmitterVehicle, EmitterDestroy,
+    SpeechReady
+};
 struct Cmd {
     CmdType type;
     bool is2D;
@@ -591,6 +594,110 @@ struct Mixer {
         }
     }
 
+
+    // Footsteps: the sole meeting the ground (heel strike, then the roll-off after a gait-dependent delay) or a dull sole
+    // on soft ground, the surface's own sound, a splash on wet hard ground, and clothing / gear. Distant NPC steps are
+    // dropped before they take a voice; the steps of the player never are.
+    void startFootstep(const Cmd& c) {
+        int surface = Clamp(c.id & 0xff, 0, FOOT_SURFACE_COUNT - 1), footwear = Clamp((c.id >> 8) & 0xff, 0, FOOTWEAR_COUNT - 1);
+        int event = (c.id >> 16) & 0xff;
+        bool player = ((c.id >> 24) & 1) != 0;
+        vec3 pos = c.pos;
+        vec3 rel = pos - lis.pos;
+        float d = length(rel);
+        if (!player && d > 45.f) return;
+        float vol = c.volume, speed = Max(c.p[0], 0.f), weight = Clamp(c.p[1], 0.4f, 2.f), wet = Saturate(c.p[2]);
+        bool hard = surface == FOOT_ASPHALT || surface == FOOT_CONCRETE || surface == FOOT_WOOD || surface == FOOT_METAL;
+        float occ = player ? 0.f : acoustics::probeOcclusion(st.acoustic, rel);
+        float run = SmoothStep(2.2f, 5.5f, speed);
+        float force = Clamp(0.5f + 0.12f * speed, 0.5f, 1.3f) * sqrtf(weight);
+        float pitch = Clamp(1.f + (1.f - weight) * 0.12f, 0.85f, 1.15f);
+        vec3 hip = pos + vec3(0.f, 0.f, 0.9f);
+        if (event == FOOT_LAND) {
+            float imp = Max(c.p[3], 1.f);
+            float k = Clamp(imp / 7.f, 0.25f, 1.6f) * sqrtf(weight);
+            startLayer(hard ? STEP_LAND_HARD : STEP_LAND_SOFT, 0, pos, vol * k, pitch, 0, 0.8f, 0.f, occ);
+            // the two feet a few milliseconds apart, and the surface
+            if (hard) {
+                startLayer(STEP_HEEL + footwear, 0, pos, vol * k * 0.8f, pitch, 0, 0.5f, 0.f, occ);
+                startLayer(STEP_HEEL + footwear, 0, pos, vol * k * 0.6f, pitch, rng.irange(200, 1400), 0.5f, 0.f, occ);
+            }
+            startLayer(STEP_TEX + surface, 0, pos, vol * k * 1.2f, pitch, rng.irange(0, 300), 0.4f, 0.f, occ);
+            if (wet > 0.15f && hard) startLayer(STEP_PUDDLE, 0, pos, vol * k * wet, 1.f, 0, 0.3f, 0.f, occ);
+            if (player || d < 12.f) startLayer(FOLEY_CLOTH_BURST, 0, hip, vol * Min(k, 1.f) * 0.8f, 1.f, rng.irange(0, 600), 0.2f, 0.f, occ);
+            return;
+        }
+        if (event == FOOT_SCUFF) {
+            startLayer(STEP_SCUFF, 0, pos, vol * force * (footwear == FOOTWEAR_SNEAKER ? 1.f : 0.7f), pitch, 0, 0.4f, 0.f, occ);
+            startLayer(STEP_TEX + surface, 0, pos, vol * force * 0.8f, pitch, 0, 0.3f, 0.f, occ);
+            return;
+        }
+        // stroll: heel then toe ~110 ms apart; at a sprint the foot lands nearly flat
+        int roll = (int)(Lerp(0.11f, 0.028f, run) * kSR * rng.range(0.85f, 1.15f));
+        if (hard) {
+            startLayer(STEP_HEEL + footwear, 0, pos, vol * force, pitch, 0, 0.6f, 0.f, occ);
+            startLayer(STEP_TOE + footwear, 0, pos, vol * force * Lerp(0.55f, 0.8f, run), pitch, roll, 0.4f, 0.f, occ);
+        } else if (surface != FOOT_WATER) {
+            startLayer(STEP_SOFT, 0, pos, vol * force * (footwear == FOOTWEAR_BOOT ? 1.2f : 1.f), pitch, 0, 0.3f, 0.f, occ);
+        }
+        // the surface: grit gets louder when the sole drives off it at a run; boards and plate ring more under hard shoes
+        float tex;
+        bool hardSole = footwear == FOOTWEAR_LEATHER || footwear == FOOTWEAR_HEEL || footwear == FOOTWEAR_BOOT;
+        switch (surface) {
+            case FOOT_ASPHALT: tex = 0.35f + 0.3f * run; break;
+            case FOOT_CONCRETE: tex = 0.3f + 0.25f * run; break;
+            case FOOT_WOOD: case FOOT_METAL: tex = hardSole ? 1.f : 0.75f; break;
+            case FOOT_GRASS: tex = 0.8f + 0.4f * run; break;
+            default: tex = 0.9f + 0.2f * run; break;
+        }
+        startLayer(STEP_TEX + surface, 0, pos, vol * force * tex, pitch * rng.range(0.96f, 1.04f), rng.irange(0, 240), 0.3f, 0.f, occ);
+        if (wet > 0.15f && hard && surface != FOOT_WOOD && rng.f() < wet * 0.85f)
+            startLayer(STEP_PUDDLE, 0, pos, vol * force * (0.4f + 0.6f * wet), 1.f, rng.irange(0, 200), 0.3f, 0.f, occ);
+        // clothing and gear: the player's own, and runners close by
+        if (player || (d < 10.f && run > 0.3f)) {
+            if (run > 0.25f) startLayer(STEP_CLOTH_RUN, 0, hip, vol * Lerp(0.5f, 1.f, run), 1.f, rng.irange(0, 500), 0.2f, 0.f, occ);
+            else if (player) startLayer(STEP_CLOTH_WALK, 0, hip, vol * 0.8f, 1.f, rng.irange(0, 900), 0.2f, 0.f, occ);
+            if (player && run > 0.5f && rng.f() < 0.35f) startLayer(STEP_GEAR, 0, hip, vol * run, 1.f, rng.irange(0, 600), 0.2f, 0.f, occ);
+        }
+    }
+
+    // A body hitting the ground: the trunk (thud by surface, plus a limb slap) or a single limb; water takes a splash.
+    void startBodyImpact(const Cmd& c) {
+        int surface = Clamp(c.id & 0xff, 0, FOOT_SURFACE_COUNT - 1);
+        bool torso = ((c.id >> 8) & 1) != 0;
+        vec3 rel = c.pos - lis.pos;
+        if (length(rel) > 80.f) return;
+        float speed = Max(c.p[0], 0.f);
+        float k = Clamp(speed / 5.f, 0.1f, 1.6f) * c.volume;
+        float occ = acoustics::probeOcclusion(st.acoustic, rel);
+        float pitch = rng.range(0.94f, 1.06f);
+        if (surface == FOOT_WATER) {
+            startLayer(k > 0.8f ? SFX_SPLASH_BIG : SFX_SPLASH_SMALL, 0, c.pos, k * 0.8f, pitch, 0, 0.4f, 0.f, occ);
+            return;
+        }
+        if (!torso) {
+            startLayer(BODY_SLAP, 0, c.pos, k, pitch, 0, 0.4f, 0.f, occ);
+            return;
+        }
+        int id = surface == FOOT_WOOD ? BODY_THUD_WOOD : surface == FOOT_METAL ? BODY_THUD_METAL
+                 : (surface == FOOT_ASPHALT || surface == FOOT_CONCRETE) ? BODY_THUD_HARD : BODY_THUD_SOFT;
+        startLayer(id, 0, c.pos, k, pitch, 0, 0.8f, 0.f, occ);
+        startLayer(BODY_SLAP, 0, c.pos, k * 0.5f, pitch, rng.irange(1500, 6000), 0.3f, 0.f, occ);
+        startLayer(STEP_TEX + surface, 0, c.pos, k * 0.6f, pitch, rng.irange(0, 800), 0.3f, 0.f, occ);
+    }
+
+    void startFoley(const Cmd& c) {
+        vec3 rel = c.pos - lis.pos;
+        if (length(rel) > 30.f) return;
+        float occ = acoustics::probeOcclusion(st.acoustic, rel);
+        float k = Saturate(c.volume);
+        switch (c.id) {
+            case FOLEY_GEAR: startLayer(STEP_GEAR, 0, c.pos, k * 1.4f, 1.f, 0, 0.2f, 0.f, occ); break;
+            case FOLEY_GRAB: startLayer(FOLEY_GRAB_HAND, 0, c.pos, k, rng.range(0.94f, 1.06f), 0, 0.4f, 0.f, occ); break;
+            default: startLayer(FOLEY_CLOTH_BURST, 0, c.pos, k, 1.f, 0, 0.2f, 0.f, occ); break;
+        }
+    }
+
     void startSfx(int id, u32 handle, bool is2D, vec3 pos, float volume, float pitch, float occlHint = -1.f) {
         if (gunClassOf(id) >= 0) {
             startGunshot(id, handle, pos, vec3(), is2D ? (u32)GUN_PLAYER : 0u, volume, pitch, occlHint);
@@ -693,6 +800,9 @@ struct Mixer {
             switch (c.type) {
                 case CmdType::Play: startSfx(c.id, c.handle, c.is2D, c.pos, c.volume, c.pitch, c.p[1]); break;
                 case CmdType::Gunshot: startGunshot(c.id, c.handle, c.pos, c.vel, (u32)c.p[0], c.volume, c.pitch, c.p[1]); break;
+                case CmdType::Footstep: startFootstep(c); break;
+                case CmdType::BodyImpact: startBodyImpact(c); break;
+                case CmdType::Foley: startFoley(c); break;
                 case CmdType::Thunder: {
                     // by distance: a close strike tears before the boom, 1-3 km booms and rolls, farther only rumbles
                     float dist = c.p[0];
@@ -1853,6 +1963,41 @@ void playThunder(float distance, float volume) {
     c.type = mix::CmdType::Thunder;
     c.p[0] = Max(distance, 0.f);
     c.volume = Saturate(volume) * 1.2f;
+    mix::pushCmd(c);
+}
+
+void playFootstep(const Footstep& f) {
+    if (!mix::apiLive() || !std::isfinite(f.pos.x + f.pos.y + f.pos.z)) return;
+    mix::Cmd c = {};
+    c.type = mix::CmdType::Footstep;
+    c.id = (i32)((u32)f.surface | ((u32)f.footwear << 8) | ((u32)f.event << 16) | (f.player ? (1u << 24) : 0u));
+    c.pos = f.pos;
+    c.p[0] = std::isfinite(f.speed) ? f.speed : 0.f;
+    c.p[1] = std::isfinite(f.weight) ? f.weight : 1.f;
+    c.p[2] = std::isfinite(f.wetness) ? f.wetness : 0.f;
+    c.p[3] = std::isfinite(f.impact) ? f.impact : 0.f;
+    c.volume = Max(std::isfinite(f.volume) ? f.volume : 0.f, 0.f);
+    mix::pushCmd(c);
+}
+
+void playBodyImpact(vec3 pos, float speed, u8 surface, bool torso, float volume) {
+    if (!mix::apiLive() || !std::isfinite(pos.x + pos.y + pos.z + speed + volume)) return;
+    mix::Cmd c = {};
+    c.type = mix::CmdType::BodyImpact;
+    c.id = (i32)((u32)surface | (torso ? (1u << 8) : 0u));
+    c.pos = pos;
+    c.p[0] = speed;
+    c.volume = Max(volume, 0.f);
+    mix::pushCmd(c);
+}
+
+void playFoley(vec3 pos, u8 kind, float intensity) {
+    if (!mix::apiLive() || !std::isfinite(pos.x + pos.y + pos.z + intensity)) return;
+    mix::Cmd c = {};
+    c.type = mix::CmdType::Foley;
+    c.id = (i32)kind;
+    c.pos = pos;
+    c.volume = Max(intensity, 0.f);
     mix::pushCmd(c);
 }
 

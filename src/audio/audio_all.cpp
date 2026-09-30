@@ -7,6 +7,7 @@
 #include "sfx.cpp"
 #include "ambience.cpp"
 #include "music.cpp"
+#include "mastering.cpp"
 #include "radio.cpp"
 #include "crowd.cpp"
 #include "acoustics.cpp"

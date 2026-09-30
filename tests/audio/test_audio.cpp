@@ -1,11 +1,13 @@
 // Native (Linux) test harness for the audio engine. Renders WAV files of every Sfx, engine sweeps,
 // sirens and other emitters, a 60 s excerpt of every radio station, the score at several
 // intensities and ambience presets, and runs objective checks (NaN/Inf, peak <= 1, DC offset,
-// sample-to-sample discontinuities, loudness per category, spectral sanity).
+// sample-to-sample discontinuities, loudness per category, spectral sanity). The radio music checks
+// cover the station catalogs, the mastering chain (BS.1770 loudness match across stations, true peak,
+// mono low end, stereo width) and the arrangement pass (song lengths, transitions, key changes).
 //
 // Build (from the repo root):
 //   g++ -std=c++17 -O2 -I src tests/audio/test_audio.cpp -o /tmp/test_audio -lpthread
-//   /tmp/test_audio [outdir] [--quick]
+//   /tmp/test_audio [outdir] [--quick] [--env | --amb | --veh | --music | --perf]
 // Define AUDIO_TEST_SPEECH_STUB to link a trivial speech stub instead of src/audio/speech.cpp.
 #include <cstdarg>
 #include <chrono>
@@ -234,6 +236,319 @@ static float bandFraction(const std::vector<float>& x, float f0, float f1) {
     float out[2];
     bandEnergies(m, out, edges, 1);
     return powf(10.f, out[0] / 10.f);
+}
+
+
+// ---------------------------------------------------------------------------------------------
+// Radio music: catalogs, the broadcast mastering chain and the arrangement pass.
+// BS.1770 K-weighting at 48 kHz (pre-filter shelf + RLB high-pass).
+struct KBiquad {
+    double b0, b1, b2, a1, a2, z1 = 0, z2 = 0;
+    double p(double x) {
+        double y = b0 * x + z1;
+        z1 = b1 * x - a1 * y + z2;
+        z2 = b2 * x - a2 * y;
+        return y;
+    }
+};
+// Gated integrated loudness (LUFS) of an interleaved stereo buffer.
+static double integratedLufs(const std::vector<float>& L, const std::vector<float>& R) {
+    KBiquad s1[2] = {{1.53512485958697, -2.69169618940638, 1.19839281085285, -1.69065929318241, 0.73248077421585},
+                     {1.53512485958697, -2.69169618940638, 1.19839281085285, -1.69065929318241, 0.73248077421585}};
+    KBiquad s2[2] = {{1.0, -2.0, 1.0, -1.99004745483398, 0.99007225036621}, {1.0, -2.0, 1.0, -1.99004745483398, 0.99007225036621}};
+    std::vector<double> ms;
+    double acc = 0;
+    int c = 0;
+    for (size_t i = 0; i < L.size(); i++) {
+        double l = s2[0].p(s1[0].p(L[i])), r = s2[1].p(s1[1].p(R[i]));
+        acc += l * l + r * r;
+        if (++c == 4800) { ms.push_back(acc / 4800.0); acc = 0; c = 0; }
+    }
+    std::vector<double> blk;
+    for (size_t i = 0; i + 4 <= ms.size(); i++) blk.push_back((ms[i] + ms[i + 1] + ms[i + 2] + ms[i + 3]) * 0.25);
+    auto gated = [&](double gateLufs) {
+        double s = 0;
+        int k = 0;
+        for (double v : blk)
+            if (-0.691 + 10 * log10(v + 1e-20) > gateLufs) { s += v; k++; }
+        return k ? -0.691 + 10 * log10(s / k) : -99.0;
+    };
+    double ung = gated(-70.0);
+    return gated(Max(-70.0, ung - 10.0));
+}
+// 4x oversampled peak (windowed sinc), dBTP.
+static double truePeakDb(const std::vector<float>& L, const std::vector<float>& R) {
+    double pk = 0;
+    for (size_t i = 0; i < L.size(); i++) pk = Max(pk, (double)Max(fabsf(L[i]), fabsf(R[i])));
+    double tp = pk;
+    const int T = 8;
+    for (int ch = 0; ch < 2; ch++) {
+        const std::vector<float>& x = ch ? R : L;
+        for (size_t i = T; i + T < x.size(); i++) {
+            if (fabsf(x[i]) < pk * 0.6 && fabsf(x[i + 1]) < pk * 0.6) continue;
+            for (int ph = 1; ph < 4; ph++) {
+                double fr = ph / 4.0, v = 0;
+                for (int k = -T + 1; k <= T; k++) {
+                    double t = k - fr;
+                    v += x[i + (size_t)k] * sin(M_PI * t) / (M_PI * t) * (0.5 + 0.5 * cos(M_PI * t / T));
+                }
+                tp = Max(tp, fabs(v));
+            }
+        }
+    }
+    return 20 * log10(tp + 1e-12);
+}
+// Side / mid energy (dB) after band-limiting both with 2nd-order filters to [f0, f1].
+static double sideMidDb(const std::vector<float>& L, const std::vector<float>& R, float f0, float f1) {
+    Biquad hm, hs, lm, ls;
+    hm.setHP(f0, 0.7071f); hs = hm;
+    lm.setLP(f1, 0.7071f); ls = lm;
+    double em = 0, es = 0;
+    for (size_t i = 0; i < L.size(); i++) {
+        float m = 0.5f * (L[i] + R[i]), s = 0.5f * (L[i] - R[i]);
+        m = lm.process(hm.process(m));
+        s = ls.process(hs.process(s));
+        em += (double)m * m;
+        es += (double)s * s;
+    }
+    return 10 * log10((es + 1e-20) / (em + 1e-20));
+}
+
+static void musicTests(bool quick) {
+    using namespace detail;
+    using namespace detail::music;
+    printf("== Radio music: catalogs, mastering, arrangement\n");
+    radio::ensureStations();
+    for (int i = 0; i < radio::kStations; i++) {
+        const radio::Station& st = radio::g_st[i];
+        if (st.def.genre == Genre::Talk) continue;
+        std::vector<std::string> titles, artists;
+        for (const auto& si : st.catalog) {
+            if (std::find(titles.begin(), titles.end(), si.title) == titles.end()) titles.push_back(si.title);
+            if (std::find(artists.begin(), artists.end(), si.artist) == artists.end()) artists.push_back(si.artist);
+        }
+        printf("  %-28s %zu songs, %zu titles, %zu artists\n", st.def.name, st.catalog.size(), titles.size(), artists.size());
+        check(st.catalog.size() >= 36, "station catalog size", st.def.name);
+        check(titles.size() == st.catalog.size(), "unique song titles", st.def.name);
+        check(artists.size() >= 12, "artists per station", st.def.name);
+    }
+    // mastering: one song per music station through its broadcast chain (from 50 s in, past the intro)
+    std::vector<double> lufs;
+    for (int g = 0; g < 8; g++) {
+        int stIdx = -1;
+        for (int i = 0; i < radio::kStations; i++)
+            if ((int)radio::g_st[i].def.genre == g) stIdx = i;
+        if (stIdx < 0) continue;
+        u32 seed = 424242u + (u32)g * 1013u;
+        auto sd = composeSong((Genre)g, seed);
+        SongPlayer sp;
+        sp.start(sd, (u32)(50.f * kSR));
+        radio::StationProducer prod;
+        prod.station = stIdx;
+        prod.reset(stIdx, 0.0);
+        int frames = (int)((quick ? 24.f : 45.f) * kSR);
+        frames -= frames % kProdBlock;
+        std::vector<float> L((size_t)frames), R((size_t)frames);
+        double t0 = TimeSeconds();
+        for (int i = 0; i < frames; i += kProdBlock) {
+            sp.render(&L[(size_t)i], &R[(size_t)i], kProdBlock);
+            prod.process(&L[(size_t)i], &R[(size_t)i], kProdBlock);
+        }
+        double el = TimeSeconds() - t0;
+        prod.station = -1;
+        // skip the first 6 s while the AGCs settle
+        std::vector<float> l2(L.begin() + (long)(6 * kSR), L.end()), r2(R.begin() + (long)(6 * kSR), R.end());
+        double lu = integratedLufs(l2, r2), tp = truePeakDb(l2, r2);
+        double lowSM = sideMidDb(l2, r2, 25.f, 110.f), hiSM = sideMidDb(l2, r2, 2000.f, 12000.f);
+        lufs.push_back(lu);
+        const char* name = radio::g_st[stIdx].def.name;
+        printf("  %-28s %5.1f LUFS  %5.1f dBTP  side/mid <110 Hz %5.1f dB, 2-12 kHz %5.1f dB  (song+chain %.1f%% of a core)\n", name, lu, tp, lowSM, hiSM,
+               100.0 * el / ((double)frames / kSR));
+        check(tp <= -0.5, "mastered true peak <= -0.5 dBTP", StrFormat("%s %.2f", name, tp));
+        check(lowSM < -18.0, "mono low end (side/mid below 110 Hz)", StrFormat("%s %.1f", name, lowSM));
+        check(hiSM > -20.0, "stereo width in the highs", StrFormat("%s %.1f", name, hiSM));
+        std::vector<float> inter;
+        inter.reserve(L.size() * 2);
+        for (size_t i = 0; i < L.size(); i++) { inter.push_back(L[i]); inter.push_back(R[i]); }
+        Stats s2 = analyze(inter, 2);
+        check(s2.finite && fabs(s2.dc) < 0.01, "mastered output finite, no DC", StrFormat("%s finite %d dc %.4f", name, (int)s2.finite, s2.dc));
+        save(StrFormat("master_station%d", stIdx), inter);
+    }
+    if (!lufs.empty()) {
+        double lo = *std::min_element(lufs.begin(), lufs.end()), hi = *std::max_element(lufs.begin(), lufs.end());
+        printf("  station loudness spread %.1f LU (%.1f .. %.1f LUFS)\n", hi - lo, lo, hi);
+        check(hi - lo < 3.0, "stations within 3 LU of each other", StrFormat("%.1f LU", hi - lo));
+        check(lo > -18.0 && hi < -10.0, "station loudness range", StrFormat("%.1f .. %.1f", lo, hi));
+    }
+    // arrangement pass and forms over several seeds per genre
+    int keyChanges = 0, keyChangeSongs = 0;
+    for (int g = 0; g < 8; g++) {
+        int n = quick ? 8 : 16, trans = 0, hooks = 0, subs[4] = {0, 0, 0, 0}, backToBack = 0;
+        float dmin = 1e9f, dmax = 0.f;
+        for (int k = 0; k < n; k++) {
+            u32 seed = 777u + (u32)g * 3001u + (u32)k * 7919u;
+            SongPlan pl = planSong((Genre)g, seed);
+            auto sd = composeSong((Genre)g, seed);
+            dmin = Min(dmin, pl.durationSec());
+            dmax = Max(dmax, pl.durationSec());
+            subs[Clamp(pl.sub, 0, 3)]++;
+            if (g == 0 || g == 2 || g == 4 || g == 6) {
+                keyChangeSongs++;
+                if (sd->keyShift) keyChanges++;
+            }
+            for (size_t i = 1; i < pl.sections.size(); i++) {
+                const Section& a = pl.sections[i - 1];
+                const Section& b = pl.sections[i];
+                if (b.part == Part::Chorus && a.part == Part::Chorus) backToBack++;
+                if (!((b.part == Part::Chorus || b.part == Part::Drop) && a.part != b.part)) continue;
+                hooks++;
+                u32 at = (u32)((double)b.startBar * 4.0 * 60.0 / pl.bpm * kSR);
+                u32 win = (u32)(2.0 * 4.0 * 60.0 / pl.bpm * kSR);
+                bool found = false;
+                for (const NoteEv& e : sd->events)
+                    if (sd->tracks[e.track].drums && (e.note == DK_REV_CYM || e.note == DK_RISER || e.note == DK_IMPACT) && e.start + win >= at &&
+                        e.start <= at)
+                        found = true;
+                // a rhythm-section stop also counts as a transition: no kick in the last beat before the downbeat
+                bool kickInLastBeat = false;
+                u32 beat = (u32)(60.0 / pl.bpm * kSR);
+                for (const NoteEv& e : sd->events)
+                    if (e.track == 0 && e.note == DK_KICK && e.start + beat > at && e.start < at) kickInLastBeat = true;
+                if (found || !kickInLastBeat) trans++;
+            }
+        }
+        static const char* kG[] = {"synthwave", "hiphop", "reggaeton", "house", "rock", "jazz", "country", "lofi"};
+        printf("  %-9s %2d songs %3.0f-%3.0f s, sub-styles %d/%d/%d, hooks with a transition %d/%d, chorus->chorus %d\n", kG[g], n, dmin, dmax, subs[0],
+               subs[1], subs[2], trans, hooks, backToBack);
+        check(dmin >= 140.f && dmax <= 250.f, "song lengths", kG[g]);
+        if (g == 0 || g == 1 || g == 2 || g == 3) check(hooks == 0 || trans * 2 >= hooks, "transitions into choruses / drops", kG[g]);
+        if (g == 0 || g == 1 || g == 3 || g == 4 || g == 7) check(subs[1] > 0, "sub-style variety", kG[g]);
+    }
+    printf("  last-chorus key changes: %d of %d pop / rock / country songs\n", keyChanges, keyChangeSongs);
+    check(keyChanges > 0 && keyChanges < keyChangeSongs, "some (not all) songs modulate");
+}
+
+// ---------------------------------------------------------------------------------------------
+// Footsteps and body foley: every footwear on every surface, gait, wet ground, landings, body impacts.
+// Loudest 100 ms window of the K-weighted mono mix (dB): a perceptual level for short impacts, where plain RMS would
+// be dominated by low thumps.
+static float loudestKDb(const std::vector<float>& inter) {
+    KBiquad s1 = {1.53512485958697, -2.69169618940638, 1.19839281085285, -1.69065929318241, 0.73248077421585};
+    KBiquad s2 = {1.0, -2.0, 1.0, -1.99004745483398, 0.99007225036621};
+    size_t n = inter.size() / 2;
+    std::vector<double> e(n + 1, 0.0);
+    for (size_t i = 0; i < n; i++) {
+        double y = s2.p(s1.p(0.5 * (inter[i * 2] + inter[i * 2 + 1])));
+        e[i + 1] = e[i] + y * y;
+    }
+    const size_t w = 4800;
+    double best = 0.0;
+    for (size_t i = 0; i + 1 < n; i += 120) {
+        size_t j = Min(n, i + w);
+        best = Max(best, (e[j] - e[i]) / (double)Max<size_t>(1, j - i));
+    }
+    return (float)(10.0 * log10(best + 1e-14));
+}
+static std::vector<float> renderStep(const Footstep& f, float secs = 0.6f) {
+    playFootstep(f);
+    std::vector<float> b = render(secs);
+    render(0.8f);  // let the room tail die before the next one
+    return b;
+}
+static void footstepTests() {
+    printf("== Footsteps and foley\n");
+    resetWorld();
+    static const char* kSurf[FOOT_SURFACE_COUNT] = {"asphalt", "concrete", "grass", "dirt", "sand", "water", "wood", "metal", "mud"};
+    static const char* kWear[FOOTWEAR_COUNT] = {"sneaker", "leather", "heel", "boot", "sandal", "bare"};
+    const vec3 at(0.f, 3.f, -1.6f);  // a pedestrian's foot 3 m ahead of a standing listener
+    // the legacy single-sample step at the old walk volume, as the level reference
+    play(SFX_STEP_CONCRETE, at, 0.3f);
+    std::vector<float> ref = render(0.6f);
+    render(0.8f);
+    float refDb = loudestKDb(ref);
+    printf("  reference (old concrete step): %.1f dB\n", refDb);
+    std::vector<float> all;
+    float hf[FOOTWEAR_COUNT] = {}, lf[FOOTWEAR_COUNT] = {}, walkDb[FOOTWEAR_COUNT] = {};
+    for (int s = 0; s < FOOT_SURFACE_COUNT; s++) {
+        bool hard = s == FOOT_ASPHALT || s == FOOT_CONCRETE || s == FOOT_WOOD || s == FOOT_METAL;
+        std::string line;
+        for (int w = 0; w < FOOTWEAR_COUNT; w++) {
+            if (!hard && w != FOOTWEAR_SNEAKER && w != FOOTWEAR_BARE) continue;
+            float db = 0.f, h = 0.f, l = 0.f;
+            const int reps = 3;
+            for (int k = 0; k < reps; k++) {
+                Footstep f;
+                f.pos = at;
+                f.speed = 1.4f;
+                f.surface = (u8)s;
+                f.footwear = (u8)w;
+                std::vector<float> b = renderStep(f);
+                basicChecks(StrFormat("step_%s_%s", kSurf[s], kWear[w]), b, 1.2f);
+                db += loudestKDb(b) / reps;
+                std::vector<float> m = monoOf(b);
+                h += bandFraction(m, 2000.f, 20000.f) / reps;
+                l += bandFraction(m, 20.f, 300.f) / reps;
+                if (k == 0) all.insert(all.end(), b.begin(), b.end());
+            }
+            line += StrFormat(" %s %.1f", kWear[w], db);
+            check(db > refDb - 8.f && db < refDb + 8.f, "footstep level near the reference", StrFormat("%s/%s %.1f dB", kSurf[s], kWear[w], db));
+            if (s == FOOT_CONCRETE) { hf[w] = h; lf[w] = l; walkDb[w] = db; }
+        }
+        printf("  %-8s%s dB\n", kSurf[s], line.c_str());
+    }
+    save("steps_matrix", all);
+    printf("  concrete >2 kHz: sneaker %.0f%% leather %.0f%% heel %.0f%% boot %.0f%%;  <300 Hz: sneaker %.0f%% boot %.0f%%\n", hf[0] * 100,
+           hf[1] * 100, hf[2] * 100, hf[3] * 100, lf[0] * 100, lf[3] * 100);
+    check(hf[FOOTWEAR_HEEL] > hf[FOOTWEAR_SNEAKER] + 0.1f, "heels click brighter than sneakers");
+    check(hf[FOOTWEAR_LEATHER] > hf[FOOTWEAR_SNEAKER], "leather soles brighter than sneakers");
+    check(lf[FOOTWEAR_BOOT] > lf[FOOTWEAR_HEEL], "boots heavier than heels");
+    // gait: a sprinting step lands harder than a stroll
+    auto stepDb = [&](float speed, int surf, float wet, int ev, float impact) {
+        float db = 0.f;
+        for (int k = 0; k < 4; k++) {
+            Footstep f;
+            f.pos = at;
+            f.speed = speed;
+            f.surface = (u8)surf;
+            f.wetness = wet;
+            f.event = (u8)ev;
+            f.impact = impact;
+            db += loudestKDb(renderStep(f)) / 4.f;
+        }
+        return db;
+    };
+    float walk = stepDb(1.4f, FOOT_ASPHALT, 0.f, FOOT_STEP, 0.f), sprint = stepDb(7.f, FOOT_ASPHALT, 0.f, FOOT_STEP, 0.f);
+    float wetDb = stepDb(1.4f, FOOT_ASPHALT, 1.f, FOOT_STEP, 0.f);
+    float land = stepDb(1.f, FOOT_CONCRETE, 0.f, FOOT_LAND, 6.f);
+    printf("  asphalt: walk %.1f dB, sprint %.1f dB, walk on wet ground %.1f dB, landing from a jump %.1f dB\n", walk, sprint, wetDb, land);
+    check(sprint > walk + 3.f, "sprint steps land harder than a stroll");
+    check(wetDb > walk + 0.5f, "wet ground adds splashes");
+    check(land > walk + 4.f, "a landing is heavier than a step");
+    // body impacts
+    playBodyImpact(at, 5.f, FOOT_CONCRETE, true);
+    std::vector<float> body = render(1.2f);
+    render(1.f);
+    basicChecks("body_thud_concrete", body, 1.2f);
+    float bodyDb = loudestKDb(body), bodyLf = bandFraction(monoOf(body), 20.f, 250.f);
+    printf("  body falling on concrete at 5 m/s: %.1f dB, %.0f%% below 250 Hz\n", bodyDb, bodyLf * 100);
+    check(bodyDb > walk + 6.f, "a falling body is much louder than a step");
+    check(bodyLf > 0.3f, "body thud is heavy");
+    save("body_thud_concrete", body);
+    for (int s : {FOOT_GRASS, FOOT_WOOD, FOOT_METAL, FOOT_WATER}) {
+        playBodyImpact(at, 4.f, (u8)s, true);
+        std::vector<float> b = render(1.f);
+        render(1.f);
+        basicChecks(StrFormat("body_thud_%s", kSurf[s]), b, 1.2f);
+        check(loudestKDb(b) > walk, "body impact audible", kSurf[s]);
+        save(StrFormat("body_thud_%s", kSurf[s]), b);
+    }
+    for (int k : {FOLEY_CLOTH, FOLEY_GEAR, FOLEY_GRAB}) {
+        playFoley(vec3(0.f, 1.f, -0.5f), (u8)k, 1.f);
+        std::vector<float> b = render(0.8f);
+        render(0.5f);
+        basicChecks(StrFormat("foley_%d", k), b, 1.2f);
+        check(loudestKDb(b) > -60.f, "foley audible", StrFormat("%d", k));
+    }
 }
 
 static void kitTests() {
@@ -970,17 +1285,94 @@ static void perfTest(float seconds, int engines = 20, int others = 8) {
     check(tMusic / seconds < 0.06, "music cpu < 6% of a core");
 }
 
+// Busy sidewalk on foot: the player running through a crowd of 24 walkers (their footsteps by surface and footwear),
+// traffic passing, rain on the ground, the occasional body falling.
+static void perfFootTest(float seconds) {
+    resetWorld();
+    dsp::ScopedFlushDenormals ftz;
+    Ambience a;
+    a.urban = 1.f; a.rain = 0.4f; a.timeOfDay = 18.f;
+    setAmbience(a);
+    setScene(VS_STREET);
+    setRaycast(vRay);
+    std::vector<EmitterHandle> em;
+    for (int i = 0; i < 6; i++) em.push_back(createEmitter(EMIT_ENGINE));
+    render(1.f);
+    Rng r(11);
+    struct Walker { vec3 pos, vel; float phase, stride; u8 wear, surf; };
+    std::vector<Walker> walkers;
+    for (int i = 0; i < 24; i++) {
+        float ang = r.range(0.f, kTwoPi), d = r.range(3.f, 28.f);
+        walkers.push_back({vec3(cosf(ang) * d, sinf(ang) * d, -1.6f), vec3(r.range(-1.4f, 1.4f), r.range(-1.4f, 1.4f), 0.f), r.f(), 0.75f,
+                           (u8)r.irange(0, FOOTWEAR_COUNT - 1), (u8)(r.chance(0.8f) ? FOOT_CONCRETE : FOOT_ASPHALT)});
+    }
+    g_cpuClock = true;
+    double tMix = 0;
+    int blocks = (int)(seconds * 48000.f / 256.f), steps = 0;
+    float out[512], playerPhase = 0.f;
+    for (int b = 0; b < blocks; b++) {
+        if (b % 3 == 0) {
+            float dt = 1.f / 62.5f, t = (float)b * 256.f / 48000.f;
+            Listener l;
+            l.pos = vec3(0, t * 5.f, 0);
+            l.vel = vec3(0, 5.f, 0);
+            update(l, dt);
+            for (size_t i = 0; i < em.size(); i++)
+                setEmitter(em[i], l.pos + vec3(12.f + 4.f * (float)i, 30.f * sinf(t * 0.3f + (float)i), 0), vec3(0, 12, 0), 0.4f, 0.4f, 0.3f,
+                           (float)(i % ENGINE_COUNT), 1.f);
+            for (Walker& w : walkers) {
+                w.pos += w.vel * dt;
+                w.phase += length(w.vel) * dt / w.stride;
+                if (w.phase >= 1.f) {
+                    w.phase -= 1.f;
+                    Footstep f;
+                    f.pos = l.pos + w.pos;
+                    f.speed = length(w.vel);
+                    f.footwear = w.wear;
+                    f.surface = w.surf;
+                    f.wetness = 0.5f;
+                    playFootstep(f);
+                    steps++;
+                }
+            }
+            playerPhase += 5.f * dt / 1.3f;
+            if (playerPhase >= 1.f) {
+                playerPhase -= 1.f;
+                Footstep f;
+                f.pos = l.pos + vec3(0.f, 0.f, -1.6f);
+                f.speed = 5.f;
+                f.wetness = 0.5f;
+                f.player = true;
+                playFootstep(f);
+            }
+            if (r.chance(0.01f)) playBodyImpact(l.pos + vec3(r.range(-10, 10), r.range(3, 15), -1.5f), 5.f, FOOT_CONCRETE, true);
+        }
+        double t1 = TimeSeconds();
+        detail::mix::g_mixer->render(out, 256);
+        tMix += TimeSeconds() - t1;
+    }
+    g_cpuClock = false;
+    for (auto h : em) destroyEmitter(h);
+    setRaycast(nullptr);
+    setScene(VS_OPEN);
+    printf("  perf on foot (24 walkers, %.0f steps/s, 6 engines, rain): mixer %.2f%% of one core\n", (float)steps / seconds, 100.0 * tMix / seconds);
+    if (g_report) fprintf(g_report, "perf foot mixer %.2f%%\n", 100.0 * tMix / seconds);
+    check(tMix / seconds < 0.10, "mixer cpu on a crowded sidewalk < 10% of a core");
+}
+
 int main(int argc, char** argv) {
-    bool quick = false, perfOnly = false, envOnly = false, ambOnly = false, vehOnly = false;
+    bool quick = false, perfOnly = false, envOnly = false, ambOnly = false, vehOnly = false, musicOnly = false, footOnly = false;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--quick")) quick = true;
+        else if (!strcmp(argv[i], "--music")) musicOnly = true;
+        else if (!strcmp(argv[i], "--foot")) footOnly = true;
         else if (!strcmp(argv[i], "--perf")) perfOnly = true;
         else if (!strcmp(argv[i], "--env")) envOnly = true;
         else if (!strcmp(argv[i], "--amb")) ambOnly = true;
         else if (!strcmp(argv[i], "--veh")) vehOnly = true;
         else g_out = argv[i];
     }
-    if (envOnly || ambOnly || vehOnly) {
+    if (envOnly || ambOnly || vehOnly || musicOnly || footOnly) {
         mkdir(g_out.c_str(), 0755);
         init();
         render(0.1f);
@@ -988,6 +1380,8 @@ int main(int argc, char** argv) {
         if (envOnly) envTests();
         if (ambOnly) ambienceTests(quick);
         if (vehOnly) vehicleTests();
+        if (musicOnly) musicTests(quick);
+        if (footOnly) footstepTests();
         printf("\n%d checks, %d failures\n", g_checks, g_fail);
         shutdown();
         return g_fail ? 1 : 0;
@@ -998,6 +1392,7 @@ int main(int argc, char** argv) {
         float secs = getenv("AUDIO_PERF_SECONDS") ? (float)atof(getenv("AUDIO_PERF_SECONDS")) : 20.f;
         perfTest(secs, 20, 8);
         if (!getenv("AUDIO_PERF_SECONDS")) perfTest(secs, 6, 2);
+        perfFootTest(secs);
         shutdown();
         return 0;
     }
@@ -1158,6 +1553,7 @@ int main(int argc, char** argv) {
         }
         setRadioStation(-1);
         render(0.5f);
+        musicTests(quick);
     }
 
     // ---------------------------------------------------------------- Score
@@ -1213,6 +1609,7 @@ int main(int argc, char** argv) {
 
     envTests();
     vehicleTests();
+    footstepTests();
 
     printf("== Drum kits (spectral sanity)\n");
     kitTests();
@@ -1274,6 +1671,7 @@ int main(int argc, char** argv) {
     printf("== Performance\n");
     perfTest(quick ? 8.f : 20.f, 20, 8);
     perfTest(quick ? 8.f : 20.f, 6, 2);
+    perfFootTest(quick ? 8.f : 20.f);
 
     double t2 = TimeSeconds();
     printf("\n%d checks, %d failures, %.1f s\n", g_checks, g_fail, t2 - t0);

@@ -217,6 +217,7 @@ namespace Render {
 struct Camera;
 }
 namespace Game {
+struct GameWorld;
 namespace Wildlife {
 struct Sighting {
     int species;    // Fauna::Species
@@ -235,5 +236,20 @@ int visibleSpecies(const Render::Camera& cam, float maxDist, int* outSpecies, in
 // Common name ("roseate spoonbill"), or "" for an invalid id; speciesCount() == Fauna::SP_COUNT.
 const char* speciesName(int species);
 int speciesCount();
+
+// ---- police dogs (K9, driven by police.cpp): a German shepherd on a leash at its handler's side -------------------------
+enum K9Cmd : u8 {
+    K9_HEEL = 0,   // at the handler's side (a dog that was released runs back and is leashed again)
+    K9_TRACK,      // pulls ahead of the handler toward `at`, nose down (following a scent trail)
+    K9_ALERT,      // stands ahead of the handler barking at `at`
+    K9_ATTACK      // slips the leash, runs `targetPed` down, bites, takes a fleeing suspect to the ground, stands over them
+};
+// The dog for `handler` (a police officer on foot); -1 when the wildlife pool is full or not ready. *uidOut: its handle.
+int spawnK9(GameWorld& g, int handler, u32* uidOut);
+void k9Command(GameWorld& g, int group, u32 uid, int cmd, vec3 at, int targetPed);
+bool k9Alive(int group, u32 uid);         // still there and on its feet
+vec3 k9Pos(int group);
+bool k9Loose(int group);                  // released (not on the leash)
+void k9Dismiss(int group, u32 uid);       // the unit is done: an ordinary leashed dog again (despawns with the rest)
 }  // namespace Wildlife
 }  // namespace Game

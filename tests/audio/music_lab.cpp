@@ -139,8 +139,8 @@ int main(int argc, char** argv) {
         u32 sdSeed = seed + (u32)g * 77u;
         SongPlan pl = planSong((Genre)g, sdSeed);
         auto sd = composeSong((Genre)g, sdSeed);
-        printf("\n=== %s seed %u: %.0f bpm, key %d scale %d, variant %d, %d bars, %.1f s, swing %.2f\n", kGenre[g], sdSeed, pl.bpm, pl.key.tonic,
-               (int)pl.key.scale, pl.variant, pl.totalBars, pl.durationSec(), pl.swing);
+        printf("\n=== %s seed %u: %.0f bpm, key %d scale %d, variant %d, sub-style %d, %d bars, %.1f s, swing %.2f, last-chorus key change %+d\n", kGenre[g],
+               sdSeed, pl.bpm, pl.key.tonic, (int)pl.key.scale, pl.variant, pl.sub, pl.totalBars, pl.durationSec(), pl.swing, sd->keyShift);
         printf("  form:");
         for (auto& s : pl.sections) printf(" %s%d", kPart[(int)s.part], s.bars);
         printf("\n");

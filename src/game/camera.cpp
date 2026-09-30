@@ -341,9 +341,10 @@ void GameWorld::updateCameraFades(float realDt) {
         float target = 1.f;
         if (i != player && p.state != PS_INVEHICLE && p.visibleDist < 9.f) {
             vec3 rc = rel(p.pos, cam);   // feet, camera-relative
-            // lens against the body: nearest point of the body axis (0.3 .. 1.6 m above the feet)
+            // lens against the body: nearest point of the body axis (0.3 .. 1.6 m above the feet). Face to face at
+            // arm's length (first person, a conversation) the axis is ~0.35 m from the eyes and stays solid.
             float zc = Clamp(-rc.z, 0.3f, 1.6f);
-            target = Saturate((length(rc + vec3(0.f, 0.f, zc)) - 0.25f) * 4.f);
+            target = Saturate((length(rc + vec3(0.f, 0.f, zc)) - 0.12f) / 0.18f);
             if (sight) {
                 // body across the line of sight: closest approach in plan, then the sight height there
                 float t = Clamp((rc.x * toPl.x + rc.y * toPl.y) / sxy2, 0.f, 1.f);

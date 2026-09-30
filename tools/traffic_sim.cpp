@@ -1389,6 +1389,41 @@ int main(int argc, char** argv) {
             }
             continue;
         }
+        if (!strcmp(argv[i], "--profile") && i + 5 < argc) {
+            // a cross-section from a to b (n samples): water, terrain, collision ground, road surface, region, lanes -
+            // where a person can stand beside a road (causeway shoulders, curbs, quays)
+            vec2 a((float)atof(argv[i + 1]), (float)atof(argv[i + 2])), b((float)atof(argv[i + 3]), (float)atof(argv[i + 4]));
+            int n = Max(2, atoi(argv[i + 5]));
+            i += 5;
+            w.loadCells((a + b) * 0.5f, length(b - a) * 0.5f + 40.f);
+            for (int k = 0; k < n; k++) {
+                vec2 q = a + (b - a) * (k / (float)(n - 1));
+                Phys::GroundHit gh = w.cw.ground(q.x, q.y, 30.f, 0.f);
+                float rz = 0.f, pz = 0.f;
+                bool on = w.roads.surfaceHeight(q, &rz, 1e9f);
+                bool pad = World::gSites && World::gSites->padHeight(q, &pz, 1e9f);
+                float u = 0.f, lat = 0.f;
+                int ln = w.lg.nearestLane(q, vec2(0.f), 10.f, &u, &lat);
+                printf("(%.1f, %.1f) water %d terrain %.2f ground %.2f surf %d road %d %.2f pad %d %.2f region %d lane %d lat %.2f width %.2f\n", q.x, q.y, (int)w.map.isWater(q.x, q.y),
+                       w.map.heightAt(q.x, q.y), gh.z, gh.surface, (int)on, rz, (int)pad, pz, (int)w.map.regionAt(q.x, q.y), ln, lat, ln >= 0 ? w.lg.lanes[ln].width : 0.f);
+            }
+            continue;
+        }
+        if (!strcmp(argv[i], "--nearlane") && i + 4 < argc) {
+            // the lane nearest to a point for a heading (what a kerb check / a spawn would pick), with its neighbours
+            vec2 p((float)atof(argv[i + 1]), (float)atof(argv[i + 2])), f((float)atof(argv[i + 3]), (float)atof(argv[i + 4]));
+            i += 4;
+            float u = 0.f, lat = 0.f;
+            int ln = w.lg.nearestLane(p, f, 6.f, &u, &lat);
+            if (ln >= 0) {
+                const AI::Lane& L = w.lg.lanes[ln];
+                vec2 t = w.lg.laneTangent(ln, u);
+                printf("nearest lane %d u %.1f (%.1f..%.1f) lat %.2f width %.2f left %d right %d tangent (%.2f %.2f)\n", ln, u, L.u0, L.u1, lat, L.width, L.left, L.right, t.x, t.y);
+            } else {
+                printf("no lane within 6 m\n");
+            }
+            continue;
+        }
         if (!strcmp(argv[i], "--crossings") && i + 3 < argc) {
             // the crossings a street takeover can use (events.cpp): four approaches of streets / avenues, signals or an
             // all-way stop, lanes in and out of each - with the district, so a test knows where to stand
@@ -1512,8 +1547,8 @@ int main(int argc, char** argv) {
             const AI::LaneGraph& G = w.lg;
             if (id < 0 || id >= (int)G.lanes.size()) break;
             const AI::Lane& L = G.lanes[id];
-            printf("lane %d edge %d dir %d idx %d/%d cls %d flags %d u %.1f..%.1f from node %d to node %d speed %.1f out", id, L.edge, L.dir, L.index, L.count, L.cls, L.flags, L.u0, L.u1,
-                   L.fromNode, L.toNode, L.speed);
+            printf("lane %d edge %d dir %d idx %d/%d left %d right %d cls %d flags %d u %.1f..%.1f from node %d to node %d speed %.1f out", id, L.edge, L.dir, L.index, L.count, L.left,
+                   L.right, L.cls, L.flags, L.u0, L.u1, L.fromNode, L.toNode, L.speed);
             for (int c : L.out) printf(" %d(to lane %d turn %d)", c, G.conns[c].to, G.conns[c].turn);
             printf("\n");
             for (float u = Max(a, L.u0); u <= Min(b, L.u1) + 0.01f; u += 2.f) {

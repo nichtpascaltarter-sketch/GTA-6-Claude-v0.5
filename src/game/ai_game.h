@@ -26,7 +26,11 @@ enum VenueMode : u8 {
     VM_TRAVEL_IN,      // traveler from the curb into a terminal door (a stream, then gone inside)
     VM_TRAVEL_OUT,     // traveler out of a door to the curb: waits on the phone, then hails a taxi
     VM_FAREWELL,       // saying goodbye at the curb, then in through the doors
-    VM_SEEOFF          // ... the one seeing them off: a wave, then off along the sidewalk
+    VM_SEEOFF,         // ... the one seeing them off: a wave, then back into the car (or off along the sidewalk)
+    VM_QUEUE,          // in line at a taxi rank: steps up as the head of the line leaves
+    VM_BOARD,          // on the way to a vehicle's kerb-side door, then in (and the vehicle pulls away)
+    VM_WORK,           // hands-on work at the spot: crouched over it a while (twist-locks, tackle), then up for a look round
+    VM_MEET            // at the curb beside a car, waiting for someone coming out of the terminal: a hug, then off together
 };
 
 struct GameWorld;
@@ -110,6 +114,9 @@ struct PedAI {
     int coverVeh = -1;
     float shoutTimer = 0.f;
     float tackleTimer = 0.f;   // foot chase: cooldown between tackle attempts
+    int searchSpot = -1;       // lost the suspect: the corner / doorway this officer is checking (police.cpp search plan)
+    float searchT = 0.f;       // ... time spent getting there
+    float searchLook = -1.f;   // ... the look round it once there (counts down; -1 not there yet)
     // events / vehicles
     int eventId = -1;          // ambient event slot this ped belongs to (events.cpp), -1 none
     int aimAt = -1;            // ACT_EVENT: ped held at gunpoint (mugger)
@@ -122,6 +129,7 @@ struct PedAI {
     // venue crowd (ACT_VENUE): which venue slot holds this ped, what it does there, a second spot (pacing / door)
     int venue = -1;
     u8 venueMode = 0;
+    bool venueDriver = false;   // VM_BOARD: takes the wheel (else a passenger seat)
     vec2 anchorB;
     float anchorBYaw = 0.f;
 };
@@ -253,6 +261,19 @@ struct AIState {
     bool forceBender = false;           // autoplay tests: every low-speed knock between two traffic cars becomes a scene
     int forceEvent = -1;                // autoplay tests: the ambient event type to stage next (events.cpp), soon and close
     double lastParkArrive = -1e9;       // last time a traffic car started pulling into a parking spot (global spacing)
+    // the player giving up (police.cpp): wanted, on foot, nothing in hand - hold the phone key and the hands go up;
+    // officers who see it hold their fire, close in with guns trained and cuff them: a lighter bust (weapons kept, half
+    // the fine back after the release). Moving, drawing or firing breaks it.
+    bool surrender = false;
+    float surrenderHold = 0.f;          // phone key held this long
+    bool surrenderCtl = false;          // the controls are ours while the hands are up
+    bool forceSurrender = false;        // autoplay tests: hands up at once
+    bool surrenderBust = false;         // the current bust came from a surrender
+    bool bustWatch = false;             // (busted: waiting for the release to hand things back)
+    long long bustMoney = 0;
+    bool bustHas[16] = {};
+    int bustAmmo[16] = {}, bustClip[16] = {};
+    int bustWeapon = 0;
     bool ready = false;
 };
 

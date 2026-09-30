@@ -245,8 +245,8 @@ public:
         std::vector<CutsceneShot> shots;
         if (inGarage) {
             vec3 f(liftL.x, liftL.y - 4.6f, 0.f);   // the open floor between the roll-up door and the lift
-            rook = spawnCast(g, CAST_ROOK, in.at(f + vec3(1.1f, 1.7f, 0.f)), in.yaw(kPi), FAC_FRIEND);
-            placePlayer(g, in.at(f + vec3(-0.5f, -0.9f, 0.f)), in.yaw(0.f));
+            rook = spawnCast(g, CAST_ROOK, in.at(f + vec3(1.4f, 0.8f, 0.f)), in.yaw(kPi), FAC_FRIEND);   // clear of the lift arms
+            placePlayer(g, in.at(f + vec3(-0.8f, -0.8f, 0.f)), in.yaw(0.f));
             float side = liftL.x > (in.d->x0 + in.d->x1) * 0.5f ? -1.f : 1.f;
             shots.push_back(shotRoom(in, vec3(liftL.x + side * 4.6f, 1.1f, 2.4f), pedPos(g, rook), playerPos(g), 4.5f));   // from the front corner, the lift beyond
         } else {

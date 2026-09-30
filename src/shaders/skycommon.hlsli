@@ -96,6 +96,8 @@ float4 aerialPerspective(float2 uv, float distMeters) {
 float4 froxelFog(float2 uv, float viewDepth) {
     if (gFogParams1.w < 0.5) return float4(0, 0, 0, 1);
     float w = saturate(log2(max(viewDepth, gFogParams1.z) / gFogParams1.z) * gFogParams1.y);
-    return gFogVolume.SampleLevel(sLinearClamp, float3(uv, w), 0);
+    float4 v = gFogVolume.SampleLevel(sLinearClamp, float3(uv, w), 0);
+    // a poisoned froxel falls back to clear air instead of blacking out everything behind it
+    return anyNonFinite(v.rgb) || !(v.a >= 0.0 && v.a <= 1.0) ? float4(0, 0, 0, 1) : float4(min(v.rgb, 60000.0), v.a);
 }
 #endif

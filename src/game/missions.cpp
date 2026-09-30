@@ -170,9 +170,13 @@ int MissionManager::findDef(const char* id) const {
 
 bool GameWorld::missionActive() const { return gMissions.active != nullptr; }
 
+// Pause menu brief: the active mission's title and brief; between missions the story's pointer to what comes next
+// (empty: the menu shows free roam with its own hint)
+std::string GameWorld::missionTitle() const { return gMissions.active ? std::string(gMissions.active->title()) : std::string(); }
+
 std::string GameWorld::missionBrief() const {
-    if (gMissions.active) return std::string(gMissions.active->title()) + "\n\n" + gMissions.active->brief();
-    return storyBriefText.empty() ? std::string("No active mission. Look for mission contacts marked on the map.") : storyBriefText;
+    if (gMissions.active) return gMissions.active->brief();
+    return storyBriefText;
 }
 
 int GameWorld::mPed(int charIndex, dvec3 pos, float yaw, Faction f) {

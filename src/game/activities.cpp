@@ -757,22 +757,31 @@ public:
         int prize = seriesModel(g, L[2].car, L[2].cls, 0);
         vec3 lp, mp;
         std::vector<CutsceneShot> shots;
-        if (in.ok() && in.marker(World::IM_SERVICE, liftL)) {
+        bool inBay = in.ok() && in.marker(World::IM_SERVICE, liftL);
+        if (inBay) {
+            // the drive-in lane between the roll-up door and the lift is clear by design: Lalo at the car's nose, the
+            // player a few steps in from the door, the camera along the lane (the shop floor around it has pillars)
             float side = liftL.x > (in.d->x0 + in.d->x1) * 0.5f ? 1.f : -1.f;   // the wall beside the drive-in bay
             showCar = spawnCar(g, prize, in.at(liftL), in.yaw(kPi), kLivery);
-            vec3 laloL(liftL.x + side * 1.9f, Max(1.4f, liftL.y - 2.9f), 0.f);
-            vec3 meL(liftL.x - side * 0.4f, Max(1.2f, liftL.y - 5.4f), 0.f);
+            if (showCar >= 0) {
+                g.vehicles[showCar].parked = true;   // on show: it must not roll off the lift into Lalo
+                g.vehicles[showCar].sim.engineOn = false;
+            }
+            vec3 laloL(liftL.x + side * 0.9f, Max(1.9f, liftL.y - 3.1f), 0.f);
+            vec3 meL(liftL.x - side * 0.2f, Max(1.1f, liftL.y - 5.1f), 0.f);
             lp = in.at(laloL);
             mp = in.at(meL);
             lalo = g.mPed(laloChar(g), dvec3(lp), in.yaw(kPi), FAC_FRIEND);
             placePlayer(g, mp, 0.f);
-            shots.push_back(shotRoom(in, vec3(liftL.x - side * 2.6f, liftL.y + 1.6f, 2.1f), lp, mp, 6.5f));
+            // from the shop floor in front of the lift posts, diagonally toward the door (the posts stand beside the car)
+            shots.push_back(shotRoom(in, vec3(liftL.x - side * 4.f, Max(1.5f, liftL.y - 1.2f), 1.9f), lp, mp, 6.5f));
         } else {
             // no shop interior in this world: the curb outside
             const Place& T = gPlaces.resprayCL;
             float yaw = T.curbYaw;
             vec3 cp0 = curbOffset(g, T, -6.f, &yaw);
             showCar = spawnCar(g, prize, cp0, yaw, kLivery);
+            if (showCar >= 0) g.vehicles[showCar].parked = true;
             lp = placeOffset(g, T, -2.f, 1.5f);
             mp = placeOffset(g, T, -3.5f, 3.5f);
             lalo = g.mPed(laloChar(g), dvec3(lp), 0.f, FAC_FRIEND);
@@ -782,8 +791,18 @@ public:
         if (lalo >= 0) g.peds[lalo].brain.type = BRAIN_NONE;
         facePed(g, lalo, mp);
         facePed(g, g.player, lp);
-        shots.push_back(shotTwo(lp, mp, 6.f));
-        if (showCar >= 0) shots.push_back(shotVehicle(g, showCar, 5.f, 1.f, 44.f));
+        if (inBay) {
+            // over the player's shoulder at Lalo and the car, then back over his at the player and the street, then a
+            // low reveal of the prize from its nose
+            shots.push_back(shotOver(mp, lp, 6.f));
+            shots.push_back(shotOver(lp, mp, 5.f, -1.f));
+            vec3 nose = in.at(liftL + vec3(0.f, -2.1f, 0.6f)), mid = in.at(liftL + vec3(0.f, 0.f, 0.7f));
+            vec3 low = in.at(liftL + vec3(1.4f, -4.3f, 0.5f)), low2 = in.at(liftL + vec3(0.9f, -3.9f, 0.9f));
+            shots.push_back(shotMove(low, nose, low2, mid, 5.f, 40.f));
+        } else {
+            shots.push_back(shotTwo(lp, mp, 6.f));
+            if (showCar >= 0) shots.push_back(shotVehicle(g, showCar, 5.f, 1.f, 44.f));
+        }
         g.mCutscene(shots);
         int titles = flag(g, EX_SERIES_WINS);
         if (titles == 0) {

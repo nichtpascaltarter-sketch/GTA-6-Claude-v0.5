@@ -1023,6 +1023,13 @@ float TrafficCore::gate(Driver& d, int conn, float distToEntry, float v, bool in
             return lineDist;
         }
         default: {
+            if (N.deadEnd) {
+                // a dead end's turning circle takes one car at a time: the next waits at its entry until the one turning
+                // is on its way out (a queue round the circle closes on itself - the last one in blocks the first one out)
+                for (const NodeEntry& e : nodeReg[c.node])
+                    if (e.driver != d.vehicle && e.dist > 0.5f && e.dist < G.conns[e.conn].length - 6.f) return Max(lineDist, 0.f);
+                return FREE;
+            }
             bool yields = false;
             for (const Conflict& x : c.conflicts) yields |= x.yield != 0 || x.merge != 0;
             if (!yields && c.conflicts.empty()) return FREE;
@@ -1098,7 +1105,9 @@ void TrafficCore::laneChangeLogic(Driver& d, float v, float distToEnd) {
         int count = abs((int)G.lanes[need].index - (int)L.index);
         if (target < 0) return;
         d.indicator = step;
-        if (distToEnd < 10.f + v * 0.5f) {
+        // (the change needs about a second and a half at this speed, finished 12 m before the lane ends)
+        float lcMin = Max(16.f, v * 1.5f);
+        if (distToEnd < 10.f + v * 0.5f || (distToEnd - 12.f < lcMin && v > 12.f)) {
             // too late: take a movement available from this lane instead
             int c = chooseConnector(d, d.path, true);
             int cl = -1;

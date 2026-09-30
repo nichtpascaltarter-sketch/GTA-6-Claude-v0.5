@@ -1973,6 +1973,7 @@ static void s_shipHorn(Buf& b) {
 
 #include "sfx_guns.cpp"
 #include "sfx_amb.cpp"
+#include "sfx_foot.cpp"
 
 // ---------------------------------------------------------------------------------------------
 // Definitions table (order must match BankId)
@@ -2148,6 +2149,43 @@ static const SoundDef kDefs[BANK_COUNT] = {
     {"gun_far_open_heavy",  W, 180, 3, 1.89f, 30.f, 2300.f, 0.12f, 0.04f, 0.5f},
     {"gun_far_open_big",    W, 185, 3, 1.98f, 34.f, 3000.f, 0.12f, 0.03f, 0.45f},
     {"gun_crack",         W, 200, 4, 1.20f, 3.f,   60.f,   0.15f, 0.05f, 1.f},
+    // footstep and body foley layers (Mixer::startFootstep / startBodyImpact / startFoley)
+    {"step_heel_sneaker", W, 60,  6, 0.3f, 1.5f,  35.f,   0.12f, 0.05f, 1.f},
+    {"step_heel_leather", W, 60,  6, 0.435f, 1.5f,  45.f,   0.12f, 0.05f, 1.f},
+    {"step_heel_heel",    W, 60,  6, 0.335f, 1.5f,  50.f,   0.14f, 0.04f, 1.f},
+    {"step_heel_boot",    W, 60,  6, 0.3f, 1.5f,  45.f,   0.12f, 0.05f, 1.f},
+    {"step_heel_sandal",  W, 60,  6, 0.4f, 1.5f,  35.f,   0.12f, 0.05f, 1.f},
+    {"step_heel_bare",    W, 60,  6, 0.28f, 1.5f,  25.f,   0.1f,  0.05f, 1.f},
+    {"step_toe_sneaker",  W, 55,  6, 0.21f, 1.5f,  30.f,   0.1f,  0.05f, 1.f},
+    {"step_toe_leather",  W, 55,  6, 0.3f, 1.5f,  35.f,   0.1f,  0.05f, 1.f},
+    {"step_toe_heel",     W, 55,  6, 0.2f, 1.5f,  35.f,   0.1f,  0.05f, 1.f},
+    {"step_toe_boot",     W, 55,  6, 0.21f, 1.5f,  35.f,   0.1f,  0.05f, 1.f},
+    {"step_toe_sandal",   W, 55,  6, 0.37f, 1.5f,  35.f,   0.1f,  0.05f, 1.f},
+    {"step_toe_bare",     W, 55,  6, 0.21f, 1.5f,  20.f,   0.08f, 0.05f, 1.f},
+    {"step_soft",         W, 55,  6, 0.18f, 1.5f,  30.f,   0.08f, 0.05f, 1.f},
+    {"step_tex_asphalt",  W, 50,  6, 0.25f, 1.5f,  30.f,   0.1f,  0.06f, 1.f},
+    {"step_tex_concrete", W, 50,  6, 0.20f, 1.5f,  30.f,   0.1f,  0.06f, 1.f},
+    {"step_tex_grass",    W, 50,  6, 0.13f, 1.5f,  30.f,   0.06f, 0.06f, 1.f},
+    {"step_tex_dirt",     W, 50,  6, 0.16f, 1.5f,  30.f,   0.08f, 0.06f, 1.f},
+    {"step_tex_sand",     W, 50,  6, 0.11f, 1.5f,  25.f,   0.05f, 0.06f, 1.f},
+    {"step_tex_water",    W, 55,  6, 0.195f, 1.5f,  35.f,   0.08f, 0.06f, 1.f},
+    {"step_tex_wood",     W, 55,  6, 0.25f, 1.5f,  40.f,   0.12f, 0.05f, 1.f},
+    {"step_tex_metal",    W, 55,  6, 0.24f, 1.5f,  45.f,   0.14f, 0.04f, 1.f},
+    {"step_tex_mud",      W, 50,  6, 0.15f, 1.5f,  30.f,   0.06f, 0.06f, 1.f},
+    {"step_puddle",       W, 50,  6, 0.22f, 1.5f,  35.f,   0.1f,  0.06f, 1.f},
+    {"step_cloth_walk",   W, 40,  6, 0.12f, 1.f,   10.f,   0.03f, 0.06f, 1.f},
+    {"step_cloth_run",    W, 45,  6, 0.20f, 1.f,   14.f,   0.04f, 0.06f, 1.f},
+    {"step_gear",         W, 40,  6, 0.12f, 1.f,   10.f,   0.04f, 0.05f, 1.f},
+    {"step_land_hard",    W, 90,  6, 0.45f, 2.f,   50.f,   0.15f, 0.05f, 1.f},
+    {"step_land_soft",    W, 85,  6, 0.34f, 2.f,   40.f,   0.1f,  0.05f, 1.f},
+    {"step_scuff",        W, 60,  6, 0.35f, 1.5f,  35.f,   0.1f,  0.06f, 1.f},
+    {"body_thud_hard",    W, 120, 6, 0.7f, 2.f,   60.f,   0.18f, 0.06f, 1.f},
+    {"body_thud_soft",    W, 115, 6, 0.56f, 2.f,   50.f,   0.12f, 0.06f, 1.f},
+    {"body_thud_wood",    W, 120, 6, 0.7f, 2.f,   60.f,   0.18f, 0.06f, 1.f},
+    {"body_thud_metal",   W, 120, 6, 0.65f, 2.f,   80.f,   0.2f,  0.05f, 1.f},
+    {"body_slap",         W, 80,  6, 0.50f, 1.5f,  40.f,   0.12f, 0.06f, 1.f},
+    {"foley_cloth_burst", W, 60,  6, 0.25f, 1.f,   15.f,   0.05f, 0.06f, 1.f},
+    {"foley_grab_hand",   W, 70,  6, 0.40f, 1.5f,  30.f,   0.1f,  0.06f, 1.f},
 };
 #undef W
 #undef U
@@ -2278,6 +2316,7 @@ static void synthesize(int id, int var, Buf& b) {
         default:
             if (id >= AMB_AIRBOAT && id <= AMB_THUNDER_FAR) s_ambLayer(b, id, var);
             else if (id >= GUN_NEAR && id <= GUN_CRACK) s_gunLayer(b, id);
+            else if (id >= STEP_HEEL && id <= FOLEY_GRAB_HAND) s_footLayer(b, id);
             else tone(b, 0.f, 0.01f, 440.f, 440.f, 0.f, 0.f, 0.001f, 0.01f);  // routed ids (guns): silent stub buffer
             break;
     }

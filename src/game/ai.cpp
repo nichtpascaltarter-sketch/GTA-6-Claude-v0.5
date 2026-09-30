@@ -436,7 +436,7 @@ std::string GameWorld::aiCensusText(float radius) const {
     vec2 c = pl->pos.toVec3().xy();
     // on foot: what the crowd is doing
     int total = 0, walk = 0, group = 0, jog = 0, wPhone = 0, wSmoke = 0, wTalk = 0, sit = 0, talk = 0, phone = 0, dance = 0, smoke = 0, lean = 0,
-        sun = 0, queue = 0, watch = 0, busStop = 0, taxi = 0, event = 0, venue = 0, vGuard = 0, vPace = 0, vTravel = 0, vOut = 0;
+        sun = 0, queue = 0, watch = 0, busStop = 0, taxi = 0, event = 0, venue = 0, vGuard = 0, vPace = 0, vTravel = 0, vOut = 0, vBoard = 0;
     int tourist = 0, business = 0, beach = 0, night = 0, gang = 0, worker = 0;
     int flee = 0, cower = 0, film = 0, inspect = 0, call = 0, hands = 0, rage = 0, fight = 0;
     int copFoot = 0, cover = 0, flank = 0, arrest = 0, search = 0, engage = 0, approach = 0, inWater = 0;
@@ -497,8 +497,10 @@ std::string GameWorld::aiCensusText(float radius) const {
                 venue++;
                 vGuard += pa->venueMode == VM_GUARD;
                 vPace += pa->venueMode == VM_PACE;
-                vTravel += pa->venueMode == VM_TRAVEL_OUT || pa->venueMode == VM_FAREWELL || pa->venueMode == VM_SEEOFF;
-                vOut += pa->venueMode == VM_WATCH || pa->venueMode == VM_SPOTTER || pa->venueMode == VM_SIT;
+                vTravel += pa->venueMode == VM_TRAVEL_OUT || pa->venueMode == VM_FAREWELL || pa->venueMode == VM_SEEOFF || pa->venueMode == VM_MEET;
+                vOut += pa->venueMode == VM_WATCH || pa->venueMode == VM_SPOTTER || pa->venueMode == VM_SIT || pa->venueMode == VM_WORK;
+                queue += pa->venueMode == VM_QUEUE;
+                vBoard += pa->venueMode == VM_BOARD;
                 break;
             case ACT_ENTER_VEH: vTravel += pa->targetVeh < 0; break;   // (heading in through a door)
             case ACT_QUEUE: queue++; break;
@@ -533,12 +535,12 @@ std::string GameWorld::aiCensusText(float radius) const {
     }
     const AIFrameStats& s = ai.stats;
     return StrFormat("census r%.0f: %d on foot (in the water %d) | walk %d (phone %d smoke %d) group %d (talking %d) jog %d | sit %d talk %d phone %d dance %d smoke %d "
-                     "lean %d sun %d queue %d watch %d bus %d taxi %d event %d | venue %d (guard %d pace %d outlook %d) travelers %d | tourist %d business %d beach %d night %d gang %d worker %d | "
+                     "lean %d sun %d queue %d watch %d bus %d taxi %d event %d | venue %d (guard %d pace %d outlook %d boarding %d) travelers %d | tourist %d business %d beach %d night %d gang %d worker %d | "
                      "react flee %d cower %d film %d inspect %d call %d hands %d rage %d fight %d | cops on foot %d (approach %d cover %d flank %d "
                      "arrest %d search %d engage %d) | cars %d parked %d police %d swat %d heli %d boat %d roadblock %d ems %d horn %d | "
                      "totals panic %d film %d pit %d box %d rb %d spikes %d tackle %d heli %d units %d rage %d events %d arrests %d depart %d arrive %d",
                      radius, total, inWater, walk, wPhone, wSmoke, group, wTalk, jog, sit, talk, phone, dance, smoke, lean, sun, queue, watch, busStop, taxi, event,
-                     venue, vGuard, vPace, vOut, vTravel, tourist, business, beach, night, gang, worker, flee, cower, film, inspect, call, hands, rage, fight, copFoot, approach, cover, flank,
+                     venue, vGuard, vPace, vOut, vBoard, vTravel, tourist, business, beach, night, gang, worker, flee, cower, film, inspect, call, hands, rage, fight, copFoot, approach, cover, flank,
                      arrest, search, engage, traffic, parked, copCars, swat, heli, boats, blocks, ems, honking, s.panicSpread, s.filming, s.pitTries,
                      s.boxing, s.roadblocks, s.spikeHits, s.tackles, s.heliUnits, s.unitsSent, s.roadRage, s.events, s.arrests, s.departures, s.arrivals);
 }
@@ -555,7 +557,9 @@ void GameWorld::updateBrain(int id, float dt) {
             if (b.type == BRAIN_DRIVER || b.type == BRAIN_FLEE || b.type == BRAIN_COMBAT || b.type == BRAIN_ARREST || b.type == BRAIN_GOTO) driveVehicleAI(p.vehicle, dt);
         }
         // armed occupants shoot at their combat target
-        if (b.type == BRAIN_COMBAT && p.target_is_valid(*this) && p.weapon != WPN_FISTS && weaponInfo(p.weapon).clipSize > 0) {
+        // (not at someone standing there with their hands up: police hold their fire at a surrender)
+        bool heldFire = b.target == player && ai.surrender && p.faction == FAC_POLICE;
+        if (b.type == BRAIN_COMBAT && p.target_is_valid(*this) && p.weapon != WPN_FISTS && weaponInfo(p.weapon).clipSize > 0 && !heldFire) {
             const Ped& t = peds[b.target];
             vec3 head = pedHeadPos(p);
             float dist = length(t.pos.toVec3() - p.pos.toVec3());

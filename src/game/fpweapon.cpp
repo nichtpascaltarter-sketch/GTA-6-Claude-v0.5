@@ -19,6 +19,9 @@ struct Spec {
     vec3 muzzle;                  // bore exit (weapon space), before a suppressor
     float kickBack, kickPitch;    // recoil per shot: pushed back (m), muzzle up (rad)
     bool longGun;                 // stock in the shoulder, both hands on it while running
+    vec3 feed;                    // where the support hand works during a reload (weapon space): magazine base, shell
+                                  // loading port, open cylinder or muzzle
+    int reloadKind;               // 0 magazine, 1 shells one at a time, 2 revolver cylinder, 3 rocket into the muzzle
 };
 
 // A pistol-style grip tilted back by `ang` whose top is at `top`: the fist sits 3.5 cm down the handle, thumb side up
@@ -40,6 +43,7 @@ Spec specFor(WeaponType w) {
     s.kickBack = 0.025f;
     s.kickPitch = 0.05f;
     s.hip = vec3(0.13f, 0.21f, -0.21f);
+    s.reloadKind = 0;
     switch (w) {
         case WPN_PISTOL:
             s.right = pistolGrip(vec3(0.f, 0.f, 0.03f), 0.3f);
@@ -48,6 +52,7 @@ Spec specFor(WeaponType w) {
             s.hip = vec3(0.14f, 0.4f, -0.19f);
             s.muzzle = vec3(0.f, 0.175f, 0.055f);
             s.kickBack = 0.03f, s.kickPitch = 0.12f, s.longGun = false;
+            s.feed = vec3(0.f, -0.035f, -0.078f);   // magazine base under the grip
             break;
         case WPN_REVOLVER:
             s.right = pistolGrip(vec3(0.f, -0.01f, 0.02f), 0.45f);
@@ -56,6 +61,7 @@ Spec specFor(WeaponType w) {
             s.hip = vec3(0.14f, 0.4f, -0.19f);
             s.muzzle = vec3(0.f, 0.22f, 0.05f);
             s.kickBack = 0.04f, s.kickPitch = 0.2f, s.longGun = false;
+            s.feed = vec3(-0.022f, 0.045f, 0.035f), s.reloadKind = 2;   // the cylinder, swung out to the left
             break;
         case WPN_SMG:
             s.right = pistolGrip(vec3(0.f, -0.02f, 0.02f), 0.25f);
@@ -64,6 +70,7 @@ Spec specFor(WeaponType w) {
             s.sight = vec3(0.f, 0.12f, 0.094f), s.sightDist = 0.33f;   // rear sight ~18 cm from the eye
             s.muzzle = vec3(0.f, 0.27f, 0.055f);
             s.kickBack = 0.018f, s.kickPitch = 0.035f;
+            s.feed = vec3(0.f, 0.076f, -0.105f);
             break;
         case WPN_RIFLE:
             s.right = pistolGrip(vec3(0.f, -0.02f, 0.02f), 0.3f);
@@ -71,6 +78,7 @@ Spec specFor(WeaponType w) {
             s.foregrip = foreGrip(0.3f, 0.029f);
             s.sight = vec3(0.f, 0.12f, 0.11f), s.sightDist = 0.17f;   // through the built-in red-dot tube (rear end 13 cm out)
             s.muzzle = vec3(0.f, 0.6f, 0.055f);
+            s.feed = vec3(0.f, 0.118f, -0.1f);   // base of the curved magazine
             break;
         case WPN_SHOTGUN:
             s.right = {vec3(0.f, -0.085f, -0.01f), vec3(0.f, 0.6f, 0.8f), vec3(-1.f, 0.1f, 0.f)};   // wrist of the stock, low
@@ -80,6 +88,7 @@ Spec specFor(WeaponType w) {
             s.sight = vec3(0.f, 0.607f, 0.0752f), s.sightDist = 0.88f;   // brass bead at the muzzle
             s.muzzle = vec3(0.f, 0.62f, 0.06f);
             s.kickBack = 0.05f, s.kickPitch = 0.12f;
+            s.feed = vec3(0.f, 0.075f, 0.002f), s.reloadKind = 1;   // loading port under the receiver
             break;
         case WPN_SNIPER:
             s.right = pistolGrip(vec3(0.f, -0.05f, 0.02f), 0.35f);
@@ -88,6 +97,7 @@ Spec specFor(WeaponType w) {
             s.hip = vec3(0.13f, 0.17f, -0.2f);
             s.muzzle = vec3(0.f, 0.78f, 0.06f);
             s.kickBack = 0.05f, s.kickPitch = 0.1f;
+            s.feed = vec3(0.f, 0.035f, -0.05f);
             break;
         case WPN_RPG:
             s.right = pistolGrip(vec3(0.f, 0.f, 0.04f), 0.2f);
@@ -96,6 +106,7 @@ Spec specFor(WeaponType w) {
             s.hip = vec3(0.16f, 0.2f, -0.13f);                           // on the shoulder
             s.muzzle = vec3(0.f, 0.7f, 0.08f);
             s.kickBack = 0.06f, s.kickPitch = 0.08f;
+            s.feed = vec3(0.f, 0.68f, 0.08f), s.reloadKind = 3;
             break;
         default:
             s.right = pistolGrip(vec3(0.f), 0.3f);
@@ -103,9 +114,38 @@ Spec specFor(WeaponType w) {
             s.sight = vec3(0.f, 0.1f, 0.08f), s.sightDist = 0.4f;
             s.muzzle = vec3(0.f, 0.2f, 0.05f);
             s.longGun = false;
+            s.feed = s.right.pos + vec3(0.f, 0.f, -0.06f);
             break;
     }
     return s;
+}
+
+// Support-hand choreography of a reload: waypoints on the reload's progress (0..1). Targets: 0 the hand's grip, 1 the
+// feed point (magazine well, loading port, cylinder, muzzle), 2 the belt below the view (a spare magazine, shells, a
+// speed loader or a rocket).
+struct ReloadKey { float t; int target; };
+const ReloadKey kReloadMag[] = {{0.f, 0}, {0.16f, 1}, {0.4f, 2}, {0.58f, 1}, {0.68f, 1}, {0.86f, 0}, {1.f, 0}};
+const ReloadKey kReloadShells[] = {{0.f, 0}, {0.12f, 1}, {0.24f, 2}, {0.36f, 1}, {0.48f, 2}, {0.6f, 1}, {0.72f, 2}, {0.84f, 1}, {0.95f, 0}, {1.f, 0}};
+const ReloadKey kReloadCylinder[] = {{0.f, 0}, {0.12f, 1}, {0.34f, 1}, {0.5f, 2}, {0.7f, 1}, {0.8f, 1}, {0.92f, 0}, {1.f, 0}};
+const ReloadKey kReloadRocket[] = {{0.f, 0}, {0.18f, 2}, {0.48f, 1}, {0.62f, 1}, {0.85f, 0}, {1.f, 0}};
+
+// Where along the choreography the hand is: the two targets and the eased blend between them
+void reloadLeg(int kind, float ph, int& a, int& b, float& t) {
+    const ReloadKey* k = kReloadMag;
+    int n = (int)(sizeof(kReloadMag) / sizeof(kReloadMag[0]));
+    if (kind == 1) k = kReloadShells, n = (int)(sizeof(kReloadShells) / sizeof(kReloadShells[0]));
+    else if (kind == 2) k = kReloadCylinder, n = (int)(sizeof(kReloadCylinder) / sizeof(kReloadCylinder[0]));
+    else if (kind == 3) k = kReloadRocket, n = (int)(sizeof(kReloadRocket) / sizeof(kReloadRocket[0]));
+    a = b = k[n - 1].target;
+    t = 0.f;
+    for (int i = 0; i + 1 < n; i++)
+        if (ph <= k[i + 1].t) {
+            a = k[i].target;
+            b = k[i + 1].target;
+            float u = Saturate((ph - k[i].t) / Max(k[i + 1].t - k[i].t, 1e-3f));
+            t = u * u * (3.f - 2.f * u);
+            return;
+        }
 }
 
 // camera-space axes -> rotation (columns = the weapon's x / y / z in camera space) from small yaw / pitch / roll
@@ -156,6 +196,7 @@ void GameWorld::updateFirstPersonWeapon(float dt) {
     fpw.active = fpw.w > 0.01f && rig.fpActive && p.charIndex >= 0;
     fpw.scope = fpw.redDot = 0.f;
     fpw.hideWeapon = false;
+    fpw.magInHand = false;
     if (!fpw.active) {
         fpw.ads = 0.f;
         fpw.lastYaw = rig.cam.yaw;
@@ -214,12 +255,20 @@ void GameWorld::updateFirstPersonWeapon(float dt) {
         q = normalize(quatAxisAngle(vec3(0, 0, 1), 0.45f * sw) * quatAxisAngle(vec3(1, 0, 0), (s.longGun ? -0.45f : -0.6f) * sw) *
                       quatAxisAngle(vec3(0, 1, 0), (s.longGun ? 0.35f : 0.1f) * sw) * q);
     }
-    // reload: rolled over and tipped down in front of the chest (a quick dip at the start, back up at the end)
+    // reload: brought in front of the chest where the eyes can follow it, rolled so the feed faces the support hand
+    // (a revolver the other way, its cylinder out to the left), muzzle a little up; seating a magazine jolts it up.
+    // The RPG comes off the shoulder with the muzzle dipped towards the hand bringing the rocket.
     if (fpw.reloadW > 0.001f) {
-        float rw = fpw.reloadW;
-        float dip = sinf(Saturate(reloadPh) * kPi);
-        pos += vec3(-0.06f, -0.04f, -0.07f) * rw + vec3(0.f, 0.f, -0.02f) * dip * rw;
-        q = normalize(quatAxisAngle(vec3(0, 1, 0), 0.65f * rw) * quatAxisAngle(vec3(1, 0, 0), (-0.25f - 0.1f * dip) * rw) * q);
+        float rw = fpw.reloadW * fpw.reloadW * (3.f - 2.f * fpw.reloadW);
+        vec3 rpos = s.longGun ? vec3(0.07f, 0.3f, -0.16f) : vec3(0.06f, 0.3f, -0.12f);
+        float roll = 0.55f, pitch = 0.12f, yaw = s.longGun ? 0.25f : 0.1f;
+        if (s.reloadKind == 2) roll = -0.75f;
+        if (s.reloadKind == 3) rpos = vec3(0.16f, 0.16f, -0.18f), roll = 0.f, pitch = -0.45f, yaw = 0.35f;
+        float sd = (reloadPh - 0.6f) / 0.035f;
+        float seat = s.reloadKind == 0 ? expf(-sd * sd) : 0.f;
+        pos = lerp(pos, rpos + vec3(0.f, 0.f, 0.014f * seat), rw);
+        quat qr = quatAxisAngle(vec3(0, 0, 1), yaw) * quatAxisAngle(vec3(1, 0, 0), pitch + 0.08f * seat) * quatAxisAngle(vec3(0, 1, 0), roll);
+        q = normalize(nlerp(q, qr, rw));
     }
     // against a wall: pull the gun in and tip the muzzle up
     {
@@ -275,15 +324,43 @@ void GameWorld::updateFirstPersonWeapon(float dt) {
         palm = normalize(wrot * g.palm);
     };
     Anim::Pose pose = p.anim.pose;
-    // the support hand lets go mid-reload (it fetches the magazine: the body's reload animation) and while running
-    // with a handgun (it swings free)
-    float leftW = fpw.w * (1.f - fpw.reloadW * sinf(Saturate((reloadPh - 0.12f) / 0.76f) * kPi)) * (s.longGun ? 1.f : 1.f - fpw.sprintW);
+    // the support hand swings free while running with a handgun
+    float leftW = fpw.w * (s.longGun ? 1.f : 1.f - fpw.sprintW * (1.f - fpw.reloadW));
     vec3 shR = p.bones[Anim::B_UPPERARM_R].c[3].xyz(), shL = p.bones[Anim::B_UPPERARM_L].c[3].xyz();
     vec3 gp, ga, gpl;
     toModel(s.right, gp, ga, gpl);
     Anim::holdGrip(ce.skel, pose, true, gp, ga, gpl, (shR + gp) * 0.5f + vec3(0.3f, -0.05f, -0.3f), 0.9f, 0.55f, fpw.w);
     toModel(gl, gp, ga, gpl);
-    Anim::holdGrip(ce.skel, pose, false, gp, ga, gpl, (shL + gp) * 0.5f + vec3(-0.2f, -0.05f, -0.35f), 0.85f, 0.5f, leftW);
+    float leftCurl = 0.85f;
+    if (fpw.reloadW > 0.001f) {
+        // reload choreography: grip -> feed -> the belt below the view -> feed -> ... -> grip (targets blended in the
+        // ped's model space; the belt is fixed below the eyes, the others move with the gun)
+        Grip feed = {s.feed, vec3(0.f, 1.f, 0.f), vec3(0.2f, 0.f, 1.f)};   // palm up under the magazine / port
+        if (s.reloadKind == 2) feed = {s.feed, vec3(0.f, 1.f, 0.f), vec3(1.f, 0.f, 0.3f)};   // palm on the cylinder
+        if (s.reloadKind == 3) feed = {s.feed, vec3(0.f, 0.f, 1.f), vec3(0.f, -1.f, 0.f)};   // the rocket pushed in
+        vec3 fp, fa, fpl;
+        toModel(feed, fp, fa, fpl);
+        vec3 beltCam(-0.12f, 0.1f, -0.52f);
+        vec3 bp = rotate(qyi, rel(rig.cam.pos + dvec3(camB * beltCam), p.pos));
+        vec3 ba = normalize(rotate(qyi, camB * vec3(0.f, 0.3f, 1.f))), bpl = normalize(rotate(qyi, camB * vec3(1.f, 0.f, 0.f)));
+        vec3 tp[3] = {gp, fp, bp}, ta[3] = {ga, fa, ba}, tpl[3] = {gpl, fpl, bpl};
+        int a, b;
+        float t;
+        reloadLeg(s.reloadKind, reloadPh, a, b, t);
+        float rw = fpw.reloadW;
+        gp = lerp(gp, lerp(tp[a], tp[b], t), rw);
+        ga = normalize(lerp(ga, normalize(lerp(ta[a], ta[b], t)), rw));
+        gpl = normalize(lerp(gpl, normalize(lerp(tpl[a], tpl[b], t)), rw));
+        leftCurl = Lerp(0.85f, 0.7f, rw);   // holding a magazine / shells rather than wrapped round a handguard
+        // the magazine leaves with the hand (pulled at the first reach, a fresh one brought back and seated)
+        if (s.reloadKind == 0 && rw > 0.5f && reloadPh > 0.16f && reloadPh < 0.58f) {
+            fpw.magInHand = true;
+            vec3 handW = rotate(conj(qyi), gp);                        // the fist, world (relative to the ped)
+            vec3 feedW = rel(fpw.pos, p.pos) + fpw.rot * s.feed;       // the magazine base in the gun
+            fpw.magOffset = handW - feedW;
+        }
+    }
+    Anim::holdGrip(ce.skel, pose, false, gp, ga, gpl, (shL + gp) * 0.5f + vec3(-0.2f, -0.05f, -0.35f), leftCurl, 0.5f, leftW);
     Anim::computeMatrices(ce.skel, pose, p.bones, p.skin);
 }
 

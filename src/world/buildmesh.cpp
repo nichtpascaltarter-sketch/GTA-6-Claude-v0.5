@@ -200,10 +200,121 @@ void rooftopClutter(Ctx& x, vec2 c, vec2 ax, float hx, float hy, float z, Rng& r
     const u32 metal = makeMat(MAT_METAL_PAINTED), brushed = makeMat(MAT_METAL_BRUSHED);
     vec3 X(ax, 0), Y(ay, 0), Z(0, 0, 1);
     int n = r.irange(1, 4 + (int)(hx * hy / 150.f));
+    // what this roof collects (so neighbouring blocks differ): a mix weighted per building
+    const float wAC = r.range(0.5f, 2.f), wVent = r.range(0.3f, 1.f), wSat = r.range(0.f, 0.8f), wSolar = hx * hy > 120.f ? r.range(0.f, 1.2f) : 0.f;
+    const float wDuct = r.range(0.f, 0.8f), wSky = r.range(0.f, 0.7f), wMast = r.chance(0.12f) ? 1.f : 0.f;
+    const float wSum = wAC + wVent + 0.35f + wSat + wSolar + wDuct + wSky + wMast;
+    bool mastDone = false;
     for (int i = 0; i < n && i < 10; i++) {
         vec2 p = c + ax * r.range(-hx * 0.75f, hx * 0.75f) + ay * r.range(-hy * 0.75f, hy * 0.75f);
         vec3 he(r.range(0.6f, 1.8f), r.range(0.6f, 1.4f), r.range(0.4f, 1.0f));
-        int kind = r.irange(0, 3);
+        float pick = r.f() * wSum;
+        int kind;
+        if ((pick -= wAC) < 0.f) kind = r.chance(0.5f) ? 0 : 1;
+        else if ((pick -= wVent) < 0.f) kind = 2;
+        else if ((pick -= 0.35f) < 0.f) kind = 3;
+        else if ((pick -= wSat) < 0.f) kind = 4;
+        else if ((pick -= wSolar) < 0.f) kind = 5;
+        else if ((pick -= wDuct) < 0.f) kind = 6;
+        else if ((pick -= wSky) < 0.f) kind = 7;
+        else kind = mastDone ? 0 : 8;
+        if (kind == 4) {
+            // satellite dish on a short pipe mount, aimed up toward the southern sky
+            float dr = r.range(0.35f, 0.6f);
+            vec3 base(p, z);
+            x.m->box(base + vec3(0, 0, 0.05f) - x.org, X, Y, Z, vec3(0.25f, 0.25f, 0.05f), packRGBA8(0.5f, 0.5f, 0.5f, 1), makeMat(MAT_CONCRETE));
+            x.m->cylinder(base - x.org, 0.04f, 0.04f, 0.9f, 6, packRGBA8(0.6f, 0.6f, 0.62f, 1), brushed, false);
+            vec3 aim = normalize(vec3(0.f, -0.55f, 0.6f));
+            vec3 dc = base + vec3(0, 0, 0.95f);
+            vec3 du = normalize(cross(aim, vec3(1, 0, 0))), dv = cross(aim, du);
+            u32 b0 = (u32)x.m->verts.size();
+            u32 dishC = packRGBA8(0.88f, 0.88f, 0.86f, 1);
+            x.m->addVertex(dc + aim * (dr * 0.3f) * -1.f - x.org, aim, du, vec2(0, 0), dishC, metal);
+            for (int k = 0; k <= 12; k++) {
+                float a = kTwoPi * k / 12;
+                vec3 rp = dc + (du * cosf(a) + dv * sinf(a)) * dr;
+                x.m->addVertex(rp - x.org, normalize(aim + (du * cosf(a) + dv * sinf(a)) * 0.4f), du, vec2(cosf(a), sinf(a)), dishC, metal);
+            }
+            for (int k = 0; k < 12; k++) {
+                x.m->tri(b0, b0 + 1 + k, b0 + 2 + k);
+                x.m->tri(b0, b0 + 2 + k, b0 + 1 + k);
+            }
+            x.m->box(dc + aim * (dr * 0.7f) - x.org, X, Y, Z, vec3(0.05f), packRGBA8(0.3f, 0.3f, 0.32f, 1), metal);
+            continue;
+        }
+        if (kind == 5) {
+            // solar array: rows of tilted panels on low frames, facing south
+            int rows = r.irange(2, 4), cols = r.irange(3, 6);
+            vec3 south(0, -1, 0), east(1, 0, 0);
+            for (int rw = 0; rw < rows; rw++)
+                for (int cl = 0; cl < cols; cl++) {
+                    vec3 pc = vec3(p, z) + east * ((cl - cols * 0.5f) * 1.05f) - south * (rw * 2.2f);
+                    if (fabsf(dot(pc.xy() - c, ax)) > hx * 0.9f || fabsf(dot(pc.xy() - c, ay)) > hy * 0.9f) continue;
+                    vec3 lo = pc + vec3(0, 0, 0.35f) + south * 0.8f, hi = pc + vec3(0, 0, 1.15f) - south * 0.6f;
+                    vec3 a0 = lo - east * 0.5f, a1 = lo + east * 0.5f, b1 = hi + east * 0.5f, b0 = hi - east * 0.5f;
+                    x.m->quadFacing(a0 - x.org, a1 - x.org, b1 - x.org, b0 - x.org, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), packRGBA8(0.08f, 0.12f, 0.22f, 1),
+                                    makeMat(MAT_GLASS), normalize(vec3(0, -0.6f, 0.8f)));
+                    x.m->quadFacing(a0 - x.org, b0 - x.org, b1 - x.org, a1 - x.org, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), packRGBA8(0.7f, 0.7f, 0.7f, 1), brushed,
+                                    normalize(vec3(0, 0.6f, -0.8f)));
+                    x.m->box(pc + vec3(0, 0, 0.35f) - south * 0.2f - x.org, X, Y, Z, vec3(0.04f, 0.04f, 0.35f), packRGBA8(0.6f, 0.6f, 0.62f, 1), brushed);
+                }
+            continue;
+        }
+        if (kind == 6) {
+            // HVAC duct run: a long rectangular duct on stands turning down into the roof
+            float L = r.range(4.f, Min(12.f, hx * 1.4f));
+            vec3 d = r.chance(0.5f) ? X : Y;
+            vec3 a = vec3(p, z + 0.9f) - d * (L * 0.5f);
+            u32 dc = packRGBA8(0.72f, 0.73f, 0.74f, 1);
+            x.m->box(vec3(p, z + 0.9f) - x.org, d, normalize(cross(Z, d)), Z, vec3(L * 0.5f, 0.35f, 0.3f), dc, brushed);
+            x.m->box(a + vec3(0, 0, -0.45f) - x.org, d, normalize(cross(Z, d)), Z, vec3(0.35f, 0.35f, 0.45f), dc, brushed);
+            for (float s = 1.f; s < L; s += 2.5f) x.m->box(a + d * s + vec3(0, 0, -0.45f) - x.org, d, normalize(cross(Z, d)), Z, vec3(0.04f, 0.3f, 0.3f), packRGBA8(0.3f, 0.3f, 0.32f, 1), metal);
+            continue;
+        }
+        if (kind == 7) {
+            // skylight: glazed pyramid on an upstand
+            vec3 sc(p, z);
+            float s = r.range(0.8f, 1.6f);
+            x.m->box(sc + vec3(0, 0, 0.2f) - x.org, X, Y, Z, vec3(s, s, 0.2f), packRGBA8(0.8f, 0.8f, 0.78f, 1), makeMat(MAT_CONCRETE));
+            vec3 apex = sc + vec3(0, 0, 0.4f + s * 0.6f);
+            for (int k = 0; k < 4; k++) {
+                vec3 dA = (k == 0 ? X : (k == 1 ? Y : (k == 2 ? -X : -Y)));
+                vec3 dB = (k == 0 ? Y : (k == 1 ? -X : (k == 2 ? -Y : X)));
+                vec3 e0 = sc + vec3(0, 0, 0.4f) + (dA + dB) * s, e1 = sc + vec3(0, 0, 0.4f) + (dA - dB) * s;
+                u32 bI = (u32)x.m->verts.size();
+                vec3 nn = normalize(cross(e0 - e1, apex - e1));
+                if (dot(nn, dA) < 0.f) nn = -nn;
+                x.m->addVertex(e1 - x.org, nn, dB, vec2(0, 0), packRGBA8(0.25f, 0.35f, 0.4f, 1), makeMat(MAT_GLASS));
+                x.m->addVertex(e0 - x.org, nn, dB, vec2(1, 0), packRGBA8(0.25f, 0.35f, 0.4f, 1), makeMat(MAT_GLASS));
+                x.m->addVertex(apex - x.org, nn, dB, vec2(0.5f, 1), packRGBA8(0.25f, 0.35f, 0.4f, 1), makeMat(MAT_GLASS));
+                vec3 fn = cross(x.m->verts[bI + 1].pos - x.m->verts[bI].pos, x.m->verts[bI + 2].pos - x.m->verts[bI].pos);
+                if (dot(fn, nn) > 0.f) x.m->tri(bI, bI + 1, bI + 2);
+                else x.m->tri(bI, bI + 2, bI + 1);
+            }
+            continue;
+        }
+        if (kind == 8) {
+            // antenna mast: steel pole with cross arms, whips and a red beacon, guyed to the roof
+            mastDone = true;
+            float H = r.range(6.f, 11.f);
+            u32 st = packRGBA8(0.55f, 0.56f, 0.58f, 1);
+            x.m->cylinder(vec3(p, z) - x.org, 0.08f, 0.05f, H, 6, st, brushed, false);
+            for (int k = 0; k < 3; k++) {
+                float zz = z + H * (0.55f + 0.18f * k);
+                x.m->box(vec3(p, zz) - x.org, k & 1 ? X : Y, k & 1 ? Y : -X, Z, vec3(0.6f - k * 0.12f, 0.025f, 0.025f), st, brushed);
+                x.m->cylinder(vec3(p + (k & 1 ? ax : ay) * (0.55f - k * 0.12f), zz) - x.org, 0.012f, 0.008f, 1.2f, 4, st, brushed, false);
+            }
+            x.m->box(vec3(p, z + H + 0.08f) - x.org, X, Y, Z, vec3(0.08f), packRGBA8(1.f, 0.1f, 0.05f, 0.9f), makeMat(MAT_EMISSIVE, 1u | (7u << 4)));
+            for (int k = 0; k < 3; k++) {
+                float a = kTwoPi * k / 3.f + 0.4f;
+                vec2 g2 = p + (ax * cosf(a) + ay * sinf(a)) * Min(H * 0.4f, Min(hx, hy) * 0.7f);
+                vec3 top(p, z + H * 0.7f), bot(g2, z);
+                vec3 dd = normalize(bot - top);
+                x.m->box((top + bot) * 0.5f - x.org, dd, normalize(anyPerp(dd)), normalize(cross(dd, normalize(anyPerp(dd)))), vec3(length(bot - top) * 0.5f, 0.008f, 0.008f),
+                         packRGBA8(0.35f, 0.35f, 0.37f, 1), metal);
+            }
+            continue;
+        }
         if (kind <= 1) {
             x.m->box(vec3(p, z + he.z) - x.org, X, Y, Z, he, unitC, metal);
             int fans = he.x > 1.2f ? 2 : 1;

@@ -1268,7 +1268,11 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                 }
                 case ACT_HANDS_UP: {
                     stance = 5;
-                    if (pl) {
+                    // (a suspect who gave up faces the officer on them; anyone else, the gun on them)
+                    if (b.target >= 0 && b.target < (int)peds.size() && peds[b.target].used && peds[b.target].faction == FAC_POLICE) {
+                        faceYaw = yawTo(pos, peds[b.target].pos.toVec3().xy());
+                        faceSet = true;
+                    } else if (pl) {
                         faceYaw = yawTo(pos, ppos);
                         faceSet = true;
                     }

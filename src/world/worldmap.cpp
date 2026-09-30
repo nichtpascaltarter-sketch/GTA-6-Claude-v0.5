@@ -461,11 +461,7 @@ void WorldMap::recomputeSplat() {
                 if (reg == REG_AIRPORT) { w[TL_URBAN] = 0.08f; w[TL_GRASS] = 1.f; w[TL_DIRT] = 0.12f * n; }
             }
             // Beach sand near the coast line
-            float sdf = coastDistance(x, y);
-            float beachW = (reg == REG_BEACH || reg == REG_KEY_CORAL || reg == REG_KEYS || reg == REG_KEY_TOWN) ? 95.f : 30.f;
-            if (ri.urban > 0.7f && reg != REG_BEACH) beachW = 8.f;
-            if (reg == REG_SAWGRASS) beachW = 0.f;
-            float sandT = sdf > -40.f ? SmoothStep(beachW + 10.f, beachW * 0.5f, sdf) : 0.f;
+            float sandT = beachSand(x, y);
             if (h > 0.35f) for (int k = 0; k < TL_COUNT; k++) w[k] *= (1.f - sandT);
             w[TL_SAND] += sandT * 1.5f;
             float s = 0.f;
@@ -476,6 +472,16 @@ void WorldMap::recomputeSplat() {
             splat1[idx] = packRGBA8(w[4], w[5], w[6], w[7]);
         }
     }, 8);
+}
+
+float WorldMap::beachSand(float x, float y) const {
+    float sdf = coastDistance(x, y);
+    if (sdf <= -40.f) return 0.f;
+    Region reg = regionAt(x, y);
+    float beachW = (reg == REG_BEACH || reg == REG_KEY_CORAL || reg == REG_KEYS || reg == REG_KEY_TOWN) ? 95.f : 30.f;
+    if (regionInfo(reg).urban > 0.7f && reg != REG_BEACH) beachW = 8.f;
+    if (reg == REG_SAWGRASS) beachW = 0.f;
+    return SmoothStep(beachW + 10.f, beachW * 0.5f, sdf);
 }
 
 float WorldMap::coastDistance(float x, float y) const {

@@ -157,7 +157,8 @@ void csFogInject(uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex, uint3 
             }
         }
     }
-    uFog[id] = anyNonFinite(cur.rgb) || !(cur.a >= 0.0) ? float4(0, 0, 0, 0) : float4(min(cur.rgb, 60000.0), cur.a);
+    // scrub before the history and the integration (R16F: an extinction above ~65000 would become Inf there)
+    uFog[id] = anyNonFinite(cur.rgb) || !(cur.a >= 0.0 && cur.a < 4.0) ? float4(0, 0, 0, 0) : float4(min(cur.rgb, 60000.0), cur.a);
 }
 
 // Front-to-back integration along each froxel column: rgb in-scattered radiance up to the far side of the
@@ -178,11 +179,12 @@ void csFogIntegrate(uint3 id : SV_DispatchThreadID) {
         float ds = (z1 - prevZ) * rayScale;
         prevZ = z1;
         float4 m = tInjected[uint3(id.xy, z)];
+        if (anyNonFinite(m.rgb) || !(m.a >= 0.0 && m.a < 4.0)) m = 0;   // a bad froxel must not black out the rest of the ray
         float st = max(m.a, 1e-7);
         float trans = exp(-st * ds);
         L += T * (m.rgb - m.rgb * trans) / st;
         T *= trans;
-        uFog[uint3(id.xy, z)] = float4(L, T);
+        uFog[uint3(id.xy, z)] = float4(min(L, 60000.0), T);
     }
 }
 

@@ -551,7 +551,7 @@ void GameWorld::submitRender() {
             if (p.camFade < 0.02f) continue;
             vec3 rc = rel(rig.cam.pos, p.pos);
             float zc = Clamp(rc.z, 0.3f, 1.5f);
-            if (length(vec3(rc.x, rc.y, rc.z - zc)) < 0.22f) continue;
+            if (length(vec3(rc.x, rc.y, rc.z - zc)) < 0.1f) continue;
         }
         vec3 toP = rel(p.pos, cam);
         if (dot(toP, camF) < -2.f && p.visibleDist > 3.f) continue;
@@ -616,6 +616,15 @@ void GameWorld::submitRender() {
             wd.id = 0x600000000ull | p.uid;
             wd.castShadow = p.visibleDist < 40.f;
             wd.fade = d.fade;
+            if (p.isPlayer && fpw.active && fpw.magInHand && weaponBodyModels[p.weapon][tint] && weaponMagModels[p.weapon][tint] && !hideGun) {
+                // first-person reload: the gun without its magazine, the magazine in the support hand
+                Render::DrawItem md = wd;
+                md.model = weaponMagModels[p.weapon][tint];
+                md.pos = wd.pos + dvec3(fpw.magOffset);
+                md.id = wd.id + (1ull << 44);
+                dyn->submit(md);
+                wd.model = weaponBodyModels[p.weapon][tint];
+            }
             if (!hideGun) dyn->submit(wd);
             // fitted attachments share the weapon's transform
             u8 comps = weaponComps(p, p.weapon);

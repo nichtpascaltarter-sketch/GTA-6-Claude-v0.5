@@ -1286,6 +1286,102 @@ void RoadNetwork::generate(WorldMap& map) {
             edges.push_back(std::move(e));
         }
     }
+    // Streets do not run out onto the beach: a dead end whose turning circle (with the sidewalk round it) would lie on the
+    // sand is pulled back along its street until the circle stays clear of it, or, when too little street would be left,
+    // the stretch goes back to the junction it hangs off. The way on to the water is a beach access path (SiteSet::finalize).
+    // Roads to the water's own structures (boat ramps, marinas, piers, docks) and the stilt village's lanes stay as they are.
+    beachEnds.clear();
+    {
+        std::vector<int> deg(nodes.size(), 0);
+        for (auto& e : edges) { deg[e.n0]++; deg[e.n1]++; }
+        std::vector<char> dropEdge(edges.size(), 0);
+        auto sandy = [&](vec2 c, float r) {
+            if (map.beachSand(c.x, c.y) >= 0.5f) return true;
+            for (int k = 0; k < 8; k++) {
+                float a = k * (kPi * 0.25f);
+                if (map.beachSand(c.x + cosf(a) * r, c.y + sinf(a) * r) >= 0.5f) return true;
+            }
+            return false;
+        };
+        auto waterworks = [&](vec2 p) {
+            if (!gSites) return false;
+            for (const SiteElem& s : gSites->elems) {
+                if (s.kind != SK_BOAT_RAMP && s.kind != SK_MARINA && s.kind != SK_RIVER_MARINA && s.kind != SK_DOCK && s.kind != SK_BEACH_PIER &&
+                    s.kind != SK_BEACH_CLUB && s.kind != SK_FISH_SHACK && s.kind != SK_FERRY_PIER)
+                    continue;
+                if (length(s.c - p) < s.radius() + 60.f) return true;
+            }
+            return false;
+        };
+        // (a street dropped back to a junction can leave the next stretch inland hanging on the sand: a second pass)
+        for (int pass = 0; pass < 3; pass++)
+        for (size_t ei = 0; ei < edges.size(); ei++) {
+            RoadEdge& e = edges[ei];
+            if (dropEdge[ei] || e.cls == RC_HIGHWAY || e.cls == RC_RAMP || e.pts.size() < 2) continue;
+            const RoadClassInfo& ri = roadInfo(e.cls);
+            float hw = ri.laneWidth * ((e.flags & RF_ONEWAY) ? ri.lanes : ri.lanes * 2) * 0.5f + ri.median * 0.5f + ri.shoulder;
+            float clearR = hw + 4.5f + ri.sidewalk + 1.f;   // turning circle (bulbRadius) and its sidewalk
+            for (int end = 0; end < 2 && !dropEdge[ei]; end++) {
+                int nd = end ? e.n1 : e.n0, inner = end ? e.n0 : e.n1;
+                if (deg[nd] != 1 || nd == inner) continue;
+                vec2 tip = nodes[nd].p;
+                Region reg = map.regionAt(tip.x, tip.y);
+                if (reg == REG_GULF_TOWN || reg == REG_SAWGRASS || !sandy(tip, clearR) || waterworks(tip)) continue;
+                // the street from the dead end inward
+                std::vector<vec2> q;
+                for (size_t k = 0; k < e.pts.size(); k++) q.push_back(e.pts[end ? e.pts.size() - 1 - k : k].xy());
+                std::vector<float> cum(q.size(), 0.f);
+                for (size_t k = 1; k < q.size(); k++) cum[k] = cum[k - 1] + length(q[k] - q[k - 1]);
+                float total = cum.back();
+                auto at = [&](float s, size_t* seg) {
+                    size_t k = 1;
+                    while (k + 1 < q.size() && cum[k] < s) k++;
+                    *seg = k;
+                    float t = (s - cum[k - 1]) / Max(cum[k] - cum[k - 1], 1e-4f);
+                    return lerp(q[k - 1], q[k], Saturate(t));
+                };
+                float cut = -1.f;
+                size_t cutSeg = 1;
+                for (float s = 2.f; s < total - 1.f; s += 2.f) {
+                    size_t sg;
+                    vec2 c = at(s, &sg);
+                    if (!sandy(c, clearR)) {
+                        cut = s;
+                        cutSeg = sg;
+                        break;
+                    }
+                }
+                vec2 seaward = normalize(tip - q.back());
+                if (cut < 0.f || total - cut < clearR * 2.f + 10.f) {
+                    // too little street would be left: back to the junction
+                    dropEdge[ei] = 1;
+                    deg[nd]--;
+                    deg[inner]--;
+                    if (deg[inner] >= 2) beachEnds.push_back({inner, seaward, false, e.name});
+                    continue;
+                }
+                size_t sg;
+                vec2 c = at(cut, &sg);
+                std::vector<vec2> kept2(q.begin() + (long)cutSeg, q.end());
+                if (length(kept2.front() - c) < 0.1f) kept2.erase(kept2.begin());   // the cut fell on a polyline vertex
+                kept2.insert(kept2.begin(), c);   // dead end first, inward after
+                if (kept2.size() < 2) continue;
+                if (end == 0) {
+                    e.pts.clear();
+                    for (const vec2& p : kept2) e.pts.push_back(vec3(p, 0.f));
+                } else {
+                    e.pts.clear();
+                    for (size_t k = kept2.size(); k-- > 0;) e.pts.push_back(vec3(kept2[k], 0.f));
+                }
+                nodes[nd].p = c;
+                beachEnds.push_back({nd, normalize(tip - c), true, e.name});
+            }
+        }
+        std::vector<RoadEdge> keptE;
+        for (size_t ei = 0; ei < edges.size(); ei++)
+            if (!dropEdge[ei]) keptE.push_back(std::move(edges[ei]));
+        edges.swap(keptE);
+    }
     // Remove tiny dangling stubs (< 12 m, degree-1 end), and street pieces that a ramp runs along on top of (the ramp is still
     // high up where it passes over them: the local street gives way to the interchange)
     {
