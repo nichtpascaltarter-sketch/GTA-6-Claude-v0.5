@@ -160,13 +160,19 @@ static void addBodyPrims(BuildCtx& c) {
                     AM, 0.03f * s, fr, -pn);
         // palm: flattened ellipsoid (width along +Y, thickness along palm normal) ending at the knuckles (its rounded
         // end follows the arc of the knuckle line; the fingers' bases carry the knuckles and the finger webs)
-        vec3 pc = wr + ad * (D.palmLen * 0.5f);
-        S.ellipsoid(pc, vec3(D.handW * 0.5f, D.handT * 0.5f, D.palmLen * 0.55f), AM | HM, 0.016f * s, fr, -pn);
+        vec3 pc = wr + ad * (D.palmLen * 0.49f);
+        S.ellipsoid(pc, vec3(D.handW * 0.5f, D.handT * 0.5f, D.palmLen * 0.52f), AM | HM, 0.016f * s, fr, -pn);
+        // metacarpal heads: square the palm's end off along the knuckle line (the knuckles of a fist, the finger webs
+        // between them)
+        for (int f = 0; f < 4; f++) {
+            vec3 mcp = J[phalanxBone(side == 1, f, 0)];
+            S.ellipsoid(mcp - ad * (0.005f * s), vec3(D.handW * kFingerDefs[f].rad * 1.06f, D.handT * 0.34f, 0.0105f * s), AM | HM, 0.009f * s, fr, -pn);
+        }
         S.ellipsoid(wr + ad * (D.palmLen * 0.12f), vec3(D.rWrist * 1.05f, D.rWrist * 0.72f, 0.022f * s), AM | HM, 0.02f * s, fr, -pn);
         // thenar (ball of the thumb) along the thumb's metacarpal, hypothenar pad on the little finger side, and the
         // distal palm pads under the knuckles
         {
-            vec3 cmc = J[side ? B_THUMB_R : B_THUMB_L], mcpT = J[phalanxBone(side == 1, 4, 0)];
+            vec3 cmc = J[side ? B_THUMB_R : B_THUMB_L], mcpT = J[phalanxBone(side == 1, 4, 1)];
             vec3 th = lerp(cmc, mcpT, 0.42f) - pn * (D.handT * 0.08f) - fr * (D.handW * 0.03f);
             vec3 tax = normalize(mcpT - cmc);
             S.ellipsoid(th, vec3(0.0165f, 0.0125f, 0.029f) * s, AM | HM, 0.013f * s, normalize(cross(tax, pn)), pn);
@@ -276,7 +282,7 @@ static SkinW armWeights(const BodyDims& D, int side, float along) {
 // Share of the thumb's metacarpal bone in the palm skin over the thenar eminence (the ball of the thumb follows the
 // thumb when it opposes).
 static float thenarWeight(const BodyDims& D, int side, vec3 p) {
-    const vec3 a = D.J[side ? B_THUMB_R : B_THUMB_L], b = D.J[phalanxBone(side == 1, 4, 0)];
+    const vec3 a = D.J[side ? B_THUMB_R : B_THUMB_L], b = D.J[phalanxBone(side == 1, 4, 1)];
     vec3 ab = b - a;
     float t = Saturate(dot(p - a, ab) / Max(length2(ab), 1e-8f));
     float d = length(p - (a + ab * t));
@@ -813,7 +819,7 @@ static void buildArm(BuildCtx& c, TorsoGrid& T, int side) {
             SkinW sw = armWeights(D, side, ps.along);
             if (hand) {
                 float wt = thenarWeight(D, side, p);
-                if (wt > 0.f) sw = lerpSkin(sw, skin1(side ? B_THUMB_R : B_THUMB_L), wt);
+                if (wt > 0.f) sw = lerpSkin(sw, skin1(phalanxBone(side == 1, 4, 0)), wt);
             }
             BVert v = skinVert(c, p, hand ? PART_HAND : PART_ARM, (u8)side, sw, ps.along, th, vec2(uWrap(th, 1.5f * kPi, 0.045f * s), ps.along));
             v.uPer = kTwoPi * 0.045f * s;
@@ -962,16 +968,15 @@ static void buildFingers(BuildCtx& c, int side) {
             g.bone[3] = b0 + 2;
             g.back = -pn;
         } else {
-            const int tb = right ? B_THUMB_R : B_THUMB_L;
-            g.P[1] = J[tb];
-            g.P[2] = J[b0];
-            g.P[3] = J[b0 + 1];
+            g.P[1] = J[b0];
+            g.P[2] = J[b0 + 1];
+            g.P[3] = J[b0 + 2];
             g.P[4] = D.fingTip[side][4];
             g.P[0] = g.P[1] - D.thumbDir[side] * (0.006f * s);
             g.bone[0] = hb;
-            g.bone[1] = tb;
-            g.bone[2] = b0;
-            g.bone[3] = b0 + 1;
+            g.bone[1] = b0;
+            g.bone[2] = b0 + 1;
+            g.bone[3] = b0 + 2;
             g.back = -thumbPadDir(pn);
         }
         g.S[0] = 0.f;
@@ -982,7 +987,7 @@ static void buildFingers(BuildCtx& c, int side) {
         const float capL = digitCapLen(g, s), c0 = S4 - capL;
         std::vector<float> us;
         if (!g.thumb) {
-            const float u[] = {0.f, 0.0065f * s, S1 - 0.0022f * s, S1 + 0.0028f * s, S1 + 0.009f * s, S1 + 0.5f * l1, S2 - 0.0038f * s, S2,
+            const float u[] = {0.f, S1 - 0.0022f * s, S1 + 0.0028f * s, S1 + 0.009f * s, S1 + 0.5f * l1, S2 - 0.0038f * s, S2,
                                S2 + 0.0038f * s, S2 + 0.5f * l2, S3 - 0.0028f * s, S3 + 0.0028f * s, S3 + 0.42f * l3};
             us.assign(u, u + sizeof(u) / sizeof(u[0]));
         } else {
@@ -1054,8 +1059,18 @@ static void buildFingers(BuildCtx& c, int side) {
                 v.uv = vec2((u - crRef) / crSp, depth);
                 ring[k] = m.add(v);
             }
-            if (r == 0) flip = dot(cross(at, lat), dor) < 0.f;
-            else
+            if (r == 0) {
+                flip = dot(cross(at, lat), dor) < 0.f;
+                // close the base inside the palm (a posed hand must never show an open tube end)
+                BVert bc = m.v[ring[0]];
+                bc.p = ap - at * (0.002f * s);
+                WAcc acc;
+                for (int k = 0; k < NF; k++)
+                    for (int q = 0; q < 4; q++) acc.add(m.v[ring[k]].sw.b[q], m.v[ring[k]].sw.w[q]);
+                bc.sw = acc.finish();
+                u32 ci = m.add(bc);
+                for (int k = 0; k < NF; k++) m.triMirror(flip, ring[k], ring[(k + 1) % NF], ci);
+            } else
                 for (int k = 0; k < NF; k++) m.quadMirror(flip, prev[k], ring[k], ring[(k + 1) % NF], prev[(k + 1) % NF]);
             prev = ring;
         }

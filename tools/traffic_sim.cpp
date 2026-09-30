@@ -1164,7 +1164,7 @@ struct Sim {
             c.model = m;
             float z = 0.f;
             if (!w->roads.surfaceHeight(spot, &z, 1e9f)) z = w->roads.nodes[node].z;
-            Vehicles::initVehicle(c.s, md, m, dvec3(spot.x - 4.f, spot.y, z + 0.3), 0.f);
+            Vehicles::initVehicle(c.s, md, m, dvec3(spot.x, spot.y, z + 0.3), 0.f);
             AI::DonutState ds;
             ds.dir = (m & 1) ? 1 : -1;
             float spinning = 0.f, maxDist = 0.f, smokeSum = 0.f, yawSum = 0.f, maxV = 0.f;
@@ -1181,11 +1181,11 @@ struct Sim {
                 maxDist = Max(maxDist, length(p - spot));
                 maxV = Max(maxV, c.s.speed());
                 if (c.s.up().z < 0.3f) flips++;
-                if (ds.returning && !wasReturning) returns++;
-                wasReturning = ds.returning;
+                if (ds.phase != 0 && !wasReturning) returns++;
+                wasReturning = ds.phase != 0;
                 if (verbose && st % 60 == 0)
-                    printf("  %-18s t %5.1f off %5.1f %5.1f v %4.1f vF %5.1f yaw %5.2f thr %.2f hb %d steer %5.2f smoke %.2f ret %d dir %d gear %d\n", md.name.c_str(), st * h, p.x - spot.x,
-                           p.y - spot.y, c.s.speed(), c.s.forwardSpeed(), c.s.body.angVel.z, c.ctl.throttle, (int)c.ctl.handbrake, c.ctl.steer, ds.smoke, (int)ds.returning, ds.dir, c.s.gear);
+                    printf("  %-18s t %5.1f off %5.1f %5.1f v %4.1f vF %5.1f yaw %5.2f thr %.2f hb %d steer %5.2f smoke %.2f ph %d dir %d gear %d\n", md.name.c_str(), st * h, p.x - spot.x,
+                           p.y - spot.y, c.s.speed(), c.s.forwardSpeed(), c.s.body.angVel.z, c.ctl.throttle, (int)c.ctl.handbrake, c.ctl.steer, ds.smoke, ds.phase, ds.dir, c.s.gear);
             }
             printf("%-22s cls %2d mass %5.0f kW %4.0f: spinning %4.1f%% mean yaw %.2f rad/s smoke %.2f maxDist %5.1f maxV %4.1f returns %d rolled %d\n", md.name.c_str(), (int)md.cls,
                    md.mass, md.power, spinning / secs * 100.f, yawSum / secs, smokeSum / secs, maxDist, maxV, returns, flips > 0);
@@ -1341,12 +1341,39 @@ int main(int argc, char** argv) {
             continue;
         }
         if (!strcmp(argv[i], "--deadends")) {
-            for (int n = 0; n < (int)w.lg.nodes.size(); n++)
-                if (w.lg.nodes[n].uturnBlocked) {
-                    const World::RoadNode& rn = w.roads.nodes[n];
-                    int e = rn.edges.empty() ? -1 : rn.edges[0];
-                    printf("obstructed dead end node %d at (%.1f, %.1f) edge %d cls %d\n", n, rn.p.x, rn.p.y, e, e >= 0 ? (int)w.roads.edges[e].cls : -1);
+            bool all = i + 1 < argc && !strcmp(argv[i + 1], "all");
+            int total = 0;
+            for (int n = 0; n < (int)w.lg.nodes.size(); n++) {
+                if (!w.lg.nodes[n].deadEnd) continue;
+                total++;
+                if (!w.lg.nodes[n].uturnBlocked && !all) continue;
+                const World::RoadNode& rn = w.roads.nodes[n];
+                int e = rn.edges.empty() ? -1 : rn.edges[0];
+                printf("%s dead end node %d at (%.1f, %.1f) edge %d cls %d\n", w.lg.nodes[n].uturnBlocked ? "obstructed" : "open", n, rn.p.x, rn.p.y, e,
+                       e >= 0 ? (int)w.roads.edges[e].cls : -1);
+            }
+            printf("dead ends: %d\n", total);
+            if (all) i++;
+            continue;
+        }
+        if (!strcmp(argv[i], "--ramps")) {
+            // interchange ramps, clustered (for picking harness hotspots): where they are and how many lanes each has
+            const AI::LaneGraph& G = w.lg;
+            std::vector<vec2> centers;
+            std::vector<int> counts;
+            for (int l = 0; l < (int)G.lanes.size(); l++) {
+                if (!(G.lanes[l].flags & AI::LF_RAMP)) continue;
+                vec2 p = G.lanePos(l, 0.5f * (G.lanes[l].u0 + G.lanes[l].u1)).xy();
+                int k = 0;
+                for (; k < (int)centers.size(); k++)
+                    if (length(centers[k] - p) < 300.f) break;
+                if (k == (int)centers.size()) {
+                    centers.push_back(p);
+                    counts.push_back(0);
                 }
+                counts[k]++;
+            }
+            for (size_t k = 0; k < centers.size(); k++) printf("interchange ~(%.0f, %.0f): %d ramp lanes\n", centers[k].x, centers[k].y, counts[k]);
             continue;
         }
         if (!strcmp(argv[i], "--turntest") && i + 2 < argc) {

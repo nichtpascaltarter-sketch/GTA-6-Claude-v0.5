@@ -122,7 +122,8 @@ void updateStoryCalls(GameWorld& g, float dt) {
             const char* from;
             const char* text;
             int where;   // 0 courier, 1 gun shop, 2 street race, 3 Tide Customs, 4 beach race, 5 condo, 6 river race, 7 flight school,
-                         // 8 taxi depot, 9 range, 10 Sawgrass dock (wildlife census), 11..13 the strangers Rosa, Velma, Jaz
+                         // 8 taxi depot, 9 range, 10 Sawgrass dock (wildlife census), 11..13 the strangers Rosa, Velma, Jaz,
+                         // 14 the Night Series, 15 the harbor runs
         };
         static const WorldText kTexts[] = {
             {SF_LOW_TIDE, "Rapido Couriers", "Fast wheels, faster legs? Rapido Couriers pays per drop. Come by the depot.", 0},
@@ -145,6 +146,12 @@ void updateStoryCalls(GameWorld& g, float dt) {
             {SF_DRY_DOCK, "Rook", "That blue hatchback we pulled last week? The owner's a nurse. Keeps calling the shop. Not my problem. Maybe yours.",
              12},
             {SF_PRESSURE, "Tidegram", "@jazonthetide is looking for a driver at the Sol Beach cafe. Paid in exposure. And cash.", 13},
+            {SF_PINK_SLIPS, "Lalo Brisa",
+             "Heard you beat Chuy. The Porto Sol Night Series runs after eight from Tide Customs in Calle Luna. Three legs, my cars, your "
+             "nerve.",
+             14},
+            {SF_COLLATERAL, "Tomas", "The yard is taking delivery runs by boat to pay down the bank. I can't drive a boat to save my life. "
+                                     "Come by the slip?", 15},
         };
         int sent = flag(g, EX_WORLD_TEXTS);
         for (int i = 0; i < (int)ARRAY_COUNT(kTexts); i++) {
@@ -171,6 +178,8 @@ void updateStoryCalls(GameWorld& g, float dt) {
                 case 11: loc = defStart("rosa_1"); break;
                 case 12: loc = defStart("velma_1"); break;
                 case 13: loc = defStart("jaz_1"); break;
+                case 14: loc = defStart("series"); break;
+                case 15: loc = defStart("harbor"); break;
                 default: loc = defStart("range"); break;
             }
             addMessage(g, t.from, t.text, -1, false, -1, &loc, 0, nullptr);
@@ -319,6 +328,14 @@ std::vector<MenuItem> jobItems(GameWorld& g) {
         if (strcmp(d.id, "wishlist") == 0) {
             int lv = flag(g, EX_WISHLIST_LEVEL), n = (int)ARRAY_COUNT(kWishlist);
             it.detail = StrFormat("Order %d of %d: a %s. Select to mark Rook's garage.", lv % n + 1, n, wishClassName(kWishlist[lv % n].cls));
+        } else if (strcmp(d.id, "series") == 0) {
+            int titles = flag(g, EX_SERIES_WINS);
+            it.detail = titles > 0 ? StrFormat("Night Series titles: %d. Three legs, points 10/6/3/1; the champion takes $12,000.", titles)
+                                   : std::string("Three legs in Lalo's cars, points 10/6/3/1. The champion takes $20,000 and the Arclight.");
+        } else if (strcmp(d.id, "harbor") == 0) {
+            int lv = flag(g, EX_HARBOR_LEVEL);
+            const HarborRun& r = kHarborRuns[lv % 5];
+            it.detail = StrFormat("Next run: %s to %s. %s", r.cargo, r.dest, flag(g, SIDE_HARBOR_ALL) ? "The yard's debt is paid." : StrFormat("Run %d of 5 toward the yard's debt.", lv % 5 + 1).c_str());
         } else if (strcmp(d.id, "bounty") == 0) {
             int lv = flag(g, EX_BOUNTY_LEVEL), n = (int)ARRAY_COUNT(kFugitives);
             it.detail = StrFormat("Next skip: %s, who %s. Select to mark the office.", kFugitives[lv % n].name, kFugitives[lv % n].crime);

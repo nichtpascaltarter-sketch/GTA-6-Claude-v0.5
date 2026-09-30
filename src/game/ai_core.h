@@ -299,8 +299,11 @@ struct DonutState {
     int dir = 1;               // +1 clockwise (steering right), -1 anticlockwise
     float hbT = 0.f;           // handbrake tug left (s)
     float kickCd = 0.f;        // until the next tug is allowed (s)
-    float spinT = 0.f;         // time spent spinning the current way (s)
-    bool returning = false;    // rolling back over the spot
+    float spinT = 0.f;         // time spent going round the current way (s)
+    float switchAt = 14.f;     // ... when to straighten out and go round the other way
+    int phase = 0;             // 0 donut, 1 letting the spin die, 2 lining up past the spot for the next one
+    float phaseT = 0.f;
+    float drift = 0.f;         // how far the middle of the circle has wandered off the spot (m, smoothed)
     float smoke = 0.f;         // how hard the rear tires are going (0..1) - for the crowd and the sound
 };
 Vehicles::VehicleControls donutControls(const Vehicles::VehicleState& s, vec2 spot, float dt, DonutState& st);

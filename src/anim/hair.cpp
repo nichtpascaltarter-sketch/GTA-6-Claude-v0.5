@@ -728,7 +728,9 @@ static void buildFacialHair(OutfitCtx& o) {
     MeshB cm;
     Rng rc(hash32(d.seed * 389u + 11u));
     const float lenBase = kind == FH_BEARD ? 0.014f : (kind == FH_SHORTBEARD ? 0.0065f : (kind == FH_MUSTACHE ? 0.0095f : 0.011f));
-    const float pick = kind == FH_BEARD ? 0.55f : 0.45f;
+    // short beards: fewer, two-segment cards (the shell carries most of their volume)
+    const float pick = kind == FH_BEARD ? 0.55f : (kind == FH_SHORTBEARD ? 0.34f : 0.45f);
+    const int NSg = kind == FH_SHORTBEARD ? 2 : 3;
     CardPt pts[4];
     for (int j = 1; j < H.rows; j++)
         for (int k = 0; k < H.cols; k++) {
@@ -747,7 +749,6 @@ static void buildFacialHair(OutfitCtx& o) {
             vec3 q = v.p, nq = normalize(v.n);
             float thq = v.pa, phq = v.pb;
             float len = lenBase * hs * rc.range(0.8f, 1.25f);
-            const int NSg = 3;
             float seg = len / NSg;
             int np = 0;
             for (int sgi = 0; sgi <= NSg; sgi++) {

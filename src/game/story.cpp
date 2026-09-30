@@ -139,6 +139,17 @@ void MissionManager::registerAll(GameWorld& g) {
                         UI::BLIP_HIDEOUT, makeMission<MissionBounty>));
     defs.push_back(side("wishlist", "Rook's Wishlist", "Rook", startAt(P.rookShop, -14.f), SF_REPO_MAN, -1, UI::BLIP_GARAGE,
                         makeMission<MissionWishlist>));
+    {
+        // Lalo Brisa's championship starts from Tide Customs in Calle Luna (clear of the shop's drive-in bay)
+        MissionDef s = side("series", "Porto Sol Night Series", "Lalo Brisa", startAt(P.resprayCL, -16.f), SF_PINK_SLIPS, -1, UI::BLIP_RACE,
+                            makeMission<MissionNightSeries>);
+        s.timeFrom = 20.f;
+        s.timeTo = 5.f;
+        defs.push_back(s);
+        s = side("harbor", "Ortega Harbor Runs", "Tomas", startAt(P.boatyard, -10.f), SF_COLLATERAL, -1, UI::BLIP_BOAT, makeMission<MissionHarborRuns>);
+        s.needsClasses = kBoats;
+        defs.push_back(s);
+    }
     MissionDef opening = side("opening", "Porto Sol", "", P.mariApt.pos.xy(), -1, -1, UI::BLIP_MISSION, makeMission<MissionOpening>);
     opening.hidden = true;   // the new-game opening shots (played by openworld.cpp; listed for the test harness)
     defs.push_back(opening);

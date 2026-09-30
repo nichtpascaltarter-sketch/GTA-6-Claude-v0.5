@@ -21,8 +21,8 @@ static const float kUpperMask[B_COUNT] = {
     1.f, 1.f,                  // brows
     // derived bones (roll, phalanges): computed from their controllers, the entries are never read
     1.f, 1.f,
-    1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f,
-    1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f,
+    1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f,
+    1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f,
 };
 
 // Rotation angle of q about a unit axis (swing-twist decomposition), in [-pi, pi].
@@ -65,10 +65,12 @@ static void derivedLocals(const Skeleton& sk, const Pose& pose, quat* out) {
         {{0.f, 0.52f, 0.9f, 1.55f}, {0.f, 0.56f, 0.66f, 1.62f}, {0.f, 0.4f, 0.8f, 1.1f}},    // pinky
     };
     static const float kLean[4] = {0.0f, 0.04f, 0.09f, 0.15f};   // flexed fingers lean towards the thumb's base
-    // thumb key directions in the hand frame (fingers, thumb side, palm) for the proximal / distal phalanx
+    // thumb key directions in the hand frame (fingers, thumb side, palm) for the metacarpal, the proximal and the distal
+    // phalanx at thumb = kCt (a zero vector = the bind direction)
     static const float kCt[4] = {0.f, 0.2f, 0.55f, 1.f};
-    static const float kT1[4][3] = {{0.92f, 0.3f, 0.05f}, {0.95f, 0.12f, 0.05f}, {0.95f, 0.14f, 0.27f}, {0.94f, -0.34f, 0.f}};
-    static const float kT2[4][3] = {{0.f, 0.f, 0.f}, {0.97f, 0.f, 0.12f}, {1.f, 0.f, 0.f}, {0.86f, -0.51f, -0.08f}};
+    static const float kTM[4][3] = {{0.f, 0.f, 0.f}, {0.62f, 0.62f, 0.48f}, {0.59f, 0.46f, 0.66f}, {0.55f, 0.13f, 0.82f}};
+    static const float kT1[4][3] = {{0.f, 0.f, 0.f}, {0.95f, 0.12f, 0.05f}, {0.93f, 0.1f, 0.35f}, {0.93f, -0.3f, 0.2f}};
+    static const float kT2[4][3] = {{0.f, 0.f, 0.f}, {0.97f, 0.f, 0.12f}, {0.97f, 0.f, 0.25f}, {0.87f, -0.49f, 0.f}};
     for (int side = 0; side < 2; side++) {
         const bool right = side == 1;
         const int hb = right ? B_HAND_R : B_HAND_L, fb = right ? B_FINGERS_R : B_FINGERS_L, tb = right ? B_THUMB_R : B_THUMB_L;
@@ -92,24 +94,23 @@ static void derivedLocals(const Skeleton& sk, const Pose& pose, quat* out) {
             out[b0 + 1 - B_FIRST_DERIVED] = qaa(u, pip);
             out[b0 + 2 - B_FIRST_DERIVED] = qaa(u, dip);
         }
-        // thumb: interpolate the key directions, then turn each phalanx (after its parents' rotations) onto them
+        // thumb: interpolate the key directions, then turn each bone (after its parents' rotations) onto them
         const int t0 = phalanxBone(right, 4, 0);
-        vec3 b1 = normalize(sk.bindLocalPos[t0 + 1]);
+        vec3 bm = normalize(sk.bindLocalPos[t0 + 1]), b1 = normalize(sk.bindLocalPos[t0 + 2]);
         vec3 b2 = rotate(qaa(normalize(cross(b1, thumbPadDir(pn))), kThumbRestIP), b1);
         int k = ct < kCt[1] ? 0 : (ct < kCt[2] ? 1 : 2);
         float w = Saturate((ct - kCt[k]) / (kCt[k + 1] - kCt[k]));
-        auto keyDir = [&](const float (*tab)[3], int i, vec3 rest) {
-            vec3 v = fing * tab[i][0] + Y * tab[i][1] + pn * tab[i][2];
-            return length2(v) > 1e-8f ? normalize(v) : rest;
+        auto keyDir = [&](const float (*tab)[3], vec3 rest) {
+            vec3 a = fing * tab[k][0] + Y * tab[k][1] + pn * tab[k][2], b = fing * tab[k + 1][0] + Y * tab[k + 1][1] + pn * tab[k + 1][2];
+            return normalize(lerp(length2(a) > 1e-8f ? normalize(a) : rest, length2(b) > 1e-8f ? normalize(b) : rest, w));
         };
-        vec3 d1 = normalize(lerp(keyDir(kT1, k, b1), keyDir(kT1, k + 1, b1), w));
-        vec3 d2 = normalize(lerp(keyDir(kT2, k, b2), keyDir(kT2, k + 1, b2), w));
-        quat qm = normalize(pose.rot[tb]);
-        quat l1 = normalize(conj(qm) * quatFromTo(rotate(qm, b1), d1) * qm);
-        quat q12 = normalize(qm * l1);
-        quat l2 = normalize(conj(q12) * quatFromTo(rotate(q12, b2), d2) * q12);
-        out[t0 - B_FIRST_DERIVED] = l1;
-        out[t0 + 1 - B_FIRST_DERIVED] = l2;
+        quat qM = quatFromTo(bm, keyDir(kTM, bm));
+        quat l1 = normalize(conj(qM) * quatFromTo(rotate(qM, b1), keyDir(kT1, b1)) * qM);
+        quat q12 = normalize(qM * l1);
+        quat l2 = normalize(conj(q12) * quatFromTo(rotate(q12, b2), keyDir(kT2, b2)) * q12);
+        out[t0 - B_FIRST_DERIVED] = qM;
+        out[t0 + 1 - B_FIRST_DERIVED] = l1;
+        out[t0 + 2 - B_FIRST_DERIVED] = l2;
     }
 }
 

@@ -28,20 +28,24 @@ enum Bone : u8 {
     //    pinching the wrist.
     //  - finger phalanges (proximal 1, middle 2, distal 3; the proximal ones are children of B_HAND_*): B_FINGERS_*
     //    is the curl controller, its rotation angle about the fingers' flexion axis (holdGrip / clips' convention:
-    //    cross(finger dir, palm normal)) drives all three joints of every finger (cascaded, fingers converging as
-    //    they close; 1.45 rad = fist). B_THUMB_* stays the thumb's metacarpal bone and its flexion drives the thumb's
-    //    proximal (2) and distal (3) phalanges.
+    //    cross(finger dir, palm normal); fingers 0..1 -> 1.45 rad) drives all three joints of every finger (cascaded,
+    //    fingers converging as they close, wrapped round holdGrip's handle at ~0.9, a fist at 1).
+    //  - thumb (metacarpal 1 from the CMC joint at B_THUMB_*'s position, proximal 2, distal 3): B_THUMB_* is the
+    //    thumb controller, its angle about the opposition axis (thumb 0..1 -> 0.9 rad) poses the whole thumb: open,
+    //    relaxed beside the index finger, round a handle's far side, across the closed fingers.
+    //  B_FINGERS_* / B_THUMB_* carry no skin; their matrices stay valid (handGrip reads B_HAND_* and B_FINGERS_*'s
+    //  bind offset only).
     B_FOREARM_ROLL_L, B_FOREARM_ROLL_R,
     B_INDEX1_L, B_INDEX2_L, B_INDEX3_L, B_MIDDLE1_L, B_MIDDLE2_L, B_MIDDLE3_L,
-    B_RING1_L, B_RING2_L, B_RING3_L, B_PINKY1_L, B_PINKY2_L, B_PINKY3_L, B_THUMB2_L, B_THUMB3_L,
+    B_RING1_L, B_RING2_L, B_RING3_L, B_PINKY1_L, B_PINKY2_L, B_PINKY3_L, B_THUMB1_L, B_THUMB2_L, B_THUMB3_L,
     B_INDEX1_R, B_INDEX2_R, B_INDEX3_R, B_MIDDLE1_R, B_MIDDLE2_R, B_MIDDLE3_R,
-    B_RING1_R, B_RING2_R, B_RING3_R, B_PINKY1_R, B_PINKY2_R, B_PINKY3_R, B_THUMB2_R, B_THUMB3_R,
+    B_RING1_R, B_RING2_R, B_RING3_R, B_PINKY1_R, B_PINKY2_R, B_PINKY3_R, B_THUMB1_R, B_THUMB2_R, B_THUMB3_R,
     B_COUNT
 };
-// First derived bone; per hand the phalanges run index, middle, ring, pinky (3 each), then thumb 2, 3.
+// First derived bone; per hand the digits run index, middle, ring, pinky, thumb, three bones each.
 const int B_FIRST_DERIVED = B_FOREARM_ROLL_L;
-const int kHandPhalanges = B_INDEX1_R - B_INDEX1_L;   // 14 per hand
-inline int phalanxBone(bool right, int finger, int joint) {   // finger 0 index .. 3 pinky, 4 thumb (joint 0 = B_THUMB2)
+const int kHandPhalanges = B_INDEX1_R - B_INDEX1_L;   // 15 per hand
+inline int phalanxBone(bool right, int finger, int joint) {   // finger 0 index .. 3 pinky, 4 thumb; joint 0..2
     return (right ? B_INDEX1_R : B_INDEX1_L) + finger * 3 + joint;
 }
 

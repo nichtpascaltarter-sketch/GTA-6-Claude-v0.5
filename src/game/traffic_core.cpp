@@ -162,25 +162,64 @@ Vehicles::VehicleControls donutControls(const Vehicles::VehicleState& s, vec2 sp
     for (int w = 0; w < s.wheelCount; w++)
         if (s.wheels[w].contact && s.tune.rear[w]) rearSlip = Max(rearSlip, s.wheels[w].slip);
     st.smoke = approach(st.smoke, Saturate(rearSlip * 0.6f), dt * 3.f);
-    // wandered off the spot: let the spin die, roll back over it and go round the other way
-    if (!st.returning && (dist > 7.f || (st.spinT > 9.f && dist > 2.5f))) st.returning = true;
-    if (st.returning) {
-        vec2 to = -off / Max(dist, 0.1f);
-        float side = dot(to, rightOf(fwd)), ahead = dot(to, fwd);
-        c.steer = ahead > 0.2f ? Clamp(side * 2.5f, -1.f, 1.f) : (side >= 0.f ? 1.f : -1.f);
-        bool spinning = fabsf(s.body.angVel.z) > 0.8f;
-        c.throttle = spinning ? 0.f : (v < 4.5f ? 0.55f : 0.f);
-        c.brake = spinning && vF > 1.f ? 0.4f : 0.f;
-        c.handbrake = false;
-        if (dist < 2.5f || (dist < 4.f && ahead < 0.f)) {
-            st.returning = false;
-            st.dir = -st.dir;
-            st.spinT = 0.f;
-            st.kickCd = 0.f;
+    st.phaseT += dt;
+    const float R0 = 3.3f;   // the circle a powerful car runs at full lock and full throttle
+    if (st.phase == 1) {
+        // letting the spin die: off the throttle, a dab of brake
+        c.steer = 0.f;
+        c.brake = vF > 1.f ? 0.5f : 0.f;
+        if ((fabsf(s.body.angVel.z) < 0.5f && v < 3.5f) || st.phaseT > 3.f) {
+            st.phase = 2;
+            st.phaseT = 0.f;
         }
         return c;
     }
+    if (st.phase == 2) {
+        // lining up: roll back over the spot (the donut circles pass through it), then kick
+        vec2 to = spot - pos;
+        if (dist < 1.5f || st.phaseT > 12.f) {
+            st.phase = 0;
+            st.phaseT = 0.f;
+            st.spinT = 0.f;
+            st.kickCd = 0.f;
+            st.drift = 0.f;
+        } else {
+            float ang = atan2f(dot(to, rightOf(fwd)), dot(to, fwd));
+            // (the spot inside the circle the car turns at full lock: it would only orbit it - straight on for room)
+            float rt = s.tune.wheelbase / Max(tanf(s.tune.maxSteer * 0.9f), 0.2f) + 0.6f;
+            vec2 turnMid = pos + rightOf(fwd) * (ang >= 0.f ? rt : -rt);
+            bool cramped = length(spot - turnMid) < rt;
+            c.steer = cramped ? 0.f : Clamp(ang * 1.6f, -1.f, 1.f);
+            c.throttle = v < 3.5f ? 0.45f : 0.f;
+            c.brake = v > 6.f ? 0.3f : 0.f;
+            return c;
+        }
+    }
+    // donut: the circles run through the spot, one to each side (a figure of eight over the crossing). Where is the
+    // middle of this one? (a radius in from the car, across its path)
+    {
+        float w = fabsf(s.body.angVel.z);
+        vec2 vel = s.body.vel.xy();
+        vec2 vd = length2(vel) > 0.25f ? normalize(vel) : fwd;
+        float r = Clamp(v / Max(w, 0.3f), 1.5f, 8.f);
+        vec2 mid = pos + rightOf(vd) * ((float)st.dir * r);
+        if (w > 0.9f) st.drift = approach(st.drift, fabsf(length(mid - spot) - r), dt * 3.f);
+    }
     st.spinT += dt;
+    // time to go round the other way: flick it over as it crosses the spot
+    if (st.spinT > st.switchAt && dist < 2.2f && v > 2.f) {
+        st.dir = -st.dir;
+        st.spinT = 0.f;
+        st.switchAt = 8.f + fmodf(st.switchAt * 7.31f, 8.f);
+        st.hbT = 0.3f;
+        st.kickCd = 1.3f;
+    }
+    // the circle has wandered off the spot: straighten out and line up again
+    if (st.drift > 2.8f || dist > 9.f || st.spinT > st.switchAt + 12.f) {
+        st.phase = 1;
+        st.phaseT = 0.f;
+        return c;
+    }
     c.steer = (float)st.dir;
     // the kick: rolling, not yet rotating fast - a tug of the handbrake swings the tail out (and lets the wheels spin)
     if (spin < 1.1f && vF > 1.2f && v < 8.f && st.kickCd <= 0.f) {

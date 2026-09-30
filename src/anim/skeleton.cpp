@@ -314,14 +314,16 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
                 D.fingAx[side][f] = ax;
                 D.fingR[side][f] = D.handW * fd.rad;
             }
-            // thumb: metacarpal along thumbDir, then the phalanges lie along the index finger's side (pad towards it)
+            // thumb: metacarpal from the CMC joint along thumbDir, then the phalanges lie along the index finger's side
+            // (pad towards it)
             vec3 td = D.thumbDir[side];
             vec3 d1 = normalize(dir * 0.92f + wy * 0.3f + pn * 0.05f);
             vec3 ax = normalize(cross(d1, thumbPadDir(pn)));
             int t0 = phalanxBone(side == 1, 4, 0);
-            J[t0] = J[thumb] + td * (kThumbMeta * handLen);
-            J[t0 + 1] = J[t0] + d1 * (kThumbProx * handLen);
-            D.fingTip[side][4] = J[t0 + 1] + rotate(qaa(ax, kThumbRestIP), d1) * (kThumbDist * handLen);
+            J[t0] = J[thumb];
+            J[t0 + 1] = J[t0] + td * (kThumbMeta * handLen);
+            J[t0 + 2] = J[t0 + 1] + d1 * (kThumbProx * handLen);
+            D.fingTip[side][4] = J[t0 + 2] + rotate(qaa(ax, kThumbRestIP), d1) * (kThumbDist * handLen);
             D.fingAx[side][4] = ax;
             D.fingR[side][4] = D.handW * 0.118f;
         }
@@ -364,9 +366,9 @@ static const int kParent[B_COUNT] = {
     B_HEAD, B_HEAD,                        // BROW_L/R
     B_FOREARM_L, B_FOREARM_R,              // FOREARM_ROLL_L/R
     B_HAND_L, B_INDEX1_L, B_INDEX2_L, B_HAND_L, B_MIDDLE1_L, B_MIDDLE2_L,
-    B_HAND_L, B_RING1_L, B_RING2_L, B_HAND_L, B_PINKY1_L, B_PINKY2_L, B_THUMB_L, B_THUMB2_L,
+    B_HAND_L, B_RING1_L, B_RING2_L, B_HAND_L, B_PINKY1_L, B_PINKY2_L, B_HAND_L, B_THUMB1_L, B_THUMB2_L,
     B_HAND_R, B_INDEX1_R, B_INDEX2_R, B_HAND_R, B_MIDDLE1_R, B_MIDDLE2_R,
-    B_HAND_R, B_RING1_R, B_RING2_R, B_HAND_R, B_PINKY1_R, B_PINKY2_R, B_THUMB_R, B_THUMB2_R,
+    B_HAND_R, B_RING1_R, B_RING2_R, B_HAND_R, B_PINKY1_R, B_PINKY2_R, B_HAND_R, B_THUMB1_R, B_THUMB2_R,
 };
 
 }  // namespace detail
@@ -416,15 +418,13 @@ void buildSkeleton(const CharacterDesc& d, Skeleton& out) {
         int roll = side ? B_FOREARM_ROLL_R : B_FOREARM_ROLL_L;
         out.boneLength[roll] = D.forearm * 0.5f;
         out.boneRadius[roll] = (D.rForearm + D.rWrist) * 0.5f;
-        for (int f = 0; f < 5; f++) {
-            int nj = f < 4 ? 3 : 2;
-            for (int j = 0; j < nj; j++) {
+        for (int f = 0; f < 5; f++)
+            for (int j = 0; j < 3; j++) {
                 int b = phalanxBone(side == 1, f, j);
-                vec3 end = j + 1 < nj ? J[b + 1] : D.fingTip[side][f];
+                vec3 end = j < 2 ? J[b + 1] : D.fingTip[side][f];
                 out.boneLength[b] = length(end - J[b]);
-                out.boneRadius[b] = D.fingR[side][f] * (1.f - 0.08f * (float)(j + (f == 4 ? 1 : 0)));
+                out.boneRadius[b] = D.fingR[side][f] * (f == 4 && j == 0 ? 1.2f : 1.f - 0.08f * (float)j);
             }
-        }
     }
 
     out.boneRadius[B_ROOT] = 0.05f * s;

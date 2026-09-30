@@ -102,11 +102,11 @@ void sideboard(IB& b, vec3 p, float yaw, float w, u32 col, u32 top, int roomIdx,
     const u32 brass = C(0.8f, 0.62f, 0.32f);
     for (int sx = -1; sx <= 1; sx += 2)
         for (int sy = -1; sy <= 1; sy += 2) cyl(b, vec3(sx * (w * 0.5f - 0.07f), sy * (D * 0.5f - 0.07f), 0.f), 0.014f, 0.018f, 0.1f, 8, brass, M(MAT_CHROME), false);
-    rbox(b, vec3(0.f, 0.f, (0.1f + Ht - 0.02f) * 0.5f), vec3(w * 0.5f, D * 0.5f, (Ht - 0.12f) * 0.5f), 0.01f, col, M(MAT_PAINT_WHITE), true);
+    rbox(b, vec3(0.f, 0.f, (0.1f + Ht - 0.02f) * 0.5f), vec3(w * 0.5f, D * 0.5f, (Ht - 0.12f) * 0.5f), 0.01f, col, M(MAT_METAL_PAINTED), true);
     const int nd = w > 1.5f ? 4 : 3;
     for (int k = 0; k < nd; k++) {
         float x = -w * 0.5f + w * (k + 0.5f) / nd;
-        box(b, vec3(x, D * 0.5f + 0.004f, (0.1f + Ht - 0.02f) * 0.5f), vec3(w * 0.5f / nd - 0.008f, 0.004f, (Ht - 0.12f) * 0.5f - 0.02f), C(rgbOf(col) * 1.1f), M(MAT_PAINT_WHITE),
+        box(b, vec3(x, D * 0.5f + 0.004f, (0.1f + Ht - 0.02f) * 0.5f), vec3(w * 0.5f / nd - 0.008f, 0.004f, (Ht - 0.12f) * 0.5f - 0.02f), C(rgbOf(col) * 1.1f), M(MAT_METAL_PAINTED),
             SK_NZ | SK_NY);
         box(b, vec3(x, D * 0.5f + 0.014f, Ht - 0.1f), vec3(0.07f, 0.006f, 0.006f), brass, M(MAT_CHROME), SK_NY);
     }
@@ -181,7 +181,7 @@ void featureWall(IB& b, float w, float h, int style, int roomIdx) {
     } else {
         box(b, vec3(0.f, 0.006f, h * 0.5f), vec3(w * 0.5f, 0.006f, h * 0.5f), Gy(0.03f), M(MAT_PAINT_WHITE), SK_NZ);
         for (float x = -w * 0.5f + 0.05f; x < w * 0.5f - 0.03f; x += 0.1f)
-            box(b, vec3(x, 0.03f, h * 0.5f), vec3(0.022f, 0.018f, h * 0.5f), C(0.62f, 0.44f, 0.26f), M(MAT_PAINT_WHITE), SK_NZ);
+            box(b, vec3(x, 0.03f, h * 0.5f), vec3(0.022f, 0.018f, h * 0.5f), C(0.62f, 0.44f, 0.26f), M(MAT_METAL_PAINTED), SK_NZ);
     }
     box(b, vec3(0.f, 0.05f, h + 0.01f), vec3(w * 0.5f, 0.05f, 0.01f), Gy(0.9f), M(MAT_PAINT_WHITE), SK_NONE);
     const int nl = Max(2, (int)(w / 2.2f));
@@ -451,7 +451,7 @@ void layoutCondoUnit(IB& b) {
         downlight(b, vec3(kxc, (yS + Y1) * 0.5f, H), kit, 260.f, vec3(1.f, 0.86f, 0.66f), 5.5f);
         float ix = (alX0 + X1) * 0.5f, iy = LY1 - 1.3f;
         InPart ip(b, IP_FURNITURE);
-        rbox(b, vec3(ix, iy, 0.45f), vec3(1.1f, 0.42f, 0.45f), 0.02f, cabC, M(MAT_WOOD), true);
+        rbox(b, vec3(ix, iy, 0.45f), vec3(1.1f, 0.42f, 0.45f), 0.02f, cabC, M(MAT_METAL_PAINTED), true);
         rbox(b, vec3(ix, iy - 0.08f, 0.92f), vec3(1.15f, 0.58f, 0.025f), 0.01f, top ? Gy(0.92f) : C(0.2f, 0.2f, 0.22f), M(MAT_MARBLE), true);
         collide(b, vec3(ix, iy, 0.47f), vec3(1.15f, 0.58f, 0.47f));
         for (int k = -1; k <= 1; k += 2) barStool(b, vec3(ix + k * 0.5f, iy - 0.95f, 0.f), wood, 0.72f);
@@ -467,7 +467,7 @@ void layoutCondoUnit(IB& b) {
         float ix = kitchenX - 2.2f, iy = kyc;
         if (ix - 0.5f > LX0 + 3.0f) {
             InPart ip(b, IP_FURNITURE);
-            rbox(b, vec3(ix, iy, 0.45f), vec3(0.45f, Min(1.1f, kl * 0.4f), 0.45f), 0.02f, cabC, M(MAT_WOOD), true);
+            rbox(b, vec3(ix, iy, 0.45f), vec3(0.45f, Min(1.1f, kl * 0.4f), 0.45f), 0.02f, cabC, M(MAT_METAL_PAINTED), true);
             rbox(b, vec3(ix - 0.08f, iy, 0.92f), vec3(0.6f, Min(1.15f, kl * 0.42f), 0.025f), 0.01f, top ? Gy(0.92f) : C(0.2f, 0.2f, 0.22f), M(MAT_MARBLE), true);
             collide(b, vec3(ix, iy, 0.47f), vec3(0.6f, Min(1.15f, kl * 0.42f), 0.47f));
             for (int k = -1; k <= 1; k += 2) barStool(b, vec3(ix - 0.95f, iy + k * 0.5f, 0.f), wood, 0.72f);
@@ -490,7 +490,7 @@ void layoutCondoUnit(IB& b) {
             rbox(b, vec3(0.f, 0.04f, zc), vec3(tw * 0.5f, 0.025f, th * 0.5f), 0.006f, Gy(0.03f), M(MAT_PLASTIC), true);
             box(b, vec3(0.f, 0.066f, zc), vec3(tw * 0.5f - 0.012f, 0.001f, th * 0.5f - 0.012f), Gy(0.02f), M(MAT_GLASS), SK_NZ);
             const float cw = Clamp(fy1 - fy0 - 0.4f, 1.6f, tw + 0.8f);
-            rbox(b, vec3(0.f, 0.21f, 0.42f), vec3(cw * 0.5f, 0.2f, 0.16f), 0.01f, top ? C(0.1f, 0.09f, 0.08f) : C(0.62f, 0.44f, 0.26f), M(MAT_PAINT_WHITE), true);
+            rbox(b, vec3(0.f, 0.21f, 0.42f), vec3(cw * 0.5f, 0.2f, 0.16f), 0.01f, top ? C(0.1f, 0.09f, 0.08f) : C(0.62f, 0.44f, 0.26f), M(MAT_METAL_PAINTED), true);
             box(b, vec3(0.f, 0.411f, 0.42f), vec3(cw * 0.5f - 0.03f, 0.002f, 0.005f), C(0.8f, 0.62f, 0.32f), M(MAT_CHROME), SK_NZ);
             rbox(b, vec3(0.f, 0.3f, 0.615f), vec3(tw * 0.3f, 0.05f, 0.035f), 0.012f, Gy(0.05f), M(MAT_PLASTIC), true);
             collide(b, vec3(0.f, 0.21f, 0.34f), vec3(cw * 0.5f, 0.2f, 0.24f));
@@ -607,9 +607,9 @@ void layoutCondoUnit(IB& b) {
             At at(b, vec3(X0, dky, 0.f), -kHalfPi);   // local +y into the room, local x along -y
             InPart ip(b, IP_FURNITURE);
             const u32 dcol = top ? C(0.12f, 0.1f, 0.09f) : wood;
-            rbox(b, vec3(0.f, 0.3f, 0.75f), vec3(0.6f, 0.28f, 0.02f), 0.005f, dcol, M(MAT_PAINT_WHITE), true);
-            for (int sx = -1; sx <= 1; sx += 2) box(b, vec3(sx * 0.57f, 0.3f, 0.365f), vec3(0.02f, 0.26f, 0.365f), dcol, M(MAT_PAINT_WHITE), SK_NZ);
-            box(b, vec3(0.f, 0.06f, 0.6f), vec3(0.55f, 0.015f, 0.12f), dcol, M(MAT_PAINT_WHITE), SK_NONE);
+            rbox(b, vec3(0.f, 0.3f, 0.75f), vec3(0.6f, 0.28f, 0.02f), 0.005f, dcol, M(MAT_METAL_PAINTED), true);
+            for (int sx = -1; sx <= 1; sx += 2) box(b, vec3(sx * 0.57f, 0.3f, 0.365f), vec3(0.02f, 0.26f, 0.365f), dcol, M(MAT_METAL_PAINTED), SK_NZ);
+            box(b, vec3(0.f, 0.06f, 0.6f), vec3(0.55f, 0.015f, 0.12f), dcol, M(MAT_METAL_PAINTED), SK_NONE);
             collide(b, vec3(0.f, 0.3f, 0.38f), vec3(0.6f, 0.28f, 0.38f));
             tableLamp(b, vec3(-0.4f, 0.18f, 0.77f), bedroom, C(0.85f, 0.8f, 0.7f), C(0.95f, 0.9f, 0.8f), 40.f);
             rbox(b, vec3(0.1f, 0.32f, 0.779f), vec3(0.17f, 0.12f, 0.009f), 0.004f, Gy(0.6f), M(MAT_METAL_BRUSHED), true);

@@ -29,6 +29,8 @@ enum SideFlag : int {
     SIDE_FIELD_GUIDE,               // every species in the Wild Porto Sol photo census
     SIDE_RIVALS_ALL,                // every race rival's final won
     SIDE_WISHLIST_ALL,              // every order on Rook's Wishlist delivered
+    SIDE_SERIES,                    // the Porto Sol Night Series championship won
+    SIDE_HARBOR_ALL,                // all five Ortega harbor runs delivered (the yard's debt paid)
     SIDE_COUNT
 };
 
@@ -49,6 +51,8 @@ enum ExtFlag : int {
     EX_STUNT_COUNT = 193,
     EX_INSANE_BEST = 194,           // best freestyle stunt score
     EX_RACE_BEST = 200,             // 200..215: best times (centiseconds) per race
+    EX_SERIES_WINS = 216,           // Night Series championships won
+    EX_HARBOR_LEVEL = 217,          // Ortega harbor runs delivered (the next run is this modulo five)
     EX_TAXI_FARES = 220, EX_TAXI_BEST, EX_COURIER_LEVEL, EX_VIGILANTE_LEVEL, EX_PARAMEDIC_LEVEL, EX_RANGE_BEST,
     EX_TAXI_EARNED = 226,
     EX_BOUNTY_LEVEL = 227,          // next fugitive on the bail bonds list

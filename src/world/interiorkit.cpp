@@ -15,8 +15,8 @@ inline u32 C(float r, float g, float b, float a = 1.f) { return packRGBA8(Satura
 inline u32 C(vec3 c, float a = 1.f) { return C(c.x, c.y, c.z, a); }
 inline u32 Gy(float v, float a = 1.f) { return C(v, v, v, a); }
 // MAT_PLASTIC is the vehicles' fixed black trim (albedo 0.03 whatever the tint); interior plastics are tinted by the
-// vertex colour, so they use the paint material (dark tints still read as black plastic)
-inline u32 M(MaterialId m, u32 param = 0) { return makeMat(m == MAT_PLASTIC ? MAT_PAINT_WHITE : m, param); }
+// vertex colour, so they use the clean painted material (dark tints still read as black plastic)
+inline u32 M(MaterialId m, u32 param = 0) { return makeMat(m == MAT_PLASTIC ? MAT_METAL_PAINTED : m, param); }
 // animated emissive (dynamic.hlsl / world.hlsl patterns): 1 blink, 2 chase, 3 hue cycle, 4 pulse, 5 flash, 6 night, 7 slow blink
 inline u32 EM(u32 anim = 0, u32 phase = 0) { return makeMat(MAT_EMISSIVE, anim ? (anim | ((phase & 255u) << 4)) : 0u); }
 inline vec3 rgbOf(u32 c) { return vec3((float)(c & 255u), (float)((c >> 8) & 255u), (float)((c >> 16) & 255u)) * (1.f / 255.f); }
@@ -765,7 +765,7 @@ void doorLeafGeo(IB& b, float w, float h, float th, u8 style, u32 color, bool ha
             {
                 vec3 dc = rgbOf(color);
                 float hi = Max(dc.x, Max(dc.y, dc.z)), lo = Min(dc.x, Min(dc.y, dc.z));
-                if (hi > 0.6f && hi - lo < 0.08f) wood = M(MAT_PAINT_WHITE);
+                if (hi > 0.6f && hi - lo < 0.08f) wood = M(MAT_METAL_PAINTED);
             }
             float rail = 0.11f;
             box(b, vec3(w * 0.5f, 0.f, h * 0.5f), vec3(w * 0.5f, th * 0.5f * 0.55f, h * 0.5f), color, wood, SK_NONE);   // core

@@ -41,6 +41,8 @@ struct WeatherSystem {
     void setImmediate(WeatherKind k) {
         cur = next = k;
         blend = 1.f;
+        // jumping straight into rain (missions, tests, the benchmark) starts on ground that has been soaking for a while
+        if (k == WX_RAIN || k == WX_STORM) wetness = 1.f;
     }
     void transitionTo(WeatherKind k, float seconds) {
         if (k == next) return;
