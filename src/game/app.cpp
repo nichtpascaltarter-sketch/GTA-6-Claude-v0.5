@@ -55,6 +55,7 @@ struct App {
     int shotSettleFrames = 12;
     int shotWait = 0;
     bool autotest = false;
+    bool pendingPhoto = false;   // photo mode: save the next finished frame
     // autoplay test scripts (--autoplay walk|drive|bike|fly|boat|shoot)
     std::string autoplay;
     float autoTime = 0.f;
@@ -511,20 +512,31 @@ struct App {
                 int pv = game.playerVehicle();
                 readControls(in, icfg, pv >= 0, pv >= 0 && game.isAircraft(pv), dt, game.ctl);
                 if (!autoplay.empty()) applyAutoplay(game.ctl, simDt);
+                bool photoFreeze = false;
+#ifdef HAVE_GAME_UI
+                bool photo = game.phone.photo.active;
+                if (photo) game.ctl = Controls();   // the phone flies the photo camera and takes all input (Esc exits it)
+                else if (game.phone.capturingInput) maskPhoneInput(game.ctl);
+                photoFreeze = photo && game.phone.photo.freeze;
+                game.hidePlayerModel = photo && game.phone.photo.hidePlayer;
+#endif
                 bool pausePressed = game.ctl.pause.pressed, mapPressed = game.ctl.map.pressed;
                 if (menuOpen) {
                     game.ctl = Controls();
                     Platform::setGamepadRumble(0.f, 0.f);
                 }
-                game.paused = menuOpen;
-                if (!menuOpen) {
+                game.paused = menuOpen || photoFreeze;
+                if (!menuOpen && !photoFreeze) {
                     env.timeOfDay += simDt * game.timeScale / 120.f;   // 1 game minute = 2 real seconds
                     if (env.timeOfDay >= 24.f) {
                         env.timeOfDay -= 24.f;
                         game.gameDay++;
                     }
                     env.gameSeconds += simDt * game.timeScale;
+                    WeatherKind wxBefore = weather.cur;
                     weather.update(env, simDt, game.rig.cam.pos);
+                    if (weather.cur != wxBefore && (weather.cur == WX_RAIN || weather.cur == WX_STORM || weather.cur == WX_FOG))
+                        game.socialReport(UI::TE_WEATHER, game.rig.cam.pos, weather.cur == WX_RAIN ? "rain" : (weather.cur == WX_STORM ? "storm" : "fog"));
                     game.update(simDt);
                     if (game.pinfo.deathTimer > 3.8f) game.fadeOut(1.2f);
                     if (game.pinfo.deathTimer > 5.f && game.fadedOut()) {
@@ -539,11 +551,25 @@ struct App {
                     state = AS_FREECAM;
                     cam = game.rig.cam;
                 }
+#ifdef HAVE_GAME_UI
+                if (game.phone.photo.active) {
+                    // photo mode renders (and culls) from the phone's free camera; auto focus looks at the center
+                    const UI::PhotoMode& ph = game.phone.photo;
+                    game.rig.cam.pos = dvec3(ph.camPos);
+                    game.rig.cam.yaw = ph.camYaw;
+                    game.rig.cam.pitch = ph.camPitch;
+                    game.rig.cam.roll = ph.camRoll;
+                    game.rig.cam.fovY = ph.camFov;
+                    WorldHit fh;
+                    game.phone.photo.autoFocusDistance =
+                        game.raycast(game.rig.cam.pos, game.rig.cam.forward(), 300.f, fh, game.hidePlayerModel ? game.player : -1, -1) ? fh.t : 0.f;
+                }
+#endif
                 game.submitRender();
                 game.updateAudioListener(dt);
                 Render::Camera rc = game.rig.cam;
 #ifdef HAVE_GAME_UI
-                rc.fovY = Clamp(rc.fovY * menu.settings.fov / 60.f, 25.f * kDegToRad, 110.f * kDegToRad);
+                if (!game.phone.photo.active) rc.fovY = Clamp(rc.fovY * menu.settings.fov / 60.f, 25.f * kDegToRad, 110.f * kDegToRad);
 #endif
                 cam = rc;
                 renderer.render(rc, env, dt);
@@ -565,9 +591,10 @@ struct App {
 #if defined(HAVE_GAMEPLAY) && defined(HAVE_GAME_UI)
             if (state == AS_PLAYING) {
                 game.fillHud(hud, dt);
-                bool showHud = menu.screen == UI::MENU_NONE && menu.settings.showHud && game.hudVisible;
+                bool showHud = menu.screen == UI::MENU_NONE && menu.settings.showHud && game.hudVisible && !game.phone.photo.active;
                 if (showHud) UI::drawHud(hud, dt);
-                if (menu.screen == UI::MENU_NONE) drawMissionOverlay(game, dt);   // shop, phone and choice menus
+                if (menu.screen == UI::MENU_NONE) drawMissionOverlay(game, dt);   // shop and choice menus
+                if (menu.screen == UI::MENU_NONE) updatePhone(in, dt);           // after the HUD, before Menus::update
                 drawCinematicOverlay();
             }
             if (state == AS_MENU || (state == AS_PLAYING && menu.screen != UI::MENU_NONE)) {
@@ -577,11 +604,24 @@ struct App {
             }
 #endif
             drawDebugText();
+#ifdef HAVE_GAME_UI
+            UI::setSceneDepth(renderer.depth.srv, cam.nearZ);   // photo mode depth of field
+#endif
             UI::endFrame();
 #ifdef HAVE_GAMEPLAY
             if (state == AS_PLAYING && !game.requestScreenshot.empty()) {   // mission tests: shots include the HUD
                 gfx::saveScreenshotBMP(game.requestScreenshot.c_str());
                 game.requestScreenshot.clear();
+            }
+            if (pendingPhoto) {   // the finished photo (the UI drew it without its panels this frame)
+                pendingPhoto = false;
+                std::string dir = Platform::userDataDir() + "Photos\\";
+                CreateDirectoryA(dir.c_str(), nullptr);
+                SYSTEMTIME st;
+                GetLocalTime(&st);
+                std::string path = dir + StrFormat("NeonTide_%04d%02d%02d_%02d%02d%02d.bmp", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
+                gfx::saveScreenshotBMP(path.c_str());
+                LOG("Photo saved: %s", path.c_str());
             }
 #endif
             gfx::gpuTimersResolve();
@@ -680,6 +720,64 @@ struct App {
             }
         }
         if (game.fadeAlpha > 0.f) UI::rect(0, 0, W, H, UI::rgba(0, 0, 0, game.fadeAlpha));
+    }
+
+    // While the phone is open it uses the navigation keys (arrows / Enter / Backspace / wheel, D-pad / A / B).
+    static void maskPhoneInput(Controls& c) {
+        c.phone = c.sprint = c.reload = c.confirm = c.back = c.skip = Button();
+        c.radioNext = c.radioPrev = c.lights = c.special = Button();
+        c.weaponScroll = 0;
+        c.menuNav = vec2(0.f, 0.f);
+    }
+
+    // Phone context + actions the app owns (save, map, waypoint, photos); contacts, messages and apps belong to the
+    // story layer.
+    void updatePhone(const InputState& in, float dt) {
+        UI::PhoneState& ph = game.phone;
+        Ped* pl = game.playerPed();
+        vec3 pp = pl ? pl->pos.toVec3() : game.rig.cam.pos.toVec3();
+        ph.timeOfDay = env.timeOfDay;
+        ph.day = game.gameDay;
+        switch (weather.cur) {
+            case WX_CLOUDY: case WX_OVERCAST: ph.weather = 1; break;
+            case WX_RAIN: ph.weather = 2; break;
+            case WX_STORM: ph.weather = 3; break;
+            case WX_FOG: ph.weather = 4; break;
+            default: ph.weather = 0; break;
+        }
+        // coverage: full in town, patchy out in the Sawgrass and offshore
+        World::Region reg = map.regionAt(pp.x, pp.y);
+        ph.signal = reg == World::REG_SAWGRASS ? 1 : (map.heightAt(pp.x, pp.y) < -8.f ? 2 : 4);
+        ph.battery = Clamp(1.f - (float)fmod(game.pinfo.playTime, 10800.0) / 13500.f, 0.2f, 1.f);
+        ph.owner = game.protagonistIndex == 0 ? "Mari" : "Dex";
+        ph.money = game.pinfo.money;
+        ph.playerPos = pp;
+        if (!ph.photo.active) {
+            ph.cameraPos = game.rig.cam.pos.toVec3();
+            ph.cameraYaw = game.rig.cam.yaw;
+            ph.cameraPitch = game.rig.cam.pitch;
+            ph.cameraFov = game.rig.cam.fovY;
+        }
+        bool onMission = gMissions.active != nullptr;
+        ph.canQuickSave = !onMission && game.pinfo.wanted == 0 && pl && pl->health > 0.f && game.playerControl;
+        ph.quickSaveNote = onMission ? "Not available during missions" : (game.pinfo.wanted > 0 ? "Lose the police first" : "");
+        phoneRefresh(game, ph);   // contacts, messages, apps, story calls (phone_game.cpp)
+        UI::PhoneAction a = UI::Phone::update(ph, hud, in, dt);
+        if (a.type != UI::PA_NONE && phoneHandle(game, ph, a)) return;   // calls, messages and apps
+        switch (a.type) {
+            case UI::PA_SET_WAYPOINT:
+                game.hasWaypoint = true;
+                game.waypoint = a.pos;
+                game.gpsRecalcTimer = 0.f;
+                break;
+            case UI::PA_OPEN_MAP: openPause(UI::MENU_MAP); break;
+            case UI::PA_QUICK_SAVE:
+                ph.toast = ph.canQuickSave && game.saveGame(6, "Quick Save - " + game.storyTitle) ? "Game saved" : "Can't save right now";
+                break;
+            case UI::PA_EXIT_PHOTO_MODE: game.rig.cut = true; break;
+            case UI::PA_TAKE_PHOTO: pendingPhoto = true; break;
+            default: break;
+        }
     }
 
     void openPause(UI::MenuScreen s) {

@@ -3,6 +3,7 @@
 // Speech::synthesize, broadcast processing, the speech worker thread, and the music producer thread
 // that renders stations and the adaptive score ahead into ring buffers.
 #include "audio_internal.h"
+#include "speech_ext.h"
 
 namespace Audio {
 namespace detail {
@@ -39,6 +40,20 @@ static VoiceParams adVoice(int kind, u32 seed) {
         case AV_OLDMAN: return vp(r.range(95.f, 108.f), 0.96f, 0.85f, 0.25f, 0.45f, 1.f);
         case AV_KID: return vp(r.range(270.f, 310.f), 1.3f, 1.08f, 0.1f, 0.f, 1.5f);
         default: return vp(r.range(120.f, 135.f), 1.02f, 1.18f, 0.08f, 0.15f, 1.7f);
+    }
+}
+
+// Delivery / accent / timbre of each ad voice (Speech inline markup, see speech_ext.h).
+static const char* adTags(int kind) {
+    switch (kind) {
+        case AV_ANNOUNCER: return "[ad][dark]";
+        case AV_ANNOUNCER_F: return "[ad][bright]";
+        case AV_MAN: return "[happy:0.3]";
+        case AV_WOMAN: return "[happy:0.35]";
+        case AV_FAST: return "[ad]";
+        case AV_OLDMAN: return "[accent:south:0.75][gravelly]";
+        case AV_KID: return "[happy:0.7]";
+        default: return "[ad][shout:0.55]";  // AV_HYPE
     }
 }
 
@@ -204,6 +219,18 @@ static StationDef makeDefs(int i) {
 }
 
 constexpr int kStations = 9;
+// Host personas: delivery, mood, accent and timbre of each station's DJ (prefixed to every host line).
+static const char* const kHostTags[kStations] = {
+    "[dj][calm:0.5][dark]",                    // Neon Coast: Vex Halloran, smooth late-night synthwave host
+    "[dj][accent:newyork:0.45][gravelly]",     // The Heat: Big Ray Salazar, loud and gravelly
+    "[dj][happy:0.5][accent:latino:0.7][bright]",  // Radio Calor: Marisol Vega, fast and sunny
+    "[dj][happy:0.4][bright]",                 // Pulse FM: DJ Kilowatt, club hype
+    "[dj][gravelly][accent:south:0.35]",       // Riptide Rock: Duke Mahoney, whiskey voice with a drawl
+    "[calm:0.7][husky][accent:british:0.45]",  // Blue Lagoon: Lorraine Beaumont, intimate lounge host
+    "[accent:south:0.9][nasal][happy:0.3]",    // Sawgrass Country: Hank Delacroix, folksy
+    "[calm][fry]",                             // Tidepool: Juno, sleepy lo-fi host
+    "[dark]",                                  // Palmera Public Talk: Gordon Pike
+};
 static StationDef g_defs[kStations];
 static bool g_defsInit = false;
 static void ensureDefs() {
@@ -381,7 +408,7 @@ static const AdDef kAds[] = {
      {{AV_ANNOUNCER_F, "Imagine waking up to ocean views, salty breezes, and a mortgage you can almost afford."},
       {AV_WOMAN, "We bought a condo on Sol Beach. The ocean is technically in the living room now, but the view is incredible."},
       {AV_ANNOUNCER_F, "Sunny Side Realty. Own a piece of Palmera, before it's underwater."},
-      {AV_ANNOUNCER_F, "Flood insurance not included."}}},
+      {AV_ANNOUNCER_F, "[fineprint]Flood insurance not included."}}},
     {"Captain Crab's Seafood Shack", 6,
      {{AV_OLDMAN, "Ahoy there. Captain Crab here. I've been frying fish since before fish had names."},
       {AV_OLDMAN, "Come on down to Captain Crab's on the Fort Castell pier. All you can eat, Tuesdays and most Thursdays."},
@@ -396,12 +423,12 @@ static const AdDef kAds[] = {
      {{AV_HYPE, "Are you tired? Are you sweaty? Is it a Tuesday?"},
       {AV_HYPE, "Crack open a Swamp Juice! Eight hundred milligrams of pure regret! I mean, energy!"},
       {AV_MAN, "I drank one and I could hear colors. Also my heart."},
-      {AV_FAST, "Swamp Juice is not a beverage. Do not consume more than one can per week. Side effects include shouting, sprinting, and seeing the future."}}},
+      {AV_FAST, "[fineprint]Swamp Juice is not a beverage. Do not consume more than one can per week. Side effects include shouting, sprinting, and seeing the future."}}},
     {"Barry Fontaine, Attorney at Law", 5,
      {{AV_FAST, "Hurt? Confused? Hurt and confused? Call Barry Fontaine, Attorney at Law."},
       {AV_FAST, "Slipped on a wet floor? Bitten by a flamingo? Your neighbor's tree fell on your other neighbor's car? Call Barry."},
       {AV_WOMAN, "Barry got me a settlement so big, I bought the store I slipped in."},
-      {AV_FAST, "Barry Fontaine. One eight hundred, Sue Palmera. Past results do not guarantee anything, legally speaking."}}},
+      {AV_FAST, "Barry Fontaine. One eight hundred, Sue Palmera. [fineprint]Past results do not guarantee anything, legally speaking."}}},
     {"Crazy Carl's Auto Mall", 1,
      {{AV_HYPE, "It's Crazy Carl, and I've lost my mind! And my prices!"},
       {AV_HYPE, "Every car on the lot must go! Some of them are already going, the parking brake is broken!"},
@@ -411,7 +438,7 @@ static const AdDef kAds[] = {
      {{AV_OLDMAN, "Y'all ever seen a gator up close? Real close? Uncomfortably close?"},
       {AV_OLDMAN, "Okahatchee Airboat Tours takes you deep into the Sawgrass, where the wild things are, and the cell service isn't."},
       {AV_WOMAN, "We saw forty alligators, three herons, and a guy named Travis who lives out there."},
-      {AV_ANNOUNCER, "Okahatchee Airboat Tours. Ear protection provided. Hands inside the boat."}}},
+      {AV_ANNOUNCER, "Okahatchee Airboat Tours. [fineprint]Ear protection provided. Hands inside the boat."}}},
     {"Fort Castell Casino and Buffet", 3,
      {{AV_ANNOUNCER_F, "Feeling lucky? Feeling hungry? Feeling both at once?"},
       {AV_ANNOUNCER_F, "The Fort Castell Casino and Buffet has two thousand slot machines and a shrimp tower taller than a lighthouse."},
@@ -421,7 +448,7 @@ static const AdDef kAds[] = {
      {{AV_HYPE, "Beach season in Palmera lasts three hundred and sixty five days a year. Are you ready? You are not ready."},
       {AV_HYPE, "Iron Pelican Fitness. Open twenty four hours, because your insecurities never sleep."},
       {AV_WOMAN, "I joined last month. I haven't gone yet, but I own the shirt."},
-      {AV_ANNOUNCER, "Iron Pelican Fitness. First month free. Cancellation requires a notarized letter and a blood oath."}}},
+      {AV_ANNOUNCER, "Iron Pelican Fitness. First month free. [fineprint]Cancellation requires a notarized letter and a blood oath."}}},
     {"Mangrove Mattress Company", 7,
      {{AV_ANNOUNCER_F, "Your mattress is older than your car. And your car is very old."},
       {AV_ANNOUNCER_F, "At Mangrove Mattress Company, every mattress is humidity tested, gator proof, and so soft you'll call in sick."},
@@ -436,7 +463,7 @@ static const AdDef kAds[] = {
      {{AV_KID, "Mom! Mom! Can we go to Big Flamingo?"},
       {AV_ANNOUNCER_F, "Big Flamingo Burgers. Home of the Double Pink, a burger so big it has its own zip code."},
       {AV_MAN, "I ate a Triple Pink and saw the face of God. He wanted fries."},
-      {AV_ANNOUNCER_F, "Big Flamingo. Stand on one leg, get a free milkshake. Balance not guaranteed."}}},
+      {AV_ANNOUNCER_F, "Big Flamingo. Stand on one leg, get a free milkshake. [fineprint]Balance not guaranteed."}}},
     {"Coral Keys Cruise Line", 5,
      {{AV_ANNOUNCER, "Escape to the Coral Keys aboard the Majestic Manatee, the slowest cruise ship in the world."},
       {AV_WOMAN, "Seven days, six nights, and we only moved about four miles. It was the most relaxing week of my life."},
@@ -450,7 +477,7 @@ static const AdDef kAds[] = {
      {{AV_ANNOUNCER_F, "This week's Palmera Mega Jackpot is two hundred million dollars."},
       {AV_MAN, "If I win, I'm buying an island. Then another island. Then a bridge between them."},
       {AV_ANNOUNCER_F, "Somebody has to win. Statistically, it isn't you. But what if it is?"},
-      {AV_ANNOUNCER_F, "Palmera State Lottery. Please play responsibly. Proceeds support the Department of Pothole Awareness."}}},
+      {AV_ANNOUNCER_F, "Palmera State Lottery. [fineprint]Please play responsibly. Proceeds support the Department of Pothole Awareness."}}},
 };
 constexpr int kAdCount = (int)ARRAY_COUNT(kAds);
 
@@ -570,6 +597,11 @@ struct Station {
     int lastSong = -1;
 };
 static Station g_st[kStations];
+
+// A line spoken by the station's host (persona tags + host voice).
+static Line hostLine(const Station& s, const std::string& text) {
+    return Line{std::string(kHostTags[s.idx]) + text, s.def.djVoice, 0, 0};
+}
 static bool g_stInit = false;
 static std::atomic<float> g_ctxTime{12.f}, g_ctxRain{0.f};
 static u64 g_session = 0;
@@ -662,7 +694,7 @@ static void appendAds(Station& s, Seg& seg, Rng& r, int count) {
         for (const AdLine& l : ad.lines) {
             if (!l.text) break;
             Line ln;
-            ln.text = l.text;
+            ln.text = std::string(adTags(l.voice)) + l.text;
             ln.voice = voices[l.voice];
             ln.at = t;
             ln.est = estSpeech(ln.text, ln.voice);
@@ -695,10 +727,11 @@ static void appendSegment(Station& s) {
             seg.type = SegType::News;
             seg.jingle = true;
             VoiceParams anchor = vp(188.f, 1.12f, 1.02f, 0.1f, 0.f, 1.2f);
-            seg.lines.push_back(Line{"This is Palmera Public Talk news, at the top of the hour. Here are your headlines.", anchor, 0, 0});
+            seg.lines.push_back(Line{"[news][bright]This is Palmera Public Talk news, at the top of the hour. Here are your headlines.", anchor, 0, 0});
             int hn = r.irange(2, 3);
-            for (int k = 0; k < hn; k++) seg.lines.push_back(Line{kHeadlines[(s.headlineCursor++) % (int)ARRAY_COUNT(kHeadlines)], anchor, 0, 0});
-            seg.lines.push_back(Line{d.ids[r.irange(0, 4)], d.djVoice, 0, 0});
+            for (int k = 0; k < hn; k++)
+                seg.lines.push_back(Line{std::string("[news][bright]") + kHeadlines[(s.headlineCursor++) % (int)ARRAY_COUNT(kHeadlines)], anchor, 0, 0});
+            seg.lines.push_back(hostLine(s, d.ids[r.irange(0, 4)]));
             float end = layoutLines(seg, 3.5f, 0.6f);
             seg.speechStart = 3.5f;
             seg.bedGenre = Genre::Talk;
@@ -712,12 +745,20 @@ static void appendSegment(Station& s) {
             VoiceParams hostA = d.djVoice;
             VoiceParams hostB = vp(192.f, 1.12f, 1.04f, 0.14f, 0.f, 1.3f);
             Rng cr(seg.seed, 9);
-            VoiceParams caller = adVoice(cr.chance(0.5f) ? AV_MAN : (cr.chance(0.5f) ? AV_WOMAN : AV_OLDMAN), seg.seed);
-            seg.lines.push_back(Line{tp.intro, hostA, 0, 0});
+            int callerKind = cr.chance(0.5f) ? AV_MAN : (cr.chance(0.5f) ? AV_WOMAN : AV_OLDMAN);
+            VoiceParams caller = adVoice(callerKind, seg.seed);
+            // callers phone in from all over Palmera: a persona accent per caller
+            Speech::Persona cp = Speech::persona(("caller" + std::to_string(seg.seed % 97u)).c_str(), callerKind == AV_WOMAN);
+            Speech::Style cs = cp.style;
+            cs.delivery = Speech::DELIVERY_TALK;
+            std::string callerTags = Speech::styleTags(cs);
+            std::string hostATags = kHostTags[s.idx], hostBTags = "[bright]";
+            seg.lines.push_back(Line{hostATags + tp.intro, hostA, 0, 0});
             for (const char* l : tp.lines) {
                 if (!l || !*l) break;
                 VoiceParams v = l[0] == '1' ? hostA : l[0] == '2' ? hostB : caller;
-                seg.lines.push_back(Line{l + 1, v, 0, 0});
+                const std::string& tags = l[0] == '1' ? hostATags : l[0] == '2' ? hostBTags : callerTags;
+                seg.lines.push_back(Line{tags + (l + 1), v, 0, 0});
             }
             float st = seg.jingle ? 3.5f : 0.5f;
             float end = layoutLines(seg, st, 0.45f);
@@ -742,11 +783,11 @@ static void appendSegment(Station& s) {
             const Seg& prev = s.segs.back();
             if (prev.song >= 0 && r.chance(0.6f)) {
                 const SongInfo& si = s.catalog[(size_t)prev.song];
-                seg.lines.push_back(Line{fill(kOutros[r.irange(0, (int)ARRAY_COUNT(kOutros) - 1)], si.artist, si.title, d, tod, rain, r), d.djVoice, 0, 0});
+                seg.lines.push_back(hostLine(s, fill(kOutros[r.irange(0, (int)ARRAY_COUNT(kOutros) - 1)], si.artist, si.title, d, tod, rain, r)));
             }
-            seg.lines.push_back(Line{d.ids[r.irange(0, 4)], d.djVoice, 0, 0});
-            if (r.chance(0.5f)) seg.lines.push_back(Line{fill(kTimeLines[r.irange(0, (int)ARRAY_COUNT(kTimeLines) - 1)], "", "", d, tod, rain, r), d.djVoice, 0, 0});
-            else seg.lines.push_back(Line{d.banter[r.irange(0, 5)], d.djVoice, 0, 0});
+            seg.lines.push_back(hostLine(s, d.ids[r.irange(0, 4)]));
+            if (r.chance(0.5f)) seg.lines.push_back(hostLine(s, fill(kTimeLines[r.irange(0, (int)ARRAY_COUNT(kTimeLines) - 1)], "", "", d, tod, rain, r)));
+            else seg.lines.push_back(hostLine(s, d.banter[r.irange(0, 5)]));
             float end = layoutLines(seg, 3.2f, 0.5f);
             seg.speechStart = 3.2f;
             seg.bedGenre = d.genre;
@@ -761,7 +802,7 @@ static void appendSegment(Station& s) {
     seg.song = nextSong(s, r);
     if (seg.song < 0) {
         seg.type = SegType::DjBreak;
-        seg.lines.push_back(Line{d.ids[0], d.djVoice, 0, 0});
+        seg.lines.push_back(hostLine(s, d.ids[0]));
         seg.dur = layoutLines(seg, 1.f, 0.5f) + 1.f;
         s.segs.push_back(seg);
         return;
@@ -769,7 +810,7 @@ static void appendSegment(Station& s) {
     const SongInfo& si = s.catalog[(size_t)seg.song];
     seg.dur = Max(30.0, (double)si.dur - 2.0);
     if (r.chance(d.introChance)) {
-        seg.lines.push_back(Line{fill(kIntros[r.irange(0, (int)ARRAY_COUNT(kIntros) - 1)], si.artist, si.title, d, tod, rain, r), d.djVoice, 0, 0});
+        seg.lines.push_back(hostLine(s, fill(kIntros[r.irange(0, (int)ARRAY_COUNT(kIntros) - 1)], si.artist, si.title, d, tod, rain, r)));
         layoutLines(seg, 1.2f, 0.4f);
         seg.speechStart = 1.2f;
     }

@@ -45,6 +45,9 @@ void updateOpenWorld(GameWorld& g, float dt) {
                 for (Safehouse& sh : gShops.safehouses) sh.garageVehicle = -1;
                 gShops.activeShop = gShops.activeSafehouse = gShops.activeBusiness = -1;
                 gShops.resprayStage = 0;
+                phoneGameReset();
+                g.phone.open = false;
+                UI::Phone::reset();   // a loaded save / new game starts with the handset closed on its home screen
             }
             gOW.lastPlayerUid = p0->uid;
             gSwitching = false;

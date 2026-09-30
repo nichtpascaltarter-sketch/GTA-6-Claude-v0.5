@@ -37,6 +37,9 @@
 #include "../src/world/rural.cpp"
 #include "../src/world/sitecell.cpp"
 #endif
+#if __has_include("../src/world/facadedetail.cpp")
+#include "../src/world/facadedetail.cpp"
+#endif
 #include "../src/sim/physics.cpp"
 #include "../src/sim/vehicle_models.cpp"
 #include "../src/sim/vehicle_sim.cpp"
@@ -513,7 +516,9 @@ struct Sim {
                 const AI::LaneGraph& G = w->lg;
                 std::string where = G.isLane(d->path) ? StrFormat("lane %d u %.1f/%.1f stopU %.1f", d->path, d->u, G.lanes[d->path].u1, G.lanes[d->path].stopU)
                                                        : StrFormat("conn %d (turn %d node %d) u %.1f/%.1f", d->path - (int)G.lanes.size(), G.conn(d->path).turn, G.conn(d->path).node, d->u, G.conn(d->path).length);
-                where += StrFormat(" pos (%.1f %.1f) latErr %.2f diag %.2f %.2f %.2f %.2f steer %.2f", c.s.body.pos.x, c.s.body.pos.y, d->latErr, d->diag[0], d->diag[1], d->diag[2], d->diag[3], c.ctl.steer);
+                where += StrFormat(" fp %.0f fu %.2f", d->diag[4], d->diag[5]);
+                where += StrFormat(" pos (%.1f %.1f) latErr %.2f diag %.2f %.2f %.2f %.2f steer %.2f vF %.2f yawRate %.2f heading %.3f pathDir %.3f steerOut %.2f imp %.0f", c.s.body.pos.x, c.s.body.pos.y, d->latErr, d->diag[0], d->diag[1], d->diag[2], d->diag[3], c.ctl.steer,
+                                   c.s.forwardSpeed(), c.s.body.angVel.z, atan2f(c.s.forward().y, c.s.forward().x), atan2f(G.pathTangent(d->path, d->u).y, G.pathTangent(d->path, d->u).x), c.s.steerOut, c.s.impactImpulse);
                 std::string nxt = d->routeLen > 0 && !G.isLane(d->route[0]) ? StrFormat("next conn %d sig %d", d->route[0] - (int)G.lanes.size(), (int)G.movementSignal(G.conn(d->route[0]).node, G.conn(d->route[0]).approach, G.conn(d->route[0]).turn, time)) : std::string("next -");
                 LOG("WATCH t=%.2f car %d %s %s v %.1f vT %.1f stop %.1f obst %.1f(%d) gateConn %d committed %d amberGo %d stopDone %d mode %d thr %.2f brk %.2f", time, i, where.c_str(), nxt.c_str(), c.s.speed(), d->vTarget, d->stopDist,
                     d->obstDist, d->obstBody, d->gateConn, (int)d->committed, (int)d->amberGo, (int)d->stopDone, d->mode, c.ctl.throttle, c.ctl.brake);
@@ -571,6 +576,17 @@ struct Sim {
                 }
             }
             if (d->waitTime < 5.f) c.deadlockFlag = false;
+            // controller sanity: the Stanley heading error must match the real heading error on straight lanes
+            if (verbose && w->lg.isLane(d->path) && (int)d->diag[4] == d->path && c.s.speed() > 1.f && time - c.latLogT > 5.0) {
+                vec2 tf = w->lg.pathTangent(d->path, d->diag[5]);
+                vec2 f2 = normalize(c.s.forward().xy());
+                float realPsi = atan2f(f2.x * tf.y - f2.y * tf.x, dot(f2, tf));
+                if (fabsf(realPsi - d->diag[1]) > 0.25f) {
+                    c.latLogT = (float)time;
+                    LOG("PSIJUMP t=%.1f car %d psi %.2f real %.2f fp %.0f fu %.2f u %.2f lcLane %d lcU0 %.1f lcLen %.1f lcFrom %.2f lcTo %.2f lat %.2f nudge %.2f", time, i, d->diag[1], realPsi, d->diag[4], d->diag[5], d->u, d->lcLane, d->lcU0,
+                        d->lcLen, d->lcFrom, d->lcTo, d->lat, d->nudge);
+                }
+            }
             // large lateral deviation while plainly following a lane (no lane change / nudge / recovery)
             if (verbose && w->lg.isLane(d->path) && d->lcLane < 0 && fabsf(d->nudge) < 0.05f && fabsf(d->lat) < 0.05f && d->recoverTimer <= 0.f && fabsf(d->latErr) > 0.9f &&
                 c.s.speed() > 3.f && time - c.latLogT > 10.0) {

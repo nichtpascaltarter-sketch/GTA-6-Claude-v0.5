@@ -822,6 +822,12 @@ static void s_punch(Buf& b, bool kick) {
     // cloth rustle of the swing
     noise(b, 0.f, 0.15f, 0.08f, 0.01f, 0.05f, FBP, 1800.f, -1.f, 0.1f, 0.8f);
 }
+// Air swing of an arm, bat or blade: band-passed noise sweeping up in pitch with a swell-and-fade envelope.
+static void s_whoosh(Buf& b) {
+    float p = b.rnd(0.85f, 1.2f);
+    noise(b, 0.f, 0.26f, 0.5f, 0.07f, 0.05f, FBP, 480.f * p, 1500.f * p, 0.06f, 1.4f);
+    noise(b, 0.03f, 0.2f, 0.22f, 0.05f, 0.04f, FBP, 1300.f * p, 3000.f * p, 0.05f, 1.1f);
+}
 static void s_bodyFall(Buf& b) {
     tone(b, 0.f, 0.3f, 75.f, 40.f, 0.04f, 0.8f, 0.002f, 0.05f);
     noise(b, 0.f, 0.3f, 1.f, 0.002f, 0.06f, FLP, 260.f, -1.f, 0.1f, 0.7f, 1);
@@ -1765,6 +1771,7 @@ static const SoundDef kDefs[BANK_COUNT] = {
     {"purchase",          U, 255, 2, 0.362f, 1.f,   1.f,    0.f,   0.f,  0.f},
     {"race_countdown",    U, 255, 1, 0.272f,  1.f,   1.f,    0.f,   0.f,  0.f},
     {"race_go",           U, 255, 1, 0.408f, 1.f,   1.f,    0.f,   0.f,  0.f},
+    {"whoosh",            W, 90,  4, 1.f,    1.2f,  25.f,   0.05f, 0.08f, 1.f},
     {"amb_cricket",       W, 20,  4, 0.2f,  3.f,   60.f,   0.2f,  0.04f, 1.f},
     {"amb_treefrog",      W, 20,  4, 0.25f, 4.f,   90.f,   0.2f,  0.05f, 1.f},
     {"amb_bullfrog",      W, 20,  3, 0.4f,  5.f,   160.f,  0.25f, 0.05f, 1.f},
@@ -1867,6 +1874,7 @@ static void synthesize(int id, int var, Buf& b) {
         case SFX_PURCHASE: s_purchase(b); break;
         case SFX_RACE_COUNTDOWN: s_beep(b, 880.f, 0.22f, false); break;
         case SFX_RACE_GO: s_beep(b, 1760.f, 0.75f, true); break;
+        case SFX_WHOOSH: s_whoosh(b); break;
         case AMB_CRICKET_CHIRP: s_cricket(b); break;
         case AMB_TREEFROG: s_treefrog(b); break;
         case AMB_BULLFROG: s_bullfrog(b); break;

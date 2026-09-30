@@ -239,7 +239,8 @@ int TrafficCore::chooseConnector(Driver& d, int lane, bool fromCurrentLane) {
             if ((T.flags & LF_DIRT) && !(L.flags & LF_DIRT)) w *= 0.08f;
             if ((L.flags & LF_HIGHWAY) && !(T.flags & LF_HIGHWAY)) w *= 0.25f;       // mostly stay on the highway
             if (!(L.flags & (LF_HIGHWAY | LF_RAMP)) && (T.flags & LF_RAMP)) w *= 0.5f;
-            if (G.nodes[T.toNode].deadEnd) w *= G.nodes[T.toNode].uturnBlocked ? 0.001f : 0.2f;
+            // dead ends: only a turning circle at the end (blocked ones and long vehicles: avoid)
+            if (G.nodes[T.toNode].deadEnd) w *= (G.nodes[T.toNode].uturnBlocked || d.info.wheelbase > 3.3f) ? 0.001f : 0.2f;
             if (T.flags & LF_NOTRAFFIC) w *= 0.01f;
             // long vehicles avoid turns tighter than they can follow (the body would sweep into oncoming lanes)
             if (d.info.wheelbase > 3.3f && C.minRadius < d.info.wheelbase / Max(sinf(d.info.maxSteer), 0.3f) * 1.05f) w *= 0.03f;
@@ -374,6 +375,42 @@ bool TrafficCore::relocalize(Driver& d, vec2 pos, vec2 heading, float maxDist) {
     int l = g->nearestLane(pos, heading, maxDist, &u, &lat);
     stats.relocalizations++;
     if (l < 0) return false;
+    const Lane& L = g->lanes[l];
+    // inside an intersection box (before the lane starts / past its end): pick up the connector we are on instead,
+    // so the box rules (conflicts, holds) keep applying
+    if (u < L.u0 - 0.5f || u > L.u1 + 0.5f) {
+        int node = u < L.u0 ? L.fromNode : L.toNode;
+        const NodeInfo& N = g->nodes[node];
+        vec2 hd = length2(heading) > 1e-6f ? normalize(heading) : vec2(0, 1);
+        int best = -1;
+        float bestScore = 1e9f, bestU = 0.f;
+        for (int c = N.firstConn; c < N.firstConn + N.connCount; c++) {
+            int path = g->connPath(c);
+            float cl = 0.f;
+            float cu = g->projectPath(path, pos, g->conns[c].length * 0.5f, &cl);
+            float align = dot(g->pathTangent(path, cu), hd);
+            if (align < 0.5f || fabsf(cl) > 3.f) continue;
+            float score = fabsf(cl) + (1.f - align) * 6.f;
+            if (score < bestScore) {
+                bestScore = score;
+                best = c;
+                bestU = cu;
+            }
+        }
+        if (best >= 0) {
+            d.path = g->connPath(best);
+            d.u = bestU;
+            d.lat = 0.f;
+            d.nudge = d.nudgeTarget = 0.f;
+            clearRoute(d);
+            planRoute(d);
+            d.committed = true;   // already in the box: finish the movement
+            d.gateConn = best;
+            d.gateNode = node;
+            d.enterTime = (float)time;
+            return true;
+        }
+    }
     d.path = l;
     d.u = u;
     d.lat = 0.f;
@@ -1287,6 +1324,8 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
         d.diag[1] = psi;
         d.diag[2] = ff;
         d.diag[3] = st;
+        d.diag[4] = (float)fp;
+        d.diag[5] = fuP;
         delta = Lerp(delta, st, wSt);
     }
     if (ly < 0.f && vF > -0.5f && d.info.wheelbase <= 3.3f) delta = lx > 0.f ? d.info.maxSteer : -d.info.maxSteer;  // target behind: full lock toward it
@@ -1567,6 +1606,13 @@ void TrafficCore::drive(int vid, Vehicles::VehicleState& s, float dt, DriveOut& 
             if (room) {
                 d.recoverTimer = 1.6f;
                 d.recoverDir = 0;
+                d.mutualTime = 0.f;
+                stats.deadlockBreaks++;
+            } else if (d.mutualTime > 8.f && (d.uid > od.uid || d.mutualTime > 14.f) && d.nudgeTimer <= 0.f) {
+                // boxed in from behind as well: squeeze past the other car on its free side
+                float side = dot(ob.pos - pos, rightOf(fwd)) >= 0.f ? -1.f : 1.f;
+                d.nudgeTarget = side * Min(d.info.halfWid + ob.halfWid + 0.5f, 2.6f);
+                d.nudgeTimer = 5.f;
                 d.mutualTime = 0.f;
                 stats.deadlockBreaks++;
             }

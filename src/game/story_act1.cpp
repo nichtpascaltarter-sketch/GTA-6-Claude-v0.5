@@ -64,8 +64,8 @@ public:
 #ifdef HAVE_AUDIO
         Audio::play2D(Audio::SFX_PHONE_RING, 0.8f);
 #endif
-        phoneLine(g, CAST_TOMAS, "Mari, it's me. I messed up. I need you at the old Vargas garage, right now. Please hurry.");
-        sayMe(g, "Tomas? Hey, slow down. Stay there, I'm coming.");
+        phoneLine(g, CAST_TOMAS, "[scared]Mari, it's me. I messed up. I need you at the old Vargas garage, right now. Please hurry.");
+        sayMe(g, "[calm:0.6]Tomas? Hey, slow down. Stay there, I'm coming.");
         goTo(g, garageCurb, 6.f, "Get to the old ~y~Vargas garage~s~ in Calle Luna.", true);
     }
 
@@ -85,9 +85,9 @@ public:
                     g.mCutscene(shots);
                     if (tomas >= 0) setGoto(g, tomas, playerPos(g), 3.5f);
                     gesture(g, tomas, Anim::CLIP_WAVE);
-                    say(g, CAST_TOMAS, tomas, "They took the money I was holding for them. Two guys from the Cuervos. They think I skimmed it.");
+                    say(g, CAST_TOMAS, tomas, "[scared:0.7]They took the money I was holding for them. Two guys from the Cuervos. They think I skimmed it.");
                     sayMe(g, "Did you?");
-                    say(g, CAST_TOMAS, tomas, "No! I swear. Just get me to Lucha's. She'll know what to do.");
+                    say(g, CAST_TOMAS, tomas, "[scared]No! I swear. Just get me to Lucha's. She'll know what to do.");
                     next();
                 }
                 break;
@@ -101,7 +101,7 @@ public:
                     setFollow(g, tomas, g.player);
                     spawnChaser(g);
                     score(SC_CHASE, 0.7f, 0);
-                    say(g, CAST_TOMAS, tomas, "Mari... that black car. It's them!");
+                    say(g, CAST_TOMAS, tomas, "[scared]Mari... that black car. It's them!");
                     g.mObjective("Lose the ~r~Cuervos~s~.");
                     cp(g, 1);
                     setStage(3);
@@ -113,17 +113,17 @@ public:
                 float d = chaser >= 0 ? ::length(vehPos(g, chaser) - playerPos(g)) : 1e9f;
                 if (d > 220.f) timer += dt;
                 else timer = 0.f;
-                if (stageTime > 4.f && stageTime < 4.1f) say(g, CAST_TOMAS, tomas, "They're shooting at us! Drive, drive!");
-                if (stageTime > 18.f && stageTime < 18.1f) sayMe(g, "Hold on to something.");
+                if (stageTime > 4.f && stageTime < 4.1f) say(g, CAST_TOMAS, tomas, "[shout]They're shooting at us! Drive, drive!");
+                if (stageTime > 18.f && stageTime < 18.1f) sayMe(g, "[shout:0.6]Hold on to something.");
                 if (gone || timer > 3.f) {
                     g.mClearBlips();
                     for (int e : enemies)
                         if (pedAlive(g, e)) setFlee(g, e, g.player);
                     releaseDriver(g, chaser);
                     score(SC_NOIR, 0.4f, 0);
-                    sayMe(g, "I think we lost them.");
-                    say(g, CAST_TOMAS, tomas, "Lucha's gonna kill me.");
-                    sayMe(g, "Lucha's gonna feed you. Then she's gonna kill you.");
+                    sayMe(g, "[calm]I think we lost them.");
+                    say(g, CAST_TOMAS, tomas, "[sad:0.5]Lucha's gonna kill me.");
+                    sayMe(g, "[happy:0.5]Lucha's gonna feed you. Then she's gonna kill you.");
                     goTo(g, diner, 5.f, "Take Tomas to ~y~Mama Lucha's diner~s~.", true);
                     next();
                 }
@@ -145,10 +145,10 @@ public:
                     shots.push_back(shotOver(playerPos(g), lp, 7.f));
                     shots.push_back(shotEstablish(lp, gPlaces.diner.yaw, 30.f, 12.f, 4.f));
                     g.mCutscene(shots);
-                    say(g, CAST_LUCHA, lucha, "Marisol! Dios mio, what happened to him?");
+                    say(g, CAST_LUCHA, lucha, "[scared:0.8]Marisol! Dios mio, what happened to him?");
                     sayMe(g, "Cuervos. He says he owes them money.");
-                    say(g, CAST_LUCHA, lucha, "Inside, both of you. Nobody touches my boy under my roof.");
-                    say(g, CAST_TOMAS, tomas, "Thank you, Lucha. I'll fix this, I swear.");
+                    say(g, CAST_LUCHA, lucha, "[angry:0.6]Inside, both of you. Nobody touches my boy under my roof.");
+                    say(g, CAST_TOMAS, tomas, "[sad:0.4]Thank you, Lucha. I'll fix this, I swear.");
                     setGoto(g, tomas, dinerDoor + vec3(gPlaces.diner.outward * 3.f, 0.f), 1.5f);
                     next();
                 }
@@ -238,6 +238,7 @@ public:
             return;
         }
         rook = spawnCast(g, CAST_ROOK, shopDoor, P.rookShop.yaw + kPi, FAC_FRIEND);
+        provideRide(g, P.rookShop, -14.f);
         vec3 rp = pedPos(g, rook);
         std::vector<CutsceneShot> shots;
         shots.push_back(shotEstablish(rp, P.rookShop.yaw, 34.f, 14.f, 4.f));
@@ -246,7 +247,7 @@ public:
         shots.push_back(shotOver(rp, playerPos(g), 6.f));
         g.mCutscene(shots);
         facePed(g, rook, playerPos(g));
-        say(g, CAST_ROOK, rook, "Dex. You look like you slept in a car again.");
+        say(g, CAST_ROOK, rook, "[happy:0.4]Dex. You look like you slept in a car again.");
         sayMe(g, "I did. What have you got for me, Rook?");
         say(g, CAST_ROOK, rook, "Green Gatorback. Belongs to a Cuervo lieutenant who stopped paying my cousin's lot. Four months.");
         sayMe(g, "A Cuervo. Great. And you want me to walk up and ask for the keys.");
@@ -289,14 +290,14 @@ public:
             case 1:
                 if (g.playerAt(hangout.xy(), 70.f)) {
                     g.mObjective("Steal the ~b~Gatorback~s~. The Cuervos won't give it up quietly.");
-                    sayMe(g, "There she is. And there's the welcome committee.");
+                    sayMe(g, "[calm]There she is. And there's the welcome committee.");
                     next();
                 }
                 break;
             case 2:
                 if (g.playerInVehicle(target)) {
                     g.mClearTarget();
-                    say(g, CAST_THUG_A, loiterers.empty() ? -1 : loiterers[0], "Hey! That's Chuy's ride! Get him!");
+                    say(g, CAST_THUG_A, loiterers.empty() ? -1 : loiterers[0], "[shout]Hey! That's Chuy's ride! Get him!");
                     alarm(g);
                     setStage(3);
                 } else {
@@ -325,14 +326,14 @@ public:
                     if (pedAlive(g, e) && ::length(pedPos(g, e) - playerPos(g)) < 120.f) footGone = false;
                 if (d > 230.f && footGone) timer += dt;
                 else timer = 0.f;
-                if (stageTime > 6.f && stageTime < 6.1f) sayMe(g, "Nothing personal, fellas. Just business.");
+                if (stageTime > 6.f && stageTime < 6.1f) sayMe(g, "[calm]Nothing personal, fellas. Just business.");
                 if (timer > 3.f || (chaseGone && footGone)) {
                     g.mClearBlips();
                     for (int e : enemies)
                         if (pedAlive(g, e)) setFlee(g, e, g.player);
                     score(SC_NOIR, 0.4f, 1);
                     goTo(g, gPlaces.rookShop.curb, 5.f, "Take the Gatorback to ~y~Rook's salvage yard~s~.", true);
-                    sayMe(g, "Clean getaway. Rook owes me a beer.");
+                    sayMe(g, "[happy:0.6]Clean getaway. Rook owes me a beer.");
                     next();
                 }
                 break;
@@ -350,8 +351,8 @@ public:
                     shots.push_back(shotVehicle(g, target, 4.f));
                     shots.push_back(shotTwo(pedPos(g, rook), vehPos(g, target), 8.f));
                     g.mCutscene(shots);
-                    say(g, CAST_ROOK, rook, cond > 0.8f ? "Not a scratch. Look at you, a professional." : "You call this one piece? That's coming out of your cut.");
-                    sayMe(g, "They had guns, Rook. You didn't mention guns.");
+                    say(g, CAST_ROOK, rook, cond > 0.8f ? "[happy:0.5]Not a scratch. Look at you, a professional." : "You call this one piece? That's coming out of your cut.");
+                    sayMe(g, "[angry:0.5]They had guns, Rook. You didn't mention guns.");
                     say(g, CAST_ROOK, rook, "Everybody has guns. Listen. The bank has another job. A pickup truck at a boatyard on the river. Ortega's yard.");
                     sayMe(g, "Boatyard. How hard can a boatyard be.");
                     next();
@@ -435,6 +436,7 @@ public:
         }
         phoneLine(g, CAST_ROOK, "The truck's at the Ortega boatyard on the river. Bank papers are in the glovebox. In and out, Dex.");
         sayMe(g, "In and out. Famous last words.");
+        provideRide(g, P.dexTrailer, 8.f);
         goTo(g, yardCurb, 8.f, "Go to the ~y~Ortega boatyard~s~.", true);
     }
 
@@ -479,13 +481,13 @@ public:
                     shots.push_back(shotTwo(mp, dp, 7.f));
                     shots.push_back(shotOver(dp, mp, 6.f));
                     g.mCutscene(shots);
-                    sayP(g, 0, mari, "Step away from my truck. Slowly.");
-                    sayMe(g, "Easy. I'm with the bank. Coastline Savings. You missed four payments.");
-                    sayP(g, 0, mari, "Coastline bought our loan last month. Then they tripled it. You know who owns Coastline?");
+                    sayP(g, 0, mari, "[angry:0.7]Step away from my truck. Slowly.");
+                    sayMe(g, "[calm]Easy. I'm with the bank. Coastline Savings. You missed four payments.");
+                    sayP(g, 0, mari, "[angry:0.5]Coastline bought our loan last month. Then they tripled it. You know who owns Coastline?");
                     sayMe(g, "I just drive the trucks, lady.");
-                    sayP(g, 0, mari, "Victor Sandoval. He wants this whole riverfront. And he doesn't care how he gets it.");
+                    sayP(g, 0, mari, "[angry:0.6]Victor Sandoval. He wants this whole riverfront. And he doesn't care how he gets it.");
                     sayMe(g, "Look, I'm sorry about your yard, but -");
-                    sayP(g, 0, mari, "Wait. Hear that? Engines. Those aren't bankers.");
+                    sayP(g, 0, mari, "[scared:0.5]Wait. Hear that? Engines. Those aren't bankers.");
                     next();
                 }
                 break;
@@ -497,8 +499,8 @@ public:
                     }
                     Ped* pl = g.playerPed();
                     if (pl && !pl->hasWeapon[WPN_PISTOL]) g.giveWeapon(g.player, WPN_PISTOL, 60);
-                    sayMe(g, "Cuervos. With firebombs. You've got friends.");
-                    sayP(g, 0, mari, "They're here to burn us out. You can run, bank man, or you can help.");
+                    sayMe(g, "[shout:0.5]Cuervos. With firebombs. You've got friends.");
+                    sayP(g, 0, mari, "[shout:0.7]They're here to burn us out. You can run, bank man, or you can help.");
                     beginFight(g);
                 }
                 break;
@@ -509,7 +511,7 @@ public:
                 if (aliveEnemies(g) <= 1 && wave == 0) {
                     wave = 1;
                     spawnWave(g, 1);
-                    sayP(g, 0, mari, "More coming from the bridge!");
+                    sayP(g, 0, mari, "[shout]More coming from the bridge!");
                 }
                 if (aliveEnemies(g) == 0 && wave >= 1) {
                     g.mObjective("");
@@ -526,9 +528,9 @@ public:
                     shots.push_back(shotOver(dp, mp, 6.f));
                     shots.push_back(shotOver(mp, dp, 7.f, -1.f));
                     g.mCutscene(shots);
-                    sayP(g, 0, mari, "You didn't have to do that.");
-                    sayMe(g, "Yeah, I did. Dex Calloway. I used to pull people out of the water for a living.");
-                    sayP(g, 0, mari, "Marisol Ortega. Mari. So. You still taking my truck?");
+                    sayP(g, 0, mari, "[calm]You didn't have to do that.");
+                    sayMe(g, "[sad:0.4]Yeah, I did. Dex Calloway. I used to pull people out of the water for a living.");
+                    sayP(g, 0, mari, "[happy:0.4]Marisol Ortega. Mari. So. You still taking my truck?");
                     sayMe(g, "Truck got stolen. Tell the bank. If the Cuervos come back, call me.");
                     next();
                 }
@@ -625,6 +627,9 @@ public:
         facePed(g, fixer, pedPos(g, lucha));
         int model = pickModel(g, {Vehicles::VC_SEDAN, Vehicles::VC_SUV}, 6);
         fixerCar = spawnCar(g, model, curbOffset(g, P.diner, 10.f), P.diner.curbYaw, lin(0.05f, 0.05f, 0.06f));
+        // Mari's own coupe, parked down the street (the tail needs wheels)
+        playerCar = spawnCar(g, pickModel(g, {Vehicles::VC_COUPE, Vehicles::VC_SEDAN}, 3), curbOffset(g, P.diner, -18.f), P.diner.curbYaw,
+                             lin(0.55f, 0.06f, 0.2f));
         vec3 lp = pedPos(g, lucha), fp = pedPos(g, fixer);
         placePlayer(g, placeOffset(g, P.diner, -8.f, 0.f), yawTo(placeOffset(g, P.diner, -8.f, 0.f).xy(), lp.xy()));
         std::vector<CutsceneShot> shots;
@@ -634,11 +639,11 @@ public:
         shots.push_back(shotOver(lp, fp, 6.f, -1.f));
         shots.push_back(shotTwo(lp, fp, 5.f, 6.f, 45.f, -1.f));
         g.mCutscene(shots);
-        say(g, CAST_BANKER, fixer, "Mrs. Paredes, it's a generous offer. Twice what this place is worth.");
-        say(g, CAST_LUCHA, lucha, "This place is worth forty years of my life. It is not for sale.");
-        say(g, CAST_BANKER, fixer, "Everything is for sale. The only question is the price, and how long you wait to accept it.");
-        say(g, CAST_LUCHA, lucha, "Out. Before I get my frying pan.");
-        say(g, CAST_BANKER, fixer, "Think it over. The neighborhood is changing. Accidents happen.");
+        say(g, CAST_BANKER, fixer, "[calm]Mrs. Paredes, it's a generous offer. Twice what this place is worth.");
+        say(g, CAST_LUCHA, lucha, "[angry:0.6]This place is worth forty years of my life. It is not for sale.");
+        say(g, CAST_BANKER, fixer, "[calm]Everything is for sale. The only question is the price, and how long you wait to accept it.");
+        say(g, CAST_LUCHA, lucha, "[angry]Out. Before I get my frying pan.");
+        say(g, CAST_BANKER, fixer, "[calm]Think it over. The neighborhood is changing. Accidents happen.");
     }
 
     void beginEavesdrop(GameWorld& g) {
@@ -654,8 +659,20 @@ public:
         switch (stage) {
             case 0:
                 if (!g.mInCutscene() && !g.mTalking()) {
-                    // fixer drives off to the construction site
+                    // the fixer gets into his sedan; he pulls out once Mari has a car (or after a short while)
                     if (fixer >= 0 && fixerCar >= 0) g.warpPedIntoVehicle(fixer, fixerCar, 0);
+                    g.mBlipVehicle(fixerCar, UI::BLIP_VEHICLE);
+                    if (g.playerVehicle() < 0 && vehicleAlive(g, playerCar)) {
+                        g.mBlipVehicle(playerCar, UI::BLIP_GARAGE);
+                        g.mObjective("Get in ~b~your car~s~ before the sedan pulls out.");
+                    }
+                    if (lucha >= 0) setGoto(g, lucha, gPlaces.diner.door + vec3(gPlaces.diner.outward * 3.f, 0.f), 1.2f);
+                    next();
+                }
+                break;
+            case 1:
+                if (g.playerVehicle() >= 0 || stageTime > 14.f) {
+                    unblipVehicle(playerCar);
                     Place S = gPlaces.solarisPier;
                     RoutePath via;
                     buildRoadPath(g, vehPos(g, fixerCar).xy(), gPlaces.stashHouse.curb.xy(), via);
@@ -666,17 +683,15 @@ public:
                         via.limit.push_back(rest.limit[i]);
                     }
                     via.finish();
-                    ScriptDriver& d = addDriver(g, fixerCar, via, 11.f);
+                    ScriptDriver& d = addDriver(g, fixerCar, via, 12.f);
                     d.aggressive = false;
                     d.obeyLimits = true;
-                    g.mBlipVehicle(fixerCar, UI::BLIP_VEHICLE);
                     g.mObjective("Follow the ~b~black sedan~s~. Don't get too close.");
-                    sayMe(g, "Let's see who you really work for.");
-                    if (lucha >= 0) setGoto(g, lucha, gPlaces.diner.door + vec3(gPlaces.diner.outward * 3.f, 0.f), 1.2f);
+                    sayMe(g, "[calm]Let's see who you really work for.");
                     next();
                 }
                 break;
-            case 1: {
+            case 2: {
                 int r = tail.update(g, vehPos(g, fixerCar), 14.f, 140.f, dt, 12.f, 6.f);
                 if (r == 1) return fail("You lost the sedan.");
                 if (r == 2) return fail("You were spotted.");
@@ -696,7 +711,7 @@ public:
             case 3: {
                 // eavesdrop: conversation plays while the player is in range and unseen
                 if (watch.update(g, dt)) {
-                    say(g, CAST_GUARD_A, watch.spotter, "Hey! Who's there?");
+                    say(g, CAST_GUARD_A, watch.spotter, "[shout]Hey! Who's there?");
                     showMeter(g, "DETECTION", 0.f);
                     return fail("You were spotted.");
                 }
@@ -711,16 +726,16 @@ public:
                         facePed(g, holt, pedPos(g, fixer));
                         facePed(g, fixer, pedPos(g, holt));
                         say(g, CAST_BANKER, fixer, "The old woman won't sign. The Ortega girl is making noise.");
-                        say(g, CAST_HOLT, holt, "Then make her quiet. My officers won't answer calls from Calle Luna this month.");
+                        say(g, CAST_HOLT, holt, "[calm]Then make her quiet. My officers won't answer calls from Calle Luna this month.");
                     } else if (talkLine == 1) {
                         say(g, CAST_BANKER, fixer, "Mister Sandoval wants the riverfront empty by summer. The Solaris Pier investors are nervous.");
-                        say(g, CAST_HOLT, holt, "Tell Victor his investors can relax. The Cuervos will handle the rest, and my reports will call it gang trouble.");
+                        say(g, CAST_HOLT, holt, "[calm]Tell Victor his investors can relax. The Cuervos will handle the rest, and my reports will call it gang trouble.");
                     } else if (talkLine == 2) {
                         say(g, CAST_BANKER, fixer, "And your fee?");
-                        say(g, CAST_HOLT, holt, "Doubled. Neighborhoods don't burn themselves down.");
+                        say(g, CAST_HOLT, holt, "[calm]Doubled. Neighborhoods don't burn themselves down.");
                     } else {
                         showMeter(g, "DETECTION", 0.f);
-                        sayMe(g, "Holt. The police captain. She's in Sandoval's pocket.");
+                        sayMe(g, "[whisper]Holt. The police captain. She's in Sandoval's pocket.");
                         g.mClearMarkers();
                         g.mClearTarget();
                         g.mObjective("Leave the construction site.");
@@ -745,8 +760,12 @@ public:
 
     void autotest(GameWorld& g, MissionTest& t) override {
         switch (stage) {
-            case 1: {
-                // keep a safe distance behind the sedan
+            case 1:
+                if (t.stageTime > 0.5f && g.playerVehicle() < 0 && vehicleAlive(g, playerCar)) t.enter(playerCar);
+                break;
+            case 2: {
+                // keep a safe distance behind the sedan (the sedan is fast-forwarded along its route)
+                if (t.stageTime > 3.f) fastForwardDriver(g, fixerCar, 30.f, g.dtLast);
                 if (fixerCar >= 0 && t.stageTime > 0.5f) {
                     vec3 fp = vehPos(g, fixerCar);
                     vec3 f = g.vehicles[fixerCar].sim.forward();
@@ -825,6 +844,9 @@ public:
         lucha = spawnCast(g, CAST_LUCHA, P.diner.door, P.diner.yaw + kPi, FAC_FRIEND);
         dex = spawnPartner(g, 1, placeOffset(g, P.diner, 3.f, 1.f), P.diner.yaw + kPi * 0.5f, WPN_SMG);
         if (lucha >= 0) g.peds[lucha].invincible = true;
+        // Dex came in his pickup; it's parked at the curb
+        playerCar = spawnCar(g, pickModel(g, {Vehicles::VC_PICKUP, Vehicles::VC_SUV}, 2), curbOffset(g, P.diner, 12.f), P.diner.curbYaw,
+                             lin(0.18f, 0.2f, 0.22f));
         placePlayer(g, placeOffset(g, P.diner, -2.f, 0.5f), P.diner.yaw);
         vec3 lp = pedPos(g, lucha), dp = pedPos(g, dex), mp = playerPos(g);
         facePed(g, lucha, mp);
@@ -835,8 +857,8 @@ public:
         shots.push_back(shotTwo(dp, mp, 7.f, 4.f, 42.f, -1.f));
         shots.push_back(shotOver(mp, dp, 6.f, -1.f));
         g.mCutscene(shots);
-        say(g, CAST_LUCHA, lucha, "They took him from the bus stop, Mari. In broad daylight. They want the money by tonight.");
-        sayMe(g, "There is no money, Lucha. He never had it.");
+        say(g, CAST_LUCHA, lucha, "[scared]They took him from the bus stop, Mari. In broad daylight. They want the money by tonight.");
+        sayMe(g, "[sad:0.6]There is no money, Lucha. He never had it.");
         sayP(g, 1, dex, "The Cuervos keep a stash house on the south side. Anybody they grab ends up there first.");
         sayMe(g, "You're coming with me?");
         sayP(g, 1, dex, "I owe your truck an apology. Let's go get your brother.");
@@ -863,18 +885,23 @@ public:
                     setFollow(g, dex, g.player);
                     if (lucha >= 0) setGoto(g, lucha, gPlaces.diner.door + vec3(gPlaces.diner.outward * 3.f, 0.f), 1.2f);
                     goTo(g, houseCurb, 6.f, "Go to the ~y~stash house~s~ in south Calle Luna.", false, false);
+                    if (g.playerVehicle() < 0 && vehicleAlive(g, playerCar)) {
+                        g.mBlipVehicle(playerCar, UI::BLIP_GARAGE);
+                        g.help("Dex's pickup is parked at the curb.", 4.f);
+                    }
                     next();
                 }
                 break;
             case 1:
                 updateBuddy(g);
+                if (g.playerVehicle() >= 0) unblipVehicle(playerCar);
                 if (stageTime > 5.f && stageTime < 5.1f && g.playerVehicle() >= 0) {
                     sayP(g, 1, dex, "Your brother always this much trouble?");
-                    sayMe(g, "Since he was six. He's a good kid. He just trusts the wrong people.");
+                    sayMe(g, "[sad:0.3]Since he was six. He's a good kid. He just trusts the wrong people.");
                     sayP(g, 1, dex, "Runs in the neighborhood, I guess.");
                 }
                 if (g.playerAt(houseCurb.xy(), 90.f)) {
-                    sayP(g, 1, dex, "Four, five... more inside. Use the cars for cover.");
+                    sayP(g, 1, dex, "[calm]Four, five... more inside. Use the cars for cover.");
                     beginAssault(g);
                 }
                 break;
@@ -884,7 +911,7 @@ public:
                     g.mClearBlips();
                     vec3 tp = pedPos(g, tomas);
                     goTo(g, tp, 2.5f, "Free ~b~Tomas~s~.");
-                    sayP(g, 1, dex, "Clear! Get your brother.");
+                    sayP(g, 1, dex, "[shout]Clear! Get your brother.");
                     next();
                 }
                 break;
@@ -897,9 +924,9 @@ public:
                     std::vector<CutsceneShot> shots;
                     shots.push_back(shotTwo(pedPos(g, tomas), playerPos(g), 6.f));
                     g.mCutscene(shots);
-                    say(g, CAST_TOMAS, tomas, "Mari! I knew you'd come. Who's the big guy?");
+                    say(g, CAST_TOMAS, tomas, "[happy]Mari! I knew you'd come. Who's the big guy?");
                     sayMe(g, "A friend. Can you run?");
-                    say(g, CAST_TOMAS, tomas, "I can run. Let's go before the rest of them get back.");
+                    say(g, CAST_TOMAS, tomas, "[scared:0.5]I can run. Let's go before the rest of them get back.");
                     next();
                 }
                 break;
@@ -920,7 +947,7 @@ public:
                             if (g.vehicles[v].seats[s] >= 0) setCombat(g, g.vehicles[v].seats[s], g.player, 0.2f);
                     }
                     blipEnemies(g);
-                    sayP(g, 1, dex, "Company! Get Tomas in a car and get us out of here!");
+                    sayP(g, 1, dex, "[shout]Company! Get Tomas in a car and get us out of here!");
                     g.mObjective("Get ~b~Tomas~s~ out of south Calle Luna.");
                     cp(g, 2);
                     next();
@@ -937,8 +964,8 @@ public:
                         if (pedAlive(g, e)) setFlee(g, e, g.player);
                     score(SC_NOIR, 0.4f, 3);
                     goTo(g, gPlaces.boatyard.curb, 6.f, "Take Tomas to the ~y~boatyard~s~.", true);
-                    say(g, CAST_TOMAS, tomas, "They said the money was never the point. They said Sandoval wants the whole block scared.");
-                    sayP(g, 1, dex, "Then we make them scared instead.");
+                    say(g, CAST_TOMAS, tomas, "[sad:0.5]They said the money was never the point. They said Sandoval wants the whole block scared.");
+                    sayP(g, 1, dex, "[angry:0.5]Then we make them scared instead.");
                     next();
                 }
                 break;
@@ -1140,10 +1167,10 @@ public:
         }
         if (checkpoint == 0) {
             g.mCutscene(shots);
-            say(g, CAST_THUG_A, chuy, "Repo man! You took my Gatorback. Tonight I take your ride and your dignity.");
-            sayMe(g, "You stopped paying for it, Chuy. That's how cars work.");
-            say(g, CAST_THUG_A, chuy, "Loser signs over his car. Winner takes the pot. Five grand.");
-            sayMe(g, "Try to keep up.");
+            say(g, CAST_THUG_A, chuy, "[angry]Repo man! You took my Gatorback. Tonight I take your ride and your dignity.");
+            sayMe(g, "[calm]You stopped paying for it, Chuy. That's how cars work.");
+            say(g, CAST_THUG_A, chuy, "[angry:0.4]Loser signs over his car. Winner takes the pot. Five grand.");
+            sayMe(g, "[happy:0.3]Try to keep up.");
         }
         g.mObjective("");
         setStage(1);
@@ -1203,7 +1230,7 @@ public:
                 g.missionCounter = pos;
                 g.missionCounterMax = (int)race.racers.size() + 1;
                 g.mObjective(StrFormat("Win the race.  Checkpoint ~y~%d/%d~s~", race.next, (int)race.checkpoints.size()));
-                if (stageTime > 20.f && stageTime < 20.1f) say(g, CAST_THUG_A, -1, pos == 1 ? "Who taught this guy to drive?" : "Eat my dust, repo man!");
+                if (stageTime > 20.f && stageTime < 20.1f) say(g, CAST_THUG_A, -1, pos == 1 ? "[angry]Who taught this guy to drive?" : "Eat my dust, repo man!");
                 if (race.next >= (int)race.checkpoints.size()) {
                     g.missionCounterLabel.clear();
                     if (pos == 1) {
@@ -1211,8 +1238,8 @@ public:
                         g.mClearTarget();
                         g.mObjective("");
                         score(SC_NOIR, 0.4f, 4);
-                        sayMe(g, "Pink slip, Chuy. Leave the keys with Rook.");
-                        say(g, CAST_THUG_A, -1, "This isn't over. El Cuervo is going to hear about this.");
+                        sayMe(g, "[happy:0.6]Pink slip, Chuy. Leave the keys with Rook.");
+                        say(g, CAST_THUG_A, -1, "[angry]This isn't over. El Cuervo is going to hear about this.");
                         next();
                     } else {
                         return fail("You lost the race.");
@@ -1364,11 +1391,11 @@ public:
         vec3 street = curbOffset(g, P.diner, -80.f);
         shots.push_back(shotMove(mp + vec3(0, 0, 1.7f), street + vec3(0, 0, 1.f), mp + vec3(0, 0, 1.8f), street + vec3(0, 0, 1.2f), 4.f, 35.f));
         g.mCutscene(shots);
-        say(g, CAST_LUCHA, lucha, "Eat, both of you. Nobody fights on an empty stomach in my diner.");
-        sayMe(g, "Lucha, the Cuervos said they'd come back. Tonight.");
-        sayP(g, 1, dex, "Then we'll be here. Rook lent me something with a bit more bite.");
-        say(g, CAST_TOMAS, tomas, "Headlights. Three cars, no plates. Mari...");
-        sayMe(g, "Everybody down! Lucha, stay behind the counter!");
+        say(g, CAST_LUCHA, lucha, "[happy:0.5]Eat, both of you. Nobody fights on an empty stomach in my diner.");
+        sayMe(g, "[scared:0.4]Lucha, the Cuervos said they'd come back. Tonight.");
+        sayP(g, 1, dex, "[calm]Then we'll be here. Rook lent me something with a bit more bite.");
+        say(g, CAST_TOMAS, tomas, "[scared]Headlights. Three cars, no plates. Mari...");
+        sayMe(g, "[shout]Everybody down! Lucha, stay behind the counter!");
     }
 
     void beginDefense(GameWorld& g) {
@@ -1420,18 +1447,18 @@ public:
                         wave++;
                         waveTimer = 0.f;
                         spawnWave(g, wave);
-                        if (wave == 1) sayP(g, 1, dex, "Second car, from the south! Watch the firebombs!");
+                        if (wave == 1) sayP(g, 1, dex, "[shout]Second car, from the south! Watch the firebombs!");
                         else {
-                            sayMe(g, "Black SUV. That's him. That's El Cuervo.");
-                            say(g, CAST_CUERVO, -1, "Ortega! You and your repo man cost me money. Tonight your diner burns!");
+                            sayMe(g, "[angry:0.6]Black SUV. That's him. That's El Cuervo.");
+                            say(g, CAST_CUERVO, -1, "[shout]Ortega! You and your repo man cost me money. Tonight your diner burns!");
                         }
                     }
                 }
                 if (wave == 2 && alive == 0) {
                     // his men are down: El Cuervo bolts
                     if (cuervo >= 0 && cuervoCar >= 0 && g.peds[cuervo].vehicle != cuervoCar) g.warpPedIntoVehicle(cuervo, cuervoCar, 0);
-                    say(g, CAST_CUERVO, cuervo, "Forget this! Drive!");
-                    sayP(g, 1, dex, "He's running! Grab a car, I'll ride shotgun!");
+                    say(g, CAST_CUERVO, cuervo, "[shout]Forget this! Drive!");
+                    sayP(g, 1, dex, "[shout]He's running! Grab a car, I'll ride shotgun!");
                     beginChase(g);
                 }
                 break;
@@ -1444,8 +1471,8 @@ public:
                 else timer = 0.f;
                 if (timer > 10.f) return fail("El Cuervo got away.");
                 if (timer > 2.f && g.hudHelpTimer <= 0.f) g.help("El Cuervo is getting away!", 1.5f);
-                if (stageTime > 8.f && stageTime < 8.1f) sayP(g, 1, dex, "Ram him! Put him into a wall!");
-                if (stageTime > 25.f && stageTime < 25.1f) sayMe(g, "He drives like a coward.");
+                if (stageTime > 8.f && stageTime < 8.1f) sayP(g, 1, dex, "[shout]Ram him! Put him into a wall!");
+                if (stageTime > 25.f && stageTime < 25.1f) sayMe(g, "[angry:0.5]He drives like a coward.");
                 ScriptDriver* dr = driverFor(cuervoCar);
                 bool stopped = vehicleDisabled(g, cuervoCar) || (g.vehicles[cuervoCar].sim.health < 350.f) ||
                                (dr && dr->done) || (stageTime > 8.f && vehicleSpeed(g, cuervoCar) < 1.f && d < 25.f);
@@ -1483,12 +1510,12 @@ public:
                     shots.push_back(shotOver(mp, pedPos(g, holt), 7.f));
                     shots.push_back(shotOver(pedPos(g, holt), mp, 7.f, -1.f));
                     g.mCutscene(shots);
-                    say(g, CAST_CUERVO, cuervo, "Go ahead, Ortega. Pull the trigger. See what happens to your little street.");
-                    sayMe(g, "You don't get to burn us out. Not you. Not Sandoval.");
-                    say(g, CAST_HOLT, holt, "Porto Sol PD! Weapons down. Step away from the suspect.");
-                    sayMe(g, "Captain Holt. Funny. Your officers never answer calls from Calle Luna.");
-                    say(g, CAST_HOLT, holt, "I'll take it from here, Ms. Ortega. Go home. This neighborhood is changing. Change with it.");
-                    sayP(g, 1, dex, "Mari. Let it go. Not tonight.");
+                    say(g, CAST_CUERVO, cuervo, "[angry:0.7]Go ahead, Ortega. Pull the trigger. See what happens to your little street.");
+                    sayMe(g, "[angry]You don't get to burn us out. Not you. Not Sandoval.");
+                    say(g, CAST_HOLT, holt, "[shout]Porto Sol PD! Weapons down. Step away from the suspect.");
+                    sayMe(g, "[angry:0.5]Captain Holt. Funny. Your officers never answer calls from Calle Luna.");
+                    say(g, CAST_HOLT, holt, "[calm]I'll take it from here, Ms. Ortega. Go home. This neighborhood is changing. Change with it.");
+                    sayP(g, 1, dex, "[calm]Mari. Let it go. Not tonight.");
                     next();
                 }
                 break;

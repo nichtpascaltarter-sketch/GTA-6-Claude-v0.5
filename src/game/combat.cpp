@@ -293,33 +293,13 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
         if (p.isPlayer && time - p.lastGunfireReport > 4.0) {
             p.lastGunfireReport = time;
             reportCrime(1, p.pos, -1);
+            socialReport(UI::TE_SHOOTING, p.pos);
         }
         return;
     }
     if (wi.clipSize == 0) {
-        // melee: sphere sweep in front of the ped
-        p.pendingAction = p.weapon == WPN_FISTS ? ((hash32(p.uid + (u32)(time * 10)) & 1) ? Anim::CLIP_PUNCH_L : Anim::CLIP_PUNCH_R) : Anim::CLIP_PUNCH_R;
-        vec3 fwd(-sinf(p.yaw), cosf(p.yaw), 0);
-        vec3 c = p.pos.toVec3() + fwd * 0.8f + vec3(0, 0, 1.1f);
-        std::vector<int> near_;
-        pedsNear(c.xy(), wi.range + 0.5f, near_);
-        for (int o : near_) {
-            if (o == pid) continue;
-            Ped& t = peds[o];
-            if (t.state == PS_INVEHICLE || t.state == PS_DEAD) continue;
-            vec3 tp = pedChestPos(t);
-            if (length(tp - c) < wi.range) {
-                if (p.weapon == WPN_KNIFE) addWound(o, dvec3(tp), Anim::B_CHEST, 0.05f);
-                damagePed(o, wi.damage * (0.85f + (hash32(p.uid + o) % 30) * 0.01f), DMG_MELEE, pid, fwd);
-#ifdef HAVE_AUDIO
-                Audio::play(Audio::SFX_PUNCH, tp, 0.9f);
-#endif
-                if (t.used && t.health > 0.f && (p.weapon == WPN_BAT || t.hitReactTimer > 0.f)) {
-                    if (hash32(o * 13 + p.uid) % 3 == 0) knockDown(o, fwd * 250.f + vec3(0, 0, 60.f));
-                }
-                break;
-            }
-        }
+        // melee: timed attack (melee.cpp); NPCs throw an occasional heavy blow
+        meleeStart(pid, !p.isPlayer && hashToFloat(hash32(p.uid * 7u + p.meleeSerial * 13u)) < 0.18f);
         return;
     }
     // hitscan firearms
@@ -368,8 +348,19 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
                     if (hc.a == h.bone) mult = hc.mult;
                 float falloff = Saturate(1.2f - h.t / wi.range);
                 addWound(h.ped, h.pos, h.bone, h.bone == Anim::B_HEAD ? 0.045f : 0.06f);
-                damagePed(h.ped, dmg * mult * Max(falloff, 0.35f), DMG_BULLET, pid, d, h.bone);
+                int victim = h.ped;
+                damagePed(victim, dmg * mult * Max(falloff, 0.35f), DMG_BULLET, pid, d, h.bone);
                 spawnFx(FX_BLOOD, h.pos, -d, 3, 1.f);
+                if (peds[victim].used && peds[victim].health > 0.f && peds[victim].state == PS_ONFOOT && !peds[victim].ragdoll) {
+                    Ped& vp = peds[victim];
+                    // a point-blank shotgun blast or a rifle round knocks the target off its feet
+                    bool bigHit = (p.weapon == WPN_SHOTGUN && h.t < 9.f) || p.weapon == WPN_SNIPER || (p.weapon == WPN_RIFLE && h.t < 4.f);
+                    if (bigHit && !vp.isPlayer && hashToFloat(hash32(vp.uid + (u32)(time * 977.0))) < (p.weapon == WPN_SHOTGUN ? 0.75f : 0.5f))
+                        knockDown(victim, d * (p.weapon == WPN_SHOTGUN ? 420.f : 300.f) + vec3(0.f, 0.f, 60.f));
+                    // leg wounds make the target limp for a while
+                    else if (h.bone == Anim::B_THIGH_L || h.bone == Anim::B_THIGH_R || h.bone == Anim::B_CALF_L || h.bone == Anim::B_CALF_R)
+                        vp.legInjury = Max(vp.legInjury, vp.isPlayer ? 8.f : 25.f);
+                }
 #ifdef HAVE_AUDIO
                 Audio::play(Audio::SFX_IMPACT_FLESH, h.pos.toVec3(), 0.8f);
 #endif
@@ -400,6 +391,17 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
                             spawnFx(FX_DUST, h.pos, vec3(0, 0, 1.f), 4, 0.4f);
                             break;
                         }
+                    }
+                }
+                // windows: hits above the belt line crack, then shatter the glass
+                {
+                    Vehicle& gv = vehicles[h.vehicle];
+                    const VehicleAsset& ga = vassets[gv.model];
+                    vec3 local = transpose(gv.sim.body.rotMat()) * pr;
+                    float belt = ga.spec.boxCenter.z + ga.spec.boxHalf.z * 0.15f, roof = ga.spec.boxCenter.z + ga.spec.boxHalf.z * 0.92f;
+                    if (!gv.windowsBroken && ga.body && ga.body->glassCount > 0 && local.z > belt && local.z < roof) {
+                        spawnFx(FX_GLASS, h.pos, -d, 3, 0.5f);
+                        if (++gv.glassHits >= 2) breakVehicleWindows(h.vehicle, d);
                     }
                 }
                 spawnFx(FX_SPARKS, h.pos, h.normal, 4, 0.6f);
@@ -464,7 +466,10 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
     // gunfire is reported at most once every few seconds per shooter (a burst is one incident)
     if (time - p.lastGunfireReport > 4.0) {
         p.lastGunfireReport = time;
-        if (p.isPlayer) reportCrime(1, p.pos, -1);
+        if (p.isPlayer) {
+            reportCrime(1, p.pos, -1);
+            socialReport(UI::TE_SHOOTING, p.pos);
+        }
     }
     if (p.clip[p.weapon] <= 0 && p.ammo[p.weapon] > 0) p.reloadTimer = wi.reloadTime;
 }
@@ -525,6 +530,23 @@ void GameWorld::damagePed(int pid, float amount, DamageType type, int attacker, 
             reportCrime(p.faction == FAC_POLICE ? 5 : 0, p.pos, pid);
         }
     }
+}
+
+// Shatters every see-through window of a vehicle (glass burst, sound); the glass pass stops drawing them.
+void GameWorld::breakVehicleWindows(int vi, vec3 dir) {
+    if (vi < 0 || vi >= (int)vehicles.size() || !vehicles[vi].used) return;
+    Vehicle& v = vehicles[vi];
+    if (v.windowsBroken) return;
+    const VehicleAsset& a = vassets[v.model];
+    if (!a.body || a.body->glassCount == 0) return;
+    v.windowsBroken = true;
+    mat3 R = v.sim.body.rotMat();
+    vec3 c = v.sim.body.pos.toVec3() + R * (a.spec.boxCenter + vec3(0.f, 0.f, a.spec.boxHalf.z * 0.5f));
+    for (int k = -1; k <= 1; k++)
+        spawnFx(FX_GLASS, dvec3(c + R * vec3(0.f, a.spec.boxHalf.y * 0.45f * (float)k, 0.f)), normalize(dir + vec3(0.f, 0.f, 0.4f)), 10, 1.f);
+#ifdef HAVE_AUDIO
+    Audio::play(Audio::SFX_GLASS_BREAK, c, 1.f);
+#endif
 }
 
 // Records a wound in bind-pose space so the blood stain follows the animated/ragdolled body.
@@ -598,6 +620,7 @@ void GameWorld::killPed(int pid, int attacker, vec3 dir, DamageType type) {
 
 // ------------------------------------------------------------------------------------------------------------------
 void GameWorld::explode(dvec3 pos, float radius, float damage, int owner) {
+    if (Ped* sp = playerPed(); sp && (owner == player || length(rel(pos, sp->pos)) < 250.f)) socialReport(UI::TE_EXPLOSION, pos);
     spawnFx(FX_EXPLOSION, pos, vec3(0, 0, 1), 1, radius / 6.f);
     spawnFx(FX_DARK_SMOKE, pos, vec3(0, 0, 2.f), 10, radius / 5.f);
     spawnFx(FX_DEBRIS, pos, vec3(0, 0, 6.f), 12, 1.f);

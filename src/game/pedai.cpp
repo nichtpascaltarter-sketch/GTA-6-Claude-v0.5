@@ -35,6 +35,25 @@ Faction territoryOwner(World::Region r) {
 
 bool isGang(Faction f) { return f == FAC_GANG_CUERVOS || f == FAC_GANG_SAINTS; }
 
+// A fleeing ped spreads panic to the people around it (limited hand-offs so a crowd calms down again)
+void spreadPanic(GameWorld& g, const Ped& p, dvec3 origin, u8 depth) {
+    for (Stimulus& s : g.ai.stimuli)
+        if (s.kind == STIM_PANIC && g.time - s.time < 1.5f && length(rel(s.pos, p.pos)) < 6.f) {
+            s.time = (float)g.time;
+            s.depth = Min(s.depth, depth);
+            return;
+        }
+    Stimulus s;
+    s.pos = p.pos;
+    s.origin = origin;
+    s.kind = STIM_PANIC;
+    s.depth = depth;
+    s.radius = 10.f;
+    s.time = (float)g.time;
+    g.ai.stimuli.push_back(s);
+    if (g.ai.stimuli.size() > 32) g.ai.stimuli.erase(g.ai.stimuli.begin());
+}
+
 }  // namespace pedai_detail
 
 using namespace pedai_detail;
@@ -52,6 +71,7 @@ void GameWorld::aiStimulus(dvec3 pos, int kind, int source, float radius, bool b
         }
     Stimulus s;
     s.pos = pos;
+    s.origin = pos;
     s.kind = (u8)kind;
     s.source = source;
     s.radius = radius;
@@ -63,7 +83,8 @@ void GameWorld::aiStimulus(dvec3 pos, int kind, int source, float radius, bool b
 
 void GameWorld::aiUpdateThreats(float dt) {
     for (size_t i = 0; i < ai.stimuli.size();) {
-        float life = ai.stimuli[i].kind == STIM_BODY ? 40.f : (ai.stimuli[i].kind == STIM_FIGHT ? 4.f : 6.f);
+        u8 k = ai.stimuli[i].kind;
+        float life = k == STIM_BODY ? 40.f : (k == STIM_FIGHT ? 4.f : (k == STIM_PANIC ? 3.f : 6.f));
         if (time - ai.stimuli[i].time > life) ai.stimuli.erase(ai.stimuli.begin() + i);
         else i++;
     }
@@ -112,6 +133,11 @@ void GameWorld::aiUpdateThreats(float dt) {
                 aiSay(drv, BK_PANIC, 0.6f);
             }
         }
+    }
+    // the player leaning on the horn next to people
+    {
+        int pv = playerVehicle();
+        if (pv >= 0 && vehicles[pv].hornOn) aiStimulus(vehicles[pv].sim.body.pos, STIM_HORN, player, 14.f, true);
     }
     // bodies on the ground are scary for a while
     static float bodyScan = 0.f;
@@ -181,6 +207,8 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         b.goal = s.pos;
                         p.animIn.stance = 0;
                         pa.activity = ACT_WALK;
+                        pa.panicDepth = 0;
+                        pa.panicEmit = 0.3f + hashToFloat(hash32(p.uid + 23u)) * 0.5f;
                     } else if (b.type == BRAIN_FLEE) {
                         b.timer = Min(b.timer, 4.f);   // keep running
                         b.goal = s.pos;
@@ -204,6 +232,64 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     }
                     break;
                 }
+                case STIM_PANIC: {
+                    // people running past: the timid run too, others hurry away and look back, the bold get their phones out
+                    if (!calm || gang || s.depth >= 3 || s.source == id) break;
+                    vec2 from = s.origin.toVec3().xy();
+                    float dOrigin = length(from - pos);
+                    u32 hp = hash32(p.uid * 7u + (u32)(s.time * 4.f));
+                    float r = hashToFloat(hp);
+                    if (pa.temper == 0 || r < 0.35f) {
+                        b.type = BRAIN_FLEE;
+                        b.goal = s.origin;
+                        b.target = -1;
+                        b.timer = 5.f;
+                        pa.activity = ACT_WALK;
+                        pa.panicDepth = (u8)(s.depth + 1);
+                        pa.panicEmit = 0.6f + r;
+                        aiSay(id, BK_PANIC, 0.25f);
+                    } else if (pa.temper == 2 && dOrigin < 60.f && dOrigin > 12.f && pa.activity != ACT_FILM) {
+                        pa.activity = ACT_FILM;
+                        pa.actTimer = 6.f + r * 6.f;
+                        pa.threatPos = from;
+                        aiSay(id, BK_FILMING, 0.3f);
+                    } else if (pa.activity == ACT_WALK) {
+                        pa.activity = ACT_INSPECT;
+                        pa.threatPos = from;
+                        pa.actTimer = 1.5f + r * 1.5f;
+                        pa.walk.hurry = 1.6f;
+                    }
+                    break;
+                }
+                case STIM_HORN: {
+                    // honked at: jump, glare at the car, the bold shout back
+                    if (!calm || d > s.radius || pa.activity == ACT_INSPECT || time - s.time > 0.8f) break;
+                    u32 hh = hash32(p.uid * 11u + (u32)(s.time * 2.f));
+                    pa.activity = ACT_INSPECT;
+                    pa.threatPos = s.pos.toVec3().xy();
+                    pa.actTimer = 1.2f + hashToFloat(hh);
+                    if (d < 7.f && p.pendingAction < 0 && hh % 3 == 0) p.pendingAction = Anim::CLIP_STAGGER;
+                    aiSay(id, pa.temper == 2 ? BK_INSULT : BK_BUMP, pa.temper == 0 ? 0.15f : 0.45f);
+                    break;
+                }
+                case STIM_CRASH: {
+                    // rubbernecking: look over, the bold film it, a few shout
+                    if (!calm || gang || d < 3.f) break;
+                    u32 hc = hash32(p.uid * 13u + (u32)(s.time * 4.f));
+                    float r = hashToFloat(hc);
+                    if (pa.temper == 2 && d > 7.f && r < 0.5f && pa.activity != ACT_FILM) {
+                        pa.activity = ACT_FILM;
+                        pa.actTimer = 6.f + r * 8.f;
+                        pa.threatPos = s.pos.toVec3().xy();
+                        aiSay(id, BK_FILMING, 0.3f);
+                    } else if (pa.activity == ACT_WALK || pa.activity == ACT_SCENARIO) {
+                        pa.activity = ACT_INSPECT;
+                        pa.threatPos = s.pos.toVec3().xy();
+                        pa.actTimer = 2.5f + r * 3.f;
+                        if (r < 0.3f) aiSay(id, BK_CRASH, 0.5f);
+                    }
+                    break;
+                }
                 case STIM_BODY: {
                     if (!calm || d > 16.f) break;
                     if (!lineOfSight(p.pos + dvec3(0, 0, 1.6), s.pos + dvec3(0, 0, 0.5), id, -1)) break;
@@ -213,6 +299,8 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     b.target = -1;
                     b.timer = 5.f;
                     pa.activity = ACT_WALK;
+                    pa.panicDepth = 1;   // a body scares, but spreads less than gunfire
+                    pa.panicEmit = 0.8f;
                     break;
                 }
                 case STIM_ARMED: {
@@ -370,6 +458,12 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
             float wob = sinf((float)time * 1.3f + (float)(p.uid % 97)) * 0.35f;
             vec2 dir = normalize(away + vec2(-away.y, away.x) * wob);
             float spd = b.timer < 9.f ? 6.1f : 3.4f;
+            // running people make others around them panic too (a few hand-offs, then the crowd settles)
+            pa.panicEmit -= dt;
+            if (pa.panicEmit <= 0.f && b.timer < 8.f && pa.panicDepth < 3) {
+                pa.panicEmit = 1.5f;
+                spreadPanic(*this, p, dvec3(from), pa.panicDepth);
+            }
             // avoid running into traffic lanes when a car is coming
             desired = dir * spd;
             faceYaw = atan2f(-dir.x, dir.y);
@@ -493,6 +587,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         } else if (length(desired) > 0.2f) {
                             faceYaw = atan2f(-desired.x, desired.y);
                             faceSet = true;
+                            if ((p.uid + (u32)(time * 0.1)) % 2 == 0) stance = 7;   // chatting on the way
                         }
                         break;
                     }
@@ -513,6 +608,17 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     }
                     float fy = p.yaw;
                     desired = pedNav.step(pa.walk, pos, dt, selfBody, &fy);
+                    // on the phone or smoking on the move now and then (the upper body keeps it up while walking)
+                    pa.walkStanceTimer -= dt;
+                    if (pa.walkStanceTimer <= 0.f) {
+                        u32 hw = hash32(p.uid * 97u + (u32)(time * 0.5));
+                        float q = hashToFloat(hw);
+                        bool calls = pa.role == PR_BUSINESS ? q < 0.45f : q < 0.18f;
+                        pa.walkStance = pa.role == PR_JOGGER ? 0 : (calls ? 8 : (q > 0.95f && pa.role != PR_BUSINESS ? 10 : 0));
+                        pa.walkStanceTimer = pa.walkStance ? 15.f + hashToFloat(hash32(hw)) * 40.f : 20.f + hashToFloat(hash32(hw)) * 50.f;
+                    }
+                    stance = pa.walkStance;
+                    if (stance == 8 && pa.barkCooldown <= 0.f && plDist < 6.f) aiSay(id, BK_PHONE_CHAT, 0.25f);
                     if (pa.role == PR_DRUNK) {
                         float sway = sinf((float)time * 1.7f + p.uid) * 0.6f + sinf((float)time * 0.63f + p.uid * 3u) * 0.4f;
                         vec2 side = AI::rightOf(length2(desired) > 0.01f ? normalize(desired) : AI::yawDir(p.yaw));
@@ -522,6 +628,24 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     faceYaw = fy;
                     faceSet = true;
                     if (pa.walk.state == AI::WS_WAIT_CROSS && pa.role == PR_JOGGER && p.pendingAction < 0 && p.anim.actionDone()) p.pendingAction = Anim::CLIP_JOG_IDLE;
+                    // tourists stop every so often to take a picture (the group waits around them)
+                    if (pa.role == PR_TOURIST && pa.walk.state == AI::WS_WALK) {
+                        pa.clipTimer -= dt;
+                        if (pa.clipTimer <= 0.f) {
+                            u32 ht = hash32(p.uid * 29u + (u32)time);
+                            pa.clipTimer = 18.f + hashToFloat(ht) * 25.f;
+                            if (pa.clipTimer > 0.f && hashToFloat(hash32(ht)) < 0.7f) {
+                                pa.activity = ACT_SCENARIO;
+                                pa.anchor = pos;
+                                pa.anchorYaw = p.yaw + (hashToFloat(hash32(ht * 3u)) - 0.5f) * 2.4f;
+                                pa.stance = 8;
+                                pa.clip = -1;
+                                pa.actTimer = 4.f + hashToFloat(hash32(ht * 5u)) * 4.f;
+                                if (plDist < 15.f) aiSay(id, BK_TOURIST, 0.3f);
+                                break;
+                            }
+                        }
+                    }
                     // occasional stops: scenario, phone call, bench, bus stop
                     if (pa.actTimer <= 0.f) {
                         u32 h = hash32(p.uid * 31u + (u32)(time * 3.0));
@@ -550,7 +674,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                                 pa.anchor = sp.pos.xy();
                                 pa.anchorYaw = atan2f(-sp.face.x, sp.face.y);
                                 pa.stance = sp.kind == AI::SP_BENCH ? 6 : 0;
-                                pa.clip = sp.kind == AI::SP_BENCH ? Anim::CLIP_SIT_BENCH : -1;
+                                pa.clip = -1;   // (stance 6 is the looping sit)
                                 pa.actTimer = 20.f + hashToFloat(hash32(h * 3u)) * 40.f;
                             } else if (r < 0.28f && pa.role != PR_DRUNK) {
                                 // stop against the building side of the sidewalk: phone, smoke, lean
@@ -575,11 +699,11 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                                         pa.stance = 8;   // phone call
                                         pa.clip = -1;
                                     } else if (q < 0.7f) {
-                                        pa.stance = 0;
-                                        pa.clip = Anim::CLIP_SMOKE;
+                                        pa.stance = 10;   // smoking (looping stance)
+                                        pa.clip = -1;
                                     } else {
-                                        pa.stance = 0;
-                                        pa.clip = Anim::CLIP_LEAN_WALL;
+                                        pa.stance = 11;   // leaning on the wall
+                                        pa.clip = -1;
                                     }
                                     pa.actTimer = 12.f + hashToFloat(hash32(h * 7u)) * 25.f;
                                 }
@@ -592,6 +716,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                 case ACT_WAIT_BUS:
                 case ACT_HAIL_TAXI:
                 case ACT_WATCH:
+                case ACT_QUEUE:
                 case ACT_EVENT: {
                     vec2 to = pa.anchor - pos;
                     float d = length(to);
@@ -671,7 +796,13 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                             }
                         }
                     }
-                    if (pa.actTimer <= 0.f && pa.activity != ACT_EVENT && pa.activity != ACT_HAIL_TAXI) {
+                    if (pa.activity == ACT_QUEUE && pa.clipTimer <= 0.f) {
+                        // shuffling in line: glance around, check the phone, talk to the next in line
+                        u32 hq = hash32(p.uid * 5u + (u32)time);
+                        pa.clipTimer = 6.f + hashToFloat(hq) * 10.f;
+                        if (hq % 4 == 0 && p.pendingAction < 0) p.pendingAction = Anim::CLIP_IDLE_LOOK;
+                    }
+                    if (pa.actTimer <= 0.f && pa.activity != ACT_EVENT && pa.activity != ACT_HAIL_TAXI && pa.activity != ACT_QUEUE) {
                         pa.activity = ACT_WALK;
                         pa.clip = -1;
                         pa.stance = 0;
@@ -730,6 +861,69 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         faceSet = true;
                     } else if (!p.persistent) {
                         despawnPed(id);
+                        return;
+                    }
+                    break;
+                }
+                case ACT_INSPECT: {
+                    // stop and look at what happened, then carry on (a little faster)
+                    faceYaw = yawTo(pos, pa.threatPos);
+                    faceSet = true;
+                    if (pa.actTimer <= 0.f) {
+                        pa.activity = ACT_WALK;
+                        pa.actTimer = 15.f + hashToFloat(hash32(p.uid + (u32)time)) * 15.f;
+                    }
+                    break;
+                }
+                case ACT_ROADRAGE: {
+                    // the player crashed into our car: storm over, shout, maybe throw a punch, then drive off
+                    int hv = pa.homeVeh;
+                    bool carOk = hv >= 0 && hv < (int)vehicles.size() && vehicles[hv].used && !vehicles[hv].exploded && vehicles[hv].seats[0] < 0;
+                    bool plOk = pl && pl->health > 0.f;
+                    if (pa.actTimer > 0.f && plOk && plDist < 30.f && pl->state == PS_ONFOOT) {
+                        vec2 to = ppos - pos;
+                        float d = length(to);
+                        if (d > 2.2f) desired = to / Max(d, 1e-3f) * (d > 8.f ? 3.2f : 1.5f);
+                        faceYaw = yawTo(pos, ppos);
+                        faceSet = true;
+                        if (pa.shoutTimer <= 0.f && d < 12.f) {
+                            aiSay(id, (hash32(p.uid + (u32)time) % 3) == 0 ? BK_CRASH : BK_ROAD_RAGE, 1.f, true);
+                            if (p.pendingAction < 0) p.pendingAction = Anim::CLIP_POINT;
+                            pa.shoutTimer = 3.f + hashToFloat(hash32(p.uid * 3u + (u32)time)) * 2.f;
+                        }
+                        // standing face to face with an unarmed player for a while: it comes to blows
+                        bool armed = pl->weapon != WPN_FISTS && weaponInfo(pl->weapon).clipSize > 0;
+                        if (d < 2.6f && !armed) pa.linger += dt;
+                        if (pa.linger > 3.5f && pa.temper == 2) {
+                            b.type = BRAIN_COMBAT;
+                            b.target = player;
+                            b.timer = 0.f;
+                            pa.activity = ACT_WALK;
+                            pa.linger = 0.f;
+                        }
+                        break;
+                    }
+                    // back to the car and away
+                    if (!carOk) {
+                        pa.activity = ACT_WALK;
+                        pa.homeVeh = -1;
+                        break;
+                    }
+                    vec3 cp = vehicles[hv].sim.body.pos.toVec3();
+                    vec2 toc = cp.xy() - pos;
+                    if (length(toc) > 3.f) {
+                        desired = normalize(toc) * 2.2f;
+                        faceYaw = atan2f(-desired.x, desired.y);
+                        faceSet = true;
+                    } else {
+                        warpPedIntoVehicle(id, hv, 0);
+                        b.type = BRAIN_DRIVER;
+                        pa.activity = ACT_WALK;
+                        pa.homeVeh = -1;
+                        pa.linger = 0.f;
+                        vehicles[hv].parked = false;
+                        attachTraffic(hv);
+                        vehAI(hv).rage = 0;
                         return;
                     }
                     break;

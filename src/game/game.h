@@ -11,6 +11,7 @@
 #include "../sim/vehicle_sim.h"
 #include "../anim/character.h"
 #include "../audio/audio.h"
+#include "../audio/speech_ext.h"
 #include "input.h"
 
 namespace Game {
@@ -167,6 +168,30 @@ struct Ped {
     float chuteOpen = 0.f;        // 0 closed .. 1 fully deployed (moveMode 4)
     float visibleDist = 0.f;      // distance to camera (LOD)
     bool shadow = true;
+    // melee (melee.cpp): current move with wind-up / contact / recovery, combos, blocking, dodging, staggers
+    int meleeMove = -1;           // MeleeMoveId in progress, -1 none
+    float meleeT = 0.f;           // time into the current move
+    bool meleeHitDone = false;
+    int meleeCombo = 0;           // index of the last light attack in the combo chain
+    int meleeQueued = 0;          // chained input while a move plays: 0 none, 1 light, 2 heavy
+    double meleeLastEnd = -100.0; // when the last move ended (combo window)
+    int meleeTarget = -1;         // opponent the move (or the player's lock-on) aims at
+    u32 meleeSerial = 0;          // increments per attack (defenders react once per attack)
+    bool blocking = false;
+    double blockStart = -100.0, blockUntil = -100.0;   // block start (perfect-block window) / AI hold time
+    double counterUntil = -100.0; // a perfect block opens a counter-attack window
+    float meleeStagger = 0.f;     // can't attack/block while > 0
+    float dodgeT = -1.f;          // dodge progress (s), -1 none
+    vec2 dodgeDir;
+    int meleeReact = 0;           // AI defence scheduled: 0 none, 1 block, 2 dodge
+    double meleeReactAt = 0.0;
+    vec2 forcedVel;               // movement override (dodge / lunge / knock-back) while forcedT > 0
+    float forcedT = 0.f;
+    float legInjury = 0.f;        // s of limping left after a leg wound (caps the speed)
+    // lip sync of the line being spoken (Speech::lipSync keys on the synthesizer's timeline, real-time clock)
+    std::vector<Speech::VisemeKey> lipKeys;
+    double lipStart = -1.0;
+    int lipIdx = 0;
 };
 
 struct Vehicle {
@@ -209,6 +234,8 @@ struct Vehicle {
     float visibleDist = 0.f;
     bool scripted = false;        // moved kinematically by gameplay (ambient air/sea traffic, cutscenes)
     bool renderFar = false;       // drawn up to the horizon (aircraft)
+    bool windowsBroken = false;   // shattered by gunfire or a hard crash (glass no longer drawn)
+    int glassHits = 0;
 };
 
 enum PickupType : u8 { PICK_MONEY = 0, PICK_HEALTH, PICK_ARMOR, PICK_WEAPON, PICK_COLLECTIBLE, PICK_PACKAGE };

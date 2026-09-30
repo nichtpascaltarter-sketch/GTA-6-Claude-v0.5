@@ -54,13 +54,13 @@ public:
         shots.push_back(shotMove(P.solarisPlaza + vec3(-120.f, -140.f, 8.f), P.solarisPlaza + vec3(0, 0, 60.f), P.solarisPlaza + vec3(-100.f, -120.f, 6.f),
                                  P.solarisPlaza + vec3(0, 0, 420.f), 7.f, 55.f));
         g.mCutscene(shots);
-        say(g, CAST_KIT, kit, "Solaris One. Ninety floors. Sandoval's private vault sits right under the penthouse.");
-        say(g, CAST_KIT, kit, "The Calle Luna deeds he stole with fake loans. The Cuervo payroll. And about four million in cash he never declared.");
-        say(g, CAST_ROOK, rook, "Four million. I'm listening.");
+        say(g, CAST_KIT, kit, "[calm]Solaris One. Ninety floors. Sandoval's private vault sits right under the penthouse.");
+        say(g, CAST_KIT, kit, "[calm]The Calle Luna deeds he stole with fake loans. The Cuervo payroll. And about four million in cash he never declared.");
+        say(g, CAST_ROOK, rook, "[happy:0.4]Four million. I'm listening.");
         sayMe(g, "We're not doing this for the money, Rook.");
-        say(g, CAST_ROOK, rook, "Speak for yourself. I've got a retirement to think about.");
-        sayP(g, 0, mari, "The deeds are what matter. Every family he pushed out gets their home back.");
-        say(g, CAST_JONAH, jonah, "Then we plan it right. Nobody goes in blind.");
+        say(g, CAST_ROOK, rook, "[happy:0.4]Speak for yourself. I've got a retirement to think about.");
+        sayP(g, 0, mari, "[calm]The deeds are what matter. Every family he pushed out gets their home back.");
+        say(g, CAST_JONAH, jonah, "[calm]Then we plan it right. Nobody goes in blind.");
         say(g, CAST_KIT, kit, "First we need eyes on the building. Dex, Mari, go take some pictures. Be tourists.");
     }
 
@@ -95,8 +95,8 @@ public:
             case 1:
                 updateBuddy(g);
                 if (stageTime > 6.f && stageTime < 6.1f && g.playerVehicle() >= 0) {
-                    sayP(g, 0, mari, "My father fixed boats for forty years and never owned more than the yard. Sandoval owns a skyline.");
-                    sayMe(g, "Not for long.");
+                    sayP(g, 0, mari, "[sad:0.6]My father fixed boats for forty years and never owned more than the yard. Sandoval owns a skyline.");
+                    sayMe(g, "[calm]Not for long.");
                 }
                 if (g.playerAt(gPlaces.solarisPlaza.xy(), 160.f)) beginPhotos(g);
                 break;
@@ -141,8 +141,8 @@ public:
                     std::vector<CutsceneShot> shots;
                     shots.push_back(shotTwo(pedPos(g, rook), playerPos(g), 9.f));
                     g.mCutscene(shots);
-                    say(g, CAST_ROOK, rook, "Two ways in. Quiet: we dress you as the maintenance crew and walk in the service door.");
-                    say(g, CAST_ROOK, rook, "Loud: we take an armored truck through the loading dock and blow the vault. Your call, Dex.");
+                    say(g, CAST_ROOK, rook, "[calm]Two ways in. Quiet: we dress you as the maintenance crew and walk in the service door.");
+                    say(g, CAST_ROOK, rook, "[calm]Loud: we take an armored truck through the loading dock and blow the vault. Your call, Dex.");
                     next();
                 }
                 break;
@@ -165,11 +165,11 @@ public:
                     menuClose(g);
                     setFlag(g, EX_HEIST_APPROACH, choice);
                     if (choice == 1) {
-                        say(g, CAST_ROOK, rook, "Quiet it is. I'll find us a van and some very ugly uniforms.");
+                        say(g, CAST_ROOK, rook, "[happy:0.3]Quiet it is. I'll find us a van and some very ugly uniforms.");
                         setOutfitOwned(g, 0, 6);
                         setOutfitOwned(g, 1, 6);
                     } else {
-                        say(g, CAST_ROOK, rook, "Loud. I was hoping you'd say that. I know an armored truck with a lazy route.");
+                        say(g, CAST_ROOK, rook, "[happy:0.6]Loud. I was hoping you'd say that. I know an armored truck with a lazy route.");
                     }
                     next();
                 }
@@ -249,8 +249,8 @@ public:
                 guards.push_back(e);
                 enemies.push_back(e);
             }
-            phoneLine(g, CAST_ROOK, "Brightline Facilities keeps its maintenance vans at a depot in the Flats. White van, blue stripe.");
-            phoneLine(g, CAST_ROOK, "Uniforms are in the back. Two guards on the lot, and they will call it in.");
+            phoneLine(g, CAST_ROOK, "[calm]Brightline Facilities keeps its maintenance vans at a depot in the Flats. White van, blue stripe.");
+            phoneLine(g, CAST_ROOK, "[calm]Uniforms are in the back. Two guards on the lot, and they will call it in.");
             g.mBlipVehicle(prize, UI::BLIP_VEHICLE);
             g.mTarget(D.curb.xy(), UI::BLIP_VEHICLE);
             g.mObjective("Steal a ~b~Brightline maintenance van~s~ from the depot in the Flats.");
@@ -274,7 +274,7 @@ public:
                 g.mBlipVehicle(prize, UI::BLIP_ENEMY);
             }
             placePlayer(g, curbOffset(g, A, -140.f), A.curbYaw, pickModel(g, {Vehicles::VC_MUSCLE, Vehicles::VC_SUV}, 0));
-            phoneLine(g, CAST_ROOK, "Armored truck, leaving Canvas Park on its cash run. Two guards with rifles. Stop it, drag them out, take it.");
+            phoneLine(g, CAST_ROOK, "[calm]Armored truck, leaving Canvas Park on its cash run. Two guards with rifles. Stop it, drag them out, take it.");
             g.mObjective("Stop the ~r~armored truck~s~. Ram it until it can't drive.");
         }
     }
@@ -292,7 +292,7 @@ public:
                     if (g.playerInVehicle(prize)) {
                         taken = true;
                         setWanted(g, 2);
-                        sayMe(g, "Got the van. Now to lose the tail.");
+                        sayMe(g, "[shout:0.4]Got the van. Now to lose the tail.");
                         g.mClearBlips();
                         g.mClearTarget();
                         g.mObjective("Lose the ~b~police~s~.");
@@ -304,7 +304,7 @@ public:
                     ScriptDriver* d = driverFor(prize);
                     if (d && d->done) return fail("The armored truck finished its run.");
                     bool stopped = g.vehicles[prize].sim.health < 550.f || vehicleDisabled(g, prize) || !pedAlive(g, g.driverOf(prize));
-                    if (stageTime > 8.f && stageTime < 8.1f) sayMe(g, "Big, slow and heavy. Just like my ex.");
+                    if (stageTime > 8.f && stageTime < 8.1f) sayMe(g, "[happy:0.4]Big, slow and heavy. Just like my ex.");
                     if (stopped) {
                         releaseDriver(g, prize);
                         for (int p : guards)
@@ -354,7 +354,7 @@ public:
                 g.mObjective(quiet ? "Bring the van to ~y~Rook's~s~." : "Bring the truck to ~y~Rook's~s~.");
                 if (arrived(g) && g.playerInVehicle(prize)) {
                     clearGoal(g);
-                    phoneLine(g, CAST_ROOK, quiet ? "Beautiful. Four uniforms, one van, zero dignity. We go tomorrow night."
+                    phoneLine(g, CAST_ROOK, quiet ? "[happy:0.5]Beautiful. Four uniforms, one van, zero dignity. We go tomorrow night."
                                                   : "Now that's a truck. Jonah is welding plates on it as we speak. We go tomorrow.");
                     if (quiet) {
                         setOutfitOwned(g, 0, 6);
@@ -464,14 +464,14 @@ public:
         if (vehicle >= 0) shots.push_back(shotVehicle(g, vehicle, 5.f));
         g.mCutscene(shots);
         if (quiet) {
-            say(g, CAST_ROOK, rook, "Look at you two. The cleanest window washers in Porto Sol.");
-            phoneLine(g, CAST_KIT, "I'll loop the cameras from the station. From the service door you'll have twenty minutes, not a second more.");
+            say(g, CAST_ROOK, rook, "[happy:0.5]Look at you two. The cleanest window washers in Porto Sol.");
+            phoneLine(g, CAST_KIT, "[calm]I'll loop the cameras from the station. From the service door you'll have twenty minutes, not a second more.");
         } else {
-            say(g, CAST_ROOK, rook, "Charges are set to cut the vault door, not the building. Try not to crash before you get there.");
-            phoneLine(g, CAST_KIT, "Police response to the tower is four minutes. Holt will send everyone she has. Make it quick.");
+            say(g, CAST_ROOK, rook, "[calm]Charges are set to cut the vault door, not the building. Try not to crash before you get there.");
+            phoneLine(g, CAST_KIT, "[scared:0.3]Police response to the tower is four minutes. Holt will send everyone she has. Make it quick.");
         }
-        sayP(g, 0, mari, "For Calle Luna.");
-        sayMe(g, "For Calle Luna. Let's go.");
+        sayP(g, 0, mari, "[calm]For Calle Luna.");
+        sayMe(g, "[calm]For Calle Luna. Let's go.");
     }
 
     void beginFight(GameWorld& g) {
@@ -549,7 +549,7 @@ public:
                     g.mObjective("Lose the ~b~police~s~ before going in.");
                     break;
                 }
-                if (stageTime > 8.f && stageTime < 8.1f) sayP(g, 0, mari, quiet ? "Drive like a tired janitor. Slow and sad." : "Seatbelt. Now.");
+                if (stageTime > 8.f && stageTime < 8.1f) sayP(g, 0, mari, quiet ? "[whisper:0.4]Drive like a tired janitor. Slow and sad." : "Seatbelt. Now.");
                 if (arrived(g) && g.playerInVehicle(vehicle)) {
                     clearGoal(g);
                     vec3 plaza = gPlaces.solarisPlaza;
@@ -562,13 +562,13 @@ public:
                     }
                     g.mCutscene(shots);
                     if (quiet) {
-                        phoneLine(g, CAST_KIT, "Cameras looping. Elevator to ninety is yours.");
-                        sayP(g, 0, mari, "Twenty minutes. See you at the top.");
-                        phoneLine(g, CAST_KIT, "Vault's open. Deeds, ledgers, cash, you're golden... wait. Sandoval's head of security just walked into the camera room.");
-                        phoneLine(g, CAST_KIT, "He's seen the loop. The lobby is filling up. Get out, now!");
+                        phoneLine(g, CAST_KIT, "[whisper:0.5]Cameras looping. Elevator to ninety is yours.");
+                        sayP(g, 0, mari, "[whisper:0.4]Twenty minutes. See you at the top.");
+                        phoneLine(g, CAST_KIT, "[scared:0.6]Vault's open. Deeds, ledgers, cash, you're golden... wait. Sandoval's head of security just walked into the camera room.");
+                        phoneLine(g, CAST_KIT, "[shout]He's seen the loop. The lobby is filling up. Get out, now!");
                     } else {
-                        sayMe(g, "Knock, knock.");
-                        phoneLine(g, CAST_ROOK, "Charges are cutting. Sixty seconds. Hold that dock!");
+                        sayMe(g, "[calm]Knock, knock.");
+                        phoneLine(g, CAST_ROOK, "[shout]Charges are cutting. Sixty seconds. Hold that dock!");
                     }
                     next();
                 }
@@ -606,7 +606,7 @@ public:
                     if (aliveEnemies(g) <= 1 && wave < 4) securityWave(g, 4 + wave, 0.25f + wave * 0.03f);
                     if (holdTimer <= 0.f) {
                         g.missionTimerHud = -1.f;
-                        phoneLine(g, CAST_ROOK, "Vault's open! Load the cash into the truck and go!");
+                        phoneLine(g, CAST_ROOK, "[shout]Vault's open! Load the cash into the truck and go!");
                         vec3 back = vehPos(g, vehicle) - vec3(g.vehicles[vehicle].sim.forward().xy() * 5.f, 0.f);
                         goTo(g, back, 2.f, "Load the loot into the ~b~truck~s~.");
                         next();
@@ -618,7 +618,7 @@ public:
                 if (arrived(g)) {
                     clearGoal(g);
                     take = 180000 + (long long)(Saturate(g.vehicles[vehicle].sim.health / 1000.f) * 20000.f);
-                    sayP(g, 0, mari, "Deeds are in the bag. Drive!");
+                    sayP(g, 0, mari, "[shout]Deeds are in the bag. Drive!");
                     g.mBlipVehicle(vehicle, UI::BLIP_VEHICLE);
                     g.mObjective("Get in the ~b~truck~s~.");
                     setStage(51);
@@ -647,7 +647,7 @@ public:
                 } else {
                     done = g.pinfo.wanted == 0;
                 }
-                if (stageTime > 10.f && stageTime < 10.1f) sayP(g, 0, mari, "I'm holding every deed in Calle Luna in a gym bag.");
+                if (stageTime > 10.f && stageTime < 10.1f) sayP(g, 0, mari, "[happy:0.6]I'm holding every deed in Calle Luna in a gym bag.");
                 if (done) {
                     g.mClearBlips();
                     for (int e : enemies)
@@ -666,8 +666,8 @@ public:
                 }
                 if (arrived(g)) {
                     clearGoal(g);
-                    sayMe(g, "Count it later. We got the deeds.");
-                    sayP(g, 0, mari, "We did it, Dex. We actually did it.");
+                    sayMe(g, "[happy:0.5]Count it later. We got the deeds.");
+                    sayP(g, 0, mari, "[happy]We did it, Dex. We actually did it.");
                     g.storyBriefText = "The crew cleaned out Sandoval's vault: the stolen Calle Luna deeds, the Cuervo payroll and his cash. "
                                        "Sandoval knows exactly who did it.";
                     next();
@@ -820,11 +820,11 @@ public:
 #ifdef HAVE_AUDIO
         Audio::play2D(Audio::SFX_PHONE_RING, 0.8f);
 #endif
-        phoneLine(g, CAST_LUCHA, "Mija! They took Tomas! Sandoval's men, right out of my kitchen. He says bring everything to Key Solano, or else.");
-        sayMe(g, "We're coming, Lucha. I promise.");
-        sayP(g, 1, dex, "It's a trap, Mari.");
-        sayMe(g, "Then we spring it.");
-        phoneLine(g, CAST_KIT, "Sandoval's convoy just got on the Overseas Highway. Four cars. Holt's own cruiser is riding with him.");
+        phoneLine(g, CAST_LUCHA, "[scared]Mija! They took Tomas! Sandoval's men, right out of my kitchen. He says bring everything to Key Solano, or else.");
+        sayMe(g, "[calm]We're coming, Lucha. I promise.");
+        sayP(g, 1, dex, "[calm]It's a trap, Mari.");
+        sayMe(g, "[angry:0.5]Then we spring it.");
+        phoneLine(g, CAST_KIT, "[shout:0.4]Sandoval's convoy just got on the Overseas Highway. Four cars. Holt's own cruiser is riding with him.");
     }
 
     void beginEscorts(GameWorld& g) {
@@ -878,7 +878,7 @@ public:
                     clearGoal(g);
                     spawnConvoy(g, 450.f);
                     g.mObjective("Catch up with ~r~Sandoval's convoy~s~.");
-                    sayP(g, 1, dex, "There they are. Get me alongside, I'll take care of the escorts.");
+                    sayP(g, 1, dex, "[shout]There they are. Get me alongside, I'll take care of the escorts.");
                     score(SC_CHASE, 0.85f, 3);
                     next();
                 }
@@ -911,8 +911,8 @@ public:
                 g.missionCounter = escortsDown;
                 g.missionCounterMax = (int)escorts.size();
                 if (suv >= 0) g.vehicles[suv].sim.health = Max(g.vehicles[suv].sim.health, 900.f);
-                if (stageTime > 6.f && stageTime < 6.1f) sayP(g, 1, dex, "Holt's cruiser is in there too. No more badges between us and him.");
-                if (stageTime > 22.f && stageTime < 22.1f) sayMe(g, "Seven miles of bridge and nowhere to hide. Good.");
+                if (stageTime > 6.f && stageTime < 6.1f) sayP(g, 1, dex, "[angry:0.6]Holt's cruiser is in there too. No more badges between us and him.");
+                if (stageTime > 22.f && stageTime < 22.1f) sayMe(g, "[angry:0.5]Seven miles of bridge and nowhere to hide. Good.");
                 ScriptDriver* sd = suv >= 0 ? driverFor(suv) : nullptr;
                 if (escortsDown >= (int)escorts.size() || (sd && sd->done)) {
                     g.missionCounterLabel.clear();
@@ -923,7 +923,7 @@ public:
                     g.mClearBlips();
                     if (suv >= 0) g.mBlipVehicle(suv, UI::BLIP_ENEMY);
                     g.mObjective("Follow ~r~Sandoval~s~ to Key Solano.");
-                    sayP(g, 1, dex, "Escorts are done. He's running for Key Solano.");
+                    sayP(g, 1, dex, "[shout:0.6]Escorts are done. He's running for Key Solano.");
                     next();
                 }
                 break;
@@ -976,7 +976,7 @@ public:
                             g.mBlipVehicle(suv, UI::BLIP_ENEMY);
                         }
                     }
-                    sayMe(g, "He's running! Tomas, stay down!");
+                    sayMe(g, "[shout]He's running! Tomas, stay down!");
                     g.mObjective("Stop ~r~Sandoval~s~!");
                     if (tomas >= 0) setIdle(g, tomas, 4);
                     next();
@@ -1037,14 +1037,14 @@ public:
                 shots.push_back(shotOver(mp, hpp, 7.f));
                 shots.push_back(shotTwo(sp, hpp, 7.f, 6.f, 45.f, -1.f));
                 g.mCutscene(shots);
-                say(g, CAST_SANDOVAL, sandoval, "You think this changes anything? I own the land, the bank, the police. I own the tide.");
-                sayMe(g, "You owned a gym bag full of stolen deeds. Now I do.");
-                say(g, CAST_TOMAS, tomas, "Mari! You came. You actually came.");
-                sayMe(g, "Always, little brother.");
-                say(g, CAST_HOLT, holt, "Porto Sol PD! Nobody move. This is my collar, Ortega. Hand over whatever you took from that tower.");
-                sayMe(g, "Not to you, Captain. Not ever.");
-                say(g, CAST_HOLT, holt, "Then we'll see whose story this city believes.");
-                sayP(g, 1, dex, "Funny you say that. We know a DJ.");
+                say(g, CAST_SANDOVAL, sandoval, "[angry:0.6]You think this changes anything? I own the land, the bank, the police. I own the tide.");
+                sayMe(g, "[calm]You owned a gym bag full of stolen deeds. Now I do.");
+                say(g, CAST_TOMAS, tomas, "[happy]Mari! You came. You actually came.");
+                sayMe(g, "[calm]Always, little brother.");
+                say(g, CAST_HOLT, holt, "[shout]Porto Sol PD! Nobody move. This is my collar, Ortega. Hand over whatever you took from that tower.");
+                sayMe(g, "[angry:0.6]Not to you, Captain. Not ever.");
+                say(g, CAST_HOLT, holt, "[calm]Then we'll see whose story this city believes.");
+                sayP(g, 1, dex, "[happy:0.4]Funny you say that. We know a DJ.");
                 next();
                 break;
             }
@@ -1182,10 +1182,10 @@ public:
         shots.push_back(shotTwo(pedPos(g, lucha), mp, 6.f));
         shots.push_back(shotTwo(pedPos(g, dex), mp, 6.f, 4.f, 42.f, -1.f));
         g.mCutscene(shots);
-        say(g, CAST_KIT, kit, "It's all here. The tape from the pier. Holt's ledger. The deeds. Sandoval's books. I can go live in two minutes.");
-        say(g, CAST_ROOK, rook, "Or we sell it back. Holt would pay anything to make this go away. The yard, the diner, money for all of us.");
-        say(g, CAST_LUCHA, lucha, "Money comes and goes, mija. The neighborhood remembers what you did with it.");
-        sayP(g, 1, dex, "Your call, Mari. Whatever you decide, I'm with you.");
+        say(g, CAST_KIT, kit, "[calm]It's all here. The tape from the pier. Holt's ledger. The deeds. Sandoval's books. I can go live in two minutes.");
+        say(g, CAST_ROOK, rook, "[calm]Or we sell it back. Holt would pay anything to make this go away. The yard, the diner, money for all of us.");
+        say(g, CAST_LUCHA, lucha, "[calm]Money comes and goes, mija. The neighborhood remembers what you did with it.");
+        sayP(g, 1, dex, "[calm]Your call, Mari. Whatever you decide, I'm with you.");
     }
 
     void beginBroadcast(GameWorld& g) {
@@ -1224,21 +1224,21 @@ public:
         shots.push_back(shotEstablish(P.riverLaunch, yawTo(P.riverLaunch.xy(), P.riverMouth.xy()), 60.f, 20.f, 8.f, 55.f));
         g.mCutscene(shots, true);
         if (choice == 1) {
-            narrator(g, "Pulse FM", "Breaking news. Porto Sol police captain Reyna Holt was arrested this morning after a Pulse FM broadcast aired "
-                                    "recordings and ledgers linking her to developer Victor Sandoval.", true, 31, kColKit);
-            narrator(g, "Pulse FM", "Sandoval faces forty one counts. The Solaris Pier project is suspended, and the Calle Luna deeds are back "
-                                    "with their families.", true, 31, kColKit);
-            sayP(g, 1, -1, "Think it'll stick?");
-            sayP(g, 0, -1, "It's on the radio. Everybody heard it. That sticks.");
-            sayP(g, 0, -1, "Stay for dinner. Lucha's making pozole.");
-            sayP(g, 1, -1, "Wouldn't miss it.");
+            narrator(g, "Pulse FM News", "Breaking news. Porto Sol police captain Reyna Holt was arrested this morning after a Pulse FM broadcast aired "
+                                    "recordings and ledgers linking her to developer Victor Sandoval.", "newsreader_female", "[news]", kColKit);
+            narrator(g, "Pulse FM News", "Sandoval faces forty one counts. The Solaris Pier project is suspended, and the Calle Luna deeds are back "
+                                    "with their families.", "newsreader_female", "[news]", kColKit);
+            sayP(g, 1, -1, "[calm]Think it'll stick?");
+            sayP(g, 0, -1, "[happy:0.5]It's on the radio. Everybody heard it. That sticks.");
+            sayP(g, 0, -1, "[happy]Stay for dinner. Lucha's making pozole.");
+            sayP(g, 1, -1, "[happy]Wouldn't miss it.");
         } else {
-            narrator(g, "Pulse FM", "In local news, the Solaris Pier project was quietly cancelled. Its developer left the country. Police captain "
-                                    "Reyna Holt announced a new community outreach program in Calle Luna.", true, 31, kColKit);
-            sayP(g, 1, -1, "Two million dollars. The yard's yours. Nobody's losing their home.");
-            sayP(g, 0, -1, "And Holt is still wearing a badge.");
-            sayP(g, 1, -1, "We won, Mari. Mostly. Keep the copies somewhere safe.");
-            sayP(g, 0, -1, "Somewhere safe. In this town. That'll be the day.");
+            narrator(g, "Pulse FM News", "In local news, the Solaris Pier project was quietly cancelled. Its developer left the country. Police captain "
+                                    "Reyna Holt announced a new community outreach program in Calle Luna.", "newsreader_female", "[news]", kColKit);
+            sayP(g, 1, -1, "[calm]Two million dollars. The yard's yours. Nobody's losing their home.");
+            sayP(g, 0, -1, "[sad:0.5]And Holt is still wearing a badge.");
+            sayP(g, 1, -1, "[calm]We won, Mari. Mostly. Keep the copies somewhere safe.");
+            sayP(g, 0, -1, "[sad:0.4]Somewhere safe. In this town. That'll be the day.");
         }
     }
 
@@ -1266,14 +1266,14 @@ public:
                     menuClose(g);
                     setFlag(g, EX_ENDING, choice);
                     if (choice == 1) {
-                        sayMe(g, "Put it on the air, Kit. All of it.");
-                        say(g, CAST_KIT, kit, "Pulse FM, this is Kit Navarro, and tonight's show is about the people who sold our city. Stay tuned.");
-                        sayP(g, 1, dex, "Here come Holt's loyalists. Everybody find cover.");
+                        sayMe(g, "[calm]Put it on the air, Kit. All of it.");
+                        say(g, CAST_KIT, kit, "[dj]Pulse FM, this is Kit Navarro, and tonight's show is about the people who sold our city. Stay tuned.");
+                        sayP(g, 1, dex, "[shout]Here come Holt's loyalists. Everybody find cover.");
                         beginBroadcast(g);
                     } else {
-                        sayMe(g, "Call Holt. Tell her the Sol Beach Pier. Tonight. Come alone.");
-                        say(g, CAST_KIT, kit, "She won't come alone.");
-                        sayMe(g, "I know.");
+                        sayMe(g, "[calm]Call Holt. Tell her the Sol Beach Pier. Tonight. Come alone.");
+                        say(g, CAST_KIT, kit, "[scared:0.3]She won't come alone.");
+                        sayMe(g, "[calm]I know.");
                         goTo(g, gPlaces.pierEnd - vec3(30.f, 0, 0), 3.f, "Meet Holt at the end of the ~y~Sol Beach Pier~s~.");
                         setFollow(g, dex, g.player);
                         setStage(11);
@@ -1289,13 +1289,13 @@ public:
                 if (aliveEnemies(g) <= 2 && wave < 4 && airTime < 80.f - wave * 18.f) loyalists(g, gPlaces.pulseFm.pos, 6, kit);
                 if (fmodf(airTime, 20.f) < dt && airTime > 5.f)
                     narrator(g, "Kit (on air)", "Holt's own ledger, page twelve. Fifty thousand from Solaris Pier Holdings. Porto Sol, you are listening to the truth.",
-                             true, 17, kColKit);
+                             "cast_kit", "[dj]", kColKit);
                 if (airTime <= 0.f) {
                     g.missionTimerHud = -1.f;
                     g.mClearBlips();
                     for (int e : enemies)
                         if (pedAlive(g, e)) setFlee(g, e, g.player);
-                    say(g, CAST_KIT, kit, "It's out. Every station in the state is picking it up. They can't stop it now.");
+                    say(g, CAST_KIT, kit, "[happy]It's out. Every station in the state is picking it up. They can't stop it now.");
                     next();
                 }
                 break;
@@ -1330,11 +1330,11 @@ public:
                     shots.push_back(shotOver(hp, mp, 7.f, -1.f));
                     shots.push_back(shotTwo(hp, mp, 6.f, 6.f, 45.f, -1.f));
                     g.mCutscene(shots);
-                    say(g, CAST_HOLT, holt, "You have something of mine, Ortega.");
-                    sayMe(g, "I have a lot of things of yours. Two million dollars. Every deed back where it belongs. And you never set foot in Calle Luna again.");
-                    say(g, CAST_HOLT, holt, "Two million. Fine. The money is already moving. Pleasure doing business.");
-                    say(g, CAST_HOLT, holt, "Take them.");
-                    sayP(g, 1, dex, "Knew it!");
+                    say(g, CAST_HOLT, holt, "[calm]You have something of mine, Ortega.");
+                    sayMe(g, "[calm]I have a lot of things of yours. Two million dollars. Every deed back where it belongs. And you never set foot in Calle Luna again.");
+                    say(g, CAST_HOLT, holt, "[calm]Two million. Fine. The money is already moving. Pleasure doing business.");
+                    say(g, CAST_HOLT, holt, "[angry:0.4]Take them.");
+                    sayP(g, 1, dex, "[shout]Knew it!");
                     next();
                 }
                 break;
@@ -1352,8 +1352,8 @@ public:
 #ifdef HAVE_AUDIO
                     Audio::play2D(Audio::SFX_PHONE_RING, 0.8f);
 #endif
-                    phoneLine(g, CAST_HOLT, "Impressive. The money is in your account, Ortega. Keep your copies safe. I'll keep my badge.");
-                    sayMe(g, "Stay out of my neighborhood, Captain.");
+                    phoneLine(g, CAST_HOLT, "[calm]Impressive. The money is in your account, Ortega. Keep your copies safe. I'll keep my badge.");
+                    sayMe(g, "[angry:0.6]Stay out of my neighborhood, Captain.");
                     next();
                 }
                 break;

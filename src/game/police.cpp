@@ -73,6 +73,23 @@ void GameWorld::reportCrime(int type, dvec3 pos, int victim) {
     else if (type == 8) aiStimulus(pos, STIM_EXPLOSION, perp, 65.f, byPlayer);
     else if (type == 0 || type == 5) aiStimulus(pos, STIM_FIGHT, perp, 22.f, byPlayer);
     else if (type == 2 || type == 3) aiStimulus(pos, STIM_CRASH, perp, 18.f, byPlayer);
+    if (type == 3 && byPlayer && victim >= 0 && victim < (int)vehicles.size() && vehicles[victim].used) {
+        // the player rammed a car: its driver may get out and have words (road rage), or honk and shout
+        Vehicle& vv = vehicles[victim];
+        int drv = vv.seats[0];
+        if (drv >= 0 && !peds[drv].isPlayer && peds[drv].brain.type == BRAIN_DRIVER && vv.faction == FAC_CIVILIAN && !isAircraft(victim) && !isBoat(victim)) {
+            VehAI& va = vehAI(victim);
+            PedAI& da = pedAI(drv);
+            float r = hashToFloat(hash32(vv.uid * 31u + (u32)(time * 2.0)));
+            if (va.rage == 0 && (da.temper == 2 || (da.temper == 1 && r < 0.35f))) {
+                va.rage = 1;
+                va.rageTimer = 0.f;
+            } else {
+                vv.hornOn = true;
+                aiSay(drv, BK_CRASH, 0.8f, true);
+            }
+        }
+    }
     if (type == 9 && victim >= 0 && victim < (int)peds.size() && peds[victim].used && !peds[victim].isPlayer) {
         // pulled out of their car: bold drivers get up and fight for it, the rest run
         Ped& vp = peds[victim];

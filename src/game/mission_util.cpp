@@ -171,24 +171,13 @@ Anim::CharacterDesc castDesc(int id) {
     return d;
 }
 
-Audio::VoiceParams castVoice(int id) {
-    Audio::VoiceParams v;
-    switch (id) {
-        case CAST_TOMAS: v.pitch = 128.f; v.formantScale = 1.03f; v.speed = 1.08f; v.breathiness = 0.15f; v.roughness = 0.04f; v.expressiveness = 1.3f; break;
-        case CAST_LUCHA: v.pitch = 176.f; v.formantScale = 1.08f; v.speed = 0.94f; v.breathiness = 0.2f; v.roughness = 0.28f; v.expressiveness = 1.2f; break;
-        case CAST_ROOK: v.pitch = 86.f; v.formantScale = 0.92f; v.speed = 0.9f; v.breathiness = 0.1f; v.roughness = 0.38f; v.expressiveness = 0.9f; break;
-        case CAST_KIT: v.pitch = 214.f; v.formantScale = 1.17f; v.speed = 1.1f; v.breathiness = 0.12f; v.roughness = 0.f; v.expressiveness = 1.35f; break;
-        case CAST_JONAH: v.pitch = 100.f; v.formantScale = 0.97f; v.speed = 0.86f; v.breathiness = 0.22f; v.roughness = 0.45f; v.expressiveness = 1.05f; break;
-        case CAST_SANDOVAL: v.pitch = 104.f; v.formantScale = 0.98f; v.speed = 0.9f; v.breathiness = 0.08f; v.roughness = 0.1f; v.expressiveness = 0.8f; break;
-        case CAST_HOLT: v.pitch = 166.f; v.formantScale = 1.07f; v.speed = 1.f; v.breathiness = 0.05f; v.roughness = 0.12f; v.expressiveness = 0.75f; break;
-        case CAST_CUERVO: v.pitch = 94.f; v.formantScale = 0.95f; v.speed = 1.f; v.breathiness = 0.1f; v.roughness = 0.32f; v.expressiveness = 1.15f; break;
-        case CAST_THUG_D: case CAST_REPORTER: case CAST_PILOT: v = Speech::presetVoice(true, (u32)id * 13u + 5u); break;
-        default: v = Speech::presetVoice(false, (u32)id * 13u + 5u); break;
-    }
-    return v;
-}
-
-Audio::VoiceParams protagonistVoice(int who) { return Speech::presetVoice(who == 0, who == 0 ? 7u : 11u); }
+// Voices come from the speech module's personas (timbre plus default accent, delivery and mood); the persona's style
+// tags lead every spoken line so the accent carries over, and inline tags in a line ([angry], [whisper]...) override it.
+Audio::VoiceParams castVoice(int id) { return Speech::persona(kCast[id].key).voice; }
+std::string castTags(int id) { return Speech::persona(kCast[id].key).tags(); }
+const char* protagonistKey(int who) { return who == 0 ? "mari" : "dex"; }
+Audio::VoiceParams protagonistVoice(int who) { return Speech::persona(protagonistKey(who)).voice; }
+std::string protagonistTags(int who) { return Speech::persona(protagonistKey(who)).tags(); }
 
 int castChar(GameWorld& g, int id) { return g.namedCharacter(kCast[id].key, castDesc(id)); }
 
@@ -636,6 +625,13 @@ float vehicleSpeed(GameWorld& g, int v) { return vehicleAlive(g, v) ? g.vehicles
 
 vec3 vehPos(GameWorld& g, int v) { return v >= 0 && g.vehicles[v].used ? g.vehicles[v].sim.body.pos.toVec3() : vec3(0); }
 
+// Remove the tracked mission blip of one vehicle (others stay).
+void unblipVehicle(int veh) {
+    if (veh < 0) return;
+    auto& list = mission_detail::gTracked;
+    list.erase(std::remove_if(list.begin(), list.end(), [veh](const TrackedBlip& b) { return b.vehicle == veh; }), list.end());
+}
+
 void teleportVehicle(GameWorld& g, int v, vec3 pos, float yaw) {
     if (v < 0 || !g.vehicles[v].used) return;
     Vehicles::resetVehicle(g.vehicles[v].sim, dvec3(pos + vec3(0, 0, 0.3f)), yaw);
@@ -773,6 +769,7 @@ void say(GameWorld& g, int cast, int ped, const std::string& text, float pause =
     DialogueLine l = line(kCast[cast].name, text, pedAlive(g, ped) ? ped : -1, kCast[cast].color);
     l.hasVoice = true;
     l.voice = castVoice(cast);
+    l.spoken = castTags(cast) + speakableText(text);
     l.pause = pause;
     g.mSay(l);
 }
@@ -784,6 +781,7 @@ void sayP(GameWorld& g, int who, int ped, const std::string& text, float pause =
     DialogueLine l = line(who == 0 ? "Mari" : "Dex", text, pedAlive(g, speaker) ? speaker : -1, who == 0 ? kColMari : kColDex);
     l.hasVoice = true;
     l.voice = protagonistVoice(who);
+    l.spoken = protagonistTags(who) + speakableText(text);
     l.pause = pause;
     g.mSay(l);
 }
@@ -795,14 +793,20 @@ void phoneLine(GameWorld& g, int cast, const std::string& text, float pause = 0.
     l.phone = true;
     l.hasVoice = true;
     l.voice = castVoice(cast);
+    l.spoken = castTags(cast) + speakableText(text);
     l.pause = pause;
     g.mSay(l);
 }
 
-void narrator(GameWorld& g, const char* name, const std::string& text, bool female, u32 seed, u32 color = kColOther) {
+// A voice without a body (radio, TV, PA): `personaKey` is a speech persona ("newsreader_female", "dj", "cast_kit"...),
+// `delivery` an optional style prefix such as "[news]" or "[dj]".
+void narrator(GameWorld& g, const char* name, const std::string& text, const char* personaKey, const char* delivery = "", u32 color = kColOther) {
     DialogueLine l = line(name, text, -1, color);
-    l.female = female;
-    l.voiceSeed = seed;
+    Speech::Persona p = Speech::persona(personaKey);
+    l.hasVoice = true;
+    l.voice = p.voice;
+    l.spoken = p.tags() + delivery + speakableText(text);
+    l.phone = true;   // not positional
     g.mSay(l);
 }
 

@@ -14,19 +14,22 @@ static StyleParams emotionTable(int e) {
         case EMOTION_ANGRY:
             p.rate = 1.08f, p.pause = 0.75f, p.pitch = 2.f, p.range = 1.3f, p.decl = 1.2f, p.stressLen = 1.12f;
             p.loud = 3.f, p.rd = -0.22f, p.creak = 0.06f, p.jitter = 1.3f, p.tilt = -4.f, p.f1 = 1.05f;
+            p.finalLen = 0.75f;  // clipped word endings
+            p.breathIn = 1.3f;
             break;
         case EMOTION_SCARED:
             p.rate = 1.15f, p.pause = 0.7f, p.pitch = 4.f, p.range = 1.2f, p.decl = 0.6f, p.loud = 1.f;
             p.rd = 0.12f, p.breath = 0.18f, p.jitter = 2.2f, p.tremor = 0.55f, p.tilt = -1.f, p.f1 = 1.03f;
-            p.endLift = 1.5f;
+            p.endLift = 1.5f, p.finalLen = 0.85f, p.breathIn = 1.8f;
             break;
         case EMOTION_CALM:
             p.rate = 0.9f, p.pause = 1.3f, p.pitch = -1.f, p.range = 0.7f, p.decl = 0.9f, p.loud = -2.f;
-            p.rd = 0.12f, p.breath = 0.05f, p.tilt = 2.f, p.f1 = 0.98f;
+            p.rd = 0.12f, p.breath = 0.05f, p.tilt = 2.f, p.f1 = 0.98f, p.finalLen = 1.15f, p.breathIn = 0.8f;
             break;
         case EMOTION_SAD:
             p.rate = 0.82f, p.pause = 1.5f, p.pitch = -2.5f, p.range = 0.55f, p.decl = 1.3f, p.stressLen = 1.08f;
             p.loud = -4.f, p.rd = 0.3f, p.breath = 0.15f, p.creak = 0.2f, p.tilt = 4.f, p.f1 = 0.95f, p.f23 = 0.98f;
+            p.finalLen = 1.3f, p.breathIn = 1.3f;  // drawn-out, sighing phrase ends
             break;
         case EMOTION_HAPPY:
             p.rate = 1.06f, p.pause = 0.9f, p.pitch = 2.5f, p.range = 1.35f, p.decl = 0.8f, p.loud = 2.f;
@@ -34,10 +37,15 @@ static StyleParams emotionTable(int e) {
             break;
         case EMOTION_SHOUT:  // on top of the shouting rules shared with ALL-CAPS sentences
             p.rate = 0.95f, p.pause = 0.9f, p.pitch = 2.5f, p.range = 1.f, p.decl = 0.8f, p.stressLen = 1.12f;
-            p.loud = 2.f, p.rd = -0.12f, p.jitter = 1.2f, p.tilt = -5.f, p.f1 = 1.1f, p.f23 = 1.02f;
+            p.loud = 2.f, p.rd = -0.12f, p.jitter = 1.2f, p.tilt = -5.f, p.f1 = 1.1f, p.f23 = 1.02f, p.breathIn = 1.5f;
             break;
         case EMOTION_WHISPER:
-            p.rate = 0.92f, p.pause = 1.2f, p.range = 0.6f, p.whisper = 1.f, p.f1 = 1.08f;
+            p.rate = 0.92f, p.pause = 1.2f, p.range = 0.6f, p.whisper = 1.f, p.f1 = 1.08f, p.breathIn = 0.6f;
+            break;
+        case EMOTION_DRUNK:
+            p.rate = 0.84f, p.pause = 1.3f, p.pitch = -0.5f, p.range = 1.3f, p.decl = 0.8f, p.stressLen = 1.1f;
+            p.rd = 0.15f, p.breath = 0.1f, p.jitter = 1.6f, p.tremor = 0.3f, p.tilt = 2.f, p.f1 = 0.97f;
+            p.finalLen = 1.2f, p.slur = 1.f;
             break;
         default: break;
     }
@@ -50,22 +58,23 @@ static StyleParams deliveryTable(int d) {
         case DELIVERY_DJ:
             p.rate = 1.12f, p.pause = 0.7f, p.pitch = 2.f, p.range = 1.45f, p.decl = 0.7f, p.stressLen = 1.1f;
             p.loud = 3.f, p.rd = -0.15f, p.tilt = -3.f, p.f23 = 1.03f, p.endLift = 0.8f, p.accentAll = 0.5f;
+            p.breathIn = 0.5f;
             break;
         case DELIVERY_AD:
             p.rate = 1.18f, p.pause = 0.65f, p.pitch = 1.5f, p.range = 1.4f, p.stressLen = 1.12f, p.loud = 4.f;
-            p.rd = -0.2f, p.tilt = -4.f, p.f23 = 1.03f, p.accentAll = 0.6f;
+            p.rd = -0.2f, p.tilt = -4.f, p.f23 = 1.03f, p.accentAll = 0.6f, p.breathIn = 0.f;  // edited
             break;
         case DELIVERY_FINEPRINT:
             p.rate = 1.75f, p.pause = 0.35f, p.pitch = -1.f, p.range = 0.35f, p.stressLen = 0.9f, p.reducedLen = 0.85f;
-            p.loud = -3.f, p.rd = 0.05f;
+            p.loud = -3.f, p.rd = 0.05f, p.finalLen = 0.6f, p.breathIn = 0.f;
             break;
         case DELIVERY_NEWS:
             p.rate = 1.04f, p.pause = 0.95f, p.pitch = -0.5f, p.range = 1.15f, p.decl = 1.1f, p.reducedLen = 1.1f;
-            p.loud = 1.f, p.rd = -0.08f, p.tilt = -1.f;
+            p.loud = 1.f, p.rd = -0.08f, p.tilt = -1.f, p.breathIn = 0.3f;
             break;
         case DELIVERY_DISPATCH:
             p.rate = 1.15f, p.pause = 0.6f, p.range = 0.45f, p.decl = 0.5f, p.rd = -0.05f, p.tilt = -1.f;
-            p.endLift = 0.8f;
+            p.endLift = 0.8f, p.finalLen = 0.8f, p.breathIn = 0.2f;
             break;
         default: break;
     }
@@ -87,13 +96,30 @@ static StyleParams accentTable(int a) {
     return p;
 }
 
+static StyleParams timbreTable(int t) {
+    StyleParams p;
+    switch (t) {
+        case TIMBRE_NASAL: p.nasal = 0.3f, p.tilt = 1.f; break;
+        case TIMBRE_HUSKY: p.breath = 0.25f, p.rd = 0.12f, p.whisper = 0.08f, p.jitter = 1.2f; break;
+        case TIMBRE_GRAVELLY: p.creak = 0.3f, p.jitter = 1.8f, p.rd = -0.05f; break;
+        case TIMBRE_BRIGHT: p.f23 = 1.03f, p.tilt = -3.f, p.rd = -0.08f; break;
+        case TIMBRE_DARK: p.fscale = 0.965f, p.tilt = 2.5f, p.rd = 0.05f; break;
+        case TIMBRE_FRY: p.creak = 0.35f, p.pitch = -1.f; break;
+        default: break;
+    }
+    return p;
+}
+
 // Scales a parameter set's deviation from neutral by k.
 static StyleParams scaled(const StyleParams& p, float k) {
     auto m = [k](float v) { return 1.f + (v - 1.f) * k; };
     StyleParams r;
     r.rate = m(p.rate), r.pause = m(p.pause), r.range = m(p.range), r.decl = m(p.decl);
     r.stressLen = m(p.stressLen), r.reducedLen = m(p.reducedLen), r.jitter = m(p.jitter);
-    r.f1 = m(p.f1), r.f23 = m(p.f23), r.vot = m(p.vot);
+    r.f1 = m(p.f1), r.f23 = m(p.f23), r.vot = m(p.vot), r.finalLen = m(p.finalLen), r.fscale = m(p.fscale);
+    r.nasal = p.nasal * k;
+    r.breathIn = std::max(0.f, m(p.breathIn));
+    r.slur = Saturate(p.slur * k);
     r.pitch = p.pitch * k, r.loud = p.loud * k, r.rd = p.rd * k, r.breath = p.breath * k, r.creak = p.creak * k;
     r.tremor = p.tremor * k, r.tilt = p.tilt * k, r.endLift = p.endLift * k, r.accentAll = p.accentAll * k;
     r.whisper = Saturate(p.whisper * k);
@@ -103,7 +129,10 @@ static StyleParams scaled(const StyleParams& p, float k) {
 static void combine(StyleParams& a, const StyleParams& b) {
     a.rate *= b.rate, a.pause *= b.pause, a.range *= b.range, a.decl *= b.decl;
     a.stressLen *= b.stressLen, a.reducedLen *= b.reducedLen, a.jitter *= b.jitter;
-    a.f1 *= b.f1, a.f23 *= b.f23, a.vot *= b.vot;
+    a.f1 *= b.f1, a.f23 *= b.f23, a.vot *= b.vot, a.finalLen *= b.finalLen, a.fscale *= b.fscale;
+    a.nasal = std::max(a.nasal, b.nasal);
+    a.breathIn *= b.breathIn;
+    a.slur = std::max(a.slur, b.slur);
     a.pitch += b.pitch, a.loud += b.loud, a.rd += b.rd, a.breath += b.breath, a.creak += b.creak;
     a.tremor += b.tremor, a.tilt += b.tilt, a.endLift += b.endLift, a.accentAll += b.accentAll;
     a.whisper = std::max(a.whisper, b.whisper);
@@ -113,6 +142,7 @@ StyleParams styleParams(const Style& s) {
     StyleParams p = scaled(emotionTable(s.emotion), Clamp(s.intensity, 0.f, 1.5f));
     combine(p, deliveryTable(s.delivery));
     combine(p, scaled(accentTable(s.accent), Clamp(s.accentStrength, 0.f, 1.f)));
+    combine(p, timbreTable(s.timbre));
     p.rate = Clamp(p.rate, 0.5f, 2.2f);
     p.pause = Clamp(p.pause, 0.2f, 3.f);
     p.accentAll = Saturate(p.accentAll);
@@ -120,8 +150,8 @@ StyleParams styleParams(const Style& s) {
 }
 
 bool styleEqual(const Style& a, const Style& b) {
-    return a.emotion == b.emotion && a.delivery == b.delivery && a.accent == b.accent && a.intensity == b.intensity &&
-           a.accentStrength == b.accentStrength;
+    return a.emotion == b.emotion && a.delivery == b.delivery && a.accent == b.accent && a.timbre == b.timbre &&
+           a.intensity == b.intensity && a.accentStrength == b.accentStrength;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -141,6 +171,7 @@ static const NameId kEmotionNames[] = {
     {"cheerful", EMOTION_HAPPY}, {"joyful", EMOTION_HAPPY}, {"shout", EMOTION_SHOUT}, {"shouting", EMOTION_SHOUT},
     {"yell", EMOTION_SHOUT}, {"yelling", EMOTION_SHOUT}, {"scream", EMOTION_SHOUT}, {"screaming", EMOTION_SHOUT},
     {"whisper", EMOTION_WHISPER}, {"whispering", EMOTION_WHISPER}, {"whispered", EMOTION_WHISPER},
+    {"drunk", EMOTION_DRUNK}, {"slurred", EMOTION_DRUNK}, {"slurring", EMOTION_DRUNK}, {"tipsy", EMOTION_DRUNK},
 };
 static const NameId kDeliveryNames[] = {
     {"talk", DELIVERY_TALK}, {"conversation", DELIVERY_TALK}, {"dj", DELIVERY_DJ}, {"host", DELIVERY_DJ},
@@ -159,7 +190,17 @@ static const NameId kAccentNames[] = {
     {"haitian", ACCENT_CARIBBEAN}, {"british", ACCENT_BRITISH}, {"english", ACCENT_BRITISH}, {"uk", ACCENT_BRITISH},
     {"rp", ACCENT_BRITISH}, {"posh", ACCENT_BRITISH},
 };
-static const char* const kEmotionTag[EMOTION_COUNT] = {"neutral", "angry", "scared", "calm", "sad", "happy", "shout", "whisper"};
+static const NameId kTimbreNames[] = {
+    {"normal", TIMBRE_NORMAL}, {"clear", TIMBRE_NORMAL}, {"nasal", TIMBRE_NASAL}, {"twang", TIMBRE_NASAL},
+    {"husky", TIMBRE_HUSKY}, {"breathy", TIMBRE_HUSKY}, {"smoky", TIMBRE_HUSKY}, {"airy", TIMBRE_HUSKY},
+    {"gravelly", TIMBRE_GRAVELLY}, {"gravel", TIMBRE_GRAVELLY}, {"raspy", TIMBRE_GRAVELLY}, {"rough", TIMBRE_GRAVELLY},
+    {"hoarse", TIMBRE_GRAVELLY}, {"bright", TIMBRE_BRIGHT}, {"forward", TIMBRE_BRIGHT}, {"dark", TIMBRE_DARK},
+    {"throaty", TIMBRE_DARK}, {"warm", TIMBRE_DARK}, {"fry", TIMBRE_FRY}, {"vocalfry", TIMBRE_FRY},
+    {"creaky", TIMBRE_FRY},
+};
+static const char* const kTimbreTag[TIMBRE_COUNT] = {"normal", "nasal", "husky", "gravelly", "bright", "dark", "fry"};
+static const char* const kEmotionTag[EMOTION_COUNT] = {"neutral", "angry", "scared", "calm",  "sad",
+                                                       "happy",   "shout", "whisper", "drunk"};
 static const char* const kDeliveryTag[DELIVERY_COUNT] = {"talk", "dj", "ad", "fineprint", "news", "dispatch"};
 static const char* const kAccentTag[ACCENT_COUNT] = {"general", "south", "newyork", "latino", "caribbean", "british"};
 
@@ -205,6 +246,13 @@ bool parseStyleTag(const std::string& tagIn, Style& st, float& pauseSec) {
         pauseSec = Clamp(sec, 0.05f, 5.f);
         return true;
     }
+    if (f[0] == "timbre" || f[0] == "voice") {
+        if (f.size() < 2) return false;
+        int t = findName(kTimbreNames, ARRAY_COUNT(kTimbreNames), f[1]);
+        if (t < 0) return false;
+        st.timbre = (u8)t;
+        return true;
+    }
     if (f[0] == "accent") {
         if (f.size() < 2) return false;
         int a = findName(kAccentNames, ARRAY_COUNT(kAccentNames), f[1]);
@@ -226,6 +274,11 @@ bool parseStyleTag(const std::string& tagIn, Style& st, float& pauseSec) {
     int d = findName(kDeliveryNames, ARRAY_COUNT(kDeliveryNames), f[k]);
     if (d >= 0) {
         st.delivery = (u8)d;
+        return true;
+    }
+    int tb = findName(kTimbreNames, ARRAY_COUNT(kTimbreNames), f[k]);
+    if (tb > 0 && k == 0) {  // bare timbre names: "[husky]"
+        st.timbre = (u8)tb;
         return true;
     }
     int a = findName(kAccentNames, ARRAY_COUNT(kAccentNames), f[k]);
@@ -258,6 +311,7 @@ std::string styleTags(const Style& s) {
         if (s.accentStrength < 0.995f) r += ":" + fmtAmount(Saturate(s.accentStrength));
         r += "]";
     }
+    if (s.timbre != TIMBRE_NORMAL && s.timbre < TIMBRE_COUNT) r += std::string("[") + kTimbreTag[s.timbre] + "]";
     if (s.delivery != DELIVERY_TALK && s.delivery < DELIVERY_COUNT) r += std::string("[") + kDeliveryTag[s.delivery] + "]";
     if (s.emotion != EMOTION_NEUTRAL && s.emotion < EMOTION_COUNT) {
         r += "[";
@@ -321,52 +375,53 @@ struct PersonaDef {
     u8 emotion;
     float intensity;
     u8 delivery;
+    u8 timbre;
 };
 
 // Timbre, accent and default manner of the story cast and stock roles.
 static const PersonaDef kPersonas[] = {
     // protagonists
-    {"mari", 198.f, 1.14f, 1.0f, 0.16f, 0.04f, 1.15f, ACCENT_LATINO, 0.3f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"marisol", 198.f, 1.14f, 1.0f, 0.16f, 0.04f, 1.15f, ACCENT_LATINO, 0.3f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"dex", 106.f, 0.98f, 0.97f, 0.12f, 0.14f, 0.9f, ACCENT_GENERAL, 1.f, EMOTION_CALM, 0.3f, DELIVERY_TALK},
+    {"mari", 198.f, 1.14f, 1.0f, 0.16f, 0.04f, 1.15f, ACCENT_LATINO, 0.3f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_BRIGHT},
+    {"marisol", 198.f, 1.14f, 1.0f, 0.16f, 0.04f, 1.15f, ACCENT_LATINO, 0.3f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_BRIGHT},
+    {"dex", 106.f, 0.98f, 0.97f, 0.12f, 0.14f, 0.9f, ACCENT_GENERAL, 1.f, EMOTION_CALM, 0.3f, DELIVERY_TALK, TIMBRE_FRY},
     // story cast
-    {"cast_tomas", 134.f, 1.04f, 1.1f, 0.14f, 0.02f, 1.35f, ACCENT_LATINO, 0.45f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"cast_lucha", 180.f, 1.08f, 0.93f, 0.22f, 0.3f, 1.25f, ACCENT_LATINO, 0.8f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"cast_rook", 86.f, 0.92f, 0.93f, 0.08f, 0.42f, 0.9f, ACCENT_NEWYORK, 0.7f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"cast_kit", 216.f, 1.18f, 1.12f, 0.12f, 0.f, 1.35f, ACCENT_GENERAL, 1.f, EMOTION_HAPPY, 0.3f, DELIVERY_TALK},
-    {"cast_jonah", 98.f, 0.97f, 0.86f, 0.22f, 0.48f, 1.05f, ACCENT_SOUTH, 0.9f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"cast_sandoval", 102.f, 0.98f, 0.9f, 0.1f, 0.08f, 0.85f, ACCENT_BRITISH, 0.45f, EMOTION_CALM, 0.6f, DELIVERY_TALK},
-    {"cast_holt", 168.f, 1.07f, 1.03f, 0.05f, 0.12f, 0.75f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"cast_cuervo", 92.f, 0.95f, 0.95f, 0.1f, 0.34f, 1.15f, ACCENT_CARIBBEAN, 0.6f, EMOTION_CALM, 0.4f, DELIVERY_TALK},
-    {"cast_thug_a", 118.f, 1.01f, 1.06f, 0.1f, 0.18f, 1.2f, ACCENT_LATINO, 0.6f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"cast_thug_b", 104.f, 0.97f, 1.0f, 0.08f, 0.3f, 1.1f, ACCENT_CARIBBEAN, 0.55f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"cast_thug_c", 126.f, 1.02f, 1.1f, 0.12f, 0.1f, 1.3f, ACCENT_NEWYORK, 0.5f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"cast_thug_d", 204.f, 1.15f, 1.08f, 0.14f, 0.12f, 1.25f, ACCENT_LATINO, 0.55f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"cast_guard_a", 100.f, 0.95f, 0.95f, 0.06f, 0.2f, 0.7f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"cast_guard_b", 112.f, 0.97f, 1.0f, 0.08f, 0.15f, 0.75f, ACCENT_BRITISH, 0.35f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"cast_cop_a", 110.f, 0.97f, 1.02f, 0.08f, 0.16f, 0.85f, ACCENT_SOUTH, 0.45f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"cast_cop_b", 190.f, 1.12f, 1.05f, 0.1f, 0.06f, 0.9f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"cast_bouncer", 84.f, 0.92f, 0.9f, 0.08f, 0.4f, 0.8f, ACCENT_NEWYORK, 0.8f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"cast_docker", 96.f, 0.95f, 0.98f, 0.1f, 0.35f, 1.05f, ACCENT_NEWYORK, 0.6f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"cast_reporter", 200.f, 1.15f, 1.04f, 0.1f, 0.f, 1.15f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_NEWS},
-    {"cast_banker", 114.f, 0.99f, 0.95f, 0.08f, 0.06f, 0.8f, ACCENT_BRITISH, 0.35f, EMOTION_CALM, 0.4f, DELIVERY_TALK},
-    {"cast_pilot", 188.f, 1.13f, 1.05f, 0.1f, 0.04f, 0.95f, ACCENT_GENERAL, 1.f, EMOTION_CALM, 0.3f, DELIVERY_TALK},
-    {"cast_mechanic", 104.f, 0.97f, 0.92f, 0.14f, 0.28f, 1.1f, ACCENT_SOUTH, 0.65f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
+    {"cast_tomas", 134.f, 1.04f, 1.1f, 0.14f, 0.02f, 1.35f, ACCENT_LATINO, 0.45f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_NASAL},
+    {"cast_lucha", 180.f, 1.08f, 0.93f, 0.22f, 0.3f, 1.25f, ACCENT_LATINO, 0.8f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_HUSKY},
+    {"cast_rook", 86.f, 0.92f, 0.93f, 0.08f, 0.42f, 0.9f, ACCENT_NEWYORK, 0.7f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_GRAVELLY},
+    {"cast_kit", 216.f, 1.18f, 1.12f, 0.12f, 0.f, 1.35f, ACCENT_GENERAL, 1.f, EMOTION_HAPPY, 0.3f, DELIVERY_TALK, TIMBRE_BRIGHT},
+    {"cast_jonah", 98.f, 0.97f, 0.86f, 0.22f, 0.48f, 1.05f, ACCENT_SOUTH, 0.9f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_GRAVELLY},
+    {"cast_sandoval", 102.f, 0.98f, 0.9f, 0.1f, 0.08f, 0.85f, ACCENT_BRITISH, 0.45f, EMOTION_CALM, 0.6f, DELIVERY_TALK, TIMBRE_DARK},
+    {"cast_holt", 168.f, 1.07f, 1.03f, 0.05f, 0.12f, 0.75f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_BRIGHT},
+    {"cast_cuervo", 92.f, 0.95f, 0.95f, 0.1f, 0.34f, 1.15f, ACCENT_CARIBBEAN, 0.6f, EMOTION_CALM, 0.4f, DELIVERY_TALK, TIMBRE_DARK},
+    {"cast_thug_a", 118.f, 1.01f, 1.06f, 0.1f, 0.18f, 1.2f, ACCENT_LATINO, 0.6f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_NORMAL},
+    {"cast_thug_b", 104.f, 0.97f, 1.0f, 0.08f, 0.3f, 1.1f, ACCENT_CARIBBEAN, 0.55f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_GRAVELLY},
+    {"cast_thug_c", 126.f, 1.02f, 1.1f, 0.12f, 0.1f, 1.3f, ACCENT_NEWYORK, 0.5f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_NASAL},
+    {"cast_thug_d", 204.f, 1.15f, 1.08f, 0.14f, 0.12f, 1.25f, ACCENT_LATINO, 0.55f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_HUSKY},
+    {"cast_guard_a", 100.f, 0.95f, 0.95f, 0.06f, 0.2f, 0.7f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_DARK},
+    {"cast_guard_b", 112.f, 0.97f, 1.0f, 0.08f, 0.15f, 0.75f, ACCENT_BRITISH, 0.35f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_NORMAL},
+    {"cast_cop_a", 110.f, 0.97f, 1.02f, 0.08f, 0.16f, 0.85f, ACCENT_SOUTH, 0.45f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_NASAL},
+    {"cast_cop_b", 190.f, 1.12f, 1.05f, 0.1f, 0.06f, 0.9f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_BRIGHT},
+    {"cast_bouncer", 84.f, 0.92f, 0.9f, 0.08f, 0.4f, 0.8f, ACCENT_NEWYORK, 0.8f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_DARK},
+    {"cast_docker", 96.f, 0.95f, 0.98f, 0.1f, 0.35f, 1.05f, ACCENT_NEWYORK, 0.6f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_GRAVELLY},
+    {"cast_reporter", 200.f, 1.15f, 1.04f, 0.1f, 0.f, 1.15f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_NEWS, TIMBRE_BRIGHT},
+    {"cast_banker", 114.f, 0.99f, 0.95f, 0.08f, 0.06f, 0.8f, ACCENT_BRITISH, 0.35f, EMOTION_CALM, 0.4f, DELIVERY_TALK, TIMBRE_NORMAL},
+    {"cast_pilot", 188.f, 1.13f, 1.05f, 0.1f, 0.04f, 0.95f, ACCENT_GENERAL, 1.f, EMOTION_CALM, 0.3f, DELIVERY_TALK, TIMBRE_NORMAL},
+    {"cast_mechanic", 104.f, 0.97f, 0.92f, 0.14f, 0.28f, 1.1f, ACCENT_SOUTH, 0.65f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_NASAL},
     // stock roles
-    {"cop", 108.f, 0.97f, 1.03f, 0.08f, 0.14f, 0.85f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"dispatcher", 196.f, 1.13f, 1.05f, 0.08f, 0.02f, 0.8f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_DISPATCH},
-    {"dj", 116.f, 1.0f, 1.04f, 0.1f, 0.06f, 1.3f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_DJ},
-    {"dj_female", 206.f, 1.16f, 1.04f, 0.12f, 0.02f, 1.3f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_DJ},
-    {"announcer", 100.f, 0.96f, 1.0f, 0.06f, 0.08f, 1.2f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_AD},
-    {"announcer_female", 196.f, 1.14f, 1.0f, 0.1f, 0.f, 1.2f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_AD},
-    {"newsreader", 112.f, 0.98f, 1.0f, 0.08f, 0.04f, 1.0f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_NEWS},
-    {"newsreader_female", 192.f, 1.13f, 1.0f, 0.1f, 0.f, 1.05f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_NEWS},
-    {"redneck", 104.f, 0.97f, 0.9f, 0.14f, 0.3f, 1.1f, ACCENT_SOUTH, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"tourist", 124.f, 1.01f, 1.0f, 0.12f, 0.04f, 1.25f, ACCENT_BRITISH, 0.8f, EMOTION_HAPPY, 0.4f, DELIVERY_TALK},
-    {"gangster", 100.f, 0.96f, 1.0f, 0.1f, 0.25f, 1.1f, ACCENT_LATINO, 0.6f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"old_woman", 172.f, 1.1f, 0.88f, 0.24f, 0.3f, 1.05f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"old_man", 96.f, 0.95f, 0.86f, 0.2f, 0.45f, 0.95f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK},
-    {"kid", 265.f, 1.3f, 1.12f, 0.12f, 0.f, 1.4f, ACCENT_GENERAL, 1.f, EMOTION_HAPPY, 0.3f, DELIVERY_TALK},
+    {"cop", 108.f, 0.97f, 1.03f, 0.08f, 0.14f, 0.85f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_NORMAL},
+    {"dispatcher", 196.f, 1.13f, 1.05f, 0.08f, 0.02f, 0.8f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_DISPATCH, TIMBRE_NASAL},
+    {"dj", 116.f, 1.0f, 1.04f, 0.1f, 0.06f, 1.3f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_DJ, TIMBRE_BRIGHT},
+    {"dj_female", 206.f, 1.16f, 1.04f, 0.12f, 0.02f, 1.3f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_DJ, TIMBRE_BRIGHT},
+    {"announcer", 100.f, 0.96f, 1.0f, 0.06f, 0.08f, 1.2f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_AD, TIMBRE_DARK},
+    {"announcer_female", 196.f, 1.14f, 1.0f, 0.1f, 0.f, 1.2f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_AD, TIMBRE_BRIGHT},
+    {"newsreader", 112.f, 0.98f, 1.0f, 0.08f, 0.04f, 1.0f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_NEWS, TIMBRE_NORMAL},
+    {"newsreader_female", 192.f, 1.13f, 1.0f, 0.1f, 0.f, 1.05f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_NEWS, TIMBRE_NORMAL},
+    {"redneck", 104.f, 0.97f, 0.9f, 0.14f, 0.3f, 1.1f, ACCENT_SOUTH, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_NASAL},
+    {"tourist", 124.f, 1.01f, 1.0f, 0.12f, 0.04f, 1.25f, ACCENT_BRITISH, 0.8f, EMOTION_HAPPY, 0.4f, DELIVERY_TALK, TIMBRE_NORMAL},
+    {"gangster", 100.f, 0.96f, 1.0f, 0.1f, 0.25f, 1.1f, ACCENT_LATINO, 0.6f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_GRAVELLY},
+    {"old_woman", 172.f, 1.1f, 0.88f, 0.24f, 0.3f, 1.05f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_HUSKY},
+    {"old_man", 96.f, 0.95f, 0.86f, 0.2f, 0.45f, 0.95f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_GRAVELLY},
+    {"kid", 265.f, 1.3f, 1.12f, 0.12f, 0.f, 1.4f, ACCENT_GENERAL, 1.f, EMOTION_HAPPY, 0.3f, DELIVERY_TALK, TIMBRE_NORMAL},
 };
 
 }  // namespace detail
@@ -389,6 +444,7 @@ Persona persona(const char* keyIn, bool femaleIfUnknown) {
         r.style.emotion = d.emotion;
         r.style.intensity = d.intensity;
         r.style.delivery = d.delivery;
+        r.style.timbre = d.timbre;
         return r;
     }
     // Unknown key: a stable preset voice and a mild accent chosen from the key's hash.

@@ -70,7 +70,7 @@ float trafficTimeFactor(float tod) {
 
 enum PedSpawnKind : u8 {
     PK_WALKER = 0, PK_GROUP, PK_CHAT, PK_SPOT, PK_HAIL, PK_WALL, PK_JOGGER, PK_SUNBATHER, PK_GANG, PK_WORKER, PK_NIGHTLIFE,
-    PK_BUSINESS, PK_COUNT
+    PK_BUSINESS, PK_QUEUE, PK_COUNT
 };
 
 struct PopState {
@@ -137,6 +137,113 @@ bool freeStandingSpot(const GameWorld& g, vec3 p) {
     vec3 push, nrm;
     if (Phys::gCollision && Phys::gCollision->capsuleOverlap(p + vec3(0, 0, 0.05f), 0.3f, 1.7f, push, nrm)) return false;
     return true;
+}
+
+// ---- nightlife: lines outside the clubs of Sol Beach and Calle Luna, a bouncer at the door
+struct ClubQueue {
+    bool active = false;
+    vec2 door;         // head of the line (next to the door)
+    vec2 along;        // direction the line grows away from the door
+    vec2 outward;      // from the street toward the building
+    float z = 0.f;
+    int ids[8];
+    u32 uids[8];
+    int n = 0;
+    int bouncer = -1;
+    u32 bouncerUid = 0;
+    float timer = 20.f;
+    float barkT = 0.f;
+};
+ClubQueue gQueues[2];
+
+bool queuePedOk(const GameWorld& g, int id, u32 uid) {
+    if (id < 0 || id >= (int)g.peds.size()) return false;
+    const Ped& p = g.peds[id];
+    return p.used && p.uid == uid && p.health > 0.f && p.state == PS_ONFOOT && p.brain.type == BRAIN_WANDER;
+}
+
+vec2 queueSlot(const ClubQueue& q, int k) { return q.door + q.along * (1.1f + k * 0.85f) + q.outward * 0.15f; }
+
+void releaseQueue(GameWorld& g, ClubQueue& q) {
+    for (int k = 0; k < q.n; k++)
+        if (queuePedOk(g, q.ids[k], q.uids[k])) {
+            PedAI& pa = g.pedAI(q.ids[k]);
+            pa.activity = ACT_WALK;
+            pa.navOk = false;
+            pa.actTimer = 20.f;
+        }
+    if (queuePedOk(g, q.bouncer, q.bouncerUid)) {
+        PedAI& ba = g.pedAI(q.bouncer);
+        ba.activity = ACT_WALK;
+        ba.navOk = false;
+    }
+    q.active = false;
+    q.n = 0;
+}
+
+void updateQueues(GameWorld& g, float dt, vec2 pp, bool night, bool warm) {
+    for (ClubQueue& q : gQueues) {
+        if (!q.active) continue;
+        if (length(q.door - pp) > 220.f || !night) {
+            releaseQueue(g, q);
+            continue;
+        }
+        // drop members who left the line (scared off, fighting...) and close the gaps
+        int w = 0;
+        for (int k = 0; k < q.n; k++) {
+            bool ok = queuePedOk(g, q.ids[k], q.uids[k]) && g.pedAI(q.ids[k]).activity == ACT_QUEUE;
+            if (ok) {
+                q.ids[w] = q.ids[k];
+                q.uids[w] = q.uids[k];
+                w++;
+            }
+        }
+        q.n = w;
+        for (int k = 0; k < q.n; k++) {
+            PedAI& pa = g.pedAI(q.ids[k]);
+            pa.anchor = queueSlot(q, k);
+            pa.anchorYaw = AI::dirYaw(-q.along);
+        }
+        // the bouncer lets the next one in every so often; newcomers join at the back
+        q.timer -= dt;
+        if (q.timer <= 0.f) {
+            u32 h = hash32((u32)(g.time * 10.0) + (u32)q.door.x);
+            q.timer = 15.f + hashToFloat(h) * 20.f;
+            if (q.n > 0) {
+                int id = q.ids[0];
+                PedAI& pa = g.pedAI(id);
+                // walks in through the door (and out of the simulation)
+                pa.activity = ACT_ENTER_VEH;   // reuse: walk to a point and vanish
+                pa.targetVeh = -1;
+                g.peds[id].brain.type = BRAIN_GOTO;
+                g.peds[id].brain.goal = dvec3(vec3(q.door + q.outward * 0.4f, q.z));
+                g.peds[id].brain.speed = 1.2f;
+                g.peds[id].brain.timer = 0.f;
+                for (int k = 1; k < q.n; k++) {
+                    q.ids[k - 1] = q.ids[k];
+                    q.uids[k - 1] = q.uids[k];
+                }
+                q.n--;
+                if (queuePedOk(g, q.bouncer, q.bouncerUid)) g.peds[q.bouncer].pendingAction = Anim::CLIP_WAVE;
+            }
+        }
+        if (queuePedOk(g, q.bouncer, q.bouncerUid)) {
+            Ped* pl = g.playerPed();
+            q.barkT -= dt;
+            if (pl && q.barkT <= 0.f && length(pl->pos.toVec3().xy() - q.door) < 4.f) {
+                g.aiSay(q.bouncer, BK_BOUNCER, 1.f, true);
+                q.barkT = 8.f;
+            }
+        }
+        (void)warm;
+    }
+    // walkers who reached the door disappear inside
+    for (int i = 0; i < (int)g.peds.size(); i++) {
+        Ped& p = g.peds[i];
+        if (!p.used || p.persistent || p.brain.type != BRAIN_GOTO || p.faction != FAC_CIVILIAN || i >= (int)g.ai.ped.size()) continue;
+        if (g.ai.ped[i].uid != p.uid || g.ai.ped[i].activity != ACT_ENTER_VEH || g.ai.ped[i].targetVeh >= 0) continue;
+        if (length(p.pos.toVec3().xy() - p.brain.goal.toVec3().xy()) < 1.1f || p.brain.timer > 7.f) g.despawnPed(i);
+    }
 }
 
 }  // namespace pop_detail
@@ -207,6 +314,7 @@ void GameWorld::updatePopulation(float dt) {
         if (v.parked || drv < 0) nParked++;
         else if (!peds[drv].isPlayer && !isAircraft(i) && !isBoat(i)) nTraffic++;
     }
+    updateQueues(*this, dt, pp.xy(), isNight(tod), warm);
     // ------------------------------------------------------------------ emergency services
     gPop.incidentTimer -= dt;
     if (gPop.incidentTimer <= 0.f) {
@@ -348,6 +456,10 @@ void GameWorld::updatePopulation(float dt) {
         w[PK_WORKER] = (reg == World::REG_PORT && tod > 6.f && tod < 18.5f) ? 0.9f : ((reg == World::REG_FLATS || reg == World::REG_FORT_CASTELL) && !night ? 0.15f : 0.f);
         w[PK_NIGHTLIFE] = night && nightlifeArea(reg) ? 0.8f : 0.f;
         w[PK_BUSINESS] = business ? 0.7f : 0.f;
+        int freeQueue = -1;
+        for (int k = 0; k < 2; k++)
+            if (!gQueues[k].active) freeQueue = k;
+        w[PK_QUEUE] = night && nightlifeArea(reg) && freeQueue >= 0 && nPeds + 8 < wantPeds + 4 ? 0.35f : 0.f;
         float sum = 0.f;
         for (float x : w) sum += x;
         float r = hashToFloat(h) * sum;
@@ -392,10 +504,73 @@ void GameWorld::updatePopulation(float dt) {
                 pa.activity = ACT_SCENARIO;
                 pa.anchor = sp;
                 pa.anchorYaw = p.yaw;
-                pa.stance = 0;
-                pa.clip = Anim::CLIP_SUNBATHE;
+                pa.stance = 12;   // lying in the sun (looping stance)
+                pa.clip = -1;
                 pa.actTimer = 90.f + hashToFloat(hash32(h * 3u)) * 200.f;
                 spawned = 1;
+                break;
+            }
+            case PK_QUEUE: {
+                // a line outside a club door on the building side of the sidewalk, with a bouncer
+                Side sd;
+                if (!sidewalkAt(*this, probe, 40.f, sd) || laneGraph.walkLinks[sd.link].kind != AI::WL_SIDEWALK || sd.halfWidth < 1.3f) break;
+                const AI::WalkLink& L = laneGraph.walkLinks[sd.link];
+                if (sd.x < 3.f || L.length - sd.x < 9.f) break;
+                vec3 door3 = sideOffset(*this, sd, 0.f, sd.halfWidth * 0.75f);
+                if (visibleNear(door3) || tooClose(door3)) break;
+                bool clash = false;
+                for (const ClubQueue& o : gQueues)
+                    if (o.active && length(o.door - door3.xy()) < 40.f) clash = true;
+                if (clash || freeQueue < 0) break;
+                ClubQueue& q = gQueues[freeQueue];
+                q = ClubQueue();
+                q.door = door3.xy();
+                q.along = sd.t;
+                q.outward = sd.outward;
+                q.z = door3.z;
+                q.timer = 12.f + hashToFloat(h) * 12.f;
+                vec2 bp = q.door - q.along * 0.9f;
+                int bid = spawnPed(randomCivilianChar(hash32(h * 3u), 5), dvec3(vec3(bp, door3.z)), AI::dirYaw(-q.outward), FAC_CIVILIAN);
+                if (bid < 0) break;
+                peds[bid].brain.type = BRAIN_WANDER;
+                peds[bid].brain.edge = -1;
+                PedAI& ba = pedAI(bid);
+                ba.role = PR_WORKER;
+                ba.activity = ACT_QUEUE;   // stays put at his post
+                ba.anchor = bp;
+                ba.anchorYaw = AI::dirYaw(-q.outward);
+                ba.stance = 0;
+                ba.clip = -1;
+                ba.temper = 2;
+                q.bouncer = bid;
+                q.bouncerUid = peds[bid].uid;
+                int want = 4 + (int)(h % 4u);
+                for (int k = 0; k < want; k++) {
+                    vec2 sp = queueSlot(q, k);
+                    vec3 sp3(sp, groundHeight(sp.x, sp.y, door3.z + 1.f));
+                    if (!freeStandingSpot(*this, sp3)) break;
+                    u32 hk = hash32(h * 17u + k * 131u);
+                    int id = spawnPed(randomCivilianChar(hk >> 2, (hk & 3) == 0 ? 4 : 0), dvec3(sp3), AI::dirYaw(-q.along), FAC_CIVILIAN);
+                    if (id < 0) break;
+                    peds[id].brain.type = BRAIN_WANDER;
+                    peds[id].brain.edge = -1;
+                    PedAI& pa = pedAI(id);
+                    pa.role = PR_NIGHTLIFE;
+                    pa.activity = ACT_QUEUE;
+                    pa.anchor = sp;
+                    pa.anchorYaw = AI::dirYaw(-q.along);
+                    float qr = hashToFloat(hash32(hk));
+                    pa.stance = qr < 0.4f ? 7 : (qr < 0.65f ? 8 : 0);
+                    pa.clip = -1;
+                    pa.clipTimer = 3.f + qr * 8.f;
+                    q.ids[q.n] = id;
+                    q.uids[q.n] = peds[id].uid;
+                    q.n++;
+                    nPeds++;
+                    spawned++;
+                }
+                q.active = true;
+                nPeds++;
                 break;
             }
             case PK_SPOT: {
@@ -429,7 +604,7 @@ void GameWorld::updatePopulation(float dt) {
                 pa.anchor = sp.pos.xy();
                 pa.anchorYaw = AI::dirYaw(sp.face);
                 pa.stance = bench ? 6 : ((h >> 7) % 3 == 0 ? 8 : 0);
-                pa.clip = bench ? Anim::CLIP_SIT_BENCH : -1;
+                pa.clip = -1;
                 pa.actTimer = 30.f + hashToFloat(hash32(h * 5u)) * 90.f;
                 spawned = 1;
                 break;
@@ -477,8 +652,8 @@ void GameWorld::updatePopulation(float dt) {
                             pa.stance = 7;
                             pa.clip = -1;
                         } else if (q < 0.8f) {
-                            pa.stance = 0;
-                            pa.clip = Anim::CLIP_SMOKE;
+                            pa.stance = 10;   // smoking
+                            pa.clip = -1;
                         } else {
                             pa.stance = 8;
                             pa.clip = -1;
@@ -542,8 +717,8 @@ void GameWorld::updatePopulation(float dt) {
                     pa.anchorYaw = AI::dirYaw(-s.outward);
                     p.yaw = pa.anchorYaw;
                     float q = hashToFloat(hash32(h * 19u));
-                    pa.stance = q < 0.45f ? 8 : 0;
-                    pa.clip = q < 0.45f ? -1 : (q < 0.75f ? Anim::CLIP_SMOKE : Anim::CLIP_LEAN_WALL);
+                    pa.stance = q < 0.45f ? 8 : (q < 0.75f ? 10 : 11);   // phone / smoke / lean on the wall
+                    pa.clip = -1;
                     pa.actTimer = 15.f + hashToFloat(hash32(h * 23u)) * 30.f;
                 } else if (kind == PK_HAIL) {
                     pa.activity = ACT_HAIL_TAXI;

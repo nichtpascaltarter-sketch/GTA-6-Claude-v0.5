@@ -31,7 +31,7 @@ void buildActivityModels(GameWorld& g) {
                 float a = kTwoPi * i / seg;
                 m.addVertex(vec3(cosf(a) * radii[r], y, 1.45f + sinf(a) * radii[r]), vec3(0, -1, 0), vec3(1, 0, 0), vec2(0, 0), col, matB);
             }
-            for (int i = 0; i < seg; i++) m.tri(c, first + i + 1, first + i);
+            for (int i = 0; i < seg; i++) m.tri(c, first + i, first + i + 1);   // CCW seen from -Y (the shooter)
         }
         m.boxAA(vec3(-0.47f, 0.f, 0.98f), vec3(0.47f, 0.03f, 1.92f), packRGBA8(0.3f, 0.3f, 0.3f, 1.f), matB);
         gTargetModel = g.renderer->dynamic->createModel(m);
@@ -65,7 +65,7 @@ void buildActivityModels(GameWorld& g) {
         for (int i = 0; i < seg; i++)
             for (int j = 0; j < side; j++) {
                 u32 a = start + i * (side + 1) + j, b = a + side + 1;
-                m.quadIdx(a, b, b + 1, a + 1);
+                m.quadIdx(a, a + 1, b + 1, b);   // CCW seen from outside the tube
             }
         gRingModel = g.renderer->dynamic->createModel(m);
     }
@@ -275,6 +275,7 @@ public:
                         won = spec.prize + (record ? 500 : 0);
                         setFlag(g, spec.sideFlag, 1);
                         g.notify("RACE WON", StrFormat("%s  %d:%04.1f%s", spec.name, (int)(raceTime / 60.f), fmodf(raceTime, 60.f), record ? "  NEW RECORD" : ""));
+                        g.socialReport(UI::TE_RACE_WON, dvec3(playerPos(g)), spec.name);
                         for (int v : race.racers) releaseDriver(g, v);
                         return MS_PASSED;
                     }
@@ -1130,6 +1131,268 @@ struct ActivitiesState {
 };
 ActivitiesState gAct;
 
+// ------------------------------------------------------------------------------------------------------------------
+// Stunt ramps: steel kicker ramps set up on open ground (beach sand, farm fields, airport grass, the Sawgrass levees)
+// where the run-up and the landing zone are flat and clear of buildings, trees, roads and site structures - some jump a
+// canal. Collision is a fine staircase of boxes whose tops follow the deck (the wheels ride it); a launch assist at the
+// lip turns the car's speed into the ramp's climb angle so every jump leaves cleanly, for traffic as well as the player.
+constexpr float kRampLen = 9.f, kRampHalfW = 2.6f, kRampH = 2.4f;
+constexpr int kRampSteps = 18;
+constexpr int kRampCollisionKey = -7000;   // collision "cell" keys -7000 - i (never used by world streaming)
+
+struct StuntRamp {
+    vec3 foot;          // center of the ramp's foot on the ground
+    vec2 dir;           // jump direction
+    bool waterGap = false;
+    bool collision = false;
+};
+
+struct RampSearch {
+    std::atomic<int> state{0};   // 0 idle, 1 searching (job), 2 done
+    std::vector<StuntRamp> found;
+    double ms = 0.0;
+    int tested = 0;
+};
+RampSearch gRampSearch;
+std::vector<StuntRamp> gRamps;
+Render::Model* gRampModel = nullptr;
+
+void buildRampModel(GameWorld& g) {
+    if (gRampModel || !g.renderer) return;
+    MeshData m;
+    const float L = kRampLen, W = kRampHalfW, H = kRampH;
+    u32 matD = makeMat(MAT_METAL_PAINTED), matW = makeMat(MAT_WOOD), matS = makeMat(MAT_METAL_BRUSHED);
+    u32 deck = packRGBA8(0.17f, 0.18f, 0.2f, 1.f), yellow = packRGBA8(0.95f, 0.7f, 0.06f, 1.f), side = packRGBA8(0.62f, 0.42f, 0.24f, 1.f),
+        steel = packRGBA8(0.55f, 0.56f, 0.58f, 1.f), orange = packRGBA8(0.9f, 0.32f, 0.06f, 1.f);
+    const vec3 up = normalize(vec3(0.f, -H, L));
+    auto deckPt = [&](float x, float y, float lift) { return vec3(x, y, H * y / L) + up * lift; };
+    m.quadFacing(deckPt(-W, 0, 0.02f), deckPt(W, 0, 0.02f), deckPt(W, L, 0.02f), deckPt(-W, L, 0.02f), vec2(0, 0), vec2(2 * W, 0), vec2(2 * W, L),
+                 vec2(0, L), deck, matD, up);
+    for (int sgn = -1; sgn <= 1; sgn += 2) {
+        float x0 = sgn * (W - 0.4f), x1 = sgn * (W - 0.08f);
+        m.quadFacing(deckPt(x0, 0, 0.035f), deckPt(x1, 0, 0.035f), deckPt(x1, L, 0.035f), deckPt(x0, L, 0.035f), vec2(0, 0), vec2(0.3f, 0), vec2(0.3f, L),
+                     vec2(0, L), yellow, matD, up);
+    }
+    // chevrons pointing up the ramp
+    for (int k = 0; k < 4; k++) {
+        float y0 = 0.9f + k * 1.9f;
+        for (int sgn = -1; sgn <= 1; sgn += 2) {
+            vec3 a = deckPt(sgn * 1.7f, y0, 0.035f), b = deckPt(sgn * 1.7f, y0 + 0.5f, 0.035f), c = deckPt(0.f, y0 + 1.35f, 0.035f), d = deckPt(0.f, y0 + 0.85f, 0.035f);
+            m.quadFacing(a, b, c, d, vec2(0, 0), vec2(0.5f, 0), vec2(0.5f, 1.f), vec2(0, 1.f), yellow, matD, up);
+        }
+    }
+    // steel lip, side panels, back wall and an orange frame
+    m.boxAA(vec3(-W, L - 0.45f, H - 0.1f), vec3(W, L + 0.05f, H + 0.03f), steel, matS);
+    auto triFacing = [&](vec3 a, vec3 b, vec3 c, vec3 facing, u32 col, u32 mat) {
+        vec3 n = cross(b - a, c - a);
+        if (dot(n, facing) < 0.f) std::swap(b, c);
+        n = normalize(cross(b - a, c - a));
+        vec3 t = normalize(b - a);
+        u32 i0 = m.addVertex(a, n, t, vec2(a.y, a.z), col, mat), i1 = m.addVertex(b, n, t, vec2(b.y, b.z), col, mat);
+        u32 i2 = m.addVertex(c, n, t, vec2(c.y, c.z), col, mat);
+        m.tri(i0, i1, i2);
+    };
+    for (int sgn = -1; sgn <= 1; sgn += 2) {
+        float x = sgn * W;
+        triFacing(vec3(x, 0.f, 0.f), vec3(x, L, 0.f), vec3(x, L, H), vec3((float)sgn, 0.f, 0.f), side, matW);
+        m.boxAA(vec3(x - 0.06f, L - 0.12f, 0.f), vec3(x + 0.06f, L, H), orange, matD);                                        // rear post
+        m.boxAA(vec3(x - 0.06f, L * 0.5f - 0.06f, 0.f), vec3(x + 0.06f, L * 0.5f + 0.06f, H * 0.5f), orange, matD);          // mid post
+    }
+    m.quadFacing(vec3(-W, L, 0.f), vec3(W, L, 0.f), vec3(W, L, H), vec3(-W, L, H), vec2(0, 0), vec2(2 * W, 0), vec2(2 * W, H), vec2(0, H), side, matW,
+                 vec3(0, 1, 0));
+    gRampModel = g.renderer->dynamic->createModel(m);
+}
+
+namespace ramp_detail {
+
+float surfZ(const GameWorld& g, vec2 p) {
+    float z;
+    if (g.roads->surfaceHeight(p, &z)) return z;
+    return g.map->heightAt(p.x, p.y);
+}
+
+bool propBlocks(u8 type) {
+    switch (type) {
+        case World::PROP_PALM: case World::PROP_PALM_TALL: case World::PROP_TREE_OAK: case World::PROP_TREE_PINE: case World::PROP_CYPRESS:
+        case World::PROP_MANGROVE: case World::PROP_LIFEGUARD_TOWER: case World::PROP_STREETLIGHT: case World::PROP_STREETLIGHT_DOUBLE:
+        case World::PROP_TRAFFIC_LIGHT: case World::PROP_POWER_POLE: case World::PROP_BUS_STOP:
+            return true;
+        default: return false;
+    }
+}
+
+// Run-up (70 m), ramp, flight and landing (100 m past the lip) along dir from foot: flat, dry (the flight may cross
+// water), away from roads, buildings, site structures and trees.
+bool corridorClear(const GameWorld& g, vec2 foot, vec2 dir, bool& waterGap, std::unordered_map<int, std::vector<World::PropInstance>>& veg) {
+    const World::WorldMap& map = *g.map;
+    vec2 right(dir.y, -dir.x);
+    if (map.isWater(foot.x, foot.y)) return false;
+    float z0 = surfZ(g, foot);
+    if (z0 < 0.3f) return false;
+    const float s0 = -70.f, s1 = kRampLen + 100.f;
+    waterGap = false;
+    // cheap checks first: centerline, then the sides
+    for (int pass = 0; pass < 2; pass++)
+        for (float s = s0; s <= s1; s += 3.f)
+            for (int wi = 0; wi < (pass == 0 ? 1 : 2); wi++) {
+                float w = pass == 0 ? 0.f : (wi == 0 ? -3.6f : 3.6f);
+                vec2 p = foot + dir * s + right * w;
+                bool flight = s > kRampLen + 5.f && s < kRampLen + 52.f;
+                if (map.isWater(p.x, p.y)) {
+                    if (!flight) return false;
+                    waterGap = true;
+                    continue;
+                }
+                float z = surfZ(g, p);
+                if (flight ? z > z0 + 2.5f : fabsf(z - z0) > 1.4f) return false;
+                if (g.roads->nearRoad(p, 5.f)) return false;
+                if (g.buildings->pointInBuilding(p, 3.5f)) return false;
+                const World::Pad* pad = World::gSites ? World::gSites->padAt(p) : nullptr;
+                if (pad && (pad->kind == World::PAD_RUNWAY || pad->kind == World::PAD_TAXIWAY || pad->kind == World::PAD_DECK || pad->kind == World::PAD_RAMP))
+                    return false;
+            }
+    // site structures near the corridor
+    if (World::gSites) {
+        vec2 a = foot + dir * s0, b = foot + dir * s1;
+        for (const World::SiteElem& e : World::gSites->elems) {
+            if (e.h < 0.4f) continue;
+            vec2 ab = b - a;
+            float t = Clamp(dot(e.c - a, ab) / dot(ab, ab), 0.f, 1.f);
+            if (::length(e.c - (a + ab * t)) > e.radius() + 8.f) continue;
+            for (float s = s0; s <= s1; s += 3.f) {
+                vec2 p = foot + dir * s;
+                vec2 d = p - e.c;
+                if (fabsf(dot(d, e.ax)) <= e.hx + 4.5f && fabsf(dot(d, perp(e.ax))) <= e.hy + 4.5f) return false;
+            }
+        }
+    }
+    // vegetation and props with collision (generated per streaming cell; cached here)
+    float minx = Min(foot.x + dir.x * s0, foot.x + dir.x * s1) - 6.f, maxx = Max(foot.x + dir.x * s0, foot.x + dir.x * s1) + 6.f;
+    float miny = Min(foot.y + dir.y * s0, foot.y + dir.y * s1) - 6.f, maxy = Max(foot.y + dir.y * s0, foot.y + dir.y * s1) + 6.f;
+    int cx0 = (int)floorf((minx + World::kWorldHalf) / World::kCellSize), cx1 = (int)floorf((maxx + World::kWorldHalf) / World::kCellSize);
+    int cy0 = (int)floorf((miny + World::kWorldHalf) / World::kCellSize), cy1 = (int)floorf((maxy + World::kWorldHalf) / World::kCellSize);
+    for (int cy = cy0; cy <= cy1; cy++)
+        for (int cx = cx0; cx <= cx1; cx++) {
+            if (cx < 0 || cy < 0 || cx >= World::kCellsPerSide || cy >= World::kCellsPerSide) return false;
+            int key = cy * World::kCellsPerSide + cx;
+            auto it = veg.find(key);
+            if (it == veg.end()) {
+                std::vector<World::PropInstance> props;
+                World::scatterVegetation(cx, cy, props);
+                it = veg.emplace(key, std::move(props)).first;
+            }
+            for (const World::PropInstance& pr : it->second) {
+                if (!propBlocks(pr.type)) continue;
+                vec2 d = pr.pos.xy() - foot;
+                float along = dot(d, dir), across = fabsf(dot(d, right));
+                if (along > s0 - 2.f && along < s1 + 2.f && across < 5.f) return false;
+            }
+        }
+    return true;
+}
+
+// Deterministic search (runs on a worker thread at startup).
+void searchRamps(const GameWorld& g, std::vector<StuntRamp>& out, int& tested) {
+    const World::WorldMap& map = *g.map;
+    std::unordered_map<int, std::vector<World::PropInstance>> veg;
+    struct Zone {
+        World::Region reg;
+        int want;
+    };
+    const Zone zones[] = {{World::REG_BEACH, 3}, {World::REG_FARMLAND, 2}, {World::REG_REDLAND, 2}, {World::REG_SAWGRASS, 1}, {World::REG_AIRPORT, 1},
+                          {World::REG_SUBURBS, 1}, {World::REG_KEYS, 1},    {World::REG_GROVE, 1},   {World::REG_FLATS, 1},    {World::REG_PORT, 1},
+                          {World::REG_KEY_CORAL, 1}, {World::REG_BAY_ISLAND, 1}};
+    int got[World::REG_COUNT] = {};
+    u32 seed = 0x5EA1D5u;
+    for (int attempt = 0; attempt < 60000 && (int)out.size() < 14; attempt++) {
+        seed = hash32(seed + 0x9E3779B9u);
+        float x = -World::kWorldHalf * 0.92f + hashToFloat(seed) * World::kWorldHalf * 1.84f;
+        float y = -World::kWorldHalf * 0.92f + hashToFloat(hash32(seed ^ 0xA5u)) * World::kWorldHalf * 1.84f;
+        World::Region r = map.regionAt(x, y);
+        int want = 0;
+        for (const Zone& z : zones)
+            if (z.reg == r) want = z.want;
+        if (got[r] >= want) continue;
+        if (map.isWater(x, y)) continue;
+        bool spaced = true;
+        for (const StuntRamp& o : out)
+            if (::length(o.foot.xy() - vec2(x, y)) < 900.f) spaced = false;
+        if (!spaced) continue;
+        // directions: along the coast on the beach, otherwise eight headings from a random start
+        float base = hashToFloat(hash32(seed ^ 0x77u)) * kTwoPi;
+        for (int k = 0; k < 8; k++) {
+            float a = base + k * (kTwoPi / 8.f);
+            vec2 dir(cosf(a), sinf(a));
+            bool gap = false;
+            tested++;
+            if (!corridorClear(g, vec2(x, y), dir, gap, veg)) continue;
+            StuntRamp sr;
+            sr.foot = vec3(x, y, surfZ(g, vec2(x, y)));
+            sr.dir = dir;
+            sr.waterGap = gap;
+            out.push_back(sr);
+            got[r]++;
+            break;
+        }
+    }
+}
+
+}  // namespace ramp_detail
+
+void addRampCollision(StuntRamp& r, int index) {
+    if (r.collision || !Phys::gCollision) return;
+    std::vector<World::CollisionBox> boxes;
+    vec2 ax(r.dir.y, -r.dir.x);   // box x axis runs across the ramp, y along it
+    for (int k = 0; k < kRampSteps; k++) {
+        float top = kRampH * (k + 0.5f) / kRampSteps;
+        float along = (k + 0.5f) * kRampLen / kRampSteps;
+        World::CollisionBox b;
+        b.c = vec3(r.foot.xy() + r.dir * along, r.foot.z + (top - 0.5f) * 0.5f);
+        b.ax = ax;
+        b.he = vec3(kRampHalfW, kRampLen / kRampSteps * 0.5f, (top + 0.5f) * 0.5f);
+        boxes.push_back(b);
+    }
+    Phys::gCollision->addCell(kRampCollisionKey - index, boxes, {});
+    r.collision = true;
+}
+
+// Launch assist: a vehicle crossing the lip leaves along the deck's climb angle with its full speed.
+void updateRamps(GameWorld& g) {
+    if (gRamps.empty()) return;
+    Ped* pl = g.playerPed();
+    if (!pl) return;
+    vec3 pp = pl->pos.toVec3();
+    const float slope = kRampH / kRampLen;
+    const vec3 upT = normalize(vec3(0.f, 1.f, slope));   // along-deck tangent in (along, -, up) terms
+    for (size_t i = 0; i < gRamps.size(); i++) {
+        StuntRamp& r = gRamps[i];
+        float d = ::length(r.foot.xy() - pp.xy());
+        if (d > 900.f) continue;
+        drawModel(g, gRampModel, r.foot, atan2f(-r.dir.x, r.dir.y), vec3(1.f), vec3(1.f), 0.f, 0xD000000000ull + (u64)i);
+        if (d > 400.f) continue;
+        vec2 right(r.dir.y, -r.dir.x);
+        for (int v = 0; v < (int)g.vehicles.size(); v++) {
+            Vehicle& veh = g.vehicles[v];
+            if (!veh.used || veh.exploded || g.isBoat(v) || g.isAircraft(v)) continue;
+            Vehicles::VehicleState& s = veh.sim;
+            vec3 p = s.body.pos.toVec3();
+            vec2 rel = p.xy() - r.foot.xy();
+            float along = dot(rel, r.dir), across = dot(rel, right);
+            if (fabsf(across) > kRampHalfW + 0.4f || along < kRampLen - 1.4f || along > kRampLen + 0.6f) continue;
+            if (p.z < r.foot.z + kRampH * 0.55f || p.z > r.foot.z + kRampH + 2.5f) continue;   // actually on the deck
+            float fwd = dot(s.body.vel.xy(), r.dir);
+            if (fwd < 7.f) continue;
+            float speed = Max(fwd, ::length(vec2(fwd, s.body.vel.z)));
+            float wantZ = speed * upT.z;
+            if (s.body.vel.z >= wantZ * 0.92f) continue;
+            float lateral = dot(s.body.vel.xy(), right);
+            vec2 horiz = r.dir * (speed * upT.y) + right * lateral;
+            s.body.vel = vec3(horiz, wantZ);
+            s.body.angVel *= 0.35f;
+        }
+    }
+}
+
 void findStuntSpots(GameWorld& g) {
     // road crests: sharp convex changes of the road profile where a fast car leaves the ground
     struct Cand {
@@ -1159,16 +1422,34 @@ void findStuntSpots(GameWorld& g) {
             if (::length(s.pos.xy() - c.p.xy()) < 700.f) farEnough = false;
         if (!farEnough) continue;
         gAct.stunts.push_back({c.p, c.dir, 0.6f, 16.f});
-        if (gAct.stunts.size() >= 14) break;
+        if (gAct.stunts.size() >= 6) break;
     }
-    // the pier is always one: the access ramp climbs 46 m from the promenade and kicks the car up at its top, where the
-    // deck starts (26 m before the waterline); a quick car flies a good way down the deck
-    if (gAct.stunts.size() < 16) {
-        vec3 top = gPlaces.pierRamp + vec3(48.f, 0.f, 0.f);
-        top.z = groundAt(g, top.x, top.y, 12.f);
-        gAct.stunts.push_back({top, vec2(1, 0), 0.45f, 14.f});
+    // stunt ramps: searched on a worker thread, added when ready (see updateRampSearch)
+    gRampSearch.state = 1;
+    const GameWorld* gp = &g;
+    Jobs::submit([gp] {
+        double t0 = TimeSeconds();
+        ramp_detail::searchRamps(*gp, gRampSearch.found, gRampSearch.tested);
+        gRampSearch.ms = (TimeSeconds() - t0) * 1000.0;
+        gRampSearch.state.store(2);
+    }, kJobNormal);
+    LOG("Stunt jumps: %d road crests (%d candidates); ramps being placed", (int)gAct.stunts.size(), (int)cands.size());
+}
+
+void updateRampSearch(GameWorld& g) {
+    if (gRampSearch.state.load() != 2) return;
+    gRampSearch.state.store(3);
+    gRamps = gRampSearch.found;
+    int gaps = 0;
+    for (size_t i = 0; i < gRamps.size(); i++) {
+        StuntRamp& r = gRamps[i];
+        addRampCollision(r, (int)i);
+        gaps += r.waterGap ? 1 : 0;
+        vec3 lip = r.foot + vec3(r.dir * kRampLen, kRampH);
+        gAct.stunts.push_back({lip, r.dir, 0.9f, 24.f});
     }
-    LOG("Stunt jumps: %d unique spots (%d crest candidates)", (int)gAct.stunts.size(), (int)cands.size());
+    LOG("Stunt ramps: %d placed (%d over water) in %.0f ms (%d corridors tested); %d unique stunt jumps", (int)gRamps.size(), gaps, gRampSearch.ms,
+        gRampSearch.tested, (int)gAct.stunts.size());
 }
 
 void placeJammers(GameWorld& g) {
@@ -1271,6 +1552,9 @@ void updateStunts(GameWorld& g, float dt) {
             float dist = ::length(p.xy() - gAct.takeoff.xy());
             float height = gAct.maxZ - Max(gAct.takeoff.z, p.z);
             bool upright = s.up().z > 0.5f;
+            if (gMissions.test.active && gAct.airTime > 0.3f)
+                LOG("[missiontest] stunt: %.2f s in the air, %.1f m, %.1f m high, unique spot %d, upright %d", gAct.airTime, dist, height,
+                    gAct.uniqueCandidate, (int)upright);
             const StuntSpot* us = gAct.uniqueCandidate >= 0 ? &gAct.stunts[gAct.uniqueCandidate] : nullptr;
             if (us && gAct.airTime > us->minAir && dist > us->minDist && upright) {
                 int i = gAct.uniqueCandidate;
@@ -1280,6 +1564,7 @@ void updateStunts(GameWorld& g, float dt) {
                 setFlag(g, EX_STUNT_COUNT, n);
                 money(g, 1500);
                 g.bigMessage("UNIQUE STUNT BONUS", StrFormat("%d of %d  +$1500", n, (int)gAct.stunts.size()), 0xff33ccffu);
+                g.socialReport(UI::TE_STUNT_JUMP, dvec3(p), nullptr, dist);
                 if (n == (int)gAct.stunts.size()) {
                     setFlag(g, SIDE_STUNTS_ALL, 1);
                     money(g, 10000);
@@ -1294,6 +1579,7 @@ void updateStunts(GameWorld& g, float dt) {
                                              rolls ? StrFormat(", %d roll%s", rolls, rolls > 1 ? "s" : "").c_str() : "", bonus),
                              0xff40e0ffu);
                 setFlag(g, EX_INSANE_BEST, Max(flag(g, EX_INSANE_BEST), (int)bonus));
+                g.socialReport(UI::TE_STUNT_JUMP, dvec3(p), nullptr, dist);
             }
         }
     }
@@ -1346,9 +1632,12 @@ void activitiesUpdate(GameWorld& g, float dt) {
     if (!gAct.init) {
         gAct.init = true;
         buildActivityModels(g);
+        buildRampModel(g);
         findStuntSpots(g);
         placeJammers(g);
     }
+    updateRampSearch(g);
+    updateRamps(g);
     updateStunts(g, dt);
     updateJammers(g, dt);
     // unique stunt jump blips nearby
@@ -1371,11 +1660,14 @@ void activitiesUpdate(GameWorld& g, float dt) {
         const char* job = c == Vehicles::VC_TAXI ? "taxi" : (c == Vehicles::VC_POLICE ? "vigilante" : (c == Vehicles::VC_AMBULANCE ? "paramedic" : nullptr));
         if (job) {
             static int lastHintVeh = -1;
+            const char* jobName = c == Vehicles::VC_TAXI ? "taxi" : (c == Vehicles::VC_POLICE ? "vigilante" : "paramedic");
             if (lastHintVeh != pv) {
                 lastHintVeh = pv;
-                g.help(StrFormat("Press ~i:G|UP~ to start the %s job.", c == Vehicles::VC_TAXI ? "taxi" : (c == Vehicles::VC_POLICE ? "vigilante" : "paramedic")), 5.f);
+                // D-pad up opens the phone on a gamepad, so pad players start the job from the phone's job tile
+                if (g.ctl.usingPad) g.help(StrFormat("Open the phone (~i:UP|UP~) and choose the %s job to start it.", jobName), 5.f);
+                else g.help(StrFormat("Press ~i:G|UP~ to start the %s job, or use the phone.", jobName), 5.f);
             }
-            if (g.ctl.special.pressed && g.pinfo.wanted == 0) {
+            if (g.ctl.special.pressed && !g.ctl.usingPad && g.pinfo.wanted == 0) {
                 int di = gMissions.findDef(job);
                 if (di >= 0) {
                     gMissions.startCheckpoint = 0;

@@ -155,6 +155,39 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
     float plD = pl ? length(rel(v.sim.body.pos, pl->pos)) : 1e9f;
     float camD = length(rel(v.sim.body.pos, rig.cam.pos));
     bool inView = inCameraView(vp, 4.f);
+    // ---- road rage: the player crashed into us; stop, then get out and have words
+    if (va.rage == 1 && b.type == BRAIN_DRIVER) {
+        va.rageTimer += dt;
+        d->mode = AI::DM_HOLD;
+        d->holdTimer = -1.f;
+        v.hornOn = va.rageTimer < 1.2f;
+        AI::DriveOut out;
+        traffic.drive(vi, v.sim, dt, out);
+        v.ctl = out.ctl;
+        if (va.rageTimer > 1.6f && v.sim.speed() < 0.8f) {
+            if (pl && plD < 35.f) {
+                removePedFromVehicle(drv, true);
+                PedAI& da = pedAI(drv);
+                da.activity = ACT_ROADRAGE;
+                da.homeVeh = vi;
+                da.actTimer = 10.f + hashToFloat(hash32(v.uid)) * 6.f;
+                da.shoutTimer = 0.8f;
+                da.linger = 0.f;
+                dp.brain.type = BRAIN_WANDER;
+                v.parked = true;
+                va.rage = 2;
+                aiSay(drv, BK_CRASH, 1.f, true);
+            } else {
+                va.rage = 0;   // the culprit is gone: drive on
+                d->mode = AI::DM_NORMAL;
+            }
+        }
+        return;
+    }
+    if (va.rage == 2 && dp.state == PS_INVEHICLE) {
+        va.rage = 0;
+        d->mode = AI::DM_NORMAL;
+    }
     // ---- role behaviors (may change modes / stop points)
     switch (va.role) {
         case VR_TAXI: {

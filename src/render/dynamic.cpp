@@ -33,6 +33,7 @@ struct DrawItem {
     int boneCount = 0;
     u64 id = 0;                   // stable id for motion vectors (0 = none)
     bool castShadow = true;
+    bool drawGlass = true;        // false: the see-through windows are shattered (the forward glass pass skips them)
     // Vehicle crush deformation (rigid models): zone amounts 0..1 (front, rear, left, right) / (roof, under),
     // collision box center/half extents in model space (dmgBoxH.w > 0 enables the deformation).
     vec4 damage0 = vec4(0.f), damage1 = vec4(0.f), dmgBoxC = vec4(0.f), dmgBoxH = vec4(0.f);
@@ -273,7 +274,7 @@ struct DynamicRenderer {
         fr.fromMatrix(r.viewProjNoJitter);
         for (size_t i = 0; i < items.size(); i++) {
             const DrawItem& d = items[i];
-            if (!d.model->glassCount || d.model->skinned) continue;
+            if (!d.model->glassCount || d.model->skinned || !d.drawGlass) continue;
             mat4 w = worldRel(d.pos, d.rot, d.scale, r.camera.pos);
             AABB b = transformAABB(d.model->bounds.valid() ? d.model->bounds : AABB(vec3(-1), vec3(1)), w);
             if (!fr.testAABB(b)) continue;

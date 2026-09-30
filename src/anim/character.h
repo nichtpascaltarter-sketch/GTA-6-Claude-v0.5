@@ -66,6 +66,14 @@ enum Clip : u16 {
     CLIP_SWIM_IDLE, CLIP_SWIM, CLIP_CLIMB, CLIP_VAULT,
     CLIP_COWER, CLIP_HANDS_UP, CLIP_FLEE, CLIP_TALK, CLIP_TALK_PHONE, CLIP_SIT_BENCH, CLIP_SMOKE, CLIP_DANCE, CLIP_WAVE,
     CLIP_POINT, CLIP_CHEER, CLIP_LEAN_WALL, CLIP_SUNBATHE, CLIP_JOG_IDLE, CLIP_GET_UP_FRONT, CLIP_GET_UP_BACK,
+    // melee: strikes start and end in the stance-19 guard of their weapon (fists / knife / bat, see
+    // AnimInput::meleeKind) and play on the upper body while strafing; contact frames: clipEventTime()
+    CLIP_HOOK, CLIP_UPPERCUT, CLIP_BAT_SWING, CLIP_BAT_OVERHEAD, CLIP_KNIFE_SLASH, CLIP_KNIFE_STAB,
+    CLIP_DODGE_BACK, CLIP_DODGE_L, CLIP_DODGE_R,   // 1.2 m of root motion (clipRootMotion), full body
+    CLIP_HIT_HEAD, CLIP_HIT_BODY,
+    CLIP_KNOCKOUT,                                 // collapses forward, ends lying face down (head +Y), holds
+    CLIP_TAKEDOWN_ATTACKER, CLIP_TAKEDOWN_VICTIM,  // synced rear choke: attacker 0.55 m behind the victim, same facing
+    CLIP_COUNTER,                                  // from the blocking guard: parry, then a two-handed shove
     CLIP_COUNT
 };
 
@@ -87,6 +95,19 @@ void computeMatrices(const Skeleton& skel, const Pose& pose, mat4* modelSpace, m
 void solveTwoBoneIK(const Skeleton& skel, Pose& pose, Bone upper, Bone lower, Bone end, vec3 targetModel, vec3 poleModel, float weight);
 // Recover a Pose from model-space bone matrices (e.g. a ragdoll expressed relative to the ped root) for blending.
 void poseFromModelSpace(const Skeleton& skel, const mat4* modelSpace, Pose& out);
+// Time (s) of a clip's key moment: the contact frame of strikes and kicks, the release of THROW, the hand reaching
+// the door handle in ENTER_CAR_*, the choke grab of the TAKEDOWN pair; -1 when the clip has none.
+float clipEventTime(Clip c);
+// Root motion: displacement of the ped origin from the start of the clip to time t (s), in the ped's model space at
+// the clip start (x right, y forward), scaled for this skeleton. Only the dodges carry root motion (their pose is in
+// place relative to an origin that follows this curve); every other clip plays in place. The animator never moves
+// the ped: gameplay moves the capsule by the change of this curve each frame.
+vec3 clipRootMotion(const Skeleton& skel, Clip c, float t);
+// Grip of a hand-held object, from computeMatrices' model-space matrices: `pos` = centre of the fist, `axis` = the
+// direction a handle held in the fist points out of the thumb side (towards a bat's barrel or a knife's tip),
+// `palm` = palm normal. Melee weapons attach to the right hand (right = true); for two-handed swings the animator
+// keeps the left hand on the same handle, 9.5 cm below the right fist (towards the knob).
+void handGrip(const Skeleton& skel, const mat4* modelSpace, bool right, vec3& pos, vec3& axis, vec3& palm);
 
 // High level animation state machine driven by gameplay each frame.
 struct AnimInput {
@@ -100,12 +121,20 @@ struct AnimInput {
     int action = -1;          // one-shot Clip to play (punch, hit, death, enter car, ...), -1 none
     int stance = 0;           // 0 normal, 1 driving, 2 passenger, 3 bike, 4 cower, 5 hands up, 6 sit, 7 talk, 8 phone, 9 dance, ...
                               // 10 smoke, 11 lean on wall, 12 sunbathe, 13 jog in place, 14 look around, 15 wave, 16 cheer,
-                              // 17 point, 18 crouch, 19 fighting guard
+                              // 17 point, 18 crouch, 19 fighting guard, 20 blocking guard (19/20: guard of meleeKind; the
+                              // upper body stays in guard while the legs walk / strafe)
     float groundOffsetL = 0, groundOffsetR = 0;  // foot IK height offsets from terrain probes (m)
     // optional (defaults keep the automatic behaviour)
+    int meleeKind = 0;        // melee weapon in hand for the fighting guards: 0 fists, 1 knife, 2 bat (two-handed)
     vec3 lookAt = vec3(0);    // point to look at in the ped's model space (x right, y forward, z up)
     float lookWeight = 0;     // 0 none .. 1 head/neck/eyes turn towards lookAt (limited, smoothed)
     float mouthOpen = -1;     // lip-sync jaw opening 0..1 from speech (-1 = clip/automatic)
+    // lip-sync mouth shapes (Oculus viseme order: 0 sil, 1 PP, 2 FF, 3 TH, 4 DD, 5 kk, 6 CH, 7 SS, 8 nn, 9 RR, 10 aa,
+    // 11 E, 12 I, 13 O, 14 U): the current viseme at visemeWeight, crossfading towards visemeNext by visemeBlend (0..1)
+    int viseme = -1;          // -1 = none (mouth at rest / clip)
+    float visemeWeight = 0;
+    int visemeNext = -1;
+    float visemeBlend = 0;
     vec3 groundNormal = vec3(0, 0, 1);  // terrain normal under the ped in its model space (feet align to slopes)
 };
 
@@ -131,6 +160,9 @@ struct Animator {
     vec2 gaze, gazeTarget, slopeN;
     bool extBlend = false;        // blendFrom() pending: keep its crossfade when the next action starts
     bool actionUpper = false, wasReloading = false;
+    int stanceClip = -1;          // clip id currently driving the stance (guards depend on meleeKind)
+    float gripW = 0.f, gripD = 0.f;   // two-handed bat grip: left hand IK weight, left grip distance along the bat
+    float actYaw0 = 0.f;          // pelvis yaw of the action's first frame (upper-body actions keep the hip turn)
     Pose snap;                    // pose captured at a discontinuity (crossfaded out over 1/snapRate s)
     void init(const Skeleton* s, u32 variationSeed);
     void update(const AnimInput& in, float dt);

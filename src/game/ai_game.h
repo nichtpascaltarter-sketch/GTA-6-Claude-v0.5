@@ -26,6 +26,8 @@ enum PedActivity : u8 {
     ACT_EVENT,         // scripted by an ambient event
     ACT_CONFRONT,      // gang member squaring up to the player
     ACT_INSPECT,       // walking to look at something (body, crash, event)
+    ACT_ROADRAGE,      // driver who got out to yell at (and maybe fight) the player after a crash
+    ACT_QUEUE,         // standing in line outside a club (population.cpp moves the line along)
 };
 
 // Ambient speech categories (barks.cpp)
@@ -34,7 +36,8 @@ enum BarkKind : int {
     BK_CARJACKED, BK_HONK, BK_CRASH, BK_THANKS, BK_HELP, BK_DRUNK, BK_MUSIC_PRAISE, BK_TOURIST, BK_FILMING, BK_GANG_WARN,
     BK_GANG_ATTACK, BK_GANG_TAUNT, BK_COP_FREEZE, BK_COP_GROUND, BK_COP_SPOTTED, BK_COP_LOST, BK_COP_CHATTER,
     BK_COP_ENGAGE, BK_COP_COVER, BK_COP_ARREST, BK_COP_DOWN, BK_MUGGER, BK_VICTIM, BK_ARGUE, BK_RACE, BK_MEDIC,
-    BK_BREAKDOWN, BK_DIVE, BK_GUN_SEEN, BK_COP_SEARCH, BK_COP_BACKUP, BK_WITNESS_STOP, BK_JOG, BK_PHONE_CHAT, BK_COUNT
+    BK_BREAKDOWN, BK_DIVE, BK_GUN_SEEN, BK_COP_SEARCH, BK_COP_BACKUP, BK_WITNESS_STOP, BK_JOG, BK_PHONE_CHAT, BK_BOUNCER, BK_ROAD_RAGE,
+    BK_COUNT
 };
 
 struct PedAI {
@@ -52,6 +55,8 @@ struct PedAI {
     int stance = 0;
     int clip = -1;             // looping scenario clip re-issued when finished
     float clipTimer = 0.f;
+    u8 walkStance = 0;         // upper-body activity while walking (8 phone call, 10 smoking, 7 talking in a group)
+    float walkStanceTimer = 0.f;
     // group walking
     int leader = -1;
     u32 leaderUid = 0;
@@ -65,6 +70,8 @@ struct PedAI {
     bool provoked = false;
     // witness
     int report = -1;
+    u8 panicDepth = 0;         // how many hand-offs the panic that made this ped flee went through (contagion limit)
+    float panicEmit = 0.f;     // time until this fleeing ped spreads panic again
     // speech
     float barkCooldown = 0.f;
     // police on foot
@@ -113,6 +120,9 @@ struct VehAI {
     float hornBarkTimer = 0.f;
     float sirenTimer = 0.f;
     int abandonedBy = -1;
+    // road rage after the player crashed into us: 0 none, 1 stopping, 2 driver out on foot
+    u8 rage = 0;
+    float rageTimer = 0.f;
 };
 
 // A crime the police do not know about yet: a witness is phoning it in.
@@ -129,13 +139,15 @@ struct PendingReport {
 // Something scary happened (gunfire, explosion, crash, fight, body): peds and drivers nearby react.
 struct Stimulus {
     dvec3 pos;
+    dvec3 origin;      // the original danger (panic: where the people running away came from)
     u8 kind = 0;       // StimulusKind
+    u8 depth = 0;      // panic hand-offs so far
     int source = -1;   // ped responsible (-1 unknown)
     float radius = 30.f;
     float time = 0.f;
     bool player = false;
 };
-enum StimulusKind : u8 { STIM_GUNFIRE = 0, STIM_EXPLOSION, STIM_FIGHT, STIM_BODY, STIM_CRASH, STIM_ARMED, STIM_SIREN, STIM_FIRE };
+enum StimulusKind : u8 { STIM_GUNFIRE = 0, STIM_EXPLOSION, STIM_FIGHT, STIM_BODY, STIM_CRASH, STIM_ARMED, STIM_SIREN, STIM_FIRE, STIM_PANIC, STIM_HORN };
 
 // A place that needs emergency services (injured/dead ped, burning car, NPC crime) or police attention.
 struct Incident {

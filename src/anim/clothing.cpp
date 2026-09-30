@@ -1112,6 +1112,7 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
 // Shoes, socks and soles
 
 static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
+    (void)R;
     BuildCtx& c = o.c;
     const BodyDims& D = *c.D;
     const float s = D.s, lift = D.lift;

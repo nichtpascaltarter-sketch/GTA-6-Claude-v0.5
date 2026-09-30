@@ -154,6 +154,13 @@ static void syllabifyWord(Utterance& u, int ws, int we, int& sylCounter) {
 }
 
 static bool isStopPh(int ph) { return hasFlag(ph, PF_STOP); }
+
+// Deterministic per-word random number in [0, 1) (prosodic variety that is stable for the same text).
+static float wordRand(const Utterance& u, int w, u32 salt) {
+    if (w < 0 || w >= (int)u.words.size()) return 0.5f;
+    u32 h = hashCombine(hashString(u.words[(size_t)w].text.c_str()), (u32)w * 7919u + salt * 104729u);
+    return hashToFloat(hash32(h));
+}
 static bool voicelessObstruent(int ph) {
     return hasFlag(ph, PF_OBSTRUENT) && !hasFlag(ph, PF_VOICED);
 }
@@ -445,6 +452,19 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         }
     }
 
+    // Words inside phrases of four or more words (neither first nor last): slightly faster tempo.
+    std::vector<bool> midPhraseWord(u.words.size(), false);
+    {
+        std::vector<int> phraseWords(u.phrases.size() + 1, 0);
+        for (const UWord& w : u.words)
+            if (w.phrase >= 0 && w.phrase < (int)phraseWords.size()) phraseWords[(size_t)w.phrase]++;
+        for (size_t w = 0; w < u.words.size(); w++) {
+            int ph = u.words[w].phrase;
+            bool first = w == 0 || u.words[w - 1].phrase != ph;
+            bool last = w + 1 == u.words.size() || u.words[w + 1].phrase != ph;
+            midPhraseWord[w] = !first && !last && ph >= 0 && ph < (int)phraseWords.size() && phraseWords[(size_t)ph] >= 4;
+        }
+    }
     // Durations (Klatt rules), scaled by the speaking style (rate, stressed / unstressed vowel length).
     for (int i = 0; i < M; i++) {
         Seg& s = S[i];
@@ -463,7 +483,7 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
                             return true;
                         }());
         if (vowel) {
-            if (prePause) pr *= 1.4f;       // clause-final lengthening
+            if (prePause) pr *= 1.f + 0.4f * P.finalLen;  // clause-final lengthening
             else if (!phraseFinal) pr *= 0.6f;  // non-phrase-final shortening
             if (!(s.flags & SF_WORD_FINAL_SYL)) pr *= 0.85f;
             if (s.flags & SF_POLYSYL) pr *= 0.8f;
@@ -499,7 +519,7 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
             if (pc && nc) pr *= 0.5f * cl / 0.7f;
             else if (nc) pr *= cl;
             else if (pc) pr *= 0.7f;
-            if (prePause && (s.flags & SF_CODA)) pr *= 1.4f;
+            if (prePause && (s.flags & SF_CODA)) pr *= 1.f + 0.4f * P.finalLen;
             if (s.ph == PH_DX) pr = 1.f;
             if (s.ph == PH_HH && isVowel(prev)) pr *= 0.7f;  // intervocalic /h/ is short
         }
@@ -510,6 +530,8 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         if (vowel && (s.flags & SF_UTT_START) && (s.flags & SF_WORD_END) && (s.flags & SF_FUNCTION)) pr *= 1.6f;
         if (s.flags & SF_ARTICLE_A) pr *= 1.35f;
         float d = mn + (inh - mn) * pr;
+        if (s.word >= 0 && midPhraseWord[(size_t)s.word]) d *= 0.95f;  // tempo arc: phrase middles run faster
+        if (P.slur > 0.f) d *= 1.f + 0.15f * P.slur * (2.f * wordRand(u, s.word, 5u) - 1.f);  // uneven timing
         if (vowel) d *= s.stress > 0 ? P.stressLen : P.reducedLen;
         d *= s.durMul;
         if (s.flags & SF_UNRELEASED) d *= 0.8f;
@@ -570,6 +592,7 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
             if (s.stress == 1) lastCandidate = i;
             if (s.stress != 1 || (s.flags & SF_FUNCTION)) continue;
             float a = count == 0 ? 1.f : std::max(0.55f, 1.f - 0.12f * (float)count * (1.f - u.segStyle(i).accentAll));
+            a *= 0.88f + 0.24f * wordRand(u, s.word, 1u);  // natural variety of accent heights
             if (anyEmph) a *= (s.flags & SF_EMPH) ? 1.6f : 0.6f;
             s.flags |= SF_ACCENT;
             s.accent = a;
@@ -606,6 +629,7 @@ void buildF0(const Utterance& u, const Audio::VoiceParams& voice, std::vector<F0
         const StyleParams& P = u.segStyle(ph.firstSeg);
         const float R = R0 * P.range;
         float top = (ph.sentenceStart ? 1.0f : 0.4f) + P.pitch;
+        top += 0.5f * (wordRand(u, S[ph.firstSeg].word >= 0 ? S[ph.firstSeg].word : 0, 2u) - 0.5f);
         if (ph.shout) top += 3.f;
         if (ph.sentType == BRK_EXCLAIM) top += 1.f;
         float decl = std::min(2.8f, 1.1f * dur + 0.4f) * P.decl;
@@ -634,8 +658,10 @@ void buildF0(const Utterance& u, const Audio::VoiceParams& voice, std::vector<F0
             while (so > ph.firstSeg && S[so - 1].syl == v.syl && S[so - 1].ph != PH_SIL) so--;
             float ts = S[so].t0, tv0 = v.t0 + v.vot, tvd = std::max(0.02f, v.dur - v.vot);
             if (!nuclear || continuation) {
-                out.push_back(F0Point{ts, base(ts) + 0.1f * h});
-                float peakT = tv0 + (nuclear ? 0.5f : 0.7f) * tvd;
+                // prenuclear accents: peak alignment varies; about a quarter are "scooped" (low start, late peak)
+                bool scoop = !nuclear && wordRand(u, v.word, 3u) < 0.25f;
+                out.push_back(F0Point{ts, base(ts) + (scoop ? -0.15f : 0.1f) * h});
+                float peakT = tv0 + (nuclear ? 0.5f : (scoop ? 0.8f : 0.62f + 0.16f * wordRand(u, v.word, 4u))) * tvd;
                 float hh = nuclear ? 0.85f * h : h;
                 out.push_back(F0Point{peakT, base(peakT) + hh});
                 if (!nuclear) {

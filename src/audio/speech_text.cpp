@@ -767,6 +767,51 @@ static std::string resolveHomograph(const std::string& w, const std::string& pre
 }
 #undef SPEECH_IN
 
+// ---------------------------------------------------------------------------------------------
+// Nonverbal vocalizations for common stage directions ("[laughs]", "[sighs]", ...): explicit phoneme syllables
+// with a matching voice (breathy laugh, whispered gasp, creaky groan). Other stage directions stay silent.
+
+struct Vocalization {
+    const char* names;  // '|' separated tag names
+    const char* syl[4]; // syllables (ARPAbet)
+    u8 emotion;
+    float intensity;
+    u8 timbre;
+    float pauseAfter;   // seconds
+};
+static const Vocalization kVocalizations[] = {
+    {"laugh|laughs|laughing|laughter|haha", {"HH AA1", "HH AA1", "HH AA0"}, EMOTION_HAPPY, 1.3f, TIMBRE_HUSKY, 0.15f},
+    {"chuckle|chuckles|chuckling|heh", {"HH EH1", "HH EH0"}, EMOTION_CALM, 0.6f, TIMBRE_HUSKY, 0.12f},
+    {"giggle|giggles|giggling", {"HH IY1", "HH IY1", "HH IY0"}, EMOTION_HAPPY, 1.4f, TIMBRE_BRIGHT, 0.12f},
+    {"sigh|sighs|sighing", {"HH AA1 AX0"}, EMOTION_SAD, 1.2f, TIMBRE_HUSKY, 0.25f},
+    {"gasp|gasps|gasping", {"HH AE1"}, EMOTION_SCARED, 1.3f, TIMBRE_HUSKY, 0.2f},
+    {"cough|coughs|coughing", {"K AH1 HH", "K AH1 HH"}, EMOTION_ANGRY, 0.3f, TIMBRE_GRAVELLY, 0.2f},
+    {"hmm|thinking|ponders|hums", {"HH M"}, EMOTION_CALM, 0.8f, TIMBRE_NORMAL, 0.15f},
+    {"scoff|scoffs|scoffing|hmph", {"HH M F"}, EMOTION_ANGRY, 0.5f, TIMBRE_NORMAL, 0.15f},
+    {"groan|groans|groaning|ugh", {"AH1 AX0"}, EMOTION_SAD, 1.2f, TIMBRE_FRY, 0.2f},
+    {"sob|sobs|sobbing|crying|cries", {"HH UH1", "HH UH0", "HH UH1"}, EMOTION_SAD, 1.4f, TIMBRE_HUSKY, 0.25f},
+    {"yawn|yawns|yawning", {"AA1 AX0 M"}, EMOTION_CALM, 1.3f, TIMBRE_HUSKY, 0.2f},
+};
+
+static const Vocalization* findVocalization(const std::string& tagIn) {
+    std::string tag;
+    for (char c : tagIn) {
+        if (c >= 'A' && c <= 'Z') c = (char)(c + 32);
+        if (c == ' ' || c == '-' || c == '_') continue;
+        tag += c;
+    }
+    for (const Vocalization& v : kVocalizations) {
+        const char* p = v.names;
+        while (*p) {
+            const char* e = strchr(p, '|');
+            size_t n = e ? (size_t)(e - p) : strlen(p);
+            if (tag.size() == n && tag.compare(0, n, p, n) == 0) return &v;
+            p += n + (e ? 1 : 0);
+        }
+    }
+    return nullptr;
+}
+
 void normalizeText(const char* text, std::vector<TextWord>& out) {
     out.clear();
     if (!text) return;
@@ -813,6 +858,21 @@ void normalizeText(const char* text, std::vector<TextWord>& out) {
             if (parseStyleTag(t.s, st, pauseSec)) {
                 if (pauseSec > 0.f) nz.setPause(pauseSec);
                 else nz.style = st;
+            } else if (const Vocalization* voc = findVocalization(t.s)) {
+                Style keep = nz.style;
+                nz.style.emotion = voc->emotion;
+                nz.style.intensity = voc->intensity;
+                nz.style.timbre = voc->timbre;
+                nz.setPause(0.12f);  // separate from preceding speech
+                for (const char* syl : voc->syl) {
+                    if (!syl) break;
+                    TextWord tw;
+                    tw.w = syl;
+                    tw.phon = true;
+                    nz.push(tw);
+                }
+                nz.setPause(voc->pauseAfter);
+                nz.style = keep;
             }
             continue;
         }

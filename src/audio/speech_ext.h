@@ -9,12 +9,14 @@ namespace Speech {
 // ---- Speaking style ----------------------------------------------------------------------------------------------
 // Text passed to synthesize() / estimateDuration() / lipSync() may contain inline tags. Tags are silent and
 // case-insensitive; a tag applies from its position to the end of the text or until the next tag of its kind:
-//   emotion:  [neutral] [angry] [scared] [calm] [sad] [happy] [shout] [whisper]   intensity: [angry:0.5] (0..1.5)
+//   emotion:  [neutral] [angry] [scared] [calm] [sad] [happy] [shout] [whisper] [drunk]  intensity: [angry:0.5]
 //   delivery: [talk] [dj] [ad] [fineprint] [news] [dispatch]
 //   accent:   [accent:general|south|newyork|latino|caribbean|british]            strength: [accent:south:0.6] (0..1)
+//   timbre:   [timbre:normal|nasal|husky|gravelly|bright|dark|fry] (or bare [husky], [gravelly], ...)
 //   pause:    [pause] (0.5 s) or [pause:1.2] (seconds) after the preceding word
-// Any other [bracketed text] is a stage direction and is not spoken ("[laughs]"). displayText() removes all markup,
-// so the same string can drive both the voice and the subtitle.
+// Common stage directions are voiced as nonverbal sounds: [laughs] [chuckles] [giggles] [sighs] [gasps] [coughs]
+// [hmm] [scoffs] [groans] [sobs] [yawns]. Any other [bracketed text] is a silent stage direction. displayText()
+// removes all markup, so the same string can drive both the voice and the subtitle.
 enum Emotion : u8 {
     EMOTION_NEUTRAL = 0,
     EMOTION_ANGRY,    // higher, wider pitch, pressed bright voice, faster, clipped pauses, hard stressed syllables
@@ -24,6 +26,7 @@ enum Emotion : u8 {
     EMOTION_HAPPY,    // high lively pitch, "smiling" formants, brisk
     EMOTION_SHOUT,    // raised pitch and jaw opening, pressed loud voice, lengthened stressed syllables
     EMOTION_WHISPER,  // no voicing (noise-excited), slower; output peak ~0.45 instead of 0.8
+    EMOTION_DRUNK,    // slurred: slow, wobbly swingy pitch, lax voice, soft consonants, smeared "s"
     EMOTION_COUNT
 };
 enum Delivery : u8 {
@@ -45,15 +48,28 @@ enum Accent : u8 {
     ACCENT_COUNT
 };
 
+// Voice quality on top of VoiceParams (character colour).
+enum Timbre : u8 {
+    TIMBRE_NORMAL = 0,
+    TIMBRE_NASAL,     // nasal twang (constant velopharyngeal coupling)
+    TIMBRE_HUSKY,     // breathy, airy (smoky)
+    TIMBRE_GRAVELLY,  // rough, irregular, creaky (gravel voice)
+    TIMBRE_BRIGHT,    // forward, tense, "smiling" resonance
+    TIMBRE_DARK,      // throaty, lowered larynx, warm
+    TIMBRE_FRY,       // vocal fry at phrase ends, low and relaxed
+    TIMBRE_COUNT
+};
+
 struct Style {
     u8 emotion = EMOTION_NEUTRAL;
     u8 delivery = DELIVERY_TALK;
     u8 accent = ACCENT_GENERAL;
+    u8 timbre = TIMBRE_NORMAL;
     float intensity = 1.f;       // emotion strength (0..1.5)
     float accentStrength = 1.f;  // accent strength (0..1)
 };
 
-// Markup prefix selecting `s`, e.g. "[accent:latino:0.6][angry]" (empty for the default style).
+// Markup prefix selecting `s`, e.g. "[accent:latino:0.6][husky][angry]" (empty for the default style).
 std::string styleTags(const Style& s);
 // `text` without markup: tags, stage directions and *emphasis* stars removed, spaces tidied (for subtitles).
 std::string displayText(const char* text);

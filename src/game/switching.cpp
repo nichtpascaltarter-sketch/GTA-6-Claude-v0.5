@@ -226,6 +226,8 @@ bool switchProtagonist(GameWorld& g, int who, bool instant) {
     g.pinfo.wanted = 0;
     g.pinfo.wantedHeat = 0.f;
     g.hasWaypoint = false;
+    g.phone.open = false;
+    UI::Phone::reset();   // the other protagonist's handset starts closed on its home screen
     if (!instant && np) {
         // sky cam: rise above the old spot, sweep across, drop onto the new protagonist
         vec3 npos = np->pos.toVec3();

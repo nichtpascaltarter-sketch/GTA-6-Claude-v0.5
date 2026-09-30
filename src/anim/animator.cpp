@@ -36,31 +36,53 @@ static const Clip kStanceClip[] = {
     CLIP_CHEER,       // 16
     CLIP_POINT,       // 17
     CLIP_CROUCH_IDLE, // 18
-    CLIP_BLOCK,       // 19 fighting guard
+    CLIP_BLOCK,       // 19 fighting guard (the guard of AnimInput::meleeKind, see stanceClipId)
+    CLIP_BLOCK,       // 20 blocking guard
 };
 static const int kStanceCount = (int)(sizeof(kStanceClip) / sizeof(kStanceClip[0]));
 
 static bool stanceIsVehicle(int s) { return s >= 1 && s <= 3; }
+static bool stanceIsGuard(int s) { return s == 19 || s == 20; }
+// Clip (public or internal id) that drives a stance; the fighting guards depend on the melee weapon in hand.
+static int stanceClipId(int s, int meleeKind) {
+    if (s == 19) return meleeKind == 1 ? IC_GUARD_KNIFE : (meleeKind == 2 ? IC_GUARD_BAT : IC_GUARD);
+    if (s == 20) return meleeKind == 2 ? (int)IC_BLOCK_BAT : (int)CLIP_BLOCK;
+    return kStanceClip[s];
+}
 // Scenario stances whose upper body stays on while walking.
-static bool stanceUpperWhileMoving(int s) { return s == 5 || s == 7 || s == 8 || s == 10 || s == 15 || s == 17; }
+static bool stanceUpperWhileMoving(int s) { return s == 5 || s == 7 || s == 8 || s == 10 || s == 15 || s == 17 || s == 19 || s == 20; }
 // Scenario stances that keep the character in place (locomotion is ignored).
 static bool stanceLocksLegs(int s) { return s == 6 || s == 11 || s == 12; }
 
 static bool actionUpperCapable(int a) {
     switch (a) {
         case CLIP_PUNCH_L: case CLIP_PUNCH_R: case CLIP_THROW: case CLIP_HIT_FRONT: case CLIP_HIT_BACK: case CLIP_FIRE_PISTOL:
-        case CLIP_FIRE_RIFLE: case CLIP_RELOAD: case CLIP_WAVE: case CLIP_POINT: case CLIP_HANDS_UP: case CLIP_BLOCK: return true;
+        case CLIP_FIRE_RIFLE: case CLIP_RELOAD: case CLIP_WAVE: case CLIP_POINT: case CLIP_HANDS_UP: case CLIP_BLOCK:
+        case CLIP_HOOK: case CLIP_UPPERCUT: case CLIP_BAT_SWING: case CLIP_BAT_OVERHEAD: case CLIP_KNIFE_SLASH: case CLIP_KNIFE_STAB:
+        case CLIP_HIT_HEAD: case CLIP_HIT_BODY: case CLIP_COUNTER: return true;
         default: return false;
     }
 }
 static bool actionIsDeath(int a) { return a == CLIP_DEATH_FRONT || a == CLIP_DEATH_BACK; }
+// One-shots that end lying on the ground and hold their last frame (until the game starts a get-up or a ragdoll).
+static bool actionHoldsEnd(int a) { return actionIsDeath(a) || a == CLIP_KNOCKOUT || a == CLIP_TAKEDOWN_VICTIM; }
+// Full-body one-shots that keep the terrain foot IK.
+static bool actionKeepsFootIK(int a) {
+    switch (a) {
+        case CLIP_LAND: case CLIP_PUNCH_L: case CLIP_PUNCH_R: case CLIP_HIT_FRONT: case CLIP_HIT_BACK: case CLIP_THROW: case CLIP_HOOK:
+        case CLIP_UPPERCUT: case CLIP_BAT_SWING: case CLIP_BAT_OVERHEAD: case CLIP_KNIFE_SLASH: case CLIP_KNIFE_STAB: case CLIP_DODGE_BACK:
+        case CLIP_DODGE_L: case CLIP_DODGE_R: case CLIP_HIT_HEAD: case CLIP_HIT_BODY: case CLIP_COUNTER: return true;
+        default: return false;
+    }
+}
 static bool actionIsCar(int a) { return a >= CLIP_ENTER_CAR_L && a <= CLIP_EXIT_CAR_R; }
 // Actions that the player can cancel by moving (after a fraction of the clip).
 static float actionCancelAt(int a) {
     switch (a) {
         case CLIP_LAND: return 0.25f;
         case CLIP_GET_UP_FRONT: case CLIP_GET_UP_BACK: return 0.8f;
-        case CLIP_HIT_FRONT: case CLIP_HIT_BACK: return 0.4f;
+        case CLIP_HIT_FRONT: case CLIP_HIT_BACK: case CLIP_HIT_HEAD: return 0.4f;
+        case CLIP_HIT_BODY: return 0.5f;
         case CLIP_STAGGER: return 0.6f;
         case CLIP_EXIT_CAR_L: case CLIP_EXIT_CAR_R: return 0.7f;
         case CLIP_HANDS_UP: case CLIP_CHEER: case CLIP_WAVE: case CLIP_POINT: case CLIP_SIT_BENCH: case CLIP_TALK: return 0.0f;
@@ -80,8 +102,48 @@ static float stride(Clip c) {
 
 static void rotateLocal(Pose& p, int b, quat q) { p.rot[b] = normalize(p.rot[b] * q); }
 
-void sampleClipId(const Skeleton& skel, int ci, float t, Pose& out, u32 variationSeed);
-static const int kRifleCarryClip = CLIP_COUNT + 0;   // internal clip id (see clips.cpp IC_RIFLE_CARRY)
+// Yaw of the pelvis (model space, rotation about +Z of its forward axis).
+static float pelvisYaw(const Pose& p) {
+    vec3 f = rotate(p.rot[B_ROOT] * p.rot[B_PELVIS], vec3(0, 1, 0));
+    return atan2f(-f.x, f.y);
+}
+
+// Bind finger direction and palm normal of a hand (see skeleton.cpp: the palms face the thighs, thumbs forward).
+static void handBindAxes(const Skeleton& sk, int s, vec3& fing, vec3& palm, float& palmLen) {
+    vec3 fl = sk.bindLocalPos[s ? B_FINGERS_R : B_FINGERS_L];
+    palmLen = length(fl);
+    fing = palmLen > 1e-5f ? fl / palmLen : vec3(0, 0, -1);
+    palm = normalize(s ? cross(vec3(0, 1, 0), fing) : cross(fing, vec3(0, 1, 0)));
+}
+
+// Put the left fist on the handle held in the right fist: `dist` along the handle from the right grip centre
+// (- = towards the knob), `reversed` = overhand hold with the left thumb pointing back along the handle.
+static void batLeftHand(const Skeleton& sk, Pose& p, float dist, bool reversed, float w) {
+    vec3 fR, pR, fL, pL;
+    float plR, plL;
+    handBindAxes(sk, 1, fR, pR, plR);
+    handBindAxes(sk, 0, fL, pL, plL);
+    quat qh, qu, qf;
+    vec3 ph, pu, pf;
+    boneModel(sk, p, B_HAND_R, qh, ph);
+    vec3 F = rotate(qh, fR), P = rotate(qh, pR), D = rotate(qh, vec3(0, 1, 0));
+    vec3 G = ph + F * (kGripAlong * plR) + P * (kGripPalm * plR) + D * dist;
+    vec3 DL = reversed ? -D : D;
+    vec3 PL = cross(F, DL);
+    quat want = quatFromTwoPairs(fL, pL, F, PL);
+    vec3 W = G - F * (kGripAlong * plL) - PL * (kGripPalm * plL);
+    // keep the elbow bending the way the clip has it
+    boneModel(sk, p, B_UPPERARM_L, qu, pu);
+    boneModel(sk, p, B_FOREARM_L, qf, pf);
+    quat qhl;
+    vec3 phl;
+    boneModel(sk, p, B_HAND_L, qhl, phl);
+    vec3 bend = pf - (pu + phl) * 0.5f;
+    vec3 pole = pf + (length2(bend) > 1e-6f ? normalize(bend) : vec3(-1, -0.3f, -1)) * 0.3f;
+    solveTwoBoneIK(sk, p, B_UPPERARM_L, B_FOREARM_L, B_HAND_L, lerp(phl, W, w), pole, 1.f);
+    boneModel(sk, p, B_FOREARM_L, qf, pf);
+    p.rot[B_HAND_L] = normalize(conj(qf) * nlerp(qhl, want, w));
+}
 
 // Hands on the steering wheel for this skeleton (absolute car interior geometry: rim radius 0.185 m centred 0.5 m
 // ahead of and 0.4 m above the seat hip point, tilted towards the driver), turned by `steer` radians (+ = right).
@@ -137,6 +199,9 @@ void Animator::init(const Skeleton* s, u32 variationSeed) {
     actionUpper = wasReloading = false;
     lastInAction = -1;
     extBlend = false;
+    stanceClip = -1;
+    gripW = gripD = 0.f;
+    actYaw0 = 0.f;
     if (s) {
         legScale = skeletonLegScale(*s);
         styleF = skeletonStyle(*s);
@@ -177,10 +242,18 @@ void Animator::update(const AnimInput& in, float dt) {
 
     // ---------------------------------------------------------------- stance changes
     int st = Clamp(in.stance, 0, kStanceCount - 1);
+    int sClip = stanceClipId(st, in.meleeKind);
+    if (st == stance && sClip != stanceClip && stanceClip >= 0 && !(action >= 0 && !actionFinished && !actionUpper)) {
+        // weapon switch inside a fighting guard
+        snap = pose;
+        snapW = 1.f;
+        snapRate = 6.f;
+    }
+    stanceClip = sClip;
     if (st != stance) {
         snap = pose;
         snapW = 1.f;
-        snapRate = stanceIsVehicle(st) || stanceIsVehicle(stance) ? 4.f : 3.f;
+        snapRate = stanceIsVehicle(st) || stanceIsVehicle(stance) ? 4.f : (stanceIsGuard(st) && stanceIsGuard(stance) ? 12.f : 3.f);
         prevStance = stance;
         stance = st;
         stanceTime = 0.f;
@@ -204,6 +277,7 @@ void Animator::update(const AnimInput& in, float dt) {
     stanceBlend = Min(1.f, stanceBlend + dt * 3.f);
 
     // ---------------------------------------------------------------- action trigger
+    Pose tmpA;
     bool trigger = in.action >= 0 && in.action < CLIP_COUNT && in.action != lastInAction;
     lastInAction = in.action;
     if (trigger) {
@@ -211,9 +285,9 @@ void Animator::update(const AnimInput& in, float dt) {
             snap = pose;
             snapW = 1.f;
             snapRate = in.action == CLIP_HIT_FRONT || in.action == CLIP_HIT_BACK || in.action == CLIP_FIRE_PISTOL ||
-                               in.action == CLIP_FIRE_RIFLE
+                               in.action == CLIP_FIRE_RIFLE || in.action == CLIP_HIT_HEAD || in.action == CLIP_HIT_BODY
                            ? 14.f
-                           : 7.f;
+                           : (in.action >= CLIP_DODGE_BACK && in.action <= CLIP_DODGE_R ? 12.f : 7.f);
             // get-ups start from a ragdoll: the previous animated pose is stale, so cut straight to the lying
             // pose (unless the game handed over the ragdoll pose with blendFrom(), which keeps its crossfade)
             if (in.action == CLIP_GET_UP_FRONT || in.action == CLIP_GET_UP_BACK) snapW = 0.f;
@@ -222,6 +296,10 @@ void Animator::update(const AnimInput& in, float dt) {
         actionTime = 0.f;
         actionFinished = false;
         actionUpper = actionUpperCapable(action) && (speedS > 0.7f || in.aiming || stanceIsVehicle(stance));
+        if (actionUpper) {
+            sampleClip(sk, (Clip)action, 0.f, tmpA, seed);
+            actYaw0 = pelvisYaw(tmpA);
+        }
     }
 
     // ---------------------------------------------------------------- base pose
@@ -330,9 +408,9 @@ void Animator::update(const AnimInput& in, float dt) {
         }
         // ---- scenario stances
         if (stance >= 4) {
-            Clip sc = kStanceClip[stance];
-            float sOff = hashToFloat(seed * 7u + 3u) * clipInfo(sc).duration;
-            sampleClip(sk, sc, stanceTime + sOff, tmp, seed);
+            int sc = stanceClip;
+            float sOff = stanceIsGuard(stance) ? 0.f : hashToFloat(seed * 7u + 3u) * clipInfoId(sc).duration;
+            sampleClipId(sk, sc, stanceTime + sOff, tmp, seed);
             float still = stanceLocksLegs(stance) ? 1.f : 1.f - Saturate((speedS - 0.25f) / 0.6f);
             if (stanceUpperWhileMoving(stance)) {
                 blendUpperBody(base, tmp, 1.f, tmp2);
@@ -389,7 +467,7 @@ void Animator::update(const AnimInput& in, float dt) {
         }
         // long guns are carried at the low ready while not aiming (arm layer; the spine keeps its gait motion)
         if (in.weaponKind == 2 && aimBlend < 0.999f && !in.swimming) {
-            sampleClipId(sk, kRifleCarryClip, time, tmp, seed);
+            sampleClipId(sk, IC_RIFLE_CARRY, time, tmp, seed);
             blendArms(base, tmp, 1.f - aimBlend);
         }
         // reload layer
@@ -409,7 +487,7 @@ void Animator::update(const AnimInput& in, float dt) {
         const ClipInfo& ai = clipInfo((Clip)action);
         // cancel by moving (get up, land, hits...) or by starting to fall
         bool cancel = false;
-        if (!actionFinished && !actionIsDeath(action)) {
+        if (!actionFinished && !actionHoldsEnd(action)) {
             float ca = actionCancelAt(action) * ai.duration;
             if (actionTime >= ca && speedS > 1.0f && !actionUpper) cancel = true;
             if (in.swimming && action != CLIP_SWIM) cancel = true;
@@ -418,7 +496,7 @@ void Animator::update(const AnimInput& in, float dt) {
         if (!actionFinished) actionTime += dt;
         if (!actionFinished && (actionTime >= ai.duration || cancel)) {
             actionFinished = true;
-            if (!actionIsDeath(action)) {
+            if (!actionHoldsEnd(action)) {
                 // hand back to the base layers with a crossfade from the last displayed pose
                 snap = pose;
                 snapW = 1.f;
@@ -428,13 +506,35 @@ void Animator::update(const AnimInput& in, float dt) {
         }
         if (action >= 0) {
             sampleClip(sk, (Clip)action, Min(actionTime, ai.duration), tmp, seed);
-            if (actionUpper) blendUpperBody(outp, tmp, 1.f, outp);
-            else {
+            if (actionUpper) {
+                // upper body over the moving legs; the clip's hip turn (relative to its first frame) goes to the spine
+                float dy = wrapAngle(pelvisYaw(tmp) - actYaw0);
+                blendUpperBody(outp, tmp, 1.f, outp);
+                if (fabsf(dy) > 1e-3f) {
+                    quat qp;
+                    vec3 pp;
+                    boneModel(sk, outp, B_PELVIS, qp, pp);
+                    outp.rot[B_SPINE1] = normalize(conj(qp) * qz(dy) * qp * outp.rot[B_SPINE1]);
+                }
+            } else {
                 outp = tmp;
-                footIK = footIK && (action == CLIP_LAND || action == CLIP_PUNCH_L || action == CLIP_PUNCH_R || action == CLIP_HIT_FRONT ||
-                                    action == CLIP_HIT_BACK || action == CLIP_THROW);
+                footIK = footIK && actionKeepsFootIK(action);
             }
         }
+    }
+
+    // ---------------------------------------------------------------- two-handed bat: left hand on the handle
+    {
+        float dist = -0.095f, gw = 0.f;
+        bool rev = false;
+        if (action >= 0 && !actionFinished && (action == CLIP_BAT_SWING || action == CLIP_BAT_OVERHEAD))
+            gw = batGrip(action, actionTime, dist, rev);
+        else if (stanceIsGuard(stance) && in.meleeKind == 2 && (action < 0 || actionFinished || actionUpper) && !vehicleStance)
+            gw = batGrip(stanceClip, stanceTime, dist, rev) * (1.f - swimBlend);
+        float k = 1.f - expf(-dt * 14.f);
+        gripW += (gw - gripW) * k;
+        gripD += (dist - gripD) * k;
+        if (gripW > 0.01f) batLeftHand(sk, outp, gripD, rev, Min(1.f, gripW * 1.05f));
     }
 
     // ---------------------------------------------------------------- hands on the steering wheel (exact for any size)
@@ -522,9 +622,10 @@ void Animator::faceOverlay(const AnimInput& in, float dt) {
     using namespace detail;
     const Skeleton& sk = *skel;
     bool dead = action >= 0 && actionFinished && (action == CLIP_DEATH_FRONT || action == CLIP_DEATH_BACK);
+    bool out = action >= 0 && (action == CLIP_KNOCKOUT || (action == CLIP_TAKEDOWN_VICTIM && actionTime > 2.1f));
     float eyeYaw = 0.f, eyePitch = 0.f;
     // look-at: neck and head take what they can (limited), the eyes the rest
-    float lwT = dead ? 0.f : Clamp(in.lookWeight, 0.f, 1.f);
+    float lwT = dead || out ? 0.f : Clamp(in.lookWeight, 0.f, 1.f);
     lookW += (lwT - lookW) * (1.f - expf(-dt * 4.f));
     if (lookW > 0.005f) {
         quat qh;
@@ -569,6 +670,7 @@ void Animator::faceOverlay(const AnimInput& in, float dt) {
         if (t > 0.26f) blinkT = -1.f;
     }
     if (dead) blink = 0.78f;
+    if (out) blink = Max(blink, action == CLIP_KNOCKOUT ? sstep(0.05f, 0.3f, actionTime) : sstep(2.1f, 2.4f, actionTime));
     const float kLidClose = 0.66f;   // eye pitch that brings the upper lid down onto the lower one
     for (int s = 0; s < 2; s++) {
         int b = s ? B_EYE_R : B_EYE_L;

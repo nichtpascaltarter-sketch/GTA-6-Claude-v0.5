@@ -1,6 +1,6 @@
-// Economy and phone: story phone calls and texts that point the player to newly available missions, the phone menu
-// (contacts, character switch, Wheels.ps vehicle website, Dynasty Realty listings, side jobs, mission replay) and the
-// daily income of owned businesses.
+// Economy and story contact: story phone calls and texts that point the player to newly available missions, the contact
+// calls, the lists behind the handset's apps (Wheels.ps vehicles, Dynasty Realty listings, side jobs, mission replay)
+// and the daily income of owned businesses. The handset itself is driven from phone_game.cpp.
 #include "missions.h"
 
 namespace Game {
@@ -54,15 +54,16 @@ const StoryCall kCalls[] = {
 };
 
 struct EconomyState {
-    bool phoneBusy = false;         // a call is playing
     float callCooldown = 20.f;
-    int pendingCall = -1;
-    int phoneMenu = 0;              // 0 main, 1 contacts, 2 cars, 3 realty, 4 jobs, 5 replay
-    std::vector<int> replayDefs;
-    bool switchTipShown = false;
-    std::vector<std::string> texts;
 };
 EconomyState gEco;
+
+// handset side (phone_game.cpp)
+bool phoneWired();
+void phoneIncomingStoryCall(GameWorld& g, int callIndex, int missionDef);
+void missionText(GameWorld& g, int di, const StoryCall* c, bool missed);
+void addMessage(GameWorld& g, const std::string& from, const std::string& text, int contactId, bool mission, int missionDef, vec2* location,
+                int action, const char* actionLabel);
 
 bool callDelivered(GameWorld& g, int storyIndex) {
     int f = storyIndex < 31 ? EX_PHONE_STEP : EX_PHONE_STEP2;
@@ -104,6 +105,9 @@ void updateStoryCalls(GameWorld& g, float dt) {
         if (!call) continue;
         if (d.protagonist >= 0 && d.protagonist != g.protagonistIndex) {
             g.notify(d.protagonist == 0 ? "MARI" : "DEX", StrFormat("New mission from %s: %s. Switch characters with the phone.", d.contact, d.title));
+            if (phoneWired()) missionText(g, i, call, false);
+        } else if (phoneWired()) {
+            phoneIncomingStoryCall(g, (int)(call - kCalls), i);   // rings the handset (text for text-only calls)
         } else {
             playCall(g, *call);
         }
@@ -139,34 +143,16 @@ void updateIncome(GameWorld& g) {
     money(g, total);
     setFlag(g, EX_INCOME_TOTAL, flag(g, EX_INCOME_TOTAL) + (int)(total / 100));
     g.notify("BUSINESS INCOME", StrFormat("%d business%s paid $%lld%s", count, count > 1 ? "es" : "", total, days > 1 ? StrFormat(" (%d days)", days).c_str() : ""));
+    if (phoneWired())
+        addMessage(g, "Palmera Community Bank", StrFormat("Deposit: $%lld from your %d business%s.", total, count, count > 1 ? "es" : ""), -1, false, -1,
+                   nullptr, 0, nullptr);
 #ifdef HAVE_AUDIO
     Audio::play2D(Audio::SFX_CASH_REGISTER, 0.6f);
 #endif
 }
 
 // ------------------------------------------------------------------------------------------------------------------
-// Phone menu
-std::vector<MenuItem> phoneMainItems(GameWorld& g) {
-    std::vector<MenuItem> items;
-    auto add = [&](const char* label, int id, bool enabled, const std::string& detail) {
-        MenuItem it;
-        it.label = label;
-        it.id = id;
-        it.enabled = enabled;
-        it.detail = detail;
-        items.push_back(it);
-    };
-    add("Contacts", 1, true, "Call the people in your life.");
-    bool canSwitch = switchUnlocked(g) && (!gMissions.active || gMissions.allowSwitch);
-    add(g.protagonistIndex == 0 ? "Switch to Dex" : "Switch to Mari", 2, canSwitch,
-        canSwitch ? "Take control of the other protagonist where you left them." : "Not available right now.");
-    add("Wheels.ps", 3, !gMissions.active, "Buy vehicles online. Delivered to your safehouse garages.");
-    add("Dynasty Realty", 4, true, "Safehouses and businesses for sale. Mark one on your map.");
-    add("Jobs", 5, true, "Races, courier runs, the shooting range, flight school and more. Mark one on your map.");
-    add("Replay Mission", 6, !gMissions.active, "Play a finished story mission again (no rewards).");
-    return items;
-}
-
+// Contacts and app lists (shown by the handset, see phone_game.cpp)
 struct ContactInfo {
     int cast;
     int unlock;
@@ -174,26 +160,6 @@ struct ContactInfo {
 };
 const ContactInfo kContacts[] = {{CAST_TOMAS, -1, "Tomas"}, {CAST_LUCHA, -1, "Mama Lucha"}, {CAST_ROOK, SF_LOW_TIDE, "Rook"},
                                  {CAST_KIT, SF_LAST_CALL, "Kit"}, {CAST_JONAH, SF_BAGMAN, "Jonah"}};
-
-std::vector<MenuItem> contactItems(GameWorld& g) {
-    std::vector<MenuItem> items;
-    for (int i = 0; i < (int)ARRAY_COUNT(kContacts); i++) {
-        const ContactInfo& c = kContacts[i];
-        if (c.unlock >= 0 && !storyDone(g, c.unlock)) continue;
-        MenuItem it;
-        it.label = c.who;
-        it.id = i;
-        it.right = "CALL";
-        items.push_back(it);
-    }
-    MenuItem other;
-    other.label = g.protagonistIndex == 0 ? "Dex" : "Mari";
-    other.id = 50;
-    other.right = "CALL";
-    other.enabled = switchUnlocked(g) && storyDone(g, SF_DRY_DOCK);
-    items.push_back(other);
-    return items;
-}
 
 // The next story mission for a contact (for hints)
 const MissionDef* nextMissionOf(GameWorld& g, const char* contact) {
@@ -216,6 +182,7 @@ void callContact(GameWorld& g, int id) {
         l.phone = true;
         l.hasVoice = true;
         l.voice = protagonistVoice(who);
+        l.spoken = protagonistTags(who) + speakableText(l.text);
         g.mSay(l);
         return;
     }
@@ -296,7 +263,6 @@ std::vector<MenuItem> jobItems(GameWorld& g) {
 
 std::vector<MenuItem> replayItems(GameWorld& g) {
     std::vector<MenuItem> items;
-    gEco.replayDefs.clear();
     for (int i = 0; i < (int)gMissions.defs.size(); i++) {
         const MissionDef& d = gMissions.defs[i];
         if (d.storyIndex < 0 || !flag(g, d.setsFlag)) continue;
@@ -323,103 +289,19 @@ void setWaypoint(GameWorld& g, vec2 p) {
     g.notify("GPS", "Waypoint set.");
 }
 
-void updatePhone(GameWorld& g) {
+// The phone key (Up / D-pad up) opens the handset; the app draws it and routes its actions to phoneHandle().
+void updatePhoneKey(GameWorld& g) {
     Ped* pl = g.playerPed();
-    if (!pl) return;
-    if (!gMenu.open) {
-        int pv = g.playerVehicle();
-        bool vehicleOk = pv < 0 || (!g.isAircraft(pv) && !g.isBike(pv));
-        if (pv >= 0) {
-            Vehicles::VehicleClass c = g.vassets[g.vehicles[pv].model].spec.cls;
-            if (c == Vehicles::VC_TAXI || c == Vehicles::VC_POLICE || c == Vehicles::VC_AMBULANCE) vehicleOk = false;
-        }
-        if (g.ctl.phone.pressed && g.playerControl && !g.mInCutscene() && vehicleOk && pl->health > 0.f && g.pinfo.deathTimer <= 0.f) {
-            gEco.phoneMenu = 0;
-            menuOpen(g, MO_PHONE, "Phone", StrFormat("Day %d", g.gameDay), phoneMainItems(g), false, 0xffff40c0u);
-        }
-        return;
-    }
-    if (!menuIs(MO_PHONE)) return;
-    if (gMenu.cancelled) {
-        if (gEco.phoneMenu == 0) menuClose(g);
-        else {
-            gEco.phoneMenu = 0;
-            menuRefresh(phoneMainItems(g), StrFormat("Day %d", g.gameDay));
-            gMenu.title = "Phone";
-        }
-        return;
-    }
-    if (gMenu.chosen < 0) return;
-    int id = gMenu.chosen;
-    switch (gEco.phoneMenu) {
-        case 0:
-            if (id == 1) {
-                gEco.phoneMenu = 1;
-                gMenu.title = "Contacts";
-                menuRefresh(contactItems(g), "");
-            } else if (id == 2) {
-                menuClose(g);
-                switchProtagonist(g, g.protagonistIndex == 0 ? 1 : 0, false);
-            } else if (id == 3) {
-                gEco.phoneMenu = 2;
-                gMenu.title = "Wheels.ps";
-                menuRefresh(dealershipItems(g), StrFormat("Cash $%lld", g.pinfo.money));
-            } else if (id == 4) {
-                gEco.phoneMenu = 3;
-                gMenu.title = "Dynasty Realty";
-                menuRefresh(realtyItems(g), "");
-            } else if (id == 5) {
-                gEco.phoneMenu = 4;
-                gMenu.title = "Jobs";
-                menuRefresh(jobItems(g), "");
-            } else if (id == 6) {
-                gEco.phoneMenu = 5;
-                gMenu.title = "Replay";
-                menuRefresh(replayItems(g), "");
-            }
-            break;
-        case 1:
-            menuClose(g);
-            callContact(g, id);
-            break;
-        case 2: {
-            const Vehicles::VehicleModel& m = g.vassets[id].spec;
-            money(g, -m.price);
-            g.ownedVehicleModels.push_back(id);
-#ifdef HAVE_AUDIO
-            Audio::play2D(Audio::SFX_PURCHASE, 0.8f);
-#endif
-            g.notify("WHEELS.PS", StrFormat("%s %s delivered to your safehouse garages.", m.maker.c_str(), m.name.c_str()));
-            menuRefresh(dealershipItems(g), StrFormat("Cash $%lld", g.pinfo.money));
-            break;
-        }
-        case 3:
-            if (id >= 100) setWaypoint(g, gShops.businesses[id - 100].marker.xy());
-            else setWaypoint(g, gShops.safehouses[id].save.xy());
-            menuClose(g);
-            break;
-        case 4:
-            if (id >= 0) setWaypoint(g, gMissions.defs[id].startPos);
-            menuClose(g);
-            break;
-        case 5:
-            if (id >= 0) {
-                menuClose(g);
-                const MissionDef& d = gMissions.defs[id];
-                if (d.protagonist >= 0 && d.protagonist != g.protagonistIndex) switchProtagonist(g, d.protagonist, true);
-                gMissions.replay = true;
-                gMissions.startCheckpoint = 0;
-                g.fadeIn(1.5f);
-                g.startMission(id);
-            }
-            break;
-    }
+    if (!pl || g.phone.open || gMenu.open) return;
+    int pv = g.playerVehicle();
+    bool vehicleOk = pv < 0 || !g.isAircraft(pv);
+    if (g.ctl.phone.pressed && g.playerControl && !g.mInCutscene() && vehicleOk && pl->health > 0.f && g.pinfo.deathTimer <= 0.f) g.phone.open = true;
 }
 
 void economyUpdate(GameWorld& g, float dt) {
     updateIncome(g);
+    updatePhoneKey(g);
     updateStoryCalls(g, dt);
-    updatePhone(g);
 }
 
 }  // namespace mu

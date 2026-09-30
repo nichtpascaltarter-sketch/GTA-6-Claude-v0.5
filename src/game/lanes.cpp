@@ -869,7 +869,7 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                         bool blocked = false;
                         if (World::gBuildings)
                             for (const vec3& q : c.pts)
-                                if (World::gBuildings->pointInBuilding(q.xy(), 3.2f)) {   // body corners + tracking error
+                                if (World::gBuildings->pointInBuilding(q.xy(), 4.2f)) {   // body corners + overshoot at the apex
                                     blocked = true;
                                     break;
                                 }

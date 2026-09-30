@@ -339,6 +339,8 @@ void updateRespray(GameWorld& g, ShopSite& s) {
             veh.sim.engineHealth = 1000.f;
             for (float& z : veh.sim.damageZones) z = 0.f;
             for (int w = 0; w < veh.sim.wheelCount; w++) veh.sim.wheels[w].burst = false;
+            veh.windowsBroken = false;   // new glass
+            veh.glassHits = 0;
             veh.fireTimer = 0.f;
             veh.dirt = 0.f;
             auto it = std::find(g.ownedVehicleModels.begin(), g.ownedVehicleModels.end(), veh.model);
@@ -462,6 +464,7 @@ void shopsUpdate(GameWorld& g, float dt) {
 #endif
                 int v = spawnOwnedVehicle(g, id, s.place.curb, s.place.curbYaw);
                 (void)v;
+                g.socialReport(UI::TE_PURCHASE, dvec3(s.place.curb), m.name.c_str(), (float)m.price);
                 g.notify("PALM MOTORS", StrFormat("%s %s is yours. It's parked outside and waits in every safehouse garage.", m.maker.c_str(), m.name.c_str()));
                 menuClose(g);
                 gShops.activeShop = -1;
@@ -507,6 +510,7 @@ void shopsUpdate(GameWorld& g, float dt) {
                 Audio::play2D(Audio::SFX_PURCHASE, 0.8f);
 #endif
                 g.bigMessage("PROPERTY PURCHASED", s.name, 0xff33ccffu);
+                g.socialReport(UI::TE_PURCHASE, dvec3(s.save), s.name, (float)s.price);
                 int n = 0;
                 for (size_t i = 0; i < gShops.safehouses.size(); i++) n += safehouseOwned(g, (int)i) ? 1 : 0;
                 if (n == (int)gShops.safehouses.size()) setFlag(g, SIDE_SAFEHOUSES_ALL, 1);
@@ -532,6 +536,7 @@ void shopsUpdate(GameWorld& g, float dt) {
             Audio::play2D(Audio::SFX_PURCHASE, 0.8f);
 #endif
             g.bigMessage("BUSINESS PURCHASED", StrFormat("%s  +$%d a day", b.name, b.income), 0xff33ccffu);
+            g.socialReport(UI::TE_PURCHASE, dvec3(b.marker), b.name, (float)b.price);
             int n = 0;
             for (size_t i = 0; i < gShops.businesses.size(); i++) n += businessOwned(g, (int)i) ? 1 : 0;
             if (n == (int)gShops.businesses.size()) setFlag(g, SIDE_BUSINESSES_ALL, 1);

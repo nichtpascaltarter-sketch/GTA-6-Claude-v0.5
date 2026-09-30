@@ -176,6 +176,7 @@ void GameWorld::update(float realDt) {
     updateFires(dt);
     updatePickups(dt);
     updateWanted(dt);
+    updateSocial(realDt);
     double t5 = TimeSeconds();
     updateMissions(dt);
     updateGps(realDt);
@@ -358,6 +359,7 @@ void GameWorld::submitRender() {
         d.damage1 = vec4(s.damageZones[4], s.damageZones[5], 0.f, 0.f);
         d.dmgBoxC = vec4(a.spec.boxCenter, 0.f);
         d.dmgBoxH = vec4(a.spec.boxHalf, 1.f);
+        d.drawGlass = !v.windowsBroken;
         dyn->submit(d);
         if (a.wheel && dist < 400.f) {
             for (int w = 0; w < s.wheelCount; w++) {
@@ -445,6 +447,7 @@ void GameWorld::submitRender() {
         Ped& p = peds[i];
         if (!p.used || p.charIndex < 0) continue;
         if (p.visibleDist > 350.f) continue;
+        if (hidePlayerModel && i == player) continue;
         vec3 toP = rel(p.pos, cam);
         if (dot(toP, camF) < -2.f && p.visibleDist > 3.f) continue;
         const CharEntry& ce = chars[p.charIndex];

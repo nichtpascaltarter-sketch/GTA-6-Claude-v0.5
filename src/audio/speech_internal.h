@@ -157,7 +157,12 @@ struct StyleParams {
     float whisper = 0.f;     // 0..1 voicing replaced by noise excitation
     float endLift = 0.f;     // semitones added to phrase-final pitch (upbeat / anxious endings)
     float vot = 1.f;         // aspiration (voice onset time) multiplier for voiceless stops
-    float accentAll = 0.f;   // 0..1 extra pitch accents on function words (punchy announcer stress)
+    float accentAll = 0.f;   // 0..1 less downstep between pitch accents (punchy announcer stress)
+    float finalLen = 1.f;    // phrase-final lengthening multiplier (< 1 clipped, > 1 drawn out)
+    float nasal = 0.f;       // constant nasal coupling of vowels (0..1)
+    float fscale = 1.f;      // overall formant scale (throaty / forward resonance)
+    float breathIn = 1.f;    // audible breath intakes in pauses between phrases (0 = edited broadcast speech)
+    float slur = 0.f;        // 0..1 imprecise articulation: soft bursts and frication, retracted "s", slow glides
 };
 StyleParams styleParams(const Style& s);
 bool styleEqual(const Style& a, const Style& b);

@@ -175,7 +175,7 @@ void GameWorld::bigMessage(const std::string& text, const std::string& sub, u32 
 
 void GameWorld::subtitle(const std::string& speaker, const std::string& text, float seconds, u32 color) {
     subSpeaker = speaker;
-    subText = text;
+    subText = Speech::displayText(text.c_str());   // strip speech markup ([angry], [pause], stage directions)
     subTimer = seconds;
     subColor = color;
 }

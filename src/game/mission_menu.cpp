@@ -1,4 +1,4 @@
-// In-game menus used by shops, the phone and mission choices: one menu at a time, driven by the semantic menu
+// In-game menus used by shops, safehouses and mission choices: one menu at a time, driven by the semantic menu
 // controls (arrows / D-pad, Enter / A, Backspace / B). Drawn by drawMissionOverlay() when the app calls it; otherwise
 // the list is shown in the HUD help box so it stays usable.
 #include "missions.h"
@@ -6,7 +6,7 @@
 namespace Game {
 namespace mu {
 
-enum MenuOwner : int { MO_NONE = 0, MO_SHOP_GUNS, MO_SHOP_CLOTHES, MO_SHOP_CARS, MO_WARDROBE, MO_GARAGE, MO_PHONE, MO_CHOICE,
+enum MenuOwner : int { MO_NONE = 0, MO_SHOP_GUNS, MO_SHOP_CLOTHES, MO_SHOP_CARS, MO_WARDROBE, MO_GARAGE, MO_CHOICE,
                        MO_BUSINESS, MO_PROPERTY, MO_RESPRAY, MO_RACE, MO_REPLAY };
 
 struct MenuItem {
@@ -28,7 +28,6 @@ struct GameMenu {
     int chosen = -1;          // id chosen this frame (-1 none)
     bool cancelled = false;   // back pressed this frame
     bool blocking = true;     // takes player control while open
-    bool phoneStyle = false;  // drawn as the phone (bottom right)
     u32 accent = 0xff3aa0ffu;
     int openedFrame = 0;
     float anim = 0.f;
@@ -50,7 +49,6 @@ void menuOpen(GameWorld& g, int owner, const std::string& title, const std::stri
     gMenu.chosen = -1;
     gMenu.cancelled = false;
     gMenu.blocking = blocking;
-    gMenu.phoneStyle = owner == MO_PHONE;
     gMenu.accent = accent;
     gMenu.openedFrame = gMenuFrame;
     gMenu.anim = 0.f;
@@ -168,56 +166,9 @@ void menuDraw(GameWorld& g, float W, float H) {
     float e = gMenu.anim * gMenu.anim * (3.f - 2.f * gMenu.anim);
     float u = H / 1080.f;
     int n = (int)gMenu.items.size();
-    int visible = Min(n, gMenu.phoneStyle ? 7 : 10);
+    int visible = Min(n, 10);
     int first = Clamp(gMenu.cursor - visible / 2, 0, Max(0, n - visible));
     UI::TextStyle ts;
-    if (gMenu.phoneStyle) {
-        // phone: rounded device bottom-right
-        float pw = 330.f * u, ph = 560.f * u;
-        float px = W - pw - 60.f * u, py = H - ph * e - 40.f * u + (1.f - e) * 60.f * u;
-        UI::roundRect(px - 8 * u, py - 8 * u, pw + 16 * u, ph + 16 * u, 34 * u, UI::rgba(0.02f, 0.02f, 0.03f, 0.95f), 2.f * u, UI::rgba(0.3f, 0.3f, 0.35f, 1.f));
-        UI::roundRectGradient(px, py, pw, ph, 28 * u, UI::rgba(0.1f, 0.05f, 0.2f, 0.97f), UI::rgba(0.02f, 0.1f, 0.18f, 0.97f));
-        // status bar
-        ts.size = 18.f * u;
-        ts.color = UI::rgba(1, 1, 1, 0.85f);
-        float tod = g.env ? g.env->timeOfDay : 12.f;
-        UI::text(px + 22 * u, py + 14 * u, StrFormat("%02d:%02d", (int)tod, (int)(fmodf(tod, 1.f) * 60.f)).c_str(), ts);
-        ts.align = UI::ALIGN_RIGHT;
-        UI::text(px + pw - 22 * u, py + 14 * u, StrFormat("$%lld", g.pinfo.money).c_str(), ts);
-        ts.align = UI::ALIGN_LEFT;
-        ts.font = UI::FONT_HEADING;
-        ts.size = 30.f * u;
-        ts.color = 0xffffffffu;
-        UI::text(px + 24 * u, py + 52 * u, gMenu.title.c_str(), ts);
-        ts.font = UI::FONT_BODY;
-        ts.size = 17.f * u;
-        ts.color = UI::rgba(0.8f, 0.85f, 1.f, 0.7f);
-        UI::text(px + 24 * u, py + 92 * u, gMenu.subtitle.c_str(), ts);
-        float rowH = 50.f * u, y = py + 124 * u;
-        for (int i = first; i < first + visible; i++) {
-            const MenuItem& it = gMenu.items[i];
-            bool sel = i == gMenu.cursor;
-            if (sel) UI::roundRect(px + 12 * u, y, pw - 24 * u, rowH - 6 * u, 12 * u, UI::withAlpha(gMenu.accent, 0.9f));
-            else UI::roundRect(px + 12 * u, y, pw - 24 * u, rowH - 6 * u, 12 * u, UI::rgba(1, 1, 1, 0.06f));
-            ts.size = 21.f * u;
-            ts.color = it.enabled ? 0xffffffffu : UI::rgba(1, 1, 1, 0.35f);
-            UI::text(px + 28 * u, y + 11 * u, it.label.c_str(), ts);
-            std::string r = menuRightText(it);
-            if (!r.empty() || it.checked) {
-                UI::TextStyle rs = ts;
-                rs.align = UI::ALIGN_RIGHT;
-                rs.size = 18.f * u;
-                UI::text(px + pw - 28 * u, y + 13 * u, it.checked ? "ON" : r.c_str(), rs);
-            }
-            y += rowH;
-        }
-        if (n > 0 && !gMenu.items[gMenu.cursor].detail.empty()) {
-            ts.size = 16.f * u;
-            ts.color = UI::rgba(1, 1, 1, 0.75f);
-            UI::textWrapped(px + 24 * u, py + ph - 92 * u, pw - 48 * u, gMenu.items[gMenu.cursor].detail.c_str(), ts);
-        }
-        return;
-    }
     // shop / choice panel: left side
     float pw = 520.f * u;
     float px = 70.f * u - (1.f - e) * 80.f * u, py = 120.f * u;

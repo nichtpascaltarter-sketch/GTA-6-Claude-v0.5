@@ -34,6 +34,7 @@ struct TestRun {
     float setupDelay = 0.f;
     float timeLimit = 480.f;
     bool roam = false;        // running the free-roam checks instead of a mission
+    std::string cutTag;       // last cutscene shot photographed
 };
 TestRun gRun;
 
@@ -326,7 +327,7 @@ int roamPick(F pred) {
 }
 
 // Returns true when the whole sequence is done.
-bool roamUpdate(GameWorld& g, float dt) {
+bool roamUpdate(GameWorld& g, float dt, MissionTest& T) {
     using namespace mu;
     RoamTest& R = gRoam;
     R.t += dt;
@@ -612,71 +613,58 @@ bool roamUpdate(GameWorld& g, float dt) {
             }
             break;
         }
-        case 10: {   // phone: contacts call, realty waypoint, Wheels.ps purchase
-            auto openPhone = [&]() {
-                gEco.phoneMenu = 0;
-                menuOpen(g, MO_PHONE, "Phone", StrFormat("Day %d", g.gameDay), phoneMainItems(g), false, 0xffff40c0u);
+        case 10: {   // handset (the app's side simulated here): contacts, a call, realty waypoint, Wheels.ps purchase
+            static UI::PhoneState ph;
+            auto act = [&](UI::PhoneActionType type, int id, int app) {
+                UI::PhoneAction pa;
+                pa.type = type;
+                pa.id = id;
+                pa.app = app;
+                return phoneHandle(g, ph, pa);
             };
             if (R.phase == 0) {
+                ph = UI::PhoneState();
+                R.value0 = 0;
                 roamStandOn(g, gShops.safehouses[0].save + vec3(6.f, 6.f, 0.f));
-                openPhone();
                 R.phase = 1;
                 R.t = 0.f;
-            } else if (R.phase == 1 && R.t > 0.3f) {
-                gMenuInject = 1;   // Contacts
+            }
+            phoneRefresh(g, ph);
+            if (R.phase == 1 && R.t > 0.3f) {
+                int apps = 0;
+                for (const UI::PhoneListApp& ap : ph.apps) apps += ap.items.empty() && !ap.action ? 0 : 1;
+                roamCheck(ph.contacts.size() >= 5 && apps >= 4, StrFormat("handset: %d contacts, %d apps", (int)ph.contacts.size(), (int)ph.apps.size()));
+                act(UI::PA_CALL, 1, -1);   // Mama Lucha
                 R.phase = 2;
                 R.t = 0.f;
-            } else if (R.phase == 2 && R.t > 0.3f) {
-                roamCheck(menuIs(MO_PHONE) && gMenu.title == "Contacts" && gMenu.items.size() >= 5, StrFormat("phone contacts (%d)", (int)gMenu.items.size()));
-                gMenuInject = 1;   // Mama Lucha
-                R.phase = 3;
-                R.t = 0.f;
+            } else if (R.phase == 2) {
+                if (ph.call == UI::CALL_ACTIVE && R.value0 == 0) R.value0 = 1;
+                if (R.value0 == 1 && ph.call == UI::CALL_NONE) {
+                    roamCheck(true, StrFormat("called Mama Lucha: dialed, connected, hung up after %.1f s", R.t));
+                    R.phase = 3;
+                    R.t = 0.f;
+                } else if (R.t > 30.f) {
+                    roamCheck(false, StrFormat("call to Lucha stuck (call state %d)", (int)ph.call));
+                    act(UI::PA_HANG_UP, -1, -1);
+                    R.phase = 3;
+                    R.t = 0.f;
+                }
             } else if (R.phase == 3 && R.t > 0.3f) {
-                roamCheck(!gMenu.open && g.mTalking(), "called Mama Lucha");
-                openPhone();
-                R.phase = 4;
-                R.t = 0.f;
-            } else if (R.phase == 4 && R.t > 0.3f) {
-                gMenuInject = 4;   // Dynasty Realty
-                R.phase = 5;
-                R.t = 0.f;
-            } else if (R.phase == 5 && R.t > 0.3f) {
                 g.hasWaypoint = false;
-                gMenuInject = 102;   // Club Riptide listing
-                R.phase = 6;
-                R.t = 0.f;
-            } else if (R.phase == 6 && R.t > 0.3f) {
-                roamCheck(g.hasWaypoint && ::length(g.waypoint - gShops.businesses[2].marker.xy()) < 1.f && !gMenu.open, "realty listing sets a waypoint");
-                openPhone();
-                R.phase = 7;
-                R.t = 0.f;
-            } else if (R.phase == 7 && R.t > 0.3f) {
-                gMenuInject = 3;   // Wheels.ps
-                R.phase = 8;
-                R.t = 0.f;
-            } else if (R.phase == 8 && R.t > 0.3f) {
-                int pick = roamPick([](const MenuItem&) { return true; });
+                act(UI::PA_APP_ITEM, 102, APP_REALTY);   // Club Riptide listing
+                roamCheck(g.hasWaypoint && ::length(g.waypoint - gShops.businesses[2].marker.xy()) < 1.f, "realty listing sets a waypoint");
+                int pick = -1;
+                for (const UI::PhoneListApp& ap : ph.apps)
+                    if (ap.id == APP_WHEELS)
+                        for (const UI::PhoneListItem& it : ap.items)
+                            if (it.enabled && it.price >= 0 && pick < 0) pick = it.id;
                 R.count0 = (int)g.ownedVehicleModels.size();
                 R.money0 = g.pinfo.money;
-                R.value0 = pick;
-                roamCheck(pick >= 0 && gMenu.title == "Wheels.ps", StrFormat("Wheels.ps lists %d vehicles", (int)gMenu.items.size()));
-                if (pick >= 0) gMenuInject = pick;
-                R.phase = 9;
-                R.t = 0.f;
-            } else if (R.phase == 9 && R.t > 0.3f) {
-                if (R.value0 >= 0)
-                    roamCheck((int)g.ownedVehicleModels.size() == R.count0 + 1 && R.money0 - g.pinfo.money == g.vassets[R.value0].spec.price,
-                              StrFormat("Wheels.ps delivered a %s", g.vassets[R.value0].spec.name.c_str()));
-                gMenuInject = -2;   // back to the main page
-                R.phase = 10;
-                R.t = 0.f;
-            } else if (R.phase == 10 && R.t > 0.3f) {
-                roamCheck(menuIs(MO_PHONE) && gMenu.title == "Phone", "Back returns to the phone's main page");
-                gMenuInject = -2;
-                R.phase = 11;
-                R.t = 0.f;
-            } else if (R.phase == 11 && R.t > 0.3f) {
-                roamCheck(!gMenu.open, "phone closed");
+                if (pick >= 0) act(UI::PA_APP_ITEM, pick, APP_WHEELS);
+                roamCheck(pick >= 0 && (int)g.ownedVehicleModels.size() == R.count0 + 1 && R.money0 - g.pinfo.money == g.vassets[pick].spec.price,
+                          StrFormat("Wheels.ps delivered a %s", pick >= 0 ? g.vassets[pick].spec.name.c_str() : "-"));
+                int msgs = (int)gPhone.messages.size();
+                roamCheck(msgs > 0, StrFormat("handset has %d messages (newest: %s)", msgs, msgs ? gPhone.messages.back().text.c_str() : "-"));
                 roamNext();
             }
             break;
@@ -731,35 +719,48 @@ bool roamUpdate(GameWorld& g, float dt) {
             }
             break;
         }
-        case 13: {   // the Sol Beach Pier stunt jump
+        case 13: {   // a stunt ramp: run up at speed, launch, land; the unique stunt bonus must register
             if (R.phase == 0) {
+                if (gRamps.empty()) {
+                    if (R.t > 40.f) {
+                        roamCheck(false, "no stunt ramps placed");
+                        roamNext();
+                    }
+                    break;
+                }
+                const StuntRamp& rp = gRamps[0];
                 R.value0 = flag(g, EX_STUNT_COUNT);
-                vec3 top = gAct.stunts.empty() ? gPlaces.pierRamp : gAct.stunts.back().pos;
-                vec3 start = top - vec3(95.f, 0.f, 0.f);
-                start.z = groundAt(g, start.x, start.y, top.z + 5.f);
-                int model = pickModel(g, {Vehicles::VC_SPORTS, Vehicles::VC_SUPER});
-                R.veh = placePlayer(g, start, -kPi * 0.5f, model);
+                vec2 st = rp.foot.xy() - rp.dir * 65.f;
+                vec3 start(st, groundAt(g, st.x, st.y, rp.foot.z + 5.f));
+                int model = pickModel(g, {Vehicles::VC_SPORTS, Vehicles::VC_MUSCLE});
+                R.veh = placePlayer(g, start, atan2f(-rp.dir.x, rp.dir.y), model);
                 if (R.veh < 0) {
-                    roamCheck(false, "stunt: no car");
+                    roamCheck(false, "stunt ramp: no car");
                     roamNext();
                     break;
                 }
-                g.vehicles[R.veh].sim.body.vel = vec3(41.f, 0.f, 0.f);
+                R.color0 = vec3(rp.dir, 0.f);
+                g.vehicles[R.veh].sim.body.vel = vec3(rp.dir * 30.f, 0.f);
+                LOG("[missiontest] roam: ramp 0 at (%.0f, %.0f, %.1f) heading (%.2f, %.2f)%s, %d ramps", rp.foot.x, rp.foot.y, rp.foot.z, rp.dir.x, rp.dir.y,
+                    rp.waterGap ? " over water" : "", (int)gRamps.size());
                 R.phase = 1;
                 R.t = 0.f;
             } else if (R.phase == 1) {
                 int pv = g.playerVehicle();
-                if (pv >= 0 && R.t < 1.2f) {
-                    g.vehicles[pv].ctl.throttle = 1.f;
+                vec2 dir = R.color0.xy();
+                if (pv >= 0 && R.t < 1.5f) {
                     Vehicles::VehicleState& vs = g.vehicles[pv].sim;
-                    vs.body.vel.x = Max(vs.body.vel.x, 41.f);
+                    float fwd = dot(vs.body.vel.xy(), dir);
+                    if (fwd < 30.f) vs.body.vel += vec3(dir * (30.f - fwd), 0.f);
                 }
+                if (R.t > 1.f && R.t < 1.1f) T.screenshot("ramp_runup");
                 if (flag(g, EX_STUNT_COUNT) > R.value0) {
-                    roamCheck(true, StrFormat("pier stunt jump cleared after %.1f s", R.t));
+                    roamCheck(true, StrFormat("stunt ramp jump cleared after %.1f s", R.t));
+                    T.screenshot("ramp_landed");
                     roamNext();
-                } else if (R.t > 8.f) {
+                } else if (R.t > 9.f) {
                     vec3 p = pv >= 0 ? vehPos(g, pv) : playerPos(g);
-                    roamCheck(false, StrFormat("pier stunt jump not registered (car at %.0f, %.0f, %.1f)", p.x, p.y, p.z));
+                    roamCheck(false, StrFormat("stunt ramp jump not registered (car at %.0f, %.0f, %.1f)", p.x, p.y, p.z));
                     roamNext();
                 }
             }
@@ -844,6 +845,7 @@ void updateMissionTest(GameWorld& g, float dt) {
         R.lastShotIndex = -1;
         R.shotDelay = 1.0f;
         R.shotTag = "start";
+        R.cutTag.clear();
         if (T.id == "roam") {
             gRoam = RoamTest();
             R.roam = true;
@@ -865,7 +867,7 @@ void updateMissionTest(GameWorld& g, float dt) {
     if (R.roam) {
         pl->health = Max(pl->health, pl->maxHealth * 0.6f);
         pl->invincible = true;
-        if (roamUpdate(g, dt)) {
+        if (roamUpdate(g, dt, T)) {
             R.roam = false;
             R.running = false;
             R.setupDelay = 0.f;
@@ -920,11 +922,14 @@ void updateMissionTest(GameWorld& g, float dt) {
             R.cutsceneTime = 0.f;
         }
         R.cutsceneTime += dt;
-        if (R.cutsceneTime > 0.9f && R.shotDelay < -0.5f && M.shotIndex == 0 && R.shotTag != "cut") {
-            R.shotTag = "cut";
-            T.screenshot("cutscene");
+        // one screenshot of each of the first two shots of every cutscene
+        std::string tag = StrFormat("cut%d", M.shotIndex);
+        tag = StrFormat("%d_%d_%s", m.stage, (int)M.shots.size(), tag.c_str());
+        if (R.cutsceneTime > 0.9f && M.shotIndex < 2 && R.cutTag != tag) {
+            R.cutTag = tag;
+            T.screenshot(StrFormat("stage%d_cut%d", m.stage, M.shotIndex).c_str());
         }
-        if (R.cutsceneTime > 1.6f) {
+        if (R.cutsceneTime > 1.7f) {
             if (M.shotIndex + 1 < (int)M.shots.size() && M.shotIndex < 1) {
                 M.shotIndex++;
                 M.shotTime = 0.f;

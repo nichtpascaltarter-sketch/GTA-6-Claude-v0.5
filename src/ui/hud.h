@@ -413,6 +413,7 @@ namespace Phone {
 PhoneAction update(PhoneState& st, const HudState& hud, const InputState& in, float dt);
 const std::vector<std::string>& filterNames();   // photo mode filters
 bool isOpen();                                   // phone visible on screen (the HUD hides its bottom-right widgets)
+void reset();                                    // back to the home screen, closed (after loading a save / switching)
 }
 
 // Tidegram social feed: the game reports what just happened around the player; a little later NPC accounts (locals,

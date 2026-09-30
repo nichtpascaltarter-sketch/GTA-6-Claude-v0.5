@@ -38,7 +38,9 @@ inline u32 pk(float v) { return pk(vec3(v, v, v), 1.f); }
 inline u32 MM(MaterialId id, u32 param = 0) { return makeMat(id, param); }
 inline u32 neonMat(u32 anim, u32 phase) { return makeMat(MAT_EMISSIVE, anim == 0 ? 0u : (anim | ((phase & 255u) << 4))); }
 
-enum : u32 { WF_FRONT = 1, WF_TOP = 2, WF_BOTTOM = 4, WF_START = 8, WF_END = 16, WF_BACK = 32, WF_BOX = 31, WF_ALL = 63 };
+enum : u32 { WF_FRONT = 1, WF_TOP = 2, WF_BOTTOM = 4, WF_START = 8, WF_END = 16, WF_BACK = 32, WF_BOX = 31, WF_ALL = 63,
+             WF_LEDGE = WF_FRONT | WF_TOP | WF_BOTTOM,     // long horizontal molding (ends hidden at corners / in neighbours)
+             WF_POST = WF_FRONT | WF_START | WF_END };     // vertical member
 
 struct Sink {
     MeshData* m = nullptr;
@@ -194,17 +196,17 @@ void cornice(FD& d, const Wall& w, float H, int kind) {
     Sink& k = d.k;
     float e = 0.004f * (float)(w.idx & 1);  // keeps overlapping corner pieces from z-fighting
     switch (kind) {
-        case CO_BAND: wbox(k, w, -0.12f, w.len + 0.12f, H - 0.34f + e, H + 0.04f + e, 0.f, 0.12f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM); break;
+        case CO_BAND: wbox(k, w, -0.12f, w.len + 0.12f, H - 0.34f + e, H + 0.04f + e, 0.f, 0.12f, d.trim, d.trimMat, WF_LEDGE); break;
         case CO_CLASSIC:
-            wbox(k, w, -0.08f, w.len + 0.08f, H - 0.62f + e, H - 0.48f + e, 0.f, 0.08f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
-            wbox(k, w, -0.2f, w.len + 0.2f, H - 0.48f + e, H - 0.14f + e, 0.f, 0.2f, d.wallTone, d.wallMat, WF_BOX | WF_BOTTOM);
-            wbox(k, w, -0.44f, w.len + 0.44f, H - 0.14f + e, H + 0.1f + e, 0.f, 0.44f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
+            wbox(k, w, -0.08f, w.len + 0.08f, H - 0.62f + e, H - 0.48f + e, 0.f, 0.08f, d.trim, d.trimMat, WF_LEDGE);
+            wbox(k, w, -0.2f, w.len + 0.2f, H - 0.48f + e, H - 0.14f + e, 0.f, 0.2f, d.wallTone, d.wallMat, WF_LEDGE);
+            wbox(k, w, -0.44f, w.len + 0.44f, H - 0.14f + e, H + 0.1f + e, 0.f, 0.44f, d.trim, d.trimMat, WF_LEDGE);
             break;
-        case CO_SLAB: wbox(k, w, -0.8f, w.len + 0.8f, H - 0.12f + e, H + 0.14f + e, 0.f, 0.8f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM); break;
+        case CO_SLAB: wbox(k, w, -0.8f, w.len + 0.8f, H - 0.12f + e, H + 0.14f + e, 0.f, 0.8f, d.trim, d.trimMat, WF_LEDGE); break;
         case CO_STEPPED:
-            wbox(k, w, -0.1f, w.len + 0.1f, H - 0.42f + e, H - 0.27f + e, 0.f, 0.1f, d.accent, d.trimMat, WF_BOX | WF_BOTTOM);
-            wbox(k, w, -0.2f, w.len + 0.2f, H - 0.27f + e, H - 0.12f + e, 0.f, 0.2f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
-            wbox(k, w, -0.3f, w.len + 0.3f, H - 0.12f + e, H + 0.04f + e, 0.f, 0.3f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
+            wbox(k, w, -0.1f, w.len + 0.1f, H - 0.42f + e, H - 0.27f + e, 0.f, 0.1f, d.accent, d.trimMat, WF_LEDGE);
+            wbox(k, w, -0.2f, w.len + 0.2f, H - 0.27f + e, H - 0.12f + e, 0.f, 0.2f, d.trim, d.trimMat, WF_LEDGE);
+            wbox(k, w, -0.3f, w.len + 0.3f, H - 0.12f + e, H + 0.04f + e, 0.f, 0.3f, d.trim, d.trimMat, WF_LEDGE);
             break;
         default: break;
     }
@@ -212,12 +214,12 @@ void cornice(FD& d, const Wall& w, float H, int kind) {
 
 void coping(FD& d, const Wall& w, float H) {
     float e = 0.004f * (float)(w.idx & 1);
-    wbox(d.k, w, -0.06f, w.len + 0.06f, H + 0.97f + e, H + 1.07f + e, -0.36f, 0.06f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
+    wbox(d.k, w, -0.06f, w.len + 0.06f, H + 0.97f + e, H + 1.07f + e, -0.36f, 0.06f, d.trim, d.trimMat, WF_LEDGE);
 }
 
 void stringCourse(FD& d, const Wall& w, float z, float h, float out, u32 col, u32 mat) {
     float e = 0.004f * (float)(w.idx & 1);
-    wbox(d.k, w, -out, w.len + out, z - h * 0.5f + e, z + h * 0.5f + e, 0.f, out, col, mat, WF_BOX | WF_BOTTOM);
+    wbox(d.k, w, -out, w.len + out, z - h * 0.5f + e, z + h * 0.5f + e, 0.f, out, col, mat, WF_LEDGE);
 }
 
 // Pilasters at bay boundaries (corners always); `every` = spacing in bays (0 = corners only)
@@ -231,7 +233,7 @@ void pilasters(FD& d, const Wall& w, float z0, float z1, int every, float width,
         if (wd < 0.18f) continue;
         float sb = i * w.bw;
         float s0 = corner ? (i == 0 ? 0.f : w.len - wd) : sb - wd * 0.5f, s1 = s0 + wd;
-        wbox(d.k, w, s0, s1, z0, z1, 0.f, out, col, mat, WF_FRONT | WF_START | WF_END | WF_TOP | WF_BOTTOM);
+        wbox(d.k, w, s0, s1, z0, z1, 0.f, out, col, mat, WF_POST);
     }
 }
 
@@ -251,26 +253,28 @@ void windowTrims(FD& d, const Wall& w, const FacadeMass& ms, int kind, bool shut
         float z0 = ms.vBase + fr.v0 + ws.sill, z1 = z0 + ws.h;
         if (style == 2) {
             // ribbon windows: continuous sill and head ledges across the wall
-            wbox(k, w, 0.f, w.len, z0 - 0.1f, z0, 0.f, 0.12f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
-            wbox(k, w, 0.f, w.len, z1, z1 + 0.14f, 0.f, 0.08f, d.trim, d.trimMat, WF_FRONT | WF_BOTTOM | WF_TOP);
+            wbox(k, w, 0.f, w.len, z0 - 0.1f, z0, 0.f, 0.12f, d.trim, d.trimMat, WF_LEDGE);
+            wbox(k, w, 0.f, w.len, z1, z1 + 0.14f, 0.f, 0.08f, d.trim, d.trimMat, WF_FRONT | WF_BOTTOM);
             continue;
         }
+        // full surrounds where people look (lowest four floors); sills alone keep the rhythm higher up
+        int kf = fr.idx <= 4 ? kind : 0;
         for (int i = 0; i < w.bays; i++) {
             if (style == 4 && !industrialWindow(f, w, i, fr.idx)) continue;
             float s0 = (i + ws.x0) * w.bw, s1 = s0 + ws.w * w.bw, sc = (s0 + s1) * 0.5f;
-            wbox(k, w, s0 - 0.08f, s1 + 0.08f, z0 - 0.09f, z0, 0.f, 0.11f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
-            if (kind >= 1) wbox(k, w, s0 - 0.11f, s1 + 0.11f, z1, z1 + (kind == 3 ? 0.24f : 0.15f), 0.f, 0.07f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
-            if (kind >= 2) {
-                wbox(k, w, s0 - 0.1f, s0, z0, z1, 0.f, 0.05f, d.trim, d.trimMat, WF_FRONT | WF_START | WF_END);
-                wbox(k, w, s1, s1 + 0.1f, z0, z1, 0.f, 0.05f, d.trim, d.trimMat, WF_FRONT | WF_START | WF_END);
+            wbox(k, w, s0 - 0.08f, s1 + 0.08f, z0 - 0.09f, z0, 0.f, 0.11f, d.trim, d.trimMat, WF_LEDGE);
+            if (kf >= 1) wbox(k, w, s0 - 0.11f, s1 + 0.11f, z1, z1 + (kf == 3 ? 0.24f : 0.15f), 0.f, 0.07f, d.trim, d.trimMat, WF_FRONT | WF_BOTTOM);
+            if (kf >= 2) {
+                wbox(k, w, s0 - 0.1f, s0, z0, z1, 0.f, 0.05f, d.trim, d.trimMat, WF_FRONT);
+                wbox(k, w, s1, s1 + 0.1f, z0, z1, 0.f, 0.05f, d.trim, d.trimMat, WF_FRONT);
             }
-            if (kind == 3) wbox(k, w, sc - 0.13f, sc + 0.13f, z1 - 0.06f, z1 + 0.3f, 0.f, 0.11f, d.trim, d.trimMat, WF_BOX);
+            if (kf == 3) wbox(k, w, sc - 0.13f, sc + 0.13f, z1 - 0.06f, z1 + 0.3f, 0.f, 0.11f, d.trim, d.trimMat, WF_FRONT | WF_BOTTOM);
             if (shutters) {
                 float pier = w.bw - (s1 - s0);
                 float pw = Min((s1 - s0) * 0.5f, (pier - 0.16f) * 0.5f);
                 if (pw > 0.25f) {
-                    wbox(k, w, s0 - 0.03f - pw, s0 - 0.03f, z0 + 0.02f, z1 - 0.02f, 0.01f, 0.05f, shutterCol, MM(MAT_WOOD), WF_FRONT | WF_START | WF_END | WF_TOP);
-                    wbox(k, w, s1 + 0.03f, s1 + 0.03f + pw, z0 + 0.02f, z1 - 0.02f, 0.01f, 0.05f, shutterCol, MM(MAT_WOOD), WF_FRONT | WF_START | WF_END | WF_TOP);
+                    wbox(k, w, s0 - 0.03f - pw, s0 - 0.03f, z0 + 0.02f, z1 - 0.02f, 0.01f, 0.05f, shutterCol, MM(MAT_WOOD), WF_FRONT);
+                    wbox(k, w, s1 + 0.03f, s1 + 0.03f + pw, z0 + 0.02f, z1 - 0.02f, 0.01f, 0.05f, shutterCol, MM(MAT_WOOD), WF_FRONT);
                 }
             } else if (bahama) {
                 // Bahama shutter: one panel hinged at the head, propped open at ~30 degrees
@@ -294,7 +298,7 @@ void storefront(FD& d, const Wall& w, float vBase, int doorBay) {
     u32 fm = MM(MAT_METAL_PAINTED);
     for (int i = 0; i <= w.bays; i++) {
         float sb = i * w.bw, hw = 0.04f * w.bw + 0.05f;
-        wbox(k, w, Max(0.f, sb - hw), Min(w.len, sb + hw), vBase - 0.3f, zg1 + 0.05f, 0.f, 0.12f, d.trim, d.trimMat, WF_FRONT | WF_START | WF_END);
+        wbox(k, w, Max(0.f, sb - hw), Min(w.len, sb + hw), vBase - 0.3f, zg1 + 0.05f, 0.f, 0.12f, d.trim, d.trimMat, WF_POST);
     }
     int nm = Max(1, (int)floorf(f.bayW * 0.92f / 1.4f));
     for (int i = 0; i < w.bays; i++) {
@@ -303,27 +307,27 @@ void storefront(FD& d, const Wall& w, float vBase, int doorBay) {
         wbox(k, w, s0, s1, zg1 - 0.07f, zg1 + 0.02f, 0.f, 0.06f, d.frame, fm, WF_FRONT | WF_BOTTOM);
         for (int j = 1; j < nm; j++) {
             float s = s0 + (s1 - s0) * j / nm;
-            wbox(k, w, s - 0.035f, s + 0.035f, zg0, zg1, 0.f, 0.06f, d.frame, fm, WF_FRONT | WF_START | WF_END);
+            wbox(k, w, s - 0.035f, s + 0.035f, zg0, zg1, 0.f, 0.06f, d.frame, fm, WF_POST);
         }
         float zt = zg0 + Min(2.4f, glassH - 0.45f);
         if (glassH > 2.9f) wbox(k, w, s0, s1, zt - 0.045f, zt + 0.045f, 0.f, 0.06f, d.frame, fm, WF_FRONT | WF_TOP | WF_BOTTOM);
         if (i == doorBay) {
             float dc = (s0 + s1) * 0.5f, dw = Min(1.9f, (s1 - s0) * 0.8f);
             float zh = zg0 - 0.35f + Min(2.3f, glassH);
-            wbox(k, w, dc - dw * 0.5f - 0.08f, dc - dw * 0.5f, vBase, zh, 0.f, 0.08f, d.frame, fm, WF_FRONT | WF_START | WF_END);
-            wbox(k, w, dc + dw * 0.5f, dc + dw * 0.5f + 0.08f, vBase, zh, 0.f, 0.08f, d.frame, fm, WF_FRONT | WF_START | WF_END);
-            wbox(k, w, dc - 0.04f, dc + 0.04f, vBase, zh, 0.f, 0.08f, d.frame, fm, WF_FRONT | WF_START | WF_END);
+            wbox(k, w, dc - dw * 0.5f - 0.08f, dc - dw * 0.5f, vBase, zh, 0.f, 0.08f, d.frame, fm, WF_POST);
+            wbox(k, w, dc + dw * 0.5f, dc + dw * 0.5f + 0.08f, vBase, zh, 0.f, 0.08f, d.frame, fm, WF_POST);
+            wbox(k, w, dc - 0.04f, dc + 0.04f, vBase, zh, 0.f, 0.08f, d.frame, fm, WF_FRONT);
             wbox(k, w, dc - dw * 0.5f, dc + dw * 0.5f, zh - 0.08f, zh, 0.f, 0.08f, d.frame, fm, WF_FRONT | WF_BOTTOM);
             // push bars
-            wbox(k, w, dc - dw * 0.42f, dc - 0.12f, vBase + 1.0f, vBase + 1.05f, 0.08f, 0.12f, pk(0.8f, 0.8f, 0.82f), MM(MAT_CHROME), WF_FRONT | WF_TOP);
-            wbox(k, w, dc + 0.12f, dc + dw * 0.42f, vBase + 1.0f, vBase + 1.05f, 0.08f, 0.12f, pk(0.8f, 0.8f, 0.82f), MM(MAT_CHROME), WF_FRONT | WF_TOP);
+            wbox(k, w, dc - dw * 0.42f, dc - 0.12f, vBase + 1.0f, vBase + 1.05f, 0.08f, 0.12f, pk(0.8f, 0.8f, 0.82f), MM(MAT_CHROME), WF_FRONT);
+            wbox(k, w, dc + 0.12f, dc + dw * 0.42f, vBase + 1.0f, vBase + 1.05f, 0.08f, 0.12f, pk(0.8f, 0.8f, 0.82f), MM(MAT_CHROME), WF_FRONT);
         }
     }
     if (f.flags & 2u) {
         float zb = vBase + gH - 1.05f;
-        wbox(k, w, 0.f, w.len, zb - 0.09f, zb, 0.f, 0.1f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
+        wbox(k, w, 0.f, w.len, zb - 0.09f, zb, 0.f, 0.1f, d.trim, d.trimMat, WF_FRONT | WF_BOTTOM);
         float zc = vBase + gH - 0.15f;
-        wbox(k, w, -0.05f, w.len + 0.05f, zc, zc + 0.22f, 0.f, 0.26f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
+        wbox(k, w, -0.05f, w.len + 0.05f, zc, zc + 0.22f, 0.f, 0.26f, d.trim, d.trimMat, WF_LEDGE | WF_START | WF_END);
     }
 }
 
@@ -333,7 +337,7 @@ void awningStriped(FD& d, const Wall& w, float s0, float s1, float z, float dept
     MeshData& m = *k.m;
     float len = s1 - s0;
     if (len < 0.4f) return;
-    int n = Max(1, (int)roundf(len / 0.55f));
+    int n = Max(1, (int)roundf(len / 0.75f));
     float drop = depth * 0.38f, val = 0.3f;
     u32 mat = MM(MAT_FABRIC);
     vec3 N3(w.n, 0.f), T3(w.t, 0.f);
@@ -345,7 +349,7 @@ void awningStriped(FD& d, const Wall& w, float s0, float s1, float z, float dept
         m.quadFacing(A0, A1, B1, B0, vec2(a0, 0), vec2(a1, 0), vec2(a1, depth), vec2(a0, depth), c, mat, vec3(N3 * 0.4f) + vec3(0, 0, 1));
         m.quadFacing(A0, B0, B1, A1, vec2(a0, 0), vec2(a0, depth), vec2(a1, depth), vec2(a1, 0), c, mat, vec3(-N3 * 0.4f) - vec3(0, 0, 1));
         // valance: straight top, scalloped (or straight) bottom, double sided
-        const int SEG = 5;
+        const int SEG = 3;
         vec3 pts[SEG + 1];
         for (int j = 0; j <= SEG; j++) {
             float u = (float)j / SEG;
@@ -397,11 +401,11 @@ void securityGate(FD& d, const Wall& w, float s0, float s1, float zTop, float cl
     wbox(k, w, s0 - 0.04f, s1 + 0.04f, zTop - 0.34f, zTop, 0.f, 0.3f, pk(0.55f, 0.56f, 0.57f), MM(MAT_METAL_BRUSHED), WF_BOX | WF_BOTTOM);
     for (int e = 0; e < 2; e++) {
         float s = e == 0 ? s0 - 0.06f : s1 + 0.01f;
-        wbox(k, w, s, s + 0.05f, closedTo < zTop ? d.b->baseZ : zTop - 0.34f, zTop - 0.34f, 0.f, 0.12f, pk(0.45f), MM(MAT_METAL_PAINTED), WF_FRONT | WF_START | WF_END);
+        wbox(k, w, s, s + 0.05f, closedTo < zTop ? d.b->baseZ : zTop - 0.34f, zTop - 0.34f, 0.f, 0.12f, pk(0.45f), MM(MAT_METAL_PAINTED), WF_FRONT);
     }
     if (closedTo < zTop - 0.4f) {
         wquad(k, w, s0, s1, closedTo, zTop - 0.34f, 0.09f, panelCol, MM(MAT_CORRUGATED));
-        wbox(k, w, s0, s1, closedTo - 0.05f, closedTo + 0.02f, 0.f, 0.11f, pk(0.3f), MM(MAT_METAL_PAINTED), WF_FRONT | WF_BOTTOM | WF_TOP);
+        wbox(k, w, s0, s1, closedTo - 0.05f, closedTo + 0.02f, 0.f, 0.11f, pk(0.3f), MM(MAT_METAL_PAINTED), WF_FRONT | WF_BOTTOM);
     }
 }
 
@@ -424,7 +428,7 @@ void neonText(Sink& k, const char* txt, vec3 origin, vec3 right, vec3 up, float 
     sitegeo::G g;
     g.m = k.m;
     g.org = k.org;
-    sitegeo::strokeText(g, *k.m, txt, origin, right, up, h, h * 0.085f, pk(col, 0.85f), neonMat(anim, phase), h * 0.07f, 0.3f);
+    sitegeo::strokeText(g, *k.m, txt, origin, right, up, h, h * 0.09f, pk(col, 0.85f), neonMat(anim, phase), 0.f, 0.3f);
 }
 
 // Projecting blade sign: panel perpendicular to the wall at s, vertical neon letters on both faces, tube border, brackets
@@ -436,7 +440,7 @@ void bladeSign(FD& d, const Wall& w, float s, float z0, float z1, float o0, floa
     obox(k, c, vec3(w.n, 0.f), vec3(w.t, 0.f), vec3((o1 - o0) * 0.5f, th, (z1 - z0) * 0.5f), panelCol, MM(MAT_METAL_PAINTED));
     for (int b2 = 0; b2 < 2; b2++) {
         float z = b2 == 0 ? z0 + 0.25f : z1 - 0.25f;
-        wbox(k, w, s - 0.05f, s + 0.05f, z - 0.05f, z + 0.05f, 0.f, o0, pk(0.25f), MM(MAT_METAL_PAINTED), WF_FRONT | WF_TOP | WF_BOTTOM | WF_START | WF_END);
+        wbox(k, w, s - 0.05f, s + 0.05f, z - 0.05f, z + 0.05f, 0.f, o0, pk(0.25f), MM(MAT_METAL_PAINTED), WF_TOP | WF_BOTTOM | WF_START | WF_END);
     }
     int n = (int)strlen(word);
     if (n == 0) return;
@@ -456,16 +460,16 @@ void bladeSign(FD& d, const Wall& w, float s, float z0, float z1, float o0, floa
             vec3 o = base + vec3(w.n * oc - rt * (lw * 0.5f), zc - lh * 0.5f);
             neonText(k, ch, o, vec3(rt, 0.f), vec3(0, 0, 1), lh, ncol, anim, (u32)i * 40u);
         }
-        // border tube
-        float in = 0.1f;
-        vec3 p00 = vec3(w.a + w.t * (s + sd * (th + 0.02f)) + w.n * (o0 + in), z0 + in), p10 = vec3(w.a + w.t * (s + sd * (th + 0.02f)) + w.n * (o1 - in), z0 + in);
-        vec3 p11 = p10 + vec3(0, 0, z1 - z0 - 2.f * in), p01 = p00 + vec3(0, 0, z1 - z0 - 2.f * in);
-        vec3 e[4][2] = {{p00, p10}, {p10, p11}, {p11, p01}, {p01, p00}};
-        u32 bc = pk(ncol * 0.7f + vec3(0.3f), 0.7f);
-        for (auto& ed : e) {
-            vec3 ax = normalize(ed[1] - ed[0]);
-            obox(k, (ed[0] + ed[1]) * 0.5f, ax, vec3(w.t, 0.f), vec3(length(ed[1] - ed[0]) * 0.5f + 0.03f, 0.03f, 0.03f), bc, neonMat(anim == 0 ? 6u : anim, 17u));
-        }
+        // border tube (flat strip on the panel face)
+        float in = 0.1f, tw2 = 0.035f;
+        u32 bc = pk(ncol * 0.7f + vec3(0.3f), 0.7f), bm = neonMat(anim == 0 ? 6u : anim, 17u);
+        vec3 fN(fnrm, 0.f);
+        auto P = [&](float o, float z) { return vec3(w.a + w.t * (s + sd * (th + 0.01f)) + w.n * o, z) - k.org; };
+        float oa = o0 + in, ob = o1 - in, za = z0 + in, zb2 = z1 - in;
+        k.m->quadFacing(P(oa - tw2, za - tw2), P(ob + tw2, za - tw2), P(ob + tw2, za + tw2), P(oa - tw2, za + tw2), vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), bc, bm, fN);
+        k.m->quadFacing(P(oa - tw2, zb2 - tw2), P(ob + tw2, zb2 - tw2), P(ob + tw2, zb2 + tw2), P(oa - tw2, zb2 + tw2), vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), bc, bm, fN);
+        k.m->quadFacing(P(oa - tw2, za), P(oa + tw2, za), P(oa + tw2, zb2), P(oa - tw2, zb2), vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), bc, bm, fN);
+        k.m->quadFacing(P(ob - tw2, za), P(ob + tw2, za), P(ob + tw2, zb2), P(ob - tw2, zb2), vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), bc, bm, fN);
     }
     addLight(k, vec3(w.a + w.t * s + w.n * ((o0 + o1) * 0.5f), (z0 + z1) * 0.5f), ncol * 700.f, 9.f, 2);
 }
@@ -483,8 +487,11 @@ void windowNeon(FD& d, const Wall& w, float sc, float z, const char* word, vec3 
     vec3 c = vec3(w.a + w.t * sc + w.n * 0.045f, z + h * 0.5f);
     u32 bc = pk(vec3(0.3f, 0.6f, 1.f), 0.7f);
     u32 bm = neonMat(6u, 0u);
-    obox(k, c + vec3(0, 0, h * 0.5f + 0.1f), vec3(rt, 0.f), vec3(w.n, 0.f), vec3(bw, 0.015f, 0.015f), bc, bm);
-    obox(k, c - vec3(0, 0, h * 0.5f + 0.1f), vec3(rt, 0.f), vec3(w.n, 0.f), vec3(bw, 0.015f, 0.015f), bc, bm);
+    for (int e = -1; e <= 1; e += 2) {
+        vec3 cc = c + vec3(0, 0, e * (h * 0.5f + 0.1f)) - k.org;
+        vec3 R = vec3(rt, 0.f) * bw, U(0, 0, 0.018f);
+        k.m->quadFacing(cc - R - U, cc + R - U, cc + R + U, cc - R + U, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), bc, bm, vec3(w.n, 0.f));
+    }
 }
 
 // Graffiti piece: optional backing blob, dark outline, colored fill, drips (paint on the wall plane)
@@ -548,15 +555,13 @@ void acUnit(FD& d, const Wall& w, float sc, float zSill, float wWin) {
     u32 body = d.r.chance(0.7f) ? pk(0.88f, 0.87f, 0.82f) : pk(0.62f, 0.6f, 0.56f);
     wbox(k, w, sc - hw, sc + hw, zSill + 0.02f, zSill + 0.44f, -0.03f, 0.42f, body, MM(MAT_METAL_PAINTED), WF_BOX | WF_BOTTOM);
     wquad(k, w, sc - hw + 0.05f, sc + hw - 0.05f, zSill + 0.07f, zSill + 0.38f, 0.425f, pk(0.25f, 0.25f, 0.26f), MM(MAT_METAL_BRUSHED));
-    // support bracket
-    wbox(k, w, sc - 0.02f, sc + 0.02f, zSill - 0.3f, zSill + 0.02f, 0.f, 0.3f, pk(0.3f), MM(MAT_METAL_PAINTED), WF_FRONT | WF_START | WF_END);
 }
 
 void downpipe(FD& d, const Wall& w, float s, float zTop, float zBot, u32 col) {
     Sink& k = d.k;
-    wbox(k, w, s - 0.055f, s + 0.055f, zBot + 0.25f, zTop, 0.04f, 0.15f, col, MM(MAT_METAL_PAINTED), WF_FRONT | WF_START | WF_END);
-    wbox(k, w, s - 0.07f, s + 0.07f, zBot, zBot + 0.25f, 0.03f, 0.3f, col, MM(MAT_METAL_PAINTED), WF_BOX);
-    wbox(k, w, s - 0.1f, s + 0.1f, zTop - 0.02f, zTop + 0.22f, 0.f, 0.2f, col, MM(MAT_METAL_PAINTED), WF_BOX | WF_BOTTOM);
+    wbox(k, w, s - 0.055f, s + 0.055f, zBot + 0.25f, zTop, 0.04f, 0.15f, col, MM(MAT_METAL_PAINTED), WF_POST);
+    wbox(k, w, s - 0.07f, s + 0.07f, zBot, zBot + 0.25f, 0.03f, 0.3f, col, MM(MAT_METAL_PAINTED), WF_POST | WF_TOP);
+    wbox(k, w, s - 0.1f, s + 0.1f, zTop - 0.02f, zTop + 0.22f, 0.f, 0.2f, col, MM(MAT_METAL_PAINTED), WF_POST | WF_BOTTOM);
 }
 
 // Fire escape on a brick midrise: platforms and railings at each upper floor, switchback stairs, drop ladder
@@ -574,18 +579,18 @@ void fireEscape(FD& d, const Wall& w, const FacadeMass& ms, int bay0, int nb) {
         if (rows[ri].idx == 0) continue;
         float z = ms.vBase + rows[ri].v0;
         // grating platform, fascia
-        wbox(k, w, s0, s1, z - 0.06f, z, 0.f, dep, iron, im, WF_BOX | WF_BOTTOM);
+        wbox(k, w, s0, s1, z - 0.06f, z, 0.f, dep, iron, im, WF_LEDGE | WF_START | WF_END);
         // railing: top rail, mid rail, posts
-        wbox(k, w, s0, s1, z + 0.95f, z + 1.0f, dep - 0.05f, dep, iron, im, WF_FRONT | WF_TOP | WF_BOTTOM);
-        wbox(k, w, s0, s1, z + 0.45f, z + 0.48f, dep - 0.04f, dep, iron, im, WF_FRONT | WF_TOP);
+        wbox(k, w, s0, s1, z + 0.95f, z + 1.0f, dep - 0.05f, dep, iron, im, WF_FRONT | WF_TOP);
+        wbox(k, w, s0, s1, z + 0.45f, z + 0.48f, dep - 0.04f, dep, iron, im, WF_FRONT);
         for (int e = 0; e < 2; e++) {
             float se = e == 0 ? s0 : s1 - 0.05f;
-            wbox(k, w, se, se + 0.05f, z + 0.95f, z + 1.0f, 0.f, dep, iron, im, WF_TOP | WF_START | WF_END);
+            wbox(k, w, se, se + 0.05f, z + 0.95f, z + 1.0f, 0.f, dep, iron, im, e == 0 ? WF_START : WF_END);
         }
-        int np = Max(2, (int)((s1 - s0) / 0.9f));
+        int np = Max(2, (int)((s1 - s0) / 1.2f));
         for (int i = 0; i <= np; i++) {
             float s = Lerp(s0, s1 - 0.04f, (float)i / np);
-            wbox(k, w, s, s + 0.04f, z, z + 0.95f, dep - 0.04f, dep, iron, im, WF_FRONT | WF_START | WF_END);
+            wbox(k, w, s, s + 0.04f, z, z + 0.95f, dep - 0.04f, dep, iron, im, WF_FRONT);
         }
         // stair down to the platform below (alternating direction), or the drop ladder at the first floor
         bool rightDown = (ri & 1) != 0;
@@ -603,7 +608,7 @@ void fireEscape(FD& d, const Wall& w, const FacadeMass& ms, int bay0, int nb) {
             float zl = z - 2.6f;
             wbox(k, w, sl, sl + 0.04f, zl, z, dep - 0.45f, dep - 0.41f, iron, im, WF_FRONT | WF_START | WF_END);
             wbox(k, w, sl + 0.4f, sl + 0.44f, zl, z, dep - 0.45f, dep - 0.41f, iron, im, WF_FRONT | WF_START | WF_END);
-            for (float zr = zl + 0.3f; zr < z; zr += 0.35f) wbox(k, w, sl, sl + 0.44f, zr, zr + 0.03f, dep - 0.45f, dep - 0.42f, iron, im, WF_FRONT | WF_TOP);
+            for (float zr = zl + 0.3f; zr < z; zr += 0.35f) wbox(k, w, sl, sl + 0.44f, zr, zr + 0.03f, dep - 0.45f, dep - 0.42f, iron, im, WF_FRONT);
         }
         prevZ = z;
         if (!d.room()) break;
@@ -631,17 +636,17 @@ void balconies(FD& d, const Wall& w, const FacadeMass& ms, int pattern, bool sol
             s1 = Min(s1, (i + 1) * w.bw - 0.08f);
             wbox(k, w, s0, s1, z - 0.16f, z + 0.02f, 0.f, dep, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
             if (solid) {
-                wbox(k, w, s0, s1, z + 0.02f, z + 1.0f, dep - 0.12f, dep, rail, rm, WF_BOX);
-                wbox(k, w, s0, s0 + 0.12f, z + 0.02f, z + 1.0f, 0.f, dep - 0.12f, rail, rm, WF_BOX);
-                wbox(k, w, s1 - 0.12f, s1, z + 0.02f, z + 1.0f, 0.f, dep - 0.12f, rail, rm, WF_BOX);
+                wbox(k, w, s0, s1, z + 0.02f, z + 1.0f, dep - 0.12f, dep, rail, rm, WF_FRONT | WF_TOP | WF_START | WF_END);
+                wbox(k, w, s0, s0 + 0.12f, z + 0.02f, z + 1.0f, 0.f, dep - 0.12f, rail, rm, WF_TOP | WF_START | WF_END);
+                wbox(k, w, s1 - 0.12f, s1, z + 0.02f, z + 1.0f, 0.f, dep - 0.12f, rail, rm, WF_TOP | WF_START | WF_END);
             } else {
-                wbox(k, w, s0, s1, z + 0.98f, z + 1.03f, dep - 0.05f, dep, rail, rm, WF_FRONT | WF_TOP | WF_BOTTOM | WF_START | WF_END);
-                wbox(k, w, s0, s0 + 0.04f, z + 0.98f, z + 1.03f, 0.f, dep - 0.05f, rail, rm, WF_TOP | WF_START | WF_END);
-                wbox(k, w, s1 - 0.04f, s1, z + 0.98f, z + 1.03f, 0.f, dep - 0.05f, rail, rm, WF_TOP | WF_START | WF_END);
-                int nb = Max(3, (int)((s1 - s0) / 0.28f));
+                wbox(k, w, s0, s1, z + 0.98f, z + 1.03f, dep - 0.05f, dep, rail, rm, WF_FRONT | WF_TOP | WF_START | WF_END);
+                wbox(k, w, s0, s0 + 0.04f, z + 0.98f, z + 1.03f, 0.f, dep - 0.05f, rail, rm, WF_TOP | WF_START);
+                wbox(k, w, s1 - 0.04f, s1, z + 0.98f, z + 1.03f, 0.f, dep - 0.05f, rail, rm, WF_TOP | WF_END);
+                int nb = Clamp((int)((s1 - s0) / 0.45f), 3, 7);
                 for (int j = 0; j <= nb; j++) {
-                    float s = Lerp(s0, s1 - 0.025f, (float)j / nb);
-                    wbox(k, w, s, s + 0.025f, z + 0.02f, z + 0.98f, dep - 0.04f, dep - 0.015f, rail, rm, WF_FRONT | WF_START | WF_END);
+                    float s = Lerp(s0, s1 - 0.03f, (float)j / nb);
+                    wbox(k, w, s, s + 0.03f, z + 0.02f, z + 0.98f, dep - 0.04f, dep - 0.01f, rail, rm, WF_FRONT);
                 }
             }
         }
@@ -657,14 +662,14 @@ void decoFront(FD& d, const Wall& w, const FacadeMass& ms) {
     for (int i = 1; i < w.bays; i++) {
         if (((w.kStart + i) & 1) == 0) continue;  // shader fins sit at odd global bay boundaries
         float sb = i * w.bw, hw = Min(0.18f, w.bw * 0.06f);
-        wbox(k, w, sb - hw, sb + hw, zf0, H + 0.9f, 0.f, 0.26f, d.accent, d.trimMat, WF_BOX);
+        wbox(k, w, sb - hw, sb + hw, zf0, H + 0.9f, 0.f, 0.26f, d.accent, d.trimMat, WF_POST | WF_TOP);
     }
     // speed lines wrapping the corners at the top floor
     float zs = H - Min(1.6f, f.floorH * 0.55f);
     for (int j = 0; j < 3; j++) {
         float z = zs - j * 0.22f;
-        wbox(k, w, -0.07f, Min(2.4f, w.len * 0.3f), z, z + 0.08f, 0.f, 0.07f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
-        wbox(k, w, Max(w.len - 2.4f, w.len * 0.7f), w.len + 0.07f, z, z + 0.08f, 0.f, 0.07f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
+        wbox(k, w, -0.07f, Min(2.4f, w.len * 0.3f), z, z + 0.08f, 0.f, 0.07f, d.trim, d.trimMat, WF_LEDGE | WF_END);
+        wbox(k, w, Max(w.len - 2.4f, w.len * 0.7f), w.len + 0.07f, z, z + 0.08f, 0.f, 0.07f, d.trim, d.trimMat, WF_LEDGE | WF_START);
     }
     // ziggurat crest centered above the parapet
     float cw = w.len * 0.36f;
@@ -686,15 +691,14 @@ void towerTier(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls, int 
         if (finMode == 1) {
             for (int i = 0; i <= w.bays; i += 2) {
                 float sb = i * w.bw;
-                wbox(k, w, Max(0.f, sb - 0.06f), Min(w.len, sb + 0.06f), ms.z0 + 0.5f, ms.z1 + 0.6f, 0.f, 0.38f, d.frame, MM(MAT_METAL_BRUSHED),
-                     WF_FRONT | WF_START | WF_END | WF_TOP);
+                wbox(k, w, Max(0.f, sb - 0.06f), Min(w.len, sb + 0.06f), ms.z0 + 0.5f, ms.z1 + 0.6f, 0.f, 0.38f, d.frame, MM(MAT_METAL_BRUSHED), WF_POST);
             }
         } else if (finMode == 2) {
-            int step = nr > 40 ? 2 : 1;
+            int step = nr > 24 ? 2 : 1;
             for (int ri = 0; ri < nr; ri += step) {
                 if (rows[ri].idx == 0) continue;
                 float z = ms.vBase + rows[ri].v0;
-                wbox(k, w, -0.1f, w.len + 0.1f, z - 0.08f, z + 0.1f, 0.f, 0.14f, d.trim, d.trimMat, WF_FRONT | WF_TOP | WF_BOTTOM | WF_START | WF_END);
+                wbox(k, w, -0.1f, w.len + 0.1f, z - 0.08f, z + 0.1f, 0.f, 0.14f, d.trim, d.trimMat, WF_FRONT | WF_BOTTOM);
             }
         }
         cornice(d, w, ms.z1, CO_SLAB);
@@ -709,7 +713,7 @@ void lawn(FD& d) {
     if (b.lotHx < 2.f || b.lotHy < 2.f) return;
     vec2 ay = perp(b.ax);
     vec2 fr = b.front;
-    int nx = Clamp((int)(b.lotHx * 2.f / 7.f), 2, 8), ny = Clamp((int)(b.lotHy * 2.f / 7.f), 2, 8);
+    int nx = Clamp((int)(b.lotHx * 2.f / 12.f), 1, 4), ny = Clamp((int)(b.lotHy * 2.f / 12.f), 1, 4);
     Rng lr(b.seed ^ 0x1A77u);
     vec3 tint = vec3(lr.range(0.85f, 1.1f), lr.range(0.95f, 1.2f), lr.range(0.75f, 0.95f));
     if (lr.chance(0.2f)) tint = vec3(1.15f, 1.1f, 0.7f);  // dry lawn
@@ -740,7 +744,7 @@ void hedge(FD& d, vec2 a, vec2 b, float h, float wd, vec3 tint, bool collide) {
     float L = length(b - a);
     if (L < 0.5f) return;
     vec2 t = (b - a) / L;
-    int n = Max(1, (int)ceilf(L / 6.f));
+    int n = Max(1, (int)ceilf(L / 11.f));
     u32 mat = MM(MAT_LEAVES);
     for (int i = 0; i < n; i++) {
         vec2 p0 = a + t * (L * i / n), p1 = a + t * (L * (i + 1) / n);
@@ -815,17 +819,17 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
             float dh = villa ? 2.6f : 2.15f;
             wbox(k, fw, sd - dw * 0.5f, sd + dw * 0.5f, zb, zb + dh, 0.f, 0.04f, dc, MM(MAT_WOOD), WF_FRONT);
             if (villa) wbox(k, fw, sd - 0.015f, sd + 0.015f, zb, zb + dh, 0.04f, 0.05f, pk(0.2f, 0.12f, 0.06f), MM(MAT_WOOD), WF_FRONT);
-            wbox(k, fw, sd - dw * 0.5f - 0.13f, sd - dw * 0.5f, zb, zb + dh + 0.13f, 0.f, 0.08f, d.trim, d.trimMat, WF_FRONT | WF_START | WF_END);
-            wbox(k, fw, sd + dw * 0.5f, sd + dw * 0.5f + 0.13f, zb, zb + dh + 0.13f, 0.f, 0.08f, d.trim, d.trimMat, WF_FRONT | WF_START | WF_END);
-            wbox(k, fw, sd - dw * 0.5f - 0.13f, sd + dw * 0.5f + 0.13f, zb + dh, zb + dh + 0.18f, 0.f, 0.09f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
+            wbox(k, fw, sd - dw * 0.5f - 0.13f, sd - dw * 0.5f, zb, zb + dh + 0.13f, 0.f, 0.08f, d.trim, d.trimMat, WF_POST);
+            wbox(k, fw, sd + dw * 0.5f, sd + dw * 0.5f + 0.13f, zb, zb + dh + 0.13f, 0.f, 0.08f, d.trim, d.trimMat, WF_POST);
+            wbox(k, fw, sd - dw * 0.5f - 0.13f, sd + dw * 0.5f + 0.13f, zb + dh, zb + dh + 0.18f, 0.f, 0.09f, d.trim, d.trimMat, WF_LEDGE | WF_START | WF_END);
             // handle
-            wbox(k, fw, sd + dw * 0.5f - 0.18f, sd + dw * 0.5f - 0.12f, zb + 0.95f, zb + 1.05f, 0.04f, 0.09f, pk(0.8f, 0.7f, 0.35f), MM(MAT_CHROME), WF_BOX);
+            wbox(k, fw, sd + dw * 0.5f - 0.18f, sd + dw * 0.5f - 0.12f, zb + 0.95f, zb + 1.05f, 0.04f, 0.09f, pk(0.8f, 0.7f, 0.35f), MM(MAT_CHROME), WF_FRONT);
             // stoop down to the ground
             vec2 sp = fw.a + fw.t * sd + fw.n * 0.8f;
             float gz = d.map->heightAt(sp.x, sp.y);
             wbox(k, fw, sd - dw * 0.5f - 0.5f, sd + dw * 0.5f + 0.5f, Min(gz, zb) - 0.3f, zb - 0.02f, 0.f, 1.3f, pk(0.82f, 0.8f, 0.76f), MM(MAT_CONCRETE), WF_BOX);
             if (zb - gz > 0.35f)
-                wbox(k, fw, sd - dw * 0.5f - 0.3f, sd + dw * 0.5f + 0.3f, gz - 0.3f, (zb + gz) * 0.5f, 1.3f, 1.65f, pk(0.82f, 0.8f, 0.76f), MM(MAT_CONCRETE), WF_BOX);
+                wbox(k, fw, sd - dw * 0.5f - 0.3f, sd + dw * 0.5f + 0.3f, gz - 0.3f, (zb + gz) * 0.5f, 1.3f, 1.65f, pk(0.82f, 0.8f, 0.76f), MM(MAT_CONCRETE), WF_FRONT | WF_TOP | WF_START | WF_END);
             // porch roof (houses) or columned portico (villas)
             if (villa) {
                 float pw = dw * 0.5f + 1.1f, pd = 2.4f, ph = Min(3.3f, f.groundH + 0.2f);
@@ -853,11 +857,11 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
                 wbox(k, fw, sd - pw, sd + pw, zb + 2.55f, zb + 2.7f, 0.f, 1.35f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
                 for (int e = 0; e < 2; e++) {
                     float s = e ? sd + pw - 0.12f : sd - pw;
-                    wbox(k, fw, s, s + 0.12f, zb, zb + 2.55f, 1.2f, 1.32f, d.trim, d.trimMat, WF_BOX);
+                    wbox(k, fw, s, s + 0.12f, zb, zb + 2.55f, 1.2f, 1.32f, d.trim, d.trimMat, WF_POST | WF_BACK);
                 }
             }
             // wall lantern
-            wbox(k, fw, sd + dw * 0.5f + 0.3f, sd + dw * 0.5f + 0.5f, zb + 1.9f, zb + 2.25f, 0.f, 0.16f, pk(1.f, 0.8f, 0.5f, 0.35f), neonMat(6u, 0u), WF_BOX | WF_BOTTOM);
+            wbox(k, fw, sd + dw * 0.5f + 0.3f, sd + dw * 0.5f + 0.5f, zb + 1.9f, zb + 2.25f, 0.f, 0.16f, pk(1.f, 0.8f, 0.5f, 0.35f), neonMat(6u, 0u), WF_POST | WF_BOTTOM);
         }
     }
     if (shack || farm) return;
@@ -869,9 +873,13 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
         float gz = d.map->heightAt(cp.x, cp.y);
         obox(k, vec3(cp, gz + 0.04f), vec3(w.t, 0.f), vec3(w.n, 0.f), vec3(0.6f, 0.55f, 0.06f), pk(0.75f), MM(MAT_CONCRETE));
         obox(k, vec3(cp, gz + 0.45f), vec3(w.t, 0.f), vec3(w.n, 0.f), vec3(0.42f, 0.42f, 0.36f), pk(0.82f, 0.82f, 0.78f), MM(MAT_METAL_PAINTED), false);
-        k.m->cylinder(vec3(cp, gz + 0.81f) - k.org, 0.3f, 0.3f, 0.03f, 12, pk(0.12f), MM(MAT_METAL_BRUSHED), true);
+        {
+            // fan grille on top
+            vec3 c3 = vec3(cp, gz + 0.815f) - k.org, A(w.t * 0.32f, 0.f), B(w.n * 0.32f, 0.f);
+            k.m->quadFacing(c3 - A - B, c3 + A - B, c3 + A + B, c3 - A + B, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), pk(0.12f), MM(MAT_METAL_BRUSHED), vec3(0, 0, 1));
+        }
         // refrigerant line into the wall
-        wbox(k, w, s - 0.03f, s + 0.03f, gz + 0.5f, gz + 1.4f, 0.02f, 0.08f, pk(0.9f), MM(MAT_METAL_PAINTED), WF_FRONT | WF_START | WF_END);
+        wbox(k, w, s - 0.03f, s + 0.03f, gz + 0.5f, gz + 1.4f, 0.02f, 0.08f, pk(0.9f), MM(MAT_METAL_PAINTED), WF_FRONT);
         break;
     }
     if (!d.room()) return;
@@ -947,8 +955,8 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
             if (s1 - s0 < 1.f) continue;
             vec2 mp = fw.a + fw.t * ((s0 + s1) * 0.5f) + fw.n * 0.6f;
             float gz = d.map->heightAt(mp.x, mp.y);
-            wbox(k, fw, s0, s1, gz - 0.1f, gz + 0.12f, 0.02f, 1.0f, pk(0.4f, 0.3f, 0.22f), MM(MAT_DIRT), WF_FRONT | WF_TOP | WF_START | WF_END);
-            int nclump = Max(1, (int)((s1 - s0) / 1.1f));
+            wbox(k, fw, s0, s1, gz - 0.1f, gz + 0.12f, 0.02f, 1.0f, pk(0.4f, 0.3f, 0.22f), MM(MAT_DIRT), WF_FRONT | WF_TOP);
+            int nclump = Clamp((int)((s1 - s0) / 1.8f), 1, 3);
             for (int i = 0; i < nclump; i++) {
                 float s = Lerp(s0 + 0.4f, s1 - 0.4f, (i + 0.5f) / nclump);
                 vec3 fc = flowers[(d.r.next() + i) % ARRAY_COUNT(flowers)];
@@ -971,7 +979,7 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
         float dAlong = garage ? dot(gcen - lotCenterAlong, b.ax) + (gside > 0.f ? -3.6f : 3.6f) : dot(b.c - lotCenterAlong, b.ax) + 1.4f;
         vec2 mp = lotCenterAlong + b.ax * Clamp(dAlong, -hx, hx) + b.front * (b.lotHy - 0.6f);
         float gz = d.map->heightAt(mp.x, mp.y);
-        obox(k, vec3(mp, gz + 0.55f), vec3(b.ax, 0.f), vec3(b.front, 0.f), vec3(0.04f, 0.04f, 0.55f), pk(0.95f), MM(MAT_WOOD), false);
+        k.m->cylinder(vec3(mp, gz) - k.org, 0.045f, 0.045f, 1.08f, 4, pk(0.95f), MM(MAT_WOOD), false);
         obox(k, vec3(mp, gz + 1.18f), vec3(b.front, 0.f), vec3(b.ax, 0.f), vec3(0.25f, 0.12f, 0.1f), villa ? pk(0.15f) : pk(0.2f, 0.25f, 0.45f), MM(MAT_METAL_PAINTED));
     }
 }
@@ -993,17 +1001,17 @@ void warehouseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls
         vec2 dp = b.c + b.ax * u + b.front * b.hy;
         float s = dot(dp - fw.a, fw.t);
         // dock bumpers and a wall pack light above each door
-        for (int e = -1; e <= 1; e += 2) wbox(k, fw, s + e * 1.95f - 0.15f, s + e * 1.95f + 0.15f, z0 + 0.2f, z0 + 0.75f, 0.f, 0.14f, pk(0.08f), MM(MAT_RUBBER), WF_BOX);
-        wbox(k, fw, s - 0.2f, s + 0.2f, z0 + 4.5f, z0 + 4.75f, 0.f, 0.22f, pk(0.35f), MM(MAT_METAL_PAINTED), WF_BOX | WF_BOTTOM);
+        for (int e = -1; e <= 1; e += 2) wbox(k, fw, s + e * 1.95f - 0.15f, s + e * 1.95f + 0.15f, z0 + 0.2f, z0 + 0.75f, 0.f, 0.14f, pk(0.08f), MM(MAT_RUBBER), WF_POST | WF_TOP);
+        wbox(k, fw, s - 0.2f, s + 0.2f, z0 + 4.5f, z0 + 4.75f, 0.f, 0.22f, pk(0.35f), MM(MAT_METAL_PAINTED), WF_POST | WF_TOP);
         wquad(k, fw, s - 0.16f, s + 0.16f, z0 + 4.52f, z0 + 4.6f, 0.225f, pk(1.f, 0.85f, 0.6f, 0.5f), neonMat(6u, 0u));
         if ((kd & 1) == 0) addLight(k, vec3(fw.a + fw.t * s + fw.n * 0.6f, z0 + 4.3f), vec3(1.f, 0.85f, 0.6f) * 1500.f, 14.f, 1, vec3(0, 0, -1), 0.35f);
     }
     // personnel door near one end of the front
     {
         float s = fw.len > 12.f ? 2.2f : fw.len * 0.5f;
-        wbox(k, fw, s - 0.5f, s + 0.5f, z0, z0 + 2.2f, 0.f, 0.04f, pk(0.35f, 0.4f, 0.45f), MM(MAT_METAL_PAINTED), WF_FRONT | WF_START | WF_END);
+        wbox(k, fw, s - 0.5f, s + 0.5f, z0, z0 + 2.2f, 0.f, 0.04f, pk(0.35f, 0.4f, 0.45f), MM(MAT_METAL_PAINTED), WF_FRONT);
         wbox(k, fw, s - 0.9f, s + 0.9f, z0 + 2.6f, z0 + 2.7f, 0.f, 1.1f, pk(0.6f), MM(MAT_METAL_PAINTED), WF_BOX | WF_BOTTOM);
-        wbox(k, fw, s - 0.12f, s + 0.12f, z0 + 2.3f, z0 + 2.5f, 0.f, 0.12f, pk(1.f, 0.9f, 0.7f, 0.4f), neonMat(6u, 0u), WF_BOX | WF_BOTTOM);
+        wbox(k, fw, s - 0.12f, s + 0.12f, z0 + 2.3f, z0 + 2.5f, 0.f, 0.12f, pk(1.f, 0.9f, 0.7f, 0.4f), neonMat(6u, 0u), WF_POST | WF_BOTTOM);
     }
     // downpipes along the long walls
     u32 pipeC = pk(0.55f, 0.56f, 0.55f);
@@ -1063,7 +1071,7 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
     d.trimMat = MM(brick ? MAT_STONE : MAT_PLASTER);
     d.dark = pk(d.wallRGB * 0.55f + vec3(0.05f));
     d.accent = b.style == BS_DECO ? pk(frameRGB) : pk(lerp(d.wallRGB, frameRGB, 0.6f));
-    d.budget = b.style == BS_TOWER ? 14000 : (b.style == BS_HOUSE || b.style == BS_VILLA ? 3500 : 9000);
+    d.budget = b.style == BS_TOWER ? 6000 : (b.style == BS_HOUSE ? 1300 : (b.style == BS_VILLA ? 2200 : (b.style == BS_DECO ? 4500 : 3600)));
 
     thread_local std::vector<Wall> walls;
     const bool house = b.style == BS_HOUSE || b.style == BS_VILLA || b.style == BS_FARMHOUSE || b.style == BS_SHACK;
@@ -1124,7 +1132,7 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
             bool front = &w == &walls[fi];
             // base and ground-floor course
             if (bottom && plinth && !(front && store) && !industrial)
-                wbox(d.k, w, -0.05f, w.len + 0.05f, ms.vBase - 0.5f, ms.vBase + 0.55f, 0.f, 0.05f, d.dark, d.wallMat, WF_FRONT | WF_TOP | WF_START | WF_END);
+                wbox(d.k, w, -0.05f, w.len + 0.05f, ms.vBase - 0.5f, ms.vBase + 0.55f, 0.f, 0.05f, d.dark, d.wallMat, WF_FRONT | WF_TOP);
             if (bottom && floors >= 2 && !industrial) stringCourse(d, w, ms.vBase + fac.groundH, 0.22f, 0.12f, d.trim, d.trimMat);
             if (sillCourses && !industrial && (int)fac.style == 0) {
                 FloorRow rows[64];
@@ -1141,8 +1149,12 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
                               0.55f, 0.12f, d.trim, d.trimMat);
                 if (!industrial) windowTrims(d, w, ms, trimKind, false, 0, 0);
                 if (store && bottom) storefront(d, w, ms.vBase, w.bays / 2);
-            } else if (d.old && !industrial && d.room()) {
-                windowTrims(d, w, ms, 0, false, 0, 0);
+            } else if (d.old && !industrial && (int)fac.style == 0 && fabsf(w.facing) > 0.7f) {
+                // back walls of the older fabric: one sill course per floor
+                FloorRow rows[64];
+                int nr = massFloors(fac, ms.z0 - ms.vBase, ms.z1 - ms.vBase, rows, 64);
+                for (int ri = 0; ri < nr; ri++)
+                    if (rows[ri].idx > 0) stringCourse(d, w, ms.vBase + rows[ri].v0 + fac.sillH - 0.05f, 0.1f, 0.08f, d.trim, d.trimMat);
             }
         }
         if (!bottom) continue;
@@ -1207,11 +1219,11 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
                     if (rows[ri].idx == 0) continue;
                     float z = ms.vBase + rows[ri].v0;
                     // glass railing top rail (railing boxes sit 0.75 m beyond the slab edge line in buildmesh)
-                    wbox(d.k, w, w.len * 0.04f, w.len * 0.96f, z + 1.1f, z + 1.16f, 1.52f, 1.6f, pk(0.75f, 0.77f, 0.8f), MM(MAT_METAL_BRUSHED), WF_BOX | WF_BOTTOM);
+                    wbox(d.k, w, w.len * 0.04f, w.len * 0.96f, z + 1.1f, z + 1.16f, 1.52f, 1.6f, pk(0.75f, 0.77f, 0.8f), MM(MAT_METAL_BRUSHED), WF_FRONT | WF_TOP);
                     for (int i = 2; i < w.bays - 1; i += 2) {
                         float sb = i * w.bw;
                         if (sb < w.len * 0.05f || sb > w.len * 0.95f) continue;
-                        wbox(d.k, w, sb - 0.06f, sb + 0.06f, z + 0.12f, z + fac.floorH - 0.2f, 0.f, 1.55f, d.wallTone, d.wallMat, WF_FRONT | WF_START | WF_END);
+                        wbox(d.k, w, sb - 0.06f, sb + 0.06f, z + 0.12f, z + fac.floorH - 0.2f, 0.f, 1.55f, d.wallTone, d.wallMat, WF_POST);
                     }
                 }
             }
@@ -1227,7 +1239,7 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
             int nr = massFloors(fac, ms.z0 - ms.vBase, ms.z1 - ms.vBase, rows, 64);
             float p = b.region == REG_CALLE_LUNA ? 0.16f : 0.1f;
             for (const Wall& w : walls) {
-                if (w.len < 3.f) continue;
+                if (w.len < 3.f || fabsf(w.facing) < 0.7f) continue;
                 for (int ri = 0; ri < nr && d.room(); ri++) {
                     WinSpec ws = winSpec(fac, rows[ri].idx == 0);
                     if (ws.store) continue;
@@ -1257,11 +1269,11 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
             for (int i = 0; i < w.bays; i++) {
                 float s = (i + 0.2f) * w.bw;
                 vec3 dc = hsvToRgb(d.r.f(), 0.5f, 0.75f);
-                wbox(d.k, w, s - 0.45f, s + 0.45f, ms.vBase, ms.vBase + 2.1f, 0.f, 0.04f, pk(dc), MM(MAT_WOOD), WF_FRONT | WF_START | WF_END);
-                wbox(d.k, w, s - 0.58f, s + 0.58f, ms.vBase + 2.1f, ms.vBase + 2.22f, 0.f, 0.08f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
+                wbox(d.k, w, s - 0.45f, s + 0.45f, ms.vBase, ms.vBase + 2.1f, 0.f, 0.04f, pk(dc), MM(MAT_WOOD), WF_FRONT);
+                wbox(d.k, w, s - 0.58f, s + 0.58f, ms.vBase + 2.1f, ms.vBase + 2.22f, 0.f, 0.08f, d.trim, d.trimMat, WF_LEDGE | WF_START | WF_END);
                 // through-wall AC unit under the window
                 float wc = (i + 0.5f) * w.bw + 0.35f;
-                wbox(d.k, w, wc - 0.4f, wc + 0.4f, ms.vBase + 0.35f, ms.vBase + 0.75f, 0.f, 0.14f, pk(0.85f, 0.84f, 0.8f), MM(MAT_METAL_PAINTED), WF_BOX | WF_BOTTOM);
+                wbox(d.k, w, wc - 0.4f, wc + 0.4f, ms.vBase + 0.35f, ms.vBase + 0.75f, 0.f, 0.14f, pk(0.85f, 0.84f, 0.8f), MM(MAT_METAL_PAINTED), WF_BOX);
             }
         }
     }

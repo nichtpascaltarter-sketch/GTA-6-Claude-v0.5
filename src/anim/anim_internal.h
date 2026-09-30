@@ -7,6 +7,24 @@
 namespace Anim {
 namespace detail {
 
+// Internal clips (not in the public Clip enum) baked with the library and sampled with sampleClipId().
+enum InternalClip : int {
+    IC_RIFLE_CARRY = CLIP_COUNT,   // long gun at the low ready (arm layer)
+    IC_GUARD,                      // fists up, fighting stance (stance 19, meleeKind 0)
+    IC_GUARD_KNIFE,                // knife fighting stance (stance 19, meleeKind 1)
+    IC_GUARD_BAT,                  // bat cocked over the right shoulder (stance 19, meleeKind 2)
+    IC_BLOCK_BAT,                  // bat held across in front of the face (stance 20, meleeKind 2)
+    IC_END
+};
+void sampleClipId(const Skeleton& skel, int ci, float t, Pose& out, u32 variationSeed);
+const ClipInfo& clipInfoId(int id);   // public or internal clip
+// Two-handed bat grip at clip time t: weight of the left hand on the handle and its grip centre's distance along the
+// bat from the right fist (-: towards the knob), `reversed` = left thumb pointing back along the bat (overhand hold).
+float batGrip(int clip, float t, float& dist, bool& reversed);
+// Fist grip frame in hand-bone space (bind rotations are identity): centre = wrist + fingerDir * kGripAlong * palmLen
+// + palmN * kGripPalm * palmLen; the handle axis out of the thumb side is +Y for both hands.
+const float kGripAlong = 0.85f, kGripPalm = 0.3f;
+
 // ------------------------------------------------------------------------------------------------
 // Small math helpers
 FORCEINLINE float sstep(float x) { x = Saturate(x); return x * x * (3.f - 2.f * x); }

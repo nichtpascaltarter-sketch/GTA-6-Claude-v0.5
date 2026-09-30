@@ -69,6 +69,7 @@ struct VehicleTuning {
     signed char arbPair[kMaxWheels];
     float wheelI[kMaxWheels];       // kg*m^2
     float driveShare[kMaxWheels];   // fraction of axle torque
+    float burnShare[kMaxWheels];    // drive split during a burnout (rear axle when driven, else the front)
     float brakeT[kMaxWheels];       // peak service-brake torque (N*m)
     bool rear[kMaxWheels];          // handbrake wheels
     float wheelbase = 2.6f, track = 1.5f, frontY = 1.3f, rearY = -1.3f;
@@ -177,6 +178,7 @@ struct VehicleState {
     float aglTimer = 0.f;
     float ejectTimer = 0.f;
     float leanCmd = 0.f;           // bikes: rider lean target (slew-limited)
+    float driftTimer = 0.f;        // cars: > 0 while the driver holds a power slide (countersteer / handbrake flick)
 
     vec3 forward() const { return rotate(body.rot, vec3(0, 1, 0)); }
     vec3 right() const { return rotate(body.rot, vec3(1, 0, 0)); }

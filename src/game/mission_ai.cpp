@@ -538,6 +538,24 @@ void updateDriver(GameWorld& g, ScriptDriver& d, float dt) {
     v.parked = false;
 }
 
+// Test automation: moves a road/water-driven vehicle further along its path (extra m/s on top of its own driving) so
+// long tails and escorts play out quickly in --missiontest runs.
+void fastForwardDriver(GameWorld& g, int veh, float extra, float dt) {
+    ScriptDriver* d = driverFor(veh);
+    if (!d || d->mode == DRV_KINEMATIC || d->path.pts.size() < 2 || !g.vehicles[veh].used) return;
+    float total = d->path.length();
+    float target = Min(d->along + extra * dt, total - 10.f);
+    if (target <= d->along + 0.5f) return;
+    vec2 tan;
+    vec3 p = d->path.at(target, nullptr, &tan);
+    Vehicle& v = g.vehicles[veh];
+    float speed = Max(::length(v.sim.body.vel.xy()), 6.f);
+    float z = d->mode == DRV_WATER ? (float)v.sim.body.pos.z : groundAt(g, p.x, p.y, p.z + 3.f);
+    teleportVehicle(g, veh, vec3(p.x, p.y, z), atan2f(-tan.x, tan.y));
+    v.sim.body.vel = vec3(tan * speed, 0.f);
+    d->along = target;
+}
+
 void updateDrivers(GameWorld& g, float dt) {
     for (auto& d : gDrivers)
         if (d.valid) updateDriver(g, d, dt);

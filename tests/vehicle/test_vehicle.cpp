@@ -616,31 +616,33 @@ void testFeel(const VehicleModel& m, FeelReport& rep) {
         });
         rep.dive = -pMin * kRadToDeg;
     }
-    // ---- handbrake drift from 60 km/h: steer into the corner + handbrake, then hold the corner input and modulate
-    // the throttle (the game's countersteer assist does the rest) ----
+    // ---- handbrake drift from 60 km/h: a short handbrake tap with the wheel turned in, then a pad player holds the
+    // slide: countersteer proportional to the excess slip angle and throttle to keep the rear wheels spinning ----
     {
         ScenarioTrace st(r, "feel_drift");
         r.init(m, kPadStart + vec3(200.f, -100.f, 0.f), -kHalfPi);
         accelTo(r, 16.7f, 30.f);
-        float in = 0.f, t0 = r.t;
-        r.run(0.5f,
-              [&](VehicleControls& c, Runner& q) {
-                  in = keyboardRamp(in, -1.f, 1.f / 120.f);
-                  c.steer = in;
+        float t0 = r.t;
+        r.run(0.3f,
+              [&](VehicleControls& c, Runner&) {
+                  c.steer = -1.f;
                   c.handbrake = true;
-                  c.throttle = 0.6f;
-                  (void)q;
+                  c.throttle = 0.5f;
               },
               [](Runner&) { return false; });
+        const float target = 30.f * kDegToRad;
         float tDrift = 0.f, angAcc = 0.f, spdAcc = 0.f;
         bool ended = false;
         r.run(10.f,
               [&](VehicleControls& c, Runner& q) {
-                  float beta = fabsf(bodySlip(q));
-                  // hold the corner direction; less input as the slide grows (players ease off to countersteer)
-                  in = keyboardRamp(in, beta > 0.6f ? 0.3f : -0.6f, 1.f / 120.f);
-                  c.steer = in;
-                  c.throttle = Saturate(0.55f + 2.5f * (0.45f - beta));
+                  float beta = bodySlip(q);          // + = sliding to the right of the nose (nose points left of travel)
+                  float mag = fabsf(beta), dir = beta > 0.f ? 1.f : -1.f;
+                  // countersteer (toward the direction of travel) grows with the excess slip and the yaw rate
+                  float yawSign = q.s.body.angVel.z > 0.f ? 1.f : -1.f;  // + = rotating left
+                  float cs = Clamp(0.9f * mag / target, 0.f, 1.f);
+                  c.steer = Clamp(cs * yawSign, -1.f, 1.f);
+                  (void)dir;
+                  c.throttle = Saturate(0.7f + 3.f * (target - mag));
               },
               [&](Runner& q) {
                   float beta = fabsf(bodySlip(q)) * kRadToDeg;

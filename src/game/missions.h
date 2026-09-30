@@ -5,6 +5,7 @@
 // lives in the story/economy modules and is updated from GameWorld::updateMissions via updateOpenWorld().
 #pragma once
 #include "gameworld.h"
+#include "../audio/speech_ext.h"   // speech personas, inline style tags ([angry], [whisper]...) and displayText()
 
 namespace Game {
 
@@ -12,7 +13,7 @@ enum MissionStatus : u8 { MS_RUNNING = 0, MS_PASSED, MS_FAILED };
 
 struct DialogueLine {
     std::string speaker;     // subtitle name
-    std::string text;        // spoken + shown
+    std::string text;        // spoken + shown (may carry speech tags like [angry] or [pause:0.5]; subtitles strip them)
     int ped = -1;            // speaking ped (positional voice); -1 = use voice preset below (radio/phone)
     bool female = false;     // preset voice gender when ped < 0
     u32 voiceSeed = 1;
@@ -48,6 +49,11 @@ public:
     virtual const char* brief() const = 0;   // pause-menu mission log text
     virtual void start(GameWorld& g) = 0;    // sets up the mission; honors `checkpoint` (> 0 when retrying)
     virtual MissionStatus update(GameWorld& g, float dt) = 0;
+    // Runs every frame before update() (shared per-frame bookkeeping of a mission family).
+    virtual void preUpdate(GameWorld& g, float dt) {
+        (void)g;
+        (void)dt;
+    }
     virtual long long reward() const { return 0; }
     // Automated test driver (--missiontest): performs the player's part of the current stage with scripted
     // teleports/controls. The default implementation handles generic targets, enemies and markers.

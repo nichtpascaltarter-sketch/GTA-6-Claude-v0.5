@@ -192,6 +192,7 @@ void GameWorld::mEnd(bool passed, const std::string& reason) {
 #ifdef HAVE_AUDIO
         Audio::play2D(Audio::SFX_MISSION_PASSED, 0.9f);
 #endif
+        if (d.storyIndex >= 0 && !M.replay && player >= 0) socialReport(UI::TE_MISSION_PASSED, peds[player].pos, M.active->title());
         if (d.setsFlag >= 0 && !M.replay) {
             if ((int)storyFlags.size() <= d.setsFlag) storyFlags.resize(d.setsFlag + 1, 0);
             storyFlags[d.setsFlag] = 1;
@@ -283,14 +284,15 @@ void GameWorld::updateMissions(float dt) {
             bool pedVoice = l.ped >= 0 && l.ped < (int)peds.size() && peds[l.ped].used;
             Audio::VoiceParams v = l.hasVoice ? l.voice : (pedVoice ? peds[l.ped].voice : Speech::presetVoice(l.female, l.voiceSeed));
             std::string spoken = l.spoken.empty() ? speakableText(l.text) : l.spoken;
-            if (pedVoice && !l.phone)
+            if (pedVoice && !l.phone) {
                 M.lineSound = Audio::speakAt(spoken.c_str(), v, pedHeadPos(peds[l.ped]), 1.f);
-            else
+                startLipSync(l.ped, spoken.c_str(), v);
+            } else
                 M.lineSound = Audio::speak(spoken.c_str(), v, l.phone ? 0.85f : 1.f);
             float dur = Audio::estimateSpeechDuration(spoken.c_str(), v);
             if (M.test.active) dur = Min(dur, 1.0f);
             M.lineTimer = dur + (M.test.active ? 0.05f : l.pause);
-            subtitle(l.speaker, l.text, dur + 0.3f, l.color);
+            subtitle(l.speaker, Speech::displayText(l.text.c_str()), dur + 0.3f, l.color);
             if (pedVoice && !l.phone && peds[l.ped].state == PS_ONFOOT && peds[l.ped].brain.type == BRAIN_NONE && peds[l.ped].animIn.stance == 0 && !peds[l.ped].isPlayer)
                 peds[l.ped].animIn.stance = 7;
             if (M.lineSound == 0) M.lineSound = 0xffffffffu;  // no audio device: time-based
@@ -348,6 +350,7 @@ void GameWorld::updateMissions(float dt) {
             st = MS_FAILED;
             M.active->failReason = "You got busted.";
         } else {
+            M.active->preUpdate(*this, dt);
             st = M.active->update(*this, dt);
         }
         if (st == MS_PASSED) mEnd(true, "");

@@ -588,6 +588,166 @@ Shape makeIcon(int id) {
         s.add(w);
         break;
     }
+    // ---------------------------------------------------------------- phone
+    case ICO_CAMERA:
+        s.add(rrectP(8, 30, 92, 84, 12));
+        s.add(rrectP(32, 19, 62, 36, 5));
+        s.sub(circleP(vec2(50, 57), 21));
+        s.add(circleP(vec2(50, 57), 14.5f));
+        s.sub(rrectP(72, 38, 84, 45, 2));
+        break;
+    case ICO_CONTACTS:
+        s.add(circleP(vec2(68, 30), 12));
+        s.add(ellipseP(vec2(68, 78), 22, 24));
+        s.sub(rectP(0, 76, 100, 100));
+        s.sub(circleP(vec2(40, 38), 21));
+        s.sub(ellipseP(vec2(40, 92), 35, 37));
+        s.add(circleP(vec2(40, 38), 16));
+        s.add(ellipseP(vec2(40, 92), 30, 32));
+        s.sub(rectP(0, 88, 100, 100));
+        break;
+    case ICO_TIDE: {
+        s.add(rrectP(10, 10, 90, 90, 26));
+        s.sub(rrectP(19, 19, 81, 81, 18));
+        Poly w;
+        for (int i = 0; i <= 32; i++) {
+            float x = 27 + 46.f * i / 32.f;
+            w.push_back(vec2(x, 58 - 7.f * sinf((x - 27) / 46.f * kTwoPi)));
+        }
+        for (int i = 32; i >= 0; i--) {
+            float x = 27 + 46.f * i / 32.f;
+            w.push_back(vec2(x, 68 - 7.f * sinf((x - 27) / 46.f * kTwoPi)));
+        }
+        s.add(w);
+        s.add(circleP(vec2(64, 36), 6.5f));
+        break;
+    }
+    case ICO_REPOST:
+        s.add(strokeP({vec2(20, 58), vec2(20, 34), vec2(66, 34)}, 9.f));
+        s.add(Poly{vec2(64, 21), vec2(84, 34), vec2(64, 47)});
+        s.add(strokeP({vec2(80, 42), vec2(80, 66), vec2(34, 66)}, 9.f));
+        s.add(Poly{vec2(36, 53), vec2(16, 66), vec2(36, 79)});
+        break;
+    case ICO_COMMENT:
+        s.add(rrectP(10, 14, 90, 70, 20));
+        s.add(Poly{vec2(26, 62), vec2(20, 90), vec2(48, 68)});
+        s.sub(rrectP(19, 23, 81, 61, 13));
+        break;
+    case ICO_HANGUP:
+        s.add(arcBandP(vec2(50, 80), 38, 13, -kPi + 0.62f, -0.62f, 40));
+        s.add(ellipseP(vec2(19, 62), 13, 9.5f, 0.62f));
+        s.add(ellipseP(vec2(81, 62), 13, 9.5f, -0.62f));
+        break;
+    case ICO_APERTURE:
+        s.add(arcBandP(C0, 37, 8, 0, kTwoPi, 72));
+        for (int k = 0; k < 6; k++) {
+            float a = kTwoPi * k / 6.f;
+            vec2 p0 = C0 + vec2(cosf(a), sinf(a)) * 13.f;
+            vec2 p1 = C0 + vec2(cosf(a + 1.25f), sinf(a + 1.25f)) * 33.f;
+            s.add(capsuleP(p0, p1, 3.6f));
+        }
+        break;
+    case ICO_FILTER:
+        s.add(arcBandP(vec2(50, 35), 19, 6.5f, 0, kTwoPi, 56));
+        s.add(arcBandP(vec2(35, 61), 19, 6.5f, 0, kTwoPi, 56));
+        s.add(arcBandP(vec2(65, 61), 19, 6.5f, 0, kTwoPi, 56));
+        break;
+    case ICO_SNOW:
+        for (int k = 0; k < 3; k++) {
+            float a = kHalfPi + kPi * k / 3.f;
+            vec2 d(cosf(a), sinf(a));
+            s.add(capsuleP(C0 - d * 38.f, C0 + d * 38.f, 4.2f));
+        }
+        for (int k = 0; k < 6; k++) {
+            float a = kHalfPi + kPi * k / 3.f;
+            vec2 d(cosf(a), sinf(a));
+            vec2 m = C0 + d * 25.f;
+            for (float side : {-1.f, 1.f}) {
+                float b = a + side * 0.75f;
+                s.add(capsuleP(m, m + vec2(cosf(b), sinf(b)) * 11.f, 3.4f));
+            }
+        }
+        break;
+    case ICO_GRID:
+        s.add(rrectP(10, 10, 90, 90, 9));
+        s.sub(rrectP(17, 17, 83, 83, 4));
+        s.add(rectP(35.5f, 12, 40.5f, 88));
+        s.add(rectP(59.5f, 12, 64.5f, 88));
+        s.add(rectP(12, 35.5f, 88, 40.5f));
+        s.add(rectP(12, 59.5f, 88, 64.5f));
+        break;
+    case ICO_FOCUS:
+        s.add(strokeP({vec2(14, 36), vec2(14, 14), vec2(36, 14)}, 8.f));
+        s.add(strokeP({vec2(64, 14), vec2(86, 14), vec2(86, 36)}, 8.f));
+        s.add(strokeP({vec2(86, 64), vec2(86, 86), vec2(64, 86)}, 8.f));
+        s.add(strokeP({vec2(36, 86), vec2(14, 86), vec2(14, 64)}, 8.f));
+        s.add(circleP(C0, 8));
+        break;
+    case ICO_IMAGE:
+        s.add(rrectP(8, 18, 92, 82, 10));
+        s.sub(rrectP(16, 26, 84, 74, 5));
+        s.add(Poly{vec2(20, 72), vec2(42, 44), vec2(56, 62), vec2(66, 52), vec2(80, 72)});
+        s.add(circleP(vec2(66, 39), 7.5f));
+        break;
+    case ICO_VERIFIED:
+        s.add(smoothClosed(starP(C0, 44, 37, 10), 3));
+        s.sub(strokeP({vec2(31, 51), vec2(45, 64), vec2(70, 37)}, 10.f));
+        break;
+    case ICO_CASE:
+        s.add(rrectP(8, 32, 92, 84, 9));
+        s.sub(rectP(8, 53, 92, 57.5f));
+        s.add(rrectP(43, 49, 57, 62, 2.5f));
+        s.add(rrectP(34, 17, 66, 36, 7));
+        s.sub(rrectP(41, 24, 59, 36, 3));
+        break;
+    case ICO_REPLAY: {
+        float a0 = -kHalfPi + 0.5f, a1 = -kHalfPi + kTwoPi - 0.35f;
+        s.add(arcBandP(C0, 30, 9, a0, a1, 64));
+        vec2 p = C0 + vec2(cosf(a1), sinf(a1)) * 30.f;
+        vec2 t(-sinf(a1), cosf(a1));
+        vec2 n = perp(t);
+        s.add(Poly{p + t * 13.f, p + n * 12.f - t * 3.f, p - n * 12.f - t * 3.f});
+        s.add(Poly{vec2(46, 42), vec2(62, 52), vec2(46, 62)});
+        break;
+    }
+    case ICO_SWITCH:
+        s.add(strokeP({vec2(16, 36), vec2(68, 36)}, 9.f));
+        s.add(Poly{vec2(64, 23), vec2(84, 36), vec2(64, 49)});
+        s.add(strokeP({vec2(84, 64), vec2(32, 64)}, 9.f));
+        s.add(Poly{vec2(36, 51), vec2(16, 64), vec2(36, 77)});
+        break;
+    case ICO_TROPHY:
+        s.add(smoothClosed({vec2(26, 14), vec2(74, 14), vec2(72, 36), vec2(62, 52), vec2(50, 57), vec2(38, 52), vec2(28, 36)}, 6));
+        s.add(arcBandP(vec2(27, 30), 11, 6, kHalfPi, kPi * 1.5f, 24));
+        s.add(arcBandP(vec2(73, 30), 11, 6, -kHalfPi, kHalfPi, 24));
+        s.add(rectP(45, 54, 55, 72));
+        s.add(rrectP(30, 72, 70, 85, 4));
+        break;
+    case ICO_DOLLAR:
+        s.add(strokeP({vec2(70, 30), vec2(60, 23), vec2(45, 23), vec2(34, 30), vec2(34, 42), vec2(46, 48), vec2(56, 52),
+                       vec2(66, 58), vec2(66, 70), vec2(55, 77), vec2(39, 77), vec2(28, 70)}, 9.5f));
+        s.add(capsuleP(vec2(50, 12), vec2(50, 88), 4.5f));
+        break;
+    case ICO_EYE_OFF:
+        s.add(ellipseP(C0, 41, 24));
+        s.sub(ellipseP(C0, 33, 16));
+        s.add(circleP(C0, 10.5f));
+        s.sub(capsuleP(vec2(16, 84), vec2(84, 16), 9.f));
+        s.add(capsuleP(vec2(18, 82), vec2(82, 18), 4.5f));
+        break;
+    case ICO_HEART_OUTLINE: {
+        Poly outer, inner;
+        for (int i = 0; i < 96; i++) {
+            float t = kTwoPi * i / 96.f;
+            float x = 16.f * powf(sinf(t), 3.f);
+            float y = 13.f * cosf(t) - 5.f * cosf(2 * t) - 2.f * cosf(3 * t) - cosf(4 * t);
+            outer.push_back(vec2(50 + x * 2.35f, 47 - y * 2.35f));
+            inner.push_back(vec2(50 + x * 1.62f, 46 - y * 1.62f));
+        }
+        s.add(outer);
+        s.sub(inner);
+        break;
+    }
     default: s.add(circleP(C0, 20)); break;
     }
     return s;

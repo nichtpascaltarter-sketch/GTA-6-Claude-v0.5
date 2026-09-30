@@ -118,8 +118,10 @@ void GameWorld::updatePlayer(float dt) {
                         knockDown(occ, rotate(veh.sim.body.rot, vec3(left ? -1.f : 1.f, 0, 0.3f)) * 160.f);
                         pinfo.vehiclesStolen++;
                         reportCrime(9, veh.sim.body.pos, occ);
+                        socialReport(UI::TE_CAR_STOLEN, veh.sim.body.pos, spec.name.c_str());
                     } else if (!veh.playerUsed && veh.parked) {
                         pinfo.vehiclesStolen++;
+                        socialReport(UI::TE_CAR_STOLEN, veh.sim.body.pos, spec.name.c_str());
                         if (hash32(veh.uid) % 5 == 0) veh.alarm = true;
                     }
                     if (!quick) p.pendingAction = left ? Anim::CLIP_ENTER_CAR_L : Anim::CLIP_ENTER_CAR_R;
@@ -246,6 +248,41 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
             }
     }
     const WeaponInfo& wi = weaponInfo(p.weapon);
+    // ----- melee lock-on (hold aim with fists / knife / bat): face the opponent and strafe in a guard; block with
+    // cover, dodge with jump, light attacks with attack, heavy attacks with reload
+    bool meleeLock = false;
+    if (wi.clipSize == 0 && !swimming && p.state == PS_ONFOOT && !pinfo.weaponWheel && c.aim.down) {
+        int t = p.meleeTarget;
+        bool valid = t >= 0 && t < (int)peds.size() && peds[t].used && peds[t].health > 0.f && peds[t].state == PS_ONFOOT && !peds[t].ragdoll &&
+                     length(rel(peds[t].pos, p.pos)) < 12.f;
+        if (!valid || c.aim.pressed) {
+            vec3 cf = rig.cam.forward();
+            vec2 cf2(cf.x, cf.y);
+            int nt = length(cf2) > 1e-3f ? meleeAutoTarget(p, 9.f, 0.25f, normalize(cf2)) : -1;
+            if (nt >= 0) t = nt;
+            else if (!valid) t = -1;
+        }
+        p.meleeTarget = t;
+        meleeLock = t >= 0;
+    }
+    if (meleeLock) {
+        vec3 d = rel(peds[p.meleeTarget].pos, p.pos);
+        float ty = atan2f(-d.x, d.y);
+        float k = Saturate(dt * 4.f);
+        if (length(c.look) > 0.02f) k *= 0.25f;   // the player can still look around
+        rig.yaw += wrapA(ty - rig.yaw) * k;
+        if (p.meleeMove < 0 && p.dodgeT < 0.f) p.yaw = wrapA(p.yaw + wrapA(ty - p.yaw) * Saturate(dt * 12.f));
+        if (p.animIn.stance == 0) p.animIn.stance = 19;   // fighting guard
+        meleeBlock(player, c.cover.down);
+        if (c.jump.pressed) {
+            vec2 cfw(-sinf(rig.yaw), cosf(rig.yaw)), crt(cosf(rig.yaw), sinf(rig.yaw));
+            vec2 wd = crt * c.move.x + cfw * c.move.y;
+            meleeDodge(player, length(wd) > 0.3f ? normalize(wd) : -normalize(vec2(d.x, d.y) + vec2(1e-4f, 0.f)));
+        }
+    } else {
+        if (p.animIn.stance == 19) p.animIn.stance = 0;
+        if (p.blocking) meleeBlock(player, false);
+    }
     // ----- aiming
     bool canAim = !swimming && p.state == PS_ONFOOT && !pinfo.weaponWheel;
     bool wantAim = canAim && c.aim.down && (wi.clipSize > 0 || p.weapon == WPN_GRENADE || p.weapon == WPN_MOLOTOV);
@@ -308,11 +345,11 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
     p.firing = false;
     if (!pinfo.weaponWheel && !swimming && fireInput) {
         if (wi.clipSize == 0) {
-            if (p.meleeTimer <= 0.f) {
-                // face the camera direction for melee
-                p.yaw = atan2f(-camF.x, camF.y);
-                if (!stealthTakedown(p) && !(c.sprint.down && p.weapon == WPN_FISTS && sprintKick(p))) fireWeapon(player, dvec3(muzzle), aimDir);
-                p.meleeTimer = wi.fireInterval;
+            if (p.meleeMove >= 0) {
+                meleeStart(player, false);   // chains the combo
+            } else if (p.dodgeT < 0.f && p.meleeStagger <= 0.f) {
+                if (!meleeLock) p.yaw = atan2f(-camF.x, camF.y);   // swing where the camera looks
+                if (!stealthTakedown(p) && !(c.sprint.down && p.weapon == WPN_FISTS && !meleeLock && sprintKick(p))) meleeStart(player, false);
             }
         } else {
             // hip fire turns the ped toward the aim direction first
@@ -324,6 +361,10 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
                 else fireWeapon(player, dvec3(muzzle), aimDir);
             }
         }
+    }
+    if (c.reload.pressed && wi.clipSize == 0 && !pinfo.weaponWheel && !swimming) {
+        if (!meleeLock && p.meleeMove < 0) p.yaw = atan2f(-camF.x, camF.y);
+        meleeStart(player, true);   // heavy attack
     }
     if (c.reload.pressed && wi.clipSize > 0 && p.clip[p.weapon] < wi.clipSize && p.ammo[p.weapon] > p.clip[p.weapon] && p.reloadTimer <= 0.f) {
         p.reloadTimer = wi.reloadTime;
@@ -339,7 +380,7 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
     vec2 dir = right * mv.x + fwd * mv.y;
     float mag = Min(length(mv), 1.f);
     if (c.walkToggle.pressed) pinfo.walkMode = !pinfo.walkMode;
-    bool sprint = c.sprint.down && mag > 0.3f && !p.aiming && pinfo.stamina > 0.02f;
+    bool sprint = c.sprint.down && mag > 0.3f && !p.aiming && !meleeLock && pinfo.stamina > 0.02f;
     float speed;
     if (swimming) speed = sprint ? 2.6f : 1.4f;
     else if (p.aiming) speed = mag > 0.7f && !pinfo.walkMode ? 2.9f : 1.6f;
@@ -348,13 +389,17 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
     else speed = 4.1f;
     speed = Min(speed, 6.9f);
     if (p.animIn.crouch && !swimming) speed = Min(speed, 1.9f);
+    if (meleeLock) speed = Min(speed, mag > 0.7f ? 2.4f : 1.5f);   // footwork around the opponent
+    if (p.meleeMove >= 0 || p.meleeStagger > 0.f) speed *= 0.2f;    // planted while swinging / reeling
     if (mag < 0.1f) speed = 0.f;
     if (sprint && mag > 0.1f) pinfo.stamina = Max(0.f, pinfo.stamina - dt * 0.07f);
     else pinfo.stamina = Min(1.f, pinfo.stamina + dt * 0.12f);
     vec2 desired = mag > 0.1f ? normalize(dir) * speed : vec2(0, 0);
     // facing
     float prevYaw = p.yaw;
-    if (p.aiming || (p.firing && wi.clipSize > 0)) {
+    if (meleeLock || p.meleeMove >= 0 || p.dodgeT >= 0.f) {
+        // melee.cpp / the lock-on above steer the facing
+    } else if (p.aiming || (p.firing && wi.clipSize > 0)) {
         float ty = atan2f(-camF.x, camF.y);
         p.yaw += wrapA(ty - p.yaw) * Saturate(dt * 16.f);
     } else if (mag > 0.1f) {
@@ -370,7 +415,7 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
     p.turnRate = wrapA(p.yaw - prevYaw) / Max(dt, 1e-4f);
     // ----- cover
     vec3 camF3 = rig.cam.forward();
-    if (c.cover.pressed && !swimming) {
+    if (c.cover.pressed && !swimming && !meleeLock) {
         if (p.moveMode == 1) {
             p.moveMode = 0;
             p.animIn.crouch = false;
@@ -432,7 +477,7 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
     } else {
         p.diveDepth = 0.f;
     }
-    bool jump = c.jump.pressed && p.grounded && !p.aiming && !swimming;
+    bool jump = c.jump.pressed && p.grounded && !p.aiming && !swimming && !meleeLock && p.dodgeT < 0.f;
     // jumping at a low wall / car / fence vaults or climbs it instead
     if (jump && mag > 0.2f && tryTraverse(p, vec3(normalize(dir), 0))) return;
     if (jump && tryTraverse(p, vec3(-sinf(p.yaw), cosf(p.yaw), 0))) return;

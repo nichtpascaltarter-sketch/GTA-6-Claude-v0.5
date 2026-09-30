@@ -185,23 +185,67 @@ void addCollision(Ctx& x, vec2 c, vec2 ax, float hx, float hy, float z0, float z
     x.col->push_back(b);
 }
 
-void rooftopClutter(Ctx& x, vec2 c, vec2 ax, float hx, float hy, float z, Rng& r) {
+// Rooftop equipment: packaged HVAC units with fan shrouds, vent stacks with rain caps, stair bulkheads, and (older
+// districts mostly) a wooden water tank with hoops and a conical roof on a braced steel stand
+void rooftopClutter(Ctx& x, vec2 c, vec2 ax, float hx, float hy, float z, Rng& r, float tankChance = 0.3f) {
     if (!x.detail) return;
     vec2 ay = perp(ax);
+    const u32 unitC = packRGBA8(0.75f, 0.75f, 0.73f, 1), grille = packRGBA8(0.12f, 0.12f, 0.13f, 1);
+    const u32 metal = makeMat(MAT_METAL_PAINTED), brushed = makeMat(MAT_METAL_BRUSHED);
+    vec3 X(ax, 0), Y(ay, 0), Z(0, 0, 1);
     int n = r.irange(1, 4 + (int)(hx * hy / 150.f));
     for (int i = 0; i < n && i < 10; i++) {
         vec2 p = c + ax * r.range(-hx * 0.75f, hx * 0.75f) + ay * r.range(-hy * 0.75f, hy * 0.75f);
         vec3 he(r.range(0.6f, 1.8f), r.range(0.6f, 1.4f), r.range(0.4f, 1.0f));
-        x.m->box(vec3(p, z + he.z) - x.org, vec3(ax, 0), vec3(ay, 0), vec3(0, 0, 1), he, packRGBA8(0.75f, 0.75f, 0.73f, 1), makeMat(MAT_METAL_PAINTED));
-    }
-    if (r.chance(0.3f)) {
-        // water tank on legs
-        vec2 p = c + ax * r.range(-hx * 0.5f, hx * 0.5f) + ay * r.range(-hy * 0.5f, hy * 0.5f);
-        x.m->cylinder(vec3(p, z + 2.f) - x.org, 1.6f, 1.6f, 3.f, 12, packRGBA8(0.5f, 0.42f, 0.35f, 1), makeMat(MAT_WOOD), true);
-        for (int k = 0; k < 4; k++) {
-            vec2 lp = p + vec2(cosf(k * kHalfPi + 0.78f), sinf(k * kHalfPi + 0.78f)) * 1.2f;
-            x.m->box(vec3(lp, z + 1.f) - x.org, vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.08f, 0.08f, 1.f), kWhite, makeMat(MAT_METAL_PAINTED));
+        int kind = r.irange(0, 3);
+        if (kind <= 1) {
+            x.m->box(vec3(p, z + he.z) - x.org, X, Y, Z, he, unitC, metal);
+            int fans = he.x > 1.2f ? 2 : 1;
+            float fr = Min(he.y, he.x / fans) * 0.72f;
+            for (int f = 0; f < fans; f++) {
+                vec2 fp = p + ax * (fans == 2 ? (f ? 0.5f : -0.5f) * he.x : 0.f);
+                x.m->cylinder(vec3(fp, z + 2.f * he.z) - x.org, fr, fr, 0.22f, 8, unitC, metal, false);
+                vec3 gc = vec3(fp, z + 2.f * he.z + 0.17f) - x.org, gx = X * (fr * 0.9f), gy = Y * (fr * 0.9f);
+                x.m->quadFacing(gc - gx - gy, gc + gx - gy, gc + gx + gy, gc - gx + gy, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), grille, brushed, Z);
+            }
+        } else if (kind == 2) {
+            int nv = r.irange(1, 3);
+            for (int v = 0; v < nv; v++) {
+                vec2 vp = p + ax * (v * 0.7f);
+                float vh = r.range(0.7f, 1.6f);
+                x.m->cylinder(vec3(vp, z) - x.org, 0.11f, 0.11f, vh, 6, packRGBA8(0.62f, 0.63f, 0.64f, 1), brushed, false);
+                x.m->cylinder(vec3(vp, z + vh + 0.08f) - x.org, 0.24f, 0.02f, 0.18f, 6, packRGBA8(0.55f, 0.56f, 0.57f, 1), brushed, false);
+            }
+        } else {
+            // stair bulkhead with a steel door
+            vec3 bh(1.3f, 1.1f, 1.35f);
+            x.m->box(vec3(p, z + bh.z) - x.org, X, Y, Z, bh, packRGBA8(0.82f, 0.8f, 0.76f, 1), makeMat(MAT_CONCRETE));
+            vec3 d0 = vec3(p + ay * (bh.y + 0.01f) - ax * 0.45f, z) - x.org, d1 = vec3(p + ay * (bh.y + 0.01f) + ax * 0.45f, z) - x.org;
+            x.m->quadFacing(d0, d1, d1 + vec3(0, 0, 2.05f), d0 + vec3(0, 0, 2.05f), vec2(0, 0), vec2(0.9f, 0), vec2(0.9f, 2.05f), vec2(0, 2.05f),
+                            packRGBA8(0.35f, 0.38f, 0.42f, 1), metal, Y);
         }
+    }
+    if (r.chance(tankChance)) {
+        vec2 p = c + ax * r.range(-hx * 0.5f, hx * 0.5f) + ay * r.range(-hy * 0.5f, hy * 0.5f);
+        const u32 steel = packRGBA8(0.2f, 0.2f, 0.21f, 1), wood = packRGBA8(r.range(0.45f, 0.55f), 0.4f, 0.33f, 1);
+        float sz = 2.2f;
+        // braced stand and deck
+        for (int k = 0; k < 4; k++) {
+            vec2 lp = p + ax * ((k & 1) ? 1.15f : -1.15f) + ay * ((k & 2) ? 1.15f : -1.15f);
+            x.m->box(vec3(lp, z + sz * 0.5f) - x.org, X, Y, Z, vec3(0.09f, 0.09f, sz * 0.5f), steel, metal);
+        }
+        for (int k = 0; k < 2; k++)
+            x.m->box(vec3(p + (k ? ay : ax) * 0.f, z + sz * 0.45f) - x.org, k ? Y : X, k ? X : Y, Z, vec3(1.2f, 0.05f, 0.05f), steel, metal);
+        x.m->cylinder(vec3(p, z + sz) - x.org, 1.95f, 1.95f, 0.14f, 10, steel, metal, false);
+        // staved tank, iron hoops, conical roof, finial
+        x.m->cylinder(vec3(p, z + sz + 0.14f) - x.org, 1.6f, 1.55f, 3.1f, 10, wood, makeMat(MAT_WOOD), false);
+        for (int h = 0; h < 2; h++)
+            x.m->cylinder(vec3(p, z + sz + 0.7f + h * 1.5f) - x.org, 1.63f, 1.63f, 0.07f, 10, steel, metal, false);
+        x.m->cylinder(vec3(p, z + sz + 3.2f) - x.org, 1.78f, 0.05f, 1.05f, 10, wood, makeMat(MAT_ROOF_SHINGLE), false);
+        x.m->box(vec3(p, z + sz + 4.35f) - x.org, X, Y, Z, vec3(0.06f, 0.06f, 0.14f), steel, metal);
+        // ladder up the stand and tank side
+        for (int k = -1; k <= 1; k += 2)
+            x.m->box(vec3(p + ay * 1.72f + ax * (k * 0.22f), z + (sz + 3.2f) * 0.5f) - x.org, X, Y, Z, vec3(0.025f, 0.025f, (sz + 3.2f) * 0.5f), steel, metal);
     }
 }
 
@@ -342,7 +386,10 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             bool deck = b.style == BS_GARAGE && gSites && gSites->roofDeckAt(b.c, z0 + b.height);
             flatMass(x, fp, z0, z0 + b.height, z0, b.facade, bay, !deck, roofGray);
             addCollision(x, b.c, b.ax, b.hx, b.hy, z0 - 3.f, z0 + b.height);
-            if (!deck) rooftopClutter(x, b.c, b.ax, b.hx, b.hy, z0 + b.height, r);
+            if (!deck) {
+                bool oldFabric = b.region == REG_CALLE_LUNA || b.region == REG_NORTH_CITY || b.region == REG_MIDTOWN || b.region == REG_FLATS;
+                rooftopClutter(x, b.c, b.ax, b.hx, b.hy, z0 + b.height, r, b.style == BS_MIDRISE && oldFabric ? 0.4f : 0.12f);
+            }
             if (b.style == BS_CONDO && detail) {
                 // balcony slabs on the front and back facades
                 for (int f = 1; f < b.floors; f++) {

@@ -107,6 +107,45 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
     Rng signRng(0xC0FFEEu);
     for (int i = 0; i < 512; i++) signNames.push_back(makeSignName(signRng));
 
+    // Cul-de-sac bulbs: roadmesh.cpp paves a circle of halfWidth + 4.5 m (plus its sidewalk ring) around every dead end of a
+    // lane or street, so lots must stay clear of them (with a 1 m margin)
+    struct Bulb { vec2 c; float r; };
+    std::vector<Bulb> bulbs;
+    for (const RoadNode& nd : roads.nodes) {
+        if (nd.edges.size() != 1) continue;
+        const RoadEdge& de = roads.edges[nd.edges[0]];
+        if (de.cls != RC_LANE && de.cls != RC_STREET) continue;
+        bulbs.push_back({nd.p, de.halfWidth + 4.5f + de.sidewalk + 1.0f});
+    }
+    const float kBulbCell = 64.f;
+    auto bulbKey = [](int x, int y) { return (long long)(y + 100000) * 400000LL + (x + 100000); };
+    std::unordered_map<long long, std::vector<int>> bulbGrid;
+    for (size_t i = 0; i < bulbs.size(); i++) {
+        const Bulb& bb = bulbs[i];
+        int x0 = (int)floorf((bb.c.x - bb.r) / kBulbCell), x1 = (int)floorf((bb.c.x + bb.r) / kBulbCell);
+        int y0 = (int)floorf((bb.c.y - bb.r) / kBulbCell), y1 = (int)floorf((bb.c.y + bb.r) / kBulbCell);
+        for (int y = y0; y <= y1; y++)
+            for (int x = x0; x <= x1; x++) bulbGrid[bulbKey(x, y)].push_back((int)i);
+    }
+    auto hitsBulb = [&](const OBB2& o) {
+        float rr = sqrtf(o.hx * o.hx + o.hy * o.hy);
+        int x0 = (int)floorf((o.c.x - rr) / kBulbCell), x1 = (int)floorf((o.c.x + rr) / kBulbCell);
+        int y0 = (int)floorf((o.c.y - rr) / kBulbCell), y1 = (int)floorf((o.c.y + rr) / kBulbCell);
+        vec2 oy = perp(o.ax);
+        for (int y = y0; y <= y1; y++)
+            for (int x = x0; x <= x1; x++) {
+                auto it = bulbGrid.find(bulbKey(x, y));
+                if (it == bulbGrid.end()) continue;
+                for (int bi : it->second) {
+                    const Bulb& bb = bulbs[bi];
+                    vec2 d = bb.c - o.c;
+                    float qx = Max(fabsf(dot(d, o.ax)) - o.hx, 0.f), qy = Max(fabsf(dot(d, oy)) - o.hy, 0.f);
+                    if (qx * qx + qy * qy < bb.r * bb.r) return true;
+                }
+            }
+        return false;
+    };
+
     // Reserve special areas: airport runways and port yard are left free of lots
     auto reserved = [&](vec2 p) {
         Region r = map.regionAt(p.x, p.y);
@@ -194,6 +233,7 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
                     }
                 }
                 if (ok && lots.overlaps(lot)) ok = false;
+                if (ok && hitsBulb(lot)) ok = false;
                 if (!ok) {
                     s += 6.f;
                     continue;

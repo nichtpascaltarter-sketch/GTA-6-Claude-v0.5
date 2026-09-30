@@ -185,6 +185,16 @@ void deriveTuning(VehicleState& s, const VehicleModel& m) {
         if (ws.steer) fy = Max(fy, ws.pos.y);
         else ry = Min(ry, ws.pos.y);
     }
+    // burnout axle: the driven rear axle, else the driven front axle
+    {
+        int nb = 0;
+        bool rearDriven = false;
+        for (int i = 0; i < nw; i++)
+            if (t.driveShare[i] > 0.f && t.rear[i]) rearDriven = true;
+        for (int i = 0; i < nw; i++)
+            if (t.driveShare[i] > 0.f && t.rear[i] == rearDriven) nb++;
+        for (int i = 0; i < nw; i++) t.burnShare[i] = t.driveShare[i] > 0.f && t.rear[i] == rearDriven ? 1.f / Max(nb, 1) : 0.f;
+    }
     // normalize brake bias so the total equals brakeForce * n
     {
         float sum = 0.f, want = 0.f;
@@ -397,6 +407,7 @@ void resetVehicle(VehicleState& s, dvec3 pos, float yaw) {
     s.gearDown = 1.f;
     s.lean = 0.f;
     s.leanCmd = 0.f;
+    s.driftTimer = 0.f;
     s.steerOut = 0.f;
     s.stall = 0.f;
     s.heliYawTarget = 0.f;

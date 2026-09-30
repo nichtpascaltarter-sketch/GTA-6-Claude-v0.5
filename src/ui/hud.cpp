@@ -1114,6 +1114,7 @@ void drawHud(const HudState& s, float dt) {
     uix::ensureIcons();
     uix::advanceTime(dt);
     dt = Clamp(dt, 0.f, 0.1f);
+    if (uix::photoModeActive()) return;   // photo mode shows the bare, graded frame
     Layout L = layout();
     float t = uiTime();
     if (g.first) {
@@ -1131,7 +1132,7 @@ void drawHud(const HudState& s, float dt) {
     drawTopRight(s, L, dt, t);
     drawTopLeft(s, L, dt, t);
     drawRadio(s, L, dt);
-    drawBottomRight(s, L, dt, t);
+    if (!uix::phoneCoversBottomRight()) drawBottomRight(s, L, dt, t);   // the phone sits there
     drawBottomCenter(s, L, dt);
     drawBigMessage(s, L, dt);
     drawWeaponWheel(s, L, dt, t);

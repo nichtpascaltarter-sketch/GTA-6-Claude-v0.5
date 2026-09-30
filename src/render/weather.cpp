@@ -12,7 +12,9 @@ struct WeatherSystem {
     // Overhead map
     static constexpr int kOverheadRes = 1024;
     static constexpr float kOverheadSize = 192.f;
-    gfx::Texture overheadDepth, overheadHeight;
+    gfx::Texture overheadDepth, overheadHeight, overheadGrass;
+    gfx::VertexShader vsOverhead;
+    ID3D11PixelShader* psOverhead = nullptr;
     gfx::CBuffer<ShadowPassCBData> passCB;
     dvec3 overheadOrigin;          // world min corner of the map
     float overheadTop = 0.f, overheadRange = 600.f;
@@ -43,6 +45,17 @@ struct WeatherSystem {
     void init() {
         overheadDepth = gfx::createTexture2D(kOverheadRes, kOverheadRes, DXGI_FORMAT_R32_TYPELESS, gfx::TEX_DSV | gfx::TEX_SRV);
         overheadHeight = gfx::createTexture2D(kOverheadRes, kOverheadRes, DXGI_FORMAT_R32_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV);
+        overheadGrass = gfx::createTexture2D(kOverheadRes, kOverheadRes, DXGI_FORMAT_R8_UNORM, gfx::TEX_SRV | gfx::TEX_RTV);
+        D3D11_INPUT_ELEMENT_DESC layout[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"NORMAL", 0, DXGI_FORMAT_R16G16_SNORM, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"TANGENT", 0, DXGI_FORMAT_R16G16_SNORM, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"MATID", 0, DXGI_FORMAT_R32_UINT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        };
+        vsOverhead = gfx::loadVS("overhead.hlsl", "vsOverhead", layout, 6);
+        psOverhead = gfx::loadPS("overhead.hlsl", "psOverhead");
         passCB.create();
         cb.create();
         csOverhead = gfx::loadCS("rain.hlsl", "csOverheadHeight");
@@ -102,17 +115,35 @@ struct WeatherSystem {
         c->VSSetShaderResources(41, 1, &nullSrv);
         c->PSSetShaderResources(41, 1, &nullSrv);
         c->CSSetShaderResources(41, 1, &nullSrv);
+        float zero4[4] = {0, 0, 0, 0};
         c->ClearDepthStencilView(overheadDepth.dsv, D3D11_CLEAR_DEPTH, 1.f, 0);
-        c->OMSetRenderTargets(0, nullptr, overheadDepth.dsv);
+        c->ClearRenderTargetView(overheadGrass.rtv, zero4);
+        c->OMSetRenderTargets(1, &overheadGrass.rtv, overheadDepth.dsv);
         gfx::setViewport((float)kOverheadRes, (float)kOverheadRes);
         c->OMSetDepthStencilState(gfx::states.depthLessWrite, 0);
-        c->OMSetBlendState(gfx::states.noColorWrite, nullptr, 0xffffffff);
+        c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
         c->RSSetState(gfx::states.cullNone);
         passCB.data.viewProj = vp;
         passCB.upload();
-        ID3D11Buffer* cbs[] = {passCB.get()};
-        c->VSSetConstantBuffers(2, 1, cbs);
-        r.world->drawShadow(r, vp, 0);
+        ID3D11Buffer* cbs[] = {r.world->drawCB.get(), passCB.get()};
+        c->VSSetConstantBuffers(1, 2, cbs);
+        c->IASetInputLayout(vsOverhead.layout);
+        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        c->VSSetShader(vsOverhead.vs, nullptr, 0);
+        c->PSSetShader(psOverhead, nullptr, 0);
+        Frustum fr;
+        fr.fromMatrix(vp);
+        r.world->forVisible(fr, r.camera.pos, false, [&](StreamCell* sc, vec3 off) {
+            if (sc->lod != 0 || !sc->opaqueCount) return;
+            r.world->drawCB.data.cellOffset = vec4(off, 0);
+            r.world->drawCB.data.params = vec4(0);
+            r.world->drawCB.upload();
+            UINT stride = sizeof(VtxStatic), offset = 0;
+            c->IASetVertexBuffers(0, 1, &sc->vb.buf, &stride, &offset);
+            c->IASetIndexBuffer(sc->ib.buf, DXGI_FORMAT_R32_UINT, 0);
+            c->DrawIndexed(sc->opaqueCount, 0, 0);
+            r.stats.drawCalls++;
+        });
         c->OMSetRenderTargets(0, nullptr, nullptr);
         c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
         c->RSSetState(gfx::states.cullBack);

@@ -522,8 +522,96 @@ struct Viewer {
                     else if (key == "padlb") in.pad.buttons |= PAD_LB;
                     else if (key == "paddown") in.pad.buttons |= PAD_DOWN;
                     else if (key == "padright") in.pad.buttons |= PAD_RIGHT;
+                    else if (key == "back") in.keys[KEY_BACK] = true;
+                    else if (key == "space") in.keys[KEY_SPACE] = true;
+                    else if (key == "h") in.keys[KEY_H] = true;
                 }
                 prevIn = in;
+            }
+
+            // Phone test data: contacts, messages with a mission text, store / realty / jobs apps, Tidegram events
+            UI::PhoneState ps;
+            void fillPhone(const Render::Renderer& rr) {
+                UI::PhoneState& p = ps;
+                p.timeOfDay = 17.6f;
+                p.day = 12;
+                p.signal = 3;
+                p.battery = 0.64f;
+                p.owner = "Mari";
+                p.money = 150700;
+                vec2 pp = hs.playerPos;
+                p.playerPos = vec3(pp.x, pp.y, hs.playerZ);
+                p.cameraPos = vec3((float)rr.camera.pos.x, (float)rr.camera.pos.y, (float)rr.camera.pos.z);
+                p.cameraYaw = rr.camera.yaw;
+                p.cameraPitch = rr.camera.pitch;
+                p.cameraFov = rr.camera.fovY;
+                if (!p.contacts.empty()) return;
+                const char* cn[7][2] = {{"Tomas", "New job: Dead Air"}, {"Mama Lucha", ""}, {"Rook", "Garage, Port Isle"}, {"Kit", "Pulse FM"},
+                                        {"Jonah", "Out of town"}, {"Dex", ""}, {"Porto Sol Cabs", "Taxi"}};
+                for (int i = 0; i < 7; i++) {
+                    UI::PhoneContact c;
+                    c.id = i + 1;
+                    c.name = cn[i][0];
+                    c.subtitle = cn[i][1];
+                    c.mission = i == 0;
+                    c.enabled = i != 4;
+                    p.contacts.push_back(c);
+                }
+                struct M { int cid; const char* from; const char* text; const char* time; bool unread, mission, loc; const char* action; };
+                const M msgs[4] = {
+                    {2, "Mama Lucha", "Did you eat today? There is rice and beans in the fridge. Don't make me come find you.", "Day 11", false, false, false, ""},
+                    {-1, "Wheels.ps", "Your ~b~Vapor GT~s~ has been delivered to your garage in ~y~Canvas District~s~. Drive safe!", "09:12", false, false, false, ""},
+                    {3, "Rook", "Car's ready. Bring cash, not excuses.", "14:40", true, false, true, ""},
+                    {1, "Tomas", "Kit at ~p~Pulse FM~s~ can crack that phone Dex grabbed. She's downtown, top floor of the ~y~Solaris~s~ tower. Don't be late.",
+                     "17:31", true, true, true, "Accept job"}};
+                for (int i = 0; i < 4; i++) {
+                    UI::PhoneMessage m;
+                    m.id = i + 1;
+                    m.contactId = msgs[i].cid;
+                    m.from = msgs[i].from;
+                    m.text = msgs[i].text;
+                    m.time = msgs[i].time;
+                    m.unread = msgs[i].unread;
+                    m.mission = msgs[i].mission;
+                    m.hasLocation = msgs[i].loc;
+                    m.location = pp + vec2(900.f, 1300.f);
+                    m.actionLabel = msgs[i].action;
+                    p.messages.push_back(m);
+                }
+                auto addApp = [&](int id, const char* name, const char* sub, UI::PhoneGlyph g, bool action) -> UI::PhoneListApp& {
+                    UI::PhoneListApp a;
+                    a.id = id;
+                    a.name = name;
+                    a.subtitle = sub;
+                    a.glyph = g;
+                    a.action = action;
+                    p.apps.push_back(a);
+                    return p.apps.back();
+                };
+                auto addItem = [](UI::PhoneListApp& a, int id, const char* label, const char* detail, long long price, const char* right, bool en) {
+                    UI::PhoneListItem it;
+                    it.id = id;
+                    it.label = label;
+                    it.detail = detail;
+                    it.price = price;
+                    it.right = right;
+                    it.enabled = en;
+                    a.items.push_back(it);
+                };
+                UI::PhoneListApp& w = addApp(1, "Wheels.ps", "Cash $150,700  |  Delivered to your garages", UI::PG_CAR, false);
+                addItem(w, 1, "Vapor GT", "Sports  |  Top speed 290 km/h", 185000, "", true);
+                addItem(w, 2, "Marlin Coupe", "Coupe  |  Top speed 240 km/h", 64000, "", true);
+                addItem(w, 3, "Bayrunner 4x4", "SUV  |  Off-road package", 52000, "", true);
+                addItem(w, 4, "Stingray Moto", "Motorcycle  |  0-100 in 3.1 s", 21500, "", true);
+                addItem(w, 5, "Tidewater Van", "Van  |  Seats 8", 18000, "OWNED", false);
+                UI::PhoneListApp& re = addApp(2, "Dynasty Realty", "Safehouses and businesses", UI::PG_HOUSE, false);
+                addItem(re, 1, "Canvas Loft", "Safehouse: save, rest, wardrobe and garage.", -1, "OWNED", true);
+                addItem(re, 2, "Lucky Palms Bar", "Business  |  Income $900 a day.", 240000, "", true);
+                UI::PhoneListApp& jb = addApp(3, "Jobs", "Mark one on your map", UI::PG_BRIEFCASE, false);
+                addItem(jb, 1, "Causeway Sprint", "Street race  |  Best: 1:52", -1, "", true);
+                addItem(jb, 2, "Courier: Night Run", "Deliveries across Porto Sol", -1, "20:00-04:00", true);
+                addApp(4, "Replay", "Finished story missions", UI::PG_REPLAY, false);
+                addApp(5, "Switch to Dex", "", UI::PG_SWITCH, true);
             }
         };
         static UiTest ui;
@@ -582,6 +670,47 @@ struct Viewer {
             for (int k = 0; k < 14; k++) UI::uix::drawPrompt(px + (k % 4) * 90.f * s, py + (k / 4) * 60.f * s, prompts[k], true, 40.f * s);
             const char* keysKb[] = {"E", "SPACE", "ENTER", "LMB", "RMB", "WHEEL", "ESC", "TAB"};
             for (int k = 0; k < 8; k++) UI::uix::drawPrompt(px + (k % 4) * 90.f * s, py + 260.f * s + (k / 4) * 60.f * s, keysKb[k], false, 40.f * s);
+        } else if (mode == "hud" && ui.has("phone")) {
+            // phone scenarios: phone_<anything>_k<keys> navigates from the home screen; callin / callactive calls;
+            // the scene depth feeds the photo mode depth of field
+            if (ui.shotFrame == 0) {
+                ui.ps = UI::PhoneState();
+                UI::Phone::reset();
+                ui.fillPhone(r);
+                ui.ps.open = true;
+                if (ui.has("callin")) {
+                    ui.ps.call = UI::CALL_INCOMING;
+                    ui.ps.callName = "Dex";
+                    ui.ps.callContactId = 6;
+                }
+                if (ui.has("callactive")) {
+                    ui.ps.call = UI::CALL_ACTIVE;
+                    ui.ps.callName = "Tomas";
+                    ui.ps.callContactId = 1;
+                }
+                ui.ps.photo.filter = ui.has("noir") ? 3 : (ui.has("neon") ? 1 : 2);
+                ui.ps.photo.autoFocus = false;
+                ui.ps.photo.focusDistance = 25.f;
+                ui.ps.photo.aperture = 2.f;
+                if (ui.has("polaroid")) ui.ps.photo.frame = 1;
+                static bool fed = false;
+                if (!fed) {
+                    fed = true;
+                    UI::tidegramReport(UI::TE_WANTED, ui.hs.playerPos, nullptr, 3.f);
+                    UI::tidegramReport(UI::TE_CAR_STOLEN, ui.hs.playerPos, "Vapor GT", 0.f);
+                    UI::tidegramReport(UI::TE_STUNT_JUMP, ui.hs.playerPos + vec2(400.f, 200.f), nullptr, 38.f);
+                    for (int k = 0; k < 280; k++) UI::uix::tideTick(0.25f, 17.6f, 0, "Mari");
+                }
+            }
+            ui.fillPhone(r);
+            if (ui.ps.call == UI::CALL_ACTIVE) ui.ps.callSeconds += fdt;
+            if (ui.has("pad")) ui.hs.padPrompts = true;
+            UI::drawHud(ui.hs, fdt);
+            InputState in;
+            ui.scriptedInput(in);
+            UI::setSceneDepth(r.depth.srv, r.camera.nearZ);
+            UI::PhoneAction pa = UI::Phone::update(ui.ps, ui.hs, in, fdt);
+            if (pa.type != UI::PA_NONE) LOG("UI test: phone action %d id %d app %d", (int)pa.type, pa.id, pa.app);
         } else if (mode == "hud" && ui.shotMenu().empty()) {
             if (ui.has("pad")) ui.hs.padPrompts = true;
             UI::drawHud(ui.hs, fdt);

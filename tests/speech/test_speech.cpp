@@ -401,7 +401,9 @@ int main(int argc, char** argv) {
         static const char* const kTags[] = {"[angry]", "[scared]", "[calm]", "[sad]", "[happy]", "[shout]", "[whisper]",
                                             "[dj]", "[ad]", "[fineprint]", "[news]", "[dispatch]", "[accent:south]",
                                             "[accent:newyork]", "[accent:latino]", "[accent:caribbean]",
-                                            "[accent:british]", "[angry:0.4][accent:latino:0.6]", "[whisper:0.5]"};
+                                            "[accent:british]", "[angry:0.4][accent:latino:0.6]", "[whisper:0.5]",
+                                            "[nasal]", "[husky]", "[gravelly]", "[bright]", "[dark]", "[fry]",
+                                            "[laughs] [sad]", "[sighs][calm]", "[dj][accent:south:0.5][gravelly]"};
         for (const char* tg : kTags) {
             std::string t = std::string(tg) + "Get in the car, we have to go now! Is that the police? [pause:0.8] Drive.";
             std::vector<float> x;
@@ -428,6 +430,7 @@ int main(int argc, char** argv) {
             {"[angry]Get *down*! [laughs] Now.", "Get down! Now."},
             {"[accent:south:0.6] Well, [pause:1] howdy [whisper]partner.", "Well, howdy partner."},
             {"No markup here.", "No markup here."},
+            {"[laughs] You thought [coughs] that would work?", "You thought that would work?"},
         };
         for (auto& d : kDisp) {
             std::string got = Speech::displayText(d[0]);

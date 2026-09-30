@@ -132,6 +132,48 @@ struct Char {
     SkinnedMeshData mesh;
 };
 
+// Held weapon (bat: 1, knife: 2) along the right hand's grip (Anim::handGrip), as a simple lathe / blade mesh.
+static void drawWeapon(Img& img, const Cam& cam, int kind, vec3 G, vec3 D, vec3 P) {
+    std::vector<vec3> Ps, Ns, As;
+    std::vector<u32> Ms, Is;
+    D = normalize(D);
+    vec3 X = normalize(P - D * dot(P, D)), Y = cross(D, X);
+    auto lathe = [&](float a0, float a1, float r0, float r1, vec3 col, int segs) {
+        u32 b = (u32)Ps.size();
+        for (int k = 0; k <= segs; k++) {
+            float th = kTwoPi * k / segs;
+            vec3 rd = X * cosf(th) + Y * sinf(th);
+            Ps.push_back(G + D * a0 + rd * r0); Ns.push_back(rd); As.push_back(col); Ms.push_back(MAT_PLASTIC);
+            Ps.push_back(G + D * a1 + rd * r1); Ns.push_back(rd); As.push_back(col); Ms.push_back(MAT_PLASTIC);
+        }
+        for (int k = 0; k < segs; k++) {
+            u32 i0 = b + k * 2, i1 = i0 + 1, i2 = i0 + 2, i3 = i0 + 3;
+            Is.push_back(i0); Is.push_back(i2); Is.push_back(i1);
+            Is.push_back(i1); Is.push_back(i2); Is.push_back(i3);
+        }
+    };
+    if (kind == 1) {
+        vec3 wood(0.55f, 0.36f, 0.18f), grip(0.08f, 0.08f, 0.09f);
+        lathe(-0.15f, -0.14f, 0.026f, 0.026f, wood, 12);
+        lathe(-0.14f, 0.14f, 0.016f, 0.016f, grip, 12);
+        lathe(0.14f, 0.36f, 0.016f, 0.02f, wood, 12);
+        lathe(0.36f, 0.6f, 0.02f, 0.032f, wood, 12);
+        lathe(0.6f, 0.68f, 0.032f, 0.034f, wood, 12);
+        lathe(0.68f, 0.69f, 0.034f, 0.0f, wood, 12);
+    } else {
+        vec3 hcol(0.05f, 0.05f, 0.05f), steel(0.7f, 0.72f, 0.75f);
+        lathe(-0.05f, 0.06f, 0.011f, 0.011f, hcol, 8);
+        // flat blade in the plane of the handle and the finger side (edge towards -X)
+        u32 b = (u32)Ps.size();
+        vec3 q[4] = {G + D * 0.06f + X * 0.004f, G + D * 0.06f - X * 0.024f, G + D * 0.19f, G + D * 0.06f};
+        for (int k = 0; k < 3; k++) { Ps.push_back(q[k]); Ns.push_back(Y); As.push_back(steel); Ms.push_back(MAT_CHROME); }
+        for (int k = 0; k < 3; k++) { Ps.push_back(q[k]); Ns.push_back(-Y); As.push_back(steel); Ms.push_back(MAT_CHROME); }
+        Is.push_back(b); Is.push_back(b + 1); Is.push_back(b + 2);
+        Is.push_back(b + 3); Is.push_back(b + 5); Is.push_back(b + 4);
+    }
+    drawMesh(img, cam, Ps, Ns, As, Ms, Is);
+}
+
 // Scripted animator inputs for transition checks.
 static void runScenario(int sc, float t, AnimInput& in) {
     switch (sc) {
@@ -176,6 +218,30 @@ static void runScenario(int sc, float t, AnimInput& in) {
             in.stance = 1;
             in.localMoveDir = vec2(sinf(t * 1.5f), 1.f);
             break;
+        case 10:   // fighting guard standing: hook at 0.5 s, uppercut at 1.6 s
+            in.stance = 19;
+            in.action = (t >= 0.5f && t < 0.52f) ? CLIP_HOOK : ((t >= 1.6f && t < 1.62f) ? CLIP_UPPERCUT : -1);
+            break;
+        case 11:   // fighting guard strafing right, hook at 0.8 s (upper body over the strafe)
+            in.stance = 19;
+            in.speed = 1.3f;
+            in.localMoveDir = vec2(1.f, 0.f);
+            in.action = (t >= 0.8f && t < 0.82f) ? CLIP_HOOK : -1;
+            break;
+        case 12:   // block (stance 20) until 1.2 s, counter, back to the guard
+            in.stance = t < 1.2f ? 20 : 19;
+            in.action = (t >= 1.2f && t < 1.22f) ? CLIP_COUNTER : -1;
+            break;
+        case 13:   // bat: guard, swing at 0.5 s, overhead at 2.0 s
+            in.stance = 19;
+            in.meleeKind = 2;
+            in.weaponKind = 3;
+            in.action = (t >= 0.5f && t < 0.52f) ? CLIP_BAT_SWING : ((t >= 2.f && t < 2.02f) ? CLIP_BAT_OVERHEAD : -1);
+            break;
+        case 14:   // knocked out from the guard at 0.3 s
+            in.stance = 19;
+            in.action = (t >= 0.3f && t < 0.32f) ? CLIP_KNOCKOUT : -1;
+            break;
         default: break;
     }
 }
@@ -187,7 +253,8 @@ int main(int argc, char** argv) {
     float t = 0.f, dist = -1.f, yaw = 0.f, fov = 30.f, camZ = -1.f, spacing = 0.9f;
     int scenario = 0;
     const char* view = "front";
-    bool lineup = false, strip = false, floorOn = false;
+    bool lineup = false, strip = false, floorOn = false, rootMotion = false, pair = false;
+    int weapon = 0, melee = -1;
     float stripDt = -1.f;
     std::vector<int> clipList;
     for (int i = 2; i < argc; i++) {
@@ -210,6 +277,10 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--dt")) stripDt = (float)atof(nx());
         else if (!strcmp(argv[i], "--floor")) floorOn = true;
         else if (!strcmp(argv[i], "--scenario")) scenario = atoi(nx());
+        else if (!strcmp(argv[i], "--rm")) rootMotion = true;          // apply the clip's root motion
+        else if (!strcmp(argv[i], "--pair")) pair = true;              // takedown pair: victim + attacker 0.55 m behind
+        else if (!strcmp(argv[i], "--weapon")) { const char* w = nx(); weapon = !strcmp(w, "bat") ? 1 : (!strcmp(w, "knife") ? 2 : 0); }
+        else if (!strcmp(argv[i], "--melee")) melee = atoi(nx());      // AnimInput::meleeKind for scenarios
         else if (!strcmp(argv[i], "--clips")) {
             // comma separated clip list, one per character
             const char* c = nx();
@@ -220,6 +291,10 @@ int main(int argc, char** argv) {
             }
         }
     }
+    if (pair) {
+        // takedown pair: character 0 = victim, character 1 = attacker 0.55 m behind it (same seed variations)
+        clipList = {CLIP_TAKEDOWN_VICTIM, CLIP_TAKEDOWN_ATTACKER};
+    }
     if (!clipList.empty()) count = (int)clipList.size();
     Img img(W, H);
     std::vector<Char> chars(count);
@@ -227,7 +302,7 @@ int main(int argc, char** argv) {
     size_t totalTris = 0;
     for (int i = 0; i < count; i++) {
         Char& ch = chars[i];
-        u32 sd = lineup ? 1000 + i * 7919 : (strip || !clipList.empty() ? seed : seed + i * 7919);
+        u32 sd = lineup ? 1000 + i * 7919 : (pair ? seed + i * 7919 : (strip || !clipList.empty() ? seed : seed + i * 7919));
         int rl = role >= 0 ? role : (lineup ? i % 7 : 0);
         ch.d = randomCharacter(sd, rl);
         buildSkeleton(ch.d, ch.sk);
@@ -318,6 +393,7 @@ int main(int argc, char** argv) {
             for (float tt = 0.f; tt < T; tt += dt) {
                 AnimInput in;
                 runScenario(scenario, tt, in);
+                if (melee >= 0) in.meleeKind = melee;
                 an.update(in, dt);
             }
             pose = an.pose;
@@ -343,6 +419,10 @@ int main(int argc, char** argv) {
         std::vector<u32> M(ch.mesh.verts.size());
         // characters are lined up across the view direction
         vec3 off = sideAxis * ((i - (count - 1) * 0.5f) * spacing) + vec3(cx, 0, 0);
+#ifdef ANIM_HAVE_CLIPS
+        if (pair) off = vec3(cx, i == 1 ? -0.55f : 0.f, 0.f);
+        if ((rootMotion || pair) && ci >= 0) off = off + clipRootMotion(ch.sk, (Clip)ci, ti);
+#endif
         for (size_t v = 0; v < ch.mesh.verts.size(); v++) {
             const VtxSkinned& vx = ch.mesh.verts[v];
             mat4 m;
@@ -364,6 +444,16 @@ int main(int argc, char** argv) {
             M[v] = vx.mat;
         }
         drawMesh(img, cam, P, N, A, M, ch.mesh.indices);
+        if (weapon) {
+            mat4 msw[B_COUNT];
+            for (int b = 0; b < B_COUNT; b++) {
+                msw[b] = ms[b];
+                msw[b].c[3] = vec4(ms[b].c[3].xyz() + off, 1.f);
+            }
+            vec3 gp, ga, gpalm;
+            handGrip(ch.sk, msw, true, gp, ga, gpalm);
+            drawWeapon(img, cam, weapon, gp, ga, gpalm);
+        }
     }
     if (floorOn) {
         // checkerboard floor (0.25 m tiles) at z = 0 to judge ground contact

@@ -104,6 +104,23 @@ vec3 GameWorld::pedChestPos(const Ped& p) const {
 // ------------------------------------------------------------------------------------------------------------------
 // Kinematic capsule controller.
 void GameWorld::movePed(Ped& p, vec2 desiredVel, float dt, bool jump) {
+    if (p.forcedT > 0.f) {
+        // melee dodge / lunge / knock-back: velocity override with an instant response
+        p.forcedT -= dt;
+        desiredVel = p.forcedVel;
+        if (p.grounded) {
+            p.vel.x = desiredVel.x;
+            p.vel.y = desiredVel.y;
+        }
+        jump = false;
+    }
+    if (p.legInjury > 0.f) {
+        // limping on a wounded leg
+        p.legInjury -= dt;
+        float cap = p.isPlayer ? 3.2f : 1.4f;
+        float l = length(desiredVel);
+        if (l > cap) desiredVel = desiredVel * (cap / l);
+    }
     vec2 v(p.vel.x, p.vel.y);
     bool swimming = p.state == PS_SWIM;
     float accel = p.grounded || swimming ? (length(desiredVel) > length(v) ? 11.f : 16.f) : 2.5f;
@@ -308,6 +325,17 @@ void GameWorld::updateTraverse(Ped& p, float dt) {
 }
 
 // ------------------------------------------------------------------------------------------------------------------
+void GameWorld::startLipSync(int pid, const char* spokenText, const Audio::VoiceParams& voice) {
+    if (pid < 0 || pid >= (int)peds.size() || !peds[pid].used || !spokenText) return;
+    Ped& p = peds[pid];
+    if (p.visibleDist > 40.f) return;   // nobody sees the mouth from further away
+    p.lipKeys.clear();
+    Speech::lipSync(spokenText, voice, p.lipKeys);
+    p.lipStart = Platform::timeSeconds();
+    p.lipIdx = 0;
+}
+
+// ------------------------------------------------------------------------------------------------------------------
 void GameWorld::animatePed(Ped& p, float dt) {
     if (p.charIndex < 0) return;
     const CharEntry& ce = chars[p.charIndex];
@@ -339,6 +367,28 @@ void GameWorld::animatePed(Ped& p, float dt) {
     if (p.pendingAction >= 0) {
         in.action = p.pendingAction;
         p.pendingAction = -1;
+    }
+    // lip sync: jaw opening from the viseme keys of the line being spoken (crossfaded, leading the audio slightly)
+    in.mouthOpen = -1.f;
+    if (p.lipStart >= 0.0 && !p.lipKeys.empty()) {
+        const std::vector<Speech::VisemeKey>& K = p.lipKeys;
+        float t = (float)(Platform::timeSeconds() - p.lipStart) + 0.03f;
+        if (t > K.back().time + K.back().duration) {
+            p.lipKeys.clear();
+            p.lipStart = -1.0;
+        } else if (t >= 0.f) {
+            // jaw opening per viseme (Oculus order: sil PP FF TH DD kk CH SS nn RR aa E I O U)
+            static const float kJaw[Speech::VISEME_COUNT] = {0.f, 0.f, 0.12f, 0.2f, 0.3f, 0.35f, 0.15f, 0.1f, 0.25f, 0.3f, 1.f, 0.65f, 0.35f, 0.8f, 0.4f};
+            int k = p.lipIdx;
+            if (k >= (int)K.size() || K[k].time > t) k = 0;
+            while (k + 1 < (int)K.size() && K[k + 1].time <= t) k++;
+            p.lipIdx = k;
+            auto jaw = [&](const Speech::VisemeKey& key) { return kJaw[Min((int)key.viseme, (int)Speech::VISEME_COUNT - 1)] * Saturate(key.weight); };
+            float cur = jaw(K[k]), nxt = k + 1 < (int)K.size() ? jaw(K[k + 1]) : 0.f;
+            float left = K[k].time + K[k].duration - t;
+            float blend = left < 0.05f ? 0.5f * (1.f - left / 0.05f) : 0.f;   // 50 ms crossfade into the next shape
+            in.mouthOpen = Saturate(Lerp(cur, nxt, blend));
+        }
     }
     // foot IK: probe ground under both feet (only for nearby peds)
     in.groundOffsetL = in.groundOffsetR = 0.f;
@@ -463,6 +513,7 @@ void GameWorld::updatePed(int id, float dt) {
     p.hitReactTimer = Max(0.f, p.hitReactTimer - dt);
     p.speechCooldown = Max(0.f, p.speechCooldown - dt);
     p.spreadHeat = Max(0.f, p.spreadHeat - dt * 2.5f);
+    updateMelee(id, dt);
     if (p.reloadTimer > 0.f) {
         p.reloadTimer -= dt;
         if (p.reloadTimer <= 0.f) {

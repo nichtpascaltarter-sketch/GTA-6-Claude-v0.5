@@ -193,9 +193,33 @@ LONG WINAPI crashHandler(EXCEPTION_POINTERS* ep) {
     HMODULE base = GetModuleHandleA(nullptr);
     LogPrintf("Module base %p, offset 0x%llx", (void*)base,
               (unsigned long long)((char*)ep->ExceptionRecord->ExceptionAddress - (char*)base));
+    if (ep->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && ep->ExceptionRecord->NumberParameters >= 2)
+        LogPrintf("Access violation %s address %p", ep->ExceptionRecord->ExceptionInformation[0] ? "writing" : "reading",
+                  (void*)ep->ExceptionRecord->ExceptionInformation[1]);
     if (g_logFile) fflush(g_logFile);
+    // call stack from the faulting context (x64 unwind tables); module offsets symbolize with addr2line on a -g build
+    {
+        CONTEXT ctx = *ep->ContextRecord;
+        DWORD64 mod = (DWORD64)base;
+        for (int i = 0; i < 20 && ctx.Rip; i++) {
+            DWORD64 imageBase = 0;
+            PRUNTIME_FUNCTION fn = RtlLookupFunctionEntry(ctx.Rip, &imageBase, nullptr);
+            LogPrintf("  #%02d %p  offset 0x%llx%s", i, (void*)ctx.Rip, (unsigned long long)(ctx.Rip - mod), imageBase == mod ? "" : " (other module)");
+            if (!fn) {
+                // leaf function: the return address is on top of the stack
+                if (!ctx.Rsp) break;
+                ctx.Rip = *(DWORD64*)ctx.Rsp;
+                ctx.Rsp += 8;
+            } else {
+                void* handlerData = nullptr;
+                DWORD64 establisher = 0;
+                RtlVirtualUnwind(UNW_FLAG_NHANDLER, imageBase, ctx.Rip, fn, &ctx, &handlerData, &establisher, nullptr);
+            }
+        }
+        if (g_logFile) fflush(g_logFile);
+    }
     ClipCursor(nullptr);
-    MessageBoxA(nullptr, buf, "Neon Tide - crash", MB_OK | MB_ICONERROR);
+    if (!hasArg("autotest")) MessageBoxA(nullptr, buf, "Neon Tide - crash", MB_OK | MB_ICONERROR);
     return EXCEPTION_EXECUTE_HANDLER;
 }
 }  // namespace

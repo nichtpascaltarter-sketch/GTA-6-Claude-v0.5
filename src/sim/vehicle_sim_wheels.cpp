@@ -101,6 +101,7 @@ struct DriveCmd {
     bool handbrake = false;
     float reflectedI = 0.f;    // engine inertia seen at the wheels when the clutch is locked
     bool engaged = false;
+    bool burnout = false;      // throttle + brake at a standstill: the drive axle spins, the other axle holds
 };
 
 // Engine, clutch, automatic gearbox, GTA-style reverse.
@@ -197,7 +198,9 @@ DriveCmd powertrain(StepCtx& x, float drivenOmega) {
     d.brake = brakeIn;
     d.handbrake = c.handbrake;
     d.engaged = locked;
-    d.reflectedI = locked && brakeIn < 0.1f && !c.handbrake ? t.engineI * ratio * ratio : 0.f;
+    // GTA-style burnout: accelerator and brake together at (near) a standstill in a forward gear
+    d.burnout = s.gear >= 1 && thr > 0.5f && brk > 0.5f && fabsf(vF) < 3.f && !c.handbrake && c.hasDriver && s.engineOn && !isBikeClass(s.cls);
+    d.reflectedI = locked && (d.burnout || (brakeIn < 0.1f && !c.handbrake)) ? t.engineI * ratio * ratio : 0.f;
     return d;
 }
 
@@ -208,9 +211,12 @@ float carSteer(StepCtx& x) {
     const VehicleControls& c = *x.c;
     Body& b = x.b;
     float v = fabsf(x.vFwd);
-    float aLat = 1.25f * Clamp(s.model->grip, 0.5f, 1.6f) * kGrav;
+    // speed-sensitive lock: full lock in town, on the highway only what the front tires can use (a keyboard tap at
+    // 100 km/h must not snap the car into a four-wheel slide)
+    float hs = SmoothStep(8.f, 25.f, v);
+    float aLat = Lerp(1.25f, 1.05f, hs) * Clamp(s.model->grip, 0.5f, 1.6f) * kGrav;
     float geo = atanf(t.wheelbase * aLat / Max(v * v, 1e-3f));
-    float lim = Min(t.maxSteer, geo + t.alphaPeak * 0.5f);
+    float lim = Min(t.maxSteer, geo + t.alphaPeak * Lerp(0.5f, 0.25f, hs));
     float in = Clamp(c.steer, -1.f, 1.f);
     float target = in * lim;
     vec3 wl = b.local(b.angVel);
@@ -225,7 +231,9 @@ float carSteer(StepCtx& x) {
         target = Clamp(target, -t.maxSteer, t.maxSteer);
     }
     float cur = s.steerOut * t.maxSteer;
-    float rate = Max(lim * 6.f, 0.5f);
+    // steering rate: quick in town, calmer at speed; the wheel self-centers faster than it turns in
+    float rate = Max(lim * Lerp(6.f, 3.5f, hs), 0.5f);
+    if (fabsf(target) < fabsf(cur) || target * cur < 0.f) rate *= 1.6f;
     cur = approach(cur, target, rate * x.dt);
     s.steerOut = cur / t.maxSteer;
     return cur;
@@ -531,18 +539,36 @@ void wheelForces(StepCtx& x) {
     }
     // ---- tires ----
     float gripBase = Clamp(m.grip, 0.3f, 2.f);
-    float staticSum = 0.f;
-    for (int i = 0; i < s.wheelCount; i++) staticSum += t.staticLoad[i];
+    float staticSum = 0.f, rearDrive = 0.f;
+    for (int i = 0; i < s.wheelCount; i++) {
+        staticSum += t.staticLoad[i];
+        if (t.rear[i]) rearDrive += t.driveShare[i];
+    }
+    // drift: a rear-driven car sliding under power keeps its wheelspin and the stability aid backs off while the driver
+    // countersteers (or just after a handbrake flick); steering into the slide or letting go lets the car recover
+    float betaBody = atan2f(x.vLocal.x, Max(fabsf(x.vLocal.y), 1.f));
+    bool counter = c.steer * b.angVel.z > 0.f && fabsf(c.steer) > 0.1f && fabsf(b.angVel.z) > 0.15f;  // + steer = right, + yaw = left
+    bool sliding = road && rearDrive > 0.3f && c.throttle > 0.4f && fabsf(betaBody) > 0.15f && x.speed > 5.f;
+    if (sliding && (counter || s.hbTimer < 1.5f)) s.driftTimer = 0.8f;   // brief steering corrections keep the drift
+    else s.driftTimer = Max(s.driftTimer - dt, 0.f);
+    bool drift = sliding && s.driftTimer > 0.f;
     bool frontC = false, rearC = false;
     for (int i = 0; i < s.wheelCount; i++) {
         const WheelSpec& ws = m.wheels[i];
         WheelState& w = s.wheels[i];
         const WW& o = ww[i];
         float rad = ws.radius * (w.burst ? 0.8f : 1.f);
-        float Iw = t.wheelI[i] + dc.reflectedI * t.driveShare[i];
-        float Td = dc.wheelTorque * t.driveShare[i];
-        bool hb = dc.handbrake && t.rear[i];
+        float share = t.driveShare[i];
         float Tb = t.brakeT[i] * dc.brake;
+        if (dc.burnout) {
+            // the burnout axle (rear when driven, else the driven front) spins free of the service brake,
+            // the other axle is braked hard and holds the car
+            share = t.burnShare[i];
+            Tb = share > 0.f ? 0.f : t.brakeT[i];
+        }
+        float Iw = t.wheelI[i] + dc.reflectedI * share;
+        float Td = dc.wheelTorque * share;
+        bool hb = dc.handbrake && t.rear[i];
         if (hb) Tb = Max(Tb, t.brakeT[i] * 2.5f);
         if ((plane || heli) && ws.steer) Tb = heli ? Tb : 0.f;
         float Tbear = 0.4f + 0.004f * Iw * fabsf(w.spinVel);
@@ -600,10 +626,10 @@ void wheelForces(StepCtx& x) {
             if (vx < 0.f && wn > lim) wn = lim;
         }
         // traction control (friction-circle aware): limit drive slip so that lateral grip survives
-        if (!hb && fabsf(Td) > 1.f) {
+        if (!hb && !dc.burnout && fabsf(Td) > 1.f) {
             // generous at launch (burnouts, fishtails), just past peak at speed (no power spin-outs on a straight)
             float sLow = t.tcSlip / kp, sHigh = Min(sLow, 1.4f);
-            float sLim = bike ? 1.25f : Lerp(sLow, sHigh, SmoothStep(8.f, 25.f, fabsf(vx))) * (s.hbTimer < 1.f ? 3.f : 1.f);
+            float sLim = bike ? 1.25f : Lerp(sLow, sHigh, SmoothStep(8.f, 25.f, fabsf(vx))) * (s.hbTimer < 1.f || drift ? 3.f : 1.f);
             float sxMax = sqrtf(Max(sLim * sLim - sy * sy, 0.25f));
             float dvMax = sxMax * kp * Vx;
             if (Td > 0.f && vx > -1.f) wn = Min(wn, Max((vx + dvMax) / rad, w.spinVel - 400.f * dt));
@@ -611,6 +637,7 @@ void wheelForces(StepCtx& x) {
         }
         float fx, fy, dfx, sAbs;
         te.eval(wn, false, fx, fy, dfx, sAbs);
+        if (dc.burnout && share > 0.f) fx *= 0.7f;   // smoking rubber: the braked axle holds the car in place
         (void)lockedW;
         // caps: never push harder than what cancels the slip velocity within this step
         float capX = fabsf(wn * rad - vx) * mShare / dt;
@@ -635,7 +662,7 @@ void wheelForces(StepCtx& x) {
         w.contactNormal = o.n;
         w.surface = o.surface;
         w.load = N;
-        w.slip = Max(0.f, (sAbs - 0.8f) / 1.2f);
+        w.slip = Clamp((sAbs - 0.8f) / 1.2f, 0.f, 4.f);   // 0 grip .. 1 sliding .. 4 burnout / locked at speed
         w.lateralSlip = vy;
     }
     // limited-slip coupling between driven wheels of an axle
@@ -662,6 +689,7 @@ void wheelForces(StepCtx& x) {
             float beta = atan2f(x.vLocal.x, x.vLocal.y);
             bool over = err * wl.z > 0.f;
             float gain = t.esc * (over ? 2.5f : 0.6f) * SmoothStep(0.03f, 0.12f, fabsf(beta) + fabsf(err) * 0.15f);
+            if (drift) gain *= 0.2f;
             b.torque += b.torqueFor(x.up * (-err * gain));
         }
         // air control (GTA-style) and flip-back

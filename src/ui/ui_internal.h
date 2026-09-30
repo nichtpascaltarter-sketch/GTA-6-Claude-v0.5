@@ -37,8 +37,13 @@ enum IconId : int {
     ICO_STAR = BLIP_COUNT, ICO_STAR_OUTLINE, ICO_HEART, ICO_SHIELD, ICO_BUBBLES, ICO_BOLT, ICO_MESSAGE, ICO_PHONE, ICO_MUSIC,
     ICO_CLOCK, ICO_CHECK, ICO_CROSS, ICO_GEAR, ICO_SAVE, ICO_MAP, ICO_STATS, ICO_BRIEF, ICO_POWER, ICO_MONITOR, ICO_SPEAKER,
     ICO_GAMEPAD, ICO_USER, ICO_MOUSE, ICO_MOUSE_L, ICO_MOUSE_R, ICO_MOUSE_WHEEL, ICO_DPAD, ICO_ARROW_UP, ICO_CHEVRON,
-    ICO_PLAYER_RING, ICO_PIN_DOT, ICO_LOAD, ICO_SUN, ICO_PALM, ICO_WAVE, ICO_COUNT
+    ICO_PLAYER_RING, ICO_PIN_DOT, ICO_LOAD, ICO_SUN, ICO_PALM, ICO_WAVE,
+    // phone
+    ICO_CAMERA, ICO_CONTACTS, ICO_TIDE, ICO_REPOST, ICO_COMMENT, ICO_HANGUP, ICO_APERTURE, ICO_FILTER, ICO_SNOW, ICO_GRID,
+    ICO_FOCUS, ICO_IMAGE, ICO_VERIFIED, ICO_CASE, ICO_REPLAY, ICO_SWITCH, ICO_TROPHY, ICO_DOLLAR, ICO_EYE_OFF,
+    ICO_HEART_OUTLINE, ICO_COUNT
 };
+static_assert(ICO_COUNT <= 96, "icon atlas holds 6 rows of 16 icons above the weapon cells");
 constexpr int kWeaponIconCount = 13;
 
 void ensureIcons();
@@ -144,6 +149,31 @@ void drawBlipGlyph(const Blip& b, vec2 p, float sizePx, float alpha, float time,
 
 float uiTime();   // seconds (monotonic, advanced by drawHud / Menus::update)
 void advanceTime(float dt);
+
+// ------------------------------------------------------------------------------------------------------------------
+// Tidegram feed (tidegram.cpp), drawn by the phone
+struct TidePost {
+    int id = 0;
+    std::string author, handle, text;   // text carries rich text color codes (hashtags / mentions)
+    u32 color = 0, color2 = 0;          // avatar gradient
+    bool verified = false, player = false, liked = false;
+    double time = 0.0;                  // feed clock seconds
+    int image = 0;                      // 0 none, > 0 procedural thumbnail kind, -1 snapshot
+    int snapshot = -1;                  // snapshot id (image == -1)
+    u32 seed = 0;
+    float likeTarget = 0.f;
+    int likes = 0;
+};
+void tideTick(float dt, float timeOfDay, int weather, const std::string& owner);
+const std::vector<TidePost>& tidePosts();   // newest first
+double tideClock();
+void tideMarkSeen();
+bool tideToggleLike(int postId);            // returns the new liked state
+void tidePostPlayerPhoto(int snapshotId, int filter, vec2 pos, float timeOfDay);
+
+// Phone state shared with the HUD (the HUD hides its bottom-right widgets under the phone, and everything in photo mode)
+bool phoneCoversBottomRight();
+bool photoModeActive();
 
 }  // namespace uix
 }  // namespace UI

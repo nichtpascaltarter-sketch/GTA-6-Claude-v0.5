@@ -102,8 +102,8 @@ struct GrassSystem {
             cb.upload();
             ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get()};
             c->CSSetConstantBuffers(0, 2, cbs);
-            ID3D11ShaderResourceView* srvs[2] = {t.splat0Tex.srv, t.splat1Tex.srv};
-            c->CSSetShaderResources(0, 2, srvs);
+            ID3D11ShaderResourceView* srvs[4] = {t.splat0Tex.srv, t.splat1Tex.srv, nullptr, r.weather->overheadValid ? r.weather->overheadGrass.srv : nullptr};
+            c->CSSetShaderResources(0, 4, srvs);
             UINT zero = 0;
             c->CSSetUnorderedAccessViews(0, 1, &l.instances.uav, &zero);
             c->CSSetShader(csPlace, nullptr, 0);
@@ -112,7 +112,7 @@ struct GrassSystem {
             c->CSSetUnorderedAccessViews(0, 1, &nu, nullptr);
             c->CopyStructureCount(l.args.buf, 4, l.instances.uav);
         }
-        gfx::unbindCSResources(2, 1);
+        gfx::unbindCSResources(4, 1);
     }
 
     // G-buffer pass (render targets and depth already bound).

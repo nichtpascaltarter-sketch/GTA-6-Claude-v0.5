@@ -195,45 +195,73 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
         }
         case PROP_PALM:
         case PROP_PALM_TALL: {
-            bool tall = type == PROP_PALM_TALL;
-            float h = tall ? r.range(11.f, 15.f) : r.range(6.f, 9.5f);
-            float lean = tall ? r.range(0.f, 0.4f) : r.range(0.6f, 2.2f);
+            bool tall = type == PROP_PALM_TALL;  // royal palm: smooth grey column, green crownshaft; else coconut palm
+            float h = tall ? r.range(11.f, 15.f) : r.range(6.5f, 10.f);
+            float lean = tall ? r.range(0.f, 0.4f) : r.range(0.7f, 2.4f);
             float ang = r.f() * kTwoPi;
             vec3 leanDir(cosf(ang), sinf(ang), 0);
             std::vector<vec3> trunk;
             std::vector<float> rad;
-            for (int i = 0; i <= 8; i++) {
-                float t = (float)i / 8;
-                trunk.push_back(leanDir * (lean * t * t) + vec3(0, 0, h * t));
-                rad.push_back(tall ? Lerp(0.3f, 0.22f, t) + (t > 0.85f ? 0.06f : 0.f) : Lerp(0.24f, 0.15f, t));
+            // trunk: swollen bole at the base, leaf-scar rings on coconut palms, slight S-curve on leaning palms
+            int rings = tall ? 14 : 22;
+            vec3 wob(cosf(ang + 1.3f), sinf(ang + 1.3f), 0);
+            for (int i = 0; i <= rings; i++) {
+                float t = (float)i / rings;
+                trunk.push_back(leanDir * (lean * t * t) + wob * (tall ? 0.f : 0.25f * sinf(t * kPi)) + vec3(0, 0, h * t));
+                float base = tall ? Lerp(0.34f, 0.23f, t) + (t > 0.85f ? 0.05f : 0.f) + 0.04f * sinf(t * kPi) : Lerp(0.25f, 0.16f, t);
+                float bole = t < 0.1f ? (0.1f - t) * (tall ? 2.6f : 2.0f) : 0.f;
+                float scar = tall ? 0.f : ((i & 1) ? 0.016f : -0.01f);
+                rad.push_back(base + bole + scar);
             }
-            tube(m, trunk, rad, 8, tall ? packRGBA8(0.7f, 0.68f, 0.64f, 1) : packRGBA8(0.55f, 0.47f, 0.38f, 1), makeMat(MAT_BARK), 3.f);
+            u32 barkC = tall ? packRGBA8(0.72f, 0.7f, 0.66f, 1) : packRGBA8(r.range(0.5f, 0.6f), r.range(0.43f, 0.5f), r.range(0.34f, 0.4f), 1);
+            tube(m, trunk, rad, 8, barkC, makeMat(MAT_BARK), 3.f);
             vec3 top = trunk.back();
             if (tall) {
                 // green crownshaft
-                std::vector<vec3> cs = {top - vec3(0, 0, 1.2f), top + vec3(0, 0, 0.6f)};
-                tube(m, cs, {0.26f, 0.2f}, 8, packRGBA8(0.35f, 0.5f, 0.2f, 1), makeMat(MAT_BARK));
-                top += vec3(0, 0, 0.5f);
+                std::vector<vec3> cs = {top - vec3(0, 0, 1.6f), top - vec3(0, 0, 0.5f), top + vec3(0, 0, 0.7f)};
+                tube(m, cs, {0.27f, 0.25f, 0.19f}, 8, packRGBA8(0.35f, 0.52f, 0.22f, 1), makeMat(MAT_BARK));
+                top += vec3(0, 0, 0.6f);
+            } else {
+                // fibrous boot where the fronds attach
+                std::vector<vec3> bt = {top - vec3(0, 0, 0.55f), top + vec3(0, 0, 0.15f)};
+                tube(m, bt, {0.2f, 0.3f}, 8, packRGBA8(0.42f, 0.34f, 0.24f, 1), makeMat(MAT_BARK));
             }
-            int nf = tall ? r.irange(12, 16) : r.irange(10, 14);
-            vec3 fc(r.range(0.8f, 1.1f), r.range(0.9f, 1.1f), r.range(0.8f, 1.f));
+            vec3 fc(r.range(0.8f, 1.1f), r.range(0.9f, 1.1f), r.range(0.75f, 1.f));
+            // main crown: two interleaved rings of arching fronds
+            int nf = tall ? r.irange(14, 18) : r.irange(15, 20);
             for (int k = 0; k < nf; k++) {
-                float a = kTwoPi * k / nf + r.range(-0.2f, 0.2f);
-                float elev = r.range(-0.1f, 0.65f);
+                bool inner = (k & 1) == 1;
+                float a = kTwoPi * k / nf + r.range(-0.18f, 0.18f);
+                float elev = inner ? r.range(0.35f, 0.8f) : r.range(-0.15f, 0.35f);
                 vec3 d = normalize(vec3(cosf(a) * cosf(elev), sinf(a) * cosf(elev), sinf(elev)));
-                float len = tall ? r.range(3.2f, 4.2f) : r.range(2.6f, 3.6f);
-                float droop = r.range(0.25f, 0.6f);
-                vec3 col = fc * (k % 5 == 0 ? vec3(0.9f, 0.8f, 0.55f) : vec3(1.f));
-                frond(m, top, d, len, droop, 0.55f, foliageColor(col, FOL_PALM_FROND));
+                float len = (tall ? r.range(3.4f, 4.4f) : r.range(3.3f, 4.6f)) * (inner ? 0.8f : 1.f);
+                float droop = inner ? r.range(0.2f, 0.4f) : r.range(0.45f, 0.85f);
+                vec3 col = fc * (k % 6 == 0 ? vec3(0.95f, 0.85f, 0.6f) : vec3(1.f));
+                frond(m, top, d, len, droop, inner ? 0.62f : 0.75f, foliageColor(col, FOL_PALM_FROND));
             }
-            // coconuts
-            if (!tall)
-                for (int k = 0; k < 4; k++) {
+            // spear: a couple of young upright fronds
+            for (int k = 0; k < 2; k++) {
+                float a = r.f() * kTwoPi;
+                vec3 d = normalize(vec3(cosf(a) * 0.25f, sinf(a) * 0.25f, 1.f));
+                frond(m, top, d, r.range(1.6f, 2.2f), 0.05f, 0.4f, foliageColor(fc * vec3(1.05f, 1.1f, 0.9f), FOL_PALM_FROND));
+            }
+            // skirt of dead fronds hanging against the trunk (some specimens)
+            if (!tall && (variant & 1)) {
+                int nd = r.irange(3, 6);
+                for (int k = 0; k < nd; k++) {
                     float a = r.f() * kTwoPi;
-                    m.box(top + vec3(cosf(a) * 0.25f, sinf(a) * 0.25f, -0.35f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.11f), packRGBA8(0.3f, 0.35f, 0.12f, 1),
-                          makeMat(MAT_BARK), true);
+                    vec3 d = normalize(vec3(cosf(a) * 0.45f, sinf(a) * 0.45f, -1.f));
+                    frond(m, top - vec3(0, 0, 0.3f), d, r.range(2.0f, 2.8f), 0.05f, 0.42f, foliageColor(vec3(0.75f, 0.55f, 0.3f), FOL_PALM_FROND));
                 }
-            p.radius = h + 4.f;
+            }
+            // coconut cluster
+            if (!tall)
+                for (int k = 0; k < 6; k++) {
+                    float a = r.f() * kTwoPi;
+                    m.box(top + vec3(cosf(a) * 0.28f, sinf(a) * 0.28f, -0.3f - r.range(0.f, 0.25f)), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.12f),
+                          k & 1 ? packRGBA8(0.32f, 0.38f, 0.12f, 1) : packRGBA8(0.45f, 0.35f, 0.15f, 1), makeMat(MAT_BARK), true);
+                }
+            p.radius = h + 5.f;
             p.lodDistance = tall ? 400.f : 300.f;
             p.foliage = true;
             break;
@@ -245,18 +273,41 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
             bool bush = type == PROP_BUSH;
             bool mangrove = type == PROP_MANGROVE;
             bool cypress = type == PROP_CYPRESS;
-            float h = bush ? r.range(1.f, 2.f) : (mangrove ? r.range(3.f, 6.f) : (cypress ? r.range(9.f, 16.f) : r.range(6.f, 11.f)));
-            float trunkH = bush ? 0.2f : h * (cypress ? 0.65f : 0.4f);
+            bool oak = type == PROP_TREE_OAK;
+            float h = bush ? r.range(1.f, 2.2f) : (mangrove ? r.range(3.f, 6.f) : (cypress ? r.range(9.f, 16.f) : r.range(6.f, 11.f)));
+            float trunkH = bush ? 0.2f : h * (cypress ? 0.65f : (oak ? 0.32f : 0.4f));
             u32 bark = mangrove ? packRGBA8(0.45f, 0.38f, 0.3f, 1) : packRGBA8(0.4f, 0.33f, 0.26f, 1);
+            // live oaks: wide, low, spreading crowns (canopy radius > height/2)
+            float cr = bush ? h * 0.7f : (cypress ? h * 0.22f : (oak ? h * r.range(0.5f, 0.62f) : h * 0.42f));
+            float cz = bush ? h * 0.55f : (cypress ? h * 0.72f : trunkH + cr * (oak ? 0.55f : 0.8f));
+            std::vector<vec3> tips;  // branch tips (canopy anchors)
             if (!bush) {
-                tube(m, {vec3(0, 0, -0.3f), vec3(r.range(-0.3f, 0.3f), r.range(-0.3f, 0.3f), trunkH)}, {h * 0.045f, h * 0.03f}, 7, bark, makeMat(MAT_BARK), 2.f);
-                // main branches
-                int nb = cypress ? 3 : r.irange(3, 5);
+                vec3 tt(r.range(-0.3f, 0.3f), r.range(-0.3f, 0.3f), trunkH);
+                tube(m, {vec3(0, 0, -0.3f), tt * 0.5f + vec3(0, 0, trunkH * 0.1f), tt}, {h * (oak ? 0.06f : 0.045f), h * 0.04f, h * 0.03f}, 8, bark, makeMat(MAT_BARK), 2.f);
+                // root flare
+                if (oak)
+                    for (int k = 0; k < 4; k++) {
+                        float a = kTwoPi * k / 4 + r.f();
+                        tube(m, {vec3(0, 0, 0.5f), vec3(cosf(a) * 0.7f, sinf(a) * 0.7f, -0.1f)}, {h * 0.03f, h * 0.012f}, 5, bark, makeMat(MAT_BARK), 2.f);
+                    }
+                // main scaffold branches, then a fork of two secondary branches at each end
+                int nb = cypress ? 3 : r.irange(oak ? 4 : 3, oak ? 6 : 5);
                 for (int k = 0; k < nb; k++) {
-                    float a = kTwoPi * k / nb + r.f();
-                    vec3 b0(0, 0, trunkH * 0.9f);
-                    vec3 b1 = b0 + vec3(cosf(a) * h * 0.25f, sinf(a) * h * 0.25f, h * r.range(0.15f, 0.3f));
-                    tube(m, {b0, b1}, {h * 0.022f, h * 0.012f}, 5, bark, makeMat(MAT_BARK), 2.f);
+                    float a = kTwoPi * k / nb + r.f() * 0.6f;
+                    vec3 b0 = tt * 0.95f;
+                    float reach = oak ? cr * r.range(0.55f, 0.75f) : h * 0.25f;
+                    vec3 b1 = b0 + vec3(cosf(a) * reach, sinf(a) * reach, h * (oak ? r.range(0.08f, 0.2f) : r.range(0.15f, 0.3f)));
+                    tube(m, {b0, (b0 + b1) * 0.5f + vec3(0, 0, h * 0.05f), b1}, {h * 0.024f, h * 0.018f, h * 0.012f}, 5, bark, makeMat(MAT_BARK), 2.f);
+                    if (oak || mangrove) {
+                        for (int j = -1; j <= 1; j += 2) {
+                            float a2 = a + j * r.range(0.35f, 0.7f);
+                            vec3 b2 = b1 + vec3(cosf(a2) * reach * 0.5f, sinf(a2) * reach * 0.5f, h * r.range(0.05f, 0.15f));
+                            tube(m, {b1, b2}, {h * 0.011f, h * 0.006f}, 4, bark, makeMat(MAT_BARK), 2.f);
+                            tips.push_back(b2);
+                        }
+                    } else {
+                        tips.push_back(b1);
+                    }
                 }
                 if (mangrove) {
                     // prop roots arching into the water
@@ -268,18 +319,39 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
                     }
                 }
             }
-            // Canopy: leaf clusters on an ellipsoid shell
-            float cr = bush ? h * 0.7f : (cypress ? h * 0.22f : h * 0.42f);
-            float cz = bush ? h * 0.55f : (cypress ? h * 0.72f : trunkH + cr * 0.8f);
-            int clusters = bush ? 7 : (cypress ? 12 : 18);
+            // Canopy: leaf clusters on branch tips plus a filled ellipsoid shell
+            int clusters = bush ? r.irange(10, 14) : (cypress ? 12 : (oak ? 20 : 18));
             vec3 lc = mangrove ? vec3(0.8f, 1.f, 0.7f) : (cypress ? vec3(0.85f, 1.0f, 0.75f) : vec3(r.range(0.85f, 1.1f), r.range(0.9f, 1.1f), 0.85f));
             int layer = mangrove ? FOL_MANGROVE : (cypress ? FOL_PINE : FOL_BROADLEAF);
-            if (bush && r.chance(0.35f)) layer = FOL_FLOWERS;
+            if (bush && r.chance(0.4f)) layer = FOL_FLOWERS;
+            for (vec3 tp : tips) {
+                int nc = oak ? 2 : 1;
+                for (int j = 0; j < nc; j++) {
+                    vec3 c = tp + vec3(r.range(-0.6f, 0.6f), r.range(-0.6f, 0.6f), r.range(0.1f, 0.8f));
+                    vec3 tint = lc * r.range(0.88f, 1.08f);
+                    leafCluster(m, c, cr * 0.55f + r.range(0.2f, 0.7f), foliageColor(tint, layer), makeMat(MAT_LEAVES), r);
+                }
+            }
             for (int k = 0; k < clusters; k++) {
                 vec3 d = r.onSphere();
-                d.z = d.z * (cypress ? 1.8f : 0.7f);
+                d.z = d.z * (cypress ? 1.8f : (oak ? 0.45f : 0.7f));
+                if (bush && d.z < -0.2f) d.z = -0.2f;  // bushes sit on the ground: no clusters below the base
                 vec3 c = vec3(0, 0, cz) + vec3(d.x * cr, d.y * cr, d.z * cr);
-                leafCluster(m, c, cr * (bush ? 0.9f : 0.75f) + r.range(0.f, 0.5f), foliageColor(lc, layer), makeMat(MAT_LEAVES), r);
+                vec3 tint = lc * r.range(0.9f, 1.08f);
+                leafCluster(m, c, cr * (bush ? 0.8f : (oak ? 0.6f : 0.75f)) + r.range(0.f, 0.5f), foliageColor(tint, layer), makeMat(MAT_LEAVES), r);
+            }
+            // Spanish moss hanging from oak limbs (some specimens)
+            if (oak && (variant & 2)) {
+                for (vec3 tp : tips) {
+                    int nm = r.irange(1, 2);
+                    for (int j = 0; j < nm; j++) {
+                        vec3 c = tp + vec3(r.range(-0.8f, 0.8f), r.range(-0.8f, 0.8f), -r.range(0.2f, 0.6f));
+                        float a = r.f() * kPi;
+                        float len = r.range(0.9f, 1.8f);
+                        card(m, c - vec3(0, 0, len), vec3(cosf(a), sinf(a), 0), vec3(0, 0, 1), 0.7f, len, foliageColor(vec3(0.75f, 0.78f, 0.62f), FOL_GRASS),
+                             makeMat(MAT_LEAVES));
+                    }
+                }
             }
             p.radius = h + cr;
             p.lodDistance = bush ? 120.f : 350.f;

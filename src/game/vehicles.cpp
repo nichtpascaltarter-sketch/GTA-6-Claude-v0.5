@@ -320,10 +320,13 @@ void GameWorld::updateVehicleFx(Vehicle& v, float dt) {
     if (s.impactImpulse > 2500.f && v.lastImpactSfx <= 0.f && v.visibleDist < 200.f) {
         vec3 ip = pos + s.impactPoint;
         Audio::play(s.impactImpulse > 16000.f ? Audio::SFX_CAR_CRASH_HEAVY : Audio::SFX_CAR_CRASH_LIGHT, ip, Saturate(s.impactImpulse / 20000.f + 0.3f));
-        if (s.impactImpulse > 22000.f) Audio::play(Audio::SFX_GLASS_BREAK, ip, 0.7f);
+        if (s.impactImpulse > 22000.f && v.windowsBroken) Audio::play(Audio::SFX_GLASS_BREAK, ip, 0.7f);
         v.lastImpactSfx = 0.25f;
     }
 #endif
+    if (s.impactImpulse > 16000.f) socialCrash((int)(&v - &vehicles[0]), s.impactImpulse);
+    // a violent crash shatters the windows
+    if (s.impactImpulse > 30000.f && !v.windowsBroken) breakVehicleWindows((int)(&v - &vehicles[0]), normalize(s.impactPoint + vec3(0.f, 0.f, 0.01f)));
     // Skid marks: continuous strips per sliding wheel (a new strip starts when the wheel grips again)
     if (v.visibleDist < 120.f && !isBoat((int)(&v - &vehicles[0])) && !isAircraft((int)(&v - &vehicles[0]))) {
         for (int w = 0; w < s.wheelCount && w < 10; w++) {

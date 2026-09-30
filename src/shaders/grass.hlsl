@@ -26,6 +26,7 @@ Texture2D<float4> tSplat0 : register(t0);   // sand, grass, dirt, rock
 Texture2D<float4> tSplat1 : register(t1);   // mud, sawgrass, forest, urban
 AppendStructuredBuffer<GrassInstance> uGrass : register(u0);
 StructuredBuffer<GrassInstance> tGrass : register(t2);
+Texture2D<float> tOverheadGrass : register(t3);   // 1 where the top static surface is a lawn / median mesh
 
 float2 worldToTerrainUV(float2 w) { return (w + gGrass3.z) / (2.0 * gGrass3.z); }
 
@@ -48,6 +49,21 @@ void csGrassPlace(uint3 id : SV_DispatchThreadID) {
     float4 s0 = tSplat0.SampleLevel(sLinearClamp, tuv, 0);
     float4 s1 = tSplat1.SampleLevel(sLinearClamp, tuv, 0);
     float grass = s0.y, sand = s0.x, sawg = s1.y, forest = s1.z, urban = s1.w, rock = s0.w, dirt = s0.z, mud = s1.x;
+    // Lawns and medians modelled as world meshes (overhead pass flags their material)
+    float groundZ = gTerrainHeightG.SampleLevel(sLinearClamp, tuv, 0);
+    bool meshLawn = false;
+    if (gOverhead.w > 0.5) {
+        float2 ouv = (wp - gOverhead.xy) / gOverhead.z;
+        if (all(ouv > 0.0) && all(ouv < 1.0)) {
+            float top = gOverheadMap.SampleLevel(sPointClamp, ouv, 0);
+            if (top > groundZ - 0.35) {
+                if (tOverheadGrass.SampleLevel(sPointClamp, ouv, 0) < 0.5) return;   // road, sidewalk, lot, roof, bridge
+                meshLawn = true;
+                groundZ = top;
+            }
+        }
+    }
+    if (meshLawn) { grass = 1.0; urban = 0.4; sand = 0; sawg = 0; forest = 0; rock = 0; dirt = 0; mud = 0; }
     // break up the 8 m splat texels with noise so patches have organic edges
     float2 wr = wp - floor(wp / 2048.0) * 2048.0;
     float patch = fbmValue(wr * 0.09, 3);
@@ -57,28 +73,21 @@ void csGrassPlace(uint3 id : SV_DispatchThreadID) {
     // thin out with distance (larger far clumps compensate) and by quality
     float keep = saturate(cover) * gGrass1.w;
     if (r > keep) return;
-    // ground height / slope / water / coverage by static geometry
-    float hC = gTerrainHeightG.SampleLevel(sLinearClamp, tuv, 0);
+    // ground height / slope / water
+    float hC = groundZ;
     float e = 2.0 / (2.0 * gGrass3.z);
     float hx = gTerrainHeightG.SampleLevel(sLinearClamp, tuv + float2(e, 0), 0) - gTerrainHeightG.SampleLevel(sLinearClamp, tuv - float2(e, 0), 0);
     float hy = gTerrainHeightG.SampleLevel(sLinearClamp, tuv + float2(0, e), 0) - gTerrainHeightG.SampleLevel(sLinearClamp, tuv - float2(0, e), 0);
     float slope = length(float2(hx, hy)) / 4.0;
-    if (slope > 0.75) return;
+    if (slope > 0.75 && !meshLawn) return;
     float wl = gWaterLevelG.SampleLevel(sPointClamp, tuv, 0);
-    float waterDepth = wl > -999.0 ? wl - hC : -1.0;
+    float waterDepth = wl > -999.0 && !meshLawn ? wl - hC : -1.0;
     uint type = 1;
     if (sawg > max(grass, forest)) type = 2;
     else if (forest > grass) type = 3;
     else if (sand > grass) type = 4;
     else if (urban > 0.18) type = 0;
     if (waterDepth > (type == 2 ? 0.45 : 0.03)) return;
-    if (gOverhead.w > 0.5) {
-        float2 ouv = (wp - gOverhead.xy) / gOverhead.z;
-        if (all(ouv > 0.0) && all(ouv < 1.0)) {
-            float top = gOverheadMap.SampleLevel(sPointClamp, ouv, 0);
-            if (top > hC - 0.35) return;   // road, sidewalk, lot, building or bridge here
-        }
-    }
     // clump parameters by type
     float hv = hashF(h ^ 0x51ed270bu);
     float height, width;

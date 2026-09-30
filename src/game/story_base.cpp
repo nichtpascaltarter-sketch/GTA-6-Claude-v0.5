@@ -204,7 +204,30 @@ public:
     float timer = 0.f;
     int counter = 0;
     int playerCar = -1;             // vehicle given to the player for the mission
+    int rideCar = -1;               // the protagonist's own car parked near the start (blipped until the player drives)
     TailState tail;
+
+    // Missions that open with a drive park the protagonist's own car at the curb nearby: Mari's red coupe, Dex's pickup.
+    void provideRide(GameWorld& g, const Place& spot, float along) {
+        if (g.playerVehicle() >= 0) return;
+        bool isDex = g.protagonistIndex == 1;
+        int model = isDex ? pickModel(g, {Vehicles::VC_PICKUP, Vehicles::VC_SUV}, 2) : pickModel(g, {Vehicles::VC_COUPE, Vehicles::VC_SEDAN}, 3);
+        float yaw = spot.curbYaw;
+        vec3 p = curbOffset(g, spot, along, &yaw);
+        rideCar = spawnCar(g, model, p, yaw, isDex ? lin(0.18f, 0.2f, 0.22f) : lin(0.55f, 0.06f, 0.2f));
+        if (rideCar < 0) return;
+        g.mBlipVehicle(rideCar, UI::BLIP_GARAGE);
+        if (playerCar < 0) playerCar = rideCar;
+    }
+
+    void preUpdate(GameWorld& g, float dt) override {
+        (void)dt;
+        // the ride's blip goes once the player drives anything
+        if (rideCar >= 0 && g.playerVehicle() >= 0) {
+            unblipVehicle(rideCar);
+            rideCar = -1;
+        }
+    }
 
     // checkpoint reached (retry restarts from here)
     void cp(GameWorld& g, int n) {

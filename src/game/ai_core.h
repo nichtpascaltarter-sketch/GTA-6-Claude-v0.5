@@ -219,6 +219,7 @@ struct BodyHash {
     static constexpr float kCell = 12.f;
     static constexpr int kSlots = 2048;
     int head[kSlots];
+    BodyHash() { clear(); }   // empty chains until the first build (a query before the first tick must find nothing)
     void clear();
     static u32 slot(int cx, int cy) { return (hash2i(cx, cy) & (kSlots - 1)); }
     void build(std::vector<Body>& bodies);
@@ -365,7 +366,7 @@ struct Driver {
     int stopPath = -1;          // host-requested stop point (taxi pickup, scene arrival): path + u of the front bumper
     float stopU = 0.f;
     float lastDriveTime = -1.f; // time of the last drive() call (stale drivers are relocalized)
-    float diag[4] = {};         // controller diagnostics for the test harness (front error, heading error, feed-forward, command)
+    float diag[6] = {};         // controller diagnostics for the test harness (front error, heading error, feed-forward, command, path, u)
 };
 
 struct TrafficStats {

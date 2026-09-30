@@ -214,6 +214,11 @@ struct GameWorld {
     void killPed(int ped, int attacker, vec3 dir, DamageType type);
     void addWound(int ped, dvec3 worldPos, int bone, float radius);
     void knockDown(int ped, vec3 impulse);
+    void breakVehicleWindows(int vehicle, vec3 dir);
+    // Tidegram social feed (social.cpp): UI::TideEvent ev at pos
+    void socialReport(int ev, dvec3 pos, const char* subject = nullptr, float magnitude = 0.f);
+    void updateSocial(float dt);
+    void socialCrash(int vehicle, float impulse);
     void damageVehicle(int veh, float amount, int attacker, vec3 pointRel, vec3 impulse);
     void explode(dvec3 pos, float radius, float damage, int owner);
     void startFire(dvec3 pos, float radius, float life);
@@ -248,6 +253,16 @@ struct GameWorld {
     bool focusActiveApplied = false;
     bool stealthTakedown(Ped& p);
     bool sprintKick(Ped& p);
+    // melee combat (melee.cpp)
+    bool meleeStart(int pid, bool heavy);                // light/heavy attack (chains combos while a move plays)
+    void meleeBlock(int pid, bool on);
+    bool meleeDodge(int pid, vec2 worldDir);
+    void updateMelee(int pid, float dt);                 // per ped per frame (timers, contact, AI defence)
+    int meleeAutoTarget(const Ped& p, float maxDist, float minCos, vec2 fwd = vec2(0.f, 0.f)) const;   // fwd 0 = facing
+    void meleeContact(int pid);
+    void meleeHit(int attacker, int target, int move);
+    // mouth animation for a line the ped starts speaking now (exact text + voice passed to Audio::speak*)
+    void startLipSync(int pid, const char* spokenText, const Audio::VoiceParams& voice);
     void animatePed(Ped& p, float dt);
     void updateVehicles(float dt);
     void updateVehicleFx(Vehicle& v, float dt);
@@ -332,6 +347,8 @@ struct GameWorld {
     float groundHeight(float x, float y, float zRef) const;
 
     // ---- Missions/economy additions (story module: missions.cpp, story*.cpp, activities/shops/economy) ----
+    UI::PhoneState phone;               // the player's phone (UI::Phone, filled by the app + story layer each frame)
+    bool hidePlayerModel = false;       // photo mode "hide player"
     bool requestSaveMenu = false;       // set when the player steps into a safehouse save marker: the app opens MENU_SAVE
     std::string requestScreenshot;      // test automation: the app saves the next finished frame (after UI) here, clears it
     bool policeSuppressed = false;      // an active mission keeps the police out (crimes are not reported while set)
