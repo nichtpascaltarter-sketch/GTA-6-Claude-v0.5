@@ -58,7 +58,28 @@ struct CarLook {
     float logoR = 0.034f;  // emblem radius
     vec3 plateBand = vec3(0.05f, 0.45f, 0.5f);
     char plate[10] = {0};  // registration text (generated per model), empty = plain bars
+    u8 signature = 0;      // lamp light signature: 0 = pick from the maker/name, 1 bar, 2 L-shape, 3 ring, 4 twin bars
 };
+
+// Longest contiguous run of a closed loop's points satisfying `pred`, in loop order (a lamp-edge polyline).
+template <typename F> inline std::vector<vec2> loopRun(const std::vector<vec2>& I, F pred) {
+    int n = (int)I.size();
+    std::vector<vec2> best, cur;
+    if (n == 0) return best;
+    int start = 0;
+    while (start < n && pred(I[start])) start++;  // begin just after a failing point so runs don't wrap mid-way
+    if (start == n) { best = I; best.push_back(I[0]); return best; }
+    for (int k = 1; k <= n; k++) {
+        const vec2& q = I[(start + k) % n];
+        if (pred(q)) cur.push_back(q);
+        else {
+            if (cur.size() > best.size()) best = cur;
+            cur.clear();
+        }
+    }
+    if (cur.size() > best.size()) best = cur;
+    return best;
+}
 
 struct Samp {
     vec3 p, n;
@@ -360,20 +381,27 @@ inline void buildHeadlight(PMesh& m, CarBody& b, const CarLook& L) {
             lampDome(m, dc, vec2(u, -hh * 0.08f), dr * 0.85f, st.floorOff, MAT_LIGHT_HEAD, kCol1, 0.5f, true);
         }
         if (L.drl) {
-            // DRL along the lower/upper edge of the inner outline
-            std::vector<vec2> line;
-            int n = (int)I.size();
-            for (int i = 0; i < n; i++) {
-                vec2 q = I[i];
-                if (L.head == HL_SLIM ? (q.y > -hh * 0.2f) : (q.y > hh * 0.25f)) line.push_back(q);
-            }
-            // order the collected points by u
-            std::sort(line.begin(), line.end(), [](vec2 a, vec2 b2) { return a.x < b2.x; });
-            if (line.size() >= 2) {
-                for (auto& q : line) q.y -= 0.009f;
-                m.newGroup(50.f);
-                m.use(MAT_LIGHT_HEAD, kCol1);
-                decalBar(m, dc, line, 0.010f, 0.004f, st.floorOff, 0.02f);
+            // daytime-running-light signature inside the lens (bar, L, ring or twin bars)
+            m.newGroup(50.f);
+            m.use(MAT_LIGHT_HEAD, kCol1);
+            std::vector<vec2> In = insetClosed(I, 0.009f);
+            int sig = L.head == HL_SLIM ? 1 : Max((int)L.signature, 1);
+            if (sig == 3) {
+                std::vector<vec2> ring = In;
+                ring.push_back(ring[0]);
+                decalBar(m, dc, ring, 0.007f, 0.004f, st.floorOff, 0.02f);
+            } else {
+                auto top = [&](vec2 q) { return L.head == HL_SLIM ? (q.y > -hh * 0.2f) : (q.y > hh * 0.25f); };
+                std::vector<vec2> line = sig == 2 ? loopRun(In, [&](vec2 q) { return top(q) || q.x > hw * 0.62f; }) : loopRun(In, top);
+                if (line.size() >= 2) {
+                    decalBar(m, dc, line, 0.010f, 0.004f, st.floorOff, 0.02f);
+                    if (sig == 4) {
+                        std::vector<vec2> second;
+                        for (const vec2& q : line)
+                            if (q.x < hw * 0.35f) second.push_back(q - vec2(0, 0.024f));
+                        if (second.size() >= 2) decalBar(m, dc, second, 0.008f, 0.004f, st.floorOff, 0.02f);
+                    }
+                }
             }
         }
         // amber side marker / indicator at the outer end
@@ -426,14 +454,33 @@ inline void buildTaillight(PMesh& m, CarBody& b, const CarLook& L) {
     vec2 c = centroid(I);
     bool modern = L.tail == TL_WRAP || L.tail == TL_SLIM || L.tail == TL_VERT;
     if (modern && lodLevel() == 0) {
-        // smoked centre panel framed by an LED light guide (the ring glows with the tail/brake lamps)
+        // smoked centre panel framed by LED light guides (they glow with the tail / brake lamps); the pattern is the
+        // maker's light signature: ring, ring + centre bar, three bars, or a C open towards the car's centre
         float mn = Min(hw, hh);
+        int sig = Max((int)L.signature, 1);
         m.use(MAT_CAR_GLASS, kCol1);
         loopFill(m, dc, insetClosed(I, mn * 0.34f), st.floorOff + 0.0012f, 2);
-        std::vector<vec2> ring = insetClosed(I, mn * 0.2f);
-        ring.push_back(ring[0]);
         m.use(MAT_LIGHT_TAIL, col(1.f, 0.f, 0.f));
-        decalBar(m, dc, ring, Max(mn * 0.1f, 0.005f), 0.0026f, st.floorOff, 0.015f);
+        float bw = Max(mn * 0.1f, 0.005f);
+        std::vector<vec2> ring = insetClosed(I, mn * 0.2f);
+        if (sig == 1 || sig == 2) {
+            ring.push_back(ring[0]);
+            decalBar(m, dc, ring, bw, 0.0026f, st.floorOff, 0.015f);
+        } else if (sig == 4) {
+            std::vector<vec2> cl = loopRun(ring, [&](vec2 q) { return q.x > -hw * 0.55f; });
+            if (cl.size() >= 2) decalBar(m, dc, cl, bw, 0.0026f, st.floorOff, 0.015f);
+        }
+        if (sig == 2 || sig == 3) {
+            vec2 c0 = centroid(I);
+            int nb = sig == 2 ? 1 : 3;
+            for (int k = 0; k < nb; k++) {
+                float v = nb == 1 ? c0.y : c0.y + (k - 1) * hh * 0.42f;
+                std::vector<vec2> ln;
+                ln.push_back(vec2(-hw * 0.72f, v));
+                ln.push_back(vec2(hw * 0.72f, v));
+                decalBar(m, dc, ln, bw * 0.8f, 0.0028f, st.floorOff + 0.0012f, 0.015f);
+            }
+        }
     }
     if (L.tail == TL_ROUND) {
         m.use(MAT_PLASTIC, col(0.5f, 0.5f, 0.5f));

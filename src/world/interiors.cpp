@@ -158,7 +158,7 @@ bool garageIntrudes(const BuildingSet& bs, int bi) {
 // Building closest to the place whose front faces the place's street
 int pickBuilding(const BuildingSet& bs, const PlaceLite& pl, const Target& tg, const std::vector<u8>& used, int pass) {
     std::vector<int> cand;
-    bs.buildingsNear(pl.sp, pass == 0 ? 70.f : (pass < 3 ? 160.f : 700.f), cand);   // pass 3: upper units only, farther out
+    bs.buildingsNear(pl.sp, pass == 0 ? 70.f : (pass < 3 ? 160.f : 700.f), cand);   // pass 3: the last resort, farther out
     int best = -1;
     float bestScore = 1e30f;
     for (int i : cand) {
@@ -627,7 +627,7 @@ void planInteriors(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs) {
         PlaceLite pl = resolve(roads, tg.hint, (tg.flags & TF_BRIDGE) != 0);
         if (!pl.ok) continue;
         int bi = -1;
-        for (int pass = 0; pass < (tg.upper != 0 ? 4 : 3) && bi < 0; pass++) bi = pickBuilding(bs, pl, tg, used, pass);
+        for (int pass = 0; pass < 4 && bi < 0; pass++) bi = pickBuilding(bs, pl, tg, used, pass);   // pass 3: nearest fit within 700 m
         if (bi < 0) {
             LOG("Interiors: no building for %s near (%.0f, %.0f)", tg.name, tg.hint.x, tg.hint.y);
             continue;
@@ -707,6 +707,12 @@ void planInteriors(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs) {
             int li = (int)set.defs.size();
             lobby.link = li + 1;
             ph.link = li;
+            if (const InteriorMarker* out = lobby.marker(IM_DOOR_OUT)) {
+                // the penthouse's way out is the lobby's street door, as for the residential units
+                InteriorMarker mk = *out;
+                mk.pos = ph.toLocal(lobby.toWorld(out->pos));
+                ph.markers.push_back(mk);
+            }
             set.defs.push_back(std::move(lobby));
             set.defs.push_back(std::move(ph));
         }

@@ -323,6 +323,11 @@ inline void buildCar(const CarDef& def, VehicleModel& out) {
     d.L.maker = makerId(out.maker);
     plateText(d.L, out.name);
     if (d.L.chromeBelt) d.s.dloTrim = 2;  // chrome window surround
+    if (d.L.signature == 0) {
+        u32 h = 2166136261u;
+        for (char c : out.maker + out.name) h = (h ^ (u8)c) * 16777619u;
+        d.L.signature = (u8)(1 + (h >> 7) % 4u);
+    }
     CarBody b(d.s);
     PMesh m;
     carBodyParts(d, b, m, true);

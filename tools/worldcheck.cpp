@@ -305,11 +305,15 @@ int main(int argc, char** argv) {
                     mergeNear = roads.onPavement(b2, P2.z - 0.1f, 0.f, (int)(&e - &roads.edges[0]), 1.1f);
                 }
                 if (mergeNear) continue;
+                // a barrier there (within half a metre: at a bend the rails follow the mitred edge, not this perpendicular)
                 bool ok = false;
-                auto it = grid.find(key((int)floorf(bp.x / G), (int)floorf(bp.y / G)));
-                if (it != grid.end())
-                    for (int ci : it->second)
-                        if (cols[ci].src == -1 && hits(cols[ci], bp, P.z + 0.3f, P.z + 0.7f, 0.2f)) { ok = true; break; }
+                for (int gy = (int)floorf((bp.y - 0.5f) / G); gy <= (int)floorf((bp.y + 0.5f) / G) && !ok; gy++)
+                    for (int gx = (int)floorf((bp.x - 0.5f) / G); gx <= (int)floorf((bp.x + 0.5f) / G) && !ok; gx++) {
+                        auto it = grid.find(key(gx, gy));
+                        if (it == grid.end()) continue;
+                        for (int ci : it->second)
+                            if (cols[ci].src == -1 && hits(cols[ci], bp, P.z + 0.3f, P.z + 0.7f, 0.5f)) { ok = true; break; }
+                    }
                 if (ok) guarded += 4.f;
                 else {
                     unguarded += 4.f;

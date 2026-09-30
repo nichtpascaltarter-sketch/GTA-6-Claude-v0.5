@@ -945,7 +945,7 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
                     // the outer sidewalk edge, per sub-span where the ground drops more than 1 m below the road edge
                     float edgeLat = hw + (sw > 0.f && !hwy ? sw : 0.f);
                     float segLen = b.s - a.s;
-                    int nsub = Max(1, (int)ceilf(segLen / 12.f));
+                    int nsub = Max(1, (int)ceilf(segLen / 6.f));   // short sub-spans: a merge beside one end opens only its own
                     for (int q = 0; q < nsub; q++) {
                         float t0 = (float)q / nsub, t1 = (float)(q + 1) / nsub, tm = (t0 + t1) * 0.5f;
                         vec3 cm = lerp(a.c, b.c, tm);
