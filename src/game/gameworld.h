@@ -378,6 +378,7 @@ struct GameWorld {
     void aiBuildBodies();                       // perception proxies for this tick
     void aiUpdateThreats(float dt);
     std::string aiDebugText() const;
+    std::string aiCensusText(float radius) const;   // who is around the player and what they are doing (tests)
 };
 
 extern GameWorld* gGame;

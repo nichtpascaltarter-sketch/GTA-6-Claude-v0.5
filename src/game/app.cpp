@@ -402,6 +402,7 @@ struct App {
             game.rig.yaw = p.yaw;
         }
         if (autoplay == "tour") {
+            mu::setFlag(game, mu::EX_INTRO_DONE, 1);   // no prologue phone call: free roam only
             tourStop = -1;
             tourT = 0.f;
             tourShot = tourDone = false;
@@ -704,9 +705,9 @@ struct App {
                 cam = rc;
                 renderer.render(rc, env, dt);
 #ifdef HAVE_GAME_UI
-                if (!menuOpen && game.requestSaveMenu) {   // safehouse bed / save point
+                if (!menuOpen && game.requestSaveMenu) {   // safehouse bed / save point (never during automated runs)
                     game.requestSaveMenu = false;
-                    openPause(UI::MENU_SAVE);
+                    if (autoplay.empty()) openPause(UI::MENU_SAVE);
                 } else if (!menuOpen && pausePressed) openPause(UI::MENU_PAUSE);
                 else if (!menuOpen && mapPressed) openPause(UI::MENU_MAP);
 #else

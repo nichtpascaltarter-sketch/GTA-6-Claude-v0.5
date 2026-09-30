@@ -44,6 +44,7 @@ public:
         kit = spawnCast(g, CAST_KIT, placeOffset(g, P.rookShop, -2.f, 3.f), P.rookShop.yaw + kPi, FAC_FRIEND);
         jonah = spawnCast(g, CAST_JONAH, placeOffset(g, P.rookShop, 5.f, 3.f), P.rookShop.yaw + kPi, FAC_FRIEND);
         placePlayer(g, placeOffset(g, P.rookShop, 0.f, 0.5f), P.rookShop.yaw);
+        provideRide(g, P.rookShop, -14.f);
         vec3 rp = pedPos(g, rook), kp = pedPos(g, kit), mp = pedPos(g, mari), dp = playerPos(g);
         for (int p : {rook, kit, jonah}) facePed(g, p, dp);
         std::vector<CutsceneShot> shots;
@@ -234,6 +235,7 @@ public:
         quiet = heistApproach(g) == 1;
         const Places& P = gPlaces;
         score(SC_HEIST, 0.35f, 1);
+        if (checkpoint == 0) provideRide(g, P.rookShop, 14.f);
         if (quiet) {
             const Place& D = P.flatsYard;
             int model = pickModel(g, {Vehicles::VC_VAN, Vehicles::VC_SERVICE, Vehicles::VC_PICKUP}, 1);
@@ -1275,6 +1277,7 @@ public:
                         say(g, CAST_KIT, kit, "[scared:0.3]She won't come alone.");
                         sayMe(g, "[calm]I know.");
                         goTo(g, gPlaces.pierEnd - vec3(30.f, 0, 0), 3.f, "Meet Holt at the end of the ~y~Sol Beach Pier~s~.");
+                        provideRide(g, gPlaces.pulseFm, 12.f);
                         setFollow(g, dex, g.player);
                         setStage(11);
                     }

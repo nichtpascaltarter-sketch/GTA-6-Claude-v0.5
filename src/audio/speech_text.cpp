@@ -875,6 +875,7 @@ void normalizeText(const char* text, std::vector<TextWord>& out) {
                     TextWord tw;
                     tw.w = syl;
                     tw.phon = true;
+                    tw.vocal = true;
                     nz.push(tw);
                 }
                 nz.setPause(voc->pauseAfter);

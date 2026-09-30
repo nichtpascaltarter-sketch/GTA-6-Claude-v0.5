@@ -888,6 +888,7 @@ void GameWorld::updateEvents(float dt) {
             if (ok) {
                 e.active = true;
                 gEv.lastOfType[type] = time;
+                ai.stats.events++;
             } else {
                 gEv.timer = 6.f;   // try again soon
             }

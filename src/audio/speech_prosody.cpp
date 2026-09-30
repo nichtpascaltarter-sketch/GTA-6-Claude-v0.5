@@ -196,18 +196,18 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
     }
     // Spontaneous-speech touches for long conversational lines (deterministic, sparing): an occasional
     // hesitation filler at a clause boundary. Broadcast deliveries, anger, shouting and [fluent] text never get one.
-    bool longCasual = tws.size() >= 14;
+    bool longCasual = tws.size() >= 16;
     for (const TextWord& t : tws) longCasual = longCasual && !t.fluent;
     if (longCasual) {
         std::vector<size_t> cand;
         for (size_t i = 4; i + 4 < tws.size(); i++) {
             const Style& st = tws[i].style;
             if (tws[i - 1].brk == BRK_COMMA && st.delivery == DELIVERY_TALK && st.emotion != EMOTION_ANGRY &&
-                st.emotion != EMOTION_SHOUT && st.emotion != EMOTION_WHISPER && !tws[i].phon)
+                st.emotion != EMOTION_SHOUT && st.emotion != EMOTION_WHISPER && !tws[i].phon && !tws[i - 1].vocal)
                 cand.push_back(i);
         }
         u32 h = hashCombine(hashString(text), u.seed);
-        if (!cand.empty() && h % 100u < 45u) {
+        if (!cand.empty() && h % 100u < 30u) {
             size_t at = cand[(h >> 8) % (u32)cand.size()];
             TextWord f;
             f.w = (h >> 16) & 1u ? "uh" : "um";
@@ -291,6 +291,7 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         uw.function = b.wp.function;
         uw.emph = b.tw.emph;
         uw.style = b.tw.style;
+        uw.vocal = b.tw.vocal;
         if (!b.tw.phon && !b.tw.spell) uw.text = b.tw.w;
         const StyleParams wsp = styleParams(b.tw.style);
         int widx = (int)u.words.size();
@@ -588,6 +589,7 @@ void buildUtterance(const char* text, const Audio::VoiceParams& voice, Utterance
         if (s.flags & SF_ARTICLE_A) pr *= 1.35f;
         float d = mn + (inh - mn) * pr;
         if (s.word >= 0 && midPhraseWord[(size_t)s.word]) d *= 0.95f;  // tempo arc: phrase middles run faster
+        if (s.word >= 0 && u.words[(size_t)s.word].vocal && s.ph != PH_HH) d *= 0.6f;  // quick laugh / sob pulses
         if (P.slur > 0.f) d *= 1.f + 0.15f * P.slur * (2.f * wordRand(u, s.word, 5u) - 1.f);  // uneven timing
         if (vowel) d *= s.stress > 0 ? P.stressLen : P.reducedLen;
         d *= s.durMul;

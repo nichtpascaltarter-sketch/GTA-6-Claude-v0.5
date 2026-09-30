@@ -169,6 +169,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                 removePedFromVehicle(drv, true);
                 PedAI& da = pedAI(drv);
                 da.activity = ACT_ROADRAGE;
+                ai.stats.roadRage++;
                 da.homeVeh = vi;
                 da.actTimer = 10.f + hashToFloat(hash32(v.uid)) * 6.f;
                 da.shoutTimer = 0.8f;
@@ -443,7 +444,7 @@ void GameWorld::aiDriveBoat(int vi, float dt, dvec3 target, float speed) {
         bool ll = land(l, probe * 0.8f), rr = land(r, probe * 0.8f);
         want = !ll ? l : (!rr ? r : -fwd);
     }
-    float err = wrapAngle(atan2f(want.y, want.x) - atan2f(fwd.y, fwd.x));   // + = target to the left
+    float err = AI::wrapPi(atan2f(want.y, want.x) - atan2f(fwd.y, fwd.x));   // + = target to the left
     c.steer = Clamp(-err * 1.6f, -1.f, 1.f);
     float targetSpeed = Min(speed, dist * 0.25f + 2.f);
     if (fabsf(err) > 1.4f) targetSpeed = Min(targetSpeed, 4.f);
@@ -493,7 +494,7 @@ void GameWorld::aiFlyHeli(int vi, float dt, dvec3 target, float altitude, float 
     c.lift = Clamp(c.lift + 0.02f, -1.f, 1.f);
     // face the target (the searchlight / sniper look at it)
     float wantYaw = atan2f(-to.x, to.y);
-    float err = wrapAngle(wantYaw - atan2f(-fh.x, fh.y));
+    float err = AI::wrapPi(wantYaw - atan2f(-fh.x, fh.y));
     c.yaw = Clamp(-err * 1.2f, -1.f, 1.f);
     c.throttle = 0.f;
     (void)dt;

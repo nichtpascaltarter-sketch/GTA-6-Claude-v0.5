@@ -1412,11 +1412,10 @@ void updateRamps(GameWorld& g) {
             if ((float)s.body.pos.z > wantZ + 0.25f) continue;       // already flying over it
             s.body.pos.z = Max((double)wantZ, s.body.pos.z);
             s.body.vel.z = Max(s.body.vel.z, fwd * slope);
-            // nose up along the deck, keeping the heading
-            float yaw = atan2f(-r.dir.x, r.dir.y);
-            float side = dot(fwdDir, right);
-            yaw -= asinf(Clamp(side, -0.7f, 0.7f));
-            s.body.rot = quatAxisAngle(vec3(0, 0, 1), yaw) * quatAxisAngle(vec3(1, 0, 0), pitch);
+            // nose up along the deck, keeping the car's own heading
+            vec2 h = normalize(fwdDir);
+            float yaw = atan2f(-h.x, h.y);
+            s.body.rot = quatAxisAngle(vec3(0, 0, 1), yaw) * quatAxisAngle(vec3(1, 0, 0), pitch * dot(h, r.dir));
             s.body.angVel = vec3(0.f);
             s.sleeping = false;
         }

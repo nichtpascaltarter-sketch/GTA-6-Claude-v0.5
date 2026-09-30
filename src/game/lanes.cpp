@@ -7,9 +7,10 @@
 namespace AI {
 
 float wrapPi(float a) {
-    while (a > kPi) a -= kTwoPi;
-    while (a < -kPi) a += kTwoPi;
-    return a;
+    // remainder instead of repeated subtraction: a huge or infinite angle must not spin forever
+    if (a >= -kPi && a <= kPi) return a;
+    a = remainderf(a, kTwoPi);
+    return a == a ? a : 0.f;
 }
 
 namespace lanes_detail {

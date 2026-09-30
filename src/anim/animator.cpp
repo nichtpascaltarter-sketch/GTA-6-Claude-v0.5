@@ -637,8 +637,8 @@ static const float kVisemeShape[15][6] = {
     {0.7f, 0.02f, -0.04f, -0.06f, -0.02f, -0.05f},  // aa
     {0.38f, -0.02f, 0.f, -0.2f, 0.04f, 0.02f},  // E
     {0.24f, -0.05f, 0.02f, -0.28f, 0.06f, 0.04f},   // I
-    {0.42f, 0.26f, -0.24f, 0.36f, 0.f, -0.03f}, // O
-    {0.12f, 0.42f, -0.4f, 0.55f, 0.f, 0.f},     // U
+    {0.4f, 0.22f, -0.12f, 0.34f, 0.f, -0.03f},  // O
+    {0.08f, 0.36f, -0.18f, 0.55f, 0.f, 0.f},    // U
 };
 
 // Pose the speech bones for a mouth shape (see kVisemeShape) and, when jaw >= 0, the jaw.

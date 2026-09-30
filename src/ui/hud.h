@@ -104,6 +104,12 @@ struct HudState {
     bool reticleOnFriendly = false;
     float hitMarker = 0.f;       // > 0 shows a hit marker (fades, game sets 1 on hit)
     bool killMarker = false;
+    // Lock-on target marker (chevron above the target's head with a health bar)
+    bool lockOn = false;         // soft lock (guns, pad) or melee lock-on active
+    vec2 lockScreen;             // target head position in pixels (backbuffer coordinates)
+    float lockHealth = 1.f;      // target health 0..1 (the bar shows below 1; drops pulse the marker)
+    bool lockHostile = false;    // target is fighting the player (red) vs neutral (white)
+    bool lockMelee = false;      // melee lock (fighting stance) vs gun lock
     std::vector<float> damageDirections;   // screen-space angles (rad, 0 = up/ahead, counter-clockwise positive like
                                            // headings: +pi/2 = attacker on the left) of recent hits taken. An entry may
                                            // be pushed for one frame or kept while fresh; the UI matches entries across

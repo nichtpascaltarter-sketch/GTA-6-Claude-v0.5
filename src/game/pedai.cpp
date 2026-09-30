@@ -9,9 +9,10 @@ namespace Game {
 namespace pedai_detail {
 
 inline float wrapA(float a) {
-    while (a > kPi) a -= kTwoPi;
-    while (a < -kPi) a += kTwoPi;
-    return a;
+    // remainder instead of repeated subtraction: a huge or infinite angle must not spin forever
+    if (a >= -kPi && a <= kPi) return a;
+    a = remainderf(a, kTwoPi);
+    return a == a ? a : 0.f;
 }
 
 inline void turnTo(Ped& p, float yaw, float rate, float dt) {
@@ -220,6 +221,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     // bold bystanders film, the rest back off
                     if (pa.temper == 2 && d > 5.f && d < 22.f && pa.activity != ACT_FILM) {
                         pa.activity = ACT_FILM;
+                        ai.stats.filming++;
                         pa.actTimer = 8.f + hashToFloat(hash32(p.uid + 17u)) * 8.f;
                         pa.anchor = pos;
                         pa.threatPos = s.pos.toVec3().xy();
@@ -247,9 +249,11 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         pa.activity = ACT_WALK;
                         pa.panicDepth = (u8)(s.depth + 1);
                         pa.panicEmit = 0.6f + r;
+                        ai.stats.panicSpread++;
                         aiSay(id, BK_PANIC, 0.25f);
                     } else if (pa.temper == 2 && dOrigin < 60.f && dOrigin > 12.f && pa.activity != ACT_FILM) {
                         pa.activity = ACT_FILM;
+                        ai.stats.filming++;
                         pa.actTimer = 6.f + r * 6.f;
                         pa.threatPos = from;
                         aiSay(id, BK_FILMING, 0.3f);
@@ -279,6 +283,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     float r = hashToFloat(hc);
                     if (pa.temper == 2 && d > 7.f && r < 0.5f && pa.activity != ACT_FILM) {
                         pa.activity = ACT_FILM;
+                        ai.stats.filming++;
                         pa.actTimer = 6.f + r * 8.f;
                         pa.threatPos = s.pos.toVec3().xy();
                         aiSay(id, BK_FILMING, 0.3f);
@@ -880,10 +885,22 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     int hv = pa.homeVeh;
                     bool carOk = hv >= 0 && hv < (int)vehicles.size() && vehicles[hv].used && !vehicles[hv].exploded && vehicles[hv].seats[0] < 0;
                     bool plOk = pl && pl->health > 0.f;
-                    if (pa.actTimer > 0.f && plOk && plDist < 30.f && pl->state == PS_ONFOOT) {
-                        vec2 to = ppos - pos;
+                    // the player stayed in the (stopped) car: storm up to the driver's window instead
+                    int plCar = plOk && pl->state == PS_INVEHICLE && pl->vehicle >= 0 && vehicles[pl->vehicle].used ? pl->vehicle : -1;
+                    bool carStill = plCar >= 0 && vehicles[plCar].sim.speed() < 2.5f;
+                    if (pa.actTimer > 0.f && plOk && plDist < 30.f && (pl->state == PS_ONFOOT || carStill)) {
+                        vec2 goal = ppos;
+                        float reach = 2.2f;
+                        if (plCar >= 0) {
+                            const Vehicle& pv = vehicles[plCar];
+                            const Vehicles::VehicleModel& ps = vassets[pv.model].spec;
+                            float side = !ps.seats.empty() && ps.seats[0].pos.x > 0.f ? 1.f : -1.f;
+                            goal = (pv.sim.body.pos.toVec3() + rotate(pv.sim.body.rot, vec3(side * (ps.boxHalf.x + 0.55f), 0.2f, 0.f))).xy();
+                            reach = 0.5f;
+                        }
+                        vec2 to = goal - pos;
                         float d = length(to);
-                        if (d > 2.2f) desired = to / Max(d, 1e-3f) * (d > 8.f ? 3.2f : 1.5f);
+                        if (d > reach) desired = to / Max(d, 1e-3f) * (d > 8.f ? 3.2f : Clamp(d * 1.5f, 0.6f, 1.5f));
                         faceYaw = yawTo(pos, ppos);
                         faceSet = true;
                         if (pa.shoutTimer <= 0.f && d < 12.f) {
@@ -891,9 +908,19 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                             if (p.pendingAction < 0) p.pendingAction = Anim::CLIP_POINT;
                             pa.shoutTimer = 3.f + hashToFloat(hash32(p.uid * 3u + (u32)time)) * 2.f;
                         }
-                        // standing face to face with an unarmed player for a while: it comes to blows
                         bool armed = pl->weapon != WPN_FISTS && weaponInfo(pl->weapon).clipSize > 0;
-                        if (d < 2.6f && !armed) pa.linger += dt;
+                        if (d < reach + 0.5f && !armed) pa.linger += dt;
+                        if (plCar >= 0) {
+                            // at the window: the bold pound on the glass every couple of seconds
+                            if (pa.temper == 2 && pa.linger > 1.5f && d < 1.2f && p.pendingAction < 0 && fmodf(pa.linger, 2.2f) < dt) {
+                                p.pendingAction = (hash32(p.uid + (u32)(pa.linger * 3.f)) & 1) ? Anim::CLIP_PUNCH_R : Anim::CLIP_PUNCH_L;
+                                vehicles[plCar].hornOn = false;
+                                aiSay(id, BK_ROAD_RAGE, 0.6f, true);
+                            }
+                            if (pa.linger > 9.f) pa.actTimer = Min(pa.actTimer, 0.5f);   // said their piece
+                            break;
+                        }
+                        // standing face to face with an unarmed player for a while: it comes to blows
                         if (pa.linger > 3.5f && pa.temper == 2) {
                             b.type = BRAIN_COMBAT;
                             b.target = player;

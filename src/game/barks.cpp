@@ -63,9 +63,9 @@ const Line kCopFreeze[] = {{"[shout]Freeze! Police!", 0}, {"[shout]Police! Don't
 const Line kCopGround[] = {{"[shout]Get on the ground!", 0}, {"[shout]On your knees, now!", 0}, {"[shout]Hands behind your head!", 0}, {"[shout]Don't make this worse!", 0}};
 const Line kCopSpotted[] = {{"[shout:0.7]Suspect spotted!", 0}, {"[shout:0.7]I have eyes on the suspect!", 0}, {"[shout:0.7]There he is!", 0}, {"[shout:0.7]Visual on the suspect, moving in!", 0}};
 const Line kCopLost[] = {{"[dispatch]We lost him.", 0}, {"[dispatch]Suspect is out of sight.", 0}, {"[dispatch]Where did he go?", 0}, {"[dispatch]Lost visual.", 0}};
-const Line kCopChatter[] = {{"[dispatch]All units, suspect heading north.", 0}, {"[dispatch]Requesting backup.", 0}, {"[dispatch]Units converging on the location.", 0},
+const Line kCopChatter[] = {{"[radio][dispatch]All units, suspect heading north.", 0}, {"[dispatch]Requesting backup.", 0}, {"[radio][dispatch]Units converging on the location.", 0},
                             {"[dispatch]Dispatch, we are in pursuit.", 0}, {"[dispatch]Set up a perimeter.", 0}, {"[dispatch]Air unit, do you have a visual?", 0},
-                            {"[dispatch]Suspect vehicle is fleeing, all units respond.", 0}};
+                            {"[radio][dispatch]Suspect vehicle is fleeing, all units respond.", 0}};
 const Line kCopEngage[] = {{"[shout]Shots fired! Shots fired!", 0}, {"[shout]Take him down!", 0}, {"[shout]Open fire!", 0}, {"[shout]Suspect is armed!", 0}};
 const Line kCopCover[] = {{"[shout:0.8]Taking cover!", 0}, {"[shout:0.8]Cover me!", 0}, {"[shout:0.8]Flanking left!", 0}, {"[shout:0.8]Moving up!", 0}, {"[shout:0.8]I'm going around!", 0}};
 const Line kCopArrest[] = {{"[angry:0.4]You're under arrest.", 0}, {"[angry:0.4]Turn around, slowly.", 0}, {"[angry:0.4]It's over, give it up.", 0}};
@@ -81,7 +81,7 @@ const Line kDive[] = {{"[scared]Whoa!", 0}, {"[shout]Look out!", 0}, {"[scared]A
 const Line kGunSeen[] = {{"[scared]Whoa, he's got a gun!", 0}, {"[angry:0.3]Easy with that thing.", LB_BOLD}, {"[scared]Oh no, no, no.", LB_TIMID},
                          {"[scared]Put that away, man.", 0}, {"[scared]Is that real?", 0}};
 const Line kCopSearch[] = {{"[dispatch]Check the alleys.", 0}, {"[dispatch]He's around here somewhere.", 0}, {"[dispatch]Search the area.", 0}, {"[dispatch]Keep your eyes open.", 0}};
-const Line kCopBackup[] = {{"[dispatch]Backup is on the way!", 0}, {"[dispatch]Heavy units responding.", 0}, {"[dispatch]Air support inbound.", 0}};
+const Line kCopBackup[] = {{"[dispatch]Backup is on the way!", 0}, {"[radio][dispatch]Heavy units responding.", 0}, {"[radio][dispatch]Air support inbound.", 0}};
 const Line kWitnessStop[] = {{"[scared]Okay, I hung up! I hung up!", 0}, {"[scared]I didn't see anything!", 0}, {"[scared]I won't call, I swear!", 0}};
 const Line kJog[] = {{"On your left.", 0}, {"Morning!", 0}, {"Five more miles.", 0}};
 const Line kPhoneChat[] = {{"No, I told her already.", 0}, {"Are you serious? No way.", 0}, {"I'll be there in ten.", 0},

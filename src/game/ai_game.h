@@ -123,6 +123,7 @@ struct VehAI {
     // road rage after the player crashed into us: 0 none, 1 stopping, 2 driver out on foot
     u8 rage = 0;
     float rageTimer = 0.f;
+    u8 pursuitMove = 0;        // police: 0 chase, 1 PIT run, 2 boxing slot (counted on entry)
 };
 
 // A crime the police do not know about yet: a witness is phoning it in.
@@ -169,6 +170,9 @@ struct AIFrameStats {
     int peds = 0, cars = 0, dummies = 0, managed = 0;
     double avgMs = 0, maxMs = 0;
     int frames = 0;
+    // cumulative behaviour counters (aiCensusText, autoplay logs)
+    int panicSpread = 0, filming = 0, pitTries = 0, boxing = 0, roadblocks = 0, spikeHits = 0, tackles = 0, heliUnits = 0,
+        unitsSent = 0, roadRage = 0, events = 0, arrests = 0;
 };
 
 struct AIState {

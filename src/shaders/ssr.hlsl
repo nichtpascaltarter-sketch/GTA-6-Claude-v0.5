@@ -31,6 +31,7 @@ void csSSRTrace(uint3 id : SV_DispatchThreadID) {
     float4 mat = tMaterial[pix];
     float rough = max(mat.r, 0.02);
     uint model = (uint)(mat.b * 255.0 + 0.5);
+    if (model == SM_CARPAINT) rough = min(rough, 0.04);   // the clear coat dominates the reflection
     if (depth <= 0.0 || rough > gSSR0.w || model == SM_UNLIT || model == SM_FOLIAGE || model == SM_HAIR) {
         uOut[id.xy] = 0;
         return;
@@ -104,6 +105,7 @@ void csSSRResolve(uint3 id : SV_DispatchThreadID) {
     float depth = tDepth[id.xy];
     float4 mat = tMaterial[id.xy];
     float rough = max(mat.r, 0.02);
+    if ((uint)(mat.b * 255.0 + 0.5) == SM_CARPAINT) rough = min(rough, 0.04);
     if (depth <= 0.0 || rough > gSSR0.w) { uOut[id.xy] = 0; return; }
     float2 uv = (id.xy + 0.5) * gScreen.zw;
     float z = linearDepth(depth);

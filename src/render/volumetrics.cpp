@@ -3,7 +3,7 @@
 namespace Render {
 
 struct FogCBData {
-    vec4 vol, jit, media, misc;
+    vec4 vol, jit, media, misc, interior;
 };
 
 struct VolumetricFog {
@@ -85,17 +85,18 @@ struct VolumetricFog {
         cb.data.jit = vec4(halton2[fi] - 0.5f, halton3[fi] - 0.5f, halton2[(fi * 3 + 1) % 8] - 0.5f, (float)r.lightsFrame.size());
         cb.data.media = vec4(humidity, 350.f, env.rain * 0.0022f, 0.35f + 0.3f * env.fogDensity);
         cb.data.misc = vec4(windOffset.x, windOffset.y, 0.35f, 1.f + env.lightning * 6.f);
+        cb.data.interior = vec4((float)r.lightCB.data.interiorCount, 0, 0, 0);
         cb.upload();
         ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get(), nullptr, r.shadowCB.get()};
         c->CSSetConstantBuffers(0, 4, cbs);
         int prev = cur;
         cur ^= 1;
-        ID3D11ShaderResourceView* srvs[4] = {r.lightBuf.srv, inject[prev].srv, nullptr, noise.srv};
-        c->CSSetShaderResources(0, 4, srvs);
+        ID3D11ShaderResourceView* srvs[6] = {r.lightBuf.srv, inject[prev].srv, nullptr, noise.srv, r.interiorBuf.srv, r.lightVolumeBuf.srv};
+        c->CSSetShaderResources(0, 6, srvs);
         c->CSSetUnorderedAccessViews(0, 1, &inject[cur].uav, nullptr);
         c->CSSetShader(csInject, nullptr, 0);
         c->Dispatch(gfx::divUp(w, 8), gfx::divUp(h, 8), d);
-        gfx::unbindCSResources(4, 1);
+        gfx::unbindCSResources(6, 1);
         c->CSSetShaderResources(2, 1, &inject[cur].srv);
         c->CSSetUnorderedAccessViews(0, 1, &integrated.uav, nullptr);
         c->CSSetShader(csIntegrate, nullptr, 0);

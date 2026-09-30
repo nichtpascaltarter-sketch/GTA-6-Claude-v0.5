@@ -321,6 +321,7 @@ void GameWorld::updateWanted(float dt) {
         gD.bustTimer = 0.f;
         pinfo.busted = true;
         pinfo.arrests++;
+        ai.stats.arrests++;
         bigMessage("BUSTED", "", 0xffffcc33u);
 #ifdef HAVE_AUDIO
         Audio::play2D(Audio::SFX_BUSTED, 0.9f);
@@ -501,6 +502,7 @@ void GameWorld::updateDispatch(float dt) {
                     vec2 t = laneGraph.laneTangent(lane, u);
                     int vid = spawnVehicle(model, dvec3(c.x, c.y, c.z + 0.3f), AI::dirYaw(t), true, FAC_POLICE);
                     if (vid < 0) break;
+                    ai.stats.unitsSent++;
                     vehicles[vid].faction = FAC_POLICE;
                     attachTraffic(vid, lane, u);
                     int drv = vehicles[vid].seats[0];
@@ -568,6 +570,7 @@ void GameWorld::updateDispatch(float dt) {
                 va.task = PT_PURSUE;
                 gD.heli = vid;
                 gD.heliUid = h.uid;
+                ai.stats.heliUnits++;
                 int drv = h.seats[0];
                 if (drv >= 0) {
                     peds[drv].brain.type = BRAIN_COMBAT;
@@ -701,6 +704,7 @@ void GameWorld::updateDispatch(float dt) {
                 float t;
                 if (distPointSegment2D(wp.xy(), a, b, &t) < 0.35f && fabsf(wp.z - rb.spikeA.z) < 1.f) {
                     Vehicles::burstTire(v.sim, w);
+                    ai.stats.spikeHits++;
 #ifdef HAVE_AUDIO
                     Audio::play(Audio::SFX_TIRE_POP, wp, 1.f);
 #endif
@@ -771,6 +775,7 @@ void GameWorld::updateDispatch(float dt) {
                 float span = L.count * L.width;
                 float latC = ((L.count - 1) * 0.5f - (float)L.index) * L.width;   // carriageway center, right of this lane
                 rb->active = true;
+                ai.stats.roadblocks++;
                 rb->pos = c.xy();
                 rb->dir = t;
                 rb->life = 0.f;
@@ -853,6 +858,7 @@ void GameWorld::updateDispatch(float dt) {
         vec2 t = laneGraph.laneTangent(lane, u);
         int vid = spawnVehicle(model, dvec3(c.x, c.y, c.z + 0.3f), AI::dirYaw(t), true, FAC_POLICE);
         if (vid < 0) return;
+        ai.stats.unitsSent++;
         Vehicle& v = vehicles[vid];
         v.faction = FAC_POLICE;
         v.sirenOn = true;
@@ -1055,9 +1061,11 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
         // PIT: from behind at speed, aim at the rear quarter of the target
         vec2 tf = tSpeed > 1.f ? normalize(tv.xy()) : fwd;
         float behind = dot(vp.xy() - tp.xy(), tf);
+        u8 move = 0;
         if (wanted >= 2 && tSpeed > 9.f && behind < -2.f && dist < 18.f) {
             float side = dot(vp.xy() - tp.xy(), AI::rightOf(tf)) >= 0.f ? 1.f : -1.f;
             aim = tp.xy() - tf * 1.6f + AI::rightOf(tf) * (side * 0.6f);
+            move = 1;
         }
         // boxing in a slow target: take positions around it
         if (tSpeed < 4.f && dist < 30.f) {
@@ -1065,6 +1073,12 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
             vec2 tf2 = length2(tv.xy()) > 0.25f ? tf : normalize(tp.xy() - vp.xy() + vec2(1e-3f, 0.f));
             vec2 offs[3] = {tf2 * 6.5f + AI::rightOf(tf2) * 1.5f, -tf2 * 6.5f, AI::rightOf(tf2) * -3.2f};
             aim = tp.xy() + offs[slot];
+            move = 2;
+        }
+        if (move != va.pursuitMove) {
+            if (move == 1) ai.stats.pitTries++;
+            if (move == 2) ai.stats.boxing++;
+            va.pursuitMove = move;
         }
     }
     vec2 toAim = aim - vp.xy();
@@ -1202,8 +1216,8 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
             pedAI(id).navOk = false;
             return;
         }
-        float d = wrapAngle(faceYaw - p.yaw);
-        p.yaw = wrapAngle(p.yaw + Clamp(d, -8.f * dt, 8.f * dt));
+        float d = AI::wrapPi(faceYaw - p.yaw);
+        p.yaw = AI::wrapPi(p.yaw + Clamp(d, -8.f * dt, 8.f * dt));
         movePed(p, desired, dt, false);
         return;
     }
@@ -1241,8 +1255,8 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
                 return;
             }
         }
-        float d = wrapAngle(faceYaw - p.yaw);
-        p.yaw = wrapAngle(p.yaw + Clamp(d, -9.f * dt, 9.f * dt));
+        float d = AI::wrapPi(faceYaw - p.yaw);
+        p.yaw = AI::wrapPi(p.yaw + Clamp(d, -9.f * dt, 9.f * dt));
         movePed(p, desired, dt, false);
         return;
     }
@@ -1268,6 +1282,7 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
             if (dist < 1.5f && t.state == PS_ONFOOT) {
                 // tackle and cuff: the suspect stays down, this officer heads back to the car
                 knockDown(b.target, vec3(to / Max(dist, 1e-3f) * 160.f, 30.f));
+                ai.stats.tackles++;
                 Brain& tb = peds[b.target].brain;
                 tb.type = BRAIN_COWER;
                 tb.target = id;
@@ -1280,8 +1295,8 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
         }
         p.animIn.stance = 0;
         p.animIn.crouch = false;
-        float dyaw = wrapAngle(faceYaw - p.yaw);
-        p.yaw = wrapAngle(p.yaw + Clamp(dyaw, -9.f * dt, 9.f * dt));
+        float dyaw = AI::wrapPi(faceYaw - p.yaw);
+        p.yaw = AI::wrapPi(p.yaw + Clamp(dyaw, -9.f * dt, 9.f * dt));
         movePed(p, desired, dt, false);
         return;
     }
@@ -1419,8 +1434,8 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
     bool meleeEngaged = p.meleeTarget >= 0 && p.meleeTarget < (int)peds.size() && peds[p.meleeTarget].used && peds[p.meleeTarget].health > 0.f &&
                         length(rel(peds[p.meleeTarget].pos, p.pos)) < 4.f && (p.animIn.stance == 19 || p.animIn.stance == 20);
     if (!meleeEngaged) p.animIn.stance = 0;   // (melee.cpp owns the fighting guard while squared up)
-    float dy = wrapAngle(faceYaw - p.yaw);
-    p.yaw = wrapAngle(p.yaw + Clamp(dy, -9.f * dt, 9.f * dt));
+    float dy = AI::wrapPi(faceYaw - p.yaw);
+    p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -9.f * dt, 9.f * dt));
     movePed(p, desired, dt, false);
     (void)pl;
     (void)stance;

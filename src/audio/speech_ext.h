@@ -1,4 +1,5 @@
-// Speech extensions: speaking styles (inline markup), character personas and lip-sync timing.
+// Speech extensions: speaking styles (inline markup), transmission channels (megaphone / PA / radio / phone), crowd
+// walla, character personas, lip-sync timing and facial-expression cues.
 // Implemented in the speech unity chain (audio/speech.cpp); include this header to call them.
 // Pure computation, thread-safe (no mutable global state), deterministic.
 #pragma once
@@ -12,7 +13,7 @@ namespace Speech {
 //   emotion:  [neutral] [angry] [scared] [calm] [sad] [happy] [shout] [whisper] [drunk]  intensity: [angry:0.5]
 //   delivery: [talk] [dj] [ad] [fineprint] [news] [dispatch]
 //   accent:   [accent:general|south|newyork|latino|caribbean|british]            strength: [accent:south:0.6] (0..1)
-//   timbre:   [timbre:normal|nasal|husky|gravelly|bright|dark|fry] (or bare [husky], [gravelly], ...)
+//   timbre:   [timbre:normal|nasal|husky|gravelly|bright|dark|fry|aged] (or bare [husky], [gravelly], ...)
 //   pause:    [pause] (0.5 s) or [pause:1.2] (seconds) after the preceding word
 //   take:     [take:N] a different performance of the same line (repeated barks don't sound cloned)
 //   channel:  [megaphone] [pa] [radio] [phone] (whole line: police megaphone, public-address hall with reverb,
@@ -62,6 +63,7 @@ enum Timbre : u8 {
     TIMBRE_BRIGHT,    // forward, tense, "smiling" resonance
     TIMBRE_DARK,      // throaty, lowered larynx, warm
     TIMBRE_FRY,       // vocal fry at phrase ends, low and relaxed
+    TIMBRE_AGED,      // elderly: slight tremor, unsteady, breathy, a little slower
     TIMBRE_COUNT
 };
 
@@ -73,7 +75,7 @@ struct Style {
     float intensity = 1.f;       // emotion strength (0..1.5)
     float accentStrength = 1.f;  // accent strength (0..1)
     u32 take = 0;                // performance variant ([take:N]): different intonation details / pacing, 0 = default
-    u8 channel = 0;              // Channel the whole line is heard through (last channel tag wins)
+    u8 channel = 0;              // Channel the whole line is heard through ([radio], ...; the last channel tag wins)
 };
 
 // Markup prefix selecting `s`, e.g. "[accent:latino:0.6][husky][angry]" (empty for the default style).

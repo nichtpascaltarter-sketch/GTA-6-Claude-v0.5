@@ -437,6 +437,7 @@ void GameWorld::submitRender() {
                 dl.radius = 45.f;
                 dl.spotCos = cosf(32.f * kDegToRad);
                 dl.spotInner = cosf(18.f * kDegToRad);
+                dl.headlight = !isAircraft(lc.id) && !isBoat(lc.id);   // low-beam pattern with cut-off (renderer)
                 renderer->addLight(dl);
             } else if ((L.type == Vehicles::LT_TAIL && v.lightsOn) || (L.type == Vehicles::LT_BRAKE && brake)) {
                 Render::DynamicLight dl;

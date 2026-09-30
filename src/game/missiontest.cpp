@@ -35,6 +35,10 @@ struct TestRun {
     float timeLimit = 480.f;
     bool roam = false;        // running the free-roam checks instead of a mission
     std::string cutTag;       // last cutscene shot photographed
+    int prepStage = 0;        // 1: placed at the start, waiting for the world to stream in
+    double prepT0 = 0.0;
+    std::vector<std::string> shotQueue;   // screenshots wait for streaming too
+    double shotT0 = 0.0;
 };
 TestRun gRun;
 
@@ -169,9 +173,8 @@ void MissionTest::stopVehicle() {
 
 void MissionTest::screenshot(const char* tag) {
     std::string path = shotDir() + StrFormat("%s_%02d_%s.bmp", id.c_str(), shots++, tag);
-    gRun.pendingShotPath = path;
-    gRun.pendingShotFrames = 0;
-    g->requestScreenshot = path;
+    if (gRun.shotQueue.empty()) gRun.shotT0 = TimeSeconds();
+    gRun.shotQueue.push_back(path);
     log("screenshot %s", path.c_str());
 }
 
@@ -270,16 +273,26 @@ bool prepareMission(GameWorld& g, const std::string& id) {
     g.pinfo.wanted = 0;
     g.pinfo.wantedHeat = 0.f;
     g.pinfo.money = Max<long long>(g.pinfo.money, 20000);
-    // stand next to the start trigger, then start directly
+    // stand next to the start trigger; the mission starts once the world around it has streamed in
     vec2 sp = d.startPos;
     mu::placePlayer(g, vec3(sp + vec2(2.f, 0.f), mu::groundAt(g, sp.x, sp.y)), 0.f);
     M.cooldown = 0.f;
     M.retry.def = -1;
     M.retry.pending = false;
+    return true;
+}
+
+bool startPrepared(GameWorld& g, const std::string& id) {
+    MissionManager& M = gMissions;
+    int di = M.findDef(id.c_str());
+    if (di < 0) return false;
     M.startCheckpoint = 0;
     g.startMission(di);
     return M.active != nullptr;
 }
+
+// World cells (render meshes and collision) around the camera are loaded
+bool worldStreamed(GameWorld& g) { return !g.renderer || !g.renderer->world || g.renderer->world->pendingCount() <= 2; }
 
 }  // namespace mtest_detail
 
@@ -827,6 +840,15 @@ void updateMissionTest(GameWorld& g, float dt) {
         }
         T.g = &g;
     }
+    // queued screenshots are requested once the world around the camera has streamed in (or after 8 s)
+    if (!R.shotQueue.empty() && R.pendingShotPath.empty() && g.requestScreenshot.empty() &&
+        (worldStreamed(g) || TimeSeconds() - R.shotT0 > 8.0)) {
+        R.pendingShotPath = R.shotQueue.front();
+        R.pendingShotFrames = 0;
+        g.requestScreenshot = R.pendingShotPath;
+        R.shotQueue.erase(R.shotQueue.begin());
+        R.shotT0 = TimeSeconds();
+    }
     // pending screenshot: the app saves it after the frame is complete; fall back to a direct capture
     if (!R.pendingShotPath.empty()) {
         if (g.requestScreenshot.empty()) R.pendingShotPath.clear();
@@ -842,7 +864,7 @@ void updateMissionTest(GameWorld& g, float dt) {
         R.setupDelay += dt;
         if (R.setupDelay > 1.5f && !R.started) {
             R.started = true;
-            prepareMission(g, R.single);
+            if (prepareMission(g, R.single)) startPrepared(g, R.single);
         }
         return;
     }
@@ -862,6 +884,19 @@ void updateMissionTest(GameWorld& g, float dt) {
     }
     // start the next mission
     if (!R.running) {
+        if (R.prepStage == 1) {
+            if (!worldStreamed(g) && TimeSeconds() - R.prepT0 < 20.0) return;
+            R.prepStage = 0;
+            if (!startPrepared(g, T.id)) {
+                R.failed++;
+                R.results.push_back(T.id + ": could not start");
+                R.setupDelay = 0.f;
+                return;
+            }
+            T.log("started (%s) after %.1f s of streaming", M.active->title(), TimeSeconds() - R.prepT0);
+            R.running = true;
+            return;
+        }
         R.setupDelay += dt;
         if (R.setupDelay < 2.f) return;
         R.index++;
@@ -894,8 +929,8 @@ void updateMissionTest(GameWorld& g, float dt) {
             R.setupDelay = 0.f;
             return;
         }
-        T.log("started (%s)", M.active->title());
-        R.running = true;
+        R.prepStage = 1;
+        R.prepT0 = TimeSeconds();
         return;
     }
     T.missionTime += dt;

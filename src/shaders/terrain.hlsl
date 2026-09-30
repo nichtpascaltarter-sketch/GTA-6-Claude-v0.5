@@ -121,6 +121,7 @@ GBufferOut psTerrain(VSOut i) {
     float3 albedo = 0, nTS = 0;
     float rough = 0, wsum = 0;
     float bestH = -10;
+    int bestIdx = 0;
     LayerSample ls[8];
     float hw[8];
     [unroll] for (int k = 0; k < 8; k++) {
@@ -129,7 +130,7 @@ GBufferOut psTerrain(VSOut i) {
         if (weights[k] > 0.01) {
             ls[k] = sampleLayer(k, uv, uvFar, farBlend);
             hw[k] = weights[k] + ls[k].height * 0.35 + nz * 0.25;
-            bestH = max(bestH, hw[k]);
+            if (hw[k] > bestH) { bestH = hw[k]; bestIdx = k; }
         }
     }
     [unroll] for (int k2 = 0; k2 < 8; k2++) {
@@ -144,6 +145,14 @@ GBufferOut psTerrain(VSOut i) {
     albedo /= max(wsum, 1e-4);
     nTS = normalize(nTS / max(wsum, 1e-4) + float3(0, 0, 1e-4));
     rough /= max(wsum, 1e-4);
+    // Close-up detail: the dominant layer at a higher, rotated frequency (grain, pebbles, soil crumbs)
+    float detailW = saturate(1.0 - dist / 20.0);
+    if (detailW > 0.0) {
+        float2 duv = float2(uv.x * 0.8 - uv.y * 0.6, uv.x * 0.6 + uv.y * 0.8) * 3.7 + 0.21;
+        float4 dn = tTerrainNormal.Sample(sAnisoWrap, float3(duv, bestIdx));
+        nTS = normalize(float3(nTS.xy + (dn.xy * 2.0 - 1.0) * 0.6 * detailW, nTS.z));
+        rough = saturate(rough * lerp(1.0, 0.75 + dn.z * 0.5, detailW * 0.5));
+    }
     // Macro color variation
     float macro = fbmValue(wrapped * 0.004, 3);
     albedo *= lerp(0.82, 1.12, macro);

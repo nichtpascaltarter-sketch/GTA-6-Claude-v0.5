@@ -933,7 +933,9 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
                 float lim = G.pathSpeed(path) * P.speedFactor * modeK;
                 if (ri >= 0) vLimAhead = Min(vLimAhead, sqrtf(lim * lim + 2.f * P.decel * Max(0.f, acc - front)));
                 float step = lane ? 3.f : 1.5f;
-                for (float uu = u; uu <= end + 0.01f; uu += step) {
+                int nStep = (int)Clamp((end + 0.01f - u) / step, 0.f, 400.f);   // integer stepping: bounded for any u
+                for (int si = 0; si <= nStep; si++) {
+                    float uu = u + step * (float)si;
                     float x = acc + (uu - u);
                     if (x > lookDist) break;
                     float k = fabsf(G.pathCurv(path, uu));

@@ -617,7 +617,9 @@ void wheelForces(StepCtx& x) {
         if (w.burst) mu *= 0.4f;
         float Fmax = mu * N;
         float mShare = b.mass * Max(N / Max(totalLoad, 1.f), 0.5f * t.staticLoad[i] / Max(staticSum, 1.f));
-        const float kp = t.kappaPeak, ap = t.alphaPeak;
+        // rear tires a little stiffer in cornering than the fronts (wider rears / toe-in): a mild understeer bias keeps
+        // cars straight and stable at high speed under power while the peak grip stays the same
+        const float kp = t.kappaPeak, ap = t.alphaPeak * (t.rear[i] && !bike ? 0.88f : 1.f);
         float Vx = Max(fabsf(vx), 0.5f);
         float sy = atan2f(vy, Max(fabsf(vx), 1.5f)) / ap;
         // implicit wheel-spin update (bracketed Newton on the monotone tire envelope)
@@ -694,6 +696,9 @@ void wheelForces(StepCtx& x) {
             float beta = atan2f(x.vLocal.x, x.vLocal.y);
             bool over = err * wl.z > 0.f;
             float gain = t.esc * (over ? 2.5f : 0.6f) * SmoothStep(0.03f, 0.12f, fabsf(beta) + fabsf(err) * 0.15f);
+            // at motorway speeds the car tracks the steering: a neutral-steering chassis putting its power down would
+            // otherwise wander off into a slow spin
+            gain += 2.f * SmoothStep(20.f, 45.f, v);
             if (drift) gain *= 0.2f;
             b.torque += b.torqueFor(x.up * (-err * gain));
         }

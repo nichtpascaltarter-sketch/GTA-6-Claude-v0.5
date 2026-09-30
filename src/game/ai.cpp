@@ -9,9 +9,10 @@ namespace Game {
 namespace ai_detail {
 
 float wrapAng(float a) {
-    while (a > kPi) a -= kTwoPi;
-    while (a < -kPi) a += kTwoPi;
-    return a;
+    // remainder instead of repeated subtraction: a huge or infinite angle must not spin forever
+    if (a >= -kPi && a <= kPi) return a;
+    a = remainderf(a, kTwoPi);
+    return a == a ? a : 0.f;
 }
 
 void faceTowards(Ped& p, vec2 dir, float rate, float dt) {
@@ -229,6 +230,107 @@ std::string GameWorld::aiDebugText() const {
     const AIFrameStats& s = ai.stats;
     return StrFormat("AI %.2f ms (avg %.2f, max %.2f): traffic %.2f peds %.2f pop %.2f police %.2f events %.2f | peds %d cars %d (AI %d, dummy %d)",
                      s.msAI, s.avgMs, s.maxMs, s.msTraffic, s.msPeds, s.msPop, s.msPolice, s.msEvents, s.peds, s.cars, s.managed, s.dummies);
+}
+
+std::string GameWorld::aiCensusText(float radius) const {
+    const Ped* pl = player >= 0 && player < (int)peds.size() ? &peds[player] : nullptr;
+    if (!pl) return "census: no player";
+    vec2 c = pl->pos.toVec3().xy();
+    // on foot: what the crowd is doing
+    int total = 0, walk = 0, group = 0, jog = 0, wPhone = 0, wSmoke = 0, wTalk = 0, sit = 0, talk = 0, phone = 0, dance = 0, smoke = 0, lean = 0,
+        sun = 0, queue = 0, watch = 0, busStop = 0, taxi = 0, event = 0;
+    int tourist = 0, business = 0, beach = 0, night = 0, gang = 0, worker = 0;
+    int flee = 0, cower = 0, film = 0, inspect = 0, call = 0, hands = 0, rage = 0, fight = 0;
+    int copFoot = 0, cover = 0, flank = 0, arrest = 0, search = 0, engage = 0, approach = 0;
+    for (int i = 0; i < (int)peds.size(); i++) {
+        const Ped& p = peds[i];
+        if (!p.used || p.isPlayer || p.health <= 0.f || p.state != PS_ONFOOT) continue;
+        if (length(p.pos.toVec3().xy() - c) > radius) continue;
+        total++;
+        const PedAI* pa = i < (int)ai.ped.size() && ai.ped[i].uid == p.uid ? &ai.ped[i] : nullptr;
+        if (p.faction == FAC_POLICE) {
+            copFoot++;
+            if (pa) {
+                cover += pa->tactic == FT_COVER;
+                flank += pa->tactic == FT_FLANK;
+                arrest += pa->tactic == FT_ARREST;
+                search += pa->tactic == FT_SEARCH;
+                engage += pa->tactic == FT_ENGAGE;
+                approach += pa->tactic == FT_APPROACH;
+            }
+            continue;
+        }
+        if (p.brain.type == BRAIN_FLEE) flee++;
+        else if (p.brain.type == BRAIN_COWER) cower++;
+        else if (p.brain.type == BRAIN_COMBAT) fight++;
+        if (!pa) continue;
+        tourist += pa->role == PR_TOURIST;
+        business += pa->role == PR_BUSINESS;
+        beach += pa->role == PR_BEACH;
+        night += pa->role == PR_NIGHTLIFE;
+        gang += pa->role == PR_GANG;
+        worker += pa->role == PR_WORKER;
+        if (p.brain.type == BRAIN_FLEE || p.brain.type == BRAIN_COWER || p.brain.type == BRAIN_COMBAT) continue;
+        switch (pa->activity) {
+            case ACT_WALK:
+                walk++;
+                wPhone += pa->walkStance == 8;
+                wSmoke += pa->walkStance == 10;
+                break;
+            case ACT_GROUP:
+                group++;
+                wTalk += pa->walkStance == 7;
+                break;
+            case ACT_JOG: jog++; break;
+            case ACT_SCENARIO:
+                sit += pa->stance == 6;
+                talk += pa->stance == 7;
+                phone += pa->stance == 8;
+                dance += pa->stance == 9;
+                smoke += pa->stance == 10;
+                lean += pa->stance == 11;
+                sun += pa->stance == 12;
+                break;
+            case ACT_QUEUE: queue++; break;
+            case ACT_WATCH: watch++; break;
+            case ACT_WAIT_BUS: busStop++; break;
+            case ACT_HAIL_TAXI: taxi++; break;
+            case ACT_EVENT: event++; break;
+            case ACT_FILM: film++; break;
+            case ACT_INSPECT: inspect++; break;
+            case ACT_CALL_POLICE: call++; break;
+            case ACT_HANDS_UP: hands++; break;
+            case ACT_ROADRAGE: rage++; break;
+            default: break;
+        }
+    }
+    // vehicles: traffic, police units by kind
+    int traffic = 0, parked = 0, copCars = 0, heli = 0, boats = 0, blocks = 0, swat = 0, ems = 0, honking = 0;
+    for (int i = 0; i < (int)vehicles.size(); i++) {
+        const Vehicle& v = vehicles[i];
+        if (!v.used || length(v.sim.body.pos.toVec3().xy() - c) > radius * 2.f) continue;
+        const VehAI* va = i < (int)ai.veh.size() && ai.veh[i].uid == v.uid ? &ai.veh[i] : nullptr;
+        u8 role = va ? va->role : (u8)VR_TRAFFIC;
+        if (role == VR_POLICE_HELI) heli++;
+        else if (role == VR_POLICE_BOAT) boats++;
+        else if (role == VR_ROADBLOCK) blocks++;
+        else if (role == VR_SWAT) swat++;
+        else if (role == VR_AMBULANCE || role == VR_FIRETRUCK) ems++;
+        else if (v.faction == FAC_POLICE) copCars++;
+        else if (v.parked || v.seats[0] < 0) parked++;
+        else traffic++;
+        honking += v.hornOn;
+    }
+    const AIFrameStats& s = ai.stats;
+    return StrFormat("census r%.0f: %d on foot | walk %d (phone %d smoke %d) group %d (talking %d) jog %d | sit %d talk %d phone %d dance %d smoke %d "
+                     "lean %d sun %d queue %d watch %d bus %d taxi %d event %d | tourist %d business %d beach %d night %d gang %d worker %d | "
+                     "react flee %d cower %d film %d inspect %d call %d hands %d rage %d fight %d | cops on foot %d (approach %d cover %d flank %d "
+                     "arrest %d search %d engage %d) | cars %d parked %d police %d swat %d heli %d boat %d roadblock %d ems %d horn %d | "
+                     "totals panic %d film %d pit %d box %d rb %d spikes %d tackle %d heli %d units %d rage %d events %d arrests %d",
+                     radius, total, walk, wPhone, wSmoke, group, wTalk, jog, sit, talk, phone, dance, smoke, lean, sun, queue, watch, busStop, taxi, event,
+                     tourist, business, beach, night, gang, worker, flee, cower, film, inspect, call, hands, rage, fight, copFoot, approach, cover, flank,
+                     arrest, search, engage, traffic, parked, copCars, swat, heli, boats, blocks, ems, honking, s.panicSpread, s.filming, s.pitTries,
+                     s.boxing, s.roadblocks, s.spikeHits, s.tackles, s.heliUnits, s.unitsSent, s.roadRage, s.events, s.arrests);
 }
 
 // ------------------------------------------------------------------------------------------------------------------

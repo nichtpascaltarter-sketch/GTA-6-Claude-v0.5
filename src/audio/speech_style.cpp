@@ -105,6 +105,10 @@ static StyleParams timbreTable(int t) {
         case TIMBRE_BRIGHT: p.f23 = 1.03f, p.tilt = -3.f, p.rd = -0.08f; break;
         case TIMBRE_DARK: p.fscale = 0.965f, p.tilt = 2.5f, p.rd = 0.05f; break;
         case TIMBRE_FRY: p.creak = 0.35f, p.pitch = -1.f; break;
+        case TIMBRE_AGED:
+            p.tremor = 0.25f, p.jitter = 1.5f, p.breath = 0.08f, p.rd = 0.06f, p.rate = 0.96f, p.f1 = 0.98f;
+            p.creak = 0.08f;
+            break;
         default: break;
     }
     return p;
@@ -203,9 +207,11 @@ static const NameId kTimbreNames[] = {
     {"gravelly", TIMBRE_GRAVELLY}, {"gravel", TIMBRE_GRAVELLY}, {"raspy", TIMBRE_GRAVELLY}, {"rough", TIMBRE_GRAVELLY},
     {"hoarse", TIMBRE_GRAVELLY}, {"bright", TIMBRE_BRIGHT}, {"forward", TIMBRE_BRIGHT}, {"dark", TIMBRE_DARK},
     {"throaty", TIMBRE_DARK}, {"warm", TIMBRE_DARK}, {"fry", TIMBRE_FRY}, {"vocalfry", TIMBRE_FRY},
-    {"creaky", TIMBRE_FRY},
+    {"creaky", TIMBRE_FRY}, {"aged", TIMBRE_AGED}, {"old", TIMBRE_AGED}, {"elderly", TIMBRE_AGED},
+    {"shaky", TIMBRE_AGED},
 };
-static const char* const kTimbreTag[TIMBRE_COUNT] = {"normal", "nasal", "husky", "gravelly", "bright", "dark", "fry"};
+static const char* const kTimbreTag[TIMBRE_COUNT] = {"normal", "nasal", "husky", "gravelly",
+                                                     "bright", "dark",  "fry",   "aged"};
 static const char* const kEmotionTag[EMOTION_COUNT] = {"neutral", "angry", "scared", "calm",  "sad",
                                                        "happy",   "shout", "whisper", "drunk"};
 static const char* const kDeliveryTag[DELIVERY_COUNT] = {"talk", "dj", "ad", "fineprint", "news", "dispatch"};
@@ -416,7 +422,7 @@ static const PersonaDef kPersonas[] = {
     {"dex", 106.f, 0.98f, 0.97f, 0.12f, 0.14f, 0.9f, ACCENT_GENERAL, 1.f, EMOTION_CALM, 0.3f, DELIVERY_TALK, TIMBRE_FRY},
     // story cast
     {"cast_tomas", 134.f, 1.04f, 1.1f, 0.14f, 0.02f, 1.35f, ACCENT_LATINO, 0.45f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_NASAL},
-    {"cast_lucha", 180.f, 1.08f, 0.93f, 0.22f, 0.3f, 1.25f, ACCENT_LATINO, 0.8f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_HUSKY},
+    {"cast_lucha", 180.f, 1.08f, 0.93f, 0.22f, 0.3f, 1.25f, ACCENT_LATINO, 0.8f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_AGED},
     {"cast_rook", 86.f, 0.92f, 0.93f, 0.08f, 0.42f, 0.9f, ACCENT_NEWYORK, 0.7f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_GRAVELLY},
     {"cast_kit", 216.f, 1.18f, 1.12f, 0.12f, 0.f, 1.35f, ACCENT_GENERAL, 1.f, EMOTION_HAPPY, 0.3f, DELIVERY_TALK, TIMBRE_BRIGHT},
     {"cast_jonah", 98.f, 0.97f, 0.86f, 0.22f, 0.48f, 1.05f, ACCENT_SOUTH, 0.9f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_GRAVELLY},
@@ -449,8 +455,8 @@ static const PersonaDef kPersonas[] = {
     {"redneck", 104.f, 0.97f, 0.9f, 0.14f, 0.3f, 1.1f, ACCENT_SOUTH, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_NASAL},
     {"tourist", 124.f, 1.01f, 1.0f, 0.12f, 0.04f, 1.25f, ACCENT_BRITISH, 0.8f, EMOTION_HAPPY, 0.4f, DELIVERY_TALK, TIMBRE_NORMAL},
     {"gangster", 100.f, 0.96f, 1.0f, 0.1f, 0.25f, 1.1f, ACCENT_LATINO, 0.6f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_GRAVELLY},
-    {"old_woman", 172.f, 1.1f, 0.88f, 0.24f, 0.3f, 1.05f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_HUSKY},
-    {"old_man", 96.f, 0.95f, 0.86f, 0.2f, 0.45f, 0.95f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_GRAVELLY},
+    {"old_woman", 172.f, 1.1f, 0.88f, 0.24f, 0.3f, 1.05f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_AGED},
+    {"old_man", 96.f, 0.95f, 0.86f, 0.2f, 0.45f, 0.95f, ACCENT_GENERAL, 1.f, EMOTION_NEUTRAL, 1.f, DELIVERY_TALK, TIMBRE_AGED},
     {"kid", 265.f, 1.3f, 1.12f, 0.12f, 0.f, 1.4f, ACCENT_GENERAL, 1.f, EMOTION_HAPPY, 0.3f, DELIVERY_TALK, TIMBRE_NORMAL},
 };
 

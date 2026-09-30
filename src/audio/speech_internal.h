@@ -119,6 +119,7 @@ struct TextWord {
     float pauseSec = 0.f; // explicit pause after this word ([pause:x]); 0 = from the break type
     Style style;          // speaking style in effect ([angry], [accent:south], ...)
     bool fluent = false;  // [fluent]: no automatic hesitations / breaths
+    bool vocal = false;   // nonverbal vocalization syllable ([laughs], [sighs], ...): quick, never a filler site
 };
 
 void normalizeText(const char* text, std::vector<TextWord>& out);
@@ -219,6 +220,7 @@ struct UWord {
     int nSyl = 0;
     Style style;
     std::string text;  // lowercase word (accent rules that depend on spelling)
+    bool vocal = false;
 };
 
 struct UPhrase {

@@ -52,6 +52,12 @@ struct State {
     std::vector<DamageInd> dmg;
     float lastHealth = 1.f;
     float hurtFlash = 0;
+    // lock-on marker
+    float lockA = 0.f;          // visibility 0..1
+    float lockAcquire = 1.f;    // time since the current target was acquired
+    vec2 lockPos;               // last drawn head position
+    float lockHealthShown = 1.f, lockHealthLag = 1.f, lockPulse = 0.f, lockBarA = 0.f;
+    bool lockHostile = false, lockMelee = false;
     // texts
     std::string help;
     float helpAlpha = 0, helpT = 0;
@@ -794,6 +800,71 @@ void drawBottomCenter(const HudState& s, const Layout& L, float dt) {
 }
 
 // ------------------------------------------------------------------------------------------------------------------
+// Lock-on marker: a chevron above the target's head (red when hostile, white when neutral) with a thin health bar that
+// appears once the target is hurt. It drops in on acquire, pulses on hits and fades out on release.
+void drawLockOn(const HudState& s, const Layout& L, float dt, float t) {
+    float sc = L.s;
+    if (s.lockOn) {
+        bool newTarget = g.lockA < 0.05f || length(s.lockScreen - g.lockPos) > 90.f * sc;
+        if (newTarget) {
+            g.lockAcquire = 0.f;
+            g.lockHealthShown = g.lockHealthLag = Saturate(s.lockHealth);
+            g.lockBarA = s.lockHealth < 0.995f ? 1.f : 0.f;
+        }
+        float hp = Saturate(s.lockHealth);
+        if (hp < g.lockHealthShown - 0.005f) g.lockPulse = 1.f;   // took a hit
+        g.lockHealthShown = hp;
+        g.lockPos = s.lockScreen;
+        g.lockHostile = s.lockHostile;
+        g.lockMelee = s.lockMelee;
+    }
+    g.lockA = s.lockOn ? Min(1.f, g.lockA + dt * 10.f) : Max(0.f, g.lockA - dt * 7.f);
+    g.lockAcquire += dt;
+    g.lockPulse = Max(0.f, g.lockPulse - dt * 4.f);
+    // the lag bar trails the health after a short hold, like the player's bar
+    if (g.lockHealthLag > g.lockHealthShown) g.lockHealthLag = Max(g.lockHealthShown, g.lockHealthLag - dt * (g.lockPulse > 0.5f ? 0.f : 0.9f));
+    else g.lockHealthLag = g.lockHealthShown;
+    g.lockBarA = approachExp(g.lockBarA, (g.lockHealthShown < 0.995f || g.lockMelee) ? 1.f : 0.f, 10.f, dt);
+    if (g.lockA <= 0.01f) return;
+    float a = easeOutCubic(g.lockA);
+    float acq = easeOutBack(Saturate(g.lockAcquire / 0.22f), 2.2f);
+    float pulse = g.lockPulse * g.lockPulse;
+    u32 base = g.lockHostile ? C(1.f, 0.22f, 0.24f) : C(0.96f, 0.97f, 1.f);
+    u32 col = lerpColor(base, kWhite, pulse * 0.8f);
+    // position above the head, kept on screen
+    float size = (g.lockMelee ? 17.f : 14.f) * sc * (1.f + 0.6f * (1.f - acq) + 0.28f * pulse);
+    float lift = (26.f + 14.f * (1.f - acq)) * sc + (g.lockMelee ? 2.f * sinf(t * 5.f) * sc : 0.f);
+    float cx = Clamp(g.lockPos.x, L.left + 40.f * sc, L.right - 40.f * sc);
+    float cy = Clamp(g.lockPos.y - lift, L.top + 30.f * sc, L.bottom - 30.f * sc);
+    // chevron: dark underlay, colored fill, bright top edge
+    vec2 p0(cx - size, cy - size * 0.72f), p1(cx + size, cy - size * 0.72f), p2(cx, cy + size * 0.62f);
+    float o = 2.2f * sc;
+    triangle(vec2(p0.x - o * 1.2f, p0.y - o), vec2(p1.x + o * 1.2f, p1.y - o), vec2(p2.x, p2.y + o * 1.6f), C(0.02f, 0.02f, 0.05f, 0.75f * a));
+    if (g.lockHostile) circleSoft(cx, cy - size * 0.1f, size * 1.1f, size * 1.6f, withAlpha(C(1.f, 0.1f, 0.15f), (0.30f + 0.4f * pulse) * a));
+    triangle(p0, p1, p2, withAlpha(col, a));
+    capsule(p0.x + size * 0.18f, p0.y + 1.2f * sc, p1.x - size * 0.18f, p1.y + 1.2f * sc, 1.6f * sc, withAlpha(kWhite, (0.55f + 0.45f * pulse) * a));
+    if (g.lockMelee) {
+        // fighting stance: brackets either side of the chevron
+        float bx = size * 1.55f, by = size * 0.55f;
+        for (float side : {-1.f, 1.f}) {
+            vec2 q0(cx + side * bx, cy - by - size * 0.2f), q1(cx + side * (bx + 5.f * sc), cy - size * 0.2f), q2(cx + side * bx, cy + by - size * 0.2f);
+            capsule(q0.x, q0.y, q1.x, q1.y, 2.4f * sc, withAlpha(col, 0.85f * a));
+            capsule(q1.x, q1.y, q2.x, q2.y, 2.4f * sc, withAlpha(col, 0.85f * a));
+        }
+    }
+    // health bar above the chevron
+    float ba = g.lockBarA * a;
+    if (ba > 0.01f) {
+        float bw = (g.lockMelee ? 58.f : 44.f) * sc, bh = 4.f * sc;
+        float bx = cx - bw * 0.5f, by = cy - size * 0.72f - 9.f * sc - bh;
+        roundRect(bx - 1.5f * sc, by - 1.5f * sc, bw + 3.f * sc, bh + 3.f * sc, 2.5f * sc, C(0.02f, 0.02f, 0.05f, 0.8f * ba));
+        roundRect(bx, by, bw * g.lockHealthLag, bh, 1.5f * sc, withAlpha(C(1.f, 0.85f, 0.85f), 0.85f * ba));
+        u32 hc = g.lockHealthShown > 0.35f ? (g.lockHostile ? C(1.f, 0.30f, 0.30f) : C(0.40f, 0.95f, 0.55f)) : C(1.f, 0.20f, 0.18f);
+        roundRect(bx, by, Max(bw * g.lockHealthShown, 0.f), bh, 1.5f * sc, withAlpha(lerpColor(hc, kWhite, pulse * 0.6f), ba));
+    }
+}
+
+// ------------------------------------------------------------------------------------------------------------------
 // Center: reticle, hit markers, damage indicators, low-health vignette
 void drawCenter(const HudState& s, const Layout& L, float dt, float t) {
     float sc = L.s;
@@ -1128,6 +1199,7 @@ void drawHud(const HudState& s, float dt) {
     }
     g.radarAlpha = fadeTo(g.radarAlpha, s.radarVisible, dt, 5.f, 5.f);
     drawCenter(s, L, dt, t);
+    drawLockOn(s, L, dt, t);
     drawRadar(s, L, dt, t);
     drawTopRight(s, L, dt, t);
     drawTopLeft(s, L, dt, t);

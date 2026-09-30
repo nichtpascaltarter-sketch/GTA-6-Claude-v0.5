@@ -43,13 +43,15 @@ struct Skel {
 
 struct Pose {
     quat q[kMaxBones];              // local rotations relative to the bind frame
-    vec3 s[kMaxBones];              // local scale (not inherited by children)
+    vec3 s[kMaxBones];              // local scale of the bone's own vertices (not inherited by children)
+    float g[kMaxBones];             // uniform scale inherited by the whole sub-chain (collapses spread wings, leashes)
     vec3 rootPos;                   // model-space offset of bone 0 from its bind position
     quat rootRot;                   // extra rotation of bone 0 about its joint (whole-body pitch/roll)
     void reset(int n) {
         for (int i = 0; i < n; i++) {
             q[i] = quat();
             s[i] = vec3(1.f);
+            g[i] = 1.f;
         }
         rootPos = vec3(0.f);
         rootRot = quat();
@@ -60,6 +62,7 @@ struct Pose {
 struct Frames {
     quat r[kMaxBones];
     vec3 p[kMaxBones];
+    float g[kMaxBones];
 };
 
 // Forward kinematics; writes skinning matrices (model * inverse bind) and optionally the joint frames.
@@ -182,9 +185,15 @@ struct ModelData {
 
 void buildModel(int species, int variant, ModelData& out);
 
+// Quadruped gait: cycles per second for a speed (m/s) and gait (0 walk .. 3 gallop); the simulation advances
+// QuadAnim::phase by this rate so the feet do not slide.
+float quadCycleRate(const ModelData& m, float speed, float gait);
+// Reptile walk cycle rate.
+float reptileCycleRate(const ModelData& m, float speed);
+
 // Procedural animation: pose from the plan-specific inputs.
 void animateBird(const ModelData& m, const BirdAnim& a, Pose& pose);
-void animateQuad(const ModelData& m, const QuadAnim& a, Pose& pose, const vec3* footGround = nullptr);
+void animateQuad(const ModelData& m, const QuadAnim& a, Pose& pose, const float* footGround = nullptr);   // footGround: 4 toe height offsets
 void animateReptile(const ModelData& m, const ReptileAnim& a, Pose& pose);
 void animateSwimmer(const ModelData& m, const SwimAnim& a, Pose& pose);
 // Leash bones (dogs): rope from the collar to `handModel` (dog model space) with slack; writes skinning matrices of

@@ -381,6 +381,129 @@ void testDriving() {
     CHECK(worst < 0.1f, "hands off the steering wheel (%.3f m)", worst);
 }
 
+// Melee: event times, root motion, the synced takedown contact, the two-handed bat grip and the held knockout.
+void testMelee() {
+    for (int c = 0; c < CLIP_COUNT; c++) {
+        float e = clipEventTime((Clip)c);
+        if (e >= 0.f) CHECK(e < clipInfo((Clip)c).duration, "event of %s outside the clip (%.2f)", clipInfo((Clip)c).name, e);
+    }
+    CharacterDesc d0;
+    Skeleton sk;
+    buildSkeleton(d0, sk);
+    // dodges: 1.2 m of root motion (scaled), and the in-place pose ends back in the guard over the root
+    const Clip dodges[3] = {CLIP_DODGE_BACK, CLIP_DODGE_L, CLIP_DODGE_R};
+    const vec3 dirs[3] = {vec3(0, -1, 0), vec3(-1, 0, 0), vec3(1, 0, 0)};
+    for (int i = 0; i < 3; i++) {
+        vec3 rm = clipRootMotion(sk, dodges[i], clipInfo(dodges[i]).duration);
+        CHECK(dot(rm, dirs[i]) > 1.0f && dot(rm, dirs[i]) < 1.4f, "%s root motion %.2f", clipInfo(dodges[i]).name, dot(rm, dirs[i]));
+        Pose a, b;
+        sampleClip(sk, dodges[i], 0.f, a);
+        sampleClip(sk, dodges[i], clipInfo(dodges[i]).duration, b);
+        vec3 pa = jointPos(sk, a, B_PELVIS), pb = jointPos(sk, b, B_PELVIS);
+        CHECK(length(pa - pb) < 0.03f, "%s does not end in place (%.3f)", clipInfo(dodges[i]).name, length(pa - pb));
+    }
+    CHECK(length(clipRootMotion(sk, CLIP_HOOK, 0.5f)) < 1e-6f, "strikes play in place");
+    // takedown: at the grab the attacker's right forearm is at the victim's throat (attacker 0.55 m behind)
+    {
+        Pose v, a;
+        float t = clipEventTime(CLIP_TAKEDOWN_ATTACKER) + 0.1f;
+        sampleClip(sk, CLIP_TAKEDOWN_VICTIM, t, v);
+        sampleClip(sk, CLIP_TAKEDOWN_ATTACKER, t, a);
+        vec3 neck = jointPos(sk, v, B_NECK) + clipRootMotion(sk, CLIP_TAKEDOWN_VICTIM, t);
+        vec3 off(0.f, -0.55f, 0.f);
+        vec3 e = jointPos(sk, a, B_FOREARM_R) + off, w = jointPos(sk, a, B_HAND_R) + off;
+        vec3 ew = w - e;
+        float u = Saturate(dot(neck - e, ew) / Max(length2(ew), 1e-6f));
+        float dist = length(e + ew * u - neck);
+        printf("takedown: forearm to victim neck %.3f m\n", dist);
+        CHECK(dist < 0.12f, "takedown forearm %.3f m from the neck", dist);
+        // the victim ends lying face down with the pelvis over its (moved) root, like GET_UP_FRONT's start
+        Pose endV, gu;
+        sampleClip(sk, CLIP_TAKEDOWN_VICTIM, 3.f, endV);
+        sampleClip(sk, CLIP_GET_UP_FRONT, 0.f, gu);
+        vec3 p0 = jointPos(sk, endV, B_PELVIS), p1 = jointPos(sk, gu, B_PELVIS);
+        CHECK(length(p0 - p1) < 0.08f, "takedown victim end vs get-up start %.3f", length(p0 - p1));
+        sampleClip(sk, CLIP_KNOCKOUT, 1.5f, endV);
+        p0 = jointPos(sk, endV, B_PELVIS);
+        CHECK(length(p0 - p1) < 0.08f, "knockout end vs get-up start %.3f", length(p0 - p1));
+    }
+    // bat: the animator keeps the left fist on the handle for any skeleton
+    float worst = 0.f;
+    for (u32 sd = 1; sd <= 8; sd++) {
+        CharacterDesc d = randomCharacter(sd * 977u, (int)(sd % 7));
+        Skeleton s;
+        buildSkeleton(d, s);
+        Animator an;
+        an.init(&s, sd);
+        AnimInput in;
+        in.stance = 19;
+        in.meleeKind = 2;
+        in.weaponKind = 3;
+        for (int f = 0; f < 150; f++) {
+            in.action = f == 60 ? CLIP_BAT_SWING : -1;
+            an.update(in, 1.f / 60.f);
+            if (f < 40) continue;
+            mat4 m[B_COUNT];
+            computeMatrices(s, an.pose, m, nullptr);
+            vec3 gr, ax, pr, gl, axl, pl;
+            handGrip(s, m, true, gr, ax, pr);
+            handGrip(s, m, false, gl, axl, pl);
+            worst = Max(worst, length(gl - (gr - ax * 0.095f)));
+        }
+    }
+    printf("bat grip: worst left fist distance from the handle %.3f m\n", worst);
+    CHECK(worst < 0.02f, "left hand off the bat handle (%.3f m)", worst);
+    // knockout holds its last frame
+    {
+        Animator an;
+        an.init(&sk, 3u);
+        AnimInput in;
+        in.stance = 19;
+        for (int f = 0; f < 200; f++) {
+            in.action = f == 10 ? CLIP_KNOCKOUT : -1;
+            an.update(in, 1.f / 60.f);
+        }
+        vec3 pel = jointPos(sk, an.pose, B_PELVIS);
+        CHECK(an.actionDone() && an.action == CLIP_KNOCKOUT && pel.z < 0.3f, "knockout should hold lying (pelvis z %.2f)", pel.z);
+    }
+}
+
+// Visemes move the lips: 'aa' opens the mouth, 'U' pushes the lips forward and narrows the corners, 'PP' closes.
+void testVisemes() {
+    CharacterDesc d = randomCharacter(4242u, 0);
+    Skeleton sk;
+    buildSkeleton(d, sk);
+    Pose rest;
+    sampleClip(sk, CLIP_IDLE, 0.f, rest);
+    auto shapeOf = [&](int v, vec3& lipUp, vec3& lipLo, float& width) {
+        Pose p = rest;
+        float s[6];
+        detail::visemeShape(v, 1.f, s);
+        detail::applyMouthShape(p, s, s[0]);
+        mat4 m[B_COUNT];
+        computeMatrices(sk, p, m, nullptr);
+        // lip points: rest positions carried by their bones (bind offsets from the pivots)
+        auto carry = [&](int b, vec3 bindP) { return transformPoint(m[b], bindP - vec3(inverse(sk.invBindModel[b]).c[3].xyz())); };
+        vec3 head = inverse(sk.invBindModel[B_HEAD]).c[3].xyz();
+        vec3 up0 = head + vec3(0, 0.0955f, -0.014f), lo0 = head + vec3(0, 0.0924f, -0.026f);
+        lipUp = carry(B_LIP_UPPER, up0);
+        lipLo = carry(B_LIP_LOWER, lo0);
+        vec3 cl = carry(B_LIP_CORNER_L, head + vec3(-0.0245f, 0.0865f, -0.0185f));
+        vec3 cr = carry(B_LIP_CORNER_R, head + vec3(0.0245f, 0.0865f, -0.0185f));
+        width = length(cr - cl);
+    };
+    vec3 u0, l0, uA, lA, uU, lU;
+    float w0, wA, wU;
+    shapeOf(0, u0, l0, w0);
+    shapeOf(10, uA, lA, wA);
+    shapeOf(14, uU, lU, wU);
+    float open0 = u0.z - l0.z, openA = uA.z - lA.z;
+    printf("visemes: mouth opening sil %.3f aa %.3f; U lips forward %.3f / %.3f m, width %.3f -> %.3f\n", open0, openA, uU.y - u0.y, lU.y - l0.y, w0, wU);
+    CHECK(openA > open0 + 0.012f, "'aa' should open the mouth (%.3f)", openA - open0);
+    CHECK(uU.y - u0.y > 0.006f && lU.y - l0.y > 0.003f, "'U' should push the lips forward");
+    CHECK(wU < w0 - 0.012f, "'U' should narrow the mouth (%.3f -> %.3f)", w0, wU);
+}
+
 }  // namespace animtest
 
 int main() {
@@ -400,6 +523,8 @@ int main() {
     testPoses();
     testAnimator();
     testDriving();
+    testMelee();
+    testVisemes();
     testMesh();
     printf("%s (%d failures)\n", gFail ? "FAILED" : "ALL PASSED", gFail);
     return gFail ? 1 : 0;

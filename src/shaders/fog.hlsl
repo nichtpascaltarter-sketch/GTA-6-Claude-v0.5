@@ -12,12 +12,35 @@ Texture3D<float> tFogNoise : register(t3);       // tileable 64^3 value noise (g
 RWTexture3D<float4> uFog : register(u0);
 RWTexture3D<float> uFogNoise : register(u1);
 
+// Enterable interiors (same records as the lighting pass, see InteriorVolume in renderer.h): inside a volume the
+// fog is indoor air (thin, lit by the room ambient instead of the sky) and only the volume's own lamps scatter.
+struct FogInterior {
+    float4 c;      // xyz center (camera-relative)
+    float4 axis;   // xy unit x axis
+    float4 he;     // xyz half extents
+    float4 amb;    // rgb room ambient radiance
+};
+StructuredBuffer<FogInterior> tFogInteriors : register(t4);
+StructuredBuffer<uint> tFogLightVolume : register(t5);   // 0 outdoors, k + 1 inside volume k
+
 cbuffer FogCB : register(b1) {
     float4 gFogVol;    // xyz volume size, w history valid
     float4 gFogJit;    // xyz jitter (froxel units), w light count
     float4 gFogMedia;  // x base humidity (1/m), y humidity scale height (m), z rain haze (1/m), w noise strength
     float4 gFogMisc;   // xy wind offset (m), z local light anisotropy, w ambient boost (lightning, 1 = none)
+    float4 gFogInt;    // x interior volume count
 };
+
+int fogInteriorAt(float3 relPos) {
+    uint n = (uint)gFogInt.x;
+    [loop] for (uint k = 0; k < n; k++) {
+        FogInterior v = tFogInteriors[k];
+        float3 d = relPos - v.c.xyz;
+        float lx = dot(d.xy, v.axis.xy), ly = dot(d.xy, float2(-v.axis.y, v.axis.x));
+        if (abs(lx) <= v.he.x && abs(ly) <= v.he.y && abs(d.z) <= v.he.z) return (int)k;
+    }
+    return -1;
+}
 
 float sliceDepth(float w) { return gFogParams1.z * exp2(w / gFogParams1.y); }  // w in [0,1] -> view depth
 
@@ -93,18 +116,21 @@ void csFogInject(uint3 id : SV_DispatchThreadID, uint gi : SV_GroupIndex, uint3 
     float3 dir = normalize(reconstructPos(uv, 1.0));
     float3 relPos = dir * (viewDepth / max(dot(dir, gCamForward.xyz), 0.05));
     float3 worldP = relPos + gCamPos.xyz;
-    float sigmaT = mediaDensity(worldP);
+    int vol = gFogInt.x > 0.5 ? fogInteriorAt(relPos) : -1;
+    float sigmaT = mediaDensity(worldP) * (vol >= 0 ? 0.35 : 1.0);
     float sigmaS = sigmaT * 0.96;
     float3 V = dir;
-    // sun / moon
+    // sun / moon (indoors only where it shines through openings: the cascades see the walls and roof)
     float3 sunE = mainLightIlluminance();
     float sh = froxelSunShadow(relPos, viewDepth) * cloudShadowAt(relPos);
     float3 Lin = sunE * sh * phaseHG(gFogParams1.x, dot(gSunDir.xyz, V));
-    // sky ambient (isotropic)
-    Lin += (evalSH9(float3(0, 0, 1)) * 0.65 + evalSH9(float3(0, 0, -1)) * 0.35) * gFogMisc.w;
+    // ambient (isotropic): sky outdoors, the room's own ambient indoors
+    if (vol >= 0) Lin += tFogInteriors[vol].amb.rgb;
+    else Lin += (evalSH9(float3(0, 0, 1)) * 0.65 + evalSH9(float3(0, 0, -1)) * 0.35) * gFogMisc.w;
     // local lights
     uint nl = min(gsFogLightCount, 64u);
     for (uint i = 0; i < nl; i++) {
+        if (gFogInt.x > 0.5 && tFogLightVolume[gsFogLights[i]] != (uint)(vol + 1)) continue;   // lamps stay in their volume
         LightGPU L = tLights[gsFogLights[i]];
         float3 Lv = L.pos - relPos;
         float d2 = dot(Lv, Lv);

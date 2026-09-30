@@ -384,13 +384,15 @@ void poseSkeleton(const Skel& sk, const Pose& pose, mat4* skin, Frames* frames) 
         if (par < 0) {
             F.r[b] = normalize(pose.rootRot * pose.q[b]);
             F.p[b] = sk.bind[b] + pose.rootPos;
+            F.g[b] = pose.g[b];
         } else {
             F.r[b] = normalize(F.r[par] * pose.q[b]);
-            F.p[b] = F.p[par] + rotate(F.r[par], sk.bind[b] - sk.bind[par]);
+            F.p[b] = F.p[par] + rotate(F.r[par], (sk.bind[b] - sk.bind[par]) * F.g[par]);
+            F.g[b] = F.g[par] * pose.g[b];
         }
         if (skin) {
             mat3 R = mat3FromQuat(F.r[b]);
-            vec3 s = pose.s[b];
+            vec3 s = pose.s[b] * F.g[b];
             vec3 c0 = R.c[0] * s.x, c1 = R.c[1] * s.y, c2 = R.c[2] * s.z;
             vec3 bp = sk.bind[b];
             vec3 t = F.p[b] - (c0 * bp.x + c1 * bp.y + c2 * bp.z);
@@ -1935,3 +1937,1272 @@ void buildQuad(int sp, int var, ModelData& out) {
 }
 
 }  // namespace fauna_detail
+
+// ==================================================================================================================
+// Reptiles: alligator and green iguana (one lofted body from the tail tip to the snout, lower jaw, sprawling legs)
+namespace fauna_detail {
+
+struct ReptSpec {
+    float snout, skullBack, neck, shoulder, pelvis, tailBase, tailTip;   // y positions along the body
+    float bodyW, bodyHT, bodyHB, bodyZ;                                  // barrel half extents and centre height
+    float headW, headH, snoutW, snoutH;
+    float tailW, tailH;
+    float legX, shoulderZ, upperLen, lowerLen, footLen, legR;
+    float scute, crest, dewlap;                                          // back osteoderms, dorsal spines, throat flap
+};
+
+ReptSpec reptSpec(int sp) {
+    if (sp == SP_IGUANA)
+        return {0.30f, 0.21f, 0.17f, 0.13f, -0.10f, -0.15f, -1.05f,
+                0.055f, 0.055f, 0.05f, 0.1f,
+                0.034f, 0.036f, 0.018f, 0.018f,
+                0.035f, 0.04f,
+                0.06f, 0.1f, 0.075f, 0.075f, 0.05f, 0.012f,
+                0.f, 1.f, 1.f};
+    return {1.30f, 0.80f, 0.62f, 0.48f, -0.40f, -0.52f, -2.10f,
+            0.30f, 0.14f, 0.15f, 0.30f,
+            0.17f, 0.10f, 0.085f, 0.045f,
+            0.16f, 0.15f,
+            0.19f, 0.26f, 0.2f, 0.19f, 0.14f, 0.05f,
+            1.f, 0.f, 0.f};
+}
+
+enum ReptPart : int { RP_BODY = 0, RP_JAW, RP_LEG, RP_TOE, RP_EYE, RP_TOOTH, RP_CREST, RP_DEWLAP };
+
+vec3 reptPaint(int sp, int var, int part, float s, float th, vec3 p, u8& mat) {
+    mat = MAT_SKIN;
+    float up = sinf(th);
+    float mott = fbm3(p * 6.f, 555u + (u32)var, 3) * 0.5f + 0.5f;
+    float fine = n3(p * 70.f, 21u) * 0.5f + 0.5f;
+    if (part == RP_EYE) {
+        mat = MAT_EYE;
+        if (s < 0.2f) return C(0.02f, 0.02f, 0.02f);
+        return sp == SP_GATOR ? C(0.62f, 0.58f, 0.2f) : C(0.75f, 0.55f, 0.25f);
+    }
+    if (part == RP_TOOTH) return C(0.93f, 0.9f, 0.8f);
+    if (sp == SP_GATOR) {
+        vec3 back = C(0.11f, 0.12f, 0.09f), side = C(0.2f, 0.2f, 0.15f), belly = C(0.78f, 0.74f, 0.58f);
+        vec3 c = mixc(side, back, sstep(-0.1f, 0.6f, up));
+        c = mixc(c, belly, sstep(-0.35f, -0.75f, up));
+        if (part == RP_JAW && up > 0.4f) return C(0.85f, 0.78f, 0.62f);   // inside of the mouth
+        if (part == RP_BODY && s > 0.83f && up < -0.2f && p.y > 0.75f) c = C(0.8f, 0.72f, 0.58f);   // palate / jaw lining
+        if (p.y < -0.5f && up > -0.3f) c = mixc(c, C(0.28f, 0.27f, 0.18f), sinf(p.y * 9.f) > 0.55f ? 0.5f : 0.f);   // faint tail bands
+        return c * (0.8f + 0.25f * mott) * (0.92f + 0.12f * fine);
+    }
+    // iguana: green with darker bands (variant 1: grey-orange adult male)
+    vec3 base = var == 0 ? C(0.38f, 0.58f, 0.26f) : C(0.62f, 0.50f, 0.34f);
+    vec3 band = var == 0 ? C(0.16f, 0.26f, 0.12f) : C(0.3f, 0.26f, 0.2f);
+    if (part == RP_CREST) return var == 0 ? C(0.5f, 0.62f, 0.32f) : C(0.75f, 0.52f, 0.3f);
+    if (part == RP_DEWLAP) return base * 1.1f;
+    vec3 c = base;
+    if (p.y < 0.05f && sinf(p.y * 32.f) > 0.6f && up > -0.5f) c = band;
+    c = mixc(c, C(0.75f, 0.78f, 0.6f), sstep(-0.4f, -0.85f, up));
+    return c * (0.85f + 0.2f * mott) * (0.92f + 0.12f * fine);
+}
+
+void buildReptSkeleton(const ReptSpec& R, Skel& sk, vec3* J) {
+    using namespace ReptBone;
+    sk = Skel();
+    float z = R.bodyZ;
+    sk.add(-1, vec3(0, 0, z));                                  // BODY
+    sk.add(BODY, vec3(0, R.pelvis, z));                         // PELVIS
+    sk.add(BODY, vec3(0, R.shoulder, z));                       // CHEST
+    sk.add(CHEST, vec3(0, R.neck, z + R.bodyHT * 0.1f));        // NECK
+    sk.add(NECK, vec3(0, R.skullBack, z + R.bodyHT * 0.15f));   // HEAD
+    sk.add(HEAD, vec3(0, R.skullBack + 0.02f * (R.snout - R.skullBack), z - R.headH * 0.2f));   // JAW hinge
+    int prev = PELVIS;
+    for (int k = 0; k < 6; k++) {
+        float t = (float)k / 6.f;
+        float y = Lerp(R.tailBase, R.tailTip, powf(t, 0.85f));
+        prev = sk.add(prev, vec3(0, y, z - 0.02f * t));         // TAIL1..TAIL6
+    }
+    for (int leg = 0; leg < 4; leg++) {
+        bool front = leg < 2;
+        float sd = (leg & 1) ? 1.f : -1.f;
+        float y = front ? R.shoulder - 0.03f : R.pelvis + 0.02f;
+        vec3 s = vec3(sd * R.legX, y, z + R.bodyHT * 0.05f);
+        vec3 e = s + vec3(sd * R.upperLen * 0.95f, front ? -R.upperLen * 0.2f : R.upperLen * 0.25f, -R.upperLen * 0.25f);
+        vec3 w = vec3(e.x + sd * R.lowerLen * 0.1f, e.y + (front ? R.lowerLen * 0.25f : -R.lowerLen * 0.2f), R.legR * 0.8f);
+        int b1 = sk.add(front ? CHEST : PELVIS, s);
+        int b2 = sk.add(b1, e);
+        sk.add(b2, w);
+        J[b1 + 20] = w + vec3(sd * R.footLen * 0.2f, R.footLen * (front ? 0.85f : 0.95f), -R.legR * 0.8f);
+    }
+    for (int b = 0; b < sk.n; b++) J[b] = sk.bind[b];
+}
+
+void buildReptMesh(int sp, int var, const ReptSpec& R, const Skel& sk, const vec3* J, int lod, MBuild& mb) {
+    using namespace ReptBone;
+    int rings = lod == 0 ? 56 : 18, sides = lod == 0 ? 20 : 8;
+    float z = R.bodyZ;
+    float L = R.snout - R.tailTip;
+    // body path: tail tip -> snout, spine slightly arched
+    std::vector<Sect> S((size_t)rings);
+    for (int i = 0; i < rings; i++) {
+        float t = (float)i / (float)(rings - 1);
+        float y = R.tailTip + t * L;
+        float w, hT, hB, cz = z, ex = 2.2f;
+        if (y < R.tailBase) {   // tail: taller than wide, tapering
+            float k = (y - R.tailTip) / (R.tailBase - R.tailTip);   // 0 tip .. 1 base
+            float e = powf(k, 0.8f);
+            w = Lerp(0.004f, R.tailW, e);
+            hT = Lerp(0.006f, R.tailH, e);
+            hB = Lerp(0.004f, R.tailH * 0.8f, e);
+            cz = z + Lerp(-0.02f, 0.f, k) * (L / 3.4f);
+            ex = 2.4f;
+        } else if (y < R.shoulder) {   // trunk
+            float k = (y - R.tailBase) / (R.shoulder - R.tailBase);
+            float bul = sinf(kPi * Lerp(0.1f, 0.9f, k));
+            w = Lerp(R.tailW, R.bodyW, smooth01(k * 3.f)) * (0.9f + 0.1f * bul);
+            if (k > 0.8f) w = Lerp(w, R.headW * 1.3f, (k - 0.8f) / 0.2f);
+            hT = Lerp(R.tailH, R.bodyHT, smooth01(k * 2.f));
+            hB = Lerp(R.tailH * 0.8f, R.bodyHB, smooth01(k * 2.f));
+            ex = 2.6f;
+        } else if (y < R.skullBack) {   // neck
+            float k = (y - R.shoulder) / (R.skullBack - R.shoulder);
+            w = Lerp(R.headW * 1.3f, R.headW * 1.05f, k);
+            hT = Lerp(R.bodyHT, R.headH * 1.05f, k);
+            hB = Lerp(R.bodyHB, R.headH * 0.55f, k);
+            cz = z + Lerp(0.f, R.bodyHT * 0.15f, k);
+        } else {   // head: skull -> snout (upper jaw)
+            float k = (y - R.skullBack) / (R.snout - R.skullBack);
+            float tip = sqrtf(Max(1.f - powf(k, 6.f), 0.f));
+            w = Lerp(R.headW, R.snoutW, powf(k, sp == SP_GATOR ? 0.7f : 1.2f)) * tip;
+            hT = Lerp(R.headH, R.snoutH, powf(k, 0.8f)) * tip;
+            hB = Lerp(R.headH * 0.45f, R.snoutH * 0.4f, k) * tip;
+            cz = z + R.bodyHT * 0.15f - k * R.headH * 0.15f;
+            ex = sp == SP_GATOR ? 2.4f : 2.1f;
+        }
+        S[i].c = vec3(0, y, cz);
+        S[i].w = w;
+        S[i].hT = hT;
+        S[i].hB = hB;
+        S[i].ex = ex;
+    }
+    frameSections(S, vec3(0, 0, 1));
+    float tailLenU = R.tailBase - R.tailTip;
+    loft(mb, S, sides, [&](int, float u, float th, vec3 p, VAttr& a) {
+        u8 mat;
+        float y = R.tailTip + u;
+        a.col = reptPaint(sp, var, RP_BODY, u / L, th, p, mat);
+        a.mat = mat;
+        // osteoderm rows on the back, double crest on the tail
+        float up = sinf(th);
+        if (R.scute > 0.f && lod == 0) {
+            float along = powf(0.5f + 0.5f * cosf(y * kTwoPi / 0.075f), 3.f);
+            if (y > R.tailBase && y < R.skullBack) {
+                float rows = 0.f;
+                for (int r = -3; r <= 3; r++) rows = Max(rows, gauss1(th, kHalfPi + 0.16f * (float)r, 0.045f));
+                a.disp = 0.012f * rows * along * sstep(0.3f, 0.7f, up);
+            } else if (y <= R.tailBase) {
+                float k = (y - R.tailTip) / tailLenU;
+                float crest = Max(gauss1(th, kHalfPi - 0.22f, 0.07f), gauss1(th, kHalfPi + 0.22f, 0.07f));
+                if (k < 0.45f) crest = gauss1(th, kHalfPi, 0.1f);
+                a.disp = (0.03f * k + 0.008f) * crest * powf(0.5f + 0.5f * cosf(y * kTwoPi / 0.09f), 2.f);
+            } else {   // head: bumpy skin, raised eye sockets handled by the eyes
+                a.disp = 0.003f * (fbm3(p * 25.f, 9u, 2)) * sstep(0.f, 0.6f, up);
+            }
+        }
+        // each tail bone owns the stretch from its joint towards the tip; the trunk is split pelvis / body / chest
+        Chain ch;
+        ch.blend = L * 0.02f;
+        ch.add(TAIL6, 0.f);
+        for (int k = 4; k >= 0; k--) ch.add(TAIL1 + k, sk.bind[TAIL1 + k + 1].y - R.tailTip);
+        ch.add(PELVIS, sk.bind[TAIL1].y - R.tailTip);
+        ch.add(BODY, R.pelvis * 0.5f - R.tailTip);
+        ch.add(CHEST, R.shoulder * 0.7f - R.tailTip);
+        ch.add(NECK, R.neck - 0.02f * L - R.tailTip);
+        ch.add(HEAD, R.skullBack - 0.01f * L - R.tailTip);
+        a.sw = ch.eval(u);
+    }, true, false);
+    // lower jaw
+    {
+        vec3 hinge = sk.bind[JAW];
+        float jl = R.snout - hinge.y - 0.01f;
+        int jr = lod == 0 ? 16 : 6;
+        std::vector<Sect> JS((size_t)jr);
+        for (int i = 0; i < jr; i++) {
+            float t = (float)i / (float)(jr - 1);
+            float tip = sqrtf(Max(1.f - powf(t, 6.f), 0.f));
+            JS[i].c = hinge + vec3(0, t * jl, -R.headH * 0.05f - t * R.snoutH * 0.1f);
+            JS[i].w = Lerp(R.headW * 0.95f, R.snoutW * 0.92f, powf(t, 0.7f)) * tip;
+            JS[i].hT = R.snoutH * 0.15f * tip + 0.003f;
+            JS[i].hB = Lerp(R.headH * 0.45f, R.snoutH * 0.45f, t) * tip;
+            JS[i].ex = 2.4f;
+        }
+        frameSections(JS, vec3(0, 0, 1));
+        loft(mb, JS, lod == 0 ? 14 : 6, [&](int, float u, float th, vec3 p, VAttr& a) {
+            u8 mat;
+            a.col = reptPaint(sp, var, RP_JAW, u / jl, th, p, mat);
+            a.mat = mat;
+            a.sw = skin1(JAW);
+        }, true, false);
+        // teeth along both jaws (gators show them with the mouth closed)
+        if (sp == SP_GATOR && lod == 0) {
+            for (int jaw = 0; jaw < 2; jaw++)
+                for (int sd = -1; sd <= 1; sd += 2)
+                    for (int k = 0; k < 11; k++) {
+                        float t = 0.18f + 0.075f * (float)k;
+                        float y = hinge.y + t * jl;
+                        float halfW = Lerp(R.headW * 0.95f, R.snoutW * 0.92f, powf(t, 0.7f)) * 0.93f;
+                        vec3 root = vec3(sd * halfW, y, jaw == 0 ? S[0].c.z : hinge.z);
+                        float zBase = jaw == 0 ? R.bodyZ + R.bodyHT * 0.15f - t * R.headH * 0.15f - Lerp(R.headH * 0.45f, R.snoutH * 0.4f, t) * 0.6f : hinge.z + 0.002f;
+                        root.z = zBase;
+                        vec3 dir = jaw == 0 ? vec3(0, 0, -1) : vec3(0, 0, 1);
+                        float tl = 0.012f + 0.01f * (k % 3 == 1 ? 1.f : 0.f);
+                        std::vector<Sect> TS(3);
+                        for (int q = 0; q < 3; q++) TS[q].c = root + dir * (tl * (float)q / 2.f) + vec3(sd * 0.002f, 0, 0);
+                        frameSections(TS, vec3(0, 1, 0));
+                        for (int q = 0; q < 3; q++) TS[q].w = TS[q].hT = TS[q].hB = Lerp(0.005f, 0.0005f, (float)q / 2.f);
+                        loft(mb, TS, 4, [&](int, float, float th, vec3 p, VAttr& a) {
+                            u8 mat;
+                            a.col = reptPaint(sp, var, RP_TOOTH, 0.f, th, p, mat);
+                            a.mat = mat;
+                            a.sw = skin1(jaw == 0 ? HEAD : JAW);
+                        }, false, false);
+                    }
+        }
+    }
+    // eyes on raised sockets
+    if (lod == 0 || sp == SP_GATOR) {
+        for (int sd = -1; sd <= 1; sd += 2) {
+            float y = R.skullBack + (R.snout - R.skullBack) * (sp == SP_GATOR ? 0.12f : 0.3f);
+            float k = (y - R.skullBack) / (R.snout - R.skullBack);
+            float w = Lerp(R.headW, R.snoutW, powf(k, 0.7f));
+            float top = R.bodyZ + R.bodyHT * 0.15f - k * R.headH * 0.15f + Lerp(R.headH, R.snoutH, k) * 0.75f;
+            float er = sp == SP_GATOR ? 0.028f : 0.01f;
+            vec3 ec = vec3(sd * w * (sp == SP_GATOR ? 0.52f : 0.8f), y, sp == SP_GATOR ? top + er * 0.35f : top - R.headH * 0.3f);
+            vec3 axis = sp == SP_GATOR ? normalize(vec3(sd * 0.6f, 0.3f, 0.75f)) : vec3((float)sd, 0.2f, 0.2f);
+            ellipsoid(mb, ec, axis, vec3(0, 1, 0), er * 0.9f, er, er * 0.85f, lod == 0 ? 6 : 4, lod == 0 ? 8 : 5, [&](int ring, float, float th, vec3 p, VAttr& a) {
+                u8 mat;
+                a.col = reptPaint(sp, var, RP_EYE, 1.f - (float)ring / 5.f, th, p, mat);
+                a.mat = mat;
+                a.sw = skin1(HEAD);
+            });
+        }
+    }
+    // iguana dorsal spines and dewlap
+    if (R.crest > 0.f && lod == 0) {
+        for (int k = 0; k < 26; k++) {
+            float y = Lerp(R.skullBack - 0.01f, R.tailBase - 0.25f, (float)k / 25.f);
+            float h = 0.028f * (1.f - (float)k / 30.f) * (y > R.pelvis ? 1.f : 0.6f);
+            vec3 base = vec3(0, y, R.bodyZ + (y > R.tailBase ? R.bodyHT : R.tailH) * 0.95f);
+            std::vector<Sect> CS(3);
+            for (int q = 0; q < 3; q++) CS[q].c = base + vec3(0, -h * 0.25f * (float)q / 2.f, h * (float)q / 2.f);
+            frameSections(CS, vec3(0, 1, 0));
+            for (int q = 0; q < 3; q++) {
+                CS[q].w = 0.0015f;
+                CS[q].hT = CS[q].hB = Lerp(0.004f, 0.0006f, (float)q / 2.f);
+            }
+            int bone = y > R.shoulder ? NECK : (y > 0.f ? CHEST : (y > R.pelvis ? BODY : PELVIS));
+            loft(mb, CS, 3, [&](int, float, float th, vec3 p, VAttr& a) {
+                u8 mat;
+                a.col = reptPaint(sp, var, RP_CREST, 0.f, th, p, mat);
+                a.mat = mat;
+                a.sw = skin1(bone);
+            }, false, false);
+        }
+    }
+    if (R.dewlap > 0.f && lod == 0) {
+        std::vector<Sect> DS(6);
+        for (int q = 0; q < 6; q++) {
+            float t = (float)q / 5.f;
+            DS[q].c = vec3(0, Lerp(R.skullBack + 0.04f, R.neck - 0.02f, t), R.bodyZ - R.headH * 0.4f);
+        }
+        frameSections(DS, vec3(1, 0, 0));
+        for (int q = 0; q < 6; q++) {
+            float t = (float)q / 5.f;
+            DS[q].w = 0.002f;
+            DS[q].hT = 0.005f;
+            DS[q].hB = 0.035f * sinf(kPi * Lerp(0.1f, 0.9f, t));
+        }
+        loft(mb, DS, 5, [&](int, float, float th, vec3 p, VAttr& a) {
+            u8 mat;
+            a.col = reptPaint(sp, var, RP_DEWLAP, 0.f, th, p, mat);
+            a.mat = mat;
+            a.sw = skin1(JAW);
+        }, true, true);
+    }
+    // legs + toes
+    for (int leg = 0; leg < 4; leg++) {
+        bool front = leg < 2;
+        int sd = (leg & 1) ? 1 : -1;
+        int b1 = front ? (sd < 0 ? FL1 : FR1) : (sd < 0 ? HL1 : HR1);
+        vec3 s = sk.bind[b1], e = sk.bind[b1 + 1], w = sk.bind[b1 + 2], toe = J[b1 + 20];
+        vec3 root = s - vec3(sd * R.legX * 0.5f, 0, 0);
+        std::vector<vec3> lp = smoothPath({root, s, e, w}, lod == 0 ? 3 : 1);
+        float total = 0.f;
+        for (size_t i = 1; i < lp.size(); i++) total += length(lp[i] - lp[i - 1]);
+        float aS = length(s - root), aE = aS + length(e - s);
+        float rTop = front ? R.legR * 1.4f : R.legR * 1.9f;
+        std::vector<Sect> LS = sectionsAlong(lp, lod == 0 ? 10 : 4, vec3(0, 0, 1), [&](float t, Sect& sc) {
+            float r = Lerp(rTop, R.legR * 0.8f, smooth01(t));
+            sc.w = sc.hT = sc.hB = r;
+        });
+        int parentB = front ? CHEST : PELVIS;
+        loft(mb, LS, lod == 0 ? 8 : 4, [&](int, float u, float th, vec3 p, VAttr& a) {
+            u8 mat;
+            a.col = reptPaint(sp, var, RP_LEG, u / total, th, p, mat);
+            a.mat = mat;
+            Chain ch;
+            ch.blend = total * 0.08f;
+            ch.add(parentB, 0.f);
+            ch.add(b1, aS * 0.7f);
+            ch.add(b1 + 1, aE);
+            a.sw = ch.eval(u);
+        }, true, true);
+        // foot pad + toes fanning forward
+        int nt = front ? 5 : 4;
+        vec3 fdir = normalize(vec3(toe.x - w.x, toe.y - w.y, 0.f));
+        vec3 fside = normalize(cross(fdir, vec3(0, 0, 1)));
+        for (int k = 0; k < nt; k++) {
+            float f = (float)k / (float)(nt - 1) - 0.5f;
+            vec3 d = normalize(fdir + fside * (f * 1.3f));
+            float tlen = R.footLen * (0.55f + 0.45f * (1.f - fabsf(f) * 1.4f));
+            vec3 base = w + vec3(0, 0, -R.legR * 0.4f);
+            vec3 tip = base + d * tlen + vec3(0, 0, -R.legR * 0.35f);
+            std::vector<Sect> TS(3);
+            TS[0].c = base;
+            TS[1].c = lerp(base, tip, 0.6f) + vec3(0, 0, R.legR * 0.15f);
+            TS[2].c = tip;
+            frameSections(TS, vec3(0, 0, 1));
+            for (int q = 0; q < 3; q++) {
+                float rr = R.legR * (q == 2 ? 0.12f : (q == 0 ? 0.42f : 0.32f));
+                TS[q].w = rr;
+                TS[q].hT = TS[q].hB = rr * 0.75f;
+            }
+            if (lod > 0 && (k & 1)) continue;
+            loft(mb, TS, lod == 0 ? 5 : 3, [&](int, float, float th, vec3 p, VAttr& a) {
+                u8 mat;
+                a.col = reptPaint(sp, var, RP_TOE, 1.f, th, p, mat);
+                a.mat = mat;
+                a.sw = skin1(b1 + 2);
+            }, true, false);
+        }
+    }
+}
+
+void buildReptile(int sp, int var, ModelData& out) {
+    using namespace ReptBone;
+    ReptSpec R = reptSpec(sp);
+    vec3 J[64];
+    buildReptSkeleton(R, out.skel, J);
+    MBuild m0, m1;
+    buildReptMesh(sp, var, R, out.skel, J, 0, m0);
+    buildReptMesh(sp, var, R, out.skel, J, 1, m1);
+    m0.emit(out.lod[0]);
+    m1.emit(out.lod[1]);
+    out.legs = 4;
+    const int lb[4] = {FL1, FR1, HL1, HR1};
+    for (int l = 0; l < 4; l++) {
+        out.legBone[l][0] = lb[l];
+        out.legBone[l][1] = lb[l] + 1;
+        out.legBone[l][2] = lb[l] + 2;
+        out.legEnd[l] = J[lb[l] + 20] - out.skel.bind[lb[l] + 2];
+    }
+    out.legLen = R.bodyZ;
+    out.headTip = vec3(0, R.snout, R.bodyZ);
+    out.mouth = vec3(0, R.snout - 0.1f * (R.snout - R.skullBack), R.bodyZ);
+}
+
+// ==================================================================================================================
+// Swimmers: dolphin, manatee (fusiform body + flippers + fluke / paddle), sea turtle, fish (batched shoals)
+struct SwimSpec {
+    float front, back;           // y of the nose tip / tail end
+    float bodyW, bodyHT, bodyHB;
+    float headY;                 // where the head (FRONT bone) starts
+};
+
+vec3 swimPaint(int sp, int var, int part, float s, float th, vec3 p, u8& mat) {
+    mat = MAT_SKIN;
+    float up = sinf(th);
+    float mott = fbm3(p * 4.f, 777u + (u32)var, 3) * 0.5f + 0.5f;
+    if (part == 9) {   // eye
+        mat = MAT_EYE;
+        if (sp == SP_FISH) return s < 0.25f ? C(0.02f, 0.02f, 0.02f) : (var == 3 ? C(0.8f, 0.8f, 0.82f) : C(0.85f, 0.7f, 0.3f));
+        return C(0.03f, 0.03f, 0.03f);
+    }
+    switch (sp) {
+        case SP_DOLPHIN: {
+            vec3 dorsal = C(0.33f, 0.36f, 0.41f), flank = C(0.55f, 0.58f, 0.62f), belly = C(0.88f, 0.85f, 0.84f);
+            float wave = 0.12f * sinf(p.y * 3.f);
+            vec3 c = mixc(flank, dorsal, sstep(0.05f + wave, 0.55f, up));
+            c = mixc(c, belly, sstep(-0.25f + wave, -0.65f, up));
+            if (part == 1 || part == 2) c = mixc(dorsal, flank, up < 0.f ? 0.4f : 0.f);   // fins darker
+            if (part == 0 && p.y > 1.15f && up > -0.2f) c = dorsal;                       // rostrum
+            return c * (0.95f + 0.08f * mott);
+        }
+        case SP_MANATEE: {
+            vec3 base = C(0.45f, 0.43f, 0.39f);
+            vec3 c = mixc(base, C(0.36f, 0.42f, 0.30f), sstep(0.55f, 0.8f, mott) * sstep(0.f, 0.5f, up));   // algae on the back
+            if (n3(p * 9.f, 42u) > 0.62f && up > 0.f) c = C(0.72f, 0.72f, 0.68f);                           // propeller scars
+            return c * (0.9f + 0.15f * mott);
+        }
+        case SP_TURTLE: {
+            if (part == 5) {   // carapace
+                float cell = worley2(p.x * 7.f, p.y * 6.f, 90u);
+                vec3 shell = var == 0 ? C(0.48f, 0.28f, 0.14f) : C(0.36f, 0.31f, 0.18f);
+                vec3 edge = var == 0 ? C(0.25f, 0.14f, 0.07f) : C(0.18f, 0.15f, 0.08f);
+                vec3 c = mixc(edge, shell, sstep(0.18f, 0.42f, cell));
+                if (up < -0.3f) c = C(0.85f, 0.78f, 0.55f);   // plastron
+                return c * (0.9f + 0.2f * mott);
+            }
+            vec3 skin = var == 0 ? C(0.62f, 0.50f, 0.30f) : C(0.52f, 0.52f, 0.42f);
+            float sc = worley2(p.x * 40.f, p.y * 40.f, 91u);
+            return mixc(C(0.25f, 0.18f, 0.1f), skin, sstep(0.08f, 0.3f, sc)) * (up < -0.3f ? 1.25f : 1.f);
+        }
+        case SP_FISH: {
+            vec3 back, side, belly;
+            switch (var) {
+                case 0: back = C(0.34f, 0.42f, 0.62f); side = C(0.72f, 0.76f, 0.82f); belly = C(0.92f, 0.92f, 0.9f); break;   // yellowtail snapper
+                case 1: back = C(0.62f, 0.65f, 0.40f); side = C(0.85f, 0.85f, 0.62f); belly = C(0.92f, 0.92f, 0.86f); break;  // sergeant major
+                case 2: back = C(0.30f, 0.34f, 0.36f); side = C(0.70f, 0.72f, 0.72f); belly = C(0.9f, 0.9f, 0.9f); break;     // mullet
+                default: back = C(0.22f, 0.28f, 0.36f); side = C(0.80f, 0.82f, 0.85f); belly = C(0.95f, 0.95f, 0.95f); break; // tarpon
+            }
+            vec3 c = mixc(side, back, sstep(0.1f, 0.65f, up));
+            c = mixc(c, belly, sstep(-0.3f, -0.7f, up));
+            if (var == 0 && fabsf(up) < 0.12f && part == 0) c = C(0.95f, 0.8f, 0.2f);   // yellow midline stripe
+            if (var == 0 && part == 3) c = C(0.96f, 0.82f, 0.18f);                       // yellow tail
+            if (var == 1 && part == 0 && sinf(p.y * 55.f) > 0.55f && up > -0.5f) c = C(0.06f, 0.06f, 0.06f);   // black bars
+            if (var == 2 && part == 0 && sinf(up * 14.f) > 0.8f && up > -0.2f) c = c * 0.7f;                     // mullet lines
+            if (part == 3 || part == 4) c = var == 0 ? c : mixc(c, back, 0.4f);
+            if (var == 3 || var == 2) mat = MAT_CHROME;   // silvery scales
+            return c;
+        }
+        default: return C(0.5f, 0.5f, 0.5f);
+    }
+}
+
+// Fins and flippers: a flat tapered loft from `root` along `dir`, width axis `wAxis` (for the frame), thickness t.
+void fin(MBuild& mb, int sp, int var, int part, vec3 root, vec3 dir, vec3 planeN, float len, float w0, float w1, float t, float sweepBack,
+         int bone, int rings, int sides) {
+    std::vector<Sect> S((size_t)rings);
+    vec3 d = normalize(dir);
+    for (int i = 0; i < rings; i++) {
+        float k = (float)i / (float)(rings - 1);
+        S[i].c = root + d * (len * k) + vec3(0, -sweepBack * k * k, 0);
+    }
+    frameSections(S, planeN);
+    for (int i = 0; i < rings; i++) {
+        float k = (float)i / (float)(rings - 1);
+        S[i].w = Lerp(w0, w1, k) * (k > 0.8f ? Lerp(1.f, 0.45f, (k - 0.8f) / 0.2f) : 1.f);
+        S[i].hT = S[i].hB = t * (1.f - 0.7f * k) + 0.0015f;
+        S[i].ex = 1.5f;
+    }
+    loft(mb, S, sides, [&](int, float, float th, vec3 p, VAttr& a) {
+        u8 mat;
+        a.col = swimPaint(sp, var, part, 0.f, th, p, mat);
+        a.mat = mat;
+        a.sw = skin1(bone);
+    }, true, true);
+}
+
+void buildSwimSkeleton(const SwimSpec& W, Skel& sk) {
+    using namespace SwimBone;
+    sk = Skel();
+    float len = W.front - W.back;
+    sk.add(-1, vec3(0, 0, 0));                                     // BODY
+    sk.add(BODY, vec3(0, W.headY - len * 0.1f, 0));                // FRONT
+    sk.add(FRONT, vec3(0, W.headY, 0));                            // HEAD
+    sk.add(BODY, vec3(0, W.back + len * 0.3f, 0));                 // BACK1
+    sk.add(BACK1, vec3(0, W.back + len * 0.16f, 0));               // BACK2
+    sk.add(BACK2, vec3(0, W.back + len * 0.05f, 0));               // TAILFIN
+    sk.add(FRONT, vec3(-W.bodyW * 0.8f, W.headY - len * 0.1f, -W.bodyHB * 0.4f));   // FIN_L
+    sk.add(FRONT, vec3(W.bodyW * 0.8f, W.headY - len * 0.1f, -W.bodyHB * 0.4f));    // FIN_R
+    sk.add(BACK1, vec3(-W.bodyW * 0.7f, W.back + len * 0.3f, -W.bodyHB * 0.2f));    // FIN_L2
+    sk.add(BACK1, vec3(W.bodyW * 0.7f, W.back + len * 0.3f, -W.bodyHB * 0.2f));     // FIN_R2
+}
+
+void swimBodyLoft(MBuild& mb, int sp, int var, const SwimSpec& W, const Skel& sk, int rings, int sides,
+                  const std::function<void(float t, Sect& s)>& prof, int part) {
+    using namespace SwimBone;
+    std::vector<Sect> S((size_t)rings);
+    for (int i = 0; i < rings; i++) S[i].c = vec3(0, Lerp(W.back, W.front, (float)i / (float)(rings - 1)), 0);
+    frameSections(S, vec3(0, 0, 1));
+    for (int i = 0; i < rings; i++) prof((float)i / (float)(rings - 1), S[i]);
+    float len = W.front - W.back;
+    loft(mb, S, sides, [&](int, float u, float th, vec3 p, VAttr& a) {
+        u8 mat;
+        a.col = swimPaint(sp, var, part, u / len, th, p, mat);
+        a.mat = mat;
+        Chain ch;
+        ch.blend = len * 0.06f;
+        ch.add(TAILFIN, 0.f);
+        ch.add(BACK2, sk.bind[TAILFIN].y - W.back + len * 0.02f);
+        ch.add(BACK1, sk.bind[BACK2].y - W.back);
+        ch.add(BODY, sk.bind[BACK1].y - W.back + len * 0.05f);
+        ch.add(FRONT, sk.bind[FRONT].y - W.back);
+        ch.add(HEAD, sk.bind[HEAD].y - W.back);
+        a.sw = ch.eval(u);
+    }, true, true);
+}
+
+void buildSwimmer(int sp, int var, ModelData& out) {
+    using namespace SwimBone;
+    SwimSpec W;
+    MBuild m[2];
+    if (sp == SP_DOLPHIN) {
+        W = {1.35f, -1.35f, 0.23f, 0.26f, 0.25f, 0.95f};
+        buildSwimSkeleton(W, out.skel);
+        for (int lod = 0; lod < 2; lod++) {
+            MBuild& mb = m[lod];
+            swimBodyLoft(mb, sp, var, W, out.skel, lod == 0 ? 34 : 12, lod == 0 ? 18 : 8, [&](float t, Sect& s) {
+                // peduncle (compressed) -> body -> melon -> short rostrum
+                float body = powf(Max(sinf(kPi * Lerp(0.02f, 0.93f, t)), 0.f), 0.75f);
+                float ped = smooth01(t / 0.35f);
+                s.w = W.bodyW * body * Lerp(0.18f, 1.f, ped);
+                s.hT = W.bodyHT * body * Lerp(0.55f, 1.f, ped);
+                s.hB = W.bodyHB * body * Lerp(0.5f, 1.f, ped);
+                if (t > 0.9f) {   // rostrum: the melon drops into a short beak
+                    float k = (t - 0.9f) / 0.1f;
+                    s.w = Lerp(s.w, 0.035f, smooth01(k * 1.5f)) * sqrtf(Max(1.f - powf(k, 4.f), 0.f));
+                    s.hT = Lerp(s.hT, 0.03f, smooth01(k * 1.8f)) * sqrtf(Max(1.f - powf(k, 4.f), 0.f));
+                    s.hB = Lerp(s.hB, 0.03f, smooth01(k * 1.2f)) * sqrtf(Max(1.f - powf(k, 4.f), 0.f));
+                    s.c.z -= 0.06f * k;
+                }
+                s.ex = 2.1f;
+            }, 0);
+            // fluke: horizontal, swept back
+            for (int sd = -1; sd <= 1; sd += 2)
+                fin(mb, sp, var, 1, out.skel.bind[TAILFIN] + vec3(0, -0.12f, 0), vec3((float)sd, -0.35f, 0), vec3(0, 0, 1), 0.36f, 0.13f, 0.06f, 0.022f, 0.08f,
+                    TAILFIN, lod == 0 ? 7 : 3, lod == 0 ? 6 : 4);
+            // dorsal fin (vertical, falcate)
+            fin(mb, sp, var, 2, vec3(0, -0.05f, W.bodyHT * 0.85f), vec3(0, -0.45f, 1.f), vec3(1, 0, 0), 0.34f, 0.17f, 0.04f, 0.022f, 0.12f, BODY, lod == 0 ? 7 : 3,
+                lod == 0 ? 6 : 4);
+            // pectoral flippers
+            for (int sd = -1; sd <= 1; sd += 2)
+                fin(mb, sp, var, 1, vec3(sd * W.bodyW * 0.75f, 0.62f, -W.bodyHB * 0.45f), vec3((float)sd, -0.6f, -0.35f), vec3(0, 0, 1), 0.3f, 0.07f, 0.035f, 0.018f,
+                    0.05f, sd < 0 ? FIN_L : FIN_R, lod == 0 ? 6 : 3, lod == 0 ? 6 : 4);
+            if (lod == 0)
+                for (int sd = -1; sd <= 1; sd += 2)
+                    ellipsoid(mb, vec3(sd * 0.105f, 1.02f, 0.02f), vec3((float)sd, 0.2f, 0), vec3(0, 0, 1), 0.009f, 0.011f, 0.008f, 5, 6, [&](int ring, float, float th, vec3 p, VAttr& a) {
+                        u8 mat;
+                        a.col = swimPaint(sp, var, 9, 1.f - (float)ring / 4.f, th, p, mat);
+                        a.mat = mat;
+                        a.sw = skin1(HEAD);
+                    });
+        }
+    } else if (sp == SP_MANATEE) {
+        W = {1.25f, -1.45f, 0.42f, 0.36f, 0.40f, 0.85f};
+        buildSwimSkeleton(W, out.skel);
+        for (int lod = 0; lod < 2; lod++) {
+            MBuild& mb = m[lod];
+            swimBodyLoft(mb, sp, var, W, out.skel, lod == 0 ? 30 : 12, lod == 0 ? 18 : 8, [&](float t, Sect& s) {
+                float body = powf(Max(sinf(kPi * Lerp(0.03f, 0.97f, t)), 0.f), 0.55f);
+                s.w = W.bodyW * body * Lerp(0.45f, 1.f, smooth01(t / 0.3f));
+                s.hT = W.bodyHT * body * Lerp(0.35f, 1.f, smooth01(t / 0.3f));
+                s.hB = W.bodyHB * body * Lerp(0.35f, 1.f, smooth01(t / 0.3f));
+                if (t > 0.72f) {   // neck narrows, big blunt muzzle
+                    float k = (t - 0.72f) / 0.28f;
+                    float neck = 1.f - 0.35f * gauss1(k, 0.3f, 0.2f);
+                    s.w *= neck;
+                    s.hT *= neck * Lerp(1.f, 0.8f, k);
+                    s.hB *= neck;
+                    s.c.z -= 0.08f * k;
+                }
+                s.ex = 2.2f;
+            }, 0);
+            // round paddle tail
+            {
+                std::vector<Sect> PS(lod == 0 ? 8 : 4);
+                int n = (int)PS.size();
+                for (int i = 0; i < n; i++) PS[i].c = vec3(0, W.back + 0.05f - 0.55f * (float)i / (float)(n - 1), -0.02f);
+                frameSections(PS, vec3(0, 0, 1));
+                for (int i = 0; i < n; i++) {
+                    float k = (float)i / (float)(n - 1);
+                    PS[i].w = 0.12f + 0.32f * sqrtf(Max(sinf(kPi * Lerp(0.05f, 1.f, k)), 0.f)) * (k > 0.85f ? Lerp(1.f, 0.3f, (k - 0.85f) / 0.15f) : 1.f);
+                    PS[i].hT = PS[i].hB = 0.05f * (1.f - k) + 0.012f;
+                    PS[i].ex = 1.8f;
+                }
+                loft(mb, PS, lod == 0 ? 10 : 5, [&](int, float, float th, vec3 p, VAttr& a) {
+                    u8 mat;
+                    a.col = swimPaint(sp, var, 3, 0.f, th, p, mat);
+                    a.mat = mat;
+                    a.sw = skin1(TAILFIN);
+                }, true, true);
+            }
+            for (int sd = -1; sd <= 1; sd += 2)
+                fin(mb, sp, var, 1, vec3(sd * W.bodyW * 0.7f, 0.55f, -W.bodyHB * 0.5f), vec3((float)sd, 0.25f, -0.6f), vec3(0, 0, 1), 0.34f, 0.08f, 0.07f, 0.03f,
+                    0.f, sd < 0 ? FIN_L : FIN_R, lod == 0 ? 6 : 3, lod == 0 ? 6 : 4);
+            if (lod == 0)
+                for (int sd = -1; sd <= 1; sd += 2)
+                    ellipsoid(mb, vec3(sd * 0.16f, 1.02f, 0.05f), vec3((float)sd, 0.3f, 0), vec3(0, 0, 1), 0.007f, 0.008f, 0.006f, 5, 6, [&](int ring, float, float th, vec3 p, VAttr& a) {
+                        u8 mat;
+                        a.col = swimPaint(sp, var, 9, 1.f - (float)ring / 4.f, th, p, mat);
+                        a.mat = mat;
+                        a.sw = skin1(HEAD);
+                    });
+        }
+    } else if (sp == SP_TURTLE) {
+        W = {0.62f, -0.5f, 0.42f, 0.2f, 0.07f, 0.45f};
+        buildSwimSkeleton(W, out.skel);
+        for (int lod = 0; lod < 2; lod++) {
+            MBuild& mb = m[lod];
+            // carapace dome with a flat plastron
+            {
+                int n = lod == 0 ? 18 : 8;
+                std::vector<Sect> S((size_t)n);
+                for (int i = 0; i < n; i++) S[i].c = vec3(0, Lerp(-0.48f, 0.45f, (float)i / (float)(n - 1)), 0);
+                frameSections(S, vec3(0, 0, 1));
+                for (int i = 0; i < n; i++) {
+                    float t = (float)i / (float)(n - 1);
+                    float e = powf(Max(sinf(kPi * Lerp(0.02f, 0.98f, t)), 0.f), 0.5f) * (t < 0.35f ? Lerp(0.75f, 1.f, t / 0.35f) : 1.f);
+                    S[i].w = W.bodyW * e;
+                    S[i].hT = W.bodyHT * e;
+                    S[i].hB = W.bodyHB * e;
+                    S[i].ex = 2.3f;
+                }
+                loft(mb, S, lod == 0 ? 20 : 8, [&](int, float, float th, vec3 p, VAttr& a) {
+                    u8 mat;
+                    a.col = swimPaint(sp, var, 5, 0.f, th, p, mat);
+                    a.mat = mat;
+                    a.sw = skin1(BODY);
+                }, true, true);
+            }
+            // head and neck
+            {
+                std::vector<vec3> hp = {vec3(0, 0.3f, 0.0f), vec3(0, 0.47f, 0.02f), vec3(0, 0.6f, 0.02f), vec3(0, 0.66f, 0.0f)};
+                std::vector<Sect> S = sectionsAlong(smoothPath(hp, lod == 0 ? 3 : 1), lod == 0 ? 9 : 4, vec3(0, 0, 1), [&](float t, Sect& s) {
+                    float r = Lerp(0.075f, 0.085f, gauss1(t, 0.72f, 0.2f)) * sqrtf(Max(1.f - powf(t, 6.f), 0.f));
+                    s.w = r;
+                    s.hT = r * 0.85f;
+                    s.hB = r * 0.7f;
+                });
+                loft(mb, S, lod == 0 ? 10 : 5, [&](int, float u, float th, vec3 p, VAttr& a) {
+                    u8 mat;
+                    a.col = swimPaint(sp, var, 0, 0.f, th, p, mat);
+                    a.mat = mat;
+                    a.sw = u < 0.12f ? skin2(FRONT, HEAD, u / 0.12f) : skin1(HEAD);
+                }, true, false);
+                if (lod == 0)
+                    for (int sd = -1; sd <= 1; sd += 2)
+                        ellipsoid(mb, vec3(sd * 0.055f, 0.6f, 0.035f), vec3((float)sd, 0.3f, 0.1f), vec3(0, 0, 1), 0.01f, 0.012f, 0.01f, 5, 6,
+                                  [&](int ring, float, float th, vec3 p, VAttr& a) {
+                                      u8 mat;
+                                      a.col = swimPaint(sp, var, 9, 1.f - (float)ring / 4.f, th, p, mat);
+                                      a.mat = mat;
+                                      a.sw = skin1(HEAD);
+                                  });
+            }
+            // front flippers (long, wing-like) and rear flippers
+            for (int sd = -1; sd <= 1; sd += 2) {
+                fin(mb, sp, var, 0, vec3(sd * 0.3f, 0.25f, -0.02f), vec3((float)sd, -0.2f, 0), vec3(0, 0, 1), 0.46f, 0.1f, 0.05f, 0.022f, 0.18f,
+                    sd < 0 ? FIN_L : FIN_R, lod == 0 ? 7 : 3, lod == 0 ? 6 : 4);
+                fin(mb, sp, var, 0, vec3(sd * 0.25f, -0.38f, -0.02f), vec3((float)sd * 0.6f, -1.f, 0), vec3(0, 0, 1), 0.2f, 0.07f, 0.05f, 0.02f, 0.02f,
+                    sd < 0 ? FIN_L2 : FIN_R2, lod == 0 ? 5 : 3, lod == 0 ? 6 : 4);
+            }
+        }
+    } else {   // fish
+        float len = var == 3 ? 1.4f : (var == 2 ? 0.4f : (var == 1 ? 0.2f : 0.36f));
+        float deep = var == 1 ? 0.62f : (var == 2 ? 0.26f : (var == 3 ? 0.27f : 0.3f));   // depth / length
+        W = {len * 0.5f, -len * 0.38f, len * 0.07f * (var == 2 ? 1.25f : 1.f), len * deep * 0.52f, len * deep * 0.48f, len * 0.3f};
+        buildSwimSkeleton(W, out.skel);
+        for (int lod = 0; lod < 2; lod++) {
+            MBuild& mb = m[lod];
+            swimBodyLoft(mb, sp, var, W, out.skel, lod == 0 ? 16 : 6, lod == 0 ? 12 : 5, [&](float t, Sect& s) {
+                float body = powf(Max(sinf(kPi * Lerp(0.02f, 0.97f, t)), 0.f), 0.7f);
+                float ped = smooth01(t / 0.3f);
+                s.w = W.bodyW * body * Lerp(0.3f, 1.f, ped);
+                s.hT = W.bodyHT * body * Lerp(0.3f, 1.f, ped);
+                s.hB = W.bodyHB * body * Lerp(0.3f, 1.f, ped);
+                s.ex = 2.2f;
+            }, 0);
+            // forked caudal fin: two lobes
+            vec3 tb = vec3(0, W.back + len * 0.02f, 0);
+            for (int lobe = -1; lobe <= 1; lobe += 2)
+                fin(mb, sp, var, 3, tb, vec3(0, -1.f, 0.85f * (float)lobe), vec3(1, 0, 0), len * 0.24f, len * 0.05f, len * 0.025f, len * 0.006f, 0.f, TAILFIN,
+                    lod == 0 ? 4 : 2, lod == 0 ? 4 : 3);
+            if (lod == 0) {
+                fin(mb, sp, var, 4, vec3(0, len * 0.05f, W.bodyHT * 0.85f), vec3(0, -0.8f, 0.6f), vec3(1, 0, 0), len * 0.2f, len * 0.07f, len * 0.02f, len * 0.004f,
+                    0.f, BODY, 3, 4);   // dorsal
+                fin(mb, sp, var, 4, vec3(0, -len * 0.12f, -W.bodyHB * 0.8f), vec3(0, -0.7f, -0.6f), vec3(1, 0, 0), len * 0.1f, len * 0.04f, len * 0.015f,
+                    len * 0.004f, 0.f, BACK1, 3, 4);   // anal
+                for (int sd = -1; sd <= 1; sd += 2) {
+                    fin(mb, sp, var, 4, vec3(sd * W.bodyW * 0.8f, len * 0.26f, -W.bodyHB * 0.2f), vec3((float)sd, -1.2f, -0.3f), vec3(0, 0, 1), len * 0.11f,
+                        len * 0.03f, len * 0.015f, len * 0.003f, 0.f, sd < 0 ? FIN_L : FIN_R, 3, 4);
+                    ellipsoid(mb, vec3(sd * W.bodyW * 0.62f, len * 0.4f, W.bodyHT * 0.25f), vec3((float)sd, 0.1f, 0), vec3(0, 0, 1), len * 0.018f, len * 0.028f,
+                              len * 0.028f, 5, 6, [&](int ring, float, float th, vec3 p, VAttr& a) {
+                                  u8 mat;
+                                  a.col = swimPaint(sp, var, 9, 1.f - (float)ring / 4.f, th, p, mat);
+                                  a.mat = mat;
+                                  a.sw = skin1(HEAD);
+                              });
+                }
+            }
+        }
+        // fish are drawn in batches: 4 bones per fish (head, body, rear body, tail fin)
+        static const int kFishMap[SwimBone::COUNT] = {1, 0, 0, 1, 2, 3, 1, 1, 1, 1};
+        int map[kMaxBones];
+        for (int i = 0; i < kMaxBones; i++) map[i] = i < SwimBone::COUNT ? kFishMap[i] : 1;
+        m[0].remapBones(map);
+        m[1].remapBones(map);
+        out.batchN = 4;
+        const int fb[4] = {FRONT, BODY, BACK2, TAILFIN};
+        for (int i = 0; i < 4; i++) out.batchBones[i] = fb[i];
+        out.batchCap = 64;
+        emitBatch(m[0], 4, out.batchCap, out.batch[0]);
+        emitBatch(m[1], 4, out.batchCap, out.batch[1]);
+        out.headTip = vec3(0, W.front, 0);
+        return;
+    }
+    m[0].emit(out.lod[0]);
+    m[1].emit(out.lod[1]);
+    out.headTip = vec3(0, W.front, 0);
+    out.mouth = out.headTip;
+}
+
+}  // namespace fauna_detail
+
+// ==================================================================================================================
+// Procedural animation
+namespace fauna_detail {
+
+// Rotation (local to the parent frame) that aims a bone's bind direction at `want`, minimal twist.
+inline quat aimBone(quat parentW, vec3 bindDir, vec3 want, quat& worldOut) {
+    vec3 cur = rotate(parentW, bindDir);
+    if (length2(cur) < 1e-12f || length2(want) < 1e-12f) {
+        worldOut = parentW;
+        return quat();
+    }
+    quat w = normalize(quatFromTo(normalize(cur), normalize(want)) * parentW);
+    worldOut = w;
+    return normalize(conj(parentW) * w);
+}
+
+// Knee position of a two-bone chain from A towards T (clamped to reach), bending towards `pole`.
+inline vec3 ikKnee(vec3 A, vec3& T, float l1, float l2, vec3 pole) {
+    vec3 d = T - A;
+    float dist = length(d);
+    vec3 dir = dist > 1e-6f ? d / dist : vec3(0, 0, -1);
+    float maxR = (l1 + l2) * 0.998f, minR = fabsf(l1 - l2) * 1.02f + 1e-4f;
+    dist = Clamp(dist, minR, maxR);
+    T = A + dir * dist;
+    float cosA = Clamp((l1 * l1 + dist * dist - l2 * l2) / (2.f * l1 * dist), -1.f, 1.f);
+    float sinA = sqrtf(Max(0.f, 1.f - cosA * cosA));
+    vec3 pn = pole - dir * dot(pole, dir);
+    if (length2(pn) < 1e-10f) pn = anyPerp(dir);
+    pn = normalize(pn);
+    return A + (dir * cosA + pn * sinA) * l1;
+}
+
+// Three-segment leg: the last segment points along d3, the first two solve a two-bone IK to its root.
+void legIK3(const Skel& sk, Pose& P, const Frames& F, int b1, int b2, int b3, vec3 legEnd, vec3 target, vec3 d3, vec3 pole) {
+    int par = sk.parent[b1];
+    quat pr = F.r[par];
+    float g = F.g[par];
+    vec3 A = F.p[par] + rotate(pr, (sk.bind[b1] - sk.bind[par]) * g);
+    float l1 = length(sk.bind[b2] - sk.bind[b1]) * g, l2 = length(sk.bind[b3] - sk.bind[b2]) * g, l3 = length(legEnd) * g;
+    vec3 Cj = target - normalize(d3) * l3;
+    vec3 B = ikKnee(A, Cj, l1, l2, pole);
+    quat w1, w2, w3;
+    P.q[b1] = aimBone(pr, sk.bind[b2] - sk.bind[b1], B - A, w1);
+    P.q[b2] = aimBone(w1, sk.bind[b3] - sk.bind[b2], Cj - B, w2);
+    P.q[b3] = aimBone(w2, legEnd, d3, w3);
+}
+
+inline float fracf(float x) { return x - floorf(x); }
+
+// Rotation about a pivot expressed as root offset + root rotation (bone 0 rotates about its own joint).
+inline void rotateRootAbout(const Skel& sk, Pose& P, vec3 pivot, quat q) {
+    vec3 b0 = sk.bind[0] + P.rootPos;
+    vec3 nb = pivot + rotate(q, b0 - pivot);
+    P.rootPos += nb - b0;
+    P.rootRot = normalize(q * P.rootRot);
+}
+
+}  // namespace fauna_detail
+
+// ---- birds --------------------------------------------------------------------------------------------------------
+void animateBird(const ModelData& m, const BirdAnim& a, Pose& P) {
+    using namespace BirdBone;
+    const Skel& sk = m.skel;
+    const BirdSpec& B = birdSpec(m.species);
+    P.reset(sk.n);
+    float fold = Saturate(a.fold), spread = 1.f - fold;
+    float dead = Saturate(a.dead);
+    bool wader = B.tibia > 0.1f;
+    bool bigBird = B.span > 1.2f;
+    // ---- spread wings: stroke with lagging segments, fold of the hand on the upstroke
+    float amp = a.flapAmp * (1.f - dead);
+    float ph = a.flap;
+    float A1 = (bigBird ? 0.5f : 0.62f) * amp, A2 = 0.22f * amp, A3 = (bigBird ? 0.38f : 0.5f) * amp;
+    float soar = Saturate(a.soar);
+    float dihedral = Lerp(0.07f, 0.3f, soar) - 0.35f * dead;
+    float handDroop = Lerp(-0.14f, 0.06f, soar) - 0.3f * dead;
+    float upstroke = Max(0.f, cosf(ph));
+    for (int sd = -1; sd <= 1; sd += 2) {
+        int w1 = sd < 0 ? WL1 : WR1, w2 = sd < 0 ? WL2 : WR2, w3 = sd < 0 ? WL3 : WR3;
+        float s = -(float)sd;   // +1 left: elevation = qy(+e) for the left wing, qy(-e) for the right
+        float e1 = dihedral + A1 * sinf(ph);
+        float e2 = A2 * sinf(ph - 0.5f);
+        float e3 = handDroop + A3 * sinf(ph - 1.0f);
+        float sweep1 = 0.18f * upstroke * amp + 0.95f * Saturate(a.dive) - 0.35f * Saturate(a.flare);
+        float sweep2 = -0.25f * upstroke * amp - 0.9f * Saturate(a.dive);
+        float sweep3 = 0.55f * Max(0.f, cosf(ph - 0.3f)) * amp + 0.85f * Saturate(a.dive) + 0.2f * dead;
+        float twist = -0.22f * cosf(ph) * amp - 0.25f * Saturate(a.flare);
+        // qz sweeps: left wing backwards = +, right wing backwards = -
+        P.q[w1] = qz(s * sweep1) * qy(s * (e1 + 0.3f * Saturate(a.dive) + 0.3f * Saturate(a.flare))) * qx(twist);
+        P.q[w2] = qz(s * sweep2) * qy(s * e2);
+        P.q[w3] = qz(s * sweep3) * qy(s * e3) * qx(twist * 0.6f);
+        // collapse into the shoulder when folded (the folded wing takes over)
+        P.g[w1] = Max(sstep(0.f, 0.75f, spread), 0.0f);
+    }
+    P.g[FOLDL] = P.g[FOLDR] = sstep(0.25f, 1.f, fold);
+    // ---- tail: fans when braking / landing, pitches with the stroke
+    P.s[TAIL] = vec3(1.f + 0.9f * Saturate(a.tail), 1.f, 1.f);
+    P.q[TAIL] = qx(-0.25f * Saturate(a.tail) + 0.05f * amp * sinf(ph + 1.f) + 0.25f * dead);
+    // ---- neck and head
+    float ext = Clamp(a.neck, -1.f, 1.f);
+    float retract = Max(0.f, -ext), stretch = Max(0.f, ext);
+    float peck = Saturate(a.peck);
+    float nS = B.neckS;
+    // straighten the S (strike) or fold it back onto the shoulders (flight retraction)
+    float n1 = -stretch * (nS * 0.9f + 0.35f) + retract * (0.9f + nS * 0.5f) - peck * 0.95f;
+    float n2 = stretch * nS * 0.8f - retract * (1.6f + nS) - peck * 0.5f;
+    float n3 = -stretch * nS * 0.4f + retract * (1.0f + nS * 0.5f) - peck * 0.2f;
+    float hp = -retract * 0.35f + a.headPitch + peck * 0.4f;
+    // pigeon head bob: neck thrusts forward then holds while walking
+    float bob = a.walkAmt * (m.species == SP_PIGEON ? 1.f : 0.3f) * (fracf(a.walk / kTwoPi * 2.f) < 0.35f ? -0.25f : 0.12f);
+    float hy = Clamp(a.headYaw, -1.9f, 1.9f);
+    P.q[NECK1] = qz(hy * 0.15f) * qx(n1 + bob * 0.5f + 0.35f * dead);
+    P.q[NECK2] = qz(hy * 0.25f) * qx(n2 - bob);
+    P.q[NECK3] = qz(hy * 0.25f) * qx(n3 + bob * 0.5f - 0.5f * dead);
+    P.q[HEAD] = qz(hy * 0.35f) * qx(hp - 0.3f * dead);
+    P.q[JAW] = qx(-Saturate(a.mouth) * (m.species == SP_PELICAN ? 0.55f : 0.45f));
+    if (m.species == SP_PELICAN) P.s[JAW] = vec3(1.f, 1.f, 1.f + 0.8f * Saturate(a.mouth));
+    // ---- legs
+    float legs = Saturate(a.legs) * (1.f - dead);
+    float sit = Saturate(a.sit);
+    float stance = B.stance * legs * (1.f - sit);
+    float bodyPitch = stance + 0.9f * Saturate(a.flare) - 0.25f * peck * legs;
+    P.rootRot = qx(bodyPitch);
+    for (int sd = -1; sd <= 1; sd += 2) {
+        int l1 = sd < 0 ? LL1 : LR1, l2 = sd < 0 ? LL2 : LR2, l3 = sd < 0 ? LL3 : LR3;
+        float side = sd < 0 ? 0.f : kPi;
+        float w = a.walkAmt * legs;
+        float swing = sinf(a.walk + side);
+        float lift = Max(0.f, cosf(a.walk + side));
+        // tucked in flight: waders trail their legs straight behind, the others pull the feet up under the tail
+        float tuckA = wader ? -1.5f : -1.2f, tuckB = wader ? -0.32f : 1.9f;
+        float stepA = -bodyPitch + w * (wader ? 0.4f : 0.5f) * swing;
+        float stepB = w * (wader ? 1.1f : 0.7f) * lift;
+        float sitA = 0.6f, sitB = -2.3f;
+        float aA = Lerp(Lerp(tuckA, stepA, legs), sitA, sit * legs) + 0.4f * Saturate(a.flare);
+        float aB = Lerp(Lerp(tuckB, stepB, legs), sitB, sit * legs);
+        P.q[l1] = qx(aA);
+        P.q[l2] = qx(aB);
+        P.q[l3] = qx(-aA - aB + (1.f - legs) * (wader ? 0.f : 1.2f));   // keep the foot flat on the ground
+        if (dead > 0.f) P.q[l2] = qx(Lerp(aB, 0.6f, dead));
+    }
+    // standing: shift the body so the feet stay on the ground reference
+    if (legs > 0.01f) {
+        Frames F;
+        poseSkeleton(sk, P, nullptr, &F);
+        float footZ = Min(F.p[LL3].z, F.p[LR3].z);
+        float bindZ = sk.bind[LL3].z;
+        P.rootPos.z += (bindZ - footZ) * legs;
+        P.rootPos.z -= sit * legs * (m.legLen - B.bodyHB * 0.8f);
+        P.rootPos.z += 0.012f * a.walkAmt * legs * fabsf(sinf(a.walk)) * (B.bodyLen / 0.3f);
+    }
+}
+
+// ---- quadrupeds ---------------------------------------------------------------------------------------------------
+namespace fauna_detail {
+struct GaitMix {
+    float off[4];
+    float duty, lift, bob, flex;
+    float a, b;   // stride = h * (a + b * froude speed)
+};
+GaitMix gaitMix(float g) {
+    static const float kOff[4][4] = {{0.25f, 0.75f, 0.f, 0.5f}, {0.f, 0.5f, 0.5f, 0.f}, {0.6f, 0.3f, 0.3f, 0.f}, {0.55f, 0.45f, 0.f, 0.1f}};
+    static const float kDuty[4] = {0.66f, 0.5f, 0.4f, 0.34f};
+    static const float kLift[4] = {0.10f, 0.16f, 0.2f, 0.24f};
+    static const float kBob[4] = {0.012f, 0.025f, 0.04f, 0.05f};
+    static const float kFlex[4] = {0.f, 0.02f, 0.08f, 0.14f};
+    static const float kA[4] = {0.9f, 1.f, 1.2f, 1.5f};
+    static const float kB[4] = {0.6f, 0.6f, 0.9f, 1.0f};
+    g = Clamp(g, 0.f, 3.f);
+    int g0 = Min((int)floorf(g), 3), g1 = Min(g0 + 1, 3);
+    float f = g - (float)g0;
+    GaitMix m;
+    for (int i = 0; i < 4; i++) {
+        // blend phase offsets on the circle
+        float d = kOff[g1][i] - kOff[g0][i];
+        if (d > 0.5f) d -= 1.f;
+        if (d < -0.5f) d += 1.f;
+        m.off[i] = fracf(kOff[g0][i] + d * f);
+    }
+    m.duty = Lerp(kDuty[g0], kDuty[g1], f);
+    m.lift = Lerp(kLift[g0], kLift[g1], f);
+    m.bob = Lerp(kBob[g0], kBob[g1], f);
+    m.flex = Lerp(kFlex[g0], kFlex[g1], f);
+    m.a = Lerp(kA[g0], kA[g1], f);
+    m.b = Lerp(kB[g0], kB[g1], f);
+    return m;
+}
+}  // namespace fauna_detail
+
+float quadCycleRate(const ModelData& m, float speed, float gait) {
+    QuadSpec Q = quadSpec(m.species, m.variant);
+    float h = (Q.withers + Q.hipH) * 0.5f;
+    GaitMix gm = gaitMix(gait);
+    float fr = speed / sqrtf(9.81f * h);
+    float stride = h * (gm.a + gm.b * fr);
+    return speed > 0.01f ? speed / Max(stride, 0.05f) : 0.f;
+}
+
+void animateQuad(const ModelData& m, const QuadAnim& a, Pose& P, const float* footGround) {
+    using namespace QuadBone;
+    const Skel& sk = m.skel;
+    P.reset(sk.n);
+    QuadSpec Q = quadSpec(m.species, m.variant);
+    float W = Q.withers, H = Q.hipH, h = (W + H) * 0.5f;
+    float dead = Saturate(a.dead), sit = Saturate(a.sit) * (1.f - dead), lie = Saturate(a.lie) * (1.f - dead);
+    float crouch = Saturate(a.crouch) * (1.f - dead), rear = Saturate(a.rear) * (1.f - dead);
+    GaitMix gm = gaitMix(a.gait);
+    float moving = sstep(0.05f, 0.4f, a.speed) * (1.f - sit) * (1.f - lie) * (1.f - dead);
+    float fr = a.speed / sqrtf(9.81f * h);
+    float stride = h * (gm.a + gm.b * fr);
+    float stroke = stride * gm.duty;
+    float ph = a.phase;
+    bool small = m.species == SP_DOG || m.species == SP_CAT || m.species == SP_RACCOON;
+    float flexK = (m.species == SP_HORSE || m.species == SP_COW) ? 0.3f : (m.species == SP_DEER ? 0.7f : 1.f);
+    // ---- body motion
+    float bob = gm.bob * W * moving * (a.gait > 2.2f ? sinf(kTwoPi * ph) : cosf(2.f * kTwoPi * ph));
+    float flex = gm.flex * flexK * moving * sinf(kTwoPi * (ph - 0.1f));
+    float pitch = (a.gait > 2.2f ? 0.05f * sinf(kTwoPi * (ph + 0.15f)) : 0.f) * moving;
+    float turn = Clamp(a.turn, -2.5f, 2.5f);
+    P.q[CHEST] = qz(turn * 0.08f) * qx(flex);
+    P.q[PELVIS] = qz(-turn * 0.06f) * qx(-flex);
+    P.q[BODY] = qy(-turn * 0.03f * Saturate(a.speed / 3.f));   // lean into turns
+    P.rootPos = vec3(0, 0, bob - crouch * 0.22f * h);
+    P.rootRot = qx(pitch - crouch * 0.05f);
+    // postures
+    if (sit > 0.f) {   // dogs/cats: hips down, chest up
+        vec3 pivot = vec3(0, sk.bind[FL1].y, 0.f);
+        rotateRootAbout(sk, P, pivot, qx(0.62f * sit));
+        P.rootPos.z -= 0.06f * h * sit;
+    }
+    if (lie > 0.f) {
+        float drop = (sk.bind[BODY].z - Q.depth * 0.95f) * lie;
+        P.rootPos.z -= drop;
+    }
+    if (rear > 0.f) rotateRootAbout(sk, P, vec3(0, sk.bind[HL1].y, 0.f), qx(0.75f * rear));
+    if (dead > 0.f) {
+        float rollDir = 1.f;
+        P.rootRot = normalize(slerp(P.rootRot, qy(1.5f * rollDir), dead));
+        P.rootPos.z = Lerp(P.rootPos.z, -(sk.bind[BODY].z - Q.bodyW * 1.05f), dead);
+    }
+    // ---- neck, head, look, grazing
+    float hd = Saturate(a.headDown) * (1.f - dead);
+    float longNeck = m.species == SP_HORSE || m.species == SP_COW || m.species == SP_DEER ? 1.f : 0.f;
+    float nod = (longNeck > 0.f ? 0.05f : 0.02f) * moving * sinf(2.f * kTwoPi * (ph + 0.1f)) * (a.gait < 1.5f ? 1.f : 0.3f);
+    float alertUp = 0.22f * Saturate(a.alert);
+    float ly = Clamp(a.lookYaw, -1.6f, 1.6f), lp = Clamp(a.lookPitch, -0.8f, 0.8f);
+    float n1 = -hd * (longNeck > 0.f ? 1.05f : 0.75f) + alertUp + nod - 0.25f * crouch - (a.gait > 2.2f ? 0.18f : 0.f) * moving + sit * 0.25f;
+    P.q[NECK1] = qz(ly * 0.25f) * qx(n1 - 0.4f * dead);
+    P.q[NECK2] = qz(ly * 0.35f) * qx(-hd * 0.35f + alertUp * 0.3f - 0.3f * dead);
+    P.q[HEAD] = qz(ly * 0.4f) * qx(lp - hd * 0.25f + (longNeck > 0.f ? hd * 0.2f : 0.f) - 0.2f * dead);
+    float maxJaw = m.species == SP_CAT ? 0.6f : (m.species == SP_DOG ? 0.5f : (m.species == SP_RACCOON ? 0.45f : 0.3f));
+    P.q[JAW] = qx(-Saturate(a.mouth) * maxJaw);
+    // ears: erect ears prick forward when alert; floppy ones swing with the gait
+    for (int sd = -1; sd <= 1; sd += 2) {
+        int eb = sd < 0 ? EAR_L : EAR_R;
+        float sw = Q.earFlop > 0.5f ? 0.15f * moving * sinf(kTwoPi * 2.f * ph + (float)sd) : 0.f;
+        float perk = Q.earFlop > 0.5f ? 0.f : 0.2f * Saturate(a.alert) - 0.5f * crouch;
+        P.q[eb] = qx(perk + sw);
+    }
+    // ---- tail: wag / swish / flag
+    {
+        float wag = Saturate(a.tailWag);
+        float t = a.t;
+        float sw = 0.f, up = 0.f;
+        if (m.species == SP_DOG) {
+            sw = wag * 0.55f * sinf(t * 17.f);
+            up = 0.35f * Saturate(a.alert) - 0.7f * crouch + 0.2f * moving * (a.gait > 1.5f ? 1.f : 0.f);
+        } else if (m.species == SP_CAT) {
+            sw = 0.25f * sinf(t * 1.3f) + wag * 0.4f * sinf(t * 6.f);
+            up = 0.4f * moving - 0.5f * crouch;
+        } else if (m.species == SP_HORSE || m.species == SP_COW) {
+            sw = 0.22f * sinf(t * 0.9f + 1.f) + 0.12f * sinf(t * 2.3f) + wag * 0.5f * sinf(t * 5.f);
+            up = 0.25f * moving * (a.gait > 1.5f ? 1.f : 0.f);
+        } else if (m.species == SP_DEER) {
+            sw = 0.1f * sinf(t * 3.f);
+            up = 1.1f * Saturate(a.alert * 0.4f + moving * (a.gait > 1.5f ? 1.f : 0.f));   // white flag up when fleeing
+        } else {
+            sw = 0.15f * sinf(t * 1.5f);
+            up = -0.3f * crouch;
+        }
+        if (dead > 0.f) {
+            sw *= 1.f - dead;
+            up = Lerp(up, -0.3f, dead);
+        }
+        P.q[TAIL1] = qz(sw * 0.5f) * qx(up);
+        P.q[TAIL2] = qz(sw * 0.7f + 0.2f * sinf(a.t * 17.f - 1.f) * wag * (m.species == SP_DOG ? 1.f : 0.f)) * qx(up * 0.3f);
+        P.q[TAIL3] = qz(sw * 0.8f) * qx(up * 0.2f);
+    }
+    // ---- legs
+    Frames F;
+    poseSkeleton(sk, P, nullptr, &F);
+    for (int leg = 0; leg < 4; leg++) {
+        bool front = leg < 2;
+        int sd = (leg & 1) ? 1 : -1;
+        int b1 = m.legBone[leg][0], b2 = m.legBone[leg][1], b3 = m.legBone[leg][2];
+        vec3 rest = sk.bind[b3] + m.legEnd[leg];   // toe contact in the bind pose
+        vec3 target = rest;
+        vec3 d3 = normalize(m.legEnd[leg]);
+        vec3 pole = front ? vec3(0, -1, 0) : vec3(0, 1, 0);
+        if (dead > 0.f) {
+            // limp: legs relaxed, slightly bent
+            P.q[b1] = qx((front ? 0.25f : -0.3f) * dead + 0.1f * (float)sd);
+            P.q[b2] = qx((front ? -0.4f : 0.5f) * dead);
+            P.q[b3] = qx((front ? 0.6f : -0.4f) * dead);
+            continue;
+        }
+        // gait cycle
+        float p = fracf(ph - gm.off[leg] + 1.f);
+        float y = 0.f, z = 0.f;
+        if (p < gm.duty) {
+            float s = p / gm.duty;
+            y = stroke * (0.5f - s);
+        } else {
+            float s = (p - gm.duty) / (1.f - gm.duty);
+            y = stroke * (-0.5f + smooth01(s));
+            z = gm.lift * h * sinf(kPi * s) * (front ? 1.1f : 0.9f);
+            // the lower segment flips back during the swing (carpus / fetlock flexion)
+            float flexS = sinf(kPi * s) * moving;
+            if (front) d3 = normalize(d3 + vec3(0, -1.6f, 0.9f) * flexS);
+            else d3 = normalize(d3 + vec3(0, -0.6f, 0.2f) * flexS);
+        }
+        target = rest + vec3(0, y * moving, z * moving);
+        if (footGround) target.z += footGround[leg];
+        // postures
+        if (sit > 0.f && !front) {
+            target = lerp(target, rest + vec3(0, Q.bodyLen * 0.28f, 0.f), sit);
+            d3 = normalize(lerp(d3, vec3(0, 1.f, -0.12f), sit));
+        }
+        if (sit > 0.f && front) target = lerp(target, rest + vec3(0, -0.02f * h, 0.f), sit);
+        if (lie > 0.f) {
+            if (front && small) {   // sphinx: forelegs forward
+                target = lerp(target, rest + vec3(0, 0.3f * h, 0.f), lie);
+                d3 = normalize(lerp(d3, vec3(0, 1.f, -0.1f), lie));
+            } else {   // folded underneath
+                target = lerp(target, rest + vec3((float)sd * 0.05f * h, front ? -0.1f * h : 0.15f * h, 0.f), lie);
+                d3 = normalize(lerp(d3, front ? vec3(0, -1.f, -0.15f) : vec3(0, 1.f, -0.1f), lie));
+            }
+        }
+        if (rear > 0.f && front) {
+            target = lerp(target, F.p[b1] + vec3(0, 0.2f * h, -0.35f * h), rear);
+            d3 = normalize(lerp(d3, vec3(0, -1.f, 0.4f), rear));
+        }
+        legIK3(sk, P, F, b1, b2, b3, m.legEnd[leg], target, d3, pole);
+    }
+}
+
+// ---- reptiles -----------------------------------------------------------------------------------------------------
+float reptileCycleRate(const ModelData& m, float speed) {
+    float L = speciesInfo(m.species).length;
+    float stride = L * 0.28f + speed * 0.25f;
+    return speed > 0.01f ? speed / Max(stride, 0.05f) : 0.f;
+}
+
+void animateReptile(const ModelData& m, const ReptileAnim& a, Pose& P) {
+    using namespace ReptBone;
+    const Skel& sk = m.skel;
+    P.reset(sk.n);
+    ReptSpec R = reptSpec(m.species);
+    float dead = Saturate(a.dead), swim = Saturate(a.swim) * (1.f - dead);
+    float walkK = (1.f - swim) * (1.f - dead);
+    float moving = sstep(0.03f, 0.25f, a.speed) * walkK;
+    float ph = a.phase;
+    float L = speciesInfo(m.species).length;
+    // ---- spine: standing wave when walking, travelling wave down the tail when swimming
+    float und = 0.16f * moving;
+    float turn = Clamp(a.turn, -2.f, 2.f);
+    P.q[CHEST] = qz(und * sinf(kTwoPi * ph) + turn * 0.12f);
+    P.q[PELVIS] = qz(-und * sinf(kTwoPi * ph) - turn * 0.1f);
+    float sph = a.swimPhase;
+    for (int k = 0; k < 6; k++) {
+        float kk = (float)k;
+        float walkWave = -0.12f * moving * sinf(kTwoPi * ph - 0.6f * kk);
+        float swimWave = swim * (0.1f + 0.05f * kk) * sinf(sph - 0.75f * kk);
+        float idle = 0.03f * sinf(a.t * 0.4f + kk * 0.5f) * (1.f - moving) * (1.f - dead);
+        P.q[TAIL1 + k] = qz(walkWave + swimWave + idle - turn * 0.08f);
+    }
+    P.q[BODY] = qz(swim * 0.05f * sinf(sph + 0.8f));
+    // ---- head, jaw, hiss
+    float hiss = Saturate(a.hiss) * (1.f - dead);
+    float jaw = Max(Saturate(a.jaw), hiss * 0.75f);
+    P.q[NECK] = qz(a.headYaw * 0.5f) * qx(hiss * 0.18f + a.headPitch * 0.5f);
+    P.q[HEAD] = qz(a.headYaw * 0.5f) * qx(a.headPitch * 0.5f + jaw * 0.12f - 0.05f * dead);
+    P.q[JAW] = qx(-jaw * (m.species == SP_GATOR ? 0.85f : 0.5f));
+    float inflate = 1.f + 0.07f * hiss;
+    P.s[BODY] = P.s[CHEST] = vec3(inflate, 1.f, inflate);
+    // ---- body height: belly on the ground .. high walk; swimming floats level
+    float lift = Saturate(a.lift);
+    float belly = R.bodyZ - R.bodyHB;
+    P.rootPos.z = -(1.f - lift) * (belly - 0.01f * L / 3.4f) * walkK;
+    P.rootRot = qy(a.roll);
+    if (dead > 0.f) P.rootRot = normalize(P.rootRot * slerp(quat(), qy(kPi * 0.5f), dead));
+    // ---- legs
+    Frames F;
+    poseSkeleton(sk, P, nullptr, &F);
+    float stride = L * 0.28f + a.speed * 0.25f;
+    float duty = 0.68f;
+    static const float kOff[4] = {0.f, 0.5f, 0.5f, 0.f};   // diagonal pairs
+    for (int leg = 0; leg < 4; leg++) {
+        bool front = leg < 2;
+        int sd = (leg & 1) ? 1 : -1;
+        int b1 = m.legBone[leg][0], b2 = m.legBone[leg][1], b3 = m.legBone[leg][2];
+        if (swim > 0.5f || dead > 0.5f) {
+            // tucked back along the flanks
+            float s = -(float)sd;
+            P.q[b1] = qz(s * (front ? 1.15f : 1.4f)) * qy(s * 0.25f);
+            P.q[b2] = qz(s * (front ? -0.6f : -0.3f)) * qy(s * -0.4f);
+            P.q[b3] = qz(s * 0.4f);
+            if (dead > 0.5f) P.q[b1] = qy(s * 0.6f) * qz(s * 0.3f);
+            continue;
+        }
+        vec3 rest = sk.bind[b3] + m.legEnd[leg];
+        rest.z = -P.rootPos.z * 0.f;   // feet stay on the ground (model z = 0)
+        rest.z = 0.f;
+        float p = fracf(ph - kOff[leg] + 1.f);
+        float y = 0.f, z = 0.f;
+        float strk = stride * duty * moving;
+        if (p < duty) y = strk * (0.5f - p / duty);
+        else {
+            float s = (p - duty) / (1.f - duty);
+            y = strk * (-0.5f + smooth01(s));
+            z = 0.12f * R.bodyZ * sinf(kPi * s) * moving;
+        }
+        vec3 target = rest + vec3((float)sd * 0.03f * (1.f - lift) * L / 3.4f, y, z);
+        vec3 d3 = normalize(vec3((float)sd * 0.25f, front ? 0.25f : 0.35f, -1.f));
+        vec3 pole = normalize(vec3((float)sd * 1.f, front ? -0.6f : 0.4f, 0.8f));
+        legIK3(sk, P, F, b1, b2, b3, m.legEnd[leg], target, d3, pole);
+    }
+}
+
+// ---- swimmers -----------------------------------------------------------------------------------------------------
+void animateSwimmer(const ModelData& m, const SwimAnim& a, Pose& P) {
+    using namespace SwimBone;
+    P.reset(m.skel.n);
+    float amp = Clamp(a.amp, 0.f, 1.6f) * (1.f - Saturate(a.dead));
+    float ph = a.phase;
+    float turn = Clamp(a.turn, -2.f, 2.f);
+    float bend = Clamp(a.pitch, -1.2f, 1.2f);
+    switch (m.species) {
+        case SP_DOLPHIN: case SP_MANATEE: {
+            float k = m.species == SP_MANATEE ? 0.8f : 1.f;
+            P.q[FRONT] = qz(turn * 0.12f) * qx(-0.04f * amp * sinf(ph) + bend * 0.25f);
+            P.q[HEAD] = qz(turn * 0.06f + a.headYaw) * qx(-0.03f * amp * sinf(ph - 0.3f) + bend * 0.1f);
+            P.q[BACK1] = qz(-turn * 0.14f) * qx(0.12f * k * amp * sinf(ph - 0.4f) - bend * 0.2f);
+            P.q[BACK2] = qz(-turn * 0.18f) * qx(0.24f * k * amp * sinf(ph - 1.0f) - bend * 0.15f);
+            P.q[TAILFIN] = qz(-turn * 0.1f) * qx(0.38f * k * amp * sinf(ph - 1.7f));
+            float fl = 0.12f * sinf(ph * 0.5f) + turn * 0.25f;
+            P.q[FIN_L] = qy(0.2f + fl) * qx(-0.1f);
+            P.q[FIN_R] = qy(-0.2f + fl) * qx(-0.1f);
+            break;
+        }
+        case SP_TURTLE: {
+            float st = sinf(ph), ct = cosf(ph);
+            P.q[FIN_L] = qz(0.35f * amp * ct) * qy(0.55f * amp * st + 0.1f) * qx(0.35f * amp * ct);
+            P.q[FIN_R] = qz(-0.35f * amp * ct) * qy(-0.55f * amp * st - 0.1f) * qx(0.35f * amp * ct);
+            P.q[FIN_L2] = qz(0.25f * sinf(ph * 0.5f)) * qy(0.2f);
+            P.q[FIN_R2] = qz(-0.25f * sinf(ph * 0.5f)) * qy(-0.2f);
+            P.q[HEAD] = qz(a.headYaw + turn * 0.2f) * qx(0.05f * sinf(a.t * 0.7f));
+            P.q[FRONT] = qx(bend * 0.1f);
+            break;
+        }
+        default: {   // fish: lateral undulation
+            P.q[FRONT] = qz(0.06f * amp * sinf(ph) + turn * 0.12f);
+            P.q[BACK1] = qz(-0.12f * amp * sinf(ph - 0.8f) - turn * 0.12f) * qx(bend * 0.1f);
+            P.q[BACK2] = qz(-0.28f * amp * sinf(ph - 1.5f) - turn * 0.18f);
+            P.q[TAILFIN] = qz(-0.42f * amp * sinf(ph - 2.2f) - turn * 0.1f);
+            P.q[FIN_L] = qz(0.35f + 0.3f * sinf(a.t * 7.f));
+            P.q[FIN_R] = qz(-0.35f - 0.3f * sinf(a.t * 7.f + 1.f));
+            break;
+        }
+    }
+}
+
+// ---- leash --------------------------------------------------------------------------------------------------------
+void leashMatrices(const ModelData& m, const Frames& fr, vec3 handModel, float ropeLen, bool hidden, mat4* skin) {
+    using namespace QuadBone;
+    const Skel& sk = m.skel;
+    if (sk.n <= LEASH0 + kLeashSegments - 1) return;
+    vec3 collar = fr.p[NECK2] + rotate(fr.r[NECK2], (m.collar - sk.bind[NECK2]) * fr.g[NECK2]);
+    if (hidden) {
+        for (int k = 0; k < kLeashSegments; k++) skin[LEASH0 + k] = mat4(vec4(0.f), vec4(0.f), vec4(0.f), vec4(collar, 1.f));
+        return;
+    }
+    vec3 d = handModel - collar;
+    float dist = length(d);
+    float slack = Max(0.f, ropeLen - dist);
+    float sag = Min(sqrtf(3.f * Max(dist, 0.05f) * slack / 8.f) + slack * 0.25f, 1.2f);
+    vec3 P[kLeashSegments + 1];
+    for (int k = 0; k <= kLeashSegments; k++) {
+        float t = (float)k / (float)kLeashSegments;
+        P[k] = lerp(collar, handModel, t) - vec3(0, 0, sag * 4.f * t * (1.f - t));
+        P[k].z = Max(P[k].z, 0.012f);   // lies on the ground rather than going through it
+    }
+    vec3 bd = normalize(vec3(0, 0.35f, 1.f));
+    const float seg0 = 0.3f;
+    for (int k = 0; k < kLeashSegments; k++) {
+        vec3 q0 = sk.bind[LEASH0 + k];
+        vec3 dir = P[k + 1] - P[k];
+        float len = length(dir);
+        vec3 u = len > 1e-5f ? dir / len : bd;
+        mat3 R = mat3FromQuat(quatFromTo(bd, u));
+        float s = len / seg0;
+        // L(v) = R (v + (s - 1) bd (bd . v))
+        vec3 cx = R * (vec3(1, 0, 0) + bd * ((s - 1.f) * bd.x));
+        vec3 cy = R * (vec3(0, 1, 0) + bd * ((s - 1.f) * bd.y));
+        vec3 cz = R * (vec3(0, 0, 1) + bd * ((s - 1.f) * bd.z));
+        vec3 t = P[k] - (cx * q0.x + cy * q0.y + cz * q0.z);
+        skin[LEASH0 + k] = mat4(vec4(cx, 0.f), vec4(cy, 0.f), vec4(cz, 0.f), vec4(t, 1.f));
+    }
+}
+
+// ---- boids --------------------------------------------------------------------------------------------------------
+vec3 boidSteer(const vec3* pos, const vec3* vel, int n, int self, const BoidParams& bp) {
+    vec3 sep(0.f), ali(0.f), coh(0.f);
+    int na = 0;
+    float view2 = bp.viewDist * bp.viewDist;
+    vec3 me = pos[self];
+    for (int i = 0; i < n; i++) {
+        if (i == self) continue;
+        vec3 d = me - pos[i];
+        float d2 = length2(d);
+        if (d2 > view2) continue;
+        float dd = sqrtf(d2);
+        if (dd < bp.sepDist) {
+            if (dd > 1e-4f) sep += d * ((1.f - dd / bp.sepDist) / dd);
+            else sep += vec3(((i * 7 + self) & 1) ? 0.3f : -0.3f, 0.2f, 0.f);
+        }
+        ali += vel[i];
+        coh += pos[i];
+        na++;
+    }
+    vec3 f = sep * bp.wSep;
+    if (na > 0) {
+        float inv = 1.f / (float)na;
+        f += (ali * inv - vel[self]) * bp.wAli;
+        f += (coh * inv - me) * bp.wCoh;
+    }
+    return f;
+}
+
+// ---- dispatcher ---------------------------------------------------------------------------------------------------
+void buildModel(int species, int variant, ModelData& out) {
+    out = ModelData();
+    out.species = species;
+    out.variant = variant;
+    switch (speciesInfo(species).plan) {
+        case PLAN_BIRD: buildBird(species, variant, out); break;
+        case PLAN_QUAD: buildQuad(species, variant, out); break;
+        case PLAN_REPTILE: buildReptile(species, variant, out); break;
+        default: buildSwimmer(species, variant, out); break;
+    }
+}
+
+}  // namespace Fauna
