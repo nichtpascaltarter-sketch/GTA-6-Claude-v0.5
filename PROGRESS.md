@@ -209,6 +209,9 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
 - Characters (pass 3): skin gloss, pores and creases live on characters; brows on the brow ridge; age folds; full
   beards; hands with phalanges, nails and a forearm roll; glasses at real frame sizes; a caricature guard on face
   proportions; bikini cuts; individual teeth and lashes on both lids.
+- First-person melee: fists come up in a boxing guard while fighting and every strike (jab, cross, uppercut, hook,
+  shove) follows its own path to the target, timed by the move's contact frame. A knife is held in view whenever it is
+  out; a bat rests on the shoulder with both hands on the handle (`--autoplay melee --meleeweapon knife|bat`).
 - AI and police:
   - venue crowds at the port gate and yard, the airport curb and taxi rank, and the Sawgrass causeway and airboat
     landing;
@@ -216,7 +219,9 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
     paced lane changes, heavy-vehicle braking, long vehicles backing out of tight turns, turning circles one car at a
     time, sidewalks round turning bulbs);
   - police: a search plan of corners and doorways once the suspect is lost; surrender by holding the phone key while
-    wanted and empty-handed (officers cover and cuff, with a lighter penalty); NPC suspects surrender too.
+    wanted and empty-handed (officers cover and cuff, with a lighter penalty); NPC suspects surrender too; K9 units
+    (a handler and a German shepherd) follow the player's scent trail at two stars and up, and the dog can be
+    released on a runner.
 - Missions: campaign regression 20/21 story missions (the one failure was a harness artifact, fixed); the Night
   Series championship, the Ortega Harbor Runs, a SkyLine set piece for the Bagman chase, and cutscenes staged inside
   interiors.
@@ -262,8 +267,12 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
 - Not verified on real hardware: run `NeonTide.exe --benchmark` on an RTX 4070-class PC (target 60 fps @1440p High).
   Renderer estimate ~8 ms GPU; under Wine/llvmpipe the benchmark reports CPU update ~4 ms, render submit ~10 ms
   with ~110 peds / 70 vehicles (software D3D translation, not representative).
-- Visual gap vs GTA 6 (largest): characters still stylized at close range (realism pass 2 in progress: sculpted faces
-  done, strand-card hair / eyelashes / clothing folds next); procedural building massing repeats; vehicles procedural.
+- Visual gap vs GTA 6 (largest): faces still read as stylized at conversation distance (pass 3 finished skin
+  channels, brows, hands, glasses, teeth and lashes). Pass 4 (clothing folds and layers, body variety, hair volume,
+  crowd LODs) and the animation pass (gait variety, idles, look-at) are in progress. Procedural building massing still
+  repeats; unique places (deco strip, campus, cemeteries, hospitals, prison, speedway) are in progress. Vehicles are
+  procedural. A screen-quadrant tint (black, later orange) appears in some first-person frames; the renderer is
+  looking at lights close to the lens in the froxel fog.
 - Renderer limitations: the curly hairstyle's top highlight reads white/grey, no iris parallax, env probe without
   parallax correction and dynamic objects, froxel fog halos soft at 1440p, oil drips per lane (no stop-line data);
   sand / unpaved ground turns into dark blotches under a grazing sunset sun (renderer agent).
