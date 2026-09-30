@@ -119,6 +119,9 @@ struct BodyDims {
     // corner (0..1), the fissure height scale; lip border definition (white roll) and mouth corner depth
     float creaseDeg, creaseDepth, hood, epicanthic, apertureH, lipBorder, cornerDepth;
     float earAngle;         // cephaloauricular angle (radians): how far the auricle stands off the head
+    float faceH, philtrum, foreheadH, cheekH;          // face height below the eyes, philtrum length, hairline offset (deg), cheekbone height (m)
+    float browArch, browThick, browTilt, lipRatio;     // brow arch / thickness multipliers, outer end tilt (deg), upper / lower lip
+    float noseScoop, noseBulb;                         // concave dorsum 0..1, tip lobule size multiplier
     int ancestry;           // resolved CharacterDesc::ancestry (0..4)
 };
 void computeDims(const CharacterDesc& d, BodyDims& D);

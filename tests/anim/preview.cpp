@@ -77,6 +77,8 @@ static vec3 matAlbedo(u32 mat, vec3 col) {
     }
 }
 
+static float gNear = 0.1f;   // near clip (m); --fp views use 0.02
+
 struct Cam {
     vec3 eye, target;
     float fov = 30.f;
@@ -85,7 +87,7 @@ struct Cam {
         view = lookAtRH(eye, target, vec3(0, 0, 1));
         float f = 1.f / tanf(fov * kDegToRad * 0.5f);
         float a = (float)w / h;
-        proj = mat4(vec4(f / a, 0, 0, 0), vec4(0, f, 0, 0), vec4(0, 0, -1, -1), vec4(0, 0, -0.1f, 0));
+        proj = mat4(vec4(f / a, 0, 0, 0), vec4(0, f, 0, 0), vec4(0, 0, -1, -1), vec4(0, 0, -gNear, 0));
     }
 };
 
@@ -126,7 +128,7 @@ static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const
     vec3 L1 = normalize(vec3(0.35f, 0.75f, 0.65f)), L2 = normalize(vec3(-0.6f, 0.3f, 0.2f));
     for (size_t t = 0; t + 2 < idx.size(); t += 3) {
         u32 i0 = idx[t], i1 = idx[t + 1], i2 = idx[t + 2];
-        if (vz[i0] < 0.1f || vz[i1] < 0.1f || vz[i2] < 0.1f) continue;
+        if (vz[i0] < gNear || vz[i1] < gNear || vz[i2] < gNear) continue;
         vec3 a = sp[i0], b = sp[i1], c = sp[i2];
         float area = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
         u32 matT = mats[i0];
@@ -332,6 +334,8 @@ int main(int argc, char** argv) {
     int lodSel = -1;
     bool tiles = false;
     int ss = 1;
+    int fpMode = 0;
+    float fpFov = 60.f;
     float stripDt = -1.f;
     std::vector<int> clipList;
     for (int i = 2; i < argc; i++) {
@@ -361,6 +365,9 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--visemes")) visemes = true;        // one character per viseme (0..14)
         else if (!strcmp(argv[i], "--lod")) lodSel = atoi(nx());        // render this LOD (buildCharacterMeshLods)
         else if (!strcmp(argv[i], "--tiles")) tiles = true;             // one tile per character, camera on its head
+        else if (!strcmp(argv[i], "--fp")) fpMode = atoi(nx());          // first-person hands: 1 rifle ADS, 2 rifle hip,
+                                                                        // 3 pistol ADS, 4 pistol hip, 5 shotgun hip, 6 fists
+        else if (!strcmp(argv[i], "--fpfov")) fpFov = (float)atof(nx());
         else if (!strcmp(argv[i], "--ss")) ss = Clamp(atoi(nx()), 1, 4); // supersampling factor
         else if (!strcmp(argv[i], "--clips")) {
             // comma separated clip list, one per character
@@ -582,6 +589,64 @@ int main(int argc, char** argv) {
             pose.rot[B_EYE_L] = normalize(pose.rot[B_EYE_L] * quatAxisAngle(vec3(0, 0, 1), a));
             pose.rot[B_EYE_R] = normalize(pose.rot[B_EYE_R] * quatAxisAngle(vec3(0, 0, 1), a));
         }
+        vec3 fpEye(0), fpW0(0), fpWx(1, 0, 0), fpWy(0, 1, 0), fpWz(0, 0, 1);
+        if (fpMode > 0) {
+            // first-person weapon hold as src/game/fpweapon.cpp does it: weapon placed in camera space (the camera at
+            // the eyes, looking along +Y), both hands IK'd onto its grips with Anim::holdGrip
+            mat4 m0[B_COUNT];
+            computeMatrices(ch.sk, pose, m0, nullptr);
+            fpEye = (m0[B_EYE_L].c[3].xyz() + m0[B_EYE_R].c[3].xyz()) * 0.5f + vec3(0.f, 0.02f, 0.f);
+            struct G { vec3 pos, axis, palm; };
+            auto pistolGrip = [](vec3 top, float ang) {
+                vec3 down(0.f, -sinf(ang), -cosf(ang));
+                return G{top + down * 0.035f, -down, vec3(-1.f, 0.12f, 0.f)};
+            };
+            auto cupGrip = [](const G& r) { return G{r.pos + vec3(-0.03f, 0.012f, -0.018f), r.axis, vec3(1.f, 0.1f, 0.3f)}; };
+            auto underGrip = [](vec3 p) { return G{p, vec3(0.f, 1.f, 0.f), vec3(0.25f, 0.f, 1.f)}; };
+            G gr, gl;
+            vec3 sight, hip;
+            float sightDist;
+            bool ads = fpMode == 1 || fpMode == 3, pistol = fpMode == 3 || fpMode == 4;
+            if (pistol) {
+                gr = pistolGrip(vec3(0.f, 0.f, 0.03f), 0.3f);
+                gl = cupGrip(gr);
+                sight = vec3(0.f, 0.16f, 0.078f), sightDist = 0.58f, hip = vec3(0.14f, 0.4f, -0.19f);
+            } else if (fpMode == 5) {
+                gr = G{vec3(0.f, -0.06f, 0.002f), vec3(0.f, 0.55f, 0.83f), vec3(-1.f, 0.1f, 0.f)};
+                gl = underGrip(vec3(0.f, 0.27f, 0.02f));
+                sight = vec3(0.f, 0.607f, 0.0752f), sightDist = 0.88f, hip = vec3(0.13f, 0.16f, -0.2f);
+            } else {
+                gr = pistolGrip(vec3(0.f, -0.02f, 0.02f), 0.3f);
+                gl = underGrip(vec3(0.f, 0.245f, 0.037f));
+                sight = vec3(0.f, 0.12f, 0.11f), sightDist = 0.17f, hip = vec3(0.13f, 0.21f, -0.21f);
+            }
+            vec3 wpos = ads ? vec3(0.f, sightDist, 0.f) - sight : hip;
+            quat wq = ads ? quat() : normalize(detail::qz(atan2f(hip.x, 12.f)) * detail::qx(atan2f(-hip.z, 12.f)) * detail::qy(pistol ? -0.05f : -0.08f));
+            mat3 wr = mat3FromQuat(wq);
+            fpW0 = fpEye + wpos;
+            fpWx = wr * vec3(1, 0, 0), fpWy = wr * vec3(0, 1, 0), fpWz = wr * vec3(0, 0, 1);
+            if (fpMode != 6) {
+                vec3 shR = m0[B_UPPERARM_R].c[3].xyz(), shL = m0[B_UPPERARM_L].c[3].xyz();
+                vec3 gp = fpW0 + wr * gr.pos;
+                holdGrip(ch.sk, pose, true, gp, normalize(wr * gr.axis), normalize(wr * gr.palm), (shR + gp) * 0.5f + vec3(0.3f, -0.05f, -0.3f), 0.9f,
+                         0.55f, 1.f);
+                gp = fpW0 + wr * gl.pos;
+                holdGrip(ch.sk, pose, false, gp, normalize(wr * gl.axis), normalize(wr * gl.palm), (shL + gp) * 0.5f + vec3(-0.2f, -0.05f, -0.35f),
+                         0.85f, 0.5f, 1.f);
+            } else {
+                // fists up in front of the face (guard)
+                vec3 shR = m0[B_UPPERARM_R].c[3].xyz(), shL = m0[B_UPPERARM_L].c[3].xyz();
+                holdGrip(ch.sk, pose, true, fpEye + vec3(0.12f, 0.3f, -0.12f), normalize(vec3(-0.3f, 0.2f, 1.f)), normalize(vec3(-0.6f, 0.2f, -0.2f)),
+                         (shR + fpEye) * 0.5f + vec3(0.3f, -0.05f, -0.4f), 1.f, 1.f, 1.f);
+                holdGrip(ch.sk, pose, false, fpEye + vec3(-0.13f, 0.34f, -0.1f), normalize(vec3(0.3f, 0.2f, 1.f)), normalize(vec3(0.6f, 0.2f, -0.2f)),
+                         (shL + fpEye) * 0.5f + vec3(-0.3f, -0.05f, -0.4f), 1.f, 1.f, 1.f);
+            }
+            gNear = 0.02f;
+            cam.eye = fpEye;
+            cam.target = fpEye + vec3(0.f, 1.f, 0.f);
+            cam.fov = fpFov;
+            cam.setup(W, H);
+        }
         mat4 ms[B_COUNT], skin[B_COUNT];
         computeMatrices(ch.sk, pose, ms, skin);
         std::vector<vec3> P(ch.mesh.verts.size()), N(ch.mesh.verts.size()), A(ch.mesh.verts.size());
@@ -668,6 +733,41 @@ int main(int argc, char** argv) {
                 u32 q[6] = {b0, b0 + 1, b0 + 2, b0, b0 + 2, b0 + 3};
                 if (flip) { std::swap(q[1], q[2]); std::swap(q[4], q[5]); }
                 for (u32 x : q) Is.push_back(x);
+            }
+            drawMesh(img, cam, Ps, Ns, As, Ms, Is);
+        }
+        if (fpMode > 0 && fpMode != 6) {
+            // the gun as a few boxes in weapon space (receiver, barrel, grip / stock)
+            std::vector<vec3> Ps, Ns, As;
+            std::vector<u32> Ms, Is;
+            auto box = [&](vec3 c, vec3 he, vec3 col) {
+                const vec3 axes[3] = {fpWx, fpWy, fpWz};
+                for (int f = 0; f < 6; f++) {
+                    int ax = f / 2;
+                    float sg = (f & 1) ? 1.f : -1.f;
+                    vec3 n = axes[ax] * sg;
+                    vec3 u = axes[(ax + 1) % 3], v = axes[(ax + 2) % 3];
+                    float hu = he[(ax + 1) % 3], hv = he[(ax + 2) % 3];
+                    vec3 fc = fpW0 + fpWx * c.x + fpWy * c.y + fpWz * c.z + n * he[ax];
+                    u32 b = (u32)Ps.size();
+                    vec3 q[4] = {fc - u * hu - v * hv, fc + u * hu - v * hv, fc + u * hu + v * hv, fc - u * hu + v * hv};
+                    for (int k = 0; k < 4; k++) { Ps.push_back(q[k]); Ns.push_back(n); As.push_back(col); Ms.push_back(MAT_PLASTIC); }
+                    bool flip = dot(cross(q[1] - q[0], q[2] - q[0]), n) < 0.f;
+                    u32 id[6] = {b, b + 1, b + 2, b, b + 2, b + 3};
+                    if (flip) { std::swap(id[1], id[2]); std::swap(id[4], id[5]); }
+                    for (u32 x : id) Is.push_back(x);
+                }
+            };
+            vec3 gun(0.35f, 0.35f, 0.38f);
+            if (fpMode == 3 || fpMode == 4) {
+                box(vec3(0.f, 0.07f, 0.05f), vec3(0.013f, 0.095f, 0.016f), gun);
+                box(vec3(0.f, -0.012f, 0.0f), vec3(0.013f, 0.018f, 0.045f), gun * 0.6f);
+            } else {
+                box(vec3(0.f, 0.08f, 0.04f), vec3(0.018f, 0.16f, 0.03f), gun);
+                box(vec3(0.f, 0.35f, 0.04f), vec3(0.008f, 0.12f, 0.008f), gun * 0.8f);
+                box(vec3(0.f, 0.26f, 0.035f), vec3(0.022f, 0.07f, 0.024f), gun * 0.7f);
+                box(vec3(0.f, -0.03f, -0.01f), vec3(0.013f, 0.016f, 0.04f), gun * 0.6f);
+                box(vec3(0.f, -0.16f, 0.03f), vec3(0.015f, 0.08f, 0.03f), gun * 0.5f);
             }
             drawMesh(img, cam, Ps, Ns, As, Ms, Is);
         }

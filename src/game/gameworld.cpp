@@ -424,6 +424,16 @@ void GameWorld::submitRender() {
         d.paintFinish = (float)v.mods.finish;
         d.glassTint = v.mods.tint * 0.3f;
         dyn->submit(d);
+        // boats under way leave a wake on the water (renderer: Kelvin wedge, divergent rings and a foam trail)
+        if (isBoat(vi) && dist < 900.f) {
+            vec3 f = s.forward();
+            vec2 f2(f.x, f.y);
+            float sp = length(vec2(s.body.vel.x, s.body.vel.y));
+            if (sp > 0.5f && length2(f2) > 1e-4f) {
+                dvec3 bow = s.body.pos + dvec3(R * vec3(0.f, a.spec.boxCenter.y + a.spec.boxHalf.y * 0.9f, 0.f));
+                if (map->isWater((float)bow.x, (float)bow.y)) renderer->addWake((int)(v.uid & 0x3fffffffu), bow, normalize(f2), sp, a.spec.boxHalf.x);
+            }
+        }
         // neon underglow: coloured light pools under the body
         if (length2(v.mods.neon) > 1e-4f && dist < 180.f) {
             for (int k = -1; k <= 1; k += 2) {

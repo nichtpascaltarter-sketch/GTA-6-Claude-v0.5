@@ -84,19 +84,19 @@ void addHeadPrims(BuildCtx& c) {
     for (int sd = 0; sd < 2; sd++) {
         float sx = sd ? 1.f : -1.f;
         vec3 gon(sx * gx, 0.004f, -0.031f + 0.004f * (1.f - D.jawFlare));
-        S.ellipsoid(Pv(gon + vec3(0, 0, 0.001f)), vec3(0.012f, 0.019f, 0.016f) * (hs * Lerp(1.f, 0.72f, fem) * (0.9f + 0.2f * D.jawFlare)), HM, R(0.02f));
+        S.ellipsoid(Pv(gon + vec3(0, 0, 0.001f)), vec3(0.012f, 0.019f, 0.016f) * (hs * Lerp(1.f, 0.62f, fem) * (0.9f + 0.2f * D.jawFlare)), HM, R(0.02f));
         // jawline: from the angle along the body of the mandible (U-shaped dental arch) to the corner of the chin
         vec3 cc(L.chin.x + sx * 0.0125f * (1.f + 0.45f * D.chinSquare), L.chin.y - 0.0145f, L.chin.z - 0.001f);
         vec3 mb(sx * 0.037f * jw, 0.054f, -0.041f * D.chinH);
-        float jr = 0.0098f * Lerp(1.f, 0.85f, fem);
+        float jr = 0.0098f * Lerp(1.f, 0.8f, fem);
         S.cone(Pv(gon + vec3(-sx * 0.004f, 0.012f, -0.002f)), Pv(mb), R(jr), R(jr * 0.98f), HM, R(0.012f));
         S.cone(Pv(mb), Pv(cc), R(jr * 0.98f), R(0.0094f * (0.9f + 0.2f * D.chinSquare)), HM, R(0.012f));
         // masseter
-        S.ellipsoid(P(sx * 0.046f * jw, 0.018f, -0.008f), vec3(0.0105f, 0.02f, 0.025f) * (hs * (0.8f + 0.35f * mus) * Lerp(1.f, 0.85f, fem)), HM, R(0.02f));
+        S.ellipsoid(P(sx * 0.046f * jw, 0.018f, -0.008f), vec3(0.0105f, 0.02f, 0.025f) * (hs * (0.8f + 0.35f * mus) * Lerp(1.f, 0.78f, fem)), HM, R(0.02f));
     }
     // chin (mental protuberance): rounder / narrower for women, broad and square for some men
     {
-        float cw = 0.0162f * (1.f + 0.4f * D.chinSquare) * (1.f + 0.25f * (jw - 1.f));
+        float cw = 0.0162f * (1.f + 0.4f * D.chinSquare) * (1.f + 0.25f * (jw - 1.f)) * Lerp(1.f, 0.86f, fem);
         S.ellipsoid(Pv(L.chin + vec3(0, -0.0125f, -0.0005f)), vec3(cw, 0.0125f, 0.0122f) * hs, HM, R(0.012f));
         if (D.chinCleft > 0.f) {
             Prim& q = S.prims[S.cone(Pv(L.chin + vec3(0, 0.002f, 0.006f)), Pv(L.chin + vec3(0, 0.0015f, -0.008f)), R(0.0021f * D.chinCleft), R(0.0019f * D.chinCleft), HM, R(0.003f))];

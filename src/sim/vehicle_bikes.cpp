@@ -187,19 +187,30 @@ inline void mdlRaijin(VehicleModel& o) {
     }
     {
         std::vector<LoftSec> f;  // upper fairing around the headlights (pointed nose, slim flanks)
-        f.push_back({1.00f, 0, 0.82f, 0.015f, 0.015f, 2.f});
-        f.push_back({0.96f, 0, 0.83f, 0.08f, 0.055f, 2.f});
-        f.push_back({0.88f, 0, 0.845f, 0.14f, 0.09f, 2.1f, 1.2f});
-        f.push_back({0.76f, 0, 0.85f, 0.19f, 0.12f, 2.3f, 1.5f});
-        f.push_back({0.62f, 0, 0.84f, 0.21f, 0.13f, 2.4f, 1.9f});
-        f.push_back({0.50f, 0, 0.86f, 0.18f, 0.09f, 2.4f, 1.8f});
+        f.push_back({1.00f, 0, 0.82f, 0.012f, 0.012f, 2.f});
+        f.push_back({0.965f, 0, 0.83f, 0.065f, 0.05f, 2.f});
+        f.push_back({0.90f, 0, 0.84f, 0.115f, 0.08f, 2.1f, 1.3f});
+        f.push_back({0.80f, 0, 0.845f, 0.155f, 0.105f, 2.3f, 1.7f});
+        f.push_back({0.68f, 0, 0.84f, 0.17f, 0.115f, 2.4f, 2.1f});
+        f.push_back({0.56f, 0, 0.85f, 0.15f, 0.08f, 2.4f, 2.2f});
         loftY(m, f, 18, true, true);
     }
-    for (int s = -1; s <= 1; s += 2) {  // lower side panels (engine visible between)
+    for (int s = -1; s <= 1; s += 2) {
+        // side fairings: long curved panels from the nose back over the engine, in the body colour, with a
+        // gloss-black intake vent (the engine shows below and behind them)
+        std::vector<LoftSec> sp;
+        // (thin curved shells: a narrow superellipse section swept along a flank line that bows outwards)
+        sp.push_back({0.70f, s * 0.13f, 0.68f, 0.012f, 0.08f, 2.2f, 1.2f});
+        sp.push_back({0.60f, s * 0.175f, 0.61f, 0.016f, 0.15f, 2.4f, 1.3f});
+        sp.push_back({0.46f, s * 0.195f, 0.56f, 0.018f, 0.18f, 2.6f, 1.2f});
+        sp.push_back({0.30f, s * 0.19f, 0.53f, 0.016f, 0.15f, 2.6f, 1.1f});
+        sp.push_back({0.16f, s * 0.17f, 0.54f, 0.012f, 0.08f, 2.2f, 1.f});
         m.use(MAT_CARPAINT, kCol1);
-        Frame pf(vec3(s * 0.19f, 0.40f, 0.50f), vec3(0, 1, 0) * (float)-s, normalize(vec3(0, -0.45f, 1)), vec3((float)s, 0, 0));
-        pf.x = normalize(cross(pf.y, pf.z));
-        roundedBox(m, pf, vec3(0.17f, 0.17f, 0.012f), 0.012f, 1);
+        loftY(m, sp, 16, true, true);
+        m.use(MAT_CAR_GLASS, kCol1);
+        Frame vf(vec3(s * 0.214f, 0.47f, 0.60f), vec3(0, -1, 0) * (float)s, normalize(vec3(0, 0.35f, 1)), vec3((float)s, 0, 0));
+        vf.x = normalize(cross(vf.y, vf.z));
+        roundedBox(m, vf, vec3(0.07f, 0.035f, 0.006f), 0.006f, 1);
     }
     m.use(MAT_CARPAINT, kCol2);
     roundedBoxAt(m, vec3(0, 0.05f, 0.20f), vec3(0.14f, 0.22f, 0.04f), 0.03f, 1);  // belly pan

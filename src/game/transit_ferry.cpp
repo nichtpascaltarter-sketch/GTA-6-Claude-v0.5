@@ -728,6 +728,12 @@ void submit(GameWorld& g) {
             di.id = 0xB00000000ull | (u64)i;
             di.castShadow = dist < 600.f;
             dyn->submit(di);
+            // wake behind a far ferry under way (a materialized one gets its wake with the other boats)
+            if (P.speed > 0.5f && dist < 2500.f && length2(P.fwd) > 1e-4f) {
+                vec3 fw(P.fwd.x, P.fwd.y, 0.f);
+                dvec3 bow = pos + dvec3(fw * (a.spec.boxCenter.y + a.spec.boxHalf.y * 0.9f));
+                g.renderer->addWake(0x3e000000 + i, bow, normalize(P.fwd), P.speed, a.spec.boxHalf.x);
+            }
         }
         // deck floodlights and cabin glow at night
         if (night && dist < 700.f) {

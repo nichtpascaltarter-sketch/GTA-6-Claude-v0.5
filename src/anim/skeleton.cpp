@@ -115,30 +115,50 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
     D.rAnkle = 0.033f * s * (1.f + 0.1f * wc) * Lerp(1.f, 0.9f, fem);
     D.shoulderHalfW = GHhalf + D.rShoulder;
 
-    // ---- face variation
+    // ---- face variation: wide per-seed ranges (a street crowd must not look like siblings), ancestry / sex / age
+    // tendencies on top. Draws with the main stream keep their order; the extra shape parameters use a second stream.
     auto g = [&]() { return r.range(-1.f, 1.f); };
-    D.faceW = 1.f + 0.055f * g() + 0.04f * wc;
-    D.jawW = Lerp(1.f, 0.88f, fem) * (1.f + 0.1f * g() + 0.09f * wc);
-    D.chinP = 1.f + 0.3f * g();
+    // gaussian-ish draw in -1..1 (sum of two uniforms: extremes are rarer)
+    auto g2 = [&]() { return 0.5f * (r.range(-1.f, 1.f) + r.range(-1.f, 1.f)) * 1.4f; };
+    D.faceW = 1.f + 0.085f * g() + 0.04f * wc;
+    D.jawW = Lerp(1.f, 0.88f, fem) * (1.f + 0.13f * g() + 0.09f * wc);
+    D.chinP = 1.f + 0.35f * g();
     // women: shorter lower face, smaller nose, fuller lips, slightly larger eyes; noses and ears keep growing with age
-    D.chinH = (1.f + 0.08f * g()) * Lerp(1.f, 0.94f, fem);
-    D.noseL = (1.f + 0.09f * g()) * Lerp(1.f, 0.93f, fem) * (1.f + 0.05f * a);
-    D.noseW = Lerp(1.f, 0.84f, fem) * (1.f + 0.12f * g()) * (1.f + 0.04f * a);
-    D.noseP = Lerp(1.f, 0.86f, fem) * (1.f + 0.12f * g());
-    D.noseBridge = 1.f + 0.35f * g();
-    D.lipFull = Lerp(1.f, 1.1f, fem) * (1.f + 0.18f * g());
-    D.lipW = 1.f + 0.07f * g();
-    D.eyeSize = Lerp(1.f, 1.05f, fem) * (1.f + 0.05f * g());
-    D.eyeTilt = 0.06f * g();
-    D.eyeSpace = 1.f + 0.04f * g();
-    D.browH = 1.f + 0.12f * g() + 0.05f * fem;
-    D.browRidge = Lerp(1.f, 0.35f, fem) * (1.f + 0.3f * g());
-    D.cheekB = 1.f + 0.32f * g();
-    D.earSize = (1.f + 0.07f * g()) * (1.f + 0.08f * a);
+    D.chinH = (1.f + 0.12f * g()) * Lerp(1.f, 0.94f, fem);
+    D.noseL = (1.f + 0.15f * g()) * Lerp(1.f, 0.93f, fem) * (1.f + 0.05f * a);
+    D.noseW = Lerp(1.f, 0.84f, fem) * (1.f + 0.16f * g()) * (1.f + 0.04f * a);
+    D.noseP = Lerp(1.f, 0.86f, fem) * (1.f + 0.15f * g());
+    D.noseBridge = 1.f + 0.45f * g();
+    D.lipFull = Lerp(1.f, 1.1f, fem) * (1.f + 0.22f * g());
+    D.lipW = 1.f + 0.12f * g();
+    D.eyeSize = Lerp(1.f, 1.05f, fem) * (1.f + 0.08f * g());
+    D.eyeTilt = 0.08f * g();
+    D.eyeSpace = 1.f + 0.07f * g();
+    D.browH = 1.f + 0.18f * g() + 0.05f * fem;
+    D.browRidge = Lerp(1.f, 0.35f, fem) * (1.f + 0.35f * g());
+    D.cheekB = 1.f + 0.38f * g();
+    D.earSize = (1.f + 0.08f * g()) * (1.f + 0.08f * a);
     D.earOut = 1.f + 0.35f * g();
     D.foreheadSlope = 0.5f + 0.5f * g();
     D.lidFold = r.f();
-    D.headLen = 1.f + 0.035f * g();
+    D.headLen = 1.f + 0.05f * g();
+    // face height below the eyes (midface + lower face together), philtrum length, forehead height (hairline offset,
+    // degrees), cheekbone height, brow shape, lip thickness ratio and nose profile / tip type
+    D.faceH = 1.f + 0.06f * g2() + 0.02f * (1.f - fem);
+    D.philtrum = 1.f + 0.16f * g2();
+    D.foreheadH = 3.2f * g2();
+    D.cheekH = 0.0028f * g2();
+    D.browArch = Saturate(0.5f + 0.5f * g()) * 1.2f + 0.4f;
+    D.browThick = 0.75f + 0.5f * r.f();
+    D.browTilt = 1.6f * g2();
+    D.lipRatio = 0.9f + 0.28f * g2();
+    {
+        float t = r.f();   // nose type: straight, convex (hump / hooked), concave (scooped), bulbous
+        D.noseScoop = 0.f;
+        D.noseBulb = 1.f + 0.12f * g2();
+        if (t < 0.18f) D.noseBulb = r.range(1.18f, 1.4f);
+        else if (t < 0.34f) D.noseScoop = r.range(0.5f, 1.f) * Lerp(0.7f, 1.1f, fem);
+    }
     {
         // separate stream: the draws above keep their values for existing seeds
         Rng q(hash32(d.seed * 0x2C1B3C6Du + 0x297A2D39u));
@@ -146,8 +166,8 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
         D.jawFlare = 0.5f + 0.5f * h();
         D.chinSquare = Saturate(Lerp(0.55f, 0.2f, fem) + 0.35f * h());
         D.chinCleft = (fem < 0.5f && q.chance(0.18f)) ? q.range(0.4f, 1.f) : 0.f;
-        D.noseHump = Saturate(0.35f * (1.f - fem) + 0.3f * h() + 0.2f * a);
-        D.noseTipUp = 0.5f * h() + 0.25f * fem;
+        D.noseHump = D.noseScoop > 0.f ? 0.f : Saturate(0.3f * (1.f - fem) + 0.45f * h() + 0.2f * a);
+        D.noseTipUp = 0.7f * h() + 0.25f * fem + 0.5f * D.noseScoop - 0.5f * sstep(0.6f, 1.f, D.noseHump);   // hooked with a big hump
         D.lipBow = 0.5f + 0.5f * h();
         D.asymEye = 0.0007f * h();
         D.asymBrow = 0.0012f * h();
