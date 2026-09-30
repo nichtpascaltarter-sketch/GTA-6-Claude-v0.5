@@ -60,6 +60,7 @@ struct App {
     int tourStop = -1;
     float tourT = 0.f;
     bool tourShot = false, tourDone = false;
+    int meleeVictim = -1;        // --autoplay melee: the civilian for the takedown
     // autoplay test scripts (--autoplay walk|drive|bike|fly|boat|shoot)
     std::string autoplay;
     float autoTime = 0.f;
@@ -379,6 +380,27 @@ struct App {
             }
             game.rig.yaw = p.yaw;
         }
+        if (autoplay == "melee") {
+            // a fist-fighter squaring up ahead, and an unaware civilian off to the side for the takedown at t = 10 s
+            Ped& p = game.peds[game.player];
+            p.weapon = WPN_FISTS;
+            vec2 f(-sinf(p.yaw), cosf(p.yaw)), r(cosf(p.yaw), sinf(p.yaw));
+            vec2 q = p.pos.toVec3().xy() + f * 3.5f;
+            int e = game.spawnPed(game.randomCivilianChar(0x6100u, 2), dvec3(q.x, q.y, game.groundHeight(q.x, q.y, (float)p.pos.z + 3.f)), p.yaw + kPi,
+                                  FAC_ENEMY);
+            if (e >= 0) {
+                game.peds[e].weapon = WPN_FISTS;
+                game.peds[e].brain.type = BRAIN_COMBAT;
+                game.peds[e].brain.target = game.player;
+                game.peds[e].brain.accuracy = 0.6f;
+                game.peds[e].persistent = true;
+            }
+            vec2 cq = p.pos.toVec3().xy() + r * 7.f + f * 2.f;
+            meleeVictim = game.spawnPed(game.randomCivilianChar(0x6200u, 0), dvec3(cq.x, cq.y, game.groundHeight(cq.x, cq.y, (float)p.pos.z + 3.f)),
+                                        p.yaw, FAC_CIVILIAN);
+            if (meleeVictim >= 0) game.peds[meleeVictim].persistent = true;
+            game.rig.yaw = p.yaw;
+        }
         if (autoplay == "tour") {
             tourStop = -1;
             tourT = 0.f;
@@ -447,6 +469,35 @@ struct App {
             if ((int)(t / 5.f) != (int)((t - dt) / 5.f)) LOG("autoplay %s t=%.1f %s", autoplay.c_str(), t, game.aiDebugText().c_str());
         } else if (autoplay == "tour") {
             updateTour(c, dt);
+        } else if (autoplay == "melee") {
+            // lock on, jab-cross-uppercut combos, a heavy hook, a held block, a dodge; then a rear takedown
+            if (t < 9.5f) {
+                c.aim.down = true;
+                c.aim.pressed = t < dt * 1.5f;
+                c.attack.pressed = (t > 1.f && t < 3.2f && fmodf(t, 0.35f) < dt) || (t > 7.8f && t < 9.f && fmodf(t, 0.4f) < dt);
+                c.reload.pressed = t > 3.6f && t - dt <= 3.6f;          // heavy
+                c.cover.down = t > 5.f && t < 6.5f;                     // block
+                c.jump.pressed = t > 6.9f && t - dt <= 6.9f;            // dodge
+                c.move = t > 6.9f && t < 7.1f ? vec2(1.f, 0.f) : vec2(0.f, 0.f);
+            } else if (meleeVictim >= 0 && game.peds[meleeVictim].used && game.peds[meleeVictim].health > 0.f) {
+                Ped& p = game.peds[game.player];
+                Ped& v = game.peds[meleeVictim];
+                if (t - dt < 9.5f) {   // sneak up: right behind the victim, crouched
+                    vec2 vf(-sinf(v.yaw), cosf(v.yaw));
+                    vec3 vp = v.pos.toVec3();
+                    p.pos = dvec3(vp.x - vf.x * 1.1f, vp.y - vf.y * 1.1f, vp.z);
+                    p.yaw = v.yaw;
+                    p.animIn.crouch = true;
+                    game.rig.yaw = v.yaw + 0.9f;
+                    game.rig.cut = true;
+                }
+                c.attack.pressed = t > 10.f && t - dt <= 10.f;
+            }
+        }
+        if (autoplay == "melee" && (int)(t / 1.f) != (int)((t - dt) / 1.f)) {
+            const Ped& p = game.peds[game.player];
+            LOG("autoplay melee t=%.1f move %d combo %d block %d dodge %.2f stagger %.2f takedown %.2f target %d health %.0f", t, p.meleeMove, p.meleeCombo,
+                (int)p.blocking, p.dodgeT, p.meleeStagger, p.takedownT, p.meleeTarget, p.health);
         } else if (autoplay == "shoot") {
             c.usingPad = true;                        // controller soft lock-on
             c.aim.down = fmodf(t, 3.f) > 0.15f;       // re-press to re-acquire targets
@@ -458,6 +509,7 @@ struct App {
     }
 #endif
 
+#ifdef HAVE_GAMEPLAY
     // District tour: teleport to story places across the map at chosen hours/weather, let streaming and the population
     // settle, walk a few steps and take one screenshot per stop (auto_tour_NN_name.bmp via requestScreenshot).
     void updateTour(Controls& c, float dt) {
@@ -520,6 +572,7 @@ struct App {
                 game.profAI, game.profVehicles, game.profPeds);
         }
     }
+#endif
 
     void run() {
         while (true) {

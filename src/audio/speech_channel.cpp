@@ -66,6 +66,13 @@ struct HallReverb {
     }
 };
 
+int utteranceChannel(const Utterance& u) {
+    int c = CHANNEL_DIRECT;
+    for (const UWord& w : u.words)
+        if (w.style.channel != CHANNEL_DIRECT && w.style.channel < CHANNEL_COUNT) c = w.style.channel;
+    return c;
+}
+
 static float channelTailSec(int channel) {
     switch (channel) {
         case CHANNEL_MEGAPHONE: return 0.25f;  // slap echo off buildings

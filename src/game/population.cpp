@@ -159,7 +159,7 @@ ClubQueue gQueues[2];
 bool queuePedOk(const GameWorld& g, int id, u32 uid) {
     if (id < 0 || id >= (int)g.peds.size()) return false;
     const Ped& p = g.peds[id];
-    return p.used && p.uid == uid && p.health > 0.f && p.state == PS_ONFOOT && p.brain.type == BRAIN_WANDER;
+    return p.used && p.uid == uid && p.health > 0.f && p.state == PS_ONFOOT && p.brain.type == BRAIN_WANDER && p.takedownT < 0.f;
 }
 
 vec2 queueSlot(const ClubQueue& q, int k) { return q.door + q.along * (1.1f + k * 0.85f) + q.outward * 0.15f; }

@@ -14,6 +14,7 @@ const float kDepthMax = 48.f;   // water depth encoding range (m), must match ui
 
 struct MRoad {
     u32 fine0 = 0, fineN = 0, coarse0 = 0, coarseN = 0;
+    u32 edge = 0;    // World::RoadNetwork edge index (street name)
     u8 cls = 0, flags = 0;
     vec2 mn, mx;
     float halfWidth = 4.f;
@@ -75,6 +76,7 @@ void buildRoads() {
         const World::RoadEdge& e = net.edges[ei];
         if (e.pts.size() < 2) continue;
         MRoad r;
+        r.edge = (u32)ei;
         r.cls = e.cls;
         r.flags = e.flags;
         r.halfWidth = e.halfWidth;
@@ -420,6 +422,132 @@ void mapInit() {
     g_mapReady = true;
     LOG("UI map: base %dx%d in %.0f ms, %zu roads (%zu pts) in %.0f ms, %zu labels in %.0f ms", World::kHeightRes, World::kHeightRes,
         (t1 - t0) * 1000.0, g_roads.size(), g_pts.size(), (t2 - t1) * 1000.0, g_labels.size(), (TimeSeconds() - t2) * 1000.0);
+}
+
+// Street names along the roads (full map, close zoom): each named street is labelled on its longest visible straight
+// stretch, rotated to follow it, never upside down, away from other labels, UI panels and blips.
+void drawStreetNames(const MapView& v, vec2 smn, vec2 smx, float alpha, float uiScale, std::vector<vec4>& occupied) {
+    if (!g_mapReady || !World::gRoads || alpha <= 0.01f) return;
+    const World::RoadNetwork& net = *World::gRoads;
+    vec2 corners[4] = {smn, vec2(smx.x, smn.y), smx, vec2(smn.x, smx.y)};
+    vec2 wmn(1e9f), wmx(-1e9f);
+    for (vec2 c : corners) {
+        vec2 w = v.toWorld(c);
+        wmn = vmin(wmn, w);
+        wmx = vmax(wmx, w);
+    }
+    int x0 = gridIdx(wmn.x), x1 = gridIdx(wmx.x), y0 = gridIdx(wmn.y), y1 = gridIdx(wmx.y);
+    if ((x1 - x0 + 1) * (y1 - y0 + 1) > 900) return;
+    // Streets are split into short edges at every intersection: collect the visible segments per name, then merge
+    // collinear, touching segments into runs; each run is a label candidate.
+    struct Seg { u32 hash; u32 edge; vec2 a, b; float ang; };
+    struct Cand { float len; vec2 mid; float ang; u32 edge; };
+    static std::vector<Seg> segs;
+    static std::vector<Cand> cands;
+    segs.clear();
+    cands.clear();
+    g_stamp++;
+    for (int gy = y0; gy <= y1; gy++)
+        for (int gx = x0; gx <= x1; gx++)
+            for (u32 id : g_roadGrid[(size_t)gy * kGridRes + gx]) {
+                if (g_roadStamp[id] == g_stamp) continue;
+                g_roadStamp[id] = g_stamp;
+                const MRoad& r = g_roads[id];
+                if (r.cls == World::RC_RAMP || r.edge >= net.edges.size()) continue;
+                const std::string& name = net.edges[r.edge].name;
+                if (name.empty()) continue;
+                u32 h = 2166136261u;
+                for (char ch : name) h = (h ^ (u8)ch) * 16777619u;
+                for (u32 i = 0; i + 1 < r.fineN; i++) {
+                    vec2 a = v.toScreen(g_pts[r.fine0 + i]), b = v.toScreen(g_pts[r.fine0 + i + 1]);
+                    vec2 d = b - a;
+                    if (length2(d) < 4.f) continue;
+                    float ang = atan2f(d.y, d.x);
+                    if (ang > kHalfPi) ang -= kPi;
+                    if (ang <= -kHalfPi) ang += kPi;
+                    segs.push_back({h, r.edge, a, b, ang});
+                }
+            }
+    std::sort(segs.begin(), segs.end(), [](const Seg& p, const Seg& q) { return p.hash != q.hash ? p.hash < q.hash : p.ang < q.ang; });
+    static std::vector<char> used;
+    used.assign(segs.size(), 0);
+    static std::vector<std::pair<float, float>> spans;
+    for (size_t i = 0; i < segs.size(); i++) {
+        if (used[i]) continue;
+        const Seg& s0 = segs[i];
+        vec2 dir(cosf(s0.ang), sinf(s0.ang)), nrm(-dir.y, dir.x);
+        float off0 = dot(s0.a, nrm);
+        spans.clear();
+        for (size_t j = i; j < segs.size() && segs[j].hash == s0.hash; j++) {
+            if (used[j]) continue;
+            const Seg& sj = segs[j];
+            float da = fabsf(sj.ang - s0.ang);
+            da = Min(da, kPi - da);
+            if (da > 0.06f) continue;
+            if (fabsf(dot((sj.a + sj.b) * 0.5f, nrm) - off0) > 4.f) continue;
+            used[j] = 1;
+            float pa = dot(sj.a, dir), pb = dot(sj.b, dir);
+            spans.push_back({Min(pa, pb), Max(pa, pb)});
+        }
+        std::sort(spans.begin(), spans.end());
+        // merge touching spans and keep the longest run
+        float bestLen = 0.f, bestMid = 0.f, curA = spans[0].first, curB = spans[0].second;
+        for (size_t k = 1; k <= spans.size(); k++) {
+            if (k < spans.size() && spans[k].first <= curB + 14.f * uiScale) {
+                curB = Max(curB, spans[k].second);
+                continue;
+            }
+            if (curB - curA > bestLen) {
+                bestLen = curB - curA;
+                bestMid = (curA + curB) * 0.5f;
+            }
+            if (k < spans.size()) {
+                curA = spans[k].first;
+                curB = spans[k].second;
+            }
+        }
+        if (bestLen < 60.f * uiScale) continue;
+        vec2 mid = dir * bestMid + nrm * off0;
+        if (mid.x < smn.x || mid.x > smx.x || mid.y < smn.y || mid.y > smx.y) continue;
+        cands.push_back({bestLen, mid, s0.ang, s0.edge});
+    }
+    std::sort(cands.begin(), cands.end(), [](const Cand& a, const Cand& b) { return a.len > b.len; });
+    TextStyle ts;
+    ts.font = FONT_BODY;
+    ts.size = 15.f * uiScale;
+    ts.align = ALIGN_CENTER;
+    ts.color = rgba(0.94f, 0.96f, 1.f, alpha);
+    ts.outline = 2.2f * uiScale;
+    ts.outlineColor = rgba(0.03f, 0.04f, 0.10f, 0.95f * alpha);
+    ts.tracking = 0.02f;
+    static std::vector<std::pair<u32, vec2>> placed;   // (name hash, position)
+    placed.clear();
+    int drawn = 0;
+    for (const Cand& c : cands) {
+        if (drawn >= 48) break;
+        const std::string& name = net.edges[c.edge].name;
+        float w = textWidth(name.c_str(), ts);
+        if (w + 24.f * uiScale > c.len) continue;
+        u32 h = 2166136261u;
+        for (char ch : name) h = (h ^ (u8)ch) * 16777619u;
+        bool dup = false;
+        for (const auto& pl : placed)
+            if (pl.first == h && length(pl.second - c.mid) < 460.f * uiScale) { dup = true; break; }
+        if (dup) continue;
+        float ca = fabsf(cosf(c.ang)), sa = fabsf(sinf(c.ang));
+        float hw = w * 0.5f + 6.f * uiScale, hh = ts.size * 0.7f;
+        vec4 box(c.mid.x - (ca * hw + sa * hh), c.mid.y - (sa * hw + ca * hh), c.mid.x + (ca * hw + sa * hh), c.mid.y + (sa * hw + ca * hh));
+        bool hit = false;
+        for (const vec4& o : occupied)
+            if (box.x < o.z && box.z > o.x && box.y < o.w && box.w > o.y) { hit = true; break; }
+        if (hit) continue;
+        TextStyle rs = ts;
+        rs.angle = c.ang;
+        text(c.mid.x, c.mid.y - ts.size * 0.55f, name.c_str(), rs);
+        occupied.push_back(box);
+        placed.push_back({h, c.mid});
+        drawn++;
+    }
 }
 
 const std::vector<MapLabel>& mapLabels() { return g_labels; }

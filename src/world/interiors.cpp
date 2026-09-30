@@ -391,9 +391,10 @@ void planInteriors(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs) {
     for (auto& d : set.defs) counts[d.kind]++;
     LOG("Interiors: %zu planned (convenience %d) in %.1f ms", set.defs.size(), counts[IK_CONVENIENCE], (TimeSeconds() - t0) * 1000.0);
     for (auto& d : set.defs)
-        LOG("  interior '%s' kind %d building %d at (%.1f, %.1f, %.1f) region %.1f x %.1f, %zu rooms, %zu openings, %zu doors, %zu npc points", d.name.c_str(),
-            (int)d.kind, d.building, d.origin.x, d.origin.y, d.origin.z, d.x1 - d.x0, d.depth, d.rooms.size(), d.openings.size(), d.doors.size(),
-            d.scenarios.size());
+        LOG("  interior '%s' kind %d building %d at (%.2f, %.2f, %.2f) ax (%.4f, %.4f) x %.2f..%.2f depth %.2f ceil %.2f: %zu rooms, %zu openings, %zu doors, "
+            "%zu portals, %zu npc points",
+            d.name.c_str(), (int)d.kind, d.building, d.origin.x, d.origin.y, d.origin.z, d.ax.x, d.ax.y, d.x0, d.x1, d.depth, d.ceil, d.rooms.size(),
+            d.openings.size(), d.doors.size(), d.portals.size(), d.scenarios.size());
 }
 
 // ------------------------------------------------------------------------------------------------ shell hooks

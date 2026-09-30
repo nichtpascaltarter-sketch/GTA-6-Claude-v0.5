@@ -499,11 +499,20 @@ void GameWorld::submitRender() {
             }
             vec3 dirF = normalize(hand - fore);
             vec3 fwd = p.aiming && !p.ragdoll ? p.aimDir : dirF;
-            if (weaponInfo(p.weapon).animKind == 3) fwd = normalize(dirF + vec3(0, 0, 0.9f));  // melee weapons held upright
             Render::DrawItem wd;
             wd.model = weaponModels[p.weapon];
             wd.pos = p.pos + (hand + dirF * 0.04f);
             wd.rot = frameFromForward(fwd, vec3(0, 0, 1));
+            if (p.weapon == WPN_BAT || p.weapon == WPN_KNIFE) {
+                // melee weapons follow the fist: grip point in the fist, handle axis towards the tip, roll from the palm
+                vec3 gpos, gaxis, gpalm;
+                Anim::handGrip(ce.skel, p.bones, true, gpos, gaxis, gpalm);
+                vec3 wpos = p.ragdoll ? gpos - p.pos.toVec3() : pr * gpos;
+                vec3 wax = normalize(p.ragdoll ? gaxis : pr * gaxis), wpalm = p.ragdoll ? gpalm : pr * gpalm;
+                float gripOff = p.weapon == WPN_BAT ? 0.03f : 0.f;   // bat grip ~13 cm above the knob (model origin is 10 cm)
+                wd.pos = p.pos + dvec3(wpos - wax * gripOff);
+                wd.rot = frameFromForward(wax, wpalm);
+            }
             wd.id = 0x600000000ull | p.uid;
             wd.castShadow = p.visibleDist < 40.f;
             dyn->submit(wd);

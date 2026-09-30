@@ -1416,7 +1416,9 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
             }
         }
     }
-    p.animIn.stance = 0;
+    bool meleeEngaged = p.meleeTarget >= 0 && p.meleeTarget < (int)peds.size() && peds[p.meleeTarget].used && peds[p.meleeTarget].health > 0.f &&
+                        length(rel(peds[p.meleeTarget].pos, p.pos)) < 4.f && (p.animIn.stance == 19 || p.animIn.stance == 20);
+    if (!meleeEngaged) p.animIn.stance = 0;   // (melee.cpp owns the fighting guard while squared up)
     float dy = wrapAngle(faceYaw - p.yaw);
     p.yaw = wrapAngle(p.yaw + Clamp(dy, -9.f * dt, 9.f * dt));
     movePed(p, desired, dt, false);

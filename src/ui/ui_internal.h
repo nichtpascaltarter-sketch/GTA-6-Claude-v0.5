@@ -138,6 +138,9 @@ void drawMapRoute(const MapView& v, const std::vector<vec2>& route, u32 color, f
 // District / water labels for the full map
 struct MapLabel { vec2 pos; std::string name; float importance; bool water; };
 const std::vector<MapLabel>& mapLabels();
+// Street names along the roads (full map at close zoom). `occupied` holds screen rects (x0, y0, x1, y1) to keep clear;
+// the placed names are appended to it.
+void drawStreetNames(const MapView& v, vec2 smn, vec2 smx, float alpha, float uiScale, std::vector<vec4>& occupied);
 // Name of the district / nearest street at a world position (for the map cursor)
 std::string mapDistrictAt(vec2 p);
 std::string mapStreetAt(vec2 p, float maxDist);

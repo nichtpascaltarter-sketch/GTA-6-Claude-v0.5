@@ -25,7 +25,7 @@ enum Species : u8 {
 enum BodyPlan : u8 { PLAN_BIRD = 0, PLAN_REPTILE, PLAN_CETACEAN, PLAN_FISH, PLAN_TURTLE, PLAN_QUAD };
 
 constexpr int kMaxBones = 40;
-constexpr int kBatchBones = 6;      // bones per animal in the batched (instanced-by-skinning) LOD meshes
+constexpr int kBatchBonesMax = 8;   // bones per animal in the batched (instanced-by-skinning) LOD meshes
 constexpr int kMaxVariants = 6;
 
 // ---- skeleton: bone frames are aligned with the model axes in the bind pose (bind rotations are identity), so a
@@ -143,7 +143,8 @@ struct SpeciesInfo {
 const SpeciesInfo& speciesInfo(int sp);
 
 // Named bones of each body plan (indices into the skeleton).
-namespace BirdBone { enum : int { BODY = 0, NECK1, NECK2, NECK3, HEAD, JAW, TAIL, WL1, WL2, WL3, WR1, WR2, WR3, LL1, LL2, LL3, LR1, LR2, LR3, COUNT }; }
+// FOLDL/FOLDR: the folded wings lying along the flanks (perched); the spread wings WL*/WR* collapse into the shoulder.
+namespace BirdBone { enum : int { BODY = 0, NECK1, NECK2, NECK3, HEAD, JAW, TAIL, WL1, WL2, WL3, WR1, WR2, WR3, LL1, LL2, LL3, LR1, LR2, LR3, FOLDL, FOLDR, COUNT }; }
 namespace QuadBone {
 enum : int {
     BODY = 0, PELVIS, CHEST, NECK1, NECK2, HEAD, JAW, EAR_L, EAR_R, TAIL1, TAIL2, TAIL3,
@@ -159,11 +160,12 @@ namespace SwimBone { enum : int { BODY = 0, FRONT, HEAD, BACK1, BACK2, TAILFIN, 
 constexpr int kLeashSegments = 6;
 
 // A built model: skeleton, per-LOD meshes (CPU side until uploaded by the game), plus the batched LOD meshes that pack
-// up to `batchCap` animals into one draw (each animal = kBatchBones consecutive bones).
+// up to `batchCap` animals into one draw (each animal = batchN consecutive bones, driven by batchBones of the skeleton).
 struct ModelData {
     int species = 0, variant = 0;
     Skel skel;
-    int batchBones[kBatchBones] = {0, 0, 0, 0, 0, 0};   // full-skeleton bones driving the batch mesh bones
+    int batchN = 0;
+    int batchBones[kBatchBonesMax] = {0, 0, 0, 0, 0, 0, 0, 0};
     SkinnedMeshData lod[2];         // individual meshes: 0 detailed, 1 reduced (same skeleton)
     SkinnedMeshData batch[2];       // batched meshes: 0 mid distance, 1 far (flocks / shoals); empty if unused
     int batchCap = 0;

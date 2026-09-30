@@ -569,7 +569,7 @@ void GameWorld::killPed(int pid, int attacker, vec3 dir, DamageType type) {
     Ped& p = peds[pid];
     p.health = 0.f;
 #ifdef HAVE_AUDIO
-    if (type != DMG_DROWN) Audio::play(p.female ? Audio::SFX_SCREAM_FEMALE : Audio::SFX_SCREAM_MALE, pedHeadPos(p), 0.6f);
+    if (type != DMG_DROWN && !p.silentDeath) Audio::play(p.female ? Audio::SFX_SCREAM_FEMALE : Audio::SFX_SCREAM_MALE, pedHeadPos(p), 0.6f);
 #endif
     if (attacker >= 0 && attacker < (int)peds.size() && peds[attacker].isPlayer && pid != attacker) {
         pinfo.kills++;

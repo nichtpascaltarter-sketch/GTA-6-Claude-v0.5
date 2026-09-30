@@ -506,6 +506,40 @@ void buildHeadGrid(BuildCtx& c) {
             }
         }
     }
+    // lips ride on the speech bones: the lower lip rows on B_LIP_LOWER (a child of the jaw), the upper lip rows on
+    // B_LIP_UPPER, the corners and the skin just outside them on B_LIP_CORNER_*. Weights fade towards the chin, the
+    // nose and the cheeks so the skin stretches smoothly; the rest keeps its head / jaw weights.
+    {
+        const float rowWt[8] = {0.25f, 0.6f, 0.9f, 1.f, 1.f, 0.9f, 0.55f, 0.2f};   // rows mouthLo-3 .. mouthHi+3
+        for (int ri = 0; ri < 8; ri++) {
+            int j = ri < 4 ? H.rowMouthLo - 3 + ri : H.rowMouthHi + (ri - 4);
+            if (j <= 0 || j >= NR) continue;
+            bool upper = ri >= 4;
+            for (int k = 0; k < NC; k++) {
+                BVert& v = m.v[H.grid[(size_t)j * NC + k]];
+                float th = v.pa;
+                bool right = th < kPi;
+                float at = right ? th : kTwoPi - th;
+                float u = at / Max(L.thMC, 1e-3f);   // 0 centre .. 1 mouth corner
+                float wLip = 1.f - sstep(0.5f, 1.05f, u);
+                float wCor = sstep(0.4f, 0.95f, u) * (1.f - sstep(1.25f, 2.1f, u)) * (upper ? 0.85f : 0.8f);
+                float sum = wLip + wCor;
+                if (sum > 1.f) {
+                    wLip /= sum;
+                    wCor /= sum;
+                }
+                wLip *= rowWt[ri];
+                wCor *= rowWt[ri];
+                if (wLip + wCor <= 1e-3f) continue;
+                WAcc acc;
+                float keep = 1.f - wLip - wCor;
+                for (int q = 0; q < 4; q++) acc.add(v.sw.b[q], v.sw.w[q] * keep);
+                acc.add(upper ? B_LIP_UPPER : B_LIP_LOWER, wLip);
+                acc.add(right ? B_LIP_CORNER_R : B_LIP_CORNER_L, wCor);
+                v.sw = acc.finish();
+            }
+        }
+    }
     H.eyeC[0] = D.J[B_EYE_L];
     H.eyeC[1] = D.J[B_EYE_R];
     H.eyeR = Lm.eyeR * hs;
@@ -811,10 +845,60 @@ static void addMouth(BuildCtx& c) {
     faceLandmarks(c, Lm);
     const float hs = D.headS;
     size_t i0 = m.idx.size();
-    // cavity: half ellipsoid facing inwards
+    // inner lips (vestibule): from each lip's edge a short skirt curls up (upper lip) / down (lower lip) in front of
+    // the teeth, so an open mouth shows the wet lip lining instead of a paper-thin edge; it closes at the corners.
+    // The lining copies the lip edge's weights (lips follow the speech bones) and blends into the head / jaw deeper in.
     {
-        vec3 cen = headToModel(c, vec3(0, 0.072f, -0.019f));
-        vec3 rr = vec3(0.021f, 0.024f, 0.013f) * hs;
+        const HeadInfo& H = c.head;
+        const int NC = H.cols;
+        std::vector<int> order;   // slit columns from the left corner round the front to the right corner
+        for (int k = NC - 1; k > NC / 2; k--) {
+            float th = m.v[H.grid[(size_t)H.rowMouthHi * NC + k]].pa;
+            if (kTwoPi - th <= H.thetaMouth + 1e-4f) order.insert(order.begin(), k);
+        }
+        for (int k = 0; k < NC / 2; k++) {
+            float th = m.v[H.grid[(size_t)H.rowMouthHi * NC + k]].pa;
+            if (th <= H.thetaMouth + 1e-4f) order.push_back(k);
+        }
+        vec3 axis = headToModel(c, vec3(0, 0.07f, 0.f));
+        for (int lip = 0; lip < 2; lip++) {   // 0 lower, 1 upper
+            int j = lip ? H.rowMouthHi : H.rowMouthLo;
+            float up = lip ? 1.f : -1.f;
+            std::vector<u32> L0, L1, L2;
+            for (int k : order) {
+                const BVert src = m.v[H.grid[(size_t)j * NC + k]];
+                float th = src.pa;
+                float at = th > kPi ? kTwoPi - th : th;
+                float f = 1.f - powf(Saturate(at / Max(H.thetaMouth, 1e-3f)), 4.f);
+                vec3 in = vec3(axis.x - src.p.x, axis.y - src.p.y, 0.f);
+                in = length2(in) > 1e-10f ? normalize(in) : vec3(0, -1, 0);
+                BVert v = src;
+                v.part = PART_MOUTH;
+                v.flags = 0;
+                v.col = c.lipCol * 0.85f;
+                v.n = normalize(vec3(0, 0.6f, -up));
+                L0.push_back(m.add(v));
+                v.p = src.p + (in * 0.0025f + vec3(0, 0, up * 0.0035f)) * (hs * f);
+                v.col = c.lipCol * 0.55f + vec3(0.07f, 0.012f, 0.012f);
+                L1.push_back(m.add(v));
+                v.p = src.p + (in * 0.0055f + vec3(0, 0, up * 0.0105f)) * (hs * f);
+                v.col = vec3(0.16f, 0.045f, 0.045f);
+                v.sw = lerpSkin(src.sw, skin1(lip ? B_HEAD : B_JAW), 0.6f);
+                L2.push_back(m.add(v));
+            }
+            vec3 face = normalize(vec3(0, 1.f, -up * 0.9f));
+            for (size_t q = 0; q + 1 < L0.size(); q++) {
+                triFacing(m, L0[q], L0[q + 1], L1[q + 1], face);
+                triFacing(m, L0[q], L1[q + 1], L1[q], face);
+                triFacing(m, L1[q], L1[q + 1], L2[q + 1], face);
+                triFacing(m, L1[q], L2[q + 1], L2[q], face);
+            }
+        }
+    }
+    // cavity: half ellipsoid facing inwards (wide enough to back the mouth corners when they spread)
+    {
+        vec3 cen = headToModel(c, vec3(0, 0.08f, -0.02f));
+        vec3 rr = vec3(0.031f, 0.03f, 0.016f) * hs;
         const int NU = 10, NV = 6;
         std::vector<u32> g((NU + 1) * (NV + 1));
         for (int i = 0; i <= NU; i++)
@@ -843,7 +927,7 @@ static void addMouth(BuildCtx& c) {
     }
     // teeth: upper and lower arch strips
     for (int row = 0; row < 2; row++) {
-        const int NU = 9;
+        const int NU = 24;
         std::vector<u32> top, bot;
         float z0 = row == 0 ? -0.0105f : -0.0285f, z1 = row == 0 ? -0.0198f : -0.0205f;
         for (int i = 0; i <= NU; i++) {
@@ -854,7 +938,13 @@ static void addMouth(BuildCtx& c) {
                 BVert v;
                 v.p = headToModel(c, vec3(x, y, e == 0 ? z0 : z1));
                 v.n = normalize(vec3(u * 0.8f, 1.f, 0.f));
-                v.col = vec3(0.72f, 0.69f, 0.6f) * (1.f - 0.25f * fabsf(u));
+                // tooth boundaries along the arch (incisors ~8 mm, then narrower towards the canines)
+                float au = fabsf(u);
+                float tp = row == 0 ? (au < 0.4f ? au / 0.4f * 2.f : 2.f + (au - 0.4f) / 0.6f * 3.f)
+                                    : au / 1.f * 5.f;
+                float gapT = fabsf(tp - floorf(tp + 0.5f));   // 0 at a boundary .. 0.5 mid-tooth
+                float gapShade = 0.68f + 0.32f * sstep(0.f, 0.22f, gapT);
+                v.col = vec3(0.66f, 0.63f, 0.55f) * (1.f - 0.4f * au) * (row == 0 ? 1.f : 0.85f) * gapShade;
                 v.mat = MAT_EYE;
                 v.part = PART_MOUTH;
                 v.sw = skin1(row == 0 ? B_HEAD : B_JAW);
@@ -866,6 +956,35 @@ static void addMouth(BuildCtx& c) {
             triFacing(m, top[i], top[i + 1], bot[i + 1], f);
             triFacing(m, top[i], bot[i + 1], bot[i], f);
         }
+    }
+    // tongue: a domed blade on the floor of the mouth (tip just behind the lower incisors, below their edge), on
+    // B_TONGUE which pitches it up behind / between the teeth for TH, DD, nn
+    {
+        const int NU = 7, NV = 6;
+        std::vector<u32> g((NU + 1) * (NV + 1));
+        for (int i = 0; i <= NU; i++) {
+            float u = (float)i / NU;   // 0 back .. 1 tip
+            float y = Lerp(0.05f, 0.0872f, u);
+            float half = 0.0165f * sqrtf(Max(0.f, 1.f - powf(u, 3.f))) + 0.0015f;
+            for (int j = 0; j <= NV; j++) {
+                float vv = (float)j / NV * 2.f - 1.f;
+                float z = -0.0262f + 0.0045f * (1.f - u) - 0.0045f * vv * vv - 0.0015f * u * u;
+                BVert v;
+                v.p = headToModel(c, vec3(vv * half, y, z));
+                v.n = normalize(vec3(vv * 0.6f, 0.15f * u, 1.f));
+                v.col = lerp(vec3(0.3f, 0.07f, 0.07f), vec3(0.62f, 0.25f, 0.24f), 0.35f + 0.65f * u) * (1.f - 0.25f * vv * vv);
+                v.mat = MAT_SKIN;
+                v.part = PART_MOUTH;
+                v.sw = skin1(B_TONGUE);
+                g[i * (NV + 1) + j] = m.add(v);
+            }
+        }
+        for (int i = 0; i < NU; i++)
+            for (int j = 0; j < NV; j++) {
+                u32 a = g[i * (NV + 1) + j], b = g[(i + 1) * (NV + 1) + j], cc = g[(i + 1) * (NV + 1) + j + 1], d = g[i * (NV + 1) + j + 1];
+                triFacing(m, a, b, cc, vec3(0, 0, 1));
+                triFacing(m, a, cc, d, vec3(0, 0, 1));
+            }
     }
     (void)i0;
     (void)Lm;

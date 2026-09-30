@@ -186,6 +186,7 @@ void GameWorld::updateAI(float dt) {
         Ped& p = peds[i];
         if (!p.used || p.isPlayer || p.brain.type == BRAIN_NONE) continue;
         if (p.state == PS_DEAD || p.state == PS_RAGDOLL || p.state == PS_GETUP) continue;
+        if (p.takedownT >= 0.f) continue;   // a synced stealth takedown (melee.cpp) drives both bodies
         if (p.state == PS_INVEHICLE && p.seat == 0) {
             double a = TimeSeconds();
             updateBrain(i, dt);

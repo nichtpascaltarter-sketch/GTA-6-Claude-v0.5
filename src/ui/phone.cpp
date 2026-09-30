@@ -1201,6 +1201,17 @@ void mapScreen(PhoneState& st, const HudState& hud, const PL& p, const Nav& n, f
         drawMapBase(v, o);
         if (!hud.gpsRoute.empty())
             drawMapRoute(v, hud.gpsRoute, C(1.f, 0.4f, 0.8f), Max(2.5f, 3.5f * s), a, vec2(p.sx, p.sy), vec2(p.sx + p.sw, p.sy + p.sh));
+        // street names when zoomed in (kept clear of the info card, the hint bar and the player)
+        float streetA = Saturate((2.0f - zoomShown) / 0.6f) * a;
+        if (streetA > 0.01f) {
+            static std::vector<vec4> occupied;
+            occupied.clear();
+            occupied.push_back(vec4(p.sx, p.sy, p.sx + p.sw, p.top + 64.f * s));
+            occupied.push_back(vec4(p.sx, p.bottom - 50.f * s, p.sx + p.sw, p.sy + p.sh));
+            vec2 pp0 = v.toScreen(hud.playerPos);
+            occupied.push_back(vec4(pp0.x - 18.f * s, pp0.y - 18.f * s, pp0.x + 18.f * s, pp0.y + 18.f * s));
+            drawStreetNames(v, vec2(p.sx + 6.f * s, p.sy), vec2(p.sx + p.sw - 6.f * s, p.sy + p.sh), streetA, s * 0.85f, occupied);
+        }
     }
     float t = I.time;
     for (const Blip& b : hud.blips) {

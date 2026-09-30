@@ -828,6 +828,7 @@ MenuAction drawMap(MenuState& st, const Layout& L, const Nav& n, float dt, float
         if (I.legend) placed.push_back({L.right - 340.f * sc, 190.f * sc, L.W, L.H * 0.8f});  // legend panel
         placed.push_back({0.f, L.H - 170.f * sc, L.W * 0.4f, L.H});                      // location info
         placed.push_back({L.W * 0.4f, L.H - 90.f * sc, L.W, L.H});                       // prompts
+        placed.push_back({L.right - 60.f * sc, L.H - 220.f * sc, L.W, L.H - 120.f * sc});   // compass
         // blip footprints: labels prefer positions that keep blips, the player and the waypoint readable
         static std::vector<Placed> blipRects;
         blipRects.clear();
@@ -889,6 +890,15 @@ MenuAction drawMap(MenuState& st, const Layout& L, const Nav& n, float dt, float
                 placed.push_back(bestR);
                 text((bestR.x0 + bestR.x1) * 0.5f, (bestR.y0 + bestR.y1) * 0.5f - size * 0.55f, name.c_str(), ls);
             }
+        }
+        // street names along the roads when zoomed in
+        float streetA = Saturate((2.3f - v.mpp * sc) / 0.6f) * a;
+        if (streetA > 0.01f) {
+            static std::vector<vec4> occupied;
+            occupied.clear();
+            for (const Placed& q : placed) occupied.push_back(vec4(q.x0, q.y0, q.x1, q.y1));
+            for (const Placed& q : blipRects) occupied.push_back(vec4(q.x0, q.y0, q.x1, q.y1));
+            drawStreetNames(v, vec2(0.f, 0.f), vec2(L.W, L.H), streetA, sc, occupied);
         }
     }
     // route

@@ -19,6 +19,7 @@
 #include "speech_accent.cpp"
 #include "speech_prosody.cpp"
 #include "speech_klatt.cpp"
+#include "speech_channel.cpp"
 #include "speech_lipsync.cpp"
 
 namespace Speech {
@@ -40,7 +41,10 @@ void synthesize(const char* text, const Audio::VoiceParams& voice, int sampleRat
     memcpy(&vbits[4], &voice.roughness, 4);
     memcpy(&vbits[5], &voice.expressiveness, 4);
     for (int i = 0; i < 6; i++) seed = hashCombine(seed, vbits[i]);
+    const size_t base = out.size();
     detail::render(utt, f0, voice, sampleRate, seed, out);
+    int channel = detail::utteranceChannel(utt);
+    if (channel != CHANNEL_DIRECT) detail::applyChannelRange(channel, sampleRate, seed, out, base);
 }
 
 float estimateDuration(const char* text, const Audio::VoiceParams& voice) {
@@ -48,7 +52,7 @@ float estimateDuration(const char* text, const Audio::VoiceParams& voice) {
     detail::Utterance utt;
     detail::buildUtterance(text, voice, utt);
     if (utt.segs.empty() || utt.total <= 0.f) return 0.f;
-    return utt.total + 0.02f;
+    return utt.total + 0.02f + channelTail(detail::utteranceChannel(utt));
 }
 
 Audio::VoiceParams presetVoice(bool female, u32 seed) {

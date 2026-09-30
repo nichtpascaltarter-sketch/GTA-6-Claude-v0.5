@@ -365,11 +365,16 @@ void GameWorld::animatePed(Ped& p, float dt) {
     }
     in.action = -1;
     if (p.pendingAction >= 0) {
-        in.action = p.pendingAction;
+        // during a synced takedown only the takedown clips may start (AI reactions must not break the pair)
+        bool takedownClip = p.pendingAction == Anim::CLIP_TAKEDOWN_ATTACKER || p.pendingAction == Anim::CLIP_TAKEDOWN_VICTIM;
+        if (p.takedownT < 0.f || takedownClip) in.action = p.pendingAction;
         p.pendingAction = -1;
     }
+    in.meleeKind = p.weapon == WPN_KNIFE ? 1 : (p.weapon == WPN_BAT ? 2 : 0);
     // lip sync: jaw opening from the viseme keys of the line being spoken (crossfaded, leading the audio slightly)
     in.mouthOpen = -1.f;
+    in.viseme = in.visemeNext = -1;
+    in.visemeWeight = in.visemeBlend = 0.f;
     if (p.lipStart >= 0.0 && !p.lipKeys.empty()) {
         const std::vector<Speech::VisemeKey>& K = p.lipKeys;
         float t = (float)(Platform::timeSeconds() - p.lipStart) + 0.03f;
@@ -388,6 +393,11 @@ void GameWorld::animatePed(Ped& p, float dt) {
             float left = K[k].time + K[k].duration - t;
             float blend = left < 0.05f ? 0.5f * (1.f - left / 0.05f) : 0.f;   // 50 ms crossfade into the next shape
             in.mouthOpen = Saturate(Lerp(cur, nxt, blend));
+            // full mouth shapes (lips, corners, tongue) from the same keys
+            in.viseme = K[k].viseme;
+            in.visemeWeight = Saturate(K[k].weight);
+            in.visemeNext = k + 1 < (int)K.size() ? (int)K[k + 1].viseme : 0;
+            in.visemeBlend = blend * 2.f;
         }
     }
     // foot IK: probe ground under both feet (only for nearby peds)

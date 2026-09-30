@@ -94,4 +94,13 @@ void buildModel(int index, VehicleModel& out);
 // Convenience: find a model index by class (n-th of that class), -1 if none.
 int findModel(VehicleClass cls, int n = 0);
 
+// Distant levels of detail for model `index` (same materials and paint slots as buildModel's body):
+//  lods[0] = LOD1 body, ~5-7k tris for cars (for ~40-120 m): shell at lower resolution, flat lamp/grille patches,
+//            seats-only interior, no seams/badges/small hardware. Draw it with `wheelLod1` at the usual wheel
+//            transforms (a ~250-tri wheel; pass nullptr to skip).
+//  lods[1] = LOD2 body, ~1-1.5k tris (beyond ~120 m): coarse shell, dimmed windows over a dark cabin block, lamp
+//            patches, and the wheels merged in as simple cylinders at their rest positions (no wheel draws).
+// Rotors keep using the LOD0 rotor meshes. Thread-safe like buildModel.
+void buildVehicleLods(int index, MeshData lods[2], MeshData* wheelLod1 = nullptr);
+
 }  // namespace Vehicles

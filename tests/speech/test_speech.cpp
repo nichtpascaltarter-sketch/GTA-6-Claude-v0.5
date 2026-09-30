@@ -403,7 +403,9 @@ int main(int argc, char** argv) {
                                             "[accent:newyork]", "[accent:latino]", "[accent:caribbean]",
                                             "[accent:british]", "[angry:0.4][accent:latino:0.6]", "[whisper:0.5]",
                                             "[nasal]", "[husky]", "[gravelly]", "[bright]", "[dark]", "[fry]",
-                                            "[laughs] [sad]", "[sighs][calm]", "[dj][accent:south:0.5][gravelly]"};
+                                            "[laughs] [sad]", "[sighs][calm]", "[dj][accent:south:0.5][gravelly]",
+                                            "[drunk]", "[take:3]", "[megaphone][shout]", "[pa]", "[radio][dispatch]",
+                                            "[phone]"};
         for (const char* tg : kTags) {
             std::string t = std::string(tg) + "Get in the car, we have to go now! Is that the police? [pause:0.8] Drive.";
             std::vector<float> x;
@@ -469,6 +471,22 @@ int main(int argc, char** argv) {
                 strongest = strongest || c.strength >= 0.99f;  // the emphasized "RELAX"
             }
             if (!ok || !strongest || cues.size() < 4) printf("  style timeline / accent cues mismatch\n"), bad++;
+        }
+        {
+            // crowd walla: requested length, seamless loop, bounded level, deterministic
+            Speech::WallaParams wp;
+            wp.seed = 3;
+            wp.voices = 5;
+            wp.seconds = 6.f;
+            std::vector<float> a, b;
+            Speech::walla(wp, 22050, a);
+            Speech::walla(wp, 22050, b);
+            float pk = 0.f;
+            bool fin = true;
+            for (float v : a) fin = fin && v == v, pk = std::max(pk, fabsf(v));
+            bool ok = a.size() == (size_t)(6.f * 22050.f) && a == b && fin && pk <= 0.5f && pk > 0.05f &&
+                      fabsf(a.front() - a.back()) < 0.05f;
+            if (!ok) printf("  walla: %zu samples peak %.2f deterministic %d\n", a.size(), pk, (int)(a == b)), bad++;
         }
         printf("Style / persona / lip-sync checks: %s\n", bad ? "FAILED" : "OK");
         st.problems += bad;

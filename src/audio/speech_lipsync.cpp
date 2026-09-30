@@ -150,7 +150,8 @@ void lipSync(const char* text, const Audio::VoiceParams& voice, std::vector<Vise
     }
     emit(utt.total, VISEME_SIL, 0.f);
     for (size_t i = 0; i + 1 < out.size(); i++) out[i].duration = out[i + 1].time - out[i].time;
-    out.back().duration = utt.total + 0.02f - out.back().time;  // synthesize() output ends 20 ms after the last segment
+    // synthesize() output ends 20 ms after the last segment (plus the channel's echo / squelch tail)
+    out.back().duration = utt.total + 0.02f + detail::channelTailSec(detail::utteranceChannel(utt)) - out.back().time;
 }
 
 void styleTimeline(const char* text, const Audio::VoiceParams& voice, std::vector<StyleSpan>& out) {
@@ -174,7 +175,7 @@ void styleTimeline(const char* text, const Audio::VoiceParams& voice, std::vecto
         sp.style = w.style;
         out.push_back(sp);
     }
-    if (!out.empty()) out.back().end = utt.total + 0.02f;
+    if (!out.empty()) out.back().end = utt.total + 0.02f + detail::channelTailSec(detail::utteranceChannel(utt));
 }
 
 void accentCues(const char* text, const Audio::VoiceParams& voice, std::vector<AccentCue>& out) {

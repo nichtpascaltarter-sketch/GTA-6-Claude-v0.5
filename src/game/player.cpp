@@ -167,6 +167,11 @@ void GameWorld::updatePlayer(float dt) {
 void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
     const Controls& c = ctl;
     bool swimming = p.state == PS_SWIM;
+    if (p.takedownT >= 0.f) {   // mid-takedown: the clip drives the body
+        p.aiming = p.firing = false;
+        movePed(p, vec2(0.f, 0.f), dt, false);
+        return;
+    }
     if (p.moveMode == 2 || p.moveMode == 3) {
         updateTraverse(p, dt);
         return;
@@ -280,8 +285,8 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
             meleeDodge(player, length(wd) > 0.3f ? normalize(wd) : -normalize(vec2(d.x, d.y) + vec2(1e-4f, 0.f)));
         }
     } else {
-        if (p.animIn.stance == 19) p.animIn.stance = 0;
         if (p.blocking) meleeBlock(player, false);
+        if (p.animIn.stance == 19 || p.animIn.stance == 20) p.animIn.stance = 0;
     }
     // ----- aiming
     bool canAim = !swimming && p.state == PS_ONFOOT && !pinfo.weaponWheel;
@@ -535,13 +540,8 @@ bool GameWorld::stealthTakedown(Ped& p) {
         if (dist > 1.6f || dist < 0.2f || dot(d / dist, f) < 0.7f) continue;
         vec3 tf(-sinf(t.yaw), cosf(t.yaw), 0.f);
         if (dot(tf, d / dist) < 0.3f) continue;  // must be approached from behind
-        p.pendingAction = Anim::CLIP_PUNCH_R;
-        killPed(o, player, f, DMG_MELEE);
-#ifdef HAVE_AUDIO
-        Audio::play(Audio::SFX_PUNCH, pedChestPos(t), 0.5f, 0.8f);
-#endif
-        if (p.weapon == WPN_KNIFE) spawnFx(FX_BLOOD, dvec3(pedChestPos(t)), f, 4, 0.8f);
-        return true;
+        // synced rear choke (the victim is released dead at the end of the grab, see melee.cpp)
+        return startTakedown(player, o);
     }
     return false;
 }

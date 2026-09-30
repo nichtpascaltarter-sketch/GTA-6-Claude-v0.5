@@ -1170,6 +1170,16 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& 
         if (tower) {
             int finMode = (int)fac.style == 1 ? (d.r.chance(0.45f) ? 1 : 0) : 2;
             towerTier(d, ms, walls, finMode);
+            if (bottom && (fac.flags & 1u)) {
+                // towers without a podium: lobby storefront and a band over the ground floor on the street side
+                int fi = 0;
+                for (int i = 1; i < (int)walls.size(); i++)
+                    if (walls[i].facing > walls[fi].facing) fi = i;
+                if (walls[fi].len > 3.f) {
+                    storefront(d, walls[fi], ms.vBase, walls[fi].bays / 2);
+                    stringCourse(d, walls[fi], ms.vBase + fac.groundH, 0.3f, 0.2f, d.trim, d.trimMat);
+                }
+            }
             if (ms.parapet)
                 for (const Wall& w : walls)
                     if (w.len > 1.f) coping(d, w, ms.z1);

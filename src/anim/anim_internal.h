@@ -18,6 +18,10 @@ enum InternalClip : int {
 };
 void sampleClipId(const Skeleton& skel, int ci, float t, Pose& out, u32 variationSeed);
 const ClipInfo& clipInfoId(int id);   // public or internal clip
+// Lip sync: mouth shape of a viseme (Oculus order) scaled by w -> out[6] (jaw, upper lip, lower lip, corner yaw,
+// corner pitch, tongue); applyMouthShape poses the speech bones (and the jaw when jaw >= 0).
+void visemeShape(int v, float w, float* out);
+void applyMouthShape(Pose& p, const float* shape, float jaw);
 // Two-handed bat grip at clip time t: weight of the left hand on the handle and its grip centre's distance along the
 // bat from the right fist (-: towards the knob), `reversed` = left thumb pointing back along the bat (overhand hold).
 float batGrip(int clip, float t, float& dist, bool& reversed);

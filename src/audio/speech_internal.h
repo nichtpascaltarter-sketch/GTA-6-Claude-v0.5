@@ -241,6 +241,9 @@ struct Utterance {
     const StyleParams& segStyle(int i) const;
 };
 
+// Transmission channel of an utterance (the last channel tag in the text) and its tail in seconds.
+int utteranceChannel(const Utterance& u);
+
 // Accent phonology on a syllabified utterance (before durations): vowel qualities, rhoticity, consonant
 // substitutions, deletions.
 void applyAccents(Utterance& u);

@@ -1137,7 +1137,6 @@ ActivitiesState gAct;
 // canal. Collision is a fine staircase of boxes whose tops follow the deck (the wheels ride it); a launch assist at the
 // lip turns the car's speed into the ramp's climb angle so every jump leaves cleanly, for traffic as well as the player.
 constexpr float kRampLen = 9.f, kRampHalfW = 2.6f, kRampH = 2.4f;
-constexpr int kRampSteps = 18;
 constexpr int kRampCollisionKey = 1000000;   // collision "cell" keys 1000000 + i (streaming cells use keys < 2 * 80 * 80)
 
 struct StuntRamp {
@@ -1339,31 +1338,53 @@ void searchRamps(const GameWorld& g, std::vector<StuntRamp>& out, int& tested) {
 
 }  // namespace ramp_detail
 
+// Collision: one solid block under the tall back half of the ramp (cars can't drive through it from the side or
+// behind); the deck itself is ridden kinematically by updateRamps.
 void addRampCollision(StuntRamp& r, int index) {
     if (r.collision || !Phys::gCollision) return;
     std::vector<World::CollisionBox> boxes;
-    vec2 ax(r.dir.y, -r.dir.x);   // box x axis runs across the ramp, y along it
-    for (int k = 0; k < kRampSteps; k++) {
-        float top = kRampH * (k + 0.5f) / kRampSteps;
-        float along = (k + 0.5f) * kRampLen / kRampSteps;
-        World::CollisionBox b;
-        b.c = vec3(r.foot.xy() + r.dir * along, r.foot.z + (top - 0.5f) * 0.5f);
-        b.ax = ax;
-        b.he = vec3(kRampHalfW, kRampLen / kRampSteps * 0.5f, (top + 0.5f) * 0.5f);
-        boxes.push_back(b);
-    }
+    const float u0 = kRampLen * 0.55f, top = kRampH * 0.55f;
+    World::CollisionBox b;
+    b.c = vec3(r.foot.xy() + r.dir * ((u0 + kRampLen) * 0.5f), r.foot.z + (top - 0.5f) * 0.5f);
+    b.ax = vec2(r.dir.y, -r.dir.x);   // box x axis runs across the ramp, y along it
+    b.he = vec3(kRampHalfW, (kRampLen - u0) * 0.5f, (top + 0.5f) * 0.5f);
+    boxes.push_back(b);
     Phys::gCollision->addCell(kRampCollisionKey + index, boxes, {});
     r.collision = true;
 }
 
-// Launch assist: a vehicle crossing the lip leaves along the deck's climb angle with its full speed.
+// Ride height (body origin above the ground) per vehicle, measured while it drives on flat ground near a ramp.
+struct RideHeight {
+    u32 uid;
+    float h;
+};
+std::vector<RideHeight> gRideHeights;
+
+float rideHeightOf(GameWorld& g, int v, bool measure) {
+    const Vehicle& veh = g.vehicles[v];
+    for (RideHeight& r : gRideHeights)
+        if (r.uid == veh.uid) {
+            if (measure && veh.sim.wheelsOnGround > 0) {
+                vec3 p = veh.sim.body.pos.toVec3();
+                r.h = Lerp(r.h, Clamp(p.z - g.groundHeight(p.x, p.y, p.z), 0.2f, 1.6f), 0.2f);
+            }
+            return r.h;
+        }
+    vec3 p = veh.sim.body.pos.toVec3();
+    float h = veh.sim.wheelsOnGround > 0 ? Clamp(p.z - g.groundHeight(p.x, p.y, p.z), 0.2f, 1.6f) : 0.6f;
+    if (gRideHeights.size() > 64) gRideHeights.erase(gRideHeights.begin());
+    gRideHeights.push_back({veh.uid, h});
+    return h;
+}
+
+// Vehicles ride the deck kinematically: held at the deck height, pitched to its angle, their vertical speed matched to
+// the climb, so they leave the lip with the ramp's launch angle and their full speed.
 void updateRamps(GameWorld& g) {
     if (gRamps.empty()) return;
     Ped* pl = g.playerPed();
     if (!pl) return;
     vec3 pp = pl->pos.toVec3();
-    const float slope = kRampH / kRampLen;
-    const vec3 upT = normalize(vec3(0.f, 1.f, slope));   // along-deck tangent in (along, -, up) terms
+    const float slope = kRampH / kRampLen, pitch = atanf(slope);
     for (size_t i = 0; i < gRamps.size(); i++) {
         StuntRamp& r = gRamps[i];
         float d = ::length(r.foot.xy() - pp.xy());
@@ -1373,22 +1394,31 @@ void updateRamps(GameWorld& g) {
         vec2 right(r.dir.y, -r.dir.x);
         for (int v = 0; v < (int)g.vehicles.size(); v++) {
             Vehicle& veh = g.vehicles[v];
-            if (!veh.used || veh.exploded || g.isBoat(v) || g.isAircraft(v)) continue;
+            if (!veh.used || veh.exploded || veh.scripted || g.isBoat(v) || g.isAircraft(v)) continue;
             Vehicles::VehicleState& s = veh.sim;
             vec3 p = s.body.pos.toVec3();
             vec2 rel = p.xy() - r.foot.xy();
             float along = dot(rel, r.dir), across = dot(rel, right);
-            if (fabsf(across) > kRampHalfW + 0.4f || along < kRampLen - 1.4f || along > kRampLen + 0.6f) continue;
-            if (p.z < r.foot.z + kRampH * 0.55f || p.z > r.foot.z + kRampH + 2.5f) continue;   // actually on the deck
+            if (fabsf(across) > kRampHalfW + 3.f || along < -12.f || along > kRampLen + 1.f) continue;
+            if (along < -0.4f || fabsf(across) > kRampHalfW + 0.2f) {
+                rideHeightOf(g, v, true);   // approaching: keep the ride height current
+                continue;
+            }
+            vec2 fwdDir = s.forward().xy();
             float fwd = dot(s.body.vel.xy(), r.dir);
-            if (fwd < 7.f) continue;
-            float speed = Max(fwd, ::length(vec2(fwd, s.body.vel.z)));
-            float wantZ = speed * upT.z;
-            if (s.body.vel.z >= wantZ * 0.92f) continue;
-            float lateral = dot(s.body.vel.xy(), right);
-            vec2 horiz = r.dir * (speed * upT.y) + right * lateral;
-            s.body.vel = vec3(horiz, wantZ);
-            s.body.angVel *= 0.35f;
+            if (dot(fwdDir, r.dir) < 0.5f || fwd < 1.f) continue;   // only cars driving up the ramp
+            float deckZ = r.foot.z + kRampH * Clamp(along / kRampLen, 0.f, 1.f);
+            float wantZ = deckZ + rideHeightOf(g, v, false);
+            if ((float)s.body.pos.z > wantZ + 0.25f) continue;       // already flying over it
+            s.body.pos.z = Max((double)wantZ, s.body.pos.z);
+            s.body.vel.z = Max(s.body.vel.z, fwd * slope);
+            // nose up along the deck, keeping the heading
+            float yaw = atan2f(-r.dir.x, r.dir.y);
+            float side = dot(fwdDir, right);
+            yaw -= asinf(Clamp(side, -0.7f, 0.7f));
+            s.body.rot = quatAxisAngle(vec3(0, 0, 1), yaw) * quatAxisAngle(vec3(1, 0, 0), pitch);
+            s.body.angVel = vec3(0.f);
+            s.sleeping = false;
         }
     }
 }

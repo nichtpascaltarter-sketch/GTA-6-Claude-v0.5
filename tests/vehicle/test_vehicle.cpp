@@ -1446,7 +1446,7 @@ void printBikeTable(const std::vector<CarReport>& reps) {
 }  // namespace VT
 
 int main(int argc, char** argv) {
-    bool synthetic = true, real = false, useModels = false, audit = false, feel = true, feelOnly = false, upgradeCheck = false;
+    bool synthetic = true, real = false, useModels = false, audit = false, feel = true, feelOnly = false, upgradeCheck = false, wheelInfo = false;
     int realRoutes = 2;
     std::vector<vec3> probes;
     float realLen = 6000.f;
@@ -1471,9 +1471,21 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--nofeel")) feel = false;
         else if (!strcmp(argv[i], "--feelonly")) feelOnly = true;
         else if (!strcmp(argv[i], "--upgrades")) upgradeCheck = true;
+        else if (!strcmp(argv[i], "--wheelinfo")) wheelInfo = true;
         else if (!strcmp(argv[i], "--maxmods")) {
             gUpgrades.engine = gUpgrades.brakes = gUpgrades.transmission = gUpgrades.suspension = 3;
             gUpgrades.turbo = true;
+            gUpgradesOn = true;
+        } else if (!strcmp(argv[i], "--mods") && i + 1 < argc) {
+            // --mods EBTS[t]: engine, brakes, transmission, suspension levels, optional 't' for the turbo
+            const char* q = argv[++i];
+            int lv[4] = {0, 0, 0, 0};
+            for (int k = 0; k < 4 && q[k] >= '0' && q[k] <= '3'; k++) lv[k] = q[k] - '0';
+            gUpgrades.engine = lv[0];
+            gUpgrades.brakes = lv[1];
+            gUpgrades.transmission = lv[2];
+            gUpgrades.suspension = lv[3];
+            gUpgrades.turbo = strchr(q, 't') != nullptr;
             gUpgradesOn = true;
         }
     }
@@ -1496,6 +1508,20 @@ int main(int argc, char** argv) {
             if (cls == VC_TAXI || cls == VC_AMBULANCE || cls == VC_FIRETRUCK || cls == VC_SERVICE) continue;
             models.push_back(makeTestModel(cls));
             models.back().name = std::string("std-") + className(cls);
+        }
+    }
+    if (wheelInfo) {
+        for (auto& m : models) {
+            if (only && strcmp(only, className(m.cls)) && strcmp(only, m.name.c_str())) continue;
+            VehicleState st;
+            initVehicle(st, m, 0, dvec3(kPadStart), 0.f);
+            printf("%s: com (%.2f %.2f %.2f) wheelbase %.2f track %.2f\n", m.name.c_str(), st.tune.com.x, st.tune.com.y, st.tune.com.z, st.tune.wheelbase, st.tune.track);
+            for (int i = 0; i < st.wheelCount; i++) {
+                const WheelSpec& w = m.wheels[i];
+                printf("  w%d pos (%.2f %.2f %.2f) r %.2f left %d drive %d steer %d | pair %d share %.2f burn %.2f k %.0f arb %.0f brake %.0f load %.0f\n", i, w.pos.x, w.pos.y, w.pos.z,
+                       w.radius, (int)w.left, (int)w.drive, (int)w.steer, (int)st.tune.arbPair[i], st.tune.driveShare[i], st.tune.burnShare[i], st.tune.springK[i],
+                       st.tune.arbK[i], st.tune.brakeT[i], st.tune.staticLoad[i]);
+            }
         }
     }
     if (audit) {

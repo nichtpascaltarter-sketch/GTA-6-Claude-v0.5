@@ -185,8 +185,8 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
     // speech bones (pivots, head space as in face.cpp's landmarks): the upper lip hangs from above/behind it (pitch
     // forward = protrude), the lower lip rides the jaw from below/behind (pitch back = tuck), the corners swing about a
     // point behind the mouth (yaw = narrow/spread, pitch = up/down), the tongue from the floor of the mouth
-    J[B_LIP_UPPER] = J[B_HEAD] + vec3(0.f, 0.084f, 0.006f) * hs;
-    J[B_LIP_LOWER] = J[B_HEAD] + vec3(0.f, 0.083f, -0.04f) * hs;
+    J[B_LIP_UPPER] = J[B_HEAD] + vec3(0.f, 0.093f, 0.022f) * hs;    // straight above the lip: pitch pushes it forward
+    J[B_LIP_LOWER] = J[B_HEAD] + vec3(0.f, 0.09f, -0.058f) * hs;    // straight below the lip
     J[B_LIP_CORNER_L] = J[B_HEAD] + vec3(-0.004f * D.lipW * D.faceW, 0.065f, -0.02f) * hs;
     J[B_LIP_CORNER_R] = J[B_HEAD] + vec3(0.004f * D.lipW * D.faceW, 0.065f, -0.02f) * hs;
     J[B_TONGUE] = J[B_HEAD] + vec3(0.f, 0.052f, -0.036f) * hs;

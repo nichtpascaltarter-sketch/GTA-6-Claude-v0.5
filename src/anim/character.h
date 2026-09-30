@@ -165,6 +165,7 @@ struct Animator {
     int stanceClip = -1;          // clip id currently driving the stance (guards depend on meleeKind)
     float gripW = 0.f, gripD = 0.f;   // two-handed bat grip: left hand IK weight, left grip distance along the bat
     float actYaw0 = 0.f;          // pelvis yaw of the action's first frame (upper-body actions keep the hip turn)
+    float mouth[6] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f};   // smoothed viseme shape (jaw, lips, corners, tongue)
     Pose snap;                    // pose captured at a discontinuity (crossfaded out over 1/snapRate s)
     void init(const Skeleton* s, u32 variationSeed);
     void update(const AnimInput& in, float dt);

@@ -73,7 +73,8 @@ int liveVeh(const GameWorld& g, const Ref& r) {
     return v.used && v.uid == r.uid ? r.id : -1;
 }
 
-bool isDown(const Ped& p) { return p.health <= 0.f || p.state == PS_DEAD || p.state == PS_RAGDOLL || p.state == PS_GETUP; }
+// (a ped being taken down by the player counts as down: melee.cpp drives it)
+bool isDown(const Ped& p) { return p.health <= 0.f || p.state == PS_DEAD || p.state == PS_RAGDOLL || p.state == PS_GETUP || p.takedownT >= 0.f; }
 
 // alive, on its feet and still doing what the event asked (not fleeing / cowering because of something else)
 bool calmActor(GameWorld& g, int id) {

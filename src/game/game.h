@@ -183,6 +183,13 @@ struct Ped {
     float meleeStagger = 0.f;     // can't attack/block while > 0
     float dodgeT = -1.f;          // dodge progress (s), -1 none
     vec2 dodgeDir;
+    int dodgeClip = -1;           // CLIP_DODGE_* playing (its root motion moves the capsule)
+    float dodgeYaw = 0.f;         // facing when the dodge started (root motion frame)
+    float takedownT = -1.f;       // synced stealth takedown in progress (s), -1 none
+    int takedownPartner = -1;     // the other ped of the takedown
+    bool takedownVictim = false;  // this ped is the victim
+    float takedownYaw = 0.f;
+    bool silentDeath = false;     // no death cry (stealth kills)
     int meleeReact = 0;           // AI defence scheduled: 0 none, 1 block, 2 dodge
     double meleeReactAt = 0.0;
     vec2 forcedVel;               // movement override (dodge / lunge / knock-back) while forcedT > 0

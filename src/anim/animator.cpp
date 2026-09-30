@@ -618,6 +618,45 @@ void Animator::update(const AnimInput& in, float dt) {
     faceOverlay(in, dt);
 }
 
+namespace detail {
+
+// Mouth shape per viseme (Oculus order): jaw opening (0..1, used when the game gives no mouthOpen), upper lip pitch
+// (+ protrude / - roll in), lower lip pitch (+ tuck back and up / - pout), corner yaw (+ round / - spread), corner
+// pitch (+ up), tongue pitch (+ raise).
+static const float kVisemeShape[15][6] = {
+    {0.f, 0.f, 0.f, 0.f, 0.f, 0.f},             // sil
+    {0.f, -0.14f, 0.16f, 0.02f, 0.f, 0.f},      // PP  lips pressed together
+    {0.12f, 0.06f, 0.42f, -0.04f, 0.02f, 0.f},  // FF  lower lip under the upper teeth
+    {0.16f, 0.02f, 0.06f, -0.04f, 0.f, 0.38f},  // TH  tongue tip up between the teeth
+    {0.18f, 0.f, 0.04f, -0.06f, 0.f, 0.3f},     // DD
+    {0.26f, 0.f, 0.f, -0.03f, 0.f, -0.1f},      // kk
+    {0.1f, 0.26f, -0.24f, 0.22f, 0.f, 0.08f},   // CH  lips pushed out
+    {0.05f, -0.03f, 0.04f, -0.18f, 0.05f, 0.1f},// SS  teeth together, lips spread
+    {0.15f, 0.f, 0.02f, -0.04f, 0.f, 0.26f},    // nn
+    {0.15f, 0.16f, -0.12f, 0.18f, 0.f, 0.05f},  // RR
+    {0.7f, 0.02f, -0.04f, -0.06f, -0.02f, -0.05f},  // aa
+    {0.38f, -0.02f, 0.f, -0.2f, 0.04f, 0.02f},  // E
+    {0.24f, -0.05f, 0.02f, -0.28f, 0.06f, 0.04f},   // I
+    {0.42f, 0.26f, -0.24f, 0.36f, 0.f, -0.03f}, // O
+    {0.12f, 0.42f, -0.4f, 0.55f, 0.f, 0.f},     // U
+};
+
+// Pose the speech bones for a mouth shape (see kVisemeShape) and, when jaw >= 0, the jaw.
+void applyMouthShape(Pose& p, const float* m, float jaw) {
+    p.rot[B_LIP_UPPER] = normalize(p.rot[B_LIP_UPPER] * qx(m[1]));
+    p.rot[B_LIP_LOWER] = normalize(p.rot[B_LIP_LOWER] * qx(m[2]));
+    p.rot[B_LIP_CORNER_L] = normalize(p.rot[B_LIP_CORNER_L] * qz(-m[3]) * qx(m[4]));
+    p.rot[B_LIP_CORNER_R] = normalize(p.rot[B_LIP_CORNER_R] * qz(m[3]) * qx(m[4]));
+    p.rot[B_TONGUE] = normalize(p.rot[B_TONGUE] * qx(m[5]));
+    if (jaw >= 0.f) p.rot[B_JAW] = qx(-Clamp(jaw, 0.f, 1.f) * 0.3f);
+}
+
+void visemeShape(int v, float w, float* out) {
+    for (int i = 0; i < 6; i++) out[i] = v >= 0 && v < 15 ? kVisemeShape[v][i] * w : 0.f;
+}
+
+}  // namespace detail
+
 void Animator::faceOverlay(const AnimInput& in, float dt) {
     using namespace detail;
     const Skeleton& sk = *skel;
@@ -678,8 +717,25 @@ void Animator::faceOverlay(const AnimInput& in, float dt) {
         pitch = Lerp(pitch, -kLidClose, blink);
         pose.rot[b] = normalize(pose.rot[b] * qz(yaw) * qx(pitch));
     }
-    // speech drives the jaw when the game provides it
-    if (in.mouthOpen >= 0.f) pose.rot[B_JAW] = qx(-Clamp(in.mouthOpen, 0.f, 1.f) * 0.3f);
+    // speech: viseme mouth shapes (lips, corners, tongue); the jaw comes from mouthOpen when the game provides it,
+    // else from the visemes (or stays with the clip)
+    float target[6] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+    bool talking = !dead && !out && (in.viseme >= 0 || in.visemeNext >= 0);
+    if (talking) {
+        float a[6], b[6];
+        float vw = Clamp(in.visemeWeight, 0.f, 1.f), bl = Clamp(in.visemeBlend, 0.f, 1.f);
+        visemeShape(in.viseme, vw, a);
+        visemeShape(in.visemeNext >= 0 ? in.visemeNext : in.viseme, vw, b);
+        for (int i = 0; i < 6; i++) target[i] = Lerp(a[i], b[i], bl);
+    }
+    float km = 1.f - expf(-dt * 28.f);
+    bool any = false;
+    for (int i = 0; i < 6; i++) {
+        mouth[i] += (target[i] - mouth[i]) * km;
+        any = any || fabsf(mouth[i]) > 1e-4f;
+    }
+    float jaw = in.mouthOpen >= 0.f ? in.mouthOpen : (talking || fabsf(mouth[0]) > 1e-3f ? mouth[0] : -1.f);
+    if (any || jaw >= 0.f) applyMouthShape(pose, mouth, jaw);
 }
 
 void Animator::blendFrom(const Pose& from, float seconds) {

@@ -1014,7 +1014,10 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
         p.firing = false;
     }
     if (stance != 6 && pa.activity != ACT_EVENT) p.animIn.crouch = false;
-    p.animIn.stance = stance;
+    // squared up in a fist/knife fight: melee.cpp owns the guard / block stances (19, 20)
+    bool meleeEngaged = p.meleeTarget >= 0 && p.meleeTarget < (int)peds.size() && peds[p.meleeTarget].used && peds[p.meleeTarget].health > 0.f &&
+                        length(rel(peds[p.meleeTarget].pos, p.pos)) < 4.f && (p.animIn.stance == 19 || p.animIn.stance == 20);
+    if (!meleeEngaged) p.animIn.stance = stance;
     // face & move
     if (faceSet) turnTo(p, faceYaw, turnRate, dt);
     else if (length2(desired) > 0.04f) turnTo(p, atan2f(-desired.x, desired.y), turnRate, dt);

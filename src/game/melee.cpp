@@ -12,10 +12,10 @@ namespace melee_detail {
 enum MeleeMoveId { MM_JAB_L = 0, MM_JAB_R, MM_FINISHER, MM_HEAVY, MM_SLASH, MM_STAB, MM_SWING, MM_SMASH, MM_COUNTER, MM_COUNT };
 
 struct MeleeMove {
-    int clip;           // Anim::Clip played by the attacker
-    float contact;      // s from the start to the contact frame
-    float duration;     // s until the move ends (recovery included)
-    float chainAt;      // s after which a queued attack cancels the recovery
+    int clip;           // Anim::Clip played by the attacker (its contact frame and length drive the timing)
+    float contact;      // fallback s from the start to the contact frame (Anim::clipEventTime wins)
+    float duration;     // fallback s until the move ends (the clip length wins)
+    float chainAt;      // unused fallback (chaining opens a third of the way through the recovery)
     float reach;        // m from the attacker's chest
     float arcCos;       // cos of the half-angle of the hit cone
     float damageMul;    // x weapon damage
@@ -24,20 +24,35 @@ struct MeleeMove {
     float lunge;        // m the attacker may step in toward the target during the wind-up
     bool heavy;         // breaks a (non-perfect) guard
     bool kick;          // kick sound / low contact
+    bool face;          // lands on the head (head-snap reaction) rather than the body
 };
 
 const MeleeMove kMoves[MM_COUNT] = {
-    //  clip                 contact duration chain  reach  arc    dmg    knock  stagger lunge heavy  kick
-    {Anim::CLIP_PUNCH_L, 0.15f, 0.42f, 0.24f, 1.25f, 0.5f, 1.0f, 0.0f, 0.3f, 0.7f, false, false},     // jab
-    {Anim::CLIP_PUNCH_R, 0.16f, 0.46f, 0.26f, 1.3f, 0.5f, 1.15f, 0.0f, 0.35f, 0.7f, false, false},    // cross
-    {Anim::CLIP_KICK, 0.26f, 0.72f, 0.5f, 1.45f, 0.45f, 1.9f, 0.45f, 0.9f, 0.9f, false, true},       // combo finisher
-    {Anim::CLIP_KICK, 0.36f, 0.85f, 0.6f, 1.5f, 0.45f, 2.4f, 0.7f, 1.1f, 1.1f, true, true},          // heavy
-    {Anim::CLIP_PUNCH_R, 0.14f, 0.4f, 0.22f, 1.35f, 0.4f, 1.0f, 0.0f, 0.35f, 0.7f, false, false},     // knife slash
-    {Anim::CLIP_PUNCH_R, 0.3f, 0.75f, 0.5f, 1.4f, 0.35f, 1.9f, 0.25f, 0.9f, 0.9f, true, false},       // knife stab
-    {Anim::CLIP_PUNCH_R, 0.24f, 0.62f, 0.4f, 1.7f, 0.35f, 1.0f, 0.35f, 0.6f, 0.6f, false, false},     // bat swing
-    {Anim::CLIP_PUNCH_R, 0.4f, 0.95f, 0.7f, 1.75f, 0.35f, 1.8f, 0.75f, 1.2f, 0.8f, true, false},      // bat smash
-    {Anim::CLIP_PUNCH_R, 0.12f, 0.5f, 0.3f, 1.4f, 0.3f, 1.6f, 0.5f, 1.0f, 0.5f, true, false},         // counter
+    //  clip                    contact duration chain  reach  arc    dmg    knock  stagger lunge heavy  kick   face
+    {Anim::CLIP_PUNCH_L, 0.17f, 0.45f, 0.26f, 1.25f, 0.5f, 1.0f, 0.0f, 0.3f, 0.7f, false, false, true},        // jab
+    {Anim::CLIP_PUNCH_R, 0.23f, 0.5f, 0.32f, 1.3f, 0.5f, 1.15f, 0.0f, 0.35f, 0.7f, false, false, true},        // cross
+    {Anim::CLIP_UPPERCUT, 0.30f, 0.8f, 0.45f, 1.3f, 0.45f, 1.9f, 0.45f, 0.9f, 0.8f, false, false, true},       // combo finisher
+    {Anim::CLIP_HOOK, 0.42f, 0.95f, 0.6f, 1.35f, 0.45f, 2.4f, 0.7f, 1.1f, 1.1f, true, false, true},            // heavy haymaker
+    {Anim::CLIP_KNIFE_SLASH, 0.20f, 0.55f, 0.3f, 1.35f, 0.4f, 1.0f, 0.0f, 0.35f, 0.7f, false, false, false},   // knife slash
+    {Anim::CLIP_KNIFE_STAB, 0.32f, 0.75f, 0.45f, 1.4f, 0.35f, 1.9f, 0.25f, 0.9f, 0.9f, true, false, false},    // knife stab
+    {Anim::CLIP_BAT_SWING, 0.50f, 1.05f, 0.65f, 1.7f, 0.35f, 1.0f, 0.35f, 0.6f, 0.6f, false, false, false},    // bat swing
+    {Anim::CLIP_BAT_OVERHEAD, 0.62f, 1.2f, 0.8f, 1.75f, 0.35f, 1.8f, 0.75f, 1.2f, 0.8f, true, false, true},    // bat smash
+    {Anim::CLIP_COUNTER, 0.32f, 0.8f, 0.45f, 1.4f, 0.3f, 1.6f, 0.5f, 1.0f, 0.5f, true, false, false},         // counter shove
 };
+
+// Timing from the clip itself: its contact frame and length (the table values are fallbacks)
+float moveContact(const MeleeMove& m) {
+    float e = Anim::clipEventTime((Anim::Clip)m.clip);
+    return e > 0.f ? e : m.contact;
+}
+float moveDuration(const MeleeMove& m) {
+    float d = Anim::clipInfo((Anim::Clip)m.clip).duration;
+    return d > 0.1f ? d : m.duration;
+}
+float moveChainAt(const MeleeMove& m) {
+    float c = moveContact(m);
+    return c + (moveDuration(m) - c) * 0.33f;
+}
 
 float meleeWrap(float a) {
     while (a > kPi) a -= kTwoPi;
@@ -84,11 +99,11 @@ int GameWorld::meleeAutoTarget(const Ped& p, float maxDist, float minCos, vec2 f
 bool GameWorld::meleeStart(int pid, bool heavy) {
     if (pid < 0 || pid >= (int)peds.size() || !peds[pid].used) return false;
     Ped& p = peds[pid];
-    if (p.state != PS_ONFOOT || p.health <= 0.f || p.ragdoll || p.meleeStagger > 0.f || p.dodgeT >= 0.f) return false;
+    if (p.state != PS_ONFOOT || p.health <= 0.f || p.ragdoll || p.meleeStagger > 0.f || p.dodgeT >= 0.f || p.takedownT >= 0.f) return false;
     if (!isMeleeWeapon(p.weapon)) return false;
     if (p.meleeMove >= 0) {
         // mid-move: chain the next attack when the input comes after the first half of the wind-up
-        if (p.meleeT >= kMoves[p.meleeMove].contact * 0.5f) p.meleeQueued = heavy ? 2 : 1;
+        if (p.meleeT >= moveContact(kMoves[p.meleeMove]) * 0.5f) p.meleeQueued = heavy ? 2 : 1;
         return false;
     }
     int m;
@@ -153,12 +168,13 @@ void GameWorld::meleeBlock(int pid, bool on) {
     Ped& p = peds[pid];
     if (!on) {
         p.blocking = false;
+        if (p.animIn.stance == 20) p.animIn.stance = 19;
         return;
     }
     if (p.blocking || p.meleeMove >= 0 || p.meleeStagger > 0.f || p.dodgeT >= 0.f || p.state != PS_ONFOOT || p.ragdoll) return;
     p.blocking = true;
     p.blockStart = time;
-    p.pendingAction = Anim::CLIP_BLOCK;
+    if (p.animIn.stance == 0 || p.animIn.stance == 19) p.animIn.stance = 20;   // blocking guard of the weapon in hand
 }
 
 bool GameWorld::meleeDodge(int pid, vec2 worldDir) {
@@ -172,6 +188,12 @@ bool GameWorld::meleeDodge(int pid, vec2 worldDir) {
     vec2 back(sinf(p.yaw), -cosf(p.yaw));
     p.dodgeDir = length(worldDir) > 0.1f ? normalize(worldDir) : back;
     p.dodgeT = 0.f;
+    // pick the side/back step clip from the direction relative to the facing; the clip's root motion moves the ped
+    vec2 right(cosf(p.yaw), sinf(p.yaw)), fwd(-sinf(p.yaw), cosf(p.yaw));
+    float lx = dot(p.dodgeDir, right), ly = dot(p.dodgeDir, fwd);
+    p.dodgeClip = (fabsf(lx) > fabsf(ly) * 0.8f || ly > 0.f) ? (lx < 0.f ? Anim::CLIP_DODGE_L : Anim::CLIP_DODGE_R) : Anim::CLIP_DODGE_BACK;
+    p.dodgeYaw = p.yaw;
+    p.pendingAction = p.dodgeClip;
 #ifdef HAVE_AUDIO
     Audio::play(Audio::SFX_STEP_CONCRETE, p.pos.toVec3(), 0.6f, 0.8f);
 #endif
@@ -181,13 +203,17 @@ bool GameWorld::meleeDodge(int pid, vec2 worldDir) {
 void GameWorld::updateMelee(int pid, float dt) {
     Ped& p = peds[pid];
     p.meleeStagger = Max(0.f, p.meleeStagger - dt);
+    if (p.takedownT >= 0.f) {
+        updateTakedown(pid, dt);
+        return;
+    }
     if (p.state != PS_ONFOOT || p.health <= 0.f || p.ragdoll) {
         p.meleeMove = -1;
         p.meleeQueued = 0;
         p.blocking = false;
         p.dodgeT = -1.f;
         p.meleeReact = 0;
-        if (!p.isPlayer && p.animIn.stance == 19) p.animIn.stance = 0;
+        if (!p.isPlayer && (p.animIn.stance == 19 || p.animIn.stance == 20)) p.animIn.stance = 0;
         return;
     }
     // scheduled AI defence
@@ -209,13 +235,25 @@ void GameWorld::updateMelee(int pid, float dt) {
         }
     }
     if (!p.isPlayer && p.blocking && time > p.blockUntil) meleeBlock(pid, false);
-    // dodge: fast step with an ease-out, briefly untouchable (see meleeContact)
+    // dodge: the clip's root motion (rotated by the facing at the start) drives the capsule; briefly untouchable
     if (p.dodgeT >= 0.f) {
+        float t0 = p.dodgeT;
         p.dodgeT += dt;
-        float k = 1.f - Saturate(p.dodgeT / 0.42f);
-        p.forcedVel = p.dodgeDir * (5.8f * k * k + 0.3f);
-        p.forcedT = 0.05f;
-        if (p.dodgeT > 0.45f) p.dodgeT = -1.f;
+        if (p.charIndex >= 0 && p.dodgeClip >= 0 && dt > 1e-5f) {
+            const Anim::Skeleton& sk = chars[p.charIndex].skel;
+            vec3 rm = Anim::clipRootMotion(sk, (Anim::Clip)p.dodgeClip, p.dodgeT) - Anim::clipRootMotion(sk, (Anim::Clip)p.dodgeClip, t0);
+            vec2 right(cosf(p.dodgeYaw), sinf(p.dodgeYaw)), fwd(-sinf(p.dodgeYaw), cosf(p.dodgeYaw));
+            p.forcedVel = (right * rm.x + fwd * rm.y) / dt;
+            p.forcedT = dt * 1.5f;
+        } else {
+            float k = 1.f - Saturate(p.dodgeT / 0.42f);
+            p.forcedVel = p.dodgeDir * (5.8f * k * k + 0.3f);
+            p.forcedT = 0.05f;
+        }
+        if (p.dodgeT > 0.5f) {
+            p.dodgeT = -1.f;
+            p.dodgeClip = -1;
+        }
     }
     // NPC fighting guard while squared up with an opponent
     if (!p.isPlayer) {
@@ -225,8 +263,8 @@ void GameWorld::updateMelee(int pid, float dt) {
             squared = o.used && o.health > 0.f && o.state == PS_ONFOOT && length(rel(o.pos, p.pos)) < 4.f &&
                       (p.brain.type == BRAIN_COMBAT || p.faction == FAC_POLICE || p.faction == FAC_ENEMY);
         }
-        if (squared && p.animIn.stance == 0) p.animIn.stance = 19;
-        else if (!squared && p.animIn.stance == 19) p.animIn.stance = 0;
+        if (squared && (p.animIn.stance == 0 || p.animIn.stance == 19 || p.animIn.stance == 20)) p.animIn.stance = p.blocking ? 20 : 19;
+        else if (!squared && (p.animIn.stance == 19 || p.animIn.stance == 20)) p.animIn.stance = 0;
     }
     if (p.meleeMove < 0) return;
     const MeleeMove& mv = kMoves[p.meleeMove];
@@ -241,25 +279,25 @@ void GameWorld::updateMelee(int pid, float dt) {
             float ty = atan2f(-dh.x, dh.y);
             p.yaw = meleeWrap(p.yaw + meleeWrap(ty - p.yaw) * Saturate(dt * 16.f));
             float want = mv.reach * 0.72f;
-            float left = mv.contact - p.meleeT;
+            float left = moveContact(mv) - p.meleeT;
             if (dist > want && dist < want + mv.lunge + 0.6f && left > 0.02f) {
                 p.forcedVel = dh / dist * Min((dist - want) / Max(left, 0.06f), 5.5f);
                 p.forcedT = 0.05f;
             }
         }
     }
-    if (!p.meleeHitDone && p.meleeT >= mv.contact) {
+    if (!p.meleeHitDone && p.meleeT >= moveContact(mv)) {
         p.meleeHitDone = true;
         meleeContact(pid);
         if (!peds[pid].used || p.meleeMove < 0) return;   // interrupted by a perfect block
     }
-    if (p.meleeQueued && p.meleeHitDone && p.meleeT >= mv.chainAt) {
+    if (p.meleeQueued && p.meleeHitDone && p.meleeT >= moveChainAt(mv)) {
         int q = p.meleeQueued;
         p.meleeMove = -1;
         p.meleeQueued = 0;
         p.meleeLastEnd = time;
         meleeStart(pid, q == 2);
-    } else if (p.meleeT >= mv.duration) {
+    } else if (p.meleeT >= moveDuration(mv)) {
         p.meleeMove = -1;
         p.meleeLastEnd = time;
     }
@@ -277,7 +315,7 @@ void GameWorld::meleeContact(int pid) {
     for (int o : list) {
         if (o == pid) continue;
         const Ped& t = peds[o];
-        if (!t.used || t.health <= 0.f || t.state != PS_ONFOOT || t.ragdoll) continue;
+        if (!t.used || t.health <= 0.f || t.state != PS_ONFOOT || t.ragdoll || t.takedownT >= 0.f) continue;
         if (t.dodgeT > 0.04f && t.dodgeT < 0.36f) continue;   // mid-dodge: the blow whiffs
         vec3 d = pedChestPos(t) - chest;
         if (fabsf(d.z) > 1.f) continue;
@@ -313,7 +351,7 @@ void GameWorld::meleeHit(int ai, int ti, int move) {
     vec3 tf(-sinf(t.yaw), cosf(t.yaw), 0.f);
     bool facing = dot(tf, -dir) > 0.25f;
     bool bat = a.weapon == WPN_BAT, knife = a.weapon == WPN_KNIFE;
-    bool face = move == MM_JAB_L || move == MM_JAB_R || move == MM_COUNTER;
+    bool face = mv.face;
     vec3 hitPos = pedChestPos(t) - dir * 0.15f + vec3(0.f, 0.f, face ? 0.35f : (mv.kick ? -0.25f : 0.f));
     bool playerInvolved = a.isPlayer || t.isPlayer;
     // ---- guard
@@ -384,7 +422,10 @@ void GameWorld::meleeHit(int ai, int ti, int move) {
         knockDown(ti, dir * ((bat ? 380.f : 260.f) * (mv.heavy ? 1.3f : 1.f)) + vec3(0.f, 0.f, 70.f));
         return;
     }
-    t.pendingAction = facing ? Anim::CLIP_HIT_FRONT : Anim::CLIP_HIT_BACK;
+    // reaction: head snap for blows to the face, doubling over for body shots, a stumble from behind or a heavy blow
+    if (!facing) t.pendingAction = Anim::CLIP_HIT_BACK;
+    else if (mv.heavy && !face) t.pendingAction = Anim::CLIP_STAGGER;
+    else t.pendingAction = face ? Anim::CLIP_HIT_HEAD : Anim::CLIP_HIT_BODY;
     t.meleeStagger = Max(t.meleeStagger, mv.stagger);
     if (t.meleeMove >= 0) {   // interrupted
         t.meleeMove = -1;
@@ -395,6 +436,67 @@ void GameWorld::meleeHit(int ai, int ti, int move) {
     t.forcedVel = vec2(dir.x, dir.y) * (mv.heavy ? 2.6f : 1.6f);
     t.forcedT = 0.16f;
     t.hitReactTimer = 0.5f;
+}
+
+// Synced stealth takedown: the attacker steps in 0.55 m behind the victim with the same facing and both play their
+// half of the rear choke; the victim goes limp and is released at the end of the grab, then settles as a ragdoll.
+bool GameWorld::startTakedown(int ai, int vi) {
+    if (ai < 0 || vi < 0 || ai >= (int)peds.size() || vi >= (int)peds.size()) return false;
+    Ped& a = peds[ai];
+    Ped& v = peds[vi];
+    if (a.takedownT >= 0.f || v.takedownT >= 0.f || v.state != PS_ONFOOT || v.ragdoll || v.health <= 0.f) return false;
+    vec2 vf(-sinf(v.yaw), cosf(v.yaw));
+    vec3 vp = v.pos.toVec3();
+    vec3 ap(vp.x - vf.x * 0.55f, vp.y - vf.y * 0.55f, groundHeight(vp.x - vf.x * 0.55f, vp.y - vf.y * 0.55f, vp.z + 0.5f));
+    a.pos = dvec3(ap);
+    a.yaw = v.yaw;
+    a.vel = v.vel = vec3(0.f);
+    for (int k = 0; k < 2; k++) {
+        Ped& q = k == 0 ? a : v;
+        q.takedownT = 0.f;
+        q.takedownPartner = k == 0 ? vi : ai;
+        q.takedownVictim = k == 1;
+        q.takedownYaw = v.yaw;
+        q.meleeMove = -1;
+        q.meleeQueued = 0;
+        q.blocking = false;
+        q.dodgeT = -1.f;
+        q.pendingAction = k == 0 ? Anim::CLIP_TAKEDOWN_ATTACKER : Anim::CLIP_TAKEDOWN_VICTIM;
+    }
+    v.brain.alerted = true;
+#ifdef HAVE_AUDIO
+    Audio::play(Audio::SFX_BODY_FALL, pedChestPos(v), 0.35f, 1.4f);
+#endif
+    return true;
+}
+
+void GameWorld::updateTakedown(int pid, float dt) {
+    Ped& p = peds[pid];
+    if (p.takedownT < 0.f) return;
+    float t0 = p.takedownT;
+    p.takedownT += dt;
+    int o = p.takedownPartner;
+    bool partnerOk = o >= 0 && o < (int)peds.size() && peds[o].used && peds[o].takedownT >= 0.f;
+    // root motion of the clip (victim slumps forward, attacker steps back off the body at the end)
+    if (p.charIndex >= 0 && dt > 1e-5f) {
+        const Anim::Skeleton& sk = chars[p.charIndex].skel;
+        Anim::Clip c = p.takedownVictim ? Anim::CLIP_TAKEDOWN_VICTIM : Anim::CLIP_TAKEDOWN_ATTACKER;
+        vec3 rm = Anim::clipRootMotion(sk, c, p.takedownT) - Anim::clipRootMotion(sk, c, t0);
+        vec2 right(cosf(p.takedownYaw), sinf(p.takedownYaw)), fwd(-sinf(p.takedownYaw), cosf(p.takedownYaw));
+        p.forcedVel = (right * rm.x + fwd * rm.y) / dt;
+        p.forcedT = dt * 1.5f;
+    }
+    p.yaw = p.takedownYaw;
+    if (p.takedownVictim) {
+        // released at the end of the grab: dead without a sound
+        if (p.takedownT >= 2.45f && p.health > 0.f) {
+            p.silentDeath = true;
+            killPed(pid, partnerOk ? o : -1, vec3(-sinf(p.yaw), cosf(p.yaw), 0.f), DMG_MELEE);
+        }
+        if (p.takedownT >= 3.f || p.health <= 0.f) p.takedownT = -1.f;
+    } else if (p.takedownT >= 3.f || (!partnerOk && p.takedownT < 2.45f && p.takedownT > 0.4f)) {
+        p.takedownT = -1.f;   // finished (or the victim was taken away mid-grab)
+    }
 }
 
 }  // namespace Game

@@ -255,6 +255,7 @@ int main(int argc, char** argv) {
     const char* view = "front";
     bool lineup = false, strip = false, floorOn = false, rootMotion = false, pair = false;
     int weapon = 0, melee = -1;
+    bool visemes = false;
     float stripDt = -1.f;
     std::vector<int> clipList;
     for (int i = 2; i < argc; i++) {
@@ -281,6 +282,7 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--pair")) pair = true;              // takedown pair: victim + attacker 0.55 m behind
         else if (!strcmp(argv[i], "--weapon")) { const char* w = nx(); weapon = !strcmp(w, "bat") ? 1 : (!strcmp(w, "knife") ? 2 : 0); }
         else if (!strcmp(argv[i], "--melee")) melee = atoi(nx());      // AnimInput::meleeKind for scenarios
+        else if (!strcmp(argv[i], "--visemes")) visemes = true;        // one character per viseme (0..14)
         else if (!strcmp(argv[i], "--clips")) {
             // comma separated clip list, one per character
             const char* c = nx();
@@ -296,13 +298,14 @@ int main(int argc, char** argv) {
         clipList = {CLIP_TAKEDOWN_VICTIM, CLIP_TAKEDOWN_ATTACKER};
     }
     if (!clipList.empty()) count = (int)clipList.size();
+    if (visemes) count = 15;
     Img img(W, H);
     std::vector<Char> chars(count);
     double tb = 0;
     size_t totalTris = 0;
     for (int i = 0; i < count; i++) {
         Char& ch = chars[i];
-        u32 sd = lineup ? 1000 + i * 7919 : (pair ? seed + i * 7919 : (strip || !clipList.empty() ? seed : seed + i * 7919));
+        u32 sd = lineup ? 1000 + i * 7919 : (pair ? seed + i * 7919 : (strip || visemes || !clipList.empty() ? seed : seed + i * 7919));
         int rl = role >= 0 ? role : (lineup ? i % 7 : 0);
         ch.d = randomCharacter(sd, rl);
         buildSkeleton(ch.d, ch.sk);
@@ -402,6 +405,12 @@ int main(int argc, char** argv) {
 #else
         (void)t;
 #endif
+        if (visemes || getenv("PREVIEW_VISEME")) {
+            int vi = visemes ? i : atoi(getenv("PREVIEW_VISEME"));
+            float shape[6];
+            detail::visemeShape(vi, 1.f, shape);
+            detail::applyMouthShape(pose, shape, shape[0]);
+        }
         if (const char* ep = getenv("PREVIEW_EYEPITCH")) {
             // debug: pitch both eye bones (the upper lids ride on them: -0.95 closes the eyes)
             float a = (float)atof(ep);

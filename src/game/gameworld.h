@@ -261,6 +261,8 @@ struct GameWorld {
     int meleeAutoTarget(const Ped& p, float maxDist, float minCos, vec2 fwd = vec2(0.f, 0.f)) const;   // fwd 0 = facing
     void meleeContact(int pid);
     void meleeHit(int attacker, int target, int move);
+    bool startTakedown(int attacker, int victim);        // synced rear choke (CLIP_TAKEDOWN_ATTACKER / _VICTIM)
+    void updateTakedown(int pid, float dt);
     // mouth animation for a line the ped starts speaking now (exact text + voice passed to Audio::speak*)
     void startLipSync(int pid, const char* spokenText, const Audio::VoiceParams& voice);
     void animatePed(Ped& p, float dt);
