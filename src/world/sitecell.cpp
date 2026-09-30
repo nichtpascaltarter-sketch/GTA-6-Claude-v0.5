@@ -2,6 +2,12 @@
 #include "sites.h"
 #include "../render/mesh.h"
 #include "worldtypes.h"
+// Hand-built places (places.h): included here, after the site toolkit and the other site generators, so every build of
+// the site cells (the game, worldcheck, traffic_sim) compiles them
+#include "placekit.cpp"
+#include "decostrip.cpp"
+#include "campus.cpp"
+#include "places.cpp"
 
 namespace World {
 
@@ -106,6 +112,13 @@ void buildSiteCell(int cx, int cy, bool detail, CellGeometry& out) {
             case SK_BOARDWALK: rural_mesh::genBoardwalk(e, g); break;
             case SK_OBS_TOWER: rural_mesh::genObsTower(e, g); break;
             case SK_BOAT_RAMP: rural_mesh::genBoatRamp(e, g); break;
+            // hand-built places
+            case SK_DECO_HOTEL: deco_strip::genHotel(e, g); break;
+            case SK_DECO_PARK: deco_strip::genDecoPark(e, g); break;
+            case SK_CAMPUS_GROUNDS: campus::genGrounds(e, g); break;
+            case SK_CAMPUS_HALL: campus::genHall(e, g); break;
+            case SK_CAMPUS_TOWER: campus::genTower(e, g); break;
+            case SK_CAMPUS_FIELD: campus::genField(e, g); break;
             default: break;
         }
     }

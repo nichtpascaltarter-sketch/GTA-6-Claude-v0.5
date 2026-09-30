@@ -88,10 +88,21 @@ struct CharacterDesc {
     int role = 0;                 // 0 civilian, 1 police, 2 gang, 3 business, 4 beach, 5 worker, 6 medic
     int ancestry = -1;            // face shape tendencies: 0 Latin American / Mediterranean, 1 African / Caribbean,
                                   // 2 European, 3 East Asian, 4 mixed / other; -1 = from the skin tone
+    // Layering and accessories (-1 / 0 = none; ignored where they do not go with the top, see character.cpp)
+    int outer = -1;               // open layer over the top: 0 overshirt, 1 zip hoodie, 2 cardigan, 3 light jacket, 4 vest,
+                                  // 5 blazer
+    vec3 outerColor = vec3(0.3f);
+    int bag = -1;                 // 0 backpack, 1 crossbody bag (on the back of the hip), 2 shoulder tote (see bagSide)
+    vec3 bagColor = vec3(0.1f);
+    u32 extras = 0;               // accessory bits (ACC_* in anim_internal.h): bracelets, lanyard badge, sunglasses pushed
+                                  // up, rolled sleeves, ...
 };
 
 // Generate a varied random civilian description for a region/role (deterministic from seed).
 CharacterDesc randomCharacter(u32 seed, int role = 0);
+// Side a one-shoulder bag hangs on (0 left, 1 right): a crossbody bag sits behind that hip with its strap over the
+// other shoulder, a tote hangs from that shoulder (the arm on that side can hold the strap / swing less).
+inline int bagSide(const CharacterDesc& d) { return (int)((d.seed >> 5) & 1u); }
 void buildSkeleton(const CharacterDesc& d, Skeleton& out);
 void buildCharacterMesh(const CharacterDesc& d, const Skeleton& skel, SkinnedMeshData& out);
 // Level-of-detail meshes on the same skeleton and skin weights (same silhouette and colours): out[0] full detail
@@ -211,6 +222,9 @@ struct AnimInput {
     vec3 grabTarget = vec3(0);
     float grabWeight = 0;
     vec3 groundNormal = vec3(0, 0, 1);  // terrain normal under the ped in its model space (feet align to slopes)
+    // groundOffsetL/R were probed under Animator::footProbe() (where each foot is / is about to land) instead of
+    // below the hips: the animator then takes them as the ground under each foot as it is (no slope extrapolation)
+    bool footProbes = false;
 };
 
 struct Animator {
@@ -250,6 +264,51 @@ struct Animator {
     float browseW = 0.f, browseL = 0.f, grabW = 0.f;
     void conversation(const AnimInput& in, float dt, Pose& p);   // internal: gestures, listener cues, phone at the ear
     Pose snap;                    // pose captured at a discontinuity (crossfaded out over 1/snapRate s)
+    // ---- per-person motion (setCharacter; defaults from the seed alone): walking style (detail::GaitStyle), arm
+    //      swing scale, posture, cadence, arm clearance of a wide body, idle fidget set and timing, how much the
+    //      person looks around
+    int gaitStyle = 0;
+    float armSwingK = 1.f, postureLean = 0.f, headPitchAdd = 0.f, cadenceK = 1.f, armOut = 0.f, energy = 0.5f;
+    float lookiness = 0.5f, fidgetRate = 1.f;
+    float heavyK = 0.f, athleticK = 0.f;   // build: heavy (wider base, more sway) / athletic (springier) 0..1
+    u32 fidgetMask = 0xffffffffu;
+    // ---- feet planted in the world (model space of the ped, carried by the root motion): contact pivot, yaw,
+    //      correction of the animated foot (decays after lift-off), procedural steps while standing / turning
+    float footHeel = 0.05f, footBall = 0.13f, footAnkleH = 0.08f;   // foot geometry (from the skeleton)
+    vec3 plantP[2], plantCorr[2], stepFrom[2], probeP[2];
+    float plantYaw[2] = {0.f, 0.f}, corrYaw[2] = {0.f, 0.f}, stepT[2] = {-1.f, -1.f}, stepDur[2] = {0.35f, 0.35f};
+    float stepFromYaw[2] = {0.f, 0.f}, stepLift[2] = {0.f, 0.f};
+    vec3 stepTo[2];               // a step's landing footprint (heel point) and yaw, held still for its last quarter
+    float stepToYaw[2] = {0.f, 0.f};
+    float legSink = 0.f;          // pelvis lowered so planted feet stay within reach
+    bool planted[2] = {false, false};
+    float plantOn = 0.f;          // foot planting weight (off in vehicles, actions, scenarios that move the feet)
+    float bodyLag = 0.f;          // body yaw behind the root while turning on the spot (the feet step round)
+    float headLead = 0.f;         // head / neck yaw leading into turns
+    float accS = 0.f, accV = 0.f, prevSpeed = 0.f;   // start / stop lean (damped spring on the acceleration)
+    float stepShift = 0.f;        // pelvis weight shift over the standing foot during a step
+    u32 footEvents = 0;           // bit 0 / 1: left / right foot touched down in the last update (footsteps)
+    quat armRest[2];              // upper arms hanging at rest (arm swing amplitude is scaled about it)
+    // ---- standing life: weight on one leg (0 left .. 1 right), breathing (own rate, faster after exertion),
+    //      fidgets layered over the upper body or the legs
+    float standW = 0.5f, standTarget = 0.f, standNext = 3.f;
+    float breathPh = 0.f, breathRate = 0.25f, exertion = 0.f;
+    int fidgetVar = -1, fidgetCount = 0;
+    float fidgetT = 0.f, fidgetDur = 0.f, fidgetNext = 5.f, fidgetW = 0.f;
+    float standV = 0.f, standK = 5.f;   // weight shift: speed, spring rate (per person)
+    float settleT = -1.f;         // time to the unloaded foot's settling step after a weight shift (-1 none)
+    int stepReq = -1;             // foot asked to settle: 0 left, 1 right, 2 whichever is further out (-1 none)
+    float breath = 0.f;           // breath now (0 exhaled .. 1 inhaled)
+    quat restUp[8];               // spine, neck, head, jaw, eyes of the plain standing pose (layer offsets)
+    vec3 restRoot;
+    quat restArm[2][3];           // upper arm, forearm, hand of the plain standing pose (left, right)
+    vec3 skinP[3];                // this body's skin where posed hands rest on it (bind pose, from the pelvis joint): the
+                                  // right flank (hand on the hip), the small of the back, the belly
+    // Walking style and body language from the character: call after init.
+    void setCharacter(const CharacterDesc& d);
+    // Model-space ground point the game should probe for each foot (0 left, 1 right) before the next update: under
+    // a planted foot, ahead of a swinging one (see AnimInput::footProbes).
+    vec3 footProbe(int side) const { return probeP[side & 1]; }
     void init(const Skeleton* s, u32 variationSeed);
     void update(const AnimInput& in, float dt) { update(in, dt, false); }
     // cheap = distant peds (LOD2): no foot / hand IK, no two-handed grip fix-up, no face (blinks, gaze, look-at,

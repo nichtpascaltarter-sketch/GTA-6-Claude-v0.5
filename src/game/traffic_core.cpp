@@ -142,6 +142,8 @@ VehicleInfo makeVehicleInfo(const Vehicles::VehicleModel& m, const Vehicles::Veh
     vi.dragK = 0.5f * 1.225f * m.dragCoef * m.frontalArea / vi.mass;
     vi.bus = m.cls == Vehicles::VC_BUS;
     vi.bike = m.cls == Vehicles::VC_MOTORBIKE || m.cls == Vehicles::VC_SCOOTER;
+    // (as vehicle_sim_wheels.cpp bikeMaxLean: the grip-limited lean, less on a scooter)
+    vi.maxLean = Min(m.cls == Vehicles::VC_SCOOTER ? 0.68f : 0.8f, atanf(0.85f * Clamp(m.grip, 0.5f, 1.4f)));
     vi.big = m.cls == Vehicles::VC_BUS || m.cls == Vehicles::VC_TRUCK || m.cls == Vehicles::VC_FIRETRUCK;
     return vi;
 }
@@ -623,6 +625,27 @@ bool TrafficCore::laneFree(int lane, float u, float hl, float gap) const {
         if (fabsf(lat) < 2.6f && fabsf(along) < hl + b.halfLen + gap) ok = false;
     });
     return ok;
+}
+
+bool TrafficCore::zebraBusy(int link) const {
+    const WalkLink& L = g->walkLinks[link];
+    vec2 a = g->walkNodes[L.a].p.xy(), b = g->walkNodes[L.b].p.xy();
+    vec2 ab = b - a;
+    float len = length(ab);
+    if (len < 0.1f) return false;
+    vec2 dir = ab / len, nrm = rightOf(dir);
+    bool busy = false;
+    hash.query(bodies, vmin(a, b) - vec2(3.f), vmax(a, b) + vec2(3.f), [&](int bi) {
+        if (busy) return;
+        const Body& bd = bodies[bi];
+        if (bd.kind != BK_PED) return;
+        vec2 rel = bd.pos - a;
+        float along = dot(rel, dir), lat = dot(rel, nrm);
+        if (fabsf(lat) > L.halfWidth + 0.9f) return;
+        // on the stripes (people step off the kerb only when whatever is coming can still stop: pednav.cpp)
+        if (along >= -0.2f && along <= len + 0.2f) busy = true;
+    });
+    return busy;
 }
 
 bool TrafficCore::liftPoint(const Driver& d, float ahead, int& pathOut, float& uOut) const {
@@ -1263,6 +1286,7 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     float obstGap = 1e9f, obstV = 0.f;
     int obstB = -1;
     bool obstPed = false, obstBack = false;
+    bool meetBig = false;   // a bus or a truck coming the other way close by (or we are one, meeting anything)
     thread_local std::vector<u32> seen;
     thread_local u32 seenStamp = 0;
     if (seen.size() < bodies.size()) seen.resize(bodies.size() + 64, 0);
@@ -1329,6 +1353,8 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
             if (!ped && dot(bf, bt) < -0.5f) {
                 bestLat += bestShift;
                 half = myHW + extN + 0.12f;
+                // a long body swings its nose / tail across the line on a bend: meeting one, both keep to the kerb side
+                if ((b.halfLen > 3.6f || d.info.wheelbase > 3.8f) && bestX < 40.f && fabsf(bestLat) < half + 1.6f) meetBig = true;
             }
             float gap = Max(bestX - extT - front, 0.f);
             float vl = dot(b.vel, bt);
@@ -1414,6 +1440,16 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     d.obstSpeed = obstV;
     d.obstBody = obstB;
     d.obstBacking = obstBack && obstGap < 7.f;
+    // ---- meeting a bus or a truck on a two-way road: keep to the kerb side of the lane while passing (a long body's
+    //      nose swings over the line on a bend) - in the kerb lane, with no lane change or other side step going on
+    if (meetBig && d.path < NL && G.lanes[d.path].right < 0 && d.lcLane < 0 && d.mode != DM_PULLOVER &&
+        (d.nudgeTarget == 0.f || (d.nudgeTarget > 0.f && d.nudgeTarget <= 0.61f))) {
+        float room = G.lanes[d.path].width * 0.5f - myHW - 0.15f;
+        if (room > 0.08f) {
+            d.nudgeTarget = Min(room, 0.6f);
+            d.nudgeTimer = 1.2f;
+        }
+    }
     // ---- stops
     float stopDist = 1e9f;
     if (d.path < NL) {
@@ -1474,6 +1510,29 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
                 }
                 acc += G.pathLength(pth) - start;
             }
+        }
+    }
+    // ---- zebra crossings (mid-block, no signal): stop short of the stripes while somebody is on them or stepping on
+    //      (on the way to an emergency, people wait)
+    if (d.mode != DM_EMERGENCY) {
+        float acc = 0.f;
+        for (int i = -1; i < d.routeLen && acc < lookDist; i++) {
+            int p2 = i < 0 ? d.path : d.route[i];
+            float s0 = p2 < NL ? G.lanes[p2].u0 : 0.f;
+            float base = i < 0 ? -(d.u + front) : acc - s0;   // distance from our front to u = 0 of that path
+            bool stopped = false;
+            if (p2 < NL)
+                for (const LaneZebra& z : G.lanes[p2].zebras) {
+                    float dz = base + z.u;
+                    if (dz < -0.5f || dz > lookDist) continue;   // (already over its near edge: carry on across)
+                    if (zebraBusy(z.link)) {
+                        stopDist = Min(stopDist, dz - 0.5f);
+                        stopped = true;
+                        break;
+                    }
+                }
+            if (stopped) break;
+            acc = i < 0 ? G.pathLength(d.path) - d.u - front : acc + G.pathLength(p2) - s0;
         }
     }
     if (d.mode == DM_PULLOVER) {
@@ -1735,6 +1794,18 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
     if (ly < 0.f && vF > -0.5f && d.info.wheelbase <= 3.3f) delta = lx > 0.f ? d.info.maxSteer : -d.info.maxSteer;  // target behind: full lock toward it
     float lim = maxSteerAt(d, fabsf(vF));
     c.steer = Clamp(delta / Max(lim, 0.05f), -1.f, 1.f);
+    if (d.info.bike && vF > -0.5f) {
+        // a bike turns by leaning: at speed the input sets the rider's lean (vehicle_sim_wheels.cpp bikeAssist: target
+        // lean = steer x full lean), at walking pace it turns the bars. The lean that holds the wanted curvature at
+        // this speed is atan(v^2 k / g) - asking for the wheel angle instead leaned it a fraction of that and the bike
+        // ran wide of every curve.
+        float vv = Max(vF, 0.5f);
+        float kWant = tanf(delta) / Max(d.info.wheelbase, 0.5f);
+        float leanWant = atanf(vv * vv * kWant / 9.81f);
+        float spd = SmoothStep(1.5f, 8.f, vv);
+        float direct = delta / Max(d.info.maxSteer, 0.05f);
+        c.steer = Clamp(Lerp(direct, leanWant / Max(d.info.maxLean, 0.2f), spd), -1.f, 1.f);
+    }
     // ---- longitudinal
     // dead-reckon the binding distances between plans
     float vt = d.vTarget;

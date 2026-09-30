@@ -1,5 +1,5 @@
 // Story registry: every story mission and side activity with its start trigger, prerequisites, protagonist and
-// availability window. Mission scripts live in story_act1/2/3.cpp and activities.cpp (all in namespace Game::mu).
+// availability window. Mission scripts live in story_act1/2/3/4.cpp and activities.cpp (all in namespace Game::mu).
 #include "missions.h"
 
 namespace Game {
@@ -111,6 +111,27 @@ void MissionManager::registerAll(GameWorld& g) {
     defs.push_back(storyDef("overseas", "Overseas", "Mama Lucha", 'L', startAt(P.redland, 0.f), SF_OVERSEAS, SF_SOLARIS_ONE, -1, 0, 3,
                             makeMission<MissionOverseas>));
     defs.push_back(storyDef("signal", "Signal", "Kit", 'K', startAt(P.pulseFm, -3.f), SF_SIGNAL, SF_OVERSEAS, -1, 0, 3, makeMission<MissionSignal>));
+
+    // ---- Act 4: Undertow (after either ending of Act 3; the title card in act4Update comes first)
+    d = storyDef("wake", "Wake", "Mama Lucha", 'L', startAt(P.diner, -3.f), SF_WAKE, SF_SIGNAL, -1, 0, 4, makeMission<MissionWake>);
+    d.timeFrom = 18.f;
+    d.timeTo = 2.f;
+    defs.push_back(d);
+    d = storyDef("box_numbers", "Box Numbers", "Rook", 'R', startAt(P.rookShop, 3.f), SF_BOX_NUMBERS, SF_WAKE, -1, 1, 4, makeMission<MissionBoxNumbers>);
+    d.needsClasses = kBoats;
+    defs.push_back(d);
+    defs.push_back(storyDef("blue_line", "Blue Line", "Kit", 'K', startAt(P.kitStudio, -3.f), SF_BLUE_LINE, SF_WAKE, -1, 0, 4,
+                            makeMission<MissionBlueLine>));
+    d = storyDef("clear_air", "Clear Air", "Kit", 'K', startAt(P.airport, 12.f), SF_CLEAR_AIR, SF_BOX_NUMBERS, SF_BLUE_LINE, 1, 4,
+                 makeMission<MissionClearAir>);
+    d.needsClasses = classBit(Vehicles::VC_PLANE);
+    defs.push_back(d);
+    d = storyDef("gator_country", "Gator Country", "Jonah", 'J', P.sawgrassDock.xy(), SF_GATOR_COUNTRY, SF_CLEAR_AIR, -1, 0, 4,
+                 makeMission<MissionGatorCountry>);
+    d.needsClasses = classBit(Vehicles::VC_AIRBOAT);
+    defs.push_back(d);
+    defs.push_back(storyDef("king_tide", "King Tide", "The Crew", 'H', startAt(P.boatyard, 2.f), SF_KING_TIDE, SF_GATOR_COUNTRY, -1, 0, 4,
+                            makeMission<MissionKingTide>));
 
     // ---- side activities
     auto side = [&](const char* id, const char* title, const char* contact, vec2 start, int req, int sets, UI::BlipIcon icon,

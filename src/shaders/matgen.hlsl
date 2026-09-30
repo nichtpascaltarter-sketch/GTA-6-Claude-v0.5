@@ -185,7 +185,28 @@ Surf genLeafLitter(float2 uv) {
     return s;
 }
 
+// gParams.x > 0.5: compacted urban ground (vacant lots, verges, yards): dusty fines with sparse small stones, darker
+// oily / tyre-compacted patches; otherwise loose gravel (roof ballast)
+Surf genCompacted(float2 uv) {
+    Surf s;
+    float grit = tvalue(uv * 700.0, 700.0);
+    float3 w = tworley(uv, 180);
+    float stone = smoothstep(0.32, 0.18, w.x) * step(0.8, w.z);                     // one cell in five holds a stone
+    float dust = tfbm(uv, 5.0, 3, 0.5) * 0.5 + 0.5;
+    float oily = smoothstep(0.55, 0.8, tfbm(uv + 3.3, 3.0, 3, 0.5) * 0.5 + 0.5);
+    float3 c = lerp(gColorA.rgb, gColorB.rgb, dust);
+    c *= 0.92 + grit * 0.12;
+    c = lerp(c, gColorB.rgb * 1.1, stone * 0.6);
+    c *= 1.0 - oily * 0.3;
+    s.albedo = c;
+    s.height = 0.45 + grit * 0.1 + stone * 0.3;
+    s.rough = 0.9 - oily * 0.1;
+    s.ao = 0.92 + stone * 0.08;
+    return s;
+}
+
 Surf genGravel(float2 uv) {
+    if (gParams.x > 0.5) return genCompacted(uv);
     Surf s;
     float3 w1 = tworley(uv, 90);
     float3 w2 = tworley(uv + 0.5, 60);

@@ -25,6 +25,11 @@ enum SignalState : u8 { SIG_RED = 0, SIG_AMBER, SIG_GREEN, SIG_ARROW, SIG_NONE }
 enum PedSignal : u8 { PED_DONT = 0, PED_FLASH, PED_WALK, PED_UNCONTROLLED };
 enum PhaseKind : u8 { PH_LEFT = 0, PH_LEFT_AMBER, PH_GREEN, PH_AMBER, PH_ALLRED };
 
+struct LaneZebra {            // a zebra crossing over a lane
+    float u = 0.f;            // lane coordinate where the crossing's near edge meets the lane centre
+    int link = -1;            // the WL_ZEBRA walk link
+};
+
 struct Lane {
     int edge = -1;
     i8 dir = 1;               // +1 travels n0->n1, -1 travels n1->n0
@@ -43,6 +48,7 @@ struct Lane {
     int approachIn = -1;      // approach index at toNode (incoming), -1 when the node has no approach table
     std::vector<int> out;     // connectors leaving this lane's end
     std::vector<float> busStops;  // u of bus stops on this lane's curb side (rightmost lanes only)
+    std::vector<LaneZebra> zebras;  // mid-block zebra crossings over this lane, by u
 };
 
 struct Conflict {
@@ -105,7 +111,9 @@ struct NodeInfo {
 };
 
 // ---- Pedestrian sidewalk graph ----
-enum WalkLinkKind : u8 { WL_SIDEWALK = 0, WL_CROSSWALK, WL_CORNER };
+// WL_PATH: a walkway off the street network (plazas, forecourts: World::SiteSet::walks), straight between its nodes;
+// WL_ZEBRA: a mid-block zebra over a site road - no signal, the traffic stops for anyone on it
+enum WalkLinkKind : u8 { WL_SIDEWALK = 0, WL_CROSSWALK, WL_CORNER, WL_PATH, WL_ZEBRA };
 
 struct WalkNode {
     vec3 p;
@@ -287,6 +295,7 @@ struct VehicleInfo {         // static per-vehicle data the core needs (from Veh
     float mass = 1500.f;        // kg
     float powerW = 120000.f;    // peak engine power (W)
     float dragK = 3e-4f;        // aerodynamic deceleration coefficient (1/m): a = dragK * v^2
+    float maxLean = 0.8f;       // bikes: the rider's full lean (rad) - at speed the steer input is a share of it
     bool bus = false, bike = false, big = false;
 };
 
@@ -454,6 +463,7 @@ public:
     void clearRoute(Driver& d);
     // Spawning support: true if a vehicle of half length hl fits at (lane, u) with `gap` meters of free space
     bool laneFree(int lane, float u, float hl, float gap) const;
+    bool zebraBusy(int link) const;   // somebody on a zebra crossing (walk link)
     bool rearClear(const Driver& d, vec2 pos, vec2 fwd, float dist) const;   // nothing within dist behind the rear bumper
     // `ahead` meters on from where the driver last got stuck (following its route): where to lift a hopelessly stuck car
     bool liftPoint(const Driver& d, float ahead, int& pathOut, float& uOut) const;

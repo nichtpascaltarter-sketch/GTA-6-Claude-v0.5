@@ -51,6 +51,23 @@ const StoryCall kCalls[] = {
     {"overseas", -1, {nullptr, nullptr, nullptr}, "DEX: Lying low at the Redland safehouse with the bags. Come here, Mari. Something's wrong."},
     {"signal", CAST_KIT, {"I've got everything spread out on my desk at Pulse FM. We need to decide what to do with it. Tonight.", ">I'm coming.", nullptr},
      "KIT: Come to Pulse FM."},
+    // Act 4
+    {"wake", CAST_LUCHA, {"Mija, a whole month and nobody has shot at you. That calls for a dinner. Tonight at the diner, the whole crew.",
+                          ">I'll bring Tomas. And an appetite.", nullptr},
+     "LUCHA: Dinner at the diner tonight. Everybody's coming."},
+    {"box_numbers", CAST_ROOK, {"Kit cracked Nando's phone. Three container numbers at Port Isle, all Sable Maritime. Come by the garage.",
+                                ">Night work. My favorite.", nullptr},
+     "ROOK: Container numbers. Come by the garage."},
+    {"blue_line", -1, {nullptr, nullptr, nullptr}, "KIT: Found one more thing on Nando's phone. Come by my studio in the Flats."},
+    {"clear_air", CAST_KIT, {"Dex, Sable's accountant flies out tonight with her books on a drive. Hollis Pruitt. Be at airport departures.",
+                             ">I hate airports.", nullptr},
+     "KIT: Airport departures, tonight."},
+    {"gator_country", CAST_JONAH, {"Miss Ortega, it's Jonah Pike. El Cuervo is sitting on Sable's guns at my granddaddy's old fish camp. "
+                                   "Meet me at the airboat dock.", ">I'll be there at first light.", nullptr},
+     "JONAH: Airboat dock in the Sawgrass. First light."},
+    {"king_tide", CAST_TOMAS, {"Everybody's at the boatyard, Mari. Kit says the tide peaks at midnight, and the storm's coming in early.",
+                               ">Tell them I'm on my way.", nullptr},
+     "TOMAS: Everybody's at the boatyard. Tonight."},
 };
 
 struct EconomyState {

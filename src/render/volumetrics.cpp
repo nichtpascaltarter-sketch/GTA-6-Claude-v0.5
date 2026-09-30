@@ -98,6 +98,9 @@ struct VolumetricFog {
         c->Dispatch(gfx::divUp(w, 8), gfx::divUp(h, 8), d);
         gfx::unbindCSResources(6, 1);
         c->CSSetShaderResources(2, 1, &inject[cur].srv);
+        // start from clear air: columns the integration does not reach can never show a stale frame's fog
+        const float clearAir[4] = {0.f, 0.f, 0.f, 1.f};
+        c->ClearUnorderedAccessViewFloat(integrated.uav, clearAir);
         c->CSSetUnorderedAccessViews(0, 1, &integrated.uav, nullptr);
         c->CSSetShader(csIntegrate, nullptr, 0);
         c->Dispatch(gfx::divUp(w, 8), gfx::divUp(h, 8), 1);

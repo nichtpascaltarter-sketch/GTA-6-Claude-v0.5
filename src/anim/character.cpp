@@ -93,6 +93,264 @@ static const float kHair[][3] = {
 
 }  // namespace detail
 
+namespace detail {
+
+// ------------------------------------------------------------------------------------------------
+// Civilian archetypes: a coherent look per person, with colours from coordinated palettes (neutral bottoms, a limited
+// set of top colours, layers in earth / navy / grey tones) rather than independent random picks.
+
+enum CivStyle { CS_CASUAL = 0, CS_TOURIST, CS_STUDENT, CS_OFFICE, CS_ELDERLY, CS_SPORTY, CS_STREET, CS_COUNT };
+
+static const float kNeutralTop[][3] = {{0.95f, 0.95f, 0.93f}, {0.12f, 0.12f, 0.13f}, {0.55f, 0.55f, 0.58f}, {0.15f, 0.2f, 0.35f}, {0.9f, 0.88f, 0.75f},
+                                       {0.35f, 0.4f, 0.3f}, {0.6f, 0.55f, 0.48f}};
+static const float kLayer[][3] = {{0.2f, 0.24f, 0.18f}, {0.12f, 0.15f, 0.26f}, {0.3f, 0.3f, 0.32f}, {0.08f, 0.08f, 0.09f}, {0.55f, 0.45f, 0.32f},
+                                  {0.42f, 0.14f, 0.14f}, {0.75f, 0.72f, 0.64f}, {0.62f, 0.5f, 0.36f}};
+static const float kKnit[][3] = {{0.85f, 0.82f, 0.74f}, {0.5f, 0.5f, 0.52f}, {0.15f, 0.18f, 0.3f}, {0.45f, 0.12f, 0.15f}, {0.62f, 0.48f, 0.32f},
+                                 {0.3f, 0.36f, 0.3f}};
+static const float kBag[][3] = {{0.06f, 0.06f, 0.07f}, {0.12f, 0.15f, 0.26f}, {0.35f, 0.35f, 0.37f}, {0.42f, 0.28f, 0.16f}, {0.3f, 0.34f, 0.24f},
+                                {0.55f, 0.12f, 0.12f}, {0.75f, 0.68f, 0.55f}};
+#define PAL(p) p, (int)(sizeof(p) / sizeof(p[0]))
+
+static void civilianOutfit(CharacterDesc& d, Rng& r) {
+    const bool fem = d.gender == FEMALE;
+    const float age = d.age;   // 0 = 18 .. 1 = 80 years
+    // archetype weights by age: students are young, the elderly old, office workers of working age
+    float w[CS_COUNT] = {0.36f, 0.12f, 0.16f * (1.f - sstep(0.12f, 0.3f, age)), 0.13f * sstep(0.03f, 0.1f, age) * (1.f - sstep(0.6f, 0.75f, age)),
+                         0.85f * sstep(0.62f, 0.75f, age), 0.08f * (1.f - sstep(0.4f, 0.7f, age)), 0.09f * (1.f - sstep(0.25f, 0.45f, age))};
+    int st = r.weighted(w, CS_COUNT);
+    Rng& R = r;
+    auto pc = [&](const float (*pal)[3], int n) { return pickColor(R, pal, n); };
+    auto chance = [&](float p) { return R.chance(p); };
+    d.outer = -1;
+    d.bag = -1;
+    d.extras = ACC_EXPLICIT;
+    d.topColor = pc(PAL(kCasualTop));
+    switch (st) {
+        case CS_TOURIST: {
+            float t = R.f();
+            d.top = t < 0.35f ? TOP_HAWAIIAN : (t < 0.7f ? TOP_TSHIRT : (fem ? (t < 0.85f ? TOP_TANK : TOP_BLOUSE) : TOP_POLO));
+            float b = R.f();
+            d.bottom = b < 0.4f ? BOT_SHORTS : (b < 0.7f ? BOT_CARGO : (fem && b < 0.85f ? BOT_SKIRT : BOT_JEANS));
+            d.shoes = chance(0.45f) ? SHOE_SANDAL : (chance(0.6f) ? SHOE_RUNNER : SHOE_SNEAKER);
+            float h = R.f();
+            d.hat = h < 0.3f ? HAT_SUNHAT : (h < 0.55f ? HAT_CAP : -1);
+            d.glasses = chance(0.5f) ? GL_SUN : -1;
+            float bg = R.f();
+            d.bag = bg < 0.35f ? BAG_BACKPACK : (bg < 0.6f ? BAG_CROSSBODY : (fem && bg < 0.72f ? BAG_TOTE : -1));
+            if (chance(0.5f)) d.extras |= ACC_WATCH;
+            break;
+        }
+        case CS_STUDENT: {
+            float t = R.f();
+            d.top = t < 0.4f ? TOP_TSHIRT : (t < 0.6f ? TOP_OVERSIZED : (t < 0.75f ? TOP_HOODIE : (fem ? TOP_CROP : TOP_TANK)));
+            if (d.top != TOP_HOODIE && chance(0.22f)) d.outer = chance(0.6f) ? OUT_ZIPHOODIE : OUT_OVERSHIRT;
+            float b = R.f();
+            d.bottom = b < 0.5f ? BOT_JEANS : (b < 0.7f ? (fem ? BOT_LEGGINGS : BOT_CARGO) : (fem && b < 0.85f ? BOT_SKIRT : BOT_SHORTS));
+            d.shoes = chance(0.8f) ? SHOE_SNEAKER : SHOE_RUNNER;
+            float h = R.f();
+            d.hat = h < 0.12f ? HAT_CAP_BACK : (h < 0.22f ? HAT_CAP : (h < 0.27f ? HAT_BEANIE : -1));
+            d.bag = chance(0.6f) ? BAG_BACKPACK : (chance(0.3f) ? BAG_CROSSBODY : -1);
+            if (chance(0.25f)) d.extras |= ACC_HEADPHONES;
+            if (chance(0.3f)) d.extras |= ACC_BRACELET_L;
+            if (chance(0.2f)) d.extras |= ACC_CUFFED_HEM;
+            break;
+        }
+        case CS_OFFICE: {
+            float t = R.f();
+            if (fem) d.top = t < 0.5f ? TOP_BLOUSE : (t < 0.8f ? TOP_DRESS_SHIRT : TOP_POLO);
+            else d.top = t < 0.65f ? TOP_DRESS_SHIRT : TOP_POLO;
+            d.topColor = chance(0.55f) ? pickColor(R, kNeutralTop, 5) : pc(PAL(kCasualTop));
+            if (d.top == TOP_DRESS_SHIRT && chance(0.4f)) d.extras |= ACC_ROLLED_SLEEVES;
+            float b = R.f();
+            d.bottom = fem ? (b < 0.45f ? BOT_SKIRT : (b < 0.8f ? BOT_SLACKS : BOT_JEANS)) : (b < 0.75f ? BOT_SLACKS : BOT_JEANS);
+            float o = R.f();
+            if (o < 0.18f) d.outer = OUT_BLAZER;
+            else if (fem && o < 0.3f) d.outer = OUT_CARDIGAN;
+            d.shoes = fem ? (chance(0.5f) ? SHOE_FLATS : SHOE_LOAFER) : (chance(0.55f) ? SHOE_DRESS : SHOE_LOAFER);
+            if (chance(0.3f)) d.extras |= ACC_LANYARD;
+            if (chance(0.65f)) d.extras |= ACC_WATCH;
+            if (fem && chance(0.35f)) d.bag = BAG_TOTE;
+            else if (!fem && chance(0.2f)) d.bag = BAG_CROSSBODY;
+            d.glasses = chance(0.2f) ? GL_READING : -1;
+            break;
+        }
+        case CS_ELDERLY: {
+            float t = R.f();
+            if (fem) d.top = t < 0.4f ? TOP_BLOUSE : (t < 0.65f ? TOP_POLO : (t < 0.85f ? TOP_TSHIRT : TOP_SUNDRESS));
+            else d.top = t < 0.4f ? TOP_POLO : (t < 0.65f ? TOP_DRESS_SHIRT : (t < 0.85f ? TOP_HAWAIIAN : TOP_TSHIRT));
+            d.topColor = chance(0.5f) ? pickColor(R, kNeutralTop, 7) : pc(PAL(kCasualTop));
+            float b = R.f();
+            d.bottom = fem ? (b < 0.45f ? BOT_SLACKS : (b < 0.8f ? BOT_SKIRT : BOT_SHORTS)) : (b < 0.55f ? BOT_SLACKS : (b < 0.8f ? BOT_SHORTS : BOT_JEANS));
+            if (chance(0.3f)) d.outer = OUT_CARDIGAN;
+            d.shoes = chance(0.4f) ? SHOE_LOAFER : (chance(0.5f) ? SHOE_SNEAKER : (fem ? SHOE_FLATS : SHOE_SANDAL));
+            float h = R.f();
+            d.hat = h < 0.25f ? HAT_SUNHAT : (h < 0.4f ? (fem ? HAT_SUNHAT : HAT_FEDORA) : (h < 0.5f ? HAT_CAP : -1));
+            d.glasses = chance(0.55f) ? GL_READING : (chance(0.3f) ? GL_SUN : -1);
+            if (chance(0.6f)) d.extras |= ACC_WATCH;
+            if (fem && chance(0.4f)) d.extras |= ACC_EARRINGS;
+            if (fem && chance(0.3f)) d.extras |= ACC_NECKLACE;
+            if (fem && chance(0.3f)) d.bag = BAG_TOTE;
+            break;
+        }
+        case CS_SPORTY: {
+            d.top = chance(0.5f) ? TOP_TANK : (fem && chance(0.4f) ? TOP_CROP : TOP_TSHIRT);
+            d.bottom = fem ? (chance(0.7f) ? BOT_LEGGINGS : BOT_SHORTS) : BOT_SHORTS;
+            d.shoes = SHOE_RUNNER;
+            d.hat = chance(0.3f) ? HAT_CAP : -1;
+            d.glasses = chance(0.4f) ? GL_SUN : -1;
+            if (chance(0.35f)) d.extras |= ACC_HEADPHONES;
+            if (chance(0.4f)) d.extras |= ACC_BRACELET_L;
+            break;
+        }
+        case CS_STREET: {
+            float t = R.f();
+            d.top = t < 0.35f ? TOP_OVERSIZED : (t < 0.6f ? TOP_HOODIE : (t < 0.8f ? TOP_TANK : TOP_TSHIRT));
+            if (d.top == TOP_TANK && chance(0.3f)) d.outer = OUT_OVERSHIRT;
+            d.bottom = chance(0.5f) ? BOT_BAGGY : (chance(0.5f) ? BOT_CARGO : BOT_JEANS);
+            d.shoes = SHOE_SNEAKER;
+            float h = R.f();
+            d.hat = h < 0.25f ? HAT_CAP_BACK : (h < 0.4f ? HAT_CAP : (h < 0.5f ? HAT_BEANIE : -1));
+            d.glasses = chance(0.25f) ? GL_SUN : -1;
+            if (chance(0.4f)) d.extras |= ACC_NECKLACE;
+            if (chance(0.3f)) d.extras |= ACC_BRACELET_R;
+            if (chance(0.2f)) d.bag = BAG_CROSSBODY;
+            break;
+        }
+        default: {   // casual
+            float t = R.f();
+            if (fem) {
+                if (t < 0.2f) d.top = TOP_SUNDRESS;
+                else if (t < 0.45f) d.top = TOP_TSHIRT;
+                else if (t < 0.63f) d.top = TOP_TANK;
+                else if (t < 0.73f) d.top = TOP_CROP;
+                else if (t < 0.87f) d.top = TOP_BLOUSE;
+                else d.top = TOP_POLO;
+            } else {
+                if (t < 0.36f) d.top = TOP_TSHIRT;
+                else if (t < 0.52f) d.top = TOP_POLO;
+                else if (t < 0.66f) d.top = TOP_HAWAIIAN;
+                else if (t < 0.78f) d.top = TOP_TANK;
+                else if (t < 0.88f) d.top = TOP_DRESS_SHIRT;
+                else if (t < 0.94f) d.top = TOP_HOODIE;
+                else d.top = TOP_OVERSIZED;
+            }
+            if (d.top == TOP_DRESS_SHIRT && chance(0.5f)) d.extras |= ACC_ROLLED_SLEEVES;
+            float o = R.f();
+            if ((d.top == TOP_TSHIRT || d.top == TOP_TANK) && o < 0.14f) d.outer = OUT_OVERSHIRT;
+            else if ((d.top == TOP_TSHIRT || d.top == TOP_BLOUSE || d.top == TOP_SUNDRESS || d.top == TOP_CROP) && o < 0.22f) d.outer = OUT_JACKET;
+            float b = R.f();
+            if (d.top == TOP_SUNDRESS) d.bottom = BOT_SKIRT;
+            else if (fem) d.bottom = b < 0.3f ? BOT_JEANS : (b < 0.5f ? BOT_SHORTS : (b < 0.62f ? BOT_HOTPANTS : (b < 0.8f ? BOT_SKIRT : BOT_LEGGINGS)));
+            else d.bottom = b < 0.35f ? BOT_JEANS : (b < 0.62f ? BOT_SHORTS : (b < 0.8f ? BOT_CARGO : BOT_SLACKS));
+            float sh = R.f();
+            if (d.bottom == BOT_SLACKS) d.shoes = chance(0.5f) ? SHOE_DRESS : SHOE_LOAFER;
+            else if (sh < 0.45f) d.shoes = SHOE_SNEAKER;
+            else if (sh < 0.72f) d.shoes = SHOE_SANDAL;
+            else if (sh < 0.86f) d.shoes = fem ? SHOE_FLATS : SHOE_RUNNER;
+            else d.shoes = SHOE_RUNNER;
+            if (d.bottom == BOT_JEANS && chance(0.15f)) d.extras |= ACC_CUFFED_HEM;
+            float h = R.f();
+            if (h < 0.14f) d.hat = HAT_CAP;
+            else if (h < 0.18f) d.hat = HAT_CAP_BACK;
+            else if (h < 0.23f) d.hat = HAT_SUNHAT;
+            else if (h < 0.26f && !fem) d.hat = HAT_FEDORA;
+            float g = R.f();
+            if (g < 0.25f) d.glasses = GL_SUN;
+            else if (g < 0.3f) d.glasses = GL_READING;
+            else if (g < 0.42f && d.hat < 0) d.extras |= ACC_SUNGLASSES_UP;
+            float bg = R.f();
+            if (bg < 0.1f) d.bag = BAG_CROSSBODY;
+            else if (fem && bg < 0.2f) d.bag = BAG_TOTE;
+            else if (bg < 0.25f) d.bag = BAG_BACKPACK;
+            if (chance(fem ? 0.3f : 0.12f)) d.extras |= ACC_NECKLACE;
+            if (fem && chance(0.55f)) d.extras |= ACC_EARRINGS;
+            if (chance(0.3f)) d.extras |= ACC_WATCH;
+            if (fem && chance(0.3f)) d.extras |= ACC_BRACELET_R;
+            break;
+        }
+    }
+    // colours by garment: denim shades for jeans, neutrals or muted colours for trousers and shorts, a skirt matching
+    // or contrasting the top; layers, knits and bags from their own palettes
+    switch (d.bottom) {
+        case BOT_JEANS: case BOT_BAGGY: d.bottomColor = pickColor(R, kDenim, 5); break;
+        case BOT_SHORTS: case BOT_CARGO: case BOT_HOTPANTS: d.bottomColor = pickColor(R, kShorts, 8); break;
+        case BOT_SKIRT: d.bottomColor = d.top == TOP_SUNDRESS ? d.topColor : (chance(0.5f) ? pickColor(R, kSuit, 4) : pc(PAL(kCasualTop))); break;
+        case BOT_LEGGINGS: d.bottomColor = chance(0.7f) ? srgbToLinear(vec3(0.06f)) : pickColor(R, kPants, 8); break;
+        default: d.bottomColor = pickColor(R, kPants, 8); break;
+    }
+    d.shoeColor = pickColor(R, kShoe, 6);
+    if (d.shoes == SHOE_DRESS || d.shoes == SHOE_LOAFER) d.shoeColor = srgbToLinear(chance(0.5f) ? vec3(0.06f) : vec3(0.35f, 0.2f, 0.1f));
+    d.outerColor = d.outer == OUT_CARDIGAN ? pc(PAL(kKnit)) : (d.outer == OUT_JACKET && chance(0.5f) ? pickColor(R, kDenim, 5) : pc(PAL(kLayer)));
+    if (d.outer == OUT_BLAZER) d.outerColor = pickColor(R, kSuit, 4);
+    d.bagColor = pc(PAL(kBag));
+    if (st != CS_OFFICE && st != CS_ELDERLY && d.age > 0.7f && d.glasses < 0 && chance(0.4f)) d.glasses = GL_READING;
+    // hats sit on hair that fits under them
+    if (d.hat >= 0 && (d.hairStyle == HAIR_CURLY || d.hairStyle == HAIR_BUN)) d.hat = -1;
+}
+
+// Layers, bags and small accessories for the uniformed / role outfits (civilians get theirs with their archetype), and
+// the rules that keep any combination coherent.
+static void accessorize(CharacterDesc& d) {
+    Rng r(hash32(d.seed * 0x27D4EB2Fu + 0x165667B1u));
+    const bool fem = d.gender == FEMALE;
+    if (!(d.extras & ACC_EXPLICIT)) {
+        d.extras = ACC_EXPLICIT;
+        switch (d.role) {
+            case 1: case 6:   // police, medics: a watch, nothing loose
+                if (r.chance(0.6f)) d.extras |= ACC_WATCH;
+                break;
+            case 2:   // gang: chains and bracelets, sometimes an open zip hoodie over the tank, a crossbody bag
+                if (r.chance(0.7f)) d.extras |= ACC_NECKLACE;
+                if (r.chance(0.4f)) d.extras |= ACC_BRACELET_R;
+                if (r.chance(0.3f)) d.extras |= ACC_WATCH;
+                if (d.top == TOP_TANK && r.chance(0.25f)) {
+                    d.outer = OUT_ZIPHOODIE;
+                    d.outerColor = srgbToLinear(r.chance(0.5f) ? vec3(0.08f) : vec3(0.5f, 0.5f, 0.52f));
+                }
+                if (r.chance(0.15f)) {
+                    d.bag = BAG_CROSSBODY;
+                    d.bagColor = srgbToLinear(vec3(0.05f));
+                }
+                break;
+            case 3:   // business: watches, lanyards, an open blazer over a blouse, totes
+                if (r.chance(0.8f)) d.extras |= ACC_WATCH;
+                if (r.chance(0.2f)) d.extras |= ACC_LANYARD;
+                if (fem && d.top == TOP_BLOUSE && r.chance(0.35f)) {
+                    d.outer = OUT_BLAZER;
+                    d.outerColor = d.bottomColor;
+                }
+                if (fem && r.chance(0.4f)) {
+                    d.bag = BAG_TOTE;
+                    d.bagColor = srgbToLinear(r.chance(0.5f) ? vec3(0.06f) : vec3(0.42f, 0.26f, 0.14f));
+                }
+                if (fem && r.chance(0.6f)) d.extras |= ACC_EARRINGS;
+                if (fem) d.shoes = r.chance(0.5f) ? SHOE_FLATS : SHOE_LOAFER;
+                break;
+            case 4:   // beach: bracelets, a tote, sunglasses on the head
+                if (r.chance(0.35f)) d.extras |= ACC_BRACELET_L;
+                if (r.chance(0.3f)) d.extras |= ACC_NECKLACE;
+                if (fem && r.chance(0.5f)) d.extras |= ACC_EARRINGS;
+                if (fem && r.chance(0.2f)) {
+                    d.bag = BAG_TOTE;
+                    d.bagColor = srgbToLinear(r.chance(0.5f) ? vec3(0.85f, 0.78f, 0.6f) : vec3(0.9f, 0.4f, 0.3f));
+                }
+                if (d.glasses < 0 && d.hat < 0 && r.chance(0.3f)) d.extras |= ACC_SUNGLASSES_UP;
+                break;
+            case 5:   // construction: a watch
+                if (r.chance(0.3f)) d.extras |= ACC_WATCH;
+                break;
+            default: break;
+        }
+    }
+    // coherence: layers only over tops that take them; no pushed-up sunglasses with a hat or glasses on; bags stay off
+    // uniforms
+    if (!outerFits(d)) d.outer = -1;
+    if (d.hat >= 0 || d.glasses >= 0) d.extras &= ~ACC_SUNGLASSES_UP;
+    if (d.role == 1 || d.role == 5 || d.role == 6) d.bag = -1;
+}
+
+}  // namespace detail
+
 CharacterDesc randomCharacter(u32 seed, int role) {
     using namespace detail;
     CharacterDesc d;
@@ -118,7 +376,9 @@ CharacterDesc randomCharacter(u32 seed, int role) {
     d.height = Clamp(d.height, fem ? 1.48f : 1.58f, fem ? 1.84f : 2.0f);
     d.height -= 0.03f * sstep(0.7f, 1.f, d.age);
     // body type
-    float wt = 0.42f + 0.2f * r.gauss() + 0.12f * d.age;
+    // (a long heavy tail: about one person in eight above 0.75, one in thirty above 0.9)
+    float gw = r.gauss();
+    float wt = 0.4f + 0.19f * gw + 0.12f * d.age + 0.14f * Sq(Max(0.f, gw - 0.7f));
     if (d.role == 4) wt -= 0.05f;
     if (d.role == 1 || d.role == 5) wt += 0.05f;
     d.weight = Clamp(wt, 0.05f, 1.f);
@@ -261,62 +521,12 @@ CharacterDesc randomCharacter(u32 seed, int role) {
             if (fem && (d.hairStyle == HAIR_LONG || d.hairStyle == HAIR_CURLY)) d.hairStyle = HAIR_PONYTAIL;
             break;
         }
-        default: {  // civilian, hot coastal city
-            float t = r.f();
-            if (fem) {
-                if (t < 0.2f) d.top = TOP_SUNDRESS;
-                else if (t < 0.45f) d.top = TOP_TSHIRT;
-                else if (t < 0.65f) d.top = TOP_TANK;
-                else if (t < 0.75f) d.top = TOP_CROP;
-                else if (t < 0.87f) d.top = TOP_BLOUSE;
-                else d.top = TOP_POLO;
-            } else {
-                if (t < 0.36f) d.top = TOP_TSHIRT;
-                else if (t < 0.52f) d.top = TOP_POLO;
-                else if (t < 0.66f) d.top = TOP_HAWAIIAN;
-                else if (t < 0.78f) d.top = TOP_TANK;
-                else if (t < 0.88f) d.top = TOP_DRESS_SHIRT;
-                else if (t < 0.94f) d.top = TOP_HOODIE;
-                else d.top = TOP_OVERSIZED;
-            }
-            d.topColor = casualTopColor();
-            float b = r.f();
-            if (d.top == TOP_SUNDRESS) d.bottom = BOT_SKIRT;
-            else if (fem) {
-                if (b < 0.3f) d.bottom = BOT_JEANS;
-                else if (b < 0.5f) d.bottom = BOT_SHORTS;
-                else if (b < 0.62f) d.bottom = BOT_HOTPANTS;
-                else if (b < 0.8f) d.bottom = BOT_SKIRT;
-                else d.bottom = BOT_LEGGINGS;
-            } else {
-                if (b < 0.35f) d.bottom = BOT_JEANS;
-                else if (b < 0.62f) d.bottom = BOT_SHORTS;
-                else if (b < 0.8f) d.bottom = BOT_CARGO;
-                else d.bottom = BOT_SLACKS;
-            }
-            if (d.bottom == BOT_JEANS) d.bottomColor = pickColor(r, kDenim, 5);
-            else if (d.bottom == BOT_SHORTS || d.bottom == BOT_CARGO || d.bottom == BOT_HOTPANTS) d.bottomColor = pickColor(r, kShorts, 8);
-            else if (d.bottom == BOT_SKIRT) d.bottomColor = d.top == TOP_SUNDRESS ? d.topColor : pickColor(r, kCasualTop, 16);
-            else d.bottomColor = pickColor(r, kPants, 8);
-            float s = r.f();
-            if (d.bottom == BOT_SLACKS) d.shoes = SHOE_DRESS;
-            else if (s < 0.45f) d.shoes = SHOE_SNEAKER;
-            else if (s < 0.75f) d.shoes = SHOE_SANDAL;
-            else if (s < 0.88f) d.shoes = fem ? SHOE_FLATS : SHOE_RUNNER;
-            else d.shoes = SHOE_RUNNER;
-            d.shoeColor = pickColor(r, kShoe, 6);
-            if (d.shoes == SHOE_DRESS) d.shoeColor = srgbToLinear(r.chance(0.5f) ? vec3(0.06f) : vec3(0.35f, 0.2f, 0.1f));
-            if (r.chance(0.3f)) d.glasses = r.chance(0.8f) ? GL_SUN : GL_READING;
-            float hh = r.f();
-            if (hh < 0.16f) d.hat = HAT_CAP;
-            else if (hh < 0.2f) d.hat = HAT_CAP_BACK;
-            else if (hh < 0.25f) d.hat = HAT_SUNHAT;
-            else if (hh < 0.28f && !fem) d.hat = HAT_FEDORA;
-            if (d.hat >= 0 && (d.hairStyle == HAIR_CURLY || d.hairStyle == HAIR_BUN)) d.hat = -1;
-            if (d.age > 0.7f && d.glasses < 0 && r.chance(0.4f)) d.glasses = GL_READING;
+        default: {  // civilian, hot coastal city: an archetype sets the whole look
+            civilianOutfit(d, r);
             break;
         }
     }
+    accessorize(d);
     return d;
 }
 
@@ -497,6 +707,7 @@ static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
             drop[t] = 1;
         if (cardKind(v0) != CARD_NONE) drop[t] = 1;
         if (v0.part == PART_EYE) drop[t] = 1;   // replaced below
+        if (v0.mat != MAT_HAIR && (v0.matParam & kParamLodDetail)) drop[t] = 1;   // seams and stitch lines
     }
     MeshB out;
     std::vector<u32> remap(m.v.size(), 0xffffffffu);

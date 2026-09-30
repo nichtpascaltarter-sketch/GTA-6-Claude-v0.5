@@ -2,6 +2,7 @@
 // Runs on the world generation thread; everything here is deterministic.
 #include "sites.h"
 #include "buildings.h"
+#include "places.h"
 #include "transit.h"
 #include "worldtypes.h"
 #include "../render/mesh.h"
@@ -404,9 +405,35 @@ void layoutAirport(Lay& L) {
             e.p[0] = p0;
             return e;
         };
-        fcLine(0, vec2(LOOP_X + 6.2f, 1192.f), vec2(LOOP_X + 6.2f, 1482.f), 2.4f, 2100u);
+        // pedestrian crossing from garage 1's stair tower (x 758-765, y 1245-1257) to the terminal curb: zebra stripes over both
+        // legs of the loop, a paved refuge across the median between them; the bollard lines open for it
+        const float xingY = 1251.f;
+        fcLine(0, vec2(LOOP_X + 6.2f, 1192.f), vec2(LOOP_X + 6.2f, xingY - 2.6f), 2.4f, 2100u);
+        fcLine(0, vec2(LOOP_X + 6.2f, xingY + 2.6f), vec2(LOOP_X + 6.2f, 1482.f), 2.4f, 2103u);
         fcLine(0, vec2(LOOP_X + 6.2f, 1518.f), vec2(LOOP_X + 6.2f, 1733.f), 2.4f, 2101u);
-        fcLine(0, vec2(CURB_X - 6.3f, 1164.f), vec2(CURB_X - 6.3f, 1756.f), 2.4f, 2102u);
+        fcLine(0, vec2(CURB_X - 6.3f, 1164.f), vec2(CURB_X - 6.3f, xingY - 2.6f), 2.4f, 2102u);
+        fcLine(0, vec2(CURB_X - 6.3f, xingY + 2.6f), vec2(CURB_X - 6.3f, 1756.f), 2.4f, 2104u);
+        {
+            SiteElem& zx = fcLine(7, vec2(LOOP_X + 5.5f, xingY), vec2(CURB_X - 5.5f, xingY), 3.2f, 2170u);
+            zx.p[1] = zA;       // road surface
+            zx.p[2] = LOOP_X;   // the two legs' centrelines (one-way avenues, half width 5.5)
+            zx.p[3] = CURB_X;
+            zx.p[4] = 5.5f;
+            Pad& refuge = L.padAA(CURB_X + 5.8f, xingY - 1.8f, LOOP_X - 5.8f, xingY + 1.8f, zA + 0.15f, PAD_PLAZA);
+            refuge.flags = 2;
+            // walk graph: stair tower door -> garage walkway -> crossing -> refuge -> crossing -> terminal curb plaza -> doors
+            const float zk = zA + 0.15f;
+            S.walks.push_back({vec3(761.f, xingY, zk), vec3(LOOP_X + 7.5f, xingY, zk), 1.5f, SW_PATH});
+            S.walks.push_back({vec3(LOOP_X + 7.5f, xingY, zk), vec3(LOOP_X - 7.f, xingY, zk), 1.6f, SW_CROSSING});
+            S.walks.push_back({vec3(LOOP_X - 7.f, xingY, zk), vec3(CURB_X + 7.f, xingY, zk), 1.6f, SW_PATH});
+            S.walks.push_back({vec3(CURB_X + 7.f, xingY, zk), vec3(CURB_X - 7.5f, xingY, zk), 1.6f, SW_CROSSING});
+            S.walks.push_back({vec3(CURB_X - 7.5f, xingY, zk), vec3(TERM_X1 + 1.f, xingY, zk), 1.5f, SW_PATH});
+            // along the curb plaza (terminal doors) and the garage walkways
+            S.walks.push_back({vec3(TERM_X1 + 5.f, TERM_Y0 + 4.f, zk), vec3(TERM_X1 + 5.f, 1756.f, zk), 2.f, SW_PATH});
+            S.walks.push_back({vec3(757.5f, 1192.f, zk), vec3(757.5f, 1482.f, zk), 2.f, SW_PATH});
+            S.walks.push_back({vec3(757.5f, 1518.f, zk), vec3(757.5f, 1733.f, zk), 2.f, SW_PATH});
+            for (float y = 1300.f; y < 1700.f; y += 125.f) S.walks.push_back({vec3(TERM_X1 + 5.f, y, zk), vec3(TERM_X1 + 0.5f, y, zk), 1.2f, SW_PATH});
+        }
         fc(1, vec2(755.5f, 1234.f), vec2(-1, 0), 4.f, 3.f, 3.f, 2110u);   // south of garage 1's stair tower (x 758-765, y 1245-1257)
         fc(2, vec2(761.f, 1212.f), vec2(0, 1), 3.5f, 2.f, 1.f, 2120u);
         for (int k = 0; k < 4; k++) fc(2, vec2(689.5f, 1300.f + k * 125.f), vec2(0, 1), 3.5f, 2.f, 1.f, 2121u + (u32)k);
@@ -1476,6 +1503,7 @@ void SiteSet::layout(WorldMap& map) {
     double t0 = TimeSeconds();
     pads.clear();
     elems.clear();
+    walks.clear();
     lotBlocks.clear();
     roadBlocks.clear();
     vegBlocks.clear();
@@ -1486,6 +1514,7 @@ void SiteSet::layout(WorldMap& map) {
     layoutPort(L);
     layoutKeyCoral(L);
     layoutLandmarks(L);
+    placesLayout(*this, map);    // hotel row, campus, cemetery, city hospitals, prison, speedway (places.h)
     transitLayout(*this, map);   // SkyLine metro corridor and stations (transit.cpp)
     buildPadHash();
     buildRectHash();
@@ -1622,6 +1651,8 @@ void SiteSet::finalize(WorldMap& map, const RoadNetwork& net, const BuildingSet&
         }
         LOG("Sites: %d beach access paths", paths);
     }
+    // details of the hand-built places that need the roads (places.h)
+    placesFinalize(*this, map, net, bs);
     // SkyLine profile, piers, bus stops and ferry piers need the roads (transit.cpp)
     transitFinalize(*this, map, net, bs);
     // ---------------------------------------------------------------- per-cell element lists
@@ -1747,6 +1778,7 @@ void SiteSet::makeFacades(BuildingSet& bs) {
             default: break;
         }
     }
+    placesFacades(*this, bs);   // buildings the hand-built places make themselves (places.h)
 }
 
 }  // namespace World

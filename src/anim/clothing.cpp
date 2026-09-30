@@ -9,6 +9,7 @@
 // "Decal garments" (sub-regions with a slightly larger offset and different color/material) produce pockets,
 // waistbands, reflective tape, lapels, ties, seams and shoe panels at low cost.
 #include "anim_internal.h"
+#include <memory>
 #include <unordered_map>
 
 namespace Anim {
@@ -21,9 +22,13 @@ static inline float angLerp(float a, float b, float t) { return a + wrapAngle(b 
 
 static BVert lerpVert(const BVert& a, const BVert& b, float t) {
     BVert v = a;
-    v.p = lerp(a.p, b.p, t);
-    v.bp = lerp(a.bp, b.bp, t);
     v.n = normalize(lerp(a.n, b.n, t));
+    // points between two surface points bulge with the surface (the chord would cut inside a curved body): the
+    // quadratic arc through both points with their normals, offset t (1 - t) / 2 * (nb - na) . (pb - pa) along n
+    float bulge = 0.5f * t * (1.f - t) * dot(b.n - a.n, b.bp - a.bp);
+    bulge = Clamp(bulge, -0.2f * length(b.bp - a.bp), 0.2f * length(b.bp - a.bp));
+    v.p = lerp(a.p, b.p, t) + v.n * bulge;
+    v.bp = lerp(a.bp, b.bp, t) + v.n * bulge;
     v.t = lerp(a.t, b.t, t);
     vec2 ub = b.uv;
     if (a.uPer > 0.f && fabsf(ub.x - a.uv.x) > a.uPer * 0.5f) ub.x += ub.x < a.uv.x ? a.uPer : -a.uPer;
@@ -47,6 +52,253 @@ static BVert lerpVert(const BVert& a, const BVert& b, float t) {
     return v;
 }
 
+// ------------------------------------------------------------------------------------------------
+// Silhouette fit: cloth hangs from where it rests on the body instead of shrink-wrapping it.
+//
+// The torso profile is read from the skin torso grid (32 columns, horizontal rows from the crotch to the armpit): per
+// row its height, the torso axis and each column's horizontal distance from the axis. A garment's hang table is the
+// running maximum of that radius per column from hangTop downwards (less hangDrift per metre of drop): a T-shirt
+// drops straight from the chest or the bust instead of following the waist in, a jacket from the shoulder blades, the
+// seat of a pair of trousers from the glutes. Because it depends only on the skin and the garment's parameters,
+// decals (pockets, seams, plackets) get exactly the displacement of the shell they sit on.
+
+static void buildTorsoProfile(OutfitCtx& o) {
+    if (o.profN) return;
+    const MeshB& m = o.c.m;
+    const int N = 32;
+    struct Rv { float z, y, r; int k; };
+    std::vector<Rv> pts;
+    for (const BVert& v : m.v) {
+        if (v.part != PART_TORSO || v.pc < 0.f || v.pc > 0.8001f) continue;
+        int k = (int)lrintf(v.pb / kTwoPi * N) % N;
+        if (k < 0) k += N;
+        vec2 d(v.p.x - v.axisPt.x, v.p.y - v.axisPt.y);
+        pts.push_back({v.p.z, v.axisPt.y, length(d), k});
+    }
+    if (pts.empty()) return;
+    std::sort(pts.begin(), pts.end(), [](const Rv& a, const Rv& b) { return a.z < b.z; });
+    std::vector<float> zs, ys, rs;
+    std::vector<u8> have;
+    for (size_t i = 0; i < pts.size();) {
+        size_t j = i;
+        while (j < pts.size() && pts[j].z - pts[i].z < 1e-5f) j++;
+        zs.push_back(pts[i].z);
+        ys.push_back(pts[i].y);
+        size_t row = zs.size() - 1;
+        rs.resize((row + 1) * N, 0.f);
+        have.resize((row + 1) * N, 0);
+        for (size_t q = i; q < j; q++) {
+            rs[row * N + pts[q].k] = Max(rs[row * N + pts[q].k], pts[q].r);
+            have[row * N + pts[q].k] = 1;
+        }
+        i = j;
+    }
+    // fill any missing column from its neighbours in the row
+    const size_t R = zs.size();
+    for (size_t j = 0; j < R; j++)
+        for (int k = 0; k < N; k++) {
+            if (have[j * N + k]) continue;
+            for (int d = 1; d < N / 2; d++) {
+                int a = (k + d) % N, b = (k - d + N) % N;
+                if (have[j * N + a] || have[j * N + b]) {
+                    float ra = have[j * N + a] ? rs[j * N + a] : rs[j * N + b], rb = have[j * N + b] ? rs[j * N + b] : ra;
+                    rs[j * N + k] = 0.5f * (ra + rb);
+                    break;
+                }
+            }
+        }
+    o.profZ = zs;
+    o.profY = ys;
+    o.profR = rs;
+    o.profN = N;
+}
+
+// Row interval of the profile at height z (clamped).
+static void profRow(const OutfitCtx& o, float z, int& j0, float& f) {
+    const std::vector<float>& Z = o.profZ;
+    int n = (int)Z.size();
+    if (n < 2 || z <= Z[0]) { j0 = 0; f = 0.f; return; }
+    if (z >= Z[n - 1]) { j0 = n - 2; f = 1.f; return; }
+    int lo = 0, hi = n - 1;
+    while (hi - lo > 1) {
+        int mid = (lo + hi) / 2;
+        if (Z[mid] <= z) lo = mid;
+        else hi = mid;
+    }
+    j0 = lo;
+    f = (z - Z[lo]) / Max(Z[lo + 1] - Z[lo], 1e-6f);
+}
+
+// Torso axis y at height z (profile rows; the axis is on the skin grid's ray origins).
+static float profAxisY(const OutfitCtx& o, float z) {
+    if (o.profZ.empty()) return 0.f;
+    int j;
+    float f;
+    profRow(o, z, j, f);
+    return Lerp(o.profY[j], o.profY[Min(j + 1, (int)o.profY.size() - 1)], f);
+}
+
+// Hang table of a garment: extra horizontal radius (m) per profile row and column.
+static void hangTable(const OutfitCtx& o, const GarmentDef& g, std::vector<float>& ext) {
+    const int N = o.profN, R = (int)o.profZ.size();
+    ext.assign((size_t)R * N, 0.f);
+    if (g.hangDrift < 0.f || !N) return;
+    for (int k = 0; k < N; k++) {
+        float w = g.hangWeight ? Saturate(g.hangWeight(kTwoPi * k / N)) : 1.f;
+        if (w <= 0.f) continue;
+        float m = -1e9f, zPrev = 0.f;
+        for (int j = R - 1; j >= 0; j--) {
+            float z = o.profZ[j], r = o.profR[(size_t)j * N + k];
+            if (z > g.hangTop) continue;
+            m = m < -1e8f ? r : Max(r, m - g.hangDrift * (zPrev - z));
+            zPrev = z;
+            ext[(size_t)j * N + k] = w * (m - r);
+        }
+    }
+}
+
+static float hangAt(const OutfitCtx& o, const std::vector<float>& ext, float z, float th) {
+    const int N = o.profN;
+    if (!N || ext.empty() || z > o.profZ.back() + 0.01f || z < o.profZ[0] - 0.08f) return 0.f;
+    int j;
+    float f;
+    profRow(o, z, j, f);
+    float u = th / kTwoPi * N;
+    u -= floorf(u / N) * N;
+    int k0 = (int)u % N, k1 = (k0 + 1) % N;
+    float fu = u - floorf(u);
+    int j1 = Min(j + 1, (int)o.profZ.size() - 1);
+    float a = Lerp(ext[(size_t)j * N + k0], ext[(size_t)j * N + k1], fu);
+    float b = Lerp(ext[(size_t)j1 * N + k0], ext[(size_t)j1 * N + k1], fu);
+    return Lerp(a, b, f);
+}
+
+// Move a shell point to the garment's silhouette: torso hang (horizontal, away from the torso axis) and limb tubes
+// (radial from the limb axis; a trouser leg's inner side stops `gap` short of the midplane).
+static vec3 fitPoint(const OutfitCtx& o, const GarmentDef& g, const std::vector<float>& ext, const BVert& v, vec3 p) {
+    if (v.part == PART_TORSO && !ext.empty()) {
+        float e = hangAt(o, ext, v.bp.z, v.pb);
+        if (g.hangFade1 > -1e8f) e *= sstep(g.hangFade0, g.hangFade1, v.bp.z);
+        if (e > 1e-5f) {
+            vec2 d(p.x, p.y - profAxisY(o, v.bp.z));
+            float l = length(d);
+            if (l > 1e-5f) {
+                d = d / l;
+                p.x += d.x * e;
+                p.y += d.y * e;
+            }
+        }
+    }
+    if ((v.part == PART_ARM || v.part == PART_LEG) && g.tubeR) {
+        float R = g.tubeR(v);
+        if (R > 0.f) {
+            vec3 d = p - v.axisPt;
+            float l = length(d);
+            if (l > 1e-5f && l < R) {
+                vec3 q = v.axisPt + d * (R / l);
+                if (v.part == PART_LEG) {
+                    // the inner side of the leg stops 4 mm short of the midplane (the other leg's tube)
+                    float sx = v.side ? 1.f : -1.f;
+                    float lim = 0.004f * o.c.D->s, dx = d.x * sx;
+                    if (dx < -1e-6f) {
+                        float rhoMax = (v.axisPt.x * sx - lim) * l / -dx;
+                        q = rhoMax <= l ? p : v.axisPt + d * (Min(R, rhoMax) / l);
+                    }
+                }
+                p = q;
+            }
+        }
+    }
+    return p;
+}
+
+// Conforming one-level refinement of a triangle mesh: every edge for which want(a, b, mid, attr) returns true gets its
+// midpoint `mid` (with the per-vertex attribute `attr` appended to *attrs); triangles are then split red / green
+// (1, 2 or 3 split edges), so no T-junctions appear. At most maxSplits edges are split. Returns the number split.
+template <class Want>
+static int splitEdges(MeshB& m, std::vector<float>* attrs, int maxSplits, Want want) {
+    const size_t nt = m.idx.size() / 3;
+    std::unordered_map<u64, u32> split;
+    auto key = [](u32 a, u32 b) { return a < b ? ((u64)a << 32 | b) : ((u64)b << 32 | a); };
+    for (size_t t = 0; t < nt && (int)split.size() < maxSplits; t++)
+        for (int k = 0; k < 3; k++) {
+            u32 a = m.idx[t * 3 + k], b = m.idx[t * 3 + (k + 1) % 3];
+            u64 kk = key(a, b);
+            if (split.count(kk)) continue;
+            BVert mid;
+            float attr = 0.f;
+            if (!want(a, b, mid, attr)) continue;
+            split.insert(std::make_pair(kk, m.add(mid)));
+            if (attrs) attrs->push_back(attr);
+        }
+    if (split.empty()) return 0;
+    std::vector<u32> idx;
+    idx.reserve(m.idx.size() + split.size() * 6);
+    for (size_t t = 0; t < nt; t++) {
+        u32 v[3] = {m.idx[t * 3], m.idx[t * 3 + 1], m.idx[t * 3 + 2]};
+        u32 md[3];
+        int ns = 0, first = -1;
+        for (int k = 0; k < 3; k++) {
+            auto it = split.find(key(v[k], v[(k + 1) % 3]));
+            md[k] = it == split.end() ? 0xffffffffu : it->second;
+            if (md[k] != 0xffffffffu) {
+                ns++;
+                if (first < 0) first = k;
+            }
+        }
+        auto T = [&](u32 a, u32 b, u32 c) { idx.push_back(a); idx.push_back(b); idx.push_back(c); };
+        if (ns == 0) T(v[0], v[1], v[2]);
+        else if (ns == 3) {
+            T(v[0], md[0], md[2]);
+            T(v[1], md[1], md[0]);
+            T(v[2], md[2], md[1]);
+            T(md[0], md[1], md[2]);
+        } else if (ns == 1) {
+            int k = first;
+            u32 a = v[k], b = v[(k + 1) % 3], c = v[(k + 2) % 3], mm = md[k];
+            T(a, mm, c);
+            T(mm, b, c);
+        } else {
+            // two split edges: the unsplit one is k; a corner triangle, then the quad split along its shorter diagonal
+            int k = md[0] == 0xffffffffu ? 0 : (md[1] == 0xffffffffu ? 1 : 2);
+            u32 a = v[k], b = v[(k + 1) % 3], c = v[(k + 2) % 3];
+            u32 mbc = md[(k + 1) % 3], mca = md[(k + 2) % 3];
+            T(c, mca, mbc);
+            if (length2(m.v[a].bp - m.v[mbc].bp) < length2(m.v[b].bp - m.v[mca].bp)) {
+                T(a, b, mbc);
+                T(a, mbc, mca);
+            } else {
+                T(a, b, mca);
+                T(b, mbc, mca);
+            }
+        }
+    }
+    m.idx.swap(idx);
+    return (int)split.size();
+}
+
+// Fold refinement: split shell edges where the fold offset is under-sampled (the offset at the midpoint differs from
+// the linear interpolation by more than refineTol).
+static void refineShell(MeshB& gm, const GarmentDef& g, int maxNew) {
+    if (!g.foldFn || g.refineTol <= 0.f) return;
+    auto fold = [&](const BVert& v) {
+        float off = 0.f, cr = 0.f;
+        g.foldFn(v, off, cr);
+        return off;
+    };
+    std::vector<float> fv(gm.v.size());
+    for (size_t i = 0; i < gm.v.size(); i++) fv[i] = fold(gm.v[i]);
+    splitEdges(gm, &fv, maxNew / 2, [&](u32 a, u32 b, BVert& mid, float& fm) {
+        const BVert &va = gm.v[a], &vb = gm.v[b];
+        if (va.part != vb.part || length2(va.bp - vb.bp) < 0.005f * 0.005f) return false;
+        mid = lerpVert(va, vb, 0.5f);
+        fm = fold(mid);
+        if (fabsf(fm - 0.5f * (fv[a] + fv[b])) < g.refineTol) return false;
+        mid.flags = va.flags & vb.flags;
+        return true;
+    });
+}
+
 // Emit one garment shell into o.out. Returns false if empty.
 bool emitGarment(OutfitCtx& o, const GarmentDef& g) {
     const MeshB& bm = o.c.m;
@@ -57,12 +309,45 @@ bool emitGarment(OutfitCtx& o, const GarmentDef& g) {
         if (!((1u << v.part) & kSurfParts & g.parts)) continue;
         cv[i] = g.cov(v);
     }
+    // extraction mesh: the skin triangles in or near the coverage; where the coverage is not linear across a triangle
+    // (thin straps and stitch lines, pocket corners, curved necklines) its edges are split so the cut follows the
+    // coverage function instead of the skin's facets (two levels, at most a few hundred splits)
+    MeshB em;
+    std::vector<float> ecv;
+    {
+        std::vector<u32> emap(nv, 0xffffffffu);
+        for (size_t t = 0; t + 2 < o.c.surfaceIdxEnd; t += 3) {
+            u32 tri[3] = {bm.idx[t], bm.idx[t + 1], bm.idx[t + 2]};
+            if (cv[tri[0]] <= -0.03f && cv[tri[1]] <= -0.03f && cv[tri[2]] <= -0.03f) continue;
+            for (int k = 0; k < 3; k++)
+                if (emap[tri[k]] == 0xffffffffu) {
+                    emap[tri[k]] = em.add(bm.v[tri[k]]);
+                    ecv.push_back(cv[tri[k]]);
+                }
+            em.tri(emap[tri[0]], emap[tri[1]], emap[tri[2]]);
+        }
+        const u32 partsMask = kSurfParts & g.parts;
+        for (int level = 0; level < g.cutRefine; level++)
+            splitEdges(em, &ecv, level ? 150 : 300, [&](u32 a, u32 b, BVert& mid, float& cm) {
+                float ca = ecv[a], cb = ecv[b];
+                // edges joining two parts mix their parametrizations (the coverage is continuous across them anyway)
+                if (em.v[a].part != em.v[b].part) return false;
+                float len = length(em.v[a].bp - em.v[b].bp);
+                if (len < 0.006f) return false;
+                // only edges the cut crosses or passes close to
+                if ((ca > 0.f) == (cb > 0.f) && Min(fabsf(ca), fabsf(cb)) > 0.6f * len) return false;
+                mid = lerpVert(em.v[a], em.v[b], 0.5f);
+                mid.flags = 0;
+                cm = ((1u << mid.part) & partsMask) ? g.cov(mid) : -1.f;
+                return fabsf(cm - 0.5f * (ca + cb)) > 0.0012f;
+            });
+    }
     MeshB gm;
-    std::vector<u32> map(nv, 0xffffffffu);
+    std::vector<u32> map(em.v.size(), 0xffffffffu);
     std::unordered_map<u64, u32> emap;
     auto G = [&](u32 i) -> u32 {
         if (map[i] == 0xffffffffu) {
-            BVert v = bm.v[i];
+            BVert v = em.v[i];
             v.flags = 0;
             map[i] = gm.add(v);
         }
@@ -72,16 +357,16 @@ bool emitGarment(OutfitCtx& o, const GarmentDef& g) {
         u64 key = a < b ? ((u64)a << 32 | b) : ((u64)b << 32 | a);
         auto it = emap.find(key);
         if (it != emap.end()) return it->second;
-        float t = cv[a] / (cv[a] - cv[b]);
-        BVert v = lerpVert(bm.v[a], bm.v[b], Saturate(t));
+        float t = ecv[a] / (ecv[a] - ecv[b]);
+        BVert v = lerpVert(em.v[a], em.v[b], Saturate(t));
         v.flags = 1;   // boundary
         u32 id = gm.add(v);
         emap.insert(std::make_pair(key, id));
         return id;
     };
-    for (size_t t = 0; t + 2 < o.c.surfaceIdxEnd; t += 3) {
-        u32 tri[3] = {bm.idx[t], bm.idx[t + 1], bm.idx[t + 2]};
-        bool in[3] = {cv[tri[0]] > 0.f, cv[tri[1]] > 0.f, cv[tri[2]] > 0.f};
+    for (size_t t = 0; t + 2 < em.idx.size(); t += 3) {
+        u32 tri[3] = {em.idx[t], em.idx[t + 1], em.idx[t + 2]};
+        bool in[3] = {ecv[tri[0]] > 0.f, ecv[tri[1]] > 0.f, ecv[tri[2]] > 0.f};
         int cnt = (int)in[0] + (int)in[1] + (int)in[2];
         if (cnt == 0) continue;
         if (cnt == 3) {
@@ -98,13 +383,22 @@ bool emitGarment(OutfitCtx& o, const GarmentDef& g) {
         for (int k = 1; k + 1 < np; k++) gm.tri(poly[0], poly[k], poly[k + 1]);
     }
     if (gm.idx.empty()) return false;
-    // offsets
+    // folds under-sampled by the skin tessellation get extra vertices
+    refineShell(gm, g, 1400);
+    // offsets, then the silhouette fit
+    buildTorsoProfile(o);
+    std::vector<float> ext;
+    if (g.hangDrift >= 0.f) hangTable(o, g, ext);
     const size_t gn = gm.v.size();
     std::vector<float> off(gn);
     for (size_t i = 0; i < gn; i++) {
         BVert& v = gm.v[i];
         off[i] = g.thick + (g.extraFn ? g.extraFn(v) : 0.f);
         v.p = v.bp + v.n * off[i];
+        if (g.hangDrift >= 0.f || g.tubeR) {
+            v.p = fitPoint(o, g, ext, v, v.p);
+            off[i] = Max(off[i], dot(v.p - v.bp, v.n));
+        }
     }
     // boundary detection (half-edges without twin)
     std::unordered_map<u64, int> he;
@@ -123,7 +417,7 @@ bool emitGarment(OutfitCtx& o, const GarmentDef& g) {
                 bEdges.push_back(std::make_pair(a, b));
             }
         }
-    // constrained smoothing (looseness)
+    // constrained smoothing (looseness): stays outside 90 % of the fitted offset
     if (g.smooth > 0) {
         std::vector<std::vector<u32>> adj(gn);
         for (size_t t = 0; t < gm.idx.size(); t += 3)
@@ -153,62 +447,151 @@ bool emitGarment(OutfitCtx& o, const GarmentDef& g) {
             }
         }
     }
+    // folds along the shell normal, and the crease channel
+    std::vector<float> crease(gn, 0.f);
+    bool anyCrease = false;
+    if (g.foldFn) {
+        gm.computeNormals(0, gm.idx.size());
+        for (size_t i = 0; i < gn; i++) {
+            BVert& v = gm.v[i];
+            float fo = 0.f, cr = 0.f;
+            g.foldFn(v, fo, cr);
+            vec3 sn = length2(v.n) > 1e-12f ? normalize(v.n) : vec3(0, 0, 1);
+            v.p += sn * fo;
+            crease[i] = Saturate(cr);
+            anyCrease = anyCrease || cr > 0.004f;
+        }
+    }
     // materials / colors
+    const bool cloth = g.mat == MAT_CLOTH || g.mat == MAT_DENIM;
     for (size_t i = 0; i < gn; i++) {
         BVert& v = gm.v[i];
         v.mat = g.mat;
-        v.matParam = g.mat == MAT_CLOTH ? g.matParam : 0u;
+        v.matParam = cloth ? (g.matParam | (anyCrease ? 4u : 0u)) : 0u;
         v.col = g.colFn ? g.colFn(v, g.col) : g.col;
-        v.alpha = 1.f;
+        v.alpha = cloth && anyCrease ? 1.f - crease[i] : 1.f;
         if (g.swapUV) {
             v.uv = vec2(v.uv.y, v.uv.x);
             v.uPer = 0.f;
         }
-        if (isB[i]) v.p += v.n * 0.0012f;   // rolled hem
     }
     size_t tStart = gm.idx.size();
     gm.computeNormals(0, tStart);
-    // hem rim towards the skin
+    // rolled hem (along the shell normal)
+    for (size_t i = 0; i < gn; i++)
+        if (isB[i]) gm.v[i].p += gm.v[i].n * 0.0012f;
+    // hem: a rim turned in to the skin for close-fitting edges; loose openings (sleeves, trouser legs, hanging hems)
+    // get an inside facing instead, so looking into the opening shows cloth, not a funnel to the skin
     if (g.hem) {
-        std::unordered_map<u32, u32> inner;
+        // outward in-plane direction of every boundary edge (away from the triangle that owns it), and the inward
+        // direction per boundary vertex (average over its boundary edges)
+        std::unordered_map<u64, u32> third;
+        for (size_t t = 0; t < tStart; t += 3)
+            for (int k = 0; k < 3; k++) {
+                u32 a = gm.idx[t + k], b = gm.idx[t + (k + 1) % 3];
+                third[(u64)a << 32 | b] = gm.idx[t + (k + 2) % 3];
+            }
+        std::vector<vec3> edgeOut(bEdges.size());
+        std::unordered_map<u32, vec3> inward;
+        for (size_t ei = 0; ei < bEdges.size(); ei++) {
+            u32 a = bEdges[ei].first, b = bEdges[ei].second;
+            vec3 nn = normalize(gm.v[a].n + gm.v[b].n);
+            vec3 outDir = normalize(cross(gm.v[b].p - gm.v[a].p, nn));
+            auto tIt = third.find((u64)a << 32 | b);
+            if (tIt != third.end() && dot(gm.v[tIt->second].p - gm.v[a].p, outDir) > 0.f) outDir = -outDir;
+            edgeOut[ei] = outDir;
+            inward[a] += -outDir;
+            inward[b] += -outDir;
+        }
+        std::unordered_map<u32, u32> inner, fac, edgeIn;
+        auto gapOf = [&](u32 a) { return dot(gm.v[a].p - gm.v[a].bp, normalize(gm.v[a].n)); };
         auto I = [&](u32 a) -> u32 {
             auto it = inner.find(a);
             if (it != inner.end()) return it->second;
             BVert v = gm.v[a];
-            v.p = v.bp + v.n * Max(0.0008f, off[a] * 0.25f);
+            v.p = g.rimDepth > 0.f ? v.p - normalize(v.n) * g.rimDepth : v.bp + v.n * Max(0.0008f, off[a] * 0.25f);
             v.col = v.col * 0.7f;
             u32 id = gm.add(v);
             inner.insert(std::make_pair(a, id));
             return id;
         };
-        for (auto& e : bEdges) {
-            u32 a = e.first, b = e.second;
+        // facing: from the edge, 12 mm up the inside of the garment (the rolled hem gives the edge its thickness)
+        auto Fe = [&](u32 a) -> u32 {
+            auto it = edgeIn.find(a);
+            if (it != edgeIn.end()) return it->second;
+            BVert v = gm.v[a];
+            v.p = v.p - normalize(v.n) * 0.0012f;
+            v.n = -normalize(v.n);
+            v.col = v.col * 0.7f;
+            u32 id = gm.add(v);
+            edgeIn.insert(std::make_pair(a, id));
+            return id;
+        };
+        auto Ff = [&](u32 a) -> u32 {
+            auto it = fac.find(a);
+            if (it != fac.end()) return it->second;
+            BVert v = gm.v[a];
+            vec3 in = inward[a];
+            in = in - normalize(v.n) * dot(in, normalize(v.n));
+            in = length2(in) > 1e-12f ? normalize(in) : vec3(0);
+            v.p = v.p - normalize(v.n) * 0.0015f + in * 0.012f;
+            v.n = -normalize(v.n);
+            v.col = v.col * 0.62f;
+            u32 id = gm.add(v);
+            fac.insert(std::make_pair(a, id));
+            return id;
+        };
+        for (size_t ei = 0; ei < bEdges.size(); ei++) {
+            u32 a = bEdges[ei].first, b = bEdges[ei].second;
             vec3 nn = normalize(gm.v[a].n + gm.v[b].n);
-            vec3 outDir = normalize(cross(gm.v[b].p - gm.v[a].p, nn));
-            u32 ai = I(a), bi = I(b);
-            vec3 nrm = cross(gm.v[b].p - gm.v[a].p, gm.v[bi].p - gm.v[a].p);
-            if (dot(nrm, outDir) < 0.f) {
-                gm.tri(a, bi, b);
-                gm.tri(a, ai, bi);
+            vec3 outDir = edgeOut[ei];
+            bool loose = g.facing && Max(gapOf(a), gapOf(b)) > 0.006f;
+            if (!loose) {
+                u32 ai = I(a), bi = I(b);
+                vec3 nrm = cross(gm.v[b].p - gm.v[a].p, gm.v[bi].p - gm.v[a].p);
+                if (dot(nrm, outDir) < 0.f) {
+                    gm.tri(a, bi, b);
+                    gm.tri(a, ai, bi);
+                } else {
+                    gm.tri(a, b, bi);
+                    gm.tri(a, bi, ai);
+                }
+                gm.v[ai].n = outDir;
+                gm.v[bi].n = outDir;
             } else {
-                gm.tri(a, b, bi);
-                gm.tri(a, bi, ai);
+                // the facing (faces the body)
+                u32 ae = Fe(a), be = Fe(b), af = Ff(a), bf = Ff(b);
+                vec3 inN = -nn;
+                vec3 n2 = cross(gm.v[be].p - gm.v[ae].p, gm.v[bf].p - gm.v[ae].p);
+                if (dot(n2, inN) >= 0.f) {
+                    gm.tri(ae, be, bf);
+                    gm.tri(ae, bf, af);
+                } else {
+                    gm.tri(ae, bf, be);
+                    gm.tri(ae, af, bf);
+                }
             }
-            gm.v[ai].n = outDir;
-            gm.v[bi].n = outDir;
         }
     }
-    // hide skin and inner layers underneath
+    // hide skin and inner layers underneath (loose garments keep the skin a little further in from their edges, so
+    // looking into an opening never shows a hole)
     if (g.hides) {
+        float margin = g.hideMargin;
+        if (g.tubeR || g.hangDrift >= 0.f) {
+            float gapMax = 0.f;
+            for (size_t i = 0; i < gn; i++)
+                if (isB[i]) gapMax = Max(gapMax, dot(gm.v[i].p - gm.v[i].bp, normalize(gm.v[i].n)));
+            margin = Max(margin, Min(gapMax * 1.4f, 0.025f));
+        }
         for (size_t t = 0; t + 2 < o.c.surfaceIdxEnd; t += 3)
-            if (cv[bm.idx[t]] > g.hideMargin && cv[bm.idx[t + 1]] > g.hideMargin && cv[bm.idx[t + 2]] > g.hideMargin) o.hideBody[t / 3] = 1;
+            if (cv[bm.idx[t]] > margin && cv[bm.idx[t + 1]] > margin && cv[bm.idx[t + 2]] > margin) o.hideBody[t / 3] = 1;
         for (auto& L : o.layers)
             for (size_t t = L.t0; t < L.t1; t++) {
                 const BVert& a = o.out.v[o.out.idx[t * 3]];
                 const BVert& b = o.out.v[o.out.idx[t * 3 + 1]];
                 const BVert& cc = o.out.v[o.out.idx[t * 3 + 2]];
                 auto covAt = [&](const BVert& v) { return g.cov(v); };
-                if (covAt(a) > g.hideMargin + 0.004f && covAt(b) > g.hideMargin + 0.004f && covAt(cc) > g.hideMargin + 0.004f) o.hideOut[t] = 1;
+                if (covAt(a) > margin + 0.004f && covAt(b) > margin + 0.004f && covAt(cc) > margin + 0.004f) o.hideOut[t] = 1;
             }
     }
     size_t t0 = o.out.idx.size() / 3;
@@ -514,85 +897,238 @@ static float covSuitJacket(const Ref& R, const BVert& v, float hemZ, float sleev
 }
 
 // ------------------------------------------------------------------------------------------------
-// Fabric folds: extra shell offset (meters) where cloth bunches, plus a shade for the fold troughs (vertex colour; the
-// renderer adds its curvature occlusion on top). Compression ridges in the crook of the elbow and behind the knee,
-// stacking above long cuffs and trouser hems, bunching over the waist / blousing over a tucked hem, soft drape from
-// the shoulder towards the armpit and denim whiskers at the front of the hips. Ridges are wavy (per-garment phase)
-// rather than rings, sharp crests over wide troughs like real compression folds.
+// Fabric folds as fold lines. Each fold is a ridge along a short, slightly bowed line on the garment, in the garment's
+// own parametrization (limbs: along the limb x arc length around it; torso: height x arc length), tapered to nothing at
+// its ends, with sharper valleys either side: compression folds in the crook of the elbow and behind the knee, stacking
+// above long cuffs and at the trouser break, drag lines from the crotch, smile lines under the seat, drape from the
+// armpits, pipe folds hanging from the chest of a loose top, blousing over a waistband, denim whiskers. The folds move
+// the shell at LOD0 (refineShell adds vertices where the skin tessellation cannot carry them) and write the crease
+// channel (valleys plus fine-wrinkle zones), which the cloth shader keeps at every LOD.
+struct FoldLine {
+    u8 part;          // PART_ARM / PART_LEG / PART_TORSO
+    int side;         // limbs: 0 left, 1 right, -1 both (torso folds are placed by their angle)
+    float a0, th0;    // centre: along the limb (m) or height (torso, m), and the angle around it (rad)
+    float halfLen;    // half length along the fold (m)
+    float w;          // ridge half width (m)
+    float h;          // ridge height (m)
+    float cd, sd;     // direction: (1, 0) runs around the limb / torso, (0, 1) along it
+    float trough;     // crease channel strength of the valleys either side
+    float bend;       // bow of the line (1/m)
+};
+struct FoldSet {
+    std::vector<FoldLine> L;
+    // fine-wrinkle zones (crease channel only): elbow crook / knee back centres (along, m) and strengths
+    float elbowA = -1.f, elbowK = 0.f, kneeA = -1.f, kneeK = 0.f, zoneW = 0.03f;
+};
 struct FoldSpec {
     float amp = 1.f;          // overall scale (0 = none): looser garments fold more
     float sleeveEnd = 0.f;    // arm: along-length of the sleeve (0 = no sleeve)
     float legCuffZ = 0.f;     // leg: height of the trouser hem (0 = no trouser legs)
-    bool legLong = false;     // full-length trousers (stack on the shoe)
+    bool legLong = false;     // full-length trousers (break on the shoe)
     float waistZ = 0.f;       // torso: height of the hem / waistband the top bunches over (0 = none)
     bool tucked = false;      // tucked hem: blousing just above the waistband
     bool denim = false;       // jeans whiskers
+    float hangTop = 0.f;      // torso: where a loose top starts to hang (pipe folds below it)
+    float hang = 0.f;         // 0..1 how freely the top hangs (pipe folds)
+    bool openFront = false;   // open outer layer: deeper vertical folds on the front panels
     u32 seed = 0;
 };
-static FORCEINLINE float foldCrest(float x) {
-    // periodic 0..1 with narrow crests (x in cycles)
-    float s = 0.5f + 0.5f * sinf(kTwoPi * x);
-    return s * s * s;
+
+static void addFold(FoldSet& F, u8 part, int side, float a0, float th0, float halfLen, float w, float h, float dir, float trough, float bend = 0.f) {
+    FoldLine f;
+    f.part = part;
+    f.side = side;
+    f.a0 = a0;
+    f.th0 = th0;
+    f.halfLen = halfLen;
+    f.w = w;
+    f.h = h;
+    f.cd = cosf(dir);
+    f.sd = sinf(dir);
+    f.trough = trough;
+    f.bend = bend;
+    F.L.push_back(f);
 }
-static void fabricFold(const BuildCtx& c, const FoldSpec& f, const BVert& v, float& off, float& shade) {
-    off = 0.f;
-    shade = 0.f;
-    if (f.amp <= 0.f) return;
+
+// Along-coordinate of the leg skin at height z (legs run almost straight down from the hip joint).
+static float legAlongAtZ(const BodyDims& D, float z) {
+    float vz = Max(fabsf(D.legDir[0].z), 0.5f);
+    return (D.J[B_THIGH_L].z - z) / vz;
+}
+
+static std::shared_ptr<FoldSet> makeFolds(const BuildCtx& c, const FoldSpec& fs) {
+    auto F = std::make_shared<FoldSet>();
+    if (fs.amp <= 0.f) return F;
     const BodyDims& D = *c.D;
-    const float s = D.s;
-    const float ph0 = hashToFloat(hash32(f.seed * 747796405u + (u32)v.side * 2891336453u)) * kTwoPi;
-    float fold = 0.f, trough = 0.f;
-    auto ridge = [&](float x, float lambda, float wav, float envW) {
-        float cr = foldCrest(x / lambda + wav);
-        fold += envW * cr;
-        trough += envW * (1.f - cr) * 0.6f;
-    };
-    if (v.part == PART_ARM && f.sleeveEnd > 0.f) {
-        float al = v.pa, th = v.pb;
-        float eA = D.upperArm;
-        float crook = sstep(-0.2f, 0.85f, cosf(th));
-        float envE = bump(al, eA - 0.004f * s, 0.05f * s) * (0.25f + 0.75f * crook) * (al < f.sleeveEnd - 0.01f * s ? 1.f : 0.f);
-        if (envE > 0.01f) ridge(al - eA, 0.032f * s, 0.35f * sinf(th * 1.5f + ph0), envE * 0.008f);
-        // stacking above a long cuff
-        if (f.sleeveEnd > D.upperArm + 0.1f * s) {
-            float envC = bump(al, f.sleeveEnd - 0.04f * s, 0.028f * s) * (0.55f + 0.45f * crook);
-            ridge(al, 0.027f * s, 0.5f * sinf(th + ph0 * 1.7f), envC * 0.006f);
-        }
-        // drape from the shoulder towards the armpit (under the arm)
-        float under = sstep(0.2f, -0.9f, sinf(th));
-        float envS = bump(al, 0.06f * s, 0.05f * s) * under;
-        if (envS > 0.01f) ridge(al * 0.7f + th * 0.012f * s, 0.03f * s, ph0, envS * 0.004f);
-    }
-    if (v.part == PART_LEG && f.legCuffZ > 0.f) {
-        float al = v.pa, th = v.pb, z = v.bp.z;
-        float kA = D.thigh;
-        float back = sstep(-0.1f, -0.85f, cosf(th)), front = sstep(0.1f, 0.85f, cosf(th));
-        float envK = bump(al, kA + 0.01f * s, 0.045f * s) * (0.2f + 0.8f * back) * (z > f.legCuffZ + 0.02f * s ? 1.f : 0.f);
-        if (envK > 0.01f) ridge(al - kA, 0.034f * s, 0.3f * sinf(th * 2.f + ph0), envK * 0.0065f);
-        // stacking on the shoe (long trousers)
-        if (f.legLong) {
-            float envH = bump(z, f.legCuffZ + 0.05f * s, 0.045f * s) * (0.5f + 0.5f * front);
-            ridge(z, 0.045f * s, 0.9f * sinf(th * 1.3f + ph0 * 2.3f), envH * 0.0095f);
-        }
-        // denim whiskers: fine diagonal creases at the front of the hip
-        if (f.denim) {
-            float envW = bump(al, 0.07f * s, 0.05f * s) * bump(th, (v.side ? 1.f : -1.f) * 0.55f, 0.45f);
-            if (envW > 0.02f) ridge(al + th * 0.03f * s * (v.side ? 1.f : -1.f), 0.018f * s, ph0, envW * 0.0022f);
+    const float s = D.s, A = fs.amp;
+    Rng r(hash32(fs.seed * 747796405u + 0x3C6EF372u));
+    auto R = [&](float a, float b) { return r.range(a, b); };
+    // ---- sleeves
+    if (fs.sleeveEnd > 0.f) {
+        const float eA = D.upperArm, rArm = D.rUpperArm * 1.15f;
+        const bool longS = fs.sleeveEnd > eA + 0.1f * s;
+        for (int sd = 0; sd < 2; sd++) {
+            if (longS) {
+                // compression folds in the crook of the elbow: three or four bowed ridges on the inside of the arm
+                int n = 3 + (r.f() < 0.5f ? 1 : 0);
+                for (int k = 0; k < n; k++)
+                    addFold(*F, PART_ARM, sd, eA + ((float)k - 0.5f * (n - 1)) * 0.021f * s + R(-0.004f, 0.004f) * s, R(-0.35f, 0.35f),
+                            rArm * R(1.1f, 1.6f), R(0.0045f, 0.006f) * s, R(0.0035f, 0.0055f) * A, R(-0.35f, 0.35f), 0.75f, R(-5.f, 5.f));
+                // spiral stacking above the cuff
+                float cuffA = Min(fs.sleeveEnd, D.upperArm + D.forearm);
+                for (int k = 0; k < 3; k++)
+                    addFold(*F, PART_ARM, sd, cuffA - (0.04f + 0.027f * k) * s + R(-0.004f, 0.004f) * s, R(0.f, kTwoPi), rArm * R(1.1f, 2.f),
+                            R(0.0045f, 0.0058f) * s, R(0.0025f, 0.0042f) * A, R(-0.6f, 0.6f), 0.6f, R(-4.f, 4.f));
+                F->elbowA = eA;
+                F->elbowK = 0.35f;
+            }
+            // drape from the armpit down the underside of the upper arm
+            int nd = longS ? 2 : 1;
+            for (int k = 0; k < nd; k++) {
+                float a0 = longS ? R(0.08f, 0.14f) * s : Min(R(0.05f, 0.08f) * s, fs.sleeveEnd - 0.02f * s);
+                addFold(*F, PART_ARM, sd, a0, 1.5f * kPi + R(-0.4f, 0.4f), R(0.035f, 0.055f) * s, R(0.005f, 0.007f) * s, R(0.0022f, 0.0035f) * A,
+                        kHalfPi + R(-0.45f, 0.45f), 0.4f);
+            }
+            if (!longS && fs.sleeveEnd > 0.06f * s) {
+                // a short sleeve's hem flares in one or two soft folds on the outside
+                int nf = r.f() < 0.6f ? 1 : 2;
+                for (int k = 0; k < nf; k++)
+                    addFold(*F, PART_ARM, sd, fs.sleeveEnd - R(0.015f, 0.03f) * s, kHalfPi + R(-0.9f, 0.9f), R(0.02f, 0.03f) * s,
+                            R(0.005f, 0.007f) * s, R(0.0018f, 0.003f) * A, kHalfPi + R(-0.3f, 0.3f), 0.35f);
+            }
         }
     }
-    if (v.part == PART_TORSO && f.waistZ > 0.f) {
-        float z = v.bp.z, th = v.pb;
-        if (f.tucked) {
-            float envB = bump(z, f.waistZ + 0.035f * s, 0.035f * s);
-            fold += envB * 0.006f;   // blousing
-            ridge(th * 0.16f * s, 0.028f * s, 0.2f * sinf(z * 60.f + ph0), envB * 0.004f);   // vertical creases into the waistband
+    // ---- torso
+    if (fs.waistZ > 0.f) {
+        // drape from the armpits: a diagonal fold down and in towards the front and the back on either side
+        const float zA = D.zArmpit;
+        for (int sd = 0; sd < 2; sd++) {
+            float sx = sd ? 1.f : -1.f;
+            addFold(*F, PART_TORSO, -1, zA - R(0.04f, 0.06f) * s, sx * (kHalfPi - R(0.45f, 0.65f)), R(0.05f, 0.07f) * s, R(0.006f, 0.008f) * s,
+                    R(0.0022f, 0.0032f) * A, kHalfPi - sx * R(0.45f, 0.65f), 0.4f);
+            addFold(*F, PART_TORSO, -1, zA - R(0.04f, 0.07f) * s, sx * (kHalfPi + R(0.5f, 0.7f)), R(0.05f, 0.07f) * s, R(0.006f, 0.008f) * s,
+                    R(0.002f, 0.003f) * A, kHalfPi + sx * R(0.45f, 0.65f), 0.35f);
+        }
+        if (fs.tucked) {
+            // blousing all round just above the waistband, and short vertical creases running into it
+            for (int k = 0; k < 6; k++)
+                addFold(*F, PART_TORSO, -1, fs.waistZ + R(0.028f, 0.04f) * s, kTwoPi * (k + R(0.f, 0.6f)) / 6.f, R(0.07f, 0.1f) * s,
+                        R(0.01f, 0.014f) * s, R(0.003f, 0.0045f) * A, R(-0.12f, 0.12f), 0.3f);
+            int n = 10 + (int)(r.f() * 4.f);
+            for (int k = 0; k < n; k++)
+                addFold(*F, PART_TORSO, -1, fs.waistZ + R(0.015f, 0.03f) * s, kTwoPi * (k + R(0.f, 0.7f)) / n, R(0.018f, 0.03f) * s,
+                        R(0.0035f, 0.0045f) * s, R(0.0014f, 0.0022f) * A, kHalfPi + R(-0.3f, 0.3f), 0.55f);
         } else {
-            float envW = bump(z, f.waistZ + 0.06f * s, 0.05f * s) * (0.55f + 0.45f * fabsf(sinf(th)));
-            ridge(z - f.waistZ, 0.045f * s, 0.45f * sinf(th * 2.f + ph0), envW * 0.006f);
+            // bunching at the sides above the hem
+            for (int sd = 0; sd < 2; sd++) {
+                float sx = sd ? 1.f : -1.f;
+                for (int k = 0; k < 2; k++)
+                    addFold(*F, PART_TORSO, -1, fs.waistZ + (0.035f + 0.03f * k) * s + R(-0.006f, 0.006f) * s, sx * kHalfPi + R(-0.35f, 0.35f),
+                            R(0.05f, 0.08f) * s, R(0.006f, 0.008f) * s, R(0.0022f, 0.0035f) * A, R(-0.25f, 0.25f), 0.35f);
+            }
+        }
+        if (fs.hang > 0.f && fs.hangTop > fs.waistZ + 0.1f * s) {
+            // pipe folds hanging from the chest (or the bust) to the hem, a few on the front and the back
+            float mid = 0.5f * (fs.hangTop + fs.waistZ), half = 0.45f * (fs.hangTop - fs.waistZ);
+            int nf = 2 + (r.f() < 0.5f ? 1 : 0), nb = 2;
+            for (int k = 0; k < nf; k++)
+                addFold(*F, PART_TORSO, -1, mid - R(0.f, 0.04f) * s, R(-0.75f, 0.75f), half * R(0.7f, 1.f), R(0.009f, 0.013f) * s,
+                        R(0.003f, 0.0048f) * fs.hang * A, kHalfPi + R(-0.12f, 0.12f), 0.3f);
+            for (int k = 0; k < nb; k++)
+                addFold(*F, PART_TORSO, -1, mid - R(0.f, 0.05f) * s, kPi + R(-0.7f, 0.7f), half * R(0.6f, 0.95f), R(0.01f, 0.014f) * s,
+                        R(0.0025f, 0.004f) * fs.hang * A, kHalfPi + R(-0.15f, 0.15f), 0.25f);
+        }
+        if (fs.openFront) {
+            // the open front panels fall in two deeper vertical folds each, the back in one from each shoulder blade
+            for (int sd = 0; sd < 2; sd++) {
+                float sx = sd ? 1.f : -1.f;
+                for (int k = 0; k < 2; k++)
+                    addFold(*F, PART_TORSO, -1, 0.5f * (D.zArmpit + fs.waistZ) - R(0.f, 0.05f) * s, sx * R(0.25f, 1.1f),
+                            0.42f * (D.zArmpit - fs.waistZ), R(0.011f, 0.015f) * s, R(0.004f, 0.006f) * A, kHalfPi + sx * R(-0.08f, 0.15f), 0.35f);
+                addFold(*F, PART_TORSO, -1, 0.5f * (D.zArmpit + fs.waistZ), kPi - sx * R(0.35f, 0.7f), 0.38f * (D.zArmpit - fs.waistZ),
+                        R(0.012f, 0.016f) * s, R(0.003f, 0.0045f) * A, kHalfPi, 0.25f);
+            }
         }
     }
-    off = fold * f.amp;
-    shade = Saturate(trough * f.amp / 0.005f) * 0.2f;
+    // ---- trouser legs
+    if (fs.legCuffZ > 0.f) {
+        const float kA = D.thigh, cuffA = legAlongAtZ(D, fs.legCuffZ), rLeg = D.rKnee * 1.25f, aCrotch = legAlongAtZ(D, D.zCrotch);
+        const bool coversKnee = cuffA > kA + 0.03f * s;
+        for (int sd = 0; sd < 2; sd++) {
+            if (coversKnee) {
+                // compression folds behind the knee, one soft line across the front above it
+                for (int k = 0; k < 3; k++)
+                    addFold(*F, PART_LEG, sd, kA + ((float)k - 1.f) * 0.022f * s + R(-0.004f, 0.004f) * s, kPi + R(-0.3f, 0.3f), rLeg * R(1.f, 1.45f),
+                            R(0.0045f, 0.0058f) * s, R(0.0038f, 0.0058f) * A, R(-0.3f, 0.3f), 0.7f, R(-4.f, 4.f));
+                addFold(*F, PART_LEG, sd, kA - R(0.035f, 0.05f) * s, R(-0.2f, 0.2f), rLeg * R(0.7f, 1.f), R(0.007f, 0.009f) * s, 0.0018f * A,
+                        R(-0.2f, 0.2f), 0.2f);
+                F->kneeA = kA;
+                F->kneeK = 0.3f;
+            }
+            // drag lines from the crotch down the front of the inner thigh, smile lines under the seat
+            for (int k = 0; k < 2; k++)
+                addFold(*F, PART_LEG, sd, aCrotch + R(0.02f, 0.07f) * s, R(-0.85f, -0.45f), R(0.045f, 0.065f) * s, R(0.005f, 0.0065f) * s, R(0.0022f, 0.0032f) * A,
+                        R(0.85f, 1.15f), 0.45f);
+            for (int k = 0; k < 2; k++)
+                addFold(*F, PART_LEG, sd, aCrotch + R(-0.005f, 0.035f) * s, kPi - R(0.2f, 0.6f), R(0.04f, 0.055f) * s, R(0.0045f, 0.006f) * s,
+                        R(0.0018f, 0.0028f) * A, R(0.1f, 0.4f), 0.45f);
+            if (fs.legLong) {
+                // the break: the trouser front stacks where it meets the shoe, a smaller fold at the back
+                for (int k = 0; k < 2; k++)
+                    addFold(*F, PART_LEG, sd, cuffA - (0.028f + 0.03f * k) * s + R(-0.004f, 0.004f) * s, R(-0.25f, 0.25f), rLeg * R(0.9f, 1.3f),
+                            R(0.0055f, 0.007f) * s, R(0.005f, 0.007f) * A * (k ? 0.7f : 1.f), R(-0.3f, 0.3f), 0.6f, R(-3.f, 3.f));
+                addFold(*F, PART_LEG, sd, cuffA - R(0.03f, 0.045f) * s, kPi + R(-0.3f, 0.3f), rLeg * R(0.7f, 1.f), 0.0055f * s, 0.003f * A,
+                        R(-0.25f, 0.25f), 0.4f);
+            } else if (!coversKnee) {
+                // shorts: a soft fold or two near the hem
+                for (int k = 0; k < 2; k++)
+                    addFold(*F, PART_LEG, sd, cuffA - R(0.02f, 0.045f) * s, R(0.f, kTwoPi), rLeg * R(1.f, 1.6f), R(0.006f, 0.008f) * s,
+                            R(0.0022f, 0.0035f) * A, R(-0.5f, 0.5f), 0.35f);
+            }
+            if (fs.denim)
+                for (int k = 0; k < 4; k++)
+                    addFold(*F, PART_LEG, sd, aCrotch + R(-0.01f, 0.05f) * s, -R(0.12f, 0.6f), R(0.022f, 0.035f) * s, 0.0024f * s, 0.0009f * A,
+                            R(0.45f, 0.85f), 0.85f);
+        }
+    }
+    return F;
+}
+
+static void evalFolds(const FoldSet& F, const BVert& v, float s, float& off, float& crease) {
+    off = 0.f;
+    crease = 0.f;
+    if (v.part != PART_ARM && v.part != PART_LEG && v.part != PART_TORSO) return;
+    float r = -1.f;
+    for (const FoldLine& f : F.L) {
+        if (f.part != v.part) continue;
+        if (f.side >= 0 && f.side != (int)v.side) continue;
+        if (r < 0.f) {
+            vec3 d = v.bp - v.axisPt;
+            if (v.part == PART_TORSO) d.z = 0.f;
+            r = Clamp(length(d), 0.02f * s, 0.25f * s);
+        }
+        float da = v.pa - f.a0;
+        if (fabsf(da) > f.halfLen + 4.f * f.w) continue;
+        float ds = wrapAngle(v.pb - f.th0) * r;
+        float u = ds * f.cd + da * f.sd;
+        if (fabsf(u) >= f.halfLen) continue;
+        float n = -ds * f.sd + da * f.cd - f.bend * u * u;
+        float x = n / f.w;
+        if (fabsf(x) > 3.2f) continue;
+        float q = u / f.halfLen;
+        float taper = Sq(1.f - q * q);
+        off += f.h * taper * expf(-x * x);
+        crease += f.trough * taper * expf(-Sq((fabsf(x) - 1.4f) / 0.45f));
+    }
+    // fine-wrinkle zones: the shader's wrinkles in the crook of the elbow and behind the knee
+    if (v.part == PART_ARM && F.elbowA > 0.f) crease += F.elbowK * bump(v.pa, F.elbowA, F.zoneW * s) * sstep(-0.2f, 0.9f, cosf(v.pb));
+    if (v.part == PART_LEG && F.kneeA > 0.f) crease += F.kneeK * bump(v.pa, F.kneeA + 0.01f * s, F.zoneW * s) * sstep(-0.2f, 0.9f, -cosf(v.pb));
+    crease = Saturate(crease);
+}
+
+// Fold function of a fold set, for GarmentDef::foldFn.
+static std::function<void(const BVert&, float&, float&)> foldFnOf(const std::shared_ptr<FoldSet>& F, float s) {
+    return [F, s](const BVert& v, float& off, float& cr) { evalFolds(*F, v, s, off, cr); };
 }
 
 // Height of the top's hem when it hangs over the trousers (untucked tops that reach below the waistband), else -1.
@@ -609,6 +1145,485 @@ static float untuckedHemZ(const Ref& R, const CharacterDesc& d) {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
+// Seams and stitch lines as ribbons on a garment (2 triangles per segment). A line a couple of millimetres wide cut
+// from the shell as a decal needs its own vertices on every skin triangle it crosses (or vanishes between the skin's
+// columns); a ribbon sampled on the garment's surface is cheaper and always there. Lines run along a limb or down the
+// torso (fixed angle) or round it (fixed along / height). The LODs drop them (kParamLodDetail).
+
+// Skin rings of one part (and side, for limbs): rows of the torso grid below the armpit, the rings of an arm or leg;
+// each ring's vertices sorted by angle.
+struct PartGrid {
+    std::vector<float> ringA;
+    std::vector<std::vector<u32>> ring;
+};
+
+static void buildPartGrid(const BuildCtx& c, u8 part, int side, PartGrid& G) {
+    std::vector<std::pair<float, u32>> vs;
+    for (u32 i = 0; i < (u32)c.m.v.size(); i++) {
+        const BVert& v = c.m.v[i];
+        if (v.part != part || v.mat != MAT_SKIN) continue;
+        if (part == PART_TORSO ? (v.pc < 0.f || v.pc > 0.8001f) : (int)v.side != side) continue;
+        vs.push_back(std::make_pair(v.pa, i));
+    }
+    std::sort(vs.begin(), vs.end(), [](const std::pair<float, u32>& a, const std::pair<float, u32>& b) { return a.first < b.first; });
+    for (size_t i = 0; i < vs.size();) {
+        size_t j = i;
+        while (j < vs.size() && vs[j].first - vs[i].first < 1e-5f) j++;
+        if (j - i >= 6) {
+            std::vector<u32> r;
+            for (size_t k = i; k < j; k++) r.push_back(vs[k].second);
+            std::sort(r.begin(), r.end(), [&](u32 a, u32 b) { return c.m.v[a].pb < c.m.v[b].pb; });
+            G.ringA.push_back(vs[i].first);
+            G.ring.push_back(r);
+        }
+        i = j;
+    }
+}
+
+static BVert sampleRing(const BuildCtx& c, const std::vector<u32>& r, float th) {
+    th = th - floorf(th / kTwoPi) * kTwoPi;
+    size_t n = r.size(), hi = 0;
+    while (hi < n && c.m.v[r[hi]].pb < th) hi++;
+    u32 a = r[(hi + n - 1) % n], b = r[hi % n];
+    float ta = c.m.v[a].pb, tb = c.m.v[b].pb;
+    float span = wrapAngle(tb - ta);
+    if (span <= 1e-6f) span += kTwoPi;
+    float t = Saturate(wrapAngle(th - ta) / span);
+    if (wrapAngle(th - ta) < 0.f) t = 0.f;
+    return lerpVert(c.m.v[a], c.m.v[b], t);
+}
+
+// The skin at (along / height a, angle th) of a part grid; false outside its rings.
+static bool sampleGrid(const BuildCtx& c, const PartGrid& G, float a, float th, BVert& out) {
+    const size_t n = G.ringA.size();
+    if (n < 2 || a < G.ringA[0] || a > G.ringA[n - 1]) return false;
+    size_t i = 0;
+    while (i + 2 < n && G.ringA[i + 1] < a) i++;
+    float f = Saturate((a - G.ringA[i]) / Max(G.ringA[i + 1] - G.ringA[i], 1e-6f));
+    out = lerpVert(sampleRing(c, G.ring[i], th), sampleRing(c, G.ring[i + 1], th), f);
+    return true;
+}
+
+// Point of garment g over a skin sample (offsets, fit and folds, as emitGarment places the shell) and the normal.
+static vec3 garmentPointAt(OutfitCtx& o, const GarmentDef& g, const std::vector<float>& ext, const BVert& v) {
+    vec3 n = normalize(v.n);
+    vec3 p = v.bp + n * (g.thick + (g.extraFn ? g.extraFn(v) : 0.f));
+    if (g.hangDrift >= 0.f || g.tubeR) p = fitPoint(o, g, ext, v, p);
+    if (g.foldFn) {
+        float fo = 0.f, cr = 0.f;
+        g.foldFn(v, fo, cr);
+        p += n * fo;
+    }
+    return p;
+}
+
+// Ribbon through skin samples on garment g: halfW wide, `lift` above the cloth; registered as a layer so garments
+// emitted later hide it where they cover it.
+static void addGarmentRibbon(OutfitCtx& o, const GarmentDef& g, const std::vector<BVert>& samples, float halfW, float lift, vec3 col, u8 mat,
+                             u32 matParam) {
+    const int n = (int)samples.size();
+    if (n < 2) return;
+    std::vector<float> ext;
+    if (g.hangDrift >= 0.f) {
+        buildTorsoProfile(o);
+        hangTable(o, g, ext);
+    }
+    std::vector<vec3> P(n);
+    for (int i = 0; i < n; i++) P[i] = garmentPointAt(o, g, ext, samples[i]);
+    MeshB m;
+    std::vector<u32> L(n), Rr(n);
+    for (int i = 0; i < n; i++) {
+        vec3 t = normalize(P[Min(i + 1, n - 1)] - P[Max(i - 1, 0)]);
+        vec3 nn = normalize(samples[i].n);
+        vec3 w = normalize(cross(t, nn));
+        BVert v = samples[i];
+        v.n = nn;
+        v.t = t;
+        v.col = col;
+        v.mat = mat;
+        v.matParam = matParam | kParamLodDetail;
+        v.alpha = 1.f;
+        v.flags = 0;
+        v.p = P[i] + nn * lift - w * halfW;
+        L[i] = m.add(v);
+        v.p = P[i] + nn * lift + w * halfW;
+        Rr[i] = m.add(v);
+    }
+    for (int i = 0; i + 1 < n; i++) {
+        vec3 nn = cross(m.v[Rr[i]].p - m.v[L[i]].p, m.v[L[i + 1]].p - m.v[L[i]].p);
+        if (dot(nn, m.v[L[i]].n) >= 0.f) m.quad(L[i], Rr[i], Rr[i + 1], L[i + 1]);
+        else m.quad(L[i], L[i + 1], Rr[i + 1], Rr[i]);
+    }
+    size_t t0 = o.out.idx.size() / 3;
+    o.out.append(m);
+    o.hideOut.resize(o.out.idx.size() / 3, 0);
+    OutfitCtx::Layer Ly;
+    Ly.cov = g.cov;
+    Ly.margin = 0.f;
+    Ly.t0 = t0;
+    Ly.t1 = o.out.idx.size() / 3;
+    o.layers.push_back(Ly);
+}
+
+// A seam down a limb or the torso at angle th from a0 to a1 (along / height), where the garment covers it.
+static void seamAlong(OutfitCtx& o, const GarmentDef& g, u8 part, int side, float th, float a0, float a1, float halfW, vec3 col, u8 mat, u32 mp) {
+    PartGrid G;
+    buildPartGrid(o.c, part, side, G);
+    std::vector<BVert> sm;
+    for (size_t i = 0; i < G.ringA.size(); i++) {
+        float a = G.ringA[i];
+        if (a < Min(a0, a1) || a > Max(a0, a1)) continue;
+        BVert v;
+        if (!sampleGrid(o.c, G, a, th, v) || g.cov(v) <= 0.f) {
+            if (sm.size() >= 2) addGarmentRibbon(o, g, sm, halfW, 0.0006f, col, mat, mp);
+            sm.clear();
+            continue;
+        }
+        sm.push_back(v);
+    }
+    addGarmentRibbon(o, g, sm, halfW, 0.0006f, col, mat, mp);
+}
+
+// A line round a limb or the torso at along / height a, over the angles th0 .. th1 (th1 = th0 + 2 pi: all round).
+static void seamAround(OutfitCtx& o, const GarmentDef& g, u8 part, int side, float a, float th0, float th1, float halfW, vec3 col, u8 mat,
+                       u32 mp) {
+    PartGrid G;
+    buildPartGrid(o.c, part, side, G);
+    const bool full = th1 - th0 > kTwoPi - 1e-3f;
+    const int N = Max(6, (int)((th1 - th0) / kTwoPi * (part == PART_TORSO ? 40.f : 24.f)));
+    std::vector<BVert> sm;
+    for (int k = 0; k <= N; k++) {
+        float th = Lerp(th0, th1, (float)k / N);
+        BVert v;
+        if (!sampleGrid(o.c, G, a, th, v) || g.cov(v) <= 0.f) {
+            if (sm.size() >= 2) addGarmentRibbon(o, g, sm, halfW, 0.0006f, col, mat, mp);
+            sm.clear();
+            continue;
+        }
+        sm.push_back(v);
+    }
+    (void)full;
+    addGarmentRibbon(o, g, sm, halfW, 0.0006f, col, mat, mp);
+}
+
+// Decal (pocket, seam, placket, band, stitching) riding on a garment: the same fit and folds as its base, `extraOff`
+// further out.
+static GarmentDef decalOf(const GarmentDef& base, CovFn cov, vec3 col, u8 mat, float extraOff, u32 parts, u32 matParam, int cutRefine = 1) {
+    GarmentDef dg;
+    dg.cutRefine = cutRefine;
+    dg.rimDepth = extraOff + 0.001f;   // a hemmed decal's rim ends on the garment under it, not on the skin
+    dg.facing = false;
+    dg.parts = parts;
+    dg.cov = cov;
+    dg.col = col;
+    dg.mat = mat;
+    dg.matParam = matParam;
+    dg.thick = base.thick;
+    auto be = base.extraFn;
+    dg.extraFn = [be, extraOff](const BVert& v) { return (be ? be(v) : 0.f) + extraOff; };
+    dg.smooth = Min(base.smooth, 1);
+    dg.hem = false;
+    dg.hides = false;
+    dg.hangDrift = base.hangDrift;
+    dg.hangTop = base.hangTop;
+    dg.hangWeight = base.hangWeight;
+    dg.hangFade0 = base.hangFade0;
+    dg.hangFade1 = base.hangFade1;
+    if (base.tubeR) {
+        auto tb = base.tubeR;
+        dg.tubeR = [tb, extraOff](const BVert& v) {
+            float r = tb(v);
+            return r > 0.f ? r + extraOff : 0.f;
+        };
+    }
+    dg.foldFn = base.foldFn;
+    dg.refineTol = base.refineTol;
+    return dg;
+}
+
+// Point on a garment's torso shell at height z and angle th (fit and folds included) and its outward normal: buttons,
+// badges and zips sit on the cloth where it actually hangs.
+static vec3 garmentTorsoPoint(OutfitCtx& o, const GarmentDef& g, float z, float th, vec3& nOut) {
+    vec3 p, n;
+    torsoPoint(o.c, z, th, p, n);
+    buildTorsoProfile(o);
+    BVert v;
+    v.p = v.bp = p;
+    v.n = n;
+    v.part = PART_TORSO;
+    v.pa = z;
+    v.pb = th < 0.f ? th + kTwoPi : th;
+    v.axisPt = vec3(0.f, profAxisY(o, z), z);
+    float off = g.thick + (g.extraFn ? g.extraFn(v) : 0.f);
+    vec3 q = p + n * off;
+    if (g.hangDrift >= 0.f) {
+        std::vector<float> ext;
+        hangTable(o, g, ext);
+        q = fitPoint(o, g, ext, v, q);
+    }
+    if (g.foldFn) {
+        float fo = 0.f, cr = 0.f;
+        g.foldFn(v, fo, cr);
+        q += n * fo;
+    }
+    nOut = n;
+    return q;
+}
+
+// Height of the bottoms' waistband top for a desc (matches buildBottomGarments).
+static float bottomTopZ(const Ref& R, const CharacterDesc& d) {
+    switch (d.bottom) {
+        case BOT_BAGGY: return R.zBeltLow - 0.02f * R.s;
+        case BOT_SLACKS: case BOT_POLICE: case BOT_LEGGINGS: return R.zBeltHigh;
+        default: return R.zBeltMid;
+    }
+}
+
+// Point on a sleeve at `along` from the shoulder joint in direction `dir` (perpendicular to the arm is enough): the
+// larger of the skin plus the cloth and the sleeve's tube radius.
+static vec3 sleeveSurfacePoint(const BuildCtx& c, const GarmentDef& g, int sd, float along, vec3 dir, float extra) {
+    const BodyDims& D = *c.D;
+    vec3 ad = D.armDir[sd];
+    vec3 ax = D.J[sd ? B_UPPERARM_R : B_UPPERARM_L] + ad * along;
+    dir = normalize(dir - ad * dot(dir, ad));
+    float t = c.sdf.castOut(ax, dir, sd ? MK_ARM_R : MK_ARM_L, 0.12f * D.s);
+    BVert v;
+    v.part = PART_ARM;
+    v.side = (u8)sd;
+    v.pa = along;
+    float R = g.tubeR ? g.tubeR(v) : 0.f;
+    return ax + dir * (Max(t + g.thick + extra, R + g.thick * 0.5f) + 0.0012f);
+}
+
+// A hood lying down on the upper back: a pillow of fabric over the shoulder blades (the same fit and folds as the
+// hoodie) whose opening rolls round the back of the neck.
+static void buildHood(OutfitCtx& o, const GarmentDef& g, vec3 col) {
+    BuildCtx& c = o.c;
+    const BodyDims& D = *c.D;
+    const float s = D.s;
+    const float zTop = D.zNeckBack + 0.005f * s, zBot = D.zNeckBack - 0.17f * s, hw = 0.115f * s;
+    GarmentDef h = decalOf(g, [=](const BVert& v) -> float {
+        if (v.part != PART_TORSO || v.bp.y > 0.02f * s) return -1.f;
+        float x = fabsf(v.bp.x) / hw;
+        float bot = zBot + 0.03f * s * x * x;   // rounded bottom
+        return Min(Min(hw - fabsf(v.bp.x), v.bp.z - bot), zTop - v.bp.z);
+    }, darker(col, 0.96f), MAT_CLOTH, 0.f, 1u << PART_TORSO, g.matParam);
+    auto be = h.extraFn;
+    h.extraFn = [=](const BVert& v) {
+        float x = Saturate(fabsf(v.bp.x) / hw);
+        float up = sstep(zBot, zBot + 0.06f * s, v.bp.z) * (1.f - 0.5f * sstep(zTop - 0.05f * s, zTop, v.bp.z));
+        return be(v) + 0.004f * s + 0.02f * s * (1.f - x * x) * up;
+    };
+    h.hem = true;
+    h.facing = true;
+    h.smooth = 2;
+    emitGarment(o, h);
+    // the rolled opening round the back of the neck
+    std::vector<vec3> pts;
+    std::vector<float> rad;
+    std::vector<SkinW> sws;
+    const std::vector<u32>& ring = c.torsoTop;
+    int n = (int)ring.size();
+    vec3 cen(0);
+    for (u32 vi : ring) cen += c.m.v[vi].p;
+    cen /= (float)n;
+    for (int k = n / 4 - 1; k <= 3 * n / 4 + 1; k++) {
+        const BVert& bv = c.m.v[ring[k % n]];
+        vec3 radial = normalize(vec3(bv.p.x - cen.x, bv.p.y - cen.y, 0.f));
+        float back = Max(0.f, -cosf(bv.pb));
+        pts.push_back(bv.p + radial * (0.02f + 0.022f * back) * s + vec3(0, 0, (0.01f - 0.008f * back) * s));
+        rad.push_back((0.014f + 0.016f * back) * s);
+        WAcc acc;
+        acc.add(B_CHEST, 0.7f);
+        acc.add(B_NECK, 0.3f);
+        sws.push_back(acc.finish());
+    }
+    addTube(o.out, pts, rad, 8, false, col, MAT_CLOTH, sws);
+    o.hideOut.resize(o.out.idx.size() / 3, 0);
+}
+
+// Hoodie drawstrings: two cords from the neck opening hanging down the chest, with plastic aglets.
+static void buildDrawstrings(OutfitCtx& o, const GarmentDef& g, vec3 col) {
+    BuildCtx& c = o.c;
+    const BodyDims& D = *c.D;
+    const float s = D.s;
+    Rng r(hash32(c.d->seed * 0x51ED27u + 9u));
+    vec3 cordCol = r.chance(0.5f) ? darker(col, 0.85f) : vec3(0.85f, 0.84f, 0.8f);
+    for (int sd = 0; sd < 2; sd++) {
+        float sx = sd ? 1.f : -1.f;
+        float len = r.range(0.14f, 0.21f) * s, z0 = D.zNeckFront - 0.004f * s;
+        std::vector<vec3> pts;
+        std::vector<float> rad;
+        std::vector<SkinW> sws;
+        const int N = 8;
+        for (int k = 0; k <= N; k++) {
+            float z = z0 - len * k / N;
+            float x = sx * (0.032f + 0.004f * k / N) * s;
+            vec3 pr, pn;
+            torsoPoint(c, z, 0.f, pr, pn);
+            float rr = Max(length(vec2(pr.x, pr.y - profAxisY(o, z))), 0.05f);
+            vec3 n;
+            vec3 p = garmentTorsoPoint(o, g, z, asinf(Clamp(x / rr, -0.9f, 0.9f)), n);
+            pts.push_back(p + n * (0.0045f * s));
+            rad.push_back(k >= N - 1 ? 0.0032f * s : 0.0022f * s);
+            sws.push_back(torsoSkinWeights(D, p));
+        }
+        addTube(o.out, pts, rad, 5, false, cordCol, MAT_CLOTH, sws, vec3(0, 1, 0));
+        // aglet: the last segment in hard plastic
+        std::vector<vec3> ag = {pts[N - 1], pts[N]};
+        std::vector<float> ar(2, 0.0033f * s);
+        std::vector<SkinW> asw(2, sws[N]);
+        addTube(o.out, ag, ar, 5, false, darker(cordCol, 0.6f), MAT_PLASTIC, asw, vec3(0, 1, 0));
+    }
+    o.hideOut.resize(o.out.idx.size() / 3, 0);
+}
+
+// Shoulder straps as ribbons (tank and crop tops, sundresses, one-piece swimsuits): a band of half-width halfW over each
+// shoulder at |x| = cx, from the garment's top edge on the chest (bodyCov) over the shoulder down to its edge on the
+// back, `off` off the skin with its edges rolled down towards it. A ribbon keeps a clean edge where a coverage cut would break up on the shoulder's
+// coarse skin triangles; its ends tuck over the garment's top edge.
+static void addShoulderStraps(OutfitCtx& o, const CovFn& bodyCov, float cx, float halfW, float off, vec3 col, u32 matParam) {
+    BuildCtx& c = o.c;
+    const BodyDims& D = *c.D;
+    const float s = D.s;
+    MeshB m;
+    for (int sd = 0; sd < 2; sd++) {
+        const float sx = sd ? 1.f : -1.f;
+        // the garment's top edge under the strap, front and back: the highest covered skin point near |x| = cx; the
+        // strap starts 1.5 cm below it (it lies over the edge)
+        float zFront = D.zArmpit, zBack = D.zArmpit;
+        {
+            float bestF = -1.f, bestB = -1.f;
+            for (const BVert& v : c.m.v) {
+                if (v.part != PART_TORSO || fabsf(v.bp.x - sx * cx) > 0.015f * s || bodyCov(v) <= 0.f) continue;
+                if (v.bp.y > 0.f) bestF = Max(bestF, v.bp.z);
+                else bestB = Max(bestB, v.bp.z);
+            }
+            if (bestF > 0.f) zFront = bestF - 0.015f * s;
+            if (bestB > 0.f) zBack = bestB - 0.015f * s;
+        }
+        // four parallel lines across the strap (rolled edge, edge, edge, rolled edge), each in its own plane x = const
+        // round the shoulder, forward-down over the top to backward-down; the rows share the angles, so the band stays
+        // flat across
+        const float acr[4] = {-1.f, -0.8f, 0.8f, 1.f};
+        const vec3 C0(sx * cx, D.J[B_CHEST].y + 0.005f * s, D.zArmpit - 0.03f * s);
+        // (the line's points are found from outside: a point on a 17 cm circle round the shoulder, projected onto the
+        // body's surface, so a thin shoulder whose inside the centre misses still gives a smooth line)
+        auto hit = [&](float phi, float xoff, vec3& p, vec3& n) {
+            vec3 dir(0.f, cosf(phi), sinf(phi));
+            p = c.sdf.project(C0 + vec3(xoff, 0.f, 0.f) + dir * (0.17f * s), MK_TORSO, 10);
+            n = c.sdf.grad(p, MK_TORSO);
+            n = length2(n) > 1e-12f ? normalize(n) : dir;
+        };
+        // angle range where the centre line is above the start heights
+        const int NA = 60;
+        float phi0 = -1.f, phi1 = -1.f;
+        for (int i = 0; i <= NA; i++) {
+            float phi = Lerp(-0.7f, kPi + 0.7f, (float)i / NA);
+            vec3 p, n;
+            hit(phi, 0.f, p, n);
+            bool above = p.z >= (phi < kHalfPi ? zFront : zBack);
+            if (above && phi0 < -0.5f) phi0 = phi;
+            if (above) phi1 = phi;
+        }
+        if (phi0 < -0.5f || phi1 <= phi0) continue;
+        const int NP = 18;
+        std::vector<u32> rows[4];
+        float along = 0.f;
+        vec3 prevC(0.f);
+        for (int i = 0; i < NP; i++) {
+            float phi = Lerp(phi0, phi1, (float)i / (NP - 1));
+            vec3 pc, nc;
+            hit(phi, 0.f, pc, nc);
+            if (i) along += length(pc - prevC);
+            prevC = pc;
+            for (int k = 0; k < 4; k++) {
+                vec3 q, qn;
+                hit(phi, sx * acr[k] * halfW, q, qn);
+                BVert v;
+                v.bp = q;
+                v.p = q + qn * (k == 0 || k == 3 ? off * 0.35f : off);
+                v.n = qn;
+                v.t = normalize(vec3(0.f, -sinf(phi), cosf(phi)));
+                v.uv = vec2(acr[k] * halfW, along);
+                v.col = k == 0 || k == 3 ? col * 0.85f : col;
+                v.mat = MAT_CLOTH;
+                v.matParam = matParam;
+                v.part = PART_GARMENT;
+                v.side = (u8)sd;
+                v.sw = torsoSkinWeights(D, q);
+                v.layer = off;
+                rows[k].push_back(m.add(v));
+            }
+        }
+        for (int i = 0; i + 1 < NP; i++)
+            for (int k = 0; k + 1 < 4; k++) {
+                u32 a0 = rows[k][i], a1 = rows[k + 1][i], b0 = rows[k][i + 1], b1 = rows[k + 1][i + 1];
+                vec3 nn = cross(m.v[a1].p - m.v[a0].p, m.v[b0].p - m.v[a0].p);
+                if (dot(nn, m.v[a0].n + m.v[a1].n) >= 0.f) m.quad(a0, a1, b1, b0);
+                else m.quad(a0, b0, b1, a1);
+            }
+    }
+    m.computeNormals(0, m.idx.size());
+    o.out.append(m);
+    o.hideOut.resize(o.out.idx.size() / 3, 0);
+}
+
+// Folded shirt collar round the neck base, `off` out from the skin: a stand and a fall resting on the garment, points
+// either side of the front opening (tipAt: their angle from the front, tipAmt: how long they are).
+static void addCollar(OutfitCtx& o, float off, vec3 ccol, u32 matParam, float frontDrop, float tipAt, float tipAmt, bool openFront, float height,
+                      float fallOut = 0.f) {
+    BuildCtx& c = o.c;
+    const float s = c.D->s;
+    const std::vector<u32>& ring = c.torsoTop;
+    int n = (int)ring.size();
+    std::vector<u32> r0(n), r1(n), r2(n);
+    vec3 cen(0);
+    for (u32 vi : ring) cen += c.m.v[vi].p;
+    cen /= (float)n;
+    MeshB cm;
+    for (int k = 0; k < n; k++) {
+        const BVert& bv = c.m.v[ring[k]];
+        vec3 radial = normalize(vec3(bv.p.x - cen.x, bv.p.y - cen.y, 0.f));
+        float front = Max(0.f, cosf(bv.pb));
+        float h = height - 0.012f * s * front * frontDrop;
+        vec3 base = bv.p + radial * (off + 0.001f);
+        vec3 upv(0, 0, 1);
+        vec3 p0 = base - upv * 0.004f * s;
+        vec3 p1 = base + upv * h + radial * 0.004f * s;
+        vec3 p2 = base - upv * (0.006f * s) + radial * (0.008f * s + 0.005f * front * s + fallOut);   // the fall rests on the garment
+        float thw = wrapAngle(bv.pb);
+        float tip = bump(fabsf(thw), tipAt, 0.13f) * tipAmt;
+        p2 += (-upv * 0.024f * s + radial * 0.004f * s) * tip;
+        BVert v = bv;
+        v.part = PART_ACC;
+        v.mat = MAT_CLOTH;
+        v.matParam = matParam;
+        v.col = ccol;
+        v.bp = bv.p;
+        v.flags = 0;
+        v.p = p0; v.n = radial; r0[k] = cm.add(v);
+        v.p = p1; v.n = normalize(radial + upv); r1[k] = cm.add(v);
+        v.p = p2; v.n = normalize(radial - upv * 0.3f); r2[k] = cm.add(v);
+    }
+    for (int k = 0; k < n; k++) {
+        int k1 = (k + 1) % n;
+        if (openFront && (k == 0 || k1 == 0)) continue;   // the front opening
+        vec3 rad = normalize(cm.v[r1[k]].n);
+        auto q = [&](u32 a, u32 b, u32 c2, u32 d2, vec3 f) {
+            vec3 nn = cross(cm.v[b].p - cm.v[a].p, cm.v[d2].p - cm.v[a].p);
+            if (dot(nn, f) >= 0.f) cm.quad(a, b, c2, d2);
+            else cm.quad(a, d2, c2, b);
+        };
+        q(r0[k], r0[k1], r1[k1], r1[k], -rad);   // stand (inner face, visible at the opening)
+        q(r1[k], r1[k1], r2[k1], r2[k], rad);    // fall (outer face)
+    }
+    cm.computeNormals(0, cm.idx.size());
+    o.out.append(cm);
+    o.hideOut.resize(o.out.idx.size() / 3, 0);
+}
+
 static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
     BuildCtx& c = o.c;
     const BodyDims& D = *c.D;
@@ -616,39 +1631,73 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
     const int top = d.top;
     vec3 col = d.topColor;
     Rng rng(hash32(d.seed * 7u + 3u));
-    auto torsoArms = (1u << PART_TORSO) | (1u << PART_ARM) | (1u << PART_NECK);
-    if (top == TOP_NONE) return;
+    const u32 torsoArms = (1u << PART_TORSO) | (1u << PART_ARM) | (1u << PART_NECK);
+    if (top == TOP_NONE || top == TOP_BIKINI || top == TOP_ONEPIECE || top == TOP_SUNDRESS) return;
     GarmentDef g;
     g.parts = torsoArms;
     g.col = col;
     float sleeve = 0.14f * s, hemZ = R.zCrotch + 0.075f * s, neckPc = 0.972f, vDip = 0.f, vW = 0.3f;
-    float loose = 0.006f;
-    bool tank = false, collar = false, buttons = false, tucked = false;
+    float loose = 0.004f;
+    // silhouette: how the body hangs from the chest (drift) and the sleeve tube radii below the deltoid / at the hem,
+    // with an optional snug cuff (rib) over its last cuffLen
+    float drift = 0.12f, rTop = D.rUpperArm * 1.18f + 0.005f * s, rEnd = D.rUpperArm * 1.28f + 0.004f * s, rCuff = 0.f, cuffLen = 0.f;
+    float foldAmp = 0.8f, hang = 0.5f;
+    bool tank = false, collar = false, buttons = false, tucked = false, rolled = false;
     int nButtons = 0;
+    const bool explicitAcc = (d.extras & ACC_EXPLICIT) != 0;
     switch (top) {
-        case TOP_TSHIRT: sleeve = 0.15f * s; loose = 0.007f; break;
-        case TOP_OVERSIZED: sleeve = 0.3f * s; hemZ = R.zCrotch - 0.02f * s; loose = 0.016f; g.smooth = 3; break;
-        case TOP_TANK: tank = true; loose = 0.005f; hemZ = R.zCrotch + 0.07f * s; break;
-        case TOP_POLO: sleeve = 0.155f * s; collar = true; buttons = true; nButtons = 2; loose = 0.007f; break;
-        case TOP_HAWAIIAN: sleeve = 0.17f * s; collar = true; buttons = true; nButtons = 5; loose = 0.011f; vDip = 0.07f; vW = 0.25f; break;
-        case TOP_DRESS_SHIRT: sleeve = rng.chance(0.5f) ? R.armLen - 0.02f * s : R.upperArm + 0.02f * s; collar = true; buttons = true;
-            nButtons = 6; tucked = true; loose = 0.006f; break;
-        case TOP_HOODIE: sleeve = R.armLen - 0.01f * s; hemZ = R.zCrotch + 0.03f * s; loose = 0.014f; g.smooth = 3; break;
-        case TOP_SUIT: sleeve = R.armLen - 0.03f * s; hemZ = R.zCrotch - 0.03f * s; loose = 0.009f; break;
-        case TOP_POLICE: sleeve = 0.17f * s; collar = true; buttons = true; nButtons = 6; tucked = true; loose = 0.007f; break;
-        case TOP_MEDIC: sleeve = 0.17f * s; collar = true; buttons = true; nButtons = 5; tucked = true; loose = 0.007f; break;
-        case TOP_HIVIS: sleeve = 0.15f * s; loose = 0.007f; col = d.topColor; break;
-        case TOP_BLOUSE: sleeve = rng.chance(0.5f) ? 0.12f * s : 0.f; vDip = 0.09f; vW = 0.3f; loose = 0.009f; hemZ = R.zCrotch + 0.08f * s; break;
-        case TOP_CROP: tank = true; hemZ = R.zWaist + 0.06f * s; loose = 0.004f; break;
+        case TOP_TSHIRT: sleeve = 0.15f * s; break;
+        case TOP_OVERSIZED:
+            sleeve = 0.3f * s; hemZ = R.zCrotch - 0.02f * s; loose = 0.007f; g.smooth = 3; drift = 0.02f;
+            rTop = D.rUpperArm * 1.45f + 0.01f * s; rEnd = D.rElbow * 1.75f + 0.01f * s; foldAmp = 1.2f; hang = 1.f;
+            break;
+        case TOP_TANK: tank = true; loose = 0.003f; hemZ = R.zCrotch + 0.07f * s; drift = 0.3f; foldAmp = 0.4f; hang = 0.f; break;
+        case TOP_POLO:
+            sleeve = 0.155f * s; collar = true; buttons = true; nButtons = 2; drift = 0.1f;
+            rTop = D.rUpperArm * 1.14f + 0.004f * s; rEnd = D.rUpperArm * 1.16f + 0.004f * s; foldAmp = 0.75f; hang = 0.4f;
+            break;
+        case TOP_HAWAIIAN:
+            sleeve = 0.17f * s; collar = true; buttons = true; nButtons = 5; loose = 0.005f; vDip = 0.07f; vW = 0.25f; drift = 0.04f;
+            rTop = D.rUpperArm * 1.32f + 0.008f * s; rEnd = D.rUpperArm * 1.45f + 0.008f * s; foldAmp = 1.f; hang = 0.8f;
+            break;
+        case TOP_DRESS_SHIRT: {
+            bool longS = rng.chance(0.5f);
+            rolled = longS && (explicitAcc ? (d.extras & ACC_ROLLED_SLEEVES) != 0 : rng.chance(0.4f));
+            sleeve = !longS ? R.upperArm + 0.02f * s : (rolled ? R.upperArm + rng.range(-0.02f, 0.03f) * s : R.armLen - 0.02f * s);
+            collar = true; buttons = true; nButtons = 6; tucked = true; drift = 0.14f; foldAmp = 0.9f; hang = 0.f;
+            rTop = D.rUpperArm + 0.013f * s;
+            rEnd = longS && !rolled ? D.rWrist + 0.013f * s : D.rUpperArm * 1.08f + 0.01f * s;
+            if (longS && !rolled) { rCuff = D.rWrist + 0.01f * s; cuffLen = 0.06f * s; }
+            break;
+        }
+        case TOP_HOODIE:
+            sleeve = R.armLen - 0.01f * s; hemZ = R.zCrotch + 0.03f * s; loose = 0.006f; g.smooth = 3; drift = 0.06f;
+            rTop = D.rUpperArm + 0.02f * s; rEnd = D.rForearm + 0.014f * s; rCuff = D.rWrist + 0.005f * s; cuffLen = 0.05f * s; foldAmp = 1.1f; hang = 0.7f;
+            break;
+        case TOP_SUIT:
+            sleeve = R.armLen - 0.03f * s; hemZ = R.zCrotch - 0.03f * s; loose = 0.005f; drift = 0.03f;
+            rTop = D.rUpperArm + 0.017f * s; rEnd = D.rWrist + 0.017f * s; foldAmp = 0.7f; hang = 0.3f;
+            break;
+        case TOP_POLICE: case TOP_MEDIC:
+            sleeve = 0.17f * s; collar = true; buttons = true; nButtons = top == TOP_POLICE ? 6 : 5; tucked = true; drift = 0.12f;
+            rTop = D.rUpperArm * 1.18f + 0.005f * s; rEnd = D.rUpperArm * 1.25f + 0.005f * s; foldAmp = 0.8f; hang = 0.f;
+            break;
+        case TOP_HIVIS: sleeve = 0.15f * s; col = d.topColor; break;
+        case TOP_BLOUSE:
+            sleeve = rng.chance(0.5f) ? 0.12f * s : 0.f; vDip = 0.09f; vW = 0.3f; loose = 0.005f; hemZ = R.zCrotch + 0.08f * s; drift = 0.07f;
+            rTop = D.rUpperArm * 1.25f + 0.006f * s; rEnd = D.rUpperArm * 1.35f + 0.006f * s; foldAmp = 0.9f; hang = 0.8f;
+            break;
+        case TOP_CROP: tank = true; hemZ = R.zWaist + 0.06f * s; loose = 0.003f; drift = -1.f; foldAmp = 0.3f; hang = 0.f; break;
         default: break;
     }
-    if (top == TOP_BIKINI || top == TOP_ONEPIECE || top == TOP_SUNDRESS) return;   // handled with bottoms/dresses
     // weave: woven shirts, jackets and uniforms; ribbed tanks; knit jersey for tees, polos, hoodies
     if (top == TOP_HAWAIIAN || top == TOP_DRESS_SHIRT || top == TOP_SUIT || top == TOP_POLICE || top == TOP_MEDIC || top == TOP_BLOUSE)
         g.matParam = 1;
     else if (top == TOP_TANK)
         g.matParam = 3;
+    const float waistTop = bottomTopZ(R, d);
     if (tucked) hemZ = R.zHip + 0.02f * s;
+    const float hangTop = D.J[B_CHEST].z + 0.04f * s;
     vec3 shirtCol = rng.chance(0.7f) ? vec3(0.85f, 0.85f, 0.83f) : srgbToLinear(vec3(0.7f, 0.8f, 0.95f));
     if (top == TOP_SUIT) {
         // shirt under the jacket (visible in the V) and tie; the jacket shell follows
@@ -675,6 +1724,7 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
         GarmentDef tie;
         tie.parts = 1u << PART_TORSO;
         tie.col = tieCol;
+        tie.matParam = 1;
         tie.thick = 0.006f;
         tie.hem = true;
         tie.hides = false;
@@ -688,139 +1738,95 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
         emitGarment(o, tie);
     }
     // ---- base shell
-    float sl = sleeve;
-    float hz = hemZ, np = neckPc, vd = vDip, vw = vW;
-    bool tk = tank;
+    const float sl = sleeve, hz = hemZ, np = neckPc, vd = vDip, vw = vW;
+    const bool tk = tank;
     g.cov = [=, &R](const BVert& v) -> float {
         if (v.part == PART_TORSO || v.part == PART_NECK) {
             if (v.part == PART_NECK) return -1.f;
             float cv = covTorsoRange(R, v, hz, np, vd, vw);
             if (tk) {
-                // body up to a scoop (pc 0.9 front/back, 0.8 at the armholes) plus straps over the shoulders
+                // body up to a scoop (pc 0.9 front/back, 0.8 at the armholes); the straps are ribbons (addShoulderStraps)
                 float side = fabsf(sinf(v.pb));
-                float body = Min(cv, (0.8f + 0.09f * (1.f - side) - v.pc) * R.torsoLen);
-                // straps run continuously over the shoulders (only the hem limits them, not the neckline)
-                float strap = Min(covStraps(R, v, 0.105f * R.s, 0.026f * R.s, 1.05f), v.bp.z - hz);
-                cv = Max(body, strap);
+                cv = Min(cv, (0.8f + 0.09f * (1.f - side) - v.pc) * R.torsoLen);
             }
             return cv;
         }
-        if (v.part == PART_ARM) {
-            // tank straps may cross the shoulder junction: evaluate them on the arm root as well (clean edges)
-            if (tk) return v.pa < 0.08f * R.s ? Min(covStraps(R, v, 0.105f * R.s, 0.026f * R.s, 1.05f), v.bp.z - hz) : -1.f;
-            return sl - v.pa;
-        }
+        if (v.part == PART_ARM) return tk ? -1.f : sl - v.pa;
         return -1.f;
     };
     if (top == TOP_SUIT) g.cov = [=, &R](const BVert& v) -> float { return covSuitJacket(R, v, hz, sl); };
     g.thick = 0.0035f;
-    float ls = loose;
-    float zc = R.zCrotch, zw = R.zWaist;
+    const float ls = loose, zc = R.zCrotch, zw = R.zWaist;
     // an untucked top hangs over the waistband: clear the bottoms' shell (plus belt) where they overlap
-    float clearE = o.botTopZ > 0.f ? o.botTorsoOff + 0.004f - g.thick : 0.f;
-    float zbt = o.botTopZ;
+    const float clearE = o.botTopZ > 0.f ? o.botTorsoOff + 0.004f - g.thick : 0.f;
+    const float zbt = o.botTopZ;
     g.extraFn = [=](const BVert& v) -> float {
         float e = ls;
-        if (v.part == PART_ARM) e = ls * (0.6f + 0.8f * Saturate(v.pa / Max(sl, 0.05f)));
-        else if (v.part == PART_TORSO) {
+        if (v.part == PART_TORSO) {
             e = ls * (0.5f + 0.9f * sstep(zw + 0.1f, zc, v.bp.z));   // hangs looser at the hem
             if (clearE > 0.f) e = Max(e, clearE * sstep(zbt + 0.06f, zbt - 0.005f, v.bp.z));
         }
         return e;
     };
+    // hang from the chest / bust / shoulder blades; a tucked shirt blouses down to its waistband and goes in under it
+    if (drift >= 0.f) {
+        g.hangDrift = drift;
+        g.hangTop = hangTop;
+        if (tucked) {
+            g.hangFade1 = waistTop + 0.055f * s;
+            g.hangFade0 = waistTop - 0.005f * s;
+        }
+    }
+    if (!tank && sleeve > 0.02f * s) {
+        const float rt = rTop, re = rEnd, rc = rCuff, cl = cuffLen;
+        g.tubeR = [=](const BVert& v) -> float {
+            if (v.part != PART_ARM || v.pa > sl + 0.01f * s) return 0.f;
+            float a = v.pa;
+            float Rr = Lerp(rt, re, lstep(0.08f * s, Max(sl, 0.1f * s), a));
+            if (cl > 0.f) Rr = Lerp(Rr, rc, sstep(sl - cl, sl - cl + 0.012f * s, a));
+            return Rr * sstep(0.035f * s, 0.1f * s, a);
+        };
+    }
     o.topTorsoOff = g.thick + ls * 1.4f;
+    o.topSleeveR = rEnd;
     if (top == TOP_HAWAIIAN) {
         u32 sd = d.seed;
         g.colFn = [=](const BVert& v, vec3 base) { return floral(v, base, sd); };
     }
     {
-        // folds: elbows / cuffs / armpits on the sleeves, bunching or blousing at the waist
         FoldSpec fs;
-        fs.amp = Lerp(0.45f, 1.2f, Saturate(loose / 0.012f));
+        fs.amp = foldAmp;
         fs.sleeveEnd = tank ? 0.f : sleeve;
-        fs.waistZ = hemZ;
+        fs.waistZ = tucked ? waistTop : hemZ;
         fs.tucked = tucked;
+        fs.hangTop = hangTop;
+        fs.hang = hang;
         fs.seed = d.seed * 3u + 1u;
-        const BuildCtx* cp = &c;
-        auto baseExtra = g.extraFn;
-        g.extraFn = [=](const BVert& v) {
-            float off, sh;
-            fabricFold(*cp, fs, v, off, sh);
-            return baseExtra(v) + off;
-        };
-        auto baseCol = g.colFn;
-        g.colFn = [=](const BVert& v, vec3 cc) {
-            vec3 r = baseCol ? baseCol(v, cc) : cc;
-            float off, sh;
-            fabricFold(*cp, fs, v, off, sh);
-            return r * (1.f - sh);
-        };
+        g.foldFn = foldFnOf(makeFolds(c, fs), s);
+        g.refineTol = 0.0008f;
     }
-    if (top == TOP_HIVIS) {
-        // tee under the vest
-        g.col = d.topColor;
-    }
-    if (g.smooth < 1) g.smooth = 1;
     g.smooth = Max(g.smooth, 2);
     emitGarment(o, g);
+    o.torsoOuter = std::make_shared<GarmentDef>(g);
+    if (tank) addShoulderStraps(o, g.cov, 0.105f * s, (top == TOP_CROP ? 0.018f : 0.024f) * s, g.thick + loose + 0.0012f, col, g.matParam);
     // ---- details
     const float off = g.thick + loose;
-    if (collar) {
-        // folded collar band around the neck base
-        const std::vector<u32>& ring = c.torsoTop;
-        int n = (int)ring.size();
-        std::vector<u32> r0(n), r1(n), r2(n);
-        vec3 cen(0);
-        for (u32 vi : ring) cen += c.m.v[vi].p;
-        cen /= (float)n;
-        bool openFront = top != TOP_POLICE && top != TOP_MEDIC;
-        vec3 ccol = top == TOP_SUIT ? shirtCol : col;
-        MeshB cm;
-        for (int k = 0; k < n; k++) {
-            const BVert& bv = c.m.v[ring[k]];
-            vec3 radial = normalize(vec3(bv.p.x - cen.x, bv.p.y - cen.y, 0.f));
-            float front = Max(0.f, cosf(bv.pb));
-            float h = (0.03f - 0.012f * front * (top == TOP_HAWAIIAN ? 1.f : 0.4f)) * s;
-            vec3 base = bv.p + radial * (off + 0.001f);
-            vec3 upv(0, 0, 1);
-            vec3 p0 = base - upv * 0.004f * s;
-            vec3 p1 = base + upv * h + radial * 0.004f * s;
-            vec3 p2 = base - upv * (0.006f * s) + radial * (0.008f * s + 0.005f * front * s);   // the fall rests on the shirt
-            // collar points either side of the opening (shirts; the polo's are short and round)
-            float thw = wrapAngle(bv.pb);
-            float tip = bump(fabsf(thw), top == TOP_POLO ? 0.36f : 0.3f, 0.13f) * (top == TOP_POLO ? 0.55f : 1.f);
-            p2 += (-upv * 0.024f * s + radial * 0.004f * s) * tip;
-            BVert v = bv;
-            v.part = PART_ACC;
-            v.mat = MAT_CLOTH;
-            v.col = ccol;
-            v.bp = bv.p;
-            v.flags = 0;
-            v.p = p0; v.n = radial; r0[k] = cm.add(v);
-            v.p = p1; v.n = normalize(radial + upv); r1[k] = cm.add(v);
-            v.p = p2; v.n = normalize(radial - upv * 0.3f); r2[k] = cm.add(v);
-        }
-        for (int k = 0; k < n; k++) {
-            int k1 = (k + 1) % n;
-            // skip the front opening segment
-            if (openFront && (k == 0 || k1 == 0)) continue;
-            vec3 rad = normalize(cm.v[r1[k]].n);
-            auto q = [&](u32 a, u32 b, u32 c2, u32 d2, vec3 f) {
-                vec3 nn = cross(cm.v[b].p - cm.v[a].p, cm.v[d2].p - cm.v[a].p);
-                if (dot(nn, f) >= 0.f) cm.quad(a, b, c2, d2);
-                else cm.quad(a, d2, c2, b);
-            };
-            q(r0[k], r0[k1], r1[k1], r1[k], -rad);          // stand (inner face, visible at the opening)
-            q(r1[k], r1[k1], r2[k1], r2[k], rad);           // fall (outer face)
-        }
-        cm.computeNormals(0, cm.idx.size());
-        o.out.append(cm);
-        o.hideOut.resize(o.out.idx.size() / 3, 0);
-    }
+    auto decal = [&](CovFn cov, vec3 dcol, u8 mat, float extraOff, u32 parts, u32 mp = 0xffffffffu) {
+        emitGarment(o, decalOf(g, cov, dcol, mat, extraOff, parts, mp == 0xffffffffu ? g.matParam : mp));
+    };
+    // curved stitch lines (straight ones along / round a part are ribbons, seamAlong / seamAround): a thin decal whose
+    // cut is refined twice, so the line is found between the skin's vertices
+    auto line = [&](CovFn cov, vec3 dcol, u8 mat, float extraOff, u32 parts) {
+        GarmentDef dg = decalOf(g, cov, dcol, mat, extraOff, parts, g.matParam | kParamLodDetail, 2);
+        emitGarment(o, dg);
+    };
+    if (collar) addCollar(o, off, top == TOP_SUIT ? shirtCol : col, top == TOP_POLO ? 3u : 1u, top == TOP_HAWAIIAN ? 1.f : 0.4f,
+                          top == TOP_POLO ? 0.36f : 0.3f, top == TOP_POLO ? 0.55f : 1.f, top != TOP_POLICE && top != TOP_MEDIC, 0.03f * s);
     if (buttons) {
         MeshB bm;
         float zTop = D.zNeckFront - 0.03f * s;
         float zBot = top == TOP_POLO ? zTop - 0.08f * s : hemZ + 0.05f * s;
+        if (tucked) zBot = Max(zBot, waistTop + 0.03f * s);
         if (top == TOP_SUIT) {
             zTop = R.zChest - 0.08f * s;
             zBot = zTop - 0.085f * s;
@@ -828,46 +1834,24 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
         int nb = nButtons;
         for (int i = 0; i < nb; i++) {
             float z = Lerp(zTop, zBot, nb > 1 ? (float)i / (nb - 1) : 0.f);
-            vec3 p, n;
-            torsoPoint(c, z, 0.f, p, n);
+            vec3 n;
+            vec3 p = garmentTorsoPoint(o, g, z, 0.f, n);
             SkinW sw = torsoSkinWeights(D, p);
             vec3 bc = top == TOP_POLICE ? vec3(0.75f, 0.6f, 0.25f) : vec3(0.85f, 0.83f, 0.78f);
-            addDisc(bm, p + n * (off + 0.0008f), n, 0.0048f * s, 6, 0.0015f, bc, top == TOP_POLICE ? MAT_CHROME : MAT_METAL_PAINTED, sw);
+            addDisc(bm, p + n * 0.0008f, n, 0.0048f * s, 6, 0.0015f, bc, top == TOP_POLICE ? MAT_CHROME : MAT_METAL_PAINTED, sw);
         }
         bm.computeNormals(0, 0);
         o.out.append(bm);
         o.hideOut.resize(o.out.idx.size() / 3, 0);
     }
-    // placket / decals
-    auto decal = [&](CovFn cov, vec3 dcol, u8 mat, float extraOff, u32 parts) {
-        GarmentDef dg;
-        dg.parts = parts;
-        dg.cov = cov;
-        dg.col = dcol;
-        dg.mat = mat;
-        dg.matParam = g.matParam;   // plackets, pockets and trims share the shirt's fabric
-        dg.thick = 0.0035f;
-        float eo = extraOff;
-        auto base = g.extraFn;
-        dg.extraFn = [=](const BVert& v) { return base(v) + eo; };
-        dg.smooth = g.smooth;
-        dg.hem = false;
-        dg.hides = false;
-        emitGarment(o, dg);
-    };
     CovFn baseCov = g.cov;
     if (!tank && top != TOP_SUIT) {
         // seams: side seams from the armpit to the hem, shoulder seams over the top of the shoulders, and the sleeve
         // seam round the arm root
         const float zAp = D.zArmpit, zNk = D.zNeckFront, shW = D.shoulderHalfW;
         vec3 seamCol = darker(col, 0.82f);
-        decal([=](const BVert& v) {
-            if (v.part != PART_TORSO || v.bp.z > zAp) return -1.f;
-            float th = wrapAngle(v.pb);
-            float dth = Min(fabsf(th - kHalfPi), fabsf(th + kHalfPi));
-            return Min(0.0016f * s - dth * 0.13f * s, baseCov(v));
-        }, seamCol, g.mat, 0.0007f, 1u << PART_TORSO);
-        decal([=](const BVert& v) {
+        for (int sd = 0; sd < 2; sd++) seamAlong(o, g, PART_TORSO, -1, sd ? kHalfPi : 1.5f * kPi, hz, zAp, 0.0012f * s, seamCol, g.mat, g.matParam);
+        line([=](const BVert& v) {
             if (v.part != PART_TORSO || v.bp.z < zAp) return -1.f;
             // along the ridge of the shoulder (y ~ torso axis) from the neck to the acromion
             float ax = fabsf(v.bp.x);
@@ -877,10 +1861,23 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
             return Min(Min(0.0016f * s - fabsf(v.bp.y - yRidge), 0.03f * s + onTop), baseCov(v));
         }, seamCol, g.mat, 0.0007f, 1u << PART_TORSO);
         if (sleeve > 0.08f * s)
-            decal([=](const BVert& v) {
-                if (v.part != PART_ARM) return -1.f;
-                return Min(0.0016f * s - fabsf(v.pa - 0.055f * s), baseCov(v));
-            }, seamCol, g.mat, 0.0007f, 1u << PART_ARM);
+            for (int sd = 0; sd < 2; sd++) seamAround(o, g, PART_ARM, sd, 0.055f * s, 0.f, kTwoPi, 0.0012f * s, seamCol, g.mat, g.matParam);
+    }
+    if (top == TOP_TSHIRT || top == TOP_OVERSIZED || top == TOP_HIVIS || top == TOP_POLO || top == TOP_HOODIE) {
+        // double-needle stitching above the sleeve hems and round the bottom hem (tees); rib bands on polo sleeves
+        vec3 stitch = darker(col, 0.78f);
+        if (sleeve > 0.08f * s && top != TOP_HOODIE) {
+            if (top == TOP_POLO)
+                decal([=](const BVert& v) { return v.part == PART_ARM ? Min(0.012f * s - fabsf(v.pa - (sl - 0.012f * s)), sl - v.pa) : -1.f; },
+                      darker(col, 0.93f), MAT_CLOTH, 0.0011f, 1u << PART_ARM, 3u);
+            else
+                for (int k = 0; k < 2; k++)
+                    for (int sd = 0; sd < 2; sd++)
+                        seamAround(o, g, PART_ARM, sd, sl - (0.017f + 0.0055f * k) * s, 0.f, kTwoPi, 0.0006f * s, stitch, MAT_CLOTH, g.matParam);
+        }
+        if (top != TOP_HOODIE && top != TOP_POLO)
+            for (int k = 0; k < 2; k++)
+                seamAround(o, g, PART_TORSO, -1, hz + (0.018f + 0.0055f * k) * s, 0.f, kTwoPi, 0.0006f * s, stitch, MAT_CLOTH, g.matParam);
     }
     if (top == TOP_POLICE || top == TOP_MEDIC) {
         // chest pockets with flaps
@@ -918,14 +1915,13 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
     }
     if (top == TOP_POLICE) {
         // badge (gold shield) on the left chest, name plate on the right
-        vec3 p, n;
-        torsoPoint(c, R.zChest + 0.07f * s, -0.42f, p, n);
+        vec3 n;
+        vec3 p = garmentTorsoPoint(o, g, R.zChest + 0.07f * s, -0.42f, n);
         MeshB bm;
-        addDisc(bm, p + n * (off + 0.004f), n, 0.026f * s, 7, 0.003f, srgbToLinear(vec3(0.85f, 0.68f, 0.3f)), MAT_CHROME, torsoSkinWeights(D, p));
-        torsoPoint(c, R.zChest + 0.065f * s, 0.42f, p, n);
+        addDisc(bm, p + n * 0.004f, n, 0.026f * s, 7, 0.003f, srgbToLinear(vec3(0.85f, 0.68f, 0.3f)), MAT_CHROME, torsoSkinWeights(D, p));
+        p = garmentTorsoPoint(o, g, R.zChest + 0.065f * s, 0.42f, n);
         vec3 ax = normalize(cross(vec3(0, 0, 1), n)), ay(0, 0, 1);
-        addBoxOriented(bm, p + n * (off + 0.004f), ax, ay, n, vec3(0.03f, 0.007f, 0.002f) * s, vec3(0.8f, 0.8f, 0.82f), MAT_CHROME,
-                       torsoSkinWeights(D, p));
+        addBoxOriented(bm, p + n * 0.004f, ax, ay, n, vec3(0.03f, 0.007f, 0.002f) * s, vec3(0.8f, 0.8f, 0.82f), MAT_CHROME, torsoSkinWeights(D, p));
         o.out.append(bm);
         o.hideOut.resize(o.out.idx.size() / 3, 0);
     }
@@ -937,12 +1933,50 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
             return Min(0.011f * s - fabsf(v.bp.x), v.bp.z - zb);
         }, darker(col, 0.93f), MAT_CLOTH, 0.0012f, 1u << PART_TORSO);
     }
+    if (top == TOP_DRESS_SHIRT || top == TOP_HAWAIIAN) {
+        // chest pocket on the left (outline stitched in the shirt's colour), and the back yoke seam of a dress shirt
+        float px = -0.07f * s, pz = R.zChest + 0.03f * s;
+        decal([=](const BVert& v) {
+            if (v.part != PART_TORSO || v.bp.y < 0.f) return -1.f;
+            float dx = fabsf(v.bp.x - px), dz = v.bp.z - pz;
+            return Min(0.05f * s - dx * 1.12f, Min(0.034f * s - dz, 0.038f * s + dz - Max(0.f, dx - 0.028f * s) * 0.8f));
+        }, darker(col, 0.95f), MAT_CLOTH, 0.0014f, 1u << PART_TORSO);
+        if (top == TOP_DRESS_SHIRT) {
+            float zy = D.zArmpit + 0.035f * s;
+            line([=](const BVert& v) {
+                if (v.part != PART_TORSO || v.bp.y > 0.f) return -1.f;
+                return Min(0.0012f * s - fabsf(v.bp.z - zy), baseCov(v));
+            }, darker(col, 0.84f), MAT_CLOTH, 0.0006f, 1u << PART_TORSO);
+        }
+    }
+    if (top == TOP_DRESS_SHIRT && sleeve > R.armLen - 0.05f * s) {
+        // shirt cuffs: a stiff band over the last 6 cm with a button on the outside of the wrist
+        decal([=](const BVert& v) { return v.part == PART_ARM ? Min(v.pa - (sl - 0.06f * s), sl - v.pa) : -1.f; }, darker(col, 0.97f), MAT_CLOTH, 0.0016f,
+              1u << PART_ARM);
+        MeshB bm;
+        for (int sd = 0; sd < 2; sd++) {
+            vec3 dir = normalize(-D.palmN[sd] * 0.8f + vec3(0.f, -0.6f, 0.f));
+            vec3 p = sleeveSurfacePoint(c, g, sd, sl - 0.03f * s, dir, 0.0016f + loose);
+            addDisc(bm, p, dir, 0.0045f * s, 6, 0.0014f, vec3(0.85f, 0.83f, 0.78f), MAT_METAL_PAINTED,
+                    skin2(sd ? B_FOREARM_R : B_FOREARM_L, sd ? B_HAND_R : B_HAND_L, 0.4f));
+        }
+        bm.computeNormals(0, 0);
+        o.out.append(bm);
+        o.hideOut.resize(o.out.idx.size() / 3, 0);
+    }
+    if (rolled) {
+        // sleeves rolled up to the elbow: a thick turned-back band, the lining side slightly darker
+        decal([=](const BVert& v) { return v.part == PART_ARM ? Min(v.pa - (sl - 0.045f * s), sl + 0.001f - v.pa) : -1.f; }, darker(col, 0.9f), MAT_CLOTH,
+              0.0055f * s, 1u << PART_ARM);
+        line([=](const BVert& v) { return v.part == PART_ARM ? 0.0012f * s - fabsf(v.pa - (sl - 0.022f * s)) : -1.f; }, darker(col, 0.72f), MAT_CLOTH,
+              0.0062f * s, 1u << PART_ARM);
+    }
     if (top == TOP_TSHIRT || top == TOP_OVERSIZED) {
         // ribbed neckline band
         decal([=](const BVert& v) {
             if (v.part != PART_TORSO) return -1.f;
             return Min(0.012f * s - fabsf((neckPc - 0.012f - v.pc) * R.torsoLen), baseCov(v));
-        }, darker(col, 0.88f), MAT_CLOTH, 0.0012f, 1u << PART_TORSO);
+        }, darker(col, 0.88f), MAT_CLOTH, 0.0012f, 1u << PART_TORSO, 3u);
         if (rng.chance(0.45f)) {
             // chest print: a simple two-tone graphic block
             vec3 pc = rng.chance(0.5f) ? vec3(0.9f) - col * 0.6f : srgbToLinear(vec3(rng.f(), rng.f(), rng.f()));
@@ -954,38 +1988,21 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
         }
     }
     if (top == TOP_HOODIE) {
-        // kangaroo pocket and a hood roll behind the neck
+        // kangaroo pocket, rib cuffs and hem band, a draped hood on the upper back, drawstrings with aglets
         float zp = R.zWaist - 0.02f * s;
         decal([=, &R](const BVert& v) {
             if (v.part != PART_TORSO || v.bp.y < 0.f) return -1.f;
             return Min(0.1f * R.s - fabsf(v.bp.x) - 0.3f * Max(0.f, v.bp.z - zp), 0.06f * R.s - fabsf(v.bp.z - zp));
         }, darker(col, 0.9f), MAT_CLOTH, 0.004f, 1u << PART_TORSO);
-        std::vector<vec3> pts;
-        std::vector<float> rad;
-        std::vector<SkinW> sws;
-        const std::vector<u32>& ring = c.torsoTop;
-        int n = (int)ring.size();
-        vec3 cen(0);
-        for (u32 vi : ring) cen += c.m.v[vi].p;
-        cen /= (float)n;
-        for (int k = n / 4 - 1; k <= 3 * n / 4 + 1; k++) {
-            const BVert& bv = c.m.v[ring[k % n]];
-            vec3 radial = normalize(vec3(bv.p.x - cen.x, bv.p.y - cen.y, 0.f));
-            float back = Max(0.f, -cosf(bv.pb));
-            pts.push_back(bv.p + radial * (0.02f + 0.02f * back) * s + vec3(0, 0, 0.012f * s));
-            rad.push_back((0.016f + 0.018f * back) * s);
-            WAcc acc;
-            acc.add(B_CHEST, 0.7f);
-            acc.add(B_NECK, 0.3f);
-            sws.push_back(acc.finish());
-        }
-        addTube(o.out, pts, rad, 8, false, col, MAT_CLOTH, sws);
-        o.hideOut.resize(o.out.idx.size() / 3, 0);
+        decal([=](const BVert& v) { return v.part == PART_ARM ? Min(v.pa - (sl - 0.05f * s), sl - v.pa) : -1.f; }, darker(col, 0.92f), MAT_CLOTH, 0.0014f,
+              1u << PART_ARM, 3u);
+        decal([=](const BVert& v) { return v.part == PART_TORSO ? Min(v.bp.z - hz, hz + 0.055f * s - v.bp.z) : -1.f; }, darker(col, 0.92f), MAT_CLOTH,
+              0.0014f, 1u << PART_TORSO, 3u);
+        buildHood(o, g, col);
+        buildDrawstrings(o, g, col);
     }
-
     if (top == TOP_SUIT) {
-        // collar of the shirt
-        // (jacket was emitted as the base shell above with the V opening defined below via decal lapels)
+        // lapels, a breast pocket welt, flap pockets and buttons on the cuffs
         float zV = R.zChest - 0.07f * s;
         decal([=, &R](const BVert& v) {
             if (v.part != PART_TORSO || v.bp.y < 0.f) return -1.f;
@@ -995,6 +2012,293 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
             float dist = fabsf(v.bp.x) - vx;
             return Min(Min(dist, lw - dist), v.bp.z - zV + 0.01f * R.s);
         }, darker(col, 0.85f), MAT_CLOTH, 0.004f, 1u << PART_TORSO);
+        float wx = -0.085f * s, wz = R.zChest + 0.035f * s;
+        decal([=](const BVert& v) {
+            if (v.part != PART_TORSO || v.bp.y < 0.f) return -1.f;
+            return Min(0.05f * s - fabsf(v.bp.x - wx) * 1.1f, 0.006f * s - fabsf(v.bp.z - wz - (v.bp.x - wx) * 0.12f));
+        }, darker(col, 0.8f), MAT_CLOTH, 0.0012f, 1u << PART_TORSO);
+        for (int sd = 0; sd < 2; sd++) {
+            float fx = (sd ? 1.f : -1.f) * 0.1f * s, fz = R.zHip + 0.02f * s;
+            decal([=](const BVert& v) {
+                if (v.part != PART_TORSO || v.bp.y < -0.01f) return -1.f;
+                return Min(0.058f * s - fabsf(v.bp.x - fx), 0.016f * s - fabsf(v.bp.z - fz));
+            }, darker(col, 0.9f), MAT_CLOTH, 0.0022f, 1u << PART_TORSO);
+        }
+        MeshB bm;
+        for (int sd = 0; sd < 2; sd++) {
+            vec3 dir = normalize(-D.palmN[sd] * 0.55f + vec3(0.f, -0.85f, 0.f));
+            for (int k = 0; k < 3; k++) {
+                vec3 p = sleeveSurfacePoint(c, g, sd, sl - (0.03f + 0.017f * k) * s, dir, loose + 0.001f);
+                addDisc(bm, p, dir, 0.0042f * s, 6, 0.0014f, darker(col, 0.5f) + vec3(0.02f), MAT_PLASTIC,
+                        skin2(sd ? B_FOREARM_R : B_FOREARM_L, sd ? B_HAND_R : B_HAND_L, 0.3f));
+            }
+        }
+        bm.computeNormals(0, 0);
+        o.out.append(bm);
+        o.hideOut.resize(o.out.idx.size() / 3, 0);
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+// Outer layer (CharacterDesc::outer): an overshirt, zip hoodie, cardigan, light jacket, vest or blazer worn open over
+// the top. The shell hangs straight from the shoulder blades and the chest, clears the top and its sleeves, and leaves a
+// front opening that widens towards the hem (a V to the waist button on cardigans and blazers). The open edges get
+// facings (the inside of the panels shows), plackets or zip tapes; the inner top is hidden wherever the layer covers it.
+
+// Whether an outer layer goes with the top (suits, uniforms, hi-vis, swimwear and bare chests take none).
+bool outerFits(const CharacterDesc& d) {
+    if (d.outer < 0 || d.outer >= OUT_COUNT) return false;
+    switch (d.top) {
+        case TOP_TSHIRT: case TOP_TANK: case TOP_POLO: case TOP_DRESS_SHIRT: case TOP_BLOUSE: case TOP_CROP: case TOP_OVERSIZED: return true;
+        case TOP_HOODIE: return d.outer == OUT_VEST || d.outer == OUT_JACKET;
+        case TOP_SUNDRESS: return d.outer == OUT_JACKET || d.outer == OUT_CARDIGAN;
+        default: return false;
+    }
+}
+
+static void buildOuterLayer(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
+    if (!outerFits(d)) return;
+    BuildCtx& c = o.c;
+    const BodyDims& D = *c.D;
+    const float s = D.s;
+    const int kind = d.outer;
+    Rng rng(hash32(d.seed * 0x3A8F05C5u + 0x1Du));
+    vec3 col = d.outerColor;
+    const u32 torsoArms = (1u << PART_TORSO) | (1u << PART_ARM) | (1u << PART_NECK);
+    GarmentDef g;
+    g.parts = torsoArms;
+    g.col = col;
+    g.thick = 0.0045f;
+    g.matParam = 1;
+    // hem, front opening half-widths (at the neckline, at the chest, at the hem), V point and whether it is closed below
+    float hemZ = R.zCrotch + 0.02f * s, gapNeck = 0.04f * s, gapChest = 0.05f * s, gapHem = 0.09f * s, zV = -1.f;
+    bool closedBelowV = false, sleeves = true, rolled = false, zip = false, rib = false, lapels = false, puffer = false;
+    int nButtons = 0;
+    float loose = 0.006f;
+    switch (kind) {
+        case OUT_OVERSHIRT:
+            rolled = (d.extras & ACC_ROLLED_SLEEVES) != 0;
+            gapNeck = 0.035f * s; gapChest = rng.range(0.045f, 0.07f) * s; gapHem = gapChest + rng.range(0.03f, 0.06f) * s; nButtons = 6;
+            break;
+        case OUT_ZIPHOODIE:
+            g.matParam = 0; hemZ = R.zCrotch + 0.03f * s; zip = true; rib = true; loose = 0.008f;
+            gapNeck = 0.035f * s; gapChest = rng.range(0.04f, 0.06f) * s; gapHem = gapChest + rng.range(0.02f, 0.05f) * s;
+            break;
+        case OUT_CARDIGAN: {
+            g.matParam = 3; hemZ = R.zCrotch + rng.range(-0.02f, 0.03f) * s; rib = true; nButtons = 5;
+            bool buttoned = d.age > 0.55f ? rng.chance(0.6f) : rng.chance(0.25f);
+            gapNeck = 0.05f * s; zV = R.zChest - 0.1f * s; gapChest = buttoned ? 0.002f * s : 0.04f * s; gapHem = buttoned ? 0.003f * s : 0.07f * s;
+            closedBelowV = buttoned;
+            break;
+        }
+        case OUT_JACKET:
+            hemZ = R.zHip + 0.02f * s; gapNeck = 0.045f * s; gapChest = 0.06f * s; gapHem = 0.1f * s; nButtons = 5;
+            if (rng.chance(0.4f)) { zip = true; rib = true; nButtons = 0; }   // bomber / windbreaker
+            else g.mat = MAT_DENIM;                                            // denim jacket
+            g.thick = 0.005f;
+            break;
+        case OUT_VEST:
+            sleeves = false;
+            if (rng.chance(0.55f)) {   // quilted puffer gilet, zipped half-way or open
+                puffer = true; zip = true; hemZ = R.zHip + 0.0f * s; gapNeck = 0.03f * s; gapChest = rng.chance(0.5f) ? 0.004f * s : 0.05f * s;
+                gapHem = gapChest + 0.02f * s; g.thick = 0.009f;
+            } else {                   // waistcoat, buttoned below a V
+                hemZ = R.zHip + 0.03f * s; gapNeck = 0.05f * s; zV = R.zChest - 0.07f * s; gapChest = 0.002f * s; gapHem = 0.002f * s;
+                closedBelowV = true; nButtons = 5; loose = 0.003f;
+            }
+            break;
+        case OUT_BLAZER: {
+            hemZ = R.zCrotch - 0.04f * s; lapels = true; loose = 0.005f;
+            bool buttoned = rng.chance(0.35f);
+            gapNeck = 0.06f * s; zV = R.zWaist + 0.02f * s; gapChest = buttoned ? 0.002f * s : 0.07f * s; gapHem = buttoned ? 0.03f * s : 0.1f * s;
+            closedBelowV = buttoned; nButtons = buttoned ? 1 : 0;
+            break;
+        }
+        default: break;
+    }
+    if (kind == OUT_OVERSHIRT && rng.chance(0.25f)) g.mat = MAT_DENIM;   // chambray / denim shirt
+    const float sl = !sleeves ? 0.f : (rolled ? R.upperArm + rng.range(-0.01f, 0.04f) * s : R.armLen - (rib ? 0.01f : 0.025f) * s);
+    const float zNk = D.zNeckFront, zChestL = R.zChest, hz = hemZ;
+    const float gN = gapNeck, gC = gapChest, gH = gapHem, zv = zV;
+    // half-width of the front opening at height z
+    auto gapAt = [=](float z) -> float {
+        if (zv > 0.f) {
+            // a V from the neckline down to zV, then closed (buttoned) or opening out towards the hem
+            if (z >= zv) return Lerp(gC, gN, Saturate((z - zv) / Max(zNk - zv, 0.01f)));
+            return Lerp(gC, gH, Saturate((zv - z) / Max(zv - hz, 0.01f)));
+        }
+        if (z >= zChestL) return Lerp(gC, gN, Saturate((z - zChestL) / Max(zNk - zChestL, 0.01f)));
+        return Lerp(gC, gH, Saturate((zChestL - z) / Max(zChestL - hz, 0.01f)));
+    };
+    auto frontCut = [=](const BVert& v) -> float {
+        // + outside the opening: distance from the opening's edge, measured across the front
+        if (v.bp.y < 0.f) return 1.f;
+        return fabsf(v.bp.x) - gapAt(v.bp.z);
+    };
+    const bool noSleeve = !sleeves;
+    const float zArmhole = D.zArmpit - 0.03f * s;
+    g.cov = [=, &R](const BVert& v) -> float {
+        if (v.part == PART_TORSO) {
+            float cv = covTorsoRange(R, v, hz, 0.975f, 0.f, 0.3f);
+            if (noSleeve) cv = Min(cv, Max(0.125f * R.s - fabsf(v.bp.x), zArmhole - v.bp.z));   // a vest's armholes
+            return Min(cv, frontCut(v));
+        }
+        if (v.part == PART_ARM) return noSleeve ? -1.f : sl - v.pa;
+        return -1.f;
+    };
+    // clear the top (and a tucked top's waistband) with the shell, the sleeves with the tubes
+    const float clearT = Max(o.topTorsoOff, o.botTorsoOff) + 0.005f + (puffer ? 0.004f : 0.f);
+    const float ls = loose, zc = R.zCrotch, zw = R.zWaist;
+    g.extraFn = [=](const BVert& v) -> float {
+        float e = ls;
+        if (v.part == PART_TORSO) e = Max(clearT, ls * (0.6f + 0.8f * sstep(zw + 0.1f, zc, v.bp.z)));
+        else if (v.part == PART_ARM) e = ls + 0.004f;
+        return e;
+    };
+    g.hangDrift = kind == OUT_CARDIGAN ? 0.05f : 0.015f;
+    g.hangTop = D.J[B_CHEST].z + 0.05f * s;
+    if (sleeves) {
+        const float rt = Max(o.topSleeveR + 0.009f * s, D.rUpperArm + 0.021f * s), re = rolled ? rt * 0.95f : D.rWrist + (rib ? 0.007f : 0.016f) * s;
+        const float rc = rib ? D.rWrist + 0.005f * s : 0.f, cl = rib ? 0.05f * s : 0.f;
+        g.tubeR = [=](const BVert& v) -> float {
+            if (v.part != PART_ARM || v.pa > sl + 0.01f * s) return 0.f;
+            float a = v.pa;
+            float Rr = Lerp(rt, re, lstep(0.08f * s, Max(sl, 0.1f * s), a));
+            if (cl > 0.f) Rr = Lerp(Rr, rc, sstep(sl - cl, sl - cl + 0.012f * s, a));
+            return Rr * sstep(0.03f * s, 0.09f * s, a);
+        };
+    }
+    {
+        FoldSpec fs;
+        fs.amp = puffer ? 0.3f : (kind == OUT_BLAZER ? 0.7f : 1.f);
+        fs.sleeveEnd = sl;
+        fs.waistZ = hemZ;
+        fs.hangTop = g.hangTop;
+        fs.hang = 0.3f;
+        fs.openFront = gapChest > 0.02f * s;
+        fs.seed = d.seed * 11u + 7u;
+        g.foldFn = foldFnOf(makeFolds(c, fs), s);
+        g.refineTol = 0.0008f;
+    }
+    if (puffer) {
+        // quilted channels: the fill puffs out between horizontal stitch lines ~7 cm apart
+        auto be = g.extraFn;
+        const float z0 = hemZ, pitch = 0.07f * s;
+        g.extraFn = [=](const BVert& v) {
+            float e = be(v);
+            if (v.part == PART_TORSO) {
+                float ph = (v.bp.z - z0) / pitch;
+                float f = ph - floorf(ph);
+                e += 0.007f * s * sqrtf(Max(0.f, sinf(kPi * f)));
+            }
+            return e;
+        };
+    }
+    g.smooth = 2;
+    emitGarment(o, g);
+    o.outerTorsoOff = g.thick + clearT;
+    o.torsoOuter = std::make_shared<GarmentDef>(g);
+    // ---- details
+    auto decal = [&](CovFn cov, vec3 dcol, u8 mat, float extraOff, u32 parts, u32 mp) {
+        emitGarment(o, decalOf(g, cov, dcol, mat, extraOff, parts, mp));
+    };
+    auto line = [&](CovFn cov, vec3 dcol, u8 mat, float extraOff, u32 parts) {
+        emitGarment(o, decalOf(g, cov, dcol, mat, extraOff, parts, g.matParam | kParamLodDetail, 2));
+    };
+    CovFn baseCov = g.cov;
+    const float edgeW = zip ? 0.009f * s : 0.016f * s;
+    if (zip) {
+        // zip tapes along both open edges: a dark tape with the metal teeth line
+        decal([=](const BVert& v) { return v.part == PART_TORSO ? Min(baseCov(v), edgeW - frontCut(v)) : -1.f; }, darker(col, 0.55f), MAT_CLOTH, 0.0012f,
+              1u << PART_TORSO, 1u);
+        line([=](const BVert& v) { return v.part == PART_TORSO ? Min(baseCov(v), 0.0022f * s - fabsf(frontCut(v) - 0.002f * s)) : -1.f; },
+             vec3(0.55f, 0.55f, 0.56f), MAT_CHROME, 0.0018f, 1u << PART_TORSO);
+    } else if (!lapels && kind != OUT_VEST) {
+        // plackets / front bands along the open edges
+        decal([=](const BVert& v) { return v.part == PART_TORSO ? Min(baseCov(v), edgeW - frontCut(v)) : -1.f; }, darker(col, 0.93f), g.mat, 0.0013f,
+              1u << PART_TORSO, g.matParam);
+    }
+    if (lapels) {
+        // notched lapels folded back along the V, wider at the top
+        decal([=](const BVert& v) {
+            if (v.part != PART_TORSO || v.bp.y < 0.f || v.bp.z < zv - 0.01f * s) return -1.f;
+            float h = Saturate((v.bp.z - zv) / Max(zNk - zv, 0.01f));
+            return Min(baseCov(v), Lerp(0.02f, 0.06f, h) * s - frontCut(v));
+        }, darker(col, 0.88f), g.mat, 0.004f, 1u << PART_TORSO, g.matParam);
+    }
+    if (rib) {
+        // rib hem band and cuffs
+        decal([=](const BVert& v) { return v.part == PART_TORSO ? Min(baseCov(v), hz + 0.05f * s - v.bp.z) : -1.f; }, darker(col, 0.92f), MAT_CLOTH, 0.0014f,
+              1u << PART_TORSO, 3u);
+        if (sleeves && !rolled)
+            decal([=](const BVert& v) { return v.part == PART_ARM ? Min(v.pa - (sl - 0.05f * s), sl - v.pa) : -1.f; }, darker(col, 0.92f), MAT_CLOTH,
+                  0.0014f, 1u << PART_ARM, 3u);
+    }
+    if (rolled) {
+        decal([=](const BVert& v) { return v.part == PART_ARM ? Min(v.pa - (sl - 0.045f * s), sl + 0.001f - v.pa) : -1.f; }, darker(col, 0.88f), g.mat,
+              0.0055f * s, 1u << PART_ARM, g.matParam);
+    }
+    if (puffer) {
+        // the quilting stitch lines
+        for (float z = hemZ + 0.07f * s; z < D.zArmpit; z += 0.07f * s)
+            seamAround(o, g, PART_TORSO, -1, z, 0.f, kTwoPi, 0.001f * s, darker(col, 0.7f), MAT_CLOTH, g.matParam);
+    }
+    // pockets: chest pockets with flaps (overshirt, denim jacket), hip pockets (cardigan, zip hoodie: slanted welts),
+    // flap pockets (blazer, bomber)
+    if (kind == OUT_OVERSHIRT || (kind == OUT_JACKET && !zip)) {
+        for (int sd = 0; sd < 2; sd++) {
+            float sx = sd ? 1.f : -1.f, cx = sx * 0.075f * s, cz = R.zChest + 0.01f * s;
+            decal([=](const BVert& v) {
+                if (v.part != PART_TORSO || v.bp.y < 0.f) return -1.f;
+                return Min(Min(0.042f * s - fabsf(v.bp.x - cx), 0.05f * s - fabsf(v.bp.z - cz)), frontCut(v) - 0.006f * s);
+            }, darker(col, 0.95f), g.mat, 0.0016f, 1u << PART_TORSO, g.matParam);
+            decal([=](const BVert& v) {
+                if (v.part != PART_TORSO || v.bp.y < 0.f) return -1.f;
+                return Min(Min(0.044f * s - fabsf(v.bp.x - cx), 0.012f * s - fabsf(v.bp.z - cz - 0.045f * s)), frontCut(v) - 0.004f * s);
+            }, darker(col, 0.85f), g.mat, 0.0032f, 1u << PART_TORSO, g.matParam);
+        }
+    } else if (kind == OUT_CARDIGAN || kind == OUT_ZIPHOODIE || kind == OUT_BLAZER || (kind == OUT_JACKET && zip)) {
+        for (int sd = 0; sd < 2; sd++) {
+            float sx = sd ? 1.f : -1.f, cx = sx * 0.1f * s, cz = Lerp(hz, R.zWaist, 0.45f);
+            bool welt = kind == OUT_ZIPHOODIE || kind == OUT_JACKET;
+            decal([=](const BVert& v) {
+                if (v.part != PART_TORSO || v.bp.y < -0.01f * s) return -1.f;
+                if (welt) return Min(0.008f * s - fabsf((v.bp.x - cx) * 0.9f - (v.bp.z - cz) * sx * 0.45f), 0.06f * s - length(vec2(v.bp.x - cx, v.bp.z - cz)));
+                return Min(Min(0.055f * s - fabsf(v.bp.x - cx), (kind == OUT_BLAZER ? 0.015f : 0.05f) * s - fabsf(v.bp.z - cz)), frontCut(v) - 0.01f * s);
+            }, darker(col, welt ? 0.75f : 0.92f), g.mat, 0.0022f, 1u << PART_TORSO, g.matParam);
+        }
+    }
+    // buttons down the open edge(s): on the wearer's right edge (they are sewn to the placket), or at the V point
+    if (nButtons > 0) {
+        MeshB bm;
+        float zTop = zV > 0.f ? zV : D.zNeckFront - 0.04f * s, zBot = hemZ + 0.05f * s;
+        for (int i = 0; i < nButtons; i++) {
+            float z = nButtons > 1 ? Lerp(zTop, zBot, (float)i / (nButtons - 1)) : zTop;
+            float xg = (closedBelowV && z < zTop + 0.001f) ? 0.f : gapAt(z) + edgeW * 0.5f;
+            vec3 pr, pn;
+            torsoPoint(c, z, 0.f, pr, pn);
+            float rr = Max(length(vec2(pr.x, pr.y - profAxisY(o, z))), 0.05f);
+            vec3 n;
+            vec3 p = garmentTorsoPoint(o, g, z, asinf(Clamp((d.gender == FEMALE ? -xg : xg) / rr, -0.9f, 0.9f)), n);
+            vec3 bc = g.mat == MAT_DENIM ? srgbToLinear(vec3(0.7f, 0.5f, 0.3f)) : darker(col, 0.5f) + vec3(0.03f);
+            addDisc(bm, p + n * 0.0016f, n, (kind == OUT_BLAZER ? 0.0075f : 0.0055f) * s, 6, 0.0015f, bc, g.mat == MAT_DENIM ? MAT_CHROME : MAT_PLASTIC,
+                    torsoSkinWeights(D, p));
+        }
+        bm.computeNormals(0, 0);
+        o.out.append(bm);
+        o.hideOut.resize(o.out.idx.size() / 3, 0);
+    }
+    // collar / hood
+    const float offC = clearT + g.thick;
+    if (kind == OUT_OVERSHIRT || (kind == OUT_JACKET && !zip))
+        addCollar(o, offC, darker(col, 0.97f), g.matParam, 0.8f, 0.42f, 1.1f, true, 0.034f * s, 0.006f * s);
+    else if (kind == OUT_JACKET && zip)
+        addCollar(o, offC, darker(col, 0.9f), 3u, 0.2f, 0.4f, 0.f, true, 0.028f * s);
+    else if (kind == OUT_ZIPHOODIE)
+        buildHood(o, g, col);
+    if (sleeves && kind != OUT_VEST) {
+        // seam round the sleeve root and down the outside of the sleeve
+        for (int sd = 0; sd < 2; sd++) seamAround(o, g, PART_ARM, sd, 0.06f * s, 0.f, kTwoPi, 0.0012f * s, darker(col, 0.8f), g.mat, g.matParam);
     }
 }
 
@@ -1049,21 +2353,40 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
             float open = covLegOpening(R, v, 0.14f * R.s, 0.1f * R.s);
             float topc = one ? covTorsoRange(R, v, -10.f, 0.9f, 0.08f, 0.4f) : (zt - v.bp.z - 0.03f * R.s * Sq(Saturate(fabsf(v.bp.x) / (R.D->hipHalfW))));
             if (one) {
-                // open back scoop and straps
-                float back = (v.bp.y < 0.f) ? (R.zWaist + 0.02f * R.s - v.bp.z) + (fabsf(v.bp.x) - 0.09f * R.s) * 0.f : 1.f;
-                float strap = covStraps(R, v, 0.085f * R.s, 0.018f * R.s, 0.975f);
-                topc = Max(Min(topc, back), v.pc > 0.72f ? strap : -1.f);
+                // open back scoop (the straps are ribbons)
+                float back = (v.bp.y < 0.f) ? (R.zWaist + 0.02f * R.s - v.bp.z) : 1.f;
+                topc = Min(topc, back);
             }
             return Min(open, topc);
         };
         emitGarment(o, b);
+        if (one) addShoulderStraps(o, b.cov, 0.085f * s, 0.016f * s, b.thick + 0.001f, d.topColor * 0.95f, 0u);
         if (!skirt && bot == BOT_BIKINI && d.top != TOP_ONEPIECE) return;
     }
     if (skirt) {
-        // skirt / dress: fitted part to the hip from the shell, then a flared cone around both legs
+        // skirt / dress: fitted part to the hip from the shell, then a flared cone around both legs. The cut picks
+        // the flare, the length and the hem's flutes: pencil (straight, knee), A-line (knee or above), full (wide,
+        // fluted), midi (mid-calf, fluted), pleated (knife pleats, above the knee); sundresses are A-line or full.
         vec3 scol = d.top == TOP_SUNDRESS ? d.topColor : col;
         float zS = d.top == TOP_SUNDRESS ? R.zWaist + 0.03f * s : R.zBeltHigh;
-        float hemZ = R.zKnee + (d.top == TOP_SUNDRESS ? 0.02f : (rng.chance(0.5f) ? 0.1f : -0.03f)) * s;
+        enum { SK_PENCIL, SK_ALINE, SK_FULL, SK_MIDI, SK_PLEATED };
+        int cut;
+        {
+            float u = rng.f();
+            if (d.top == TOP_SUNDRESS) cut = u < 0.45f ? SK_ALINE : (u < 0.8f ? SK_FULL : SK_MIDI);
+            else if (d.role == 3) cut = u < 0.6f ? SK_PENCIL : (u < 0.85f ? SK_ALINE : SK_MIDI);
+            else cut = u < 0.15f ? SK_PENCIL : (u < 0.45f ? SK_ALINE : (u < 0.65f ? SK_FULL : (u < 0.85f ? SK_MIDI : SK_PLEATED)));
+        }
+        float hemZ, flareK, fluteA = 0.f;
+        int nFlutes = 0;
+        bool pleats = false;
+        switch (cut) {
+            case SK_PENCIL: hemZ = R.zKnee + rng.range(-0.02f, 0.04f) * s; flareK = 0.035f; break;
+            case SK_FULL: hemZ = R.zKnee + rng.range(-0.02f, 0.06f) * s; flareK = 0.27f; nFlutes = 9 + (int)(rng.f() * 3.f); fluteA = 0.013f * s; break;
+            case SK_MIDI: hemZ = Lerp(R.zKnee, R.zAnkle, rng.range(0.35f, 0.5f)); flareK = 0.17f; nFlutes = 8 + (int)(rng.f() * 3.f); fluteA = 0.011f * s; break;
+            case SK_PLEATED: hemZ = R.zKnee + rng.range(0.06f, 0.12f) * s; flareK = 0.12f; nFlutes = 20; fluteA = 0.006f * s; pleats = true; break;
+            default: hemZ = R.zKnee + (rng.chance(0.5f) ? 0.1f : -0.03f) * s; flareK = 0.14f; nFlutes = 6; fluteA = 0.006f * s; break;
+        }
         GarmentDef top;
         top.parts = 1u << PART_TORSO;
         top.matParam = 1;   // woven
@@ -1077,18 +2400,25 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
             return Min(zS - v.bp.z, v.bp.z - zc + 0.04f);
         };
         top.extraFn = [](const BVert&) { return 0.004f; };
+        top.hangDrift = 0.1f;   // the seat and hips: fabric drops from the widest point instead of following the waist in
+        top.hangTop = D.zHip + 0.03f * s;
         emitGarment(o, top);
+        // an untucked top over the skirt's waist clears it
+        o.botTopZ = zS;
+        o.botTorsoOff = top.thick + 0.004f + 0.004f;
         // cone
         MeshB sk;
-        const int NS = 32, NR = 7;
-        std::vector<u32> rows[NR];
+        const int NS = nFlutes >= 16 ? 60 : (nFlutes > 0 ? 44 : 32), NR = cut == SK_MIDI ? 9 : 7;
+        std::vector<std::vector<u32>> rows(NR);
         float zStart = zc;
-        vec3 p0s[NS], n0s[NS];
+        std::vector<vec3> p0s(NS), n0s(NS);
         for (int k = 0; k < NS; k++) {
+            // the cone starts on the fitted part as it hangs (not on the skin), so there is no step at the hips
             float th = kTwoPi * k / NS;
-            torsoPoint(c, zStart, th, p0s[k], n0s[k], MK_TORSO);
+            p0s[k] = garmentTorsoPoint(o, top, zStart, th, n0s[k]) - normalize(vec3(sinf(th), cosf(th) * 0.8f, 0.f)) * (0.006f * s);
         }
-        float flareK = d.top == TOP_SUNDRESS ? 0.22f : 0.14f;
+        const float phase = rng.range(0.f, kTwoPi), zKnee = R.zKnee;
+        std::vector<float> creaseV;
         for (int r = 0; r < NR; r++) {
             float t = (float)r / (NR - 1);
             float z = Lerp(zStart, hemZ, t);
@@ -1096,9 +2426,15 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
             for (int k = 0; k < NS; k++) {
                 float th = kTwoPi * k / NS;
                 vec3 radial = normalize(vec3(sinf(th), cosf(th) * 0.8f, 0.f));
-                vec3 p = p0s[k] + radial * (0.007f * s + (zStart - z) * flareK) ;
+                // flutes / pleats grow towards the hem (knife pleats: a sawtooth, flutes: a soft wave)
+                float wv = 0.f;
+                if (nFlutes > 0) {
+                    float ph = th * nFlutes + phase;
+                    wv = pleats ? (fabsf(fmodf(ph / kTwoPi + 100.f, 1.f) - 0.5f) * 4.f - 1.f) : sinf(ph);
+                }
+                float fl = fluteA * wv * (pleats ? sstep(0.f, 0.3f, t) : t * t);
+                vec3 p = p0s[k] + radial * (0.007f * s + (zStart - z) * flareK + fl);
                 p.z = z;
-                // keep outside the legs: at least the hip half width at the sides
                 BVert v;
                 v.p = p;
                 v.bp = p;
@@ -1108,15 +2444,24 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
                 v.uPer = kTwoPi * 0.18f * s;
                 v.col = scol;
                 v.mat = MAT_CLOTH;
-                v.matParam = 1;
+                v.matParam = 1 | 4u;
                 v.part = PART_GARMENT;
+                // stride: the panels ride on their own thigh (fully at the hem, so a knee swinging forward carries the
+                // cloth in front of it), the centre panels split between both; below the knee the calves take a share
                 WAcc acc;
-                float legW = t * 0.55f;
+                float legW = 0.95f * powf(t, 0.75f);
                 float side = sinf(th);
+                float wr = Saturate(0.5f + side * 0.9f), wl = 1.f - wr;
+                float calf = 0.4f * sstep(zKnee, zKnee - 0.2f * s, z);
                 acc.add(B_PELVIS, 1.f - legW);
-                acc.add(B_THIGH_R, legW * Saturate(0.5f + side * 0.9f));
-                acc.add(B_THIGH_L, legW * Saturate(0.5f - side * 0.9f));
+                acc.add(B_THIGH_R, legW * wr * (1.f - calf));
+                acc.add(B_THIGH_L, legW * wl * (1.f - calf));
+                acc.add(B_CALF_R, legW * wr * calf);
+                acc.add(B_CALF_L, legW * wl * calf);
                 v.sw = acc.finish();
+                // crease channel: the inside of each flute / pleat
+                float cr = nFlutes > 0 ? Saturate((0.5f - 0.5f * wv) * (pleats ? 0.8f : 0.6f) * sstep(0.f, 0.5f, t)) : 0.f;
+                v.alpha = 1.f - cr;
                 rows[r][k] = sk.add(v);
             }
         }
@@ -1136,6 +2481,7 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
                 v.p -= v.n * 0.003f;
                 v.n = -v.n;
                 v.col = scol * 0.6f;
+                v.alpha = 1.f;
                 sk.add(v);
             }
         for (int r = 0; r + 1 < NR; r++)
@@ -1147,6 +2493,25 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
                 else sk.quad(a0, b0, b1, a1);
             }
         sk.computeNormals(0, sk.idx.size());
+        {
+            // the hem: the fabric's thickness along the bottom edge (own vertices, so the faces keep their normals)
+            std::vector<u32> ho(NS), hi(NS);
+            for (int k = 0; k < NS; k++) {
+                BVert v = sk.v[rows[NR - 1][k]];
+                v.n = vec3(0, 0, -1);
+                v.col = scol * 0.8f;
+                v.alpha = 1.f;
+                ho[k] = sk.add(v);
+                v.p -= normalize(vec3(sk.v[rows[NR - 1][k]].n.x, sk.v[rows[NR - 1][k]].n.y, 0.f)) * 0.003f;
+                hi[k] = sk.add(v);
+            }
+            for (int k = 0; k < NS; k++) {
+                int k1 = (k + 1) % NS;
+                vec3 nn = cross(sk.v[ho[k1]].p - sk.v[ho[k]].p, sk.v[hi[k]].p - sk.v[ho[k]].p);
+                if (nn.z <= 0.f) sk.quad(ho[k], ho[k1], hi[k1], hi[k]);
+                else sk.quad(ho[k], hi[k], hi[k1], ho[k1]);
+            }
+        }
         o.out.append(sk);
         o.hideOut.resize(o.out.idx.size() / 3, 0);
         // hide skin inside the skirt (upper legs)
@@ -1162,6 +2527,9 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
     }
     if (bot == BOT_BIKINI) return;
     // ---- trousers / shorts shell
+    const bool cuffedHem = (bot == BOT_JEANS || bot == BOT_WORK || bot == BOT_SLACKS) &&
+                           ((d.extras & ACC_EXPLICIT) ? (d.extras & ACC_CUFFED_HEM) != 0 : false);
+    if (cuffedHem) zCuff += 0.03f * s;
     float zt = zTop, zcuf = zCuff, ls = loose, fl = flare;
     g.cov = [=](const BVert& v) -> float {
         if (v.part == PART_TORSO) return zt - v.bp.z;
@@ -1178,70 +2546,134 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
         }
         return torsoE;
     };
+    // silhouette: trouser legs are tubes from the thigh to the hem (the cut sets the knee and hem widths) instead of
+    // following the knee and the calf; the seat hangs from the glutes at the back
+    float rKneeT = 0.f, rHemT = 0.f, foldAmp = 0.9f;
     {
-        // folds: behind the knees, stacking on the shoe for full-length trousers, whiskers on jeans
+        const float rk = D.rKnee, rt = D.rThigh;
+        int cut = 1;   // jeans: 0 skinny, 1 slim, 2 straight, 3 relaxed
+        if (bot == BOT_JEANS) {
+            float u = rng.f();
+            cut = D.fem > 0.5f ? (u < 0.45f ? 0 : (u < 0.8f ? 1 : 2)) : (u < 0.35f ? 1 : (u < 0.85f ? 2 : 3));
+        }
+        switch (bot) {
+            case BOT_JEANS: {
+                const float kk[4] = {1.0f, 1.1f, 1.16f, 1.28f}, hh[4] = {0.f, 1.0f, 1.08f, 1.2f};
+                rKneeT = rk * kk[cut] + 0.003f * s;
+                rHemT = cut == 0 ? 0.f : rk * hh[cut] + 0.003f * s;
+                foldAmp = cut == 0 ? 0.55f : 0.9f;
+                break;
+            }
+            case BOT_BAGGY: rKneeT = rk * 1.55f + 0.01f * s; rHemT = rk * 1.5f + 0.008f * s; foldAmp = 1.3f; break;
+            case BOT_SLACKS: rKneeT = rk * 1.2f + 0.006f * s; rHemT = rk * 1.14f + 0.005f * s; foldAmp = 0.8f; break;
+            case BOT_POLICE: rKneeT = rk * 1.22f + 0.006f * s; rHemT = rk * 1.16f + 0.006f * s; foldAmp = 0.85f; break;
+            case BOT_WORK: rKneeT = rk * 1.3f + 0.008f * s; rHemT = rk * 1.24f + 0.007f * s; foldAmp = 1.f; break;
+            case BOT_CARGO: rKneeT = rHemT = rk * 1.6f + 0.012f * s; foldAmp = 1.f; break;
+            case BOT_SHORTS: rKneeT = rHemT = rt * 0.95f + 0.012f * s; foldAmp = 0.9f; break;
+            case BOT_TRUNKS: rKneeT = rHemT = rt * 0.95f + 0.01f * s; foldAmp = 0.7f; break;
+            case BOT_HOTPANTS: foldAmp = 0.3f; break;
+            case BOT_LEGGINGS: foldAmp = 0.f; break;
+            default: break;
+        }
+        if (rKneeT > 0.f) {
+            const float aC = legAlongAtZ(D, D.zCrotch), aK = D.thigh, aH = legAlongAtZ(D, zCuff), rTop = rt * 1.02f + 0.004f * s;
+            const float rkn = rKneeT, rhm = rHemT;
+            g.tubeR = [=](const BVert& v) -> float {
+                if (v.part != PART_LEG) return 0.f;
+                float a = v.pa;
+                if (a > aH + 0.02f * s) return 0.f;
+                float Rr = a < aK ? Lerp(rTop, rkn, lstep(aC, aK, a)) : (rhm > 0.f ? Lerp(rkn, rhm, lstep(aK, Max(aH, aK + 0.05f), a)) : 0.f);
+                return Rr * sstep(aC - 0.02f * s, aC + 0.03f * s, a);
+            };
+        }
+        if (bot != BOT_LEGGINGS && bot != BOT_HOTPANTS) {
+            g.hangDrift = 0.12f;
+            g.hangTop = D.zHip - 0.005f * s;
+            g.hangWeight = [](float th) { return sstep(0.25f, 0.75f, -cosf(th)); };
+        }
         FoldSpec fs;
-        fs.amp = bot == BOT_LEGGINGS ? 0.f : Lerp(0.55f, 1.25f, Saturate(loose / 0.016f));
+        fs.amp = foldAmp;
         fs.legCuffZ = zCuff;
         fs.legLong = zCuff < R.zAnkle + 0.05f * s && bot != BOT_LEGGINGS;
         fs.denim = g.mat == MAT_DENIM;
         fs.seed = d.seed * 5u + 2u;
-        const BuildCtx* cp = &c;
-        auto baseExtra = g.extraFn;
-        g.extraFn = [=](const BVert& v) {
-            float off, sh;
-            fabricFold(*cp, fs, v, off, sh);
-            return baseExtra(v) + off;
-        };
-        g.colFn = [=](const BVert& v, vec3 cc) {
-            float off, sh;
-            fabricFold(*cp, fs, v, off, sh);
-            return cc * (1.f - sh);
-        };
+        g.foldFn = foldFnOf(makeFolds(c, fs), s);
+        g.refineTol = 0.0008f;
     }
     if (g.smooth < 1) g.smooth = 1;
     emitGarment(o, g);
     o.botTorsoOff = g.thick + torsoE + (belt || dutyBelt ? 0.009f : 0.004f);
     o.botTopZ = zt;
+    if (zCuff < R.zKnee - 0.1f * s) o.legHemZ = zCuff;
     auto decal = [&](CovFn cov, vec3 dcol, u8 mat, float extraOff, u32 parts, bool hem = false) {
-        GarmentDef dg;
-        dg.parts = parts;
-        dg.cov = cov;
-        dg.col = dcol;
-        dg.mat = mat;
-        dg.matParam = g.matParam;
-        dg.thick = g.thick;
-        float eo = extraOff;
-        auto base = g.extraFn;
-        dg.extraFn = [=](const BVert& v) { return base(v) + eo; };
-        dg.smooth = g.smooth;
+        GarmentDef dg = decalOf(g, cov, dcol, mat, extraOff, parts, g.matParam);
         dg.hem = hem;
-        dg.hides = false;
         emitGarment(o, dg);
     };
+    auto line = [&](CovFn cov, vec3 dcol, u8 mat, float extraOff, u32 parts) {
+        emitGarment(o, decalOf(g, cov, dcol, mat, extraOff, parts, g.matParam | kParamLodDetail, 2));
+    };
     CovFn base = g.cov;
+    const vec3 thread = g.mat == MAT_DENIM ? srgbToLinear(vec3(0.78f, 0.6f, 0.3f)) : darker(col, 0.8f);   // denim: gold topstitching
     // waistband
     decal([=, &R](const BVert& v) { return v.part == PART_TORSO ? Min(zt - v.bp.z, v.bp.z - (zt - 0.035f * R.s)) : -1.f; }, darker(col, 0.9f), g.mat, 0.0015f,
           1u << PART_TORSO);
     if (g.mat == MAT_DENIM) {
-        // outer seams and back pockets
-        decal([=](const BVert& v) {
-            if (v.part != PART_LEG) return -1.f;
-            return Min(0.004f - fabsf(wrapAngle(v.pb - kHalfPi)) * 0.05f, base(v));
-        }, vec3(0.85f, 0.8f, 0.6f), MAT_DENIM, 0.0008f, 1u << PART_LEG);
+        // outer seams (felled, topstitched), the fly's J-stitch, the back yoke, coin pocket
+        for (int sd = 0; sd < 2; sd++) seamAlong(o, g, PART_LEG, sd, kHalfPi, 0.f, 2.f * s, 0.0018f * s, thread, MAT_DENIM, 0u);
+        const float zFlyTop = zt - 0.035f * s, zFlyBot = R.zCrotch + 0.035f * s;
+        line([=](const BVert& v) {
+            if (v.part != PART_TORSO || v.bp.y < 0.f || v.bp.z > zFlyTop || v.bp.x > 0.002f * s) return -1.f;
+            // J: straight down 3.2 cm left of the centre, then a quarter circle into the centre seam
+            float r0 = 0.032f * s, d0;
+            if (v.bp.z >= zFlyBot) d0 = fabsf(v.bp.x + r0);
+            else if (v.bp.z >= zFlyBot - r0) d0 = fabsf(length(vec2(v.bp.x, v.bp.z - zFlyBot)) - r0);
+            else return -1.f;
+            return 0.0011f * s - d0;
+        }, thread, MAT_DENIM, 0.0009f, 1u << PART_TORSO);
+        const float zYoke = R.zHip + 0.055f * s;
+        line([=](const BVert& v) {
+            if (v.part != PART_TORSO || v.bp.y > -0.01f) return -1.f;
+            float zy = zYoke - 0.035f * s * (1.f - Saturate(fabsf(v.bp.x) / (0.1f * s)));   // V dipping to the centre seam
+            return Min(0.0012f * s - fabsf(v.bp.z - zy), zt - 0.03f * s - v.bp.z);
+        }, thread, MAT_DENIM, 0.0009f, 1u << PART_TORSO);
+        if (bot == BOT_JEANS) {
+            // coin pocket inside the right front pocket, rivets at the pocket corners
+            decal([=](const BVert& v) {
+                if (v.part != PART_TORSO) return -1.f;
+                float th = wrapAngle(v.pb);
+                return Min(0.018f * s - fabsf((th - 0.78f) * 0.15f * s), Min(zt - 0.013f * s - v.bp.z, v.bp.z - (zt - 0.052f * s)));
+            }, darker(col, 0.93f), MAT_DENIM, 0.0012f, 1u << PART_TORSO);
+            MeshB rm;
+            for (int sd = 0; sd < 2; sd++) {
+                float sx = sd ? 1.f : -1.f;
+                const float ths[2] = {0.5f, 1.3f}, zs[2] = {zt - 0.013f * s, zt - 0.075f * s};
+                for (int k = 0; k < 2; k++) {
+                    vec3 n;
+                    vec3 p = garmentTorsoPoint(o, g, zs[k], sx * ths[k], n);
+                    addDisc(rm, p + n * 0.0012f, n, 0.0025f * s, 6, 0.0012f, srgbToLinear(vec3(0.78f, 0.52f, 0.3f)), MAT_CHROME, torsoSkinWeights(D, p));
+                }
+            }
+            rm.computeNormals(0, 0);
+            o.out.append(rm);
+            o.hideOut.resize(o.out.idx.size() / 3, 0);
+        }
     } else if (bot != BOT_LEGGINGS) {
         // outer seam of plain trousers / shorts
-        decal([=](const BVert& v) {
-            if (v.part != PART_LEG) return -1.f;
-            return Min(0.0022f - fabsf(wrapAngle(v.pb - kHalfPi)) * 0.05f, base(v));
-        }, darker(col, 0.82f), g.mat, 0.0007f, 1u << PART_LEG);
+        for (int sd = 0; sd < 2; sd++) seamAlong(o, g, PART_LEG, sd, kHalfPi, 0.f, 2.f * s, 0.0011f * s, darker(col, 0.82f), g.mat, g.matParam);
+        if (bot == BOT_SLACKS || bot == BOT_POLICE) {
+            // pressed crease down the front and back of each leg: a light line catching the light
+            for (int sd = 0; sd < 2; sd++)
+                for (int k = 0; k < 2; k++)
+                    seamAlong(o, g, PART_LEG, sd, k ? kPi : 0.f, legAlongAtZ(D, R.zCrotch) + 0.03f * s, 2.f * s, 0.0009f * s, darker(col, 1.12f), g.mat,
+                              g.matParam);
+        }
     }
     if (bot != BOT_LEGGINGS) {
         // inseam
-        decal([=](const BVert& v) {
-            if (v.part != PART_LEG) return -1.f;
-            return Min(0.0022f - fabsf(wrapAngle(v.pb + kHalfPi)) * 0.05f, base(v));
-        }, g.mat == MAT_DENIM ? vec3(0.8f, 0.75f, 0.56f) * 0.8f : darker(col, 0.82f), g.mat, 0.0007f, 1u << PART_LEG);
+        for (int sd = 0; sd < 2; sd++)
+            seamAlong(o, g, PART_LEG, sd, 1.5f * kPi, legAlongAtZ(D, R.zCrotch) + 0.01f * s, 2.f * s, (g.mat == MAT_DENIM ? 0.0014f : 0.0011f) * s,
+                      g.mat == MAT_DENIM ? thread * 0.8f : darker(col, 0.82f), g.mat, g.matParam);
     }
     if (bot == BOT_JEANS || bot == BOT_BAGGY || bot == BOT_SLACKS || bot == BOT_WORK || bot == BOT_POLICE || bot == BOT_CARGO || bot == BOT_SHORTS) {
         // front pocket openings: a stitched curve from the waistband down to the side seam
@@ -1249,7 +2681,7 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
             float sx = sd ? 1.f : -1.f;
             float zTopP = zt - 0.012f * s;
             bool slant = bot == BOT_SLACKS || bot == BOT_POLICE;
-            decal([=](const BVert& v) {
+            line([=](const BVert& v) {
                 if (v.part != PART_TORSO) return -1.f;
                 float th = wrapAngle(v.pb);
                 if (th * sx < 0.f) return -1.f;
@@ -1262,7 +2694,7 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
                     best = Min(best, dth * dth + dz * dz);
                 }
                 return Min(0.0018f * s - sqrtf(best), base(v));
-            }, darker(col, g.mat == MAT_DENIM ? 0.75f : 0.8f), g.mat, 0.0009f, 1u << PART_TORSO);
+            }, g.mat == MAT_DENIM ? thread : darker(col, 0.8f), g.mat, 0.0009f, 1u << PART_TORSO);
         }
     }
     if (backPockets) {
@@ -1284,6 +2716,12 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
                 float lat = fabsf(wrapAngle(v.pb - kHalfPi));
                 return Min(0.55f - lat, 0.075f * R.s - fabsf(v.bp.z - (R.zThighMid - 0.01f * R.s))) * 0.3f;
             }, darker(col, 0.92f), MAT_CLOTH, 0.007f, 1u << PART_LEG, true);
+            // flap over the bellows pocket
+            decal([=, &R](const BVert& v) {
+                if (v.part != PART_LEG || v.side != sd) return -1.f;
+                float lat = fabsf(wrapAngle(v.pb - kHalfPi));
+                return Min(0.58f - lat, 0.013f * R.s - fabsf(v.bp.z - (R.zThighMid + 0.058f * R.s))) * 0.3f;
+            }, darker(col, 0.86f), MAT_CLOTH, 0.0105f, 1u << PART_LEG, true);
         }
     }
     if (bot == BOT_WORK) {
@@ -1293,6 +2731,12 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
             float frontness = cosf(v.pb);
             return Min(frontness - 0.35f, 0.07f * R.s - fabsf(v.bp.z - R.zKnee)) * 0.3f;
         }, darker(col, 0.8f), MAT_CLOTH, 0.002f, 1u << PART_LEG);
+    }
+    if (cuffedHem) {
+        // turned-up hem: the lighter inside of the fabric shows in a 4 cm band
+        vec3 inside = g.mat == MAT_DENIM ? col * 1.45f + vec3(0.03f) : darker(col, 0.92f);
+        decal([=](const BVert& v) { return v.part == PART_LEG ? Min(v.bp.z - zcuf, zcuf + 0.04f * s - v.bp.z) : -1.f; }, inside, g.mat, 0.0035f, 1u << PART_LEG,
+              true);
     }
     // belts
     const float pantsOff = g.thick + loose * 0.7f;
@@ -1371,6 +2815,8 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
     if (kind == SHOE_SNEAKER || kind == SHOE_RUNNER || kind == SHOE_DRESS || kind == SHOE_BOOT) {
         vec3 sockCol = kind == SHOE_DRESS ? vec3(0.03f) : (rng.chance(0.6f) ? vec3(0.9f) : vec3(0.05f));
         float sockTop = ankZ + (kind == SHOE_DRESS ? 0.12f : (rng.chance(0.5f) ? 0.035f : 0.1f)) * s;
+        // under full-length trousers only the band below the hem can show
+        if (o.legHemZ > 0.f) sockTop = Min(sockTop, o.legHemZ + 0.02f * s);
         GarmentDef sk;
         sk.parts = 1u << PART_LEG;
         sk.col = sockCol;
@@ -1394,17 +2840,40 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
     vec3 soleCol = vec3(1.f);
     float soleH = lift;
     float cutSide = ankZ - 0.012f * s, cutBack = ankZ + 0.012f * s, cutFront = ankZ + 0.03f * s;
+    // styles within a kind: sneakers are low-top trainers, canvas plimsolls or high-tops; boots are laced work boots or
+    // Chelsea boots; sandals are thongs or two-strap slides
+    Rng rs(hash32(d.seed * 0x632BE5ABu + 0x55u));
+    const int sneakStyle = rs.f() < 0.55f ? 0 : (rs.f() < 0.65f ? 1 : 2);
+    const bool chelsea = kind == SHOE_BOOT && d.role != 5 && d.role != 1 && d.role != 6 && rs.chance(d.gender == FEMALE ? 0.7f : 0.35f);
+    const bool slides = kind == SHOE_SANDAL && rs.chance(d.gender == FEMALE ? 0.5f : 0.3f);
     switch (kind) {
-        case SHOE_SNEAKER: g.mat = MAT_CLOTH; soleMat = MAT_CLOTH; soleCol = rng.chance(0.7f) ? vec3(0.9f) : col * 0.5f; break;
+        case SHOE_SNEAKER:
+            g.mat = MAT_CLOTH; soleMat = MAT_CLOTH; soleCol = rng.chance(0.7f) ? vec3(0.9f) : col * 0.5f;
+            if (sneakStyle == 1) { soleCol = vec3(0.92f); g.matParam = 1; }                                        // canvas
+            if (sneakStyle == 2) cutSide = cutBack = cutFront = ankZ + 0.055f * s;                               // high-top
+            break;
         case SHOE_RUNNER: g.mat = MAT_CLOTH; soleMat = MAT_CLOTH; soleCol = vec3(0.92f); break;
         case SHOE_DRESS: g.mat = MAT_LEATHER; g.col = col * 3.f; cutSide = ankZ - 0.03f * s; cutBack = ankZ - 0.015f * s; cutFront = ankZ - 0.022f * s;
             soleCol = vec3(1.f); g.thick = 0.004f; break;
-        case SHOE_BOOT: g.mat = MAT_LEATHER; g.col = col * 3.f; cutSide = cutBack = cutFront = ankZ + 0.11f * s; g.thick = 0.006f; break;
+        case SHOE_LOAFER: g.mat = MAT_LEATHER; g.col = col * 3.f; cutSide = ankZ - 0.032f * s; cutBack = ankZ - 0.018f * s; cutFront = ankZ - 0.012f * s;
+            soleCol = vec3(0.7f); g.thick = 0.0042f; break;
+        case SHOE_BOOT: g.mat = MAT_LEATHER; g.col = col * 3.f; cutSide = cutBack = cutFront = ankZ + (chelsea ? 0.08f : 0.11f) * s; g.thick = 0.006f; break;
         case SHOE_FLATS: g.mat = MAT_LEATHER; g.col = col * 3.f; cutSide = ankZ - 0.035f * s; cutBack = ankZ - 0.02f * s; cutFront = ankZ - 0.038f * s;
             g.thick = 0.003f; break;
         case SHOE_SANDAL: g.mat = MAT_CLOTH; break;
         default: break;
     }
+    // the toe box of a closed shoe reaches the sole's toe, a little higher and rounder than the foot (pointed on dress
+    // shoes, roomy on boots and trainers)
+    const float toeExt = kind == SHOE_DRESS ? 0.016f * s : (kind == SHOE_BOOT ? 0.012f * s : (kind == SHOE_FLATS ? 0.008f * s : 0.011f * s));
+    g.extraFn = [=](const BVert& v) -> float {
+        if (v.part != PART_LEG) return 0.f;
+        vec3 ank = D.J[v.side ? B_FOOT_R : B_FOOT_L];
+        float y = v.bp.y - ank.y;
+        float t = sstep(D.ballFwd * 0.7f, D.toeFwd, y);
+        float fwd = Saturate(v.n.y);   // the toe cap faces forward
+        return toeExt * t * (0.35f + 0.65f * fwd);
+    };
     if (kind == SHOE_SANDAL) {
         // straps: a band across the instep and a thong between the first toes
         GarmentDef st;
@@ -1421,8 +2890,14 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
             vec2 toe(ank.x - sx * 0.012f * s, ank.y + D.toeFwd * 0.86f);
             float y = v.bp.y;
             float topSide = v.bp.z - (lift + 0.012f * s);
-            // two straps from the toe gap to the sides of the forefoot
             float best = -1.f;
+            if (slides) {
+                // slides: a wide band across the forefoot and a narrower one across the instep
+                float yy = y - ank.y;
+                best = Max(0.017f * s - fabsf(yy - D.ballFwd * 0.95f), 0.009f * s - fabsf(yy - D.ballFwd * 0.42f));
+                return Min(best, topSide);
+            }
+            // two straps from the toe gap to the sides of the forefoot
             for (int k = 0; k < 2; k++) {
                 vec2 end(ank.x + (k ? 1.f : -1.f) * D.footW * 0.46f, ank.y + D.ballFwd * 0.55f);
                 vec2 p(v.bp.x, y);
@@ -1451,33 +2926,81 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
             dg.col = dcol;
             dg.mat = mat;
             dg.thick = g.thick + extraOff;
+            dg.extraFn = g.extraFn;
             dg.smooth = g.smooth;
             dg.hem = false;
             dg.hides = false;
             emitGarment(o, dg);
         };
         CovFn base = g.cov;
-        if (kind == SHOE_SNEAKER || kind == SHOE_RUNNER) {
-            // side panel stripe and laces over the instep
+        auto ankOf = [=](const BVert& v) { return D.J[v.side ? B_FOOT_R : B_FOOT_L]; };
+        if ((kind == SHOE_SNEAKER && sneakStyle != 1) || kind == SHOE_RUNNER) {
+            // heel counter and toe cap in an accent colour, and a sweeping side band from the heel to the midfoot (an
+            // original two-curve design on both sides)
             vec3 accent = rng.chance(0.5f) ? vec3(0.9f) - col * 0.7f : srgbToLinear(vec3(rng.f(), rng.f() * 0.5f, rng.f()));
-            // heel counter and toe cap in the accent color
             decal([=](const BVert& v) {
                 if (v.part != PART_LEG || v.bp.z > ankZ) return -1.f;
-                vec3 ank = D.J[v.side ? B_FOOT_R : B_FOOT_L];
-                float y = v.bp.y - ank.y;
+                float y = v.bp.y - ankOf(v).y;
                 float heel = Min(-0.01f * s - y, ankZ - 0.01f * s - v.bp.z);
                 float toe = y - (D.toeFwd - 0.045f * s);
                 return Max(heel, toe);
             }, saturate(accent), MAT_CLOTH, 0.0008f);
-            for (int li = 0; li < 4; li++) {
-                decal([=](const BVert& v) {
-                    if (v.part != PART_LEG || v.bp.z > ankZ - 0.004f * s) return -1.f;
-                    vec3 ank = D.J[v.side ? B_FOOT_R : B_FOOT_L];
-                    float y = v.bp.y - ank.y;
-                    float yl = 0.03f * s + li * 0.016f * s;
-                    return Min(Min(0.0035f * s - fabsf(y - yl), 0.015f * s - fabsf(v.bp.x - ank.x)), cosf(v.pb) - 0.6f);
-                }, vec3(0.92f), MAT_CLOTH, 0.0012f);
-            }
+            decal([=](const BVert& v) {
+                if (v.part != PART_LEG || v.bp.z > ankZ + 0.01f * s || fabsf(sinf(v.pb)) < 0.55f) return -1.f;
+                float y = (v.bp.y - ankOf(v).y) / (0.11f * s), z = (v.bp.z - lift) / (0.05f * s);
+                // a band rising from the heel towards the laces, thinning as it goes
+                float zc = 0.35f + 0.45f * Saturate(y), w = 0.2f * (1.f - 0.6f * Saturate(y));
+                return Min(Min(w - fabsf(z - zc), y + 0.35f), 0.95f - y) * 0.05f * s;
+            }, saturate(accent * 0.9f + vec3(0.04f)), MAT_CLOTH, 0.001f);
+        }
+        if (kind == SHOE_SNEAKER && sneakStyle == 1) {
+            // canvas plimsoll: a rubber toe cap and a rubber stripe round the base of the upper
+            decal([=](const BVert& v) {
+                if (v.part != PART_LEG || v.bp.z > ankZ) return -1.f;
+                float y = v.bp.y - ankOf(v).y;
+                return Max(y - (D.toeFwd - 0.035f * s), (lift + 0.014f * s) - v.bp.z);
+            }, vec3(0.9f, 0.89f, 0.85f), MAT_RUBBER, 0.001f);
+        }
+        if (kind == SHOE_SNEAKER && sneakStyle == 2) {
+            // high-top: a round ankle patch on the outside
+            decal([=](const BVert& v) {
+                if (v.part != PART_LEG || fabsf(wrapAngle(v.pb - kHalfPi)) > 0.9f) return -1.f;
+                vec3 a = ankOf(v);
+                return 0.017f * s - length(vec2(v.bp.y - a.y + 0.005f * s, v.bp.z - a.z - 0.012f * s));
+            }, vec3(0.92f), MAT_CLOTH, 0.001f);
+        }
+        if (kind == SHOE_LOAFER) {
+            // moccasin apron: a raised U seam over the toes, and a saddle strap across the vamp with its slot
+            decal([=](const BVert& v) {
+                if (v.part != PART_LEG || v.bp.z > ankZ) return -1.f;
+                vec3 a = ankOf(v);
+                float y = v.bp.y - a.y - 0.07f * s, x = (v.bp.x - a.x) / (D.footW * 0.36f);
+                float u = sqrtf(Sq(x) + Sq(Max(0.f, y) / (0.075f * s)));
+                return Min(0.0016f * s - fabsf(u - 1.f) * 0.02f * s, cosf(v.pb) - 0.2f);
+            }, g.col * 0.7f, MAT_LEATHER, 0.0012f);
+            decal([=](const BVert& v) {
+                if (v.part != PART_LEG || v.bp.z > ankZ) return -1.f;
+                float y = v.bp.y - ankOf(v).y - 0.045f * s;
+                return Min(0.009f * s - fabsf(y), cosf(v.pb) - 0.15f);
+            }, g.col * 0.85f, MAT_LEATHER, 0.0018f);
+            decal([=](const BVert& v) {
+                if (v.part != PART_LEG || v.bp.z > ankZ) return -1.f;
+                vec3 a = ankOf(v);
+                float y = v.bp.y - a.y - 0.045f * s;
+                return Min(Min(0.0025f * s - fabsf(y), 0.012f * s - fabsf(v.bp.x - a.x)), cosf(v.pb) - 0.6f);
+            }, vec3(0.02f), MAT_LEATHER, 0.0024f);
+        }
+        if (chelsea) {
+            // elastic gussets on both sides and a pull tab at the back
+            decal([=](const BVert& v) {
+                if (v.part != PART_LEG || fabsf(sinf(v.pb)) < 0.8f) return -1.f;
+                float top = cutSide - v.bp.z, a = ankZ - 0.005f * s;
+                return Min(top, 0.022f * s - fabsf(v.bp.y - ankOf(v).y) - Max(0.f, a - v.bp.z) * 0.6f);
+            }, vec3(0.02f), MAT_CLOTH, 0.0008f);
+            decal([=](const BVert& v) {
+                if (v.part != PART_LEG || cosf(v.pb) > -0.85f) return -1.f;
+                return Min(cutBack + 0.018f * s - v.bp.z, v.bp.z - (cutBack - 0.012f * s)) * 0.3f + Min(0.f, 0.3f + cosf(v.pb)) * 0.02f;
+            }, g.col * 0.6f, MAT_LEATHER, 0.0022f);
         }
         (void)base;
     }
@@ -1485,7 +3008,7 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
     // extruded to the ground with a rounded bottom edge and a toe spring; sneakers / runners get a white midsole over
     // a darker outsole, dress shoes a thin sole with a heel block (the arch lifts off the ground), boots a thick lug
     // sole. Laced shoes get crossed laces over the tongue and a bow.
-    const bool laced = kind == SHOE_SNEAKER || kind == SHOE_RUNNER || kind == SHOE_BOOT;
+    const bool laced = kind == SHOE_SNEAKER || kind == SHOE_RUNNER || (kind == SHOE_BOOT && !chelsea);
     const float upperThick = g.thick;
     for (int sd = 0; sd < 2; sd++) {
         const u32 FM = sd ? MK_FOOT_R : MK_FOOT_L;
@@ -1529,7 +3052,7 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
         }
         float topZ = lift + (kind == SHOE_SANDAL ? 0.f : 0.005f * s);
         auto spring = [&](float t) { return (kind == SHOE_BOOT ? 0.004f : 0.009f) * s * sstep(0.78f, 1.f, t); };
-        auto archLift = [&](float t) { return kind == SHOE_DRESS ? 0.008f * s * bump(t, 0.38f, 0.08f) : 0.f; };
+        auto archLift = [&](float t) { return kind == SHOE_DRESS || kind == SHOE_LOAFER ? 0.008f * s * bump(t, 0.38f, 0.08f) : 0.f; };
         // rings from the top edge down: top (tucked under the upper), welt, split (two-tone), lower edge, bottom
         const int NRr = 6;
         const float zf[NRr] = {1.f, 0.9f, 0.45f, 0.41f, 0.1f, 0.f};
@@ -1555,7 +3078,7 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
                 v.t = vec3(-rad.y, rad.x, 0);
                 v.uv = vec2(p.x, p.y);
                 v.col = r >= 3 && (kind == SHOE_SNEAKER || kind == SHOE_RUNNER) ? outsole : soleCol;
-                if (r == 1 && kind == SHOE_DRESS) v.col = soleCol * 0.7f;   // welt stitching line
+                if (r == 1 && (kind == SHOE_DRESS || kind == SHOE_LOAFER)) v.col = soleCol * 0.7f;   // welt stitching line
                 v.mat = soleMat;
                 v.part = PART_ACC;
                 float tb = sstep(ballY - 0.015f * s, ballY + 0.02f * s, p.y);
@@ -1886,15 +3409,16 @@ static vec2 outline(int shape, float a) {
 }
 }   // namespace GlassesDetail
 
-static void buildGlasses(OutfitCtx& o, const CharacterDesc& d) {
+// A pair of glasses of `kind` on the face, or (up) sunglasses pushed up onto the head: the frame is swung up about the
+// line through the ear rests until its front lies over the hairline, then lifted clear of the hair.
+static void buildGlassesKind(OutfitCtx& o, const CharacterDesc& d, int kind, bool up) {
     BuildCtx& c = o.c;
     const BodyDims& D = *c.D;
     const HeadInfo& H = c.head;
-    if (d.glasses < 0) return;
     const float hs = D.headS;
     MeshB gm;
     SkinW sw = skin1(B_HEAD);
-    bool sun = d.glasses == GL_SUN, avi = d.glasses == GL_AVIATOR, read = d.glasses == GL_READING;
+    bool sun = kind == GL_SUN, avi = kind == GL_AVIATOR, read = kind == GL_READING;
     Rng rng(hash32(d.seed * 53u + 17u));
     // style: aviators are gold / silver wire; sunglasses black or tortoise plastic; reading glasses metal (gunmetal,
     // gold, dark brown) or plastic (black, tortoise, dark red, navy)
@@ -2135,9 +3659,45 @@ static void buildGlasses(OutfitCtx& o, const CharacterDesc& d) {
         std::vector<SkinW> sws(pts.size(), sw);
         addTube(gm, pts, rad, plastic ? 6 : 4, false, plastic && tortoise ? rimCol(hinge) : frameCol, frameMat, sws);
     }
+    if (up) {
+        // swing the frame up about the ear rests, then lift it clear of the hair (and the scalp)
+        vec3 pl = H.earPos[0] + vec3(-0.004f * hs, 0.008f * hs, 0.018f * hs), pr = H.earPos[1] + vec3(0.004f * hs, 0.008f * hs, 0.018f * hs);
+        vec3 pivot = (pl + pr) * 0.5f;
+        quat q = quatAxisAngle(vec3(1, 0, 0), 76.f * kDegToRad);
+        for (BVert& v : gm.v) {
+            v.p = pivot + rotate(q, v.p - pivot);
+            v.n = rotate(q, v.n);
+            v.t = rotate(q, v.t);
+        }
+        vec3 cen(0);
+        for (const BVert& v : gm.v) cen += v.p;
+        cen /= (float)Max((size_t)1, gm.v.size());
+        vec3 lift = normalize(cen - H.C);
+        float need = 0.f;
+        for (const BVert& v : gm.v) {
+            vec3 dir = normalize(v.p - H.C);
+            float t = c.sdf.castOut(H.C, dir, MK_HEAD, 0.25f * hs);
+            BVert pr2;
+            float th = atan2f(dir.x, dir.y);
+            pr2.pa = th < 0.f ? th + kTwoPi : th;
+            pr2.pb = asinf(Clamp(dir.z, -1.f, 1.f));
+            pr2.part = PART_HEAD;
+            pr2.pc = 1.5f;
+            float want = t + hairVolumeAt(c, pr2) + 0.003f * hs;
+            float have = dot(v.p - H.C, dir);
+            need = Max(need, (want - have) / Max(dot(lift, dir), 0.3f));
+        }
+        for (BVert& v : gm.v) v.p += lift * need;
+        for (BVert& v : gm.v) v.bp = v.p;
+    }
     gm.computeNormals(0, 0);
     o.out.append(gm);
     o.hideOut.resize(o.out.idx.size() / 3, 0);
+}
+
+static void buildGlasses(OutfitCtx& o, const CharacterDesc& d) {
+    if (d.glasses >= 0) buildGlassesKind(o, d, Clamp(d.glasses, 0, GL_COUNT - 1), false);
+    else if ((d.extras & ACC_SUNGLASSES_UP) && d.hat < 0) buildGlassesKind(o, d, GL_SUN, true);
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -2150,8 +3710,11 @@ static void buildJewelry(OutfitCtx& o, const CharacterDesc& d) {
     bool fem = d.gender == FEMALE;
     const float s = D.s;
     vec3 gold = srgbToLinear(vec3(1.0f, 0.78f, 0.35f)), silver = vec3(0.9f);
-    // necklace / chain
+    // necklace / chain, earrings and the watch: from the desc's extras bits when they were chosen explicitly
+    // (randomCharacter), else drawn from the seed as before
+    const bool expl = (d.extras & ACC_EXPLICIT) != 0;
     bool chain = (d.role == 2 && rng.chance(0.7f)) || (d.role == 0 && rng.chance(fem ? 0.3f : 0.12f)) || (d.role == 4 && rng.chance(0.25f));
+    if (expl) chain = (d.extras & ACC_NECKLACE) != 0;
     bool openNeck = d.top == TOP_TANK || d.top == TOP_NONE || d.top == TOP_BIKINI || d.top == TOP_ONEPIECE || d.top == TOP_SUNDRESS ||
                     d.top == TOP_TSHIRT || d.top == TOP_OVERSIZED || d.top == TOP_HAWAIIAN || d.top == TOP_CROP || d.top == TOP_BLOUSE;
     if (chain && openNeck) {
@@ -2181,7 +3744,9 @@ static void buildJewelry(OutfitCtx& o, const CharacterDesc& d) {
         addTube(o.out, pts, rad, 5, true, rng.chance(0.75f) ? gold : silver, MAT_CHROME, sws);
     }
     // earrings (women mostly)
-    if ((fem && rng.chance(0.6f)) || (!fem && rng.chance(0.08f))) {
+    bool ear = (fem && rng.chance(0.6f)) || (!fem && rng.chance(0.08f));
+    if (expl) ear = (d.extras & ACC_EARRINGS) != 0;
+    if (ear) {
         for (int sd = 0; sd < 2; sd++) {
             vec3 lobe = c.head.earPos[sd] + vec3((sd ? 1.f : -1.f) * 0.006f, -0.004f, -0.024f) * D.headS * D.earSize;
             bool hoop = rng.chance(0.4f);
@@ -2207,7 +3772,9 @@ static void buildJewelry(OutfitCtx& o, const CharacterDesc& d) {
     }
     // wrist watch (left wrist)
     bool longSleeve = d.top == TOP_SUIT || d.top == TOP_HOODIE;
-    if (!longSleeve && ((d.role == 3 && rng.chance(0.8f)) || rng.chance(0.3f))) {
+    bool watch = (d.role == 3 && rng.chance(0.8f)) || rng.chance(0.3f);
+    if (expl) watch = (d.extras & ACC_WATCH) != 0;
+    if (!longSleeve && watch) {
         int o4 = 0;
         vec3 wr = D.J[B_HAND_L + o4] - D.armDir[0] * 0.022f * s;
         vec3 ad = D.armDir[0], fr(0, 1, 0), pn = D.palmN[0];
@@ -2230,6 +3797,429 @@ static void buildJewelry(OutfitCtx& o, const CharacterDesc& d) {
         float t = c.sdf.castOut(wr, dir, MK_ARM_L, 0.1f);
         addDisc(o.out, wr + dir * (t + 0.004f), dir, 0.016f * s, 10, 0.004f, silver, MAT_CHROME, skin2(B_FOREARM_L, B_HAND_L, 0.5f));
     }
+    o.hideOut.resize(o.out.idx.size() / 3, 0);
+}
+
+// ------------------------------------------------------------------------------------------------
+// Accessories on the clothes: bags (backpack, crossbody, tote), a lanyard badge, headphones round the neck, bracelets
+
+// Point on the outermost garment over the torso at height z and angle th (the skin plus 2 mm when bare) and its normal.
+static vec3 outerTorsoPoint(OutfitCtx& o, float z, float th, vec3& n) {
+    if (o.torsoOuter) return garmentTorsoPoint(o, *o.torsoOuter, z, th, n);
+    vec3 p;
+    torsoPoint(o.c, z, th, p, n);
+    return p + n * 0.002f;
+}
+
+// Angle on the torso whose surface point at height z lies at model x (front half when front, else back half).
+static float torsoAngleForX(OutfitCtx& o, float z, float x, bool front) {
+    vec3 p, n;
+    torsoPoint(o.c, z, front ? 0.f : kPi, p, n);
+    float r = Max(length(vec2(p.x, p.y - profAxisY(o, z))), 0.04f);
+    float a = asinf(Clamp(x / (r * 1.05f), -0.95f, 0.95f));
+    return front ? a : kPi - a;
+}
+
+// Rounded box (superellipsoid, exponent ~4) with half extents he along the frame (ax, ay, az), skinned by sw(p).
+static void addRoundedBox(MeshB& m, vec3 c, vec3 ax, vec3 ay, vec3 az, vec3 he, float expo, int NU, int NV, vec3 col, u8 mat, u32 matParam,
+                          const std::function<SkinW(vec3)>& sw, const std::function<vec3(vec3, vec3)>& colFn = nullptr) {
+    auto sc = [&](float t, float e) { float v = cosf(t); return Sign(v) * powf(fabsf(v), e); };
+    auto ss = [&](float t, float e) { float v = sinf(t); return Sign(v) * powf(fabsf(v), e); };
+    const float e = 2.f / expo;
+    u32 base = (u32)m.v.size();
+    for (int j = 0; j <= NV; j++) {
+        float phi = -kHalfPi + kPi * j / NV;
+        for (int i = 0; i < NU; i++) {
+            float th = kTwoPi * i / NU;
+            vec3 l(he.x * sc(phi, e) * sc(th, e), he.y * sc(phi, e) * ss(th, e), he.z * ss(phi, e));
+            // normal from the implicit function's gradient
+            vec3 g(Sign(l.x) * powf(fabsf(l.x) / he.x, expo - 1.f) / he.x, Sign(l.y) * powf(fabsf(l.y) / he.y, expo - 1.f) / he.y,
+                   Sign(l.z) * powf(fabsf(l.z) / he.z, expo - 1.f) / he.z);
+            if (length2(g) < 1e-12f) g = vec3(0, 0, j < NV / 2 ? -1.f : 1.f);
+            vec3 nl = normalize(g);
+            BVert v;
+            v.p = c + ax * l.x + ay * l.y + az * l.z;
+            v.bp = v.p;
+            v.n = normalize(ax * nl.x + ay * nl.y + az * nl.z);
+            v.t = normalize(ax * -sinf(th) + ay * cosf(th));
+            v.uv = vec2(th * (he.x + he.y) * 0.5f, phi * he.z);
+            v.col = colFn ? colFn(l, col) : col;
+            v.mat = mat;
+            v.matParam = matParam;
+            v.part = PART_ACC;
+            v.sw = sw(v.p);
+            m.add(v);
+        }
+    }
+    for (int j = 0; j < NV; j++)
+        for (int i = 0; i < NU; i++) {
+            u32 a = base + j * NU + i, b = base + j * NU + (i + 1) % NU, cc = base + (j + 1) * NU + (i + 1) % NU, dd = base + (j + 1) * NU + i;
+            vec3 nn = cross(m.v[b].p - m.v[a].p, m.v[dd].p - m.v[a].p);
+            if (dot(nn, m.v[a].n + m.v[cc].n) >= 0.f) m.quad(a, b, cc, dd);
+            else m.quad(a, dd, cc, b);
+        }
+}
+
+// Flat band (strap) along a polyline with surface normals: halfW across, slightly thicker in the middle.
+static void addBand(MeshB& m, const std::vector<vec3>& pts, const std::vector<vec3>& nrm, const std::vector<SkinW>& sws, float halfW, float thick,
+                    vec3 col, u8 mat, u32 matParam) {
+    const int n = (int)pts.size();
+    if (n < 2) return;
+    std::vector<u32> rows[4];
+    float along = 0.f;
+    for (int i = 0; i < n; i++) {
+        vec3 t = i + 1 < n ? pts[i + 1] - pts[i] : pts[i] - pts[i - 1];
+        if (i > 0) along += length(pts[i] - pts[i - 1]);
+        t = normalize(t);
+        vec3 nn = normalize(nrm[i] - t * dot(nrm[i], t));
+        vec3 w = normalize(cross(t, nn));
+        const float acr[4] = {-1.f, -0.75f, 0.75f, 1.f};
+        for (int k = 0; k < 4; k++) {
+            BVert v;
+            v.p = pts[i] + w * (halfW * acr[k]) + nn * (k == 0 || k == 3 ? 0.f : thick);
+            v.bp = v.p;
+            v.n = normalize(nn + w * (k == 0 ? -0.8f : (k == 3 ? 0.8f : 0.f)));
+            v.t = t;
+            v.uv = vec2(acr[k] * halfW, along);
+            v.col = k == 0 || k == 3 ? col * 0.8f : col;
+            v.mat = mat;
+            v.matParam = matParam;
+            v.part = PART_ACC;
+            v.sw = sws[i];
+            rows[k].push_back(m.add(v));
+        }
+    }
+    for (int i = 0; i + 1 < n; i++)
+        for (int k = 0; k + 1 < 4; k++) {
+            u32 a0 = rows[k][i], a1 = rows[k + 1][i], b0 = rows[k][i + 1], b1 = rows[k + 1][i + 1];
+            vec3 nn = cross(m.v[a1].p - m.v[a0].p, m.v[b0].p - m.v[a0].p);
+            if (dot(nn, m.v[a0].n + m.v[a1].n) >= 0.f) m.quad(a0, a1, b1, b0);
+            else m.quad(a0, b0, b1, a1);
+        }
+}
+
+// Strap path over one shoulder at |x| = cx: from the chest at zFront over the top of the shoulder to the back at zBack,
+// on the outermost garment (off: extra distance out), as points, normals and skin weights.
+static void shoulderPath(OutfitCtx& o, float x, float zFront, float zBack, float off, std::vector<vec3>& P, std::vector<vec3>& N,
+                         std::vector<SkinW>& W) {
+    BuildCtx& c = o.c;
+    const BodyDims& D = *c.D;
+    const float s = D.s;
+    const vec3 C0(x, D.J[B_CHEST].y + 0.005f * s, D.zArmpit - 0.03f * s);
+    const float clothOff = Max(o.outerTorsoOff, o.topTorsoOff);
+    auto hit = [&](float phi, vec3& p, vec3& n) {
+        vec3 dir(0.f, cosf(phi), sinf(phi));
+        p = c.sdf.project(C0 + dir * (0.17f * s), MK_TORSO, 10);
+        n = c.sdf.grad(p, MK_TORSO);
+        n = length2(n) > 1e-12f ? normalize(n) : dir;
+    };
+    const int NA = 48;
+    float phi0 = -1.f, phi1 = -1.f;
+    for (int i = 0; i <= NA; i++) {
+        float phi = Lerp(-0.8f, kPi + 0.8f, (float)i / NA);
+        vec3 p, n;
+        hit(phi, p, n);
+        bool above = p.z >= (phi < kHalfPi ? zFront : zBack);
+        if (above && phi0 < -0.5f) phi0 = phi;
+        if (above) phi1 = phi;
+    }
+    if (phi0 < -0.5f || phi1 <= phi0) return;
+    const int NP = 16;
+    for (int i = 0; i < NP; i++) {
+        float phi = Lerp(phi0, phi1, (float)i / (NP - 1));
+        vec3 p, n;
+        hit(phi, p, n);
+        // the clothes under the strap: on the chest and the back below the shoulder line the garment's own surface
+        vec3 q = p + n * (clothOff + off);
+        if (o.torsoOuter && p.z < D.zArmpit + 0.02f * s) {
+            float th = atan2f(p.x, p.y - profAxisY(o, p.z));
+            vec3 gn;
+            vec3 gp = garmentTorsoPoint(o, *o.torsoOuter, p.z, th, gn);
+            q = gp + gn * off;
+            n = gn;
+        }
+        P.push_back(q);
+        N.push_back(n);
+        W.push_back(torsoSkinWeights(D, p));
+    }
+}
+
+static void buildBags(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
+    if (d.bag < 0 || d.bag >= BAG_COUNT) return;
+    BuildCtx& c = o.c;
+    const BodyDims& D = *c.D;
+    const float s = D.s;
+    Rng rng(hash32(d.seed * 0x1B873593u + 0x2Fu));
+    const vec3 col = d.bagColor;
+    const vec3 strapCol = rng.chance(0.6f) ? darker(col, 0.8f) : vec3(0.03f);
+    MeshB m;
+    const float clothOff = Max(o.outerTorsoOff, o.topTorsoOff);
+    if (d.bag == BAG_BACKPACK) {
+        const float w = 0.28f * s * rng.range(0.9f, 1.08f), h = 0.4f * s * rng.range(0.85f, 1.08f), dep = 0.12f * s * rng.range(0.9f, 1.15f);
+        const float zc = R.zChest - 0.05f * s;
+        vec3 n;
+        vec3 back = outerTorsoPoint(o, zc, kPi, n);
+        const vec3 C(0.f, back.y - 0.004f * s - dep * 0.5f, zc);
+        const float zTop = zc + h * 0.5f, zBot = zc - h * 0.5f;
+        auto bodyW = [=](vec3 p) {
+            WAcc acc;
+            float t = sstep(zBot, zTop, p.z);
+            acc.add(B_CHEST, 0.35f + 0.4f * t);
+            acc.add(B_SPINE2, 0.65f - 0.4f * t);
+            return acc.finish();
+        };
+        // the main compartment, a front pocket and a zip line round it; a grab handle on top
+        vec3 zipCol = darker(col, 0.55f);
+        addRoundedBox(m, C, vec3(1, 0, 0), vec3(0, -1, 0), vec3(0, 0, 1), vec3(w * 0.5f, dep * 0.5f, h * 0.5f), 4.f, 18, 12, col, MAT_CLOTH, 1u, bodyW,
+                      [=](vec3 l, vec3 cc) {
+                          // piping and the zip along the top and the sides of the front panel
+                          float edge = fabsf(l.y - dep * 0.32f) < dep * 0.05f ? 1.f : 0.f;
+                          return lerp(cc, zipCol, edge);
+                      });
+        addRoundedBox(m, C + vec3(0.f, -dep * 0.42f, -h * 0.2f), vec3(1, 0, 0), vec3(0, -1, 0), vec3(0, 0, 1),
+                      vec3(w * 0.38f, dep * 0.22f, h * 0.2f), 3.5f, 12, 8, darker(col, 0.92f), MAT_CLOTH, 1u, bodyW);
+        {
+            std::vector<vec3> hp;
+            std::vector<float> hr;
+            std::vector<SkinW> hw;
+            for (int k = 0; k <= 8; k++) {
+                float a = kPi * k / 8.f;
+                vec3 p = C + vec3(-0.04f * s * cosf(a), 0.f, h * 0.5f - 0.004f * s + 0.03f * s * sinf(a));
+                hp.push_back(p);
+                hr.push_back(0.004f * s);
+                hw.push_back(bodyW(p));
+            }
+            addTube(m, hp, hr, 5, false, strapCol, MAT_CLOTH, hw);
+        }
+        // shoulder straps: from the top of the pack over the shoulders, down the chest to below the armpit, then back
+        // under the arm to the bottom corners
+        for (int sd = 0; sd < 2; sd++) {
+            float sx = sd ? 1.f : -1.f;
+            std::vector<vec3> P, N;
+            std::vector<SkinW> W;
+            shoulderPath(o, sx * 0.075f * s, D.zArmpit - 0.07f * s, zTop - 0.03f * s, 0.004f * s, P, N, W);
+            if (P.size() < 2) continue;
+            // start on the pack's top edge, end at the chest; then round the side back to the pack's bottom corner
+            std::reverse(P.begin(), P.end());
+            std::reverse(N.begin(), N.end());
+            std::reverse(W.begin(), W.end());
+            vec3 frontEnd = P.back();
+            for (int k = 1; k <= 6; k++) {
+                float t = k / 6.f;
+                float z = Lerp(frontEnd.z, zBot + 0.04f * s, t);
+                float th = sx * Lerp(fabsf(atan2f(frontEnd.x, frontEnd.y - profAxisY(o, frontEnd.z))), kPi - 0.55f, t);
+                vec3 gn;
+                vec3 gp = outerTorsoPoint(o, z, th, gn);
+                P.push_back(gp + gn * 0.004f * s);
+                N.push_back(gn);
+                W.push_back(torsoSkinWeights(D, gp));
+            }
+            P.push_back(C + vec3(sx * w * 0.42f, dep * 0.3f, -h * 0.42f));
+            N.push_back(vec3(sx, 0, 0));
+            W.push_back(bodyW(P.back()));
+            addBand(m, P, N, W, 0.024f * s, 0.003f * s, strapCol, MAT_CLOTH, 1u);
+        }
+    } else {
+        // crossbody bag behind one hip with its strap across the chest and the back over the other shoulder, or a tote
+        // hanging at the side from the same shoulder
+        const int side = bagSide(d);
+        const float sx = side ? 1.f : -1.f;
+        const bool tote = d.bag == BAG_TOTE;
+        const float w = (tote ? 0.3f : 0.22f) * s * rng.range(0.9f, 1.1f), h = (tote ? 0.28f : 0.16f) * s * rng.range(0.9f, 1.1f),
+                    dep = (tote ? 0.08f : 0.06f) * s;
+        const float zc = tote ? R.zWaist - 0.02f * s : D.zHip + 0.035f * s;
+        const float th = sx * (kHalfPi + (tote ? 0.35f : 0.62f));
+        vec3 n;
+        vec3 hip = outerTorsoPoint(o, zc, th, n);
+        hip += n * Max(0.f, o.botTorsoOff - clothOff);
+        vec3 radial = normalize(vec3(n.x, n.y, 0.f));
+        vec3 tang = normalize(cross(vec3(0, 0, 1), radial));
+        const vec3 C = hip + radial * (dep * 0.5f + 0.004f * s);
+        auto bodyW = [=](vec3 p) {
+            WAcc acc;
+            acc.add(B_PELVIS, tote ? 0.3f : 0.75f);
+            acc.add(tote ? B_SPINE2 : (side ? B_THIGH_R : B_THIGH_L), tote ? 0.7f : 0.25f);
+            (void)p;
+            return acc.finish();
+        };
+        addRoundedBox(m, C, tang, radial, vec3(0, 0, 1), vec3(w * 0.5f, dep * 0.5f, h * 0.5f), tote ? 3.f : 4.f, 16, 10, col, tote ? MAT_CLOTH : MAT_LEATHER,
+                      tote ? 1u : 0u, bodyW);
+        if (!tote) {
+            // flap over the front
+            addRoundedBox(m, C + radial * (dep * 0.46f) + vec3(0, 0, h * 0.12f), tang, radial, vec3(0, 0, 1), vec3(w * 0.51f, dep * 0.08f, h * 0.36f),
+                          5.f, 12, 6, darker(col, 0.85f), MAT_LEATHER, 0u, bodyW);
+        }
+        // strap: over the opposite shoulder (crossbody) or the same one (tote)
+        const float xs = (tote ? sx : -sx) * 0.08f * s;
+        std::vector<vec3> P, N;
+        std::vector<SkinW> W;
+        shoulderPath(o, xs, D.zArmpit - 0.02f * s, D.zArmpit - 0.02f * s, 0.004f * s, P, N, W);
+        if (P.size() >= 2) {
+            // front run: from the bag's front corner up to the shoulder; back run: from the shoulder down to the back corner
+            vec3 cf = C + tang * (w * 0.45f * (tang.y > 0.f ? 1.f : -1.f)) + vec3(0, 0, h * 0.45f);
+            vec3 cb = C - tang * (w * 0.45f * (tang.y > 0.f ? 1.f : -1.f)) + vec3(0, 0, h * 0.45f);
+            // a run between two points on the clothes: the chord's points projected out from the torso axis onto them
+            auto run = [&](vec3 from, vec3 to, bool front, std::vector<vec3>& RP, std::vector<vec3>& RN, std::vector<SkinW>& RW) {
+                (void)front;
+                const int K = 10;
+                for (int k = 0; k <= K; k++) {
+                    float t = (float)k / K;
+                    vec3 q = lerp(from, to, t);
+                    float a = atan2f(q.x, q.y - profAxisY(o, q.z));
+                    vec3 gn;
+                    vec3 gp = outerTorsoPoint(o, q.z, a, gn);
+                    RP.push_back(gp + gn * 0.004f * s);
+                    RN.push_back(gn);
+                    RW.push_back(torsoSkinWeights(D, gp));
+                }
+            };
+            std::vector<vec3> SP, SN;
+            std::vector<SkinW> SW;
+            run(cf, P.front(), true, SP, SN, SW);
+            for (size_t i = 0; i < P.size(); i++) {
+                SP.push_back(P[i]);
+                SN.push_back(N[i]);
+                SW.push_back(W[i]);
+            }
+            std::vector<vec3> BP, BN;
+            std::vector<SkinW> BW;
+            run(cb, P.back(), false, BP, BN, BW);
+            for (int i = (int)BP.size() - 1; i >= 0; i--) {
+                SP.push_back(BP[i]);
+                SN.push_back(BN[i]);
+                SW.push_back(BW[i]);
+            }
+            addBand(m, SP, SN, SW, (tote ? 0.014f : 0.012f) * s, 0.0025f * s, strapCol, tote ? MAT_CLOTH : MAT_LEATHER, 1u);
+        }
+    }
+    m.computeNormals(0, m.idx.size());
+    o.out.append(m);
+    o.hideOut.resize(o.out.idx.size() / 3, 0);
+}
+
+// Lanyard with an ID badge (office): a cord round the neck dropping to a card on the chest; headphones round the neck;
+// bangles on the wrists.
+static void buildSmallAccessories(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
+    BuildCtx& c = o.c;
+    const BodyDims& D = *c.D;
+    const float s = D.s;
+    Rng rng(hash32(d.seed * 0x7FEB352Du + 0x3Bu));
+    MeshB m;
+    const std::vector<u32>& ring = c.torsoTop;
+    const int n = (int)ring.size();
+    vec3 cen(0);
+    for (u32 vi : ring) cen += c.m.v[vi].p;
+    cen /= (float)Max(1, n);
+    const float clothOff = Max(o.outerTorsoOff, o.topTorsoOff);
+    if (d.extras & ACC_LANYARD) {
+        vec3 cordCol = srgbToLinear(rng.pick(std::vector<vec3>{vec3(0.1f, 0.2f, 0.55f), vec3(0.6f, 0.08f, 0.1f), vec3(0.05f), vec3(0.1f, 0.4f, 0.2f)}));
+        const float zCard = R.zChest - 0.07f * s;
+        std::vector<vec3> pts;
+        std::vector<float> rad;
+        std::vector<SkinW> sws;
+        // behind and beside the neck on the collar line, then down the chest in a V to the card clip
+        for (int k = n / 2 - n / 4 + 1; k <= n / 2 + n / 4 - 1; k++) {
+            const BVert& bv = c.m.v[ring[k % n]];
+            vec3 radial = normalize(vec3(bv.p.x - cen.x, bv.p.y - cen.y, 0.f));
+            pts.push_back(bv.p + radial * (clothOff + 0.006f * s) + vec3(0, 0, 0.004f * s));
+            rad.push_back(0.0016f * s);
+            sws.push_back(torsoSkinWeights(D, bv.p));
+        }
+        // the two front runs, from each side of the neck to the clip
+        auto frontRun = [&](float xs, bool reverse) {
+            std::vector<vec3> P;
+            std::vector<SkinW> W;
+            for (int k = 0; k <= 7; k++) {
+                float t = k / 7.f;
+                float z = Lerp(D.zNeckFront + 0.005f * s, zCard + 0.02f * s, t), x = Lerp(xs, 0.f, t * t);
+                float a = torsoAngleForX(o, z, x, true);
+                vec3 gn;
+                vec3 gp = outerTorsoPoint(o, z, a, gn);
+                P.push_back(gp + gn * 0.005f * s);
+                W.push_back(torsoSkinWeights(D, gp));
+            }
+            if (reverse) {
+                std::reverse(P.begin(), P.end());
+                std::reverse(W.begin(), W.end());
+            }
+            return std::make_pair(P, W);
+        };
+        auto L = frontRun(-0.05f * s, false), Rr = frontRun(0.05f * s, false);
+        std::vector<vec3> all;
+        std::vector<float> ar;
+        std::vector<SkinW> aw;
+        for (int i = (int)L.first.size() - 1; i >= 0; i--) { all.push_back(L.first[i]); aw.push_back(L.second[i]); }
+        for (size_t i = 0; i < pts.size(); i++) { all.push_back(pts[pts.size() - 1 - i]); aw.push_back(sws[pts.size() - 1 - i]); }
+        for (size_t i = 0; i < Rr.first.size(); i++) { all.push_back(Rr.first[i]); aw.push_back(Rr.second[i]); }
+        ar.assign(all.size(), 0.0016f * s);
+        addTube(m, all, ar, 4, false, cordCol, MAT_CLOTH, aw);
+        // the card in its sleeve: white with a coloured band, facing out from the chest
+        vec3 gn;
+        vec3 gp = outerTorsoPoint(o, zCard - 0.04f * s, 0.f, gn);
+        vec3 fwd = normalize(vec3(gn.x * 0.3f, Max(gn.y, 0.5f), 0.f));
+        vec3 ax = normalize(cross(vec3(0, 0, 1), fwd));
+        SkinW cw = torsoSkinWeights(D, gp);
+        addBoxOriented(m, gp + fwd * 0.006f * s, ax, vec3(0, 0, 1), fwd, vec3(0.027f, 0.042f, 0.0012f) * s, vec3(0.88f), MAT_METAL_PAINTED, cw);
+        addBoxOriented(m, gp + fwd * 0.0073f * s + vec3(0, 0, 0.028f * s), ax, vec3(0, 0, 1), fwd, vec3(0.027f, 0.01f, 0.0003f) * s, cordCol,
+                       MAT_METAL_PAINTED, cw);
+    }
+    if (d.extras & ACC_HEADPHONES) {
+        // band behind the neck on the collar, a cup either side of the neck in front resting on the collarbones
+        vec3 hc = srgbToLinear(rng.chance(0.5f) ? vec3(0.08f) : vec3(0.85f));
+        std::vector<vec3> pts;
+        std::vector<float> rad;
+        std::vector<SkinW> sws;
+        for (int k = n / 2 - n / 4; k <= n / 2 + n / 4; k++) {
+            const BVert& bv = c.m.v[ring[k % n]];
+            vec3 radial = normalize(vec3(bv.p.x - cen.x, bv.p.y - cen.y, 0.f));
+            pts.push_back(bv.p + radial * (clothOff + 0.012f * s) + vec3(0, 0, 0.008f * s));
+            rad.push_back(0.006f * s);
+            WAcc acc;
+            acc.add(B_NECK, 0.4f);
+            acc.add(B_CHEST, 0.6f);
+            sws.push_back(acc.finish());
+        }
+        addTube(m, pts, rad, 6, false, hc, MAT_PLASTIC, sws);
+        for (int sd = 0; sd < 2; sd++) {
+            float sx = sd ? 1.f : -1.f;
+            const BVert& bv = c.m.v[ring[(sd ? n / 4 : 3 * n / 4) % n]];
+            vec3 radial = normalize(vec3(bv.p.x - cen.x, bv.p.y - cen.y, 0.f));
+            vec3 cp = bv.p + radial * (clothOff + 0.03f * s) + vec3(0, 0.012f * s, -0.01f * s);
+            WAcc acc;
+            acc.add(B_NECK, 0.3f);
+            acc.add(B_CHEST, 0.7f);
+            SkinW cw = acc.finish();
+            vec3 ay = normalize(radial + vec3(0, 0, 0.35f));
+            vec3 ax = normalize(cross(vec3(0, 0, 1), ay));
+            vec3 az = cross(ax, ay);
+            addRoundedBox(m, cp, ax, ay, az, vec3(0.034f, 0.015f, 0.04f) * s, 3.f, 12, 6, hc, MAT_PLASTIC, 0u, [cw](vec3) { return cw; });
+            (void)sx;
+        }
+    }
+    for (int sd = 0; sd < 2; sd++) {
+        if (!(d.extras & (sd ? ACC_BRACELET_R : ACC_BRACELET_L))) continue;
+        // a bangle or a bead string round the wrist, loose (it rides down onto the hand's heel)
+        const int arm = sd ? MK_ARM_R : MK_ARM_L;
+        vec3 wr = D.J[sd ? B_HAND_R : B_HAND_L] - D.armDir[sd] * (0.012f * s);
+        vec3 ad = D.armDir[sd], fr(0, 1, 0), pn = D.palmN[sd];
+        bool beads = rng.chance(0.5f);
+        vec3 bc = beads ? srgbToLinear(rng.pick(std::vector<vec3>{vec3(0.55f, 0.3f, 0.15f), vec3(0.1f), vec3(0.85f, 0.8f, 0.7f), vec3(0.2f, 0.4f, 0.6f)}))
+                        : (rng.chance(0.6f) ? srgbToLinear(vec3(1.f, 0.78f, 0.35f)) : vec3(0.9f));
+        std::vector<vec3> pts;
+        std::vector<float> rad;
+        const int N = beads ? 10 : 14;
+        for (int k = 0; k < N; k++) {
+            float a = kTwoPi * k / N;
+            vec3 dir = normalize(fr * cosf(a) + (-pn) * sinf(a));
+            float t = c.sdf.castOut(wr, dir, (u32)arm, 0.1f);
+            pts.push_back(wr + dir * (t + 0.004f * s));
+            rad.push_back((beads ? 0.0035f : 0.0022f) * s);
+        }
+        std::vector<SkinW> sws(N, skin2(sd ? B_FOREARM_R : B_FOREARM_L, sd ? B_HAND_R : B_HAND_L, 0.6f));
+        addTube(m, pts, rad, beads ? 5 : 4, true, bc, beads ? MAT_PLASTIC : MAT_CHROME, sws, ad);
+    }
+    m.computeNormals(0, m.idx.size());
+    o.out.append(m);
     o.hideOut.resize(o.out.idx.size() / 3, 0);
 }
 
@@ -2445,12 +4435,14 @@ void buildOutfit(BuildCtx& c, MeshB& out, std::vector<u8>& hideTri) {
         g.smooth = 1;
         g.cov = [=, &R](const BVert& v) -> float {
             if (v.part != PART_TORSO) return -1.f;
-            float body = Min(v.bp.z - R.zWaist, (0.8f - v.pc) * R.torsoLen);
-            float strap = covStraps(R, v, 0.09f * R.s, 0.012f * R.s, 0.975f);
-            return Max(body, strap);
+            return Min(v.bp.z - R.zWaist, (0.8f - v.pc) * R.torsoLen);
         };
         g.extraFn = [](const BVert&) { return 0.003f; };
+        g.matParam = 1;
+        g.hangDrift = 0.08f;   // the bodice falls from the bust
+        g.hangTop = c.D->J[B_CHEST].z + 0.04f * R.s;
         emitGarment(o, g);
+        addShoulderStraps(o, g.cov, 0.09f * R.s, 0.0065f * R.s, 0.0045f, d.topColor * 0.95f, 1u);
     }
     if (tucked) {
         buildTopGarments(o, R, d);
@@ -2498,10 +4490,13 @@ void buildOutfit(BuildCtx& c, MeshB& out, std::vector<u8>& hideTri) {
             buildTopGarments(o, R, d);
         }
     }
+    buildOuterLayer(o, R, d);
     buildShoes(o, R, d);
     buildHat(o, d);
     buildGlasses(o, d);
     buildJewelry(o, d);
+    buildSmallAccessories(o, R, d);
+    buildBags(o, R, d);
     // drop hidden inner-layer triangles
     std::vector<u8> hideRaw = o.hideOut;
     hideRaw.resize(raw.idx.size() / 3, 0);

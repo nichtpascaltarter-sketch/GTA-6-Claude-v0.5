@@ -19,6 +19,7 @@ float shoeLift(int shoes) {
         case SHOE_BARE: return 0.f;
         case SHOE_FLATS: return 0.012f;
         case SHOE_RUNNER: return 0.03f;
+        case SHOE_LOAFER: return 0.018f;
         default: return 0.02f;
     }
 }

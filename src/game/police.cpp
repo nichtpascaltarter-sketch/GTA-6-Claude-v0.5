@@ -165,6 +165,7 @@ struct K9Unit {
     float foundT = 0.f;      // the dog has had the suspect in its nose this long
     float lostT = 0.f;       // at the end of a trail that goes nowhere (drove off)
     float sentT = -1.f;      // released on the suspect this long ago (-1: on the leash)
+    float workT = 0.f;       // on the trail this long (the trail goes cold after a while)
 };
 K9Unit gK9;
 
@@ -191,7 +192,10 @@ void updateK9Unit(GameWorld& g, float dt, bool seen) {
         gK9.cooldown = 60.f;
         return;
     }
-    if (active) return;
+    if (active) {
+        gK9.workT += dt;
+        return;
+    }
     if (gK9.handler >= 0) {   // the handler is down or gone: the unit is over
         if (Wildlife::k9Alive(gK9.dog, gK9.dogUid)) Wildlife::k9Dismiss(g, gK9.dog, gK9.dogUid);
         gK9 = K9Unit();
@@ -662,11 +666,13 @@ void GameWorld::updateWanted(float dt) {
         }
         ai.surrenderBust = false;
     }
-    // ---- evasion: out of sight and outside the search area around the last seen position
+    // ---- evasion: out of sight and outside the search area around the last seen position (not while a K9 unit is
+    //      working a live trail: the dog is on them until the trail goes cold or ends at a kerb)
     if (pinfo.wanted > 0) {
         float searchR = searchRadiusFor(pinfo.wanted);
         float distFromLast = length(rel(pl->pos, pinfo.lastSeenPos));
-        if (!seen && (time - pinfo.lastSeenTime > 3.0 || distFromLast > searchR)) {
+        bool k9Hot = k9Active(*this) && !gTrailEnds && gK9.workT < 75.f && pl->vehicle < 0;
+        if (!seen && !k9Hot && (time - pinfo.lastSeenTime > 3.0 || distFromLast > searchR)) {
             float need = 8.f + pinfo.wanted * 6.f;
             pinfo.wantedCooldown += dt / need * (distFromLast > searchR ? 1.6f : 0.6f);
             if (pinfo.wantedCooldown >= 1.f) {
@@ -1168,7 +1174,7 @@ void GameWorld::updateDispatch(float dt) {
         }
     }
     // ---- spawn pursuit / response units
-    if (wanted <= 0) return;
+    if (wanted <= 0 || ai.dispatchOff) return;
     int wantCars = wanted == 1 ? 2 : (wanted == 2 ? 4 : (wanted == 3 ? 6 : (wanted == 4 ? 7 : 8)));
     if (carUnits >= wantCars || gD.spawnTimer > 0.f) return;
     gD.spawnTimer = Max(2.f, 8.f - wanted * 1.2f);
@@ -1759,6 +1765,7 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
                 Wildlife::k9Command(*this, gK9.dog, gK9.dogUid, Wildlife::K9_ALERT, t.pos.toVec3(), -1);
                 pinfo.lastSeenPos = t.pos;
                 pinfo.lastSeenTime = (float)time;
+                pinfo.wantedCooldown = 0.f;
                 if (pa.shoutTimer <= 0.f) {
                     aiSay(id, BK_COP_FREEZE, 1.f, true);
                     pa.shoutTimer = 4.f;

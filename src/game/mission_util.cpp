@@ -20,6 +20,8 @@ const u32 kColHolt = 0xffe08060u;
 const u32 kColCuervo = 0xff4040ffu;
 const u32 kColThug = 0xff6060e0u;
 const u32 kColOther = 0xffb0b0b0u;
+const u32 kColSable = 0xffd8b0e8u;
+const u32 kColAgent = 0xffe0d070u;
 
 // ------------------------------------------------------------------------------------------------------------------
 // Story cast
@@ -29,6 +31,8 @@ enum CastId : int {
     CAST_GUARD_A, CAST_GUARD_B,                              // Sandoval's private security (dark suits)
     CAST_COP_A, CAST_COP_B,                                  // Holt's officers
     CAST_BOUNCER, CAST_DOCKER, CAST_REPORTER, CAST_BANKER, CAST_PILOT, CAST_MECHANIC,
+    // Act 4 (story_act4.cpp): Ines Sable of Sable Maritime, her accountant, her courier, the state task force agent
+    CAST_SABLE, CAST_PRUITT, CAST_VOSS, CAST_AGENT,
     CAST_COUNT
 };
 
@@ -50,6 +54,8 @@ const CastInfo kCast[CAST_COUNT] = {
     {"cast_bouncer", "Bouncer", kColOther},   {"cast_docker", "Dock Worker", kColOther},
     {"cast_reporter", "Reporter", kColOther}, {"cast_banker", "Banker", kColOther},
     {"cast_pilot", "Pilot", kColOther},       {"cast_mechanic", "Mechanic", kColOther},
+    {"cast_sable", "Sable", kColSable},       {"cast_pruitt", "Pruitt", kColOther},
+    {"cast_voss", "Voss", kColOther},         {"cast_agent", "Agent Dela Cruz", kColAgent},
 };
 
 vec3 lin(float r, float g, float b) { return srgbToLinear(vec3(r, g, b)); }
@@ -161,6 +167,26 @@ Anim::CharacterDesc castDesc(int id) {
             d.skinTone = vec3(0.66f, 0.47f, 0.34f); d.hairStyle = 4; d.hairColor = vec3(0.12f, 0.08f, 0.05f); d.glasses = 1;
             d.top = 4; d.topColor = lin(0.9f, 0.9f, 0.92f); d.bottom = 3; d.bottomColor = lin(0.12f, 0.14f, 0.2f);
             d.shoes = 1; d.shoeColor = vec3(0.02f); d.role = 3; break;
+        case CAST_SABLE:   // 54, tall and spare, silver bob, charcoal suit, no jewellery but a watch
+            d.gender = Anim::FEMALE; d.height = 1.74f; d.weight = 0.28f; d.muscle = 0.3f; d.age = 0.56f;
+            d.skinTone = vec3(0.86f, 0.7f, 0.6f); d.ancestry = 2; d.hairStyle = 9; d.hairColor = vec3(0.7f, 0.7f, 0.72f);
+            d.top = 6; d.topColor = lin(0.13f, 0.13f, 0.15f); d.bottom = 3; d.bottomColor = lin(0.13f, 0.13f, 0.15f);
+            d.shoes = 1; d.shoeColor = vec3(0.02f); d.role = 3; break;
+        case CAST_PRUITT:  // 47, soft, thinning hair, reading glasses, pale blue shirt, a tote he never puts down
+            d.gender = Anim::MALE; d.height = 1.71f; d.weight = 0.66f; d.muscle = 0.2f; d.age = 0.47f;
+            d.skinTone = vec3(0.88f, 0.72f, 0.62f); d.hairStyle = 10; d.hairColor = vec3(0.42f, 0.34f, 0.26f); d.glasses = 2;
+            d.top = 4; d.topColor = lin(0.62f, 0.72f, 0.86f); d.bottom = 3; d.bottomColor = lin(0.35f, 0.36f, 0.4f);
+            d.shoes = 1; d.shoeColor = lin(0.25f, 0.15f, 0.08f); d.bag = 2; d.bagColor = lin(0.15f, 0.12f, 0.1f); d.role = 3; break;
+        case CAST_VOSS:    // 40, big, shaved head, short beard, black jacket over a dark shirt
+            d.gender = Anim::MALE; d.height = 1.9f; d.weight = 0.6f; d.muscle = 0.75f; d.age = 0.38f;
+            d.skinTone = vec3(0.3f, 0.2f, 0.14f); d.hairStyle = 0; d.facialHair = 4; d.hairColor = vec3(0.03f);
+            d.top = 3; d.topColor = lin(0.1f, 0.12f, 0.16f); d.outer = 3; d.outerColor = lin(0.04f, 0.04f, 0.05f);
+            d.bottom = 3; d.bottomColor = lin(0.08f, 0.08f, 0.09f); d.shoes = 1; d.shoeColor = vec3(0.02f); d.role = 2; break;
+        case CAST_AGENT:   // 44, dark bun, white shirt, navy blazer and slacks, a badge on the belt
+            d.gender = Anim::FEMALE; d.height = 1.68f; d.weight = 0.4f; d.muscle = 0.5f; d.age = 0.44f;
+            d.skinTone = vec3(0.6f, 0.43f, 0.31f); d.ancestry = 0; d.hairStyle = 6; d.hairColor = vec3(0.04f, 0.03f, 0.02f);
+            d.top = 4; d.topColor = lin(0.93f, 0.93f, 0.92f); d.outer = 5; d.outerColor = lin(0.08f, 0.1f, 0.2f);
+            d.bottom = 3; d.bottomColor = lin(0.08f, 0.1f, 0.2f); d.shoes = 1; d.shoeColor = vec3(0.02f); d.role = 3; break;
         case CAST_MECHANIC:
         default:
             d.gender = Anim::MALE; d.height = 1.75f; d.weight = 0.5f; d.muscle = 0.5f; d.age = 0.4f;
@@ -173,8 +199,28 @@ Anim::CharacterDesc castDesc(int id) {
 
 // Voices come from the speech module's personas (timbre plus default accent, delivery and mood); the persona's style
 // tags lead every spoken line so the accent carries over, and inline tags in a line ([angry], [whisper]...) override it.
-Audio::VoiceParams castVoice(int id) { return Speech::persona(kCast[id].key).voice; }
-std::string castTags(int id) { return Speech::persona(kCast[id].key).tags(); }
+// The Act 4 cast has no stock persona: their voices and styles are set here.
+Audio::VoiceParams extraCastVoice(int id) {
+    Audio::VoiceParams v;
+    switch (id) {
+        case CAST_SABLE: v.pitch = 168.f; v.formantScale = 1.1f; v.speed = 0.9f; v.breathiness = 0.1f; v.roughness = 0.06f; v.expressiveness = 0.7f; break;
+        case CAST_PRUITT: v.pitch = 132.f; v.formantScale = 1.03f; v.speed = 1.12f; v.breathiness = 0.16f; v.roughness = 0.02f; v.expressiveness = 1.25f; break;
+        case CAST_VOSS: v.pitch = 92.f; v.formantScale = 0.94f; v.speed = 0.94f; v.breathiness = 0.08f; v.roughness = 0.3f; v.expressiveness = 0.85f; break;
+        case CAST_AGENT:
+        default: v.pitch = 186.f; v.formantScale = 1.12f; v.speed = 1.02f; v.breathiness = 0.1f; v.roughness = 0.04f; v.expressiveness = 0.95f; break;
+    }
+    return v;
+}
+std::string extraCastTags(int id) {
+    switch (id) {
+        case CAST_SABLE: return "[accent:british:0.5][dark]";
+        case CAST_PRUITT: return "[nasal]";
+        case CAST_VOSS: return "[accent:caribbean:0.45][gravelly]";
+        default: return "[accent:latino:0.3]";
+    }
+}
+Audio::VoiceParams castVoice(int id) { return id >= CAST_SABLE ? extraCastVoice(id) : Speech::persona(kCast[id].key).voice; }
+std::string castTags(int id) { return id >= CAST_SABLE ? extraCastTags(id) : Speech::persona(kCast[id].key).tags(); }
 const char* protagonistKey(int who) { return who == 0 ? "mari" : "dex"; }
 Audio::VoiceParams protagonistVoice(int who) { return Speech::persona(protagonistKey(who)).voice; }
 std::string protagonistTags(int who) { return Speech::persona(protagonistKey(who)).tags(); }
@@ -1321,6 +1367,15 @@ void score(int style, float intensity, int variant = 0) {
 }
 
 enum ScoreStyle : int { SC_NOIR = 0, SC_CHASE = 1, SC_STEALTH = 2, SC_HEIST = 3 };
+
+// Weather a story mission asks for (a WeatherKind of weather.cpp, -1 none): the app applies it at its next weather step,
+// cutting straight to it when `instant` (a mission start under black), else blending over half a minute.
+int gWeatherRequest = -1;
+bool gWeatherInstant = false;
+void requestWeather(int kind, bool instant) {
+    gWeatherRequest = kind;
+    gWeatherInstant = instant;
+}
 
 // ------------------------------------------------------------------------------------------------------------------
 // Story flags (extended state lives at kExtBase..)

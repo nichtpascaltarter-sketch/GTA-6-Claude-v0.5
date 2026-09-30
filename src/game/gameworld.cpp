@@ -70,9 +70,21 @@ void GameWorld::resetWorldForLoad() {
     hudBigTime = -1.f;
     timeScale = 1.f;
     playerControl = true;
-    rig = CameraRig();
+    resetCameraRig();
     rig.cut = true;
     placeWorldPickups();
+}
+
+// A fresh camera rig (new game, spawn) that keeps the player's camera preferences from Settings > Camera and the
+// on-foot first-person toggle
+void GameWorld::resetCameraRig() {
+    CameraRig fresh;
+    fresh.shakeScale = rig.shakeScale;
+    fresh.vehicleAutoCenter = rig.vehicleAutoCenter;
+    fresh.headBob = rig.headBob;
+    fresh.fpVehicleDefault = rig.fpVehicleDefault;
+    fresh.footFirstPerson = rig.footFirstPerson;
+    rig = fresh;
 }
 
 void GameWorld::spawnPlayer(dvec3 pos, float yaw) {
@@ -88,7 +100,7 @@ void GameWorld::spawnPlayer(dvec3 pos, float yaw) {
     p.health = 200.f;
     p.hasWeapon[WPN_FISTS] = true;
     p.voice = Speech::presetVoice(protagonistIndex == 0, protagonistIndex == 0 ? 7u : 11u);
-    rig = CameraRig();
+    resetCameraRig();
     rig.yaw = yaw;
     rig.cut = true;
 }
@@ -570,6 +582,7 @@ void GameWorld::submitRender() {
         d.wetExposed = p.state == PS_SWIM ? 1.f : 0.6f;
         d.fade = i == player ? 1.f : p.camFade;
         dyn->submit(d);
+        submitCarry(i, d);   // suitcase, bags, coffee, umbrella in the rain... (carry.cpp)
         if (p.moveMode == 4 && parachuteModel) {
             Render::DrawItem cd;
             cd.model = parachuteModel;

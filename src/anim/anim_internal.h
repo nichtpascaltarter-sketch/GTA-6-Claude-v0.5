@@ -3,10 +3,17 @@
 #pragma once
 #include "character.h"
 #include "../core/rng.h"
+#include <memory>
 
 namespace Anim {
 namespace detail {
 
+// Walking styles (per-person gait variety, chosen by Animator::setCharacter from age, build, role and a per-person
+// roll): each style bakes kGaitBands walk clips at kGaitBandSpeed (slow / normal / brisk), with its own step length
+// for the speed (walk ratio), posture, arm swing, foot clearance and pelvis motion.
+enum GaitStyle : int { GS_NEUTRAL = 0, GS_RELAXED, GS_HURRIED, GS_ELDERLY, GS_SWAGGER, GS_TIRED, GS_COUNT };
+const int kGaitBands = 3;
+const float kGaitBandSpeed[kGaitBands] = {1.0f, 1.4f, 1.95f};
 // Internal clips (not in the public Clip enum) baked with the library and sampled with sampleClipId().
 enum InternalClip : int {
     IC_RIFLE_CARRY = CLIP_COUNT,   // long gun at the low ready (arm layer)
@@ -22,10 +29,33 @@ enum InternalClip : int {
     IC_DANCE2, IC_DANCE3, IC_DANCE4,   // dance styles (stance 9 picks one per ped)
     IC_SIT_GROUND,                 // sitting on the ground, knees up, leaning back on the hands (stance 21)
     IC_LIE_FRONT,                  // sunbathing face down, head on the forearms (stance 22)
+    IC_JOG_SLOW,                   // easy jog (2.4 m/s): the band between the brisk walk and the jog
+    // standing: weight on the left / right leg (contrapposto: the free hip drops, its knee eases), crossfaded by the
+    // animator on per-person timing; postures held for a while; short fidgets layered on the upper body (watch check,
+    // scratching the head, tugging the clothes, hand to the chin, a yawn, stretching the arms) or on the legs (tapping
+    // a foot, rocking heel to toe), each starting and ending in the standing pose
+    IC_STAND_L, IC_STAND_R,
+    IC_IDLE_BEHIND,                // hands clasped behind the back
+    IC_IDLE_CLASP,                 // hands clasped in front
+    IC_FIDGET_WATCH, IC_FIDGET_SCRATCH, IC_FIDGET_TUG, IC_FIDGET_CHIN, IC_FIDGET_YAWN, IC_FIDGET_ARMS,   // upper body
+    IC_FIDGET_TAP, IC_FIDGET_ROCK,                                                                       // legs
+    // walk styles: IC_GAIT_FIRST + style * kGaitBands + band (gaitClip)
+    IC_GAIT_FIRST,
+    IC_GAIT_LAST = IC_GAIT_FIRST + GS_COUNT * kGaitBands - 1,
     IC_END
 };
+inline int gaitClip(int style, int band) { return IC_GAIT_FIRST + style * kGaitBands + band; }
 void sampleClipId(const Skeleton& skel, int ci, float t, Pose& out, u32 variationSeed);
 const ClipInfo& clipInfoId(int id);   // public or internal clip
+// Stance fraction of a locomotion clip's cycle (the left heel strikes at phase 0 and lifts off at the duty, the right
+// foot half a cycle later); 0 for clips that are not gaits.
+float clipDuty(int id);
+// Leg length of a skeleton relative to the male reference the locomotion clips' strides are given for
+// (ClipInfo::speed * duration; the female bakes cover the same stride per leg length).
+float skeletonLegScale(const Skeleton& sk);
+// Extra upper-arm abduction (rad) that keeps the hanging arms of a wider body as clear of its hips and thighs as the
+// clips' reference body's.
+float skeletonArmClearance(const Skeleton& sk);
 // Lip sync: mouth shape of a viseme (Oculus order) scaled by w -> out[6] (jaw, upper lip, lower lip, corner yaw,
 // corner pitch, tongue); applyMouthShape poses the speech bones (and the jaw when jaw >= 0).
 void visemeShape(int v, float w, float* out);
@@ -324,10 +354,27 @@ enum BottomKind {
     BOT_JEANS = 0, BOT_SHORTS, BOT_CARGO, BOT_SLACKS, BOT_SKIRT, BOT_TRUNKS, BOT_BIKINI, BOT_POLICE, BOT_BAGGY,
     BOT_LEGGINGS, BOT_WORK, BOT_HOTPANTS, BOT_COUNT
 };
-enum ShoeKind { SHOE_SNEAKER = 0, SHOE_DRESS, SHOE_BOOT, SHOE_SANDAL, SHOE_BARE, SHOE_FLATS, SHOE_RUNNER, SHOE_COUNT };
+enum ShoeKind { SHOE_SNEAKER = 0, SHOE_DRESS, SHOE_BOOT, SHOE_SANDAL, SHOE_BARE, SHOE_FLATS, SHOE_RUNNER, SHOE_LOAFER, SHOE_COUNT };
 enum HatKind { HAT_CAP = 0, HAT_CAP_BACK, HAT_POLICE, HAT_HARDHAT, HAT_SUNHAT, HAT_FEDORA, HAT_BEANIE, HAT_BANDANA, HAT_COUNT };
 enum GlassesKind { GL_SUN = 0, GL_AVIATOR, GL_READING, GL_COUNT };
 enum FacialHairKind { FH_STUBBLE = 0, FH_MUSTACHE, FH_GOATEE, FH_BEARD, FH_SHORTBEARD, FH_COUNT };
+enum OuterKind { OUT_OVERSHIRT = 0, OUT_ZIPHOODIE, OUT_CARDIGAN, OUT_JACKET, OUT_VEST, OUT_BLAZER, OUT_COUNT };
+enum BagKind { BAG_BACKPACK = 0, BAG_CROSSBODY, BAG_TOTE, BAG_COUNT };
+// CharacterDesc::extras bits
+enum : u32 {
+    ACC_BRACELET_L = 1u << 0, ACC_BRACELET_R = 1u << 1,   // bangles / beads / cord on the wrist
+    ACC_LANYARD = 1u << 2,                               // ID badge on a lanyard (office)
+    ACC_SUNGLASSES_UP = 1u << 3,                         // sunglasses pushed up on the head (needs glasses = -1)
+    ACC_ROLLED_SLEEVES = 1u << 4,                        // long sleeves rolled to the forearm (shirts, overshirts)
+    ACC_CUFFED_HEM = 1u << 5,                            // jeans / trousers turned up at the hem
+    ACC_WATCH = 1u << 6,                                 // wrist watch (left)
+    ACC_NECKLACE = 1u << 7,                              // chain / pendant
+    ACC_EARRINGS = 1u << 8,
+    ACC_HEADPHONES = 1u << 9,                            // over-ear headphones round the neck
+    // the bits were chosen explicitly (randomCharacter sets it); without it the builders draw the watch, chain and
+    // earrings from the seed as before (hand-made descs keep their look)
+    ACC_EXPLICIT = 1u << 30
+};
 
 // ------------------------------------------------------------------------------------------------
 // Head/face construction shared data (built in face.cpp, used by hair/clothing).
@@ -392,6 +439,27 @@ struct GarmentDef {
     std::function<vec3(const BVert&, vec3)> colFn;
     u32 parts = 0xffffffffu;                      // which body parts it can cover (bit per PART_*)
     bool swapUV = false;                          // hair: texture streaks along the flow
+    // ---- silhouette fit (clothing.cpp garmentFit), applied after the offsets: cloth hangs instead of shrink-wrapping
+    //  - torso hang: below hangTop the shell drops straight from the widest point above it (chest, bust, belly, shoulder
+    //    blades, seat) per column, drawing in by hangDrift metres per metre of drop (0 straight .. 0.4 close fitting);
+    //    hangWeight(theta) scales it per column (e.g. trousers hang from the seat at the back only)
+    float hangDrift = -1.f;                       // < 0: no hang
+    float hangTop = 0.f;
+    std::function<float(float)> hangWeight;
+    float hangFade0 = -1e9f, hangFade1 = -1e9f;   // the hang fades out from hangFade1 down to hangFade0 (a tucked hem)
+    //  - limb tubes: sleeves and trouser legs keep at least tubeR(v) from the limb axis (0: follow the body); the inner
+    //    side of a trouser leg stops short of the body's midplane
+    std::function<float(const BVert&)> tubeR;
+    // ---- folds after the fit: offset along the shell normal (m) and the crease channel (0..1, colour alpha = 1 - crease,
+    //      flagged by material parameter bit 2 for the cloth shader); refineTol > 0 splits shell edges where the folds are
+    //      under-sampled (deviation of the fold offset at an edge midpoint from the linear interpolation, m)
+    std::function<void(const BVert&, float&, float&)> foldFn;
+    float refineTol = 0.f;
+    bool facing = true;                           // loose openings (> 6 mm off the skin) get an inside facing instead of a rim to the skin
+    int cutRefine = 1;                            // levels of edge splits where the coverage is not linear across a skin triangle
+                                                  // (clean straps, corners and V-necks); 0 for thin stitch lines
+    float rimDepth = 0.f;                         // > 0: the hem rim goes this far in along the shell normal (decals sitting on
+                                                  // a garment) instead of down to the skin
 };
 struct OutfitCtx {
     BuildCtx& c;
@@ -406,9 +474,24 @@ struct OutfitCtx {
     std::vector<Layer> layers;
     // torso offsets of the already emitted top/bottom shells (so the next layer clears them at the waist)
     float botTorsoOff = 0.f, botTopZ = -1.f, topTorsoOff = 0.f;
+    // skin torso profile for the silhouette fits: row heights (ascending), torso axis y per row and the horizontal
+    // distance from the axis per row and grid column (profN columns, theta = 2 pi k / profN)
+    std::vector<float> profZ, profY, profR;
+    int profN = 0;
+    // outer layer / top offsets over the torso and the sleeves (the next layer out clears them)
+    float outerTorsoOff = 0.f, topSleeveR = 0.f;
+    float legHemZ = -1.f;             // height of a trouser hem (-1: the legs are bare below the bottoms)
+    // the outermost garment over the chest (top, then the outer layer): accessories that lie on the clothes (bag straps,
+    // lanyards, headphones) are placed on it
+    std::shared_ptr<GarmentDef> torsoOuter;
     OutfitCtx(BuildCtx& cc, MeshB& o, std::vector<u8>& h) : c(cc), out(o), hideBody(h) {}
 };
 bool emitGarment(OutfitCtx& o, const GarmentDef& g);
+// Whether CharacterDesc::outer goes with the top (clothing.cpp; suits, uniforms, swimwear and bare chests take none).
+bool outerFits(const CharacterDesc& d);
+// Build-time material parameter bit: detail geometry (stitch lines, seams) that the LODs drop (stripForLod); emitMesh
+// clears it.
+const u32 kParamLodDetail = 1u << 22;
 // Hair thickness (m) over a head grid vertex for the character's hairstyle (used by hats and hair).
 float hairVolumeAt(const BuildCtx& c, const BVert& v);
 // Hair and facial hair (emitted first so hats can hide it).

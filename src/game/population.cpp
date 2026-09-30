@@ -120,10 +120,10 @@ bool sidewalkAt(const GameWorld& g, vec2 probe, float maxDist, Side& s) {
     int link = g.laneGraph.nearestWalk(probe, maxDist, &x, &lat);
     if (link < 0) return false;
     const AI::WalkLink& L = g.laneGraph.walkLinks[link];
-    if (L.kind == AI::WL_CROSSWALK || L.length < 3.f) return false;
+    if (L.kind == AI::WL_CROSSWALK || L.kind == AI::WL_ZEBRA || L.length < 3.f) return false;
     s.link = link;
     s.x = Clamp(x, 0.8f, L.length - 0.8f);
-    s.halfWidth = L.kind == AI::WL_SIDEWALK ? L.halfWidth : 0.8f;
+    s.halfWidth = L.kind == AI::WL_SIDEWALK || L.kind == AI::WL_PATH ? L.halfWidth : 0.8f;
     s.pos = g.laneGraph.walkPos(link, s.x, 0.f, true);
     s.t = g.laneGraph.walkTangent(link, s.x, true);
     if (L.kind == AI::WL_SIDEWALK) {
@@ -256,6 +256,17 @@ void updateQueues(GameWorld& g, float dt, vec2 pp, bool night, bool warm) {
             g.ai.ped[i].actTimer = 15.f;
         }
     }
+    // walkers headed along the walkways for a door (venue streams across the airport forecourt): gone inside once there
+    for (int i = 0; i < (int)g.peds.size() && i < (int)g.ai.ped.size(); i++) {
+        Ped& p = g.peds[i];
+        PedAI& pa = g.ai.ped[i];
+        if (!p.used || p.persistent || pa.uid != p.uid || !pa.goInside) continue;
+        if (p.brain.type != BRAIN_WANDER || pa.activity != ACT_WALK || !pa.navOk || !pa.walk.hasDest) {
+            pa.goInside = false;   // (something else came up: an ordinary walker from here)
+            continue;
+        }
+        if (length(p.pos.toVec3().xy() - pa.walk.dest) < 2.2f) g.despawnPed(i);
+    }
     // walkers who reached the door disappear inside (travelers into the terminal too)
     for (int i = 0; i < (int)g.peds.size(); i++) {
         Ped& p = g.peds[i];
@@ -305,6 +316,8 @@ struct VenueSlot {
     float propYaw = 0.f;
     float propZ = 0.f;
     vec2 propOff;                // ... and the ped beside it: x to the vehicle's right (> 0) or left, y forward (from its box)
+    i8 carryCtx = -1;            // what they have in hand (carry.cpp): a pickCarry context (1 traveler, 5 angler, 6 birder) ...
+    u8 carryProp = CARRY_NONE;   // ... or this prop; neither: hands free (at work, smoking, on the phone)
     // runtime
     int ped = -1;
     u32 pedUid = 0;
@@ -335,6 +348,30 @@ struct VenueSet {
 VenueSet gVenues;
 
 bool venueHours(float tod, float h0, float h1) { return h0 <= h1 ? (tod >= h0 && tod < h1) : (tod >= h0 || tod < h1); }
+
+// In hand (carry.cpp draws it): a prop of their own, or hands free - no prop and none of the street defaults either
+// (carry.cpp draws nothing for a value past the last prop)
+const u8 kCarryHandsFree = CARRY_COUNT;
+
+// what someone walking these streets carries: the office crowd a briefcase or a coffee, the beach crowd now and then a
+// surfboard, sightseers and the shopping streets bags, travelers at the airport their luggage; joggers and beat cops
+// nothing, a worker now and then a coffee; everyone else the street default
+u8 ambientCarry(const GameWorld& g, u32 uid, u8 role, World::Region reg, float tod) {
+    switch (role) {
+        case PR_BUSINESS: return g.pickCarry(uid, 3);
+        case PR_BEACH: return g.pickCarry(uid, 4);
+        case PR_TOURIST: return g.pickCarry(uid, 2);
+        case PR_JOGGER:
+        case PR_COP: return kCarryHandsFree;
+        case PR_WORKER: return hash32(uid * 31u + 7u) % 5u == 0 ? (u8)CARRY_COFFEE : kCarryHandsFree;
+        default: break;
+    }
+    if (reg == World::REG_AIRPORT) return g.pickCarry(uid, 1);
+    bool shops = reg == World::REG_CALLE_LUNA || reg == World::REG_MIDTOWN || reg == World::REG_KEY_TOWN || reg == World::REG_LAKE_TOWN ||
+                 reg == World::REG_GULF_TOWN;
+    if (shops && tod > 9.f && tod < 21.f) return g.pickCarry(uid, 2);
+    return CARRY_NONE;
+}
 
 // the level people stand at here: a pad (plazas, aprons, decks), the road or sidewalk surface, else the terrain
 float venueStandZ(const GameWorld& g, vec2 p) {
@@ -483,13 +520,16 @@ void buildVenues(GameWorld& g) {
             if (k == 0) {
                 V.slots.push_back(mkSlot(r.c + f * (xf - 3.f) + left * 1.95f, left, VM_PHONE, VL_CIVIL, 5.f, 21.f, 0.9f));   // at the driver's door
             } else if (k == 1) {
-                V.slots.push_back(mkSlot(r.c + f * (xf + 1.5f) + left * 0.4f, f, VM_STAND, VL_CIVIL, 5.f, 21.f, 0.85f));   // eyes on the gate
+                VenueSlot s = mkSlot(r.c + f * (xf + 1.5f) + left * 0.4f, f, VM_STAND, VL_CIVIL, 5.f, 21.f, 0.85f);   // eyes on the gate
+                s.carryProp = CARRY_COFFEE;
+                V.slots.push_back(s);
             } else if (k == 2 && k + 1 < rigs.size()) {
                 // two drivers in front of their cabs, passing the time
                 const World::SiteElem& r2 = *rigs[k + 1];
                 vec2 mid = (r.c + f * xf + r2.c + r2.ax * bumper(r2)) * 0.5f + f * 1.7f;
                 vec2 across = normalize(r2.c - r.c + vec2(1e-4f, 0.f));
                 VenueSlot a = mkSlot(mid - across * 0.5f, across, VM_TALK, VL_CIVIL, 5.f, 21.f, 0.8f);
+                a.carryProp = CARRY_COFFEE;
                 VenueSlot b = mkSlot(mid + across * 0.5f, -across, VM_TALK, VL_WORKER, 5.f, 21.f, 1.f);
                 b.follows = true;
                 V.slots.push_back(a);
@@ -581,11 +621,13 @@ void buildVenues(GameWorld& g) {
             float y = Lerp(y0, y1, (k + 0.5f) / 5.f);
             float door = y + ((k & 1) ? 6.f : -6.f);
             VenueSlot in = mkSlot(vec2(curbX - 0.8f, y + 3.f), west, VM_TRAVEL_IN, VL_TRAVELER, 5.f, 23.5f, 1.f);
+            in.carryCtx = 1;
             in.pos2 = vec2(fx + 0.8f, door);
             in.every = 16.f + k * 4.f;
             V.slots.push_back(in);
             if (k % 2 == 0) {
                 VenueSlot out = mkSlot(vec2(curbX - 1.2f, y - 4.f), east, VM_TRAVEL_OUT, VL_TRAVELER, 5.f, 23.5f, 0.9f);
+                out.carryCtx = 1;
                 out.pos2 = vec2(fx + 0.8f, door + 3.f);
                 out.every = 24.f + k * 4.f;
                 V.slots.push_back(out);
@@ -609,6 +651,7 @@ void buildVenues(GameWorld& g) {
             if (k != 1) {
                 // a drop-off: the traveler (the car goes with them) and the driver who brought them
                 VenueSlot a = mkSlot(vec2(curbX - 0.3f, y - 0.42f), north, VM_FAREWELL, VL_TRAVELER, 6.f, 22.f, 0.85f);
+                a.carryCtx = 1;
                 a.pos2 = vec2(fx + 0.8f, y + 2.f);   // the traveler goes in through the doors
                 a.prop = VP_CAR;
                 a.propPos = car - cf * 0.6f;
@@ -626,6 +669,7 @@ void buildVenues(GameWorld& g) {
                 c.propYaw = cyaw;
                 c.tight = true;
                 VenueSlot d = mkSlot(vec2(curbX - 0.55f, y + 0.4f), east, VM_MEET, VL_TRAVELER, 7.f, 23.f, 1.f);
+                d.carryCtx = 1;
                 d.follows = true;
                 d.walkIn = true;
                 d.pos2 = vec2(fx + 0.8f, y - 5.f);
@@ -635,6 +679,14 @@ void buildVenues(GameWorld& g) {
         }
         V.slots.push_back(mkSlot(vec2(fx + 6.f, (y0 + y1) * 0.5f), east, VM_GUARD, VL_WORKER, 0.f, 24.f, 1.f));
         V.slots.push_back(mkSlot(vec2(fx + 7.f, y0 + 14.f), east, VM_GUARD, VL_WORKER, 0.f, 24.f, 0.7f));
+        // the east plaza between the drive and garage 1: the garage's glass stair / lift tower on the plaza (airport.cpp
+        // genGarageRamp: 3.5 m in front of the garage wall, 26 m from its south end, 7 x 12 m) is where people come out
+        // of and go into; the kerb bollards stand every 2.4 m along it
+        const World::SiteElem* gar = findElem(World::SK_GARAGE_RAMP, -1, vec2(913.f, 1231.f), 150.f);
+        const World::SiteElem* kerbE = findElem(World::SK_FORECOURT, 0, vec2(751.f, 1337.f), 80.f);
+        bool towerOk = gar && gar->pts.size() >= 2;
+        vec2 tower = towerOk ? vec2(gar->pts[0].x - 3.5f, gar->pts[0].y + 26.f) : vec2(0.f);
+        vec2 towerDoor = tower - vec2(4.3f, 0.f);   // just out from the glass front, facing the drive
         // the taxi rank on the east plaza (airport.cpp genForecourt variant 1: shelter facing the kerb, TAXI totem at its
         // kerb end, queue belts in front of it)
         if (const World::SiteElem* sh = findElem(World::SK_FORECOURT, 1, vec2(760.f, 1250.f), 300.f)) {
@@ -657,6 +709,7 @@ void buildVenues(GameWorld& g) {
                     vec2 cp = g.laneGraph.lanePos(ln, uc).xy();
                     // the drivers: the front one leaning on his cab by the door, the next two chatting between theirs
                     VenueSlot s = mkSlot(cp, rt, k == 0 ? VM_LEAN : VM_TALK, VL_CIVIL, 0.f, 24.f, k == 0 ? 1.f : 0.9f);
+                    if (k == 1) s.carryProp = CARRY_COFFEE;
                     s.prop = VP_TAXI;
                     s.propPos = cp;
                     s.propYaw = AI::dirYaw(g.laneGraph.laneTangent(ln, uc));
@@ -675,8 +728,9 @@ void buildVenues(GameWorld& g) {
                 vec2 qa = sh->c + face * 1.0f - rt * 2.9f;
                 for (int k = 0; k < 4; k++) {
                     VenueSlot q = mkSlot(qa + rt * (1.25f * k), -rt, VM_QUEUE, VL_TRAVELER, 5.f, 24.f, k < 3 ? 0.95f : 0.7f);
+                    q.carryCtx = 1;
                     q.walkIn = true;
-                    q.pos2 = sh->c - face * 4.3f + rt * 12.f;   // from the garage frontage
+                    q.pos2 = towerOk && length(towerDoor - sh->c) < 40.f ? towerDoor + vec2(0.f, -2.f - 0.8f * k) : sh->c - face * 3.f + rt * 9.f;   // out of the garage
                     V.slots.push_back(q);
                     V.qn++;
                 }
@@ -685,11 +739,76 @@ void buildVenues(GameWorld& g) {
         if (const World::SiteElem* tc = findElem(World::SK_FORECOURT, 2, vec2(761.f, 1212.f), 60.f)) {
             vec2 X = tc->ax, Y = perp(tc->ax);
             // someone on the phone by the trolley corral; a trolley collector working between the corral and the rank
-            V.slots.push_back(mkSlot(tc->c + Y * 2.6f + X * 1.5f, -Y, VM_PHONE, VL_TRAVELER, 6.f, 23.f, 0.7f));
+            VenueSlot ph = mkSlot(tc->c + Y * 2.6f + X * 1.5f, -Y, VM_PHONE, VL_TRAVELER, 6.f, 23.f, 0.7f);
+            ph.carryCtx = 1;
+            V.slots.push_back(ph);
             VenueSlot tr = mkSlot(tc->c + Y * 4.2f - X * 4.6f, -X, VM_PACE, VL_WORKER, 6.f, 23.f, 0.85f);
             tr.pos2 = tc->c + Y * 4.6f + X * 20.f;
             tr.yaw2 = AI::dirYaw(X);
             V.slots.push_back(tr);
+        }
+        if (towerOk && kerbE && fabsf(kerbE->a.x - towerDoor.x) < 12.f) {
+            // north of the stair tower: a kerb officer keeping the drive moving, the ride-share pick-up (people out of the
+            // garage tower to the kerb, on the phone until their ride - a cab - comes by), a pick-up (a car waiting at the
+            // kerb with its hazards on, the driver beside it, the one they came for walking out of the tower to them), and
+            // a smoke by the garage wall before going in
+            float bx = kerbE->a.x, by0 = Min(kerbE->a.y, kerbE->b.y);
+            auto gapE = [&](float y) { return by0 + 2.4f * floorf((y - by0) / 2.4f) + 1.2f; };
+            float ty = tower.y;
+            V.slots.push_back(mkSlot(vec2(bx + 1.2f, gapE(ty + 7.f)), west, VM_GUARD, VL_WORKER, 6.f, 23.f, 1.f));
+            for (int k = 0; k < 2; k++) {
+                VenueSlot w = mkSlot(vec2(bx + 1.3f + 0.3f * k, gapE(ty + 14.f + 5.f * k)), west, VM_TRAVEL_OUT, VL_TRAVELER, 5.f, 23.5f, 0.85f);
+                w.carryCtx = 1;
+                w.pos2 = towerDoor + vec2(0.f, k ? 2.f : -1.f);
+                w.every = 38.f + 14.f * k;
+                V.slots.push_back(w);
+            }
+            {
+                float y = gapE(ty + 33.f);
+                float u = 0.f;
+                int ln = g.laneGraph.nearestLane(vec2(bx - 4.f, y), north, 5.f, &u);
+                for (int guard = 0; guard < 4 && ln >= 0 && g.laneGraph.lanes[ln].right >= 0; guard++) ln = g.laneGraph.lanes[ln].right;
+                if (ln >= 0) u = g.laneGraph.projectPath(ln, vec2(bx - 4.f, y), u, nullptr);
+                if (ln >= 0 && g.laneGraph.laneTangent(ln, u).y > 0.8f) {
+                    vec2 car = g.laneGraph.lanePos(ln, u).xy();
+                    vec2 cf = g.laneGraph.laneTangent(ln, u);
+                    VenueSlot c = mkSlot(vec2(bx + 1.1f, y + 0.4f), towerDoor - vec2(bx + 1.1f, y + 0.4f), VM_MEET, VL_CIVIL, 7.f, 23.f, 0.85f);
+                    c.prop = VP_CAR;
+                    c.propPos = car - cf * 0.6f;
+                    c.propYaw = AI::dirYaw(cf);
+                    c.tight = true;
+                    VenueSlot d = mkSlot(vec2(bx + 1.8f, y + 0.4f), west, VM_MEET, VL_TRAVELER, 7.f, 23.f, 1.f);
+                    d.carryCtx = 1;
+                    d.follows = true;
+                    d.walkIn = true;
+                    d.pos2 = towerDoor + vec2(0.f, 4.f);
+                    V.slots.push_back(c);
+                    V.slots.push_back(d);
+                }
+            }
+            V.slots.push_back(mkSlot(tower + vec2(2.3f, 10.5f), vec2(-1.2f, 0.9f), VM_SMOKE, VL_BUSINESS, 6.f, 23.f, 0.8f));
+            VenueSlot mate = mkSlot(tower + vec2(1.1f, 11.4f), east, VM_TALK, VL_TRAVELER, 6.f, 23.f, 1.f);
+            mate.carryCtx = 1;
+            mate.follows = true;
+            V.slots.push_back(mate);
+        }
+        if (towerOk && World::gSites) {
+            // between the garage and the terminal: along the walkway from the stair tower over the zebras and the refuge
+            // on the median to the terminal doors (sites.cpp airport walks), and back - when the walkway is there
+            bool linked = false;
+            for (const World::SiteWalk& w : World::gSites->walks)
+                linked |= w.kind == World::SW_CROSSING && fabsf(w.a.y - tower.y) < 6.f && Min(w.a.x, w.b.x) > fx && Max(w.a.x, w.b.x) < towerDoor.x;
+            if (linked) {
+                vec2 termDoor(fx + 0.8f, tower.y);
+                for (int k = 0; k < 2; k++) {
+                    VenueSlot r = mkSlot(k ? towerDoor : termDoor, k ? east : west, VM_ROUTE, VL_TRAVELER, 5.f, 23.5f, 0.95f);
+                    r.pos2 = k ? termDoor : towerDoor;   // (where they come out)
+                    r.every = 26.f + 10.f * k;
+                    r.carryCtx = 1;
+                    r.tight = true;
+                    V.slots.push_back(r);
+                }
+            }
         }
         finish(V);
     }
@@ -735,6 +854,7 @@ void buildVenues(GameWorld& g) {
                     vec2 spot = c3.xy() + r * ((float)side * edge);
                     int mode = k % 4 == 3 ? VM_WORK : (k % 5 == 4 ? VM_SIT : VM_WATCH);
                     VenueSlot s = mkSlot(spot, r * (float)side, (u8)mode, k % 2 ? VL_BEACH : VL_CIVIL, 5.f, 19.5f, 0.85f);
+                    s.carryCtx = 5;   // (a rod)
                     s.tight = true;
                     V.slots.push_back(s);
                     placed++;
@@ -743,6 +863,7 @@ void buildVenues(GameWorld& g) {
                         VenueSlot b1 = mkSlot(c3.xy() + t * 7.f + r * ((float)side * edge), r * (float)side + t * 0.4f, VM_SPOTTER, VL_CIVIL, 5.3f, 10.5f, 0.9f);
                         VenueSlot b2 = mkSlot(c3.xy() + t * 7.9f + r * ((float)side * edge), r * (float)side - t * 0.4f, VM_SPOTTER, VL_BEACH, 5.3f, 10.5f, 1.f);
                         b1.tight = b2.tight = true;
+                        b1.carryCtx = b2.carryCtx = 6;   // (binoculars)
                         b2.follows = true;
                         V.slots.push_back(b1);
                         V.slots.push_back(b2);
@@ -754,7 +875,9 @@ void buildVenues(GameWorld& g) {
             for (int k = 0; k < 3; k++) {
                 float a = 2.4f + k * 0.9f;
                 vec2 off(cosf(a), sinf(a));
-                V.slots.push_back(mkSlot(tower->c + off * (tower->hx + 2.5f + k * 1.2f), off, VM_SPOTTER, k == 1 ? VL_CIVIL : VL_BEACH, 5.3f, 10.5f, 0.85f));
+                VenueSlot b = mkSlot(tower->c + off * (tower->hx + 2.5f + k * 1.2f), off, VM_SPOTTER, k == 1 ? VL_CIVIL : VL_BEACH, 5.3f, 10.5f, 0.85f);
+                b.carryCtx = 6;
+                V.slots.push_back(b);
             }
         }
         if (const World::SiteElem* dock = findElem(World::SK_DOCK, -1, V.c, 400.f)) {
@@ -763,8 +886,11 @@ void buildVenues(GameWorld& g) {
             vec2 d = dock->ax, n = perp(dock->ax);
             vec2 top = dock->c - d * 4.6f;
             V.slots.push_back(mkSlot(top + n * 1.9f, d, VM_STAND, VL_CIVIL, 6.5f, 18.5f, 0.95f));
-            for (int k = 0; k < 2; k++)
-                V.slots.push_back(mkSlot(top - d * (2.2f + k * 0.9f) - n * (1.2f + k * 0.7f), k ? n : d, k ? VM_PHONE : VM_TALK, VL_BEACH, 8.f, 17.5f, 0.6f));
+            for (int k = 0; k < 2; k++) {
+                VenueSlot r = mkSlot(top - d * (2.2f + k * 0.9f) - n * (1.2f + k * 0.7f), k ? n : d, k ? VM_PHONE : VM_TALK, VL_BEACH, 8.f, 17.5f, 0.6f);
+                if (!k) r.carryProp = CARRY_COFFEE;
+                V.slots.push_back(r);
+            }
         }
         finish(V);
     }
@@ -1037,7 +1163,7 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
             }
             // where they appear: travelers heading out come through a door (fine in view), walk-ins from where they come
             // from when their spot is in view, everyone else out of sight
-            bool out = s.mode == VM_TRAVEL_OUT;
+            bool out = s.mode == VM_TRAVEL_OUT || s.mode == VM_ROUTE;   // (they start at a door: fine in view)
             vec2 at = out ? s.pos2 : s.pos;
             float atZ = s.z;
             float faceYaw = s.yaw;
@@ -1082,6 +1208,30 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
             p.brain.type = BRAIN_WANDER;
             p.brain.edge = -1;
             pa.role = s.look == VL_WORKER ? PR_WORKER : (s.look == VL_BUSINESS ? PR_BUSINESS : (s.look == VL_BEACH ? PR_BEACH : PR_CIVILIAN));
+            // in hand: the slot's own prop, one for the place (luggage, a rod, binoculars) or nothing (at work)
+            p.carry = s.carryProp != CARRY_NONE ? s.carryProp : (s.carryCtx >= 0 ? g.pickCarry(p.uid, (int)s.carryCtx) : kCarryHandsFree);
+            if (s.mode == VM_ROUTE) {
+                // along the walkways to the far door (pednav: the zebras on the way wait for the traffic) and inside
+                pa.activity = ACT_WALK;
+                pa.venue = -1;
+                if (g.pedNav.place(pa.walk, at, p.uid * 2654435761u + 7u, 6.f)) {
+                    const AI::WalkLink& L = g.laneGraph.walkLinks[pa.walk.link];
+                    vec2 ea = g.laneGraph.walkNodes[L.a].p.xy(), eb = g.laneGraph.walkNodes[L.b].p.xy();
+                    bool towardB = length(eb - s.pos) < length(ea - s.pos);
+                    if (pa.walk.fromA != towardB) {
+                        pa.walk.fromA = towardB;
+                        pa.walk.x = Max(L.length - pa.walk.x, 0.f);
+                    }
+                    pa.walk.hasDest = true;
+                    pa.walk.dest = s.pos;
+                    pa.walk.speed = 1.2f + hashToFloat(hash32(h + 9u)) * 0.3f;
+                    pa.navOk = true;
+                    pa.goInside = true;
+                    p.brain.edge = pa.walk.link;
+                }
+                s.cooldown = s.every * (0.7f + hashToFloat(hash32(h + 3u)) * 0.6f);
+                continue;   // (a stream)
+            }
             if (s.mode == VM_TRAVEL_IN) {
                 // off to the door and inside (population's door walkers)
                 pa.activity = ACT_ENTER_VEH;
@@ -1118,10 +1268,13 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
                 case VM_SEEOFF: pa.stance = 7; break;
                 default: pa.stance = 0; break;
             }
+            // (the phone goes to the right ear, and a suitcase, a cup or a rod is held in the right hand: with one of
+            //  those, wait standing instead - bags and cases hang from the left)
+            if (pa.stance == 8 && p.carry != CARRY_NONE && p.carry < CARRY_COUNT && p.carry != CARRY_SHOPBAG && p.carry != CARRY_BRIEFCASE) pa.stance = 23;
             // how long before the next move: pacing legs, the wait at the curb, a goodbye, a spell of work
             pa.actTimer = s.mode == VM_PACE ? 8.f + hashToFloat(hash32(h + 21u)) * 18.f
                         : s.mode == VM_TRAVEL_OUT ? 25.f + hashToFloat(hash32(h + 21u)) * 40.f
-                        : s.mode == VM_FAREWELL ? 14.f + hashToFloat(hash32(h + 21u)) * 16.f
+                        : s.mode == VM_FAREWELL ? 26.f + hashToFloat(hash32(h + 21u)) * 22.f
                         : s.mode == VM_WORK ? 4.f + hashToFloat(hash32(h + 21u)) * 8.f
                                               : 1e5f;
             if (s.follows && si > 0 && venuePedLive(g, V.slots[si - 1])) {
@@ -1578,6 +1731,7 @@ void GameWorld::updatePopulation(float dt) {
                 p.brain.edge = -1;
                 PedAI& pa = pedAI(id);
                 pa.role = PR_BEACH;
+                p.carry = kCarryHandsFree;   // (lying on a towel)
                 pa.activity = ACT_SCENARIO;
                 pa.anchor = sp;
                 pa.anchorYaw = p.yaw;
@@ -1623,6 +1777,7 @@ void GameWorld::updatePopulation(float dt) {
                     p.brain.edge = -1;
                     PedAI& pa = pedAI(id);
                     pa.role = PR_BEACH;
+                    p.carry = kCarryHandsFree;   // (in the water)
                     pa.activity = ACT_SCENARIO;
                     pa.anchor = q;
                     pa.anchorYaw = n == 2 ? faceShore + (k ? -1.4f : 1.4f) : faceShore + kPi * ((h >> 12) & 1);   // facing each other / the waves
@@ -1858,6 +2013,7 @@ void GameWorld::updatePopulation(float dt) {
                 pa.role = role;
                 pa.activity = ACT_WALK;
                 if (beat) equipCop(id);
+                p.carry = ambientCarry(*this, p.uid, role, sreg, tod);
                 pa.actTimer = 8.f + hashToFloat(hash32(h * 17u)) * 25.f;
                 if (kind == PK_WALL) {
                     pa.activity = ACT_SCENARIO;
@@ -1908,6 +2064,7 @@ void GameWorld::updatePopulation(float dt) {
                             if (beat) equipCop(fid);
                             peds[fid].brain.type = BRAIN_WANDER;
                             peds[fid].brain.edge = -1;
+                            peds[fid].carry = ambientCarry(*this, peds[fid].uid, role, sreg, tod);
                             PedAI& fa = pedAI(fid);
                             fa.role = role;
                             fa.activity = ACT_WALK;
@@ -1982,6 +2139,15 @@ void GameWorld::updatePopulation(float dt) {
         }
         if (!traffic.laneFree(lane, u, spec.boxHalf.y, 5.f)) continue;
         if (pv >= 0 && length(vehicles[pv].sim.body.pos.toVec3().xy() - c.xy()) < 10.f) continue;
+        // a queue just ahead in the lane (a light, a jam, the foot of a ramp): in slow enough to stop behind it
+        float queueCap = 1e9f;
+        for (float ahead = 8.f; ahead <= 56.f; ahead += 8.f) {
+            if (u + ahead > L.u1) break;
+            if (!traffic.laneFree(lane, u + ahead, 1.f, 1.f)) {
+                queueCap = sqrtf(2.f * 3.f * Max(ahead - spec.boxHalf.y - 7.f, 0.f));
+                break;
+            }
+        }
         bool cop = spec.cls == Vehicles::VC_POLICE;
         bool medic = spec.cls == Vehicles::VC_AMBULANCE || spec.cls == Vehicles::VC_FIRETRUCK;
         Faction fac = cop ? FAC_POLICE : (medic ? FAC_MEDIC : FAC_CIVILIAN);
@@ -2028,6 +2194,7 @@ void GameWorld::updatePopulation(float dt) {
         else if (spec.cls == Vehicles::VC_FIRETRUCK) va.role = VR_FIRETRUCK;
         float v0 = Min(L.speed, 16.f) * (0.55f + hashToFloat(hash32(h * 11u)) * 0.3f);
         v0 = Min(v0, sqrtf(2.f * 3.f * Max(L.u1 - u - 8.f, 1.f)));   // able to stop comfortably at the lane end
+        v0 = Min(v0, queueCap);
         v.sim.body.vel = vec3(t * v0, 0.f);
         // far and unseen: start as a kinematic dummy right away (no physics until it comes near)
         if (d > 215.f && !inCameraView(c, 4.f)) traffic.toDummy(vid, v.sim);

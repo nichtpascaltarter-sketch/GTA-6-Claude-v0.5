@@ -42,6 +42,35 @@ vec2 PedCore::target(const Walker& w, float ahead) const {
 
 bool PedCore::crossingClear(const Walker& w, int link) const {
     const WalkLink& L = g->walkLinks[link];
+    if (L.kind == WL_ZEBRA) {
+        // a zebra: the traffic stops for anyone on it (traffic_core.cpp) - step off once whatever is coming can stop in
+        // time, nothing is rolling over the stripes and the car nearest has seen us (a moment at the kerb)
+        if (!traffic) return true;
+        if (w.waitTimer < 0.8f) return false;
+        vec2 a = g->walkNodes[L.a].p.xy(), b = g->walkNodes[L.b].p.xy();
+        vec2 c = (a + b) * 0.5f;
+        vec2 across = normalize(b - a + vec2(1e-4f, 0.f));
+        vec2 along = vec2(-across.y, across.x);
+        float halfW = L.length * 0.5f + 1.f;
+        bool clear = true;
+        float r = 60.f;
+        traffic->hash.query(traffic->bodies, c - vec2(r), c + vec2(r), [&](int bi) {
+            if (!clear) return;
+            const Body& bd = traffic->bodies[bi];
+            if (bd.kind != BK_CAR) return;
+            vec2 rel = bd.pos - c;
+            if (fabsf(dot(rel, across)) > halfW + 1.f) return;
+            float lon = dot(rel, along), vlon = dot(bd.vel, along);
+            float dist = fabsf(lon) - bd.halfLen - L.halfWidth - 0.5f;
+            float closing = lon > 0.f ? -vlon : vlon;
+            if (dist < 1.f && bd.speed > 0.5f) clear = false;                                         // on the stripes, moving
+            else if (closing > 1.f && dist < closing * closing / (2.f * 3.5f) + closing * 0.6f + 2.f) clear = false;   // could not stop
+            // a car already waiting at the stripes goes first once they are clear (people take turns with the traffic
+            // instead of streaming over for ever) - unless it has been standing there a long while (a jam: walk past it)
+            else if (dist < 2.5f && bd.speed < 0.5f && w.waitTimer < 12.f) clear = false;
+        });
+        return clear;
+    }
     if (L.kind != WL_CROSSWALK) return true;
     PedSignal ps = g->pedSignal(L.node, L.approach, time);
     if (ps == PED_WALK) return true;
@@ -87,10 +116,11 @@ void PedCore::chooseNext(Walker& w, int nodeId) {
         if (n >= 12) break;
         if (l == came && N.links.size() > 1) continue;
         const WalkLink& L = g->walkLinks[l];
-        float wt = L.kind == WL_SIDEWALK ? 1.f : (L.kind == WL_CORNER ? 0.75f : 0.4f);
-        if (L.kind == WL_CROSSWALK && w.avoidCrossing) wt *= 0.05f;
+        bool crossing = L.kind == WL_CROSSWALK || L.kind == WL_ZEBRA;
+        float wt = L.kind == WL_SIDEWALK || L.kind == WL_PATH ? 1.f : (L.kind == WL_CORNER ? 0.75f : (L.kind == WL_ZEBRA ? 0.6f : 0.4f));
+        if (crossing && w.avoidCrossing) wt *= 0.05f;
         // avoid immediately walking back across the street we just crossed
-        if (L.kind == WL_CROSSWALK && came >= 0 && g->walkLinks[came].kind == WL_CROSSWALK) wt *= 0.1f;
+        if (crossing && came >= 0 && (g->walkLinks[came].kind == WL_CROSSWALK || g->walkLinks[came].kind == WL_ZEBRA)) wt *= 0.1f;
         if (w.hasDest) {
             int other = L.a == nodeId ? L.b : L.a;
             float d0 = length(N.p.xy() - w.dest), d1 = length(g->walkNodes[other].p.xy() - w.dest);
@@ -124,7 +154,7 @@ void PedCore::chooseNext(Walker& w, int nodeId) {
     w.link = pick;
     w.fromA = P.a == nodeId;
     w.x = 0.f;
-    if (P.kind == WL_CROSSWALK) {
+    if (P.kind == WL_CROSSWALK || P.kind == WL_ZEBRA) {
         w.state = WS_WAIT_CROSS;
         w.waitTimer = 0.f;
         w.lat = Clamp(w.lat, -P.halfWidth, P.halfWidth);
@@ -158,7 +188,7 @@ vec2 PedCore::step(Walker& w, vec2 pos, float dt, int selfBody, float* faceYaw) 
             w.avoidCrossing = true;
             w.link = -1;
             for (int l : g->walkNodes[node].links)
-                if (g->walkLinks[l].kind != WL_CROSSWALK) {
+                if (g->walkLinks[l].kind != WL_CROSSWALK && g->walkLinks[l].kind != WL_ZEBRA) {
                     w.link = l;
                     w.fromA = g->walkLinks[l].a == node;
                     w.x = 0.f;
@@ -198,7 +228,7 @@ vec2 PedCore::step(Walker& w, vec2 pos, float dt, int selfBody, float* faceYaw) 
     if (w.x >= L.length) {
         int node = w.fromA ? L.b : L.a;
         w.x = L.length;
-        if (L.kind == WL_CROSSWALK) w.avoidCrossing = false;
+        if (L.kind == WL_CROSSWALK || L.kind == WL_ZEBRA) w.avoidCrossing = false;
         chooseNext(w, node);
         if (w.link < 0) return vec2(0, 0);
         if (w.state == WS_WAIT_CROSS) return vec2(0, 0);
