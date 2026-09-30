@@ -232,6 +232,7 @@ void csSkySH(uint gi : SV_GroupIndex) {
             float Eclear = luminance(mainLightIlluminance()) * saturate(gSunDir.z) + luminance(zen) * PI;
             float Loc = Eclear * 0.16 / PI * (1.0 + 2.0 * d.z) / 2.0 * (1.0 - gWeather2.y * 0.55);
             L = lerp(L, float3(0.92, 0.95, 1.0) * Loc, gWeather2.x);
+            L += cityGlowRadiance(d) * gWeather2.x * 2.0;   // a low deck reflects the city's light back down
         }
         if (d.z < 0.0) {
             // Below the horizon: radiance of the sunlit/skylit ground (average urban albedo), warm bounce
@@ -243,6 +244,7 @@ void csSkySH(uint gi : SV_GroupIndex) {
             skyIrr *= PI;
             float3 sunIrr = mainLightIlluminance() * saturate(gSunDir.z) * 0.8 * (1.0 - gWeather2.x * 0.85);  // city + cloud occlusion
             L = groundAlbedo * (skyIrr + sunIrr) / PI;
+            L += float3(1.0, 0.62, 0.36) * gSkyGlow.x * gSkyGlow.w * 0.05;   // street-lit ground at night
         }
         float w = 4.0 * PI / 1024.0;
         acc[0] += L * 0.282095 * w;

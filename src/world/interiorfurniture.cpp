@@ -298,7 +298,7 @@ void nightstand(IB& b, vec3 p, float yaw, u32 col, int room, u32 seed) {
     tableLamp(b, vec3(-0.08f, -0.03f, 0.58f), room, C(hsv(r.f(), 0.3f, 0.8f)), C(0.95f, 0.9f, 0.8f));
     // clock with glowing digits
     rbox(b, vec3(0.12f, 0.08f, 0.62f), vec3(0.06f, 0.03f, 0.035f), 0.01f, Gy(0.08f), M(MAT_PLASTIC), true);
-    text(b, "7:45", vec3(0.075f, 0.111f, 0.605f), vec3(1, 0, 0), vec3(0, 0, 1), 0.03f, 0.005f, C(1.f, 0.15f, 0.1f, 0.8f), EM());
+    textC(b, "7:45", vec3(0.12f, 0.111f, 0.62f), vec3(-1, 0, 0), vec3(0, 0, 1), 0.03f, 0.005f, C(1.f, 0.15f, 0.1f, 0.8f), EM());
     box(b, vec3(0.1f, -0.1f, 0.6f), vec3(0.08f, 0.11f, 0.02f), C(hsv(r.f(), 0.6f, 0.5f)), M(MAT_FABRIC), SK_NZ);
     collide(b, vec3(0, 0, 0.29f), vec3(0.24f, 0.2f, 0.29f));
 }
@@ -412,7 +412,6 @@ void kitchenRun(IB& b, vec3 p, float yaw, float len, u32 cabCol, u32 topCol, boo
         box(b, vec3(sx, dp - 0.01f, 0.4f), vec3(sw - 0.04f, 0.012f, 0.25f), Gy(0.12f), M(MAT_PLASTIC), SK_NZ | SK_NY);
         box(b, vec3(sx, dp + 0.004f, 0.42f), vec3(sw - 0.1f, 0.002f, 0.13f), C(0.12f, 0.1f, 0.08f), M(MAT_GLASS), SK_NZ);
         tube(b, vec3(sx - sw + 0.08f, dp + 0.04f, 0.67f), vec3(sx + sw - 0.08f, dp + 0.04f, 0.67f), 0.012f, 8, Gy(0.85f), M(MAT_CHROME), true);
-        for (int k = 0; k < 4; k++) cyl(b, vec3(sx - sw + 0.1f + k * (sw * 2.f - 0.2f) / 3.f, dp + 0.002f, 0.8f), 0.02f, 0.018f, 0.0f, 10, Gy(0.2f), M(MAT_PLASTIC), true);
         for (int k = 0; k < 4; k++) {
             b.pushAxes(vec3(sx - sw + 0.1f + k * (sw * 2.f - 0.2f) / 3.f, dp - 0.01f, 0.8f), vec3(1, 0, 0), vec3(0, 0, -1), vec3(0, 1, 0));
             cyl(b, vec3(0.f), 0.022f, 0.02f, 0.03f, 10, Gy(0.15f), M(MAT_PLASTIC), true);
@@ -580,7 +579,7 @@ void ceilingFan(IB& b, vec3 top, int room, u32 bladeCol, float cd = 120.f) {
         b.pop();
     }
     sphere(b, vec3(0, 0, -0.58f), 0.09f, 10, C(1.f, 0.93f, 0.8f, 0.8f), EM(), 0.8f);
-    light(b, vec3(0, 0, -0.62f), vec3(1.f, 0.82f, 0.6f) * cd, 5.5f, room);
+    if (cd > 0.f) light(b, vec3(0, 0, -0.62f), vec3(1.f, 0.82f, 0.6f) * cd, 5.5f, room);
 }
 
 // Wall clock (face +y)

@@ -1512,7 +1512,7 @@ public:
                     g.mCutscene(shots);
                     say(g, CAST_CUERVO, cuervo, "[angry:0.7]Go ahead, Ortega. Pull the trigger. See what happens to your little street.");
                     sayMe(g, "[angry]You don't get to burn us out. Not you. Not Sandoval.");
-                    say(g, CAST_HOLT, holt, "[shout]Porto Sol PD! Weapons down. Step away from the suspect.");
+                    say(g, CAST_HOLT, holt, "[megaphone][shout]Porto Sol PD! Weapons down. Step away from the suspect.");
                     sayMe(g, "[angry:0.5]Captain Holt. Funny. Your officers never answer calls from Calle Luna.");
                     say(g, CAST_HOLT, holt, "[calm]I'll take it from here, Ms. Ortega. Go home. This neighborhood is changing. Change with it.");
                     sayP(g, 1, dex, "[calm]Mari. Let it go. Not tonight.");

@@ -1,6 +1,9 @@
 // Gameplay layer (unity include). Included by app.cpp when characters, vehicles and audio are available.
 #include "input.cpp"
 #include "assets.cpp"
+// wildlife: animal models + procedural animation, simulation (before combat.cpp / gameworld.cpp, which call it)
+#include "animal_models.cpp"
+#include "wildlife.cpp"
 #include "peds.cpp"
 #include "ragdoll.cpp"
 #include "vehicles.cpp"
@@ -40,6 +43,7 @@
 #include "shops.cpp"
 #include "economy.cpp"
 #include "phone_game.cpp"
+#include "strangers.cpp"
 #include "story.cpp"
 #include "missiontest.cpp"
 #include "openworld.cpp"

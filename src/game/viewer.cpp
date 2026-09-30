@@ -9,9 +9,10 @@ static const vec2 kViewerOrigin(-300.f, 1500.f);
 
 struct Viewer {
     std::string mode;
-    std::vector<Render::Model*> bodies, wheels, rotors;
+    std::vector<Render::Model*> bodies, wheels, rotors, tailRotors;
 #ifdef HAVE_VEHICLE_MODELS
     std::vector<Vehicles::VehicleModel> vmodels;
+    int vehicleLod = 0;  // --vlod 1|2 shows the distant levels of detail (buildVehicleLods)
 #endif
 #ifdef HAVE_CHARACTERS
     struct Ch {
@@ -34,12 +35,21 @@ struct Viewer {
 #ifdef HAVE_VEHICLE_MODELS
         if (mode == "vehicles") {
             int n = Vehicles::modelCount();
+            if (const char* lv = Platform::argValue("vlod")) vehicleLod = Clamp(atoi(lv), 0, 2);
             for (int i = 0; i < n; i++) {
                 Vehicles::VehicleModel vm;
                 Vehicles::buildModel(i, vm);
+                if (vehicleLod > 0) {
+                    // LOD1 body + LOD1 wheel; LOD2 body has the wheels merged in (no wheel draws)
+                    MeshData lods[2], wheel1;
+                    Vehicles::buildVehicleLods(i, lods, &wheel1);
+                    vm.body = std::move(lods[vehicleLod - 1]);
+                    vm.wheel = std::move(wheel1);
+                }
                 bodies.push_back(r.dynamic->createModel(vm.body));
-                wheels.push_back(r.dynamic->createModel(vm.wheel));
+                wheels.push_back(vm.wheel.indices.empty() || vehicleLod == 2 ? nullptr : r.dynamic->createModel(vm.wheel));
                 rotors.push_back(vm.rotor.indices.empty() ? nullptr : r.dynamic->createModel(vm.rotor));
+                tailRotors.push_back(vm.tailRotor.indices.empty() ? nullptr : r.dynamic->createModel(vm.tailRotor));
                 LOG("Vehicle %d: %s %s (%zu tris)", i, vm.maker.c_str(), vm.name.c_str(), vm.body.indices.size() / 3);
                 vmodels.push_back(std::move(vm));
             }
@@ -408,6 +418,14 @@ struct Viewer {
                     h.aiming = false;
                 }
                 if (has("lowhp")) h.health = 0.16f;
+                if (has("lock")) {
+                    // lock-on marker test: a target right of the reticle, hurt, hostile unless "neutral"
+                    h.lockOn = true;
+                    h.lockScreen = vec2(UI::screenWidth() * 0.6f, UI::screenHeight() * 0.46f);
+                    h.lockHealth = shotFrame < 30 ? 0.62f : 0.41f;
+                    h.lockHostile = !has("neutral");
+                    h.lockMelee = has("melee");
+                }
             }
 
             void fillMenu() {
@@ -774,6 +792,7 @@ struct Viewer {
             d.id = 0x7000 + i;
             r.dynamic->submit(d);
             for (const auto& w : vm.wheels) {
+                if (!wheels[i]) break;
                 Render::DrawItem wd;
                 wd.model = wheels[i];
                 vec3 wp = rotate(quatAxisAngle(vec3(0, 0, 1), yaw), w.pos);
@@ -784,14 +803,29 @@ struct Viewer {
                 wd.id = 0x9000 + i * 16 + (&w - &vm.wheels[0]);
                 r.dynamic->submit(wd);
             }
+            // main rotor spins about +Z; plane, boat and airboat propellers about +Y; the tail rotor about +X
+            quat qy = quatAxisAngle(vec3(0, 0, 1), yaw);
+            float bz = gz + (isBoat ? 0.4f : 0.f);
             if (rotors[i]) {
                 Render::DrawItem rd;
                 rd.model = rotors[i];
-                vec3 rp = vm.rotorPos;
-                rd.pos = dvec3(p.x + rp.x, p.y + rp.y, gz + rp.z);
-                rd.rot = mat3FromQuat(quatAxisAngle(vec3(0, 0, 1), t * 3.f));
+                vec3 rp = rotate(qy, vm.rotorPos);
+                rd.pos = dvec3(p.x + rp.x, p.y + rp.y, bz + rp.z);
+                bool heli = vm.cls == Vehicles::VC_HELI;
+                rd.rot = mat3FromQuat(qy * quatAxisAngle(heli ? vec3(0, 0, 1) : vec3(0, 1, 0), t * (heli ? 4.f : 9.f)));
                 rd.tint0 = d.tint0;
+                rd.id = 0x7800 + i;
                 r.dynamic->submit(rd);
+            }
+            if (tailRotors[i]) {
+                Render::DrawItem td;
+                td.model = tailRotors[i];
+                vec3 tp = rotate(qy, vm.tailRotorPos);
+                td.pos = dvec3(p.x + tp.x, p.y + tp.y, bz + tp.z);
+                td.rot = mat3FromQuat(qy * quatAxisAngle(vec3(1, 0, 0), t * 14.f));
+                td.tint0 = d.tint0;
+                td.id = 0x7900 + i;
+                r.dynamic->submit(td);
             }
         }
 #endif

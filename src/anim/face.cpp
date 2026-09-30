@@ -540,6 +540,30 @@ void buildHeadGrid(BuildCtx& c) {
             }
         }
     }
+    // forehead skin under the brows rides on the brow bones (fading up the forehead, down to the lid fold and past
+    // the brow ends), so raised / knitted brows move the skin with them
+    {
+        const float thIn = H.thetaEye - 22.f * deg, thOut = H.thetaEye + 26.f * deg;
+        const int r0 = H.rowEyeHi + 2;   // above the lid fold rows (which follow the eye bones)
+        const float rowWt[5] = {0.45f, 0.85f, 1.f, 0.7f, 0.3f};
+        for (int ri = 0; ri < 5; ri++) {
+            int j = r0 + ri;
+            if (j >= NR) break;
+            for (int k = 0; k < NC; k++) {
+                BVert& v = m.v[H.grid[(size_t)j * NC + k]];
+                float th = v.pa;
+                bool right = th < kPi;
+                float at = right ? th : kTwoPi - th;
+                float w = rowWt[ri] * sstep(thIn - 10.f * deg, thIn + 4.f * deg, at) * (1.f - sstep(thOut - 6.f * deg, thOut + 10.f * deg, at));
+                if (ri == 0) w *= 0.6f;
+                if (w <= 1e-3f) continue;
+                WAcc acc;
+                for (int q = 0; q < 4; q++) acc.add(v.sw.b[q], v.sw.w[q] * (1.f - w));
+                acc.add(right ? B_BROW_R : B_BROW_L, w);
+                v.sw = acc.finish();
+            }
+        }
+    }
     H.eyeC[0] = D.J[B_EYE_L];
     H.eyeC[1] = D.J[B_EYE_R];
     H.eyeR = Lm.eyeR * hs;
@@ -747,7 +771,7 @@ static void addBrow(BuildCtx& c, int sd, vec3 col) {
             bv.mat = MAT_HAIR;
             bv.part = PART_FACEDETAIL;
             bv.side = (u8)sd;
-            bv.sw = skin1(B_HEAD);
+            bv.sw = skin1(sd ? B_BROW_R : B_BROW_L);
             grid[i * NV + j] = m.add(bv);
         }
     }

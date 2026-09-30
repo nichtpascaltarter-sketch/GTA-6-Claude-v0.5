@@ -17,10 +17,15 @@ int damageZone(const VehicleState& s, const mat3& R, vec3 rCom) {
 
 inline int engineZone(VehicleClass c) { return c == VC_SUPER || c == VC_BUS ? 1 : 0; }
 
-void zoneDamage(VehicleState& s, float dmg, int zone) {
+void zoneDamage(VehicleState& s, float dmg, int zone, float side = 0.f) {
     if (dmg <= 0.f) return;
     s.health -= dmg;
     s.damageZones[zone] = Saturate(s.damageZones[zone] + dmg / 550.f);
+    // hard front / side hits bend the steering: the car pulls toward the damaged side
+    if (!isBikeClass(s.cls) && isRoadClass(s.cls) && (zone == 0 || zone == 2 || zone == 3)) {
+        float sgn = zone == 2 ? -1.f : (zone == 3 ? 1.f : side);
+        s.alignPull = Clamp(s.alignPull + sgn * 0.006f * dmg / 550.f, -0.004f, 0.004f);
+    }
     bool engineHit = zone == engineZone(s.cls) || isBikeClass(s.cls) || s.cls == VC_JETSKI;
     s.engineHealth -= dmg * (engineHit ? 0.75f : 0.22f);
     if (s.health <= 0.f) {
@@ -35,7 +40,9 @@ void impactDamage(VehicleState& s, const mat3& R, float invMass, float impulse, 
     float dv = impulse * invMass;
     if (dv < 3.f) return;
     float dmg = Min(0.9f * Sq(dv - 3.f), 900.f) * classParams(s.cls).damage;
-    zoneDamage(s, dmg, damageZone(s, R, rCom));
+    float lx = dot(R.c[0], rCom) + s.tune.com.x - s.tune.boxC.x;
+    float side = fabsf(lx) > 0.2f * s.tune.boxH.x ? (lx > 0.f ? 1.f : -1.f) : 0.f;
+    zoneDamage(s, dmg, damageZone(s, R, rCom), side);
 }
 
 void recordImpact(VehicleState& s, float impulse, vec3 pointRelOrigin, vec3 normal, int collider) {

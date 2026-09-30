@@ -1683,6 +1683,251 @@ static void s_waterLap(Buf& b) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Wildlife calls (game/wildlife.cpp)
+// Wing claps of a flock bursting into the air: air whooshes with sharp tip claps, slowing as the birds climb.
+static void s_wingFlap(Buf& b) {
+    int birds = b.irnd(3, 6);
+    for (int bird = 0; bird < birds; bird++) {
+        int n = b.irnd(5, 10);
+        float rate = b.rnd(7.f, 11.f), t = b.rnd(0.f, 0.25f), pan = b.rnd(-0.5f, 0.5f);
+        for (int k = 0; k < n; k++) {
+            float amp = (1.f - 0.55f * (float)k / (float)n) * b.rnd(0.6f, 1.f) / (float)birds * 2.f;
+            noise(b, t, 0.09f, 0.55f * amp, 0.004f, 0.025f, FBP, b.rnd(600.f, 1100.f), b.rnd(1500.f, 2600.f), 0.04f, 1.2f, 0, pan);
+            if (b.chance(0.75f)) click(b, t + 0.012f, 0.4f * amp, b.irnd(4, 8), false, pan);
+            noise(b, t + 0.01f, 0.05f, 0.22f * amp, 0.001f, 0.012f, FHP, 3200.f, -1.f, 0.1f, 0.707f, 0, pan);
+            t += 1.f / rate * b.rnd(0.85f, 1.2f);
+            rate *= 0.97f;
+        }
+    }
+    reverb(b, 0.6f, 0.1f, 0.4f, 0.01f, 1.f, 0.2f);
+}
+// Rock pigeon coo: a soft throaty "coo-roo-coo" with a gurgling tremolo.
+static void s_pigeonCoo(Buf& b) {
+    float f0 = b.rnd(250.f, 320.f);
+    int syl = b.irnd(2, 3);
+    float t = 0.f;
+    for (int k = 0; k < syl; k++) {
+        float d = k == syl - 1 ? b.rnd(0.45f, 0.7f) : b.rnd(0.18f, 0.3f);
+        float trem = b.rnd(22.f, 30.f);
+        vocal(b, t, d, 0.02f, [&](float u, VFrame& fr) {
+            fr.f0 = f0 * (k == 1 ? 1.12f : 1.f) * (1.f + 0.12f * sinf(kPi * u) - (k == syl - 1 ? 0.15f * u : 0.f));
+            fr.amp = sinf(kPi * u) * (0.65f + 0.35f * sinf(kTwoPi * trem * u * d));
+            fr.breath = 0.12f;
+            fr.bright = 0.15f;
+            fr.rough = 0.25f;
+            fr.F[0] = 330.f; fr.F[1] = 760.f; fr.F[2] = 2100.f; fr.F[3] = 3000.f;
+            fr.BW[0] = 90.f; fr.BW[1] = 120.f; fr.BW[2] = 200.f; fr.BW[3] = 260.f;
+        });
+        t += d + b.rnd(0.04f, 0.1f);
+    }
+    lowpass(b, 1800.f);
+    reverb(b, 0.5f, 0.1f, 0.5f, 0.01f, 0.8f, 0.2f);
+}
+// Alligator hiss: a long forced breath through the open jaws with a low body resonance.
+static void s_gatorHiss(Buf& b) {
+    float d = b.rnd(0.8f, 1.4f);
+    noise(b, 0.f, d + 0.3f, 0.8f, 0.12f, d * 0.55f, FBP, b.rnd(2200.f, 3000.f), b.rnd(1500.f, 2000.f), d, 0.6f, 1);
+    noise(b, 0.f, d + 0.3f, 0.5f, 0.1f, d * 0.5f, FHP, 4500.f, -1.f, 0.1f, 0.707f, 0);
+    noise(b, 0.02f, d, 0.35f, 0.15f, d * 0.4f, FLP, 250.f, -1.f, 0.1f, 0.9f, 2);
+    tone(b, 0.f, d, 70.f, 55.f, d, 0.12f, 0.2f, d * 0.5f);
+    reverb(b, 0.5f, 0.08f, 0.5f, 0.01f, 0.8f, 0.2f);
+}
+// Alligator bellow: a deep rumbling roar, rough and throaty, with a sub-bass body.
+static void s_gatorBellow(Buf& b) {
+    float d = b.rnd(1.4f, 2.2f);
+    float f0 = b.rnd(38.f, 52.f);
+    vocal(b, 0.f, d, 0.05f, [&](float u, VFrame& fr) {
+        fr.f0 = f0 * (1.f + 0.15f * sinf(kPi * u));
+        fr.amp = Min(1.f, u / 0.12f) * (u > 0.7f ? (1.f - u) / 0.3f : 1.f) * (0.8f + 0.2f * sinf(u * 40.f));
+        fr.breath = 0.25f;
+        fr.bright = 0.3f;
+        fr.rough = 0.8f;
+        fr.F[0] = 260.f; fr.F[1] = 620.f; fr.F[2] = 1500.f; fr.F[3] = 2500.f;
+        fr.BW[0] = 100.f; fr.BW[1] = 140.f; fr.BW[2] = 220.f; fr.BW[3] = 300.f;
+    });
+    tone(b, 0.05f, d, 32.f, 28.f, d, 0.5f, 0.3f, d * 0.6f);
+    saturate(b, 1.6f);
+    reverb(b, 1.8f, 0.25f, 0.6f, 0.03f, 1.5f, 0.3f);
+}
+// Jaws slamming shut: a bony clack with a heavy knock.
+static void s_jawSnap(Buf& b) {
+    click(b, 0.f, 0.9f, 5);
+    Mode m[3] = {{b.rnd(170.f, 220.f), 0.05f, 1.f}, {b.rnd(850.f, 1100.f), 0.018f, 0.6f}, {b.rnd(2300.f, 2800.f), 0.008f, 0.35f}};
+    modes(b, 0.f, 0.7f, m, 3);
+    noise(b, 0.f, 0.08f, 0.5f, 0.0005f, 0.012f, FBP, 1800.f, 900.f, 0.03f, 0.8f);
+    noise(b, 0.f, 0.25f, 0.3f, 0.002f, 0.06f, FLP, 300.f, -1.f, 0.1f, 0.7f, 2);
+    reverb(b, 0.4f, 0.08f, 0.4f, 0.005f, 0.7f, 0.2f);
+}
+// Dog growl: a low rough rumble with a rhythmic flutter.
+static void s_dogGrowl(Buf& b) {
+    float d = b.rnd(0.7f, 1.3f);
+    float f0 = b.rnd(85.f, 120.f);
+    float flut = b.rnd(18.f, 26.f);
+    vocal(b, 0.f, d, 0.04f, [&](float u, VFrame& fr) {
+        fr.f0 = f0 * (1.f + 0.1f * sinf(kPi * u));
+        fr.amp = Min(1.f, u / 0.08f) * (u > 0.75f ? (1.f - u) / 0.25f : 1.f) * (0.6f + 0.4f * fabsf(sinf(kPi * flut * u * d)));
+        fr.breath = 0.35f;
+        fr.bright = 0.5f;
+        fr.rough = 0.85f;
+        fr.F[0] = 480.f; fr.F[1] = 1150.f; fr.F[2] = 2400.f; fr.F[3] = 3300.f;
+        fr.BW[0] = 140.f; fr.BW[1] = 170.f; fr.BW[2] = 230.f; fr.BW[3] = 280.f;
+    });
+    reverb(b, 0.5f, 0.08f, 0.5f, 0.01f, 0.8f, 0.2f);
+}
+// Dog yelp: sharp high cries of pain.
+static void s_dogYelp(Buf& b) {
+    int n = b.irnd(1, 3);
+    float t = 0.f;
+    for (int k = 0; k < n; k++) {
+        float d = b.rnd(0.14f, 0.28f);
+        float f0 = b.rnd(750.f, 1000.f) * (1.f - 0.12f * (float)k);
+        vocal(b, t, d, 0.03f, [&](float u, VFrame& fr) {
+            fr.f0 = f0 * (u < 0.15f ? 1.f + u : 1.15f - 0.55f * (u - 0.15f));
+            fr.amp = Min(1.f, u / 0.05f) * (u > 0.6f ? (1.f - u) / 0.4f : 1.f);
+            fr.breath = 0.25f;
+            fr.bright = 0.9f;
+            fr.rough = 0.3f;
+            fr.F[0] = 900.f; fr.F[1] = 1800.f; fr.F[2] = 2900.f; fr.F[3] = 3800.f;
+            fr.BW[0] = 150.f; fr.BW[1] = 180.f; fr.BW[2] = 240.f; fr.BW[3] = 300.f;
+        });
+        t += d + b.rnd(0.06f, 0.16f);
+    }
+    reverb(b, 0.7f, 0.12f, 0.5f, 0.01f, 1.f, 0.3f);
+}
+// Cat meow: "mee-ow", the mouth opening from ee to ow while the pitch rises then falls.
+static void s_catMeow(Buf& b) {
+    float d = b.rnd(0.5f, 0.9f);
+    float f0 = b.rnd(480.f, 620.f);
+    vocal(b, 0.f, d, 0.02f, [&](float u, VFrame& fr) {
+        fr.f0 = f0 * (u < 0.35f ? 1.f + 0.35f * u / 0.35f : 1.35f - 0.55f * (u - 0.35f));
+        fr.amp = Min(1.f, u / 0.08f) * (u > 0.7f ? (1.f - u) / 0.3f : 1.f);
+        fr.breath = 0.18f;
+        fr.bright = 0.7f;
+        fr.rough = 0.1f;
+        float o = Saturate(u * 1.4f - 0.2f);
+        o = o * o * (3.f - 2.f * o);
+        fr.F[0] = 420.f + 380.f * o; fr.F[1] = 2300.f - 1200.f * o; fr.F[2] = 3000.f - 400.f * o; fr.F[3] = 4000.f;
+        fr.BW[0] = 90.f; fr.BW[1] = 120.f; fr.BW[2] = 180.f; fr.BW[3] = 250.f;
+    });
+    reverb(b, 0.6f, 0.1f, 0.5f, 0.01f, 0.9f, 0.2f);
+}
+// Cow moo: a long nasal "mmm-ooo" rising then sagging.
+static void s_cowMoo(Buf& b) {
+    float d = b.rnd(1.1f, 1.9f);
+    float f0 = b.rnd(105.f, 150.f);
+    vocal(b, 0.f, d, 0.015f, [&](float u, VFrame& fr) {
+        fr.f0 = f0 * (u < 0.3f ? 1.f + 0.25f * u / 0.3f : 1.25f - 0.35f * (u - 0.3f));
+        fr.amp = Min(1.f, u / 0.1f) * (u > 0.75f ? (1.f - u) / 0.25f : 1.f);
+        fr.breath = 0.12f;
+        fr.bright = 0.35f;
+        fr.rough = 0.2f;
+        float o = Saturate(u * 2.f - 0.3f);
+        o = o * o * (3.f - 2.f * o);
+        fr.F[0] = 280.f + 380.f * o; fr.F[1] = 800.f + 300.f * o; fr.F[2] = 2300.f; fr.F[3] = 3100.f;
+        fr.BW[0] = 80.f; fr.BW[1] = 110.f; fr.BW[2] = 200.f; fr.BW[3] = 260.f;
+    });
+    reverb(b, 1.6f, 0.25f, 0.6f, 0.03f, 1.5f, 0.3f);
+}
+// Horse whinny: a high quavering neigh falling away, ending in a snort.
+static void s_horseNeigh(Buf& b) {
+    float d = b.rnd(1.f, 1.5f);
+    float f0 = b.rnd(750.f, 1000.f);
+    float vib = b.rnd(9.f, 13.f);
+    vocal(b, 0.f, d, 0.04f, [&](float u, VFrame& fr) {
+        float t = u * d;
+        fr.f0 = f0 * (1.1f - 0.6f * u) * (1.f + 0.06f * sinf(kTwoPi * vib * t) * Min(1.f, u * 3.f));
+        fr.amp = Min(1.f, u / 0.05f) * (u > 0.65f ? (1.f - u) / 0.35f : 1.f);
+        fr.breath = 0.3f;
+        fr.bright = 0.85f;
+        fr.rough = 0.35f;
+        fr.F[0] = 800.f; fr.F[1] = 1500.f; fr.F[2] = 2700.f; fr.F[3] = 3700.f;
+        fr.BW[0] = 150.f; fr.BW[1] = 180.f; fr.BW[2] = 240.f; fr.BW[3] = 300.f;
+    });
+    noise(b, d + 0.05f, 0.3f, 0.5f, 0.01f, 0.08f, FBP, 900.f, 500.f, 0.1f, 0.9f, 1);
+    reverb(b, 1.4f, 0.22f, 0.5f, 0.02f, 1.3f, 0.3f);
+}
+// Parakeet squawks: harsh bright screeches in a quick burst.
+static void s_parrotSquawk(Buf& b) {
+    int n = b.irnd(1, 3);
+    float t = 0.f;
+    for (int k = 0; k < n; k++) {
+        float d = b.rnd(0.1f, 0.24f);
+        float f0 = b.rnd(1500.f, 2300.f);
+        vocal(b, t, d, 0.06f, [&](float u, VFrame& fr) {
+            fr.f0 = f0 * (1.f + 0.2f * sinf(kPi * u) - 0.15f * u);
+            fr.amp = Min(1.f, u / 0.08f) * (u > 0.7f ? (1.f - u) / 0.3f : 1.f);
+            fr.breath = 0.2f;
+            fr.bright = 1.f;
+            fr.rough = 0.7f;
+            fr.F[0] = 1600.f; fr.F[1] = 2900.f; fr.F[2] = 4200.f; fr.F[3] = 5600.f;
+            fr.BW[0] = 250.f; fr.BW[1] = 300.f; fr.BW[2] = 380.f; fr.BW[3] = 450.f;
+        });
+        t += d + b.rnd(0.05f, 0.14f);
+    }
+    reverb(b, 0.8f, 0.12f, 0.5f, 0.01f, 1.f, 0.2f);
+}
+// Dolphin: a gliding whistle and a quick click train.
+static void s_dolphinCall(Buf& b) {
+    float d = b.rnd(0.35f, 0.7f);
+    float fA = b.rnd(5000.f, 7000.f), fB = b.rnd(8000.f, 12000.f);
+    int n = S(d);
+    b.ensure(n);
+    float ph = 0.f, wig = b.rnd(4.f, 9.f);
+    for (int i = 0; i < n; i++) {
+        float u = (float)i / (float)n;
+        float f = Lerp(fA, fB, sinf(kPi * u * 0.8f)) * (1.f + 0.05f * sinf(kTwoPi * wig * u * d));
+        ph += f / SR;
+        ph -= floorf(ph);
+        float e = sinf(kPi * u);
+        b.L[(size_t)i] += sinWrapped(ph) * e * 0.35f;
+    }
+    int clicks = b.irnd(6, 16);
+    float t = d + b.rnd(0.05f, 0.2f), rate = b.rnd(35.f, 80.f);
+    for (int k = 0; k < clicks; k++) {
+        click(b, t, 0.3f, 3);
+        noise(b, t, 0.006f, 0.15f, 0.0002f, 0.002f, FHP, 6000.f);
+        t += 1.f / rate;
+    }
+    reverb(b, 0.5f, 0.15f, 0.3f, 0.005f, 0.6f, 0.2f);
+}
+// Breath of a surfacing dolphin / manatee: an explosive "pfff" through the blowhole.
+static void s_animalBlow(Buf& b) {
+    float d = b.rnd(0.3f, 0.5f);
+    noise(b, 0.f, d, 0.8f, 0.006f, d * 0.35f, FBP, b.rnd(1100.f, 1600.f), b.rnd(600.f, 900.f), d * 0.5f, 0.7f, 1);
+    noise(b, 0.f, d * 0.6f, 0.4f, 0.004f, d * 0.2f, FHP, 3500.f, -1.f, 0.1f, 0.707f, 0);
+    noise(b, 0.f, d, 0.3f, 0.01f, d * 0.3f, FLP, 300.f, -1.f, 0.1f, 0.8f, 2);
+    reverb(b, 0.6f, 0.12f, 0.5f, 0.01f, 1.f, 0.2f);
+}
+// Raccoon chitter: rapid squeaky churrs.
+static void s_raccoonChitter(Buf& b) {
+    int n = b.irnd(8, 18);
+    float t = 0.f, rate = b.rnd(18.f, 28.f);
+    float f0 = b.rnd(1300.f, 1900.f);
+    for (int k = 0; k < n; k++) {
+        float d = 0.6f / rate;
+        vocal(b, t, d, 0.05f, [&](float u, VFrame& fr) {
+            fr.f0 = f0 * (1.f + 0.2f * sinf(kPi * u));
+            fr.amp = sinf(kPi * u) * (0.6f + 0.4f * (float)((k * 7) % 3) / 2.f);
+            fr.breath = 0.3f;
+            fr.bright = 0.8f;
+            fr.rough = 0.5f;
+            fr.F[0] = 1400.f; fr.F[1] = 2600.f; fr.F[2] = 3800.f; fr.F[3] = 5000.f;
+            fr.BW[0] = 250.f; fr.BW[1] = 300.f; fr.BW[2] = 360.f; fr.BW[3] = 420.f;
+        });
+        t += 1.f / rate * b.rnd(0.85f, 1.15f);
+    }
+    reverb(b, 0.4f, 0.08f, 0.5f, 0.01f, 0.7f, 0.2f);
+}
+// Deer alarm snort: a sharp nasal blast.
+static void s_deerSnort(Buf& b) {
+    float d = b.rnd(0.2f, 0.32f);
+    noise(b, 0.f, d, 1.f, 0.003f, d * 0.3f, FBP, b.rnd(1300.f, 1800.f), b.rnd(700.f, 1000.f), d * 0.5f, 1.1f, 1);
+    tone(b, 0.f, d * 0.6f, 180.f, 130.f, d * 0.3f, 0.25f, 0.004f, d * 0.2f);
+    if (b.chance(0.5f)) noise(b, d + b.rnd(0.15f, 0.3f), d * 0.8f, 0.6f, 0.003f, d * 0.25f, FBP, 1400.f, 800.f, 0.1f, 1.f, 1);
+    reverb(b, 1.2f, 0.2f, 0.5f, 0.02f, 1.3f, 0.3f);
+}
+
+// ---------------------------------------------------------------------------------------------
 // Definitions table (order must match BankId)
 #define W Bus::World
 #define U Bus::Ui
@@ -1772,6 +2017,22 @@ static const SoundDef kDefs[BANK_COUNT] = {
     {"race_countdown",    U, 255, 1, 0.272f,  1.f,   1.f,    0.f,   0.f,  0.f},
     {"race_go",           U, 255, 1, 0.408f, 1.f,   1.f,    0.f,   0.f,  0.f},
     {"whoosh",            W, 90,  4, 1.f,    1.2f,  25.f,   0.05f, 0.08f, 1.f},
+    {"wing_flap",         W, 60,  4, 0.7f,  3.f,   120.f,  0.15f, 0.08f, 1.f},
+    {"pigeon_coo",        W, 30,  4, 0.35f, 2.f,   40.f,   0.1f,  0.06f, 1.f},
+    {"gator_hiss",        W, 120, 3, 0.9f,  3.f,   60.f,   0.1f,  0.05f, 1.f},
+    {"gator_bellow",      W, 90,  2, 1.f,   10.f,  500.f,  0.35f, 0.05f, 0.6f},
+    {"jaw_snap",          W, 130, 3, 1.f,   3.f,   80.f,   0.15f, 0.05f, 1.f},
+    {"dog_growl",         W, 90,  3, 0.7f,  3.f,   70.f,   0.1f,  0.05f, 1.f},
+    {"dog_yelp",          W, 100, 4, 0.8f,  4.f,   180.f,  0.2f,  0.06f, 1.f},
+    {"cat_meow",          W, 70,  4, 0.5f,  3.f,   90.f,   0.15f, 0.06f, 1.f},
+    {"cow_moo",           W, 70,  3, 1.f,   8.f,   500.f,  0.3f,  0.05f, 0.8f},
+    {"horse_neigh",       W, 80,  3, 0.9f,  8.f,   450.f,  0.3f,  0.04f, 0.8f},
+    {"parrot_squawk",     W, 50,  5, 0.6f,  5.f,   250.f,  0.2f,  0.07f, 1.f},
+    {"heron_call",        W, 50,  3, 0.8f,  8.f,   350.f,  0.3f,  0.05f, 1.f},
+    {"dolphin_call",      W, 40,  3, 0.35f, 4.f,   120.f,  0.15f, 0.08f, 1.f},
+    {"animal_blow",       W, 50,  3, 0.6f,  4.f,   120.f,  0.15f, 0.08f, 1.f},
+    {"raccoon_chitter",   W, 40,  3, 0.4f,  2.f,   50.f,   0.1f,  0.08f, 1.f},
+    {"deer_snort",        W, 80,  3, 0.9f,  5.f,   250.f,  0.25f, 0.06f, 1.f},
     {"amb_cricket",       W, 20,  4, 0.2f,  3.f,   60.f,   0.2f,  0.04f, 1.f},
     {"amb_treefrog",      W, 20,  4, 0.25f, 4.f,   90.f,   0.2f,  0.05f, 1.f},
     {"amb_bullfrog",      W, 20,  3, 0.4f,  5.f,   160.f,  0.25f, 0.05f, 1.f},
@@ -1875,6 +2136,22 @@ static void synthesize(int id, int var, Buf& b) {
         case SFX_RACE_COUNTDOWN: s_beep(b, 880.f, 0.22f, false); break;
         case SFX_RACE_GO: s_beep(b, 1760.f, 0.75f, true); break;
         case SFX_WHOOSH: s_whoosh(b); break;
+        case SFX_WING_FLAP: s_wingFlap(b); break;
+        case SFX_PIGEON_COO: s_pigeonCoo(b); break;
+        case SFX_GATOR_HISS: s_gatorHiss(b); break;
+        case SFX_GATOR_BELLOW: s_gatorBellow(b); break;
+        case SFX_JAW_SNAP: s_jawSnap(b); break;
+        case SFX_DOG_GROWL: s_dogGrowl(b); break;
+        case SFX_DOG_YELP: s_dogYelp(b); break;
+        case SFX_CAT_MEOW: s_catMeow(b); break;
+        case SFX_COW_MOO: s_cowMoo(b); break;
+        case SFX_HORSE_NEIGH: s_horseNeigh(b); break;
+        case SFX_PARROT_SQUAWK: s_parrotSquawk(b); break;
+        case SFX_HERON_CALL: s_heron(b); break;
+        case SFX_DOLPHIN_CALL: s_dolphinCall(b); break;
+        case SFX_ANIMAL_BLOW: s_animalBlow(b); break;
+        case SFX_RACCOON_CHITTER: s_raccoonChitter(b); break;
+        case SFX_DEER_SNORT: s_deerSnort(b); break;
         case AMB_CRICKET_CHIRP: s_cricket(b); break;
         case AMB_TREEFROG: s_treefrog(b); break;
         case AMB_BULLFROG: s_bullfrog(b); break;

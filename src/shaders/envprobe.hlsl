@@ -3,6 +3,7 @@
 #include "cloudcommon.hlsli"
 #include "gbuffer.hlsli"
 #include "shadow.hlsli"
+#include "lights.hlsli"
 
 Texture2D<float4> tPAlbedo : register(t3);
 Texture2D<float2> tPNormal : register(t4);
@@ -10,12 +11,13 @@ Texture2D<float4> tPMaterial : register(t5);
 Texture2D<float3> tPEmissive : register(t6);
 Texture2D<float> tPDepth : register(t7);
 TextureCube<float4> tSourceCube : register(t8);
+StructuredBuffer<LightGPU> tProbeLights : register(t9);   // outdoor world lights, positions relative to the probe
 RWTexture2DArray<float4> uDestCube : register(u0);
 RWStructuredBuffer<float4> uProbeSH : register(u1);
 
 cbuffer ProbeCB : register(b2) {
     float4 gProbe0;   // x face, y resolution, z roughness (prefilter), w destination size (prefilter)
-    float4 gProbe1;   // x source mip count, y source resolution, z sample count, w unused
+    float4 gProbe1;   // x source mip count, y source resolution, z sample count, w local light count (capture)
     float4 gProbe2;   // xyz capture position relative to the main camera (shadow cascades are camera-relative)
 };
 
@@ -101,6 +103,20 @@ float4 psProbeLight(VSOut i) : SV_Target {
         float shadow = NoL > 0.0 ? probeShadow(relPos + gProbe2.xyz, N) * cloudShadowAt(relPos) : 0.0;
         float3 sunE = mainLightIlluminance();
         L = diff / PI * sunE * NoL * shadow + diff * evalSH9(N);
+        // Street lamps / neon / building lights (diffuse): lit streets and facades in night reflections and in
+        // the probe irradiance that feeds the ambient light
+        uint nl = (uint)gProbe1.w;
+        [loop] for (uint li = 0; li < nl; li++) {
+            LightGPU Lt = tProbeLights[li];
+            float3 Lv = Lt.pos - relPos;
+            float d2 = dot(Lv, Lv);
+            if (d2 > Lt.radius * Lt.radius) continue;
+            float d = sqrt(d2);
+            Lv /= d;
+            float x = d / Lt.radius;
+            float win = saturate(1.0 - x * x * x * x);
+            L += diff / PI * Lt.color * (win * win / max(d2, 0.3)) * saturate(dot(N, Lv)) * lightAngular(Lt, Lv);
+        }
         if (g.shadingModel == SM_UNLIT) L = g.albedo;
         // Glossy dielectric/metal sky reflection (keeps windows and metal from looking chalky in reflections)
         float3 R = reflect(dir, N);

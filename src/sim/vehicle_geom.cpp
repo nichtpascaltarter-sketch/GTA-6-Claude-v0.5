@@ -23,6 +23,19 @@ static const u32 kCol2 = 0x00ffffffu;   // secondary paint (alpha 0)
 enum UvMode : u8 { UV_BOX = 0, UV_EXPLICIT = 1 };
 
 inline float lerp(float a, float b, float t) { return a + (b - a) * t; }
+
+// Level of detail being built on this thread (0 full, 1 medium distance, 2 far). Set by buildVehicleLods.
+inline int& lodLevel() {
+    static thread_local int level = 0;
+    return level;
+}
+// Tessellation count scaled for the current level of detail (never below `mn` unless `s` already is).
+inline int lodSeg(int s, int mn) {
+    int l = lodLevel();
+    if (l <= 0) return s;
+    int r = l == 1 ? (s + 1) / 2 : (s + 3) / 4;
+    return Max(Min(s, mn), r);
+}
 inline float smooth01(float x) { x = Saturate(x); return x * x * (3.f - 2.f * x); }
 inline float remap01(float x, float a, float b) { return Saturate((x - a) / (b - a)); }
 
@@ -156,6 +169,55 @@ inline void finalizeMesh(const PMesh& pm, MeshData& out) {
             cang[i * 3 + k] = acosf(Clamp(dot(e1, e2), -1.f, 1.f));
         }
     }
+    // Distant levels of detail: drop small disconnected parts (bolts, lettering, trim bits), keeping lamps and glass
+    if (lodLevel() >= 1) {
+        const float thr = lodLevel() == 1 ? 0.035f : 0.2f;
+        // thin unpainted rods and slats (rungs, grab rails, louvres) are sub-pixel wide at these distances too
+        const float thin = lodLevel() == 1 ? 0.012f : 0.03f;
+        std::vector<u32> parent(nf);
+        for (size_t i = 0; i < nf; i++) parent[i] = (u32)i;
+        auto find = [&](u32 x) {
+            while (parent[x] != x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+            return x;
+        };
+        std::unordered_map<WeldKey, u32, WeldKeyHash> firstFace;
+        firstFace.reserve(nf * 2 + 16);
+        for (size_t i = 0; i < nf; i++) {
+            if (!valid[i]) continue;
+            for (int k = 0; k < 3; k++) {
+                vec3 p = pm.P[pm.F[i].v[k]];
+                WeldKey key{(i32)floorf(p.x * 1000.f + 0.5f), (i32)floorf(p.y * 1000.f + 0.5f), (i32)floorf(p.z * 1000.f + 0.5f), 0u};
+                auto it = firstFace.find(key);
+                if (it == firstFace.end()) firstFace.emplace(key, (u32)i);
+                else {
+                    u32 a = find((u32)i), b = find(it->second);
+                    if (a != b) parent[a] = b;
+                }
+            }
+        }
+        std::vector<vec3> mn(nf, vec3(1e9f)), mx(nf, vec3(-1e9f));
+        std::vector<u8> keep(nf, 0), painted(nf, 0);
+        for (size_t i = 0; i < nf; i++) {
+            if (!valid[i]) continue;
+            u32 r = find((u32)i);
+            for (int k = 0; k < 3; k++) {
+                vec3 p = pm.P[pm.F[i].v[k]];
+                mn[r] = vmin(mn[r], p);
+                mx[r] = vmax(mx[r], p);
+            }
+            u8 mt = pm.F[i].mat;
+            if (mt == MAT_LIGHT_HEAD || mt == MAT_LIGHT_TAIL || mt == MAT_LIGHT_INDICATOR || mt == MAT_EMISSIVE || mt == MAT_CAR_WINDOW) keep[r] = 1;
+            if (mt == MAT_CARPAINT) painted[r] = 1;
+        }
+        for (size_t i = 0; i < nf; i++) {
+            if (!valid[i]) continue;
+            u32 r = find((u32)i);
+            if (keep[r]) continue;
+            vec3 e = mx[r] - mn[r];
+            float lo = Min(e.x, Min(e.y, e.z)), hi = Max(e.x, Max(e.y, e.z)), mid = e.x + e.y + e.z - lo - hi;
+            if (length(e) < thr || (!painted[r] && mid < thin)) valid[i] = 0;
+        }
+    }
     // Weld corners by quantized position (0.1 mm) within the smoothing group
     std::unordered_map<WeldKey, u32, WeldKeyHash> weld;
     weld.reserve(nf * 2 + 16);
@@ -272,6 +334,7 @@ inline void gridQuads(PMesh& m, const std::vector<u32>& id, int rows, int cols, 
 // direction in the (a right, r up) half plane (i.e. walk clockwise around a solid's cross-section).
 inline void lathe(PMesh& m, vec3 o, vec3 axis, vec3 ref, const std::vector<vec2>& prof, int seg, float a0 = 0.f,
                   float a1 = kTwoPi) {
+    seg = lodSeg(seg, 6);
     vec3 ax = normalize(axis);
     vec3 rf = normalize(ref - ax * dot(ref, ax));
     vec3 bn = cross(ax, rf);
@@ -317,6 +380,7 @@ inline void tube(PMesh& m, const std::vector<vec3>& path, const std::vector<floa
     std::vector<vec3> T, N;
     pathFrames(path, T, N, closed, upHint);
     int rows = (int)path.size();
+    seg = lodSeg(seg, 4);
     int cols = seg;
     std::vector<u32> id(rows * cols);
     float along = 0;
@@ -361,6 +425,7 @@ inline void cyl(PMesh& m, vec3 a, vec3 b, float r, int seg, bool caps = true) {
 
 // Smooth polyline through control points (Catmull-Rom), n samples per span.
 inline std::vector<vec3> catmull(const std::vector<vec3>& c, int n) {
+    n = lodSeg(n, 1);
     std::vector<vec3> out;
     int k = (int)c.size();
     if (k < 2) return c;
@@ -378,6 +443,8 @@ inline std::vector<vec3> catmull(const std::vector<vec3>& c, int n) {
 // Rounded box (edges filleted with radius r) in a frame; `rs` fillet subdivisions per 45 degrees.
 inline void roundedBox(PMesh& m, const Frame& fr, vec3 h, float r, int rs = 2) {
     PMesh::Mark mk0 = m.mark();
+    if (lodLevel() >= 1) rs = 1;
+    if ((lodLevel() >= 2 && r < 0.08f) || (lodLevel() == 1 && r < 0.06f)) r = 0.f;
     r = Min(r, Min(h.x, Min(h.y, h.z)) * 0.999f);
     // samples along one axis of half length hh
     auto samples = [&](float hh) {
@@ -421,6 +488,8 @@ inline void roundedBoxAt(PMesh& m, vec3 c, vec3 h, float r, int rs = 2) { rounde
 // Ellipsoid (or partial, v from v0..v1 in [0, pi] measured from the +z pole)
 inline void ellipsoid(PMesh& m, const Frame& fr, vec3 rad, int su, int sv, float v0 = 0.f, float v1 = kPi) {
     PMesh::Mark mk0 = m.mark();
+    su = lodSeg(su, 6);
+    sv = lodSeg(sv, 3);
     int rows = sv + 1, cols = su;
     std::vector<u32> id(rows * cols);
     for (int i = 0; i < rows; i++) {
@@ -470,6 +539,7 @@ inline void extrude(PMesh& m, const std::vector<vec2>& polyIn, const Frame& fr, 
 
 // Flat disk (fan) facing `n`
 inline void disk(PMesh& m, vec3 c, vec3 n, float r, int seg, float r0 = 0.f) {
+    seg = lodSeg(seg, 6);
     vec3 x = normalize(anyPerp(n)), y = cross(n, x);
     std::vector<u32> ring(seg), inner(seg);
     for (int i = 0; i < seg; i++) {
@@ -488,6 +558,8 @@ inline void disk(PMesh& m, vec3 c, vec3 n, float r, int seg, float r0 = 0.f) {
 // Torus around axis (ring radius R, tube radius r)
 inline void torus(PMesh& m, const Frame& fr, float R, float r, int su, int sv, float a0 = 0.f, float a1 = kTwoPi) {
     PMesh::Mark mk0 = m.mark();
+    su = lodSeg(su, 8);
+    sv = lodSeg(sv, 3);
     bool full = fabsf(a1 - a0 - kTwoPi) < 1e-4f;
     int rows = full ? su : su + 1;
     std::vector<u32> id(rows * sv);
@@ -745,6 +817,7 @@ inline void patchWall(PMesh& m, const PatchGrid& g, float o0, float o1, float sc
 }
 // Projected strip along a polyline (plane coords) with width w; emitted at offset `off`.
 inline void stripDecal(PMesh& m, const Decal& dc, const std::vector<vec2>& line, float w, float off, float step = 0.03f) {
+    step *= lodLevel() == 0 ? 1.f : (lodLevel() == 1 ? 3.f : 8.f);
     // resample
     std::vector<vec2> pts;
     for (size_t i = 0; i + 1 < line.size(); i++) {
@@ -800,6 +873,7 @@ inline vec2 superEll(float a, float hw, float hh, float e) {
     return vec2(x, z);
 }
 inline void loftY(PMesh& m, const std::vector<LoftSec>& secs, int around, bool capA, bool capB) {
+    around = lodSeg(around, 6);
     int rows = (int)secs.size();
     std::vector<u32> id(rows * around);
     for (int i = 0; i < rows; i++) {

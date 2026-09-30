@@ -91,6 +91,8 @@ struct EmitterSynth {
     virtual void release() {}
     // Level of detail hint from the mixer (0 = full, 1 = distant/quiet: cheaper synthesis).
     virtual void setLod(int lod) { (void)lod; }
+    // Engine upgrades (Audio::setEngineTune); ignored by other synths.
+    virtual void setTune(float boost, float tune, bool shifted) { (void)boost, (void)tune, (void)shifted; }
 };
 
 struct EmitterDef {
@@ -118,6 +120,11 @@ AmbienceRenderer* ambienceCreate();
 void ambienceDestroy(AmbienceRenderer* a);
 void ambienceRender(AmbienceRenderer* a, float* L, float* R, int n, const Ambience& target,
                     const ListenerState& ls);
+
+// ---------------------------------------------------------------------------------------------
+// Crowd walla beds (crowd.cpp): rendered on a background thread at init (or on demand offline).
+void crowdStart(bool async);
+void crowdStop();
 
 // ---------------------------------------------------------------------------------------------
 // Speech jobs (radio.cpp owns the worker). Thread-safe.

@@ -121,6 +121,7 @@ void GameWorld::updateVehicles(float dt) {
                 c.hasDriver = false;
             }
             Vehicles::stepVehicle(v.sim, c, h);
+            if (v.sim.shifted) v.shiftLatch = true;
             handleVehicleEvents(i);
         }
         // vehicle-vehicle collisions (broad phase by distance)
@@ -274,6 +275,12 @@ void GameWorld::updateVehicleFx(Vehicle& v, float dt) {
             Audio::setEmitter(v.sndEngine, pos, s.body.vel, rpm01, thr, s.inWater ? 1.f : 0.f, 0, isPlayerCar ? 0.9f : 0.7f);
         else
             Audio::setEmitter(v.sndEngine, pos, s.body.vel, rpm01, thr, s.engineLoad, (float)engineKindFor(spec), isPlayerCar ? 0.85f : 0.6f);
+        if (spec.cls != Vehicles::VC_HELI && spec.cls != Vehicles::VC_PLANE && spec.cls != Vehicles::VC_BOAT &&
+            spec.cls != Vehicles::VC_JETSKI) {
+            // Tide Customs upgrades: sim-driven turbo whistle/blow-off and exhaust pops on hard shifts
+            float tune = Saturate(Max(v.mods.turbo ? 0.6f : 0.f, (v.mods.engine + v.mods.transmission) / 6.f));
+            if (tune > 0.f) Audio::setEngineTune(v.sndEngine, v.mods.turbo ? s.turboBoost : 0.f, tune, v.shiftLatch);
+        }
     } else if (v.sndEngine) {
         Audio::destroyEmitter(v.sndEngine);
         v.sndEngine = 0;
@@ -350,8 +357,9 @@ void GameWorld::updateVehicleFx(Vehicle& v, float dt) {
         }
     }
 #ifdef HAVE_AUDIO
-    if (s.shifted && v.visibleDist < 60.f) Audio::play(Audio::SFX_GEAR_SHIFT, pos, isPlayerCar ? 0.5f : 0.25f);
+    if (v.shiftLatch && v.visibleDist < 60.f) Audio::play(Audio::SFX_GEAR_SHIFT, pos, isPlayerCar ? 0.5f : 0.25f);
 #endif
+    v.shiftLatch = false;
     // Particles: tire smoke, damaged engine smoke, fire, boat spray
     if (v.visibleDist < 150.f) {
         v.smokeTimer -= dt;

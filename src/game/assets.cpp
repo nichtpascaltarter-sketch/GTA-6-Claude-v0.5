@@ -289,8 +289,14 @@ void GameWorld::buildAssets() {
     int nv = Vehicles::modelCount();
     vassets.resize(nv);
     Jobs::parallelFor(nv, [&](int i) { Vehicles::buildModel(i, vassets[i].spec); });
+    // lower detail versions for distant traffic (cheaper shells, merged wheels at LOD2)
+    std::vector<MeshData> vlods((size_t)nv * 2), wlods((size_t)nv);
+    Jobs::parallelFor(nv, [&](int i) { Vehicles::buildVehicleLods(i, &vlods[(size_t)i * 2], &wlods[(size_t)i]); });
     for (int i = 0; i < nv; i++) {
         VehicleAsset& a = vassets[i];
+        for (int l = 0; l < 2; l++)
+            a.bodyLod[l] = vlods[(size_t)i * 2 + l].empty() ? nullptr : dyn->createModel(vlods[(size_t)i * 2 + l]);
+        a.wheelLod1 = wlods[(size_t)i].empty() ? nullptr : dyn->createModel(wlods[(size_t)i]);
         a.body = dyn->createModel(a.spec.body);
         a.wheel = a.spec.wheel.empty() ? nullptr : dyn->createModel(a.spec.wheel);
         a.rotor = a.spec.rotor.empty() ? nullptr : dyn->createModel(a.spec.rotor);
@@ -323,7 +329,7 @@ void GameWorld::buildAssets() {
     reqs.push_back({0xDE7u, 0, 0});     // protagonist: Dex Calloway
     int n = (int)reqs.size();
     chars.resize(n);
-    std::vector<SkinnedMeshData> meshes(n);
+    std::vector<SkinnedMeshData> meshes((size_t)n * 3);   // LOD0..2 per character
     Jobs::parallelFor(n, [&](int i) {
         const Req& r = reqs[i];
         u32 seed = r.seed;
@@ -361,10 +367,12 @@ void GameWorld::buildAssets() {
         chars[i].desc = d;
         chars[i].role = r.role;
         Anim::buildSkeleton(d, chars[i].skel);
-        Anim::buildCharacterMesh(d, chars[i].skel, meshes[i]);
+        Anim::buildCharacterMeshLods(d, chars[i].skel, &meshes[(size_t)i * 3], 3);
     });
     for (int i = 0; i < n; i++) {
-        chars[i].model = dyn->createSkinnedModel(meshes[i]);
+        chars[i].model = dyn->createSkinnedModel(meshes[(size_t)i * 3]);
+        for (int l = 0; l < 2; l++)
+            chars[i].lods[l] = meshes[(size_t)i * 3 + 1 + l].indices.empty() ? nullptr : dyn->createSkinnedModel(meshes[(size_t)i * 3 + 1 + l]);
         int role = Clamp(chars[i].role, 0, 7);
         if (i < protoStart) {
             charsByRole[role].push_back(i);
@@ -412,9 +420,10 @@ int GameWorld::namedCharacter(const std::string& key, const Anim::CharacterDesc&
     ce.desc = desc;
     ce.role = desc.role;
     Anim::buildSkeleton(desc, ce.skel);
-    SkinnedMeshData md;
-    Anim::buildCharacterMesh(desc, ce.skel, md);
-    ce.model = renderer->dynamic->createSkinnedModel(md);
+    SkinnedMeshData md[3];
+    Anim::buildCharacterMeshLods(desc, ce.skel, md, 3);
+    ce.model = renderer->dynamic->createSkinnedModel(md[0]);
+    for (int l = 0; l < 2; l++) ce.lods[l] = md[1 + l].indices.empty() ? nullptr : renderer->dynamic->createSkinnedModel(md[1 + l]);
     int id = (int)chars.size();
     chars.push_back(ce);
     namedChars[key] = id;

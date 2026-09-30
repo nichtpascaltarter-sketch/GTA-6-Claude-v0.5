@@ -32,6 +32,7 @@ struct CutsceneShot {
     float fov = 50.f;
     float duration = 3.f;
     int speaker = -2;        // shot added by the runtime to frame this speaking ped (-2: a scripted shot)
+    float handheld = 0.f;    // 0 locked-off camera .. 1 nervous handheld (tense beats)
 };
 
 struct Marker {

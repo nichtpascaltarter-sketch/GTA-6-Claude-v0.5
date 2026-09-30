@@ -12,6 +12,16 @@ struct FacadeGPU {
 };
 StructuredBuffer<FacadeGPU> tFacades : register(t13);
 Texture2D<float4> tSigns : register(t14);   // shop sign atlas (8 x 64 grid of 256x32 cells)
+// Night architectural lighting per facade: x facade top (m above the base), y crown (0 none, 1 wash, 2 wash + LED
+// lines on the wall edges), z palette index, w warm uplights along the base
+StructuredBuffer<float4> tFacadeLights : register(t15);
+
+float3 archLightColor(uint idx) {
+    // mostly white / warm white washes, a few signature colours
+    static const float3 pal[8] = {float3(1.0, 0.8, 0.55), float3(0.88, 0.93, 1.0), float3(1.0, 0.86, 0.68), float3(1.0, 0.15, 0.6),
+                                  float3(0.15, 0.7, 1.0), float3(0.5, 0.2, 1.0), float3(1.0, 0.78, 0.5), float3(0.2, 0.45, 1.0)};
+    return pal[idx & 7u];
+}
 
 // style: 0 punched windows, 1 curtain wall, 2 ribbon windows, 3 balconies/condo, 4 industrial (few windows),
 //        5 house (shuttered windows), 6 art deco (vertical fins + eyebrows)
@@ -70,6 +80,92 @@ float3 interiorRoom(float3 roomPos, float3 dir, float3 roomSize, uint roomHash, 
     return c;
 }
 
+// Shelf wall of a shop: boards every 0.42 m up to 2.1 m holding rows of products (boxes, bottles, packaging).
+float3 shelfPattern(float u, float v, uint h, float kind, float3 wallC) {
+    if (v > 2.1 || v < 0.05) return wallC;
+    float row = floor(v / 0.42), fv = frac(v / 0.42);
+    if (fv < 0.07) return kind >= 0.9 ? float3(0.92, 0.92, 0.92) : float3(0.5, 0.5, 0.52);
+    float cellW = 0.14 + hashF(h + (uint)row * 7u) * 0.14;
+    float cell = floor(u / cellW), fu = frac(u / cellW);
+    uint ph = hash3u(uint3((uint)(cell + 4096.0), (uint)row, h));
+    float fill = 0.5 + hashF(ph) * 0.45;
+    if (fu < 0.07 || fu > 0.93 || fv > 0.07 + fill * 0.93) return wallC * 0.25;   // shadowed shelf back
+    float3 pc = hsvToRgbF(hashF(ph + 1u)) * lerp(0.35, 0.85, hashF(ph + 2u)) + 0.06;
+    if (hashF(ph + 3u) < 0.3) pc = lerp(pc, float3(0.9, 0.9, 0.88), 0.7);   // white packaging
+    if (kind >= 0.9) pc = lerp(float3(0.92, 0.93, 0.95), pc, 0.3);          // pharmacy: mostly white boxes
+    return pc * lerp(0.8, 1.0, fu);
+}
+
+// Clothes rail at 1.6 m with garments of varying length, colour runs per rail section.
+float3 garmentPattern(float u, float v, uint h, float3 wallC) {
+    if (abs(v - 1.63) < 0.02) return float3(0.75, 0.75, 0.78);
+    if (v > 1.61 || v < 0.55) return wallC;
+    float g = floor(u / 0.085), fg = frac(u / 0.085);
+    uint gh = hash3u(uint3((uint)(g + 8192.0), 3u, h));
+    float len = 0.5 + hashF(gh) * 0.5;
+    if (v < 1.61 - len || fg < 0.05) return wallC * 0.6;
+    uint grp = hash3u(uint3((uint)(floor(u / 0.6) + 8192.0), 5u, h));
+    float3 c = hsvToRgbF(hashF(grp) + (hashF(gh + 1u) - 0.5) * 0.08) * lerp(0.25, 0.75, hashF(grp + 2u)) + 0.05;
+    return c * lerp(0.75, 1.0, sin(fg * PI));
+}
+
+// Interior mapping for a shop behind a storefront (one space per sign, 3 bays): grocery / pharmacy shelving,
+// clothing rails or a cafe, with a free-standing fixture in the middle and ceiling light panels (> 1 = emitter).
+float3 shopInterior(float3 roomPos, float3 dir, float3 roomSize, uint h) {
+    float kind = hashF(h + 40u);
+    bool cafe = kind >= 0.7 && kind < 0.9;
+    bool clothing = kind >= 0.45 && kind < 0.7;
+    float3 invD = 1.0 / (dir + (dir == 0) * 1e-5);
+    float3 tPlanes = max((roomSize * (dir > 0) - roomPos) * invD, 0.0);
+    float t = min(min(tPlanes.x, tPlanes.y), tPlanes.z);
+    float3 wallC = cafe ? float3(0.42, 0.28, 0.18) : lerp(float3(0.62, 0.61, 0.58), float3(0.52, 0.58, 0.62), hashF(h + 41u));
+    float3 brandC = hsvToRgbF(hashF(h + 50u)) * 0.75 + 0.05;   // shop's colour: stripe along the upper walls
+    float W = roomSize.x, D = roomSize.z;
+    float3 bmin, bmax;
+    if (cafe) { bmin = float3(W * 0.12, 0.0, D * 0.3); bmax = float3(W * 0.88, 0.76, D * 0.42); }
+    else if (clothing) { bmin = float3(W * 0.3, 0.55, D * 0.42); bmax = float3(W * 0.7, 1.65, D * 0.5); }
+    else { bmin = float3(W * 0.2, 0.0, D * 0.45); bmax = float3(W * 0.8, 1.45, D * 0.6); }
+    float3 t0 = (bmin - roomPos) * invD, t1 = (bmax - roomPos) * invD;
+    float3 tmin = min(t0, t1), tmax = max(t0, t1);
+    float tn = max(max(tmin.x, tmin.y), tmin.z), tf = min(min(tmax.x, tmax.y), tmax.z);
+    float3 c;
+    if (tn < tf && tn > 0.0 && tn < t) {
+        float3 p = roomPos + dir * tn;
+        bool front = tn == tmin.z;   // the face looking at the window
+        if (cafe) c = p.y > 0.72 ? float3(0.5, 0.36, 0.24) : float3(0.18, 0.12, 0.08);
+        else if (clothing) c = front ? garmentPattern(p.x, p.y, h + 9u, wallC) : float3(0.3, 0.3, 0.32);
+        else c = front ? shelfPattern(p.x, p.y, h + 11u, kind, float3(0.6, 0.6, 0.62)) : float3(0.55, 0.55, 0.57);
+        t = tn;
+    } else {
+        float3 hit = roomPos + dir * t;
+        if (t == tPlanes.y) {
+            if (dir.y > 0) {
+                float2 q = frac(hit.xz / float2(1.6, 1.8));
+                bool panel = abs(q.x - 0.5) < 0.3 && abs(q.y - 0.5) < 0.1;
+                c = cafe ? (panel ? float3(2.2, 1.5, 0.9) : float3(0.25, 0.18, 0.12)) : (panel ? float3(3.0, 3.0, 2.9) : float3(0.82, 0.82, 0.8));
+            } else {
+                float2 q = floor(hit.xz / 0.6);
+                float chk = frac((q.x + q.y) * 0.5) * 2.0;
+                c = cafe ? lerp(float3(0.3, 0.19, 0.11), float3(0.36, 0.23, 0.14), chk) : lerp(float3(0.78, 0.78, 0.75), float3(0.62, 0.62, 0.6), chk);
+            }
+        } else {
+            bool back = t == tPlanes.z;
+            float u = back ? hit.x : hit.z;
+            if (cafe) {
+                c = wallC;
+                if (back && hit.y < 1.05) c = float3(0.22, 0.14, 0.09);                                             // counter
+                if (back && hit.y > 1.5 && hit.y < 2.3) c = shelfPattern(u, hit.y - 1.5, h + 13u, 0.5, wallC) * 0.8;  // bottles
+            } else if (clothing) {
+                c = garmentPattern(u, hit.y, h + (back ? 17u : 19u), wallC);
+            } else {
+                c = shelfPattern(u, hit.y, h + (back ? 21u : 23u), kind, wallC);
+            }
+            if (!cafe && hit.y > 2.3) c = (hit.y > 2.45 && hit.y < 2.8) ? brandC : wallC * 0.7;   // brand stripe, darker frieze
+        }
+    }
+    return c * lerp(1.0, 0.65, saturate(t / (D * 1.6)));
+}
+
 FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float3 rel, float3 worldP,
                          Texture2DArray<float4> albedoArr, Texture2DArray<float4> normalArr) {
     FacadeGPU f = tFacades[id];
@@ -91,8 +187,17 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
     float4 wn = normalArr.Sample(sAnisoWrap, float3(wuv, f.wallLayer));
     float3 albedo = wa.rgb * wallC * 1.6;
     float2 nxy = wn.xy * 2.0 - 1.0;
-    float3 nts = float3(nxy, sqrt(saturate(1.0 - dot(nxy, nxy))));
     float rough = wn.z;
+    // Close-up detail: the wall layer again at a higher, rotated frequency (stucco grain, concrete pores, brick
+    // texture) with roughness variation; fades out by 20 m
+    float detailW = saturate(1.0 - length(rel) / 20.0);
+    if (detailW > 0.0) {
+        float2 duv = float2(wuv.x * 0.8 - wuv.y * 0.6, wuv.x * 0.6 + wuv.y * 0.8) * 5.3 + 0.41;
+        float4 wn2 = normalArr.Sample(sAnisoWrap, float3(duv, f.wallLayer));
+        nxy += (wn2.xy * 2.0 - 1.0) * 0.6 * detailW;
+        rough = saturate(rough * lerp(1.0, 0.7 + wn2.z * 0.6, detailW * 0.6));
+    }
+    float3 nts = float3(nxy, sqrt(saturate(1.0 - dot(nxy, nxy))));
     float ao = wn.w;
 
     // Floor / bay cells
@@ -153,7 +258,10 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         float underSill = (wl.x > -0.05 && wl.x < winW + 0.05 && wl.y < 0.0) ? saturate(1.0 + wl.y / (0.6 + hashF(roomHash + 31u) * 1.4)) : 0.0;
         float drip = valueNoise(float2(uv.x * 11.0, uv.y * 0.6)) * valueNoise(float2(uv.x * 23.0 + 5.0, uv.y * 1.3));
         float streaks = underSill * saturate(drip * 3.0 - 0.2) * (style == 1 ? 0.0 : 1.0);
-        float grime = saturate(baseGrime * 0.7 + streaks * 0.55);
+        // soot / dirt halo around the window openings (strongest at the head, where runoff collects)
+        float2 wd = float2(max(max(-wl.x, wl.x - winW), 0.0), max(max(-wl.y, wl.y - winH), 0.0));
+        float halo = saturate(1.0 - length(wd) / (0.22 + 0.12 * valueNoise(uv * 3.7))) * (wl.y > winH ? 1.0 : 0.55) * (style == 1 ? 0.0 : 1.0);
+        float grime = saturate(baseGrime * 0.7 + streaks * 0.55 + halo * 0.3);
         albedo *= lerp(1.0, float3(0.6, 0.58, 0.55), grime);
         rough = saturate(rough + grime * 0.1);
     }
@@ -182,15 +290,18 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         // View ray into the room (room space: x along T, y up, z into the building)
         float3 V = normalize(-rel);
         float3 dir = normalize(float3(-dot(V, T), -dot(V, B), dot(V, N)));
-        float roomW = storefront ? bay : bay;
-        float3 roomSize = float3(roomW, fh, f.roomDepth);
-        float3 roomPos = float3(fx, fy, 0.02);
         bool office = (flags & 16u) != 0;
+        // Storefronts: one shop per sign (3 bays) with its own interior, opening hours and lighting
+        float shopIdx = floor(bayIdx / 3.0);
+        uint shopHash = hash3u(uint3((uint)(shopIdx + 2000.0), 77u, seed));
+        uint lh = storefront ? shopHash : roomHash;
         float la;
-        float3 room = interiorRoom(roomPos, dir, roomSize, roomHash, la, office);
-        // Blinds / curtains
+        float3 room;
+        if (storefront) room = shopInterior(float3(fx + (bayIdx - shopIdx * 3.0) * bay, fy, 0.02), dir, float3(bay * 3.0, fh, f.roomDepth * 1.4), shopHash);
+        else room = interiorRoom(float3(fx, fy, 0.02), dir, float3(bay, fh, f.roomDepth), roomHash, la, office);
+        // Blinds / curtains (homes and offices)
         float blindsAmt = hashF(roomHash + 5u);
-        bool blinds = (flags & 8u) ? blindsAmt < 0.6 : blindsAmt < 0.25;
+        bool blinds = !storefront && ((flags & 8u) ? blindsAmt < 0.6 : blindsAmt < 0.25);
         float blindLevel = hashF(roomHash + 6u);
         bool coveredByBlind = blinds && (wl.y / winH) > blindLevel;
         float3 blindC = office ? float3(0.7, 0.7, 0.68) : lerp(float3(0.8, 0.75, 0.65), float3(0.5, 0.2, 0.15), hashF(roomHash + 7u));
@@ -205,19 +316,21 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         bool eveningLit = hc >= onT && (hc < offT || allNight) && hc < 30.5 + hashF(roomHash + 18u);
         bool morningLit = hour > 5.2 + hashF(roomHash + 19u) && hour < 7.4 + hashF(roomHash + 20u) * 1.3 && hashF(roomHash + 21u) < 0.35;
         bool officeLit = office && hour > 7.0 + hashF(roomHash + 22u) * 1.5 && hour < 17.5 + pow(hashF(roomHash + 23u), 3.0) * 5.0;
-        bool shopOpen = storefront && hour > 7.0 + hashF(roomHash + 24u) && hour < 22.0 + hashF(roomHash + 25u) * 3.0;
-        bool lit = (occupied && (office ? officeLit || (eveningLit && hashF(roomHash + 26u) < 0.3) : (eveningLit || morningLit))) ||
-                   shopOpen || (storefront && hashF(roomHash + 27u) < 0.4);   // closed shops keep display lighting
+        bool shopOpen = storefront && hour > 7.0 + hashF(lh + 24u) && hour < 22.0 + hashF(lh + 25u) * 3.0;
+        bool display = storefront && hashF(lh + 27u) < 0.4;   // closed shops that keep their display lighting on
+        bool lit = storefront ? (shopOpen || display)
+                              : (occupied && (office ? officeLit || (eveningLit && hashF(roomHash + 26u) < 0.3) : (eveningLit || morningLit)));
         float3 lightC = office ? lerp(float3(0.95, 0.9, 0.8), float3(0.85, 0.93, 1.0), hashF(roomHash + 12u))
                                : lerp(float3(1.0, 0.6, 0.3), float3(1.0, 0.82, 0.6), hashF(roomHash + 12u) * 0.8);
         if (!office && hashF(roomHash + 13u) > 0.93) lightC = float3(0.4, 0.55, 1.0);  // TV glow
+        if (storefront) lightC = lerp(float3(1.0, 0.8, 0.58), float3(0.86, 0.94, 1.0), hashF(lh + 28u));  // halogen .. LED
         float3 inside = coveredByBlind ? blindC : room;
         // Interior radiance: lit rooms emit, unlit rooms show dim daylight interior
         float dayInterior = saturate(gSunDir.z * 3.0 + 0.1) * (1.0 - gExposure.w);
         float3 glassTint = glassC;
         float3 interiorAlbedo = inside * glassTint;
         float3 em = 0;
-        if (lit) em = inside * lightC * (storefront ? 30.0 : 9.0) * (0.45 + 0.9 * hashF(roomHash + 14u));
+        if (lit) em = inside * lightC * (storefront ? 14.0 : 9.0) * (0.45 + 0.9 * hashF(lh + 14u));
         // Glass surface: dark reflective; interior visible through it
         outAlbedo = interiorAlbedo * 0.35 * dayInterior + glassTint * 0.02;
         r.emissive = em * glassTint * 1.2;
@@ -228,6 +341,18 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         float2 pane = float2(bayIdx, floorIdx);
         float3 wob = float3(hashF(roomHash + 21u) - 0.5, hashF(roomHash + 22u) - 0.5, 0) * 0.02;
         outN = normalize(N + T * wob.x + B * wob.y);
+        // Closed shops without display lighting pull down ribbed roller shutters (some tagged with graffiti)
+        if (storefront && !shopOpen && !display && hashF(lh + 29u) < 0.7) {
+            float slat = frac(uv.y / 0.085);
+            float3 metalC = float3(0.5, 0.51, 0.52) * lerp(0.75, 1.05, valueNoise(float2(uv.x * 0.7, uv.y * 3.0)));
+            float tag = hashF(lh + 30u) < 0.45 ? saturate(valueNoise(uv * float2(1.4, 2.2) + hashF(lh + 31u) * 40.0) * 2.4 - 1.25) : 0.0;
+            outAlbedo = lerp(metalC, hsvToRgbF(hashF(lh + 32u) + uv.x * 0.02) * 0.55, tag) * lerp(0.7, 1.0, sin(slat * PI));
+            outN = normalize(N - B * (slat - 0.5) * 0.9);
+            rough = lerp(0.42, 0.6, tag);
+            r.metal = 0.65 * (1.0 - tag);
+            r.emissive = 0;
+            r.isWindow = false;
+        }
     }
     // Balconies style: horizontal slab edges every floor + railing band
     if (style == 3 && !ground) {
@@ -242,6 +367,28 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
             r.emissive += neon * (20.0 + 260.0 * gExposure.w);
             outAlbedo = neon;
         }
+    }
+    // Night architectural lighting: coloured crown washes (and LED lines up the wall edges) on towers, warm
+    // scalloped uplights along the base of deco buildings, churches and some mid-rises
+    float nightA = gExposure.w;
+    if (nightA > 0.0) {
+        float4 xl = tFacadeLights[id];
+        float3 wash = 0;
+        if (xl.y > 0.5 && xl.x > 12.0) {
+            float3 cc = archLightColor((uint)xl.z);
+            float below = xl.x - uv.y;   // meters below the roof line
+            wash += cc * exp(-max(below, 0.0) / (2.5 + xl.x * 0.025)) * 38.0;
+            if (xl.y > 1.5 && uv.y > xl.x * 0.35 && below > -0.5) {
+                float lw = max(0.18, length(rel) * 0.0012);   // widen with distance (no sub-pixel shimmer)
+                r.emissive += cc * step(uv.x, lw) * (400.0 * 0.18 / lw) * nightA;
+            }
+        }
+        if (xl.w > 0.5) {
+            float spot = pow(saturate(cos((fx / bay - 0.5) * PI)), 2.0);
+            wash += float3(1.0, 0.72, 0.45) * exp(-uv.y / 5.5) * saturate(uv.y * 2.0) * lerp(0.35, 1.0, spot) * 45.0;
+        }
+        float3 recv = r.isWindow ? max(outAlbedo, 0.12) : outAlbedo;   // glass: lit mullions / frit
+        r.emissive += recv * wash * (nightA / PI);
     }
     r.albedo = outAlbedo;
     r.normal = outN;

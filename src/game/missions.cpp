@@ -272,6 +272,26 @@ void GameWorld::mEnd(bool passed, const std::string& reason) {
     openWorldOnMissionEnd(*this, defIndex, passed);
 }
 
+// Is a point inside the view of a cutscene shot at progress e (0..1 along its move)? (16:9 frame, 10% margin)
+bool shotShows(const CutsceneShot& s, float e, vec3 p) {
+    vec3 cam = (s.pos + rel(s.pos2, s.pos) * e).toVec3();
+    vec3 tgt = (s.target + rel(s.target2, s.target) * e).toVec3();
+    vec3 f = tgt - cam;
+    if (length2(f) < 1e-4f) return true;
+    f = normalize(f);
+    vec3 d = p - cam;
+    float dist = length(d);
+    if (dist < 0.3f) return false;
+    d /= dist;
+    float halfV = s.fov * 0.5f * kDegToRad * 0.9f;
+    float halfH = atanf(tanf(halfV) * 16.f / 9.f);
+    vec3 r = normalize(cross(f, vec3(0, 0, 1)));
+    vec3 u = cross(r, f);
+    float x = dot(d, r), y = dot(d, u), z = dot(d, f);
+    if (z <= 0.05f) return false;
+    return fabsf(atanf(x / z)) < halfH && fabsf(atanf(y / z)) < halfV && dist < 45.f;
+}
+
 void GameWorld::updateMissions(float dt) {
     MissionManager& M = gMissions;
     buildMarkerModel(renderer);
@@ -295,6 +315,31 @@ void GameWorld::updateMissions(float dt) {
             if (M.test.active) dur = Min(dur, 1.0f);
             M.lineTimer = dur + (M.test.active ? 0.05f : l.pause);
             subtitle(l.speaker, Speech::displayText(l.text.c_str()), dur + 0.3f, l.color);
+            // a story cutscene keeps the speaker in frame: jump ahead to a scripted shot that shows them, or add one
+            if (pedVoice && !l.phone && M.holdForDialogue && M.shotIndex >= 0 && M.shotIndex < (int)M.shots.size() && dur > 1.2f) {
+                const CutsceneShot& cs = M.shots[M.shotIndex];
+                float t = Saturate(M.shotTime / Max(cs.duration, 0.01f));
+                float e = t * t * (3.f - 2.f * t);
+                vec3 head = peds[l.ped].pos.toVec3() + vec3(0, 0, 1.6f);
+                bool establishing = cs.speaker == -2 && M.shotTime < 1.8f;   // let an opening shot breathe under the first words
+                if (!establishing && !shotShows(cs, e, head)) {
+                    int found = -1;
+                    for (int j = M.shotIndex + 1; j < (int)M.shots.size() && found < 0; j++)
+                        if (M.shots[j].speaker == -2 && shotShows(M.shots[j], 0.f, head)) found = j;
+                    if (found >= 0) {
+                        M.shotIndex = found;
+                        M.shotTime = 0.f;
+                    } else {
+                        CutsceneShot sh;
+                        if (M.autoShots < 24 && speakerShot(l.ped, &cs, M.lineTimer, sh)) {
+                            M.shots.insert(M.shots.begin() + M.shotIndex + 1, sh);
+                            M.shotIndex++;
+                            M.shotTime = 0.f;
+                            M.autoShots++;
+                        }
+                    }
+                }
+            }
             if (pedVoice && !l.phone && peds[l.ped].state == PS_ONFOOT && peds[l.ped].brain.type == BRAIN_NONE && peds[l.ped].animIn.stance == 0 && !peds[l.ped].isPlayer)
                 peds[l.ped].animIn.stance = 7;
             // blocking: in a cutscene, the people standing around turn to whoever speaks
@@ -336,6 +381,14 @@ void GameWorld::updateMissions(float dt) {
         if (length2(rel(s.pos2, dvec3(0, 0, 0))) < 1e-6f) rig.scriptPos = s.pos;
         if (length2(rel(s.target2, dvec3(0, 0, 0))) < 1e-6f) rig.scriptTarget = s.target;
         rig.scriptFov = s.fov;
+        if (s.handheld > 0.f) {
+            // handheld: slow drift plus a little breathing on the aim, never a jitter
+            float tt = (float)time;
+            vec3 drift(sinf(tt * 0.9f) + 0.5f * sinf(tt * 2.3f + 1.f), cosf(tt * 0.7f) + 0.4f * sinf(tt * 1.9f), 0.6f * sinf(tt * 1.3f + 2.f));
+            vec3 aim(sinf(tt * 1.1f + 0.5f), 0.6f * cosf(tt * 1.7f), 0.5f * sinf(tt * 1.5f));
+            rig.scriptPos = rig.scriptPos + dvec3(drift * (0.035f * s.handheld));
+            rig.scriptTarget = rig.scriptTarget + dvec3(aim * (0.05f * s.handheld));
+        }
         bool skip = M.skippable && ctl.skip.pressed && M.shotTime > 0.4f;
         if (M.shotTime >= s.duration || skip) {
             if (skip) {

@@ -101,6 +101,8 @@ struct VehicleTuning {
     float topSpeed = 50.f;          // governor speed (m/s): model top speed plus upgrades
     bool turbo = false;             // turbocharger fitted (upgrade)
     float rideDrop = 0.f;           // lowered suspension (m): wheels sit this much higher in the body at rest
+    float brakeGrip = 1.f;          // tire grip multiplier while braking (brake upgrades: pads / ABS tuning)
+    float visRollCap = 0.f, visPitchCap = 0.f;  // visual body motion limits (rad), 0 = none
     // aero
     float dragArea = 0.7f;          // Cd*A (m^2)
     float liftArea = 0.f;           // downforce coefficient * A (m^2)
@@ -196,6 +198,17 @@ struct VehicleState {
     float driftTimer = 0.f;        // cars: > 0 while the driver holds a power slide (countersteer / handbrake flick)
     VehicleUpgrades upgrades;      // fitted upgrades (set through applyUpgrades; initVehicle starts stock)
     float turboBoost = 0.f;        // 0..1 turbo spool (audio: whistle while rising, blow-off when it drops fast)
+    // Visual-only body motion: a springy, exaggerated (~1.75x) echo of the suspension (roll, dive/squat, heave) with a
+    // nod on upshifts and a squat on launches. Physics and collision never see it. Apply it to the body draw item only
+    // (wheels stay put): rotate about visPivot (model-local: mid-wheelbase, wheel-centre height) by visPitch about local
+    // +X (+ = nose up), then visRoll about local +Y (+ = right side down), then offset by visHeave along local +Z (m).
+    // Capped per class (roll about 4 deg cars, 6 deg SUVs/vans/pickups); always 0 for bikes, boats and aircraft.
+    float visPitch = 0.f, visRoll = 0.f, visHeave = 0.f;
+    vec3 visPivot;
+    float visPitchVel = 0.f, visRollVel = 0.f, visHeaveVel = 0.f;  // (filter state)
+    bool visLaunchArmed = true;
+    float alignPull = 0.f;         // bent steering after front/side impacts (rad, + = pulls right); repairVehicle clears it
+    float ctlPitch = 0.f, ctlRoll = 0.f, ctlYaw = 0.f;  // aircraft: shaped pilot stick positions (internal)
 
     vec3 forward() const { return rotate(body.rot, vec3(0, 1, 0)); }
     vec3 right() const { return rotate(body.rot, vec3(1, 0, 0)); }
@@ -228,5 +241,12 @@ void burstTire(VehicleState& s, int wheel);
 // Idempotent, callable at any time on a live vehicle: pose, motion, wheel state, damage and flags are kept.
 // initVehicle starts stock, so call this again after re-initializing a vehicle that carries mods.
 void applyUpgrades(VehicleState& s, const VehicleModel& m, const VehicleUpgrades& u);
+// Road surface wetness 0 (dry) .. 1 (soaked) for every vehicle (feed it the weather's wetness each frame): wet
+// asphalt/concrete lose ~18 % grip and aquaplane at motorway speed (down to ~65 %), wet grass/dirt get slick,
+// wet sand firms up.
+void setSurfaceWetness(float wetness);
+float surfaceWetness();
+// Workshop repair: body/engine health, dents, bent steering, burst tires, flooding and the wreck flag.
+void repairVehicle(VehicleState& s);
 
 }  // namespace Vehicles

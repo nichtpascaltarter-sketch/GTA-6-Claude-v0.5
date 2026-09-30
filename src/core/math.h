@@ -223,8 +223,8 @@ u32 packNormalOct(vec3 n);
 vec3 unpackNormalOct(u32 p);
 
 FORCEINLINE float wrapAngle(float a) {
-    while (a > kPi) a -= kTwoPi;
-    while (a < -kPi) a += kTwoPi;
+    if (!(a > -1e6f && a < 1e6f)) return 0.f;   // NaN / inf / absurd input: never loop
+    if (a > kPi || a < -kPi) a = remainderf(a, kTwoPi);   // one step to [-pi, pi]
     return a;
 }
 FORCEINLINE float approach(float cur, float target, float maxDelta) {

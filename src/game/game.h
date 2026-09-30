@@ -197,6 +197,8 @@ struct Ped {
     float legInjury = 0.f;        // s of limping left after a leg wound (caps the speed)
     // lip sync of the line being spoken (Speech::lipSync keys on the synthesizer's timeline, real-time clock)
     std::vector<Speech::VisemeKey> lipKeys;
+    std::vector<Speech::StyleSpan> lipStyles;   // emotion over the line (facial expression)
+    std::vector<Speech::AccentCue> lipAccents;  // stressed syllables (brow raises, nods)
     double lipStart = -1.0;
     int lipIdx = 0;
 };
@@ -242,6 +244,7 @@ struct Vehicle {
     bool scripted = false;        // moved kinematically by gameplay (ambient air/sea traffic, cutscenes)
     bool renderFar = false;       // drawn up to the horizon (aircraft)
     bool windowsBroken = false;   // shattered by gunfire or a hard crash (glass no longer drawn)
+    bool shiftLatch = false;      // a gear change happened in one of this frame's physics substeps
     int glassHits = 0;
     // customization (mod shop): visual parts are read by the render/FX code, handling parts by applyVehicleMods
     struct Mods {
@@ -294,13 +297,16 @@ struct Fire {
 struct CharEntry {
     Anim::CharacterDesc desc;
     Anim::Skeleton skel;
-    Render::Model* model = nullptr;
+    Render::Model* model = nullptr;        // LOD0 (~16k tris)
+    Render::Model* lods[2] = {nullptr, nullptr};   // LOD1 (~4.5k, 15-40 m), LOD2 (~1.5k, beyond)
     int role = 0;
 };
 
 struct VehicleAsset {
     Vehicles::VehicleModel spec;
     Render::Model* body = nullptr;
+    Render::Model* bodyLod[2] = {nullptr, nullptr};   // LOD1 (40-120 m, wheels = wheelLod1), LOD2 (beyond, wheels merged)
+    Render::Model* wheelLod1 = nullptr;
     Render::Model* wheel = nullptr;
     Render::Model* rotor = nullptr;
     Render::Model* tailRotor = nullptr;

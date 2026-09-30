@@ -218,6 +218,7 @@ struct GameWorld {
     // Tidegram social feed (social.cpp): UI::TideEvent ev at pos
     void socialReport(int ev, dvec3 pos, const char* subject = nullptr, float magnitude = 0.f);
     void updateSocial(float dt);
+    void updatePublicAddress(float dt);   // airport PA announcements (ambient.cpp)
     void socialCrash(int vehicle, float impulse);
     void damageVehicle(int veh, float amount, int attacker, vec3 pointRel, vec3 impulse);
     void explode(dvec3 pos, float radius, float damage, int owner);
@@ -351,6 +352,7 @@ struct GameWorld {
     // ---- Missions/economy additions (story module: missions.cpp, story*.cpp, activities/shops/economy) ----
     UI::PhoneState phone;               // the player's phone (UI::Phone, filled by the app + story layer each frame)
     bool hidePlayerModel = false;       // photo mode "hide player"
+    Render::Camera renderCam;           // the camera the last frame was rendered with (HUD projections)
     bool requestSaveMenu = false;       // set when the player steps into a safehouse save marker: the app opens MENU_SAVE
     std::string requestScreenshot;      // test automation: the app saves the next finished frame (after UI) here, clears it
     bool policeSuppressed = false;      // an active mission keeps the police out (crimes are not reported while set)
@@ -379,6 +381,7 @@ struct GameWorld {
     void aiUpdateThreats(float dt);
     std::string aiDebugText() const;
     std::string aiCensusText(float radius) const;   // who is around the player and what they are doing (tests)
+    std::string aiTrafficHealthText() const;         // stuck / blocked / rolled cars, impacts, core counters (soak tests)
 };
 
 extern GameWorld* gGame;

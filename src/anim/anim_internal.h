@@ -14,6 +14,14 @@ enum InternalClip : int {
     IC_GUARD_KNIFE,                // knife fighting stance (stance 19, meleeKind 1)
     IC_GUARD_BAT,                  // bat cocked over the right shoulder (stance 19, meleeKind 2)
     IC_BLOCK_BAT,                  // bat held across in front of the face (stance 20, meleeKind 2)
+    IC_IDLE_CROSSARMS,             // idle variations (the animator cycles through them while a ped stands around)
+    IC_IDLE_POCKETS,
+    IC_IDLE_HIP,
+    IC_IDLE_PHONE,
+    IC_IDLE_STRETCH,
+    IC_DANCE2, IC_DANCE3, IC_DANCE4,   // dance styles (stance 9 picks one per ped)
+    IC_SIT_GROUND,                 // sitting on the ground, knees up, leaning back on the hands (stance 21)
+    IC_LIE_FRONT,                  // sunbathing face down, head on the forearms (stance 22)
     IC_END
 };
 void sampleClipId(const Skeleton& skel, int ci, float t, Pose& out, u32 variationSeed);
@@ -187,6 +195,7 @@ struct BVert {
     float pa = 0, pb = 0;
     float pc = 0;       // normalized length fraction: torso 0 (crotch) .. 1 (neck base); limbs along/length
     float uPer = 0;     // period of uv.x for closed tubes (0 = none); used to fix wrap seams on output
+    float layer = 0;    // LOD stage: distance of a clothing / hair / accessory vertex from the skin (layer offset)
     vec3 axisPt;        // point on the part axis (used for ray casts / hems)
     vec3 bp;            // underlying body surface position (garments/hair keep the skin point they came from)
 };
@@ -218,6 +227,8 @@ void stitchLoops(MeshB& m, const std::vector<u32>& A, const std::vector<u32>& B,
 void fixUvSeams(MeshB& m);
 // Convert the build mesh to the GPU vertex format.
 void emitMesh(const MeshB& m, SkinnedMeshData& out);
+// Quadric half-edge-collapse decimation to about targetTris (see decimate.cpp).
+void decimateMesh(MeshB& m, int targetTris, const float* partWeight = nullptr);   // cost scale per PART_*
 
 // ------------------------------------------------------------------------------------------------
 // Shared descriptor enums (documented in character_desc notes in clothing.cpp / randomCharacter)

@@ -253,7 +253,47 @@ inline void buildSpokeFace(PMesh& m, const WheelDesign& d, float rOut, float aLi
     m.uvMode = UV_BOX;
 }
 
+// Light wheel for the distant level of detail (~250 tris): rounded tire, rim lip, a tinted face with a darker dish
+// and hub, closed at the back.
+inline void buildWheelLod(const WheelDesign& d, MeshData& out) {
+    int& lodRef = lodLevel();
+    int savedLod = lodRef;
+    lodRef = 0;  // explicit low tessellation below; no further reduction or part culling
+    PMesh m;
+    float w = d.W * 0.5f, R = d.R, rr = d.rimR, h = R - rr;
+    const int seg = 14;
+    m.newGroup(50.f);
+    m.use(MAT_TIRE, kCol1);
+    std::vector<vec2> t;
+    t.push_back(vec2(-w * 0.86f, rr));
+    t.push_back(vec2(-w, rr + h * 0.5f));
+    t.push_back(vec2(-w * 0.8f, R));
+    t.push_back(vec2(w * 0.8f, R));
+    t.push_back(vec2(w, rr + h * 0.5f));
+    t.push_back(vec2(w * 0.86f, rr));
+    lathe(m, vec3(0, 0, 0), vec3(1, 0, 0), vec3(0, 1, 0), t, seg);
+    m.newGroup(45.f);
+    m.use(MAT_RIM, colv(d.lipTint));
+    std::vector<vec2> lip;
+    lip.push_back(vec2(w * 0.86f, rr));
+    lip.push_back(vec2(w * 0.9f, rr - 0.012f));
+    lip.push_back(vec2(w * 0.8f, rr - 0.02f));
+    lathe(m, vec3(0, 0, 0), vec3(1, 0, 0), vec3(0, 1, 0), lip, seg);
+    m.use(d.style == RIM_WIRE ? (u8)MAT_CHROME : (u8)d.faceMat, colv(d.faceTint));
+    disk(m, vec3(w * 0.8f, 0, 0), vec3(1, 0, 0), rr - 0.02f, seg, rr * 0.45f);
+    m.use(MAT_RIM, colv(d.faceTint * 0.35f));
+    disk(m, vec3(w * 0.78f, 0, 0), vec3(1, 0, 0), rr * 0.45f, seg);
+    m.use(MAT_PLASTIC, col(0.3f, 0.3f, 0.3f));
+    disk(m, vec3(-w * 0.8f, 0, 0), vec3(-1, 0, 0), rr, seg);
+    finalizeMesh(m, out);
+    lodRef = savedLod;
+}
+
 inline void buildWheel(const WheelDesign& d, MeshData& out) {
+    if (lodLevel() >= 1) {
+        buildWheelLod(d, out);
+        return;
+    }
     PMesh m;
     m.newGroup(50.f);
     buildTire(m, d);

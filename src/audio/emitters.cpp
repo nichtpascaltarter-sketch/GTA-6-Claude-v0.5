@@ -99,11 +99,24 @@ struct EngineCore {
     float intakeFc = -1;
     Svf knockBp;
     float knockEnv = 0;
-    // turbo
-    float boost = 0, turboPhase = 0, turboFreq = 1500, bovEnv = 0, bovFlutter = 0, bovPh = 0;
-    Svf turboNoiseBp;
+    // turbo: boost from the built-in model (turbo engine kinds) or from the vehicle simulation (setTune)
+    float boost = 0, turboPhase = 0, turboPh2 = 0, turboFreq = 1500, bovEnv = 0, bovStart = 1, bovDecay = 0.99985f;
+    Svf turboNoiseBp, bovBp, flutBp;
     OnePoleHP bovHp;
+    OnePoleLP flutLp;
+    float bovFc = -1;
     float lastThrottleHi = 0;
+    float shaft = 0;          // turbine shaft speed 0..1: whistle pitch; winds down slower than the boost dumps
+    float spool = 0;          // smoothed boost rise rate 0..1 (whistle emphasis while boost builds)
+    float prevBoost = 0, boostHold = 0;  // boostHold: recent boost peak (blow-off size, gear-change dumps)
+    float whLevel = 0, airLevel = 0, bovGain = 0, flutGain = 0;
+    float flutEnv = 0, flutStart = 1, flutDecay = 0.9998f, flutPh = 0, flutRate = 20;  // compressor surge chuffs
+    float fmN = 0;            // slow random shaft-speed wander
+    bool extTurbo = false;    // boost supplied by the vehicle simulation (a fitted turbo)
+    float tBoost = 0, tune = 0;
+    int shiftPending = 0;     // game frames left to act on a gear-change event
+    float rpmPeak = 0;        // recent rpm peak (hard-shift detection)
+    float shiftPop = 0, pop2Mag = 0, pop2Timer = 0;  // tuned-car shift pops (second pop of a double)
     // crackle
     float crackleTimer = 0, popEnv = 0;
     Svf popBp;
@@ -146,6 +159,10 @@ struct EngineCore {
         knockBp.set(3200.f, 1.6f);
         turboNoiseBp.set(3000.f, 2.f);
         bovHp.set(1800.f);
+        bovBp.set(3500.f, 1.3f);
+        bovFc = -1.f;
+        flutBp.set(1150.f, 1.1f);
+        flutLp.set(320.f);
         crankDeg = r.range(0.f, cycleDeg * 0.999f);
         nextFire = 0;
         while (nextFire < cyl && angles[nextFire] <= crankDeg) nextFire++;
@@ -166,8 +183,33 @@ struct EngineCore {
             load = tLoad;
             paramsInit = true;
         }
+        // a gear-change event not acted on within a few frames (emitter not rendered) is dropped, not played late
+        if (shiftPending > 0) shiftPending--;
+    }
+    // Upgrades from the game (Audio::setEngineTune): boost = VehicleState::turboBoost, tune 0 stock .. 1 fully tuned,
+    // shifted = a gear engaged this frame. The first nonzero boost switches from the built-in turbo model to the
+    // simulation's boost (so a car without the turbo upgrade keeps its stock sound).
+    void setTune(float b, float tn, bool shifted) {
+        tBoost = Saturate(b);
+        tune = Saturate(tn);
+        if (tBoost > 0.01f) extTurbo = true;
+        if (shifted) shiftPending = 8;
+    }
+    // Blow-off valve vent plus compressor flutter; full = throttle closed (else a short chirp in a gear change).
+    void blowOff(float mag, bool full) {
+        bovEnv = bovStart = mag;
+        bovDecay = expf(-1.f / ((full ? 0.13f + 0.12f * tune : 0.055f) * kSR));
+        float fl = extTurbo ? 0.45f + 0.55f * tune : 0.2f;
+        flutEnv = flutStart = mag * fl * (full ? 1.f : 0.4f);
+        flutDecay = expf(-1.f / ((full ? 0.15f + 0.1f * tune : 0.06f) * kSR));
+        flutPh = 0.f;
+        if (!extTurbo) boost *= 0.4f;
+        boostHold = boost;
+        lastThrottleHi = throttle;
     }
     FORCEINLINE float rpmHz() const { return spec.idleRpm + (spec.maxRpm - spec.idleRpm) * rpm01; }
+    // Output gain of this engine kind relative to the I4's (sounds added inside the core scale with it).
+    float outNorm() const { return 0.665f / Max(spec.level * gainNorm * levelTrim, 0.05f); }
     void control() {
         float fc = spec.intakeFreq * (0.7f + 0.9f * rpm01);
         if (fabsf(fc - intakeFc) > 5.f) { intakeBp.setG(svfG(fc), 1.4f); intakeFc = fc; }
@@ -182,18 +224,65 @@ struct EngineCore {
         wobblePhase += 0.8f * 16.f * kInvSR;
         if (wobblePhase >= 1.f) wobblePhase -= 1.f;
         wob = 1.f + 0.012f * (1.f - SmoothStep(0.f, 0.15f, rpm01)) * sinWrapped(wobblePhase);
-        if (spec.turbo > 0.f) {
-            float target = throttle * SmoothStep(0.2f, 0.7f, rpm01) * (0.5f + 0.5f * load);
-            boost += (target - boost) * (target > boost ? 0.0035f : 0.012f);
-            if (lastThrottleHi - throttle > 0.45f && boost > 0.4f && bovEnv < 0.05f) {
-                bovEnv = boost;
-                bovFlutter = 1.f;
-                boost *= 0.4f;
-                lastThrottleHi = throttle;
+        const float kCtlDt = 16.f * kInvSR;
+        rpmPeak = Max(rpm01, rpmPeak - 0.6f * kCtlDt);
+        const bool turboOn = spec.turbo > 0.f || extTurbo;
+        if (turboOn) {
+            if (extTurbo) {
+                boost += (tBoost - boost) * 0.02f;  // the simulation spools (~0.7 s); smooth its per-frame steps
+            } else {
+                float target = throttle * SmoothStep(0.2f, 0.7f, rpm01) * (0.5f + 0.5f * load);
+                boost += (target - boost) * (target > boost ? 0.0035f : 0.012f);
             }
-            lastThrottleHi = Max(throttle, lastThrottleHi * 0.999f);
-            turboFreq = 1500.f + 7500.f * boost * (0.45f + 0.55f * rpm01);
+            spool += (Saturate((boost - prevBoost) * 0.7f / kCtlDt) - spool) * 0.01f;
+            prevBoost = boost;
+            shaft += (boost - shaft) * (boost > shaft ? 0.05f : 0.0005f);  // spin-down ~0.7 s
+            boostHold = Max(boost, boostHold - 0.8f * kCtlDt);
+            // blow-off when the throttle snaps shut at high boost; a chirp when boost dumps with the pedal still down
+            // (the torque cut of a gear change, the rev limiter)
+            bool lift = lastThrottleHi - throttle > 0.4f && boostHold > 0.35f;
+            bool dump = extTurbo && throttle > 0.45f && boostHold > 0.45f && boostHold - boost > 0.3f;
+            if ((lift || dump) && bovEnv < 0.05f) blowOff(lift ? boostHold : 0.5f * boostHold, lift);
+            lastThrottleHi = Max(throttle, lastThrottleHi * 0.9995f);
+            fmN += (nz.white() - fmN) * 0.02f;
+            float flutC = 0.f;
+            if (flutEnv > 1e-4f) {
+                flutRate = 11.f + 16.f * Saturate(flutEnv / flutStart);  // the surge slows as the pressure bleeds
+                flutC = 1.f - flutPh;
+                flutC *= flutC * flutC;
+            }
+            // compressor tone: rises with shaft speed (and a little with rpm); the surge chokes the shaft
+            turboFreq = (1300.f + 5000.f * shaft * (0.5f + 0.5f * rpm01)) * (1.f + 0.03f * fmN - 0.05f * flutC * flutEnv);
             turboNoiseBp.setG(svfG(turboFreq * 0.5f), 2.f);
+            // a fitted turbo sounds equally loud on every engine kind (relative to the calibrated engine level)
+            float amt = extTurbo ? Max(spec.turbo, 0.6f) * (1.f + 0.5f * tune) * outNorm() : spec.turbo;
+            // the whistle stands out while boost builds and settles back once it holds
+            float spoolGain = extTurbo ? 0.6f + 1.6f * spool : 1.f + 1.4f * spool;
+            whLevel = (extTurbo ? 0.12f : 0.06f) * amt * shaft * (0.3f * shaft + 0.7f * boost) * spoolGain;
+            airLevel = 0.05f * amt * boost;
+            // stock turbos recirculate (a soft whoosh); tuned ones vent to the air (a loud hiss)
+            bovGain = extTurbo ? 0.2f * amt * (0.6f + 0.8f * tune) : 0.08f * amt;
+            flutGain = 1.8f * amt;
+            if (bovEnv > 1e-4f) {
+                float fc = 1500.f + 2800.f * Saturate(bovEnv / bovStart);  // the vent's resonance falls as it empties
+                if (fabsf(fc - bovFc) > 25.f) { bovBp.setG(svfG(fc), 1.3f); bovFc = fc; }
+            }
+        }
+        // hard shift (throttle down near the top of the rev range): an exhaust pop on tuned cars (sometimes a
+        // double), and a blow-off chirp when boosted
+        if (shiftPending > 0) {
+            shiftPending = 0;
+            bool hard = throttle > 0.45f && rpmPeak > 0.6f;
+            if (hard && tune > 0.05f) {
+                shiftPop = (1.2f + 0.35f * nz.uni()) * (0.55f + 0.45f * tune) * sqrtf(outNorm());
+                pop2Timer = nz.uni() < 0.2f + 0.3f * tune ? 0.045f + 0.035f * nz.uni() : 0.f;
+                pop2Mag = shiftPop * (0.5f + 0.3f * nz.uni());
+            }
+            if (hard && turboOn && boostHold > 0.4f && bovEnv < 0.05f) blowOff(0.5f * boostHold, false);
+        }
+        if (pop2Timer > 0.f) {
+            pop2Timer -= kCtlDt;
+            if (pop2Timer <= 0.f) shiftPop = pop2Mag;
         }
         if (spec.crackle > 0.f) {
             throttleHist = Max(throttle, throttleHist * 0.9995f);
@@ -270,6 +359,11 @@ struct EngineCore {
                 }
                 if (throttle > 0.3f) crackleTimer = 0.f;
             }
+            if (shiftPop > 0.f) {  // tuned-car shift pop: one unburnt charge igniting in the exhaust
+                popImp += shiftPop * 0.45f;
+                popEnv = Max(popEnv, 0.55f * shiftPop);
+                shiftPop = 0.f;
+            }
 
             // pulse shaping: critically damped 2-pole low-pass
             s1 += ((impulse + popImp) * pulseScale - s1) * aC;
@@ -290,6 +384,8 @@ struct EngineCore {
             y = muffler.process(y);
             y += s2 * spec.subGain * 0.25f;
             if (lod > 0) {
+                bovEnv *= bovDecay;  // blow-off / flutter are skipped when distant but keep decaying
+                flutEnv *= flutDecay;
                 y = dcHp.process(y);
                 out[i] = y * spec.level * gainNorm * 0.55f * levelTrim;
                 continue;
@@ -305,21 +401,29 @@ struct EngineCore {
                 y += popBp.bp(nz.white()) * popEnv * 1.5f;
                 popEnv *= 0.992f;
             }
-            if (spec.turbo > 0.f && (boost > 1e-3f || bovEnv > 1e-4f)) {
+            if ((spec.turbo > 0.f || extTurbo) && (shaft > 1e-3f || bovEnv > 1e-4f || flutEnv > 1e-4f)) {
+                // whistle: compressor blade tone + its octave + the turbine wheel (different blade count)
                 turboPhase += turboFreq * kInvSR;
                 if (turboPhase >= 1.f) turboPhase -= 1.f;
+                turboPh2 += turboFreq * 1.43f * kInvSR;
+                if (turboPh2 >= 1.f) turboPh2 -= 1.f;
                 float ph2 = turboPhase * 2.f;
                 if (ph2 >= 1.f) ph2 -= 1.f;
-                float wh = sinWrapped(turboPhase) + 0.25f * sinWrapped(ph2);
-                y += wh * boost * boost * 0.06f * spec.turbo;
-                y += turboNoiseBp.bp(w) * boost * 0.05f * spec.turbo;
-                if (bovEnv > 1e-4f) {
-                    bovFlutter *= 0.9997f;
-                    bovPh += 23.f * kInvSR;
-                    if (bovPh >= 1.f) bovPh -= 1.f;
-                    float fl = 1.f - 0.6f * bovFlutter * (0.5f + 0.5f * sinWrapped(bovPh));
-                    y += bovHp.process(w) * bovEnv * 0.2f * fl * spec.turbo;
-                    bovEnv *= 0.99985f;
+                float wh = sinWrapped(turboPhase) + 0.25f * sinWrapped(ph2) + 0.12f * sinWrapped(turboPh2);
+                y += wh * whLevel;
+                y += turboNoiseBp.bp(w) * airLevel;  // intake air rush
+                if (bovEnv > 1e-4f) {  // blow-off valve: vented hiss with a falling resonance
+                    y += (bovHp.process(w) * 0.6f + bovBp.bp(w) * 1.1f) * bovEnv * bovGain;
+                    bovEnv *= bovDecay;
+                }
+                if (flutEnv > 1e-4f) {  // compressor surge: a train of chuffs that slows down ("stu-tu-tu")
+                    flutPh += flutRate * kInvSR;
+                    if (flutPh >= 1.f) flutPh -= 1.f;
+                    float c = 1.f - flutPh;
+                    c *= c;
+                    c *= c;
+                    y += (flutBp.bp(w) + flutLp.process(w) * 2.f) * c * flutEnv * flutGain;
+                    flutEnv *= flutDecay;
                 }
             }
             y = dcHp.process(y);
@@ -392,6 +496,9 @@ struct EngineSynth : EmitterSynth {
         }
         if (kind == ENGINE_ELECTRIC) ev.setParams(p0, p1);
         else core.setParams(p0, p1, p2);
+    }
+    void setTune(float boost, float tune, bool shifted) override {
+        if (kind >= 0 && kind != ENGINE_ELECTRIC) core.setTune(boost, tune, shifted);
     }
     void render(float* out, int n) override {
         if (kind < 0) { memset(out, 0, sizeof(float) * (size_t)n); return; }

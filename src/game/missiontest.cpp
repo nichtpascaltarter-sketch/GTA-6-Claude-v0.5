@@ -221,19 +221,22 @@ std::vector<std::string> expandQueue(const std::string& arg) {
         std::sort(v.begin(), v.end());
         for (auto& p : v) out.push_back(p.second);
     };
-    if (arg == "all") addIf([](const MissionDef&) { return true; });
-    else if (arg == "story") addIf([](const MissionDef& d) { return d.storyIndex >= 0; });
-    else if (arg == "side") addIf([](const MissionDef& d) { return d.storyIndex < 0; });
-    else if (arg.size() == 4 && arg.compare(0, 3, "act") == 0) {
-        int act = arg[3] - '0';
-        addIf([act](const MissionDef& d) { return d.storyIndex >= 0 && d.act == act; });
-    } else {
-        size_t s = 0;
-        while (s <= arg.size()) {
-            size_t e = arg.find(',', s);
-            if (e == std::string::npos) e = arg.size();
-            if (e > s) out.push_back(arg.substr(s, e - s));
-            s = e + 1;
+    // comma separated items; each is a mission id or a group: all, story, side, act1..act3
+    size_t s = 0;
+    while (s <= arg.size()) {
+        size_t e = arg.find(',', s);
+        if (e == std::string::npos) e = arg.size();
+        std::string item = arg.substr(s, e - s);
+        s = e + 1;
+        if (item.empty()) continue;
+        if (item == "all") addIf([](const MissionDef&) { return true; });
+        else if (item == "story") addIf([](const MissionDef& d) { return d.storyIndex >= 0; });
+        else if (item == "side") addIf([](const MissionDef& d) { return d.storyIndex < 0; });
+        else if (item.size() == 4 && item.compare(0, 3, "act") == 0) {
+            int act = item[3] - '0';
+            addIf([act](const MissionDef& d) { return d.storyIndex >= 0 && d.act == act; });
+        } else {
+            out.push_back(item);
         }
     }
     return out;
@@ -276,6 +279,13 @@ bool prepareMission(GameWorld& g, const std::string& id) {
     // stand next to the start trigger; the mission starts once the world around it has streamed in
     vec2 sp = d.startPos;
     mu::placePlayer(g, vec3(sp + vec2(2.f, 0.f), mu::groundAt(g, sp.x, sp.y)), 0.f);
+    // vehicle jobs start from behind the wheel of their vehicle
+    int jobClass = id == "taxi" ? (int)Vehicles::VC_TAXI : (id == "vigilante" ? (int)Vehicles::VC_POLICE : (id == "paramedic" ? (int)Vehicles::VC_AMBULANCE : -1));
+    if (jobClass >= 0) {
+        mu::Place pl = mu::resolvePlace(g, sp);
+        int v = mu::placePlayer(g, pl.curb, pl.curbYaw, mu::pickModel(g, {(Vehicles::VehicleClass)jobClass}));
+        if (v < 0) LOG("[missiontest] no vehicle of class %d for %s", jobClass, id.c_str());
+    }
     M.cooldown = 0.f;
     M.retry.def = -1;
     M.retry.pending = false;

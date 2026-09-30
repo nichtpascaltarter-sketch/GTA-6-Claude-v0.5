@@ -38,6 +38,9 @@ static const Clip kStanceClip[] = {
     CLIP_CROUCH_IDLE, // 18
     CLIP_BLOCK,       // 19 fighting guard (the guard of AnimInput::meleeKind, see stanceClipId)
     CLIP_BLOCK,       // 20 blocking guard
+    CLIP_IDLE,        // 21 sit on the ground (IC_SIT_GROUND)
+    CLIP_IDLE,        // 22 lie face down (IC_LIE_FRONT)
+    CLIP_IDLE,        // 23 queue: standing with frequent idle variations
 };
 static const int kStanceCount = (int)(sizeof(kStanceClip) / sizeof(kStanceClip[0]));
 
@@ -47,12 +50,19 @@ static bool stanceIsGuard(int s) { return s == 19 || s == 20; }
 static int stanceClipId(int s, int meleeKind) {
     if (s == 19) return meleeKind == 1 ? IC_GUARD_KNIFE : (meleeKind == 2 ? IC_GUARD_BAT : IC_GUARD);
     if (s == 20) return meleeKind == 2 ? (int)IC_BLOCK_BAT : (int)CLIP_BLOCK;
+    if (s == 21) return IC_SIT_GROUND;
+    if (s == 22) return IC_LIE_FRONT;
     return kStanceClip[s];
+}
+// Dance style per ped.
+static int danceClip(u32 seed) {
+    static const int kDances[4] = {CLIP_DANCE, IC_DANCE2, IC_DANCE3, IC_DANCE4};
+    return kDances[hash32(seed * 2654435761u + 91u) & 3u];
 }
 // Scenario stances whose upper body stays on while walking.
 static bool stanceUpperWhileMoving(int s) { return s == 5 || s == 7 || s == 8 || s == 10 || s == 15 || s == 17 || s == 19 || s == 20; }
 // Scenario stances that keep the character in place (locomotion is ignored).
-static bool stanceLocksLegs(int s) { return s == 6 || s == 11 || s == 12; }
+static bool stanceLocksLegs(int s) { return s == 6 || s == 11 || s == 12 || s == 21 || s == 22; }
 
 static bool actionUpperCapable(int a) {
     switch (a) {
@@ -202,6 +212,15 @@ void Animator::init(const Skeleton* s, u32 variationSeed) {
     stanceClip = -1;
     gripW = gripD = 0.f;
     actYaw0 = 0.f;
+    idleVar = -1;
+    idleCount = 0;
+    idleVarT = idleVarDur = idleVarW = 0.f;
+    idleNext = 3.f + 6.f * hashToFloat(hash32(variationSeed * 31u + 7u));
+    gestMode = 0;
+    gestT = gestDur = gestR = gestL = palmR = palmL = beatS = phoneW = 0.f;
+    tiltS = tiltTarget = tiltNext = autoNod = 0.f;
+    nodNext = 2.f + 2.f * hashToFloat(hash32(variationSeed * 57u + 3u));
+    nodPhase = -1.f;
     if (s) {
         legScale = skeletonLegScale(*s);
         styleF = skeletonStyle(*s);
@@ -213,7 +232,7 @@ void Animator::init(const Skeleton* s, u32 variationSeed) {
     snap = pose;
 }
 
-void Animator::update(const AnimInput& in, float dt) {
+void Animator::update(const AnimInput& in, float dt, bool cheap) {
     using namespace detail;
     if (!skel) return;
     const Skeleton& sk = *skel;
@@ -242,7 +261,7 @@ void Animator::update(const AnimInput& in, float dt) {
 
     // ---------------------------------------------------------------- stance changes
     int st = Clamp(in.stance, 0, kStanceCount - 1);
-    int sClip = stanceClipId(st, in.meleeKind);
+    int sClip = st == 9 ? danceClip(seed) : stanceClipId(st, in.meleeKind);
     if (st == stance && sClip != stanceClip && stanceClip >= 0 && !(action >= 0 && !actionFinished && !actionUpper)) {
         // weapon switch inside a fighting guard
         snap = pose;
@@ -407,10 +426,58 @@ void Animator::update(const AnimInput& in, float dt) {
             blendPoses(base, cp, cw, base);
         }
         // ---- scenario stances
-        if (stance >= 4) {
+        // ---- idle variations (crossed arms, hands in pockets, hand on hip, phone check, neck stretch) while
+        //      standing around; more often in a queue
+        {
+            bool canVary = (stance == 0 || stance == 23) && speedS < 0.05f && !in.aiming && !in.crouch && !in.inAir && !in.swimming &&
+                           (action < 0 || actionFinished) && in.weaponKind != 2 && !in.phoneCall;
+            // listeners keep a listening posture going; speakers only shift onto a hip now and then
+            if (in.listening && idleVar < 0 && canVary) idleNext = Min(idleNext, 1.2f);
+            if (in.speaking && idleVar >= 0 && idleVar != IC_IDLE_HIP) idleVarDur = Min(idleVarDur, idleVarT + 0.3f);
+            if (!canVary) {
+                if (idleVar >= 0) idleVarDur = Min(idleVarDur, idleVarT + 0.25f);   // fade out now
+                if (idleVar < 0) idleNext = Max(idleNext, 2.f);
+            }
+            if (idleVar < 0 && canVary) {
+                idleNext -= dt;
+                if (idleNext <= 0.f) {
+                    u32 h = hash32(seed * 0x9E3779B1u + (u32)idleCount * 0x85EBCA6Bu);
+                    float r = hashToFloat(h);
+                    bool q = stance == 23;
+                    static const int kVars[5] = {IC_IDLE_PHONE, IC_IDLE_CROSSARMS, IC_IDLE_POCKETS, IC_IDLE_HIP, IC_IDLE_STRETCH};
+                    const float cumN[5] = {0.25f, 0.45f, 0.65f, 0.85f, 1.f}, cumQ[5] = {0.4f, 0.6f, 0.8f, 0.95f, 1.f};
+                    int k = 0;
+                    while (k < 4 && r > (q ? cumQ[k] : cumN[k])) k++;
+                    idleVar = kVars[k];
+                    if (in.listening) idleVar = r < 0.45f ? IC_IDLE_CROSSARMS : (r < 0.75f ? IC_IDLE_HIP : IC_IDLE_POCKETS);
+                    if (in.speaking) idleVar = IC_IDLE_HIP;
+                    idleVarT = 0.f;
+                    idleVarDur = idleVar == IC_IDLE_STRETCH ? clipInfoId(IC_IDLE_STRETCH).duration : 5.f + 5.f * hashToFloat(hash32(h + 3u));
+                    if (in.listening) idleVarDur += 4.f;
+                    idleCount++;
+                }
+            }
+            float target = 0.f;
+            if (idleVar >= 0) {
+                idleVarT += dt;
+                target = idleVarT < idleVarDur - 0.6f ? 1.f : 0.f;
+                if (idleVarT >= idleVarDur && idleVarW < 0.01f) {
+                    idleVar = -1;
+                    u32 h = hash32(seed * 747796405u + (u32)idleCount * 2891336453u);
+                    idleNext = stance == 23 ? 2.f + 3.f * hashToFloat(h) : (in.speaking ? 4.f + 5.f * hashToFloat(h) : 6.f + 8.f * hashToFloat(h));
+                }
+            }
+            idleVarW += (target - idleVarW) * (1.f - expf(-dt * (target > idleVarW ? 3.5f : 5.f)));
+            if (idleVar >= 0 && idleVarW > 0.001f) {
+                sampleClipId(sk, idleVar, idleVarT, tmp, seed);
+                blendPoses(base, tmp, idleVarW * (1.f - moveW), base);
+            }
+        }
+        if (stance >= 4 && stance != 23) {
             int sc = stanceClip;
             float sOff = stanceIsGuard(stance) ? 0.f : hashToFloat(seed * 7u + 3u) * clipInfoId(sc).duration;
-            sampleClipId(sk, sc, stanceTime + sOff, tmp, seed);
+            float tScale = stance == 9 ? 0.9f + 0.22f * hashToFloat(hash32(seed + 404u)) : 1.f;   // dance tempo per ped
+            sampleClipId(sk, sc, stanceTime * tScale + sOff, tmp, seed);
             float still = stanceLocksLegs(stance) ? 1.f : 1.f - Saturate((speedS - 0.25f) / 0.6f);
             if (stanceUpperWhileMoving(stance)) {
                 blendUpperBody(base, tmp, 1.f, tmp2);
@@ -433,7 +500,7 @@ void Animator::update(const AnimInput& in, float dt) {
             blendPoses(si, sw, Saturate((v - 0.2f) / 0.6f), tmp);
             blendPoses(base, tmp, swimBlend, base);
         }
-        footIK = !in.inAir && !in.swimming && stance != 6 && stance != 11 && stance != 12;
+        footIK = !in.inAir && !in.swimming && stance != 6 && stance != 11 && stance != 12 && stance != 21 && stance != 22;
     }
 
     // ---------------------------------------------------------------- upper body layers
@@ -480,6 +547,9 @@ void Animator::update(const AnimInput& in, float dt) {
             blendUpperBody(base, tmp, reloadW, base);
         }
     }
+
+    // ---------------------------------------------------------------- conversation: gestures, listener cues, phone
+    if (!cheap) conversation(in, dt, base);
 
     // ---------------------------------------------------------------- one-shot action
     Pose outp = base;
@@ -534,7 +604,7 @@ void Animator::update(const AnimInput& in, float dt) {
         float k = 1.f - expf(-dt * 14.f);
         gripW += (gw - gripW) * k;
         gripD += (dist - gripD) * k;
-        if (gripW > 0.01f) batLeftHand(sk, outp, gripD, rev, Min(1.f, gripW * 1.05f));
+        if (gripW > 0.01f && !cheap) batLeftHand(sk, outp, gripD, rev, Min(1.f, gripW * 1.05f));
     }
 
     // ---------------------------------------------------------------- hands on the steering wheel (exact for any size)
@@ -542,7 +612,7 @@ void Animator::update(const AnimInput& in, float dt) {
     if (stance == 1 && (action < 0 || actionUpper)) {
         float steerIn = Clamp(in.localMoveDir.x, -1.f, 1.f);
         steerS += (steerIn - steerS) * (1.f - expf(-dt * 8.f));
-        driveHands(sk, outp, steerS * 1.2f);
+        if (!cheap) driveHands(sk, outp, steerS * 1.2f);
     } else {
         steerS = 0.f;
     }
@@ -566,7 +636,7 @@ void Animator::update(const AnimInput& in, float dt) {
     slopeN = lerp(slopeN, vec2(gn.x, gn.y), 1.f - expf(-dt * 8.f));
     slopeS += ((footIK ? 1.f : 0.f) - slopeS) * (1.f - expf(-dt * 8.f));
     float slopeY = -slopeN.y / sqrtf(Max(0.1f, 1.f - length2(slopeN))) * slopeS;   // dz/dy of the ground
-    if (fabsf(footL) > 0.003f || fabsf(footR) > 0.003f || fabsf(slopeY) > 0.01f) {
+    if (!cheap && (fabsf(footL) > 0.003f || fabsf(footR) > 0.003f || fabsf(slopeY) > 0.01f)) {
         const Bone ups[2] = {B_THIGH_L, B_THIGH_R}, lows[2] = {B_CALF_L, B_CALF_R}, ends[2] = {B_FOOT_L, B_FOOT_R};
         float offs[2] = {footL, footR};
         vec3 fp[2];
@@ -615,7 +685,7 @@ void Animator::update(const AnimInput& in, float dt) {
     extBlend = false;
 
     // ---------------------------------------------------------------- face: look-at, gaze, blinks, lip-sync jaw
-    faceOverlay(in, dt);
+    if (!cheap) faceOverlay(in, dt);
 }
 
 namespace detail {
@@ -650,6 +720,19 @@ void applyMouthShape(Pose& p, const float* m, float jaw) {
     p.rot[B_TONGUE] = normalize(p.rot[B_TONGUE] * qx(m[5]));
     if (jaw >= 0.f) p.rot[B_JAW] = qx(-Clamp(jaw, 0.f, 1.f) * 0.3f);
 }
+
+// Expressions: jaw, upper lip, lower lip, corner yaw (+ round / - stretch), corner pitch (+ up), lids (eye pitch
+// offset: + wide open, - narrowed).
+// ... brow raise (-1..1), brow knit (+ inner ends down / - inner ends up).
+static const float kExprShape[7][8] = {
+    {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},                   // neutral
+    {0.f, -0.02f, 0.f, -0.2f, 0.28f, -0.12f, 0.15f, -0.1f},     // smile (cheeks push the lids up a little)
+    {0.f, 0.f, -0.1f, 0.06f, -0.2f, -0.14f, 0.1f, -0.9f},       // sad (inner brows up)
+    {0.f, -0.08f, 0.06f, -0.06f, -0.06f, -0.2f, -0.35f, 1.f},   // angry (brows down and knitted)
+    {0.18f, -0.03f, -0.04f, -0.18f, -0.08f, 0.16f, 0.8f, -0.5f},// fear
+    {0.32f, 0.05f, -0.05f, 0.1f, 0.02f, 0.2f, 1.f, 0.f},        // surprise
+    {0.1f, -0.12f, 0.04f, -0.22f, -0.1f, -0.32f, -0.2f, 0.8f},  // pain
+};
 
 void visemeShape(int v, float w, float* out) {
     for (int i = 0; i < 6; i++) out[i] = v >= 0 && v < 15 ? kVisemeShape[v][i] * w : 0.f;
@@ -710,10 +793,60 @@ void Animator::faceOverlay(const AnimInput& in, float dt) {
     }
     if (dead) blink = 0.78f;
     if (out) blink = Max(blink, action == CLIP_KNOCKOUT ? sstep(0.05f, 0.3f, actionTime) : sstep(2.1f, 2.4f, actionTime));
+    // facial expression: explicit, or from what the ped is doing (plus a per-ped resting mood)
+    {
+        int ex = Clamp(in.expression, -1, 6);
+        float ew = Clamp(in.expressionWeight, 0.f, 1.f);
+        if (ex < 0) {
+            bool acting = action >= 0 && !actionFinished;
+            ex = 0;
+            ew = 1.f;
+            if (dead || out) ew = 0.f;
+            else if (acting && (action == CLIP_HIT_FRONT || action == CLIP_HIT_BACK || action == CLIP_HIT_HEAD || action == CLIP_HIT_BODY ||
+                                action == CLIP_STAGGER || action == CLIP_TAKEDOWN_VICTIM))
+                ex = 6;
+            else if (stance == 4 || stance == 5) ex = 4;
+            else if (stance == 9 || stance == 15 || stance == 16) ex = 1;
+            else if (stance == 19 || stance == 20 || (acting && action >= CLIP_PUNCH_L && action <= CLIP_KICK) ||
+                     (acting && action >= CLIP_HOOK && action <= CLIP_KNIFE_STAB) || action == CLIP_COUNTER)
+                ex = 3;
+            else if (in.aiming) {
+                ex = 3;
+                ew = 0.5f;
+            } else if (stance == 7 || stance == 8) {
+                ex = 1;
+                ew = 0.3f;
+            } else {
+                // resting mood: most peds neutral-pleasant, some a little glum
+                float mood = hashToFloat(hash32(seed * 2246822519u + 11u));
+                ex = mood < 0.55f ? 1 : (mood < 0.8f ? 0 : 2);
+                ew = ex == 1 ? 0.18f : 0.25f;
+            }
+        }
+        float ke = 1.f - expf(-dt * 7.f);
+        for (int i = 0; i < 8; i++) exprS[i] += (kExprShape[ex][i] * ew - exprS[i]) * ke;
+    }
+    // speech accents: brow pulses and nods (fast attack / release)
+    {
+        float kp = 1.f - expf(-dt * 18.f);
+        browS += ((dead || out ? 0.f : Clamp(in.brow, -1.f, 1.f)) - browS) * kp;
+        nodS += ((dead || out ? 0.f : Max(Clamp(in.nod, 0.f, 1.f), autoNod)) - nodS) * kp;
+        if (fabsf(nodS) > 1e-3f) {
+            pose.rot[B_NECK] = normalize(pose.rot[B_NECK] * qx(-0.05f * nodS));
+            pose.rot[B_HEAD] = normalize(pose.rot[B_HEAD] * qx(-0.13f * nodS));
+        }
+        // + pulse raises; - pulse lowers a little and knits
+        float raise = Clamp(exprS[6] + browS * (browS > 0.f ? 1.f : 0.4f), -1.f, 1.2f);
+        float knit = Clamp(exprS[7] + Max(-browS, 0.f), -1.f, 1.f);
+        if (fabsf(raise) + fabsf(knit) > 1e-3f) {
+            pose.rot[B_BROW_L] = normalize(pose.rot[B_BROW_L] * qx(raise * 0.14f - Max(knit, 0.f) * 0.04f) * qy(knit * 0.18f));
+            pose.rot[B_BROW_R] = normalize(pose.rot[B_BROW_R] * qx(raise * 0.14f - Max(knit, 0.f) * 0.04f) * qy(-knit * 0.18f));
+        }
+    }
     const float kLidClose = 0.66f;   // eye pitch that brings the upper lid down onto the lower one
     for (int s = 0; s < 2; s++) {
         int b = s ? B_EYE_R : B_EYE_L;
-        float yaw = Clamp(gaze.x + eyeYaw, -0.5f, 0.5f), pitch = Clamp(gaze.y + eyePitch, -0.35f, 0.35f);
+        float yaw = Clamp(gaze.x + eyeYaw, -0.5f, 0.5f), pitch = Clamp(gaze.y + eyePitch, -0.35f, 0.35f) + exprS[5];
         pitch = Lerp(pitch, -kLidClose, blink);
         pose.rot[b] = normalize(pose.rot[b] * qz(yaw) * qx(pitch));
     }
@@ -734,8 +867,137 @@ void Animator::faceOverlay(const AnimInput& in, float dt) {
         mouth[i] += (target[i] - mouth[i]) * km;
         any = any || fabsf(mouth[i]) > 1e-4f;
     }
-    float jaw = in.mouthOpen >= 0.f ? in.mouthOpen : (talking || fabsf(mouth[0]) > 1e-3f ? mouth[0] : -1.f);
-    if (any || jaw >= 0.f) applyMouthShape(pose, mouth, jaw);
+    // expressions add on top (half strength on the mouth while talking)
+    float ek = talking ? 0.5f : 1.f;
+    float comb[6] = {mouth[0], mouth[1] + exprS[1] * ek, mouth[2] + exprS[2] * ek, mouth[3] + exprS[3] * ek, mouth[4] + exprS[4] * ek, mouth[5]};
+    any = any || fabsf(exprS[1]) + fabsf(exprS[2]) + fabsf(exprS[3]) + fabsf(exprS[4]) > 1e-4f;
+    float jawE = exprS[0] * ek;
+    float jaw = in.mouthOpen >= 0.f ? in.mouthOpen : (talking || fabsf(mouth[0]) > 1e-3f ? mouth[0] + jawE : (jawE > 1e-3f ? jawE : -1.f));
+    if (any || jaw >= 0.f) applyMouthShape(pose, comb, jaw);
+}
+
+// Conversation body language on top of the body layers (before one-shot actions):
+//  - speaking: gesture phrases (rest / right palm-up explaining / left / both hands open / beat-ready), hand strokes
+//    on the beat pulses, head tilts between phrases (weight shifts come from the idle variations);
+//  - listening: occasional nods and tilts (postures come from the idle variations);
+//  - phone call: right hand at the ear, head tilted to it; the left hand keeps gesturing while talking.
+void Animator::conversation(const AnimInput& in, float dt, Pose& p) {
+    using namespace detail;
+    const Skeleton& sk = *skel;
+    bool busy = (action >= 0 && !actionFinished) || aimBlend > 0.05f || swimBlend > 0.5f || airBlend > 0.5f || stanceIsVehicle(stance) ||
+                stanceIsGuard(stance) || stance == 7 || stance == 8 || stance == 12 || stance == 21 || stance == 22 || in.weaponKind == 2;
+    const float k5 = 1.f - expf(-dt * 5.f);
+    // ---- gesture phrases while speaking
+    float amount = in.speaking && !busy ? Clamp(in.gestureAmount, 0.f, 1.5f) : 0.f;
+    gestT += dt;
+    if (amount > 0.f && gestT >= gestDur) {
+        u32 h = hash32(seed * 0x27d4eb2du + (u32)(time * 10.f));
+        float r = hashToFloat(h);
+        gestMode = r < 0.22f ? 0 : (r < 0.47f ? 1 : (r < 0.62f ? 2 : (r < 0.8f ? 3 : 4)));
+        gestT = 0.f;
+        gestDur = 1.2f + 2.3f * hashToFloat(hash32(h + 1u));
+    }
+    float wR = 0.f, wL = 0.f, pR = 0.f, pL = 0.f;
+    switch (amount > 0.f ? gestMode : -1) {
+        case 1: wR = 1.f; pR = 1.f; wL = 0.15f; break;
+        case 2: wL = 1.f; pL = 1.f; wR = 0.15f; break;
+        case 3: wR = wL = 1.f; pR = pL = 1.f; break;
+        case 4: wR = 1.f; pR = 0.15f; wL = 0.35f; pL = 0.3f; break;
+        case 0: wR = 0.3f; break;   // resting hands still twitch on the beats
+        default: break;
+    }
+    beatS += (Clamp(in.beat, 0.f, 1.f) * (amount > 0.f ? 1.f : 0.f) - beatS) * (1.f - expf(-dt * 25.f));
+    if (gestMode == 0) wR *= beatS;
+    // the phone hand is busy
+    phoneW += ((in.phoneCall && !busy ? 1.f : 0.f) - phoneW) * (1.f - expf(-dt * 4.f));
+    wR *= (1.f - phoneW);
+    float amt = Min(amount, 1.f);
+    gestR += (wR * amt - gestR) * k5;
+    gestL += (wL * amt - gestL) * k5;
+    palmR += (pR - palmR) * k5;
+    palmL += (pL - palmL) * k5;
+    quat qc, qh;
+    vec3 pc, ph;
+    if (gestR > 0.01f || gestL > 0.01f || phoneW > 0.01f) {
+        boneModel(sk, p, B_CHEST, qc, pc);
+        float sc = length(sk.bindLocalPos[B_FOREARM_R]) / 0.331f;   // arm size relative to the reference
+        float big = 0.8f + 0.25f * amount;
+        for (int s = 0; s < 2; s++) {
+            float w = s ? gestR : gestL;
+            if (w <= 0.01f) continue;
+            float sx = s ? 1.f : -1.f;
+            float palm = s ? palmR : palmL;
+            float open = gestMode == 3 ? 1.f : 0.f;
+            float ph0 = time * 2.4f + (float)s * 1.9f;
+            vec3 local = vec3(sx * (0.15f + 0.07f * open) * big, 0.25f + 0.05f * palm, -0.2f + 0.04f * palm) * sc;
+            local = local + vec3(0.02f * sinf(ph0), 0.015f * cosf(ph0 * 1.3f), 0.02f * sinf(ph0 * 0.7f)) * (sc * amount);   // phrase drift
+            local = local + vec3(0.f, 0.03f, -0.075f) * (beatS * sc * big);                                                   // beat stroke
+            vec3 target = pc + rotate(qc, local);
+            int up = s ? B_UPPERARM_R : B_UPPERARM_L, lo = s ? B_FOREARM_R : B_FOREARM_L, hb = s ? B_HAND_R : B_HAND_L;
+            quat qu, qf, qhd;
+            vec3 pu, pf, phd;
+            boneModel(sk, p, up, qu, pu);
+            vec3 pole = lerp(pu, target, 0.5f) + rotate(qc, normalize(vec3(sx, -0.4f, -1.f))) * 0.4f;
+            boneModel(sk, p, hb, qhd, phd);
+            solveTwoBoneIK(sk, p, (Bone)up, (Bone)lo, (Bone)hb, target, pole, Min(w, 1.f));
+            // hand: palm up (explaining) .. palm to the side (beats), fingers forward and a little out
+            vec3 fing, palmB;
+            float pl;
+            handBindAxes(sk, s, fing, palmB, pl);
+            vec3 F = rotate(qc, normalize(vec3(sx * 0.35f, 1.f, 0.05f)));
+            vec3 P = rotate(qc, normalize(lerp(vec3(-sx, 0.f, 0.35f), vec3(-sx * 0.25f, 0.f, 1.f), palm)));
+            P = normalize(P - F * dot(P, F));
+            quat want = quatFromTwoPairs(fing, palmB, F, P);
+            boneModel(sk, p, lo, qf, pf);
+            p.rot[hb] = normalize(conj(qf) * nlerp(qhd, want, Min(w, 1.f) * 0.85f));
+        }
+        // ---- phone at the right ear
+        if (phoneW > 0.01f) {
+            boneModel(sk, p, B_HEAD, qh, ph);
+            vec3 target = ph + rotate(qh, vec3(0.085f, 0.035f, -0.035f));
+            quat qu, qf, qhd;
+            vec3 pu, pf, phd;
+            boneModel(sk, p, B_UPPERARM_R, qu, pu);
+            boneModel(sk, p, B_HAND_R, qhd, phd);
+            vec3 pole = lerp(pu, target, 0.5f) + normalize(vec3(0.7f, 0.2f, -1.f)) * 0.4f;
+            solveTwoBoneIK(sk, p, B_UPPERARM_R, B_FOREARM_R, B_HAND_R, target, pole, phoneW);
+            vec3 fing, palmB;
+            float pl;
+            handBindAxes(sk, 1, fing, palmB, pl);
+            vec3 F = rotate(qh, normalize(vec3(-0.15f, -0.25f, 1.f))), P = rotate(qh, vec3(-1.f, 0.f, 0.f));
+            P = normalize(P - F * dot(P, F));
+            boneModel(sk, p, B_FOREARM_R, qf, pf);
+            p.rot[B_HAND_R] = normalize(conj(qf) * nlerp(qhd, quatFromTwoPairs(fing, palmB, F, P), phoneW));
+        }
+    }
+    // ---- head tilts between phrases (speaker and listener), towards the phone on a call
+    bool conv = (in.speaking || in.listening) && !busy;
+    tiltNext -= dt;
+    if (tiltNext <= 0.f) {
+        u32 h = hash32(seed * 0x165667b1u + (u32)(time * 4.f));
+        tiltTarget = conv ? (hashToFloat(h) - 0.5f) * 0.2f : 0.f;
+        tiltNext = 1.4f + 2.2f * hashToFloat(hash32(h + 9u));
+    }
+    float tiltGoal = (conv ? tiltTarget : 0.f) + 0.1f * phoneW;
+    tiltS += (tiltGoal - tiltS) * (1.f - expf(-dt * 2.5f));
+    if (fabsf(tiltS) > 1e-3f) p.rot[B_HEAD] = normalize(p.rot[B_HEAD] * qy(tiltS));
+    // ---- listener nods now and then (fed into the face overlay's nod)
+    autoNod = 0.f;
+    if (in.listening && !busy) {
+        if (nodPhase < 0.f) {
+            nodNext -= dt;
+            if (nodNext <= 0.f) {
+                nodPhase = 0.f;
+                nodNext = 2.2f + 3.f * hashToFloat(hash32(seed * 97u + (u32)(time * 3.f)));
+            }
+        } else {
+            nodPhase += dt;
+            autoNod = 0.6f * sinf(kPi * Saturate(nodPhase / 0.55f));
+            if (nodPhase > 0.55f) nodPhase = -1.f;
+        }
+    } else {
+        nodPhase = -1.f;
+    }
 }
 
 void Animator::blendFrom(const Pose& from, float seconds) {

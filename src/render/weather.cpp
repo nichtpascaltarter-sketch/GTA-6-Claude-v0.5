@@ -5,7 +5,7 @@ namespace Render {
 
 struct RainCBData {
     vec4 r0, r1, r2, r3;
-    vec4 lights[32];
+    vec4 lights[48];   // 16 lights: (pos, radius), (color, spotCos), (dir, spotInner)
 };
 
 struct WeatherSystem {
@@ -18,6 +18,7 @@ struct WeatherSystem {
     gfx::CBuffer<ShadowPassCBData> passCB;
     dvec3 overheadOrigin;          // world min corner of the map
     float overheadTop = 0.f, overheadRange = 600.f;
+    u32 overheadUploads = 0;       // WorldRenderer::nearUploads when the map was rendered
     bool overheadValid = false;
     int overheadAge = 0;
     ID3D11ComputeShader* csOverhead = nullptr;
@@ -98,10 +99,13 @@ struct WeatherSystem {
         dvec3 center(floor(cam.x / step) * step + step * 0.5, floor(cam.y / step) * step + step * 0.5, cam.z);
         dvec3 origin(center.x - kOverheadSize * 0.5, center.y - kOverheadSize * 0.5, 0.0);
         overheadAge++;
+        // re-rendered when the camera moves to another 16 m cell, when near world cells finished streaming in
+        // (roads / lawns / roofs appearing) and every 30 frames for anything else that changed
         if (overheadValid && origin.x == overheadOrigin.x && origin.y == overheadOrigin.y && overheadAge < 30 &&
-            fabs(cam.z + 300.0 - overheadTop) < 150.0)
+            fabs(cam.z + 300.0 - overheadTop) < 150.0 && r.world->nearUploads == overheadUploads)
             return;
         overheadAge = 0;
+        overheadUploads = r.world->nearUploads;
         overheadOrigin = origin;
         overheadTop = (float)(cam.z + 300.0);
         auto* c = gfx::ctx;
@@ -171,6 +175,7 @@ struct WeatherSystem {
         float storm = Saturate((env.rain - 0.5f) * 2.f);
         float puddles = Saturate(env.wetness * 1.2f - 0.15f);
         f.weather2 = vec4(overcast, storm, puddles, rippleTime);
+        f.cloudShadow.w = Lerp(0.88f, 1.f, Max(overcast, storm));   // how much of the cloud shadow map applies
         f.overhead = overheadValid ? vec4((float)overheadOrigin.x, (float)overheadOrigin.y, kOverheadSize, 1.f) : vec4(0.f);
         // Lightning: flash brightness + direction to the current bolt
         float flash = Saturate(env.lightning);
@@ -249,8 +254,9 @@ struct WeatherSystem {
         int nl = Min((int)best.size(), 16);
         for (int i = 0; i < nl; i++) {
             const LightGPU& L = lf[(size_t)best[(size_t)i].second];
-            cb.data.lights[i * 2] = vec4(L.pos, L.radius);
-            cb.data.lights[i * 2 + 1] = vec4(L.color, 0);
+            cb.data.lights[i * 3] = vec4(L.pos, L.radius);
+            cb.data.lights[i * 3 + 1] = vec4(L.color, L.spotCos);
+            cb.data.lights[i * 3 + 2] = vec4(L.dir, L.spotInner);
         }
         cb.data.r2 = vec4(4.f, 22.f, (float)nl, Saturate(env.lightning));
         cb.data.r3 = vec4(overheadTop, overheadRange, 0, 0);

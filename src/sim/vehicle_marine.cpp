@@ -102,13 +102,13 @@ struct Hull {
     }
     void buildRows() {
         std::vector<float> r;
-        int n = (int)((h.yB - h.yT) / 0.12f);
+        int n = (int)((h.yB - h.yT) / (lodLevel() == 0 ? 0.12f : (lodLevel() == 1 ? 0.3f : 0.8f)));
         for (int i = 0; i <= n; i++) {
             float u = (float)i / n;
             // denser towards the bow
             r.push_back(h.yT + (h.yB - h.yT) * (1.f - Sq(1.f - u) * 0.35f - (1.f - u) * 0.65f));
         }
-        for (float k = 0.f; k <= 1.001f; k += 0.125f) r.push_back(h.yB - 0.5f * (1.f - k) * (1.f - k));
+        for (float k = 0.f; k <= 1.001f; k += (lodLevel() == 0 ? 0.125f : 0.5f)) r.push_back(h.yB - 0.5f * (1.f - k) * (1.f - k));
         for (const vec3& rc : h.recesses) {
             r.push_back(rc.x + 0.004f); r.push_back(rc.x - 0.004f);
             r.push_back(rc.y + 0.004f); r.push_back(rc.y - 0.004f);

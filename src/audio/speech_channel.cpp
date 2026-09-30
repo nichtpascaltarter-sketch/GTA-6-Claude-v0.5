@@ -240,9 +240,11 @@ void walla(const WallaParams& wp, int sampleRate, std::vector<float>& out) {
         // leading offset so voices do not start together
         stream.resize((size_t)(r.range(0.f, 1.5f) * (float)sr), 0.f);
         while (stream.size() < total) {
-            // one conversational turn: 1-3 short pseudo-sentences
+            // one conversational turn: 1-3 short pseudo-sentences (panic: short frightened shouts and screams)
             std::string text;
-            if (r.f() < 0.3f + 0.4f * excite) text += excite > 0.6f ? "[happy]" : "[happy:0.5]";
+            const bool panicking = r.f() < wp.panic;
+            if (panicking) text += r.f() < 0.5f ? "[scared:1.4]" : "[shout:1.2]";
+            else if (r.f() < 0.3f + 0.4f * excite) text += excite > 0.6f ? "[happy]" : "[happy:0.5]";
             if (wp.accent != ACCENT_GENERAL && r.f() < wp.accentMix)
                 text += "[accent:" + std::string(wp.accent == ACCENT_SOUTH       ? "south"
                                                  : wp.accent == ACCENT_NEWYORK   ? "newyork"
@@ -250,20 +252,25 @@ void walla(const WallaParams& wp, int sampleRate, std::vector<float>& out) {
                                                  : wp.accent == ACCENT_CARIBBEAN ? "caribbean"
                                                                                  : "british") +
                         ":0.7]";
-            if (r.f() < wp.laughter) text += "[laughs] ";
-            int sentences = r.irange(1, 3);
+            if (!panicking && r.f() < wp.laughter) text += "[laughs] ";
+            if (panicking && r.f() < 0.35f) {  // a scream
+                static const char* const kScream[] = {"{AA1 AA0}", "{AY1 IY0}", "{EH1 AY0}", "{OW1 OW0}"};
+                text += std::string(kScream[r.irange(0, 3)]) + "! ";
+            }
+            int sentences = panicking ? 1 : r.irange(1, 3);
             for (int s = 0; s < sentences; s++) {
-                int words = r.irange(3, 8);
+                int words = panicking ? r.irange(1, 3) : r.irange(3, 8);
                 for (int k = 0; k < words; k++) {
                     text += "{" + wallaWord(r) + "}";
                     text += (k + 1 == words) ? "" : (r.f() > 0.75f ? ", " : " ");
                 }
-                text += r.f() > 0.8f ? "? " : (excite > 0.5f && r.f() > 0.7f ? "! " : ". ");
+                text += panicking ? "! " : r.f() > 0.8f ? "? " : (excite > 0.5f && r.f() > 0.7f ? "! " : ". ");
             }
             std::vector<float> pcm;
             synthesize(text.c_str(), vp, sr, pcm);
             stream.insert(stream.end(), pcm.begin(), pcm.end());
-            stream.resize(stream.size() + (size_t)(r.range(0.15f, 1.2f - 0.6f * excite) * (float)sr), 0.f);
+            float gapMax = Lerp(1.2f - 0.6f * excite, 0.35f, Saturate(wp.panic));
+            stream.resize(stream.size() + (size_t)(r.range(0.1f, std::max(0.15f, gapMax)) * (float)sr), 0.f);
         }
         // distance: level and brightness vary per talker
         float gain = r.range(0.35f, 1.f);

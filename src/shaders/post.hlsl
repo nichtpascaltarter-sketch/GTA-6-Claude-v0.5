@@ -33,9 +33,14 @@ void csLumReduce(uint3 gid : SV_GroupID, uint3 tid : SV_GroupThreadID, uint gi :
         float lum = luminance(c) / max(gExposureBuf[0].x, 1e-12);
         float2 d = uv - 0.5;
         float w = lerp(0.3, 1.0, saturate(1.0 - dot(d, d) * 2.5));
+        w *= lerp(0.45, 1.0, smoothstep(0.05, 0.55, uv.y));   // the upper screen (mostly sky) meters less
         if (!(lum >= 0.0) || lum > 1e9) { lum = 1.0; w = 0.0; }  // NaN / Inf guard
         if (gRenderParams.w > 0.5 && uv.x >= gRenderParams.y) w = 0.0;  // debug view area does not drive exposure
-        acc = float2(log2(max(lum, 1e-4)) * w, w);
+        // Hot spots (sun haze, lamps, bright sky) count at most ~6x the previous average: backlit scenes keep
+        // their foreground readable instead of being metered down by a small very bright area
+        float l2 = log2(max(lum, 1e-4));
+        if (gExposureBuf[0].w > 0.5) l2 = min(l2, log2(max(gExposureBuf[0].z, 1e-4)) + 2.6);
+        acc = float2(l2 * w, w);
     }
     gsLum[gi] = acc;
     GroupMemoryBarrierWithGroupSync();

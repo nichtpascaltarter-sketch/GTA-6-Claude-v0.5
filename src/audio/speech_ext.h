@@ -110,6 +110,7 @@ struct WallaParams {
     float laughter = 0.08f;      // chance of a laugh per conversational turn
     u8 accent = ACCENT_GENERAL;  // optional local flavour (e.g. ACCENT_LATINO for Calle Luna)
     float accentMix = 0.f;       // fraction of turns spoken with that accent
+    float panic = 0.f;           // 0 normal chatter .. 1 a fleeing crowd (shouts, screams, frightened voices)
 };
 void walla(const WallaParams& p, int sampleRate, std::vector<float>& out);  // appends; RMS ~ -20 dBFS, peak <= 0.5
 

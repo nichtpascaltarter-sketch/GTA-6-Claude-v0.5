@@ -528,6 +528,8 @@ struct FeelReport {
     float dive = 0, squat = 0;
     float driftTime = 0, driftAngle = 0, driftSpeed = 0;
     float burnMove = 0, burnSlip = 0, burnLaunch = -1;
+    float visRoll = 0, visDive = 0, visSquat = 0;   // visual body motion peaks (deg)
+    float wetBrake = -1, dryBrake = -1, wetLatG = 0, pullDrift = 0;
 };
 
 // The game ramps keyboard steering (player.cpp): 3.2/s toward a larger input, 6/s back toward center.
@@ -565,6 +567,7 @@ void testFeel(const VehicleModel& m, FeelReport& rep) {
                   yawLog.push_back({q.t - t0, yr});
                   yawMax = Max(yawMax, yr);
                   rollMax = Max(rollMax, fabsf(q.roll()));
+                  if (!pad) rep.visRoll = Max(rep.visRoll, fabsf(q.s.visRoll) * kRadToDeg);
                   if (q.t - t0 > 2.f) {
                       yawSS += yr;
                       latAcc += fabsf(yr * q.s.speed());
@@ -605,6 +608,7 @@ void testFeel(const VehicleModel& m, FeelReport& rep) {
         float pMax = 0.f;
         r.run(1.5f, [](VehicleControls& c, Runner&) { c.throttle = 1.f; }, [&](Runner& q) {
             pMax = Max(pMax, q.pitch());
+            rep.visSquat = Max(rep.visSquat, q.s.visPitch * kRadToDeg);
             return false;
         });
         rep.squat = pMax * kRadToDeg;
@@ -612,6 +616,7 @@ void testFeel(const VehicleModel& m, FeelReport& rep) {
         float pMin = 0.f;
         r.run(1.2f, [](VehicleControls& c, Runner&) { c.brake = 1.f; }, [&](Runner& q) {
             pMin = Min(pMin, q.pitch());
+            rep.visDive = Max(rep.visDive, -q.s.visPitch * kRadToDeg);
             return q.s.speed() < 1.f;
         });
         rep.dive = -pMin * kRadToDeg;
@@ -660,6 +665,44 @@ void testFeel(const VehicleModel& m, FeelReport& rep) {
         rep.driftAngle = nd ? angAcc / nd : 0.f;
         rep.driftSpeed = nd ? spdAcc / nd * 3.6f : 0.f;
     }
+    // ---- rain: 100-0 and full-lock lateral g at 100 km/h on soaked asphalt ----
+    for (int wet = 0; wet < 2; wet++) {
+        ScenarioTrace st(r, wet ? "feel_wet" : "feel_dry");
+        setSurfaceWetness(wet ? 1.f : 0.f);
+        r.init(m, kPadStart + vec3(600.f, -60.f, 0.f), -kHalfPi);
+        if (accelTo(r, 27.9f, 40.f) > 0.f) {
+            vec3 p0 = r.pos();
+            float tb = r.run(20.f, [](VehicleControls& c, Runner&) { c.brake = 1.f; }, [](Runner& q) { return q.s.forwardSpeed() < 0.3f; });
+            (wet ? rep.wetBrake : rep.dryBrake) = tb > 0.f ? length(r.pos() - p0) : -1.f;
+        }
+        if (wet) {
+            r.init(m, kPadStart + vec3(600.f, 60.f, 0.f), -kHalfPi);
+            accelTo(r, 27.8f, 40.f);
+            float t0 = r.t, acc = 0.f;
+            int n = 0;
+            r.run(3.f, [&](VehicleControls& c, Runner& q) { c.steer = -1.f; holdSpeed(c, q, 27.8f); }, [&](Runner& q) {
+                if (q.t - t0 > 2.f) {
+                    acc += fabsf(q.s.body.angVel.z * q.s.speed());
+                    n++;
+                }
+                return false;
+            });
+            rep.wetLatG = n ? acc / n / 9.81f : 0.f;
+        }
+        setSurfaceWetness(0.f);
+    }
+    // ---- bent steering after a crash: lateral drift over 100 m at 60 km/h with the wheel centered ----
+    {
+        ScenarioTrace st(r, "feel_pull");
+        r.init(m, kPadStart + vec3(1500.f, 0.f, 0.f), -kHalfPi);
+        accelTo(r, 16.7f, 30.f);
+        r.s.alignPull = 0.004f;   // the most a battered front end can pull
+        vec3 p0 = r.pos();
+        float h0 = r.heading();
+        r.run(10.f, [](VehicleControls& c, Runner& q) { holdSpeed(c, q, 16.7f); }, [&](Runner& q) { return length(q.pos() - p0) > 100.f; });
+        vec2 f0(cosf(h0), sinf(h0));
+        rep.pullDrift = fabsf(cross(f0, (r.pos() - p0).xy()));
+    }
     // ---- burnout: throttle + brake at a standstill for 3 s, then release the brake ----
     {
         ScenarioTrace st(r, "feel_burnout");
@@ -679,12 +722,12 @@ void testFeel(const VehicleModel& m, FeelReport& rep) {
 
 void printFeelTable(const std::vector<FeelReport>& reps) {
     fprintf(gOut, "\n### Driving feel (cars, keyboard input ramped like player.cpp)\n\n");
-    fprintf(gOut, "| model | class | yaw 90%% s kb / pad @100 | yaw overshoot %% | full-lock lat g @100 | release to 10%% s | roll @100 deg | brake dive deg | launch squat deg | drift s / deg / km/h | burnout moved m / slip / 0-50 after s |\n");
-    fprintf(gOut, "|---|---|---|---|---|---|---|---|---|---|---|\n");
+    fprintf(gOut, "| model | class | yaw 90%% s kb / pad @100 | yaw overshoot %% | full-lock lat g @100 | release to 10%% s | roll @100 deg | brake dive deg | launch squat deg | drift s / deg / km/h | burnout moved m / slip / 0-50 after s | visual extra roll / dive / squat deg | 100-0 dry / wet m | wet lat g @100 | bent steering drift m/100 m |\n");
+    fprintf(gOut, "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n");
     for (auto& r : reps)
-        fprintf(gOut, "| %s | %s | %.2f / %.2f | %.0f | %.2f | %.2f | %.1f | %.1f | %.1f | %.1f / %.0f / %.0f | %.1f / %.1f / %.1f |\n", r.name.c_str(), className(r.cls),
-                r.yaw90Kb, r.yaw90Pad, r.yawOver, r.latG100, r.release10, r.roll100, r.dive, r.squat, r.driftTime, r.driftAngle, r.driftSpeed, r.burnMove,
-                r.burnSlip, r.burnLaunch);
+        fprintf(gOut, "| %s | %s | %.2f / %.2f | %.0f | %.2f | %.2f | %.1f | %.1f | %.1f | %.1f / %.0f / %.0f | %.1f / %.1f / %.1f | %.1f / %.1f / %.1f | %.1f / %.1f | %.2f | %.1f |\n",
+                r.name.c_str(), className(r.cls), r.yaw90Kb, r.yaw90Pad, r.yawOver, r.latG100, r.release10, r.roll100, r.dive, r.squat, r.driftTime, r.driftAngle,
+                r.driftSpeed, r.burnMove, r.burnSlip, r.burnLaunch, r.visRoll, r.visDive, r.visSquat, r.dryBrake, r.wetBrake, r.wetLatG, r.pullDrift);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -725,6 +768,129 @@ void printUpgradeTable(const std::vector<UpgradeReport>& reps) {
                 r.stock.topSpeed * 3.6f, r.up.topSpeed * 3.6f, r.stock.brake100, r.up.brake100, r.stock.latG, r.up.latG, r.stock.laneOk > 0 ? "yes" : "NO",
                 r.up.laneOk > 0 ? "yes" : "NO", r.stock.hb180, r.up.hb180, r.feelStock.roll100, r.feelUp.roll100, r.feelStock.release10, r.feelUp.release10,
                 r.feelStock.driftTime, r.feelUp.driftTime);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Vehicle vs vehicle: T-bone, head-on, PIT manoeuvre (stepVehicle for both, then collideVehicles, like the game)
+struct V2VReport {
+    std::string name;
+    float tboneVB = 0, tboneVA = 0, tboneDepth = 0, tboneYawB = 0, tboneHpA = 0, tboneHpB = 0;
+    float headVA = 0, headVB = 0, headDepth = 0, headHp = 0;
+    float pitYaw = 0;
+    bool finite = true;
+};
+
+// Largest penetration of any corner of one collision box into the other.
+float boxOverlap(const VehicleState& a, const VehicleState& b) {
+    float worst = 0.f;
+    const VehicleState* v[2] = {&a, &b};
+    for (int s = 0; s < 2; s++) {
+        const VehicleState &p = *v[s], &q = *v[1 - s];
+        mat3 Rp = mat3FromQuat(p.body.rot), Rq = mat3FromQuat(q.body.rot);
+        vec3 cq = q.body.pos.toVec3() + Rq * q.tune.boxC;
+        for (int k = 0; k < 8; k++) {
+            vec3 sg(k & 1 ? 1.f : -1.f, k & 2 ? 1.f : -1.f, k & 4 ? 1.f : -1.f);
+            vec3 pw = p.body.pos.toVec3() + Rp * (p.tune.boxC + p.tune.boxH * sg);
+            vec3 l(dot(Rq.c[0], pw - cq), dot(Rq.c[1], pw - cq), dot(Rq.c[2], pw - cq));
+            vec3 in = q.tune.boxH - vec3(fabsf(l.x), fabsf(l.y), fabsf(l.z));
+            if (in.x > 0.f && in.y > 0.f && in.z > 0.f) worst = Max(worst, Min(in.x, Min(in.y, in.z)));
+        }
+    }
+    return worst;
+}
+
+void testV2V(const VehicleModel& m, V2VReport& rep) {
+    gPG->resetColliders();
+    const float dt = 1.f / 120.f;
+    auto yawOf = [](const VehicleState& s) { vec3 f = s.forward(); return atan2f(f.y, f.x); };
+    // ---- T-bone at 15 m/s into a parked car's side ----
+    {
+        VehicleState A, B;
+        initVehicle(A, m, 0, dvec3(-2500.0, -60.0, 0.0), -kHalfPi);   // heading +x
+        initVehicle(B, m, 0, dvec3(-2480.0, -60.0, 0.0), 0.f);        // heading +y, broadside
+        for (int i = 0; i < 60; i++) {
+            VehicleControls c;
+            stepVehicle(A, c, dt);
+            VehicleControls cb;
+            cb.handbrake = true;
+            stepVehicle(B, cb, dt);
+        }
+        A.body.vel = A.forward() * 15.f;
+        for (int i = 0; i < A.wheelCount; i++) A.wheels[i].spinVel = 15.f / m.wheels[i].radius;
+        A.sleeping = B.sleeping = false;
+        bool hit = false;
+        float yB0 = yawOf(B);
+        for (int i = 0; i < 360; i++) {
+            VehicleControls c;
+            stepVehicle(A, c, dt);
+            VehicleControls cb;
+            stepVehicle(B, cb, dt);
+            if (collideVehicles(A, B)) hit = true;
+            rep.tboneDepth = Max(rep.tboneDepth, boxOverlap(A, B));
+            if (hit && i % 12 == 0) {
+                rep.tboneVB = Max(rep.tboneVB, B.speed());
+            }
+        }
+        rep.tboneVA = A.speed();
+        rep.tboneYawB = fabsf(wrapPi(yawOf(B) - yB0)) * kRadToDeg;
+        rep.tboneHpA = A.health;
+        rep.tboneHpB = B.health;
+        rep.finite = rep.finite && std::isfinite(A.body.pos.x) && std::isfinite(B.body.pos.x);
+    }
+    // ---- head-on at 15 + 15 m/s ----
+    {
+        VehicleState A, B;
+        initVehicle(A, m, 0, dvec3(-2500.0, 60.0, 0.0), -kHalfPi);
+        initVehicle(B, m, 0, dvec3(-2470.0, 60.0, 0.0), kHalfPi);   // heading -x
+        A.body.vel = A.forward() * 15.f;
+        B.body.vel = B.forward() * 15.f;
+        for (int i = 0; i < A.wheelCount; i++) A.wheels[i].spinVel = 15.f / m.wheels[i].radius;
+        for (int i = 0; i < B.wheelCount; i++) B.wheels[i].spinVel = 15.f / m.wheels[i].radius;
+        for (int i = 0; i < 240; i++) {
+            VehicleControls c;
+            stepVehicle(A, c, dt);
+            stepVehicle(B, c, dt);
+            collideVehicles(A, B);
+            rep.headDepth = Max(rep.headDepth, boxOverlap(A, B));
+        }
+        rep.headVA = A.speed();
+        rep.headVB = B.speed();
+        rep.headHp = Min(A.health, B.health);
+        rep.finite = rep.finite && std::isfinite(A.body.pos.x) && std::isfinite(B.body.pos.x);
+    }
+    // ---- PIT: pursuer noses into the rear quarter of a car at 20 m/s ----
+    {
+        VehicleState A, B;
+        float w = 2.f * m.boxHalf.x;
+        initVehicle(B, m, 0, dvec3(-2000.0, 0.0, 0.0), -kHalfPi);
+        initVehicle(A, m, 0, dvec3(-2000.0 - 0.6 * m.boxHalf.y * 2.0, -(double)(w + 0.3f), 0.0), -kHalfPi);
+        A.body.vel = A.forward() * 20.f;
+        B.body.vel = B.forward() * 20.f;
+        for (int i = 0; i < A.wheelCount; i++) A.wheels[i].spinVel = 20.f / m.wheels[i].radius;
+        for (int i = 0; i < B.wheelCount; i++) B.wheels[i].spinVel = 20.f / m.wheels[i].radius;
+        float yB0 = yawOf(B), maxYaw = 0.f;
+        for (int i = 0; i < 480; i++) {
+            VehicleControls ca, cb;
+            ca.throttle = 0.6f;
+            ca.steer = i < 60 ? -0.35f : 0.f;   // swing the nose left into B's rear quarter
+            cb.throttle = 0.3f;
+            stepVehicle(A, ca, dt);
+            stepVehicle(B, cb, dt);
+            collideVehicles(A, B);
+            maxYaw = Max(maxYaw, fabsf(wrapPi(yawOf(B) - yB0)));
+        }
+        rep.pitYaw = maxYaw * kRadToDeg;
+        rep.finite = rep.finite && std::isfinite(A.body.pos.x) && std::isfinite(B.body.pos.x);
+    }
+}
+
+void printV2VTable(const std::vector<V2VReport>& reps) {
+    fprintf(gOut, "\n### Vehicle vs vehicle (same model)\n\n");
+    fprintf(gOut, "| model | T-bone 15 m/s: struck car peak speed / striker after 3 s m/s | yaw of struck car deg | max overlap m | health striker / struck | head-on 2x15: speeds after m/s | overlap m | min health | PIT at 20 m/s (uncalibrated): target yaw deg | finite |\n");
+    fprintf(gOut, "|---|---|---|---|---|---|---|---|---|---|\n");
+    for (auto& r : reps)
+        fprintf(gOut, "| %s | %.1f / %.1f | %.0f | %.2f | %.0f / %.0f | %.1f / %.1f | %.2f | %.0f | %.0f | %s |\n", r.name.c_str(), r.tboneVB, r.tboneVA, r.tboneYawB,
+                r.tboneDepth, r.tboneHpA, r.tboneHpB, r.headVA, r.headVB, r.headDepth, r.headHp, r.pitYaw, r.finite ? "yes" : "NO");
 }
 
 // Metadata audit: prints the physics-relevant metadata of each model and flags values that produce bad handling.
@@ -1405,6 +1571,115 @@ void testRealCurb(RealWorld& rw, const VehicleModel& m, RealReport& rep, u32 see
     }
 }
 
+// Follows a waypoint polyline (pure pursuit) at a target speed; reports what went wrong on the way.
+struct PathReport {
+    bool done = false;
+    float time = 0.f, maxPitch = 0.f, maxRoll = 0.f, minZ = 1e9f, maxDrop = 0.f;
+    int scrapes = 0, impacts = 0, stuckS = 0;
+    float health = 1000.f;
+};
+PathReport drivePath(RealWorld& rw, const VehicleModel& m, const std::vector<vec2>& path, float speed, float tmax, const char* scen) {
+    PathReport rep;
+    Runner r;
+    ScenarioTrace st(r, scen);
+    vec2 d0 = normalize(path[1] - path[0]);
+    rw.ensureCells(path[0]);
+    float gz = Phys::gCollision->ground(path[0].x, path[0].y, 60.f, 0.f).z;
+    r.init(m, vec3(path[0], gz + 0.2f), atan2f(-d0.x, d0.y));
+    size_t seg = 1;
+    float stuckT = 0.f, zPrev = r.pos().z;
+    bool bike = m.cls == VC_MOTORBIKE || m.cls == VC_SCOOTER, crashed = false;
+    int step = 0;
+    float t = r.run(tmax,
+                    [&](VehicleControls& c, Runner& q) {
+                        if (++step % 60 == 0) rw.ensureCells(q.pos().xy());
+                        vec2 p = q.pos().xy();
+                        // next waypoint when close to it or past the end of the current segment
+                        while (seg + 1 < path.size()) {
+                            vec2 sa = path[seg - 1], sb = path[seg];
+                            float sl = Max(length(sb - sa), 1e-3f);
+                            if (length(sb - p) < 6.f || dot(p - sa, (sb - sa) / sl) > sl - 1.f) seg++;
+                            else break;
+                        }
+                        // look ahead along the current segment
+                        vec2 a = path[seg - 1], b = path[seg];
+                        vec2 ab = b - a;
+                        float L = Max(length(ab), 1e-3f);
+                        float s = Clamp(dot(p - a, ab) / (L * L), 0.f, 1.f) * L;
+                        vec2 tgt = a + ab / L * Min(s + 5.f, L);
+                        if (s + 5.f > L && seg + 1 < path.size()) tgt = b + normalize(path[seg + 1] - b) * (s + 5.f - L);
+                        c.steer = steerTo(q, tgt, 1.6f);
+                        // slow for the corner at the end of the segment (riders take tight corners slower)
+                        float vT = speed;
+                        if (seg + 1 < path.size()) {
+                            vec2 nx = normalize(path[seg + 1] - b);
+                            float turn = acosf(Clamp(dot(ab / L, nx), -1.f, 1.f));
+                            float vCorner = bike ? 2.5f : 3.f;
+                            if (turn > 0.5f && L - s < (bike ? 20.f : 15.f)) vT = Min(vT, Lerp(vCorner, speed, Saturate(1.f - turn / 1.8f)));
+                        }
+                        holdSpeed(c, q, vT);
+                    },
+                    [&](Runner& q) {
+                        vec3 p = q.pos();
+                        rep.maxPitch = Max(rep.maxPitch, fabsf(q.pitch()) * kRadToDeg);
+                        rep.maxRoll = Max(rep.maxRoll, fabsf(q.roll()) * kRadToDeg);
+                        rep.minZ = Min(rep.minZ, p.z);
+                        rep.maxDrop = Max(rep.maxDrop, zPrev - p.z);
+                        zPrev = p.z;
+                        if (q.s.scrape > 0.5f) rep.scrapes++;
+                        if (q.s.impactImpulse > 4.f * m.mass && q.s.impactCollider >= 0) rep.impacts++;
+                        stuckT = q.s.speed() < 0.5f ? stuckT + 1.f / 120.f : 0.f;
+                        if (stuckT > 3.f) {
+                            rep.stuckS++;
+                            printf("EVENT %s stuck at (%.1f %.1f %.1f) seg %d\n", scen, p.x, p.y, p.z, (int)seg);
+                            stuckT = -1e9f;
+                        }
+                        if (bike && q.s.riderOff) {
+                            printf("EVENT %s rider off at (%.1f %.1f %.1f) seg %d\n", scen, p.x, p.y, p.z, (int)seg);
+                            crashed = true;
+                            return true;
+                        }
+                        return seg + 1 >= path.size() && length(path.back() - p.xy()) < 4.f;
+                    });
+    rep.done = t > 0.f && !crashed;
+    rep.time = t;
+    rep.health = r.s.health;
+    return rep;
+}
+
+// Airport parking garages: up the external ramp (7 deg, 128 m) onto the roof deck, a lap of the deck, back down.
+// Port Isle: laps of the container yard across the crane rails and along the quay edge.
+void testSites(RealWorld& rw, const VehicleModel& m) {
+    if (!World::gSites) return;
+    float zA = World::gSites->airportZ;
+    (void)zA;
+    for (int k = 0; k < 2; k++) {
+        float dir = k == 0 ? 1.f : -1.f;
+        float gcy = k == 0 ? 1347.5f : 1650.f, ghy = k == 0 ? 122.5f : 115.f;
+        float yFoot = k == 0 ? gcy - ghy + 6.f : gcy + ghy - 6.f, yTop = yFoot + dir * 128.f, yLand = yTop + dir * 7.f;
+        // up: driveway -> ramp -> landing -> onto the roof deck; down: roof deck -> landing -> ramp -> driveway
+        std::vector<vec2> up = {vec2(924.f, yFoot - dir * 20.f), vec2(914.f, yFoot - dir * 3.f), vec2(913.f, yTop - dir * 4.f), vec2(911.f, yLand),
+                                vec2(896.f, yLand), vec2(884.f, yLand)};
+        std::vector<vec2> down = {vec2(884.f, yLand), vec2(900.f, yLand), vec2(911.f, yTop), vec2(913.f, yFoot + dir * 4.f), vec2(922.f, yFoot - dir * 18.f)};
+        for (int pass = 0; pass < 2; pass++) {
+            char scen[32];
+            snprintf(scen, sizeof(scen), "garage%d_%s", k + 1, pass ? "down" : "up");
+            PathReport pr = drivePath(rw, m, pass ? down : up, 7.f, 90.f, scen);
+            fprintf(gOut, "| %s | garage %d %s | %s | %.0f s | %.1f / %.1f | %.2f | %d | %d | %d | %.0f |\n", m.name.c_str(), k + 1, pass ? "roof -> ramp down" : "ramp up -> roof",
+                    pr.done ? "yes" : "NO", pr.time, pr.maxPitch, pr.maxRoll, pr.maxDrop, pr.scrapes, pr.impacts, pr.stuckS, pr.health);
+        }
+    }
+    {
+        // terminal roads: boulevard (x 4060), cross lane y -790, quay road (x 4520), across the landside crane rail onto
+        // the apron under the cranes (x 4570), back over the rail and home via lane y -290
+        std::vector<vec2> path = {vec2(4064.f, -1010.f), vec2(4064.f, -790.f), vec2(4520.f, -790.f), vec2(4520.f, -560.f), vec2(4570.f, -560.f),
+                                  vec2(4570.f, -300.f), vec2(4520.f, -300.f), vec2(4064.f, -290.f), vec2(4064.f, -700.f)};
+        PathReport pr = drivePath(rw, m, path, 14.f, 300.f, "port");
+        fprintf(gOut, "| %s | Port Isle roads, crane rails, quay apron | %s | %.0f s | %.1f / %.1f | %.2f | %d | %d | %d | %.0f |\n", m.name.c_str(), pr.done ? "yes" : "NO",
+                pr.time, pr.maxPitch, pr.maxRoll, pr.maxDrop, pr.scrapes, pr.impacts, pr.stuckS, pr.health);
+    }
+}
+
 void printRealTable(const std::vector<RealReport>& reps) {
     fprintf(gOut, "\n### Real world (generated Palmera: random routes on the road graph, streamed LOD0 collision)\n\n");
     fprintf(gOut, "| model | class | km driven | avg km/h | bridge/elevated km | max roll deg | max pitch deg | flips/crashes | stuck (other) / lane blocked by world | prop/bldg impacts | props broken | fell through a surface | drove off a deck edge | NaN | building @60: min speed after / inside / health | curb crossing s | us/step |\n");
@@ -1446,7 +1721,7 @@ void printBikeTable(const std::vector<CarReport>& reps) {
 }  // namespace VT
 
 int main(int argc, char** argv) {
-    bool synthetic = true, real = false, useModels = false, audit = false, feel = true, feelOnly = false, upgradeCheck = false, wheelInfo = false;
+    bool synthetic = true, real = false, useModels = false, audit = false, feel = true, feelOnly = false, upgradeCheck = false, wheelInfo = false, sites = false, v2v = false;
     int realRoutes = 2;
     std::vector<vec3> probes;
     float realLen = 6000.f;
@@ -1472,6 +1747,8 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--feelonly")) feelOnly = true;
         else if (!strcmp(argv[i], "--upgrades")) upgradeCheck = true;
         else if (!strcmp(argv[i], "--wheelinfo")) wheelInfo = true;
+        else if (!strcmp(argv[i], "--sites")) sites = true;
+        else if (!strcmp(argv[i], "--v2v")) v2v = true;
         else if (!strcmp(argv[i], "--maxmods")) {
             gUpgrades.engine = gUpgrades.brakes = gUpgrades.transmission = gUpgrades.suspension = 3;
             gUpgrades.turbo = true;
@@ -1558,6 +1835,18 @@ int main(int argc, char** argv) {
             }
             printFeelTable(fr);
         }
+        if (v2v) {
+            std::vector<V2VReport> vr;
+            for (auto& m : models) {
+                if (only && strcmp(only, className(m.cls)) && strcmp(only, m.name.c_str())) continue;
+                if (m.cls >= VC_MOTORBIKE) continue;
+                V2VReport rep;
+                rep.name = m.name;
+                testV2V(m, rep);
+                vr.push_back(rep);
+            }
+            printV2VTable(vr);
+        }
         if (upgradeCheck) {
             std::vector<UpgradeReport> ur;
             for (auto& m : models) {
@@ -1605,6 +1894,18 @@ int main(int argc, char** argv) {
         }
         if (!boats.empty()) printBoatTable(boats);
         if (!air.empty()) printAirTable(air);
+    }
+    if (sites) {
+        static RealWorld rw;
+        rw.build();
+        fprintf(gOut, "\n### Airport garage ramps and Port Isle (real models, streamed LOD0 collision)\n\n");
+        fprintf(gOut, "| model | route | completed | time | max pitch / roll deg | max drop per step m | scrape steps | impacts | stuck | health |\n");
+        fprintf(gOut, "|---|---|---|---|---|---|---|---|---|---|\n");
+        for (auto& m : models) {
+            if (only && strcmp(only, className(m.cls)) && strcmp(only, m.name.c_str())) continue;
+            if (m.cls >= VC_BOAT) continue;
+            testSites(rw, m);
+        }
     }
     if (real) {
         static RealWorld rw;

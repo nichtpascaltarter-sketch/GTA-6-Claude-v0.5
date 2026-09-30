@@ -682,6 +682,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 int doors = Max(1, (int)(b.hx / 7.f));
                 for (int k = 0; k < doors; k++) {
                     float u = -b.hx + (k + 0.5f) * (2.f * b.hx / doors);
+                    if (b.interior >= 0 && interiorHidesLoadingDoor(b, u)) continue;   // a real door of the interior (interiors.cpp)
                     vec2 d0 = b.c + b.front * (b.hy + 0.03f) + b.ax * (u - 1.8f), d1 = d0 + b.ax * 3.6f;
                     m.quadFacing(vec3(d0, z0 + 0.2f) - org, vec3(d1, z0 + 0.2f) - org, vec3(d1, z0 + 4.2f) - org, vec3(d0, z0 + 4.2f) - org, vec2(0, 0), vec2(3.6f, 0),
                                  vec2(3.6f, 4.f), vec2(0, 4.f), packRGBA8(0.6f, 0.62f, 0.65f, 1), makeMat(MAT_CORRUGATED), vec3(b.front, 0));

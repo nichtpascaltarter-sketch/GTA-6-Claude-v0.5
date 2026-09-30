@@ -39,7 +39,7 @@ struct ProfScope {
 #endif
 
 // ---------------------------------------------------------------------------------------------
-enum class CmdType : u8 { Play, Stop, EmitterCreate, EmitterSet, EmitterDestroy, SpeechReady };
+enum class CmdType : u8 { Play, Stop, EmitterCreate, EmitterSet, EmitterTune, EmitterDestroy, SpeechReady };
 struct Cmd {
     CmdType type;
     bool is2D;
@@ -62,6 +62,9 @@ struct SharedState {
     float radioInterior = 1.f;
     int scoreMood = -1;
     float scoreIntensity = 0.f;
+    float crowdDensity = 0.f;
+    int crowdPlace = 0;
+    float crowdPanic = 0.f;
 };
 
 std::mutex g_cmdMutex;
@@ -300,6 +303,7 @@ struct Mixer {
     ListenerState lis;
     WorldEnv env;
     AmbienceRenderer* amb = nullptr;
+    crowd::Player crowdPlayer;
     FdnReverb reverb;
     LookaheadLimiter limiter;
     Noise nz{0x77u};
@@ -332,6 +336,7 @@ struct Mixer {
     float wL[kMaxBlock], wR[kMaxBlock];      // world sfx
     float wmL[kMaxBlock], wmR[kMaxBlock];    // world music (radio emitters)
     float aL[kMaxBlock], aR[kMaxBlock];      // ambience
+    float cL[kMaxBlock], cR[kMaxBlock];      // crowd walla
     float uL[kMaxBlock], uR[kMaxBlock];      // ui
     float vL[kMaxBlock], vR[kMaxBlock];      // dialogue
     float mL[kMaxBlock], mR[kMaxBlock];      // music (radio + score)
@@ -540,6 +545,13 @@ struct Mixer {
                     if (e.synth) e.synth->setParams(e.p[0], e.p[1], e.p[2], e.p[3]);
                     break;
                 }
+                case CmdType::EmitterTune: {
+                    int slot = (int)(c.handle % (u32)kMaxEmitters);
+                    Emitter& e = emitters[slot];
+                    if (!e.active || e.handle != c.handle || e.releasing) break;
+                    if (e.synth) e.synth->setTune(c.p[0], c.p[1], c.p[2] > 0.5f);
+                    break;
+                }
                 case CmdType::EmitterDestroy: {
                     int slot = (int)(c.handle % (u32)kMaxEmitters);
                     Emitter& e = emitters[slot];
@@ -655,7 +667,7 @@ struct Mixer {
             reverb.erLevel = Lerp(0.25f, 0.6f, ri);
         }
         for (int i = 0; i < n; i++) {
-            wL[i] = wR[i] = wmL[i] = wmR[i] = aL[i] = aR[i] = uL[i] = uR[i] = 0.f;
+            wL[i] = wR[i] = wmL[i] = wmR[i] = aL[i] = aR[i] = uL[i] = uR[i] = cL[i] = cR[i] = 0.f;
             vL[i] = vR[i] = mL[i] = mR[i] = sL[i] = sR[i] = 0.f;
         }
         bool worldActive = pauseGain > 0.f;
@@ -668,6 +680,8 @@ struct Mixer {
                 aL[i] = ambDcL.process(aL[i]);
                 aR[i] = ambDcR.process(aR[i]);
             }
+            float crowdD = st.crowdDensity * (1.f - Saturate(st.amb.underwater));
+            crowdPlayer.render(cL, cR, n, crowdD, st.crowdPlace, st.crowdPanic, env.interior, env.inVehicle);
         }
         // ---- voices
         {
@@ -712,11 +726,12 @@ struct Mixer {
             float spd = speechDuck0 + (speechDuck - speechDuck0) * u;
             float lsd = loudDuck0 + (loudDuck - loudDuck0) * u;
             float ambG = vSfx * pg * (0.45f + 0.55f * lsd);
+            float crowdG = ambG * (0.65f + 0.35f * spd);  // murmur yields a little to dialogue
             float musG = vMusic * spd * (0.7f + 0.3f * lsd);
-            float l = wL[i] * vSfx * pg + wmL[i] * vMusic * pg * spd + aL[i] * ambG + rL[i] * vSfx * pg + uL[i] * vSfx + vL[i] * vVoice * pg +
-                      mL[i] * musG;
-            float r = wR[i] * vSfx * pg + wmR[i] * vMusic * pg * spd + aR[i] * ambG + rR[i] * vSfx * pg + uR[i] * vSfx + vR[i] * vVoice * pg +
-                      mR[i] * musG;
+            float l = wL[i] * vSfx * pg + wmL[i] * vMusic * pg * spd + aL[i] * ambG + cL[i] * crowdG + rL[i] * vSfx * pg +
+                      uL[i] * vSfx + vL[i] * vVoice * pg + mL[i] * musG;
+            float r = wR[i] * vSfx * pg + wmR[i] * vMusic * pg * spd + aR[i] * ambG + cR[i] * crowdG + rR[i] * vSfx * pg +
+                      uR[i] * vSfx + vR[i] * vVoice * pg + mR[i] * musG;
             l = masterDcL.process(l * vMaster);
             r = masterDcR.process(r * vMaster);
             if (!std::isfinite(l)) l = 0.f;
@@ -1153,6 +1168,7 @@ bool init() {
         musicStartThread();
         int hc = (int)std::thread::hardware_concurrency();
         bankStartAsync(Clamp(hc - 1, 1, 4));
+        crowdStart(true);
         mix::g_deviceOk.store(true);
         LOG("Audio: output started (procedural bank rendering in background)");
     } else {
@@ -1170,6 +1186,7 @@ void shutdown() {
     musicShutdown();
     speechStop();
     bankShutdown();
+    crowdStop();
     {
         std::lock_guard<std::mutex> rl(mix::g_renderMutex);
         mix::g_mixer->destroy();
@@ -1210,6 +1227,13 @@ void setAmbience(const Ambience& a) {
     if (!mix::g_inited.load()) return;
     std::lock_guard<std::mutex> lk(mix::g_cmdMutex);
     mix::g_shared.amb = a;
+}
+void setCrowd(float density, int placeType, float panic) {
+    if (!mix::g_inited.load()) return;
+    std::lock_guard<std::mutex> lk(mix::g_cmdMutex);
+    mix::g_shared.crowdDensity = std::isfinite(density) ? Saturate(density) : 0.f;
+    mix::g_shared.crowdPlace = Clamp(placeType, 0, (int)CROWD_PLACE_COUNT - 1);
+    mix::g_shared.crowdPanic = std::isfinite(panic) ? Saturate(panic) : 0.f;
 }
 void setPaused(bool paused) {
     if (!mix::g_inited.load()) return;
@@ -1319,6 +1343,17 @@ void setEmitter(EmitterHandle h, vec3 pos, vec3 vel, float p0, float p1, float p
     mix::pushCmd(c);
 }
 
+void setEngineTune(EmitterHandle h, float boost, float tune, bool shifted) {
+    if (!mix::apiLive() || !h) return;
+    mix::Cmd c = {};
+    c.type = mix::CmdType::EmitterTune;
+    c.handle = h;
+    c.p[0] = Saturate(boost);
+    c.p[1] = Saturate(tune);
+    c.p[2] = shifted ? 1.f : 0.f;
+    mix::pushCmd(c);
+}
+
 void destroyEmitter(EmitterHandle h) {
     if (!mix::apiLive() || !h) return;
     mix::Cmd c = {};
@@ -1397,6 +1432,7 @@ void renderOffline(float* outStereo, int frames) {
     bankWaitAll();
     dsp::ScopedFlushDenormals ftz;
     std::lock_guard<std::mutex> rl(mix::g_renderMutex);
+    mix::g_mixer->crowdPlayer.offline = true;  // no worker: crowd beds render on first use
     int done = 0;
     while (done < frames) {
         int n = Min(kMaxBlock, frames - done);

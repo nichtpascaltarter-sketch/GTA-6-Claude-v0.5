@@ -76,6 +76,9 @@ void initShops(GameWorld& g) {
         s.name = name;
         s.place = pl;
         s.marker = kind == SHOP_RESPRAY ? pl.curb : pl.pos;
+        // walk-in shops with an interior: the counter inside
+        vec3 counter;
+        if (kind != SHOP_RESPRAY && World::interiorMarkerWorld(name, World::IM_COUNTER, counter)) s.marker = counter;
         s.requiresFlag = req;
         gShops.shops.push_back(s);
     };
@@ -94,6 +97,10 @@ void initShops(GameWorld& g) {
         s.owner = owner;
         s.save = pl.pos;
         s.wardrobe = placeOffset(g, pl, 3.5f, 0.f);
+        // safehouses with an interior: sleep/save at the bed, change at the wardrobe
+        vec3 in;
+        if (World::interiorMarkerWorld(name, World::IM_BED, in)) s.save = in;
+        if (World::interiorMarkerWorld(name, World::IM_WARDROBE, in)) s.wardrobe = in;
         s.garage = curbOffset(g, pl, -9.f);
         s.garageYaw = pl.curbYaw;
         gShops.safehouses.push_back(s);
@@ -428,6 +435,7 @@ long long repairPrice(GameWorld& g, int v) {
 }
 
 void repairVehicle(Vehicle& veh) {
+    Vehicles::repairVehicle(veh.sim);   // bent steering, flooding, wreck flag, dents (vehicle sim)
     veh.sim.health = 1000.f;
     veh.sim.engineHealth = 1000.f;
     for (float& z : veh.sim.damageZones) z = 0.f;

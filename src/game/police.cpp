@@ -36,6 +36,8 @@ struct Dispatch {
     float bustTimer = 0.f;
     int lastWanted = 0;
     u32 counter = 1;
+    vec3 lightAim;          // helicopter searchlight: where the operator is pointing (follows with a lag)
+    bool lightAimSet = false;
 };
 Dispatch gD;
 
@@ -302,7 +304,8 @@ void GameWorld::updateWanted(float dt) {
     bool bustable = false;
     if (pinfo.wanted > 0 && pinfo.wanted <= 2 && pl->health > 0.f && !pinfo.busted) {
         int pv = pl->vehicle;
-        float spd = pv >= 0 ? vehicles[pv].sim.speed() : length(vec2(pl->vel.x, pl->vel.y));
+        bool downed = pl->state == PS_RAGDOLL || pl->state == PS_GETUP;   // tackled
+        float spd = pv >= 0 ? vehicles[pv].sim.speed() : (downed ? 0.f : length(vec2(pl->vel.x, pl->vel.y)));
         bool calm = spd < 1.2f && !pl->firing && !(pv < 0 && pl->aiming);
         if (calm) {
             for (int i = 0; i < (int)peds.size(); i++) {
@@ -317,7 +320,8 @@ void GameWorld::updateWanted(float dt) {
         }
     }
     gD.bustTimer = bustable ? gD.bustTimer + dt : 0.f;
-    if (gD.bustTimer > 2.2f) {
+    // (a tackled player is cuffed the moment they are back on their feet: never switch states mid-ragdoll)
+    if (gD.bustTimer > 2.2f && pl->state != PS_RAGDOLL && pl->state != PS_GETUP) {
         gD.bustTimer = 0.f;
         pinfo.busted = true;
         pinfo.arrests++;
@@ -664,7 +668,13 @@ void GameWorld::updateDispatch(float dt) {
         bool dark = env->timeOfDay < 7.2f || env->timeOfDay > 18.6f;
         if (dark) {
             vec3 hp = heli->sim.body.pos.toVec3();
-            vec3 aim = pinfo.policeSeesPlayer ? pp : pinfo.lastSeenPos.toVec3() + vec3(sinf((float)time * 0.7f) * 18.f, cosf((float)time * 0.53f) * 18.f, 0.f);
+            // on the suspect while in sight (the operator trails a moving target a little), otherwise sweeping a
+            // figure-eight over the last known position
+            vec3 want = pinfo.policeSeesPlayer ? pp : pinfo.lastSeenPos.toVec3() + vec3(sinf((float)time * 0.7f) * 18.f, sinf((float)time * 1.4f) * 9.f, 0.f);
+            if (!gD.lightAimSet || length(gD.lightAim - want) > 120.f) gD.lightAim = want;
+            gD.lightAimSet = true;
+            gD.lightAim += (want - gD.lightAim) * expDecay(pinfo.policeSeesPlayer ? 3.2f : 1.4f, dt);
+            vec3 aim = gD.lightAim;
             Render::DynamicLight dl;
             dl.pos = heli->sim.body.pos + dvec3(heli->sim.forward() * 2.f) - dvec3(0, 0, 1.2);
             dl.dir = normalize(aim - hp);
@@ -1044,6 +1054,13 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
         v.hornOn = out.horn;
         return;
     }
+    // ---- loudspeaker: order the driver to pull over while a low-level (1-2 star) pursuit is close
+    va.megaphoneTimer -= dt;
+    if (chasingPlayer && targetVeh >= 0 && pinfo.wanted <= 2 && dist < 40.f && va.megaphoneTimer <= 0.f) {
+        int spk = v.seats[1] >= 0 && !peds[v.seats[1]].isPlayer ? v.seats[1] : drv;
+        if (spk >= 0) aiSay(spk, BK_COP_MEGAPHONE, 1.f, true);
+        va.megaphoneTimer = 8.f + hashToFloat(hash32(v.uid * 13u + (u32)time)) * 4.f;
+    }
     // ---- direct pursuit
     Vehicles::VehicleControls& c = v.ctl;
     c = Vehicles::VehicleControls();
@@ -1323,9 +1340,32 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
     float prefer = wi.clipSize > 0 ? Clamp(wi.range * 0.3f, 8.f, 22.f) : 1.2f;
     switch (pa.tactic) {
         case FT_ARREST: {
-            // gun drawn, close in, shout
-            if (dist > 1.9f) desired = to / dist * (dist > 10.f ? 4.5f : 1.6f);
+            // gun drawn, close in, shout; a suspect who runs for it is chased down on foot and tackled
+            pa.tackleTimer -= dt;
+            bool running = t.state == PS_ONFOOT && length(t.vel.xy()) > 3.f && seen;
             faceYaw = atan2f(-to.x, to.y);
+            if (running) {
+                desired = to / Max(dist, 1e-3f) * (dist > 3.f ? 6.6f : 5.2f);   // holstered, flat-out sprint
+                if (pa.shoutTimer <= 0.f && dist < 30.f) {
+                    aiSay(id, BK_COP_FREEZE, 1.f, true);
+                    pa.shoutTimer = 4.f;
+                }
+                if (dist < 1.7f && pa.tackleTimer <= 0.f) {
+                    bool success = hashToFloat(hash32(p.uid * 977u + (u32)(time * 5.0))) < 0.65f;
+                    if (success) {
+                        knockDown(b.target, vec3(to / Max(dist, 1e-3f) * 150.f, 25.f));
+                        ai.stats.tackles++;
+                        aiSay(id, BK_COP_GROUND, 1.f, true);
+                        pa.tackleTimer = 10.f;
+                        pa.shoutTimer = 3.f;
+                    } else {
+                        p.pendingAction = Anim::CLIP_STAGGER;   // grabbed at air
+                        pa.tackleTimer = 3.5f;
+                    }
+                }
+                break;
+            }
+            if (dist > 1.9f) desired = to / dist * (dist > 10.f ? 4.5f : 1.6f);
             p.aiming = wi.clipSize > 0 && dist < 25.f;
             if (pa.shoutTimer <= 0.f && dist < 25.f) {
                 aiSay(id, dist < 8.f ? BK_COP_GROUND : BK_COP_FREEZE, 1.f, true);

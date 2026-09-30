@@ -38,6 +38,8 @@ cbuffer FrameCB : register(b0) {
     float4 gHalfScreen;        // half-resolution width, height, 1/width, 1/height
     float4 gAmbientParams;     // x urban enclosure (facade share of the horizon band), y lightning ambient flash (lux),
                                // z probe irradiance weight (0 = sky SH only), w probe irradiance falloff distance (m)
+    float4 gSkyGlow;           // x urban light pollution (0..1), yz direction towards the brighter city (length = bias),
+                               // w night factor
 };
 
 // Global resources bound once per frame at high slots (see Renderer::bindGlobals)

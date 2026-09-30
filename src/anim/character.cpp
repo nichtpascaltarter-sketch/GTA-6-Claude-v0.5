@@ -17,6 +17,7 @@
 //   role      : 0 civilian, 1 police, 2 gang, 3 business, 4 beach, 5 worker, 6 medic
 // Colors are linear RGB albedo. skinTone is written directly to the skin vertex color.
 #include "anim_internal.h"
+#include <unordered_map>
 
 namespace Anim {
 
@@ -381,8 +382,10 @@ static void bakeOcclusion(const BuildCtx& c, MeshB& m) {
 }
 }  // namespace detail
 
-void buildCharacterMesh(const CharacterDesc& d, const Skeleton& skel, SkinnedMeshData& out) {
-    using namespace detail;
+namespace detail {
+
+// Full-detail build mesh (before uv seam fixing and emission).
+static void buildFinalMesh(const CharacterDesc& d, const Skeleton& skel, MeshB& fin) {
     BodyDims D;
     computeDims(d, D);
     BuildCtx c;
@@ -398,12 +401,223 @@ void buildCharacterMesh(const CharacterDesc& d, const Skeleton& skel, SkinnedMes
     MeshB extra;
     std::vector<u8> hide(c.m.idx.size() / 3, 0);
     buildOutfit(c, extra, hide);
-    MeshB fin;
     compactInto(c.m, hide, fin);
     fin.append(extra);
     bakeOcclusion(c, fin);
+}
+
+// Remove what a LOD does not need: tiny accessory pieces (buttons, rivets) from LOD1, and at LOD2 the face details
+// (lashes, brows, lid tucks: their colour is painted onto the skin first), the mouth interior (the far LOD never
+// talks), the fingers (paddle hands) and small accessories (jewellery, glasses, badges, holster items); hats, bags
+// and garments stay. The eyeballs become low-poly spheres with the same sclera / iris colours.
+static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
+    const u32 NT = (u32)(m.idx.size() / 3);
+    std::vector<u8> drop(NT, 0);
+    if (lod >= 2) {
+        // brows and lashes -> skin tint (so the face still reads at a distance)
+        std::vector<u32> det;
+        for (u32 i = 0; i < (u32)m.v.size(); i++)
+            if (m.v[i].part == PART_FACEDETAIL) det.push_back(i);
+        for (BVert& v : m.v) {
+            if (v.part != PART_HEAD || !(v.flags & BuildCtx::F_FACE)) continue;
+            float best = 1e9f;
+            vec3 col;
+            for (u32 j : det) {
+                float d2 = length2(m.v[j].p - v.p);
+                if (d2 < best) {
+                    best = d2;
+                    col = m.v[j].col;
+                }
+            }
+            if (best < 0.006f * 0.006f) v.col = lerp(v.col, col, 0.75f * (1.f - sqrtf(best) / 0.006f));
+        }
+    }
+    // accessory components (triangles connected through shared vertices)
+    std::vector<u32> parent(m.v.size());
+    for (u32 i = 0; i < (u32)m.v.size(); i++) parent[i] = i;
+    auto find = [&](u32 x) {
+        while (parent[x] != x) x = parent[x] = parent[parent[x]];
+        return x;
+    };
+    for (u32 t = 0; t < NT; t++) {
+        const u32* tr = &m.idx[t * 3];
+        if (m.v[tr[0]].part != PART_ACC) continue;
+        u32 a = find(tr[0]), b = find(tr[1]), c = find(tr[2]);
+        parent[b] = a;
+        parent[find(c)] = find(a);
+    }
+    std::vector<vec3> bmin(m.v.size(), vec3(1e9f)), bmax(m.v.size(), vec3(-1e9f));
+    for (u32 i = 0; i < (u32)m.v.size(); i++) {
+        if (m.v[i].part != PART_ACC) continue;
+        u32 r = find(i);
+        bmin[r] = vmin(bmin[r], m.v[i].p);
+        bmax[r] = vmax(bmax[r], m.v[i].p);
+    }
+    const float accMin = lod >= 2 ? 0.18f : 0.035f;
+    for (u32 t = 0; t < NT; t++) {
+        const BVert& v0 = m.v[m.idx[t * 3]];
+        if (v0.part == PART_ACC) {
+            u32 r = find(m.idx[t * 3]);
+            vec3 e = bmax[r] - bmin[r];
+            if (Max(e.x, Max(e.y, e.z)) < accMin) drop[t] = 1;
+        }
+        if (lod >= 2 && (v0.part == PART_FACEDETAIL || v0.part == PART_MOUTH || v0.part == PART_FINGER || v0.part == PART_THUMB))
+            drop[t] = 1;
+        if (v0.part == PART_EYE) drop[t] = 1;   // replaced below
+    }
+    MeshB out;
+    std::vector<u32> remap(m.v.size(), 0xffffffffu);
+    for (u32 t = 0; t < NT; t++) {
+        if (drop[t]) continue;
+        for (int k = 0; k < 3; k++) {
+            u32 a = m.idx[t * 3 + k];
+            if (remap[a] == 0xffffffffu) remap[a] = out.add(m.v[a]);
+            out.idx.push_back(remap[a]);
+        }
+    }
+    // low-poly eyeballs (same centre, radius and colours; skinned to the eye bones)
+    for (int sd = 0; sd < 2; sd++) {
+        int eb = sd ? B_EYE_R : B_EYE_L;
+        vec3 ctr = -skel.invBindModel[eb].c[3].xyz();
+        float r = 0.f;
+        int n = 0;
+        vec3 iris(0.1f, 0.06f, 0.03f), sclera(0.78f, 0.74f, 0.7f);
+        float bestIris = 2.f;
+        vec3 fw = normalize(vec3((sd ? 1.f : -1.f) * 0.04f, 1.f, 0.f));
+        for (const BVert& v : m.v) {
+            if (v.part != PART_EYE || v.side != sd) continue;
+            r += length(v.p - ctr);
+            n++;
+            float c = dot(normalize(v.p - ctr), fw);
+            if (fabsf(c - 0.93f) < bestIris) {
+                bestIris = fabsf(c - 0.93f);
+                iris = v.col;
+            }
+        }
+        if (n == 0) continue;
+        r /= n;
+        vec3 ex = normalize(cross(fw, vec3(0, 0, 1))), ez = cross(ex, fw);
+        const int NS = lod >= 2 ? 6 : 8;
+        const float polar[] = {0.f, 20.f, 42.f, 75.f, 110.f};
+        u32 base = (u32)out.v.size();
+        for (int pi = 0; pi < 5; pi++) {
+            float a = polar[pi] * kDegToRad;
+            int cnt = pi == 0 ? 1 : NS;
+            for (int k = 0; k < cnt; k++) {
+                float ph = kTwoPi * k / NS;
+                vec3 dir = fw * cosf(a) + (ex * cosf(ph) + ez * sinf(ph)) * sinf(a);
+                BVert v;
+                v.p = ctr + dir * r;
+                v.n = dir;
+                v.t = ex * -sinf(ph) + ez * cosf(ph);
+                v.col = pi == 0 ? iris * 0.45f : (pi == 1 ? iris : (pi == 2 ? sclera : vec3(0.62f, 0.48f, 0.45f)));
+                v.mat = MAT_EYE;
+                v.part = PART_EYE;
+                v.side = (u8)sd;
+                v.sw = skin1(eb);
+                out.add(v);
+            }
+        }
+        for (int k = 0; k < NS; k++) out.tri(base, base + 1 + k, base + 1 + (k + 1) % NS);
+        for (int pi = 1; pi < 4; pi++)
+            for (int k = 0; k < NS; k++) {
+                u32 a = base + 1 + (pi - 1) * NS + k, b = base + 1 + (pi - 1) * NS + (k + 1) % NS;
+                u32 c = a + NS, d = b + NS;
+                out.quad(a, c, d, b);
+            }
+        // make every triangle face outwards
+        for (size_t t = out.idx.size() - (size_t)(NS + 3 * NS * 2) * 3; t < out.idx.size(); t += 3) {
+            vec3 p0 = out.v[out.idx[t]].p, p1 = out.v[out.idx[t + 1]].p, p2 = out.v[out.idx[t + 2]].p;
+            if (dot(cross(p1 - p0, p2 - p0), (p0 + p1 + p2) * (1.f / 3.f) - ctr) < 0.f) std::swap(out.idx[t + 1], out.idx[t + 2]);
+        }
+    }
+    m = std::move(out);
+}
+
+// Layer offsets for the LODs: distance of every non-skin vertex to the nearest skin vertex (hashed grid).
+static bool lodIsSkinSurface(const BVert& v) {
+    return v.mat == MAT_SKIN && v.part != PART_MOUTH && v.part != PART_FACEDETAIL && v.part != PART_EYE;
+}
+static void computeLayerOffsets(MeshB& m) {
+    const float cell = 0.02f;
+    std::unordered_map<u64, std::vector<u32>> grid;
+    auto key = [&](int x, int y, int z) { return ((u64)(u32)(x + 4096) << 42) | ((u64)(u32)(y + 4096) << 21) | (u64)(u32)(z + 4096); };
+    for (u32 i = 0; i < (u32)m.v.size(); i++) {
+        if (!lodIsSkinSurface(m.v[i])) continue;
+        vec3 p = m.v[i].p / cell;
+        grid[key((int)floorf(p.x), (int)floorf(p.y), (int)floorf(p.z))].push_back(i);
+    }
+    for (BVert& v : m.v) {
+        if (lodIsSkinSurface(v) || v.mat == MAT_EYE) {
+            v.layer = 0.f;
+            continue;
+        }
+        vec3 p = v.p / cell;
+        int cx = (int)floorf(p.x), cy = (int)floorf(p.y), cz = (int)floorf(p.z);
+        float best = 0.04f * 0.04f;
+        for (int dz = -1; dz <= 1; dz++)
+            for (int dy = -1; dy <= 1; dy++)
+                for (int dx = -1; dx <= 1; dx++) {
+                    auto it = grid.find(key(cx + dx, cy + dy, cz + dz));
+                    if (it == grid.end()) continue;
+                    for (u32 j : it->second) best = Min(best, length2(m.v[j].p - v.p));
+                }
+        v.layer = sqrtf(best);
+    }
+}
+
+// Decimation flattens curved shells (chords cut inside the surface), so a tight layer would let what is under it
+// poke through: push clothing, hair and accessories out along their normals, more for the outer layers.
+static void inflateLayers(MeshB& m, int lod) {
+    const float base = lod >= 2 ? 0.004f : 0.0015f, k = lod >= 2 ? 0.5f : 0.15f;
+    for (BVert& v : m.v) {
+        if (lodIsSkinSurface(v) || v.mat == MAT_EYE) continue;
+        vec3 n = length2(v.n) > 1e-12f ? normalize(v.n) : vec3(0);
+        v.p = v.p + n * (base + k * Min(v.layer, 0.04f));
+    }
+}
+
+}  // namespace detail
+
+void buildCharacterMesh(const CharacterDesc& d, const Skeleton& skel, SkinnedMeshData& out) {
+    using namespace detail;
+    MeshB fin;
+    buildFinalMesh(d, skel, fin);
     fixUvSeams(fin);
     emitMesh(fin, out);
+}
+
+void buildCharacterMeshLods(const CharacterDesc& d, const Skeleton& skel, SkinnedMeshData* out, int lodCount) {
+    using namespace detail;
+    static const int kLodTris[3] = {0, 4500, 1500};
+    // decimation importance per part (faces keep more of the budget; the rebuilt eyeballs are never collapsed)
+    float partW[2][PART_COUNT];
+    for (int l = 0; l < 2; l++)
+        for (int p = 0; p < PART_COUNT; p++) partW[l][p] = 1.f;
+    partW[0][PART_HEAD] = 1.6f;
+    partW[1][PART_HEAD] = 2.5f;
+    partW[0][PART_EYE] = partW[1][PART_EYE] = 1e6f;
+    partW[0][PART_FINGER] = partW[0][PART_THUMB] = 0.6f;
+    MeshB cur;
+    buildFinalMesh(d, skel, cur);
+    if (lodCount > 1) computeLayerOffsets(cur);
+    for (int lod = 0; lod < lodCount && lod < 3; lod++) {
+        if (lod > 0) {
+            stripForLod(cur, skel, lod);
+            decimateMesh(cur, kLodTris[lod], partW[lod - 1]);
+        }
+        MeshB m = cur;
+        if (lod > 0) inflateLayers(m, lod);
+        fixUvSeams(m);
+        emitMesh(m, out[lod]);
+    }
+}
+
+void buildCharacterMeshLod(const CharacterDesc& d, const Skeleton& skel, int lod, SkinnedMeshData& out) {
+    lod = Clamp(lod, 0, 2);
+    SkinnedMeshData tmp[3];
+    buildCharacterMeshLods(d, skel, tmp, lod + 1);
+    out = std::move(tmp[lod]);
 }
 
 }  // namespace Anim

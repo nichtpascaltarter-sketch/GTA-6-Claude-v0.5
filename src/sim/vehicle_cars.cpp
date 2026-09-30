@@ -263,8 +263,10 @@ inline void buildCar(const CarDef& def, VehicleModel& out) {
     CarBody b(d.s);
     PMesh m;
     carBodyParts(d, b, m, true);
-    if (d.L.grille == GR_NONE) noseLogo(m, b, d.L);
-    rearBadges(m, b, d.L, badgeText(out.name));
+    if (lodLevel() == 0) {
+        if (d.L.grille == GR_NONE) noseLogo(m, b, d.L);
+        rearBadges(m, b, d.L, badgeText(out.name));
+    }
     const CarSpec& s = b.s;
     const CarLook& L = d.L;
     finalizeMesh(m, out.body);
@@ -296,9 +298,110 @@ inline void buildCar(const CarDef& def, VehicleModel& out) {
     out.frontalArea = (2.f * s.halfW) * (s.zRoof - s.zSill) * 0.84f;
 }
 
+// ------------------------------------------------------------------------------------------------
+// Distant levels of detail: the same shell at lower resolution with flat lamp / grille patches, no seams, badges or
+// small hardware; LOD1 keeps seats, dash and the cabin closure, LOD2 only the closed cabin shell.
+inline void lampPatchLod(PMesh& m, CarBody& b, const CarLook& L, bool rear, int lod) {
+    Frame fr = rear ? projRear(L.tailYaw, 0.f) : projFront(L.headYaw, L.headPitch);
+    vec2 c = rear ? L.tailC : L.headC;
+    vec3 guess(c.x, rear ? b.yR - 0.5f : b.yF + 0.5f, c.y);
+    if (!rear) fr.o = guess;
+    Decal dc;
+    if (!decalAt(dc, b.proj, fr, guess, vec3(0, rear ? 1.f : -1.f, 0))) return;
+    float hw = rear ? L.tailW : L.headW, hh = rear ? L.tailH : L.headH;
+    bool round = rear ? L.tail == TL_ROUND : (L.head == HL_ROUND || L.head == HL_POP || L.head == HL_QUAD);
+    int n = lod == 1 ? 14 : 8;
+    std::vector<vec2> O = round ? shapeEllipse(vec2(0, 0), hh, hh, n)
+                                : resampleClosed(shapeRoundRect(vec2(0, 0), hw, hh, Min(hw, hh) * 0.45f, 2), n);
+    decalRange(dc, vec2(-hw - 0.05f, -hh - 0.05f), vec2(hw + 0.05f, hh + 0.05f));
+    m.newGroup(30.f);
+    if (rear) m.use(MAT_LIGHT_TAIL, col(1.f, 0.f, 0.f));
+    else m.use(MAT_LIGHT_HEAD, kCol1);
+    loopFill(m, dc, O, 0.004f, 1);
+    if (lod == 1 && !rear) {
+        // turn signal at the outer end of the lamp
+        std::vector<vec2> a = resampleClosed(shapeRoundRect(vec2(hw * 0.78f, -hh * 0.2f), Min(hw * 0.2f, 0.03f), hh * 0.5f, 0.008f, 2), 8);
+        m.use(MAT_LIGHT_INDICATOR, col(1.f, 0.55f, 0.05f));
+        loopFill(m, dc, a, 0.006f, 1);
+    }
+}
+inline void panelPatchLod(PMesh& m, CarBody& b, bool rear, vec2 c, float hw, float hh, u8 mat, u32 color, float off) {
+    Frame fr = rear ? projRear() : projFront();
+    Decal dc;
+    vec3 guess(c.x, rear ? b.yR - 0.5f : b.yF + 0.5f, c.y);
+    if (!decalAt(dc, b.proj, fr, guess, vec3(0, rear ? 1.f : -1.f, 0))) return;
+    decalRange(dc, vec2(-hw - 0.05f, -hh - 0.05f), vec2(hw + 0.05f, hh + 0.05f));
+    m.use(mat, color);
+    loopFill(m, dc, resampleClosed(shapeRoundRect(vec2(0, 0), hw, hh, Min(hw, hh) * 0.3f, 1), 10), off, 1);
+}
+// Pickup bed: wheel tubs over the rear arches (they hide the arch wells from inside the bed).
+inline void bedTubs(PMesh& m, CarBody& b) {
+    const CarSpec& s = b.s;
+    if (s.recDepth <= 0.f || s.cockpit) return;
+    int ir = b.rowAt(b.yWr);
+    float floorZ = b.G[ir * b.NP + b.NP - 1].z;
+    float archTopZ = s.wheelR + b.Ra + 0.06f;
+    if (archTopZ <= floorZ) return;
+    float wallX = b.G[ir * b.NP + b.pRail0].x;
+    float xIn = s.trackR - s.wheelW * 0.5f - 0.05f;
+    m.newGroup(35.f);
+    m.use(MAT_PLASTIC, col(0.7f, 0.7f, 0.7f));
+    for (int sg = -1; sg <= 1; sg += 2) {
+        float x0 = Min(xIn, wallX - 0.02f), x1 = wallX + 0.01f;
+        roundedBoxAt(m, vec3(sg * (x0 + x1) * 0.5f, b.yWr, (floorZ + archTopZ) * 0.5f - 0.01f),
+                     vec3((x1 - x0) * 0.5f, b.Ra + 0.04f, (archTopZ - floorZ) * 0.5f + 0.01f), 0.04f, 2);
+    }
+}
+
+inline void carBodyPartsLod(const CarDef& d, CarBody& b, PMesh& m, bool interior, int lod) {
+    const CarSpec& s = b.s;
+    const CarLook& L = d.L;
+    PMesh::Mark mk = m.mark();
+    lampPatchLod(m, b, L, false, lod);
+    if (L.tail != TL_BAR) lampPatchLod(m, b, L, true, lod);
+    if (d.mirrors && lod == 1) sideMirror(m, b, L.mirrorsBlack);
+    m.mirrorX(mk);
+    m.newGroup(30.f);
+    if (L.tail == TL_BAR) {
+        CarLook bar = L;
+        bar.tailC = vec2(0.f, L.tailC.y);
+        bar.tailW = L.tailC.x + L.tailW * 0.5f;
+        bar.tailH = Max(L.tailH * 0.6f, 0.02f);
+        bar.tail = TL_SLIM;
+        lampPatchLod(m, b, bar, true, lod);
+    }
+    if (L.grille != GR_NONE)
+        panelPatchLod(m, b, false, vec2(0.f, (L.grilleTop + L.grilleBot) * 0.5f), L.grilleW, (L.grilleTop - L.grilleBot) * 0.5f,
+                      L.grilleChrome && lod == 1 ? MAT_CHROME : MAT_PLASTIC, col(0.25f, 0.25f, 0.25f), 0.004f);
+    if (L.intakeW > 0.f && lod == 1)
+        panelPatchLod(m, b, false, vec2(0.f, (L.intakeTop + L.intakeBot) * 0.5f), L.intakeW, (L.intakeTop - L.intakeBot) * 0.5f,
+                      MAT_PLASTIC, col(0.2f, 0.2f, 0.2f), 0.003f);
+    if (L.frontPlate) panelPatchLod(m, b, false, vec2(0.f, L.plateFZ), 0.16f, 0.075f, MAT_METAL_PAINTED, col(0.9f, 0.9f, 0.86f), 0.006f);
+    if (d.rearPlate) panelPatchLod(m, b, true, vec2(0.f, L.plateRZ), 0.16f, 0.075f, MAT_METAL_PAINTED, col(0.9f, 0.9f, 0.86f), 0.006f);
+    spoilerWing(m, b, L);
+    if (L.spoiler == SP_ROOF) roofSpoiler(m, b);
+    if (L.chromeBumpers || L.blackBumpers) {
+        bumperBar(m, b, false, L.bumperFZ > 0.f ? L.bumperFZ : s.zNoseBot + 0.12f, s.halfW * 0.93f, L.chromeBumpers);
+        bumperBar(m, b, true, L.bumperRZ > 0.f ? L.bumperRZ : s.zTailBot + 0.1f, s.halfW * 0.93f, L.chromeBumpers);
+    }
+    if (L.roof == RX_POLICE) policeBar(m, b, (s.yRoofF + s.yRoofR) * 0.5f + 0.1f, Min(b.railXAt((s.yRoofF + s.yRoofR) * 0.5f) + 0.05f, 0.62f));
+    if (L.roof == RX_TAXI) taxiSign(m, b, (s.yRoofF + s.yRoofR) * 0.5f);
+    if (L.roof == RX_RAILS && lod == 1) roofRails(m, b);
+    if (L.bullBar) bullBar(m, b);
+    if (L.spareWheel && lod == 1) spareWheel(m, b, d.wd.R, d.wd.W);
+    if (L.hoodScoop && lod == 1) hoodScoop(m, b);
+    bedTubs(m, b);
+    if (interior) buildInterior(m, b, L, d.I);  // level-aware: always a closed cabin shell
+    if (d.extra) d.extra(b, m);
+}
+
 inline void carBodyParts(const CarDef& d, CarBody& b, PMesh& m, bool interior) {
     b.s = d.s;
     b.build(m);
+    if (lodLevel() >= 1) {
+        carBodyPartsLod(d, b, m, interior, lodLevel());
+        return;
+    }
     const CarSpec& s = b.s;
     const CarLook& L = d.L;
     // ---- lamps (right) + mirror
@@ -348,23 +451,7 @@ inline void carBodyParts(const CarDef& d, CarBody& b, PMesh& m, bool interior) {
         fd.push_back(fd[0]);
         seam(m, b.proj, fl, fd, 0.004f);
     }
-    // pickup bed: wheel tubs over the rear arches
-    if (s.recDepth > 0.f && !s.cockpit) {
-        int ir = b.rowAt(b.yWr);
-        float floorZ = b.G[ir * b.NP + b.NP - 1].z;
-        float archTopZ = s.wheelR + b.Ra + 0.06f;
-        if (archTopZ > floorZ) {
-            float wallX = b.G[ir * b.NP + b.pRail0].x;
-            float xIn = s.trackR - s.wheelW * 0.5f - 0.05f;
-            m.newGroup(35.f);
-            m.use(MAT_PLASTIC, col(0.7f, 0.7f, 0.7f));
-            for (int sg = -1; sg <= 1; sg += 2) {
-                float x0 = Min(xIn, wallX - 0.02f), x1 = wallX + 0.01f;
-                roundedBoxAt(m, vec3(sg * (x0 + x1) * 0.5f, b.yWr, (floorZ + archTopZ) * 0.5f - 0.01f),
-                             vec3((x1 - x0) * 0.5f, b.Ra + 0.04f, (archTopZ - floorZ) * 0.5f + 0.01f), 0.04f, 2);
-            }
-        }
-    }
+    bedTubs(m, b);
     // ---- interior
     if (interior) buildInterior(m, b, L, d.I);
     if (d.extra) d.extra(b, m);

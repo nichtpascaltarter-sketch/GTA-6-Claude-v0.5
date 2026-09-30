@@ -3,13 +3,14 @@
 // them.
 #include "skycommon.hlsli"
 #include "shadow.hlsli"
+#include "lights.hlsli"
 
 cbuffer RainCB : register(b1) {
     float4 gRain0;        // x drop count, y box size (m), z box height (m), w intensity (0..1)
     float4 gRain1;        // xy wind velocity (m/s), z fall speed (m/s), w streak exposure time (s)
     float4 gRain2;        // x box center height above the camera (m), y splash distance (m), z light count, w bolt intensity
     float4 gRain3;        // x overhead map top (m, world), y overhead map depth range (m), zw unused
-    float4 gRainLights[32];
+    float4 gRainLights[48];   // 16 lights: (pos, radius), (color, spotCos), (dir, spotInner)
 };
 
 Texture2D<float> tOverheadDepth : register(t0);
@@ -47,13 +48,21 @@ float3 dropLight(float3 rel, float3 V) {
     L += mainLightIlluminance() * cloudShadowAt(rel) * phaseHG(0.75, dot(gSunDir.xyz, V)) * 0.04;
     int n = (int)gRain2.z;
     [loop] for (int i = 0; i < n; i++) {
-        float4 lp = gRainLights[i * 2], lc = gRainLights[i * 2 + 1];
-        float3 d = lp.xyz - rel;
+        LightGPU Lt;
+        float4 lp = gRainLights[i * 3], lc = gRainLights[i * 3 + 1], ld4 = gRainLights[i * 3 + 2];
+        Lt.pos = lp.xyz;
+        Lt.radius = lp.w;
+        Lt.color = lc.rgb;
+        Lt.spotCos = lc.w;
+        Lt.dir = ld4.xyz;
+        Lt.spotInner = ld4.w;
+        float3 d = Lt.pos - rel;
         float d2 = dot(d, d);
-        if (d2 > lp.w * lp.w) continue;
-        float win = saturate(1.0 - sq(d2 / (lp.w * lp.w)));
+        if (d2 > Lt.radius * Lt.radius) continue;
+        float win = saturate(1.0 - sq(d2 / (Lt.radius * Lt.radius)));
         float3 ld = d * rsqrt(max(d2, 1e-4));
-        L += lc.rgb * win / max(d2, 0.25) * phaseHG(0.55, dot(-ld, V)) * 2.0;
+        // drops glint inside headlight beams and street lamp cones
+        L += Lt.color * win / max(d2, 0.25) * phaseHG(0.55, dot(-ld, V)) * 2.0 * lightAngular(Lt, ld);
     }
     L += gAmbientParams.y * 0.02;  // lightning flash
     return L;
@@ -145,7 +154,7 @@ RainVSOut vsSplash(uint vid : SV_VertexID, uint inst : SV_InstanceID) {
     if (age < 0.0 || age > life) return o;
     float x = age / life;
     float3 base = float3(d.rel.xy, hs - gCamPos.z);
-    float size = lerp(0.05, 0.13, sqrt(x));
+    float size = lerp(0.04, 0.11, sqrt(x));
     float3 camR = gView[0].xyz;
     float2 corner = float2(vid & 1u, vid >> 1u);
     float3 p = base + camR * (corner.x * 2.0 - 1.0) * size + float3(0, 0, corner.y * size * 1.2);
@@ -154,7 +163,9 @@ RainVSOut vsSplash(uint vid : SV_VertexID, uint inst : SV_InstanceID) {
     float3 V = normalize(-base);
     float3 L = dropLight(base, V) * preExposure();
     float4 fv = froxelFog(o.pos.xy / o.pos.w * float2(0.5, -0.5) + 0.5, dot(base, gCamForward.xyz));
-    o.color = float4(L * 1.6 * fv.a, gRain0.w * (1.0 - x) * 0.8 * smoothstep(0.8, 2.0, length(base)));
+    // mostly transparent droplets: subtle close up, fading out with distance (no sub-pixel sparkle far away)
+    float distFade = smoothstep(0.8, 2.0, length(base)) * saturate(1.3 - length(base) / gRain2.y);
+    o.color = float4(L * 1.1 * fv.a, gRain0.w * (1.0 - x) * 0.45 * distFade);
     return o;
 }
 

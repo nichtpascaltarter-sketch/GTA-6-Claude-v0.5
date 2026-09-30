@@ -168,7 +168,9 @@ void GameWorld::update(float realDt) {
     double t1 = TimeSeconds();
     updateAI(dt);
     updateAmbientTraffic(dt);
+    updatePublicAddress(dt);
     double t2 = TimeSeconds();
+    Vehicles::setSurfaceWetness(env->wetness);   // wet roads: longer stops, less grip at speed
     updateVehicles(dt);
     double t3 = TimeSeconds();
     updatePeds(dt);
@@ -185,6 +187,7 @@ void GameWorld::update(float realDt) {
     double t6 = TimeSeconds();
     sanitizeEntities();
     updateCamera(realDt);
+    Wildlife::update(*this, dt);   // animals around the player (wildlife.cpp; after the camera: LOD / spawning use it)
     updateRumble(realDt);
     updatePostFx(realDt);
     double t7 = TimeSeconds();
@@ -349,10 +352,20 @@ void GameWorld::submitRender() {
         if (v.indicator < 0 || v.alarm) bits |= 8u;
         if (v.indicator > 0 || v.alarm) bits |= 16u;
         if (v.sirenOn) bits |= 32u;
+        // level of detail by distance (the player's own vehicle always full detail)
+        int vlod = vi == playerVehicle() ? 0 : (dist < 40.f ? 0 : (dist < 120.f ? 1 : 2));
+        if (vlod > 0 && !a.bodyLod[vlod - 1]) vlod = 0;
         Render::DrawItem d;
-        d.model = a.body;
+        d.model = vlod == 0 ? a.body : a.bodyLod[vlod - 1];
         d.pos = s.body.pos;
         d.rot = R;
+        if (s.visPitch != 0.f || s.visRoll != 0.f || s.visHeave != 0.f) {
+            // exaggerated visual weight transfer (vehicle sim): rotate the body about the pivot, wheels stay put
+            mat3 B = mat3FromQuat(quatAxisAngle(vec3(1, 0, 0), s.visPitch)) * mat3FromQuat(quatAxisAngle(vec3(0, 1, 0), s.visRoll));
+            vec3 off = s.visPivot - B * s.visPivot + vec3(0.f, 0.f, s.visHeave);
+            d.rot = R * B;
+            d.pos = s.body.pos + dvec3(R * off);
+        }
         d.tint0 = vec4(v.color0, v.dirt);
         d.tint1 = vec4(v.color1, 0.f);
         d.lightBits = bits;
@@ -376,13 +389,13 @@ void GameWorld::submitRender() {
                 renderer->addLight(nl);
             }
         }
-        if (a.wheel && dist < 400.f) {
+        if (a.wheel && dist < 400.f && vlod < 2) {   // LOD2 shells carry their wheels
             for (int w = 0; w < s.wheelCount; w++) {
                 vec3 lp;
                 quat lq;
                 Vehicles::wheelLocalTransform(s, w, lp, lq);
                 Render::DrawItem wd;
-                wd.model = a.wheel;
+                wd.model = vlod == 1 && a.wheelLod1 ? a.wheelLod1 : a.wheel;
                 wd.pos = s.body.pos + R * lp;
                 mat3 wr = R * mat3FromQuat(lq);
                 if (a.spec.wheels[w].left) wr = wr * mat3FromQuat(quatAxisAngle(vec3(0, 0, 1), kPi));
@@ -468,7 +481,8 @@ void GameWorld::submitRender() {
         if (dot(toP, camF) < -2.f && p.visibleDist > 3.f) continue;
         const CharEntry& ce = chars[p.charIndex];
         Render::DrawItem d;
-        d.model = ce.model;
+        int clod = p.isPlayer ? 0 : (p.visibleDist < 15.f ? 0 : (p.visibleDist < 40.f ? 1 : 2));
+        d.model = clod == 0 || !ce.lods[clod - 1] ? ce.model : ce.lods[clod - 1];
         d.pos = p.pos;
         d.rot = p.ragdoll ? mat3() : mat3FromQuat(quatAxisAngle(vec3(0, 0, 1), p.yaw));
         d.bones = p.skin;
@@ -519,6 +533,7 @@ void GameWorld::submitRender() {
             dyn->submit(wd);
         }
     }
+    Wildlife::submitRender(*this);   // birds, flocks, fish shoals, pets, herds, alligators (wildlife.cpp)
     // ---- pickups
     for (auto& pk : pickups) {
         if (!pk.used || pk.timer > 0.f) continue;
@@ -606,6 +621,23 @@ void GameWorld::updateAudioListener(float dt) {
     float wz;
     amb.underwater = Phys::waterSurface(L.pos.x, L.pos.y, wz) && L.pos.z < wz - 0.1f ? 1.f : 0.f;
     Audio::setAmbience(amb);
+    // crowd murmur bed: density from the people around the listener, flavour from the place
+    {
+        std::vector<int> near_;
+        pedsNear(p, 25.f, near_);
+        int n = 0, scared = 0;
+        for (int id : near_) {
+            const Ped& q = peds[id];
+            if (q.isPlayer || q.health <= 0.f || q.state == PS_INVEHICLE) continue;
+            n++;
+            if (q.brain.type == BRAIN_FLEE || q.brain.type == BRAIN_COWER) scared++;
+        }
+        int ik = Interiors::currentKind();
+        int place = ik == World::IK_CLUB || ik == World::IK_BAR ? Audio::CROWD_CLUB
+                  : (reg == World::REG_BEACH || reg == World::REG_KEY_CORAL) && coast > 0.5f ? Audio::CROWD_BEACH
+                  : Audio::CROWD_STREET;
+        Audio::setCrowd(Saturate(n / 30.f), place, n > 0 ? Saturate((float)scared / (float)n) : 0.f);
+    }
 #else
     (void)dt;
 #endif

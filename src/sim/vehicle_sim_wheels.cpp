@@ -194,7 +194,9 @@ DriveCmd powertrain(StepCtx& x, float drivenOmega) {
     // turbo: boost builds with throttle above ~35 % rpm (spool lag ~0.7 s) and dumps quickly off throttle
     float boostT = t.turbo && s.engineOn ? Saturate(thrEff * 1.25f) * SmoothStep(0.3f, 0.55f, s.engineRpm / t.maxRpm) : 0.f;
     s.turboBoost = approach(s.turboBoost, boostT, (boostT > s.turboBoost ? 1.4f : 3.5f) * dt);
-    float Te = engineTorque(t, s.engineRpm) * thrEff * (1.f + 0.14f * s.turboBoost);
+    // a battered engine (below 40 % health) loses up to 55 % of its power
+    float enginePower = Clamp(0.45f + 0.55f * s.engineHealth / 400.f, 0.45f, 1.f);
+    float Te = engineTorque(t, s.engineRpm) * thrEff * (1.f + 0.14f * s.turboBoost) * enginePower;
     if (thrEff < 0.02f && locked && wheelRpm > t.idleRpm * 1.1f) Te = -t.peakTorque * (0.06f + 0.1f * wheelRpm / t.maxRpm);
     s.engineLoad = s.engineOn ? Saturate(fabsf(Te) / t.peakTorque) : 0.f;
     d.wheelTorque = Te * ratio * 0.9f;
@@ -239,7 +241,8 @@ float carSteer(StepCtx& x) {
     if (fabsf(target) < fabsf(cur) || target * cur < 0.f) rate *= 1.6f;
     cur = approach(cur, target, rate * x.dt);
     s.steerOut = cur / t.maxSteer;
-    return cur;
+    // bent steering from crash damage pulls the car to one side once it rolls
+    return cur + s.alignPull * SmoothStep(2.f, 10.f, v);
 }
 
 // Bike: lean-driven steering (countersteer implicit), balance torque with gravity/centripetal feed-forward,
@@ -613,8 +616,9 @@ void wheelForces(StepCtx& x) {
         float vx = dot(vC, fwdG), vy = dot(vC, latG);
         float N = o.load;
         float loadRatio = N / Max(t.staticLoad[i], 1.f);
-        float mu = gripBase * surfaceGrip(o.surface) * Clamp(1.f - 0.12f * (loadRatio - 1.f), 0.75f, 1.12f);
+        float mu = gripBase * surfaceGrip(o.surface) * wetGrip(o.surface, x.speed) * Clamp(1.f - 0.12f * (loadRatio - 1.f), 0.75f, 1.12f);
         if (w.burst) mu *= 0.4f;
+        if (dc.brake > 0.05f && !dc.burnout && fabsf(vx) > 1.f) mu *= t.brakeGrip;   // brake upgrades: pads / ABS tuning
         float Fmax = mu * N;
         float mShare = b.mass * Max(N / Max(totalLoad, 1.f), 0.5f * t.staticLoad[i] / Max(staticSum, 1.f));
         // rear tires a little stiffer in cornering than the fronts (wider rears / toe-in): a mild understeer bias keeps

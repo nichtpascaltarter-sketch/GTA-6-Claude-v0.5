@@ -238,6 +238,15 @@ static void runScenario(int sc, float t, AnimInput& in) {
             in.weaponKind = 3;
             in.action = (t >= 0.5f && t < 0.52f) ? CLIP_BAT_SWING : ((t >= 2.f && t < 2.02f) ? CLIP_BAT_OVERHEAD : -1);
             break;
+        case 15:   // speaking with beat pulses every 0.45 s, then a phone call while walking from 4 s
+            in.speaking = t < 4.f;
+            in.beat = t < 4.f ? Max(0.f, sinf(kTwoPi * t / 0.45f)) : 0.f;
+            in.phoneCall = t >= 4.f;
+            in.speed = t >= 4.f ? 1.3f : 0.f;
+            break;
+        case 16:   // listening
+            in.listening = true;
+            break;
         case 14:   // knocked out from the guard at 0.3 s
             in.stance = 19;
             in.action = (t >= 0.3f && t < 0.32f) ? CLIP_KNOCKOUT : -1;
@@ -256,6 +265,7 @@ int main(int argc, char** argv) {
     bool lineup = false, strip = false, floorOn = false, rootMotion = false, pair = false;
     int weapon = 0, melee = -1;
     bool visemes = false;
+    int lodSel = -1;
     float stripDt = -1.f;
     std::vector<int> clipList;
     for (int i = 2; i < argc; i++) {
@@ -283,6 +293,7 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--weapon")) { const char* w = nx(); weapon = !strcmp(w, "bat") ? 1 : (!strcmp(w, "knife") ? 2 : 0); }
         else if (!strcmp(argv[i], "--melee")) melee = atoi(nx());      // AnimInput::meleeKind for scenarios
         else if (!strcmp(argv[i], "--visemes")) visemes = true;        // one character per viseme (0..14)
+        else if (!strcmp(argv[i], "--lod")) lodSel = atoi(nx());        // render this LOD (buildCharacterMeshLods)
         else if (!strcmp(argv[i], "--clips")) {
             // comma separated clip list, one per character
             const char* c = nx();
@@ -322,6 +333,11 @@ int main(int argc, char** argv) {
                                vec3(0.2f, 0.2f, 0.2f), vec3(0.5f), vec3(0.7f), vec3(0.4f), vec3(0.6f)};
             for (auto& v : bc.m.v) { v.col = pc[v.part % 15]; v.mat = MAT_SKIN; }
             detail::emitMesh(bc.m, ch.mesh);
+        } else if (lodSel >= 0) {
+            SkinnedMeshData lods[3];
+            buildCharacterMeshLods(ch.d, ch.sk, lods, 3);
+            printf("lods: %zu / %zu / %zu tris\n", lods[0].indices.size() / 3, lods[1].indices.size() / 3, lods[2].indices.size() / 3);
+            ch.mesh = lods[Clamp(lodSel, 0, 2)];
         } else
             buildCharacterMesh(ch.d, ch.sk, ch.mesh);
         tb += TimeSeconds() - t0;
@@ -387,6 +403,10 @@ int main(int argc, char** argv) {
         if (strip && ci >= 0) ti = t + i * (stripDt > 0.f ? stripDt : clipInfo((Clip)ci).duration / Max(count - (clipInfo((Clip)ci).loop ? 0 : 1), 1));
         if (strip) printf("frame %d: t=%.3f\n", i, ti);
         if (ci >= 0) sampleClip(ch.sk, (Clip)ci, ti, pose, (u32)i);
+        if (const char* ic = getenv("PREVIEW_ICLIP")) {
+            // internal clips: base id + character index (CLIP_COUNT + n, see anim_internal.h)
+            detail::sampleClipId(ch.sk, atoi(ic) + (strip ? 0 : i), ti, pose, (u32)i);
+        }
         if (scenario > 0) {
             // run the Animator with scripted inputs up to time ti (character i: ti = t + i * dt)
             Animator an;
@@ -405,6 +425,18 @@ int main(int argc, char** argv) {
 #else
         (void)t;
 #endif
+        if (const char* ex = getenv("PREVIEW_EXPR")) {
+            // facial expression through the animator (idle, 1 s to settle)
+            Animator an;
+            an.init(&ch.sk, 7u);
+            AnimInput in;
+            in.expression = atoi(ex);
+            for (int f = 0; f < 60; f++) an.update(in, 1.f / 60.f);
+            an.blinkT = -1.f;
+            an.blinkNext = 5.f;
+            an.update(in, 1.f / 60.f);
+            pose = an.pose;
+        }
         if (visemes || getenv("PREVIEW_VISEME")) {
             int vi = visemes ? i : atoi(getenv("PREVIEW_VISEME"));
             float shape[6];

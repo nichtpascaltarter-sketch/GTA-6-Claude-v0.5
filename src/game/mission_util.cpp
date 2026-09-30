@@ -846,15 +846,19 @@ void sayP(GameWorld& g, int who, int ped, const std::string& text, float pause =
 
 void sayMe(GameWorld& g, const std::string& text, float pause = 0.25f) { sayP(g, g.protagonistIndex, g.player, text, pause); }
 
-void phoneLine(GameWorld& g, int cast, const std::string& text, float pause = 0.3f) {
+// A cast member over a transmission channel: "[phone]" (calls), "[radio]" (heist walkie-talkies), "[megaphone]", "[pa]".
+void channelLine(GameWorld& g, int cast, const std::string& text, const char* channel, float pause = 0.3f) {
     DialogueLine l = line(kCast[cast].name, text, -1, kCast[cast].color);
-    l.phone = true;
+    l.phone = true;   // not positional
     l.hasVoice = true;
     l.voice = castVoice(cast);
-    l.spoken = castTags(cast) + speakableText(text);
+    l.spoken = castTags(cast) + channel + speakableText(text);
     l.pause = pause;
     g.mSay(l);
 }
+
+void phoneLine(GameWorld& g, int cast, const std::string& text, float pause = 0.3f) { channelLine(g, cast, text, "[phone]", pause); }
+void radioLine(GameWorld& g, int cast, const std::string& text, float pause = 0.3f) { channelLine(g, cast, text, "[radio]", pause); }
 
 // A voice without a body (radio, TV, PA): `personaKey` is a speech persona ("newsreader_female", "dj", "cast_kit"...),
 // `delivery` an optional style prefix such as "[news]" or "[dj]".
@@ -877,6 +881,7 @@ std::string speakableText(const std::string& text) {
         {"Paredes", "Pah-ray-des"}, {"Ramiro", "Rah-mee-roh"}, {"Chuy", "Choo-ee"}, {"pozole", "po-so-leh"},
         {"mija", "mee-hah"}, {"mijo", "mee-hoe"}, {"Abuela", "Ah-bway-lah"}, {"gracias", "grah-see-us"},
         {"Oye", "Oy-yeh"}, {"Palmetto", "Pal-metto"}, {"Okahatchee", "Oka-hatchee"}, {"Isla Estrella", "Eesla Es-tray-ah"},
+        {"Villanueva", "Vee-ya-nway-va"}, {"Ruiz", "Roo-eez"}, {"Ernesto", "Er-nes-toe"}, {"Batista", "Ba-teesta"}, {"Dagostino", "Dago-steeno"},
     };
     std::string s = text;
     for (const auto& m : kMap) {
@@ -998,7 +1003,19 @@ bool GameWorld::speakerShot(int speaker, const CutsceneShot* prev, float lineTim
     if (listener < 0 || speaker == player)
         for (int id : gMissions.peds) consider(id);
     float side = (gMissions.autoShots & 1) ? -1.f : 1.f;
-    if (listener >= 0) out = mu::shotOver(peds[listener].pos.toVec3(), sp, dur, side, 38.f);
+    // the line's mood picks the camera: heated lines push in handheld, whispers get close, calm ones stay wide
+    const std::string& txt = gMissions.lines.empty() ? std::string() : gMissions.lines.front().text;
+    bool heated = txt.find("[angry") != std::string::npos || txt.find("[shout") != std::string::npos || txt.find("[scared") != std::string::npos;
+    bool hushed = txt.find("[whisper") != std::string::npos || txt.find("[sad") != std::string::npos;
+    if (listener >= 0) {
+        out = mu::shotOver(peds[listener].pos.toVec3(), sp, dur, side, heated ? 34.f : (hushed ? 32.f : 38.f));
+        if (heated || hushed) {
+            // push in: end the move a step closer to the speaker
+            vec3 d = normalize(sp - peds[listener].pos.toVec3());
+            out.pos2 = out.pos2 + dvec3(d * (heated ? 0.7f : 0.45f));
+        }
+        out.handheld = heated ? 0.8f : 0.f;
+    }
     else {
         // nobody to look over: a gentle medium shot from in front of the speaker
         vec2 f = mu::dirFromYaw(peds[speaker].yaw);
@@ -1010,6 +1027,42 @@ bool GameWorld::speakerShot(int speaker, const CutsceneShot* prev, float lineTim
 }
 
 namespace mu {
+
+// ------------------------------------------------------------------------------------------------------------------
+// Story props drawn as dynamic models: a stack of long wooden rifle crates with stencils (Sawgrass Run hammock).
+Render::Model* gCrateModel = nullptr;
+
+void drawCrates(GameWorld& g, vec3 pos, float yaw, int count, u32 seed) {
+    if (!g.renderer) return;
+    if (!gCrateModel) {
+        MeshData m;
+        u32 wood = makeMat(MAT_WOOD), paint = makeMat(MAT_METAL_PAINTED);
+        u32 cw = packRGBA8(0.42f, 0.33f, 0.2f, 1.f), dark = packRGBA8(0.25f, 0.19f, 0.11f, 1.f), stencil = packRGBA8(0.92f, 0.9f, 0.84f, 1.f);
+        // crate 1.2 x 0.5 x 0.42 m with end battens and a stencil band on the long side (-Y)
+        m.boxAA(vec3(-0.6f, -0.25f, 0.f), vec3(0.6f, 0.25f, 0.42f), cw, wood, true);
+        m.boxAA(vec3(-0.63f, -0.27f, 0.f), vec3(-0.53f, 0.27f, 0.44f), dark, wood);
+        m.boxAA(vec3(0.53f, -0.27f, 0.f), vec3(0.63f, 0.27f, 0.44f), dark, wood);
+        m.boxAA(vec3(-0.3f, -0.253f, 0.14f), vec3(0.3f, -0.251f, 0.28f), stencil, paint);
+        gCrateModel = g.renderer->dynamic->createModel(m);
+    }
+    vec2 ax(cosf(yaw), sinf(yaw)), ay(-ax.y, ax.x);
+    for (int i = 0; i < count; i++) {
+        u32 h = hash32(seed + (u32)i * 7919u);
+        int layer = i / 3, slot = i % 3;
+        vec2 off = ay * ((slot - 1) * 0.56f) + ax * ((hashToFloat(h) - 0.5f) * 0.12f);
+        vec3 p(pos.xy() + off, pos.z + layer * 0.44f);
+        float y = yaw + (hashToFloat(h >> 8) - 0.5f) * 0.12f;
+        Render::DrawItem di;
+        di.model = gCrateModel;
+        di.pos = dvec3(p);
+        di.rot = mat3FromQuat(quatAxisAngle(vec3(0, 0, 1), y));
+        di.scale = vec3(1.f);
+        di.tint0 = vec4(1.f, 1.f, 1.f, 0.f);
+        di.castShadow = true;
+        di.id = 0xE000000000ull + (u64)seed * 64u + (u64)i;
+        g.renderer->dynamic->submit(di);
+    }
+}
 
 // ------------------------------------------------------------------------------------------------------------------
 // Adaptive score: style 0 neon noir, 1 chase, 2 stealth, 3 heist (see audio/music.cpp ScoreGen::init)

@@ -337,6 +337,7 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
                 d = normalize(missPoint - muzzle.toVec3());
             }
         }
+        if (Wildlife::bulletHit(*this, pid, muzzle, d, wi.range, wi.damage)) continue;   // an animal took this pellet (wildlife.cpp)
         WorldHit h;
         int ignoreVeh = p.vehicle;
         if (raycast(muzzle, d, wi.range, h, pid, ignoreVeh)) {

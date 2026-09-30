@@ -1,4 +1,4 @@
-// Unity include for the audio module (procedural SFX, emitters, ambience, music, radio, mixer and
+// Unity include for the audio module (procedural SFX, emitters, ambience, crowd walla, music, radio, mixer and
 // WASAPI output). Add `#include "audio/audio_all.cpp"` to the unity build. speech.cpp (formant TTS)
 // is a separate module and must be included separately.
 #include "dsp.h"
@@ -8,5 +8,6 @@
 #include "ambience.cpp"
 #include "music.cpp"
 #include "radio.cpp"
+#include "crowd.cpp"
 #include "audio.cpp"
 #include "wasapi.cpp"

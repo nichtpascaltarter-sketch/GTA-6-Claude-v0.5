@@ -2,6 +2,15 @@
 namespace Vehicles {
 namespace vsim {
 
+// Pilot input shaping for keyboard and pad: keys are digital, so the stick position ramps toward the command and
+// back to center faster (linear response, so AI pilots can command attitudes directly).
+inline float pilotInput(float& state, float in, float rateIn, float rateOut, float dt) {
+    in = Clamp(in, -1.f, 1.f);
+    float rate = fabsf(in) > fabsf(state) && in * state >= 0.f ? rateIn : rateOut;
+    state += Clamp(in - state, -rate * dt, rate * dt);
+    return state;
+}
+
 // Height above the ground/water below the COM, refreshed at 30 Hz (cheap), plus the surface normal.
 void updateAgl(StepCtx& x) {
     VehicleState& s = *x.s;
@@ -77,8 +86,9 @@ void planeForces(StepCtx& x) {
     float qRef = 0.5f * kRhoAir * Sq(0.6f * top);
     float qf = Clamp(q / qRef, 0.f, 1.6f), qs = sqrtf(qf);
     bool pilot = c.hasDriver;
-    float pitchIn = pilot ? Clamp(c.pitch, -1.f, 1.f) : 0.f, rollIn = pilot ? Clamp(c.roll, -1.f, 1.f) : 0.f;
-    float yawIn = pilot ? Clamp(c.yaw, -1.f, 1.f) : 0.f;
+    float pitchIn = pilotInput(s.ctlPitch, pilot ? c.pitch : 0.f, 2.5f, 4.f, x.dt);
+    float rollIn = pilotInput(s.ctlRoll, pilot ? c.roll : 0.f, 2.5f, 4.f, x.dt);
+    float yawIn = pilotInput(s.ctlYaw, pilot ? c.yaw : 0.f, 2.f, 4.f, x.dt);
     // elevator commands an angle of attack, limited to 6 g
     float aCmd = pitchIn > 0.f ? pitchIn * 0.3f : pitchIn * 0.14f;
     float aLim = 6.f * b.mass * kGrav / (Max(q, 1.f) * S * t.liftSlope) - alpha0;
@@ -183,7 +193,8 @@ void heliForces(StepCtx& x) {
     vec3 rh(fh.y, -fh.x, 0.f);
     float vF = dot(b.vel, fh), vR = dot(b.vel, rh);
     const float maxTilt = 0.52f;
-    float pitchIn = pilot ? Clamp(c.pitch, -1.f, 1.f) : 0.f, rollIn = pilot ? Clamp(c.roll, -1.f, 1.f) : 0.f;
+    float pitchIn = pilotInput(s.ctlPitch, pilot ? c.pitch : 0.f, 3.f, 5.f, x.dt);
+    float rollIn = pilotInput(s.ctlRoll, pilot ? c.roll : 0.f, 3.f, 5.f, x.dt);
     float tp = fabsf(pitchIn) > 0.04f ? pitchIn * maxTilt : Clamp(atanf(0.9f * vF / kGrav), -0.35f, 0.35f);
     float tr = fabsf(rollIn) > 0.04f ? rollIn * maxTilt : Clamp(-atanf(0.9f * vR / kGrav), -0.35f, 0.35f);
     if (!pilot) tp = tr = 0.f;
@@ -191,7 +202,7 @@ void heliForces(StepCtx& x) {
     vec3 wl = b.local(b.angVel);
     float pAcc = 12.f * (tp - pitchAng) - 5.f * wl.x;
     float rAcc = 12.f * (tr - s.lean) - 5.f * wl.y;
-    float yawIn = pilot ? Clamp(c.yaw, -1.f, 1.f) : 0.f;
+    float yawIn = pilotInput(s.ctlYaw, pilot ? c.yaw : 0.f, 3.f, 5.f, x.dt);
     float yAcc = 4.f * (-yawIn * 1.5f - wl.z);
     float ctrl = rs2 * (grounded && lift <= 0.05f ? 0.15f : 1.f);
     b.torque += b.torqueFor(b.R * vec3(pAcc, rAcc, yAcc) * ctrl);

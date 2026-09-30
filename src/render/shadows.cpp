@@ -12,6 +12,11 @@ struct ShadowSystem {
     mat4 cascadeVP[4];
     float splits[4];
     float texelWorld[4];
+    float depthRange[4] = {1, 1, 1, 1};   // light-space depth range (m) of each cascade (PCSS penumbra)
+    dvec3 cascadeCam[4];                  // camera position each cascade was rendered from
+    bool cascadeValid[4] = {false, false, false, false};
+    bool renderThis[4] = {true, true, true, true};
+    float texelRender[4] = {1, 1, 1, 1};
     gfx::CBuffer<ShadowPassCBData> passCB;
     float shadowDistance = 900.f;
     // Hooks for other geometry to render into the shadow map
@@ -26,6 +31,7 @@ struct ShadowSystem {
     void setResolution(int resolution) {
         resolution = Clamp(resolution, 512, 8192);
         if (resolution == res && map.res) return;
+        for (bool& v : cascadeValid) v = false;
         map.release();
         res = resolution;
         map = gfx::createTexture2D(res, res, DXGI_FORMAT_R32_TYPELESS, gfx::TEX_DSV | gfx::TEX_SRV | gfx::TEX_SLICE_RTVS, 1, 4);
@@ -82,13 +88,28 @@ struct ShadowSystem {
             view = mat4(vec4(lx.x, ly.x, lz.x, 0), vec4(lx.y, ly.y, lz.y, 0), vec4(lx.z, ly.z, lz.z, 0),
                         vec4(-dot(lx, eye), -dot(ly, eye), -dot(lz, eye), 1));
             mat4 proj = orthoRH(-radius, radius, -radius, radius, 0.f, backExtra + radius);
-            cascadeVP[i] = proj * view;
+            // Far cascades are re-rendered every other frame (alternating); in between they keep the matrix
+            // they were rendered with, re-expressed relative to the moved camera.
+            bool refresh = i < 2 || cascades < 4 || r.cameraCut || !cascadeValid[i] || ((int)(r.frameIndex & 1) == (i & 1));
+            renderThis[i] = refresh;
+            if (refresh) {
+                cascadeVP[i] = proj * view;
+                cascadeCam[i] = cam.pos;
+                cascadeValid[i] = true;
+                texelRender[i] = texel;
+                depthRange[i] = backExtra + radius;
+            }
         }
         ShadowConstants& sc = r.shadowCB.data;
-        for (int i = 0; i < 4; i++) sc.cascadeViewProj[i] = cascadeVP[Min(i, cascades - 1)];
+        for (int i = 0; i < 4; i++) {
+            int ci = Min(i, cascades - 1);
+            sc.cascadeViewProj[i] = cascadeVP[ci] * mat4Translation(rel(cam.pos, cascadeCam[ci]));
+            texelWorld[ci] = texelRender[ci];
+        }
         sc.cascadeSplits = vec4(splits[0], splits[1], splits[2], splits[3]);
         sc.cascadeTexel = vec4(texelWorld[0], texelWorld[1], texelWorld[2], texelWorld[3]);
-        sc.shadowParams = vec4((float)res, (float)cascades, 0.85f, 0.f);
+        sc.shadowParams = vec4((float)res, (float)cascades, 0.85f, r.settings.softShadows ? 1.f : 0.f);
+        sc.pad = vec4(depthRange[0], depthRange[1], depthRange[2], depthRange[3]);
         r.shadowCB.upload();
     }
 
@@ -106,6 +127,7 @@ struct ShadowSystem {
         c->OMSetDepthStencilState(gfx::states.depthLessWrite, 0);
         c->OMSetBlendState(gfx::states.noColorWrite, nullptr, 0xffffffff);
         for (int i = 0; i < cascades; i++) {
+            if (!renderThis[i]) continue;
             ID3D11DepthStencilView* dsv = map.sliceDsvs[i];
             c->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH, 1.f, 0);
             c->OMSetRenderTargets(0, nullptr, dsv);

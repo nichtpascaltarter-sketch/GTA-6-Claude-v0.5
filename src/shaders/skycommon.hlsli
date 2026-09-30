@@ -32,6 +32,20 @@ float3 starField(float3 dir) {
 }
 
 // Sky radiance (not exposed) in direction dir. withSun adds sun/moon disks and stars.
+// Urban light pollution at night: street and building light scattered back by the air, strongest towards the
+// horizon and towards the denser side of the city (gSkyGlow.yz). Sodium / warm LED dominated.
+float3 cityGlowRadiance(float3 dir) {
+    float amt = gSkyGlow.x * gSkyGlow.w;
+    if (amt <= 0.0) return 0;
+    float up = max(dir.z, 0.0);
+    float horizon = exp(-up * 7.0);
+    float lean = max(1.0 + dot(normalize(dir.xy + 1e-5), gSkyGlow.yz) * 1.5 * (1.0 - up), 0.2);
+    return float3(1.0, 0.56, 0.3) * amt * (0.006 + 0.05 * horizon * lean);
+}
+
+// Illuminance (lux) the lit city sends up to a low cloud deck (lights the cloud base at night).
+float3 cityUplight() { return float3(1.0, 0.56, 0.3) * gSkyGlow.x * gSkyGlow.w * 0.6; }
+
 float3 skyRadiance(float3 dir, bool withSun) {
     float viewH = cameraRadiusKm();
     float3 pos = float3(0, 0, viewH);
@@ -65,8 +79,8 @@ float3 skyRadiance(float3 dir, bool withSun) {
         }
         L += T * starField(dir) * night * 0.05 * saturate(cosViewZ * 4.0);
     }
-    float horizon = exp(-max(cosViewZ, 0.0) * 9.0);
-    L += night * (float3(0.0012, 0.0014, 0.0022) + float3(0.022, 0.012, 0.006) * horizon);
+    // Natural night sky (airglow, starlight) + light pollution
+    L += night * float3(0.0012, 0.0014, 0.0022) + cityGlowRadiance(dir);
     return L;
 }
 

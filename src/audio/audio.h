@@ -34,6 +34,10 @@ enum Sfx : int {
     SFX_MISSION_PASSED, SFX_MISSION_FAILED, SFX_WASTED, SFX_BUSTED, SFX_WANTED_UP, SFX_WANTED_LOST,
     SFX_CAMERA_SHUTTER, SFX_PURCHASE, SFX_RACE_COUNTDOWN, SFX_RACE_GO,
     SFX_WHOOSH,   // air swing of a fist / bat / blade
+    // Wildlife (game/wildlife.cpp)
+    SFX_WING_FLAP, SFX_PIGEON_COO, SFX_GATOR_HISS, SFX_GATOR_BELLOW, SFX_JAW_SNAP, SFX_DOG_GROWL, SFX_DOG_YELP, SFX_CAT_MEOW,
+    SFX_COW_MOO, SFX_HORSE_NEIGH, SFX_PARROT_SQUAWK, SFX_HERON_CALL, SFX_DOLPHIN_CALL, SFX_ANIMAL_BLOW, SFX_RACCOON_CHITTER,
+    SFX_DEER_SNORT,
     SFX_COUNT
 };
 
@@ -96,6 +100,12 @@ bool init();       // starts WASAPI output + mixing thread; returns false if no 
 void shutdown();
 void update(const Listener& listener, float dt);  // main thread, once per frame
 void setAmbience(const Ambience& a);
+// Crowd walla (unintelligible murmur of many voices) for populated places. density: 0 nobody .. ~0.5 busy street ..
+// 1 packed beach / club (e.g. Clamp(pedsWithin25m / 30.f, 0, 1)); placeType: CrowdPlace; panic: 0 calm .. 1 the crowd
+// is fleeing (gunfire, explosions): the murmur turns into shouts and screams (fast swell, slow ~3 s recovery). Call
+// every frame (cheap); level and place changes crossfade; outdoor crowds are muffled by Listener::interior/inVehicle.
+enum CrowdPlace : int { CROWD_STREET = 0, CROWD_BEACH, CROWD_CLUB, CROWD_MALL, CROWD_PLACE_COUNT };
+void setCrowd(float density, int placeType, float panic = 0.f);
 void setPaused(bool paused);      // pauses world sounds (UI, radio-in-menu continue)
 void setSlowMotion(float factor); // 1 = normal; <1 pitches world sounds down
 
@@ -115,6 +125,16 @@ bool isPlaying(SoundHandle h);
 EmitterHandle createEmitter(EmitterType type);
 void setEmitter(EmitterHandle h, vec3 pos, vec3 vel, float p0, float p1 = 0.f, float p2 = 0.f, float p3 = 0.f,
                 float volume = 1.f);
+// Upgrades heard from an EMIT_ENGINE emitter; call right after its setEmitter every frame (only needed for upgraded cars).
+//   boost:   VehicleState::turboBoost (0..1). The first nonzero value switches the emitter from the engine kind's
+//            built-in turbo sound (if any) to the simulation's boost: a whistle that rises in pitch and level while
+//            boost builds and winds down after, a blow-off hiss with compressor flutter when the throttle closes at
+//            high boost, and a short chirp when boost dumps in a gear change. Cars without the turbo pass 0.
+//   tune:    0 stock .. 1 fully tuned, e.g. Saturate(Max(turbo ? 0.6f : 0.f, (engine + transmission) / 6.f)); makes the
+//            turbo louder and enables exhaust pops on hard shifts.
+//   shifted: VehicleState::shifted. A shift with the throttle down near the top of the rev range pops the exhaust of a
+//            tuned car (now and then a double pop).
+void setEngineTune(EmitterHandle h, float boost, float tune, bool shifted);
 void destroyEmitter(EmitterHandle h);
 
 // Radio: stations play "live" (their timeline advances even while not listened to).

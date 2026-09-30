@@ -37,6 +37,7 @@ enum BarkKind : int {
     BK_GANG_ATTACK, BK_GANG_TAUNT, BK_COP_FREEZE, BK_COP_GROUND, BK_COP_SPOTTED, BK_COP_LOST, BK_COP_CHATTER,
     BK_COP_ENGAGE, BK_COP_COVER, BK_COP_ARREST, BK_COP_DOWN, BK_MUGGER, BK_VICTIM, BK_ARGUE, BK_RACE, BK_MEDIC,
     BK_BREAKDOWN, BK_DIVE, BK_GUN_SEEN, BK_COP_SEARCH, BK_COP_BACKUP, BK_WITNESS_STOP, BK_JOG, BK_PHONE_CHAT, BK_BOUNCER, BK_ROAD_RAGE,
+    BK_COP_MEGAPHONE,
     BK_COUNT
 };
 
@@ -80,6 +81,7 @@ struct PedAI {
     vec2 tacticPos;
     int coverVeh = -1;
     float shoutTimer = 0.f;
+    float tackleTimer = 0.f;   // foot chase: cooldown between tackle attempts
     // events / vehicles
     int eventId = -1;          // ambient event slot this ped belongs to (events.cpp), -1 none
     int aimAt = -1;            // ACT_EVENT: ped held at gunpoint (mugger)
@@ -124,6 +126,8 @@ struct VehAI {
     u8 rage = 0;
     float rageTimer = 0.f;
     u8 pursuitMove = 0;        // police: 0 chase, 1 PIT run, 2 boxing slot (counted on entry)
+    float megaphoneTimer = 0.f;   // police: next "pull over" order over the car loudspeaker
+    float impactCd = 0.f;         // telemetry: one hard impact counted per crash
 };
 
 // A crime the police do not know about yet: a witness is phoning it in.
@@ -173,6 +177,7 @@ struct AIFrameStats {
     // cumulative behaviour counters (aiCensusText, autoplay logs)
     int panicSpread = 0, filming = 0, pitTries = 0, boxing = 0, roadblocks = 0, spikeHits = 0, tackles = 0, heliUnits = 0,
         unitsSent = 0, roadRage = 0, events = 0, arrests = 0;
+    int hardImpacts = 0, impactsWithPlayer = 0;   // AI-driven cars: impulses > 3000 N s (sampled per frame)
 };
 
 struct AIState {

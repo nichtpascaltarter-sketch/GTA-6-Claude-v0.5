@@ -94,8 +94,10 @@ struct InteriorScenario {
 };
 
 // Gameplay markers inside (shop counter, bed, wardrobe, elevator buttons...)
+// IM_CAR / IM_CAR_STRIPPED: display vehicle (pos = ground contact center under the body, yaw = heading), drawn by
+// gameplay with a real vehicle model (stripped: no wheels, parked on stands)
 enum InteriorMarkerKind : u8 { IM_COUNTER = 0, IM_BED, IM_WARDROBE, IM_ELEVATOR, IM_ELEVATOR_TOP, IM_SNACKS, IM_ENTRY, IM_DOOR_OUT, IM_MIRROR,
-                               IM_COUNT };
+                               IM_CAR, IM_CAR_STRIPPED, IM_COUNT };
 struct InteriorMarker {
     u8 kind;
     vec3 pos;         // model space
@@ -117,6 +119,7 @@ struct InteriorDef {
     int building = -1;            // -1 for free-standing structures (club)
     u32 seed = 0;
     std::string name;             // binding key for gameplay (shop / safehouse / business name)
+    std::string alias;            // second binding key (business asset name), may be empty
     vec3 origin;                  // world position of the frame origin (front facade center at ground floor level)
     vec2 ax = vec2(1, 0), ay = vec2(0, 1);   // world directions of the frame x / y axes
     float x0 = -5.f, x1 = 5.f, depth = 10.f; // hollow region: x in [x0, x1], y in [0, depth]
@@ -128,6 +131,7 @@ struct InteriorDef {
     int doorBay = -1;             // front bay with the main entrance
     bool storefront = false;      // ground floor storefront facade
     bool ownShell = false;        // the interior builds the whole structure (trailer, club)
+    float signZ0 = 0.f, signZ1 = 0.f;   // storefront sign band of the facade (heights above the floor, 0 = none)
     float radius = 20.f;          // bounding radius around the region center (streaming, culling)
     std::vector<InteriorOpening> openings;
     std::vector<InteriorDoor> doors;
@@ -187,6 +191,9 @@ bool interiorShellCollision(int interior, vec2 c, vec2 ax, float hx, float hy, f
 bool interiorOwnsShell(int interior);
 // Front bay holding an exterior door of an interior building (facadedetail.cpp keeps trims and gates out of it), -1 none
 int interiorDoorBay(const Building& b);
+// Warehouse loading door at footprint coordinate u (along Building::ax) replaced by a real roll-up door of the
+// building's interior (buildmesh.cpp skips the painted door, facadedetail.cpp its bumpers)
+bool interiorHidesLoadingDoor(const Building& b, float u);
 
 // ---- on-demand geometry (worker threads) ----
 enum InteriorPart : u8 { IP_SHELL = 0, IP_FURNITURE, IP_DETAIL, IP_COUNT };

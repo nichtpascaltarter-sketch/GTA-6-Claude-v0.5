@@ -331,6 +331,10 @@ void GameWorld::startLipSync(int pid, const char* spokenText, const Audio::Voice
     if (p.visibleDist > 40.f) return;   // nobody sees the mouth from further away
     p.lipKeys.clear();
     Speech::lipSync(spokenText, voice, p.lipKeys);
+    p.lipStyles.clear();
+    Speech::styleTimeline(spokenText, voice, p.lipStyles);
+    p.lipAccents.clear();
+    Speech::accentCues(spokenText, voice, p.lipAccents);
     p.lipStart = Platform::timeSeconds();
     p.lipIdx = 0;
 }
@@ -375,6 +379,9 @@ void GameWorld::animatePed(Ped& p, float dt) {
     in.mouthOpen = -1.f;
     in.viseme = in.visemeNext = -1;
     in.visemeWeight = in.visemeBlend = 0.f;
+    in.expression = -1;          // automatic (pain / fear / anger / mood) unless the line's emotion says otherwise
+    in.expressionWeight = 1.f;
+    in.brow = in.nod = 0.f;
     if (p.lipStart >= 0.0 && !p.lipKeys.empty()) {
         const std::vector<Speech::VisemeKey>& K = p.lipKeys;
         float t = (float)(Platform::timeSeconds() - p.lipStart) + 0.03f;
@@ -398,6 +405,29 @@ void GameWorld::animatePed(Ped& p, float dt) {
             in.visemeWeight = Saturate(K[k].weight);
             in.visemeNext = k + 1 < (int)K.size() ? (int)K[k + 1].viseme : 0;
             in.visemeBlend = blend * 2.f;
+            // facial performance: the voiced emotion, plus brow raises / nods on stressed syllables
+            for (const Speech::StyleSpan& sp : p.lipStyles)
+                if (t >= sp.start && t < sp.end) {
+                    switch (sp.style.emotion) {
+                        case Speech::EMOTION_HAPPY: in.expression = 1; break;
+                        case Speech::EMOTION_SAD: in.expression = 2; break;
+                        case Speech::EMOTION_ANGRY: in.expression = 3; break;
+                        case Speech::EMOTION_SCARED: in.expression = 4; break;
+                        case Speech::EMOTION_SHOUT: in.expression = 3; in.expressionWeight = 0.6f; break;
+                        case Speech::EMOTION_CALM: case Speech::EMOTION_WHISPER: in.expression = 0; break;
+                        default: break;
+                    }
+                    if (in.expression >= 0 && sp.style.emotion != Speech::EMOTION_SHOUT) in.expressionWeight = Saturate(sp.style.intensity);
+                    break;
+                }
+            for (const Speech::AccentCue& ac : p.lipAccents) {
+                float d = t - ac.time;
+                if (d > -0.12f && d < 0.3f) {
+                    float env = d < 0.f ? 1.f + d / 0.12f : 1.f - d / 0.3f;   // quick rise, slower fall
+                    in.brow = Max(in.brow, env * ac.strength * (ac.nuclear ? 0.8f : 0.5f));
+                    in.nod = Max(in.nod, env * ac.strength * (ac.nuclear ? 0.7f : 0.3f));
+                }
+            }
         }
     }
     // foot IK: probe ground under both feet (only for nearby peds)
@@ -410,7 +440,7 @@ void GameWorld::animatePed(Ped& p, float dt) {
         in.groundOffsetL = Clamp(gl - base.z, -0.3f, 0.3f);
         in.groundOffsetR = Clamp(gr - base.z, -0.3f, 0.3f);
     }
-    p.anim.update(in, dt);
+    p.anim.update(in, dt, !p.isPlayer && p.visibleDist > 40.f);   // far peds: no IK / face work (LOD2 mesh)
     Anim::computeMatrices(ce.skel, p.anim.pose, p.bones, p.skin);
 }
 

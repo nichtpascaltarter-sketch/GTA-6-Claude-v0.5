@@ -70,7 +70,7 @@ float trafficTimeFactor(float tod) {
 
 enum PedSpawnKind : u8 {
     PK_WALKER = 0, PK_GROUP, PK_CHAT, PK_SPOT, PK_HAIL, PK_WALL, PK_JOGGER, PK_SUNBATHER, PK_GANG, PK_WORKER, PK_NIGHTLIFE,
-    PK_BUSINESS, PK_QUEUE, PK_COUNT
+    PK_BUSINESS, PK_QUEUE, PK_BEAT, PK_COUNT
 };
 
 struct PopState {
@@ -242,7 +242,19 @@ void updateQueues(GameWorld& g, float dt, vec2 pp, bool night, bool warm) {
         Ped& p = g.peds[i];
         if (!p.used || p.persistent || p.brain.type != BRAIN_GOTO || p.faction != FAC_CIVILIAN || i >= (int)g.ai.ped.size()) continue;
         if (g.ai.ped[i].uid != p.uid || g.ai.ped[i].activity != ACT_ENTER_VEH || g.ai.ped[i].targetVeh >= 0) continue;
-        if (length(p.pos.toVec3().xy() - p.brain.goal.toVec3().xy()) < 1.1f || p.brain.timer > 7.f) g.despawnPed(i);
+        if (length(p.pos.toVec3().xy() - p.brain.goal.toVec3().xy()) < 1.1f) {
+            g.despawnPed(i);
+        } else if (p.brain.timer > 20.f) {
+            // could not get there: vanish if nobody sees it, else carry on walking
+            if (!g.inCameraView(p.pos.toVec3() + vec3(0, 0, 1.f), 1.f)) {
+                g.despawnPed(i);
+            } else {
+                p.brain.type = BRAIN_WANDER;
+                p.brain.edge = -1;
+                g.ai.ped[i].activity = ACT_WALK;
+                g.ai.ped[i].navOk = false;
+            }
+        }
     }
 }
 
@@ -268,7 +280,7 @@ void GameWorld::updatePopulation(float dt) {
     int wantTraffic = Min((int)(den.traffic * trafficTimeFactor(tod) * trafficDensityScale), kMaxTraffic);
     int wantParked = Min((int)(den.parked * trafficDensityScale), kMaxParked);
     // ------------------------------------------------------------------ count and recycle
-    int nPeds = 0, nTraffic = 0, nParked = 0, nGang = 0, nEms = 0;
+    int nPeds = 0, nTraffic = 0, nParked = 0, nGang = 0, nEms = 0, nBeat = 0;
     const float pedDespawn = 150.f, carDespawn = 340.f;
     for (int i = 0; i < (int)peds.size(); i++) {
         Ped& p = peds[i];
@@ -287,6 +299,7 @@ void GameWorld::updatePopulation(float dt) {
         if (!dead) {
             nPeds++;
             if ((p.faction == FAC_GANG_CUERVOS || p.faction == FAC_GANG_SAINTS) && d < 120.f) nGang++;
+            if (p.faction == FAC_POLICE && pa.homeVeh < 0 && d < 200.f) nBeat++;
         }
     }
     for (int i = 0; i < (int)vehicles.size(); i++) {
@@ -460,6 +473,10 @@ void GameWorld::updatePopulation(float dt) {
         for (int k = 0; k < 2; k++)
             if (!gQueues[k].active) freeQueue = k;
         w[PK_QUEUE] = night && nightlifeArea(reg) && freeQueue >= 0 && nPeds + 8 < wantPeds + 4 ? 0.35f : 0.f;
+        // officers walking a beat in pairs through the busy districts (day and evening), at most one pair around
+        bool beatArea = reg == World::REG_DOWNTOWN || reg == World::REG_FINANCIAL || reg == World::REG_MIDTOWN || reg == World::REG_BEACH ||
+                        reg == World::REG_CALLE_LUNA;
+        w[PK_BEAT] = beatArea && tod > 7.f && tod < 23.f && nBeat < 2 && pinfo.wanted == 0 ? 0.05f : 0.f;
         float sum = 0.f;
         for (float x : w) sum += x;
         float r = hashToFloat(h) * sum;
@@ -615,6 +632,7 @@ void GameWorld::updatePopulation(float dt) {
                 const AI::WalkLink& L = laneGraph.walkLinks[s.link];
                 bool sidewalk = L.kind == AI::WL_SIDEWALK;
                 if (!sidewalk && kind != PK_WALKER && kind != PK_JOGGER && kind != PK_BUSINESS && kind != PK_GROUP) break;
+                if (kind == PK_BEAT && (!sidewalk || s.halfWidth < 0.9f)) break;
                 World::Region sreg = map->regionAt(s.pos.x, s.pos.y);
                 // groups standing at the building side: chatting, gang hangouts, nightlife, workers on a break
                 bool standingGroup = kind == PK_CHAT || kind == PK_GANG || kind == PK_NIGHTLIFE || (kind == PK_WORKER && (h >> 9) % 2 == 0);
@@ -677,7 +695,11 @@ void GameWorld::updatePopulation(float dt) {
                 vec3 p3 = sideOffset(*this, s, 0.f, lat);
                 if (kind == PK_WALL) p3 = sideOffset(*this, s, 0.f, s.halfWidth * 0.8f);
                 if (kind == PK_HAIL) p3 = sideOffset(*this, s, 0.f, -s.halfWidth * 0.75f);
-                if (visibleNear(p3) || tooClose(p3) || !freeStandingSpot(*this, p3)) break;
+                // now and then someone steps out of a building door instead (fine in view: they just came out)
+                vec3 door;
+                bool fromDoor = !warm && sidewalk && (kind == PK_WALKER || kind == PK_BUSINESS) && hashToFloat(hash32(h * 41u)) < 0.3f &&
+                                aiBuildingDoorNear(*this, p3.xy(), 16.f, h, door) && length(door.xy() - pp.xy()) > 12.f && freeStandingSpot(*this, door);
+                if (!fromDoor && (visibleNear(p3) || tooClose(p3) || !freeStandingSpot(*this, p3))) break;
                 int charRole = 0;
                 u8 role = PR_CIVILIAN;
                 if (kind == PK_BUSINESS) {
@@ -706,9 +728,21 @@ void GameWorld::updatePopulation(float dt) {
                     role = PR_TOURIST;
                     charRole = 4;
                 }
+                bool beat = kind == PK_BEAT;
+                Faction fac = beat ? FAC_POLICE : FAC_CIVILIAN;
+                if (beat) {
+                    role = PR_COP;
+                    charRole = 1;
+                }
+                auto equipCop = [&](int pid) {   // sidearm holstered until needed; police accuracy 0.4-0.6
+                    giveWeapon(pid, WPN_PISTOL, 60);
+                    peds[pid].weapon = WPN_FISTS;
+                    peds[pid].brain.accuracy = 0.42f + hashToFloat(hash32(peds[pid].uid * 7u)) * 0.14f;
+                    pedAI(pid).temper = 2;
+                };
                 bool walkDir = (h >> 11) & 1;
                 vec2 heading = walkDir ? s.t : -s.t;
-                int id = spawnPed(randomCivilianChar(h >> 3, charRole), dvec3(p3), AI::dirYaw(heading), FAC_CIVILIAN);
+                int id = spawnPed(randomCivilianChar(h >> 3, charRole), dvec3(fromDoor ? door : p3), fromDoor ? AI::dirYaw(normalize(p3.xy() - door.xy() + vec2(1e-3f, 0.f))) : AI::dirYaw(heading), fac);
                 if (id < 0) break;
                 Ped& p = peds[id];
                 p.brain.type = BRAIN_WANDER;
@@ -716,6 +750,7 @@ void GameWorld::updatePopulation(float dt) {
                 PedAI& pa = pedAI(id);
                 pa.role = role;
                 pa.activity = ACT_WALK;
+                if (beat) equipCop(id);
                 pa.actTimer = 8.f + hashToFloat(hash32(h * 17u)) * 25.f;
                 if (kind == PK_WALL) {
                     pa.activity = ACT_SCENARIO;
@@ -749,18 +784,21 @@ void GameWorld::updatePopulation(float dt) {
                             pa.activity = ACT_JOG;
                         } else if (role == PR_BUSINESS) {
                             pa.walk.speed = 1.45f;
+                        } else if (beat) {
+                            pa.walk.speed = 1.15f;   // an unhurried patrol pace
                         }
                     }
                     // walking group: one or two companions keep a slot beside/behind the leader
-                    if (kind == PK_GROUP && s.halfWidth > 0.9f) {
-                        int n = 1 + (int)((h >> 13) % 2u);
+                    if ((kind == PK_GROUP || beat) && s.halfWidth > 0.9f) {
+                        int n = beat ? 1 : 1 + (int)((h >> 13) % 2u);
                         for (int k = 0; k < n; k++) {
                             vec2 slot(k == 0 ? 0.85f : -0.85f, k == 0 ? 0.f : -0.7f);
                             vec2 fp = p3.xy() + AI::rightOf(heading) * slot.x + heading * slot.y;
                             vec3 f3(fp, groundHeight(fp.x, fp.y, p3.z + 1.f));
                             if (!freeStandingSpot(*this, f3)) continue;
-                            int fid = spawnPed(randomCivilianChar(hash32(h + k * 31u) >> 3, charRole), dvec3(f3), p.yaw, FAC_CIVILIAN);
+                            int fid = spawnPed(randomCivilianChar(hash32(h + k * 31u) >> 3, charRole), dvec3(f3), p.yaw, fac);
                             if (fid < 0) continue;
+                            if (beat) equipCop(fid);
                             peds[fid].brain.type = BRAIN_WANDER;
                             peds[fid].brain.edge = -1;
                             PedAI& fa = pedAI(fid);

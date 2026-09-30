@@ -190,6 +190,9 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
     J[B_LIP_CORNER_L] = J[B_HEAD] + vec3(-0.004f * D.lipW * D.faceW, 0.065f, -0.02f) * hs;
     J[B_LIP_CORNER_R] = J[B_HEAD] + vec3(0.004f * D.lipW * D.faceW, 0.065f, -0.02f) * hs;
     J[B_TONGUE] = J[B_HEAD] + vec3(0.f, 0.052f, -0.036f) * hs;
+    // brows pivot 6 cm behind the brow line (pitch = raise along the forehead, roll = knit / lift the inner end)
+    J[B_BROW_L] = J[B_HEAD] + vec3(-0.031f * D.faceW, 0.022f, 0.06f) * hs;
+    J[B_BROW_R] = J[B_HEAD] + vec3(0.031f * D.faceW, 0.022f, 0.06f) * hs;
 }
 
 static const int kParent[B_COUNT] = {
@@ -204,6 +207,7 @@ static const int kParent[B_COUNT] = {
     B_HAND_L, B_HAND_L, B_HAND_R, B_HAND_R,
     B_HEAD, B_HEAD, B_HEAD,
     B_HEAD, B_JAW, B_HEAD, B_HEAD, B_JAW,  // LIP_UPPER, LIP_LOWER, LIP_CORNER_L/R, TONGUE
+    B_HEAD, B_HEAD,                        // BROW_L/R
 };
 
 }  // namespace detail
@@ -248,6 +252,7 @@ void buildSkeleton(const CharacterDesc& d, Skeleton& out) {
     out.boneLength[B_LIP_UPPER] = out.boneLength[B_LIP_LOWER] = 0.02f * hs;
     out.boneLength[B_LIP_CORNER_L] = out.boneLength[B_LIP_CORNER_R] = 0.03f * hs;
     out.boneLength[B_TONGUE] = 0.04f * hs;
+    out.boneLength[B_BROW_L] = out.boneLength[B_BROW_R] = 0.06f * hs;
 
     out.boneRadius[B_ROOT] = 0.05f * s;
     out.boneRadius[B_PELVIS] = D.hipHalfW * 0.9f;
@@ -272,7 +277,7 @@ void buildSkeleton(const CharacterDesc& d, Skeleton& out) {
     }
     out.boneRadius[B_JAW] = 0.045f * hs;
     out.boneRadius[B_EYE_L] = out.boneRadius[B_EYE_R] = 0.012f * hs;
-    for (int b = B_LIP_UPPER; b <= B_TONGUE; b++) out.boneRadius[b] = 0.008f * hs;
+    for (int b = B_LIP_UPPER; b <= B_BROW_R; b++) out.boneRadius[b] = 0.008f * hs;
 }
 
 }  // namespace Anim

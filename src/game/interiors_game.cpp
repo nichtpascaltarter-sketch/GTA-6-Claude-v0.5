@@ -392,6 +392,56 @@ void pinNpcs(GameWorld& g, Loaded* L, const InteriorDef& d) {
 }
 
 // Render submission: room parts (distance LOD), door leaves, lights, ambient volumes and daylight portals
+// Display vehicle on an interior marker (car lifts, stands): a real vehicle model, parked, no physics
+void submitDisplayCar(Render::Renderer& R, const InteriorDef& d, const World::InteriorMarker& mk, u32 key, float dist) {
+#ifdef HAVE_VEHICLE_MODELS
+    if (!gGame || gGame->vassets.empty()) return;
+    const std::vector<VehicleAsset>& va = gGame->vassets;
+    bool stripped = mk.kind == World::IM_CAR_STRIPPED;
+    u32 h = hash32(d.seed ^ (key * 0x9E3779B9u) ^ 0xCA7u);
+    static const Vehicles::VehicleClass kCls[] = {Vehicles::VC_MUSCLE, Vehicles::VC_SPORTS, Vehicles::VC_SEDAN, Vehicles::VC_COUPE, Vehicles::VC_COMPACT};
+    int mi = -1;
+    for (int t = 0; t < 5 && mi < 0; t++) {
+        mi = Vehicles::findModel(kCls[(h + (u32)t) % 5u], (int)((h >> 8) % 3u));
+        if (mi < 0) mi = Vehicles::findModel(kCls[(h + (u32)t) % 5u], 0);
+    }
+    if (mi < 0 || mi >= (int)va.size() || !va[mi].body) return;
+    const VehicleAsset& a = va[mi];
+    vec3 col = a.spec.paletteColors.empty() ? vec3(0.4f) : a.spec.paletteColors[(h >> 12) % a.spec.paletteColors.size()];
+    if (stripped) col *= 0.7f;
+    mat3 rot = mat3FromQuat(quatAxisAngle(vec3(0, 0, 1), d.yawToWorld(mk.yaw)));
+    dvec3 pos(d.toWorld(mk.pos));
+    Render::DrawItem di;
+    di.model = a.body;
+    di.pos = pos;
+    di.rot = rot;
+    di.tint0 = vec4(col, stripped ? 0.7f : 0.1f);
+    di.tint1 = vec4(col * 0.25f, 0.f);
+    di.id = 0x300000000ull | ((u64)key << 4);
+    di.castShadow = dist < 70.f;
+    di.drawGlass = !stripped;
+    di.wetExposed = -1.f;
+    R.dynamic->submit(di);
+    if (stripped || !a.wheel) return;
+    for (size_t w = 0; w < a.spec.wheels.size(); w++) {
+        Render::DrawItem wd;
+        wd.model = a.wheel;
+        wd.pos = pos + dvec3(rot * (a.spec.wheels[w].pos - vec3(0.f, 0.f, 0.04f)));
+        mat3 wr = rot;
+        if (a.spec.wheels[w].left) wr = wr * mat3FromQuat(quatAxisAngle(vec3(0, 0, 1), kPi));
+        wd.rot = wr;
+        wd.tint0 = di.tint0;
+        wd.tint1 = di.tint1;
+        wd.id = 0x300000000ull | ((u64)key << 4) | (u64)(w + 1);
+        wd.castShadow = dist < 40.f;
+        wd.wetExposed = -1.f;
+        R.dynamic->submit(wd);
+    }
+#else
+    (void)R, (void)d, (void)mk, (void)key, (void)dist;
+#endif
+}
+
 void submitAll(Render::Renderer& R, dvec3 cam, float hour, float gameSeconds) {
     if (!World::gInteriors) return;
     const auto& defs = World::gInteriors->defs;
@@ -415,7 +465,7 @@ void submitAll(Render::Renderer& R, dvec3 cam, float hour, float gameSeconds) {
             di.model = L->parts[p];
             di.pos = org;
             di.rot = rot;
-            di.wetExposed = -1.f;
+            di.wetExposed = d.kind == World::IK_CLUB ? 1.f : -1.f;   // open-air decks get wet in the rain
             di.castShadow = p == World::IP_SHELL ? dist < 200.f : dist < 45.f + d.radius;
             R.dynamic->submit(di);
         }
@@ -437,10 +487,13 @@ void submitAll(Render::Renderer& R, dvec3 cam, float hour, float gameSeconds) {
             it.castShadow = dist < 60.f;
             R.dynamic->submit(it);
         }
+        if (dist < kFurnitureRange)
+            for (size_t m = 0; m < d.markers.size(); m++)
+                if (d.markers[m].kind == World::IM_CAR || d.markers[m].kind == World::IM_CAR_STRIPPED) submitDisplayCar(R, d, d.markers[m], (u32)(i * 16 + m), dist);
         // local lights
         if (dist < kLightRange + d.radius) {
             for (const World::InteriorLight& li : L->lights) {
-                float on = li.room < d.rooms.size() ? lightsOn(d.rooms[li.room].schedule, hour) : 1.f;
+                float on = li.room < d.rooms.size() ? lightsOn(d.rooms[li.room].schedule, hour) : lightsOn(World::LS_EVENING, hour);
                 if (on < 0.3f && li.anim != 4) continue;
                 Render::DynamicLight dl;
                 vec3 dir = li.dir;

@@ -61,6 +61,8 @@ struct App {
     float tourT = 0.f;
     bool tourShot = false, tourDone = false;
     int meleeVictim = -1;        // --autoplay melee: the civilian for the takedown
+    int renderEvery = 1;         // --renderevery N: automated runs render every Nth gameplay frame (+ screenshot frames)
+    u32 playFrames = 0;
     // autoplay test scripts (--autoplay walk|drive|bike|fly|boat|shoot)
     std::string autoplay;
     float autoTime = 0.f;
@@ -87,6 +89,7 @@ struct App {
         if (const char* a = Platform::argValue("autoplay")) autoplay = a;
         if (const char* d = Platform::argValue("autoduration")) autoDuration = (float)atof(d);
         if (const char* d = Platform::argValue("autoevery")) autoShotEvery = (float)atof(d);
+        if (const char* d = Platform::argValue("renderevery")) renderEvery = Max(1, atoi(d));
         // Generate the world on a background thread while the loading screen animates
         loader = std::thread([this] {
             map.generate();
@@ -427,6 +430,105 @@ struct App {
                 game.pinfo.lastSeenTime = (float)game.time;
             }
         }
+        if (autoplay == "crowd" || autoplay == "panic" || autoplay == "chase" || autoplay == "rage" || autoplay == "soak") {
+            // AI scenario tests: crowd variety at four places and hours / gunfire panic -> police response -> arrest /
+            // night car chase at 4 stars (PIT, boxing, roadblocks, helicopter searchlight) / rear-ending a bold driver
+            mu::setFlag(game, mu::EX_INTRO_DONE, 1);
+            weather.locked = true;
+            weather.setImmediate(WX_CLEAR);
+            Ped& p = game.peds[game.player];
+            game.populationWarmup = 2.5f;
+            if (autoplay == "crowd") {
+                autoDuration = 4 * 7.f + 0.5f;   // four stops, 7 s each (applyAutoplay)
+            } else if (autoplay == "panic") {
+                vec2 q(2713.f, 763.f);
+                p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+                p.yaw = 2.4f;
+                game.rig.yaw = p.yaw;
+                env.timeOfDay = 13.f;
+                game.giveWeapon(game.player, WPN_PISTOL, 60);
+                p.weapon = WPN_FISTS;
+                game.timeScale = 1.5f;   // more game time per (slow) test frame
+                // a patrol car cruising a couple of blocks away (the nearest free unit answers the call)
+                int pm = game.findVehicleModel(Vehicles::VC_POLICE, 5);
+                for (int k = 0; k < 12 && pm >= 0; k++) {
+                    vec2 probe = q + vec2(cosf(k * 0.52f), sinf(k * 0.52f)) * 150.f;
+                    float u = 0.f;
+                    int lane = game.laneGraph.nearestLane(probe, normalize(q - probe), 40.f, &u);
+                    if (lane < 0) continue;
+                    const AI::Lane& L = game.laneGraph.lanes[lane];
+                    if (L.flags & AI::LF_DIRT) continue;
+                    u = Clamp(u, L.u0 + 5.f, L.u1 - 12.f);
+                    vec3 c3 = game.laneGraph.lanePos(lane, u);
+                    int vid = game.spawnVehicle(pm, dvec3(c3.x, c3.y, c3.z + 0.4f), AI::dirYaw(game.laneGraph.laneTangent(lane, u)), true, FAC_POLICE);
+                    if (vid < 0) continue;
+                    game.vehicles[vid].faction = FAC_POLICE;
+                    game.attachTraffic(vid, lane, u);
+                    if (game.vehicles[vid].seats[0] >= 0) game.peds[game.vehicles[vid].seats[0]].brain.type = BRAIN_DRIVER;
+                    game.vehAI(vid).role = VR_POLICE;
+                    LOG("autoplay panic: patrol car %d at %.0f %.0f", vid, c3.x, c3.y);
+                    break;
+                }
+            } else {
+                // the player's car on a long straight lane: chase = sports car at night, rage = sedan with a bold
+                // driver stopped 22 m ahead in the same lane
+                bool chase = autoplay == "chase", soak = autoplay == "soak";
+                vec2 q = chase || soak ? vec2(2640.f, 700.f) : vec2(2713.f, 763.f);
+                int lane = -1;
+                float u = 0.f;
+                for (int k = 0; k < 60 && lane < 0; k++) {
+                    vec2 probe = q + vec2(cosf(k * 2.4f), sinf(k * 2.4f)) * (6.f + k * 5.f);
+                    float uu = 0.f;
+                    int li = game.laneGraph.nearestLane(probe, vec2(0.f), 30.f, &uu);
+                    if (li < 0) continue;
+                    const AI::Lane& L = game.laneGraph.lanes[li];
+                    if (L.flags & AI::LF_DIRT) continue;
+                    uu = Max(uu, L.u0 + 6.f);
+                    if (L.u1 - uu < 75.f) continue;
+                    if (dot(game.laneGraph.laneTangent(li, uu), game.laneGraph.laneTangent(li, uu + 60.f)) < 0.995f) continue;
+                    lane = li;
+                    u = uu;
+                }
+                int model = game.findVehicleModel(chase ? Vehicles::VC_SPORTS : Vehicles::VC_SEDAN, 3);
+                if (lane >= 0 && model >= 0) {
+                    vec3 c3 = game.laneGraph.lanePos(lane, u);
+                    float yaw = AI::dirYaw(game.laneGraph.laneTangent(lane, u));
+                    int vid = game.spawnVehicle(model, dvec3(c3.x, c3.y, c3.z + 0.4f), yaw, false);
+                    if (vid >= 0) {
+                        game.warpPedIntoVehicle(game.player, vid, 0);
+                        game.vehicles[vid].persistent = true;
+                        game.rig.yaw = yaw;
+                        if (chase || soak) game.attachTraffic(vid, lane, u);
+                    }
+                    if (!chase && !soak) {
+                        int nm = game.findVehicleModel(Vehicles::VC_COMPACT, 11);
+                        vec3 n3 = game.laneGraph.lanePos(lane, u + 22.f);
+                        int npc = nm >= 0 ? game.spawnVehicle(nm, dvec3(n3.x, n3.y, n3.z + 0.4f), yaw, true, FAC_CIVILIAN) : -1;
+                        if (npc >= 0 && game.vehicles[npc].seats[0] >= 0) {
+                            int drv = game.vehicles[npc].seats[0];
+                            game.peds[drv].brain.type = BRAIN_DRIVER;
+                            game.attachTraffic(npc, lane, u + 22.f);
+                            game.pedAI(drv).temper = 2;   // bold: gets out and has words
+                            if (AI::Driver* d = game.traffic.get(npc)) {
+                                d->mode = AI::DM_HOLD;
+                                d->holdTimer = 12.f;
+                            }
+                            LOG("autoplay rage: player car %d, bold driver %d in car %d 22 m ahead on lane %d", vid, drv, npc, lane);
+                        }
+                    }
+                }
+                env.timeOfDay = chase ? 22.f : (soak ? 7.5f : 11.f);   // soak: morning rush hour, then the clock runs
+                if (chase) {
+                    game.timeScale = 1.5f;
+                    p.armor = 100.f;
+                    p.maxHealth = p.health = 400.f;   // survive the whole chase
+                    game.pinfo.wantedHeat = 9.5f;
+                    game.pinfo.wanted = 4;
+                    game.pinfo.lastSeenPos = p.pos;
+                    game.pinfo.lastSeenTime = (float)game.time;
+                }
+            }
+        }
         autoTime = 0.f;
         autoShot = 0;
     }
@@ -468,6 +570,219 @@ struct App {
                 c.look = vec2(sinf(t * 0.3f) * 0.006f, 0.f);
             }
             if ((int)(t / 5.f) != (int)((t - dt) / 5.f)) LOG("autoplay %s t=%.1f %s", autoplay.c_str(), t, game.aiDebugText().c_str());
+        } else if (autoplay == "crowd") {
+            // four stops (beach afternoon, downtown lunch, club at night, park evening): look around, one named shot
+            // and a census of what the crowd is doing at each
+            static int stop = -1;
+            static float stopT = 0.f;
+            static bool shot = false;
+            mu::computePlaces(game);
+            const mu::Places& P = mu::gPlaces;
+            struct CrowdStop {
+                const char* name;
+                const mu::Place* pl;
+                float hour;
+            };
+            const CrowdStop stops[4] = {{"beach_afternoon", &P.beachCondo, 15.f}, {"downtown_lunch", &P.policeHq, 12.8f},
+                                        {"club_night", &P.clubRiptide, 23.f}, {"park_evening", &P.midtownPark, 17.5f}};
+            int want = Min((int)(t / 7.f), 3);
+            Ped* pl = game.playerPed();
+            if (want != stop && pl) {
+                stop = want;
+                stopT = 0.f;
+                shot = false;
+                const CrowdStop& st = stops[stop];
+                if (pl->vehicle >= 0) game.removePedFromVehicle(game.player, false);
+                vec3 pos = st.pl->pos;
+                pl->pos = dvec3(pos.x, pos.y, game.groundHeight(pos.x, pos.y, pos.z + 2.f));
+                pl->vel = vec3(0.f);
+                pl->yaw = atan2f(-st.pl->streetDir.x, st.pl->streetDir.y);
+                game.rig.yaw = pl->yaw + 0.6f;
+                game.rig.pitch = -0.08f;
+                game.rig.cut = true;
+                env.timeOfDay = st.hour;
+                game.populationWarmup = 2.5f;
+                LOG("autoplay crowd stop %d %s at %.0f %.0f, %.1f h", stop, st.name, pos.x, pos.y, st.hour);
+            }
+            stopT += dt;
+            c.look = vec2(0.0035f, 0.f);
+            if (!shot && stop >= 0 && stopT > 5.5f) {
+                shot = true;
+                game.requestScreenshot = shotPath(StrFormat("auto_crowd_%02d_%s", stop, stops[stop].name));
+                LOG("autoplay crowd %s | %s | %s", stops[stop].name, game.aiCensusText(70.f).c_str(), game.aiDebugText().c_str());
+            }
+        } else if (autoplay == "panic") {
+            // look around, fire three shots into the air, holster and stand still: the crowd scatters (panic spreads,
+            // the bold film, witnesses phone it in), officers respond and arrest the calm, unarmed player
+            Ped* pl = game.playerPed();
+            if (pl && pl->state == PS_ONFOOT && !game.pinfo.busted) {
+                if (t > 3.f && t < 5.f) {
+                    pl->weapon = WPN_PISTOL;
+                    c.aim.down = true;
+                    c.aim.pressed = t - dt <= 3.f;
+                    game.rig.pitch = 0.5f;
+                    c.attack.pressed = (t > 3.5f && t - dt <= 3.5f) || (t > 4.f && t - dt <= 4.f) || (t > 4.5f && t - dt <= 4.5f);
+                } else {
+                    if (t >= 5.f && pl->weapon != WPN_FISTS) pl->weapon = WPN_FISTS;
+                    if (t >= 5.f && t - dt < 5.f) game.rig.pitch = -0.05f;
+                    c.look = vec2(t < 3.f ? 0.004f : 0.006f, 0.f);
+                }
+            }
+            if ((int)(t / 2.f) != (int)((t - dt) / 2.f))
+                LOG("autoplay panic t=%.1f wanted %d heat %.2f busted %d | %s | %s", t, game.pinfo.wanted, game.pinfo.wantedHeat, (int)game.pinfo.busted,
+                    game.aiCensusText(60.f).c_str(), game.aiDebugText().c_str());
+        } else if (autoplay == "chase") {
+            // flee through the night at 4 stars: the traffic driver steers the player's car in flee mode (runs the
+            // lights), the police pursue (PIT, boxing, roadblocks ahead, helicopter with searchlight)
+            int pv = game.playerVehicle();
+            if (pv >= 0) {
+                if (AI::Driver* d = game.traffic.get(pv)) {
+                    d->mode = AI::DM_FLEE;
+                    vec2 vp = game.vehicles[pv].sim.body.pos.toVec3().xy();
+                    vec2 threat = vp - normalize(game.vehicles[pv].sim.forward().xy() + vec2(1e-4f, 0.f)) * 60.f;
+                    float best = 1e9f;
+                    for (int i = 0; i < (int)game.vehicles.size(); i++) {
+                        const Vehicle& o = game.vehicles[i];
+                        if (!o.used || i == pv || o.faction != FAC_POLICE) continue;
+                        float dd = length(o.sim.body.pos.toVec3().xy() - vp);
+                        if (dd < best) {
+                            best = dd;
+                            threat = o.sim.body.pos.toVec3().xy();
+                        }
+                    }
+                    d->threat = threat;
+                }
+                game.driveVehicleAI(pv, dt);
+                const Vehicles::VehicleControls& vc = game.vehicles[pv].ctl;
+                c.accel = vc.throttle;
+                c.brake = vc.brake;
+                c.steer = vc.steer;
+                c.usingPad = true;
+            }
+            if ((int)(t / 4.f) != (int)((t - dt) / 4.f))
+                LOG("autoplay chase t=%.1f wanted %d speed %.1f | %s | %s", t, game.pinfo.wanted, pv >= 0 ? game.vehicles[pv].sim.speed() : 0.f,
+                    game.aiCensusText(120.f).c_str(), game.aiDebugText().c_str());
+        } else if (autoplay == "rage") {
+            // roll into the stopped car ahead at ~8 m/s, then stay put: its bold driver gets out, storms up to the
+            // window, yells and pounds on the glass
+            static bool hit = false;
+            static float lastSpeed = 0.f;
+            int pv = game.playerVehicle();
+            if (pv >= 0) {
+                float spd = game.vehicles[pv].sim.speed();
+                if (!hit && t > 1.5f && (spd < lastSpeed - 1.2f || t > 9.f)) {
+                    hit = true;
+                    LOG("autoplay rage: impact at t=%.1f (%.1f -> %.1f m/s)", t, lastSpeed, spd);
+                }
+                lastSpeed = spd;
+                c.accel = t > 1.f && !hit ? 0.55f : 0.f;
+                c.brake = hit ? 1.f : 0.f;
+                c.usingPad = true;
+                c.look = vec2(hit ? 0.003f : 0.f, 0.f);
+            }
+            if ((int)(t / 2.5f) != (int)((t - dt) / 2.5f)) LOG("autoplay rage t=%.1f | %s", t, game.aiCensusText(40.f).c_str());
+        } else if (autoplay == "soak") {
+            // long drive on the traffic AI through the city while the clock runs (rush hour -> night), with a 3-star
+            // chase at 8-10 min and a 4-star chase at 18-20 min; telemetry every 20 s, the own car unstuck if needed
+            static float stuckT = 0.f;
+            static int unsticks = 0, respawns = 0;
+            Ped* pl = game.playerPed();
+            if (pl) {
+                pl->health = Max(pl->health, 250.f);   // survive the chases: the soak is about the city, not the player
+                if (pl->health > 0.f && pl->state == PS_ONFOOT && game.playerVehicle() < 0 && !game.pinfo.busted) {
+                    // lost the car (wrecked, dragged out): a fresh one on the nearest lane
+                    float u = 0.f;
+                    int lane = game.laneGraph.nearestLane(pl->pos.toVec3().xy(), vec2(0.f), 60.f, &u);
+                    int model = game.findVehicleModel(Vehicles::VC_SEDAN, 3 + respawns);
+                    if (lane >= 0 && model >= 0) {
+                        const AI::Lane& L = game.laneGraph.lanes[lane];
+                        u = Clamp(u, L.u0 + 4.f, L.u1 - 8.f);
+                        vec3 c3 = game.laneGraph.lanePos(lane, u);
+                        int vid = game.spawnVehicle(model, dvec3(c3.x, c3.y, c3.z + 0.4f), AI::dirYaw(game.laneGraph.laneTangent(lane, u)), false);
+                        if (vid >= 0) {
+                            game.warpPedIntoVehicle(game.player, vid, 0);
+                            game.vehicles[vid].persistent = true;
+                            game.attachTraffic(vid, lane, u);
+                            respawns++;
+                            LOG("autoplay soak t=%.0f: new car %d at %.0f %.0f (respawn %d)", t, vid, c3.x, c3.y, respawns);
+                        }
+                    }
+                }
+            }
+            auto crossed = [&](float at) { return t >= at && t - dt < at; };
+            if (crossed(480.f) || crossed(1080.f)) {
+                bool four = t > 1000.f;
+                game.pinfo.wanted = four ? 4 : 3;
+                game.pinfo.wantedHeat = four ? 9.5f : 5.5f;
+                if (pl) game.pinfo.lastSeenPos = pl->pos;
+                game.pinfo.lastSeenTime = (float)game.time;
+                LOG("autoplay soak t=%.0f: chase starts at %d stars", t, game.pinfo.wanted);
+            }
+            if (crossed(600.f) || crossed(1200.f)) {
+                game.pinfo.wanted = 0;
+                game.pinfo.wantedHeat = 0.f;
+                LOG("autoplay soak t=%.0f: chase called off", t);
+            }
+            bool chasing = game.pinfo.wanted > 0 && ((t > 480.f && t < 600.f) || (t > 1080.f && t < 1200.f));
+            int pv = game.playerVehicle();
+            if (pv >= 0) {
+                if (AI::Driver* d = game.traffic.get(pv)) {
+                    if (chasing) {
+                        d->mode = AI::DM_FLEE;
+                        vec2 vp = game.vehicles[pv].sim.body.pos.toVec3().xy();
+                        vec2 threat = vp - normalize(game.vehicles[pv].sim.forward().xy() + vec2(1e-4f, 0.f)) * 60.f;
+                        float best = 1e9f;
+                        for (int i = 0; i < (int)game.vehicles.size(); i++) {
+                            const Vehicle& o = game.vehicles[i];
+                            if (!o.used || i == pv || o.faction != FAC_POLICE) continue;
+                            float dd = length(o.sim.body.pos.toVec3().xy() - vp);
+                            if (dd < best) {
+                                best = dd;
+                                threat = o.sim.body.pos.toVec3().xy();
+                            }
+                        }
+                        d->threat = threat;
+                    } else if (d->mode == AI::DM_FLEE) {
+                        d->mode = AI::DM_NORMAL;
+                    }
+                }
+                game.driveVehicleAI(pv, dt);
+                const Vehicles::VehicleControls& vc = game.vehicles[pv].ctl;
+                c.accel = vc.throttle;
+                c.brake = vc.brake;
+                c.steer = vc.steer;
+                c.usingPad = true;
+                // our own car stuck for long (not at a light): log it and move on along the roads
+                Vehicle& v = game.vehicles[pv];
+                AI::Driver* d = game.traffic.get(pv);
+                bool atLight = d && d->waitTime > 0.f && d->waitTime < 80.f;
+                stuckT = v.sim.speed() < 0.5f && !atLight ? stuckT + dt : 0.f;
+                if (stuckT > 45.f) {
+                    stuckT = 0.f;
+                    unsticks++;
+                    vec3 vp = v.sim.body.pos.toVec3();
+                    LOG("autoplay soak t=%.0f: PLAYER CAR STUCK at %.1f %.1f %s %d u %.1f mode %d | %s", t, vp.x, vp.y,
+                        d && d->path < (int)game.laneGraph.lanes.size() ? "lane" : "conn", d ? d->path : -1, d ? d->u : 0.f, d ? (int)d->mode : -1,
+                        game.aiTrafficHealthText().c_str());
+                    float u = 0.f;
+                    vec2 f = normalize(v.sim.forward().xy() + vec2(1e-4f, 0.f));
+                    int lane = game.laneGraph.nearestLane(vp.xy() + f * 120.f, f, 60.f, &u);
+                    if (lane >= 0) {
+                        const AI::Lane& L = game.laneGraph.lanes[lane];
+                        u = Clamp(u, L.u0 + 4.f, L.u1 - 8.f);
+                        vec3 c3 = game.laneGraph.lanePos(lane, u);
+                        Vehicles::resetVehicle(v.sim, dvec3(c3.x, c3.y, c3.z + 0.4f), AI::dirYaw(game.laneGraph.laneTangent(lane, u)));
+                        game.traffic.detach(pv);
+                        game.attachTraffic(pv, lane, u);
+                    }
+                }
+            }
+            if ((int)(t / 20.f) != (int)((t - dt) / 20.f)) {
+                vec3 pp = pl ? pl->pos.toVec3() : vec3(0.f);
+                LOG("autoplay soak t=%.0f tod %.2f pos %.0f %.0f speed %.1f wanted %d unsticks %d respawns %d | %s | %s | %s", t, env.timeOfDay, pp.x, pp.y,
+                    pv >= 0 ? game.vehicles[pv].sim.speed() : 0.f, game.pinfo.wanted, unsticks, respawns, game.aiTrafficHealthText().c_str(),
+                    game.aiCensusText(100.f).c_str(), game.aiDebugText().c_str());
+            }
         } else if (autoplay == "tour") {
             updateTour(c, dt);
         } else if (autoplay == "melee") {
@@ -696,14 +1011,21 @@ struct App {
                         game.raycast(game.rig.cam.pos, game.rig.cam.forward(), 300.f, fh, game.hidePlayerModel ? game.player : -1, -1) ? fh.t : 0.f;
                 }
 #endif
-                game.submitRender();
+                // --renderevery N: skip rendering most frames of automated runs (software rendering dominates), but always
+                // render the frames around a screenshot and keep world streaming going
+                bool shotSoon = !game.requestScreenshot.empty() ||
+                                (!autoplay.empty() && (autoplay == "tour" ? tourT > 6.4f : autoTime >= autoShot * autoShotEvery + 1.2f));
+                bool doRender = renderEvery <= 1 || (playFrames++ % (u32)renderEvery) == 0 || shotSoon;
+                if (doRender) game.submitRender();
                 game.updateAudioListener(dt);
                 Render::Camera rc = game.rig.cam;
 #ifdef HAVE_GAME_UI
                 if (!game.phone.photo.active) rc.fovY = Clamp(rc.fovY * menu.settings.fov / 60.f, 25.f * kDegToRad, 110.f * kDegToRad);
 #endif
                 cam = rc;
-                renderer.render(rc, env, dt);
+                game.renderCam = rc;
+                if (doRender) renderer.render(rc, env, dt);
+                else renderer.world->update(rc.pos, TimeSeconds());
 #ifdef HAVE_GAME_UI
                 if (!menuOpen && game.requestSaveMenu) {   // safehouse bed / save point (never during automated runs)
                     game.requestSaveMenu = false;

@@ -92,6 +92,11 @@ const Line kBouncer[] = {{"[calm:0.4]Line starts back there.", 0}, {"[calm:0.4]N
 const Line kRoadRage[] = {{"[shout]Get out of the car!", 0}, {"[shout]You think you can just hit me?", 0}, {"[shout]I got your plate, buddy!", 0},
                           {"[shout]Come here! Look at this!", 0}, {"[shout]You're paying for that!", LB_BOLD}, {"[shout]Estas loco o que?", LB_LUNA}};
 
+const Line kCopMegaphone[] = {{"[megaphone][shout]Pull over! Pull over now!", 0}, {"[megaphone][shout]Stop the vehicle!", 0},
+                              {"[megaphone][shout]This is the police, pull over to the side of the road!", 0},
+                              {"[megaphone][shout]Driver, stop your vehicle immediately!", 0}, {"[megaphone][shout]Pull over and turn off the engine!", 0},
+                              {"[megaphone][shout]Stop the car! Hands where we can see them!", 0}};
+
 #define BANK(k, arr) {k, arr, (int)ARRAY_COUNT(arr)}
 const Bank kBanks[] = {
     BANK(BK_GREET, kGreet), BANK(BK_BUMP, kBump), BANK(BK_INSULT, kInsult), BANK(BK_PANIC, kPanic), BANK(BK_FLEE, kFlee),
@@ -104,7 +109,7 @@ const Bank kBanks[] = {
     BANK(BK_MUGGER, kMugger), BANK(BK_VICTIM, kVictim), BANK(BK_ARGUE, kArgue), BANK(BK_RACE, kRace), BANK(BK_MEDIC, kMedic),
     BANK(BK_BREAKDOWN, kBreakdown), BANK(BK_DIVE, kDive), BANK(BK_GUN_SEEN, kGunSeen), BANK(BK_COP_SEARCH, kCopSearch),
     BANK(BK_COP_BACKUP, kCopBackup), BANK(BK_WITNESS_STOP, kWitnessStop), BANK(BK_JOG, kJog), BANK(BK_PHONE_CHAT, kPhoneChat),
-    BANK(BK_BOUNCER, kBouncer), BANK(BK_ROAD_RAGE, kRoadRage),
+    BANK(BK_BOUNCER, kBouncer), BANK(BK_ROAD_RAGE, kRoadRage), BANK(BK_COP_MEGAPHONE, kCopMegaphone),
 };
 #undef BANK
 
@@ -168,9 +173,11 @@ void GameWorld::aiSay(int pid, int kind, float chance, bool important) {
     const Line& line = bank->lines[candidates[hash32(h) % n]];
 #ifdef HAVE_AUDIO
     float vol = kind == BK_COP_CHATTER ? 0.75f : 1.f;
-    Audio::speakAt(line.text, p.voice, head, vol);
-    startLipSync(pid, line.text, p.voice);
-    float dur = Audio::estimateSpeechDuration(line.text, p.voice);
+    // a different "take" each time a ped repeats a line (pitch/range/pace/accent details vary)
+    std::string spoken = StrFormat("[take:%u]", hash32(p.uid * 31u + (u32)(time * 7.0)) % 9u) + line.text;
+    Audio::speakAt(spoken.c_str(), p.voice, head, vol);
+    startLipSync(pid, spoken.c_str(), p.voice);
+    float dur = Audio::estimateSpeechDuration(spoken.c_str(), p.voice);
 #else
     float dur = 1.5f;
 #endif

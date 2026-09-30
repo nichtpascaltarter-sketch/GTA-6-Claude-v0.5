@@ -135,6 +135,21 @@ void MissionManager::registerAll(GameWorld& g) {
                         makeMission<MissionCourier>));
     defs.push_back(side("range", "Shooting Range", "Palmetto Arms", placeOffset(g, P.rangeFlats, 0.f, 4.f).xy(), -1, SIDE_RANGE, UI::BLIP_GUN_SHOP,
                         makeMission<MissionRange>));
+    defs.push_back(side("bounty", "Bail Bonds", "Palmera Bail Bonds", resolveFrontage(g, vec2(3160.f, -430.f)).pos.xy(), SF_REPO_MAN, -1,
+                        UI::BLIP_HIDEOUT, makeMission<MissionBounty>));
+    // strangers: one-time short stories, one part at a time (Mari)
+    {
+        vec2 rosa = rosaHome(g).pos.xy();
+        auto stranger = [&](const char* id, const char* title, int sets, int req, int req2, std::function<Mission*()> create) {
+            MissionDef s = storyDef(id, title, "Rosa", '?', rosa, -1, req, req2, 0, 0, create);
+            s.setsFlag = sets;
+            s.icon = UI::BLIP_FRIEND;
+            return s;
+        };
+        defs.push_back(stranger("rosa_1", "Abuela Rosa: Tow Away", SIDE_ROSA_1, SF_LOW_TIDE, -1, makeMission<MissionRosaTowAway>));
+        defs.push_back(stranger("rosa_2", "Abuela Rosa: Dominoes Night", SIDE_ROSA_2, SIDE_ROSA_1, SF_DRY_DOCK, makeMission<MissionRosaDominoes>));
+        defs.push_back(stranger("rosa_3", "Abuela Rosa: Sunday Drive", SIDE_ROSA_3, SIDE_ROSA_2, SF_PRESSURE, makeMission<MissionRosaSunday>));
+    }
     for (const RaceSpec& rs : raceSpecs()) {
         Place startPlace = resolvePlace(g, rs.via[0]);
         vec2 sp = rs.domain == 1 ? startPlace.pos.xy() : startPlace.curb.xy();

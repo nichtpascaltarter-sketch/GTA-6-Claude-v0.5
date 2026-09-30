@@ -425,6 +425,7 @@ class MissionBagman : public StoryMission {
 public:
     int bagCar = -1, bagman = -1, bag = -1;
     std::vector<vec3> stops;
+    Place stopPlace[2];
     int stopIndex = 0;
     int phase = 0;      // 0 driving to a stop, 1 walking to the door, 2 walking back
     vec3 door;
@@ -446,14 +447,17 @@ public:
 
     void start(GameWorld& g) override {
         const Places& P = gPlaces;
-        stops = {P.taxiDepot.curb, P.carwash.curb};
+        // two collections a few blocks apart downtown (the tail runs about two minutes)
+        stopPlace[0] = resolveFrontage(g, vec2(2800.f, 40.f));
+        stopPlace[1] = resolveFrontage(g, vec2(2540.f, 380.f));
+        stops = {stopPlace[0].curb, stopPlace[1].curb};
         score(SC_STEALTH, 0.35f, 3);
         int model = pickModel(g, {Vehicles::VC_SEDAN}, 4);
         float byaw;
         vec3 sp = curbOffset(g, P.policeHq, 60.f, &byaw);
         if (checkpoint >= 1) {
             // restart with the bag, cops closing in
-            placePlayer(g, P.carwash.curb + vec3(0, 0, 0.5f), P.carwash.curbYaw, pickModel(g, {Vehicles::VC_MUSCLE, Vehicles::VC_SEDAN}, 2));
+            placePlayer(g, stopPlace[1].curb + vec3(0, 0, 0.5f), stopPlace[1].curbYaw, pickModel(g, {Vehicles::VC_MUSCLE, Vehicles::VC_SEDAN}, 2));
             setWanted(g, 3);
             g.mObjective("Lose the ~b~police~s~.");
             setStage(6);
@@ -473,7 +477,7 @@ public:
         phoneLine(g, CAST_ROOK, "[calm]Grey sedan leaving the precinct. That's Holt's bagman. He does two pickups, then takes it all back to her.");
         phoneLine(g, CAST_ROOK, "[calm]Stay on him, stay invisible. When he heads home with the bag, you take it.");
         sayMe(g, "[happy:0.5]Robbing a crooked cop. My favorite kind of Tuesday.");
-        driveTo(g, stops[0], 11.f, false);
+        driveTo(g, stops[0], 13.f, false);
         g.mBlipVehicle(bagCar, UI::BLIP_VEHICLE);
         g.mObjective("Follow the ~b~bagman~s~. Keep your distance.");
     }
@@ -490,7 +494,7 @@ public:
                 if (phase == 0 && d && d->done) {
                     // out of the car, to the door, back
                     g.removePedFromVehicle(bagman, true);
-                    const Place& sp = stopIndex == 0 ? gPlaces.taxiDepot : gPlaces.carwash;
+                    const Place& sp = stopPlace[Min(stopIndex, 1)];
                     door = sp.door;
                     setGoto(g, bagman, door, 1.4f);
                     phase = 1;
@@ -511,7 +515,7 @@ public:
                         stopIndex++;
                         phase = 0;
                         if (stopIndex < (int)stops.size()) {
-                            driveTo(g, stops[stopIndex], 11.f, false);
+                            driveTo(g, stops[stopIndex], 13.f, false);
                             sayMe(g, stopIndex == 1 ? "[whisper:0.5]One down. Where to next, pal?" : "");
                         } else {
                             // heading back to the precinct: take him now
@@ -607,6 +611,7 @@ public:
         float dt = g.dtLast;
         switch (stage) {
             case 0:
+                if (phase == 0 && t.stageTime > 3.f) fastForwardDriver(g, bagCar, 25.f, dt);
                 if (bagCar >= 0 && t.stageTime > 0.5f) {
                     vec3 bp = vehPos(g, bagCar);
                     vec3 f = g.vehicles[bagCar].sim.forward();
@@ -753,6 +758,7 @@ public:
     MissionStatus update(GameWorld& g, float dt) override {
         (void)dt;
         if (allyDown(g, jonah, "Jonah")) return MS_FAILED;
+        if (stage >= 3 && ::length(playerPos(g) - hammock) < 300.f) drawCrates(g, hammock + vec3(1.2f, 0.8f, 0.f), 0.6f, 7, 0x5A96u);
         switch (stage) {
             case 0:
                 if (!g.mInCutscene() && !g.mTalking()) {
@@ -809,6 +815,8 @@ public:
                 if (arrived(g)) {
                     clearGoal(g);
                     std::vector<CutsceneShot> shots;
+                    shots.push_back(shotMove(hammock + vec3(3.f, -3.f, 1.6f), hammock + vec3(0, 0, 0.4f), hammock + vec3(2.2f, -2.2f, 1.2f),
+                                             hammock + vec3(0, 0, 0.3f), 4.f, 40.f));
                     shots.push_back(shotArc(hammock, 9.f, 3.f, 0.4f, 1.3f, 7.f));
                     g.mCutscene(shots);
                     say(g, CAST_JONAH, jonah, "[angry:0.4]Rifles. Enough for a small war. And look at the stencil on the crates.");
@@ -1049,7 +1057,7 @@ public:
                         break;
                     }
                 break;
-            case 5: if (t.stageTime > 0.5f) t.driveToward(gPlaces.riverLaunch.xy(), 60.f, dt); break;
+            case 5: if (t.stageTime > 0.5f) t.teleportNear(gPlaces.riverLaunch.xy(), 6.f); break;   // boats: on water next to the yard
             default: break;
         }
     }
@@ -1496,6 +1504,8 @@ public:
 #endif
         phoneLine(g, CAST_JONAH, "[scared]Dex... Mayday. They put a hole in my boat. Off Ten Palms. Water's cold... I can't hold on long.");
         sayMe(g, "[shout]Jonah! Stay with me. Keep your head up. I'm coming.");
+        narrator(g, "Terminal PA", "Attention please. The north helipad is closed to unauthorized personnel. Thank you for flying Porto Sol.",
+                 "announcer_female", "[pa]");
         g.mBlipVehicle(heli, UI::BLIP_HELI);
         g.mObjective("Steal the ~b~helicopter~s~ at the airport.");
     }

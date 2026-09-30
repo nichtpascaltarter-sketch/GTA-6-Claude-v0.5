@@ -37,6 +37,8 @@ struct WorldRenderer {
     gfx::CBuffer<DrawCBData> drawCB;
     MaterialLibrary* mats = nullptr;
     gfx::Buffer facadeBuf;
+    gfx::Buffer facadeLightBuf;   // per facade: night architectural lighting (see uploadFacades)
+    u32 nearUploads = 0;          // LOD0 cells uploaded so far (overhead map refresh when the near world changes)
     gfx::Texture signTex;
     float nearRadius = 420.f;
     float farRadius = 2300.f;
@@ -80,6 +82,33 @@ struct WorldRenderer {
         if (f.empty()) f.push_back(World::FacadeGPU());
         facadeBuf.release();
         facadeBuf = gfx::createBuffer((u32)(f.size() * sizeof(World::FacadeGPU)), sizeof(World::FacadeGPU), gfx::BUF_STRUCTURED, f.data());
+        // Night architectural lighting per facade: x facade top (m above the base), y crown (0 none, 1 wash,
+        // 2 wash + LED lines on the wall edges), z palette index, w warm uplights along the base
+        std::vector<vec4> fl(f.size(), vec4(0.f));
+        for (const World::Building& b : bs.buildings) {
+            if (b.facade >= fl.size()) continue;
+            vec4& e = fl[b.facade];
+            e.x = Max(e.x, b.height);
+            u32 h = (b.seed ^ 0x9E3779B9u) * 2654435761u;
+            h ^= h >> 15;
+            h *= 2246822519u;
+            h ^= h >> 13;
+            float r0 = (float)(h & 0xffffu) / 65535.f, r1 = (float)(h >> 16) / 65535.f;
+            float crownP = 0.f, floodP = 0.f;
+            switch ((World::BuildingStyle)b.style) {
+                case World::BS_TOWER: crownP = 0.45f; floodP = 0.3f; break;
+                case World::BS_DECO: crownP = 0.55f; floodP = 0.8f; break;
+                case World::BS_MIDRISE: crownP = 0.15f; floodP = 0.3f; break;
+                case World::BS_CONDO: crownP = 0.25f; floodP = 0.2f; break;
+                case World::BS_CHURCH: floodP = 0.9f; break;
+                default: break;
+            }
+            if (r0 < crownP) e.y = (b.style == World::BS_DECO || r1 > 0.55f) ? 2.f : 1.f;
+            e.z = floorf(r1 * 7.99f);
+            if (fmodf(r0 * 7.13f + r1 * 3.71f, 1.f) < floodP) e.w = 1.f;
+        }
+        facadeLightBuf.release();
+        facadeLightBuf = gfx::createBuffer((u32)(fl.size() * sizeof(vec4)), sizeof(vec4), gfx::BUF_STRUCTURED, fl.data());
     }
 
     void requestCell(int cx, int cy, int lod, double now) {
@@ -105,6 +134,34 @@ struct WorldRenderer {
         }, kJobLow);
     }
 
+    // Light spilling out of shop windows at night: a wide warm downlight above the shopfront every ~8 m along the
+    // street front of every building with a storefront ground floor (type 5: follows shop hours, see gatherLights).
+    void addStorefrontLights(StreamCell* c) {
+        const World::BuildingSet* bs = World::gBuildings;
+        const int cps = World::kCellsPerSide;
+        if (!bs || c->cx < 0 || c->cy < 0 || c->cx >= cps || c->cy >= cps) return;
+        size_t ci = (size_t)c->cy * cps + c->cx;
+        if (ci >= bs->cellLists.size()) return;
+        for (int bi : bs->cellLists[ci]) {
+            const World::Building& b = bs->buildings[(size_t)bi];
+            if (b.facade >= bs->facades.size() || !(bs->facades[b.facade].flags & 1u)) continue;
+            float len = 2.f * b.hx;
+            int n = Max(1, (int)floorf(len / 8.f));
+            for (int k = 0; k < n; k++) {
+                float u = -b.hx + (k + 0.5f) * len / n;
+                vec2 p = b.c + b.ax * u + b.front * (b.hy + 0.9f);
+                World::LightInstance li;
+                li.pos = vec3(p, b.baseZ + 3.1f);
+                li.color = vec3(1.f, 0.83f, 0.64f) * 340.f;
+                li.radius = 9.f;
+                li.dir = normalize(vec3(b.front * 0.6f, -1.f));
+                li.cone = 0.22f;
+                li.type = 5;
+                c->lights.push_back(li);
+            }
+        }
+    }
+
     void upload(StreamCell* c) {
         World::CellGeometry* g = c->geo;
         u32 nOpaque = (u32)g->opaque.indices.size(), nDecal = (u32)g->decals.indices.size();
@@ -126,6 +183,10 @@ struct WorldRenderer {
             c->state.store(2);
         }
         c->lights = std::move(g->lights);
+        if (c->lod == 0) {
+            addStorefrontLights(c);
+            nearUploads++;
+        }
         c->props = std::move(g->props);
         c->collision = std::move(g->collision);
         if (c->lod == 0 && Phys::gCollision) Phys::gCollision->addCell(key(c->cx, c->cy, 0), c->collision, c->props);
@@ -205,8 +266,8 @@ struct WorldRenderer {
         auto* c = gfx::ctx;
         c->IASetInputLayout(vs.layout);
         c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        ID3D11ShaderResourceView* srvs[5] = {mats->table.srv, mats->albedoArr.srv, mats->normalArr.srv, facadeBuf.srv, signTex.srv};
-        c->PSSetShaderResources(10, 5, srvs);
+        ID3D11ShaderResourceView* srvs[6] = {mats->table.srv, mats->albedoArr.srv, mats->normalArr.srv, facadeBuf.srv, signTex.srv, facadeLightBuf.srv};
+        c->PSSetShaderResources(10, 6, srvs);
     }
 
     template <typename F>
@@ -265,8 +326,8 @@ struct WorldRenderer {
             r.stats.drawCalls++;
         });
         c->RSSetState(gfx::states.cullBack);
-        ID3D11ShaderResourceView* nulls[5] = {};
-        c->PSSetShaderResources(10, 5, nulls);
+        ID3D11ShaderResourceView* nulls[6] = {};
+        c->PSSetShaderResources(10, 6, nulls);
     }
 
     void drawShadow(Renderer& r, const mat4& lightVP, int cascade) {
@@ -293,7 +354,8 @@ struct WorldRenderer {
     }
 
     // Collect active local lights from near cells (camera-relative)
-    void gatherLights(dvec3 cam, float night, float time, const Frustum& fr, std::vector<LightGPU>& out, int maxLights) {
+    void gatherLights(dvec3 cam, float night, float time, float hour, const Frustum& fr, std::vector<LightGPU>& out, int maxLights) {
+        const float hc = hour < 12.f ? hour + 24.f : hour;   // evening-continuous clock (12..36)
         const float range = 380.f;
         bool anyBroken = Phys::gCollision && Phys::gCollision->brokenCount() > 0;
         std::vector<vec3> brokenPoles;
@@ -331,6 +393,16 @@ struct WorldRenderer {
                     case 1: k = SmoothStep(0.2f, 0.6f, night); break;             // building / canopy
                     case 2: k = 0.25f + 0.75f * night; break;                     // neon
                     case 4: k = night * (fmodf(time + li.pos.x * 0.01f, 1.6f) < 0.25f ? 1.f : 0.f); break;
+                    case 5: {   // shop window spill: shops close between 22:00 and 01:00, some keep display lighting on
+                        u32 h = (u32)(int)floorf(li.pos.x * 2.f) * 73856093u ^ (u32)(int)floorf(li.pos.y * 2.f) * 19349663u;
+                        h ^= h >> 15;
+                        h *= 0x2c1b3c6du;
+                        h ^= h >> 12;
+                        bool open = hc < 22.f + 3.f * (float)(h & 1023u) / 1023.f;
+                        bool display = ((h >> 10) & 1023u) < 410u;
+                        k = (open || display) ? SmoothStep(0.15f, 0.5f, night) : 0.f;
+                        break;
+                    }
                     default: k = night; break;
                 }
                 if (k <= 0.01f) continue;

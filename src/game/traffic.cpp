@@ -66,7 +66,8 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
             va.role = VR_TRAFFIC;
         }
         if (d->dummy) traffic.toPhysics(vi, v.sim);
-        if (d->mode != AI::DM_NORMAL && d->mode != AI::DM_ROUTE) d->mode = AI::DM_NORMAL;
+        // normal or routed driving; flee mode (runs lights) when the caller set it, e.g. the chase autoplay
+        if (d->mode != AI::DM_NORMAL && d->mode != AI::DM_ROUTE && d->mode != AI::DM_FLEE) d->mode = AI::DM_NORMAL;
         AI::DriveOut out;
         traffic.drive(vi, v.sim, dt, out);
         v.ctl = out.ctl;

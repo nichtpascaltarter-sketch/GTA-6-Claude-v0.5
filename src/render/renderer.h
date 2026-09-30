@@ -49,14 +49,15 @@ struct FrameConstants {
     vec4 weather2;     // x overcast (0..1), y storm (0..1), z puddle amount, w ripple time
     vec4 halfScreen;   // half-resolution size and inverse
     vec4 ambientParams; // x urban enclosure (facade share of the horizon, 0..1), y lightning ambient (lux), zw unused
+    vec4 skyGlow;      // x urban light pollution (0..1), yz direction towards the brighter city (xy, length = bias), w night
 };
 
 struct ShadowConstants {
     mat4 cascadeViewProj[4];
     vec4 cascadeSplits;   // far distance of each cascade
     vec4 cascadeTexel;    // world size of a texel per cascade
-    vec4 shadowParams;    // x map resolution, y cascade count, z fade start, w unused
-    vec4 pad;
+    vec4 shadowParams;    // x map resolution, y cascade count, z fade start, w soft (contact-hardening) shadows
+    vec4 pad;             // light-space depth range (m) per cascade
 };
 
 struct Settings {
@@ -78,12 +79,14 @@ struct Settings {
     // Per-effect quality (set together by applyPreset, individually adjustable)
     int aoQuality = 2;            // 0 off, 1 low (1 slice), 2 high (2 slices), 3 ultra (3 slices, more steps)
     bool contactShadows = true;   // screen-space sun contact shadows in the lighting pass
+    bool softShadows = true;      // contact-hardening sun shadows (blocker search, penumbra grows with distance)
     bool ssgi = true;             // one-bounce screen-space indirect diffuse (computed with the AO pass)
     int ssrQuality = 2;           // 0 off, 1 low (smooth surfaces only), 2 high (glossy), 3 ultra (more steps)
     float ssrMaxRoughness = 0.55f;
     bool waterSSR = true;         // screen-space reflections on the water surface
     bool envProbe = true;         // dynamic camera cubemap used when reflection rays miss
     int envProbeRes = 128;
+    int envProbeInterval = 2;     // frames per probe step (6 face captures + 1 prefilter per refresh cycle)
     int fogQuality = 2;           // 0 off, 1 low (96x54x48), 2 high (160x90x64), 3 ultra (192x108x96)
     float fogDistance = 3000.f;   // far end of the froxel volume (m)
     int cloudQuality = 2;         // 0 low .. 3 ultra (ray-march steps; quarter-res trace + temporal reconstruction)
@@ -108,6 +111,7 @@ struct Settings {
         static const int grassQ[4] = {1, 1, 2, 3}, shadowR[4] = {1024, 2048, 2048, 4096}, budget[4] = {6000, 12000, 20000, 32000};
         aoQuality = ao[quality];
         contactShadows = quality >= 1;
+        softShadows = quality >= 2;
         ssao = true;
         ssgi = quality >= 1;
         ssrQuality = ssrQ[quality];
@@ -116,6 +120,7 @@ struct Settings {
         waterSSR = quality >= 1;
         envProbe = true;
         envProbeRes = quality >= 3 ? 256 : 128;
+        envProbeInterval = 4 - quality;   // Low 4, Medium 3, High 2, Ultra 1 frames per capture step
         fogQuality = fogQ[quality];
         volumetrics = true;
         cloudQuality = cloudQ[quality];
@@ -254,7 +259,7 @@ public:
     gfx::Texture gbAlbedo, gbNormal, gbMaterial, gbEmissive, gbVelocity;
     gfx::Texture hdr, hdrCopy, depthCopy;
     gfx::Texture reactive;  // R8 mask written by particles / rain: TAA favors the current frame there (no smearing)
-    gfx::Texture cloudsTex;  // cloud color+transmittance at quarter res (placeholder clear until clouds run)
+    gfx::Texture cloudsTex;  // cloud color+transmittance at quarter res (cleared to "no clouds" until the cloud pass runs)
 
     // Camera state
     Camera camera;
@@ -272,6 +277,7 @@ public:
     bool moonLight = false;
     float nightFactor = 0.f;
     float urbanEnclosure = 0.f;  // smoothed urban density around the camera (ambient bounce model)
+    vec3 cityGlow = vec3(0.f);   // smoothed light pollution: x amount, yz direction bias (sky glow at night)
 
     SkySystem* sky = nullptr;
     TerrainRenderer* terrain = nullptr;

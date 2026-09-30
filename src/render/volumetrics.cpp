@@ -83,7 +83,7 @@ struct VolumetricFog {
         float humidity = 0.00014f * env.haze * (1.f + 1.6f * r.nightFactor) + 0.0004f * env.fogDensity;
         cb.data.vol = vec4((float)w, (float)h, (float)d, (historyValid && !r.cameraCut) ? 1.f : 0.f);
         cb.data.jit = vec4(halton2[fi] - 0.5f, halton3[fi] - 0.5f, halton2[(fi * 3 + 1) % 8] - 0.5f, (float)r.lightsFrame.size());
-        cb.data.media = vec4(humidity, 350.f, env.rain * 0.0022f, 0.35f + 0.3f * env.fogDensity);
+        cb.data.media = vec4(humidity, 350.f, env.rain * 0.0015f, 0.35f + 0.3f * env.fogDensity);
         cb.data.misc = vec4(windOffset.x, windOffset.y, 0.35f, 1.f + env.lightning * 6.f);
         cb.data.interior = vec4((float)r.lightCB.data.interiorCount, 0, 0, 0);
         cb.upload();

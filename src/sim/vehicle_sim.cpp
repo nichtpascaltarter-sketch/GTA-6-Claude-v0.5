@@ -177,6 +177,26 @@ inline quat integrateRot(quat q, vec3 w) {
     return normalize(quatAxisAngle(w / a, a) * q);
 }
 
+// Road wetness (setSurfaceWetness), 0..1
+inline float& wetnessRef() {
+    static float w = 0.f;
+    return w;
+}
+// Grip multiplier of a wet surface at speed v (m/s): aquaplaning on paved surfaces at motorway speeds.
+inline float wetGrip(u8 s, float v) {
+    float w = wetnessRef();
+    if (w <= 0.f) return 1.f;
+    switch (s) {
+        case Phys::SURF_ASPHALT: case Phys::SURF_CONCRETE: return 1.f - w * (0.18f + 0.17f * SmoothStep(22.f, 42.f, v));
+        case Phys::SURF_WOOD: case Phys::SURF_METAL: return 1.f - 0.35f * w;
+        case Phys::SURF_GRASS: return 1.f - 0.3f * w;
+        case Phys::SURF_DIRT: return 1.f - 0.25f * w;
+        case Phys::SURF_SAND: return 1.f + 0.1f * w;
+        case Phys::SURF_MUD: return 1.f - 0.1f * w;
+        default: return 1.f - 0.15f * w;
+    }
+}
+
 // Surface properties
 inline float surfaceGrip(u8 s) {
     switch (s) {
@@ -389,6 +409,68 @@ bool stateFinite(const VehicleState& s) {
 
 dvec3 vehicleCenterOfMass(const VehicleState& s) { return s.body.pos + rotate(s.body.rot, s.tune.com); }
 
+namespace vsim {
+// Visual body motion (see VehicleState::visPitch): a springy second-order filter toward an exaggerated copy of the
+// body attitude the suspension shows, plus a nod on upshifts and a squat kick on launches.
+void updateVisualBody(VehicleState& s, const VehicleControls& c, float dt, int gearBefore) {
+    const VehicleTuning& t = s.tune;
+    if (t.visRollCap <= 0.f) {
+        s.visPitch = s.visRoll = s.visHeave = 0.f;
+        s.visPitchVel = s.visRollVel = s.visHeaveVel = 0.f;
+        return;
+    }
+    const VehicleModel& m = *s.model;
+    float rollSum = 0.f, front = 0.f, rear = 0.f, heave = 0.f;
+    int nRoll = 0, nf = 0, nr = 0;
+    for (int i = 0; i < s.wheelCount; i++) {
+        float d = s.wheels[i].compression - t.restComp[i];
+        heave += d;
+        if (t.rear[i]) { rear += d; nr++; } else { front += d; nf++; }
+        int j = t.arbPair[i];
+        if (j > i) {
+            float dx = m.wheels[j].pos.x - m.wheels[i].pos.x;
+            if (fabsf(dx) > 0.3f) {
+                float dj = s.wheels[j].compression - t.restComp[j];
+                rollSum += atanf((dj - d) / dx);   // right side more compressed -> leaning right (+)
+                nRoll++;
+            }
+        }
+    }
+    // the rendered attitude is 1.75x the physical one, capped per class: the extra never hides physical motion
+    auto extraFor = [](float phys, float cap) {
+        float total = Min(1.75f * fabsf(phys), cap);
+        return phys >= 0.f ? Max(total - phys, 0.f) : -Max(total + phys, 0.f);
+    };
+    float rollP = nRoll ? rollSum / nRoll : 0.f;
+    float pitchP = nf && nr ? atanf((rear / nr - front / nf) / Max(t.wheelbase, 0.5f)) : 0.f;
+    float rollT = extraFor(rollP, t.visRollCap);
+    float pitchT = extraFor(pitchP, t.visPitchCap);
+    float heaveT = s.wheelCount ? -0.75f * heave / s.wheelCount : 0.f;
+    // shift nod (drive torque cut) and launch squat
+    if (s.gear > gearBefore && gearBefore >= 1 && c.throttle > 0.4f) s.visPitchVel -= 0.25f;
+    float v = s.speed();
+    if (s.visLaunchArmed && s.gear >= 1 && c.throttle > 0.7f && v < 2.f && s.wheelsOnGround >= 3) {
+        s.visPitchVel += 0.3f;
+        s.visLaunchArmed = false;
+    } else if (v < 0.3f && c.throttle < 0.2f) {
+        s.visLaunchArmed = true;
+    }
+    const float w0 = kTwoPi * 1.8f, zeta = 0.45f;
+    // springy follow; the rendered total (physical + extra) may overshoot its cap by 15 % at most
+    auto spring = [&](float& x, float& xv, float target, float phys, float cap) {
+        float acc = w0 * w0 * (target - x) - 2.f * zeta * w0 * xv;
+        xv += acc * dt;
+        x += xv * dt;
+        float hi = Max(1.15f * cap - phys, 0.f), lo = Min(-1.15f * cap - phys, 0.f);
+        if (x > hi) { x = hi; xv = Min(xv, 0.f); }
+        if (x < lo) { x = lo; xv = Max(xv, 0.f); }
+    };
+    spring(s.visRoll, s.visRollVel, rollT, rollP, t.visRollCap);
+    spring(s.visPitch, s.visPitchVel, pitchT, pitchP, t.visPitchCap);
+    spring(s.visHeave, s.visHeaveVel, Clamp(heaveT, -0.04f, 0.04f), 0.f, 0.045f);
+}
+}  // namespace vsim
+
 void stepVehicle(VehicleState& s, const VehicleControls& c, float dt) {
     vsim::clearEvents(s);
     if (!s.model || !(dt > 0.f) || !Phys::gCollision || !World::gMap) return;
@@ -417,8 +499,10 @@ void stepVehicle(VehicleState& s, const VehicleControls& c, float dt) {
     n = Max(n, (int)ceilf(s.speed() * dt / 0.5f));
     n = Clamp(n, 1, 8);
     float h = dt / n;
+    int gearBefore = s.gear;
     for (int i = 0; i < n && !s.sleeping; i++) vsim::stepOnce(s, c, h);
     s.prevHasDriver = c.hasDriver;
+    vsim::updateVisualBody(s, c, dt, gearBefore);
     if (!vsim::stateFinite(s)) {
         s.body.pos = p0;
         s.body.rot = normalize(q0);
@@ -446,6 +530,21 @@ void wheelLocalTransform(const VehicleState& s, int wheel, vec3& pos, quat& rot)
     if (s.cls == VC_PLANE && s.gearDown < 1.f) off += (1.f - s.gearDown) * (ws.radius * 1.2f + travel);
     pos = ws.pos + vec3(0.f, 0.f, off + s.tune.rideDrop);
     rot = quatAxisAngle(vec3(0, 0, 1), -w.steerAngle) * quatAxisAngle(vec3(1, 0, 0), -w.spinAngle);
+}
+
+void setSurfaceWetness(float wetness) { vsim::wetnessRef() = Saturate(wetness); }
+float surfaceWetness() { return vsim::wetnessRef(); }
+
+void repairVehicle(VehicleState& s) {
+    s.health = 1000.f;
+    s.engineHealth = 1000.f;
+    for (float& d : s.damageZones) d = 0.f;
+    s.alignPull = 0.f;
+    s.wrecked = false;
+    s.engineFlooded = false;
+    s.floodTimer = 0.f;
+    for (int i = 0; i < s.wheelCount; i++) s.wheels[i].burst = false;
+    s.sleeping = false;
 }
 
 void applyUpgrades(VehicleState& s, const VehicleModel& m, const VehicleUpgrades& u) {

@@ -98,6 +98,7 @@ float4 marchClouds(float3 dir, float jitter) {
     float3 sunL = mainLightIlluminance();
     float3 ambTop = evalSH9(float3(0, 0, 1)) * PI;
     float3 ambBot = evalSH9(float3(0, 0, -1)) * PI * 0.6;
+    float3 cityUp = cityUplight() * 0.29;   // lit city below: glowing cloud bases at night
     float T = 1.0;
     float3 L = 0;
     const float sigma = 0.018;
@@ -119,7 +120,7 @@ float4 marchClouds(float3 dir, float jitter) {
             float powder = 1.0 - exp(-d * stepLen * sigma * 2.0);
             float hf = heightFraction(p.z);
             float3 amb = lerp(ambBot, ambTop, hf) * (0.35 + 0.65 * hf);
-            float3 S = (sunL * lightT * phase * lerp(0.7, 1.0, powder) + amb * 0.3) * d * sigma;
+            float3 S = (sunL * lightT * phase * lerp(0.7, 1.0, powder) + amb * 0.3 + cityUp * (1.0 - hf) * (1.0 - hf)) * d * sigma;
             float stepT = exp(-d * sigma * stepLen);
             L += T * (S - S * stepT) / max(d * sigma, 1e-6);
             T *= stepT;
@@ -205,5 +206,8 @@ void csCloudShadow(uint3 id : SV_DispatchThreadID) {
         float3 p = float3(xy + sunDir.xy / sz * z, z);
         od += cloudDensity(p, false) * (gCloud0.w - gCloud0.z) / 8.0;
     }
-    uOut2D[id.xy] = float4(lerp(exp(-od * 0.018 * 0.5), 1.0, 0.25), 0, 0, 1);
+    // Thick overcast / storm decks block the sun almost completely; fair-weather cumulus keep a little forward-
+    // scattered sunlight in their shadows
+    float minT = lerp(0.12, 0.01, saturate(gCloud3.x + saturate((gCloud0.x - 0.7) * 3.3)));
+    uOut2D[id.xy] = float4(lerp(minT, 1.0, exp(-od * 0.018 * 0.5)), 0, 0, 1);
 }

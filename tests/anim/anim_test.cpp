@@ -310,7 +310,16 @@ void testAnimator() {
         in.inAir = sinf(u * 17.f) > 0.9f;
         in.swimming = sinf(u * 3.f) > 0.95f;
         in.reloading = (i / 300) % 7 == 3;
-        in.stance = (i / 1500) % 20;
+        in.stance = (i / 1500) % 21;
+        in.meleeKind = (i / 900) % 3;
+        in.viseme = (i / 7) % 16 - 1;
+        in.visemeNext = (i / 5) % 15;
+        in.visemeWeight = 0.8f;
+        in.visemeBlend = (float)(i % 7) / 7.f;
+        in.speaking = (i / 400) % 3 == 1;
+        in.listening = (i / 400) % 3 == 2;
+        in.beat = Max(0.f, sinf(u * 300.f));
+        in.phoneCall = (i / 1100) % 4 == 1;
         in.action = (i % 97 == 0) ? (int)(rng.next() % CLIP_COUNT) : -1;
         in.groundOffsetL = 0.1f * sinf(u * 50.f);
         in.groundOffsetR = -0.1f * sinf(u * 43.f);
@@ -332,8 +341,47 @@ void testAnimator() {
     double t3 = TimeSeconds();
     for (int i = 0; i < N; i++) computeMatrices(sk, a2.pose, ms, skm);
     double t4 = TimeSeconds();
-    printf("animator: stress update %.2f us, walking update %.2f us, computeMatrices %.2f us\n", (t1 - t0) / N * 1e6, (t3 - t2) / N * 1e6,
-           (t4 - t3) / N * 1e6);
+    Animator a3;
+    a3.init(&sk, 98);
+    double t5 = TimeSeconds();
+    for (int i = 0; i < N; i++) a3.update(w, 1.f / 60.f, true);
+    double t6 = TimeSeconds();
+    printf("animator: stress update %.2f us, walking update %.2f us (cheap %.2f us), computeMatrices %.2f us\n", (t1 - t0) / N * 1e6,
+           (t3 - t2) / N * 1e6, (t6 - t5) / N * 1e6, (t4 - t3) / N * 1e6);
+}
+
+// LODs: triangle budgets, valid skinning, same silhouette (bounds) as the full mesh.
+void testLods() {
+    double tb = 0.0;
+    for (u32 k = 0; k < 6; k++) {
+        CharacterDesc d = randomCharacter(5000u + k * 7919u, (int)(k % 7));
+        Skeleton sk;
+        buildSkeleton(d, sk);
+        SkinnedMeshData L[3];
+        double t0 = TimeSeconds();
+        buildCharacterMeshLods(d, sk, L, 3);
+        tb += TimeSeconds() - t0;
+        int t1 = (int)L[1].indices.size() / 3, t2 = (int)L[2].indices.size() / 3;
+        CHECK(t1 >= 3500 && t1 <= 5200, "LOD1 triangles %d", t1);
+        CHECK(t2 >= 1000 && t2 <= 1900, "LOD2 triangles %d", t2);
+        for (int l = 1; l < 3; l++) {
+            bool okW = true, okB = true;
+            for (const VtxSkinned& v : L[l].verts) {
+                int sum = 0;
+                for (int i = 0; i < 4; i++) {
+                    sum += v.weights[i];
+                    if (v.bones[i] >= B_COUNT) okB = false;
+                }
+                if (sum != 255) okW = false;
+            }
+            for (u32 i : L[l].indices) okB = okB && i < L[l].verts.size();
+            CHECK(okW && okB, "LOD%d skinning / indices invalid", l);
+            vec3 dmin = L[l].bounds.mn - L[0].bounds.mn, dmax = L[l].bounds.mx - L[0].bounds.mx;
+            float e = Max(Max(fabsf(dmin.x), Max(fabsf(dmin.y), fabsf(dmin.z))), Max(fabsf(dmax.x), Max(fabsf(dmax.y), fabsf(dmax.z))));
+            CHECK(e < (l == 1 ? 0.03f : 0.09f), "LOD%d bounds differ by %.3f m", l, e);   // LOD2 has paddle hands (no fingers)
+        }
+    }
+    printf("lods: build (full + LOD1 + LOD2) avg %.1f ms\n", tb * 1000.0 / 6);
 }
 
 // Driving: the hands must stay on the steering wheel rim (absolute interior geometry) for any character size.
@@ -525,6 +573,7 @@ int main() {
     testDriving();
     testMelee();
     testVisemes();
+    testLods();
     testMesh();
     printf("%s (%d failures)\n", gFail ? "FAILED" : "ALL PASSED", gFail);
     return gFail ? 1 : 0;

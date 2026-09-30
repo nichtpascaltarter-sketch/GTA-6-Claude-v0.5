@@ -564,13 +564,13 @@ public:
                     }
                     g.mCutscene(shots);
                     if (quiet) {
-                        phoneLine(g, CAST_KIT, "[whisper:0.5]Cameras looping. Elevator to ninety is yours.");
+                        radioLine(g, CAST_KIT, "[whisper:0.5]Cameras looping. Elevator to ninety is yours.");
                         sayP(g, 0, mari, "[whisper:0.4]Twenty minutes. See you at the top.");
-                        phoneLine(g, CAST_KIT, "[scared:0.6]Vault's open. Deeds, ledgers, cash, you're golden... wait. Sandoval's head of security just walked into the camera room.");
-                        phoneLine(g, CAST_KIT, "[shout]He's seen the loop. The lobby is filling up. Get out, now!");
+                        radioLine(g, CAST_KIT, "[scared:0.6]Vault's open. Deeds, ledgers, cash, you're golden... wait. Sandoval's head of security just walked into the camera room.");
+                        radioLine(g, CAST_KIT, "[shout]He's seen the loop. The lobby is filling up. Get out, now!");
                     } else {
                         sayMe(g, "[calm]Knock, knock.");
-                        phoneLine(g, CAST_ROOK, "[shout]Charges are cutting. Sixty seconds. Hold that dock!");
+                        radioLine(g, CAST_ROOK, "[shout]Charges are cutting. Sixty seconds. Hold that dock!");
                     }
                     next();
                 }
@@ -608,7 +608,7 @@ public:
                     if (aliveEnemies(g) <= 1 && wave < 4) securityWave(g, 4 + wave, 0.25f + wave * 0.03f);
                     if (holdTimer <= 0.f) {
                         g.missionTimerHud = -1.f;
-                        phoneLine(g, CAST_ROOK, "[shout]Vault's open! Load the cash into the truck and go!");
+                        radioLine(g, CAST_ROOK, "[shout]Vault's open! Load the cash into the truck and go!");
                         vec3 back = vehPos(g, vehicle) - vec3(g.vehicles[vehicle].sim.forward().xy() * 5.f, 0.f);
                         goTo(g, back, 2.f, "Load the loot into the ~b~truck~s~.");
                         next();
@@ -1043,7 +1043,7 @@ public:
                 sayMe(g, "[calm]You owned a gym bag full of stolen deeds. Now I do.");
                 say(g, CAST_TOMAS, tomas, "[happy]Mari! You came. You actually came.");
                 sayMe(g, "[calm]Always, little brother.");
-                say(g, CAST_HOLT, holt, "[shout]Porto Sol PD! Nobody move. This is my collar, Ortega. Hand over whatever you took from that tower.");
+                say(g, CAST_HOLT, holt, "[megaphone][shout]Porto Sol PD! Nobody move. This is my collar, Ortega. Hand over whatever you took from that tower.");
                 sayMe(g, "[angry:0.6]Not to you, Captain. Not ever.");
                 say(g, CAST_HOLT, holt, "[calm]Then we'll see whose story this city believes.");
                 sayP(g, 1, dex, "[happy:0.4]Funny you say that. We know a DJ.");

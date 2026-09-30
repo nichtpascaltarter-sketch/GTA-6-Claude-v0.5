@@ -7,8 +7,8 @@ cbuffer ShadowCB : register(b3) {
     float4x4 gCascadeVP[4];
     float4 gCascadeSplits;   // far distance per cascade (view depth)
     float4 gCascadeTexel;    // world size of a shadow texel per cascade
-    float4 gShadowParams;    // x resolution, y cascade count, z fade fraction, w unused
-    float4 gShadowPad;
+    float4 gShadowParams;    // x resolution, y cascade count, z fade fraction, w soft shadows (PCSS)
+    float4 gCascadeDepth;    // light-space depth range (m) per cascade
 };
 
 static const float2 kPoisson[12] = {
@@ -29,6 +29,22 @@ float sampleCascade(int c, float3 relPos, float3 N, float noiseAngle) {
     float sn, cs;
     sincos(noiseAngle, sn, cs);
     float2x2 rot = float2x2(cs, -sn, sn, cs);
+    if (gShadowParams.w > 0.5) {
+        // Contact-hardening: average blocker depth -> penumbra width (sun ~1 degree incl. sky softening)
+        float searchR = 7.0 * texel;
+        float blockers = 0, bsum = 0;
+        [unroll] for (int b = 0; b < 6; b++) {
+            float2 o = mul(rot, kPoisson[b * 2]) * searchR;
+            float d = gShadowMap.SampleLevel(sPointClamp, float3(suv + o, c), 0);
+            if (d < z) { bsum += d; blockers += 1.0; }
+        }
+        if (blockers > 0.0) {
+            float distToBlocker = (z - bsum / blockers) * gCascadeDepth[c];
+            float penumbra = distToBlocker * 0.018;                      // meters
+            float r = clamp(penumbra / max(gCascadeTexel[c], 1e-4), 1.2, 9.0);
+            radius = r * texel;
+        }
+    }
     [unroll] for (int i = 0; i < 12; i++) {
         float2 o = mul(rot, kPoisson[i]) * radius;
         s += gShadowMap.SampleCmpLevelZero(sShadowCmp, float3(suv + o, c), z);

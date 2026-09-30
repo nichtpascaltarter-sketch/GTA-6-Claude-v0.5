@@ -182,6 +182,37 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
             float d = length(rel(s.pos, p.pos));
             if (d > s.radius || s.source == id) continue;
             bool fresh = time - s.time < 0.6f;
+            if (p.faction == FAC_POLICE) {
+                // an officer on a foot beat runs toward trouble: an NPC culprit is pursued (the player's crimes go
+                // through the wanted level), other commotion is checked out
+                if (!calm) continue;
+                int src = s.source;
+                bool npcCulprit = src >= 0 && src < (int)peds.size() && src != player && peds[src].used && peds[src].health > 0.f &&
+                                  peds[src].faction != FAC_POLICE && peds[src].state != PS_DEAD;
+                if (npcCulprit && (s.kind == STIM_GUNFIRE || s.kind == STIM_EXPLOSION || s.kind == STIM_FIGHT || s.kind == STIM_ARMED)) {
+                    b.type = BRAIN_COMBAT;
+                    b.target = src;
+                    b.timer = 0.f;
+                    pa.activity = ACT_WALK;
+                    pa.leader = -1;
+                    if (s.kind != STIM_FIGHT && p.ammo[WPN_PISTOL] + p.clip[WPN_PISTOL] > 0) p.weapon = WPN_PISTOL;   // sidearm out
+                    aiSay(id, BK_COP_FREEZE, 1.f, true);
+                    break;
+                }
+                if (s.kind == STIM_ARMED && s.player && pa.shoutTimer <= 0.f && d < 14.f) {
+                    aiSay(id, BK_COP_FREEZE, 0.6f, true);   // "drop the weapon" - the wanted system decides the rest
+                    pa.shoutTimer = 8.f;
+                }
+                bool look = s.kind == STIM_GUNFIRE || s.kind == STIM_EXPLOSION || s.kind == STIM_FIGHT || s.kind == STIM_BODY || s.kind == STIM_CRASH ||
+                            s.kind == STIM_PANIC;
+                if (look && (pa.activity == ACT_WALK || pa.activity == ACT_GROUP) && pa.leader < 0) {
+                    pa.activity = ACT_INSPECT;
+                    pa.threatPos = (s.kind == STIM_PANIC ? s.origin : s.pos).toVec3().xy();
+                    pa.actTimer = 6.f + hashToFloat(hash32(p.uid + (u32)(s.time * 3.f))) * 4.f;
+                    pa.walk.hurry = s.kind == STIM_BODY || s.kind == STIM_CRASH ? 1.4f : 2.2f;
+                }
+                continue;
+            }
             switch (s.kind) {
                 case STIM_GUNFIRE:
                 case STIM_EXPLOSION: {
@@ -195,8 +226,20 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         }
                     }
                     if (gang && b.type == BRAIN_COMBAT) break;
+                    // a mixed crowd: most run, some hit the deck, the bold at a safe distance get their phones out
+                    float rg = hashToFloat(hash32(p.uid * 29u + (u32)(s.time * 2.f)));
+                    if (calm && s.kind == STIM_GUNFIRE && !gang && pa.temper == 2 && d > 22.f && rg < 0.45f && pa.activity != ACT_FILM) {
+                        pa.activity = ACT_FILM;
+                        ai.stats.filming++;
+                        pa.actTimer = 8.f + rg * 12.f;
+                        pa.anchor = pos;
+                        pa.threatPos = s.pos.toVec3().xy();
+                        aiSay(id, BK_FILMING, 0.4f);
+                        break;
+                    }
                     if (b.type != BRAIN_FLEE && b.type != BRAIN_COWER) {
-                        if (pa.temper == 0 && d < 14.f && hashToFloat(hash32(p.uid + 5u)) < 0.45f) {
+                        bool deck = (pa.temper == 0 && d < 14.f && hashToFloat(hash32(p.uid + 5u)) < 0.45f) || (pa.temper == 1 && rg < 0.18f);
+                        if (deck) {
                             b.type = BRAIN_COWER;
                             aiSay(id, BK_COWER, 0.5f);
                         } else {
@@ -619,7 +662,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         u32 hw = hash32(p.uid * 97u + (u32)(time * 0.5));
                         float q = hashToFloat(hw);
                         bool calls = pa.role == PR_BUSINESS ? q < 0.45f : q < 0.18f;
-                        pa.walkStance = pa.role == PR_JOGGER ? 0 : (calls ? 8 : (q > 0.95f && pa.role != PR_BUSINESS ? 10 : 0));
+                        pa.walkStance = pa.role == PR_JOGGER || pa.role == PR_COP ? 0 : (calls ? 8 : (q > 0.95f && pa.role != PR_BUSINESS ? 10 : 0));
                         pa.walkStanceTimer = pa.walkStance ? 15.f + hashToFloat(hash32(hw)) * 40.f : 20.f + hashToFloat(hash32(hw)) * 50.f;
                     }
                     stance = pa.walkStance;
@@ -712,6 +755,19 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                                     }
                                     pa.actTimer = 12.f + hashToFloat(hash32(h * 7u)) * 25.f;
                                 }
+                            }
+                        } else if (r < 0.47f && pa.leader < 0 && p.faction == FAC_CIVILIAN && pa.walk.state == AI::WS_WALK && pa.role != PR_JOGGER &&
+                                   pa.role != PR_DRUNK && pa.eventId < 0) {
+                            // errands: head into a shop / lobby / front door close by (and out of the simulation)
+                            vec3 door;
+                            if (aiBuildingDoorNear(*this, pos, 14.f, h, door)) {
+                                pa.activity = ACT_ENTER_VEH;   // walk to a point and vanish (population.cpp)
+                                pa.targetVeh = -1;
+                                b.type = BRAIN_GOTO;
+                                b.goal = dvec3(door);
+                                b.speed = Max(pa.walk.speed, 1.2f);
+                                b.timer = 0.f;
+                                break;
                             }
                         }
                     }

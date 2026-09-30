@@ -14,6 +14,7 @@ struct EnvProbeSystem {
     gfx::Texture gAlbedo, gNormal, gMaterial, gEmissive, gVelocity, gDepth;
     int front = 0;
     int step = 0;                  // 0..5 capture face, 6 prefilter + swap
+    int stepWait = 0;              // frames since the last capture step (Settings::envProbeInterval)
     bool valid = false;            // front cube holds a complete capture
     dvec3 cyclePos, frontPos;
     gfx::CBuffer<FrameConstants> frameCB;
@@ -23,12 +24,16 @@ struct EnvProbeSystem {
     gfx::Buffer shBuf;       // SH9 irradiance of the probe (one-bounce ambient around the camera)
     bool shValid = false;
     static constexpr float kNear = 0.5f;
+    static constexpr int kMaxProbeLights = 128;
+    std::vector<LightGPU> lights, gathered;   // outdoor world lights around the capture point (relative to cyclePos)
+    gfx::Buffer lightBuf;
 
     void init() {
         psLight = gfx::loadPS("envprobe.hlsl", "psProbeLight");
         csPrefilter = gfx::loadCS("envprobe.hlsl", "csPrefilter");
         csSH = gfx::loadCS("envprobe.hlsl", "csProbeSH");
         shBuf = gfx::createBuffer(9 * 16, 16, gfx::BUF_STRUCTURED | gfx::BUF_UAV);
+        lightBuf = gfx::createBuffer(kMaxProbeLights * sizeof(LightGPU), sizeof(LightGPU), gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
         frameCB.create();
         cb.create();
     }
@@ -64,6 +69,35 @@ struct EnvProbeSystem {
         F = kF[f];
         R = kR[f];
         U = kU[f];
+    }
+
+    // Street lamps, neon and building lights around the capture point, nearest first. Lamps inside enterable
+    // interiors are left out (the capture does not see the rooms, their light must not leak onto the street).
+    void gatherLights(Renderer& r, const Environment& env) {
+        lights.clear();
+        if (!r.world || r.nightFactor <= 0.f) return;
+        Frustum all;
+        for (vec4& pl : all.planes) pl = vec4(0.f, 0.f, 0.f, 1e30f);
+        gathered.clear();
+        r.world->gatherLights(cyclePos, r.nightFactor, env.gameSeconds, env.timeOfDay, all, gathered, Renderer::kMaxLights);
+        for (const LightGPU& g : gathered) {
+            bool inside = false;
+            for (const InteriorVolume& v : r.interiorVolumes) {
+                vec3 d = g.pos - rel(v.center, cyclePos);
+                float lx = d.x * v.axis.x + d.y * v.axis.y, ly = -d.x * v.axis.y + d.y * v.axis.x;
+                if (fabsf(lx) <= v.halfExtents.x + 0.3f && fabsf(ly) <= v.halfExtents.y + 0.3f && fabsf(d.z) <= v.halfExtents.z + 0.3f) {
+                    inside = true;
+                    break;
+                }
+            }
+            if (!inside) lights.push_back(g);
+        }
+        auto nearFirst = [](const LightGPU& a, const LightGPU& b) { return length(a.pos) - a.radius < length(b.pos) - b.radius; };
+        if ((int)lights.size() > kMaxProbeLights) {
+            std::nth_element(lights.begin(), lights.begin() + kMaxProbeLights, lights.end(), nearFirst);
+            lights.resize(kMaxProbeLights);
+        }
+        if (!lights.empty()) gfx::updateBuffer(lightBuf, lights.data(), (u32)(lights.size() * sizeof(LightGPU)));
     }
 
     void captureFace(Renderer& r, int face) {
@@ -115,13 +149,14 @@ struct EnvProbeSystem {
         c->OMSetRenderTargets(0, nullptr, nullptr);
         // Lighting into the capture cube face
         cb.data.p0 = vec4((float)face, (float)res, 0, 0);
+        cb.data.p1.w = (float)lights.size();
         cb.data.p2 = vec4(rel(cyclePos, r.camera.pos), 0);  // probe-relative -> camera-relative (shadow cascades)
         cb.upload();
         ID3D11Buffer* pcbs[4] = {frameCB.get(), r.clouds->cb.get(), cb.get(), r.shadowCB.get()};
         c->PSSetConstantBuffers(0, 4, pcbs);
-        ID3D11ShaderResourceView* srvs[8] = {r.clouds->shape.srv, r.clouds->detail.srv, r.clouds->weather.srv,
-                                             gAlbedo.srv, gNormal.srv, gMaterial.srv, gEmissive.srv, gDepth.srv};
-        c->PSSetShaderResources(0, 8, srvs);
+        ID3D11ShaderResourceView* srvs[10] = {r.clouds->shape.srv, r.clouds->detail.srv, r.clouds->weather.srv,
+                                              gAlbedo.srv, gNormal.srv, gMaterial.srv, gEmissive.srv, gDepth.srv, nullptr, lightBuf.srv};
+        c->PSSetShaderResources(0, 10, srvs);
         c->OMSetRenderTargets(1, &capture.sliceRtvs[face], nullptr);
         c->OMSetDepthStencilState(gfx::states.depthOff, 0);
         c->RSSetState(gfx::states.cullNone);
@@ -131,8 +166,8 @@ struct EnvProbeSystem {
         c->PSSetShader(psLight, nullptr, 0);
         c->Draw(3, 0);
         c->OMSetRenderTargets(0, nullptr, nullptr);
-        ID3D11ShaderResourceView* nulls[8] = {};
-        c->PSSetShaderResources(0, 8, nulls);
+        ID3D11ShaderResourceView* nulls[10] = {};
+        c->PSSetShaderResources(0, 10, nulls);
         c->RSSetState(gfx::states.cullBack);
         r.bindFrame();
     }
@@ -183,7 +218,7 @@ struct EnvProbeSystem {
     }
 
     // One capture step per frame; a full synchronous capture after camera cuts / (re)creation.
-    void update(Renderer& r) {
+    void update(Renderer& r, const Environment& env) {
         const Settings& s = r.settings;
         if (!s.envProbe) {
             valid = false;
@@ -194,12 +229,18 @@ struct EnvProbeSystem {
         if (wantRes != res) create(wantRes);
         if (r.cameraCut || !valid) {
             cyclePos = r.camera.pos;
+            gatherLights(r, env);
             for (int f = 0; f < 6; f++) captureFace(r, f);
             prefilter(r);
             step = 0;
             return;
         }
-        if (step == 0) cyclePos = r.camera.pos;
+        if (++stepWait < Clamp(s.envProbeInterval, 1, 8)) return;
+        stepWait = 0;
+        if (step == 0) {
+            cyclePos = r.camera.pos;
+            gatherLights(r, env);
+        }
         if (step < 6) captureFace(r, step);
         else prefilter(r);
         step = (step + 1) % 7;

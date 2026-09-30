@@ -133,6 +133,42 @@ struct RaceSpec {
     bool night;
 };
 
+// Every race has a named rival on the grid (pole position, the fastest car) who talks before, during and after.
+struct RaceRival {
+    const char* race;
+    const char* name;
+    const char* persona;     // speech persona key (stock roles or a name: unknown keys get a stable hashed voice)
+    bool female;
+    u32 color;
+    const char* intro;       // on the grid
+    const char* taunt;       // mid race, while ahead of the player
+    const char* beaten;      // the player won
+    const char* gloat;       // the player lost
+};
+const RaceRival kRivals[] = {
+    {"race_calle", "Chuy", "cast_thug_c", false, 0xff4040ffu, "[angry:0.5]You again, repo man? Tonight I win my slip back.",
+     "[shout]Eat my exhaust!", "[angry]Rigged. This whole city is rigged.", "[happy]Pink slip energy, baby!"},
+    {"race_beach", "Nikki Vega", "racer_nikki", true, 0xffff66ccu, "[happy:0.6]Cute car. Shame it'll be looking at my taillights all night.",
+     "[happy]Still with me? Adorable.", "[sad:0.4]Okay. Okay. Rematch next Friday.", "[happy]See you at the finish. Oh wait, I'm already there."},
+    {"race_overseas", "Duke Marlow", "redneck", false, 0xff66aaffu, "[calm]Seven miles of bridge, no cops, no brakes. Keep up.",
+     "[shout]Keys are mine, city kid!", "[angry:0.4]Well dang. You drive like the bridge owes you money.", "[happy:0.5]Welcome to the Keys, city kid."},
+    {"race_grove", "Preston Hale", "racer_preston", false, 0xffaaddffu, "[calm]Daddy's car, my rules. Try not to scratch the hedges.",
+     "[happy:0.5]Money can't buy talent. Oh wait, it can.", "[angry:0.5]This isn't over. My lawyer will hear about this.",
+     "[happy:0.4]Told you. Talent and a trust fund."},
+    {"race_keys", "Mama Juno", "old_woman", true, 0xff88ffccu, "[happy:0.4]I've been racing this loop since before you were born, sugar.",
+     "[happy]Too slow, baby!", "[happy:0.3]Not bad. You'd have beaten me in nineteen eighty too.", "[happy]Still got it!"},
+    {"boat_bay", "Captain Ferro", "old_man", false, 0xffffcc66u, "[calm]The bay's choppy tonight. Hold your line and respect the buoys.",
+     "[shout]Mind my wake!", "[happy:0.3]Good hands on that wheel. Your father would be proud.", "[happy:0.5]Salt water in your eyes? Happens to everyone."},
+    {"boat_river", "Tito Reyes", "racer_tito", false, 0xff66ffffu, "[happy:0.5]Rio Sol's my river. You're just visiting.",
+     "[shout]River rat coming through!", "[angry:0.4]Lucky wake. That's all that was.", "[happy]River rat wins again!"},
+};
+
+const RaceRival* rivalFor(const char* raceId) {
+    for (const RaceRival& r : kRivals)
+        if (strcmp(r.race, raceId) == 0) return &r;
+    return nullptr;
+}
+
 std::vector<RaceSpec> raceSpecs() {
     std::vector<RaceSpec> v;
     v.push_back({"race_calle", "Calle Luna Sprint", SIDE_RACE_CALLE, 0, 0,
@@ -161,6 +197,8 @@ public:
     float raceTime = 0.f;
     bool paid = false;
     long long won = 0;
+    int rivalCar = -1, rivalPed = -1;
+    bool taunted = false;
     MissionRace(const RaceSpec& s) : spec(s) {}
     const char* title() const override { return spec.name; }
     const char* brief() const override { return "Win the race. Entry fee is paid at the start line; the winner takes the prize money."; }
@@ -205,10 +243,19 @@ public:
             if (i == 0) sp = p0 + vec3(right * 2.4f, 0.f);
             int v = spawnCar(g, m, sp, yaw);
             if (v < 0) continue;
-            int drv = g.mPed(g.randomCivilianChar(0xACE0u + (u32)i * 13u, 0), dvec3(sp), yaw, FAC_CIVILIAN);
+            int drv = g.mPed(g.randomCivilianChar(0xACE0u + (u32)i * 13u + hashString(spec.id), 0), dvec3(sp), yaw, FAC_CIVILIAN);
             if (drv >= 0) g.warpPedIntoVehicle(drv, v, 0);
             race.racers.push_back(v);
-            ScriptDriver& d = addDriver(g, v, race.path, spec.racerSpeed + i * 1.2f, water ? DRV_WATER : DRV_ROAD, 0);
+            if (i == 0) {
+                // pole position: the rival, in the quickest car
+                rivalCar = v;
+                rivalPed = drv;
+                if (const RaceRival* rr = rivalFor(spec.id)) {
+                    if (drv >= 0) g.peds[drv].voice = Speech::persona(rr->persona, rr->female).voice;
+                    g.vehicles[v].color0 = lin(((rr->color) & 255) / 255.f, ((rr->color >> 8) & 255) / 255.f, ((rr->color >> 16) & 255) / 255.f);
+                }
+            }
+            ScriptDriver& d = addDriver(g, v, race.path, spec.racerSpeed + (i == 0 ? 2.6f : i * 1.2f), water ? DRV_WATER : DRV_ROAD, 0);
             d.racer = true;
             d.rubberPed = g.player;
             d.speedScale = 0.f;
@@ -218,10 +265,24 @@ public:
             paid = true;
         }
         g.mObjective(StrFormat("~y~%s~s~  Entry fee $%lld, prize $%lld", spec.name, spec.fee, spec.prize));
+        rivalSay(g, 0);
         score(SC_CHASE, 0.45f, 5 + spec.bestSlot);
         countdown = 4.f;
         lastCount = 4;
         setStage(1);
+    }
+
+    // 0 intro, 1 taunt, 2 beaten by the player, 3 gloat
+    void rivalSay(GameWorld& g, int which) {
+        const RaceRival* rr = rivalFor(spec.id);
+        if (!rr) return;
+        const char* text = which == 0 ? rr->intro : (which == 1 ? rr->taunt : (which == 2 ? rr->beaten : rr->gloat));
+        DialogueLine l = line(rr->name, text, pedAlive(g, rivalPed) ? rivalPed : -1, rr->color);
+        Speech::Persona p = Speech::persona(rr->persona, rr->female);
+        l.hasVoice = true;
+        l.voice = p.voice;
+        l.spoken = p.tags() + speakableText(text);
+        g.mSay(l);
     }
 
     MissionStatus update(GameWorld& g, float dt) override {
@@ -260,6 +321,11 @@ public:
                 } else timer = 0.f;
                 if (race.updatePlayer(g)) race.showMarkers(g);
                 int pos = race.position(g);
+                if (!taunted && race.next >= (int)race.checkpoints.size() / 3 && pos > 1 && rivalCar >= 0 &&
+                    ::length(vehPos(g, rivalCar) - playerPos(g)) < 60.f) {
+                    taunted = true;
+                    rivalSay(g, 1);
+                }
                 g.missionCounterLabel = "POSITION";
                 g.missionCounter = pos;
                 g.missionCounterMax = (int)race.racers.size() + 1;
@@ -276,9 +342,11 @@ public:
                         setFlag(g, spec.sideFlag, 1);
                         g.notify("RACE WON", StrFormat("%s  %d:%04.1f%s", spec.name, (int)(raceTime / 60.f), fmodf(raceTime, 60.f), record ? "  NEW RECORD" : ""));
                         g.socialReport(UI::TE_RACE_WON, dvec3(playerPos(g)), spec.name);
+                        rivalSay(g, 2);
                         for (int v : race.racers) releaseDriver(g, v);
                         return MS_PASSED;
                     }
+                    rivalSay(g, 3);
                     return fail(StrFormat("You finished %d%s.", pos, pos == 2 ? "nd" : (pos == 3 ? "rd" : "th")).c_str());
                 }
                 break;
@@ -1106,6 +1174,224 @@ public:
 };
 
 // ------------------------------------------------------------------------------------------------------------------
+// Bail bonds: Benny Salas of Palmera Bail Bonds pays for skips brought in. Each job is the next name on his list: find
+// the fugitive in a district, run them down (on foot, in a car, or through their friends), make them give up and
+// deliver them to police headquarters. Dead skips pay half. After the list, Benny keeps a rotation of smaller jobs.
+struct Fugitive {
+    const char* name;
+    const char* crime;
+    const char* district;
+    vec2 hint;
+    int behavior;            // 0 runs, 1 drives off, 2 fights with friends
+    long long reward;
+    const char* notice;      // when the player closes in
+    const char* surrender;
+};
+const Fugitive kFugitives[] = {
+    {"Rudy \"Two Tone\" Mercer", "skipped court on a paint job fraud", "Palmetto Flats", vec2(900, 2700), 0, 2500, "[scared]Aw no. Not today, man!",
+     "[scared]Okay! Okay! I give up, don't hit me!"},
+    {"Glenda Watts", "forty stolen jet skis", "Sol Beach", vec2(5150, 900), 1, 3500, "[angry:0.6]Benny sent you? Tell Benny to kiss my wake!",
+     "[sad]Fine. Fine! Just don't scratch my hair."},
+    {"Marco \"Bones\" Batista", "assault, three missed hearings", "south Calle Luna", vec2(1300, -700), 2, 4500, "[angry]Boys! We got a bounty hunter!",
+     "[scared:0.7]Enough! I'm done, I'm done."},
+    {"Deshawn Pruitt", "check fraud", "the Canvas District", vec2(3000, 1650), 0, 3000, "[scared:0.6]I know that look. Bye!",
+     "[sad:0.5]My mom's gonna kill me before the judge does."},
+    {"Lorna Keel", "grand theft boat", "Rio Sol Marina", vec2(2300, 260), 1, 4000, "[angry:0.5]You'll never catch me on land either!",
+     "[sad]I should have stayed on the water."},
+    {"Vince Dagostino", "running an illegal card game", "North City", vec2(2600, 4300), 2, 6000, "[angry]Nobody walks out of my game!",
+     "[scared]Alright, alright. I fold."},
+    {"Harlan Voss", "moonshine running", "Redland", vec2(800, -5400), 1, 5500, "[calm]Reckon I'll be leaving now.",
+     "[sad:0.5]Take it easy on the truck. She's older than you."},
+    {"Ezekiel \"Zeke\" Carter", "armed robbery", "Key Coral", vec2(4450, -4200), 2, 9000, "[shout]You picked the wrong island, hunter!",
+     "[scared]You win. You win!"},
+};
+
+class MissionBounty : public StoryMission {
+public:
+    int level = 0;
+    const Fugitive* f = nullptr;
+    int fugitive = -1, getaway = -1;
+    std::vector<int> friends;
+    vec3 hideout;
+    bool noticed = false, surrendered = false;
+    float closeTime = 0.f, farTime = 0.f;
+    long long won = 0;
+    const char* title() const override { return "Bail Bonds"; }
+    const char* brief() const override { return "Palmera Bail Bonds pays for skips brought in: alive is full price, dead is half."; }
+    long long reward() const override { return won; }
+    const char* passBanner() const override { return "BOUNTY COLLECTED"; }
+    bool allowRetry() const override { return false; }
+
+    void start(GameWorld& g) override {
+        level = flag(g, EX_BOUNTY_LEVEL);
+        int n = (int)ARRAY_COUNT(kFugitives);
+        f = &kFugitives[level % n];
+        // the hideout: a building frontage in the district, shifted a little every lap of the list
+        u32 h = hash32((u32)level * 7919u + 0xB0u);
+        vec2 jitter(hashToFloat(h) * 160.f - 80.f, hashToFloat(h >> 8) * 160.f - 80.f);
+        Place hp = resolveFrontage(g, f->hint + (level >= n ? jitter : vec2(0.f)));
+        hideout = hp.door;
+        int ci = g.randomCivilianChar(0xF00Du + (u32)level * 131u, 0);
+        fugitive = g.mPed(ci, dvec3(hideout), hp.yaw, FAC_CIVILIAN);
+        if (fugitive >= 0) {
+            g.peds[fugitive].brain.type = BRAIN_NONE;
+            g.peds[fugitive].maxHealth = g.peds[fugitive].health = 180.f;
+            setIdle(g, fugitive, 10);
+        }
+        if (f->behavior == 1) {
+            int model = pickModel(g, {Vehicles::VC_MUSCLE, Vehicles::VC_SPORTS, Vehicles::VC_PICKUP}, (u32)level);
+            getaway = spawnCar(g, model, curbOffset(g, hp, 7.f), hp.curbYaw);
+        }
+        if (f->behavior == 2) {
+            for (int i = 0; i < 2 + level / 3; i++) {
+                vec3 p = placeOffset(g, hp, -3.f + i * 2.5f, 1.5f);
+                int e = gunman(g, CAST_THUG_A + (i % 4), p, hp.yaw + kPi, i == 0 ? WPN_SMG : WPN_PISTOL, 0.2f);
+                if (e >= 0) {
+                    setIdle(g, e, i & 1 ? 7 : 10);
+                    friends.push_back(e);
+                }
+            }
+        }
+        goTo(g, hideout, 45.f, StrFormat("Find ~r~%s~s~ in %s.", f->name, f->district), false, false);
+        g.notify("PALMERA BAIL BONDS", StrFormat("%s: %s. Bond $%lld alive, half dead. Last seen in %s.", f->name, f->crime, f->reward, f->district));
+        score(SC_NOIR, 0.35f, 16);
+    }
+
+    void surrender(GameWorld& g) {
+        surrendered = true;
+        g.mClearBlips();
+        g.mBlipPed(fugitive, UI::BLIP_FRIEND);
+        Ped& fp = g.peds[fugitive];
+        fp.brain.type = BRAIN_NONE;
+        fp.invincible = true;
+        fp.faction = FAC_CIVILIAN;
+        if (fp.vehicle >= 0) g.removePedFromVehicle(fugitive, true);
+        setIdle(g, fugitive, 5);   // hands up
+        releaseDriver(g, getaway);
+        for (int e : friends)
+            if (pedAlive(g, e)) setFlee(g, e, g.player);
+        say(g, CAST_THUG_B, fugitive, f->surrender);
+        goTo(g, gPlaces.policeHq.curb, 6.f, StrFormat("Take ~b~%s~s~ to ~y~police headquarters~s~.", f->name), true);
+        score(SC_NOIR, 0.4f, 16);
+        next();
+    }
+
+    MissionStatus update(GameWorld& g, float dt) override {
+        if (!pedAlive(g, fugitive) && !surrendered) {
+            // dead skip: half the bond
+            won = f->reward / 2;
+            setFlag(g, EX_BOUNTY_LEVEL, level + 1);
+            if (level + 1 >= (int)ARRAY_COUNT(kFugitives)) setFlag(g, SIDE_BOUNTY_ALL, 1);
+            g.notify("PALMERA BAIL BONDS", StrFormat("%s is dead. Benny pays half: $%lld.", f->name, won));
+            return MS_PASSED;
+        }
+        vec3 fpos = pedPos(g, fugitive);
+        float d = ::length(fpos - playerPos(g));
+        switch (stage) {
+            case 0:
+                if (d < 28.f) {
+                    noticed = true;
+                    clearGoal(g);
+                    g.mBlipPed(fugitive, UI::BLIP_ENEMY);
+                    say(g, CAST_THUG_B, fugitive, f->notice);
+                    if (f->behavior == 0) {
+                        setFlee(g, fugitive, g.player);
+                        g.mObjective(StrFormat("Catch ~r~%s~s~. Tackle or rough them up; dead pays half.", f->name));
+                    } else if (f->behavior == 1 && vehicleAlive(g, getaway)) {
+                        g.warpPedIntoVehicle(fugitive, getaway, 0);
+                        RoutePath path;
+                        vec2 away = fpos.xy() + normalize(fpos.xy() - playerPos(g).xy() + vec2(0.01f, 0.f)) * 1500.f;
+                        buildRoadPath(g, fpos.xy(), away, path);
+                        ScriptDriver& dr = addDriver(g, getaway, path, 26.f);
+                        dr.rubberPed = g.player;
+                        dr.rubberGap = 70.f;
+                        g.mBlipVehicle(getaway, UI::BLIP_ENEMY);
+                        g.mObjective(StrFormat("Stop ~r~%s~s~'s car. Wreck it and grab them.", f->name));
+                    } else {
+                        setFlee(g, fugitive, g.player);
+                        for (int e : friends)
+                            if (pedAlive(g, e)) setCombat(g, e, g.player, 0.2f);
+                        blipEnemies(g);
+                        g.mObjective(StrFormat("Deal with the friends and catch ~r~%s~s~.", f->name));
+                    }
+                    next();
+                }
+                break;
+            case 1: {
+                Ped& fp = g.peds[fugitive];
+                // a wrecked getaway car throws them out on foot
+                if (fp.vehicle >= 0 && vehicleDisabled(g, fp.vehicle)) {
+                    releaseDriver(g, fp.vehicle);
+                    g.removePedFromVehicle(fugitive, true);
+                    setFlee(g, fugitive, g.player);
+                }
+                bool onFoot = fp.vehicle < 0 && g.playerVehicle() < 0;
+                if (onFoot && d < 2.6f) closeTime += dt;
+                else closeTime = Max(0.f, closeTime - dt);
+                if (fp.health < fp.maxHealth * 0.45f || closeTime > 1.4f || (fp.vehicle < 0 && d < 3.5f && fp.ragdoll)) {
+                    surrender(g);
+                    break;
+                }
+                if (d > 420.f) farTime += dt;
+                else farTime = 0.f;
+                if (farTime > 15.f) return fail(StrFormat("%s got away.", f->name).c_str());
+                break;
+            }
+            case 2: {
+                int pv = g.playerVehicle();
+                Ped& fp = g.peds[fugitive];
+                if (pv >= 0 && fp.vehicle != pv && ::length(fpos - vehPos(g, pv)) < 9.f) {
+                    int seat = g.freeSeat(pv, false);
+                    if (seat > 0) {
+                        g.warpPedIntoVehicle(fugitive, pv, seat);
+                        say(g, CAST_THUG_B, fugitive, "[sad:0.5]My lawyer's gonna hear about this.");
+                    }
+                }
+                if (pv < 0 && fp.vehicle < 0 && ::length(fpos - playerPos(g)) > 4.f) setGoto(g, fugitive, playerPos(g), 1.3f);
+                bool together = (pv >= 0 && fp.vehicle == pv) || (pv < 0 && ::length(fpos - playerPos(g)) < 6.f);
+                if (arrived(g) && together) {
+                    clearGoal(g);
+                    won = f->reward;
+                    setFlag(g, EX_BOUNTY_LEVEL, level + 1);
+                    setFlag(g, EX_BOUNTY_ALIVE, flag(g, EX_BOUNTY_ALIVE) + 1);
+                    if (level + 1 >= (int)ARRAY_COUNT(kFugitives)) setFlag(g, SIDE_BOUNTY_ALL, 1);
+                    if (fp.vehicle >= 0) g.removePedFromVehicle(fugitive, true);
+                    g.notify("PALMERA BAIL BONDS", StrFormat("%s delivered alive. Benny wires $%lld.", f->name, won));
+                    return MS_PASSED;
+                }
+                break;
+            }
+        }
+        return MS_RUNNING;
+    }
+
+    void autotest(GameWorld& g, MissionTest& t) override {
+        float dt = g.dtLast;
+        switch (stage) {
+            case 0: if (t.stageTime > 0.5f) t.teleportNear(pedPos(g, fugitive).xy(), 20.f); break;
+            case 1:
+                if (t.stageTime > 2.f) {
+                    t.killEnemies();
+                    if (pedAlive(g, fugitive)) {
+                        g.peds[fugitive].health = g.peds[fugitive].maxHealth * 0.3f;
+                        if (g.peds[fugitive].vehicle >= 0) g.removePedFromVehicle(fugitive, true);
+                    }
+                }
+                break;
+            case 2:
+                if (g.playerVehicle() < 0 && t.stageTime > 0.3f) {
+                    int v = spawnCar(g, pickModel(g, {Vehicles::VC_SEDAN}), playerPos(g) + vec3(3, 0, 0), 0.f);
+                    t.enter(v);
+                }
+                if (g.playerVehicle() >= 0 && g.peds[fugitive].vehicle != g.playerVehicle()) g.warpPedIntoVehicle(fugitive, g.playerVehicle(), 1);
+                testGoal(g, t, dt);
+                break;
+            default: break;
+        }
+    }
+};
+
+// ------------------------------------------------------------------------------------------------------------------
 // Open world: stunt jumps (unique + freestyle) and the signal jammers
 struct StuntSpot {
     vec3 pos;
@@ -1128,6 +1414,7 @@ struct ActivitiesState {
     bool slowmo = false;
     int lastVehicle = -1;
     float blink = 0.f;
+    vec3 lastPos;            // vehicle position last frame (a teleport cancels the jump being tracked)
 };
 ActivitiesState gAct;
 
@@ -1545,6 +1832,17 @@ void updateStunts(GameWorld& g, float dt) {
     const Vehicles::VehicleState& s = g.vehicles[pv].sim;
     vec3 p = s.body.pos.toVec3();
     bool air = s.wheelsOnGround == 0 && !s.inWater;
+    bool teleported = ::length(p - gAct.lastPos) > Max(40.f, s.speed() * 0.5f);
+    gAct.lastPos = p;
+    if (teleported) {
+        // scripted placement (mission start, retry, test driver): not a jump
+        gAct.airborne = false;
+        if (gAct.slowmo) {
+            gAct.slowmo = false;
+            g.timeScale = 1.f;
+        }
+        return;
+    }
     if (air && !gAct.airborne) {
         gAct.airborne = true;
         gAct.airTime = 0.f;

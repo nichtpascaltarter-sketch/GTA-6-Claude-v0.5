@@ -121,6 +121,7 @@ void deriveTuning(VehicleState& s, const VehicleModel& m) {
     const float kSpring = 1.f + 0.15f * uS, kDamp = 1.f + 0.2f * uS, kArb = 1.f + 0.4f * uS;
     t.turbo = s.upgrades.turbo;
     t.rideDrop = 0.02f * uS;
+    t.brakeGrip = 1.f + 0.018f * uB;
     float massM = Max(m.mass, 20.f);
     float mass = massM + riderMass(m.cls);
     // collision box (fallback from the wheels when the model has none)
@@ -137,6 +138,16 @@ void deriveTuning(VehicleState& s, const VehicleModel& m) {
         t.boxH = vmax((mx - mn) * 0.5f, vec3(0.3f, 0.5f, 0.5f));
     }
     t.boxH = vmax(t.boxH, vec3(0.1f));
+    // two-wheelers: the model box reaches down to the tires; the collision box starts above the wheel hubs so ground
+    // slabs flush with the road (roof decks, kerb lips, rail beams) meet the wheels, not the frame
+    if (isBikeClass(m.cls) && !m.wheels.empty()) {
+        float zLo = t.boxC.z - t.boxH.z, zHi = t.boxC.z + t.boxH.z;
+        float want = m.wheels[0].pos.z;
+        if (zLo < want && zHi - want > 0.3f) {
+            t.boxC.z = 0.5f * (want + zHi);
+            t.boxH.z = 0.5f * (zHi - want);
+        }
+    }
     // center of mass (+ rider for single-track vehicles)
     t.com = m.centerOfMass;
     if (riderMass(m.cls) > 0.f) {
@@ -233,6 +244,24 @@ void deriveTuning(VehicleState& s, const VehicleModel& m) {
     }
     t.frontY = fy;
     t.rearY = ry;
+    // visual body motion: limits per class (stiffly sprung sports cars and heavy trucks lean less), pivot at the
+    // mid-wheelbase, wheel-centre height
+    {
+        float cap = 4.f;
+        switch (m.cls) {
+            case VC_SUV: case VC_VAN: case VC_PICKUP: case VC_SERVICE: case VC_AMBULANCE: cap = 6.f; break;
+            case VC_SPORTS: case VC_SUPER: cap = 2.5f; break;
+            case VC_BUS: case VC_TRUCK: case VC_FIRETRUCK: cap = 3.f; break;
+            case VC_MOTORBIKE: case VC_SCOOTER: case VC_BOAT: case VC_JETSKI: case VC_AIRBOAT: case VC_PLANE: case VC_HELI: cap = 0.f; break;
+            default: break;
+        }
+        if (nw < 3) cap = 0.f;
+        t.visRollCap = cap * kDegToRad;
+        t.visPitchCap = 0.75f * cap * kDegToRad;
+        float hz = 0.f;
+        for (int i = 0; i < nw; i++) hz += m.wheels[i].pos.z;
+        s.visPivot = vec3(0.f, 0.5f * (fy + ry), nw ? hz / nw : 0.3f);
+    }
     t.wheelbase = Max(fy - ry, 0.8f);
     t.track = trackN ? trackSum / trackN : 1.5f;
     t.maxSteer = cp.maxSteer;
@@ -416,7 +445,11 @@ void resetVehicle(VehicleState& s, dvec3 pos, float yaw) {
     s.gearDown = 1.f;
     s.lean = 0.f;
     s.leanCmd = 0.f;
+    s.ctlPitch = s.ctlRoll = s.ctlYaw = 0.f;
     s.driftTimer = 0.f;
+    s.visPitch = s.visRoll = s.visHeave = 0.f;
+    s.visPitchVel = s.visRollVel = s.visHeaveVel = 0.f;
+    s.visLaunchArmed = true;
     s.steerOut = 0.f;
     s.stall = 0.f;
     s.heliYawTarget = 0.f;

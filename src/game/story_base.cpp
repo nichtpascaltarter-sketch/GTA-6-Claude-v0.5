@@ -22,6 +22,8 @@ enum SideFlag : int {
     SIDE_BOAT_BAY, SIDE_BOAT_RIVER, SIDE_FLIGHT_1, SIDE_FLIGHT_2, SIDE_FLIGHT_3, SIDE_RANGE,
     SIDE_STUNTS_ALL, SIDE_JAMMERS_ALL, SIDE_BUSINESSES_ALL, SIDE_SAFEHOUSES_ALL, SIDE_OUTFITS,
     SIDE_TAXI_ALL, SIDE_VIGILANTE_ALL, SIDE_PARAMEDIC_ALL, SIDE_COURIER_ALL,
+    SIDE_BOUNTY_ALL,
+    SIDE_ROSA_1, SIDE_ROSA_2, SIDE_ROSA_3,
     SIDE_COUNT
 };
 
@@ -44,6 +46,8 @@ enum ExtFlag : int {
     EX_RACE_BEST = 200,             // 200..215: best times (centiseconds) per race
     EX_TAXI_FARES = 220, EX_TAXI_BEST, EX_COURIER_LEVEL, EX_VIGILANTE_LEVEL, EX_PARAMEDIC_LEVEL, EX_RANGE_BEST,
     EX_TAXI_EARNED = 226,
+    EX_BOUNTY_LEVEL = 227,          // next fugitive on the bail bonds list
+    EX_BOUNTY_ALIVE = 228,          // fugitives brought in alive
     EX_ENDING = 230,                // 1 broadcast, 2 leverage
     EX_HEIST_APPROACH = 231,        // 1 quiet, 2 loud
     EX_HEIST_TAKE = 232,            // thousands of dollars secured
@@ -52,6 +56,7 @@ enum ExtFlag : int {
     EX_INCOME_TOTAL = 244,          // business income received (hundreds of dollars)
     EX_LAST_PAYDAY = 245,
     EX_SWITCH_TIP = 246,
+    EX_WORLD_TEXTS = 247,           // bitmask of one-off open-world texts delivered (economy.cpp)
     EX_VEHICLE_PAINT = 260,         // 260..299: paint (packed RGB565) of owned vehicles by garage slot
     EX_VEHICLE_MODS = 384,          // 384..503: Tide Customs parts of owned vehicles, 3 ints per garage slot (see shops.cpp)
 };

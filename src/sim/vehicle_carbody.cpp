@@ -132,7 +132,8 @@ struct CarBody {
     Curve cBot, cSh, cCen, cRoof;
     std::vector<float> rows;
     // column layout
-    enum { NB = 3, NC = 2, NSA = 2, NSF = 1, NSC = 3, NST = 3, NSH = 4, NL = 1, NG1 = 2, NG2 = 2, NR = 3, NT = 6 };
+    // points per band (reduced for the distant levels of detail in setup())
+    int NB = 3, NC = 2, NSA = 2, NSF = 1, NSC = 3, NST = 3, NSH = 4, NL = 1, NG1 = 2, NG2 = 2, NR = 3, NT = 6;
     int pCor0 = 0, pSide0 = 0, jArch = 0, jFlare = 0, jChar = 0, pSh0 = 0, pLed0 = 0, pGh0 = 0, jSplit = 0, pRail0 = 0,
         pTop0 = 0, NP = 0;
     std::vector<u8> cellBand;
@@ -147,6 +148,8 @@ struct CarBody {
 
     // -------------------------------------------------------------------------------------------
     void setup() {
+        if (lodLevel() == 1) { NB = 2; NC = 1; NSA = 1; NSF = 1; NSC = 2; NST = 2; NSH = 2; NG1 = 1; NG2 = 1; NR = 2; NT = 3; }
+        else if (lodLevel() >= 2) { NB = 1; NC = 1; NSA = 1; NSF = 1; NSC = 1; NST = 1; NSH = 1; NG1 = 1; NG2 = 1; NR = 1; NT = 1; }
         yF = s.wb * 0.5f + s.foh;
         yR = -(s.wb * 0.5f + s.roh);
         yWf = s.wb * 0.5f;
@@ -338,16 +341,18 @@ struct CarBody {
     void buildRows() {
         std::vector<float> r;
         // plan rounding zones (superellipse angle spacing)
-        int nf = 11;
+        const int lod = lodLevel();
+        int nf = lod == 0 ? 11 : (lod == 1 ? 5 : 2);
         for (int i = 0; i <= nf; i++) {
             float th = kHalfPi * i / nf;
             r.push_back(yF - s.frontD + s.frontD * powf(sinf(th), 2.f / s.frontExp));
             r.push_back(yR + s.rearD - s.rearD * powf(sinf(th), 2.f / s.rearExp));
         }
         // nose / tail profile detail
-        for (int i = 1; i < 5; i++) {
-            r.push_back(lerp(yHF, yF, i / 5.f));
-            if (yTE > yR + 0.05f) r.push_back(lerp(yR, yTE, i / 5.f));
+        int nd = lod == 0 ? 5 : (lod == 1 ? 2 : 1);
+        for (int i = 1; i < nd; i++) {
+            r.push_back(lerp(yHF, yF, i / (float)nd));
+            if (yTE > yR + 0.05f) r.push_back(lerp(yR, yTE, i / (float)nd));
         }
         r.push_back(yHF);
         r.push_back(yTE);
@@ -355,26 +360,31 @@ struct CarBody {
         for (int a = 0; a < 2; a++) {
             if (!archOn(a)) continue;
             float yw = a == 0 ? yWf : yWr;
-            int na = 12;
+            int na = lod == 0 ? 12 : (lod == 1 ? 6 : 4);
             for (int i = 0; i <= na; i++) r.push_back(yw + Ra * cosf(kPi * i / na));
-            r.push_back(yw + Ra + s.flareW);
-            r.push_back(yw - Ra - s.flareW);
-            r.push_back(yw + Ra + s.flareW * 0.5f);
-            r.push_back(yw - Ra - s.flareW * 0.5f);
+            if (lod < 2) {
+                r.push_back(yw + Ra + s.flareW);
+                r.push_back(yw - Ra - s.flareW);
+                r.push_back(yw + Ra + s.flareW * 0.5f);
+                r.push_back(yw - Ra - s.flareW * 0.5f);
+            }
         }
-        // greenhouse stations
+        // greenhouse stations (far away only the main ones: pillars and window splits are sub-pixel there)
         float gh[] = {s.yCowl, s.yCowl + s.cowlLen, s.yRoofF, s.yRoofR, s.yDeck, s.dloFront, s.dloRearBot, s.dloRearTop,
                       s.bPillar - s.bPillarW * 0.5f, s.bPillar + s.bPillarW * 0.5f};
-        for (float g : gh) r.push_back(g);
-        if (s.cPillar > -99.f) { r.push_back(s.cPillar - s.cPillarW * 0.5f); r.push_back(s.cPillar + s.cPillarW * 0.5f); }
-        for (const vec2& pl : s.pillars) { r.push_back(pl.x - pl.y * 0.5f); r.push_back(pl.x + pl.y * 0.5f); }
-        for (int i = 1; i < 5; i++) {
-            r.push_back(lerp(s.yRoofF, s.yCowl, i / 5.f));
-            if (!s.openTop) r.push_back(lerp(s.yDeck, s.yRoofR, i / 5.f));
+        for (int k = 0; k < (int)(sizeof(gh) / sizeof(gh[0])); k++)
+            if (lod < 2 || k == 0 || k == 2 || k == 3 || k == 4) r.push_back(gh[k]);
+        if (s.cPillar > -99.f && lod < 2) { r.push_back(s.cPillar - s.cPillarW * 0.5f); r.push_back(s.cPillar + s.cPillarW * 0.5f); }
+        if (lod < 2)
+            for (const vec2& pl : s.pillars) { r.push_back(pl.x - pl.y * 0.5f); r.push_back(pl.x + pl.y * 0.5f); }
+        int ng = lod == 0 ? 5 : (lod == 1 ? 3 : 1);
+        for (int i = 1; i < ng; i++) {
+            r.push_back(lerp(s.yRoofF, s.yCowl, i / (float)ng));
+            if (!s.openTop) r.push_back(lerp(s.yDeck, s.yRoofR, i / (float)ng));
         }
-        if (s.dloRearTop != s.dloRearBot)
-            for (int i = 1; i < 4; i++) r.push_back(lerp(s.dloRearBot, s.dloRearTop, i / 4.f));
-        if (s.liveryDoors) { r.push_back(s.liveryY0); r.push_back(s.liveryY1); }
+        if (s.dloRearTop != s.dloRearBot && lod < 2)
+            for (int i = 1; i < (lod == 0 ? 4 : 2); i++) r.push_back(lerp(s.dloRearBot, s.dloRearTop, i / (lod == 0 ? 4.f : 2.f)));
+        if (s.liveryDoors && lod < 2) { r.push_back(s.liveryY0); r.push_back(s.liveryY1); }
         if (s.recDepth > 0.f) {
             r.push_back(s.recF + 0.004f); r.push_back(s.recF - 0.004f);
             r.push_back(s.recR + 0.004f); r.push_back(s.recR - 0.004f);
@@ -410,7 +420,7 @@ struct CarBody {
         std::vector<float> u;
         for (vec2 y : uu) u.push_back(y.x);
         rows.clear();
-        const float maxGap = 0.1f;
+        const float maxGap = lod == 0 ? 0.1f : (lod == 1 ? 0.24f : 0.7f);
         for (size_t i = 0; i < u.size(); i++) {
             if (i > 0) {
                 float g = u[i] - u[i - 1];
@@ -455,8 +465,8 @@ struct CarBody {
         float rbx = s.cornerR * sc, rsx = s.shRx * sc;
         // bottom
         float xbEnd = Max(W - s.tuLow * sc - rbx, 0.f);
-        float fr[NB + 1] = {0.f, 0.45f, 0.8f, 1.f};
-        for (int i = 0; i <= NB; i++) out[i] = vec3(xbEnd * fr[i], y, zb);
+        static const float kFr3[4] = {0.f, 0.45f, 0.8f, 1.f};
+        for (int i = 0; i <= NB; i++) out[i] = vec3(xbEnd * (NB == 3 ? kFr3[i] : (float)i / NB), y, zb);
         // corner
         for (int i = 0; i <= NC; i++) {
             float ph = kHalfPi * i / NC;
@@ -622,6 +632,8 @@ struct CarBody {
             float y0 = rows[i], y1 = rows[i + 1], yc = (y0 + y1) * 0.5f;
             float L = (rowL[i] + rowL[i + 1]) * 0.5f;
             float Lmin = Min(rowL[i], rowL[i + 1]), Lmax = Max(rowL[i], rowL[i + 1]);
+            // open tops: a coarse cell reaching from the cockpit recess up to the windscreen is still windscreen
+            if (s.openTop && yc > s.yRoofF && yc < s.yCowl && Lmax > 0.02f) Lmin = Max(Lmin, 0.f);
             for (int j = 0; j + 1 < NP; j++) {
                 u8& c = cls[i * (NP - 1) + j];
                 Band b = (Band)cellBand[j];
@@ -721,13 +733,15 @@ struct CarBody {
             bool front = s.doors < 4 || yc > s.bPillar;
             clarity = front ? 0.92f : (s.privacyGlass ? 0.38f : 0.88f);
         }
+        if (lodLevel() >= 2) clarity *= 0.35f;  // far away the glass mostly reflects (cabin is a plain block)
         return clarity < 0.5f ? col(0.78f, 0.82f, 0.82f, clarity) : col(0.87f, 0.95f, 0.92f, clarity);
     }
 
     // -------------------------------------------------------------------------------------------
     // Emit the right half of the shell (+ glass insets and seals), then arch wells. Caller mirrors.
     void emitShell(PMesh& m) {
-        const float inset = 0.011f;
+        // close-ups: glass inset behind the seals; distant levels have no seals, so the glass sits flush (no open step)
+        const float inset = lodLevel() >= 1 ? 0.f : 0.011f;
         m.newGroup(32.f);
         int NC1 = NP - 1;
         // shared vertex ids for outer surface
@@ -754,7 +768,11 @@ struct CarBody {
                 if (c == CC_GLASS) m.quad(GV(i, j), GV(i + 1, j), GV(i + 1, j + 1), GV(i, j + 1));
                 else m.quad(V(i, j), V(i + 1, j), V(i + 1, j + 1), V(i, j + 1));
             }
-        // glass seals: walls between glass cells and non-glass neighbours
+        // glass seals: walls between glass cells and non-glass neighbours (not needed away from close-ups)
+        if (lodLevel() >= 1) {
+            emitArches(m);
+            return;
+        }
         m.newGroup(30.f);
         m.use(MAT_PLASTIC, col(0.6f, 0.6f, 0.6f));
         auto isGlass = [&](int i, int j) {
@@ -826,7 +844,17 @@ struct CarBody {
             }
             m.newGroup(35.f);
             u8 lipMat = s.plasticArches ? MAT_PLASTIC : MAT_CARPAINT;
-            for (int k = 0; k + 1 < n; k++) {
+            for (int k = 0; k + 1 < n && lodLevel() >= 2; k++) {
+                // far away: one dark liner strip from the arch edge straight to the inner wall
+                vec3 ctr = (B[k] + B[k + 1] + I[k] + I[k + 1]) * 0.25f;
+                vec3 facing = vec3(0, wc.y, wc.z) - vec3(0, ctr.y, ctr.z);
+                if (length2(facing) < 1e-6f) facing = vec3(0, 0, -1);
+                m.use(MAT_PLASTIC, col(0.4f, 0.4f, 0.4f));
+                // double-sided: the coarse opening can reach above the strip, so its top is seen too
+                m.quadFacing(m.add(B[k]), m.add(B[k + 1]), m.add(I[k + 1]), m.add(I[k]), facing);
+                m.quadFacing(m.add(B[k]), m.add(B[k + 1]), m.add(I[k + 1]), m.add(I[k]), -facing);
+            }
+            for (int k = 0; k + 1 < n && lodLevel() < 2; k++) {
                 vec3 ctr = (B[k] + B[k + 1] + I[k] + I[k + 1]) * 0.25f;
                 vec3 facing = vec3(0, wc.y, wc.z) - vec3(0, ctr.y, ctr.z);
                 if (length2(facing) < 1e-6f) facing = vec3(0, 0, -1);

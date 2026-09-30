@@ -105,6 +105,63 @@ struct SkySystem {
 
 namespace UI { gfx::Texture buildSignAtlas(const std::vector<std::string>& names); }
 
+// Per-pass timing. GPU timestamp queries (--gputimers) are unreliable on software rasterizers, which execute
+// lazily; --synctimers additionally waits for the device to go idle at every pass boundary and measures wall
+// time, which gives trustworthy relative costs (at the price of a serialized, slower frame).
+namespace RenderPassTiming {
+struct Entry {
+    std::string name;
+    double ms = 0;
+};
+std::vector<Entry> entries;
+int index = 0, depth = 0;
+double startTime = 0;
+bool enabled = false, checked = false;
+bool skipFrame = false;   // camera-cut frames (histories reset, SSR off) are not representative: not accumulated
+ID3D11Query* idleQuery = nullptr;
+
+void waitIdle() {
+    if (!idleQuery) {
+        D3D11_QUERY_DESC qd = {D3D11_QUERY_EVENT, 0};
+        if (FAILED(gfx::dev->CreateQuery(&qd, &idleQuery))) return;
+    }
+    gfx::ctx->End(idleQuery);
+    BOOL done = FALSE;
+    while (gfx::ctx->GetData(idleQuery, &done, sizeof(done), 0) == S_FALSE) Sleep(0);
+}
+void begin(const char* name) {
+    gfx::gpuTimerBegin(name);
+    if (!checked) {
+        enabled = Platform::hasArg("synctimers");
+        checked = true;
+    }
+    if (!enabled || depth++ > 0) return;
+    waitIdle();
+    if (index >= (int)entries.size()) entries.push_back(Entry());
+    entries[index].name = name;
+    startTime = Platform::timeSeconds();
+}
+void end() {
+    gfx::gpuTimerEnd();
+    if (!enabled || --depth > 0) return;
+    waitIdle();
+    double ms = (Platform::timeSeconds() - startTime) * 1000.0;
+    Entry& e = entries[index++];
+    if (!skipFrame) e.ms = e.ms <= 0 ? ms : e.ms * 0.85 + ms * 0.15;
+}
+std::string report() {
+    std::string s;
+    double total = 0;
+    for (const Entry& e : entries) {
+        s += StrFormat("%-18s %8.2f ms\n", e.name.c_str(), e.ms);
+        total += e.ms;
+    }
+    s += StrFormat("%-18s %8.2f ms\n", "total", total);
+    return s;
+}
+void endFrame() { index = 0; }
+}  // namespace RenderPassTiming
+
 namespace Render {
 
 bool Renderer::init(int w, int h) {
@@ -205,7 +262,7 @@ void Renderer::createTargets() {
     hdrCopy = createTexture2D(width, height, DXGI_FORMAT_R16G16B16A16_FLOAT, TEX_SRV);
     reactive = createTexture2D(width, height, DXGI_FORMAT_R8_UNORM, TEX_RTV | TEX_SRV);
     depthCopy = createTexture2D(width, height, DXGI_FORMAT_R32_TYPELESS, TEX_SRV);
-    // Clouds placeholder: fully transparent layer (rgb 0, transmittance 1) until volumetric clouds run
+    // Cloud layer before the first cloud pass: fully transparent (rgb 0, transmittance 1)
     u16 half1 = 0x3C00;
     u16 cl[4] = {0, 0, 0, half1};
     cloudsTex = createTexture2D(1, 1, DXGI_FORMAT_R16G16B16A16_FLOAT, TEX_SRV, 1, 1, cl, 8);
@@ -347,6 +404,22 @@ void Renderer::updateFrameConstants(const Camera& cam, const Environment& env, f
     }
     urbanEnclosure = frameIndex == 0 ? urban : Lerp(urbanEnclosure, urban, Clamp(dt * 0.5f, 0.f, 1.f));
     f.ambientParams = vec4(urbanEnclosure, 0.f, 0.f, 0.f);
+    // Light pollution: city density at the camera and on a 2.5 km ring (the glow leans towards the denser side)
+    vec3 glow(0.f);
+    if (map) {
+        float center = World::regionInfo(map->regionAt((float)cam.pos.x, (float)cam.pos.y)).urban;
+        float ring = 0.f;
+        vec2 lean(0.f);
+        for (int k = 0; k < 8; k++) {
+            vec2 d(cosf(k * 0.7853982f), sinf(k * 0.7853982f));
+            float u = World::regionInfo(map->regionAt((float)(cam.pos.x + d.x * 2500.0), (float)(cam.pos.y + d.y * 2500.0))).urban;
+            ring += u * 0.125f;
+            lean += d * u * 0.25f;
+        }
+        glow = vec3(0.35f * center + 0.65f * ring, lean.x, lean.y);
+    }
+    cityGlow = frameIndex == 0 ? glow : lerp(cityGlow, glow, Clamp(dt * 0.3f, 0.f, 1.f));
+    f.skyGlow = vec4(cityGlow.x, cityGlow.y, cityGlow.z, nightFactor);
     frameCB.data = f;
     frameCB.upload();
 }
@@ -431,6 +504,7 @@ void Renderer::uploadInteriors() {
 
 void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     stats.reset();
+    RenderPassTiming::skipFrame = cameraCut;
     auto* c = gfx::ctx;
     updateFrameConstants(cam, env, dt);
     if (Platform::hasArg("fxdemo")) fxDemo(dt);
@@ -445,22 +519,22 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     frameCB.upload();
     bindFrame();
     dynamic->prepare(*this);
-    gfx::gpuTimerBegin("sky");
+    RenderPassTiming::begin("sky");
     sky->update(*this, frame.planetParams.w);
-    gfx::gpuTimerEnd();
+    RenderPassTiming::end();
     bindFrame();
     bindGlobals(*this, false);
 
     // Shadows
-    gfx::gpuTimerBegin("shadows");
+    RenderPassTiming::begin("shadows");
     shadows->render(*this);
-    gfx::gpuTimerEnd();
+    RenderPassTiming::end();
     bindFrame();
 
     // Reflection probe: one cube face per frame (full capture after camera cuts)
-    gfx::gpuTimerBegin("envprobe");
+    RenderPassTiming::begin("envprobe");
     bindGlobals(*this, true);
-    envProbe->update(*this);
+    envProbe->update(*this, env);
     bindFrame();
     frame.envProbe = envProbe->valid ? vec4(rel(envProbe->frontPos, cam.pos), (float)(envProbe->mips - 1)) : vec4(0.f);
     frame.ambientParams.z = envProbe->shValid ? 1.f : 0.f;
@@ -468,16 +542,16 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     frameCB.data = frame;
     frameCB.upload();
     bindGlobals(*this, false);
-    gfx::gpuTimerEnd();
+    RenderPassTiming::end();
 
     // Grass placement (GPU, from the terrain splat + overhead map)
-    gfx::gpuTimerBegin("grass place");
+    RenderPassTiming::begin("grass place");
     bindGlobals(*this, false);
     grass->place(*this, *terrain, dt);
-    gfx::gpuTimerEnd();
+    RenderPassTiming::end();
 
     // G-buffer
-    gfx::gpuTimerBegin("gbuffer");
+    RenderPassTiming::begin("gbuffer");
     float clear0[4] = {0, 0, 0, 0};
     c->ClearRenderTargetView(gbAlbedo.rtv, clear0);
     c->ClearRenderTargetView(gbNormal.rtv, clear0);
@@ -497,32 +571,32 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     props->drawGBuffer(*this, world->cells, materials);
     dynamic->drawGBuffer(*this);
     c->OMSetRenderTargets(0, nullptr, nullptr);
-    gfx::gpuTimerEnd();
+    RenderPassTiming::end();
 
     // Deferred decals + skid marks into the G-buffer
-    gfx::gpuTimerBegin("decals");
+    RenderPassTiming::begin("decals");
     decals->update(*this, dt);
     decals->render(*this);
-    gfx::gpuTimerEnd();
+    RenderPassTiming::end();
 
     // Screen-space inputs (depth pyramid, previous frame color pyramid) and AO / indirect diffuse
-    gfx::gpuTimerBegin("hiz+pyramid");
+    RenderPassTiming::begin("hiz+pyramid");
     ss->buildHiZ(*this);
     ss->buildColorPyramid(*this, post->finalSrv, post->historyValid && !cameraCut);
-    gfx::gpuTimerEnd();
-    gfx::gpuTimerBegin("ao+gi");
+    RenderPassTiming::end();
+    RenderPassTiming::begin("ao+gi");
     bindGlobals(*this, false);
     ID3D11ShaderResourceView* aoSrv = ao->run(*this, *ss);
-    gfx::gpuTimerEnd();
-    gfx::gpuTimerBegin("ssr");
+    RenderPassTiming::end();
+    RenderPassTiming::begin("ssr");
     ID3D11ShaderResourceView* ssrSrv = ssrSys->run(*this, *ss);
-    gfx::gpuTimerEnd();
+    RenderPassTiming::end();
     // Particles: emission (adds effect lights before the light gather) and GPU simulation / sort
-    gfx::gpuTimerBegin("particles sim");
+    RenderPassTiming::begin("particles sim");
     particles->updateCPU(*this, dt);
     bindGlobals(*this, false);
     particles->simulate(*this, dt);
-    gfx::gpuTimerEnd();
+    RenderPassTiming::end();
 
     // Local lights: static world lights + gameplay lights
     {
@@ -539,7 +613,7 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
             g.spotInner = dl.headlight ? 2.f : dl.spotInner;
             if (length(g.pos) < 400.f && fr.testSphere(g.pos, g.radius)) lightsFrame.push_back(g);
         }
-        world->gatherLights(cam.pos, nightFactor, env.gameSeconds, fr, lightsFrame, kMaxLights);
+        world->gatherLights(cam.pos, nightFactor, env.gameSeconds, env.timeOfDay, fr, lightsFrame, kMaxLights);
         if (!lightsFrame.empty()) gfx::updateBuffer(lightBuf, lightsFrame.data(), (u32)(lightsFrame.size() * sizeof(LightGPU)));
         lightCB.data.count = (u32)lightsFrame.size();
         uploadInteriors();   // interior volumes / portals + which volume each light belongs to (sets interiorCount)
@@ -548,17 +622,17 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
         dynamicLights.clear();
     }
     // Clouds (half resolution, before lighting composites them over the sky)
-    gfx::gpuTimerBegin("clouds");
+    RenderPassTiming::begin("clouds");
     bindGlobals(*this, false);
     if (settings.clouds) clouds->update(*this, env, dt, ss->hiz.srv);
-    gfx::gpuTimerEnd();
+    RenderPassTiming::end();
     // Volumetric fog (needs the light list, shadow maps and the cloud shadow map)
-    gfx::gpuTimerBegin("fog");
+    RenderPassTiming::begin("fog");
     bindGlobals(*this, true);
     fog->run(*this, env, dt);
-    gfx::gpuTimerEnd();
+    RenderPassTiming::end();
     // Lighting
-    gfx::gpuTimerBegin("lighting");
+    RenderPassTiming::begin("lighting");
     bindGlobals(*this, true);
     ID3D11Buffer* scb[] = {shadowCB.get()};
     c->CSSetConstantBuffers(3, 1, scb);
@@ -573,10 +647,10 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     c->CSSetShader(csLighting, nullptr, 0);
     c->Dispatch(gfx::divUp(width, 16), gfx::divUp(height, 16), 1);
     gfx::unbindCSResources(14, 1);
-    gfx::gpuTimerEnd();
+    RenderPassTiming::end();
 
     // Water (forward, reads copies of the lit scene and depth)
-    gfx::gpuTimerBegin("water");
+    RenderPassTiming::begin("water");
     c->CopyResource(hdrCopy.res, hdr.res);
     c->CopyResource(depthCopy.res, depth.res);
     c->OMSetRenderTargets(1, &hdr.rtv, depth.dsv);
@@ -584,31 +658,31 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     c->OMSetDepthStencilState(gfx::states.depthGreaterWrite, 0);
     water->draw(*this, *terrain, hdrCopy.srv, depthCopy.srv, env.wind, ss->hiz.srv, ss->hizMips);
     c->OMSetRenderTargets(0, nullptr, nullptr);
-    gfx::gpuTimerEnd();
+    RenderPassTiming::end();
 
     // Vehicle windows (forward, premultiplied over the lit cabins; depth test without write)
-    gfx::gpuTimerBegin("glass");
+    RenderPassTiming::begin("glass");
     c->OMSetRenderTargets(1, &hdr.rtv, depth.dsv);
     gfx::setViewport((float)width, (float)height);
     dynamic->drawGlass(*this);
     c->OMSetRenderTargets(0, nullptr, nullptr);
-    gfx::gpuTimerEnd();
+    RenderPassTiming::end();
 
     // Particles (sorted, soft, lit), rain and lightning; both write the TAA reactive mask
-    gfx::gpuTimerBegin("particles");
+    RenderPassTiming::begin("particles");
     float zero4[4] = {0, 0, 0, 0};
     c->ClearRenderTargetView(reactive.rtv, zero4);
     particles->draw(*this, reactive.rtv, weather->blend);
-    gfx::gpuTimerEnd();
-    gfx::gpuTimerBegin("rain");
+    RenderPassTiming::end();
+    RenderPassTiming::begin("rain");
     weather->draw(*this, env, reactive.rtv);
-    gfx::gpuTimerEnd();
+    RenderPassTiming::end();
 
     // Post
     unbindGlobals();
-    gfx::gpuTimerBegin("post");
+    RenderPassTiming::begin("post");
     post->render(*this, dt);
-    gfx::gpuTimerEnd();
+    RenderPassTiming::end();
 
     prevCamPos = cam.pos;
     prevViewProjNoJitter = viewProjNoJitter;
@@ -617,7 +691,9 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     dynamic->endFrame();
     frameIndex++;
     cameraCut = false;
+    RenderPassTiming::endFrame();
     if ((frameIndex % 30) == 0 && Platform::hasArg("gputimers")) LOG("GPU timers (frame %u):\n%s", frameIndex, gfx::gpuTimerReport().c_str());
+    if ((frameIndex % 30) == 0 && RenderPassTiming::enabled) LOG("Pass timings, device idle at boundaries (frame %u, %dx%d):\n%s", frameIndex, width, height, RenderPassTiming::report().c_str());
 }
 
 }  // namespace Render

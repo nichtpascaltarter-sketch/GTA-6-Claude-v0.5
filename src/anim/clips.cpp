@@ -807,7 +807,10 @@ static const ClipInfo kClipInfo[CLIP_COUNT] = {
 static const int kExtraCount = IC_END - CLIP_COUNT;
 static const ClipInfo kExtraInfo[kExtraCount] = {
     {"rifle_carry", 2.0f, true, 0.f}, {"guard", 1.2f, true, 0.f},     {"guard_knife", 1.4f, true, 0.f},
-    {"guard_bat", 1.6f, true, 0.f},   {"block_bat", 1.5f, true, 0.f},
+    {"guard_bat", 1.6f, true, 0.f},   {"block_bat", 1.5f, true, 0.f},  {"idle_crossarms", 5.0f, true, 0.f},
+    {"idle_pockets", 5.0f, true, 0.f}, {"idle_hip", 6.0f, true, 0.f},  {"idle_phone", 6.0f, true, 0.f},
+    {"idle_stretch", 4.0f, true, 0.f}, {"dance2", 2.0f, true, 0.f},    {"dance3", 1.0f, true, 0.f},
+    {"dance4", 2.0f, true, 0.f},      {"sit_ground", 6.0f, true, 0.f}, {"lie_front", 6.0f, true, 0.f},
 };
 static const ClipInfo& infoOf(int id) { return id < CLIP_COUNT ? kClipInfo[id] : kExtraInfo[id - CLIP_COUNT]; }
 
@@ -2935,6 +2938,190 @@ float batGrip(int clip, float t, float& dist, bool& reversed) {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
+// Ambient variety: idle variations, dance styles, ground poses (internal clips, see anim_internal.h)
+
+static void clipAmbient(const AuthorCtx& A, int id, float t, Rig& r) {
+    const float s = A.D.s;
+    const float dur = infoOf(id).duration, u = t / dur;
+    const float br = sinf(kTwoPi * u * (dur / 2.f));   // ~2 s breathing
+    const float sw = sinf(kTwoPi * u);                   // slow sway over the loop
+    switch (id) {
+        case IC_IDLE_CROSSARMS: {
+            clipIdle(A, t, dur, r, false);
+            r.spinePitch = -0.02f + 0.012f * br;
+            r.headRoll = 0.04f * sw;
+            r.headPitch = 0.04f;
+            vec3 c = bonePos(A, r, B_CHEST);
+            // forearms folded across the chest: the left hand tucked under the right upper arm, the right over the left
+            armIK(r.arm[0], c + vec3(0.13f, 0.15f, -0.06f + 0.003f * br) * s, vec3(-1.f, -0.3f, -0.6f), 0.55f);
+            armIK(r.arm[1], c + vec3(-0.12f, 0.19f, -0.02f + 0.003f * br) * s, vec3(1.f, -0.3f, -0.6f), 0.4f);
+            r.arm[0].orient = r.arm[1].orient = true;
+            r.arm[0].handRot = handFrame(A, 0, vec3(1.f, 0.1f, 0.05f), vec3(0.f, -1.f, 0.1f));
+            r.arm[1].handRot = handFrame(A, 1, vec3(-1.f, 0.05f, -0.1f), vec3(0.f, -1.f, -0.2f));
+            r.arm[0].clavFwd = r.arm[1].clavFwd = 0.06f;
+            break;
+        }
+        case IC_IDLE_POCKETS: {
+            clipIdle(A, t, dur, r, false);
+            r.spinePitch = 0.02f * br;
+            r.headYaw = 0.1f * sw;
+            for (int sd = 0; sd < 2; sd++) {
+                float sx = sd ? 1.f : -1.f;
+                vec3 hip = A.hip[sd];
+                // hands slid into the front pockets, thumbs out, elbows relaxed back
+                armIK(r.arm[sd], vec3(hip.x + sx * 0.035f * s, hip.y + 0.07f * s, hip.z + 0.02f * s), vec3(sx * 0.6f, -1.f, 0.1f), 0.5f);
+                r.arm[sd].orient = true;
+                r.arm[sd].handRot = handFrame(A, sd, vec3(-sx * 0.2f, 0.3f, -1.f), vec3(-sx * 0.8f, -0.2f, 0.f));
+                r.arm[sd].thumb = 0.1f;
+            }
+            break;
+        }
+        case IC_IDLE_HIP: {
+            // weight on the right leg, hip out, the left knee relaxed forward, right hand on the hip
+            standPose(A, r);
+            r.pelvis = vec3(0.035f * s, 0.f, -0.012f * s);
+            r.pelvisRoll = -0.07f;
+            r.pelvisYaw = 0.05f * sw;
+            r.spineRoll = 0.09f;
+            r.headRoll = -0.04f + 0.03f * sw;
+            r.spinePitch = 0.012f * br;
+            setFootFlat(A, r.leg[1], vec3(A.ankle[1].x + 0.01f * s, 0.f, 0.f), 0.25f);
+            setFootToes(A, r.leg[0], A.ankle[0].x - 0.02f * s, 0.07f * s + A.ballFwd, -0.25f, -0.2f);
+            r.leg[0].knee = normalize(vec3(0.3f, 1.f, 0.f));
+            vec3 hipR = A.hip[1];
+            armIK(r.arm[1], vec3(hipR.x + 0.075f * s, hipR.y + 0.015f * s, hipR.z + 0.1f * s), vec3(1.f, -0.4f, 0.f), 0.3f);
+            r.arm[1].orient = true;
+            r.arm[1].handRot = handFrame(A, 1, vec3(-0.35f, 0.5f, -0.8f), vec3(-1.f, 0.f, 0.2f));
+            armFK(r.arm[0], 0, 0.05f + 0.02f * sw, 0.12f, 0.25f, 0.2f, 0.4f);
+            break;
+        }
+        case IC_IDLE_PHONE: {
+            // glancing at a phone held low in both hands, thumb scrolling
+            clipIdle(A, t, dur, r, false);
+            r.spinePitch = 0.1f;
+            r.neckPitch = 0.2f;
+            r.headPitch = 0.3f + 0.03f * sinf(kTwoPi * u * 3.f);
+            vec3 c = bonePos(A, r, B_CHEST);
+            vec3 ph = c + vec3(0.02f * s, 0.27f * s, -0.19f * s);
+            float scroll = sinf(kTwoPi * u * 6.f);
+            armIK(r.arm[1], ph + vec3(0.045f, -0.06f, -0.02f) * s, vec3(1.f, -0.5f, -0.6f), 0.55f);
+            armIK(r.arm[0], ph + vec3(-0.045f, -0.06f, -0.025f) * s, vec3(-1.f, -0.5f, -0.6f), 0.6f);
+            r.arm[1].orient = r.arm[0].orient = true;
+            r.arm[1].handRot = handFrame(A, 1, vec3(-0.3f, 0.8f, 0.4f), vec3(-0.5f, 0.1f, 0.85f));
+            r.arm[0].handRot = handFrame(A, 0, vec3(0.3f, 0.8f, 0.4f), vec3(0.5f, 0.1f, 0.85f));
+            r.arm[1].thumb = 0.3f + 0.25f * scroll;
+            break;
+        }
+        case IC_IDLE_STRETCH: {
+            // neck roll and a shoulder shrug
+            clipIdle(A, t, dur, r, false);
+            float a = kTwoPi * u;
+            r.headRoll = 0.22f * sinf(a);
+            r.headPitch = 0.1f + 0.15f * cosf(a);
+            r.neckRoll = 0.1f * sinf(a);
+            float shrug = sstep(0.55f, 0.7f, u) * (1.f - sstep(0.8f, 0.95f, u));
+            r.arm[0].clavUp = r.arm[1].clavUp = 0.25f * shrug;
+            r.spinePitch = -0.05f * shrug;
+            break;
+        }
+        case IC_DANCE2: {
+            // side-step groove: steps left and right on the beat, arms swinging across
+            standPose(A, r);
+            float beat = t * 2.f;
+            float step = sinf(kPi * beat);          // one side per beat
+            float bounce = fabsf(sinf(kPi * beat));
+            r.pelvis = vec3(0.07f * step * s, 0.f, -0.04f * s - 0.03f * s * bounce);
+            r.pelvisRoll = -0.1f * step;
+            r.spineRoll = 0.12f * step;
+            r.spineYaw = 0.15f * step;
+            r.headRoll = -0.06f * step;
+            for (int sd = 0; sd < 2; sd++) {
+                float sx = sd ? 1.f : -1.f;
+                float lift = Max(0.f, sx * step);   // the leg on the far side lifts as the weight moves
+                r.leg[sd].ankle = vec3(A.ankle[sd].x + sx * 0.08f * s + 0.05f * step * s, 0.f, A.footH + 0.05f * s * lift * lift);
+                r.leg[sd].knee = normalize(vec3(sx * 0.25f, 1.f, 0.f));
+                armFK(r.arm[sd], sd, 0.5f + 0.3f * sx * step, 0.25f, 1.5f, 0.5f, 0.6f);
+            }
+            break;
+        }
+        case IC_DANCE3: {
+            // club bounce with hands up, fast (one beat per 0.5 s)
+            standPose(A, r);
+            float b = sinf(kTwoPi * t * 2.f);
+            float bb = 0.5f + 0.5f * b;
+            r.pelvis = vec3(0.f, 0.f, -0.05f * s - 0.05f * s * bb);
+            r.spinePitch = 0.08f * bb;
+            r.headPitch = 0.15f * bb - 0.05f;
+            for (int sd = 0; sd < 2; sd++) {
+                float sx = sd ? 1.f : -1.f;
+                setFootFlat(A, r.leg[sd], vec3(A.ankle[sd].x + sx * 0.06f * s, 0.f, 0.f), -sx * 0.15f);
+                r.leg[sd].knee = normalize(vec3(sx * 0.3f, 1.f, 0.f));
+                vec3 sh = A.gh[sd];
+                armIK(r.arm[sd], sh + vec3(sx * 0.12f, 0.12f, 0.42f + 0.05f * b) * s, vec3(sx, -0.3f, -0.5f), 0.5f + 0.4f * bb);
+                r.arm[sd].orient = true;
+                r.arm[sd].handRot = handFrame(A, sd, vec3(sx * 0.1f, 0.2f, 1.f), vec3(0.f, 1.f, 0.f));
+            }
+            break;
+        }
+        case IC_DANCE4: {
+            // slow hip sway, arms low and loose
+            standPose(A, r);
+            float half = sinf(kTwoPi * t * 0.5f);
+            float b = sinf(kTwoPi * t);
+            r.pelvis = vec3(0.05f * half * s, 0.f, -0.03f * s - 0.015f * s * (0.5f + 0.5f * b));
+            r.pelvisRoll = 0.14f * half;
+            r.pelvisYaw = 0.1f * b;
+            r.spineRoll = -0.12f * half;
+            r.headRoll = 0.07f * half;
+            r.headYaw = -0.08f * b;
+            for (int sd = 0; sd < 2; sd++) {
+                float sx = sd ? 1.f : -1.f;
+                setFootFlat(A, r.leg[sd], vec3(A.ankle[sd].x + sx * 0.04f * s, 0.f, 0.f), -sx * 0.18f);
+                r.leg[sd].knee = normalize(vec3(sx * 0.3f, 1.f, 0.f));
+                armFK(r.arm[sd], sd, 0.3f + 0.2f * sinf(kTwoPi * t * 0.5f + sd * 1.3f), 0.25f, 0.9f + 0.3f * b, 0.4f, 0.5f);
+            }
+            break;
+        }
+        case IC_SIT_GROUND: {
+            // on a towel: pelvis on the ground, knees up, leaning back on straight arms
+            r = Rig();
+            r.pelvisPitch = -0.55f;
+            placeHips(A, r, vec3(0.f, 0.f, 0.1f * s));
+            r.spinePitch = 0.25f + 0.01f * br;
+            r.headPitch = -0.15f + 0.05f * sw;
+            r.headYaw = 0.2f * sinf(kTwoPi * u * 0.5f);
+            for (int sd = 0; sd < 2; sd++) {
+                float sx = sd ? 1.f : -1.f;
+                setFootFlat(A, r.leg[sd], vec3(A.hip[sd].x + sx * 0.08f * s, 0.46f * s, 0.f), -sx * 0.2f);
+                r.leg[sd].knee = normalize(vec3(sx * 0.3f, 0.3f, 1.f));
+                armIK(r.arm[sd], vec3(sx * 0.2f * s, -0.26f * s, 0.035f * s), vec3(sx * 0.4f, 0.8f, 0.f), 0.2f);
+                r.arm[sd].orient = true;
+                r.arm[sd].handRot = handFrame(A, sd, vec3(sx * 0.2f, -1.f, -0.1f), vec3(0.f, 0.f, -1.f));
+            }
+            break;
+        }
+        default: {   // IC_LIE_FRONT: face down on a towel, head turned on the folded forearms
+            lyingPose(A, r, false, 0.5f, 0.f);
+            r.headYaw = 1.0f;
+            r.headPitch = -0.1f;
+            r.neckPitch = -0.15f;
+            r.spinePitch += 0.008f * br;
+            for (int sd = 0; sd < 2; sd++) {
+                float sx = sd ? 1.f : -1.f;
+                ArmCtl& a = r.arm[sd];
+                a.ik = false;
+                a.dir = normalize(vec3(sx * 0.8f, 0.45f, 0.2f));
+                a.pole = normalize(vec3(sx * 0.3f, 0.2f, -1.f));
+                a.elbow = 1.9f;
+                a.twist = 0.9f;
+                a.fingers = 0.4f;
+            }
+            break;
+        }
+    }
+}
+
 // Rifle held at the low ready while not aiming (arms only; used as an arm layer by the animator).
 static void rifleCarryPose(const AuthorCtx& A, float t, Rig& r) {
     standPose(A, r);
@@ -2956,6 +3143,8 @@ static void authorClip(const AuthorCtx& A, int id, float t, Rig& r) {
         switch (id) {
             case IC_RIFLE_CARRY: rifleCarryPose(A, t, r); break;
             case IC_GUARD: case IC_GUARD_KNIFE: case IC_GUARD_BAT: case IC_BLOCK_BAT: clipGuardLoop(A, id, t, r); break;
+            case IC_IDLE_CROSSARMS: case IC_IDLE_POCKETS: case IC_IDLE_HIP: case IC_IDLE_PHONE: case IC_IDLE_STRETCH: case IC_DANCE2:
+            case IC_DANCE3: case IC_DANCE4: case IC_SIT_GROUND: case IC_LIE_FRONT: clipAmbient(A, id, t, r); break;
             default: standPose(A, r); break;
         }
         return;
@@ -3053,6 +3242,8 @@ static bool styleDependent(int c) {
     switch (c) {
         case CLIP_IDLE: case CLIP_IDLE_LOOK: case CLIP_WALK: case CLIP_JOG: case CLIP_RUN: case CLIP_SPRINT: case CLIP_WALK_BACK:
         case CLIP_STRAFE_L: case CLIP_STRAFE_R: case CLIP_TALK: case CLIP_TALK_PHONE: case CLIP_SMOKE: case CLIP_DANCE: case CLIP_FLEE:
+        case IC_IDLE_CROSSARMS: case IC_IDLE_POCKETS: case IC_IDLE_HIP: case IC_IDLE_PHONE: case IC_IDLE_STRETCH: case IC_DANCE2:
+        case IC_DANCE3: case IC_DANCE4:
             return true;
         default: return false;
     }

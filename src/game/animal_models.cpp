@@ -748,7 +748,7 @@ void buildBirdMesh(int sp, int var, const Skel& sk, const BirdSpec& B, int lod, 
     BirdLod L;
     if (lod == 0) L = {16, 16, 26, 12, 14, 8, 6, 6, 6, 6, true, true, true, true, true, true};
     else if (lod == 1) L = {7, 7, 10, 5, 6, 4, 3, 4, 3, 3, false, false, false, longLegs, true, true};
-    else L = {5, 4, 6, 3, 4, 3, 2, 3, 3, 2, false, false, false, longLegs, false, true};
+    else L = {5, 4, 6, 3, 4, 4, 2, 4, 3, 2, false, false, false, longLegs, false, true};
     auto paint = [&](int part, float s, float chord, bool upper, float th, vec3 p, VAttr& a) {
         BirdPaintIn in;
         in.part = part;

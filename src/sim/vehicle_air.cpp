@@ -59,6 +59,7 @@ struct HalfLoft {
     // Cabin lining seen through the see-through windows: inward copy of every non-glass cell between y0 and y1
     // (offset towards the section axis) plus double-sided bulkheads closing both ends. Call after build().
     void innerShell(PMesh& m, float y0, float y1, float off, u8 mat, u32 color) {
+        // every level: the lining keeps the see-through windows from showing the sky through the fuselage
         int nr = (int)rows.size();
         auto inner = [&](int i, int j) {
             vec3 g = G[i * NS + j];
@@ -129,6 +130,7 @@ struct HalfLoft {
 
 // Cambered airfoil (NACA-like) outline in (chord 0..1, thickness), CCW from the trailing edge along the top.
 inline std::vector<vec2> airfoil(float th, float camber, int n) {
+    n = lodSeg(n, 3);
     std::vector<vec2> up, lo;
     for (int i = 0; i <= n; i++) {
         float x = 0.5f - 0.5f * cosf(kPi * i / n);  // cosine spacing
@@ -195,7 +197,7 @@ inline void mdlTern(VehicleModel& o) {
     ex.add(-6.55f, 2.0f).add(-1.85f, 2.6f).add(0.55f, 2.8f).add(1.46f, 2.1f).build();
     HalfLoft fl;
     fl.NS = 13;
-    for (float y = -6.55f; y <= 1.461f; y += 0.12f) fl.rows.push_back(Min(y, 1.46f));
+    for (float y = -6.55f; y <= 1.461f; y += (lodLevel() == 0 ? 0.12f : (lodLevel() == 1 ? 0.3f : 0.75f))) fl.rows.push_back(Min(y, 1.46f));
     fl.rows.push_back(1.46f);
     fl.capFirst = fl.capLast = true;
     const float winY[] = {0.55f, 0.02f, -0.02f, -0.85f, -0.95f, -1.75f};
@@ -441,7 +443,7 @@ inline void heliBuild(VehicleModel& o, bool police) {
     ex.add(-1.55f, 2.4f).add(-1.3f, 2.6f).add(0.2f, 3.0f).add(1.2f, 2.4f).add(1.93f, 2.0f).build();
     HalfLoft fl;
     fl.NS = 15;
-    for (float y = -1.55f; y <= 1.931f; y += 0.1f) fl.rows.push_back(Min(y, 1.93f));
+    for (float y = -1.55f; y <= 1.931f; y += (lodLevel() == 0 ? 0.1f : (lodLevel() == 1 ? 0.25f : 0.6f))) fl.rows.push_back(Min(y, 1.93f));
     fl.rows.push_back(1.93f);
     fl.capFirst = fl.capLast = true;
     fl.rows.push_back(0.85f);

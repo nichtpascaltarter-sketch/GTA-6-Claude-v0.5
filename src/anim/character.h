@@ -19,6 +19,7 @@ enum Bone : u8 {
     B_JAW, B_EYE_L, B_EYE_R,
     // speech / expression (no physics): lips and tongue, driven by the visemes (AnimInput::viseme*)
     B_LIP_UPPER, B_LIP_LOWER, B_LIP_CORNER_L, B_LIP_CORNER_R, B_TONGUE,
+    B_BROW_L, B_BROW_R,   // eyebrows (raise / knit), with the forehead skin under them
     B_COUNT
 };
 
@@ -58,6 +59,11 @@ struct CharacterDesc {
 CharacterDesc randomCharacter(u32 seed, int role = 0);
 void buildSkeleton(const CharacterDesc& d, Skeleton& out);
 void buildCharacterMesh(const CharacterDesc& d, const Skeleton& skel, SkinnedMeshData& out);
+// Level-of-detail meshes on the same skeleton and skin weights (same silhouette and colours): out[0] full detail
+// (~14-18k tris, close), out[1] ~4.5k tris (about 15-40 m), out[2] ~1.5k tris (40 m+, no lashes/brows/mouth interior
+// or small accessories). lodCount 1..3; building them together costs one full build plus the decimation.
+void buildCharacterMeshLods(const CharacterDesc& d, const Skeleton& skel, SkinnedMeshData* out, int lodCount = 3);
+void buildCharacterMeshLod(const CharacterDesc& d, const Skeleton& skel, int lod, SkinnedMeshData& out);
 
 enum Clip : u16 {
     CLIP_IDLE = 0, CLIP_IDLE_LOOK, CLIP_WALK, CLIP_JOG, CLIP_RUN, CLIP_SPRINT, CLIP_WALK_BACK, CLIP_STRAFE_L, CLIP_STRAFE_R,
@@ -124,7 +130,8 @@ struct AnimInput {
     int stance = 0;           // 0 normal, 1 driving, 2 passenger, 3 bike, 4 cower, 5 hands up, 6 sit, 7 talk, 8 phone, 9 dance, ...
                               // 10 smoke, 11 lean on wall, 12 sunbathe, 13 jog in place, 14 look around, 15 wave, 16 cheer,
                               // 17 point, 18 crouch, 19 fighting guard, 20 blocking guard (19/20: guard of meleeKind; the
-                              // upper body stays in guard while the legs walk / strafe)
+                              // upper body stays in guard while the legs walk / strafe), 21 sit on the ground (beach towel),
+                              // 22 lie face down (sunbathing), 23 wait in a queue (idle variations come more often)
     float groundOffsetL = 0, groundOffsetR = 0;  // foot IK height offsets from terrain probes (m)
     // optional (defaults keep the automatic behaviour)
     int meleeKind = 0;        // melee weapon in hand for the fighting guards: 0 fists, 1 knife, 2 bat (two-handed)
@@ -137,6 +144,20 @@ struct AnimInput {
     float visemeWeight = 0;
     int visemeNext = -1;
     float visemeBlend = 0;
+    // facial expression: -1 automatic (pain on hits, fear when cowering, anger in fights, smiles when dancing /
+    // cheering, a per-ped resting mood), 0 neutral, 1 smile, 2 sad, 3 angry, 4 fear, 5 surprise, 6 pain
+    int expression = -1;
+    float expressionWeight = 1;
+    float brow = 0;           // eyebrow pulse on top of the expression: + raise (stressed words, questions) .. - knit
+    float nod = 0;            // head nod pulse 0..1 (chin down) on stressed words / agreement
+    // conversation body language (standing or walking; ignored during actions, aiming, fights, vehicles, scenarios)
+    bool speaking = false;    // talking: hands come up into gestures (palm-up explaining one / both hands, beat-ready),
+                              // head tilts between phrases, weight on one hip now and then
+    float beat = 0;           // beat gesture pulse 0..1 (accent envelope): a short down-stroke of the gesturing hand(s)
+    float gestureAmount = 1;  // how animated: 0 still .. 1 normal .. 1.5 heated
+    bool listening = false;   // listener: crossed arms / hand on hip / hands in pockets, occasional nods, head tilts
+                              // (turn it to the speaker with lookAt / lookWeight)
+    bool phoneCall = false;   // phone held to the right ear (standing or walking), the left arm stays free / gestures
     vec3 groundNormal = vec3(0, 0, 1);  // terrain normal under the ped in its model space (feet align to slopes)
 };
 
@@ -166,9 +187,21 @@ struct Animator {
     float gripW = 0.f, gripD = 0.f;   // two-handed bat grip: left hand IK weight, left grip distance along the bat
     float actYaw0 = 0.f;          // pelvis yaw of the action's first frame (upper-body actions keep the hip turn)
     float mouth[6] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f};   // smoothed viseme shape (jaw, lips, corners, tongue)
+    float exprS[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};   // smoothed expression (jaw, lips, corners, lids, brows)
+    float browS = 0.f, nodS = 0.f;
+    int idleVar = -1, idleCount = 0;   // idle variation playing (internal clip id) while standing around
+    float idleVarT = 0.f, idleVarDur = 0.f, idleNext = 4.f, idleVarW = 0.f;
+    // conversation layer state
+    int gestMode = 0;
+    float gestT = 0.f, gestDur = 0.f, gestR = 0.f, gestL = 0.f, palmR = 0.f, palmL = 0.f, beatS = 0.f, phoneW = 0.f;
+    float tiltS = 0.f, tiltTarget = 0.f, tiltNext = 0.f, nodNext = 3.f, nodPhase = -1.f, autoNod = 0.f;
+    void conversation(const AnimInput& in, float dt, Pose& p);   // internal: gestures, listener cues, phone at the ear
     Pose snap;                    // pose captured at a discontinuity (crossfaded out over 1/snapRate s)
     void init(const Skeleton* s, u32 variationSeed);
-    void update(const AnimInput& in, float dt);
+    void update(const AnimInput& in, float dt) { update(in, dt, false); }
+    // cheap = distant peds (LOD2): no foot / hand IK, no two-handed grip fix-up, no face (blinks, gaze, look-at,
+    // visemes); the body layers, actions and crossfades still run. Can also be called at a reduced rate.
+    void update(const AnimInput& in, float dt, bool cheap);
     // Crossfade from an externally produced pose (e.g. the ragdoll when a get-up starts) over `seconds`.
     void blendFrom(const Pose& from, float seconds);
     void faceOverlay(const AnimInput& in, float dt);   // internal: look-at, gaze, blinks, jaw (called by update)

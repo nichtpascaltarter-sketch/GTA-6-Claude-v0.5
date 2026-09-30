@@ -21,6 +21,35 @@ void GameWorld::fillHud(UI::HudState& h, float dt) {
     h = UI::HudState();
     h.rendererScreenFx = true;   // updatePostFx grades the frame (vignettes, Focus, wheel blur, wasted/busted)
     if (!pl) return;
+    // lock-on marker: melee lock (aim held with fists / knife / bat) or the controller's soft lock with a gun
+    {
+        int lt = -1;
+        bool melee = false;
+        if (weaponInfo(pl->weapon).clipSize == 0 && ctl.aim.down && pl->meleeTarget >= 0) {
+            lt = pl->meleeTarget;
+            melee = true;
+        } else if (pl->aiming && player_detail::gLockTarget >= 0) {
+            lt = player_detail::gLockTarget;
+        }
+        if (lt >= 0 && lt < (int)peds.size() && peds[lt].used && peds[lt].health > 0.f && peds[lt].state != PS_DEAD) {
+            const Ped& t = peds[lt];
+            vec3 rp = rel(dvec3(pedHeadPos(t) + vec3(0.f, 0.f, 0.3f)), renderCam.pos);
+            vec3 vp = transformPoint(renderCam.viewRel(), rp);   // view space, camera looks down -Z
+            float W = (float)gfx::backbufferWidth(), H = (float)gfx::backbufferHeight();
+            if (vp.z < -0.2f && W > 0.f && H > 0.f) {
+                float f = 1.f / tanf(renderCam.fovY * 0.5f), aspect = W / H;
+                float sx = vp.x * f / aspect / -vp.z, sy = vp.y * f / -vp.z;
+                if (fabsf(sx) < 1.1f && fabsf(sy) < 1.1f) {
+                    h.lockOn = true;
+                    h.lockScreen = vec2((sx * 0.5f + 0.5f) * W, (0.5f - sy * 0.5f) * H);
+                    h.lockHealth = Saturate(t.health / Max(t.maxHealth, 1.f));
+                    h.lockHostile = t.faction == FAC_ENEMY || t.meleeTarget == player || (t.brain.type == BRAIN_COMBAT && t.brain.target == player) ||
+                                    (t.faction == FAC_POLICE && pinfo.wanted > 0);
+                    h.lockMelee = melee;
+                }
+            }
+        }
+    }
     vec3 pp = pl->pos.toVec3();
     h.playerPos = pp.xy();
     h.playerZ = pp.z;

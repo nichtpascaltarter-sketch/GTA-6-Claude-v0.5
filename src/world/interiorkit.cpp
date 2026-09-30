@@ -862,19 +862,21 @@ void pendant(IB& b, vec3 top, float drop, int room, u32 shadeCol, float cd = 220
 
 // ------------------------------------------------------------------------------------------------ small props
 // Soda can / food can
-void can(IB& b, vec3 p, float r, float h, u32 col, u32 lid = 0) {
-    cyl(b, p, r, r, h, 8, col, M(MAT_METAL_PAINTED), false);
-    cyl(b, p + vec3(0, 0, h), r * 0.92f, r * 0.8f, 0.006f, 8, lid ? lid : Gy(0.75f), M(MAT_METAL_BRUSHED), true);
+// (7-sided body with smooth normals; top = false for a can hidden under another one)
+void can(IB& b, vec3 p, float r, float h, u32 col, u32 lid = 0, bool top = true) {
+    cyl(b, p, r, r, h, 7, col, M(MAT_METAL_PAINTED), false);
+    if (top) disc(b, p + vec3(0, 0, h), r * 0.97f, 7, lid ? lid : Gy(0.75f), M(MAT_METAL_BRUSHED));
 }
 // Bottle (glass or plastic): body color with cap
-void bottle(IB& b, vec3 p, float r, float h, u32 col, u32 mat, u32 cap, int seg = 8) {
-    lathe(b, p, {vec2(r * 0.9f, 0.f), vec2(r, 0.02f), vec2(r, h * 0.62f), vec2(r * 0.55f, h * 0.8f), vec2(r * 0.34f, h * 0.9f), vec2(r * 0.34f, h)}, seg, col, mat, true);
+void bottle(IB& b, vec3 p, float r, float h, u32 col, u32 mat, u32 cap, int seg = 6) {
+    lathe(b, p, {vec2(r * 0.94f, 0.f), vec2(r, h * 0.6f), vec2(r * 0.4f, h * 0.84f), vec2(r * 0.34f, h)}, seg, col, mat, false);
     cyl(b, p + vec3(0, 0, h), r * 0.38f, r * 0.38f, h * 0.06f, seg, cap, M(MAT_METAL_PAINTED));
 }
 // Product box (cereal / snacks) with a front label band
 void productBox(IB& b, vec3 p, vec3 he, u32 col, u32 band) {
     box(b, p + vec3(0, 0, he.z), he, col, M(MAT_METAL_PAINTED), SK_NZ | SK_NY);
-    box(b, p + vec3(0, he.y + 0.001f, he.z * 1.1f), vec3(he.x * 0.8f, 0.001f, he.z * 0.35f), band, M(MAT_PAINT_WHITE), SK_NZ | SK_NY);
+    float y = he.y + 0.001f, bx = he.x * 0.8f, z0 = he.z * 0.75f, z1 = he.z * 1.45f;
+    quadF(b, p + vec3(-bx, y, z0), p + vec3(bx, y, z0), p + vec3(bx, y, z1), p + vec3(-bx, y, z1), vec3(0, 1, 0), band, M(MAT_PAINT_WHITE));
 }
 
 // Book row on a shelf: books of varied height / thickness along local x from x0 to x1, spines facing +y

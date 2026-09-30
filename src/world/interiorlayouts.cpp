@@ -23,6 +23,87 @@ const InteriorOpening* mainDoorOpening(const InteriorDef& d, float& x0, float& x
     return nullptr;
 }
 
+// Collision of an interior partition along x at y = yc (x0..x1, thickness th, height h) with doorway gaps (x ranges)
+void partitionX(IB& b, float x0, float x1, float yc, float th, float h, std::initializer_list<vec2> gaps = {}) {
+    std::vector<vec2> g(gaps);
+    std::sort(g.begin(), g.end(), [](vec2 p, vec2 q) { return p.x < q.x; });
+    float cur = x0;
+    for (vec2 gp : g) {
+        if (gp.x > cur + 0.02f) collideMM(b, vec3(cur, yc - th * 0.5f, 0.f), vec3(gp.x, yc + th * 0.5f, h));
+        cur = Max(cur, gp.y);
+    }
+    if (x1 > cur + 0.02f) collideMM(b, vec3(cur, yc - th * 0.5f, 0.f), vec3(x1, yc + th * 0.5f, h));
+}
+// Same along y at x = xc (gaps are y ranges)
+void partitionY(IB& b, float y0, float y1, float xc, float th, float h, std::initializer_list<vec2> gaps = {}) {
+    std::vector<vec2> g(gaps);
+    std::sort(g.begin(), g.end(), [](vec2 p, vec2 q) { return p.x < q.x; });
+    float cur = y0;
+    for (vec2 gp : g) {
+        if (gp.x > cur + 0.02f) collideMM(b, vec3(xc - th * 0.5f, cur, 0.f), vec3(xc + th * 0.5f, gp.x, h));
+        cur = Max(cur, gp.y);
+    }
+    if (y1 > cur + 0.02f) collideMM(b, vec3(xc - th * 0.5f, cur, 0.f), vec3(xc + th * 0.5f, y1, h));
+}
+
+// Opening in a wall of a whole-structure interior (plan mode): model-space bottom edge a -> c running
+// counter-clockwise around the structure seen from above (outside on the right), heights above the model origin
+void openingLocal(IB& b, vec2 a, vec2 c, float z0, float z1, u8 kind) {
+    if (!b.plan()) return;
+    InteriorDef& d = *b.d;
+    InteriorOpening op;
+    op.a = d.toWorld(vec3(a, 0.f)).xy();
+    op.b = d.toWorld(vec3(c, 0.f)).xy();
+    op.z0 = d.origin.z + z0;
+    op.z1 = d.origin.z + z1;
+    op.kind = kind;
+    d.openings.push_back(op);
+}
+
+// Outside face of a structure wall a -> c (counter-clockwise, outside on the right) with the openings on it cut out
+void exteriorWall(IB& b, vec2 a, vec2 c, float z0, float z1, u32 col, u32 mat) {
+    if (!b.geo()) return;
+    const InteriorDef& d = *b.d;
+    vec2 t = c - a;
+    float len = length(t);
+    if (len < 0.02f) return;
+    t = t / len;
+    vec2 n(t.y, -t.x);
+    std::vector<Hole> holes;
+    for (const InteriorOpening& op : d.openings) {
+        vec3 oa = d.toLocal(vec3(op.a, op.z0)), oc = d.toLocal(vec3(op.b, op.z0));
+        if (fabsf(dot(oa.xy() - a, n)) > 0.06f || fabsf(dot(oc.xy() - a, n)) > 0.06f) continue;
+        float s0 = dot(oa.xy() - a, t), s1 = dot(oc.xy() - a, t);
+        if (s0 > s1) std::swap(s0, s1);
+        if (s1 <= 0.01f || s0 >= len - 0.01f) continue;
+        holes.push_back({s0, s1, op.z0 - d.origin.z - z0, op.z1 - d.origin.z - z0});
+    }
+    InPart ip(b, IP_SHELL);
+    wallWithHoles(b, vec3(a, z0), vec3(t, 0.f), vec3(n, 0.f), len, z1 - z0, holes, col, mat, 0.f);
+}
+
+// Shop sign board over the facade's sign band along the interior's frontage (hides the facade's generic sign), the
+// name in raised letters that glow at night. Also used on facades without a sign band (above the glass).
+void shopSign(IB& b, const char* name, u32 bg, u32 fg, float zAbove = 0.f) {
+    const InteriorDef& d = *b.d;
+    float z0 = d.signZ0, z1 = d.signZ1;
+    if (z1 <= 0.f) {
+        if (zAbove <= 0.f) return;
+        z0 = zAbove;
+        z1 = zAbove + 0.7f;
+    }
+    InPart ip(b, IP_SHELL);
+    float x0 = d.x0 + 0.08f, x1 = d.x1 - 0.08f;
+    box(b, vec3((x0 + x1) * 0.5f, -0.045f, (z0 + z1) * 0.5f), vec3((x1 - x0) * 0.5f, 0.04f, (z1 - z0) * 0.5f + 0.03f), bg, M(MAT_METAL_PAINTED), SK_PY);
+    float h = Min((z1 - z0) * 0.62f, (x1 - x0) / Max(4.f, (float)strlen(name) * 0.72f));
+    textC(b, name, vec3((x0 + x1) * 0.5f, -0.086f, (z0 + z1) * 0.5f), vec3(1, 0, 0), vec3(0, 0, 1), h, h * 0.13f, fg, EM(6), 0.02f);
+    // gooseneck lamps washing the board
+    for (float x = x0 + 0.6f; x < x1 - 0.3f; x += 2.2f) {
+        tube(b, vec3(x, -0.08f, z1 + 0.02f), vec3(x, -0.45f, z1 + 0.25f), 0.012f, 5, Gy(0.15f), M(MAT_METAL_PAINTED), true);
+        lathe(b, vec3(x, -0.47f, z1 + 0.15f), {vec2(0.02f, 0.12f), vec2(0.09f, 0.f)}, 10, Gy(0.15f), M(MAT_METAL_PAINTED), false);
+    }
+}
+
 // Glass for every facade glass opening, split around door rectangles (sidelights + transom), with mullions for
 // storefronts
 void glazeAll(IB& b, float clarity, u32 frameCol, bool storefront) {
@@ -165,8 +246,9 @@ void shelfRow(IB& b, float x0, float x1, float z, float yf, float depth, float m
                 float rr = 0.033f;
                 w = rr * 2.f + 0.004f;
                 h = 0.123f;
-                can(b, vec3(x + rr, yf - rr - 0.01f, z), rr, h, C(col), C(band * 0.9f));
-                if (maxH > 0.27f) can(b, vec3(x + rr, yf - rr - 0.01f, z + h), rr, h, C(col), C(band * 0.9f));
+                bool two = maxH > 0.27f;
+                can(b, vec3(x + rr, yf - rr - 0.01f, z), rr, h, C(col), C(band * 0.9f), !two);
+                if (two) can(b, vec3(x + rr, yf - rr - 0.01f, z + h), rr, h, C(col), C(band * 0.9f));
                 break;
             }
             case 1: {  // bottles
@@ -194,8 +276,8 @@ void shelfRow(IB& b, float x0, float x1, float z, float yf, float depth, float m
                 float rr = 0.04f;
                 w = rr * 2.f + 0.006f;
                 h = 0.11f;
-                cyl(b, vec3(x + rr, yf - rr - 0.01f, z), rr, rr, h * 0.85f, 8, C(col * 0.5f + vec3(0.4f)), M(MAT_GLASS), false);
-                cyl(b, vec3(x + rr, yf - rr - 0.01f, z + h * 0.85f), rr * 1.02f, rr * 1.02f, h * 0.15f, 8, C(band), M(MAT_METAL_PAINTED), true);
+                cyl(b, vec3(x + rr, yf - rr - 0.01f, z), rr, rr, h * 0.85f, 7, C(col * 0.5f + vec3(0.4f)), M(MAT_GLASS), false);
+                cyl(b, vec3(x + rr, yf - rr - 0.01f, z + h * 0.85f), rr * 1.02f, rr * 1.02f, h * 0.15f, 7, C(band), M(MAT_METAL_PAINTED), true);
                 break;
             }
             default: {  // small candy boxes stacked
@@ -210,6 +292,34 @@ void shelfRow(IB& b, float x0, float x1, float z, float yf, float depth, float m
         if (depth > 0.2f) box(b, vec3(x + w * 0.5f, yf - 0.1f - (depth - 0.12f) * 0.5f, z + h * 0.45f), vec3(w * 0.5f - 0.005f, (depth - 0.14f) * 0.5f, h * 0.45f), C(col * 0.6f), M(MAT_METAL_PAINTED), SK_NZ | SK_NY);
         x += w + 0.006f;
         blockLeft--;
+    }
+}
+
+// Bottom-shelf case packs: printed cartons and shrink-wrapped flats of cans / bottles, a few per shelf
+void casePacks(IB& b, float x0, float x1, float z, float yf, float depth, float maxH, u32 seed) {
+    Rng r(seed);
+    float x = x0 + 0.01f;
+    while (x < x1 - 0.2f) {
+        float w = Min(r.range(0.26f, 0.42f), x1 - x - 0.01f);
+        if (r.chance(0.12f)) {
+            x += w;   // empty slot
+            continue;
+        }
+        vec3 c = hsv(r.f(), r.range(0.4f, 0.9f), r.range(0.4f, 0.9f));
+        float h = Min(maxH - 0.02f, r.range(0.14f, 0.3f)), dp = Min(depth, 0.4f);
+        if (r.chance(0.5f)) {
+            // printed carton + label band
+            productBox(b, vec3(x + w * 0.5f, yf - dp * 0.5f, z), vec3(w * 0.5f - 0.006f, dp * 0.5f, h * 0.5f), C(c), C(hsv(r.f(), 0.2f, 0.95f)));
+        } else {
+            // shrink-wrapped flat: tray + visible can tops through the film
+            float th = Min(h, 0.13f);
+            box(b, vec3(x + w * 0.5f, yf - dp * 0.5f, z + 0.02f), vec3(w * 0.5f - 0.006f, dp * 0.5f, 0.02f), C(c * 0.6f), M(MAT_METAL_PAINTED), SK_NZ | SK_NY);
+            box(b, vec3(x + w * 0.5f, yf - dp * 0.5f, z + 0.04f + th * 0.5f), vec3(w * 0.5f - 0.008f, dp * 0.5f - 0.002f, th * 0.5f), C(c * 0.85f + vec3(0.1f), 1.f),
+                M(MAT_PLASTIC), SK_NZ | SK_NY);
+            if (maxH > th + 0.2f) productBox(b, vec3(x + w * 0.5f, yf - dp * 0.5f, z + 0.04f + th), vec3(w * 0.5f - 0.01f, dp * 0.5f - 0.01f, Min(0.08f, (maxH - th - 0.06f) * 0.5f)),
+                                             C(c), Gy(0.95f));
+        }
+        x += w + 0.008f;
     }
 }
 
@@ -247,7 +357,9 @@ void gondola(IB& b, vec3 p, float yaw, float len, float h, int levels, u32 seed,
             InPart ip(b, IP_DETAIL);
             float maxH = (h - 0.2f) / levels - 0.03f;
             if (lv == levels - 1) maxH = 0.3f;
-            shelfRow(b, -hl + 0.03f, hl - 0.03f, z + 0.012f, sd + 0.01f, sd - 0.02f, maxH, hash32(seed * 31u + (u32)lv * 7u + (u32)(side + 1)));
+            u32 rs = hash32(seed * 31u + (u32)lv * 7u + (u32)(side + 1));
+            if (lv == 0) casePacks(b, -hl + 0.03f, hl - 0.03f, z + 0.012f, sd + 0.01f, sd - 0.02f, Min(maxH, 0.34f), rs);
+            else shelfRow(b, -hl + 0.03f, hl - 0.03f, z + 0.012f, sd + 0.01f, sd - 0.02f, maxH, rs);
         }
     }
 }
@@ -268,7 +380,7 @@ void coolerRun(IB& b, vec3 p, float yaw, int doors, u32 seed, int roomIdx, const
         box(b, vec3(0, dep * 0.5f, H + 0.005f), vec3(hl, dep * 0.5f, 0.005f), Gy(0.85f), M(MAT_PAINT_WHITE), SK_PZ);   // cabinet ceiling
         collide(b, vec3(0, dep * 0.5f, (H + 0.4f) * 0.5f), vec3(hl + 0.04f, dep * 0.5f, (H + 0.4f) * 0.5f));
         // header text
-        if (header) textC(b, header, vec3(0, dep + 0.002f, H + 0.2f), vec3(1, 0, 0), vec3(0, 0, 1), 0.2f, 0.028f, C(0.9f, 0.95f, 1.f, 0.8f), EM(), 0.f, 0.3f);
+        if (header) textC(b, header, vec3(0, dep + 0.002f, H + 0.2f), vec3(-1, 0, 0), vec3(0, 0, 1), 0.2f, 0.028f, C(0.9f, 0.95f, 1.f, 0.8f), EM(), 0.f, 0.3f);
     }
     for (int k = 0; k < doors; k++) {
         float xc = -hl + dw * (k + 0.5f);
@@ -303,7 +415,7 @@ void coolerRun(IB& b, vec3 p, float yaw, int doors, u32 seed, int roomIdx, const
                 if (block++ % 4 == 0) col = hsv(r.f(), r.range(0.5f, 0.9f), r.range(0.4f, 0.95f));
                 if (cans) {
                     float rr = 0.033f;
-                    can(b, vec3(x + rr, dep - 0.13f, z), rr, 0.123f, C(col), Gy(0.8f));
+                    can(b, vec3(x + rr, dep - 0.13f, z), rr, 0.123f, C(col), Gy(0.8f), false);
                     can(b, vec3(x + rr, dep - 0.13f, z + 0.124f), rr, 0.123f, C(col), Gy(0.8f));
                     x += rr * 2.f + 0.005f;
                 } else {
@@ -361,7 +473,7 @@ void checkoutCounter(IB& b, vec3 p, float yaw, float len, u32 seed) {
         vec3 c = hsv(k * 0.13f + 0.05f, 0.8f, 0.95f);
         box(b, vec3(lx - 0.24f + k * 0.068f, 0.101f, zt + 0.14f), vec3(0.03f, 0.002f, 0.07f), C(c), M(MAT_PAINT_WHITE), SK_NZ);
     }
-    textC(b, "LOTTO", vec3(lx, 0.102f, zt + 0.26f), vec3(1, 0, 0), vec3(0, 0, 1), 0.05f, 0.008f, C(1.f, 0.9f, 0.2f, 0.7f), EM(), 0.f, 0.3f);
+    textC(b, "LOTTO", vec3(lx, 0.102f, zt + 0.26f), vec3(-1, 0, 0), vec3(0, 0, 1), 0.05f, 0.008f, C(1.f, 0.9f, 0.2f, 0.7f), EM(), 0.f, 0.3f);
     // impulse: gum / mints tray on the counter, a tip jar
     for (int k = 0; k < 5; k++) productBox(b, vec3(hl - 0.5f + k * 0.07f, dep - 0.08f, zt), vec3(0.03f, 0.02f, 0.035f), C(hsv(r.f(), 0.7f, 0.9f)), Gy(0.95f));
     cyl(b, vec3(hl - 0.15f, dep - 0.12f, zt), 0.045f, 0.05f, 0.14f, 10, C(0.8f, 0.9f, 0.9f, 1.f), M(MAT_GLASS), false);
@@ -391,7 +503,7 @@ void tobaccoWall(IB& b, vec3 p, float yaw, float len, u32 seed) {
         InPart ip(b, IP_SHELL);
         box(b, vec3(0, 0.18f, 1.25f), vec3(hl, 0.18f, 0.75f), Gy(0.15f), M(MAT_METAL_PAINTED), SK_NZ);
         box(b, vec3(0, 0.3f, 2.12f), vec3(hl, 0.3f, 0.12f), C(0.7f, 0.1f, 0.1f), M(MAT_METAL_PAINTED), SK_NZ);
-        textC(b, "TOBACCO  VAPE", vec3(0, 0.602f, 2.12f), vec3(1, 0, 0), vec3(0, 0, 1), 0.1f, 0.016f, C(1.f, 0.95f, 0.85f, 0.7f), EM(), 0.f, 0.35f);
+        textC(b, "TOBACCO  VAPE", vec3(0, 0.602f, 2.12f), vec3(-1, 0, 0), vec3(0, 0, 1), 0.1f, 0.016f, C(1.f, 0.95f, 0.85f, 0.7f), EM(), 0.f, 0.35f);
         // back counter below
         box(b, vec3(0, 0.3f, 0.45f), vec3(hl, 0.3f, 0.45f), Gy(0.25f), M(MAT_WOOD), SK_NZ);
         box(b, vec3(0, 0.31f, 0.91f), vec3(hl + 0.01f, 0.31f, 0.015f), Gy(0.6f), M(MAT_MARBLE), SK_NONE);
@@ -424,7 +536,7 @@ void coffeeStation(IB& b, vec3 p, float yaw, float len, u32 seed) {
         rbox(b, vec3(0, 0.31f, 0.915f), vec3(hl + 0.02f, 0.32f, 0.02f), 0.01f, C(0.2f, 0.2f, 0.21f), M(MAT_MARBLE));
         box(b, vec3(0, 0.02f, 1.6f), vec3(hl, 0.02f, 0.65f), C(0.55f, 0.35f, 0.2f), M(MAT_WOOD), SK_NZ);   // back panel
         box(b, vec3(0, 0.06f, 2.12f), vec3(hl, 0.06f, 0.12f), C(0.1f, 0.1f, 0.12f), M(MAT_METAL_PAINTED), SK_NZ);
-        textC(b, "FRESH COFFEE", vec3(-hl * 0.35f, 0.122f, 2.12f), vec3(1, 0, 0), vec3(0, 0, 1), 0.1f, 0.016f, C(1.f, 0.75f, 0.35f, 0.75f), EM(), 0.f, 0.35f);
+        textC(b, "FRESH COFFEE", vec3(-hl * 0.35f, 0.122f, 2.12f), vec3(-1, 0, 0), vec3(0, 0, 1), 0.1f, 0.016f, C(1.f, 0.75f, 0.35f, 0.75f), EM(), 0.f, 0.35f);
         collide(b, vec3(0, 0.31f, 0.47f), vec3(hl + 0.02f, 0.32f, 0.47f));
     }
     InPart ip(b, IP_FURNITURE);
@@ -487,7 +599,7 @@ void atm(IB& b, vec3 p, float yaw) {
     box(b, vec3(0, 0.33f, 1.02f), vec3(0.12f, 0.06f, 0.012f), Gy(0.6f), M(MAT_METAL_BRUSHED), SK_NONE);   // keypad shelf
     for (int k = 0; k < 12; k++) box(b, vec3(-0.06f + (k % 3) * 0.06f, 0.32f + (k / 3) * 0.022f, 1.034f), vec3(0.022f, 0.008f, 0.004f), Gy(0.3f), M(MAT_PLASTIC), SK_NZ);
     box(b, vec3(0, 0.301f, 1.52f), vec3(0.26f, 0.001f, 0.05f), C(0.2f, 0.8f, 0.4f, 0.6f), EM(), SK_NZ);
-    textC(b, "ATM", vec3(0, 0.303f, 1.52f), vec3(1, 0, 0), vec3(0, 0, 1), 0.06f, 0.012f, Gy(1.f, 0.8f), EM(), 0.f, 0.3f);
+    textC(b, "ATM", vec3(0, 0.303f, 1.52f), vec3(-1, 0, 0), vec3(0, 0, 1), 0.06f, 0.012f, Gy(1.f, 0.8f), EM(), 0.f, 0.3f);
     collide(b, vec3(0, 0, 0.75f), vec3(0.3f, 0.3f, 0.75f));
 }
 
@@ -497,7 +609,7 @@ void iceChest(IB& b, vec3 p, float yaw) {
     InPart ip(b, IP_FURNITURE);
     rbox(b, vec3(0, 0, 0.45f), vec3(0.6f, 0.4f, 0.45f), 0.03f, Gy(0.95f), M(MAT_PAINT_WHITE));
     box(b, vec3(0, 0.401f, 0.55f), vec3(0.5f, 0.001f, 0.2f), C(0.1f, 0.4f, 0.85f), M(MAT_PAINT_WHITE), SK_NZ);
-    textC(b, "ICE", vec3(0, 0.403f, 0.55f), vec3(1, 0, 0), vec3(0, 0, 1), 0.22f, 0.04f, Gy(1.f), M(MAT_PAINT_WHITE), 0.f, 0.3f);
+    textC(b, "ICE", vec3(0, 0.403f, 0.55f), vec3(-1, 0, 0), vec3(0, 0, 1), 0.22f, 0.04f, Gy(1.f), M(MAT_PAINT_WHITE), 0.f, 0.3f);
     box(b, vec3(0, 0.f, 0.905f), vec3(0.58f, 0.38f, 0.008f), Gy(0.85f), M(MAT_METAL_BRUSHED), SK_NZ);
     collide(b, vec3(0, 0, 0.45f), vec3(0.6f, 0.4f, 0.45f));
 }
@@ -627,7 +739,10 @@ void layoutConvenience(IB& b) {
     storefrontEntrance(b);
     float cs = (doorX - X0) > (X1 - doorX) ? -1.f : 1.f;   // counter on the roomier side of the door
     float staffX = cs > 0.f ? X0 + 0.75f : X1 - 0.75f;
-    if (backRoom) door(b, vec3(staffX, backY + 0.06f, 0.f), vec2(1, 0), vec2(0, 1), 0.9f, 2.1f, DK_HINGED, 2, C(0.6f, 0.62f, 0.65f), false);
+    if (backRoom) {
+        door(b, vec3(staffX, backY + 0.06f, 0.f), vec2(1, 0), vec2(0, 1), 0.9f, 2.1f, DK_HINGED, 2, C(0.6f, 0.62f, 0.65f), false);
+        partitionX(b, X0, X1, backY + 0.06f, 0.12f, H, {vec2(staffX - 0.45f, staffX + 0.45f)});
+    }
     // shell
     ShellStyle st;
     st.wallCol = C(0.93f, 0.93f, 0.9f);
@@ -692,7 +807,7 @@ void layoutConvenience(IB& b) {
     float bx1 = cs > 0.f ? counterX - 0.37f - 1.3f : X1 - 0.6f - 1.15f;
     float gy0 = Y0 + 2.5f, gy1 = backY - 0.78f - 1.4f;
     if (gy1 - gy0 > 1.5f && bx1 - bx0 > 0.9f) {
-        int n = Max(1, (int)((bx1 - bx0 + 1.2f) / (0.9f + 1.2f)));
+        int n = Clamp((int)((bx1 - bx0 + 1.2f) / (0.9f + 1.2f)), 1, 4);   // wide stores get roomier aisles
         for (int k = 0; k < n; k++) {
             float x = n == 1 ? (bx0 + bx1) * 0.5f : Lerp(bx0 + 0.45f, bx1 - 0.45f, (float)k / (n - 1));
             gondola(b, vec3(x, (gy0 + gy1) * 0.5f, 0.f), kHalfPi, gy1 - gy0, 1.55f, 4, r.next());
@@ -741,7 +856,7 @@ void layoutConvenience(IB& b) {
         float kx0 = cs > 0.f ? staffX + 0.8f : X0 + 0.3f, kx1 = cs > 0.f ? X1 - 0.3f : staffX - 0.8f;
         if (kx1 - kx0 > 2.5f) storageShelf(b, vec3((kx0 + kx1) * 0.5f + 0.6f, Y1 - 0.28f, 0.f), kPi, Min(3.6f, kx1 - kx0 - 1.4f), 1.9f, r.next());
         officeDesk(b, vec3(cs > 0.f ? kx0 + 0.7f : kx1 - 0.7f, by, 0.f), cs > 0.f ? -kHalfPi : kHalfPi, r.next(), true);
-        officeChair(b, vec3(cs > 0.f ? kx0 + 1.4f : kx1 - 1.4f, by, 0.f), cs > 0.f ? -kHalfPi : kHalfPi, C(0.1f, 0.1f, 0.12f));
+        officeChair(b, vec3(cs > 0.f ? kx0 + 1.4f : kx1 - 1.4f, by, 0.f), cs > 0.f ? kHalfPi : -kHalfPi, C(0.1f, 0.1f, 0.12f));
         // stacked cases of soda
         for (int k = 0; k < 6; k++) {
             float x = (kx0 + kx1) * 0.5f + (k % 3) * 0.42f - 0.4f, z = (k / 3) * 0.26f;
@@ -756,6 +871,17 @@ void layoutConvenience(IB& b) {
 }
 
 // ------------------------------------------------------------------------------------------------ dispatch
+void layoutApartment(IB& b);   // interiorhomes.cpp
+void layoutTrailer(IB& b);
+void layoutDiner(IB& b);       // interiorvenues.cpp
+void layoutClub(IB& b);
+void layoutGunShop(IB& b);     // interiorshops.cpp
+void layoutClothes(IB& b);
+void layoutPolice(IB& b);      // interiorcivic.cpp
+void layoutHospital(IB& b);
+void layoutChopShop(IB& b);    // interiorindustrial.cpp
+void layoutWarehouse(IB& b);
+
 void runLayout(IB& b) {
     b.roomCounter = 0;
     b.doorCounter = 0;
@@ -763,7 +889,16 @@ void runLayout(IB& b) {
     b.part = IP_FURNITURE;
     tExtraHoles.clear();
     switch (b.d->kind) {
-        case IK_CONVENIENCE: layoutConvenience(b); break;
+        case IK_APARTMENT: layoutApartment(b); break;
+        case IK_TRAILER: layoutTrailer(b); break;
+        case IK_DINER: layoutDiner(b); break;
+        case IK_CLUB: layoutClub(b); break;
+        case IK_GUNSHOP: layoutGunShop(b); break;
+        case IK_CLOTHES: layoutClothes(b); break;
+        case IK_POLICE: layoutPolice(b); break;
+        case IK_HOSPITAL: layoutHospital(b); break;
+        case IK_CHOPSHOP: layoutChopShop(b); break;
+        case IK_WAREHOUSE: layoutWarehouse(b); break;
         default: layoutConvenience(b); break;
     }
 }

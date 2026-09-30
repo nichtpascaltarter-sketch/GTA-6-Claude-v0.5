@@ -35,6 +35,44 @@ void connectSignalLamps(R*, std::function<int(int, vec2)>, long) {}
 
 using namespace ai_detail;
 
+// A street door of a building near p: the middle of the street facade at ground level, on the side p is on, with a
+// clear straight walk to p. Used by peds stepping out of and walking into buildings (population.cpp, pedai.cpp).
+// Industrial blocks, garages, sheds and buildings hosting an enterable interior (interiors_game.cpp) are skipped.
+bool aiBuildingDoorNear(const GameWorld& g, vec2 p, float r, u32 seed, vec3& out) {
+    const World::BuildingSet* bs = g.buildings ? g.buildings : World::gBuildings;
+    if (!bs || bs->buildings.empty()) return false;
+    thread_local std::vector<int> nb;
+    nb.clear();
+    bs->buildingsNear(p, r + 40.f, nb);
+    float bestScore = 1e9f;
+    vec2 best;
+    float bestZ = 0.f;
+    for (int i : nb) {
+        const World::Building& b = bs->buildings[i];
+        if (b.interior >= 0) continue;
+        u8 st = b.style;
+        if (st == World::BS_WAREHOUSE || st == World::BS_FACTORY || st == World::BS_BARN || st == World::BS_GARAGE || st == World::BS_SHACK) continue;
+        vec2 door = b.c + b.front * (b.hy + 0.45f);
+        vec2 rp = p - door;
+        float d = length(rp);
+        if (d > r || d < 2.f || dot(rp, b.front) < 1.f) continue;   // on the street side, not right on top of it
+        if (bs->pointInBuilding(door, 0.2f)) continue;              // podium or neighbour in front of the facade
+        bool clear = true;
+        for (int k = 1; k < 8 && clear; k++)
+            if (bs->pointInBuilding((door + b.front * 0.6f) + (p - door - b.front * 0.6f) * (k / 8.f), 0.25f)) clear = false;
+        if (!clear) continue;
+        float score = d + hashToFloat(hash32(seed + (u32)i * 131u)) * 8.f;
+        if (score < bestScore) {
+            bestScore = score;
+            best = door;
+            bestZ = b.baseZ;
+        }
+    }
+    if (bestScore > 1e8f) return false;
+    out = vec3(best, g.groundHeight(best.x, best.y, bestZ + 2.f));
+    return true;
+}
+
 // ------------------------------------------------------------------------------------------------------------------
 void GameWorld::initAI() {
     if (ai.ready || !roads) return;
@@ -224,6 +262,58 @@ void GameWorld::updateAI(float dt) {
     st.cars = nc;
     st.dummies = nd;
     st.managed = nm;
+    // crash telemetry: hard impacts of AI-driven cars (one per crash), those involving the player counted apart
+    int pv = playerVehicle();
+    for (int i = 0; i < (int)vehicles.size() && i < (int)ai.veh.size(); i++) {
+        Vehicle& v = vehicles[i];
+        if (!v.used || ai.veh[i].uid != v.uid) continue;
+        VehAI& va = ai.veh[i];
+        va.impactCd = Max(0.f, va.impactCd - dt);
+        if (i == pv || !traffic.get(i) || v.sim.impactImpulse < 3000.f || va.impactCd > 0.f) continue;
+        va.impactCd = 2.f;
+        bool withPlayer = pv >= 0 && length(rel(v.sim.body.pos, vehicles[pv].sim.body.pos)) < 9.f;
+        (withPlayer ? st.impactsWithPlayer : st.hardImpacts)++;
+    }
+}
+
+std::string GameWorld::aiTrafficHealthText() const {
+    int stuck = 0, blocked = 0, waiting = 0, rolled = 0, wrecked = 0, holding = 0;
+    float worst = 0.f;
+    int worstId = -1;
+    for (int i = 0; i < (int)vehicles.size(); i++) {
+        const Vehicle& v = vehicles[i];
+        if (!v.used) continue;
+        if (v.sim.wrecked || v.exploded) wrecked++;
+        vec3 up = rotate(v.sim.body.rot, vec3(0, 0, 1));
+        if (up.z < 0.3f && !isAircraft(i) && !isBoat(i)) rolled++;
+        if (i >= (int)traffic.drivers.size() || !traffic.drivers[i].active) continue;
+        const AI::Driver& d = traffic.drivers[i];
+        if (d.dummy) continue;
+        if (d.mode == AI::DM_HOLD || d.mode == AI::DM_PULLOVER) {
+            holding++;
+            continue;
+        }
+        stuck += d.stuckTime > 30.f;
+        blocked += d.blockedTime > 45.f;
+        waiting += d.waitTime > 90.f;
+        float w = Max(Max(d.stuckTime, d.blockedTime), d.waitTime);
+        if (w > worst) {
+            worst = w;
+            worstId = i;
+        }
+    }
+    const AI::TrafficStats& ts = traffic.stats;
+    std::string worstTxt = "-";
+    if (worstId >= 0) {
+        const AI::Driver& d = traffic.drivers[worstId];
+        vec3 p = vehicles[worstId].sim.body.pos.toVec3();
+        worstTxt = StrFormat("car %d at %.0f %.0f %s %d u %.1f mode %d stuck %.0f blocked %.0f wait %.0f", worstId, p.x, p.y,
+                             d.path < (int)laneGraph.lanes.size() ? "lane" : "conn", d.path, d.u, (int)d.mode, d.stuckTime, d.blockedTime, d.waitTime);
+    }
+    return StrFormat("traffic health: stuck>30s %d blocked>45s %d wait>90s %d holding %d rolled %d wrecked %d | impacts %d (with player %d) | "
+                     "core red %ld stopsign %ld stuckEv %ld recov %ld reloc %ld deadlockBreaks %ld | worst: %s",
+                     stuck, blocked, waiting, holding, rolled, wrecked, ai.stats.hardImpacts, ai.stats.impactsWithPlayer, ts.redViolations,
+                     ts.stopSignViolations, ts.stuckEvents, ts.recoveries, ts.relocalizations, ts.deadlockBreaks, worstTxt.c_str());
 }
 
 std::string GameWorld::aiDebugText() const {
@@ -273,13 +363,15 @@ std::string GameWorld::aiCensusText(float radius) const {
         if (p.brain.type == BRAIN_FLEE || p.brain.type == BRAIN_COWER || p.brain.type == BRAIN_COMBAT) continue;
         switch (pa->activity) {
             case ACT_WALK:
+            case ACT_GROUP:
+                if (pa->leader >= 0 || pa->activity == ACT_GROUP) {   // walking with company
+                    group++;
+                    wTalk += pa->walkStance == 7;
+                    break;
+                }
                 walk++;
                 wPhone += pa->walkStance == 8;
                 wSmoke += pa->walkStance == 10;
-                break;
-            case ACT_GROUP:
-                group++;
-                wTalk += pa->walkStance == 7;
                 break;
             case ACT_JOG: jog++; break;
             case ACT_SCENARIO:

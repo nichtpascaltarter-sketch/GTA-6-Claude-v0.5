@@ -94,20 +94,37 @@ bool towerGroundRect(const Building& b) {
     return shape <= 4;
 }
 
+enum TargetFlags : u16 {
+    TF_NOSTORE = 1,     // prefer buildings without a storefront facade (homes)
+    TF_STORE = 2,       // prefer storefront facades
+    TF_BRIDGE = 4,      // the story place may resolve onto a bridge
+    TF_OWNSHELL = 8,    // the interior replaces the whole building (trailer)
+    TF_TALL = 16,       // exposed-structure ceiling up to the top of the facade glass (garages, lobbies, warehouses)
+    TF_ROLLUP = 32,     // roll-up vehicle doors (at the building's loading doors)
+    TF_ONEFLOOR = 64,   // single-storey buildings only
+    TF_WIDEDOOR = 128,  // double entrance doors (lobbies)
+};
+
 struct Target {
     u8 kind;
     const char* name;
     vec2 hint;
     u32 styles;
     float minW, minD;
-    float maxW;          // region width cap (0 = full building width)
-    bool allowBridge;
+    float maxW, maxD;    // region caps (0 = building size)
+    u16 flags;
+    const char* alias;
 };
+
+// Painted loading doors of warehouse meshes (buildmesh.cpp): count and footprint coordinate along Building::ax
+bool hasLoadingDoors(const Building& b) { return b.style == BS_WAREHOUSE || b.style == BS_FACTORY || b.style == BS_BARN; }
+int loadingDoorCount(const Building& b) { return Max(1, (int)(b.hx / 7.f)); }
+float loadingDoorU(const Building& b, int k) { return -b.hx + (k + 0.5f) * (2.f * b.hx / loadingDoorCount(b)); }
 
 // Building closest to the place whose front faces the place's street
 int pickBuilding(const BuildingSet& bs, const PlaceLite& pl, const Target& tg, const std::vector<u8>& used, int pass) {
     std::vector<int> cand;
-    bs.buildingsNear(pl.sp, pass < 2 ? 70.f : 160.f, cand);
+    bs.buildingsNear(pl.sp, pass == 0 ? 70.f : 160.f, cand);
     int best = -1;
     float bestScore = 1e30f;
     for (int i : cand) {
@@ -118,6 +135,10 @@ int pickBuilding(const BuildingSet& bs, const PlaceLite& pl, const Target& tg, c
         if (b.style == BS_TOWER && !towerGroundRect(b)) continue;
         if (b.style == BS_CHURCH || (b.style == BS_GASSTATION && !(tg.styles & styleBit(BS_GASSTATION)))) continue;
         if (2.f * b.hx < tg.minW || 2.f * b.hy < tg.minD) continue;
+        bool store = (bs.facades[b.facade].flags & 1u) != 0;
+        if (pass < 2 && (tg.flags & TF_NOSTORE) && store) continue;
+        if (pass < 2 && (tg.flags & TF_STORE) && !store) continue;
+        if ((tg.flags & (TF_ONEFLOOR | TF_OWNSHELL)) && b.floors > 1 && pass < 2) continue;
         float facing = dot(b.front, -pl.out);
         if (pass == 0 && facing < 0.85f) continue;
         if (facing < 0.3f) continue;
@@ -126,6 +147,7 @@ int pickBuilding(const BuildingSet& bs, const PlaceLite& pl, const Target& tg, c
         float across = dot(fc - pl.sp, pl.out);
         if (pass == 0 && (across < -2.f || across > 18.f)) continue;
         float score = Max(0.f, along - b.hx * 0.5f) + fabsf(across) * 0.4f + (styleOk ? 0.f : 40.f) + (1.f - facing) * 30.f;
+        if (hasLoadingDoors(b) && !(tg.flags & TF_ROLLUP)) score += 80.f;   // painted dock doors would cover the entrance
         if (score < bestScore) {
             bestScore = score;
             best = i;
@@ -154,8 +176,9 @@ int InteriorSet::at(vec3 p, int* roomOut) const {
     return -1;
 }
 int InteriorSet::byName(const char* name) const {
+    if (!name) return -1;
     for (size_t i = 0; i < defs.size(); i++)
-        if (defs[i].name == name) return (int)i;
+        if (defs[i].name == name || (!defs[i].alias.empty() && defs[i].alias == name)) return (int)i;
     return -1;
 }
 int InteriorSet::byKind(u8 kind, int nth) const {
@@ -295,6 +318,130 @@ void computePortals(InteriorDef& d) {
 }  // namespace interior_plan
 
 // ------------------------------------------------------------------------------------------------ planning
+namespace interior_plan {
+
+// Hollow ground-floor region, facade openings and ceiling of a building-hosted interior
+void planShell(InteriorDef& d, const Building& b, const FacadeGPU& f, const Target& tg) {
+    float w = 2.f * b.hx;
+    float regionW = tg.maxW > 0.f ? Min(w, tg.maxW) : w;
+    int doorBay = d.bays / 2;
+    if (regionW < w - 0.01f) {
+        // snap the region to whole bays around the entrance bay
+        int nb = Max(1, (int)floorf(regionW / d.bw));
+        int first = Clamp(doorBay - nb / 2, 0, d.bays - nb);
+        d.x0 = d.bayX0 + first * d.bw;
+        d.x1 = d.x0 + nb * d.bw;
+    } else {
+        d.x0 = -b.hx;
+        d.x1 = b.hx;
+    }
+    d.depth = Min(2.f * b.hy, tg.maxD > 0.f ? tg.maxD : 20.f);
+    float gH = f.groundH;
+    d.shellTop = Max(gH - 0.25f, 3.0f);
+    if (b.floors <= 1) d.shellTop = Max(b.height - 0.4f, 3.0f);
+    if (f.flags & 2u) {
+        d.signZ0 = gH - 1.05f;
+        d.signZ1 = gH - 0.15f;
+    }
+    int firstBay = (int)roundf((d.x0 - d.bayX0) / d.bw), lastBay = (int)roundf((d.x1 - d.bayX0) / d.bw) - 1;
+    float topWin = 0.f;
+    for (int k = firstBay; k <= lastBay; k++) topWin = Max(topWin, frontWindow(d, f, k).z1);
+    // roll-up doors: at the painted loading doors of warehouse meshes, else one in the entrance bay
+    std::vector<float> rollX;
+    float rollW = 3.6f, rollH = Min(4.2f, gH - 0.6f);   // matches the painted loading doors (dock bumpers flank them)
+    if (tg.flags & TF_ROLLUP) {
+        if (hasLoadingDoors(b)) {
+            float sgn = dot(b.ax, d.ax) >= 0.f ? 1.f : -1.f;
+            for (int k = 0; k < loadingDoorCount(b); k++) {
+                float x = loadingDoorU(b, k) * sgn;
+                if (x - rollW * 0.5f < d.x0 + 0.5f || x + rollW * 0.5f > d.x1 - 0.5f) continue;
+                rollX.push_back(x);
+            }
+        }
+        if (rollX.empty()) {
+            rollW = Min(rollW, d.bw - 0.5f);
+            rollX.push_back(d.bayX0 + (doorBay + 0.5f) * d.bw);
+        }
+        std::sort(rollX.begin(), rollX.end());
+        if (rollX.size() > 3) rollX.resize(3);
+    }
+    // ceiling
+    d.ceil = Clamp(gH - 0.6f, 2.8f, 4.2f);
+    if (d.storefront) d.ceil = Max(d.ceil, frontWindow(d, f, 0).z1 + 0.12f);
+    if (tg.flags & TF_TALL) d.ceil = Max(Max(topWin, rollX.empty() ? 0.f : rollH + 0.7f), 4.6f) + 0.15f;
+    d.ceil = Min(d.ceil, d.shellTop - 0.1f);
+    // pedestrian entrance: the entrance bay, or beside the roll-up doors
+    float dc = d.bayX0 + (doorBay + 0.5f) * d.bw;
+    bool wide = (tg.flags & TF_WIDEDOOR) != 0;
+    float dw = d.storefront ? Min(wide ? 2.4f : 1.9f, d.bw * 0.92f * 0.8f) : Min(wide ? 2.0f : 1.1f, d.bw * 0.7f);
+    for (float rx : rollX)
+        if (fabsf(dc - rx) < rollW * 0.5f + dw * 0.5f + 0.6f) {
+            float right = rx + rollW * 0.5f + 0.9f + dw * 0.5f, left = rx - rollW * 0.5f - 0.9f - dw * 0.5f;
+            dc = right + dw * 0.5f < d.x1 - 0.6f ? right : left;
+        }
+    doorBay = Clamp((int)floorf((dc - d.bayX0) / d.bw), 0, d.bays - 1);
+    d.doorBay = doorBay;
+    float glassH = gH - 1.3f;
+    float dh = d.storefront && rollX.empty() ? Min(2.3f, glassH) : 2.2f;
+    // glass: every front bay of the region (storefronts), or every window but the entrance's; clipped to the ceiling
+    for (int k = firstBay; k <= lastBay; k++) {
+        FrontWindow fw = frontWindow(d, f, k);
+        fw.z1 = Min(fw.z1, d.ceil - 0.02f);
+        if (fw.z1 - fw.z0 < 0.4f) continue;
+        bool blocked = false;
+        for (float rx : rollX)
+            if (fw.x1 > rx - rollW * 0.5f - 0.3f && fw.x0 < rx + rollW * 0.5f + 0.3f && fw.z0 < rollH + 0.3f) blocked = true;
+        if (blocked) continue;
+        if (d.storefront && rollX.empty()) addOpening(d, fw.x0, fw.x1, fw.z0, fw.z1, OP_GLASS);
+        else if (k != doorBay || fw.z0 > dh + 0.3f) addOpening(d, fw.x0, fw.x1, fw.z0, fw.z1, OP_GLASS);
+    }
+    for (float rx : rollX) addOpening(d, rx - rollW * 0.5f, rx + rollW * 0.5f, 0.f, rollH, OP_ROLLUP);
+    addOpening(d, dc - dw * 0.5f, dc + dw * 0.5f, 0.f, dh, OP_DOOR);
+    if (!d.storefront || !rollX.empty()) {
+        // the window of the entrance bay above the door (a transom lite) when it reaches down to the door head
+        FrontWindow fw = frontWindow(d, f, doorBay);
+        fw.z1 = Min(fw.z1, d.ceil - 0.02f);
+        if (fw.z0 < dh + 0.3f && fw.z1 > dh + 0.25f && fw.x1 > dc - dw * 0.5f && fw.x0 < dc + dw * 0.5f)
+            addOpening(d, Max(fw.x0, dc - dw * 0.5f), Min(fw.x1, dc + dw * 0.5f), dh, fw.z1, OP_GLASS);
+    }
+    d.radius = length(vec2((d.x1 - d.x0) * 0.5f, d.depth * 0.5f)) + 2.f;
+}
+
+// Club Riptide: open-air beach club laid out like the story mission (story_act2.cpp buildClub): 34 m inland from
+// the shoreline at the club place's latitude, x = -(north), y = east toward the sea
+bool planClub(const WorldMap& map, const RoadNetwork& roads, InteriorDef& d) {
+    PlaceLite pl = resolve(roads, vec2(5380.f, 900.f));
+    if (!pl.ok) return false;
+    vec2 cp = pl.sp;
+    float shoreX = cp.x + 60.f;
+    for (float x = cp.x; x < cp.x + 400.f; x += 2.f)
+        if (map.isWater(x, cp.y)) {
+            shoreX = x;
+            break;
+        }
+    vec2 anchor(shoreX - 34.f, cp.y);
+    d.kind = IK_CLUB;
+    d.name = "Club Riptide";
+    d.building = -1;
+    d.seed = hashString("Club Riptide") ^ 0x5EA5u;
+    d.ay = vec2(1.f, 0.f);
+    d.ax = vec2(d.ay.y, -d.ay.x);
+    d.origin = vec3(anchor, map.heightAt(anchor.x, anchor.y));
+    d.x0 = -55.f;
+    d.x1 = 17.f;
+    d.depth = Max(24.f, shoreX - anchor.x - 2.f);
+    d.ceil = 4.f;
+    d.shellTop = 6.f;
+    d.bw = d.x1 - d.x0;
+    d.bayX0 = d.x0;
+    d.bays = 1;
+    d.ownShell = true;
+    d.radius = length(vec2((d.x1 - d.x0) * 0.5f, d.depth * 0.5f)) + 4.f;
+    return true;
+}
+
+}  // namespace interior_plan
+
 void planInteriors(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs) {
     double t0 = TimeSeconds();
     static InteriorSet set;
@@ -302,20 +449,40 @@ void planInteriors(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs) {
     gInteriors = &set;
     for (Building& b : bs.buildings) b.interior = -1;
     std::vector<u8> used(bs.buildings.size(), 0);
-    (void)map;
     const u32 kRetailWide = kRetail | styleBit(BS_TOWER) | styleBit(BS_CONDO);
+    const u32 kHomes = styleBit(BS_MIDRISE) | styleBit(BS_CONDO) | styleBit(BS_DECO) | styleBit(BS_SHOPS);
+    const u32 kIndustrial = styleBit(BS_WAREHOUSE) | styleBit(BS_FACTORY);
+    const u32 kCivic = styleBit(BS_TOWER) | styleBit(BS_MIDRISE) | styleBit(BS_DECO) | styleBit(BS_CONDO) | styleBit(BS_SHOPS);
+    // Story places (mission_util.cpp computePlaces), shops (shops.cpp) and extra city interiors. Order matters for
+    // byKind(): Mari's apartment is the first IK_APARTMENT.
     const Target targets[] = {
-        // story places (mission_util.cpp computePlaces) and shops (shops.cpp)
-        {IK_CONVENIENCE, "TideStop Mart", vec2(1480.f, -260.f), kRetail, 8.f, 12.f, 16.f, false},
-        {IK_CONVENIENCE, "Bodega La Luna", vec2(2250.f, 520.f), kRetail, 8.f, 12.f, 14.f, false},
-        {IK_CONVENIENCE, "Canvas Corner Market", vec2(3000.f, 1500.f), kRetail, 8.f, 12.f, 16.f, false},
-        {IK_CONVENIENCE, "Sunrise Food Mart", vec2(5230.f, 600.f), kRetailWide, 8.f, 12.f, 16.f, false},
-        {IK_CONVENIENCE, "Northside Quick Stop", vec2(2300.f, 3800.f), kRetail, 8.f, 12.f, 16.f, false},
-        {IK_CONVENIENCE, "Flats Food & Fuel", vec2(420.f, 3350.f), kRetail | styleBit(BS_WAREHOUSE), 8.f, 12.f, 16.f, false},
-        {IK_CONVENIENCE, "Grove Pantry", vec2(2150.f, -3100.f), kRetail | styleBit(BS_STRIPMALL), 8.f, 12.f, 16.f, false},
+        {IK_APARTMENT, "Mari's Apartment", vec2(1720.f, 360.f), kHomes, 9.f, 11.f, 13.f, 11.5f, TF_NOSTORE, nullptr},
+        {IK_DINER, "Mama Lucha's", vec2(1330.f, 330.f), kRetail, 11.f, 14.f, 17.f, 16.f, TF_STORE, "Lucha's Diner Partnership"},
+        {IK_CHOPSHOP, "Rook's Garage", vec2(1560.f, 2260.f), kIndustrial, 14.f, 16.f, 22.f, 20.f, TF_TALL | TF_ROLLUP, nullptr},
+        {IK_TRAILER, "Dex's Trailer", vec2(1250.f, 2650.f), styleBit(BS_HOUSE), 11.f, 9.f, 0.f, 0.f, TF_OWNSHELL, nullptr},
+        {IK_POLICE, "Police Headquarters", vec2(3050.f, -350.f), kCivic, 14.f, 14.f, 24.f, 16.f, TF_TALL | TF_WIDEDOOR, nullptr},
+        {IK_HOSPITAL, "Tidewater General Hospital", vec2(1650.f, 1050.f), kCivic, 12.f, 14.f, 20.f, 16.f, TF_STORE | TF_WIDEDOOR, nullptr},
+        {IK_GUNSHOP, "Palmetto Arms", vec2(800.f, 2900.f), kRetail, 9.f, 12.f, 14.f, 14.f, TF_STORE, nullptr},
+        {IK_GUNSHOP, "Northside Arms", vec2(3300.f, 3900.f), kRetail, 9.f, 12.f, 14.f, 14.f, TF_STORE, nullptr},
+        {IK_CLOTHES, "Threads", vec2(5150.f, -300.f), kRetail, 10.f, 12.f, 16.f, 15.f, TF_STORE, nullptr},
+        {IK_WAREHOUSE, "Port Isle Warehouse", vec2(4004.f, -820.f), styleBit(BS_WAREHOUSE), 30.f, 30.f, 47.f, 38.f, TF_TALL | TF_ROLLUP, nullptr},
+        {IK_CONVENIENCE, "TideStop Mart", vec2(1480.f, -260.f), kRetail, 8.f, 12.f, 16.f, 17.f, 0, nullptr},
+        {IK_CONVENIENCE, "Bodega La Luna", vec2(2250.f, 520.f), kRetail, 8.f, 12.f, 14.f, 17.f, 0, nullptr},
+        {IK_CONVENIENCE, "Canvas Corner Market", vec2(3000.f, 1500.f), kRetail, 8.f, 12.f, 16.f, 17.f, 0, nullptr},
+        {IK_CONVENIENCE, "Sunrise Food Mart", vec2(5230.f, 600.f), kRetailWide, 8.f, 12.f, 16.f, 17.f, 0, nullptr},
+        {IK_CONVENIENCE, "Northside Quick Stop", vec2(2300.f, 3800.f), kRetail, 8.f, 12.f, 16.f, 17.f, 0, nullptr},
+        {IK_CONVENIENCE, "Flats Food & Fuel", vec2(420.f, 3350.f), kRetail | styleBit(BS_WAREHOUSE), 8.f, 12.f, 16.f, 17.f, 0, nullptr},
+        {IK_CONVENIENCE, "Grove Pantry", vec2(2150.f, -3100.f), kRetail | styleBit(BS_STRIPMALL), 8.f, 12.f, 16.f, 17.f, 0, nullptr},
+    };
+    auto finish = [&](InteriorDef& d) {
+        // rooms, doors, scenario points, markers (layout in plan mode), daylight portals
+        ikit::IB ib;
+        ib.d = &d;
+        ikit::runLayout(ib);
+        computePortals(d);
     };
     for (const Target& tg : targets) {
-        PlaceLite pl = resolve(roads, tg.hint, tg.allowBridge);
+        PlaceLite pl = resolve(roads, tg.hint, (tg.flags & TF_BRIDGE) != 0);
         if (!pl.ok) continue;
         int bi = -1;
         for (int pass = 0; pass < 3 && bi < 0; pass++) bi = pickBuilding(bs, pl, tg, used, pass);
@@ -328,68 +495,41 @@ void planInteriors(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs) {
         InteriorDef d;
         d.kind = tg.kind;
         d.name = tg.name;
+        if (tg.alias) d.alias = tg.alias;
         d.building = bi;
         d.seed = hash32(b.seed ^ ((u32)tg.kind * 0x9E3779B9u) ^ hashString(tg.name));
         setFrame(d, b, f);
-        // hollow region: the whole ground floor width (capped around the entrance bay), a kind-specific depth
-        float w = 2.f * b.hx;
-        float regionW = tg.maxW > 0.f ? Min(w, tg.maxW) : w;
-        int doorBay = d.bays / 2;
-        d.doorBay = doorBay;
-        float doorX = d.bayX0 + (doorBay + 0.5f) * d.bw;
-        if (regionW < w - 0.01f) {
-            // snap the region to whole bays around the entrance bay
-            int nb = Max(1, (int)floorf(regionW / d.bw));
-            int first = Clamp(doorBay - nb / 2, 0, d.bays - nb);
-            d.x0 = d.bayX0 + first * d.bw;
-            d.x1 = d.x0 + nb * d.bw;
-        } else {
+        if (tg.flags & TF_OWNSHELL) {
+            // the whole lot: the layout builds the structure and its yard
+            d.ownShell = true;
             d.x0 = -b.hx;
             d.x1 = b.hx;
+            d.depth = 2.f * b.hy;
+            d.ceil = 2.25f;
+            d.shellTop = 4.f;
+            d.radius = length(vec2(b.hx, b.hy)) + 3.f;
+            if (gSites) gSites->vegBlocks.push_back({b.c, b.ax, b.hx + 1.f, b.hy + 1.f});
+        } else {
+            planShell(d, b, f, tg);
         }
-        (void)doorX;
-        d.depth = Min(2.f * b.hy, tg.kind == IK_CONVENIENCE ? 17.f : 20.f);
-        float gH = f.groundH;
-        d.shellTop = Max(gH - 0.25f, 3.0f);
-        if (b.floors <= 1) d.shellTop = Max(b.height - 0.4f, 3.0f);
-        d.ceil = Clamp(gH - 0.6f, 2.8f, 4.2f);
-        if (d.storefront) d.ceil = Max(d.ceil, frontWindow(d, f, 0).z1 + 0.12f);
-        d.ceil = Min(d.ceil, d.shellTop - 0.1f);
-        d.radius = length(vec2((d.x1 - d.x0) * 0.5f, d.depth * 0.5f)) + 2.f;
-        // facade openings: storefront glass in every front bay of the region + the entrance door
-        int firstBay = (int)roundf((d.x0 - d.bayX0) / d.bw), lastBay = (int)roundf((d.x1 - d.bayX0) / d.bw) - 1;
-        for (int k = firstBay; k <= lastBay; k++) {
-            FrontWindow fw = frontWindow(d, f, k);
-            if (d.storefront) addOpening(d, fw.x0, fw.x1, fw.z0, fw.z1, OP_GLASS);
-            else if (k != doorBay) addOpening(d, fw.x0, fw.x1, fw.z0, fw.z1, OP_GLASS);
-        }
-        {
-            float s0 = (doorBay + 0.04f) * d.bw, s1 = (doorBay + 0.96f) * d.bw;
-            float dw = d.storefront ? Min(1.9f, (s1 - s0) * 0.8f) : Min(1.1f, d.bw * 0.7f);
-            float glassH = gH - 1.3f;
-            float dh = d.storefront ? Min(2.3f, glassH) : 2.2f;
-            float dc = d.bayX0 + (doorBay + 0.5f) * d.bw;
-            addOpening(d, dc - dw * 0.5f, dc + dw * 0.5f, 0.f, dh, OP_DOOR);
-            if (!d.storefront) {
-                // the window of the door bay goes too (a transom lite above the door)
-                FrontWindow fw = frontWindow(d, f, doorBay);
-                addOpening(d, Max(fw.x0, dc - dw * 0.5f), Min(fw.x1, dc + dw * 0.5f), dh, Max(fw.z1, dh + 0.05f), OP_GLASS);
-            }
-        }
-        // rooms, doors, scenario points, markers (layout in plan mode)
-        {
-            ikit::IB ib;
-            ib.d = &d;
-            ikit::runLayout(ib);
-        }
-        computePortals(d);
+        finish(d);
         b.interior = (i16)set.defs.size();
         used[bi] = 1;
         set.defs.push_back(std::move(d));
     }
+    {
+        InteriorDef d;
+        if (planClub(map, roads, d)) {
+            finish(d);
+            if (gSites) gSites->vegBlocks.push_back({d.center().xy(), d.ax, (d.x1 - d.x0) * 0.5f + 3.f, d.depth * 0.5f + 3.f});
+            set.defs.push_back(std::move(d));
+        }
+    }
+    if (gSites) gSites->buildRectHash();   // vegetation and beach furniture keep off whole-structure interiors
     int counts[IK_COUNT] = {};
     for (auto& d : set.defs) counts[d.kind]++;
-    LOG("Interiors: %zu planned (convenience %d) in %.1f ms", set.defs.size(), counts[IK_CONVENIENCE], (TimeSeconds() - t0) * 1000.0);
+    LOG("Interiors: %zu planned (convenience %d, gun shops %d) in %.1f ms", set.defs.size(), counts[IK_CONVENIENCE], counts[IK_GUNSHOP],
+        (TimeSeconds() - t0) * 1000.0);
     for (auto& d : set.defs)
         LOG("  interior '%s' kind %d building %d at (%.2f, %.2f, %.2f) ax (%.4f, %.4f) x %.2f..%.2f depth %.2f ceil %.2f: %zu rooms, %zu openings, %zu doors, "
             "%zu portals, %zu npc points",
@@ -516,6 +656,19 @@ bool interiorOwnsShell(int interior) {
 int interiorDoorBay(const Building& b) {
     if (!gInteriors || b.interior < 0 || b.interior >= (int)gInteriors->defs.size()) return -1;
     return gInteriors->defs[b.interior].doorBay;
+}
+
+bool interiorHidesLoadingDoor(const Building& b, float u) {
+    if (!gInteriors || b.interior < 0 || b.interior >= (int)gInteriors->defs.size()) return false;
+    const InteriorDef& d = gInteriors->defs[b.interior];
+    vec3 p = d.toLocal(vec3(b.c + b.front * b.hy + b.ax * u, d.origin.z));
+    for (const InteriorOpening& op : d.openings) {
+        if (op.kind == OP_GLASS) continue;
+        vec3 a = d.toLocal(vec3(op.a, op.z0)), c = d.toLocal(vec3(op.b, op.z0));
+        if (fabsf(a.y) > 0.1f) continue;
+        if (p.x + 1.8f > Min(a.x, c.x) - 0.2f && p.x - 1.8f < Max(a.x, c.x) + 0.2f) return true;   // painted door is 3.6 m wide
+    }
+    return false;
 }
 
 // ------------------------------------------------------------------------------------------------ build

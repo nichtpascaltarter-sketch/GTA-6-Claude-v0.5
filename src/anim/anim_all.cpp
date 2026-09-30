@@ -7,6 +7,7 @@
 #include "face.cpp"
 #include "clothing.cpp"
 #include "hair.cpp"
+#include "decimate.cpp"
 #include "character.cpp"
 #include "pose.cpp"
 #if __has_include("clips.cpp")

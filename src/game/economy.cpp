@@ -115,6 +115,56 @@ void updateStoryCalls(GameWorld& g, float dt) {
         break;
     }
     // one-off texts and tips
+    if (phoneWired() && gEco.callCooldown <= 0.f) {
+        // open-world texts: side jobs, shops and properties as the story opens them up (one per cooldown)
+        struct WorldText {
+            int after;
+            const char* from;
+            const char* text;
+            int where;   // 0 courier, 1 gun shop, 2 street race, 3 Tide Customs, 4 beach race, 5 condo, 6 river race, 7 flight school,
+                         // 8 taxi depot, 9 range
+        };
+        static const WorldText kTexts[] = {
+            {SF_LOW_TIDE, "Rapido Couriers", "Fast wheels, faster legs? Rapido Couriers pays per drop. Come by the depot.", 0},
+            {SF_REPO_MAN, "Chuy", "Street races in Calle Luna. Bring something fast. Or don't, I like winning.", 2},
+            {SF_DRY_DOCK, "Tide Customs", "Paint, tuning, armor, neon. Pull into Tide Customs and we'll make it yours.", 3},
+            {SF_PRESSURE, "Palmetto Arms", "Grand reopening. Ten percent off body armor for Calle Luna residents.", 1},
+            {SF_DEAD_AIR, "Kit", "Need a quick buck? The Sol Beach Nights races start on the Deco strip after eight.", 4},
+            {SF_BAGMAN, "Sol Cabs", "Drivers wanted. Own car not required, ours are yellow. Get in a cab and start a shift.", 8},
+            {SF_VELVET_ROPE, "Dynasty Realty", "Your credit just got interesting. The Sol Beach Condo is on the market.", 5},
+            {SF_SAWGRASS_RUN, "Jonah", "When you're bored of shooting at people, there's a boat race on the Rio Sol.", 6},
+            {SF_SECOND_CHANCE, "Skyline Flight School", "Loved the rescue on the news. Lessons at the airport, first one's the circuit.", 7},
+            {SF_PAPER_TRAIL, "Palmetto Arms", "The range is open late. Score three fifty and the ammo's on us.", 9},
+        };
+        int sent = flag(g, EX_WORLD_TEXTS);
+        for (int i = 0; i < (int)ARRAY_COUNT(kTexts); i++) {
+            const WorldText& t = kTexts[i];
+            if ((sent >> i) & 1 || !storyDone(g, t.after)) continue;
+            setFlag(g, EX_WORLD_TEXTS, sent | (1 << i));
+            const Places& P = gPlaces;
+            vec2 loc;
+            auto defStart = [&](const char* id) {
+                int di = gMissions.findDef(id);
+                return di >= 0 ? gMissions.defs[di].startPos : P.courierDepot.pos.xy();
+            };
+            switch (t.where) {
+                case 0: loc = P.courierDepot.pos.xy(); break;
+                case 1: loc = P.gunFlats.pos.xy(); break;
+                case 2: loc = defStart("race_calle"); break;
+                case 3: loc = P.resprayCL.curb.xy(); break;
+                case 4: loc = defStart("race_beach"); break;
+                case 5: loc = P.beachCondo.pos.xy(); break;
+                case 6: loc = defStart("boat_river"); break;
+                case 7: loc = defStart("flight_1"); break;
+                case 8: loc = P.taxiDepot.pos.xy(); break;
+                default: loc = defStart("range"); break;
+            }
+            addMessage(g, t.from, t.text, -1, false, -1, &loc, 0, nullptr);
+            g.notify(t.from, t.text);
+            gEco.callCooldown = 30.f;
+            return;
+        }
+    }
     if (storyDone(g, SF_LOW_TIDE) && !flag(g, EX_SWITCH_TIP)) {
         setFlag(g, EX_SWITCH_TIP, 1);
         g.help("You can now play as ~b~Dex~s~. Open the phone with ~i:UP|UP~ and choose Switch.", 8.f);

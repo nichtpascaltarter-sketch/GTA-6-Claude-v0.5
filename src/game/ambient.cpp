@@ -300,4 +300,45 @@ void GameWorld::updateAmbientTraffic(float dt) {
     }
 }
 
+// Public-address announcements in the airport terminal area (boarding calls, arrivals, security notices), spoken
+// through the speech synthesizer's [pa] channel (band-limited hall sound with a long reverb tail).
+void GameWorld::updatePublicAddress(float dt) {
+#ifdef HAVE_AUDIO
+    static float timer = 12.f;
+    static u32 counter = 0;
+    timer -= dt;
+    if (timer > 0.f) return;
+    timer = 38.f + hashToFloat(hash32(counter * 7919u + 3u)) * 40.f;
+    const vec3 terminal(628.f, 1440.f, 9.f);
+    Ped* pl = playerPed();
+    if (!pl || length(rel(pl->pos, dvec3(terminal))) > 420.f) return;
+    counter++;
+    u32 h = hash32(counter * 2654435761u + 17u);
+    static const char* const kAirlines[] = {"Palmera Air", "Coastline Airways", "Gulfwind", "Blue Heron Air", "Isla Pacifica"};
+    static const char* const kPlaces[] = {"Isla Marena", "Kingsport", "Havenbrook", "Saint Corvin", "Vireo Bay", "Port Adelaide",
+                                          "Coral Keys", "Mesa Verde", "Northgate", "San Lucero"};
+    const char* airline = kAirlines[h % 5];
+    const char* place = kPlaces[(h >> 4) % 10];
+    int flight = 100 + (int)((h >> 8) % 880), gate = 1 + (int)((h >> 18) % 24);
+    std::string num;
+    for (char ch : std::to_string(flight)) {   // "2 1 7" is read digit by digit like a real announcer
+        if (!num.empty()) num += ' ';
+        num += ch;
+    }
+    std::string line;
+    switch ((h >> 24) % 6) {
+        case 0: line = StrFormat("%s flight %s to %s is now boarding at gate %d.", airline, num.c_str(), place, gate); break;
+        case 1: line = StrFormat("This is the final boarding call for %s flight %s to %s. Please proceed to gate %d.", airline, num.c_str(), place, gate); break;
+        case 2: line = StrFormat("%s flight %s from %s has arrived at gate %d.", airline, num.c_str(), place, gate); break;
+        case 3: line = "Attention please. Unattended baggage will be removed by airport security."; break;
+        case 4: line = StrFormat("%s flight %s to %s has been delayed. We apologize for the inconvenience.", airline, num.c_str(), place); break;
+        default: line = "Welcome to Porto Sol International. Ground transportation is available on the lower level."; break;
+    }
+    Speech::Persona ann = Speech::persona((h >> 3) & 1 ? "announcer_female" : "announcer");
+    Audio::speakAt(("[pa][calm]" + line).c_str(), ann.voice, terminal, 1.f);
+#else
+    (void)dt;
+#endif
+}
+
 }  // namespace Game

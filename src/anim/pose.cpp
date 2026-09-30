@@ -18,6 +18,7 @@ static const float kUpperMask[B_COUNT] = {
     1.f, 1.f, 1.f, 1.f,  // fingers/thumbs
     1.f, 1.f, 1.f,       // jaw, eyes
     1.f, 1.f, 1.f, 1.f, 1.f,   // lips, tongue
+    1.f, 1.f,                  // brows
 };
 
 // Model-space rotation/translation of a bone for a pose (walks up the parent chain).
