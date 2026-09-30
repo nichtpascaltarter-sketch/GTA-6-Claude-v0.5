@@ -52,7 +52,8 @@ has standard, alternate and southpaw layouts.
 
 Melee: aim with a melee weapon or fists to lock on. Attack chains combos, Reload is a heavy attack, Cover blocks
 (time it for a counter) and Jump dodges. Attack from behind while crouched for a stealth takedown. Aim a gun at a
-shop clerk to hold up the store.
+shop clerk to hold up the store. In first person, aiming raises the gun to its sights (red-dot and reflex optics show
+their dot, magnifying scopes a scope view); the sniper rifle always aims through its scope.
 
 **Vehicles**
 
@@ -77,7 +78,8 @@ times to `%LOCALAPPDATA%\NeonTide\benchmark.txt`. Options: `--quality 0..3`, `--
 
 ## Developer and test options
 
-- `--play`: skip the menu into a new game. `--firstperson`: start in first person.
+- `--play`: skip the menu into a new game. `--firstperson`: start in first person (`--autoplay fpguns` then
+  screenshots every gun at the hip, aiming, sprinting, reloading and through scopes).
 - `--autoplay walk|drive|bike|fly|boat|shoot|melee|tour|panic|chase|soak|metro|bus|ferry` runs scripted play-tests
   with periodic screenshots and telemetry in the log. Related flags: `--autoduration S`, `--autoevery S`,
   `--renderevery N`, and `--tourstart N` / `--tourcount M` for tour slices.
