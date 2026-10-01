@@ -101,6 +101,7 @@ struct AuthorCtx {
     // skin of the reference body (bind pose) where hands rest on it: the right flank above the hip joint, the small of
     // the back, the front of the belly a little left of the middle (a forearm across the waist, clasped hands)
     vec3 skinFlankR, skinBack, skinBelly;
+    vec3 skinUpperBack, skinWaistBack;   // the back at the chest joint's height / at the waist (partner's hands in a hug)
 };
 
 static inline quat eulerZXY(float yaw, float pitchFwd, float roll) { return qz(yaw) * qx(-pitchFwd) * qy(roll); }
@@ -668,6 +669,9 @@ struct GaitP {
     float wristFlex = 0.f;
     // walking pelvis height from the stance legs: extra stance knee flexion (rad) and the loading-response dip scale
     float kneeFlex = 0.f, bobK = 1.f;
+    // running: anterior pelvic tilt (rad; the lower back arches over it, the trunk keeps its lean), so the hip joint's
+    // extension at toe-off stays anatomical (about 15-20 degrees) while the thigh trails as far behind
+    float tilt = 0.f;
 };
 
 // Ankle position of a foot with the given pitch and yaw whose heel (pivot 0) or ball (pivot 1) touches the ground at p.
@@ -688,6 +692,7 @@ static void gaitPose(const AuthorCtx& A, const GaitP& g, float phase, Rig& r) {
     const float swingK = logf(0.5f) / logf(Clamp(g.swingPeak, 0.2f, 0.8f));
     vec3 ankles[2];
     float stanceU[2] = {-1.f, -1.f};   // stance progress 0..1 of a leg on the ground
+    float swingU[2] = {-1.f, -1.f};    // swing progress 0..1 of a leg in the air
     for (int s = 0; s < 2; s++) {
         float sx = s ? 1.f : -1.f;
         float p = phase - (s ? 0.5f : 0.f);
@@ -731,6 +736,7 @@ static void gaitPose(const AuthorCtx& A, const GaitP& g, float phase, Rig& r) {
         } else {
             // swing: from the toe-off pose to the next contact pose
             float u = (p - g.duty) / (1.f - g.duty);
+            swingU[s] = u;
             float e = easeInOut(u);
             float pStart = fwd ? g.toeOffPitch : 0.f;
             float pEnd = fwd ? g.strikePitch : (back ? -0.25f : 0.f);
@@ -773,25 +779,34 @@ static void gaitPose(const AuthorCtx& A, const GaitP& g, float phase, Rig& r) {
     r.pelvis.x += -g.sway * A.D.s * (1.f + 0.6f * fem) * s1 * (lateral ? 0.4f : 1.f);
     r.pelvisYaw = (fwd || back ? -1.f : 0.3f) * g.yawA * (1.f + 0.5f * fem) * c1 * (back ? -1.f : 1.f);
     r.pelvisRoll = g.rollA * (1.f + 0.8f * fem) * s1;
-    r.pelvisPitch = g.lean * 0.4f + g.postLean * 0.25f;
+    r.pelvisPitch = g.lean * 0.4f + g.postLean * 0.25f + g.tilt;
     if (fwd && !g.run) {
         // walking: the pelvis rides on the stance legs, whose knees follow a normative stance flexion (about 5 deg at
         // the heel strike, a ~15 deg loading dip at a fifth of the stance, ~5 deg at mid-stance: an inverted
-        // pendulum, highest over the stance foot); a leg rolling off its toes no longer holds the pelvis up
+        // pendulum, highest over the stance foot); a leg rolling off its toes no longer holds the pelvis up once the
+        // other foot is down (until then the foot stays on its ball, the heel rising), and a leg about to land takes
+        // the pelvis down to its reach by the heel strike (the falling step into double support, the heel meeting
+        // the ground on time)
         const float la = A.thighLen, lb = A.shinLen;
         quat pr = pelvisRot(r);
         float best = 1e9f;
         for (int s = 0; s < 2; s++) {
-            float u = stanceU[s];
-            if (u < 0.f) continue;
+            float u = stanceU[s], bonus;
+            if (u >= 0.f) {
+                float uo = stanceU[1 - s];
+                bonus = 0.12f * A.D.s * sstep(0.72f, 0.92f, u) * (uo >= 0.f ? sstep(0.f, 0.12f, uo) : 0.f);
+            } else {
+                if (swingU[s] < 0.75f) continue;
+                bonus = 0.12f * A.D.s * (1.f - sstep(0.75f, 1.f, swingU[s]));
+                u = 0.f;
+            }
             float dk = (u - 0.2f) / 0.11f;
             float th = 0.08f + g.kneeFlex + 0.2f * g.bobK * expf(-dk * dk);
             float dLeg = sqrtf(la * la + lb * lb + 2.f * la * lb * cosf(th));
             vec3 hip = A.pelvisBind + vec3(r.pelvis.x, r.pelvis.y, 0.f) + rotate(pr, A.hip[s] - A.pelvisBind);
             vec3 d = ankles[s] - hip;
             float hz = ankles[s].z + sqrtf(Max(0.f, dLeg * dLeg - d.x * d.x - d.y * d.y)) - hip.z;
-            hz += 0.12f * A.D.s * sstep(0.72f, 0.92f, u);
-            best = sminf(best, hz, 0.02f * A.D.s);
+            best = sminf(best, hz + bonus, 0.02f * A.D.s);
         }
         if (best < 1e8f) r.pelvis.z = best;
     } else {
@@ -808,7 +823,7 @@ static void gaitPose(const AuthorCtx& A, const GaitP& g, float phase, Rig& r) {
         }
         r.pelvis.z = Max(r.pelvis.z, nominalZ - (g.run ? 0.03f : 0.05f) * A.D.s);
     }
-    r.spinePitch = g.lean * 0.6f + g.postLean * 0.75f + (g.run ? 0.03f * c2 : 0.01f * c2);
+    r.spinePitch = g.lean * 0.6f + g.postLean * 0.75f + (g.run ? 0.03f * c2 : 0.01f * c2) - g.tilt * 0.85f;
     r.spineYaw = -r.pelvisYaw + g.chestYaw * c1 * (fwd ? 1.f : (back ? -1.f : 0.2f));
     r.spineRoll = -r.pelvisRoll * 0.7f;
     // head stabilization: keep facing forward and level (a stooped trunk carries the head forward, the neck extends
@@ -943,6 +958,7 @@ static const ClipInfo kClipInfo[CLIP_COUNT] = {
     {"dodge_l", 0.5f, false, 0.f},      {"dodge_r", 0.5f, false, 0.f},       {"hit_head", 0.45f, false, 0.f},
     {"hit_body", 0.9f, false, 0.f},     {"knockout", 1.5f, false, 0.f},      {"takedown_attacker", 3.0f, false, 0.f},
     {"takedown_victim", 3.0f, false, 0.f}, {"counter", 0.8f, false, 0.f},
+    {"hug", 3.2f, false, 0.f},          {"handshake", 2.4f, false, 0.f},     {"cheek_kiss", 2.0f, false, 0.f},
 };
 
 // Internal clips (see anim_internal.h) used by the animator: ids CLIP_COUNT + i.
@@ -1177,25 +1193,25 @@ static bool gaitParams(int id, GaitP& g) {
             g.shift = 0.17f;
             g.duty = 0.42f; g.lift = 0.09f; g.kick = 0.06f; g.bob = 0.028f; g.drop = 0.03f; g.sway = 0.014f; g.yawA = 0.09f; g.rollA = 0.045f;
             g.lean = 0.09f; g.chestYaw = 0.14f; g.armSwing = 0.45f; g.elbow = 1.25f; g.elbowSwing = 0.12f; g.fist = 0.65f; g.footSpread = 0.08f;
-            g.strikePitch = 0.18f; g.toeOffPitch = -0.55f; g.run = true;
+            g.strikePitch = 0.18f; g.toeOffPitch = -0.55f; g.run = true; g.tilt = 0.1f;
             break;
         case CLIP_JOG:
             g.shift = 0.2f;
             g.duty = 0.38f; g.lift = 0.1f; g.kick = 0.1f; g.bob = 0.03f; g.drop = 0.035f; g.sway = 0.012f; g.yawA = 0.1f; g.rollA = 0.04f;
             g.lean = 0.12f; g.chestYaw = 0.16f; g.armSwing = 0.55f; g.elbow = 1.35f; g.elbowSwing = 0.15f; g.fist = 0.75f; g.footSpread = 0.07f;
-            g.strikePitch = 0.15f; g.toeOffPitch = -0.6f; g.run = true;
+            g.strikePitch = 0.15f; g.toeOffPitch = -0.6f; g.run = true; g.tilt = 0.14f;
             break;
         case CLIP_RUN:
             g.shift = 0.24f;
-            g.duty = 0.29f; g.lift = 0.13f; g.kick = 0.2f; g.bob = 0.035f; g.drop = 0.045f; g.sway = 0.01f; g.yawA = 0.12f; g.rollA = 0.04f;
+            g.duty = 0.28f; g.lift = 0.13f; g.kick = 0.2f; g.bob = 0.035f; g.drop = 0.045f; g.sway = 0.01f; g.yawA = 0.12f; g.rollA = 0.04f;
             g.lean = 0.2f; g.chestYaw = 0.2f; g.armSwing = 0.8f; g.elbow = 1.45f; g.elbowSwing = 0.2f; g.fist = 0.85f; g.footSpread = 0.06f;
-            g.strikePitch = 0.1f; g.toeOffPitch = -0.7f; g.run = true;
+            g.strikePitch = 0.1f; g.toeOffPitch = -0.7f; g.run = true; g.tilt = 0.22f;
             break;
         case CLIP_SPRINT:
             g.shift = 0.25f;
-            g.duty = 0.24f; g.lift = 0.16f; g.kick = 0.3f; g.bob = 0.035f; g.drop = 0.05f; g.sway = 0.008f; g.yawA = 0.13f; g.rollA = 0.03f;
+            g.duty = 0.22f; g.lift = 0.16f; g.kick = 0.3f; g.bob = 0.035f; g.drop = 0.05f; g.sway = 0.008f; g.yawA = 0.13f; g.rollA = 0.03f;
             g.lean = 0.3f; g.chestYaw = 0.22f; g.armSwing = 1.1f; g.elbow = 1.5f; g.elbowSwing = 0.25f; g.fist = 0.9f; g.footSpread = 0.05f;
-            g.strikePitch = 0.05f; g.toeOffPitch = -0.8f; g.run = true;
+            g.strikePitch = 0.05f; g.toeOffPitch = -0.8f; g.run = true; g.tilt = 0.26f;
             break;
         case CLIP_FLEE:
             g.shift = 0.24f;
@@ -1264,8 +1280,10 @@ static void clipJump(const AuthorCtx& A, Clip c, float t, Rig& r) {
         standPose(A, push);
         push.pelvis = vec3(0, 0.02f * s, 0.08f * s);
         push.spinePitch = 0.02f;
+        push.headPitch = -0.08f;   // chin up with the drive
         for (int sd = 0; sd < 2; sd++) {
-            armFK(push.arm[sd], sd, 1.1f, 0.25f, 0.5f, 0.2f, 0.5f);
+            // the arms drive forward and up past the shoulders, elbows bent (not held out straight)
+            armFK(push.arm[sd], sd, 1.55f, 0.28f, 0.95f, 0.25f, 0.45f);
             setFootToes(A, push.leg[sd], A.ankle[sd].x, A.ankle[sd].y + A.ballFwd, -0.75f, push.leg[sd].yaw);
             push.leg[sd].ankle.z += 0.02f * s;
         }
@@ -1285,20 +1303,22 @@ static void clipJump(const AuthorCtx& A, Clip c, float t, Rig& r) {
         std::vector<Key> k = {{0.f, a}, {0.1f, push}, {0.35f, air}};
         sampleKeys(A, k, t, false, 0.35f, r);
     } else if (c == CLIP_FALL) {
+        // airborne: knees drawn up a little and cycling slowly, the arms up in front and out for balance with the
+        // elbows bent, the trunk a little forward, looking down at where the feet will land
         standPose(A, r);
         float w = sinf(kTwoPi * t), w2 = sinf(kTwoPi * t * 2.f + 1.f);
         r.pelvis = vec3(0, 0, 0.05f * s);
-        r.spinePitch = 0.1f + 0.03f * w2;
-        r.headPitch = -0.15f;
+        r.spinePitch = 0.12f + 0.03f * w2;
+        r.headPitch = 0.12f;
         for (int sd = 0; sd < 2; sd++) {
             float sx = sd ? 1.f : -1.f;
             LegCtl& l = r.leg[sd];
             l.ik = false;
-            l.hipFlex = 0.35f + 0.25f * sx * w;
-            l.kneeFlex = 0.6f - 0.2f * sx * w;
+            l.hipFlex = 0.45f + 0.2f * sx * w;
+            l.kneeFlex = 0.8f - 0.2f * sx * w;
             l.ankleFlex = -0.3f;
             l.hipAbd = 0.1f;
-            armFK(r.arm[sd], sd, 0.3f + 0.25f * sx * w, 0.95f + 0.15f * w2, 0.5f, 0.2f, 0.3f);
+            armFK(r.arm[sd], sd, 0.55f + 0.2f * sx * w, 0.62f + 0.12f * w2, 0.9f + 0.15f * w2, 0.3f, 0.25f);
         }
     } else {   // LAND: absorb the impact and recover
         Rig a, b, m, e;
@@ -3654,6 +3674,164 @@ static void clipCarry(const AuthorCtx& A, int id, float t, Rig& r) {
     }
 }
 
+// ------------------------------------------------------------------------------------------------
+// Greetings between two people (public clips, see pairDistance): authored for a partner of the same body facing this
+// one at pairDistance; the animator moves the contact hands / the head onto the real partner (AnimInput::grabTarget).
+
+}  // namespace detail
+
+float pairDistance(Clip c, const Skeleton& a, const Skeleton& b) {
+    // chest fronts from the torso radius (~0.65 r), arm reach from the upper arm + forearm
+    float ra = a.boneRadius[B_CHEST], rb = b.boneRadius[B_CHEST];
+    float feet = a.bindLocalPos[B_TOE_R].y + b.bindLocalPos[B_TOE_R].y + 0.07f;   // the balls of the feet clear
+    float armA = length(a.bindLocalPos[B_FOREARM_R]) + length(a.bindLocalPos[B_HAND_R]);
+    float armB = length(b.bindLocalPos[B_FOREARM_R]) + length(b.bindLocalPos[B_HAND_R]);
+    switch (c) {
+        // (hug, kiss: standing this far apart the feet are clear of each other's; the clips step in and lean over)
+        case CLIP_HUG: return Max(0.65f * (ra + rb) + 0.16f, feet);          // chests together
+        case CLIP_HANDSHAKE: return 0.57f * (armA + armB);                    // hands meeting half way, elbows bent
+        case CLIP_CHEEK_KISS: return Max(0.65f * (ra + rb) + 0.16f, feet);   // heads side by side
+        default: return 0.f;
+    }
+}
+
+bool greetingFits(Clip c, const CharacterDesc& a, const CharacterDesc& b) {
+    using namespace detail;
+    auto wide = [](const CharacterDesc& d) { return d.hat == HAT_SUNHAT || d.hat == HAT_FEDORA; };
+    auto peaked = [](const CharacterDesc& d) { return d.hat == HAT_CAP || d.hat == HAT_HARDHAT || d.hat == HAT_POLICE; };
+    switch (c) {
+        case CLIP_CHEEK_KISS: return !wide(a) && !wide(b) && !peaked(a) && !peaked(b);
+        case CLIP_HUG:
+            // (the heads go to each one's right: a cap's peak turns away from the partner)
+            return !(wide(a) && a.height < b.height + 0.15f) && !(wide(b) && b.height < a.height + 0.15f);
+        default: return true;
+    }
+}
+
+namespace detail {
+
+// How far a greeting is into its contact (0..1): arms round the partner (hug), hands gripped (handshake), cheeks
+// together (kiss). The animator weighs its partner fit-up by it.
+float pairReach(int c, float t) {
+    switch (c) {
+        case CLIP_HUG: return sstep(0.25f, 0.85f, t) * (1.f - sstep(2.45f, 3.05f, t));
+        case CLIP_HANDSHAKE: return sstep(0.1f, 0.6f, t) * (1.f - sstep(1.65f, 2.2f, t));
+        case CLIP_CHEEK_KISS: return sstep(0.1f, 0.6f, t) * (1.f - sstep(1.2f, 1.75f, t));
+        default: return 0.f;
+    }
+}
+
+// A point of the partner (same body, facing this one at distance d) in this one's model space.
+static vec3 partnerPt(vec3 p, float d) { return vec3(-p.x, d - p.y, p.z); }
+
+// Arm from its hanging pose to `goal` (an IK arm) by weight e, the hand travelling on a curve through `via` (round the
+// partner's body, not through it).
+static void reachArm(const AuthorCtx& A, Rig& r, int sd, const ArmCtl& goal, vec3 via, float e) {
+    Rig rest = r, tgt = r;
+    armFK(rest.arm[sd], sd, 0.03f, 0.12f, 0.2f + 0.05f * sd, 0.15f, 0.36f);
+    tgt.arm[sd] = goal;
+    Rig* rr[2] = {&rest, &tgt};
+    unifyRigs(A, rr, 2);
+    const vec3 from = rest.arm[sd].target, to = tgt.arm[sd].target;
+    const ArmCtl* ap[2] = {&rest.arm[sd], &tgt.arm[sd]};
+    float w[2] = {1.f - e, e};
+    combineArm(ap, w, 2, e > 0.5f ? 1 : 0, r.arm[sd]);
+    r.arm[sd].target = from * ((1.f - e) * (1.f - e)) + via * (2.f * (1.f - e) * e) + to * (e * e);
+}
+
+static void clipGreeting(const AuthorCtx& A, Clip c, float t, Rig& r) {
+    const float s = A.D.s;
+    const float d = pairDistance(c, A.sk, A.sk);
+    const float k = pairReach(c, t);
+    standPose(A, r);
+    switch (c) {
+        case CLIP_HUG: {
+            // step in with the right foot, the left one back, and lean over the front foot (the partner does the same,
+            // so on either side a forward foot faces a foot that stepped back)
+            float lean = sstep(0.1f, 0.75f, t) * (1.f - sstep(2.5f, 3.15f, t));
+            setFootFlat(A, r.leg[1], vec3(A.ankle[1].x + 0.035f * s * lean, 0.07f * s * lean, 0.f), -0.1f - 0.1f * lean);
+            setFootFlat(A, r.leg[0], vec3(A.ankle[0].x - 0.01f * s * lean, -0.1f * s * lean, 0.f), 0.1f + 0.06f * lean);
+            r.leg[0].knee = normalize(vec3(-0.12f, 1.f, 0.f));
+            r.leg[1].knee = normalize(vec3(0.15f, 1.f, 0.f));
+            // (the body a little to the right as well: each head goes over the partner's left shoulder)
+            r.pelvis = vec3(0.03f * s * lean, 0.045f * s * lean, -0.015f * s * lean);
+            r.spinePitch = 0.13f * lean;
+            // together they turn a little from side to side; the head goes to the right of the partner's
+            float hold = sstep(0.85f, 1.1f, t) * (1.f - sstep(2.3f, 2.6f, t));
+            float sway = sinf(kTwoPi * 0.62f * (t - 0.95f)) * hold;
+            r.spineYaw = 0.08f * sway;
+            r.pelvisYaw = 0.035f * sway;
+            r.neckYaw = -0.28f * lean;
+            r.headYaw = -0.42f * lean;
+            r.headPitch = -0.05f * lean;
+            r.spineRoll = 0.1f * lean;   // the head to the right, clear of the partner's (and a cap's)
+            r.neckRoll = 0.12f * lean;
+            r.eyes = vec2(-0.15f, -0.25f) * k;   // eyes turned away, lids low
+            // pats with the right hand
+            float pat = 0.f;
+            const float pats[3] = {1.35f, 1.72f, 2.09f};
+            for (float tp : pats) pat = Max(pat, sinf(kPi * Saturate((t - tp) / 0.26f)));
+            const float gap = 0.5f * A.D.handT + 0.03f;   // the palm on the partner's back (the shoulder blades bulge)
+            // the partner leans in the same way: its skin comes towards this one with the pelvis and the lean
+            auto leanIn = [&](vec3 p) { return p - vec3(0.f, (0.045f * s + 0.13f * Max(0.f, p.z - A.pelvisBind.z)) * lean, 0.f); };
+            // the right hand over the partner's left shoulder onto the upper back, fingers across it
+            vec3 ub = leanIn(partnerPt(A.skinUpperBack, d));
+            ArmCtl hi;
+            armIK(hi, ub + vec3(0.05f * s, gap + 0.008f + 0.045f * s * pat, 0.06f * s), vec3(1.f, 0.f, 0.6f), 0.4f);
+            hi.orient = true;
+            hi.handRot = handFrame(A, 1, vec3(-0.85f, 0.f, -0.45f), vec3(0.f, -1.f, 0.f));
+            reachArm(A, r, 1, hi, vec3(0.36f * s, 0.45f * d, A.shoulderZ + 0.1f * s), k);
+            // the left hand under the partner's right arm onto the lower back
+            vec3 lb = leanIn(partnerPt(A.skinWaistBack, d));
+            ArmCtl lo;
+            armIK(lo, lb + vec3(-0.05f * s, gap, 0.02f * s), vec3(-1.f, -0.2f, -0.5f), 0.4f);
+            lo.orient = true;
+            lo.handRot = handFrame(A, 0, vec3(0.85f, 0.f, -0.35f), vec3(0.f, -1.f, 0.f));
+            reachArm(A, r, 0, lo, vec3(-0.38f * s, 0.55f * d, A.D.zWaist + 0.03f * s), k);
+            break;
+        }
+        case CLIP_HANDSHAKE: {
+            // the right hands meet half way at about the waist, palms facing, thumbs up; two pumps; a nod
+            float pump = sinf(kTwoPi * 2.2f * (t - 0.75f)) * sstep(0.72f, 0.82f, t) * (1.f - sstep(1.3f, 1.45f, t));
+            vec3 M(0.f, 0.5f * d, 0.83f * A.chestP.z);
+            ArmCtl g;
+            armIK(g, M + vec3(0.02f * s, -0.055f * s, 0.028f * s * pump), vec3(1.f, -0.6f, -0.4f), 0.55f);
+            g.orient = true;
+            g.handRot = handFrame(A, 1, vec3(-0.25f, 1.f, -0.12f), vec3(-1.f, 0.1f, 0.f));
+            g.thumb = 0.45f;
+            reachArm(A, r, 1, g, M + vec3(0.12f * s, -0.12f * s, -0.12f * s), k);
+            r.spinePitch = 0.05f * k;
+            r.headPitch = 0.02f * k + 0.1f * sinf(kPi * Saturate((t - 0.75f) / 0.5f));
+            break;
+        }
+        default: {   // CLIP_CHEEK_KISS
+            // lean in over the right foot, the left one stepped back (as in the hug), the head to the left so the right
+            // cheeks meet; the right hand on the partner's left upper arm
+            setFootFlat(A, r.leg[1], vec3(A.ankle[1].x + 0.03f * s * k, 0.06f * s * k, 0.f), -0.1f - 0.08f * k);
+            setFootFlat(A, r.leg[0], vec3(A.ankle[0].x - 0.01f * s * k, -0.1f * s * k, 0.f), 0.1f + 0.05f * k);
+            r.leg[0].knee = normalize(vec3(-0.12f, 1.f, 0.f));
+            r.leg[1].knee = normalize(vec3(0.15f, 1.f, 0.f));
+            r.spinePitch = 0.17f * k;
+            r.spineRoll = -0.13f * k;
+            r.spineYaw = 0.06f * k;
+            r.neckPitch = 0.2f * k;
+            r.neckYaw = 0.2f * k;
+            r.headYaw = 0.22f * k;
+            r.headPitch = 0.04f * k;
+            r.pelvis = vec3(0.01f * s * k, 0.045f * s * k, -0.01f * s * k);
+            r.eyes = vec2(0.1f, -0.3f) * k;
+            // outside of the partner's left upper arm (the partner leans in too)
+            vec3 arm = partnerPt(A.gh[0], d) + vec3(0.06f * s, -(0.045f * s + 0.17f * (A.gh[0].z - A.pelvisBind.z)) * k, -0.13f * s);
+            ArmCtl h;
+            armIK(h, arm + vec3(0.f, -0.06f * s, 0.f), vec3(1.f, -0.4f, -0.6f), 0.3f);
+            h.orient = true;
+            h.handRot = handFrame(A, 1, vec3(-0.15f, 0.5f, -0.85f), vec3(-0.9f, 0.3f, 0.f));
+            reachArm(A, r, 1, h, arm + vec3(0.1f * s, -0.15f * s, -0.1f * s), k);
+            break;
+        }
+    }
+}
+
 // Rifle held at the low ready while not aiming (arms only; used as an arm layer by the animator).
 static void rifleCarryPose(const AuthorCtx& A, float t, Rig& r) {
     standPose(A, r);
@@ -3715,6 +3893,7 @@ static void authorClip(const AuthorCtx& A, int id, float t, Rig& r) {
         case CLIP_CLIMB: case CLIP_VAULT: clipClimbVault(A, c, t, r); break;
         case CLIP_GET_UP_FRONT: case CLIP_GET_UP_BACK: clipGetUp(A, c, t, r); break;
         case CLIP_HOOK: case CLIP_UPPERCUT: case CLIP_COUNTER: clipFists(A, c, t, r); break;
+        case CLIP_HUG: case CLIP_HANDSHAKE: case CLIP_CHEEK_KISS: clipGreeting(A, c, t, r); break;
         case CLIP_KNIFE_SLASH: case CLIP_KNIFE_STAB: clipKnife(A, c, t, r); break;
         case CLIP_BAT_SWING: case CLIP_BAT_OVERHEAD: clipBat(A, c, t, r); break;
         case CLIP_DODGE_BACK: case CLIP_DODGE_L: case CLIP_DODGE_R: clipDodge(A, c, t, r); break;
@@ -3796,6 +3975,8 @@ static void makeAuthorCtx(AuthorCtx& A, bool female) {
         A.skinFlankR = skin(vec3(0.f, A.hip[1].y + 0.015f * s, A.hip[1].z + 0.1f * s), vec3(1, 0, 0));
         A.skinBack = skin(vec3(0.f, 0.f, A.D.zHip + 0.07f * s), vec3(0, -1, 0));
         A.skinBelly = skin(vec3(0.06f * s, 0.f, A.D.zWaist + 0.05f * s), vec3(0, 1, 0));
+        A.skinUpperBack = skin(vec3(0.f, 0.f, J[B_CHEST].z), vec3(0, -1, 0));
+        A.skinWaistBack = skin(vec3(0.f, 0.f, A.D.zWaist), vec3(0, -1, 0));
     }
 }
 
@@ -3807,7 +3988,8 @@ static bool styleDependent(int c) {
         case IC_DANCE3: case IC_DANCE4: case IC_JOG_SLOW: case IC_STAND_L: case IC_STAND_R: case IC_IDLE_BEHIND: case IC_IDLE_CLASP:
         case IC_FIDGET_WATCH: case IC_FIDGET_SCRATCH: case IC_FIDGET_TUG: case IC_FIDGET_CHIN: case IC_FIDGET_YAWN: case IC_FIDGET_ARMS:
         case IC_FIDGET_TAP: case IC_FIDGET_ROCK: case IC_CARRY_CASE: case IC_CARRY_HANG_L: case IC_CARRY_HANG_R: case IC_CARRY_CUP_R:
-        case IC_CARRY_CUP_L: case IC_CARRY_UMBRELLA: case IC_CARRY_ROD: case IC_CARRY_BOARD:
+        case IC_CARRY_CUP_L: case IC_CARRY_UMBRELLA: case IC_CARRY_ROD: case IC_CARRY_BOARD: case CLIP_HUG: case CLIP_HANDSHAKE:
+        case CLIP_CHEEK_KISS:
             return true;
         default: return c >= IC_GAIT_FIRST && c <= IC_GAIT_LAST;
     }
@@ -3898,9 +4080,8 @@ float skeletonArmClearance(const Skeleton& sk) {
     return Clamp(atan2f(Max(0.f, more) * 1.15f, arm * 0.9f), 0.f, 0.28f);
 }
 
-static void sampleBaked(const BakedClip& bc, const ClipInfo& ci, float t, Pose& out) {
-    float f;
-    int i0, i1;
+// The two baked frames around time t and the weight of the second.
+static void bakedFrames(const BakedClip& bc, const ClipInfo& ci, float t, int& i0, int& i1, float& f) {
     if (ci.loop) {
         float tt = t - floorf(t / ci.duration) * ci.duration;
         f = tt / ci.duration * (float)bc.frames;
@@ -3918,6 +4099,12 @@ static void sampleBaked(const BakedClip& bc, const ClipInfo& ci, float t, Pose& 
         if (i0 == bc.frames - 1) f = 0.f;
     }
     f = Saturate(f);
+}
+
+static void sampleBaked(const BakedClip& bc, const ClipInfo& ci, float t, Pose& out) {
+    float f;
+    int i0, i1;
+    bakedFrames(bc, ci, t, i0, i1, f);
     const quat* a = &bc.rot[(size_t)i0 * B_COUNT];
     const quat* b = &bc.rot[(size_t)i1 * B_COUNT];
     // the derived bones' rotations come from their controllers (computeMatrices ignores these entries): copied
@@ -3956,6 +4143,9 @@ float clipEventTime(Clip c) {
         case CLIP_KNIFE_STAB: return 0.32f;
         case CLIP_COUNTER: return 0.32f;
         case CLIP_TAKEDOWN_ATTACKER: case CLIP_TAKEDOWN_VICTIM: return detail::kTakedownGrab;
+        case CLIP_HUG: return 0.85f;          // arms closed round the partner
+        case CLIP_HANDSHAKE: return 0.6f;     // hands gripped
+        case CLIP_CHEEK_KISS: return 0.6f;    // cheeks together
         default: return -1.f;
     }
 }
@@ -4055,6 +4245,24 @@ void detail::sampleClipId(const Skeleton& skel, int ci, float t, Pose& out, u32 
         out.rot[B_CLAVICLE_L] = normalize(qy(0.03f * b) * out.rot[B_CLAVICLE_L]);
         out.rot[B_CLAVICLE_R] = normalize(qy(-0.03f * b) * out.rot[B_CLAVICLE_R]);
     }
+}
+
+// One leg's bones (thigh, calf, foot, toe; side 0 left, 1 right) of a clip at time t, over those in out: a gait clip
+// whose legs are warped in time each on its own (sampleGait in the animator).
+void detail::sampleClipLeg(const Skeleton& skel, int ci, float t, int side, Pose& out) {
+    using namespace detail;
+    const ClipLib& L = clipLib();
+    ci = Clamp(ci, 0, CLIP_COUNT + kExtraCount - 1);
+    const ClipInfo& info = infoOf(ci);
+    int st = styleDependent(ci) && skeletonStyle(skel) > 0.5f ? 1 : 0;
+    const BakedClip& bc = L.clips[st][ci];
+    float f;
+    int i0, i1;
+    bakedFrames(bc, info, t, i0, i1, f);
+    const quat* a = &bc.rot[(size_t)i0 * B_COUNT];
+    const quat* b = &bc.rot[(size_t)i1 * B_COUNT];
+    static const int kLeg[2][4] = {{B_THIGH_L, B_CALF_L, B_FOOT_L, B_TOE_L}, {B_THIGH_R, B_CALF_R, B_FOOT_R, B_TOE_R}};
+    for (int k : kLeg[side ? 1 : 0]) out.rot[k] = nlerp(a[k], b[k], f);
 }
 
 }  // namespace Anim

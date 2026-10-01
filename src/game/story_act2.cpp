@@ -1889,11 +1889,11 @@ public:
         if (g.env->timeOfDay > 4.5f && g.env->timeOfDay < 22.f) g.env->timeOfDay = 23.f;
         house = V.door;
         gate = placeOffset(g, V, 0.f, 1.5f);
-        safe = placeOffset(g, V, 5.f, 14.f);
+        safe = openGround(g, placeOffset(g, V, 5.f, 14.f), 0.9f, 12.f);   // by the pool house, never inside a wall
         score(SC_STEALTH, 0.4f, 12);
         const float gp[5][4] = {{-8, 6, 8, 6}, {10, 12, 10, 22}, {-6, 18, 6, 18}, {0, 26, -12, 26}, {14, 4, 14, 4}};
         for (int i = 0; i < 5; i++) {
-            vec3 a = placeOffset(g, V, gp[i][0], gp[i][1]), b = placeOffset(g, V, gp[i][2], gp[i][3]);
+            vec3 a = openGround(g, placeOffset(g, V, gp[i][0], gp[i][1]), 0.6f, 8.f), b = openGround(g, placeOffset(g, V, gp[i][2], gp[i][3]), 0.6f, 8.f);
             int e = spawnCast(g, i & 1 ? CAST_GUARD_B : CAST_GUARD_A, a, yawTo(a.xy(), b.xy()), FAC_ENEMY);
             if (e < 0) continue;
             arm(g, e, i == 3 ? WPN_SHOTGUN : WPN_PISTOL);

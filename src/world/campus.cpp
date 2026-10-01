@@ -19,7 +19,7 @@ using namespace place_kit;
 // Bayshore Blvd on the river (y 3950). The grid lines inside are left out (roads.cpp checks the road blocks).
 constexpr float kX0 = 1800.f, kX1 = 2100.f, kY0 = 3450.f, kY1 = 3950.f;
 
-enum HallKind { HK_LIBRARY = 0, HK_LECTURE, HK_UNION, HK_ADMIN, HK_DORM, HK_FIELDHOUSE, HK_COUNT };
+enum HallKind { HK_LIBRARY = 0, HK_LECTURE, HK_UNION, HK_ADMIN, HK_DORM, HK_FIELDHOUSE, HK_LAB, HK_PLANT, HK_COUNT };
 
 const vec3 kStone(1.f, 0.9f, 0.77f), kStoneLight(1.f, 0.95f, 0.86f), kTile(0.78f, 0.36f, 0.22f), kTrim(0.98f, 0.96f, 0.9f), kBronze(0.28f, 0.22f, 0.16f);
 
@@ -27,7 +27,7 @@ const vec3 kStone(1.f, 0.9f, 0.77f), kStoneLight(1.f, 0.95f, 0.86f), kTile(0.78f
 // z = ground floor level, p[0] floors, p[1] ground floor height, p[2] floor height, p[3] loggia depth (0 = none),
 // p[4] name index, p[6] building index, p[7] facade (set by facades())
 const char* kHallNames[] = {"MERIDIAN LIBRARY", "CASTELL HALL", "OKAHATCHEE HALL", "PALMERA HALL", "SAWGRASS HALL", "STUDENT UNION", "ADMINISTRATION",
-                            "EGRET HALL", "MANGROVE HALL", "BRISA HALL", "TARPON FIELD HOUSE"};
+                            "EGRET HALL", "MANGROVE HALL", "BRISA HALL", "TARPON FIELD HOUSE", "MARINE SCIENCE CENTER", "CENTRAL PLANT"};
 
 struct Hall {
     vec2 c, f, a;
@@ -144,9 +144,30 @@ void genHall(const SiteElem& e, G& g) {
             if (h.floors > 1) boxY(g, vec3((p0 + p1) * 0.5f + on * 0.06f, z0 + h.gh - 0.1f), d, vec3(L * 0.5f + 0.06f, 0.08f, 0.1f), trim, M(MAT_STUCCO), true);
         }
     }
-    // red tile roof
-    landmark_mesh::hipRoof(g, h.c, a, h.hw + 0.7f, h.hd + 0.7f, top, Min(h.hw, h.hd) * 0.42f, tile, M(MAT_ROOF_TILE));
-    polyFlat(g, *g.m, rectPoly(h.c, f, h.hd + 0.7f, h.hw + 0.7f), top - 0.02f, trim, M(MAT_STUCCO), vec3(0, 0, -1));
+    if (h.kind == HK_PLANT) {
+        // central plant: flat roof with a parapet, two cooling towers, a brick chimney, pipes down the wall
+        polyFlat(g, *g.m, fp, top, rgb(0.7f), M(MAT_ROOF_GRAVEL));
+        boxY(g, vec3(h.c, top + 0.4f), f, vec3(h.hd + 0.15f, h.hw + 0.15f, 0.4f), rgbv(kStone * 0.9f), M(MAT_STONE));
+        for (int s = -1; s <= 1; s += 2) {
+            vec2 cc = h.P(s * h.hw * 0.45f, -h.hd * 0.2f);
+            boxY(g, vec3(cc, top + 1.8f), a, vec3(2.4f, 2.4f, 1.8f), rgb(0.78f, 0.8f, 0.82f), M(MAT_CORRUGATED));
+            cyl(g, vec3(cc, top + 3.6f), 1.9f, 1.9f, 0.6f, detail ? 16 : 8, rgb(0.5f), M(MAT_METAL_PAINTED), false);
+            if (detail) disc(g, vec3(cc, top + 4.2f), vec3(0, 0, 1), 1.9f, 16, rgb(0.12f), M(MAT_METAL_PAINTED));
+        }
+        vec2 ch = h.P(h.hw - 1.8f, h.hd - 1.8f);
+        cyl(g, vec3(ch, z0), 1.3f, 0.95f, h.H + 14.f, detail ? 12 : 6, rgb(0.62f, 0.36f, 0.28f), M(MAT_BRICK), false);
+        cyl(g, vec3(ch, z0 + h.H + 14.f), 1.1f, 1.1f, 0.5f, detail ? 12 : 6, rgb(0.3f), M(MAT_CONCRETE), true);
+        lamp(g, vec3(ch, z0 + h.H + 14.7f), 0.3f, vec3(1.f, 0.1f, 0.05f), 0.9f, EA_BLINK, 17);
+        collide(g, vec3(ch, z0 + (h.H + 14.f) * 0.5f), a, vec3(1.3f, 1.3f, (h.H + 14.f) * 0.5f));
+        if (detail)
+            for (int k = 0; k < 3; k++)
+                beam(g, vec3(h.P(-h.hw * 0.5f + k * 1.2f, -h.hd - 0.35f), z0 + 0.4f), vec3(h.P(-h.hw * 0.5f + k * 1.2f, -h.hd - 0.35f), top + 0.6f), 0.35f, 0.35f,
+                     rgb(0.55f, 0.6f, 0.62f), M(MAT_METAL_PAINTED));
+    } else {
+        // red tile roof
+        landmark_mesh::hipRoof(g, h.c, a, h.hw + 0.7f, h.hd + 0.7f, top, Min(h.hw, h.hd) * 0.42f, tile, M(MAT_ROOF_TILE));
+        polyFlat(g, *g.m, rectPoly(h.c, f, h.hd + 0.7f, h.hw + 0.7f), top - 0.02f, trim, M(MAT_STUCCO), vec3(0, 0, -1));
+    }
     // front: loggia (arcade) or portico
     const float frontV = h.hd;
     if (h.kind == HK_LIBRARY) {
@@ -249,8 +270,30 @@ void genHall(const SiteElem& e, G& g) {
             light(g, vec3(ec + f * 1.3f, z0 + 3.0f), vec3(1.f, 0.85f, 0.65f) * 1800.f, 8.f, 1, vec3(0, 0, -1), 0.3f);
         }
     }
+    // clipped hedges along the front, planters with flowering shrubs either side of the door
+    if (detail && h.kind != HK_PLANT) {
+        const float hv = frontV + (h.kind == HK_LIBRARY ? 0.f : (h.loggia > 0.f ? h.loggia + 0.9f : 0.9f));
+        const float doorGap = h.kind == HK_LIBRARY ? 0.f : 4.2f;
+        for (int s = -1; s <= 1; s += 2) {
+            if (h.kind != HK_LIBRARY) {
+                float u0 = s * doorGap, u1 = s * (h.hw - 1.5f);
+                int nb = Max(1, (int)(fabsf(u1 - u0) / 3.f));
+                for (int k = 0; k < nb; k++) {
+                    float u = Lerp(u0, u1, (k + 0.5f) / nb);
+                    leafBlobEx(*g.m, g.org, vec3(h.P(u, hv), z0 + 0.45f), vec3(a, 0.f), vec3(f, 0.f), vec3(fabsf(u1 - u0) / nb * 0.6f, 0.55f, 0.5f),
+                               vec3(0.34f, 0.52f, 0.26f), r.next(), 0.05f, 8, 4);
+                }
+            }
+            vec2 pp = h.P(s * (h.kind == HK_LIBRARY ? Min(h.hw * 1.1f, 17.f) + 3.f : doorGap - 1.1f),
+                          h.kind == HK_LIBRARY ? frontV + 9.f : hv + (h.loggia > 0.f ? 0.f : 1.4f));
+            boxY(g, vec3(pp, z0 + 0.35f), a, vec3(0.9f, 0.9f, 0.35f), rgbv(kStone * 0.95f), M(MAT_STONE));
+            leafBlobEx(*g.m, g.org, vec3(pp, z0 + 0.95f), vec3(a, 0.f), vec3(f, 0.f), vec3(0.8f, 0.8f, 0.55f), vec3(0.38f, 0.6f, 0.3f), r.next(), 0.08f, 8, 5,
+                       (s > 0) ? vec3(0.95f, 0.35f, 0.5f) : vec3(1.f, 0.8f, 0.25f));
+            collide(g, vec3(pp, z0 + 0.35f), a, vec3(0.9f, 0.9f, 0.35f));
+        }
+    }
     // bike racks and a bin by the entrance
-    if (detail && h.kind != HK_LIBRARY) {
+    if (detail && h.kind != HK_LIBRARY && h.kind != HK_PLANT) {
         float fv = frontV + (h.loggia > 0.f ? h.loggia + 1.6f : 3.6f);
         for (int s = -1; s <= 1; s += 2) prop(g, vec3(h.P(s * Min(h.hw - 3.f, 8.f), fv), z0), yawAlong(a), 1.f, PROP_BIKE_RACK);
         prop(g, vec3(h.P(5.f, fv - 0.5f), z0), 0.f, 1.f, PROP_BIN);
@@ -367,6 +410,29 @@ void genGrounds(const SiteElem& e, G& g) {
     if (e.variant == 4) {
         lawn(x0, y0, x1, y1, lawnC);
         for (size_t k = 0; k + 1 < e.pts.size(); k += 2) walk(e.pts[k], e.pts[k + 1], e.p[0]);
+        if (!detail) return;
+        // shade trees along both sides of the walks: live oaks with a royal palm here and there, clear of the halls and of the
+        // other walks
+        for (size_t k = 0; k + 1 < e.pts.size(); k += 2) {
+            vec2 a0 = e.pts[k], a1 = e.pts[k + 1], d = a1 - a0;
+            float L = length(d);
+            if (L < 12.f) continue;
+            d = d / L;
+            vec2 n = perp(d);
+            for (float s = 6.f; s < L - 4.f; s += 14.f)
+                for (int side = -1; side <= 1; side += 2) {
+                    vec2 p = a0 + d * s + n * (side * (e.p[0] * 0.5f + 3.4f));
+                    if (!g.owns(p) || (gBuildings && gBuildings->pointInBuilding(p, 3.5f))) continue;
+                    bool clear = true;
+                    for (size_t j = 0; j + 1 < e.pts.size() && clear; j += 2)
+                        if (j != k && distPointSegment2D(p, e.pts[j], e.pts[j + 1]) < e.p[0] * 0.5f + 2.5f) clear = false;
+                    if (!clear) continue;
+                    u32 hh = hash32((u32)(p.x * 13.f) ^ ((u32)(p.y * 7.f) << 8));
+                    bool palm = (hh & 3u) == 0u;
+                    prop(g, vec3(p, z), hashToFloat(hh) * kTwoPi, palm ? 1.1f : 0.95f + 0.25f * hashToFloat(hh >> 8), palm ? PROP_PALM_TALL : PROP_TREE_OAK,
+                         (u8)((hh >> 4) % 3u));
+                }
+        }
         return;
     }
     if (e.variant == 0) {
@@ -540,6 +606,22 @@ void genGrounds(const SiteElem& e, G& g) {
         // parking lot off N 34th Street (four rows of stalls on two aisles) and the walk to the field
         float lx0 = e.p[0], lx1 = e.p[1], ly0 = e.p[2], ly1 = e.p[3];   // parking lot rectangle
         vec2 lc((lx0 + lx1) * 0.5f, (ly0 + ly1) * 0.5f);
+        if (e.p[5] > 0.5f) {
+            // the parking garage stands on the lot (a building of its own): the drive in from N 34th Street, palms along the walk
+            vec2 dc((lx0 + lx1) * 0.5f, (y0 + ly0) * 0.5f);
+            if (g.owns(dc)) polyFlat(g, *g.m, rectPoly(dc, X, 4.5f, (ly0 - y0) * 0.5f + 0.5f), z + 0.08f, rgb(0.95f), M(MAT_ASPHALT_OLD));
+            if (detail) {
+                vec2 sp(lx1 - 3.f, y0 + 4.f);
+                if (g.owns(sp)) airport_mesh::signPanel(g, sp, -Y, z + 0.8f, 2.6f, 1.3f, rgbv(kBronze), rgb(0.95f, 0.9f, 0.75f), "PARKING GARAGE|VISITORS LEVEL 1|>TARPON FIELD",
+                                                      M(MAT_METAL_PAINTED), 0.2f);
+                for (float x = x0 + 8.f; x < x1 - 4.f; x += 12.f) {
+                    vec2 pp(x, e.p[4] + 3.4f);
+                    if (g.owns(pp)) prop(g, vec3(pp, z), x * 0.37f, 1.1f, PROP_PALM_TALL, (u8)((int)x & 1));
+                }
+                walk(vec2(x0 + 2.f, e.p[4]), vec2(x1 - 2.f, e.p[4]), 3.f);
+            }
+            return;
+        }
         if (g.owns(lc)) polyFlat(g, *g.m, rectPoly(lc, X, (lx1 - lx0) * 0.5f, (ly1 - ly0) * 0.5f), z + 0.08f, rgb(0.95f), M(MAT_ASPHALT_OLD));
         int stalls = (int)((lx1 - lx0 - 6.f) / 2.6f);
         const float rowY[4] = {ly0 + 0.5f, ly0 + 18.f, ly0 + 18.2f, ly1 - 0.5f};
@@ -596,7 +678,7 @@ void genField(const SiteElem& e, G& g) {
         float t0 = (float)k / seg, t1 = (float)(k + 1) / seg;
         vec2 a0 = ovalPt(t0, rIn), a1 = ovalPt(t1, rIn), b0 = ovalPt(t0, rOut), b1 = ovalPt(t1, rOut);
         if (!g.owns((a0 + b1) * 0.5f)) continue;
-        quad(g, *g.m, vec3(a0, z + 0.06f), vec3(a1, z + 0.06f), vec3(b1, z + 0.06f), vec3(b0, z + 0.06f), trackC, M(MAT_RUBBER), vec3(0, 0, 1));
+        quad(g, *g.m, vec3(a0, z + 0.06f), vec3(a1, z + 0.06f), vec3(b1, z + 0.06f), vec3(b0, z + 0.06f), trackC, M(MAT_PLASTER), vec3(0, 0, 1));   // (rubber is tyre black: a matte base that keeps the terracotta)
         if (detail)
             for (int l = 1; l < (int)lanes; l++) {
                 float rr = rIn + l * laneW;
@@ -778,6 +860,8 @@ void layout(SiteSet& S, WorldMap& map) {
         {HK_DORM, 8, 6, vec2(1940.f, 3888.f), Sd, 32.f, 9.f, 4.f, 3.1f, 0.f},
         {HK_DORM, 9, 6, vec2(2032.f, 3888.f), Sd, 36.f, 9.f, 4.f, 3.1f, 0.f},
         {HK_FIELDHOUSE, 10, 2, vec2(2046.f, 3812.f), Sd, 22.f, 9.f, 4.4f, 4.f, 0.f},
+        {HK_LAB, 11, 3, vec2(1838.f, 3805.f), E, 18.f, 11.f, 4.6f, 4.2f, 0.f},
+        {HK_PLANT, 12, 1, vec2(2076.f, 3842.f), Sd, 9.f, 7.f, 7.5f, 4.f, 0.f},
     };
     for (const HallSpec& hs : halls) {
         SiteElem e;
@@ -862,7 +946,8 @@ void layout(SiteSet& S, WorldMap& map) {
                     vec2(1846.f, 3552.f), vec2(1846.f, 3575.f), vec2(1846.f, 3575.f), vec2(axisX - 14.f, 3575.f),   // union door to the avenue
                     vec2(1958.f, 3550.f), vec2(1958.f, 3575.f), vec2(1958.f, 3575.f), vec2(axisX + 14.f, 3575.f),   // admin door to the avenue
                     vec2(qx1 + 1.f, 3675.f), vec2(1994.f, 3675.f),                         // quad cross walk on to the stand
-                    vec2(1985.f, 3560.f), vec2(1985.f, 3610.f)};                           // parking to the field
+                    vec2(1985.f, 3560.f), vec2(1985.f, 3610.f),                            // parking to the field
+                    vec2(1850.f, 3805.f), vec2(1862.f, 3805.f), vec2(1862.f, 3805.f), vec2(1862.f, 3850.f)};   // science center door
     }
     grounds(0, qx0, qy0, qx1, qy1);
     SiteElem& gate = grounds(1, ux0, uy0, 1990.f, 3514.f);
@@ -878,6 +963,21 @@ void layout(SiteSet& S, WorldMap& map) {
     east.p[2] = uy0 + 30.f;
     east.p[3] = uy0 + 30.f + 36.f;
     east.p[4] = 3585.f;
+    east.p[5] = 1.f;   // a four-storey parking garage on the lot
+    {
+        SiteBuildingReq gq;
+        gq.c = vec2((east.p[0] + east.p[1]) * 0.5f, (east.p[2] + east.p[3]) * 0.5f);
+        gq.ax = vec2(1, 0);
+        gq.hx = (east.p[1] - east.p[0]) * 0.5f - 4.f;
+        gq.hy = (east.p[3] - east.p[2]) * 0.5f;
+        gq.style = BS_GARAGE;
+        gq.roof = ROOF_FLAT;
+        gq.floors = 4;
+        gq.front = vec2(0, -1);
+        gq.baseZ = z - 0.15f;
+        gq.region = REG_NORTH_CITY;
+        S.buildingReqs.push_back(gq);
+    }
     // Tarpon Field: long axis north-south in the east strip, bleachers on the west straight
     {
         SiteElem fe;
@@ -932,6 +1032,7 @@ void layout(SiteSet& S, WorldMap& map) {
         // behind the library: from Sunrise Boulevard past the residence hall doors to the field house
         chain({vec2(swSun, 3850.f), vec2(1858.f, 3850.f), vec2(1940.f, 3850.f), vec2(2000.f, 3850.f), vec2(2032.f, 3850.f), vec2(2046.f, 3803.f)}, 1.5f);
         for (float dx : {1858.f, 1940.f, 2032.f}) chain({vec2(dx, 3850.f), vec2(dx, 3879.f)}, 1.2f);
+        chain({vec2(1850.f, 3805.f), vec2(1862.f, 3805.f), vec2(1862.f, 3850.f)}, 1.2f);   // science center door
     }
     // ---------------------------------------------------------------- people: students and staff
     u16 group = 1000;
@@ -1012,6 +1113,10 @@ void facades(SiteSet& S, BuildingSet& bs) {
             case HK_LECTURE: f.bayW = 3.8f; f.winH = 0.6f; break;
             case HK_UNION: f.flags = 1u | 16u; wall = vec3(0.98f, 0.9f, 0.78f); wm = MAT_STUCCO; f.bayW = 3.4f; break;
             case HK_ADMIN: f.bayW = 3.4f; break;
+            case HK_LAB: f.flags = 16u; f.bayW = 3.2f; f.winW = 0.62f; f.winH = 0.62f; f.sillH = 0.85f; wall = vec3(0.99f, 0.95f, 0.88f); wm = MAT_STUCCO;
+                f.litFrac = 0.7f; break;
+            case HK_PLANT: f.flags = 0u; f.bayW = 4.2f; f.winW = 0.34f; f.winH = 0.3f; f.sillH = 3.6f; wall = vec3(0.76f, 0.46f, 0.36f); wm = MAT_BRICK;
+                f.litFrac = 0.4f; break;
             case HK_DORM: f.flags = 8u; f.bayW = 3.3f; f.winW = 0.42f; f.winH = 0.52f; f.sillH = 0.95f; wall = vec3(0.97f, 0.88f, 0.74f); wm = MAT_STUCCO;
                 f.litFrac = 0.75f; break;
             default: f.flags = 0u; wm = MAT_STUCCO; wall = vec3(0.96f, 0.9f, 0.8f); break;

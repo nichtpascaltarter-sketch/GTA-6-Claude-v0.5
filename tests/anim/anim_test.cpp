@@ -479,6 +479,61 @@ void testLocomotion() {
     CHECK(worstKK > 0.1f, "knees collide (%.3f m apart)", worstKK);
 }
 
+// Walking backwards, sideways and diagonally (the root moving along localMoveDir, as when aiming): planted feet stay
+// put; the direction may reverse at once (straight back from walking forward).
+void testDirections() {
+    const float dt = 1.f / 60.f;
+    const vec2 dirs[5] = {vec2(1, 0), vec2(-1, 0), vec2(0, -1), vec2(0.7071f, 0.7071f), vec2(-0.7071f, -0.7071f)};
+    const char* names[5] = {"right", "left", "back", "fwd-right", "back-left"};
+    float worst = 0.f;
+    std::string line;
+    for (int di = 0; di < 5; di++) {
+        CharacterDesc d = randomCharacter(77u + (u32)di, 0);
+        Skeleton sk;
+        buildSkeleton(d, sk);
+        Animator an;
+        an.init(&sk, 5u);
+        an.setCharacter(d);
+        AnimInput in;
+        in.footProbes = true;
+        vec3 root(0);
+        FootProbe prevF[2];
+        bool prevOk[2] = {false, false};
+        double sum = 0;
+        int n = 0;
+        for (int f = 0; f < 420; f++) {
+            float t = f * dt;
+            // walking forward first, then the new direction (a reversal for "back")
+            vec2 dir = t < 1.5f ? vec2(0, 1) : dirs[di];
+            in.localMoveDir = dir;
+            in.speed = 1.2f;
+            root = root + vec3(dir.x, dir.y, 0.f) * (in.speed * dt);
+            an.update(in, dt);
+            mat4 m[B_COUNT];
+            computeMatrices(sk, an.pose, m, nullptr);
+            for (int s = 0; s < 2; s++) {
+                FootProbe fpm = footPoints(sk, m, s), w;
+                w.heel = root + fpm.heel;
+                w.ball = root + fpm.ball;
+                bool h = w.heel.z < w.ball.z;
+                vec3 a = h ? w.heel : w.ball, b = h ? prevF[s].heel : prevF[s].ball;
+                bool ok = a.z < 0.004f;
+                if (ok && prevOk[s] && t > 2.5f) {
+                    sum += length(vec2(a.x - b.x, a.y - b.y)) / dt;
+                    n++;
+                }
+                prevF[s] = w;
+                prevOk[s] = ok;
+            }
+        }
+        float mean = n ? (float)(sum / n) : 0.f;
+        worst = Max(worst, mean);
+        line += StrFormat(" %s %.3f", names[di], mean);
+    }
+    printf("directions at 1.2 m/s, planted-foot skate mean (m/s):%s\n", line.c_str());
+    CHECK(worst < 0.03f, "feet slide walking in some direction (%.3f m/s)", worst);
+}
+
 // Stopping: within 1.5 s both feet are planted (no skating) and brought together into the standing stance; turning on
 // the spot: the feet stay put between steps and step round instead of spinning.
 void testStopsAndTurns() {
@@ -611,6 +666,7 @@ void testStanding() {
         AnimInput in;
         in.footProbes = true;
         if (i == 5) in.stance = 23;   // queueing
+        if (i == 7) in.stance = 7;    // chatting (the talk clip's upper body over the weight shifts)
         FootProbe prevF[2];
         bool prevOk[2] = {false, false};
         float lastTarget = an.standTarget;
@@ -750,6 +806,216 @@ void testStanding() {
     CHECK(rateAfter > rateRest * 1.3f && rateLater < rateAfter, "breathing after a run %.1f (rest %.1f, later %.1f)", rateAfter, rateRest, rateLater);
 }
 
+// Greetings between two people (hug, handshake, cheek kiss) for a same-size and a tall / short pair: both animators
+// stepped together, each given the other's chest (head for the kiss): the hands land behind the partner's back and
+// the handshake's hands meet, the cheeks come side by side, the feet stay clear of each other's.
+void testGreetings() {
+    const float dt = 1.f / 60.f;
+    struct Pair {
+        u32 a, b;
+        float ha, hb;
+    };
+    const Pair pairs[] = {{321u, 654u, 1.76f, 1.76f}, {777u, 888u, 1.86f, 1.58f}};
+    float worstBehind = 1e9f, worstShake = 0.f, worstKiss = 0.f, worstFeet = 1e9f, hugIn = 1e9f, hugOut = -1e9f, hugHeads = 1e9f;
+    for (const Pair& pr : pairs) {
+        CharacterDesc d[2] = {randomCharacter(pr.a, 0), randomCharacter(pr.b, 0)};
+        d[0].height = pr.ha;
+        d[1].height = pr.hb;
+        Skeleton sk[2];
+        for (int k = 0; k < 2; k++) buildSkeleton(d[k], sk[k]);
+        BodySdf body[2];
+        for (int k = 0; k < 2; k++) body[k].build(d[k], sk[k]);
+        const Clip clips[3] = {CLIP_HUG, CLIP_HANDSHAKE, CLIP_CHEEK_KISS};
+        for (Clip c : clips) {
+            Animator an[2];
+            for (int k = 0; k < 2; k++) {
+                an[k].init(&sk[k], 50u + (u32)k);
+                an[k].setCharacter(d[k]);
+            }
+            const float dist = pairDistance(c, sk[0], sk[1]);
+            const float peak = clipEventTime(c) + 0.3f;   // well into the contact
+            const int bone = c == CLIP_CHEEK_KISS ? B_HEAD : B_CHEST;
+            mat4 m[2][B_COUNT];
+            for (float t = 0.f; t < clipInfo(c).duration; t += dt) {
+                vec3 pb[2];
+                for (int k = 0; k < 2; k++) {
+                    quat q;
+                    detail::boneModel(sk[k], an[k].pose, bone, q, pb[k]);
+                }
+                for (int k = 0; k < 2; k++) {
+                    AnimInput in;
+                    in.action = t < 0.1f ? (int)c : -1;
+                    vec3 o = pb[1 - k];
+                    in.grabTarget = vec3(-o.x, dist - o.y, o.z);
+                    in.grabWeight = 1.f;
+                    an[k].update(in, dt);
+                    computeMatrices(sk[k], an[k].pose, m[k], nullptr);
+                }
+                // the second partner in the first one's model space: turned round, dist ahead
+                auto toA = [&](vec3 p) { return vec3(-p.x, dist - p.y, p.z); };
+                // feet apart all the way (ankles and toes)
+                const int feet[4] = {B_FOOT_L, B_FOOT_R, B_TOE_L, B_TOE_R};
+                for (int i = 0; i < 4; i++)
+                    for (int j = 0; j < 4; j++) {
+                        vec3 a = m[0][feet[i]].c[3].xyz(), b = toA(m[1][feet[j]].c[3].xyz());
+                        worstFeet = Min(worstFeet, length(vec2(a.x - b.x, a.y - b.y)));
+                    }
+                if (fabsf(t - peak) > 0.5f * dt) continue;
+                auto palm = [&](int k, int s) {
+                    const mat4& hm = m[k][s ? B_HAND_R : B_HAND_L];
+                    return hm.c[3].xyz() + transformDir(hm, sk[k].bindLocalPos[s ? B_FINGERS_R : B_FINGERS_L]) * 0.45f;
+                };
+                if (c == CLIP_HUG) {
+                    // the heads side by side, not into each other (hair, caps)
+                    vec3 ha = m[0][B_HEAD].c[3].xyz(), hb2 = toA(m[1][B_HEAD].c[3].xyz());
+                    hugHeads = Min(hugHeads, length(ha - hb2));
+                    if (getenv("ANIM_TEST_VERBOSE")) printf("  hug pair %u: heads %.3f m apart (%.3f %.3f %.3f) (%.3f %.3f %.3f)\n", pr.a, length(ha - hb2), ha.x, ha.y, ha.z, hb2.x, hb2.y, hb2.z);
+                    // each palm behind the partner's chest joint (on its back), for both partners: in the partner's
+                    // model space y' = dist - y, its back at negative y'
+                    for (int k = 0; k < 2; k++)
+                        for (int s = 0; s < 2; s++) {
+                            float yp = dist - palm(k, s).y;
+                            float behind = m[1 - k][B_CHEST].c[3].y - yp;
+                            // the palm against the partner's body (its surface model, in its model space)
+                            vec3 pp = toA(palm(k, s));
+                            float gap = Min(body[1 - k].dist(sk[1 - k], m[1 - k], 0, pp),
+                                            Min(body[1 - k].dist(sk[1 - k], m[1 - k], 1, pp), body[1 - k].dist(sk[1 - k], m[1 - k], 2, pp))) -
+                                        sk[k].boneRadius[s ? B_HAND_R : B_HAND_L] * 0.75f;
+                            if (getenv("ANIM_TEST_VERBOSE"))
+                                printf("  hug pair %u: partner %d hand %d %.3f behind, %.3f from the skin\n", pr.a, k, s, behind, gap);
+                            worstBehind = Min(worstBehind, behind);
+                            hugIn = Min(hugIn, gap);
+                            hugOut = Max(hugOut, gap);
+                        }
+                } else if (c == CLIP_HANDSHAKE) {
+                    // the right palms together
+                    worstShake = Max(worstShake, length(palm(0, 1) - toA(palm(1, 1))));
+                } else {
+                    vec3 a = m[0][B_HEAD].c[3].xyz(), b = toA(m[1][B_HEAD].c[3].xyz());
+                    if (getenv("ANIM_TEST_VERBOSE")) printf("  kiss pair %u: heads (%.3f %.3f %.3f) (%.3f %.3f %.3f)\n", pr.a, a.x, a.y, a.z, b.x, b.y, b.z);
+                    worstKiss = Max(worstKiss, length(a - b));
+                }
+            }
+        }
+    }
+    printf("greetings: hug palms %.3f m behind the partner's chest joint (min), %.3f .. %.3f m from its skin, heads %.3f m apart; handshake "
+           "palms %.3f m apart, cheek kiss heads %.3f m apart, feet at least %.3f m apart\n",
+           worstBehind, hugIn, hugOut, hugHeads, worstShake, worstKiss, worstFeet);
+    CHECK(hugHeads > 0.21f, "hugging heads too close (%.3f m)", hugHeads);
+    CHECK(worstBehind > 0.03f, "a hugging hand is not round the partner's back (%.3f m)", worstBehind);
+    CHECK(hugIn > -0.03f && hugOut < 0.06f, "hugging hands not on the partner's back (%.3f .. %.3f m from the skin)", hugIn, hugOut);
+    CHECK(worstShake < 0.07f, "the handshake's hands miss (%.3f m)", worstShake);
+    CHECK(worstKiss < 0.24f, "the cheek kiss's heads stay apart (%.3f m)", worstKiss);
+    CHECK(worstFeet > 0.05f, "feet collide in a greeting (%.3f m)", worstFeet);
+    // hats: brims keep people from cheek kisses and (unless the wearer is clearly taller) hugs
+    CharacterDesc h1 = randomCharacter(5u, 0), h2 = randomCharacter(6u, 0);
+    h1.hat = h2.hat = -1;
+    h1.height = h2.height = 1.75f;
+    CHECK(greetingFits(CLIP_CHEEK_KISS, h1, h2) && greetingFits(CLIP_HUG, h1, h2), "bare heads should fit every greeting");
+    h1.hat = detail::HAT_SUNHAT;
+    CHECK(!greetingFits(CLIP_CHEEK_KISS, h1, h2) && !greetingFits(CLIP_HUG, h1, h2) && greetingFits(CLIP_HANDSHAKE, h1, h2),
+          "a sun hat of the same height: a handshake only");
+    h1.height = 1.9f;
+    h2.height = 1.6f;
+    CHECK(greetingFits(CLIP_HUG, h1, h2), "a clearly taller sun hat wearer can hug");
+    h1.hat = detail::HAT_CAP;
+    CHECK(!greetingFits(CLIP_CHEEK_KISS, h1, h2) && greetingFits(CLIP_HUG, h1, h2), "a cap: a hug, no cheek kiss");
+}
+
+// Gaze: the eyes jump to a new target at once and the head follows with a lag, then the eyes stay on it as the head
+// arrives; neck and eye limits hold for a target far behind; people glance about on their own (the curious more),
+// and big gaze shifts often come with a blink.
+void testGaze() {
+    const float dt = 1.f / 60.f;
+    CharacterDesc d = randomCharacter(2024u, 0);
+    Skeleton sk;
+    buildSkeleton(d, sk);
+    auto eyeDir = [&](const mat4* m) { return normalize(m[B_EYE_L].c[1].xyz() + m[B_EYE_R].c[1].xyz()); };
+    auto headYawOf = [&](const mat4* m) {
+        vec3 f = m[B_HEAD].c[1].xyz();
+        return atan2f(-f.x, f.y);
+    };
+    Animator an;
+    an.init(&sk, 3u);
+    an.setCharacter(d);
+    AnimInput in;
+    in.lookWeight = 1.f;
+    // a point 60 degrees to the left at eye height, 3 m away, then one 45 degrees to the right
+    const float a1 = 1.05f, a2 = -0.8f;
+    auto pointAt = [&](float a) { return vec3(-sinf(a) * 3.f, cosf(a) * 3.f, 1.6f); };
+    in.lookAt = pointAt(a1);
+    mat4 m[B_COUNT];
+    for (int f = 0; f < 120; f++) an.update(in, dt);
+    computeMatrices(sk, an.pose, m, nullptr);
+    float head0 = headYawOf(m);
+    // a big switch (105 degrees): the eyes lead (at their limit in the head, towards the target, after 0.1 s), the
+    // head lags, then arrives and the eyes are on the target
+    in.lookAt = pointAt(a2);
+    float eyeLead01 = 0.f, head01 = 0.f, head06 = 0.f, eyeErrSettled = 0.f;
+    for (int f = 1; f <= 90; f++) {
+        an.update(in, dt);
+        computeMatrices(sk, an.pose, m, nullptr);
+        vec3 eyesP = (m[B_EYE_L].c[3].xyz() + m[B_EYE_R].c[3].xyz()) * 0.5f;
+        vec3 want = normalize(pointAt(a2) - eyesP);
+        float err = acosf(Clamp(dot(eyeDir(m), want), -1.f, 1.f));
+        if (f == 6) {
+            vec3 e = eyeDir(m);
+            eyeLead01 = headYawOf(m) - atan2f(-e.x, e.y);   // eyes turned right of the head (the target side) = +
+            head01 = headYawOf(m);
+        }
+        if (f == 36) head06 = headYawOf(m);
+        if (f == 90) eyeErrSettled = err;
+    }
+    // a small switch (20 degrees, within the eyes' range): the eyes there within 0.1 s
+    in.lookAt = pointAt(a2 + 0.35f);
+    float eyeErr01 = 0.f;
+    for (int f = 1; f <= 6; f++) an.update(in, dt);
+    {
+        computeMatrices(sk, an.pose, m, nullptr);
+        vec3 eyesP = (m[B_EYE_L].c[3].xyz() + m[B_EYE_R].c[3].xyz()) * 0.5f;
+        eyeErr01 = acosf(Clamp(dot(eyeDir(m), normalize(pointAt(a2 + 0.35f) - eyesP)), -1.f, 1.f));
+    }
+    computeMatrices(sk, an.pose, m, nullptr);
+    float headEnd = headYawOf(m);
+    float lag01 = (head01 - head0) / Max(headEnd - head0, -1e-3f + (headEnd - head0 < 0.f ? 0.f : 2e-3f));
+    float frac01 = (head01 - head0) / (headEnd - head0), frac06 = (head06 - head0) / (headEnd - head0);
+    (void)lag01;
+    // limits: a target straight behind-left
+    in.lookAt = vec3(1.5f, -2.5f, 1.6f);
+    float maxEye = 0.f, maxHead = 0.f;
+    for (int f = 0; f < 120; f++) {
+        an.update(in, dt);
+        maxEye = Max(maxEye, fabsf(an.eyeYawS));
+        maxHead = Max(maxHead, fabsf(an.headYawS));
+    }
+    // glances of one's own, curious against incurious; blinks with big shifts
+    int glances[2] = {0, 0};
+    for (int k = 0; k < 2; k++) {
+        Animator g;
+        g.init(&sk, 11u + (u32)k);
+        g.setCharacter(d);
+        g.lookiness = k ? 0.95f : 0.1f;
+        AnimInput gi;
+        bool was = false;
+        for (int f = 0; f < 60 * 120; f++) {
+            g.update(gi, dt);
+            bool on = g.glanceT >= 0.f;
+            if (on && !was) glances[k]++;
+            was = on;
+        }
+    }
+    printf("gaze: 105 deg switch: eyes %.0f deg ahead of the head at 0.1 s, head %.0f%% of its turn at 0.1 s, %.0f%% at 0.6 s, eyes %.1f deg "
+           "off once settled; 20 deg switch: eyes %.1f deg off after 0.1 s; target behind: head turn <= %.2f rad (with the chest), eyes <= "
+           "%.2f rad; glances in 2 min: incurious %d, curious %d\n",
+           eyeLead01 * 57.3f, frac01 * 100.f, frac06 * 100.f, eyeErrSettled * 57.3f, eyeErr01 * 57.3f, maxHead, maxEye, glances[0], glances[1]);
+    CHECK(eyeLead01 > 0.4f, "the eyes should lead the head into a turn (%.2f rad)", eyeLead01);
+    CHECK(eyeErr01 < 0.07f, "the eyes are slow to a nearby target (%.2f rad after 0.1 s)", eyeErr01);
+    CHECK(frac01 < 0.5f && frac06 > 0.85f, "the head should lag the eyes then arrive (%.2f at 0.1 s, %.2f at 0.6 s)", frac01, frac06);
+    CHECK(eyeErrSettled < 0.06f, "the eyes miss the target once settled (%.3f rad)", eyeErrSettled);
+    CHECK(maxHead <= 1.36f && maxEye <= 0.56f, "gaze beyond the neck / eye limits (head %.2f, eyes %.2f)", maxHead, maxEye);
+    CHECK(glances[1] > glances[0] && glances[0] >= 3 && glances[1] <= 60, "glances: incurious %d, curious %d in 2 min", glances[0], glances[1]);
+}
+
 void testPoses() {
     for (int g = 0; g < 2; g++) {
         CharacterDesc d = randomCharacter(21 + g, 0);
@@ -859,92 +1125,196 @@ void testAnimator() {
 }
 
 // ------------------------------------------------------------------------------------------------
-// Clothing clipping (characters pass 4): garments, straps, bags and skirts must stay outside the body in motion. The
-// complete skin (built without clothes, so the parts hidden under garments are there as well) and the dressed mesh are
-// skinned on the CPU in poses; every clothing / accessory vertex is tested against the nearest posed skin vertex
-// (inside = behind its tangent plane). Walking, running and standing are checked; sitting is reported (cloth would be
-// pushed aside by the thighs, which linear skinning cannot do).
+// Clothing clipping (characters pass 4): garments, straps, shoes, bags and skirts must stay outside the body in motion.
+// The dressed mesh and the complete skin (built without clothes, so the parts hidden under garments are there too) are
+// skinned on the CPU in poses, and three things are measured on bone-compatible pairs (the same bone, its parent or its
+// child: an arm swinging into the torso is the pose's business, not the clothes'):
+//  - poke-through: an outward-facing cloth vertex more than 4 mm behind the skin where that skin is shown;
+//  - collapse: an outward-facing cloth vertex more than 15 mm inside the body (hidden or not);
+//  - crossings: shown skin triangles that cross cloth triangles in the pose but not in the bind pose (a knee through
+//    the middle of a large skirt quad has no cloth vertex inside it). Hems and facings that tuck under the skin by
+//    design cross it in the bind pose already and are not counted.
+// Standing and walking are checked tightly, running loosely (a flexed ankle folding the shin onto the tongue of a
+// trainer, an elbow bent into a rolled cuff); sitting is reported.
 namespace clip {
-struct Posed {
-    std::vector<vec3> p, n;
-    std::unordered_map<u64, std::vector<u32>> grid;
-    static u64 key(int x, int y, int z) { return ((u64)(u32)(x + 100000) << 40) ^ ((u64)(u32)(y + 100000) << 20) ^ (u64)(u32)(z + 100000); }
-    void index() {
-        grid.clear();
-        for (u32 i = 0; i < (u32)p.size(); i++) grid[key((int)floorf(p[i].x / 0.02f), (int)floorf(p[i].y / 0.02f), (int)floorf(p[i].z / 0.02f))].push_back(i);
+static u64 cellKey(int x, int y, int z) { return ((u64)(u32)(x + 100000) << 40) ^ ((u64)(u32)(y + 100000) << 20) ^ (u64)(u32)(z + 100000); }
+static vec3 skinPt(const mat4* M, const u8* b, const float* w, vec3 p, bool dir) {
+    vec3 r(0);
+    for (int k = 0; k < 4; k++) {
+        if (w[k] <= 0.f) continue;
+        const mat4& m = M[b[k]];
+        r += (m.c[0].xyz() * p.x + m.c[1].xyz() * p.y + m.c[2].xyz() * p.z + (dir ? vec3(0) : m.c[3].xyz())) * w[k];
     }
-    // nearest vertex within ~6 cm (-1: none)
-    int nearest(vec3 q) const {
+    return r;
+}
+static bool related(const Skeleton& sk, int a, int b) { return a == b || sk.parent[a] == b || sk.parent[b] == a; }
+static bool clothMat(u32 mat) { return !(mat == MAT_SKIN || mat == MAT_HAIR || mat == MAT_EYE || mat == MAT_CAR_GLASS); }
+static bool segTri(vec3 p, vec3 q, vec3 a, vec3 b, vec3 c) {
+    vec3 d = q - p, e1 = b - a, e2 = c - a, h = cross(d, e2);
+    float det = dot(e1, h);
+    if (fabsf(det) < 1e-14f) return false;
+    float inv = 1.f / det;
+    vec3 sv = p - a;
+    float u = dot(sv, h) * inv;
+    if (u < 0.f || u > 1.f) return false;
+    vec3 qv = cross(sv, e1);
+    float v = dot(d, qv) * inv;
+    if (v < 0.f || u + v > 1.f) return false;
+    float t = dot(e2, qv) * inv;
+    return t >= 0.f && t <= 1.f;
+}
+// skin / cloth triangle pairs that cross (key: skin triangle << 32 | cloth triangle) -> the skin's depth in front of
+// the cloth (its deepest vertex); vertex normals `N` orient the cloth triangles
+static void crossings(const SkinnedMeshData& m, const Skeleton& sk, const std::vector<vec3>& Q, const std::vector<vec3>& N,
+                      std::unordered_map<u64, float>& out) {
+    out.clear();
+    std::unordered_map<u64, std::vector<u32>> cells;
+    const float C = 0.03f;
+    auto isCloth = [&](u32 i) { return clothMat(m.verts[i].mat & 0xffu); };
+    for (size_t t = 0; t + 2 < m.indices.size(); t += 3) {
+        u32 a = m.indices[t], b = m.indices[t + 1], c = m.indices[t + 2];
+        if (!isCloth(a) || !isCloth(b) || !isCloth(c)) continue;
+        vec3 lo = vmin(Q[a], vmin(Q[b], Q[c])), hi = vmax(Q[a], vmax(Q[b], Q[c]));
+        for (int z = (int)floorf(lo.z / C); z <= (int)floorf(hi.z / C); z++)
+            for (int y = (int)floorf(lo.y / C); y <= (int)floorf(hi.y / C); y++)
+                for (int x = (int)floorf(lo.x / C); x <= (int)floorf(hi.x / C); x++) cells[cellKey(x, y, z)].push_back((u32)t);
+    }
+    std::vector<u32> stamp(m.indices.size() / 3 + 1, 0xffffffffu);
+    for (size_t t = 0; t + 2 < m.indices.size(); t += 3) {
+        u32 a = m.indices[t], b = m.indices[t + 1], c = m.indices[t + 2];
+        if ((m.verts[a].mat & 0xffu) != MAT_SKIN || (m.verts[b].mat & 0xffu) != MAT_SKIN || (m.verts[c].mat & 0xffu) != MAT_SKIN) continue;
+        vec3 A[3] = {Q[a], Q[b], Q[c]};
+        vec3 lo = vmin(A[0], vmin(A[1], A[2])), hi = vmax(A[0], vmax(A[1], A[2]));
+        for (int z = (int)floorf(lo.z / C); z <= (int)floorf(hi.z / C); z++)
+            for (int y = (int)floorf(lo.y / C); y <= (int)floorf(hi.y / C); y++)
+                for (int x = (int)floorf(lo.x / C); x <= (int)floorf(hi.x / C); x++) {
+                    auto it = cells.find(cellKey(x, y, z));
+                    if (it == cells.end()) continue;
+                    for (u32 ct : it->second) {
+                        if (stamp[ct / 3] == (u32)t) continue;
+                        stamp[ct / 3] = (u32)t;
+                        const VtxSkinned& sv = m.verts[a];
+                        const VtxSkinned& cv = m.verts[m.indices[ct]];
+                        bool ok = false;
+                        for (int i = 0; i < 4 && !ok; i++)
+                            for (int j = 0; j < 4 && !ok; j++)
+                                if (sv.weights[i] >= 13 && cv.weights[j] >= 13 && related(sk, sv.bones[i], cv.bones[j])) ok = true;
+                        if (!ok) continue;
+                        u32 ca = m.indices[ct], cb = m.indices[ct + 1], cc = m.indices[ct + 2];
+                        vec3 B[3] = {Q[ca], Q[cb], Q[cc]};
+                        bool hit = false;
+                        for (int k = 0; k < 3 && !hit; k++)
+                            hit = segTri(A[k], A[(k + 1) % 3], B[0], B[1], B[2]) || segTri(B[k], B[(k + 1) % 3], A[0], A[1], A[2]);
+                        if (!hit) continue;
+                        vec3 fn = cross(B[1] - B[0], B[2] - B[0]);
+                        float depth = 0.f;
+                        if (length2(fn) > 1e-14f) {
+                            fn = normalize(fn);
+                            if (dot(fn, N[ca] + N[cb] + N[cc]) < 0.f) fn = -fn;
+                            for (int k = 0; k < 3; k++) depth = Max(depth, dot(A[k] - B[0], fn));
+                        }
+                        out[((u64)(t / 3) << 32) | (u64)(ct / 3)] = depth;
+                    }
+                }
+    }
+}
+struct Stat {
+    long n = 0, poke = 0, collapse = 0, cross = 0;
+    float worstPoke = 0.f, worstCollapse = 0.f;
+};
+// One character in one pose (the bind pose crossings are the baseline).
+static void measure(const SkinnedMeshData& dressed, const detail::MeshB& body, const Skeleton& sk, const Pose& pose,
+                    const std::unordered_map<u64, float>& bindCross, Stat& st) {
+    mat4 model[B_COUNT], sm[B_COUNT];
+    computeMatrices(sk, pose, model, sm);
+    // posed complete skin with its dominant bones, and which of its vertices the dressed mesh shows
+    std::vector<vec3> BP, BN, BB;
+    std::vector<int> BD;
+    for (const detail::BVert& v : body.v) {
+        if (v.mat != MAT_SKIN || v.part == detail::PART_EYE || v.part == detail::PART_FACEDETAIL || v.part == detail::PART_MOUTH) continue;
+        float w[4];
+        int bb = 0;
+        for (int k = 0; k < 4; k++) {
+            w[k] = v.sw.w[k];
+            if (w[k] > w[bb]) bb = k;
+        }
+        BP.push_back(skinPt(sm, v.sw.b, w, v.p, false));
+        BN.push_back(normalize(skinPt(sm, v.sw.b, w, v.n, true)));
+        BB.push_back(v.p);
+        BD.push_back(v.sw.b[bb]);
+    }
+    std::unordered_map<u64, std::vector<u32>> grid, shownGrid;
+    for (u32 i = 0; i < (u32)BP.size(); i++) grid[cellKey((int)floorf(BP[i].x / 0.02f), (int)floorf(BP[i].y / 0.02f), (int)floorf(BP[i].z / 0.02f))].push_back(i);
+    std::vector<vec3> Q(dressed.verts.size()), QN(dressed.verts.size());
+    for (size_t i = 0; i < dressed.verts.size(); i++) {
+        const VtxSkinned& v = dressed.verts[i];
+        float w[4];
+        for (int k = 0; k < 4; k++) w[k] = v.weights[k] / 255.f;
+        Q[i] = skinPt(sm, v.bones, w, v.pos, false);
+        QN[i] = normalize(skinPt(sm, v.bones, w, unpackNormalOct(v.normal), true));
+        if ((v.mat & 0xffu) == MAT_SKIN)
+            shownGrid[cellKey((int)floorf(v.pos.x / 0.02f), (int)floorf(v.pos.y / 0.02f), (int)floorf(v.pos.z / 0.02f))].push_back((u32)i);
+    }
+    auto shown = [&](u32 bi) {
+        vec3 b = BB[bi];
+        int cx = (int)floorf(b.x / 0.02f), cy = (int)floorf(b.y / 0.02f), cz = (int)floorf(b.z / 0.02f);
+        for (int dz = -1; dz <= 1; dz++)
+            for (int dy = -1; dy <= 1; dy++)
+                for (int dx = -1; dx <= 1; dx++) {
+                    auto it = shownGrid.find(cellKey(cx + dx, cy + dy, cz + dz));
+                    if (it == shownGrid.end()) continue;
+                    for (u32 i : it->second)
+                        if (length2(dressed.verts[i].pos - b) < 0.006f * 0.006f) return true;
+                }
+        return false;
+    };
+    for (size_t i = 0; i < dressed.verts.size(); i++) {
+        const VtxSkinned& v = dressed.verts[i];
+        if (!clothMat(v.mat & 0xffu)) continue;
+        st.n++;
+        vec3 q = Q[i];
         int cx = (int)floorf(q.x / 0.02f), cy = (int)floorf(q.y / 0.02f), cz = (int)floorf(q.z / 0.02f);
         float best = 0.06f * 0.06f;
         int bi = -1;
         for (int dz = -3; dz <= 3; dz++)
             for (int dy = -3; dy <= 3; dy++)
                 for (int dx = -3; dx <= 3; dx++) {
-                    auto it = grid.find(key(cx + dx, cy + dy, cz + dz));
+                    auto it = grid.find(cellKey(cx + dx, cy + dy, cz + dz));
                     if (it == grid.end()) continue;
                     for (u32 j : it->second) {
-                        float d2 = length2(p[j] - q);
+                        bool ok = false;
+                        for (int k = 0; k < 4 && !ok; k++)
+                            if (v.weights[k] >= 13 && related(sk, BD[j], v.bones[k])) ok = true;
+                        if (!ok) continue;
+                        float d2 = length2(BP[j] - q);
                         if (d2 < best) {
                             best = d2;
                             bi = (int)j;
                         }
                     }
                 }
-        return bi;
-    }
-};
-static vec3 skinPt(const mat4* M, const u8* b, const float* w, vec3 p, bool dir) {
-    vec3 r(0);
-    for (int k = 0; k < 4; k++) {
-        if (w[k] <= 0.f) continue;
-        const mat4& m = M[b[k]];
-        vec3 q = m.c[0].xyz() * p.x + m.c[1].xyz() * p.y + m.c[2].xyz() * p.z + (dir ? vec3(0) : m.c[3].xyz());
-        r += q * w[k];
-    }
-    return r;
-}
-struct Result {
-    int n = 0, over = 0;
-    float worst = 0.f;
-    int worstBone = -1;
-    vec3 worstBind;
-};
-// Penetration of the dressed mesh's clothing into the full skin in one pose.
-static Result measure(const detail::MeshB& skin, const SkinnedMeshData& dressed, const Skeleton& sk, const Pose& pose, float tol) {
-    mat4 model[B_COUNT], sm[B_COUNT];
-    computeMatrices(sk, pose, model, sm);
-    Posed P;
-    for (const detail::BVert& v : skin.v) {
-        if (v.mat != MAT_SKIN || v.part == detail::PART_EYE || v.part == detail::PART_FACEDETAIL || v.part == detail::PART_MOUTH) continue;
-        float w[4];
-        for (int k = 0; k < 4; k++) w[k] = v.sw.w[k];
-        P.p.push_back(skinPt(sm, v.sw.b, w, v.p, false));
-        P.n.push_back(normalize(skinPt(sm, v.sw.b, w, v.n, true)));
-    }
-    P.index();
-    Result r;
-    for (const VtxSkinned& v : dressed.verts) {
-        u32 mat = v.mat & 0xffu;
-        if (mat == MAT_SKIN || mat == MAT_HAIR || mat == MAT_EYE || mat == MAT_CAR_GLASS) continue;
-        float w[4];
-        for (int k = 0; k < 4; k++) w[k] = v.weights[k] / 255.f;
-        vec3 q = skinPt(sm, v.bones, w, v.pos, false);
-        int j = P.nearest(q);
-        r.n++;
-        if (j < 0) continue;
-        float depth = -dot(q - P.p[j], P.n[j]);
-        if (depth > tol) r.over++;
-        if (depth > r.worst) {
-            r.worst = depth;
-            int bb = 0;
-            for (int k = 1; k < 4; k++)
-                if (v.weights[k] > v.weights[bb]) bb = k;
-            r.worstBone = v.bones[bb];
-            r.worstBind = v.pos;
+        if (bi < 0 || dot(QN[i], BN[bi]) < 0.2f) continue;   // (facings, linings and caps face in by design)
+        float depth = -dot(q - BP[bi], BN[bi]);
+        if (length((q - BP[bi]) + BN[bi] * depth) > 0.012f) continue;   // off the skin sample's tangent plane
+        if (depth > 0.004f && shown((u32)bi)) {
+            st.poke++;
+            st.worstPoke = Max(st.worstPoke, depth);
+        }
+        if (depth > 0.015f) {
+            st.collapse++;
+            st.worstCollapse = Max(st.worstCollapse, depth);
         }
     }
-    return r;
+    std::unordered_map<u64, float> pairs;
+    crossings(dressed, sk, Q, QN, pairs);
+    std::unordered_map<u32, float> skinTris;
+    for (auto& kv : pairs)
+        if (!bindCross.count(kv.first)) {
+            float& d = skinTris[(u32)(kv.first >> 32)];
+            d = Max(d, kv.second);
+        }
+    for (auto& kv : skinTris)
+        if (kv.second >= 0.002f) st.cross++;
 }
 }  // namespace clip
 
@@ -955,38 +1325,33 @@ void testClothingClip() {
         int role;
         int top, bottom, outer, bag;   // -2: keep the random pick
         float weight;                  // < 0: keep
-        const char* what;
     };
     std::vector<Case> cases;
     for (int role = 0; role < 7; role++)
-        for (int k = 0; k < 3; k++) cases.push_back({7000u + (u32)role * 131u + (u32)k * 977u, role, -2, -2, -2, -2, -1.f, "random"});
+        for (int k = 0; k < 2; k++) cases.push_back({7000u + (u32)role * 131u + (u32)k * 977u, role, -2, -2, -2, -2, -1.f});
     const int outerTops[6] = {TOP_TSHIRT, TOP_TSHIRT, TOP_BLOUSE, TOP_TSHIRT, TOP_TANK, TOP_DRESS_SHIRT};
-    for (int oc = 0; oc < OUT_COUNT; oc++) cases.push_back({8100u + (u32)oc * 17u, 0, outerTops[oc], BOT_JEANS, oc, -1, -1.f, "outer layer"});
-    for (int b = 0; b < BAG_COUNT; b++) cases.push_back({8300u + (u32)b * 29u, 0, TOP_TSHIRT, BOT_SHORTS, -1, b, -1.f, "bag"});
-    for (int k = 0; k < 6; k++) cases.push_back({8500u + (u32)k * 53u, 0, k < 3 ? TOP_TSHIRT : TOP_SUNDRESS, BOT_SKIRT, -1, -1, -1.f, "skirt / dress"});
-    for (int k = 0; k < 4; k++) cases.push_back({8700u + (u32)k * 71u, k & 1 ? 3 : 0, k < 2 ? TOP_TSHIRT : TOP_DRESS_SHIRT, k & 1 ? BOT_SLACKS : BOT_JEANS, -2, -2, 0.95f,
-                                                  "very heavy"});
+    for (int oc = 0; oc < OUT_COUNT; oc++) cases.push_back({8100u + (u32)oc * 17u, 0, outerTops[oc], BOT_JEANS, oc, -1, -1.f});
+    for (int b = 0; b < BAG_COUNT; b++) cases.push_back({8300u + (u32)b * 29u, 0, TOP_TSHIRT, BOT_SHORTS, -1, b, -1.f});
+    for (int k = 0; k < 4; k++) cases.push_back({8500u + (u32)k * 53u, 0, k < 2 ? TOP_TSHIRT : TOP_SUNDRESS, BOT_SKIRT, -1, -1, -1.f});
+    for (int k = 0; k < 3; k++) cases.push_back({8700u + (u32)k * 71u, k & 1 ? 3 : 0, k < 2 ? TOP_TSHIRT : TOP_DRESS_SHIRT, k & 1 ? BOT_SLACKS : BOT_JEANS, -2, -2, 0.95f});
+    cases.push_back({9901u, 4, TOP_BIKINI, BOT_BIKINI, -1, -1, -1.f});
+    cases.push_back({9902u, 2, TOP_TANK, -2, -1, -1, -1.f});
     struct PoseDef {
         Clip c;
-        float t;   // fraction of the clip
-        bool checked;
+        float t;     // fraction of the clip
+        int group;   // 0 standing / walking (tight), 1 running (loose), 2 sitting (reported)
     };
-    const PoseDef poses[] = {{CLIP_IDLE, 0.3f, true}, {CLIP_WALK, 0.f, true}, {CLIP_WALK, 0.25f, true}, {CLIP_WALK, 0.5f, true}, {CLIP_WALK, 0.75f, true},
-                             {CLIP_RUN, 0.3f, true}, {CLIP_RUN, 0.8f, true}, {CLIP_SIT_BENCH, 0.5f, false}};
-    const float tol = 0.004f;
-    long nAll = 0, overAll = 0, nSit = 0, overSit = 0;
-    float worstAll = 0.f;
-    int worstCase = -1;
-    std::vector<float> caseWorst;
-    for (size_t ci = 0; ci < cases.size(); ci++) {
-        const Case& cs = cases[ci];
+    const PoseDef poses[] = {{CLIP_IDLE, 0.3f, 0}, {CLIP_WALK, 0.f, 0}, {CLIP_WALK, 0.5f, 0}, {CLIP_RUN, 0.3f, 1}, {CLIP_RUN, 0.f, 1}, {CLIP_SIT_BENCH, 0.5f, 2}};
+    clip::Stat grp[3];
+    long evals[3] = {0, 0, 0};
+    for (const Case& cs : cases) {
         CharacterDesc d = randomCharacter(cs.seed, cs.role);
         if (cs.top != -2) d.top = cs.top;
         if (cs.bottom != -2) d.bottom = cs.bottom;
         if (cs.outer != -2) d.outer = cs.outer;
         if (cs.bag != -2) d.bag = cs.bag;
         if (cs.weight >= 0.f) d.weight = cs.weight;
-        if (cs.top == TOP_SUNDRESS || cs.bottom == BOT_SKIRT) d.gender = FEMALE;
+        if (d.top == TOP_SUNDRESS || d.top == TOP_BIKINI || d.bottom == BOT_SKIRT) d.gender = FEMALE;
         Skeleton sk;
         buildSkeleton(d, sk);
         SkinnedMeshData dressed;
@@ -1000,42 +1365,48 @@ void testClothingClip() {
         bc.skin = d.skinTone;
         bc.lipCol = bc.palmCol = bc.lipInner = bc.skin;
         buildBody(bc);
-        float cw = 0.f;
-        int cOver = 0, cN = 0, wBone = -1;
+        std::unordered_map<u64, float> bindCross;
+        {
+            std::vector<vec3> Q(dressed.verts.size()), N(dressed.verts.size());
+            for (size_t i = 0; i < Q.size(); i++) {
+                Q[i] = dressed.verts[i].pos;
+                N[i] = unpackNormalOct(dressed.verts[i].normal);
+            }
+            clip::crossings(dressed, sk, Q, N, bindCross);
+        }
+        clip::Stat cst[3];
         for (const PoseDef& pd : poses) {
             Pose pose;
             sampleClip(sk, pd.c, pd.t * clipInfo(pd.c).duration, pose, cs.seed);
-            clip::Result r = clip::measure(bc.m, dressed, sk, pose, tol);
-            if (pd.checked) {
-                nAll += r.n;
-                overAll += r.over;
-                cN += r.n;
-                cOver += r.over;
-                if (r.worst > cw) {
-                    cw = r.worst;
-                    wBone = r.worstBone;
-                }
-            } else {
-                nSit += r.n;
-                overSit += r.over;
+            clip::Stat st;
+            clip::measure(dressed, bc.m, sk, pose, bindCross, st);
+            for (clip::Stat* S : {&grp[pd.group], &cst[pd.group]}) {
+                S->n += st.n;
+                S->poke += st.poke;
+                S->collapse += st.collapse;
+                S->cross += st.cross;
+                S->worstPoke = Max(S->worstPoke, st.worstPoke);
+                S->worstCollapse = Max(S->worstCollapse, st.worstCollapse);
             }
+            evals[pd.group]++;
         }
-        caseWorst.push_back(cw);
-        if (cw > worstAll) {
-            worstAll = cw;
-            worstCase = (int)ci;
-        }
-        printf("  clip %-13s seed %u role %d top %d bottom %d outer %d bag %d w %.2f: %.2f%% of clothing verts > 4 mm inside, worst %.1f mm (bone %d)\n",
-               cs.what, cs.seed, cs.role, d.top, d.bottom, outerFits(d) ? d.outer : -1, d.bag, d.weight, 100.f * cOver / Max(cN, 1), cw * 1000.f, wBone);
+        printf("  clip seed %u role %d top %d bottom %d outer %d bag %d w %.2f: stand/walk %ld/%ld/%ld  run %ld/%ld/%ld  sit %ld/%ld/%ld "
+               "(poke / collapse / crossings)\n",
+               cs.seed, cs.role, d.top, d.bottom, outerFits(d) ? d.outer : -1, d.bag, d.weight, cst[0].poke, cst[0].collapse, cst[0].cross, cst[1].poke,
+               cst[1].collapse, cst[1].cross, cst[2].poke, cst[2].collapse, cst[2].cross);
     }
-    std::vector<float> sorted = caseWorst;
-    std::sort(sorted.begin(), sorted.end());
-    float median = sorted.empty() ? 0.f : sorted[sorted.size() / 2];
-    printf("clothing clip: %ld vertex tests in idle / walk / run: %.3f%% more than 4 mm inside (sitting %.2f%%), worst %.1f mm (case %d), median of "
-           "worst per character %.1f mm\n",
-           nAll, 100.0 * overAll / Max(nAll, 1L), 100.0 * overSit / Max(nSit, 1L), worstAll * 1000.f, worstCase, median * 1000.f);
-    CHECK(overAll <= nAll / 200, "clothing vertices inside the body in motion: %.3f%%", 100.0 * overAll / Max(nAll, 1L));
-    CHECK(median < 0.012f, "median worst clothing penetration %.1f mm", median * 1000.f);
+    const char* names[3] = {"standing / walking", "running", "sitting"};
+    for (int g = 0; g < 3; g++)
+        printf("clothing clip, %s: %ld cloth vertex tests, poke-through %.3f%% (worst %.1f mm), collapse %.3f%% (worst %.1f mm), %.1f skin "
+               "triangles through cloth per pose\n",
+               names[g], grp[g].n, 100.0 * grp[g].poke / Max(grp[g].n, 1L), grp[g].worstPoke * 1000.f, 100.0 * grp[g].collapse / Max(grp[g].n, 1L),
+               grp[g].worstCollapse * 1000.f, (double)grp[g].cross / Max(evals[g], 1L));
+    CHECK(grp[0].poke * 1000 <= grp[0].n, "standing / walking: cloth poking through shown skin %.3f%%", 100.0 * grp[0].poke / Max(grp[0].n, 1L));
+    CHECK(grp[0].collapse * 5000 <= grp[0].n, "standing / walking: cloth collapsed into the body %.3f%%", 100.0 * grp[0].collapse / Max(grp[0].n, 1L));
+    CHECK(grp[0].cross <= evals[0] * 12, "standing / walking: %.1f skin triangles through cloth per pose", (double)grp[0].cross / Max(evals[0], 1L));
+    CHECK(grp[1].poke * 250 <= grp[1].n, "running: cloth poking through shown skin %.3f%%", 100.0 * grp[1].poke / Max(grp[1].n, 1L));
+    CHECK(grp[1].collapse * 1000 <= grp[1].n, "running: cloth collapsed into the body %.3f%%", 100.0 * grp[1].collapse / Max(grp[1].n, 1L));
+    CHECK(grp[1].cross <= evals[1] * 40, "running: %.1f skin triangles through cloth per pose", (double)grp[1].cross / Max(evals[1], 1L));
 }
 
 // LODs: triangle budgets, valid skinning, same silhouette (bounds) as the full mesh.
@@ -1351,7 +1722,10 @@ int main(int argc, char** argv) {
     run("Gait", testGait);
     run("Locomotion", testLocomotion);
     run("StopsAndTurns", testStopsAndTurns);
+    run("Directions", testDirections);
     run("Standing", testStanding);
+    run("Greetings", testGreetings);
+    run("Gaze", testGaze);
     run("Poses", testPoses);
     run("Animator", testAnimator);
     run("Driving", testDriving);

@@ -1034,6 +1034,19 @@ const char* currentName() { return gIS.playerInterior >= 0 && World::gInteriors 
 // 0 outdoors .. 1 inside (smoothed over ~0.4 s): audio reverb / radio muffling
 float insideAmount() { return gIS.inside; }
 
+// Story scenes staged inside an interior (missions): true once it is built, so people placed in it stand on its floor
+// among its colliders (collision is added for the player's interior as it finishes). Until then it streams in first,
+// whatever the distance.
+bool ready(const char* name) {
+    if (!World::gInteriors || !name) return false;
+    int i = World::gInteriors->byName(name);
+    if (i < 0) return false;
+    bool built = i < (int)gIS.slots.size() && gIS.slots[i] && gIS.slots[i]->state == 3;
+    if (!built && gIS.forceDef < 0) gIS.forceDef = i;
+    if (built && gIS.forceDef == i) gIS.forceDef = -1;
+    return built;
+}
+
 }  // namespace Interiors
 
 }  // namespace Game

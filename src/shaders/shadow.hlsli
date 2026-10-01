@@ -82,7 +82,7 @@ float sampleSunShadow(float3 relPos, float3 N, float viewDepth, uint2 pix) {
 float sampleSunShadowGeo(float3 relPos, float3 N, float viewDepth, uint2 pix) {
     int count = (int)gShadowParams.y;
     if (gSunDir.w <= 0.0) return 0.0;
-    float noiseAngle = ign(pix, gTime.z) * TWO_PI;
+    float noiseAngle = ignTemporal(float2(pix), gTime.z, 11.0) * TWO_PI;
     [loop] for (int c = 0; c < count; c++) {
         if (viewDepth < gCascadeSplits[c]) {
             float s = sampleCascade(c, relPos, N, noiseAngle);

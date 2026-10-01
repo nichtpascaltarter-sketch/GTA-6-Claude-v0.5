@@ -6,6 +6,15 @@
 
 namespace Game {
 
+// greetings between two people (population.cpp): the clip, stepping in, starting it on both, stepping back
+namespace pop_detail {
+int greetPick(const GameWorld& g, int a, int b, u32 h, bool formal);
+void greetBegin(GameWorld& g, int a, int b, int clip);
+bool greetReady(GameWorld& g, int a, int b);
+float greetStart(GameWorld& g, int a, int b, int clip);
+void greetPart(GameWorld& g, int a, int b, float gap);
+}  // namespace pop_detail
+
 namespace pedai_detail {
 
 
@@ -170,6 +179,11 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
     float plDist = pl ? length(ppos - pos) : 1e9f;
     pa.think -= dt;
     pa.actTimer -= dt;
+    if (pa.greetT > 0.f) pa.greetT = Max(pa.greetT - dt, 0.f);
+    if (pa.greetWith >= 0 && pa.activity != ACT_VENUE && pa.activity != ACT_MEET) {   // (parted: fled, knocked down, gone off)
+        pa.greetWith = -1;
+        pa.greetT = 0.f;
+    }
     pa.diveCooldown -= dt;
     pa.shoutTimer -= dt;
     bool gang = isGang(p.faction);
@@ -835,17 +849,27 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                 case ACT_WATCH:
                 case ACT_QUEUE:
                 case ACT_VENUE:
+                case ACT_MEET:
                 case ACT_EVENT: {
                     if (pa.activity == ACT_VENUE && aiVenueStep(*this, id, dt)) break;
                     vec2 to = pa.anchor - pos;
                     float d = length(to);
-                    if (d > 0.35f) {
+                    // a pair at the curb stepping in for a greeting (or back after it) goes the last few centimetres at a
+                    // careful step, facing the other
+                    bool paired = (pa.activity == ACT_VENUE || pa.activity == ACT_MEET) && pa.greetWith >= 0;
+                    if (pa.greetT > 0.f) {
+                        // in a greeting (a hug, a handshake): stood still, facing the partner, while the clip plays
+                        faceYaw = pa.anchorYaw;
+                        faceSet = true;
+                        stance = 0;
+                    } else if (d > (paired ? 0.05f : 0.35f)) {
                         // (runners on a track at a steady run, strollers at an easy pace)
                         float vmax = pa.activity == ACT_VENUE && pa.venueMode == VM_JOG ? 3.1f + hashToFloat(hash32(p.uid)) * 0.6f
                                    : (pa.activity == ACT_VENUE && pa.venueMode == VM_STROLL ? 1.05f + hashToFloat(hash32(p.uid)) * 0.25f : 1.4f);
-                        desired = to / d * Min(vmax, d * 2.f + 0.3f);
-                        faceYaw = atan2f(-desired.x, desired.y);
+                        desired = to / d * (paired ? Min(1.3f, d * 2.5f + 0.12f) : Min(vmax, d * 2.f + 0.3f));
+                        faceYaw = paired && d < 0.9f ? pa.anchorYaw : atan2f(-desired.x, desired.y);
                         faceSet = true;
+                        if (paired) stance = pa.stance;
                     } else {
                         faceYaw = pa.anchorYaw;
                         faceSet = true;
@@ -924,7 +948,8 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         pa.clipTimer = 6.f + hashToFloat(hq) * 10.f;
                         if (hq % 4 == 0 && p.pendingAction < 0) p.pendingAction = Anim::CLIP_IDLE_LOOK;
                     }
-                    if (pa.actTimer <= 0.f && pa.activity != ACT_EVENT && pa.activity != ACT_HAIL_TAXI && pa.activity != ACT_QUEUE && pa.activity != ACT_VENUE) {
+                    if (pa.actTimer <= 0.f && pa.activity != ACT_EVENT && pa.activity != ACT_HAIL_TAXI && pa.activity != ACT_QUEUE && pa.activity != ACT_VENUE &&
+                        pa.activity != ACT_MEET) {
                         pa.activity = ACT_WALK;
                         pa.clip = -1;
                         pa.stance = 0;
@@ -1340,6 +1365,177 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
     else if (length2(desired) > 0.04f) turnTo(p, atan2f(-desired.x, desired.y), turnRate, dt);
     movePed(p, desired, dt, false);
     pa.lastPos = pos;
+}
+
+// ------------------------------------------------------------------------------------------------------------------
+// Acquaintances running into each other on the sidewalk, now and then round the player: two people strolling alone
+// who know each other (a few pairs in a hundred, from both uids) come face to face and stop - "hey, look who it is!" -
+// step in for a hug, a kiss on the cheek or (two in suits) a handshake, stand talking a while, taking turns, then say
+// goodbye and go on their ways. Days and evenings, not in the rain; one or two at a time, with a pause between.
+namespace pedai_meet {
+
+// someone strolling alone along a sidewalk or a path with nothing else on their mind (not a jogger, a drunk, an officer,
+// not on the phone, not in a group, not crossing, not headed in through a door)
+bool meetable(GameWorld& g, int i) {
+    const Ped& p = g.peds[i];
+    if (!p.used || p.isPlayer || p.persistent || p.state != PS_ONFOOT || p.ragdoll || p.health <= 0.f || p.charIndex < 0) return false;
+    if (p.faction != FAC_CIVILIAN || p.brain.type != BRAIN_WANDER || p.pendingAction >= 0 || !p.anim.actionDone()) return false;
+    if (i >= (int)g.ai.ped.size() || g.ai.ped[i].uid != p.uid) return false;
+    const PedAI& q = g.ai.ped[i];
+    if (q.activity != ACT_WALK || q.leader >= 0 || !q.navOk || q.eventId >= 0 || q.greetWith >= 0 || q.goInside || q.walkStance == 8) return false;
+    if (q.role == PR_JOGGER || q.role == PR_DRUNK || q.role == PR_COP) return false;
+    if (q.walk.state != AI::WS_WALK || q.walk.link < 0 || q.walk.link >= (int)g.laneGraph.walkLinks.size()) return false;
+    u8 k = g.laneGraph.walkLinks[q.walk.link].kind;
+    return k == AI::WL_SIDEWALK || k == AI::WL_PATH;
+}
+
+// still in the meeting (not knocked down, fled, despawned)
+bool inMeet(GameWorld& g, int i, u32 uid, int other) {
+    if (i < 0 || i >= (int)g.peds.size() || i >= (int)g.ai.ped.size()) return false;
+    const Ped& p = g.peds[i];
+    const PedAI& q = g.ai.ped[i];
+    return p.used && p.uid == uid && q.uid == uid && p.state == PS_ONFOOT && !p.ragdoll && p.health > 0.f && p.brain.type == BRAIN_WANDER &&
+           q.activity == ACT_MEET && q.greetWith == other;
+}
+
+// back to the stroll (the walker picks up where it left off)
+void walkOn(GameWorld& g, int i) {
+    PedAI& q = g.pedAI(i);
+    if (q.activity == ACT_MEET) q.activity = ACT_WALK;
+    q.greetWith = -1;
+    q.greetT = 0.f;
+    q.stance = 0;
+    q.clip = -1;
+    q.actTimer = 25.f + hashToFloat(hash32(q.uid * 13u + 5u)) * 20.f;   // (no other stop straight away)
+}
+
+}  // namespace pedai_meet
+
+void GameWorld::aiStreetMeets(float dt) {
+    using namespace pedai_meet;
+    ai.meetGap -= dt;
+    // the meetings under way
+    for (size_t k = 0; k < ai.meets.size();) {
+        AIState::StreetMeet& m = ai.meets[k];
+        bool okA = inMeet(*this, m.a, m.ua, m.b), okB = inMeet(*this, m.b, m.ub, m.a);
+        if (!okA || !okB) {
+            // one of them was called away (a scare, a bump, gone): the other goes on alone
+            if (okA) walkOn(*this, m.a);
+            if (okB) walkOn(*this, m.b);
+            ai.meets.erase(ai.meets.begin() + k);
+            continue;
+        }
+        PedAI& qa = pedAI(m.a);
+        PedAI& qb = pedAI(m.b);
+        qa.actTimer = qb.actTimer = Max(qa.actTimer, 30.f);   // (the stroll's own stops wait)
+        m.t -= dt;
+        m.sayT -= dt;
+        bool done = false;
+        switch (m.phase) {
+            case 0:   // stepping in
+                if (pop_detail::greetReady(*this, m.a, m.b) || m.t <= 0.f) {
+                    m.t = pop_detail::greetStart(*this, m.a, m.b, m.clip);
+                    m.phase = 1;
+                }
+                break;
+            case 1:   // the greeting
+                if (qa.greetT <= 0.f && qb.greetT <= 0.f) {
+                    pop_detail::greetPart(*this, m.a, m.b, 0.95f);   // a step back to talk
+                    qa.stance = qb.stance = 7;
+                    m.phase = 2;
+                    m.t = 10.f + hashToFloat(hash32(m.ua * 3u + m.ub)) * 12.f;
+                    m.sayT = 0.5f;
+                    m.turn = 1;   // (the other answers first)
+                }
+                break;
+            case 2:   // talking, taking turns
+                if (m.sayT <= 0.f) {
+                    int who = m.turn ? m.b : m.a;
+                    aiSay(who, m.lines == 0 ? BK_REUNION : BK_SMALLTALK, 1.f);
+                    if (peds[who].speechCooldown > 0.f) {
+                        m.sayT = peds[who].speechCooldown + 0.3f + hashToFloat(hash32(m.ua + m.lines * 31u)) * 0.9f;
+                        m.turn ^= 1;
+                        m.lines++;
+                    } else {
+                        m.sayT = 0.7f;   // (someone else nearby has the floor: in a moment)
+                    }
+                }
+                if (m.t <= 0.f) {
+                    aiSay(m.a, BK_PARTING, 1.f, true);
+                    m.phase = 3;
+                    m.t = 1.8f;
+                    m.sayT = 0.9f;
+                }
+                break;
+            default:   // the goodbye (the other answers it), then off
+                if (m.sayT <= 0.f && m.sayT > -dt * 1.5f) aiSay(m.b, BK_PARTING, 1.f, true);
+                if (m.t <= 0.f) {
+                    walkOn(*this, m.a);
+                    walkOn(*this, m.b);
+                    done = true;
+                }
+                break;
+        }
+        if (done) {
+            ai.meets.erase(ai.meets.begin() + k);
+            continue;
+        }
+        k++;
+    }
+    // new ones: round the player, now and then
+    ai.meetScan -= dt;
+    Ped* pl = playerPed();
+    if (!pl || ai.meetScan > 0.f) return;
+    ai.meetScan = 0.4f;
+    if (ai.meetGap > 0.f || ai.meets.size() >= 2 || !env) return;
+    if (env->timeOfDay < 7.f || env->timeOfDay > 22.5f || env->rain > 0.3f) return;
+    std::vector<int> around, cand;
+    pedsNear(pl->pos.toVec3().xy(), 70.f, around);
+    for (int i : around)
+        if (meetable(*this, i) && length(peds[i].vel.xy()) > 0.6f) cand.push_back(i);
+    for (int a : cand) {
+        const Ped& A = peds[a];
+        vec2 pa = A.pos.toVec3().xy();
+        vec2 fa = normalize(A.vel.xy());
+        for (int b : cand) {
+            if (b == a) continue;
+            const Ped& B = peds[b];
+            vec2 d = B.pos.toVec3().xy() - pa;
+            float dist = length(d);
+            if (dist < 1.6f || dist > 5.f || fabsf(B.pos.z - A.pos.z) > 1.2) continue;
+            // coming face to face: the other ahead, nearly in line, walking the other way
+            if (dot(d, fa) < dist * 0.8f || fabsf(cross(fa, d)) > 2.2f || dot(normalize(B.vel.xy()), fa) > -0.7f) continue;
+            // who knows whom: a few pairs in a hundred
+            u32 lo = Min(A.uid, B.uid), hi = Max(A.uid, B.uid);
+            if (hashToFloat(hash32(lo * 2654435761u ^ (hi + 0x6d2b79f5u))) > 0.035f * ai.meetBoost) continue;
+            PedAI& qa = pedAI(a);
+            PedAI& qb = pedAI(b);
+            bool formal = qa.role == PR_BUSINESS && qb.role == PR_BUSINESS;
+            int clip = pop_detail::greetPick(*this, a, b, hash32(lo * 7919u + hi), formal);
+            if (clip < 0) continue;
+            for (int i : {a, b}) {
+                PedAI& q = pedAI(i);
+                q.activity = ACT_MEET;
+                q.clip = -1;
+                q.walkStance = 0;
+                q.actTimer = 60.f;
+            }
+            pop_detail::greetBegin(*this, a, b, clip);
+            AIState::StreetMeet m;
+            m.a = a;
+            m.b = b;
+            m.ua = A.uid;
+            m.ub = B.uid;
+            m.clip = (i8)clip;
+            m.t = 1.5f + dist / 1.1f;   // (the step in: a moment to close the gap)
+            ai.meets.push_back(m);
+            ai.meetsStarted++;
+            ai.meetGap = (35.f + hashToFloat(hash32(A.uid + 77u)) * 45.f) / Max(ai.meetBoost, 1.f);
+            aiSay(a, BK_REUNION, 1.f, true);
+            LOG("street meet %d: peds %d and %d (%s) at %.0f %.0f, %.1f m apart", ai.meetsStarted, a, b, Anim::clipInfo((Anim::Clip)clip).name, pa.x, pa.y, dist);
+            return;
+        }
+    }
 }
 
 }  // namespace Game

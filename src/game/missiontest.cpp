@@ -7,6 +7,8 @@
 //   --approach loud|quiet heist approach for the Act 3 missions (default quiet).
 //   --ending broadcast|leverage  the Act 3 ending the Act 4 missions follow (default broadcast).
 //   --act4choice law|money       the choice at the end of King Tide (default law).
+//   --cutshot <seconds>   how far into a cutscene shot its screenshot is taken (default 0.9; longer with --renderevery 1
+//                         lets the exposure settle on interiors and night scenes).
 // Street encounters run through the same queue: "enc_<kind>" steers toward the first outcome, "enc_<kind>_b" toward
 // the second; the groups "encounters", "encounters_b" and "encounters_all" queue them all. Fishing: "fish_pier",
 // "fish_boat" (offshore), "fish_swamp", "fish_river", "fish_lake" land a fish of the habitat, "fish_market" sells a
@@ -1455,16 +1457,18 @@ void updateMissionTest(GameWorld& g, float dt) {
             R.cutsceneTime = 0.f;
         }
         R.cutsceneTime += dt;
-        // one screenshot of each of the first two shots of every cutscene
+        // one screenshot of each of the first two shots of every cutscene (--cutshot <s>: later into the shot, so the
+        // exposure has settled on the new scene; use it with --renderevery 1)
+        static const float cutShot = Platform::argValue("cutshot") ? Clamp((float)atof(Platform::argValue("cutshot")), 0.3f, 8.f) : 0.9f;
         std::string tag = StrFormat("cut%d", M.shotIndex);
         tag = StrFormat("%d_%d_%s", m.stage, (int)M.shots.size(), tag.c_str());
-        if (R.cutsceneTime > 0.9f && M.shotIndex < 2 && R.cutTag != tag) {
+        if (R.cutsceneTime > cutShot && M.shotIndex < 2 && R.cutTag != tag) {
             R.cutTag = tag;
             T.screenshot(StrFormat("stage%d_cut%d", m.stage, M.shotIndex).c_str());
         }
         // (a cutscene screenshot still waiting for streaming holds the fast-forward, so it shows the cutscene)
         bool shotWaiting = !R.shotQueue.empty() || !R.pendingShotPath.empty();
-        if (R.cutsceneTime > 1.7f && (!shotWaiting || R.cutsceneTime > 10.f)) {
+        if (R.cutsceneTime > cutShot + 0.8f && (!shotWaiting || R.cutsceneTime > 10.f)) {
             if (M.shotIndex + 1 < (int)M.shots.size() && M.shotIndex < 1) {
                 M.shotIndex++;
                 M.shotTime = 0.f;

@@ -61,6 +61,15 @@ void updateOpenWorld(GameWorld& g, float dt) {
         }
     }
     menuUpdate(g, dt);
+    // shop, wardrobe, garage, property, business and bait-shop menus never stay open into a mission or a cutscene (a
+    // mission that starts by a shop's door, a cutscene that cuts in while one was open); their markers only open them in
+    // free roam
+    if (gMenu.open && (gMissions.active || g.mInCutscene())) {
+        int o = gMenu.owner;
+        if (o == MO_SHOP_GUNS || o == MO_SHOP_CLOTHES || o == MO_SHOP_CARS || o == MO_WARDROBE || o == MO_GARAGE || o == MO_BUSINESS ||
+            o == MO_PROPERTY || o == MO_FISH || (o == MO_RESPRAY && g.mInCutscene()))
+            menuClose(g);
+    }
     updateDrivers(g, dt);
     enforceOutfit(g);
     Ped* pl = g.playerPed();

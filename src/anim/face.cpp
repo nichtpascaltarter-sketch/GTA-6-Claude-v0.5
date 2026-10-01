@@ -107,6 +107,10 @@ void addHeadPrims(BuildCtx& c) {
     // under the chin into the neck (+ submental fullness on heavier faces)
     S.ellipsoid(P(0, 0.028f, -0.057f * D.chinH), vec3(0.036f, 0.045f, 0.022f) * hs, HM | MK_NECK, R(0.022f));
     if (full > 0.05f) S.ellipsoid(P(0, 0.046f, -0.062f * D.chinH), vec3(0.028f, 0.026f, 0.013f) * (hs * (0.4f + 0.6f * full)), HM | MK_NECK, R(0.02f));
+    // a very heavy face carries a double chin: a soft roll under the jaw line, wider than the chin
+    if (D.fat > 0.25f)
+        S.ellipsoid(P(0, 0.05f, -0.071f * D.chinH), vec3(0.036f + 0.008f * D.fat, 0.028f, 0.014f + 0.007f * D.fat) * (hs * (0.5f + 0.5f * D.fat)), HM | MK_NECK,
+                    R(0.018f));
     // ---- cheek soft tissue
     for (int sd = 0; sd < 2; sd++) {
         float sx = sd ? 1.f : -1.f;
@@ -123,7 +127,7 @@ void addHeadPrims(BuildCtx& c) {
         float bf = Saturate(0.35f + 0.45f * youth + 0.6f * full + 0.2f * fem - 0.45f * lean * (1.f - 0.5f * youth));
         S.ellipsoid(P(sx * 0.0425f * jw, 0.05f, -0.013f), vec3(0.013f, 0.02f, 0.022f) * (hs * (0.5f + 0.5f * bf)), HM, R(0.02f));
         // jowls (age / weight)
-        float jl = Saturate(0.9f * age + 0.6f * full - 0.35f);
+        float jl = Saturate(0.9f * age + 0.6f * full - 0.35f + 0.55f * D.fat);
         if (jl > 0.02f) S.ellipsoid(P(sx * 0.0385f * jw, 0.061f, -0.037f), vec3(0.012f, 0.012f, 0.012f) * (hs * (0.6f + 0.5f * jl)), HM, R(0.016f));
     }
     // ---- mouth: muzzle over the dental arch and the skin of the upper lip

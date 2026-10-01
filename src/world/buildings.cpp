@@ -645,7 +645,7 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
     // Keep the SkyLine viaduct corridor and its stations clear (transit.cpp)
     transitPruneBuildings(buildings);
     // Places fitted to the finished streets (churchyards, town and suburban hospitals) clear their ground (places.h)
-    placesAfterLots(map, roads, buildings, facades);
+    placesAfterLots(map, roads, *this);
     // Per-cell lists
     const int cps = (int)(2.f * kWorldHalf / 256.f);
     cellLists.assign((size_t)cps * cps, {});

@@ -66,8 +66,8 @@ void csGTAO(uint3 id : SV_DispatchThreadID) {
     float radiusPx = min(giR * pxPerMeter, gAO1.w);
     if (radiusPx < 2.0) { uOut[id.xy] = float4(0, 0, 0, 1); return; }
     int slices = (int)gAO0.x, steps = (int)gAO0.y;
-    float noiseA = ign(float2(id.xy), gTime.z);
-    float noiseB = frac(ign(float2(id.xy) + 17.0, gTime.z * 1.618) + 0.5);
+    float noiseA = ignTemporal(float2(id.xy), gTime.z, 0.0);
+    float noiseB = frac(ignTemporal(float2(id.xy), gTime.z * 1.2207, 17.0) + 0.5);
     float thickness = gAO1.x * (1.0 + z * 0.02);
     bool doGI = gAO2.z > 0.5 && gAO2.w > 0.5;
     float expRatio = prevExposureRatio();
@@ -213,7 +213,8 @@ void csGTAOBlur(uint3 id : SV_DispatchThreadID) {
         int2 q = clamp(int2(id.xy) + int2(x, y), int2(0, 0), int2(gHalfScreen.xy) - 1);
         float qz = tHalfDepth[q];
         float3 qn = octDecode(tHalfNormal[q] * 2.0 - 1.0);
-        float w = exp(-abs(qz - z) / (0.03 * z + 0.02)) * pow(saturate(dot(qn, n)), 8.0);
+        // geometric edges only: normal-mapped detail (stucco, grain) must not stop the blur, or the AO noise stays
+        float w = exp(-abs(qz - z) / (0.03 * z + 0.02)) * smoothstep(0.55, 0.9, dot(qn, n));
         w *= (x == 0 && y == 0) ? 1.0 : 0.6 / (1.0 + 0.25 * (x * x + y * y));
         sum += tInput[q] * w;
         wsum += w;

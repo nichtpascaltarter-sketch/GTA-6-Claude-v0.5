@@ -115,6 +115,42 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
     D.rKnee = 0.053f * s * (1.f + 0.2f * wc) * Lerp(1.f, 0.97f, fem);
     D.rCalf = 0.056f * s * (1.f + 0.22f * wc + 0.2f * mc) * Lerp(1.f, 0.95f, fem);
     D.rAnkle = 0.033f * s * (1.f + 0.1f * wc) * Lerp(1.f, 0.9f, fem);
+    // ---- build extremes: the linear weight terms cover the middle of the range; very heavy people carry most of the
+    // extra on the upper arms, thighs, belly, back, neck and under the chin, and old age takes muscle from the limbs
+    // and the seat (sarcopenia) while the waist thickens and the soft tissue drops
+    {
+        const float fat = sstep(0.5f, 1.f, w), fat2 = fat * fat, sarco = sstep(0.55f, 1.f, a) * (1.f - fat);
+        D.fat = fat;
+        D.thin = sstep(0.42f, 0.05f, w);
+        D.sag = sstep(0.5f, 1.f, a);
+        D.rUpperArm *= 1.f + 0.34f * fat2 - 0.08f * sarco;
+        D.rShoulder *= 1.f + 0.12f * fat2 - 0.06f * sarco;
+        D.rElbow *= 1.f + 0.1f * fat2;
+        D.rForearm *= 1.f + 0.13f * fat2 - 0.05f * sarco;
+        D.rWrist *= 1.f + 0.05f * fat2;
+        D.rThigh *= 1.f + 0.22f * fat2 - 0.08f * sarco;
+        D.rKnee *= 1.f + 0.12f * fat2;
+        D.rCalf *= 1.f + 0.15f * fat2 - 0.07f * sarco;
+        D.rAnkle *= 1.f + 0.08f * fat2;
+        D.neckR *= 1.f + 0.16f * fat2;
+        D.hipHalfW *= 1.f + 0.07f * fat2;
+        D.chestHalfW *= 1.f + 0.05f * fat2;
+        // (women carry more of it on the hips, seat and thighs, men on the belly)
+        D.glute *= (1.f - 0.22f * sarco) * (1.f + 0.25f * fem * fat2);
+        D.hipHalfW *= 1.f + 0.05f * fem * fat2;
+        D.rThigh *= 1.f + 0.05f * fem * fat2;
+        D.belly = Saturate(D.belly * (1.f - 0.4f * fem * fat) + 0.3f * fat2 * (1.f - 0.6f * fem));
+        D.waistDepth *= 1.f - 0.08f * fem * fat2;
+        // an athletic build tapers from the lats to a narrow waist
+        const float ath = sstep(0.55f, 1.f, m) * (1.f - fat);
+        D.waistHalfW *= 1.f - 0.08f * ath;
+        D.waistDepth *= 1.f - 0.06f * ath;
+        D.chestFat = (1.f - fem) * sstep(0.3f, 1.f, fat);
+        D.apron = sstep(0.55f, 1.f, fat) * (1.f - 0.35f * fem);
+        D.backFat = sstep(0.35f, 1.f, fat);
+        // the arms stand a little further off the wider body in the bind pose
+        D.armAngle += 4.f * fat2 * kDegToRad;
+    }
     D.shoulderHalfW = GHhalf + D.rShoulder;
 
     // ---- face variation: wide per-seed ranges (a street crowd must not look like siblings), ancestry / sex / age
@@ -255,6 +291,11 @@ void computeDims(const CharacterDesc& d, BodyDims& D) {
                 default: break;   // oval
             }
         }
+        // a very heavy face is rounder: fuller cheeks, a softer, wider jaw line
+        D.faceW *= 1.f + 0.045f * Sq(D.fat);
+        D.jawW *= 1.f + 0.07f * Sq(D.fat);
+        D.cheekB += 0.2f * D.fat;
+        D.chinSquare *= 1.f - 0.5f * D.fat;
         // caricature guard: the independent draws and the archetype can stack into a face far longer and narrower (or
         // shorter and wider) than people are; the height-to-width ratio is softly held in a band, the correction split
         // between height and width so the face keeps its size. Sex dimorphism survives the draws the same way: a

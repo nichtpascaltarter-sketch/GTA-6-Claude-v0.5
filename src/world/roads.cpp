@@ -691,6 +691,7 @@ void RoadNetwork::generate(WorldMap& map) {
     {
         auto ruralValid = [&](vec2 p) {
             Region r = map.regionAt(p.x, p.y);
+            if (gSites && gSites->blocksRoads(p)) return false;   // the prison and the speedway keep the farm roads out
             return r == REG_FARMLAND || r == REG_REDLAND || r == REG_HARLOW || r == REG_LAKE_TOWN || r == REG_FORT_CASTELL;
         };
         // Section-line farm roads every 1600 m, with some missing

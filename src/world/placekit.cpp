@@ -422,7 +422,7 @@ void italianCypress(G& g, vec2 p, float z, float h, float r) {
     lathe(g, V3(p, z + 0.5f),
           {vec2(r * 0.45f, 0.f), vec2(r * 0.9f, h * 0.14f), vec2(r, h * 0.34f), vec2(r * 0.88f, h * 0.58f), vec2(r * 0.55f, h * 0.8f),
            vec2(r * 0.2f, h * 0.93f - 0.5f), vec2(0.f, h - 0.5f)},
-          g.detail ? 9 : 5, rgb(0.22f, 0.33f, 0.2f), M(MAT_LEAVES), false);
+          g.detail ? 9 : 5, foliageColor(vec3(0.72f, 0.86f, 0.66f), FOL_PINE), M(MAT_LEAVES), false);
     if (g.detail) collide(g, V3(p, z + 1.f), vec2(1, 0), vec3(0.15f, 0.15f, 1.f));
 }
 
@@ -451,6 +451,122 @@ void lanternPost(G& g, vec2 p, float z, float h, vec3 glow) {
     lathe(g, V3(p, z + h - 0.09f), {vec2(0.24f, 0.f), vec2(0.06f, 0.16f), vec2(0.03f, 0.26f), vec2(0.f, 0.3f)}, 4, iron, im, false, kPi * 0.25f);
     light(g, V3(p, z + h - 0.35f), glow * 1500.f, 12.f, 0);
     collide(g, V3(p, z + h * 0.5f), vec2(1, 0), vec3(0.08f, 0.08f, h * 0.5f));
+}
+
+// ------------------------------------------------------------------------------------------------ plots on the streets
+// A straight street frontage for a plot W along the street and D deep: the plot's centre, its axes and where the lot
+// line and the sidewalk are (distance from the street's centre line)
+struct Frontage {
+    int edge = -1;
+    vec2 c, along, out;   // plot centre; along the street; away from it
+    float s = 0.f;        // edge distance at the plot centre
+    float lotLine = 0.f;  // street centre line to the plot's front line
+    float sidewalkC = 0.f;
+    float z = 0.f;        // pavement height of the street at the plot centre
+};
+
+// Plots claimed by places fitted to the streets during this pass (placesAfterLots rebuilds the site hashes once at the end)
+std::vector<SiteRect> claimedPlots;
+
+// The frontage nearest to `want` (within `radius`) on a straight edge of an allowed class (classMask: 1 << RoadClass),
+// clear of other roads, dry, gently sloped, inside region `reg` (REG_COUNT: any) and off the site reservations.
+// onlyEdge / onlySide (+1 / -1 of the edge's right) pin the search to one side of one street.
+bool findFrontage(const WorldMap& map, const RoadNetwork& roads, vec2 want, float radius, float W, float D, Region reg, u32 classMask, bool needSidewalk,
+                  Frontage* out, int onlyEdge = -1, int onlySide = 0) {
+    float best = 1e30f;
+    out->edge = -1;
+    for (size_t ei = 0; ei < roads.edges.size(); ei++) {
+        if (onlyEdge >= 0 && (int)ei != onlyEdge) continue;
+        const RoadEdge& e = roads.edges[ei];
+        if (!(classMask & (1u << e.cls)) || (e.flags & (RF_BRIDGE | RF_ELEVATED | RF_UNPAVED)) || (needSidewalk && e.sidewalk < 1.f)) continue;
+        if (e.length < W + e.cut0 + e.cut1 + 12.f || e.pts.size() < 2) continue;
+        vec2 a = e.pts.front().xy(), b = e.pts.back().xy();
+        if (distPointSegment2D(want, a, b) > radius) continue;
+        bool straight = true;
+        for (const vec3& p : e.pts) straight = straight && distPointSegment2D(p.xy(), a, b) < 0.8f;
+        if (!straight) continue;
+        vec2 along = normalize(b - a);
+        for (int side = -1; side <= 1; side += 2) {
+            if (onlySide && side != onlySide) continue;
+            vec2 o = vec2(along.y, -along.x) * (float)side;
+            float lot = e.halfWidth + e.sidewalk + 0.5f;
+            for (float s = e.cut0 + W * 0.5f + 6.f; s <= e.length - e.cut1 - W * 0.5f - 6.f; s += 4.f) {
+                vec2 c = e.posAt(s).xy() + o * (lot + D * 0.5f);
+                float d = length(c - want);
+                if (d >= best) continue;
+                bool ok = true;
+                float zmn = 1e9f, zmx = -1e9f;
+                for (float u = -W * 0.5f; u <= W * 0.5f + 0.01f && ok; u += 4.f)
+                    for (float v = -D * 0.5f + 1.5f; v <= D * 0.5f + 1.f && ok; v += 4.f) {
+                        vec2 p = c + along * u + o * v;
+                        if (map.isWater(p.x, p.y) || (reg != REG_COUNT && map.regionAt(p.x, p.y) != reg) || roads.nearRoad(p, 1.5f) ||
+                            (gSites && (gSites->blocksLots(p) || gSites->blocksVegetation(p))))
+                            ok = false;
+                        for (const SiteRect& cr : claimedPlots) ok = ok && !cr.contains(p, 1.f);
+                        float h = map.heightAt(p.x, p.y);
+                        zmn = Min(zmn, h);
+                        zmx = Max(zmx, h);
+                    }
+                if (!ok || zmx - zmn > 2.f) continue;
+                best = d;
+                out->edge = (int)ei;
+                out->c = c;
+                out->along = along;
+                out->out = o;
+                out->s = s;
+                out->lotLine = lot;
+                out->sidewalkC = e.halfWidth + e.sidewalk * 0.5f;
+                out->z = e.posAt(s).z;
+            }
+        }
+    }
+    return out->edge >= 0;
+}
+
+bool obbOverlap(vec2 c1, vec2 a1, float hx1, float hy1, vec2 c2, vec2 a2, float hx2, float hy2) {
+    const vec2 axes[4] = {a1, perp(a1), a2, perp(a2)};
+    vec2 d = c2 - c1;
+    for (const vec2& n : axes) {
+        float r1 = fabsf(dot(a1, n)) * hx1 + fabsf(dot(perp(a1), n)) * hy1;
+        float r2 = fabsf(dot(a2, n)) * hx2 + fabsf(dot(perp(a2), n)) * hy2;
+        if (fabsf(dot(d, n)) > r1 + r2) return false;
+    }
+    return true;
+}
+
+// A curb cut or a gate on a sidewalk that street furniture and bus stops keep clear of: an undrawn walkable pad at the
+// pavement's height there
+void keepClear(SiteSet& S, const RoadNetwork& roads, vec2 c, vec2 along, float hx, float hy) {
+    float z = 0.f;
+    if (!roads.surfaceHeight(c, &z, 1e9f)) z = gMap ? gMap->heightAt(c.x, c.y) + 0.25f : 0.f;
+    Pad pd;
+    pd.c = c;
+    pd.ax = along;
+    pd.hx = hx;
+    pd.hy = hy;
+    pd.z = z;
+    pd.slope = 0.f;
+    pd.kind = PAD_SERVICE;
+    pd.drawn = 0;
+    pd.skirt = 0;
+    pd.flags = 1;
+    pd.color = 0xffffffffu;
+    S.pads.push_back(pd);
+}
+
+// Generic buildings whose footprint, or whose lot, reaches into the plot make way; returns how many
+size_t clearPlot(std::vector<Building>& buildings, vec2 c, vec2 along, float hx, float hy) {
+    size_t before = buildings.size();
+    float reach = sqrtf(hx * hx + hy * hy) + 40.f;
+    buildings.erase(std::remove_if(buildings.begin(), buildings.end(),
+                                   [&](const Building& b) {
+                                       if (b.siteElem >= 0 || length(b.c - c) > reach) return false;
+                                       if (obbOverlap(c, along, hx + 0.5f, hy + 0.5f, b.c, b.ax, b.hx, b.hy)) return true;
+                                       float lhx = b.lotHx > 0.f ? b.lotHx : b.hx + 2.f;
+                                       return obbOverlap(c, along, hx - 1.5f, hy - 1.5f, b.lotC, b.ax, lhx, b.lotHy);
+                                   }),
+                    buildings.end());
+    return before - buildings.size();
 }
 
 }  // namespace place_kit

@@ -363,8 +363,8 @@ void tomb(G& g, const Plot& p, float z) {
             wallRun(g, P(hw - ct * 0.5f, -hd + ct), P(hw - ct * 0.5f, hd - ct), z - 0.1f, z + ch, ct, cc, cm, false);
             bool shellFill = r.chance(0.6f);
             quad(g, *g.m, V3(P(-hw + ct, -hd + ct), z + ch - 0.06f), V3(P(hw - ct, -hd + ct), z + ch - 0.06f), V3(P(hw - ct, hd - ct), z + ch - 0.06f),
-                 V3(P(-hw + ct, hd - ct), z + ch - 0.06f), shellFill ? rgb(0.9f, 0.88f, 0.83f) : rgb(0.45f, 0.6f, 0.34f),
-                 shellFill ? M(MAT_SAND) : M(MAT_GRASS), vec3(0, 0, 1));
+                 V3(P(-hw + ct, hd - ct), z + ch - 0.06f), shellFill ? rgb(0.9f, 0.88f, 0.83f) : rgb(0.56f, 0.8f, 0.4f),
+                 shellFill ? M(MAT_PLASTER) : M(MAT_GRASS), vec3(0, 0, 1));
             // headstone at the far end, reading toward the aisle
             float sw = Min(hw - 0.12f, 0.5f);
             bx(0.f, -hd + 0.3f, z - 0.2f, sw, 0.07f, 0.52f, marble, marbleM);
@@ -489,7 +489,7 @@ void tomb(G& g, const Plot& p, float z) {
         cyl(g, V3(fp, z), 0.07f, 0.09f, 0.28f, 6, rgb(0.8f, 0.8f, 0.78f), marbleM, true);
         const vec3 bloom[4] = {vec3(0.85f, 0.12f, 0.15f), vec3(1.f, 0.55f, 0.75f), vec3(1.f, 0.85f, 0.2f), vec3(0.97f, 0.97f, 0.95f)};
         lathe(g, V3(fp, z + 0.26f), {vec2(0.05f, 0.f), vec2(0.2f, 0.14f), vec2(0.16f, 0.28f), vec2(0.f, 0.32f)}, 6, tint(bloom[(p.h >> 24) & 3]),
-              M(MAT_LEAVES), false);
+              M(MAT_PLASTER), false);   // (silk and plastic flowers)
     }
     if (detail && ((p.h >> 17) % 11u) == 0u) {
         vec2 cp = P(r.range(-hw * 0.4f, hw * 0.4f), hd + 0.16f);
@@ -507,7 +507,7 @@ void genSection(const SiteElem& e, G& g) {
     std::vector<Aisle> aisles;
     rowsOf(s, rows, &aisles);
     const Segs sg = segsOf(s);
-    const u32 shell = rgb(0.9f, 0.88f, 0.82f), shellD = rgb(0.82f, 0.8f, 0.74f), sand = M(MAT_SAND);
+    const u32 shell = rgb(0.9f, 0.88f, 0.82f), shellD = rgb(0.82f, 0.8f, 0.74f), sand = M(MAT_PLASTER);   // crushed shell
     auto strip = [&](vec2 a, vec2 b, float w, u32 col, float lift) {
         float L = length(b - a);
         int n = Max(1, (int)ceilf(L / 20.f));
@@ -600,7 +600,7 @@ void genWall(const SiteElem& e, G& g) {
                     vec2 vp = at(sc + 0.25f, T + 0.1f);
                     cyl(g, V3(vp, zz0 - 0.02f), 0.04f, 0.05f, 0.16f, 5, rgb(0.8f, 0.8f, 0.78f), M(MAT_MARBLE), true);
                     lathe(g, V3(vp, zz0 + 0.13f), {vec2(0.03f, 0.f), vec2(0.11f, 0.08f), vec2(0.f, 0.17f)}, 5,
-                          (ht >> 20) & 1 ? rgb(0.9f, 0.15f, 0.2f) : rgb(1.f, 0.9f, 0.3f), M(MAT_LEAVES), false);
+                          (ht >> 20) & 1 ? rgb(0.9f, 0.15f, 0.2f) : rgb(1.f, 0.9f, 0.3f), M(MAT_PLASTER), false);
                 }
             }
         }
@@ -679,7 +679,7 @@ void genWall(const SiteElem& e, G& g) {
 void genGrounds(const SiteElem& e, G& g) {
     const bool detail = g.detail;
     const float z = e.z;
-    const u32 grass = rgb(0.5f, 0.64f, 0.36f), shell = rgb(0.9f, 0.88f, 0.82f), brick = rgb(0.62f, 0.36f, 0.28f), sand = M(MAT_SAND);
+    const u32 grass = rgb(0.6f, 0.84f, 0.44f), shell = rgb(0.9f, 0.88f, 0.82f), brick = rgb(0.62f, 0.36f, 0.28f), sand = M(MAT_PLASTER);   // crushed shell
     const vec2 X(1, 0), Y(0, 1), oc(kAvX, kAvY);
     drapeRect(g, vec2((kIX0 + kIX1) * 0.5f, (kIY0 + kIY1) * 0.5f), X, (kIX1 - kIX0) * 0.5f, (kIY1 - kIY0) * 0.5f, 0.03f, grass, M(MAT_GRASS), detail ? 8.f : 24.f, z);
     auto strip = [&](vec2 a, vec2 b, float w, u32 col, u32 mat, float lift) {
@@ -830,7 +830,7 @@ void genChapel(const SiteElem& e, G& g) {
     const u32 wallC = v == 0 ? rgb(0.96f, 0.92f, 0.8f) : (v == 1 ? rgb(0.97f, 0.97f, 0.95f) : rgb(0.62f, 0.3f, 0.24f));
     const u32 wallM = v == 0 ? M(MAT_STUCCO) : (v == 1 ? M(MAT_WOOD_SIDING) : M(MAT_BRICK));
     const u32 trimC = v == 0 ? rgb(0.88f, 0.84f, 0.74f) : (v == 1 ? rgb(0.95f) : rgb(0.85f, 0.82f, 0.75f));
-    const u32 trimM = v == 2 ? M(MAT_STONE) : (v == 1 ? M(MAT_WOOD) : M(MAT_STUCCO));
+    const u32 trimM = v == 2 ? M(MAT_STONE) : (v == 1 ? M(MAT_PLASTER) : M(MAT_STUCCO));   // painted white trim on the clapboard church
     const u32 roofC = v == 0 ? rgb(0.78f, 0.45f, 0.32f) : (v == 1 ? rgb(0.3f, 0.32f, 0.35f) : rgb(0.36f, 0.38f, 0.4f));
     const u32 roofM = v == 0 ? M(MAT_ROOF_TILE) : (v == 1 ? M(MAT_ROOF_SHINGLE) : M(MAT_ROOF_SHINGLE));
     const float wallH = v == 0 ? 6.8f : (v == 1 ? 5.6f : 7.2f), rise = v == 0 ? 3.f : hw * (v == 1 ? 0.9f : 1.05f);
@@ -968,6 +968,17 @@ void genChapel(const SiteElem& e, G& g) {
 }
 
 // ------------------------------------------------------------------------------------------------ layout
+// Once the streets exist: the sidewalks in front of the gates stay clear of bus stops (street furniture already keeps off
+// the vegetation blocks laid out with the cemetery)
+void finalize(SiteSet& S, const RoadNetwork& roads) {
+    bool built = false;
+    for (const NamedPlace& np : S.places) built = built || np.kind == PK_CEMETERY;
+    if (!built) return;
+    keepClear(S, roads, vec2(kX0 + 8.8f + 1.75f, kAvY), vec2(0, 1), kGateMainHW + 3.f, 1.6f);
+    keepClear(S, roads, vec2(kX1 - 5.6f - 1.5f, kServiceY), vec2(0, 1), kGateServiceHW + 2.f, 1.4f);
+    for (float sy : {kY0 + 5.6f + 1.5f, kY1 - 5.6f - 1.5f}) keepClear(S, roads, vec2(kAvX, sy), vec2(1, 0), kGatePedHW + 2.f, 1.4f);
+}
+
 void layout(SiteSet& S, WorldMap& map) {
     // the block must be dry Calle Luna ground
     float zs = 0.f;

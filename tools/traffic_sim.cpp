@@ -1498,6 +1498,21 @@ int main(int argc, char** argv) {
                 printf("   walk kind %d (%.1f %.1f %.2f) -> (%.1f %.1f %.2f) hw %.1f\n", w.kind, w.a.x, w.a.y, w.a.z, w.b.x, w.b.y, w.b.z, w.halfWidth);
             continue;
         }
+        if (!strcmp(argv[i], "--place") && i + 1 < argc) {
+            // every people anchor of the places whose name has this in it (for aiming test cameras)
+            const char* key = argv[++i];
+            if (!World::gSites) continue;
+            const World::SiteSet& S = *World::gSites;
+            for (size_t pi = 0; pi < S.places.size(); pi++) {
+                const World::NamedPlace& P = S.places[pi];
+                if (!strstr(P.name.c_str(), key)) continue;
+                printf("place %zu '%s' at (%.0f %.0f) r %.0f\n", pi, P.name.c_str(), P.pos.x, P.pos.y, P.radius);
+                for (const World::PlaceAnchor& a : S.anchors)
+                    if (a.place == pi)
+                        printf("   kind %d group %d at (%.1f %.1f %.2f) face (%.2f %.2f)\n", a.kind, a.group, a.pos.x, a.pos.y, a.pos.z, a.face.x, a.face.y);
+            }
+            continue;
+        }
         if (!strcmp(argv[i], "--ramps")) {
             // interchange ramps, clustered (for picking harness hotspots): where they are and how many lanes each has
             const AI::LaneGraph& G = w.lg;

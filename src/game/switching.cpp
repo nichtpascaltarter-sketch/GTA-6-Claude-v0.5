@@ -46,6 +46,11 @@ Anim::CharacterDesc outfitDesc(GameWorld& g, int who, int outfit) {
     Anim::CharacterDesc d = g.chars[gBaseChar[who]].desc;
     d.hat = -1;
     d.glasses = -1;
+    // each outfit is a look of its own: no open layer, bag or accessory carried over from the everyday clothes except
+    // the watch and earrings (ACC_EXPLICIT keeps the builders from drawing accessories from the seed)
+    d.outer = -1;
+    d.bag = -1;
+    d.extras &= Anim::detail::ACC_EXPLICIT | Anim::detail::ACC_WATCH | Anim::detail::ACC_EARRINGS;
     if (who == 0) {
         switch (outfit) {
             case 1: d.top = 0; d.topColor = lin(0.85f, 0.85f, 0.82f); d.bottom = 10; d.bottomColor = lin(0.2f, 0.28f, 0.42f); d.shoes = 2; d.shoeColor = lin(0.3f, 0.2f, 0.12f); d.hat = 1; break;

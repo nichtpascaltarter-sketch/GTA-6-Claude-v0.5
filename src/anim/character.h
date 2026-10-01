@@ -171,6 +171,10 @@ vec3 clipRootMotion(const Skeleton& skel, Clip c, float t);
 // back / meet the partner's hand, and faces meet, whatever the two heights (without it the clips fit a partner of the
 // same size).
 float pairDistance(Clip c, const Skeleton& a, const Skeleton& b);
+// Whether a greeting suits both people's hats (pick another one when it does not): a brim round the head (sun hat,
+// fedora) goes through the partner's head where the heads come side by side (a cheek kiss; a hug unless its wearer
+// is clearly the taller), and so does a peak or a hard hat's brim in a cheek kiss.
+bool greetingFits(Clip c, const CharacterDesc& a, const CharacterDesc& b);
 // Grip of a hand-held object, from computeMatrices' model-space matrices: `pos` = centre of the fist, `axis` = the
 // direction a handle held in the fist points out of the thumb side (towards a bat's barrel or a knife's tip),
 // `palm` = palm normal. Melee weapons attach to the right hand (right = true); for two-handed swings the animator
@@ -331,6 +335,11 @@ struct Animator {
     quat restArm[2][3];           // upper arm, forearm, hand of the plain standing pose (left, right)
     vec3 skinP[3];                // this body's skin where posed hands rest on it (bind pose, from the pelvis joint): the
                                   // right flank (hand on the hip), the small of the back, the belly
+    // ---- gaze: the head's turn added to the animated head (rad, a critically damped spring lagging the target), the
+    //      eyes leading it (fast), glances of the person's own (lookiness) when the game gives no target
+    float headYawS = 0.f, headPitchS = 0.f, headYawV = 0.f, headPitchV = 0.f, eyeYawS = 0.f, eyePitchS = 0.f;
+    float glanceT = -1.f, glanceDur = 0.f, glanceNext = 4.f, glanceYaw = 0.f, glancePitch = 0.f;
+    float tgtYawPrev = 0.f, tgtPitchPrev = 0.f;
     int carryClip[2] = {-1, -1};  // carrying: arm pose clip per arm (left, right) and its weight
     float carryW[2] = {0.f, 0.f};
     float bagSwing[2] = {1.f, 1.f};   // arm swing on each side (a shoulder bag's side swings less)

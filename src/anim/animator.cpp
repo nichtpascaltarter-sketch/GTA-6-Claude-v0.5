@@ -144,6 +144,37 @@ static void blendCtl(const Pose& a, const Pose& b, float w, Pose& out) {
     out.rootOffset = lerp(a.rootOffset, b.rootOffset, w);
 }
 
+// Gait clips mixed in step. Every gait clip strikes the left heel at phase 0 and the right at 0.5 and lifts each foot
+// its duty later; mixed as they are, clips of different duty (the walk bands, a walk with a strafe, a jog with a run)
+// lift a foot at different moments, so the mix half-lifts a foot that planting (reading the contacts from the mixed
+// duty) still holds down, and it pops up at the release. Each clip's time is warped so that its contacts fall where the
+// mix's do: one warp for the whole pose while the clip and the mix both have double support (walks) or both a flight
+// (runs) - toe-offs at the same place in each half cycle - else, a walk mixed with a run, each leg on its own (the body
+// keeps the plain phase).
+static float gaitWarp(float ph, float d, float D) {
+    const float e = D > 0.5f ? D - 0.5f : D, ec = d > 0.5f ? d - 0.5f : d;   // a toe-off within its half cycle
+    const float h = ph < 0.5f ? 0.f : 0.5f, q = ph - h;
+    return h + (q < e ? q * (ec / e) : ec + (q - e) * ((0.5f - ec) / (0.5f - e)));
+}
+static float footWarp(float ph, float d, float D, int s) {
+    const float o = s ? 0.5f : 0.f;
+    float q = ph - o;
+    q -= floorf(q);
+    float w = (q < D ? q * (d / D) : d + (q - D) * ((1.f - d) / (1.f - D))) + o;
+    return w - floorf(w);
+}
+static void sampleGait(const Skeleton& sk, int id, float phase, float D, Pose& out, u32 seed) {
+    const float dur = clipInfoId(id).duration, d = clipDuty(id);
+    if (d < 0.05f || D < 0.05f || D > 0.95f || fabsf(d - D) < 1e-3f) {
+        sampleClipId(sk, id, phase * dur, out, seed);
+    } else if ((d - 0.5f) * (D - 0.5f) > 0.f && fabsf(d - 0.5f) > 0.01f && fabsf(D - 0.5f) > 0.01f) {
+        sampleClipId(sk, id, gaitWarp(phase, d, D) * dur, out, seed);
+    } else {
+        sampleClipId(sk, id, phase * dur, out, seed);
+        for (int s = 0; s < 2; s++) sampleClipLeg(sk, id, footWarp(phase, d, D, s) * dur, s, out);
+    }
+}
+
 // Yaw of the pelvis (model space, rotation about +Z of its forward axis).
 static float pelvisYaw(const Pose& p) {
     vec3 f = rotate(p.rot[B_ROOT] * p.rot[B_PELVIS], vec3(0, 1, 0));
@@ -382,8 +413,10 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
                 ph -= floorf(ph);
                 float swingU = ph > duty ? (ph - duty) / Max(1.f - duty, 0.05f) : 0.f;
                 bool touching = Min(heel[s].z, ball[s].z) < 0.004f * scale;
+                // (a foot still on the ground just after the gait's toe-off stays planted until it actually lifts:
+                // blended gaits, e.g. a diagonal walk, lift a little later than their mixed duty)
                 bool contact = (ph > 0.004f && ph < duty - 0.01f && nearGround) || (A.planted[s] && ph <= 0.004f) ||
-                               (swingU > 0.7f && touching);
+                               (swingU > 0.7f && touching) || (A.planted[s] && touching && swingU < 0.25f);
                 A.stepT[s] = -1.f;   // a pending step gives way to the gait (its offset fades out)
                 if (contact && !A.planted[s]) {
                     A.planted[s] = true;
@@ -612,7 +645,7 @@ static void layerStanding(const Animator& A, Pose& base, const Pose& layer, floa
 
 // Move a hand by `delta` (model space, scaled by w) with the arm's two-bone IK; the hand keeps its model rotation and
 // the elbow its bend direction.
-static void nudgeHand(const Skeleton& sk, Pose& p, int s, vec3 delta, float w) {
+static void nudgeHand(const Skeleton& sk, Pose& p, int s, vec3 delta, float w, vec3 poleShift = vec3(0)) {
     if (w <= 1e-3f || length2(delta) * w * w < 1e-6f) return;
     const Bone up = s ? B_UPPERARM_R : B_UPPERARM_L, lo = s ? B_FOREARM_R : B_FOREARM_L, hb = s ? B_HAND_R : B_HAND_L;
     quat qu, qf, qh;
@@ -621,7 +654,7 @@ static void nudgeHand(const Skeleton& sk, Pose& p, int s, vec3 delta, float w) {
     boneModel(sk, p, lo, qf, pf);
     boneModel(sk, p, hb, qh, ph);
     vec3 bend = pf - (pu + ph) * 0.5f;
-    vec3 pole = pf + (length2(bend) > 1e-6f ? normalize(bend) : vec3(s ? 1.f : -1.f, -0.3f, 0.f)) * 0.3f;
+    vec3 pole = pf + (length2(bend) > 1e-6f ? normalize(bend) : vec3(s ? 1.f : -1.f, -0.3f, 0.f)) * 0.3f + poleShift * w;
     solveTwoBoneIK(sk, p, up, lo, hb, ph + delta * w, pole, 1.f);
     boneModel(sk, p, lo, qf, pf);
     p.rot[hb] = normalize(conj(qf) * qh);
@@ -978,9 +1011,14 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
     vec2 md = in.localMoveDir;
     float mdl = length(md);
     md = mdl > 1e-3f ? md / mdl : vec2(0, 1);
-    dirS = lerp(dirS, md, kFast);
-    float dl = length(dirS);
-    dirS = dl > 1e-3f ? dirS / dl : vec2(0, 1);
+    // the smoothed direction turns towards the input round the circle (a straight lerp of an exact reversal, e.g.
+    // backing off while aiming, would shrink to nothing and, renormalized, never flip: the feet would slide)
+    {
+        float aCur = atan2f(dirS.x, dirS.y), da = wrapAngle(atan2f(md.x, md.y) - aCur);
+        if (fabsf(da) > 3.1f) da = 3.1f;   // straight back: turn one way
+        aCur += da * kFast;
+        dirS = vec2(sinf(aCur), cosf(aCur));
+    }
     crouchBlend += ((in.crouch ? 1.f : 0.f) - crouchBlend) * kMed;
     airBlend += ((in.inAir ? 1.f : 0.f) - airBlend) * (1.f - expf(-dt * 8.f));
     swimBlend += ((in.swimming ? 1.f : 0.f) - swimBlend) * (1.f - expf(-dt * 4.f));
@@ -1086,16 +1124,18 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         float walkW = b0 == 0 ? Saturate(v / bandSpeed[1]) : 1.f;
         float rateF = (b0 == 0 ? bandSpeed[1] : v) / Max(strideF, 0.1f);
         float dutyF = b0 == 0 ? bandDuty[1] : Lerp(bandDuty[b0], bandDuty[b1], wb);
-        // directional weights (forward, back, left, right)
+        // directional weights (forward, back, left, right), velocity-matched: the clips share one phase rate, each
+        // moves its planted foot a stride per cycle along its own axis, so each axis's share of the rate (cycles it
+        // needs for its component of the velocity) is its weight, and the rate is their sum (a diagonal runs the phase
+        // faster than either clip alone; a plain L1 mix would leave the blended foot short of the ground speed)
         float cf = dirS.y, sf = dirS.x;
-        float wF = Max(0.f, cf), wBk = Max(0.f, -cf), wR = Max(0.f, sf), wL = Max(0.f, -sf);
-        float wsum = wF + wBk + wR + wL;
-        wF /= wsum; wBk /= wsum; wR /= wsum; wL /= wsum;
-        // crouch
         float cw = crouchBlend;
         float rateB = Max(v, 0.85f) / stride(CLIP_WALK_BACK), rateS = Max(v, 0.85f) / stride(CLIP_STRAFE_L);
         float rateC = Max(v, 0.6f) / stride(CLIP_CROUCH_WALK);
-        rate = (wF * rateF * cadenceK + wBk * rateB + (wL + wR) * rateS) * (1.f - cw) + rateC * cw;
+        float wF = Max(0.f, cf) * rateF * cadenceK, wBk = Max(0.f, -cf) * rateB, wR = Max(0.f, sf) * rateS, wL = Max(0.f, -sf) * rateS;
+        float wsum = Max(wF + wBk + wR + wL, 1e-4f);
+        rate = wsum * (1.f - cw) + rateC * cw;
+        wF /= wsum; wBk /= wsum; wR /= wsum; wL /= wsum;
         rate = Min(rate, 2.4f) / ls;
         if (in.swimming) rate = Max(v, 0.5f) / stride(CLIP_SWIM) / ls;
         moveW = walkW;
@@ -1112,7 +1152,9 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         // standing: the weight on one leg or the other (each person's own timing), moving over through both
         Pose idle;
         const bool needIdle = walkW < 0.999f || cw > 0.001f;
-        const bool standStill = (stance == 0 || stance == 23) && speedS < 0.05f && !in.aiming && !in.crouch && !in.inAir &&
+        // (chatting, on the phone or smoking the weight moves from leg to leg too: those clips give the upper body)
+        const bool chatStance = stance == 7 || stance == 8 || stance == 10;
+        const bool standStill = (stance == 0 || stance == 23 || chatStance) && speedS < 0.05f && !in.aiming && !in.crouch && !in.inAir &&
                                 !in.swimming && (action < 0 || actionFinished || actionUpper);
         weightShift(*this, standStill,
                     idleVar == IC_IDLE_HIP ? 1.f : (fidgetVar == IC_FIDGET_TAP ? 0.f : (fidgetVar == IC_FIDGET_ROCK ? 0.5f : -1.f)), dt);
@@ -1128,29 +1170,31 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         }
         if (cw < 0.999f) {
             Pose fwd;
-            if (b0 == 0) sampleClipId(sk, bands[1], phase * clipInfoId(bands[1]).duration, fwd, seed);
+            // (the clips in step with the mix: sampleGait)
+            const float D = locoDuty;
+            if (b0 == 0) sampleGait(sk, bands[1], phase, D, fwd, seed);
             else if (wb < 0.002f || wb > 0.998f) {
                 int bb = wb < 0.5f ? bands[b0] : bands[b1];
-                sampleClipId(sk, bb, phase * clipInfoId(bb).duration, fwd, seed);
+                sampleGait(sk, bb, phase, D, fwd, seed);
             } else {
-                sampleClipId(sk, bands[b0], phase * clipInfoId(bands[b0]).duration, tmp, seed);
-                sampleClipId(sk, bands[b1], phase * clipInfoId(bands[b1]).duration, tmp2, seed);
+                sampleGait(sk, bands[b0], phase, D, tmp, seed);
+                sampleGait(sk, bands[b1], phase, D, tmp2, seed);
                 blendCtl(tmp, tmp2, wb, fwd);
             }
             Pose mv = fwd;
             float acc = wF;
             if (wBk > 0.001f) {
-                sampleClip(sk, CLIP_WALK_BACK, phase * clipInfo(CLIP_WALK_BACK).duration, tmp, seed);
+                sampleGait(sk, CLIP_WALK_BACK, phase, D, tmp, seed);
                 acc += wBk;
                 blendCtl(mv, tmp, wBk / acc, mv);
             }
             if (wL > 0.001f) {
-                sampleClip(sk, CLIP_STRAFE_L, phase * clipInfo(CLIP_STRAFE_L).duration, tmp, seed);
+                sampleGait(sk, CLIP_STRAFE_L, phase, D, tmp, seed);
                 acc += wL;
                 blendCtl(mv, tmp, wL / acc, mv);
             }
             if (wR > 0.001f) {
-                sampleClip(sk, CLIP_STRAFE_R, phase * clipInfo(CLIP_STRAFE_R).duration, tmp, seed);
+                sampleGait(sk, CLIP_STRAFE_R, phase, D, tmp, seed);
                 acc += wR;
                 blendCtl(mv, tmp, wR / acc, mv);
             }
@@ -1168,7 +1212,7 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         if (cw > 0.001f) {
             Pose ci, cwk, cp;
             sampleClip(sk, CLIP_CROUCH_IDLE, time, ci, seed);
-            sampleClip(sk, CLIP_CROUCH_WALK, phase * clipInfo(CLIP_CROUCH_WALK).duration, cwk, seed);
+            sampleGait(sk, CLIP_CROUCH_WALK, phase, locoDuty, cwk, seed);
             blendCtl(ci, cwk, Saturate(v / 0.5f), cp);
             blendCtl(base, cp, cw, base);
         }
@@ -1211,7 +1255,7 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             float cTake[2];
             carryArms(*this, in, cClip, cTake);
             const int busyArms = (cClip[0] >= 0 ? 1 : 0) | (cClip[1] >= 0 ? 2 : 0);   // hands holding a prop
-            const bool canVary = standStill && in.weaponKind != 2 && !in.phoneCall;
+            const bool canVary = standStill && !chatStance && in.weaponKind != 2 && !in.phoneCall;
             // listeners keep a listening posture going; speakers only shift onto a hip now and then
             if (in.listening && idleVar < 0 && canVary) idleNext = Min(idleNext, 1.2f);
             if (in.speaking && idleVar >= 0 && idleVar != IC_IDLE_HIP) idleVarDur = Min(idleVarDur, idleVarT + 0.3f);
@@ -1361,30 +1405,6 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
                         nudgeHand(sk, base, sd, Y * Clamp(0.006f - gap(2, Y), 0.f, 0.08f), wf);
                 }
             }
-            // now and then a look around (per-person timing, the curious more often): the eyes first, then the head,
-            // the neck and a little of the spine
-            if (stance == 0 && !in.aiming && moveW < 0.999f) {
-                const float period = (17.f + 6.f * hashToFloat(seed * 31u + 5u)) / (0.55f + lookiness);
-                float lp = time / period + hashToFloat(seed * 13u + 1u);
-                const float lookLen = clipInfo(CLIP_IDLE_LOOK).duration, lt = (lp - floorf(lp)) * period;
-                if (lt < lookLen) {
-                    float u = lt / lookLen, w = 1.f - moveW;
-                    float yaw = (0.9f * sstep(0.12f, 0.22f, u) * (1.f - sstep(0.35f, 0.45f, u)) -
-                                 0.8f * sstep(0.55f, 0.65f, u) * (1.f - sstep(0.8f, 0.9f, u))) * w;
-                    float up = -0.05f * sstep(0.55f, 0.65f, u) * (1.f - sstep(0.8f, 0.9f, u)) * w;
-                    float eyes = (0.9f * sstep(0.08f, 0.14f, u) * (1.f - sstep(0.33f, 0.4f, u)) -
-                                  0.8f * sstep(0.51f, 0.57f, u) * (1.f - sstep(0.78f, 0.85f, u))) * w * 0.25f;
-                    if (fabsf(yaw) + fabsf(eyes) > 1e-4f) {
-                        rotateLocal(base, B_SPINE1, qz(yaw * 0.036f));
-                        rotateLocal(base, B_SPINE2, qz(yaw * 0.036f));
-                        rotateLocal(base, B_CHEST, qz(yaw * 0.048f));
-                        rotateLocal(base, B_NECK, qz(yaw * 0.35f));
-                        rotateLocal(base, B_HEAD, qz(yaw * 0.6f) * qx(up));
-                        rotateLocal(base, B_EYE_L, qz(eyes));
-                        rotateLocal(base, B_EYE_R, qz(eyes));
-                    }
-                }
-            }
         }
         if (stance >= 4 && stance != 23) {
             int sc = stanceClip;
@@ -1392,7 +1412,9 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             float tScale = stance == 9 ? 0.9f + 0.22f * hashToFloat(hash32(seed + 404u)) : 1.f;   // dance tempo per ped
             sampleClipId(sk, sc, stanceTime * tScale + sOff, tmp, seed);
             float still = stanceLocksLegs(stance) ? 1.f : 1.f - Saturate((speedS - 0.25f) / 0.6f);
-            if (stanceUpperWhileMoving(stance)) {
+            if (chatStance) {
+                blendUpperBody(base, tmp, 1.f, base);   // the legs keep the base's weight shifts (or walk)
+            } else if (stanceUpperWhileMoving(stance)) {
                 blendUpperBody(base, tmp, 1.f, tmp2);
                 blendCtl(tmp2, tmp, still, base);
             } else {
@@ -1404,6 +1426,19 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         if (airBlend > 0.001f) {
             sampleClip(sk, CLIP_FALL, airT, tmp, seed);
             blendCtl(base, tmp, airBlend, base);
+            // a long drop: the arms wheel and the legs pedal, more the longer it lasts
+            float flail = sstep(0.7f, 1.6f, airT) * airBlend;
+            if (flail > 1e-3f) {
+                float ph = airT * (8.f + 2.f * hashToFloat(seed * 5u + 1u));
+                for (int s = 0; s < 2; s++) {
+                    float sx = s ? 1.f : -1.f, o = s * 2.1f;
+                    rotateLocal(base, s ? B_UPPERARM_R : B_UPPERARM_L, qx(0.7f * flail * sinf(ph + o)) * qy(sx * 0.35f * flail * sinf(ph * 0.7f + o)));
+                    rotateLocal(base, s ? B_FOREARM_R : B_FOREARM_L, qx(0.3f * flail * sinf(ph * 1.3f + o)));
+                    rotateLocal(base, s ? B_THIGH_R : B_THIGH_L, qx(0.35f * flail * sinf(ph * 0.8f + o + 1.f)));
+                    rotateLocal(base, s ? B_CALF_R : B_CALF_L, qx(-0.35f * flail * (0.5f + 0.5f * sinf(ph * 0.8f + o + 2.3f))));
+                }
+                rotateLocal(base, B_SPINE2, qx(-0.1f * flail * sinf(ph * 0.5f)));
+            }
         }
         // ---- swimming
         if (swimBlend > 0.001f) {
@@ -1590,6 +1625,47 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         }
     }
 
+    // ---------------------------------------------------------------- greetings: onto the real partner
+    // The clips fit a partner of this body at pairDistance, posed the same (mirrored): the partner's chest / head
+    // (AnimInput::grabTarget) against that standard gives the fit-up, weighed by how far into the contact the clip is.
+    if (!cheap && action >= 0 && !actionFinished && (action == CLIP_HUG || action == CLIP_HANDSHAKE || action == CLIP_CHEEK_KISS) &&
+        in.grabWeight > 0.f) {
+        float k = pairReach(action, actionTime) * Clamp(in.grabWeight, 0.f, 1.f);
+        if (k > 0.001f) {
+            const float d = pairDistance((Clip)action, sk, sk);
+            quat q;
+            vec3 me;
+            boneModel(sk, outp, action == CLIP_CHEEK_KISS ? B_HEAD : B_CHEST, q, me);
+            vec3 dl = in.grabTarget - vec3(-me.x, d - me.y, me.z);   // the partner against the standard one
+            if (length2(dl) > 0.36f) dl = normalize(dl) * 0.6f;
+            if (action == CLIP_HUG) {
+                // both hands stay on the partner's back. A much taller partner is held with both arms under its arms (the
+                // high hand drops to the middle of the back), a much shorter one with both arms over its shoulders (the
+                // low hand rises); over a shorter partner's shoulder the elbow comes down too
+                const float s = length(sk.bindLocalPos[B_FOREARM_R]) / 0.3f;   // arm size relative to the reference
+                float under = sstep(0.06f, 0.16f, dl.z), over = sstep(0.06f, 0.16f, -dl.z);
+                // a bigger partner is also deeper: its back further behind its chest (by the chest heights' ratio)
+                float deeper = (Clamp(in.grabTarget.z / Max(me.z, 0.5f), 0.75f, 1.35f) - 1.f) * 0.14f;
+                vec3 dh = dl + vec3(0.f, deeper, 0.f);
+                nudgeHand(sk, outp, 0, dh + vec3(0.f, 0.f, 0.2f * s * over), k);
+                nudgeHand(sk, outp, 1, dh - vec3(0.f, 0.f, 0.2f * s * under), k, vec3(0.f, 0.f, Min(dl.z, 0.f) * 1.5f - 0.3f * under));
+            } else if (action == CLIP_HANDSHAKE) {
+                // the hands meet half way between the two chests, at the height of both
+                nudgeHand(sk, outp, 1, vec3(dl.x, dl.y, dl.z * 0.83f) * 0.5f, k);
+            } else {
+                // each partner covers half of the difference: the taller bows the head and neck down, the shorter lifts
+                // them (the upper body takes the rest of a big difference), leaning further in or less, and sideways
+                vec3 h = dl * 0.5f;
+                float down = Clamp(-h.z / 0.2f, -0.35f, 0.6f), fwd = Clamp(h.y / 0.55f, -0.2f, 0.3f), side = Clamp(h.x / 0.55f, -0.2f, 0.2f);
+                float bow = Max(0.f, down - 0.35f);   // beyond what the neck takes comfortably
+                rotateLocal(outp, B_SPINE2, qx(-(fwd + bow) * k) * qy(side * 0.6f * k));
+                rotateLocal(outp, B_NECK, qx(-Min(down, 0.35f) * 0.6f * k) * qy(side * 0.4f * k));
+                rotateLocal(outp, B_HEAD, qx(-Min(down, 0.35f) * 0.4f * k));
+                nudgeHand(sk, outp, 1, dl, k);
+            }
+        }
+    }
+
     // ---------------------------------------------------------------- two-handed bat: left hand on the handle
     {
         float dist = -0.095f, gw = 0.f;
@@ -1745,35 +1821,107 @@ void Animator::faceOverlay(const AnimInput& in, float dt) {
     const Skeleton& sk = *skel;
     bool dead = action >= 0 && actionFinished && (action == CLIP_DEATH_FRONT || action == CLIP_DEATH_BACK);
     bool out = action >= 0 && (action == CLIP_KNOCKOUT || (action == CLIP_TAKEDOWN_VICTIM && actionTime > 2.1f));
-    float eyeYaw = 0.f, eyePitch = 0.f;
-    // look-at: neck and head take what they can (limited), the eyes the rest
-    float lwT = dead || out ? 0.f : Clamp(in.lookWeight, 0.f, 1.f);
+    // ---- gaze. A target direction (the game's look-at point, else a glance of the person's own, else straight on):
+    //      the eyes go to it at once (a saccade), the head follows on a spring and the eyes hold the target as it
+    //      arrives; small shifts are left to the eyes, the chest joins in for big turns; within the neck's and the eyes'
+    //      limits. A big shift often comes with a blink.
+    const bool alert = !dead && !out;
+    float lwT = alert ? Clamp(in.lookWeight, 0.f, 1.f) : 0.f;
     lookW += (lwT - lookW) * (1.f - expf(-dt * 4.f));
-    if (lookW > 0.005f) {
+    float tgtY = 0.f, tgtP = 0.f;
+    bool haveTarget = false;
+    // shaking hands: eyes on the partner's face (its chest from AnimInput::grabTarget, the face above it)
+    const bool shake = alert && action == CLIP_HANDSHAKE && !actionFinished && in.grabWeight > 0.f && lwT <= 0.15f;
+    if (lwT > 0.15f || shake) {
         quat qh;
         vec3 ph;
         boneModel(sk, pose, B_HEAD, qh, ph);
         vec3 fwdH = rotate(qh, vec3(0, 1, 0));
         vec3 eyesP = ph + rotate(qh, vec3(0.f, 0.07f, 0.06f));
-        vec3 d = in.lookAt - eyesP;
+        vec3 d = (shake ? in.grabTarget + vec3(0.f, 0.f, 0.33f) : in.lookAt) - eyesP;
         float dl = length(d);
         if (dl > 0.05f) {
             d = d / dl;
-            float dy = wrapAngle(atan2f(-d.x, d.y) - atan2f(-fwdH.x, fwdH.y));
-            float dp = asinf(Clamp(d.z, -1.f, 1.f)) - asinf(Clamp(fwdH.z, -1.f, 1.f));
-            float dyH = Clamp(dy, -1.1f, 1.1f), dpH = Clamp(dp, -0.45f, 0.35f);
-            float w = lookW;
-            pose.rot[B_NECK] = normalize(pose.rot[B_NECK] * qz(dyH * 0.4f * w) * qx(dpH * 0.35f * w));
-            pose.rot[B_HEAD] = normalize(pose.rot[B_HEAD] * qz(dyH * 0.6f * w) * qx(dpH * 0.65f * w));
-            eyeYaw = Clamp(dy - dyH, -0.45f, 0.45f) * w;
-            eyePitch = Clamp(dp - dpH, -0.3f, 0.3f) * w;
+            tgtY = wrapAngle(atan2f(-d.x, d.y) - atan2f(-fwdH.x, fwdH.y));
+            tgtP = asinf(Clamp(d.z, -1.f, 1.f)) - asinf(Clamp(fwdH.z, -1.f, 1.f));
+            haveTarget = true;
         }
     }
+    // glances of one's own when nothing else holds the eyes: sideways at shop windows and people, down at the path
+    // while walking, now and then up; the curious more often (lookiness)
+    const bool free = alert && !haveTarget && lookW < 0.1f && (action < 0 || actionFinished) && aimBlend < 0.1f && !stanceIsGuard(stance) &&
+                      stance != 4 && stance != 5 && swimBlend < 0.5f;
+    glanceNext -= dt;
+    if (glanceT >= 0.f) {
+        glanceT += dt;
+        if (glanceT > glanceDur || !free) glanceT = -1.f;
+    }
+    if (glanceT < 0.f && glanceNext <= 0.f && free) {
+        u32 h = hash32(seed * 0x61C88647u + (u32)(time * 3.f));
+        float r = hashToFloat(h), r2 = hashToFloat(hash32(h + 1u)), r3 = hashToFloat(hash32(h + 2u));
+        if (moveW > 0.4f && r < 0.45f) {   // down at the way ahead
+            glanceYaw = (r2 - 0.5f) * 0.3f;
+            glancePitch = -0.2f - 0.15f * r3;
+        } else if (r > 0.9f) {             // up
+            glanceYaw = (r2 - 0.5f) * 0.8f;
+            glancePitch = 0.15f + 0.15f * r3;
+        } else {                           // to one side
+            glanceYaw = (r2 < 0.5f ? -1.f : 1.f) * (0.35f + 0.7f * r3);
+            glancePitch = (hashToFloat(hash32(h + 3u)) - 0.6f) * 0.2f;
+        }
+        glanceT = 0.f;
+        glanceDur = 0.6f + 1.6f * hashToFloat(hash32(h + 4u));
+        glanceNext = glanceDur + (2.f + 7.f * hashToFloat(hash32(h + 5u))) / (0.35f + lookiness);
+    }
+    if (!haveTarget && glanceT >= 0.f) {
+        tgtY = glanceYaw;
+        tgtP = glancePitch;
+    }
+    // a big shift of the target: often a blink with it
+    if ((fabsf(tgtY - tgtYawPrev) > 0.5f || fabsf(tgtP - tgtPitchPrev) > 0.35f) && blinkT < 0.f &&
+        hashToFloat(hash32(seed * 97u + (u32)(time * 50.f))) < 0.5f) {
+        blinkT = 0.f;
+        blinkNext = Max(blinkNext, 1.2f);
+    }
+    tgtYawPrev = tgtY;
+    tgtPitchPrev = tgtP;
+    // the head's share: nothing for the first ~7 degrees (the eyes alone), most of the rest; its limits
+    auto headShare = [](float a, float lo, float hi) {
+        float m = Max(0.f, fabsf(a) - 0.12f) * 0.85f;
+        return Clamp(a < 0.f ? -m : m, lo, hi);
+    };
+    float hyT = headShare(tgtY, -1.35f, 1.35f), hpT = headShare(tgtP, -0.45f, 0.35f);
+    // critically damped spring, exact step (the head lags the eyes by a few hundred ms)
+    auto spring = [&](float& x, float& v, float target, float k) {
+        float e = expf(-k * dt), xx = x - target, c = v + k * xx;
+        x = target + (xx + c * dt) * e;
+        v = (v - k * c * dt) * e;
+    };
+    spring(headYawS, headYawV, alert ? hyT : 0.f, 9.f);
+    spring(headPitchS, headPitchV, alert ? hpT : 0.f, 9.f);
+    // the chest turns along for big head turns
+    float chestY = Clamp((fabsf(headYawS) - 0.8f) * 0.45f, 0.f, 0.35f) * (headYawS < 0.f ? -1.f : 1.f);
+    if (fabsf(chestY) > 1e-4f) {
+        rotateLocal(pose, B_SPINE2, qz(chestY * 0.4f));
+        rotateLocal(pose, B_CHEST, qz(chestY * 0.6f));
+    }
+    float hy = headYawS - chestY, hp = headPitchS;
+    if (fabsf(hy) + fabsf(hp) > 1e-4f) {
+        pose.rot[B_NECK] = normalize(pose.rot[B_NECK] * qz(hy * 0.4f) * qx(hp * 0.35f));
+        pose.rot[B_HEAD] = normalize(pose.rot[B_HEAD] * qz(hy * 0.6f) * qx(hp * 0.65f));
+    }
+    // the eyes: on the target where the head has not got to yet (fast, limited)
+    float ke = 1.f - expf(-dt / 0.025f);
+    eyeYawS += ((alert ? Clamp(tgtY - headYawS, -0.55f, 0.55f) : 0.f) - eyeYawS) * ke;
+    eyePitchS += ((alert ? Clamp(tgtP - headPitchS, -0.35f, 0.3f) : 0.f) - eyePitchS) * ke;
+    float eyeYaw = eyeYawS, eyePitch = eyePitchS;
     // idle gaze: small saccades between fixations
     gazeNext -= dt;
     if (gazeNext <= 0.f) {
         u32 h = hash32(seed * 747796405u + (u32)(time * 7.f) * 2891336453u);
-        gazeTarget = vec2((hashToFloat(h) - 0.5f) * 0.3f, (hashToFloat(hash32(h)) - 0.5f) * 0.12f) * (1.f - 0.6f * lookW);
+        // (smaller while the eyes hold a target)
+        gazeTarget = vec2((hashToFloat(h) - 0.5f) * 0.3f, (hashToFloat(hash32(h)) - 0.5f) * 0.12f) *
+                     (1.f - 0.6f * Max(lookW, glanceT >= 0.f ? 1.f : 0.f));
         gazeNext = 0.5f + 2.5f * hashToFloat(hash32(h + 7u));
     }
     gaze = lerp(gaze, gazeTarget, 1.f - expf(-dt * 35.f));
@@ -1860,6 +2008,11 @@ void Animator::faceOverlay(const AnimInput& in, float dt) {
         visemeShape(in.viseme, vw, a);
         visemeShape(in.visemeNext >= 0 ? in.visemeNext : in.viseme, vw, b);
         for (int i = 0; i < 6; i++) target[i] = Lerp(a[i], b[i], bl);
+    }
+    // a kiss on the cheek: lips pushed forward while the cheeks touch
+    if (action == CLIP_CHEEK_KISS && !actionFinished && !dead && !out) {
+        float kw = pairReach(action, actionTime);
+        for (int i = 0; i < 6; i++) target[i] = Lerp(target[i], kVisemeShape[14][i], kw * 0.85f);
     }
     float km = 1.f - expf(-dt * 28.f);
     bool any = false;

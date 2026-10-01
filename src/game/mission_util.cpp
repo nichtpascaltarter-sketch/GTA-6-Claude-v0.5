@@ -612,6 +612,30 @@ vec3 placeOffset(GameWorld& g, const Place& p, float along, float out) {
     return vec3(q, groundAt(g, q.x, q.y, p.pos.z + 3.f));
 }
 
+// The nearest spot to `p` a person can stand on in the open: outside building footprints and site colliders by
+// `margin`, dry, and with nothing overhead (a lot's outbuildings and sheds come and go as the world generator
+// changes). Rings out to `maxR` meters; `p` itself when nothing nearer is free.
+vec3 openGround(GameWorld& g, vec3 p, float margin = 0.8f, float maxR = 14.f) {
+    auto free = [&](vec2 q, float& z) {
+        if (g.buildings && g.buildings->pointInBuilding(q, margin)) return false;
+        if (g.map && g.map->isWater(q.x, q.y)) return false;
+        z = groundAt(g, q.x, q.y, p.z + 1.5f);
+        if (groundAt(g, q.x, q.y, z + 40.f) > z + 0.6f) return false;   // a roof or a deck above the spot
+        return !World::siteColliderNear(vec3(q, z), margin, 2.f);
+    };
+    float z = p.z;
+    if (free(p.xy(), z)) return vec3(p.xy(), z);
+    for (float r = 1.f; r <= maxR; r += 1.f) {
+        int n = Max(8, (int)(r * kTwoPi / 1.2f));
+        for (int i = 0; i < n; i++) {
+            float a = kTwoPi * i / n;
+            vec2 q = p.xy() + vec2(cosf(a), sinf(a)) * r;
+            if (free(q, z)) return vec3(q, z);
+        }
+    }
+    return p;
+}
+
 // Walk `along` meters up (+) or down (-) the street from a place, following the road network through intersections
 // (straightest continuation, no highways). Returns the edge, distance, walking direction and the place's side of the
 // street relative to the walking direction (+1 = left).

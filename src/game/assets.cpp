@@ -1,5 +1,6 @@
 // Load-time generation of gameplay assets: vehicle models, the character roster, weapon and pickup meshes.
 #include "gameworld.h"
+#include "protagonists.h"
 
 namespace Game {
 
@@ -627,36 +628,16 @@ void GameWorld::buildAssets() {
     std::vector<SkinnedMeshData> meshes((size_t)n * 3);   // LOD0..2 per character
     Jobs::parallelFor(n, [&](int i) {
         const Req& r = reqs[i];
-        u32 seed = r.seed;
-        Anim::CharacterDesc d = Anim::randomCharacter(seed, r.role);
-        // re-roll the seed deterministically until the requested gender is produced
-        for (int k = 0; k < 24 && r.forceGender >= 0 && (int)d.gender != r.forceGender; k++) {
-            seed = hash32(seed + 0x9e37u);
-            d = Anim::randomCharacter(seed, r.role);
-        }
+        Anim::CharacterDesc d;
         if (i >= protoStart) {
-            if (i == protoStart) {  // Mari: late 20s, athletic, dark wavy hair, casual street style
-                d.gender = Anim::FEMALE;
-                d.height = 1.68f;
-                d.weight = 0.35f;
-                d.muscle = 0.5f;
-                d.age = 0.15f;
-                d.skinTone = vec3(0.62f, 0.44f, 0.33f);
-                d.hairColor = vec3(0.06f, 0.04f, 0.03f);
-                d.topColor = vec3(0.85f, 0.2f, 0.45f);
-                d.bottomColor = vec3(0.12f, 0.14f, 0.2f);
-                d.shoeColor = vec3(0.9f, 0.9f, 0.88f);
-            } else {                // Dex: early 30s, broad, short hair, stubble, work jacket
-                d.gender = Anim::MALE;
-                d.height = 1.84f;
-                d.weight = 0.55f;
-                d.muscle = 0.7f;
-                d.age = 0.25f;
-                d.skinTone = vec3(0.72f, 0.56f, 0.45f);
-                d.hairColor = vec3(0.2f, 0.13f, 0.08f);
-                d.topColor = vec3(0.24f, 0.3f, 0.22f);
-                d.bottomColor = vec3(0.16f, 0.18f, 0.24f);
-                d.shoeColor = vec3(0.25f, 0.17f, 0.1f);
+            d = protagonistDesc(i - protoStart);   // protagonists.h: the seeded draw plus their fixed looks
+        } else {
+            u32 seed = r.seed;
+            d = Anim::randomCharacter(seed, r.role);
+            // re-roll the seed deterministically until the requested gender is produced
+            for (int k = 0; k < 24 && r.forceGender >= 0 && (int)d.gender != r.forceGender; k++) {
+                seed = hash32(seed + 0x9e37u);
+                d = Anim::randomCharacter(seed, r.role);
             }
         }
         chars[i].desc = d;
