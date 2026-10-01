@@ -140,7 +140,8 @@ struct DeviceState {
     ID3D12CommandQueue* queue[QUEUE_COUNT] = {};
     ID3D12Fence* fence[QUEUE_COUNT] = {};
     u64 fenceValue[QUEUE_COUNT] = {};        // last value signaled
-    HANDLE fenceEvent = nullptr;
+    HANDLE fenceEvent = nullptr;             // auto-reset, shared by every CPU wait (waitForFenceValue)
+    u32 fenceWaitPollMs = 2000;              // a waiting thread checks for device removal this often
     IDXGISwapChain3* swap = nullptr;
     bool allowTearing = false;
     int lastSyncInterval = -1;               // of the previous Present
@@ -587,11 +588,21 @@ ID3D12CommandAllocator* acquireAllocator(QueueKind q) {
 
 void waitForFenceValue(QueueKind q, u64 v) {
     if (v == 0 || g.fence[q]->GetCompletedValue() >= v) return;
+    // Only the fence value ends a wait. The event is shared and auto-reset: a wait that timed out and then found its
+    // fence complete left the event signalled, and when the event alone ended a wait, the next wait returned at once,
+    // before its GPU work had run; its own registration then signalled the event later, so every wait after it ended
+    // one registration early too. Readbacks (screenshots, photo mode) copied out memory the GPU had not written yet.
+    // A leftover signal now costs one more pass through the loop.
+    ResetEvent(g.fenceEvent);
     checkHR(g.fence[q]->SetEventOnCompletion(v, g.fenceEvent), "SetEventOnCompletion");
     double t0 = Platform::timeSeconds();
     bool warned = false;
-    while (WaitForSingleObject(g.fenceEvent, 2000) == WAIT_TIMEOUT) {
-        if (g.fence[q]->GetCompletedValue() >= v) break;
+    while (g.fence[q]->GetCompletedValue() < v) {
+        DWORD w = WaitForSingleObject(g.fenceEvent, g.fenceWaitPollMs);
+        if (w == WAIT_OBJECT_0) continue;
+        if (w != WAIT_TIMEOUT)
+            FatalError("Direct3D 12: waiting for the GPU failed (WaitForSingleObject returned %lu, error %lu)", (unsigned long)w,
+                       (unsigned long)GetLastError());
         HRESULT reason = g.dev->GetDeviceRemovedReason();
         if (FAILED(reason)) deviceLost("a GPU wait", reason);
         if (!warned && Platform::timeSeconds() - t0 > 60.0) {

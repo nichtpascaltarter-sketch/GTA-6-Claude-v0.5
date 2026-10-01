@@ -1,5 +1,5 @@
 // Shaders of the graphics layer self-test (gfx::selfTest, --gfxselftest): bindless arrays, root constants, the
-// slot tables, async compute, ExecuteIndirect, append counters and read-only depth.
+// slot tables, async compute, ExecuteIndirect, append counters, read-only depth and long GPU work for the CPU waits.
 #include "bindless.hlsli"
 
 cbuffer TestCB : register(b1) {
@@ -75,3 +75,12 @@ float4 psSolid(float4 pos : SV_Position) : SV_Target { return float4(gRootConsta
 StructuredBuffer<uint> tGlobal : register(t40);
 [numthreads(64, 1, 1)]
 void csReadGlobal(uint3 id : SV_DispatchThreadID) { uSeq[id.x] = tGlobal[id.x] + gRootConstants[0].x; }
+
+// ---- long GPU work for the CPU-wait checks: gRootConstants[0].x steps of an integer LCG per thread, seeded with the
+//      thread index ^ gRootConstants[0].y (gfx::selfTest computes the same values with the LCG's closed form)
+[numthreads(64, 1, 1)]
+void csSpin(uint3 id : SV_DispatchThreadID) {
+    uint h = id.x ^ gRootConstants[0].y;
+    for (uint i = 0; i < gRootConstants[0].x; i++) h = h * 1664525u + 1013904223u;
+    uSeq[id.x] = h;
+}

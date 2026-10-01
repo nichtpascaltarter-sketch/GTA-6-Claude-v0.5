@@ -254,14 +254,19 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   null). Dynamic buffers write into per-frame upload pages (map/discard semantics; contents stay valid until
   rewritten); initial data goes through staging pages. Every release waits for the fences of the work that may use
   the object plus frames-in-flight + 1 frames. Released views and buffers are kept marked dead in a quarantine,
-  so code that binds one again stops with a fatal error naming it instead of reading freed memory.
+  so code that binds one again stops with a fatal error naming it instead of reading freed memory. CPU waits
+  (frame pacing, `waitIdle`, readbacks) end only when the fence reaches the value: the shared auto-reset wait event
+  just wakes the loop. (When the event ended the wait, a wait that timed out just before its fence completed left
+  the event signalled; every later wait then returned one submission early, and screenshots copied out memory the
+  GPU had not written yet: full-screen noise of old vertex and index data, seen on the slow test rig.)
 - Beyond D3D11, available to the renderer: async compute queue (`beginAsyncCompute` / `submitAsyncCompute`,
   `Context::wait` for cross-queue fences), ExecuteIndirect (`createCommandSignature`, count buffers, root-constant
   arguments), placed resources and aliasing (`createHeap`, `createPlacedTexture/Buffer`, `aliasingBarrier`,
   `discard`), root constants, bindless.
-- Tests and tools: `--gfxselftest` (and `tests/gfx`) runs 14 checks on the device (bindless + root constants,
+- Tests and tools: `--gfxselftest` (and `tests/gfx`) runs 16 checks on the device (bindless + root constants,
   tables, indirect draws and dispatches, async compute, append counters, read-only depth, placed resources,
-  sRGB mip generation, a long dependent dispatch chain, root arguments across a UAV clear); `--d3ddebug` enables the
+  sRGB mip generation, a long dependent dispatch chain, root arguments across a UAV clear, CPU waits under stray
+  event signals and under 1 ms polling); `--d3ddebug` enables the
   debug layer (Windows Graphics Tools); `--gputimers`/`--synctimers` per-pass timings; `--gfxsync` and
   `--gfxsplit[=pass,...]` for GPU-fault and hazard hunting.
 - Test rig (Wine 9.0, its vkd3d 1.10, lavapipe): no debug layer. Root signatures may not mix root descriptors with
