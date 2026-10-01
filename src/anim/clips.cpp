@@ -1834,7 +1834,7 @@ static void passengerPose(const AuthorCtx& A, Rig& r, float t, float dur) {
         float sx = sd ? 1.f : -1.f;
         vec3 knee = bonePos(A, r, sd ? B_CALF_R : B_CALF_L);
         vec3 th = lerp(bonePos(A, r, sd ? B_THIGH_R : B_THIGH_L), knee, 0.55f) + vec3(sx * 0.01f, 0.f, 0.075f * s);
-        armIK(r.arm[sd], th, vec3(sx, -0.6f, -0.2f), 0.4f);
+        armIK(r.arm[sd], th, vec3(sx * 0.45f, -1.f, -0.3f), 0.4f);   // (the elbows back by the sides: a side wall close)
         r.arm[sd].orient = true;
         r.arm[sd].handRot = handFrame(A, sd, vec3(-sx * 0.25f, 1.f, -0.25f), vec3(0, 0.1f, -1.f));
     }
@@ -2016,6 +2016,8 @@ static Rig standIK(const AuthorCtx& A) {
     return r;
 }
 
+static const float kDoorCard = 0.2f;   // a door's inner face (its card), in from its skin (its hinge's line)
+
 // The door (left one) in the authoring frame, with the measures the poses are placed by: s along the vehicle's
 // forward axis, d out from its side (from the model origin), z up.
 struct CarGeo {
@@ -2038,6 +2040,12 @@ struct CarGeo {
     // time added after the pull for the steps from beside the handle to the doorway (a long door's handle is well
     // behind it: inNominal / inClip) - the real door's, whatever the body's size
     float openPull = 0.4f, walkIn = 0.f;
+    // a short (rear) door: its own thickness, swung out from its hinge, takes ~0.2 m off the front of its opening, so
+    // the open door's inner face crosses the side's line at gapF - only 0.26..0.6 m ahead of the opening's rear edge,
+    // and the seat is mostly behind that edge. Through such a narrow way in (under 0.7 m) the hips go in low and
+    // backwards, just ahead of the opening's rear edge, onto the front of the seat, and slide back from there.
+    float gapF = 0.f;
+    bool narrow = false;
     vec3 at(float s, float d, float z) const { return F * s + N * d + U * z; }
     // underside of the opening's top at s (beyond its ends: the end's height)
     float roofAt(float s) const {
@@ -2049,6 +2057,12 @@ struct CarGeo {
     quat doorQ(float open) const { return quatAxisAngle(g.axis, open * g.maxOpen); }
     vec3 door(vec3 p, float open) const { return g.hinge + rotate(doorQ(open), p - g.hinge); }
     vec3 doorV(vec3 v, float open) const { return rotate(doorQ(open), v); }
+    // where the open door's inner face (t in from its skin) crosses the line d out from the model's centre: its s
+    float doorFaceS(float d, float open, float t) const {
+        vec3 p0 = door(g.hinge + I * t, open), u = doorV(-F, open);
+        float un = Max(dot(u, N), 0.05f);
+        return dot(p0, F) + (d - dot(p0, N)) / un * dot(u, F);
+    }
     // The ceiling over a point (a head going in under the roof): the opening's top edge, from a little out beyond the
     // side (a head coming in is down before it gets there) to the rail's line, rising inboard to the headliner; open
     // air further out.
@@ -2134,6 +2148,8 @@ static CarGeo carGeo(const CarDoorInfo& g, const CarDoorInfo* real = nullptr) {
         c.openPulled = r.openPulled;
         c.openPull = r.openPull;
         c.walkIn = r.walkIn;
+        c.narrow = r.narrow;
+        c.gapF = c.doorFaceS(c.dSkin, c.openRest, kDoorCard);
     } else {
         doorOpenings(c, c.openRest, c.openOut, c.openPulled);
         c.openPull = doorPullOpen(c);
@@ -2141,6 +2157,8 @@ static CarGeo carGeo(const CarDoorInfo& g, const CarDoorInfo* real = nullptr) {
         // over two steps
         float ds = (c.sP - 0.3f) - (c.sH - 0.38f);
         c.walkIn = Clamp(1.2f * sqrtf(ds * ds + 0.0025f) - 0.04f, 0.f, 0.7f);
+        c.gapF = c.doorFaceS(c.dSkin, c.openRest, kDoorCard);
+        c.narrow = c.gapF - c.sR < 0.7f;
     }
     return c;
 }
@@ -2231,6 +2249,11 @@ static float carClipLen(const CarGeo& c, bool enter, bool belt) { return enter ?
 // fingers hooked behind the bar), the inner pull bar from above (fingers over it towards the door)
 static vec3 outerFingers(const CarGeo& c) { return normalize(c.I + c.U * 0.35f); }
 static vec3 innerFingers(const CarGeo& c) { return normalize(c.N + c.U * 0.3f - c.U * 0.0f); }
+// ... and the elbow's way reaching for the inner one (from a seat behind a narrow door's opening: forwards, clear of
+// the opening's rear edge)
+static vec3 innerPole(const CarGeo& c) {
+    return c.narrow ? normalize(-c.U * 0.8f + c.F * 0.3f + c.N * 0.1f) : normalize(-c.U * 0.8f + c.N * 0.4f - c.F * 0.2f);
+}
 
 // The seated pose at the end of getting in / the start of getting out
 static Rig carSeated(const AuthorCtx& A, const CarGeo& c) {
@@ -2282,16 +2305,18 @@ static float headOver(const AuthorCtx& A, const Rig& x, const Ceil& ceil) {
     return o;
 }
 template <class Ceil>
-static void duckUnderCeil(const AuthorCtx& A, Rig& r, vec3 hip, const Ceil& ceil, float maxBend, float roll = 0.f) {
+static void duckUnderCeil(const AuthorCtx& A, Rig& r, vec3 hip, const Ceil& ceil, float maxBend, float roll = 0.f, float side = 0.f) {
     const Rig r0 = r;
+    const float fw = 1.f - fabsf(side);   // (side: the share of it leant over sideways, hips and all - to the right)
     auto bent = [&](float b) {
         Rig x = r0;
-        x.pelvisPitch = r0.pelvisPitch + 0.28f * b;
-        x.spinePitch = r0.spinePitch + 0.58f * b;
-        x.spineRoll = r0.spineRoll + roll * b;   // (part of it sideways)
-        x.neckPitch = r0.neckPitch + 0.1f * b;
-        x.headPitch = r0.headPitch + 0.18f * b;
-        x.headRoll = r0.headRoll + 0.3f * roll * b;
+        x.pelvisPitch = r0.pelvisPitch + 0.28f * b * fw;
+        x.pelvisRoll = r0.pelvisRoll + 0.28f * b * side;
+        x.spinePitch = r0.spinePitch + 0.58f * b * fw;
+        x.spineRoll = r0.spineRoll + roll * b + 0.58f * b * side;   // (part of it sideways)
+        x.neckPitch = r0.neckPitch + 0.1f * b * fw;
+        x.headPitch = r0.headPitch + 0.18f * b * fw;
+        x.headRoll = r0.headRoll + 0.3f * roll * b - 0.25f * b * side;   // (the head kept nearer upright)
         placeHips(A, x, hip);
         return x;
     };
@@ -2342,7 +2367,7 @@ static vec3 wheelRimL(const AuthorCtx& A, const CarGeo& c) {
 // head is checked against the ceiling every 1/24 s, and at the worst moment of each stretch where it is up into it a
 // key is put in (or the key there replaced), ducked under it; a second pass catches what the new keys' blend leaves.
 template <class Ceil>
-static void keepHeadroom(const AuthorCtx& A, std::vector<Key>& K, float t0, float t1, const Ceil& ceil) {
+static void keepHeadroom(const AuthorCtx& A, std::vector<Key>& K, float t0, float t1, const Ceil& ceil, float side = 0.f) {
     const float dt = 1.f / 24.f;
     for (int pass = 0; pass < 2; pass++) {
         const float len = K.back().t;
@@ -2376,7 +2401,7 @@ static void keepHeadroom(const AuthorCtx& A, std::vector<Key>& K, float t0, floa
             Rig x;
             sampleKeys(A, K, t, false, len, x);
             vec3 hip = A.pelvisBind + x.pelvis + rotate(pelvisRot(x), A.hipMidLocal);
-            duckUnderCeil(A, x, hip, ceil, 1.25f, 0.2f);
+            duckUnderCeil(A, x, hip, ceil, 1.25f, 0.2f, side);
             fixes.push_back(Key{t, x});
         }
         // (a key within 0.06 s is ducked itself instead: a ducked key squeezed in beside one that is not would jerk the
@@ -2387,7 +2412,7 @@ static void keepHeadroom(const AuthorCtx& A, std::vector<Key>& K, float t0, floa
             if (i < K.size() && fabsf(K[i].t - f.t) <= 0.06f) {
                 Rig& x = K[i].r;
                 vec3 hip = A.pelvisBind + x.pelvis + rotate(pelvisRot(x), A.hipMidLocal);
-                duckUnderCeil(A, x, hip, ceil, 1.25f, 0.2f);
+                duckUnderCeil(A, x, hip, ceil, 1.25f, 0.2f, side);
             } else {
                 K.insert(K.begin() + i, f);
             }
@@ -2395,9 +2420,273 @@ static void keepHeadroom(const AuthorCtx& A, std::vector<Key>& K, float t0, floa
     }
 }
 
+// Getting in through a door wide enough to sit down sideways in the opening (the front doors), from standing in the
+// doorway (r4) to the left leg lifting in.
+static void carInWide(const AuthorCtx& A, const CarGeo& c, const Rig& r4, std::vector<Key>& K) {
+    const float hipZ = hipMid(A).z, fh = A.footH;
+    const vec3 U = c.U, F = c.F, N = c.N, I = c.I;
+    const float headClear = 0.05f;
+    auto ceil = [&](vec3 p) { return c.ceilAt(p) - headClear; };
+    auto ceilIn = [&](vec3 p) { return c.ceilAt(p) - headClear - 0.02f; };
+    const vec3 Gt = c.topAt(dot(c.g.grip, F) + 0.28f) + I * 0.025f + U * 0.005f;   // (r4's hold on the door's frame)
+    // the right foot comes up over the sill (the knee forwards and out, clear of the pillar), the hips lowering, the
+    // body bending: the head is down under the roof's edge before it gets there; the left hand lets go of the door
+    const bool wheel = c.g.driver;
+    const vec3 rimL = wheelRimL(A, c);
+    Rig r5 = r4;
+    {
+        float o = carOpenAt(c, true, false, inClip(c, kInLift));
+        r5.pelvisYaw = 0.42f * c.carYaw;
+        LegCtl& l = r5.leg[1];
+        l.ik = true;
+        l.footQ = false;
+        l.ankle = c.at(Min(c.sP + 0.06f, c.sFu - 0.12f), c.dSkin + 0.03f, c.g.sillZ + 0.18f + fh);
+        l.pitch = -0.35f;
+        l.roll = 0.f;
+        l.yaw = 0.7f * c.carYaw;
+        l.knee = normalize(F * 0.6f + U * 0.6f + N * 0.15f);
+        setFootFlat(A, r5.leg[0], c.at(c.sIn - 0.08f, c.dSkin + 0.32f, 0.f), 0.5f * c.carYaw);
+        r5.leg[0].knee = normalize(F * 0.5f + U * 0.5f + I * 0.35f);
+        r5.spineYaw = 0.1f * (c.carYaw - r5.pelvisYaw);
+        r5.spinePitch = 0.3f;
+        r5.spineRoll = 0.06f;
+        r5.headYaw = 0.f;
+        r5.headPitch = 0.2f;
+        vec3 hip = c.at(c.sIn - 0.1f, c.dSkin + 0.32f, hipZ - 0.13f);
+        placeHips(A, r5, hip);
+        duckUnderCeil(A, r5, hip, ceilIn, 1.2f, 0.15f);
+        vec3 from = c.door(Gt, o), to = wheel ? rimL : c.at(c.sSeat + 0.3f, c.dSeat + 0.1f, c.zSeat + 0.2f);
+        handAt(A, r5.arm[0], 0, lerp(from, to, 0.35f) - U * 0.12f, F * 0.7f + I * 0.3f, -U * 0.5f + I * 0.5f, normalize(-U + N * 0.5f), 0.5f);
+        handAt(A, r5.arm[1], 1, c.at(c.sIn - 0.02f, c.dSkin + 0.45f, hipZ - 0.2f), -U * 0.7f + F * 0.5f, I * 0.5f - F * 0.5f, normalize(N - F * 0.2f), 0.4f);
+    }
+    K.push_back({kInLift, r5});
+    // half way in: the head down under the roof's edge before it passes it
+    Rig r5b = r5;
+    {
+        vec3 hip = c.at(c.sIn - 0.05f, c.dSkin + 0.22f, Lerp(hipZ - 0.13f, c.zSeat + 0.1f, 0.5f));
+        r5b.pelvisYaw = 0.41f * c.carYaw;
+        r5b.spinePitch = 0.25f;
+        placeHips(A, r5b, hip);
+        duckUnderCeil(A, r5b, hip, ceilIn, 1.25f, 0.2f);
+    }
+    K.push_back({0.5f * (kInLift + kInStep), r5b});
+    // the right foot in the footwell, the hips low over the sill's edge, the head in under the roof; the left hand on
+    // the wheel (a passenger's on the dash's end), the right one on the seat
+    Rig r6 = r5;
+    {
+        setFootFlat(A, r6.leg[1], c.at(c.sSeat + 0.42f, c.dSeat + 0.04f, c.g.sillZ), 0.95f * c.carYaw);
+        r6.leg[1].knee = normalize(F + U * 0.5f);
+        setFootFlat(A, r6.leg[0], c.at(c.sIn - 0.06f, c.dSkin + 0.32f, 0.f), 0.55f * c.carYaw);
+        r6.leg[0].knee = normalize(F * 0.5f + U * 0.5f + I * 0.35f);
+        r6.pelvisYaw = 0.4f * c.carYaw;
+        r6.pelvisPitch = 0.f;
+        r6.spinePitch = 0.2f;
+        r6.spineRoll = 0.06f;
+        r6.headPitch = 0.15f;
+        vec3 hip = c.at(c.sIn, c.dSkin + 0.1f, c.zSeat + 0.1f);
+        placeHips(A, r6, hip);
+        duckUnderCeil(A, r6, hip, ceil, 1.25f, 0.25f);
+        if (wheel) handAt(A, r6.arm[0], 0, rimL, F * 0.3f + I * 0.6f + U * 0.2f, F * 0.7f - N * 0.2f, normalize(-U + N * 0.6f), 0.85f);
+        else handAt(A, r6.arm[0], 0, c.at(c.sSeat + 0.3f, c.dSeat + 0.1f, c.zSeat + 0.2f), F + I * 0.3f, -U, normalize(N - U), 0.4f);
+        handAt(A, r6.arm[1], 1, c.at(c.sSeat + 0.06f, c.dSeat - 0.24f, c.zSeat + 0.06f), F * 0.7f + I * 0.3f - U * 0.4f, -U, normalize(N - U), 0.3f);
+    }
+    K.push_back({kInStep, r6});
+    // sit: onto the seat's outer edge, turning to face ahead, upright (the back clear of the pillar), still under the
+    // roof; the left foot outside on the ground beside the sill
+    Rig r7 = r6;
+    {
+        r7.pelvisYaw = 0.8f * c.carYaw;
+        r7.pelvisPitch = 0.f;
+        r7.spinePitch = 0.12f;
+        r7.spineRoll = 0.06f;
+        r7.headPitch = 0.1f;
+        setFootFlat(A, r7.leg[0], c.at(Min(c.sSeat + 0.3f, c.sFu - 0.05f), c.dSkin + 0.26f, 0.f), c.carYaw + 0.4f);
+        r7.leg[0].knee = normalize(F + U * 0.6f + N * 0.15f);
+        vec3 hip = c.at(Lerp(c.sIn, c.sSeat, 0.4f), c.dSeat + 0.16f, c.zSeat + 0.03f);
+        placeHips(A, r7, hip);
+        duckUnderCeil(A, r7, hip, ceil, 1.f, 0.35f);
+        if (!wheel) handAt(A, r7.arm[0], 0, c.at(c.sSeat + 0.3f, c.dSkin - 0.08f, c.zSeat + 0.34f), F + N * 0.3f, -I, normalize(N - U), 0.4f);
+        handAt(A, r7.arm[1], 1, c.at(c.sSeat + 0.08f, c.dSeat - 0.26f, c.zSeat + 0.05f), F * 0.7f + I * 0.3f - U * 0.4f, -U, normalize(N - U), 0.3f);
+    }
+    K.push_back({kInSit, r7});
+    // the left leg lifts in over the sill as the hips slide across onto the seat
+    Rig r8 = r7;
+    {
+        r8.pelvisYaw = c.carYaw;
+        r8.pelvisPitch = -0.05f;
+        r8.spinePitch = 0.18f;
+        r8.spineRoll = 0.f;
+        r8.headPitch = 0.08f;
+        vec3 hip = c.at(Lerp(c.sIn, c.sSeat, 0.6f), c.dSeat + 0.07f, c.zSeat);
+        placeHips(A, r8, hip);
+        LegCtl& l = r8.leg[0];
+        l.ik = true;
+        l.footQ = false;
+        l.ankle = c.at(Min(c.sSeat + 0.4f, c.sFu - 0.08f), c.dSkin - 0.02f, c.g.sillZ + 0.26f + fh);
+        l.pitch = -0.4f;
+        l.roll = 0.f;
+        l.yaw = c.carYaw + 0.1f;
+        l.knee = normalize(F + U);
+        duckUnderCeil(A, r8, hip, ceil, 0.8f, 0.f);
+        if (!wheel) handAt(A, r8.arm[0], 0, c.at(c.sSeat + 0.34f, c.dSkin + 0.0f, c.zSeat + 0.38f), F + N * 0.4f, -I, normalize(N - U), 0.4f);
+    }
+    K.push_back({kInLegLift, r8});
+}
+
+// Getting in through a narrow (rear) door (CarGeo::narrow), from standing in the doorway (r4) to the left leg lifting in:
+// the right foot steps over the sill just ahead of the opening's rear edge (toes in, clear of the open door's inner
+// face) on into the footwell; the hips go in low and backwards through the gap between the door and the opening's
+// rear edge, turning to face ahead, down onto the front of the seat (the left foot outside, the left hand holding the
+// door's frame till they are down), and slide back towards the seat as the left leg comes in over the sill.
+static void carInNarrow(const AuthorCtx& A, const CarGeo& c, const Rig& r4, std::vector<Key>& K) {
+    const float hipZ = hipMid(A).z, fh = A.footH;
+    const vec3 U = c.U, F = c.F, N = c.N, I = c.I;
+    const float headClear = 0.05f;
+    auto ceil = [&](vec3 p) { return c.ceilAt(p) - headClear; };
+    auto ceilIn = [&](vec3 p) { return c.ceilAt(p) - headClear - 0.02f; };
+    const float gap = c.gapF - c.sR;
+    const float sX = c.sR + Clamp(0.5f * gap, 0.13f, 0.2f);                    // the hips cross the side's line here,
+    const float sSit = Max(c.sSeat + 0.1f, sX - 0.06f);                         // ... sit down here (the seat's front)
+    const float sFoot = Clamp(c.sSeat + 0.6f, c.sR + 0.3f, c.gapF + 0.1f);      // the right foot in the footwell
+    const vec3 Gt = c.topAt(dot(c.g.grip, F) + 0.28f) + I * 0.025f + U * 0.005f;   // (r4's hold on the door's frame)
+    const vec3 finT = normalize(U * 0.85f + N * 0.3f);
+    const vec3 poleT = normalize(-U * 0.7f - F * 0.3f + I * 0.2f);
+    const float o = c.openRest;
+    auto holdFrame = [&](Rig& r) {
+        gripArm(A, r.arm[0], 0, c.door(Gt, o), c.doorV(F, o), c.doorV(finT, o), poleT);
+        r.arm[0].fingers = 0.8f;
+    };
+    // facing ahead (narrow across the gap), the right foot up over the sill (toes in, the knee into the cabin) in the
+    // middle of the gap; the hips lowering, still behind the opening's rear edge, upright (out of the roof's way)
+    const float cY = c.carYaw;
+    Rig r5 = r4;
+    {
+        r5.pelvisYaw = 0.95f * cY;
+        LegCtl& l = r5.leg[1];
+        l.ik = true;
+        l.footQ = false;
+        l.ankle = c.at(c.sR + 0.45f * gap, c.dSkin + 0.04f, c.g.sillZ + 0.12f + fh);
+        l.pitch = -0.3f;
+        l.roll = 0.f;
+        l.yaw = 0.7f * cY;
+        l.knee = normalize(U * 0.5f + I * 0.4f + F * 0.3f);
+        r5.leg[0].knee = normalize(N * 0.5f + U * 0.5f - F * 0.3f);   // (out and back, behind the door's rear edge)
+        r5.spineYaw = 0.f;
+        r5.spinePitch = 0.1f;
+        r5.spineRoll = 0.05f;
+        r5.headYaw = -0.15f * cY;
+        r5.headPitch = 0.1f;
+        r5.headRoll = 0.f;
+        placeHips(A, r5, c.at(c.sR + 0.02f, c.dSkin + 0.27f, hipZ - 0.18f));
+        holdFrame(r5);
+        handAt(A, r5.arm[1], 1, c.at(c.sR + 0.06f, c.dSkin + 0.1f, hipZ - 0.3f), -U * 0.7f + F * 0.5f, I * 0.5f - F * 0.5f, normalize(N - F * 0.2f), 0.4f);
+    }
+    K.push_back({kInLift, r5});
+    // ... in over the sill, the hips down below the door's armrest and forward along the side to the gap, the trunk
+    // starting to lean over to the right
+    Rig r5a = r5;
+    {
+        LegCtl& l = r5a.leg[1];
+        l.ankle = c.at(c.sR + 0.45f * gap + 0.08f, c.dSkin - 0.16f, c.g.sillZ + 0.1f + fh);
+        l.yaw = 0.85f * cY;
+        l.knee = normalize(U * 0.6f + I * 0.3f + F * 0.4f);
+        vec3 hip = c.at(c.sR + 0.12f, c.dSkin + 0.2f, c.zSeat + 0.15f);
+        r5a.pelvisYaw = cY;
+        r5a.spineRoll = 0.18f;
+        r5a.headYaw = -0.2f * cY;
+        r5a.headRoll = -0.06f;
+        placeHips(A, r5a, hip);
+        duckUnderCeil(A, r5a, hip, ceilIn, 1.25f, 0.f, 0.85f);
+        holdFrame(r5a);
+    }
+    K.push_back({kInLift + 0.1f, r5a});
+    // the head and shoulders in (leaning over, the head down under the roof's edge) as the hips come to the gap; the
+    // right foot in the footwell, the right hand back on the seat
+    Rig r5b = r5a;
+    {
+        setFootFlat(A, r5b.leg[1], c.at(sFoot, c.dSeat + 0.06f, c.g.sillZ), 0.95f * cY);
+        r5b.leg[1].knee = normalize(U + F * 0.3f + I * 0.4f);
+        setFootFlat(A, r5b.leg[0], c.at(c.sR - 0.1f, c.dSkin + 0.34f, 0.f), 0.75f * cY);
+        r5b.leg[0].knee = normalize(N * 0.5f + U * 0.5f - F * 0.3f);
+        vec3 hip = c.at(Lerp(c.sR + 0.12f, sX, 0.6f), c.dSkin + 0.06f, c.zSeat + 0.12f);
+        r5b.spineRoll = 0.3f;
+        r5b.headYaw = -0.25f * cY;
+        r5b.headRoll = -0.12f;
+        placeHips(A, r5b, hip);
+        duckUnderCeil(A, r5b, hip, ceilIn, 1.25f, 0.f, 0.85f);
+        holdFrame(r5b);
+        handAt(A, r5b.arm[1], 1, c.at(c.sSeat + 0.12f, c.dSeat - 0.12f, c.zSeat + 0.07f), F * 0.3f + I * 0.6f - U * 0.4f, -U, normalize(-U + F * 0.3f), 0.3f);
+    }
+    K.push_back({kInStep + 0.06f, r5b});
+    // the hips low through the gap
+    Rig r6 = r5b;
+    {
+        r6.pelvisPitch = 0.f;
+        r6.spineYaw = 0.f;
+        r6.spinePitch = 0.06f;
+        r6.spineRoll = 0.25f;
+        r6.headPitch = 0.1f;
+        vec3 hip = c.at(sX, c.dSkin - 0.08f, c.zSeat + 0.1f);
+        placeHips(A, r6, hip);
+        duckUnderCeil(A, r6, hip, ceil, 1.25f, 0.f, 0.85f);
+        holdFrame(r6);
+    }
+    K.push_back({0.5f * (kInStep + kInSit) + 0.02f, r6});
+    // sat on the front of the seat, facing ahead, the left foot outside beside the sill (the knee out, clear of the
+    // door), the left hand still on the door
+    Rig r7 = r6;
+    {
+        r7.pelvisYaw = cY;
+        r7.pelvisPitch = 0.f;
+        r7.pelvisRoll = 0.f;
+        r7.spineYaw = 0.f;
+        r7.spinePitch = 0.1f;
+        r7.spineRoll = 0.2f;
+        r7.headYaw = -0.1f * cY;
+        r7.headPitch = 0.1f;
+        r7.headRoll = -0.08f;
+        setFootFlat(A, r7.leg[0], c.at(c.sR + 0.06f, c.dSkin + 0.28f, 0.f), cY + 0.3f);
+        r7.leg[0].knee = normalize(N * 0.6f + U * 0.6f + F * 0.05f);
+        vec3 hip = c.at(sSit, c.dSeat + 0.14f, c.zSeat + 0.04f);
+        placeHips(A, r7, hip);
+        duckUnderCeil(A, r7, hip, ceil, 1.f, 0.f, 0.6f);
+        holdFrame(r7);
+        handAt(A, r7.arm[1], 1, c.at(c.sSeat + 0.08f, c.dSeat - 0.26f, c.zSeat + 0.05f), F * 0.7f + I * 0.3f - U * 0.4f, -U, normalize(N - U), 0.3f);
+    }
+    K.push_back({kInSit, r7});
+    // the left leg lifts in over the sill (the left hand lets go of the door, onto the knee) as the hips slide in - in
+    // before back, clear of the wheel well's trim beside the seat
+    Rig r8 = r7;
+    {
+        r8.pelvisYaw = cY;
+        r8.pelvisPitch = -0.05f;
+        r8.pelvisRoll = 0.f;
+        r8.spineYaw = 0.f;
+        r8.spinePitch = 0.18f;
+        r8.spineRoll = 0.f;
+        r8.headYaw = 0.f;
+        r8.headPitch = 0.08f;
+        r8.headRoll = 0.f;
+        vec3 hip = c.at(Lerp(sSit, c.sSeat, 0.25f), c.dSeat + 0.02f, c.zSeat);
+        placeHips(A, r8, hip);
+        LegCtl& l = r8.leg[0];
+        l.ik = true;
+        l.footQ = false;
+        l.ankle = c.at(c.sR + 0.06f, c.dSkin - 0.02f, c.g.sillZ + 0.2f + fh);
+        l.pitch = -0.4f;
+        l.roll = 0.f;
+        l.yaw = cY + 0.1f;
+        l.knee = normalize(U + I * 0.3f);
+        duckUnderCeil(A, r8, hip, ceil, 0.8f, 0.f);
+        vec3 knee = bonePos(A, r8, B_CALF_L);
+        handAt(A, r8.arm[0], 0, knee + U * 0.07f + N * 0.03f, F + N * 0.2f, -U, normalize(N - U), 0.6f);
+    }
+    K.push_back({kInLegLift, r8});
+}
+
 static void carEntryKeys(const AuthorCtx& A, const CarGeo& c, std::vector<Key>& K) {
     const Rig st = standIK(A);
-    const float hipZ = hipMid(A).z, fh = A.footH, reachL = limbReach(A);
+    const float hipZ = hipMid(A).z, reachL = limbReach(A);
     const vec3 U = c.U, F = c.F, N = c.N, I = c.I;
     const float headClear = 0.05f;   // (hair stands up to ~5 cm over the skull)
     auto ceil = [&](vec3 p) { return c.ceilAt(p) - headClear; };
@@ -2501,6 +2790,20 @@ static void carEntryKeys(const AuthorCtx& A, const CarGeo& c, std::vector<Key>& 
         r4.arm[0].fingers = 0.8f;
         handAt(A, r4.arm[1], 1, c.at(c.sP - 0.3f, c.dSkin + 0.62f, hipZ - 0.12f), -U * 0.8f + F * 0.3f, I * 0.5f - F * 0.5f, normalize(N - F * 0.3f), 0.4f);
     }
+    // (a narrow door's doorway is behind the opening's rear edge, close to the side, half turned ahead already: the
+    //  open door's inner face runs out and back from its hinge across the front of the opening - carInNarrow)
+    const vec3 rh4n = c.at(c.sR - 0.1f, c.dSkin + 0.1f, hipZ - 0.12f);
+    if (c.narrow) {
+        r4.pelvisYaw = 0.85f * c.carYaw;
+        setFootFlat(A, r4.leg[0], c.at(c.sR - 0.1f, c.dSkin + 0.4f, 0.f), 0.8f * c.carYaw);
+        setFootFlat(A, r4.leg[1], c.at(c.sR - 0.06f, c.dSkin + 0.15f, 0.f), 0.8f * c.carYaw);
+        r4.leg[0].knee = normalize(F * 0.5f + N * 0.5f);
+        r4.leg[1].knee = normalize(F * 0.8f + I * 0.2f);
+        placeHips(A, r4, c.at(c.sR - 0.07f, c.dSkin + 0.27f, hipZ - 0.03f));
+        r4.spineYaw = 0.2f * (c.carYaw - r4.pelvisYaw);
+        r4.headYaw = 0.25f * (c.carYaw - r4.pelvisYaw);
+        handAt(A, r4.arm[1], 1, rh4n, -U * 0.8f + F * 0.3f, I * 0.5f - F * 0.5f, normalize(N - F * 0.3f), 0.4f);
+    }
     // ... getting there from the pull's stance once the left hand has let go of the handle (still behind the door's
     // rear edge, which the walk passes): two steps (left, right) with the hips carried along between the feet (a long
     // door's handle is well behind the doorway: CarGeo::walkIn stretches the time); meanwhile the hand slides back
@@ -2520,8 +2823,9 @@ static void carEntryKeys(const AuthorCtx& A, const CarGeo& c, std::vector<Key>& 
     };
     const bool walk = length(r4.pelvis - r3.pelvis) > 0.12f;
     auto rightHand = [&](Rig& r, float u) {
-        handAt(A, r.arm[1], 1, c.at(Lerp(c.sH - 0.62f, c.sP - 0.3f, u), c.dSkin + Lerp(0.66f, 0.62f, u), hipZ - Lerp(0.1f, 0.12f, u)),
-               -U * 0.8f + F * Lerp(0.2f, 0.3f, u), I * 0.5f - F * 0.5f, normalize(N - F * 0.3f), 0.4f);
+        vec3 p = c.narrow ? lerp(c.at(c.sH - 0.62f, c.dSkin + 0.66f, hipZ - 0.1f), rh4n, u)
+                          : c.at(Lerp(c.sH - 0.62f, c.sP - 0.3f, u), c.dSkin + Lerp(0.66f, 0.62f, u), hipZ - Lerp(0.1f, 0.12f, u));
+        handAt(A, r.arm[1], 1, p, -U * 0.8f + F * Lerp(0.2f, 0.3f, u), I * 0.5f - F * 0.5f, normalize(N - F * 0.3f), 0.4f);
     };
     Rig r3b = r3;
     {
@@ -2561,114 +2865,14 @@ static void carEntryKeys(const AuthorCtx& A, const CarGeo& c, std::vector<Key>& 
         K.push_back({kInRelease - 0.02f, w2});
     }
     K.push_back({kInRelease, r4});
-    // the right foot comes up over the sill (the knee forwards and out, clear of the pillar), the hips lowering, the
-    // body bending: the head is down under the roof's edge before it gets there; the left hand lets go of the door
-    const bool wheel = c.g.driver;
-    const vec3 rimL = wheelRimL(A, c);
-    Rig r5 = r4;
-    {
-        float o = carOpenAt(c, true, false, inClip(c, kInLift));
-        r5.pelvisYaw = 0.42f * c.carYaw;
-        LegCtl& l = r5.leg[1];
-        l.ik = true;
-        l.footQ = false;
-        l.ankle = c.at(Min(c.sP + 0.06f, c.sFu - 0.12f), c.dSkin + 0.03f, c.g.sillZ + 0.18f + fh);
-        l.pitch = -0.35f;
-        l.roll = 0.f;
-        l.yaw = 0.7f * c.carYaw;
-        l.knee = normalize(F * 0.6f + U * 0.6f + N * 0.15f);
-        setFootFlat(A, r5.leg[0], c.at(c.sIn - 0.08f, c.dSkin + 0.32f, 0.f), 0.5f * c.carYaw);
-        r5.leg[0].knee = normalize(F * 0.5f + U * 0.5f + I * 0.35f);
-        r5.spineYaw = 0.1f * (c.carYaw - r5.pelvisYaw);
-        r5.spinePitch = 0.3f;
-        r5.spineRoll = 0.06f;
-        r5.headYaw = 0.f;
-        r5.headPitch = 0.2f;
-        vec3 hip = c.at(c.sIn - 0.1f, c.dSkin + 0.32f, hipZ - 0.13f);
-        placeHips(A, r5, hip);
-        duckUnderCeil(A, r5, hip, ceilIn, 1.2f, 0.15f);
-        vec3 from = c.door(Gt, o), to = wheel ? rimL : c.at(c.sSeat + 0.3f, c.dSeat + 0.1f, c.zSeat + 0.2f);
-        handAt(A, r5.arm[0], 0, lerp(from, to, 0.35f) - U * 0.12f, F * 0.7f + I * 0.3f, -U * 0.5f + I * 0.5f, normalize(-U + N * 0.5f), 0.5f);
-        handAt(A, r5.arm[1], 1, c.at(c.sIn - 0.02f, c.dSkin + 0.45f, hipZ - 0.2f), -U * 0.7f + F * 0.5f, I * 0.5f - F * 0.5f, normalize(N - F * 0.2f), 0.4f);
-    }
-    K.push_back({kInLift, r5});
-    // half way in: the head down under the roof's edge before it passes it
-    Rig r5b = r5;
-    {
-        vec3 hip = c.at(c.sIn - 0.05f, c.dSkin + 0.22f, Lerp(hipZ - 0.13f, c.zSeat + 0.1f, 0.5f));
-        r5b.pelvisYaw = 0.41f * c.carYaw;
-        r5b.spinePitch = 0.25f;
-        placeHips(A, r5b, hip);
-        duckUnderCeil(A, r5b, hip, ceilIn, 1.25f, 0.2f);
-    }
-    K.push_back({0.5f * (kInLift + kInStep), r5b});
-    // the right foot in the footwell, the hips low over the sill's edge, the head in under the roof; the left hand on
-    // the wheel (a passenger's on the dash's end), the right one on the seat
-    Rig r6 = r5;
-    {
-        setFootFlat(A, r6.leg[1], c.at(c.sSeat + 0.42f, c.dSeat + 0.04f, c.g.sillZ), 0.95f * c.carYaw);
-        r6.leg[1].knee = normalize(F + U * 0.5f);
-        setFootFlat(A, r6.leg[0], c.at(c.sIn - 0.06f, c.dSkin + 0.32f, 0.f), 0.55f * c.carYaw);
-        r6.leg[0].knee = normalize(F * 0.5f + U * 0.5f + I * 0.35f);
-        r6.pelvisYaw = 0.4f * c.carYaw;
-        r6.pelvisPitch = 0.f;
-        r6.spinePitch = 0.2f;
-        r6.spineRoll = 0.06f;
-        r6.headPitch = 0.15f;
-        vec3 hip = c.at(c.sIn, c.dSkin + 0.1f, c.zSeat + 0.1f);
-        placeHips(A, r6, hip);
-        duckUnderCeil(A, r6, hip, ceil, 1.25f, 0.25f);
-        if (wheel) handAt(A, r6.arm[0], 0, rimL, F * 0.3f + I * 0.6f + U * 0.2f, F * 0.7f - N * 0.2f, normalize(-U + N * 0.6f), 0.85f);
-        else handAt(A, r6.arm[0], 0, c.at(c.sSeat + 0.3f, c.dSeat + 0.1f, c.zSeat + 0.2f), F + I * 0.3f, -U, normalize(N - U), 0.4f);
-        handAt(A, r6.arm[1], 1, c.at(c.sSeat + 0.06f, c.dSeat - 0.24f, c.zSeat + 0.06f), F * 0.7f + I * 0.3f - U * 0.4f, -U, normalize(N - U), 0.3f);
-    }
-    K.push_back({kInStep, r6});
-    // sit: onto the seat's outer edge, turning to face ahead, upright (the back clear of the pillar), still under the
-    // roof; the left foot outside on the ground beside the sill
-    Rig r7 = r6;
-    {
-        r7.pelvisYaw = 0.8f * c.carYaw;
-        r7.pelvisPitch = 0.f;
-        r7.spinePitch = 0.12f;
-        r7.spineRoll = 0.06f;
-        r7.headPitch = 0.1f;
-        setFootFlat(A, r7.leg[0], c.at(Min(c.sSeat + 0.3f, c.sFu - 0.05f), c.dSkin + 0.26f, 0.f), c.carYaw + 0.4f);
-        r7.leg[0].knee = normalize(F + U * 0.6f + N * 0.15f);
-        vec3 hip = c.at(Lerp(c.sIn, c.sSeat, 0.4f), c.dSeat + 0.16f, c.zSeat + 0.03f);
-        placeHips(A, r7, hip);
-        duckUnderCeil(A, r7, hip, ceil, 1.f, 0.35f);
-        if (!wheel) handAt(A, r7.arm[0], 0, c.at(c.sSeat + 0.3f, c.dSkin - 0.08f, c.zSeat + 0.34f), F + N * 0.3f, -I, normalize(N - U), 0.4f);
-        handAt(A, r7.arm[1], 1, c.at(c.sSeat + 0.08f, c.dSeat - 0.26f, c.zSeat + 0.05f), F * 0.7f + I * 0.3f - U * 0.4f, -U, normalize(N - U), 0.3f);
-    }
-    K.push_back({kInSit, r7});
-    // the left leg lifts in over the sill as the hips slide across onto the seat
     const Rig seated = carSeated(A, c);
-    Rig r8 = r7;
-    {
-        r8.pelvisYaw = c.carYaw;
-        r8.pelvisPitch = -0.05f;
-        r8.spinePitch = 0.18f;
-        r8.spineRoll = 0.f;
-        r8.headPitch = 0.08f;
-        vec3 hip = c.at(Lerp(c.sIn, c.sSeat, 0.6f), c.dSeat + 0.07f, c.zSeat);
-        placeHips(A, r8, hip);
-        LegCtl& l = r8.leg[0];
-        l.ik = true;
-        l.footQ = false;
-        l.ankle = c.at(Min(c.sSeat + 0.4f, c.sFu - 0.08f), c.dSkin - 0.02f, c.g.sillZ + 0.26f + fh);
-        l.pitch = -0.4f;
-        l.roll = 0.f;
-        l.yaw = c.carYaw + 0.1f;
-        l.knee = normalize(F + U);
-        duckUnderCeil(A, r8, hip, ceil, 0.8f, 0.f);
-        if (!wheel) handAt(A, r8.arm[0], 0, c.at(c.sSeat + 0.34f, c.dSkin + 0.0f, c.zSeat + 0.38f), F + N * 0.4f, -I, normalize(N - U), 0.4f);
-    }
-    K.push_back({kInLegLift, r8});
+    if (c.narrow) carInNarrow(A, c, r4, K);   // (a rear door)
+    else carInWide(A, c, r4, K);
     // in: both feet in the footwell, reaching out for the door's inner pull: the hips slide to the seat's door side,
     // the trunk leans forward and out to it (turning to it), the head kept under the roof's edge
     const vec3 Gin = c.g.handleIn + U * 0.004f;
     const vec3 finIn = innerFingers(c);
-    const vec3 poleIn = normalize(-U * 0.8f + N * 0.4f - F * 0.2f);
+    const vec3 poleIn = innerPole(c);
     auto reachDoor = [&](Rig& r, float o, float k) {
         vec3 Gd = c.door(Gin, o);
         gripArm(A, r.arm[0], 0, Gd, c.doorV(F, o), c.doorV(finIn, o), poleIn);
@@ -2683,7 +2887,8 @@ static void carEntryKeys(const AuthorCtx& A, const CarGeo& c, std::vector<Key>& 
         r.headPitch = 0.05f;
         r.arm[0].clavFwd = 0.35f * l;
         r.arm[0].clavUp = 0.05f * l;
-        vec3 hip = c.g.seat + N * (0.1f * l) + F * (0.06f * l);
+        // (a narrow door's: well forward, not out - the wheel well's trim is beside the seat)
+        vec3 hip = c.g.seat + N * ((c.narrow ? 0.f : 0.1f) * l) + F * ((c.narrow ? 0.22f : 0.06f) * l);
         placeHips(A, r, hip);
         duckUnderCeil(A, r, hip, ceil, 1.f, -0.2f);
     };
@@ -2708,54 +2913,21 @@ static void carEntryKeys(const AuthorCtx& A, const CarGeo& c, std::vector<Key>& 
     K.push_back({kInEnd, seated});
     // (the seated pose it ends in is the drive / passenger stance's: under a low roof the animator fits that one under
     // it, from the door pulled shut on - so it is left as it is)
-    keepHeadroom(A, K, kInRelease, kInShut, ceilIn);
+    keepHeadroom(A, K, kInRelease, kInShut, ceilIn, c.narrow ? 0.8f : 0.f);   // (through a narrow door: leaning in)
     for (Key& k : K) k.t = inClip(c, k.t);   // (authored on the nominal times: the walk to the doorway stretched)
 }
 
-static void carExitKeys(const AuthorCtx& A, const CarGeo& c, std::vector<Key>& K) {
-    const Rig st = standIK(A);
+// Getting out through a door wide enough to stand up in the opening (the front doors), from the latch popped (x4) to
+// standing up in the doorway, facing out, a hand on the door's frame.
+static Rig carOutWide(const AuthorCtx& A, const CarGeo& c, float t0, const Rig& x4, std::vector<Key>& K) {
     const float hipZ = hipMid(A).z, fh = A.footH;
     const vec3 U = c.U, F = c.F, N = c.N, I = c.I;
-    const float headClear = 0.05f;   // (hair stands up to ~5 cm over the skull)
-    const Rig seated = carSeated(A, c);
-    K.clear();
-    K.push_back({0.f, seated});
-    float t0 = 0.f;
-    if (c.g.belt) {
-        // unbuckle: the left hand presses the buckle by the right hip and guides the belt back up past the shoulder
-        Rig b1 = seated;
-        handAt(A, b1.arm[0], 0, c.g.seat + I * 0.19f - F * 0.03f - U * 0.04f, -U + F * 0.5f + I * 0.2f, -I * 0.3f - U * 0.5f + F * 0.2f,
-               normalize(N - U * 0.5f), 0.5f);
-        b1.spineYaw = -0.3f;
-        b1.headYaw = -0.35f;
-        b1.headPitch = 0.32f;
-        K.push_back({0.18f, b1});
-        Rig b2 = seated;
-        handAt(A, b2.arm[0], 0, c.g.seat + N * 0.12f + F * 0.12f + U * 0.44f, U + F * 0.3f, I * 0.5f - F * 0.5f, normalize(N - U), 0.6f);
-        b2.headYaw = 0.25f;
-        b2.headPitch = 0.1f;
-        K.push_back({0.38f, b2});
-        t0 = kOutBelt;
-    }
-    const vec3 Gin = c.g.handleIn + U * 0.004f;
-    const vec3 finIn = innerFingers(c);
-    const vec3 poleIn = normalize(-U * 0.8f + N * 0.4f - F * 0.2f);
+    const float headClear = 0.05f;
     auto ceil = [&](vec3 p) { return c.ceilAt(p) - headClear; };
     auto ceilOut = [&](vec3 p) { return c.ceilAt(p) - headClear - 0.02f; };
-    // the inner release, the latch pops
-    Rig x3 = seated;
-    gripArm(A, x3.arm[0], 0, Gin, F, finIn, poleIn);
-    x3.arm[0].fingers = 0.85f;
-    x3.headYaw = 0.3f;
-    x3.headPitch = 0.08f;
-    K.push_back({t0 + kOutHandle, x3});
-    Rig x4 = x3;
-    {
-        float o = carOpenAt(c, false, false, kOutPop);
-        gripArm(A, x4.arm[0], 0, c.door(Gin, o), c.doorV(F, o), c.doorV(finIn, o), poleIn);
-        x4.arm[0].fingers = 0.9f;
-    }
-    K.push_back({t0 + kOutPop, x4});
+    const vec3 Gin = c.g.handleIn + U * 0.004f;
+    const vec3 finIn = innerFingers(c);
+    const vec3 poleIn = innerPole(c);
     // pushing the door open, the left foot swinging out high over the sill, the hips sliding to the seat's edge
     Rig x5 = x4;
     {
@@ -2873,6 +3045,234 @@ static void carExitKeys(const AuthorCtx& A, const CarGeo& c, std::vector<Key>& K
         armFK(x8.arm[1], 1, 0.1f, 0.12f, 0.3f, 0.2f, 0.4f);
     }
     K.push_back({t0 + kOutStand, x8});
+    return x8;
+}
+
+// Getting out through a narrow (rear) door (CarGeo::narrow), from the latch popped (x4) to standing beside the
+// opening: the door pushed wide by its inner handle as the hips slide forward onto the front of the seat and the left
+// leg swings out over the sill; the left hand onto the door's frame; the hips out low through the gap between the
+// door and the opening's rear edge, facing ahead, the trunk leant over in to the cabin under the roof's edge, the right
+// foot out over the sill last; up behind the opening, out of the door's way (at hipStand, the right foot at footR).
+static Rig carOutNarrow(const AuthorCtx& A, const CarGeo& c, float t0, const Rig& x4, vec3 hipStand, vec3 footR, std::vector<Key>& K) {
+    const float hipZ = hipMid(A).z, fh = A.footH;
+    const vec3 U = c.U, F = c.F, N = c.N, I = c.I;
+    const float headClear = 0.05f;
+    auto ceil = [&](vec3 p) { return c.ceilAt(p) - headClear; };
+    auto ceilOut = [&](vec3 p) { return c.ceilAt(p) - headClear - 0.02f; };
+    const float cY = c.carYaw, gap = c.gapF - c.sR;
+    const float sX = c.sR + Clamp(0.5f * gap, 0.13f, 0.2f), sSit = Max(c.sSeat + 0.1f, sX - 0.04f);   // (see carInNarrow)
+    const vec3 Gin = c.g.handleIn + U * 0.004f, finIn = innerFingers(c), poleIn = innerPole(c);
+    const vec3 Gt = c.topAt(dot(c.g.grip, F) + 0.28f) + I * 0.025f + U * 0.005f;
+    const vec3 finT = normalize(U * 0.85f + N * 0.3f);
+    const vec3 poleT = normalize(-U * 0.7f - F * 0.3f + I * 0.2f);
+    auto holdFrame = [&](Rig& r) {
+        gripArm(A, r.arm[0], 0, c.door(Gt, c.openOut), c.doorV(F, c.openOut), c.doorV(finT, c.openOut), poleT);
+        r.arm[0].fingers = 0.8f;
+    };
+    // pushing the door open by its inner handle, the hips sliding forward towards the front of the seat, the left knee
+    // up (the foot still inside till the door is wide, the knee clear of its front)
+    Rig x5 = x4;
+    {
+        float o = carOpenAt(c, false, false, kOutLift);
+        gripArm(A, x5.arm[0], 0, c.door(Gin, o), c.doorV(F, o), c.doorV(finIn, o), poleIn);
+        x5.arm[0].fingers = 0.7f;
+        vec3 hip = c.at(Lerp(c.sSeat, sSit, 0.35f), c.dSeat + 0.1f, c.zSeat);
+        x5.pelvisPitch = 0.f;
+        placeHips(A, x5, hip);
+        // (the right foot on the floor where it was: the seat's floor fit lets go as the hips leave the seat)
+        setFootFlat(A, x5.leg[1], c.at(c.sSeat + 0.62f, c.dSeat - 0.12f, c.g.sillZ), cY);
+        x5.leg[1].knee = normalize(F + U * 0.6f);
+        LegCtl& l = x5.leg[0];
+        l.ik = true;
+        l.footQ = false;
+        l.ankle = c.at(c.sR + 0.1f, c.dSkin - 0.14f, c.g.sillZ + 0.16f + fh);   // (inside till the door is wide)
+        l.pitch = -0.3f;
+        l.roll = 0.f;
+        l.yaw = cY + 0.4f;
+        l.knee = normalize(U * 0.8f + N * 0.3f);
+        x5.spinePitch = 0.28f;
+        x5.spineRoll = -0.08f;
+        x5.headYaw = 0.35f;
+        x5.headPitch = 0.1f;
+        duckUnderCeil(A, x5, hip, ceil, 0.8f, 0.f);
+    }
+    K.push_back({t0 + kOutLift, x5});
+    // ... the door pushed wide, the left foot out past the sill, still high
+    Rig x5b = x5;
+    {
+        gripArm(A, x5b.arm[0], 0, c.door(Gin, c.openOut), c.doorV(F, c.openOut), c.doorV(finIn, c.openOut), poleIn);
+        LegCtl& l = x5b.leg[0];
+        l.ankle = c.at(c.sR + 0.08f, c.dSkin + 0.22f, c.g.sillZ + 0.2f + fh);
+        l.pitch = -0.15f;
+        l.knee = normalize(U * 0.6f + N * 0.5f - F * 0.1f);
+    }
+    K.push_back({t0 + kOutPush, x5b});
+    // the left foot down outside behind the door, the hips on the front of the seat facing ahead, the left hand onto
+    // the top of the door's frame (the door wide open)
+    Rig x6 = x5b;
+    {
+        setFootFlat(A, x6.leg[0], c.at(c.sR + 0.04f, c.dSkin + 0.3f, 0.f), cY + 0.3f);
+        x6.leg[0].knee = normalize(N * 0.6f + U * 0.6f + F * 0.05f);
+        x6.pelvisYaw = cY;
+        x6.pelvisPitch = 0.1f;
+        x6.spinePitch = 0.15f;
+        x6.spineRoll = 0.15f;
+        x6.headYaw = 0.1f;
+        setFootFlat(A, x6.leg[1], c.at(c.sSeat + 0.62f, c.dSeat - 0.06f, c.g.sillZ), cY);
+        x6.leg[1].knee = normalize(F + U * 0.6f);
+        vec3 hip = c.at(sSit, c.dSeat + 0.14f, c.zSeat + 0.02f);
+        placeHips(A, x6, hip);
+        duckUnderCeil(A, x6, hip, ceil, 1.f, 0.f, 0.6f);
+        holdFrame(x6);
+        handAt(A, x6.arm[1], 1, c.at(c.sSeat + 0.08f, c.dSeat - 0.22f, c.zSeat + 0.05f), F * 0.7f + I * 0.3f - U * 0.4f, -U, normalize(N - U), 0.3f);
+    }
+    K.push_back({t0 + kOutPush + 0.12f, x6});
+    // the hips out to the gap, low, leant over in to the cabin (the head under the roof's edge); the right foot to the
+    // sill, the right hand pushing off the seat
+    Rig x7 = x6;
+    {
+        setFootFlat(A, x7.leg[1], c.at(c.sR + 0.45f * gap + 0.08f, c.dSkin - 0.3f, c.g.sillZ + 0.01f), 0.8f * cY);
+        x7.leg[1].knee = normalize(U + F * 0.3f + I * 0.3f);
+        setFootFlat(A, x7.leg[0], c.at(c.sR - 0.04f, c.dSkin + 0.34f, 0.f), 0.8f * cY);
+        x7.leg[0].knee = normalize(N * 0.5f + U * 0.5f - F * 0.3f);
+        x7.pelvisPitch = 0.05f;
+        x7.spinePitch = 0.06f;
+        x7.spineRoll = 0.25f;
+        x7.headYaw = 0.1f;
+        x7.headPitch = 0.1f;
+        x7.headRoll = -0.12f;
+        vec3 hip = c.at(sX, c.dSkin - 0.08f, c.zSeat + 0.1f);
+        placeHips(A, x7, hip);
+        duckUnderCeil(A, x7, hip, ceilOut, 1.25f, 0.f, 0.85f);
+        holdFrame(x7);
+        handAt(A, x7.arm[1], 1, c.at(c.sSeat + 0.15f, c.dSeat - 0.1f, c.zSeat + 0.06f), F * 0.3f + I * 0.6f - U * 0.4f, -U, normalize(-U + F * 0.3f), 0.3f);
+    }
+    K.push_back({t0 + 0.5f * (kOutPush + kOutTurn) + 0.06f, x7});
+    // the hips out through the gap, still low and leant over; the right foot comes up over the sill
+    Rig x7a = x7;
+    {
+        LegCtl& l = x7a.leg[1];
+        l.ik = true;
+        l.footQ = false;
+        l.ankle = c.at(c.sR + 0.4f * gap, c.dSkin - 0.1f, c.g.sillZ + 0.12f + fh);
+        l.pitch = -0.3f;
+        l.roll = 0.f;
+        l.yaw = 0.5f * cY;
+        l.knee = normalize(U + I * 0.3f);
+        x7a.spineRoll = 0.3f;
+        vec3 hip = c.at(Lerp(c.sR + 0.12f, sX, 0.6f), c.dSkin + 0.06f, c.zSeat + 0.12f);
+        placeHips(A, x7a, hip);
+        duckUnderCeil(A, x7a, hip, ceilOut, 1.25f, 0.f, 0.85f);
+        holdFrame(x7a);
+        handAt(A, x7a.arm[1], 1, c.at(c.sR + 0.2f, c.dSkin - 0.12f, c.zSeat + 0.25f), -U * 0.6f + F * 0.4f + I * 0.3f, I * 0.5f - F * 0.5f,
+               normalize(-U + F * 0.3f), 0.4f);
+    }
+    K.push_back({t0 + kOutTurn, x7a});
+    // out beside the side: the hips behind the gap, below the door's armrest, coming upright; the right foot over the
+    // sill
+    Rig x7b = x7a;
+    {
+        LegCtl& l = x7b.leg[1];
+        l.ankle = c.at(c.sR + 0.4f * gap, c.dSkin + 0.06f, c.g.sillZ + 0.12f + fh);
+        l.yaw = 0.5f * cY;
+        l.knee = normalize(U * 0.6f + I * 0.4f);
+        x7b.spineRoll = 0.f;
+        x7b.headRoll = 0.f;
+        vec3 hip = c.at(c.sR + 0.12f, c.dSkin + 0.3f, c.zSeat + 0.15f);   // (out: the head clear of the roof's edge)
+        placeHips(A, x7b, hip);
+        duckUnderCeil(A, x7b, hip, ceilOut, 1.25f, 0.f, 0.85f);
+        holdFrame(x7b);
+        handAt(A, x7b.arm[1], 1, c.at(c.sR + 0.15f, c.dSkin + 0.12f, hipZ - 0.3f), -U * 0.7f + F * 0.5f, I * 0.5f - F * 0.5f, normalize(N - F * 0.2f), 0.4f);
+    }
+    K.push_back({t0 + kOutTurn + 0.14f, x7b});
+    // standing beside the opening, behind the door, nearly facing ahead, the right foot down outside, a hand on the
+    // door
+    Rig x8 = x7b;
+    {
+        x8.pelvisYaw = 0.9f * cY;
+        x8.pelvisPitch = 0.f;
+        x8.pelvisRoll = 0.f;
+        x8.neckPitch = 0.f;
+        x8.spinePitch = 0.08f;
+        x8.spineRoll = 0.f;
+        x8.headPitch = 0.f;
+        x8.headRoll = 0.f;
+        x8.headYaw = 0.2f;
+        setFootFlat(A, x8.leg[1], footR, 0.8f * cY);
+        setFootFlat(A, x8.leg[0], c.at(c.sR - 0.08f, c.dSkin + 0.42f, 0.f), 0.9f * cY);
+        x8.leg[0].knee = normalize(F * 0.6f + N * 0.4f);
+        x8.leg[1].knee = normalize(F * 0.8f + I * 0.2f);
+        placeHips(A, x8, hipStand);
+        holdFrame(x8);
+        armFK(x8.arm[1], 1, 0.1f, 0.12f, 0.3f, 0.2f, 0.4f);
+    }
+    K.push_back({t0 + kOutStand, x8});
+    return x8;
+}
+
+static void carExitKeys(const AuthorCtx& A, const CarGeo& c, std::vector<Key>& K) {
+    const Rig st = standIK(A);
+    const float hipZ = hipMid(A).z;
+    const vec3 U = c.U, F = c.F, N = c.N, I = c.I;
+    const float headClear = 0.05f;   // (hair stands up to ~5 cm over the skull)
+    const Rig seated = carSeated(A, c);
+    K.clear();
+    K.push_back({0.f, seated});
+    float t0 = 0.f;
+    if (c.g.belt) {
+        // unbuckle: the left hand presses the buckle by the right hip and guides the belt back up past the shoulder
+        Rig b1 = seated;
+        handAt(A, b1.arm[0], 0, c.g.seat + I * 0.19f - F * 0.03f - U * 0.04f, -U + F * 0.5f + I * 0.2f, -I * 0.3f - U * 0.5f + F * 0.2f,
+               normalize(N - U * 0.5f), 0.5f);
+        b1.spineYaw = -0.3f;
+        b1.headYaw = -0.35f;
+        b1.headPitch = 0.32f;
+        K.push_back({0.18f, b1});
+        Rig b2 = seated;
+        handAt(A, b2.arm[0], 0, c.g.seat + N * 0.12f + F * 0.12f + U * 0.44f, U + F * 0.3f, I * 0.5f - F * 0.5f, normalize(N - U), 0.6f);
+        b2.headYaw = 0.25f;
+        b2.headPitch = 0.1f;
+        K.push_back({0.38f, b2});
+        t0 = kOutBelt;
+    }
+    const vec3 Gin = c.g.handleIn + U * 0.004f;
+    const vec3 finIn = innerFingers(c);
+    const vec3 poleIn = innerPole(c);
+    auto ceilOut = [&](vec3 p) { return c.ceilAt(p) - headClear - 0.02f; };
+    // the inner release, the latch pops
+    Rig x3 = seated;
+    if (c.narrow) {
+        // (from a seat behind a narrow door's opening: leaning forward and out to it, as carEntryKeys's reachDoor)
+        vec3 sh = c.g.seat + N * 0.19f + U * 0.48f;
+        float l = Min(Max(0.f, length(Gin - sh) - 0.85f * limbReach(A)) / 0.3f, 1.f);
+        x3.spineRoll = -0.35f * l;
+        x3.spineYaw = 0.6f * l;
+        x3.spinePitch += 0.4f * l;
+        x3.arm[0].clavFwd = 0.35f * l;
+        x3.arm[0].clavUp = 0.05f * l;
+        placeHips(A, x3, c.g.seat + F * (0.22f * l));   // (forward only: the wheel well's trim beside the seat)
+    }
+    gripArm(A, x3.arm[0], 0, Gin, F, finIn, poleIn);
+    x3.arm[0].fingers = 0.85f;
+    x3.headYaw = 0.3f;
+    x3.headPitch = 0.08f;
+    K.push_back({t0 + kOutHandle, x3});
+    Rig x4 = x3;
+    {
+        float o = carOpenAt(c, false, false, kOutPop);
+        gripArm(A, x4.arm[0], 0, c.door(Gin, o), c.doorV(F, o), c.doorV(finIn, o), poleIn);
+        x4.arm[0].fingers = 0.9f;
+    }
+    K.push_back({t0 + kOutPop, x4});
+    // (the top of the door's frame, held from inside: carHoldAt)
+    const vec3 Gt = c.topAt(dot(c.g.grip, F) + 0.28f) + I * 0.025f + U * 0.005f;
+    const vec3 finT = normalize(U * 0.85f + N * 0.3f);
+    const vec3 poleT = normalize(-U * 0.7f - F * 0.3f + I * 0.2f);
+    // where it stands up (a narrow door's: behind the opening, out of the open door's way - carOutNarrow), the right
+    // foot there
+    const vec3 hipDoorway = c.narrow ? c.at(c.sR - 0.05f, c.dSkin + 0.3f, hipZ - 0.04f) : c.at(c.sP - 0.18f, c.dSkin + 0.45f, hipZ - 0.04f);
+    const vec3 footR8 = c.narrow ? c.at(c.sR - 0.08f, c.dSkin + 0.18f, 0.f) : c.at(c.sP - 0.28f, c.dSkin + 0.3f, 0.f);
+    const Rig x8 = c.narrow ? carOutNarrow(A, c, t0, x4, hipDoorway, footR8, K) : carOutWide(A, c, t0, x4, K);   // (a rear door: narrow)
     // stepping back out of the doorway, turning to face along the car, pulling the door to by the top of its frame
     // (carHoldAt), letting go (it swings shut) once clear of its sweep
     const vec3 stHip = hipMid(A);
@@ -2880,7 +3280,7 @@ static void carExitKeys(const AuthorCtx& A, const CarGeo& c, std::vector<Key>& K
     {
         x9.pelvisYaw = 0.45f * (c.carYaw + 1.0f);
         placeHips(A, x9, lerp(hipDoorway, stHip, 0.5f));
-        setFootFlat(A, x9.leg[1], lerp(c.at(c.sP - 0.28f, c.dSkin + 0.3f, 0.f), vec3(A.ankle[1].x, A.ankle[1].y, 0.f), 0.6f), 0.5f * st.leg[1].yaw);
+        setFootFlat(A, x9.leg[1], lerp(footR8, vec3(A.ankle[1].x, A.ankle[1].y, 0.f), 0.6f), 0.5f * st.leg[1].yaw);
         x9.leg[1].knee = st.leg[1].knee;
         gripArm(A, x9.arm[0], 0, c.door(Gt, c.openOut), c.doorV(F, c.openOut), c.doorV(finT, c.openOut), poleT);
         x9.arm[0].fingers = 0.8f;
@@ -2919,7 +3319,7 @@ static void carExitKeys(const AuthorCtx& A, const CarGeo& c, std::vector<Key>& K
     x10.spineYaw = 0.08f;
     K.push_back({t0 + kOutShut, x10});
     K.push_back({t0 + kOutEnd, st});
-    keepHeadroom(A, K, t0 + kOutPop, t0 + kOutShutGrab, ceilOut);
+    keepHeadroom(A, K, t0 + kOutPop, t0 + kOutShutGrab, ceilOut, c.narrow ? 0.8f : 0.f);   // (through a narrow door: leaning in)
 }
 
 // The hand on the door at clip time t (left hand, authoring frame): its grip (fist centre), handle axis, palm, the
@@ -2944,18 +3344,23 @@ static CarHold carHoldAt(const CarGeo& c, bool enter, float t) {
     if (enter) {
         const float tn = inNominal(c, t);
         float wo = sstep(kInReach - 0.08f, kInReach, tn) * (1.f - sstep(kInPull - 0.02f, kInPull + 0.06f, tn));
-        float wt = sstep(kInRelease - 0.06f, kInRelease, tn) * (1.f - sstep(kInLift - 0.1f, kInLift - 0.02f, tn));
+        // (through a narrow door the left hand holds the frame till the hips are down: carInNarrow)
+        float wt = sstep(kInRelease - 0.06f, kInRelease, tn) *
+                   (1.f - (c.narrow ? sstep(kInSit + 0.02f, kInLegLift - 0.04f, tn) : sstep(kInLift - 0.1f, kInLift - 0.02f, tn)));
         float wi = sstep(kInGrab - 0.1f, kInGrab, tn) * (1.f - sstep(kInShut + 0.04f, kInShut + 0.16f, tn));
         if (wo > 0.f) set(c.g.handle - U * 0.006f, outerFingers(c), F, normalize(-U + F * 0.3f + N * 0.4f), wo, 0.9f);
         else if (wt > 0.f)   // the top bar of the door's frame, from inside (holding it open while stepping in)
             set(c.topAt(dot(c.g.grip, F) + 0.28f) + c.I * 0.025f + U * 0.005f, normalize(U * 0.85f + N * 0.3f), F, normalize(-U * 0.7f - F * 0.3f + c.I * 0.2f), wt, 0.8f);
-        else if (wi > 0.f) set(c.g.handleIn + U * 0.004f, innerFingers(c), F, normalize(-U * 0.8f + N * 0.4f - F * 0.2f), wi, 0.85f);
+        else if (wi > 0.f) set(c.g.handleIn + U * 0.004f, innerFingers(c), F, innerPole(c), wi, 0.85f);
         return h;
     }
     float t0 = c.g.belt ? kOutBelt : 0.f;
-    float wi = sstep(t0 + kOutHandle - 0.1f, t0 + kOutHandle, t) * (1.f - sstep(t0 + kOutLift, t0 + kOutPush - 0.04f, t));
-    float wt = sstep(t0 + kOutTurn + 0.16f, t0 + kOutTurn + 0.26f, t) * (1.f - sstep(t0 + kOutRelease - 0.02f, t0 + kOutRelease + 0.06f, t));
-    if (wi > 0.f) set(c.g.handleIn + U * 0.004f, innerFingers(c), F, normalize(-U * 0.8f + N * 0.4f - F * 0.2f), wi, 0.85f);
+    // (out through a narrow door the hand pushes the door wide by its inner handle, then is on the frame: carOutNarrow)
+    float wi = sstep(t0 + kOutHandle - 0.1f, t0 + kOutHandle, t) *
+               (1.f - (c.narrow ? sstep(t0 + kOutPush - 0.02f, t0 + kOutPush + 0.06f, t) : sstep(t0 + kOutLift, t0 + kOutPush - 0.04f, t)));
+    float wt = (c.narrow ? sstep(t0 + kOutPush + 0.04f, t0 + kOutPush + 0.12f, t) : sstep(t0 + kOutTurn + 0.16f, t0 + kOutTurn + 0.26f, t)) *
+               (1.f - sstep(t0 + kOutRelease - 0.02f, t0 + kOutRelease + 0.06f, t));
+    if (wi > 0.f) set(c.g.handleIn + U * 0.004f, innerFingers(c), F, innerPole(c), wi, 0.85f);
     else if (wt > 0.f)   // the top bar of the door's frame, from inside: holding it open, then pulling it to
         set(c.topAt(dot(c.g.grip, F) + 0.28f) + c.I * 0.025f + U * 0.005f, normalize(U * 0.85f + N * 0.3f), F,
             normalize(-U * 0.7f - F * 0.3f + c.I * 0.2f), wt, 0.8f);
