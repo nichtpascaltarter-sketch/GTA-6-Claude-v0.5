@@ -145,6 +145,11 @@ struct Ped {
     int vehicle = -1, seat = -1;
     int targetVehicle = -1, targetSeat = -1;
     bool jacking = false;
+    // getting in / out through a car's door (the anim module's door clips, peds.cpp startCarDoorClip): the vehicle and
+    // seat while one plays (-1 none), which way, unbuckling first (getting out), and its length (s)
+    int doorVehicle = -1, doorSeat = -1;
+    bool doorEnter = false, doorBelt = false;
+    float doorLen = 0.f;
     // weapons
     int ammo[WPN_COUNT] = {};     // total ammo (incl. clip)
     int clip[WPN_COUNT] = {};

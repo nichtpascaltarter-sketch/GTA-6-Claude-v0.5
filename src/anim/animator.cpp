@@ -42,6 +42,7 @@ static const Clip kStanceClip[] = {
     CLIP_IDLE,        // 22 lie face down (IC_LIE_FRONT)
     CLIP_IDLE,        // 23 queue: standing with frequent idle variations
     CLIP_IDLE,        // 24 down hurt (IC_DOWN_HURT)
+    CLIP_IDLE,        // 25 cuffed: hands behind the back (IC_CUFFED), walking or standing
 };
 static const int kStanceCount = (int)(sizeof(kStanceClip) / sizeof(kStanceClip[0]));
 
@@ -54,6 +55,7 @@ static int stanceClipId(int s, int meleeKind) {
     if (s == 21) return IC_SIT_GROUND;
     if (s == 22) return IC_LIE_FRONT;
     if (s == 24) return IC_DOWN_HURT;
+    if (s == 25) return IC_CUFFED;
     return kStanceClip[s];
 }
 // Dance style per ped.
@@ -77,7 +79,7 @@ static const u8 kFidgetArms[FG_COUNT - FG_POSTURES] = {1, 2, 3, 3, 2, 3, 0, 0, 4
 static const u8 kFidgetLegs[FG_COUNT - FG_POSTURES] = {0, 0, 0, 0, 0, 0, 2, 3, 0};
 
 // Scenario stances whose upper body stays on while walking.
-static bool stanceUpperWhileMoving(int s) { return s == 5 || s == 7 || s == 8 || s == 10 || s == 15 || s == 17 || s == 19 || s == 20; }
+static bool stanceUpperWhileMoving(int s) { return s == 5 || s == 7 || s == 8 || s == 10 || s == 15 || s == 17 || s == 19 || s == 20 || s == 25; }
 // Scenario stances that keep the character in place (locomotion is ignored).
 static bool stanceLocksLegs(int s) { return s == 6 || s == 11 || s == 12 || s == 21 || s == 22 || s == 24; }
 
@@ -960,6 +962,76 @@ static void rotateModel(const Skeleton& sk, Pose& p, int b, quat q) {
     p.rot[b] = normalize(conj(qp) * q * qp * p.rot[b]);
 }
 
+// Seated under a low roof: as much of a slump as it takes to bring the top of the head under ceilZ - the pelvis rolls
+// back (pivoting at the hip joints, which slide a little forward on the cushion along `fwd`), the lower back reclines
+// and the upper back rounds over, the neck and head lifting back nearly level so the eyes stay on the road and the
+// head stays over the seat (neither back into the headrest nor forward under the visor). About 6 cm of drop per unit
+// of k, the head bowed ~6 degrees; up to k 2.2. The top of the head is a sphere's top (crownH over the head joint
+// upright), so a bowed head is not taken for a lower one. The feet stay where they were (the legs re-solved). weight
+// scales it in (0..1). Returns how far the head is still up into it.
+static float fitHeadroom(const Skeleton& sk, Pose& p, float crownH, float ceilZ, vec3 fwd, float weight) {
+    const float rS = Min(0.11f, crownH * 0.55f);
+    auto crownZ = [&](const Pose& x) {
+        quat q;
+        vec3 h;
+        boneModel(sk, x, B_HEAD, q, h);
+        return (h + rotate(q, vec3(0.f, 0.f, crownH - rS))).z + rS;
+    };
+    float over0 = crownZ(p) - ceilZ;
+    if (over0 <= 0.f || weight <= 0.f) return Max(over0, 0.f);
+    const vec3 F = nrmOr(vec3(fwd.x, fwd.y, 0.f), vec3(0, 1, 0)), R = normalize(cross(F, vec3(0, 0, 1)));
+    const float s = Max(sk.boneLength[B_THIGH_L] / 0.43f, 0.5f);   // (body size)
+    const float kMax = 2.2f;
+    const Pose src = p;
+    auto apply = [&](float k, Pose& x) {
+        x = src;
+        x.rootOffset = x.rootOffset + F * (0.058f * s * k);
+        quat q;
+        vec3 a0, b0, a1, b1;
+        boneModel(sk, x, B_THIGH_L, q, a0);
+        boneModel(sk, x, B_THIGH_R, q, b0);
+        rotateModel(sk, x, B_PELVIS, quatAxisAngle(R, 0.277f * k));   // (+ about the right axis: the top goes back)
+        boneModel(sk, x, B_THIGH_L, q, a1);
+        boneModel(sk, x, B_THIGH_R, q, b1);
+        x.rootOffset = x.rootOffset + (a0 + b0 - a1 - b1) * 0.5f;     // (rolled about the hip joints)
+        rotateModel(sk, x, B_SPINE1, quatAxisAngle(R, 0.057f * k));
+        rotateModel(sk, x, B_SPINE2, quatAxisAngle(R, -0.162f * k));  // (the upper back rounds over)
+        rotateModel(sk, x, B_CHEST, quatAxisAngle(R, -0.227f * k));
+        rotateModel(sk, x, B_NECK, quatAxisAngle(R, -0.09f * k));
+        rotateModel(sk, x, B_HEAD, quatAxisAngle(R, 0.038f * k));
+    };
+    Pose x;
+    float kA = 0.f, oA = over0, kB = Clamp(over0 / 0.06f, 0.1f, kMax);
+    apply(kB, x);
+    float oB = crownZ(x) - ceilZ;
+    for (int it = 0; it < 5; it++) {
+        if ((oB <= 0.003f && oB >= -0.012f) || fabsf(oA - oB) < 1e-4f || (kB >= kMax && oB > 0.f)) break;
+        float kC = Clamp(kB - oB * (kB - kA) / (oB - oA), 0.f, kMax);
+        kA = kB;
+        oA = oB;
+        kB = kC;
+        apply(kB, x);
+        oB = crownZ(x) - ceilZ;
+    }
+    // the feet where they were: the legs re-solved, knees forward over them
+    vec3 foot[2], knee[2];
+    quat footQ[2], kq;
+    static const Bone kUp[2] = {B_THIGH_L, B_THIGH_R}, kLo[2] = {B_CALF_L, B_CALF_R}, kEnd[2] = {B_FOOT_L, B_FOOT_R};
+    for (int sd = 0; sd < 2; sd++) {
+        boneModel(sk, src, kEnd[sd], footQ[sd], foot[sd]);
+        boneModel(sk, src, kLo[sd], kq, knee[sd]);
+    }
+    apply(kB * Saturate(weight), p);
+    for (int sd = 0; sd < 2; sd++) {
+        solveTwoBoneIK(sk, p, kUp[sd], kLo[sd], kEnd[sd], foot[sd], knee[sd] + F * 0.4f + vec3(0.f, 0.f, 0.2f), 1.f);
+        quat qc;
+        vec3 pc;
+        boneModel(sk, p, kLo[sd], qc, pc);
+        p.rot[kEnd[sd]] = normalize(conj(qc) * footQ[sd]);
+    }
+    return Max(crownZ(p) - ceilZ, 0.f);
+}
+
 // Impacts and injuries on the pose (after the body layers and actions, before the feet are planted): the hunch of a
 // wounded body, the limp's dip and stiff knee, the flinch of the trunk / head / arms / knees, the stagger's lean and
 // balancing arms, a hand on a wound, and going over (bracing for the fall, the body tipping into it).
@@ -1199,7 +1271,7 @@ void Animator::init(const Skeleton* s, u32 variationSeed) {
     gestMode = 0;
     gestT = gestDur = gestR = gestL = palmR = palmL = beatS = phoneW = 0.f;
     tiltS = tiltTarget = tiltNext = autoNod = 0.f;
-    browseW = browseL = grabW = 0.f;
+    browseW = browseL = grabW = holdW = 0.f;
     nodNext = 2.f + 2.f * hashToFloat(hash32(variationSeed * 57u + 3u));
     nodPhase = -1.f;
     // per-person motion from the seed alone (setCharacter refines it from the character)
@@ -1250,6 +1322,7 @@ void Animator::init(const Skeleton* s, u32 variationSeed) {
     if (s) {
         legScale = skeletonLegScale(*s);
         styleF = skeletonStyle(*s);
+
         sampleClip(*s, CLIP_IDLE, time, pose, seed);
         // foot geometry: heel 0.21, ball 0.52 of the foot length from the ankle (skeleton.cpp), ankle height = bind z
         footBall = Max(0.05f, s->bindLocalPos[B_TOE_L].y);
@@ -1281,6 +1354,17 @@ void Animator::init(const Skeleton* s, u32 variationSeed) {
 // Walking style and body language from the character: age, build, sex and role, plus a per-person roll.
 void Animator::setCharacter(const CharacterDesc& d) {
     using namespace detail;
+    if (skel) {
+        // the top of the head (with the hair) over the head joint, standing in the bind pose
+        Pose bind;
+        quat q;
+        vec3 h;
+        boneModel(*skel, bind, B_HEAD, q, h);
+        // (the skull rounds up over the height; hair, a cap or a beanie up to 3.5 cm more, a police hat, a hard hat or a
+        //  fedora 5.5)
+        const bool tallHat = d.hat == HAT_POLICE || d.hat == HAT_HARDHAT || d.hat == HAT_FEDORA;
+        crownH = Max(d.height - h.z, 0.06f) + 0.025f + (tallHat ? 0.055f : (d.hairStyle != 0 || d.hat >= 0 ? 0.035f : 0.f));
+    }
     u32 h = hash32(d.seed * 0x9E3779B1u + 0x51A7u);
     auto rnd = [&](u32 k) { return hashToFloat(hash32(h + k * 0x85EBCA6Bu)); };
     const float age = Clamp(d.age, 0.f, 1.f), wt = Clamp(d.weight, 0.f, 1.f);
@@ -2020,7 +2104,7 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             int cClip[2];
             float cTake[2];
             carryArms(*this, in, cClip, cTake);
-            if (stance == 12 || stance == 21 || stance == 22 || stance == 24) cClip[0] = cClip[1] = -1;   // lying down: nothing held up
+            if (stance == 12 || stance == 21 || stance == 22 || stance == 24 || stance == 25) cClip[0] = cClip[1] = -1;   // lying down / cuffed: nothing held up
             static const u8 kArmB[2][4] = {{B_CLAVICLE_L, B_UPPERARM_L, B_FOREARM_L, B_HAND_L}, {B_CLAVICLE_R, B_UPPERARM_R, B_FOREARM_R, B_HAND_R}};
             static const u8 kHandB[2][2] = {{B_FINGERS_L, B_THUMB_L}, {B_FINGERS_R, B_THUMB_R}};
             for (int sd = 0; sd < 2; sd++) {
@@ -2131,8 +2215,52 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         float cTake[2];
         carryArms(*this, in, cClip, cTake);
         if (stance == 12 || stance == 21 || stance == 22 || stance == 24) cClip[0] = cClip[1] = -1;
+        if (stance == 25) cClip[0] = cClip[1] = IC_CUFFED;   // (cuffed: no hand free to hold a wound)
         const bool free = action < 0 || actionFinished || actionUpper;
         impactPose(*this, in, outp, dt, cheap, free, cClip);
+    }
+
+    // ---------------------------------------------------------------- seated under a low roof (AnimInput::headroom;
+    //                                                                  while a door clip has the ped on the seat, the
+    //                                                                  door's CarDoorInfo::headZ): fitted under it
+    if (!cheap) {
+        float ceilZ = 0.f, w = 1.f;
+        vec3 fwd(0.f, 1.f, 0.f);
+        if (vehicleStance && stance != 3 && in.headroom > 0.f && (action < 0 || actionFinished || actionUpper)) {
+            ceilZ = in.headroom;
+        } else if (action >= 0 && carIn.valid && actionIsCar(action) && carIn.headZ < 5.f) {
+            // the hips on (over) the seat and turned to face along it: the closer, the more (sitting down sideways,
+            // the clip keeps the head under the roof itself)
+            quat qh;
+            vec3 hp;
+            boneModel(sk, outp, B_PELVIS, qh, hp);
+            vec3 dh = hp - carIn.seat, pf = rotate(qh, vec3(0.f, 1.f, 0.f));
+            float facing = dot(nrmOr(vec3(pf.x, pf.y, 0.f), carIn.fwd), nrmOr(vec3(carIn.fwd.x, carIn.fwd.y, 0.f), vec3(0, 1, 0)));
+            w = (1.f - sstep(0.22f, 0.4f, length(vec3(dh.x, dh.y, 0.f)))) * sstep(0.55f, 0.9f, facing);
+            ceilZ = w > 0.f ? carIn.headZ : 0.f;
+            fwd = carIn.fwd;
+        }
+        if (ceilZ > 0.f) fitHeadroom(sk, outp, crownH, ceilZ - 0.015f, fwd, w);
+        // the feet on the floor (a seat lower or higher over it than the seated clips' 0.3 m)
+        float floorZ = vehicleStance && stance != 3 && in.seatFloor > 0.f && (action < 0 || actionFinished || actionUpper)
+                           ? in.seatFloor
+                           : (ceilZ > 0.f && action >= 0 && carIn.valid ? carIn.sillZ : 0.f);
+        if (floorZ > 0.f) {
+            static const Bone kUp[2] = {B_THIGH_L, B_THIGH_R}, kLo[2] = {B_CALF_L, B_CALF_R}, kEnd[2] = {B_FOOT_L, B_FOOT_R};
+            vec3 F = nrmOr(vec3(fwd.x, fwd.y, 0.f), vec3(0, 1, 0));
+            for (int sd = 0; sd < 2; sd++) {
+                quat fq, kq, cq;
+                vec3 fp, kp, cp;
+                boneModel(sk, outp, kEnd[sd], fq, fp);
+                float want = floorZ + footAnkleH;
+                if (fp.z >= want - 0.004f) continue;
+                boneModel(sk, outp, kLo[sd], kq, kp);
+                vec3 tgt(fp.x, fp.y, fp.z + (want - fp.z) * w);
+                solveTwoBoneIK(sk, outp, kUp[sd], kLo[sd], kEnd[sd], tgt, kp + F * 0.4f + vec3(0.f, 0.f, 0.3f), 1.f);
+                boneModel(sk, outp, kLo[sd], cq, cp);
+                outp.rot[kEnd[sd]] = normalize(conj(cq) * fq);
+            }
+        }
     }
 
     // ---------------------------------------------------------------- the hand on a car door, exactly on its handle
@@ -2142,6 +2270,38 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         boneModel(sk, outp, carHand.right ? B_UPPERARM_R : B_UPPERARM_L, qu, pu);
         holdGrip(sk, outp, carHand.right, carHand.pos, carHand.axis, carHand.palm, pu + carHand.poleDir * 0.5f, carHand.fingers,
                  carHand.fingers * 0.8f, carHand.w);
+    }
+
+    // ---------------------------------------------------------------- a hand holding on to a point (no clip
+    //                                                                  playing): AnimInput::grabTarget
+    {
+        const bool down = action >= 0 && (action == CLIP_DEATH_FRONT || action == CLIP_DEATH_BACK || action == CLIP_KNOCKOUT ||
+                                          action == CLIP_TAKEDOWN_VICTIM);
+        const bool hold = (action < 0 || actionFinished) && !down && in.grabWeight > 0.f && !vehicleStance && swimBlend < 0.5f;
+        float want = 0.f;
+        vec3 sh[2];
+        for (int sd = 0; sd < 2; sd++) {
+            quat q;
+            boneModel(sk, outp, sd ? B_UPPERARM_R : B_UPPERARM_L, q, sh[sd]);
+        }
+        if (hold) {
+            // the hand on its side (the nearer shoulder's; kept while it holds), letting go beyond the arm's reach (the
+            // grip a palm past the wrist)
+            if (holdW < 0.01f) holdSide = length2(in.grabTarget - sh[1]) <= length2(in.grabTarget - sh[0]) ? 1 : 0;
+            const int up = holdSide ? B_UPPERARM_R : B_UPPERARM_L, lo = holdSide ? B_FOREARM_R : B_FOREARM_L;
+            float reach = sk.boneLength[up] + sk.boneLength[lo] + 0.07f * (sk.boneLength[up] / 0.3f);
+            want = Clamp(in.grabWeight, 0.f, 1.f) * (1.f - sstep(reach - 0.03f, reach + 0.08f, length(in.grabTarget - sh[holdSide])));
+        }
+        holdW += (want - holdW) * (1.f - expf(-dt * 10.f));
+        if (holdW > 0.01f && !cheap) {
+            // closing round something upright (an arm): the handle axis up, the palm towards it, the elbow down and out
+            const bool r = holdSide == 1;
+            vec3 ps = sh[holdSide];
+            vec3 palm = nrmOr(vec3(in.grabTarget.x - ps.x, in.grabTarget.y - ps.y, 0.f), vec3(0, 1, 0));
+            // (the fist sits on its near side: an arm is thicker than the fingers close round)
+            holdGrip(sk, outp, r, in.grabTarget - palm * 0.035f, vec3(0, 0, r ? 1.f : -1.f), palm, ps + vec3(r ? 0.35f : -0.35f, -0.1f, -1.f) * 0.5f,
+                     0.7f, 0.6f, holdW);
+        }
     }
 
     // ---------------------------------------------------------------- takedown: choke arm onto the victim's real neck
@@ -2343,7 +2503,7 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
     // ---------------------------------------------------------------- feet: planted on the ground, stepping, terrain
     {
         bool plantStance = stance == 0 || stance == 5 || stance == 7 || stance == 8 || stance == 10 || stance == 14 || stance == 15 ||
-                           stance == 17 || stance == 23;
+                           stance == 17 || stance == 23 || stance == 25;
         bool planting = !cheap && footIK && plantStance && (action < 0 || actionFinished || actionUpper) && swimBlend < 0.01f;
         if (!cheap) footPlanting(*this, in, dt, outp, planting, footIK, locoDuty);
         else if (plantOn > 0.f || planted[0] || planted[1]) {
@@ -2580,6 +2740,9 @@ void Animator::faceOverlay(const AnimInput& in, float dt) {
             } else if (stance == 7 || stance == 8) {
                 ex = 1;
                 ew = 0.3f;
+            } else if (stance == 25) {
+                ex = 2;   // cuffed: glum
+                ew = 0.55f;
             } else {
                 // resting mood: most peds neutral-pleasant, some a little glum
                 float mood = hashToFloat(hash32(seed * 2246822519u + 11u));
@@ -2656,7 +2819,7 @@ void Animator::conversation(const AnimInput& in, float dt, Pose& p) {
     const Skeleton& sk = *skel;
     bool busy = (action >= 0 && !actionFinished) || aimBlend > 0.05f || swimBlend > 0.5f || airBlend > 0.5f || stanceIsVehicle(stance) ||
                 stanceIsGuard(stance) || stance == 7 || stance == 8 || stance == 12 || stance == 21 || stance == 22 || stance == 24 ||
-                in.weaponKind == 2;
+                stance == 25 || in.weaponKind == 2;
     const float k5 = 1.f - expf(-dt * 5.f);
     // ---- gesture phrases while speaking
     float amount = in.speaking && !busy ? Clamp(in.gestureAmount, 0.f, 1.5f) : 0.f;

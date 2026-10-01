@@ -19,6 +19,148 @@ float angleDiff(float a, float b) {
 
 quat yawQuat(float yaw) { return quatAxisAngle(vec3(0, 0, 1), yaw); }
 
+// ------------------------------------------------------------------------------------------------------------------
+// Getting in / out through a car's door: the anim module's door clips (AnimInput::car) swing the door the seat has
+// (Vehicles::DoorSpec) from where carEntrySpot / carExitSpot put the ped, held still there while the clip plays.
+
+// The seat's door in the vehicle's frame (the model's: +y forward, z up), its index among the model's doors: false
+// when the seat has none of its own (bikes, boats, vans' sliding doors, the far LODs' bodies) - and for the rear
+// seats, whose getting in and out through a door is not choreographed yet (they keep the plain clips)
+static bool seatDoorVF(const GameWorld& g, int vi, int seat, Anim::CarDoorInfo& d, int* doorIndex = nullptr) {
+    if (vi < 0 || vi >= (int)g.vehicles.size() || !g.vehicles[vi].used || g.isBike(vi) || g.isBoat(vi)) return false;
+    const Vehicles::VehicleModel& spec = g.vassets[g.vehicles[vi].model].spec;
+    if (seat < 0 || seat >= 2 || seat >= (int)spec.seats.size()) return false;
+    const Vehicles::SeatSpec& ss = spec.seats[seat];
+    if (ss.door < 0 || ss.door >= (int)spec.doors.size() || ss.door >= 4) return false;
+    const Vehicles::DoorSpec& D = spec.doors[ss.door];
+    d = Anim::CarDoorInfo();
+    d.valid = true;
+    d.seat = ss.pos;
+    d.fwd = vec3(0, 1, 0);
+    d.out = D.outward;
+    d.hinge = D.hinge;
+    d.axis = D.axis;
+    d.maxOpen = D.maxAngle;
+    d.handle = D.handle;
+    d.handleIn = D.handleIn;
+    d.grip = D.grip;
+    float sx = D.left ? -D.sillX : D.sillX;
+    d.front = vec3(sx, D.yFront, D.sillZ);
+    d.rear = vec3(sx, D.yRear, D.sillZ);
+    for (int k = 0; k < 6; k++) d.top[k] = D.top[k];
+    d.sillZ = D.sillZ;
+    d.roofZ = D.roofZ;
+    d.headZ = ss.headZ;   // (the seat's ceiling: the seated pose's, so the clip ends in it)
+    d.driver = ss.driver;
+    d.belt = true;
+    if (ss.driver && spec.steerWheelRadius > 0.f) {
+        d.wheelC = spec.steerWheelPos;
+        d.wheelN = normalize(spec.steerWheelAxis);
+        d.wheelR = spec.steerWheelRadius;
+    }
+    if (doorIndex) *doorIndex = ss.door;
+    return true;
+}
+// ... carried into a ped's model space (its feet at `root`, facing `yaw`) for AnimInput::car
+static Anim::CarDoorInfo doorForPed(const GameWorld& g, int vi, const Anim::CarDoorInfo& d, const dvec3& root, float yaw) {
+    const Vehicle& v = g.vehicles[vi];
+    const quat qv = v.sim.body.rot, qi = conj(yawQuat(yaw));
+    const vec3 o = rel(v.sim.body.pos, root);
+    auto P = [&](vec3 lp) { return rotate(qi, o + rotate(qv, lp)); };
+    auto V = [&](vec3 dv) { return rotate(qi, rotate(qv, dv)); };
+    Anim::CarDoorInfo m = d;
+    m.seat = P(d.seat);
+    m.fwd = V(d.fwd);
+    m.out = V(d.out);
+    m.hinge = P(d.hinge);
+    m.axis = V(d.axis);
+    m.handle = P(d.handle);
+    m.handleIn = P(d.handleIn);
+    m.grip = P(d.grip);
+    m.front = P(d.front);
+    m.rear = P(d.rear);
+    for (int k = 0; k < 6; k++) m.top[k] = P(d.top[k]);
+    m.sillZ = d.sillZ + o.z;
+    m.roofZ = d.roofZ + o.z;
+    m.headZ = d.headZ + o.z;
+    m.wheelC = P(d.wheelC);
+    m.wheelN = V(d.wheelN);
+    return m;
+}
+// Where getting in through the seat's door starts / getting out ends (world): false without a door
+static bool carDoorSpot(const GameWorld& g, int vi, int seat, bool exit, dvec3& pos, float& yaw) {
+    Anim::CarDoorInfo d;
+    if (!seatDoorVF(g, vi, seat, d)) return false;
+    vec3 lp;
+    float ly;
+    if (exit) Anim::carExitSpot(d, lp, ly);
+    else Anim::carEntrySpot(d, lp, ly);
+    const Vehicle& v = g.vehicles[vi];
+    pos = v.sim.body.pos + rotate(v.sim.body.rot, lp);
+    vec3 f = v.sim.forward();
+    yaw = atan2f(-f.x, f.y) + ly;
+    return true;
+}
+// Starts getting in (enter) / out through the seat's door: the ped goes to the clip's spot facing its way (on the
+// ground there), the clip is queued and the door is the ped's to swing (animatePed). Returns the clip's length (s), or
+// -1 when the seat has no door (the caller's plain clip).
+static float startCarDoorClip(GameWorld& g, int pid, int vi, int seat, bool enter) {
+    Anim::CarDoorInfo d;
+    int k = -1;
+    dvec3 pos;
+    float yaw;
+    if (!seatDoorVF(g, vi, seat, d, &k) || !carDoorSpot(g, vi, seat, !enter, pos, yaw)) return -1.f;
+    Ped& p = g.peds[pid];
+    const Vehicle& v = g.vehicles[vi];
+    float gz = g.groundHeight((float)pos.x, (float)pos.y, (float)pos.z + 1.f);
+    p.pos = dvec3(pos.x, pos.y, Max((double)gz, v.sim.body.pos.z - 0.3));
+    p.yaw = yaw;
+    p.vel = vec3(0);
+    bool left = g.vassets[v.model].spec.doors[k].left;
+    int clip = enter ? (left ? Anim::CLIP_ENTER_CAR_L : Anim::CLIP_ENTER_CAR_R) : (left ? Anim::CLIP_EXIT_CAR_L : Anim::CLIP_EXIT_CAR_R);
+    p.pendingAction = clip;
+    p.doorVehicle = vi;
+    p.doorSeat = seat;
+    p.doorEnter = enter;
+    p.doorBelt = enter || p.anim.seatBelt();   // (getting out: unbuckles first when buckled)
+    d.belt = p.doorBelt;
+    p.doorLen = Anim::carClipLength(clip, d);
+    return p.doorLen;
+}
+// The door's swing from the ped's clip (after its animator update), with its sounds; a door left open by a clip cut
+// short (a hit, a death) stays as it was until the vehicle drives off (updateCarDoors).
+static void driveCarDoor(GameWorld& g, Ped& p) {
+    if (p.doorVehicle < 0) return;
+    int k = -1;
+    Anim::CarDoorInfo d;
+    if (!seatDoorVF(g, p.doorVehicle, p.doorSeat, d, &k)) {
+        p.doorVehicle = -1;
+        return;
+    }
+    Vehicle& v = g.vehicles[p.doorVehicle];
+    float o = p.anim.carDoor();
+    if (o < 0.f) {
+        // no door clip playing (over, or cut short): the door is left as it is
+        if (v.doorOwner[k] == p.uid) v.doorOwner[k] = 0u;
+        if (!p.doorEnter || p.state != PS_ENTERING) p.doorVehicle = -1;
+        return;
+    }
+    float prev = v.doorOpen[k];
+    v.doorOpen[k] = Saturate(o);
+    v.doorOwner[k] = p.uid;
+#ifdef HAVE_AUDIO
+    if (p.visibleDist < 60.f) {
+        const Vehicles::DoorSpec& D = g.vassets[v.model].spec.doors[k];
+        vec3 at = (v.sim.body.pos + rotate(v.sim.body.rot, D.handle)).toVec3();
+        if (prev < 0.015f && o >= 0.015f) Audio::play(Audio::SFX_CAR_DOOR_OPEN, at, p.isPlayer ? 0.7f : 0.55f);
+        if (prev > 0.04f && o <= 0.001f) Audio::play(Audio::SFX_CAR_DOOR_CLOSE, at, p.isPlayer ? 0.7f : 0.55f);
+    }
+#else
+    (void)prev;
+#endif
+}
+
+
 #ifdef HAVE_AUDIO
 static_assert((int)Audio::FOOT_ASPHALT == (int)Phys::SURF_ASPHALT && (int)Audio::FOOT_WATER == (int)Phys::SURF_WATER &&
                   (int)Audio::FOOT_WOOD == (int)Phys::SURF_WOOD && (int)Audio::FOOT_MUD == (int)Phys::SURF_MUD,
@@ -471,9 +613,18 @@ void GameWorld::animatePed(Ped& p, float dt) {
             in.wheelN = normalize(spec.steerWheelAxis);
             in.wheelR = spec.steerWheelRadius;
         }
+        // the cabin round the seat: the head kept under its ceiling, the feet on its floor (same frame)
+        in.headroom = in.seatFloor = 0.f;
+        if (in.stance != 3 && p.seat >= 0 && p.seat < (int)spec.seats.size()) {
+            const Vehicles::SeatSpec& ss = spec.seats[p.seat];
+            float base = ss.pos.z - 0.5f;
+            if (ss.headZ < 5.f) in.headroom = ss.headZ - base;
+            if (ss.floorZ > 0.f) in.seatFloor = ss.floorZ - base;
+        }
     } else if (p.state == PS_ONFOOT || p.state == PS_SWIM) {
         if (in.stance == 1 || in.stance == 2 || in.stance == 3) in.stance = 0;
     }
+    if (p.state != PS_INVEHICLE) in.headroom = in.seatFloor = 0.f;
     in.action = -1;
     if (p.pendingAction >= 0) {
         // during a synced takedown only the takedown clips may start (AI reactions must not break the pair)
@@ -690,7 +841,17 @@ void GameWorld::animatePed(Ped& p, float dt) {
         in.groundNormal = vec3(dot(vec2(n.x, n.y), rightV), dot(vec2(n.x, n.y), fwd), n.z);
         in.footProbes = true;
     }
+    // getting in / out through a door: the door in this ped's frame while its clip plays (the vehicle may move)
+    in.car.valid = false;
+    if (p.doorVehicle >= 0) {
+        Anim::CarDoorInfo d;
+        if (seatDoorVF(*this, p.doorVehicle, p.doorSeat, d)) {
+            d.belt = p.doorBelt;
+            in.car = doorForPed(*this, p.doorVehicle, d, p.pos, p.yaw);
+        }
+    }
     p.anim.update(in, dt, !p.isPlayer && p.visibleDist > 40.f);   // far peds: no IK / face work (LOD2 mesh)
+    driveCarDoor(*this, p);
     // a hit is an impulse for the one update that saw it (combat.cpp damagePed sets it)
     in.hitStrength = 0.f;
     in.hitBone = -1;
@@ -712,6 +873,16 @@ void GameWorld::warpPedIntoVehicle(int pid, int veh, int seat) {
     if (pid < 0 || veh < 0) return;
     Ped& p = peds[pid];
     Vehicle& v = vehicles[veh];
+    if (p.doorVehicle >= 0) {
+        // in through a door: the clip has swung it shut
+        int k = -1;
+        Anim::CarDoorInfo d;
+        if (seatDoorVF(*this, p.doorVehicle, p.doorSeat, d, &k) && vehicles[p.doorVehicle].doorOwner[k] == p.uid) {
+            vehicles[p.doorVehicle].doorOwner[k] = 0u;
+            vehicles[p.doorVehicle].doorOpen[k] = 0.f;
+        }
+        p.doorVehicle = -1;
+    }
     if (p.vehicle >= 0) removePedFromVehicle(pid, false);
     if (v.seats[seat] >= 0 && v.seats[seat] != pid) removePedFromVehicle(v.seats[seat], false);
     v.seats[seat] = pid;
@@ -758,11 +929,33 @@ void GameWorld::removePedFromVehicle(int pid, bool exitAnim) {
     p.grounded = true;
     p.animIn.stance = 0;
     if (exitAnim) p.pendingAction = left ? Anim::CLIP_EXIT_CAR_L : Anim::CLIP_EXIT_CAR_R;
+    // a door of its own: out through it (the door clip from where it ends; held there, PS_EXITING, while it plays)
+    if (exitAnim && p.ragdoll == nullptr && startCarDoorClip(*this, pid, (int)(&v - vehicles.data()), seat, false) > 0.f) {
+        p.vel = vec3(0);
+        p.state = PS_EXITING;
+        p.stateTime = 0.f;
+    }
     if (seat == 0 && p.isPlayer) v.playerUsed = true;
 }
 
 // ------------------------------------------------------------------------------------------------------------------
+// Doors no clip is swinging (left open by a clip cut short) swing shut once the vehicle drives off
+static void updateCarDoors(GameWorld& g, float dt) {
+    for (Vehicle& v : g.vehicles) {
+        if (!v.used) continue;
+        for (int k = 0; k < 4; k++) {
+            if (v.doorOpen[k] <= 0.f || v.doorOwner[k] != 0u) continue;
+            if (length2(v.sim.body.vel) < 1.f) continue;
+            v.doorOpen[k] = Max(0.f, v.doorOpen[k] - dt * 2.5f);
+#ifdef HAVE_AUDIO
+            if (v.doorOpen[k] <= 0.f) Audio::play(Audio::SFX_CAR_DOOR_CLOSE, v.sim.body.pos.toVec3(), 0.5f);
+#endif
+        }
+    }
+}
+
 void GameWorld::updatePeds(float dt) {
+    updateCarDoors(*this, dt);
     // camera distances for LOD
     dvec3 cam = rig.cam.pos;
     for (auto& p : peds)
@@ -875,6 +1068,20 @@ void GameWorld::updatePed(int id, float dt) {
         movePed(p, vec2(0, 0), dt, false);
     }
     if (p.state == PS_GETUP && p.stateTime > 1.4f) {
+        p.state = PS_ONFOOT;
+        p.stateTime = 0.f;
+    }
+    // out through a door (removePedFromVehicle): held where the clip stands it (the AI holds PS_EXITING still) until
+    // the clip is over - but one bailing out (fleeing or fighting: its brain set as it was taken out) gets the plain
+    // quick clip instead, on foot at once, if the door clip has not begun yet
+    if (!p.isPlayer && p.state == PS_EXITING && p.doorVehicle >= 0 && !p.doorEnter &&
+        (p.pendingAction == Anim::CLIP_EXIT_CAR_L || p.pendingAction == Anim::CLIP_EXIT_CAR_R) &&
+        (p.brain.type == BRAIN_FLEE || p.brain.type == BRAIN_COMBAT)) {
+        p.doorVehicle = -1;
+        p.state = PS_ONFOOT;
+        p.stateTime = 0.f;
+    }
+    if (!p.isPlayer && p.state == PS_EXITING && (p.stateTime >= (p.doorLen > 0.f ? p.doorLen : 0.9f) || p.ragdoll)) {
         p.state = PS_ONFOOT;
         p.stateTime = 0.f;
     }

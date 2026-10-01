@@ -55,6 +55,7 @@ enum InternalClip : int {
     // buckling up in a seat (arm layer over the seated stance after getting in): the left hand (a seat on the
     // vehicle's left) / the right hand reaches back past the shoulder for the belt and clicks it in by the other hip
     IC_BELT_ON_L, IC_BELT_ON_R,
+    IC_CUFFED,                     // stance 25: wrists crossed at the small of the back as if cuffed, shoulders rolled, head down
     // walk styles: IC_GAIT_FIRST + style * kGaitBands + band (gaitClip)
     IC_GAIT_FIRST,
     IC_GAIT_LAST = IC_GAIT_FIRST + GS_COUNT * kGaitBands - 1,

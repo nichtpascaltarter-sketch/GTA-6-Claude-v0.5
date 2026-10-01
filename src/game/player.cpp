@@ -16,6 +16,7 @@ struct EnterState {
     float timer = 0.f;
     bool animStarted = false;
     vec3 doorPos;
+    float need = 0.f;        // the clip's length once it has started (a door clip's; 0: the plain clip's)
 };
 EnterState gEnter;
 float gSteerSmooth = 0.f;
@@ -91,11 +92,16 @@ void GameWorld::updatePlayer(float dt) {
             vec3 local(left ? -(spec.boxHalf.x + 0.35f) : (spec.boxHalf.x + 0.35f), sp.y - 0.2f, 0.f);
             if (isBike(v)) local = vec3(left ? -0.6f : 0.6f, sp.y, 0.f);
             vec3 door = veh.sim.body.pos.toVec3() + rotate(veh.sim.body.rot, local);
+            // a door of its own: to where getting in through it starts (peds.cpp carDoorSpot)
+            dvec3 spot;
+            float spotYaw = 0.f;
+            bool doorClip = !quick && carDoorSpot(*this, v, seat, false, spot, spotYaw);
+            if (doorClip) door = spot.toVec3();
             vec3 d = door - p.pos.toVec3();
             d.z = 0;
             float dist = length(d);
             if (!gEnter.animStarted) {
-                if (dist > 0.45f && gEnter.timer < 2.5f) {
+                if (dist > (doorClip ? 0.12f : 0.45f) && gEnter.timer < 2.5f) {
                     vec2 dir = vec2(d.x, d.y) / Max(dist, 1e-3f);
                     float spd = Min(3.5f, dist * 3.f + 0.8f);
                     movePed(p, dir * spd, dt, false);
@@ -110,7 +116,7 @@ void GameWorld::updatePlayer(float dt) {
                     // jack the current occupant
                     int occ = veh.seats[seat];
                     if (occ >= 0 && occ != player) {
-                        removePedFromVehicle(occ, true);
+                        removePedFromVehicle(occ, false);   // (dragged out: knocked down beside the door)
                         Ped& o = peds[occ];
                         o.brain.type = hash32(o.uid) % 4 == 0 && o.faction != FAC_CIVILIAN ? BRAIN_COMBAT : BRAIN_FLEE;
                         o.brain.target = player;
@@ -124,22 +130,28 @@ void GameWorld::updatePlayer(float dt) {
                         socialReport(UI::TE_CAR_STOLEN, veh.sim.body.pos, spec.name.c_str());
                         if (hash32(veh.uid) % 5 == 0) veh.alarm = true;
                     }
-                    if (!quick) p.pendingAction = left ? Anim::CLIP_ENTER_CAR_L : Anim::CLIP_ENTER_CAR_R;
+                    // through the door (the door clip from its spot: the door swings, and sounds, with it), else the
+                    // plain clip
+                    gEnter.need = doorClip ? startCarDoorClip(*this, player, v, seat, true) : 0.f;
+                    if (gEnter.need <= 0.f) {
+                        if (!quick) p.pendingAction = left ? Anim::CLIP_ENTER_CAR_L : Anim::CLIP_ENTER_CAR_R;
 #ifdef HAVE_AUDIO
-                    if (!quick) Audio::play(Audio::SFX_CAR_DOOR_OPEN, door, 0.7f);
+                        if (!quick) Audio::play(Audio::SFX_CAR_DOOR_OPEN, door, 0.7f);
 #endif
+                    }
                 }
                 // abort with movement input
                 if (length(ctl.move) > 0.6f && gEnter.timer > 0.4f && !gEnter.animStarted) p.state = PS_ONFOOT;
             } else {
-                float need = quick ? 0.35f : 1.05f;
+                float need = gEnter.need > 0.f ? gEnter.need : (quick ? 0.35f : 1.05f);
                 if (gEnter.timer >= need) {
+                    bool viaDoor = gEnter.need > 0.f;
                     warpPedIntoVehicle(player, v, seat);
                     pinfo.lastVehicle = v;
                     veh.playerUsed = true;
                     veh.alarm = veh.alarm && !quick;
 #ifdef HAVE_AUDIO
-                    if (!quick) Audio::play(Audio::SFX_CAR_DOOR_CLOSE, door, 0.7f);
+                    if (!quick && !viaDoor) Audio::play(Audio::SFX_CAR_DOOR_CLOSE, door, 0.7f);
                     if (!veh.sim.engineOn || veh.parked) Audio::play(Audio::SFX_ENGINE_START, door, 0.7f);
                     Audio::setRadioStation(isBike(v) || isBoat(v) || isAircraft(v) ? -1 : veh.radio);
                     Audio::setRadioInterior(1.f);
@@ -152,13 +164,17 @@ void GameWorld::updatePlayer(float dt) {
         case PS_INVEHICLE:
             updatePlayerVehicle(p, dt);
             break;
-        case PS_EXITING:
-            if (p.stateTime > 0.9f) {
+        case PS_EXITING: {
+            // out through a door: until its clip is over (walking off cuts its last half second short)
+            bool viaDoor = p.doorVehicle >= 0 && !p.doorEnter;
+            float need = viaDoor ? p.doorLen : 0.9f;
+            if (p.stateTime > need || (viaDoor && p.stateTime > need - 0.5f && length(ctl.move) > 0.6f)) {
                 p.state = PS_ONFOOT;
                 p.stateTime = 0.f;
             }
             movePed(p, vec2(0, 0), dt, false);
             break;
+        }
         default:
             break;
     }
@@ -693,10 +709,13 @@ void GameWorld::updatePlayerVehicle(Ped& p, float dt) {
             // dive out: ragdoll with the vehicle's velocity
             knockDown(player, v.sim.body.vel * 20.f + v.sim.right() * (spec.seats.empty() || spec.seats[0].exitLeft ? -150.f : 150.f));
         } else {
+            bool viaDoor = p.doorVehicle >= 0;   // (removePedFromVehicle started the door clip: its door sounds)
             p.state = PS_EXITING;
             p.stateTime = 0.f;
 #ifdef HAVE_AUDIO
-            if (!isBike(vi) && !isBoat(vi)) Audio::play(Audio::SFX_CAR_DOOR_CLOSE, p.pos.toVec3(), 0.6f);
+            if (!isBike(vi) && !isBoat(vi) && !viaDoor) Audio::play(Audio::SFX_CAR_DOOR_CLOSE, p.pos.toVec3(), 0.6f);
+#else
+            (void)viaDoor;
 #endif
         }
         v.idleTime = 0.f;

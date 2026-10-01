@@ -208,6 +208,12 @@ struct CarDoorInfo {
     vec3 top[6];                 // the opening's top edge (the roof rail, down the A-pillar): 6 points rear to front
     float sillZ = 0.3f;          // top of the sill (the cabin floor)
     float roofZ = 1.3f;          // underside of the opening's top over the seat
+    float headZ = 1.4f;          // the cabin's ceiling (headliner) over the seat (an open top: 9)
+    // the driver's steering wheel in this frame: rim centre (a point like the others), unit column axis pointing at
+    // the driver, rim radius (as AnimInput::wheelC / wheelN / wheelR describe it): the hands go to its rim getting in
+    // (wheelR 0: the animator's typical rim)
+    vec3 wheelC = vec3(0), wheelN = vec3(0);
+    float wheelR = 0.f;
     bool driver = true;          // seated: the hands go to the steering wheel (else to the lap)
     bool belt = true;            // buckle up once in (and unbuckle first to get out): Animator::seatBelt()
 };
@@ -235,7 +241,9 @@ struct AnimInput {
                               // 17 point, 18 crouch, 19 fighting guard, 20 blocking guard (19/20: guard of meleeKind; the
                               // upper body stays in guard while the legs walk / strafe), 21 sit on the ground (beach towel),
                               // 22 lie face down (sunbathing), 23 wait in a queue (idle variations come more often),
-                              // 24 down hurt: lying on the back, knees up, writhing (a hand on the wound with clutch)
+                              // 24 down hurt: lying on the back, knees up, writhing (a hand on the wound with clutch),
+                              // 25 cuffed: wrists crossed at the small of the back, shoulders rolled, head down (the
+                              // upper body holds while the legs stand or walk; no props, no hand on a wound)
     float groundOffsetL = 0, groundOffsetR = 0;  // foot IK height offsets from terrain probes (m)
     // optional (defaults keep the automatic behaviour)
     int meleeKind = 0;        // melee weapon in hand for the fighting guards: 0 fists, 1 knife, 2 bat (two-handed)
@@ -265,7 +273,10 @@ struct AnimInput {
     bool phoneBrowse = false; // looking down at a phone held at chest height: both hands standing, the right hand only
                               // while walking / jogging (~0.3 s blend). Place the prop with phoneFrame().
     // takedown contact for mismatched heights: the victim's B_NECK joint in this (attacker's) model space while playing
-    // CLIP_TAKEDOWN_ATTACKER; the choke arm and the hand behind the head are IK'd onto it (weight 0 = as authored)
+    // CLIP_TAKEDOWN_ATTACKER; the choke arm and the hand behind the head are IK'd onto it (weight 0 = as authored).
+    // With no clip playing (on foot, any stance): a hand holds on to grabTarget (model space: the middle of what it
+    // closes round, e.g. an escorted suspect's upper arm), the one on the nearer shoulder's side, fading in / out over
+    // ~0.2 s with grabWeight and letting go when it is beyond the arm's reach; the body stands or walks on as usual.
     vec3 grabTarget = vec3(0);
     float grabWeight = 0;
     vec3 groundNormal = vec3(0, 0, 1);  // terrain normal under the ped in its model space (feet align to slopes)
@@ -276,6 +287,11 @@ struct AnimInput {
     // vehicle's yaw): rim centre, unit column axis pointing at the driver, rim radius; wheelR 0 = a car's typical rim
     vec3 wheelC = vec3(0), wheelN = vec3(0);
     float wheelR = 0.f;
+    // seated in a vehicle (stances 1 / 2): the cabin's ceiling over the seat (the headliner), model space z (origin
+    // 0.5 m below the seat hip point); 0 = no roof to keep under. A head that would be up into it fits under it: the
+    // hips slide forward and the back slouches, the head tips to keep the eyes level (the feet stay put).
+    float headroom = 0.f;
+    float seatFloor = 0.f;    // ... and the floor under the feet (same frame; 0 = not known): the feet stand on it
     // prop in hand (the game's CarryProp order): 0 none, 1 roller suitcase (right hand, trailing behind), 2 shopping bag
     // (left, hanging), 3 coffee (right; the left while the phone is up: phoneW / browseW > 0.3, or in a
     // rightHandBusy stance), 4 briefcase (left, hanging), 5 umbrella (right: open with carryOpen, else furled and
@@ -360,7 +376,9 @@ struct Animator {
     int gestMode = 0;
     float gestT = 0.f, gestDur = 0.f, gestR = 0.f, gestL = 0.f, palmR = 0.f, palmL = 0.f, beatS = 0.f, phoneW = 0.f;
     float tiltS = 0.f, tiltTarget = 0.f, tiltNext = 0.f, nodNext = 3.f, nodPhase = -1.f, autoNod = 0.f;
-    float browseW = 0.f, browseL = 0.f, grabW = 0.f;
+    float browseW = 0.f, browseL = 0.f, grabW = 0.f, holdW = 0.f;
+    int holdSide = 1;             // the hand holding on to AnimInput::grabTarget outside clips (0 left, 1 right)
+    float crownH = 0.12f;         // the top of the head (hair included) over the head joint (setCharacter)
     void conversation(const AnimInput& in, float dt, Pose& p);   // internal: gestures, listener cues, phone at the ear
     Pose snap;                    // pose captured at a discontinuity (crossfaded out over 1/snapRate s)
     // ---- per-person motion (setCharacter; defaults from the seed alone): walking style (detail::GaitStyle), arm

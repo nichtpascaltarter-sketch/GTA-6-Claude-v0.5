@@ -1500,6 +1500,52 @@ inline DoorCardLayout doorCardLayout(const CarBody& b, const InteriorLayout& I, 
     return o;
 }
 
+// A sun visor folded up against the headliner (side sg: -1 left, +1 right), in front of the front seat's head: a
+// 34 x 16 cm panel 1.8 cm thick, pitched to the roof's slope between its front and back edges and rolled to the
+// roof's crown across its width, 2.7 cm under the roof's chord there (the roof bows up over a chord, so the panel
+// stays under the headliner from end to end). Frame axes: ax across (+X), ay forward along the roof, az up.
+struct VisorPlace {
+    vec3 c, ax, ay, az;
+    float hx = 0.17f, hy = 0.08f, hz = 0.009f;
+};
+inline VisorPlace visorPlace(const CarBody& b, const InteriorLayout& I, int sg) {
+    VisorPlace v;
+    const float y = b.s.yRoofF - 0.12f, xi = I.seatX - v.hx, xo = I.seatX + v.hx;
+    const float zFi = b.topZAt(y + v.hy, xi), zFo = b.topZAt(y + v.hy, xo), zBi = b.topZAt(y - v.hy, xi), zBo = b.topZAt(y - v.hy, xo);
+    v.ax = normalize(vec3(xo - xi, 0.f, sg * 0.5f * ((zFo + zBo) - (zFi + zBi))));
+    vec3 ay = normalize(vec3(0.f, 2.f * v.hy, 0.5f * ((zFi + zFo) - (zBi + zBo))));
+    v.az = normalize(cross(v.ax, ay));
+    v.ay = cross(v.az, v.ax);
+    v.c = vec3(sg * I.seatX, y, 0.25f * (zFi + zFo + zBi + zBo) - 0.012f - v.hz - 0.006f);
+    return v;
+}
+
+// The cabin's ceiling over a seated occupant's head (hip point at y, on the seat's line x = seatX): the headliner (a
+// lining's thickness under the roof, or the rear window's glass) at its lowest over the top of the head - a driver's
+// from just behind the hip point to 11 cm ahead of it, a passenger's (sitting back) from 30 cm behind it to 2 cm
+// behind - and, for a front seat, the sun visor's underside where it reaches back over that. Out under the open sky
+// (the body's top well under the roof's: behind a pickup's cab) is no ceiling - 9 when over the hip point itself.
+inline float cabinCeilZ(const CarBody& b, const InteriorLayout& I, float y, bool front, bool driver) {
+    const float open = b.s.zRoof - 0.25f;
+    if (b.topZAt(y, I.seatX) < open) return 9.f;
+    const float y0 = driver ? y - 0.03f : y - 0.3f, y1 = driver ? y + 0.11f : y - 0.02f;
+    float z = 9.f;
+    for (int k = 0; k <= 7; k++) {
+        float t = b.topZAt(lerp(y0, y1, k / 7.f), I.seatX);
+        if (t >= open) z = Min(z, t);
+    }
+    z -= 0.015f;
+    if (front) {
+        const VisorPlace v = visorPlace(b, I, 1);
+        const float r0 = Max(y0, v.c.y - v.hy * v.ay.y), r1 = Min(y1, v.c.y + v.hy * v.ay.y);
+        if (r0 <= r1) {
+            // the underside along the seat's line, at both ends of the overlap (it is flat between them)
+            for (float yy : {r0, r1}) z = Min(z, v.c.z + v.ay.z * (yy - v.c.y) / Max(v.ay.y, 0.1f) - v.az.z * v.hz);
+        }
+    }
+    return z;
+}
+
 // Close-range cabin furniture seen through the glass and from the first-person camera: gauges, air vents, shifter,
 // rear-view mirror, sun visors and door-card armrests / pulls / speakers (both sides).
 inline void cabinFurniture(PMesh& m, CarBody& b, const CarLook& L, const InteriorLayout& I, float dw, float dz) {
@@ -1571,18 +1617,11 @@ inline void cabinFurniture(PMesh& m, CarBody& b, const CarLook& L, const Interio
         roundedBoxAt(m, mc, vec3(0.125f, 0.02f, 0.036f), 0.015f, 2);
         m.use(MAT_CHROME, col(0.8f, 0.85f, 0.9f));
         roundedBoxAt(m, mc - vec3(0, 0.02f, 0), vec3(0.115f, 0.002f, 0.029f), 0.012f, 1);
-        // sun visors folded against the headliner
+        // sun visors folded against the headliner (flush under it: visorPlace)
         m.use(MAT_FABRIC, col(0.5f, 0.5f, 0.48f));
         for (int sg = -1; sg <= 1; sg += 2) {
-            // flush under the headliner: pitched to the roof's slope between the visor's front and back edge, and
-            // hung below the lowest point of the (crowned) roof across its width
-            float yv2 = s.yRoofF - 0.12f, hd = 0.08f;
-            float zF = Min(b.topZAt(yv2 + hd, I.seatX - 0.17f), b.topZAt(yv2 + hd, I.seatX + 0.17f));
-            float zB = Min(b.topZAt(yv2 - hd, I.seatX - 0.17f), b.topZAt(yv2 - hd, I.seatX + 0.17f));
-            vec3 ay = normalize(vec3(0, 2.f * hd, zF - zB));
-            vec3 az = cross(vec3(1, 0, 0), ay);
-            vec3 c(sg * I.seatX, yv2, (zF + zB) * 0.5f - 0.012f - 0.009f - 0.006f);
-            roundedBox(m, Frame(c, vec3(1, 0, 0), ay, az), vec3(0.17f, hd, 0.009f), 0.008f, 1);
+            const VisorPlace v = visorPlace(b, I, sg);
+            roundedBox(m, Frame(v.c, v.ax, v.ay, v.az), vec3(v.hx, v.hy, v.hz), 0.008f, 1);
         }
     }
     // door cards: armrest, chrome release handle and a speaker grille per door (right side, mirrored); each sits beside
@@ -1608,6 +1647,19 @@ inline void cabinFurniture(PMesh& m, CarBody& b, const CarLook& L, const Interio
     }
     m.mirrorX(mk);
     m.part = part0;
+}
+
+// A low roof: the seats' cushions go down (a sports car's low seating) so that a tall occupant, slumping under it
+// (the animator's headroom fit), keeps his head under the cabin's ceiling (cabinCeilZ) - the hip point to the ceiling
+// wants ~0.86 m; up to 10 cm lower, the hips kept 0.14 m over the floor (front pair / rear bench)
+inline void seatDrops(const CarBody& b, const InteriorLayout& I, float& dropF, float& dropR) {
+    auto drop = [&](float y, float hip, bool front, bool driver) {
+        if (b.s.openTop) return 0.f;
+        float room = cabinCeilZ(b, I, y, front, driver) - hip;
+        return Clamp(0.86f - room, 0.f, Clamp(I.hipH - 0.14f, 0.f, 0.1f));
+    };
+    dropF = Max(drop(I.yHipF, I.zFloor + I.hipH, true, true), drop(I.yHipF, I.zFloor + I.hipH, true, false));
+    dropR = I.rearSeat ? drop(I.yHipR, I.zFloor + I.hipH - 0.02f, false, false) : 0.f;
 }
 
 inline void buildInterior(PMesh& m, CarBody& b, const CarLook& L, const InteriorLayout& I) {
@@ -1693,21 +1745,25 @@ inline void buildInterior(PMesh& m, CarBody& b, const CarLook& L, const Interior
     // front passenger seat (right) and rear right half
     if (seats) {
         // backrest (and headrest) sized to the headroom under a low roof, measured above the seat's outer edge
+        float dropF, dropR;
+        seatDrops(b, I, dropF, dropR);
         float ybk = I.yHipF - 0.25f;
-        float room = b.s.openTop ? 9.f : Min(b.topZAt(ybk, I.seatX), b.topZAt(ybk, I.seatX + 0.2f)) - 0.07f - (I.zFloor + I.hipH);
+        float room = b.s.openTop ? 9.f : Min(b.topZAt(ybk, I.seatX), b.topZAt(ybk, I.seatX + 0.2f)) - 0.07f - (I.zFloor + I.hipH - dropF);
         float bs = Clamp((room - 0.16f) / 0.62f, 0.55f, 1.f);
         bool hr = room > 0.62f * bs + 0.22f;
-        seat(m, vec3(I.seatX, I.yHipF, I.zFloor + I.hipH), 0.25f, L, !I.bench, 0.32f, bs, hr);
+        seat(m, vec3(I.seatX, I.yHipF, I.zFloor + I.hipH - dropF), 0.25f, L, !I.bench, 0.32f, bs, hr);
     }
     m.mirrorX(mk);
     // rear bench
     if (I.rearSeat && seats) {
         // back height limited by the glass/roof above the backrest
+        float dropF, dropR;
+        seatDrops(b, I, dropF, dropR);
         float yb = I.yHipR - 0.22f;
-        float room = b.roofZAt(yb) - 0.10f - (I.zFloor + I.hipH);
+        float room = b.roofZAt(yb) - 0.10f - (I.zFloor + I.hipH - dropR);
         float bs = Clamp((room - 0.12f) / 0.62f, 0.55f, 1.f);
         bool hr = room > 0.62f * bs + 0.2f;
-        seat(m, vec3(0, I.yHipR, I.zFloor + I.hipH - 0.02f), Min(xin - 0.05f, 0.68f), L, false, 0.36f, bs, hr);
+        seat(m, vec3(0, I.yHipR, I.zFloor + I.hipH - 0.02f - dropR), Min(xin - 0.05f, 0.68f), L, false, 0.36f, bs, hr);
     }
     // dashboard
     m.newGroup(35.f);

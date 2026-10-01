@@ -425,13 +425,21 @@ inline void buildCar(const CarDef& def, VehicleModel& out) {
     }
     float fx = d.I.seatX;
     float hz = d.I.zFloor + d.I.hipH;
-    out.seats.push_back(SeatSpec{vec3(-fx, d.I.yHipF, hz), true, true});
-    out.seats.push_back(SeatSpec{vec3(fx, d.I.yHipF, hz), false, false});
+    float dropF, dropR;   // (cushions lowered under a low roof, as buildInterior draws them)
+    seatDrops(b, d.I, dropF, dropR);
+    out.seats.push_back(SeatSpec{vec3(-fx, d.I.yHipF, hz - dropF), true, true});
+    out.seats.push_back(SeatSpec{vec3(fx, d.I.yHipF, hz - dropF), false, false});
     if (d.I.rearSeat) {
-        out.seats.push_back(SeatSpec{vec3(-fx, d.I.yHipR, hz - 0.02f), false, true});
-        out.seats.push_back(SeatSpec{vec3(fx, d.I.yHipR, hz - 0.02f), false, false});
+        out.seats.push_back(SeatSpec{vec3(-fx, d.I.yHipR, hz - 0.02f - dropR), false, true});
+        out.seats.push_back(SeatSpec{vec3(fx, d.I.yHipR, hz - 0.02f - dropR), false, false});
     }
     if (doors) linkSeatDoors(out);
+    // the cabin's ceiling over each seat (the headliner over the occupant's head, the visor's underside in front of
+    // the front seats): the occupant's head is kept under it
+    for (SeatSpec& st : out.seats) {
+        st.headZ = s.openTop ? 9.f : cabinCeilZ(b, d.I, st.pos.y, fabsf(st.pos.y - d.I.yHipF) < 0.01f, st.driver);
+        st.floorZ = d.I.zFloor;
+    }
     out.boxCenter = vec3(0, (bb.mn.y + bb.mx.y) * 0.5f, (s.zSill + bb.mx.z) * 0.5f);
     out.boxHalf = vec3(s.halfW, (bb.mx.y - bb.mn.y) * 0.5f, (bb.mx.z - s.zSill) * 0.5f);
     out.frontalArea = (2.f * s.halfW) * (s.zRoof - s.zSill) * 0.84f;
