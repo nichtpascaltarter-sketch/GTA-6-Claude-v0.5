@@ -296,7 +296,7 @@ void updateQueues(GameWorld& g, float dt, vec2 pp, bool night, bool warm) {
 // warmup fade) and empties again once they are far away. Nobody stands on a live lane (every slot is checked against the
 // lane graph, buildings and water when the venue is laid out), and everybody stands at the level of the ground there -
 // never on a canopy or a roof above it.
-enum VenueLook : u8 { VL_WORKER = 0, VL_CIVIL, VL_BUSINESS, VL_BEACH, VL_TRAVELER, VL_UNIFORM };
+enum VenueLook : u8 { VL_WORKER = 0, VL_CIVIL, VL_BUSINESS, VL_BEACH, VL_TRAVELER, VL_UNIFORM, VL_MEDIC };
 enum VenueProp : u8 { VP_NONE = 0, VP_TRUCK, VP_TAXI, VP_AIRBOAT, VP_CAR };
 
 struct VenueSlot {
@@ -331,7 +331,8 @@ struct VenueSlot {
     u32 vehUid = 0;
     float cooldown = 0.f;
     float timer = 0.f;    // pairs: how long the hug lasts
-    u8 state = 0;         // pairs: 0 waiting for the other, 1 together, 2 gone to the car
+    u8 state = 0;         // pairs: 0 waiting for the other, 1 together, 2 gone to the car, 3 stepping in for a greeting
+    i8 greet = -1;        // pairs: the greeting (Anim::Clip) they step in for / are in
 };
 
 struct Venue {
@@ -961,6 +962,16 @@ void buildVenues(GameWorld& g) {
                 h0 = 0.f;
                 h1 = 24.f;
             }
+            // (the prison yard in the day's yard hours - the towers and the gate are manned round the clock; hospital
+            //  visitors in the visiting hours - the ambulance bay crew and security round the clock)
+            if (placeKind == World::PK_PRISON && anchorKind != World::PA_GUARD) {
+                h0 = 8.f;
+                h1 = 18.f;
+            }
+            if (placeKind == World::PK_HOSPITAL && anchorKind != World::PA_GUARD && anchorKind != World::PA_WORK) {
+                h0 = 7.f;
+                h1 = 22.f;
+            }
             if (anchorKind == World::PA_EXERCISE && placeKind != World::PK_PRISON) {
                 h0 = 6.f;
                 h1 = 21.f;
@@ -968,6 +979,9 @@ void buildVenues(GameWorld& g) {
         };
         auto lookFor = [](int placeKind, u8 anchorKind, u32 hh) -> u8 {
             if (anchorKind == World::PA_GUARD) return VL_UNIFORM;
+            if (placeKind == World::PK_HOSPITAL && anchorKind == World::PA_WORK) return VL_MEDIC;   // the ambulance bay crew
+            if (placeKind == World::PK_PRISON) return VL_CIVIL;                                    // the yard: plain clothes
+            if (placeKind == World::PK_HOSPITAL) return hh % 3 == 0 ? VL_BUSINESS : VL_CIVIL;     // visitors
             if (anchorKind == World::PA_WORK) return placeKind == World::PK_SPEEDWAY ? VL_WORKER : VL_BUSINESS;
             if (placeKind == World::PK_HOTEL_ROW) return hh % 3 == 0 ? VL_BUSINESS : (hh % 3 == 1 ? VL_BEACH : VL_CIVIL);
             if (placeKind == World::PK_CEMETERY || placeKind == World::PK_CHURCHYARD) return VL_BUSINESS;
@@ -1067,7 +1081,7 @@ void buildVenues(GameWorld& g) {
                     first = 0.4f;
                     break;
                 case World::PA_STAND:
-                    mode = VM_TALK;
+                    mode = j - i > 1 ? VM_TALK : VM_STAND;   // (a circle talks; one alone - at a church door - waits)
                     first = 0.45f;
                     break;
                 case World::PA_MOURN:
@@ -1079,7 +1093,10 @@ void buildVenues(GameWorld& g) {
                     first = 0.9f;
                     break;
                 case World::PA_WORK:
-                    mode = P.kind == World::PK_SPEEDWAY ? VM_WORK : (P.kind == World::PK_HOTEL_ROW ? VM_PACE : VM_STAND);
+                    // pit crews at work, a hotel's waiter, an ambulance crew talking by the bay; a speedway's flagman up on
+                    // the stand (a crew of one) stands and watches
+                    mode = P.kind == World::PK_SPEEDWAY ? (j - i > 1 ? VM_WORK : VM_STAND)
+                         : (P.kind == World::PK_HOTEL_ROW ? VM_PACE : (P.kind == World::PK_HOSPITAL ? VM_TALK : VM_STAND));
                     first = 0.9f;
                     break;
                 default:
@@ -1140,6 +1157,7 @@ int venueChar(GameWorld& g, u8 look, u32 seed) {
         case VL_BEACH: return g.randomCivilianChar(seed, 4);
         case VL_TRAVELER: return g.randomCivilianChar(seed >> 2, (seed % 5 == 0) ? 3 : ((seed % 5 == 1) ? 4 : 0));
         case VL_UNIFORM: return g.randomCivilianChar(seed, 1);   // (the uniformed look: guards)
+        case VL_MEDIC: return g.randomCivilianChar(seed, 6);     // (paramedics: a hospital's ambulance bay)
         default: return g.randomCivilianChar(seed, 0);
     }
 }
@@ -1148,6 +1166,7 @@ int venueChar(GameWorld& g, u8 look, u32 seed) {
 void venueLetGo(GameWorld& g, int id) {
     Ped& p = g.peds[id];
     PedAI& pa = g.pedAI(id);
+    pa.greetWith = -1;
     pa.activity = ACT_WALK;
     pa.navOk = false;
     pa.stance = 0;
@@ -1166,8 +1185,83 @@ void venueStartBoard(GameWorld& g, int id, int veh, bool driver) {
     pa.targetVeh = veh;
     pa.venue = -1;
     pa.stance = 0;
+    pa.greetWith = -1;
     pa.clipTimer = 0.f;
     pa.actTimer = 25.f;   // (gives up after this)
+}
+
+// Greetings between two people (the curb pairs here, acquaintances meeting on the sidewalk in pedai.cpp): the clip,
+// stepping in, starting it on both, stepping back.
+// Which one: mostly a hug, a kiss on the cheek, now and then a handshake (between two in suits a handshake first),
+// one that suits both hats (Anim::greetingFits); -1 when one of them cannot (not on foot, knocked down).
+int greetPick(const GameWorld& g, int a, int b, u32 h, bool formal) {
+    const Ped& A = g.peds[a];
+    const Ped& B = g.peds[b];
+    if (A.charIndex < 0 || B.charIndex < 0 || A.state != PS_ONFOOT || B.state != PS_ONFOOT || A.ragdoll || B.ragdoll) return -1;
+    const Anim::CharacterDesc& da = g.chars[A.charIndex].desc;
+    const Anim::CharacterDesc& db = g.chars[B.charIndex].desc;
+    u32 r = h % 10u;
+    Anim::Clip pref[3] = {Anim::CLIP_HUG, Anim::CLIP_CHEEK_KISS, Anim::CLIP_HANDSHAKE};
+    if (r >= 6u && r < 9u) std::swap(pref[0], pref[1]);
+    if (r >= 9u || (formal && r >= 2u)) std::swap(pref[0], pref[2]);
+    for (Anim::Clip c : pref)
+        if (Anim::greetingFits(c, da, db)) return c;
+    return Anim::CLIP_HANDSHAKE;
+}
+
+// Two people step together for a greeting: each to its side of the spot between them, the clip's distance apart
+// (Anim::pairDistance, from both skeletons), facing each other, the phone away. PedAI::greetWith pairs them (the last
+// few centimetres at a careful step, pedai.cpp) until they part.
+void greetBegin(GameWorld& g, int a, int b, int clip) {
+    vec2 pa = g.peds[a].pos.toVec3().xy(), pb = g.peds[b].pos.toVec3().xy();
+    vec2 dir = normalize(pb - pa + vec2(1e-4f, 0.f));
+    float dist = Anim::pairDistance((Anim::Clip)clip, g.chars[g.peds[a].charIndex].skel, g.chars[g.peds[b].charIndex].skel);
+    vec2 mid = (pa + pb) * 0.5f;
+    PedAI& qa = g.pedAI(a);
+    PedAI& qb = g.pedAI(b);
+    qa.anchor = mid - dir * (dist * 0.5f);
+    qb.anchor = mid + dir * (dist * 0.5f);
+    qa.anchorYaw = AI::dirYaw(dir);
+    qb.anchorYaw = AI::dirYaw(-dir);
+    qa.greetWith = b;
+    qb.greetWith = a;
+    qa.greetT = qb.greetT = 0.f;
+    qa.stance = qb.stance = 0;
+}
+
+// Both at their spots (or near enough, after a moment): the clip starts on both in the same frame, the last few
+// centimetres closed, each facing the other; they hold still while it plays (PedAI::greetT, pedai.cpp).
+bool greetReady(GameWorld& g, int a, int b) {
+    const PedAI& qa = g.pedAI(a);
+    const PedAI& qb = g.pedAI(b);
+    return length(g.peds[a].pos.toVec3().xy() - qa.anchor) < 0.08f && length(g.peds[b].pos.toVec3().xy() - qb.anchor) < 0.08f;
+}
+
+float greetStart(GameWorld& g, int a, int b, int clip) {
+    float dur = Anim::clipInfo((Anim::Clip)clip).duration;
+    for (int k = 0; k < 2; k++) {
+        int id = k ? b : a;
+        Ped& p = g.peds[id];
+        PedAI& q = g.pedAI(id);
+        p.pos = dvec3(q.anchor.x, q.anchor.y, p.pos.z);
+        p.vel = vec3(0.f);
+        p.yaw = q.anchorYaw;
+        p.pendingAction = clip;
+        q.greetT = dur;
+    }
+    vec2 at = g.peds[a].pos.toVec3().xy();
+    LOG("greeting: a %s at %.0f %.0f", Anim::clipInfo((Anim::Clip)clip).name, at.x, at.y);
+    return dur;
+}
+
+// after the greeting: a step back to talk (this far apart)
+void greetPart(GameWorld& g, int a, int b, float gap) {
+    PedAI& qa = g.pedAI(a);
+    PedAI& qb = g.pedAI(b);
+    vec2 mid = (qa.anchor + qb.anchor) * 0.5f;
+    vec2 dir = normalize(qb.anchor - qa.anchor + vec2(1e-4f, 0.f));
+    qa.anchor = mid - dir * (gap * 0.5f);
+    qb.anchor = mid + dir * (gap * 0.5f);
 }
 
 void releaseVenueSlot(GameWorld& g, VenueSlot& s, bool despawn) {
@@ -1192,6 +1286,7 @@ void releaseVenueSlot(GameWorld& g, VenueSlot& s, bool despawn) {
     }
     s.veh = -1;
     s.state = 0;
+    s.greet = -1;
 }
 
 // a venue vehicle with its driver aboard (and nobody else still walking to it) pulls away into the traffic; a cab with
@@ -1309,6 +1404,34 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
                     s.cooldown = 50.f + hashToFloat(hash32(V.visits * 131u + si * 7u + (u32)g.time)) * 50.f;
                     continue;
                 }
+                // a goodbye at the curb: a hug (a kiss on the cheek, a handshake) with the one who brought them, then in
+                // through the doors, the other waving after them (aiVenueStep)
+                if (s.mode == VM_FAREWELL && si + 1 < (int)V.slots.size() && V.slots[si + 1].follows && venuePedLive(g, V.slots[si + 1])) {
+                    int b = V.slots[si + 1].ped;
+                    PedAI& fa = g.pedAI(s.ped);
+                    PedAI& fb = g.pedAI(b);
+                    if (s.state == 0 && fa.actTimer < 5.5f && fa.actTimer > 1.f && fb.venueMode == VM_SEEOFF) {
+                        s.greet = (i8)greetPick(g, s.ped, b, hash32(g.peds[s.ped].uid * 5u + 1u), false);
+                        s.state = 1;
+                        if (s.greet >= 0) {
+                            greetBegin(g, s.ped, b, s.greet);
+                            s.state = 3;
+                            s.timer = 2.5f;
+                        }
+                        g.aiSay(b, BK_SENDOFF, 1.f, true);   // "have a safe flight!"
+                    } else if (s.state == 3) {
+                        s.timer -= dt;
+                        fa.actTimer = Max(fa.actTimer, 2.f);
+                        fb.actTimer = fa.actTimer + 1.5f;
+                        if (greetReady(g, s.ped, b) || s.timer <= 0.f) {
+                            float dur = greetStart(g, s.ped, b, s.greet);
+                            fa.actTimer = dur + 0.5f;         // (off the moment it is over)
+                            fb.actTimer = fa.actTimer + 1.5f;
+                            s.state = 1;
+                            g.aiSay(s.ped, BK_LEAVING, 1.f, true);   // "I'm going to miss you"
+                        }
+                    }
+                }
                 // a meeting at the curb: once the one coming out has reached the car, a hug and a few words, then both in
                 if (s.mode == VM_MEET && !s.follows && si + 1 < (int)V.slots.size() && V.slots[si + 1].follows && venueVehLive(g, s)) {
                     VenueSlot& o = V.slots[si + 1];
@@ -1323,6 +1446,26 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
                         pa2.stance = pb.stance = 7;
                         pa2.anchorYaw = AI::dirYaw(normalize(o.pos - s.pos + vec2(1e-4f, 0.f)));
                         pb.anchorYaw = AI::dirYaw(normalize(s.pos - o.pos + vec2(1e-4f, 0.f)));
+                        // there they are: a hug (a kiss on the cheek, a handshake), then a few words
+                        s.greet = (i8)greetPick(g, s.ped, o.ped, hash32(a.uid + b.uid * 7u), false);
+                        if (s.greet >= 0) {
+                            greetBegin(g, s.ped, o.ped, s.greet);
+                            s.state = 3;
+                            s.timer = 2.5f;
+                        }
+                        g.aiSay(s.ped, BK_ARRIVAL, 1.f, true);   // "there you are!"
+                    } else if (s.state == 3) {
+                        s.timer -= dt;
+                        if (greetReady(g, s.ped, o.ped) || s.timer <= 0.f) {
+                            s.timer = greetStart(g, s.ped, o.ped, s.greet) + 4.f + hashToFloat(hash32(a.uid * 3u + b.uid)) * 5.f;
+                            s.state = 1;
+                        }
+                    } else if (s.state == 1 && s.greet >= 0 && pa2.greetT <= 0.f && pb.greetT <= 0.f) {
+                        // the greeting over: a step back, and a few words
+                        greetPart(g, s.ped, o.ped, 0.8f);
+                        pa2.stance = pb.stance = 7;
+                        s.greet = -1;
+                        g.aiSay(o.ped, BK_ARRIVED, 1.f, true);   // "so good to see you!"
                     } else if (s.state == 1) {
                         s.timer -= dt;
                         if (s.timer <= 0.f) {
@@ -1561,6 +1704,7 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
             s.ped = id;
             s.pedUid = p.uid;
             s.state = 0;
+            s.greet = -1;
             if (s.every > 0.f) s.cooldown = s.every;
         }
     }
@@ -1591,7 +1735,7 @@ bool aiVenueStep(GameWorld& g, int id, float dt) {
     u32 hq = hash32(p.uid * 5u + (u32)(g.time * 2.0));
     // a flashy car rolling by slowly: a point and a word - without leaving the post
     const Ped* pl = g.playerPed();
-    if (pl && there && pl->state == PS_INVEHICLE && pl->vehicle >= 0 && p.pendingAction < 0 && pa.barkCooldown <= 0.f && pa.venueMode != VM_SIT &&
+    if (pl && there && pl->state == PS_INVEHICLE && pl->vehicle >= 0 && p.pendingAction < 0 && pa.greetWith < 0 && pa.barkCooldown <= 0.f && pa.venueMode != VM_SIT &&
         pa.venueMode != VM_BOARD) {
         const Vehicle& pv = g.vehicles[pl->vehicle];
         Vehicles::VehicleClass cls = g.vassets[pv.model].spec.cls;
@@ -1630,6 +1774,21 @@ bool aiVenueStep(GameWorld& g, int id, float dt) {
                 }
                 p.pendingAction = rolling ? Anim::CLIP_WAVE : (hq % 5 == 0 ? Anim::CLIP_POINT : Anim::CLIP_IDLE_LOOK);
                 pa.clipTimer = rolling ? 6.f : 6.f + hashToFloat(hq) * 8.f;
+            }
+            break;
+        case VM_TALK:
+        case VM_SEAT:
+            // a circle / a table talking among themselves: now and then one of them says something and the others turn to
+            // listen (peds.cpp startLipSync) - near the player only (speech is only heard close to the camera), and only
+            // with someone there to talk to
+            if (idle && pa.barkCooldown <= 0.f && pl && length(pl->pos.toVec3().xy() - pos) < 16.f) {
+                pa.clipTimer = 4.f + hashToFloat(hq) * 6.f;
+                std::vector<int> around;
+                g.pedsNear(pos, 2.6f, around);
+                bool company = false;
+                for (int o : around) company |= o != id && !g.peds[o].isPlayer && g.peds[o].state == PS_ONFOOT && o < (int)g.ai.ped.size() &&
+                                              g.ai.ped[o].uid == g.peds[o].uid && g.ai.ped[o].activity == ACT_VENUE;
+                if (company) g.aiSay(id, BK_SMALLTALK, 0.3f);
             }
             break;
         case VM_STAND:

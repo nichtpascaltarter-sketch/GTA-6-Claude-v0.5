@@ -284,6 +284,25 @@ void GameWorld::submitCarry(int i, const Render::DrawItem& body) {
         vec3 zz = normalize(z - y * dot(z, y));
         return mat3(cross(y, zz), y, zz);
     };
+    // a greeting (hug, handshake, cheek kiss) takes the hands to the partner: the case stands on its wheels by the right
+    // foot and, for a hug or a kiss, a bag or briefcase is set down by the left foot (the ped stays put for the clip).
+    // Both are taken back when the clip is done: the hands are still well away from the partner at its start and end,
+    // so the handover does not show.
+    int act = p.anim.action;
+    bool greeting = (act == Anim::CLIP_HUG || act == Anim::CLIP_HANDSHAKE || act == Anim::CLIP_CHEEK_KISS) && !p.anim.actionDone();
+    if (greeting && carry == CARRY_SUITCASE) {
+        d.rot = mat3(right, fwd, up);
+        d.pos = p.pos + dvec3(right * 0.3f - fwd * 0.4f);
+        dyn->submit(d);
+        return;
+    }
+    if (greeting && act != Anim::CLIP_HANDSHAKE && (carry == CARRY_SHOPBAG || carry == CARRY_BRIEFCASE)) {
+        float hang = carry == CARRY_SHOPBAG ? 0.42f : 0.35f;   // handle origin above the bag's bottom
+        d.rot = frame(fwd, up);
+        d.pos = p.pos + dvec3(-right * 0.28f + fwd * 0.05f + up * hang);
+        dyn->submit(d);
+        return;
+    }
     switch (carry) {
         case CARRY_SUITCASE: {
             // wheels on the ground behind the hand at the handle's length: pulled at whatever angle that gives

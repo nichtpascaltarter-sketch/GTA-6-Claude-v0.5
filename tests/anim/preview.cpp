@@ -376,6 +376,15 @@ static void runScenario(int sc, float t, AnimInput& in) {
         case 36:   // queueing (stance 23)
             in.stance = 23;
             break;
+        case 38:   // falling (a long drop from 0.2 s)
+            in.inAir = t > 0.2f;
+            break;
+        case 37: {   // looking at a point 60 degrees to the left, switching to one 45 degrees to the right at 1 s
+            float a = t < 1.f ? 1.05f : -0.8f;
+            in.lookAt = vec3(-sinf(a) * 3.f, cosf(a) * 3.f, 1.6f);
+            in.lookWeight = 1.f;
+            break;
+        }
         default: break;
     }
 }
@@ -489,6 +498,22 @@ int main(int argc, char** argv) {
             }
         }
         if (const char* gl = getenv("PREVIEW_GENDERS")) ch.d.gender = gl[(size_t)i % strlen(gl)] == 'f' ? FEMALE : MALE;
+        if (const char* hl = getenv("PREVIEW_HATS")) {   // hat per character (comma list, -1 none)
+            int k = 0;
+            for (const char* q = hl; *q; k++) {
+                if (k == i) ch.d.hat = atoi(q);
+                while (*q && *q != ',') q++;
+                if (*q == ',') q++;
+            }
+        }
+        if (const char* hl = getenv("PREVIEW_HEIGHTS")) {   // height per character (comma list)
+            int k = 0;
+            for (const char* q = hl; *q; k++) {
+                if (k == i) ch.d.height = (float)atof(q);
+                while (*q && *q != ',') q++;
+                if (*q == ',') q++;
+            }
+        }
         if (const char* ag = getenv("PREVIEW_AGES")) {
             std::vector<float> al;
             for (const char* q = ag; *q;) {
@@ -610,7 +635,50 @@ int main(int argc, char** argv) {
             }
             pose = an.pose;
         }
-        if (scenario > 0) {
+        if (const char* gc = getenv("PREVIEW_GREET")) {
+            // a greeting between characters 0 and 1 (--count 2 --spacing 0): facing each other pairDistance apart, both
+            // animators stepped together, each given the other's chest (head for the kiss) as grabTarget
+            static Pose gp[2];
+            static float gd = 0.f;
+            Clip gcl = (Clip)atoi(gc);
+            if (i == 0 && count >= 2) {
+                Animator an[2];
+                for (int k = 0; k < 2; k++) {
+                    an[k].init(&chars[k].sk, 7u + (u32)k * 7919u);
+                    an[k].setCharacter(chars[k].d);
+                }
+                gd = pairDistance(gcl, chars[0].sk, chars[1].sk);
+                const float dt = 1.f / 60.f;
+                const int bone = gcl == CLIP_CHEEK_KISS ? B_HEAD : B_CHEST;
+                const bool fit = getenv("PREVIEW_NOFIT") == nullptr;
+                for (float tt = 0.f; tt < t; tt += dt) {
+                    vec3 pb[2];
+                    for (int k = 0; k < 2; k++) {
+                        quat q;
+                        detail::boneModel(chars[k].sk, an[k].pose, bone, q, pb[k]);
+                    }
+                    for (int k = 0; k < 2; k++) {
+                        AnimInput in;
+                        in.action = tt < 0.5f * dt ? (int)gcl : -1;
+                        if (tt < 0.25f) in.action = (int)gcl;
+                        vec3 o = pb[1 - k];
+                        in.grabTarget = vec3(-o.x, gd - o.y, o.z);   // the partner turned round, gd ahead
+                        in.grabWeight = fit ? 1.f : 0.f;
+                        an[k].update(in, dt);
+                    }
+                }
+                gp[0] = an[0].pose;
+                gp[1] = an[1].pose;
+                printf("greeting %d: distance %.3f m, t %.2f\n", (int)gcl, gd, t);
+            }
+            if (i < 2) {
+                pose = gp[i];
+                if (i == 1) {
+                    scenRoot = vec3(0.f, gd, 0.f);
+                    scenYaw = kPi;
+                }
+            }
+        } else if (scenario > 0) {
             // run the Animator with scripted inputs up to time ti (character i: ti = t + i * dt)
             Animator an;
             an.init(&ch.sk, scenario == 35 || scenario == 36 ? 7u + (u32)i * 7919u : 7u);

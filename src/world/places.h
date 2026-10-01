@@ -14,8 +14,8 @@ namespace World {
 // Site layout pass (SiteSet::layout, before the roads): reserve land, flatten, pads, buildings and elements
 void placesLayout(SiteSet& S, WorldMap& map);
 // After the lots are placed (BuildingSet::generate, before the per-cell lists): places fitted to the real streets
-// (churchyards, suburban and town hospitals) clear the generic buildings on their ground and add their own
-void placesAfterLots(WorldMap& map, const RoadNetwork& roads, std::vector<Building>& buildings, std::vector<FacadeGPU>& facades);
+// (churchyards, hospitals) clear the generic buildings on their ground and add their own
+void placesAfterLots(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs);
 // Facade records of the buildings the places build themselves (SiteSet::makeFacades): the element learns its building
 void placesFacades(SiteSet& S, BuildingSet& bs);
 // Final pass (SiteSet::finalize, before the per-cell element lists): details that need the roads (beach crossings)

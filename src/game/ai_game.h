@@ -64,6 +64,8 @@ enum PedActivity : u8 {
     ACT_LEAVE_CAR,     // just parked at the curb: round the back of the car to the sidewalk, then into a building nearby
     ACT_VENUE,         // a place's own working crowd (population.cpp venues): gate guards, dock workers, taxi drivers,
                        // travelers at the terminal curb, anglers on the causeway - see VenueMode
+    ACT_MEET,          // ran into someone they know on the sidewalk: a greeting, a few words, then on their way
+                       // (pedai.cpp aiStreetMeets)
 };
 
 // Ambient speech categories (barks.cpp)
@@ -74,6 +76,9 @@ enum BarkKind : int {
     BK_COP_ENGAGE, BK_COP_COVER, BK_COP_ARREST, BK_COP_DOWN, BK_MUGGER, BK_VICTIM, BK_ARGUE, BK_RACE, BK_MEDIC,
     BK_BREAKDOWN, BK_DIVE, BK_GUN_SEEN, BK_COP_SEARCH, BK_COP_BACKUP, BK_WITNESS_STOP, BK_JOG, BK_PHONE_CHAT, BK_BOUNCER, BK_ROAD_RAGE,
     BK_COP_MEGAPHONE, BK_NICE_CAR, BK_TICKET, BK_TICKETED,
+    BK_REUNION, BK_SMALLTALK, BK_PARTING,   // two acquaintances running into each other (pedai.cpp aiStreetMeets)
+    BK_ARRIVAL, BK_ARRIVED, BK_SENDOFF, BK_LEAVING,   // at the airport curb: the one waiting / the traveler, a pick-up and
+                                                      // a drop-off (population.cpp)
     BK_COUNT
 };
 
@@ -136,6 +141,9 @@ struct PedAI {
     u8 venueMode = 0;
     bool venueDriver = false;   // VM_BOARD: takes the wheel (else a passenger seat)
     bool goInside = false;      // a walker headed for a door (walk.dest): gone once there (population.cpp)
+    int greetWith = -1;         // a greeting (CLIP_HUG / HANDSHAKE / CHEEK_KISS, started on both together): the partner,
+                                // from stepping in until they part (peds.cpp: their chest / head for the hands) ...
+    float greetT = 0.f;         // ... and the time the clip has left (> 0 while it plays)
     i16 routeAt = 0;            // VM_JOG / VM_STROLL: the point of the venue route they are heading for
     i8 routeDir = 1;            // ... and which way along it
     vec2 anchorB;
@@ -284,6 +292,22 @@ struct AIState {
     bool bustHas[16] = {};
     int bustAmmo[16] = {}, bustClip[16] = {};
     int bustWeapon = 0;
+    // acquaintances who ran into each other on the sidewalk (pedai.cpp aiStreetMeets): a stop, a greeting, a chat
+    struct StreetMeet {
+        int a = -1, b = -1;             // (a noticed b)
+        u32 ua = 0, ub = 0;
+        i8 clip = -1;                   // the greeting (Anim::Clip)
+        u8 phase = 0;                   // 0 stepping in, 1 greeting, 2 talking, 3 parting
+        float t = 0.f;                  // time left in the phase
+        float sayT = 0.f;               // until the next line
+        u8 turn = 0;                    // who speaks next
+        u8 lines = 0;                   // lines said so far
+    };
+    std::vector<StreetMeet> meets;
+    float meetScan = 0.f;               // next look for two who know each other
+    float meetGap = 15.f;               // no new meeting before this (a few a minute at most round the player)
+    int meetsStarted = 0;
+    float meetBoost = 1.f;              // autoplay tests: acquaintances meet this many times as often
     bool ready = false;
 };
 

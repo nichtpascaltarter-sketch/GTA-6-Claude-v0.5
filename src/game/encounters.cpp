@@ -411,7 +411,7 @@ public:
                 stopT = sc >= 0 && vehicleSpeed(g, sc) < 1.5f && stageT > 4.f ? stopT + dt : 0.f;
                 float dist = ::length(anchor - playerPos(g));
                 if (d && d->done && dist > 90.f) {
-                    fail("The thief got away with the camera.");
+                    fail("The thief got away with the camera bag.");
                     break;
                 }
                 if (thiefDown || offBike || bikeDead || stopT > 3.f || (d && d->done)) {
@@ -420,7 +420,7 @@ public:
                     if (th >= 0 && g.peds[th].health > 0.f) {
                         if (g.peds[th].vehicle >= 0) g.removePedFromVehicle(th, true);
                         setFlee(g, th, g.player);
-                        say(g, thief, "Thief", "[scared]Take it! Take the stupid bag!", "[accent:latino:0.5]");
+                        say(g, thief, "Thief", "[scared]Take it! Take the stupid camera bag!", "[accent:latino:0.5]");
                     }
                     bag = spawnPackage(g, at + vec3(0.9f, 0.5f, 0.3f));
                     pickups.push_back(bag);
@@ -431,7 +431,7 @@ public:
                     setStage(3);
                     break;
                 }
-                if (dist > 380.f || stageT > 200.f) fail("The thief got away with the camera.");
+                if (dist > 380.f || stageT > 200.f) fail("The thief got away with the camera bag.");
                 break;
             }
             case 3:
@@ -442,10 +442,10 @@ public:
                     blipPed(victim, UI::BLIP_FRIEND, "Tourist");
                     gps(g, pedPos(g, v).xy());
                     setIdle(g, v, 14);
-                    obj(g, "Give the bag back to the ~b~tourist~s~, or keep the camera.");
+                    obj(g, "Give the camera bag back to the ~b~tourist~s~, or keep it.");
                     next();
                 } else if (stageT > 120.f) {
-                    fail("Somebody else walked off with the bag.");
+                    fail("Somebody else walked off with the camera bag.");
                 }
                 break;
             case 4: {
@@ -459,10 +459,10 @@ public:
                 if (close) {
                     facePed(g, v, playerPos(g));
                     say(g, victim, "Tourist", "[happy]You got it back! Every photo from my trip is on that card. Please, take this.", vTags);
-                    win(g, 1, 250, "BAG RETURNED");
+                    win(g, 1, 250, "CAMERA BAG RETURNED");
                 } else if (d > Max(bagDist0 + 220.f, 300.f)) {
                     sayMe(g, "[calm]Nice camera. The pawn shop on Ninth is going to love it.");
-                    win(g, 2, 600, "CAMERA KEPT");
+                    win(g, 2, 600, "CAMERA BAG KEPT");
                 }
                 break;
             }
@@ -1742,12 +1742,15 @@ public:
         (void)dt;
         int cv = encLiveVeh(g, car), o = encLive(g, owner);
         switch (stage) {
-            case 2:
-                if (stageT > 1.5f) {
+            case 2: {
+                // (toward the chop shop, let him get clear of the owner first: a car stopped by her goes straight back)
+                float away = cv >= 0 && o >= 0 ? ::length(vehPos(g, cv).xy() - pedPos(g, o).xy()) : 1e9f;
+                if (stageT > 1.5f && (want == 1 || away > 60.f || stageT > 15.f)) {
                     t.teleport(vehPos(g, cv) - vec3(g.vehicles[cv].sim.forward().xy() * 8.f, 0.f), 0.f);
                     testKill(g, t, {jacker});
                 }
                 break;
+            }
             case 3:
                 if (stageT > 0.8f && cv >= 0) {
                     if (g.playerVehicle() != cv) t.enter(cv);
@@ -2583,6 +2586,7 @@ void encountersUpdate(GameWorld& g, float dt) {
         e->update(g, dt);
         if (!e->seen && e->result == 0 && (encSees(g, e->anchor) || e->test)) {
             e->seen = true;
+            g.hudBigTime = -1.f;   // a new scene: whatever banner is still up (an earlier result) belongs to something else
             if (!gEnc.hinted && flag(g, EX_ENC_COUNT) == 0 && !e->test) {
                 gEnc.hinted = true;
                 g.help("Something is happening nearby. Get involved, or look the other way: it's your call.", 6.f);

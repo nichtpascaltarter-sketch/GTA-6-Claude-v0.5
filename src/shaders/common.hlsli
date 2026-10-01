@@ -199,6 +199,14 @@ float worley(float2 p, out float2 cellId) {
 }
 
 // Interleaved gradient noise for dithering / sample rotation
+// Per-pixel temporal jitter for accumulated effects (AO, contact shadows, PCF rotation): a static interleaved
+// gradient noise offset advanced by the golden ratio every frame, so each pixel steps through [0,1) evenly over
+// time. The temporal accumulation then converges to the pixel's mean instead of keeping a drifting residual of the
+// noise pattern (the regular dash grid that shifted per-frame IGN leaves on flat, ambient-lit walls).
+float ignTemporal(float2 pix, float frame, float salt) {
+    float n0 = frac(52.9829189 * frac(dot(pix + salt, float2(0.06711056, 0.00583715))));
+    return frac(n0 + frame * 0.6180339887);
+}
 float ign(float2 pix, float frame) {
     pix += frame * 5.588238;
     return frac(52.9829189 * frac(dot(pix, float2(0.06711056, 0.00583715))));

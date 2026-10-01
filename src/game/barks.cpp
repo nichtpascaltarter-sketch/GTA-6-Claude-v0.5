@@ -107,6 +107,34 @@ const Line kTicket[] = {{"[calm:0.5]License and registration, please.", 0}, {"[c
 const Line kTicketed[] = {{"[scared:0.3]Is there a problem, officer?", 0}, {"[angry:0.4]I was barely speeding!", LB_BOLD}, {"[scared:0.3]Sorry, officer, I'm late for work.", 0},
                           {"[angry:0.4]Come on, man, really?", 0}, {"[scared:0.3]Ay, no me diga.", LB_LUNA}, {"[scared:0.3]It's my cousin's car, I swear.", 0}};
 
+// two acquaintances running into each other on the sidewalk: the hello, a few words, the goodbye
+const Line kReunion[] = {{"[happy:0.7]Hey! Look who it is!", 0}, {"[happy:0.7]No way! How long has it been?", 0}, {"[happy:0.6]There you are! I was just thinking about you.", 0},
+                         {"[happy:0.6]Hey, stranger!", 0}, {"[happy:0.6]Well, look at you!", 0}, {"[happy:0.7]Oye! Mira quien es!", LB_LUNA},
+                         {"[happy:0.6]Que milagro, tanto tiempo!", LB_LUNA}, {"[happy:0.6]Hey! Back in town for the summer?", LB_BEACH},
+                         {"[happy:0.5]Hey! Still with the same firm?", LB_DOWNTOWN}};
+const Line kSmallTalk[] = {{"How's the family doing?", 0}, {"We have to get lunch one of these days.", 0}, {"Did you ever get that car fixed?", 0},
+                           {"Work's been crazy, you know how it is.", 0}, {"You still living over by the park?", 0}, {"Tell your mom I said hi.", 0},
+                           {"I saw your sister last week, she looks great.", 0}, {"Did you catch the game?", 0}, {"[happy:0.4]You look great, seriously.", 0},
+                           {"Are you still working nights?", 0}, {"Can you believe this heat?", 0}, {"My rent went up again, can you believe it?", 0},
+                           {"Y tu abuela, como sigue?", LB_LUNA}, {"Vamos a la fiesta del sabado?", LB_LUNA},
+                           {"Have you tried the new place on the promenade?", LB_BEACH}, {"The water's been perfect this week.", LB_BEACH},
+                           {"Still up on the twentieth floor?", LB_DOWNTOWN}, {"Traffic on the causeway this morning, unreal.", LB_DOWNTOWN}};
+const Line kParting[] = {{"[happy:0.5]Good seeing you!", 0}, {"[happy:0.5]Take care, okay?", 0}, {"[happy:0.5]Call me this week!", 0},
+                         {"[happy:0.4]Say hi to everyone for me.", 0}, {"[happy:0.4]Don't be a stranger!", 0}, {"[happy:0.4]Let's do that lunch, I mean it.", 0},
+                         {"[happy:0.5]Nos vemos!", LB_LUNA}, {"[happy:0.4]Cuidate, eh?", LB_LUNA}};
+
+// at the airport curb: the one who came to pick someone up, the traveler they came for; the one dropping someone off,
+// the traveler going in
+const Line kArrival[] = {{"[happy:0.7]There you are!", 0}, {"[happy:0.6]Welcome back!", 0}, {"[happy:0.5]How was the flight?", 0},
+                         {"[happy:0.6]You made it!", 0}, {"[happy:0.5]Look at you, all rested.", 0}, {"[happy:0.7]Bienvenida a casa!", LB_FEMALE},
+                         {"[happy:0.7]Bienvenido, hermano!", LB_MALE}};
+const Line kArrived[] = {{"[happy:0.6]So good to see you!", 0}, {"[happy:0.5]Thanks for picking me up.", 0}, {"[happy:0.4]I'm starving, let's go.", 0},
+                         {"[calm:0.5]That flight was forever.", 0}, {"[happy:0.6]Que alegria verte!", 0}, {"[happy:0.5]You didn't have to come, you know.", 0}};
+const Line kSendoff[] = {{"[happy:0.5]Have a safe flight!", 0}, {"[calm:0.5]Text me when you land.", 0}, {"[calm:0.4]Got your passport? Your charger?", 0},
+                         {"[happy:0.5]Buen viaje, eh?", 0}, {"[happy:0.4]Say hi to everyone up there.", 0}, {"[sad:0.4]Don't stay away so long this time.", 0}};
+const Line kLeaving[] = {{"[calm:0.5]I'll call you when I land.", 0}, {"[sad:0.5]I'm going to miss you.", 0}, {"[happy:0.4]Thanks for the ride.", 0},
+                         {"[calm:0.5]Te llamo cuando llegue.", 0}, {"[happy:0.4]See you in two weeks.", 0}, {"[calm:0.4]Water the plants, okay?", 0}};
+
 #define BANK(k, arr) {k, arr, (int)ARRAY_COUNT(arr)}
 const Bank kBanks[] = {
     BANK(BK_GREET, kGreet), BANK(BK_BUMP, kBump), BANK(BK_INSULT, kInsult), BANK(BK_PANIC, kPanic), BANK(BK_FLEE, kFlee),
@@ -121,6 +149,8 @@ const Bank kBanks[] = {
     BANK(BK_COP_BACKUP, kCopBackup), BANK(BK_WITNESS_STOP, kWitnessStop), BANK(BK_JOG, kJog), BANK(BK_PHONE_CHAT, kPhoneChat),
     BANK(BK_BOUNCER, kBouncer), BANK(BK_ROAD_RAGE, kRoadRage), BANK(BK_COP_MEGAPHONE, kCopMegaphone),
     BANK(BK_NICE_CAR, kNiceCar), BANK(BK_TICKET, kTicket), BANK(BK_TICKETED, kTicketed),
+    BANK(BK_REUNION, kReunion), BANK(BK_SMALLTALK, kSmallTalk), BANK(BK_PARTING, kParting),
+    BANK(BK_ARRIVAL, kArrival), BANK(BK_ARRIVED, kArrived), BANK(BK_SENDOFF, kSendoff), BANK(BK_LEAVING, kLeaving),
 };
 #undef BANK
 
@@ -169,9 +199,9 @@ void GameWorld::aiSay(int pid, int kind, float chance, bool important) {
     if (reg == World::REG_CALLE_LUNA || reg == World::REG_FLATS) want |= LB_LUNA;
     if (reg == World::REG_BEACH || reg == World::REG_KEY_CORAL) want |= LB_BEACH;
     if (reg == World::REG_DOWNTOWN || reg == World::REG_FINANCIAL) want |= LB_DOWNTOWN;
-    int candidates[16];
+    int candidates[24];
     int n = 0;
-    for (int i = 0; i < bank->count && n < 16; i++) {
+    for (int i = 0; i < bank->count && n < 24; i++) {
         u8 f = bank->lines[i].flags;
         if ((f & LB_BOLD) && pa.temper != 2) continue;
         if ((f & LB_TIMID) && pa.temper != 0) continue;

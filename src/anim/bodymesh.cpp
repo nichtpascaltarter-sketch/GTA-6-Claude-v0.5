@@ -45,6 +45,21 @@ static void addBodyPrims(BuildCtx& c) {
             float k = (D.weight - 0.55f) * 2.2f;
             S.ellipsoid(vec3(sx * D.waistHalfW * 0.82f, -0.02f * s, zH + 0.075f * s), vec3(0.05f, 0.065f, 0.05f) * (s * k), T, 0.04f * s);
         }
+    if (D.apron > 0.05f) {
+        // a very heavy belly's lower part hangs forward over the groin (the waistband sits under it)
+        const float k = D.apron;
+        S.ellipsoid(vec3(0, D.waistDepth * 0.4f + 0.03f * s * k, zH + (0.06f - 0.012f * k) * s),
+                    vec3(D.waistHalfW * (0.72f + 0.1f * k), D.waistDepth * (0.42f + 0.22f * k), (0.06f + 0.022f * k) * s), T, (0.03f + 0.02f * k) * s);
+    }
+    if (D.backFat > 0.05f)
+        for (int side = 0; side < 2; side++) {
+            // rolls on the back below the shoulder blades and over the lower ribs at the sides
+            const float sx = side ? 1.f : -1.f, k = D.backFat;
+            S.ellipsoid(vec3(sx * D.chestHalfW * 0.6f, -D.chestDepth * 0.66f, zC - 0.085f * s), vec3(0.06f, 0.028f + 0.012f * k, 0.042f) * (s * (0.6f + 0.4f * k)), T,
+                        (0.02f + 0.02f * k) * s);
+            S.ellipsoid(vec3(sx * D.chestHalfW * 0.9f, -0.012f * s, zC - 0.11f * s), vec3(0.03f + 0.012f * k, 0.06f, 0.045f) * (s * (0.6f + 0.4f * k)), T,
+                        (0.02f + 0.02f * k) * s);
+        }
     // ---- ribcage and chest
     S.ellipsoid(vec3(0, -0.012f * s, zC - 0.03f * s), vec3(D.chestHalfW * 0.97f, D.chestDepth * 0.96f, 0.158f * s), T, 0.04f * s);
     S.ellipsoid(vec3(0, -0.006f * s, zC + 0.062f * s), vec3(D.chestHalfW * 1.04f, D.chestDepth * 0.88f, 0.095f * s), T, 0.035f * s);
@@ -55,11 +70,21 @@ static void addBodyPrims(BuildCtx& c) {
             vec3 pr(0.066f * s, (0.022f + 0.018f * D.pecs) * s, 0.05f * s);
             S.ellipsoid(pc, pr, T, 0.03f * s, vec3(cosf(0.3f), 0, sx * sinf(0.3f) * 0.3f + 0.25f), vec3(0, 1, 0));
         }
+    if (D.chestFat > 0.05f)
+        for (int side = 0; side < 2; side++) {
+            // a heavy man's chest: soft, low and spread out sideways (no defined pectoral edge)
+            const float sx = side ? 1.f : -1.f, k = D.chestFat;
+            float rb = (0.04f + 0.024f * k) * s;
+            vec3 bc(sx * 0.07f * s, D.chestDepth * 0.56f + rb * 0.18f, zC - 0.018f * s - rb * 0.35f);
+            S.ellipsoid(bc, vec3(rb * 1.15f, rb * (0.55f + 0.2f * k), rb * 0.85f), T, (0.03f + 0.015f * k) * s, normalize(vec3(cosf(0.3f), sx * -sinf(0.3f), 0)),
+                        vec3(sx * sinf(0.3f), cosf(0.3f), 0));
+        }
     if (D.bust > 0.02f)
         for (int side = 0; side < 2; side++) {
             float sx = side ? 1.f : -1.f;
             float rb = (0.043f + 0.03f * D.bust) * s;
-            vec3 bc(sx * 0.074f * s, D.chestDepth * 0.62f + rb * 0.25f, zC - 0.008f * s - rb * 0.25f);
+            // (lower and a little flatter with age)
+            vec3 bc(sx * 0.074f * s, D.chestDepth * 0.62f + rb * (0.25f - 0.12f * D.sag), zC - 0.008f * s - rb * (0.25f + 0.35f * D.sag));
             vec3 ax = normalize(vec3(cosf(0.25f), sx * -sinf(0.25f), 0));
             S.ellipsoid(bc, vec3(rb * 1.02f, rb * 0.9f, rb * 0.92f), T, 0.035f * s, ax, vec3(sx * sinf(0.25f), cosf(0.25f), 0));
         }

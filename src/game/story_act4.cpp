@@ -8,9 +8,20 @@
 #include "missions.h"
 
 namespace Game {
+namespace Interiors {
+bool ready(const char* name);   // interiors_game.cpp: built (and streaming in first when it is not)
+}
 namespace mu {
 
 bool endedBroadcast(GameWorld& g) { return flag(g, EX_ENDING) != 2; }
+
+// A scene staged inside an interior waits (a few seconds at most) until the interior has streamed in: people placed in
+// an interior that is not built yet are pushed out by the building's shell
+bool interiorWait(const char* name, float& waited, float dt) {
+    if (!interiorStage(name).ok()) return false;
+    waited += dt;
+    return !Interiors::ready(name) && waited < 8.f;
+}
 
 // A cast member's voice under another name (a returning face: Chuy speaks with the Cuervo lieutenant's voice)
 void sayAs(GameWorld& g, int cast, int ped, const char* name, const std::string& text, float pause = 0.25f) {
@@ -84,7 +95,8 @@ bool swampLand(GameWorld& g, vec2 c, float minR, float maxR, float phase, vec3& 
 class MissionWake : public StoryMission {
 public:
     int lucha = -1, tomas = -1, kit = -1, dex = -1, cuervoCar = -1, nando = -1, driver = -1;
-    bool inDiner = false;
+    bool inDiner = false, waitingIn = false;
+    float waitT = 0.f;
     vec3 front;
     const char* title() const override { return "Wake"; }
     const char* brief() const override {
@@ -130,6 +142,20 @@ public:
             beginChase(g);
             return;
         }
+        // the dinner is staged inside the diner: at the door until it has streamed in
+        if (interiorStage("Mama Lucha's").ok() && !Interiors::ready("Mama Lucha's")) {
+            placePlayer(g, placeOffset(g, P.diner, -1.f, 0.5f), P.diner.yaw);
+            g.fadeAlpha = 1.f;   // (black until the scene is set)
+            g.fadeOut(100.f);
+            waitingIn = true;
+            return;
+        }
+        stageDinner(g);
+    }
+
+    void stageDinner(GameWorld& g) {
+        const Places& P = gPlaces;
+        bool bc = endedBroadcast(g);
         // the dinner inside the diner when the world has it: Lucha behind the counter, the crew along it
         InteriorStage in = interiorStage("Mama Lucha's");
         vec3 counterL, waiterL;
@@ -255,7 +281,12 @@ public:
     }
 
     MissionStatus update(GameWorld& g, float dt) override {
-        (void)dt;
+        if (waitingIn) {
+            if (interiorWait("Mama Lucha's", waitT, dt)) return MS_RUNNING;
+            waitingIn = false;
+            stageDinner(g);
+            g.fadeIn(1.3f);
+        }
         if (allyDown(g, dex, "Dex")) return MS_FAILED;
         switch (stage) {
             case 0:
@@ -378,7 +409,8 @@ public:
     int found = 0;
     vec3 boatWater, boatQuay, entry;
     std::vector<int> chasers;
-    float repath = 0.f;
+    float repath = 0.f, waitT = 0.f;
+    bool waitingIn = false;
     const char* title() const override { return "Box Numbers"; }
     const char* brief() const override {
         return "Nando's phone held three Sable Maritime container numbers. Get into the Port Isle container yard at night, open all three "
@@ -527,6 +559,19 @@ public:
             beginYard(g);
             return;
         }
+        // the briefing is staged in Rook's garage: outside until it has streamed in
+        if (interiorStage("Rook's Garage").ok() && !Interiors::ready("Rook's Garage")) {
+            placePlayer(g, placeOffset(g, P.rookShop, 0.f, 0.5f), P.rookShop.yaw);
+            g.fadeAlpha = 1.f;   // (black until the scene is set)
+            g.fadeOut(100.f);
+            waitingIn = true;
+            return;
+        }
+        stageBriefing(g);
+    }
+
+    void stageBriefing(GameWorld& g) {
+        const Places& P = gPlaces;
         // the briefing in Rook's garage when the world has it
         InteriorStage in = interiorStage("Rook's Garage");
         vec3 liftL;
@@ -558,6 +603,12 @@ public:
     }
 
     MissionStatus update(GameWorld& g, float dt) override {
+        if (waitingIn) {
+            if (interiorWait("Rook's Garage", waitT, dt)) return MS_RUNNING;
+            waitingIn = false;
+            stageBriefing(g);
+            g.fadeIn(1.3f);
+        }
         switch (stage) {
             case 0:
                 if (!g.mInCutscene() && !g.mTalking()) {
@@ -867,8 +918,10 @@ public:
         std::vector<CutsceneShot> shots;
         const World::MetroStation& S = stationAt(station);
         vec3 plat = vec3(S.pos, S.platformZ());
-        shots.push_back(shotMove(plat + vec3(-S.dir * 70.f + S.right() * 30.f, 14.f), plat + vec3(0, 0, 2.f), plat + vec3(-S.dir * 50.f + S.right() * 26.f, 10.f),
-                                 plat + vec3(0, 0, 1.5f), 6.f, 50.f));
+        // from the side of the viaduct and above the street, where nothing stands between the lens and the platform
+        if (!establish(g, shots, plat, atan2f(-S.dir.x, S.dir.y) + kPi * 0.5f, 60.f, 20.f, 6.f, 50.f))
+            shots.push_back(shotMove(plat + vec3(S.right() * 70.f, 45.f), plat + vec3(0, 0, 2.f), plat + vec3(S.right() * 55.f, 35.f), plat + vec3(0, 0, 1.5f),
+                                     6.f, 50.f));
         shots.push_back(shotOver(playerPos(g), plat, 5.f));
         g.mCutscene(shots);
 #ifdef HAVE_AUDIO
@@ -1836,7 +1889,7 @@ public:
     vec3 quay, gangway;
     int choice = 0;
     int endPhase = 0;
-    float endT = 0.f, runT = 0.f;
+    float endT = 0.f, runT = 0.f, stormCheck = 20.f, whWait = 0.f;
     bool holtYielded = false;
     const char* title() const override { return "King Tide"; }
     const char* brief() const override {
@@ -2185,6 +2238,12 @@ public:
 
     MissionStatus update(GameWorld& g, float dt) override {
         if (allyDown(g, dex, "Dex")) return MS_FAILED;
+        // the storm holds until the epilogue (the weather cycle would otherwise clear it mid-mission)
+        stormCheck -= dt;
+        if (stage < 9 && stormCheck <= 0.f) {
+            stormCheck = 20.f;
+            if (g.env && g.env->rain < 0.6f) requestWeather(WX_STORM, false);
+        }
         switch (stage) {
             case 0:
                 if (!g.mInCutscene() && !g.mTalking()) beginYard(g);
@@ -2208,7 +2267,7 @@ public:
                 break;
             case 3:
                 updateBuddy(g);
-                if (arrived(g) && g.playerVehicle() < 0) {
+                if (arrived(g) && g.playerVehicle() < 0 && !interiorWait("Port Isle Warehouse", whWait, dt)) {
                     clearGoal(g);
                     warehouseScene(g);
                 }

@@ -344,16 +344,29 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
                 vec3 tint = lc * r.range(0.9f, 1.08f);
                 leafCluster(m, c, cr * (bush ? 0.8f : (oak ? 0.6f : 0.75f)) + r.range(0.f, 0.5f), foliageColor(tint, layer), makeMat(MAT_LEAVES), r);
             }
-            // Spanish moss hanging from oak limbs (some specimens)
+            // Spanish moss hanging from oak limbs (some specimens): clumps of thin grey-green strands tapering to a point, each
+            // turned its own way (a flat card read as a pale pane edge-on and as a dark bar from the side)
             if (oak && (variant & 2)) {
                 for (vec3 tp : tips) {
                     int nm = r.irange(1, 2);
                     for (int j = 0; j < nm; j++) {
                         vec3 c = tp + vec3(r.range(-0.8f, 0.8f), r.range(-0.8f, 0.8f), -r.range(0.2f, 0.6f));
-                        float a = r.f() * kPi;
                         float len = r.range(0.9f, 1.8f);
-                        card(m, c - vec3(0, 0, len), vec3(cosf(a), sinf(a), 0), vec3(0, 0, 1), 0.7f, len, foliageColor(vec3(0.75f, 0.78f, 0.62f), FOL_GRASS),
-                             makeMat(MAT_LEAVES));
+                        vec3 col = vec3(0.56f, 0.6f, 0.5f) * r.range(0.88f, 1.08f);
+                        u32 mc = packRGBA8(col.x, col.y, col.z, 1.f), mm = makeMat(MAT_PLASTER);
+                        for (int s = 0; s < 6; s++) {
+                            float a = r.f() * kTwoPi;
+                            vec3 side(cosf(a), sinf(a), 0.f);
+                            vec3 top = c + vec3(r.range(-0.3f, 0.3f), r.range(-0.3f, 0.3f), r.range(-0.1f, 0.1f));
+                            float l = len * r.range(0.5f, 1.f), w = r.range(0.035f, 0.07f);
+                            vec3 tip = top + vec3(r.range(-0.1f, 0.1f), r.range(-0.1f, 0.1f), -l);
+                            vec3 a0 = top - side * w, a1 = top + side * w;
+                            vec3 n = normalize(cross(a1 - a0, tip - a0));
+                            u32 i0 = m.addVertex(a0, n, side, vec2(0, 0), mc, mm), i1 = m.addVertex(a1, n, side, vec2(1, 0), mc, mm), i2 = m.addVertex(tip, n, side, vec2(0.5f, 1), mc, mm);
+                            m.tri(i0, i1, i2);
+                            u32 j0 = m.addVertex(a0, -n, side, vec2(0, 0), mc, mm), j1 = m.addVertex(a1, -n, side, vec2(1, 0), mc, mm), j2 = m.addVertex(tip, -n, side, vec2(0.5f, 1), mc, mm);
+                            m.tri(j0, j2, j1);
+                        }
                     }
                 }
             }

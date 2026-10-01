@@ -238,7 +238,7 @@ float3 localLightBRDF(GBufferData g, float3 N, float3 V, float3 L) {
 float contactShadow(float3 relPos, float viewDepth, uint2 pix) {
     float len = clamp(viewDepth * 0.012, 0.25, 2.5);
     const int steps = 10;
-    float jit = ign(float2(pix), gTime.z);
+    float jit = ignTemporal(float2(pix), gTime.z, 5.0);
     float thickness = max(0.2, viewDepth * 0.006);
     float3 stepV = gSunDir.xyz * (len / steps);
     float3 p = relPos + stepV * jit + gSunDir.xyz * viewDepth * 0.0006;
@@ -328,6 +328,9 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
     float3 ambientSpec = env * (f0 * ab.x + ab.y) * horizonOcclusion(R, N);
     if (g.shadingModel == SM_HAIR) ambientSpec *= lerp(float3(0.2, 0.2, 0.2), g.albedo * 1.2, 0.5);   // strands, not a mirror
     else if (g.shadingModel == SM_SKIN) ambientSpec *= 0.7;                                          // F0 0.028, not 0.04
+    // cloth: fibres scatter ambient light forward at grazing angles (a soft sheen rim tinted by the dye), which
+    // keeps clothing from reading flat and plastic in shade
+    if (g.shadingModel == SM_CLOTH) ambientSpec += lerp(float3(0.04, 0.04, 0.04), g.albedo, 0.6) * g.extra * ambIrr * aoMB * pow(1.0 - NoV, 3.0) * 0.5;
     return direct + ambientDiffuse + ambientSpec + coatSpecAmb;
 }
 
@@ -412,7 +415,9 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         color = g.albedo;
     } else {
         shadow = sampleSunShadow(relPos, g.normal, viewDepth, id.xy);
-        if (gRenderParams.z > 0.5 && shadow > 0.02 && viewDepth < 180.0 && dot(g.normal, gSunDir.xyz) > 0.0)
+        // contact shadows: not at grazing sun, where a march along the surface only finds the surface itself (the
+        // shadow map covers that case)
+        if (gRenderParams.z > 0.5 && shadow > 0.02 && viewDepth < 180.0 && dot(g.normal, gSunDir.xyz) > 0.2)
             shadow *= contactShadow(relPos, viewDepth, id.xy);
         aogi = upsampleAOGI(id.xy, linearDepth(depth), g.normal);
         ao = g.ao * aogi.a;

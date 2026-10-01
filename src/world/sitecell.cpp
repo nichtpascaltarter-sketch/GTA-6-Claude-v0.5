@@ -9,6 +9,8 @@
 #include "campus.cpp"
 #include "cemetery.cpp"
 #include "churchyard.cpp"
+#include "hospital.cpp"
+#include "outskirts.cpp"
 #include "places.cpp"
 
 namespace World {
@@ -125,6 +127,16 @@ void buildSiteCell(int cx, int cy, bool detail, CellGeometry& out) {
             case SK_CEMETERY_WALL: cemetery::genWall(e, g); break;
             case SK_CHAPEL: cemetery::genChapel(e, g); break;
             case SK_CHURCHYARD: churchyard::genChurchyard(e, g); break;
+            case SK_HOSPITAL: hospital::genBlock(e, g); break;
+            case SK_HOSPITAL_GROUNDS: hospital::genGrounds(e, g); break;
+            case SK_PRISON:
+                if (e.variant <= 3) outskirts::genPrisonBlock(e, g);
+                else if (e.variant == 4) outskirts::genSallyPort(e, g);
+                else if (e.variant == 5) outskirts::genPrisonGrounds(e, g);
+                else outskirts::guardTower(g, e.c, e.z, e.ax);
+                break;
+            case SK_PRISON_WALL: outskirts::genPrisonWall(e, g); break;
+            case SK_SPEEDWAY: outskirts::genSpeedway(e, g); break;
             default: break;
         }
     }

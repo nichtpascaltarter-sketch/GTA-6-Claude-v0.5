@@ -50,10 +50,13 @@ enum InternalClip : int {
 };
 inline int gaitClip(int style, int band) { return IC_GAIT_FIRST + style * kGaitBands + band; }
 void sampleClipId(const Skeleton& skel, int ci, float t, Pose& out, u32 variationSeed);
+void sampleClipLeg(const Skeleton& skel, int ci, float t, int side, Pose& out);   // one leg's bones only
 const ClipInfo& clipInfoId(int id);   // public or internal clip
 // Stance fraction of a locomotion clip's cycle (the left heel strikes at phase 0 and lifts off at the duty, the right
 // foot half a cycle later); 0 for clips that are not gaits.
 float clipDuty(int id);
+// How far a greeting clip (CLIP_HUG / CLIP_HANDSHAKE / CLIP_CHEEK_KISS) is into its contact at time t (0..1).
+float pairReach(int c, float t);
 // Leg length of a skeleton relative to the male reference the locomotion clips' strides are given for
 // (ClipInfo::speed * duration; the female bakes cover the same stride per leg length).
 float skeletonLegScale(const Skeleton& sk);
@@ -140,6 +143,11 @@ struct BodyDims {
     float zCrotch, zHip, zWaist, zNavel, zChestLine, zArmpit, zAcromion, zNeckFront, zNeckBack;
     float hipHalfW, hipDepth, waistHalfW, waistDepth, chestHalfW, chestDepth, shoulderHalfW;
     float glute, bust, belly, trap, pecs;
+    // build extremes: fat 0 (average and slimmer) .. 1 (very heavy), thin 0 (average and heavier) .. 1 (very slim), sag
+    // (age: breasts, belly and seat lower); the heavy body's extra fat deposits (0..1): a man's chest, the lower belly
+    // hanging over the groin, rolls on the back under the shoulder blades
+    float fat = 0, thin = 0, sag = 0;
+    float chestFat = 0, apron = 0, backFat = 0;
     float neckR;
     // arm/leg radii at key points
     float rShoulder, rUpperArm, rElbow, rForearm, rWrist;
@@ -488,8 +496,16 @@ struct OutfitCtx {
     // the outermost garment over the chest (top, then the outer layer): accessories that lie on the clothes (bag straps,
     // lanyards, headphones) are placed on it
     std::shared_ptr<GarmentDef> torsoOuter;
+    // uniform grid over the connected skin's vertices (built on first use by skinWeightsAt, clothing.cpp)
+    std::vector<std::vector<u32>> skinCells;
+    vec3 skinCellLo = vec3(0.f);
+    int skinCellN[3] = {0, 0, 0};
+    float skinCell = 0.f;
     OutfitCtx(BuildCtx& cc, MeshB& o, std::vector<u8>& h) : c(cc), out(o), hideBody(h) {}
 };
+// Skin weights of the connected skin surface near p (an inverse-distance blend of the nearest skin vertices of the
+// parts in `parts`): straps and ties lying on the skin move with the skin under them.
+SkinW skinWeightsAt(OutfitCtx& o, vec3 p, u32 parts);
 bool emitGarment(OutfitCtx& o, const GarmentDef& g);
 // Whether CharacterDesc::outer goes with the top (clothing.cpp; suits, uniforms, swimwear and bare chests take none).
 bool outerFits(const CharacterDesc& d);

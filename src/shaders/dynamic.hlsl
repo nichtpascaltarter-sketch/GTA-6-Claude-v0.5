@@ -160,9 +160,17 @@ float4 vsSkinnedShadow(VSInSkinned i) : SV_Position {
 }
 
 
+// Camera fade (a pedestrian between the camera and the player, or at the lens) as dither coverage. Below ~30% the
+// object is not drawn at all: a sparse dither of a body right in front of the camera reads as a grid of dark
+// dashes across whatever is behind it, and TAA cannot average so few samples. The threshold steps evenly through
+// [0,1) per pixel over time (golden ratio), so TAA converges to a smooth see-through body instead of a crawling
+// pattern.
+float camFadeCoverage() { return smoothstep(0.3, 1.0, gObjParams2.z); }
+void camFadeClip(float2 pix, float coverage) { clip(coverage - ignTemporal(pix, gTime.z, 3.0) - 0.002); }
+
 GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
-    // faded objects (a pedestrian between the camera and the player) dither out; TAA resolves the pattern
-    if (gObjParams2.z < 0.999) clip(gObjParams2.z - ign(i.pos.xy, gTime.z) - 0.002);
+    // faded objects (a pedestrian between the camera and the player) dither out
+    if (gObjParams2.z < 0.999) camFadeClip(i.pos.xy, camFadeCoverage());
     uint matId = i.mat & 0xffu;
     MaterialInfo m = tMaterials[matId];
     float3 N = normalize(i.nrm) * (front ? 1.0 : -1.0);
@@ -377,6 +385,22 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
             n = perturbBump(n, N, dPx, dPy, (h - 0.5) * 4e-5 * detailW);
             albedo *= 1.0 + (h - 0.5) * 0.1 * detailW;   // yarn tops catch a little more dye / light
         }
+        // Crease channel (param bit 2; garments mark knees, ankles, elbows, waist bunching, skirt flutes): vertex
+        // colour alpha = 1 - crease. Fine wrinkle ridges along the tangent (around the limb; uv.y runs along it),
+        // ~9 mm apart with a little wander, faded before they get closer than ~4 pixels; the troughs are occluded and
+        // read darker even in flat light.
+        float crease = ((i.mat >> 8) & 4u) != 0u ? saturate(1.0 - i.color.a) : 0.0;
+        if (crease > 0.0) {
+            const float P = 0.009;
+            float cw = saturate((P / mPerPx - 4.0) / 3.0);
+            if (cw > 0.0) {
+                float x = i.uv.y / P + (valueNoise(i.uv * 35.0) - 0.5) * 1.2;
+                float ridge = smoothstep(0.0, 1.0, 1.0 - abs(2.0 * frac(x) - 1.0));
+                n = perturbBump(n, N, dPx, dPy, (ridge - 0.5) * 0.06 * P * crease * cw);
+            }
+            ao *= 1.0 - 0.35 * crease;
+            albedo *= 1.0 - 0.12 * crease;
+        }
         rough = saturate((denim ? 0.78 : 0.86) * lerp(0.94, 1.06, valueNoise3(i.localPos * 20.0)));
         extra = denim ? 0.35 : 0.75;   // sheen strength
     } else if (matId == M_EYE) {
@@ -455,7 +479,7 @@ GBufferOut psHairCard(VSOut i, bool front : SV_IsFrontFace) {
     float seed = (float)((i.mat >> 12) & 0xffffu) * (1.0 / 65535.0);
     float rnd;
     float cov = hairCardCoverage(i.uv, kind, seed, i.color.a, fwidth(i.uv.x), rnd);
-    clip(cov * gObjParams2.z - ign(i.pos.xy, gTime.z) - 0.002);   // one threshold for coverage and fade
+    clip(cov * camFadeCoverage() - ignTemporal(i.pos.xy, gTime.z, 3.0) - 0.002);   // one threshold for coverage and fade
     float3 N = normalize(i.nrm) * (front ? 1.0 : -1.0);
     float3 T = i.tan - N * dot(i.tan, N);
     float tl = length(T);
@@ -502,7 +526,7 @@ void psHairCardShadow(VSCardShadowOut i) {
 // reflection and sun glint with Fresnel, tint absorption (vertex colour alpha = clarity: 1 clear windscreen .. 0
 // privacy glass), a dust film from the vehicle's dirt, aerial perspective and volumetric fog.
 float4 psGlass(VSOut i, bool front : SV_IsFrontFace) : SV_Target {
-    if (gObjParams2.z < 0.999) clip(gObjParams2.z - ign(i.pos.xy, gTime.z) - 0.002);
+    if (gObjParams2.z < 0.999) camFadeClip(i.pos.xy, camFadeCoverage());
     float3 N = normalize(i.nrm) * (front ? 1.0 : -1.0);
     float3 V = normalize(-i.rel);
     float NoV = saturate(dot(N, V));

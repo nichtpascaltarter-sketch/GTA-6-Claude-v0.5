@@ -96,17 +96,28 @@ void grave(G& g, const Frame& F, const Grave& gv, int style) {
     };
     auto mound = [&](float len) {   // the grave itself: a low grassy mound or a gravel bed behind the stone
         if (!detail) return;
-        vec2 mc = p - f * (len * 0.5f + 0.2f);
+        vec2 a = p - f * 0.2f, b = p - f * (len + 0.2f);
         bool gravel = r.chance(0.3f);
-        boxY(g, V3(mc, z - 0.04f), R, vec3(0.45f, len * 0.5f, 0.08f), gravel ? rgb(0.82f, 0.8f, 0.76f) : rgb(0.42f, 0.56f, 0.3f), gravel ? M(MAT_SAND) : M(MAT_GRASS));
+        float zm = z + 0.05f;
+        quad(g, *g.m, V3(a - R * 0.45f, zm), V3(a + R * 0.45f, zm), V3(b + R * 0.45f, zm), V3(b - R * 0.45f, zm), gravel ? rgb(0.82f, 0.8f, 0.76f) : rgb(0.56f, 0.8f, 0.4f),
+             gravel ? M(MAT_PLASTER) : M(MAT_GRASS), vec3(0, 0, 1));
     };
     switch (gv.kind) {
         case GK_ROUNDED: {
-            float w = r.range(0.5f, 0.7f), h = r.range(0.6f, 0.95f);
-            stone(w, h - w * 0.25f, 0.1f);
-            // rounded head: a short cylinder lying across the top
-            vec3 a = V3(p - R * (w * 0.5f), z + h - w * 0.25f), b = V3(p + R * (w * 0.5f), z + h - w * 0.25f);
-            if (detail) rod(g, a, b, w * 0.25f, 8, st, sm);
+            float w = r.range(0.5f, 0.7f), h = r.range(0.65f, 0.95f), t = 0.1f, rr = w * 0.5f;
+            stone(w, h - rr, t);
+            // round head: half discs on both faces and the curved edge between them
+            const float zs = z + h - rr;
+            const int seg = detail ? 7 : 3;
+            for (int sd = -1; sd <= 1; sd += 2)
+                cemetery::halfDisc(g, V3(p + f * (sd * t * 0.5f), zs), V3(R, 0.f), V3(f * (float)sd, 0.f), rr, seg, st, sm);
+            for (int k = 0; k < seg; k++) {
+                float a0 = kPi * k / seg, a1 = kPi * (k + 1) / seg;
+                vec3 d0 = V3(R * cosf(a0), sinf(a0)), d1 = V3(R * cosf(a1), sinf(a1));
+                vec3 c = V3(p, zs);
+                quad(g, *g.m, c + d0 * rr + V3(f * 0.05f, 0.f), c + d1 * rr + V3(f * 0.05f, 0.f), c + d1 * rr - V3(f * 0.05f, 0.f), c + d0 * rr - V3(f * 0.05f, 0.f), st, sm,
+                     normalize(d0 + d1));
+            }
             mound(1.9f);
             break;
         }
@@ -183,7 +194,7 @@ void grave(G& g, const Frame& F, const Grave& gv, int style) {
     if (detail && ((gv.h >> 21) % 7u) == 0u) {
         vec2 fp = p + f * 0.25f + R * r.range(-0.2f, 0.2f);
         const vec3 bloom[4] = {vec3(0.85f, 0.12f, 0.15f), vec3(1.f, 0.55f, 0.75f), vec3(1.f, 0.85f, 0.2f), vec3(0.97f, 0.97f, 0.95f)};
-        lathe(g, V3(fp, z), {vec2(0.05f, 0.f), vec2(0.18f, 0.12f), vec2(0.14f, 0.26f), vec2(0.f, 0.3f)}, 6, tint(bloom[(gv.h >> 25) & 3]), M(MAT_LEAVES), false);
+        lathe(g, V3(fp, z), {vec2(0.05f, 0.f), vec2(0.18f, 0.12f), vec2(0.14f, 0.26f), vec2(0.f, 0.3f)}, 6, tint(bloom[(gv.h >> 25) & 3]), M(MAT_PLASTER), false);
     }
 }
 
@@ -198,10 +209,10 @@ void genChurchyard(const SiteElem& e, G& g) {
     auto zAt = [&](vec2 q) { return gMap->heightAt(q.x, q.y); };
     const u32 white = rgb(0.96f, 0.96f, 0.94f), brick = rgb(0.6f, 0.3f, 0.24f), capC = rgb(0.8f, 0.78f, 0.72f), iron = rgb(0.07f);
     // ---- the grounds: mown grass over the plot, the brick path to the church door, the gravel path through the graveyard
-    drapeRect(g, F.P(0.f, D * 0.5f), F.along, W * 0.5f - 0.3f, D * 0.5f - 0.3f, 0.04f, rgb(0.46f, 0.6f, 0.33f), M(MAT_GRASS), detail ? 6.f : 20.f);
+    drapeRect(g, F.P(0.f, D * 0.5f), F.along, W * 0.5f - 0.3f, D * 0.5f - 0.3f, 0.04f, rgb(0.6f, 0.84f, 0.44f), M(MAT_GRASS), detail ? 6.f : 20.f);
     pathStrip(g, {F.P(doorU, -0.55f), F.P(doorU, frontV - 1.2f)}, 2.2f, 0.06f, rgb(0.8f, 0.62f, 0.52f), M(MAT_PAVERS), -1e9f, true, true);
-    pathStrip(g, {F.P(y.pathU, -0.55f), F.P(y.pathU, y.v1)}, 1.8f, 0.05f, rgb(0.84f, 0.82f, 0.77f), M(MAT_SAND), -1e9f, false, false);
-    pathStrip(g, {F.P(doorU + 1.1f, frontV - 2.f), F.P(y.pathU - 0.9f, frontV - 2.f)}, 1.6f, 0.05f, rgb(0.84f, 0.82f, 0.77f), M(MAT_SAND), -1e9f, false, false);
+    pathStrip(g, {F.P(y.pathU, -0.55f), F.P(y.pathU, y.v1)}, 1.8f, 0.05f, rgb(0.84f, 0.82f, 0.77f), M(MAT_PLASTER), -1e9f, false, false);
+    pathStrip(g, {F.P(doorU + 1.1f, frontV - 2.f), F.P(y.pathU - 0.9f, frontV - 2.f)}, 1.6f, 0.05f, rgb(0.84f, 0.82f, 0.77f), M(MAT_PLASTER), -1e9f, false, false);
     // ---- the boundary: picket fence or low brick wall with railings, gaps for the two paths
     auto fenceRun = [&](float ua, float va, float ub, float vb) {
         vec2 a = F.P(ua, va), b = F.P(ub, vb);
@@ -217,19 +228,33 @@ void genChurchyard(const SiteElem& e, G& g) {
                 // white pickets on two rails
                 vec2 d = normalize(p1 - p0);
                 float l = length(p1 - p0);
-                beam(g, V3(p0, z0 + 0.35f), V3(p1, z0 + 0.35f), 0.04f, 0.08f, white, M(MAT_WOOD));
-                beam(g, V3(p0, z0 + 0.85f), V3(p1, z0 + 0.85f), 0.04f, 0.08f, white, M(MAT_WOOD));
+                beam(g, V3(p0, z0 + 0.35f), V3(p1, z0 + 0.35f), 0.04f, 0.08f, white, M(MAT_PLASTER));
+                beam(g, V3(p0, z0 + 0.85f), V3(p1, z0 + 0.85f), 0.04f, 0.08f, white, M(MAT_PLASTER));
                 if (detail) {
-                    int np = Max(1, (int)(l / 0.16f));
-                    for (int q = 0; q <= np; q++) {
+                    int np = Max(1, (int)(l / 0.2f));
+                    for (int q = 0; q <= np; q++) {   // pickets: flat boards with pointed heads, seen from both sides
                         vec2 pp = p0 + d * (l * q / np) + perp(d) * 0.03f;
-                        boxY(g, V3(pp, z0 + 0.5f), d, vec3(0.035f, 0.012f, 0.55f), white, M(MAT_WOOD));
+                        vec3 b0 = V3(pp - d * 0.04f, z0 - 0.05f), b1 = V3(pp + d * 0.04f, z0 - 0.05f);
+                        vec3 t0 = V3(pp - d * 0.04f, z0 + 0.98f), t1 = V3(pp + d * 0.04f, z0 + 0.98f);
+                        panel2(g, b0, b1, t1, t0, white, M(MAT_PLASTER));
+                        tri3(g, t0, t1, V3(pp, z0 + 1.07f), white, M(MAT_PLASTER), V3(perp(d), 0.f));
+                        tri3(g, t0, t1, V3(pp, z0 + 1.07f), white, M(MAT_PLASTER), V3(-perp(d), 0.f));
                     }
-                } else quad(g, *g.m, V3(p0, z0), V3(p1, z0), V3(p1, z0 + 1.05f), V3(p0, z0 + 1.05f), white, M(MAT_WOOD), V3(perp(d), 0.f));
+                } else quad(g, *g.m, V3(p0, z0), V3(p1, z0), V3(p1, z0 + 1.05f), V3(p0, z0 + 1.05f), white, M(MAT_PLASTER), V3(perp(d), 0.f));
                 collide(g, V3(m, z0 + 0.55f), d, vec3(l * 0.5f, 0.06f, 0.55f));
             } else {
                 copedWall(g, p0, p1, z0 - 0.2f, 0.85f, 0.36f, brick, M(MAT_BRICK), capC, M(MAT_STONE), true);
-                if (detail) ironRailing(g, p0, p1, z0 + 0.75f, 0.8f, 0.2f, iron, true, false);
+                if (detail) {   // iron railing on the coping: two rails, flat bars
+                    vec2 d = normalize(p1 - p0);
+                    float l = length(p1 - p0);
+                    for (float zz : {0.8f, 1.5f}) beam(g, V3(p0, z0 + zz), V3(p1, z0 + zz), 0.03f, 0.03f, iron, M(MAT_METAL_PAINTED));
+                    int np = Max(1, (int)(l / 0.24f));
+                    for (int q = 0; q <= np; q++) {
+                        vec2 pp = p0 + d * (l * q / np);
+                        panel2(g, V3(pp - d * 0.012f, z0 + 0.72f), V3(pp + d * 0.012f, z0 + 0.72f), V3(pp + d * 0.012f, z0 + 1.62f), V3(pp - d * 0.012f, z0 + 1.62f), iron,
+                               M(MAT_METAL_PAINTED));
+                    }
+                }
             }
         }
     };
@@ -254,9 +279,9 @@ void genChurchyard(const SiteElem& e, G& g) {
             for (int s = -1; s <= 1; s += 2)
                 for (int t = -1; t <= 1; t += 2) {
                     vec2 pp = F.P(y.pathU + s * (gateHW + 0.1f), 0.3f + t * 0.8f);
-                    boxY(g, V3(pp, z0 + 1.2f), F.along, vec3(0.09f, 0.09f, 1.25f), white, M(MAT_WOOD));
+                    boxY(g, V3(pp, z0 + 1.2f), F.along, vec3(0.09f, 0.09f, 1.25f), white, M(MAT_PLASTER));
                 }
-            gableRoof(g, gc, F.along, 1.8f, gateHW * 2.f + 0.5f, z0 + 2.45f, 0.9f, 0.25f, rgb(0.32f, 0.33f, 0.36f), M(MAT_ROOF_SHINGLE), white, M(MAT_WOOD), true);
+            gableRoof(g, gc, F.along, 1.8f, gateHW * 2.f + 0.5f, z0 + 2.45f, 0.9f, 0.25f, rgb(0.32f, 0.33f, 0.36f), M(MAT_ROOF_SHINGLE), white, M(MAT_PLASTER), true);
             collide(g, V3(F.P(y.pathU - gateHW - 0.1f, 0.3f), z0 + 1.2f), F.along, vec3(0.12f, 0.9f, 1.2f));
             collide(g, V3(F.P(y.pathU + gateHW + 0.1f, 0.3f), z0 + 1.2f), F.along, vec3(0.12f, 0.9f, 1.2f));
         } else {
@@ -285,8 +310,8 @@ void genChurchyard(const SiteElem& e, G& g) {
     if (g.owns(sb)) {
         float z0 = zAt(sb);
         vec2 fr = -F.out;
-        for (int s = -1; s <= 1; s += 2) boxY(g, V3(sb + F.along * (s * 1.05f), z0 + 0.8f), F.along, vec3(0.06f, 0.06f, 0.85f), white, M(MAT_WOOD));
-        boxY(g, V3(sb, z0 + 1.35f), F.along, vec3(1.15f, 0.06f, 0.5f), style == 0 ? white : rgb(0.18f, 0.22f, 0.3f), M(MAT_WOOD));
+        for (int s = -1; s <= 1; s += 2) boxY(g, V3(sb + F.along * (s * 1.05f), z0 + 0.8f), F.along, vec3(0.06f, 0.06f, 0.85f), white, M(MAT_PLASTER));
+        boxY(g, V3(sb, z0 + 1.35f), F.along, vec3(1.15f, 0.06f, 0.5f), style == 0 ? white : rgb(0.18f, 0.22f, 0.3f), M(MAT_PLASTER));
         const u32 tc = style == 0 ? rgb(0.12f, 0.2f, 0.32f) : rgb(0.95f, 0.93f, 0.85f);
         const vec3 right = V3(vec2(F.out.y, -F.out.x), 0.f);   // reading left to right from the sidewalk
         const vec3 face = V3(sb + fr * 0.065f, 0.f);
@@ -325,93 +350,19 @@ void genChurchyard(const SiteElem& e, G& g) {
 }
 
 // ------------------------------------------------------------------------------------------------ placement
-struct Frontage {
-    int edge = -1;
-    vec2 c, along, out;   // plot centre; along the street; away from it
-    float lotLine = 0.f;  // distance from the street centre line to the lot line
-    float sidewalkC = 0.f;
-};
-
-// A straight street frontage for a plot W along the street and D deep nearest to `want` (within `radius`): clear of
-// other roads, dry, gently sloped, in region `reg`, off the site reservations
-bool findFrontage(const WorldMap& map, const RoadNetwork& roads, vec2 want, float radius, float W, float D, Region reg, Frontage* out) {
-    float best = 1e30f;
-    for (size_t ei = 0; ei < roads.edges.size(); ei++) {
-        const RoadEdge& e = roads.edges[ei];
-        if ((e.cls != RC_STREET && e.cls != RC_LANE) || (e.flags & (RF_BRIDGE | RF_ELEVATED | RF_UNPAVED)) || e.sidewalk < 1.f) continue;
-        if (e.length < W + e.cut0 + e.cut1 + 12.f || e.pts.size() < 2) continue;
-        vec2 a = e.pts.front().xy(), b = e.pts.back().xy();
-        if (distPointSegment2D(want, a, b) > radius) continue;
-        bool straight = true;
-        for (const vec3& p : e.pts) straight = straight && distPointSegment2D(p.xy(), a, b) < 0.8f;
-        if (!straight) continue;
-        vec2 along = normalize(b - a);
-        for (int side = -1; side <= 1; side += 2) {
-            vec2 o = vec2(along.y, -along.x) * (float)side;
-            float lot = e.halfWidth + e.sidewalk + 0.5f;
-            for (float s = e.cut0 + W * 0.5f + 6.f; s <= e.length - e.cut1 - W * 0.5f - 6.f; s += 6.f) {
-                vec2 c = e.posAt(s).xy() + o * (lot + D * 0.5f);
-                float d = length(c - want);
-                if (d >= best) continue;
-                bool ok = true;
-                float zmn = 1e9f, zmx = -1e9f;
-                for (float u = -W * 0.5f; u <= W * 0.5f + 0.01f && ok; u += 4.f)
-                    for (float v = -D * 0.5f + 1.5f; v <= D * 0.5f + 1.f && ok; v += 4.f) {
-                        vec2 p = c + along * u + o * v;
-                        if (map.isWater(p.x, p.y) || map.regionAt(p.x, p.y) != reg || roads.nearRoad(p, 1.5f) ||
-                            (gSites && (gSites->blocksLots(p) || gSites->blocksVegetation(p))))
-                            ok = false;
-                        float h = map.heightAt(p.x, p.y);
-                        zmn = Min(zmn, h);
-                        zmx = Max(zmx, h);
-                    }
-                if (!ok || zmx - zmn > 2.f) continue;
-                best = d;
-                out->edge = (int)ei;
-                out->c = c;
-                out->along = along;
-                out->out = o;
-                out->lotLine = lot;
-                out->sidewalkC = e.halfWidth + e.sidewalk * 0.5f;
-            }
-        }
-    }
-    return out->edge >= 0;
-}
-
-bool obbOverlap(vec2 c1, vec2 a1, float hx1, float hy1, vec2 c2, vec2 a2, float hx2, float hy2) {
-    const vec2 axes[4] = {a1, perp(a1), a2, perp(a2)};
-    vec2 d = c2 - c1;
-    for (const vec2& n : axes) {
-        float r1 = fabsf(dot(a1, n)) * hx1 + fabsf(dot(perp(a1), n)) * hy1;
-        float r2 = fabsf(dot(a2, n)) * hx2 + fabsf(dot(perp(a2), n)) * hy2;
-        if (fabsf(dot(d, n)) > r1 + r2) return false;
-    }
-    return true;
-}
-
 // Place one churchyard near `want` in region `reg`; the houses on the plot make way
 void placeOne(SiteSet& S, const WorldMap& map, const RoadNetwork& roads, std::vector<Building>& buildings, vec2 want, Region reg, int style, const char* name,
               u32 seed) {
     const float W = 62.f, D = 46.f;
     Frontage fr;
-    if (!findFrontage(map, roads, want, 420.f, W, D, reg, &fr)) {
+    if (!findFrontage(map, roads, want, 420.f, W, D, reg, (1u << RC_STREET) | (1u << RC_LANE), true, &fr)) {
         LOG("Places: no street frontage for %s near (%.0f, %.0f)", name, want.x, want.y);
         return;
     }
-    // clear the plot: buildings whose footprint or lot reaches into it
-    size_t before = buildings.size();
-    buildings.erase(std::remove_if(buildings.begin(), buildings.end(),
-                                   [&](const Building& b) {
-                                       if (b.siteElem >= 0 || length(b.c - fr.c) > 90.f) return false;
-                                       if (obbOverlap(fr.c, fr.along, W * 0.5f + 0.5f, D * 0.5f + 0.5f, b.c, b.ax, b.hx, b.hy)) return true;
-                                       float lhx = b.lotHx > 0.f ? b.lotHx : b.hx + 2.f;
-                                       return obbOverlap(fr.c, fr.along, W * 0.5f - 1.5f, D * 0.5f - 1.5f, b.lotC, b.ax, lhx, b.lotHy);
-                                   }),
-                    buildings.end());
-    const size_t removed = before - buildings.size();
+    const size_t removed = clearPlot(buildings, fr.c, fr.along, W * 0.5f, D * 0.5f);
     S.vegBlocks.push_back({fr.c, fr.along, W * 0.5f, D * 0.5f});
     S.lotBlocks.push_back({fr.c, fr.along, W * 0.5f, D * 0.5f});
+    claimedPlots.push_back({fr.c, fr.along, W * 0.5f, D * 0.5f});
     // the church at the left end of the frontage, the graveyard beside it
     const int variant = style == 0 ? 1 : 2;
     const float chw = style == 0 ? 5.f : 6.f, chl = style == 0 ? 9.5f : 12.f;
@@ -456,6 +407,7 @@ void placeOne(SiteSet& S, const WorldMap& map, const RoadNetwork& roads, std::ve
     y.p[6] = fr.out.x;
     y.p[7] = fr.out.y;
     y.text = name;
+    for (char& ch : y.text) ch = (char)toupper((unsigned char)ch);   // the sign board spells it in capitals
     S.elems.push_back(y);
     // registry, walks, people
     const int placeIdx = (int)S.places.size();
@@ -477,6 +429,8 @@ void placeOne(SiteSet& S, const WorldMap& map, const RoadNetwork& roads, std::ve
     walk(P(yd.pathU, y.p[5]), P(yd.pathU, churchV - chl - 2.f), 0.9f);
     walk(P(yd.pathU, churchV - chl - 2.f), P(yd.pathU, yd.v1), 0.9f);
     walk(P(churchU, churchV - chl - 2.f), P(yd.pathU, churchV - chl - 2.f), 0.8f);
+    // the church path and the graveyard gate stay clear of lamp posts and bus stops
+    for (float u : {churchU, yd.pathU}) keepClear(S, roads, P(u, y.p[5]), fr.along, 2.5f, fr.lotLine - fr.sidewalkC + 0.5f);
     u16 group = 1;
     S.anchors.push_back({vec3(P(churchU, y.p[5]), zAt(P(churchU, y.p[5]))), fr.out, PA_WAYPOINT, (u8)placeIdx, 0});
     S.anchors.push_back({vec3(P(churchU, doorV), zAt(P(churchU, doorV))), fr.out, PA_WAYPOINT, (u8)placeIdx, 0});
@@ -516,8 +470,8 @@ vec2 townCentre(const std::vector<Building>& buildings, Region reg) {
 
 void place(SiteSet& S, const WorldMap& map, const RoadNetwork& roads, std::vector<Building>& buildings) {
     vec2 oka = townCentre(buildings, REG_LAKE_TOWN), fort = townCentre(buildings, REG_FORT_CASTELL);
-    if (length(oka) > 1.f) placeOne(S, map, roads, buildings, oka, REG_LAKE_TOWN, 0, "OKAHATCHEE UNION CHURCH", 0xC401u);
-    if (length(fort) > 1.f) placeOne(S, map, roads, buildings, fort, REG_FORT_CASTELL, 1, "OLD FORT CHURCH", 0xC402u);
+    if (length(oka) > 1.f) placeOne(S, map, roads, buildings, oka, REG_LAKE_TOWN, 0, "Okahatchee Union Church", 0xC401u);
+    if (length(fort) > 1.f) placeOne(S, map, roads, buildings, fort, REG_FORT_CASTELL, 1, "Old Fort Church", 0xC402u);
 }
 
 }  // namespace churchyard

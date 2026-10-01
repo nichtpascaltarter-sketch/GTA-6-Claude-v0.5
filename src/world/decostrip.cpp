@@ -17,16 +17,20 @@ using namespace place_kit;
 
 struct Palette {
     vec3 wall, trim, accent, neon;
+    vec3 block;   // the contrasting colour block: centre bay, tower, fins, corner piers, rounded ends, parapet band
 };
+// Body colours are real pastels (they read near white in full sun if they are any paler); each scheme pairs its body with
+// a contrasting block colour: pink with aqua, mint with rose, lavender with gold, peach and lemon with sky
+// blue, white and coral with teal
 const Palette kPal[8] = {
-    {vec3(1.f, 0.8f, 0.83f), vec3(0.99f, 0.98f, 0.96f), vec3(0.93f, 0.42f, 0.58f), vec3(1.f, 0.2f, 0.62f)},     // flamingo
-    {vec3(0.78f, 0.97f, 0.87f), vec3(0.99f, 0.99f, 0.97f), vec3(0.18f, 0.66f, 0.58f), vec3(0.2f, 1.f, 0.85f)},   // mint
-    {vec3(0.87f, 0.82f, 1.f), vec3(0.98f, 0.97f, 1.f), vec3(0.52f, 0.38f, 0.84f), vec3(0.72f, 0.35f, 1.f)},      // lavender
-    {vec3(1.f, 0.86f, 0.72f), vec3(1.f, 0.97f, 0.9f), vec3(0.93f, 0.48f, 0.28f), vec3(1.f, 0.55f, 0.15f)},       // peach
-    {vec3(1.f, 0.96f, 0.72f), vec3(0.99f, 0.99f, 0.96f), vec3(0.3f, 0.6f, 0.74f), vec3(0.25f, 0.6f, 1.f)},       // lemon
-    {vec3(0.76f, 0.89f, 1.f), vec3(0.99f, 0.99f, 1.f), vec3(0.94f, 0.52f, 0.36f), vec3(1.f, 0.28f, 0.38f)},      // sky
-    {vec3(0.97f, 0.96f, 0.93f), vec3(0.97f, 0.97f, 0.95f), vec3(0.16f, 0.58f, 0.68f), vec3(0.25f, 0.95f, 1.f)},  // white
-    {vec3(1.f, 0.74f, 0.64f), vec3(1.f, 0.96f, 0.9f), vec3(0.16f, 0.52f, 0.54f), vec3(0.35f, 1.f, 0.5f)},        // coral
+    {vec3(0.99f, 0.7f, 0.77f), vec3(0.99f, 0.98f, 0.96f), vec3(0.93f, 0.42f, 0.58f), vec3(1.f, 0.2f, 0.62f), vec3(0.5f, 0.82f, 0.78f)},       // flamingo
+    {vec3(0.66f, 0.94f, 0.81f), vec3(0.99f, 0.99f, 0.97f), vec3(0.18f, 0.66f, 0.58f), vec3(0.2f, 1.f, 0.85f), vec3(0.98f, 0.64f, 0.66f)},     // mint
+    {vec3(0.8f, 0.74f, 0.99f), vec3(0.98f, 0.97f, 1.f), vec3(0.52f, 0.38f, 0.84f), vec3(0.72f, 0.35f, 1.f), vec3(1.f, 0.86f, 0.52f)},        // lavender
+    {vec3(1.f, 0.8f, 0.62f), vec3(1.f, 0.97f, 0.9f), vec3(0.93f, 0.48f, 0.28f), vec3(1.f, 0.55f, 0.15f), vec3(0.5f, 0.76f, 0.9f)},          // peach
+    {vec3(1.f, 0.93f, 0.56f), vec3(0.99f, 0.99f, 0.96f), vec3(0.3f, 0.6f, 0.74f), vec3(0.25f, 0.6f, 1.f), vec3(0.54f, 0.77f, 0.94f)},        // lemon
+    {vec3(0.64f, 0.84f, 0.99f), vec3(0.99f, 0.99f, 1.f), vec3(0.94f, 0.52f, 0.36f), vec3(1.f, 0.28f, 0.38f), vec3(0.97f, 0.62f, 0.5f)},      // sky
+    {vec3(0.97f, 0.96f, 0.93f), vec3(0.97f, 0.97f, 0.95f), vec3(0.16f, 0.58f, 0.68f), vec3(0.25f, 0.95f, 1.f), vec3(0.32f, 0.7f, 0.78f)},    // white
+    {vec3(1.f, 0.68f, 0.58f), vec3(1.f, 0.96f, 0.9f), vec3(0.16f, 0.52f, 0.54f), vec3(0.35f, 1.f, 0.5f), vec3(0.26f, 0.62f, 0.62f)},         // coral
 };
 const char* kNames[12] = {"THE CORALINE", "HOTEL MARISOL", "THE AZURELLE", "LA PERLITA", "THE LUNARIA",  "THE SEAWARD",
                           "THE PALOMITA", "HOTEL CIELITO", "THE ZEPHYRINE", "THE SEAFOAM", "THE ROSALIND", "BELLAMAR"};
@@ -122,14 +126,24 @@ void tableChairs(const Hotel& h, const TableSpot& t, vec2* pos, vec2* face) {
 }
 
 // ------------------------------------------------------------------------------------------------ mesh
-// Eyebrow ledge along the wall line p0..p1 (outward normal n), projecting `dep`, thickness th; optional neon on its edge
-void eyebrow(G& g, vec2 p0, vec2 p1, vec2 n, float z, float dep, float th, u32 col, bool neon, vec3 ncol, u32 anim) {
+// Eyebrow ledge along the wall line p0..p1 (outward normal n), projecting `dep`, thickness th; optional neon on its edge.
+// lipH > 0 hangs a fascia of that depth below the front edge in lipCol: from the street the ledge then reads as a bold
+// coloured band over a deep shadow line rather than a thin white stroke.
+void eyebrow(G& g, vec2 p0, vec2 p1, vec2 n, float z, float dep, float th, u32 col, bool neon, vec3 ncol, u32 anim, u32 lipCol = 0,
+             float lipH = 0.f) {
     vec2 d = normalize(p1 - p0);
     float L = length(p1 - p0);
     vec2 c = (p0 + p1) * 0.5f + n * (dep * 0.5f);
     boxY(g, vec3(c, z), d, vec3(L * 0.5f, dep * 0.5f, th * 0.5f), col, M(MAT_PLASTER), true);
-    if (neon && g.detail) neonTube(g, vec3(p0 + n * (dep + 0.03f), z - th * 0.5f + 0.02f), vec3(p1 + n * (dep + 0.03f), z - th * 0.5f + 0.02f), 0.025f, ncol, anim);
-    else if (neon) neonTube(g, vec3(p0 + n * (dep + 0.03f), z), vec3(p1 + n * (dep + 0.03f), z), 0.06f, ncol, anim);
+    float zb = z - th * 0.5f;   // lowest edge at the front
+    if (lipH > 0.f) {
+        float lt = 0.045f, lz1 = z + th * 0.5f + 0.02f;
+        zb -= lipH;
+        boxY(g, vec3((p0 + p1) * 0.5f + n * (dep + lt * 0.5f - 0.01f), (lz1 + zb) * 0.5f), d, vec3(L * 0.5f, lt * 0.5f, (lz1 - zb) * 0.5f), lipCol, M(MAT_PLASTER),
+             true);
+    }
+    if (neon && g.detail) neonTube(g, vec3(p0 + n * (dep + 0.07f), zb + 0.03f), vec3(p1 + n * (dep + 0.07f), zb + 0.03f), 0.025f, ncol, anim);
+    else if (neon) neonTube(g, vec3(p0 + n * (dep + 0.07f), zb + 0.05f), vec3(p1 + n * (dep + 0.07f), zb + 0.05f), 0.06f, ncol, anim);
 }
 
 // Quarter-round corner (streamline): plain stucco arc wall from angle a0 to a1 around centre cc, radius R
@@ -141,12 +155,16 @@ void arcWall(G& g, vec2 cc, float R, float a0, float a1, float z0, float z1, u32
         quad(g, *g.m, vec3(p0, z0), vec3(p1, z0), vec3(p1, z1), vec3(p0, z1), col, M(MAT_STUCCO), vec3(on, 0));
     }
 }
-void arcBand(G& g, vec2 cc, float R, float a0, float a1, float z, float dep, float th, u32 col, int seg, bool neon, vec3 ncol, u32 anim) {
+void arcBand(G& g, vec2 cc, float R, float a0, float a1, float z, float dep, float th, u32 col, int seg, bool neon, vec3 ncol, u32 anim, u32 lipCol = 0,
+             float lipH = 0.f) {
     for (int k = 0; k < seg; k++) {
         float t0 = Lerp(a0, a1, (float)k / seg), t1 = Lerp(a0, a1, (float)(k + 1) / seg);
         vec2 p0 = cc + vec2(cosf(t0), sinf(t0)) * R, p1 = cc + vec2(cosf(t1), sinf(t1)) * R;
         vec2 on = normalize((p0 + p1) * 0.5f - cc);
-        eyebrow(g, p0, p1, on, z, dep, th, col, neon, ncol, anim);
+        // widen each chord a little so the segments' outer corners meet round the curve
+        vec2 dd = normalize(p1 - p0);
+        float grow = (dep + 0.05f) * tanf(fabsf(t1 - t0) * 0.5f);
+        eyebrow(g, p0 - dd * grow, p1 + dd * grow, on, z, dep, th, col, neon, ncol, anim, lipCol, lipH);
     }
 }
 
@@ -156,9 +174,11 @@ void genHotel(const SiteElem& e, G& g) {
     const Palette& pl = kPal[h.pal];
     bool detail = g.detail;
     const u32 fac = (u32)e.p[7];
-    const u32 wallC = rgbv(pl.wall), trimC = rgbv(pl.trim), accC = rgbv(pl.accent);
+    const u32 wallC = rgbv(pl.wall), trimC = rgbv(pl.trim), accC = rgbv(pl.accent), blockC = rgbv(pl.block);
     const u32 stucco = M(MAT_STUCCO), plaster = M(MAT_PLASTER);
     const float zt = h.zt, H = h.H, top = zt + H;
+    // eyebrow ledges: deep enough to throw a real shadow line over the window heads, with a coloured fascia
+    const float browDep = 0.85f, browTh = 0.15f, browLip = 0.17f;
     const float zBot = h.z0 - 0.8f;   // walls start below the levelled ground (sidewalk level - 0.8)
     const vec2 f = h.f, a = h.a;
     Rng r(h.seed ^ 0xDEC0u);
@@ -199,7 +219,7 @@ void genHotel(const SiteElem& e, G& g) {
             float dlt = a1 - a0;
             while (dlt > kPi) dlt -= kTwoPi;
             while (dlt < -kPi) dlt += kTwoPi;
-            arcWall(g, cc, h.R, a0, a0 + dlt, zBot, top, wallC, seg);
+            arcWall(g, cc, h.R, a0, a0 + dlt, zBot, top, blockC, seg);   // the rounded ends are the colour blocks
         }
         polyFlat(g, *g.m, fp, top, rgb(0.82f), M(MAT_ROOF_GRAVEL));
     } else {
@@ -218,7 +238,9 @@ void genHotel(const SiteElem& e, G& g) {
             if (h.R > 0.f && fabsf(dot(d, f)) > 0.3f && fabsf(dot(d, a)) > 0.3f) continue;   // rounded corner (arc parapet below)
             if (dot(on, (p0 + p1) * 0.5f - h.c) < 0) on = -on;
             float L = length(p1 - p0);
-            boxY(g, vec3((p0 + p1) * 0.5f - on * 0.12f, top + ph * 0.5f), d, vec3(L * 0.5f, 0.12f, ph * 0.5f), wallC, stucco);
+            // the ziggurat's front parapet is a colour band running between its corner piers
+            u32 pc = h.tpl == T_ZIGGURAT && dot(on, f) > 0.9f ? blockC : wallC;
+            boxY(g, vec3((p0 + p1) * 0.5f - on * 0.12f, top + ph * 0.5f), d, vec3(L * 0.5f, 0.12f, ph * 0.5f), pc, stucco);
             boxY(g, vec3((p0 + p1) * 0.5f - on * 0.1f, top + ph + 0.05f), d, vec3(L * 0.5f + 0.06f, 0.2f, 0.05f), trimC, plaster, true);
         }
         if (h.R > 0.f && detail)
@@ -230,7 +252,7 @@ void genHotel(const SiteElem& e, G& g) {
                 for (int k = 0; k < 6; k++) {
                     float t0 = side + dlt * k / 6.f, t1 = side + dlt * (k + 1) / 6.f;
                     vec2 q0 = cc + vec2(cosf(t0), sinf(t0)) * (h.R - 0.12f), q1 = cc + vec2(cosf(t1), sinf(t1)) * (h.R - 0.12f);
-                    boxY(g, vec3((q0 + q1) * 0.5f, top + ph * 0.5f), normalize(q1 - q0), vec3(length(q1 - q0) * 0.5f + 0.02f, 0.12f, ph * 0.5f), wallC, stucco);
+                    boxY(g, vec3((q0 + q1) * 0.5f, top + ph * 0.5f), normalize(q1 - q0), vec3(length(q1 - q0) * 0.5f + 0.02f, 0.12f, ph * 0.5f), blockC, stucco);
                 }
             }
     }
@@ -238,6 +260,8 @@ void genHotel(const SiteElem& e, G& g) {
     const float frontV = hd;            // front wall plane (v)
     const float cwh = h.cw * 0.5f;      // half width of the centre bay
     const float wingIn = cwh + (h.tpl == T_STREAMLINE ? 0.f : 0.f);
+    // corner piers on the square designs: colour blocks framing the front (see below); the ledges stop against them
+    const float pierW = h.R > 0.f ? 0.f : 0.62f, pierOut = 0.3f, pierTop = top + 1.55f;
     for (int fl = 1; fl < h.F; fl++) {
         float zHead = zt + h.gh + (fl - 1) * h.fh + h.sill + h.winH;
         float z = zHead + 0.09f;
@@ -248,25 +272,25 @@ void genHotel(const SiteElem& e, G& g) {
                 float u = -hw + h.R + (bi + 0.5f) * h.bay;
                 if (fabsf(u) < cwh) continue;
                 float ww = h.bay * 0.62f;
-                eyebrow(g, h.P(u - ww * 0.5f, frontV), h.P(u + ww * 0.5f, frontV), f, z, 0.42f, 0.1f, trimC, false, ncol, anim);
-                if (detail) boxY(g, h.P3(u, frontV + 0.05f, z + 0.14f), a, vec3(ww * 0.32f, 0.05f, 0.05f), accC, plaster);
+                eyebrow(g, h.P(u - ww * 0.5f, frontV), h.P(u + ww * 0.5f, frontV), f, z, 0.64f, 0.13f, trimC, false, ncol, anim, accC, 0.14f);
+                if (detail) boxY(g, h.P3(u, frontV + 0.05f, z + 0.17f), a, vec3(ww * 0.32f, 0.05f, 0.05f), accC, plaster);
             }
         } else {
             // continuous bands across each wing, wrapping round the corners (streamline) or stopping at them
             for (int s = -1; s <= 1; s += 2) {
-                float u0 = s * (wingIn + 0.05f), u1 = s * (hw - h.R + (h.R > 0.f ? 0.f : 0.35f));
-                eyebrow(g, h.P(Min(u0, u1), frontV), h.P(Max(u0, u1), frontV), f, z, 0.55f, 0.1f, trimC, neon, ncol, anim);
+                float u0 = s * (wingIn + 0.05f), u1 = s * (hw - h.R - pierW);
+                eyebrow(g, h.P(Min(u0, u1), frontV), h.P(Max(u0, u1), frontV), f, z, browDep, browTh, trimC, neon, ncol, anim, accC, browLip);
                 if (h.R > 0.f) {
                     vec2 cc = h.P(s * (hw - h.R), hd - h.R);
                     float side = atan2f(a.y * s, a.x * s), base = atan2f(f.y, f.x), dlt = base - side;
                     while (dlt > kPi) dlt -= kTwoPi;
                     while (dlt < -kPi) dlt += kTwoPi;
-                    arcBand(g, cc, h.R, side, side + dlt, z, 0.55f, 0.1f, trimC, detail ? 6 : 2, neon, ncol, anim);
+                    arcBand(g, cc, h.R, side, side + dlt, z, browDep, browTh, trimC, detail ? 6 : 2, neon, ncol, anim, accC, browLip);
                     // and on round the side wall for a couple of bays
-                    eyebrow(g, h.P(s * hw, hd - h.R), h.P(s * hw, hd - h.R - 3.2f), a * (float)s, z, 0.55f, 0.1f, trimC, false, ncol, anim);
+                    eyebrow(g, h.P(s * hw, hd - h.R), h.P(s * hw, hd - h.R - 3.2f), a * (float)s, z, browDep, browTh, trimC, false, ncol, anim, accC, browLip);
                 } else if ((h.corners >> (s > 0 ? 1 : 0)) & 1) {
                     // corner hotel: the band turns the corner onto the cross-street facade
-                    eyebrow(g, h.P(s * hw, frontV + 0.55f), h.P(s * hw, frontV - 4.f), a * (float)s, z, 0.55f, 0.1f, trimC, neon, ncol, anim);
+                    eyebrow(g, h.P(s * hw, frontV - pierW), h.P(s * hw, frontV - 4.6f), a * (float)s, z, browDep, browTh, trimC, neon, ncol, anim, accC, browLip);
                 }
             }
         }
@@ -275,7 +299,7 @@ void genHotel(const SiteElem& e, G& g) {
     {
         float z = zt + h.gh - 0.62f;
         for (int s = -1; s <= 1; s += 2) {
-            float u0 = s * (cwh + 0.1f), u1 = s * (hw - h.R - 0.1f);
+            float u0 = s * (cwh + 0.1f), u1 = s * (hw - h.R - (pierW > 0.f ? pierW + 0.02f : 0.1f));
             eyebrow(g, h.P(Min(u0, u1), frontV), h.P(Max(u0, u1), frontV), f, z, 1.25f, 0.16f, accC, true, ncol, EA_NIGHT);
         }
         if (h.R > 0.f)
@@ -287,22 +311,33 @@ void genHotel(const SiteElem& e, G& g) {
                 arcBand(g, cc, h.R, side, side + dlt, z, 1.25f, 0.16f, accC, detail ? 6 : 2, true, ncol, EA_NIGHT);
             }
     }
-    // speed lines at the top corners (three ribs wrapping round)
-    if (detail && h.tpl != T_STREAMLINE) {
-        float zs = top - 1.1f;
-        for (int j = 0; j < 3; j++) {
-            float z = zs - j * 0.26f;
-            for (int s = -1; s <= 1; s += 2) {
-                boxY(g, h.P3(s * (hw - 1.3f), frontV + 0.05f, z), a, vec3(1.3f, 0.05f, 0.045f), accC, plaster);
-                boxY(g, h.P3(s * (hw + 0.05f), frontV - 1.3f, z), f, vec3(1.35f, 0.05f, 0.045f), accC, plaster);
-            }
+    // corner piers (square designs): full-height colour blocks at the front corners, a step above the parapet, crowned by
+    // three speed-line bands; proud of the side wall only where it faces a cross street
+    if (pierW > 0.f)
+        for (int s = -1; s <= 1; s += 2) {
+            bool street = (h.corners >> (s > 0 ? 1 : 0)) & 1;
+            float uIn = hw - pierW, uOut = hw + (street ? pierOut : 0.03f);
+            float vBack = frontV - (street ? pierW : pierOut), vFront = frontV + pierOut;
+            vec2 pc = h.P(s * (uIn + uOut) * 0.5f, (vBack + vFront) * 0.5f);
+            vec3 he((vFront - vBack) * 0.5f, (uOut - uIn) * 0.5f, (pierTop - zBot) * 0.5f);
+            boxY(g, vec3(pc, (pierTop + zBot) * 0.5f), f, he, blockC, stucco);
+            collide(g, vec3(pc, (pierTop + zt) * 0.5f), f, vec3(he.x, he.y, (pierTop - zt) * 0.5f));
+            boxY(g, vec3(pc, pierTop + 0.07f), f, vec3(he.x + 0.07f, he.y + 0.07f, 0.07f), trimC, plaster, true);
+            if (detail)
+                for (int j = 0; j < 3; j++) boxY(g, vec3(pc, pierTop - 0.32f - j * 0.26f), f, vec3(he.x + 0.03f, he.y + 0.03f, 0.05f), trimC, plaster);
         }
-    }
     if (detail && h.tpl == T_STREAMLINE) {
-        // racing stripes along the whole top band and round the arcs
-        for (int j = 0; j < 3; j++) {
-            float z = top - 0.55f - j * 0.24f;
-            boxY(g, h.P3(0.f, frontV + 0.04f, z), a, vec3(hw - h.R, 0.045f, 0.04f), accC, plaster);
+        // racing stripes: three white bands round each rounded end on the parapet, running on along the side wall
+        for (int s = -1; s <= 1; s += 2) {
+            vec2 cc = h.P(s * (hw - h.R), hd - h.R);
+            float side = atan2f(a.y * s, a.x * s), base = atan2f(f.y, f.x), dlt = base - side;
+            while (dlt > kPi) dlt -= kTwoPi;
+            while (dlt < -kPi) dlt += kTwoPi;
+            for (int j = 0; j < 3; j++) {
+                float z = top + 0.2f + j * 0.24f;
+                arcBand(g, cc, h.R, side, side + dlt, z, 0.08f, 0.1f, trimC, 6, false, ncol, anim);
+                eyebrow(g, h.P(s * hw, hd - h.R), h.P(s * hw, hd - h.R - 4.f), a * (float)s, z, 0.08f, 0.1f, trimC, false, ncol, anim);
+            }
         }
     }
     // ---------------------------------------------------------------- centre bay (projects from the front wall)
@@ -310,7 +345,8 @@ void genHotel(const SiteElem& e, G& g) {
     const float cTop = top + (h.tpl == T_STREAMLINE ? 0.f : (h.tpl == T_TOWER ? h.towerH * 0.45f : (h.tpl == T_ZIGGURAT ? 0.9f : 1.6f)));
     {
         std::vector<vec2> cb = rectPoly(h.P(0.f, frontV + h.cp * 0.5f - 0.3f), f, h.cp * 0.5f + 0.3f, cwh);
-        prism(g, cb, zBot, cTop, wallC, stucco, trimC, plaster, true);
+        // the centre bay is a colour block (between the twin fins it keeps the body colour so the fins stand out)
+        prism(g, cb, zBot, cTop, h.tpl == T_TWINFIN ? wallC : blockC, stucco, trimC, plaster, true);
         collide(g, vec3(h.P(0.f, frontV + h.cp * 0.5f - 0.3f), (zt + cTop) * 0.5f), f, vec3(h.cp * 0.5f + 0.3f, cwh, (cTop - zt) * 0.5f));
         // entrance: glass doors with a transom, framed
         vec2 dc = h.P(0.f, frontV + h.cp + 0.02f);
@@ -343,7 +379,7 @@ void genHotel(const SiteElem& e, G& g) {
             light(g, vec3(mc, zc - 0.3f), vec3(1.f, 0.82f, 0.6f) * 2400.f, 9.f, 1, vec3(0, 0, -1), 0.3f);
         }
         // sunburst relief over the door (under the first upper floor)
-        if (detail && h.F > 1) sunburst(g, h.P3(0.f, frontV + h.cp, zt + h.gh + 0.15f), vec3(a, 0.f), vec3(f, 0.f), Min(cwh * 0.8f, 1.5f), accC, 9);
+        if (detail && h.F > 1) sunburst(g, h.P3(0.f, frontV + h.cp, zt + h.gh + 0.15f), vec3(a, 0.f), vec3(f, 0.f), Min(cwh * 0.8f, 1.5f), h.tpl == T_TWINFIN ? accC : trimC, 9);
         // upper floors of the centre bay: glass block strip (tower, twin fin, ziggurat) or porthole stack (streamline)
         float zb0 = zt + h.gh + 0.9f, zb1 = top - 0.6f;
         if (h.F > 1) {
@@ -369,8 +405,8 @@ void genHotel(const SiteElem& e, G& g) {
         float t0 = cTop, t1 = top + h.towerH * 0.75f, t2 = top + h.towerH;
         vec2 tc = h.P(0.f, frontV - 1.2f);
         std::vector<vec2> s1 = rectPoly(tc, f, 2.2f, cwh - 0.35f), s2 = rectPoly(tc, f, 1.6f, cwh - 0.8f);
-        prism(g, rectPoly(tc, f, 2.8f, cwh), top, t0, wallC, stucco, trimC, plaster, true);
-        prism(g, s1, t0, t1, wallC, stucco, trimC, plaster, true);
+        prism(g, rectPoly(tc, f, 2.8f, cwh), top, t0, blockC, stucco, trimC, plaster, true);
+        prism(g, s1, t0, t1, blockC, stucco, trimC, plaster, true);
         prism(g, s2, t1, t2, trimC, stucco, accC, plaster, true);
         collide(g, vec3(tc, (top + t2) * 0.5f), f, vec3(2.8f, cwh, (t2 - top) * 0.5f));
         cyl(g, vec3(tc, t2), 0.35f, 0.05f, 3.6f, detail ? 8 : 5, accC, M(MAT_METAL_PAINTED), false);
@@ -418,8 +454,9 @@ void genHotel(const SiteElem& e, G& g) {
         float z = top + 0.9f;
         for (int t = 0; t < 3; t++) {
             float ww = cwid * (1.f - t * 0.24f) * 0.5f, hh = t == 0 ? 1.6f : 0.9f;
-            boxY(g, vec3(h.P(0.f, frontV - 0.25f), z + hh * 0.5f), a, vec3(ww, 0.25f, hh * 0.5f), t == 1 ? accC : wallC, t == 1 ? plaster : stucco, false);
-            boxY(g, vec3(h.P(0.f, frontV - 0.25f), z + hh + 0.04f), a, vec3(ww + 0.08f, 0.32f, 0.04f), trimC, plaster, true);
+            // white face behind the name, then a colour-block tier and an accent cap
+            boxY(g, vec3(h.P(0.f, frontV - 0.25f), z + hh * 0.5f), a, vec3(ww, 0.25f, hh * 0.5f), t == 0 ? trimC : (t == 1 ? blockC : accC), stucco, false);
+            boxY(g, vec3(h.P(0.f, frontV - 0.25f), z + hh + 0.04f), a, vec3(ww + 0.08f, 0.32f, 0.04f), t == 0 ? blockC : trimC, plaster, true);
             z += hh + 0.08f;
         }
         const char* nm = kNames[h.name];
@@ -430,10 +467,10 @@ void genHotel(const SiteElem& e, G& g) {
         if (detail)
             for (int k = -1; k <= 1; k += 2) {
                 vec2 pp = h.P(k * (cwh + 0.25f), frontV + 0.15f);
-                boxY(g, vec3(pp, (zt + h.gh + top + 0.9f) * 0.5f), a, vec3(0.22f, 0.15f, (top + 0.9f - zt - h.gh) * 0.5f), trimC, plaster);
+                boxY(g, vec3(pp, (zt + h.gh + top + 0.9f) * 0.5f), a, vec3(0.22f, 0.15f, (top + 0.9f - zt - h.gh) * 0.5f), blockC, plaster);
                 for (int q = -1; q <= 1; q++)
                     boxY(g, vec3(pp + a * (q * 0.12f) + f * 0.16f, (zt + h.gh + top + 0.9f) * 0.5f), a, vec3(0.03f, 0.03f, (top + 0.9f - zt - h.gh) * 0.5f),
-                         accC, plaster);
+                         trimC, plaster);
             }
         light(g, vec3(h.P(0.f, frontV + 6.f), top + 1.5f), ncol * 6000.f, 18.f, 2);
     } else if (h.tpl == T_STREAMLINE) {
@@ -451,10 +488,10 @@ void genHotel(const SiteElem& e, G& g) {
         float fz1 = top + h.towerH;
         for (int s = -1; s <= 1; s += 2) {
             vec2 fc = h.P(s * (cwh + 0.2f), frontV + h.cp * 0.5f + 0.2f);
-            boxY(g, vec3(fc, (zt + h.gh + fz1) * 0.5f), f, vec3(h.cp * 0.5f + 0.9f, 0.18f, (fz1 - zt - h.gh) * 0.5f), trimC, stucco, true);
+            boxY(g, vec3(fc, (zt + h.gh + fz1) * 0.5f), f, vec3(h.cp * 0.5f + 0.9f, 0.18f, (fz1 - zt - h.gh) * 0.5f), blockC, stucco, true);
             collide(g, vec3(fc, (zt + h.gh + fz1) * 0.5f), f, vec3(h.cp * 0.5f + 0.9f, 0.18f, (fz1 - zt - h.gh) * 0.5f));
             // stepped fin tops
-            boxY(g, vec3(fc - f * 0.3f, fz1 + 0.35f), f, vec3(h.cp * 0.5f + 0.5f, 0.18f, 0.35f), accC, plaster, true);
+            boxY(g, vec3(fc - f * 0.3f, fz1 + 0.35f), f, vec3(h.cp * 0.5f + 0.5f, 0.18f, 0.35f), trimC, plaster, true);
             if (detail) neonTube(g, vec3(fc + f * (h.cp * 0.5f + 0.93f), zt + h.gh), vec3(fc + f * (h.cp * 0.5f + 0.93f), fz1), 0.03f, ncol, anim, (u32)(s + 1) * 60u);
         }
         float zb = fz1 - 1.9f;

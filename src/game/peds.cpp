@@ -29,7 +29,8 @@ u8 footwearOf(const GameWorld& g, const Ped& p) {
     const Anim::CharacterDesc& d = g.chars[(size_t)p.charIndex].desc;
     switch (d.shoes) {
         case Anim::detail::SHOE_DRESS: return d.gender == Anim::FEMALE ? Audio::FOOTWEAR_HEEL : Audio::FOOTWEAR_LEATHER;
-        case Anim::detail::SHOE_FLATS: return Audio::FOOTWEAR_LEATHER;
+        case Anim::detail::SHOE_FLATS:
+        case Anim::detail::SHOE_LOAFER: return Audio::FOOTWEAR_LEATHER;
         case Anim::detail::SHOE_BOOT: return Audio::FOOTWEAR_BOOT;
         case Anim::detail::SHOE_SANDAL: return Audio::FOOTWEAR_SANDAL;
         case Anim::detail::SHOE_BARE: return Audio::FOOTWEAR_BARE;
@@ -599,6 +600,27 @@ void GameWorld::animatePed(Ped& p, float dt) {
         in.lookAt = vec3(dot(vec2(D.x, D.y), rightV), dot(vec2(D.x, D.y), fwd), D.z);
         in.lookWeight = in.lookAt.y > -0.2f ? lookW : 0.f;   // never wrench the head round to someone behind
     }
+    // passing traffic: when nobody else has its eyes, a ped close by watches a car going past in front now and then
+    // (a given ped and car always answer the same, so a car is followed all the way by, on average, a third of them);
+    // a siren or a horn draws most eyes, from further away
+    if (in.lookWeight <= 0.f && upright && !p.isPlayer && p.visibleDist < 20.f) {
+        float best = 1e9f;
+        int bv = -1;
+        for (int v = 0; v < (int)vehicles.size(); v++) {
+            const Vehicle& c = vehicles[v];
+            if (!c.used || c.sim.speed() < 5.f) continue;
+            bool loud = (c.sirenOn && !c.sirenSilent) || c.hornOn;
+            if (hash32(p.uid * 131u + c.uid * 7u) % 100u >= (loud ? 85u : 35u)) continue;
+            vec3 D = rel(c.sim.body.pos, p.pos);
+            float dd = length(vec2(D.x, D.y)), range = loud ? 28.f : 14.f;
+            if (dd < range && dd - (loud ? 20.f : 0.f) < best && dot(vec2(D.x, D.y), fwd) > -0.2f * dd) best = dd - (loud ? 20.f : 0.f), bv = v;
+        }
+        if (bv >= 0) {
+            vec3 D = rel(vehicles[bv].sim.body.pos, p.pos) + vec3(0.f, 0.f, 1.f);
+            in.lookAt = vec3(dot(vec2(D.x, D.y), rightV), dot(vec2(D.x, D.y), fwd), D.z);
+            in.lookWeight = 0.5f;
+        }
+    }
     // phone at the ear (player on a call, NPCs chatting on the phone)
     in.phoneCall = p.phoneCall && upright;
     in.phoneBrowse = p.phoneBrowse && upright && !p.phoneCall;
@@ -612,6 +634,21 @@ void GameWorld::animatePed(Ped& p, float dt) {
         if (v.used && !v.ragdoll && v.charIndex >= 0) {
             vec3 neck = rel(v.pos, p.pos) + rotate(yawQuat(v.yaw), v.bones[Anim::B_NECK].c[3].xyz());
             in.grabTarget = vec3(dot(vec2(neck.x, neck.y), rightV), dot(vec2(neck.x, neck.y), fwd), neck.z);
+            in.grabWeight = 1.f;
+        }
+    }
+    // a greeting (population.cpp: a hug, a handshake, a kiss on the cheek, started on both together): hands / face onto
+    // the partner's real chest / head, so tall / short pairs still meet (the animator reads it only during those clips)
+    {
+        int self = (int)(&p - peds.data());
+        const PedAI* q = self >= 0 && self < (int)ai.ped.size() && ai.ped[self].uid == p.uid ? &ai.ped[self] : nullptr;
+        int o = q && q->greetT > 0.f ? q->greetWith : -1;
+        if (o >= 0 && o < (int)peds.size() && o < (int)ai.ped.size() && peds[o].used && ai.ped[o].uid == peds[o].uid &&
+            ai.ped[o].greetWith == self && !peds[o].ragdoll && peds[o].charIndex >= 0) {
+            const Ped& v = peds[o];
+            bool kiss = p.anim.action == Anim::CLIP_CHEEK_KISS || in.action == Anim::CLIP_CHEEK_KISS;   // (starting now)
+            vec3 j = rel(v.pos, p.pos) + rotate(yawQuat(v.yaw), v.bones[kiss ? Anim::B_HEAD : Anim::B_CHEST].c[3].xyz());
+            in.grabTarget = vec3(dot(vec2(j.x, j.y), rightV), dot(vec2(j.x, j.y), fwd), j.z);
             in.grabWeight = 1.f;
         }
     }
@@ -721,6 +758,11 @@ void GameWorld::updatePeds(float dt) {
             float d2 = d.x * d.x + d.y * d.y;
             float rr = kPedRadius * 2.f;
             if (d2 < rr * rr && d2 > 1e-8f) {
+                // two people greeting each other (a hug, a kiss on the cheek: roots Anim::pairDistance apart, closer than
+                // the capsules allow) are left where the greeting put them
+                if (i < (int)ai.ped.size() && j < (int)ai.ped.size() && ai.ped[i].greetWith == j && ai.ped[j].greetWith == i &&
+                    ai.ped[i].uid == a.uid && ai.ped[j].uid == b.uid)
+                    continue;
                 float dist = sqrtf(d2);
                 vec2 n = vec2(d.x, d.y) / dist;
                 float push = (rr - dist) * 0.5f;

@@ -3,6 +3,8 @@
 // Characters are lined up 1.6 m apart at kViewerOrigin + (0, 20), each playing a different clip.
 // Use --shot to place the camera, e.g. to look at vehicle i from the front-left:
 //   --shot "X,Y,Z,yawDeg,pitchDeg,hour,name" with X = -300 + 8*i - 4, Y = 1500 + 6, Z = height + 1.6
+// --protagonists puts Mari and Dex (protagonists.h) in the first two character slots.
+#include "protagonists.h"
 namespace Game {
 
 static const vec2 kViewerOrigin(-300.f, 1500.f);
@@ -67,6 +69,7 @@ struct Viewer {
             for (int i = 0; i < n; i++) {
                 Ch& c = chars[i];
                 c.desc = Anim::randomCharacter(1000 + i * 7919, i % 7);
+                if (Platform::hasArg("protagonists") && i < 2) c.desc = protagonistDesc(i);
                 Anim::buildSkeleton(c.desc, c.skel);
                 SkinnedMeshData mesh;
                 Anim::buildCharacterMesh(c.desc, c.skel, mesh);

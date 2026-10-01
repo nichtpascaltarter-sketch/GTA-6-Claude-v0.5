@@ -27,22 +27,22 @@ struct FishSpecies {
 };
 
 const FishSpecies kFish[] = {
-    {"Gray Snapper", habBit(HAB_COAST) | habBit(HAB_FLATS), 0.8f, 7.f, 5.5f, 4.5f, 0.35f, 1.f, 0, "Piers and docks on the coast and in the Keys, any hour."},
-    {"Sheepshead", habBit(HAB_COAST), 1.f, 9.f, 7.f, 3.5f, 0.4f, 0.8f, 1, "Around the pier pilings on the coast, in daylight."},
-    {"Snook", habBit(HAB_COAST) | habBit(HAB_RIVER), 2.f, 24.f, 18.f, 5.5f, 0.65f, 0.5f, 2, "The river and the coast at dawn, dusk or after dark."},
-    {"Redfish", habBit(HAB_COAST) | habBit(HAB_FLATS), 2.f, 22.f, 16.f, 5.f, 0.6f, 0.6f, 0, "Shallow water on the coast and the Keys flats."},
-    {"Tarpon", habBit(HAB_COAST) | habBit(HAB_FLATS), 25.f, 150.f, 100.f, 3.f, 1.f, 0.14f, 2, "The silver king. Coast and Keys in low light. Patience."},
-    {"Bonefish", habBit(HAB_FLATS), 2.f, 13.f, 9.f, 9.f, 0.8f, 0.4f, 1, "The Keys flats in daylight. Fast, long runs."},
-    {"Great Barracuda", habBit(HAB_FLATS) | habBit(HAB_OFFSHORE), 5.f, 48.f, 35.f, 3.2f, 0.75f, 0.45f, 0, "The Keys and deep water. Mind the teeth."},
-    {"Mahi-mahi", habBit(HAB_OFFSHORE), 6.f, 48.f, 35.f, 6.f, 0.75f, 0.8f, 1, "Deep water far from shore, from a boat, in daylight."},
-    {"Kingfish", habBit(HAB_OFFSHORE), 8.f, 55.f, 40.f, 4.5f, 0.7f, 0.6f, 0, "Deep water far from shore, from a boat."},
-    {"Sailfish", habBit(HAB_OFFSHORE), 35.f, 120.f, 90.f, 4.f, 1.f, 0.14f, 1, "Deep water in daylight. The fight of a lifetime."},
-    {"Largemouth Bass", habBit(HAB_RIVER) | habBit(HAB_SWAMP) | habBit(HAB_LAKE), 1.f, 13.f, 9.f, 6.f, 0.5f, 1.f, 0, "Fresh water everywhere: river, Sawgrass, lake."},
-    {"Peacock Bass", habBit(HAB_RIVER), 1.f, 10.f, 7.f, 8.f, 0.6f, 0.45f, 1, "The Rio Sol and the city canals, in daylight."},
-    {"Channel Catfish", habBit(HAB_RIVER) | habBit(HAB_SWAMP) | habBit(HAB_LAKE), 2.f, 32.f, 22.f, 3.f, 0.55f, 0.8f, 2, "Fresh water after dark."},
-    {"Florida Gar", habBit(HAB_SWAMP) | habBit(HAB_LAKE), 2.f, 13.f, 9.f, 2.5f, 0.45f, 0.8f, 0, "The Sawgrass and the lake."},
-    {"Bowfin", habBit(HAB_SWAMP), 2.f, 15.f, 11.f, 3.f, 0.6f, 0.5f, 2, "The Sawgrass at dawn or dusk."},
-    {"Black Crappie", habBit(HAB_LAKE), 0.5f, 4.f, 2.8f, 7.f, 0.3f, 0.85f, 0, "The Lake Okahatchee docks."},
+    {"Gray Snapper", habBit(HAB_COAST) | habBit(HAB_FLATS), 0.8f, 7.f, 6.f, 4.5f, 0.35f, 1.f, 0, "Piers and docks on the coast and in the Keys, any hour."},
+    {"Sheepshead", habBit(HAB_COAST), 1.f, 9.f, 7.8f, 3.5f, 0.4f, 0.8f, 1, "Around the pier pilings on the coast, in daylight."},
+    {"Snook", habBit(HAB_COAST) | habBit(HAB_RIVER), 2.f, 24.f, 20.5f, 5.5f, 0.65f, 0.5f, 2, "The river and the coast at dawn, dusk or after dark."},
+    {"Redfish", habBit(HAB_COAST) | habBit(HAB_FLATS), 2.f, 22.f, 19.f, 5.f, 0.6f, 0.6f, 0, "Shallow water on the coast and the Keys flats."},
+    {"Tarpon", habBit(HAB_COAST) | habBit(HAB_FLATS), 25.f, 150.f, 130.f, 3.f, 1.f, 0.14f, 2, "The silver king. Coast and Keys in low light. Patience."},
+    {"Bonefish", habBit(HAB_FLATS), 2.f, 13.f, 11.3f, 9.f, 0.8f, 0.4f, 1, "The Keys flats in daylight. Fast, long runs."},
+    {"Great Barracuda", habBit(HAB_FLATS) | habBit(HAB_OFFSHORE), 5.f, 48.f, 41.5f, 3.2f, 0.75f, 0.45f, 0, "The Keys and deep water. Mind the teeth."},
+    {"Mahi-mahi", habBit(HAB_OFFSHORE), 6.f, 48.f, 41.5f, 6.f, 0.75f, 0.8f, 1, "Deep water far from shore, from a boat, in daylight."},
+    {"Kingfish", habBit(HAB_OFFSHORE), 8.f, 55.f, 48.f, 4.5f, 0.7f, 0.6f, 0, "Deep water far from shore, from a boat."},
+    {"Sailfish", habBit(HAB_OFFSHORE), 35.f, 120.f, 107.f, 4.f, 1.f, 0.14f, 1, "Deep water in daylight. The fight of a lifetime."},
+    {"Largemouth Bass", habBit(HAB_RIVER) | habBit(HAB_SWAMP) | habBit(HAB_LAKE), 1.f, 13.f, 11.2f, 6.f, 0.5f, 1.f, 0, "Fresh water everywhere: river, Sawgrass, lake."},
+    {"Peacock Bass", habBit(HAB_RIVER), 1.f, 10.f, 8.6f, 8.f, 0.6f, 0.45f, 1, "The Rio Sol and the city canals, in daylight."},
+    {"Channel Catfish", habBit(HAB_RIVER) | habBit(HAB_SWAMP) | habBit(HAB_LAKE), 2.f, 32.f, 27.5f, 3.f, 0.55f, 0.8f, 2, "Fresh water after dark."},
+    {"Florida Gar", habBit(HAB_SWAMP) | habBit(HAB_LAKE), 2.f, 13.f, 11.3f, 2.5f, 0.45f, 0.8f, 0, "The Sawgrass and the lake."},
+    {"Bowfin", habBit(HAB_SWAMP), 2.f, 15.f, 13.f, 3.f, 0.6f, 0.5f, 2, "The Sawgrass at dawn or dusk."},
+    {"Black Crappie", habBit(HAB_LAKE), 0.5f, 4.f, 3.4f, 7.f, 0.3f, 0.85f, 0, "The Lake Okahatchee docks."},
 };
 constexpr int kFishCount = (int)(sizeof(kFish) / sizeof(kFish[0]));
 static_assert(kFishCount <= 16, "the trophy board keeps two species per saved int (EX_FISH_BEST .. +7)");
@@ -124,7 +124,7 @@ int pickFish(GameWorld& g, u8 hab, Rng& rng, float& weight) {
     }
     const FishSpecies& f = kFish[pick];
     float u = rng.f();
-    weight = f.minLb + (f.maxLb - f.minLb) * powf(u, 2.3f);
+    weight = f.minLb + (f.maxLb - f.minLb) * powf(u, 3.f);
     weight = floorf(weight * 10.f + 0.5f) * 0.1f;
     return pick;
 }
@@ -195,6 +195,24 @@ struct FishingState {
 };
 FishingState gFish;
 
+// Lake Okahatchee's shore on the Lake Town side: walk from the town toward the lake's middle until the next steps are
+// lake water (its surface sits at World::kLakeLevel); stand on the last dry spot, facing the water
+bool fishLakeShore(GameWorld& g, vec3& stand, vec2& dir) {
+    vec2 from = gPlaces.lakeTown.pos.xy(), lakeC(-2400.f, 7000.f);
+    dir = normalize(lakeC - from);
+    vec2 p = from;
+    for (int i = 0; i < 500; i++) {
+        vec2 q = p + dir * 3.f;
+        float w = g.map->waterAt(q.x + dir.x * 3.f, q.y + dir.y * 3.f);
+        if (fabsf(w - World::kLakeLevel) < 0.3f && isWaterAt(g, q + dir * 3.f, 0.6f)) {
+            stand = vec3(p, groundAt(g, p.x, p.y, World::kLakeLevel + 6.f));
+            return true;
+        }
+        p = q;
+    }
+    return false;
+}
+
 void fishingSetupSpots(GameWorld& g) {
     FishingState& F = gFish;
     F.spots.clear();
@@ -212,9 +230,9 @@ void fishingSetupSpots(GameWorld& g) {
     spot("Fishing: Rio Sol", P.riverLaunch, HAB_RIVER);
     spot("Fishing: Sawgrass causeway", P.sawgrassDock, HAB_SWAMP);
     spot("Fishing: Ten Palms", P.tenPalms.pos, HAB_COAST);
+    bool lake = false;
+    int keys = 0;
     if (World::gSites) {
-        int keys = 0;
-        bool lake = false;
         for (const World::SiteElem& e : World::gSites->elems) {
             if (e.kind != World::SK_DOCK) continue;
             vec2 tip = e.c + e.ax * Max(e.p[0] - 2.f, 4.f);
@@ -227,14 +245,23 @@ void fishingSetupSpots(GameWorld& g) {
             }
         }
     }
+    if (!lake) {
+        vec3 stand;
+        vec2 dir;
+        if (fishLakeShore(g, stand, dir)) {
+            lake = true;
+            spot("Fishing: Lake Okahatchee", stand, HAB_LAKE);
+        }
+    }
     auto market = [&](const char* name, vec3 p) {
         FishMarket m;
         m.name = name;
         m.pos = p;
         F.markets.push_back(m);
     };
+    LOG("fishing: %d spots (lake %s, %d Keys docks)", (int)F.spots.size(), lake ? "yes" : "no", keys);
     market("Palmera Angler Bait & Tackle", P.pierRamp);
-    market("Palmera Angler Bait & Tackle", P.sawgrassDock + vec3(normalize(P.sawgrassDock.xy() - P.sawgrassWater.xy() + vec2(1e-3f, 0.f)) * 6.f, 0.f));
+    market("Palmera Angler Bait & Tackle", P.sawgrassDock + vec3(normalize(P.sawgrassDock.xy() - P.sawgrassWater.xy() + vec2(1e-3f, 0.f)) * 14.f, 0.f));
     market("Palmera Angler Bait & Tackle", P.keyCoralMarina.door);
     for (FishMarket& m : F.markets) m.pos.z = groundAt(g, m.pos.x, m.pos.y, m.pos.z + 3.f);
 }
@@ -272,15 +299,16 @@ void fishingSubmit(GameWorld& g) {
     if (!g.renderer || F.phase == FP_OFF) return;
     Render::DynamicRenderer* dyn = g.renderer->dynamic;
     if (!gFishLine) {
+        // hi-vis line and a big float: both drawn a little larger than life so they read at a cast's distance
         MeshData m;
-        u32 mono = packRGBA8(0.85f, 0.88f, 0.8f, 1.f);
-        cylinderAB(m, vec3(0.f), vec3(0.f, 0.f, 1.f), 0.0035f, 0.0035f, 4, mono, makeMat(MAT_PLASTIC), false);
+        u32 mono = packRGBA8(0.95f, 0.92f, 0.35f, 1.f);
+        cylinderAB(m, vec3(0.f), vec3(0.f, 0.f, 1.f), 0.007f, 0.007f, 4, mono, makeMat(MAT_PLASTIC), false);
         gFishLine = dyn->createModel(m);
         MeshData b;
-        u32 red = packRGBA8(0.85f, 0.08f, 0.06f, 1.f), white = packRGBA8(0.95f, 0.95f, 0.92f, 1.f);
-        cylinderAB(b, vec3(0.f, 0.f, -0.05f), vec3(0.f, 0.f, 0.f), 0.012f, 0.034f, 10, red, makeMat(MAT_PLASTIC));
-        cylinderAB(b, vec3(0.f, 0.f, 0.f), vec3(0.f, 0.f, 0.04f), 0.034f, 0.01f, 10, white, makeMat(MAT_PLASTIC));
-        cylinderAB(b, vec3(0.f, 0.f, 0.04f), vec3(0.f, 0.f, 0.1f), 0.004f, 0.004f, 5, red, makeMat(MAT_PLASTIC));
+        u32 red = packRGBA8(0.95f, 0.1f, 0.06f, 1.f), white = packRGBA8(0.97f, 0.97f, 0.94f, 1.f);
+        cylinderAB(b, vec3(0.f, 0.f, -0.09f), vec3(0.f, 0.f, 0.f), 0.02f, 0.065f, 12, red, makeMat(MAT_PLASTIC));
+        cylinderAB(b, vec3(0.f, 0.f, 0.f), vec3(0.f, 0.f, 0.07f), 0.065f, 0.018f, 12, white, makeMat(MAT_PLASTIC));
+        cylinderAB(b, vec3(0.f, 0.f, 0.07f), vec3(0.f, 0.f, 0.19f), 0.008f, 0.006f, 6, red, makeMat(MAT_PLASTIC));
         gFishFloat = dyn->createModel(b);
     }
     vec3 hand, rodDir;
@@ -346,6 +374,12 @@ bool fishingAllowed(GameWorld& g) {
            g.pinfo.wanted == 0 && !g.phone.open && !g.pinfo.busted;
 }
 
+// Nothing in the way of a cast (a pier's shop front, a wall, a moored hull): a ray at chest height out over the water
+bool fishLineClear(GameWorld& g, vec3 from, vec2 dir, float dist) {
+    WorldHit h;
+    return !g.raycast(dvec3(from + vec3(0.f, 0.f, 1.4f)), vec3(dir, 0.f), dist, h, g.player, g.playerVehicle(), false);
+}
+
 // On foot at the water's edge facing open water, or at the wheel of a boat that has (nearly) stopped
 int fishingSpotHere(GameWorld& g, vec2* dirOut = nullptr) {
     Ped* pl = g.playerPed();
@@ -361,6 +395,7 @@ int fishingSpotHere(GameWorld& g, vec2* dirOut = nullptr) {
     if (pl->state != PS_ONFOOT) return 0;
     vec2 f = dirFromYaw(pl->yaw);
     vec3 pp = pl->pos.toVec3();
+    if (!fishLineClear(g, pp, f, 7.f)) return 0;
     for (float d : {2.5f, 4.5f, 6.5f}) {
         vec2 q = pp.xy() + f * d;
         float w = g.map->waterAt(q.x, q.y);
@@ -606,7 +641,7 @@ void fishingUpdate(GameWorld& g, float dt) {
                 bool ok = false;
                 for (float d = want; d >= 5.f && !ok; d -= 2.5f) {
                     vec2 q = F.origin.xy() + F.dir * d;
-                    if (isWaterAt(g, q, 0.6f)) {
+                    if (isWaterAt(g, q, 0.6f) && fishLineClear(g, F.fromBoat ? F.origin + vec3(0.f, 0.f, 0.6f) : F.origin, F.dir, d)) {
                         F.castDist = d;
                         F.target = vec3(q, g.map->waterAt(q.x, q.y));
                         ok = true;
@@ -765,6 +800,11 @@ void fishingUpdate(GameWorld& g, float dt) {
             break;
         default: break;
     }
+    // on foot, the camera settles behind the angler looking down the line (unless the player is looking around)
+    if (!F.fromBoat && (F.phase == FP_WAIT || F.phase == FP_BITE || F.phase == FP_FIGHT) && g.rig.noInputTime > 1.2f) {
+        vec2 to = F.bobber.xy() - pl->pos.toVec3().xy();
+        if (::length(to) > 2.f) g.rig.yaw += wrapAngle(atan2f(-to.x, to.y) - g.rig.yaw) * Saturate(dt * 1.5f);
+    }
     fishingSubmit(g);
 }
 
@@ -843,7 +883,7 @@ void fishMarketsUpdate(GameWorld& g) {
     for (int i = 0; i < (int)F.markets.size(); i++) {
         const FishMarket& m = F.markets[i];
         float d = ::length(m.pos - pp);
-        if (d < 120.f && !gMissions.active) worldMarker(m.pos, 1.1f, vec3(0.3f, 0.75f, 1.f));
+        if (d < 120.f && d > 1.6f && !gMissions.active && !menuIs(MO_FISH)) worldMarker(m.pos, 0.8f, vec3(0.3f, 0.75f, 1.f));
         if (d < 1.4f && pl->state == PS_ONFOOT && F.phase == FP_OFF) inside = i;
     }
     if (inside >= 0 && F.marketInside != inside && fishingAllowed(g)) fishMenuOpen(g, 0);
@@ -1042,26 +1082,29 @@ bool fishTestSpot(GameWorld& g, int kind, vec3& pos, float& yaw, bool& boat, vec
         yaw = atan2f(-d.x, d.y);
         water = vec3(p + d * 8.f, 0.f);
     };
-    switch (kind) {
-        case 0: {   // the end of the Sol Beach Pier (stand at its rail, face the sea)
-            vec3 e = P.pierEnd;
-            vec2 best(0.f, 1.f);
-            int bestN = -1;
-            for (int k = 0; k < 16; k++) {
-                float a = kTwoPi * k / 16.f;
-                vec2 d(cosf(a), sinf(a));
-                int n = 0;
-                for (float r = 4.f; r <= 20.f; r += 4.f) n += isWaterAt(g, e.xy() + d * r, 1.f);
-                if (n > bestN) {
-                    bestN = n;
-                    best = d;
-                }
+    // stand at a spot over the water (a pier's end): face the direction with the most open water and nothing in the way
+    auto overWater = [&](vec3 e) {
+        vec3 st(e.xy(), groundAt(g, e.x, e.y, e.z + 3.f));
+        vec2 best(0.f, 1.f);
+        int bestN = -1;
+        for (int k = 0; k < 24; k++) {
+            float a = kTwoPi * k / 24.f;
+            vec2 d(cosf(a), sinf(a));
+            if (!fishLineClear(g, st, d, 12.f)) continue;
+            int n = 0;
+            for (float r = 4.f; r <= 20.f; r += 4.f) n += isWaterAt(g, e.xy() + d * r, 0.8f);
+            if (n > bestN) {
+                bestN = n;
+                best = d;
             }
-            pos = e;
-            yaw = atan2f(-best.x, best.y);
-            water = vec3(e.xy() + best * 10.f, 0.f);
-            return bestN > 2;
         }
+        pos = st;
+        yaw = atan2f(-best.x, best.y);
+        water = vec3(e.xy() + best * 10.f, 0.f);
+        return bestN > 2;
+    };
+    switch (kind) {
+        case 0: return overWater(P.pierEnd);   // the end of the Sol Beach Pier
         case 1: {   // deep water off Sol Beach, far from shore
             vec3 w;
             vec2 hint = P.beachSea.xy();
@@ -1079,16 +1122,16 @@ bool fishTestSpot(GameWorld& g, int kind, vec3& pos, float& yaw, bool& boat, vec
         }
         case 2: edge(P.sawgrassDock, P.sawgrassWater); return true;
         case 3: edge(placeOffset(g, P.boatyard, 0.f, 1.f), P.riverLaunch); return true;
-        case 4: {
+        case 4: {   // the lake's fishing pier, else its shore by Lake Town
             for (const FishSpot& s : gFish.spots)
-                if (s.hab == HAB_LAKE) {
-                    vec3 w;
-                    if (!findWater(g, s.pos.xy(), 1.f, w, 80.f)) return false;
-                    // back up onto land from the water toward the dock's shore end
-                    edge(s.pos - vec3(normalize(w.xy() - s.pos.xy() + vec2(1e-3f, 0.f)) * 30.f, 0.f), w);
-                    return true;
-                }
-            return false;
+                if (s.hab == HAB_LAKE && isWaterAt(g, s.pos.xy(), 0.3f) && overWater(s.pos)) return true;
+            vec3 stand;
+            vec2 d;
+            if (!fishLakeShore(g, stand, d)) return false;
+            pos = stand;
+            yaw = atan2f(-d.x, d.y);
+            water = vec3(stand.xy() + d * 8.f, 0.f);
+            return true;
         }
         case 5: {   // the Sol Beach Pier shop counter
             if (gFish.markets.empty()) return false;
@@ -1216,9 +1259,19 @@ void fishTestStep(GameWorld& g, MissionTest& t) {
     }
     FishInput& in = F.testIn;
     switch (T.stage) {
-        case 0:   // pick up the rod
+        case 0:   // pick up the rod (on foot: turn toward open water first; walls stream in after the test placed the player)
             if (T.t > 1.f) {
                 int kind = fishingSpotHere(g);
+                Ped* me = g.playerPed();
+                if (!kind && me && g.playerVehicle() < 0) {
+                    float y0 = me->yaw;
+                    for (int k = 1; k < 24 && !kind; k++) {
+                        me->yaw = y0 + kTwoPi * k / 24.f;
+                        kind = fishingSpotHere(g);
+                    }
+                    if (!kind) me->yaw = y0;
+                    else F.testDir = dirFromYaw(me->yaw);
+                }
                 if (!kind) {
                     Ped* pl = g.playerPed();
                     if (T.t > 6.f) fishTestEnd(g, false, StrFormat("no fishing spot here (player at %.0f %.0f)", pl ? pl->pos.x : 0.0, pl ? pl->pos.y : 0.0));

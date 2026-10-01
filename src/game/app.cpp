@@ -518,7 +518,7 @@ struct App {
         }
         if (autoplay == "crowd" || autoplay == "panic" || autoplay == "chase" || autoplay == "rage" || autoplay == "soak" || autoplay == "parking" ||
             autoplay == "bender" || autoplay == "hwysoak" || autoplay == "venues" || autoplay == "takeover" || autoplay == "surrender" || autoplay == "search" || autoplay == "k9" ||
-            autoplay == "places") {
+            autoplay == "places" || autoplay == "greet") {
             // AI scenario tests: crowd variety at four places and hours / gunfire panic -> police response -> arrest /
             // night car chase at 4 stars (PIT, boxing, roadblocks, helicopter searchlight) / rear-ending a bold driver
             mu::setFlag(game, mu::EX_INTRO_DONE, 1);
@@ -532,6 +532,8 @@ struct App {
                 autoDuration = 3 * 24.f + 0.5f;  // port gate, airport forecourt, Sawgrass causeway: 24 s each (applyAutoplay)
             } else if (autoplay == "places") {
                 autoDuration = 4 * 20.f + 0.5f;  // promenade terraces, campus quad, the track, the cemetery: 20 s each
+            } else if (autoplay == "greet") {
+                autoDuration = 2 * 35.f + 0.5f;  // the airport curb, then a downtown sidewalk at midday (applyAutoplay)
             } else if (autoplay == "surrender" || autoplay == "search") {
                 // wanted at two stars on a downtown corner, empty-handed: units converge; then the player gives up (hands up,
                 // cuffed, the lighter bust) / slips away out of sight at night (the officers on foot fan out and check the
@@ -894,9 +896,17 @@ struct App {
                 shotT = 0.3f;
                 LOG("autoplay surrender: busted at t=%.1f money %lld", t, game.pinfo.money);
             }
+            static float releasedAt = -1.f;
             if (bustedSeen && !game.pinfo.busted && !released && pl) {
                 released = true;
-                LOG("autoplay surrender: released at t=%.1f | pistol %d ammo %d | money %lld", t, (int)pl->hasWeapon[WPN_PISTOL], pl->ammo[WPN_PISTOL] + pl->clip[WPN_PISTOL], game.pinfo.money);
+                releasedAt = t;
+                LOG("autoplay surrender: released at t=%.1f", t);
+            }
+            if (releasedAt >= 0.f && t > releasedAt + 1.f && pl) {
+                // (a second on: the police have handed the weapons back and refunded half the fine by then)
+                releasedAt = -1.f;
+                LOG("autoplay surrender: after the release | pistol %d ammo %d | money %lld", (int)pl->hasWeapon[WPN_PISTOL], pl->ammo[WPN_PISTOL] + pl->clip[WPN_PISTOL],
+                    game.pinfo.money);
             }
             if (asked && !released && pl && pl->state == PS_ONFOOT) {
                 // a camera off the player's shoulder, looking at the officers coming in
@@ -1059,21 +1069,22 @@ struct App {
         } else if (autoplay == "places") {
             // the named places' own people (sites.cpp anchors, population.cpp place venues): the Ocean Promenade terraces
             // at lunch, the campus quad in the morning, runners on Tarpon Field in the evening, the cemetery in the
-            // afternoon - the player on a path there, two looks each (scripted camera), a census at each
+            // afternoon - the player on a path there, two looks each at the busiest groups of the place's people (a
+            // scripted camera 12 m off with a clear view of them), a census at each
             static int stop = -1;
             static float stopT = 0.f;
             static int shots = 0;
+            static int aimed = -1;
+            static vec2 camAt[2], tgtAt[2];
             struct PlaceStop {
                 const char* name;
                 vec2 player;
                 float hour;
-                vec2 cam[2], tgt[2];
             };
-            const PlaceStop stops[4] = {
-                {"promenade", {5347.f, 686.f}, 13.f, {{5346.f, 684.f}, {5402.f, 690.f}}, {{5356.f, 722.f}, {5410.f, 730.f}}},
-                {"campus_quad", {1905.f, 3700.f}, 11.f, {{1903.f, 3702.f}, {1874.f, 3760.f}}, {{1921.f, 3727.f}, {1889.f, 3777.f}}},
-                {"track", {2062.f, 3625.f}, 17.5f, {{2064.f, 3622.f}, {2002.f, 3640.f}}, {{2080.f, 3668.f}, {1995.f, 3655.f}}},
-                {"cemetery", {1572.f, -735.f}, 15.f, {{1573.f, -733.f}, {1540.f, -752.f}}, {{1558.f, -768.f}, {1535.f, -766.f}}}};
+            const PlaceStop stops[4] = {{"promenade", {5347.f, 686.f}, 13.f},
+                                        {"campus_quad", {1905.f, 3700.f}, 11.f},
+                                        {"track", {2062.f, 3625.f}, 17.5f},
+                                        {"cemetery", {1572.f, -735.f}, 15.f}};
             int want = Min((int)(t / 20.f), 3);
             Ped* pl = game.playerPed();
             if (want != stop && pl) {
@@ -1088,13 +1099,76 @@ struct App {
                 weather.setImmediate(WX_FAIR);
                 game.populationWarmup = 2.5f;
                 game.pinfo.wanted = 0;
+                aimed = -1;
+                camAt[0] = camAt[1] = st.player - vec2(0.f, 3.f);
+                tgtAt[0] = tgtAt[1] = st.player + vec2(0.f, 20.f);
                 LOG("autoplay places stop %d %s at %.0f %.0f, %.1f h", stop, st.name, st.player.x, st.player.y, st.hour);
             }
             stopT += dt;
+            if (stop >= 0 && aimed < 0 && stopT > 5.f) {
+                // the place's people round the stop (venue slots), the two busiest groups (the most others within 9 m,
+                // the second one 22 m or more from the first); for each a camera 12 m off in the first of twelve
+                // directions (from the stop's side round) with nothing in the way
+                aimed = 1;
+                const PlaceStop& st = stops[stop];
+                std::vector<vec2> at;
+                for (int i = 0; i < (int)game.peds.size() && i < (int)game.ai.ped.size(); i++) {
+                    const Ped& q = game.peds[i];
+                    if (!q.used || q.isPlayer || game.ai.ped[i].uid != q.uid || game.ai.ped[i].activity != ACT_VENUE) continue;
+                    vec2 qp = q.pos.toVec3().xy();
+                    if (length(qp - st.player) < 110.f) at.push_back(qp);
+                }
+                vec2 cen[2] = {st.player, st.player};
+                int got = 0;
+                for (int k = 0; k < 2; k++) {
+                    int best = -1, bestN = 0;
+                    for (size_t a = 0; a < at.size(); a++) {
+                        if (k == 1 && got > 0 && length(at[a] - cen[0]) < 22.f) continue;
+                        int n = 0;
+                        for (size_t b = 0; b < at.size(); b++) n += length(at[b] - at[a]) < 9.f;
+                        if (n > bestN) {
+                            bestN = n;
+                            best = (int)a;
+                        }
+                    }
+                    if (best < 0) {
+                        cen[k] = cen[0];
+                        continue;
+                    }
+                    vec2 sum(0.f);
+                    int n = 0;
+                    for (size_t b = 0; b < at.size(); b++)
+                        if (length(at[b] - at[best]) < 9.f) {
+                            sum = sum + at[b];
+                            n++;
+                        }
+                    cen[k] = sum * (1.f / (float)n);
+                    got++;
+                    LOG("autoplay places %s group %d: %d people round %.0f %.0f", st.name, k, n, cen[k].x, cen[k].y);
+                }
+                for (int k = 0; k < 2; k++) {
+                    vec2 c0 = cen[k];
+                    double tz = game.groundHeight(c0.x, c0.y, (float)pl->pos.z + 8.f) + 1.2;
+                    vec2 toStop = st.player - c0;
+                    float a0 = length(toStop) > 1.f ? atan2f(toStop.y, toStop.x) : 0.f;
+                    if (k == 1 && got < 2) a0 += kPi;   // (only one group: the other side of it)
+                    tgtAt[k] = c0;
+                    camAt[k] = c0 + vec2(cosf(a0), sinf(a0)) * 12.f;
+                    for (int j = 0; j < 12; j++) {
+                        float a = a0 + (j & 1 ? 1.f : -1.f) * (float)((j + 1) / 2) * (kTwoPi / 12.f);
+                        vec2 cp = c0 + vec2(cosf(a), sinf(a)) * 12.f;
+                        double cz = game.groundHeight(cp.x, cp.y, (float)tz + 6.f) + 2.4;
+                        if (game.lineOfSight(dvec3(cp.x, cp.y, cz), dvec3(c0.x, c0.y, tz), -1, -1)) {
+                            camAt[k] = cp;
+                            break;
+                        }
+                    }
+                }
+            }
             if (stop >= 0) {
                 const PlaceStop& st = stops[stop];
-                int view = stopT < 10.f ? 0 : 1;
-                vec2 cp = st.cam[view], tp = st.tgt[view];
+                int view = stopT < 12.f ? 0 : 1;
+                vec2 cp = camAt[view], tp = tgtAt[view];
                 float cz = game.groundHeight(cp.x, cp.y, pl ? (float)pl->pos.z + 6.f : 40.f), tz = game.groundHeight(tp.x, tp.y, pl ? (float)pl->pos.z + 6.f : 40.f);
                 game.rig.scriptActive = true;
                 game.rig.scriptPos = dvec3(cp.x, cp.y, cz + 2.2f);
@@ -1106,6 +1180,86 @@ struct App {
                     LOG("autoplay places %s shot %d | %s", st.name, shots, game.aiCensusText(120.f).c_str());
                     shots++;
                 }
+            }
+        } else if (autoplay == "greet") {
+            // greetings (population.cpp greet*: a hug, a kiss on the cheek or a handshake): at the airport curb as the one
+            // coming out reaches the driver waiting for them, or as a traveler says goodbye before going in; then on a
+            // downtown sidewalk, acquaintances running into each other (pedai.cpp aiStreetMeets, made more frequent for the
+            // test). The camera goes to each greeting as it starts, from the side at chest height, two shots each (the
+            // contact, the hold), then back to the player to wait for the next
+            static int stop = -1;
+            static int ga = -1, gb = -1, seen = 0, gshots = 0;
+            static float gT = 0.f, logT = 0.f;
+            Ped* pl = game.playerPed();
+            int want = t < 35.f ? 0 : 1;
+            if (want != stop && pl) {
+                stop = want;
+                vec3 pos;
+                if (stop == 0) {
+                    mu::computePlaces(game);
+                    pos = mu::gPlaces.airport.pos;
+                } else {
+                    pos = vec3(2713.f, 763.f, 20.f);   // (the police tests' downtown corner)
+                    game.ai.meetBoost = 5.f;
+                    game.ai.meetGap = 3.f;
+                }
+                if (pl->vehicle >= 0) game.removePedFromVehicle(game.player, false);
+                pl->pos = dvec3(pos.x, pos.y, game.groundHeight(pos.x, pos.y, pos.z + 2.f));
+                pl->vel = vec3(0.f);
+                env.timeOfDay = stop == 0 ? 11.f : 13.f;
+                weather.setImmediate(WX_FAIR);
+                game.populationWarmup = 2.5f;
+                game.pinfo.wanted = 0;
+                ga = gb = -1;
+                game.rig.scriptActive = false;
+                LOG("autoplay greet stop %d: %s at %.0f %.0f", stop, stop == 0 ? "the airport forecourt" : "a downtown sidewalk", pos.x, pos.y);
+            }
+            auto greeting = [&](int i) {
+                return i >= 0 && i < (int)game.peds.size() && i < (int)game.ai.ped.size() && game.peds[i].used &&
+                       game.ai.ped[i].uid == game.peds[i].uid && game.ai.ped[i].greetT > 0.f;
+            };
+            if (ga < 0 && pl && seen < 6) {
+                for (int i = 0; i < (int)game.peds.size(); i++) {
+                    if (!greeting(i) || !greeting(game.ai.ped[i].greetWith)) continue;
+                    if (length(rel(game.peds[i].pos, pl->pos).xy()) > 260.f) continue;   // (the whole curb, the east plaza)
+                    ga = i;
+                    gb = game.ai.ped[i].greetWith;
+                    gT = 0.f;
+                    gshots = 0;
+                    seen++;
+                    LOG("autoplay greet %d: peds %d and %d, clip %d, %.1f s", seen, ga, gb, game.peds[ga].anim.action, game.ai.ped[ga].greetT);
+                    break;
+                }
+            }
+            if (ga >= 0) {
+                gT += dt;
+                if (!game.peds[ga].used || !game.peds[gb].used || gT > 4.f) {
+                    ga = gb = -1;
+                    game.rig.scriptActive = false;
+                } else {
+                    vec3 A = game.peds[ga].pos.toVec3(), B = game.peds[gb].pos.toVec3();
+                    vec3 mid = (A + B) * 0.5f;
+                    vec2 d = normalize(B.xy() - A.xy() + vec2(1e-4f, 0.f));
+                    vec2 side(-d.y, d.x);
+                    // (the side the player is on: the kerb side is where the car stands)
+                    if (pl && dot(rel(pl->pos, game.peds[ga].pos).xy(), side) < 0.f) side = -side;
+                    game.rig.scriptActive = true;
+                    game.rig.scriptPos = dvec3(mid + vec3(side * 3.4f + d * 0.8f, 1.55f));
+                    game.rig.scriptTarget = dvec3(mid + vec3(0.f, 0.f, 1.25f));
+                    game.rig.scriptFov = 40.f;
+                    const float at[2] = {1.2f, 2.3f};
+                    if (gshots < 2 && gT > at[gshots]) {
+                        game.requestScreenshot = shotPath(StrFormat("auto_greet_%d_%d", seen, gshots));
+                        LOG("autoplay greet %d shot %d | clip %d t %.2f | %.2f m apart", seen, gshots, game.peds[ga].anim.action,
+                            game.ai.ped[ga].greetT, length(B.xy() - A.xy()));
+                        gshots++;
+                    }
+                }
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 5.f;
+                LOG("autoplay greet t=%.0f seen %d | %s", t, seen, game.aiCensusText(140.f).c_str());
             }
         } else if (autoplay == "venues") {
             // the places with a working crowd of their own, at the scorecard tour's stops, hours and weather: the tour's own
@@ -1159,10 +1313,34 @@ struct App {
             if (stop >= 0) {
                 const VenueStop& st = stops[stop];
                 int view = stopT < 10.f ? 0 : (stopT < 17.f ? 1 : 2);
+                // (the airport's last look: at a pair at the terminal curb - a goodbye, a pick-up - from along the walk)
+                static bool curbAim = false;
+                static vec2 curbCam, curbTgt;
+                if (view < 2) curbAim = false;
+                if (view == 2 && stop == 1 && !curbAim && pl) {
+                    curbAim = true;
+                    curbCam = st.cam[1];
+                    curbTgt = st.tgt[1];
+                    float best = 1e9f;
+                    for (int i = 0; i < (int)game.peds.size() && i < (int)game.ai.ped.size(); i++) {
+                        const Ped& q = game.peds[i];
+                        const PedAI& qa = game.ai.ped[i];
+                        if (!q.used || qa.uid != q.uid || qa.activity != ACT_VENUE) continue;
+                        if (qa.venueMode != VM_FAREWELL && qa.venueMode != VM_SEEOFF && qa.venueMode != VM_MEET) continue;
+                        float d = length(rel(q.pos, pl->pos).xy());
+                        if (d < best) {
+                            best = d;
+                            curbTgt = q.pos.toVec3().xy() + vec2(0.4f, 0.f);
+                            curbCam = curbTgt + vec2(-2.2f, 6.5f);
+                        }
+                    }
+                    LOG("autoplay venues: the curb look at %.0f %.0f (a pair %.0f m off)", curbTgt.x, curbTgt.y, best);
+                }
                 if (view == 0) {
                     c.move = vec2(0.f, stopT > 3.f && stopT < 6.f ? 0.3f : 0.f);   // (the tour's few slow steps)
                 } else {
                     vec2 cp = st.cam[view - 1], tp = st.tgt[view - 1];
+                    if (view == 2 && stop == 1) cp = curbCam, tp = curbTgt;
                     float cz = game.groundHeight(cp.x, cp.y, pl ? (float)pl->pos.z + 3.f : 30.f), tz = game.groundHeight(tp.x, tp.y, pl ? (float)pl->pos.z + 3.f : 30.f);
                     game.rig.scriptActive = true;
                     game.rig.scriptPos = dvec3(cp.x, cp.y, cz + 1.8f);
