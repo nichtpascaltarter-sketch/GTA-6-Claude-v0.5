@@ -14,8 +14,8 @@ if [ ! -f "$WINEPREFIX/drive_c/windows/system32/d3dcompiler_47.dll.native" ]; th
   touch "$WINEPREFIX/drive_c/windows/system32/d3dcompiler_47.dll.native"
 fi
 # Test machines shared by several agents (opt-in: /tmp/neontide_build.lock exists) run at most 3 shared games at once
-# (~2 GB each), and every game waits for room under the memory cap (below), so builds are not killed for memory. The
-# slot's lock is held by the exec'd process until the game exits.
+# (~2.5-2.7 GB each on Direct3D 12 under vkd3d), and every game waits for room under the memory cap (below), so builds
+# are not killed for memory. The slot's lock is held by the exec'd process until the game exits.
 # NT_LEAD_SLOT=1: the lead's snapshot checks have a slot of their own, so a verified commit never queues behind
 # long test runs; NT_D3D12_SLOT=1: so does the Direct3D 12 port's validation (slot 4).
 if [ -e /tmp/neontide_build.lock ] && command -v flock >/dev/null 2>&1; then
@@ -39,6 +39,6 @@ fi
 # and a game starts only once there is room for it (up to 10 minutes' wait), so it can't push a compile over the cap
 if [ -e /tmp/neontide_build.lock ]; then
   n=0
-  while [ "$(sh tools/memfree.sh 2>/dev/null || echo 100000)" -lt 2300 ] && [ $n -lt 40 ]; do sleep 15; n=$((n+1)); done
+  while [ "$(sh tools/memfree.sh 2>/dev/null || echo 100000)" -lt 3000 ] && [ $n -lt 40 ]; do sleep 15; n=$((n+1)); done
 fi
 exec timeout ${TIMEOUT:-600} xvfb-run -a -s "-screen 0 1920x1080x24" /usr/lib/wine/wine64 ${EXE:-bin/NeonTide.exe} --autotest "$@"

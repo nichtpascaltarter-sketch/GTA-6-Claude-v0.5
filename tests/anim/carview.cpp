@@ -229,6 +229,11 @@ struct ClipStats {
     int bShell = -1, shellFrames = 0; // ... the body part, and the frames with more than 1 cm
     float seatedShell = 0;            // ... while sitting in the seat (the seated pose itself)
     vec3 pShell;
+    float cross = 0, tCross = -1;     // deepest any vertex is past a surface it went through (CrossScan)
+    int bCross = -1, crossFrames = 0, crossVerts = 0;   // ... its body part; frames with any vertex through; most at once
+    vec3 pCross;
+    const char* sCross = "";
+    u32 mCross = 0;
     float maxOpen = 0;
     int frames = 0;
 };
@@ -288,10 +293,13 @@ struct HardGrid {
         return m == MAT_CARPAINT || m == MAT_CAR_GLASS || m == MAT_CAR_WINDOW || m == MAT_CHROME || m == MAT_METAL_BRUSHED || m == MAT_PLASTIC ||
                m == MAT_RUBBER;
     }
-    void add(const MeshData& m, quat q, vec3 pivot, bool all, u8 src = 0) {
+    static bool glass(u32 mat) { return (mat & 0xffu) == MAT_CAR_WINDOW || (mat & 0xffu) == MAT_CAR_GLASS; }
+    // glassMode: 0 every surface, 1 the opaque ones, 2 the glass alone (thin sheets: CrossScan's)
+    void add(const MeshData& m, quat q, vec3 pivot, bool all, u8 src = 0, int glassMode = 1) {
         for (size_t i = 0; i + 2 < m.indices.size(); i += 3) {
             const VtxStatic& va = m.verts[m.indices[i]];
             if (!all && !hard(va.mat, va.color)) continue;
+            if ((glassMode == 1 && glass(va.mat)) || (glassMode == 2 && !glass(va.mat))) continue;
             vec3 a = pivot + rotate(q, va.pos - pivot), b = pivot + rotate(q, m.verts[m.indices[i + 1]].pos - pivot),
                  c = pivot + rotate(q, m.verts[m.indices[i + 2]].pos - pivot);
             vec3 n = cross(b - a, c - a);
@@ -344,7 +352,8 @@ struct HardGrid {
         if (x < 0 || y < 0 || z < 0 || x >= nx || y >= ny || z >= nz) return 0.f;
         float best = 1e9f, sgn = 1.f;
         int bt = -1;
-        for (u32 t : cells[((size_t)z * ny + y) * nx + x]) {
+        const std::vector<u32>& cl = cells[((size_t)z * ny + y) * nx + x];
+        for (u32 t : cl) {
             const Tri& T = tris[t];
             vec3 q = closest(p, T.a, T.b, T.c);
             float d = length(p - q);
@@ -354,6 +363,17 @@ struct HardGrid {
                 bt = (int)t;
             }
         }
+        // nearest to an edge or a corner several faces share: behind only if behind all of them (a point beyond an
+        // edge is in front of the face round it)
+        if (best < band && sgn < 0.f)
+            for (u32 t : cl) {
+                const Tri& T = tris[t];
+                vec3 q = closest(p, T.a, T.b, T.c);
+                if (length(p - q) < best + 0.002f && dot(p - q, T.n) >= 0.f) {
+                    sgn = 1.f;
+                    break;
+                }
+            }
         if (best < band && sgn < 0.f) {
             if (tri) *tri = bt;
             return best;
@@ -361,6 +381,192 @@ struct HardGrid {
         return 0.f;
     }
 };
+
+// Segment p0 -> p1 through triangle T: where along it (0..1), or -1
+static float segTri(vec3 p0, vec3 p1, const HardGrid::Tri& T) {
+    vec3 d = p1 - p0, e1 = T.b - T.a, e2 = T.c - T.a;
+    vec3 h = cross(d, e2);
+    float det = dot(e1, h);
+    if (fabsf(det) < 1e-16f) return -1.f;
+    float inv = 1.f / det;
+    vec3 sv = p0 - T.a;
+    float u = dot(sv, h) * inv;
+    if (u < 0.f || u > 1.f) return -1.f;
+    vec3 q = cross(sv, e1);
+    float v = dot(d, q) * inv;
+    if (v < 0.f || u + v > 1.f) return -1.f;
+    float t = dot(e2, q) * inv;
+    return t >= 0.f && t <= 1.f ? t : -1.f;
+}
+// The triangles of g the segment goes through (index, where along it)
+static void segCross(const HardGrid& g, vec3 p0, vec3 p1, std::vector<std::pair<u32, float>>& out) {
+    out.clear();
+    if (g.cells.empty()) return;
+    float L = length(p1 - p0);
+    int n = (int)(L / (g.band * 0.9f)) + 1;
+    int lastCell = -1;
+    for (int k = 0; k < n; k++) {
+        vec3 p = p0 + (p1 - p0) * ((float)k / n);
+        int x = (int)((p.x - g.mn.x) / g.cs), y = (int)((p.y - g.mn.y) / g.cs), z = (int)((p.z - g.mn.z) / g.cs);
+        if (x < 0 || y < 0 || z < 0 || x >= g.nx || y >= g.ny || z >= g.nz) continue;
+        int c = (z * g.ny + y) * g.nx + x;
+        if (c == lastCell) continue;
+        lastCell = c;
+        for (u32 t : g.cells[(size_t)c]) {
+            float u = segTri(p0, p1, g.tris[t]);
+            if (u < 0.f) continue;
+            bool dup = false;
+            for (auto& o : out) dup |= o.first == t;
+            if (!dup) out.push_back({t, u});
+        }
+    }
+}
+// One frame of a run: the time, the door's opening and every vertex of the character (vehicle frame)
+struct RunFrame {
+    float t = 0.f, open = 0.f;
+    bool sitting = false;
+    std::vector<vec3> P;
+    // per body part (partOf): the deepest static overlap with an opaque surface / crossing of a glass one, where and
+    // against what (src 0 body, 1 another door, 2 the door; material)
+    float shell[6] = {}, glass[6] = {};
+    vec3 shellP[6], glassP[6];
+    int shellSrc[6] = {}, glassSrc[6] = {};
+    u32 shellMat[6] = {}, glassMat[6] = {};
+};
+// Body parts for the event lists: 0 head, 1 trunk, 2 left arm, 3 right arm, 4 left leg, 5 right leg
+static int partOf(int b) {
+    if (b == B_NECK || b == B_HEAD || (b >= B_JAW && b <= B_BROW_R)) return 0;
+    if (b >= B_PELVIS && b <= B_CHEST) return 1;
+    if ((b >= B_CLAVICLE_L && b <= B_HAND_L) || b == B_FINGERS_L || b == B_THUMB_L || b == B_FOREARM_ROLL_L || (b >= B_INDEX1_L && b < B_INDEX1_R)) return 2;
+    if ((b >= B_CLAVICLE_R && b <= B_HAND_R) || b == B_FINGERS_R || b == B_THUMB_R || b == B_FOREARM_ROLL_R || b >= B_INDEX1_R) return 3;
+    if (b >= B_THIGH_L && b <= B_TOE_L) return 4;
+    return 5;
+}
+static const char* kPartName[6] = {"head", "trunk", "L arm", "R arm", "L leg", "R leg"};
+// Thin-surface crossings over a run: each vertex's motion between frames against the hard surfaces of the body (and
+// the other doors, shut) and the door in use (in its own frame, as it swings), from both sides. A vertex that went
+// through a surface stays through it until it comes back through it (or through the same surface next to it). Run
+// from the end that is clear of the car (getting in: forwards from standing outside; getting out: backwards from
+// standing outside), so the seated pose's own overlaps do not count as crossings.
+struct CrossScan {
+    struct Thru { u8 grid; u32 tri; };
+    std::vector<std::vector<Thru>> thru;   // per vertex
+    std::vector<int> frameCount;           // vertices through something, per frame
+    std::vector<float> frameDepth;         // the deepest (distance past the surface crossed), per frame
+    std::vector<std::vector<u8>> mark;     // per frame (only when asked for): 1 through
+    int worstFrame = -1, worstVert = -1, worstGrid = -1;
+    u32 worstTri = 0;
+    float worst = 0.f;
+};
+static void crossScan(std::vector<RunFrame>& F, const DoorSpec& D, const HardGrid& body, const HardGrid& door,
+                      const std::vector<u8>& held, const std::vector<int>& vbone, bool forward, bool marks, CrossScan& cs) {
+    size_t nv = F.empty() ? 0 : F[0].P.size(), nf = F.size();
+    cs.thru.assign(nv, {});
+    cs.frameCount.assign(nf, 0);
+    cs.frameDepth.assign(nf, 0.f);
+    if (marks) cs.mark.assign(nf, std::vector<u8>(nv, 0));
+    auto local = [&](vec3 p, float open) { return D.hinge + rotate(quatAxisAngle(D.axis, -open * D.maxAngle), p - D.hinge); };
+    std::vector<std::pair<u32, float>> hits;
+    auto plane = [](const HardGrid::Tri& T, vec3 p) { return dot(p - T.a, T.n); };
+    for (size_t step = 0; step < nf; step++) {
+        size_t f = forward ? step : nf - 1 - step;
+        RunFrame& cur = F[f];
+        if (step > 0) {
+            const RunFrame& prev = F[forward ? f - 1 : f + 1];
+            for (size_t v = 0; v < nv; v++) {
+                vec3 a = prev.P[v], b = cur.P[v];
+                for (int gi = 0; gi < 2; gi++) {
+                    if (gi == 1 && held[v]) continue;   // the hand on the door holds it
+                    const HardGrid& g = gi == 0 ? body : door;
+                    vec3 a2 = gi == 0 ? a : local(a, prev.open), b2 = gi == 0 ? b : local(b, cur.open);
+                    if (gi == 0 && a2.x == b2.x && a2.y == b2.y && a2.z == b2.z) continue;
+                    segCross(g, a2, b2, hits);
+                    if (hits.empty()) continue;
+                    std::sort(hits.begin(), hits.end(), [](const std::pair<u32, float>& x, const std::pair<u32, float>& y) { return x.second < y.second; });
+                    vec3 lastX(1e9f);
+                    for (auto& h : hits) {
+                        const HardGrid::Tri& T = g.tris[h.first];
+                        vec3 x = a2 + (b2 - a2) * h.second;
+                        if (length(x - lastX) < 0.003f) continue;   // through a shared edge: one crossing
+                        lastX = x;
+                        std::vector<CrossScan::Thru>& L = cs.thru[v];
+                        int found = -1;
+                        for (int k = 0; k < (int)L.size() && found < 0; k++) {
+                            if (L[k].grid != gi) continue;
+                            const HardGrid::Tri& E = g.tris[L[k].tri];
+                            if (L[k].tri == h.first || (fabsf(plane(E, x)) < 0.012f && dot(E.n, T.n) > 0.7f && length(x - E.a) < 0.3f)) found = k;
+                        }
+                        if (found >= 0) L.erase(L.begin() + found);
+                        else L.push_back(CrossScan::Thru{(u8)gi, h.first});
+                        static const bool dbg = getenv("CARVIEW_XDEBUG") != nullptr;
+                        if (dbg && found < 0)
+                            printf("    through t %.2f v %zu %s (%.2f %.2f %.2f)->(%.2f %.2f %.2f) tri (%.2f %.2f %.2f) n (%.2f %.2f %.2f) mat %u src %d open %.2f->%.2f\n",
+                                   cur.t, v, gi ? "door" : "body", a2.x, a2.y, a2.z, b2.x, b2.y, b2.z, T.a.x, T.a.y, T.a.z, T.n.x, T.n.y, T.n.z, T.mat,
+                                   (int)T.src, prev.open, cur.open);
+                    }
+                }
+            }
+        }
+        for (size_t v = 0; v < nv; v++) {
+            std::vector<CrossScan::Thru>& L = cs.thru[v];
+            if (L.empty()) continue;
+            float dmax = 0.f;
+            int wg = -1;
+            u32 wt = 0;
+            for (size_t k = 0; k < L.size();) {
+                CrossScan::Thru& e = L[k];
+                const HardGrid& g = e.grid == 0 ? body : door;
+                vec3 p = e.grid == 0 ? cur.P[v] : local(cur.P[v], cur.open);
+                // how far past the sheet it went through: the nearest of its triangles (followed from frame to
+                // frame); none within the grid's band: away from it (round its edge, or out the far side)
+                const HardGrid::Tri& E = g.tris[e.tri];
+                int x = (int)((p.x - g.mn.x) / g.cs), y = (int)((p.y - g.mn.y) / g.cs), z = (int)((p.z - g.mn.z) / g.cs);
+                float best = 1e9f;
+                u32 bt = e.tri;
+                if (x >= 0 && y >= 0 && z >= 0 && x < g.nx && y < g.ny && z < g.nz)
+                    for (u32 t : g.cells[((size_t)z * g.ny + y) * g.nx + x]) {
+                        const HardGrid::Tri& T = g.tris[t];
+                        if (dot(T.n, E.n) < 0.8f || fabsf(plane(E, T.a)) > 0.03f) continue;
+                        float d = length(p - HardGrid::closest(p, T.a, T.b, T.c));
+                        if (d < best) {
+                            best = d;
+                            bt = t;
+                        }
+                    }
+                if (best > g.band) {
+                    L.erase(L.begin() + k);
+                    continue;
+                }
+                e.tri = bt;
+                if (best >= dmax) {
+                    dmax = best;
+                    wg = e.grid;
+                    wt = e.tri;
+                }
+                k++;
+            }
+            if (dmax < 0.002f) continue;
+            cs.frameCount[f]++;
+            cs.frameDepth[f] = Max(cs.frameDepth[f], dmax);
+            if (marks) cs.mark[f][v] = 1;
+            int pt = partOf(vbone[v]);
+            if (dmax > cur.glass[pt]) {
+                const HardGrid::Tri& T = (wg == 0 ? body : door).tris[wt];
+                cur.glass[pt] = dmax;
+                cur.glassP[pt] = cur.P[v];
+                cur.glassSrc[pt] = T.src;
+                cur.glassMat[pt] = T.mat;
+            }
+            if (dmax > cs.worst) {
+                cs.worst = dmax;
+                cs.worstFrame = (int)f;
+                cs.worstVert = (int)v;
+                cs.worstGrid = wg;
+                cs.worstTri = wt;
+            }
+        }
+    }
+}
 
 static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool enter, ClipStats& st) {
     const SeatSpec& ss = vm.seats[seat];
@@ -403,6 +609,17 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
     float tt = enter ? 0.f : -1.f;
     bool seated = !enter;
     bool wasBelt = !enter;
+    std::vector<RunFrame> frames;
+    std::vector<int> vbone(ch.mesh.verts.size());
+    std::vector<u8> held(ch.mesh.verts.size());
+    for (size_t i = 0; i < ch.mesh.verts.size(); i++) {
+        const VtxSkinned& vx = ch.mesh.verts[i];
+        int bone = vx.bones[0];
+        for (int k = 1; k < 4; k++)
+            if (vx.weights[k] > vx.weights[0]) bone = vx.bones[k];
+        vbone[i] = bone;
+        held[i] = heldPart(bone) ? 1 : 0;
+    }
     for (; tt <= len + (enter ? 1.4f : 0.3f); tt += dt) {
         AnimInput in;
         if (enter) {
@@ -444,6 +661,12 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
             dbb.add(T.c);
         }
         door.build(dbb.mn, dbb.mx);
+        frames.emplace_back();
+        RunFrame& rf = frames.back();
+        rf.t = tt;
+        rf.open = open;
+        rf.sitting = enter ? tt > 1.92f : tt < 1.1f;
+        rf.P.reserve(ch.mesh.verts.size());
         float frameShell = 0.f;
         const HardGrid::Tri* frameTri = nullptr;
         int frameBone = -1;
@@ -458,12 +681,13 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
                 for (int c = 0; c < 4; c++) m.c[c] = m.c[c] + sk.c[c] * w;
             }
             vec3 p = root + rotate(qr, transformPoint(m, vx.pos));
+            rf.P.push_back(p);
             int bone = vx.bones[0];
             for (int k = 1; k < 4; k++)
                 if (vx.weights[k] > vx.weights[0]) bone = vx.bones[k];
             float ax = p.x * side;   // out from the vehicle's centre on the door's side
             {
-                bool heldNow = heldPart(bone) && (enter ? (tt > 0.28f && tt < 0.9f) || (tt > 2.06f && tt < 2.52f) : true);
+                bool heldNow = heldPart(bone) && (enter ? (tt > 0.28f && tt < 1.2f) || (tt > 2.06f && tt < 2.52f) : true);
                 int tb = -1, td = -1;
                 float db = body.depth(p, &tb), dd = heldNow ? 0.f : door.depth(p, &td);
                 float dpt = Max(db, dd);
@@ -471,7 +695,14 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
                 // the seated phases (the seated pose itself) apart from the moving ones
                 bool sitting = enter ? tt > 1.92f : tt < 1.1f;
                 if (sitting) st.seatedShell = Max(st.seatedShell, dpt);
-                else {
+                int pt = partOf(bone);
+                if (dpt > rf.shell[pt] && hitTri) {
+                    rf.shell[pt] = dpt;
+                    rf.shellP[pt] = p;
+                    rf.shellSrc[pt] = hitTri->src;
+                    rf.shellMat[pt] = hitTri->mat;
+                }
+                if (!sitting) {
                     if (dpt > frameShell) {
                         frameShell = dpt;
                         frameTri = hitTri;
@@ -548,6 +779,14 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
         auto onDoor = [&](vec3 p) { return D.hinge + rotate(qo, p - D.hinge); };
         if (enter) {
             if (tt > 0.32f && tt < 0.78f) st.handOut = Max(st.handOut, length(hand - onDoor(D.handle - vec3(0, 0, 0.006f))));
+            if (getenv("CARVIEW_REACHOUT") && tt > 0.2f && tt < 0.9f) {
+                int up = D.left ? B_UPPERARM_L : B_UPPERARM_R;
+                vec3 sh = root + rotate(qr, ms[up].c[3].xyz());
+                vec3 tg = onDoor(D.handle - vec3(0, 0, 0.006f));
+                float arm = ch.sk.boneLength[up] + ch.sk.boneLength[up + 1];
+                printf("   t %.2f open %.2f hand-handle %.3f shoulder-handle %.3f arm %.3f shoulder (%.2f %.2f %.2f)\n", tt, open, length(hand - tg),
+                       length(sh - tg), arm, sh.x, sh.y, sh.z);
+            }
             if (tt > 2.18f && tt < 2.44f) st.handIn = Max(st.handIn, length(hand - onDoor(D.handleIn + vec3(0, 0, 0.004f))));
             if (getenv("CARVIEW_REACH") && tt > 2.0f && tt < 2.5f) {
                 int up = D.left ? B_UPPERARM_L : B_UPPERARM_R;
@@ -559,6 +798,60 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
         } else {
             float t0 = 0.48f;
             if (tt > t0 + 0.24f && tt < t0 + 0.44f) st.handIn = Max(st.handIn, length(hand - onDoor(D.handleIn + vec3(0, 0, 0.004f))));
+        }
+    }
+    // through-surface crossings (getting in: forwards from outside; getting out: backwards from outside)
+    {
+        HardGrid dg, bg;
+        dg.add(D.mesh, quat(), vec3(0.f), true, 2, 2);
+        dg.build(D.mesh.bounds.mn, D.mesh.bounds.mx);
+        bg.add(vm.body, quat(), vec3(0.f), true, 0, 2);
+        for (size_t d = 0; d < vm.doors.size(); d++)
+            if ((int)d != ss.door) bg.add(vm.doors[d].mesh, quat(), vec3(0.f), true, 1, 2);
+        bg.build(vm.body.bounds.mn, vm.body.bounds.mx);
+        CrossScan cs;
+        crossScan(frames, D, bg, dg, held, vbone, enter, false, cs);
+        for (size_t f = 0; f < frames.size(); f++) {
+            if (cs.frameCount[f] > 0 && cs.frameDepth[f] > 0.005f) st.crossFrames++;
+            st.crossVerts = Max(st.crossVerts, cs.frameCount[f]);
+            if (getenv("CARVIEW_SURF") && cs.frameCount[f] > 0)
+                printf("   cross t %.2f: %d vertices, %.3f deep\n", frames[f].t, cs.frameCount[f], cs.frameDepth[f]);
+        }
+        if (getenv("CARVIEW_EVENTS")) {
+            // runs of frames with a body part into an opaque surface (over 2 cm) or through glass (over 5 mm)
+            for (int kind = 0; kind < 2; kind++)
+                for (int pt = 0; pt < 6; pt++) {
+                    size_t f = 0;
+                    while (f < frames.size()) {
+                        auto val = [&](size_t i) { return kind == 0 ? frames[i].shell[pt] : frames[i].glass[pt]; };
+                        float thr = kind == 0 ? 0.02f : 0.005f;
+                        if (val(f) <= thr) {
+                            f++;
+                            continue;
+                        }
+                        size_t a = f, w = f;
+                        while (f < frames.size() && (val(f) > thr || (f + 1 < frames.size() && val(f + 1) > thr))) {
+                            if (val(f) > val(w)) w = f;
+                            f++;
+                        }
+                        const RunFrame& W = frames[w];
+                        vec3 P = kind == 0 ? W.shellP[pt] : W.glassP[pt];
+                        int src = kind == 0 ? W.shellSrc[pt] : W.glassSrc[pt];
+                        u32 mat = kind == 0 ? W.shellMat[pt] : W.glassMat[pt];
+                        printf("    %s %-5s %.2f-%.2f%s max %.3f@%.2f (%.2f %.2f %.2f) %s mat %u\n", kind ? "GLASS" : "shell", kPartName[pt],
+                               frames[a].t, frames[f - 1].t, frames[a].sitting && frames[f - 1].sitting ? " (seated)" : "", val(w), W.t, P.x, P.y, P.z,
+                               src == 0 ? "body" : src == 1 ? "other door" : "door", mat);
+                    }
+                }
+        }
+        if (cs.worstFrame >= 0) {
+            st.cross = cs.worst;
+            st.tCross = frames[cs.worstFrame].t;
+            st.bCross = vbone[cs.worstVert];
+            st.pCross = frames[cs.worstFrame].P[cs.worstVert];
+            const HardGrid::Tri& T = (cs.worstGrid == 0 ? bg : dg).tris[cs.worstTri];
+            st.sCross = T.src == 0 ? "body" : T.src == 1 ? "other door" : "door";
+            st.mCross = T.mat;
         }
     }
     // seated at the end of getting in: the hips on the seat
@@ -636,6 +929,52 @@ int main(int argc, char** argv) {
         for (size_t s = 0; s < vm.seats.size(); s++)
             printf(" seat %zu (%.3f %.3f %.3f) door %d\n", s, vm.seats[s].pos.x, vm.seats[s].pos.y, vm.seats[s].pos.z, vm.seats[s].door);
     }
+    if (const char* pr = getenv("CARVIEW_DEPTHPROBE")) {
+        // the static metric at a point (body + shut doors): its depth and the triangles nearest to it
+        vec3 q(0.f);
+        sscanf(pr, "%f,%f,%f", &q.x, &q.y, &q.z);
+        HardGrid hg;
+        hg.add(vm.body, quat(), vec3(0.f), false);
+        for (const DoorSpec& Dd : vm.doors) hg.add(Dd.mesh, quat(), vec3(0.f), true, 1);
+        hg.build(vm.body.bounds.mn, vm.body.bounds.mx);
+        printf("depth %.4f\n", hg.depth(q));
+        std::vector<std::pair<float, u32>> near;
+        for (u32 t = 0; t < (u32)hg.tris.size(); t++) {
+            const HardGrid::Tri& T = hg.tris[t];
+            float d = length(q - HardGrid::closest(q, T.a, T.b, T.c));
+            if (d < 0.08f) near.push_back({d, t});
+        }
+        std::sort(near.begin(), near.end());
+        for (size_t i = 0; i < near.size() && i < 12; i++) {
+            const HardGrid::Tri& T = hg.tris[near[i].second];
+            vec3 c = HardGrid::closest(q, T.a, T.b, T.c);
+            printf("  d %.4f sign %+.4f src %d mat %u col %06x n (%.2f %.2f %.2f) closest (%.3f %.3f %.3f) a (%.3f %.3f %.3f)\n", near[i].first,
+                   dot(q - c, T.n), (int)T.src, T.mat, T.color & 0xffffffu, T.n.x, T.n.y, T.n.z, c.x, c.y, c.z, T.a.x, T.a.y, T.a.z);
+        }
+        return 0;
+    }
+    if (const char* pr = getenv("CARVIEW_PROBE")) {
+        // the surfaces a vertical line at (x, y) passes through (body and shut doors): height, material, normal
+        float px = 0.f, py = 0.f;
+        sscanf(pr, "%f,%f", &px, &py);
+        std::vector<std::pair<float, std::string>> hits;
+        auto scan = [&](const MeshData& m, const char* what) {
+            for (size_t i = 0; i + 2 < m.indices.size(); i += 3) {
+                const VtxStatic &va = m.verts[m.indices[i]], &vb = m.verts[m.indices[i + 1]], &vc = m.verts[m.indices[i + 2]];
+                HardGrid::Tri T{va.pos, vb.pos, vc.pos, normalize(cross(vb.pos - va.pos, vc.pos - va.pos)), va.mat & 0xffu, va.color, 0};
+                float u = segTri(vec3(px, py, -1.f), vec3(px, py, 3.f), T);
+                if (u < 0.f) continue;
+                char buf[160];
+                snprintf(buf, sizeof buf, "%s mat %u col %06x n (%.2f %.2f %.2f)", what, T.mat, T.color & 0xffffffu, T.n.x, T.n.y, T.n.z);
+                hits.push_back({-1.f + 4.f * u, buf});
+            }
+        };
+        scan(vm.body, "body");
+        for (const DoorSpec& Dd : vm.doors) scan(Dd.mesh, "door");
+        std::sort(hits.begin(), hits.end());
+        for (auto& h : hits) printf("  z %.3f %s\n", h.first, h.second.c_str());
+        return 0;
+    }
     if (getenv("CARVIEW_SEATED")) {
         // the seated pose alone (the drive / passenger stance), every seat, three heights: the door frame's surfaces
         // and the cabin's linings it reaches into
@@ -646,6 +985,7 @@ int main(int argc, char** argv) {
                 ch.d = randomCharacter(1000u + (u32)hi * 31u, 0);
                 ch.d.height = heights[hi];
                 ch.d.hat = -1;
+                if (ch.d.bottom == Anim::detail::BOT_SKIRT && !getenv("CARVIEW_SKIRT")) ch.d.bottom = Anim::detail::BOT_JEANS;   // (cloth: skirts flare through)
                 buildSkeleton(ch.d, ch.sk);
                 buildCharacterMesh(ch.d, ch.sk, ch.mesh);
                 Animator an;
@@ -706,6 +1046,7 @@ int main(int argc, char** argv) {
                 ch.d = randomCharacter((u32)(charSeed >= 0 ? charSeed : 1000) + (u32)hi * 31u, 0);
                 ch.d.height = heights[hi];
                 ch.d.hat = -1;
+                if (ch.d.bottom == Anim::detail::BOT_SKIRT && !getenv("CARVIEW_SKIRT")) ch.d.bottom = Anim::detail::BOT_JEANS;   // (cloth: skirts flare through)
                 buildSkeleton(ch.d, ch.sk);
                 buildCharacterMesh(ch.d, ch.sk, ch.mesh);
                 for (int e = 1; e >= 0; e--) {
@@ -719,6 +1060,8 @@ int main(int argc, char** argv) {
                            st.tSill, st.bSill, st.door, st.tDoor, st.bDoor, st.ground, st.bGround, st.handOut, st.handIn);
                     printf("  SHELL %.3f@%.2f(b%d at %.2f %.2f %.2f) %d/%d frames, seated %.3f", st.shell, st.tShell, st.bShell, st.pShell.x, st.pShell.y,
                            st.pShell.z, st.shellFrames, st.frames, st.seatedShell);
+                    printf("  GLASS %.3f@%.2f(b%d at %.2f %.2f %.2f %s mat %u) %d frames, %d verts", st.cross, st.tCross, st.bCross, st.pCross.x,
+                           st.pCross.y, st.pCross.z, st.sCross, st.mCross, st.crossFrames, st.crossVerts);
                     if (e) printf(" hips %.3f belt on %.2f", st.hipErr, st.beltOn);
                     else printf(" belt off %.2f open %.2f", st.beltOff, st.maxOpen);
                     printf("  (%.0f ms)\n", (c1 - c0) * 1e3);
@@ -737,6 +1080,8 @@ int main(int argc, char** argv) {
         ch.d = randomCharacter((u32)charSeed, 0);
         if (const char* hv = getenv("CARVIEW_HEIGHT")) ch.d.height = (float)atof(hv);
         if (const char* gv = getenv("CARVIEW_GENDER")) ch.d.gender = atoi(gv) ? FEMALE : MALE;
+        ch.d.hat = -1;
+        if (ch.d.bottom == Anim::detail::BOT_SKIRT && !getenv("CARVIEW_SKIRT")) ch.d.bottom = Anim::detail::BOT_JEANS;
         buildSkeleton(ch.d, ch.sk);
         buildCharacterMesh(ch.d, ch.sk, ch.mesh);
         static CarRun run;

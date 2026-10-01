@@ -958,12 +958,15 @@ struct App {
                     (int)game.pinfo.busted, nearest, nearTactic, game.aiCensusText(60.f).c_str());
             }
         } else if (autoplay == "search") {
-            // once the units have seen the player, slip away out of sight (110 m off, round the block) and watch the
-            // officers on foot search the corners and doorways round the last-seen point
+            // once the units have seen the player, slip away out of sight (200 m off: inside the search area, so the
+            // stars take half a minute to go) and watch the officers on foot search the corners and doorways round the
+            // last-seen point
             static bool gone = false;
             static vec2 lastSeen;
             static float logT = 0.f, shotT = 0.f;
             static int shots = 0;
+            static u32 camUid = 0;
+            static vec2 camOff(9.f, 0.f);
             Ped* pl = game.playerPed();
             int copsFoot = 0;
             for (const Ped& q : game.peds)
@@ -978,12 +981,12 @@ struct App {
             if (!gone && pl && ((copsFoot >= 2 && t > 10.f) || t > 55.f)) {
                 gone = true;
                 lastSeen = pl->pos.toVec3().xy();
-                // the hiding place: a sidewalk some 110 m off, in whichever of eight directions is furthest from every
+                // the hiding place: a sidewalk some 200 m off, in whichever of eight directions is furthest from every
                 // police car and officer (none of them may see it, or there is nothing to search for)
-                vec2 hide = lastSeen + vec2(-110.f, 8.f);
+                vec2 hide = lastSeen + vec2(-200.f, 8.f);
                 float bestD = -1.f;
                 for (int k = 0; k < 8; k++) {
-                    vec2 h = lastSeen + vec2(cosf(k * kTwoPi / 8.f), sinf(k * kTwoPi / 8.f)) * 110.f;
+                    vec2 h = lastSeen + vec2(cosf(k * kTwoPi / 8.f), sinf(k * kTwoPi / 8.f)) * 200.f;   // (inside the 2-star search area: 300 m)
                     float x = 0.f;
                     int wl = game.laneGraph.nearestWalk(h, 30.f, &x);
                     if (wl < 0) continue;
@@ -1006,11 +1009,59 @@ struct App {
             }
             if (gone) {
                 vec2 ls = game.pinfo.lastSeenPos.toVec3().xy();
-                float gz = game.groundHeight(ls.x, ls.y, 30.f);
-                game.rig.scriptActive = true;
-                game.rig.scriptPos = dvec3(ls.x + 18.f, ls.y - 22.f, gz + 16.f);
-                game.rig.scriptTarget = dvec3(ls.x, ls.y, gz + 1.f);
-                game.rig.scriptFov = 60.f;
+                // the camera on one officer working the search plan (the nearest to the last-seen point with a corner or
+                // a doorway to check; kept while they search), 9 m off and 5 m up on a side with a clear view of them;
+                // until there is one, the last-seen point from above
+                int ci = -1;
+                const int np = Min((int)game.peds.size(), (int)game.ai.ped.size());
+                auto searcher = [&](int i) {
+                    const Ped& q = game.peds[i];
+                    return q.used && q.faction == FAC_POLICE && q.health > 0.f && q.state == PS_ONFOOT && game.ai.ped[i].uid == q.uid &&
+                           game.ai.ped[i].tactic == FT_SEARCH && game.ai.ped[i].searchSpot >= 0;
+                };
+                for (int i = 0; i < np && camUid; i++)
+                    if (game.peds[i].uid == camUid && searcher(i)) ci = i;
+                if (ci < 0) {
+                    camUid = 0;
+                    float bd = 80.f;
+                    for (int i = 0; i < np; i++) {
+                        float d = length(game.peds[i].pos.toVec3().xy() - ls);
+                        if (searcher(i) && d < bd) {
+                            bd = d;
+                            ci = i;
+                        }
+                    }
+                    if (ci >= 0) camUid = game.peds[ci].uid;
+                }
+                if (ci >= 0) {
+                    vec3 P = game.peds[ci].pos.toVec3();
+                    auto clear = [&](vec2 o) {
+                        vec3 cam = P + vec3(o, 5.f);
+                        return game.lineOfSight(dvec3(cam), dvec3(P + vec3(0.f, 0.f, 1.2f)), ci, -1) &&
+                               game.lineOfSight(dvec3(P + vec3(0.f, 0.f, 1.2f)), dvec3(cam), ci, -1);   // (both ways: the camera not inside a wall)
+                    };
+                    if (!clear(camOff)) {
+                        float a0 = atan2f(camOff.y, camOff.x);
+                        for (int k = 1; k < 8; k++) {
+                            float a = a0 + (k & 1 ? 1.f : -1.f) * ((k + 1) / 2) * (kTwoPi / 8.f);
+                            vec2 o = vec2(cosf(a), sinf(a)) * 9.f;
+                            if (clear(o)) {
+                                camOff = o;
+                                break;
+                            }
+                        }
+                    }
+                    game.rig.scriptActive = true;
+                    game.rig.scriptPos = dvec3(P + vec3(camOff, 5.f));
+                    game.rig.scriptTarget = dvec3(P + vec3(0.f, 0.f, 1.f));
+                    game.rig.scriptFov = 55.f;
+                } else {
+                    float gz = game.groundHeight(ls.x, ls.y, 30.f);
+                    game.rig.scriptActive = true;
+                    game.rig.scriptPos = dvec3(ls.x + 18.f, ls.y - 22.f, gz + 16.f);
+                    game.rig.scriptTarget = dvec3(ls.x, ls.y, gz + 1.f);
+                    game.rig.scriptFov = 60.f;
+                }
                 shotT -= dt;
                 if (shotT <= 0.f && shots < 10) {
                     shotT = 5.f;
@@ -1021,7 +1072,22 @@ struct App {
             logT -= dt;
             if (logT <= 0.f) {
                 logT = 2.f;
-                LOG("autoplay search t=%.1f wanted %d seen %d | %s", t, game.pinfo.wanted, (int)game.pinfo.policeSeesPlayer, game.aiCensusText(90.f).c_str());
+                // the officers on foot round the last-seen point: how many, how many working a corner / doorway of the
+                // search plan (and how many have got to theirs), torches on
+                int foot = 0, searching = 0, atSpot = 0, torches = 0;
+                vec2 ls = game.pinfo.lastSeenPos.toVec3().xy();
+                for (int i = 0; i < (int)game.peds.size() && i < (int)game.ai.ped.size(); i++) {
+                    const Ped& q = game.peds[i];
+                    if (!q.used || q.faction != FAC_POLICE || q.health <= 0.f || q.state != PS_ONFOOT || game.ai.ped[i].uid != q.uid) continue;
+                    if (length(q.pos.toVec3().xy() - ls) > 80.f) continue;
+                    foot++;
+                    const PedAI& qa = game.ai.ped[i];
+                    searching += qa.tactic == FT_SEARCH;
+                    atSpot += qa.tactic == FT_SEARCH && qa.searchSpot >= 0 && qa.searchLook >= 0.f;
+                    torches += q.aiming;   // (the sweep: gun up, the light on it at night)
+                }
+                LOG("autoplay search t=%.1f wanted %d seen %d | round the last-seen point: %d officers on foot, %d searching, %d at a corner/doorway, %d sweeping | %s", t,
+                    game.pinfo.wanted, (int)game.pinfo.policeSeesPlayer, foot, searching, atSpot, torches, game.aiCensusText(90.f).c_str());
             }
         } else if (autoplay == "k9") {
             // run 12 s round the block on the sidewalks, then stand still out of sight of where the trail starts: the K9

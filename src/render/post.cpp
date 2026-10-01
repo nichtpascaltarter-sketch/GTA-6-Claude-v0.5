@@ -281,12 +281,13 @@ struct PostSystem {
         c->setTopology(gfx::TOPO_TRIANGLE_LIST);
         c->setVS(r.vsFullscreen.vs);
         c->setPS(psTonemap);
-        gfx::SRV  srvs[6] = {displaySrv, bloomUp.srv, shafts > 0.f ? shaftB.srv : blackTex.srv, nullptr, nullptr, r.depth.srv};
-        c->psSetSRVs(0, 6, srvs);
+        gfx::SRV  srvs[7] = {displaySrv, bloomUp.srv, shafts > 0.f ? shaftB.srv : blackTex.srv, nullptr, nullptr, r.depth.srv,
+                             r.debugView > 0 && r.debugTex.srv ? r.debugTex.srv : blackTex.srv};
+        c->psSetSRVs(0, 7, srvs);
         c->psSetSRVs(40, 1, &exposureBuf.srv);
         c->draw(3, 0);
-        gfx::SRV  nullSrv6[6] = {};
-        c->psSetSRVs(0, 6, nullSrv6);
+        gfx::SRV  nullSrv6[7] = {};
+        c->psSetSRVs(0, 7, nullSrv6);
         c->psSetSRVs(40, 1, nullSrv6);
     }
 };

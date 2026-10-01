@@ -265,6 +265,7 @@ void Renderer::releaseTargets() {
     gbVelocity.release();
     hdr.release();
     hdrCopy.release();
+    debugTex.release();
     reactive.release();
     depthCopy.release();
     cloudsTex.release();
@@ -641,10 +642,16 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
                                           lightBuf.srv, ss->depthCur(), ss->halfNormal.srv, ssrSrv,
                                           interiorBuf.srv, portalBuf.srv, lightVolumeBuf.srv};
     c->csSetSRVs(0, 14, srvs);
-    c->csSetUAVs(0, 1, &hdr.uav);
+    // debug views write their values to a texture of their own (the lit image keeps feeding TAA and the reflections)
+    if (debugView > 0 && (!debugTex.res || debugTex.width != width || debugTex.height != height)) {
+        debugTex.release();
+        debugTex = gfx::createTexture2D(width, height, DXGI_FORMAT_R16G16B16A16_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV);
+    }
+    gfx::UAV  luavs[2] = {hdr.uav, debugView > 0 ? debugTex.uav : nullptr};
+    c->csSetUAVs(0, 2, luavs);
     c->setCS(csLighting);
     c->dispatch(gfx::divUp(width, 16), gfx::divUp(height, 16), 1);
-    gfx::unbindCSResources(14, 1);
+    gfx::unbindCSResources(14, 2);
     RenderPassTiming::end();
 
     // Water (forward, reads copies of the lit scene and depth)

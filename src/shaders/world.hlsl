@@ -92,18 +92,22 @@ float lineMask(float d, float halfWidth, float px) {
     return smoothstep(w, w * 0.35, d) * (halfWidth / w);
 }
 
-// Asphalt wear in road space (ruv: u across, v along the road, meters; world-aligned on junctions and lots):
-// polished darker wheel tracks and an oil-drip band per ~3.5 m lane, occasional utility-cut patches with sealed
-// seams, sparse meandering longitudinal cracks near lane joints and partial transverse cracks, some of them
-// sealed with glossy tar snakes. Procedural in world space, so nothing repeats with the 4 m texture tile.
+// Asphalt wear in road space (ruv: u across, v along the road, meters; world-aligned on junctions and lots, which
+// carry no width: roadW = 0): on road segments polished darker wheel tracks and an oil-drip band per ~3.5 m lane and
+// sparse meandering longitudinal cracks near lane joints; on junctions and lots broad polished areas and oil stains;
+// everywhere occasional utility-cut patches with sealed seams and partial transverse cracks, some of them sealed
+// with glossy tar snakes. Procedural in world space, so nothing repeats with the 4 m texture tile.
 // Street furniture in the road surface: cast-iron manhole covers near the lane centres every few tens of metres and
-// storm-drain grates in the gutter. Road space as in roadWear; roadW = carriageway width (0 = unknown: only the left
-// kerb, u = 0, is known). Writes iron where a cover / grate is, height (m) for the bump.
+// storm-drain grates in the gutter. Road space as in roadWear; roadW = carriageway width (road segments; 0 on
+// junctions, bulbs and lots, which get none of these). Writes iron where a cover / grate is, height (m) for the bump.
 void roadFurniture(float2 ruv, float roadW, float px, inout float3 albedo, inout float rough, inout float metal,
                    inout float ao, inout float hgt, out float gutter) {
     float u = ruv.x, v = ruv.y;
+    gutter = 0.0;
+    // junctions, turning bulbs and lots (no width: uv is world-aligned) have no kerb lines to lay these out along
+    if (roadW <= 0.0) return;
     // gutter: the strip along the kerb collects grit, leaves and oily grime (and runs with water in the rain)
-    float dEdge = roadW > 0.0 ? min(u, roadW - u) : u;
+    float dEdge = min(u, roadW - u);
     gutter = saturate(1.0 - dEdge / 0.45) * step(0.0, dEdge);
     // manhole covers: one per 48 m stretch (two in three stretches), in the first or second lane
     float mc = floor(v / 48.0);
@@ -165,21 +169,32 @@ float asphaltGrain(float2 worldXY, float fp, out float hgt) {
     return 1.0 + g;
 }
 
-void roadWear(float2 ruv, float camDist, inout float3 albedo, inout float rough, inout float ao, out float rut) {
+void roadWear(float2 ruv, float roadW, float camDist, inout float3 albedo, inout float rough, inout float ao, out float rut) {
     rut = 0.0;
     float fade = saturate(1.6 - camDist / 110.0);
     if (fade <= 0.0) return;
     float u = ruv.x, v = ruv.y;
     float px = camDist * 0.0012;   // ~1.5-2 pixels at 1080p-1440p
-    // lanes: rubber-darkened, slightly polished wheel tracks at +-0.9 m from the lane centre, oil drips between them
-    float lu = frac(u / 3.5) * 3.5 - 1.75;
-    float track = exp(-sq((abs(lu) - 0.9) / 0.32)) * (0.75 + 0.25 * valueNoise(float2(v * 0.08, u * 0.3)));
-    float drip = saturate(valueNoise(float2(v * 0.3, floor(u / 3.5) * 5.1)) * 1.6 - 0.3);
-    drip *= 0.6 + 0.4 * smoothstep(0.4, 0.8, valueNoise(float2(v * 2.3, u * 2.3)));   // individual drips
-    float oil = exp(-sq(lu / 0.24)) * drip;
-    rut = track * fade;
-    albedo *= 1.0 - (0.22 * track + 0.28 * oil) * fade;
-    rough = saturate(rough * (1.0 - (0.2 * track + 0.2 * oil) * fade));
+    bool lanes = roadW > 0.0;
+    if (lanes) {
+        // lanes: rubber-darkened, slightly polished wheel tracks at +-0.9 m from the lane centre, oil drips between them
+        float lu = frac(u / 3.5) * 3.5 - 1.75;
+        float track = exp(-sq((abs(lu) - 0.9) / 0.32)) * (0.75 + 0.25 * valueNoise(float2(v * 0.08, u * 0.3)));
+        float drip = saturate(valueNoise(float2(v * 0.3, floor(u / 3.5) * 5.1)) * 1.6 - 0.3);
+        drip *= 0.6 + 0.4 * smoothstep(0.4, 0.8, valueNoise(float2(v * 2.3, u * 2.3)));   // individual drips
+        float oil = exp(-sq(lu / 0.24)) * drip;
+        rut = track * fade;
+        albedo *= 1.0 - (0.22 * track + 0.28 * oil) * fade;
+        rough = saturate(rough * (1.0 - (0.2 * track + 0.2 * oil) * fade));
+    } else {
+        // junctions, turning bulbs and lots (uv is world-aligned there, no lanes): traffic turns and parks in every
+        // direction, so instead of wheel tracks along one world axis (they read as regular stripes across a junction,
+        // glossy ones in the rain) broad tyre-polished areas and scattered oil stains
+        float polish = smoothstep(0.42, 0.78, valueNoise(ruv * 0.11 + 2.7) * 0.7 + valueNoise(ruv * 0.47 + 8.3) * 0.3);
+        float stain = smoothstep(0.66, 0.82, valueNoise(ruv * 0.8 + 3.9)) * smoothstep(0.45, 0.7, valueNoise(ruv * 0.13 + 1.7));
+        albedo *= 1.0 - (0.14 * polish + 0.24 * stain) * fade;
+        rough = saturate(rough * (1.0 - (0.12 * polish + 0.18 * stain) * fade));
+    }
     // utility-cut patches (one in ~14 cells of 14 m x 3.5 m)
     float2 pc = float2(floor(v / 14.0), floor(u / 3.5));
     uint ph = hash2u(asuint(int2(pc)) + 0x51u);
@@ -195,12 +210,12 @@ void roadWear(float2 ruv, float camDist, inout float3 albedo, inout float rough,
             albedo *= 1.0 - 0.35 * lineMask(edge, 0.025, px) * fade;   // sealed seam
         }
     }
-    // longitudinal cracks meandering near the lane joints, only along some stretches
+    // longitudinal cracks meandering near the lane joints, only along some stretches (road segments only)
     float lane = floor(u / 3.5 + 0.5);
     float lj = u - lane * 3.5;
     float meander = (valueNoise(float2(v * 0.19, lane * 3.1)) - 0.5) * 0.6 + (valueNoise(float2(v * 1.4, lane + 7.1)) - 0.5) * 0.07;
     float dL = abs(lj - meander);
-    float presentL = smoothstep(0.58, 0.72, valueNoise(float2(v * 0.04, lane * 3.7 + 1.3)));
+    float presentL = lanes ? smoothstep(0.58, 0.72, valueNoise(float2(v * 0.04, lane * 3.7 + 1.3))) : 0.0;
     // partial transverse cracks, one every few cells of 9 m
     float cell = floor(v / 9.0);
     uint th = hash2u(uint2(asuint((int)cell), 0x7a3u));
@@ -277,9 +292,11 @@ GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
             float fp = max(length(dPx), length(dPy));
             float hgt = 0.0;
             albedo *= asphaltGrain(worldP.xy, fp, hgt);
-            roadWear(i.uv, length(i.rel), albedo, rough, ao, rut);
-            float gutter = 0.0;
+            // road segments carry the carriageway width in the colour alpha (roadmesh.cpp); junctions, bulbs and
+            // lots are white (alpha 1) with world-aligned uv
             float roadW = i.color.a < 0.995 ? i.color.a * 64.0 : 0.0;
+            roadWear(i.uv, roadW, length(i.rel), albedo, rough, ao, rut);
+            float gutter = 0.0;
             roadFurniture(i.uv, roadW, length(i.rel) * 0.0012, albedo, rough, metal, ao, hgt, gutter);
             albedo *= 1.0 - gutter * 0.3;
             rough = saturate(rough + gutter * 0.05);

@@ -32,6 +32,21 @@ float tvalue(float2 p, float P) {
     float2 u = f * f * (3.0 - 2.0 * f);
     return lerp(lerp(hashP(i, P), hashP(i + float2(1, 0), P), u.x), lerp(hashP(i + float2(0, 1), P), hashP(i + float2(1, 1), P), u.x), u.y);
 }
+// Value noise on a lattice of P.x by P.y cells across the tile, for anisotropic features (grain, streaks, scratches):
+// one period for both axes would leave a seam at the tile edge or repeat the pattern every P cells along the other.
+float hashP2(float2 i, float2 P) { i = i - floor(i / P) * P; return (hash2u(asuint(int2(i)) + gSeed * 7919u) >> 8) * (1.0 / 16777216.0); }
+float tvalue2(float2 p, float2 P) {
+    float2 i = floor(p), f = frac(p);
+    float2 u = f * f * (3.0 - 2.0 * f);
+    return lerp(lerp(hashP2(i, P), hashP2(i + float2(1, 0), P), u.x), lerp(hashP2(i + float2(0, 1), P), hashP2(i + float2(1, 1), P), u.x), u.y);
+}
+// A hard threshold of noise with `cells` lattice cells across the tile (mean = the share of the noise above it): where
+// the texture is too small to resolve the cells (the 256-texel materials of automated runs) the feature fades into its
+// average coverage instead of aliasing into single-texel dots that magnify into squares on screen.
+float tthreshold(float edge, float v, float cells, float mean) {
+    float resolved = saturate(((float)gSize / cells - 0.3) * 2.0);
+    return lerp(mean, smoothstep(edge - 0.01, edge + 0.01, v), resolved);
+}
 float tfbm(float2 uv, float baseFreq, int oct, float gain) {
     float s = 0, a = 0.5, n = 0, f = baseFreq;
     [loop] for (int k = 0; k < oct; k++) {
@@ -74,7 +89,7 @@ Surf genSand(float2 uv) {
     float3 c = lerp(gColorA.rgb, gColorB.rgb, big);
     c *= 0.88 + grain * 0.2;
     // shell fragments / dark grains
-    float speck = step(0.93, tvalue(uv * 300, 300));
+    float speck = tthreshold(0.93, tvalue(uv * 300, 300), 300.0, 0.011);
     c = lerp(c, gColorC.rgb, speck * 0.6);
     s.albedo = c;
     s.rough = 0.85 + grain * 0.1;
@@ -261,7 +276,7 @@ Surf genConcrete(float2 uv) {
     Surf s;
     float big = tfbm(uv, 3, 5, 0.5) * 0.5 + 0.5;
     float fine = tvalue(uv * 500, 500);
-    float pores = step(0.93, tvalue(uv * 900 + 1.3, 900));
+    float pores = tthreshold(0.93, tvalue(uv * 900 + 1.3, 900), 900.0, 0.011);
     float stain = smoothstep(0.55, 0.8, tfbm(uv + 2.0, 2, 4, 0.55) * 0.5 + 0.5);
     s.height = 0.6 + big * 0.2 + fine * 0.1 - pores * 0.4;
     float3 c = lerp(gColorA.rgb, gColorB.rgb, big);
@@ -340,7 +355,7 @@ Surf genPlaster(float2 uv) {
     s.height = s.height * 0.3 + smooth * 0.2;
     s.rough = 0.8;
     // vertical rain streaks
-    float streak = tvalue(float2(uv.x * 80.0, uv.y * 2.0), 80);
+    float streak = tvalue2(float2(uv.x * 80.0, uv.y * 2.0), float2(80.0, 2.0));
     s.albedo = lerp(s.albedo, s.albedo * 0.8, smoothstep(0.7, 1.0, streak) * (1.0 - uv.y) * 0.5);
     return s;
 }
@@ -350,7 +365,7 @@ Surf genSiding(float2 uv) {
     float boards = 10.0;
     float f = frac(uv.y * boards);
     float bevel = smoothstep(0.0, 0.9, f);
-    float grain = tvalue(float2(uv.x * 20.0, uv.y * 400.0), 20) * 0.5 + tfbm(uv, 16, 3, 0.5) * 0.25;
+    float grain = tvalue2(float2(uv.x * 20.0, uv.y * 400.0), float2(20.0, 400.0)) * 0.5 + tfbm(uv, 16, 3, 0.5) * 0.25;
     s.height = bevel * 0.6 + grain * 0.1;
     float3 c = gColorA.rgb * (0.9 + grain * 0.15);
     c *= lerp(0.7, 1.0, smoothstep(0.0, 0.08, f));
@@ -425,7 +440,7 @@ Surf genGlass(float2 uv) {
 
 Surf genPaintedMetal(float2 uv) {
     Surf s;
-    float scratches = step(0.97, tvalue(float2(uv.x * 900.0, uv.y * 30.0), 900));
+    float scratches = tthreshold(0.97, tvalue2(float2(uv.x * 900.0, uv.y * 30.0), float2(900.0, 30.0)), 900.0, 0.002);
     float wear = smoothstep(0.6, 0.9, tfbm(uv, 4, 4, 0.5) * 0.5 + 0.5);
     s.height = 0.5 - scratches * 0.2;
     s.albedo = lerp(gColorA.rgb, gColorC.rgb, max(scratches, wear * 0.3));
@@ -436,7 +451,7 @@ Surf genPaintedMetal(float2 uv) {
 
 Surf genBrushed(float2 uv) {
     Surf s;
-    float streak = tvalue(float2(uv.x * 4.0, uv.y * 1200.0), 4) * 0.6 + tvalue(float2(uv.x * 16.0, uv.y * 600.0), 16) * 0.4;
+    float streak = tvalue2(float2(uv.x * 4.0, uv.y * 1200.0), float2(4.0, 1200.0)) * 0.6 + tvalue2(float2(uv.x * 16.0, uv.y * 600.0), float2(16.0, 600.0)) * 0.4;
     s.height = 0.5 + streak * 0.05;
     s.albedo = gColorA.rgb * (0.9 + streak * 0.15);
     s.rough = 0.3 + streak * 0.15;
@@ -491,13 +506,6 @@ Surf genStone(float2 uv) {
     return s;
 }
 
-// Anisotropic tileable value noise (period P.x x P.y lattice cells)
-float hashP2(float2 i, float2 P) { i = i - floor(i / P) * P; return (hash2u(asuint(int2(i)) + gSeed * 7919u) >> 8) * (1.0 / 16777216.0); }
-float tvalue2(float2 p, float2 P) {
-    float2 i = floor(p), f = frac(p);
-    float2 u = f * f * (3.0 - 2.0 * f);
-    return lerp(lerp(hashP2(i, P), hashP2(i + float2(1, 0), P), u.x), lerp(hashP2(i + float2(0, 1), P), hashP2(i + float2(1, 1), P), u.x), u.y);
-}
 
 // Fabric: clothing, denim, upholstery, carpet, awning canvas. No periodic yarn-scale weave in the texture: a
 // millimetre weave in a tiling texture reaches Nyquist in the box-filtered mips and turns into moire stripes across
@@ -544,7 +552,7 @@ Surf genPlanks(float2 uv) {
     float row = floor(uv.y * boards);
     float fx = frac(uv.x * 2.0 + hashP(float2(row, 3), boards) );
     float id = hashP(float2(row, floor(uv.x * 2.0 + hashP(float2(row, 3), boards))), boards * 2.0);
-    float grain = tvalue(float2(uv.x * 30.0, uv.y * 900.0), 30) * 0.6 + tfbm(uv * float2(1, 8), 6, 3, 0.5) * 0.4;
+    float grain = tvalue2(float2(uv.x * 30.0, uv.y * 900.0), float2(30.0, 900.0)) * 0.6 + tfbm(uv * float2(1, 8), 6, 3, 0.5) * 0.4;
     float gap = smoothstep(0.0, 0.05, min(fy, 1.0 - fy)) * smoothstep(0.0, 0.01, min(fx, 1.0 - fx));
     float3 c = lerp(gColorA.rgb, gColorB.rgb, id) * (0.8 + grain * 0.3);
     s.albedo = c * lerp(0.3, 1.0, gap);

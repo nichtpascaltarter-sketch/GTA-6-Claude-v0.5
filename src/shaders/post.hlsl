@@ -23,6 +23,7 @@ cbuffer PostCB : register(b1) {
     float4 gShaft;  // crepuscular rays: xy sun position (uv), z strength (0 = off)
 };
 Texture2D<float> tSceneDepth : register(t5);
+Texture2D<float4> tDebugView : register(t6);   // --debugview values (lighting pass), shown in the debug region
 Texture2D<float4> tShafts : register(t2);   // crepuscular ray radiance (pre-exposed, signed), quarter resolution
 
 // Auto exposure from luminance histograms (GTA-style metering): a trimmed geometric mean of all pixels for the
@@ -268,10 +269,11 @@ float4 psTonemap(VSOut i) : SV_Target {
         uv += float2(sin(uv.y * 38.0 + gTime.x * 2.1), cos(uv.x * 31.0 + gTime.x * 1.7)) * 0.0022 * uw;
     }
     float3 c = tHDR.SampleLevel(sLinearClamp, uv, 0).rgb;
-    // Debug views (--debugview N) are shown linearly, without grading
+    // Debug views (--debugview N) are shown linearly, without grading (written apart from the lit image, which keeps
+    // feeding TAA, exposure and the reflections)
     if (gRenderParams.w > 0.5 && i.uv.x >= gRenderParams.y) {
         if (gRenderParams.y > 0.0 && i.uv.x < gRenderParams.y + 1.5 / gScreen.x) return float4(1, 1, 0, 1);  // split divider
-        return float4(linearToSrgb(saturate(c)), 1);
+        return float4(linearToSrgb(saturate(tDebugView.SampleLevel(sPointClamp, i.uv, 0).rgb)), 1);
     }
     // light sharpening (compensates TAA softness)
     float2 px = 1.0 / gScreen.xy;

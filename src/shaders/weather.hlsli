@@ -5,19 +5,28 @@
 #define WEATHER_HLSLI
 #include "common.hlsli"
 
-// 1 where the sky is open above the point, 0 under cover. Soft (4 taps) near roof edges.
+// Open-sky share at one point of the overhead height map: each of the 2x2 texels around uv counts as open when its
+// height is below z (0.35 m tolerance, 0.3 m ramp), blended with bilinear weights - a percentage-closer test, so a
+// cover edge (roof, awning, deck) is a smooth ramp instead of a stair-step of 0.19 m texels.
+float overheadOpen(float2 uv, float z, float2 size) {
+    float2 st = uv * size - 0.5;
+    float2 f = frac(st);
+    float4 h = gOverheadMap.GatherRed(sPointClamp, (floor(st) + 1.0) / size);
+    float4 e = saturate((z - h + 0.35) / 0.3);
+    return lerp(lerp(e.w, e.z, f.x), lerp(e.x, e.y, f.x), f.y);   // gather order: (0,1) (1,1) (1,0) (0,0)
+}
+
+// 1 where the sky is open above the point, 0 under cover. Soft over ~0.7 m at roof edges (4 filtered taps).
 float skyExposure(float3 worldP) {
     if (gOverhead.w < 0.5) return 1.0;
     float2 uv = overheadUV(worldP.xy);
     if (any(uv < 0.0) || any(uv > 1.0)) return 1.0;
+    uint w, h;
+    gOverheadMap.GetDimensions(w, h);
+    float2 size = float2(w, h);
     float2 o = 0.35 / gOverhead.z;
-    float4 h;
-    h.x = gOverheadMap.SampleLevel(sPointClamp, uv + float2(-o.x, -o.y), 0);
-    h.y = gOverheadMap.SampleLevel(sPointClamp, uv + float2(o.x, -o.y), 0);
-    h.z = gOverheadMap.SampleLevel(sPointClamp, uv + float2(-o.x, o.y), 0);
-    h.w = gOverheadMap.SampleLevel(sPointClamp, uv + float2(o.x, o.y), 0);
-    float4 e = saturate((worldP.z - h + 0.35) / 0.3);
-    return dot(e, 0.25);
+    return (overheadOpen(uv + float2(-o.x, -o.y), worldP.z, size) + overheadOpen(uv + float2(o.x, -o.y), worldP.z, size) +
+            overheadOpen(uv + float2(-o.x, o.y), worldP.z, size) + overheadOpen(uv + float2(o.x, o.y), worldP.z, size)) * 0.25;
 }
 
 // Expanding ring ripples from raindrops: returns a tangent-space normal offset (xy). One drop per cell,
