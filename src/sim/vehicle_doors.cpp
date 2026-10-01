@@ -690,7 +690,7 @@ inline AABB buildCarDoors(const CarBody& b, const InteriorLayout& I, const PMesh
         D.mesh = std::move(doorMesh[r]);
         D.left = side < 0.f;
         D.front = R.k == 0;
-        D.maxAngle = DL.perSide == 1 ? 1.08f : (R.k == 0 ? 1.15f : 1.22f);
+        D.maxAngle = DL.perSide == 1 ? 1.08f : (R.k == 0 ? 1.15f : 1.4f);   // (a short rear door opens to 80 degrees)
         // hinge: along the door's front edge, just outside the skin so the door's edge swings clear of the fender
         float zb = b.beltZAt(o.yF);
         vec3 h0, h1;
@@ -747,7 +747,9 @@ inline AABB buildCarDoors(const CarBody& b, const InteriorLayout& I, const PMesh
 }
 
 // Seats to their doors (two-door bodies: the rear seats get in through the front doors): the front pair are seats 0
-// and 1, the rear pair 2 and 3; the door on the seat's own side.
+// and 1, the rear pair 2 and 3; the door on the seat's own side. A rear door too short to get through (its own
+// thickness, swung open, takes ~0.2 m off the front of its opening: under 0.4 m at the sill leaves no way in) is no
+// way to its seat: that seat has none.
 inline void linkSeatDoors(VehicleModel& out) {
     int perSide = (int)out.doors.size() / 2;
     for (size_t i = 0; i < out.seats.size(); i++) {
@@ -755,6 +757,7 @@ inline void linkSeatDoors(VehicleModel& out) {
         int k = (perSide == 2 && i >= 2) ? 1 : 0;
         s.door = k * 2 + (s.pos.x > 0.f ? 1 : 0);
         if (s.door >= (int)out.doors.size()) s.door = -1;
+        if (s.door >= 0 && k == 1 && out.doors[s.door].yFront - out.doors[s.door].yRear < 0.4f) s.door = -1;
     }
 }
 

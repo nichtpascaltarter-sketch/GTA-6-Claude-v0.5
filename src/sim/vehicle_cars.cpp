@@ -430,8 +430,9 @@ inline void buildCar(const CarDef& def, VehicleModel& out) {
     out.seats.push_back(SeatSpec{vec3(-fx, d.I.yHipF, hz - dropF), true, true});
     out.seats.push_back(SeatSpec{vec3(fx, d.I.yHipF, hz - dropF), false, false});
     if (d.I.rearSeat) {
-        out.seats.push_back(SeatSpec{vec3(-fx, d.I.yHipR, hz - 0.02f - dropR), false, true});
-        out.seats.push_back(SeatSpec{vec3(fx, d.I.yHipR, hz - 0.02f - dropR), false, false});
+        float rx = rearSeatX(b, d.I);   // (in clear of the rear wheel wells)
+        out.seats.push_back(SeatSpec{vec3(-rx, d.I.yHipR, hz - 0.02f - dropR), false, true});
+        out.seats.push_back(SeatSpec{vec3(rx, d.I.yHipR, hz - 0.02f - dropR), false, false});
     }
     if (doors) linkSeatDoors(out);
     // the cabin's ceiling over each seat (the headliner over the occupant's head, the visor's underside in front of

@@ -550,6 +550,24 @@ void GameWorld::updatePlayerOnFoot(Ped& p, float dt) {
         }
         if (best >= 0) {
             int seat = asPassenger ? freeSeat(best, false) : 0;
+            if (asPassenger) {
+                // the free passenger seat nearest to the player: beside its own side of the car (a rear one's door, when
+                // the player stands by it)
+                const Vehicle& bv = vehicles[best];
+                const Vehicles::VehicleModel& bs = vassets[bv.model].spec;
+                float bestSeatD = 1e9f;
+                for (int s = 1; s < Min((int)bs.seats.size(), 8); s++) {
+                    if (bv.seats[s] >= 0) continue;
+                    const Vehicles::SeatSpec& ss = bs.seats[s];
+                    vec3 side(ss.exitLeft ? -(bs.boxHalf.x + 0.35f) : bs.boxHalf.x + 0.35f, ss.pos.y - 0.2f, 0.f);
+                    vec3 at = bv.sim.body.pos.toVec3() + rotate(bv.sim.body.rot, side);
+                    float dd = length(vec2(at.x - (float)p.pos.x, at.y - (float)p.pos.y));
+                    if (dd < bestSeatD) {
+                        bestSeatD = dd;
+                        seat = s;
+                    }
+                }
+            }
             p.targetVehicle = best;
             p.targetSeat = seat;
             p.state = PS_ENTERING;

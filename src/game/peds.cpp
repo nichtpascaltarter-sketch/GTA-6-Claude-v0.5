@@ -24,12 +24,12 @@ quat yawQuat(float yaw) { return quatAxisAngle(vec3(0, 0, 1), yaw); }
 // (Vehicles::DoorSpec) from where carEntrySpot / carExitSpot put the ped, held still there while the clip plays.
 
 // The seat's door in the vehicle's frame (the model's: +y forward, z up), its index among the model's doors: false
-// when the seat has none of its own (bikes, boats, vans' sliding doors, the far LODs' bodies) - and for the rear
-// seats, whose getting in and out through a door is not choreographed yet (they keep the plain clips)
+// when the seat has none of its own (bikes, boats, vans' sliding doors, the far LODs' bodies, a coupe's +2 seats
+// behind its front doors: they keep the plain clips)
 static bool seatDoorVF(const GameWorld& g, int vi, int seat, Anim::CarDoorInfo& d, int* doorIndex = nullptr) {
     if (vi < 0 || vi >= (int)g.vehicles.size() || !g.vehicles[vi].used || g.isBike(vi) || g.isBoat(vi)) return false;
     const Vehicles::VehicleModel& spec = g.vassets[g.vehicles[vi].model].spec;
-    if (seat < 0 || seat >= 2 || seat >= (int)spec.seats.size()) return false;
+    if (seat < 0 || seat >= (int)spec.seats.size() || (seat >= 2 && spec.seats[seat].door < 2)) return false;
     const Vehicles::SeatSpec& ss = spec.seats[seat];
     if (ss.door < 0 || ss.door >= (int)spec.doors.size() || ss.door >= 4) return false;
     const Vehicles::DoorSpec& D = spec.doors[ss.door];
