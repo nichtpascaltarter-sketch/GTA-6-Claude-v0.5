@@ -24,7 +24,7 @@ struct Font {
 };
 
 struct Batch {
-    ID3D11ShaderResourceView* tex;
+    gfx::SRV  tex;
     int start, count;
     vec4 clip;      // circle: cx, cy, r, 1 | rect / rounded rect: x, y, w, h (mode in clipMode)
     int clipMode;   // 0 none, 1 circle, 2 rect, 3 rounded rect
@@ -61,24 +61,23 @@ const int kMaxVerts = 65536 * 4;
 std::vector<Vtx> g_verts;
 std::vector<Batch> g_batches;
 gfx::VertexShader g_vs;
-ID3D11PixelShader* g_ps = nullptr;
+gfx::PixelShader  g_ps = nullptr;
 gfx::CBuffer<ClipCBData> g_cb;
-ID3D11BlendState* g_blend = nullptr;
+gfx::BlendState  g_blend = nullptr;
 int g_w = 1, g_h = 1;
 vec4 g_clip;
 int g_clipMode = 0;
 float g_clipRadius = 0.f;
 bool g_discard = false;
 int g_frameIndex = 0;
-ID3D11ShaderResourceView* g_iconSrv = nullptr;
+gfx::SRV  g_iconSrv = nullptr;
 // Backdrop blur
 bool g_wantBackdrop = false;
 gfx::VertexShader g_vsFull;
-ID3D11PixelShader* g_psDown = nullptr;
-ID3D11PixelShader* g_psBlur = nullptr;
+gfx::PixelShader  g_psDown = nullptr;
+gfx::PixelShader  g_psBlur = nullptr;
 gfx::CBuffer<BlurCBData> g_blurCB;
-ID3D11Texture2D* g_copyTex = nullptr;
-ID3D11ShaderResourceView* g_copySrv = nullptr;
+gfx::Texture g_copy;   // full-resolution copy of the captured render target
 gfx::Texture g_half, g_q1, g_q2;
 int g_blurW = 0, g_blurH = 0;
 DXGI_FORMAT g_blurFmt = DXGI_FORMAT_UNKNOWN;
@@ -87,7 +86,7 @@ bool g_blurValid = false;
 gfx::CBuffer<PhotoCBData> g_photoCB;
 PhotoCBData g_photo;
 bool g_photoUsed = false;
-ID3D11ShaderResourceView* g_depthSrv = nullptr;
+gfx::SRV  g_depthSrv = nullptr;
 float g_depthNear = 0.f;
 vec4 g_colorRows[3] = {vec4(1, 0, 0, 0), vec4(0, 1, 0, 0), vec4(0, 0, 1, 0)};
 // Snapshots of finished frames (quarter resolution ring)
@@ -258,7 +257,7 @@ bool buildFont(Font& font, const char* face, const char* fallback, int weight, s
 
 bool g_additive = false;
 
-void flushBatchIfNeeded(ID3D11ShaderResourceView* tex) {
+void flushBatchIfNeeded(gfx::SRV  tex) {
     bool needNew = g_batches.empty() || g_batches.back().tex != tex || g_batches.back().clipMode != g_clipMode ||
                    memcmp(&g_batches.back().clip, &g_clip, sizeof(vec4)) != 0 || g_batches.back().clipRadius != g_clipRadius;
     if (needNew) {
@@ -274,9 +273,9 @@ void flushBatchIfNeeded(ID3D11ShaderResourceView* tex) {
 }
 
 // Solid-color / procedural primitives do not depend on the batch texture: reuse the current batch when possible.
-ID3D11ShaderResourceView* anyTex() { return g_batches.empty() ? nullptr : g_batches.back().tex; }
+gfx::SRV  anyTex() { return g_batches.empty() ? nullptr : g_batches.back().tex; }
 
-void pushQuad(const Vtx& a, const Vtx& b, const Vtx& c, const Vtx& d, ID3D11ShaderResourceView* tex) {
+void pushQuad(const Vtx& a, const Vtx& b, const Vtx& c, const Vtx& d, gfx::SRV  tex) {
     if (g_discard || (int)g_verts.size() + 6 > kMaxVerts) return;
     flushBatchIfNeeded(tex);
     size_t base = g_verts.size();
@@ -291,7 +290,7 @@ void pushQuad(const Vtx& a, const Vtx& b, const Vtx& c, const Vtx& d, ID3D11Shad
     g_batches.back().count += 6;
 }
 
-void pushTri(const Vtx& a, const Vtx& b, const Vtx& c, ID3D11ShaderResourceView* tex) {
+void pushTri(const Vtx& a, const Vtx& b, const Vtx& c, gfx::SRV  tex) {
     if (g_discard || (int)g_verts.size() + 3 > kMaxVerts) return;
     flushBatchIfNeeded(tex);
     size_t base = g_verts.size();
@@ -333,8 +332,7 @@ bool pointInTri(vec2 p, vec2 a, vec2 b, vec2 c) {
 }
 
 void releaseBlur() {
-    SAFE_RELEASE(g_copySrv);
-    SAFE_RELEASE(g_copyTex);
+    g_copy.release();
     g_half.release();
     g_q1.release();
     g_q2.release();
@@ -343,75 +341,69 @@ void releaseBlur() {
 }
 
 // (Re)creates the full-resolution copy and the half / quarter targets for a render target of this size and format.
-bool ensureCaptureTargets(const D3D11_TEXTURE2D_DESC& td) {
-    if ((int)td.Width == g_blurW && (int)td.Height == g_blurH && td.Format == g_blurFmt && g_copyTex) return true;
+bool ensureCaptureTargets(gfx::Resource src) {
+    int w = (int)src->desc.Width, h = (int)src->desc.Height;
+    DXGI_FORMAT fmt = src->format != DXGI_FORMAT_UNKNOWN ? src->format : src->desc.Format;
+    if (w == g_blurW && h == g_blurH && fmt == g_blurFmt && g_copy.res) return true;
     releaseBlur();
-    D3D11_TEXTURE2D_DESC cd = td;
-    cd.MipLevels = 1;
-    cd.ArraySize = 1;
-    cd.SampleDesc.Count = 1;
-    cd.SampleDesc.Quality = 0;
-    cd.Usage = D3D11_USAGE_DEFAULT;
-    cd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-    cd.CPUAccessFlags = 0;
-    cd.MiscFlags = 0;
-    if (SUCCEEDED(gfx::dev->CreateTexture2D(&cd, nullptr, &g_copyTex))) gfx::dev->CreateShaderResourceView(g_copyTex, nullptr, &g_copySrv);
-    int hw = Max(1, (int)td.Width / 2), hh = Max(1, (int)td.Height / 2);
-    int qw = Max(1, (int)td.Width / 4), qh = Max(1, (int)td.Height / 4);
+    g_copy = gfx::createTexture2D(w, h, fmt, gfx::TEX_SRV);
+    int hw = Max(1, w / 2), hh = Max(1, h / 2);
+    int qw = Max(1, w / 4), qh = Max(1, h / 4);
     g_half = gfx::createTexture2D(hw, hh, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_RTV);
     g_q1 = gfx::createTexture2D(qw, qh, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_RTV);
     g_q2 = gfx::createTexture2D(qw, qh, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_RTV);
-    g_blurW = (int)td.Width;
-    g_blurH = (int)td.Height;
-    g_blurFmt = td.Format;
-    return g_copyTex != nullptr;
+    g_blurW = w;
+    g_blurH = h;
+    g_blurFmt = fmt;
+    return g_copy.res != nullptr;
+}
+
+// Whether a bound render target can be captured: a single-sample 2D texture with one mip and one slice.
+bool capturable(gfx::Resource res) {
+    return res && res->kind == gfx::RES_TEXTURE2D && res->desc.SampleDesc.Count == 1 && res->desc.MipLevels == 1 &&
+           res->desc.DepthOrArraySize == 1;
 }
 
 // Pipeline state for the fullscreen passes below (restored by endFrame's own setup afterwards).
 void beginBlitPasses() {
     auto* c = gfx::ctx;
-    c->IASetInputLayout(nullptr);
-    c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    c->VSSetShader(g_vsFull.vs, nullptr, 0);
-    c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
-    c->OMSetDepthStencilState(gfx::states.depthOff, 0);
-    c->RSSetState(gfx::states.cullNone);
-    ID3D11SamplerState* samps[] = {gfx::states.linearClamp};
-    c->PSSetSamplers(1, 1, samps);
+    c->setInputLayout(nullptr);
+    c->setTopology(gfx::TOPO_TRIANGLE_LIST);
+    c->setVS(g_vsFull.vs);
+    c->setBlendState(gfx::states.opaque);
+    c->setDepthState(gfx::states.depthOff);
+    c->setRasterState(gfx::states.cullNone);
 }
 
-void blitPass(ID3D11PixelShader* ps, ID3D11ShaderResourceView* src, int sw, int sh, const gfx::Texture& dst, vec2 dir) {
+void blitPass(gfx::PixelShader  ps, gfx::SRV  src, int sw, int sh, const gfx::Texture& dst, vec2 dir) {
     auto* c = gfx::ctx;
-    ID3D11ShaderResourceView* nullSrv[1] = {nullptr};
-    c->PSSetShaderResources(0, 1, nullSrv);
-    c->OMSetRenderTargets(1, &dst.rtv, nullptr);
+    gfx::SRV  nullSrv[1] = {nullptr};
+    c->psSetSRVs(0, 1, nullSrv);
+    c->setRenderTargets(1, &dst.rtv, nullptr);
     gfx::setViewport((float)dst.width, (float)dst.height);
     g_blurCB.data.texel = vec4(1.f / sw, 1.f / sh, dir.x, dir.y);
     g_blurCB.upload();
-    ID3D11Buffer* cbs[] = {g_blurCB.get()};
-    c->PSSetConstantBuffers(2, 1, cbs);
-    c->PSSetShader(ps, nullptr, 0);
-    c->PSSetShaderResources(0, 1, &src);
-    c->Draw(3, 0);
-    c->PSSetShaderResources(0, 1, nullSrv);
+    gfx::Resource  cbs[] = {g_blurCB.get()};
+    c->psSetCBs(2, 1, cbs);
+    c->setPS(ps);
+    c->psSetSRVs(0, 1, &src);
+    c->draw(3, 0);
+    c->psSetSRVs(0, 1, nullSrv);
 }
 
-// Captures the currently bound render target: full-resolution copy (g_copySrv), half resolution (g_half) and a
+// Captures the currently bound render target: full-resolution copy (g_copy), half resolution (g_half) and a
 // quarter-resolution blurred copy (g_q1).
 void captureBackdrop() {
     auto* c = gfx::ctx;
-    ID3D11RenderTargetView* rtv = nullptr;
-    ID3D11DepthStencilView* dsv = nullptr;
-    c->OMGetRenderTargets(1, &rtv, &dsv);
-    if (!rtv) { SAFE_RELEASE(dsv); return; }
-    ID3D11Resource* res = nullptr;
-    rtv->GetResource(&res);
-    D3D11_TEXTURE2D_DESC td = {};
-    ((ID3D11Texture2D*)res)->GetDesc(&td);
-    if (ensureCaptureTargets(td) && td.SampleDesc.Count == 1) {
-        c->CopyResource(g_copyTex, res);
+    gfx::RTV  rtv = nullptr;
+    gfx::DSV  dsv = nullptr;
+    c->getRenderTargets(&rtv, &dsv);
+    if (!rtv) return;
+    gfx::Resource res = rtv->res;
+    if (capturable(res) && ensureCaptureTargets(res)) {
+        c->copyResource(g_copy.res, res);
         beginBlitPasses();
-        blitPass(g_psDown, g_copySrv, g_blurW, g_blurH, g_half, vec2(0, 0));
+        blitPass(g_psDown, g_copy.srv, g_blurW, g_blurH, g_half, vec2(0, 0));
         blitPass(g_psDown, g_half.srv, g_half.width, g_half.height, g_q1, vec2(0, 0));
         for (int it = 0; it < 2; it++) {
             blitPass(g_psBlur, g_q1.srv, g_q1.width, g_q1.height, g_q2, vec2(1.f + it, 0));
@@ -419,41 +411,32 @@ void captureBackdrop() {
         }
         g_blurValid = true;
     }
-    c->OMSetRenderTargets(1, &rtv, dsv);
-    SAFE_RELEASE(res);
-    SAFE_RELEASE(rtv);
-    SAFE_RELEASE(dsv);
+    c->setRenderTargets(1, &rtv, dsv);
 }
 
 // Copies the finished frame (after the UI draws) into snapshot slot `id % kSnapCount` at quarter resolution.
 void captureSnapshot(int id) {
     auto* c = gfx::ctx;
-    ID3D11RenderTargetView* rtv = nullptr;
-    ID3D11DepthStencilView* dsv = nullptr;
-    c->OMGetRenderTargets(1, &rtv, &dsv);
-    if (!rtv) { SAFE_RELEASE(dsv); return; }
-    ID3D11Resource* res = nullptr;
-    rtv->GetResource(&res);
-    D3D11_TEXTURE2D_DESC td = {};
-    ((ID3D11Texture2D*)res)->GetDesc(&td);
-    if (ensureCaptureTargets(td) && td.SampleDesc.Count == 1) {
+    gfx::RTV  rtv = nullptr;
+    gfx::DSV  dsv = nullptr;
+    c->getRenderTargets(&rtv, &dsv);
+    if (!rtv) return;
+    gfx::Resource res = rtv->res;
+    if (capturable(res) && ensureCaptureTargets(res)) {
         int slot = id % kSnapCount;
-        int qw = Max(1, (int)td.Width / 4), qh = Max(1, (int)td.Height / 4);
+        int qw = Max(1, g_blurW / 4), qh = Max(1, g_blurH / 4);
         gfx::Texture& snap = g_snap[slot];
         if (snap.width != qw || snap.height != qh || !snap.rtv) {
             snap.release();
             snap = gfx::createTexture2D(qw, qh, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_RTV);
         }
-        c->CopyResource(g_copyTex, res);
+        c->copyResource(g_copy.res, res);
         beginBlitPasses();
-        blitPass(g_psDown, g_copySrv, g_blurW, g_blurH, g_half, vec2(0, 0));
+        blitPass(g_psDown, g_copy.srv, g_blurW, g_blurH, g_half, vec2(0, 0));
         blitPass(g_psDown, g_half.srv, g_half.width, g_half.height, snap, vec2(0, 0));
         g_snapId[slot] = id;
     }
-    c->OMSetRenderTargets(1, &rtv, dsv);
-    SAFE_RELEASE(res);
-    SAFE_RELEASE(rtv);
-    SAFE_RELEASE(dsv);
+    c->setRenderTargets(1, &rtv, dsv);
 }
 
 }  // namespace draw2d_detail
@@ -495,12 +478,12 @@ bool init() {
     }
     g_atlas = gfx::createTexture2D(kAtlasSize, kAtlasSize, DXGI_FORMAT_R8_UNORM, gfx::TEX_SRV, 1, 1, atlas.data(), kAtlasSize);
     g_vb = gfx::createBuffer(kMaxVerts * sizeof(Vtx), sizeof(Vtx), gfx::BUF_VERTEX | gfx::BUF_DYNAMIC);
-    D3D11_INPUT_ELEMENT_DESC layout[] = {
-        {"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 8, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"COLOR", 1, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TEXCOORD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0},
+    gfx::InputElement layout[] = {
+        {"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, gfx::PER_VERTEX, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 8, gfx::PER_VERTEX, 0},
+        {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 16, gfx::PER_VERTEX, 0},
+        {"COLOR", 1, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 20, gfx::PER_VERTEX, 0},
+        {"TEXCOORD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 24, gfx::PER_VERTEX, 0},
     };
     g_vs = gfx::loadVS("ui.hlsl", "vsUI", layout, 5);
     g_ps = gfx::loadPS("ui.hlsl", "psUI");
@@ -510,16 +493,10 @@ bool init() {
     g_cb.create();
     g_blurCB.create();
     g_photoCB.create();
-    D3D11_BLEND_DESC bd = {};
-    bd.RenderTarget[0].BlendEnable = TRUE;
-    bd.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
-    bd.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-    bd.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-    bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-    bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-    bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-    bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-    gfx::dev->CreateBlendState(&bd, &g_blend);
+    gfx::BlendDesc bd;   // premultiplied alpha
+    bd.rt[0] = {true, gfx::BLEND_ONE, gfx::BLEND_INV_SRC_ALPHA, gfx::BLENDOP_ADD, gfx::BLEND_ONE, gfx::BLEND_INV_SRC_ALPHA,
+                gfx::BLENDOP_ADD, gfx::WRITE_ALL};
+    g_blend = gfx::createBlendState(bd);
     g_verts.reserve(kMaxVerts);
     return true;
 }
@@ -532,7 +509,7 @@ void shutdown() {
         g_snap[i].release();
         g_snapId[i] = -1;
     }
-    SAFE_RELEASE(g_blend);
+    g_blend = nullptr;
 }
 
 void beginFrame(int w, int h) {
@@ -555,7 +532,7 @@ int screenHeight() { return g_h; }
 int vertexCount() { return (int)g_verts.size(); }
 int frameIndex() { return g_frameIndex; }
 void discardDrawsUntilEndFrame() { g_discard = true; }
-void setIconAtlas(ID3D11ShaderResourceView* srv) { g_iconSrv = srv; }
+void setIconAtlas(gfx::SRV  srv) { g_iconSrv = srv; }
 void setAdditive(bool additive) { g_additive = additive; }
 
 void setClipCircle(float cx, float cy, float r) {
@@ -731,17 +708,17 @@ void polygon(const vec2* pts, int n, u32 color) {
               isBoundary(idx[2], idx[0]));
 }
 // Snapshots hold finished (already colour-corrected) frames
-int imageMode(ID3D11ShaderResourceView* srv) {
+int imageMode(gfx::SRV  srv) {
     for (int i = 0; i < kSnapCount; i++)
         if (srv && g_snap[i].srv == srv) return M_SCENE_IMAGE;
     return M_IMAGE;
 }
-void image(ID3D11ShaderResourceView* srv, float x, float y, float w, float h, float u0, float v0, float u1, float v1, u32 tint) {
+void image(gfx::SRV  srv, float x, float y, float w, float h, float u0, float v0, float u1, float v1, u32 tint) {
     int m = imageMode(srv);
     pushQuad(V(x, y, u0, v0, tint, 0, m), V(x + w, y, u1, v0, tint, 0, m), V(x + w, y + h, u1, v1, tint, 0, m),
              V(x, y + h, u0, v1, tint, 0, m), srv);
 }
-void imageRotated(ID3D11ShaderResourceView* srv, float cx, float cy, float w, float h, float ang, float u0, float v0, float u1,
+void imageRotated(gfx::SRV  srv, float cx, float cy, float w, float h, float ang, float u0, float v0, float u1,
                   float v1, u32 tint) {
     vec2 ax = vec2(cosf(ang), sinf(ang)), ay = perp(ax);
     vec2 c(cx, cy);
@@ -768,7 +745,7 @@ void iconSdf(float x, float y, float w, float h, float u0, float v0, float u1, f
              V(p2.x, p2.y, u1, v1, color, outlineColor, M_ICON, pxRange, ol, soft), V(p3.x, p3.y, u0, v1, color, outlineColor, M_ICON, pxRange, ol, soft),
              anyTex());
 }
-void mapQuad(ID3D11ShaderResourceView* srv, const vec2 p[4], const vec2 uv[4], u32 landTint, u32 waterTint, float coastLine) {
+void mapQuad(gfx::SRV  srv, const vec2 p[4], const vec2 uv[4], u32 landTint, u32 waterTint, float coastLine) {
     pushQuad(V(p[0].x, p[0].y, uv[0].x, uv[0].y, landTint, waterTint, M_MAP, coastLine),
              V(p[1].x, p[1].y, uv[1].x, uv[1].y, landTint, waterTint, M_MAP, coastLine),
              V(p[2].x, p[2].y, uv[2].x, uv[2].y, landTint, waterTint, M_MAP, coastLine),
@@ -801,7 +778,7 @@ void setColorMatrix(const float* m) {
                             : vec4(r == 0 ? 1.f : 0.f, r == 1 ? 1.f : 0.f, r == 2 ? 1.f : 0.f, 0.f);
 }
 
-void setSceneDepth(ID3D11ShaderResourceView* depthSrv, float nearZ) {
+void setSceneDepth(gfx::SRV  depthSrv, float nearZ) {
     g_depthSrv = depthSrv;
     g_depthNear = depthSrv ? Max(nearZ, 1e-4f) : 0.f;
 }
@@ -812,7 +789,7 @@ int requestSnapshot() {
     return g_snapPending;
 }
 
-ID3D11ShaderResourceView* snapshotSrv(int id) {
+gfx::SRV  snapshotSrv(int id) {
     if (id < 0) return nullptr;
     int slot = id % kSnapCount;
     return g_snapId[slot] == id ? g_snap[slot].srv : nullptr;
@@ -948,36 +925,34 @@ void endFrame() {
     }
     if (g_wantBackdrop) captureBackdrop();
     // The depth buffer sampled for photo DOF must not stay bound as the depth target.
-    ID3D11RenderTargetView* savedRtv = nullptr;
-    ID3D11DepthStencilView* savedDsv = nullptr;
+    gfx::RTV  savedRtv = nullptr;
+    gfx::DSV  savedDsv = nullptr;
     bool photoDepth = g_photoUsed && g_depthSrv;
     if (photoDepth) {
-        c->OMGetRenderTargets(1, &savedRtv, &savedDsv);
-        c->OMSetRenderTargets(1, &savedRtv, nullptr);
+        c->getRenderTargets(&savedRtv, &savedDsv);
+        c->setRenderTargets(1, &savedRtv, nullptr);
     }
     if (g_photoUsed) {
         g_photoCB.data = g_photo;
         g_photoCB.upload();
-        ID3D11Buffer* pcb[] = {g_photoCB.get()};
-        c->PSSetConstantBuffers(3, 1, pcb);
+        gfx::Resource  pcb[] = {g_photoCB.get()};
+        c->psSetCBs(3, 1, pcb);
     }
     gfx::updateBuffer(g_vb, g_verts.data(), (u32)(g_verts.size() * sizeof(Vtx)));
     UINT stride = sizeof(Vtx), offset = 0;
-    c->IASetVertexBuffers(0, 1, &g_vb.buf, &stride, &offset);
-    c->IASetInputLayout(g_vs.layout);
-    c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    c->VSSetShader(g_vs.vs, nullptr, 0);
-    c->PSSetShader(g_ps, nullptr, 0);
-    c->OMSetBlendState(g_blend, nullptr, 0xffffffff);
-    c->OMSetDepthStencilState(gfx::states.depthOff, 0);
-    c->RSSetState(gfx::states.cullNone);
+    c->setVertexBuffers(0, 1, &g_vb.buf, &stride, &offset);
+    c->setInputLayout(g_vs.layout);
+    c->setTopology(gfx::TOPO_TRIANGLE_LIST);
+    c->setVS(g_vs.vs);
+    c->setPS(g_ps);
+    c->setBlendState(g_blend);
+    c->setDepthState(gfx::states.depthOff);
+    c->setRasterState(gfx::states.cullNone);
     gfx::setViewport((float)g_w, (float)g_h);
-    ID3D11SamplerState* samps[] = {gfx::states.linearClamp};
-    c->PSSetSamplers(1, 1, samps);
-    ID3D11ShaderResourceView* blurSrv = (g_blurValid && g_q1.srv) ? g_q1.srv : g_atlas.srv;
-    ID3D11ShaderResourceView* sceneSrv = (g_blurValid && g_copySrv) ? g_copySrv : g_atlas.srv;
-    ID3D11ShaderResourceView* halfSrv = (g_blurValid && g_half.srv) ? g_half.srv : g_atlas.srv;
-    ID3D11ShaderResourceView* depthSrv = photoDepth ? g_depthSrv : g_atlas.srv;
+    gfx::SRV  blurSrv = (g_blurValid && g_q1.srv) ? g_q1.srv : g_atlas.srv;
+    gfx::SRV  sceneSrv = (g_blurValid && g_copy.srv) ? g_copy.srv : g_atlas.srv;
+    gfx::SRV  halfSrv = (g_blurValid && g_half.srv) ? g_half.srv : g_atlas.srv;
+    gfx::SRV  depthSrv = photoDepth ? g_depthSrv : g_atlas.srv;
     for (auto& b : g_batches) {
         if (b.count == 0) continue;
         g_cb.data.screen = vec4((float)g_w, (float)g_h, 1.f / g_w, 1.f / g_h);
@@ -987,21 +962,19 @@ void endFrame() {
         g_cb.data.cm1 = g_colorRows[1];
         g_cb.data.cm2 = g_colorRows[2];
         g_cb.upload();
-        ID3D11Buffer* cbs[] = {g_cb.get()};
-        c->VSSetConstantBuffers(1, 1, cbs);
-        c->PSSetConstantBuffers(1, 1, cbs);
-        ID3D11ShaderResourceView* srvs[7] = {g_atlas.srv, b.tex ? b.tex : g_atlas.srv, g_iconSrv ? g_iconSrv : g_atlas.srv, blurSrv,
+        gfx::Resource  cbs[] = {g_cb.get()};
+        c->vsSetCBs(1, 1, cbs);
+        c->psSetCBs(1, 1, cbs);
+        gfx::SRV  srvs[7] = {g_atlas.srv, b.tex ? b.tex : g_atlas.srv, g_iconSrv ? g_iconSrv : g_atlas.srv, blurSrv,
                                              sceneSrv, depthSrv, halfSrv};
-        c->PSSetShaderResources(0, 7, srvs);
-        c->Draw((UINT)b.count, (UINT)b.start);
+        c->psSetSRVs(0, 7, srvs);
+        c->draw((UINT)b.count, (UINT)b.start);
     }
-    ID3D11ShaderResourceView* nulls[7] = {};
-    c->PSSetShaderResources(0, 7, nulls);
+    gfx::SRV  nulls[7] = {};
+    c->psSetSRVs(0, 7, nulls);
     if (photoDepth) {
-        c->OMSetRenderTargets(1, &savedRtv, savedDsv);
+        c->setRenderTargets(1, &savedRtv, savedDsv);
     }
-    SAFE_RELEASE(savedRtv);
-    SAFE_RELEASE(savedDsv);
     if (g_snapPending >= 0) {
         captureSnapshot(g_snapPending);
         g_snapPending = -1;

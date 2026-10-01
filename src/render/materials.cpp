@@ -15,7 +15,7 @@ enum MatFlags { MF_PAINT = 1, MF_GLASS = 2, MF_FACADE = 4, MF_FOLIAGE = 8, MF_EM
 struct MaterialLibrary {
     gfx::Texture albedoArr, normalArr;
     gfx::Buffer table;
-    ID3D11ComputeShader* gens[28] = {};
+    gfx::ComputeShader  gens[28] = {};
     int size = 1024;
     int layerCount = 0;
     MaterialInfoGPU infos[MAT_COUNT];
@@ -95,15 +95,15 @@ struct MaterialLibrary {
         albedoArr = createMaterialArray(size, layerCount, true);
         normalArr = createMaterialArray(size, layerCount, false);
         auto* c = gfx::ctx;
-        ID3D11UnorderedAccessView* uavs[] = {albedoArr.uav, normalArr.uav};
-        c->CSSetUnorderedAccessViews(0, 2, uavs, nullptr);
+        gfx::UAV  uavs[] = {albedoArr.uav, normalArr.uav};
+        c->csSetUAVs(0, 2, uavs);
         for (size_t i = 0; i < defs.size(); i++) {
             const Def& d = defs[i];
             if (!gens[d.gen]) {
                 std::string g = std::to_string(d.gen);
                 gens[d.gen] = gfx::loadCS("matgen.hlsl", "csGenerate", {{"GEN", g.c_str()}});
             }
-            c->CSSetShader(gens[d.gen], nullptr, 0);
+            c->setCS(gens[d.gen]);
             terrain.matCB.data.layer = (u32)i;
             terrain.matCB.data.type = (u32)d.gen;
             terrain.matCB.data.size = (u32)size;
@@ -113,9 +113,9 @@ struct MaterialLibrary {
             terrain.matCB.data.colorC = vec4(d.c, 1);
             terrain.matCB.data.params = d.params;
             terrain.matCB.upload();
-            ID3D11Buffer* cbs[] = {terrain.matCB.get()};
-            c->CSSetConstantBuffers(1, 1, cbs);
-            c->Dispatch(gfx::divUp(size, 8), gfx::divUp(size, 8), 1);
+            gfx::Resource  cbs[] = {terrain.matCB.get()};
+            c->csSetCBs(1, 1, cbs);
+            c->dispatch(gfx::divUp(size, 8), gfx::divUp(size, 8), 1);
             MaterialInfoGPU& mi = infos[d.id];
             mi.layer = (float)i;
             mi.uvScale = 1.f / d.tileMeters;
@@ -128,8 +128,8 @@ struct MaterialLibrary {
             mi.emissive = d.emissive;
         }
         gfx::unbindCSResources(4, 2);
-        c->GenerateMips(albedoArr.srv);
-        c->GenerateMips(normalArr.srv);
+        c->generateMips(albedoArr);
+        c->generateMips(normalArr);
         table = gfx::createBuffer(sizeof(infos), sizeof(MaterialInfoGPU), gfx::BUF_STRUCTURED, infos);
         LOG("Material library: %d layers at %d^2", layerCount, size);
     }

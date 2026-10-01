@@ -41,10 +41,10 @@ void roundRect(float x, float y, float w, float h, float radius, u32 color, floa
 void gradientRect(float x, float y, float w, float h, u32 top, u32 bottom);
 void circle(float cx, float cy, float r, u32 color, float thickness = 0.f);  // thickness 0 = filled
 void line(float x0, float y0, float x1, float y1, float width, u32 color);
-void image(ID3D11ShaderResourceView* srv, float x, float y, float w, float h, float u0 = 0, float v0 = 0, float u1 = 1,
+void image(gfx::SRV  srv, float x, float y, float w, float h, float u0 = 0, float v0 = 0, float u1 = 1,
            float v1 = 1, u32 tint = 0xffffffff);
 // Rotated textured quad around center (for minimap)
-void imageRotated(ID3D11ShaderResourceView* srv, float cx, float cy, float w, float h, float angle, float u0, float v0,
+void imageRotated(gfx::SRV  srv, float cx, float cy, float w, float h, float angle, float u0, float v0,
                   float u1, float v1, u32 tint = 0xffffffff);
 void setClipCircle(float cx, float cy, float r);  // clip following draws to a circle (minimap); r<=0 disables
 void setClipRect(float x, float y, float w, float h);  // w<=0 disables
@@ -86,12 +86,12 @@ void quad4(vec2 a, vec2 b, vec2 c, vec2 d, u32 ca, u32 cb, u32 cc, u32 cd);
 void polygon(const vec2* pts, int n, u32 color);
 // SDF icon from the atlas registered with setIconAtlas(): uv rect in the atlas, pxRange = screen pixels per SDF unit
 // (distance field value 0..1 spans `spreadPx` atlas pixels; callers normally use the helpers in the HUD code).
-void setIconAtlas(ID3D11ShaderResourceView* srv);
+void setIconAtlas(gfx::SRV  srv);
 void iconSdf(float x, float y, float w, float h, float u0, float v0, float u1, float v1, u32 color, float pxRange,
              float outline = 0.f, u32 outlineColor = 0, float soft = 0.f, float angle = 0.f);
 // World map texture (RGB land color, A = encoded water depth) rendered with crisp analytic coastlines. Corners are
 // given in screen space with their texture coordinates (p0..p3 clockwise). landTint/waterTint multiply the colors.
-void mapQuad(ID3D11ShaderResourceView* srv, const vec2 p[4], const vec2 uv[4], u32 landTint, u32 waterTint,
+void mapQuad(gfx::SRV  srv, const vec2 p[4], const vec2 uv[4], u32 landTint, u32 waterTint,
              float coastLine = 1.f);
 // Frosted glass: blurred copy of what was rendered before the UI (the 3D frame), tinted, desaturated and mixed with
 // `overlay` (alpha = mix amount), clipped to a rounded rect. Enables backdrop capture for this frame.
@@ -116,7 +116,7 @@ struct PhotoFx {
 void photoEffect(float x, float y, float w, float h, float u0, float v0, float u1, float v1, const PhotoFx& fx);
 // Depth buffer of the 3D frame for photoEffect's depth of field: reversed-Z infinite projection (value = nearZ /
 // view distance, 0 at infinity), any resolution. Call every frame before endFrame; nullptr = none.
-void setSceneDepth(ID3D11ShaderResourceView* depthSrv, float nearZ);
+void setSceneDepth(gfx::SRV  depthSrv, float nearZ);
 // Colour-blind correction applied to everything the UI draws (row-major 3x3 in linear RGB; nullptr = off). The frame
 // underneath is corrected by the renderer's post-process, so captured scene pixels (backdrop blur, photo grading,
 // snapshots) are left untouched.
@@ -124,7 +124,7 @@ void setColorMatrix(const float* m9);
 // Snapshots: at the end of this frame's endFrame the finished frame is copied into a small persistent texture
 // (quarter resolution). Returns its id; the 8 most recent snapshots are kept.
 int requestSnapshot();
-ID3D11ShaderResourceView* snapshotSrv(int id);   // nullptr when unknown, not captured yet or overwritten
+gfx::SRV  snapshotSrv(int id);   // nullptr when unknown, not captured yet or overwritten
 // Clip following draws to an anti-aliased rounded rectangle (w <= 0 disables).
 void setClipRoundRect(float x, float y, float w, float h, float radius);
 // Current clip state save/restore.

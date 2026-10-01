@@ -15,35 +15,14 @@ struct MatGenCBData {
 
 // Texture array with UNORM UAV for generation and sRGB (or UNORM) SRV for sampling, full mips.
 static gfx::Texture createMaterialArray(int size, int layers, bool srgb) {
-    gfx::Texture t;
-    int mips = gfx::mipCount(size, size);
-    t.width = t.height = size;
-    t.mips = mips;
-    t.layers = layers;
-    D3D11_TEXTURE2D_DESC d = {};
-    d.Width = d.Height = (UINT)size;
-    d.MipLevels = (UINT)mips;
-    d.ArraySize = (UINT)layers;
-    d.Format = DXGI_FORMAT_R8G8B8A8_TYPELESS;
-    d.SampleDesc.Count = 1;
-    d.Usage = D3D11_USAGE_DEFAULT;
-    d.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_RENDER_TARGET;
-    d.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
-    ID3D11Texture2D* tex = nullptr;
-    if (FAILED(gfx::dev->CreateTexture2D(&d, nullptr, &tex))) FatalError("material array creation failed");
-    t.res = tex;
-    D3D11_SHADER_RESOURCE_VIEW_DESC sv = {};
-    sv.Format = srgb ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
-    sv.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
-    sv.Texture2DArray.MipLevels = (UINT)mips;
-    sv.Texture2DArray.ArraySize = (UINT)layers;
-    gfx::dev->CreateShaderResourceView(tex, &sv, &t.srv);
-    D3D11_UNORDERED_ACCESS_VIEW_DESC uv = {};
-    uv.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    uv.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
-    uv.Texture2DArray.ArraySize = (UINT)layers;
-    gfx::dev->CreateUnorderedAccessView(tex, &uv, &t.uav);
-    return t;
+    gfx::TextureDesc d;
+    d.width = d.height = size;
+    d.mips = 0;   // full chain
+    d.layers = layers;
+    d.format = srgb ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+    d.flags = gfx::TEX_SRV | gfx::TEX_UAV | gfx::TEX_GENMIPS;
+    d.name = srgb ? "material array (sRGB)" : "material array";
+    return gfx::createTexture(d);
 }
 
 struct TerrainRenderer {
@@ -55,8 +34,8 @@ struct TerrainRenderer {
     int indexCount = 0;
     static const int kMaxNodes = 4096;
     gfx::VertexShader vs, vsShadow;
-    ID3D11PixelShader* ps = nullptr;
-    ID3D11ComputeShader* csMatGen[7] = {};
+    gfx::PixelShader  ps = nullptr;
+    gfx::ComputeShader  csMatGen[7] = {};
     gfx::CBuffer<TerrainCBData> cb;
     gfx::CBuffer<MatGenCBData> matCB;
     // Quadtree min/max heights per level (level 0 = 64 m leaves)
@@ -87,7 +66,7 @@ struct TerrainRenderer {
         vb = gfx::createBuffer((u32)(verts.size() * sizeof(vec2)), sizeof(vec2), gfx::BUF_VERTEX, verts.data());
         ib = gfx::createBuffer((u32)(idx.size() * 2), 2, gfx::BUF_INDEX, idx.data());
         nodeBuf = gfx::createBuffer(kMaxNodes * 16, 16, gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
-        D3D11_INPUT_ELEMENT_DESC layout[] = {{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}};
+        gfx::InputElement layout[] = {{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, gfx::PER_VERTEX, 0}};
         vs = gfx::loadVS("terrain.hlsl", "vsTerrain", layout, 1);
         vsShadow = gfx::loadVS("terrain.hlsl", "vsTerrainShadow", layout, 1);
         ps = gfx::loadPS("terrain.hlsl", "psTerrain");
@@ -101,7 +80,7 @@ struct TerrainRenderer {
     }
 
     void genLayer(int layer, int type, vec3 a, vec3 b, vec3 c, vec4 params, int size) {
-        gfx::ctx->CSSetShader(csMatGen[type], nullptr, 0);
+        gfx::ctx->setCS(csMatGen[type]);
         matCB.data.layer = (u32)layer;
         matCB.data.type = (u32)type;
         matCB.data.size = (u32)size;
@@ -111,9 +90,9 @@ struct TerrainRenderer {
         matCB.data.colorC = vec4(c, 1);
         matCB.data.params = params;
         matCB.upload();
-        ID3D11Buffer* cbs[] = {matCB.get()};
-        gfx::ctx->CSSetConstantBuffers(1, 1, cbs);
-        gfx::ctx->Dispatch(gfx::divUp(size, 8), gfx::divUp(size, 8), 1);
+        gfx::Resource  cbs[] = {matCB.get()};
+        gfx::ctx->csSetCBs(1, 1, cbs);
+        gfx::ctx->dispatch(gfx::divUp(size, 8), gfx::divUp(size, 8), 1);
     }
 
     void generateMaterials() {
@@ -121,8 +100,8 @@ struct TerrainRenderer {
         albedoArr = createMaterialArray(size, World::TL_COUNT, true);
         normalArr = createMaterialArray(size, World::TL_COUNT, false);
         auto* c = gfx::ctx;
-        ID3D11UnorderedAccessView* uavs[] = {albedoArr.uav, normalArr.uav};
-        c->CSSetUnorderedAccessViews(0, 2, uavs, nullptr);
+        gfx::UAV  uavs[] = {albedoArr.uav, normalArr.uav};
+        c->csSetUAVs(0, 2, uavs);
         genLayer(World::TL_SAND, 0, vec3(0.45f, 0.38f, 0.26f), vec3(0.58f, 0.50f, 0.36f), vec3(0.2f, 0.18f, 0.16f), vec4(0, 0, 0, 4), size);
         genLayer(World::TL_GRASS, 1, vec3(0.05f, 0.10f, 0.025f), vec3(0.10f, 0.16f, 0.04f), vec3(0.24f, 0.21f, 0.10f), vec4(0.35f, 0, 0, 5), size);
         genLayer(World::TL_DIRT, 2, vec3(0.12f, 0.08f, 0.05f), vec3(0.20f, 0.14f, 0.08f), vec3(0.30f, 0.28f, 0.25f), vec4(0, 0, 0, 7), size);
@@ -132,8 +111,8 @@ struct TerrainRenderer {
         genLayer(World::TL_FOREST, 5, vec3(0.12f, 0.07f, 0.03f), vec3(0.18f, 0.12f, 0.05f), vec3(0.06f, 0.10f, 0.03f), vec4(0, 0, 0, 6), size);
         genLayer(World::TL_URBAN, 6, vec3(0.20f, 0.19f, 0.18f), vec3(0.32f, 0.31f, 0.29f), vec3(0.10f, 0.10f, 0.10f), vec4(1, 0, 0, 4), size);   // compacted urban ground
         gfx::unbindCSResources(4, 2);
-        c->GenerateMips(albedoArr.srv);
-        c->GenerateMips(normalArr.srv);
+        c->generateMips(albedoArr);
+        c->generateMips(normalArr);
     }
 
     void setMap(World::WorldMap* m) {
@@ -243,15 +222,15 @@ struct TerrainRenderer {
     void bindCommon() {
         auto* c = gfx::ctx;
         UINT stride = 8, offset = 0;
-        c->IASetVertexBuffers(0, 1, &vb.buf, &stride, &offset);
-        c->IASetIndexBuffer(ib.buf, DXGI_FORMAT_R16_UINT, 0);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        ID3D11Buffer* cbs[] = {cb.get()};
-        c->VSSetConstantBuffers(1, 1, cbs);
-        c->PSSetConstantBuffers(1, 1, cbs);
-        ID3D11ShaderResourceView* srvs[7] = {heightTex.srv, splat0Tex.srv, splat1Tex.srv, albedoArr.srv, normalArr.srv, waterTex.srv, nodeBuf.srv};
-        c->VSSetShaderResources(0, 7, srvs);
-        c->PSSetShaderResources(0, 7, srvs);
+        c->setVertexBuffers(0, 1, &vb.buf, &stride, &offset);
+        c->setIndexBuffer(ib.buf, DXGI_FORMAT_R16_UINT, 0);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
+        gfx::Resource  cbs[] = {cb.get()};
+        c->vsSetCBs(1, 1, cbs);
+        c->psSetCBs(1, 1, cbs);
+        gfx::SRV  srvs[7] = {heightTex.srv, splat0Tex.srv, splat1Tex.srv, albedoArr.srv, normalArr.srv, waterTex.srv, nodeBuf.srv};
+        c->vsSetSRVs(0, 7, srvs);
+        c->psSetSRVs(0, 7, srvs);
     }
 
     void drawGBuffer(Renderer& r) { drawGBufferVP(r, r.viewProjNoJitter, r.camera.pos, 1.f, true); }
@@ -267,18 +246,18 @@ struct TerrainRenderer {
         if (!drawnNodes) return;
         auto* c = gfx::ctx;
         bindCommon();
-        c->IASetInputLayout(vs.layout);
-        c->VSSetShader(vs.vs, nullptr, 0);
-        c->PSSetShader(ps, nullptr, 0);
-        c->DrawIndexedInstanced((UINT)indexCount, (UINT)drawnNodes, 0, 0, 0);
+        c->setInputLayout(vs.layout);
+        c->setVS(vs.vs);
+        c->setPS(ps);
+        c->drawIndexedInstanced((UINT)indexCount, (UINT)drawnNodes, 0, 0, 0);
         r.stats.drawCalls++;
         if (mainView) {
             r.stats.terrainNodes += drawnNodes;
             r.stats.triangles += drawnNodes * indexCount / 3;
         }
-        ID3D11ShaderResourceView* nulls[7] = {};
-        c->VSSetShaderResources(0, 7, nulls);
-        c->PSSetShaderResources(0, 7, nulls);
+        gfx::SRV  nulls[7] = {};
+        c->vsSetSRVs(0, 7, nulls);
+        c->psSetSRVs(0, 7, nulls);
     }
 
     void drawShadow(Renderer& r, const mat4& lightVP, dvec3 cam) {
@@ -291,13 +270,13 @@ struct TerrainRenderer {
         if (!drawnNodes) return;
         auto* c = gfx::ctx;
         bindCommon();
-        c->IASetInputLayout(vsShadow.layout);
-        c->VSSetShader(vsShadow.vs, nullptr, 0);
-        c->PSSetShader(nullptr, nullptr, 0);
-        c->DrawIndexedInstanced((UINT)indexCount, (UINT)drawnNodes, 0, 0, 0);
+        c->setInputLayout(vsShadow.layout);
+        c->setVS(vsShadow.vs);
+        c->setPS(nullptr);
+        c->drawIndexedInstanced((UINT)indexCount, (UINT)drawnNodes, 0, 0, 0);
         r.stats.drawCalls++;
-        ID3D11ShaderResourceView* nulls[7] = {};
-        c->VSSetShaderResources(0, 7, nulls);
+        gfx::SRV  nulls[7] = {};
+        c->vsSetSRVs(0, 7, nulls);
     }
 };
 

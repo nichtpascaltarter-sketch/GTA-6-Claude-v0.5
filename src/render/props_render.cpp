@@ -32,7 +32,7 @@ struct PropRenderer {
     std::vector<std::vector<PropInstanceGPU>> buckets;
     std::vector<PropInstanceGPU> flat;
     gfx::VertexShader vs, vsShadow;
-    ID3D11PixelShader *ps = nullptr, *psShadow = nullptr;
+    gfx::PixelShader ps = nullptr, psShadow = nullptr;
     gfx::Texture foliageArr;
     int drawnInstances = 0;
 
@@ -75,15 +75,15 @@ struct PropRenderer {
         ib = gfx::createBuffer((u32)(idx.size() * 4), 4, gfx::BUF_INDEX, idx.data());
         instBuf = gfx::createBuffer(kMaxInstances * sizeof(PropInstanceGPU), sizeof(PropInstanceGPU), gfx::BUF_VERTEX | gfx::BUF_DYNAMIC);
         buckets.resize(protos.size());
-        D3D11_INPUT_ELEMENT_DESC layout[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"NORMAL", 0, DXGI_FORMAT_R16G16_SNORM, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TANGENT", 0, DXGI_FORMAT_R16G16_SNORM, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"MATID", 0, DXGI_FORMAT_R32_UINT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"INSTPOS", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-            {"INSTROT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        gfx::InputElement layout[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, gfx::PER_VERTEX, 0},
+            {"NORMAL", 0, DXGI_FORMAT_R16G16_SNORM, 0, 12, gfx::PER_VERTEX, 0},
+            {"TANGENT", 0, DXGI_FORMAT_R16G16_SNORM, 0, 16, gfx::PER_VERTEX, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 20, gfx::PER_VERTEX, 0},
+            {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 28, gfx::PER_VERTEX, 0},
+            {"MATID", 0, DXGI_FORMAT_R32_UINT, 0, 32, gfx::PER_VERTEX, 0},
+            {"INSTPOS", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, gfx::PER_INSTANCE, 1},
+            {"INSTROT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, gfx::PER_INSTANCE, 1},
         };
         vs = gfx::loadVS("props.hlsl", "vsProp", layout, 8);
         vsShadow = gfx::loadVS("props.hlsl", "vsPropShadow", layout, 8);
@@ -92,21 +92,21 @@ struct PropRenderer {
         // Foliage textures
         int fsize = Platform::hasArg("autotest") ? 256 : 512;
         foliageArr = createMaterialArray(fsize, 6, true);
-        ID3D11ComputeShader* cs = gfx::loadCS("foliage.hlsl", "csFoliage");
+        gfx::ComputeShader  cs = gfx::loadCS("foliage.hlsl", "csFoliage");
         gfx::CBuffer<FoliageCBData> fcb;
         fcb.create();
-        gfx::ctx->CSSetShader(cs, nullptr, 0);
-        gfx::ctx->CSSetUnorderedAccessViews(0, 1, &foliageArr.uav, nullptr);
+        gfx::ctx->setCS(cs);
+        gfx::ctx->csSetUAVs(0, 1, &foliageArr.uav);
         for (int l = 0; l < 6; l++) {
             fcb.data.layer = (u32)l;
             fcb.data.size = (u32)fsize;
             fcb.upload();
-            ID3D11Buffer* cbs[] = {fcb.get()};
-            gfx::ctx->CSSetConstantBuffers(1, 1, cbs);
-            gfx::ctx->Dispatch(gfx::divUp(fsize, 8), gfx::divUp(fsize, 8), 1);
+            gfx::Resource  cbs[] = {fcb.get()};
+            gfx::ctx->csSetCBs(1, 1, cbs);
+            gfx::ctx->dispatch(gfx::divUp(fsize, 8), gfx::divUp(fsize, 8), 1);
         }
         gfx::unbindCSResources(1, 1);
-        gfx::ctx->GenerateMips(foliageArr.srv);
+        gfx::ctx->generateMips(foliageArr);
         fcb.release();
         LOG("Props: %zu prototypes, %zu verts", protos.size(), verts.size());
     }
@@ -162,14 +162,14 @@ struct PropRenderer {
         }
         if (flat.empty()) return;
         gfx::updateBuffer(instBuf, flat.data(), (u32)(flat.size() * sizeof(PropInstanceGPU)));
-        ID3D11Buffer* vbs[2] = {vb.buf, instBuf.buf};
+        gfx::Resource  vbs[2] = {vb.buf, instBuf.buf};
         UINT strides[2] = {sizeof(VtxStatic), sizeof(PropInstanceGPU)}, offsets[2] = {0, 0};
-        c->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-        c->IASetIndexBuffer(ib.buf, DXGI_FORMAT_R32_UINT, 0);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        c->setVertexBuffers(0, 2, vbs, strides, offsets);
+        c->setIndexBuffer(ib.buf, DXGI_FORMAT_R32_UINT, 0);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
         for (auto& d : draws) {
             const Proto& P = protos[d.first];
-            c->DrawIndexedInstanced(P.indexCount, d.second.second, P.indexStart, P.baseVertex, d.second.first);
+            c->drawIndexedInstanced(P.indexCount, d.second.second, P.indexStart, P.baseVertex, d.second.first);
             r.stats.drawCalls++;
             if (!shadow) r.stats.triangles += (int)(P.indexCount / 3 * d.second.second);
         }
@@ -182,17 +182,17 @@ struct PropRenderer {
         Frustum fr;
         fr.fromMatrix(r.viewProjNoJitter);
         gather(cells, r.camera.pos, fr, 1.f, false, &r.signalLampFn);
-        c->IASetInputLayout(vs.layout);
-        c->VSSetShader(vs.vs, nullptr, 0);
-        c->PSSetShader(ps, nullptr, 0);
-        ID3D11ShaderResourceView* srvs[3] = {mats->table.srv, mats->albedoArr.srv, mats->normalArr.srv};
-        c->PSSetShaderResources(10, 3, srvs);
-        c->PSSetShaderResources(15, 1, &foliageArr.srv);
-        c->RSSetState(gfx::states.cullNone);
+        c->setInputLayout(vs.layout);
+        c->setVS(vs.vs);
+        c->setPS(ps);
+        gfx::SRV  srvs[3] = {mats->table.srv, mats->albedoArr.srv, mats->normalArr.srv};
+        c->psSetSRVs(10, 3, srvs);
+        c->psSetSRVs(15, 1, &foliageArr.srv);
+        c->setRasterState(gfx::states.cullNone);
         drawBuckets(r, false);
-        c->RSSetState(gfx::states.cullBack);
-        ID3D11ShaderResourceView* nulls[6] = {};
-        c->PSSetShaderResources(10, 6, nulls);
+        c->setRasterState(gfx::states.cullBack);
+        gfx::SRV  nulls[6] = {};
+        c->psSetSRVs(10, 6, nulls);
     }
 
     template <typename CellMap>
@@ -202,16 +202,14 @@ struct PropRenderer {
         Frustum fr;
         fr.fromMatrix(lightVP);
         gather(cells, r.camera.pos, fr, cascade == 0 ? 0.6f : 1.f, true);
-        c->IASetInputLayout(vsShadow.layout);
-        c->VSSetShader(vsShadow.vs, nullptr, 0);
-        c->PSSetShader(psShadow, nullptr, 0);
-        c->PSSetShaderResources(15, 1, &foliageArr.srv);
-        ID3D11SamplerState* samps[] = {gfx::states.linearWrap};
-        c->PSSetSamplers(2, 1, samps);
+        c->setInputLayout(vsShadow.layout);
+        c->setVS(vsShadow.vs);
+        c->setPS(psShadow);
+        c->psSetSRVs(15, 1, &foliageArr.srv);
         drawBuckets(r, true);
-        c->PSSetShader(nullptr, nullptr, 0);
-        ID3D11ShaderResourceView* nul = nullptr;
-        c->PSSetShaderResources(15, 1, &nul);
+        c->setPS(nullptr);
+        gfx::SRV  nul = nullptr;
+        c->psSetSRVs(15, 1, &nul);
     }
 };
 

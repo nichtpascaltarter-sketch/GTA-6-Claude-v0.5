@@ -19,8 +19,8 @@ struct EnvProbeSystem {
     dvec3 cyclePos, frontPos;
     gfx::CBuffer<FrameConstants> frameCB;
     gfx::CBuffer<ProbeCBData> cb;
-    ID3D11PixelShader* psLight = nullptr;
-    ID3D11ComputeShader *csPrefilter = nullptr, *csSH = nullptr, *csDown = nullptr;
+    gfx::PixelShader  psLight = nullptr;
+    gfx::ComputeShader csPrefilter = nullptr, csSH = nullptr, csDown = nullptr;
     gfx::Buffer shBuf;       // SH9 irradiance of the probe (one-bounce ambient around the camera)
     bool shValid = false;
     static constexpr float kNear = 0.5f;
@@ -130,90 +130,89 @@ struct EnvProbeSystem {
         f.camPosWrap = vec4((float)fmod(cyclePos.x, 2048.0), (float)fmod(cyclePos.y, 2048.0), (float)fmod(cyclePos.z, 2048.0), 0);
         frameCB.data = f;
         frameCB.upload();
-        ID3D11Buffer* cbs[] = {frameCB.get()};
-        c->VSSetConstantBuffers(0, 1, cbs);
-        c->PSSetConstantBuffers(0, 1, cbs);
+        gfx::Resource  cbs[] = {frameCB.get()};
+        c->vsSetCBs(0, 1, cbs);
+        c->psSetCBs(0, 1, cbs);
         // G-buffer of the face (terrain + static world; props and dynamic objects are skipped)
         float clear0[4] = {0, 0, 0, 0};
-        c->ClearRenderTargetView(gAlbedo.rtv, clear0);
-        c->ClearRenderTargetView(gNormal.rtv, clear0);
-        c->ClearRenderTargetView(gMaterial.rtv, clear0);
-        c->ClearRenderTargetView(gEmissive.rtv, clear0);
-        c->ClearDepthStencilView(gDepth.dsv, D3D11_CLEAR_DEPTH, 0.f, 0);
-        ID3D11RenderTargetView* rts[5] = {gAlbedo.rtv, gNormal.rtv, gMaterial.rtv, gEmissive.rtv, gVelocity.rtv};
-        c->OMSetRenderTargets(5, rts, gDepth.dsv);
+        c->clearRTV(gAlbedo.rtv, clear0);
+        c->clearRTV(gNormal.rtv, clear0);
+        c->clearRTV(gMaterial.rtv, clear0);
+        c->clearRTV(gEmissive.rtv, clear0);
+        c->clearDepth(gDepth.dsv, 0.f);
+        gfx::RTV  rts[5] = {gAlbedo.rtv, gNormal.rtv, gMaterial.rtv, gEmissive.rtv, gVelocity.rtv};
+        c->setRenderTargets(5, rts, gDepth.dsv);
         gfx::setViewport((float)res, (float)res);
-        c->OMSetDepthStencilState(gfx::states.depthGreaterWrite, 0);
-        c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
-        c->RSSetState(gfx::states.cullBack);
+        c->setDepthState(gfx::states.depthGreaterWrite);
+        c->setBlendState(gfx::states.opaque);
+        c->setRasterState(gfx::states.cullBack);
         r.terrain->drawGBufferVP(r, vp, cyclePos, 2.5f);
         r.world->drawGBufferVP(r, vp, cyclePos, true);
-        c->OMSetRenderTargets(0, nullptr, nullptr);
+        c->setRenderTargets(0, nullptr, nullptr);
         // Lighting into the capture cube face
         cb.data.p0 = vec4((float)face, (float)res, 0, 0);
         cb.data.p1.w = (float)lights.size();
         cb.data.p2 = vec4(rel(cyclePos, r.camera.pos), 0);  // probe-relative -> camera-relative (shadow cascades)
         cb.upload();
-        ID3D11Buffer* pcbs[4] = {frameCB.get(), r.clouds->cb.get(), cb.get(), r.shadowCB.get()};
-        c->PSSetConstantBuffers(0, 4, pcbs);
-        ID3D11ShaderResourceView* srvs[10] = {r.clouds->shape.srv, r.clouds->detail.srv, r.clouds->weather.srv,
+        gfx::Resource  pcbs[4] = {frameCB.get(), r.clouds->cb.get(), cb.get(), r.shadowCB.get()};
+        c->psSetCBs(0, 4, pcbs);
+        gfx::SRV  srvs[10] = {r.clouds->shape.srv, r.clouds->detail.srv, r.clouds->weather.srv,
                                               gAlbedo.srv, gNormal.srv, gMaterial.srv, gEmissive.srv, gDepth.srv, nullptr, lightBuf.srv};
-        c->PSSetShaderResources(0, 10, srvs);
-        c->OMSetRenderTargets(1, &capture.sliceRtvs[face], nullptr);
-        c->OMSetDepthStencilState(gfx::states.depthOff, 0);
-        c->RSSetState(gfx::states.cullNone);
-        c->IASetInputLayout(nullptr);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        c->VSSetShader(r.vsFullscreen.vs, nullptr, 0);
-        c->PSSetShader(psLight, nullptr, 0);
-        c->Draw(3, 0);
-        c->OMSetRenderTargets(0, nullptr, nullptr);
-        ID3D11ShaderResourceView* nulls[10] = {};
-        c->PSSetShaderResources(0, 10, nulls);
-        c->RSSetState(gfx::states.cullBack);
+        c->psSetSRVs(0, 10, srvs);
+        c->setRenderTargets(1, &capture.sliceRtvs[face], nullptr);
+        c->setDepthState(gfx::states.depthOff);
+        c->setRasterState(gfx::states.cullNone);
+        c->setInputLayout(nullptr);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
+        c->setVS(r.vsFullscreen.vs);
+        c->setPS(psLight);
+        c->draw(3, 0);
+        c->setRenderTargets(0, nullptr, nullptr);
+        gfx::SRV  nulls[10] = {};
+        c->psSetSRVs(0, 10, nulls);
+        c->setRasterState(gfx::states.cullBack);
         r.bindFrame();
     }
 
     void prefilter(Renderer& r) {
         auto* c = gfx::ctx;
         // capture mip chain: 2x2 box per face and level
-        ID3D11Buffer* dcbs[] = {r.frameCB.get(), nullptr, cb.get()};
-        c->CSSetConstantBuffers(0, 3, dcbs);
-        c->CSSetShader(csDown, nullptr, 0);
+        gfx::Resource  dcbs[] = {r.frameCB.get(), nullptr, cb.get()};
+        c->csSetCBs(0, 3, dcbs);
+        c->setCS(csDown);
         for (int m = 1; m < capture.mips; m++) {
             int size = Max(1, res >> m);
             cb.data.p0 = vec4(0, (float)res, 0, (float)size);
             cb.upload();
-            c->CSSetShaderResources(10, 1, &capture.mipSrvs[m - 1]);
-            c->CSSetUnorderedAccessViews(0, 1, &capture.mipUavs[m], nullptr);
-            c->Dispatch(gfx::divUp(size, 8), gfx::divUp(size, 8), 6);
-            ID3D11UnorderedAccessView* nu = nullptr;
-            c->CSSetUnorderedAccessViews(0, 1, &nu, nullptr);
-            ID3D11ShaderResourceView* ns = nullptr;
-            c->CSSetShaderResources(10, 1, &ns);
+            c->csSetSRVs(10, 1, &capture.mipSrvs[m - 1]);
+            c->csSetUAVs(0, 1, &capture.mipUavs[m]);
+            c->dispatch(gfx::divUp(size, 8), gfx::divUp(size, 8), 6);
+            gfx::UAV  nu = nullptr;
+            c->csSetUAVs(0, 1, &nu);
+            gfx::SRV  ns = nullptr;
+            c->csSetSRVs(10, 1, &ns);
         }
         gfx::Texture& dst = filtered[front ^ 1];
         // mip 0: straight copy of the capture
         for (int f = 0; f < 6; f++)
-            c->CopySubresourceRegion(dst.res, D3D11CalcSubresource(0, f, dst.mips), 0, 0, 0, capture.res,
-                                     D3D11CalcSubresource(0, f, capture.mips), nullptr);
-        ID3D11Buffer* cbs[] = {r.frameCB.get(), nullptr, cb.get()};
-        c->CSSetConstantBuffers(0, 3, cbs);
-        c->CSSetShader(csPrefilter, nullptr, 0);
-        c->CSSetShaderResources(8, 1, &capture.srv);
+            c->copySubresource(dst.res, gfx::subresource(0, f, dst.mips), capture.res, gfx::subresource(0, f, capture.mips));
+        gfx::Resource  cbs[] = {r.frameCB.get(), nullptr, cb.get()};
+        c->csSetCBs(0, 3, cbs);
+        c->setCS(csPrefilter);
+        c->csSetSRVs(8, 1, &capture.srv);
         for (int m = 1; m < mips; m++) {
             int size = Max(1, res >> m);
             float t = (float)m / (float)(mips - 1);
             cb.data.p0 = vec4(0, (float)res, t * t, (float)size);
             cb.data.p1 = vec4((float)capture.mips, (float)res, m <= 2 ? 32.f : 48.f, 0);
             cb.upload();
-            c->CSSetUnorderedAccessViews(0, 1, &dst.mipUavs[m], nullptr);
-            c->Dispatch(gfx::divUp(size, 8), gfx::divUp(size, 8), 6);
-            ID3D11UnorderedAccessView* nu = nullptr;
-            c->CSSetUnorderedAccessViews(0, 1, &nu, nullptr);
+            c->csSetUAVs(0, 1, &dst.mipUavs[m]);
+            c->dispatch(gfx::divUp(size, 8), gfx::divUp(size, 8), 6);
+            gfx::UAV  nu = nullptr;
+            c->csSetUAVs(0, 1, &nu);
         }
-        ID3D11ShaderResourceView* ns = nullptr;
-        c->CSSetShaderResources(8, 1, &ns);
+        gfx::SRV  ns = nullptr;
+        c->csSetSRVs(8, 1, &ns);
         front ^= 1;
         frontPos = cyclePos;
         valid = true;
@@ -221,16 +220,16 @@ struct EnvProbeSystem {
         cb.data.p0 = vec4(0, (float)res, shValid && !r.cameraCut ? 0.5f : 1.f, 0);
         cb.data.p1 = vec4((float)Min(2, mips - 1), (float)res, 0, 0);
         cb.upload();
-        c->CSSetShader(csSH, nullptr, 0);
-        c->CSSetShaderResources(44, 1, &ns);  // global binding of the SH buffer (written below)
-        c->VSSetShaderResources(44, 1, &ns);
-        c->PSSetShaderResources(44, 1, &ns);
-        c->CSSetShaderResources(8, 1, &filtered[front].srv);
-        c->CSSetUnorderedAccessViews(1, 1, &shBuf.uav, nullptr);
-        c->Dispatch(1, 1, 1);
-        ID3D11UnorderedAccessView* nu2 = nullptr;
-        c->CSSetUnorderedAccessViews(1, 1, &nu2, nullptr);
-        c->CSSetShaderResources(8, 1, &ns);
+        c->setCS(csSH);
+        c->csSetSRVs(44, 1, &ns);  // global binding of the SH buffer (written below)
+        c->vsSetSRVs(44, 1, &ns);
+        c->psSetSRVs(44, 1, &ns);
+        c->csSetSRVs(8, 1, &filtered[front].srv);
+        c->csSetUAVs(1, 1, &shBuf.uav);
+        c->dispatch(1, 1, 1);
+        gfx::UAV  nu2 = nullptr;
+        c->csSetUAVs(1, 1, &nu2);
+        c->csSetSRVs(8, 1, &ns);
         shValid = true;
     }
 
@@ -264,8 +263,8 @@ struct EnvProbeSystem {
         step = (step + 1) % 7;
     }
 
-    ID3D11ShaderResourceView* srv() const { return valid ? filtered[front].srv : nullptr; }
-    ID3D11ShaderResourceView* shSrv() const { return shValid ? shBuf.srv : nullptr; }
+    gfx::SRV  srv() const { return valid ? filtered[front].srv : nullptr; }
+    gfx::SRV  shSrv() const { return shValid ? shBuf.srv : nullptr; }
 };
 
 }  // namespace Render

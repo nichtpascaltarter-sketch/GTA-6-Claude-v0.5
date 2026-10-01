@@ -32,8 +32,8 @@ struct StreamCell {
 struct WorldRenderer {
     std::unordered_map<int, StreamCell*> cells;
     gfx::VertexShader vs, vsShadow;
-    ID3D11PixelShader* ps = nullptr;
-    ID3D11RasterizerState* decalRS = nullptr;
+    gfx::PixelShader  ps = nullptr;
+    gfx::RasterState  decalRS = nullptr;
     gfx::CBuffer<DrawCBData> drawCB;
     MaterialLibrary* mats = nullptr;
     gfx::Buffer facadeBuf;
@@ -51,26 +51,23 @@ struct WorldRenderer {
 
     void init(MaterialLibrary* m) {
         mats = m;
-        D3D11_INPUT_ELEMENT_DESC layout[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"NORMAL", 0, DXGI_FORMAT_R16G16_SNORM, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TANGENT", 0, DXGI_FORMAT_R16G16_SNORM, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"MATID", 0, DXGI_FORMAT_R32_UINT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        gfx::InputElement layout[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, gfx::PER_VERTEX, 0},
+            {"NORMAL", 0, DXGI_FORMAT_R16G16_SNORM, 0, 12, gfx::PER_VERTEX, 0},
+            {"TANGENT", 0, DXGI_FORMAT_R16G16_SNORM, 0, 16, gfx::PER_VERTEX, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 20, gfx::PER_VERTEX, 0},
+            {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 28, gfx::PER_VERTEX, 0},
+            {"MATID", 0, DXGI_FORMAT_R32_UINT, 0, 32, gfx::PER_VERTEX, 0},
         };
         vs = gfx::loadVS("world.hlsl", "vsWorld", layout, 6);
         vsShadow = gfx::loadVS("world.hlsl", "vsWorldShadow", layout, 6);
         ps = gfx::loadPS("world.hlsl", "psWorld");
         drawCB.create();
-        D3D11_RASTERIZER_DESC rs = {};
-        rs.FillMode = D3D11_FILL_SOLID;
-        rs.CullMode = D3D11_CULL_BACK;
-        rs.FrontCounterClockwise = TRUE;
-        rs.DepthClipEnable = TRUE;
-        rs.DepthBias = 8;
-        rs.SlopeScaledDepthBias = 2.f;
-        gfx::dev->CreateRasterizerState(&rs, &decalRS);
+        gfx::RasterDesc rs;
+        rs.cull = gfx::CULL_BACK;
+        rs.depthBias = 8;
+        rs.slopeBias = 2.f;
+        decalRS = gfx::createRasterState(rs);
     }
 
     void uploadFacades(const World::BuildingSet& bs) {
@@ -266,10 +263,10 @@ struct WorldRenderer {
 
     void bindCommon(Renderer& r) {
         auto* c = gfx::ctx;
-        c->IASetInputLayout(vs.layout);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        ID3D11ShaderResourceView* srvs[6] = {mats->table.srv, mats->albedoArr.srv, mats->normalArr.srv, facadeBuf.srv, signTex.srv, facadeLightBuf.srv};
-        c->PSSetShaderResources(10, 6, srvs);
+        c->setInputLayout(vs.layout);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
+        gfx::SRV  srvs[6] = {mats->table.srv, mats->albedoArr.srv, mats->normalArr.srv, facadeBuf.srv, signTex.srv, facadeLightBuf.srv};
+        c->psSetSRVs(10, 6, srvs);
     }
 
     template <typename F>
@@ -295,20 +292,20 @@ struct WorldRenderer {
         Frustum fr;
         fr.fromMatrix(vp);
         bindCommon(r);
-        c->VSSetShader(vs.vs, nullptr, 0);
-        c->PSSetShader(ps, nullptr, 0);
-        ID3D11Buffer* cbs[] = {drawCB.get()};
-        c->VSSetConstantBuffers(1, 1, cbs);
-        c->PSSetConstantBuffers(1, 1, cbs);
+        c->setVS(vs.vs);
+        c->setPS(ps);
+        gfx::Resource  cbs[] = {drawCB.get()};
+        c->vsSetCBs(1, 1, cbs);
+        c->psSetCBs(1, 1, cbs);
         if (mainView) drawnCells = 0;
         forVisible(fr, refPos, false, [&](StreamCell* sc, vec3 off) {
             drawCB.data.cellOffset = vec4(off, 0);
             drawCB.data.params = vec4(0);
             drawCB.upload();
             UINT stride = sizeof(VtxStatic), offset = 0;
-            c->IASetVertexBuffers(0, 1, &sc->vb.buf, &stride, &offset);
-            c->IASetIndexBuffer(sc->ib.buf, DXGI_FORMAT_R32_UINT, 0);
-            if (sc->opaqueCount) c->DrawIndexed(sc->opaqueCount, 0, 0);
+            c->setVertexBuffers(0, 1, &sc->vb.buf, &stride, &offset);
+            c->setIndexBuffer(sc->ib.buf, DXGI_FORMAT_R32_UINT, 0);
+            if (sc->opaqueCount) c->drawIndexed(sc->opaqueCount, 0, 0);
             r.stats.drawCalls++;
             if (mainView) {
                 r.stats.triangles += sc->opaqueCount / 3;
@@ -316,41 +313,41 @@ struct WorldRenderer {
             }
         });
         // Decals (road paint) with depth bias
-        c->RSSetState(decalRS);
+        c->setRasterState(decalRS);
         if (withDecals) forVisible(fr, refPos, true, [&](StreamCell* sc, vec3 off) {
             if (!sc->decalCount) return;
             drawCB.data.cellOffset = vec4(off, 0);
             drawCB.upload();
             UINT stride = sizeof(VtxStatic), offset = 0;
-            c->IASetVertexBuffers(0, 1, &sc->vb.buf, &stride, &offset);
-            c->IASetIndexBuffer(sc->ib.buf, DXGI_FORMAT_R32_UINT, 0);
-            c->DrawIndexed(sc->decalCount, sc->decalStart, 0);
+            c->setVertexBuffers(0, 1, &sc->vb.buf, &stride, &offset);
+            c->setIndexBuffer(sc->ib.buf, DXGI_FORMAT_R32_UINT, 0);
+            c->drawIndexed(sc->decalCount, sc->decalStart, 0);
             r.stats.drawCalls++;
         });
-        c->RSSetState(gfx::states.cullBack);
-        ID3D11ShaderResourceView* nulls[6] = {};
-        c->PSSetShaderResources(10, 6, nulls);
+        c->setRasterState(gfx::states.cullBack);
+        gfx::SRV  nulls[6] = {};
+        c->psSetSRVs(10, 6, nulls);
     }
 
     void drawShadow(Renderer& r, const mat4& lightVP, int cascade) {
         auto* c = gfx::ctx;
         Frustum fr;
         fr.fromMatrix(lightVP);
-        c->IASetInputLayout(vsShadow.layout);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        c->VSSetShader(vsShadow.vs, nullptr, 0);
-        c->PSSetShader(nullptr, nullptr, 0);
-        ID3D11Buffer* cbs[] = {drawCB.get()};
-        c->VSSetConstantBuffers(1, 1, cbs);
+        c->setInputLayout(vsShadow.layout);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
+        c->setVS(vsShadow.vs);
+        c->setPS(nullptr);
+        gfx::Resource  cbs[] = {drawCB.get()};
+        c->vsSetCBs(1, 1, cbs);
         forVisible(fr, r.camera.pos, false, [&](StreamCell* sc, vec3 off) {
             // near cascades only need near cells
             if (cascade <= 1 && sc->lod == 1) return;
             drawCB.data.cellOffset = vec4(off, 0);
             drawCB.upload();
             UINT stride = sizeof(VtxStatic), offset = 0;
-            c->IASetVertexBuffers(0, 1, &sc->vb.buf, &stride, &offset);
-            c->IASetIndexBuffer(sc->ib.buf, DXGI_FORMAT_R32_UINT, 0);
-            if (sc->opaqueCount) c->DrawIndexed(sc->opaqueCount, 0, 0);
+            c->setVertexBuffers(0, 1, &sc->vb.buf, &stride, &offset);
+            c->setIndexBuffer(sc->ib.buf, DXGI_FORMAT_R32_UINT, 0);
+            if (sc->opaqueCount) c->drawIndexed(sc->opaqueCount, 0, 0);
             r.stats.drawCalls++;
         });
     }

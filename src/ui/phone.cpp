@@ -959,7 +959,7 @@ void tidegramScreen(PhoneState& st, const PL& p, const Nav& n, float a, float dt
                     if (inside) setClipRoundRect(tx, iy, iw, ih, 10.f * s);
                     else setClipRect(tx, cy0, iw, cy1 - cy0);
                     if (post.image < 0) {
-                        ID3D11ShaderResourceView* srv = snapshotSrv(post.snapshot);
+                        gfx::SRV  srv = snapshotSrv(post.snapshot);
                         if (srv) image(srv, tx, iy, iw, ih, 0, 0, 1, 1, withAlpha(kWhite, a));
                         else {
                             rect(tx, iy, iw, ih, withAlpha(C(0.12f, 0.12f, 0.18f), a));
@@ -1076,7 +1076,7 @@ void cameraScreen(PhoneState& st, const PL& p, const Nav& n, float a, float dt, 
     {
         float tw = 44.f * s;
         int last = I.gallery.empty() ? -1 : I.gallery.back();
-        ID3D11ShaderResourceView* srv = snapshotSrv(last);
+        gfx::SRV  srv = snapshotSrv(last);
         roundRect(cxs[0] - tw * 0.5f, cy - tw * 0.5f, tw, tw, 10.f * s, withAlpha(C(0.16f, 0.16f, 0.2f), a));
         if (srv) {
             ClipState saved = getClip();
@@ -1136,7 +1136,7 @@ void galleryScreen(PhoneState& st, const PL& p, const Nav& n, float a, float dt)
         int id = I.gallery[count - 1 - I.galleryOpen];
         float iw = p.sw - 24.f * s, ih = iw * 0.5625f;
         float ix = p.sx + 12.f * s, iy = p.top + 120.f * s;
-        ID3D11ShaderResourceView* srv = snapshotSrv(id);
+        gfx::SRV  srv = snapshotSrv(id);
         ClipState saved = getClip();
         setClipRoundRect(ix, iy, iw, ih, 10.f * s);
         if (srv) image(srv, ix, iy, iw, ih, 0, 0, 1, 1, withAlpha(kWhite, a));
@@ -1167,7 +1167,7 @@ void galleryScreen(PhoneState& st, const PL& p, const Nav& n, float a, float dt)
         float cy0 = Max(y, top), cy1 = Min(y + gh, p.bottom);
         if (cy0 == y && cy1 == y + gh) setClipRoundRect(x, y, gw, gh, 8.f * s);
         else setClipRect(x, cy0, gw, cy1 - cy0);
-        ID3D11ShaderResourceView* srv = snapshotSrv(id);
+        gfx::SRV  srv = snapshotSrv(id);
         if (srv) image(srv, x, y, gw, gh, 0, 0, 1, 1, withAlpha(kWhite, a));
         else rect(x, y, gw, gh, withAlpha(C(0.12f, 0.12f, 0.18f), a));
         setClip(saved);

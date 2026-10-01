@@ -14,7 +14,7 @@ struct WeatherSystem {
     static constexpr float kOverheadSize = 192.f;
     gfx::Texture overheadDepth, overheadHeight, overheadGrass;
     gfx::VertexShader vsOverhead;
-    ID3D11PixelShader* psOverhead = nullptr;
+    gfx::PixelShader  psOverhead = nullptr;
     gfx::CBuffer<ShadowPassCBData> passCB;
     dvec3 overheadOrigin;          // world min corner of the map
     float overheadTop = 0.f, overheadRange = 600.f;
@@ -22,12 +22,12 @@ struct WeatherSystem {
     float gentleFlash = 0.f;       // reduce-flashing: smoothed lightning intensity
     bool overheadValid = false;
     int overheadAge = 0;
-    ID3D11ComputeShader* csOverhead = nullptr;
+    gfx::ComputeShader  csOverhead = nullptr;
     // Rain + lightning
     gfx::CBuffer<RainCBData> cb;
     gfx::VertexShader vsRain, vsSplash, vsBolt;
-    ID3D11PixelShader *psRain = nullptr, *psSplash = nullptr, *psBolt = nullptr;
-    ID3D11BlendState* blend = nullptr;
+    gfx::PixelShader psRain = nullptr, psSplash = nullptr, psBolt = nullptr;
+    gfx::BlendState  blend = nullptr;
     gfx::Buffer boltBuf;
     static const int kMaxBoltSegments = 256;
     std::vector<vec4> boltSegs;   // pairs: (p0 world offset from boltOrigin, width), (p1 offset, brightness)
@@ -48,13 +48,13 @@ struct WeatherSystem {
         overheadDepth = gfx::createTexture2D(kOverheadRes, kOverheadRes, DXGI_FORMAT_R32_TYPELESS, gfx::TEX_DSV | gfx::TEX_SRV);
         overheadHeight = gfx::createTexture2D(kOverheadRes, kOverheadRes, DXGI_FORMAT_R32_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV);
         overheadGrass = gfx::createTexture2D(kOverheadRes, kOverheadRes, DXGI_FORMAT_R8_UNORM, gfx::TEX_SRV | gfx::TEX_RTV);
-        D3D11_INPUT_ELEMENT_DESC layout[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"NORMAL", 0, DXGI_FORMAT_R16G16_SNORM, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TANGENT", 0, DXGI_FORMAT_R16G16_SNORM, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"MATID", 0, DXGI_FORMAT_R32_UINT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        gfx::InputElement layout[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, gfx::PER_VERTEX, 0},
+            {"NORMAL", 0, DXGI_FORMAT_R16G16_SNORM, 0, 12, gfx::PER_VERTEX, 0},
+            {"TANGENT", 0, DXGI_FORMAT_R16G16_SNORM, 0, 16, gfx::PER_VERTEX, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 20, gfx::PER_VERTEX, 0},
+            {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 28, gfx::PER_VERTEX, 0},
+            {"MATID", 0, DXGI_FORMAT_R32_UINT, 0, 32, gfx::PER_VERTEX, 0},
         };
         vsOverhead = gfx::loadVS("overhead.hlsl", "vsOverhead", layout, 6);
         psOverhead = gfx::loadPS("overhead.hlsl", "psOverhead");
@@ -69,27 +69,13 @@ struct WeatherSystem {
         psBolt = gfx::loadPS("rain.hlsl", "psBolt");
         boltBuf = gfx::createBuffer(kMaxBoltSegments * 2 * 16, 16, gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
         // RT0: premultiplied color, RT1: reactive mask (max)
-        D3D11_BLEND_DESC bd = {};
-        bd.IndependentBlendEnable = TRUE;
-        D3D11_RENDER_TARGET_BLEND_DESC& a = bd.RenderTarget[0];
-        a.BlendEnable = TRUE;
-        a.SrcBlend = D3D11_BLEND_ONE;
-        a.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-        a.BlendOp = D3D11_BLEND_OP_ADD;
-        a.SrcBlendAlpha = D3D11_BLEND_ONE;
-        a.DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-        a.BlendOpAlpha = D3D11_BLEND_OP_ADD;
-        a.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-        D3D11_RENDER_TARGET_BLEND_DESC& m = bd.RenderTarget[1];
-        m.BlendEnable = TRUE;
-        m.SrcBlend = D3D11_BLEND_ONE;
-        m.DestBlend = D3D11_BLEND_ONE;
-        m.BlendOp = D3D11_BLEND_OP_MAX;
-        m.SrcBlendAlpha = D3D11_BLEND_ONE;
-        m.DestBlendAlpha = D3D11_BLEND_ONE;
-        m.BlendOpAlpha = D3D11_BLEND_OP_MAX;
-        m.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-        gfx::dev->CreateBlendState(&bd, &blend);
+        gfx::BlendDesc bd;
+        bd.independent = true;
+        bd.rt[0] = {true, gfx::BLEND_ONE, gfx::BLEND_INV_SRC_ALPHA, gfx::BLENDOP_ADD, gfx::BLEND_ONE, gfx::BLEND_INV_SRC_ALPHA,
+                    gfx::BLENDOP_ADD, gfx::WRITE_ALL};
+        bd.rt[1] = {true, gfx::BLEND_ONE, gfx::BLEND_ONE, gfx::BLENDOP_MAX, gfx::BLEND_ONE, gfx::BLEND_ONE, gfx::BLENDOP_MAX,
+                    gfx::WRITE_ALL};
+        blend = gfx::createBlendState(bd);
     }
 
     // Top-down depth of the static world cells around the camera (re-rendered when the camera moves a grid step
@@ -116,26 +102,26 @@ struct WeatherSystem {
         float hs = kOverheadSize * 0.5f;
         mat4 proj = orthoRH(-hs, hs, -hs, hs, 0.f, overheadRange);
         mat4 vp = proj * view;
-        ID3D11ShaderResourceView* nullSrv = nullptr;
-        c->VSSetShaderResources(41, 1, &nullSrv);
-        c->PSSetShaderResources(41, 1, &nullSrv);
-        c->CSSetShaderResources(41, 1, &nullSrv);
+        gfx::SRV  nullSrv = nullptr;
+        c->vsSetSRVs(41, 1, &nullSrv);
+        c->psSetSRVs(41, 1, &nullSrv);
+        c->csSetSRVs(41, 1, &nullSrv);
         float zero4[4] = {0, 0, 0, 0};
-        c->ClearDepthStencilView(overheadDepth.dsv, D3D11_CLEAR_DEPTH, 1.f, 0);
-        c->ClearRenderTargetView(overheadGrass.rtv, zero4);
-        c->OMSetRenderTargets(1, &overheadGrass.rtv, overheadDepth.dsv);
+        c->clearDepth(overheadDepth.dsv, 1.f);
+        c->clearRTV(overheadGrass.rtv, zero4);
+        c->setRenderTargets(1, &overheadGrass.rtv, overheadDepth.dsv);
         gfx::setViewport((float)kOverheadRes, (float)kOverheadRes);
-        c->OMSetDepthStencilState(gfx::states.depthLessWrite, 0);
-        c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
-        c->RSSetState(gfx::states.cullNone);
+        c->setDepthState(gfx::states.depthLessWrite);
+        c->setBlendState(gfx::states.opaque);
+        c->setRasterState(gfx::states.cullNone);
         passCB.data.viewProj = vp;
         passCB.upload();
-        ID3D11Buffer* cbs[] = {r.world->drawCB.get(), passCB.get()};
-        c->VSSetConstantBuffers(1, 2, cbs);
-        c->IASetInputLayout(vsOverhead.layout);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        c->VSSetShader(vsOverhead.vs, nullptr, 0);
-        c->PSSetShader(psOverhead, nullptr, 0);
+        gfx::Resource  cbs[] = {r.world->drawCB.get(), passCB.get()};
+        c->vsSetCBs(1, 2, cbs);
+        c->setInputLayout(vsOverhead.layout);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
+        c->setVS(vsOverhead.vs);
+        c->setPS(psOverhead);
         Frustum fr;
         fr.fromMatrix(vp);
         r.world->forVisible(fr, r.camera.pos, false, [&](StreamCell* sc, vec3 off) {
@@ -144,28 +130,28 @@ struct WeatherSystem {
             r.world->drawCB.data.params = vec4(0);
             r.world->drawCB.upload();
             UINT stride = sizeof(VtxStatic), offset = 0;
-            c->IASetVertexBuffers(0, 1, &sc->vb.buf, &stride, &offset);
-            c->IASetIndexBuffer(sc->ib.buf, DXGI_FORMAT_R32_UINT, 0);
-            c->DrawIndexed(sc->opaqueCount, 0, 0);
+            c->setVertexBuffers(0, 1, &sc->vb.buf, &stride, &offset);
+            c->setIndexBuffer(sc->ib.buf, DXGI_FORMAT_R32_UINT, 0);
+            c->drawIndexed(sc->opaqueCount, 0, 0);
             r.stats.drawCalls++;
         });
-        c->OMSetRenderTargets(0, nullptr, nullptr);
-        c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
-        c->RSSetState(gfx::states.cullBack);
+        c->setRenderTargets(0, nullptr, nullptr);
+        c->setBlendState(gfx::states.opaque);
+        c->setRasterState(gfx::states.cullBack);
         // depth -> height
         cb.data.r3 = vec4(overheadTop, overheadRange, 0, 0);
         cb.upload();
-        ID3D11Buffer* ccbs[] = {r.frameCB.get(), cb.get()};
-        c->CSSetConstantBuffers(0, 2, ccbs);
-        c->CSSetShaderResources(0, 1, &overheadDepth.srv);
-        c->CSSetUnorderedAccessViews(0, 1, &overheadHeight.uav, nullptr);
-        c->CSSetShader(csOverhead, nullptr, 0);
-        c->Dispatch(kOverheadRes / 8, kOverheadRes / 8, 1);
+        gfx::Resource  ccbs[] = {r.frameCB.get(), cb.get()};
+        c->csSetCBs(0, 2, ccbs);
+        c->csSetSRVs(0, 1, &overheadDepth.srv);
+        c->csSetUAVs(0, 1, &overheadHeight.uav);
+        c->setCS(csOverhead);
+        c->dispatch(kOverheadRes / 8, kOverheadRes / 8, 1);
         gfx::unbindCSResources(1, 1);
         overheadValid = true;
     }
 
-    ID3D11ShaderResourceView* overheadSrv() const { return overheadValid ? overheadHeight.srv : nullptr; }
+    gfx::SRV  overheadSrv() const { return overheadValid ? overheadHeight.srv : nullptr; }
 
     // Weather-related frame constants.
     void setFrameParams(Renderer& r, const Environment& env, FrameConstants& f, float dt) {
@@ -234,7 +220,7 @@ struct WeatherSystem {
     }
 
     // Forward pass (after particles, before TAA): rain streaks, splashes and the lightning bolt.
-    void draw(Renderer& r, const Environment& env, ID3D11RenderTargetView* reactive) {
+    void draw(Renderer& r, const Environment& env, gfx::RTV  reactive) {
         bool rain = env.rain > 0.01f;
         bool bolt = r.frame.lightning.x > 0.02f && !boltSegs.empty();
         if (!rain && !bolt) return;
@@ -265,27 +251,27 @@ struct WeatherSystem {
         cb.data.r2 = vec4(4.f, 22.f, (float)nl, Saturate(r.frame.lightning.x));
         cb.data.r3 = vec4(overheadTop, overheadRange, 0, 0);
         cb.upload();
-        ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get()};
-        c->VSSetConstantBuffers(0, 2, cbs);
-        c->PSSetConstantBuffers(0, 2, cbs);
-        ID3D11RenderTargetView* rts[2] = {r.hdr.rtv, reactive};
-        c->OMSetRenderTargets(2, rts, r.depthRO);
+        gfx::Resource  cbs[] = {r.frameCB.get(), cb.get()};
+        c->vsSetCBs(0, 2, cbs);
+        c->psSetCBs(0, 2, cbs);
+        gfx::RTV  rts[2] = {r.hdr.rtv, reactive};
+        c->setRenderTargets(2, rts, r.depthRO);
         gfx::setViewport((float)r.width, (float)r.height);
-        c->OMSetDepthStencilState(gfx::states.depthGreaterEqualNoWrite, 0);
+        c->setDepthState(gfx::states.depthGreaterEqualNoWrite);
         float bf[4] = {0, 0, 0, 0};
-        c->OMSetBlendState(blend, bf, 0xffffffff);
-        c->RSSetState(gfx::states.cullNone);
-        c->IASetInputLayout(nullptr);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+        c->setBlendState(blend);
+        c->setRasterState(gfx::states.cullNone);
+        c->setInputLayout(nullptr);
+        c->setTopology(gfx::TOPO_TRIANGLE_STRIP);
         if (rain && n > 0) {
-            c->VSSetShader(vsRain.vs, nullptr, 0);
-            c->PSSetShader(psRain, nullptr, 0);
-            c->DrawInstanced(4, (UINT)n, 0, 0);
-            ID3D11ShaderResourceView* atlas = r.particles->atlas.srv;
-            c->PSSetShaderResources(1, 1, &atlas);
-            c->VSSetShader(vsSplash.vs, nullptr, 0);
-            c->PSSetShader(psSplash, nullptr, 0);
-            c->DrawInstanced(4, (UINT)n, 0, 0);
+            c->setVS(vsRain.vs);
+            c->setPS(psRain);
+            c->drawInstanced(4, (UINT)n, 0, 0);
+            gfx::SRV  atlas = r.particles->atlas.srv;
+            c->psSetSRVs(1, 1, &atlas);
+            c->setVS(vsSplash.vs);
+            c->setPS(psSplash);
+            c->drawInstanced(4, (UINT)n, 0, 0);
             r.stats.drawCalls += 2;
         }
         if (bolt) {
@@ -294,19 +280,19 @@ struct WeatherSystem {
             vec3 o = rel(boltOrigin, r.camera.pos);
             for (size_t i = 0; i < boltSegs.size(); i++) segs[i] = vec4(boltSegs[i].xyz() + o, boltSegs[i].w);
             gfx::updateBuffer(boltBuf, segs.data(), (u32)(segs.size() * 16));
-            c->VSSetShaderResources(2, 1, &boltBuf.srv);
-            c->VSSetShader(vsBolt.vs, nullptr, 0);
-            c->PSSetShader(psBolt, nullptr, 0);
-            c->DrawInstanced(4, (UINT)(segs.size() / 2), 0, 0);
+            c->vsSetSRVs(2, 1, &boltBuf.srv);
+            c->setVS(vsBolt.vs);
+            c->setPS(psBolt);
+            c->drawInstanced(4, (UINT)(segs.size() / 2), 0, 0);
             r.stats.drawCalls++;
         }
-        c->OMSetRenderTargets(0, nullptr, nullptr);
-        ID3D11ShaderResourceView* nulls[3] = {};
-        c->VSSetShaderResources(0, 3, nulls);
-        c->PSSetShaderResources(0, 3, nulls);
-        c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
-        c->RSSetState(gfx::states.cullBack);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        c->setRenderTargets(0, nullptr, nullptr);
+        gfx::SRV  nulls[3] = {};
+        c->vsSetSRVs(0, 3, nulls);
+        c->psSetSRVs(0, 3, nulls);
+        c->setBlendState(gfx::states.opaque);
+        c->setRasterState(gfx::states.cullBack);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
     }
 };
 

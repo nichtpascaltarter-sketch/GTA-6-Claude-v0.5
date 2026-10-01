@@ -82,10 +82,10 @@ struct ParticleSystem {
     gfx::Buffer pool, keys, spawnBuf, slotBuf, typeBuf;
     gfx::Texture atlas;
     gfx::CBuffer<ParticleCBData> cb;
-    ID3D11ComputeShader *csEmit = nullptr, *csSim = nullptr, *csKeys = nullptr, *csSortLocal = nullptr,
-                        *csSortGlobal = nullptr, *csSortMerge = nullptr, *csAtlas = nullptr;
+    gfx::ComputeShader csEmit = nullptr, csSim = nullptr, csKeys = nullptr, csSortLocal = nullptr,
+                        csSortGlobal = nullptr, csSortMerge = nullptr, csAtlas = nullptr;
     gfx::VertexShader vs;
-    ID3D11PixelShader* ps = nullptr;
+    gfx::PixelShader  ps = nullptr;
     int drawCount = 0;
 
     void queue(const ParticleSpawn& s) {
@@ -132,11 +132,11 @@ struct ParticleSystem {
         // Procedural atlas: 8x8 cells of 128x128
         atlas = gfx::createTexture2D(1024, 1024, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_UAV | gfx::TEX_GENMIPS, 0, 1);
         auto* c = gfx::ctx;
-        c->CSSetShader(csAtlas, nullptr, 0);
-        c->CSSetUnorderedAccessViews(2, 1, &atlas.uav, nullptr);
-        c->Dispatch(1024 / 8, 1024 / 8, 1);
+        c->setCS(csAtlas);
+        c->csSetUAVs(2, 1, &atlas.uav);
+        c->dispatch(1024 / 8, 1024 / 8, 1);
         gfx::unbindCSResources(1, 3);
-        c->GenerateMips(atlas.srv);
+        c->generateMips(atlas);
         resize(budget);
     }
 
@@ -459,54 +459,54 @@ struct ParticleSystem {
         cb.data.lightCount = vec4(0);
         cb.upload();
         pendingShift = vec3(0);
-        ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get()};
-        c->CSSetConstantBuffers(0, 2, cbs);
+        gfx::Resource  cbs[] = {r.frameCB.get(), cb.get()};
+        c->csSetCBs(0, 2, cbs);
         if (!spawnList.empty()) {
             gfx::updateBuffer(spawnBuf, spawnList.data(), (u32)(spawnList.size() * sizeof(ParticleGPU)));
             gfx::updateBuffer(slotBuf, spawnSlots.data(), (u32)(spawnSlots.size() * 4));
-            ID3D11ShaderResourceView* s[3] = {typeBuf.srv, spawnBuf.srv, slotBuf.srv};
-            c->CSSetShaderResources(0, 3, s);
-            c->CSSetUnorderedAccessViews(0, 1, &pool.uav, nullptr);
-            c->CSSetShader(csEmit, nullptr, 0);
-            c->Dispatch(gfx::divUp((u32)spawnList.size(), 64), 1, 1);
+            gfx::SRV  s[3] = {typeBuf.srv, spawnBuf.srv, slotBuf.srv};
+            c->csSetSRVs(0, 3, s);
+            c->csSetUAVs(0, 1, &pool.uav);
+            c->setCS(csEmit);
+            c->dispatch(gfx::divUp((u32)spawnList.size(), 64), 1, 1);
             // emitted particles advance with the rest this frame
         }
-        ID3D11ShaderResourceView* s[5] = {typeBuf.srv, nullptr, nullptr, r.depth.srv, r.gbNormal.srv};
-        c->CSSetShaderResources(0, 5, s);
-        c->CSSetUnorderedAccessViews(0, 1, &pool.uav, nullptr);
-        c->CSSetShader(csSim, nullptr, 0);
-        c->Dispatch(gfx::divUp(capacity, 64), 1, 1);
+        gfx::SRV  s[5] = {typeBuf.srv, nullptr, nullptr, r.depth.srv, r.gbNormal.srv};
+        c->csSetSRVs(0, 5, s);
+        c->csSetUAVs(0, 1, &pool.uav);
+        c->setCS(csSim);
+        c->dispatch(gfx::divUp(capacity, 64), 1, 1);
         gfx::unbindCSResources(8, 2);
         // keys + bitonic sort
-        ID3D11ShaderResourceView* ps5 = pool.srv;
-        c->CSSetShaderResources(5, 1, &ps5);
-        c->CSSetUnorderedAccessViews(1, 1, &keys.uav, nullptr);
-        c->CSSetShader(csKeys, nullptr, 0);
-        c->Dispatch(gfx::divUp(capacity, 64), 1, 1);
-        ID3D11ShaderResourceView* ns = nullptr;
-        c->CSSetShaderResources(5, 1, &ns);
+        gfx::SRV  ps5 = pool.srv;
+        c->csSetSRVs(5, 1, &ps5);
+        c->csSetUAVs(1, 1, &keys.uav);
+        c->setCS(csKeys);
+        c->dispatch(gfx::divUp(capacity, 64), 1, 1);
+        gfx::SRV  ns = nullptr;
+        c->csSetSRVs(5, 1, &ns);
         int groups = capacity / 2048;
-        c->CSSetShader(csSortLocal, nullptr, 0);
-        c->Dispatch(groups, 1, 1);
+        c->setCS(csSortLocal);
+        c->dispatch(groups, 1, 1);
         for (int k = 4096; k <= capacity; k <<= 1) {
             for (int j = k >> 1; j >= 2048; j >>= 1) {
                 cb.data.sort = vec4((float)k, (float)j, (float)capacity, 0);
                 cb.upload();
-                c->CSSetShader(csSortGlobal, nullptr, 0);
-                c->Dispatch(gfx::divUp(capacity / 2, 256), 1, 1);
+                c->setCS(csSortGlobal);
+                c->dispatch(gfx::divUp(capacity / 2, 256), 1, 1);
             }
             cb.data.sort = vec4((float)k, 1024.f, (float)capacity, 0);
             cb.upload();
-            c->CSSetShader(csSortMerge, nullptr, 0);
-            c->Dispatch(groups, 1, 1);
+            c->setCS(csSortMerge);
+            c->dispatch(groups, 1, 1);
         }
-        ID3D11UnorderedAccessView* nu = nullptr;
-        c->CSSetUnorderedAccessViews(1, 1, &nu, nullptr);
+        gfx::UAV  nu = nullptr;
+        c->csSetUAVs(1, 1, &nu);
         drawCount = Min(alive, capacity);
     }
 
     // Forward pass into the HDR target: depth test against the scene (read-only), soft edges from the depth SRV.
-    void draw(Renderer& r, ID3D11RenderTargetView* reactive, ID3D11BlendState* blendWithReactive) {
+    void draw(Renderer& r, gfx::RTV  reactive, gfx::BlendState  blendWithReactive) {
         if (drawCount <= 0) return;
         auto* c = gfx::ctx;
         // Local lights for particle lighting: the brightest nearby lights of this frame, three float4 each (position
@@ -530,32 +530,32 @@ struct ParticleSystem {
         cb.data.lightCount = vec4((float)nl, 0, 0, 0);
         cb.data.sim1 = vec4(rel(origin, r.camera.pos), 0);
         cb.upload();
-        ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get(), nullptr, r.shadowCB.get()};
-        c->VSSetConstantBuffers(0, 4, cbs);
-        c->PSSetConstantBuffers(0, 4, cbs);
-        ID3D11ShaderResourceView* srvs[9] = {typeBuf.srv, nullptr, nullptr, nullptr, nullptr, pool.srv, keys.srv, atlas.srv, r.depth.srv};
-        c->VSSetShaderResources(0, 9, srvs);
-        c->PSSetShaderResources(0, 9, srvs);
-        ID3D11RenderTargetView* rts[2] = {r.hdr.rtv, reactive};
-        c->OMSetRenderTargets(2, rts, r.depthRO);
+        gfx::Resource  cbs[] = {r.frameCB.get(), cb.get(), nullptr, r.shadowCB.get()};
+        c->vsSetCBs(0, 4, cbs);
+        c->psSetCBs(0, 4, cbs);
+        gfx::SRV  srvs[9] = {typeBuf.srv, nullptr, nullptr, nullptr, nullptr, pool.srv, keys.srv, atlas.srv, r.depth.srv};
+        c->vsSetSRVs(0, 9, srvs);
+        c->psSetSRVs(0, 9, srvs);
+        gfx::RTV  rts[2] = {r.hdr.rtv, reactive};
+        c->setRenderTargets(2, rts, r.depthRO);
         gfx::setViewport((float)r.width, (float)r.height);
-        c->OMSetDepthStencilState(gfx::states.depthGreaterEqualNoWrite, 0);
+        c->setDepthState(gfx::states.depthGreaterEqualNoWrite);
         float bf[4] = {0, 0, 0, 0};
-        c->OMSetBlendState(blendWithReactive, bf, 0xffffffff);
-        c->RSSetState(gfx::states.cullNone);
-        c->IASetInputLayout(nullptr);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-        c->VSSetShader(vs.vs, nullptr, 0);
-        c->PSSetShader(ps, nullptr, 0);
-        c->DrawInstanced(4, (UINT)drawCount, 0, 0);
+        c->setBlendState(blendWithReactive);
+        c->setRasterState(gfx::states.cullNone);
+        c->setInputLayout(nullptr);
+        c->setTopology(gfx::TOPO_TRIANGLE_STRIP);
+        c->setVS(vs.vs);
+        c->setPS(ps);
+        c->drawInstanced(4, (UINT)drawCount, 0, 0);
         r.stats.drawCalls++;
-        c->OMSetRenderTargets(0, nullptr, nullptr);
-        ID3D11ShaderResourceView* nulls[9] = {};
-        c->VSSetShaderResources(0, 9, nulls);
-        c->PSSetShaderResources(0, 9, nulls);
-        c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
-        c->RSSetState(gfx::states.cullBack);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        c->setRenderTargets(0, nullptr, nullptr);
+        gfx::SRV  nulls[9] = {};
+        c->vsSetSRVs(0, 9, nulls);
+        c->psSetSRVs(0, 9, nulls);
+        c->setBlendState(gfx::states.opaque);
+        c->setRasterState(gfx::states.cullBack);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
     }
 };
 

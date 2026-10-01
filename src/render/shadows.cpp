@@ -118,29 +118,29 @@ struct ShadowSystem {
         cascades = Clamp(r.settings.shadowCascades, 1, 4);
         computeCascades(r);
         auto* c = gfx::ctx;
-        ID3D11ShaderResourceView* nullSrv = nullptr;
-        c->PSSetShaderResources(35, 1, &nullSrv);
-        c->CSSetShaderResources(35, 1, &nullSrv);
-        c->VSSetShaderResources(35, 1, &nullSrv);
+        gfx::SRV  nullSrv = nullptr;
+        c->psSetSRVs(35, 1, &nullSrv);
+        c->csSetSRVs(35, 1, &nullSrv);
+        c->vsSetSRVs(35, 1, &nullSrv);
         gfx::setViewport((float)res, (float)res);
-        c->RSSetState(gfx::states.shadowBias);
-        c->OMSetDepthStencilState(gfx::states.depthLessWrite, 0);
-        c->OMSetBlendState(gfx::states.noColorWrite, nullptr, 0xffffffff);
+        c->setRasterState(gfx::states.shadowBias);
+        c->setDepthState(gfx::states.depthLessWrite);
+        c->setBlendState(gfx::states.noColorWrite);
         for (int i = 0; i < cascades; i++) {
             if (!renderThis[i]) continue;
-            ID3D11DepthStencilView* dsv = map.sliceDsvs[i];
-            c->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH, 1.f, 0);
-            c->OMSetRenderTargets(0, nullptr, dsv);
+            gfx::DSV  dsv = map.sliceDsvs[i];
+            c->clearDepth(dsv, 1.f);
+            c->setRenderTargets(0, nullptr, dsv);
             passCB.data.viewProj = cascadeVP[i];
             passCB.upload();
-            ID3D11Buffer* cbs[] = {passCB.get()};
-            c->VSSetConstantBuffers(2, 1, cbs);
+            gfx::Resource  cbs[] = {passCB.get()};
+            c->vsSetCBs(2, 1, cbs);
             r.terrain->drawShadow(r, cascadeVP[i], r.camera.pos);
             for (auto& fn : casters) fn(r, cascadeVP[i], i);
         }
-        c->OMSetRenderTargets(0, nullptr, nullptr);
-        c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
-        c->RSSetState(gfx::states.cullBack);
+        c->setRenderTargets(0, nullptr, nullptr);
+        c->setBlendState(gfx::states.opaque);
+        c->setRasterState(gfx::states.cullBack);
     }
 };
 

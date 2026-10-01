@@ -48,11 +48,11 @@ struct DrawItem {
 
 struct DynamicRenderer {
     gfx::VertexShader vsRigid, vsSkinned, vsRigidShadow, vsSkinnedShadow;
-    ID3D11PixelShader* ps = nullptr;
-    ID3D11PixelShader* psGlass = nullptr;
-    ID3D11PixelShader* psHairCard = nullptr;       // hair strand cards (dithered alpha, strand tangent)
+    gfx::PixelShader  ps = nullptr;
+    gfx::PixelShader  psGlass = nullptr;
+    gfx::PixelShader  psHairCard = nullptr;       // hair strand cards (dithered alpha, strand tangent)
     gfx::VertexShader vsCardShadow;
-    ID3D11PixelShader* psCardShadow = nullptr;     // alpha-tested card shadows
+    gfx::PixelShader  psCardShadow = nullptr;     // alpha-tested card shadows
     gfx::CBuffer<ObjectCBData> cb;
     gfx::Buffer boneBuf, prevBoneBuf;
     static const int kMaxBones = 32768;   // ~475 characters at 69 bones (2 MB per palette buffer)
@@ -72,23 +72,23 @@ struct DynamicRenderer {
 
     void init(MaterialLibrary* m) {
         mats = m;
-        D3D11_INPUT_ELEMENT_DESC rigid[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"NORMAL", 0, DXGI_FORMAT_R16G16_SNORM, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TANGENT", 0, DXGI_FORMAT_R16G16_SNORM, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"MATID", 0, DXGI_FORMAT_R32_UINT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        gfx::InputElement rigid[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, gfx::PER_VERTEX, 0},
+            {"NORMAL", 0, DXGI_FORMAT_R16G16_SNORM, 0, 12, gfx::PER_VERTEX, 0},
+            {"TANGENT", 0, DXGI_FORMAT_R16G16_SNORM, 0, 16, gfx::PER_VERTEX, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 20, gfx::PER_VERTEX, 0},
+            {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 28, gfx::PER_VERTEX, 0},
+            {"MATID", 0, DXGI_FORMAT_R32_UINT, 0, 32, gfx::PER_VERTEX, 0},
         };
-        D3D11_INPUT_ELEMENT_DESC skinned[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"NORMAL", 0, DXGI_FORMAT_R16G16_SNORM, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TANGENT", 0, DXGI_FORMAT_R16G16_SNORM, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"MATID", 0, DXGI_FORMAT_R32_UINT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"BONES", 0, DXGI_FORMAT_R8G8B8A8_UINT, 0, 36, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"WEIGHTS", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 40, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        gfx::InputElement skinned[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, gfx::PER_VERTEX, 0},
+            {"NORMAL", 0, DXGI_FORMAT_R16G16_SNORM, 0, 12, gfx::PER_VERTEX, 0},
+            {"TANGENT", 0, DXGI_FORMAT_R16G16_SNORM, 0, 16, gfx::PER_VERTEX, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 20, gfx::PER_VERTEX, 0},
+            {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 28, gfx::PER_VERTEX, 0},
+            {"MATID", 0, DXGI_FORMAT_R32_UINT, 0, 32, gfx::PER_VERTEX, 0},
+            {"BONES", 0, DXGI_FORMAT_R8G8B8A8_UINT, 0, 36, gfx::PER_VERTEX, 0},
+            {"WEIGHTS", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 40, gfx::PER_VERTEX, 0},
         };
         vsRigid = gfx::loadVS("dynamic.hlsl", "vsRigid", rigid, 6);
         vsSkinned = gfx::loadVS("dynamic.hlsl", "vsSkinned", skinned, 8);
@@ -224,16 +224,16 @@ struct DynamicRenderer {
         auto* c = gfx::ctx;
         Frustum fr;
         fr.fromMatrix(r.viewProjNoJitter);
-        ID3D11Buffer* cbs[] = {cb.get()};
-        c->VSSetConstantBuffers(1, 1, cbs);
-        c->PSSetConstantBuffers(1, 1, cbs);
-        ID3D11ShaderResourceView* srvs[3] = {mats->table.srv, mats->albedoArr.srv, mats->normalArr.srv};
-        c->PSSetShaderResources(10, 3, srvs);
-        ID3D11ShaderResourceView* bsrv[2] = {boneBuf.srv, prevBoneBuf.srv};
-        c->VSSetShaderResources(20, 2, bsrv);
-        c->PSSetShader(ps, nullptr, 0);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        c->RSSetState(gfx::states.cullBack);
+        gfx::Resource  cbs[] = {cb.get()};
+        c->vsSetCBs(1, 1, cbs);
+        c->psSetCBs(1, 1, cbs);
+        gfx::SRV  srvs[3] = {mats->table.srv, mats->albedoArr.srv, mats->normalArr.srv};
+        c->psSetSRVs(10, 3, srvs);
+        gfx::SRV  bsrv[2] = {boneBuf.srv, prevBoneBuf.srv};
+        c->vsSetSRVs(20, 2, bsrv);
+        c->setPS(ps);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
+        c->setRasterState(gfx::states.cullBack);
         for (size_t i = 0; i < items.size(); i++) {
             const DrawItem& d = items[i];
             mat4 w = worldRel(d.pos, d.rot, d.scale, r.camera.pos);
@@ -242,30 +242,30 @@ struct DynamicRenderer {
             if (!fr.testAABB(b) || boneOffsets[i] < 0) continue;
             setObjectCB(r, d, boneOffsets[i]);
             UINT stride = d.model->skinned ? sizeof(VtxSkinned) : sizeof(VtxStatic), offset = 0;
-            c->IASetInputLayout(d.model->skinned ? vsSkinned.layout : vsRigid.layout);
-            c->VSSetShader(d.model->skinned ? vsSkinned.vs : vsRigid.vs, nullptr, 0);
-            c->IASetVertexBuffers(0, 1, &d.model->vb.buf, &stride, &offset);
-            c->IASetIndexBuffer(d.model->ib.buf, DXGI_FORMAT_R32_UINT, 0);
+            c->setInputLayout(d.model->skinned ? vsSkinned.layout : vsRigid.layout);
+            c->setVS(d.model->skinned ? vsSkinned.vs : vsRigid.vs);
+            c->setVertexBuffers(0, 1, &d.model->vb.buf, &stride, &offset);
+            c->setIndexBuffer(d.model->ib.buf, DXGI_FORMAT_R32_UINT, 0);
             u32 opaqueCount = d.model->indexCount - d.model->glassCount;
             u32 cards = d.model->skinned ? d.model->indexCount - d.model->cardStart : 0;
             opaqueCount -= cards;
-            if (opaqueCount) c->DrawIndexed(opaqueCount, 0, 0);
+            if (opaqueCount) c->drawIndexed(opaqueCount, 0, 0);
             r.stats.drawCalls++;
             r.stats.triangles += (int)opaqueCount / 3;
             if (cards) {
                 // hair strand cards: two-sided, dithered coverage
-                c->PSSetShader(psHairCard, nullptr, 0);
-                c->RSSetState(gfx::states.cullNone);
-                c->DrawIndexed(cards, d.model->cardStart, 0);
-                c->PSSetShader(ps, nullptr, 0);
-                c->RSSetState(gfx::states.cullBack);
+                c->setPS(psHairCard);
+                c->setRasterState(gfx::states.cullNone);
+                c->drawIndexed(cards, d.model->cardStart, 0);
+                c->setPS(ps);
+                c->setRasterState(gfx::states.cullBack);
                 r.stats.drawCalls++;
                 r.stats.triangles += (int)cards / 3;
             }
         }
-        ID3D11ShaderResourceView* nulls[3] = {};
-        c->PSSetShaderResources(10, 3, nulls);
-        c->VSSetShaderResources(20, 2, nulls);
+        gfx::SRV  nulls[3] = {};
+        c->psSetSRVs(10, 3, nulls);
+        c->vsSetSRVs(20, 2, nulls);
     }
 
     void drawShadow(Renderer& r, const mat4& lightVP, int cascade) {
@@ -273,10 +273,10 @@ struct DynamicRenderer {
         auto* c = gfx::ctx;
         Frustum fr;
         fr.fromMatrix(lightVP);
-        ID3D11Buffer* cbs[] = {cb.get()};
-        c->VSSetConstantBuffers(1, 1, cbs);
-        c->VSSetShaderResources(20, 1, &boneBuf.srv);
-        c->PSSetShader(nullptr, nullptr, 0);
+        gfx::Resource  cbs[] = {cb.get()};
+        c->vsSetCBs(1, 1, cbs);
+        c->vsSetSRVs(20, 1, &boneBuf.srv);
+        c->setPS(nullptr);
         for (size_t i = 0; i < items.size(); i++) {
             const DrawItem& d = items[i];
             if (!d.castShadow) continue;
@@ -286,26 +286,26 @@ struct DynamicRenderer {
             if (!fr.testAABB(b) || boneOffsets[i] < 0) continue;
             setObjectCB(r, d, boneOffsets[i]);
             UINT stride = d.model->skinned ? sizeof(VtxSkinned) : sizeof(VtxStatic), offset = 0;
-            c->IASetInputLayout(d.model->skinned ? vsSkinnedShadow.layout : vsRigidShadow.layout);
-            c->VSSetShader(d.model->skinned ? vsSkinnedShadow.vs : vsRigidShadow.vs, nullptr, 0);
-            c->IASetVertexBuffers(0, 1, &d.model->vb.buf, &stride, &offset);
-            c->IASetIndexBuffer(d.model->ib.buf, DXGI_FORMAT_R32_UINT, 0);
+            c->setInputLayout(d.model->skinned ? vsSkinnedShadow.layout : vsRigidShadow.layout);
+            c->setVS(d.model->skinned ? vsSkinnedShadow.vs : vsRigidShadow.vs);
+            c->setVertexBuffers(0, 1, &d.model->vb.buf, &stride, &offset);
+            c->setIndexBuffer(d.model->ib.buf, DXGI_FORMAT_R32_UINT, 0);
             u32 opaqueCount = d.model->indexCount - d.model->glassCount;   // windows let the sun into the cabin
             u32 cards = d.model->skinned ? d.model->indexCount - d.model->cardStart : 0;
             opaqueCount -= cards;
-            if (opaqueCount) c->DrawIndexed(opaqueCount, 0, 0);
+            if (opaqueCount) c->drawIndexed(opaqueCount, 0, 0);
             r.stats.drawCalls++;
             if (cards && cascade < 2) {
                 // strand cards: alpha-tested in the two near cascades (below a far texel they add nothing)
-                c->VSSetShader(vsCardShadow.vs, nullptr, 0);
-                c->PSSetShader(psCardShadow, nullptr, 0);
-                c->DrawIndexed(cards, d.model->cardStart, 0);
-                c->PSSetShader(nullptr, nullptr, 0);
+                c->setVS(vsCardShadow.vs);
+                c->setPS(psCardShadow);
+                c->drawIndexed(cards, d.model->cardStart, 0);
+                c->setPS(nullptr);
                 r.stats.drawCalls++;
             }
         }
-        ID3D11ShaderResourceView* nul = nullptr;
-        c->VSSetShaderResources(20, 1, &nul);
+        gfx::SRV  nul = nullptr;
+        c->vsSetSRVs(20, 1, &nul);
     }
 
     // See-through vehicle windows: forward pass into the lit HDR target (depth test, no depth write, premultiplied
@@ -325,31 +325,31 @@ struct DynamicRenderer {
         if (glassOrder.empty()) return;
         std::sort(glassOrder.begin(), glassOrder.end(), [](const std::pair<float, int>& a, const std::pair<float, int>& b) { return a.first > b.first; });
         auto* c = gfx::ctx;
-        ID3D11Buffer* cbs[] = {cb.get()};
-        c->VSSetConstantBuffers(1, 1, cbs);
-        c->PSSetConstantBuffers(1, 1, cbs);
-        ID3D11Buffer* scb[] = {r.shadowCB.get()};
-        c->PSSetConstantBuffers(3, 1, scb);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        c->IASetInputLayout(vsRigid.layout);
-        c->VSSetShader(vsRigid.vs, nullptr, 0);
-        c->PSSetShader(psGlass, nullptr, 0);
-        c->RSSetState(gfx::states.cullBack);
+        gfx::Resource  cbs[] = {cb.get()};
+        c->vsSetCBs(1, 1, cbs);
+        c->psSetCBs(1, 1, cbs);
+        gfx::Resource  scb[] = {r.shadowCB.get()};
+        c->psSetCBs(3, 1, scb);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
+        c->setInputLayout(vsRigid.layout);
+        c->setVS(vsRigid.vs);
+        c->setPS(psGlass);
+        c->setRasterState(gfx::states.cullBack);
         float bf[4] = {0, 0, 0, 0};
-        c->OMSetBlendState(gfx::states.premultiplied, bf, 0xffffffffu);
-        c->OMSetDepthStencilState(gfx::states.depthGreaterEqualNoWrite, 0);
+        c->setBlendState(gfx::states.premultiplied);
+        c->setDepthState(gfx::states.depthGreaterEqualNoWrite);
         for (auto& o : glassOrder) {
             const DrawItem& d = items[o.second];
             setObjectCB(r, d, 0);
             UINT stride = sizeof(VtxStatic), offset = 0;
-            c->IASetVertexBuffers(0, 1, &d.model->vb.buf, &stride, &offset);
-            c->IASetIndexBuffer(d.model->ib.buf, DXGI_FORMAT_R32_UINT, 0);
-            c->DrawIndexed(d.model->glassCount, d.model->indexCount - d.model->glassCount, 0);
+            c->setVertexBuffers(0, 1, &d.model->vb.buf, &stride, &offset);
+            c->setIndexBuffer(d.model->ib.buf, DXGI_FORMAT_R32_UINT, 0);
+            c->drawIndexed(d.model->glassCount, d.model->indexCount - d.model->glassCount, 0);
             r.stats.drawCalls++;
             r.stats.triangles += (int)d.model->glassCount / 3;
         }
-        c->OMSetBlendState(gfx::states.opaque, bf, 0xffffffffu);
-        c->OMSetDepthStencilState(gfx::states.depthGreaterWrite, 0);
+        c->setBlendState(gfx::states.opaque);
+        c->setDepthState(gfx::states.depthGreaterWrite);
     }
     std::vector<std::pair<float, int>> glassOrder;
 };

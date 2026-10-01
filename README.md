@@ -7,13 +7,13 @@ living city with traffic, pedestrians, police, wildlife and public transit.
 
 Everything is written from scratch in C++17 with no engine, no third-party code and no external assets. The world,
 buildings, characters, vehicles, animation, textures, sound effects, music, radio shows and voices are all generated
-by the game's own code at load time. The only dependencies are Windows itself (Win32, Direct3D 11, DXGI, XInput,
+by the game's own code at load time. The only dependencies are Windows itself (Win32, Direct3D 12, DXGI, XInput,
 WASAPI) and the compiler's standard library.
 
 ## Running
 
-- Windows 10/11, 64-bit, a Direct3D 11 GPU (target: 60 fps at 2560x1440 on the High preset with an RTX 4070-class
-  card), 16 GB RAM recommended.
+- Windows 10/11, 64-bit, a Direct3D 12 GPU and driver (target: 60 fps at 2560x1440 on the High preset with an RTX
+  4070-class card), 16 GB RAM recommended. Without Direct3D 12 the game says so in a message box and closes.
 - Double-click `NeonTide.exe`. There is nothing to install. The first launch compiles and caches the shaders
   (about half a minute), and every launch generates the world (a few seconds on a modern CPU).
 - Settings, saves, photos and benchmark results live in `%LOCALAPPDATA%\NeonTide\`
@@ -90,8 +90,12 @@ times to `%LOCALAPPDATA%\NeonTide\benchmark.txt`. Options: `--quality 0..3`, `--
 - `--missiontest ...`: automated campaign and side-activity runs.
 - `--shot x,y,z,yaw,pitch,hour,name`: free-camera screenshots. Related flags: `--viewer vehicles|characters`,
   `--weaponshowcase x,y,z`, `--wildlifetest`.
-- Native test harnesses live in `tests/` (vehicle physics, animation, audio, wildlife, transit), plus
-  `tools/worldcheck.cpp` for world data.
+- Graphics: `--d3ddebug` enables the Direct3D 12 debug layer (needs the Windows Graphics Tools feature) and logs
+  its messages; `--gfxselftest` runs the graphics-layer self-test (bindless, root constants, indirect draws and
+  dispatches, async compute, aliasing, mip generation) and exits with 0 when it passes; `--gputimers` and
+  `--synctimers` log per-pass timings.
+- Native test harnesses live in `tests/` (vehicle physics, animation, audio, wildlife, transit, graphics layer),
+  plus `tools/worldcheck.cpp` for world data.
 
 `PROGRESS.md` holds the architecture notes, the status of every system, the known issues, and the milestone
 scorecards against GTA 6.
