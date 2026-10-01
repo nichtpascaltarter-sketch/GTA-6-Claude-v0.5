@@ -264,6 +264,7 @@ public:
     gfx::DSV  depthRO = nullptr;  // read-only view: depth test while sampling depth (decals, particles)
     gfx::Texture gbAlbedo, gbNormal, gbMaterial, gbEmissive, gbVelocity;
     gfx::Texture hdr, hdrCopy, depthCopy;
+    gfx::Texture debugTex;  // --debugview values from the lighting pass (allocated while a debug view is on)
     gfx::Texture reactive;  // R8 mask written by particles / rain: TAA favors the current frame there (no smearing)
     gfx::Texture cloudsTex;  // cloud color+transmittance at quarter res (cleared to "no clouds" until the cloud pass runs)
 

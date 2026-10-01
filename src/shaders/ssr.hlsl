@@ -80,7 +80,9 @@ void csSSRTrace(uint3 id : SV_DispatchThreadID) {
             float3 hN = octDecode(tNormal[hp] * 2.0 - 1.0);
             float3 toHit = HP - P;
             float hitDist = length(toHit);
-            bool front = dot(hN, toHit) < 0.0;   // hit a surface facing the ray
+            // the surface must face the ray, and the ray must travel into it: a ray rising off wet ground can pass
+            // within the depth tolerance of ground further on, but it cannot hit an upward-facing surface
+            bool front = dot(hN, toHit) < 0.0 && dot(hN, R) < 0.05;
             if (abs(zr - zs) < thick && front && hitDist > 0.05) {
                 // previous-frame color at the hit point
                 float4 pc = mul(gPrevViewProj, float4(HP, 1));

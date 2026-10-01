@@ -78,6 +78,13 @@ struct ParticleSystem {
     vec3 pendingShift = vec3(0);
     u32 rngState = 0x12345678u;
     std::vector<TimedLight> lights;
+    // Where lit puffs (smoke, dust, steam, spray) are: a few merged spheres with the time they last until, so the
+    // particle lights can be the ones whose beams reach the puffs rather than only the brightest near the camera
+    struct PuffSample {
+        dvec3 pos;
+        float radius, until;
+    };
+    std::vector<PuffSample> puffs;
 
     gfx::Buffer pool, keys, spawnBuf, slotBuf, typeBuf;
     gfx::Texture atlas;
@@ -226,6 +233,32 @@ struct ParticleSystem {
         spawnSlots.push_back((u32)slot);
     }
 
+    // How much of a puff (direction and angular radius as seen from the light) lies in the light's beam: 1 for point
+    // lights and inside the cone (a headlight's low beam taken as ~40 degrees), fading over ~11 degrees outside it.
+    static float puffBeam(const LightGPU& L, vec3 dirToPuff, float angRadius) {
+        if (L.spotCos <= -1.f) return 1.f;
+        float cone = L.spotInner > 1.5f ? 0.7f : acosf(Clamp(L.spotCos, -1.f, 1.f));
+        float off = acosf(Clamp(dot(dirToPuff, L.dir), -1.f, 1.f)) - asinf(Min(angRadius, 1.f));
+        return Saturate(1.f - (off - cone) / 0.2f);
+    }
+
+    void notePuff(dvec3 pos, float radius, float until) {
+        for (PuffSample& p : puffs)
+            if (length2(rel(p.pos, pos)) < Max(p.radius * p.radius, 2.25f)) {   // merge into a sample nearby
+                p.radius = Max(p.radius, radius);
+                p.until = Max(p.until, until);
+                return;
+            }
+        if (puffs.size() < 32) {
+            puffs.push_back({pos, radius, until});
+            return;
+        }
+        size_t k = 0;   // full: replace the sample that ends first
+        for (size_t i = 1; i < puffs.size(); i++)
+            if (puffs[i].until < puffs[k].until) k = i;
+        puffs[k] = {pos, radius, until};
+    }
+
     void addTimedLight(dvec3 pos, vec3 color, float radius, float life, int kind) {
         if (kind == 1) {
             // fires refresh their light instead of stacking one per emission call
@@ -270,6 +303,10 @@ struct ParticleSystem {
                     float b = rnd(0.9f, 1.1f);
                     emit(s.type, s.pos + o, v, sz, sz * grow * rnd(0.8f, 1.2f), rnd(life0, life1), (u32)(rnd() * 7.99f) + (s.type == PT_DUST ? 40u : 0u),
                          s.tint * b, 1.f, 0.f, rnd(-0.4f, 0.4f));
+                }
+                if (n > 0) {
+                    vec3 drift = (d + (s.type == PT_DARK_SMOKE ? up * 0.8f : vec3(0))) * (0.5f * life1);
+                    notePuff(s.pos + dvec3(drift), s0 * sc * grow * 0.6f + length(drift) + spread * sc, (float)simTime + life1);
                 }
                 break;
             }
@@ -343,6 +380,7 @@ struct ParticleSystem {
                     float sz = rnd(0.3f, 0.5f) * sc;
                     emit(PT_WAKE_SPRAY, s.pos + rndSphere() * 0.3f * sc, v, sz, sz * 3.f, rnd(0.6f, 1.2f), 36 + (u32)(rnd() * 3.99f), s.tint, 1.f);
                 }
+                if (n > 0) notePuff(s.pos + dvec3(d * 0.6f + up * 0.6f), 1.5f * sc + length(d) * 0.6f, (float)simTime + 1.2f);
                 break;
             }
             case PT_MUZZLE_FLASH: {
@@ -509,15 +547,33 @@ struct ParticleSystem {
     void draw(Renderer& r, gfx::RTV  reactive, gfx::BlendState  blendWithReactive) {
         if (drawCount <= 0) return;
         auto* c = gfx::ctx;
-        // Local lights for particle lighting: the brightest nearby lights of this frame, three float4 each (position
-        // and radius, intensity and outer cone, direction and inner cone: puffs respect spot cones and headlight beams)
+        // Local lights for particle lighting, three float4 each (position and radius, intensity and outer cone,
+        // direction and inner cone: puffs respect spot cones and headlight beams). Chosen by what they put into the
+        // puffs alive now through their beams (a headlight pointing away from the smoke does nothing for it), plus a
+        // share for the brightest lights around the camera (rain splashes, sparks and debris fly everywhere).
         const std::vector<LightGPU>& lf = r.lightsFrame;
+        float now = (float)simTime;
+        for (size_t i = 0; i < puffs.size();) {
+            if (puffs[i].until < now) {
+                puffs[i] = puffs.back();
+                puffs.pop_back();
+            } else i++;
+        }
         std::vector<std::pair<float, int>> best;
         for (int i = 0; i < (int)lf.size(); i++) {
-            float d = length(lf[(size_t)i].pos);
-            if (d > 120.f) continue;
-            float w = (lf[(size_t)i].color.x + lf[(size_t)i].color.y + lf[(size_t)i].color.z) / Max(d * d, 4.f);
-            best.push_back({-w, i});
+            const LightGPU& L = lf[(size_t)i];
+            float lum = L.color.x + L.color.y + L.color.z;
+            float d = length(L.pos);
+            float w = d > 120.f ? 0.f : lum / Max(d * d, 4.f) * 0.25f;
+            for (const PuffSample& p : puffs) {
+                vec3 toP = rel(p.pos, r.camera.pos) - L.pos;   // light -> puff centre
+                float reach = L.radius + p.radius;
+                float d2 = length2(toP);
+                if (d2 > reach * reach) continue;
+                float dist = Max(sqrtf(d2), 1e-3f);
+                w += lum * puffBeam(L, toP / dist, p.radius / dist) / Max(d2, p.radius * p.radius + 1.f);
+            }
+            if (w > 0.f) best.push_back({-w, i});
         }
         std::sort(best.begin(), best.end());
         int nl = Min((int)best.size(), 10);

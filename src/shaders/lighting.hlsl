@@ -15,6 +15,10 @@ Texture2D<float> tHalfDepth : register(t8);     // half-res linear depth (bilate
 Texture2D<float2> tHalfNormal : register(t9);
 Texture2D<float4> tSSR : register(t10);         // screen-space reflections: rgb radiance (pre-exposed), a confidence
 RWTexture2D<float4> uHDR : register(u0);
+// --debugview output, shown by the tonemap pass in the debug region. The lit image keeps going to uHDR there too, so
+// TAA, exposure and the colour pyramid that screen-space reflections and GI sample stay physical (a debug view that
+// shows reflections would otherwise reflect itself from the previous frame).
+RWTexture2D<float4> uDebugView : register(u1);
 
 // Depth/normal-aware upsample of the half-resolution AO + indirect diffuse.
 float4 upsampleAOGI(uint2 pix, float z, float3 N) {
@@ -391,8 +395,7 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         float4 fv = froxelFog(uv, gFogParams0.w);
         float3 skyOut = min(sky * preExposure(), 60000.0) * fv.a + fv.rgb;
         int dbgS = (int)gRenderParams.w;
-        if (dbgS == 15 && uv.x >= gRenderParams.y) skyOut = fv.rgb * 4.0;
-        else if (dbgS == 16 && uv.x >= gRenderParams.y) skyOut = fv.a;
+        if (dbgS > 0 && uv.x >= gRenderParams.y) uDebugView[id.xy] = float4(dbgS == 15 ? fv.rgb * 4.0 : (dbgS == 16 ? fv.aaa : (float3)0), 1);
         uHDR[id.xy] = float4(sanitizeHDR(skyOut), 1);
         return;
     }
@@ -491,8 +494,7 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
             else o = (uv.x < 0.5 ? evalSH9From(gProbeSH, d) : evalSH9(d)) * preExposure() * 4.0;
         }
         if (any(isnan(o))) o = float3(1, 0, 1);
-        uHDR[id.xy] = float4(o, 1);
-        return;
+        uDebugView[id.xy] = float4(o, 1);
     }
     float4 ap = aerialPerspective(uv, dist);
     color = color * ap.a + ap.rgb;

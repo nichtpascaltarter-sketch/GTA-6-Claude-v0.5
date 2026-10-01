@@ -482,9 +482,13 @@ VSOut vsParticle(uint vid : SV_VertexID, uint inst : SV_InstanceID) {
     // level), through the spot cone or headlight beam. A puff is a volume: what it scatters is spread over its
     // radius (softened falloff), and of a lamp close to or inside it only the beam lights it (the cone's share of
     // all directions) - a smoking engine by a landing light glows, it does not turn into a white disc.
+    // Soot, dust and droplets scatter mostly forwards (Henyey-Greenstein, g = 0.45, relative to isotropic, capped at
+    // 4x): smoke and spray with a lamp shining through them from behind glow, lit from the camera's side they stay
+    // dim; a lamp inside the puff scatters every way.
     float3 local = 0;
     if (t.render.x < 0.5) {
         float rad2 = sq(size * 0.5);
+        float3 Vc = normalize(-pos);
         int nl = (int)gPLightCount.x;
         [loop] for (int li = 0; li < nl; li++) {
             float4 l0 = gPLights[li * 3], l1 = gPLights[li * 3 + 1], l2 = gPLights[li * 3 + 2];
@@ -499,10 +503,14 @@ VSOut vsParticle(uint vid : SV_VertexID, uint inst : SV_InstanceID) {
             float d2 = dot(d, d);
             if (d2 > L.radius * L.radius) continue;
             float win = saturate(1.0 - sq(d2 / (L.radius * L.radius)));
-            float ang = lightAngular(L, d * rsqrt(max(d2, 1e-6)));
+            float3 Ld = d * rsqrt(max(d2, 1e-6));
+            float ang = lightAngular(L, Ld);
             float coneShare = L.spotCos <= -1.0 ? 1.0 : (L.spotInner > 1.5 ? 0.03 : 0.5 - 0.5 * L.spotCos);
-            ang = lerp(ang, coneShare, saturate(rad2 / max(d2, 1e-4)));
-            local += L.color * (win * ang / max(d2 + 0.5 * rad2, 0.5));
+            float inside = saturate(rad2 / max(d2, 1e-4));
+            ang = lerp(ang, coneShare, inside);
+            float phase = min(0.7975 / pow(1.2025 - 0.9 * dot(-Ld, Vc), 1.5), 4.0);
+            phase = lerp(phase, 1.0, inside);
+            local += L.color * (win * ang * phase / max(d2 + 0.5 * rad2, 0.5));
         }
     }
     o.light = float4(amb + local / PI, frame);
