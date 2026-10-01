@@ -346,6 +346,13 @@ struct Sim {
     int watchCar = -1;
     float watchT0 = 0.f, watchT1 = 0.f;
     float bikeScale = 1.f;   // --bikes: more (or fewer) motorbikes and scooters in the mix
+    // --respond x y t0: at t0 the car nearest to 150 m from (x, y) answers a call there with the siren on (the police
+    // response driving: DM_EMERGENCY to the destination, as police.cpp sets it up); its progress every 2 s and the time
+    // it takes to get within 26 m (where officers get out for a suspect on foot), up to three calls one after another
+    vec2 respondGoal;
+    float respondAt = -1.f;
+    int respondCar = -1, respondCalls = 0;
+    double respondStart = 0.0, respondLog = 0.0;
 
     void init(World3* world, vec2 c, float r, int ncars, int npeds) {
         w = world;
@@ -538,7 +545,7 @@ struct Sim {
             b.host = i;
             b.driver = i;
             b.kind = AI::BK_CAR;
-            b.flags = AI::BF_AI | (d && d->dummy ? AI::BF_DUMMY : 0);
+            b.flags = AI::BF_AI | (d && d->dummy ? AI::BF_DUMMY : 0) | (i == respondCar ? AI::BF_SIREN | AI::BF_POLICE : 0);
             tc.bodies.push_back(b);
         }
         for (int i = 0; i < (int)peds.size(); i++) {
@@ -563,8 +570,60 @@ struct Sim {
         clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts);
         return ts.tv_sec * 1000.0 + ts.tv_nsec * 1e-6;
     }
+    void respondTick() {
+        if (respondAt < 0.f || time < respondAt) return;
+        if (respondCar < 0) {
+            if (respondCalls >= 3) return;
+            float best = 1e9f;
+            for (int i = 0; i < (int)cars.size(); i++) {
+                AI::Driver* d = tc.get(i);
+                if (!cars[i].used || !d || d->dummy || cars[i].info.bike) continue;
+                float e = fabsf(length(cars[i].s.body.pos.toVec3().xy() - respondGoal) - 150.f);
+                if (e < best) {
+                    best = e;
+                    respondCar = i;
+                }
+            }
+            if (respondCar < 0) return;
+            AI::Driver* d = tc.get(respondCar);
+            d->mode = AI::DM_EMERGENCY;
+            d->pers.speedFactor = 1.2f;
+            d->pers.accel = Max(d->pers.accel, 3.6f);
+            d->pers.latAcc = Max(d->pers.latAcc, 4.2f);
+            tc.setDestination(*d, respondGoal);
+            respondStart = time;
+            respondLog = time;
+            respondCalls++;
+            LOG("RESPOND call %d: car %d answers from %.0f m (%zu edges planned)", respondCalls, respondCar,
+                length(cars[respondCar].s.body.pos.toVec3().xy() - respondGoal), d->destEdges.size());
+            return;
+        }
+        SimCar& c = cars[respondCar];
+        AI::Driver* d = tc.get(respondCar);
+        if (!c.used || !d) {
+            respondCar = -1;
+            return;
+        }
+        if (d->mode != AI::DM_EMERGENCY) d->mode = AI::DM_EMERGENCY;
+        if (!d->hasDest || length(d->dest - respondGoal) > 40.f || d->destRecalc <= 0.f) tc.setDestination(*d, respondGoal);
+        float dist = length(c.s.body.pos.toVec3().xy() - respondGoal);
+        if (time - respondLog >= 2.0) {
+            respondLog = time;
+            const AI::LaneGraph& G = w->lg;
+            LOG("RESPOND t=%.0f car %d: %.0f m to go, %.1f m/s (target %.1f), stop %.1f obst %.1f, stuck %.1f, %s %d", time - respondStart, respondCar, dist, c.s.speed(),
+                d->vTarget, d->stopDist, d->obstDist, d->stuckTime, G.isLane(d->path) ? "lane" : "conn", G.isLane(d->path) ? d->path : d->path - (int)G.lanes.size());
+        }
+        if (dist < 26.f || time - respondStart > 150.0) {
+            LOG("RESPOND call %d: %s after %.1f s", respondCalls, dist < 26.f ? "there" : "NOT THERE", time - respondStart);
+            d->mode = AI::DM_NORMAL;
+            d->hasDest = false;
+            respondCar = -1;
+            respondAt = (float)time + 5.f;
+        }
+    }
     void aiTick(float dt) {
         double c0 = cpuMs();
+        respondTick();
         fillBodies();
         tc.beginTick(time);
         pc.time = time;
@@ -841,7 +900,7 @@ struct Sim {
             }
             float dist = length(c.s.body.pos.toVec3().xy() - center);
             bool lost = d && (d->lostTime > 5.f || d->flipTime > 6.f);
-            if (dist > radius + 80.f || lost || c.s.body.pos.z < -20.0) {
+            if ((dist > radius + 80.f && i != respondCar) || lost || c.s.body.pos.z < -20.0) {
                 respawns++;
                 spawnCar(i, false);
             }
@@ -1578,6 +1637,11 @@ int main(int argc, char** argv) {
                 else if (!strcmp(argv[k], "-v")) verbose = true;
                 else if (!strcmp(argv[k], "--snaps") && k + 1 < argc) snapLimit = atoi(argv[++k]);
                 else if (!strcmp(argv[k], "--bikes") && k + 1 < argc) sim.bikeScale = (float)atof(argv[++k]);
+                else if (!strcmp(argv[k], "--respond") && k + 3 < argc) {
+                    sim.respondGoal.x = (float)atof(argv[++k]);
+                    sim.respondGoal.y = (float)atof(argv[++k]);
+                    sim.respondAt = (float)atof(argv[++k]);
+                }
                 else if (!strcmp(argv[k], "--watch") && k + 3 < argc) {
                     sim.watchCar = atoi(argv[++k]);
                     sim.watchT0 = (float)atof(argv[++k]);

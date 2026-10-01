@@ -428,6 +428,7 @@ public:
     double time = 0.0;
     u32 frame = 0;
     TrafficStats stats;
+    int sirens = 0;                   // cars with the siren going this tick (crossings hold for them: gate)
     // per-node registry (rebuilt every tick): drivers in the box and approaching
     struct NodeEntry {
         int driver;

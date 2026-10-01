@@ -485,7 +485,7 @@ void testDirections() {
     const float dt = 1.f / 60.f;
     const vec2 dirs[5] = {vec2(1, 0), vec2(-1, 0), vec2(0, -1), vec2(0.7071f, 0.7071f), vec2(-0.7071f, -0.7071f)};
     const char* names[5] = {"right", "left", "back", "fwd-right", "back-left"};
-    float worst = 0.f;
+    float worst = 0.f, shins = 1e9f;   // shins: closest approach of the two shins (knee -> ankle), legs never through each other
     std::string line;
     for (int di = 0; di < 5; di++) {
         CharacterDesc d = randomCharacter(77u + (u32)di, 0);
@@ -511,6 +511,10 @@ void testDirections() {
             an.update(in, dt);
             mat4 m[B_COUNT];
             computeMatrices(sk, an.pose, m, nullptr);
+            if (t > 2.5f) {
+                vec3 kl = m[B_CALF_L].c[3].xyz(), al = m[B_FOOT_L].c[3].xyz(), kr = m[B_CALF_R].c[3].xyz(), ar = m[B_FOOT_R].c[3].xyz();
+                for (int k = 0; k <= 6; k++) shins = Min(shins, segDist(lerp(kl, al, k / 6.f), kr, ar));
+            }
             for (int s = 0; s < 2; s++) {
                 FootProbe fpm = footPoints(sk, m, s), w;
                 w.heel = root + fpm.heel;
@@ -530,8 +534,9 @@ void testDirections() {
         worst = Max(worst, mean);
         line += StrFormat(" %s %.3f", names[di], mean);
     }
-    printf("directions at 1.2 m/s, planted-foot skate mean (m/s):%s\n", line.c_str());
+    printf("directions at 1.2 m/s, planted-foot skate mean (m/s):%s; shins at least %.3f m apart\n", line.c_str(), shins);
     CHECK(worst < 0.03f, "feet slide walking in some direction (%.3f m/s)", worst);
+    CHECK(shins > 0.08f, "the legs pass through each other walking in some direction (shins %.3f m apart)", shins);
 }
 
 // Stopping: within 1.5 s both feet are planted (no skating) and brought together into the standing stance; turning on
@@ -925,6 +930,352 @@ void testGreetings() {
 // Gaze: the eyes jump to a new target at once and the head follows with a lag, then the eyes stay on it as the head
 // arrives; neck and eye limits hold for a target far behind; people glance about on their own (the curious more),
 // and big gaze shifts often come with a blink.
+// Impacts and injuries (AnimInput::hitDir / hitStrength / hitBone, legHurt, wounded, clutch, fallDir / fallBrace,
+// stance 24): flinches go along the push and recover, a belly hit folds the body over, an arm hit flings the arm, a
+// leg hit buckles the knee; a heavy hit staggers the body a few catching steps along the push (the root moved by
+// staggerVelocity()) with the planted feet holding; a limp shortens the stance on the hurt leg; a wounded body
+// hunches; a hand holds each wound on the body's own skin standing, walking, crouched and lying hurt; a falling body
+// braces with its arms towards the ground.
+struct ImpactRig {
+    CharacterDesc d;
+    Skeleton sk;
+    Animator an;
+    vec3 root = vec3(0);
+    void init(u32 seed, int gender) {
+        d = randomCharacter(seed, gender);
+        buildSkeleton(d, sk);
+        an.init(&sk, 7u);
+        an.setCharacter(d);
+    }
+    void step(AnimInput& in, float dt) {
+        an.update(in, dt);
+        root = root + vec3(in.localMoveDir.x, in.localMoveDir.y, 0.f) * (in.speed * dt);
+    }
+    vec3 joint(int b) {
+        mat4 m[B_COUNT];
+        computeMatrices(sk, an.pose, m, nullptr);
+        return m[b].c[3].xyz();
+    }
+    vec3 palm(int s) {
+        quat q;
+        vec3 p;
+        detail::boneModel(sk, an.pose, s ? B_HAND_R : B_HAND_L, q, p);
+        return p + rotate(q, sk.bindLocalPos[s ? B_FINGERS_R : B_FINGERS_L]) * 0.45f;
+    }
+    // where a hand should hold a wound now (palm centre just off the skin)
+    vec3 woundTarget(int w, int hand) {
+        quat q;
+        vec3 p;
+        detail::boneModel(sk, an.pose, an.skinWB[w], q, p);
+        return p + rotate(q, an.skinW[w]) + rotate(q, detail::woundNormal(w)) * (sk.boneRadius[hand ? B_HAND_R : B_HAND_L] * 0.75f + 0.004f);
+    }
+};
+
+void testImpacts() {
+    const float dt = 1.f / 60.f;
+    std::string line;
+    // ---- flinches standing: chest displacement against an unhit twin at the peak and after recovery
+    struct Case { vec3 dir; int bone; float k; const char* name; };
+    const Case cases[] = {
+        {vec3(0, -1, 0), B_CHEST, 0.3f, "front light"}, {vec3(0, 1, 0), B_CHEST, 0.3f, "back light"},
+        {vec3(1, 0, 0), B_CHEST, 0.45f, "left"},        {vec3(-1, 0, 0), B_CHEST, 0.45f, "right"},
+        {vec3(0, -1, 0), B_SPINE1, 0.45f, "belly"},      {vec3(0, -1, 0), B_HEAD, 0.45f, "head"},
+    };
+    float minAlong = 1e9f, maxRest = 0.f, bellyFold = 0.f, headVsChest = 0.f;
+    for (const Case& c : cases) {
+        ImpactRig a, b;
+        a.init(91u, 0);
+        b.init(91u, 0);
+        AnimInput in;
+        in.footProbes = true;
+        for (int f = 0; f < 90; f++) {
+            a.step(in, dt);
+            b.step(in, dt);
+        }
+        AnimInput hit = in;
+        hit.hitDir = c.dir;
+        hit.hitStrength = c.k;
+        hit.hitBone = c.bone;
+        a.step(hit, dt);
+        b.step(in, dt);
+        float peak = 0.f, peakHead = 0.f;
+        vec3 at(0);
+        for (int f = 0; f < 70; f++) {
+            a.step(in, dt);
+            b.step(in, dt);
+            vec3 dc = (a.joint(B_CHEST) - a.joint(B_PELVIS)) - (b.joint(B_CHEST) - b.joint(B_PELVIS));
+            vec3 dh = (a.joint(B_HEAD) - a.joint(B_CHEST)) - (b.joint(B_HEAD) - b.joint(B_CHEST));
+            if (length(dc) > peak) peak = length(dc), at = dc;
+            peakHead = Max(peakHead, length(dh));
+        }
+        if (c.bone == B_CHEST) minAlong = Min(minAlong, dot(at, c.dir) / Max(peak, 1e-6f));
+        if (c.bone == B_SPINE1) bellyFold = dot(at, -c.dir);
+        if (c.bone == B_HEAD) headVsChest = peakHead / Max(peak, 1e-4f);
+        for (int f = 0; f < 50; f++) {
+            a.step(in, dt);
+            b.step(in, dt);
+        }
+        vec3 rest = (a.joint(B_CHEST) - a.joint(B_PELVIS)) - (b.joint(B_CHEST) - b.joint(B_PELVIS));
+        maxRest = Max(maxRest, length(rest));
+        line += StrFormat(" %s %.1f cm", c.name, peak * 100.f);
+    }
+    printf("impacts: chest flinch peaks:%s; along the push >= %.2f, belly folds forwards %.3f m, head / chest %.1f, left after 2 s %.4f m\n",
+           line.c_str(), minAlong, bellyFold, headVsChest, maxRest);
+    CHECK(minAlong > 0.6f, "a flinch does not go along the push (%.2f)", minAlong);
+    CHECK(bellyFold > 0.01f, "a belly hit does not fold the body over the wound (%.3f m)", bellyFold);
+    CHECK(headVsChest > 0.8f, "a head hit moves the head less than the trunk (%.2f)", headVsChest);
+    CHECK(maxRest < 0.01f, "a flinch does not recover (%.4f m left)", maxRest);
+
+    // ---- arm and leg hits standing; a light flinch while walking keeps the feet planted
+    {
+        ImpactRig a, b;
+        a.init(92u, 1);
+        b.init(92u, 1);
+        AnimInput in;
+        in.footProbes = true;
+        for (int f = 0; f < 90; f++) a.step(in, dt), b.step(in, dt);
+        AnimInput hit = in;
+        hit.hitDir = vec3(0, -1, 0);
+        hit.hitStrength = 0.45f;
+        hit.hitBone = B_FOREARM_R;
+        a.step(hit, dt);
+        b.step(in, dt);
+        float handMove = 0.f;
+        for (int f = 0; f < 40; f++) {
+            a.step(in, dt);
+            b.step(in, dt);
+            handMove = Max(handMove, dot(a.joint(B_HAND_R) - b.joint(B_HAND_R), vec3(0, -1, 0)));
+        }
+        for (int f = 0; f < 60; f++) a.step(in, dt), b.step(in, dt);
+        hit.hitBone = B_THIGH_L;
+        a.step(hit, dt);
+        b.step(in, dt);
+        float drop = 0.f, kneeL = 0.f;
+        for (int f = 0; f < 40; f++) {
+            a.step(in, dt);
+            b.step(in, dt);
+            drop = Max(drop, b.joint(B_PELVIS).z - a.joint(B_PELVIS).z);
+            kneeL = Max(kneeL, length(a.joint(B_CALF_L) - b.joint(B_CALF_L)));
+        }
+        printf("impacts: arm hit flings the hand %.3f m along the push; leg hit drops the pelvis %.3f m, moves the knee %.3f m\n", handMove, drop, kneeL);
+        CHECK(handMove > 0.05f, "an arm hit does not fling the arm (%.3f m)", handMove);
+        CHECK(drop > 0.012f, "a leg hit does not buckle the knee (pelvis %.3f m)", drop);
+    }
+    {
+        // walking: light hits every 0.7 s from the side; the planted feet keep still
+        ImpactRig a;
+        a.init(93u, 0);
+        AnimInput in;
+        in.footProbes = true;
+        in.speed = 1.4f;
+        double sum = 0.0;
+        int n = 0;
+        vec3 prev[2];
+        bool was[2] = {false, false};
+        for (int f = 0; f < 360; f++) {
+            AnimInput step = in;
+            if (f > 60 && f % 42 == 0) {
+                step.hitDir = vec3(f % 84 ? 1.f : -1.f, -0.3f, 0.f);
+                step.hitStrength = 0.4f;
+                step.hitBone = B_CHEST;
+            }
+            a.step(step, dt);
+            mat4 m[B_COUNT];
+            computeMatrices(a.sk, a.an.pose, m, nullptr);
+            for (int s = 0; s < 2; s++) {
+                FootProbe fp = footPoints(a.sk, m, s);
+                vec3 w = a.root + (fp.heel.z < fp.ball.z ? fp.heel : fp.ball);
+                if (f > 90 && a.an.planted[s] && was[s]) {
+                    sum += length(vec2(w.x - prev[s].x, w.y - prev[s].y)) / dt;
+                    n++;
+                }
+                prev[s] = w;
+                was[s] = a.an.planted[s];
+            }
+        }
+        float skate = n ? (float)(sum / n) : 0.f;
+        printf("impacts: walking through light hits, planted feet %.4f m/s\n", skate);
+        CHECK(skate < 0.02f, "the feet slide under flinches while walking (%.4f m/s)", skate);
+    }
+
+    // ---- stagger: a heavy hit from the front while standing; the root moves by staggerVelocity()
+    {
+        float worstDist = 1e9f, worstSkate = 0.f, worstEnd = 0.f;
+        int minSteps = 100;
+        for (int t = 0; t < 4; t++) {
+            ImpactRig a;
+            a.init(94u + t, t & 1);
+            AnimInput in;
+            in.footProbes = true;
+            for (int f = 0; f < 90; f++) a.step(in, dt);
+            const vec3 dirs[4] = {vec3(0, -1, 0), vec3(0, 1, 0), vec3(1, 0, 0), vec3(-0.7f, -0.7f, 0)};
+            AnimInput hit = in;
+            hit.hitDir = dirs[t];
+            hit.hitStrength = 1.f;
+            hit.hitBone = B_CHEST;
+            vec3 start = a.root;
+            int steps = 0;
+            double sum = 0.0;
+            int n = 0;
+            vec3 prev[2];
+            bool was[2] = {false, false};
+            float endT = -1.f;
+            for (int f = 0; f < 180; f++) {
+                AnimInput st = f == 0 ? hit : in;
+                // the game: the ped moves with the stagger's velocity
+                vec3 v = a.an.staggerVelocity();
+                st.speed = length(v);
+                st.localMoveDir = st.speed > 1e-3f ? vec2(v.x, v.y) / st.speed : vec2(0, 1);
+                a.step(st, dt);
+                steps += __builtin_popcount(a.an.footEvents);
+                mat4 m[B_COUNT];
+                computeMatrices(a.sk, a.an.pose, m, nullptr);
+                for (int s = 0; s < 2; s++) {
+                    FootProbe fp = footPoints(a.sk, m, s);
+                    vec3 w = a.root + (fp.heel.z < fp.ball.z ? fp.heel : fp.ball);
+                    if (a.an.planted[s] && was[s]) {
+                        sum += length(vec2(w.x - prev[s].x, w.y - prev[s].y)) / dt;
+                        n++;
+                    }
+                    prev[s] = w;
+                    was[s] = a.an.planted[s];
+                }
+                if (endT < 0.f && f > 5 && !a.an.staggering()) endT = f * dt;
+            }
+            float dist = dot(a.root - start, normalize(dirs[t]));
+            worstDist = Min(worstDist, dist);
+            worstSkate = Max(worstSkate, n ? (float)(sum / n) : 0.f);
+            minSteps = Min(minSteps, steps);
+            worstEnd = Max(worstEnd, endT < 0.f ? 9.f : endT);
+        }
+        printf("impacts: stagger (4 directions) carries the body at least %.2f m along the push in at least %d steps, steady after %.2f s, "
+               "planted feet %.4f m/s\n", worstDist, minSteps, worstEnd, worstSkate);
+        CHECK(worstDist > 0.25f, "a heavy hit hardly moves the body (%.2f m)", worstDist);
+        CHECK(minSteps >= 2, "the stagger takes too few catching steps (%d)", minSteps);
+        CHECK(worstEnd < 2.f, "the stagger does not settle (%.2f s)", worstEnd);
+        CHECK(worstSkate < 0.05f, "the feet slide while staggering (%.4f m/s)", worstSkate);
+    }
+
+    // ---- limp: the stance on the hurt (right) leg is shorter than on the good one
+    {
+        ImpactRig a;
+        a.init(95u, 0);
+        AnimInput in;
+        in.footProbes = true;
+        in.speed = 1.0f;
+        in.legHurt[1] = 1.f;
+        int planted[2] = {0, 0};
+        double sum = 0.0;
+        int n = 0;
+        vec3 prev[2];
+        bool was[2] = {false, false};
+        for (int f = 0; f < 600; f++) {
+            a.step(in, dt);
+            mat4 m[B_COUNT];
+            computeMatrices(a.sk, a.an.pose, m, nullptr);
+            for (int s = 0; s < 2; s++) {
+                if (f > 240 && a.an.planted[s]) planted[s]++;
+                FootProbe fp = footPoints(a.sk, m, s);
+                vec3 w = a.root + (fp.heel.z < fp.ball.z ? fp.heel : fp.ball);
+                if (f > 240 && a.an.planted[s] && was[s]) {
+                    sum += length(vec2(w.x - prev[s].x, w.y - prev[s].y)) / dt;
+                    n++;
+                }
+                prev[s] = w;
+                was[s] = a.an.planted[s];
+            }
+        }
+        float ratio = planted[1] / (float)Max(planted[0], 1), skate = n ? (float)(sum / n) : 0.f;
+        printf("impacts: limp (right leg) stance hurt / good %.2f, planted feet %.4f m/s\n", ratio, skate);
+        CHECK(ratio < 0.92f, "the limp does not shorten the stance on the hurt leg (%.2f)", ratio);
+        CHECK(skate < 0.02f, "the feet slide while limping (%.4f m/s)", skate);
+    }
+
+    // ---- wounded: hunched (the head lower, the chest further forward)
+    {
+        ImpactRig a, b;
+        a.init(96u, 1);
+        b.init(96u, 1);
+        AnimInput in, hurt;
+        in.footProbes = hurt.footProbes = true;
+        hurt.wounded = 1.f;
+        for (int f = 0; f < 240; f++) a.step(hurt, dt), b.step(in, dt);
+        float down = b.joint(B_HEAD).z - a.joint(B_HEAD).z, fwd = a.joint(B_CHEST).y - b.joint(B_CHEST).y;
+        printf("impacts: wounded stance: head %.3f m lower, chest %.3f m further forward\n", down, fwd);
+        CHECK(down > 0.03f && fwd > 0.02f, "a wounded body does not hunch (head %.3f m, chest %.3f m)", down, fwd);
+    }
+
+    // ---- clutching each wound: standing, walking, crouched, lying hurt
+    {
+        float worst = 0.f;
+        std::string bad;
+        const char* wn[WOUND_COUNT] = {"", "belly", "chest", "shoulder L", "shoulder R", "thigh L", "thigh R"};
+        for (int mode = 0; mode < 4; mode++)
+            for (int w = WOUND_BELLY; w < WOUND_COUNT; w++) {
+                if (mode == 3 && (w == WOUND_THIGH_L || w == WOUND_THIGH_R)) continue;   // lying: belly, chest, shoulders
+                ImpactRig a;
+                a.init(97u + (u32)w, w & 1);
+                AnimInput in;
+                in.footProbes = true;
+                in.clutch = w;
+                in.speed = mode == 1 ? 1.2f : 0.f;
+                in.crouch = mode == 2;
+                in.stance = mode == 3 ? 24 : 0;
+                float far = 0.f;
+                int hand = w == WOUND_SHOULDER_L ? 1 : (w == WOUND_SHOULDER_R ? 0 : (w == WOUND_THIGH_L ? 0 : 1));
+                for (int f = 0; f < 150; f++) {
+                    a.step(in, dt);
+                    if (f > 90) far = Max(far, length(a.palm(hand) - a.woundTarget(w, hand)));
+                }
+                if (far > worst) worst = far, bad = StrFormat("%s %s", wn[w], mode == 0 ? "standing" : (mode == 1 ? "walking" : (mode == 2 ? "crouched" : "lying")));
+            }
+        printf("impacts: a hand on the wound (each wound standing / walking / crouched / lying): palm at most %.3f m off (%s)\n", worst, bad.c_str());
+        CHECK(worst < 0.035f, "a clutching hand misses the wound (%.3f m, %s)", worst, bad.c_str());
+    }
+
+    // ---- going over: the arms brace towards the ground in the fall's direction
+    {
+        const vec3 dirs[4] = {vec3(0, 1, 0), vec3(0, -1, 0), vec3(-1, 0, 0), vec3(1, 0, 0)};
+        float worst = 1e9f, bw = 1.f;
+        for (int t = 0; t < 4; t++) {
+            ImpactRig a;
+            a.init(98u, t & 1);
+            AnimInput in;
+            in.footProbes = true;
+            for (int f = 0; f < 60; f++) a.step(in, dt);
+            in.fallDir = dirs[t];
+            in.fallBrace = 1.f;
+            for (int f = 0; f < 12; f++) a.step(in, dt);
+            bw = Min(bw, a.an.braceWeight());
+            vec3 c = a.joint(B_SPINE2);
+            // the hand(s) reaching furthest along the fall
+            float reach = Max(dot(a.joint(B_HAND_L) - c, dirs[t]), dot(a.joint(B_HAND_R) - c, dirs[t]));
+            worst = Min(worst, reach);
+        }
+        printf("impacts: bracing to fall (4 directions): after 0.2 s weight %.2f, a hand at least %.2f m out along the fall\n", bw, worst);
+        CHECK(bw > 0.9f, "the brace is too slow (%.2f after 0.2 s)", bw);
+        CHECK(worst > 0.25f, "the arms do not reach out to break the fall (%.2f m)", worst);
+    }
+
+    // ---- lying hurt (stance 24): on the ground, nothing through it
+    {
+        ImpactRig a;
+        a.init(99u, 1);
+        AnimInput in;
+        in.stance = 24;
+        float low = 1e9f, high = 0.f;
+        for (int f = 0; f < 300; f++) {
+            a.step(in, dt);
+            if (f < 120) continue;
+            mat4 m[B_COUNT];
+            computeMatrices(a.sk, a.an.pose, m, nullptr);
+            for (int b = 0; b < B_FIRST_DERIVED; b++) low = Min(low, m[b].c[3].z - a.sk.boneRadius[b] * 0.5f), high = Max(high, m[b].c[3].z);
+        }
+        printf("impacts: lying hurt: lowest joint surface %.3f m, highest joint %.2f m\n", low, high);
+        CHECK(low > -0.03f && high < 0.75f, "lying hurt is not on the ground (lowest %.3f, highest %.2f)", low, high);
+    }
+}
+
 void testGaze() {
     const float dt = 1.f / 60.f;
     CharacterDesc d = randomCharacter(2024u, 0);
@@ -1727,6 +2078,7 @@ int main(int argc, char** argv) {
     run("Standing", testStanding);
     run("Greetings", testGreetings);
     run("Gaze", testGaze);
+    run("Impacts", testImpacts);
     run("Poses", testPoses);
     run("Animator", testAnimator);
     run("Driving", testDriving);

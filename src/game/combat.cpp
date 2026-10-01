@@ -118,6 +118,19 @@ bool rayObb(vec3 o, vec3 d, vec3 c, const mat3& R, vec3 he, float& t, vec3& nrm)
     return true;
 }
 
+// Where a free hand holds a wound at this bone (Anim::Wound; -1, the default, is the chest); none for the head
+int woundOfBone(int bone) {
+    switch (bone) {
+        case Anim::B_PELVIS: case Anim::B_SPINE1: case Anim::B_SPINE2: return Anim::WOUND_BELLY;
+        case Anim::B_CLAVICLE_L: case Anim::B_UPPERARM_L: case Anim::B_FOREARM_L: case Anim::B_HAND_L: return Anim::WOUND_SHOULDER_L;
+        case Anim::B_CLAVICLE_R: case Anim::B_UPPERARM_R: case Anim::B_FOREARM_R: case Anim::B_HAND_R: return Anim::WOUND_SHOULDER_R;
+        case Anim::B_THIGH_L: case Anim::B_CALF_L: case Anim::B_FOOT_L: case Anim::B_TOE_L: return Anim::WOUND_THIGH_L;
+        case Anim::B_THIGH_R: case Anim::B_CALF_R: case Anim::B_FOOT_R: case Anim::B_TOE_R: return Anim::WOUND_THIGH_R;
+        case Anim::B_HEAD: case Anim::B_NECK: case Anim::B_JAW: return Anim::WOUND_NONE;
+        default: return Anim::WOUND_CHEST;
+    }
+}
+
 }  // namespace combat_detail
 
 using namespace combat_detail;
@@ -374,8 +387,10 @@ void GameWorld::fireWeapon(int pid, dvec3 muzzle, vec3 dir) {
                     if (bigHit && !vp.isPlayer && hashToFloat(hash32(vp.uid + (u32)(time * 977.0))) < (p.weapon == WPN_SHOTGUN ? 0.75f : 0.5f))
                         knockDown(victim, d * (p.weapon == WPN_SHOTGUN ? 420.f : 300.f) + vec3(0.f, 0.f, 60.f));
                     // leg wounds make the target limp for a while
-                    else if (h.bone == Anim::B_THIGH_L || h.bone == Anim::B_THIGH_R || h.bone == Anim::B_CALF_L || h.bone == Anim::B_CALF_R)
+                    else if (h.bone == Anim::B_THIGH_L || h.bone == Anim::B_THIGH_R || h.bone == Anim::B_CALF_L || h.bone == Anim::B_CALF_R) {
                         vp.legInjury = Max(vp.legInjury, vp.isPlayer ? 8.f : 25.f);
+                        vp.legInjurySide = (h.bone == Anim::B_THIGH_R || h.bone == Anim::B_CALF_R) ? 1 : 0;
+                    }
                 }
 #ifdef HAVE_AUDIO
                 Audio::play(Audio::SFX_IMPACT_FLESH, h.pos.toVec3(), 0.8f);
@@ -527,10 +542,20 @@ void GameWorld::damagePed(int pid, float amount, DamageType type, int attacker, 
         killPed(pid, attacker, dir, type);
         return;
     }
-    // reactions
-    if (p.state == PS_ONFOOT && type != DMG_FALL && p.hitReactTimer <= 0.f) {
-        vec3 f(-sinf(p.yaw), cosf(p.yaw), 0);
-        p.pendingAction = dot(f, dir) < 0.f ? Anim::CLIP_HIT_FRONT : Anim::CLIP_HIT_BACK;
+    // reactions: a flinch layered over whatever the legs do (the animator's hitDir / hitStrength / hitBone, set for the
+    // one update of the impact); from strength 0.5 the body is thrown off balance and catches itself with a few steps
+    // (movePed follows Animator::staggerVelocity). A hurt NPC keeps a free hand on the wound.
+    if (p.state == PS_ONFOOT && type != DMG_FALL && type != DMG_DROWN) {
+        vec2 fw(-sinf(p.yaw), cosf(p.yaw)), rt(cosf(p.yaw), sinf(p.yaw));
+        vec2 d2(dir.x, dir.y);
+        if (length2(d2) < 1e-6f) d2 = -fw;   // no direction given: pushed back
+        float s = Saturate(a / (type == DMG_BULLET ? 55.f : 40.f));
+        if (s > p.animIn.hitStrength) {
+            p.animIn.hitDir = vec3(dot(d2, rt), dot(d2, fw), 0.f);
+            p.animIn.hitStrength = s;
+            p.animIn.hitBone = bone;
+        }
+        if (!p.isPlayer && (s >= 0.35f || p.health < p.maxHealth * 0.75f)) p.animIn.clutch = combat_detail::woundOfBone(bone);
         p.hitReactTimer = 0.6f;
     }
 #ifdef HAVE_AUDIO

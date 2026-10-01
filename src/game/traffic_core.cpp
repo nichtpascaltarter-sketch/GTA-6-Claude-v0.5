@@ -297,6 +297,8 @@ void TrafficCore::beginTick(double t) {
     time = t;
     frame++;
     hash.build(bodies);
+    sirens = 0;
+    for (const Body& b : bodies) sirens += (b.flags & BF_SIREN) && b.kind == BK_CAR;
     for (int n : touchedNodes) nodeReg[n].clear();
     touchedNodes.clear();
     bodyOfDriver.assign(drivers.size(), -1);
@@ -989,6 +991,30 @@ float TrafficCore::gate(Driver& d, int conn, float distToEntry, float v, bool in
         return d.obstDist < needed && d.obstSpeed < 1.5f && d.obstDist > distToEntry + 1.f;
     };
     float impatience = d.waitTime > 30.f ? 1.f : 0.f;
+    // a siren at this crossing - waiting at its line, nosing through on red, already in the box - that is not behind us
+    // in our own lane (there we are in its way: on through and out of it): hold at the line until it is through, as
+    // everyone does when they hear one (its own gate takes red as a yield)
+    if (!emergency && sirens > 0 && lineDist > 0.f) {
+        const int self = driverBody(d.vehicle);
+        vec2 myPos = self >= 0 ? bodies[self].pos : G.pathPos(d.path, d.u).xy();
+        vec2 myDir = self >= 0 ? bodies[self].fwd : G.pathTangent(d.path, d.u);
+        vec2 mid = G.pathPos(G.connPath(conn), c.length * 0.5f).xy();
+        const float r = 38.f;
+        bool siren = false;
+        hash.query(bodies, mid - vec2(r), mid + vec2(r), [&](int bi) {
+            if (siren || bi == self) return;
+            const Body& b = bodies[bi];
+            if (!(b.flags & BF_SIREN) || b.kind != BK_CAR) return;
+            vec2 rel = mid - b.pos;
+            float dist = length(rel);
+            if (dist > r) return;
+            bool inBox = dist < c.length * 0.5f + 4.f;
+            if (!inBox && dot(rel, b.fwd) <= 0.f) return;                                // (driving away from it)
+            if (dot(b.fwd, myDir) > 0.7f && dot(b.pos - myPos, myDir) < 0.f) return;    // (behind us, our way)
+            siren = true;
+        });
+        if (siren) return Max(lineDist, 0.f);
+    }
     switch (N.control) {
         case 2: {
             SignalState sig = G.movementSignal(c.node, c.approach, c.turn, time);

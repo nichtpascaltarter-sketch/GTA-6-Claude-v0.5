@@ -1901,7 +1901,17 @@ public:
     long long reward() const override { return 0; }
 
     vec2 nearestHospital(vec2 p) {
+        // the emergency doors of the hospitals as the world built them (the ambulance bays are ~8 m from the door);
+        // the fixed points only if the world has none
         vec2 best = kHospitals[0];
+        float bd = 1e30f;
+        if (World::gSites && World::gSites->generated)
+            for (const World::NamedPlace& h : World::gSites->places)
+                if (h.kind == World::PK_HOSPITAL && ::length(h.door - p) < bd) {
+                    bd = ::length(h.door - p);
+                    best = h.door;
+                }
+        if (bd < 1e29f) return best;
         for (vec2 h : kHospitals)
             if (::length(h - p) < ::length(best - p)) best = h;
         return best;

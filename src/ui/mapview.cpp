@@ -339,6 +339,11 @@ void buildLabels() {
         }
         g_labels.push_back({res[r].pos, World::regionInfo(rr).name, imp, false});
     }
+    // Landmarks (sites: the hotel row, the campus, the cemetery and churchyards, the prison, the speedway) in a tier under
+    // the districts (importance < 1: closer zoom, smaller type); the hospitals have their blips
+    if (World::gSites && World::gSites->generated)
+        for (const World::NamedPlace& pl : World::gSites->places)
+            if (pl.kind != World::PK_HOSPITAL) g_labels.push_back({pl.pos, pl.name, 0.5f, false});
     // Metropolis label + water bodies (only where the anchor really is water)
     g_labels.push_back({vec2(2700.f, 900.f), "PORTO SOL", 4.f, false});
     if (!m.lakePoly.empty()) {

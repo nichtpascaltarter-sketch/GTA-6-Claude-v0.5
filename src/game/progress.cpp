@@ -108,11 +108,25 @@ void GameWorld::placeWorldPickups() {
 // Hospitals and police stations (respawn/release points) on the map legend.
 void GameWorld::placeStaticBlips() {
     staticBlips.clear();
+    // hospitals as the world built them (sites: PK_HOSPITAL, on real street frontages in their towns); the fixed points
+    // below only if the world has none
+    int nHosp = 0;
+    if (World::gSites && World::gSites->generated)
+        for (const World::NamedPlace& h : World::gSites->places)
+            if (h.kind == World::PK_HOSPITAL) {
+                UI::Blip b;
+                b.pos = h.pos;
+                b.icon = UI::BLIP_HOSPITAL;
+                b.shortRange = true;
+                b.label = h.name.c_str();
+                staticBlips.push_back(b);
+                nHosp++;
+            }
     static const vec2 hospitals[] = {vec2(1650, 1050), vec2(3650, 3200), vec2(-2400, 1800), vec2(5200, -900), vec2(-6400, 5200),
                                      vec2(900, 6800), vec2(-3900, -3100), vec2(7400, 4800)};
-    static const char* hospitalNames[] = {"Calle Luna Medical", "Midtown General", "Westbrook Hospital", "Sol Beach Clinic",
+    static const char* hospitalNames[] = {"Tidewater General Hospital", "Midtown General", "Westbrook Hospital", "Sol Beach Clinic",
                                           "Harlow County Hospital", "Okahatchee Medical", "Redland Health", "Fort Castell Hospital"};
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 8 && nHosp == 0; i++) {
         UI::Blip b;
         b.pos = hospitals[i];
         b.icon = UI::BLIP_HOSPITAL;

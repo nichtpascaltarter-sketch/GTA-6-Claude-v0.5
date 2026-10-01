@@ -204,7 +204,8 @@ struct AnimInput {
                               // 10 smoke, 11 lean on wall, 12 sunbathe, 13 jog in place, 14 look around, 15 wave, 16 cheer,
                               // 17 point, 18 crouch, 19 fighting guard, 20 blocking guard (19/20: guard of meleeKind; the
                               // upper body stays in guard while the legs walk / strafe), 21 sit on the ground (beach towel),
-                              // 22 lie face down (sunbathing), 23 wait in a queue (idle variations come more often)
+                              // 22 lie face down (sunbathing), 23 wait in a queue (idle variations come more often),
+                              // 24 down hurt: lying on the back, knees up, writhing (a hand on the wound with clutch)
     float groundOffsetL = 0, groundOffsetR = 0;  // foot IK height offsets from terrain probes (m)
     // optional (defaults keep the automatic behaviour)
     int meleeKind = 0;        // melee weapon in hand for the fighting guards: 0 fists, 1 knife, 2 bat (two-handed)
@@ -252,7 +253,39 @@ struct AnimInput {
     // round it). Standing postures and fidgets leave a busy hand alone.
     int carry = 0;
     bool carryOpen = false;
+    // ---- impacts and injuries (combat, AI, traffic)
+    // A hit or a bump this update: set for the one update of the impact (several in quick succession add up).
+    //   hitDir: the direction the impact pushes the body, model space (a shot from straight ahead pushes towards -y,
+    //     a car from the left towards +x); its length does not matter.
+    //   hitStrength 0..1: below 0.5 a flinch of the trunk, head and arms layered over whatever the legs do (standing,
+    //     walking, running, aiming); from 0.5 a heavy hit that also knocks the body off balance: it catches itself with
+    //     a few quick steps in the push direction (the game moves the ped by staggerVelocity() meanwhile) and steadies,
+    //     unless the game knocks it down (fallBrace, then the ragdoll).
+    //   hitBone: the bone struck (Bone; -1 = the chest): a head hit snaps the head, a chest hit throws the trunk back,
+    //     a belly hit folds it over the wound, an arm hit flings the arm, a leg hit buckles that knee. After a heavy
+    //     hit a free hand goes to the wound for a moment (keep it there with `clutch`).
+    vec3 hitDir = vec3(0);
+    float hitStrength = 0;
+    int hitBone = -1;
+    // Lasting injuries (0 healthy .. 1 badly hurt; hold them for as long as they last):
+    //   legHurt[0 / 1]: the left / right leg: a limp (a short, stiff-kneed step on it, the body dipping over it and
+    //     hurrying off it, the hurt foot barely clearing the ground); best with a slower speed from the game (~1 m/s);
+    //   wounded: low health: a hunched, guarded stance and walk, little arm swing, laboured breathing;
+    //   clutch (Wound): where a free hand holds a wound - standing, walking, crouched and lying hurt (stance 24). A
+    //     hand holding a weapon is not free: the other one takes the belly / chest; an aimed weapon keeps both.
+    float legHurt[2] = {0, 0};
+    float wounded = 0;
+    int clutch = 0;
+    // Going over (the game is about to hand the body to the ragdoll): fallDir = the direction the body falls (model
+    // space, horizontal), fallBrace 0..1 = going over: the arms reach out to break the fall, the chin tucks, the knees
+    // give and the body tips into the fall. Hold it until braceWeight() is near 1 (~0.15 s) before starting the
+    // ragdoll so that it starts from the bracing pose.
+    vec3 fallDir = vec3(0);
+    float fallBrace = 0;
 };
+
+// Where a hand holds a wound (AnimInput::clutch).
+enum Wound : int { WOUND_NONE = 0, WOUND_BELLY, WOUND_CHEST, WOUND_SHOULDER_L, WOUND_SHOULDER_R, WOUND_THIGH_L, WOUND_THIGH_R, WOUND_COUNT };
 
 // Stances whose clip holds something in the right hand (8 a phone at the ear, 10 a cigarette): a carried cup goes to
 // the left hand and the game puts right-hand loads away meanwhile (carryArms and the game's effectiveCarry agree).
@@ -347,6 +380,27 @@ struct Animator {
     int carryClip[2] = {-1, -1};  // carrying: arm pose clip per arm (left, right) and its weight
     float carryW[2] = {0.f, 0.f};
     float bagSwing[2] = {1.f, 1.f};   // arm swing on each side (a shoulder bag's side swings less)
+    // ---- impacts and injuries: the flinch (trunk bend pitch / roll / twist, head whip, knee dip, arm jerks: damped
+    //      springs kicked by each hit), the stagger (push velocity the body catches with steps, its lean), the hand
+    //      reflexively at a fresh wound, the clutching / limp / hunch weights, going over
+    vec3 flinch = vec3(0), flinchV = vec3(0), headFl = vec3(0), headFlV = vec3(0);
+    float dipFl = 0.f, dipFlV = 0.f, armFl[2] = {0.f, 0.f}, armFlV[2] = {0.f, 0.f}, legFl[2] = {0.f, 0.f}, legFlV[2] = {0.f, 0.f};
+    float cringe = 0.f, cringeV = 0.f;
+    vec3 armFlDir[2] = {vec3(0, -1, 0), vec3(0, -1, 0)};
+    vec2 limpLurch = vec2(0);   // the limp's body offset along the travel (ahead over the hurt leg, back over the good one)
+    float limpDuty = 0.62f;
+    vec2 pushV = vec2(0);         // stagger: root velocity (model space) the body is catching up with
+    vec2 pushLean = vec2(0), pushLeanV = vec2(0);
+    float staggerT = -1.f;        // time since the stagger began (-1 steady)
+    int reflexWound = 0;          // a heavy hit's wound the hand goes to for a moment
+    float reflexT = -1.f;
+    int clutchCur = 0, clutchSide = 1;
+    float clutchW = 0.f;          // the clutching hand's weight (fades between wounds)
+    float limpW[2] = {0.f, 0.f}, woundedS = 0.f;
+    vec3 fallDirS = vec3(0, 1, 0);
+    float braceW = 0.f;
+    vec3 skinW[WOUND_COUNT];      // this body's skin at each wound (bind model space) and the bone it moves with
+    int skinWB[WOUND_COUNT] = {0, 0, 0, 0, 0, 0, 0};
     // Walking style and body language from the character: call after init.
     void setCharacter(const CharacterDesc& d);
     // Model-space ground point the game should probe for each foot (0 left, 1 right) before the next update: under
@@ -364,6 +418,13 @@ struct Animator {
     void blendFrom(const Pose& from, float seconds);
     void faceOverlay(const AnimInput& in, float dt);   // internal: look-at, gaze, blinks, jaw (called by update)
     bool actionDone() const { return actionFinished; }
+    // Stagger after a heavy hit (AnimInput::hitStrength >= 0.5): the velocity (m/s, model space, horizontal) the game
+    // moves the ped with while it catches its balance - its own movement suspended meanwhile - and whether it still
+    // is; zero / false once steady.
+    vec3 staggerVelocity() const { return vec3(pushV.x, pushV.y, 0.f); }
+    bool staggering() const { return staggerT >= 0.f; }
+    // How far into the bracing pose a falling body is (AnimInput::fallBrace): start the ragdoll once it is near 1.
+    float braceWeight() const { return braceW; }
 };
 
 }  // namespace Anim

@@ -535,6 +535,7 @@ struct App {
             } else if (autoplay == "greet") {
                 autoDuration = 2 * 35.f + 0.5f;  // the airport curb, then a downtown sidewalk at midday (applyAutoplay)
             } else if (autoplay == "surrender" || autoplay == "search") {
+                if (autoplay == "search") autoDuration = 100.5f;   // (the units can take a minute to get there; then the search)
                 // wanted at two stars on a downtown corner, empty-handed: units converge; then the player gives up (hands up,
                 // cuffed, the lighter bust) / slips away out of sight at night (the officers on foot fan out and check the
                 // corners and doorways round the last-seen point, torches on)
@@ -939,7 +940,8 @@ struct App {
             static int shots = 0;
             Ped* pl = game.playerPed();
             int copsFoot = 0;
-            for (const Ped& q : game.peds) copsFoot += q.used && q.faction == FAC_POLICE && q.health > 0.f && q.state == PS_ONFOOT;
+            for (const Ped& q : game.peds)
+                copsFoot += q.used && q.faction == FAC_POLICE && q.health > 0.f && q.state == PS_ONFOOT && pl && length(rel(q.pos, pl->pos)) < 70.f;
             if (!gone && pl) {
                 // (reported until then: the units come to the player, and the stars hold)
                 game.pinfo.lastSeenPos = pl->pos;
@@ -947,11 +949,31 @@ struct App {
                 game.pinfo.wantedHeat = Max(game.pinfo.wantedHeat, 2.4f);
                 game.pinfo.wantedCooldown = 0.f;
             }
-            if (!gone && pl && ((copsFoot >= 2 && t > 10.f) || t > 40.f)) {
+            if (!gone && pl && ((copsFoot >= 2 && t > 10.f) || t > 55.f)) {
                 gone = true;
                 lastSeen = pl->pos.toVec3().xy();
+                // the hiding place: a sidewalk some 110 m off, in whichever of eight directions is furthest from every
+                // police car and officer (none of them may see it, or there is nothing to search for)
                 vec2 hide = lastSeen + vec2(-110.f, 8.f);
-                pl->pos = dvec3(hide.x, hide.y, game.groundHeight(hide.x, hide.y, (float)pl->pos.z + 20.f));
+                float bestD = -1.f;
+                for (int k = 0; k < 8; k++) {
+                    vec2 h = lastSeen + vec2(cosf(k * kTwoPi / 8.f), sinf(k * kTwoPi / 8.f)) * 110.f;
+                    float x = 0.f;
+                    int wl = game.laneGraph.nearestWalk(h, 30.f, &x);
+                    if (wl < 0) continue;
+                    h = game.laneGraph.walkPos(wl, x, 0.f, true).xy();
+                    float md = 1e9f;
+                    for (const Ped& q : game.peds)
+                        if (q.used && q.faction == FAC_POLICE && q.health > 0.f) md = Min(md, length(q.pos.toVec3().xy() - h));
+                    for (const Vehicle& v : game.vehicles)
+                        if (v.used && v.faction == FAC_POLICE) md = Min(md, length(v.sim.body.pos.toVec3().xy() - h));
+                    if (md > bestD) {
+                        bestD = md;
+                        hide = h;
+                    }
+                }
+                LOG("autoplay search: hiding at %.0f %.0f, %.0f m from the nearest unit", hide.x, hide.y, bestD);
+                pl->pos = dvec3(hide.x, hide.y, game.groundHeight(hide.x, hide.y, (float)pl->pos.z + 3.f));
                 pl->vel = vec3(0.f);
                 shotT = 3.f;
                 LOG("autoplay search: slipped away at t=%.1f (%d officers on foot), last seen %.0f %.0f", t, copsFoot, lastSeen.x, lastSeen.y);
