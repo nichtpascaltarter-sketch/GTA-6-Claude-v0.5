@@ -90,21 +90,35 @@ void csExposure() {
     float avgLog = ws > 0.0 ? s / ws : histLog(31.0);
     float avgLum = exp2(avgLog);
     float targetEV = log2(max(avgLum, 1e-4) * 100.0 / 12.5) - gPost0.x;
+    // Night keeps reading as night: the metering key falls with the scene's luminance (Krawczyk et al. 2005, the
+    // "auto key", taken three quarters of the way), so a park or a street at night (metering 0.2-0.6 cd/m2) is not
+    // lifted to the mid-grey of a day scene. Only ever darker, by at most 1 EV: anything metering above ~1.3 cd/m2
+    // (day, dusk, lit interiors) is untouched, and the lamps' pools stay well above the filmic toe.
+    float key = 1.03 - 2.0 / (2.0 + log10(avgLum + 1.0));
+    targetEV += clamp(0.75 * log2(0.18 / max(key, 0.01)), 0.0, 1.0);
     // highlight constraint (non-sky): the 97th percentile should land at or below ~3.5 (pre-exposed), where the
-    // filmic curve still shows texture; the mid-tones only move a third of the way towards that
+    // filmic curve still shows texture; the mid-tones move a third of the way towards that, two thirds when the
+    // bright part is large (even the 88th percentile above the shoulder: a lit lobby or shop front filling part of
+    // the frame at night keeps its detail instead of burning out)
     if (totalS > total * 0.05) {
-        float target97 = totalS * 0.97, cumS = 0, p97 = histLog(63.0);
-        bool found = false;
+        float target97 = totalS * 0.97, target88 = totalS * 0.88, cumS = 0, p97 = histLog(63.0), p88 = histLog(63.0);
+        bool found = false, found88 = false;
         [unroll] for (int k2 = 0; k2 < 64; k2++) {
             float a2 = cumS;
             cumS += hs[k2];
+            float within = hs[k2] > 0.0 ? 1.0 / hs[k2] : 0.0;
+            if (!found88 && cumS >= target88) {
+                p88 = histLog((float)k2) + ((target88 - a2) * within - 0.5) / kHistScale;
+                found88 = true;
+            }
             if (!found && cumS >= target97) {
-                p97 = histLog((float)k2) + (hs[k2] > 0.0 ? (target97 - a2) / hs[k2] - 0.5 : 0.0) / kHistScale;
+                p97 = histLog((float)k2) + ((target97 - a2) * within - 0.5) / kHistScale;
                 found = true;
             }
         }
         float evHL = p97 - log2(1.2 * 3.5);
-        if (evHL > targetEV) targetEV = lerp(targetEV, evHL, 0.35);
+        float pull = lerp(0.35, 0.65, saturate((p88 - log2(1.2 * 3.5) - targetEV) * 0.75));
+        if (evHL > targetEV) targetEV = lerp(targetEV, evHL, pull);
     }
     // Sky constraint: when sky fills a good part of the frame and sits far above the metered mid-tones (a sunset
     // over a shaded foreground, a bright overcast dome over a dark street), pull part of the way towards keeping the
