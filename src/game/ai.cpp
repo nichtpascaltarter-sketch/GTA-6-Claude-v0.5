@@ -64,6 +64,144 @@ float aiCarEndToWalkRound(const GameWorld& g, int veh, float pref) {
     return pref;
 }
 
+namespace ai_walkround {
+
+// Does the walk a -> b come within `grow` of a static collider's footprint (box, or a cylinder taken as its square)?
+// The entry distance along the walk in tEnter. Starting inside the grown footprint (already against it) counts only
+// when the walk heads in through the face the walker stands at.
+bool crosses(const Phys::Collider& c, vec2 a, vec2 b, float grow, float& tEnter) {
+    bool box = c.kind == Phys::COL_BOX;
+    vec2 ax = box ? c.ax : vec2(1.f, 0.f), ay(-ax.y, ax.x);
+    vec2 o = a - c.c.xy(), d = b - a;
+    float len = length(d);
+    if (len < 1e-4f) return false;
+    d = d / len;
+    float lp[2] = {dot(o, ax), dot(o, ay)}, ld[2] = {dot(d, ax), dot(d, ay)}, he[2] = {c.he.x, c.he.y};
+    float t0 = 0.f, t1 = len;
+    for (int k = 0; k < 2; k++) {
+        float h = he[k] + grow;
+        if (fabsf(ld[k]) < 1e-5f) {
+            if (fabsf(lp[k]) > h) return false;
+            continue;
+        }
+        float ta = (-h - lp[k]) / ld[k], tb = (h - lp[k]) / ld[k];
+        if (ta > tb) std::swap(ta, tb);
+        t0 = Max(t0, ta);
+        t1 = Min(t1, tb);
+        if (t0 > t1) return false;
+    }
+    if (fabsf(lp[0]) <= he[0] + grow && fabsf(lp[1]) <= he[1] + grow) {
+        int f = fabsf(lp[0]) - he[0] > fabsf(lp[1]) - he[1] ? 0 : 1;
+        if (lp[f] * ld[f] >= 0.f) return false;
+    }
+    tEnter = t0;
+    return true;
+}
+
+}  // namespace ai_walkround
+
+// A way round a static obstacle (a bench, a planter, a bin, a bollard, a kiosk) standing in the next few metres of a
+// straight walk from pos towards goal: the corner of its footprint, a body's width and a little room out, that is in
+// plain view and makes the shorter way round. False when nothing stands in the way. Building walls are left to the
+// walk network.
+bool aiStaticDetour(vec2 pos, float z, vec2 goal, vec2& via, float ahead) {
+    if (!Phys::gCollision) return false;
+    vec2 to = goal - pos;
+    float dist = length(to);
+    if (dist < 0.4f) return false;
+    vec2 dir = to / dist;
+    float look = Min(dist, ahead);
+    thread_local std::vector<int> ids;
+    Phys::gCollision->collidersNear(pos + dir * (look * 0.5f), look * 0.5f + 2.f, ids);
+    const float body = 0.36f;   // (a hair over the ped radius: what the capsule catches on)
+    int best = -1;
+    float bestT = 1e9f;
+    for (int ci : ids) {
+        const Phys::Collider& c = Phys::gCollision->collider(ci);
+        if (c.flags & 2) continue;
+        float z0 = c.kind == Phys::COL_BOX ? c.c.z - c.he.z : c.c.z, z1 = c.kind == Phys::COL_BOX ? c.c.z + c.he.z : c.c.z + c.he.z;
+        if (z1 < z + 0.3f || z0 > z + 1.7f) continue;   // (kerb-high: stepped over; overhead)
+        vec2 cax = c.kind == Phys::COL_BOX ? c.ax : vec2(1.f, 0.f), og = goal - c.c.xy();
+        if (fabsf(dot(og, cax)) < c.he.x + body && fabsf(dot(og, vec2(-cax.y, cax.x))) < c.he.y + body) continue;   // (the goal is at it: no way round helps)
+        float t;
+        if (ai_walkround::crosses(c, pos, pos + dir * look, body, t) && t < bestT) {
+            bestT = t;
+            best = ci;
+        }
+    }
+    if (best < 0) return false;
+    const Phys::Collider& c = Phys::gCollision->collider(best);
+    vec2 ax = c.kind == Phys::COL_BOX ? c.ax : vec2(1.f, 0.f), ay(-ax.y, ax.x), cc = c.c.xy();
+    const float room = 0.7f;
+    float bestCost = 1e9f;
+    for (int k = 0; k < 4; k++) {
+        vec2 q = cc + ax * ((k & 1 ? 1.f : -1.f) * (c.he.x + room)) + ay * ((k & 2 ? 1.f : -1.f) * (c.he.y + room));
+        float t;
+        if (length(q - pos) < 0.4f || ai_walkround::crosses(c, pos, q, 0.15f, t)) continue;   // (here already / round the far side)
+        vec3 push, nrm;
+        if (Phys::gCollision->capsuleOverlap(vec3(q, z + 0.05f), 0.3f, 1.7f, push, nrm) && length(push) > 0.05f) continue;   // (a wall, the next bench)
+        float cost = length(q - pos) + length(goal - q);
+        if (cost < bestCost) {
+            bestCost = cost;
+            via = q;
+        }
+    }
+    return bestCost < 1e8f;
+}
+
+// The point a walker going straight for `goal` (no walk-network path: a prisoner walked to the car, the officer at
+// their arm, somebody making for a door) steers at: round a bench, a planter or a bin on the line (looked for a few
+// times a second, at once when held up against something), a step aside when held up by somebody, else the goal.
+// `want` is the speed asked for (0: standing, no hold-up to notice).
+vec2 aiWalkRound(GameWorld& g, int id, vec2 goal, float want, float dt) {
+    Ped& p = g.peds[id];
+    PedAI& pa = g.pedAI(id);
+    vec2 pos = p.pos.toVec3().xy();
+    float z = (float)p.pos.z;
+    if (want > 0.3f && length(p.vel.xy()) < 0.15f) pa.stuckTimer += dt;
+    else pa.stuckTimer = Max(0.f, pa.stuckTimer - dt);
+    vec2 via;
+    float ahead = Max(3.5f, want * 1.1f);   // (further ahead at a run)
+    if (pa.detourT > 0.f && length(goal - pa.detourGoal) > 4.f) pa.detourT = 0.f;   // (a corner on the way somewhere else)
+    pa.detourGoal = goal;
+    if (pa.stuckTimer > 0.9f) {
+        // held up: what is in the way of the walk being made (the corner being made for, or the goal)
+        pa.stuckTimer = 0.f;
+        vec2 aim = pa.detourT > 0.f ? pa.detour : goal;
+        if (aiStaticDetour(pos, z, aim, via, ahead)) {
+            pa.detour = via;
+            pa.detourT = 4.f;
+        } else {
+            // nothing standing there: somebody is - a step to the side (the same side while it keeps happening, the
+            // other one when a wall or a post is there)
+            vec2 dir = normalize(aim - pos + vec2(1e-4f, 0.f));
+            float side = (hash32(p.uid + (u32)(g.time * 0.2)) & 1u) ? 1.f : -1.f;
+            vec3 push, nrm;
+            vec2 q = pos + AI::rightOf(dir) * (side * 1.1f) + dir * 0.3f;
+            if (Phys::gCollision && Phys::gCollision->capsuleOverlap(vec3(q, z + 0.05f), 0.3f, 1.7f, push, nrm) && length(push) > 0.05f)
+                q = pos - AI::rightOf(dir) * (side * 1.1f) + dir * 0.3f;
+            pa.detour = q;
+            pa.detourT = 1.5f;
+        }
+    } else if (pa.detourT > 0.f) {
+        pa.detourT -= dt;
+        if (length(pa.detour - pos) < 0.4f) {
+            // round that corner: on for the goal, or on to the next corner while the obstacle is still in the way
+            if (aiStaticDetour(pos, z, goal, via, ahead)) {
+                pa.detour = via;
+                pa.detourT = 4.f;
+            } else {
+                pa.detourT = 0.f;
+            }
+        }
+    } else if (want > 0.f && floorf((float)g.time * 2.5f + id * 0.37f) != floorf((float)(g.time - dt) * 2.5f + id * 0.37f) &&
+               aiStaticDetour(pos, z, goal, via, ahead)) {
+        pa.detour = via;
+        pa.detourT = 4.f;
+    }
+    return pa.detourT > 0.f ? pa.detour : goal;
+}
+
 // A street door of a building near p: the middle of the street facade at ground level, on the side p is on, with a
 // clear straight walk to p. Used by peds stepping out of and walking into buildings (population.cpp, pedai.cpp).
 // Industrial blocks, garages, sheds and buildings hosting an enterable interior (interiors_game.cpp) are skipped.
@@ -99,6 +237,44 @@ bool aiBuildingDoorNear(const GameWorld& g, vec2 p, float r, u32 seed, vec3& out
     }
     if (bestScore > 1e8f) return false;
     out = vec3(best, g.groundHeight(best.x, best.y, bestZ + 2.f));
+    return true;
+}
+
+// A door to dash in through, running from trouble at `threat` (pedai.cpp BRAIN_FLEE): the nearest within r on the far
+// side of p from it - never back toward it or past it - with a clear run to it (as aiBuildingDoorNear)
+bool aiBuildingDoorAway(const GameWorld& g, vec2 p, vec2 threat, float r, vec3& out) {
+    const World::BuildingSet* bs = g.buildings ? g.buildings : World::gBuildings;
+    if (!bs || bs->buildings.empty()) return false;
+    thread_local std::vector<int> nb;
+    nb.clear();
+    bs->buildingsNear(p, r + 40.f, nb);
+    vec2 aw = p - threat;
+    float tdist = length(aw);
+    aw = tdist > 1e-3f ? aw / tdist : vec2(0.f, 1.f);
+    float best = 1e9f;
+    vec2 at;
+    float atZ = 0.f;
+    for (int i : nb) {
+        const World::Building& b = bs->buildings[i];
+        if (b.interior >= 0) continue;
+        u8 st = b.style;
+        if (st == World::BS_WAREHOUSE || st == World::BS_FACTORY || st == World::BS_BARN || st == World::BS_GARAGE || st == World::BS_SHACK) continue;
+        vec2 door = b.c + b.front * (b.hy + 0.45f);
+        vec2 run = door - p;
+        float d = length(run);
+        if (d > r || d < 1.5f || dot(p - door, b.front) < 0.5f) continue;   // (from the street side)
+        if (dot(run, aw) < d * 0.25f || length(door - threat) < tdist + 1.5f) continue;   // (away from it, not past it)
+        if (bs->pointInBuilding(door, 0.2f)) continue;
+        bool clear = true;
+        for (int k = 1; k < 8 && clear; k++)
+            if (bs->pointInBuilding((door + b.front * 0.6f) + (p - door - b.front * 0.6f) * (k / 8.f), 0.25f)) clear = false;
+        if (!clear || d >= best) continue;
+        best = d;
+        at = door;
+        atZ = b.baseZ;
+    }
+    if (best > 1e8f) return false;
+    out = vec3(at, g.groundHeight(at.x, at.y, atZ + 2.f));
     return true;
 }
 
@@ -441,7 +617,7 @@ std::string GameWorld::aiCensusText(float radius) const {
     vec2 c = pl->pos.toVec3().xy();
     // on foot: what the crowd is doing
     int total = 0, walk = 0, group = 0, jog = 0, wPhone = 0, wSmoke = 0, wTalk = 0, sit = 0, talk = 0, phone = 0, dance = 0, smoke = 0, lean = 0,
-        sun = 0, queue = 0, watch = 0, busStop = 0, taxi = 0, event = 0, venue = 0, vGuard = 0, vPace = 0, vTravel = 0, vOut = 0, vBoard = 0, vGreet = 0, meet = 0, browse = 0, hurt = 0, aid = 0, cuffed = 0, escorts = 0;
+        sun = 0, queue = 0, watch = 0, busStop = 0, taxi = 0, event = 0, venue = 0, vGuard = 0, vPace = 0, vTravel = 0, vOut = 0, vBoard = 0, vGreet = 0, meet = 0, browse = 0, hurt = 0, aid = 0, cuffed = 0, escorts = 0, witness = 0, taking = 0, stopped = 0, holding = 0, onBreak = 0;
     int tourist = 0, business = 0, beach = 0, night = 0, gang = 0, worker = 0;
     int flee = 0, cower = 0, film = 0, inspect = 0, call = 0, hands = 0, rage = 0, fight = 0;
     int copFoot = 0, cover = 0, flank = 0, arrest = 0, search = 0, engage = 0, approach = 0, inWater = 0;
@@ -464,6 +640,8 @@ std::string GameWorld::aiCensusText(float radius) const {
                 approach += pa->tactic == FT_APPROACH;
             }
             escorts += p.brain.type == BRAIN_GOTO && p.brain.target == -3;
+            taking += p.brain.type == BRAIN_GOTO && p.brain.target == -4;
+            onBreak += pa && pa->activity == ACT_COP_BREAK;
             continue;
         }
         if (p.brain.type == BRAIN_FLEE) flee++;
@@ -482,7 +660,7 @@ std::string GameWorld::aiCensusText(float radius) const {
             case ACT_GROUP:
                 if (pa->leader >= 0 || pa->activity == ACT_GROUP) {   // walking with company
                     group++;
-                    wTalk += pa->walkStance == 7;
+                    wTalk += p.animIn.stance == 7;   // (chatting on the way: pedai.cpp sets the talk stance)
                     break;
                 }
                 walk++;
@@ -525,8 +703,11 @@ std::string GameWorld::aiCensusText(float radius) const {
             case ACT_HURT: hurt++; break;
             case ACT_AID: aid++; break;
             case ACT_CUFFED: cuffed++; break;
+            case ACT_STATEMENT: witness++; break;
+            case ACT_STOPPED: stopped++; break;
             default: break;
         }
+        holding += pa && pa->leader >= 0 && pa->handWith >= 0 && time - pa->handT < 0.3;   // (couples hand in hand, counted once)
     }
     // vehicles: traffic, police units by kind
     int traffic = 0, parked = 0, copCars = 0, heli = 0, boats = 0, blocks = 0, swat = 0, ems = 0, honking = 0;
@@ -547,14 +728,14 @@ std::string GameWorld::aiCensusText(float radius) const {
     }
     const AIFrameStats& s = ai.stats;
     return StrFormat("census r%.0f: %d on foot (in the water %d) | walk %d (phone %d smoke %d) group %d (talking %d) jog %d | sit %d talk %d phone %d dance %d smoke %d "
-                     "lean %d sun %d queue %d watch %d bus %d taxi %d event %d meet %d (so far %d) window %d hurt %d (helped by %d) cuffed %d (escorts %d) | venue %d (guard %d pace %d outlook %d boarding %d greeting %d) travelers %d | tourist %d business %d beach %d night %d gang %d worker %d | "
+                     "lean %d sun %d queue %d watch %d bus %d taxi %d event %d meet %d (so far %d) window %d hurt %d (helped by %d) cuffed %d (escorts %d) statement %d (officers %d) stopped %d hand in hand %d cops on a break %d | venue %d (guard %d pace %d outlook %d boarding %d greeting %d) travelers %d | tourist %d business %d beach %d night %d gang %d worker %d | "
                      "react flee %d cower %d film %d inspect %d call %d hands %d rage %d fight %d | cops on foot %d (approach %d cover %d flank %d "
                      "arrest %d search %d engage %d) | cars %d parked %d police %d swat %d heli %d boat %d roadblock %d ems %d horn %d | "
-                     "totals panic %d film %d pit %d box %d rb %d spikes %d tackle %d heli %d units %d rage %d events %d arrests %d custody %d transports %d depart %d arrive %d",
-                     radius, total, inWater, walk, wPhone, wSmoke, group, wTalk, jog, sit, talk, phone, dance, smoke, lean, sun, queue, watch, busStop, taxi, event, meet, ai.meetsStarted, browse, hurt, aid, cuffed, escorts,
+                     "totals panic %d film %d pit %d box %d rb %d spikes %d tackle %d heli %d units %d rage %d events %d arrests %d custody %d transports %d statements %d shelters %d stops %d (warrants %d runs %d) breaks %d depart %d arrive %d",
+                     radius, total, inWater, walk, wPhone, wSmoke, group, wTalk, jog, sit, talk, phone, dance, smoke, lean, sun, queue, watch, busStop, taxi, event, meet, ai.meetsStarted, browse, hurt, aid, cuffed, escorts, witness, taking, stopped, holding, onBreak,
                      venue, vGuard, vPace, vOut, vBoard, vGreet, vTravel, tourist, business, beach, night, gang, worker, flee, cower, film, inspect, call, hands, rage, fight, copFoot, approach, cover, flank,
                      arrest, search, engage, traffic, parked, copCars, swat, heli, boats, blocks, ems, honking, s.panicSpread, s.filming, s.pitTries,
-                     s.boxing, s.roadblocks, s.spikeHits, s.tackles, s.heliUnits, s.unitsSent, s.roadRage, s.events, s.arrests, s.custody, s.transports, s.departures, s.arrivals);
+                     s.boxing, s.roadblocks, s.spikeHits, s.tackles, s.heliUnits, s.unitsSent, s.roadRage, s.events, s.arrests, s.custody, s.transports, s.statements, s.shelters, s.stops, s.stopArrests, s.stopRuns, s.copBreaks, s.departures, s.arrivals);
 }
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -594,8 +775,9 @@ void GameWorld::updateBrain(int id, float dt) {
         return;
     }
     if (p.moveMode == 2 || p.moveMode == 3) return;   // vaulting/climbing handled by the character controller
+    // (police on foot: after a suspect, -2 back to the car, -3 walking a prisoner, -4 taking a statement, -5 a sidewalk stop)
     if (p.faction == FAC_POLICE && (((b.type == BRAIN_COMBAT || b.type == BRAIN_ARREST || b.type == BRAIN_GOTO) && b.target >= 0) ||
-                                    (b.type == BRAIN_GOTO && (b.target == -2 || b.target == -3)))) {   // (-2 back to the car, -3 walking a prisoner)
+                                    (b.type == BRAIN_GOTO && b.target <= -2 && b.target >= -5))) {
         aiPoliceBrain(id, dt);
         return;
     }
@@ -626,9 +808,15 @@ void GameWorld::updateBrain(int id, float dt) {
         }
         case BRAIN_GOTO: {
             vec2 desired(0, 0);
-            vec2 to = b.goal.toVec3().xy() - p.pos.toVec3().xy();
-            float dist = length(to);
-            if (dist > 0.6f) desired = to / dist * Min(b.speed, dist * 2.f + 0.5f);
+            vec2 goal = b.goal.toVec3().xy();
+            float dist = length(goal - p.pos.toVec3().xy());
+            if (dist > 0.6f) {
+                // (round a bench or a planter on the line, a step aside when somebody holds them up)
+                float spd = Min(b.speed, dist * 2.f + 0.5f);
+                vec2 to = aiWalkRound(*this, id, goal, spd, dt) - p.pos.toVec3().xy();
+                float ls = length(to);
+                if (ls > 1e-3f) desired = to / ls * spd;
+            }
             faceTowards(p, desired, 8.f, dt);
             movePed(p, desired, dt, false);
             break;

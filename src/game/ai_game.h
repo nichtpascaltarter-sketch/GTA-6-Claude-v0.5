@@ -71,6 +71,12 @@ enum PedActivity : u8 {
     ACT_AID,           // a passer-by helping someone down hurt: kneeling beside them, or standing by on the phone
     ACT_CUFFED,        // arrested (police.cpp escort): walked to a patrol car in front of the officer holding them and put
                        // in the back; sitting on the kerb while a car is on its way (pedai.cpp)
+    ACT_STATEMENT,     // a witness telling an officer what they saw (police.cpp statements): waiting where they stood for
+                       // the officer to walk up, then talking while the officer takes it down, a point at where it happened
+    ACT_STOPPED,       // stopped on the sidewalk by officers on a foot beat (police.cpp police_stop): the ID handed over,
+                       // a wait while it is checked, then on their way - or a warrant and the cuffs, or a run for it
+    ACT_COP_BREAK,     // a patrol crew on a break (traffic.cpp): pulled over at the kerb outside a shop, coffee in hand by
+                       // the car, a few minutes' talk, then back in and on patrol (pedai.cpp)
 };
 
 // Ambient speech categories (barks.cpp)
@@ -89,6 +95,15 @@ enum BarkKind : int {
     BK_SUSPECT, BK_COP_ESCORT, BK_COP_TRANSPORT,      // in cuffs on the way to the car, the officer walking them, and
                                                       // the officer with no car calling one
     BK_BRAWL, BK_BRAWL_FRIEND,                        // squaring up on the sidewalk, and the friend trying to calm it
+    BK_COP_STATEMENT, BK_COP_STATEMENT_END, BK_WITNESS,   // an officer taking a witness's statement (questions, the
+                                                      // thanks at the end) and the witness telling it (police.cpp)
+    BK_COP_STOP, BK_COP_STOP_ASK, BK_COP_STOP_OK,      // a beat officer stopping someone on the sidewalk (the call,
+    BK_STOPPED, BK_STOPPED_END,                       // the questions, letting them go) and the one stopped (police_stop)
+    BK_COP_BREAK,                                     // two officers on a coffee break by their car, shooting the breeze
+    BK_COP_RADIO,                                     // an officer by the car after an arrest, on the radio to dispatch
+    BK_ASK_WAY, BK_GIVE_WAY, BK_WAY_THANKS,           // a stranger asking the way on the sidewalk, the answer (with a
+                                                      // point), the thanks (pedai.cpp street meets)
+    BK_HERO, BK_HERO_LOST,                            // a passer-by chasing a purse snatcher (events.cpp), and giving up
     BK_COUNT
 };
 
@@ -113,6 +128,17 @@ struct PedAI {
     int leader = -1;
     u32 leaderUid = 0;
     vec2 slot;                 // formation offset (leader frame)
+    vec2 chaseCrumb = vec2(1e9f);   // a foot chase (police.cpp): where the suspect was last seen from here - run there
+                                    // while a corner or a wall hides them, not into the wall
+    vec2 sidestep;             // someone running at them along the sidewalk (a chase): the way to step aside ...
+    float sidestepT = 0.f;     // ... and for how much longer (pedai.cpp)
+    vec2 detour = vec2(0.f);   // a straight walk (to a door, a prisoner to the car): the corner of a bench / planter in the
+    float detourT = 0.f;       // way to go round first, and for how much longer at most (ai.cpp aiWalkRound) ...
+    vec2 detourGoal = vec2(0.f);   // ... and the goal it was for (a walk somewhere else drops it)
+    int handWith = -1;         // a couple walking hand in hand (pedai.cpp, set on both): the other one (peds.cpp holds the
+    u32 handUid = 0;           // hands together: each one's grabTarget is the point between them) ...
+    float handT = -1.f;        // ... last confirmed (game time; the companion renews it every frame they hold on)
+    i8 couple = -1;            // a companion walking beside a leader: -1 not decided yet, 0 no, 1 a couple (hand in hand)
     // perception
     float fear = 0.f;
     vec2 threatPos;
@@ -143,6 +169,16 @@ struct PedAI {
     u32 escortCarUid = 0;
     u8 escortSeat = 0;         // ... to this seat (the back where there is one)
     float escortT = 0.f;       // ... for this long
+    int stmtWith = -1;         // a statement (police.cpp statements): the officer's witness / the witness's officer ...
+    u32 stmtUid = 0;
+    float stmtT = 0.f;         // ... how long it has gone on (the officer's clock paces both)
+    vec2 stmtScene;            // ... where it happened (the witness points there)
+    int stopPed = -1;          // a sidewalk stop (police.cpp police_stop): the officers' stopped ped / the stopped ped's
+    u32 stopUid = 0;           // officer (the one doing the talking) ...
+    float stopT = 0.f;         // ... the clock (the talking officer's runs from being in front of them; it paces all three)
+    u8 breakSeat = 0;          // ACT_COP_BREAK: the seat they got out of (0: back behind the wheel)
+    u8 stopOutcome = 0;        // ... how it ends (the talking officer: 0 on their way, 1 a warrant, 2 they run for it)
+    bool stopCover = false;    // ... this officer is the partner standing by
     // events / vehicles
     int eventId = -1;          // ambient event slot this ped belongs to (events.cpp), -1 none
     int aimAt = -1;            // ACT_EVENT: ped held at gunpoint (mugger)
@@ -213,6 +249,7 @@ struct VehAI {
     float impactCd = 0.f;         // telemetry: one hard impact counted per crash
     float hungTime = 0.f;         // hung up on a ledge / kerb: wheels off the ground, going nowhere
     u8 errand = 0;                // delivery stop: 1 pulling over, 2 driver out at a door
+    u8 copBreak = 0;              // a patrol's coffee break: 1 pulling over, 2 the crew out by the car, 3 time to go
     float errandTimer = 0.f;
     vec3 errandDoor;
     vec3 flyTgtPrev;              // helicopter autopilot: last target position and its smoothed velocity
@@ -282,7 +319,10 @@ struct AIFrameStats {
     int frames = 0;
     // cumulative behaviour counters (aiCensusText, autoplay logs)
     int panicSpread = 0, filming = 0, pitTries = 0, boxing = 0, roadblocks = 0, spikeHits = 0, tackles = 0, heliUnits = 0,
-        unitsSent = 0, roadRage = 0, events = 0, arrests = 0, custody = 0, transports = 0;
+        unitsSent = 0, roadRage = 0, events = 0, arrests = 0, custody = 0, transports = 0, statements = 0,
+        shelters = 0,   // (shelters: bystanders who ran in through a door from trouble, pedai.cpp)
+        stops = 0, stopArrests = 0, stopRuns = 0,   // sidewalk stops by beat officers, the warrants among them, the runners
+        copBreaks = 0;                              // patrols pulled over for a coffee break
     int hardImpacts = 0, impactsWithPlayer = 0;   // AI-driven cars: impulses > 3000 N s (sampled per frame)
     int unhung = 0;                               // cars lifted off a ledge back onto their lane
     int departures = 0, arrivals = 0;             // cars driven away from / parked at the curb by their owners
@@ -309,7 +349,11 @@ struct AIState {
     bool forceBender = false;           // autoplay tests: every low-speed knock between two traffic cars becomes a scene
     int forceEvent = -1;                // autoplay tests: the ambient event type to stage next (events.cpp), soon and close;
                                         // a value past the last type: no ambient events at all
+    int forceStop = -1;                 // autoplay tests: a beat officer close by stops the next passer-by at once, with this
+                                        // outcome (police_stop: 0 on their way, 1 a warrant, 2 a run for it); -1 none forced
     double lastParkArrive = -1e9;       // last time a traffic car started pulling into a parking spot (global spacing)
+    double lastCopBreak = -1e9;         // last time a patrol pulled over for a coffee break (one every few minutes)
+    bool forceCopBreak = false;         // autoplay tests: the next patrol close by takes its break at once
     // the player giving up (police.cpp): wanted, on foot, nothing in hand - hold the phone key and the hands go up;
     // officers who see it hold their fire, close in with guns trained and cuff them: a lighter bust (weapons kept, half
     // the fine back after the release). Moving, drawing or firing breaks it.
@@ -335,6 +379,7 @@ struct AIState {
         float sayT = 0.f;               // until the next line
         u8 turn = 0;                    // who speaks next
         u8 lines = 0;                   // lines said so far
+        u8 kind = 0;                    // 0 two who know each other, 1 a stranger (a) asking b the way (no greeting)
     };
     std::vector<StreetMeet> meets;
     float meetScan = 0.f;               // next look for two who know each other

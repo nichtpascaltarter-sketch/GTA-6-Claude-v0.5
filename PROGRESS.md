@@ -286,15 +286,15 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   `Context::wait` for cross-queue fences), ExecuteIndirect (`createCommandSignature`, count buffers, root-constant
   arguments), placed resources and aliasing (`createHeap`, `createPlacedTexture/Buffer`, `aliasingBarrier`,
   `discard`), root constants, bindless.
-- Tests and tools: `--gfxselftest` (and `tests/gfx`) runs 19 checks on the device (bindless + root constants,
-  tables, indirect draws and dispatches, async compute, append counters, read-only depth, placed resources,
-  sRGB mip generation, a long dependent dispatch chain, root arguments across a UAV clear, CPU waits under stray
-  event signals and under 1 ms polling, per-draw root constants selecting instance data, bindless texture-array and
-  structured-buffer reads in a pixel shader, a descriptor table kept across a shader switch); `--d3ddebug` enables the
-  debug layer (Windows Graphics Tools); `--gputimers`/`--synctimers` per-pass timings; `--gfxstats` logs the API
-  work of a frame every 30 frames (draws, dispatches, constant-buffer writes, root CBVs and root-constant sets,
-  descriptor tables and descriptors copied, pipeline changes); `--gfxsync` and `--gfxsplit[=pass,...]` for
-  GPU-fault and hazard hunting.
+- Tests and tools: `--gfxselftest` (and `tests/gfx`) runs 20 checks on the device (bindless + root constants, tables,
+  indirect draws and dispatches, GPU-written instance streams drawn with indexed ExecuteIndirect, async compute,
+  append counters, read-only depth, placed resources, sRGB mip generation, a long dependent dispatch chain, root
+  arguments across a UAV clear, CPU waits under stray event signals and under 1 ms polling, per-draw root constants
+  selecting instance data, bindless texture-array and structured-buffer reads in a pixel shader, a descriptor table
+  kept across a shader switch); `--d3ddebug` enables the debug layer (Windows Graphics Tools);
+  `--gputimers`/`--synctimers` per-pass timings; `--gfxstats` logs the API work of a frame every 30 frames (draws,
+  dispatches, constant-buffer writes, root CBVs and root-constant sets, descriptor tables and descriptors copied,
+  pipeline changes); `--gfxsync` and `--gfxsplit[=pass,...]` for GPU-fault and hazard hunting.
 - Test rig (Wine 9.0, its vkd3d 1.10, lavapipe): no debug layer. Root signatures may not mix root descriptors with
   static samplers (hence the sampler table). vkd3d ignores custom border colors (the shadow sampler's white border:
   out-of-map shadow taps differ from Windows), read-only DSV flags, aliasing barriers and DiscardResource, and has no
@@ -310,9 +310,14 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
      (25-28 KB), root CBV sets 390-800 -> 83-87, descriptor tables 155-230 -> 145-151 with 1,200-2,500 -> 920-1,050
      descriptors copied; the draws set 280-600 root constants instead (one to three DWORDs each). CPU submit time on
      real hardware is still to be measured.
-  2. GPU culling with ExecuteIndirect: a compute pass culls props, foliage and world cells against the frustum and
-     the previous frame's HiZ pyramid and writes draw arguments plus a count; the shadow cascades reuse it per
-     cascade. Removes most CPU gather and draw-call cost.
+  2. GPU culling with ExecuteIndirect: done for props and vegetation (props_render.cpp, propcull.hlsl). Every prop
+     of the near cells sits in a persistent GPU instance buffer (rebuilt when the near cells or the knocked-down
+     props change); one compute pass culls it for the camera and the three prop shadow cascades into per-prototype
+     instance lists with compacted DrawIndexedInstanced arguments and a count, and each pass draws all prototypes
+     with one ExecuteIndirect (traffic signals stay CPU-instanced: their lamps follow the AI phases). The CPU gather
+     over every near-cell prop, four times a frame, is gone; images are unchanged (tour stops 4-13). On the test rig
+     the API draws drop 525 -> 468 a frame with 4 ExecuteIndirect calls, and the pass times are unchanged within the
+     machine-load noise. Still to do: world cells and the previous frame's HiZ for occlusion.
   3. Async compute: sky LUTs, environment-probe filtering, particle simulation and the froxel fog inject/integrate
      on the compute queue, overlapping the shadow and G-buffer rasterization, with a fence before lighting.
      A GPU-time gain on GPUs with async compute; not measurable on the software test rig.

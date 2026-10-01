@@ -1,4 +1,9 @@
-// Instanced prop / vegetation rendering. Included from renderer.cpp.
+// Instanced prop / vegetation rendering, GPU-driven. Every prop of the near cells sits in a persistent instance buffer,
+// rebuilt when the set of near cells (or of props knocked down by gameplay) changes. Each frame one compute pass culls
+// them for the camera and the shadow cascades (distance per prototype, frustum) into per-prototype instance lists and
+// writes compacted draw arguments (shaders/propcull.hlsl), and each pass then draws every prototype with a single
+// ExecuteIndirect. Traffic signals, whose lamps follow the AI's phases every frame, keep a small CPU-instanced path.
+// Included from renderer.cpp.
 namespace World {
 struct PropPrototype;
 void buildPropPrototype(PropType type, int variant, PropPrototype& p);
@@ -11,6 +16,26 @@ static_assert(MAT_LEAVES == 32 && MAT_PALM_FROND == 34, "props.hlsl hardcodes fo
 struct PropInstanceGPU {
     vec4 pos;  // camera-relative xyz, scale
     vec4 rot;  // cos, sin, wind phase, flags
+};
+
+// propcull.hlsl
+struct PropSourceGPU {
+    vec4 posScale;  // world position, scale
+    vec4 rot;       // cos(yaw), sin(yaw), wind phase, prototype index (as uint bits)
+};
+struct PropProtoGPU {
+    float radius, lodDistance;
+    u32 shadow, indexCount, indexStart;
+    int baseVertex;
+    u32 segBase, pad;
+};
+static_assert(sizeof(PropSourceGPU) == 32 && sizeof(PropProtoGPU) == 32, "must match propcull.hlsl");
+
+struct PropCullCBData {
+    vec4 camHi, camLo;
+    vec4 planes[24];   // 4 views x 6 planes
+    vec4 view[4];      // x distance scale, y culled this frame, z shadow view
+    u32 protoCount, slotsPerView, instanceCount, pad;
 };
 
 struct FoliageCBData {
@@ -28,13 +53,30 @@ struct PropRenderer {
     int protoIndex[World::PROP_COUNT][8];
     int variantCount[World::PROP_COUNT];
     gfx::Buffer vb, ib, instBuf;
-    static const int kMaxInstances = 65536;
+    static const int kMaxInstances = 65536;   // CPU path (traffic signals) per pass
     std::vector<std::vector<PropInstanceGPU>> buckets;
     std::vector<PropInstanceGPU> flat;
     gfx::VertexShader vs, vsShadow;
     gfx::PixelShader ps = nullptr, psShadow = nullptr;
     gfx::Texture foliageArr;
-    int drawnInstances = 0;
+    int drawnInstances = 0;   // camera view, as of a couple of frames ago (GPU path) plus this frame's signals
+
+    // GPU path. Views: 0 the camera, 1-3 shadow cascades 0-2 (props cast into the first three cascades only).
+    static const u32 kViews = 4;
+    gfx::ComputeShader csCull = nullptr, csArgs = nullptr;
+    gfx::CommandSignature drawSig = nullptr;
+    gfx::CBuffer<PropCullCBData> cullCB;
+    gfx::Buffer sources, protoTable, lists, counts, args, drawCount;
+    gfx::Buffer statsReadback[3];
+    u64 statsFrame[3] = {0, 0, 0};
+    u32 sourceCount = 0, sourceCapacity = 0, listSlots = 0;
+    std::vector<std::pair<int, StreamCell*>> sourceCells, cellScratch;
+    size_t sourceBroken = 0;
+    std::vector<PropSourceGPU> sourceCpu;
+    std::vector<PropProtoGPU> protoCpu;
+    bool culled = false;   // this frame's lists are valid (the draw passes skip the GPU path otherwise)
+
+    static bool isSignal(int type) { return type == World::PROP_TRAFFIC_LIGHT || type == World::PROP_SIGNAL_SPAN; }
 
     void init(MaterialLibrary* mats) {
         (void)mats;
@@ -89,6 +131,19 @@ struct PropRenderer {
         vsShadow = gfx::loadVS("props.hlsl", "vsPropShadow", layout, 8);
         ps = gfx::loadPS("props.hlsl", "psProp");
         psShadow = gfx::loadPS("props.hlsl", "psPropShadow");
+        // GPU-driven path
+        csCull = gfx::loadCS("propcull.hlsl", "csPropCull");
+        csArgs = gfx::loadCS("propcull.hlsl", "csPropArgs");
+        drawSig = gfx::createCommandSignature(gfx::INDIRECT_DRAW_INDEXED);
+        cullCB.create();
+        u32 np = (u32)protos.size();
+        protoCpu.resize(np);
+        protoTable = gfx::createBuffer(np * sizeof(PropProtoGPU), sizeof(PropProtoGPU), gfx::BUF_STRUCTURED, nullptr, "prop prototypes");
+        std::vector<u32> zeros(kViews * np * 5, 0u);
+        counts = gfx::createBuffer(kViews * np * 4, 4, gfx::BUF_RAW | gfx::BUF_UAV, zeros.data(), "prop list lengths");
+        args = gfx::createBuffer(kViews * np * 20, 4, gfx::BUF_RAW | gfx::BUF_UAV | gfx::BUF_INDIRECT, zeros.data(), "prop draw args");
+        drawCount = gfx::createBuffer(kViews * 4, 4, gfx::BUF_RAW | gfx::BUF_UAV | gfx::BUF_INDIRECT, zeros.data(), "prop draw counts");
+        for (gfx::Buffer& b : statsReadback) b = gfx::createBuffer(np * 20 + 4, 4, gfx::BUF_READBACK, nullptr, "prop draw stats");
         // Foliage textures
         int fsize = Platform::hasArg("autotest") ? 256 : 512;
         foliageArr = createMaterialArray(fsize, 6, true);
@@ -116,10 +171,164 @@ struct PropRenderer {
         return protoIndex[t][p.variant % variantCount[t]];
     }
 
-    // Gather instances from near cells into buckets
+    static float windPhase(const World::PropInstance& pi) {
+        return hashToFloat(hash2i((int)(pi.pos.x * 3.f), (int)(pi.pos.y * 3.f))) * kTwoPi;
+    }
+
+    // ---- GPU path
+
+    // Rebuilds the instance buffer when the near cells (or the knocked-down props) changed: every prop but the traffic
+    // signals, grouped by prototype (each prototype's list gets that many slots per view).
     template <typename CellMap>
-    void gather(CellMap& cells, dvec3 cam, const Frustum& fr, float distScale, bool shadowPass,
-                const std::function<int(int, vec2)>* signalFn = nullptr) {
+    void syncSources(CellMap& cells) {
+        cellScratch.clear();
+        for (auto& kv : cells) {
+            StreamCell* c = kv.second;
+            if (c->lod == 0 && c->state.load() == 2) cellScratch.push_back({kv.first, c});
+        }
+        std::sort(cellScratch.begin(), cellScratch.end());
+        size_t broken = Phys::gCollision ? Phys::gCollision->brokenCount() : 0;
+        if (cellScratch == sourceCells && broken == sourceBroken && sourceCapacity) return;
+        sourceCells = cellScratch;
+        sourceBroken = broken;
+        u32 np = (u32)protos.size();
+        std::vector<u32> perProto(np, 0u);
+        auto visit = [&](auto&& fn) {
+            for (auto& kc : sourceCells) {
+                StreamCell* c = kc.second;
+                int cellKey = WorldRenderer::key(c->cx, c->cy, 0);
+                for (size_t i = 0; i < c->props.size(); i++) {
+                    const World::PropInstance& pi = c->props[i];
+                    if (isSignal(pi.type)) continue;
+                    if (broken && Phys::gCollision->isPropBroken(cellKey, (int)i)) continue;   // knocked down by gameplay
+                    int pr = protoFor(pi);
+                    if (pr >= 0) fn(pi, (u32)pr);
+                }
+            }
+        };
+        visit([&](const World::PropInstance&, u32 pr) { perProto[pr]++; });
+        u32 base = 0;
+        for (u32 p = 0; p < np; p++) {
+            const Proto& P = protos[p];
+            PropProtoGPU& g = protoCpu[p];
+            g.radius = P.radius;
+            g.lodDistance = P.lodDistance;
+            g.shadow = P.shadow ? 1u : 0u;
+            g.indexCount = P.indexCount;
+            g.indexStart = P.indexStart;
+            g.baseVertex = P.baseVertex;
+            g.segBase = base;
+            g.pad = 0;
+            base += perProto[p];
+        }
+        sourceCount = base;
+        sourceCpu.resize(sourceCount);
+        std::vector<u32> fill(np, 0u);
+        visit([&](const World::PropInstance& pi, u32 pr) {
+            PropSourceGPU& s = sourceCpu[protoCpu[pr].segBase + fill[pr]++];
+            s.posScale = vec4(pi.pos, pi.scale);
+            u32 bits = pr;
+            float protoBits;
+            memcpy(&protoBits, &bits, 4);
+            s.rot = vec4(cosf(pi.yaw), sinf(pi.yaw), windPhase(pi), protoBits);
+        });
+        gfx::updateBuffer(protoTable, protoCpu.data(), np * (u32)sizeof(PropProtoGPU));
+        if (sourceCount > sourceCapacity || !sourceCapacity) {
+            // grow in steps (the near world gains and loses cells while moving)
+            u32 cap = Max(Max(sourceCount, sourceCapacity + sourceCapacity / 2), 16384u);
+            sources.release();
+            lists.release();
+            sources = gfx::createBuffer(cap * sizeof(PropSourceGPU), sizeof(PropSourceGPU), gfx::BUF_STRUCTURED, nullptr, "prop instances");
+            lists = gfx::createBuffer(kViews * cap * sizeof(PropInstanceGPU), sizeof(PropInstanceGPU),
+                                      gfx::BUF_VERTEX | gfx::BUF_STRUCTURED | gfx::BUF_UAV, nullptr, "prop instance lists");
+            sourceCapacity = cap;
+        }
+        listSlots = sourceCapacity;
+        if (sourceCount) gfx::updateBuffer(sources, sourceCpu.data(), sourceCount * (u32)sizeof(PropSourceGPU));
+    }
+
+    // Culls every prop for the camera and the shadow cascades that render this frame. Runs after the cascades are set
+    // up and before the shadow and G-buffer passes draw.
+    template <typename CellMap>
+    void cull(Renderer& r, CellMap& cells, const mat4* cascadeVP, const bool* cascadeRenders, int cascadeCount) {
+        culled = false;
+        syncSources(cells);
+        readStats();
+        if (!sourceCount) return;
+        auto* c = gfx::ctx;
+        PropCullCBData& d = cullCB.data;
+        dvec3 cam = r.camera.pos;
+        vec3 hi((float)cam.x, (float)cam.y, (float)cam.z);
+        d.camHi = vec4(hi, 0.f);
+        d.camLo = vec4((float)(cam.x - (double)hi.x), (float)(cam.y - (double)hi.y), (float)(cam.z - (double)hi.z), 0.f);
+        for (u32 v = 0; v < kViews; v++) {
+            bool on = v == 0 || ((int)v - 1 < cascadeCount && cascadeRenders[v - 1]);
+            Frustum fr;
+            fr.fromMatrix(v == 0 ? r.viewProjNoJitter : cascadeVP[v - 1]);
+            for (int k = 0; k < 6; k++) d.planes[v * 6 + k] = fr.planes[k];
+            d.view[v] = vec4(v == 1 ? 0.6f : 1.f, on ? 1.f : 0.f, v > 0 ? 1.f : 0.f, 0.f);
+        }
+        d.protoCount = (u32)protos.size();
+        d.slotsPerView = listSlots;
+        d.instanceCount = sourceCount;
+        d.pad = 0;
+        cullCB.upload();
+        gfx::Resource cbs[] = {cullCB.get()};
+        c->csSetCBs(1, 1, cbs);
+        gfx::SRV srvs[2] = {sources.srv, protoTable.srv};
+        c->csSetSRVs(0, 2, srvs);
+        gfx::UAV uavs[4] = {lists.uav, counts.uav, args.uav, drawCount.uav};
+        c->csSetUAVs(0, 4, uavs);
+        c->setCS(csCull);
+        c->dispatch(gfx::divUp(sourceCount, 64), 1, 1);
+        c->uavBarrier(counts.buf);
+        c->setCS(csArgs);
+        c->dispatch(1, 1, 1);
+        gfx::unbindCSResources(2, 4);
+        // the camera view's draws, for the stats a couple of frames later
+        u32 slot = (u32)(gfx::frameNumber() % 3);
+        c->copyBufferRegion(statsReadback[slot].buf, 0, args.buf, 0, (u64)protos.size() * 20);
+        c->copyBufferRegion(statsReadback[slot].buf, (u64)protos.size() * 20, drawCount.buf, 0, 4);
+        statsFrame[slot] = gfx::frameNumber();
+        culled = true;
+    }
+
+    // Instances and triangles the camera view drew, from the arguments of a frame the GPU has finished (frames in
+    // flight: 2, so the one two frames back)
+    int gpuInstances = 0, gpuTriangles = 0;
+    void readStats() {
+        u64 f = gfx::frameNumber();
+        if (f < 2) return;
+        u32 slot = (u32)((f - 2) % 3);
+        if (statsFrame[slot] != f - 2) return;
+        const u32* a = (const u32*)gfx::mapReadback(statsReadback[slot]);
+        if (!a) return;
+        u32 np = (u32)protos.size();
+        u32 n = Min(a[np * 5], np);
+        gpuInstances = gpuTriangles = 0;
+        for (u32 i = 0; i < n; i++) {
+            gpuInstances += (int)a[i * 5 + 1];
+            gpuTriangles += (int)(a[i * 5] / 3 * a[i * 5 + 1]);
+        }
+    }
+
+    void drawLists(Renderer& r, u32 view) {
+        auto* c = gfx::ctx;
+        gfx::Resource vbs[2] = {vb.buf, lists.buf};
+        u32 strides[2] = {sizeof(VtxStatic), sizeof(PropInstanceGPU)}, offsets[2] = {0, 0};
+        c->setVertexBuffers(0, 2, vbs, strides, offsets);
+        c->setIndexBuffer(ib.buf, DXGI_FORMAT_R32_UINT, 0);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
+        u32 np = (u32)protos.size();
+        c->executeIndirect(drawSig, np, args.buf, (u64)view * np * 20, drawCount.buf, (u64)view * 4);
+        r.stats.drawCalls++;
+    }
+
+    // ---- CPU path (traffic signals)
+
+    template <typename CellMap>
+    void gatherSignals(CellMap& cells, dvec3 cam, const Frustum& fr, float distScale, bool shadowPass,
+                       const std::function<int(int, vec2)>* signalFn = nullptr) {
         for (auto& b : buckets) b.clear();
         bool anyBroken = Phys::gCollision && Phys::gCollision->brokenCount() > 0;
         for (auto& kv : cells) {
@@ -128,6 +337,7 @@ struct PropRenderer {
             int cellKey = WorldRenderer::key(c->cx, c->cy, 0);
             for (size_t idx = 0; idx < c->props.size(); idx++) {
                 const World::PropInstance& pi = c->props[idx];
+                if (!isSignal(pi.type)) continue;
                 if (anyBroken && Phys::gCollision->isPropBroken(cellKey, (int)idx)) continue;  // knocked down by gameplay
                 int pr = protoFor(pi);
                 if (pr < 0) continue;
@@ -139,16 +349,15 @@ struct PropRenderer {
                 if (!fr.testSphere(rp + vec3(0, 0, P.radius * 0.5f * pi.scale), P.radius * pi.scale)) continue;
                 PropInstanceGPU g;
                 g.pos = vec4(rp, pi.scale);
-                float phase = hashToFloat(hash2i((int)(pi.pos.x * 3.f), (int)(pi.pos.y * 3.f))) * kTwoPi;
-                // traffic lamps follow the AI signal phases when the gameplay layer provides them
-                float sigW = ((pi.type == World::PROP_TRAFFIC_LIGHT || pi.type == World::PROP_SIGNAL_SPAN) && signalFn && *signalFn) ? (float)(*signalFn)((int)pi.flags, pi.pos.xy()) + 0.25f : -1.f;
-                g.rot = vec4(cosf(pi.yaw), sinf(pi.yaw), phase, sigW);
+                // the lamps follow the AI signal phases when the gameplay layer provides them
+                float sigW = (signalFn && *signalFn) ? (float)(*signalFn)((int)pi.flags, pi.pos.xy()) + 0.25f : -1.f;
+                g.rot = vec4(cosf(pi.yaw), sinf(pi.yaw), windPhase(pi), sigW);
                 buckets[pr].push_back(g);
             }
         }
     }
 
-    void drawBuckets(Renderer& r, bool shadow) {
+    int drawBuckets(Renderer& r, bool shadow) {
         auto* c = gfx::ctx;
         flat.clear();
         std::vector<std::pair<int, std::pair<u32, u32>>> draws;
@@ -160,7 +369,7 @@ struct PropRenderer {
             flat.insert(flat.end(), buckets[p].begin(), buckets[p].begin() + n);
             draws.push_back({(int)p, {start, n}});
         }
-        if (flat.empty()) return;
+        if (flat.empty()) return 0;
         gfx::updateBuffer(instBuf, flat.data(), (u32)(flat.size() * sizeof(PropInstanceGPU)));
         gfx::Resource  vbs[2] = {vb.buf, instBuf.buf};
         UINT strides[2] = {sizeof(VtxStatic), sizeof(PropInstanceGPU)}, offsets[2] = {0, 0};
@@ -173,20 +382,26 @@ struct PropRenderer {
             r.stats.drawCalls++;
             if (!shadow) r.stats.triangles += (int)(P.indexCount / 3 * d.second.second);
         }
-        if (!shadow) drawnInstances = (int)flat.size();
+        return (int)flat.size();
     }
+
+    // ---- passes
 
     template <typename CellMap>
     void drawGBuffer(Renderer& r, CellMap& cells) {
         auto* c = gfx::ctx;
-        Frustum fr;
-        fr.fromMatrix(r.viewProjNoJitter);
-        gather(cells, r.camera.pos, fr, 1.f, false, &r.signalLampFn);
         c->setInputLayout(vs.layout);
         c->setVS(vs.vs);
         c->setPS(ps);
         c->setRasterState(gfx::states.cullNone);
-        drawBuckets(r, false);
+        if (culled) {
+            drawLists(r, 0);
+            r.stats.triangles += gpuTriangles;
+        }
+        Frustum fr;
+        fr.fromMatrix(r.viewProjNoJitter);
+        gatherSignals(cells, r.camera.pos, fr, 1.f, false, &r.signalLampFn);
+        drawnInstances = gpuInstances + drawBuckets(r, false);
         c->setRasterState(gfx::states.cullBack);
     }
 
@@ -194,12 +409,13 @@ struct PropRenderer {
     void drawShadow(Renderer& r, CellMap& cells, const mat4& lightVP, int cascade) {
         if (cascade >= 3) return;
         auto* c = gfx::ctx;
-        Frustum fr;
-        fr.fromMatrix(lightVP);
-        gather(cells, r.camera.pos, fr, cascade == 0 ? 0.6f : 1.f, true);
         c->setInputLayout(vsShadow.layout);
         c->setVS(vsShadow.vs);
         c->setPS(psShadow);
+        if (culled) drawLists(r, (u32)cascade + 1);
+        Frustum fr;
+        fr.fromMatrix(lightVP);
+        gatherSignals(cells, r.camera.pos, fr, cascade == 0 ? 0.6f : 1.f, true);
         drawBuckets(r, true);
         c->setPS(nullptr);
     }

@@ -268,6 +268,8 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
     }
     pa.diveCooldown -= dt;
     pa.shoutTimer -= dt;
+    if (p.phoneBrowse && !p.isPlayer && pa.activity != ACT_STOPPED) p.phoneBrowse = false;   // (an ID out only while stopped)
+    if (p.faction == FAC_POLICE && p.carry == CARRY_COFFEE && pa.activity != ACT_COP_BREAK) p.carry = CARRY_NONE;   // (break over)
     // just back on their feet after a knock-down (a beating, a fall, a car) at very low health: down again, hurt
     if (pa.knockedDown) {
         pa.knockedDown = false;
@@ -618,6 +620,24 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
             }
         }
     }
+    // ---------------------------------------------------------------- someone running at us along the sidewalk (a chase, a thief
+    // with an officer after them): a quick step aside off their line, the odd word
+    if (pa.sidestepT > 0.f) {
+        pa.sidestepT -= dt;
+    } else if (p.state == PS_ONFOOT && selfBody >= 0 && b.type == BRAIN_WANDER && pa.activity != ACT_HURT && pa.activity != ACT_CUFFED &&
+               pa.activity != ACT_EVENT && pa.greetT <= 0.f && floorf((float)time * 4.f + id * 0.17f) != floorf((float)(time - dt) * 4.f + id * 0.17f)) {
+        traffic.hash.query(traffic.bodies, pos - vec2(7.f), pos + vec2(7.f), [&](int bi) {
+            if (bi == selfBody || pa.sidestepT > 0.f) return;
+            const AI::Body& ob = traffic.bodies[bi];
+            if (ob.kind != AI::BK_PED || ob.speed < 3.6f || fabsf(ob.z - (float)p.pos.z) > 1.5f) return;
+            vec2 rp = pos - ob.pos;
+            float along = dot(rp, ob.fwd), lat = dot(rp, AI::rightOf(ob.fwd));
+            if (along < 0.6f || along > ob.speed * 1.3f + 1.f || fabsf(lat) > 0.95f) return;
+            pa.sidestep = AI::rightOf(ob.fwd) * (lat >= 0.f ? 1.f : -1.f);
+            pa.sidestepT = 0.65f;
+            if (plDist < 25.f) aiSay(id, BK_BUMP, 0.3f);
+        });
+    }
     // ---------------------------------------------------------------- behaviors
     vec2 desired(0, 0);
     float faceYaw = p.yaw;
@@ -639,9 +659,53 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
             vec3 from = b.target >= 0 && peds[b.target].used ? peds[b.target].pos.toVec3() : b.goal.toVec3();
             faceYaw = yawTo(pos, from.xy());
             faceSet = true;
+            // a car standing close by: first a dash round to its far side from the trouble, down behind it there (an
+            // arrested suspect lying where the officer left them stays put)
+            if (b.timer <= dt * 1.5f) {
+                pa.coverVeh = -1;
+                bool held = b.target >= 0 && b.target < (int)peds.size() && peds[b.target].used && peds[b.target].faction == FAC_POLICE;
+                if (!held && p.faction == FAC_CIVILIAN && p.state == PS_ONFOOT) {
+                    std::vector<int> cars;
+                    vehiclesNear(pos, 8.f, cars);
+                    float best = 1e9f;
+                    for (int vi : cars) {
+                        const Vehicle& cv = vehicles[vi];
+                        if (!cv.used || cv.exploded || cv.sim.speed() > 1.f || cv.sim.up().z < 0.8f) continue;
+                        vec2 cp = cv.sim.body.pos.toVec3().xy();
+                        float dc = length(cp - pos);
+                        if (dc < best && length(cp - from.xy()) > 4.f) {
+                            best = dc;
+                            pa.coverVeh = vi;
+                        }
+                    }
+                }
+            }
+            if (pa.coverVeh >= 0 && pa.coverVeh < (int)vehicles.size() && vehicles[pa.coverVeh].used) {
+                const Vehicle& cv = vehicles[pa.coverVeh];
+                vec2 cp = cv.sim.body.pos.toVec3().xy();
+                vec2 away = normalize(cp - from.xy() + vec2(1e-4f, 0.f));
+                float r = Max(vassets[cv.model].spec.boxHalf.x, 0.9f) + 0.75f;
+                vec2 spot = cp + away * r;
+                // (round the car rather than through it, as anyone walking to a door)
+                vec2 cfw = normalize(cv.sim.forward().xy() + vec2(1e-4f, 0.f)), crt = AI::rightOf(cfw);
+                vec2 lp = pos - cp;
+                float lx = dot(lp, crt), ly = dot(lp, cfw), sx = dot(spot - cp, crt);
+                vec2 goal = spot;
+                const Vehicles::VehicleModel& cs = vassets[cv.model].spec;
+                if (lx * sx < 0.f && fabsf(lx) > cs.boxHalf.x * 0.5f)
+                    goal = cp + cfw * ((ly >= 0.f ? 1.f : -1.f) * (cs.boxHalf.y + 0.8f)) + crt * ((lx >= 0.f ? 1.f : -1.f) * (cs.boxHalf.x + 0.6f));
+                vec2 to = goal - pos;
+                float dg = length(to);
+                if (length(spot - pos) > 0.5f && b.timer < 6.f) {
+                    desired = to / Max(dg, 1e-3f) * Min(4.6f, dg * 3.f + 0.8f);   // (a dash)
+                    faceYaw = atan2f(-desired.x, desired.y);
+                    stance = 0;
+                }
+            }
             if (b.timer > 7.f + hashToFloat(hash32(p.uid)) * 8.f) {
                 b.type = BRAIN_FLEE;
                 b.timer = 0.f;
+                pa.coverVeh = -1;
             }
             break;
         }
@@ -650,6 +714,26 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
             vec2 away = pos - from.xy();
             float d = length(away);
             away = d > 1e-3f ? away / d : AI::yawDir(p.yaw);
+            // half a second in (once a run): a bystander with a shop door or a lobby close by, away from the trouble,
+            // dashes in there and is gone (population.cpp: through the door) - not one running from the police or
+            // wanted for something, nor one with company to keep, nor a ped with a part to play
+            if (b.timer >= 0.5f && b.timer - dt < 0.5f && p.faction == FAC_CIVILIAN && !p.persistent && p.state == PS_ONFOOT && pa.leader < 0 &&
+                pa.eventId < 0 && pa.role != PR_DRUNK && hash32(p.uid * 41u + (u32)(time * 0.2)) % 100u < 55u &&
+                !(b.target >= 0 && b.target < (int)peds.size() && peds[b.target].used && peds[b.target].faction == FAC_POLICE)) {
+                bool wanted = false;
+                for (const Incident& inc : ai.incidents) wanted |= inc.active && inc.kind == 2 && inc.perp == id;
+                vec3 door;
+                if (!wanted && aiBuildingDoorAway(*this, pos, from.xy(), 22.f, door)) {
+                    pa.activity = ACT_ENTER_VEH;   // (walk to a point and vanish: population.cpp)
+                    pa.targetVeh = -1;
+                    b.type = BRAIN_GOTO;
+                    b.goal = dvec3(door);
+                    b.speed = 5.6f;
+                    b.timer = 0.f;
+                    ai.stats.shelters++;
+                    break;
+                }
+            }
             // prefer running along the street (sidewalks) instead of into walls: blend with the sidewalk direction
             if (pa.navOk && pa.walk.link >= 0) {
                 vec2 t = laneGraph.walkTangent(pa.walk.link, pa.walk.x, pa.walk.fromA);
@@ -774,12 +858,35 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                             break;
                         }
                         Ped& L = peds[pa.leader];
+                        PedAI& la = pedAI(pa.leader);
+                        float lspd = length(L.vel.xy());
+                        // two out together, the companion beside the leader: one pair in two is a couple, walking hand in
+                        // hand a little closer (peds.cpp joins the hands) - not while either has something in hand, the
+                        // leader is on the phone or smoking, or they have stopped
+                        if (pa.couple < 0) {   // (decided once)
+                            bool beside = pa.slot.y == 0.f && fabsf(pa.slot.x) > 0.5f;
+                            bool roles = (pa.role == PR_CIVILIAN || pa.role == PR_TOURIST || pa.role == PR_NIGHTLIFE || pa.role == PR_BEACH) &&
+                                         p.faction == FAC_CIVILIAN && L.faction == FAC_CIVILIAN;
+                            bool third = false;   // (a group of three: no)
+                            for (int j = 0; j < (int)peds.size() && j < (int)ai.ped.size() && !third; j++)
+                                third = j != id && peds[j].used && ai.ped[j].leader == pa.leader && ai.ped[j].leaderUid == L.uid;
+                            pa.couple = beside && roles && !third && hash32(L.uid * 13u + p.uid * 7u) % 100u < 60u ? 1 : 0;
+                        }
+                        bool hand = pa.couple == 1 && lspd > 0.4f && la.walkStance == 0 && effectiveCarry(p) == CARRY_NONE && effectiveCarry(L) == CARRY_NONE &&
+                                    L.state == PS_ONFOOT && la.activity == ACT_WALK && la.greetWith < 0;
+                        float sideX = hand ? (pa.slot.x > 0.f ? 0.62f : -0.62f) : pa.slot.x;
                         vec2 lf = AI::yawDir(L.yaw), lr = AI::rightOf(lf);
-                        vec2 slot = L.pos.toVec3().xy() + lr * pa.slot.x + lf * pa.slot.y;
+                        vec2 slot = L.pos.toVec3().xy() + lr * sideX + lf * pa.slot.y;
                         vec2 to = slot - pos;
                         float d = length(to);
-                        float lspd = length(L.vel.xy());
                         if (d > 0.25f) desired = to / d * Min(lspd + d * 1.2f, 2.8f);
+                        if (hand && d < 0.9f) {
+                            pa.handWith = pa.leader;
+                            pa.handUid = L.uid;
+                            la.handWith = id;
+                            la.handUid = p.uid;
+                            pa.handT = la.handT = (float)time;
+                        }
                         if (lspd < 0.3f && d < 1.2f) {
                             // leader stopped: face the group and chat
                             faceYaw = yawTo(pos, L.pos.toVec3().xy());
@@ -788,7 +895,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         } else if (length(desired) > 0.2f) {
                             faceYaw = atan2f(-desired.x, desired.y);
                             faceSet = true;
-                            if ((p.uid + (u32)(time * 0.1)) % 2 == 0) stance = 7;   // chatting on the way
+                            if (!hand && (p.uid + (u32)(time * 0.1)) % 2 == 0) stance = 7;   // chatting on the way
                         }
                         break;
                     }
@@ -850,7 +957,26 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         }
                     }
                     // occasional stops: scenario, phone call, bench, bus stop
-                    if (pa.actTimer <= 0.f) {
+                    if (pa.actTimer <= 0.f && pa.role == PR_COP) {
+                        // officers walking a beat: now and then a pause at the kerb, looking up and down the street (the
+                        // partner waits with them) - no benches, cigarettes or phone calls on duty
+                        u32 h = hash32(p.uid * 31u + (u32)(time * 3.0));
+                        pa.actTimer = 15.f + hashToFloat(h) * 20.f;
+                        const AI::WalkLink* L = pa.walk.link >= 0 && pa.walk.link < (int)laneGraph.walkLinks.size() ? &laneGraph.walkLinks[pa.walk.link] : nullptr;
+                        if (hashToFloat(hash32(h)) < 0.35f && pa.walk.state == AI::WS_WALK && L && L->kind == AI::WL_SIDEWALK) {
+                            float side = pa.walk.fromA == (L->sb >= L->sa) ? 1.f : -1.f;
+                            float outward = L->lat > 0.f ? 1.f : -1.f;
+                            float lat = -outward * L->halfWidth * side * 0.6f;   // (toward the kerb)
+                            vec3 a = laneGraph.walkPos(pa.walk.link, pa.walk.x, lat, pa.walk.fromA);
+                            vec2 street = normalize(laneGraph.walkPos(pa.walk.link, pa.walk.x, lat * 3.f, pa.walk.fromA).xy() - a.xy() + vec2(1e-4f, 0.f));
+                            pa.activity = ACT_SCENARIO;
+                            pa.anchor = a.xy();
+                            pa.anchorYaw = atan2f(-street.x, street.y);
+                            pa.stance = (h >> 7) & 1 ? 14 : 23;   // (looking about / standing easy)
+                            pa.clip = -1;
+                            pa.actTimer = 12.f + hashToFloat(hash32(h * 3u)) * 14.f;
+                        }
+                    } else if (pa.actTimer <= 0.f) {
                         u32 h = hash32(p.uid * 31u + (u32)(time * 3.0));
                         pa.actTimer = 12.f + hashToFloat(h) * 25.f;
                         float r = hashToFloat(hash32(h));
@@ -1572,12 +1698,13 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                                 float side = fabsf(ly) < cs.boxHalf.y + 0.6f || ly * endSign < 0.f ? pedSide : doorSide;
                                 goal = cc + cfw * (endSign * (cs.boxHalf.y + 0.8f)) + AI::rightOf(cfw) * (side * (cs.boxHalf.x + 0.6f));
                             }
-                            vec2 tg = goal - pos;
-                            float dg = Max(length(tg), 1e-3f);
                             // (at the officer's pace; the last few metres round the car regardless - the officer may be
                             //  a step behind, held up by the bodywork)
                             bool atCar = length(cv.sim.body.pos.toVec3().xy() - pos) < cs.boxHalf.y + 2.5f;
                             float spd = copD < 2.2f || atCar ? Min(1.15f, d * 2.f + 0.3f) : (copD < 3.5f ? 0.5f : 0.f);
+                            // round a bench, a bollard or a planter on the way, not into it (ai.cpp)
+                            vec2 tg = aiWalkRound(*this, id, goal, spd, dt) - pos;
+                            float dg = Max(length(tg), 1e-3f);
                             desired = tg / dg * spd;
                             faceYaw = atan2f(-tg.x, tg.y);
                         } else if (copD < 6.f) {
@@ -1611,6 +1738,166 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     if (pa.shoutTimer <= 0.f && plDist < 35.f) {
                         aiSay(id, BK_SUSPECT, 0.55f);
                         pa.shoutTimer = 5.f + hashToFloat(hash32(p.uid + (u32)time)) * 6.f;
+                    }
+                    break;
+                }
+                case ACT_COP_BREAK: {
+                    // a patrol crew on a coffee break (traffic.cpp): on the sidewalk beside the car, coffee in hand, turned
+                    // to each other, a word now and then; the time up, back to the door they got out of and in - the car
+                    // pulls out once everybody is in
+                    int hv = pa.homeVeh;
+                    bool carOk = hv >= 0 && hv < (int)vehicles.size() && hv < (int)ai.veh.size() && vehicles[hv].used && !vehicles[hv].exploded &&
+                                 vehicles[hv].faction == FAC_POLICE && ai.veh[hv].copBreak >= 2;
+                    if (!carOk) {
+                        pa.activity = ACT_WALK;
+                        pa.navOk = false;
+                        p.carry = CARRY_NONE;
+                        break;
+                    }
+                    VehAI& hva = vehAI(hv);
+                    const Vehicle& hvv = vehicles[hv];
+                    const Vehicles::VehicleModel& hs = vassets[hvv.model].spec;
+                    vec2 cpos = hvv.sim.body.pos.toVec3().xy();
+                    // (to a point on the far side of the car: round its end, not through the bodywork)
+                    auto roundCar = [&](vec2 target) {
+                        vec2 cfw = normalize(hvv.sim.forward().xy() + vec2(1e-4f, 0.f)), crt = AI::rightOf(cfw);
+                        vec2 lp = pos - cpos;
+                        float lx = dot(lp, crt), ly = dot(lp, cfw), dx = dot(target - cpos, crt);
+                        if (lx * dx >= 0.f || fabsf(lx) <= hs.boxHalf.x * 0.5f) return target;
+                        float endSign = aiCarEndToWalkRound(*this, hv, ly >= 0.f ? 1.f : -1.f);
+                        float side = fabsf(ly) < hs.boxHalf.y + 0.6f || ly * endSign < 0.f ? (lx >= 0.f ? 1.f : -1.f) : (dx >= 0.f ? 1.f : -1.f);
+                        return cpos + cfw * (endSign * (hs.boxHalf.y + 0.8f)) + crt * (side * (hs.boxHalf.x + 0.6f));
+                    };
+                    if (hva.copBreak == 2 && pa.actTimer > 0.f) {
+                        vec2 to = roundCar(pa.anchor) - pos;
+                        float d = length(pa.anchor - pos), dg = length(to);
+                        if (d > 0.4f) {
+                            desired = to / Max(dg, 1e-3f) * Min(1.3f, dg * 1.5f + 0.3f);
+                            faceYaw = atan2f(-desired.x, desired.y);
+                        } else {
+                            int mate = -1;
+                            float md = 5.f;
+                            for (int j = 0; j < (int)peds.size() && j < (int)ai.ped.size(); j++) {
+                                if (j == id || !peds[j].used || ai.ped[j].uid != peds[j].uid || ai.ped[j].activity != ACT_COP_BREAK || ai.ped[j].homeVeh != hv) continue;
+                                float dj = length(peds[j].pos.toVec3().xy() - pos);
+                                if (dj < md) {
+                                    md = dj;
+                                    mate = j;
+                                }
+                            }
+                            faceYaw = mate >= 0 ? yawTo(pos, peds[mate].pos.toVec3().xy()) : yawTo(pos, pos + (pos - cpos));
+                            if ((hash32(p.uid * 3u + (u32)(time * 0.2)) % 3u) == 0u) stance = 7;   // (a word now and then)
+                            if (pa.shoutTimer <= 0.f && plDist < 30.f && mate >= 0) {
+                                aiSay(id, BK_COP_BREAK, 0.5f);
+                                pa.shoutTimer = 7.f + hashToFloat(hash32(p.uid + (u32)time)) * 6.f;
+                            }
+                        }
+                        faceSet = true;
+                        break;
+                    }
+                    if (hva.copBreak == 2) hva.copBreak = 3;   // (the first one whose time is up calls it)
+                    // back in through the door they got out of (another free one if that seat was taken meanwhile)
+                    int ns = Min((int)hs.seats.size(), 8);
+                    int seat = pa.breakSeat < ns && hvv.seats[pa.breakSeat] < 0 ? pa.breakSeat : -1;
+                    for (int k = 0; k < ns && seat < 0; k++)
+                        if (hvv.seats[k] < 0) seat = k;
+                    if (seat < 0) {
+                        pa.activity = ACT_WALK;
+                        pa.navOk = false;
+                        p.carry = CARRY_NONE;
+                        break;
+                    }
+                    bool left = hs.seats[seat].exitLeft;
+                    vec2 door = (hvv.sim.body.pos.toVec3() + rotate(hvv.sim.body.rot, vec3(left ? -(hs.boxHalf.x + 0.5f) : hs.boxHalf.x + 0.5f, hs.seats[seat].pos.y, 0.f))).xy();
+                    vec2 goal = roundCar(door);   // (round the car's end to a door on the street side)
+                    vec2 tg = goal - pos;
+                    float dg = length(tg);
+                    if (length(door - pos) > 0.8f) {
+                        desired = tg / Max(dg, 1e-3f) * Min(1.5f, dg * 2.f + 0.4f);
+                        faceYaw = atan2f(-desired.x, desired.y);
+                        faceSet = true;
+                        break;
+                    }
+                    p.carry = CARRY_NONE;
+                    warpPedIntoVehicle(id, hv, seat);
+                    b.type = seat == 0 ? BRAIN_DRIVER : BRAIN_PASSENGER;
+                    pa.activity = ACT_WALK;
+                    // everybody in: back on patrol
+                    bool out = false;
+                    for (int j = 0; j < (int)peds.size() && j < (int)ai.ped.size() && !out; j++)
+                        out = j != id && peds[j].used && ai.ped[j].uid == peds[j].uid && ai.ped[j].activity == ACT_COP_BREAK && ai.ped[j].homeVeh == hv &&
+                              peds[j].state == PS_ONFOOT && peds[j].health > 0.f;
+                    if (!out && vehicles[hv].seats[0] >= 0) {
+                        vehicles[hv].parked = false;
+                        hva.copBreak = 0;
+                        hva.errandTimer = -240.f;   // (no other break for a good while)
+                        attachTraffic(hv);
+                        LOG("police: patrol %d back on patrol after its break", hv);
+                    }
+                    return;
+                }
+                case ACT_STOPPED: {
+                    // stopped on the sidewalk by a beat officer (police.cpp police_stop): stood where they were, turned to
+                    // the officer coming up; a question, the ID out of the pocket and handed over, a wait while it is run
+                    // (shifting from foot to foot), then on their way - the officer's clock (stopT) paces it
+                    int cop = pa.stopPed;
+                    bool copOk = cop >= 0 && cop < (int)peds.size() && cop < (int)ai.ped.size() && peds[cop].used && peds[cop].uid == pa.stopUid &&
+                                 peds[cop].health > 0.f && ai.ped[cop].uid == peds[cop].uid && ai.ped[cop].stopPed == id && !ai.ped[cop].stopCover &&
+                                 peds[cop].brain.type == BRAIN_GOTO && peds[cop].brain.target == -5;
+                    if (!copOk || pa.actTimer <= 0.f) {
+                        pa.activity = ACT_WALK;
+                        pa.stopPed = -1;
+                        p.phoneBrowse = false;
+                        pa.actTimer = 10.f + hashToFloat(hash32(p.uid + (u32)time)) * 10.f;
+                        break;
+                    }
+                    vec2 cpos = peds[cop].pos.toVec3().xy();
+                    faceYaw = length(cpos - pos) < 15.f ? yawTo(pos, cpos) : p.yaw;
+                    faceSet = true;
+                    float T = pa.stopT;
+                    stance = 0;
+                    p.phoneBrowse = T >= 3.f && T < 4.8f;   // (the ID out: a phone wallet held out)
+                    if (T >= 4.8f && T < 12.6f) stance = 23;   // (waiting: weight from one foot to the other)
+                    if (T >= 3.1f && T - dt < 3.1f) aiSay(id, BK_STOPPED, 0.9f, true);
+                    if (T >= 14.2f && T - dt < 14.2f) aiSay(id, BK_STOPPED_END, 0.9f, true);
+                    break;
+                }
+                case ACT_STATEMENT: {
+                    // telling an officer what they saw (police.cpp police_statement): standing where they were until the
+                    // officer is in front of them (turned to them as they come up), then listening to a question and
+                    // telling it, a point at where it happened; the officer done or called away: on their way
+                    int cop = pa.stmtWith;
+                    bool copOk = cop >= 0 && cop < (int)peds.size() && cop < (int)ai.ped.size() && peds[cop].used && peds[cop].uid == pa.stmtUid &&
+                                 peds[cop].health > 0.f && ai.ped[cop].uid == peds[cop].uid && ai.ped[cop].stmtWith == id &&
+                                 peds[cop].brain.type == BRAIN_GOTO && peds[cop].brain.target == -4;
+                    if (!copOk || pa.actTimer <= 0.f) {
+                        pa.activity = ACT_WALK;
+                        pa.stmtWith = -1;
+                        pa.actTimer = 10.f + hashToFloat(hash32(p.uid + (u32)time)) * 10.f;
+                        break;
+                    }
+                    vec2 cpos = peds[cop].pos.toVec3().xy();
+                    float copD = length(cpos - pos);
+                    faceYaw = copD < 15.f ? yawTo(pos, cpos) : p.yaw;
+                    faceSet = true;
+                    stance = 0;
+                    if (pa.stmtT > 0.f) {
+                        // (the officer's clock: police_statement::step - the same length from the same two people)
+                        float T = pa.stmtT;
+                        float len = 15.f + hashToFloat(hash32(peds[cop].uid * 7u + p.uid)) * 7.f;
+                        bool asked = T < 3.f || (T > len * 0.55f && T < len * 0.55f + 2.6f);
+                        if (!asked) stance = 7;
+                        // "it came from over there": turned to the spot for a moment, pointing
+                        bool sceneAway = length(pa.stmtScene - pos) > 3.f;
+                        if (sceneAway && T >= 4.2f && T < 5.6f) {
+                            faceYaw = yawTo(pos, pa.stmtScene);
+                            stance = 0;
+                            if (T - dt < 4.2f && p.pendingAction < 0) p.pendingAction = Anim::CLIP_POINT;
+                        }
+                        if (!asked && T > 3.4f && pa.shoutTimer <= 0.f) {
+                            aiSay(id, BK_WITNESS, 0.85f, true);
+                            pa.shoutTimer = 5.f + hashToFloat(hash32(p.uid * 3u + (u32)time)) * 4.f;
+                        }
                     }
                     break;
                 }
@@ -1691,6 +1978,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
         }
     }
     if (pa.activity == ACT_HURT) desired = vec2(0.f);
+    if (pa.sidestepT > 0.f && b.type == BRAIN_WANDER) desired += pa.sidestep * 2.2f;   // (out of a runner's way)
     // face & move
     if (faceSet) turnTo(p, faceYaw, turnRate, dt);
     else if (length2(desired) > 0.04f) turnTo(p, atan2f(-desired.x, desired.y), turnRate, dt);
@@ -1763,6 +2051,55 @@ void GameWorld::aiStreetMeets(float dt) {
         m.t -= dt;
         m.sayT -= dt;
         bool done = false;
+        if (m.kind == 1) {
+            // asking the way: up to them, the question, the answer with a point down the street (the way the one asking
+            // was going), a thanks, and on
+            switch (m.phase) {
+                case 0:   // stopping face to face
+                    if ((length(peds[m.a].pos.toVec3().xy() - qa.anchor) < 0.3f && length(peds[m.b].pos.toVec3().xy() - qb.anchor) < 0.3f) || m.t <= 0.f) {
+                        aiSay(m.a, BK_ASK_WAY, 1.f, true);
+                        m.phase = 1;
+                        m.sayT = Max(peds[m.a].speechCooldown, 1.2f) + 0.3f;
+                        m.t = 9.f;
+                    }
+                    break;
+                case 1:   // the answer: turned half round, pointing down the street
+                    if (m.sayT <= 0.f) {
+                        vec2 way = AI::yawDir(qa.anchorYaw);   // (the way the one asking was walking)
+                        qb.anchorYaw = AI::dirYaw(normalize(way + AI::yawDir(qb.anchorYaw) * 0.35f + vec2(1e-4f, 0.f)));
+                        if (peds[m.b].pendingAction < 0) peds[m.b].pendingAction = Anim::CLIP_POINT;
+                        aiSay(m.b, BK_GIVE_WAY, 1.f, true);
+                        m.phase = 2;
+                        m.sayT = Max(peds[m.b].speechCooldown, 1.6f) + 0.4f;
+                    } else if (m.t <= 0.f) {
+                        m.phase = 2;
+                        m.sayT = 0.f;
+                    }
+                    break;
+                case 2:   // the thanks
+                    if (m.sayT <= 0.f) {
+                        qb.anchorYaw = AI::dirYaw(normalize(qa.anchor - qb.anchor + vec2(1e-4f, 0.f)));   // (back to them)
+                        aiSay(m.a, BK_WAY_THANKS, 1.f, true);
+                        m.phase = 3;
+                        m.t = 1.6f;
+                    }
+                    break;
+                default:
+                    if (m.t <= 0.f) {
+                        walkOn(*this, m.a);
+                        walkOn(*this, m.b);
+                        done = true;
+                        LOG("street meet: %d asked %d the way", m.a, m.b);
+                    }
+                    break;
+            }
+            if (done) {
+                ai.meets.erase(ai.meets.begin() + k);
+                continue;
+            }
+            k++;
+            continue;
+        }
         switch (m.phase) {
             case 0:   // stepping in
                 if (pop_detail::greetReady(*this, m.a, m.b) || m.t <= 0.f) {
@@ -1840,9 +2177,41 @@ void GameWorld::aiStreetMeets(float dt) {
             if (dot(d, fa) < dist * 0.8f || fabsf(cross(fa, d)) > 2.2f || dot(normalize(B.vel.xy()), fa) > -0.7f) continue;
             // who knows whom: a few pairs in a hundred
             u32 lo = Min(A.uid, B.uid), hi = Max(A.uid, B.uid);
-            if (hashToFloat(hash32(lo * 2654435761u ^ (hi + 0x6d2b79f5u))) > 0.035f * ai.meetBoost) continue;
             PedAI& qa = pedAI(a);
             PedAI& qb = pedAI(b);
+            if (hashToFloat(hash32(lo * 2654435761u ^ (hi + 0x6d2b79f5u))) > 0.035f * ai.meetBoost) {
+                // strangers: now and then one asks the other the way (a tourist more often; never one tourist another)
+                float ask = (qa.role == PR_TOURIST ? 0.22f : 0.03f) * ai.meetBoost;
+                if (qb.role == PR_TOURIST || hashToFloat(hash32(A.uid * 7919u + B.uid * 31u + 0x2545f491u)) > ask) continue;
+                vec2 pb = B.pos.toVec3().xy(), mid = (pa + pb) * 0.5f;
+                vec2 dir = normalize(pb - pa + vec2(1e-4f, 0.f));
+                qa.anchor = mid - dir * 0.55f;
+                qb.anchor = mid + dir * 0.55f;
+                qa.anchorYaw = AI::dirYaw(dir);
+                qb.anchorYaw = AI::dirYaw(-dir);
+                for (int i : {a, b}) {
+                    PedAI& q = pedAI(i);
+                    q.activity = ACT_MEET;
+                    q.greetWith = i == a ? b : a;
+                    q.greetT = 0.f;
+                    q.stance = 0;
+                    q.clip = -1;
+                    q.walkStance = 0;
+                    q.actTimer = 60.f;
+                }
+                AIState::StreetMeet m;
+                m.a = a;
+                m.b = b;
+                m.ua = A.uid;
+                m.ub = B.uid;
+                m.kind = 1;
+                m.t = 1.5f + dist / 1.1f;
+                ai.meets.push_back(m);
+                ai.meetsStarted++;
+                ai.meetGap = (35.f + hashToFloat(hash32(A.uid + 77u)) * 45.f) / Max(ai.meetBoost, 1.f);
+                LOG("street meet %d: ped %d asks %d the way at %.0f %.0f", ai.meetsStarted, a, b, pa.x, pa.y);
+                return;
+            }
             bool formal = qa.role == PR_BUSINESS && qb.role == PR_BUSINESS;
             int clip = pop_detail::greetPick(*this, a, b, hash32(lo * 7919u + hi), formal);
             if (clip < 0) continue;
