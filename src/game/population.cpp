@@ -2081,6 +2081,8 @@ void GameWorld::updatePopulation(float dt) {
                 va.task = 0;
                 inc.unit = vid;
                 nEms++;
+                LOG("population: %s %d sent to the incident at %.0f %.0f from %.0f m", inc.kind == 0 ? "ambulance" : "fire truck", vid, ip.x, ip.y,
+                    length(c.xy() - ip));
                 break;
             }
         }

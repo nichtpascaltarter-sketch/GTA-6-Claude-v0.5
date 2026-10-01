@@ -509,7 +509,8 @@ struct ParticleSystem {
     void draw(Renderer& r, ID3D11RenderTargetView* reactive, ID3D11BlendState* blendWithReactive) {
         if (drawCount <= 0) return;
         auto* c = gfx::ctx;
-        // Local lights for particle lighting: the brightest nearby lights of this frame
+        // Local lights for particle lighting: the brightest nearby lights of this frame, three float4 each (position
+        // and radius, intensity and outer cone, direction and inner cone: puffs respect spot cones and headlight beams)
         const std::vector<LightGPU>& lf = r.lightsFrame;
         std::vector<std::pair<float, int>> best;
         for (int i = 0; i < (int)lf.size(); i++) {
@@ -519,11 +520,12 @@ struct ParticleSystem {
             best.push_back({-w, i});
         }
         std::sort(best.begin(), best.end());
-        int nl = Min((int)best.size(), 16);
+        int nl = Min((int)best.size(), 10);
         for (int i = 0; i < nl; i++) {
             const LightGPU& L = lf[(size_t)best[(size_t)i].second];
-            cb.data.lights[i * 2] = vec4(L.pos, L.radius);
-            cb.data.lights[i * 2 + 1] = vec4(L.color, 0);
+            cb.data.lights[i * 3] = vec4(L.pos, L.radius);
+            cb.data.lights[i * 3 + 1] = vec4(L.color, L.spotCos);
+            cb.data.lights[i * 3 + 2] = vec4(L.dir, L.spotInner);
         }
         cb.data.lightCount = vec4((float)nl, 0, 0, 0);
         cb.data.sim1 = vec4(rel(origin, r.camera.pos), 0);

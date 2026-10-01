@@ -278,9 +278,12 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
             else if (pat == 7u) emissive *= frac(t * 0.33 + ph) < 0.5 ? 1.0 : 0.05;
             else if (pat == 8u) emissive = hsvToRgbF(frac(t * 0.45 + ph)) * dot(emissive, 0.3333) * 1.6;   // fast hue (club)
             else if (pat == 9u) emissive *= 0.6 + 0.4 * sin(t * 37.0 + ph * 40.0) * sin(t * 23.0 + ph * 7.0);   // TV flicker
-            // a glow at a fixed brightness on screen whatever the exposure (mission markers): the object's emissive
-            // scale is the displayed level (0.5 = half of white before tone mapping), day and night alike
-            else if (pat == 10u) emissive *= 1.0 / (400.0 * max(preExposure(), 1e-9));
+            // a glow at a fixed brightness on screen whatever the exposure (mission markers), in the object's tint (the
+            // body too): the object's emissive scale is the displayed level (0.5 = half of white before tone mapping)
+            else if (pat == 10u) {
+                emissive *= gTint0.rgb / (400.0 * max(preExposure(), 1e-9));
+                albedo *= gTint0.rgb;
+            }
         }
     } else if (matId == M_SKIN) {
         sm = SM_SKIN;

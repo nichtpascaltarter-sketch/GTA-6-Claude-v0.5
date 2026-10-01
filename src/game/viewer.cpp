@@ -3,7 +3,8 @@
 // Characters are lined up 1.6 m apart at kViewerOrigin + (0, 20), each playing a different clip.
 // Use --shot to place the camera, e.g. to look at vehicle i from the front-left:
 //   --shot "X,Y,Z,yawDeg,pitchDeg,hour,name" with X = -300 + 8*i - 4, Y = 1500 + 6, Z = height + 1.6
-// --protagonists puts Mari and Dex (protagonists.h) in the first two character slots.
+// --protagonists puts Mari and Dex (protagonists.h) in the first two character slots; --clod 1|2 shows the
+// characters' crowd LODs.
 #include "protagonists.h"
 namespace Game {
 
@@ -72,7 +73,10 @@ struct Viewer {
                 if (Platform::hasArg("protagonists") && i < 2) c.desc = protagonistDesc(i);
                 Anim::buildSkeleton(c.desc, c.skel);
                 SkinnedMeshData mesh;
-                Anim::buildCharacterMesh(c.desc, c.skel, mesh);
+                // --clod 1|2: the crowd LODs (LOD1 ~4.5k triangles, LOD2 ~1.5k) instead of the full mesh
+                const int clod = Platform::argValue("clod") ? Clamp(atoi(Platform::argValue("clod")), 0, 2) : 0;
+                if (clod > 0) Anim::buildCharacterMeshLod(c.desc, c.skel, clod, mesh);
+                else Anim::buildCharacterMesh(c.desc, c.skel, mesh);
                 c.model = r.dynamic->createSkinnedModel(mesh);
                 c.anim.init(&c.skel, (u32)i);
                 c.clip = i % Anim::CLIP_COUNT;

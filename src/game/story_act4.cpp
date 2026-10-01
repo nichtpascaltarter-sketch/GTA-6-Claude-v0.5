@@ -23,6 +23,18 @@ bool interiorWait(const char* name, float& waited, float dt) {
     return !Interiors::ready(name) && waited < 8.f;
 }
 
+// A scene about to play beside a vehicle that is burning out (a chase target stopped with its engine shot dead
+// catches fire and goes up seven seconds later): the fire goes out, so the people in the scene are not blown across
+// it halfway through. The engine barely turns over afterwards.
+void calmFires(GameWorld& g, vec3 at, float r) {
+    for (Vehicle& v : g.vehicles) {
+        if (!v.used || v.exploded || v.fireTimer <= 0.f || ::length(v.sim.body.pos.toVec3() - at) > r) continue;
+        v.fireTimer = 0.f;
+        v.sim.engineHealth = Max(v.sim.engineHealth, 1.f);
+        v.sim.health = Max(v.sim.health, 1.f);
+    }
+}
+
 // A cast member's voice under another name (a returning face: Chuy speaks with the Cuervo lieutenant's voice)
 void sayAs(GameWorld& g, int cast, int ped, const char* name, const std::string& text, float pause = 0.25f) {
     DialogueLine l = line(name, text, pedAlive(g, ped) ? ped : -1, kCast[cast].color);
@@ -247,6 +259,7 @@ public:
             if (pedAlive(g, e)) setFlee(g, e, g.player);
         if (g.playerVehicle() >= 0) g.removePedFromVehicle(g.player, false);
         vec3 np = pedPos(g, nando);
+        calmFires(g, np, 20.f);
         vec2 away = normalize(playerPos(g).xy() - np.xy() + vec2(1e-3f, 0.f));
         placePlayer(g, np + vec3(away * 2.2f, 0.f), yawTo(np.xy() + away * 2.2f, np.xy()));
         if (dex >= 0) {
@@ -924,7 +937,18 @@ public:
         if (!establish(g, shots, plat, atan2f(-S.dir.x, S.dir.y) + kPi * 0.5f, 60.f, 20.f, 6.f, 50.f))
             shots.push_back(shotMove(plat + vec3(S.right() * 70.f, 45.f), plat + vec3(0, 0, 2.f), plat + vec3(S.right() * 55.f, 35.f), plat + vec3(0, 0, 1.5f),
                                      6.f, 50.f));
-        shots.push_back(shotOver(playerPos(g), plat, 5.f));
+        // Mari at the foot of the stair, the platform edge above her: from out in the street (an over-the-shoulder from
+        // the stair foot only sees the underside of the viaduct)
+        vec3 me = playerPos(g), look = vec3(me.xy(), me.z + 1.6f + (plat.z + 1.f - me.z - 1.6f) * 0.35f);
+        bool framed = false;
+        for (int k = 0; k < 4 && !framed; k++) {
+            vec3 cam = me + vec3(S.right() * (k < 2 ? 8.f : -8.f) + S.dir * (k & 1 ? -4.f : 4.f), 1.5f);
+            cam.z = groundAt(g, cam.x, cam.y, me.z + 3.f) + 1.5f;
+            if (insideBuilding(g, cam) || !clearView(g, dvec3(cam), dvec3(me + vec3(0.f, 0.f, 1.5f)))) continue;
+            shots.push_back(shotMove(cam, look, cam + (me - cam) * 0.12f, look, 5.f, 50.f));
+            framed = true;
+        }
+        if (!framed) shots.push_back(shotOver(playerPos(g), plat, 5.f));
         g.mCutscene(shots);
 #ifdef HAVE_AUDIO
         Audio::play2D(Audio::SFX_PHONE_RING, 0.7f);
@@ -1329,6 +1353,7 @@ public:
         gMissions.suppressPolice = true;
         Ped* pl = g.playerPed();
         vec3 pp = playerPos(g);
+        calmFires(g, pp, 30.f);   // (the plane, shot up on the apron)
         float pyaw = pl ? pl->yaw : 0.f;
         vec2 fw = dirFromYaw(pyaw);
         vec3 op = pp + vec3(fw * 3.4f + vec2(-fw.y, fw.x) * 0.8f, 0.f);
@@ -1806,6 +1831,7 @@ public:
                 g.mClearBlips();
                 g.mObjective("");
                 vec3 cp3 = cuervoBoat >= 0 ? vehPos(g, cuervoBoat) : campWater;
+                calmFires(g, cp3, 25.f);
                 int pv = g.playerVehicle();
                 vec3 w;
                 if (pv >= 0 && g.isBoat(pv) && findWater(g, cp3.xy() + vec2(7.f, 5.f), 0.6f, w, 30.f)) teleportVehicle(g, pv, w, yawTo(w.xy(), cp3.xy()));
@@ -2114,6 +2140,7 @@ public:
         if (suv >= 0) releaseDriver(g, suv);
         if (pedAlive(g, sable) && g.peds[sable].vehicle >= 0) g.removePedFromVehicle(sable, false);
         vec3 sp = pedAlive(g, sable) ? pedPos(g, sable) : quay;
+        calmFires(g, sp, 25.f);
         if (g.playerVehicle() >= 0) g.removePedFromVehicle(g.player, false);
         vec2 toShip = normalize(gangway.xy() - sp.xy() + vec2(1e-3f, 0.f));
         vec3 mp = sp - vec3(toShip * 5.5f, 0.f);

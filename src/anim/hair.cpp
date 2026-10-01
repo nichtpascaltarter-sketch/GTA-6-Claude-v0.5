@@ -29,6 +29,7 @@ struct HairParams {
     float ropeLen = 0.f;      // braids / locs: length hanging below the head (m); twists: their length
     bool ropeLong = false;    // cornrows: long braids from the rows (feed-in braids) instead of short tails
     vec3 ropeCol, ropeTip;    // braids / locs colour (extensions may differ from the natural hair) and at the ends
+    float curlLen = 0.f;      // curly: length of the coils falling from the crown's volume (0: a rounded afro)
     vec3 col;
 };
 
@@ -60,6 +61,14 @@ static HairParams hairParams(const BuildCtx& c) {
             h.fade = f.range(0.55f, 1.f);
             h.lineUp = f.chance(0.55f);
         }
+    }
+    if (h.style == HAIR_CURLY) {
+        // curls: long coils falling to the jaw or the shoulders for most women (coily hair is more often worn as a
+        // rounded afro), now and then a man's mop of curls (own stream)
+        Rng q(hash32(d.seed * 0x1656667Bu + 0x29u));
+        const float pLong = male ? 0.12f : (d.ancestry == 1 ? 0.35f : 0.8f);
+        const float lenF = q.f();
+        if (q.chance(pLong)) h.curlLen = male ? Lerp(0.05f, 0.11f, lenF) : Lerp(0.09f, 0.22f, lenF);
     }
     if (h.style == HAIR_BRAIDS || h.style == HAIR_LOCS) {
         // braids and locs: the variant, length and colour (own stream; braidsAreCornrows draws first from its own)
@@ -164,7 +173,8 @@ static float styleThickness(const BuildCtx& c, const HairParams& h, const BVert&
         case HAIR_CURLY: {
             // afro: outer surface approximates an ellipsoid around the skull
             vec3 A = c.head.origin + vec3(0, -0.014f, 0.085f) * hs;
-            vec3 rad = vec3(0.112f, 0.125f, 0.112f) * (hs * h.volume * (c.d->gender == FEMALE ? 1.05f : 0.93f));
+            // (under long coils the crown is less of a ball: the coils carry the volume)
+            vec3 rad = vec3(0.112f, 0.125f, 0.112f) * (hs * h.volume * (c.d->gender == FEMALE ? 1.05f : 0.93f) * (h.curlLen > 0.f ? 0.9f : 1.f));
             vec3 d = normalize(v.bp - c.head.C);
             vec3 o = c.head.C - A;
             vec3 dd(d.x / rad.x, d.y / rad.y, d.z / rad.z), oo(o.x / rad.x, o.y / rad.y, o.z / rad.z);
@@ -754,8 +764,9 @@ struct RopeSpec {
 };
 
 // Rings over the stations: closed (NS sides) or a half ring (NS segments over the top, its edges tucked into the
-// scalp). The colour runs from `col` to `tipCol` over the last 45 %; an optional cap closes the tip.
-static void emitRope(MeshB& m, const std::vector<RopeSt>& S, int NS, bool half, vec3 col, vec3 tipCol, bool capTip) {
+// scalp). The colour runs from `col` to `tipCol` over the last 45 %; an optional cap closes the tip. lodMark: which
+// vertices the LODs replace (BuildCtx::F_SCALP on hair, see stripForLod): 0 none, 1 those lying on the scalp, 2 all.
+static void emitRope(MeshB& m, const std::vector<RopeSt>& S, int NS, bool half, vec3 col, vec3 tipCol, bool capTip, int lodMark) {
     const int n = (int)S.size();
     if (n < 2) return;
     const int NV = half ? NS + 1 : NS;
@@ -788,6 +799,7 @@ static void emitRope(MeshB& m, const std::vector<RopeSt>& S, int NS, bool half, 
             } else {
                 v.part = PART_HAIR;
             }
+            if (lodMark == 2 || (lodMark == 1 && s.ph > -2.f)) v.flags |= BuildCtx::F_SCALP;
             ring[k] = m.add(v);
         }
         if (i > 0)
@@ -1044,7 +1056,7 @@ static void buildCornrows(OutfitCtx& o, const HairParams& h, MeshB& m) {
         std::vector<RopeSt>& S = rows[i];
         if (S.size() < 2) continue;
         const vec3 col = h.ropeCol * Lerp(0.92f, 1.08f, ropeRand(specs[i].seed));
-        emitRope(m, S, 4, true, col, col, false);
+        emitRope(m, S, 4, true, col, col, false, 2);
         // the tail: a round braid from the end of the row, short or hanging down the back
         const RopeSt& e = S.back();
         RopeSpec T = specs[i];
@@ -1061,7 +1073,7 @@ static void buildCornrows(OutfitCtx& o, const HairParams& h, MeshB& m) {
         tail[0].shade = 1.f;
         tail[0].chev = 0.f;
         hangRope(c, T, 0.f, tail);
-        emitRope(m, tail, 4, false, col, col, true);
+        emitRope(m, tail, 4, false, col, col, true, h.ropeLong ? 0 : 2);   // (long braids stay: they are the silhouette)
     }
 }
 
@@ -1119,7 +1131,7 @@ static void buildHangingRopes(OutfitCtx& o, const HairParams& h, float shellT, M
         traceRopeScalp(c, h, R, yEar, S);
         hangRope(c, R, shellT, S);
         const float tone = Lerp(0.88f, 1.1f, ropeRand(R.seed + 9u));
-        emitRope(m, S, NS, false, h.ropeCol * tone, h.ropeTip * tone, true);
+        emitRope(m, S, NS, false, h.ropeCol * tone, h.ropeTip * tone, true, 1);
     }
 }
 
@@ -1174,9 +1186,71 @@ static void buildTwists(OutfitCtx& o, const HairParams& h, float shellT, MeshB& 
                 S.push_back(s);
             }
             const float tone = Lerp(0.88f, 1.1f, ropeRand(seed + 6u));
-            emitRope(m, S, 4, false, h.ropeCol * tone, h.ropeTip * tone, true);
+            emitRope(m, S, 4, false, h.ropeCol * tone, h.ropeTip * tone, true, 0);
         }
     }
+}
+
+// Long curls: coils hanging from round the sides and back of the head, over the crown's curly volume. Two rows: the
+// lower one close in, the upper one falling over it (the volume); each coil is a rope wound round its hanging line
+// (three stations a turn), tightening a little towards the end.
+static void buildCoils(OutfitCtx& o, const HairParams& h) {
+    BuildCtx& c = o.c;
+    const float hs = c.D->headS;
+    Rng r(hash32(c.d->seed * 0x5851F42Du + 0x3Bu));
+    MeshB m;
+    std::vector<RopeSt> S;
+    const float thA = 56.f * kDegToRad;   // from the temples (framing the face) round the back
+    for (int row = 0; row < 2; row++) {
+        const int K = row ? 9 : 12;
+        for (int i = 0; i < K; i++) {
+            const float u = ((float)i + 0.5f) / K;
+            const float th = thA + (kTwoPi - 2.f * thA) * u + r.range(-0.04f, 0.04f);
+            const float at = th > kPi ? kTwoPi - th : th;
+            const float ph = hairlinePhi(h, at) + (row ? 26.f : 9.f) * kDegToRad;
+            vec3 q, n;
+            headSurf(c, th, ph, q, n);
+            const float T = styleThickness(c, h, headProbe(th, ph, q));   // the curly volume there
+            RopeSpec R;
+            R.seed = r.next();
+            R.w = R.h = 0.0068f * hs * Lerp(0.85f, 1.15f, ropeRand(R.seed));
+            const float pitch = 0.03f * hs * Lerp(0.85f, 1.2f, ropeRand(R.seed + 1u)), helixR = 0.0062f * hs;
+            R.stepH = pitch / 3.f;
+            R.clear = row ? 0.012f : 0.004f;
+            R.flare = 0.25f;
+            R.hang = h.curlLen * Lerp(0.75f, 1.15f, ropeRand(R.seed + 2u));
+            RopeSt s0;
+            s0.p = q + n * (T * 0.85f + R.h);
+            vec3 out = normalize(vec3(n.x, n.y, 0.f) + vec3(0.f, 0.f, 1e-4f));
+            s0.t = normalize(vec3(0.f, 0.f, -1.f) + out * 0.3f);
+            s0.up = n;
+            s0.bp = q;
+            s0.w = s0.h = R.w * 0.8f;
+            s0.th = th;
+            s0.ph = ph;
+            s0.sw = skin1(B_HEAD);
+            S.assign(1, s0);
+            hangRope(c, R, T, S);
+            // wind it: each station off its hanging line round a helix, then the tangents along the coil
+            const float phase = kTwoPi * ropeRand(R.seed + 3u), dirSign = ropeRand(R.seed + 4u) < 0.5f ? 1.f : -1.f;
+            for (RopeSt& st : S) {
+                vec3 a = cross(st.t, st.up);
+                a = length2(a) > 1e-10f ? normalize(a) : normalize(anyPerp(st.t));
+                vec3 b = normalize(cross(st.t, a));
+                const float ang = phase + dirSign * kTwoPi * st.u / pitch;
+                const float rr = helixR * sstep(0.f, 0.025f, st.u) * Lerp(1.f, 0.75f, sstep(0.f, R.hang, st.u));
+                st.p += (a * cosf(ang) + b * sinf(ang)) * rr;
+            }
+            for (size_t j = 0; j < S.size(); j++) {
+                vec3 tg = S[Min(j + 1, S.size() - 1)].p - S[j > 0 ? j - 1 : 0].p;
+                if (length2(tg) > 1e-12f) S[j].t = normalize(tg);
+            }
+            const float tone = Lerp(0.88f, 1.12f, ropeRand(R.seed + 5u));
+            emitRope(m, S, 4, false, h.col * tone, h.col * tone * 1.12f, true, 0);
+        }
+    }
+    o.out.append(m);
+    o.hideOut.resize(o.out.idx.size() / 3, 0);
 }
 
 static void buildRopes(OutfitCtx& o, const HairParams& h, float shellT) {
@@ -1459,6 +1533,7 @@ void buildHairLayer(OutfitCtx& o) {
         addHairTube(o, h, start, vec3(0, -1, -0.3f), r.range(0.2f, 0.3f), 0.018f * hs, 0.024f * hs, 0.006f * hs, 10, true);
     }
     if (h.style == HAIR_BUN) addBun(o, h);
+    if (h.style == HAIR_CURLY && h.curlLen > 0.f) buildCoils(o, h);
     if (ropes) {
         // cornrows, box braids, locs, twists (the ropes rest on the shell: its thickness plus the lumps)
         const float shellT = (h.rope == ROPE_BOX ? 0.0068f : (h.rope == ROPE_LOCS ? 0.0098f : (h.rope == ROPE_TWISTS ? 0.0042f : 0.f))) * 1.12f * hs;

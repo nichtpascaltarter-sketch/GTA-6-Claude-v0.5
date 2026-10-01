@@ -1136,7 +1136,7 @@ static float untuckedHemZ(const Ref& R, const CharacterDesc& d) {
     const float s = R.s;
     switch (d.top) {
         case TOP_TSHIRT: case TOP_POLO: case TOP_HAWAIIAN: case TOP_HIVIS: return R.zCrotch + 0.075f * s;
-        case TOP_TANK: return R.zCrotch + 0.07f * s;
+        case TOP_TANK: return R.zCrotch + 0.1f * s;
         case TOP_OVERSIZED: return R.zCrotch - 0.02f * s;
         case TOP_HOODIE: return R.zCrotch + 0.03f * s;
         case TOP_SUIT: return R.zCrotch - 0.03f * s;
@@ -1780,7 +1780,8 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
             sleeve = 0.3f * s; hemZ = R.zCrotch - 0.02f * s; loose = 0.007f; g.smooth = 3; drift = 0.02f;
             rTop = D.rUpperArm * 1.45f + 0.01f * s; rEnd = D.rElbow * 1.75f + 0.01f * s; foldAmp = 1.2f; hang = 1.f;
             break;
-        case TOP_TANK: tank = true; loose = 0.003f; hemZ = R.zCrotch + 0.07f * s; drift = 0.16f; foldAmp = 0.4f; hang = 0.f; break;
+        // (a tank ends at the hip, over the waistband: longer, it would hang off the seat like a peplum)
+        case TOP_TANK: tank = true; loose = 0.003f; hemZ = R.zCrotch + 0.1f * s; drift = 0.16f; foldAmp = 0.4f; hang = 0.f; break;
         case TOP_POLO:
             sleeve = 0.155f * s; collar = true; buttons = true; nButtons = 2; drift = 0.1f;
             rTop = D.rUpperArm * 1.14f + 0.004f * s; rEnd = D.rUpperArm * 1.16f + 0.004f * s; foldAmp = 0.75f; hang = 0.4f;
@@ -2129,13 +2130,48 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
             return Min(0.012f * s - fabsf((neckPc - 0.012f - v.pc) * R.torsoLen), baseCov(v));
         }, darker(col, 0.88f), MAT_CLOTH, 0.0012f, 1u << PART_TORSO, 3u);
         if (rng.chance(0.45f)) {
-            // chest print: a simple two-tone graphic block
+            // chest print, one of a few plain two-tone graphics (original shapes, no lettering): a sun disc over a
+            // horizon bar, a ring round a dot, three stacked bars, a disc in two halves
             vec3 pc = rng.chance(0.5f) ? vec3(0.9f) - col * 0.6f : srgbToLinear(vec3(rng.f(), rng.f(), rng.f()));
-            float zc0 = R.zChest + 0.02f * s;
-            decal([=, &R](const BVert& v) {
-                if (v.part != PART_TORSO || v.bp.y < 0.f) return -1.f;
-                return Min(0.07f * R.s - fabsf(v.bp.x), 0.05f * R.s - fabsf(v.bp.z - zc0));
-            }, saturate(pc), MAT_CLOTH, 0.0008f, 1u << PART_TORSO);
+            // (on a woman's tee it sits on the upper chest, smaller: over the bust the shell bridges the cleavage and a
+            // print cut from the skin there would sink under it)
+            const bool femTee = d.gender == FEMALE;
+            const float zc0 = R.zChest + (femTee ? 0.085f : 0.02f) * s, rs = R.s * (femTee ? 0.76f : 1.f);
+            const float lift = femTee ? 0.0016f : 0.f;   // (and a little proud of the shell, which bridges more there)
+            Rng gr(hash32(d.seed * 0x2F0B3C51u + 0x47u));   // (own stream: the top's other draws keep their values)
+            const int kind = gr.irange(0, 3);
+            const vec3 pa = saturate(pc), pb = saturate(dot(pc, vec3(0.3f, 0.59f, 0.11f)) > 0.35f ? darker(col, 0.7f) : vec3(0.85f, 0.84f, 0.8f));
+            auto front = [](const BVert& v) { return v.part == PART_TORSO && v.bp.y >= 0.f; };
+            auto print = [&](CovFn cov, vec3 c, float off) {
+                emitGarment(o, decalOf(g, cov, c, MAT_CLOTH, off + lift, 1u << PART_TORSO, g.matParam, 2));
+            };
+            switch (kind) {
+                case 0:
+                    print([=](const BVert& v) { return front(v) ? 0.048f * rs - length(vec2(v.bp.x, v.bp.z - zc0 - 0.008f * rs)) : -1.f; }, pa, 0.0008f);
+                    print([=](const BVert& v) {
+                        return front(v) ? Min(0.065f * rs - fabsf(v.bp.x), 0.008f * rs - fabsf(v.bp.z - (zc0 - 0.02f * rs))) : -1.f;
+                    }, pb, 0.0012f);
+                    break;
+                case 1:
+                    print([=](const BVert& v) {
+                        float r = length(vec2(v.bp.x, v.bp.z - zc0));
+                        return front(v) ? Min(0.05f * rs - r, r - 0.032f * rs) : -1.f;
+                    }, pa, 0.0008f);
+                    print([=](const BVert& v) { return front(v) ? 0.017f * rs - length(vec2(v.bp.x, v.bp.z - zc0)) : -1.f; }, pb, 0.0008f);
+                    break;
+                case 2:
+                    for (int b = 0; b < 3; b++) {
+                        const float hw = (0.065f - 0.016f * b) * rs, zb = zc0 + (0.026f - 0.026f * b) * rs;
+                        print([=](const BVert& v) { return front(v) ? Min(hw - fabsf(v.bp.x), 0.008f * rs - fabsf(v.bp.z - zb)) : -1.f; }, pa, 0.0008f);
+                    }
+                    break;
+                default:   // a disc, its lower half in the second colour
+                    print([=](const BVert& v) { return front(v) ? 0.046f * rs - length(vec2(v.bp.x, v.bp.z - zc0)) : -1.f; }, pa, 0.0008f);
+                    print([=](const BVert& v) {
+                        return front(v) ? Min(0.046f * rs - length(vec2(v.bp.x, v.bp.z - zc0)), zc0 - 0.004f * rs - v.bp.z) : -1.f;
+                    }, pb, 0.0012f);
+                    break;
+            }
         }
     }
     if (top == TOP_HOODIE) {

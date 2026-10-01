@@ -448,7 +448,8 @@ struct BuildCtx {
     u32 neckTopFirst = 0;   // first vertex of the head grid row 0
     std::vector<u32> torsoTop;   // torso top ring (neck base) vertex indices
     size_t surfaceIdxEnd = 0;    // index count of the connected skin surface
-    // per-vertex region flags
+    // per-vertex region flags. On hair (MAT_HAIR) F_SCALP marks braid / loc rope parts lying on the scalp, which the
+    // LODs paint onto the scalp and drop, and F_BEARD the beard shell (stripForLod).
     enum : u8 { F_PALM = 1, F_SOLE = 2, F_LIP = 4, F_SCALP = 8, F_FACE = 16, F_BEARD = 32, F_NAIL = 64,
                 F_CARDSHELL = 128 };   // hair shell darkened under strand cards (brightened again where LODs drop the cards)
 };
