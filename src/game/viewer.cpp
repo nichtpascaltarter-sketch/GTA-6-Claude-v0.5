@@ -13,6 +13,7 @@ static const vec2 kViewerOrigin(-300.f, 1500.f);
 struct Viewer {
     std::string mode;
     std::vector<Render::Model*> bodies, wheels, rotors, tailRotors, calipers, steerWheels;
+    std::vector<std::vector<Render::Model*>> doorParts;   // full detail: the side doors (cut out of the body)
 #ifdef HAVE_VEHICLE_MODELS
     std::vector<Vehicles::VehicleModel> vmodels;
     int vehicleLod = 0;  // --vlod 1|2 shows the distant levels of detail (buildVehicleLods)
@@ -57,6 +58,9 @@ struct Viewer {
                 calipers.push_back(vm.caliper.indices.empty() || vehicleLod > 0 ? nullptr : r.dynamic->createModel(vm.caliper));
                 // the steering wheel is a part of its own at full detail (distant levels keep it in the body)
                 steerWheels.push_back(vm.steerWheel.indices.empty() || vehicleLod > 0 ? nullptr : r.dynamic->createModel(vm.steerWheel));
+                doorParts.emplace_back();
+                for (const Vehicles::DoorSpec& ds : vm.doors)
+                    doorParts.back().push_back(vehicleLod > 0 || ds.mesh.empty() ? nullptr : r.dynamic->createModel(ds.mesh));
                 LOG("Vehicle %d: %s %s (%zu tris)", i, vm.maker.c_str(), vm.name.c_str(), vm.body.indices.size() / 3);
                 vmodels.push_back(std::move(vm));
             }
@@ -814,6 +818,20 @@ struct Viewer {
             d.lightBits = Platform::hasArg("lights") ? (1u | 2u | 32u) : 0u;
             d.id = 0x7000 + i;
             r.dynamic->submit(d);
+            // side doors: shut, or opened by -doors F (0..1; "cycle" swings them open and shut)
+            for (size_t k = 0; k < vm.doors.size() && k < doorParts[i].size(); k++) {
+                if (!doorParts[i][k]) continue;
+                const Vehicles::DoorSpec& ds = vm.doors[k];
+                const char* dv = Platform::argValue("doors");
+                float open = !dv ? 0.f : (strcmp(dv, "cycle") == 0 ? 0.5f - 0.5f * cosf(t * 1.2f) : Saturate((float)atof(dv)));
+                mat3 Rd = mat3FromQuat(quatAxisAngle(ds.axis, open * ds.maxAngle));
+                Render::DrawItem dd = d;
+                dd.model = doorParts[i][k];
+                dd.rot = d.rot * Rd;
+                dd.pos = d.pos + dvec3(d.rot * (ds.hinge - Rd * ds.hinge));
+                dd.id = 0x7C00 + i * 8 + k;
+                r.dynamic->submit(dd);
+            }
             for (const auto& w : vm.wheels) {
                 if (!wheels[i]) break;
                 Render::DrawItem wd;

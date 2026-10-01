@@ -844,6 +844,35 @@ inline void seam(PMesh& m, Projector& pr, Frame fr, const std::vector<vec2>& lin
     stripDecal(m, dc, line, w, 0.0025f, 0.04f);
 }
 
+// Shut lines of the side doors (right side; the left side mirrors them), shared by the panel seams (carSideDetails)
+// and the opening doors cut out of the body along them (vehicle_doors.cpp)
+struct DoorLines {
+    int perSide = 1;          // doors per side: 1 (two-door bodies) or 2
+    float yD0 = 0.f;          // front edge of the front door at the belt (1 cm further forward at the bottom)
+    float zLow = 0.f;         // bottom edge of the doors
+    float yB = 0.f;           // split between the front and the rear door on the B-pillar (four-door bodies)
+    float yRear = 0.f;        // rear edge of the last door at the belt (1 cm further back at the bottom)
+    bool archCut = false;     // the last door's lower rear corner follows the rear wheel arch
+    float archR = 0.f;        // ... at this radius about the rear wheel centre,
+    float archTopZ = 0.f;     // ... from this height down
+};
+inline DoorLines doorLines(const CarBody& b) {
+    const CarSpec& s = b.s;
+    DoorLines L;
+    L.perSide = s.doors >= 4 ? 2 : 1;
+    L.yD0 = Min(s.yCowl - 0.04f, b.yWf - b.Ra - 0.10f);
+    L.zLow = s.zSill + 0.075f;
+    L.yB = s.bPillar;
+    float yr = Max(s.dloRearBot + 0.02f, b.yWr + b.Ra + 0.12f);
+    if (s.doors == 2) yr = Max(s.dloRearBot + 0.02f, b.yWr + b.Ra + 0.15f);
+    if (s.style == BS_PICKUP) yr = s.yDeck + 0.03f;
+    L.yRear = yr;
+    L.archR = b.Ra + 0.06f;
+    L.archTopZ = s.wheelR + b.Ra + 0.06f;
+    L.archCut = yr < b.yWr + L.archR + 0.1f;
+    return L;
+}
+
 // Door pull handle on the right side at (y, z)
 inline void doorHandle(PMesh& m, CarBody& b, float y, float z, bool chrome) {
     Frame fr = projRight();
@@ -1331,7 +1360,9 @@ inline void cabinTrim(PMesh& m, CarBody& b, const InteriorLayout& I, float y0, f
     if (s.openTop) return;
     PMesh::Mark mk = m.mark();
     int NC1 = b.NP - 1;
-    // pillar / rail trims
+    // pillar / rail trims (the linings of a door's window frame go with the door)
+    const u8 part0 = m.part;
+    m.part = PART_AUTO;
     m.newGroup(38.f);
     m.use(MAT_FABRIC, col(0.55f, 0.55f, 0.53f));
     for (int i = 0; i + 1 < b.nr; i++) {
@@ -1343,6 +1374,7 @@ inline void cabinTrim(PMesh& m, CarBody& b, const InteriorLayout& I, float y0, f
             liningCell(m, b, i, j, 0.012f);
         }
     }
+    m.part = part0;
     // lower cabin: side walls, floors and end panels
     m.newGroup(40.f);
     m.use(MAT_INTERIOR, kCol1);
@@ -1449,6 +1481,25 @@ inline void headliner(PMesh& m, CarBody& b) {
     m.mirrorX(hk);
 }
 
+// Door card furniture of door k (0 front, 1 rear) on the right side: the armrest beside the occupant's hip `yHip`
+// (shortened and moved to stay clear of the door's ends), the release handle ahead of it and the speaker low down.
+struct DoorCardLayout {
+    float yArm, armHalf, zArm, ySpeaker;
+    vec3 pull;   // centre of the chrome release handle
+};
+inline DoorCardLayout doorCardLayout(const CarBody& b, const InteriorLayout& I, const DoorLines& DL, int k, float yHip) {
+    DoorCardLayout o;
+    float yF = k == 0 ? DL.yD0 : DL.yB;                         // the door's front and rear edge at the belt
+    float yR = k == 0 && DL.perSide == 2 ? DL.yB : DL.yRear;
+    o.armHalf = Clamp((yF - yR) * 0.5f - 0.2f, 0.12f, 0.22f);
+    o.yArm = Clamp(yHip, yR + 0.07f + o.armHalf, Max(yF - 0.3f - o.armHalf, yR + 0.07f + o.armHalf));
+    o.zArm = I.zFloor + I.hipH + 0.17f;
+    float yPull = Min(o.yArm + o.armHalf + 0.07f, yF - 0.1f);
+    o.pull = vec3(b.beltXAt(o.yArm) - 0.085f, yPull, o.zArm + 0.12f);
+    o.ySpeaker = Clamp(o.yArm + 0.2f, yR + 0.12f, yF - 0.14f);
+    return o;
+}
+
 // Close-range cabin furniture seen through the glass and from the first-person camera: gauges, air vents, shifter,
 // rear-view mirror, sun visors and door-card armrests / pulls / speakers (both sides).
 inline void cabinFurniture(PMesh& m, CarBody& b, const CarLook& L, const InteriorLayout& I, float dw, float dz) {
@@ -1534,24 +1585,29 @@ inline void cabinFurniture(PMesh& m, CarBody& b, const CarLook& L, const Interio
             roundedBox(m, Frame(c, vec3(1, 0, 0), ay, az), vec3(0.17f, hd, 0.009f), 0.008f, 1);
         }
     }
-    // door cards: armrest, chrome pull and a speaker grille per door (right side, mirrored)
+    // door cards: armrest, chrome release handle and a speaker grille per door (right side, mirrored); each sits beside
+    // its occupant's hip but inside its own door's shut lines, so it swings with the door (vehicle_doors.cpp)
+    const u8 part0 = m.part;
+    m.part = PART_AUTO;
     PMesh::Mark mk = m.mark();
+    const DoorLines DL = doorLines(b);
     float ys[2] = {I.yHipF + 0.05f, I.yHipR + 0.05f};
     int nDoor = s.doors >= 4 && I.rearSeat ? 2 : 1;
     for (int k = 0; k < nDoor; k++) {
-        float yc = ys[k];
-        float bx = b.beltXAt(yc) - 0.075f;
-        float zArm = I.zFloor + I.hipH + 0.17f;
+        DoorCardLayout dc = doorCardLayout(b, I, DL, k, ys[k]);
+        float bx = b.beltXAt(dc.yArm) - 0.075f;
+        float zArm = dc.zArm;
         m.use(MAT_INTERIOR, kCol1);
-        roundedBoxAt(m, vec3(bx - 0.035f, yc, zArm), vec3(0.04f, 0.22f, 0.028f), 0.018f, 2);
+        roundedBoxAt(m, vec3(bx - 0.035f, dc.yArm, zArm), vec3(0.04f, dc.armHalf, 0.028f), 0.018f, 2);
         m.use(MAT_LEATHER, col(0.3f, 0.3f, 0.3f));
-        roundedBoxAt(m, vec3(bx - 0.035f, yc, zArm + 0.03f), vec3(0.036f, 0.19f, 0.006f), 0.005f, 1);
+        roundedBoxAt(m, vec3(bx - 0.035f, dc.yArm, zArm + 0.03f), vec3(0.036f, dc.armHalf - 0.03f, 0.006f), 0.005f, 1);
         m.use(MAT_CHROME, kCol1);
-        roundedBoxAt(m, vec3(bx - 0.01f, yc + 0.27f, zArm + 0.12f), vec3(0.012f, 0.05f, 0.012f), 0.008f, 1);
+        roundedBoxAt(m, dc.pull, vec3(0.012f, 0.05f, 0.012f), 0.008f, 1);
         m.use(MAT_CAR_GLASS, kCol1);
-        disk(m, vec3(bx + 0.002f, yc + 0.2f, I.zFloor + 0.17f), vec3(-1, 0, 0), 0.075f, 16);
+        disk(m, vec3(b.beltXAt(dc.ySpeaker) - 0.073f, dc.ySpeaker, I.zFloor + 0.17f), vec3(-1, 0, 0), 0.075f, 16);
     }
     m.mirrorX(mk);
+    m.part = part0;
 }
 
 inline void buildInterior(PMesh& m, CarBody& b, const CarLook& L, const InteriorLayout& I) {
@@ -1559,6 +1615,9 @@ inline void buildInterior(PMesh& m, CarBody& b, const CarLook& L, const Interior
     // bulkhead); LOD1 keeps the seats and dash, LOD2 only the shell (plus seats when the car is open-topped).
     const int lod = lodLevel();
     const bool seats = lod <= 1 || b.s.openTop;
+    // the cabin structure stays with the body when a door opens (the door cards and their furniture go with the doors)
+    const u8 part0 = m.part;
+    m.part = PART_FIXED;
     // floor + door cards (+ mirrored)
     PMesh::Mark mk = m.mark();
     m.newGroup(40.f);
@@ -1589,10 +1648,12 @@ inline void buildInterior(PMesh& m, CarBody& b, const CarLook& L, const Interior
         // the ledge tucks under the glass's lower edge so no ray slips between window and trim
         ledge[k] = m.add(vec3(b.beltXAt(y) - (lod == 0 ? 0.006f : 0.003f), y, bz - 0.002f));
     }
+    m.part = PART_AUTO;
     for (int k = 0; k < n; k++) {
         m.quadFacing(lo[k], lo[k + 1], hi[k + 1], hi[k], vec3(-1, 0, 0));
         m.quadFacing(hi[k], hi[k + 1], ledge[k + 1], ledge[k], vec3(0, 0, 1));
     }
+    m.part = PART_FIXED;
     // floor half (stops in front of the rear wheel well; a raised pan covers the axle)
     float xWell = b.s.trackR - b.s.wheelW * 0.5f - 0.06f;
     float yfr = Max(y1, b.yWr + b.Ra + 0.03f);
@@ -1694,6 +1755,7 @@ inline void buildInterior(PMesh& m, CarBody& b, const CarLook& L, const Interior
     }
     if (!b.s.openTop) headliner(m, b);
     cabinTrim(m, b, I, y0, y1, floorZ(b.yWr) - 0.02f);
+    m.part = part0;
 }
 
 }  // namespace detail

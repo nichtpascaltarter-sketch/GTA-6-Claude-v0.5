@@ -275,6 +275,10 @@ struct Vehicle {
     bool scripted = false;        // moved kinematically by gameplay (ambient air/sea traffic, cutscenes)
     bool renderFar = false;       // drawn up to the horizon (aircraft)
     bool windowsBroken = false;   // shattered by gunfire or a hard crash (glass no longer drawn)
+    // side doors (VehicleModel::doors): opening 0 shut .. 1 fully open, swung by the ped getting in or out through
+    // it (doorOwner: that ped's uid, 0 none; an unattended open door swings shut once the vehicle moves off)
+    float doorOpen[4] = {0.f, 0.f, 0.f, 0.f};
+    u32 doorOwner[4] = {0u, 0u, 0u, 0u};
     bool shiftLatch = false;      // a gear change happened in one of this frame's physics substeps
     int glassHits = 0;
     // customization (mod shop): visual parts are read by the render/FX code, handling parts by applyVehicleMods
@@ -342,6 +346,8 @@ struct VehicleAsset {
     Render::Model* caliper = nullptr;   // brake caliper: drawn at each wheel without the spin (LOD0 only)
     Render::Model* steerWheel = nullptr;   // steering wheel turned by the driver's hands (LOD0 only)
     Render::Model* needle = nullptr;       // instrument needle, drawn on each dial of spec.gauges (close range)
+    Render::Model* door[4] = {nullptr, nullptr, nullptr, nullptr};   // opening side doors (spec.doors): cut out of the
+                                                                     // full-detail body, always drawn with it
     Render::Model* rotor = nullptr;
     Render::Model* tailRotor = nullptr;
 };

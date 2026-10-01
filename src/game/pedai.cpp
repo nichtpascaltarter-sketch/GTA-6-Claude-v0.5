@@ -1167,7 +1167,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                             pa.clipTimer = 1.8f;
                             p.pendingAction = Anim::CLIP_GET_UP_BACK;
                             p.health = Max(p.health, p.maxHealth * (medic >= 0 ? 0.45f : 0.32f));
-                            p.legInjury = Max(p.legInjury, 20.f);   // (a limp for a while)
+                            p.legInjury = medic >= 0 ? 9.f : Max(p.legInjury, 20.f);   // (patched up: a short limp; on their own, a long one)
                         }
                     } else {
                         // getting up

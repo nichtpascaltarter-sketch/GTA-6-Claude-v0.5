@@ -2311,7 +2311,12 @@ static void buildOuterLayer(OutfitCtx& o, const Ref& R, const CharacterDesc& d) 
         }
         default: break;
     }
-    if (kind == OUT_OVERSHIRT && rng.chance(0.25f)) g.mat = MAT_DENIM;   // chambray / denim shirt
+    if (kind == OUT_OVERSHIRT && rng.chance(0.25f)) {
+        // chambray / denim shirt: its colour is a wash of the indigo dye (the denim material multiplies it in), so a
+        // dark layer colour becomes a faded mid blue instead of near black
+        g.mat = MAT_DENIM;
+        if (!(dot(col, vec3(0.3f, 0.59f, 0.11f)) >= 0.2f && col.z >= col.x)) col = g.col = vec3(0.62f, 0.66f, 0.74f);
+    }
     const float sl = !sleeves ? 0.f : (rolled ? R.upperArm + rng.range(-0.01f, 0.04f) * s : R.armLen - (rib ? 0.01f : 0.025f) * s);
     const float zNk = D.zNeckFront, zChestL = R.zChest, hz = hemZ;
     const float gN = gapNeck, gC = gapChest, gH = gapHem, zv = zV;

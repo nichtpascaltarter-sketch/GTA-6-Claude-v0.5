@@ -1174,6 +1174,14 @@ struct App {
                     for (const Ped& q : game.peds) medics += q.used && q.faction == FAC_MEDIC && q.state == PS_ONFOOT && length(rel(q.pos, v.pos)) < 3.f;
                     st = StrFormat("victim state %d act %d stance %d care %.1f health %.0f/%.0f medics by %d", (int)v.state, (int)va.activity, v.animIn.stance, va.hurtCare,
                                    v.health, v.maxHealth, medics);
+                    // the ambulances: how far from the scene, how fast, what they are doing
+                    for (int k = 0; k < (int)game.vehicles.size() && k < (int)game.ai.veh.size(); k++) {
+                        const Vehicle& amb = game.vehicles[k];
+                        if (!amb.used || game.ai.veh[k].uid != amb.uid || game.ai.veh[k].role != VR_AMBULANCE) continue;
+                        const AI::Driver* dr = game.traffic.get(k);
+                        st += StrFormat(" | ambulance %d %.0f m off, %.1f m/s, task %d, mode %d, held %.1f", k, length(rel(amb.sim.body.pos, v.pos).xy()), amb.sim.speed(),
+                                        (int)game.ai.veh[k].task, dr ? (int)dr->mode : -1, game.ai.veh[k].heldUp);
+                    }
                 } else if (victim >= 0) {
                     st = "victim gone (into the ambulance?)";
                 }

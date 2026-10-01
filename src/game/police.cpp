@@ -1915,6 +1915,8 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
         }
     }
     float prefer = wi.clipSize > 0 ? Clamp(wi.range * 0.3f, 8.f, 22.f) : 1.2f;
+    // the dog handler closes in on a suspect on foot (the dog barking at them from a few metres: as good as found)
+    if (pa.k9Handler && gK9.handler == id && t.state == PS_ONFOOT && t.weapon == WPN_FISTS) prefer = Min(prefer, 9.f);
     switch (pa.tactic) {
         case FT_ARREST: {
             // gun drawn, close in, shout; a suspect who runs for it is chased down on foot and tackled

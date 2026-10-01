@@ -937,8 +937,8 @@ public:
         if (!establish(g, shots, plat, atan2f(-S.dir.x, S.dir.y) + kPi * 0.5f, 60.f, 20.f, 6.f, 50.f))
             shots.push_back(shotMove(plat + vec3(S.right() * 70.f, 45.f), plat + vec3(0, 0, 2.f), plat + vec3(S.right() * 55.f, 35.f), plat + vec3(0, 0, 1.5f),
                                      6.f, 50.f));
-        // Mari at the foot of the stair, the platform edge above her: from out in the street (an over-the-shoulder from
-        // the stair foot only sees the underside of the viaduct)
+        // the station overhead as Mari sees it from the foot of the stair, looking up from out in the street (an
+        // over-the-shoulder from the stair foot only sees the underside of the viaduct)
         vec3 me = playerPos(g), look = vec3(me.xy(), me.z + 1.6f + (plat.z + 1.f - me.z - 1.6f) * 0.35f);
         bool framed = false;
         for (int k = 0; k < 4 && !framed; k++) {

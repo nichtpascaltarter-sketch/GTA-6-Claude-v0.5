@@ -52,6 +52,9 @@ enum InternalClip : int {
     // going over (AnimInput::fallBrace): bracing to fall forwards, backwards, to the left, to the right
     IC_BRACE_FWD, IC_BRACE_BACK, IC_BRACE_L, IC_BRACE_R,
     IC_DOWN_HURT,                  // stance 24: lying on the back hurt, knees up, writhing, hands on the belly
+    // buckling up in a seat (arm layer over the seated stance after getting in): the left hand (a seat on the
+    // vehicle's left) / the right hand reaches back past the shoulder for the belt and clicks it in by the other hip
+    IC_BELT_ON_L, IC_BELT_ON_R,
     // walk styles: IC_GAIT_FIRST + style * kGaitBands + band (gaitClip)
     IC_GAIT_FIRST,
     IC_GAIT_LAST = IC_GAIT_FIRST + GS_COUNT * kGaitBands - 1,
@@ -76,6 +79,18 @@ float pairReach(int c, float t);
 // Leg length of a skeleton relative to the male reference the locomotion clips' strides are given for
 // (ClipInfo::speed * duration; the female bakes cover the same stride per leg length).
 float skeletonLegScale(const Skeleton& sk);
+// Getting in / out of a car through a door at run time (AnimInput::car): the pose at clip time t on this skeleton,
+// and the hand holding the door then (its grip as holdGrip takes it, the elbow's direction, weight 0 = not holding).
+struct CarHand {
+    bool right = false;
+    vec3 pos, axis, palm, poleDir;
+    float w = 0.f, fingers = 0.85f;
+};
+void carDoorPose(const Skeleton& skel, const CarDoorInfo& door, bool enter, bool rightDoor, float t, Pose& out, CarHand& hand);
+float carDoorOpen(const CarDoorInfo& door, bool enter, float t);   // the door's opening at clip time t (0 .. 1)
+float carDoorLen(const CarDoorInfo& door, bool enter);             // the clip's length (s)
+const float kBeltOnLen = 1.25f, kBeltOnClick = 0.82f;               // buckling up (IC_BELT_ON_*): length, click
+const float kBeltOffAt = 0.3f;                                      // getting out belted: the belt is off
 // Extra upper-arm abduction (rad) that keeps the hanging arms of a wider body as clear of its hips and thighs as the
 // clips' reference body's.
 float skeletonArmClearance(const Skeleton& sk);

@@ -428,6 +428,14 @@ void submitDisplayCar(Render::Renderer& R, const InteriorDef& d, const World::In
     di.drawGlass = !stripped;
     di.wetExposed = -1.f;
     R.dynamic->submit(di);
+    // the side doors are parts of their own (shut; a stripped shell in a chop shop has had them taken off)
+    for (int k = 0; k < (int)a.spec.doors.size() && k < 4 && !stripped; k++) {
+        if (!a.door[k]) continue;
+        Render::DrawItem dd = di;
+        dd.model = a.door[k];
+        dd.id = 0x300000000ull | ((u64)key << 4) | (u64)(8 + k);
+        R.dynamic->submit(dd);
+    }
     if (stripped || !a.wheel) return;
     for (size_t w = 0; w < a.spec.wheels.size(); w++) {
         Render::DrawItem wd;
