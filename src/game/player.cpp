@@ -581,7 +581,7 @@ bool GameWorld::sprintKick(Ped& p) {
         if (dist > 2.1f || dist < 0.2f || dot(d / dist, f) < 0.6f) continue;
         p.pendingAction = Anim::CLIP_KICK;
         damagePed(o, 28.f, DMG_MELEE, player, f);
-        if (peds[o].used && peds[o].health > 0.f) knockDown(o, f * 320.f + vec3(0, 0, 80.f));
+        if (peds[o].used && peds[o].health > 0.f) knockDown(o, f * 320.f + vec3(0, 0, 80.f), true);
 #ifdef HAVE_AUDIO
         Audio::play(Audio::SFX_KICK, pedChestPos(t), 0.9f);
 #endif

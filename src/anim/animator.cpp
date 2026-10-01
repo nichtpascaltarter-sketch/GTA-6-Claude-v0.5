@@ -830,30 +830,33 @@ static void hitKick(Animator& A, const AnimInput& in) {
     // flinch: x = flexion (+ forwards), y = side bend (+ to the right), z = twist (+ the right shoulder forwards)
     switch (reg) {
         case 0:   // head: snapped along the push, turned away from a blow to its side; the trunk follows a little
-            A.headFlV = A.headFlV + vec3(9.f * d.y, 9.f * d.x, -6.f * d.x) * k;
-            A.flinchV = A.flinchV + vec3(1.5f * d.y, 1.5f * d.x, 0.f) * k;
+            A.headFlV = A.headFlV + vec3(14.f * d.y, 14.f * d.x, -9.f * d.x) * k;
+            A.flinchV = A.flinchV + vec3(2.5f * d.y, 2.5f * d.x, 0.f) * k;
             break;
         case 1: {   // chest: thrown along the push, twisted by an off-centre hit; the head lags
             float rx = 0.17f * sx;
-            A.flinchV = A.flinchV + vec3(4.2f * d.y, 4.2f * d.x, 4.2f * 0.8f * (rx * d.y) / 0.17f) * k;
-            A.headFlV = A.headFlV + vec3(-2.f * d.y, -2.f * d.x, 0.f) * k;
+            A.flinchV = A.flinchV + vec3(9.f * d.y, 9.f * d.x, 9.f * 0.8f * (rx * d.y) / 0.17f) * k;
+            A.headFlV = A.headFlV + vec3(-3.f * d.y, -3.f * d.x, 0.f) * k;
+            A.dipFlV -= 0.25f * k;   // the knees give a little
             break;
         }
         case 2:   // belly: the body folds over the wound (forwards for a hit from the front)
-            A.flinchV = A.flinchV + vec3(-5.5f * d.y, -4.f * d.x, 0.f) * k;
-            A.headFlV = A.headFlV + vec3(-1.5f * d.y, 0.f, 0.f) * k;
-            A.dipFlV -= 0.5f * k;
+            A.flinchV = A.flinchV + vec3(-10.f * d.y, -7.f * d.x, 0.f) * k;
+            A.headFlV = A.headFlV + vec3(-2.f * d.y, 0.f, 0.f) * k;
+            A.dipFlV -= 0.6f * k;
             break;
         case 3: {   // arm: flung along the push, the shoulder turned with it
-            A.armFlV[side] += 10.f * k;
+            A.armFlV[side] += 16.f * k;
             A.armFlDir[side] = d;
-            A.flinchV.z += 4.f * 0.5f * (0.2f * sx * d.y) / 0.2f * k;
+            A.flinchV.z += 3.f * sx * d.y * k;
+            A.flinchV.y += 2.f * d.x * k;
             break;
         }
         default:   // leg: that knee buckles, the body drops towards it
-            A.legFlV[side] += 7.f * k;
-            A.dipFlV -= 0.35f * k;
-            A.flinchV.y += 2.5f * sx * k;
+            A.legFlV[side] += 10.f * k;
+            A.dipFlV -= 0.45f * k;
+            A.flinchV.y += 3.5f * sx * k;
+            A.flinchV.x += 2.f * k;   // bending over it
             break;
     }
     A.cringeV += 6.f * k;   // shoulders up, elbows in
@@ -915,8 +918,13 @@ static void impactStep(Animator& A, const AnimInput& in, float dt) {
     for (int s = 0; s < 2; s++) A.limpW[s] += (Saturate(in.legHurt[s]) - A.limpW[s]) * kw;
     A.woundedS += (Saturate(in.wounded) - A.woundedS) * kw;
     A.braceW = approach(A.braceW, Saturate(in.fallBrace), dt * 8.f);
+    // (the fall's direction turns round the circle: a straight lerp of a reversal would never get there)
     vec3 f = vec3(in.fallDir.x, in.fallDir.y, 0.f);
-    if (length2(f) > 1e-6f && in.fallBrace > 0.f) A.fallDirS = normalize(lerp(A.fallDirS, normalize(f), 1.f - expf(-dt * 20.f)) + vec3(0.f, 1e-4f, 0.f));
+    if (length2(f) > 1e-6f && in.fallBrace > 0.f) {
+        float a0 = atan2f(A.fallDirS.x, A.fallDirS.y), a1 = atan2f(f.x, f.y);
+        float a = A.braceW < 0.05f ? a1 : a0 + wrapAngle(a1 - a0) * (1.f - expf(-dt * 20.f));
+        A.fallDirS = vec3(sinf(a), cosf(a), 0.f);
+    }
 }
 
 // Which hand is free for a wound (-1 none): an aimed weapon takes both, a long gun both, a pistol / melee weapon /
@@ -1008,8 +1016,8 @@ static void impactPose(Animator& A, const AnimInput& in, Pose& p, float dt, bool
         p.rootOffset.z += Clamp(A.dipFl, -0.12f, 0.03f) * scale;
         for (int s = 0; s < 2; s++)
             if (fabsf(A.legFl[s]) > 1e-4f) {
-                p.rootOffset.z -= 0.035f * Clamp(A.legFl[s], -0.5f, 1.5f) * scale;
-                p.rot[B_PELVIS] = normalize(qy((s ? 1.f : -1.f) * 0.1f * Clamp(A.legFl[s], -0.5f, 1.5f)) * p.rot[B_PELVIS]);
+                p.rootOffset.z -= 0.05f * Clamp(A.legFl[s], -0.5f, 1.5f) * scale;
+                p.rot[B_PELVIS] = normalize(qy((s ? 1.f : -1.f) * 0.12f * Clamp(A.legFl[s], -0.5f, 1.5f)) * p.rot[B_PELVIS]);
             }
     }
     // arms: shoulders up and elbows in (the cringe), an arm hit flung along the push, both out against the stagger
@@ -1030,12 +1038,20 @@ static void impactPose(Animator& A, const AnimInput& in, Pose& p, float dt, bool
     for (int s = 0; s < 2; s++) {
         float a = Clamp(A.armFl[s], -0.5f, 1.5f);
         vec2 bal = vec2(-A.pushV.x, -A.pushV.y) * 0.35f;   // against the stagger: the arms counter the fall
-        vec3 dir = A.armFlDir[s] * a * 0.7f + vec3(bal.x, bal.y, 0.f);
+        vec3 dir = A.armFlDir[s] * a * 1.f + vec3(bal.x, bal.y, 0.f);
         dir.z = 0.f;
         float m = length(dir);
         if (m < 1e-4f) continue;
         vec3 axis = cross(vec3(0, 0, 1), dir / m);
         rotateModel(sk, p, s ? B_UPPERARM_R : B_UPPERARM_L, quatAxisAngle(axis, -Min(m, 1.2f)));
+        // balancing arms are not straight: the elbows bend as they come up
+        float bend = Min(length(bal), 0.8f) * 0.7f;
+        if (bend > 1e-3f) {
+            const int fb = s ? B_FOREARM_R : B_FOREARM_L;
+            vec3 ad = sk.bindLocalPos[fb];
+            float al = length(ad);
+            if (al > 1e-5f) p.rot[fb] = normalize(quatAxisAngle(normalize(cross(ad / al, vec3(0, 1, 0))), bend) * p.rot[fb]);
+        }
     }
     // ---- a hand on a wound (the game's clutch, or a heavy hit's for a moment)
     {
@@ -1051,16 +1067,23 @@ static void impactPose(Animator& A, const AnimInput& in, Pose& p, float dt, bool
         if (A.clutchCur != 0 && A.clutchW > 0.001f) {
             const int sd = A.clutchSide;
             Pose tmp;
-            sampleClipId(sk, clutchClip(A.clutchCur, sd), A.time, tmp, A.seed);
+            // (only the arms are needed from the clip)
+            static const u8 kArms[12] = {B_CLAVICLE_L, B_UPPERARM_L, B_FOREARM_L, B_HAND_L, B_FINGERS_L, B_THUMB_L,
+                                         B_CLAVICLE_R, B_UPPERARM_R, B_FOREARM_R, B_HAND_R, B_FINGERS_R, B_THUMB_R};
+            sampleClipBones(sk, clutchClip(A.clutchCur, sd), A.time, kArms, 12, tmp);
             const float e = sstep(0.f, 1.f, A.clutchW) * (1.f - A.braceW);
             static const u8 kArmB[2][4] = {{B_CLAVICLE_L, B_UPPERARM_L, B_FOREARM_L, B_HAND_L}, {B_CLAVICLE_R, B_UPPERARM_R, B_FOREARM_R, B_HAND_R}};
             static const u8 kHandB[2][2] = {{B_FINGERS_L, B_THUMB_L}, {B_FINGERS_R, B_THUMB_R}};
             for (u8 b : kArmB[sd]) p.rot[b] = nlerp(p.rot[b], tmp.rot[b], e);
             for (u8 b : kHandB[sd]) p.rot[b] = nlerp(p.rot[b], tmp.rot[b], e);
-            // the shoulder clutch also draws the hurt shoulder up and in
+            // the shoulder clutch also draws the hurt shoulder up and in; holding a thigh bends the body over it
             if (A.clutchCur == WOUND_SHOULDER_L || A.clutchCur == WOUND_SHOULDER_R) {
                 int ws = A.clutchCur == WOUND_SHOULDER_R ? 1 : 0;
                 for (u8 b : kArmB[ws]) p.rot[b] = nlerp(p.rot[b], tmp.rot[b], e * 0.8f);
+            } else if (A.clutchCur == WOUND_THIGH_L || A.clutchCur == WOUND_THIGH_R) {
+                float sx = A.clutchCur == WOUND_THIGH_R ? 1.f : -1.f;
+                rotateLocal(p, B_SPINE2, qx(-0.1f * e) * qy(sx * 0.05f * e));
+                rotateLocal(p, B_CHEST, qx(-0.08f * e) * qy(sx * 0.04f * e));
             }
             if (!cheap && e > 0.01f) {
                 // onto this body's own skin there, where its bones have it now
@@ -1074,8 +1097,14 @@ static void impactPose(Animator& A, const AnimInput& in, Pose& p, float dt, bool
                 boneModel(sk, p, hb, qh, ph);
                 const vec3 palm = ph + rotate(qh, sk.bindLocalPos[fb]) * 0.45f;
                 vec3 delta = want3 - palm;
-                if (length2(delta) > 0.0625f) delta = normalize(delta) * 0.25f;
+                if (length2(delta) > 0.2f) delta = normalize(delta) * 0.45f;
                 nudgeHand(sk, p, sd, delta, e);
+                // (a long reach, e.g. crouched over a thigh: once more from where the arm got to)
+                if (length2(delta) > 4e-4f) {
+                    boneModel(sk, p, hb, qh, ph);
+                    delta = want3 - (ph + rotate(qh, sk.bindLocalPos[fb]) * 0.45f);
+                    if (length2(delta) > 1e-4f && length2(delta) < 0.04f) nudgeHand(sk, p, sd, delta, e);
+                }
             }
         }
     }
@@ -1462,6 +1491,9 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             // get-ups start from a ragdoll: the previous animated pose is stale, so cut straight to the lying
             // pose (unless the game handed over the ragdoll pose with blendFrom(), which keeps its crossfade)
             if (in.action == CLIP_GET_UP_FRONT || in.action == CLIP_GET_UP_BACK) snapW = 0.f;
+        }
+        if (in.action == CLIP_GET_UP_FRONT || in.action == CLIP_GET_UP_BACK) {
+            clearImpacts();   // getting up: nothing of the fall left over
         }
         action = in.action;
         actionTime = 0.f;
@@ -2679,6 +2711,17 @@ void Animator::blendFrom(const Pose& from, float seconds) {
     snapW = 1.f;
     snapRate = 1.f / Max(seconds, 0.02f);
     extBlend = true;   // an action started by the next update keeps this crossfade
+    clearImpacts();    // (back from the ragdoll: no flinch, stagger or brace left over)
+}
+
+void Animator::clearImpacts() {
+    flinch = flinchV = headFl = headFlV = vec3(0);
+    dipFl = dipFlV = cringe = cringeV = 0.f;
+    for (int i = 0; i < 2; i++) armFl[i] = armFlV[i] = legFl[i] = legFlV[i] = 0.f;
+    pushV = pushLean = pushLeanV = vec2(0);
+    staggerT = reflexT = -1.f;
+    reflexWound = 0;
+    braceW = 0.f;
 }
 
 }  // namespace Anim

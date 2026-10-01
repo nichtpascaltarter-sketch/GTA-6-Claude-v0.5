@@ -344,28 +344,40 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
                 vec3 tint = lc * r.range(0.9f, 1.08f);
                 leafCluster(m, c, cr * (bush ? 0.8f : (oak ? 0.6f : 0.75f)) + r.range(0.f, 0.5f), foliageColor(tint, layer), makeMat(MAT_LEAVES), r);
             }
-            // Spanish moss hanging from oak limbs (some specimens): clumps of thin grey-green strands tapering to a point, each
-            // turned its own way (a flat card read as a pale pane edge-on and as a dark bar from the side)
+            // Spanish moss hanging from oak limbs (some specimens): clumps of thin grey-green strands, kinked half way and tapering
+            // to a point, each turned its own way (a flat card read as a pale pane edge-on and as a dark bar from the side)
             if (oak && (variant & 2)) {
                 for (vec3 tp : tips) {
                     int nm = r.irange(1, 2);
                     for (int j = 0; j < nm; j++) {
                         vec3 c = tp + vec3(r.range(-0.8f, 0.8f), r.range(-0.8f, 0.8f), -r.range(0.2f, 0.6f));
                         float len = r.range(0.9f, 1.8f);
-                        vec3 col = vec3(0.56f, 0.6f, 0.5f) * r.range(0.88f, 1.08f);
+                        // muted grey-green: the strands sit in the canopy's shade and must not read as pale spikes
+                        vec3 col = vec3(0.4f, 0.43f, 0.36f) * r.range(0.85f, 1.08f);
                         u32 mc = packRGBA8(col.x, col.y, col.z, 1.f), mm = makeMat(MAT_PLASTER);
-                        for (int s = 0; s < 6; s++) {
+                        for (int s = 0; s < 9; s++) {
                             float a = r.f() * kTwoPi;
                             vec3 side(cosf(a), sinf(a), 0.f);
-                            vec3 top = c + vec3(r.range(-0.3f, 0.3f), r.range(-0.3f, 0.3f), r.range(-0.1f, 0.1f));
-                            float l = len * r.range(0.5f, 1.f), w = r.range(0.035f, 0.07f);
-                            vec3 tip = top + vec3(r.range(-0.1f, 0.1f), r.range(-0.1f, 0.1f), -l);
-                            vec3 a0 = top - side * w, a1 = top + side * w;
-                            vec3 n = normalize(cross(a1 - a0, tip - a0));
-                            u32 i0 = m.addVertex(a0, n, side, vec2(0, 0), mc, mm), i1 = m.addVertex(a1, n, side, vec2(1, 0), mc, mm), i2 = m.addVertex(tip, n, side, vec2(0.5f, 1), mc, mm);
-                            m.tri(i0, i1, i2);
-                            u32 j0 = m.addVertex(a0, -n, side, vec2(0, 0), mc, mm), j1 = m.addVertex(a1, -n, side, vec2(1, 0), mc, mm), j2 = m.addVertex(tip, -n, side, vec2(0.5f, 1), mc, mm);
-                            m.tri(j0, j2, j1);
+                            vec3 top = c + vec3(r.range(-0.35f, 0.35f), r.range(-0.35f, 0.35f), r.range(-0.12f, 0.12f));
+                            float l = len * r.range(0.4f, 1.f), w = r.range(0.012f, 0.026f);
+                            // two segments with a kink half way, so each strand hangs like a string rather than a straight spike
+                            vec3 mid = top + vec3(r.range(-0.12f, 0.12f), r.range(-0.12f, 0.12f), -l * r.range(0.4f, 0.6f));
+                            vec3 tip = vec3(top.x + r.range(-0.15f, 0.15f), top.y + r.range(-0.15f, 0.15f), top.z - l);
+                            vec3 p[5] = {top - side * w, top + side * w, mid + side * (w * 0.55f), mid - side * (w * 0.55f), tip};
+                            for (int face = 0; face < 2; face++) {
+                                vec3 n = normalize(cross(p[1] - p[0], p[4] - p[0])) * (face ? -1.f : 1.f);
+                                u32 i[5];
+                                for (int k = 0; k < 5; k++) i[k] = m.addVertex(p[k], n, side, vec2(k == 1 || k == 2 ? 1.f : 0.f, k < 2 ? 0.f : (k < 4 ? 0.5f : 1.f)), mc, mm);
+                                if (face == 0) {
+                                    m.tri(i[0], i[1], i[2]);
+                                    m.tri(i[0], i[2], i[3]);
+                                    m.tri(i[3], i[2], i[4]);
+                                } else {
+                                    m.tri(i[0], i[2], i[1]);
+                                    m.tri(i[0], i[3], i[2]);
+                                    m.tri(i[3], i[4], i[2]);
+                                }
+                            }
                         }
                     }
                 }

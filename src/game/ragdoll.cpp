@@ -181,9 +181,28 @@ void extractPose(const Ragdoll& r, const Anim::Skeleton& sk, vec3 origin, mat4* 
 
 }  // namespace ragdoll_detail
 
-void GameWorld::knockDown(int pid, vec3 impulse) {
+void GameWorld::knockDown(int pid, vec3 impulse, bool brace) {
     if (pid < 0 || !peds[pid].used) return;
     Ped& p = peds[pid];
+    if (p.braceT >= 0.f) {
+        impulse += p.braceImpulse;   // pushed again while going over: down at once with both
+    } else if (brace && !p.ragdoll && p.state == PS_ONFOOT && p.grounded && p.health > 0.f && p.charIndex >= 0 && p.takedownT < 0.f &&
+               length2(vec2(impulse.x, impulse.y)) > 1.f) {
+        // brace for the fall (the animator's fallBrace, ~0.15 s to the full pose): already down for everyone else
+        p.braceT = 0.16f;
+        p.braceImpulse = impulse;
+        p.state = PS_RAGDOLL;
+        p.stateTime = 0.f;
+        p.aiming = p.firing = false;
+        return;
+    }
+    knockDownNow(pid, impulse);
+}
+
+void GameWorld::knockDownNow(int pid, vec3 impulse) {
+    if (pid < 0 || !peds[pid].used) return;
+    Ped& p = peds[pid];
+    p.braceT = -1.f;
     if (p.state == PS_INVEHICLE || p.charIndex < 0) return;
     const CharEntry& ce = chars[p.charIndex];
     if (!p.ragdoll) {

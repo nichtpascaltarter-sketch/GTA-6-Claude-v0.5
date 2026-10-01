@@ -60,6 +60,7 @@ enum InternalClip : int {
 inline int gaitClip(int style, int band) { return IC_GAIT_FIRST + style * kGaitBands + band; }
 void sampleClipId(const Skeleton& skel, int ci, float t, Pose& out, u32 variationSeed);
 void sampleClipLeg(const Skeleton& skel, int ci, float t, int side, Pose& out);   // one leg's bones only
+void sampleClipBones(const Skeleton& skel, int ci, float t, const u8* bones, int n, Pose& out);   // the listed bones only
 struct BuildCtx;
 struct BodyDims;
 // A body's skin where a hand holds a wound (Wound: bind model space; the signed distance model must hold the body's
@@ -512,6 +513,9 @@ struct OutfitCtx {
     std::vector<Layer> layers;
     // torso offsets of the already emitted top/bottom shells (so the next layer clears them at the waist)
     float botTorsoOff = 0.f, botTopZ = -1.f, topTorsoOff = 0.f;
+    // the bottoms' shell offset without the belt, and the belt's lower edge (-1: no belt): a top hanging over them
+    // clears the belt only where the belt is
+    float botShellOff = 0.f, botBeltZ0 = -1.f;
     // skin torso profile for the silhouette fits: row heights (ascending), torso axis y per row and the horizontal
     // distance from the axis per row and grid column (profN columns, theta = 2 pi k / profN)
     std::vector<float> profZ, profY, profR;

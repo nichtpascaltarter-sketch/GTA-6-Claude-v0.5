@@ -419,7 +419,7 @@ void GameWorld::meleeHit(int ai, int ti, int move) {
     float knock = mv.knockChance + (frac < 0.35f ? 0.35f : 0.f) + (bat ? 0.15f : 0.f);
     if (t.isPlayer) knock *= 0.45f;
     if (hashToFloat(hash32(a.meleeSerial * 977u + (u32)ti * 13u)) < knock) {
-        knockDown(ti, dir * ((bat ? 380.f : 260.f) * (mv.heavy ? 1.3f : 1.f)) + vec3(0.f, 0.f, 70.f));
+        knockDown(ti, dir * ((bat ? 380.f : 260.f) * (mv.heavy ? 1.3f : 1.f)) + vec3(0.f, 0.f, 70.f), true);
         return;
     }
     // reaction: head snap for blows to the face, doubling over for body shots, a stumble from behind or a heavy blow

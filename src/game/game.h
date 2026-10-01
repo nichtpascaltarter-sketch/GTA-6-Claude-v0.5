@@ -215,6 +215,8 @@ struct Ped {
     float forcedT = 0.f;
     float legInjury = 0.f;        // s of limping left after a leg wound (caps the speed)
     u8 legInjurySide = 0;         // ... on the left (0) or right (1) leg: the animator's limp (NPCs)
+    float braceT = -1.f;          // going over (knockDown with brace): bracing for the fall this much longer ...
+    vec3 braceImpulse = vec3(0);  // ... before the ragdoll takes the body with this push
     // lip sync of the line being spoken (Speech::lipSync keys on the synthesizer's timeline, real-time clock)
     std::vector<Speech::VisemeKey> lipKeys;
     std::vector<Speech::StyleSpan> lipStyles;   // emotion over the line (facial expression)

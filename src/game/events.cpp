@@ -1660,7 +1660,7 @@ void GameWorld::updateEvents(float dt) {
                     float r = hashToFloat(hash32(hh));
                     if (r < 0.22f && length(p.vel.xy()) > 0.4f) {
                         vec2 side = AI::rightOf(AI::yawDir(p.yaw)) * (hh & 1 ? 1.f : -1.f);
-                        knockDown(id, vec3(side * 70.f + AI::yawDir(p.yaw) * 40.f, 10.f));   // takes a tumble
+                        knockDown(id, vec3(side * 70.f + AI::yawDir(p.yaw) * 40.f, 10.f), true);   // takes a tumble
                     } else if (r < 0.6f) {
                         p.pendingAction = Anim::CLIP_STAGGER;
                     } else {

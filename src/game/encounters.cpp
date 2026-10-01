@@ -1158,7 +1158,7 @@ public:
                 if (stageT > 1.f && w >= 0 && g.peds[w].brain.type != BRAIN_NONE) {
                     t.exitVehicle();
                     t.teleport(pedPos(g, w) + vec3(2.f, 0.f, 0.f), 0.f);
-                    g.knockDown(w, vec3(0.f, 60.f, 20.f));
+                    g.knockDown(w, vec3(0.f, 60.f, 20.f), true);
                 }
                 break;
             default: break;
@@ -1665,7 +1665,7 @@ public:
                 if (encDown(g, jacker)) break;   // knocked over on the way (a bike, a bump): he gets up and carries on
                 if (g.peds[j].brain.type != BRAIN_GOTO && fmodf(stageT, 1.f) < dt) setGoto(g, j, anchor, 5.4f);
                 if (::length(pedPos(g, j).xy() - anchor.xy()) < 1.8f || stageT > 7.f) {
-                    if (o >= 0) g.knockDown(o, vec3(P.outward * 110.f, 25.f));
+                    if (o >= 0) g.knockDown(o, vec3(P.outward * 110.f, 25.f), true);
                     g.warpPedIntoVehicle(j, cv, 0);
                     ScriptDriver& d = driveRoad(g, cv, P.curb.xy() + P.streetDir * 850.f, 22.f, true, kEncScope);
                     d.rubberPed = g.player;

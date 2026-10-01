@@ -375,7 +375,9 @@ public:
         float dt = g.dtLast;
         switch (stage) {
             case 1:
-                if (t.stageTime > 1.5f && cuervoCar >= 0) {
+                // (the car gets clear of the block first: the talk with Nando away from the burning window and its smoke)
+                if (cuervoCar >= 0 && t.stageTime > 1.5f &&
+                    (::length(vehPos(g, cuervoCar).xy() - gPlaces.diner.door.xy()) > 150.f || t.stageTime > 25.f)) {
                     g.vehicles[cuervoCar].sim.engineHealth = 0.f;
                     g.vehicles[cuervoCar].sim.health = 350.f;
                 }

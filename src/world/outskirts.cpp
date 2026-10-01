@@ -469,7 +469,35 @@ void genSpeedway(const SiteElem& e, G& g) {
         // pit road inside the front stretch: pit wall, numbered boxes, the garages behind, the scoreboard pylon, haulers
         const float ri = swIn();
         const float pv0 = kSwY - ri + 5.f, pv1 = pv0 + 12.f;   // pit road between the apron and the boxes
+        const float gv = pv1 + 10.f, paddock1 = gv + 28.f;       // garage fronts; the back of the paddock behind them
         auto owned = [&](vec2 p) { return g.owns(p); };
+        // opaque surfaces everywhere in the infield (the wild grass of the farmland grows through anything that is only a
+        // decal): concrete under the boxes, asphalt in the paddock, mown lawn round them and in the turns
+        for (float x = kSwStandX0; x < kSwStandX1; x += 20.f) {
+            vec2 bs(x + 10.f, (pv1 + gv) * 0.5f), pd(x + 10.f, (gv + paddock1) * 0.5f);
+            if (owned(bs)) polyFlat(g, *g.m, rectPoly(bs, X, 10.f, (gv - pv1) * 0.5f + 0.05f), z + 0.07f, rgb(0.88f), M(MAT_CONCRETE));
+            if (owned(pd)) polyFlat(g, *g.m, rectPoly(pd, X, 10.f, (paddock1 - gv) * 0.5f), z + 0.065f, rgb(0.85f), M(MAT_ASPHALT_OLD));
+        }
+        {
+            const u32 lawnC = rgb(0.55f, 0.72f, 0.4f), lawnM = M(MAT_GRASS);
+            const float step = detail ? 10.f : 30.f, ia = ri - 4.9f;   // reaches just under the apron
+            const float xa = kSwX - kSwHalfStraight, xb = kSwX + kSwHalfStraight;
+            drapeRect(g, vec2(kSwX, (paddock1 + kSwY + ia) * 0.5f), X, kSwHalfStraight, (kSwY + ia - paddock1) * 0.5f, 0.05f, lawnC, lawnM, step, z, false);
+            drapeRect(g, vec2((xa + kSwStandX0) * 0.5f, (kSwY - ia + paddock1) * 0.5f), X, (kSwStandX0 - xa) * 0.5f, (paddock1 - kSwY + ia) * 0.5f, 0.05f, lawnC,
+                      lawnM, step, z, false);
+            drapeRect(g, vec2((kSwStandX1 + xb) * 0.5f, (kSwY - ia + paddock1) * 0.5f), X, (xb - kSwStandX1) * 0.5f, (paddock1 - kSwY + ia) * 0.5f, 0.05f, lawnC,
+                      lawnM, step, z, false);
+            // the turn infields: wedges of a half disc at each end, each emitted by the cell that owns its middle
+            const int seg = detail ? 32 : 12;
+            for (int s = -1; s <= 1; s += 2) {
+                vec2 cc(kSwX + s * kSwHalfStraight, kSwY);
+                for (int k = 0; k < seg; k++) {
+                    float a0 = -kHalfPi + kPi * k / seg, a1 = -kHalfPi + kPi * (k + 1) / seg;
+                    vec2 p0 = cc + vec2(cosf(a0) * s, sinf(a0)) * ia, p1 = cc + vec2(cosf(a1) * s, sinf(a1)) * ia;
+                    if (owned((cc + p0 + p1) * (1.f / 3.f))) tri3(g, V3(cc, z + 0.05f), V3(p0, z + 0.05f), V3(p1, z + 0.05f), lawnC, lawnM, vec3(0, 0, 1));
+                }
+            }
+        }
         for (float x = kSwStandX0; x < kSwStandX1; x += 20.f) {
             vec2 c(x + 10.f, (pv0 + pv1) * 0.5f);
             if (!owned(c)) continue;
@@ -495,7 +523,6 @@ void genSpeedway(const SiteElem& e, G& g) {
             boxY(g, V3(cs, z + 2.8f), X, vec3(1.3f, 1.f, 0.05f), rgb(0.9f, 0.9f, 0.9f), M(MAT_FABRIC), true);
         }
         // the garage row behind the boxes: roll-up doors under a long flat roof
-        const float gv = pv1 + 10.f;
         for (float x = kSwStandX0; x < kSwStandX1; x += 25.f) {
             vec2 c(x + 12.5f, gv + 5.f);
             if (!owned(c)) continue;
@@ -534,9 +561,6 @@ void genSpeedway(const SiteElem& e, G& g) {
                 }
             collide(g, V3(sb, z + 12.f), X, vec3(1.3f, 1.3f, 12.f));
         }
-        // infield grass
-        drapeRect(g, vec2(kSwX, kSwY + 8.f), X, kSwHalfStraight, swIn() - 22.f, 0.05f, rgb(0.55f, 0.72f, 0.4f), M(MAT_GRASS), detail ? 10.f : 30.f, z);
-        (void)owned;
         return;
     }
     // variant 2: grandstand on the front stretch, race control tower, car park, entrance arch and ticket booths
@@ -546,6 +570,9 @@ void genSpeedway(const SiteElem& e, G& g) {
     for (float x = kSwStandX0; x < kSwStandX1; x += 40.f) {
         vec2 c(x + 20.f, sv0);
         if (!g.owns(c)) continue;
+        // concrete concourse between the outer wall and the front row
+        const float cv1 = kSwY - ro - 0.75f;
+        polyFlat(g, *g.m, rectPoly(vec2(x + 20.f, (sv0 + cv1) * 0.5f), X, 20.f, (cv1 - sv0) * 0.5f), z + 0.06f, rgb(0.85f), M(MAT_CONCRETE));
         bleachers(g, c, X, Y, z, 40.f, 24, 0.9f, 0.55f, rgb(0.2f, 0.35f, 0.7f), rgb(0.62f, 0.64f, 0.67f));
         // the back wall of the stand with the sponsors' boards (plain colours)
         float zt = z + 0.45f + 23.f * 0.55f;

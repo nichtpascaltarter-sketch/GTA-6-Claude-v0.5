@@ -642,6 +642,9 @@ void GameWorld::animatePed(Ped& p, float dt) {
     in.legHurt[0] = in.legHurt[1] = 0.f;
     if (!p.isPlayer && p.legInjury > 0.f) in.legHurt[p.legInjurySide & 1] = Saturate(p.legInjury / 8.f);
     in.wounded = p.isPlayer ? 0.f : Saturate((0.5f - p.health / Max(p.maxHealth, 1.f)) * 2.5f);
+    // going over (knockDown with brace): the arms out to break the fall, tipping into the push
+    in.fallBrace = p.braceT >= 0.f ? 1.f : 0.f;
+    if (p.braceT >= 0.f) in.fallDir = vec3(dot(vec2(p.braceImpulse.x, p.braceImpulse.y), rightV), dot(vec2(p.braceImpulse.x, p.braceImpulse.y), fwd), 0.f);
     // synced takedown: the attacker's choke arm finds the victim's actual neck (tall / short pairs still connect)
     in.grabWeight = 0.f;
     if (p.takedownT >= 0.f && !p.takedownVictim && p.takedownPartner >= 0 && p.takedownPartner < (int)peds.size()) {
@@ -852,6 +855,15 @@ void GameWorld::updatePed(int id, float dt) {
         case PS_RAGDOLL:
         case PS_DEAD:
             if (p.ragdoll) GameWorld_updateRagdoll(*this, p, dt);
+            else if (p.braceT >= 0.f && p.state == PS_RAGDOLL) {
+                // going over (knockDown with brace): carried on by its momentum while it braces, then the ragdoll
+                // takes the braced pose and the push
+                p.pos = p.pos + vec3(p.vel.x * dt, p.vel.y * dt, 0.f);
+                p.braceT -= dt;
+                if (p.braceT < 0.f) knockDownNow(id, p.braceImpulse);
+            } else if (p.state == PS_RAGDOLL) {
+                knockDownNow(id, vec3(0));   // (never left down without a body)
+            }
             break;
         default: break;
     }

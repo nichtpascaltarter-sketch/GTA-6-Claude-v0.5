@@ -2020,6 +2020,13 @@ void GameWorld::updatePopulation(float dt) {
             if (length(p.pos.toVec3().xy() - pp.xy()) > 180.f) continue;
             addIncident(p.pos, 0);
         }
+        // someone down hurt (pedai.cpp ACT_HURT): an ambulance as for a body (the crew sees to them)
+        for (int i = 0; i < (int)peds.size() && i < (int)ai.ped.size(); i++) {
+            const Ped& p = peds[i];
+            if (!p.used || p.isPlayer || p.state != PS_ONFOOT || ai.ped[i].uid != p.uid || ai.ped[i].activity != ACT_HURT || ai.ped[i].hurtCare < 0.f) continue;
+            if (length(p.pos.toVec3().xy() - pp.xy()) > 180.f) continue;
+            addIncident(p.pos, 0);
+        }
         for (const Fire& f : fires)
             if (f.used && f.life > 8.f && length(f.pos.toVec3().xy() - pp.xy()) < 200.f) addIncident(f.pos, 1);
         for (int i = 0; i < (int)vehicles.size(); i++)

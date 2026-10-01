@@ -279,7 +279,11 @@ struct GameWorld {
     void damagePed(int ped, float amount, DamageType type, int attacker, vec3 dir, int bone = -1);
     void killPed(int ped, int attacker, vec3 dir, DamageType type);
     void addWound(int ped, dvec3 worldPos, int bone, float radius);
-    void knockDown(int ped, vec3 impulse);
+    // Over into the ragdoll. brace: a push slow enough to see coming (a shove, a tackle, a trip, a kick, a dive): a ped
+    // still on its feet braces for the fall first (the arms out, the chin tucked, tipping into the push) and the ragdoll
+    // takes it from that pose a moment later (updatePed); without it (a shot, a blast, a car) it goes over at once.
+    void knockDown(int ped, vec3 impulse, bool brace = false);
+    void knockDownNow(int ped, vec3 impulse);
     void breakVehicleWindows(int vehicle, vec3 dir);
     // Tidegram social feed (social.cpp): UI::TideEvent ev at pos
     void socialReport(int ev, dvec3 pos, const char* subject = nullptr, float magnitude = 0.f);

@@ -390,6 +390,40 @@ static void runScenario(int sc, float t, AnimInput& in) {
             in.aiming = true;
             break;
         }
+        case 40: {   // a hit at PREVIEW_HITT (default 0.5 s): PREVIEW_HIT = push x,y,strength,bone (default 0,-1,0.4,B_CHEST),
+                     // walking at PREVIEW_SPEED (default 0)
+            const char* sv = getenv("PREVIEW_SPEED");
+            const char* ht = getenv("PREVIEW_HITT");
+            in.speed = Min(sv ? (float)atof(sv) : 0.f, t * 11.f);
+            float at = ht ? (float)atof(ht) : 0.5f;
+            if (t >= at && t < at + 1.f / 60.f - 1e-4f) {
+                float hx = 0.f, hy = -1.f, hs = 0.4f;
+                int hb = B_CHEST;
+                if (const char* hv = getenv("PREVIEW_HIT")) sscanf(hv, "%f,%f,%f,%d", &hx, &hy, &hs, &hb);
+                in.hitDir = vec3(hx, hy, 0.f);
+                in.hitStrength = hs;
+                in.hitBone = hb;
+            }
+            break;
+        }
+        case 41: {   // hurt: PREVIEW_LIMP = hurt leg (0 / 1), PREVIEW_WOUNDED 0..1, PREVIEW_CLUTCH = Wound, PREVIEW_SPEED,
+                     // PREVIEW_CROUCH, PREVIEW_STANCE (24 lying hurt)
+            const char* sv = getenv("PREVIEW_SPEED");
+            in.speed = Min(sv ? (float)atof(sv) : 0.f, t * 11.f);
+            if (const char* lv = getenv("PREVIEW_LIMP")) in.legHurt[atoi(lv) & 1] = 1.f;
+            if (const char* wv = getenv("PREVIEW_WOUNDED")) in.wounded = (float)atof(wv);
+            if (const char* cv = getenv("PREVIEW_CLUTCH")) in.clutch = atoi(cv);
+            in.crouch = getenv("PREVIEW_CROUCH") != nullptr;
+            if (const char* st = getenv("PREVIEW_STANCE")) in.stance = atoi(st);
+            break;
+        }
+        case 42: {   // going over from 0.5 s: PREVIEW_FALLDIR = x,y (default 0,1)
+            float fx = 0.f, fy = 1.f;
+            if (const char* fv = getenv("PREVIEW_FALLDIR")) sscanf(fv, "%f,%f", &fx, &fy);
+            in.fallDir = vec3(fx, fy, 0.f);
+            in.fallBrace = t >= 0.5f ? 1.f : 0.f;
+            break;
+        }
         case 37: {   // looking at a point 60 degrees to the left, switching to one 45 degrees to the right at 1 s
             float a = t < 1.f ? 1.05f : -0.8f;
             in.lookAt = vec3(-sinf(a) * 3.f, cosf(a) * 3.f, 1.6f);
@@ -739,6 +773,12 @@ int main(int argc, char** argv) {
                         if (*q == ',') q++;
                     }
                     in.carryOpen = getenv("PREVIEW_CARRYOPEN") != nullptr;
+                }
+                // a staggering ped is moved by the stagger (the game's movePed does the same)
+                if (an.staggering()) {
+                    vec3 sv = an.staggerVelocity();
+                    in.speed = length(sv);
+                    in.localMoveDir = in.speed > 1e-3f ? vec2(sv.x, sv.y) / in.speed : vec2(0, 1);
                 }
                 // the ped moves and turns like the game moves its capsule (the animator sees the same speed / turn rate)
                 vec2 md = length(in.localMoveDir) > 1e-3f ? normalize(in.localMoveDir) : vec2(0, 1);
