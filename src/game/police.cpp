@@ -299,6 +299,21 @@ dvec3 sightPoint(const GameWorld& g, const Ped& t, vec3 from) {
 
 }  // namespace police_detail
 
+// How far a car starting on `lane` at u would drive to reach goal by the road network (the planner's route, the first
+// and last roads counted half): units are sent from where the way in is short, not round a block of one-way streets.
+float GameWorld::aiRouteLength(int lane, float u, vec2 goal) {
+    AI::Driver tmp;
+    tmp.path = lane;
+    tmp.u = u;
+    traffic.setDestination(tmp, goal);
+    if (tmp.destEdges.empty() || !roads) return -1.f;
+    float L = 0.f;
+    for (int e : tmp.destEdges) L += roads->edges[e].length;
+    L -= 0.5f * roads->edges[tmp.destEdges.front()].length;
+    if (tmp.destEdges.size() >= 2) L -= 0.5f * roads->edges[tmp.destEdges.back()].length;
+    return Max(L, 0.f);
+}
+
 using namespace police_detail;
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -484,7 +499,9 @@ void GameWorld::updateWanted(float dt) {
     } else if (pl->vehicle >= 0) {
         gTrailEnds = true;
     } else if (!gTrailEnds && gTrail.size() < 400 && (gTrail.empty() || length(gTrail.back().p - ppos.xy()) > 2.f)) {
-        gTrail.push_back({ppos.xy(), ppos.z});
+        // (a jump no one walks - a ride, a cut-scene move: the scent stops there)
+        if (!gTrail.empty() && length(gTrail.back().p - ppos.xy()) > 15.f) gTrailEnds = true;
+        else gTrail.push_back({ppos.xy(), ppos.z});
     }
     updateK9Unit(*this, dt, seen);
     // ---- crimes: witnessed by police -> immediate; otherwise a civilian may phone it in
@@ -1229,6 +1246,12 @@ void GameWorld::updateDispatch(float dt) {
         vec3 c = laneGraph.lanePos(lane, u);
         if (inCameraView(c, 8.f) && length(c.xy() - pp.xy()) < 220.f) continue;
         if (!traffic.laneFree(lane, u, 3.f, 6.f)) continue;
+        // (a unit that would have to go round the block first - one-way streets, no turn that way - comes from
+        //  elsewhere: the first six tries want a way in at most 1.7 times as long as the straight line)
+        if (!fast && attempt < 6) {
+            float rl = aiRouteLength(lane, u, around);
+            if (rl < 0.f || rl > length(c.xy() - around) * 1.7f + 40.f) continue;
+        }
         vec2 t = laneGraph.laneTangent(lane, u);
         int vid = spawnVehicle(model, dvec3(c.x, c.y, c.z + 0.3f), AI::dirYaw(t), true, FAC_POLICE);
         if (vid < 0) return;
@@ -1445,8 +1468,10 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
         // held up in traffic out of the player's sight (a queue at a red light, a box jammed by cross traffic): on past
         // it along the route, as a unit with the siren going would have got round it on the wrong side of the road;
         // stuck within a short run of a suspect on foot: out of the car and the rest of the way on foot
-        va.heldUp = mySpeed < 1.f ? va.heldUp + dt : 0.f;
-        if (va.heldUp > 3.f && targetVeh < 0 && tpReal && dist < 75.f) {
+        // (held up: stopped or crawling in stop-and-go traffic - the time builds while slower than 3 m/s and wears off
+        //  while moving faster)
+        va.heldUp = Clamp(va.heldUp + (mySpeed < 3.f ? dt : -dt), 0.f, 10.f);
+        if (va.heldUp > 3.f && mySpeed < 1.f && targetVeh < 0 && tpReal && dist < 75.f) {
             for (int s = 0; s < 8; s++) {
                 int o = v.seats[s];
                 if (o < 0 || peds[o].isPlayer) continue;
@@ -1466,7 +1491,7 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
             LOG("police unit %d: stuck in traffic %.0f m out, the officers go on foot", vi, dist);
             return;
         }
-        if (va.heldUp > 4.f && !d->dummy && pl && length(rel(v.sim.body.pos, pl->pos)) > 60.f && !inCameraView(vp, 12.f)) {
+        if (va.heldUp > 5.f && !d->dummy && pl && length(rel(v.sim.body.pos, pl->pos)) > 60.f && !inCameraView(vp, 12.f)) {
             va.heldUp = 0.f;
             float hl = vassets[v.model].spec.boxHalf.y;
             for (float ahead = 12.f; ahead <= 66.f; ahead += 6.f) {

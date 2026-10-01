@@ -454,6 +454,7 @@ struct GameWorld {
     void aiBuildBodies();                       // perception proxies for this tick
     void aiUpdateThreats(float dt);
     void aiStreetMeets(float dt);               // pedai.cpp: acquaintances running into each other on the sidewalk
+    float aiRouteLength(int lane, float u, vec2 goal);   // police.cpp: how far a car on this lane would drive to goal (-1: no route)
     std::string aiDebugText() const;
     std::string aiCensusText(float radius) const;   // who is around the player and what they are doing (tests)
     std::string aiTrafficHealthText() const;         // stuck / blocked / rolled cars, impacts, core counters (soak tests)
