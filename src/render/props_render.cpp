@@ -177,7 +177,7 @@ struct PropRenderer {
     }
 
     template <typename CellMap>
-    void drawGBuffer(Renderer& r, CellMap& cells, MaterialLibrary* mats) {
+    void drawGBuffer(Renderer& r, CellMap& cells) {
         auto* c = gfx::ctx;
         Frustum fr;
         fr.fromMatrix(r.viewProjNoJitter);
@@ -185,14 +185,9 @@ struct PropRenderer {
         c->setInputLayout(vs.layout);
         c->setVS(vs.vs);
         c->setPS(ps);
-        gfx::SRV  srvs[3] = {mats->table.srv, mats->albedoArr.srv, mats->normalArr.srv};
-        c->psSetSRVs(10, 3, srvs);
-        c->psSetSRVs(15, 1, &foliageArr.srv);
         c->setRasterState(gfx::states.cullNone);
         drawBuckets(r, false);
         c->setRasterState(gfx::states.cullBack);
-        gfx::SRV  nulls[6] = {};
-        c->psSetSRVs(10, 6, nulls);
     }
 
     template <typename CellMap>
@@ -205,11 +200,8 @@ struct PropRenderer {
         c->setInputLayout(vsShadow.layout);
         c->setVS(vsShadow.vs);
         c->setPS(psShadow);
-        c->psSetSRVs(15, 1, &foliageArr.srv);
         drawBuckets(r, true);
         c->setPS(nullptr);
-        gfx::SRV  nul = nullptr;
-        c->psSetSRVs(15, 1, &nul);
     }
 };
 

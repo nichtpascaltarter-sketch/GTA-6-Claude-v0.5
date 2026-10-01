@@ -3,19 +3,8 @@
 #include "facade.hlsli"
 #include "weather.hlsli"
 
-struct MaterialInfo {
-    float layer, uvScale, roughScale, metal;
-    float4 tint;
-    float normalScale, shadingModel, flags, emissive;
-};
-StructuredBuffer<MaterialInfo> tMaterials : register(t10);
-Texture2DArray<float4> tMatAlbedo : register(t11);
-Texture2DArray<float4> tMatNormal : register(t12);
-
-cbuffer DrawCB : register(b1) {
-    float4 gCellOffset;   // xyz: cell origin - camera position
-    float4 gDrawParams;   // x: lod fade (dither), y: wind sway strength, z,w unused
-};
+// Per-draw root constants (WorldRenderer::setCellOffset): 0..2 cell origin relative to the view's reference point
+float3 cellOffset() { return asfloat(gRootConstants[0].xyz); }
 
 struct VSIn {
     float3 pos : POSITION;
@@ -42,7 +31,7 @@ float3 decodeOct(float2 e) { return octDecode(e); }
 
 VSOut vsWorld(VSIn i) {
     VSOut o;
-    float3 rel = i.pos + gCellOffset.xyz;
+    float3 rel = i.pos + cellOffset();
     o.rel = rel;
     o.pos = mul(gViewProj, float4(rel, 1));
     o.curClip = mul(gViewProjNoJitter, float4(rel, 1));
@@ -60,7 +49,7 @@ cbuffer ShadowPassCB : register(b2) {
     float4x4 gShadowViewProj;
 };
 float4 vsWorldShadow(VSIn i) : SV_Position {
-    float3 rel = i.pos + gCellOffset.xyz;
+    float3 rel = i.pos + cellOffset();
     return mul(gShadowViewProj, float4(rel, 1));
 }
 
@@ -240,7 +229,7 @@ void roadWear(float2 ruv, float roadW, float camDist, inout float3 albedo, inout
 GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
     uint matId = i.mat & 0xffu;
     uint param = (i.mat >> 8) & 0x7fffffu;
-    MaterialInfo m = tMaterials[matId];
+    MaterialInfo m = materialInfo(matId);
     float3 N = normalize(i.nrm) * (front ? 1.0 : -1.0);
     float3 T = normalize(i.tan.xyz - N * dot(i.tan.xyz, N));
     float3 B = cross(N, T) * i.tan.w;
@@ -254,7 +243,7 @@ GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
     float extra = 0;
     if ((uint)m.flags & 4) {
         // Procedural building facade (windows with interior mapping)
-        FacadeResult f = shadeFacade(param, i.uv, N, T, B, i.rel, worldP, tMatAlbedo, tMatNormal);
+        FacadeResult f = shadeFacade(param, i.uv, N, T, B, i.rel, worldP);
         albedo = f.albedo * i.color.rgb;
         if (f.isWindow) albedo = f.albedo;
         n = f.normal;
@@ -264,8 +253,8 @@ GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
         ao = f.ao;
     } else {
         float2 uv = i.uv * m.uvScale;
-        float4 a = tMatAlbedo.Sample(sAnisoWrap, float3(uv, m.layer));
-        float4 nr = tMatNormal.Sample(sAnisoWrap, float3(uv, m.layer));
+        float4 a = matAlbedoArray().Sample(sAnisoWrap, float3(uv, m.layer));
+        float4 nr = matNormalArray().Sample(sAnisoWrap, float3(uv, m.layer));
         albedo = a.rgb * m.tint.rgb * i.color.rgb;
         float2 nxy = (nr.xy * 2.0 - 1.0) * m.normalScale;
         rough = saturate(nr.z * m.roughScale);
@@ -275,7 +264,7 @@ GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
         float detailW = saturate(1.0 - camDist / 22.0) * (matId <= 1u ? 0.0 : 1.0);   // asphalt: procedural grain below
         if (detailW > 0.0) {
             float2 duv = float2(uv.x * 0.8 - uv.y * 0.6, uv.x * 0.6 + uv.y * 0.8) * 4.7 + 0.37;
-            float4 nr2 = tMatNormal.Sample(sAnisoWrap, float3(duv, m.layer));
+            float4 nr2 = matNormalArray().Sample(sAnisoWrap, float3(duv, m.layer));
             nxy += (nr2.xy * 2.0 - 1.0) * m.normalScale * 0.55 * detailW;
             rough = saturate(rough * lerp(1.0, 0.7 + nr2.z * 0.6, detailW * 0.6));
         }

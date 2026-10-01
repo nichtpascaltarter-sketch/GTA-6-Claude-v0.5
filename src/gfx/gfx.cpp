@@ -16,6 +16,7 @@ namespace gfx {
 
 Context* ctx = nullptr;
 States states;
+FrameStats gStats, gLastStats;   // --gfxstats: the frame being recorded and the last presented one
 
 namespace {
 
@@ -1169,6 +1170,11 @@ void writeUpload(ResourceObj* r, const void* data, u32 size) {
     }
     UploadAlloc a = allocDynamic(allocSize, align);
     memcpy(a.cpu, data, size);
+    gStats.dynamicBytes += size;
+    if (r->flags & BUF_CONSTANT) {
+        gStats.cbWrites++;
+        gStats.cbBytes += allocSize;
+    }
     r->uploadPage = a.res;
     r->uploadOffset = a.offset;
     r->uploadCpu = a.cpu;
@@ -2133,6 +2139,8 @@ void present(bool vsync) {
     if (FAILED(hr)) LOG("Present failed: %08lx", (unsigned long)hr);
     cur.fence[QUEUE_DIRECT] = value;
     cur.fence[QUEUE_COMPUTE] = g.fenceValue[QUEUE_COMPUTE];
+    gLastStats = gStats;
+    gStats = FrameStats();
     // next frame: wait until the frame that used this slot before has finished on the GPU, then recycle its memory
     g.frame++;
     g.dynPage = nullptr;

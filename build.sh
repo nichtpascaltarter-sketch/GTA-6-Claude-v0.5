@@ -24,8 +24,13 @@ if [ -e /tmp/neontide_build.lock ] && command -v flock >/dev/null 2>&1; then
   # the wait for the lock can be long: start only once there is room for the compile (Wine runs come and go; the
   # room is counted under the container's memory cap, where hitting it kills the compile)
   if [ -r /proc/meminfo ]; then
+    # (under the launch lock games take too, held 15 s past the check until the compile shows up in memfree's count)
+    exec 7>>/tmp/neontide_launch.lock
+    flock 7
     n=0
     while [ "$(sh tools/memfree.sh 2>/dev/null || echo 100000)" -lt 3000 ] && [ $n -lt 90 ]; do sleep 10; n=$((n+1)); done
+    sleep 15 </dev/null >/dev/null 2>&1 9>&- &
+    exec 7>&-
   fi
 fi
 $CXX -std=c++17 $OPT $EXTRA $GCCMEM -march=x86-64-v2 -mfpmath=sse -fno-strict-aliasing -Wall -Wno-unused-function -Wno-unused-variable \

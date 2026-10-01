@@ -536,11 +536,12 @@ struct CarBody {
             vec2 gd = normalize(C - B);
             float rr = Min(s.railR, Min(hEdge * 0.45f, cx * 0.3f));
             vec2 S = C - gd * rr, E(C.x - rr, C.y);
-            // side glass with split
+            // side glass with split (the slanted rear edge's own end rows included: a row there left at the middle
+            // would kink the edge into a sawtooth)
             float tsp = 0.5f;
             if (s.dloRearTop != s.dloRearBot) {
                 float lo = Min(s.dloRearBot, s.dloRearTop), hi = Max(s.dloRearBot, s.dloRearTop);
-                if (y > lo && y < hi) tsp = (y - s.dloRearBot) / (s.dloRearTop - s.dloRearBot);
+                if (y >= lo - 1e-4f && y <= hi + 1e-4f) tsp = (y - s.dloRearBot) / (s.dloRearTop - s.dloRearBot);
             }
             tsp = Clamp(tsp, 0.04f, 0.96f);
             for (int i = 0; i <= NG1; i++) {

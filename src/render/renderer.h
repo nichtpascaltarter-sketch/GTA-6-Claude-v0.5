@@ -51,6 +51,8 @@ struct FrameConstants {
     vec4 ambientParams; // x urban enclosure (facade share of the horizon, 0..1), y lightning ambient (lux), zw unused
     vec4 skyGlow;      // x urban light pollution (0..1), yz direction towards the brighter city (xy, length = bias), w night
     vec4 renderFlags;  // x reduce flashing (accessibility), yzw unused
+    u32 bindlessMat[4];     // heap indices: material table, albedo array, normal array, foliage cards
+    u32 bindlessFacade[4];  // heap indices: facade table, shop sign atlas, facade night lighting, unused
 };
 
 struct ShadowConstants {

@@ -96,7 +96,8 @@ void Context::invalidateApplied() {
     for (auto& s : srvTableDirty) s[0] = s[1] = true;
     uavTableDirty = true;
     rtDirty = vpDirty = scissorDirty = topoDirty = true;
-    rootConstDirty[0] = rootConstDirty[1] = true;
+    markRootConstantsDirty(0);
+    markRootConstantsDirty(1);
     bindlessApplied[0] = bindlessApplied[1] = false;
     statesDirty[0] = statesDirty[1] = true;
     iaStatesDirty = true;
@@ -165,11 +166,21 @@ void Context::onViewRelease(ViewObj* v) {
 }
 
 void Context::onShaderRelease(ShaderObj* s) {
-    for (int st = 0; st < STAGE_COUNT; st++)
+    for (int st = 0; st < STAGE_COUNT; st++) {
         if (shaders[st] == s) {
             shaders[st] = nullptr;
             psoDirty = true;
         }
+        for (u32 range = 0; range < 2; range++)
+            if (srvTableShader[st][range] == s) {
+                srvTableShader[st][range] = nullptr;
+                srvTableDirty[st][range] = true;
+            }
+    }
+    if (uavTableShader == s) {
+        uavTableShader = nullptr;
+        uavTableDirty = true;
+    }
     if (s->computePSO && curPSO == s->computePSO) curPSO = nullptr;
     graphicsPSO = nullptr;
     psoDirty = true;
@@ -191,7 +202,8 @@ void Context::setVS(ShaderObj* vs) {
     if (shaders[STAGE_VS] == vs) return;
     shaders[STAGE_VS] = vs;
     psoDirty = true;
-    srvTableDirty[STAGE_VS][0] = srvTableDirty[STAGE_VS][1] = true;
+    for (u32 range = 0; range < 2; range++)
+        if (!srvTableCovers(STAGE_VS, range, vs)) srvTableDirty[STAGE_VS][range] = true;
     statesDirty[0] = true;
 }
 
@@ -201,7 +213,8 @@ void Context::setPS(PixelShader ps) {
     if (shaders[STAGE_PS] == ps) return;
     shaders[STAGE_PS] = ps;
     psoDirty = true;
-    srvTableDirty[STAGE_PS][0] = srvTableDirty[STAGE_PS][1] = true;
+    for (u32 range = 0; range < 2; range++)
+        if (!srvTableCovers(STAGE_PS, range, ps)) srvTableDirty[STAGE_PS][range] = true;
     statesDirty[0] = true;
 }
 
@@ -209,8 +222,9 @@ void Context::setCS(ComputeShader cs) {
     if (cs && cs->stage != STAGE_CS) FatalError("Direct3D 12: %s is not a compute shader", cs->name.c_str());
     if (shaders[STAGE_CS] == cs) return;
     shaders[STAGE_CS] = cs;
-    srvTableDirty[STAGE_CS][0] = srvTableDirty[STAGE_CS][1] = true;
-    uavTableDirty = true;
+    for (u32 range = 0; range < 2; range++)
+        if (!srvTableCovers(STAGE_CS, range, cs)) srvTableDirty[STAGE_CS][range] = true;
+    if (!uavTableCovers(cs)) uavTableDirty = true;
     statesDirty[1] = true;
 }
 
@@ -291,8 +305,21 @@ void Context::csSetUAVs(u32 slot, u32 n, const UAV* v, const u32* initialCounts)
 
 void Context::setRootConstants(bool compute, u32 offset, u32 count, const void* data) {
     if (offset + count > kRootConstants) FatalError("Direct3D 12: root constants %u..%u out of range", offset, offset + count);
-    memcpy(&rootConst[compute ? 1 : 0][offset], data, count * 4);
-    rootConstDirty[compute ? 1 : 0] = true;
+    int i = compute ? 1 : 0;
+    if (!count || memcmp(&rootConst[i][offset], data, count * 4) == 0) return;
+    memcpy(&rootConst[i][offset], data, count * 4);
+    if (rootConstHi[i] <= rootConstLo[i]) {
+        rootConstLo[i] = offset;
+        rootConstHi[i] = offset + count;
+    } else {
+        rootConstLo[i] = Min(rootConstLo[i], offset);
+        rootConstHi[i] = Max(rootConstHi[i], offset + count);
+    }
+}
+
+void Context::markRootConstantsDirty(int graphicsOrCompute) {
+    rootConstLo[graphicsOrCompute] = 0;
+    rootConstHi[graphicsOrCompute] = kRootConstants;
 }
 
 void Context::setVertexBuffers(u32 slot, u32 n, const Resource* b, const u32* strides, const u32* offsets) {
@@ -534,6 +561,12 @@ void Context::transition(Resource r, D3D12_RESOURCE_STATES state, u32 subresourc
     else transitionSub(r, subresource, state);
 }
 
+void Context::prepareBindlessRead(Resource r) {
+    if (!r) return;
+    checkAlive(r, "prepareBindlessRead");
+    transitionWhole(r, srvState());
+}
+
 void Context::uavBarrier(Resource r) {
     pushUavBarrier(barriers, r);
 }
@@ -642,11 +675,48 @@ ID3D12PipelineState* Context::resolveGraphicsPSO() {
     return pso;
 }
 
+// A table built for one shader serves another that reads only slots the table has, as the same kinds of resource:
+// the bound views are unchanged (a binding change marks the table dirty), so those slots hold what it needs.
+bool Context::srvTableCovers(Stage st, u32 range, const ShaderObj* s) const {
+    if (!s) return true;
+    u64 need = s->bind.srvMask & rangeMask(range);
+    if (!need) return true;
+    const ShaderObj* t = srvTableShader[st][range];
+    if (!t || (need & ~srvTableMask[st][range])) return false;
+    for (u64 m = need; m; m &= m - 1) {
+        u32 slot = lowestBit(m);
+        if (t->bind.srvType[slot] != s->bind.srvType[slot] || t->bind.srvDim[slot] != s->bind.srvDim[slot] ||
+            t->bind.srvStride[slot] != s->bind.srvStride[slot])
+            return false;
+    }
+    return true;
+}
+
+bool Context::uavTableCovers(const ShaderObj* s) const {
+    if (!s) return true;
+    u32 need = s->bind.uavMask;
+    if (!need) return true;
+    const ShaderObj* t = uavTableShader;
+    if (!t || (need & ~(u32)t->bind.uavMask)) return false;
+    for (u32 m = need; m; m &= m - 1) {
+        u32 slot = lowestBit(m);
+        if (t->bind.uavType[slot] != s->bind.uavType[slot] || t->bind.uavDim[slot] != s->bind.uavDim[slot] ||
+            t->bind.uavStride[slot] != s->bind.uavStride[slot])
+            return false;
+    }
+    return true;
+}
+
 void Context::buildSRVTable(Stage st, u32 range, u32 rootParam, bool compute) {
     ShaderObj* s = shaders[st];
     u64 mask = s->bind.srvMask & rangeMask(range);
     srvTableDirty[st][range] = false;
-    if (!mask) return;
+    if (!mask) {
+        srvTableShader[st][range] = nullptr;   // the applied table (if any) may be stale now
+        return;
+    }
+    srvTableShader[st][range] = s;
+    srvTableMask[st][range] = mask;
     u32 base = range ? kLocalSRVSlots : 0;
     u32 declared = range ? kMaxSRVSlots - kLocalSRVSlots : kLocalSRVSlots;
     u32 count = highestBit(mask) - base + 1;
@@ -665,6 +735,8 @@ void Context::buildSRVTable(Stage st, u32 range, u32 rootParam, bool compute) {
     D3D12_CPU_DESCRIPTOR_HANDLE dst = gpuHeapCpu(idx);
     UINT dstSize = count;
     g.dev->CopyDescriptors(1, &dst, &dstSize, count, src, ones, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    gStats.tables++;
+    gStats.descriptors += count;
     if (compute) cl->SetComputeRootDescriptorTable(rootParam, gpuHeapGpu(idx));
     else cl->SetGraphicsRootDescriptorTable(rootParam, gpuHeapGpu(idx));
 }
@@ -672,6 +744,7 @@ void Context::buildSRVTable(Stage st, u32 range, u32 rootParam, bool compute) {
 void Context::buildUAVTable() {
     ShaderObj* cs = shaders[STAGE_CS];
     uavTableDirty = false;
+    uavTableShader = cs;
     D3D12_CPU_DESCRIPTOR_HANDLE src[kMaxUAVSlots];
     UINT ones[kMaxUAVSlots];
     for (u32 i = 0; i < kMaxUAVSlots; i++) {
@@ -685,6 +758,8 @@ void Context::buildUAVTable() {
     D3D12_CPU_DESCRIPTOR_HANDLE dst = gpuHeapCpu(idx);
     UINT dstSize = kMaxUAVSlots;
     g.dev->CopyDescriptors(1, &dst, &dstSize, kMaxUAVSlots, src, ones, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    gStats.tables++;
+    gStats.descriptors += kMaxUAVSlots;
     cl->SetComputeRootDescriptorTable(CRP_UAV, gpuHeapGpu(idx));
 }
 
@@ -698,6 +773,7 @@ void Context::applyRootCBVs(Stage st, bool compute) {
         D3D12_GPU_VIRTUAL_ADDRESS va = (r && r->gpuVA) ? r->gpuVA : g.zeroCB.buf->gpuVA;
         if (appliedCB[st][slot] == va) continue;
         appliedCB[st][slot] = va;
+        gStats.rootCBVs++;
         if (compute) cl->SetComputeRootConstantBufferView(CRP_CB + slot, va);
         else cl->SetGraphicsRootConstantBufferView((st == STAGE_VS ? GRP_CB_VS : GRP_CB_PS) + slot, va);
     }
@@ -733,7 +809,7 @@ void Context::prepareDraw() {
         memset(appliedCB[STAGE_VS], 0, sizeof(appliedCB[STAGE_VS]));
         memset(appliedCB[STAGE_PS], 0, sizeof(appliedCB[STAGE_PS]));
         srvTableDirty[STAGE_VS][0] = srvTableDirty[STAGE_VS][1] = srvTableDirty[STAGE_PS][0] = srvTableDirty[STAGE_PS][1] = true;
-        rootConstDirty[0] = true;
+        markRootConstantsDirty(0);
         bindlessApplied[0] = false;
     }
     if (psoDirty || !graphicsPSO) {
@@ -743,6 +819,7 @@ void Context::prepareDraw() {
     if (curPSO != graphicsPSO) {
         cl->SetPipelineState(graphicsPSO);
         curPSO = graphicsPSO;
+        gStats.pipelines++;
     }
     // resource states
     bool full = statesDirty[0] || appliedEpoch[0] != g.stateEpoch;
@@ -791,9 +868,10 @@ void Context::prepareDraw() {
             }
         applyRootCBVs((Stage)st, false);
     }
-    if (rootConstDirty[0] && (vs->bind.rootConstants || (ps && ps->bind.rootConstants))) {
-        cl->SetGraphicsRoot32BitConstants(GRP_ROOT_CONSTANTS, kRootConstants, rootConst[0], 0);
-        rootConstDirty[0] = false;
+    if (rootConstHi[0] > rootConstLo[0] && (vs->bind.rootConstants || (ps && ps->bind.rootConstants))) {
+        cl->SetGraphicsRoot32BitConstants(GRP_ROOT_CONSTANTS, rootConstHi[0] - rootConstLo[0], &rootConst[0][rootConstLo[0]], rootConstLo[0]);
+        rootConstLo[0] = rootConstHi[0] = 0;
+        gStats.rootConstantSets++;
     }
     if (!bindlessApplied[0] && (vs->bind.bindless || (ps && ps->bind.bindless))) {
         cl->SetGraphicsRootDescriptorTable(GRP_BINDLESS, g.gpuHeapGpu);
@@ -866,12 +944,13 @@ void Context::prepareDispatch() {
         memset(appliedCB[STAGE_CS], 0, sizeof(appliedCB[STAGE_CS]));
         srvTableDirty[STAGE_CS][0] = srvTableDirty[STAGE_CS][1] = true;
         uavTableDirty = true;
-        rootConstDirty[1] = true;
+        markRootConstantsDirty(1);
         bindlessApplied[1] = false;
     }
     if (curPSO != cs->computePSO) {
         cl->SetPipelineState(cs->computePSO);
         curPSO = cs->computePSO;
+        gStats.pipelines++;
     }
     if (uavInitMask) applyPendingCounters();
     bool full = statesDirty[1] || appliedEpoch[1] != g.stateEpoch;
@@ -910,9 +989,10 @@ void Context::prepareDispatch() {
         if (srvTableDirty[STAGE_CS][range]) buildSRVTable(STAGE_CS, range, range ? CRP_SRV_GLOBAL : CRP_SRV_LOCAL, true);
     if (uavTableDirty && cs->bind.uavMask) buildUAVTable();
     applyRootCBVs(STAGE_CS, true);
-    if (rootConstDirty[1] && cs->bind.rootConstants) {
-        cl->SetComputeRoot32BitConstants(CRP_ROOT_CONSTANTS, kRootConstants, rootConst[1], 0);
-        rootConstDirty[1] = false;
+    if (rootConstHi[1] > rootConstLo[1] && cs->bind.rootConstants) {
+        cl->SetComputeRoot32BitConstants(CRP_ROOT_CONSTANTS, rootConstHi[1] - rootConstLo[1], &rootConst[1][rootConstLo[1]], rootConstLo[1]);
+        rootConstLo[1] = rootConstHi[1] = 0;
+        gStats.rootConstantSets++;
     }
     if (!bindlessApplied[1] && cs->bind.bindless) {
         cl->SetComputeRootDescriptorTable(CRP_BINDLESS, g.gpuHeapGpu);
@@ -926,24 +1006,28 @@ void Context::prepareDispatch() {
 void Context::draw(u32 vertexCount, u32 startVertex) {
     if (!vertexCount) return;
     prepareDraw();
+    gStats.draws++;
     cl->DrawInstanced(vertexCount, 1, startVertex, 0);
 }
 
 void Context::drawIndexed(u32 indexCount, u32 startIndex, int baseVertex) {
     if (!indexCount) return;
     prepareDraw();
+    gStats.draws++;
     cl->DrawIndexedInstanced(indexCount, 1, startIndex, baseVertex, 0);
 }
 
 void Context::drawInstanced(u32 vertsPerInstance, u32 instances, u32 startVertex, u32 startInstance) {
     if (!vertsPerInstance || !instances) return;
     prepareDraw();
+    gStats.draws++;
     cl->DrawInstanced(vertsPerInstance, instances, startVertex, startInstance);
 }
 
 void Context::drawIndexedInstanced(u32 indicesPerInstance, u32 instances, u32 startIndex, int baseVertex, u32 startInstance) {
     if (!indicesPerInstance || !instances) return;
     prepareDraw();
+    gStats.draws++;
     cl->DrawIndexedInstanced(indicesPerInstance, instances, startIndex, baseVertex, startInstance);
 }
 
@@ -967,12 +1051,14 @@ void Context::drawInstancedIndirect(Resource args, u32 offset) {
     indirectArgs(args, offset, res, off);
     if (!res) return;
     cl->ExecuteIndirect(g.drawSig, 1, res, off, nullptr, 0);
+    gStats.indirect++;
 }
 
 void Context::dispatch(u32 x, u32 y, u32 z) {
     if (!x || !y || !z) return;
     prepareDispatch();
     cl->Dispatch(x, y, z);
+    gStats.dispatches++;
     markUAVWrites();
 }
 
@@ -986,6 +1072,7 @@ void Context::dispatchIndirect(Resource args, u32 offset) {
     indirectArgs(args, offset, res, off);
     if (!res) return;
     cl->ExecuteIndirect(g.dispatchSig, 1, res, off, nullptr, 0);
+    gStats.indirect++;
     markUAVWrites();
 }
 
@@ -1004,7 +1091,8 @@ void Context::executeIndirect(CommandSignature sig, u32 maxCount, Resource args,
     if (count) indirectArgs(count, countOffset, cres, coff);
     if (!ares) return;
     cl->ExecuteIndirect(sig->d3d, maxCount, ares, aoff, cres, coff);
-    if (sig->rootConstants) rootConstDirty[compute ? 1 : 0] = true;   // the commands changed them
+    gStats.indirect++;
+    if (sig->rootConstants) markRootConstantsDirty(compute ? 1 : 0);   // the commands changed them
     if (compute) markUAVWrites();
 }
 

@@ -4,6 +4,7 @@
 #define FACADE_HLSLI
 #include "common.hlsli"
 #include "skycommon.hlsli"
+#include "materials.hlsli"
 
 struct FacadeGPU {
     float floorH, groundH, bayW, winW;   // winW: window width fraction of bay
@@ -11,11 +12,14 @@ struct FacadeGPU {
     uint wallColor, frameColor, glassColor, flags;
     float wallLayer, litFrac, seed, signIndex;
 };
-StructuredBuffer<FacadeGPU> tFacades : register(t13);
-Texture2D<float4> tSigns : register(t14);   // shop sign atlas (8 x 64 grid of 256x32 cells)
+// The building set's tables (WorldRenderer::uploadFacades) through the bindless arrays (gBindlessFacade)
+StructuredBuffer<FacadeGPU> gBindlessFacades[] : register(t0, space8);
+StructuredBuffer<float4> gBindlessFloat4[] : register(t0, space9);
+FacadeGPU facadeInfo(uint id) { return gBindlessFacades[gBindlessFacade.x][id]; }
+Texture2D<float4> signAtlas() { return gBindlessTex2D[gBindlessFacade.y]; }   // shop signs: 8 x 64 grid of 256x32 cells
 // Night architectural lighting per facade: x facade top (m above the base), y crown (0 none, 1 wash, 2 wash + LED
 // lines on the wall edges), z palette index, w warm uplights along the base
-StructuredBuffer<float4> tFacadeLights : register(t15);
+float4 facadeLights(uint id) { return gBindlessFloat4[gBindlessFacade.z][id]; }
 
 float3 archLightColor(uint idx) {
     // mostly white / warm white washes, a few signature colours
@@ -167,9 +171,10 @@ float3 shopInterior(float3 roomPos, float3 dir, float3 roomSize, uint h) {
     return c * lerp(1.0, 0.65, saturate(t / (D * 1.6)));
 }
 
-FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float3 rel, float3 worldP,
-                         Texture2DArray<float4> albedoArr, Texture2DArray<float4> normalArr) {
-    FacadeGPU f = tFacades[id];
+FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float3 rel, float3 worldP) {
+    FacadeGPU f = facadeInfo(id);
+    Texture2DArray<float4> albedoArr = matAlbedoArray();
+    Texture2DArray<float4> normalArr = matNormalArray();
     FacadeResult r;
     r.metal = 0;
     r.emissive = 0;
@@ -273,7 +278,7 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         uint si = (uint)f.signIndex + (uint)bayIdx / 3u;
         float2 cellUV = float2(frac(uv.x / (bay * 3.0)), 1.0 - saturate((fy - (fh - 1.05)) / 0.9));
         float2 atlasUV = (float2(si % 8u, (si / 8u) % 64u) + cellUV) / float2(8.0, 64.0);
-        float4 sg = tSigns.SampleLevel(sLinearClamp, atlasUV, 0);
+        float4 sg = signAtlas().SampleLevel(sLinearClamp, atlasUV, 0);
         float3 bg = unpackColor(f.frameColor) * 0.6;
         outAlbedo = lerp(bg, sg.rgb, sg.a);
         rough = 0.35;
@@ -404,7 +409,7 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
     // scalloped uplights along the base of deco buildings, churches and some mid-rises
     float nightA = gExposure.w;
     if (nightA > 0.0) {
-        float4 xl = tFacadeLights[id];
+        float4 xl = facadeLights(id);
         float3 wash = 0;
         if (xl.y > 0.5 && xl.x > 12.0) {
             float3 cc = archLightColor((uint)xl.z);

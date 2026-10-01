@@ -3,12 +3,16 @@
 
 namespace Render {
 
-struct ObjectCBData {
+// Per-object data of the frame: one entry per submitted draw item, in a structured buffer the dynamic passes read
+// at t0 (bone palettes at t1, t2); each draw selects its entry with root constant 0. Matches ObjectData in
+// shaders/dynamic.hlsl.
+struct ObjectGPU {
     mat4 world, prevWorld;
     vec4 tint0, tint1, params, params2;
     vec4 damage0, damage1, dmgBoxC, dmgBoxH;
     vec4 wounds[4];
 };
+static_assert(sizeof(ObjectGPU) == 320, "ObjectGPU must match ObjectData in shaders/dynamic.hlsl");
 
 struct Model {
     gfx::Buffer vb, ib;
@@ -53,7 +57,9 @@ struct DynamicRenderer {
     gfx::PixelShader  psHairCard = nullptr;       // hair strand cards (dithered alpha, strand tangent)
     gfx::VertexShader vsCardShadow;
     gfx::PixelShader  psCardShadow = nullptr;     // alpha-tested card shadows
-    gfx::CBuffer<ObjectCBData> cb;
+    gfx::Buffer objBuf;                    // ObjectGPU per draw item of the frame (rewritten by prepare)
+    u32 objCapacity = 0;
+    std::vector<ObjectGPU> objFrame;
     gfx::Buffer boneBuf, prevBoneBuf;
     static const int kMaxBones = 32768;   // ~475 characters at 69 bones (2 MB per palette buffer)
     std::vector<DrawItem> items;
@@ -68,10 +74,8 @@ struct DynamicRenderer {
     };
     std::unordered_map<u64, PrevState> prev;
     u32 frame = 0;
-    MaterialLibrary* mats = nullptr;
 
-    void init(MaterialLibrary* m) {
-        mats = m;
+    void init() {
         gfx::InputElement rigid[] = {
             {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, gfx::PER_VERTEX, 0},
             {"NORMAL", 0, DXGI_FORMAT_R16G16_SNORM, 0, 12, gfx::PER_VERTEX, 0},
@@ -99,7 +103,6 @@ struct DynamicRenderer {
         psHairCard = gfx::loadPS("dynamic.hlsl", "psHairCard");
         vsCardShadow = gfx::loadVS("dynamic.hlsl", "vsSkinnedShadowCard", skinned, 8);
         psCardShadow = gfx::loadPS("dynamic.hlsl", "psHairCardShadow");
-        cb.create();
         boneBuf = gfx::createBuffer(kMaxBones * 64, 64, gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
         prevBoneBuf = gfx::createBuffer(kMaxBones * 64, 64, gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
     }
@@ -152,7 +155,7 @@ struct DynamicRenderer {
         return mat4(vec4(rot.c[0] * scale.x, 0), vec4(rot.c[1] * scale.y, 0), vec4(rot.c[2] * scale.z, 0), vec4(t, 1));
     }
 
-    // Prepare bone palettes and per-item previous transforms (call once per frame before drawing)
+    // Prepare bone palettes and the per-object data of every item (call once per frame before drawing)
     void prepare(Renderer& r) {
         bonesFrame.clear();
         prevBonesFrame.clear();
@@ -173,7 +176,23 @@ struct DynamicRenderer {
             gfx::updateBuffer(boneBuf, bonesFrame.data(), (u32)(bonesFrame.size() * 64));
             gfx::updateBuffer(prevBoneBuf, prevBonesFrame.data(), (u32)(prevBonesFrame.size() * 64));
         }
-        (void)r;
+        objFrame.resize(items.size());
+        for (size_t i = 0; i < items.size(); i++) fillObject(r, items[i], Max(boneOffsets[i], 0), objFrame[i]);
+        if (items.empty()) return;
+        if (items.size() > objCapacity) {
+            objBuf.release();
+            objCapacity = 1024;
+            while (objCapacity < items.size()) objCapacity *= 2;
+            objBuf = gfx::createBuffer(objCapacity * (u32)sizeof(ObjectGPU), sizeof(ObjectGPU), gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC,
+                                       nullptr, "dynamic objects");
+        }
+        gfx::updateBuffer(objBuf, objFrame.data(), (u32)(items.size() * sizeof(ObjectGPU)));
+    }
+
+    // The draw of item i reads objFrame[i] (root constant 0, see ObjectData in dynamic.hlsl)
+    static void selectObject(size_t i) {
+        u32 idx = (u32)i;
+        gfx::ctx->setRootConstants(false, 0, 1, &idx);
     }
 
     void endFrame() {
@@ -197,26 +216,25 @@ struct DynamicRenderer {
         }
     }
 
-    void setObjectCB(Renderer& r, const DrawItem& d, int boneOffset) {
+    void fillObject(Renderer& r, const DrawItem& d, int boneOffset, ObjectGPU& o) {
         dvec3 cam = r.camera.pos;
-        cb.data.world = worldRel(d.pos, d.rot, d.scale, cam);
+        o.world = worldRel(d.pos, d.rot, d.scale, cam);
         auto it = d.id ? prev.find(d.id) : prev.end();
-        if (it != prev.end()) cb.data.prevWorld = worldRel(it->second.pos, it->second.rot, it->second.scale, cam);
-        else cb.data.prevWorld = cb.data.world;
+        if (it != prev.end()) o.prevWorld = worldRel(it->second.pos, it->second.rot, it->second.scale, cam);
+        else o.prevWorld = o.world;
         // prevWorld must be expressed relative to the *previous* camera for gPrevViewProj (which already compensates
         // the camera delta), i.e. relative to the current camera: gPrevViewProj handles camera motion.
-        cb.data.tint0 = d.tint0;
-        cb.data.tint1 = d.tint1;
-        cb.data.params = vec4((float)d.lightBits, (float)boneOffset, d.wetExposed, d.emissiveScale);
+        o.tint0 = d.tint0;
+        o.tint1 = d.tint1;
+        o.params = vec4((float)d.lightBits, (float)boneOffset, d.wetExposed, d.emissiveScale);
         // y: window tint (rigid) / hair strand cards present over the hair shell (skinned)
         float y2 = d.model->skinned ? (d.model->cardStart < d.model->indexCount ? 1.f : 0.f) : d.glassTint;
-        cb.data.params2 = vec4(d.model->skinned ? 1.f : 0.f, y2, Saturate(d.fade), d.paintFinish);
-        cb.data.damage0 = d.damage0;
-        cb.data.damage1 = d.damage1;
-        cb.data.dmgBoxC = d.dmgBoxC;
-        cb.data.dmgBoxH = d.dmgBoxH;
-        for (int w = 0; w < 4; w++) cb.data.wounds[w] = d.wounds[w];
-        cb.upload();
+        o.params2 = vec4(d.model->skinned ? 1.f : 0.f, y2, Saturate(d.fade), d.paintFinish);
+        o.damage0 = d.damage0;
+        o.damage1 = d.damage1;
+        o.dmgBoxC = d.dmgBoxC;
+        o.dmgBoxH = d.dmgBoxH;
+        for (int w = 0; w < 4; w++) o.wounds[w] = d.wounds[w];
     }
 
     void drawGBuffer(Renderer& r) {
@@ -224,13 +242,9 @@ struct DynamicRenderer {
         auto* c = gfx::ctx;
         Frustum fr;
         fr.fromMatrix(r.viewProjNoJitter);
-        gfx::Resource  cbs[] = {cb.get()};
-        c->vsSetCBs(1, 1, cbs);
-        c->psSetCBs(1, 1, cbs);
-        gfx::SRV  srvs[3] = {mats->table.srv, mats->albedoArr.srv, mats->normalArr.srv};
-        c->psSetSRVs(10, 3, srvs);
-        gfx::SRV  bsrv[2] = {boneBuf.srv, prevBoneBuf.srv};
-        c->vsSetSRVs(20, 2, bsrv);
+        gfx::SRV  srvs[3] = {objBuf.srv, boneBuf.srv, prevBoneBuf.srv};
+        c->vsSetSRVs(0, 3, srvs);
+        c->psSetSRVs(0, 1, &objBuf.srv);
         c->setPS(ps);
         c->setTopology(gfx::TOPO_TRIANGLE_LIST);
         c->setRasterState(gfx::states.cullBack);
@@ -240,7 +254,7 @@ struct DynamicRenderer {
             AABB b = transformAABB(d.model->bounds.valid() ? d.model->bounds : AABB(vec3(-1), vec3(1)), w);
             if (d.model->skinned) { b.mn -= vec3(1.5f); b.mx += vec3(1.5f); }
             if (!fr.testAABB(b) || boneOffsets[i] < 0) continue;
-            setObjectCB(r, d, boneOffsets[i]);
+            selectObject(i);
             UINT stride = d.model->skinned ? sizeof(VtxSkinned) : sizeof(VtxStatic), offset = 0;
             c->setInputLayout(d.model->skinned ? vsSkinned.layout : vsRigid.layout);
             c->setVS(d.model->skinned ? vsSkinned.vs : vsRigid.vs);
@@ -264,8 +278,8 @@ struct DynamicRenderer {
             }
         }
         gfx::SRV  nulls[3] = {};
-        c->psSetSRVs(10, 3, nulls);
-        c->vsSetSRVs(20, 2, nulls);
+        c->vsSetSRVs(0, 3, nulls);
+        c->psSetSRVs(0, 1, nulls);
     }
 
     void drawShadow(Renderer& r, const mat4& lightVP, int cascade) {
@@ -273,9 +287,9 @@ struct DynamicRenderer {
         auto* c = gfx::ctx;
         Frustum fr;
         fr.fromMatrix(lightVP);
-        gfx::Resource  cbs[] = {cb.get()};
-        c->vsSetCBs(1, 1, cbs);
-        c->vsSetSRVs(20, 1, &boneBuf.srv);
+        gfx::SRV  srvs[2] = {objBuf.srv, boneBuf.srv};
+        c->vsSetSRVs(0, 2, srvs);
+        c->psSetSRVs(0, 1, &objBuf.srv);
         c->setPS(nullptr);
         for (size_t i = 0; i < items.size(); i++) {
             const DrawItem& d = items[i];
@@ -284,7 +298,7 @@ struct DynamicRenderer {
             AABB b = transformAABB(d.model->bounds.valid() ? d.model->bounds : AABB(vec3(-1), vec3(1)), w);
             if (d.model->skinned) { b.mn -= vec3(1.5f); b.mx += vec3(1.5f); }
             if (!fr.testAABB(b) || boneOffsets[i] < 0) continue;
-            setObjectCB(r, d, boneOffsets[i]);
+            selectObject(i);
             UINT stride = d.model->skinned ? sizeof(VtxSkinned) : sizeof(VtxStatic), offset = 0;
             c->setInputLayout(d.model->skinned ? vsSkinnedShadow.layout : vsRigidShadow.layout);
             c->setVS(d.model->skinned ? vsSkinnedShadow.vs : vsRigidShadow.vs);
@@ -304,8 +318,9 @@ struct DynamicRenderer {
                 r.stats.drawCalls++;
             }
         }
-        gfx::SRV  nul = nullptr;
-        c->vsSetSRVs(20, 1, &nul);
+        gfx::SRV  nulls[2] = {};
+        c->vsSetSRVs(0, 2, nulls);
+        c->psSetSRVs(0, 1, nulls);
     }
 
     // See-through vehicle windows: forward pass into the lit HDR target (depth test, no depth write, premultiplied
@@ -325,9 +340,8 @@ struct DynamicRenderer {
         if (glassOrder.empty()) return;
         std::sort(glassOrder.begin(), glassOrder.end(), [](const std::pair<float, int>& a, const std::pair<float, int>& b) { return a.first > b.first; });
         auto* c = gfx::ctx;
-        gfx::Resource  cbs[] = {cb.get()};
-        c->vsSetCBs(1, 1, cbs);
-        c->psSetCBs(1, 1, cbs);
+        c->vsSetSRVs(0, 1, &objBuf.srv);
+        c->psSetSRVs(0, 1, &objBuf.srv);
         gfx::Resource  scb[] = {r.shadowCB.get()};
         c->psSetCBs(3, 1, scb);
         c->setTopology(gfx::TOPO_TRIANGLE_LIST);
@@ -340,7 +354,7 @@ struct DynamicRenderer {
         c->setDepthState(gfx::states.depthGreaterEqualNoWrite);
         for (auto& o : glassOrder) {
             const DrawItem& d = items[o.second];
-            setObjectCB(r, d, 0);
+            selectObject((size_t)o.second);
             UINT stride = sizeof(VtxStatic), offset = 0;
             c->setVertexBuffers(0, 1, &d.model->vb.buf, &stride, &offset);
             c->setIndexBuffer(d.model->ib.buf, DXGI_FORMAT_R32_UINT, 0);
@@ -350,6 +364,9 @@ struct DynamicRenderer {
         }
         c->setBlendState(gfx::states.opaque);
         c->setDepthState(gfx::states.depthGreaterWrite);
+        gfx::SRV  nul = nullptr;
+        c->vsSetSRVs(0, 1, &nul);
+        c->psSetSRVs(0, 1, &nul);
     }
     std::vector<std::pair<float, int>> glassOrder;
 };

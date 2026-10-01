@@ -1,16 +1,7 @@
 // Instanced props and vegetation.
 #include "gbuffer.hlsli"
 #include "weather.hlsli"
-
-struct MaterialInfo {
-    float layer, uvScale, roughScale, metal;
-    float4 tint;
-    float normalScale, shadingModel, flags, emissive;
-};
-StructuredBuffer<MaterialInfo> tMaterials : register(t10);
-Texture2DArray<float4> tMatAlbedo : register(t11);
-Texture2DArray<float4> tMatNormal : register(t12);
-Texture2DArray<float4> tFoliage : register(t15);
+#include "materials.hlsli"
 
 struct VSIn {
     float3 pos : POSITION;
@@ -96,7 +87,7 @@ void psPropShadow(VSShadowOut i) {
     uint m = i.mat & 0xffu;
     if (m == 32u || m == 34u) {
         float layer = floor(i.color.a * 8.0);
-        float a = tFoliage.SampleLevel(sLinearWrap, float3(i.uv, layer), 1).a * 1.3;
+        float a = foliageArray().SampleLevel(sLinearWrap, float3(i.uv, layer), 1).a * 1.3;
         clip(a - 0.5);
     }
 }
@@ -111,7 +102,7 @@ float signalState(float4 inst) {
 
 GBufferOut psProp(VSOut i, bool front : SV_IsFrontFace) {
     uint matId = i.mat & 0xffu;
-    MaterialInfo m = tMaterials[matId];
+    MaterialInfo m = materialInfo(matId);
     float3 N = normalize(i.nrm) * (front ? 1.0 : -1.0);
     float3 albedo;
     float rough = 0.6, metal = m.metal, ao = 1, extra = 0;
@@ -120,9 +111,9 @@ GBufferOut psProp(VSOut i, bool front : SV_IsFrontFace) {
     float3 n = N;
     if (matId == 32u || matId == 34u) {
         float layer = floor(i.color.a * 8.0);
-        float4 f = tFoliage.Sample(sAnisoWrap, float3(i.uv, layer));
+        float4 f = foliageArray().Sample(sAnisoWrap, float3(i.uv, layer));
         // Preserve alpha-tested coverage in lower mips (thin leaflets would otherwise vanish)
-        float mip = tFoliage.CalculateLevelOfDetail(sAnisoWrap, i.uv);
+        float mip = foliageArray().CalculateLevelOfDetail(sAnisoWrap, i.uv);
         float a = f.a * (1.0 + max(mip, 0.0) * 0.28);
         clip(a - 0.5);
         // per-plant colour variation (hue / vigour) from the instance's random wind phase; palm fronds waxier
@@ -150,8 +141,8 @@ GBufferOut psProp(VSOut i, bool front : SV_IsFrontFace) {
         }
     } else {
         float2 uv = i.uv * m.uvScale;
-        float4 a = tMatAlbedo.Sample(sAnisoWrap, float3(uv, m.layer));
-        float4 nr = tMatNormal.Sample(sAnisoWrap, float3(uv, m.layer));
+        float4 a = matAlbedoArray().Sample(sAnisoWrap, float3(uv, m.layer));
+        float4 nr = matNormalArray().Sample(sAnisoWrap, float3(uv, m.layer));
         albedo = a.rgb * i.color.rgb;
         float3 T = normalize(i.tan - N * dot(i.tan, N));
         float3 B = cross(N, T);

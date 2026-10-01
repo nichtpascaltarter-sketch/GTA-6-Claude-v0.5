@@ -116,8 +116,8 @@ struct WeatherSystem {
         c->setRasterState(gfx::states.cullNone);
         passCB.data.viewProj = vp;
         passCB.upload();
-        gfx::Resource  cbs[] = {r.world->drawCB.get(), passCB.get()};
-        c->vsSetCBs(1, 2, cbs);
+        gfx::Resource  cbs[] = {passCB.get()};
+        c->vsSetCBs(2, 1, cbs);
         c->setInputLayout(vsOverhead.layout);
         c->setTopology(gfx::TOPO_TRIANGLE_LIST);
         c->setVS(vsOverhead.vs);
@@ -126,9 +126,7 @@ struct WeatherSystem {
         fr.fromMatrix(vp);
         r.world->forVisible(fr, r.camera.pos, false, [&](StreamCell* sc, vec3 off) {
             if (sc->lod != 0 || !sc->opaqueCount) return;
-            r.world->drawCB.data.cellOffset = vec4(off, 0);
-            r.world->drawCB.data.params = vec4(0);
-            r.world->drawCB.upload();
+            WorldRenderer::setCellOffset(off);
             UINT stride = sizeof(VtxStatic), offset = 0;
             c->setVertexBuffers(0, 1, &sc->vb.buf, &stride, &offset);
             c->setIndexBuffer(sc->ib.buf, DXGI_FORMAT_R32_UINT, 0);

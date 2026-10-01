@@ -16,8 +16,12 @@ Texture3D<float4> gBindlessTex3D[] : register(t0, space3);
 TextureCube<float4> gBindlessTexCube[] : register(t0, space4);
 ByteAddressBuffer gBindlessBuffers[] : register(t0, space5);
 Texture2D<uint4> gBindlessTex2DUint[] : register(t0, space6);
-// SRV spaces 7..15 are free for StructuredBuffer<T> arrays of the passes that need them, e.g.
-//   StructuredBuffer<LightGPU> gBindlessLights[] : register(t0, space7);
+// SRV spaces 7..15 hold StructuredBuffer<T> arrays, one element type per space:
+//   space7  MaterialInfo (materials.hlsli)
+//   space8  FacadeGPU (facade.hlsli)
+//   space9  float4 (facade.hlsli: night lighting per facade)
+//   space10..14 free
+//   space15 uint4 (gfxtest.hlsl, the graphics layer self-test)
 
 RWTexture2D<float4> gBindlessRWTex2D[] : register(u0, space1);
 RWTexture2DArray<float4> gBindlessRWTex2DArray[] : register(u0, space2);

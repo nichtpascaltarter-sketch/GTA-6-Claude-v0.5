@@ -41,6 +41,8 @@ cbuffer FrameCB : register(b0) {
     float4 gSkyGlow;           // x urban light pollution (0..1), yz direction towards the brighter city (length = bias),
                                // w night factor
     float4 gRenderFlags;       // x reduce flashing (accessibility), yzw unused
+    uint4 gBindlessMat;        // heap indices (bindless arrays): x material table, y albedo array, z normal array, w foliage
+    uint4 gBindlessFacade;     // heap indices: x facade table, y shop sign atlas, z facade night lighting, w unused
 };
 
 // Global resources bound once per frame at high slots (see Renderer::bindGlobals)

@@ -185,7 +185,7 @@ bool Renderer::init(int w, int h) {
     props = new PropRenderer();
     props->init(materials);
     dynamic = new DynamicRenderer();
-    dynamic->init(materials);
+    dynamic->init();
     shadows->casters.push_back([this](Renderer& r, const mat4& vp, int cascade) { dynamic->drawShadow(r, vp, cascade); });
     shadows->casters.push_back([this](Renderer& r, const mat4& vp, int cascade) { props->drawShadow(r, world->cells, vp, cascade); });
     particles = new ParticleSystem();
@@ -224,6 +224,7 @@ void Renderer::setWorld(World::WorldMap* m) {
     water->setMap(*m, *terrain);
     if (World::gBuildings) {
         world->uploadFacades(*World::gBuildings);
+        world->signTex.release();
         world->signTex = UI::buildSignAtlas(World::gBuildings->signNames);
     }
 }
@@ -413,6 +414,17 @@ void Renderer::updateFrameConstants(const Camera& cam, const Environment& env, f
     cityGlow = frameIndex == 0 ? glow : lerp(cityGlow, glow, Clamp(dt * 0.3f, 0.f, 1.f));
     f.skyGlow = vec4(cityGlow.x, cityGlow.y, cityGlow.z, nightFactor);
     f.renderFlags = vec4(settings.reduceFlashing ? 1.f : 0.f, 0.f, 0.f, 0.f);
+    // Material set, foliage cards and facade tables: the shaders reach them through the bindless arrays
+    // (materials.hlsli, facade.hlsli) with these heap indices
+    f.bindlessMat[0] = gfx::bindlessIndex(materials->table.srv);
+    f.bindlessMat[1] = gfx::bindlessIndex(materials->albedoArr.srv);
+    f.bindlessMat[2] = gfx::bindlessIndex(materials->normalArr.srv);
+    f.bindlessMat[3] = gfx::bindlessIndex(props->foliageArr.srv);
+    gfx::ctx->prepareBindlessRead(materials->table.buf);
+    gfx::ctx->prepareBindlessRead(materials->albedoArr.res);
+    gfx::ctx->prepareBindlessRead(materials->normalArr.res);
+    gfx::ctx->prepareBindlessRead(props->foliageArr.res);
+    world->bindlessFrame(f.bindlessFacade);
     frameCB.data = f;
     frameCB.upload();
 }
@@ -558,7 +570,7 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     terrain->drawGBuffer(*this);
     grass->draw(*this);
     world->drawGBuffer(*this);
-    props->drawGBuffer(*this, world->cells, materials);
+    props->drawGBuffer(*this, world->cells);
     dynamic->drawGBuffer(*this);
     c->setRenderTargets(0, nullptr, nullptr);
     RenderPassTiming::end();
@@ -699,6 +711,7 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     cameraCut = false;
     RenderPassTiming::endFrame();
     if ((frameIndex % 30) == 0 && Platform::hasArg("gputimers")) LOG("GPU timers (frame %u):\n%s", frameIndex, gfx::gpuTimerReport().c_str());
+    if ((frameIndex % 30) == 0 && Platform::hasArg("gfxstats")) LOG("gfx (frame %u): %s", frameIndex, gfx::frameStatsReport().c_str());
     if ((frameIndex % 30) == 0 && RenderPassTiming::enabled) LOG("Pass timings, device idle at boundaries (frame %u, %dx%d):\n%s", frameIndex, width, height, RenderPassTiming::report().c_str());
 }
 

@@ -2,31 +2,30 @@
 #include "gbuffer.hlsli"
 #include "reflection.hlsli"
 #include "shadow.hlsli"
+#include "materials.hlsli"
 
-struct MaterialInfo {
-    float layer, uvScale, roughScale, metal;
-    float4 tint;
-    float normalScale, shadingModel, flags, emissive;
-};
-StructuredBuffer<MaterialInfo> tMaterials : register(t10);
-Texture2DArray<float4> tMatAlbedo : register(t11);
-Texture2DArray<float4> tMatNormal : register(t12);
-StructuredBuffer<float4x4> tBones : register(t20);
-StructuredBuffer<float4x4> tPrevBones : register(t21);
+StructuredBuffer<float4x4> tBones : register(t1);
+StructuredBuffer<float4x4> tPrevBones : register(t2);
 
-cbuffer ObjectCB : register(b1) {
-    float4x4 gWorld;      // model -> camera-relative world
-    float4x4 gPrevWorld;  // previous model -> current camera-relative world
-    float4 gTint0;        // primary paint / outfit color, a = dirt
-    float4 gTint1;        // secondary color, a = damage
-    float4 gObjParams;    // x light bits, y bone offset, z wetness, w emissive scale
-    float4 gObjParams2;   // x skinned (1), y window tint 0..1, z fade, w paint finish (0 gloss 1 metallic 2 pearl 3 matte 4 chrome)
-    float4 gDamage0;      // crush amount 0..1: front, rear, left, right
-    float4 gDamage1;      // roof, underside
-    float4 gDmgBoxC;      // model-space collision box center
-    float4 gDmgBoxH;      // half extents, w > 0 enables deformation
-    float4 gWounds[4];    // characters: bind-pose wound centers (xyz) + radius (w), w = 0 unused
+// Per-object data of the frame, one entry per submitted draw item (DynamicRenderer::prepare, ObjectGPU); every
+// draw selects its entry with root constant 0. (The low slots keep the pass's descriptor tables short.)
+struct ObjectData {
+    column_major float4x4 world;       // model -> camera-relative world
+    column_major float4x4 prevWorld;   // previous model -> current camera-relative world
+    float4 tint0;     // primary paint / outfit color, a = dirt
+    float4 tint1;     // secondary color, a = damage
+    float4 params;    // x light bits, y bone offset, z wetness, w emissive scale
+    float4 params2;   // x skinned (1), y window tint 0..1, z fade, w paint finish (0 gloss 1 metallic 2 pearl 3 matte 4 chrome)
+    float4 damage0;   // crush amount 0..1: front, rear, left, right
+    float4 damage1;   // roof, underside
+    float4 dmgBoxC;   // model-space collision box center
+    float4 dmgBoxH;   // half extents, w > 0 enables deformation
+    float4 wounds[4]; // characters: bind-pose wound centers (xyz) + radius (w), w = 0 unused
 };
+StructuredBuffer<ObjectData> tObjects : register(t0);
+// The draw's object: every entry point that reads it calls loadObject() first, so the fields it uses are loaded once
+static ObjectData gObj;
+void loadObject() { gObj = tObjects[gRootConstants[0].x]; }
 
 float dmgHash(float3 p) { return frac(sin(dot(p, float3(12.9898, 78.233, 37.719))) * 43758.5453); }
 float dmgNoise(float3 p) {
@@ -38,18 +37,18 @@ float dmgNoise(float3 p) {
 }
 // Crumple the body toward its interior around damaged zones (irregular, stronger at the extremities).
 float3 applyCrush(float3 p, inout float3 n) {
-    if (gDmgBoxH.w <= 0.0) return p;
-    float3 h = max(gDmgBoxH.xyz, 0.1);
-    float3 q = (p - gDmgBoxC.xyz) / h;   // -1..1 inside the box
+    if (gObj.dmgBoxH.w <= 0.0) return p;
+    float3 h = max(gObj.dmgBoxH.xyz, 0.1);
+    float3 q = (p - gObj.dmgBoxC.xyz) / h;   // -1..1 inside the box
     float crumple = dmgNoise(p * 3.1) * 0.8 + dmgNoise(p * 7.3) * 0.4;
     float3 d = 0;
-    d.y -= gDamage0.x * smoothstep(0.35, 1.05, q.y) * 0.42;
-    d.y += gDamage0.y * smoothstep(0.35, 1.05, -q.y) * 0.38;
-    d.x += gDamage0.z * smoothstep(0.25, 1.05, -q.x) * 0.22;
-    d.x -= gDamage0.w * smoothstep(0.25, 1.05, q.x) * 0.22;
-    d.z -= gDamage1.x * smoothstep(0.2, 1.05, q.z) * 0.3;
-    d.z += gDamage1.y * smoothstep(0.3, 1.05, -q.z) * 0.1;
-    float amount = dot(gDamage0, 1.0) + gDamage1.x;
+    d.y -= gObj.damage0.x * smoothstep(0.35, 1.05, q.y) * 0.42;
+    d.y += gObj.damage0.y * smoothstep(0.35, 1.05, -q.y) * 0.38;
+    d.x += gObj.damage0.z * smoothstep(0.25, 1.05, -q.x) * 0.22;
+    d.x -= gObj.damage0.w * smoothstep(0.25, 1.05, q.x) * 0.22;
+    d.z -= gObj.damage1.x * smoothstep(0.2, 1.05, q.z) * 0.3;
+    d.z += gObj.damage1.y * smoothstep(0.3, 1.05, -q.z) * 0.1;
+    float amount = dot(gObj.damage0, 1.0) + gObj.damage1.x;
     float3 off = d * (0.55 + crumple) + (float3(dmgNoise(p * 5.1 + 3.0), dmgNoise(p * 5.1 + 7.0), dmgNoise(p * 5.1 + 11.0)) - 0.5) * 0.03 * saturate(length(d) * 6.0);
     // crumpled panels catch the light differently
     float3 pert = float3(dmgNoise(p * 9.0) - 0.5, dmgNoise(p * 9.0 + 5.0) - 0.5, dmgNoise(p * 9.0 + 9.0) - 0.5);
@@ -119,27 +118,29 @@ VSOut finishVS(float3 localPos, float3 rel, float3 prevRel, float3 n, float3 t, 
 }
 
 VSOut vsRigid(VSInRigid i) {
+    loadObject();
     float3 ln = octDecode(i.nrm);
     float3 lp = applyCrush(i.pos, ln);
-    float3 rel = mul(gWorld, float4(lp, 1)).xyz;
-    float3 prevRel = mul(gPrevWorld, float4(lp, 1)).xyz;
-    float3 n = normalize(mul((float3x3)gWorld, ln));
-    float3 t = normalize(mul((float3x3)gWorld, octDecode(i.tan)));
+    float3 rel = mul(gObj.world, float4(lp, 1)).xyz;
+    float3 prevRel = mul(gObj.prevWorld, float4(lp, 1)).xyz;
+    float3 n = normalize(mul((float3x3)gObj.world, ln));
+    float3 t = normalize(mul((float3x3)gObj.world, octDecode(i.tan)));
     return finishVS(i.pos, rel, prevRel, n, t, i.uv, i.color, i.mat);
 }
 
 VSOut vsSkinned(VSInSkinned i) {
-    uint off = (uint)gObjParams.y;
+    loadObject();
+    uint off = (uint)gObj.params.y;
     float4x4 m = tBones[off + i.bones.x] * i.weights.x + tBones[off + i.bones.y] * i.weights.y +
                  tBones[off + i.bones.z] * i.weights.z + tBones[off + i.bones.w] * i.weights.w;
     float4x4 pm = tPrevBones[off + i.bones.x] * i.weights.x + tPrevBones[off + i.bones.y] * i.weights.y +
                   tPrevBones[off + i.bones.z] * i.weights.z + tPrevBones[off + i.bones.w] * i.weights.w;
     float3 lp = mul(m, float4(i.pos, 1)).xyz;
     float3 plp = mul(pm, float4(i.pos, 1)).xyz;
-    float3 rel = mul(gWorld, float4(lp, 1)).xyz;
-    float3 prevRel = mul(gPrevWorld, float4(plp, 1)).xyz;
-    float3 n = normalize(mul((float3x3)gWorld, mul((float3x3)m, octDecode(i.nrm))));
-    float3 t = normalize(mul((float3x3)gWorld, mul((float3x3)m, octDecode(i.tan))));
+    float3 rel = mul(gObj.world, float4(lp, 1)).xyz;
+    float3 prevRel = mul(gObj.prevWorld, float4(plp, 1)).xyz;
+    float3 n = normalize(mul((float3x3)gObj.world, mul((float3x3)m, octDecode(i.nrm))));
+    float3 t = normalize(mul((float3x3)gObj.world, mul((float3x3)m, octDecode(i.tan))));
     return finishVS(i.pos, rel, prevRel, n, t, i.uv, i.color, i.mat);
 }
 
@@ -147,15 +148,17 @@ cbuffer ShadowPassCB : register(b2) {
     float4x4 gShadowViewProj;
 };
 float4 vsRigidShadow(VSInRigid i) : SV_Position {
+    loadObject();
     float3 ln = octDecode(i.nrm);
-    float3 rel = mul(gWorld, float4(applyCrush(i.pos, ln), 1)).xyz;
+    float3 rel = mul(gObj.world, float4(applyCrush(i.pos, ln), 1)).xyz;
     return mul(gShadowViewProj, float4(rel, 1));
 }
 float4 vsSkinnedShadow(VSInSkinned i) : SV_Position {
-    uint off = (uint)gObjParams.y;
+    loadObject();
+    uint off = (uint)gObj.params.y;
     float4x4 m = tBones[off + i.bones.x] * i.weights.x + tBones[off + i.bones.y] * i.weights.y +
                  tBones[off + i.bones.z] * i.weights.z + tBones[off + i.bones.w] * i.weights.w;
-    float3 rel = mul(gWorld, float4(mul(m, float4(i.pos, 1)).xyz, 1)).xyz;
+    float3 rel = mul(gObj.world, float4(mul(m, float4(i.pos, 1)).xyz, 1)).xyz;
     return mul(gShadowViewProj, float4(rel, 1));
 }
 
@@ -165,20 +168,21 @@ float4 vsSkinnedShadow(VSInSkinned i) : SV_Position {
 // dashes across whatever is behind it, and TAA cannot average so few samples. The threshold steps evenly through
 // [0,1) per pixel over time (golden ratio), so TAA converges to a smooth see-through body instead of a crawling
 // pattern.
-float camFadeCoverage() { return smoothstep(0.3, 1.0, gObjParams2.z); }
+float camFadeCoverage() { return smoothstep(0.3, 1.0, gObj.params2.z); }
 void camFadeClip(float2 pix, float coverage) { clip(coverage - ignTemporal(pix, gTime.z, 3.0) - 0.002); }
 
 GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
+    loadObject();
     // faded objects (a pedestrian between the camera and the player) dither out
-    if (gObjParams2.z < 0.999) camFadeClip(i.pos.xy, camFadeCoverage());
+    if (gObj.params2.z < 0.999) camFadeClip(i.pos.xy, camFadeCoverage());
     uint matId = i.mat & 0xffu;
-    MaterialInfo m = tMaterials[matId];
+    MaterialInfo m = materialInfo(matId);
     float3 N = normalize(i.nrm) * (front ? 1.0 : -1.0);
     float3 T = normalize(i.tan - N * dot(i.tan, N));
     float3 B = cross(N, T);
     float2 uv = i.uv * m.uvScale;
-    float4 a = tMatAlbedo.Sample(sAnisoWrap, float3(uv, m.layer));
-    float4 nr = tMatNormal.Sample(sAnisoWrap, float3(uv, m.layer));
+    float4 a = matAlbedoArray().Sample(sAnisoWrap, float3(uv, m.layer));
+    float4 nr = matNormalArray().Sample(sAnisoWrap, float3(uv, m.layer));
     float3 albedo = a.rgb * i.color.rgb;
     float2 nxy = (nr.xy * 2.0 - 1.0) * m.normalScale;
     float3 n = normalize(T * nxy.x + B * nxy.y + N * sqrt(saturate(1.0 - dot(nxy, nxy))));
@@ -188,17 +192,17 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
     uint sm = (uint)m.shadingModel;
     float extra = 0;
     float3 emissive = 0;
-    uint lightBits = (uint)gObjParams.x;
-    float dirt = gTint0.a;
+    uint lightBits = (uint)gObj.params.x;
+    float dirt = gObj.tint0.a;
     if (matId == M_CARPAINT) {
         // Paint color from the object tint (vertex color alpha selects primary/secondary)
-        float3 paint = lerp(gTint0.rgb, gTint1.rgb, step(0.5, 1.0 - i.color.a));
+        float3 paint = lerp(gObj.tint0.rgb, gObj.tint1.rgb, step(0.5, 1.0 - i.color.a));
         albedo = paint * lerp(1.0, a.r * 1.6, 0.25);
         metal = 0.25;
         rough = lerp(0.28, 0.6, dirt);
         extra = 1.0 - dirt * 0.7;  // clearcoat strength
         n = N;
-        uint finish = (uint)(gObjParams2.w + 0.5);
+        uint finish = (uint)(gObj.params2.w + 0.5);
         if (finish == 1u) {          // metallic: brighter flake, tighter base highlight
             metal = 0.6;
             rough = lerp(0.2, 0.55, dirt);
@@ -281,8 +285,8 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
             // a glow at a fixed brightness on screen whatever the exposure (mission markers), in the object's tint (the
             // body too): the object's emissive scale is the displayed level (0.5 = half of white before tone mapping)
             else if (pat == 10u) {
-                emissive *= gTint0.rgb / (400.0 * max(preExposure(), 1e-9));
-                albedo *= gTint0.rgb;
+                emissive *= gObj.tint0.rgb / (400.0 * max(preExposure(), 1e-9));
+                albedo *= gObj.tint0.rgb;
             }
         }
     } else if (matId == M_SKIN) {
@@ -349,7 +353,7 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         ao *= lerp(0.62, 1.0, saturate(clump * 1.4 - 0.1)) * lerp(0.85, 1.0, strand);
         rough = 0.4;
         extra = strand;   // sparkle of the secondary (coloured) highlight
-        if (gObjParams2.y > 0.5) {
+        if (gObj.params2.y > 0.5) {
             // LOD0: strand cards cover this shell, which stands for the inner hair volume: occluded, darker and
             // without a continuous highlight band of its own (the cards carry the highlights)
             albedo *= 0.8;
@@ -431,12 +435,12 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         n = N;
     }
     // Blood from wounds (skin, hair and clothing): irregular stains that spread downward, darker and glossier
-    if (gObjParams2.x > 0.5 && (sm == SM_SKIN || sm == SM_CLOTH || sm == SM_HAIR || matId == M_CLOTH || matId == M_DENIM)) {
+    if (gObj.params2.x > 0.5 && (sm == SM_SKIN || sm == SM_CLOTH || sm == SM_HAIR || matId == M_CLOTH || matId == M_DENIM)) {
         float blood = 0;
         [unroll] for (int w = 0; w < 4; w++) {
-            float r = gWounds[w].w;
+            float r = gObj.wounds[w].w;
             if (r <= 0.0) continue;
-            float3 d = i.localPos - gWounds[w].xyz;
+            float3 d = i.localPos - gObj.wounds[w].xyz;
             d.z = d.z > 0.0 ? d.z * 1.8 : d.z * 0.6;   // runs down
             float n = dmgNoise(i.localPos * 38.0) * 0.5 + dmgNoise(i.localPos * 11.0);
             blood = max(blood, saturate((r * (0.75 + 0.5 * n) - length(d)) / (r * 0.35)));
@@ -445,10 +449,10 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         rough = lerp(rough, 0.28, blood);
     }
     // Rain wetness on upward surfaces
-    float wet = gWeather.y * saturate(N.z * 2.0 + 0.3) * (gObjParams.z > 0 ? 1.0 : (gObjParams.z < 0 ? 0.0 : 0.5));   // < 0: indoors, never wet
+    float wet = gWeather.y * saturate(N.z * 2.0 + 0.3) * (gObj.params.z > 0 ? 1.0 : (gObj.params.z < 0 ? 0.0 : 0.5));   // < 0: indoors, never wet
     albedo *= lerp(1.0, 0.7, wet * (sm == SM_CARPAINT ? 0.3 : 1.0));
     rough = lerp(rough, 0.1, wet * 0.7);
-    return packGBuffer(albedo, ao, n, rough, metal, sm, extra, emissive * gObjParams.w, i.curClip, i.prevClip);
+    return packGBuffer(albedo, ao, n, rough, metal, sm, extra, emissive * gObj.params.w, i.curClip, i.prevClip);
 }
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -481,6 +485,7 @@ float hairCardCoverage(float2 uv, uint kind, float seed, float density, float fo
 }
 
 GBufferOut psHairCard(VSOut i, bool front : SV_IsFrontFace) {
+    loadObject();
     uint kind = (i.mat >> 8) & 15u;
     float seed = (float)((i.mat >> 12) & 0xffffu) * (1.0 / 65535.0);
     float rnd;
@@ -498,7 +503,7 @@ GBufferOut psHairCard(VSOut i, bool front : SV_IsFrontFace) {
     float rough = kind == 2u ? 0.5 : (kind == 3u ? 0.55 : (kind == 4u ? 0.48 : 0.38));
     if (kind == 3u || kind == 4u) rnd *= 0.5;
     // rain soaks the hair: darker, glossier
-    float wet = gWeather.y * (gObjParams.z > 0 ? 1.0 : (gObjParams.z < 0 ? 0.0 : 0.5));
+    float wet = gWeather.y * (gObj.params.z > 0 ? 1.0 : (gObj.params.z < 0 ? 0.0 : 0.5));
     albedo *= lerp(1.0, 0.7, wet);
     rough = lerp(rough, 0.2, wet * 0.6);
     return packGBuffer(albedo, ao, N, rough, encodeHairTangent(N, T), SM_HAIR, rnd, 0.0, i.curClip, i.prevClip);
@@ -511,11 +516,12 @@ struct VSCardShadowOut {
     float density : TEXCOORD1;
 };
 VSCardShadowOut vsSkinnedShadowCard(VSInSkinned i) {
+    loadObject();
     VSCardShadowOut o;
-    uint off = (uint)gObjParams.y;
+    uint off = (uint)gObj.params.y;
     float4x4 m = tBones[off + i.bones.x] * i.weights.x + tBones[off + i.bones.y] * i.weights.y +
                  tBones[off + i.bones.z] * i.weights.z + tBones[off + i.bones.w] * i.weights.w;
-    float3 rel = mul(gWorld, float4(mul(m, float4(i.pos, 1)).xyz, 1)).xyz;
+    float3 rel = mul(gObj.world, float4(mul(m, float4(i.pos, 1)).xyz, 1)).xyz;
     o.pos = mul(gShadowViewProj, float4(rel, 1));
     o.uv = i.uv;
     o.density = i.color.a;
@@ -532,13 +538,14 @@ void psHairCardShadow(VSCardShadowOut i) {
 // reflection and sun glint with Fresnel, tint absorption (vertex colour alpha = clarity: 1 clear windscreen .. 0
 // privacy glass), a dust film from the vehicle's dirt, aerial perspective and volumetric fog.
 float4 psGlass(VSOut i, bool front : SV_IsFrontFace) : SV_Target {
-    if (gObjParams2.z < 0.999) camFadeClip(i.pos.xy, camFadeCoverage());
+    loadObject();
+    if (gObj.params2.z < 0.999) camFadeClip(i.pos.xy, camFadeCoverage());
     float3 N = normalize(i.nrm) * (front ? 1.0 : -1.0);
     float3 V = normalize(-i.rel);
     float NoV = saturate(dot(N, V));
     float dist = length(i.rel);
     float2 screenUV = i.pos.xy * gScreen.zw;
-    float dirt = saturate(gTint0.a);
+    float dirt = saturate(gObj.tint0.a);
     float rough = lerp(0.02, 0.2, dirt);
     float3 R = reflect(-V, N);
     float3 refl = envReflection(R, rough) * preExposure() * horizonOcclusion(R, N);
@@ -554,7 +561,7 @@ float4 psGlass(VSOut i, bool front : SV_IsFrontFace) : SV_Target {
     float3 glint = sunE * spec * F * shadow * preExposure();
     // tint: part of the view into the cabin is absorbed (tinted towards the glass colour)
     float cover = lerp(0.8, 0.18, saturate(i.color.a));
-    cover = lerp(cover, 0.94, saturate(gObjParams2.y));   // aftermarket window tint
+    cover = lerp(cover, 0.94, saturate(gObj.params2.y));   // aftermarket window tint
     float3 tintCol = i.color.rgb * float3(0.02, 0.028, 0.026);
     // dust film scatters sky and sun light (dirty windows look milky)
     float3 skyE = evalSH9(N) * PI;
