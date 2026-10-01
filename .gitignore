@@ -2,3 +2,7 @@ build/
 *.o
 *.obj
 bin/
+# local test tools built in the tree (tests/anim/preview.cpp and the like)
+/preview_dbg
+/preview
+/anim_test

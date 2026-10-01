@@ -17,6 +17,7 @@
 //   role      : 0 civilian, 1 police, 2 gang, 3 business, 4 beach, 5 worker, 6 medic
 // Colors are linear RGB albedo. skinTone is written directly to the skin vertex color.
 #include "anim_internal.h"
+#include <algorithm>
 #include <unordered_map>
 
 namespace Anim {
@@ -664,7 +665,8 @@ static void buildFinalMesh(const CharacterDesc& d, const Skeleton& skel, MeshB& 
     bakeOcclusion(c, fin);
 }
 
-// Far-LOD hands: the fingers go, and a mitten takes their place, so the hand keeps its length and its grip. The four
+// LOD hands: the fingers go, and a mitten takes their place, so the hand keeps its length and its grip (from 15 m a
+// finger is a pixel wide; decimated finger tubes come out as spikes and cost a tenth of the LOD1 input). The four
 // fingers become one flattened block from the knuckles to the fingertips through the middle joints, the thumb a tube;
 // both are skinned to the phalanges (the block to the middle and ring fingers'), so they curl round whatever the hand
 // holds. Colour: the fingers' skin. `src` is the mesh the fingers are taken from, `out` receives the mittens.
@@ -791,10 +793,10 @@ static void addMittens(const MeshB& src, MeshB& out, const Skeleton& skel) {
 }
 
 // Remove what a LOD does not need: from LOD1 every strand card (scalp and beard cards: the shells stay; brows and
-// lashes: their colour is painted onto the skin first) and tiny accessory pieces (buttons, rivets); at LOD2 also the
-// lid tucks, the mouth interior (the far LOD never talks), the fingers (paddle hands) and small accessories
-// (jewellery, glasses, badges, holster items); hats, bags and garments stay. The eyeballs become low-poly spheres with
-// the same sclera / iris colours.
+// lashes: their colour is painted onto the skin first), tiny accessory pieces (buttons, rivets) and the fingers (a
+// mitten per hand takes their place: addMittens); at LOD2 also the lid tucks, the mouth interior (the far LOD never
+// talks) and small accessories (jewellery, glasses, badges, holster items); hats, bags and garments stay. The eyeballs
+// become low-poly spheres with the same sclera / iris colours. LOD2 is made from LOD1 (it keeps the mittens).
 static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
     const u32 NT = (u32)(m.idx.size() / 3);
     std::vector<u8> drop(NT, 0);
@@ -826,26 +828,93 @@ static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
             if (best < 0.006f * 0.006f) v.col = lerp(v.col, col, 0.75f * (1.f - sqrtf(best) / 0.006f));
         }
     }
+    if (lod == 1) {
+        // braids and locs lying on the scalp (cornrow rows, the tops of box braids and locs): a pixel or two wide from
+        // 15 m, and decimated they splay into fins. Their colour goes onto the scalp under them (box braids and locs
+        // keep their shell over it) and they are dropped below.
+        std::vector<vec3> rp, rc;
+        for (const BVert& v : m.v)
+            if (v.mat == MAT_HAIR && (v.flags & BuildCtx::F_SCALP)) {
+                rp.push_back(v.bp);
+                rc.push_back(v.col);
+            }
+        if (!rp.empty()) {
+            // (a flat grid of 2.1 cm cells over the rope points)
+            const float cell = 0.021f;
+            vec3 lo(1e9f), hi(-1e9f);
+            for (vec3 p : rp) {
+                lo = vmin(lo, p);
+                hi = vmax(hi, p);
+            }
+            const int nx = (int)((hi.x - lo.x) / cell) + 1, ny = (int)((hi.y - lo.y) / cell) + 1, nz = (int)((hi.z - lo.z) / cell) + 1;
+            auto ci = [&](int x, int y, int z) { return ((size_t)z * ny + y) * nx + x; };
+            std::vector<u32> start((size_t)nx * ny * nz + 1, 0), order(rp.size());
+            auto cellOf = [&](vec3 p, int& x, int& y, int& z) {
+                x = (int)floorf((p.x - lo.x) / cell);
+                y = (int)floorf((p.y - lo.y) / cell);
+                z = (int)floorf((p.z - lo.z) / cell);
+            };
+            for (vec3 p : rp) {
+                int x, y, z;
+                cellOf(p, x, y, z);
+                start[ci(Clamp(x, 0, nx - 1), Clamp(y, 0, ny - 1), Clamp(z, 0, nz - 1)) + 1]++;
+            }
+            for (size_t i = 1; i < start.size(); i++) start[i] += start[i - 1];
+            {
+                std::vector<u32> cur(start.begin(), start.end() - 1);
+                for (u32 i = 0; i < (u32)rp.size(); i++) {
+                    int x, y, z;
+                    cellOf(rp[i], x, y, z);
+                    order[cur[ci(Clamp(x, 0, nx - 1), Clamp(y, 0, ny - 1), Clamp(z, 0, nz - 1))]++] = i;
+                }
+            }
+            for (BVert& v : m.v) {
+                if (v.part != PART_HEAD || v.mat != MAT_SKIN) continue;
+                int cx, cy, cz;
+                cellOf(v.p, cx, cy, cz);
+                float best = 1e9f;
+                u32 bi = 0;
+                for (int z = Max(cz - 1, 0); z <= Min(cz + 1, nz - 1); z++)
+                    for (int y = Max(cy - 1, 0); y <= Min(cy + 1, ny - 1); y++)
+                        for (int x = Max(cx - 1, 0); x <= Min(cx + 1, nx - 1); x++) {
+                            size_t c = ci(x, y, z);
+                            for (u32 k = start[c]; k < start[c + 1]; k++) {
+                                float d2 = length2(rp[order[k]] - v.p);
+                                if (d2 < best) {
+                                    best = d2;
+                                    bi = order[k];
+                                }
+                            }
+                        }
+                // (rope points are the rows' centre lines: the partings between rows, up to a centimetre off, get nearly
+                // the same; the scalp reads as dark short hair)
+                if (best < 0.021f * 0.021f) v.col = lerp(v.col, rc[bi] * 0.9f, 0.9f * (1.f - sstep(0.012f, 0.021f, sqrtf(best))));
+            }
+        }
+    }
     if (lod >= 2) {
-        // a beard is a few millimetres of shell the far LOD's budget would flatten into the skin anyway: paint it onto
-        // the face (it stays a dark block on the jaw) and drop the shell
+        // a beard: its shell fades into the skin colour at its edge, and the far LOD's collapses keep the edge (borders
+        // only slide along themselves), so the beard would come out skin-coloured: give the whole shell the colour of
+        // its dense middle (the darker half of its vertices)
         std::vector<u32> beard;
         for (u32 i = 0; i < (u32)m.v.size(); i++)
             if (m.v[i].mat == MAT_HAIR && (m.v[i].flags & BuildCtx::F_BEARD)) beard.push_back(i);
-        if (!beard.empty())
-            for (BVert& v : m.v) {
-                if (v.part != PART_HEAD || v.mat != MAT_SKIN) continue;
-                float best = 1e9f;
-                vec3 col;
-                for (u32 j : beard) {
-                    float d2 = length2(m.v[j].bp - v.p);
-                    if (d2 < best) {
-                        best = d2;
-                        col = m.v[j].col;
-                    }
+        if (!beard.empty()) {
+            std::vector<float> lum(beard.size());
+            for (size_t k = 0; k < beard.size(); k++) lum[k] = dot(m.v[beard[k]].col, vec3(0.3f, 0.59f, 0.11f));
+            std::vector<float> sorted(lum);
+            std::nth_element(sorted.begin(), sorted.begin() + sorted.size() / 2, sorted.end());
+            const float median = sorted[sorted.size() / 2];
+            vec3 core(0.f);
+            int n = 0;
+            for (size_t k = 0; k < beard.size(); k++)
+                if (lum[k] <= median) {
+                    core += m.v[beard[k]].col;
+                    n++;
                 }
-                if (best < 0.01f * 0.01f) v.col = lerp(v.col, col, 0.85f * (1.f - sstep(0.004f, 0.01f, sqrtf(best))));
-            }
+            core = core / (float)Max(n, 1);
+            for (u32 i : beard) m.v[i].col = lerp(m.v[i].col, core, 0.85f);
+        }
     }
     // accessory components (triangles connected through shared vertices)
     std::vector<u32> parent(m.v.size());
@@ -876,10 +945,10 @@ static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
             vec3 e = bmax[r] - bmin[r];
             if (Max(e.x, Max(e.y, e.z)) < accMin) drop[t] = 1;
         }
-        if (lod >= 2 && (v0.part == PART_FACEDETAIL || v0.part == PART_MOUTH || v0.part == PART_FINGER || v0.part == PART_THUMB))
-            drop[t] = 1;
+        if (lod >= 2 && (v0.part == PART_FACEDETAIL || v0.part == PART_MOUTH)) drop[t] = 1;
+        if (lod == 1 && (v0.part == PART_FINGER || v0.part == PART_THUMB)) drop[t] = 1;   // -> mittens
+        if (v0.mat == MAT_HAIR && (v0.flags & BuildCtx::F_SCALP)) drop[t] = 1;              // -> painted on the scalp
         if (cardKind(v0) != CARD_NONE) drop[t] = 1;
-        if (lod >= 2 && v0.mat == MAT_HAIR && (v0.flags & BuildCtx::F_BEARD)) drop[t] = 1;   // painted on (above)
         if (v0.part == PART_EYE) drop[t] = 1;   // replaced below
         if (v0.mat != MAT_HAIR && (v0.matParam & kParamLodDetail)) drop[t] = 1;   // seams and stitch lines
     }
@@ -949,7 +1018,7 @@ static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
             if (dot(cross(p1 - p0, p2 - p0), (p0 + p1 + p2) * (1.f / 3.f) - ctr) < 0.f) std::swap(out.idx[t + 1], out.idx[t + 2]);
         }
     }
-    if (lod >= 2) addMittens(m, out, skel);
+    if (lod == 1) addMittens(m, out, skel);
     m = std::move(out);
 }
 
@@ -958,28 +1027,58 @@ static bool lodIsSkinSurface(const BVert& v) {
     return v.mat == MAT_SKIN && v.part != PART_MOUTH && v.part != PART_FACEDETAIL && v.part != PART_EYE;
 }
 static void computeLayerOffsets(MeshB& m) {
-    const float cell = 0.02f;
-    std::unordered_map<u64, std::vector<u32>> grid;
-    auto key = [&](int x, int y, int z) { return ((u64)(u32)(x + 4096) << 42) | ((u64)(u32)(y + 4096) << 21) | (u64)(u32)(z + 4096); };
-    for (u32 i = 0; i < (u32)m.v.size(); i++) {
-        if (!lodIsSkinSurface(m.v[i])) continue;
-        vec3 p = m.v[i].p / cell;
-        grid[key((int)floorf(p.x), (int)floorf(p.y), (int)floorf(p.z))].push_back(i);
+    const float cell = 0.02f, far2 = 0.04f * 0.04f;
+    // flat grid over the skin's bounds: cell starts plus the skin positions packed per cell (a counting sort)
+    vec3 lo(1e9f), hi(-1e9f);
+    u32 nSkin = 0;
+    for (const BVert& v : m.v)
+        if (lodIsSkinSurface(v)) {
+            lo = vmin(lo, v.p);
+            hi = vmax(hi, v.p);
+            nSkin++;
+        }
+    if (!nSkin) {
+        for (BVert& v : m.v) v.layer = lodIsSkinSurface(v) || v.mat == MAT_EYE ? 0.f : 0.04f;
+        return;
+    }
+    const int nx = (int)((hi.x - lo.x) / cell) + 1, ny = (int)((hi.y - lo.y) / cell) + 1, nz = (int)((hi.z - lo.z) / cell) + 1;
+    auto cellIdx = [&](int x, int y, int z) { return ((size_t)z * ny + y) * nx + x; };
+    std::vector<u32> startC((size_t)nx * ny * nz + 1, 0);
+    auto cellOf = [&](vec3 p, int& x, int& y, int& z) {
+        x = (int)floorf((p.x - lo.x) / cell);
+        y = (int)floorf((p.y - lo.y) / cell);
+        z = (int)floorf((p.z - lo.z) / cell);
+    };
+    for (const BVert& v : m.v)
+        if (lodIsSkinSurface(v)) {
+            int x, y, z;
+            cellOf(v.p, x, y, z);
+            startC[cellIdx(Clamp(x, 0, nx - 1), Clamp(y, 0, ny - 1), Clamp(z, 0, nz - 1)) + 1]++;
+        }
+    for (size_t i = 1; i < startC.size(); i++) startC[i] += startC[i - 1];
+    std::vector<vec3> pts(nSkin);
+    {
+        std::vector<u32> cur(startC.begin(), startC.end() - 1);
+        for (const BVert& v : m.v)
+            if (lodIsSkinSurface(v)) {
+                int x, y, z;
+                cellOf(v.p, x, y, z);
+                pts[cur[cellIdx(Clamp(x, 0, nx - 1), Clamp(y, 0, ny - 1), Clamp(z, 0, nz - 1))]++] = v.p;
+            }
     }
     for (BVert& v : m.v) {
         if (lodIsSkinSurface(v) || v.mat == MAT_EYE) {
             v.layer = 0.f;
             continue;
         }
-        vec3 p = v.p / cell;
-        int cx = (int)floorf(p.x), cy = (int)floorf(p.y), cz = (int)floorf(p.z);
-        float best = 0.04f * 0.04f;
-        for (int dz = -1; dz <= 1; dz++)
-            for (int dy = -1; dy <= 1; dy++)
-                for (int dx = -1; dx <= 1; dx++) {
-                    auto it = grid.find(key(cx + dx, cy + dy, cz + dz));
-                    if (it == grid.end()) continue;
-                    for (u32 j : it->second) best = Min(best, length2(m.v[j].p - v.p));
+        int cx, cy, cz;
+        cellOf(v.p, cx, cy, cz);
+        float best = far2;
+        for (int z = Max(cz - 1, 0); z <= Min(cz + 1, nz - 1); z++)
+            for (int y = Max(cy - 1, 0); y <= Min(cy + 1, ny - 1); y++)
+                for (int x = Max(cx - 1, 0); x <= Min(cx + 1, nx - 1); x++) {
+                    size_t c = cellIdx(x, y, z);
+                    for (u32 j = startC[c]; j < startC[c + 1]; j++) best = Min(best, length2(pts[j] - v.p));
                 }
         v.layer = sqrtf(best);
     }
@@ -1033,8 +1132,7 @@ void buildCharacterMeshLods(const CharacterDesc& d, const Skeleton& skel, Skinne
     partW[0][PART_HEAD] = 1.6f;
     partW[1][PART_HEAD] = 2.5f;
     partW[0][PART_EYE] = partW[1][PART_EYE] = 1e6f;
-    partW[0][PART_FINGER] = partW[0][PART_THUMB] = 0.6f;
-    partW[1][PART_FINGER] = partW[1][PART_THUMB] = 1e6f;   // LOD2: the mittens (addMittens) stay as built
+    partW[0][PART_FINGER] = partW[0][PART_THUMB] = partW[1][PART_FINGER] = partW[1][PART_THUMB] = 1e6f;   // the mittens stay as built
     MeshB cur;
     buildFinalMesh(d, skel, cur);
     governLod0(cur);

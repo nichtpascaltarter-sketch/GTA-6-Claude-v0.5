@@ -4,6 +4,7 @@
 #include "gbuffer.hlsli"
 #include "skycommon.hlsli"
 #include "shadow.hlsli"
+#include "lights.hlsli"
 
 // ------------------------------------------------------------------------------------------------
 // Data
@@ -35,7 +36,7 @@ cbuffer ParticleCB : register(b1) {
     float4 gPSim3;     // xyz position shift to apply this frame (re-base), w wind speed (m/s)
     float4 gPSort;     // x k, y j, z sort count, w unused
     float4 gPLightCount; // x number of particle lights
-    float4 gPLights[32]; // pairs: (pos rel camera, radius), (color, unused)
+    float4 gPLights[32]; // triples: (pos rel camera, radius), (intensity, outer cone cos), (spot dir, inner cone cos)
 };
 
 StructuredBuffer<TypeInfo> tTypes : register(t0);
@@ -399,7 +400,7 @@ struct VSOut {
     float2 uv : TEXCOORD0;          // atlas uv
     float2 uv2 : TEXCOORD1;         // next animation frame (animated types)
     nointerpolation float4 color : COLOR0;       // rgb tint * color curve, a opacity
-    nointerpolation float4 light : COLOR1;       // rgb ambient + local light radiance (not exposed), a frame blend
+    float4 light : COLOR1;                       // rgb ambient + local light radiance (not exposed, per corner), a frame blend
     nointerpolation float4 sun : COLOR2;         // rgb sun illuminance * shadow, a view depth
     nointerpolation float4 info : TEXCOORD2;     // x emissive, y softness, z additive, w normal-mapped
     float3 basisR : TEXCOORD3;
@@ -477,15 +478,32 @@ VSOut vsParticle(uint vid : SV_VertexID, uint inst : SV_InstanceID) {
     float sh = sampleSunShadowGeo(center, float3(0, 0, 1), viewDepth, uint2(inst, idx)) * cloudShadowAt(center);
     o.sun = float4(sunE * sh, viewDepth);
     float3 amb = (evalSH9(float3(0, 0, 1)) + evalSH9(V)) * 0.5;
+    // Local lights at this corner of the billboard (a puff next to a lamp gets a gradient across it, not one flat
+    // level), through the spot cone or headlight beam. A puff is a volume: what it scatters is spread over its
+    // radius (softened falloff), and of a lamp close to or inside it only the beam lights it (the cone's share of
+    // all directions) - a smoking engine by a landing light glows, it does not turn into a white disc.
     float3 local = 0;
-    int nl = (int)gPLightCount.x;
-    [loop] for (int li = 0; li < nl; li++) {
-        float4 lp = gPLights[li * 2], lc = gPLights[li * 2 + 1];
-        float3 d = lp.xyz - center;
-        float d2 = dot(d, d);
-        if (d2 > lp.w * lp.w) continue;
-        float win = saturate(1.0 - sq(d2 / (lp.w * lp.w)));
-        local += lc.rgb * win / max(d2, 0.5);
+    if (t.render.x < 0.5) {
+        float rad2 = sq(size * 0.5);
+        int nl = (int)gPLightCount.x;
+        [loop] for (int li = 0; li < nl; li++) {
+            float4 l0 = gPLights[li * 3], l1 = gPLights[li * 3 + 1], l2 = gPLights[li * 3 + 2];
+            LightGPU L;
+            L.pos = l0.xyz;
+            L.radius = l0.w;
+            L.color = l1.rgb;
+            L.spotCos = l1.w;
+            L.dir = l2.xyz;
+            L.spotInner = l2.w;
+            float3 d = L.pos - pos;
+            float d2 = dot(d, d);
+            if (d2 > L.radius * L.radius) continue;
+            float win = saturate(1.0 - sq(d2 / (L.radius * L.radius)));
+            float ang = lightAngular(L, d * rsqrt(max(d2, 1e-6)));
+            float coneShare = L.spotCos <= -1.0 ? 1.0 : (L.spotInner > 1.5 ? 0.03 : 0.5 - 0.5 * L.spotCos);
+            ang = lerp(ang, coneShare, saturate(rad2 / max(d2, 1e-4)));
+            local += L.color * (win * ang / max(d2 + 0.5 * rad2, 0.5));
+        }
     }
     o.light = float4(amb + local / PI, frame);
     // Fog / aerial perspective

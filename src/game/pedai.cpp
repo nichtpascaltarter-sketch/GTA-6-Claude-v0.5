@@ -986,6 +986,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         // (runners on a track at a steady run, strollers at an easy pace)
                         float vmax = pa.activity == ACT_VENUE && pa.venueMode == VM_JOG ? 3.1f + hashToFloat(hash32(p.uid)) * 0.6f
                                    : (pa.activity == ACT_VENUE && pa.venueMode == VM_STROLL ? 1.05f + hashToFloat(hash32(p.uid)) * 0.25f : 1.4f);
+                        if (pa.activity == ACT_EVENT && pa.homeVeh >= 0 && p.faction == FAC_MEDIC && d > 4.f) vmax = 2.8f;   // (a crew runs to a scene)
                         desired = to / d * (paired ? Min(1.3f, d * 2.5f + 0.12f) : Min(vmax, d * 2.f + 0.3f));
                         faceYaw = paired && d < 0.9f ? pa.anchorYaw : atan2f(-desired.x, desired.y);
                         faceSet = true;

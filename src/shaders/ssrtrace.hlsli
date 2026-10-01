@@ -34,6 +34,10 @@ ScreenRay makeScreenRay(float3 P, float3 R, float maxDist) {
 
 // Traverses the HiZ pyramid. Returns true with the hit position (uv, depth) when the ray reaches mip 0 below a
 // surface within maxIter steps. mip0Size = HiZ mip 0 resolution (half screen).
+// Cell j of mip m covers the mip-0 texels [j * 2^m, (j + 1) * 2^m), and the last cell of a level also takes the
+// leftover texels of the odd-sized levels below it (hiz.hlsl). Cells are addressed in mip-0 units: uv * mip size
+// would read the neighbouring cell's depth over much of a non-power-of-two screen (270 rows: 67, 33, 16 ... cells),
+// and rays grazing over wet ground would skip through it in cell-sized blocks.
 bool traceHiZ(Texture2D<float2> hiz, ScreenRay ray, float2 mip0Size, int maxMip, int maxIter, out float3 hit, out float iterFrac) {
     float3 o = ray.origin, d = ray.dir;
     float3 invD = float3(abs(d.x) > 1e-9 ? 1.0 / d.x : 1e30, abs(d.y) > 1e-9 ? 1.0 / d.y : 1e30, abs(d.z) > 1e-12 ? 1.0 / d.z : 1e30);
@@ -49,13 +53,20 @@ bool traceHiZ(Texture2D<float2> hiz, ScreenRay ray, float2 mip0Size, int maxMip,
     int i = 0;
     [loop] for (; i < maxIter && mip >= 0; i++) {
         if (t > ray.tMax) break;
-        float2 mipSize = max(floor(mip0Size / exp2((float)mip)), 1.0);
-        float2 cellPos = pos.xy * mipSize;
-        float surf = hiz.Load(int3(min(int2(cellPos), int2(mipSize) - 1), mip)).x;
-        float2 xyPlane = (floor(cellPos) + floorOffset) / mipSize + uvNudge;
+        float cellTexels = exp2((float)mip);
+        float2 lastCell = max(floor(mip0Size / cellTexels), 1.0) - 1.0;
+        float2 cell = clamp(floor(pos.xy * mip0Size / cellTexels), 0.0, lastCell);
+        float surf = hiz.Load(int3(cell, mip)).x;
+        // the cell's bounds in uv (the last cell reaches the screen edge)
+        float2 lo = cell * cellTexels / mip0Size;
+        float2 hi = cell >= lastCell ? 1.0 : (cell + 1.0) * cellTexels / mip0Size;
+        float2 xyPlane = (d.xy >= 0.0 ? hi : lo) + uvNudge;
         float3 tp = (float3(xyPlane, surf) - o) * invD;
         tp.z = d.z < 0.0 ? tp.z : 1e30;       // only rays moving away from the camera can meet the depth plane
-        if (tp.z <= t) tp.z = 1e30;
+        // a ray already at the plane (it was just moved there at a coarser level, and the closest surface lies in
+        // this cell too) is about to pass behind it: refine here instead of skipping the cell - skipping let rays
+        // slip through walls right at the depth of their nearest point
+        tp.z = max(tp.z, t);
         float tMin = min(min(tp.x, tp.y), tp.z);
         bool above = surf < pos.z;            // ray closer to the camera than the closest surface in the cell
         bool skipped = tMin != tp.z && above;

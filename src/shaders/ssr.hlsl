@@ -40,10 +40,13 @@ void csSSRTrace(uint3 id : SV_DispatchThreadID) {
     float3 P = reconstructPos(uv, depth);
     float3 V = -normalize(P);
     float3 N = octDecode(tNormal[pix] * 2.0 - 1.0);
-    // Sample a reflection direction from the visible-normal distribution (mirror for very smooth surfaces)
+    // Sample a reflection direction from the visible-normal distribution (mirror for very smooth surfaces). A frame
+    // without history to average the stochastic rays over (the first after a cut, or one rendered after many skipped
+    // frames) traces the mirror ray instead: its colour is still fetched from the cone footprint's blurrier mip, so
+    // the reflection is smooth and glossy at once instead of a scatter of hit and missed rays.
     float3 R;
     float alpha = rough * rough;
-    if (rough < 0.06) {
+    if (rough < 0.06 || gSSR1.x < 0.5) {
         R = reflect(-V, N);
     } else {
         float3 up = abs(N.z) < 0.999 ? float3(0, 0, 1) : float3(1, 0, 0);
@@ -57,7 +60,11 @@ void csSSRTrace(uint3 id : SV_DispatchThreadID) {
         R = reflect(-V, H);
         if (dot(R, N) <= 0.0) R = reflect(-V, N);
     }
-    ScreenRay ray = makeScreenRay(P, R, gSSR0.z);
+    // the ray starts a hair above the surface (0.25 % of the view distance): leaving a receding surface (ground
+    // seen at a low angle) it would otherwise meet the depth plane of the next texel's nearest point of the same
+    // surface, a false hit that ended most rays from wet ground (dark holes and smeared self-reflections)
+    float3 Ps = P + N * (0.0025 * linearDepth(depth) + 0.002);
+    ScreenRay ray = makeScreenRay(Ps, R, gSSR0.z);
     float3 hit;
     float iterFrac;
     bool found = traceHiZ(tHiZ, ray, gHalfScreen.xy, (int)gSSR0.y, (int)gSSR0.x, hit, iterFrac);

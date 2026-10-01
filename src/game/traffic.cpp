@@ -543,18 +543,53 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                 }
                 v.sirenOn = true;
                 v.sirenSilent = false;
-                if (length(vp.xy() - inc->pos.toVec3().xy()) < 32.f) {
+                // held up in traffic: within a short run of the scene the crew goes the rest of the way on foot; further
+                // off and out of the player's sight, on past the hold-up along the route (as with the siren going it
+                // would have got round it)
+                float toScene = length(vp.xy() - inc->pos.toVec3().xy());
+                va.heldUp = v.sim.speed() < 1.f ? va.heldUp + dt : 0.f;
+                if (va.heldUp > 4.f && toScene < 85.f) {
+                    va.heldUp = 0.f;
                     d->mode = AI::DM_PULLOVER;
                     d->holdTimer = -1.f;
                     va.task = 1;
                     va.taskTimer = 0.f;
+                    va.stopTimer = 0.f;
+                    LOG("population: %s %d held up %.0f m from the scene, the crew goes on foot", va.role == VR_AMBULANCE ? "ambulance" : "fire truck", vi, toScene);
+                } else if (va.heldUp > 4.f && !d->dummy && !inView && plD > 60.f) {
+                    va.heldUp = 0.f;
+                    float hl = vassets[v.model].spec.boxHalf.y;
+                    for (float ahead = 12.f; ahead <= 66.f; ahead += 6.f) {
+                        int pth = -1;
+                        float uu = 0.f;
+                        if (!traffic.liftPoint(*d, ahead, pth, uu) || !laneGraph.isLane(pth)) continue;
+                        if (!traffic.laneFree(pth, uu, hl + 1.f, 4.f)) continue;
+                        vec3 c = laneGraph.lanePos(pth, uu);
+                        if (inCameraView(c, 12.f) || (pl && length(c.xy() - pl->pos.toVec3().xy()) < 50.f)) break;
+                        vec2 t = laneGraph.laneTangent(pth, uu);
+                        Vehicles::resetVehicle(v.sim, dvec3(c.x, c.y, c.z + 0.3f), AI::dirYaw(t));
+                        v.sim.body.vel = vec3(t * 6.f, 0.f);
+                        traffic.toPhysics(vi, v.sim);
+                        d->path = pth;
+                        d->u = uu;
+                        traffic.clearRoute(*d);
+                        break;
+                    }
+                }
+                if (va.task == 0 && toScene < 32.f) {
+                    d->mode = AI::DM_PULLOVER;
+                    d->holdTimer = -1.f;
+                    va.task = 1;
+                    va.taskTimer = 0.f;
+                    va.stopTimer = 0.f;
                 }
             } else if (va.task == 1) {
                 va.taskTimer += dt;
                 v.sirenOn = true;
                 v.sirenSilent = va.taskTimer > 6.f;   // on scene: the light bar keeps flashing, the siren stops
-                if (v.sim.speed() < 0.5f && va.taskTimer > 1.5f && va.taskTimer - dt <= 1.5f) {
-                    // crew gets out and attends the scene
+                if (v.sim.speed() < 0.5f && va.taskTimer > 1.5f && va.stopTimer < 1.f) {
+                    // crew gets out and attends the scene (once stopped)
+                    va.stopTimer = 1.f;
                     for (int s = 0; s < 8; s++) {
                         int c = v.seats[s];
                         if (c < 0 || s == 0) continue;
@@ -563,7 +598,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                         ca.activity = ACT_EVENT;
                         ca.homeVeh = vi;
                         ca.anchor = inc ? inc->pos.toVec3().xy() : vp.xy();
-                        ca.actTimer = 14.f + hashToFloat(hash32(peds[c].uid)) * 6.f;
+                        ca.actTimer = 14.f + hashToFloat(hash32(peds[c].uid)) * 6.f + length(ca.anchor - vp.xy()) / 2.4f;   // (+ the run there)
                         peds[c].brain.type = BRAIN_WANDER;
                     }
                 }
