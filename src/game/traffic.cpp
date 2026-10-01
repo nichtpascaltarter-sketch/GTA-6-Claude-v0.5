@@ -224,6 +224,13 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
         v.ctl.brake = 1.f;
         v.ctl.handbrake = true;   // (the brake pedal alone at a standstill is reverse)
         v.hornOn = false;
+        // (standing there on purpose, not queued: the traffic behind goes round it when there is room - traffic_core
+        //  reads a stopped car that wants to go nowhere and waits for nothing as a static blocker)
+        if (AI::Driver* d = traffic.get(vi)) {
+            d->vTarget = 0.f;
+            d->stopDist = 1e9f;
+            d->obstDist = 1e9f;
+        }
         return;
     }
     // ---- police in pursuit / responding: their own driving logic
@@ -352,6 +359,76 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                 da.linger = 0.f;
                 dp.brain.type = BRAIN_WANDER;
                 dp.brain.edge = -1;
+                return;
+            }
+        }
+    }
+    // ---- a patrol's coffee break: now and then (one every few minutes, where the player is) a patrol car with nothing on
+    // pulls over at the kerb outside a shop, the crew gets out with a coffee and stands by the car talking for a few
+    // minutes (pedai.cpp ACT_COP_BREAK), then back in and on patrol; called away (a crime, the player wanted) meanwhile,
+    // they go as they are
+    if (v.faction == FAC_POLICE && va.role == VR_POLICE && va.task == PT_NONE && !d->dummy && b.type == BRAIN_DRIVER && !v.persistent && !v.playerUsed &&
+        !isAircraft(vi) && !isBoat(vi)) {
+        va.errandTimer += dt;
+        if (va.copBreak == 0 && (va.errandTimer > 15.f || ai.forceCopBreak)) {
+            va.errandTimer = 0.f;
+            const int NL = (int)laneGraph.lanes.size();
+            u32 hb = hash32(v.uid * 53u + (u32)(time * 0.1));
+            bool onLane = d->path < NL && d->lcLane < 0 && d->mode == AI::DM_NORMAL;
+            bool chance = ai.forceCopBreak || (hashToFloat(hb) < 0.25f && time - ai.lastCopBreak > 160.0 && plD > 40.f && plD < 150.f);
+            if (onLane && chance && pinfo.wanted == 0 && plD < (ai.forceCopBreak ? 220.f : 150.f)) {
+                const AI::Lane& L = laneGraph.lanes[d->path];
+                if (L.right < 0 && d->u > L.u0 + 20.f && d->u < L.u1 - 40.f && !(L.flags & (AI::LF_DIRT | AI::LF_HIGHWAY | AI::LF_RAMP))) {
+                    vec2 t = laneGraph.laneTangent(d->path, d->u + 14.f);
+                    vec2 curb = laneGraph.lanePos(d->path, d->u + 14.f, L.width * 0.5f + 2.5f).xy();
+                    vec3 door;
+                    if (aiBuildingDoorNear(*this, curb, 20.f, hb, door) && dot(door.xy() - curb, AI::rightOf(t)) > -1.f) {
+                        va.copBreak = 1;
+                        va.errandDoor = door;
+                        d->mode = AI::DM_PULLOVER;
+                        d->holdTimer = -1.f;
+                        ai.lastCopBreak = time;
+                        ai.forceCopBreak = false;
+                        LOG("police: patrol %d pulls over for a coffee break at %.0f %.0f (%.0f m from the player)", vi, curb.x, curb.y, plD);
+                    }
+                }
+            }
+        }
+        if (va.copBreak == 1) {
+            if (d->mode != AI::DM_PULLOVER) {
+                va.copBreak = 0;   // (pushed out of it)
+            } else if (v.sim.speed() < 0.3f && va.errandTimer > 2.5f) {
+                // at the kerb: everybody out, coffee in hand, standing on the sidewalk beside the car
+                va.copBreak = 2;
+                va.errandTimer = 0.f;
+                v.parked = true;
+                v.ctl = Vehicles::VehicleControls();
+                v.ctl.handbrake = true;
+                const Vehicles::VehicleModel& cs = vassets[v.model].spec;
+                vec2 cf = normalize(v.sim.forward().xy() + vec2(1e-4f, 0.f)), cr = AI::rightOf(cf);
+                vec2 base = vp.xy() + cr * (cs.boxHalf.x + 1.9f);   // (on the kerb side, up on the sidewalk)
+                int n = 0;
+                u32 hs = hash32(v.uid * 11u + (u32)time);
+                float len = 70.f + hashToFloat(hs) * 50.f;
+                for (int s = 0; s < 8; s++) {
+                    int o = v.seats[s];
+                    if (o < 0 || peds[o].isPlayer || peds[o].faction != FAC_POLICE) continue;
+                    removePedFromVehicle(o, true);
+                    PedAI& oa = pedAI(o);
+                    oa.activity = ACT_COP_BREAK;
+                    oa.homeVeh = vi;
+                    oa.breakSeat = (u8)s;
+                    oa.anchor = base + cf * (n == 0 ? 0.7f : (n == 1 ? -0.6f : -1.6f)) + cr * (n == 1 ? 0.35f : 0.f);
+                    oa.actTimer = len;
+                    oa.navOk = false;
+                    peds[o].brain.type = BRAIN_WANDER;
+                    peds[o].brain.edge = -1;
+                    peds[o].brain.target = -1;
+                    peds[o].carry = CARRY_COFFEE;
+                    n++;
+                }
+                ai.stats.copBreaks++;
+                LOG("police: patrol %d on a break, %d out (%.0f s)", vi, n, len);
                 return;
             }
         }

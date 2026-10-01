@@ -163,9 +163,10 @@ void freeActor(GameWorld& g, int id) {
     pa.aimAt = -1;
     pa.eventId = -1;
     pa.navOk = false;
-    if (p.brain.type == BRAIN_GOTO && !(p.faction == FAC_POLICE && (p.brain.target == -2 || p.brain.target == -3))) {   // (an officer back to the
-        p.brain.type = BRAIN_WANDER;                                                                                    //  car / walking a prisoner
-        p.brain.edge = -1;                                                                                              //  carries on)
+    // (an officer on the way back to the car, walking a prisoner, taking a statement or stopping somebody carries on)
+    if (p.brain.type == BRAIN_GOTO && !(p.faction == FAC_POLICE && p.brain.target <= -2 && p.brain.target >= -5)) {
+        p.brain.type = BRAIN_WANDER;
+        p.brain.edge = -1;
     }
 }
 
@@ -439,7 +440,8 @@ void GameWorld::updateEvents(float dt) {
     if (ai.forceEvent >= 0) gEv.timer = Min(gEv.timer, 2.f);
     int activeCount = 0;
     for (AmbientEvent& e : gEv.ev) activeCount += e.active;
-    if (gEv.timer <= 0.f && activeCount < 2 && !populationOff) {
+    int maxActive = ai.forceEvent >= 0 && ai.forceEvent < EV_COUNT ? 3 : 2;   // (tests: a forced one even with two still playing out)
+    if (gEv.timer <= 0.f && activeCount < maxActive && !populationOff) {
         u32 h = hash32(gEv.counter++ * 2654435761u + (u32)(time * 3.0));
         gEv.timer = 35.f + hashToFloat(h) * 40.f;
         float tod = env ? env->timeOfDay : 12.f;
@@ -1344,12 +1346,71 @@ void GameWorld::updateEvents(float dt) {
                         setActor(*this, victim, evId, vp.xy(), yawTowards(vp.xy(), peds[thief].pos.toVec3().xy()), 0, -1);
                         addCrimeIncident(*this, peds[thief].pos, thief);
                         setStage(e, ST_B);
+                        // a bold passer-by close by gives chase now and then (a have-a-go hero: a tackle if he catches up)
+                        if (e.np < 3 && hashToFloat(hash32(peds[thief].uid * 13u + 7u)) < 0.6f) {
+                            int hero = -1;
+                            float hd = 20.f;
+                            std::vector<int> around;
+                            pedsNear(vp.xy(), 20.f, around);
+                            for (int i : around) {
+                                if (i >= (int)ai.ped.size() || i == victim || i == thief) continue;
+                                const Ped& q = peds[i];
+                                const PedAI& qa = ai.ped[i];
+                                if (q.isPlayer || q.persistent || q.female || q.faction != FAC_CIVILIAN || q.state != PS_ONFOOT || q.brain.type != BRAIN_WANDER ||
+                                    qa.uid != q.uid || qa.temper != 2 || qa.activity != ACT_WALK || qa.leader >= 0 || qa.eventId >= 0 || qa.role == PR_DRUNK)
+                                    continue;
+                                float dq = length(q.pos.toVec3().xy() - vp.xy());
+                                if (dq < hd) {
+                                    hd = dq;
+                                    hero = i;
+                                }
+                            }
+                            if (hero >= 0) {
+                                e.ped[2] = refPed(*this, hero);
+                                e.np = 3;
+                                setActor(*this, hero, evId, peds[hero].pos.toVec3().xy(), peds[hero].yaw, 0, -1);
+                                Brain& hb = peds[hero].brain;
+                                hb.type = BRAIN_GOTO;
+                                hb.goal = peds[thief].pos;
+                                hb.speed = 5.8f;
+                                hb.timer = 0.f;
+                                aiSay(hero, BK_HERO, 1.f, true);
+                                LOG("events: passer-by %d gives chase to purse snatcher %d (%.0f m)", hero, thief, hd);
+                            }
+                        }
                     } else if (e.t > 25.f) {
                         tb.type = BRAIN_WANDER;
                         tb.edge = -1;
                         over = true;
                     }
                 } else if (e.stage == ST_B) {
+                    // the have-a-go hero: after the thief, a tackle on catching up (the bag drops: below); out of breath
+                    // and left behind after a while
+                    int hero = e.np > 2 ? livePed(*this, e.ped[2]) : -1;
+                    if (hero >= 0 && peds[hero].brain.type == BRAIN_GOTO && peds[hero].state == PS_ONFOOT) {
+                        Brain& hb = peds[hero].brain;
+                        vec2 hp = peds[hero].pos.toVec3().xy();
+                        if (thief >= 0 && !tDown && hb.timer < 16.f) {
+                            hb.goal = dvec3(peds[thief].pos.toVec3() + peds[thief].vel * 0.3f);
+                            vec2 to = peds[thief].pos.toVec3().xy() - hp;
+                            if (length(to) < 1.4f) {
+                                knockDown(thief, vec3(normalize(to + vec2(1e-4f, 0.f)) * 200.f, 50.f), false);
+                                setActor(*this, hero, evId, hp, yawTowards(hp, peds[thief].pos.toVec3().xy()), 0, -1);
+                                aiSay(hero, BK_HERO, 1.f, true);
+                                LOG("events: passer-by %d tackles purse snatcher %d", hero, thief);
+                            }
+                        } else {
+                            // too fast for him (or it is over): on his way, still catching his breath
+                            hb.type = BRAIN_WANDER;
+                            hb.edge = -1;
+                            PedAI& ha = pedAI(hero);
+                            ha.activity = ACT_WALK;
+                            ha.eventId = -1;
+                            ha.navOk = false;
+                            if (thief >= 0 && !tDown) aiSay(hero, BK_HERO_LOST, 1.f, true);
+                            e.ped[2] = Ref();
+                        }
+                    }
                     if (victim >= 0 && calmActor(*this, victim)) {
                         PedAI& va = pedAI(victim);
                         if (thief >= 0) va.anchorYaw = yawTowards(peds[victim].pos.toVec3().xy(), peds[thief].pos.toVec3().xy());

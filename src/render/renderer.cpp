@@ -529,7 +529,11 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     bindFrame();
     bindGlobals(*this, false);
 
-    // Shadows
+    // Shadows. The cascades first: the props are culled on the GPU for them and for the camera in one pass.
+    shadows->prepare(*this);
+    RenderPassTiming::begin("prop cull");
+    props->cull(*this, world->cells, shadows->cascadeVP, shadows->renderThis, shadows->cascades);
+    RenderPassTiming::end();
     RenderPassTiming::begin("shadows");
     shadows->render(*this);
     RenderPassTiming::end();
