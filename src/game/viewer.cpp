@@ -5,6 +5,13 @@
 //   --shot "X,Y,Z,yawDeg,pitchDeg,hour,name" with X = -300 + 8*i - 4, Y = 1500 + 6, Z = height + 1.6
 // --protagonists puts Mari and Dex (protagonists.h) in the first two character slots; --clod 1|2 shows the
 // characters' crowd LODs.
+// Portrait close-ups (characters mode): --facecam i,dist,yawDeg, one per --shot in the same order. For the shot the
+// camera is on, character i (and only it) is moved in front of the camera, facing it turned by yawDeg (positive turns
+// the face to its own left), with its eyes dist metres away on the camera axis; beyond 2.5 m its feet stay on the
+// ground instead. A close-up then works wherever the --shot puts the camera (a lit street at night, a side-lit plaza)
+// and does not depend on body or eye height. Only the characters named by --facecam are built. --viewerlamp hangs
+// a street lamp over the framed character (as roadmesh.cpp's: 8.6 m pole, 2.2 m arm, 7000 cd, warm;
+// --viewerlamp=cool for the cool LED kind), 3 m towards the camera and 1.2 m to the side.
 #include "protagonists.h"
 namespace Game {
 
@@ -28,6 +35,17 @@ struct Viewer {
         int clip = 0;
     };
     std::vector<Ch> chars;
+    struct FaceCam {
+        int index;
+        float dist, yawDeg;
+    };
+    std::vector<FaceCam> faceCams;
+    struct ShotKey {
+        dvec3 pos;
+        float hour;
+    };
+    std::vector<ShotKey> shotKeys;   // the --shot cameras, to tell which --facecam applies
+    int lampKind = -1;               // --viewerlamp: 0 warm, 1 cool
 #endif
     float t = 0;
 
@@ -70,9 +88,30 @@ struct Viewer {
         if (mode == "characters") {
             int n = 16;
             if (const char* c = Platform::argValue("count")) n = atoi(c);
+            for (int a = 1; a + 1 < Platform::argCount(); a++) {
+                if (strcmp(Platform::arg(a), "--facecam") == 0) {
+                    FaceCam f = {};
+                    if (sscanf(Platform::arg(a + 1), "%d,%f,%f", &f.index, &f.dist, &f.yawDeg) == 3 && f.index >= 0) {
+                        faceCams.push_back(f);
+                        n = Max(n, f.index + 1);
+                    }
+                } else if (strcmp(Platform::arg(a), "--shot") == 0) {
+                    ShotKey k = {};
+                    float yaw, pitch;
+                    if (sscanf(Platform::arg(a + 1), "%lf,%lf,%lf,%f,%f,%f", &k.pos.x, &k.pos.y, &k.pos.z, &yaw, &pitch, &k.hour) == 6)
+                        shotKeys.push_back(k);
+                }
+            }
+            if (Platform::hasArg("viewerlamp")) {
+                const char* lk = Platform::argValue("viewerlamp");
+                lampKind = lk && strcmp(lk, "cool") == 0 ? 1 : 0;
+            }
             chars.resize(n);
             for (int i = 0; i < n; i++) {
                 Ch& c = chars[i];
+                bool framed = faceCams.empty();
+                for (const FaceCam& f : faceCams) framed = framed || f.index == i;
+                if (!framed) continue;
                 c.desc = Anim::randomCharacter(1000 + i * 7919, i % 7);
                 if (Platform::hasArg("protagonists") && i < 2) c.desc = protagonistDesc(i);
                 Anim::buildSkeleton(c.desc, c.skel);
@@ -888,8 +927,21 @@ struct Viewer {
         }
 #endif
 #ifdef HAVE_CHARACTERS
+        // --facecam: the entry of the shot the camera is on (matched by position and hour)
+        const FaceCam* fc = nullptr;
+        if (!faceCams.empty()) {
+            for (size_t k = 0; k < shotKeys.size(); k++) {
+                const ShotKey& sk = shotKeys[k];
+                if (length(rel(sk.pos, r.camera.pos)) < 1e-4f && fabsf(sk.hour - r.frame.time.y) < 1e-3f) {
+                    fc = &faceCams[Min(k, faceCams.size() - 1)];
+                    break;
+                }
+            }
+        }
         for (size_t i = 0; i < chars.size(); i++) {
             Ch& c = chars[i];
+            if (!c.model) continue;
+            if (!faceCams.empty() && (!fc || fc->index != (int)i)) continue;
             Anim::AnimInput in;
             const Anim::ClipInfo& ci = Anim::clipInfo((Anim::Clip)c.clip);
             // Locomotion clips are shown in place; others as one-shot/stance
@@ -908,6 +960,29 @@ struct Viewer {
             d.bones = c.skin.data();
             d.boneCount = Anim::B_COUNT;
             d.id = 0xA000 + i;
+            if (fc) {
+                // facing the camera (model +Y towards it), turned by yawDeg; the eye midpoint on the camera axis
+                vec3 fwd = r.camera.forward();
+                vec3 flat = normalize(vec3(fwd.x, fwd.y, 0.f));
+                float th = atan2f(flat.x, -flat.y) + fc->yawDeg * kDegToRad;
+                d.rot = mat3FromQuat(quatAxisAngle(vec3(0, 0, 1), th));
+                vec3 eyes = (ms[Anim::B_EYE_L].c[3].xyz() + ms[Anim::B_EYE_R].c[3].xyz()) * 0.5f;
+                dvec3 target = r.camera.pos + dvec3(fwd * fc->dist);
+                d.pos = target - dvec3(d.rot * eyes);
+                if (fc->dist >= 2.5f) d.pos.z = map.heightAt((float)d.pos.x, (float)d.pos.y);
+                if (lampKind >= 0) {
+                    vec3 toCam = -flat, side = normalize(cross(vec3(0, 0, 1), toCam));
+                    Render::DynamicLight lamp;
+                    double gz = map.heightAt((float)target.x, (float)target.y);
+                    lamp.pos = dvec3(target.x, target.y, gz) + dvec3(toCam * 3.f + side * 1.2f + vec3(0, 0, 8.6f));
+                    lamp.color = (lampKind == 1 ? vec3(0.85f, 0.9f, 1.f) : vec3(1.f, 0.72f, 0.42f)) * 7000.f;
+                    lamp.radius = 30.f;
+                    lamp.dir = vec3(0, 0, -1);
+                    lamp.spotCos = 0.2f;
+                    lamp.spotInner = 0.45f;
+                    r.addLight(lamp);
+                }
+            }
             r.dynamic->submit(d);
         }
 #endif

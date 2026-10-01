@@ -360,10 +360,16 @@ void updateNpcs(GameWorld& g, Loaded* L, const InteriorDef& d, float playerDist,
         u32 h = hash32(d.seed ^ (u32)i * 0x9E3779B9u ^ daySeed);
         if ((sc.flags & World::SF_OPTIONAL) && hashToFloat(h) > 0.6f) continue;
         if (!(sc.flags & World::SF_STAFF) && (d.rooms.empty() ? 1.f : lightsOn(d.rooms[0].schedule, hour)) < 0.5f && hashToFloat(h >> 3) > 0.25f) continue;
-        int ci = g.randomCivilianChar(h, roleToCharRole(sc.role, d.kind));
-        if (ci < 0) continue;
         vec3 wp = d.toWorld(sc.pos);
         wp.z += sc.lift;
+        // who: a club's dancers and patrons dressed for the club (a night out from the evening), its door staff in black,
+        // its VIPs dressed up; everyone else by their role as before
+        int ci;
+        if (d.kind == World::IK_CLUB && (sc.role == World::SR_DANCER || sc.role == World::SR_PATRON)) ci = wardrobeChar(g, h, LK_CLUB, wp.xy());
+        else if (sc.role == World::SR_BOUNCER) ci = wardrobeChar(g, h, LK_DOOR, wp.xy());
+        else if (d.kind == World::IK_CLUB && sc.role == World::SR_VIP) ci = wardrobeChar(g, h, LK_NIGHT, wp.xy());
+        else ci = g.randomCivilianChar(h, roleToCharRole(sc.role, d.kind));
+        if (ci < 0) continue;
         Faction f = sc.role == World::SR_COP ? FAC_POLICE : FAC_CIVILIAN;
         int id = g.spawnPed(ci, dvec3(wp), d.yawToWorld(sc.yaw), f);
         if (id < 0) continue;

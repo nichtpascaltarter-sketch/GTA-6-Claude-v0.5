@@ -113,7 +113,7 @@ public:
         if (jonah >= 0) g.peds[jonah].invincible = true;
         for (int i = 0; i < 3; i++) {
             u32 seed = hash32((u32)(flag(g, EX_TOUR_COUNT) * 7 + i) * 2654435761u + 0x70u);
-            int ci = g.randomCivilianChar(seed, 4);   // beachwear: vacationers
+            int ci = wardrobeChar(g, seed, LK_TOURIST, dock.xy());   // vacationers: sightseers' clothes (no swimwear in the marsh)
             int p = g.mPed(ci, dvec3(dock + vec3(side * (-1.5f - i), 0.f)), yawTo(dock.xy(), water.xy()), FAC_CIVILIAN);
             if (p < 0) continue;
             g.peds[p].voice = Speech::presetVoice(g.peds[p].female, seed);
