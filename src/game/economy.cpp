@@ -140,7 +140,7 @@ void updateStoryCalls(GameWorld& g, float dt) {
             const char* text;
             int where;   // 0 courier, 1 gun shop, 2 street race, 3 Tide Customs, 4 beach race, 5 condo, 6 river race, 7 flight school,
                          // 8 taxi depot, 9 range, 10 Sawgrass dock (wildlife census), 11..13 the strangers Rosa, Velma, Jaz,
-                         // 14 the Night Series, 15 the harbor runs
+                         // 14 the Night Series, 15 the harbor runs, 16 the pier bait shop (fishing), 17 the airboat tours
         };
         static const WorldText kTexts[] = {
             {SF_LOW_TIDE, "Rapido Couriers", "Fast wheels, faster legs? Rapido Couriers pays per drop. Come by the depot.", 0},
@@ -169,6 +169,12 @@ void updateStoryCalls(GameWorld& g, float dt) {
              14},
             {SF_COLLATERAL, "Tomas", "The yard is taking delivery runs by boat to pay down the bank. I can't drive a boat to save my life. "
                                      "Come by the slip?", 15},
+            {SF_LOW_TIDE, "Palmera Angler",
+             "Rods are on the house for Porto Sol locals. Fish off the Sol Beach Pier or any dock, or cut the engine anywhere on the water. We "
+             "buy the catch by the pound.",
+             16},
+            {SF_SAWGRASS_RUN, "Jonah", "Tourist season. I need somebody to drive the airboat tours while I tell the gator jokes. Pays in tips. "
+                                       "Come by the dock.", 17},
         };
         int sent = flag(g, EX_WORLD_TEXTS);
         for (int i = 0; i < (int)ARRAY_COUNT(kTexts); i++) {
@@ -197,6 +203,8 @@ void updateStoryCalls(GameWorld& g, float dt) {
                 case 13: loc = defStart("jaz_1"); break;
                 case 14: loc = defStart("series"); break;
                 case 15: loc = defStart("harbor"); break;
+                case 16: loc = P.pierRamp.xy(); break;
+                case 17: loc = defStart("sawgrass_tours"); break;
                 default: loc = defStart("range"); break;
             }
             addMessage(g, t.from, t.text, -1, false, -1, &loc, 0, nullptr);

@@ -7,7 +7,7 @@ namespace Game {
 namespace mu {
 
 enum MenuOwner : int { MO_NONE = 0, MO_SHOP_GUNS, MO_SHOP_CLOTHES, MO_SHOP_CARS, MO_WARDROBE, MO_GARAGE, MO_CHOICE,
-                       MO_BUSINESS, MO_PROPERTY, MO_RESPRAY, MO_RACE, MO_REPLAY };
+                       MO_BUSINESS, MO_PROPERTY, MO_RESPRAY, MO_RACE, MO_REPLAY, MO_FISH };
 
 struct MenuItem {
     std::string label;

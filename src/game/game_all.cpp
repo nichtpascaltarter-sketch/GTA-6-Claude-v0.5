@@ -49,6 +49,8 @@
 #include "strangers.cpp"
 #include "encounters.cpp"     // street encounters (random events around the player in free roam)
 #include "story_act4.cpp"     // Act 4 "Undertow" (after either Act 3 ending)
+#include "fishing.cpp"        // fishing from piers and boats, the bait shops and their trophy board
+#include "airboat_tours.cpp"  // Sawgrass airboat tours with Jonah (side activity: gators, tourists, tips)
 #include "story.cpp"
 #include "missiontest.cpp"
 #include "openworld.cpp"

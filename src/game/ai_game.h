@@ -31,7 +31,10 @@ enum VenueMode : u8 {
     VM_BOARD,          // on the way to a vehicle's kerb-side door, then in (and the vehicle pulls away)
     VM_WORK,           // hands-on work at the spot: crouched over it a while (twist-locks, tackle), then up for a look round
     VM_MEET,           // at the curb beside a car, waiting for someone coming out of the terminal: a hug, then off together
-    VM_ROUTE           // out of one door along the walkways (zebras and all) to another, and in (a stream)
+    VM_ROUTE,          // out of one door along the walkways (zebras and all) to another, and in (a stream)
+    VM_SEAT,           // on a seat (a cafe chair, a bench, a bleacher plank)
+    VM_JOG,            // running laps round a ring of points (a track)
+    VM_STROLL          // strolling a chain of points end to end (a park walk), then on as an ordinary walker
 };
 
 struct GameWorld;
@@ -133,6 +136,8 @@ struct PedAI {
     u8 venueMode = 0;
     bool venueDriver = false;   // VM_BOARD: takes the wheel (else a passenger seat)
     bool goInside = false;      // a walker headed for a door (walk.dest): gone once there (population.cpp)
+    i16 routeAt = 0;            // VM_JOG / VM_STROLL: the point of the venue route they are heading for
+    i8 routeDir = 1;            // ... and which way along it
     vec2 anchorB;
     float anchorBYaw = 0.f;
 };

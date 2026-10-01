@@ -10,14 +10,16 @@ void placesLayout(SiteSet& S, WorldMap& map) {
     S.anchors.clear();
     deco_strip::layout(S, map);
     campus::layout(S, map);
+    cemetery::layout(S, map);
     LOG("Places: layout %.3f s, %zu places, %zu anchors", TimeSeconds() - t0, S.places.size(), S.anchors.size());
 }
 
 void placesAfterLots(WorldMap& map, const RoadNetwork& roads, std::vector<Building>& buildings, std::vector<FacadeGPU>& facades) {
-    (void)map;
-    (void)roads;
-    (void)buildings;
     (void)facades;
+    if (!gSites) return;
+    double t0 = TimeSeconds();
+    churchyard::place(*gSites, map, roads, buildings);
+    LOG("Places: after the lots %.3f s", TimeSeconds() - t0);
 }
 
 void placesFacades(SiteSet& S, BuildingSet& bs) {

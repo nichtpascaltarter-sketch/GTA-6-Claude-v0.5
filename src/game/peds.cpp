@@ -451,6 +451,15 @@ void GameWorld::animatePed(Ped& p, float dt) {
         in.stance = isBike(p.vehicle) ? 3 : (p.seat == 0 ? 1 : 2);
         // the driver's hands follow the applied steering (not the direction the car is sliding)
         if (p.seat == 0) in.localMoveDir = vec2(Clamp(vehicles[p.vehicle].sim.steerOut, -1.f, 1.f), 1.f);
+        // ... on this vehicle's own rim (the live part gameworld turns by wheelTurn()), given in the ped's model space:
+        // origin 0.5 m below the seat's hip point, the vehicle's axes; no rim part = the animator's typical car rim
+        in.wheelR = 0.f;
+        const Vehicles::VehicleModel& spec = vassets[vehicles[p.vehicle].model].spec;
+        if (in.stance == 1 && spec.steerWheelRadius > 0.f && p.seat < (int)spec.seats.size()) {
+            in.wheelC = spec.steerWheelPos - (spec.seats[p.seat].pos - vec3(0.f, 0.f, 0.5f));
+            in.wheelN = normalize(spec.steerWheelAxis);
+            in.wheelR = spec.steerWheelRadius;
+        }
     } else if (p.state == PS_ONFOOT || p.state == PS_SWIM) {
         if (in.stance == 1 || in.stance == 2 || in.stance == 3) in.stance = 0;
     }
@@ -593,6 +602,9 @@ void GameWorld::animatePed(Ped& p, float dt) {
     // phone at the ear (player on a call, NPCs chatting on the phone)
     in.phoneCall = p.phoneCall && upright;
     in.phoneBrowse = p.phoneBrowse && upright && !p.phoneCall;
+    // the prop in hand (carry.cpp draws it from the same answer): the holding arm is posed for it
+    in.carry = effectiveCarry(p);
+    in.carryOpen = in.carry == CARRY_UMBRELLA && umbrellaWeather();
     // synced takedown: the attacker's choke arm finds the victim's actual neck (tall / short pairs still connect)
     in.grabWeight = 0.f;
     if (p.takedownT >= 0.f && !p.takedownVictim && p.takedownPartner >= 0 && p.takedownPartner < (int)peds.size()) {

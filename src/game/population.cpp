@@ -296,7 +296,7 @@ void updateQueues(GameWorld& g, float dt, vec2 pp, bool night, bool warm) {
 // warmup fade) and empties again once they are far away. Nobody stands on a live lane (every slot is checked against the
 // lane graph, buildings and water when the venue is laid out), and everybody stands at the level of the ground there -
 // never on a canopy or a roof above it.
-enum VenueLook : u8 { VL_WORKER = 0, VL_CIVIL, VL_BUSINESS, VL_BEACH, VL_TRAVELER };
+enum VenueLook : u8 { VL_WORKER = 0, VL_CIVIL, VL_BUSINESS, VL_BEACH, VL_TRAVELER, VL_UNIFORM };
 enum VenueProp : u8 { VP_NONE = 0, VP_TRUCK, VP_TAXI, VP_AIRBOAT, VP_CAR };
 
 struct VenueSlot {
@@ -318,6 +318,12 @@ struct VenueSlot {
     vec2 propOff;                // ... and the ped beside it: x to the vehicle's right (> 0) or left, y forward (from its box)
     i8 carryCtx = -1;            // what they have in hand (carry.cpp): a pickCarry context (1 traveler, 5 angler, 6 birder) ...
     u8 carryProp = CARRY_NONE;   // ... or this prop; neither: hands free (at work, smoking, on the phone)
+    bool fairWeather = false;    // outdoors by choice (a cafe terrace, the lawn): nobody there in the rain
+    bool fixedZ = false;         // z is the level of the spot as built (a terrace deck, a bleacher row): not the ground's
+    bool trusted = false;        // a place's own anchor (sites.cpp put it by its seat / its table): no spot checks
+    int route = -1;              // VM_JOG / VM_STROLL: the venue route (a ring or a chain of points) ...
+    int routeAt = 0;             // ... the point they start at
+    i8 routeDir = 1;             // ... and the way they go along it
     // runtime
     int ped = -1;
     u32 pedUid = 0;
@@ -339,7 +345,12 @@ struct Venue {
     // and when the next fare takes the front cab
     int cab0 = -1, cabs = 0, q0 = -1, qn = 0, dispatcher = -1;
     float rankT = 25.f;
+    std::vector<std::vector<vec3>> routes;   // runners' rings / strollers' chains (points in order)
+    std::vector<u8> routeRing;               // ... 1 = closed ring
 };
+
+// slots per venue (a ped's PedAI::venue is venue index * kVenueSlots + slot)
+const int kVenueSlots = 256;
 
 struct VenueSet {
     bool built = false;
@@ -350,8 +361,7 @@ VenueSet gVenues;
 bool venueHours(float tod, float h0, float h1) { return h0 <= h1 ? (tod >= h0 && tod < h1) : (tod >= h0 || tod < h1); }
 
 // In hand (carry.cpp draws it): a prop of their own, or hands free - no prop and none of the street defaults either
-// (carry.cpp draws nothing for a value past the last prop)
-const u8 kCarryHandsFree = CARRY_COUNT;
+const u8 kCarryHandsFree = CARRY_HANDSFREE;
 
 // what someone walking these streets carries: the office crowd a briefcase or a coffee, the beach crowd now and then a
 // surfboard, sightseers and the shopping streets bags, travelers at the airport their luggage; joggers and beat cops
@@ -410,6 +420,25 @@ bool venueKerbLaneOk(const GameWorld& g, vec2 p, vec2 fwd) {
     return fabsf(lat) < 0.8f && L.right < 0 && L.left >= 0 && u > L.u0 + 4.f && u < L.u1 - 4.f;
 }
 
+// a route through its points smoothed into a Catmull-Rom curve, `sub` points per span (a lap of a track rounds its
+// bends instead of cutting the chords across the infield)
+std::vector<vec3> smoothRoute(const std::vector<vec3>& p, bool ring, int sub) {
+    int n = (int)p.size();
+    if (n < 3 || sub < 2) return p;
+    auto at = [&](int k) -> vec3 { return ring ? p[(k % n + n) % n] : p[Clamp(k, 0, n - 1)]; };
+    std::vector<vec3> out;
+    int spans = ring ? n : n - 1;
+    for (int sp = 0; sp < spans; sp++) {
+        vec3 p0 = at(sp - 1), p1 = at(sp), p2 = at(sp + 1), p3 = at(sp + 2);
+        for (int k = 0; k < sub; k++) {
+            float t = k / (float)sub, t2 = t * t, t3 = t2 * t;
+            out.push_back((p1 * 2.f + (p2 - p0) * t + (p0 * 2.f - p1 * 5.f + p2 * 4.f - p3) * t2 + (p1 * 3.f - p0 - p2 * 3.f + p3) * t3) * 0.5f);
+        }
+    }
+    if (!ring) out.push_back(p[n - 1]);
+    return out;
+}
+
 VenueSlot mkSlot(vec2 pos, vec2 face, u8 mode, u8 look, float h0, float h1, float chance) {
     VenueSlot s;
     s.pos = s.pos2 = pos;
@@ -440,13 +469,12 @@ void buildVenues(GameWorld& g) {
     int kept = 0, dropped = 0;
     auto finish = [&](Venue& V) {
         std::vector<VenueSlot> ok;
-        int remap[64];
-        for (int k = 0; k < 64; k++) remap[k] = -1;
+        std::vector<int> remap(V.slots.size(), -1);
         for (int si = 0; si < (int)V.slots.size(); si++) {
             VenueSlot& s = V.slots[si];
             bool tight = s.tight || s.mode == VM_TRAVEL_IN || s.mode == VM_TRAVEL_OUT || s.mode == VM_FAREWELL || s.mode == VM_SEEOFF;
             const char* why = nullptr;
-            if (!((s.prop != VP_NONE && length2(s.propOff) > 0.f) || venueSpotOk(g, s.pos, tight))) why = "spot";
+            if (!s.trusted && !((s.prop != VP_NONE && length2(s.propOff) > 0.f) || venueSpotOk(g, s.pos, tight))) why = "spot";
             if (!why && s.mode == VM_PACE && !venueSpotOk(g, s.pos2, tight)) why = "second spot";
             if (!why && s.prop == VP_TRUCK && !venueSpotOk(g, s.propPos)) why = "rig spot";
             if (!why && (s.prop == VP_TAXI || s.prop == VP_CAR) && !venueKerbLaneOk(g, s.propPos, AI::yawDir(s.propYaw))) why = "kerb lane";
@@ -455,8 +483,8 @@ void buildVenues(GameWorld& g) {
             if (!why && s.follows && (ok.empty() || remap[si - 1] < 0)) why = "partner";
             bool good = why == nullptr;
             if (why) LOG("population: venue %s slot %d (mode %d) dropped at %.1f %.1f: %s", V.name, si, (int)s.mode, s.pos.x, s.pos.y, why);
-            if (good && (int)ok.size() < 64) {
-                s.z = venueStandZ(g, s.pos);
+            if (good && (int)ok.size() < kVenueSlots) {
+                if (!s.fixedZ) s.z = venueStandZ(g, s.pos);
                 s.propZ = s.prop != VP_NONE ? venueStandZ(g, s.propPos) : 0.f;
                 remap[si] = (int)ok.size();
                 ok.push_back(s);
@@ -469,7 +497,7 @@ void buildVenues(GameWorld& g) {
         auto rangeRemap = [&](int& first, int& n) {
             int f = -1, c = 0;
             for (int k = 0; k < n; k++)
-                if (first + k < 64 && remap[first + k] >= 0) {
+                if (first + k < (int)remap.size() && remap[first + k] >= 0) {
                     if (f < 0) f = remap[first + k];
                     c++;
                 }
@@ -478,7 +506,7 @@ void buildVenues(GameWorld& g) {
         };
         if (V.cab0 >= 0) rangeRemap(V.cab0, V.cabs);
         if (V.q0 >= 0) rangeRemap(V.q0, V.qn);
-        if (V.dispatcher >= 0) V.dispatcher = V.dispatcher < 64 ? remap[V.dispatcher] : -1;
+        if (V.dispatcher >= 0) V.dispatcher = V.dispatcher < (int)remap.size() ? remap[V.dispatcher] : -1;
         if (V.cabs == 0 || V.qn == 0) V.cab0 = V.q0 = -1;
         V.slots.swap(ok);
         if (!V.slots.empty()) gVenues.v.push_back(V);
@@ -894,6 +922,201 @@ void buildVenues(GameWorld& g) {
         }
         finish(V);
     }
+    // ---------------------------------------------------------------- the named places (sites.cpp places / anchors: hotel
+    // row terraces, the campus, cemeteries and churchyards, hospital bays, the prison, the speedway): people at the anchors
+    // the place was built with - diners at the cafe tables and a waiter working the terrace, students in circles on the
+    // lawn and in groups at the steps, spectators on the bleachers, mourners, guards, crews, runners doing laps round a
+    // track, strollers along a park walk. A table / a circle / a crew is filled together (a first seat by chance, the
+    // others after it) or not at all; the anchors go into venues of their ~90 m cell so only the part of a place near
+    // the player fills; each ring or walk is a venue of its own
+    if (!S.places.empty() && !S.anchors.empty()) {
+        struct CellKey {
+            int place, cx, cy, venue;
+        };
+        std::vector<CellKey> cells;
+        std::vector<Venue> pv;
+        auto cellVenue = [&](int place, vec2 p) -> int {
+            int cx = (int)floorf(p.x / 90.f), cy = (int)floorf(p.y / 90.f);
+            for (const CellKey& c : cells)
+                if (c.place == place && c.cx == cx && c.cy == cy) return c.venue;
+            cells.push_back({place, cx, cy, (int)pv.size()});
+            Venue V;
+            V.name = S.places[place].name.c_str();
+            V.c = vec2((cx + 0.5f) * 90.f, (cy + 0.5f) * 90.f);
+            V.fillR = 170.f;
+            V.releaseR = 250.f;
+            pv.push_back(V);
+            return (int)pv.size() - 1;
+        };
+        // hours, how likely a group is there, what they look like - by the kind of place
+        auto hoursFor = [](int placeKind, u8 anchorKind, float& h0, float& h1) {
+            h0 = 8.f;
+            h1 = 21.f;
+            if (placeKind == World::PK_HOTEL_ROW) h1 = anchorKind == World::PA_SIT ? 24.f : 23.f;
+            if (placeKind == World::PK_CEMETERY || placeKind == World::PK_CHURCHYARD) {
+                h0 = 9.f;
+                h1 = 17.5f;
+            }
+            if (placeKind == World::PK_PRISON || placeKind == World::PK_HOSPITAL) {
+                h0 = 0.f;
+                h1 = 24.f;
+            }
+            if (anchorKind == World::PA_EXERCISE && placeKind != World::PK_PRISON) {
+                h0 = 6.f;
+                h1 = 21.f;
+            }
+        };
+        auto lookFor = [](int placeKind, u8 anchorKind, u32 hh) -> u8 {
+            if (anchorKind == World::PA_GUARD) return VL_UNIFORM;
+            if (anchorKind == World::PA_WORK) return placeKind == World::PK_SPEEDWAY ? VL_WORKER : VL_BUSINESS;
+            if (placeKind == World::PK_HOTEL_ROW) return hh % 3 == 0 ? VL_BUSINESS : (hh % 3 == 1 ? VL_BEACH : VL_CIVIL);
+            if (placeKind == World::PK_CEMETERY || placeKind == World::PK_CHURCHYARD) return VL_BUSINESS;
+            if (anchorKind == World::PA_EXERCISE) return hh % 2 ? VL_BEACH : VL_CIVIL;
+            return hh % 4 == 0 ? VL_BEACH : VL_CIVIL;
+        };
+        const std::vector<World::PlaceAnchor>& AA = S.anchors;
+        // the anchors of one group of one kind at one place, in the order they were laid out (a group's anchors need not
+        // be next to each other in the list)
+        std::vector<std::pair<u32, int>> order;   // (place, kind, group) key, anchor index
+        for (int k = 0; k < (int)AA.size(); k++)
+            if (AA[k].place < S.places.size()) order.push_back({((u32)AA[k].place << 24) | ((u32)AA[k].kind << 16) | (u32)AA[k].group, k});
+        std::stable_sort(order.begin(), order.end(), [](const std::pair<u32, int>& a, const std::pair<u32, int>& b) { return a.first < b.first; });
+        for (size_t g0 = 0; g0 < order.size();) {
+            size_t g1 = g0 + 1;
+            while (g1 < order.size() && order[g1].first == order[g0].first) g1++;
+            std::vector<World::PlaceAnchor> A;
+            for (size_t k = g0; k < g1; k++) A.push_back(AA[order[k].second]);
+            g0 = g1;
+            size_t i = 0, j = A.size();
+            int pi = A[0].place;
+            const World::NamedPlace& P = S.places[pi];
+            u8 kind = A[i].kind;
+            u32 hg = hash32((u32)pi * 7919u + (u32)A[i].group * 131u + (u32)kind);
+            float h0, h1;
+            hoursFor(P.kind, kind, h0, h1);
+            if (kind == World::PA_EXERCISE || kind == World::PA_WAYPOINT) {
+                // a ring (runners) or a walk (strollers): a venue of its own round the whole route
+                Venue V;
+                V.name = P.name.c_str();
+                std::vector<vec3> pts;
+                vec2 cen(0.f);
+                for (size_t k = i; k < j; k++) {
+                    pts.push_back(A[k].pos);
+                    cen += A[k].pos.xy();
+                }
+                cen = cen * (1.f / (float)Max((int)pts.size(), 1));
+                float ext = 0.f;
+                for (const vec3& q : pts) ext = Max(ext, length(q.xy() - cen));
+                V.c = cen;
+                V.fillR = 170.f + ext;
+                V.releaseR = 250.f + ext;
+                bool ring = kind == World::PA_EXERCISE;
+                // (points some 10-35 m apart: smoothed to a point every few meters)
+                float span = 0.f;
+                for (size_t k = 1; k < pts.size(); k++) span = Max(span, length(pts[k].xy() - pts[k - 1].xy()));
+                int sub = Clamp((int)ceilf(span / 5.f), 1, 8);
+                pts = smoothRoute(pts, ring, sub);
+                V.routes.push_back(pts);
+                V.routeRing.push_back(ring ? 1 : 0);
+                int n = (int)pts.size();
+                if (n >= 2) {
+                    if (kind == World::PA_EXERCISE) {
+                        int runners = Clamp(n / 3, 2, 5);
+                        for (int k = 0; k < runners; k++) {
+                            int at = (k * n) / runners;
+                            VenueSlot s = mkSlot(pts[at].xy(), pts[(at + 1) % n].xy() - pts[at].xy(), VM_JOG, lookFor(P.kind, kind, hash32(hg + (u32)k)), h0, h1,
+                                                 k < 2 ? 0.85f : 0.55f);
+                            s.route = 0;
+                            s.routeAt = at;
+                            s.routeDir = 1;
+                            s.trusted = s.fixedZ = true;
+                            s.z = pts[at].z;
+                            V.slots.push_back(s);
+                        }
+                    } else {
+                        for (int k = 0; k < 2; k++) {
+                            int at = k ? n - 1 : 0;
+                            VenueSlot s = mkSlot(pts[at].xy(), pts[k ? n - 2 : 1].xy() - pts[at].xy(), VM_STROLL, lookFor(P.kind, kind, hash32(hg + 3u + (u32)k)), h0, h1, 0.9f);
+                            s.route = 0;
+                            s.routeAt = at;
+                            s.routeDir = (i8)(k ? -1 : 1);
+                            s.every = 24.f + 12.f * k;
+                            s.trusted = s.fixedZ = true;
+                            s.z = pts[at].z;
+                            s.carryCtx = P.kind == World::PK_HOTEL_ROW ? 2 : 0;
+                            s.fairWeather = true;
+                            V.slots.push_back(s);
+                        }
+                    }
+                    finish(V);
+                }
+                continue;
+            }
+            int vi = cellVenue(pi, A[i].pos.xy());
+            Venue& V = pv[vi];
+            // a table / a bench / a circle / a crew: the first by chance, the rest of the group after it
+            float first = 0.5f;
+            u8 mode = VM_STAND;
+            switch (kind) {
+                case World::PA_SIT:
+                    mode = VM_SEAT;
+                    first = P.kind == World::PK_HOTEL_ROW ? 0.3f : (P.kind == World::PK_SPEEDWAY ? 0.35f : 0.3f);
+                    break;
+                case World::PA_SIT_GROUND:
+                    mode = VM_SIT;
+                    first = 0.4f;
+                    break;
+                case World::PA_STAND:
+                    mode = VM_TALK;
+                    first = 0.45f;
+                    break;
+                case World::PA_MOURN:
+                    mode = VM_WATCH;
+                    first = 0.3f;
+                    break;
+                case World::PA_GUARD:
+                    mode = VM_GUARD;
+                    first = 0.9f;
+                    break;
+                case World::PA_WORK:
+                    mode = P.kind == World::PK_SPEEDWAY ? VM_WORK : (P.kind == World::PK_HOTEL_ROW ? VM_PACE : VM_STAND);
+                    first = 0.9f;
+                    break;
+                default:
+                    break;
+            }
+            for (size_t k = i; k < j; k++) {
+                const World::PlaceAnchor& a = A[k];
+                VenueSlot s = mkSlot(a.pos.xy(), length2(a.face) > 1e-4f ? a.face : vec2(0.f, 1.f), mode, lookFor(P.kind, kind, hash32(hg + (u32)k)), h0, h1,
+                                     k == i ? first : 0.75f);
+                s.follows = k > i && mode != VM_GUARD && mode != VM_PACE && mode != VM_WORK;
+                s.trusted = s.fixedZ = true;
+                s.z = a.pos.z;
+                s.fairWeather = kind == World::PA_SIT || kind == World::PA_SIT_GROUND || kind == World::PA_STAND;
+                if (mode == VM_PACE) {
+                    // the waiter: between the host stand and the nearest table of the terrace
+                    float bd = 60.f;
+                    for (const World::PlaceAnchor& t : AA)
+                        if (t.place == pi && t.kind == World::PA_SIT && length(t.pos.xy() - a.pos.xy()) < bd) {
+                            bd = length(t.pos.xy() - a.pos.xy());
+                            s.pos2 = t.pos.xy() + AI::rightOf(t.face) * 0.85f;
+                            s.yaw2 = AI::dirYaw(-AI::rightOf(t.face));
+                        }
+                    if (bd >= 60.f) s.mode = VM_STAND;
+                }
+                if (kind == World::PA_STAND && P.kind == World::PK_CAMPUS) s.carryProp = hash32(hg + (u32)k) % 3u == 0 ? (u8)CARRY_COFFEE : kCarryHandsFree;
+                V.slots.push_back(s);
+            }
+        }
+        for (Venue& V : pv) {
+            if (V.slots.empty()) continue;
+            // the venue's centre: the middle of its people
+            vec2 c(0.f);
+            for (const VenueSlot& s : V.slots) c += s.pos;
+            V.c = c / (float)V.slots.size();
+            finish(V);
+        }
+    }
     std::string what;
     for (const Venue& V : gVenues.v)
         what += StrFormat(" | %s %d%s", V.name, (int)V.slots.size(), V.cab0 >= 0 ? StrFormat(" (rank: %d cabs, line of %d)", V.cabs, V.qn).c_str() : "");
@@ -916,6 +1139,7 @@ int venueChar(GameWorld& g, u8 look, u32 seed) {
         case VL_BUSINESS: return g.randomCivilianChar(seed, 3);
         case VL_BEACH: return g.randomCivilianChar(seed, 4);
         case VL_TRAVELER: return g.randomCivilianChar(seed >> 2, (seed % 5 == 0) ? 3 : ((seed % 5 == 1) ? 4 : 0));
+        case VL_UNIFORM: return g.randomCivilianChar(seed, 1);   // (the uniformed look: guards)
         default: return g.randomCivilianChar(seed, 0);
     }
 }
@@ -1056,7 +1280,7 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
                         b.ped = -1;
                         if (venuePedLive(g, a)) {
                             PedAI& pa = g.pedAI(a.ped);
-                            pa.venue = vi * 64 + V.q0 + q;
+                            pa.venue = vi * kVenueSlots + V.q0 + q;
                             pa.anchor = a.pos;
                             pa.anchorYaw = a.yaw;
                         }
@@ -1080,7 +1304,7 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
                 // still ours? (fled from gunfire, got knocked down, walked off, boarded: let the slot go, a new face later)
                 bool live = venuePedLive(g, s);
                 const PedAI* pa = live ? &g.pedAI(s.ped) : nullptr;
-                if (!live || g.peds[s.ped].health <= 0.f || !pa || pa->venue != vi * 64 + si) {
+                if (!live || g.peds[s.ped].health <= 0.f || !pa || pa->venue != vi * kVenueSlots + si) {
                     releaseVenueSlot(g, s, false);
                     s.cooldown = 50.f + hashToFloat(hash32(V.visits * 131u + si * 7u + (u32)g.time)) * 50.f;
                     continue;
@@ -1117,6 +1341,7 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
                 continue;
             }
             if (s.cooldown > 0.f || budget <= 0 || !venueHours(tod, s.h0, s.h1)) continue;
+            if (s.fairWeather && g.env && g.env->rain > 0.4f) continue;
             if (s.follows && (si == 0 || V.slots[si - 1].ped < 0)) continue;
             // the line fills from the head: nobody joins behind a gap
             if (s.mode == VM_QUEUE && si > V.q0 && V.slots[si - 1].ped < 0) continue;
@@ -1181,7 +1406,17 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
                 atZ = (float)v.sim.body.pos.z;
                 faceYaw = AI::dirYaw(s.mode == VM_LEAN ? side : (s.propOff.y < 0.f ? -vf : vf));
             }
-            float z = g.groundHeight(at.x, at.y, atZ + 1.2f);
+            bool onRoute = (s.mode == VM_JOG || s.mode == VM_STROLL) && s.route >= 0 && s.route < (int)V.routes.size() && !V.routes[s.route].empty();
+            int startAt = onRoute ? Clamp(s.routeAt, 0, (int)V.routes[s.route].size() - 1) : 0;
+            if (onRoute && warm && s.mode == VM_STROLL) {
+                // (a fade-in: somewhere along the walk already)
+                startAt = (int)(hashToFloat(hash32(h + 5u)) * (float)(V.routes[s.route].size() - 1));
+            }
+            if (onRoute) {
+                at = V.routes[s.route][startAt].xy();
+                atZ = V.routes[s.route][startAt].z;
+            }
+            float z = (s.fixedZ || onRoute) && !beside ? atZ : g.groundHeight(at.x, at.y, atZ + 1.2f);
             vec3 p3(at.x, at.y, z);
             bool seen = !warm && g.inCameraView(p3 + vec3(0, 0, 1.f), 1.5f) && length(at - pp.xy()) < 120.f;
             bool walking = false;
@@ -1193,7 +1428,7 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
                 walking = true;
                 seen = false;
             }
-            if ((seen && !out) || (!warm && length(at - pp.xy()) < 10.f) || !freeStandingSpot(g, p3)) {
+            if ((seen && !out) || (!warm && length(at - pp.xy()) < 10.f) || (!s.trusted && !freeStandingSpot(g, p3))) {
                 s.cooldown = 2.f;
                 continue;
             }
@@ -1208,8 +1443,32 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
             p.brain.type = BRAIN_WANDER;
             p.brain.edge = -1;
             pa.role = s.look == VL_WORKER ? PR_WORKER : (s.look == VL_BUSINESS ? PR_BUSINESS : (s.look == VL_BEACH ? PR_BEACH : PR_CIVILIAN));
+            if (s.mode == VM_JOG) pa.role = PR_JOGGER;
             // in hand: the slot's own prop, one for the place (luggage, a rod, binoculars) or nothing (at work)
             p.carry = s.carryProp != CARRY_NONE ? s.carryProp : (s.carryCtx >= 0 ? g.pickCarry(p.uid, (int)s.carryCtx) : kCarryHandsFree);
+            if (s.mode == VM_STROLL) {
+                // strolling the walk from point to point (aiVenueStep), then on as an ordinary walker: a stream
+                int n = onRoute ? (int)V.routes[s.route].size() : 0;
+                if (n < 2) {
+                    g.despawnPed(id);
+                    s.cooldown = 1e9f;
+                    continue;
+                }
+                pa.activity = ACT_VENUE;
+                pa.venue = vi * kVenueSlots + si;
+                pa.venueMode = VM_STROLL;
+                pa.routeDir = s.routeDir;
+                pa.routeAt = (i16)Clamp(startAt + s.routeDir, 0, n - 1);
+                pa.anchor = V.routes[s.route][pa.routeAt].xy();
+                pa.anchorYaw = AI::dirYaw(normalize(pa.anchor - at + vec2(1e-4f, 0.f)));
+                pa.stance = hash32(p.uid * 13u) % 4u == 0 ? 8 : 0;   // (now and then on the phone)
+                if (pa.stance == 8 && p.carry != kCarryHandsFree && p.carry != CARRY_NONE) pa.stance = 0;
+                pa.clip = -1;
+                pa.clipTimer = 1e9f;
+                p.yaw = pa.anchorYaw;
+                s.cooldown = s.every * (0.7f + hashToFloat(hash32(h + 3u)) * 0.6f);
+                continue;   // (a stream)
+            }
             if (s.mode == VM_ROUTE) {
                 // along the walkways to the far door (pednav: the zebras on the way wait for the traffic) and inside
                 pa.activity = ACT_WALK;
@@ -1245,11 +1504,18 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
                 continue;   // (a stream: nothing to hold on to)
             }
             pa.activity = ACT_VENUE;
-            pa.venue = vi * 64 + si;
+            pa.venue = vi * kVenueSlots + si;
             pa.venueMode = s.mode;
             pa.venueDriver = false;
             pa.targetVeh = -1;
             pa.anchor = beside ? at : s.pos;
+            if (s.mode == VM_JOG && onRoute) {
+                int n = (int)V.routes[s.route].size();
+                pa.routeDir = s.routeDir;
+                pa.routeAt = (i16)(((startAt + s.routeDir) % n + n) % n);
+                pa.anchor = V.routes[s.route][pa.routeAt].xy();
+                faceYaw = AI::dirYaw(normalize(pa.anchor - at + vec2(1e-4f, 0.f)));
+            }
             pa.anchorYaw = faceYaw;
             pa.anchorB = s.pos2;
             pa.anchorBYaw = s.yaw2;
@@ -1261,6 +1527,7 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
                 case VM_PHONE: pa.stance = 8; break;
                 case VM_LEAN: pa.stance = 11; break;
                 case VM_SIT: pa.stance = 21; break;
+                case VM_SEAT: pa.stance = 6; break;
                 case VM_TRAVEL_OUT: pa.stance = 8; break;
                 case VM_QUEUE: pa.stance = 23; break;
                 case VM_MEET: pa.stance = s.follows ? 0 : 8; break;   // (the driver on the phone: "we're outside")
@@ -1277,8 +1544,9 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
                         : s.mode == VM_FAREWELL ? 26.f + hashToFloat(hash32(h + 21u)) * 22.f
                         : s.mode == VM_WORK ? 4.f + hashToFloat(hash32(h + 21u)) * 8.f
                                               : 1e5f;
-            if (s.follows && si > 0 && venuePedLive(g, V.slots[si - 1])) {
+            if (s.follows && !s.trusted && si > 0 && venuePedLive(g, V.slots[si - 1])) {
                 // the other half of a pair: face them, and part a moment after they go; the one who drove takes the car back
+                // (a place's groups keep the facing they were laid out with: round the table, the circle)
                 const VenueSlot& o = V.slots[si - 1];
                 pa.actTimer = g.pedAI(o.ped).actTimer + 1.5f;
                 pa.anchorYaw = AI::dirYaw(normalize(o.pos - s.pos + vec2(1e-4f, 0.f)));
@@ -1455,6 +1723,37 @@ bool aiVenueStep(GameWorld& g, int id, float dt) {
                 venueTryDepart(g, tv);
                 return true;
             }
+            break;
+        }
+        case VM_JOG:
+        case VM_STROLL: {
+            // on round the ring / along the walk: the next point once close to this one; a stroll ends where the walk
+            // does (on as an ordinary walker from there)
+            int vi = pa.venue / kVenueSlots, si = pa.venue % kVenueSlots;
+            if (pa.venue < 0 || vi >= (int)gVenues.v.size() || si >= (int)gVenues.v[vi].slots.size()) {
+                venueLetGo(g, id);
+                return true;
+            }
+            const Venue& V = gVenues.v[vi];
+            const VenueSlot& s = V.slots[si];
+            if (s.route < 0 || s.route >= (int)V.routes.size() || V.routes[s.route].size() < 2) {
+                venueLetGo(g, id);
+                return true;
+            }
+            const std::vector<vec3>& R = V.routes[s.route];
+            int n = (int)R.size();
+            if (length(pa.anchor - pos) < (pa.venueMode == VM_JOG ? 1.8f : 1.2f)) {
+                int next = pa.routeAt + pa.routeDir;
+                if (pa.venueMode == VM_JOG) {
+                    next = (next % n + n) % n;
+                } else if (next < 0 || next >= n) {
+                    venueLetGo(g, id);
+                    return true;
+                }
+                pa.routeAt = (i16)next;
+                pa.anchor = R[next].xy();
+            }
+            pa.anchorYaw = AI::dirYaw(normalize(pa.anchor - pos + vec2(1e-4f, 0.f)));
             break;
         }
         default:

@@ -172,8 +172,8 @@ void layoutPolice(IB& b) {
     const float yB = Y0 + Clamp((Y1 - Y0) * 0.62f, 8.f, 11.f);    // lobby | bullpen partition center
     const float HB = Min(H, 3.3f);
     const float xc = Clamp((X0 + X1) * 0.5f, X0 + 4.5f, X1 - 4.5f);
-    int lobby = room(b, vec3(X0, Y0, 0.f), vec3(X1, yB - pt * 0.5f, H), vec3(42.f, 44.f, 46.f), 0.1f, LS_ALWAYS);
-    int pen = room(b, vec3(X0, yB + pt * 0.5f, 0.f), vec3(X1, Y1, HB), vec3(34.f, 35.f, 36.f), 0.f, LS_ALWAYS);
+    int lobby = room(b, vec3(X0, Y0, 0.f), vec3(X1, yB - pt * 0.5f, H), vec3(22.f, 23.f, 24.f), 0.1f, LS_ALWAYS);   // indirect ~40% of the downlights' direct light: pools under the lights read
+    int pen = room(b, vec3(X0, yB + pt * 0.5f, 0.f), vec3(X1, Y1, HB), vec3(19.f, 20.f, 21.f), 0.f, LS_ALWAYS);
     storefrontEntrance(b, DK_HINGED_PAIR, 1, Gy(0.7f));
     shopSign(b, "POLICE", C(0.05f, 0.1f, 0.25f), Gy(0.95f), d.storefront ? 0.f : dh + 0.4f);
     // secure door to the bullpen, glazed partition bays on both sides of the desk

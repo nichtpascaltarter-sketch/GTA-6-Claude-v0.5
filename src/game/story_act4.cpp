@@ -365,7 +365,8 @@ public:
 
 // ==================================================================================================================
 // Act 4-2: "Box Numbers" (Dex). Nando's phone held three Sable Maritime container numbers. Into the Port Isle yard at
-// night, between the stacks and down the lanes, to open all three; out to Rook's boat and up the Rio Sol.
+// night, between the stacks and down the lanes, to open all three; out to Rook's boat, round the terminal and south
+// across the open water to Key Coral Marina with harbor security on the wake.
 class MissionBoxNumbers : public StoryMission {
 public:
     int rook = -1, boat = -1;
@@ -492,8 +493,8 @@ public:
         if (boat >= 0) g.mBlipVehicle(boat, UI::BLIP_BOAT);
         spawnSecurityBoat(g, boatWater + vec3(160.f, -40.f, 0.f), 3);
         spawnSecurityBoat(g, boatWater + vec3(220.f, 30.f, 0.f), 5);
-        goTo(g, gPlaces.riverLaunch, 16.f, "Take the boat up the ~y~Rio Sol~s~ to the Ortega boatyard.", true);
-        radioLine(g, CAST_ROOK, "[shout]Harbor security boats! Stay in the middle of the river and don't slow down!");
+        goTo(g, gPlaces.keyCoralWater, 18.f, "Lose them on the way south to ~y~Key Coral Marina~s~.", true);
+        radioLine(g, CAST_ROOK, "[shout]Harbor security boats! Round the terminal and south to Key Coral. My cousin keeps a slip at the marina.");
         score(SC_CHASE, 1.f, 31);
         cp(g, 2);
         setStage(4);
@@ -669,7 +670,7 @@ public:
             case 4:
                 if (t.stageTime > 1.5f) {
                     vec3 w;
-                    findWater(g, gPlaces.riverLaunch.xy(), 1.2f, w, 60.f);
+                    findWater(g, gPlaces.keyCoralWater.xy(), 1.2f, w, 60.f);
                     t.teleport(w, 0.f);
                     t.stopVehicle();
                 }
@@ -740,6 +741,7 @@ public:
         g.mBlipPed(chuy, UI::BLIP_ENEMY);
         g.mBlipPed(voss, UI::BLIP_ENEMY);
         g.mObjective("Get on the same train as ~r~Chuy~s~ and ~r~Voss~s~. Keep your distance until then.");
+        g.help("SkyLine trains come by about every three minutes. Blend in with the commuters while you wait.", 6.f);
         score(SC_STEALTH, 0.4f, 32);
         cp(g, 1);
         phase = 0;
@@ -1161,13 +1163,13 @@ public:
 
 // ==================================================================================================================
 // Act 4-4: "Clear Air" (Dex). Pruitt checks in at departures like a tourist, then slips airside to a Sable Air Freight
-// plane on the cargo apron. Tail him through the forecourt, follow the van across the aprons in an airport tug, and stop
+// plane on the cargo apron. Tail him through the forecourt, follow the van across the aprons in an airport ops truck, and stop
 // the plane before it leaves the runway: the drive with every Sable shipment goes with him otherwise.
 class MissionClearAir : public StoryMission {
 public:
     int pruitt = -1, van = -1, vanDriver = -1, plane = -1, pilot = -1, tug = -1, drive = -1, officer = -1;
     PedPath walk;
-    float planeZ = 0.f, rollStart = 0.f, liftOff = 0.f, ramCd = 0.f;
+    float planeZ = 0.f, rollStart = 0.f, liftOff = 0.f, ramCd = 0.f, runD0 = 0.f;
     bool planeStopped = false, spooked = false, surrendered = false;
     const char* title() const override { return "Clear Air"; }
     const char* brief() const override {
@@ -1193,7 +1195,8 @@ public:
                 arm(g, vanDriver, WPN_PISTOL);
             }
         }
-        tug = spawnCar(g, pickModel(g, {Vehicles::VC_SERVICE, Vehicles::VC_PICKUP, Vehicles::VC_VAN}, 7), apg(g, 662.f, 1126.f), kPi * 0.5f, lin(0.95f, 0.75f, 0.08f));
+        // the airport operations pickup, in apron yellow (a garbage truck on the apron would not fool anybody)
+        tug = spawnCar(g, pickModel(g, {Vehicles::VC_PICKUP, Vehicles::VC_SERVICE, Vehicles::VC_VAN}, 7), apg(g, 662.f, 1126.f), kPi * 0.5f, lin(0.95f, 0.75f, 0.08f));
         plane = spawnAircraft(g, false, apg(g, -430.f, 1120.f), kPi, lin(0.95f, 0.95f, 0.97f));
         if (plane >= 0) {
             g.vehicles[plane].color1 = lin(0.1f, 0.25f, 0.6f);
@@ -1340,7 +1343,7 @@ public:
                         g.mBlipVehicle(van, UI::BLIP_ENEMY);
                     }
                     if (tug >= 0) g.mBlipVehicle(tug, UI::BLIP_VEHICLE);
-                    g.mObjective("Follow the ~r~van~s~ airside. The ~b~tug~s~ on the apron is yours.");
+                    g.mObjective("Follow the ~r~van~s~ airside. The yellow ~b~ops truck~s~ on the apron is yours.");
                     score(SC_CHASE, 0.7f, 33);
                     cp(g, 1);
                     next();
@@ -1415,6 +1418,7 @@ public:
                         g.mClearBlips();
                         g.mBlipPed(pruitt, UI::BLIP_ENEMY);
                         g.mObjective("Catch ~r~Pruitt~s~. Corner him or hold him at gunpoint.");
+                        runD0 = pedAlive(g, pruitt) ? ::length(pedPos(g, pruitt) - playerPos(g)) : 0.f;   // (the plane may be stopped from afar)
                         next();
                     }
                 }
@@ -1422,7 +1426,7 @@ public:
             }
             case 5:
                 if (!pedAlive(g, pruitt)) return fail("Pruitt is dead. The drive went with him.");
-                if (::length(pedPos(g, pruitt) - playerPos(g)) > 260.f) return fail("Pruitt got away on foot.");
+                if (::length(pedPos(g, pruitt) - playerPos(g)) > Max(260.f, runD0 + 150.f)) return fail("Pruitt got away on foot.");
                 if (givesUp(g, pruitt)) {
                     drive = spawnPackage(g, pedPos(g, pruitt) + vec3(0.6f, 0.3f, 0.3f));
                     sayAs(g, CAST_PRUITT, pruitt, "Pruitt", "[scared]It's in the bag! Take it! I only did the arithmetic, I swear, I never touched a gun!");
@@ -1490,6 +1494,12 @@ public:
                 if (t.stageTime > 0.5f && tug >= 0 && g.playerVehicle() != tug) t.enter(tug);
                 break;
             case 4:
+                // keep the ops truck on the plane's tail, then knock the engine out
+                if (plane >= 0 && fmodf(t.stageTime, 1.f) < dt) {
+                    vec3 pp = vehPos(g, plane);
+                    vec2 f = g.vehicles[plane].sim.forward().xy();
+                    t.teleport(pp - vec3(normalize(f + vec2(1e-3f, 0.f)) * 28.f, 0.f), atan2f(-f.x, f.y));
+                }
                 if (t.stageTime > 3.f && plane >= 0 && !planeStopped) g.damageVehicle(plane, 400.f, g.player, vec3(0.f), vec3(0.f));
                 break;
             case 5:
@@ -2282,8 +2292,7 @@ public:
                         sayMe(g, "[calm]No deal. Dex, call Dela Cruz.");
                         say(g, CAST_SABLE, sable, "[calm]You'll regret this. Not today. But you will.");
                         int model = pickModel(g, {Vehicles::VC_SEDAN, Vehicles::VC_SUV}, 9);
-                        vec3 ap2 = quay + vec3(-45.f, -30.f, 0.f);
-                        ap2.z = groundAt(g, ap2.x, ap2.y, quay.z + 4.f);
+                        vec3 ap2 = yardPoint(g, quay.x - 55.f, -790.f);   // up the cross lane from the quay (clear of the stacks)
                         int car = spawnCar(g, model, ap2, yawTo(ap2.xy(), quay.xy()), lin(0.1f, 0.12f, 0.16f));
                         if (car >= 0) g.vehicles[car].sirenOn = true;
                         agent = spawnCast(g, CAST_AGENT, ap2 + vec3(3.f, 2.f, 0.f), yawTo(ap2.xy(), quay.xy()), FAC_CIVILIAN);
@@ -2350,12 +2359,13 @@ public:
 // After the Act 3 ending: a quiet moment in free roam, then the Act 4 title card; Lucha's call follows it.
 struct Act4State {
     float calm = 0.f;
+    bool test = false;   // --missiontest act4_card: the unlock runs under the test harness too
 };
 Act4State gAct4;
 
 void act4Update(GameWorld& g, float dt) {
     if (!storyDone(g, SF_SIGNAL) || flag(g, EX_ACT4_CARD)) return;
-    if (Platform::argValue("missiontest") || Platform::argValue("mission")) return;
+    if (!gAct4.test && (Platform::argValue("missiontest") || Platform::argValue("mission"))) return;
     gEco.callCooldown = Max(gEco.callCooldown, 5.f);   // (the story calls wait for the card)
     bool calm = !gMissions.active && !g.mInCutscene() && g.playerControl && !g.mTalking() && g.fadeAlpha < 0.05f && g.pinfo.wanted == 0 &&
                 g.pinfo.deathTimer <= 0.f && !openWorldBusy();

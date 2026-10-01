@@ -325,7 +325,8 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
                         break;
                     case REG_FORT_CASTELL: st = r < 0.35f ? BS_WAREHOUSE : (r < 0.5f ? BS_FACTORY : (mainRoad ? BS_SHOPS : BS_HOUSE)); break;
                     case REG_KEY_TOWN: st = mainRoad ? (r < 0.6f ? BS_SHOPS : BS_DECO) : (r < 0.6f ? BS_HOUSE : BS_MOTEL); break;
-                    case REG_LAKE_TOWN: case REG_HARLOW: st = mainRoad ? BS_SHOPS : (r < 0.8f ? BS_HOUSE : BS_CHURCH); break;
+                    // (a church every thirty-odd houses; Okahatchee's own church and churchyard are a hand-built place)
+                    case REG_LAKE_TOWN: case REG_HARLOW: st = mainRoad ? BS_SHOPS : (r < 0.97f ? BS_HOUSE : BS_CHURCH); break;
                     case REG_GULF_TOWN: st = r < 0.6f ? BS_SHACK : BS_HOUSE; break;
                     case REG_REDLAND: case REG_FARMLAND: st = r < 0.6f ? BS_FARMHOUSE : BS_BARN; break;
                     case REG_KEYS: st = r < 0.5f ? BS_SHACK : BS_MOTEL; break;

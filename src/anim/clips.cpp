@@ -958,6 +958,9 @@ static const ClipInfo kExtraInfo[IC_GAIT_FIRST - CLIP_COUNT] = {
     {"idle_clasp", 6.0f, true, 0.f},   {"fidget_watch", 2.6f, false, 0.f}, {"fidget_scratch", 2.8f, false, 0.f},
     {"fidget_tug", 1.8f, false, 0.f},  {"fidget_chin", 3.2f, false, 0.f},  {"fidget_yawn", 3.0f, false, 0.f},
     {"fidget_arms", 3.4f, false, 0.f}, {"fidget_tap", 3.0f, true, 0.f},    {"fidget_rock", 3.75f, true, 0.f},
+    {"carry_case", 2.0f, true, 0.f},   {"carry_hang_l", 2.0f, true, 0.f},  {"carry_hang_r", 2.0f, true, 0.f},
+    {"carry_cup_r", 2.0f, true, 0.f},  {"carry_cup_l", 2.0f, true, 0.f},   {"carry_umbrella", 2.0f, true, 0.f},
+    {"carry_rod", 2.0f, true, 0.f},    {"carry_board", 2.0f, true, 0.f},
 };
 // Walk style clips: cycle time from the style's walk ratio at the band speed.
 static const ClipInfo* gaitInfoTable() {
@@ -1094,7 +1097,9 @@ static void lyingPose(const AuthorCtx& A, Rig& r, bool onBack, float variant, fl
                 a.pole = normalize(vec3(sx * 0.3f, -1.f, 0.f));
                 a.elbow = 0.15f;
                 a.twist = 0.9f;
-                a.wristFlex = -0.3f;   // the fingers lie along the ground instead of pointing into it
+                // the fingers lie along the ground instead of pointing into it (the same twist turns the two palms
+                // differently: the left one flexes less)
+                a.wristFlex = sd ? -0.3f : -0.1f;
             }
         }
     }
@@ -3585,6 +3590,70 @@ static void clipStanding(const AuthorCtx& A, int id, float t, Rig& r) {
     }
 }
 
+// Carrying (arm layers for AnimInput::carry: only the carrying arm is used). The props are drawn from the fist
+// (handGrip): a case trails on its wheels behind the hand, bags hang plumb, a cup and an umbrella's shaft stand up
+// from it, so the fists sit where those read naturally.
+static void clipCarry(const AuthorCtx& A, int id, float t, Rig& r) {
+    standPose(A, r);
+    const float s = A.D.s;
+    const float sw = sinf(kTwoPi * t / 2.f);   // a slight settle of the load
+    switch (id) {
+        case IC_CARRY_CASE: {
+            // the right arm back and nearly straight, the fist behind the hip gripping the bar across (palm back)
+            ArmCtl& a = r.arm[1];
+            armIK(a, A.gh[1] + vec3(0.06f, -0.24f, -0.54f) * s, vec3(1.f, 0.4f, 0.f), 0.85f);
+            a.orient = true;
+            a.handRot = handFrame(A, 1, vec3(0.05f, -0.35f, -1.f), vec3(0.1f, -1.f, 0.3f));
+            a.thumb = 0.7f;
+            break;
+        }
+        case IC_CARRY_HANG_L: case IC_CARRY_HANG_R: {
+            // a bag or briefcase (a furled umbrella) hanging in the fist: the arm straight and a little out from the
+            // thigh, the knuckles out
+            int sd = id == IC_CARRY_HANG_R ? 1 : 0;
+            armFK(r.arm[sd], sd, 0.02f + 0.01f * sw, 0.24f + 0.03f * (1.f - A.fem), 0.12f, 0.2f, 0.88f);
+            r.arm[sd].thumb = 0.75f;
+            r.arm[sd].clavUp = -0.02f;   // the shoulder drawn down by the weight
+            break;
+        }
+        case IC_CARRY_CUP_R: case IC_CARRY_CUP_L: {
+            // a cup held up in front at the waist, the forearm raised, thumb on top (the cup stands in the fist)
+            int sd = id == IC_CARRY_CUP_R ? 1 : 0;
+            float sx = sd ? 1.f : -1.f;
+            ArmCtl& a = r.arm[sd];
+            armIK(a, A.gh[sd] + vec3(-sx * 0.05f, 0.26f, -0.3f) * s + vec3(0.f, 0.f, 0.004f * sw), vec3(sx, -0.6f, -0.3f), 0.75f);
+            a.orient = true;
+            a.handRot = handFrame(A, sd, vec3(-sx * 0.25f, 1.f, 0.15f), vec3(-sx, 0.1f, 0.f));
+            a.thumb = 0.55f;
+            break;
+        }
+        case IC_CARRY_UMBRELLA: {
+            // the shaft of an open umbrella in the right fist at chest height in front, the canopy above the head
+            ArmCtl& a = r.arm[1];
+            armIK(a, A.gh[1] + vec3(-0.08f, 0.24f, -0.22f) * s, vec3(1.f, -0.5f, -0.4f), 0.85f);
+            a.orient = true;
+            a.handRot = handFrame(A, 1, vec3(-0.3f, 1.f, 0.05f), vec3(-1.f, 0.f, 0.1f));
+            a.thumb = 0.7f;
+            break;
+        }
+        case IC_CARRY_ROD: {
+            // a fishing rod held up and forward in the right fist at the waist, the butt along the forearm
+            ArmCtl& a = r.arm[1];
+            armIK(a, A.gh[1] + vec3(-0.02f, 0.3f, -0.36f) * s, vec3(1.f, -0.6f, -0.4f), 0.85f);
+            a.orient = true;
+            a.handRot = handFrame(A, 1, vec3(-0.15f, 0.55f, -0.8f), vec3(-1.f, 0.f, 0.f));
+            a.thumb = 0.8f;
+            break;
+        }
+        default: {   // IC_CARRY_BOARD: the right arm out round a surfboard carried on its rail, the hand at the hip
+            armFK(r.arm[1], 1, 0.06f, 0.42f, 0.4f, 0.35f, 0.78f);
+            r.arm[1].thumb = 0.6f;
+            r.arm[1].clavUp = 0.04f;
+            break;
+        }
+    }
+}
+
 // Rifle held at the low ready while not aiming (arms only; used as an arm layer by the animator).
 static void rifleCarryPose(const AuthorCtx& A, float t, Rig& r) {
     standPose(A, r);
@@ -3612,6 +3681,10 @@ static void authorClip(const AuthorCtx& A, int id, float t, Rig& r) {
             case IC_STAND_L: case IC_STAND_R: case IC_IDLE_BEHIND: case IC_IDLE_CLASP: case IC_FIDGET_WATCH: case IC_FIDGET_SCRATCH:
             case IC_FIDGET_TUG: case IC_FIDGET_CHIN: case IC_FIDGET_YAWN: case IC_FIDGET_ARMS: case IC_FIDGET_TAP: case IC_FIDGET_ROCK:
                 clipStanding(A, id, t, r);
+                break;
+            case IC_CARRY_CASE: case IC_CARRY_HANG_L: case IC_CARRY_HANG_R: case IC_CARRY_CUP_R: case IC_CARRY_CUP_L: case IC_CARRY_UMBRELLA:
+            case IC_CARRY_ROD: case IC_CARRY_BOARD:
+                clipCarry(A, id, t, r);
                 break;
             default:
                 if (id >= IC_GAIT_FIRST && id <= IC_GAIT_LAST) clipLocomotion(A, id, t, r);
@@ -3733,7 +3806,8 @@ static bool styleDependent(int c) {
         case IC_IDLE_CROSSARMS: case IC_IDLE_POCKETS: case IC_IDLE_HIP: case IC_IDLE_PHONE: case IC_IDLE_STRETCH: case IC_DANCE2:
         case IC_DANCE3: case IC_DANCE4: case IC_JOG_SLOW: case IC_STAND_L: case IC_STAND_R: case IC_IDLE_BEHIND: case IC_IDLE_CLASP:
         case IC_FIDGET_WATCH: case IC_FIDGET_SCRATCH: case IC_FIDGET_TUG: case IC_FIDGET_CHIN: case IC_FIDGET_YAWN: case IC_FIDGET_ARMS:
-        case IC_FIDGET_TAP: case IC_FIDGET_ROCK:
+        case IC_FIDGET_TAP: case IC_FIDGET_ROCK: case IC_CARRY_CASE: case IC_CARRY_HANG_L: case IC_CARRY_HANG_R: case IC_CARRY_CUP_R:
+        case IC_CARRY_CUP_L: case IC_CARRY_UMBRELLA: case IC_CARRY_ROD: case IC_CARRY_BOARD:
             return true;
         default: return c >= IC_GAIT_FIRST && c <= IC_GAIT_LAST;
     }

@@ -422,7 +422,7 @@ inline void mdlSunchaser(VehicleModel& o) {
     roundedBox(m, Frame(vec3(0.62f, 0.95f, 0.86f), vec3(1, 0, 0), normalize(vec3(0, 0.5f, 1)), normalize(vec3(0, -1, 0.5f))), vec3(0.3f, 0.12f, 0.02f), 0.02f, 1);
     m.use(MAT_EMISSIVE, col(0.4f, 0.7f, 1.f, 0.06f));
     roundedBox(m, Frame(vec3(0.72f, 0.94f, 0.87f), vec3(1, 0, 0), normalize(vec3(0, 0.5f, 1)), normalize(vec3(0, -1, 0.5f))), vec3(0.1f, 0.07f, 0.024f), 0.01f, 1);
-    steeringWheel(m, vec3(0.52f, 0.88f, 0.95f), 0.9f, 0.17f);
+    steeringWheel(m, vec3(0.52f, 0.88f, 0.95f), 0.9f, 0.17f, 2);
     m.use(MAT_CHROME, kCol1);
     cyl(m, vec3(0.9f, 1.0f, 0.88f), vec3(0.9f, 0.9f, 1.05f), 0.01f, 6);
     boatSeat(m, vec3(0.55f, 0.45f, 0.62f), 0.24f, vec3(0.92f, 0.92f, 0.9f));
@@ -542,7 +542,7 @@ inline void mdlBonefish(VehicleModel& o) {
     roundedBoxAt(m, vec3(0.3f, 0.15f, 0.8f), vec3(0.5f, 0.25f, 0.45f), 0.06f, 2);
     m.use(MAT_PLASTIC, col(0.25f, 0.25f, 0.25f));
     roundedBox(m, Frame(vec3(0.3f, -0.08f, 1.28f), vec3(1, 0, 0), normalize(vec3(0, 0.5f, 1)), normalize(vec3(0, -1, 0.5f))), vec3(0.45f, 0.14f, 0.02f), 0.02f, 1);
-    steeringWheel(m, vec3(0.45f, -0.18f, 1.32f), 0.9f, 0.18f);
+    steeringWheel(m, vec3(0.45f, -0.18f, 1.32f), 0.9f, 0.18f, 2);
     boatSeat(m, vec3(0.3f, -0.75f, 0.95f), 0.45f, vec3(0.9f, 0.9f, 0.88f));
     // fish box / bait well
     m.use(MAT_METAL_PAINTED, col(0.93f, 0.93f, 0.93f));

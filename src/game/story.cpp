@@ -1,5 +1,6 @@
 // Story registry: every story mission and side activity with its start trigger, prerequisites, protagonist and
-// availability window. Mission scripts live in story_act1/2/3/4.cpp and activities.cpp (all in namespace Game::mu).
+// availability window. Mission scripts live in story_act1/2/3/4.cpp, activities.cpp and airboat_tours.cpp (all in namespace
+// Game::mu).
 #include "missions.h"
 
 namespace Game {
@@ -169,6 +170,12 @@ void MissionManager::registerAll(GameWorld& g) {
         defs.push_back(s);
         s = side("harbor", "Ortega Harbor Runs", "Tomas", startAt(P.boatyard, -10.f), SF_COLLATERAL, -1, UI::BLIP_BOAT, makeMission<MissionHarborRuns>);
         s.needsClasses = kBoats;
+        defs.push_back(s);
+        // Jonah's airboat tours start a few steps along the shore from his dock (his story missions start on it)
+        vec2 toWater = normalize(P.sawgrassWater.xy() - P.sawgrassDock.xy() + vec2(1e-3f, 0.f));
+        s = side("sawgrass_tours", "Sawgrass Airboat Tours", "Jonah", P.sawgrassDock.xy() + vec2(-toWater.y, toWater.x) * 9.f, SF_SAWGRASS_RUN, -1,
+                 UI::BLIP_BOAT, makeMission<MissionAirboatTours>);
+        s.needsClasses = classBit(Vehicles::VC_AIRBOAT);
         defs.push_back(s);
     }
     MissionDef opening = side("opening", "Porto Sol", "", P.mariApt.pos.xy(), -1, -1, UI::BLIP_MISSION, makeMission<MissionOpening>);

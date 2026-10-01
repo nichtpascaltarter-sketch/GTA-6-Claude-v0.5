@@ -19,10 +19,50 @@ namespace Vehicles {
 
 int modelCount() { return (int)ARRAY_COUNT(detail::kModels); }
 
+namespace detail {
+// One instrument needle: a tapered orange blade pivoting at the origin (pointing +Y, face +Z) with a short tail and a
+// black centre cap
+inline void gaugeNeedle(PMesh& m, float len) {
+    m.newGroup(30.f);
+    m.use(MAT_EMISSIVE, col(1.f, 0.3f, 0.07f, 0.3f));
+    std::vector<vec2> blade = {vec2(-0.0017f, -0.009f), vec2(0.0017f, -0.009f), vec2(0.0005f, len), vec2(-0.0005f, len)};
+    extrude(m, blade, Frame(), 0.f, 0.0011f);
+    m.use(MAT_PLASTIC, col(0.04f, 0.04f, 0.04f));
+    ellipsoid(m, Frame(vec3(0, 0, 0.0011f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1)), vec3(0.0058f, 0.0058f, 0.0032f), 12, 4, 0.f, kPi * 0.5f);
+}
+
+// The captured cockpit (CockpitCapture) as the model's live parts: the steering wheel and the gauge needles, with each
+// dial's full scale from the model's engine and top speed
+inline void finishCockpit(VehicleModel& out, const CockpitCapture& cc) {
+    if (cc.wheel) {
+        PMesh pm;
+        steeringWheelPart(pm, cc.wheelR, cc.wheelStyle, cc.maker);
+        finalizeMesh(pm, out.steerWheel);
+        out.steerWheelPos = cc.wheelC;
+        out.steerWheelAxis = cc.wheelAx;
+        out.steerWheelRadius = cc.wheelR;
+    }
+    if (!cc.gauges.empty()) {
+        PMesh pm;
+        gaugeNeedle(pm, cc.needleLen);
+        finalizeMesh(pm, out.needle);
+        out.gauges = cc.gauges;
+        for (VehicleModel::Gauge& g : out.gauges) {
+            if (g.kind == 1) g.full = ceilf(out.maxRpm / 1000.f + 0.5f) * 1000.f;              // the red line near the top
+            else if (g.kind == 0) g.full = ceilf(out.topSpeed * 3.6f * 1.1f / 20.f) * 20.f / 3.6f;   // round km/h
+        }
+    }
+}
+}  // namespace detail
+
 void buildModel(int index, VehicleModel& out) {
     out = VehicleModel();
     if (index < 0 || index >= modelCount()) return;
+    detail::CockpitCapture& cc = detail::cockpitCapture();
+    cc = detail::CockpitCapture();
     detail::kModels[index].fn(out);
+    if (detail::lodLevel() == 0) detail::finishCockpit(out, cc);
+    cc = detail::CockpitCapture();
 }
 
 int findModel(VehicleClass cls, int n) {

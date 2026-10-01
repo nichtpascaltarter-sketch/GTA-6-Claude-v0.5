@@ -130,6 +130,11 @@ enum Clip : u16 {
     CLIP_KNOCKOUT,                                 // collapses forward, ends lying face down (head +Y), holds
     CLIP_TAKEDOWN_ATTACKER, CLIP_TAKEDOWN_VICTIM,  // synced rear choke: attacker 0.55 m behind the victim, same facing
     CLIP_COUNTER,                                  // from the blocking guard: parry, then a two-handed shove
+    // greetings between two people (both play the same clip at the same moment, facing each other with their roots
+    // pairDistance() apart; see pairDistance for the partner input): an embrace with a short sway and pats on the back
+    // (each has the right arm over the partner's shoulder, the left under the arm, heads to the right), a handshake
+    // (right hands, two pumps), a kiss on the right cheek (a hand on the partner's upper arm)
+    CLIP_HUG, CLIP_HANDSHAKE, CLIP_CHEEK_KISS,
     CLIP_COUNT
 };
 
@@ -159,6 +164,13 @@ float clipEventTime(Clip c);
 // place relative to an origin that follows this curve); every other clip plays in place. The animator never moves
 // the ped: gameplay moves the capsule by the change of this curve each frame.
 vec3 clipRootMotion(const Skeleton& skel, Clip c, float t);
+// Paired greetings (CLIP_HUG, CLIP_HANDSHAKE, CLIP_CHEEK_KISS): the distance (m) between the two partners' roots, from
+// both skeletons (chest depth, arm reach). Place them facing each other that far apart and start the clip on both in
+// the same update. Each partner's AnimInput::grabTarget holds the other's B_CHEST joint (hug, handshake) or B_HEAD
+// joint (cheek kiss) in its own model space with grabWeight 1 while the clip plays: hands then land on the partner's
+// back / meet the partner's hand, and faces meet, whatever the two heights (without it the clips fit a partner of the
+// same size).
+float pairDistance(Clip c, const Skeleton& a, const Skeleton& b);
 // Grip of a hand-held object, from computeMatrices' model-space matrices: `pos` = centre of the fist, `axis` = the
 // direction a handle held in the fist points out of the thumb side (towards a bat's barrel or a knife's tip),
 // `palm` = palm normal. Melee weapons attach to the right hand (right = true); for two-handed swings the animator
@@ -225,7 +237,22 @@ struct AnimInput {
     // groundOffsetL/R were probed under Animator::footProbe() (where each foot is / is about to land) instead of
     // below the hips: the animator then takes them as the ground under each foot as it is (no slope extrapolation)
     bool footProbes = false;
+    // steering wheel of the vehicle driven (stance 1), model space (origin 0.5 m below the seat hip point, the
+    // vehicle's yaw): rim centre, unit column axis pointing at the driver, rim radius; wheelR 0 = a car's typical rim
+    vec3 wheelC = vec3(0), wheelN = vec3(0);
+    float wheelR = 0.f;
+    // prop in hand (the game's CarryProp order): 0 none, 1 roller suitcase (right hand, trailing behind), 2 shopping bag
+    // (left, hanging), 3 coffee (right; the left while the phone is up: phoneW / browseW > 0.3, or in a
+    // rightHandBusy stance), 4 briefcase (left, hanging), 5 umbrella (right: open with carryOpen, else furled and
+    // hanging), 6 fishing rod (right, up and forward), 7 binoculars (on the chest: hands free), 8 surfboard (right arm
+    // round it). Standing postures and fidgets leave a busy hand alone.
+    int carry = 0;
+    bool carryOpen = false;
 };
+
+// Stances whose clip holds something in the right hand (8 a phone at the ear, 10 a cigarette): a carried cup goes to
+// the left hand and the game puts right-hand loads away meanwhile (carryArms and the game's effectiveCarry agree).
+inline bool rightHandBusy(int stance) { return stance == 8 || stance == 10; }
 
 struct Animator {
     const Skeleton* skel = nullptr;
@@ -304,11 +331,17 @@ struct Animator {
     quat restArm[2][3];           // upper arm, forearm, hand of the plain standing pose (left, right)
     vec3 skinP[3];                // this body's skin where posed hands rest on it (bind pose, from the pelvis joint): the
                                   // right flank (hand on the hip), the small of the back, the belly
+    int carryClip[2] = {-1, -1};  // carrying: arm pose clip per arm (left, right) and its weight
+    float carryW[2] = {0.f, 0.f};
+    float bagSwing[2] = {1.f, 1.f};   // arm swing on each side (a shoulder bag's side swings less)
     // Walking style and body language from the character: call after init.
     void setCharacter(const CharacterDesc& d);
     // Model-space ground point the game should probe for each foot (0 left, 1 right) before the next update: under
     // a planted foot, ahead of a swinging one (see AnimInput::footProbes).
     vec3 footProbe(int side) const { return probeP[side & 1]; }
+    // Steering wheel turn (rad, + = right) the hands hold while driving: draw the rim rotated by -wheelTurn() about
+    // AnimInput::wheelN so it and the hands agree.
+    float wheelTurn() const { return steerS * 1.2f; }
     void init(const Skeleton* s, u32 variationSeed);
     void update(const AnimInput& in, float dt) { update(in, dt, false); }
     // cheap = distant peds (LOD2): no foot / hand IK, no two-handed grip fix-up, no face (blinks, gaze, look-at,

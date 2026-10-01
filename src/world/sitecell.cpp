@@ -7,6 +7,8 @@
 #include "placekit.cpp"
 #include "decostrip.cpp"
 #include "campus.cpp"
+#include "cemetery.cpp"
+#include "churchyard.cpp"
 #include "places.cpp"
 
 namespace World {
@@ -119,6 +121,10 @@ void buildSiteCell(int cx, int cy, bool detail, CellGeometry& out) {
             case SK_CAMPUS_HALL: campus::genHall(e, g); break;
             case SK_CAMPUS_TOWER: campus::genTower(e, g); break;
             case SK_CAMPUS_FIELD: campus::genField(e, g); break;
+            case SK_CEMETERY: (e.variant == 4 ? cemetery::genGrounds : cemetery::genSection)(e, g); break;
+            case SK_CEMETERY_WALL: cemetery::genWall(e, g); break;
+            case SK_CHAPEL: cemetery::genChapel(e, g); break;
+            case SK_CHURCHYARD: churchyard::genChurchyard(e, g); break;
             default: break;
         }
     }

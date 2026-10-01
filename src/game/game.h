@@ -73,10 +73,11 @@ enum PedState : u8 {
 struct Ragdoll;
 
 // AI brain types (population, police, mission)
-// Props carried in the hands (carry.cpp); CARRY_UMBRELLA opens in the rain
+// Props carried in the hands (carry.cpp); CARRY_UMBRELLA opens in the rain. CARRY_HANDSFREE (Ped::carry only) keeps the
+// hands deliberately empty: no rain umbrella and no street default (people at work, sunbathers, swimmers).
 enum CarryProp : u8 {
     CARRY_NONE = 0, CARRY_SUITCASE, CARRY_SHOPBAG, CARRY_COFFEE, CARRY_BRIEFCASE, CARRY_UMBRELLA, CARRY_ROD, CARRY_BINOCULARS,
-    CARRY_SURFBOARD, CARRY_COUNT
+    CARRY_SURFBOARD, CARRY_COUNT, CARRY_HANDSFREE = CARRY_COUNT
 };
 
 enum BrainType : u8 {
@@ -336,6 +337,8 @@ struct VehicleAsset {
     Render::Model* wheelLod1 = nullptr;
     Render::Model* wheel = nullptr;
     Render::Model* caliper = nullptr;   // brake caliper: drawn at each wheel without the spin (LOD0 only)
+    Render::Model* steerWheel = nullptr;   // steering wheel turned by the driver's hands (LOD0 only)
+    Render::Model* needle = nullptr;       // instrument needle, drawn on each dial of spec.gauges (close range)
     Render::Model* rotor = nullptr;
     Render::Model* tailRotor = nullptr;
 };
