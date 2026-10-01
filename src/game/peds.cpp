@@ -656,13 +656,15 @@ void GameWorld::animatePed(Ped& p, float dt) {
         }
     }
     // a greeting (population.cpp: a hug, a handshake, a kiss on the cheek, started on both together): hands / face onto
-    // the partner's real chest / head, so tall / short pairs still meet (the animator reads it only during those clips)
+    // the partner's real chest / head, so tall / short pairs still meet; only while the greeting clip plays or starts
+    // (the animator also holds grabTarget outside clips now, and a hand must not stay on the partner after it)
     {
+        auto greetClip = [](int a) { return a == Anim::CLIP_HUG || a == Anim::CLIP_HANDSHAKE || a == Anim::CLIP_CHEEK_KISS; };
         int self = (int)(&p - peds.data());
         const PedAI* q = self >= 0 && self < (int)ai.ped.size() && ai.ped[self].uid == p.uid ? &ai.ped[self] : nullptr;
         int o = q && q->greetT > 0.f ? q->greetWith : -1;
         if (o >= 0 && o < (int)peds.size() && o < (int)ai.ped.size() && peds[o].used && ai.ped[o].uid == peds[o].uid &&
-            ai.ped[o].greetWith == self && !peds[o].ragdoll && peds[o].charIndex >= 0) {
+            ai.ped[o].greetWith == self && !peds[o].ragdoll && peds[o].charIndex >= 0 && (greetClip(p.anim.action) || greetClip(in.action))) {
             const Ped& v = peds[o];
             bool kiss = p.anim.action == Anim::CLIP_CHEEK_KISS || in.action == Anim::CLIP_CHEEK_KISS;   // (starting now)
             vec3 j = rel(v.pos, p.pos) + rotate(yawQuat(v.yaw), v.bones[kiss ? Anim::B_HEAD : Anim::B_CHEST].c[3].xyz());

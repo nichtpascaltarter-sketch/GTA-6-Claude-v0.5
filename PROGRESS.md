@@ -392,3 +392,26 @@ under Wine without a crash.
 Tour follow-ups: container stacks need rails, corner posts, deeper corrugation and wear at mid distance; hedges need a
 leafy surface; paver scale at the airport forecourt; peds standing between the camera and the player should fade;
 more people at the port gate, airport forecourt and marsh stops; faces at conversation distance (characters pass 3).
+
+### Scorecard 4 — Direct3D 12 district tour (2026-10-01)
+The same 16-stop autoplay tour on the first Direct3D 12 build with the fence-wait fix (main 0854ac9): 63 minutes under
+Wine/vkd3d with no crash and every shot clean.
+| Category | Score | Evidence |
+|---|---|---|
+| Map scale and variety | 6/10 | Unique places now stand out from the procedural blocks: cemeteries and churchyards, eight hospitals, the prison compound, the speedway, the university campus and the deco strip, all labelled on the map. Port container stacks read as real stacks with colour and corrugation, and the airport forecourt has pavers at true scale. Massing between landmarks still repeats. |
+| Visual fidelity | 4/10 | The renderer runs on Direct3D 12, and wet ground now reflects coherently everywhere: the screen-space reflection fixes removed the King Tide blotches, junction stripes and stair-stepped wet/dry edges. Dawn fog over the Sawgrass reeds and lit smoke read well. Night still reads like dusk, a lit lobby blows out to white through glass, and faces stay stylized. |
+| World density and life | 5/10 | 80-201 peds and 46-72 vehicles per city stop, 201 at the club at night. Travellers with suitcases at the airport and hi-vis workers at the port gate fill the stops Scorecard 3 found empty. Hurt pedestrians, good samaritans, ambulance crews and K9 units add scenes. Swimwear crowds at the club at night and sparse rural stops (19-46 peds) remain. |
+| Vehicles and driving | 5/10 | Every lofted car is cut into body and opening doors, identical when closed, and the cockpit wheel and gauges move. Getting in and out does not use the doors yet, and heads still clip through low roofs (fix in progress). |
+| On-foot and combat | 6/10 | Hits flinch the body by bone and direction over any gait, heavy hits stagger, the wounded limp, hunch and clutch the wound, and knock-downs brace before the ragdoll. Aiming adds side-step and back-pedalling jogs. It is all procedural, with no mocap-quality blending. |
+| NPC and police AI | 5/10 | The hurt-pedestrian scene plays end to end: the call for help, passers-by, the ambulance, the medic, boarding. K9 units track, find, release and take down. Dispatch picks short routes (calls in 38/21/10 s, down from 38/47/92 s), traffic holds for sirens, and units get past jams. The arrest escort and brawls are in testing. |
+| Missions and story | 5/10 | Act 4 adds six missions, a staged finale, two endings and a law-or-money choice. Ten street encounters have two outcomes each, and fishing (16 species, 6 habitats) and airboat tours join the activities. The final regression passed 63 of 63. Performances are still TTS. |
+| Audio | 4/10 | No audio work this wave: Scorecard 3's ray-probed acoustics, layered gunshots and the 9 stations stand. |
+| Performance and stability | 4/10 | No crash across the 16 stops on D3D12. Gameplay CPU stays at AI 0.25-1.1 ms, vehicles 0.3-1.7 ms and peds 0.5-4.4 ms (201 peds at the club). A GPU fence-wait race that corrupted readbacks was found and fixed. D3D12's GPU-side gains (bindless, async compute, ExecuteIndirect) are still unmeasured on real hardware. |
+
+Tour follow-ups:
+- night exposure (in progress: renderer);
+- lit interiors blowing out through glass at night;
+- wardrobe by time and place (no swimwear at the club at night);
+- more people at rural stops;
+- check the Key Coral marina's water level against the street;
+- heads through low car roofs (in progress: animation).
