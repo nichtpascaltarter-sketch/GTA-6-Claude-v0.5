@@ -30,6 +30,22 @@ inline int& lodLevel() {
     static thread_local int level = 0;
     return level;
 }
+// Cockpit parts of the model being built on this thread at full detail: where the steering wheel goes (its rim, spokes
+// and hub become VehicleModel::steerWheel, turned by the driver's hands) and the dials that get live needles. buildModel
+// clears it before a model and turns it into the model's parts afterwards.
+struct CockpitCapture {
+    bool wheel = false;
+    vec3 wheelC, wheelAx;
+    float wheelR = 0.f;
+    int wheelStyle = 0;   // 0 car, 1 truck / bus, 2 boat (steeringWheelPart)
+    u8 maker = 0;         // maker roundel on the hub (0 none)
+    std::vector<VehicleModel::Gauge> gauges;
+    float needleLen = 0.038f;
+};
+inline CockpitCapture& cockpitCapture() {
+    static thread_local CockpitCapture c;
+    return c;
+}
 // Tessellation count scaled for the current level of detail (never below `mn` unless `s` already is).
 inline int lodSeg(int s, int mn) {
     int l = lodLevel();

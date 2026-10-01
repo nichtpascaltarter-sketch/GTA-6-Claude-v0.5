@@ -9,7 +9,7 @@ static const vec2 kViewerOrigin(-300.f, 1500.f);
 
 struct Viewer {
     std::string mode;
-    std::vector<Render::Model*> bodies, wheels, rotors, tailRotors, calipers;
+    std::vector<Render::Model*> bodies, wheels, rotors, tailRotors, calipers, steerWheels;
 #ifdef HAVE_VEHICLE_MODELS
     std::vector<Vehicles::VehicleModel> vmodels;
     int vehicleLod = 0;  // --vlod 1|2 shows the distant levels of detail (buildVehicleLods)
@@ -52,6 +52,8 @@ struct Viewer {
                 tailRotors.push_back(vm.tailRotor.indices.empty() ? nullptr : r.dynamic->createModel(vm.tailRotor));
                 // brake calipers: wheel transform without the spin (the viewer's wheels do not spin anyway)
                 calipers.push_back(vm.caliper.indices.empty() || vehicleLod > 0 ? nullptr : r.dynamic->createModel(vm.caliper));
+                // the steering wheel is a part of its own at full detail (distant levels keep it in the body)
+                steerWheels.push_back(vm.steerWheel.indices.empty() || vehicleLod > 0 ? nullptr : r.dynamic->createModel(vm.steerWheel));
                 LOG("Vehicle %d: %s %s (%zu tris)", i, vm.maker.c_str(), vm.name.c_str(), vm.body.indices.size() / 3);
                 vmodels.push_back(std::move(vm));
             }
@@ -826,6 +828,17 @@ struct Viewer {
             // main rotor spins about +Z; plane, boat and airboat propellers about +Y; the tail rotor about +X
             quat qy = quatAxisAngle(vec3(0, 0, 1), yaw);
             float bz = gz + (isBoat ? 0.4f : 0.f);
+            if (steerWheels[i]) {
+                Render::DrawItem sd;
+                sd.model = steerWheels[i];
+                vec3 sp = rotate(qy, vm.steerWheelPos);
+                sd.pos = dvec3(p.x + sp.x, p.y + sp.y, bz + sp.z);
+                vec3 za = vm.steerWheelAxis, xa(1, 0, 0);
+                sd.rot = mat3FromQuat(qy) * mat3(xa, normalize(cross(za, xa)), za);
+                sd.tint0 = d.tint0;
+                sd.id = 0x7A00 + i;
+                r.dynamic->submit(sd);
+            }
             if (rotors[i]) {
                 Render::DrawItem rd;
                 rd.model = rotors[i];

@@ -517,7 +517,8 @@ struct App {
             }
         }
         if (autoplay == "crowd" || autoplay == "panic" || autoplay == "chase" || autoplay == "rage" || autoplay == "soak" || autoplay == "parking" ||
-            autoplay == "bender" || autoplay == "hwysoak" || autoplay == "venues" || autoplay == "takeover" || autoplay == "surrender" || autoplay == "search" || autoplay == "k9") {
+            autoplay == "bender" || autoplay == "hwysoak" || autoplay == "venues" || autoplay == "takeover" || autoplay == "surrender" || autoplay == "search" || autoplay == "k9" ||
+            autoplay == "places") {
             // AI scenario tests: crowd variety at four places and hours / gunfire panic -> police response -> arrest /
             // night car chase at 4 stars (PIT, boxing, roadblocks, helicopter searchlight) / rear-ending a bold driver
             mu::setFlag(game, mu::EX_INTRO_DONE, 1);
@@ -529,6 +530,8 @@ struct App {
                 autoDuration = 4 * 7.f + 0.5f;   // four stops, 7 s each (applyAutoplay)
             } else if (autoplay == "venues") {
                 autoDuration = 3 * 24.f + 0.5f;  // port gate, airport forecourt, Sawgrass causeway: 24 s each (applyAutoplay)
+            } else if (autoplay == "places") {
+                autoDuration = 4 * 20.f + 0.5f;  // promenade terraces, campus quad, the track, the cemetery: 20 s each
             } else if (autoplay == "surrender" || autoplay == "search") {
                 // wanted at two stars on a downtown corner, empty-handed: units converge; then the player gives up (hands up,
                 // cuffed, the lighter bust) / slips away out of sight at night (the officers on foot fan out and check the
@@ -1052,6 +1055,57 @@ struct App {
             if (logT <= 0.f) {
                 logT = 2.f;
                 LOG("autoplay takeover t=%.1f | %s | wanted %d", t, st.c_str(), game.pinfo.wanted);
+            }
+        } else if (autoplay == "places") {
+            // the named places' own people (sites.cpp anchors, population.cpp place venues): the Ocean Promenade terraces
+            // at lunch, the campus quad in the morning, runners on Tarpon Field in the evening, the cemetery in the
+            // afternoon - the player on a path there, two looks each (scripted camera), a census at each
+            static int stop = -1;
+            static float stopT = 0.f;
+            static int shots = 0;
+            struct PlaceStop {
+                const char* name;
+                vec2 player;
+                float hour;
+                vec2 cam[2], tgt[2];
+            };
+            const PlaceStop stops[4] = {
+                {"promenade", {5347.f, 686.f}, 13.f, {{5346.f, 684.f}, {5402.f, 690.f}}, {{5356.f, 722.f}, {5410.f, 730.f}}},
+                {"campus_quad", {1905.f, 3700.f}, 11.f, {{1903.f, 3702.f}, {1874.f, 3760.f}}, {{1921.f, 3727.f}, {1889.f, 3777.f}}},
+                {"track", {2062.f, 3625.f}, 17.5f, {{2064.f, 3622.f}, {2002.f, 3640.f}}, {{2080.f, 3668.f}, {1995.f, 3655.f}}},
+                {"cemetery", {1572.f, -735.f}, 15.f, {{1573.f, -733.f}, {1540.f, -752.f}}, {{1558.f, -768.f}, {1535.f, -766.f}}}};
+            int want = Min((int)(t / 20.f), 3);
+            Ped* pl = game.playerPed();
+            if (want != stop && pl) {
+                stop = want;
+                stopT = 0.f;
+                shots = 0;
+                const PlaceStop& st = stops[stop];
+                if (pl->vehicle >= 0) game.removePedFromVehicle(game.player, false);
+                pl->pos = dvec3(st.player.x, st.player.y, game.groundHeight(st.player.x, st.player.y, 40.f));
+                pl->vel = vec3(0.f);
+                env.timeOfDay = st.hour;
+                weather.setImmediate(WX_FAIR);
+                game.populationWarmup = 2.5f;
+                game.pinfo.wanted = 0;
+                LOG("autoplay places stop %d %s at %.0f %.0f, %.1f h", stop, st.name, st.player.x, st.player.y, st.hour);
+            }
+            stopT += dt;
+            if (stop >= 0) {
+                const PlaceStop& st = stops[stop];
+                int view = stopT < 10.f ? 0 : 1;
+                vec2 cp = st.cam[view], tp = st.tgt[view];
+                float cz = game.groundHeight(cp.x, cp.y, pl ? (float)pl->pos.z + 6.f : 40.f), tz = game.groundHeight(tp.x, tp.y, pl ? (float)pl->pos.z + 6.f : 40.f);
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(cp.x, cp.y, cz + 2.2f);
+                game.rig.scriptTarget = dvec3(tp.x, tp.y, tz + 1.1f);
+                game.rig.scriptFov = 50.f;
+                const float at[2] = {7.f, 17.f};
+                if (shots < 2 && stopT > at[shots]) {
+                    game.requestScreenshot = shotPath(StrFormat("auto_places_%s_%d", st.name, shots));
+                    LOG("autoplay places %s shot %d | %s", st.name, shots, game.aiCensusText(120.f).c_str());
+                    shots++;
+                }
             }
         } else if (autoplay == "venues") {
             // the places with a working crowd of their own, at the scorecard tour's stops, hours and weather: the tour's own

@@ -228,7 +228,11 @@ static void buildScalpCards(OutfitCtx& o, const HairParams& h, float shellFrac) 
         case HAIR_CURLY: len0 = 0.016f; len1 = 0.026f; w0 = 0.012f; spacing = 0.0135f; NS = 3; stand = 1.f; dens = 0.85f; break;
         default: return;   // bald, buzz cut, cornrows: the shell and scalp tint carry them
     }
+    // the cards of the densest styles are capped (~3.4k triangles): past that the spacing opens up a little
+    const int kCardBudget = 3400;
     MeshB m;
+    for (int attempt = 0; attempt < 2; attempt++) {
+    m = MeshB();
     Rng r(hash32(c.d->seed * 6131u + 17u));
     const float R0 = 0.095f * hs;
     const vec3 colRoot = h.col * 0.5f, colTip = h.col * 1.08f;
@@ -280,6 +284,10 @@ static void buildScalpCards(OutfitCtx& o, const HairParams& h, float shellFrac) 
                 if (np >= 2) emitCard(m, pts, np, CARD_SCALP, seed, colRoot, colTip, dens * (layer ? 0.8f : 1.f), PART_HEAD, &H);
             }
         }
+    }
+    int tris = (int)(m.idx.size() / 3);
+    if (tris <= kCardBudget) break;
+    spacing *= sqrtf((float)tris / kCardBudget) * 1.02f;
     }
     size_t t0 = o.out.idx.size() / 3;
     o.out.append(m);
@@ -732,7 +740,17 @@ static void buildFacialHair(OutfitCtx& o) {
     Rng rc(hash32(d.seed * 389u + 11u));
     const float lenBase = kind == FH_BEARD ? 0.014f : (kind == FH_SHORTBEARD ? 0.0065f : (kind == FH_MUSTACHE ? 0.0095f : 0.011f));
     // short beards: fewer, two-segment cards (the shell carries most of their volume)
-    const float pick = kind == FH_BEARD ? 0.75f : (kind == FH_SHORTBEARD ? 0.34f : 0.45f);
+    float pick = kind == FH_BEARD ? 0.75f : (kind == FH_SHORTBEARD ? 0.34f : 0.45f);
+    {
+        // budget: at most ~1.1k card triangles (a dense face grid would otherwise spend 1.5k on a short beard)
+        int cand = 0;
+        for (int j = 1; j < H.rows; j++)
+            for (int k = 0; k < H.cols; k++)
+                if (region(c.m.v[H.grid[(size_t)j * H.cols + k]], must, chin, cheeks) >= -0.002f) cand++;
+        const int NSgE = kind == FH_SHORTBEARD ? 2 : 3;
+        float est = (float)cand * pick * 1.25f * NSgE * 2.f;
+        if (est > 1100.f) pick *= 1100.f / est;
+    }
     const int NSg = kind == FH_SHORTBEARD ? 2 : 3;
     CardPt pts[4];
     for (int j = 1; j < H.rows; j++)

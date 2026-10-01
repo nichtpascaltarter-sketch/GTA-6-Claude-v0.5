@@ -42,6 +42,7 @@ enum BlipIcon : u8 {
     BLIP_METRO,          // SkyLine station (train front)
     BLIP_BUS,            // bus stop / depot (bus side view)
     BLIP_FERRY,          // ferry terminal (ferry side view)
+    BLIP_FISH,           // fishing spot / bait shop (a fish)
     BLIP_COUNT
 };
 

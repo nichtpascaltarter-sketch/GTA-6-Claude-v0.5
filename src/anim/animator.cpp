@@ -187,18 +187,30 @@ static void batLeftHand(const Skeleton& sk, Pose& p, float dist, bool reversed, 
     p.rot[B_HAND_L] = normalize(conj(qf) * nlerp(qhl, want, w));
 }
 
-// Hands on the steering wheel for this skeleton (absolute car interior geometry: rim radius 0.185 m centred 0.5 m
-// ahead of and 0.4 m above the seat hip point, tilted towards the driver), turned by `steer` radians (+ = right).
-static void driveHands(const Skeleton& sk, Pose& p, float steer) {
-    const vec3 wc(0.f, 0.5f, 0.9f), wx(1.f, 0.f, 0.f), wy(0.f, 0.411f, 0.912f), wn(0.f, -0.912f, 0.411f);
-    const float R = 0.185f;
-    quat rotW = qaa(wn, -steer);
+// Hands on the steering wheel for this skeleton: the vehicle's rim (AnimInput::wheelC / wheelN / wheelR) or, when
+// the game gives none, a car's typical one (radius 0.185 m, centred 0.5 m ahead of and 0.4 m above the seat hip point,
+// tilted towards the driver), turned by `steer` radians (+ = right; the game draws the rim turned by the same angle,
+// Animator::wheelTurn).
+static void driveHands(const Skeleton& sk, Pose& p, float steer, const AnimInput& in) {
+    const vec3 wn0(0.f, -0.912f, 0.411f);   // the typical rim's column axis (the driving clip's hands are posed for it)
+    vec3 wc(0.f, 0.5f, 0.9f), wn = wn0;
+    float R = 0.185f;
+    if (in.wheelR > 0.f && length2(in.wheelN) > 1e-6f) {
+        wc = in.wheelC;
+        wn = normalize(in.wheelN);
+        R = in.wheelR;
+    }
+    const vec3 wx(1.f, 0.f, 0.f);
+    vec3 wy = cross(wn, wx);
+    wy = length2(wy) > 1e-8f ? normalize(wy) : vec3(0.f, 0.f, 1.f);
+    // hands turn with the rim, and with its tilt when it differs from the typical one
+    quat rotW = qaa(wn, -steer) * quatFromTo(wn0, wn);
     const Bone ups[2] = {B_UPPERARM_L, B_UPPERARM_R}, lows[2] = {B_FOREARM_L, B_FOREARM_R}, ends[2] = {B_HAND_L, B_HAND_R};
     for (int s = 0; s < 2; s++) {
         float sx = s ? 1.f : -1.f;
         float a = sx * 1.1f + steer;
         vec3 radial = wx * sinf(a) + wy * cosf(a);
-        vec3 target = wc + radial * (R + 0.03f) - vec3(0.f, 0.035f, 0.01f);
+        vec3 target = wc + radial * (R + 0.03f) + wn * 0.028f - wy * 0.0235f;   // the wrist behind and outside the rim
         quat qh, qu, qf;
         vec3 ph, pu, pf;
         boneModel(sk, p, ends[s], qh, ph);
@@ -217,8 +229,10 @@ static void blendArms(Pose& p, const Pose& layer, float w) {
     for (u8 b : kArmBones) p.rot[b] = nlerp(p.rot[b], layer.rot[b], w);
 }
 
-// Two-bone IK of a leg (thigh, calf, foot) whose parent (pelvis) model transform is known; the same analytic solve
-// as solveTwoBoneIK without walking the chain from the root again. The foot keeps its model rotation.
+// Two-bone IK of a leg (thigh, calf, foot) whose parent (pelvis) model transform is known. The knee bends about its
+// hinge (the thigh's local X axis: clips flex the calf about it), by exactly the angle that puts the ankle at the
+// target's distance from the hip (half-angle form: precise for a nearly straight leg), then the leg is aimed at the
+// target and swung about the hip -> target line so the knee points towards the pole. The foot keeps its model rotation.
 static void legIK(const Skeleton& sk, Pose& p, int up, int lo, int end, quat Qp, vec3 Pp, vec3 target, vec3 pole) {
     vec3 A = Pp + rotate(Qp, sk.bindLocalPos[up]);
     quat Qa = Qp * p.rot[up];
@@ -226,21 +240,26 @@ static void legIK(const Skeleton& sk, Pose& p, int up, int lo, int end, quat Qp,
     quat Qb = Qa * p.rot[lo];
     vec3 C = B + rotate(Qb, sk.bindLocalPos[end]);
     quat Qc = Qb * p.rot[end];
-    float la = length(sk.bindLocalPos[lo]), lb = length(sk.bindLocalPos[end]);
     vec3 AT = target - A;
     float dT = length(AT);
+    vec3 a = B - A, c = C - B;
+    float la = length(a), lb = length(c);
     if (dT < 1e-5f || la < 1e-5f || lb < 1e-5f) return;
-    float d = Clamp(dT, fabsf(la - lb) + 1e-4f, (la + lb) * 0.9995f);
-    // knee angle
-    vec3 BA = A - B, BC = C - B;
-    vec3 m = cross(BA, BC);
-    if (length2(m) < 1e-10f * la * lb) m = cross(BC, pole - B);
-    if (length2(m) < 1e-12f) m = anyPerp(BC);
-    m = normalize(m);
-    float curB = acosf(Clamp(dot(BA, BC) / (la * lb), -1.f, 1.f));
-    float desB = acosf(Clamp((la * la + lb * lb - d * d) / (2.f * la * lb), -1.f, 1.f));
-    quat r1 = quatAxisAngle(m, desB - curB);
-    vec3 C1 = B + rotate(r1, BC);
+    // knee: the calf turns about the hinge so that |a + R c| = d
+    vec3 m = normalize(rotate(Qa, vec3(1, 0, 0)));
+    vec3 aP = m * dot(a, m), cP = m * dot(c, m), aQ = a - aP, cQ = c - cP;
+    float na = length(aQ), nc = length(cQ);
+    float reach = sqrtf(length2(aP + cP) + (na + nc) * (na + nc));
+    float d = Clamp(dT, fabsf(la - lb) + 1e-4f, reach * 0.9995f);
+    quat r1;
+    if (na > 1e-5f && nc > 1e-5f) {
+        float q = d * d - length2(aP + cP);   // |a_perp + R c_perp|^2 wanted
+        float h = Saturate(((na + nc) * (na + nc) - q) / (4.f * na * nc));
+        float want = -2.f * asinf(sqrtf(h));   // flexion bends the calf back: negative about +X
+        float cur = atan2f(dot(cross(aQ, cQ), m), dot(aQ, cQ));
+        r1 = quatAxisAngle(m, want - cur);
+    }
+    vec3 C1 = B + rotate(r1, c);
     // aim the chain at the target, then swing the knee towards the pole about the hip -> target axis
     vec3 u = AT / dT;
     quat r2 = quatFromTo(normalize(C1 - A), u);
@@ -558,7 +577,7 @@ static float quatAngleBetween(quat a, quat b) { return 2.f * acosf(Min(1.f, fabs
 // over whatever the arms do); the spine, neck, head, jaw and eyes as offsets, so the base's weight shift and
 // counter-tilts stay; the legs in `legs` (bit 0 left, bit 1 right) as posed, with the pelvis offset (a tapping foot,
 // rising onto the toes; planted feet keep their footprints).
-static void layerStanding(const Animator& A, Pose& base, const Pose& layer, float w, int arms, int legs, float clear = 0.f) {
+static void layerStanding(const Animator& A, Pose& base, const Pose& layer, float w, int arms, int legs, float clear = 0.f, float back = 0.f) {
     if (w <= 1e-4f) return;
     static const u8 kArmRest[2][3] = {{B_CLAVICLE_L, B_FINGERS_L, B_THUMB_L}, {B_CLAVICLE_R, B_FINGERS_R, B_THUMB_R}};
     static const u8 kLeg[2][4] = {{B_THIGH_L, B_CALF_L, B_FOOT_L, B_TOE_L}, {B_THIGH_R, B_CALF_R, B_FOOT_R, B_TOE_R}};
@@ -573,9 +592,9 @@ static void layerStanding(const Animator& A, Pose& base, const Pose& layer, floa
                 base.rot[b] = nlerp(base.rot[b], q, w);
             }
             for (u8 b : kArmRest[s]) base.rot[b] = nlerp(base.rot[b], layer.rot[b], w);
-            if (clear > 1e-4f) {
+            if (clear > 1e-4f || back > 1e-4f) {
                 int ub = kArmChain[s][0];
-                base.rot[ub] = normalize(qy(s ? -clear : clear) * base.rot[ub]);
+                base.rot[ub] = normalize(qy(s ? -clear : clear) * qx(-back) * base.rot[ub]);
             }
         } else if (arms & 4) {
             int c = s ? B_CLAVICLE_R : B_CLAVICLE_L;
@@ -606,6 +625,31 @@ static void nudgeHand(const Skeleton& sk, Pose& p, int s, vec3 delta, float w) {
     solveTwoBoneIK(sk, p, up, lo, hb, ph + delta * w, pole, 1.f);
     boneModel(sk, p, lo, qf, pf);
     p.rot[hb] = normalize(conj(qf) * qh);
+}
+
+// Arm poses for the prop in hand (AnimInput::carry): the clip per arm (-1 none) and how much of the arm it takes while
+// walking (hanging loads let part of the swing through; a held cup, case or umbrella keeps the arm still).
+static void carryArms(const Animator& A, const AnimInput& in, int clip[2], float take[2]) {
+    clip[0] = clip[1] = -1;
+    take[0] = take[1] = 1.f;
+    switch (in.carry) {
+        case 1: clip[1] = IC_CARRY_CASE; break;
+        case 2: case 4: clip[0] = IC_CARRY_HANG_L; take[0] = 0.55f; break;
+        case 3:
+            // the cup goes to the other hand while the phone is up or a phone / cigarette stance has the right hand (the
+            // game draws it from the same rule)
+            if (A.phoneW > 0.3f || A.browseW > 0.3f || rightHandBusy(in.stance)) clip[0] = IC_CARRY_CUP_L;
+            else clip[1] = IC_CARRY_CUP_R;
+            take[0] = take[1] = 0.92f;
+            break;
+        case 5:
+            clip[1] = in.carryOpen ? IC_CARRY_UMBRELLA : IC_CARRY_HANG_R;
+            take[1] = in.carryOpen ? 1.f : 0.55f;
+            break;
+        case 6: clip[1] = IC_CARRY_ROD; break;
+        case 8: clip[1] = IC_CARRY_BOARD; take[1] = 0.9f; break;
+        default: break;
+    }
 }
 
 // Pick an index by weight (r in 0..1); -1 when every weight is 0.
@@ -755,6 +799,9 @@ void Animator::init(const Skeleton* s, u32 variationSeed) {
         fidgetCount = 0;
         fidgetT = fidgetDur = fidgetW = 0.f;
         fidgetNext = 3.f + 12.f * hashToFloat(hash32(h + 12u));
+        carryClip[0] = carryClip[1] = -1;
+        carryW[0] = carryW[1] = 0.f;
+        bagSwing[0] = bagSwing[1] = 1.f;
     }
     for (int k = 0; k < 2; k++) {
         plantP[k] = plantCorr[k] = stepFrom[k] = vec3(0);
@@ -908,6 +955,9 @@ void Animator::setCharacter(const CharacterDesc& d) {
         const vec3 dir[3] = {vec3(1, 0, 0), vec3(0, -1, 0), vec3(0, 1, 0)};
         for (int i = 0; i < 3; i++) skinP[i] = from[i] + dir[i] * bc.sdf.castOut(from[i], dir[i], mk, 0.5f) - D.J[B_PELVIS];
     }
+    // a tote bag on one shoulder: that arm swings less (a crossbody bag a little less)
+    bagSwing[0] = bagSwing[1] = 1.f;
+    if (d.bag == BAG_TOTE || d.bag == BAG_CROSSBODY) bagSwing[bagSide(d) & 1] = d.bag == BAG_TOTE ? 0.65f : 0.85f;
     // breathing: 12-18 a minute, a little quicker for heavy and older people; weight shifts: quicker when energetic
     breathRate = Clamp(0.2f + 0.08f * rnd(10) + 0.02f * heavyK + 0.02f * old, 0.2f, 0.3f);
     standK = 4.2f + 2.8f * energy;
@@ -1124,14 +1174,16 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         }
         // ---- the person in the gait: arm swing amplitude, arms clear of a wide body, trunk and head carriage
         {
-            float ks = 1.f + (armSwingK - 1.f) * moveW * (1.f - cw);
-            if (fabsf(ks - 1.f) > 1e-3f)
-                for (int s = 0; s < 2; s++) {
-                    int ub = s ? B_UPPERARM_R : B_UPPERARM_L;
-                    quat q = base.rot[ub];
-                    if (dot(q, armRest[s]) < 0.f) q = quat(-q.x, -q.y, -q.z, -q.w);
-                    base.rot[ub] = nlerp(armRest[s], q, ks);
-                }
+            for (int s = 0; s < 2; s++) {
+                // the fore-aft swing only (about the shoulder's lateral axis): the gait's abduction keeps the hand
+                // clear of the hip whatever the amplitude (a shoulder bag's side swings less)
+                float ks = 1.f + (armSwingK * bagSwing[s] - 1.f) * moveW * (1.f - cw);
+                if (fabsf(ks - 1.f) <= 1e-3f) continue;
+                int ub = s ? B_UPPERARM_R : B_UPPERARM_L;
+                quat D = base.rot[ub] * conj(armRest[s]);   // from the hanging arm, in the clavicle's frame
+                float swing = 2.f * atan2f(D.x, D.w);
+                base.rot[ub] = normalize(qx(swing * (ks - 1.f)) * base.rot[ub]);
+            }
             if (armOut > 1e-4f) {
                 base.rot[B_UPPERARM_L] = normalize(qy(armOut) * base.rot[B_UPPERARM_L]);
                 base.rot[B_UPPERARM_R] = normalize(qy(-armOut) * base.rot[B_UPPERARM_R]);
@@ -1155,10 +1207,20 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         //      more often in a queue. They layer over the weight shift (layerStanding); the hand on the hip brings its
         //      own (the weight on the right leg), a tapping foot / rocking wait for the weight to move first.
         {
+            int cClip[2];
+            float cTake[2];
+            carryArms(*this, in, cClip, cTake);
+            const int busyArms = (cClip[0] >= 0 ? 1 : 0) | (cClip[1] >= 0 ? 2 : 0);   // hands holding a prop
             const bool canVary = standStill && in.weaponKind != 2 && !in.phoneCall;
             // listeners keep a listening posture going; speakers only shift onto a hip now and then
             if (in.listening && idleVar < 0 && canVary) idleNext = Min(idleNext, 1.2f);
             if (in.speaking && idleVar >= 0 && idleVar != IC_IDLE_HIP) idleVarDur = Min(idleVarDur, idleVarT + 0.3f);
+            if (idleVar >= 0) {
+                // a prop taken in hand ends a posture that needs that hand
+                int pk = 0;
+                while (pk < FG_POSTURES - 1 && kPostureClip[pk] != idleVar) pk++;
+                if (kPostureArms[pk] & busyArms) idleVarDur = Min(idleVarDur, idleVarT + 0.25f);
+            }
             if (!canVary) {
                 if (idleVar >= 0) idleVarDur = Min(idleVarDur, idleVarT + 0.25f);   // fade out now
                 if (idleVar < 0) idleNext = Max(idleNext, 2.f);
@@ -1172,16 +1234,16 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
                 if (idleNext <= 0.f) {
                     u32 h = hash32(seed * 0x9E3779B1u + (u32)idleCount * 0x85EBCA6Bu);
                     // phone, crossed arms, pockets, hip, behind the back, clasped: standing around / queueing / listening
-                    static const float kWN[FG_POSTURES] = {0.24f, 0.2f, 0.2f, 0.14f, 0.1f, 0.12f};
-                    static const float kWQ[FG_POSTURES] = {0.4f, 0.2f, 0.17f, 0.1f, 0.06f, 0.07f};
+                    static const float kWN[FG_POSTURES] = {0.17f, 0.21f, 0.21f, 0.15f, 0.11f, 0.13f};
+                    static const float kWQ[FG_POSTURES] = {0.34f, 0.21f, 0.18f, 0.11f, 0.07f, 0.09f};
                     static const float kWL[FG_POSTURES] = {0.f, 0.4f, 0.2f, 0.25f, 0.1f, 0.15f};
                     const float* kw = in.listening ? kWL : (stance == 23 ? kWQ : kWN);
                     float w[FG_POSTURES];
-                    for (int k = 0; k < FG_POSTURES; k++) w[k] = (fidgetMask >> k) & 1u ? kw[k] : 0.f;
+                    for (int k = 0; k < FG_POSTURES; k++) w[k] = (fidgetMask >> k) & 1u && !(kPostureArms[k] & busyArms) ? kw[k] : 0.f;
                     float r = hashToFloat(h);
                     int k = pickWeighted(w, FG_POSTURES, r);
-                    if (k < 0 && in.listening) k = pickWeighted(kWL, FG_POSTURES, r);   // a listener still takes one
-                    if (in.speaking) k = FG_HIP;
+                    if (k < 0 && in.listening && !busyArms) k = pickWeighted(kWL, FG_POSTURES, r);   // a listener still takes one
+                    if (in.speaking) k = (busyArms & 2) ? -1 : FG_HIP;
                     idleCount++;
                     if (k >= 0) {
                         idleVar = kPostureClip[k];
@@ -1207,11 +1269,19 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
                 sampleClipId(sk, idleVar, idleVarT, tmp, seed);
                 float w = idleVarW * (1.f - moveW);
                 if (idleVar == IC_IDLE_HIP) blendCtl(base, tmp, w, base);
-                else layerStanding(*this, base, tmp, w, 3, 0, 1.2f * idleVarW * (1.f - idleVarW) * (1.f - moveW));
+                else {
+                    // coming or going the arms swing out (and back, for hands going behind the back) round the hips
+                    float c4 = 4.f * idleVarW * (1.f - idleVarW) * (1.f - moveW);
+                    layerStanding(*this, base, tmp, w, 3, 0, 0.3f * c4, idleVar == IC_IDLE_BEHIND ? 0.4f * c4 : 0.f);
+                }
             }
             // fidgets (inside a posture too: the arms they need leave it for a moment)
             const bool canFidget = canVary && !in.speaking && idleVar != IC_IDLE_PHONE;
-            if (fidgetVar >= 0 && !canFidget) fidgetDur = Min(fidgetDur, Max(fidgetT, 0.f) + 0.25f);
+            if (fidgetVar >= 0) {
+                int fk0 = 0;
+                while (fk0 < FG_COUNT - FG_POSTURES - 1 && kFidgetClip[fk0] != fidgetVar) fk0++;
+                if (!canFidget || (kFidgetArms[fk0] & 3 & busyArms)) fidgetDur = Min(fidgetDur, Max(fidgetT, 0.f) + 0.25f);
+            }
             if (fidgetVar < 0 && canFidget) {
                 fidgetNext -= dt * (in.listening ? 0.35f : 1.f) * (stance == 23 ? 1.4f : 1.f);
                 if (fidgetNext <= 0.f) {
@@ -1224,12 +1294,14 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
                     // the feet only near the camera (distant peds have no foot planting), not with the weight held on
                     // the right for a hand on the hip; no arm the posture holds
                     if (cheap || idleVar == IC_IDLE_HIP) w[FG_TAP - FG_POSTURES] = w[FG_ROCK - FG_POSTURES] = 0.f;
+                    int heldArms = busyArms;
                     if (idleVar >= 0) {
                         int pk = 0;
                         while (pk < FG_POSTURES - 1 && kPostureClip[pk] != idleVar) pk++;
-                        for (int f = 0; f < nF; f++)
-                            if (kFidgetArms[f] & 3 & kPostureArms[pk]) w[f] = 0.f;
+                        heldArms |= kPostureArms[pk];
                     }
+                    for (int f = 0; f < nF; f++)
+                        if (kFidgetArms[f] & 3 & heldArms) w[f] = 0.f;
                     int k = pickWeighted(w, nF, hashToFloat(h));
                     fidgetCount++;
                     fidgetNext = (8.f + 16.f * hashToFloat(hash32(h + 1u))) / Max(fidgetRate, 0.3f);
@@ -1387,6 +1459,26 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             sampleClip(sk, CLIP_RELOAD, Min(reloadT, clipInfo(CLIP_RELOAD).duration), tmp, seed);
             blendUpperBody(base, tmp, reloadW, base);
         }
+        // a prop in hand: the holding arm posed for it (a new prop waits for the old pose to fade out)
+        {
+            int cClip[2];
+            float cTake[2];
+            carryArms(*this, in, cClip, cTake);
+            if (stance == 12 || stance == 21 || stance == 22) cClip[0] = cClip[1] = -1;   // lying down: nothing held up
+            static const u8 kArmB[2][4] = {{B_CLAVICLE_L, B_UPPERARM_L, B_FOREARM_L, B_HAND_L}, {B_CLAVICLE_R, B_UPPERARM_R, B_FOREARM_R, B_HAND_R}};
+            static const u8 kHandB[2][2] = {{B_FINGERS_L, B_THUMB_L}, {B_FINGERS_R, B_THUMB_R}};
+            for (int sd = 0; sd < 2; sd++) {
+                if (cClip[sd] != carryClip[sd] && carryW[sd] < 0.02f) carryClip[sd] = cClip[sd];
+                float target = cClip[sd] >= 0 && cClip[sd] == carryClip[sd] ? 1.f : 0.f;
+                carryW[sd] = approach(carryW[sd], target, dt * 4.f);
+                if (carryClip[sd] < 0 || carryW[sd] <= 0.001f) continue;
+                sampleClipId(sk, carryClip[sd], time, tmp, seed);
+                float e = sstep(0.f, 1.f, carryW[sd]);
+                float take = Lerp(1.f, cTake[sd] > 0.f ? cTake[sd] : 1.f, moveW);   // hanging loads swing a little
+                for (u8 b : kArmB[sd]) base.rot[b] = nlerp(base.rot[b], tmp.rot[b], e * take);
+                for (u8 b : kHandB[sd]) base.rot[b] = nlerp(base.rot[b], tmp.rot[b], e);
+            }
+        }
     }
 
     // ---------------------------------------------------------------- breathing (the timing runs for everyone; the
@@ -1517,7 +1609,7 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
     if (stance == 1 && (action < 0 || actionUpper)) {
         float steerIn = Clamp(in.localMoveDir.x, -1.f, 1.f);
         steerS += (steerIn - steerS) * (1.f - expf(-dt * 8.f));
-        if (!cheap) driveHands(sk, outp, steerS * 1.2f);
+        if (!cheap) driveHands(sk, outp, wheelTurn(), in);
     } else {
         steerS = 0.f;
     }

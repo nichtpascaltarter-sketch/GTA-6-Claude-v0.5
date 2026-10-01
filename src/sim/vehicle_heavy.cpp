@@ -1033,7 +1033,7 @@ inline void busInterior(PMesh& m, CarBody& b, float yF, float yR, float yDoor0, 
     CarLook drv;
     drv.seatTint = vec3(0.1f, 0.1f, 0.11f);
     seat(m, vec3(-0.75f, yF - 1.2f, zFloor + 0.55f), 0.26f, drv, true, 0.2f, 0.9f, true);
-    if (lod == 0) steeringWheel(m, vec3(-0.75f, yF - 0.72f, zFloor + 0.95f), 1.05f, 0.23f);
+    if (lod == 0) steeringWheel(m, vec3(-0.75f, yF - 0.72f, zFloor + 0.95f), 1.05f, 0.23f, 1);
     m.newGroup(35.f);
     m.use(MAT_INTERIOR, kCol1);
     roundedBoxAt(m, vec3(-0.55f, yF - 0.45f, zFloor + 0.7f), vec3(0.6f, 0.22f, 0.12f), 0.05f, 1);

@@ -39,6 +39,10 @@ enum InternalClip : int {
     IC_IDLE_CLASP,                 // hands clasped in front
     IC_FIDGET_WATCH, IC_FIDGET_SCRATCH, IC_FIDGET_TUG, IC_FIDGET_CHIN, IC_FIDGET_YAWN, IC_FIDGET_ARMS,   // upper body
     IC_FIDGET_TAP, IC_FIDGET_ROCK,                                                                       // legs
+    // carrying (arm layers, AnimInput::carry): a roller case pulled behind (right), a bag / briefcase hanging in the
+    // left / right fist, a cup held up (right / left), an open umbrella up at the chest (right), a fishing rod held up
+    // and forward (right), a surfboard under the right arm
+    IC_CARRY_CASE, IC_CARRY_HANG_L, IC_CARRY_HANG_R, IC_CARRY_CUP_R, IC_CARRY_CUP_L, IC_CARRY_UMBRELLA, IC_CARRY_ROD, IC_CARRY_BOARD,
     // walk styles: IC_GAIT_FIRST + style * kGaitBands + band (gaitClip)
     IC_GAIT_FIRST,
     IC_GAIT_LAST = IC_GAIT_FIRST + GS_COUNT * kGaitBands - 1,

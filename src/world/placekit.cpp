@@ -381,5 +381,77 @@ void stallRow(G& g, vec2 c, vec2 along, vec2 face, float z, int stalls, float d,
     }
 }
 
+// ------------------------------------------------------------------------------------------------ roofs, trees, small monuments
+// Triangle with its normal turned toward `facing`
+void tri3(G& g, vec3 a, vec3 b, vec3 c, u32 col, u32 mat, vec3 facing) {
+    if (dot(cross(b - a, c - a), facing) < 0.f) std::swap(b, c);
+    vec3 n = normalize(cross(b - a, c - a));
+    vec3 t = normalize(b - a), bt = cross(n, t);
+    MeshData& m = *g.m;
+    u32 i0 = m.addVertex(a - g.org, n, t, vec2(0.f, 0.f), col, mat);
+    u32 i1 = m.addVertex(b - g.org, n, t, vec2(dot(b - a, t), dot(b - a, bt)), col, mat);
+    u32 i2 = m.addVertex(c - g.org, n, t, vec2(dot(c - a, t), dot(c - a, bt)), col, mat);
+    m.tri(i0, i1, i2);
+}
+
+// Gable roof with its ridge along `f` over the w x d rectangle centred at c whose walls top out at z: both slopes pass
+// through the wall heads and the ridge (rise over the centre line) and run on `over` past the side walls and the gable
+// ends; soffits close the eaves from below; the gable triangles stand on the front and back wall planes
+void gableRoof(G& g, vec2 c, vec2 f, float w, float d, float z, float rise, float over, u32 roofCol, u32 roofMat, u32 gableCol, u32 gableMat,
+               bool soffit = false) {
+    vec2 R(f.y, -f.x);
+    float hw = w * 0.5f, hd = d * 0.5f + over, slope = rise / Max(hw, 0.01f);
+    float ze = z - slope * over;
+    const vec3 up(0, 0, 1);
+    for (int s = -1; s <= 1; s += 2) {
+        vec2 side = R * (float)s;
+        vec3 e0 = V3(c + side * (hw + over) - f * hd, ze), e1 = V3(c + side * (hw + over) + f * hd, ze);
+        vec3 r0 = V3(c - f * hd, z + rise), r1 = V3(c + f * hd, z + rise);
+        quad(g, *g.m, e0, e1, r1, r0, roofCol, roofMat, normalize(V3(side, 0.f) * rise + up * hw));
+        if (soffit && over > 0.f) quad(g, *g.m, e0, e1, V3(c + side * hw + f * hd, z), V3(c + side * hw - f * hd, z), roofCol, roofMat, -up);
+    }
+    for (int s = -1; s <= 1; s += 2) {
+        vec2 fc = c + f * (d * 0.5f * (float)s);
+        tri3(g, V3(fc - R * hw, z), V3(fc + R * hw, z), V3(fc, z + rise), gableCol, gableMat, V3(f * (float)s, 0.f));
+    }
+}
+
+// Italian (columnar) cypress: a dark spindle of foliage on a short trunk, h tall, r at its widest
+void italianCypress(G& g, vec2 p, float z, float h, float r) {
+    if (g.detail) cyl(g, V3(p, z - 0.1f), 0.13f, 0.1f, 0.9f, 5, rgb(0.36f, 0.3f, 0.24f), M(MAT_BARK), false);
+    lathe(g, V3(p, z + 0.5f),
+          {vec2(r * 0.45f, 0.f), vec2(r * 0.9f, h * 0.14f), vec2(r, h * 0.34f), vec2(r * 0.88f, h * 0.58f), vec2(r * 0.55f, h * 0.8f),
+           vec2(r * 0.2f, h * 0.93f - 0.5f), vec2(0.f, h - 0.5f)},
+          g.detail ? 9 : 5, rgb(0.22f, 0.33f, 0.2f), M(MAT_LEAVES), false);
+    if (g.detail) collide(g, V3(p, z + 1.f), vec2(1, 0), vec3(0.15f, 0.15f, 1.f));
+}
+
+// Latin cross standing on z (stone or iron), h tall, bar thickness t, arms facing `face`
+void latinCross(G& g, vec2 p, vec2 face, float z, float h, float t, u32 col, u32 mat) {
+    vec2 R(face.y, -face.x);
+    boxY(g, V3(p, z + h * 0.5f), R, vec3(t * 0.5f, t * 0.5f, h * 0.5f), col, mat);
+    boxY(g, V3(p, z + h * 0.7f), R, vec3(h * 0.27f, t * 0.5f, t * 0.5f), col, mat);
+}
+
+// Funerary urn on a small foot (gate piers, tomb corners, parapets), s = overall height
+void urn(G& g, vec3 base, float s, u32 col, u32 mat) {
+    lathe(g, base,
+          {vec2(0.2f * s, 0.f), vec2(0.13f * s, 0.12f * s), vec2(0.3f * s, 0.34f * s), vec2(0.33f * s, 0.5f * s), vec2(0.2f * s, 0.7f * s),
+           vec2(0.25f * s, 0.78f * s), vec2(0.08f * s, 0.9f * s), vec2(0.f, s)},
+          g.detail ? 6 : 4, col, mat, false);
+}
+
+// Cast-iron lantern on a post (cemeteries, church yards, old squares): glows at night and lights its surroundings
+void lanternPost(G& g, vec2 p, float z, float h, vec3 glow) {
+    u32 iron = rgb(0.07f, 0.07f, 0.07f), im = M(MAT_METAL_PAINTED);
+    cyl(g, V3(p, z), 0.16f, 0.12f, 0.55f, 8, iron, im, true);
+    cyl(g, V3(p, z + 0.55f), 0.06f, 0.05f, h - 1.15f, 6, iron, im, false);
+    boxY(g, V3(p, z + h - 0.6f), vec2(1, 0), vec3(0.14f, 0.14f, 0.03f), iron, im, true);
+    boxY(g, V3(p, z + h - 0.33f), vec2(1, 0), vec3(0.12f, 0.12f, 0.24f), rgbv(glow, 0.5f), emMat(EA_NIGHT), false);
+    lathe(g, V3(p, z + h - 0.09f), {vec2(0.24f, 0.f), vec2(0.06f, 0.16f), vec2(0.03f, 0.26f), vec2(0.f, 0.3f)}, 4, iron, im, false, kPi * 0.25f);
+    light(g, V3(p, z + h - 0.35f), glow * 1500.f, 12.f, 0);
+    collide(g, V3(p, z + h * 0.5f), vec2(1, 0), vec3(0.08f, 0.08f, h * 0.5f));
+}
+
 }  // namespace place_kit
 }  // namespace World

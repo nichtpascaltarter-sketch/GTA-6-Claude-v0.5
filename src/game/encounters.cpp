@@ -1581,7 +1581,13 @@ public:
                 break;
             case 3:
                 if (want == 1) {
-                    if (stageT > 0.5f && nextCp < (int)cps.size()) t.driveToward(cps[nextCp].xy(), 90.f, dt);
+                    // through the checkpoints ahead of the racer (a teleport per checkpoint, stopped on each)
+                    if (stageT > 0.5f && nextCp < (int)cps.size() && fmodf(stageT, 0.4f) < dt) {
+                        vec3 c = cps[nextCp], from = nextCp > 0 ? cps[nextCp - 1] : playerPos(g);
+                        vec2 d = normalize(c.xy() - from.xy() + vec2(1e-3f, 0.f));
+                        t.teleport(c - vec3(d * 3.f, 0.f), atan2f(-d.x, d.y));
+                        t.stopVehicle();
+                    }
                 } else if (rc >= 0) {
                     fastForwardDriver(g, rc, 60.f, dt);
                 }
@@ -1616,7 +1622,8 @@ public:
         if (car.id < 0) return false;
         encPark(g, car.id);
         g.vehicles[car.id].sim.engineOn = false;
-        vec3 ov = vehPos(g, car.id) - g.vehicles[car.id].sim.right() * 1.4f;
+        // she stands on the sidewalk by the curb-side door (not out in the traffic lane)
+        vec3 ov = vehPos(g, car.id) + vec3(P.outward * 1.6f, 0.f);
         ov.z = groundAt(g, ov.x, ov.y, ov.z + 2.f);
         owner = addPed(g, g.randomCivilianChar(seed | 1u, 0), ov, yaw + kPi * 0.5f, FAC_CIVILIAN);
         vec3 jp = placeOffset(g, P, -16.f * (hashToFloat(seed >> 2) > 0.5f ? 1.f : -1.f), 0.1f);
@@ -1651,12 +1658,14 @@ public:
                 }
                 break;
             case 1:
-                if (j < 0 || encDown(g, jacker)) {
+                if (j < 0 || g.peds[j].health <= 0.f) {
                     result = -2;   // somebody stopped him before he got to her
                     break;
                 }
+                if (encDown(g, jacker)) break;   // knocked over on the way (a bike, a bump): he gets up and carries on
+                if (g.peds[j].brain.type != BRAIN_GOTO && fmodf(stageT, 1.f) < dt) setGoto(g, j, anchor, 5.4f);
                 if (::length(pedPos(g, j).xy() - anchor.xy()) < 1.8f || stageT > 7.f) {
-                    if (o >= 0) g.knockDown(o, vec3(-g.vehicles[cv].sim.right().xy() * 110.f, 25.f));
+                    if (o >= 0) g.knockDown(o, vec3(P.outward * 110.f, 25.f));
                     g.warpPedIntoVehicle(j, cv, 0);
                     ScriptDriver& d = driveRoad(g, cv, P.curb.xy() + P.streetDir * 850.f, 22.f, true, kEncScope);
                     d.rubberPed = g.player;
@@ -2727,7 +2736,14 @@ std::vector<std::pair<std::string, std::string>> encounterStats(GameWorld& g) {
 }
 
 // Every pastime's lines for the pause menu's stats page (app.cpp)
-std::vector<std::pair<std::string, std::string>> activityStats(GameWorld& g) { return encounterStats(g); }
+std::vector<std::pair<std::string, std::string>> fishingStats(GameWorld& g);   // fishing.cpp
+std::vector<std::pair<std::string, std::string>> tourStats(GameWorld& g);      // airboat_tours.cpp
+std::vector<std::pair<std::string, std::string>> activityStats(GameWorld& g) {
+    std::vector<std::pair<std::string, std::string>> out = encounterStats(g);
+    for (auto& s : fishingStats(g)) out.push_back(s);
+    for (auto& s : tourStats(g)) out.push_back(s);
+    return out;
+}
 
 }  // namespace mu
 

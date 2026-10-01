@@ -1472,6 +1472,32 @@ int main(int argc, char** argv) {
             printf("takeover crossings within %.0f m: %d\n", r, found);
             continue;
         }
+        if (!strcmp(argv[i], "--places")) {
+            // named places and their people anchors (sites.cpp): counts by kind and group, a few samples each
+            if (!World::gSites) continue;
+            const World::SiteSet& S = *World::gSites;
+            for (size_t pi = 0; pi < S.places.size(); pi++) {
+                const World::NamedPlace& P = S.places[pi];
+                int byKind[World::PA_COUNT] = {};
+                int groups = 0, last = -1;
+                for (const World::PlaceAnchor& a : S.anchors)
+                    if (a.place == pi) {
+                        byKind[a.kind]++;
+                        if (a.group != last) groups++;
+                        last = a.group;
+                    }
+                printf("place %zu '%s' kind %d at (%.0f %.0f) door (%.0f %.0f) r %.0f | sit %d stand %d waypoint %d guard %d mourn %d work %d exercise %d ground %d | groups ~%d\n", pi,
+                       P.name.c_str(), P.kind, P.pos.x, P.pos.y, P.door.x, P.door.y, P.radius, byKind[0], byKind[1], byKind[2], byKind[3], byKind[4], byKind[5], byKind[6], byKind[7], groups);
+                int shown[World::PA_COUNT] = {};
+                for (const World::PlaceAnchor& a : S.anchors)
+                    if (a.place == pi && shown[a.kind]++ < 3)
+                        printf("   anchor kind %d group %d at (%.1f %.1f %.2f) face (%.2f %.2f)\n", a.kind, a.group, a.pos.x, a.pos.y, a.pos.z, a.face.x, a.face.y);
+            }
+            printf("walks %zu\n", S.walks.size());
+            for (const World::SiteWalk& w : S.walks)
+                printf("   walk kind %d (%.1f %.1f %.2f) -> (%.1f %.1f %.2f) hw %.1f\n", w.kind, w.a.x, w.a.y, w.a.z, w.b.x, w.b.y, w.b.z, w.halfWidth);
+            continue;
+        }
         if (!strcmp(argv[i], "--ramps")) {
             // interchange ramps, clustered (for picking harness hotspots): where they are and how many lanes each has
             const AI::LaneGraph& G = w.lg;

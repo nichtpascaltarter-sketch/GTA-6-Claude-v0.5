@@ -371,6 +371,11 @@ static void runScenario(int sc, float t, AnimInput& in) {
             in.speed = t < 1.f ? 0.f : Min(sv ? (float)atof(sv) : 1.4f, (t - 1.f) * 11.f);
             break;
         }
+        case 35:   // standing around (each character with its own animator seed: weight shifts, postures, fidgets)
+            break;
+        case 36:   // queueing (stance 23)
+            in.stance = 23;
+            break;
         default: break;
     }
 }
@@ -608,7 +613,7 @@ int main(int argc, char** argv) {
         if (scenario > 0) {
             // run the Animator with scripted inputs up to time ti (character i: ti = t + i * dt)
             Animator an;
-            an.init(&ch.sk, 7u);
+            an.init(&ch.sk, scenario == 35 || scenario == 36 ? 7u + (u32)i * 7919u : 7u);
             an.setCharacter(ch.d);
             if (const char* gv = getenv("PREVIEW_GAIT")) an.gaitStyle = atoi(gv);   // walk style override (detail::GaitStyle)
             if (const char* gl = getenv("PREVIEW_GAITS")) {                          // per-character list "0,3,4,..."
@@ -621,11 +626,41 @@ int main(int argc, char** argv) {
             }
             float T = strip ? t + i * (stripDt > 0.f ? stripDt : 0.5f) : t;
             const float dt = 1.f / 60.f;
+            if (const char* fl = getenv("PREVIEW_FORCE")) {
+                // standing posture / fidget per character (internal clip ids, comma list): postures held from the start,
+                // fidgets starting at 0.5 s; the other schedulers wait
+                int k = 0, id = -1;
+                for (const char* q = fl; *q; k++) {
+                    if (k == i % 64) id = atoi(q);
+                    while (*q && *q != ',') q++;
+                    if (*q == ',') q++;
+                }
+                an.idleNext = an.fidgetNext = 1e9f;
+                if (id == detail::IC_IDLE_PHONE || id == detail::IC_IDLE_CROSSARMS || id == detail::IC_IDLE_POCKETS || id == detail::IC_IDLE_HIP ||
+                    id == detail::IC_IDLE_BEHIND || id == detail::IC_IDLE_CLASP) {
+                    an.idleVar = id;
+                    an.idleVarT = 0.f;
+                    an.idleVarDur = 1e9f;
+                } else if (id >= 0) {
+                    an.fidgetVar = id;
+                    an.fidgetT = -0.5f;
+                    an.fidgetDur = detail::clipInfoId(id).loop ? 3.f : detail::clipInfoId(id).duration;
+                }
+            }
             for (float tt = 0.f; tt < T; tt += dt) {
                 AnimInput in;
                 in.footProbes = true;
                 runScenario(scenario, tt, in);
                 if (melee >= 0) in.meleeKind = melee;
+                if (const char* cl = getenv("PREVIEW_CARRY")) {   // prop in hand per character (AnimInput::carry, comma list)
+                    int k = 0;
+                    for (const char* q = cl; *q; k++) {
+                        if (k == i) in.carry = atoi(q);
+                        while (*q && *q != ',') q++;
+                        if (*q == ',') q++;
+                    }
+                    in.carryOpen = getenv("PREVIEW_CARRYOPEN") != nullptr;
+                }
                 // the ped moves and turns like the game moves its capsule (the animator sees the same speed / turn rate)
                 vec2 md = length(in.localMoveDir) > 1e-3f ? normalize(in.localMoveDir) : vec2(0, 1);
                 scenYaw += in.turnRate * dt;
@@ -643,7 +678,8 @@ int main(int argc, char** argv) {
             }
             floorC = scenRoot;
             pose = an.pose;
-            printf("scenario %d t=%.2f action %d stance %d\n", scenario, T, an.action, an.stance);
+            printf("scenario %d t=%.2f action %d stance %d | standing: weight %.2f posture %d (%.2f) fidget %d (%.2f) breath %.2f\n", scenario, T,
+                   an.action, an.stance, an.standW, an.idleVar, an.idleVarW, an.fidgetVar, an.fidgetW, an.breath);
         }
 #else
         (void)t;

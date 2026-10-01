@@ -49,6 +49,7 @@ void updateOpenWorld(GameWorld& g, float dt) {
                 gShops.activeShop = gShops.activeSafehouse = gShops.activeBusiness = -1;
                 gShops.resprayStage = 0;
                 phoneGameReset();
+                fishingReset(g);
                 g.phone.open = false;
                 UI::Phone::reset();   // a loaded save / new game starts with the handset closed on its home screen
             }
@@ -86,6 +87,8 @@ void updateOpenWorld(GameWorld& g, float dt) {
         economyUpdate(g, dt);
         encountersUpdate(g, dt);
         act4Update(g, dt);
+        fishingUpdate(g, dt);
+        fishMarketsUpdate(g);
     }
     drawMarkers(g, gWorldMarkers);
     updateMissionTest(g, dt);
@@ -128,6 +131,7 @@ void drawMissionOverlay(GameWorld& g, float dt) {
     gMissions.overlayFrames++;
     float W = (float)UI::screenWidth(), H = (float)UI::screenHeight();
     mu::titleCardDraw(W, H, dt);
+    mu::fishingDraw(g, W, H);
     mu::menuDraw(g, W, H);
 }
 

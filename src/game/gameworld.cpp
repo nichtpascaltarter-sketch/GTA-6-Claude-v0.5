@@ -177,6 +177,7 @@ void GameWorld::update(float realDt) {
     double t0 = TimeSeconds();
     Interiors::preUpdate(*this, dt);   // interiors_game.cpp (test walk-through controls)
     Transit::update(*this, dt);        // transit_game.cpp: trains, buses, ferries; handles boarding input before the player
+    mu::fishingInput(*this);           // fishing.cpp: the rod takes the controls while it is out
     updatePlayer(dt);
     double t1 = TimeSeconds();
     updateAI(dt);
@@ -438,6 +439,39 @@ void GameWorld::submitRender() {
         d.paintFinish = (float)v.mods.finish;
         d.glassTint = v.mods.tint * 0.3f;
         dyn->submit(d);
+        // the steering wheel turned by the driver's hands (Animator::wheelTurn, so rim and hands agree), with the body's
+        // weight-transfer tilt
+        if (vlod == 0 && a.steerWheel && dist < 40.f) {
+            float turn = 0.f;
+            int drv = v.seats[0];
+            if (drv >= 0 && drv < (int)peds.size() && peds[drv].used) turn = peds[drv].anim.wheelTurn();
+            vec3 za = a.spec.steerWheelAxis, xa(1, 0, 0);
+            Render::DrawItem sd;
+            sd.model = a.steerWheel;
+            sd.pos = d.pos + dvec3(d.rot * a.spec.steerWheelPos);
+            sd.rot = d.rot * mat3(xa, normalize(cross(za, xa)), za) * mat3FromQuat(quatAxisAngle(vec3(0, 0, 1), -turn));
+            sd.tint0 = d.tint0;
+            sd.tint1 = d.tint1;
+            sd.id = 0x1000000000ull | v.uid;
+            sd.castShadow = dist < 12.f;
+            dyn->submit(sd);
+        }
+        // live instruments on the player's own vehicle: road speed and engine speed needles
+        if (vlod == 0 && a.needle && vi == playerVehicle() && dist < 25.f) {
+            for (size_t k = 0; k < a.spec.gauges.size(); k++) {
+                const Vehicles::VehicleModel::Gauge& g = a.spec.gauges[k];
+                float val = g.kind == 0 ? fabsf(s.forwardSpeed()) : (g.kind == 1 ? (s.engineOn ? s.engineRpm : 0.f) : 0.f);
+                float ang = Lerp(g.a0, g.a1, Saturate(val / Max(g.full, 1e-3f)));
+                vec3 dir = g.up * cosf(ang) + cross(g.up, g.normal) * sinf(ang);
+                Render::DrawItem nd;
+                nd.model = a.needle;
+                nd.pos = d.pos + dvec3(d.rot * g.pos);
+                nd.rot = d.rot * mat3(cross(dir, g.normal), dir, g.normal);
+                nd.id = 0x2000000000ull | ((u64)v.uid << 4) | (u64)k;
+                nd.castShadow = false;
+                dyn->submit(nd);
+            }
+        }
         // boats under way leave a wake on the water (renderer: Kelvin wedge, divergent rings and a foam trail)
         if (isBoat(vi) && dist < 900.f) {
             vec3 f = s.forward();

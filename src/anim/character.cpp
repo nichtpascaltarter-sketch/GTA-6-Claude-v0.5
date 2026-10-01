@@ -823,10 +823,27 @@ static void inflateLayers(MeshB& m, int lod) {
 
 }  // namespace detail
 
+namespace detail {
+// LOD0 budget: a rare heavy combination (a suit, a dense hairstyle and a beard) can pass ~34k triangles; the excess is
+// collapsed from the body and clothing where they are flattest (the face, the hands, the hair and all strand cards
+// are left alone).
+static void governLod0(MeshB& m) {
+    const int kBudget = 33600;
+    int tris = (int)(m.idx.size() / 3);
+    if (tris <= kBudget) return;
+    float w[PART_COUNT];
+    for (int p = 0; p < PART_COUNT; p++) w[p] = 1e6f;
+    w[PART_TORSO] = w[PART_ARM] = w[PART_LEG] = w[PART_NECK] = 1.f;
+    w[PART_GARMENT] = w[PART_ACC] = 2.f;
+    decimateMesh(m, kBudget, w);
+}
+}  // namespace detail
+
 void buildCharacterMesh(const CharacterDesc& d, const Skeleton& skel, SkinnedMeshData& out) {
     using namespace detail;
     MeshB fin;
     buildFinalMesh(d, skel, fin);
+    governLod0(fin);
     fixUvSeams(fin);
     emitMesh(fin, out);
 }
@@ -844,6 +861,7 @@ void buildCharacterMeshLods(const CharacterDesc& d, const Skeleton& skel, Skinne
     partW[0][PART_FINGER] = partW[0][PART_THUMB] = 0.6f;
     MeshB cur;
     buildFinalMesh(d, skel, cur);
+    governLod0(cur);
     if (lodCount > 1) computeLayerOffsets(cur);
     for (int lod = 0; lod < lodCount && lod < 3; lod++) {
         if (lod > 0) {

@@ -1177,22 +1177,108 @@ inline void seat(PMesh& m, vec3 hip, float halfW, const CarLook& L, bool bucket,
     }
 }
 
-inline void steeringWheel(PMesh& m, vec3 c, float tilt, float r = 0.185f) {
+// Steering wheel centred at the origin: rim in the XY plane (+Y up the rim, +X right), +Z the column axis towards the
+// driver. style 0 car: a leather rim with thumb grips either side of the side spokes, three satin spokes (3, 9 and
+// 6 o'clock) dished towards the dash with switch pads, and a padded airbag hub carrying the maker's roundel;
+// 1 truck / bus: a thinner rim, four spokes and a broad flat hub; 2 boat: a chrome wheel with six spokes and a domed hub.
+inline void steeringWheelPart(PMesh& m, float r, int style, u8 maker) {
+    const Frame F;
+    if (style == 2) {
+        m.newGroup(50.f);
+        m.use(MAT_CHROME, kCol1);
+        torus(m, F, r, 0.011f, 32, 6);
+        for (int k = 0; k < 6; k++) {
+            float a = kTwoPi * k / 6.f + kPi / 6.f;
+            vec3 d(cosf(a), sinf(a), 0.f);
+            cyl(m, d * 0.034f + vec3(0, 0, -0.018f), d * (r - 0.006f), 0.0062f, 6, false);
+        }
+        ellipsoid(m, Frame(vec3(0, 0, -0.024f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1)), vec3(0.04f, 0.04f, 0.03f), 14, 6, 0.f,
+                  kPi * 0.5f);
+        return;
+    }
+    const bool heavy = style == 1;
+    const float tube = heavy ? 0.0145f : 0.0165f;
+    m.newGroup(50.f);
+    m.use(MAT_LEATHER, col(0.3f, 0.3f, 0.3f));
+    torus(m, F, r, tube, 36, 8);
+    if (!heavy) {
+        // thumb grips: fuller rim just above the side spokes (a quarter to three)
+        for (int sg = -1; sg <= 1; sg += 2) {
+            float ac = sg > 0 ? 0.3f : kPi - 0.3f;
+            torus(m, F, r - 0.001f, tube * 1.2f, 8, 8, ac - 0.22f, ac + 0.22f);
+        }
+    }
+    // spokes rising from the recessed hub to the rim (a dished wheel)
+    const float zHub = heavy ? -0.022f : -0.032f;
+    m.newGroup(35.f);
+    m.use(MAT_PLASTIC, col(0.17f, 0.17f, 0.18f));
+    const int nSp = heavy ? 4 : 3;
+    for (int k = 0; k < nSp; k++) {
+        float a = heavy ? kPi * 0.25f + kPi * 0.5f * k : (k == 0 ? 0.f : (k == 1 ? kPi : kPi * 1.5f));
+        vec3 d(cosf(a), sinf(a), 0.f), t(-d.y, d.x, 0.f);
+        float w = heavy ? 0.017f : (k == 2 ? 0.019f : 0.027f);
+        vec3 a0 = d * (heavy ? 0.075f : 0.062f) + vec3(0, 0, zHub + 0.004f), a1 = d * (r - tube * 0.5f);
+        vec3 along = normalize(a1 - a0);
+        roundedBox(m, Frame((a0 + a1) * 0.5f, t, along, cross(t, along)), vec3(w, length(a1 - a0) * 0.5f, 0.0065f), 0.005f, 1);
+        if (!heavy && k < 2) {
+            // switch pad on the side spoke: a gloss panel with four buttons
+            vec3 pc = d * 0.094f + vec3(0, 0, zHub + 0.012f);
+            vec3 pz = cross(along, t);   // the spoke's face towards the driver
+            m.use(MAT_PLASTIC, col(0.06f, 0.06f, 0.065f));
+            roundedBox(m, Frame(pc + pz * 0.004f, t, along, pz), vec3(0.021f, 0.02f, 0.0035f), 0.004f, 1);
+            m.use(MAT_PLASTIC, col(0.3f, 0.3f, 0.31f));
+            for (int b = 0; b < 4; b++) {
+                vec3 bp = pc + pz * 0.0078f + t * ((b & 1) ? 0.0085f : -0.0085f) + along * ((b & 2) ? 0.008f : -0.008f);
+                roundedBox(m, Frame(bp, t, along, pz), vec3(0.0055f, 0.0048f, 0.0012f), 0.0012f, 1);
+            }
+            m.use(MAT_PLASTIC, col(0.17f, 0.17f, 0.18f));
+        }
+    }
+    // hub: the airbag pad (cars) or a flat boss (trucks and buses)
+    m.newGroup(40.f);
+    m.use(MAT_LEATHER, col(0.2f, 0.2f, 0.2f));
+    if (heavy) {
+        roundedBox(m, Frame(vec3(0, 0, zHub + 0.008f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1)), vec3(0.075f, 0.075f, 0.014f), 0.012f, 2);
+    } else {
+        roundedBox(m, Frame(vec3(0, 0, zHub + 0.014f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1)), vec3(0.074f, 0.056f, 0.021f), 0.018f, 2);
+        if (maker) buildLogo(m, Frame(vec3(0, 0.004f, zHub + 0.0352f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1)), 0.019f, maker);
+    }
+}
+
+// Steering wheel at c on a column tilted `tilt` from the vertical (towards the driver) with rim radius r. At full detail
+// only the column, its shroud and the stalks go into the body: the wheel itself becomes a part of its own that turns
+// with the driver's hands (CockpitCapture -> VehicleModel::steerWheel); distant levels keep a fixed wheel in the body.
+inline void steeringWheel(PMesh& m, vec3 c, float tilt, float r = 0.185f, int style = 0, u8 maker = 0) {
     vec3 ax = normalize(vec3(0, -cosf(tilt), sinf(tilt)));  // wheel axis towards the driver
     vec3 x(1, 0, 0);
     vec3 y = normalize(cross(ax, x));
     m.newGroup(50.f);
-    m.use(MAT_LEATHER, col(0.35f, 0.35f, 0.35f));
-    torus(m, Frame(c, x, y, ax), r, 0.016f, 20, 5);
     m.use(MAT_INTERIOR, kCol1);
-    ellipsoid(m, Frame(c - ax * 0.01f, x, y, ax), vec3(0.07f, 0.06f, 0.04f), 12, 5);
-    for (int k = 0; k < 3; k++) {
-        float a = kPi * 0.5f + kTwoPi * k / 3.f + kPi;
-        vec3 d = x * cosf(a) + y * sinf(a);
-        cyl(m, c + d * 0.05f, c + d * (r - 0.01f) - ax * 0.01f, 0.012f, 6, false);
-    }
-    // column
     cyl(m, c - ax * 0.03f, c - ax * 0.38f, 0.03f, 8, true);
+    if (lodLevel() == 0) {
+        if (style != 2) {
+            // column shroud behind the hub, the indicator stalk on the left and the wiper stalk on the right
+            m.use(MAT_PLASTIC, col(0.12f, 0.12f, 0.125f));
+            roundedBox(m, Frame(c - ax * 0.17f - y * 0.012f, x, y, ax), vec3(0.052f, 0.048f, 0.1f), 0.022f, 2);
+            for (int sg = -1; sg <= 1; sg += 2) {
+                vec3 b0 = c - ax * 0.095f + x * (sg * 0.048f) + y * 0.004f;
+                vec3 b1 = b0 + x * (sg * 0.105f) + y * 0.012f + ax * 0.008f;
+                cyl(m, b0, b1, 0.0055f, 6, false);
+                cyl(m, b1, b1 + x * (sg * 0.035f) + y * 0.004f, 0.0085f, 8, true);
+            }
+        }
+        CockpitCapture& cc = cockpitCapture();
+        cc.wheel = true;
+        cc.wheelC = c;
+        cc.wheelAx = ax;
+        cc.wheelR = r;
+        cc.wheelStyle = style;
+        cc.maker = maker;
+        return;
+    }
+    PMesh::Mark mk = m.mark();
+    steeringWheelPart(m, r, style, maker);
+    m.transform(mk, mat4FromBasis(x, y, ax, c));
 }
 
 // Quad visible from both sides (cabin closing panels are seen from inside and, through the glass, from outside).
@@ -1368,17 +1454,38 @@ inline void headliner(PMesh& m, CarBody& b) {
 inline void cabinFurniture(PMesh& m, CarBody& b, const CarLook& L, const InteriorLayout& I, float dw, float dz) {
     const CarSpec& s = b.s;
     m.newGroup(40.f);
-    // gauge dials in the binnacle (faintly lit) with chrome bezels, facing the driver
+    // gauge dials in the binnacle (faintly lit) with chrome bezels and lit scales, facing the driver: the tachometer
+    // on the left (red line at the top of its scale), the speedometer on the right. Their needles are live parts
+    // (VehicleModel::gauges): 270 degrees of sweep from 7:30 to 4:30
     vec3 gdir = normalize(vec3(0, -1, 0.35f));
     for (int k = 0; k < 2; k++) {
         vec3 c(-I.seatX + (k == 0 ? -0.075f : 0.075f), I.dashY1 - 0.021f, dz + 0.042f);
-        m.use(MAT_EMISSIVE, col(0.55f, 0.72f, 1.f, 0.03f));
+        // near-black face with a faint blue backlight (emission = albedo * a * 400): dark by day so the lit scale and
+        // the orange needle read against it, a soft glow at night
+        m.use(MAT_EMISSIVE, col(0.03f, 0.04f, 0.06f, 0.35f));
         disk(m, c + gdir * 0.001f, gdir, 0.047f, 20);
         m.use(MAT_CHROME, kCol1);
         vec3 x = normalize(cross(vec3(0, 0, 1), gdir)), y = cross(gdir, x);
         torus(m, Frame(c, x, y, gdir), 0.05f, 0.004f, 20, 4);
-        m.use(MAT_PLASTIC, col(0.9f, 0.3f, 0.1f));
-        roundedBox(m, Frame(c + gdir * 0.003f + (x * 0.6f + y * 0.8f) * 0.018f, x * 0.8f - y * 0.6f, x * 0.6f + y * 0.8f, gdir), vec3(0.0025f, 0.02f, 0.001f), 0.f, 1);
+        // scale: major ticks at every eighth of the sweep, minor ones between (clockwise angle a from 12 o'clock)
+        m.use(MAT_EMISSIVE, col(0.95f, 0.95f, 0.9f, 0.12f));
+        for (int t = 0; t <= 16; t++) {
+            float a = lerp(-2.356f, 2.356f, t / 16.f);
+            vec3 d = y * cosf(a) + x * sinf(a);
+            bool major = (t & 1) == 0;
+            float r0 = major ? 0.034f : 0.0385f, r1 = 0.0432f;
+            if (k == 0 && t >= 14) m.use(MAT_EMISSIVE, col(1.f, 0.12f, 0.06f, 0.14f));
+            roundedBox(m, Frame(c + gdir * 0.0022f + d * ((r0 + r1) * 0.5f), cross(d, gdir), d, gdir),
+                       vec3(major ? 0.0014f : 0.0009f, (r1 - r0) * 0.5f, 0.0006f), 0.f, 1);
+        }
+        CockpitCapture& cc = cockpitCapture();
+        VehicleModel::Gauge g;
+        g.pos = c + gdir * 0.0035f;
+        g.normal = gdir;
+        g.up = y;
+        g.kind = k == 0 ? 1 : 0;
+        cc.gauges.push_back(g);
+        cc.needleLen = 0.037f;
     }
     // air vents across the dash face: dark louvres in chrome frames
     float yv = I.dashY1 - 0.018f, zv = dz - 0.075f;
@@ -1583,7 +1690,7 @@ inline void buildInterior(PMesh& m, CarBody& b, const CarLook& L, const Interior
         m.use(MAT_INTERIOR, kCol1);
         roundedBoxAt(m, vec3(0, (I.dashY1 + I.yHipF) * 0.5f - 0.05f, I.zFloor + 0.12f), vec3(0.1f, (I.dashY1 - I.yHipF) * 0.5f + 0.05f, 0.12f), 0.04f, 2);
         // steering wheel (left)
-        steeringWheel(m, vec3(-I.seatX, I.yHipF + 0.42f, dz - 0.02f), 0.42f);
+        steeringWheel(m, vec3(-I.seatX, I.yHipF + 0.42f, dz - 0.02f), 0.42f, 0.185f, 0, L.maker);
     }
     if (!b.s.openTop) headliner(m, b);
     cabinTrim(m, b, I, y0, y1, floorZ(b.yWr) - 0.02f);

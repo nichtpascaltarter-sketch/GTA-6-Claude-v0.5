@@ -230,15 +230,24 @@ u8 GameWorld::pickCarry(u32 uid, int context) const {
 // What a pedestrian actually has in hand this frame: its own prop, else an umbrella in steady rain outdoors (about
 // half of the civilians) or a street default for wanderers; nothing while the hands are busy (a weapon, a fight,
 // aiming), in a vehicle, swimming or ragdolling. The animator reads this for the arm poses (peds.cpp -> AnimInput).
+// A phone at the ear or a cigarette (Anim::rightHandBusy stances) takes the right hand: a cup changes hands, and the
+// right-hand loads that have no left-hand hold (case, umbrella, rod, board) are put away meanwhile and never handed
+// out as a rain umbrella.
 u8 GameWorld::effectiveCarry(const Ped& p) const {
     if (p.charIndex < 0 || p.ragdoll || p.state != PS_ONFOOT) return CARRY_NONE;
     if (p.weapon != WPN_FISTS || p.meleeMove >= 0 || p.aiming) return CARRY_NONE;
     u8 carry = p.carry;
+    if (carry == CARRY_HANDSFREE) return CARRY_NONE;
     bool civilian = p.faction == FAC_CIVILIAN && !p.isPlayer;
-    if (carry == CARRY_NONE && civilian && umbrellaWeather() && hash32(p.uid * 97u + 13u) % 100u < 48u && p.brain.type != BRAIN_FLEE)
+    bool busyR = Anim::rightHandBusy(p.animIn.stance);
+    if (carry == CARRY_NONE && civilian && !busyR && umbrellaWeather() && hash32(p.uid * 97u + 13u) % 100u < 48u &&
+        p.brain.type != BRAIN_FLEE)
         carry = CARRY_UMBRELLA;
     if (carry == CARRY_NONE && civilian && p.brain.type == BRAIN_WANDER) carry = pickCarry(p.uid, 0);
-    return carry < CARRY_COUNT ? carry : (u8)CARRY_NONE;
+    if (carry >= CARRY_COUNT) return CARRY_NONE;
+    if (busyR && (carry == CARRY_SUITCASE || carry == CARRY_UMBRELLA || carry == CARRY_ROD || carry == CARRY_SURFBOARD))
+        return CARRY_NONE;
+    return carry;
 }
 
 // Steady rain where the player is (umbrellas up outdoors)
@@ -258,9 +267,11 @@ void GameWorld::submitCarry(int i, const Render::DrawItem& body) {
     if (!model) return;
     mat3 pr = body.rot;
     vec3 fwd = pr * vec3(0.f, 1.f, 0.f), right = pr * vec3(1.f, 0.f, 0.f), up(0.f, 0.f, 1.f);
-    // the hand that holds it: right for most, left for bags, coffee in the right unless a phone is in it
+    // the hand that holds it: right for most, left for bags, coffee in the right unless a phone or cigarette is in it
+    // (the animator's carryArms follows the same rule)
     bool rightHand = !(carry == CARRY_SHOPBAG || carry == CARRY_BRIEFCASE);
-    if (carry == CARRY_COFFEE && (p.anim.phoneW > 0.3f || p.anim.browseW > 0.3f)) rightHand = false;
+    if (carry == CARRY_COFFEE && (p.anim.phoneW > 0.3f || p.anim.browseW > 0.3f || Anim::rightHandBusy(p.animIn.stance)))
+        rightHand = false;
     vec3 gpos, gaxis, gpalm;
     Anim::handGrip(ce.skel, p.bones, rightHand, gpos, gaxis, gpalm);
     vec3 hand = pr * gpos;   // relative to p.pos

@@ -840,7 +840,10 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     vec2 to = pa.anchor - pos;
                     float d = length(to);
                     if (d > 0.35f) {
-                        desired = to / d * Min(1.4f, d * 2.f + 0.3f);
+                        // (runners on a track at a steady run, strollers at an easy pace)
+                        float vmax = pa.activity == ACT_VENUE && pa.venueMode == VM_JOG ? 3.1f + hashToFloat(hash32(p.uid)) * 0.6f
+                                   : (pa.activity == ACT_VENUE && pa.venueMode == VM_STROLL ? 1.05f + hashToFloat(hash32(p.uid)) * 0.25f : 1.4f);
+                        desired = to / d * Min(vmax, d * 2.f + 0.3f);
                         faceYaw = atan2f(-desired.x, desired.y);
                         faceSet = true;
                     } else {

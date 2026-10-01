@@ -57,6 +57,24 @@ struct VehicleModel {
     MeshData caliper;       // brake caliper in the same local frame as `wheel` (left wheels turned the same way): draw it
                             // at every wheel with the wheel transform WITHOUT the spin (steer + suspension only), close
                             // range only (LOD0); empty if none
+    // Steering wheel (cars, trucks, buses, boats with a wheel): rim, spokes and hub as a part of their own, centred at
+    // the origin with the rim in the XY plane (+Y up the rim with the wheel straight, +X right) and +Z the column axis
+    // towards the driver. Draw it at steerWheelPos with local +Z along steerWheelAxis and local +X along the vehicle's
+    // +X, turned with the driver's hands: a right turn is clockwise as the driver sees it (-angle about +Z). Empty if
+    // none; the column stays in the body, and distant levels keep a fixed wheel in the body.
+    MeshData steerWheel;
+    vec3 steerWheelPos, steerWheelAxis = vec3(0, -1, 0);
+    float steerWheelRadius = 0.f;
+    // Instrument needles over the dials (close range): `needle` is one needle pivoting at the origin, pointing +Y, with
+    // its face normal +Z (towards the driver), sized for these dials
+    struct Gauge {
+        vec3 pos, normal, up;          // pivot on the dial face, face normal (towards the driver), the dial's 12 o'clock
+        u8 kind = 0;                   // 0 road speed (m/s), 1 engine rpm, 2 fuel (0..1), 3 coolant temperature (0..1)
+        float a0 = -2.36f, a1 = 2.36f; // needle angle clockwise from `up` as the driver sees it, at zero / full scale
+        float full = 1.f;              // value at a1
+    };
+    MeshData needle;
+    std::vector<Gauge> gauges;
     std::vector<WheelSpec> wheels;
     std::vector<SeatSpec> seats;
     std::vector<LightSpec> lights;

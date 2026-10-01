@@ -1271,9 +1271,13 @@ static void seamAlong(OutfitCtx& o, const GarmentDef& g, u8 part, int side, floa
     PartGrid G;
     buildPartGrid(o.c, part, side, G);
     std::vector<BVert> sm;
+    float last = -1e9f;
     for (size_t i = 0; i < G.ringA.size(); i++) {
         float a = G.ringA[i];
         if (a < Min(a0, a1) || a > Max(a0, a1)) continue;
+        // a sample every ~1.5 cm is plenty for a straight seam (the rings are denser round the joints)
+        if (a - last < 0.015f * o.c.D->s && i + 1 < G.ringA.size() && G.ringA[i + 1] <= Max(a0, a1)) continue;
+        last = a;
         BVert v;
         if (!sampleGrid(o.c, G, a, th, v) || g.cov(v) <= 0.f) {
             if (sm.size() >= 2) addGarmentRibbon(o, g, sm, halfW, 0.0006f, col, mat, mp);
@@ -2418,6 +2422,7 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
             p0s[k] = garmentTorsoPoint(o, top, zStart, th, n0s[k]) - normalize(vec3(sinf(th), cosf(th) * 0.8f, 0.f)) * (0.006f * s);
         }
         const float phase = rng.range(0.f, kTwoPi), zKnee = R.zKnee;
+        const float tRamp = Saturate(0.05f * s / Max(zStart - hemZ, 0.1f));
         std::vector<float> creaseV;
         for (int r = 0; r < NR; r++) {
             float t = (float)r / (NR - 1);
@@ -2446,19 +2451,25 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
                 v.mat = MAT_CLOTH;
                 v.matParam = 1 | 4u;
                 v.part = PART_GARMENT;
-                // stride: the panels ride on their own thigh (fully at the hem, so a knee swinging forward carries the
-                // cloth in front of it), the centre panels split between both; below the knee the calves take a share
+                // stride: below the fitted part (the cone starts under the hip joints) each half of the skirt rides on
+                // its own thigh almost rigidly, so a knee swinging forward carries the cloth in front of it and a seated
+                // lap keeps the skirt lying over the thighs instead of cutting through them (a partial thigh weight
+                // would rotate the cloth only part of the way); the back lags a little and the centre panels split
+                // between both thighs (taut between the knees in a long stride); below the knee the calves take a
+                // share where the hem reaches the knee (the hem then keeps round the knee as it bends: a seated skirt
+                // spreads flat over the knees instead of standing out as a ring). The first 5 cm blend in from the
+                // fitted part's own weights, so the two stay joined.
                 WAcc acc;
-                float legW = 0.95f * powf(t, 0.75f);
                 float side = sinf(th);
-                float wr = Saturate(0.5f + side * 0.9f), wl = 1.f - wr;
-                float calf = 0.4f * sstep(zKnee, zKnee - 0.2f * s, z);
+                float wr = sstep(-0.25f, 0.25f, side), wl = 1.f - wr;
+                float legW = Lerp(0.82f, 0.96f, sstep(-0.6f, 0.3f, cosf(th)));
+                float calf = 0.65f * sstep(zKnee + 0.08f * s, zKnee - 0.02f * s, z) * sstep(zKnee + 0.07f * s, zKnee + 0.02f * s, hemZ);
                 acc.add(B_PELVIS, 1.f - legW);
                 acc.add(B_THIGH_R, legW * wr * (1.f - calf));
                 acc.add(B_THIGH_L, legW * wl * (1.f - calf));
                 acc.add(B_CALF_R, legW * wr * calf);
                 acc.add(B_CALF_L, legW * wl * calf);
-                v.sw = acc.finish();
+                v.sw = lerpSkin(torsoSkinWeights(D, p0s[k]), acc.finish(), sstep(0.f, tRamp, t));
                 // crease channel: the inside of each flute / pleat
                 float cr = nFlutes > 0 ? Saturate((0.5f - 0.5f * wv) * (pleats ? 0.8f : 0.6f) * sstep(0.f, 0.5f, t)) : 0.f;
                 v.alpha = 1.f - cr;
@@ -2874,6 +2885,7 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
         float fwd = Saturate(v.n.y);   // the toe cap faces forward
         return toeExt * t * (0.35f + 0.65f * fwd);
     };
+    size_t upV0 = 0, upV1 = 0;   // the closed upper's vertices in o.out (the laces sit on them)
     if (kind == SHOE_SANDAL) {
         // straps: a band across the instep and a thong between the first toes
         GarmentDef st;
@@ -2918,7 +2930,9 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
             return cut - v.bp.z;
         };
         g.hideMargin = 0.006f;
+        upV0 = o.out.v.size();
         emitGarment(o, g);
+        upV1 = o.out.v.size();
         auto decal = [&](CovFn cov, vec3 dcol, u8 mat, float extraOff) {
             GarmentDef dg;
             dg.parts = 1u << PART_LEG;
@@ -3034,7 +3048,7 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
                 }
             return w * D.footW + margin;
         };
-        const int NS = 40;
+        const int NS = 32;
         std::vector<vec3> outline(NS);
         std::vector<float> tOf(NS);
         const float yc = 0.5f * (yHeel + yToe), Lh = 0.5f * (yToe - yHeel);
@@ -3116,80 +3130,144 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
         sm.computeNormals(0, sm.idx.size());
         for (int k = 0; k < NS; k++) sm.v[rings[NRr - 1][k]].n = normalize(sm.v[rings[NRr - 1][k]].n + vec3(0, 0, -1));
         o.out.append(sm);
-        if (laced) {
-            // laces over the tongue: eyelet rows either side of the opening, crossed ribbons between them, a bow
+        if (laced && upV1 > upV0) {
+            // laces over the tongue: eyelet rows either side of the opening, crossed ribbons between them, a bow. The
+            // lacing line is traced over the skin from the front row on the instep (an upward cast there always leaves
+            // through the top of the foot) back and up towards the ankle, on boots on up the front of the shin to below
+            // the collar; every lace point sits on the emitted upper (its height and skinning read from the nearest
+            // upper vertices), so laces and bow follow the shoe instead of sinking into the ankle or floating off it.
             const int nRows = kind == SHOE_BOOT ? 7 : 5;
-            float y0 = ank.y + (kind == SHOE_BOOT ? 0.005f : 0.035f) * s, y1 = ank.y + 0.105f * s;
+            const u32 LM = FM | (sd ? MK_LEG_R : MK_LEG_L);
             vec3 lc = rng.chance(0.6f) ? vec3(0.9f) : col * 0.8f;
             if (kind == SHOE_BOOT) lc = vec3(0.12f, 0.07f, 0.03f);
-            std::vector<vec3> L(nRows), Rr(nRows);
-            std::vector<vec3> Nn(nRows);
-            auto upperPt = [&](float x, float y) {
-                vec3 o0(x, y, lift + 0.01f * s);
-                float t = c.sdf.castOut(o0, vec3(0, 0, 1), FM | (sd ? MK_LEG_R : MK_LEG_L), 0.12f * s);
-                vec3 p = o0 + vec3(0, 0, t);
-                vec3 gr = c.sdf.grad(p, FM | (sd ? MK_LEG_R : MK_LEG_L));
-                vec3 nn = length2(gr) > 1e-12f ? normalize(gr) : vec3(0, 0, 1);
-                return std::make_pair(p + nn * (upperThick + 0.0022f * s), nn);
+            auto onSkin = [&](vec3 p, vec3& nn) {
+                vec3 q = c.sdf.project(p, LM, 6);
+                vec3 gr = c.sdf.grad(q, LM);
+                nn = length2(gr) > 1e-12f ? normalize(gr) : vec3(0, 0, 1);
+                return q;
             };
-            for (int i = 0; i < nRows; i++) {
-                float u = (float)i / (nRows - 1);
-                float y = Lerp(y1, y0, u);
-                float halfGap = Lerp(0.007f, 0.011f, u) * s;
-                auto pl = upperPt(ank.x - halfGap, y), pr = upperPt(ank.x + halfGap, y);
-                L[i] = pl.first;
-                Rr[i] = pr.first;
-                Nn[i] = normalize(pl.second + pr.second);
-            }
-            MeshB lm;
-            SkinW swL = skin2(B_FOOT_L + o4, B_TOE_L + o4, 0.15f);
-            auto ribbon = [&](vec3 a0, vec3 b0, vec3 n0) {
-                vec3 dd = b0 - a0;
-                vec3 side = normalize(cross(n0, dd)) * (0.0028f * s);
-                u32 base = (u32)lm.v.size();
-                vec3 q[4] = {a0 - side, a0 + side, b0 + side, b0 - side};
-                for (int k = 0; k < 4; k++) {
-                    BVert v;
-                    v.p = q[k] + n0 * (k == 1 || k == 2 ? 0.0004f : 0.f);
-                    v.bp = v.p;
-                    v.n = n0;
-                    v.t = normalize(dd);
-                    v.col = lc;
-                    v.mat = MAT_CLOTH;
-                    v.part = PART_ACC;
-                    v.sw = swL;
-                    lm.add(v);
+            // the point h above the upper over the skin nearest p, with the upper's normal and skinning there
+            auto onUpper = [&](vec3 p, float h, vec3& nn, SkinW& sw) {
+                vec3 q = onSkin(p, nn);
+                float wsum = 0.f, off = 0.f, bestD = 1e9f;
+                sw = skin2(B_FOOT_L + o4, B_TOE_L + o4, 0.15f);
+                for (size_t i = upV0; i < upV1; i++) {
+                    const BVert& u = o.out.v[i];
+                    if (dot(u.n, nn) < 0.3f) continue;
+                    float d2 = length2(u.p - q);
+                    if (d2 > Sq(0.03f * s)) continue;
+                    float w = 1.f / (d2 + Sq(0.004f * s));
+                    off += w * dot(u.p - q, nn);
+                    wsum += w;
+                    if (d2 < bestD) {
+                        bestD = d2;
+                        sw = u.sw;
+                    }
                 }
-                vec3 fn = cross(q[1] - q[0], q[2] - q[0]);
-                if (dot(fn, n0) >= 0.f) lm.quad(base, base + 1, base + 2, base + 3);
-                else lm.quad(base, base + 3, base + 2, base + 1);
+                off = wsum > 0.f ? Max(off / wsum, upperThick) : upperThick;
+                return q + nn * (off + h);
             };
-            for (int i = 0; i + 1 < nRows; i++) {
-                vec3 n0 = Nn[i];
-                ribbon(L[i], Rr[i + 1] + n0 * 0.0008f * s, n0);
-                ribbon(Rr[i], L[i + 1] + n0 * 0.0016f * s, n0);
+            // keeps p at least h above the upper (loops and ends of the bow where the shoe curves up under them)
+            auto aboveUpper = [&](vec3 p, float h) {
+                vec3 nn;
+                SkinW sw;
+                vec3 fl = onUpper(p, h, nn, sw);
+                float below = dot(fl - p, nn);
+                return below > 0.f ? p + nn * below : p;
+            };
+            vec3 o0(ank.x, ank.y + 0.105f * s, lift + 0.01f * s), cn;
+            vec3 cur = onSkin(o0 + vec3(0, 0, c.sdf.castOut(o0, vec3(0, 0, 1), LM, 0.12f * s)), cn);
+            std::vector<vec3> path{cur};
+            std::vector<float> arc{0.f};
+            const float lenEnd = kind == SHOE_BOOT ? 0.3f * s : 0.078f * s, zEnd = cutFront - 0.018f * s;
+            const vec3 heading = normalize(vec3(0.f, -1.f, 1.2f));
+            for (int it = 0; it < 160; it++) {
+                vec3 td = heading - cn * dot(heading, cn);
+                if (length2(td) < 1e-8f) break;
+                vec3 nxt = onSkin(cur + normalize(td) * 0.002f * s, cn);
+                if (nxt.z >= zEnd) break;
+                arc.push_back(arc.back() + length(nxt - cur));
+                path.push_back(nxt);
+                cur = nxt;
+                if (arc.back() >= lenEnd) break;
             }
-            ribbon(L[0], Rr[0], Nn[0]);   // bottom bar
-            // bow at the top row: two loops and two ends
-            vec3 top = (L[nRows - 1] + Rr[nRows - 1]) * 0.5f + Nn[nRows - 1] * 0.002f * s;
-            for (int e = 0; e < 2; e++) {
-                float ex = e ? 1.f : -1.f;
-                std::vector<vec3> pts;
-                std::vector<float> rad;
-                std::vector<SkinW> sws;
-                for (int k = 0; k <= 8; k++) {
-                    float a = kPi * k / 8.f;
-                    pts.push_back(top + vec3(ex * (0.012f * s) * sinf(a), (-0.006f * s) * (1.f - cosf(a)) * 0.5f + 0.004f * s * sinf(a), 0.002f * s * sinf(a)));
-                    rad.push_back(0.0013f * s);
-                    sws.push_back(swL);
+            const float total = arc.back();
+            auto along = [&](float a) {   // the lacing line at arc length a
+                size_t k = 1;
+                while (k + 1 < arc.size() && arc[k] < a) k++;
+                float f = Saturate((a - arc[k - 1]) / Max(arc[k] - arc[k - 1], 1e-6f));
+                return lerp(path[k - 1], path[k], f);
+            };
+            if (total > 0.02f * s) {
+                std::vector<vec3> L(nRows), Rr(nRows), Nn(nRows), Tt(nRows), Ss(nRows);
+                std::vector<SkinW> swLr(nRows), swRr(nRows);
+                for (int i = 0; i < nRows; i++) {
+                    float u = (float)i / (nRows - 1);
+                    vec3 pc = along(total * u);
+                    vec3 tn = normalize(along(Min(total * u + 0.004f * s, total)) - along(Max(total * u - 0.004f * s, 0.f)));
+                    vec3 nn, n1, n2;
+                    onSkin(pc, nn);
+                    vec3 side = normalize(cross(tn, nn));   // towards -x
+                    float halfGap = Lerp(0.007f, 0.011f, u) * s;
+                    L[i] = onUpper(pc + side * halfGap, 0.0022f * s, n1, swLr[i]);
+                    Rr[i] = onUpper(pc - side * halfGap, 0.0022f * s, n2, swRr[i]);
+                    Nn[i] = normalize(n1 + n2);
+                    Tt[i] = tn;
+                    Ss[i] = side;
                 }
-                addTube(lm, pts, rad, 4, false, lc, MAT_CLOTH, sws);
-                std::vector<vec3> tail = {top, top + vec3(ex * 0.006f * s, -0.012f * s, -0.004f * s), top + vec3(ex * 0.009f * s, -0.022f * s, -0.012f * s)};
-                std::vector<float> tr(3, 0.0012f * s);
-                std::vector<SkinW> tsw(3, swL);
-                addTube(lm, tail, tr, 4, false, lc, MAT_CLOTH, tsw);
+                MeshB lm;
+                auto ribbon = [&](vec3 a0, vec3 b0, vec3 n0, const SkinW& swa, const SkinW& swb) {
+                    vec3 dd = b0 - a0;
+                    vec3 side = normalize(cross(n0, dd)) * (0.0028f * s);
+                    u32 base = (u32)lm.v.size();
+                    vec3 q[4] = {a0 - side, a0 + side, b0 + side, b0 - side};
+                    for (int k = 0; k < 4; k++) {
+                        BVert v;
+                        v.p = q[k] + n0 * (k == 1 || k == 2 ? 0.0004f : 0.f);
+                        v.bp = v.p;
+                        v.n = n0;
+                        v.t = normalize(dd);
+                        v.col = lc;
+                        v.mat = MAT_CLOTH;
+                        v.part = PART_ACC;
+                        v.sw = k < 2 ? swa : swb;
+                        lm.add(v);
+                    }
+                    vec3 fn = cross(q[1] - q[0], q[2] - q[0]);
+                    if (dot(fn, n0) >= 0.f) lm.quad(base, base + 1, base + 2, base + 3);
+                    else lm.quad(base, base + 3, base + 2, base + 1);
+                };
+                for (int i = 0; i + 1 < nRows; i++) {
+                    vec3 n0 = normalize(Nn[i] + Nn[i + 1]);
+                    ribbon(L[i], Rr[i + 1] + n0 * 0.0008f * s, n0, swLr[i], swRr[i + 1]);
+                    ribbon(Rr[i], L[i + 1] + n0 * 0.0016f * s, n0, swRr[i], swLr[i + 1]);
+                }
+                ribbon(L[0], Rr[0], Nn[0], swLr[0], swRr[0]);   // bottom bar
+                // bow at the top row: two loops lying back towards the ankle and two ends hanging forward over the laces
+                const int it = nRows - 1;
+                const vec3 N0 = Nn[it], T0 = Tt[it], S0 = Ss[it];
+                const SkinW swTop = lerpSkin(swLr[it], swRr[it], 0.5f);
+                const vec3 top = (L[it] + Rr[it]) * 0.5f + N0 * 0.002f * s;
+                for (int e = 0; e < 2; e++) {
+                    float ex = e ? 1.f : -1.f;
+                    std::vector<vec3> pts;
+                    std::vector<float> rad;
+                    for (int k = 0; k <= 8; k++) {
+                        float a = kPi * k / 8.f;
+                        vec3 p = top + S0 * (ex * 0.012f * s * sinf(a)) + T0 * (0.003f * s * (1.f - cosf(a)) - 0.004f * s * sinf(a)) +
+                                 N0 * (0.002f * s * sinf(a));
+                        pts.push_back(aboveUpper(p, 0.0035f * s));
+                        rad.push_back(0.0013f * s);
+                    }
+                    addTube(lm, pts, rad, 4, false, lc, MAT_CLOTH, std::vector<SkinW>(pts.size(), swTop));
+                    const float lat[3] = {0.f, 0.006f, 0.009f}, fwd[3] = {0.f, 0.012f, 0.022f};
+                    std::vector<vec3> tail;
+                    for (int k = 0; k < 3; k++) tail.push_back(aboveUpper(top + S0 * (ex * lat[k] * s) - T0 * (fwd[k] * s), 0.005f * s));
+                    std::vector<float> tr(3, 0.0012f * s);
+                    addTube(lm, tail, tr, 4, false, lc, MAT_CLOTH, std::vector<SkinW>(3, swTop));
+                }
+                o.out.append(lm);
             }
-            o.out.append(lm);
         }
     }
     o.hideOut.resize(o.out.idx.size() / 3, 0);

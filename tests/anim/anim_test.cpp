@@ -858,6 +858,186 @@ void testAnimator() {
            (t3 - t2) / N * 1e6, (t6 - t5) / N * 1e6, (t4 - t3) / N * 1e6);
 }
 
+// ------------------------------------------------------------------------------------------------
+// Clothing clipping (characters pass 4): garments, straps, bags and skirts must stay outside the body in motion. The
+// complete skin (built without clothes, so the parts hidden under garments are there as well) and the dressed mesh are
+// skinned on the CPU in poses; every clothing / accessory vertex is tested against the nearest posed skin vertex
+// (inside = behind its tangent plane). Walking, running and standing are checked; sitting is reported (cloth would be
+// pushed aside by the thighs, which linear skinning cannot do).
+namespace clip {
+struct Posed {
+    std::vector<vec3> p, n;
+    std::unordered_map<u64, std::vector<u32>> grid;
+    static u64 key(int x, int y, int z) { return ((u64)(u32)(x + 100000) << 40) ^ ((u64)(u32)(y + 100000) << 20) ^ (u64)(u32)(z + 100000); }
+    void index() {
+        grid.clear();
+        for (u32 i = 0; i < (u32)p.size(); i++) grid[key((int)floorf(p[i].x / 0.02f), (int)floorf(p[i].y / 0.02f), (int)floorf(p[i].z / 0.02f))].push_back(i);
+    }
+    // nearest vertex within ~6 cm (-1: none)
+    int nearest(vec3 q) const {
+        int cx = (int)floorf(q.x / 0.02f), cy = (int)floorf(q.y / 0.02f), cz = (int)floorf(q.z / 0.02f);
+        float best = 0.06f * 0.06f;
+        int bi = -1;
+        for (int dz = -3; dz <= 3; dz++)
+            for (int dy = -3; dy <= 3; dy++)
+                for (int dx = -3; dx <= 3; dx++) {
+                    auto it = grid.find(key(cx + dx, cy + dy, cz + dz));
+                    if (it == grid.end()) continue;
+                    for (u32 j : it->second) {
+                        float d2 = length2(p[j] - q);
+                        if (d2 < best) {
+                            best = d2;
+                            bi = (int)j;
+                        }
+                    }
+                }
+        return bi;
+    }
+};
+static vec3 skinPt(const mat4* M, const u8* b, const float* w, vec3 p, bool dir) {
+    vec3 r(0);
+    for (int k = 0; k < 4; k++) {
+        if (w[k] <= 0.f) continue;
+        const mat4& m = M[b[k]];
+        vec3 q = m.c[0].xyz() * p.x + m.c[1].xyz() * p.y + m.c[2].xyz() * p.z + (dir ? vec3(0) : m.c[3].xyz());
+        r += q * w[k];
+    }
+    return r;
+}
+struct Result {
+    int n = 0, over = 0;
+    float worst = 0.f;
+    int worstBone = -1;
+    vec3 worstBind;
+};
+// Penetration of the dressed mesh's clothing into the full skin in one pose.
+static Result measure(const detail::MeshB& skin, const SkinnedMeshData& dressed, const Skeleton& sk, const Pose& pose, float tol) {
+    mat4 model[B_COUNT], sm[B_COUNT];
+    computeMatrices(sk, pose, model, sm);
+    Posed P;
+    for (const detail::BVert& v : skin.v) {
+        if (v.mat != MAT_SKIN || v.part == detail::PART_EYE || v.part == detail::PART_FACEDETAIL || v.part == detail::PART_MOUTH) continue;
+        float w[4];
+        for (int k = 0; k < 4; k++) w[k] = v.sw.w[k];
+        P.p.push_back(skinPt(sm, v.sw.b, w, v.p, false));
+        P.n.push_back(normalize(skinPt(sm, v.sw.b, w, v.n, true)));
+    }
+    P.index();
+    Result r;
+    for (const VtxSkinned& v : dressed.verts) {
+        u32 mat = v.mat & 0xffu;
+        if (mat == MAT_SKIN || mat == MAT_HAIR || mat == MAT_EYE || mat == MAT_CAR_GLASS) continue;
+        float w[4];
+        for (int k = 0; k < 4; k++) w[k] = v.weights[k] / 255.f;
+        vec3 q = skinPt(sm, v.bones, w, v.pos, false);
+        int j = P.nearest(q);
+        r.n++;
+        if (j < 0) continue;
+        float depth = -dot(q - P.p[j], P.n[j]);
+        if (depth > tol) r.over++;
+        if (depth > r.worst) {
+            r.worst = depth;
+            int bb = 0;
+            for (int k = 1; k < 4; k++)
+                if (v.weights[k] > v.weights[bb]) bb = k;
+            r.worstBone = v.bones[bb];
+            r.worstBind = v.pos;
+        }
+    }
+    return r;
+}
+}  // namespace clip
+
+void testClothingClip() {
+    using namespace detail;
+    struct Case {
+        u32 seed;
+        int role;
+        int top, bottom, outer, bag;   // -2: keep the random pick
+        float weight;                  // < 0: keep
+        const char* what;
+    };
+    std::vector<Case> cases;
+    for (int role = 0; role < 7; role++)
+        for (int k = 0; k < 3; k++) cases.push_back({7000u + (u32)role * 131u + (u32)k * 977u, role, -2, -2, -2, -2, -1.f, "random"});
+    const int outerTops[6] = {TOP_TSHIRT, TOP_TSHIRT, TOP_BLOUSE, TOP_TSHIRT, TOP_TANK, TOP_DRESS_SHIRT};
+    for (int oc = 0; oc < OUT_COUNT; oc++) cases.push_back({8100u + (u32)oc * 17u, 0, outerTops[oc], BOT_JEANS, oc, -1, -1.f, "outer layer"});
+    for (int b = 0; b < BAG_COUNT; b++) cases.push_back({8300u + (u32)b * 29u, 0, TOP_TSHIRT, BOT_SHORTS, -1, b, -1.f, "bag"});
+    for (int k = 0; k < 6; k++) cases.push_back({8500u + (u32)k * 53u, 0, k < 3 ? TOP_TSHIRT : TOP_SUNDRESS, BOT_SKIRT, -1, -1, -1.f, "skirt / dress"});
+    for (int k = 0; k < 4; k++) cases.push_back({8700u + (u32)k * 71u, k & 1 ? 3 : 0, k < 2 ? TOP_TSHIRT : TOP_DRESS_SHIRT, k & 1 ? BOT_SLACKS : BOT_JEANS, -2, -2, 0.95f,
+                                                  "very heavy"});
+    struct PoseDef {
+        Clip c;
+        float t;   // fraction of the clip
+        bool checked;
+    };
+    const PoseDef poses[] = {{CLIP_IDLE, 0.3f, true}, {CLIP_WALK, 0.f, true}, {CLIP_WALK, 0.25f, true}, {CLIP_WALK, 0.5f, true}, {CLIP_WALK, 0.75f, true},
+                             {CLIP_RUN, 0.3f, true}, {CLIP_RUN, 0.8f, true}, {CLIP_SIT_BENCH, 0.5f, false}};
+    const float tol = 0.004f;
+    long nAll = 0, overAll = 0, nSit = 0, overSit = 0;
+    float worstAll = 0.f;
+    int worstCase = -1;
+    std::vector<float> caseWorst;
+    for (size_t ci = 0; ci < cases.size(); ci++) {
+        const Case& cs = cases[ci];
+        CharacterDesc d = randomCharacter(cs.seed, cs.role);
+        if (cs.top != -2) d.top = cs.top;
+        if (cs.bottom != -2) d.bottom = cs.bottom;
+        if (cs.outer != -2) d.outer = cs.outer;
+        if (cs.bag != -2) d.bag = cs.bag;
+        if (cs.weight >= 0.f) d.weight = cs.weight;
+        if (cs.top == TOP_SUNDRESS || cs.bottom == BOT_SKIRT) d.gender = FEMALE;
+        Skeleton sk;
+        buildSkeleton(d, sk);
+        SkinnedMeshData dressed;
+        buildCharacterMesh(d, sk, dressed);
+        BodyDims D;
+        computeDims(d, D);
+        BuildCtx bc;
+        bc.d = &d;
+        bc.D = &D;
+        bc.sk = &sk;
+        bc.skin = d.skinTone;
+        bc.lipCol = bc.palmCol = bc.lipInner = bc.skin;
+        buildBody(bc);
+        float cw = 0.f;
+        int cOver = 0, cN = 0, wBone = -1;
+        for (const PoseDef& pd : poses) {
+            Pose pose;
+            sampleClip(sk, pd.c, pd.t * clipInfo(pd.c).duration, pose, cs.seed);
+            clip::Result r = clip::measure(bc.m, dressed, sk, pose, tol);
+            if (pd.checked) {
+                nAll += r.n;
+                overAll += r.over;
+                cN += r.n;
+                cOver += r.over;
+                if (r.worst > cw) {
+                    cw = r.worst;
+                    wBone = r.worstBone;
+                }
+            } else {
+                nSit += r.n;
+                overSit += r.over;
+            }
+        }
+        caseWorst.push_back(cw);
+        if (cw > worstAll) {
+            worstAll = cw;
+            worstCase = (int)ci;
+        }
+        printf("  clip %-13s seed %u role %d top %d bottom %d outer %d bag %d w %.2f: %.2f%% of clothing verts > 4 mm inside, worst %.1f mm (bone %d)\n",
+               cs.what, cs.seed, cs.role, d.top, d.bottom, outerFits(d) ? d.outer : -1, d.bag, d.weight, 100.f * cOver / Max(cN, 1), cw * 1000.f, wBone);
+    }
+    std::vector<float> sorted = caseWorst;
+    std::sort(sorted.begin(), sorted.end());
+    float median = sorted.empty() ? 0.f : sorted[sorted.size() / 2];
+    printf("clothing clip: %ld vertex tests in idle / walk / run: %.3f%% more than 4 mm inside (sitting %.2f%%), worst %.1f mm (case %d), median of "
+           "worst per character %.1f mm\n",
+           nAll, 100.0 * overAll / Max(nAll, 1L), 100.0 * overSit / Max(nSit, 1L), worstAll * 1000.f, worstCase, median * 1000.f);
+    CHECK(overAll <= nAll / 200, "clothing vertices inside the body in motion: %.3f%%", 100.0 * overAll / Max(nAll, 1L));
+    CHECK(median < 0.012f, "median worst clothing penetration %.1f mm", median * 1000.f);
+}
+
 // LODs: triangle budgets, valid skinning, same silhouette (bounds) as the full mesh.
 void testLods() {
     double tb = 0.0;
@@ -1180,6 +1360,7 @@ int main(int argc, char** argv) {
     run("DerivedBones", testDerivedBones);
     run("Lods", testLods);
     run("Mesh", testMesh);
+    run("ClothingClip", testClothingClip);
     printf("%s (%d failures)\n", gFail ? "FAILED" : "ALL PASSED", gFail);
     return gFail ? 1 : 0;
 }

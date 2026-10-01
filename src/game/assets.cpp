@@ -589,6 +589,8 @@ void GameWorld::buildAssets() {
         a.body = dyn->createModel(a.spec.body);
         a.wheel = a.spec.wheel.empty() ? nullptr : dyn->createModel(a.spec.wheel);
         a.caliper = a.spec.caliper.empty() ? nullptr : dyn->createModel(a.spec.caliper);
+        a.steerWheel = a.spec.steerWheel.empty() ? nullptr : dyn->createModel(a.spec.steerWheel);
+        a.needle = a.spec.needle.empty() ? nullptr : dyn->createModel(a.spec.needle);
         a.rotor = a.spec.rotor.empty() ? nullptr : dyn->createModel(a.spec.rotor);
         a.tailRotor = a.spec.tailRotor.empty() ? nullptr : dyn->createModel(a.spec.tailRotor);
         // free CPU copies of the meshes (metadata stays)
@@ -596,6 +598,8 @@ void GameWorld::buildAssets() {
         a.spec.wheel.clear();
         a.spec.rotor.clear();
         a.spec.tailRotor.clear();
+        a.spec.steerWheel.clear();
+        a.spec.needle.clear();
     }
     LOG("Vehicle assets: %d models in %.2f s", nv, TimeSeconds() - t0);
 #endif

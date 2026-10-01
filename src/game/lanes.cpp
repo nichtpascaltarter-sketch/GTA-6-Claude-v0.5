@@ -1520,6 +1520,54 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
     int sitePaths = 0, siteZebras = 0;
     if (World::gSites && !World::gSites->walks.empty()) {
         const std::vector<World::SiteWalk>& SW = World::gSites->walks;
+        // a gate path ending mid-block on a sidewalk (a cemetery or campus gate): the sidewalk link split there
+        std::vector<std::vector<int>> edgeSide(NE);
+        for (int li = 0; li < (int)walkLinks.size(); li++)
+            if (walkLinks[li].kind == WL_SIDEWALK && walkLinks[li].edge >= 0) edgeSide[walkLinks[li].edge].push_back(li);
+        auto splitSidewalk = [&](vec3 q) -> int {
+            std::vector<int> cand;
+            rn.edgesInRect(q.xy() - vec2(2.f), q.xy() + vec2(2.f), cand);
+            int bestL = -1;
+            float bestD = 1.5f, bestX = 0.f;
+            for (int ei : cand)
+                for (int li : edgeSide[ei]) {
+                    const WalkLink& w = walkLinks[li];
+                    int n = Max(2, (int)(w.length / 0.5f));
+                    for (int k = 0; k <= n; k++) {
+                        float x = w.length * k / n;
+                        vec3 c = walkPos(li, x, 0.f, true);
+                        float d = length(c.xy() - q.xy());
+                        if (d < bestD && fabsf(c.z - q.z) < 1.2f) {
+                            bestD = d;
+                            bestL = li;
+                            bestX = x;
+                        }
+                    }
+                }
+            if (bestL < 0 || bestX < 1.f || bestX > walkLinks[bestL].length - 1.f) return -1;
+            WalkLink L = walkLinks[bestL];
+            WalkNode nn;
+            nn.p = walkPos(bestL, bestX, 0.f, true);
+            int ni = (int)walkNodes.size();
+            walkNodes.push_back(nn);
+            float sm = Lerp(L.sa, L.sb, bestX / Max(L.length, 1e-3f));
+            WalkLink L1 = L, L2 = L;
+            L1.b = ni;
+            L1.sb = sm;
+            L1.length = fabsf(L1.sb - L1.sa);
+            L2.a = ni;
+            L2.sa = sm;
+            L2.length = fabsf(L2.sb - L2.sa);
+            walkLinks[bestL] = L1;
+            int id2 = (int)walkLinks.size();
+            walkLinks.push_back(L2);
+            for (int& x : walkNodes[L.b].links)
+                if (x == bestL) x = id2;
+            walkNodes[ni].links.push_back(bestL);
+            walkNodes[ni].links.push_back(id2);
+            edgeSide[L.edge].push_back(id2);
+            return ni;
+        };
         auto nodeAt = [&](vec3 q) -> int {
             int best = -1;
             float bd = 1.5f;
@@ -1531,6 +1579,8 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                 }
             }
             if (best >= 0) return best;
+            int split = splitSidewalk(q);
+            if (split >= 0) return split;
             WalkNode n;
             n.p = q;
             walkNodes.push_back(n);

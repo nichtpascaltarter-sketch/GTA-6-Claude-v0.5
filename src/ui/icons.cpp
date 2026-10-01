@@ -435,6 +435,14 @@ Shape makeIcon(int id) {
         for (int k = 0; k < 3; k++) s.sub(rrectP(33.f + k * 10.5f, 30, 39.f + k * 10.5f, 35, 1.5f));
         s.add(strokeP({vec2(8, 86), vec2(24, 81), vec2(42, 86), vec2(58, 81), vec2(76, 86), vec2(92, 81)}, 4.f));
         break;
+    case BLIP_FISH:    // fish side view: body, forked tail, fins, eye
+        s.add(smoothClosed({vec2(12, 50), vec2(24, 36), vec2(44, 29), vec2(62, 33), vec2(74, 44), vec2(74, 56), vec2(62, 67), vec2(44, 71), vec2(24, 64)}, 5));
+        s.add(Poly{vec2(70, 50), vec2(92, 30), vec2(86, 50), vec2(92, 70)});
+        s.add(Poly{vec2(38, 32), vec2(52, 18), vec2(58, 33)});
+        s.add(Poly{vec2(42, 68), vec2(50, 80), vec2(56, 67)});
+        s.sub(circleP(vec2(26, 46), 4.5f));
+        s.sub(strokeP({vec2(36, 38), vec2(33, 50), vec2(36, 62)}, 2.5f));
+        break;
     // ---------------------------------------------------------------- misc glyphs
     case ICO_STAR: s.add(starP(vec2(50, 53), 42.f, 17.5f)); break;
     case ICO_STAR_OUTLINE:
@@ -1086,6 +1094,7 @@ u32 blipDefaultColor(BlipIcon icon) {
     case BLIP_METRO: return C(0.98f, 0.44f, 0.86f);
     case BLIP_BUS: return C(0.36f, 0.9f, 0.55f);
     case BLIP_FERRY: return C(0.42f, 0.74f, 1.f);
+    case BLIP_FISH: return C(0.35f, 0.8f, 1.f);
     default: return kWhite;
     }
 }
@@ -1096,7 +1105,7 @@ const char* blipDefaultName(BlipIcon icon) {
                                             "Clothing Store", "Car Dealer", "Mod Garage", "Hospital", "Police Station", "Race",
                                             "Taxi Job", "Delivery Job", "Vigilante", "Stunt Jump", "Collectible", "Boat",
                                             "Helicopter", "Plane", "Bar", "Convenience Store", "Bank", "Airport", "Hideout",
-                                            "SkyLine Station", "Bus Stop", "Ferry Terminal"};
+                                            "SkyLine Station", "Bus Stop", "Ferry Terminal", "Fishing"};
     return icon < BLIP_COUNT ? names[icon] : "";
 }
 

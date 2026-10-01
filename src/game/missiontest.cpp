@@ -8,7 +8,11 @@
 //   --ending broadcast|leverage  the Act 3 ending the Act 4 missions follow (default broadcast).
 //   --act4choice law|money       the choice at the end of King Tide (default law).
 // Street encounters run through the same queue: "enc_<kind>" steers toward the first outcome, "enc_<kind>_b" toward
-// the second; the groups "encounters", "encounters_b" and "encounters_all" queue them all.
+// the second; the groups "encounters", "encounters_b" and "encounters_all" queue them all. Fishing: "fish_pier",
+// "fish_boat" (offshore), "fish_swamp", "fish_river", "fish_lake" land a fish of the habitat, "fish_market" sells a
+// cooler at a bait shop; the group "fishing" queues them all. The airboat tours are the side mission "sawgrass_tours"
+// (--tourroute 0|1|2 picks the route). "act4_card" checks the Act 4 unlock after the ending (title card, Lucha's call);
+// the group "act4" runs it before the six missions.
 #include "missions.h"
 #include <cstdarg>
 
@@ -46,6 +50,12 @@ struct TestRun {
     // street encounters (encounters.cpp)
     bool enc = false;
     int encKind = -1, encWant = 1, encPhase = 0, encStage = -2;
+    // fishing (fishing.cpp)
+    bool fish = false;
+    int fishPhase = 0, fishStage = -1;
+    // the Act 4 unlock after the ending (story_act4.cpp): the title card, then Lucha's call
+    bool card = false;
+    int cardPhase = 0;
 };
 TestRun gRun;
 
@@ -236,6 +246,11 @@ std::vector<std::string> expandQueue(const std::string& arg) {
         std::string item = arg.substr(s, e - s);
         s = e + 1;
         if (item.empty()) continue;
+        if (item == "fishing") {
+            for (const char* f : {"fish_pier", "fish_boat", "fish_swamp", "fish_river", "fish_lake", "fish_market"}) out.push_back(f);
+            continue;
+        }
+        if (item == "act4") out.push_back("act4_card");   // (the unlock first, then the missions)
         if (item == "encounters" || item == "encounters_b" || item == "encounters_all") {
             for (int pass = 0; pass < 2; pass++) {
                 if ((pass == 0 && item == "encounters_b") || (pass == 1 && item == "encounters")) continue;
@@ -348,6 +363,26 @@ bool prepareEncounter(GameWorld& g, const std::string& id, int& kind, int& want)
     g.pinfo.money = Max<long long>(g.pinfo.money, 20000);
     if (car) mu::placePlayer(g, pos, yaw, mu::pickModel(g, {Vehicles::VC_SEDAN, Vehicles::VC_COUPE}, 3), mu::lin(0.2f, 0.35f, 0.55f));
     else mu::placePlayer(g, pos, yaw);
+    g.hudBigTime = -1.f;   // (the last test's result banner)
+    gMissions.cooldown = 3600.f;
+    gMissions.retry.def = -1;
+    gMissions.retry.pending = false;
+    return true;
+}
+
+// Fishing: the story far enough along to be in free roam, the player at the water (or in a boat offshore) for the kind
+bool prepareFishing(GameWorld& g, int kind) {
+    if ((int)g.storyFlags.size() < kFlagCount) g.storyFlags.resize(kFlagCount, 0);
+    for (int i = 0; i < mu::SF_STORY_COUNT; i++) g.storyFlags[i] = i <= mu::SF_PAPER_TRAIL ? 1 : 0;
+    g.storyFlags[mu::EX_INTRO_DONE] = 1;
+    if (g.protagonistIndex != 0) mu::switchProtagonist(g, 0, true);
+    g.pinfo.wanted = 0;
+    g.pinfo.wantedHeat = 0.f;
+    g.pinfo.money = Max<long long>(g.pinfo.money, 20000);
+    float hour = 12.f;
+    if (!mu::fishTestPrepare(g, kind, hour)) return false;
+    g.env->timeOfDay = hour;
+    g.hudBigTime = -1.f;
     gMissions.cooldown = 3600.f;
     gMissions.retry.def = -1;
     gMissions.retry.pending = false;
@@ -358,6 +393,9 @@ bool startPrepared(GameWorld& g, const std::string& id) {
     MissionManager& M = gMissions;
     int di = M.findDef(id.c_str());
     if (di < 0) return false;
+    // standing next to the start can put the player on a shop or business marker (the boatyard's): a player could not
+    // start a mission with that menu open, so the test closes it first
+    if (mu::gMenu.open) mu::menuClose(g);
     M.startCheckpoint = 0;
     M.cooldown = 0.f;
     g.startMission(di);
@@ -1156,6 +1194,43 @@ void updateMissionTest(GameWorld& g, float dt) {
             T.log("started (free-roam checks)");
             return;
         }
+        if (T.id == "act4_card") {
+            // the story finished through Signal, the card not yet shown; an evening in Calle Luna (Wake runs 18:00-02:00)
+            if ((int)g.storyFlags.size() < kFlagCount) g.storyFlags.resize(kFlagCount, 0);
+            for (int i = 0; i < mu::SF_STORY_COUNT; i++) g.storyFlags[i] = i <= mu::SF_SIGNAL ? 1 : 0;
+            g.storyFlags[mu::EX_INTRO_DONE] = 1;
+            g.storyFlags[mu::EX_ACT4_CARD] = 0;
+            const char* en = Platform::argValue("ending");
+            g.storyFlags[mu::EX_ENDING] = en && strcmp(en, "leverage") == 0 ? 2 : 1;
+            if (g.protagonistIndex != 0) mu::switchProtagonist(g, 0, true);
+            g.env->timeOfDay = 19.f;
+            mu::placePlayer(g, mu::placeOffset(g, mu::gPlaces.diner, 30.f, 0.4f), mu::gPlaces.diner.yaw);
+            g.hudBigTime = -1.f;
+            M.cooldown = 3600.f;
+            mu::gAct4.test = true;
+            mu::gAct4.calm = 0.f;
+            R.card = true;
+            R.cardPhase = 0;
+            R.running = true;
+            R.prepT0 = TimeSeconds();
+            return;
+        }
+        if (T.id.compare(0, 5, "fish_") == 0) {
+            int kind = mu::fishTestKind(T.id);
+            if (kind < 0 || !prepareFishing(g, kind)) {
+                if (kind < 0) LOG("[missiontest] unknown fishing test '%s'", T.id.c_str());
+                R.failed++;
+                R.results.push_back(T.id + ": could not start");
+                R.setupDelay = 0.f;
+                return;
+            }
+            R.fish = true;
+            R.fishPhase = 1;
+            R.fishStage = -1;
+            R.running = true;
+            R.prepT0 = TimeSeconds();
+            return;
+        }
         if (T.id.compare(0, 4, "enc_") == 0) {
             if (!prepareEncounter(g, T.id, R.encKind, R.encWant)) {
                 R.failed++;
@@ -1181,6 +1256,89 @@ void updateMissionTest(GameWorld& g, float dt) {
         return;
     }
     T.missionTime += dt;
+    if (R.card) {
+        auto endCard = [&](bool ok, const std::string& what) {
+            if (ok) R.passed++;
+            else R.failed++;
+            R.results.push_back(StrFormat("%s: %s (%s, %.0f s)", T.id.c_str(), ok ? "passed" : "FAILED", what.c_str(), T.missionTime));
+            T.log("%s - %s", ok ? "PASSED" : "FAILED", what.c_str());
+            mu::gAct4.test = false;
+            R.card = false;
+            R.running = false;
+            R.setupDelay = 0.f;
+        };
+        T.stageTime += dt;
+        if (R.cardPhase == 0) {   // the quiet moment, then the card
+            if (mu::flag(g, mu::EX_ACT4_CARD)) {
+                T.log("title card up after %.1f s: %s / %s", T.missionTime, M.cardTitle.c_str(), M.cardSub.c_str());
+                R.cardPhase = 1;
+                T.stageTime = 0.f;
+            } else if (T.missionTime > 60.f) {
+                endCard(false, "no title card within a minute of free roam");
+            }
+            return;
+        }
+        if (R.cardPhase == 1 && T.stageTime > 1.4f) {
+            T.screenshot("card");
+            R.cardPhase = 2;
+            T.stageTime = 0.f;
+            return;
+        }
+        if (R.cardPhase == 2) {   // Lucha's call for Wake follows the card
+            if (mu::callDelivered(g, mu::SF_WAKE)) {
+                T.screenshot("call");
+                bool avail = false;
+                int di = M.findDef("wake");
+                if (di >= 0) avail = g.missionAvailable(di);
+                endCard(avail, avail ? "card shown, Lucha's call delivered, Wake available" : "the call came but Wake is not available");
+            } else if (T.stageTime > 90.f) {
+                endCard(false, "no call for Wake after the card");
+            }
+        }
+        return;
+    }
+    if (R.fish) {
+        pl->health = Max(pl->health, pl->maxHealth * 0.6f);
+        pl->invincible = true;
+        if (R.fishPhase == 1) {
+            if (!worldStreamed(g) && TimeSeconds() - R.prepT0 < 20.0) return;
+            mu::fishTestStart(g);
+            T.log("staged after %.1f s of streaming", TimeSeconds() - R.prepT0);
+            R.fishPhase = 2;
+            T.missionTime = 0.f;
+            T.stageTime = 0.f;
+            R.shotDelay = 1.2f;
+            R.shotTag = "staged";
+            return;
+        }
+        int st = mu::fishTestStage();
+        if (st != R.fishStage) {
+            R.fishStage = st;
+            T.stageTime = 0.f;
+        }
+        T.stageTime += dt;
+        if (R.shotDelay >= 0.f) {
+            R.shotDelay -= dt;
+            if (R.shotDelay < 0.f) {
+                T.screenshot(R.shotTag.c_str());
+                R.shotDelay = -1.f;
+            }
+        }
+        if (mu::fishTestRunning()) {
+            mu::fishTestStep(g, T);
+            if (mu::fishTestRunning()) return;
+        }
+        bool ok = mu::fishTestResult() > 0;
+        if (ok) R.passed++;
+        else R.failed++;
+        R.results.push_back(StrFormat("%s: %s (%s, %.0f s)", T.id.c_str(), ok ? "passed" : "FAILED", mu::fishTestText().c_str(), T.missionTime));
+        T.log("%s - %s", ok ? "PASSED" : "FAILED", mu::fishTestText().c_str());
+        T.screenshot(ok ? "passed" : "failed");
+        R.fish = false;
+        R.running = false;
+        R.setupDelay = 0.f;
+        return;
+    }
     if (R.enc) {
         pl->health = Max(pl->health, pl->maxHealth * 0.6f);
         pl->invincible = true;

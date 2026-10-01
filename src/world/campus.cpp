@@ -735,6 +735,23 @@ void layout(SiteSet& S, WorldMap& map) {
     const float uy0 = kY0 + 5.6f + 3.f + 0.5f, uy1 = kY1 - 13.4f - 4.5f - 0.5f;    // N 34th St / Bayshore Blvd
     S.lotBlocks.push_back({vec2((ux0 + ux1) * 0.5f, (uy0 + uy1) * 0.5f), vec2(1, 0), (ux1 - ux0) * 0.5f + 3.f, (uy1 - uy0) * 0.5f + 3.f});
     S.vegBlocks.push_back({vec2((ux0 + ux1) * 0.5f, (uy0 + uy1) * 0.5f), vec2(1, 0), (ux1 - ux0) * 0.5f, (uy1 - uy0) * 0.5f});
+    // the ground people and cars stand on: the lawns, walks and the track lie at sidewalk level, 0.4 m over the levelled
+    // terrain (between the lawn at +0.04 and the walks at +0.1)
+    {
+        Pad pd;
+        pd.c = vec2((ux0 + ux1) * 0.5f, (uy0 + uy1) * 0.5f);
+        pd.ax = vec2(1, 0);
+        pd.hx = (ux1 - ux0) * 0.5f;
+        pd.hy = (uy1 - uy0) * 0.5f;
+        pd.z = z + 0.06f;
+        pd.slope = 0.f;
+        pd.kind = PAD_TURF;
+        pd.drawn = 0;
+        pd.skirt = 0;
+        pd.flags = 0;
+        pd.color = 0xffffffffu;
+        S.pads.push_back(pd);
+    }
     int placeIdx = (int)S.places.size();
     {
         NamedPlace np;
@@ -875,6 +892,46 @@ void layout(SiteSet& S, WorldMap& map) {
         fe.p[0] = 1.f;   // bleachers on the -x side: W = perp(N) = (-1, 0), side +1 -> west
         S.elems.push_back(fe);
         // (the track's grass infield and surface are walkable ground at the campus level)
+    }
+    // ---------------------------------------------------------------- walks for the pedestrian graph
+    {
+        const float zw = z + 0.1f;
+        auto chain = [&](std::initializer_list<vec2> pts, float hw) {
+            const vec2* p = pts.begin();
+            for (size_t k = 0; k + 1 < pts.size(); k++) S.walks.push_back({vec3(p[k], zw), vec3(p[k + 1], zw), hw, SW_PATH});
+        };
+        const vec2 qc(axisX, (qy0 + qy1) * 0.5f);
+        const float swN34 = kY0 + 5.6f + 1.5f, swSun = kX0 + 13.4f + 2.25f;   // sidewalk centre lines of N 34th St, Sunrise Blvd
+        const float wx0 = qx0 + 2.f, wx1 = qx1 - 2.f, wy0 = qy0 + 2.f, wy1 = qy1 - 2.f;   // the quad's perimeter walk
+        const float hallW = 1834.f + 12.f + 3.4f, hallE = 1966.f - 12.f - 3.4f;        // lecture hall loggia fronts
+        // gate avenue from N 34th Street to the quad, with the union and admin doors
+        chain({vec2(axisX, swN34), vec2(axisX, 3575.f), vec2(axisX, wy0)}, 2.5f);
+        chain({vec2(1846.f, 3552.f), vec2(1846.f, 3575.f), vec2(axisX, 3575.f), vec2(1958.f, 3575.f), vec2(1958.f, 3550.f)}, 1.2f);
+        // perimeter walk (split where the axis, the cross walk and the hall doors meet it)
+        chain({vec2(wx0, wy0), vec2(axisX, wy0), vec2(wx1, wy0)}, 1.8f);
+        chain({vec2(wx0, wy1), vec2(axisX, wy1), vec2(wx1, wy1)}, 1.8f);
+        chain({vec2(wx0, wy0), vec2(wx0, 3630.f), vec2(wx0, qc.y), vec2(wx0, 3722.f), vec2(wx0, wy1)}, 1.8f);
+        chain({vec2(wx1, wy0), vec2(wx1, 3630.f), vec2(wx1, qc.y), vec2(wx1, 3722.f), vec2(wx1, wy1)}, 1.8f);
+        for (float hy : {3630.f, 3722.f}) {
+            chain({vec2(hallW, hy), vec2(wx0, hy)}, 1.5f);
+            chain({vec2(hallE, hy), vec2(wx1, hy)}, 1.5f);
+        }
+        // the fountain: a ring of eight points 12 m out, the axis, the cross walk and the diagonals run in to it
+        const vec2 corner[4] = {vec2(wx0, wy0), vec2(wx1, wy0), vec2(wx1, wy1), vec2(wx0, wy1)};
+        vec2 spoke[8] = {vec2(0, -1), vec2(0, 0), vec2(1, 0), vec2(0, 0), vec2(0, 1), vec2(0, 0), vec2(-1, 0), vec2(0, 0)};
+        spoke[1] = normalize(corner[1] - qc);
+        spoke[3] = normalize(corner[2] - qc);
+        spoke[5] = normalize(corner[3] - qc);
+        spoke[7] = normalize(corner[0] - qc);
+        for (int k = 0; k < 8; k++) chain({qc + spoke[k] * 12.f, qc + spoke[(k + 1) & 7] * 12.f}, 1.f);   // clear of the 9 m basin
+        chain({vec2(axisX, wy0), qc + spoke[0] * 12.f}, 2.5f);
+        chain({qc + spoke[4] * 12.f, vec2(axisX, wy1), vec2(axisX, 3787.f)}, 2.5f);
+        chain({vec2(wx0, qc.y), qc + spoke[6] * 12.f}, 1.6f);
+        chain({qc + spoke[2] * 12.f, vec2(wx1, qc.y), vec2(1994.f, qc.y)}, 1.6f);
+        for (int k = 0; k < 4; k++) chain({corner[k], qc + spoke[(k * 2 + 7) & 7] * 12.f}, 1.6f);
+        // behind the library: from Sunrise Boulevard past the residence hall doors to the field house
+        chain({vec2(swSun, 3850.f), vec2(1858.f, 3850.f), vec2(1940.f, 3850.f), vec2(2000.f, 3850.f), vec2(2032.f, 3850.f), vec2(2046.f, 3803.f)}, 1.5f);
+        for (float dx : {1858.f, 1940.f, 2032.f}) chain({vec2(dx, 3850.f), vec2(dx, 3879.f)}, 1.2f);
     }
     // ---------------------------------------------------------------- people: students and staff
     u16 group = 1000;
