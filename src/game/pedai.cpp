@@ -272,19 +272,23 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
     if (pa.knockedDown) {
         pa.knockedDown = false;
         if (p.faction == FAC_CIVILIAN && !p.persistent && p.state == PS_ONFOOT && p.health > 0.f && p.health < p.maxHealth * 0.28f &&
-            pa.activity != ACT_HURT && hash32(p.uid * 13u + 7u) % 4u != 0u)
+            pa.activity != ACT_HURT && pa.activity != ACT_CUFFED && hash32(p.uid * 13u + 7u) % 4u != 0u)
             startHurt(*this, id);
     }
     bool gang = isGang(p.faction);
     int selfBody = id < (int)ai.pedBody.size() ? ai.pedBody[id] : -1;
-    // ---------------------------------------------------------------- perception (staggered; not while down hurt)
-    if (pa.think <= 0.f && pa.activity != ACT_HURT) {
+    // ---------------------------------------------------------------- perception (staggered; not while down hurt or in cuffs)
+    if (pa.think <= 0.f && pa.activity != ACT_HURT && pa.activity != ACT_CUFFED) {
         pa.think = 0.25f + hashToFloat(hash32(p.uid + (u32)(time * 10.0))) * 0.25f;
         bool calm = b.type == BRAIN_WANDER || b.type == BRAIN_SCENARIO;
         // stimuli
         for (const Stimulus& s : ai.stimuli) {
             float d = length(rel(s.pos, p.pos));
             if (d > s.radius || s.source == id) continue;
+            // (one of an ambient event's own people: not scared off by its own raised voices and fists)
+            if (pa.eventId >= 0 && s.source >= 0 && s.source < (int)ai.ped.size() && ai.ped[s.source].eventId == pa.eventId &&
+                (s.kind == STIM_FIGHT || s.kind == STIM_ARREST))
+                continue;
             bool fresh = time - s.time < 0.6f;
             // a witness on the phone to the police keeps talking (backing away from the scene) unless something
             // blows up next to them: re-reacting to the very gunfire being reported would drop the call
@@ -442,6 +446,31 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         pa.threatPos = s.pos.toVec3().xy();
                         pa.actTimer = 2.5f + r * 3.f;
                         if (r < 0.3f) aiSay(id, BK_CRASH, 0.5f);
+                    }
+                    break;
+                }
+                case STIM_ARREST: {
+                    // the police at work (someone at gunpoint, hands up, on the ground, in cuffs): the bold get their
+                    // phones out, others stop a few metres back for a look and a remark - once per scene, and nobody
+                    // busy with something of their own (a venue, a queue, a meet)
+                    if (!calm || gang || d < 5.f || time - pa.sceneT < 45.0) break;
+                    if (pa.activity != ACT_WALK && pa.activity != ACT_SCENARIO && pa.activity != ACT_GROUP) break;
+                    pa.sceneT = (float)time;
+                    u32 ha = hash32(p.uid * 37u + (u32)s.source * 11u);
+                    float r = hashToFloat(ha);
+                    if (pa.temper == 2 && d > 7.f && r < 0.6f) {
+                        pa.activity = ACT_FILM;
+                        ai.stats.filming++;
+                        pa.actTimer = 10.f + r * 18.f;
+                        pa.anchor = pos;
+                        pa.threatPos = s.pos.toVec3().xy();
+                        aiSay(id, (ha >> 9) & 1 ? BK_ONLOOKER : BK_FILMING, 0.4f);
+                    } else if (pa.temper != 0 && r < 0.65f && pa.leader < 0 && pa.activity == ACT_WALK) {
+                        pa.activity = ACT_INSPECT;
+                        pa.threatPos = s.pos.toVec3().xy();
+                        pa.actTimer = 3.f + r * 6.f;
+                        pa.walk.hurry = 1.f;
+                        if (r < 0.3f) aiSay(id, BK_ONLOOKER, 0.5f);
                     }
                     break;
                 }
@@ -1469,10 +1498,120 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     faceYaw = yawTo(pos, pa.threatPos);
                     faceSet = true;
                     stance = 8;   // phone held up
-                    // follow the action
+                    // follow the action (a fight moving about, an arrest walked to the car)
                     for (const Stimulus& s : ai.stimuli)
-                        if (s.kind == STIM_FIGHT && length(s.pos.toVec3().xy() - pa.threatPos) < 15.f) pa.threatPos = s.pos.toVec3().xy();
+                        if ((s.kind == STIM_FIGHT || s.kind == STIM_ARREST) && length(s.pos.toVec3().xy() - pa.threatPos) < 15.f) pa.threatPos = s.pos.toVec3().xy();
                     if (pa.actTimer <= 0.f) pa.activity = ACT_WALK;
+                    break;
+                }
+                case ACT_CUFFED: {
+                    // arrested (police.cpp police_escort): walked to the patrol car a step ahead of the officer holding
+                    // the arm, round to the back door, in; while the car is on its way, sitting on the kerb with the
+                    // officer over them. The officer called away or down (or nobody came): off and running
+                    int cop = b.target;
+                    bool copOk = cop >= 0 && cop < (int)peds.size() && cop < (int)ai.ped.size() && peds[cop].used && peds[cop].health > 0.f &&
+                                 ai.ped[cop].uid == peds[cop].uid && ai.ped[cop].escortPed == id && peds[cop].brain.type == BRAIN_GOTO &&
+                                 peds[cop].brain.target == -3;
+                    if (!copOk || pa.actTimer <= 0.f) {
+                        pa.activity = ACT_WALK;
+                        pa.clipTimer = 0.f;
+                        b.type = BRAIN_FLEE;
+                        b.target = -1;
+                        b.goal = p.pos;
+                        b.timer = 0.f;
+                        break;
+                    }
+                    p.weapon = WPN_FISTS;
+                    stance = 25;   // (in cuffs: wrists crossed at the small of the back, head down)
+                    const PedAI& ca = ai.ped[cop];
+                    vec2 cpos = peds[cop].pos.toVec3().xy();
+                    float copD = length(cpos - pos);
+                    int car = ca.escortCar;
+                    bool carOk = car >= 0 && car < (int)vehicles.size() && vehicles[car].used && vehicles[car].uid == ca.escortCarUid && !vehicles[car].exploded &&
+                                 vehicles[car].sim.speed() < 0.6f &&
+                                 (car >= (int)ai.veh.size() || ai.veh[car].task != PT_TRANSPORT || ai.veh[car].transportState == 2);
+                    // the seat: the back where there is one (taken meanwhile: another)
+                    int seat = -1;
+                    if (carOk) {
+                        const Vehicle& cv = vehicles[car];
+                        int n = Min((int)vassets[cv.model].spec.seats.size(), 8);
+                        const int order[3] = {3, 2, 1};
+                        for (int k : order)
+                            if (seat < 0 && k < n && cv.seats[k] < 0) seat = k;
+                        if (seat < 0) carOk = false;
+                    }
+                    if (!carOk) {
+                        // waiting for the car: down on the kerb once the officer is next to them
+                        pa.clipTimer = -1.f;
+                        if (copD < 2.6f && length(p.vel.xy()) < 0.3f) stance = 21;
+                        faceYaw = p.yaw;
+                        faceSet = true;
+                        break;
+                    }
+                    const Vehicle& cv = vehicles[car];
+                    const Vehicles::VehicleModel& cs = vassets[cv.model].spec;
+                    bool left = cs.seats[seat].exitLeft;
+                    float sy = cs.seats[seat].pos.y;
+                    vec2 door = (cv.sim.body.pos.toVec3() + rotate(cv.sim.body.rot, vec3(left ? -(cs.boxHalf.x + 0.42f) : cs.boxHalf.x + 0.42f, sy - 0.15f, 0.f))).xy();
+                    vec3 cf = cv.sim.forward();
+                    float doorYaw = atan2f(-cf.x, cf.y) + (left ? -kPi * 0.5f : kPi * 0.5f);
+                    if (pa.clipTimer < 0.f) {
+                        vec2 to = door - pos;
+                        float d = length(to);
+                        if (d > 0.5f) {
+                            // round the car rather than through it (as ACT_DRIVE_OFF), at the officer's pace: never
+                            // pulling away from the hand on the arm
+                            vec2 cc = cv.sim.body.pos.toVec3().xy();
+                            vec2 cfw = normalize(cf.xy() + vec2(1e-4f, 0.f));
+                            vec2 lp = pos - cc;
+                            float ly = dot(lp, cfw), lx = dot(lp, AI::rightOf(cfw));
+                            float doorSide = left ? -1.f : 1.f, pedSide = lx >= 0.f ? 1.f : -1.f, endSign = ly >= 0.f ? 1.f : -1.f;
+                            vec2 goal = door;
+                            if (pedSide != doorSide && fabsf(lx) > cs.boxHalf.x * 0.5f) {
+                                endSign = aiCarEndToWalkRound(*this, car, endSign);
+                                float side = fabsf(ly) < cs.boxHalf.y + 0.6f || ly * endSign < 0.f ? pedSide : doorSide;
+                                goal = cc + cfw * (endSign * (cs.boxHalf.y + 0.8f)) + AI::rightOf(cfw) * (side * (cs.boxHalf.x + 0.6f));
+                            }
+                            vec2 tg = goal - pos;
+                            float dg = Max(length(tg), 1e-3f);
+                            // (at the officer's pace; the last few metres round the car regardless - the officer may be
+                            //  a step behind, held up by the bodywork)
+                            bool atCar = length(cv.sim.body.pos.toVec3().xy() - pos) < cs.boxHalf.y + 2.5f;
+                            float spd = copD < 2.2f || atCar ? Min(1.15f, d * 2.f + 0.3f) : (copD < 3.5f ? 0.5f : 0.f);
+                            desired = tg / dg * spd;
+                            faceYaw = atan2f(-tg.x, tg.y);
+                        } else if (copD < 6.f) {
+                            // at the door: in (the officer's hand on the head)
+                            pa.clipTimer = 1.05f;
+                            p.yaw = doorYaw;
+                            if (p.pendingAction < 0) p.pendingAction = left ? Anim::CLIP_ENTER_CAR_L : Anim::CLIP_ENTER_CAR_R;
+#ifdef HAVE_AUDIO
+                            Audio::play(Audio::SFX_CAR_DOOR_OPEN, vec3(door, (float)p.pos.z + 0.8f), 0.6f);
+#endif
+                            faceYaw = doorYaw;
+                        } else {
+                            faceYaw = yawTo(pos, cpos);
+                        }
+                        faceSet = true;
+                    } else {
+                        faceYaw = doorYaw;
+                        faceSet = true;
+                        stance = 0;   // (the climb in: the clip has the body)
+                        pa.clipTimer -= dt;
+                        if (pa.clipTimer <= 0.f) {
+                            warpPedIntoVehicle(id, car, seat);
+                            b.type = BRAIN_PASSENGER;
+                            b.target = -1;
+                            pa.activity = ACT_WALK;
+                            pa.clipTimer = 0.f;
+                            ai.stats.custody++;
+                            return;
+                        }
+                    }
+                    if (pa.shoutTimer <= 0.f && plDist < 35.f) {
+                        aiSay(id, BK_SUSPECT, 0.55f);
+                        pa.shoutTimer = 5.f + hashToFloat(hash32(p.uid + (u32)time)) * 6.f;
+                    }
                     break;
                 }
                 case ACT_HANDS_UP: {

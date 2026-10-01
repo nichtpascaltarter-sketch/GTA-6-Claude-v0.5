@@ -153,6 +153,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
             if (!attachTraffic(vi)) {
                 v.ctl = Vehicles::VehicleControls();
                 v.ctl.brake = 1.f;
+                v.ctl.handbrake = true;
                 return;
             }
             d = traffic.get(vi);
@@ -215,6 +216,14 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
         // civilian helicopter with an AI pilot (no scripted path): hover-orbit where it is
         vec3 p = v.sim.body.pos.toVec3();
         aiFlyHeli(vi, dt, dvec3(p.x, p.y, 0.0), Max(p.z, 60.f), 150.f, true);
+        return;
+    }
+    // ---- a patrol car an officer is bringing a prisoner to (police.cpp escort): it stays put until they are in
+    if (v.faction == FAC_POLICE && time < va.escortHold && va.task != PT_TRANSPORT && b.type == BRAIN_DRIVER) {
+        v.ctl = Vehicles::VehicleControls();
+        v.ctl.brake = 1.f;
+        v.ctl.handbrake = true;   // (the brake pedal alone at a standstill is reverse)
+        v.hornOn = false;
         return;
     }
     // ---- police in pursuit / responding: their own driving logic

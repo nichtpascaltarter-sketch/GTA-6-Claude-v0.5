@@ -316,6 +316,300 @@ float GameWorld::aiRouteLength(int lane, float u, vec2 goal) {
 
 using namespace police_detail;
 
+// ---- an arrest made: the suspect in cuffs is walked to a patrol car and put in the back, the officer a step behind
+//      with a hand on their arm; with no car close (an officer on a foot beat), one is called and the suspect sits on
+//      the kerb until it pulls over next to them; the car then drives off with them
+float aiCarEndToWalkRound(const GameWorld& g, int veh, float pref);   // ai.cpp: the end of a car to walk round (no car parked there)
+
+namespace police_escort {
+
+// the seat a prisoner goes in: the back where the car has one, else the front passenger's (-1: none free)
+int prisonerSeat(const GameWorld& g, int vi) {
+    const Vehicle& v = g.vehicles[vi];
+    int n = Min((int)g.vassets[v.model].spec.seats.size(), 8);
+    const int order[3] = {3, 2, 1};
+    for (int k : order)
+        if (k < n && v.seats[k] < 0) return k;
+    return -1;
+}
+
+// arrested: in cuffs on the way to a car, in the back of a patrol car, or (an older arrest) left lying on the ground
+bool inCustody(const GameWorld& g, int i) {
+    const Ped& t = g.peds[i];
+    if (t.brain.type == BRAIN_COWER) return true;
+    if (i < (int)g.ai.ped.size() && g.ai.ped[i].uid == t.uid && g.ai.ped[i].activity == ACT_CUFFED) return true;
+    return t.state == PS_INVEHICLE && t.vehicle >= 0 && t.vehicle < (int)g.vehicles.size() && g.vehicles[t.vehicle].faction == FAC_POLICE && t.faction != FAC_POLICE;
+}
+
+bool escorting(const Ped& p) { return p.brain.type == BRAIN_GOTO && p.brain.target == -3; }
+
+// a car standing by that a prisoner can be put in: the officer's own (a seat free), else one parked by colleagues close by
+int escortCarFor(const GameWorld& g, int officer) {
+    const PedAI& pa = g.ai.ped[officer];
+    vec2 at = g.peds[officer].pos.toVec3().xy();
+    auto usable = [&](int vi) {
+        if (vi < 0 || vi >= (int)g.vehicles.size() || vi >= (int)g.ai.veh.size()) return false;
+        const Vehicle& v = g.vehicles[vi];
+        if (!v.used || v.faction != FAC_POLICE || v.exploded || v.sim.wrecked || v.playerUsed || v.persistent || g.isAircraft(vi) || g.isBoat(vi)) return false;
+        if (v.sim.speed() > 1.f || v.sim.up().z < 0.8f) return false;
+        int drv = v.seats[0];
+        if (drv >= 0 && (g.peds[drv].isPlayer || g.peds[drv].faction != FAC_POLICE)) return false;
+        if (g.ai.veh[vi].task == PT_TRANSPORT && g.ai.veh[vi].transportFor != officer) return false;
+        return prisonerSeat(g, vi) >= 0;
+    };
+    if (usable(pa.homeVeh) && length(g.vehicles[pa.homeVeh].sim.body.pos.toVec3().xy() - at) < 160.f) return pa.homeVeh;
+    int best = -1;
+    float bd = 70.f;
+    for (int vi = 0; vi < (int)g.vehicles.size(); vi++) {
+        if (!usable(vi) || g.vehicles[vi].seats[0] >= 0) continue;   // (one with its driver in is out on patrol: see callTransport)
+        float d = length(g.vehicles[vi].sim.body.pos.toVec3().xy() - at);
+        if (d < bd) {
+            bd = d;
+            best = vi;
+        }
+    }
+    return best;
+}
+
+// a car for a prisoner: the nearest patrol out without a job (within 300 m) turns round for it, else one comes from
+// out of view - no siren, there is no hurry
+int callTransport(GameWorld& g, int officer) {
+    vec2 at = g.peds[officer].pos.toVec3().xy();
+    int best = -1;
+    float bd = 300.f;
+    for (int vi = 0; vi < (int)g.vehicles.size() && vi < (int)g.ai.veh.size(); vi++) {
+        const Vehicle& v = g.vehicles[vi];
+        if (!v.used || v.faction != FAC_POLICE || v.exploded || v.persistent || v.playerUsed || g.isAircraft(vi) || g.isBoat(vi)) continue;
+        int drv = v.seats[0];
+        if (drv < 0 || g.peds[drv].isPlayer || g.peds[drv].brain.type != BRAIN_DRIVER || g.ai.veh[vi].task != PT_NONE || prisonerSeat(g, vi) < 0) continue;
+        float d = length(v.sim.body.pos.toVec3().xy() - at);
+        if (d < bd) {
+            bd = d;
+            best = vi;
+        }
+    }
+    bool sent = false;
+    if (best < 0) {
+        int model = g.findVehicleModel(Vehicles::VC_POLICE, hash32(g.peds[officer].uid * 31u + (u32)g.time));
+        for (int attempt = 0; attempt < 8 && best < 0 && model >= 0; attempt++) {
+            u32 h = hash32(g.peds[officer].uid * 97u + attempt * 131u + (u32)(g.time * 3.0));
+            float ang = hashToFloat(h) * kTwoPi;
+            vec2 probe = at + vec2(cosf(ang), sinf(ang)) * (130.f + hashToFloat(hash32(h)) * 70.f);
+            float u = 0.f;
+            int lane = g.laneGraph.nearestLane(probe, vec2(0), 50.f, &u);
+            if (lane < 0 || (g.laneGraph.lanes[lane].flags & (AI::LF_DIRT | AI::LF_NOTRAFFIC | AI::LF_HIGHWAY))) continue;
+            const AI::Lane& L = g.laneGraph.lanes[lane];
+            u = Clamp(u, L.u0 + 4.f, L.u1 - 8.f);
+            vec3 c = g.laneGraph.lanePos(lane, u);
+            if (g.inCameraView(c, 8.f) || !g.traffic.laneFree(lane, u, 3.f, 6.f)) continue;
+            if (attempt < 6) {   // (a way in at most 1.7 times the straight line, as the other units)
+                float rl = g.aiRouteLength(lane, u, at);
+                if (rl < 0.f || rl > length(c.xy() - at) * 1.7f + 40.f) continue;
+            }
+            vec2 t = g.laneGraph.laneTangent(lane, u);
+            int vid = g.spawnVehicle(model, dvec3(c.x, c.y, c.z + 0.3f), AI::dirYaw(t), true, FAC_POLICE);
+            if (vid < 0) break;
+            g.vehicles[vid].faction = FAC_POLICE;
+            g.attachTraffic(vid, lane, u);
+            int drv = g.vehicles[vid].seats[0];
+            if (drv >= 0) g.peds[drv].brain.type = BRAIN_DRIVER;
+            best = vid;
+            sent = true;
+        }
+    }
+    if (best < 0) return -1;
+    VehAI& va = g.vehAI(best);
+    va.role = VR_POLICE;
+    va.task = PT_TRANSPORT;
+    va.transportFor = officer;
+    va.transportUid = g.peds[officer].uid;
+    va.transportState = 0;
+    va.taskTimer = 0.f;
+    g.vehicles[best].sirenOn = false;
+    g.vehicles[best].sirenSilent = false;
+    g.ai.stats.transports++;
+    LOG("police: transport for officer %d - unit %d %s, %.0f m off", officer, best, sent ? "sent from out of view" : "on patrol turns round",
+        length(g.vehicles[best].sim.body.pos.toVec3().xy() - at));
+    return best;
+}
+
+// the cuffs are on (police.cpp NPC arrests): the suspect becomes the officer's prisoner (false: no escort for this one)
+bool startEscort(GameWorld& g, int officer, int suspect) {
+    Ped& t = g.peds[suspect];
+    if (t.persistent || t.isPlayer || suspect >= (int)g.ai.ped.size() || officer >= (int)g.ai.ped.size()) return false;
+    PedAI& ta = g.pedAI(suspect);
+    PedAI& pa = g.pedAI(officer);
+    for (Incident& inc : g.ai.incidents)
+        if (inc.active && inc.kind == 2 && inc.perp == suspect) inc.active = false;   // (the case is closed: no more units)
+    ta.activity = ACT_CUFFED;
+    ta.actTimer = 240.f;   // (nobody has come for them in four minutes: let go)
+    ta.clipTimer = -1.f;
+    ta.stance = 0;
+    ta.leader = -1;
+    ta.shoutTimer = 2.5f + hashToFloat(hash32(t.uid * 5u)) * 2.f;
+    t.weapon = WPN_FISTS;
+    t.aiming = t.firing = false;
+    t.brain.type = BRAIN_WANDER;
+    t.brain.target = officer;
+    t.brain.edge = -1;
+    pa.escortPed = suspect;
+    pa.escortUid = t.uid;
+    pa.escortT = 0.f;
+    pa.escortCar = escortCarFor(g, officer);
+    if (pa.escortCar < 0) pa.escortCar = callTransport(g, officer);
+    pa.escortCarUid = pa.escortCar >= 0 ? g.vehicles[pa.escortCar].uid : 0u;
+    pa.shoutTimer = 4.f;
+    Ped& op = g.peds[officer];
+    op.weapon = WPN_FISTS;   // (the gun holstered: the hands for the prisoner - drawn again if it comes to it)
+    op.aiming = op.firing = false;
+    Brain& b = op.brain;
+    b.type = BRAIN_GOTO;
+    b.target = -3;
+    vec3 sp = t.pos.toVec3();
+    LOG("police: officer %d cuffs suspect %d at %.0f %.0f - to %s %d", officer, suspect, sp.x, sp.y,
+        pa.escortCar < 0 ? "no car yet" : (g.ai.veh[pa.escortCar].task == PT_TRANSPORT ? "the transport" : "the patrol car"), pa.escortCar);
+    return true;
+}
+
+// let a transport go back to its patrol
+void releaseTransport(GameWorld& g, int vi, int officer) {
+    if (vi < 0 || vi >= (int)g.vehicles.size() || vi >= (int)g.ai.veh.size() || !g.vehicles[vi].used) return;
+    VehAI& va = g.ai.veh[vi];
+    if (va.task != PT_TRANSPORT || va.transportFor != officer) return;
+    va.task = PT_NONE;
+    va.transportFor = -1;
+    va.transportState = 0;
+    Vehicle& v = g.vehicles[vi];
+    v.parked = false;
+    v.sirenOn = v.sirenSilent = false;
+    v.indicator = 0;
+    if (AI::Driver* d = g.traffic.get(vi)) {
+        d->mode = AI::DM_NORMAL;
+        d->hasDest = false;
+        d->holdTimer = 0.f;
+    }
+}
+
+// the officer walking their prisoner to the car (brain GOTO -3): a step behind them and a little to the side, a hand
+// on the arm, at their pace; standing over them while they are down after the tackle or sitting on the kerb waiting
+// for the car; once the door is shut on them, into the front and away (or, the car having its own crew, back to the beat)
+void escortStep(GameWorld& g, int id, float dt) {
+    Ped& p = g.peds[id];
+    PedAI& pa = g.pedAI(id);
+    Brain& b = p.brain;
+    pa.escortT += dt;
+    int s = pa.escortPed;
+    bool ok = s >= 0 && s < (int)g.peds.size() && s < (int)g.ai.ped.size() && g.peds[s].used && g.peds[s].uid == pa.escortUid && g.peds[s].health > 0.f &&
+              g.peds[s].state != PS_DEAD;
+    int car = pa.escortCar;
+    bool carOk = car >= 0 && car < (int)g.vehicles.size() && car < (int)g.ai.veh.size() && g.vehicles[car].used && g.vehicles[car].uid == pa.escortCarUid &&
+                 !g.vehicles[car].exploded && g.vehicles[car].faction == FAC_POLICE &&
+                 (g.ai.veh[car].task == PT_TRANSPORT ? g.ai.veh[car].transportFor == id : g.vehicles[car].sim.speed() < 1.5f);   // (not one driving off)
+    if (ok && g.peds[s].state == PS_INVEHICLE) {
+        // in, the door shut on them
+        int in = g.peds[s].vehicle;
+        bool ownCrew = in >= 0 && in < (int)g.vehicles.size() && g.vehicles[in].seats[0] >= 0 && g.vehicles[in].seats[0] != id;
+        LOG("police: officer %d has suspect %d in unit %d (%.0f s after the cuffs)%s", id, s, in, pa.escortT, ownCrew ? " - back to the beat" : "");
+        g.aiSay(id, BK_COP_ESCORT, 0.6f);
+        pa.escortPed = -1;
+        pa.escortCar = -1;
+        if (ownCrew && pa.homeVeh != in) {
+            // a transport with its own crew: it takes them, this officer goes back to walking the beat
+            releaseTransport(g, in, id);
+            b.type = BRAIN_WANDER;
+            b.target = -1;
+            b.edge = -1;
+            pa.navOk = false;
+            pa.activity = ACT_WALK;
+        } else {
+            pa.homeVeh = in;
+            b.type = BRAIN_GOTO;
+            b.target = -2;
+            pa.tactic = FT_RETURN;
+        }
+        return;
+    }
+    if (ok && (g.ai.ped[s].activity != ACT_CUFFED || g.ai.ped[s].uid != g.peds[s].uid)) ok = false;
+    if (!ok || pa.escortT > 260.f) {
+        // lost them (ran for it, hurt, gone) or nothing came: back to the car / the beat
+        if (carOk) releaseTransport(g, car, id);
+        pa.escortPed = -1;
+        pa.escortCar = -1;
+        b.type = BRAIN_GOTO;
+        b.target = -2;
+        pa.tactic = FT_RETURN;
+        return;
+    }
+    if (!carOk) {
+        // no car (yet), or the one coming was taken off it: another every 15 s
+        pa.escortCar = -1;
+        if (fmodf(pa.escortT, 15.f) < dt) {
+            int c = escortCarFor(g, id);
+            if (c < 0) c = callTransport(g, id);
+            pa.escortCar = c;
+            pa.escortCarUid = c >= 0 ? g.vehicles[c].uid : 0u;
+        }
+    } else {
+        g.ai.veh[car].escortHold = g.time + 2.0;   // (the crew waits by it for them)
+    }
+    bool ready = carOk && (g.ai.veh[car].task != PT_TRANSPORT || g.ai.veh[car].transportState == 2);
+    const Ped& sp = g.peds[s];
+    vec2 pos = p.pos.toVec3().xy(), spos = sp.pos.toVec3().xy();
+    if (floorf((float)g.time + id * 0.37f) != floorf((float)g.time - dt + id * 0.37f))
+        g.aiStimulus(sp.pos, STIM_ARREST, id, 28.f, false);   // (people stop to watch: pedai.cpp)
+    vec2 desired(0.f);
+    float faceYaw = p.yaw;
+    if (sp.state == PS_RAGDOLL || sp.state == PS_GETUP || !ready || g.ai.ped[s].clipTimer > 0.f) {
+        // down after the tackle, waiting for the car, getting in: standing over them
+        vec2 to = spos - pos;
+        float d = length(to);
+        if (d > 1.5f) desired = to / d * Min(2.6f, d * 1.5f);
+        faceYaw = atan2f(-to.x, to.y);
+        if (!ready && pa.shoutTimer <= 0.f && sp.state == PS_ONFOOT) {
+            g.aiSay(id, BK_COP_TRANSPORT, 0.5f);   // (on the radio for the car; a word to the prisoner)
+            pa.shoutTimer = 12.f + hashToFloat(hash32(p.uid + (u32)g.time)) * 6.f;
+        }
+    } else {
+        // behind them, a little to the right: the left hand on their right upper arm (peds.cpp feeds the animator's hold;
+        // 0.56 m back and 0.3 m over keeps them just outside the ped separation)
+        vec2 sf = AI::yawDir(sp.yaw);
+        vec2 goal = spos - sf * 0.56f + AI::rightOf(sf) * 0.3f;
+        // at the car (round its end to the back door): at their back on the outside, never pinned against the bodywork -
+        // and round the car's end, not through it, when it stands between
+        const Vehicles::VehicleModel& cs = g.vassets[g.vehicles[car].model].spec;
+        vec2 cp = g.vehicles[car].sim.body.pos.toVec3().xy();
+        if (length(spos - cp) < cs.boxHalf.y + 2.5f) {
+            goal = spos + normalize(spos - cp + vec2(1e-4f, 0.f)) * 0.75f;
+            vec2 cf = normalize(g.vehicles[car].sim.forward().xy() + vec2(1e-4f, 0.f)), cr = AI::rightOf(cf);
+            vec2 a = pos - cp, bq = goal - cp;
+            float ax = dot(a, cr), bx = dot(bq, cr), ay = dot(a, cf);
+            if (ax * bx < 0.f && fabsf(ax) > cs.boxHalf.x * 0.5f) {
+                float endSign = aiCarEndToWalkRound(g, car, ay >= 0.f ? 1.f : -1.f);
+                float side = fabsf(ay) < cs.boxHalf.y + 0.6f || ay * endSign < 0.f ? (ax >= 0.f ? 1.f : -1.f) : (bx >= 0.f ? 1.f : -1.f);
+                goal = cp + cf * (endSign * (cs.boxHalf.y + 0.8f)) + cr * (side * (cs.boxHalf.x + 0.6f));
+            }
+        }
+        vec2 to = goal - pos;
+        float d = length(to);
+        float sv = length(sp.vel.xy());
+        if (d > 0.06f) desired = to / d * Min(3.f, sv + d * 2.2f);
+        faceYaw = d > 1.2f ? atan2f(-to.x, to.y) : sp.yaw;
+        if (pa.shoutTimer <= 0.f) {
+            g.aiSay(id, BK_COP_ESCORT, 0.45f);
+            pa.shoutTimer = 8.f + hashToFloat(hash32(p.uid + (u32)g.time)) * 6.f;
+        }
+    }
+    p.aiming = false;
+    p.firing = false;
+    p.animIn.stance = 0;
+    p.animIn.crouch = false;
+    float dy = AI::wrapPi(faceYaw - p.yaw);
+    p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -7.f * dt, 7.f * dt));
+    g.movePed(p, desired, dt, false);
+}
+
+}  // namespace police_escort
+
 // ------------------------------------------------------------------------------------------------------------------
 // Crime reports from gameplay code (combat.cpp, vehicles.cpp, player.cpp)
 void GameWorld::reportCrime(int type, dvec3 pos, int victim) {
@@ -777,13 +1071,17 @@ void GameWorld::updateDispatch(float dt) {
     for (int i = 0; i < (int)peds.size(); i++) {
         Ped& p = peds[i];
         if (!isCop(p) || p.persistent) continue;
+        // walking a prisoner to a car: on that, unless the player starts trouble right there
+        if (police_escort::escorting(p) && !(wanted > 0 && length(rel(p.pos, pl->pos)) < 40.f)) continue;
         bool inCar = p.state == PS_INVEHICLE && p.vehicle >= 0;
         bool hunting = p.brain.type == BRAIN_COMBAT || p.brain.type == BRAIN_ARREST;
         bool npcTarget = hunting && p.brain.target >= 0 && p.brain.target != player;
         if (npcTarget) {
             // chasing an NPC criminal: give up when they are dead, arrested (cowering), gone or far away
             const Ped* t = p.brain.target < (int)peds.size() && peds[p.brain.target].used ? &peds[p.brain.target] : nullptr;
-            bool valid = t && t->health > 0.f && t->brain.type != BRAIN_COWER && t->vehicle != p.vehicle && length(rel(t->pos, p.pos)) < 350.f;
+            // (both on foot is a chase on foot - the vehicles only rule out a suspect sitting in this officer's own car)
+            bool valid = t && t->health > 0.f && !police_escort::inCustody(*this, p.brain.target) && (t->vehicle < 0 || t->vehicle != p.vehicle) &&
+                         length(rel(t->pos, p.pos)) < 350.f;
             if (!valid && !(wanted > 0 && length(rel(p.pos, pl->pos)) < 400.f)) {
                 standDown(i);
                 continue;
@@ -825,7 +1123,7 @@ void GameWorld::updateDispatch(float dt) {
         for (Incident& inc : ai.incidents) {
             if (!inc.active || inc.kind != 2) continue;
             bool perpOk = inc.perp >= 0 && inc.perp < (int)peds.size() && peds[inc.perp].used && peds[inc.perp].uid == inc.perpUid &&
-                          peds[inc.perp].health > 0.f && peds[inc.perp].brain.type != BRAIN_COWER;
+                          peds[inc.perp].health > 0.f && !police_escort::inCustody(*this, inc.perp);
             if (!perpOk || time - inc.time > 150.0) {
                 inc.active = false;
                 continue;
@@ -846,6 +1144,9 @@ void GameWorld::updateDispatch(float dt) {
                 if (!v.used || v.faction != FAC_POLICE || isAircraft(vi) || isBoat(vi) || v.exploded || v.persistent) continue;
                 int drv = v.seats[0];
                 if (drv < 0 || peds[drv].isPlayer || peds[drv].brain.type != BRAIN_DRIVER) continue;
+                bool prisoner = false;   // (a unit taking someone in is not sent to the next call)
+                for (int s = 1; s < 8; s++) prisoner |= v.seats[s] >= 0 && peds[v.seats[s]].faction != FAC_POLICE;
+                if (prisoner) continue;
                 float d = length(v.sim.body.pos.toVec3().xy() - ip);
                 if (d < bd) {
                     bd = d;
@@ -909,6 +1210,8 @@ void GameWorld::updateDispatch(float dt) {
                 pedAI(o).homeVeh = best;
             }
             inc.unit = best;
+            LOG("police: unit %d sent to an NPC crime (perp %d%s) %.0f m off", best, inc.perp, peds[inc.perp].state == PS_INVEHICLE ? ", in a vehicle" : "",
+                length(v.sim.body.pos.toVec3().xy() - ip));
             if (v.seats[0] >= 0) aiSay(v.seats[0], BK_COP_CHATTER, 0.6f);
         }
     }
@@ -1344,6 +1647,57 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
         attachTraffic(vi);
         d = traffic.get(vi);
     }
+    // ---- prisoner transport (police_escort::callTransport): to the officer holding a suspect, no siren; pulled over
+    //      at the kerb next to them, the light bar going, until the prisoner is in the back - then back on patrol
+    if (va.task == PT_TRANSPORT) {
+        int cop = va.transportFor;
+        bool copOk = cop >= 0 && cop < (int)peds.size() && cop < (int)ai.ped.size() && peds[cop].used && peds[cop].uid == va.transportUid &&
+                     police_escort::escorting(peds[cop]) && ai.ped[cop].escortCar == vi;
+        if (!copOk || !d) {
+            police_escort::releaseTransport(*this, vi, cop);
+            va.task = PT_NONE;
+            return;
+        }
+        if (d->dummy) traffic.toPhysics(vi, v.sim);
+        vec2 goal = peds[cop].pos.toVec3().xy();
+        float dist = length(goal - v.sim.body.pos.toVec3().xy());
+        va.taskTimer += dt;
+        if (va.transportState == 0) {
+            if (d->mode != AI::DM_NORMAL) d->mode = AI::DM_NORMAL;
+            if (!d->hasDest || length(d->dest - goal) > 25.f || d->destRecalc <= 0.f) traffic.setDestination(*d, goal);
+            // there (or as near as it gets: held up within a short walk of them for longer than a red light lasts)
+            va.stopTimer = v.sim.speed() < 1.f ? va.stopTimer + dt : 0.f;
+            if (dist < 30.f || (dist < 85.f && va.stopTimer > 30.f)) {
+                d->mode = AI::DM_PULLOVER;
+                d->holdTimer = -1.f;
+                va.transportState = 1;
+                va.taskTimer = 0.f;
+            }
+        } else if (va.transportState == 1) {
+            if (d->mode != AI::DM_PULLOVER || (va.taskTimer > 20.f && dist > 70.f)) {
+                va.transportState = 0;   // (pushed out of it, or ran on past them: round again)
+                d->mode = AI::DM_NORMAL;
+            } else if (v.sim.speed() < 0.3f && va.taskTimer > 1.5f) {
+                va.transportState = 2;
+                va.taskTimer = 0.f;
+                v.sirenOn = true;
+                v.sirenSilent = true;
+                LOG("police: transport %d pulled over %.0f m from officer %d", vi, dist, cop);
+            }
+        }
+        AI::DriveOut out;
+        traffic.drive(vi, v.sim, dt, out);
+        v.ctl = out.ctl;
+        v.indicator = va.transportState == 2 ? 2 : out.indicator;
+        v.hornOn = false;
+        if (va.transportState == 2) {
+            v.ctl = Vehicles::VehicleControls();
+            v.ctl.hasDriver = true;
+            v.ctl.brake = 1.f;
+            v.ctl.handbrake = true;   // (the brake pedal alone at a standstill is reverse)
+        }
+        return;
+    }
     // ---- target
     int target = b.target >= 0 && b.target < (int)peds.size() && peds[b.target].used ? b.target : -1;
     bool chasingPlayer = target >= 0 && target == player;
@@ -1446,7 +1800,11 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
     }
     if (direct && va.taskTimer < 0.5f && dist > 20.f) direct = false;
     if (!direct && d) {
-        if (d->mode != AI::DM_EMERGENCY) d->mode = AI::DM_EMERGENCY;
+        // the last stretch to a suspect on foot: no more emergency driving (through the zebras at 1.35 times the limit,
+        // past people waiting for the lights) - the siren on, but with an eye on the people crossing; held up there,
+        // the officers go the rest of the way on foot (below)
+        AI::DriveMode want = targetVeh < 0 && tpReal && dist < 90.f ? AI::DM_NORMAL : AI::DM_EMERGENCY;
+        if (d->mode != want) d->mode = want;
         if (chasingPlayer) {
             // pursuit driving: well over the limit when the suspect is fleeing fast (reset on stand-down)
             float tsp = length(tv.xy());
@@ -1471,10 +1829,11 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
         // (held up: stopped or crawling in stop-and-go traffic - the time builds while slower than 3 m/s and wears off
         //  while moving faster)
         va.heldUp = Clamp(va.heldUp + (mySpeed < 3.f ? dt : -dt), 0.f, 10.f);
-        if (va.heldUp > 3.f && mySpeed < 1.f && targetVeh < 0 && tpReal && dist < 75.f) {
+        // (stopped there for a few seconds, or crawling for longer: people in the road, a queue creeping along)
+        if (((va.heldUp > 3.f && mySpeed < 1.f) || va.heldUp > 8.f) && targetVeh < 0 && tpReal && dist < 75.f) {
             for (int s = 0; s < 8; s++) {
                 int o = v.seats[s];
-                if (o < 0 || peds[o].isPlayer) continue;
+                if (o < 0 || peds[o].isPlayer || peds[o].faction != FAC_POLICE) continue;   // (a prisoner in the back stays there)
                 removePedFromVehicle(o, true);
                 PedAI& oa = pedAI(o);
                 oa.homeVeh = vi;
@@ -1600,8 +1959,17 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
     c.steer = Clamp(-err * 2.0f + v.sim.body.angVel.z * 0.08f, -1.f, 1.f);
     float targetSpeed;
     if (onFoot) {
-        // stop short of the suspect, officers get out
-        targetSpeed = Clamp((dist - 12.f) * 0.8f, 0.f, 30.f);
+        // stop short of the suspect, officers get out (and nobody under the wheels - the suspect included: anyone on
+        // foot just ahead in the car's path, brake)
+        targetSpeed = Clamp((dist - 12.f) * 0.6f, 0.f, 16.f);
+        float stopFor = Max(fs, 0.f) * 1.1f + 5.f, halfW = vassets[v.model].spec.boxHalf.x + 0.9f;
+        traffic.hash.query(traffic.bodies, vp.xy() - vec2(stopFor), vp.xy() + vec2(stopFor), [&](int bi) {
+            const AI::Body& ob = traffic.bodies[bi];
+            if (ob.kind != AI::BK_PED || fabsf(ob.z - vp.z) > 3.f) return;
+            vec2 rp = ob.pos - vp.xy();
+            float along = dot(rp, fwd), lat = dot(rp, rgt);
+            if (along > 0.f && along < stopFor && fabsf(lat) < halfW) targetSpeed = 0.f;
+        });
     } else {
         float follow = tSpeed + Clamp((dist - 9.f) * 0.5f, -4.f, 14.f);
         targetSpeed = Clamp(follow, 4.f, 55.f);
@@ -1631,11 +1999,15 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
         gD.chatterTimer = 14.f + hashToFloat(hash32(gD.counter)) * 10.f;
         aiSay(drv, BK_COP_CHATTER, 0.9f);
     }
-    // officers get out near a suspect on foot, or when the target vehicle is stopped
-    if ((onFoot && dist < 26.f && fs < 3.f) || (!onFoot && tSpeed < 1.f && dist < 16.f && fs < 2.f)) {
+    // officers get out near a suspect on foot, or when the target vehicle is stopped - or, held up short of one on foot
+    // (people in the way, the car boxed in), out and the rest of the way on foot
+    va.heldUp = Clamp(va.heldUp + (fs < 1.f ? dt : -dt), 0.f, 10.f);
+    bool heldShort = onFoot && dist < 75.f && va.heldUp > 3.f && fs < 1.f;
+    if ((onFoot && dist < 26.f && fs < 3.f) || heldShort || (!onFoot && tSpeed < 1.f && dist < 16.f && fs < 2.f)) {
+        if (heldShort && dist >= 26.f) LOG("police unit %d: held up %.0f m short of the suspect, the officers go on foot", vi, dist);
         for (int s = 0; s < 8; s++) {
             int o = v.seats[s];
-            if (o < 0 || peds[o].isPlayer) continue;
+            if (o < 0 || peds[o].isPlayer || peds[o].faction != FAC_POLICE) continue;   // (a prisoner in the back stays there)
             removePedFromVehicle(o, true);
             PedAI& oa = pedAI(o);
             oa.homeVeh = vi;
@@ -1677,6 +2049,11 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
     int stance = 0;
     p.aiming = false;
     p.firing = false;
+    // walking a prisoner to the car (police_escort)
+    if (police_escort::escorting(p)) {
+        police_escort::escortStep(*this, id, dt);
+        return;
+    }
     // returning to the car / patrol
     if (b.type == BRAIN_GOTO && b.target == -2) {
         int hv = pa.homeVeh;
@@ -1687,6 +2064,9 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
             if (dv > 3.f) {
                 desired = tov / dv * 2.6f;
                 faceYaw = atan2f(-desired.x, desired.y);
+            } else if (time < vehAI(hv).escortHold) {
+                // a colleague is bringing a prisoner to it: wait by the car
+                faceYaw = atan2f(-tov.x, tov.y) + kPi * 0.5f;
             } else {
                 bool driverFree = vehicles[hv].seats[0] < 0;
                 int seat = driverFree ? 0 : freeSeat(hv, false);
@@ -1782,22 +2162,32 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
         }
     }
     if (!targetIsPlayer && !suspectArmed) {
+        if (dist < 14.f && t.state != PS_INVEHICLE && floorf((float)time + id * 0.37f) != floorf((float)time - dt + id * 0.37f))
+            aiStimulus(t.pos, STIM_ARREST, id, 30.f, false);   // (onlookers, as below)
         if (t.state == PS_INVEHICLE) {
             // stay by the car until the suspect gets out (or the unit gives up)
             faceYaw = atan2f(-to.x, to.y);
         } else {
-            if (dist > 1.4f) desired = to / Max(dist, 1e-3f) * (dist > 6.f ? 5.6f : 3.f);
+            // (flat out while they run, closing the last metres faster than they go; a walk up to one who has stopped)
+            float runAway = length(t.vel.xy());
+            if (dist > 1.4f) desired = to / Max(dist, 1e-3f) * (dist > 6.f ? Max(5.6f, Min(runAway + 1.2f, 6.6f)) : Max(3.f, Min(runAway + 1.5f, 6.6f)));
             faceYaw = atan2f(-to.x, to.y);
             if (pa.shoutTimer <= 0.f && dist < 20.f) {
                 aiSay(id, BK_COP_FREEZE, 1.f, true);
                 pa.shoutTimer = 5.f;
             }
             if (dist < 1.5f && t.state == PS_ONFOOT) {
-                // tackle and cuff (a suspect standing there with the hands up is just cuffed): the suspect stays down,
-                // this officer heads back to the car
+                // tackle and cuff (a suspect standing there with the hands up is just cuffed); then walked to a patrol
+                // car and put in the back (police_escort) - or, for one that cannot be (a story character), left down
+                // there while this officer heads back to the car
                 if (pedAI(b.target).activity != ACT_HANDS_UP) {
                     knockDown(b.target, vec3(to / Max(dist, 1e-3f) * 160.f, 30.f), true);
                     ai.stats.tackles++;
+                }
+                if (police_escort::startEscort(*this, id, b.target)) {
+                    aiSay(id, BK_COP_ARREST, 1.f, true);
+                    movePed(p, vec2(0.f), dt, false);
+                    return;
                 }
                 pedAI(b.target).activity = ACT_WALK;
                 Brain& tb = peds[b.target].brain;
@@ -1901,6 +2291,10 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
         if (pa.searchSpot >= 0 && pa.searchSpot < (int)gS.spots.size() && gS.spots[pa.searchSpot].by == id) gS.spots[pa.searchSpot].by = -1;
         pa.searchSpot = -1;
     }
+    // an arrest going down draws onlookers (pedai.cpp STIM_ARREST): about once a second while this officer is close in
+    // on a suspect being taken in (hands up, gun on them, the cuffs)
+    if (arrest && seen && dist < 14.f && t.state != PS_INVEHICLE && floorf((float)time + id * 0.37f) != floorf((float)time - dt + id * 0.37f))
+        aiStimulus(t.pos, STIM_ARREST, id, 30.f, targetIsPlayer);
     // tactics
     if (pa.tacticTimer <= 0.f) {
         pa.tacticTimer = 2.5f + hashToFloat(hash32(p.uid + (u32)(time * 2.0))) * 2.5f;

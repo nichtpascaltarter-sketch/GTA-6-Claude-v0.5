@@ -69,6 +69,8 @@ enum PedActivity : u8 {
     ACT_HURT,          // down hurt after a knock-down at very low health: on the back, writhing (stance 24), calling for
                        // help until a medic has seen to them (or a long while passes), then up and off (pedai.cpp)
     ACT_AID,           // a passer-by helping someone down hurt: kneeling beside them, or standing by on the phone
+    ACT_CUFFED,        // arrested (police.cpp escort): walked to a patrol car in front of the officer holding them and put
+                       // in the back; sitting on the kerb while a car is on its way (pedai.cpp)
 };
 
 // Ambient speech categories (barks.cpp)
@@ -83,6 +85,10 @@ enum BarkKind : int {
     BK_ARRIVAL, BK_ARRIVED, BK_SENDOFF, BK_LEAVING,   // at the airport curb: the one waiting / the traveler, a pick-up and
                                                       // a drop-off (population.cpp)
     BK_HURT, BK_SAMARITAN,                            // someone down hurt, and a passer-by helping them (pedai.cpp)
+    BK_ONLOOKER,                                      // watching the police make an arrest (pedai.cpp STIM_ARREST)
+    BK_SUSPECT, BK_COP_ESCORT, BK_COP_TRANSPORT,      // in cuffs on the way to the car, the officer walking them, and
+                                                      // the officer with no car calling one
+    BK_BRAWL, BK_BRAWL_FRIEND,                        // squaring up on the sidewalk, and the friend trying to calm it
     BK_COUNT
 };
 
@@ -131,6 +137,12 @@ struct PedAI {
     int searchSpot = -1;       // lost the suspect: the corner / doorway this officer is checking (police.cpp search plan)
     float searchT = 0.f;       // ... time spent getting there
     float searchLook = -1.f;   // ... the look round it once there (counts down; -1 not there yet)
+    int escortPed = -1;        // walking an arrested suspect (ACT_CUFFED) to a patrol car (police.cpp escort) ...
+    u32 escortUid = 0;
+    int escortCar = -1;        // ... this one (-1: none close - one has been called) ...
+    u32 escortCarUid = 0;
+    u8 escortSeat = 0;         // ... to this seat (the back where there is one)
+    float escortT = 0.f;       // ... for this long
     // events / vehicles
     int eventId = -1;          // ambient event slot this ped belongs to (events.cpp), -1 none
     int aimAt = -1;            // ACT_EVENT: ped held at gunpoint (mugger)
@@ -149,6 +161,7 @@ struct PedAI {
     bool knockedDown = false;   // was down (a ragdoll, the get-up) since the brain last ran (ai.cpp)
     float hurtCare = 0.f;       // ACT_HURT: a medic has seen to them this long (-1: getting up)
     int aidPed = -1;            // ACT_AID: the one they are helping
+    float sceneT = -100.f;      // when they last stopped to watch the police at work (STIM_ARREST: once per scene)
     int greetWith = -1;         // a greeting (CLIP_HUG / HANDSHAKE / CHEEK_KISS, started on both together): the partner,
                                 // from stepping in until they part (peds.cpp: their chest / head for the hands) ...
     float greetT = 0.f;         // ... and the time the clip has left (> 0 while it plays)
@@ -192,6 +205,10 @@ struct VehAI {
     u8 rage = 0;
     float rageTimer = 0.f;
     u8 pursuitMove = 0;        // police: 0 chase, 1 PIT run, 2 boxing slot (counted on entry)
+    double escortHold = -1.0;  // police: an officer is bringing a prisoner to it - nobody drives off before this (game time)
+    int transportFor = -1;     // PT_TRANSPORT: the officer holding a suspect who called for this car ...
+    u32 transportUid = 0;
+    u8 transportState = 0;     // ... 0 on the way, 1 pulling over there, 2 waiting at the kerb
     float megaphoneTimer = 0.f;   // police: next "pull over" order over the car loudspeaker
     float impactCd = 0.f;         // telemetry: one hard impact counted per crash
     float hungTime = 0.f;         // hung up on a ledge / kerb: wheels off the ground, going nowhere
@@ -235,7 +252,10 @@ struct Stimulus {
     float time = 0.f;
     bool player = false;
 };
-enum StimulusKind : u8 { STIM_GUNFIRE = 0, STIM_EXPLOSION, STIM_FIGHT, STIM_BODY, STIM_CRASH, STIM_ARMED, STIM_SIREN, STIM_FIRE, STIM_PANIC, STIM_HORN };
+enum StimulusKind : u8 {
+    STIM_GUNFIRE = 0, STIM_EXPLOSION, STIM_FIGHT, STIM_BODY, STIM_CRASH, STIM_ARMED, STIM_SIREN, STIM_FIRE, STIM_PANIC, STIM_HORN,
+    STIM_ARREST   // the police with someone at gunpoint, hands up, on the ground or in cuffs (police.cpp): people stop to watch
+};
 
 // A place that needs emergency services (injured/dead ped, burning car, NPC crime) or police attention.
 struct Incident {
@@ -249,7 +269,10 @@ struct Incident {
 };
 
 // Police unit tasks (VehAI::task for police vehicles) and on-foot tactics (PedAI::tactic)
-enum PoliceTask : u8 { PT_NONE = 0, PT_PURSUE, PT_SEARCH, PT_ROADBLOCK, PT_RESPOND, PT_RETURN };
+enum PoliceTask : u8 {
+    PT_NONE = 0, PT_PURSUE, PT_SEARCH, PT_ROADBLOCK, PT_RESPOND, PT_RETURN,
+    PT_TRANSPORT   // called to take a prisoner: to the officer holding them, pulled over at the kerb there until they are in
+};
 enum PoliceTactic : u8 { FT_APPROACH = 0, FT_COVER, FT_FLANK, FT_ARREST, FT_SEARCH, FT_RETURN, FT_ENGAGE };
 
 struct AIFrameStats {
@@ -259,7 +282,7 @@ struct AIFrameStats {
     int frames = 0;
     // cumulative behaviour counters (aiCensusText, autoplay logs)
     int panicSpread = 0, filming = 0, pitTries = 0, boxing = 0, roadblocks = 0, spikeHits = 0, tackles = 0, heliUnits = 0,
-        unitsSent = 0, roadRage = 0, events = 0, arrests = 0;
+        unitsSent = 0, roadRage = 0, events = 0, arrests = 0, custody = 0, transports = 0;
     int hardImpacts = 0, impactsWithPlayer = 0;   // AI-driven cars: impulses > 3000 N s (sampled per frame)
     int unhung = 0;                               // cars lifted off a ledge back onto their lane
     int departures = 0, arrivals = 0;             // cars driven away from / parked at the curb by their owners
@@ -284,7 +307,8 @@ struct AIState {
     int testCar[2] = {-1, -1};          // autoplay tests: the cars a scenario set up (app.cpp)
     vec3 testCam;                       // autoplay tests: scenario camera position
     bool forceBender = false;           // autoplay tests: every low-speed knock between two traffic cars becomes a scene
-    int forceEvent = -1;                // autoplay tests: the ambient event type to stage next (events.cpp), soon and close
+    int forceEvent = -1;                // autoplay tests: the ambient event type to stage next (events.cpp), soon and close;
+                                        // a value past the last type: no ambient events at all
     double lastParkArrive = -1e9;       // last time a traffic car started pulling into a parking spot (global spacing)
     // the player giving up (police.cpp): wanted, on foot, nothing in hand - hold the phone key and the hands go up;
     // officers who see it hold their fire, close in with guns trained and cuff them: a lighter bust (weapons kept, half
