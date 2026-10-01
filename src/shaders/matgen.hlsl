@@ -17,7 +17,11 @@ cbuffer MatGenCB : register(b1) {
 };
 
 // ---------------------------------------------------------------------------------------------
-// Tileable noise (period in lattice cells)
+// Tileable noise (period in lattice cells). Every generator is tuned on 1024-texel layers (the game's size); a
+// lattice finer than the layer resolves (the 256-texel materials of automated runs) only aliases into per-texel
+// speckle that magnifies into blotches and squares on screen, so such noise fades into its mean instead. All lattices
+// up to ~1400 cells stay untouched at 1024 texels.
+float resolvedCells(float P) { return saturate(((float)gSize / P - 0.3) * 2.0); }
 float hashP(float2 i, float P) { i = i - floor(i / P) * P; return (hash2u(asuint(int2(i)) + gSeed * 7919u) >> 8) * (1.0 / 16777216.0); }
 float2 gradP(float2 i, float P) { float a = hashP(i, P) * TWO_PI; return float2(cos(a), sin(a)); }
 float tnoise(float2 p, float P) {
@@ -25,12 +29,13 @@ float tnoise(float2 p, float P) {
     float2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
     float a = dot(gradP(i, P), f), b = dot(gradP(i + float2(1, 0), P), f - float2(1, 0));
     float c = dot(gradP(i + float2(0, 1), P), f - float2(0, 1)), d = dot(gradP(i + float2(1, 1), P), f - float2(1, 1));
-    return lerp(lerp(a, b, u.x), lerp(c, d, u.x), u.y) * 1.4142;
+    return lerp(lerp(a, b, u.x), lerp(c, d, u.x), u.y) * 1.4142 * resolvedCells(P);
 }
 float tvalue(float2 p, float P) {
     float2 i = floor(p), f = frac(p);
     float2 u = f * f * (3.0 - 2.0 * f);
-    return lerp(lerp(hashP(i, P), hashP(i + float2(1, 0), P), u.x), lerp(hashP(i + float2(0, 1), P), hashP(i + float2(1, 1), P), u.x), u.y);
+    float v = lerp(lerp(hashP(i, P), hashP(i + float2(1, 0), P), u.x), lerp(hashP(i + float2(0, 1), P), hashP(i + float2(1, 1), P), u.x), u.y);
+    return lerp(0.5, v, resolvedCells(P));
 }
 // Value noise on a lattice of P.x by P.y cells across the tile, for anisotropic features (grain, streaks, scratches):
 // one period for both axes would leave a seam at the tile edge or repeat the pattern every P cells along the other.
@@ -38,14 +43,14 @@ float hashP2(float2 i, float2 P) { i = i - floor(i / P) * P; return (hash2u(asui
 float tvalue2(float2 p, float2 P) {
     float2 i = floor(p), f = frac(p);
     float2 u = f * f * (3.0 - 2.0 * f);
-    return lerp(lerp(hashP2(i, P), hashP2(i + float2(1, 0), P), u.x), lerp(hashP2(i + float2(0, 1), P), hashP2(i + float2(1, 1), P), u.x), u.y);
+    float v = lerp(lerp(hashP2(i, P), hashP2(i + float2(1, 0), P), u.x), lerp(hashP2(i + float2(0, 1), P), hashP2(i + float2(1, 1), P), u.x), u.y);
+    return lerp(0.5, v, resolvedCells(max(P.x, P.y)));
 }
 // A hard threshold of noise with `cells` lattice cells across the tile (mean = the share of the noise above it): where
-// the texture is too small to resolve the cells (the 256-texel materials of automated runs) the feature fades into its
-// average coverage instead of aliasing into single-texel dots that magnify into squares on screen.
+// the texture is too small to resolve the cells the feature fades into its average coverage instead of aliasing into
+// single-texel dots.
 float tthreshold(float edge, float v, float cells, float mean) {
-    float resolved = saturate(((float)gSize / cells - 0.3) * 2.0);
-    return lerp(mean, smoothstep(edge - 0.01, edge + 0.01, v), resolved);
+    return lerp(mean, smoothstep(edge - 0.01, edge + 0.01, v), resolvedCells(cells));
 }
 float tfbm(float2 uv, float baseFreq, int oct, float gain) {
     float s = 0, a = 0.5, n = 0, f = baseFreq;
@@ -671,7 +676,9 @@ void csGenerate(uint3 id : SV_DispatchThreadID) {
     Surf c = evalSurf(uv);
     Surf sx = evalSurf(frac(uv + float2(texel, 0)));
     Surf sy = evalSurf(frac(uv + float2(0, texel)));
-    float strength = gParams.w > 0 ? gParams.w : 6.0;
+    // strengths are tuned on 1024-texel layers: a texel step is longer on a smaller layer, so its height difference
+    // is scaled back to the same slope (the 256-texel autotest materials were 4x steeper: blotchy at low sun)
+    float strength = (gParams.w > 0 ? gParams.w : 6.0) * (float)gSize / 1024.0;
     float2 grad = float2(sx.height - c.height, sy.height - c.height) * strength;
     float3 n = normalize(float3(-grad, 1.0));
     uAlbedo[uint3(id.xy, gLayer)] = float4(linearToSrgb(saturate(c.albedo)), saturate(c.height));
