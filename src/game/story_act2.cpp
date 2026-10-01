@@ -1876,6 +1876,7 @@ public:
     vec3 gate, safe, house;
     HoldAction crack;
     bool alarmed = false;
+    bool sawSafe = false;   // (autotest)
     const char* title() const override { return "Paper Trail"; }
     const char* brief() const override {
         return "Captain Holt keeps a private ledger of every payoff in a safe at her Key Coral villa. She's at a fundraiser tonight. Get in, "
@@ -1995,7 +1996,15 @@ public:
         switch (stage) {
             case 1: if (t.stageTime > 0.5f) t.teleport(gate, 0.f); break;
             case 2:
-                if (t.stageTime > 0.5f && ::length(playerPos(g).xy() - safe.xy()) > 1.2f) {
+                // across the lawn first (a frame of the safe's marker as the player sees it walking up), then at the safe
+                if (t.stageTime > 0.5f && t.stageTime < 3.f && !sawSafe) {
+                    sawSafe = true;
+                    vec3 at = lookoutSpot(g, safe, 6.f, playerPos(g));
+                    t.teleport(at, atan2f(-(safe.x - at.x), safe.y - at.y));
+                    if (Ped* pl = g.playerPed()) pl->animIn.crouch = true;
+                }
+                if (t.stageTime > 2.5f && t.stageTime - dt <= 2.5f) t.screenshot("safe");
+                if (t.stageTime > 3.5f && ::length(playerPos(g).xy() - safe.xy()) > 1.2f) {
                     t.teleport(safe, 0.f);
                     Ped* pl = g.playerPed();
                     if (pl) pl->animIn.crouch = true;

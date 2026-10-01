@@ -1571,23 +1571,41 @@ static void addShoulderStraps(OutfitCtx& o, const CovFn& bodyCov, float cx, floa
         // flat across
         const float acr[4] = {-1.f, -0.8f, 0.8f, 1.f};
         const vec3 C0(sx * cx, D.J[B_CHEST].y + 0.005f * s, D.zArmpit - 0.03f * s);
-        // (the line's points are found from outside: a point on a 17 cm circle round the shoulder, projected onto the
-        // body's surface, so a thin shoulder whose inside the centre misses still gives a smooth line)
+        // (the line's points are found from outside: from a point on a 17 cm circle round the shoulder, a ray in to the
+        // body's surface, so the line stays in its plane x = const, and a thin shoulder whose inside the centre misses
+        // still gives a smooth line; a projection from that far would wander across the plane and fold the band)
         auto hit = [&](float phi, float xoff, vec3& p, vec3& n) {
             vec3 dir(0.f, cosf(phi), sinf(phi));
-            p = c.sdf.project(C0 + vec3(xoff, 0.f, 0.f) + dir * (0.17f * s), MK_TORSO, 10);
+            vec3 o0 = C0 + vec3(xoff, 0.f, 0.f) + dir * (0.17f * s);
+            float t = 0.f, f = c.sdf.eval(o0, MK_TORSO);
+            bool found = false;
+            for (int it = 0; it < 128 && t < 0.17f * s && f > 0.f; it++) {
+                float tn = t + Max(f * 0.8f, 0.0008f);
+                float fn = c.sdf.eval(o0 - dir * tn, MK_TORSO);
+                if (fn <= 0.f) {
+                    // bracketed: false position
+                    float lo = t, hi = tn, flo = f, fhi = fn;
+                    for (int b = 0; b < 10; b++) {
+                        float mid = lo + (hi - lo) * Saturate(flo / Max(flo - fhi, 1e-12f));
+                        float fm = c.sdf.eval(o0 - dir * mid, MK_TORSO);
+                        if (fm > 0.f) {
+                            lo = mid;
+                            flo = fm;
+                        } else {
+                            hi = mid;
+                            fhi = fm;
+                        }
+                    }
+                    t = 0.5f * (lo + hi);
+                    found = true;
+                    break;
+                }
+                t = tn;
+                f = fn;
+            }
+            p = found ? o0 - dir * t : c.sdf.project(o0, MK_TORSO, 10);
             n = c.sdf.grad(p, MK_TORSO);
             n = length2(n) > 1e-12f ? normalize(n) : dir;
-            // (Newton from that far can stop short of the surface where the field is not a true distance, which
-            // floats the strap off the shoulder: finish with a cast out along the normal from just inside)
-            for (float back : {0.015f, 0.04f}) {
-                vec3 in = p - n * (back * s);
-                if (c.sdf.eval(in, MK_TORSO) >= 0.f) continue;
-                p = in + n * c.sdf.castOut(in, n, MK_TORSO, (back + 0.03f) * s);
-                vec3 g2 = c.sdf.grad(p, MK_TORSO);
-                if (length2(g2) > 1e-12f) n = normalize(g2);
-                break;
-            }
         };
         // angle range where the centre line is above the start heights
         const int NA = 60;
@@ -1601,19 +1619,57 @@ static void addShoulderStraps(OutfitCtx& o, const CovFn& bodyCov, float cx, floa
             if (above) phi1 = phi;
         }
         if (phi0 < -0.5f || phi1 <= phi0) continue;
-        const int NP = 18;
+        const int NP = 18, NL = 3 * (NP - 1) + 1;
+        // each line sampled densely in its plane, then pulled taut: a strap bridges the hollows under the collarbone
+        // and round the shoulder blade instead of following them (the upper envelope of the samples seen from the
+        // line's centre, by relaxing every sample out to the chord between its neighbours)
+        auto traceLine = [&](float xoff, std::vector<vec3>& P, std::vector<vec3>& N) {
+            P.resize(NL);
+            N.resize(NL);
+            std::vector<float> r(NL), ph(NL);
+            const vec3 Ck = C0 + vec3(xoff, 0.f, 0.f);
+            for (int j = 0; j < NL; j++) {
+                ph[j] = Lerp(phi0, phi1, (float)j / (NL - 1));
+                vec3 p, n;
+                hit(ph[j], xoff, p, n);
+                r[j] = sqrtf(Sq(p.y - Ck.y) + Sq(p.z - Ck.z));
+                N[j] = n;
+            }
+            for (int it = 0; it < 48; it++) {
+                bool moved = false;
+                for (int j = 1; j + 1 < NL; j++) {
+                    vec2 a(r[j - 1] * cosf(ph[j - 1]), r[j - 1] * sinf(ph[j - 1])), b(r[j + 1] * cosf(ph[j + 1]), r[j + 1] * sinf(ph[j + 1]));
+                    vec2 e = b - a, dir(cosf(ph[j]), sinf(ph[j]));
+                    float den = dir.x * e.y - dir.y * e.x;
+                    if (fabsf(den) < 1e-9f) continue;
+                    float t = (a.x * e.y - a.y * e.x) / den;
+                    if (t > r[j] + 1e-5f) {
+                        r[j] = t;
+                        moved = true;
+                    }
+                }
+                if (!moved) break;
+            }
+            for (int j = 0; j < NL; j++) P[j] = Ck + vec3(0.f, r[j] * cosf(ph[j]), r[j] * sinf(ph[j]));
+            // normals: out of the taut curve in its plane, with the skin's sideways lean
+            for (int j = 0; j < NL; j++) {
+                vec3 tg = P[Min(j + 1, NL - 1)] - P[Max(j - 1, 0)];
+                vec3 inPlane = normalize(vec3(0.f, tg.z, -tg.y));
+                if (dot(inPlane, P[j] - Ck) < 0.f) inPlane = -inPlane;
+                N[j] = normalize(inPlane + vec3(N[j].x, 0.f, 0.f));
+            }
+        };
+        std::vector<vec3> LP[4], LN[4], CP, CN;
+        traceLine(0.f, CP, CN);
+        for (int k = 0; k < 4; k++) traceLine(sx * acr[k] * halfW, LP[k], LN[k]);
         std::vector<u32> rows[4];
         float along = 0.f;
-        vec3 prevC(0.f);
         for (int i = 0; i < NP; i++) {
-            float phi = Lerp(phi0, phi1, (float)i / (NP - 1));
-            vec3 pc, nc;
-            hit(phi, 0.f, pc, nc);
-            if (i) along += length(pc - prevC);
-            prevC = pc;
+            const int j = i * 3;
+            const float phi = Lerp(phi0, phi1, (float)j / (NL - 1));
+            if (i) along += length(CP[j] - CP[j - 3]);
             for (int k = 0; k < 4; k++) {
-                vec3 q, qn;
-                hit(phi, sx * acr[k] * halfW, q, qn);
+                const vec3 q = LP[k][j], qn = LN[k][j];
                 BVert v;
                 v.bp = q;
                 v.p = q + qn * (k == 0 || k == 3 ? off * 0.35f : off);
@@ -1894,7 +1950,9 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
     g.smooth = Max(g.smooth, 2);
     emitGarment(o, g);
     o.torsoOuter = std::make_shared<GarmentDef>(g);
-    if (tank) addShoulderStraps(o, g.cov, 0.105f * s, (top == TOP_CROP ? 0.018f : 0.024f) * s, g.thick + loose + 0.0012f, col, g.matParam);
+    if (tank)
+        addShoulderStraps(o, g.cov, 0.105f * s, (top == TOP_CROP ? 0.018f : (d.gender == FEMALE ? 0.019f : 0.023f)) * s, g.thick + loose + 0.0012f, col,
+                          g.matParam);
     // ---- details
     const float off = g.thick + loose;
     auto decal = [&](CovFn cov, vec3 dcol, u8 mat, float extraOff, u32 parts, u32 mp = 0xffffffffu) {

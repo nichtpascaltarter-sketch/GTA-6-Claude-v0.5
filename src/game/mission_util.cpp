@@ -636,6 +636,21 @@ vec3 openGround(GameWorld& g, vec3 p, float margin = 0.8f, float maxR = 14.f) {
     return p;
 }
 
+bool clearView(GameWorld& g, dvec3 cam, dvec3 subject);
+
+// Somewhere to stand `dist` meters from `target` in the open with a clear line to it (tests walk up to a marker this
+// way, so a frame shows it as someone approaching sees it). `from` when no direction works.
+vec3 lookoutSpot(GameWorld& g, vec3 target, float dist, vec3 from) {
+    for (int k = 0; k < 12; k++) {
+        float a = kTwoPi * k / 12.f;
+        vec3 c = openGround(g, target + vec3(cosf(a) * dist, sinf(a) * dist, 0.f), 0.5f, 2.f);
+        if (::length(c.xy() - target.xy()) < dist * 0.7f || fabsf(c.z - target.z) > 2.f) continue;
+        if (!clearView(g, dvec3(c + vec3(0.f, 0.f, 1.5f)), dvec3(target + vec3(0.f, 0.f, 1.f)))) continue;
+        return c;
+    }
+    return from;
+}
+
 // Walk `along` meters up (+) or down (-) the street from a place, following the road network through intersections
 // (straightest continuation, no highways). Returns the edge, distance, walking direction and the place's side of the
 // street relative to the walking direction (+1 = left).

@@ -1230,15 +1230,7 @@ void fishTestStep(GameWorld& g, MissionTest& t) {
             case 0:
                 if (T.t > 0.6f) {
                     // a few steps out from the counter with a clear line to it, facing it
-                    vec3 mk = F.markets[0].pos, at = playerPos(g);
-                    for (int k = 0; k < 8; k++) {
-                        float a = kTwoPi * k / 8.f;
-                        vec3 c = openGround(g, mk + vec3(cosf(a) * 7.f, sinf(a) * 7.f, 0.f), 0.5f, 2.f);
-                        if (::length(c.xy() - mk.xy()) < 5.f || fabsf(c.z - mk.z) > 2.f) continue;
-                        if (!clearView(g, dvec3(c + vec3(0.f, 0.f, 1.5f)), dvec3(mk + vec3(0.f, 0.f, 1.f)))) continue;
-                        at = c;
-                        break;
-                    }
+                    vec3 mk = F.markets[0].pos, at = lookoutSpot(g, mk, 7.f, playerPos(g));
                     t.teleport(at, atan2f(-(mk.x - at.x), mk.y - at.y));
                     T.stage = 3;
                     T.t = 0.f;

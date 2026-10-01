@@ -41,6 +41,7 @@ static const Clip kStanceClip[] = {
     CLIP_IDLE,        // 21 sit on the ground (IC_SIT_GROUND)
     CLIP_IDLE,        // 22 lie face down (IC_LIE_FRONT)
     CLIP_IDLE,        // 23 queue: standing with frequent idle variations
+    CLIP_IDLE,        // 24 down hurt (IC_DOWN_HURT)
 };
 static const int kStanceCount = (int)(sizeof(kStanceClip) / sizeof(kStanceClip[0]));
 
@@ -52,6 +53,7 @@ static int stanceClipId(int s, int meleeKind) {
     if (s == 20) return meleeKind == 2 ? (int)IC_BLOCK_BAT : (int)CLIP_BLOCK;
     if (s == 21) return IC_SIT_GROUND;
     if (s == 22) return IC_LIE_FRONT;
+    if (s == 24) return IC_DOWN_HURT;
     return kStanceClip[s];
 }
 // Dance style per ped.
@@ -77,7 +79,7 @@ static const u8 kFidgetLegs[FG_COUNT - FG_POSTURES] = {0, 0, 0, 0, 0, 0, 2, 3, 0
 // Scenario stances whose upper body stays on while walking.
 static bool stanceUpperWhileMoving(int s) { return s == 5 || s == 7 || s == 8 || s == 10 || s == 15 || s == 17 || s == 19 || s == 20; }
 // Scenario stances that keep the character in place (locomotion is ignored).
-static bool stanceLocksLegs(int s) { return s == 6 || s == 11 || s == 12 || s == 21 || s == 22; }
+static bool stanceLocksLegs(int s) { return s == 6 || s == 11 || s == 12 || s == 21 || s == 22 || s == 24; }
 
 static bool actionUpperCapable(int a) {
     switch (a) {
@@ -445,8 +447,10 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
                     err[s] = Max(length(vec2(e.x, e.y)) / (0.085f * scale), fabsf(wrapAngle(A.plantYaw[s] - fyaw[s])) / 0.3f);
                 }
             int s = err[0] >= err[1] ? 0 : 1, o = 1 - s;
-            float need = 1.f;
-            if (A.stepReq >= 0) {
+            // (staggering: quick catching steps as soon as a foot falls behind the body)
+            const bool stag = A.staggerT >= 0.f;
+            float need = stag ? 0.45f : 1.f;
+            if (A.stepReq >= 0 && !stag) {
                 // settling after a weight shift: the unloaded foot moves to where the pose now has it (a smaller
                 // error than the one that forces a step), if it is far enough off to bother
                 if (A.stepReq < 2) s = A.stepReq, o = 1 - s;
@@ -462,9 +466,11 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
                 A.stepFrom[s] = A.plantP[s];
                 A.stepFromYaw[s] = A.plantYaw[s];
                 // quicker steps while turning faster; a settling foot slides over low
-                A.stepDur[s] = Clamp(0.26f + 0.6f * dist / scale + 0.12f * dy - 0.04f * turn, 0.22f, 0.48f);
-                A.stepLift[s] = need < 1.f ? Clamp(0.016f + 0.1f * dist / scale, 0.016f, 0.035f) * scale
-                                           : Clamp(0.03f + 0.15f * dist / scale + 0.02f * dy, 0.03f, 0.075f) * scale;
+                A.stepDur[s] = stag ? Clamp(0.17f + 0.25f * dist / scale, 0.17f, 0.3f)
+                                    : Clamp(0.26f + 0.6f * dist / scale + 0.12f * dy - 0.04f * turn, 0.22f, 0.48f);
+                A.stepLift[s] = stag ? Clamp(0.025f + 0.08f * dist / scale, 0.025f, 0.06f) * scale
+                                     : (need < 1.f ? Clamp(0.016f + 0.1f * dist / scale, 0.016f, 0.035f) * scale
+                                                   : Clamp(0.03f + 0.15f * dist / scale + 0.02f * dy, 0.03f, 0.075f) * scale);
                 A.stepReq = -1;
             }
         } else {
@@ -485,6 +491,8 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
                 // turning: land ahead of the turn (about the root), so the foot stays down longer before its next step
                 float lead = Clamp(in.turnRate * 0.28f, -0.45f, 0.45f);
                 vec3 h = rotate(qz(lead), vec3(heel[s].x, heel[s].y, 0.f));
+                // staggering: the foot lands ahead along the push, under where the body is going
+                h = h + vec3(A.pushV.x, A.pushV.y, 0.f) * 0.22f;
                 A.stepTo[s] = vec3(h.x, h.y, 0.f);
                 A.stepToYaw[s] = wrapAngle(fyaw[s] + lead);
             } else {
@@ -510,7 +518,7 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
             A.plantCorr[s] = vec3(pp.x - pa.x, pp.y - pa.y, 0.f);
             A.corrYaw[s] = wrapAngle(A.plantYaw[s] - fyaw[s]);
             // too far from the pose (a fast turn, a shove): let go (standing feet wait longer for their step)
-            float lim = walking ? 0.3f : 0.38f, limY = walking ? 0.75f : 1.15f;
+            float lim = walking ? 0.3f : (A.staggerT >= 0.f ? 0.55f : 0.38f), limY = walking ? 0.75f : 1.15f;
             if (length2(A.plantCorr[s]) > lim * lim * scale * scale || fabsf(A.corrYaw[s]) > limY) A.planted[s] = false;
         } else if (Min(heel[s].z, ball[s].z) > 0.012f * scale || A.moveW < 0.3f) {
             // released: the correction fades once the foot is off the ground (a toe still on it would slide)
@@ -753,7 +761,8 @@ static void weightShift(Animator& A, bool still, float want, float dt) {
 // while after running: the chest lifts, the shoulders rise (the arms keep hanging), the head stays level.
 // `amount` scales the visible motion (the timing always runs).
 static void breathe(Animator& A, Pose& p, float dt, float speed, float amount) {
-    float run = Saturate((speed - 2.2f) / 4.5f);
+    // (a wounded body breathes short and hard)
+    float run = Max(Saturate((speed - 2.2f) / 4.5f), 0.65f * A.woundedS);
     A.exertion += (run - A.exertion) * (1.f - expf(-dt / (run > A.exertion ? 18.f : 35.f)));
     A.breathPh += dt * A.breathRate * (1.f + 1.4f * A.exertion);
     A.breathPh -= floorf(A.breathPh);
@@ -773,6 +782,342 @@ static void breathe(Animator& A, Pose& p, float dt, float speed, float amount) {
         p.rot[cb] = normalize(p.rot[cb] * qy(d));
         p.rot[ub] = normalize(qy(-d) * p.rot[ub]);
     }
+}
+
+// ------------------------------------------------------------------------------------------------ impacts and injuries
+// Damped spring x'' = -w^2 x - 2 z w x' (unit mass, kicked through its velocity), stepped semi-implicitly.
+static void springStep(float& x, float& v, float w, float z, float dt) {
+    const int n = 1 + (int)(dt * w * 0.5f);
+    const float h = dt / (float)n;
+    for (int i = 0; i < n; i++) {
+        v += (-w * w * x - 2.f * z * w * v) * h;
+        x += v * h;
+    }
+}
+
+// The region a bone belongs to (walking up the hierarchy): 0 head, 1 chest, 2 belly, 3 arm, 4 leg; side of a limb or
+// clavicle (0 left, 1 right, -1 the middle).
+static int hitRegion(const Skeleton& sk, int b, int& side) {
+    side = -1;
+    for (int guard = 0; b >= 0 && guard < 64; guard++, b = sk.parent[b]) {
+        switch (b) {
+            case B_HEAD: case B_NECK: return 0;
+            case B_CLAVICLE_L: side = 0; return 1;
+            case B_CLAVICLE_R: side = 1; return 1;
+            case B_CHEST: case B_SPINE2: return 1;
+            case B_SPINE1: case B_PELVIS: case B_ROOT: return 2;
+            case B_UPPERARM_L: case B_FOREARM_L: case B_HAND_L: side = 0; return 3;
+            case B_UPPERARM_R: case B_FOREARM_R: case B_HAND_R: side = 1; return 3;
+            case B_THIGH_L: case B_CALF_L: case B_FOOT_L: case B_TOE_L: side = 0; return 4;
+            case B_THIGH_R: case B_CALF_R: case B_FOOT_R: case B_TOE_R: side = 1; return 4;
+            default: break;
+        }
+    }
+    return 1;
+}
+
+// A hit (AnimInput::hitDir / hitStrength / hitBone) kicks the flinch springs; a heavy one (>= 0.5) also knocks the
+// body off balance (the stagger's push) and sends a free hand to the wound for a moment.
+static void hitKick(Animator& A, const AnimInput& in) {
+    const float k = Saturate(in.hitStrength);
+    if (k <= 0.f || !A.skel) return;
+    vec3 d = in.hitDir;
+    const float L = length(d);
+    d = L > 1e-4f ? d / L : vec3(0, -1, 0);
+    int side;
+    const int reg = hitRegion(*A.skel, in.hitBone < 0 || in.hitBone >= B_COUNT ? (int)B_CHEST : in.hitBone, side);
+    const float sx = side == 1 ? 1.f : (side == 0 ? -1.f : 0.f);
+    // flinch: x = flexion (+ forwards), y = side bend (+ to the right), z = twist (+ the right shoulder forwards)
+    switch (reg) {
+        case 0:   // head: snapped along the push, turned away from a blow to its side; the trunk follows a little
+            A.headFlV = A.headFlV + vec3(9.f * d.y, 9.f * d.x, -6.f * d.x) * k;
+            A.flinchV = A.flinchV + vec3(1.5f * d.y, 1.5f * d.x, 0.f) * k;
+            break;
+        case 1: {   // chest: thrown along the push, twisted by an off-centre hit; the head lags
+            float rx = 0.17f * sx;
+            A.flinchV = A.flinchV + vec3(4.2f * d.y, 4.2f * d.x, 4.2f * 0.8f * (rx * d.y) / 0.17f) * k;
+            A.headFlV = A.headFlV + vec3(-2.f * d.y, -2.f * d.x, 0.f) * k;
+            break;
+        }
+        case 2:   // belly: the body folds over the wound (forwards for a hit from the front)
+            A.flinchV = A.flinchV + vec3(-5.5f * d.y, -4.f * d.x, 0.f) * k;
+            A.headFlV = A.headFlV + vec3(-1.5f * d.y, 0.f, 0.f) * k;
+            A.dipFlV -= 0.5f * k;
+            break;
+        case 3: {   // arm: flung along the push, the shoulder turned with it
+            A.armFlV[side] += 10.f * k;
+            A.armFlDir[side] = d;
+            A.flinchV.z += 4.f * 0.5f * (0.2f * sx * d.y) / 0.2f * k;
+            break;
+        }
+        default:   // leg: that knee buckles, the body drops towards it
+            A.legFlV[side] += 7.f * k;
+            A.dipFlV -= 0.35f * k;
+            A.flinchV.y += 2.5f * sx * k;
+            break;
+    }
+    A.cringeV += 6.f * k;   // shoulders up, elbows in
+    if (k >= 0.5f) {
+        // off balance: the body is pushed along (the game moves the ped with staggerVelocity()) and catches itself
+        vec2 push = vec2(d.x, d.y);
+        float pl = length(push);
+        if (pl > 1e-3f) {
+            A.pushV = A.pushV + push / pl * ((k - 0.35f) * 2.6f);
+            float pv = length(A.pushV);
+            if (pv > 2.2f) A.pushV = A.pushV * (2.2f / pv);
+            A.pushLeanV = A.pushLeanV + vec2(push.y, push.x) / pl * (2.5f * (k - 0.35f));
+            A.staggerT = 0.f;
+        }
+        // a free hand to the wound for a moment
+        int w = reg == 2 ? WOUND_BELLY : (reg == 1 ? (side < 0 ? WOUND_CHEST : WOUND_SHOULDER_L + side) : (reg == 3 ? WOUND_SHOULDER_L + side : (reg == 4 ? WOUND_THIGH_L + side : 0)));
+        if (w) {
+            A.reflexWound = w;
+            A.reflexT = 0.f;
+        }
+    }
+}
+
+// Springs, the stagger's push and lean, the injury weights and the bracing weight over time.
+static void impactStep(Animator& A, const AnimInput& in, float dt) {
+    springStep(A.flinch.x, A.flinchV.x, 10.f, 0.45f, dt);
+    springStep(A.flinch.y, A.flinchV.y, 10.f, 0.45f, dt);
+    springStep(A.flinch.z, A.flinchV.z, 10.f, 0.5f, dt);
+    springStep(A.headFl.x, A.headFlV.x, 15.f, 0.4f, dt);
+    springStep(A.headFl.y, A.headFlV.y, 15.f, 0.4f, dt);
+    springStep(A.headFl.z, A.headFlV.z, 15.f, 0.45f, dt);
+    springStep(A.dipFl, A.dipFlV, 9.f, 0.6f, dt);
+    springStep(A.cringe, A.cringeV, 12.f, 0.65f, dt);
+    for (int s = 0; s < 2; s++) {
+        springStep(A.armFl[s], A.armFlV[s], 11.f, 0.5f, dt);
+        springStep(A.legFl[s], A.legFlV[s], 8.f, 0.65f, dt);
+    }
+    // the stagger: the push dies away as the steps catch it; the trunk leans with it, then rights itself
+    if (A.staggerT >= 0.f) {
+        A.staggerT += dt;
+        A.pushV = A.pushV * expf(-dt / 0.38f);
+        if (length(A.pushV) < 0.06f && A.staggerT > 0.3f) {
+            A.pushV = vec2(0);
+            A.staggerT = -1.f;
+        }
+    }
+    {
+        vec2 target = vec2(A.pushV.y, A.pushV.x) * 0.22f;
+        float ex = A.pushLean.x - target.x, ey = A.pushLean.y - target.y;
+        springStep(ex, A.pushLeanV.x, 7.f, 0.7f, dt);
+        springStep(ey, A.pushLeanV.y, 7.f, 0.7f, dt);
+        A.pushLean = target + vec2(ex, ey);
+    }
+    if (A.reflexT >= 0.f) {
+        A.reflexT += dt;
+        if (A.reflexT > 1.6f) A.reflexT = -1.f;
+    }
+    const float kw = 1.f - expf(-dt * 2.f);
+    for (int s = 0; s < 2; s++) A.limpW[s] += (Saturate(in.legHurt[s]) - A.limpW[s]) * kw;
+    A.woundedS += (Saturate(in.wounded) - A.woundedS) * kw;
+    A.braceW = approach(A.braceW, Saturate(in.fallBrace), dt * 8.f);
+    vec3 f = vec3(in.fallDir.x, in.fallDir.y, 0.f);
+    if (length2(f) > 1e-6f && in.fallBrace > 0.f) A.fallDirS = normalize(lerp(A.fallDirS, normalize(f), 1.f - expf(-dt * 20.f)) + vec3(0.f, 1e-4f, 0.f));
+}
+
+// Which hand is free for a wound (-1 none): an aimed weapon takes both, a long gun both, a pistol / melee weapon /
+// throwable / prop / phone or cigarette stance its hand. Belly and chest: the right hand unless it is busy; a
+// shoulder: the other hand; a thigh: its own.
+static int clutchHand(const Animator& A, const AnimInput& in, int w, const int carryClip[2]) {
+    if (w <= WOUND_NONE || w >= WOUND_COUNT || A.aimBlend > 0.4f || in.weaponKind == 2) return -1;
+    bool busy[2] = {carryClip[0] >= 0, carryClip[1] >= 0 || in.weaponKind == 1 || in.weaponKind == 3 || in.weaponKind == 4 ||
+                                                  rightHandBusy(in.stance) || A.phoneW > 0.3f || A.browseW > 0.3f};
+    if (A.browseW > 0.3f) busy[0] = true;
+    int h;
+    if (w == WOUND_BELLY || w == WOUND_CHEST) h = busy[1] ? 0 : 1;
+    else if (w == WOUND_SHOULDER_L || w == WOUND_SHOULDER_R) h = w == WOUND_SHOULDER_L ? 1 : 0;
+    else h = w == WOUND_THIGH_L ? 0 : 1;
+    return busy[h] ? -1 : h;
+}
+static int clutchClip(int w, int hand) {
+    switch (w) {
+        case WOUND_BELLY: return hand ? IC_CLUTCH_BELLY_R : IC_CLUTCH_BELLY_L;
+        case WOUND_CHEST: return hand ? IC_CLUTCH_CHEST_R : IC_CLUTCH_CHEST_L;
+        case WOUND_SHOULDER_L: return IC_CLUTCH_SHOULDER_L;
+        case WOUND_SHOULDER_R: return IC_CLUTCH_SHOULDER_R;
+        case WOUND_THIGH_L: return IC_CLUTCH_THIGH_L;
+        default: return IC_CLUTCH_THIGH_R;
+    }
+}
+
+// Rotation about a model-space axis applied to bone b (its parent's frame taken into account).
+static void rotateModel(const Skeleton& sk, Pose& p, int b, quat q) {
+    quat qp;
+    vec3 pp;
+    boneModel(sk, p, sk.parent[b], qp, pp);
+    p.rot[b] = normalize(conj(qp) * q * qp * p.rot[b]);
+}
+
+// Impacts and injuries on the pose (after the body layers and actions, before the feet are planted): the hunch of a
+// wounded body, the limp's dip and stiff knee, the flinch of the trunk / head / arms / knees, the stagger's lean and
+// balancing arms, a hand on a wound, and going over (bracing for the fall, the body tipping into it).
+static void impactPose(Animator& A, const AnimInput& in, Pose& p, float dt, bool cheap, bool free, const int carryClip[2]) {
+    const Skeleton& sk = *A.skel;
+    const float scale = A.footHeel + A.footBall > 0.f ? (A.footHeel + A.footBall) / 0.197f : 1.f;
+    // ---- wounded: hunched over, shoulders rounded, knees soft, the head still up enough to see ahead
+    const float w = A.woundedS * (free ? 1.f : 0.f);
+    if (w > 0.005f) {
+        rotateLocal(p, B_SPINE1, qx(-0.09f * w));
+        rotateLocal(p, B_SPINE2, qx(-0.11f * w));
+        rotateLocal(p, B_CHEST, qx(-0.08f * w));
+        rotateLocal(p, B_NECK, qx(0.1f * w));
+        rotateLocal(p, B_HEAD, qx(0.05f * w));
+        p.rot[B_CLAVICLE_L] = normalize(qz(-0.12f * w) * p.rot[B_CLAVICLE_L]);
+        p.rot[B_CLAVICLE_R] = normalize(qz(0.12f * w) * p.rot[B_CLAVICLE_R]);
+        if (!cheap) p.rootOffset.z -= 0.035f * w * scale;
+    }
+    // ---- limp: over the hurt leg the body dips and leans onto it, hurrying off; the hurt leg swings through stiff
+    const float h = Max(A.limpW[0], A.limpW[1]) * (free ? 1.f : 0.f);
+    if (h > 0.005f && A.moveW > 0.02f) {
+        const int bad = A.limpW[1] > A.limpW[0] ? 1 : 0;
+        const float d = Clamp(A.limpDuty, 0.3f, 0.75f);
+        float ph = A.phase - (bad ? 0.5f : 0.f);
+        ph -= floorf(ph);
+        const float k = h * A.moveW;
+        if (ph < d) {
+            const float sn = sinf(kPi * ph / d);
+            if (!cheap) p.rootOffset.z -= 0.025f * sn * k * scale;
+            p.rot[B_PELVIS] = normalize(qy((bad ? 1.f : -1.f) * 0.05f * sn * k) * p.rot[B_PELVIS]);
+            rotateLocal(p, B_SPINE2, qy((bad ? 1.f : -1.f) * 0.06f * sn * k));
+            rotateLocal(p, B_HEAD, qx(-0.06f * sn * k));
+        } else {
+            const float sn = sinf(kPi * (ph - d) / Max(1.f - d, 0.05f));
+            const int cb = bad ? B_CALF_R : B_CALF_L;
+            p.rot[cb] = nlerp(p.rot[cb], quat(), 0.4f * sn * k);
+        }
+        p.rootOffset.x += A.limpLurch.x;
+        p.rootOffset.y += A.limpLurch.y;
+    }
+    // ---- flinch: the trunk thrown and recovering (with the stagger's lean), the head whipping, knees giving
+    vec3 f = A.flinch + vec3(A.pushLean.x, A.pushLean.y, 0.f);
+    if (length2(f) > 1e-8f) {
+        static const u8 kSp[3] = {B_SPINE1, B_SPINE2, B_CHEST};
+        static const float kSh[3] = {0.25f, 0.35f, 0.4f};
+        for (int i = 0; i < 3; i++) rotateLocal(p, kSp[i], qz(f.z * kSh[i]) * qx(-f.x * kSh[i]) * qy(f.y * kSh[i]));
+    }
+    vec3 hf = A.headFl - vec3(A.flinch.x, A.flinch.y, 0.f) * 0.35f;
+    if (length2(hf) > 1e-8f) {
+        rotateLocal(p, B_NECK, qz(hf.z * 0.4f) * qx(-hf.x * 0.4f) * qy(hf.y * 0.4f));
+        rotateLocal(p, B_HEAD, qz(hf.z * 0.6f) * qx(-hf.x * 0.6f) * qy(hf.y * 0.6f));
+    }
+    if (!cheap) {
+        p.rootOffset.z += Clamp(A.dipFl, -0.12f, 0.03f) * scale;
+        for (int s = 0; s < 2; s++)
+            if (fabsf(A.legFl[s]) > 1e-4f) {
+                p.rootOffset.z -= 0.035f * Clamp(A.legFl[s], -0.5f, 1.5f) * scale;
+                p.rot[B_PELVIS] = normalize(qy((s ? 1.f : -1.f) * 0.1f * Clamp(A.legFl[s], -0.5f, 1.5f)) * p.rot[B_PELVIS]);
+            }
+    }
+    // arms: shoulders up and elbows in (the cringe), an arm hit flung along the push, both out against the stagger
+    if (fabsf(A.cringe) > 1e-4f) {
+        float c = Clamp(A.cringe, -0.5f, 1.5f);
+        p.rot[B_CLAVICLE_L] = normalize(p.rot[B_CLAVICLE_L] * qy(0.12f * c));
+        p.rot[B_CLAVICLE_R] = normalize(p.rot[B_CLAVICLE_R] * qy(-0.12f * c));
+        for (int s = 0; s < 2; s++) {
+            // the elbows bend a little more, about their hinge (in the upper arm's frame: across the bind arm)
+            const int fb = s ? B_FOREARM_R : B_FOREARM_L;
+            vec3 ad = sk.bindLocalPos[fb];
+            float al = length(ad);
+            if (al < 1e-5f) continue;
+            vec3 hinge = normalize(cross(ad / al, vec3(0, 1, 0)));
+            p.rot[fb] = normalize(quatAxisAngle(hinge, 0.25f * c) * p.rot[fb]);
+        }
+    }
+    for (int s = 0; s < 2; s++) {
+        float a = Clamp(A.armFl[s], -0.5f, 1.5f);
+        vec2 bal = vec2(-A.pushV.x, -A.pushV.y) * 0.35f;   // against the stagger: the arms counter the fall
+        vec3 dir = A.armFlDir[s] * a * 0.7f + vec3(bal.x, bal.y, 0.f);
+        dir.z = 0.f;
+        float m = length(dir);
+        if (m < 1e-4f) continue;
+        vec3 axis = cross(vec3(0, 0, 1), dir / m);
+        rotateModel(sk, p, s ? B_UPPERARM_R : B_UPPERARM_L, quatAxisAngle(axis, -Min(m, 1.2f)));
+    }
+    // ---- a hand on a wound (the game's clutch, or a heavy hit's for a moment)
+    {
+        int want = in.clutch > WOUND_NONE && in.clutch < WOUND_COUNT ? in.clutch : (A.reflexT >= 0.1f && A.reflexT < 1.25f ? A.reflexWound : 0);
+        int hand = free ? clutchHand(A, in, want, carryClip) : -1;
+        if (hand < 0) want = 0;
+        if ((want != A.clutchCur || hand != A.clutchSide) && A.clutchW < 0.02f) {
+            A.clutchCur = want;
+            A.clutchSide = hand < 0 ? A.clutchSide : hand;
+        }
+        float target = want != 0 && want == A.clutchCur && hand == A.clutchSide ? 1.f : 0.f;
+        A.clutchW = approach(A.clutchW, target, dt * (A.reflexT >= 0.f && in.clutch == 0 ? 7.f : 4.f));
+        if (A.clutchCur != 0 && A.clutchW > 0.001f) {
+            const int sd = A.clutchSide;
+            Pose tmp;
+            sampleClipId(sk, clutchClip(A.clutchCur, sd), A.time, tmp, A.seed);
+            const float e = sstep(0.f, 1.f, A.clutchW) * (1.f - A.braceW);
+            static const u8 kArmB[2][4] = {{B_CLAVICLE_L, B_UPPERARM_L, B_FOREARM_L, B_HAND_L}, {B_CLAVICLE_R, B_UPPERARM_R, B_FOREARM_R, B_HAND_R}};
+            static const u8 kHandB[2][2] = {{B_FINGERS_L, B_THUMB_L}, {B_FINGERS_R, B_THUMB_R}};
+            for (u8 b : kArmB[sd]) p.rot[b] = nlerp(p.rot[b], tmp.rot[b], e);
+            for (u8 b : kHandB[sd]) p.rot[b] = nlerp(p.rot[b], tmp.rot[b], e);
+            // the shoulder clutch also draws the hurt shoulder up and in
+            if (A.clutchCur == WOUND_SHOULDER_L || A.clutchCur == WOUND_SHOULDER_R) {
+                int ws = A.clutchCur == WOUND_SHOULDER_R ? 1 : 0;
+                for (u8 b : kArmB[ws]) p.rot[b] = nlerp(p.rot[b], tmp.rot[b], e * 0.8f);
+            }
+            if (!cheap && e > 0.01f) {
+                // onto this body's own skin there, where its bones have it now
+                const int wb = A.skinWB[A.clutchCur];
+                quat bq, qh;
+                vec3 bp, ph;
+                boneModel(sk, p, wb, bq, bp);
+                const vec3 nrm = rotate(bq, woundNormal(A.clutchCur));
+                const int hb = sd ? B_HAND_R : B_HAND_L, fb = sd ? B_FINGERS_R : B_FINGERS_L;
+                const vec3 want3 = bp + rotate(bq, A.skinW[A.clutchCur]) + nrm * (sk.boneRadius[hb] * 0.75f + 0.004f);
+                boneModel(sk, p, hb, qh, ph);
+                const vec3 palm = ph + rotate(qh, sk.bindLocalPos[fb]) * 0.45f;
+                vec3 delta = want3 - palm;
+                if (length2(delta) > 0.0625f) delta = normalize(delta) * 0.25f;
+                nudgeHand(sk, p, sd, delta, e);
+            }
+        }
+    }
+    // ---- going over: bracing for the ground in the fall's direction, the body tipping into it
+    if (A.braceW > 0.001f) {
+        const float e = sstep(0.f, 1.f, A.braceW);
+        const vec3 fd = A.fallDirS;
+        float wv[4] = {Max(0.f, fd.y), Max(0.f, -fd.y), Max(0.f, -fd.x), Max(0.f, fd.x)};
+        static const int kBr[4] = {IC_BRACE_FWD, IC_BRACE_BACK, IC_BRACE_L, IC_BRACE_R};
+        float sum = wv[0] + wv[1] + wv[2] + wv[3];
+        if (sum > 1e-4f) {
+            Pose br, tmp;
+            float acc = 0.f;
+            for (int i = 0; i < 4; i++) {
+                if (wv[i] < 1e-3f) continue;
+                if (acc <= 0.f) sampleClipId(sk, kBr[i], A.time, br, A.seed);
+                else {
+                    sampleClipId(sk, kBr[i], A.time, tmp, A.seed);
+                    blendPoses(br, tmp, wv[i] / (acc + wv[i]), br);
+                }
+                acc += wv[i];
+            }
+            blendPoses(p, br, e, p);
+            // tipping over about the feet (the planted feet stay, the legs lean)
+            const float tip = 0.35f * e;
+            const vec3 axis = normalize(cross(vec3(0, 0, 1), vec3(fd.x, fd.y, 0.f) + vec3(0.f, 1e-5f, 0.f)));
+            const float hipH = sk.bindLocalPos[B_ROOT].z + sk.bindLocalPos[B_PELVIS].z;
+            p.rot[B_PELVIS] = normalize(quatAxisAngle(axis, tip) * p.rot[B_PELVIS]);
+            p.rootOffset = p.rootOffset + vec3(fd.x, fd.y, 0.f) * (hipH * sinf(tip)) - vec3(0.f, 0.f, hipH * (1.f - cosf(tip)));
+        }
+    }
+}
+
+// The voluntary part of the input movement (the stagger's push taken out): what the legs walk or run.
+static void voluntaryMove(const Animator& A, vec2& dir, float& speed) {
+    float pv = length(A.pushV);
+    if (pv < 1e-3f) return;
+    vec2 v = dir * speed, u = A.pushV / pv;
+    float along = dot(v, u);
+    v = v - u * along + u * Max(0.f, along - pv);
+    speed = length(v);
+    if (speed > 1e-3f) dir = v / speed;
 }
 
 }  // namespace detail
@@ -798,6 +1143,20 @@ void Animator::init(const Skeleton* s, u32 variationSeed) {
     dirS = vec2(0, 1);
     hipTurn = 0.f;
     hipBack = false;
+    // impacts and injuries
+    flinch = flinchV = headFl = headFlV = vec3(0);
+    dipFl = dipFlV = cringe = cringeV = 0.f;
+    for (int i = 0; i < 2; i++) {
+        armFl[i] = armFlV[i] = legFl[i] = legFlV[i] = limpW[i] = 0.f;
+        armFlDir[i] = vec3(0, -1, 0);
+    }
+    pushV = pushLean = pushLeanV = limpLurch = vec2(0);
+    staggerT = reflexT = -1.f;
+    reflexWound = clutchCur = 0;
+    clutchSide = 1;
+    clutchW = woundedS = braceW = 0.f;
+    fallDirS = vec3(0, 1, 0);
+    limpDuty = 0.62f;
     actionUpper = wasReloading = false;
     lastInAction = -1;
     extBlend = false;
@@ -984,6 +1343,10 @@ void Animator::setCharacter(const CharacterDesc& d) {
     // this body's skin where posed hands rest on it (the clips have the reference body's): rays out from inside its
     // signed distance model (torso and legs) at the heights the clips use
     for (int i = 0; i < 3; i++) skinP[i] = vec3(0);
+    for (int i = 0; i < WOUND_COUNT; i++) {
+        skinW[i] = vec3(0);
+        skinWB[i] = B_SPINE1;
+    }
     if (skel) {
         BodyDims D;
         computeDims(d, D);
@@ -998,6 +1361,10 @@ void Animator::setCharacter(const CharacterDesc& d) {
                               vec3(0.06f * s, 0.f, D.zWaist + 0.05f * s)};
         const vec3 dir[3] = {vec3(1, 0, 0), vec3(0, -1, 0), vec3(0, 1, 0)};
         for (int i = 0; i < 3; i++) skinP[i] = from[i] + dir[i] * bc.sdf.castOut(from[i], dir[i], mk, 0.5f) - D.J[B_PELVIS];
+        // where a hand holds a wound on this body (from the joint of the bone each moves with)
+        vec3 wp[WOUND_COUNT];
+        woundSkin(bc, D, wp, skinWB);
+        for (int i = 0; i < WOUND_COUNT; i++) skinW[i] = wp[i] - D.J[skinWB[i]];
     }
     // a tote bag on one shoulder: that arm swings less (a crossbody bag a little less)
     bagSwing[0] = bagSwing[1] = 1.f;
@@ -1016,12 +1383,17 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
     const float kFast = 1.f - expf(-dt * 10.f), kMed = 1.f - expf(-dt * 6.f);
 
     // ---------------------------------------------------------------- input smoothing
+    // hits: the flinch springs kicked, a heavy one's stagger started; the springs, push and injury weights run on
+    hitKick(*this, in);
+    impactStep(*this, in, dt);
     float spdIn = Max(0.f, in.speed);
-    speedS += (spdIn - speedS) * kMed;
-    if (spdIn < 0.05f && speedS < 0.05f) speedS = 0.f;
     vec2 md = in.localMoveDir;
     float mdl = length(md);
     md = mdl > 1e-3f ? md / mdl : vec2(0, 1);
+    voluntaryMove(*this, md, spdIn);   // the stagger's push is caught with steps, not walked
+    if (staggerT >= 0.f && staggerT <= dt * 1.5f) speedS = spdIn;   // knocked off balance: the gait stops at once
+    speedS += (spdIn - speedS) * kMed;
+    if (spdIn < 0.05f && speedS < 0.05f) speedS = 0.f;
     // the smoothed direction turns towards the input round the circle (a straight lerp of an exact reversal, e.g.
     // backing off while aiming, would shrink to nothing and, renormalized, never flip: the feet would slide)
     {
@@ -1110,6 +1482,8 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
     if (vehicleStance) {
         sampleClip(sk, kStanceClip[stance], stanceTime, base, seed);
         moveW = 0.f;
+        hipTurn = 0.f;
+        hipBack = false;
     } else {
         // ---- locomotion (forward gait bands by speed): idle, this person's walk style (slow / normal / brisk), the
         //      easy jog, jog, run and sprint; strides scale with the leg length, cadence varies a little per person
@@ -1158,7 +1532,15 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             cf = cosf(th - hipTurn);
             sf = sinf(th - hipTurn);
         }
-        float rateB = Max(v, 0.85f) / stride(CLIP_WALK_BACK), rateS = Max(v, 0.85f) / stride(CLIP_STRAFE_L);
+        // backwards: the walk back, turning into a back-pedalling jog between 1.6 and 2.4 m/s
+        const float kb = sstep(1.6f, 2.4f, v);
+        const float strideB = Lerp(stride(CLIP_WALK_BACK), clipInfoId(IC_JOG_BACK).speed * clipInfoId(IC_JOG_BACK).duration, kb);
+        const float dutyB = Lerp(clipDuty(CLIP_WALK_BACK), clipDuty(IC_JOG_BACK), kb);
+        // sideways: the strafe walk, turning into a side-stepping jog between 1.8 and 2.6 m/s
+        const float ks = sstep(1.8f, 2.6f, v);
+        const float strideS = Lerp(stride(CLIP_STRAFE_L), clipInfoId(IC_STRAFE_JOG_L).speed * clipInfoId(IC_STRAFE_JOG_L).duration, ks);
+        const float dutyS = Lerp(clipDuty(CLIP_STRAFE_L), clipDuty(IC_STRAFE_JOG_L), ks);
+        float rateB = Max(v, 0.85f) / strideB, rateS = Max(v, 0.85f) / strideS;
         float rateC = Max(v, 0.6f) / stride(CLIP_CROUCH_WALK);
         float wF = Max(0.f, cf) * rateF * cadenceK, wBk = Max(0.f, -cf) * rateB, wR = Max(0.f, sf) * rateS, wL = Max(0.f, -sf) * rateS;
         float wsum = Max(wF + wBk + wR + wL, 1e-4f);
@@ -1168,12 +1550,30 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         if (in.swimming) rate = Max(v, 0.5f) / stride(CLIP_SWIM) / ls;
         moveW = walkW;
         // stance fraction of the blended gait (foot planting reads the contacts from the phase)
-        locoDuty = (wF * dutyF + wBk * clipDuty(CLIP_WALK_BACK) + (wL + wR) * clipDuty(CLIP_STRAFE_L)) * (1.f - cw) + clipDuty(CLIP_CROUCH_WALK) * cw;
+        locoDuty = (wF * dutyF + wBk * dutyB + (wL + wR) * dutyS) * (1.f - cw) + clipDuty(CLIP_CROUCH_WALK) * cw;
         // turning on the spot: planted feet step round (foot planting below); distant peds without it side-step
         float turnStep = cheap ? (1.f - Saturate(v / 0.4f)) * Saturate((fabsf(in.turnRate) - 0.8f) / 1.5f) * (1.f - crouchBlend) *
                                      (in.swimming || in.inAir || stance != 0 ? 0.f : 1.f)
                                : 0.f;
-        if (v > 0.02f || in.swimming) phase += dt * rate;
+        // a limp: the hurt leg's stance hurried (the phase runs faster on it, slower on the good one, the cycle
+        // keeping its length); the body runs ahead over the hurt leg and drops back over the good one (limpLurch), so
+        // the planted feet still keep pace with the ground
+        float limpF = 1.f;
+        limpDuty = locoDuty;
+        {
+            const float h = Max(limpW[0], limpW[1]);
+            if (h > 0.005f && v > 0.02f && !in.swimming) {
+                const int bad = limpW[1] > limpW[0] ? 1 : 0;
+                const float d = Clamp(locoDuty, 0.3f, 0.75f);
+                const float f1 = 1.f + 0.15f * h, f2 = (1.f - d) / Max(1.f - d / f1, 0.05f);
+                float ph = phase - (bad ? 0.5f : 0.f);
+                ph -= floorf(ph);
+                limpF = ph < d ? f1 : f2;
+                limpLurch = limpLurch + md * ((limpF - 1.f) * v * dt);
+            }
+            limpLurch = limpLurch * expf(-dt / 1.5f);
+        }
+        if (v > 0.02f || in.swimming) phase += dt * rate * limpF;
         phase += dt * turnStep * 1.3f / ls;
         phase -= floorf(phase);
 
@@ -1184,8 +1584,12 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         const bool chatStance = stance == 7 || stance == 8 || stance == 10;
         const bool standStill = (stance == 0 || stance == 23 || chatStance) && speedS < 0.05f && !in.aiming && !in.crouch && !in.inAir &&
                                 !in.swimming && (action < 0 || actionFinished || actionUpper);
+        // (a hurt leg: the weight stays on the good one)
+        const float hurtLeg = Max(limpW[0], limpW[1]);
         weightShift(*this, standStill,
-                    idleVar == IC_IDLE_HIP ? 1.f : (fidgetVar == IC_FIDGET_TAP ? 0.f : (fidgetVar == IC_FIDGET_ROCK ? 0.5f : -1.f)), dt);
+                    hurtLeg > 0.3f ? (limpW[1] > limpW[0] ? 0.f : 1.f)
+                                   : (idleVar == IC_IDLE_HIP ? 1.f : (fidgetVar == IC_FIDGET_TAP ? 0.f : (fidgetVar == IC_FIDGET_ROCK ? 0.5f : -1.f))),
+                    dt);
         if (needIdle) {
             float sw = Saturate(standW);
             if (sw < 0.004f) sampleClipId(sk, IC_STAND_L, time, idle, seed);
@@ -1212,17 +1616,29 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             Pose mv = fwd;
             float acc = wF;
             if (wBk > 0.001f) {
-                sampleGait(sk, CLIP_WALK_BACK, phase, D, tmp, seed);
+                if (kb < 0.999f) sampleGait(sk, CLIP_WALK_BACK, phase, D, tmp, seed);
+                if (kb > 0.001f) {
+                    sampleGait(sk, IC_JOG_BACK, phase, D, tmp2, seed);
+                    blendCtl(tmp, tmp2, kb < 0.999f ? kb : 1.f, tmp);
+                }
                 acc += wBk;
                 blendCtl(mv, tmp, wBk / acc, mv);
             }
+            // (a strafe: the walk and / or the jog by the speed)
+            auto strafe = [&](int walkClip, int jogClip) {
+                if (ks < 0.999f) sampleGait(sk, walkClip, phase, D, tmp, seed);
+                if (ks > 0.001f) {
+                    sampleGait(sk, jogClip, phase, D, tmp2, seed);
+                    blendCtl(tmp, tmp2, ks < 0.999f ? ks : 1.f, tmp);
+                }
+            };
             if (wL > 0.001f) {
-                sampleGait(sk, CLIP_STRAFE_L, phase, D, tmp, seed);
+                strafe(CLIP_STRAFE_L, IC_STRAFE_JOG_L);
                 acc += wL;
                 blendCtl(mv, tmp, wL / acc, mv);
             }
             if (wR > 0.001f) {
-                sampleGait(sk, CLIP_STRAFE_R, phase, D, tmp, seed);
+                strafe(CLIP_STRAFE_R, IC_STRAFE_JOG_R);
                 acc += wR;
                 blendCtl(mv, tmp, wR / acc, mv);
             }
@@ -1249,7 +1665,7 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             for (int s = 0; s < 2; s++) {
                 // the fore-aft swing only (about the shoulder's lateral axis): the gait's abduction keeps the hand
                 // clear of the hip whatever the amplitude (a shoulder bag's side swings less)
-                float ks = 1.f + (armSwingK * bagSwing[s] - 1.f) * moveW * (1.f - cw);
+                float ks = 1.f + (armSwingK * bagSwing[s] * (1.f - 0.6f * woundedS) - 1.f) * moveW * (1.f - cw);
                 if (fabsf(ks - 1.f) <= 1e-3f) continue;
                 int ub = s ? B_UPPERARM_R : B_UPPERARM_L;
                 quat D = base.rot[ub] * conj(armRest[s]);   // from the hanging arm, in the clavicle's frame
@@ -1476,7 +1892,7 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             blendCtl(si, sw, Saturate((v - 0.2f) / 0.6f), tmp);
             blendCtl(base, tmp, swimBlend, base);
         }
-        footIK = !in.inAir && !in.swimming && stance != 6 && stance != 11 && stance != 12 && stance != 21 && stance != 22;
+        footIK = !in.inAir && !in.swimming && stance != 6 && stance != 11 && stance != 12 && stance != 21 && stance != 22 && stance != 24;
     }
 
     // ---------------------------------------------------------------- upper body layers
@@ -1527,7 +1943,7 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             int cClip[2];
             float cTake[2];
             carryArms(*this, in, cClip, cTake);
-            if (stance == 12 || stance == 21 || stance == 22) cClip[0] = cClip[1] = -1;   // lying down: nothing held up
+            if (stance == 12 || stance == 21 || stance == 22 || stance == 24) cClip[0] = cClip[1] = -1;   // lying down: nothing held up
             static const u8 kArmB[2][4] = {{B_CLAVICLE_L, B_UPPERARM_L, B_FOREARM_L, B_HAND_L}, {B_CLAVICLE_R, B_UPPERARM_R, B_FOREARM_R, B_HAND_R}};
             static const u8 kHandB[2][2] = {{B_FINGERS_L, B_THUMB_L}, {B_FINGERS_R, B_THUMB_R}};
             for (int sd = 0; sd < 2; sd++) {
@@ -1612,6 +2028,17 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             boneModel(sk, outp, sk.parent[kChain[k]], qp, pp);
             outp.rot[kChain[k]] = normalize(conj(qp) * qz(hipTurn * kShare[k]) * qp * outp.rot[kChain[k]]);
         }
+    }
+
+    // ---------------------------------------------------------------- impacts and injuries (flinch, stagger, limp,
+    //                                                                  hunch, a hand on the wound, bracing to fall)
+    if (!vehicleStance && swimBlend < 0.5f) {
+        int cClip[2];
+        float cTake[2];
+        carryArms(*this, in, cClip, cTake);
+        if (stance == 12 || stance == 21 || stance == 22 || stance == 24) cClip[0] = cClip[1] = -1;
+        const bool free = action < 0 || actionFinished || actionUpper;
+        impactPose(*this, in, outp, dt, cheap, free, cClip);
     }
 
     // ---------------------------------------------------------------- takedown: choke arm onto the victim's real neck
@@ -1995,8 +2422,14 @@ void Animator::faceOverlay(const AnimInput& in, float dt) {
             bool acting = action >= 0 && !actionFinished;
             ex = 0;
             ew = 1.f;
+            // hurting: a fresh hit, a stagger, going over, wounded, limping or down hurt
+            float hurt = Max(Max(woundedS, Max(limpW[0], limpW[1])), Max(braceW, stance == 24 ? 1.f : 0.f));
+            hurt = Max(hurt, Saturate(length(flinch) * 6.f + length(headFl) * 3.f + (staggerT >= 0.f ? 1.f : 0.f)));
             if (dead || out) ew = 0.f;
-            else if (acting && (action == CLIP_HIT_FRONT || action == CLIP_HIT_BACK || action == CLIP_HIT_HEAD || action == CLIP_HIT_BODY ||
+            else if (hurt > 0.2f) {
+                ex = 6;
+                ew = Saturate(0.3f + hurt);
+            } else if (acting && (action == CLIP_HIT_FRONT || action == CLIP_HIT_BACK || action == CLIP_HIT_HEAD || action == CLIP_HIT_BODY ||
                                 action == CLIP_STAGGER || action == CLIP_TAKEDOWN_VICTIM))
                 ex = 6;
             else if (stance == 4 || stance == 5) ex = 4;
@@ -2085,7 +2518,8 @@ void Animator::conversation(const AnimInput& in, float dt, Pose& p) {
     using namespace detail;
     const Skeleton& sk = *skel;
     bool busy = (action >= 0 && !actionFinished) || aimBlend > 0.05f || swimBlend > 0.5f || airBlend > 0.5f || stanceIsVehicle(stance) ||
-                stanceIsGuard(stance) || stance == 7 || stance == 8 || stance == 12 || stance == 21 || stance == 22 || in.weaponKind == 2;
+                stanceIsGuard(stance) || stance == 7 || stance == 8 || stance == 12 || stance == 21 || stance == 22 || stance == 24 ||
+                in.weaponKind == 2;
     const float k5 = 1.f - expf(-dt * 5.f);
     // ---- gesture phrases while speaking
     float amount = in.speaking && !busy ? Clamp(in.gestureAmount, 0.f, 1.5f) : 0.f;

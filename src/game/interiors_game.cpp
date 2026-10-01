@@ -54,6 +54,8 @@ struct State {
     int playerInterior = -1, playerRoom = -1;
     float inside = 0.f;
     int forceDef = -1;            // streamed in regardless of distance (elevator destination)
+    int holdDef = -1;             // a story scene staged inside (ready()): never unloaded while holdT runs
+    float holdT = 0.f;
     bool testInit = false;
     int testDef = -1;
     float testTime = 0.f;
@@ -180,12 +182,13 @@ void stream(Render::Renderer& R, GameWorld* g, dvec3 cam) {
     if (gIS.slots.size() != defs.size()) gIS.slots.assign(defs.size(), nullptr);
     double now = TimeSeconds();
     int jobsStarted = 0;
+    int held = gIS.holdT > 0.f ? gIS.holdDef : -1;
     for (size_t i = 0; i < defs.size(); i++) {
         const InteriorDef& d = defs[i];
         float cd = cellDistance(d.center().xy(), cam);
         Loaded*& L = gIS.slots[i];
         if (!L) {
-            if ((cd > kLoadRange && (int)i != gIS.forceDef) || jobsStarted >= 2) continue;
+            if ((cd > kLoadRange && (int)i != gIS.forceDef && (int)i != held) || jobsStarted >= 2) continue;
             L = new Loaded();
             L->def = (int)i;
             L->mesh = new World::InteriorMesh();
@@ -218,7 +221,7 @@ void stream(Render::Renderer& R, GameWorld* g, dvec3 cam) {
             L->state = 3;
         }
         if (L->state == 3) L->lastSeen = now;
-        if (L->state == 3 && cd > kUnloadRange && (int)i != gIS.forceDef) {
+        if (L->state == 3 && cd > kUnloadRange && (int)i != gIS.forceDef && (int)i != held) {
             if (g) despawnNpcs(*g, L);
             removeCollision(L);
             freeLoaded(L);
@@ -995,6 +998,7 @@ void update(GameWorld& g, float dt) {
     Ped* pl = g.playerPed();
     vec3 pp = pl ? pl->pos.toVec3() : cam.toVec3();
     float hour = g.env ? g.env->timeOfDay : 12.f;
+    gIS.holdT = Max(0.f, gIS.holdT - dt);
     const auto& defs = World::gInteriors->defs;
     for (size_t i = 0; i < gIS.slots.size(); i++) {
         Loaded* L = gIS.slots[i];
@@ -1036,7 +1040,9 @@ float insideAmount() { return gIS.inside; }
 
 // Story scenes staged inside an interior (missions): true once it is built, so people placed in it stand on its floor
 // among its colliders (collision is added for the player's interior as it finishes). Until then it streams in first,
-// whatever the distance.
+// whatever the distance. Once built it stays loaded for the next 45 s of the scene: a cutscene's first frame can put
+// the camera far away for a moment, and an interior unloaded under the people staged in it pushes them out through
+// the building's shell.
 bool ready(const char* name) {
     if (!World::gInteriors || !name) return false;
     int i = World::gInteriors->byName(name);
@@ -1044,6 +1050,10 @@ bool ready(const char* name) {
     bool built = i < (int)gIS.slots.size() && gIS.slots[i] && gIS.slots[i]->state == 3;
     if (!built && gIS.forceDef < 0) gIS.forceDef = i;
     if (built && gIS.forceDef == i) gIS.forceDef = -1;
+    if (built) {
+        gIS.holdDef = i;
+        gIS.holdT = 45.f;
+    }
     return built;
 }
 

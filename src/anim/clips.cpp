@@ -102,6 +102,8 @@ struct AuthorCtx {
     // the back, the front of the belly a little left of the middle (a forearm across the waist, clasped hands)
     vec3 skinFlankR, skinBack, skinBelly;
     vec3 skinUpperBack, skinWaistBack;   // the back at the chest joint's height / at the waist (partner's hands in a hug)
+    vec3 skinWound[WOUND_COUNT];          // where a hand holds a wound (woundSkin) and the bones they move with
+    int skinWoundB[WOUND_COUNT];
 };
 
 static inline quat eulerZXY(float yaw, float pitchFwd, float roll) { return qz(yaw) * qx(-pitchFwd) * qy(roll); }
@@ -991,6 +993,13 @@ static const ClipInfo kExtraInfo[IC_GAIT_FIRST - CLIP_COUNT] = {
     {"carry_case", 2.0f, true, 0.f},   {"carry_hang_l", 2.0f, true, 0.f},  {"carry_hang_r", 2.0f, true, 0.f},
     {"carry_cup_r", 2.0f, true, 0.f},  {"carry_cup_l", 2.0f, true, 0.f},   {"carry_umbrella", 2.0f, true, 0.f},
     {"carry_rod", 2.0f, true, 0.f},    {"carry_board", 2.0f, true, 0.f},
+    {"jog_back", 0.62f, true, 2.6f},
+    {"strafe_jog_l", 0.64f, true, 2.6f}, {"strafe_jog_r", 0.64f, true, 2.6f},
+    {"clutch_belly_l", 2.0f, true, 0.f}, {"clutch_belly_r", 2.0f, true, 0.f},  {"clutch_chest_l", 2.0f, true, 0.f},
+    {"clutch_chest_r", 2.0f, true, 0.f}, {"clutch_shoulder_l", 2.0f, true, 0.f}, {"clutch_shoulder_r", 2.0f, true, 0.f},
+    {"clutch_thigh_l", 2.0f, true, 0.f}, {"clutch_thigh_r", 2.0f, true, 0.f},
+    {"brace_fwd", 1.0f, true, 0.f},      {"brace_back", 1.0f, true, 0.f},     {"brace_l", 1.0f, true, 0.f},
+    {"brace_r", 1.0f, true, 0.f},        {"down_hurt", 4.0f, true, 0.f},
 };
 // Walk style clips: cycle time from the style's walk ratio at the band speed.
 static const ClipInfo* gaitInfoTable() {
@@ -1239,6 +1248,21 @@ static bool gaitParams(int id, GaitP& g) {
             g.shift = 0.02f;
             g.dir = vec2(0, -1); g.duty = 0.65f; g.lift = 0.05f; g.bob = 0.025f; g.armSwing = 0.18f; g.lean = 0.08f; g.yawA = 0.05f;
             g.drop = 0.03f;
+            break;
+        case IC_JOG_BACK:
+            // back-pedalling: quick short steps landing on the balls of the feet, the trunk leaning a little forward
+            // over them, a short flight
+            g.shift = 0.f;
+            g.dir = vec2(0, -1); g.duty = 0.42f; g.lift = 0.07f; g.kick = 0.05f; g.bob = 0.025f; g.drop = 0.04f; g.sway = 0.01f;
+            g.yawA = 0.05f; g.rollA = 0.03f; g.lean = 0.12f; g.chestYaw = 0.08f; g.armSwing = 0.35f; g.elbow = 1.2f; g.elbowSwing = 0.1f;
+            g.fist = 0.6f; g.footSpread = 0.09f; g.run = true;
+            break;
+        case IC_STRAFE_JOG_L: case IC_STRAFE_JOG_R:
+            // side-stepping at a jog: springy low steps, a short flight, the arms nearly still
+            g.shift = 0.f;
+            g.dir = vec2(id == IC_STRAFE_JOG_L ? -1.f : 1.f, 0.f); g.duty = 0.4f; g.lift = 0.06f; g.kick = 0.03f; g.bob = 0.022f;
+            g.drop = 0.045f; g.sway = 0.f; g.armSwing = 0.1f; g.elbow = 1.1f; g.elbowSwing = 0.05f; g.fist = 0.6f; g.footSpread = 0.14f;
+            g.yawA = 0.04f; g.rollA = 0.03f; g.lean = 0.08f; g.run = true;
             break;
         case CLIP_STRAFE_L: case CLIP_STRAFE_R:
             g.shift = 0.f;
@@ -3733,6 +3757,182 @@ static void clipCarry(const AuthorCtx& A, int id, float t, Rig& r) {
 }
 
 // ------------------------------------------------------------------------------------------------
+// Wounds, bracing for a fall, lying hurt
+
+// Skin normal out of the body at each wound (bind frame).
+vec3 woundNormal(int w) {
+    switch (w) {
+        case WOUND_SHOULDER_L: return normalize(vec3(-0.35f, 0.75f, 0.55f));
+        case WOUND_SHOULDER_R: return normalize(vec3(0.35f, 0.75f, 0.55f));
+        case WOUND_THIGH_L: return normalize(vec3(-0.15f, 1.f, 0.f));
+        case WOUND_THIGH_R: return normalize(vec3(0.15f, 1.f, 0.f));
+        default: return vec3(0, 1, 0);
+    }
+}
+
+// This body's skin where a hand holds a wound: the navel, the breastbone a little left of the middle, the front of
+// each shoulder, the front of each thigh a third of the way down (rays out from inside the signed distance model).
+void woundSkin(const BuildCtx& bc, const BodyDims& D, vec3* p, int* bone) {
+    const float s = D.s;
+    const vec3* J = D.J;
+    auto out = [&](vec3 from, vec3 dir, u32 mk) { return from + dir * bc.sdf.castOut(from, dir, mk, 0.5f); };
+    p[WOUND_NONE] = J[B_SPINE1];
+    bone[WOUND_NONE] = B_SPINE1;
+    p[WOUND_BELLY] = out(vec3(0.f, J[B_SPINE1].y, D.zNavel), woundNormal(WOUND_BELLY), MK_TORSO);
+    bone[WOUND_BELLY] = B_SPINE1;
+    p[WOUND_CHEST] = out(vec3(-0.04f * s, J[B_CHEST].y, D.zChestLine), woundNormal(WOUND_CHEST), MK_TORSO);
+    bone[WOUND_CHEST] = B_CHEST;
+    for (int sd = 0; sd < 2; sd++) {
+        const float sx = sd ? 1.f : -1.f;
+        const int ua = sd ? B_UPPERARM_R : B_UPPERARM_L, th = sd ? B_THIGH_R : B_THIGH_L, ca = sd ? B_CALF_R : B_CALF_L;
+        p[WOUND_SHOULDER_L + sd] = out(J[ua] - vec3(sx * 0.01f * s, 0.f, 0.f), woundNormal(WOUND_SHOULDER_L + sd), MK_TORSO | (sd ? MK_ARM_R : MK_ARM_L));
+        bone[WOUND_SHOULDER_L + sd] = sd ? B_CLAVICLE_R : B_CLAVICLE_L;
+        p[WOUND_THIGH_L + sd] = out(lerp(J[th], J[ca], 0.38f), woundNormal(WOUND_THIGH_L + sd), sd ? MK_LEG_R : MK_LEG_L);
+        bone[WOUND_THIGH_L + sd] = th;
+    }
+}
+
+// The palm of hand sd pressed flat on a wound's skin (AuthorCtx::skinWound) where the rig has the body: the finger
+// direction and the elbow's pole are given in the bind frame of the bone the skin moves with.
+static void handOnWound(const AuthorCtx& A, Rig& r, int sd, int w, vec3 fing, vec3 pole, float press) {
+    vec3 bp;
+    quat bq;
+    boneOf(A, r, A.skinWoundB[w], bp, bq);
+    const vec3 skin = bp + rotate(bq, A.skinWound[w] - A.D.J[A.skinWoundB[w]]);
+    const vec3 nrm = rotate(bq, woundNormal(w));
+    const quat q = handFrame(A, sd, rotate(bq, fing), -nrm);
+    const int hb = sd ? B_HAND_R : B_HAND_L, fb = sd ? B_FINGERS_R : B_FINGERS_L;
+    const vec3 wrist = skin + nrm * (A.sk.boneRadius[hb] * 0.75f + 0.004f - 0.005f * press) - rotate(q, A.sk.bindLocalPos[fb]) * 0.45f;
+    armIK(r.arm[sd], wrist, rotate(bq, pole), 0.22f + 0.18f * press);
+    r.arm[sd].orient = true;
+    r.arm[sd].handRot = q;
+    r.arm[sd].thumb = 0.2f;
+}
+
+// A hand holding a wound (arm layers over whatever the body does; the animator moves the hand onto each body's own
+// skin): pressed flat, the elbow out of the way, a slow press and ease.
+static void clipClutch(const AuthorCtx& A, int id, float t, Rig& r) {
+    standPose(A, r);
+    const float press = 0.5f + 0.5f * sinf(kTwoPi * t / 2.f);
+    switch (id) {
+        case IC_CLUTCH_BELLY_L: case IC_CLUTCH_BELLY_R: {
+            // fingers across the belly, a little down
+            int sd = id == IC_CLUTCH_BELLY_R ? 1 : 0;
+            float sx = sd ? 1.f : -1.f;
+            handOnWound(A, r, sd, WOUND_BELLY, vec3(-sx * 0.9f, 0.f, -0.35f), vec3(sx, -0.5f, -0.4f), press);
+            break;
+        }
+        case IC_CLUTCH_CHEST_L: case IC_CLUTCH_CHEST_R: {
+            // fingers up and across the chest, the elbow down
+            int sd = id == IC_CLUTCH_CHEST_R ? 1 : 0;
+            float sx = sd ? 1.f : -1.f;
+            handOnWound(A, r, sd, WOUND_CHEST, vec3(-sx * 0.55f, 0.f, 0.8f), vec3(sx, -0.2f, -0.7f), press);
+            break;
+        }
+        case IC_CLUTCH_SHOULDER_L: case IC_CLUTCH_SHOULDER_R: {
+            // the other hand across the chest onto the front of the shoulder, the fingers over its top; the hurt
+            // shoulder drawn up and in
+            int ws = id == IC_CLUTCH_SHOULDER_R ? 1 : 0;
+            float wx = ws ? 1.f : -1.f;
+            r.arm[ws].clavUp = 0.06f;
+            r.arm[ws].clavFwd = 0.08f;
+            armFK(r.arm[ws], ws, 0.12f, 0.05f, 0.45f, 0.3f, 0.5f);
+            handOnWound(A, r, 1 - ws, WOUND_SHOULDER_L + ws, vec3(wx * 0.3f, -0.3f, 0.9f), vec3(-wx * 0.2f, 0.6f, -0.8f), press);
+            break;
+        }
+        default: {   // IC_CLUTCH_THIGH_L / _R: the hand pressed on the front of its own thigh, the fingers down
+            int sd = id == IC_CLUTCH_THIGH_R ? 1 : 0;
+            float sx = sd ? 1.f : -1.f;
+            handOnWound(A, r, sd, WOUND_THIGH_L + sd, vec3(-sx * 0.25f, 0.1f, -1.f), vec3(sx * 0.7f, -0.7f, 0.1f), press);
+            break;
+        }
+    }
+}
+
+// Going over (AnimInput::fallBrace): bracing for the ground in the direction of the fall - the arms out to break it
+// (palms towards the ground, wrists cocked back, fingers spread), the head held off the ground or the chin tucked, the
+// knees giving. The animator tips the body into the fall on top.
+static void clipBrace(const AuthorCtx& A, int id, float t, Rig& r) {
+    standPose(A, r);
+    const float s = A.D.s;
+    const float reach = 0.04f * sinf(kTwoPi * t);   // still reaching
+    switch (id) {
+        case IC_BRACE_FWD:
+            // forwards: both arms forward and down to catch the body, the head up out of the way
+            r.pelvis = vec3(0.f, 0.05f * s, -0.12f * s);
+            r.pelvisPitch = 0.15f;
+            r.spinePitch = 0.2f;
+            r.neckPitch = -0.2f;
+            r.headPitch = -0.35f;
+            for (int sd = 0; sd < 2; sd++) {
+                armFK(r.arm[sd], sd, 1.15f + reach, 0.3f, 0.3f, 1.1f, 0.05f);
+                r.arm[sd].wristFlex = -0.75f;
+                r.arm[sd].thumb = 0.05f;
+            }
+            break;
+        case IC_BRACE_BACK:
+            // backwards: sitting down into it, the trunk curled and the chin tucked, the arms back and down
+            r.pelvis = vec3(0.f, -0.08f * s, -0.2f * s);
+            r.pelvisPitch = -0.1f;
+            r.spinePitch = 0.35f;
+            r.neckPitch = 0.25f;
+            r.headPitch = 0.35f;
+            for (int sd = 0; sd < 2; sd++) {
+                armFK(r.arm[sd], sd, -0.55f - reach, 0.55f, 0.35f, -0.3f, 0.05f);
+                r.arm[sd].wristFlex = -0.8f;
+                r.arm[sd].thumb = 0.05f;
+            }
+            break;
+        default: {
+            // sideways: the arm on that side out and down, the other across the body, the trunk and head curled up
+            // away from the ground
+            int sd = id == IC_BRACE_R ? 1 : 0;
+            float sx = sd ? 1.f : -1.f;
+            r.pelvis = vec3(sx * 0.05f * s, 0.f, -0.13f * s);
+            r.spineRoll = -sx * 0.18f;
+            r.neckRoll = -sx * 0.15f;
+            r.headRoll = -sx * 0.25f;
+            r.spinePitch = 0.12f;
+            armFK(r.arm[sd], sd, 0.3f, 1.05f + reach, 0.3f, 0.9f, 0.05f);
+            r.arm[sd].wristFlex = -0.7f;
+            r.arm[sd].thumb = 0.05f;
+            armFK(r.arm[1 - sd], 1 - sd, 0.9f, 0.15f, 1.5f, 0.3f, 0.4f);
+            break;
+        }
+    }
+}
+
+// Stance 24: lying on the back hurt - knees up, rolling a little from side to side, the head lifting off the ground
+// with the pain now and then, both hands pressed on the belly (a clutch layer moves one to the wound).
+static void clipDownHurt(const AuthorCtx& A, float t, Rig& r) {
+    const float u = t / 4.f;
+    const float roll = sinf(kTwoPi * u), sway = sinf(kTwoPi * u * 2.f + 0.7f);
+    lyingPose(A, r, true, 0.5f, 0.f);
+    r.pelvisRoll += 0.1f * roll;
+    r.spineRoll += 0.06f * roll;
+    const float lift = sstep(0.25f, 0.4f, u) * (1.f - sstep(0.55f, 0.75f, u));
+    r.spinePitch += 0.12f * lift;
+    r.neckPitch += 0.35f * lift;
+    r.headPitch += 0.15f * lift;
+    r.headYaw = 0.25f * sinf(kTwoPi * u + 1.f);
+    for (int sd = 0; sd < 2; sd++) {
+        const float sx = sd ? 1.f : -1.f;
+        LegCtl& l = r.leg[sd];
+        l.ik = false;
+        l.hipFlex = 1.05f + 0.1f * sway * sx;
+        l.hipAbd = 0.12f + 0.06f * roll * sx;
+        l.hipTwist = 0.1f;
+        l.kneeFlex = 1.75f;
+        l.ankleFlex = 0.35f;
+    }
+    const float press = 0.5f + 0.5f * sinf(kTwoPi * u * 3.f);
+    for (int sd = 0; sd < 2; sd++) {
+        const float sx = sd ? 1.f : -1.f;
+        handOnWound(A, r, sd, WOUND_BELLY, vec3(-sx * 0.9f, sd ? 0.12f : -0.12f, -0.3f), vec3(sx, -0.3f, -0.6f), press);
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
 // Greetings between two people (public clips, see pairDistance): authored for a partner of the same body facing this
 // one at pairDistance; the animator moves the contact hands / the head onto the real partner (AnimInput::grabTarget).
 
@@ -3913,7 +4113,7 @@ static void authorClip(const AuthorCtx& A, int id, float t, Rig& r) {
             case IC_GUARD: case IC_GUARD_KNIFE: case IC_GUARD_BAT: case IC_BLOCK_BAT: clipGuardLoop(A, id, t, r); break;
             case IC_IDLE_CROSSARMS: case IC_IDLE_POCKETS: case IC_IDLE_HIP: case IC_IDLE_PHONE: case IC_IDLE_STRETCH: case IC_DANCE2:
             case IC_DANCE3: case IC_DANCE4: case IC_SIT_GROUND: case IC_LIE_FRONT: clipAmbient(A, id, t, r); break;
-            case IC_JOG_SLOW: clipLocomotion(A, id, t, r); break;
+            case IC_JOG_SLOW: case IC_JOG_BACK: case IC_STRAFE_JOG_L: case IC_STRAFE_JOG_R: clipLocomotion(A, id, t, r); break;
             case IC_STAND_L: case IC_STAND_R: case IC_IDLE_BEHIND: case IC_IDLE_CLASP: case IC_FIDGET_WATCH: case IC_FIDGET_SCRATCH:
             case IC_FIDGET_TUG: case IC_FIDGET_CHIN: case IC_FIDGET_YAWN: case IC_FIDGET_ARMS: case IC_FIDGET_TAP: case IC_FIDGET_ROCK:
                 clipStanding(A, id, t, r);
@@ -3922,6 +4122,12 @@ static void authorClip(const AuthorCtx& A, int id, float t, Rig& r) {
             case IC_CARRY_ROD: case IC_CARRY_BOARD:
                 clipCarry(A, id, t, r);
                 break;
+            case IC_CLUTCH_BELLY_L: case IC_CLUTCH_BELLY_R: case IC_CLUTCH_CHEST_L: case IC_CLUTCH_CHEST_R: case IC_CLUTCH_SHOULDER_L:
+            case IC_CLUTCH_SHOULDER_R: case IC_CLUTCH_THIGH_L: case IC_CLUTCH_THIGH_R:
+                clipClutch(A, id, t, r);
+                break;
+            case IC_BRACE_FWD: case IC_BRACE_BACK: case IC_BRACE_L: case IC_BRACE_R: clipBrace(A, id, t, r); break;
+            case IC_DOWN_HURT: clipDownHurt(A, t, r); break;
             default:
                 if (id >= IC_GAIT_FIRST && id <= IC_GAIT_LAST) clipLocomotion(A, id, t, r);
                 else standPose(A, r);
@@ -4035,6 +4241,7 @@ static void makeAuthorCtx(AuthorCtx& A, bool female) {
         A.skinBelly = skin(vec3(0.06f * s, 0.f, A.D.zWaist + 0.05f * s), vec3(0, 1, 0));
         A.skinUpperBack = skin(vec3(0.f, 0.f, J[B_CHEST].z), vec3(0, -1, 0));
         A.skinWaistBack = skin(vec3(0.f, 0.f, A.D.zWaist), vec3(0, -1, 0));
+        woundSkin(bc, A.D, A.skinWound, A.skinWoundB);
     }
 }
 
@@ -4047,7 +4254,9 @@ static bool styleDependent(int c) {
         case IC_FIDGET_WATCH: case IC_FIDGET_SCRATCH: case IC_FIDGET_TUG: case IC_FIDGET_CHIN: case IC_FIDGET_YAWN: case IC_FIDGET_ARMS:
         case IC_FIDGET_TAP: case IC_FIDGET_ROCK: case IC_CARRY_CASE: case IC_CARRY_HANG_L: case IC_CARRY_HANG_R: case IC_CARRY_CUP_R:
         case IC_CARRY_CUP_L: case IC_CARRY_UMBRELLA: case IC_CARRY_ROD: case IC_CARRY_BOARD: case CLIP_HUG: case CLIP_HANDSHAKE:
-        case CLIP_CHEEK_KISS:
+        case CLIP_CHEEK_KISS: case IC_JOG_BACK: case IC_STRAFE_JOG_L: case IC_STRAFE_JOG_R: case IC_CLUTCH_BELLY_L: case IC_CLUTCH_BELLY_R:
+        case IC_CLUTCH_CHEST_L: case IC_CLUTCH_CHEST_R: case IC_CLUTCH_SHOULDER_L: case IC_CLUTCH_SHOULDER_R: case IC_CLUTCH_THIGH_L:
+        case IC_CLUTCH_THIGH_R: case IC_BRACE_FWD: case IC_BRACE_BACK: case IC_BRACE_L: case IC_BRACE_R: case IC_DOWN_HURT:
             return true;
         default: return c >= IC_GAIT_FIRST && c <= IC_GAIT_LAST;
     }

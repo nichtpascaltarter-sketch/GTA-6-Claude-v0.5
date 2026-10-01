@@ -1,8 +1,8 @@
 // Character assembly: random population descriptions and the final skinned mesh (body + outfit + hair).
 //
 // CharacterDesc field conventions (indices used by randomCharacter and the mesh builders):
-//   hairStyle : 0 bald, 1 buzz cut, 2 short, 3 curly/afro, 4 ponytail, 5 long straight, 6 bun, 7 braids,
-//               8 slicked back, 9 bob, 10 quiff/side part
+//   hairStyle : 0 bald, 1 buzz cut, 2 short, 3 curly/afro, 4 ponytail, 5 long straight, 6 bun, 7 braids (cornrows or
+//               box braids), 8 slicked back, 9 bob, 10 quiff/side part, 11 locs (long locs or short locs / twists)
 //   top       : 0 t-shirt, 1 tank top, 2 polo, 3 hawaiian shirt, 4 dress shirt (long sleeves), 5 hoodie,
 //               6 suit jacket + shirt + tie, 7 police uniform shirt, 8 medic/EMT shirt, 9 hi-vis vest over tee,
 //               10 bikini top, 11 one-piece swimsuit, 12 sundress, 13 blouse, 14 none (shirtless), 15 crop top,
@@ -419,6 +419,13 @@ CharacterDesc randomCharacter(u32 seed, int role) {
         const float w[] = {bald, 0.2f, 0.26f, darkSkin ? 0.12f : 0.04f, 0.02f, 0.02f, 0.005f, darkSkin ? 0.07f : 0.01f, 0.08f, 0.01f, 0.14f};
         d.hairStyle = r.weighted(w, 11);
     }
+    {
+        // locs (own stream, so every other draw keeps its value): many who would wear braids, and some with natural
+        // coily hair, wear locs or twists instead
+        Rng lr(hash32(d.seed * 0x2545F491u + 0x5Bu));
+        float pl = d.hairStyle == HAIR_BRAIDS ? (fem ? 0.35f : 0.5f) : (d.hairStyle == HAIR_CURLY && darkSkin ? (fem ? 0.12f : 0.28f) : 0.f);
+        if (lr.chance(pl)) d.hairStyle = HAIR_LOCS;
+    }
     // facial hair
     d.facialHair = -1;
     if (!fem && d.age > 0.02f) {
@@ -445,6 +452,7 @@ CharacterDesc randomCharacter(u32 seed, int role) {
             if (r.chance(0.35f)) d.glasses = GL_AVIATOR;
             if (d.facialHair > FH_MUSTACHE) d.facialHair = r.chance(0.5f) ? FH_MUSTACHE : -1;
             if (fem && (d.hairStyle == HAIR_LONG || d.hairStyle == HAIR_CURLY)) d.hairStyle = HAIR_BUN;
+            if (d.hairStyle == HAIR_LOCS) d.hairStyle = fem ? HAIR_BUN : HAIR_SHORT;
             break;
         }
         case 2: {   // gang
@@ -513,7 +521,8 @@ CharacterDesc randomCharacter(u32 seed, int role) {
             d.shoeColor = srgbToLinear(vec3(0.4f, 0.26f, 0.12f));
             d.hat = r.chance(0.8f) ? HAT_HARDHAT : HAT_CAP;
             if (r.chance(0.3f)) d.glasses = GL_SUN;
-            if (d.hairStyle == HAIR_CURLY || d.hairStyle == HAIR_LONG || d.hairStyle == HAIR_BUN) d.hairStyle = fem ? HAIR_PONYTAIL : HAIR_SHORT;
+            if (d.hairStyle == HAIR_CURLY || d.hairStyle == HAIR_LONG || d.hairStyle == HAIR_BUN || d.hairStyle == HAIR_LOCS)
+                d.hairStyle = fem ? HAIR_PONYTAIL : HAIR_SHORT;
             break;
         }
         case 7: {   // prison inmate: a state-issue orange coverall over a white tee, white canvas slip-ons, nothing else
@@ -533,7 +542,7 @@ CharacterDesc randomCharacter(u32 seed, int role) {
             d.bottomColor = srgbToLinear(vec3(0.12f, 0.14f, 0.22f));
             d.shoes = SHOE_BOOT;
             d.shoeColor = srgbToLinear(vec3(0.06f));
-            if (fem && (d.hairStyle == HAIR_LONG || d.hairStyle == HAIR_CURLY)) d.hairStyle = HAIR_PONYTAIL;
+            if (fem && (d.hairStyle == HAIR_LONG || d.hairStyle == HAIR_CURLY || d.hairStyle == HAIR_LOCS)) d.hairStyle = HAIR_PONYTAIL;
             break;
         }
         default: {  // civilian, hot coastal city: an archetype sets the whole look
@@ -542,6 +551,8 @@ CharacterDesc randomCharacter(u32 seed, int role) {
         }
     }
     accessorize(d);
+    // locs (and box braids) do not go under a hat; cornrows do (braidsAreCornrows)
+    if (d.hat >= 0 && d.hairStyle == HAIR_LOCS) d.hat = -1;
     return d;
 }
 

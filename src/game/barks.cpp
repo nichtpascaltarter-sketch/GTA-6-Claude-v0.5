@@ -135,6 +135,13 @@ const Line kSendoff[] = {{"[happy:0.5]Have a safe flight!", 0}, {"[calm:0.5]Text
 const Line kLeaving[] = {{"[calm:0.5]I'll call you when I land.", 0}, {"[sad:0.5]I'm going to miss you.", 0}, {"[happy:0.4]Thanks for the ride.", 0},
                          {"[calm:0.5]Te llamo cuando llegue.", 0}, {"[happy:0.4]See you in two weeks.", 0}, {"[calm:0.4]Water the plants, okay?", 0}};
 
+// someone down hurt on the sidewalk, and a passer-by who stops to help (kneeling beside them, or on the phone for them)
+const Line kHurt[] = {{"[scared:0.6]Somebody... call an ambulance...", 0}, {"[sad:0.6]Ahh... my leg... my leg...", 0}, {"[scared:0.6]Help me... please...", 0},
+                      {"[sad:0.5]I can't get up...", 0}, {"[sad:0.5]Oh god, it hurts...", 0}, {"[scared:0.6]Ayuda... por favor...", LB_LUNA}};
+const Line kSamaritan[] = {{"[calm:0.5]Are you okay? Don't try to move.", 0}, {"[calm:0.5]Stay with me, help is coming.", 0}, {"[shout:0.4]Somebody call an ambulance!", 0},
+                           {"[calm:0.4]Yes, someone's hurt, they're on the ground. Please hurry.", 0}, {"[calm:0.5]Hang in there, they're on their way.", 0},
+                           {"[calm:0.5]Quedate quieto, ya viene la ambulancia.", LB_LUNA}};
+
 #define BANK(k, arr) {k, arr, (int)ARRAY_COUNT(arr)}
 const Bank kBanks[] = {
     BANK(BK_GREET, kGreet), BANK(BK_BUMP, kBump), BANK(BK_INSULT, kInsult), BANK(BK_PANIC, kPanic), BANK(BK_FLEE, kFlee),
@@ -151,6 +158,7 @@ const Bank kBanks[] = {
     BANK(BK_NICE_CAR, kNiceCar), BANK(BK_TICKET, kTicket), BANK(BK_TICKETED, kTicketed),
     BANK(BK_REUNION, kReunion), BANK(BK_SMALLTALK, kSmallTalk), BANK(BK_PARTING, kParting),
     BANK(BK_ARRIVAL, kArrival), BANK(BK_ARRIVED, kArrived), BANK(BK_SENDOFF, kSendoff), BANK(BK_LEAVING, kLeaving),
+    BANK(BK_HURT, kHurt), BANK(BK_SAMARITAN, kSamaritan),
 };
 #undef BANK
 

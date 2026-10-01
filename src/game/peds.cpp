@@ -136,6 +136,16 @@ vec3 GameWorld::pedChestPos(const Ped& p) const {
 // ------------------------------------------------------------------------------------------------------------------
 // Kinematic capsule controller.
 void GameWorld::movePed(Ped& p, vec2 desiredVel, float dt, bool jump) {
+    if (p.anim.staggering()) {
+        // a heavy hit's recovery steps (Animator::staggerVelocity, model space): the ped's own movement waits
+        vec3 sv = p.anim.staggerVelocity();
+        desiredVel = vec2(cosf(p.yaw), sinf(p.yaw)) * sv.x + vec2(-sinf(p.yaw), cosf(p.yaw)) * sv.y;
+        if (p.grounded) {
+            p.vel.x = desiredVel.x;
+            p.vel.y = desiredVel.y;
+        }
+        jump = false;
+    }
     if (p.forcedT > 0.f) {
         // melee dodge / lunge / knock-back: velocity override with an instant response
         p.forcedT -= dt;
@@ -627,6 +637,11 @@ void GameWorld::animatePed(Ped& p, float dt) {
     // the prop in hand (carry.cpp draws it from the same answer): the holding arm is posed for it
     in.carry = effectiveCarry(p);
     in.carryOpen = in.carry == CARRY_UMBRELLA && umbrellaWeather();
+    // lasting injuries (NPCs; the player keeps full control): a limp on the wounded leg while legInjury runs, a hunched,
+    // guarded stance and walk at low health (the hand on the wound: combat.cpp sets in.clutch)
+    in.legHurt[0] = in.legHurt[1] = 0.f;
+    if (!p.isPlayer && p.legInjury > 0.f) in.legHurt[p.legInjurySide & 1] = Saturate(p.legInjury / 8.f);
+    in.wounded = p.isPlayer ? 0.f : Saturate((0.5f - p.health / Max(p.maxHealth, 1.f)) * 2.5f);
     // synced takedown: the attacker's choke arm finds the victim's actual neck (tall / short pairs still connect)
     in.grabWeight = 0.f;
     if (p.takedownT >= 0.f && !p.takedownVictim && p.takedownPartner >= 0 && p.takedownPartner < (int)peds.size()) {
@@ -671,6 +686,9 @@ void GameWorld::animatePed(Ped& p, float dt) {
         in.footProbes = true;
     }
     p.anim.update(in, dt, !p.isPlayer && p.visibleDist > 40.f);   // far peds: no IK / face work (LOD2 mesh)
+    // a hit is an impulse for the one update that saw it (combat.cpp damagePed sets it)
+    in.hitStrength = 0.f;
+    in.hitBone = -1;
     Anim::computeMatrices(ce.skel, p.anim.pose, p.bones, p.skin);
 }
 

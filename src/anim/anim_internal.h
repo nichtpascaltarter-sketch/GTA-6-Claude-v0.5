@@ -43,6 +43,15 @@ enum InternalClip : int {
     // left / right fist, a cup held up (right / left), an open umbrella up at the chest (right), a fishing rod held up
     // and forward (right), a surfboard under the right arm
     IC_CARRY_CASE, IC_CARRY_HANG_L, IC_CARRY_HANG_R, IC_CARRY_CUP_R, IC_CARRY_CUP_L, IC_CARRY_UMBRELLA, IC_CARRY_ROD, IC_CARRY_BOARD,
+    IC_JOG_BACK,                   // back-pedalling jog (2.6 m/s): the walk back's band above about 2 m/s
+    IC_STRAFE_JOG_L, IC_STRAFE_JOG_R,   // side-stepping jog left / right (2.6 m/s): the strafes' band above about 2 m/s
+    // a hand holding a wound (arm layers, AnimInput::clutch): the left / right hand on the belly, on the chest, the
+    // right hand on the left shoulder and the left on the right one, each hand on the front of its own thigh
+    IC_CLUTCH_BELLY_L, IC_CLUTCH_BELLY_R, IC_CLUTCH_CHEST_L, IC_CLUTCH_CHEST_R, IC_CLUTCH_SHOULDER_L, IC_CLUTCH_SHOULDER_R,
+    IC_CLUTCH_THIGH_L, IC_CLUTCH_THIGH_R,
+    // going over (AnimInput::fallBrace): bracing to fall forwards, backwards, to the left, to the right
+    IC_BRACE_FWD, IC_BRACE_BACK, IC_BRACE_L, IC_BRACE_R,
+    IC_DOWN_HURT,                  // stance 24: lying on the back hurt, knees up, writhing, hands on the belly
     // walk styles: IC_GAIT_FIRST + style * kGaitBands + band (gaitClip)
     IC_GAIT_FIRST,
     IC_GAIT_LAST = IC_GAIT_FIRST + GS_COUNT * kGaitBands - 1,
@@ -51,6 +60,12 @@ enum InternalClip : int {
 inline int gaitClip(int style, int band) { return IC_GAIT_FIRST + style * kGaitBands + band; }
 void sampleClipId(const Skeleton& skel, int ci, float t, Pose& out, u32 variationSeed);
 void sampleClipLeg(const Skeleton& skel, int ci, float t, int side, Pose& out);   // one leg's bones only
+struct BuildCtx;
+struct BodyDims;
+// A body's skin where a hand holds a wound (Wound: bind model space; the signed distance model must hold the body's
+// primitives) and the bone each point moves with.
+void woundSkin(const BuildCtx& bc, const BodyDims& D, vec3* p, int* bone);
+vec3 woundNormal(int w);   // the skin's normal out of the body there (bind frame)
 const ClipInfo& clipInfoId(int id);   // public or internal clip
 // Stance fraction of a locomotion clip's cycle (the left heel strikes at phase 0 and lifts off at the duty, the right
 // foot half a cycle later); 0 for clips that are not gaits.
@@ -356,8 +371,17 @@ void decimateMesh(MeshB& m, int targetTris, const float* partWeight = nullptr); 
 // Shared descriptor enums (documented in character_desc notes in clothing.cpp / randomCharacter)
 enum HairStyle {
     HAIR_BALD = 0, HAIR_BUZZ, HAIR_SHORT, HAIR_CURLY, HAIR_PONYTAIL, HAIR_LONG, HAIR_BUN, HAIR_BRAIDS, HAIR_SLICKED,
-    HAIR_BOB, HAIR_QUIFF, HAIR_STYLE_COUNT
+    HAIR_BOB, HAIR_QUIFF,
+    HAIR_LOCS,   // locs: long ropes to the shoulders or below, or short locs / twists standing out from the scalp
+    HAIR_STYLE_COUNT
 };
+// Braided styles come as cornrows (flat rows on the scalp, the only kind worn under a hat) or box braids, drawn from
+// their own stream of the seed so the other draws keep their values (hair.cpp builds them).
+inline bool braidsAreCornrows(u32 seed, int gender, int hat) {
+    Rng q(hash32(seed * 0x2C1B3C6Du + 0x297A2D39u));
+    bool corn = q.chance(gender == 1 ? 0.35f : 0.7f);
+    return corn || hat >= 0;
+}
 enum TopKind {
     TOP_TSHIRT = 0, TOP_TANK, TOP_POLO, TOP_HAWAIIAN, TOP_DRESS_SHIRT, TOP_HOODIE, TOP_SUIT, TOP_POLICE, TOP_MEDIC,
     TOP_HIVIS, TOP_BIKINI, TOP_ONEPIECE, TOP_SUNDRESS, TOP_BLOUSE, TOP_NONE, TOP_CROP, TOP_OVERSIZED,

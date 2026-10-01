@@ -66,6 +66,9 @@ enum PedActivity : u8 {
                        // travelers at the terminal curb, anglers on the causeway - see VenueMode
     ACT_MEET,          // ran into someone they know on the sidewalk: a greeting, a few words, then on their way
                        // (pedai.cpp aiStreetMeets)
+    ACT_HURT,          // down hurt after a knock-down at very low health: on the back, writhing (stance 24), calling for
+                       // help until a medic has seen to them (or a long while passes), then up and off (pedai.cpp)
+    ACT_AID,           // a passer-by helping someone down hurt: kneeling beside them, or standing by on the phone
 };
 
 // Ambient speech categories (barks.cpp)
@@ -79,6 +82,7 @@ enum BarkKind : int {
     BK_REUNION, BK_SMALLTALK, BK_PARTING,   // two acquaintances running into each other (pedai.cpp aiStreetMeets)
     BK_ARRIVAL, BK_ARRIVED, BK_SENDOFF, BK_LEAVING,   // at the airport curb: the one waiting / the traveler, a pick-up and
                                                       // a drop-off (population.cpp)
+    BK_HURT, BK_SAMARITAN,                            // someone down hurt, and a passer-by helping them (pedai.cpp)
     BK_COUNT
 };
 
@@ -142,6 +146,9 @@ struct PedAI {
     bool venueDriver = false;   // VM_BOARD: takes the wheel (else a passenger seat)
     bool goInside = false;      // a walker headed for a door (walk.dest): gone once there (population.cpp)
     bool browsing = false;      // ACT_SCENARIO: stopped at a shop window (pedai.cpp)
+    bool knockedDown = false;   // was down (a ragdoll, the get-up) since the brain last ran (ai.cpp)
+    float hurtCare = 0.f;       // ACT_HURT: a medic has seen to them this long (-1: getting up)
+    int aidPed = -1;            // ACT_AID: the one they are helping
     int greetWith = -1;         // a greeting (CLIP_HUG / HANDSHAKE / CHEEK_KISS, started on both together): the partner,
                                 // from stepping in until they part (peds.cpp: their chest / head for the hands) ...
     float greetT = 0.f;         // ... and the time the clip has left (> 0 while it plays)
@@ -179,6 +186,7 @@ struct VehAI {
     int eventId = -1;
     float hornBarkTimer = 0.f;
     float sirenTimer = 0.f;
+    float heldUp = 0.f;        // police on the way: stuck in traffic this long (police.cpp moves them on out of view)
     int abandonedBy = -1;
     // road rage after the player crashed into us: 0 none, 1 stopping, 2 driver out on foot
     u8 rage = 0;

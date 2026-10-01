@@ -1442,6 +1442,51 @@ void GameWorld::aiPoliceDrive(int vi, float dt) {
         v.ctl = out.ctl;
         v.indicator = 0;
         v.hornOn = out.horn;
+        // held up in traffic out of the player's sight (a queue at a red light, a box jammed by cross traffic): on past
+        // it along the route, as a unit with the siren going would have got round it on the wrong side of the road;
+        // stuck within a short run of a suspect on foot: out of the car and the rest of the way on foot
+        va.heldUp = mySpeed < 1.f ? va.heldUp + dt : 0.f;
+        if (va.heldUp > 3.f && targetVeh < 0 && tpReal && dist < 75.f) {
+            for (int s = 0; s < 8; s++) {
+                int o = v.seats[s];
+                if (o < 0 || peds[o].isPlayer) continue;
+                removePedFromVehicle(o, true);
+                PedAI& oa = pedAI(o);
+                oa.homeVeh = vi;
+                oa.coverVeh = -1;   // (too far from the scene to take cover behind it)
+                oa.tactic = s % 2 ? FT_FLANK : FT_APPROACH;
+                oa.tacticTimer = 0.f;
+            }
+            traffic.detach(vi);
+            va.managed = false;
+            v.sirenOn = true;
+            v.sirenSilent = true;
+            v.ctl = Vehicles::VehicleControls();
+            v.ctl.brake = 1.f;
+            LOG("police unit %d: stuck in traffic %.0f m out, the officers go on foot", vi, dist);
+            return;
+        }
+        if (va.heldUp > 4.f && !d->dummy && pl && length(rel(v.sim.body.pos, pl->pos)) > 60.f && !inCameraView(vp, 12.f)) {
+            va.heldUp = 0.f;
+            float hl = vassets[v.model].spec.boxHalf.y;
+            for (float ahead = 12.f; ahead <= 66.f; ahead += 6.f) {
+                int pth = -1;
+                float uu = 0.f;
+                if (!traffic.liftPoint(*d, ahead, pth, uu) || !laneGraph.isLane(pth)) continue;
+                if (!traffic.laneFree(pth, uu, hl + 1.f, 4.f)) continue;
+                vec3 c = laneGraph.lanePos(pth, uu);
+                if (inCameraView(c, 12.f) || length(c.xy() - pl->pos.toVec3().xy()) < 50.f) break;
+                vec2 t = laneGraph.laneTangent(pth, uu);
+                Vehicles::resetVehicle(v.sim, dvec3(c.x, c.y, c.z + 0.3f), AI::dirYaw(t));
+                v.sim.body.vel = vec3(t * 6.f, 0.f);
+                traffic.toPhysics(vi, v.sim);
+                d->path = pth;
+                d->u = uu;
+                traffic.clearRoute(*d);
+                LOG("police unit %d: past a hold-up in traffic, %.0f m on (%.0f m from the suspect)", vi, ahead, length(c.xy() - pl->pos.toVec3().xy()));
+                break;
+            }
+        }
         return;
     }
     // ---- loudspeaker: order the driver to pull over while a low-level (1-2 star) pursuit is close

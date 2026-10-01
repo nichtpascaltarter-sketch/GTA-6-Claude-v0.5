@@ -817,7 +817,18 @@ void GameWorld_respawnPlayer(GameWorld& g) {
     Ped& p = *pp;
     vec2 best = kRespawnPoints[0];
     float bd = 1e30f;
+    // the nearest hospital as the world built it (outside its emergency door, then onto the nearest sidewalk below);
+    // the fixed points only if the world has none
+    if (World::gSites && World::gSites->generated)
+        for (const World::NamedPlace& h : World::gSites->places) {
+            float d = h.kind == World::PK_HOSPITAL ? length(h.door - p.pos.toVec3().xy()) : 1e30f;
+            if (d < bd) {
+                bd = d;
+                best = h.door;
+            }
+        }
     for (vec2 r : kRespawnPoints) {
+        if (bd < 1e29f) break;
         float d = length(r - p.pos.toVec3().xy());
         if (d < bd) {
             bd = d;

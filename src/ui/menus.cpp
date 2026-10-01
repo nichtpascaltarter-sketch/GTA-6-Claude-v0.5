@@ -858,11 +858,13 @@ MenuAction drawMap(MenuState& st, const Layout& L, const Nav& n, float dt, float
             if (lb.importance >= 4.f) vis = SmoothStep(5.5f, 8.f, v.mpp);
             else if (lb.importance >= 3.f) vis = SmoothStep(2.2f, 3.5f, v.mpp);
             else if (lb.importance >= 2.f) vis = 1.f - SmoothStep(14.f, 20.f, v.mpp);
-            else vis = 1.f - SmoothStep(8.f, 11.f, v.mpp);
+            else if (lb.importance >= 1.f) vis = 1.f - SmoothStep(8.f, 11.f, v.mpp);
+            else vis = 1.f - SmoothStep(3.f, 4.5f, v.mpp);   // landmarks: only zoomed in, under the districts
             if (vis <= 0.01f) continue;
             vec2 p = v.toScreen(lb.pos);
             if (p.x < -300 || p.x > L.W + 300 || p.y < -100 || p.y > L.H + 100) continue;
-            float size = (lb.importance >= 4.f ? 44.f : lb.importance >= 3.f ? 30.f : lb.importance >= 2.f ? 22.f : 20.f) * sc;
+            float size = (lb.importance >= 4.f ? 44.f : lb.importance >= 3.f ? 30.f : lb.importance >= 2.f ? 22.f
+                          : lb.importance >= 1.f ? 20.f : 16.f) * sc;
             TextStyle ls = style(lb.importance >= 4.f ? FONT_TITLE : FONT_HEADING, size,
                                  withAlpha(lb.water ? C(0.55f, 0.82f, 0.95f) : kWhite, 0.82f * vis * a), ALIGN_CENTER);
             ls.tracking = lb.importance >= 3.f ? 0.28f : 0.12f;
