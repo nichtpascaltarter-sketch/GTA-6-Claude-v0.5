@@ -1166,7 +1166,7 @@ bool fishTestPrepare(GameWorld& g, int kind, float& hour) {
     float yaw = 0.f;
     bool boat = false;
     if (!fishTestSpot(g, kind, pos, yaw, boat, water)) return false;
-    hour = kind == 1 ? 10.f : 17.5f;
+    hour = kind == 1 ? 10.f : (kind == 5 ? 21.5f : 17.5f);   // (the bait shop after dark: its marker under the night exposure)
     if (boat) {
         int model = pickModel(g, {Vehicles::VC_BOAT}, 3);
         int v = placePlayer(g, pos, yaw, model, lin(0.9f, 0.9f, 0.86f));
@@ -1225,10 +1225,34 @@ void fishTestStep(GameWorld& g, MissionTest& t) {
         fishTestEnd(g, false, StrFormat("timeout (phase %d, landed %d, lost %d)", F.phase, F.landed - T.landed0, F.lost));
         return;
     }
-    if (T.kind == 5) {   // the bait shop: walk in, sell, read the board, leave
+    if (T.kind == 5) {   // the bait shop: walk up (a look at its marker), walk in, sell, read the board, leave
         switch (T.stage) {
             case 0:
-                if (T.t > 1.f) {
+                if (T.t > 0.6f) {
+                    // a few steps out from the counter with a clear line to it, facing it
+                    vec3 mk = F.markets[0].pos, at = playerPos(g);
+                    for (int k = 0; k < 8; k++) {
+                        float a = kTwoPi * k / 8.f;
+                        vec3 c = openGround(g, mk + vec3(cosf(a) * 7.f, sinf(a) * 7.f, 0.f), 0.5f, 2.f);
+                        if (::length(c.xy() - mk.xy()) < 5.f || fabsf(c.z - mk.z) > 2.f) continue;
+                        if (!clearView(g, dvec3(c + vec3(0.f, 0.f, 1.5f)), dvec3(mk + vec3(0.f, 0.f, 1.f)))) continue;
+                        at = c;
+                        break;
+                    }
+                    t.teleport(at, atan2f(-(mk.x - at.x), mk.y - at.y));
+                    T.stage = 3;
+                    T.t = 0.f;
+                }
+                break;
+            case 3:
+                if (T.t > 3.f) {
+                    t.screenshot("approach");
+                    T.stage = 4;
+                    T.t = 0.f;
+                }
+                break;
+            case 4:
+                if (T.t > 1.5f) {
                     t.teleport(F.markets[0].pos, 0.f);
                     T.stage = 1;
                     T.t = 0.f;

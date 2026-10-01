@@ -339,6 +339,9 @@ static void accessorize(CharacterDesc& d) {
             case 5:   // construction: a watch
                 if (r.chance(0.3f)) d.extras |= ACC_WATCH;
                 break;
+            case 7:   // inmates: at most a cord on the wrist
+                if (r.chance(0.15f)) d.extras |= ACC_BRACELET_L;
+                break;
             default: break;
         }
     }
@@ -346,7 +349,7 @@ static void accessorize(CharacterDesc& d) {
     // uniforms
     if (!outerFits(d)) d.outer = -1;
     if (d.hat >= 0 || d.glasses >= 0) d.extras &= ~ACC_SUNGLASSES_UP;
-    if (d.role == 1 || d.role == 5 || d.role == 6) d.bag = -1;
+    if (d.role == 1 || d.role == 5 || d.role == 6 || d.role == 7) d.bag = -1;
 }
 
 }  // namespace detail
@@ -356,19 +359,21 @@ CharacterDesc randomCharacter(u32 seed, int role) {
     CharacterDesc d;
     Rng r(hash32(seed ^ 0xA511E9B3u) + 1u, (u64)hash32(seed + 0x68E31DA4u) | 1u);
     d.seed = seed;
-    d.role = Clamp(role, 0, 6);
-    // gender: police/worker skew male, beach/business balanced
+    d.role = Clamp(role, 0, 7);
+    // gender: police/worker skew male, beach/business balanced, inmates nearly all men
     float femP = 0.5f;
     if (d.role == 1) femP = 0.3f;
     if (d.role == 2) femP = 0.2f;
     if (d.role == 5) femP = 0.12f;
     if (d.role == 6) femP = 0.4f;
+    if (d.role == 7) femP = 0.1f;
     d.gender = r.chance(femP) ? FEMALE : MALE;
     bool fem = d.gender == FEMALE;
     // age: 18..80 (normalized 0..1 maps to 18..80), working roles narrower
     float ageYears;
     if (d.role == 0 || d.role == 4) ageYears = 18.f + 62.f * powf(r.f(), 1.35f);
     else if (d.role == 2) ageYears = r.range(18.f, 38.f);
+    else if (d.role == 7) ageYears = r.range(20.f, 55.f);
     else ageYears = r.range(22.f, 60.f);
     d.age = (ageYears - 18.f) / 62.f;
     // height: normal distribution by gender
@@ -509,6 +514,16 @@ CharacterDesc randomCharacter(u32 seed, int role) {
             d.hat = r.chance(0.8f) ? HAT_HARDHAT : HAT_CAP;
             if (r.chance(0.3f)) d.glasses = GL_SUN;
             if (d.hairStyle == HAIR_CURLY || d.hairStyle == HAIR_LONG || d.hairStyle == HAIR_BUN) d.hairStyle = fem ? HAIR_PONYTAIL : HAIR_SHORT;
+            break;
+        }
+        case 7: {   // prison inmate: a state-issue orange coverall over a white tee, white canvas slip-ons, nothing else
+            d.top = TOP_JUMPSUIT;
+            d.topColor = srgbToLinear(lerp(vec3(0.93f, 0.43f, 0.1f), vec3(0.95f, 0.6f, 0.36f), r.range(0.f, 0.3f)));   // washed out unevenly
+            d.bottom = BOT_WORK;   // (ignored under the coverall; kept for systems that read the bottom)
+            d.bottomColor = d.topColor;
+            d.shoes = SHOE_SNEAKER;
+            d.shoeColor = srgbToLinear(vec3(0.86f, 0.86f, 0.84f));
+            if (fem && (d.hairStyle == HAIR_LONG || d.hairStyle == HAIR_CURLY)) d.hairStyle = r.chance(0.5f) ? HAIR_PONYTAIL : HAIR_BRAIDS;
             break;
         }
         case 6: {   // medic

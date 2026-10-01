@@ -241,6 +241,17 @@ void updateK9Unit(GameWorld& g, float dt, bool seen) {
         gK9.dog = dog;
         gK9.dogUid = duid;
         gK9.cooldown = 60.f;
+        // the dog picks the scent up where the unit meets the trail (the nearest point of it), and follows it on from there
+        {
+            float bd = 1e9f;
+            for (int k = 0; k < (int)gTrail.size(); k++) {
+                float d = length(gTrail[k].p - sp.xy());
+                if (d < bd) {
+                    bd = d;
+                    gK9.next = k;
+                }
+            }
+        }
         g.ai.stats.unitsSent++;
         LOG("police: K9 unit sent (officer %d, dog group %d) at %.0f %.0f, the trail %d points from %.0f %.0f", id, dog, sp.x, sp.y, (int)gTrail.size(), start.x, start.y);
         return;

@@ -620,6 +620,7 @@ void GameWorld::buildAssets() {
     for (int i = 0; i < 8; i++) reqs.push_back({0x4000u + (u32)i * 32452843u, 2, i % 5 == 4 ? 1 : 0});   // gang (Cuervos)
     for (int i = 0; i < 8; i++) reqs.push_back({0x5000u + (u32)i * 49979687u, 2, i % 5 == 2 ? 1 : 0});   // gang (Saints)
     for (int i = 0; i < 4; i++) reqs.push_back({0x6000u + (u32)i * 67867967u, 6, i & 1});      // medics
+    for (int i = 0; i < 6; i++) reqs.push_back({0x7000u + (u32)i * 86028121u, 7, i == 5 ? 1 : 0});  // prison inmates (role 7)
     int protoStart = (int)reqs.size();
     reqs.push_back({0xA11CEu, 0, 1});   // protagonist: Marisol "Mari" Ortega
     reqs.push_back({0xDE7u, 0, 0});     // protagonist: Dex Calloway

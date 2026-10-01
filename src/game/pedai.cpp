@@ -65,6 +65,38 @@ void spreadPanic(GameWorld& g, const Ped& p, dvec3 origin, u8 depth) {
     if (g.ai.stimuli.size() > 32) g.ai.stimuli.erase(g.ai.stimuli.begin());
 }
 
+// A shop window to stop at: on the street facade of a store (a row of shops; the ground floor of a mid-rise, an art
+// deco block or a tower in the shopping districts) on the side of the sidewalk p is on - the facade at most 4.5 m to the
+// side of p (never across the street), the spot 0.55 m in front of the glass across from p, clear of the building's
+// corners and of anything built in front of it. `face` is the way to look (at the glass).
+bool shopWindowNear(const GameWorld& g, vec2 p, vec2& at, vec2& face) {
+    const World::BuildingSet* bs = g.buildings ? g.buildings : World::gBuildings;
+    if (!bs || bs->buildings.empty()) return false;
+    thread_local std::vector<int> nb;
+    nb.clear();
+    bs->buildingsNear(p, 30.f, nb);
+    float best = 1e9f;
+    for (int i : nb) {
+        const World::Building& b = bs->buildings[i];
+        u8 st = b.style;
+        if (st != World::BS_SHOPS && st != World::BS_MIDRISE && st != World::BS_DECO && st != World::BS_TOWER) continue;
+        if (b.hx < 3.f) continue;
+        vec2 f0 = b.c + b.front * b.hy;               // the middle of the street facade
+        float off = dot(p - f0, b.front);             // how far in front of it p is
+        if (off < 0.5f || off > 4.5f) continue;
+        float along = Clamp(dot(p - f0, b.ax), -b.hx + 1.2f, b.hx - 1.2f);
+        vec2 spot = f0 + b.ax * along + b.front * 0.55f;
+        if (length(spot - p) > 6.f || bs->pointInBuilding(spot, 0.25f)) continue;
+        float d = off + fabsf(dot(p - f0, b.ax) - along);
+        if (d < best) {
+            best = d;
+            at = spot;
+            face = -b.front;
+        }
+    }
+    return best < 1e8f;
+}
+
 }  // namespace pedai_detail
 
 using namespace pedai_detail;
@@ -796,6 +828,23 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                                     }
                                     pa.actTimer = 12.f + hashToFloat(hash32(h * 7u)) * 25.f;
                                 }
+                            } else if (r < 0.35f && pa.role != PR_DRUNK && !raining && pa.leader < 0) {
+                                // window shopping in the shopping streets: a stop at a store window on the building side, a
+                                // good look at what is in it (a tourist points something out), then on
+                                World::Region reg = map->regionAt(pos.x, pos.y);
+                                bool shops = reg == World::REG_DOWNTOWN || reg == World::REG_MIDTOWN || reg == World::REG_NORTH_CITY ||
+                                             reg == World::REG_CALLE_LUNA || reg == World::REG_BEACH || reg == World::REG_KEY_CORAL;
+                                bool open = env->timeOfDay > 8.5f && env->timeOfDay < 21.5f;
+                                vec2 at, face;
+                                if (shops && open && laneGraph.walkLinks[pa.walk.link].kind == AI::WL_SIDEWALK && shopWindowNear(*this, pos, at, face)) {
+                                    pa.activity = ACT_SCENARIO;
+                                    pa.browsing = true;
+                                    pa.anchor = at;
+                                    pa.anchorYaw = atan2f(-face.x, face.y);
+                                    pa.stance = 0;
+                                    pa.clip = pa.role == PR_TOURIST && hash32(h * 13u) % 2u == 0u ? (int)Anim::CLIP_POINT : -1;   // (once)
+                                    pa.actTimer = 6.f + hashToFloat(hash32(h * 11u)) * 10.f;
+                                }
                             }
                         } else if (r >= 0.47f && r < 0.51f && pa.leader < 0 && p.faction == FAC_CIVILIAN && pa.walk.state == AI::WS_WALK &&
                                    pa.walk.link >= 0 && laneGraph.walkLinks[pa.walk.link].kind == AI::WL_SIDEWALK && pa.eventId < 0) {
@@ -874,7 +923,10 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         faceYaw = pa.anchorYaw;
                         faceSet = true;
                         stance = pa.stance;
-                        if (pa.clip >= 0 && p.pendingAction < 0 && p.anim.actionDone()) p.pendingAction = pa.clip;
+                        if (pa.clip >= 0 && p.pendingAction < 0 && p.anim.actionDone()) {
+                            p.pendingAction = pa.clip;
+                            if (pa.activity == ACT_SCENARIO && pa.clip == Anim::CLIP_POINT) pa.clip = -1;   // (a point at a shop window: once)
+                        }
                         if (pa.activity == ACT_EVENT && pa.aimAt >= 0) {
                             // holding someone at gunpoint (mugger)
                             const Ped* v = pa.aimAt < (int)peds.size() && peds[pa.aimAt].used && peds[pa.aimAt].health > 0.f ? &peds[pa.aimAt] : nullptr;
@@ -951,6 +1003,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     if (pa.actTimer <= 0.f && pa.activity != ACT_EVENT && pa.activity != ACT_HAIL_TAXI && pa.activity != ACT_QUEUE && pa.activity != ACT_VENUE &&
                         pa.activity != ACT_MEET) {
                         pa.activity = ACT_WALK;
+                        pa.browsing = false;
                         pa.clip = -1;
                         pa.stance = 0;
                         pa.actTimer = 15.f + hashToFloat(hash32(p.uid + (u32)time)) * 20.f;
@@ -1422,6 +1475,7 @@ void GameWorld::aiStreetMeets(float dt) {
             // one of them was called away (a scare, a bump, gone): the other goes on alone
             if (okA) walkOn(*this, m.a);
             if (okB) walkOn(*this, m.b);
+            LOG("street meet: peds %d and %d broken off in phase %d", m.a, m.b, (int)m.phase);
             ai.meets.erase(ai.meets.begin() + k);
             continue;
         }
@@ -1473,6 +1527,7 @@ void GameWorld::aiStreetMeets(float dt) {
                     walkOn(*this, m.a);
                     walkOn(*this, m.b);
                     done = true;
+                    LOG("street meet: peds %d and %d part after %d lines", m.a, m.b, (int)m.lines);
                 }
                 break;
         }

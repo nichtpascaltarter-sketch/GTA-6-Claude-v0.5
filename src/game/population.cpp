@@ -296,7 +296,7 @@ void updateQueues(GameWorld& g, float dt, vec2 pp, bool night, bool warm) {
 // warmup fade) and empties again once they are far away. Nobody stands on a live lane (every slot is checked against the
 // lane graph, buildings and water when the venue is laid out), and everybody stands at the level of the ground there -
 // never on a canopy or a roof above it.
-enum VenueLook : u8 { VL_WORKER = 0, VL_CIVIL, VL_BUSINESS, VL_BEACH, VL_TRAVELER, VL_UNIFORM, VL_MEDIC };
+enum VenueLook : u8 { VL_WORKER = 0, VL_CIVIL, VL_BUSINESS, VL_BEACH, VL_TRAVELER, VL_UNIFORM, VL_MEDIC, VL_INMATE };
 enum VenueProp : u8 { VP_NONE = 0, VP_TRUCK, VP_TAXI, VP_AIRBOAT, VP_CAR };
 
 struct VenueSlot {
@@ -980,7 +980,7 @@ void buildVenues(GameWorld& g) {
         auto lookFor = [](int placeKind, u8 anchorKind, u32 hh) -> u8 {
             if (anchorKind == World::PA_GUARD) return VL_UNIFORM;
             if (placeKind == World::PK_HOSPITAL && anchorKind == World::PA_WORK) return VL_MEDIC;   // the ambulance bay crew
-            if (placeKind == World::PK_PRISON) return VL_CIVIL;                                    // the yard: plain clothes
+            if (placeKind == World::PK_PRISON) return VL_INMATE;                                   // the yard
             if (placeKind == World::PK_HOSPITAL) return hh % 3 == 0 ? VL_BUSINESS : VL_CIVIL;     // visitors
             if (anchorKind == World::PA_WORK) return placeKind == World::PK_SPEEDWAY ? VL_WORKER : VL_BUSINESS;
             if (placeKind == World::PK_HOTEL_ROW) return hh % 3 == 0 ? VL_BUSINESS : (hh % 3 == 1 ? VL_BEACH : VL_CIVIL);
@@ -1158,6 +1158,7 @@ int venueChar(GameWorld& g, u8 look, u32 seed) {
         case VL_TRAVELER: return g.randomCivilianChar(seed >> 2, (seed % 5 == 0) ? 3 : ((seed % 5 == 1) ? 4 : 0));
         case VL_UNIFORM: return g.randomCivilianChar(seed, 1);   // (the uniformed look: guards)
         case VL_MEDIC: return g.randomCivilianChar(seed, 6);     // (paramedics: a hospital's ambulance bay)
+        case VL_INMATE: return g.randomCivilianChar(seed, 7);    // (the prison yard: the inmates' roster, role 7)
         default: return g.randomCivilianChar(seed, 0);
     }
 }

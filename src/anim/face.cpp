@@ -1788,6 +1788,9 @@ void buildFaceDetails(BuildCtx& c) {
     addEar(c, 1);
     vec3 browCol = d.hairColor * 0.8f;
     if (d.age > 0.75f) browCol = lerp(browCol, vec3(0.45f, 0.43f, 0.4f), 0.5f);
+    // brows stay darker than the skin they sit on (a dark complexion with brown-dyed hair still has dark brows; fair
+    // brows on pale skin keep a little contrast), so they read at a distance
+    browCol = vmin(browCol, d.skinTone * 0.42f);
     addBrow(c, 0, browCol);
     addBrow(c, 1, browCol);
     vec3 lash = d.hairColor * 0.35f + vec3(0.004f);

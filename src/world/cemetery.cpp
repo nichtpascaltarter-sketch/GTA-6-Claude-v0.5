@@ -374,7 +374,8 @@ void tomb(G& g, const Plot& p, float z) {
             break;
         }
         case TK_OBELISK: {
-            u32 gr = r.chance(0.6f) ? tint(vec3(0.6f, 0.6f, 0.62f) * r.range(0.9f, 1.05f)) : marble, gm = M(MAT_STONE);
+            const bool gran = r.chance(0.6f);   // polished granite (fine-grained, no coursing) or white marble
+            u32 gr = gran ? tint(vec3(0.6f, 0.6f, 0.62f) * r.range(0.9f, 1.05f)) : marble, gm = gran ? M(MAT_CURB) : marbleM;
             bx(0.f, 0.f, z - 0.15f, 0.62f, 0.62f, 0.2f, plinth, gm);
             bx(0.f, 0.f, z + 0.25f, 0.46f, 0.46f, 0.2f, gr, gm);
             bx(0.f, 0.f, z + 0.65f, 0.36f, 0.36f, 0.3f, gr, gm);
@@ -388,7 +389,7 @@ void tomb(G& g, const Plot& p, float z) {
         case TK_HEADSTONE: {
             int n = (p.h >> 5) & 1 ? 2 : 1;
             u32 sc = r.chance(0.55f) ? marble : tint(vec3(0.55f, 0.55f, 0.57f) * r.range(0.9f, 1.1f));
-            u32 sm = r.chance(0.55f) ? marbleM : M(MAT_STONE);
+            u32 sm = r.chance(0.55f) ? marbleM : M(MAT_CURB);
             for (int k = 0; k < n; k++) {
                 float u = n == 2 ? (k ? 0.6f : -0.6f) : 0.f;
                 float sw = r.range(0.26f, 0.34f), shh = r.range(0.45f, 0.6f);
@@ -437,7 +438,7 @@ void tomb(G& g, const Plot& p, float z) {
         case TK_MAUSOLEUM: {
             const bool granite = r.chance(0.6f);
             vec3 sc = granite ? (r.chance(0.5f) ? vec3(0.56f, 0.56f, 0.58f) : vec3(0.62f, 0.52f, 0.48f)) : vec3(0.92f, 0.91f, 0.88f);
-            const u32 st = tint(sc), stD = tint(sc * 0.8f), stM = granite ? M(MAT_STONE) : marbleM;
+            const u32 st = tint(sc), stD = tint(sc * 0.8f), stM = granite ? M(MAT_CURB) : marbleM;
             const float H = r.range(3.1f, 3.7f), pd = 1.3f;
             const float vFront = hd - 0.7f, vCella = vFront - pd;   // portico front line, cella front
             bx(0.f, hd - 0.35f, z - 0.15f, hw * 0.72f, 0.35f, 0.16f, stD, stM);                     // step
@@ -679,7 +680,7 @@ void genWall(const SiteElem& e, G& g) {
 void genGrounds(const SiteElem& e, G& g) {
     const bool detail = g.detail;
     const float z = e.z;
-    const u32 grass = rgb(0.6f, 0.84f, 0.44f), shell = rgb(0.9f, 0.88f, 0.82f), brick = rgb(0.62f, 0.36f, 0.28f), sand = M(MAT_PLASTER);   // crushed shell
+    const u32 grass = rgb(0.6f, 0.84f, 0.44f), shell = rgb(0.9f, 0.88f, 0.82f), curbC = rgb(0.86f, 0.85f, 0.8f), sand = M(MAT_PLASTER);   // crushed shell
     const vec2 X(1, 0), Y(0, 1), oc(kAvX, kAvY);
     drapeRect(g, vec2((kIX0 + kIX1) * 0.5f, (kIY0 + kIY1) * 0.5f), X, (kIX1 - kIX0) * 0.5f, (kIY1 - kIY0) * 0.5f, 0.03f, grass, M(MAT_GRASS), detail ? 8.f : 24.f, z);
     auto strip = [&](vec2 a, vec2 b, float w, u32 col, u32 mat, float lift) {
@@ -687,14 +688,14 @@ void genGrounds(const SiteElem& e, G& g) {
         int n = Max(1, (int)ceilf(L / 20.f));
         for (int k = 0; k < n; k++) pathStrip(g, {lerp(a, b, (float)k / n), lerp(a, b, (float)(k + 1) / n)}, w, lift, col, mat, z, false, false);
     };
-    auto edging = [&](vec2 a, vec2 b) {   // brick edging along an avenue, in <= 16 m pieces
+    auto edging = [&](vec2 a, vec2 b) {   // granite curb along an avenue, in <= 16 m pieces
         if (!detail) return;
         float L = length(b - a);
         int n = Max(1, (int)ceilf(L / 16.f));
         vec2 d = (b - a) / L;
         for (int k = 0; k < n; k++) {
             vec2 m = a + d * (L * (k + 0.5f) / n);
-            if (g.owns(m)) boxY(g, V3(m, z + 0.03f), d, vec3(L * 0.5f / n, 0.1f, 0.05f), brick, M(MAT_BRICK));
+            if (g.owns(m)) boxY(g, V3(m, z + 0.03f), d, vec3(L * 0.5f / n, 0.1f, 0.05f), curbC, M(MAT_CURB));
         }
     };
     // perimeter aisle
@@ -712,9 +713,9 @@ void genGrounds(const SiteElem& e, G& g) {
     }
     if (g.owns(oc)) {
         polyFlat(g, *g.m, circleFP(oc, kRondR, detail ? 40 : 16), z + 0.055f, shell, sand);
-        if (detail) ring(g, vec3(oc, z + 0.04f), vec3(0, 0, 1), kRondR, 0.22f, 0.1f, 32, brick, M(MAT_BRICK));
+        if (detail) ring(g, vec3(oc, z + 0.04f), vec3(0, 0, 1), kRondR, 0.22f, 0.1f, 32, curbC, M(MAT_CURB));
         // the obelisk: stepped granite base, a die with bronze plaques, a tapering shaft
-        const u32 gr = rgb(0.6f, 0.6f, 0.62f), grD = rgb(0.5f, 0.5f, 0.52f), gm = M(MAT_STONE);
+        const u32 gr = rgb(0.6f, 0.6f, 0.62f), grD = rgb(0.5f, 0.5f, 0.52f), gm = M(MAT_CURB);   // polished granite
         boxY(g, V3(oc, z + 0.1f), X, vec3(1.7f, 1.7f, 0.2f), grD, gm);
         boxY(g, V3(oc, z + 0.45f), X, vec3(1.35f, 1.35f, 0.15f), gr, gm);
         boxY(g, V3(oc, z + 0.75f), X, vec3(1.05f, 1.05f, 0.15f), grD, gm);

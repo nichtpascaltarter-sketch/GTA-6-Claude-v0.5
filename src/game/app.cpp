@@ -976,10 +976,13 @@ struct App {
                 LOG("autoplay search t=%.1f wanted %d seen %d | %s", t, game.pinfo.wanted, (int)game.pinfo.policeSeesPlayer, game.aiCensusText(90.f).c_str());
             }
         } else if (autoplay == "k9") {
-            // run 12 s down the sidewalk, then stand still (out of sight of any unit): the K9 unit tracks the trail and the
-            // dog finds the player; 12 s after that the player runs for it and the dog is sent after them
+            // run 12 s round the block on the sidewalks, then stand still out of sight of where the trail starts: the K9
+            // unit tracks the trail and the dog finds the player; 12 s after that the player runs for it and the dog is
+            // sent after them
             static float logT = 0.f, shotT = 0.f, foundAt = -1.f;
             static int shots = 0;
+            static AI::Walker run;
+            static bool runInit = false;
             Ped* pl = game.playerPed();
             vec3 dogP;
             std::string st = game.aiK9Text(&dogP);
@@ -987,8 +990,25 @@ struct App {
             if (pl && pl->state == PS_ONFOOT && !game.pinfo.busted) {
                 bool dash = foundAt >= 0.f && t > foundAt + 12.f && t < foundAt + 22.f;
                 if (t > 1.f && t < 13.f) {
-                    c.move = vec2(0.f, 1.f);
-                    c.sprint.down = true;
+                    // (the pedestrian navigator steers: along the sidewalk, round a corner, toward a point diagonally across
+                    //  the block - the way faces the camera, the run is a sprint)
+                    vec2 pp = pl->pos.toVec3().xy();
+                    if (!runInit) {
+                        runInit = true;
+                        game.pedNav.place(run, pp, 0x9e37u, 30.f);
+                        vec2 f = AI::yawDir(pl->yaw);
+                        run.hasDest = true;
+                        run.dest = pp + f * 45.f + AI::rightOf(f) * 45.f;
+                        run.avoidCrossing = true;
+                        LOG("autoplay k9: the run round the block toward %.0f %.0f (walk link %d)", run.dest.x, run.dest.y, run.link);
+                    }
+                    float fy = pl->yaw;
+                    vec2 v = run.link >= 0 ? game.pedNav.step(run, pp, dt, -1, &fy) : AI::yawDir(pl->yaw);
+                    if (length(v) > 0.2f) {
+                        game.rig.yaw = AI::dirYaw(normalize(v));
+                        c.move = vec2(0.f, 1.f);
+                        c.sprint.down = true;
+                    }
                 } else if (dash) {
                     c.move = vec2(0.f, 1.f);
                     c.sprint.down = true;
@@ -1190,6 +1210,8 @@ struct App {
             static int stop = -1;
             static int ga = -1, gb = -1, seen = 0, gshots = 0;
             static float gT = 0.f, logT = 0.f;
+            static vec2 gSide(1.f, 0.f);
+            static float gAlong = 0.8f;
             Ped* pl = game.playerPed();
             int want = t < 35.f ? 0 : 1;
             if (want != stop && pl) {
@@ -1227,6 +1249,30 @@ struct App {
                     gT = 0.f;
                     gshots = 0;
                     seen++;
+                    // the camera's side: the player's side first, then round - whichever has a clear view of the two (no
+                    // tree trunk, post or wall in between)
+                    {
+                        vec3 A = game.peds[ga].pos.toVec3(), B = game.peds[gb].pos.toVec3();
+                        vec3 mid = (A + B) * 0.5f;
+                        vec2 d = normalize(B.xy() - A.xy() + vec2(1e-4f, 0.f));
+                        vec2 side(-d.y, d.x);
+                        if (dot(rel(pl->pos, game.peds[ga].pos).xy(), side) < 0.f) side = -side;
+                        const float alongs[3] = {0.8f, -0.8f, 2.2f};
+                        gSide = side;
+                        gAlong = 0.8f;
+                        bool found = false;
+                        for (int sgn = 0; sgn < 2 && !found; sgn++)
+                            for (int k = 0; k < 3 && !found; k++) {
+                                vec2 sd = sgn ? -side : side;
+                                vec3 cam = mid + vec3(sd * 3.4f + d * alongs[k], 1.55f);
+                                if (game.lineOfSight(dvec3(cam), dvec3(mid + vec3(0.f, 0.f, 1.3f)), ga, -1) &&
+                                    game.lineOfSight(dvec3(cam), dvec3(mid + vec3(0.f, 0.f, 0.6f)), ga, -1)) {
+                                    gSide = sd;
+                                    gAlong = alongs[k];
+                                    found = true;
+                                }
+                            }
+                    }
                     LOG("autoplay greet %d: peds %d and %d, clip %d, %.1f s", seen, ga, gb, game.peds[ga].anim.action, game.ai.ped[ga].greetT);
                     break;
                 }
@@ -1240,11 +1286,8 @@ struct App {
                     vec3 A = game.peds[ga].pos.toVec3(), B = game.peds[gb].pos.toVec3();
                     vec3 mid = (A + B) * 0.5f;
                     vec2 d = normalize(B.xy() - A.xy() + vec2(1e-4f, 0.f));
-                    vec2 side(-d.y, d.x);
-                    // (the side the player is on: the kerb side is where the car stands)
-                    if (pl && dot(rel(pl->pos, game.peds[ga].pos).xy(), side) < 0.f) side = -side;
                     game.rig.scriptActive = true;
-                    game.rig.scriptPos = dvec3(mid + vec3(side * 3.4f + d * 0.8f, 1.55f));
+                    game.rig.scriptPos = dvec3(mid + vec3(gSide * 3.4f + d * gAlong, 1.55f));
                     game.rig.scriptTarget = dvec3(mid + vec3(0.f, 0.f, 1.25f));
                     game.rig.scriptFov = 40.f;
                     const float at[2] = {1.2f, 2.3f};
