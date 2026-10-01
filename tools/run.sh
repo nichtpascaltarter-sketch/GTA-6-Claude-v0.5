@@ -13,14 +13,17 @@ if [ ! -f "$WINEPREFIX/drive_c/windows/system32/d3dcompiler_47.dll.native" ]; th
   cp /opt/neontide-test/d3dcompiler_47.dll "$WINEPREFIX/drive_c/windows/system32/d3dcompiler_47.dll"
   touch "$WINEPREFIX/drive_c/windows/system32/d3dcompiler_47.dll.native"
 fi
-# Test machines shared by several agents (opt-in: /tmp/neontide_build.lock exists) run at most 3 games at once
-# (~2 GB each; with the lead's slot and two compiles that still fits a 14 GB container cap), so builds are not killed
-# for memory. The slot's lock is held by the exec'd process until the game exits.
+# Test machines shared by several agents (opt-in: /tmp/neontide_build.lock exists) run at most 3 shared games at once
+# (~2 GB each), and every game waits for room under the memory cap (below), so builds are not killed for memory. The
+# slot's lock is held by the exec'd process until the game exits.
 # NT_LEAD_SLOT=1: the lead's snapshot checks have a slot of their own, so a verified commit never queues behind
-# long test runs.
+# long test runs; NT_D3D12_SLOT=1: so does the Direct3D 12 port's validation (slot 4).
 if [ -e /tmp/neontide_build.lock ] && command -v flock >/dev/null 2>&1; then
   if [ -n "$NT_LEAD_SLOT" ]; then
     exec 8>>/tmp/neontide_wine_slot.lead
+    flock 8
+  elif [ -n "$NT_D3D12_SLOT" ]; then
+    exec 8>>/tmp/neontide_wine_slot.4
     flock 8
   else
     while :; do

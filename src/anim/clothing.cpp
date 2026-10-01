@@ -1900,13 +1900,20 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
     g.thick = 0.0035f;
     const float ls = loose, zc = R.zCrotch, zw = R.zWaist;
     // an untucked top hangs over the waistband: clear the bottoms' shell (plus belt) where they overlap
+    // (over the belt itself the full clearance; below it, the trousers' shell only: a fitted top follows the hips
+    // instead of standing off them as if the belt went all the way down)
     const float clearE = o.botTopZ > 0.f ? o.botTorsoOff + 0.004f - g.thick : 0.f;
-    const float zbt = o.botTopZ;
+    const float clearS = o.botTopZ > 0.f ? Min(o.botShellOff, o.botTorsoOff) + 0.004f - g.thick : 0.f;
+    const float zbt = o.botTopZ, zBelt0 = o.botBeltZ0;
     g.extraFn = [=](const BVert& v) -> float {
         float e = ls;
         if (v.part == PART_TORSO) {
             e = ls * (0.5f + 0.9f * sstep(zw + 0.1f, zc, v.bp.z));   // hangs looser at the hem
-            if (clearE > 0.f) e = Max(e, clearE * sstep(zbt + 0.06f, zbt - 0.005f, v.bp.z));
+            if (clearE > 0.f) {
+                float under = sstep(zbt + 0.06f, zbt - 0.005f, v.bp.z);
+                float overBelt = zBelt0 > 0.f ? sstep(zBelt0 - 0.03f * s, zBelt0 + 0.005f * s, v.bp.z) : 1.f;
+                e = Max(e, Lerp(clearS, clearE, overBelt) * under);
+            }
         }
         return e;
     };
@@ -2235,12 +2242,20 @@ static void buildOuterLayer(OutfitCtx& o, const Ref& R, const CharacterDesc& d) 
             closedBelowV = buttoned;
             break;
         }
-        case OUT_JACKET:
+        case OUT_JACKET: {
             hemZ = R.zHip + 0.02f * s; gapNeck = 0.045f * s; gapChest = 0.06f * s; gapHem = 0.1f * s; nButtons = 5;
-            if (rng.chance(0.4f)) { zip = true; rib = true; nButtons = 0; }   // bomber / windbreaker
-            else g.mat = MAT_DENIM;                                            // denim jacket
+            // the colour decides the cloth: a denim wash (a pale, neutral or blue multiplier of the indigo dye) makes a
+            // denim jacket; any other colour a bomber / windbreaker or a buttoned canvas work jacket (an olive or khaki
+            // colour on denim would come out near black)
+            const vec3 oc = d.outerColor;
+            const bool denimWash = dot(oc, vec3(0.3f, 0.59f, 0.11f)) >= 0.2f && oc.z >= oc.x;
+            const bool bomber = rng.chance(0.4f);
+            if (denimWash) g.mat = MAT_DENIM;                                                       // denim jacket
+            else if (bomber) { zip = true; rib = true; nButtons = 0; }                              // bomber / windbreaker
+            else g.matParam = 1;                                                                    // canvas work jacket
             g.thick = 0.005f;
             break;
+        }
         case OUT_VEST:
             sleeves = false;
             if (rng.chance(0.55f)) {   // quilted puffer gilet, zipped half-way or open
@@ -2770,6 +2785,8 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
     if (g.smooth < 1) g.smooth = 1;
     emitGarment(o, g);
     o.botTorsoOff = g.thick + torsoE + (belt || dutyBelt ? 0.009f : 0.004f);
+    o.botShellOff = g.thick + torsoE + 0.004f;
+    o.botBeltZ0 = belt || dutyBelt ? zt - (2.f * (dutyBelt ? 0.026f : 0.017f) + 0.004f) * s : -1.f;   // (the belt band below)
     o.botTopZ = zt;
     if (zCuff < R.zKnee - 0.1f * s) o.legHemZ = zCuff;
     auto decal = [&](CovFn cov, vec3 dcol, u8 mat, float extraOff, u32 parts, bool hem = false) {

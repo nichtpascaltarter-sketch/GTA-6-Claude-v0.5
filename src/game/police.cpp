@@ -1771,7 +1771,7 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
                 // tackle and cuff (a suspect standing there with the hands up is just cuffed): the suspect stays down,
                 // this officer heads back to the car
                 if (pedAI(b.target).activity != ACT_HANDS_UP) {
-                    knockDown(b.target, vec3(to / Max(dist, 1e-3f) * 160.f, 30.f));
+                    knockDown(b.target, vec3(to / Max(dist, 1e-3f) * 160.f, 30.f), true);
                     ai.stats.tackles++;
                 }
                 pedAI(b.target).activity = ACT_WALK;
@@ -1861,8 +1861,9 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
             movePed(p, moved ? stand : vec2(0.f), dt, false);
             return;
         } else if (dogOk) {
-            // they are in view: the dog barks at them from the handler's side, or heels when they are further off
-            gK9.foundT = 0.f;
+            // they are in view: the dog barks at them from the handler's side (close: as good as found), or heels when
+            // they are further off
+            gK9.foundT = realD < 16.f ? gK9.foundT + dt : 0.f;
             Wildlife::k9Command(*this, gK9.dog, gK9.dogUid, realD < 16.f ? Wildlife::K9_ALERT : Wildlife::K9_HEEL, t.pos.toVec3(), -1);
         }
     }
@@ -1929,7 +1930,7 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
                 if (dist < 1.7f && pa.tackleTimer <= 0.f) {
                     bool success = hashToFloat(hash32(p.uid * 977u + (u32)(time * 5.0))) < 0.65f;
                     if (success) {
-                        knockDown(b.target, vec3(to / Max(dist, 1e-3f) * 150.f, 25.f));
+                        knockDown(b.target, vec3(to / Max(dist, 1e-3f) * 150.f, 25.f), true);
                         ai.stats.tackles++;
                         aiSay(id, BK_COP_GROUND, 1.f, true);
                         pa.tackleTimer = 10.f;

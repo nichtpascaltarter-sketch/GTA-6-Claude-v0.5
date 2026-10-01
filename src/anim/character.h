@@ -425,6 +425,9 @@ struct Animator {
     bool staggering() const { return staggerT >= 0.f; }
     // How far into the bracing pose a falling body is (AnimInput::fallBrace): start the ragdoll once it is near 1.
     float braceWeight() const { return braceW; }
+    // Drop what is left of the impacts (flinch, stagger, the reflex hand, bracing); blendFrom() and the get-up clips do
+    // it themselves. Lasting injuries (legHurt, wounded, clutch) follow the input as before.
+    void clearImpacts();
 };
 
 }  // namespace Anim

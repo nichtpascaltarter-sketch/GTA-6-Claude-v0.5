@@ -304,62 +304,62 @@ static void buildScalpCards(OutfitCtx& o, const HairParams& h, float shellFrac) 
     const int kCardBudget = 3400;
     MeshB m;
     for (int attempt = 0; attempt < 2; attempt++) {
-    m = MeshB();
-    Rng r(hash32(c.d->seed * 6131u + 17u));
-    const float R0 = 0.095f * hs;
-    const vec3 colRoot = h.col * 0.5f, colTip = h.col * 1.08f;
-    CardPt pts[8];
-    for (int layer = 0; layer < 2; layer++) {
-        float sp = spacing * hs * (layer ? 1.2f : 1.f);
-        float dph = sp / R0;
-        float hRoot = layer ? 0.9f : 0.62f, hTip = layer ? 1.12f : 0.98f;
-        for (float ph = -42.f * kDegToRad + dph * 0.5f * layer; ph < 87.f * kDegToRad; ph += dph) {
-            float circ = kTwoPi * R0 * Max(cosf(ph), 0.05f);
-            int nth = Max(3, (int)(circ / sp));
-            float off = r.f();
-            for (int i = 0; i < nth; i++) {
-                float th = kTwoPi * (i + off + 0.4f * (r.f() - 0.5f)) / nth;
-                float php = ph + dph * 0.4f * (r.f() - 0.5f);
-                if (th >= kTwoPi) th -= kTwoPi;
-                vec3 q, nq;
-                headSurf(c, th, php, q, nq);
-                BVert pr = headProbe(th, php, q);
-                if (hairCoverage(c, h, pr) < 0.002f) continue;
-                u32 seed = r.next();
-                float len = r.range(len0, len1) * hs;
-                if (h.style == HAIR_QUIFF && (q - H.origin).y > 0.02f * hs && (q - H.origin).z > 0.1f * hs) len *= 1.35f;
-                float w = w0 * hs * r.range(0.85f, 1.15f);
-                float seg = len / NS;
-                int np = 0;
-                float thq = th, phq = php;
-                for (int sgi = 0; sgi <= NS; sgi++) {
-                    float u = (float)sgi / NS;
-                    BVert pq = headProbe(thq, phq, q);
-                    float cq = hairCoverage(c, h, pq);
-                    if (sgi > 0 && cq < -0.006f) break;   // tips may fall 6 mm past the hairline, no further
-                    float T = styleThickness(c, h, pq) * sstep(-0.006f, 0.012f, cq);
-                    float hgt = 0.0008f + T * Lerp(hRoot, hTip, sstep(0.f, 0.5f, u)) * (np == 0 ? 1.f : 1.f);
-                    if (stand > 0.f) hgt += T * 0.25f * u;   // curls stand off the afro surface
-                    if (hgt < T * shellFrac && sgi > 0 && layer == 0) hgt = T * shellFrac + 0.0006f;
-                    pts[np].p = q + nq * hgt;
-                    pts[np].n = nq;
-                    pts[np].w = w * (1.f - 0.35f * u);
-                    pts[np].sw = skin1(B_HEAD);
-                    np++;
-                    if (sgi == NS) break;
-                    vec3 f = scalpFlow(c, h, q, nq, seed);
-                    vec3 q1, n1;
-                    scalpStep(c, q, f, seg, thq, phq, q1, n1);
-                    q = q1;
-                    nq = n1;
+        m = MeshB();
+        Rng r(hash32(c.d->seed * 6131u + 17u));
+        const float R0 = 0.095f * hs;
+        const vec3 colRoot = h.col * 0.5f, colTip = h.col * 1.08f;
+        CardPt pts[8];
+        for (int layer = 0; layer < 2; layer++) {
+            float sp = spacing * hs * (layer ? 1.2f : 1.f);
+            float dph = sp / R0;
+            float hRoot = layer ? 0.9f : 0.62f, hTip = layer ? 1.12f : 0.98f;
+            for (float ph = -42.f * kDegToRad + dph * 0.5f * layer; ph < 87.f * kDegToRad; ph += dph) {
+                float circ = kTwoPi * R0 * Max(cosf(ph), 0.05f);
+                int nth = Max(3, (int)(circ / sp));
+                float off = r.f();
+                for (int i = 0; i < nth; i++) {
+                    float th = kTwoPi * (i + off + 0.4f * (r.f() - 0.5f)) / nth;
+                    float php = ph + dph * 0.4f * (r.f() - 0.5f);
+                    if (th >= kTwoPi) th -= kTwoPi;
+                    vec3 q, nq;
+                    headSurf(c, th, php, q, nq);
+                    BVert pr = headProbe(th, php, q);
+                    if (hairCoverage(c, h, pr) < 0.002f) continue;
+                    u32 seed = r.next();
+                    float len = r.range(len0, len1) * hs;
+                    if (h.style == HAIR_QUIFF && (q - H.origin).y > 0.02f * hs && (q - H.origin).z > 0.1f * hs) len *= 1.35f;
+                    float w = w0 * hs * r.range(0.85f, 1.15f);
+                    float seg = len / NS;
+                    int np = 0;
+                    float thq = th, phq = php;
+                    for (int sgi = 0; sgi <= NS; sgi++) {
+                        float u = (float)sgi / NS;
+                        BVert pq = headProbe(thq, phq, q);
+                        float cq = hairCoverage(c, h, pq);
+                        if (sgi > 0 && cq < -0.006f) break;   // tips may fall 6 mm past the hairline, no further
+                        float T = styleThickness(c, h, pq) * sstep(-0.006f, 0.012f, cq);
+                        float hgt = 0.0008f + T * Lerp(hRoot, hTip, sstep(0.f, 0.5f, u)) * (np == 0 ? 1.f : 1.f);
+                        if (stand > 0.f) hgt += T * 0.25f * u;   // curls stand off the afro surface
+                        if (hgt < T * shellFrac && sgi > 0 && layer == 0) hgt = T * shellFrac + 0.0006f;
+                        pts[np].p = q + nq * hgt;
+                        pts[np].n = nq;
+                        pts[np].w = w * (1.f - 0.35f * u);
+                        pts[np].sw = skin1(B_HEAD);
+                        np++;
+                        if (sgi == NS) break;
+                        vec3 f = scalpFlow(c, h, q, nq, seed);
+                        vec3 q1, n1;
+                        scalpStep(c, q, f, seg, thq, phq, q1, n1);
+                        q = q1;
+                        nq = n1;
+                    }
+                    if (np >= 2) emitCard(m, pts, np, CARD_SCALP, seed, colRoot, colTip, dens * (layer ? 0.8f : 1.f), PART_HEAD, &H);
                 }
-                if (np >= 2) emitCard(m, pts, np, CARD_SCALP, seed, colRoot, colTip, dens * (layer ? 0.8f : 1.f), PART_HEAD, &H);
             }
         }
-    }
-    int tris = (int)(m.idx.size() / 3);
-    if (tris <= kCardBudget) break;
-    spacing *= sqrtf((float)tris / kCardBudget) * 1.02f;
+        int tris = (int)(m.idx.size() / 3);
+        if (tris <= kCardBudget) break;
+        spacing *= sqrtf((float)tris / kCardBudget) * 1.02f;
     }
     size_t t0 = o.out.idx.size() / 3;
     o.out.append(m);
@@ -748,6 +748,7 @@ struct RopeSpec {
     float clear = 0.003f;      // hanging: clearance from the body and the shell (outer layers more)
     float lump = 0;            // radius irregularity (locs)
     float flare = 0.05f;       // hanging: drift away from the head axis
+    float wobble = 0.f;        // on the scalp: sideways meander (locs)
     vec3 plane = vec3(1.f, 0.f, 0.f);   // the plane it runs in over the top (ropeFlow / ropePlane)
     u32 seed = 0;
 };
@@ -881,6 +882,10 @@ static void traceRopeScalp(const BuildCtx& c, const HairParams& hp, const RopeSp
             s.chev = 0.6f * R.plait;
         }
         vec3 f = ropeFlow(c, q, nq, yEar, R.spread, R.plane);
+        if (R.wobble > 0.f) {   // locs do not run in neat lines
+            vec3 side = cross(nq, f);
+            f = normalize(f + side * (R.wobble * sinf(u * 55.f + kTwoPi * ropeRand(R.seed + 21u))));
+        }
         s.t = f;
         s.up = nq;
         s.bp = q;
@@ -1019,7 +1024,7 @@ static void buildCornrows(OutfitCtx& o, const HairParams& h, MeshB& m) {
         R.lift = 0.0006f * hs;
         R.spread = fem ? -0.9f : -0.5f;
         R.half = true;
-        R.plait = 1.1f * wNom;
+        R.plait = 1.3f * wNom;
         R.seed = r.next();
         traceRopeScalp(c, h, R, yEar, rows[i]);
     }
@@ -1047,7 +1052,7 @@ static void buildCornrows(OutfitCtx& o, const HairParams& h, MeshB& m) {
         T.half = false;
         T.plait = 0.f;
         T.hang = h.ropeLen * Lerp(0.85f, 1.1f, ropeRand(T.seed + 11u));
-        T.stepH = h.ropeLong ? 0.024f : 0.012f;
+        T.stepH = h.ropeLong ? 0.028f : 0.012f;
         T.clear = 0.002f;
         T.flare = 0.02f;
         std::vector<RopeSt> tail(1, e);
@@ -1071,9 +1076,9 @@ static void buildHangingRopes(OutfitCtx& o, const HairParams& h, float shellT, M
     Rng r(hash32(c.d->seed * 0xCC9E2D51u + 0x2Fu));
     const int NS = locs ? 5 : 4;
     const float wBase = (locs ? r.range(0.0062f, 0.008f) : 0.0047f) * hs;
-    const int nFront = locs ? (fem ? 9 : 8) : (fem ? 15 : 11);
-    const int nMid = locs ? 7 : (fem ? 8 : 6);
-    const int nNape = locs ? 7 : (fem ? 9 : 7);
+    const int nFront = locs ? (fem ? 9 : 8) : (fem ? 13 : 10);
+    const int nMid = locs ? 7 : (fem ? 6 : 5);
+    const int nNape = locs ? 7 : (fem ? 8 : 6);
     std::vector<vec2> roots;
     hairlineRoots(c, h, nFront, 50.f * kDegToRad, roots);
     // crown ring (back half) and nape row
@@ -1104,10 +1109,11 @@ static void buildHangingRopes(OutfitCtx& o, const HairParams& h, float shellT, M
         R.w = R.h = wBase * sz;
         R.lift = shellT * (layer == 2 ? 0.85f : (layer == 1 ? 0.55f : 0.35f));
         R.spread = locs ? 0.45f : -0.5f;
-        R.stepS = locs ? 0.018f : 0.017f;
-        R.stepH = locs ? 0.026f : 0.025f;
+        R.stepS = locs ? 0.022f : 0.02f;
+        R.stepH = locs ? 0.032f : 0.03f;
         R.clear = layer == 2 ? 0.008f : (layer == 1 ? 0.0045f : 0.002f);
-        R.lump = locs ? 0.15f : 0.f;
+        R.lump = locs ? 0.22f : 0.f;
+        R.wobble = locs ? 0.35f : 0.f;
         R.flare = locs ? 0.1f : 0.06f;
         R.hang = h.ropeLen * (locs ? Lerp(0.8f, 1.15f, ropeRand(R.seed + 5u)) : Lerp(0.9f, 1.05f, ropeRand(R.seed + 5u)));
         traceRopeScalp(c, h, R, yEar, S);
@@ -1309,7 +1315,10 @@ static void buildFacialHair(OutfitCtx& o) {
         float cv = region(v, must, chin, cheeks);
         if (cv > -0.006f) v.col = lerp(v.col, mulColor(v.col, vec3(0.6f)) + fcol * 0.25f, 0.6f * sstep(-0.006f, 0.005f, cv));
     }
+    const size_t beardV0 = o.out.v.size();
     emitGarment(o, g);
+    // (the far LOD paints the beard onto the face and drops this shell: see stripForLod)
+    for (size_t i = beardV0; i < o.out.v.size(); i++) o.out.v[i].flags |= BuildCtx::F_BEARD;
     // strand cards lying on the beard shell, combed down (the mustache down and out from the philtrum, the chin
     // slightly forward); each card keeps the skin weights of its root so the beard rides on the jaw
     MeshB cm;

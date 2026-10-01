@@ -97,6 +97,56 @@ bool shopWindowNear(const GameWorld& g, vec2 p, vec2& at, vec2& face) {
     return best < 1e8f;
 }
 
+// Down hurt (stance 24: on the back, knees up, writhing, a hand on the wound): after a beating, a fall or a knock from
+// a car at very low health. They call for help; a passer-by or two may stop (one kneels beside them, another stands by
+// on the phone to the emergency line - ACT_AID); the ambulance an incident brings (population.cpp) has a medic see to
+// them for a while, then they get up (the get-up from the back) and go with the crew; with nobody coming they get up
+// on their own after a couple of minutes and limp away.
+void startHurt(GameWorld& g, int id) {
+    Ped& p = g.peds[id];
+    PedAI& pa = g.pedAI(id);
+    pa.activity = ACT_HURT;
+    pa.hurtCare = 0.f;
+    pa.anchor = p.pos.toVec3().xy();
+    pa.anchorYaw = p.yaw;
+    pa.stance = 24;
+    pa.clip = -1;
+    pa.leader = -1;
+    pa.greetWith = -1;
+    pa.targetVeh = -1;
+    pa.actTimer = 100.f + hashToFloat(hash32(p.uid * 7u + 3u)) * 60.f;
+    p.brain.type = BRAIN_WANDER;
+    p.vel = vec3(0.f, 0.f, p.vel.z);
+    g.aiSay(id, BK_HURT, 0.8f, true);
+    // a passer-by or two stop to help
+    std::vector<int> around;
+    g.pedsNear(pa.anchor, 16.f, around);
+    int helpers = 0;
+    for (int o : around) {
+        if (helpers >= 2) break;
+        if (o == id || o >= (int)g.ai.ped.size()) continue;
+        Ped& q = g.peds[o];
+        if (!q.used || q.isPlayer || q.persistent || q.faction != FAC_CIVILIAN || q.state != PS_ONFOOT || q.brain.type != BRAIN_WANDER) continue;
+        PedAI& qa = g.pedAI(o);
+        if (qa.activity != ACT_WALK || qa.leader >= 0 || qa.role == PR_DRUNK || hash32(q.uid * 31u + p.uid) % 5u >= 2u) continue;
+        vec2 to = q.pos.toVec3().xy() - pa.anchor;
+        vec2 dir = length2(to) > 1e-4f ? normalize(to) : vec2(1.f, 0.f);
+        qa.activity = ACT_AID;
+        qa.aidPed = id;
+        qa.clip = -1;
+        qa.actTimer = 30.f + hashToFloat(hash32(q.uid + 11u)) * 25.f;
+        if (helpers == 0) {
+            qa.anchor = pa.anchor + dir * 0.85f;   // kneeling beside them
+            qa.stance = 0;
+        } else {
+            qa.anchor = pa.anchor + dir * 2.4f;    // standing by, on the phone to the emergency line
+            qa.stance = 8;
+        }
+        qa.anchorYaw = AI::dirYaw(-dir);
+        helpers++;
+    }
+}
+
 }  // namespace pedai_detail
 
 using namespace pedai_detail;
@@ -218,10 +268,17 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
     }
     pa.diveCooldown -= dt;
     pa.shoutTimer -= dt;
+    // just back on their feet after a knock-down (a beating, a fall, a car) at very low health: down again, hurt
+    if (pa.knockedDown) {
+        pa.knockedDown = false;
+        if (p.faction == FAC_CIVILIAN && !p.persistent && p.state == PS_ONFOOT && p.health > 0.f && p.health < p.maxHealth * 0.28f &&
+            pa.activity != ACT_HURT && hash32(p.uid * 13u + 7u) % 4u != 0u)
+            startHurt(*this, id);
+    }
     bool gang = isGang(p.faction);
     int selfBody = id < (int)ai.pedBody.size() ? ai.pedBody[id] : -1;
-    // ---------------------------------------------------------------- perception (staggered)
-    if (pa.think <= 0.f) {
+    // ---------------------------------------------------------------- perception (staggered; not while down hurt)
+    if (pa.think <= 0.f && pa.activity != ACT_HURT) {
         pa.think = 0.25f + hashToFloat(hash32(p.uid + (u32)(time * 10.0))) * 0.25f;
         bool calm = b.type == BRAIN_WANDER || b.type == BRAIN_SCENARIO;
         // stimuli
@@ -520,7 +577,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
             aiSay(id, BK_DIVE, 0.8f, true);
             if (vb.speed > 11.f && pa.temper != 0) {
                 // leap out of the way (ragdoll dive), get up afterwards
-                knockDown(id, vec3(dangerDir * 380.f, 140.f));
+                knockDown(id, vec3(dangerDir * 380.f, 140.f));   // (no bracing: a car is coming)
                 return;
             }
             p.vel = vec3(dangerDir * 5.5f, p.vel.z);
@@ -899,8 +956,22 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                 case ACT_QUEUE:
                 case ACT_VENUE:
                 case ACT_MEET:
+                case ACT_AID:
                 case ACT_EVENT: {
                     if (pa.activity == ACT_VENUE && aiVenueStep(*this, id, dt)) break;
+                    if (pa.activity == ACT_AID) {
+                        // helping someone down hurt: done when they are up (or gone), and stepping back for the medics
+                        int v = pa.aidPed;
+                        bool ok = v >= 0 && v < (int)peds.size() && v < (int)ai.ped.size() && peds[v].used && ai.ped[v].uid == peds[v].uid &&
+                                  ai.ped[v].activity == ACT_HURT && ai.ped[v].hurtCare >= 0.f;
+                        if (!ok) pa.actTimer = Min(pa.actTimer, 0.f);
+                        else if (ai.ped[v].targetVeh >= 0) pa.actTimer = Min(pa.actTimer, 1.f);   // (a medic is there)
+                        if (pa.actTimer <= 0.f) {
+                            pa.aidPed = -1;
+                            pa.navOk = false;
+                            b.edge = -1;
+                        }
+                    }
                     vec2 to = pa.anchor - pos;
                     float d = length(to);
                     // a pair at the curb stepping in for a greeting (or back after it) goes the last few centimetres at a
@@ -923,6 +994,10 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         faceYaw = pa.anchorYaw;
                         faceSet = true;
                         stance = pa.stance;
+                        if (pa.activity == ACT_AID) {
+                            if (pa.stance == 0) p.animIn.crouch = true;   // kneeling beside them
+                            if (pa.barkCooldown <= 0.f && plDist < 25.f) aiSay(id, BK_SAMARITAN, 0.35f);
+                        }
                         if (pa.clip >= 0 && p.pendingAction < 0 && p.anim.actionDone()) {
                             p.pendingAction = pa.clip;
                             if (pa.activity == ACT_SCENARIO && pa.clip == Anim::CLIP_POINT) pa.clip = -1;   // (a point at a shop window: once)
@@ -1062,6 +1137,58 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     } else if (!p.persistent) {
                         despawnPed(id);
                         return;
+                    }
+                    break;
+                }
+                case ACT_HURT: {
+                    // down hurt (startHurt): on the back, writhing, calling for help; up once a medic has seen to them
+                    // for a while (the medic stays until then), or after a couple of minutes on their own - the get-up from
+                    // the back, then off: to the ambulance with the crew, or away, limping
+                    faceYaw = pa.anchorYaw;
+                    faceSet = true;
+                    if (pa.hurtCare >= 0.f) {
+                        stance = 24;
+                        int medic = -1;
+                        std::vector<int> close;
+                        pedsNear(pos, 2.4f, close);
+                        for (int o : close)
+                            if (o != id && peds[o].faction == FAC_MEDIC && peds[o].state == PS_ONFOOT && o < (int)ai.ped.size() && ai.ped[o].uid == peds[o].uid)
+                                medic = o;
+                        if (medic >= 0) {
+                            pa.hurtCare += dt;
+                            pa.targetVeh = ai.ped[medic].homeVeh;
+                            ai.ped[medic].actTimer = Max(ai.ped[medic].actTimer, 3.f);   // (seeing to them until they are up)
+                        } else if (pa.barkCooldown <= 0.f && plDist < 25.f) {
+                            aiSay(id, BK_HURT, 0.3f);
+                        }
+                        if (pa.hurtCare > 7.f || pa.actTimer <= 0.f) {
+                            pa.hurtCare = -1.f;
+                            pa.clipTimer = 1.8f;
+                            p.pendingAction = Anim::CLIP_GET_UP_BACK;
+                            p.health = Max(p.health, p.maxHealth * (medic >= 0 ? 0.45f : 0.32f));
+                            p.legInjury = Max(p.legInjury, 20.f);   // (a limp for a while)
+                        }
+                    } else {
+                        // getting up
+                        stance = 0;
+                        pa.clipTimer -= dt;
+                        if (pa.clipTimer <= 0.f) {
+                            int amb = pa.targetVeh;
+                            bool toAmb = amb >= 0 && amb < (int)vehicles.size() && vehicles[amb].used && vehicles[amb].sim.speed() < 1.f &&
+                                         length(vehicles[amb].sim.body.pos.toVec3().xy() - pos) < 45.f;
+                            pa.hurtCare = 0.f;
+                            pa.stance = 0;
+                            if (toAmb) {
+                                pa.activity = ACT_ENTER_VEH;   // into the ambulance: off to the hospital
+                                pa.targetVeh = amb;
+                            } else {
+                                pa.activity = ACT_WALK;
+                                pa.targetVeh = -1;
+                                pa.navOk = false;
+                                b.edge = -1;
+                                pa.actTimer = 40.f;
+                            }
+                        }
                     }
                     break;
                 }
@@ -1408,11 +1535,22 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
         p.aiming = false;
         p.firing = false;
     }
-    if (stance != 6 && pa.activity != ACT_EVENT) p.animIn.crouch = false;
+    if (stance != 6 && pa.activity != ACT_EVENT && !(pa.activity == ACT_AID && pa.stance == 0)) p.animIn.crouch = false;
     // squared up in a fist/knife fight: melee.cpp owns the guard / block stances (19, 20)
     bool meleeEngaged = p.meleeTarget >= 0 && p.meleeTarget < (int)peds.size() && peds[p.meleeTarget].used && peds[p.meleeTarget].health > 0.f &&
                         length(rel(peds[p.meleeTarget].pos, p.pos)) < 4.f && (p.animIn.stance == 19 || p.animIn.stance == 20);
     if (!meleeEngaged) p.animIn.stance = stance;
+    // hurt (a limp on a wounded leg, the hunch at low health - the animator's legHurt / wounded): about 1 m/s on a
+    // stroll, a desperate hobble when running for it
+    {
+        float hurt = Max(p.legInjury > 0.f ? Saturate(p.legInjury / 8.f) : 0.f, Saturate((0.5f - p.health / Max(p.maxHealth, 1.f)) * 2.5f));
+        float l = length(desired);
+        if (hurt > 0.f && l > 1e-3f) {
+            float cap = Lerp(l, b.type == BRAIN_FLEE ? 1.7f : 1.f, Saturate(hurt * 1.5f));
+            if (l > cap) desired = desired * (cap / l);
+        }
+    }
+    if (pa.activity == ACT_HURT) desired = vec2(0.f);
     // face & move
     if (faceSet) turnTo(p, faceYaw, turnRate, dt);
     else if (length2(desired) > 0.04f) turnTo(p, atan2f(-desired.x, desired.y), turnRate, dt);

@@ -518,7 +518,7 @@ struct App {
         }
         if (autoplay == "crowd" || autoplay == "panic" || autoplay == "chase" || autoplay == "rage" || autoplay == "soak" || autoplay == "parking" ||
             autoplay == "bender" || autoplay == "hwysoak" || autoplay == "venues" || autoplay == "takeover" || autoplay == "surrender" || autoplay == "search" || autoplay == "k9" ||
-            autoplay == "places" || autoplay == "greet") {
+            autoplay == "places" || autoplay == "greet" || autoplay == "hurt") {
             // AI scenario tests: crowd variety at four places and hours / gunfire panic -> police response -> arrest /
             // night car chase at 4 stars (PIT, boxing, roadblocks, helicopter searchlight) / rear-ending a bold driver
             mu::setFlag(game, mu::EX_INTRO_DONE, 1);
@@ -534,6 +534,13 @@ struct App {
                 autoDuration = 4 * 20.f + 0.5f;  // promenade terraces, campus quad, the track, the cemetery: 20 s each
             } else if (autoplay == "greet") {
                 autoDuration = 2 * 35.f + 0.5f;  // the airport curb, then a downtown sidewalk at midday (applyAutoplay)
+            } else if (autoplay == "hurt") {
+                // a passer-by knocked down hard on a downtown sidewalk at midday (applyAutoplay): down hurt, the people who
+                // stop, the ambulance, the medic, up and into the ambulance
+                autoDuration = 110.5f;
+                vec2 q(2713.f, 763.f);
+                p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+                env.timeOfDay = 13.f;
             } else if (autoplay == "surrender" || autoplay == "search") {
                 if (autoplay == "search") autoDuration = 100.5f;   // (the units can take a minute to get there; then the search)
                 // wanted at two stars on a downtown corner, empty-handed: units converge; then the player gives up (hands up,
@@ -1022,6 +1029,8 @@ struct App {
                         run.hasDest = true;
                         run.dest = pp + f * 45.f + AI::rightOf(f) * 45.f;
                         run.avoidCrossing = true;
+                        run.speed = 6.5f;   // (the walker's progress keeps pace with the sprint)
+                        run.hurry = 1.f;
                         LOG("autoplay k9: the run round the block toward %.0f %.0f (walk link %d)", run.dest.x, run.dest.y, run.link);
                     }
                     float fy = pl->yaw;
@@ -1107,6 +1116,68 @@ struct App {
             if (logT <= 0.f) {
                 logT = 2.f;
                 LOG("autoplay takeover t=%.1f | %s | wanted %d", t, st.c_str(), game.pinfo.wanted);
+            }
+        } else if (autoplay == "hurt") {
+            // 6 s in: the nearest passer-by knocked flat at very low health; the camera on them from then on
+            static int victim = -1;
+            static u32 victimUid = 0;
+            static float logT = 0.f, shotT = 0.f;
+            static int shots = 0;
+            Ped* pl = game.playerPed();
+            if (victim < 0 && t > 6.f && pl) {
+                float best = 25.f;
+                for (int i = 0; i < (int)game.peds.size() && i < (int)game.ai.ped.size(); i++) {
+                    const Ped& q = game.peds[i];
+                    if (!q.used || q.isPlayer || q.persistent || q.faction != FAC_CIVILIAN || q.state != PS_ONFOOT || game.ai.ped[i].uid != q.uid ||
+                        game.ai.ped[i].activity != ACT_WALK)
+                        continue;
+                    float d = length(rel(q.pos, pl->pos));
+                    if (d < best) {
+                        best = d;
+                        victim = i;
+                    }
+                }
+                if (victim >= 0) {
+                    Ped& v = game.peds[victim];
+                    victimUid = v.uid;
+                    v.health = v.maxHealth * 0.15f;
+                    v.legInjury = 25.f;
+                    vec2 side = AI::rightOf(AI::yawDir(v.yaw));
+                    game.knockDown(victim, vec3(side * 260.f, 40.f));
+                    LOG("autoplay hurt: ped %d knocked down at %.0f %.0f (%.0f m from the player)", victim, v.pos.x, v.pos.y, best);
+                }
+            }
+            bool ok = victim >= 0 && victim < (int)game.peds.size() && game.peds[victim].used && game.peds[victim].uid == victimUid;
+            if (ok) {
+                const Ped& v = game.peds[victim];
+                vec2 vp = v.pos.toVec3().xy();
+                vec2 cam = vp + vec2(4.5f, -4.5f);
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(cam.x, cam.y, v.pos.z + 2.6f);
+                game.rig.scriptTarget = dvec3(vp.x, vp.y, v.pos.z + 0.5f);
+                game.rig.scriptFov = 55.f;
+                shotT -= dt;
+                if (shotT <= 0.f && shots < 16) {
+                    shotT = 6.f;
+                    game.requestScreenshot = shotPath(StrFormat("auto_hurt_%02d", shots));
+                    shots++;
+                }
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 2.f;
+                std::string st = "none";
+                if (ok) {
+                    const Ped& v = game.peds[victim];
+                    const PedAI& va = game.ai.ped[victim];
+                    int medics = 0;
+                    for (const Ped& q : game.peds) medics += q.used && q.faction == FAC_MEDIC && q.state == PS_ONFOOT && length(rel(q.pos, v.pos)) < 3.f;
+                    st = StrFormat("victim state %d act %d stance %d care %.1f health %.0f/%.0f medics by %d", (int)v.state, (int)va.activity, v.animIn.stance, va.hurtCare,
+                                   v.health, v.maxHealth, medics);
+                } else if (victim >= 0) {
+                    st = "victim gone (into the ambulance?)";
+                }
+                LOG("autoplay hurt t=%.1f | %s | %s", t, st.c_str(), game.aiCensusText(80.f).c_str());
             }
         } else if (autoplay == "places") {
             // the named places' own people (sites.cpp anchors, population.cpp place venues): the Ocean Promenade terraces

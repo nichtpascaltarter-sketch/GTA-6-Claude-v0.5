@@ -3771,7 +3771,8 @@ vec3 woundNormal(int w) {
 }
 
 // This body's skin where a hand holds a wound: the navel, the breastbone a little left of the middle, the front of
-// each shoulder, the front of each thigh a third of the way down (rays out from inside the signed distance model).
+// each shoulder, the front of each thigh under a third of the way down (rays out from inside the signed distance
+// model).
 void woundSkin(const BuildCtx& bc, const BodyDims& D, vec3* p, int* bone) {
     const float s = D.s;
     const vec3* J = D.J;
@@ -3787,7 +3788,7 @@ void woundSkin(const BuildCtx& bc, const BodyDims& D, vec3* p, int* bone) {
         const int ua = sd ? B_UPPERARM_R : B_UPPERARM_L, th = sd ? B_THIGH_R : B_THIGH_L, ca = sd ? B_CALF_R : B_CALF_L;
         p[WOUND_SHOULDER_L + sd] = out(J[ua] - vec3(sx * 0.01f * s, 0.f, 0.f), woundNormal(WOUND_SHOULDER_L + sd), MK_TORSO | (sd ? MK_ARM_R : MK_ARM_L));
         bone[WOUND_SHOULDER_L + sd] = sd ? B_CLAVICLE_R : B_CLAVICLE_L;
-        p[WOUND_THIGH_L + sd] = out(lerp(J[th], J[ca], 0.38f), woundNormal(WOUND_THIGH_L + sd), sd ? MK_LEG_R : MK_LEG_L);
+        p[WOUND_THIGH_L + sd] = out(lerp(J[th], J[ca], 0.3f), woundNormal(WOUND_THIGH_L + sd), sd ? MK_LEG_R : MK_LEG_L);
         bone[WOUND_THIGH_L + sd] = th;
     }
 }
@@ -3878,7 +3879,7 @@ static void clipBrace(const AuthorCtx& A, int id, float t, Rig& r) {
             r.neckPitch = 0.25f;
             r.headPitch = 0.35f;
             for (int sd = 0; sd < 2; sd++) {
-                armFK(r.arm[sd], sd, -0.55f - reach, 0.55f, 0.35f, -0.3f, 0.05f);
+                armFK(r.arm[sd], sd, -0.95f - reach, 0.45f, 0.3f, -0.3f, 0.05f);
                 r.arm[sd].wristFlex = -0.8f;
                 r.arm[sd].thumb = 0.05f;
             }
@@ -3919,11 +3920,12 @@ static void clipDownHurt(const AuthorCtx& A, float t, Rig& r) {
         const float sx = sd ? 1.f : -1.f;
         LegCtl& l = r.leg[sd];
         l.ik = false;
+        // (the shins steep enough to bring the feet down onto the ground, the soles flat on it)
         l.hipFlex = 1.05f + 0.1f * sway * sx;
         l.hipAbd = 0.12f + 0.06f * roll * sx;
         l.hipTwist = 0.1f;
-        l.kneeFlex = 1.75f;
-        l.ankleFlex = 0.35f;
+        l.kneeFlex = 2.15f + 0.1f * sway * sx;
+        l.ankleFlex = -0.4f;
     }
     const float press = 0.5f + 0.5f * sinf(kTwoPi * u * 3.f);
     for (int sd = 0; sd < 2; sd++) {
@@ -4514,9 +4516,8 @@ void detail::sampleClipId(const Skeleton& skel, int ci, float t, Pose& out, u32 
     }
 }
 
-// One leg's bones (thigh, calf, foot, toe; side 0 left, 1 right) of a clip at time t, over those in out: a gait clip
-// whose legs are warped in time each on its own (sampleGait in the animator).
-void detail::sampleClipLeg(const Skeleton& skel, int ci, float t, int side, Pose& out) {
+// Some bones of a clip at time t, over those in out (a layer that only needs them: no full pose sampled).
+void detail::sampleClipBones(const Skeleton& skel, int ci, float t, const u8* bones, int n, Pose& out) {
     using namespace detail;
     const ClipLib& L = clipLib();
     ci = Clamp(ci, 0, CLIP_COUNT + kExtraCount - 1);
@@ -4528,8 +4529,14 @@ void detail::sampleClipLeg(const Skeleton& skel, int ci, float t, int side, Pose
     bakedFrames(bc, info, t, i0, i1, f);
     const quat* a = &bc.rot[(size_t)i0 * B_COUNT];
     const quat* b = &bc.rot[(size_t)i1 * B_COUNT];
-    static const int kLeg[2][4] = {{B_THIGH_L, B_CALF_L, B_FOOT_L, B_TOE_L}, {B_THIGH_R, B_CALF_R, B_FOOT_R, B_TOE_R}};
-    for (int k : kLeg[side ? 1 : 0]) out.rot[k] = nlerp(a[k], b[k], f);
+    for (int i = 0; i < n; i++) out.rot[bones[i]] = nlerp(a[bones[i]], b[bones[i]], f);
+}
+
+// One leg's bones (thigh, calf, foot, toe; side 0 left, 1 right) of a clip at time t, over those in out: a gait clip
+// whose legs are warped in time each on its own (sampleGait in the animator).
+void detail::sampleClipLeg(const Skeleton& skel, int ci, float t, int side, Pose& out) {
+    static const u8 kLeg[2][4] = {{B_THIGH_L, B_CALF_L, B_FOOT_L, B_TOE_L}, {B_THIGH_R, B_CALF_R, B_FOOT_R, B_TOE_R}};
+    sampleClipBones(skel, ci, t, kLeg[side ? 1 : 0], 4, out);
 }
 
 }  // namespace Anim

@@ -664,6 +664,132 @@ static void buildFinalMesh(const CharacterDesc& d, const Skeleton& skel, MeshB& 
     bakeOcclusion(c, fin);
 }
 
+// Far-LOD hands: the fingers go, and a mitten takes their place, so the hand keeps its length and its grip. The four
+// fingers become one flattened block from the knuckles to the fingertips through the middle joints, the thumb a tube;
+// both are skinned to the phalanges (the block to the middle and ring fingers'), so they curl round whatever the hand
+// holds. Colour: the fingers' skin. `src` is the mesh the fingers are taken from, `out` receives the mittens.
+static void addMittens(const MeshB& src, MeshB& out, const Skeleton& skel) {
+    auto bindPos = [&](int b) {
+        const mat4& iv = skel.invBindModel[b];
+        vec3 ti = iv.c[3].xyz();
+        return -vec3(dot(iv.c[0].xyz(), ti), dot(iv.c[1].xyz(), ti), dot(iv.c[2].xyz(), ti));
+    };
+    for (int sd = 0; sd < 2; sd++) {
+        const bool right = sd == 1;
+        vec3 J[5][3];
+        for (int f = 0; f < 5; f++)
+            for (int j = 0; j < 3; j++) J[f][j] = bindPos(phalanxBone(right, f, j));
+        // the fingers' skin colour; the palm side (from the palm's skin) so the block's back faces the back of the hand
+        vec3 col(0.f), palm(0.f), back(0.f);
+        int nc = 0, np = 0, nb = 0;
+        for (const BVert& v : src.v) {
+            if (v.side != sd || v.mat != MAT_SKIN) continue;
+            if ((v.part == PART_FINGER || v.part == PART_THUMB) && !(v.flags & BuildCtx::F_NAIL)) {
+                col += v.col;
+                nc++;
+            }
+            if (v.part == PART_HAND) {
+                if (v.flags & BuildCtx::F_PALM) {
+                    palm += v.p;
+                    np++;
+                } else {
+                    back += v.p;
+                    nb++;
+                }
+            }
+        }
+        if (nc == 0) continue;
+        col = col / (float)nc;
+        const vec3 K = (J[0][0] + J[1][0] + J[2][0] + J[3][0]) * 0.25f;
+        const vec3 Mj = (J[0][1] + J[1][1] + J[2][1] + J[3][1]) * 0.25f;
+        const vec3 Dj = (J[0][2] + J[1][2] + J[2][2] + J[3][2]) * 0.25f;
+        const float span = length(J[0][0] - J[3][0]);
+        const float fr = Clamp(0.16f * span, 0.0065f, 0.0105f);   // finger radius
+        vec3 along = normalize(Mj - K), across = normalize(J[0][0] - J[3][0]);
+        across = normalize(across - along * dot(across, along));
+        vec3 nrmB = cross(along, across);
+        if (np > 0 && nb > 0 && dot(nrmB, back / (float)nb - palm / (float)np) < 0.f) nrmB = -nrmB;
+        auto skinOf = [&](int j0, int j1, float t) {
+            WAcc acc;
+            for (int f = 1; f <= 2; f++) {   // middle and ring fingers
+                if (j0 < 0) acc.add(right ? B_HAND_R : B_HAND_L, 0.5f * (1.f - t));
+                else acc.add(phalanxBone(right, f, j0), 0.5f * (1.f - t));
+                acc.add(phalanxBone(right, f, j1), 0.5f * t);
+            }
+            return acc.finish();
+        };
+        auto ring = [&](vec3 c, vec3 ax, vec3 a, vec3 b, float ra, float rb, int n, const SkinW& sw, std::vector<u32>& idx) {
+            idx.resize(n);
+            for (int k = 0; k < n; k++) {
+                float th = kTwoPi * (k + 0.5f) / n;
+                vec3 d = a * (cosf(th) * ra) + b * (sinf(th) * rb);
+                BVert v;
+                v.p = c + d;
+                v.bp = v.p;
+                v.n = normalize(a * (cosf(th) / ra) + b * (sinf(th) / rb));
+                v.t = ax;
+                v.col = col;
+                v.mat = MAT_SKIN;
+                v.part = PART_FINGER;
+                v.side = (u8)sd;
+                v.sw = sw;
+                idx[k] = out.add(v);
+            }
+        };
+        auto tube = [&](const std::vector<std::vector<u32>>& rings, vec3 tip, const SkinW& tipW) {
+            for (size_t r = 0; r + 1 < rings.size(); r++) {
+                const int n = (int)rings[r].size();
+                for (int k = 0; k < n; k++) {
+                    u32 a0 = rings[r][k], a1 = rings[r][(k + 1) % n], b0 = rings[r + 1][k], b1 = rings[r + 1][(k + 1) % n];
+                    vec3 fn = cross(out.v[b0].p - out.v[a0].p, out.v[a1].p - out.v[a0].p);
+                    if (dot(fn, out.v[a0].n + out.v[b1].n) >= 0.f) out.quad(a0, b0, b1, a1);
+                    else out.quad(a0, a1, b1, b0);
+                }
+            }
+            const std::vector<u32>& last = rings.back();
+            BVert tv = out.v[last[0]];
+            tv.p = tip;
+            tv.bp = tip;
+            tv.n = normalize(tip - (out.v[last[0]].p + out.v[last[last.size() / 2]].p) * 0.5f);
+            tv.sw = tipW;
+            u32 ti = out.add(tv);
+            for (size_t k = 0; k < last.size(); k++) {
+                u32 a0 = last[k], a1 = last[(k + 1) % last.size()];
+                vec3 fn = cross(out.v[a1].p - out.v[a0].p, out.v[ti].p - out.v[a0].p);
+                if (dot(fn, tv.n) >= 0.f) out.tri(a0, a1, ti);
+                else out.tri(a0, ti, a1);
+            }
+        };
+        // the four fingers: from just inside the knuckles, through the middle and end joints, to the tips
+        {
+            const float halfW = 0.5f * span + fr * 0.9f;
+            const vec3 tipDir = normalize(Dj - Mj);
+            const vec3 tip = Dj + tipDir * (0.75f * length(Dj - Mj) + fr * 0.4f);
+            std::vector<std::vector<u32>> rs(3);
+            ring(K - along * (0.6f * fr), along, across, nrmB, halfW, fr, 6, skinOf(-1, 0, 0.35f), rs[0]);
+            ring(Mj, along, across, nrmB, halfW * 0.97f, fr * 0.95f, 6, skinOf(0, 1, 0.5f), rs[1]);
+            ring(Dj, tipDir, across, nrmB, halfW * 0.9f, fr * 0.85f, 6, skinOf(1, 2, 0.5f), rs[2]);
+            WAcc tw;
+            tw.add(phalanxBone(right, 1, 2), 0.5f);
+            tw.add(phalanxBone(right, 2, 2), 0.5f);
+            tube(rs, tip, tw.finish());
+        }
+        // the thumb
+        {
+            const vec3 t0 = lerp(J[4][0], J[4][1], 0.5f), t1 = J[4][1], t2 = J[4][2];
+            const vec3 ax = normalize(t2 - t1);
+            const vec3 tip = t2 + ax * (0.8f * length(t2 - t1) + fr * 0.4f);
+            vec3 a = normalize(anyPerp(ax)), b = cross(ax, a);
+            const float tr = fr * 1.12f;
+            std::vector<std::vector<u32>> rs(3);
+            ring(t0, ax, a, b, tr * 1.1f, tr * 1.1f, 4, skin1(phalanxBone(right, 4, 0)), rs[0]);
+            ring(t1, ax, a, b, tr, tr, 4, skin2(phalanxBone(right, 4, 0), phalanxBone(right, 4, 1), 0.5f), rs[1]);
+            ring(t2, ax, a, b, tr * 0.9f, tr * 0.9f, 4, skin2(phalanxBone(right, 4, 1), phalanxBone(right, 4, 2), 0.5f), rs[2]);
+            tube(rs, tip, skin1(phalanxBone(right, 4, 2)));
+        }
+    }
+}
+
 // Remove what a LOD does not need: from LOD1 every strand card (scalp and beard cards: the shells stay; brows and
 // lashes: their colour is painted onto the skin first) and tiny accessory pieces (buttons, rivets); at LOD2 also the
 // lid tucks, the mouth interior (the far LOD never talks), the fingers (paddle hands) and small accessories
@@ -700,6 +826,27 @@ static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
             if (best < 0.006f * 0.006f) v.col = lerp(v.col, col, 0.75f * (1.f - sqrtf(best) / 0.006f));
         }
     }
+    if (lod >= 2) {
+        // a beard is a few millimetres of shell the far LOD's budget would flatten into the skin anyway: paint it onto
+        // the face (it stays a dark block on the jaw) and drop the shell
+        std::vector<u32> beard;
+        for (u32 i = 0; i < (u32)m.v.size(); i++)
+            if (m.v[i].mat == MAT_HAIR && (m.v[i].flags & BuildCtx::F_BEARD)) beard.push_back(i);
+        if (!beard.empty())
+            for (BVert& v : m.v) {
+                if (v.part != PART_HEAD || v.mat != MAT_SKIN) continue;
+                float best = 1e9f;
+                vec3 col;
+                for (u32 j : beard) {
+                    float d2 = length2(m.v[j].bp - v.p);
+                    if (d2 < best) {
+                        best = d2;
+                        col = m.v[j].col;
+                    }
+                }
+                if (best < 0.01f * 0.01f) v.col = lerp(v.col, col, 0.85f * (1.f - sstep(0.004f, 0.01f, sqrtf(best))));
+            }
+    }
     // accessory components (triangles connected through shared vertices)
     std::vector<u32> parent(m.v.size());
     for (u32 i = 0; i < (u32)m.v.size(); i++) parent[i] = i;
@@ -732,6 +879,7 @@ static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
         if (lod >= 2 && (v0.part == PART_FACEDETAIL || v0.part == PART_MOUTH || v0.part == PART_FINGER || v0.part == PART_THUMB))
             drop[t] = 1;
         if (cardKind(v0) != CARD_NONE) drop[t] = 1;
+        if (lod >= 2 && v0.mat == MAT_HAIR && (v0.flags & BuildCtx::F_BEARD)) drop[t] = 1;   // painted on (above)
         if (v0.part == PART_EYE) drop[t] = 1;   // replaced below
         if (v0.mat != MAT_HAIR && (v0.matParam & kParamLodDetail)) drop[t] = 1;   // seams and stitch lines
     }
@@ -801,6 +949,7 @@ static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
             if (dot(cross(p1 - p0, p2 - p0), (p0 + p1 + p2) * (1.f / 3.f) - ctr) < 0.f) std::swap(out.idx[t + 1], out.idx[t + 2]);
         }
     }
+    if (lod >= 2) addMittens(m, out, skel);
     m = std::move(out);
 }
 
@@ -885,6 +1034,7 @@ void buildCharacterMeshLods(const CharacterDesc& d, const Skeleton& skel, Skinne
     partW[1][PART_HEAD] = 2.5f;
     partW[0][PART_EYE] = partW[1][PART_EYE] = 1e6f;
     partW[0][PART_FINGER] = partW[0][PART_THUMB] = 0.6f;
+    partW[1][PART_FINGER] = partW[1][PART_THUMB] = 1e6f;   // LOD2: the mittens (addMittens) stay as built
     MeshB cur;
     buildFinalMesh(d, skel, cur);
     governLod0(cur);

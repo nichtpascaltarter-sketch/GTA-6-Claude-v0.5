@@ -1232,6 +1232,7 @@ void fishTestStep(GameWorld& g, MissionTest& t) {
                     // a few steps out from the counter with a clear line to it, facing it
                     vec3 mk = F.markets[0].pos, at = lookoutSpot(g, mk, 7.f, playerPos(g));
                     t.teleport(at, atan2f(-(mk.x - at.x), mk.y - at.y));
+                    t.log("walking up to %s from %.1f m", F.markets[0].name.c_str(), ::length(at.xy() - mk.xy()));
                     T.stage = 3;
                     T.t = 0.f;
                 }

@@ -971,6 +971,33 @@ struct ImpactRig {
     }
 };
 
+// Planted-foot slide (world, m/s summed into sum / n): the lower of heel and ball, compared with the same point a frame
+// earlier (the root at `root`).
+struct SoleTrack {
+    vec3 prevH[2], prevB[2];
+    bool was[2] = {false, false};
+    double sum = 0.0;
+    int n = 0;
+    void add(const Skeleton& sk, const Pose& pose, vec3 root, const bool planted[2], float dt, bool count) {
+        mat4 m[B_COUNT];
+        computeMatrices(sk, pose, m, nullptr);
+        for (int s = 0; s < 2; s++) {
+            FootProbe fp = footPoints(sk, m, s);
+            vec3 h = root + fp.heel, b = root + fp.ball;
+            bool useH = h.z < b.z;
+            vec3 c = useH ? h : b, p = useH ? prevH[s] : prevB[s];
+            if (count && planted[s] && was[s]) {
+                sum += length(vec2(c.x - p.x, c.y - p.y)) / dt;
+                n++;
+            }
+            prevH[s] = h;
+            prevB[s] = b;
+            was[s] = planted[s];
+        }
+    }
+    float mean() const { return n ? (float)(sum / n) : 0.f; }
+};
+
 void testImpacts() {
     const float dt = 1.f / 60.f;
     std::string line;
@@ -1003,8 +1030,8 @@ void testImpacts() {
         for (int f = 0; f < 70; f++) {
             a.step(in, dt);
             b.step(in, dt);
-            vec3 dc = (a.joint(B_CHEST) - a.joint(B_PELVIS)) - (b.joint(B_CHEST) - b.joint(B_PELVIS));
-            vec3 dh = (a.joint(B_HEAD) - a.joint(B_CHEST)) - (b.joint(B_HEAD) - b.joint(B_CHEST));
+            vec3 dc = (a.joint(B_NECK) - a.joint(B_PELVIS)) - (b.joint(B_NECK) - b.joint(B_PELVIS));
+            vec3 dh = (a.joint(B_HEAD) - a.joint(B_NECK)) - (b.joint(B_HEAD) - b.joint(B_NECK));
             if (length(dc) > peak) peak = length(dc), at = dc;
             peakHead = Max(peakHead, length(dh));
         }
@@ -1015,11 +1042,11 @@ void testImpacts() {
             a.step(in, dt);
             b.step(in, dt);
         }
-        vec3 rest = (a.joint(B_CHEST) - a.joint(B_PELVIS)) - (b.joint(B_CHEST) - b.joint(B_PELVIS));
+        vec3 rest = (a.joint(B_NECK) - a.joint(B_PELVIS)) - (b.joint(B_NECK) - b.joint(B_PELVIS));
         maxRest = Max(maxRest, length(rest));
         line += StrFormat(" %s %.1f cm", c.name, peak * 100.f);
     }
-    printf("impacts: chest flinch peaks:%s; along the push >= %.2f, belly folds forwards %.3f m, head / chest %.1f, left after 2 s %.4f m\n",
+    printf("impacts: flinch peaks (neck against the pelvis):%s; along the push >= %.2f, belly folds forwards %.3f m, head / trunk %.1f, left after 2 s %.4f m\n",
            line.c_str(), minAlong, bellyFold, headVsChest, maxRest);
     CHECK(minAlong > 0.6f, "a flinch does not go along the push (%.2f)", minAlong);
     CHECK(bellyFold > 0.01f, "a belly hit does not fold the body over the wound (%.3f m)", bellyFold);
@@ -1068,10 +1095,7 @@ void testImpacts() {
         AnimInput in;
         in.footProbes = true;
         in.speed = 1.4f;
-        double sum = 0.0;
-        int n = 0;
-        vec3 prev[2];
-        bool was[2] = {false, false};
+        SoleTrack tr;
         for (int f = 0; f < 360; f++) {
             AnimInput step = in;
             if (f > 60 && f % 42 == 0) {
@@ -1080,20 +1104,9 @@ void testImpacts() {
                 step.hitBone = B_CHEST;
             }
             a.step(step, dt);
-            mat4 m[B_COUNT];
-            computeMatrices(a.sk, a.an.pose, m, nullptr);
-            for (int s = 0; s < 2; s++) {
-                FootProbe fp = footPoints(a.sk, m, s);
-                vec3 w = a.root + (fp.heel.z < fp.ball.z ? fp.heel : fp.ball);
-                if (f > 90 && a.an.planted[s] && was[s]) {
-                    sum += length(vec2(w.x - prev[s].x, w.y - prev[s].y)) / dt;
-                    n++;
-                }
-                prev[s] = w;
-                was[s] = a.an.planted[s];
-            }
+            tr.add(a.sk, a.an.pose, a.root, a.an.planted, dt, f > 90);
         }
-        float skate = n ? (float)(sum / n) : 0.f;
+        float skate = tr.mean();
         printf("impacts: walking through light hits, planted feet %.4f m/s\n", skate);
         CHECK(skate < 0.02f, "the feet slide under flinches while walking (%.4f m/s)", skate);
     }
@@ -1115,10 +1128,7 @@ void testImpacts() {
             hit.hitBone = B_CHEST;
             vec3 start = a.root;
             int steps = 0;
-            double sum = 0.0;
-            int n = 0;
-            vec3 prev[2];
-            bool was[2] = {false, false};
+            SoleTrack tr;
             float endT = -1.f;
             for (int f = 0; f < 180; f++) {
                 AnimInput st = f == 0 ? hit : in;
@@ -1128,23 +1138,12 @@ void testImpacts() {
                 st.localMoveDir = st.speed > 1e-3f ? vec2(v.x, v.y) / st.speed : vec2(0, 1);
                 a.step(st, dt);
                 steps += __builtin_popcount(a.an.footEvents);
-                mat4 m[B_COUNT];
-                computeMatrices(a.sk, a.an.pose, m, nullptr);
-                for (int s = 0; s < 2; s++) {
-                    FootProbe fp = footPoints(a.sk, m, s);
-                    vec3 w = a.root + (fp.heel.z < fp.ball.z ? fp.heel : fp.ball);
-                    if (a.an.planted[s] && was[s]) {
-                        sum += length(vec2(w.x - prev[s].x, w.y - prev[s].y)) / dt;
-                        n++;
-                    }
-                    prev[s] = w;
-                    was[s] = a.an.planted[s];
-                }
+                tr.add(a.sk, a.an.pose, a.root, a.an.planted, dt, true);
                 if (endT < 0.f && f > 5 && !a.an.staggering()) endT = f * dt;
             }
             float dist = dot(a.root - start, normalize(dirs[t]));
             worstDist = Min(worstDist, dist);
-            worstSkate = Max(worstSkate, n ? (float)(sum / n) : 0.f);
+            worstSkate = Max(worstSkate, tr.mean());
             minSteps = Min(minSteps, steps);
             worstEnd = Max(worstEnd, endT < 0.f ? 9.f : endT);
         }
@@ -1165,27 +1164,14 @@ void testImpacts() {
         in.speed = 1.0f;
         in.legHurt[1] = 1.f;
         int planted[2] = {0, 0};
-        double sum = 0.0;
-        int n = 0;
-        vec3 prev[2];
-        bool was[2] = {false, false};
+        SoleTrack tr;
         for (int f = 0; f < 600; f++) {
             a.step(in, dt);
-            mat4 m[B_COUNT];
-            computeMatrices(a.sk, a.an.pose, m, nullptr);
-            for (int s = 0; s < 2; s++) {
+            for (int s = 0; s < 2; s++)
                 if (f > 240 && a.an.planted[s]) planted[s]++;
-                FootProbe fp = footPoints(a.sk, m, s);
-                vec3 w = a.root + (fp.heel.z < fp.ball.z ? fp.heel : fp.ball);
-                if (f > 240 && a.an.planted[s] && was[s]) {
-                    sum += length(vec2(w.x - prev[s].x, w.y - prev[s].y)) / dt;
-                    n++;
-                }
-                prev[s] = w;
-                was[s] = a.an.planted[s];
-            }
+            tr.add(a.sk, a.an.pose, a.root, a.an.planted, dt, f > 240);
         }
-        float ratio = planted[1] / (float)Max(planted[0], 1), skate = n ? (float)(sum / n) : 0.f;
+        float ratio = planted[1] / (float)Max(planted[0], 1), skate = tr.mean();
         printf("impacts: limp (right leg) stance hurt / good %.2f, planted feet %.4f m/s\n", ratio, skate);
         CHECK(ratio < 0.92f, "the limp does not shorten the stance on the hurt leg (%.2f)", ratio);
         CHECK(skate < 0.02f, "the feet slide while limping (%.4f m/s)", skate);

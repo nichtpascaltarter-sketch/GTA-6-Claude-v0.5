@@ -24,7 +24,7 @@ void buildMarkerModel(Render::Renderer* r) {
     if (gMarkerModel) return;
     MeshData m;
     const int seg = 40;
-    u32 mat = makeMat(MAT_EMISSIVE);
+    u32 mat = makeMat(MAT_EMISSIVE, 10u);   // (emissive pattern 10: a glow at a fixed brightness on screen)
     // open cylinder (both faces) of radius 1, height 1; alpha fades upward via vertex color alpha
     for (int side = 0; side < 2; side++) {
         u32 start = (u32)m.verts.size();
@@ -273,6 +273,13 @@ void GameWorld::mCutscene(const std::vector<CutsceneShot>& shots, bool skippable
         hudVisible = false;
         rig.scriptActive = true;
         rig.cut = true;
+        // the first frame already looks through the first shot: the shot update runs before a mission's own update, so
+        // the camera would sit for a frame on the last cutscene's position, often far away, and streaming would drop
+        // the interiors around this scene (and the people staged inside them) for that moment
+        const CutsceneShot& s0 = gMissions.shots[0];
+        rig.scriptPos = s0.pos;
+        rig.scriptTarget = s0.target;
+        rig.scriptFov = s0.fov;
         // a vehicle the player was driving must not keep its last throttle input while the camera is scripted
         int pv = playerVehicle();
         if (pv >= 0 && peds[player].seat == 0) {
@@ -741,6 +748,8 @@ void GameWorld::updateMissions(float dt) {
             vec3 col = d.storyIndex >= 0 ? vec3(1.f, 0.85f, 0.2f) : vec3(0.3f, 0.8f, 1.f);
             if (!mine) col = d.protagonist == 0 ? vec3(1.f, 0.45f, 0.7f) : vec3(0.35f, 0.75f, 1.f);
             di.tint0 = vec4(col, 0.f);
+            di.fade = 0.65f;              // (see drawMarkers)
+            di.emissiveScale = 0.45f;
             di.castShadow = false;
             renderer->dynamic->submit(di);
         }
@@ -765,10 +774,10 @@ void drawMarkers(GameWorld& g, const std::vector<Marker>& list) {
         di.pos = mk.pos;
         di.scale = vec3(mk.radius, mk.radius, 1.6f + 0.15f * sinf((float)g.time * 3.f));
         di.tint0 = vec4(mk.color, 0.f);
-        // see-through (half coverage, which TAA averages) with a soft glow: the emission is not exposure-relative, so
-        // a strong one turns into a white wall under the night exposure; by day the tinted glass-like body carries it
+        // see-through (half coverage, which TAA averages) with a soft glow in its own colour: the glow is at a fixed
+        // level on screen (the model's emissive pattern), so the night exposure no longer turns it into a white wall
         di.fade = 0.65f;
-        di.emissiveScale = 0.08f;
+        di.emissiveScale = 0.45f;
         di.castShadow = false;
         g.renderer->dynamic->submit(di);
     }
