@@ -19,6 +19,11 @@ if [ "${QUICK:-0}" = 1 ] && [ "$1" != "debug" ]; then OPT="-O1 -DNDEBUG"; fi
 # Machines that run several builds at once (the automated test rig) serialize them: each compile peaks near 2.1 GB.
 # Opt in by creating /tmp/neontide_build.lock; the lock is released when this script exits.
 if [ -e /tmp/neontide_build.lock ] && command -v flock >/dev/null 2>&1; then
+  # (the lead's snapshot checks go first: see tools/run.sh)
+  if [ -z "$NT_LEAD_SLOT" ]; then
+    n=0
+    while [ -n "$(find /tmp/neontide_lead_wants -mmin -5 2>/dev/null)" ] && [ $n -lt 120 ]; do sleep 15; n=$((n+1)); done
+  fi
   exec 9>>/tmp/neontide_build.lock
   flock 9
   # the wait for the lock can be long: start only once there is room for the compile (Wine runs come and go; the

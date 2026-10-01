@@ -67,7 +67,7 @@ void testMesh() {
             for (u32 i : m.indices)
                 if (i >= m.verts.size()) okI = false;
             CHECK(okI, "index out of range");
-            CHECK(tris >= 6000 && tris <= 34000, "triangle count %d out of budget (role %d)", tris, role);   // LOD0: face ~6-8k, strand cards ~1.5-5k
+            CHECK(tris >= 6000 && tris <= 36400, "triangle count %d out of budget (role %d)", tris, role);   // LOD0: face ~6-8k, strand cards ~2-7k
         }
     }
     printf("mesh: %d characters, tris avg %d (min %d, max %d), build avg %.1f ms\n", n, triTotal / n, triMin, triMax, tTotal / n * 1000.0);
@@ -1781,6 +1781,96 @@ void testLods() {
     printf("lods: build (full + LOD1 + LOD2) avg %.1f ms\n", tb * 1000.0 / 6);
 }
 
+// Faces: the data the renderer's skin, eye and hair shading reads (material param bits, see face.cpp / meshutil.cpp),
+// and the facial hair: every character's skin carries its regions (lips, wet mucosa, eyelids, ears, nose, mouth) and
+// one melanin value that follows the skin tone; eyeballs carry a plausible radius, teeth the enamel bit; strand cards
+// carry a layer depth; full beards and stubble get many beard cards, women none; face cards stay on the head; and the
+// crowd LODs keep the skin bits.
+void testFaces() {
+    using namespace Anim::detail;
+    double tb = 0.0;
+    int nChars = 0;
+    std::vector<std::pair<float, int>> melByLum;
+    for (u32 k = 0; k < 14; k++) {
+        CharacterDesc d = randomCharacter(7100u + k * 104729u, (int)(k % 8));
+        if (k == 0) d.facialHair = FH_BEARD;
+        if (k == 1) d.facialHair = FH_STUBBLE;
+        if (k == 0 || k == 1) d.gender = MALE;
+        if (k == 2) {
+            d.gender = FEMALE;
+            d.facialHair = -1;
+        }
+        if (k == 3) d.skinTone = srgbToLinear(vec3(0.24f, 0.15f, 0.1f));   // deep
+        if (k == 4) d.skinTone = srgbToLinear(vec3(0.96f, 0.82f, 0.72f));  // fair
+        Skeleton sk;
+        buildSkeleton(d, sk);
+        SkinnedMeshData L[3];
+        double t0 = TimeSeconds();
+        buildCharacterMeshLods(d, sk, L, 3);
+        tb += TimeSeconds() - t0;
+        nChars++;
+        const SkinnedMeshData& m = L[0];
+        int region[8] = {0, 0, 0, 0, 0, 0, 0, 0}, eyes = 0, eyeBad = 0, teeth = 0, beardCards = 0, cardDepthBad = 0, farCards = 0;
+        int mel = -1;
+        bool melSame = true, skinBit = true;
+        vec3 head = -sk.invBindModel[B_HEAD].c[3].xyz();
+        for (const VtxSkinned& v : m.verts) {
+            u32 mat = v.mat & 0xffu, param = (v.mat >> 8) & 0x7fffffu;
+            if (mat == MAT_SKIN) {
+                if (!(param & 1u)) skinBit = false;
+                if (((param >> 12) & 15u) == 0u) skinBit = false;   // oiliness 1..15 (all-zero bits 1-22 read as legacy skin)
+                region[(param >> 1) & 7u]++;
+                int ml = (int)((param >> 19) & 15u);
+                if (mel < 0) mel = ml;
+                else if (ml != mel) melSame = false;
+            } else if (mat == MAT_EYE) {
+                if (param & 1u) teeth++;
+                else {
+                    eyes++;
+                    float r = 0.009f + 0.00002f * (float)((param >> 2) & 255u);
+                    if (r < 0.0095f || r > 0.0145f) eyeBad++;
+                }
+            } else if (mat == MAT_HAIR) {
+                u32 kind = param & 15u;
+                if (kind == 0) continue;
+                if (((param >> 20) & 7u) > 7u) cardDepthBad++;
+                if (kind == 4) beardCards++;
+                if ((kind == 2 || kind == 3 || kind == 4) && length(v.pos - head) > 0.2f) farCards++;
+            }
+        }
+        CHECK(skinBit, "faces: skin without the character-skin bit or with zero oiliness (k %u)", k);
+        const bool earsHidden = d.hairStyle == HAIR_LONG || d.hairStyle == HAIR_BOB || (d.hairStyle == HAIR_CURLY && d.gender == FEMALE);
+        CHECK(region[1] > 20 && region[2] > 20 && region[3] > 20 && (region[4] > 100 || earsHidden) && region[5] > 5 && region[7] > 20,
+              "faces: skin regions missing (k %u): lip %d mucosa %d lid %d ear %d nose %d mouth %d", k, region[1], region[2], region[3], region[4], region[5],
+              region[7]);
+        CHECK(melSame && mel >= 0, "faces: melanin must be one value per character (k %u)", k);
+        CHECK(eyes > 600 && eyeBad == 0, "faces: eyeballs %d, %d with an implausible radius (k %u)", eyes, eyeBad, k);
+        CHECK(teeth > 100, "faces: teeth not flagged as enamel (k %u: %d)", k, teeth);
+        CHECK(cardDepthBad == 0, "faces: card depth out of range (k %u)", k);
+        CHECK(farCards == 0, "faces: %d lash / brow / beard card vertices away from the head (k %u)", farCards, k);
+        if (d.gender == MALE && (d.facialHair == FH_BEARD || d.facialHair == FH_STUBBLE))
+            CHECK(beardCards > (d.facialHair == FH_BEARD ? 1500 : 1000), "faces: too few beard cards (k %u, fh %d): %d vertices", k, d.facialHair, beardCards);
+        if (d.gender == FEMALE) CHECK(beardCards == 0, "faces: beard cards on a woman (k %u)", k);
+        melByLum.push_back(std::make_pair(dot(d.skinTone, vec3(0.3f, 0.59f, 0.11f)), mel));
+        // the crowd LODs keep the skin bits (the same melanin)
+        for (int l = 1; l < 3; l++) {
+            int skinV = 0, withMel = 0;
+            for (const VtxSkinned& v : L[l].verts) {
+                if ((v.mat & 0xffu) != MAT_SKIN) continue;
+                skinV++;
+                if ((int)((v.mat >> 27) & 15u) == mel) withMel++;
+            }
+            CHECK(skinV > 0 && withMel > skinV * 9 / 10, "faces: LOD%d skin lost its shading bits (k %u: %d of %d)", l, k, withMel, skinV);
+        }
+    }
+    // melanin follows the skin tone: a darker skin never gets less melanin
+    std::sort(melByLum.begin(), melByLum.end());
+    for (size_t i = 1; i < melByLum.size(); i++)
+        CHECK(melByLum[i].second <= melByLum[i - 1].second, "faces: melanin %d at luminance %.3f above %d at %.3f", melByLum[i].second, melByLum[i].first,
+              melByLum[i - 1].second, melByLum[i - 1].first);
+    printf("faces: %d characters, LOD build avg %.1f ms\n", nChars, tb * 1000.0 / nChars);
+}
+
 // Driving: the hands must stay on the steering wheel rim (absolute interior geometry) for any character size.
 void testDriving() {
     const vec3 wc(0.f, 0.5f, 0.9f), wn(0.f, -0.912f, 0.411f);
@@ -2072,6 +2162,7 @@ int main(int argc, char** argv) {
     run("Visemes", testVisemes);
     run("DerivedBones", testDerivedBones);
     run("Lods", testLods);
+    run("Faces", testFaces);
     run("Mesh", testMesh);
     run("ClothingClip", testClothingClip);
     printf("%s (%d failures)\n", gFail ? "FAILED" : "ALL PASSED", gFail);

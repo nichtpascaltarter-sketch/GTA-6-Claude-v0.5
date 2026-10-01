@@ -5,6 +5,7 @@
 //                        [--w W] [--h H] [--dist D] [--yaw deg] [--height z] [--fov deg] [--mode lineup|single]
 //                        [--tiles] (one tile per character, camera on its head) [--ss N] (supersampling) [--lod L]
 // Env: PREVIEW_NOHAT, PREVIEW_HAIR / _HAIRCOL / _FH / _GENDER / _AGE / _TOP / _BOTTOM / _SHOES (override the desc),
+//      PREVIEW_SKINBITS=region|transl|pores|oil|melanin (the skin shading bits of face.cpp as false colours),
 //      PREVIEW_TGT=x,y,z (tile camera target offset from the head), PREVIEW_WIRE (triangle edges),
 //      PREVIEW_OPAQUECARDS (strand cards opaque and culled, as drawn before the renderer's card pass).
 // Strand cards are alpha-tested with a stand-in strand pattern (cardAlpha) and drawn two-sided.
@@ -935,6 +936,22 @@ int main(int argc, char** argv) {
             if (getenv("PREVIEW_MATS")) {
                 u32 mm = vx.mat & 0xff;
                 A[v] = mm == MAT_EYE ? vec3(0, 1, 0) : (mm == MAT_HAIR ? vec3(1, 0, 0) : (mm == MAT_SKIN ? vec3(0.5f) : vec3(0, 0, 1)));
+            }
+            if (const char* sk = getenv("PREVIEW_SKINBITS")) {
+                // the skin shading bits (face.cpp): "region" colours the regions, "transl" / "pores" / "oil" / "melanin"
+                // show that field as grey levels (0 black .. 15 white); other materials dim grey
+                u32 mm = vx.mat & 0xff, prm = (vx.mat >> 8) & 0x7fffffu;
+                if (mm == MAT_SKIN) {
+                    static const vec3 rc[8] = {vec3(0.55f), vec3(0.9f, 0.1f, 0.15f), vec3(1.f, 0.5f, 0.8f), vec3(0.2f, 0.8f, 0.9f),
+                                               vec3(0.95f, 0.75f, 0.1f), vec3(0.2f, 0.85f, 0.25f), vec3(1.f), vec3(0.35f, 0.1f, 0.5f)};
+                    if (!strcmp(sk, "region")) A[v] = rc[(prm >> 1) & 7u];
+                    else {
+                        int sh = !strcmp(sk, "transl") ? 4 : (!strcmp(sk, "pores") ? 8 : (!strcmp(sk, "oil") ? 12 : 19));
+                        A[v] = vec3((float)((prm >> sh) & 15u) / 15.f);
+                    }
+                } else {
+                    A[v] = vec3(0.12f);
+                }
             }
             M[v] = vx.mat;
             UVs[v] = vx.uv;

@@ -564,6 +564,7 @@ CharacterDesc randomCharacter(u32 seed, int role) {
 namespace detail {
 static void bakeOcclusion(const BuildCtx& c, MeshB& m) {
     const float s = c.D->s;
+    const vec3 eyeC[2] = {c.D->J[B_EYE_L], c.D->J[B_EYE_R]};
     // a 4 mm step catches the fine creases (lid crease, alar groove, mouth corners, ear folds, cloth seams)
     const float dk[4] = {0.004f, 0.01f, 0.025f, 0.055f};
     const float wk[4] = {0.25f, 0.33f, 0.26f, 0.16f};
@@ -632,6 +633,26 @@ static void bakeOcclusion(const BuildCtx& c, MeshB& m) {
             }
             v.col = v.col * (1.f - 0.2f * hit);
         }
+        // the brow ridge keeps the sky off the upper lids and the sockets (a finer march than the jaw's: the ridge is
+        // a centimetre or two away), so the eyes sit in the face with depth in flat or overhead light instead of
+        // reading as bright, puffy lids
+        if (mat == MAT_SKIN && v.part == PART_HEAD) {
+            for (int sd = 0; sd < 2; sd++) {
+                vec3 de = (v.p - eyeC[sd]) / c.D->headS;
+                if (fabsf(de.x) > 0.024f || de.z < -0.012f || de.z > 0.017f || de.y < -0.012f) continue;
+                const vec3 dir = normalize(vec3(0.f, 0.3f, 1.f));
+                const float ts2[5] = {0.004f, 0.008f, 0.013f, 0.019f, 0.026f};
+                float hit = 0.f;
+                for (int j = 0; j < 5; j++) {
+                    if (sdf.evalList(v.p + dir * (ts2[j] * s), list, cnt, cap) < -0.0008f * s) {
+                        hit = 1.f - 0.15f * (float)j;
+                        break;
+                    }
+                }
+                v.col = v.col * (1.f - 0.22f * hit);
+                break;
+            }
+        }
     }
 }
 }  // namespace detail
@@ -684,11 +705,13 @@ static void addMittens(const MeshB& src, MeshB& out, const Skeleton& skel) {
         // the fingers' skin colour; the palm side (from the palm's skin) so the block's back faces the back of the hand
         vec3 col(0.f), palm(0.f), back(0.f);
         int nc = 0, np = 0, nb = 0;
+        u32 fingerParam = 0;   // the fingers' skin shading bits (translucency, pores, the person's constants)
         for (const BVert& v : src.v) {
             if (v.side != sd || v.mat != MAT_SKIN) continue;
             if ((v.part == PART_FINGER || v.part == PART_THUMB) && !(v.flags & BuildCtx::F_NAIL)) {
                 col += v.col;
                 nc++;
+                fingerParam = v.matParam;
             }
             if (v.part == PART_HAND) {
                 if (v.flags & BuildCtx::F_PALM) {
@@ -732,6 +755,7 @@ static void addMittens(const MeshB& src, MeshB& out, const Skeleton& skel) {
                 v.t = ax;
                 v.col = col;
                 v.mat = MAT_SKIN;
+                v.matParam = fingerParam;
                 v.part = PART_FINGER;
                 v.side = (u8)sd;
                 v.sw = sw;
@@ -807,10 +831,24 @@ static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
         std::vector<u32> det;
         for (u32 i = 0; i < (u32)m.v.size(); i++)
             if (m.v[i].part == PART_FACEDETAIL && (lod >= 2 || cardKind(m.v[i]) != CARD_NONE)) det.push_back(i);
+        // the scalp shell's hairline edge fades into the skin under it (hair.cpp): without the fine hairs over it, and
+        // decimated, that fade would smear hair-tinted skin over the hair's front, so the edge takes the hair's own
+        // colour (the average of the card-shaded shell, brightened back below)
+        vec3 core(0.f);
+        int nCore = 0;
+        for (const BVert& v : m.v)
+            if (v.flags & BuildCtx::F_CARDSHELL) {
+                core += v.col * (1.f / kCardShellShade);
+                nCore++;
+            }
+        if (nCore > 0) core = core / (float)nCore;
         for (BVert& v : m.v) {
             if (v.flags & BuildCtx::F_CARDSHELL) {
-                v.col = v.col * (1.f / 0.72f);
+                v.col = v.col * (1.f / kCardShellShade);
                 v.flags &= (u8)~BuildCtx::F_CARDSHELL;
+            } else if (nCore > 0 && v.mat == MAT_HAIR && v.part == PART_HEAD && cardKind(v) == CARD_NONE &&
+                       !(v.flags & (BuildCtx::F_BEARD | BuildCtx::F_SCALP))) {
+                v.col = lerp(v.col, core, 0.8f);
             }
             // the fingers' joint creases would smear once their tubes are decimated
             if (v.part == PART_FINGER || v.part == PART_THUMB) v.uv.y = 0.f;
@@ -974,7 +1012,8 @@ static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
         if (v0.mat == MAT_HAIR && (v0.flags & BuildCtx::F_SCALP)) drop[t] = 1;              // -> painted on the scalp
         if (cardKind(v0) != CARD_NONE) drop[t] = 1;
         if (v0.part == PART_EYE) drop[t] = 1;   // replaced below
-        if (v0.mat != MAT_HAIR && (v0.matParam & kParamLodDetail)) drop[t] = 1;   // seams and stitch lines
+        // seams and stitch lines (a garment flag: skin and strand cards use bit 22 for shading data)
+        if (v0.mat != MAT_HAIR && v0.mat != MAT_SKIN && (v0.matParam & kParamLodDetail)) drop[t] = 1;
     }
     MeshB out;
     std::vector<u32> remap(m.v.size(), 0xffffffffu);
@@ -994,7 +1033,7 @@ static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
         int n = 0;
         // (the far LOD's whites are toned down: from 40 m an eye is a pixel in the shadow of its socket, and a full white
         // reads as a stare)
-        vec3 iris(0.1f, 0.06f, 0.03f), sclera = vec3(0.78f, 0.74f, 0.7f) * (lod >= 2 ? 0.6f : 1.f);
+        vec3 iris(0.1f, 0.06f, 0.03f), sclera = vec3(0.7f, 0.67f, 0.64f) * (lod >= 2 ? 0.64f : 0.95f);   // (as the full eye's white in its socket)
         float bestIris = 2.f;
         vec3 fw = normalize(vec3((sd ? 1.f : -1.f) * 0.04f, 1.f, 0.f));
         for (const BVert& v : m.v) {
@@ -1125,11 +1164,12 @@ static void inflateLayers(MeshB& m, int lod) {
 }  // namespace detail
 
 namespace detail {
-// LOD0 budget: a rare heavy combination (a suit, a dense hairstyle and a beard) can pass ~34k triangles; the excess is
-// collapsed from the body and clothing where they are flattest (the face, the hands, the hair and all strand cards
-// are left alone).
+// LOD0 budget: a rare heavy combination (a suit, a dense hairstyle and a full beard) can pass ~36k triangles; the
+// excess is collapsed from the body and clothing where they are flattest (the face, the hands, the hair and all strand
+// cards are left alone). (The full mesh is drawn only close up, where the face's strand cards - lashes in two rows,
+// dense brows, the hairline's fine hairs, beards and stubble - matter more than the last few body triangles.)
 static void governLod0(MeshB& m) {
-    const int kBudget = 33600;
+    const int kBudget = 36000;
     int tris = (int)(m.idx.size() / 3);
     if (tris <= kBudget) return;
     float w[PART_COUNT];

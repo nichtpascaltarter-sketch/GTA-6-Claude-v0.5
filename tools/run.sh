@@ -40,6 +40,12 @@ fi
 # The check and the start are one step under a launch lock, held 30 s longer (by a background sleep) until the new
 # game shows up in tools/memfree.sh's count: games started at the same moment used to pass the check together.
 if [ -e /tmp/neontide_build.lock ]; then
+  # the lead's snapshot checks go first: while one waits for room (/tmp/neontide_lead_wants, kept fresh by its gate),
+  # other games hold back (up to 30 min; a flag not touched for 5 minutes is stale)
+  if [ -z "$NT_LEAD_SLOT" ]; then
+    n=0
+    while [ -n "$(find /tmp/neontide_lead_wants -mmin -5 2>/dev/null)" ] && [ $n -lt 120 ]; do sleep 15; n=$((n+1)); done
+  fi
   if command -v flock >/dev/null 2>&1; then exec 7>>/tmp/neontide_launch.lock; flock 7; fi
   n=0
   while [ "$(sh tools/memfree.sh 2>/dev/null || echo 100000)" -lt 3000 ] && [ $n -lt 40 ]; do sleep 15; n=$((n+1)); done

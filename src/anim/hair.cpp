@@ -11,6 +11,8 @@
 // carry the soft outline of the other styles. Facial hair uses the same shell over the lower face (mustache, goatee,
 // short and full beards) or a vertex color tint (stubble).
 #include "anim_internal.h"
+#include <algorithm>
+#include <functional>
 
 namespace Anim {
 namespace detail {
@@ -207,21 +209,40 @@ float hairVolumeAt(const BuildCtx& c, const BVert& v) {
     return styleThickness(c, h, v);
 }
 
-// Coverage of the hair region (meters, positive inside) with a slightly irregular hairline.
+// Smooth 3D value noise in [0, 1] (cell size 1 / freq) for the hairline's wander.
+static float hairNoise3(vec3 p, float freq, u32 seed) {
+    vec3 q = p * freq;
+    float fx = floorf(q.x), fy = floorf(q.y), fz = floorf(q.z);
+    int ix = (int)fx, iy = (int)fy, iz = (int)fz;
+    float tx = sstep(q.x - fx), ty = sstep(q.y - fy), tz = sstep(q.z - fz);
+    auto hh = [&](int x, int y, int z) { return hashToFloat(hash32((u32)x * 73856093u ^ (u32)y * 19349663u ^ (u32)z * 83492791u ^ seed)); };
+    float a = Lerp(Lerp(hh(ix, iy, iz), hh(ix + 1, iy, iz), tx), Lerp(hh(ix, iy + 1, iz), hh(ix + 1, iy + 1, iz), tx), ty);
+    float b = Lerp(Lerp(hh(ix, iy, iz + 1), hh(ix + 1, iy, iz + 1), tx), Lerp(hh(ix, iy + 1, iz + 1), hh(ix + 1, iy + 1, iz + 1), tx), ty);
+    return Lerp(a, b, tz);
+}
+
+// Coverage of the hair region (meters, positive inside) with a gently irregular hairline: the edge wanders smoothly
+// (a few millimetres over a centimetre or two, plus a finer ripple) instead of jumping from vertex to vertex, which cut
+// the shell's edge into spikes.
 static float hairCoverage(const BuildCtx& c, const HairParams& h, const BVert& v) {
     if (v.part != PART_HEAD || v.pc < 1.2f) return -1.f;
     float at = v.pa > kPi ? kTwoPi - v.pa : v.pa;
     float cv = (v.pb - hairlinePhi(h, at)) * 0.1f * c.D->headS;
-    u32 hsh = hash32((u32)(v.bp.x * 5000.f) * 73856093u ^ (u32)(v.bp.y * 5000.f) * 19349663u ^ (u32)(v.bp.z * 5000.f) * 83492791u);
     // (a line-up's front and temples are cut straight: no irregularity there)
     float jag = h.lineUp ? Lerp(0.0004f, 0.004f, sstep(60.f * kDegToRad, 85.f * kDegToRad, at)) : 0.004f;
-    cv += (hashToFloat(hsh) - 0.5f) * jag;
+    const u32 ns = hash32(c.d->seed * 0x3B9AC9FBu + 0x2Du);
+    float wander = (hairNoise3(v.bp, 70.f, ns) - 0.5f) * 1.1f + (hairNoise3(v.bp, 190.f, ns ^ 0x5bd1e995u) - 0.5f) * 0.45f;
+    cv += wander * jag;
     if (h.crownBald > 0.7f) {
         // horseshoe pattern: top of the head bald
         cv = Min(cv, (62.f * kDegToRad - v.pb) * 0.1f * c.D->headS + 0.01f * (1.f - h.crownBald));
     }
     return cv;
 }
+
+// How far in from the hairline (coverage, m) the hair reaches its full thickness T: thick styles build up over a few
+// centimetres, so the front of the hair lies back from the hairline instead of standing up in a wig-like wall.
+static float hairRampLen(float T) { return 0.012f + Min(1.3f * T, 0.013f); }   // (at most 2.5 cm: a quiff or an afro keeps its front)
 
 // ------------------------------------------------------------------------------------------------
 // Strand cards (conventions: CardKind in anim_internal.h). The shell stays underneath for coverage; cards lie on it
@@ -336,11 +357,14 @@ static void buildScalpCards(OutfitCtx& o, const HairParams& h, float shellFrac) 
                     vec3 q, nq;
                     headSurf(c, th, php, q, nq);
                     BVert pr = headProbe(th, php, q);
-                    if (hairCoverage(c, h, pr) < 0.002f) continue;
+                    float cvRoot = hairCoverage(c, h, pr);
+                    if (cvRoot < 0.002f) continue;
                     u32 seed = r.next();
                     float len = r.range(len0, len1) * hs;
                     if (h.style == HAIR_QUIFF && (q - H.origin).y > 0.02f * hs && (q - H.origin).z > 0.1f * hs) len *= 1.35f;
-                    float w = w0 * hs * r.range(0.85f, 1.15f);
+                    // (narrower and sparser cards near the hairline: the edge thins out into single hairs)
+                    const float nearEdge = sstep(0.003f, 0.022f, cvRoot);
+                    float w = w0 * hs * r.range(0.85f, 1.15f) * Lerp(0.5f, 1.f, nearEdge);
                     float seg = len / NS;
                     int np = 0;
                     float thq = th, phq = php;
@@ -349,7 +373,8 @@ static void buildScalpCards(OutfitCtx& o, const HairParams& h, float shellFrac) 
                         BVert pq = headProbe(thq, phq, q);
                         float cq = hairCoverage(c, h, pq);
                         if (sgi > 0 && cq < -0.006f) break;   // tips may fall 6 mm past the hairline, no further
-                        float T = styleThickness(c, h, pq) * sstep(-0.006f, 0.012f, cq);
+                        float Tf = styleThickness(c, h, pq);
+                        float T = Tf * sstep(-0.006f, hairRampLen(Tf), cq);
                         float hgt = 0.0008f + T * Lerp(hRoot, hTip, sstep(0.f, 0.5f, u)) * (np == 0 ? 1.f : 1.f);
                         if (stand > 0.f) hgt += T * 0.25f * u;   // curls stand off the afro surface
                         if (hgt < T * shellFrac && sgi > 0 && layer == 0) hgt = T * shellFrac + 0.0006f;
@@ -365,13 +390,77 @@ static void buildScalpCards(OutfitCtx& o, const HairParams& h, float shellFrac) 
                         q = q1;
                         nq = n1;
                     }
-                    if (np >= 2) emitCard(m, pts, np, CARD_SCALP, seed, colRoot, colTip, dens * (layer ? 0.8f : 1.f), PART_HEAD, &H);
+                    if (np >= 2)
+                        setCardDepth(m, emitCard(m, pts, np, CARD_SCALP, seed, colRoot, colTip, dens * (layer ? 0.8f : 1.f) * Lerp(0.7f, 1.f, nearEdge), PART_HEAD, &H),
+                                     layer ? 1u : 4u);
                 }
             }
         }
         int tris = (int)(m.idx.size() / 3);
         if (tris <= kCardBudget) break;
         spacing *= sqrtf((float)tris / kCardBudget) * 1.02f;
+    }
+    // the hairline: a fringe of fine, short hairs along the front and the temples (roots just inside the hairline in two
+    // staggered rows, tips a few millimetres out onto the skin, sparse and thin), so the edge reads as hair thinning out
+    // rather than a cut line
+    {
+        Rng rf(hash32(c.d->seed * 0x2C2EF5u + 0x61u));
+        const float R0 = 0.095f * hs, k01 = 0.1f * hs;
+        const float step = 0.0038f * hs;
+        const vec3 colRoot = h.col * 0.62f, colTip = h.col * 1.05f;
+        CardPt pts[3];
+        for (int side = 0; side < 2; side++)
+            for (float at0 = side ? 0.5f * step / R0 : 0.f; at0 < 78.f * kDegToRad; at0 += step / R0) {
+                for (int row = 0; row < 2; row++) {
+                    float at = at0 + (row ? 0.5f : 0.f) * step / R0 + 0.3f * (rf.f() - 0.5f) * step / R0;
+                    float th = side ? kTwoPi - at : at;
+                    float want = (row ? 0.0042f : 0.0012f) * hs + 0.0012f * hs * rf.f();
+                    // find the root at the wanted coverage (the hairline wanders: two Newton steps along phi)
+                    float ph = hairlinePhi(h, at) + want / k01;
+                    vec3 q, nq;
+                    for (int it = 0; it < 2; it++) {
+                        headSurf(c, th, ph, q, nq);
+                        float cvq = hairCoverage(c, h, headProbe(th, ph, q));
+                        ph += (want - cvq) / k01;
+                    }
+                    headSurf(c, th, ph, q, nq);
+                    float cvq = hairCoverage(c, h, headProbe(th, ph, q));
+                    if (cvq < 0.f || cvq > 0.009f * hs) continue;
+                    u32 seed = rf.next();
+                    // (towards the temples the fringe thins out and shortens: there the hairline runs down beside the
+                    // eyes, and longer hairs lying forwards onto the skin read as dark whiskers)
+                    const float wT = 1.f - sstep(34.f * kDegToRad, 60.f * kDegToRad, at);
+                    if (rf.f() > Lerp(0.3f, 1.f, wT)) continue;
+                    float len = rf.range(0.005f, 0.0095f) * hs * (row ? 1.15f : 0.85f) * Lerp(0.45f, 1.f, wT);
+                    float w = rf.range(0.0032f, 0.0048f) * hs * Lerp(0.7f, 1.f, wT);
+                    float seg = len / 2.f;
+                    float thq = th, phq = ph;
+                    int np = 0;
+                    for (int sgi = 0; sgi <= 2; sgi++) {
+                        BVert pq = headProbe(thq, phq, q);
+                        float Tf = styleThickness(c, h, pq);
+                        float T = Tf * sstep(-0.006f, hairRampLen(Tf), hairCoverage(c, h, pq));
+                        pts[np].p = q + nq * (0.0004f * hs + T * 0.55f + 0.0003f * hs * sgi);
+                        pts[np].n = nq;
+                        pts[np].w = w * (1.f - 0.3f * sgi);
+                        pts[np].sw = skin1(B_HEAD);
+                        np++;
+                        if (sgi == 2) break;
+                        // the style's flow turned out across the hairline (baby hairs fall forwards onto the forehead;
+                        // at the temples they run down and back towards the ear)
+                        const vec3 outDir = lerp(vec3(0.f, -0.45f, -1.f), vec3(0.f, 0.35f, -1.f), wT);
+                        vec3 outw = outDir - nq * dot(outDir, nq);
+                        vec3 f = scalpFlow(c, h, q, nq, seed) * 0.55f + (length2(outw) > 1e-8f ? normalize(outw) : vec3(0.f)) * 0.8f;
+                        f = f - nq * dot(f, nq);
+                        if (length2(f) < 1e-10f) break;
+                        vec3 q1, n1;
+                        scalpStep(c, q, normalize(f), seg, thq, phq, q1, n1);
+                        q = q1;
+                        nq = n1;
+                    }
+                    setCardDepth(m, emitCard(m, pts, np, CARD_SCALP, seed, colRoot, colTip, rf.range(0.45f, 0.72f), PART_HEAD, &H), 0);
+                }
+            }
     }
     size_t t0 = o.out.idx.size() / 3;
     o.out.append(m);
@@ -419,6 +508,7 @@ static void addCurtain(OutfitCtx& o, const HairParams& h, float thA, float lengt
     const int K = 23, NR = 9;
     const u32 bodyMask = MK_HEAD | MK_NECK | MK_TORSO | MK_ARM_L | MK_ARM_R;
     Rng r(hash32(c.d->seed * 131u + 7u));
+    const float ph1 = r.range(0.f, kTwoPi), ph2 = r.range(0.f, kTwoPi);
     std::vector<vec3> outer((size_t)K * NR);
     std::vector<vec3> nrm((size_t)K * NR);
     std::vector<float> tt((size_t)K * NR);
@@ -438,7 +528,9 @@ static void addCurtain(OutfitCtx& o, const HairParams& h, float thA, float lengt
         tmp.bp = H.C + dir * t0;
         float T = styleThickness(c, h, tmp);
         vec3 p = H.C + dir * (t0 + T * 0.8f + lift);
-        float len = length * (1.f + jag * (r.f() - 0.5f)) * (1.f + 0.15f * Sq(cosf((th - kPi) * 0.5f)));
+        // (the ends vary smoothly from column to column: layered, not a sawtooth of alternating lengths)
+        float wob = 0.5f + 0.3f * sinf(0.55f * (float)k + ph1) + 0.2f * sinf(1.3f * (float)k + ph2);
+        float len = length * (1.f + jag * (wob - 0.5f)) * (1.f + 0.15f * Sq(cosf((th - kPi) * 0.5f)));
         float seg = len / (NR - 1);
         vec3 outDir = normalize(vec3(sinf(th), cosf(th), 0.f));
         for (int i = 0; i < NR; i++) {
@@ -536,7 +628,7 @@ static void addCurtain(OutfitCtx& o, const HairParams& h, float thA, float lengt
                 pts[np].sw = drapeWeights(tt[ia], 0.12f);
                 np++;
             }
-            if (np >= 2) emitCard(cm, pts, np, CARD_SCALP, seed, h.col * 0.62f, h.col * 1.08f, layer ? 0.75f : 1.f, PART_HAIR, nullptr);
+            if (np >= 2) setCardDepth(cm, emitCard(cm, pts, np, CARD_SCALP, seed, h.col * 0.62f, h.col * 1.08f, layer ? 0.75f : 1.f, PART_HAIR, nullptr), layer ? 1u : 3u);
         }
     }
     o.out.append(cm);
@@ -671,7 +763,7 @@ static void addHairTube(OutfitCtx& o, const HairParams& h, vec3 start, vec3 dir0
                 cp[i].w = kTwoPi * rad[i] / NCd * 1.6f + 0.004f;
                 cp[i].sw = sws[i];
             }
-            emitCard(m, cp, NP, CARD_SCALP, seed, h.col * 0.62f, h.col * 1.08f, 0.9f, PART_HAIR, nullptr);
+            setCardDepth(m, emitCard(m, cp, NP, CARD_SCALP, seed, h.col * 0.62f, h.col * 1.08f, 0.9f, PART_HAIR, nullptr), 1);
         }
     }
     o.out.append(m);
@@ -1278,6 +1370,132 @@ static void buildRopes(OutfitCtx& o, const HairParams& h, float shellT) {
 // ------------------------------------------------------------------------------------------------
 // Facial hair
 
+// One layer of beard or stubble cards: length (x the beard's length), segments, card width (m), cards per square
+// centimetre, strand density (card alpha), root and tip height over the skin (x the beard shell's thickness), the
+// renderer's DEPTH bits, and how far out past the beard's edge (coverage, m) its roots may sit.
+struct BeardLayer {
+    float lenK;
+    int segs;
+    float width, perCm2, alpha, hRoot, hTip;
+    u32 depth;
+    float cvMin;
+};
+
+// Facial hair strand cards: roots scattered over the skin by area (independent of the head grid's spacing), thinning
+// out over the beard's edge (fewer, shorter, sparser hairs), combed along the beard's growth: the mustache down and out
+// from the philtrum, the chin down and a little forward, the cheeks and the jaw down, under the jaw back and down the
+// neck. Each card is skinned like the skin under its root (barycentric blend), so the beard rides on the jaw and lips.
+static void beardCards(BuildCtx& c, MeshB& cm, const std::function<float(const BVert&)>& cov, const std::function<float(const BVert&)>& thickAt,
+                       const BeardLayer* layers, int nl, float lenBase, vec3 colRoot, vec3 colTip, u32 seed) {
+    const HeadInfo& H = c.head;
+    const float hs = c.D->headS;
+    const float deg = kDegToRad;
+    const int NC = H.cols;
+    const float thMC = H.thetaMouth, phM = H.phiMouth;
+    float cvMinAll = 0.f;
+    for (int l = 0; l < nl; l++) cvMinAll = Min(cvMinAll, layers[l].cvMin);
+    // coverage and the shell's thickness per grid vertex
+    std::vector<float> cvv((size_t)H.rows * NC, -1.f), tv((size_t)H.rows * NC, 0.f);
+    for (int j = 0; j < H.rows; j++)
+        for (int k = 0; k < NC; k++) {
+            const BVert& v = c.m.v[H.grid[(size_t)j * NC + k]];
+            size_t gi = (size_t)j * NC + k;
+            cvv[gi] = cov(v);
+            if (cvv[gi] > cvMinAll - 0.004f) tv[gi] = thickAt(v);
+        }
+    // candidate triangles (the grid's quads split in two; the mouth slit's and the eye fissures' rows left out)
+    struct Tri {
+        u32 g[3];
+        float area;
+    };
+    std::vector<Tri> tris;
+    for (int j = 1; j + 1 < H.rows; j++) {
+        if (j == H.rowMouthLo || j == H.rowEyeLo) continue;
+        for (int k = 0; k < NC; k++) {
+            int k1 = (k + 1) % NC;
+            u32 q[4] = {(u32)(j * NC + k), (u32)(j * NC + k1), (u32)((j + 1) * NC + k1), (u32)((j + 1) * NC + k)};
+            for (int h = 0; h < 2; h++) {
+                Tri t;
+                t.g[0] = q[0];
+                t.g[1] = q[1 + h];
+                t.g[2] = q[2 + h];
+                if (Max(cvv[t.g[0]], Max(cvv[t.g[1]], cvv[t.g[2]])) < cvMinAll) continue;
+                vec3 a = c.m.v[H.grid[t.g[0]]].p, b = c.m.v[H.grid[t.g[1]]].p, cc = c.m.v[H.grid[t.g[2]]].p;
+                t.area = 0.5f * length(cross(b - a, cc - a));
+                if (t.area <= 0.f) continue;
+                tris.push_back(t);
+            }
+        }
+    }
+    if (tris.empty()) return;
+    Rng r(seed);
+    CardPt pts[4];
+    for (int l = 0; l < nl; l++) {
+        const BeardLayer& L = layers[l];
+        // each triangle gets its share of the roots (stochastic rounding): a jittered-grid spread, without the clumps and
+        // gaps of independent draws
+        for (size_t ti = 0; ti < tris.size(); ti++) {
+          const Tri& t = tris[ti];
+          const int cnt = (int)(t.area * 1e4f * L.perCm2 + r.f());
+          for (int i = 0; i < cnt; i++) {
+            float r1 = r.f(), r2 = r.f();
+            float sq = sqrtf(r1);
+            float bw[3] = {1.f - sq, sq * (1.f - r2), sq * r2};
+            vec3 p(0.f), nn(0.f);
+            float cvs = 0.f, T = 0.f;
+            WAcc acc;
+            for (int e = 0; e < 3; e++) {
+                const BVert& v = c.m.v[H.grid[t.g[e]]];
+                p += v.p * bw[e];
+                nn += v.n * bw[e];
+                cvs += cvv[t.g[e]] * bw[e];
+                T += tv[t.g[e]] * bw[e];
+                for (int q = 0; q < 4; q++) acc.add(v.sw.b[q], v.sw.w[q] * bw[e]);
+            }
+            // thinning out over the edge: fewer roots, shorter and sparser hairs
+            float edge = sstep(L.cvMin, L.cvMin + 0.008f, cvs);
+            float keep = r.f();
+            u32 cardSeed = r.next();
+            float lenR = r.range(0.75f, 1.25f), wR = r.range(0.8f, 1.2f);
+            if (keep > 0.15f + 0.85f * edge) continue;
+            nn = length2(nn) > 1e-12f ? normalize(nn) : vec3(0, 1, 0);
+            vec3 d = p - H.C;
+            float th = atan2f(d.x, d.y), at = fabsf(th);
+            float ph = atan2f(d.z, sqrtf(d.x * d.x + d.y * d.y));
+            float sx = d.x >= 0.f ? 1.f : -1.f;
+            bool mzone = ph > phM + 1.5f * deg && at < thMC * 1.35f;
+            float chinFwd = sstep(40.f * deg, 10.f * deg, at) * sstep(-30.f * deg, -50.f * deg, ph);
+            float under = sstep(-0.3f, -0.7f, nn.z);
+            vec3 f0 = mzone ? vec3(sx * (0.25f + 0.6f * sstep(2.f * deg, 8.f * deg, at)), 0.15f, -1.f)
+                            : lerp(vec3(sx * 0.12f, 0.15f + 0.3f * chinFwd, -1.f), vec3(0.f, -1.f, -0.45f), under);
+            float len = lenBase * hs * L.lenK * lenR * (0.55f + 0.45f * edge);
+            float seg = len / L.segs;
+            vec3 q = p, nq = nn;
+            float thq = th < 0.f ? th + kTwoPi : th, phq = ph;
+            SkinW sw = acc.finish();
+            int np = 0;
+            for (int sgi = 0; sgi <= L.segs; sgi++) {
+                float u = (float)sgi / L.segs;
+                float hgt = 0.0003f * hs + T * Lerp(L.hRoot, L.hTip, u) + (L.depth == 0u ? 0.12f * len * u * u : 0.f);
+                pts[np].p = q + nq * hgt;
+                pts[np].n = nq;
+                pts[np].w = L.width * hs * wR * (1.f - 0.3f * u) * (0.7f + 0.3f * edge);
+                pts[np].sw = sw;
+                np++;
+                if (sgi == L.segs) break;
+                vec3 f = f0 - nq * dot(f0, nq);
+                if (length2(f) < 1e-10f) break;
+                vec3 q1, n1;
+                scalpStep(c, q, normalize(f), seg, thq, phq, q1, n1);
+                q = q1;
+                nq = n1;
+            }
+            if (np >= 2) setCardDepth(cm, emitCard(cm, pts, np, CARD_BEARD, cardSeed, colRoot, colTip, L.alpha * (0.6f + 0.4f * edge), PART_HEAD, &H), L.depth);
+          }
+        }
+    }
+}
+
 static void buildFacialHair(OutfitCtx& o) {
     BuildCtx& c = o.c;
     const CharacterDesc& d = *c.d;
@@ -1295,15 +1513,58 @@ static void buildFacialHair(OutfitCtx& o) {
     const int rLipLo = H.rowLipLo, rLipHi = H.rowLipHi;
     auto rowOf = [nrd](const BVert& v) { return (int)lrintf((v.pc - 1.2f) * nrd); };
     const float phM = H.phiMouth;
-    auto region = [=](const BVert& v, bool mustache, bool chin, bool cheeks) -> float {
+    // the vermilion's outline: the skin side of the upper border row and of the lower one, per grid column (signed
+    // theta), out to the mouth corners
+    struct LipEdge {
+        float th, hi, lo;
+    };
+    std::vector<LipEdge> lipEdge;
+    {
+        const int NC = H.cols, rHi = H.rowLipHi, rLo = H.rowLipLo + 1;
+        for (int k = 0; k < NC && rHi > 0 && rLo > 0; k++) {
+            const BVert& a = c.m.v[H.grid[(size_t)rHi * NC + k]];
+            const BVert& b = c.m.v[H.grid[(size_t)rLo * NC + k]];
+            float th = a.pa > kPi ? a.pa - kTwoPi : a.pa;
+            if (fabsf(th) <= thMC) lipEdge.push_back({th, a.pb, b.pb});
+        }
+        std::sort(lipEdge.begin(), lipEdge.end(), [](const LipEdge& x, const LipEdge& y) { return x.th < y.th; });
+    }
+    // how far a point lies outside the vermilion (about metres: angle x 0.1; negative on the lips): above the upper
+    // border, below the lower one or beyond the mouth corner
+    auto lipDist = [=](const BVert& v) -> float {
+        float th = v.pa > kPi ? v.pa - kTwoPi : v.pa;
+        float at = fabsf(th);
+        float d = (at - thMC) * cosf(phM);
+        if (!lipEdge.empty()) {
+            float hi = lipEdge.front().hi, lo = lipEdge.front().lo;
+            if (th >= lipEdge.back().th) {
+                hi = lipEdge.back().hi;
+                lo = lipEdge.back().lo;
+            } else if (th > lipEdge.front().th) {
+                size_t i = 1;
+                while (i + 1 < lipEdge.size() && lipEdge[i].th < th) i++;
+                const LipEdge &e0 = lipEdge[i - 1], &e1 = lipEdge[i];
+                float u = Saturate((th - e0.th) / Max(e1.th - e0.th, 1e-6f));
+                hi = Lerp(e0.hi, e1.hi, u);
+                lo = Lerp(e0.lo, e1.lo, u);
+            }
+            d = Max(d, Max(v.pb - hi, lo - v.pb));
+        }
+        return d * 0.1f;
+    };
+    // the lips' clearance (in coverage units): the mustache reaches the vermilion border (its hairs hang over it), under
+    // the lower lip the beard begins just below the border and fills in over the next few millimetres
+    auto lipClear = [=](const BVert& v) -> float {
+        float d = lipDist(v);
+        return v.pb > phM ? (d - 0.0002f) * 6.f : (d - 0.0006f) * 5.f;
+    };
+    auto region = [=](const BVert& v, bool mustache, bool chin, bool cheeks, bool cap = true) -> float {
         if (v.part != PART_HEAD || v.pc < 1.2f) return -1.f;
         float at = v.pa > kPi ? kTwoPi - v.pa : v.pa;
         int j = rowOf(v);
         float best = -1.f;
-        // smooth clearance around the lips (ellipse in theta / phi) so the beard thins out to the vermilion instead of
-        // ending in a step
-        float lipE = sqrtf(Sq(at / (thMC * 1.12f)) + Sq((v.pb - phM) / (7.5f * deg))) - 1.f;
-        float lipCap = lipE * 0.012f + (v.pb > phM ? 0.0015f : 0.f);
+        // clearance round the lips, so the beard ends at the vermilion instead of in a step over it
+        float lipCap = lipClear(v);
         // mustache: from the upper lip's vermilion border up the philtrum within the mouth span (+ margin)
         if (mustache) {
             float m = (j >= rLipHi && j <= rLipHi + 3) ? Min((thMC + 5.f * deg - at) * 0.1f, 0.01f) : -1.f;
@@ -1327,7 +1588,7 @@ static void buildFacialHair(OutfitCtx& o) {
             if (j < 1) cov = -1.f;
             best = Max(best, cov);
         }
-        return Min(best, lipCap);
+        return cap ? Min(best, lipCap) : best;
     };
     if (kind < 0) {
         // clean-shaven: many men still show a faint shadow of the shaved beard (darker hair shows more)
@@ -1344,12 +1605,27 @@ static void buildFacialHair(OutfitCtx& o) {
         return;
     }
     if (kind == FH_STUBBLE) {
-        // tint only (no geometry)
+        // a few days' growth: the skin shadowed by the hairs (all the distant LODs keep), and on the full mesh the
+        // short hairs themselves, lying close along the beard's growth and thinning out over its edge
         for (size_t i = 0; i < c.m.v.size(); i++) {
             BVert& v = c.m.v[i];
             float cv = region(v, true, true, true);
-            if (cv > -0.004f) v.col = lerp(v.col, mulColor(v.col, vec3(0.55f)) + fcol * 0.25f, 0.55f * sstep(-0.004f, 0.006f, cv));
+            if (cv > -0.004f) v.col = lerp(v.col, mulColor(v.col, vec3(0.6f)) + fcol * 0.22f, 0.42f * sstep(-0.004f, 0.006f, cv));
         }
+        MeshB cm;
+        auto cov = [=](const BVert& v) { return region(v, true, true, true); };
+        auto thickAt = [](const BVert&) { return 0.f; };
+        const BeardLayer stub = {1.f, 1, 0.0032f, 5.f, 0.75f, 0.f, 0.f, 6u, -0.002f};
+        beardCards(c, cm, cov, thickAt, &stub, 1, 0.0028f, fcol * 0.8f, vmax(fcol * 1.1f, vec3(0.03f, 0.024f, 0.02f)), hash32(d.seed * 0x1F83D9ABu + 0x5Bu));
+        size_t t0 = o.out.idx.size() / 3;
+        o.out.append(cm);
+        o.hideOut.resize(o.out.idx.size() / 3, 0);
+        OutfitCtx::Layer L;
+        L.cov = [](const BVert&) { return 1.f; };
+        L.margin = 0.f;
+        L.t0 = t0;
+        L.t1 = o.out.idx.size() / 3;
+        o.layers.push_back(L);
         return;
     }
     GarmentDef g;
@@ -1361,14 +1637,23 @@ static void buildFacialHair(OutfitCtx& o) {
     g.thick = 0.001f;
     g.smooth = 1;
     bool must = true, chin = kind == FH_GOATEE || kind == FH_BEARD || kind == FH_SHORTBEARD, cheeks = kind == FH_BEARD || kind == FH_SHORTBEARD;
-    g.cov = [=](const BVert& v) { return region(v, must, chin, cheeks); };
+    // the shell is the dense core only: it ends a few millimetres inside the beard's edge, where the strand cards over
+    // the tinted skin carry the outline (a shell's own edge reads as a cut line)
+    const float inset = kind == FH_BEARD ? 0.0035f : (kind == FH_SHORTBEARD ? 0.0028f : 0.0015f);   // (narrow mustaches and goatees keep more)
+    const float skinShow = kind == FH_BEARD ? 0.1f : (kind == FH_SHORTBEARD ? 0.28f : 0.18f);
+    // (the inset is from the beard's outer edge only: next to the lips the shell runs up to the lips' clearance)
+    auto shellCov = [=](const BVert& v) { return v.part != PART_HEAD || v.pc < 1.2f ? -1.f : Min(region(v, must, chin, cheeks, false) - inset, lipClear(v)); };
+    g.cov = shellCov;
     // the shell is the dense inner volume (darker, thin at its edge); the strand cards on it carry the soft outline
     // (a full beard: ~5 mm of volume, more under the chin, tapering to nothing over ~2 cm at the cheek line)
     float base = kind == FH_BEARD ? 0.0052f : (kind == FH_SHORTBEARD ? 0.003f : 0.003f);
+    // (next to the lips the volume builds up gradually: the beard is coloured right up to the vermilion, but a shell
+    // at full thickness there stands up from the lip line as a shelf, whose top catches the light as a grey band)
     g.extraFn = [=](const BVert& v) -> float {
-        float cv = region(v, must, chin, cheeks);
+        float d = lipDist(v);
+        float cv = Min(shellCov(v), v.pb > phM ? (d - 0.0003f) * 2.5f : (d - 0.0005f) * 1.3f);
         float at = v.pa > kPi ? kTwoPi - v.pa : v.pa;
-        float chinBoost = kind == FH_BEARD ? 0.0045f * sstep(35.f * deg, 5.f * deg, at) * sstep(-35.f * deg, -55.f * deg, v.pb) : 0.f;
+        float chinBoost = kind == FH_BEARD ? 0.0045f * sstep(35.f * deg, 5.f * deg, at) * sstep(-35.f * deg, -55.f * deg, v.pb) * sstep(0.006f, 0.02f, d) : 0.f;
         return (base + chinBoost) * hs * sstep(0.f, kind == FH_BEARD ? 0.02f : 0.014f, cv);
     };
     // the shell fades into the skin colour over its outer ~8 mm (the strand cards carry the outline), so the beard
@@ -1380,11 +1665,13 @@ static void buildFacialHair(OutfitCtx& o) {
         float strands = 0.5f + 0.5f * sinf(v.bp.x * 2300.f + 3.f * sinf(v.bp.z * 700.f));   // fine vertical streaks
         vec3 hairC = cc * 0.8f * (0.7f + 0.65f * hv) + vec3(0.016f, 0.012f, 0.009f) * (0.4f + 0.8f * hv + 0.6f * strands);
         // the edge: sparse (skin shows between the hairs), broken up per vertex rather than a smooth airbrushed fade
-        float cv = region(v, must, chin, cheeks);
+        float cv = shellCov(v);
         float t = sstep(0.0f, 0.013f, cv);
         float grain = hashToFloat(hash32((u32)(v.bp.x * 12000.f) * 73856093u ^ (u32)(v.bp.y * 12000.f) * 19349663u ^ (u32)(v.bp.z * 12000.f)));
         t = Saturate(t + (grain - 0.5f) * 0.6f * (1.f - t) * sstep(-0.002f, 0.004f, cv));
-        return lerp(lerp(v.col, hairC, 0.4f), hairC, t);
+        // the skin shows between the hairs (more through a short beard), so the beard is never a flat painted mask
+        vec3 inner = lerp(hairC, v.col * 0.6f, skinShow);
+        return lerp(lerp(v.col, hairC, 0.4f), inner, t);
     };
     // tint the skin under the beard edge (stubble-like: the skin darkens towards the hair without turning into it)
     for (size_t i = 0; i < c.surfaceIdxEnd; i++) {
@@ -1397,64 +1684,24 @@ static void buildFacialHair(OutfitCtx& o) {
     emitGarment(o, g);
     // (the far LOD paints the beard onto the face and drops this shell: see stripForLod)
     for (size_t i = beardV0; i < o.out.v.size(); i++) o.out.v[i].flags |= BuildCtx::F_BEARD;
-    // strand cards lying on the beard shell, combed down (the mustache down and out from the philtrum, the chin
-    // slightly forward); each card keeps the skin weights of its root so the beard rides on the jaw
+    // strand cards over the beard (beardCards): an inner layer of short hairs on the shell, the main layer, and on full
+    // beards sparse longer hairs whose tips stand off it (the soft outline)
     MeshB cm;
-    Rng rc(hash32(d.seed * 389u + 11u));
+    const vec3 tipCol = vmax(fcol * 1.15f, vec3(0.045f, 0.036f, 0.028f));   // strand tips catch the light (black hair reads dark brown at the ends)
     const float lenBase = kind == FH_BEARD ? 0.014f : (kind == FH_SHORTBEARD ? 0.0065f : (kind == FH_MUSTACHE ? 0.0095f : 0.011f));
-    // short beards: fewer, two-segment cards (the shell carries most of their volume)
-    float pick = kind == FH_BEARD ? 0.75f : (kind == FH_SHORTBEARD ? 0.34f : 0.45f);
-    {
-        // budget: at most ~1.1k card triangles (a dense face grid would otherwise spend 1.5k on a short beard)
-        int cand = 0;
-        for (int j = 1; j < H.rows; j++)
-            for (int k = 0; k < H.cols; k++)
-                if (region(c.m.v[H.grid[(size_t)j * H.cols + k]], must, chin, cheeks) >= -0.002f) cand++;
-        const int NSgE = kind == FH_SHORTBEARD ? 2 : 3;
-        float est = (float)cand * pick * 1.25f * NSgE * 2.f;
-        if (est > 1100.f) pick *= 1100.f / est;
-    }
-    const int NSg = kind == FH_SHORTBEARD ? 2 : 3;
-    // strand tips catch the light: black hair reads dark brown at the ends (a floor under the tip colour)
-    const vec3 tipCol = vmax(fcol * 1.15f, vec3(0.045f, 0.036f, 0.028f));
-    CardPt pts[4];
-    for (int j = 1; j < H.rows; j++)
-        for (int k = 0; k < H.cols; k++) {
-            const BVert& v = c.m.v[H.grid[(size_t)j * H.cols + k]];
-            float cv = region(v, must, chin, cheeks);
-            // denser along the edge, where the cards make the outline
-            float pk = pick * (1.f + 0.8f * bump(cv, 0.002f, 0.004f));
-            if (cv < -0.002f || rc.f() > pk) continue;
-            u32 seed = rc.next();
-            float T = g.thick + g.extraFn(v);
-            float edgeDens = sstep(-0.002f, 0.006f, cv);
-            float sx = v.pa < kPi ? 1.f : -1.f;
-            float at = v.pa > kPi ? kTwoPi - v.pa : v.pa;
-            bool mzone = rowOf(v) >= rLipHi;
-            float chinFwd = sstep(40.f * deg, 10.f * deg, at) * sstep(-30.f * deg, -50.f * deg, v.pb);
-            vec3 q = v.p, nq = normalize(v.n);
-            float thq = v.pa, phq = v.pb;
-            float len = lenBase * hs * rc.range(0.8f, 1.25f);
-            float seg = len / NSg;
-            int np = 0;
-            for (int sgi = 0; sgi <= NSg; sgi++) {
-                float u = (float)sgi / NSg;
-                pts[np].p = q + nq * (0.0006f + T * Lerp(0.45f, 1.05f, u));
-                pts[np].n = nq;
-                pts[np].w = 0.008f * hs * (1.f - 0.3f * u);
-                pts[np].sw = v.sw;
-                np++;
-                if (sgi == NSg) break;
-                vec3 f = mzone ? vec3(sx * 0.8f, 0.1f, -1.f) : vec3(sx * 0.15f, 0.4f * chinFwd, -1.f);
-                f = f - nq * dot(f, nq);
-                if (length2(f) < 1e-10f) break;
-                vec3 q1, n1;
-                scalpStep(c, q, normalize(f), seg, thq, phq, q1, n1);
-                q = q1;
-                nq = n1;
-            }
-            if (np >= 2) emitCard(cm, pts, np, CARD_BEARD, seed, fcol * 0.6f, tipCol, 0.45f + 0.45f * edgeDens, PART_HEAD, &H);
-        }
+    // (the strand cards thin out over the last few millimetres before the lips, where the dense shell carries the
+    // beard: cards rooted right at the vermilion stand up off the lip line and catch the sky as a grey ring)
+    auto cov = [=](const BVert& v) {
+        float d = lipDist(v);
+        return Min(region(v, must, chin, cheeks, false), v.pb > phM ? (d - 0.0008f) * 2.2f : (d - 0.0012f) * 2.f);
+    };
+    auto thickAt = [&](const BVert& v) { return g.thick + g.extraFn(v); };
+    BeardLayer layers[3];
+    int nl = 0;
+    layers[nl++] = {0.45f, 1, 0.0058f, kind == FH_BEARD ? 1.6f : 1.4f, 0.9f, 0.3f, 0.55f, 5u, -0.003f};
+    layers[nl++] = {1.0f, 2, 0.0068f, kind == FH_BEARD ? 1.5f : 1.3f, 0.75f, 0.35f, 1.05f, 2u, -0.0015f};
+    if (kind == FH_BEARD || kind == FH_GOATEE) layers[nl++] = {1.3f, 3, 0.0052f, kind == FH_BEARD ? 0.5f : 0.35f, 0.45f, 0.6f, 1.4f, 0u, 0.002f};
+    beardCards(c, cm, cov, thickAt, layers, nl, lenBase, fcol * 0.6f, tipCol, hash32(d.seed * 389u + 11u));
     size_t t0 = o.out.idx.size() / 3;
     o.out.append(cm);
     o.hideOut.resize(o.out.idx.size() / 3, 0);
@@ -1478,7 +1725,9 @@ void buildHairLayer(OutfitCtx& o) {
         // slight shadow of shaved hair on the sides for older men
         return;
     }
-    // tint the scalp under the hair so thin edges read as hair
+    // tint the scalp under the hair so thin edges read as hair: full under the hair, fading out over the last few
+    // millimetres in front of the hairline (fine short hairs), broken up so the edge is not an airbrushed band
+    const u32 tintSeed = hash32(d.seed * 0x68E31DA4u + 0x3Bu);
     for (size_t i = 0; i < c.m.v.size(); i++) {
         BVert& v = c.m.v[i];
         if (v.part != PART_HEAD || v.pc < 1.2f) continue;
@@ -1488,7 +1737,10 @@ void buildHairLayer(OutfitCtx& o) {
         float keep = fadeKeep(h, at, v.pb);
         float amt = (h.style == HAIR_BUZZ ? 0.8f : 0.6f) * Lerp(0.25f, 1.f, keep);
         if (h.rope == ROPE_CORNROWS) amt = 0.3f;   // the partings between the rows: bare scalp, a little shadowed
-        if (cv > -0.01f) v.col = lerp(v.col, h.col * 0.75f, amt * sstep(-0.01f, 0.006f, cv));
+        float grain = hashToFloat(hash32((u32)i * 0x9E3779B1u ^ tintSeed));
+        float edge = sstep(-0.0045f, 0.007f, cv);
+        edge = Saturate(edge + (grain - 0.5f) * 0.5f * edge * (1.f - edge) * 4.f);
+        if (cv > -0.0045f) v.col = lerp(v.col, h.col * 0.75f, amt * edge);
         // the line-up: a crisp, dense edge along the front hairline and the temples
         if (h.lineUp && at < 80.f * kDegToRad && cv > -0.0005f) v.col = lerp(v.col, h.col * 0.6f, 0.8f * (1.f - sstep(0.0015f, 0.005f, cv)));
     }
@@ -1511,17 +1763,25 @@ void buildHairLayer(OutfitCtx& o) {
     g.extraFn = [=](const BVert& v) -> float {
         float cv = hairCoverage(*cp, hp, v);
         float T = styleThickness(*cp, hp, v);
-        return T * shellFrac * sstep(0.f, 0.012f, cv);
+        return T * shellFrac * sstep(0.f, hairRampLen(T), cv);
     };
     g.colFn = [=](const BVert& v, vec3 cc) {
         float n = hashToFloat(hash32((u32)(v.bp.x * 7000.f) * 2654435761u ^ (u32)(v.bp.y * 6000.f) ^ (u32)(v.bp.z * 5000.f) * 40503u));
         // (under braids and locs the shell is the hair of the sections beneath them: in their shade)
-        return cc * (0.82f + 0.3f * n) * (cards ? 0.72f : (ropes ? 0.7f : 1.f));
+        vec3 hairC = cc * (0.82f + 0.3f * n) * (cards ? kCardShellShade : (ropes ? 0.7f : 1.f));
+        // over its first few millimetres the shell takes on the (hair-tinted) skin under it, broken up per vertex, so
+        // its edge is a thinning of hair rather than a cut line (the hairline's fine hairs lie over it)
+        float cv = hairCoverage(*cp, hp, v);
+        float t = sstep(0.f, 0.009f, cv);
+        t = Saturate(t + (n - 0.5f) * 0.5f * t * (1.f - t) * 4.f);
+        return lerp(lerp(v.col, hairC, 0.45f), hairC, t);
     };
     size_t shellV0 = o.out.v.size();
     if (h.rope != ROPE_CORNROWS) emitGarment(o, g);   // cornrows lie on the bare scalp
     if (cards) {
-        for (size_t i = shellV0; i < o.out.v.size(); i++) o.out.v[i].flags |= BuildCtx::F_CARDSHELL;
+        // (the skin-blended edge is left out: the LODs brighten the card-shaded shell back by 1 / kCardShellShade)
+        for (size_t i = shellV0; i < o.out.v.size(); i++)
+            if (hairCoverage(c, h, o.out.v[i]) > 0.009f) o.out.v[i].flags |= BuildCtx::F_CARDSHELL;
         buildScalpCards(o, h, shellFrac);
     }
     // styles with draped parts
