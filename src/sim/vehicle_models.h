@@ -31,6 +31,30 @@ struct SeatSpec {
     vec3 pos;          // hip position of the seated character
     bool driver;
     bool exitLeft;     // which side the occupant exits
+    int door = -1;     // VehicleModel::doors entry the occupant gets in and out through (-1: no opening door)
+};
+
+// An opening side door (cars at full detail). `mesh` holds everything that swings with the door - outer skin, glass,
+// window trim, handle, mirror, door card, armrest and the door's shut faces - in the vehicle's local frame at the
+// closed position; the body has the matching opening (painted jambs, sill, pillars and seals) and no door, so a door
+// must always be drawn with the body: with the body's transform turned about the hinge axis,
+//   world = body * translate(hinge) * rotate(axis, angle) * translate(-hinge),   0 <= angle <= maxAngle,
+// a positive angle swinging the door outwards (its rear edge away from the body).
+struct DoorSpec {
+    MeshData mesh;
+    vec3 hinge;            // a point on the hinge axis (front edge of the door)
+    vec3 axis;             // unit hinge axis, roughly vertical (leaning in with the body side)
+    float maxAngle = 1.15f;
+    bool left = false;     // on the left side (-X)
+    bool front = true;     // front door (rear doors of four-door bodies: false)
+    // Closed-door reference points for the occupant's hands and path (vehicle frame):
+    vec3 handle;           // outer pull handle (where the fingers hook under it)
+    vec3 handleIn;         // inner release / pull handle on the door card
+    vec3 grip;             // top of the door near its rear edge (a hand holding the open door)
+    vec3 outward;          // unit outward normal of the closed door (horizontal)
+    // The opening (vehicle frame): along the length between yFront and yRear at the sill, sill top at sillZ reaching
+    // out to sillX (|x| of the sill's outer edge), the roof rail's underside at roofZ over the seat
+    float yFront = 0.f, yRear = 0.f, sillZ = 0.f, sillX = 0.f, roofZ = 0.f;
 };
 
 struct LightSpec {
@@ -77,6 +101,7 @@ struct VehicleModel {
     std::vector<Gauge> gauges;
     std::vector<WheelSpec> wheels;
     std::vector<SeatSpec> seats;
+    std::vector<DoorSpec> doors;   // opening side doors (cars, full detail only); see DoorSpec
     std::vector<LightSpec> lights;
     // Collision: oriented box (center + half extents) in local space, plus a few extra spheres if useful
     vec3 boxCenter, boxHalf;

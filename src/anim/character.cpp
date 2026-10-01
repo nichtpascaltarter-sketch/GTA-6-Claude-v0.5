@@ -796,7 +796,8 @@ static void addMittens(const MeshB& src, MeshB& out, const Skeleton& skel) {
 // lashes: their colour is painted onto the skin first), tiny accessory pieces (buttons, rivets) and the fingers (a
 // mitten per hand takes their place: addMittens); at LOD2 also the lid tucks, the mouth interior (the far LOD never
 // talks) and small accessories (jewellery, glasses, badges, holster items); hats, bags and garments stay. The eyeballs
-// become low-poly spheres with the same sclera / iris colours. LOD2 is made from LOD1 (it keeps the mittens).
+// become low-poly spheres with the same iris colour (LOD2: duller whites). LOD2 is made from LOD1 (it keeps the
+// mittens).
 static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
     const u32 NT = (u32)(m.idx.size() / 3);
     std::vector<u8> drop(NT, 0);
@@ -916,6 +917,29 @@ static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
             for (u32 i : beard) m.v[i].col = lerp(m.v[i].col, core, 0.85f);
         }
     }
+    // sunglasses are too small for LOD2 (they go with the small accessories below): their tint goes onto the face round
+    // the eyes, and onto the eyes, so the far figure still wears shades
+    bool shades = false;
+    vec3 lensCol(0.f);
+    if (lod >= 2) {
+        const float eyeZ = -0.5f * (skel.invBindModel[B_EYE_L].c[3].z + skel.invBindModel[B_EYE_R].c[3].z);
+        std::vector<vec3> lens;
+        for (const BVert& v : m.v)
+            if (v.part == PART_ACC && v.mat == MAT_CAR_GLASS && fabsf(v.p.z - eyeZ) < 0.03f) {
+                lens.push_back(v.p);
+                lensCol += v.col;
+            }
+        if (!lens.empty()) {
+            shades = true;
+            lensCol = lensCol / (float)lens.size();
+            for (BVert& v : m.v) {
+                if (v.part != PART_HEAD || v.mat != MAT_SKIN || !(v.flags & BuildCtx::F_FACE)) continue;
+                float best = 1e9f;
+                for (vec3 p : lens) best = Min(best, Sq(p.x - v.p.x) + Sq(p.z - v.p.z));   // seen from the front
+                if (best < 0.02f * 0.02f) v.col = lerp(v.col, lensCol, 0.95f * (1.f - sstep(0.012f, 0.02f, sqrtf(best))));
+            }
+        }
+    }
     // accessory components (triangles connected through shared vertices)
     std::vector<u32> parent(m.v.size());
     for (u32 i = 0; i < (u32)m.v.size(); i++) parent[i] = i;
@@ -968,7 +992,9 @@ static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
         vec3 ctr = -skel.invBindModel[eb].c[3].xyz();
         float r = 0.f;
         int n = 0;
-        vec3 iris(0.1f, 0.06f, 0.03f), sclera(0.78f, 0.74f, 0.7f);
+        // (the far LOD's whites are toned down: from 40 m an eye is a pixel in the shadow of its socket, and a full white
+        // reads as a stare)
+        vec3 iris(0.1f, 0.06f, 0.03f), sclera = vec3(0.78f, 0.74f, 0.7f) * (lod >= 2 ? 0.6f : 1.f);
         float bestIris = 2.f;
         vec3 fw = normalize(vec3((sd ? 1.f : -1.f) * 0.04f, 1.f, 0.f));
         for (const BVert& v : m.v) {
@@ -998,6 +1024,7 @@ static void stripForLod(MeshB& m, const Skeleton& skel, int lod) {
                 v.n = dir;
                 v.t = ex * -sinf(ph) + ez * cosf(ph);
                 v.col = pi == 0 ? iris * 0.45f : (pi == 1 ? iris : (pi == 2 ? sclera : vec3(0.62f, 0.48f, 0.45f)));
+                if (shades) v.col = lensCol;
                 v.mat = MAT_EYE;
                 v.part = PART_EYE;
                 v.side = (u8)sd;

@@ -414,6 +414,8 @@ void GameWorld::submitRender() {
         if (v.sirenOn) bits |= 32u;
         // level of detail by distance (the player's own vehicle always full detail)
         int vlod = vi == playerVehicle() ? 0 : (dist < 40.f ? 0 : (dist < 120.f ? 1 : 2));
+        // an open door is only a part of its own at full detail (the distant levels are closed shells)
+        if (vlod > 0 && dist < 120.f && v.doorOpen[0] + v.doorOpen[1] + v.doorOpen[2] + v.doorOpen[3] > 0.f) vlod = 0;
         if (vlod > 0 && !a.bodyLod[vlod - 1]) vlod = 0;
         Render::DrawItem d;
         d.model = vlod == 0 ? a.body : a.bodyLod[vlod - 1];
@@ -439,6 +441,23 @@ void GameWorld::submitRender() {
         d.paintFinish = (float)v.mods.finish;
         d.glassTint = v.mods.tint * 0.3f;
         dyn->submit(d);
+        // the side doors: cut out of the full-detail body (always drawn with it), swung open about their hinges
+        if (vlod == 0) {
+            for (int k = 0; k < (int)a.spec.doors.size() && k < 4; k++) {
+                if (!a.door[k]) continue;
+                const Vehicles::DoorSpec& ds = a.spec.doors[k];
+                Render::DrawItem dd = d;
+                dd.model = a.door[k];
+                float ang = Saturate(v.doorOpen[k]) * ds.maxAngle;
+                if (ang > 1e-4f) {
+                    mat3 Rd = mat3FromQuat(quatAxisAngle(ds.axis, ang));
+                    dd.rot = d.rot * Rd;
+                    dd.pos = d.pos + dvec3(d.rot * (ds.hinge - Rd * ds.hinge));
+                }
+                dd.id = 0x4000000000ull | ((u64)v.uid << 4) | (u64)k;
+                dyn->submit(dd);
+            }
+        }
         // the steering wheel turned by the driver's hands (Animator::wheelTurn, so rim and hands agree), with the body's
         // weight-transfer tilt
         if (vlod == 0 && a.steerWheel && dist < 40.f) {

@@ -573,6 +573,8 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                         d->path = pth;
                         d->u = uu;
                         traffic.clearRoute(*d);
+                        LOG("population: %s %d past a hold-up in traffic, %.0f m on (%.0f m from the scene)", va.role == VR_AMBULANCE ? "ambulance" : "fire truck", vi, ahead,
+                            length(c.xy() - inc->pos.toVec3().xy()));
                         break;
                     }
                 }
@@ -602,11 +604,14 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                         peds[c].brain.type = BRAIN_WANDER;
                     }
                 }
-                // everyone back in: leave
+                // everyone back in (and the patient they are taking in): leave
                 bool crewOut = false;
-                for (int pi = 0; pi < (int)ai.ped.size() && pi < (int)peds.size(); pi++)
-                    if (peds[pi].used && ai.ped[pi].uid == peds[pi].uid && ai.ped[pi].homeVeh == vi && peds[pi].vehicle != vi && peds[pi].health > 0.f) crewOut = true;
-                if (va.taskTimer > 30.f && !crewOut) {
+                for (int pi = 0; pi < (int)ai.ped.size() && pi < (int)peds.size(); pi++) {
+                    if (!peds[pi].used || ai.ped[pi].uid != peds[pi].uid || peds[pi].health <= 0.f) continue;
+                    if (ai.ped[pi].homeVeh == vi && peds[pi].vehicle != vi) crewOut = true;
+                    if (ai.ped[pi].activity == ACT_ENTER_VEH && ai.ped[pi].targetVeh == vi) crewOut = true;
+                }
+                if (va.taskTimer > 30.f && (!crewOut || va.taskTimer > 100.f)) {   // (not for ever)
                     va.task = 2;
                     v.sirenOn = false;
                     v.sirenSilent = false;

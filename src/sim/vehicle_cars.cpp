@@ -19,8 +19,9 @@ inline Frame projLeft() { return Frame(vec3(0, 0, 0), vec3(0, 1, 0), vec3(0, 0, 
 inline void carSideDetails(PMesh& m, CarBody& b, const CarDef& d) {
     const CarSpec& s = b.s;
     Frame fr = projRight();
-    float yD0 = Min(s.yCowl - 0.04f, b.yWf - b.Ra - 0.10f);
-    float zLow = s.zSill + 0.075f;
+    const DoorLines DL = doorLines(b);
+    float yD0 = DL.yD0;
+    float zLow = DL.zLow;
     m.newGroup(40.f);
     auto vline = [&](float y, float zTop, float zBot) {
         std::vector<vec2> l;
@@ -28,11 +29,8 @@ inline void carSideDetails(PMesh& m, CarBody& b, const CarDef& d) {
         l.push_back(vec2(y - 0.01f, zBot));
         seam(m, b.proj, fr, l);
     };
-    bool pickup = s.style == BS_PICKUP;
-    float yRearDoor = Max(s.dloRearBot + 0.02f, b.yWr + b.Ra + 0.12f);
-    if (d.s.doors == 2) yRearDoor = Max(s.dloRearBot + 0.02f, b.yWr + b.Ra + 0.15f);
-    if (pickup) yRearDoor = s.yDeck + 0.03f;
-    float yB = s.bPillar;
+    float yRearDoor = DL.yRear;
+    float yB = DL.yB;
     // front edge of the front door
     vline(yD0, b.beltZAt(yD0) - 0.012f, zLow);
     if (d.s.doors >= 4) vline(yB, b.beltZAt(yB) - 0.012f, zLow);
@@ -40,13 +38,12 @@ inline void carSideDetails(PMesh& m, CarBody& b, const CarDef& d) {
     {
         std::vector<vec2> l;
         float zt = b.beltZAt(yRearDoor) - 0.012f;
-        float archTopZ = s.wheelR + b.Ra + 0.06f;
-        float yArchF = b.yWr + b.Ra + 0.06f;
-        if (yRearDoor < yArchF + 0.1f) {
+        float archTopZ = DL.archTopZ;
+        if (DL.archCut) {
             l.push_back(vec2(yRearDoor, zt));
             l.push_back(vec2(yRearDoor, archTopZ + 0.04f));
             // follow the arch offset circle forwards/down to the sill
-            float R2 = b.Ra + 0.06f;
+            float R2 = DL.archR;
             float a0 = acosf(Clamp((yRearDoor - b.yWr) / R2, -1.f, 1.f));
             for (int k = 0; k <= 6; k++) {
                 float a = lerp(a0, 0.25f, k / 6.f);
@@ -118,7 +115,9 @@ inline void carSideDetails(PMesh& m, CarBody& b, const CarDef& d) {
         std::vector<vec2> l;
         l.push_back(vec2(y0, s.zSill + 0.05f));
         l.push_back(vec2(y1, s.zSill + 0.05f));
+        m.part = PART_FIXED;   // the skirt runs under the doors' bottom edges: it stays on the sill
         decalBar(m, dc, l, 0.07f, 0.02f, -0.004f, 0.08f);
+        m.part = PART_AUTO;
     }
     if (d.L.sideIntake) {
         Decal dc;
@@ -394,7 +393,15 @@ inline void buildCar(const CarDef& def, VehicleModel& out) {
     }
     const CarSpec& s = b.s;
     const CarLook& L = d.L;
-    finalizeMesh(m, out.body);
+    // full detail: the side doors open (cut out of the closed body along their shut lines, vehicle_doors.cpp)
+    bool doors = lodLevel() == 0 && d.carSeams && s.style != BS_BOXY && s.style != BS_VAN;
+    AABB bb;
+    if (doors) {
+        bb = buildCarDoors(b, d.I, m, out);
+    } else {
+        finalizeMesh(m, out.body);
+        bb = out.body.bounds;
+    }
     d.wd.maker = d.L.maker;
     buildWheel(d.wd, out.wheel);
     {
@@ -424,7 +431,7 @@ inline void buildCar(const CarDef& def, VehicleModel& out) {
         out.seats.push_back(SeatSpec{vec3(-fx, d.I.yHipR, hz - 0.02f), false, true});
         out.seats.push_back(SeatSpec{vec3(fx, d.I.yHipR, hz - 0.02f), false, false});
     }
-    AABB bb = out.body.bounds;
+    if (doors) linkSeatDoors(out);
     out.boxCenter = vec3(0, (bb.mn.y + bb.mx.y) * 0.5f, (s.zSill + bb.mx.z) * 0.5f);
     out.boxHalf = vec3(s.halfW, (bb.mx.y - bb.mn.y) * 0.5f, (bb.mx.z - s.zSill) * 0.5f);
     out.frontalArea = (2.f * s.halfW) * (s.zRoof - s.zSill) * 0.84f;
@@ -540,7 +547,9 @@ inline void carBodyPartsLod(const CarDef& d, CarBody& b, PMesh& m, bool interior
 
 inline void carBodyParts(const CarDef& d, CarBody& b, PMesh& m, bool interior) {
     b.s = d.s;
+    m.part = PART_SHELL;
     b.build(m);
+    m.part = PART_AUTO;
     if (lodLevel() >= 1) {
         carBodyPartsLod(d, b, m, interior, lodLevel());
         return;

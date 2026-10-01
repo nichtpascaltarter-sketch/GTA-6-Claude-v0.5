@@ -434,6 +434,7 @@ static void runScenario(int sc, float t, AnimInput& in) {
     }
 }
 
+#ifndef PREVIEW_NO_MAIN   // (tests/anim/carview.cpp reuses the rasterizer with a main of its own)
 int main(int argc, char** argv) {
     const char* out = argc > 1 ? argv[1] : "/tmp/preview.ppm";
     u32 seed = 1000;
@@ -1064,3 +1065,4 @@ int main(int argc, char** argv) {
     else img.save(out);
     return 0;
 }
+#endif

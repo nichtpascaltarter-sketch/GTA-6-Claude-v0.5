@@ -56,6 +56,12 @@ inline int lodSeg(int s, int mn) {
 inline float smooth01(float x) { x = Saturate(x); return x * x * (3.f - 2.f * x); }
 inline float remap01(float x, float a, float b) { return Saturate((x - a) / (b - a)); }
 
+// Part tags of faces (PMesh::part) for cutting the opening doors out of a full-detail car body (vehicle_doors.cpp):
+// AUTO geometry inside a door's outline goes with the door (cut exactly on the shut lines, or whole when it is a small
+// separate part such as a handle or the mirror), FIXED geometry (the cabin structure: floor, seats, dash, headliner)
+// always stays with the body, SHELL is the lofted outer skin (AUTO, and the surface the jambs are fitted to).
+enum PartTag : u8 { PART_AUTO = 0, PART_FIXED = 1, PART_SHELL = 2 };
+
 // ------------------------------------------------------------------------------------------------
 // Polygon mesh with per-face material/color and smoothing groups.
 struct PMesh {
@@ -65,6 +71,7 @@ struct PMesh {
         u8 mat;
         u8 uvMode;
         u16 group;
+        u8 part;
     };
     struct Mark { size_t p, f; };
     std::vector<vec3> P;
@@ -75,6 +82,8 @@ struct PMesh {
     u8 mat = MAT_CARPAINT;
     u8 uvMode = UV_BOX;
     u16 group = 0;
+    // Part tag of the faces being added (opening doors, vehicle_doors.cpp: PART_AUTO / PART_FIXED / PART_SHELL)
+    u8 part = 0;
 
     PMesh() { groupCos.push_back(cosf(40.f * kDegToRad)); }
     // Starts a new smoothing group: faces only share normals with faces of the same group whose normals
@@ -94,7 +103,7 @@ struct PMesh {
     void tri(u32 a, u32 b, u32 c) {
         Face f;
         f.v[0] = a; f.v[1] = b; f.v[2] = c;
-        f.color = color; f.mat = mat; f.uvMode = uvMode; f.group = group;
+        f.color = color; f.mat = mat; f.uvMode = uvMode; f.group = group; f.part = part;
         F.push_back(f);
     }
     // Quad a,b,c,d counter-clockwise seen from the front; split along the shorter diagonal.
@@ -166,8 +175,10 @@ struct OutKeyHash {
 inline u32 floatBits(float f) { u32 u; memcpy(&u, &f, 4); return u; }
 
 // Converts the polygon mesh into the renderer's vertex format with auto-smoothed normals.
-inline void finalizeMesh(const PMesh& pm, MeshData& out) {
+// triPart (optional) receives the part tag of every output triangle, in index order.
+inline void finalizeMesh(const PMesh& pm, MeshData& out, std::vector<u8>* triPart = nullptr) {
     out.clear();
+    if (triPart) triPart->clear();
     size_t nf = pm.F.size();
     std::vector<vec3> fn(nf);
     std::vector<u8> valid(nf, 0);
@@ -312,6 +323,7 @@ inline void finalizeMesh(const PMesh& pm, MeshData& out) {
             idx[k] = vi;
         }
         out.tri(idx[0], idx[1], idx[2]);
+        if (triPart) triPart->push_back(f.part);
     }
 }
 

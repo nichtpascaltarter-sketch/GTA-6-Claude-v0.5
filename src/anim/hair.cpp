@@ -6,7 +6,9 @@
 // and the scalp under it is tinted with the hair color so the edge blends. Long styles add draped geometry: curtains
 // (long straight, bob) and ponytails/braids are swept down the back and pushed out of the body's signed distance
 // field so they rest on the neck, shoulders and upper back; their lower parts are skinned to the neck/chest so they
-// stay on the back when the head turns. Facial hair uses the same shell over the lower face (mustache, goatee,
+// stay on the back when the head turns. Braids and locs are ropes laid along combing paths over the scalp that hang
+// free below it (cornrows, box braids, long locs, twists; long curls are coiled ropes over a curtain). Strand cards
+// carry the soft outline of the other styles. Facial hair uses the same shell over the lower face (mustache, goatee,
 // short and full beards) or a vertex color tint (stubble).
 #include "anim_internal.h"
 
@@ -408,7 +410,8 @@ static SkinW drapeWeights(float t, float headKeep) {
 }
 
 // A sheet of hair hanging from the head around the back/sides (theta range [thA, thB] through the back).
-static void addCurtain(OutfitCtx& o, const HairParams& h, float thA, float length, float lift, float flare, float jag) {
+// (cards: strand cards over the sheet; a curly curtain has none, the coils lie over it instead)
+static void addCurtain(OutfitCtx& o, const HairParams& h, float thA, float length, float lift, float flare, float jag, bool cards = true) {
     BuildCtx& c = o.c;
     const BodyDims& D = *c.D;
     const float hs = D.headS;
@@ -508,6 +511,7 @@ static void addCurtain(OutfitCtx& o, const HairParams& h, float thA, float lengt
     m.computeNormals(0, m.idx.size());
     o.out.append(m);
     o.hideOut.resize(o.out.idx.size() / 3, 0);
+    if (!cards) return;
     // strand cards hanging over the sheet: two offset layers, strands ending at slightly different lengths
     MeshB cm;
     Rng rc(hash32(c.d->seed * 733u + 5u));
@@ -1202,9 +1206,9 @@ static void buildCoils(OutfitCtx& o, const HairParams& h) {
     std::vector<RopeSt> S;
     const float thA = 56.f * kDegToRad;   // from the temples (framing the face) round the back
     for (int row = 0; row < 2; row++) {
-        const int K = row ? 9 : 12;
+        const int K = row ? 8 : 10;
         for (int i = 0; i < K; i++) {
-            const float u = ((float)i + 0.5f) / K;
+            const float u = ((float)i + 0.5f + 0.5f * row) / (K + 0.5f * row);
             const float th = thA + (kTwoPi - 2.f * thA) * u + r.range(-0.04f, 0.04f);
             const float at = th > kPi ? kTwoPi - th : th;
             const float ph = hairlinePhi(h, at) + (row ? 26.f : 9.f) * kDegToRad;
@@ -1213,11 +1217,11 @@ static void buildCoils(OutfitCtx& o, const HairParams& h) {
             const float T = styleThickness(c, h, headProbe(th, ph, q));   // the curly volume there
             RopeSpec R;
             R.seed = r.next();
-            R.w = R.h = 0.0068f * hs * Lerp(0.85f, 1.15f, ropeRand(R.seed));
-            const float pitch = 0.03f * hs * Lerp(0.85f, 1.2f, ropeRand(R.seed + 1u)), helixR = 0.0062f * hs;
+            R.w = R.h = 0.0105f * hs * Lerp(0.85f, 1.15f, ropeRand(R.seed));   // a clump of curl, not a single strand
+            const float pitch = 0.036f * hs * Lerp(0.85f, 1.2f, ropeRand(R.seed + 1u)), helixR = 0.008f * hs;
             R.stepH = pitch / 3.f;
             R.clear = row ? 0.012f : 0.004f;
-            R.flare = 0.25f;
+            R.flare = 0.3f;
             R.hang = h.curlLen * Lerp(0.75f, 1.15f, ropeRand(R.seed + 2u));
             RopeSt s0;
             s0.p = q + n * (T * 0.85f + R.h);
@@ -1533,7 +1537,13 @@ void buildHairLayer(OutfitCtx& o) {
         addHairTube(o, h, start, vec3(0, -1, -0.3f), r.range(0.2f, 0.3f), 0.018f * hs, 0.024f * hs, 0.006f * hs, 10, true);
     }
     if (h.style == HAIR_BUN) addBun(o, h);
-    if (h.style == HAIR_CURLY && h.curlLen > 0.f) buildCoils(o, h);
+    if (h.style == HAIR_CURLY && h.curlLen > 0.f) {
+        // the mass of the hair under the coils (in their shade), then the coils over it
+        HairParams hc = h;
+        hc.col = h.col * 0.7f;
+        addCurtain(o, hc, 78.f * kDegToRad, h.curlLen * 0.8f * hs, 0.002f, 0.2f, 0.2f, false);
+        buildCoils(o, h);
+    }
     if (ropes) {
         // cornrows, box braids, locs, twists (the ropes rest on the shell: its thickness plus the lumps)
         const float shellT = (h.rope == ROPE_BOX ? 0.0068f : (h.rope == ROPE_LOCS ? 0.0098f : (h.rope == ROPE_TWISTS ? 0.0042f : 0.f))) * 1.12f * hs;

@@ -592,6 +592,10 @@ void GameWorld::buildAssets() {
         a.caliper = a.spec.caliper.empty() ? nullptr : dyn->createModel(a.spec.caliper);
         a.steerWheel = a.spec.steerWheel.empty() ? nullptr : dyn->createModel(a.spec.steerWheel);
         a.needle = a.spec.needle.empty() ? nullptr : dyn->createModel(a.spec.needle);
+        for (size_t k = 0; k < a.spec.doors.size() && k < 4; k++) {
+            a.door[k] = a.spec.doors[k].mesh.empty() ? nullptr : dyn->createModel(a.spec.doors[k].mesh);
+            a.spec.doors[k].mesh.clear();
+        }
         a.rotor = a.spec.rotor.empty() ? nullptr : dyn->createModel(a.spec.rotor);
         a.tailRotor = a.spec.tailRotor.empty() ? nullptr : dyn->createModel(a.spec.tailRotor);
         // free CPU copies of the meshes (metadata stays)

@@ -190,6 +190,35 @@ void phoneFrame(const Skeleton& skel, const mat4* modelSpace, vec3& pos, vec3& l
 void holdGrip(const Skeleton& skel, Pose& pose, bool right, vec3 pos, vec3 axis, vec3 palm, vec3 pole, float fingers, float thumb,
               float weight);
 
+// A car door to get in or out through (CLIP_ENTER_CAR_* / CLIP_EXIT_CAR_*; _L = a door on the vehicle's left): the door
+// and its seat as Vehicles::DoorSpec / SeatSpec describe them, here in the ped's model space (x right, y forward, z up,
+// origin at its feet) while the clip plays. The game holds the ped still meanwhile: getting in starts where
+// carEntrySpot() says (the walk to the door ends there), getting out is rooted where carExitSpot() says (the ped
+// stands there at the end), and the occupant swings the door by Animator::carDoor().
+struct CarDoorInfo {
+    bool valid = false;          // false: the plain clip (no door, no seat)
+    vec3 seat;                   // seated hip point
+    vec3 fwd = vec3(0, 1, 0);    // the vehicle's forward axis (unit)
+    vec3 out = vec3(-1, 0, 0);   // the door's outward normal (unit, horizontal)
+    vec3 hinge, axis;            // the door's hinge point and axis (a positive turn swings it open)
+    float maxOpen = 1.15f;       // fully open (rad)
+    vec3 handle, handleIn;       // outer and inner handle of the shut door
+    vec3 grip;                   // top of the shut door near its rear edge (the roof rail is just above it)
+    vec3 front, rear;            // front and rear end of the opening at the sill's outer edge
+    float sillZ = 0.3f;          // top of the sill (the cabin floor)
+    float roofZ = 1.3f;          // underside of the opening's top over the seat
+    bool driver = true;          // seated: the hands go to the steering wheel (else to the lap)
+    bool belt = true;            // buckle up once in (and unbuckle first to get out): Animator::seatBelt()
+};
+
+// Where a ped stands to start getting in through `door`, and where it stands once out (the exit clip's root), given
+// the door in the VEHICLE's frame (+y forward, z up, origin on the ground): position and facing yaw (0 = facing +y,
+// positive = turned left).
+void carEntrySpot(const CarDoorInfo& door, vec3& pos, float& yaw);
+void carExitSpot(const CarDoorInfo& door, vec3& pos, float& yaw);
+// Length (s) of a car clip with this door (the plain clip's length when the door is not valid).
+float carClipLength(int clip, const CarDoorInfo& door);
+
 // High level animation state machine driven by gameplay each frame.
 struct AnimInput {
     float speed = 0;          // horizontal speed (m/s)
@@ -282,6 +311,9 @@ struct AnimInput {
     // ragdoll so that it starts from the bracing pose.
     vec3 fallDir = vec3(0);
     float fallBrace = 0;
+    // ---- getting in / out of a car through an opening door: set it from the update that starts the clip until the
+    // clip ends (see CarDoorInfo); without it the car clips play as before (no door, no seat)
+    CarDoorInfo car;
 };
 
 // Where a hand holds a wound (AnimInput::clutch).
@@ -401,6 +433,12 @@ struct Animator {
     float braceW = 0.f;
     vec3 skinW[WOUND_COUNT];      // this body's skin at each wound (bind model space) and the bone it moves with
     int skinWB[WOUND_COUNT] = {0, 0, 0, 0, 0, 0, 0};
+    // getting in / out of a car (AnimInput::car)
+    CarDoorInfo carIn;            // the door of the car clip playing (as last given)
+    float carDoorS = -1.f;        // its opening this update (-1: none)
+    float beltT = -1.f;           // buckling up (time into it, -1 not), after getting in
+    bool belted = false;          // the seat belt is on
+    bool beltSide = false;        // buckling up with the right hand (a passenger on the right)
     // Walking style and body language from the character: call after init.
     void setCharacter(const CharacterDesc& d);
     // Model-space ground point the game should probe for each foot (0 left, 1 right) before the next update: under
@@ -425,6 +463,11 @@ struct Animator {
     bool staggering() const { return staggerT >= 0.f; }
     // How far into the bracing pose a falling body is (AnimInput::fallBrace): start the ragdoll once it is near 1.
     float braceWeight() const { return braceW; }
+    // Getting in / out of a car through a door (AnimInput::car): how far the occupant has the door open this update
+    // (0 shut .. 1 = DoorSpec::maxAngle), -1 when not getting in or out; the game swings the door by it.
+    float carDoor() const { return carDoorS; }
+    // The seat belt is on (seated in a vehicle stance after buckling up, until unbuckled getting out): draw the strap.
+    bool seatBelt() const { return belted; }
     // Drop what is left of the impacts (flinch, stagger, the reflex hand, bracing); blendFrom() and the get-up clips do
     // it themselves. Lasting injuries (legHurt, wounded, clutch) follow the input as before.
     void clearImpacts();
