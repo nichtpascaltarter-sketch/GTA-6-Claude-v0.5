@@ -20,7 +20,36 @@ struct Ctx {
     std::vector<LightInstance>* lights;
     std::vector<FacadeMass>* masses = nullptr;  // facade masses for the street-level detail pass (LOD0)
     int interior = -1;  // enterable interior of the building (world/interiors.cpp): facade cut-outs, hollow collision
+    u32 roofCol = 0xffe0e5e5u, roofMat = 0;      // flat roof finish of the building (roofFinish), set per building
 };
+
+// Flat roof finish of a building: white or light-grey membrane, gravel ballast (grey to tan), silver coating or black
+// tar - newer buildings mostly membrane, the older fabric gravel, tar and silver (seeded, same in every LOD)
+void roofFinish(const Building& b, u32& col, u32& mat) {
+    u32 h = hash32(b.seed ^ 0x500F7u);
+    float p = hashToFloat(h), t = hashToFloat(hash32(h + 1u));
+    bool old = (b.archFlags & ABF_OLD) != 0 || b.region == REG_CALLE_LUNA || b.region == REG_FLATS || b.region == REG_FORT_CASTELL;
+    if (b.arch != AR_NONE && (b.archFlags & ABF_OLD) == 0) old = false;
+    // (white cool roofs on the newer buildings, but not so many that the city reads washed out from the air)
+    float pWhite = old ? 0.18f : 0.36f, pGravel = old ? 0.37f : 0.36f, pSilver = old ? 0.2f : 0.1f;
+    if (p < pWhite) {
+        float g = 0.88f + 0.12f * t;
+        col = packRGBA8(g, g, g * 0.99f, 1);
+        mat = makeMat(MAT_PLASTER);
+    } else if (p < pWhite + pGravel) {
+        vec3 c = lerp(vec3(0.78f, 0.78f, 0.76f), vec3(0.95f, 0.88f, 0.76f), t);
+        col = packRGBA8(c.x, c.y, c.z, 1);
+        mat = makeMat(MAT_ROOF_GRAVEL);
+    } else if (p < pWhite + pGravel + pSilver) {
+        float g = 0.8f + 0.15f * t;
+        col = packRGBA8(g, g, g, 1);
+        mat = makeMat(MAT_METAL_BRUSHED);
+    } else {
+        float g = 0.75f + 0.25f * t;
+        col = packRGBA8(g, g, g, 1);
+        mat = makeMat(MAT_ASPHALT_OLD);
+    }
+}
 
 // Polygon footprint helpers (CCW)
 std::vector<vec2> rectFP(vec2 c, vec2 ax, float hx, float hy) {
@@ -124,10 +153,10 @@ void parapet(Ctx& x, const std::vector<vec2>& fp, float z, float h, float t, u32
 
 // Hip or gable roof on a rectangle
 void pitchedRoof(Ctx& x, vec2 c, vec2 ax, float hx, float hy, float z, float pitch, bool hip, float overhang, u32 color, u32 mat,
-                 u32 gableColor, u32 gableMat) {
+                 u32 gableColor, u32 gableMat, int ridge = -1) {
     vec2 ay = perp(ax);
-    // ridge along the longer axis
-    bool alongX = hx >= hy;
+    // ridge along the longer axis (ridge 0: along ax, 1: along perp(ax))
+    bool alongX = ridge < 0 ? hx >= hy : ridge == 0;
     vec2 L = alongX ? ax : ay, S = alongX ? ay : -ax;
     float hl = (alongX ? hx : hy) + overhang, hs = (alongX ? hy : hx) + overhang;
     float rise = hs * pitch;
@@ -384,7 +413,8 @@ void flatMass(Ctx& x, const std::vector<vec2>& fp, float z0, float z1, float vBa
               u8 kind = FM_MAIN, float skirt = 3.f) {
     recordMass(x, fp, z0, z1, vBase, kind, parapetOn, facadeId);
     facadeWalls(x, fp, z0 - skirt, z1 + (parapetOn ? 1.0f : 0.f), vBase, facadeId, bay);
-    flatRoof(x, fp, z1 + 0.02f, roofColor, makeMat(MAT_ROOF_GRAVEL));
+    (void)roofColor;
+    flatRoof(x, fp, z1 + 0.02f, x.roofCol, x.roofMat ? x.roofMat : makeMat(MAT_ROOF_GRAVEL));
     if (parapetOn && x.detail) parapet(x, fp, z1, 1.0f, 0.3f, packRGBA8(0.8f, 0.8f, 0.78f, 1), makeMat(MAT_CONCRETE));
 }
 
@@ -475,6 +505,15 @@ void awning(Ctx& x, vec2 a, vec2 b, vec2 out, float z, float depth, u32 color) {
 
 using namespace buildmesh_detail;
 
+// propmesh.cpp (defined later in the unity build; the defaults come with its definition)
+void leafBlobEx(MeshData& m, vec3 org, vec3 c, vec3 ax, vec3 ay, vec3 R, vec3 tint, u32 seed, float bump, int SU, int SV, vec3 blossom);
+
+}  // namespace World
+
+#include "massing.cpp"
+
+namespace World {
+
 // facadedetail.cpp
 void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& map, vec3 org, MeshData& m, std::vector<CollisionBox>* col,
                        std::vector<PropInstance>* props, std::vector<LightInstance>* lights, const std::vector<FacadeMass>& masses);
@@ -489,6 +528,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
     x.props = props;
     x.lights = lights;
     x.interior = b.interior;
+    roofFinish(b, x.roofCol, x.roofMat);
     if (b.interior >= 0 && interiorOwnsShell(b.interior)) return;   // the whole structure streams with its interior
     if (b.siteElem >= 0) return;   // hand-built by its site element (places.h): hotels, hospitals, campus halls, chapels
     thread_local std::vector<FacadeMass> masses;
@@ -499,6 +539,11 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
     float z0 = b.baseZ;
     float bay = fac.bayW;
     u32 roofGray = packRGBA8(0.9f, 0.9f, 0.88f, 1);
+    // archetype massing (blockstyle.cpp / massing.cpp): shops, apartments, offices, condos, industry
+    if (buildArchMesh(x, b, fac)) {
+        if (detail && !masses.empty()) buildFacadeDetail(b, fac, map, org, m, col, props, lights, masses);
+        return;
+    }
     switch ((BuildingStyle)b.style) {
         case BS_TOWER: {
             int podiumFloors = Min((int)b.floors, r.irange(2, 6));
@@ -548,9 +593,67 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                     thy *= sy;
                 }
             }
-            // Crown
+            // Signature crowns (their own stream, the same in every LOD): a stepped crown with LED bands on each step, or a
+            // sloped glass top
+            Rng cr(b.seed ^ 0xC2041Bu);
+            int special = (b.floors >= 18 && b.interior < 0 && shape <= 4) ? cr.irange(0, 9) : 99;
             int crown = r.irange(0, 5);
-            if (crown <= 1) {
+            if (special <= 1) {
+                float sx = thx, sy = thy;
+                vec2 sc = tc;
+                vec3 lc = hsvToRgb(cr.f(), cr.range(0.3f, 0.8f), 1.f);
+                if (cr.chance(0.4f)) lc = vec3(1.f, 0.95f, 0.85f);
+                int steps = cr.irange(2, 4);
+                float stepH = Max(fac.floorH * cr.irange(1, 2), 4.f);
+                for (int k = 0; k < steps; k++) {
+                    sx *= cr.range(0.72f, 0.84f);
+                    sy *= cr.range(0.72f, 0.84f);
+                    auto fp = rectFP(sc, b.ax, sx, sy);
+                    flatMass(x, fp, zc, zc + stepH, z0, b.facade, bay, false, roofGray, FM_TIER, 0.f);
+                    addCollision(x, sc, b.ax, sx, sy, zc, zc + stepH);
+                    // the LED band round the top of the step
+                    auto rim = rectFP(sc, b.ax, sx + 0.03f, sy + 0.03f);
+                    plainWalls(x, rim, zc + stepH - 0.35f, zc + stepH - 0.1f, packRGBA8(lc.x, lc.y, lc.z, 0.55f), makeMat(MAT_EMISSIVE));
+                    zc += stepH;
+                }
+                if (cr.chance(0.6f)) {
+                    m.cylinder(vec3(sc, zc) - org, 0.5f, 0.06f, cr.range(8.f, 18.f), 8, packRGBA8(0.75f, 0.76f, 0.78f, 1), makeMat(MAT_METAL_BRUSHED), false);
+                    if (lights) {
+                        LightInstance li;
+                        li.pos = vec3(sc, zc + 8.f);
+                        li.color = vec3(1, 0.1f, 0.05f) * 400.f;
+                        li.radius = 10.f;
+                        li.dir = vec3(0);
+                        li.cone = 0;
+                        li.type = 4;
+                        lights->push_back(li);
+                    }
+                }
+            } else if (special == 2) {
+                // sloped glass top rising toward the back of the lot
+                float rise = Clamp(Min(thx, thy) * cr.range(0.5f, 0.9f), 4.f, 18.f);
+                vec2 ay2 = perp(b.ax);
+                float fs = dot(b.front, ay2) >= 0.f ? 1.f : -1.f;   // the street side along ay2
+                vec3 c0 = vec3(tc - b.ax * thx + ay2 * (fs * thy), zc), c1 = vec3(tc + b.ax * thx + ay2 * (fs * thy), zc);   // front edge, low
+                vec3 c2 = vec3(tc + b.ax * thx - ay2 * (fs * thy), zc + rise), c3 = vec3(tc - b.ax * thx - ay2 * (fs * thy), zc + rise);   // back edge, high
+                vec4 gc = unpackRGBA8(fac.glassColor);
+                u32 glassC = packRGBA8(gc.x * 0.5f, gc.y * 0.5f, gc.z * 0.5f, 1);
+                m.quadFacing(c0 - org, c1 - org, c2 - org, c3 - org, vec2(0), vec2(1, 0), vec2(1), vec2(0, 1), glassC, makeMat(MAT_GLASS), vec3(b.front, 1.f));
+                // back wall (facade) and the two side triangles
+                vec3 b0 = vec3(tc + b.ax * thx - ay2 * (fs * thy), zc), b1 = vec3(tc - b.ax * thx - ay2 * (fs * thy), zc);
+                m.quadFacing(b0 - org, b1 - org, c3 - org, c2 - org, vec2(0), vec2(1, 0), vec2(1), vec2(0, 1), packRGBA8(0.8f, 0.8f, 0.8f, 1), makeMat(MAT_CONCRETE_PANEL),
+                             vec3(-b.front, 0.f));
+                for (int sgn = -1; sgn <= 1; sgn += 2) {
+                    vec3 p0 = sgn < 0 ? c0 : c1, p1 = sgn < 0 ? b1 : b0, p2 = sgn < 0 ? c3 : c2;
+                    vec3 nn(b.ax * (float)sgn, 0.f);
+                    u32 i0 = m.addVertex(p0 - org, nn, vec3(ay2, 0.f), vec2(0, 0), packRGBA8(0.8f, 0.8f, 0.8f, 1), makeMat(MAT_CONCRETE_PANEL));
+                    u32 i1 = m.addVertex(p1 - org, nn, vec3(ay2, 0.f), vec2(1, 0), packRGBA8(0.8f, 0.8f, 0.8f, 1), makeMat(MAT_CONCRETE_PANEL));
+                    u32 i2 = m.addVertex(p2 - org, nn, vec3(ay2, 0.f), vec2(1, 1), packRGBA8(0.8f, 0.8f, 0.8f, 1), makeMat(MAT_CONCRETE_PANEL));
+                    if (dot(cross(p1 - p0, p2 - p0), nn) >= 0.f) m.tri(i0, i1, i2);
+                    else m.tri(i0, i2, i1);
+                }
+                addCollision(x, tc, b.ax, thx, thy, zc, zc + rise * 0.5f);
+            } else if (crown <= 1) {
                 // mechanical penthouse
                 auto fp = rectFP(tc, b.ax, thx * 0.55f, thy * 0.55f);
                 plainWalls(x, fp, zc, zc + 4.5f, packRGBA8(0.7f, 0.7f, 0.68f, 1), makeMat(MAT_CONCRETE_PANEL));
@@ -810,29 +913,32 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
         case BS_FARMHOUSE:
         case BS_SHACK: {
             bool stilts = b.style == BS_SHACK;
-            float zb = z0 + (stilts ? 2.2f : 0.f);
-            auto fp = rectFP(b.c, b.ax, b.hx, b.hy);
-            recordMass(x, fp, zb, zb + b.height, zb, FM_HOUSE, false);
-            facadeWalls(x, fp, zb - (stilts ? 0.3f : 2.f), zb + b.height, zb, b.facade, bay);
-            addCollision(x, b.c, b.ax, b.hx, b.hy, z0 - 2.f, zb + b.height + 2.f);
+            float zb = z0 + (stilts ? (b.arch == AR_SHACK_STILT ? massing::shackStiltH(b) : 2.2f) : 0.f);
             u32 roofMat, roofCol;
-            if (b.style == BS_VILLA || (b.style == BS_HOUSE && (b.seed & 3) != 0)) {
-                roofMat = makeMat(MAT_ROOF_TILE);
-                float t = r.range(0.85f, 1.15f);
-                roofCol = packRGBA8(t, t * r.range(0.9f, 1.05f), t, 1);
-            } else if (b.style == BS_FARMHOUSE || b.style == BS_SHACK) {
-                roofMat = makeMat(MAT_ROOF_METAL);
-                roofCol = r.chance(0.5f) ? packRGBA8(0.9f, 0.9f, 0.92f, 1) : packRGBA8(0.55f, 0.25f, 0.2f, 1);
-            } else {
-                roofMat = makeMat(MAT_ROOF_SHINGLE);
-                float g = r.range(0.7f, 1.3f);
-                roofCol = packRGBA8(g, g * 0.95f, g * 0.9f, 1);
+            // archetype houses (massing.cpp): ranch, bungalow, Mediterranean, two-storey, MiMo, split level, conch, modern villa
+            if (!buildArchHouseBody(x, b, fac, roofCol, roofMat)) {
+                auto fp = rectFP(b.c, b.ax, b.hx, b.hy);
+                recordMass(x, fp, zb, zb + b.height, zb, FM_HOUSE, false);
+                facadeWalls(x, fp, zb - (stilts ? 0.3f : 2.f), zb + b.height, zb, b.facade, bay);
+                addCollision(x, b.c, b.ax, b.hx, b.hy, z0 - 2.f, zb + b.height + 2.f);
+                if (b.style == BS_VILLA || (b.style == BS_HOUSE && (b.seed & 3) != 0)) {
+                    roofMat = makeMat(MAT_ROOF_TILE);
+                    float t = r.range(0.85f, 1.15f);
+                    roofCol = packRGBA8(t, t * r.range(0.9f, 1.05f), t, 1);
+                } else if (b.style == BS_FARMHOUSE || b.style == BS_SHACK) {
+                    roofMat = makeMat(MAT_ROOF_METAL);
+                    roofCol = r.chance(0.5f) ? packRGBA8(0.9f, 0.9f, 0.92f, 1) : packRGBA8(0.55f, 0.25f, 0.2f, 1);
+                } else {
+                    roofMat = makeMat(MAT_ROOF_SHINGLE);
+                    float g = r.range(0.7f, 1.3f);
+                    roofCol = packRGBA8(g, g * 0.95f, g * 0.9f, 1);
+                }
+                bool hip = b.roof == ROOF_HIP;
+                float pitch = b.style == BS_VILLA ? 0.42f : r.range(0.35f, 0.6f);
+                pitchedRoof(x, b.c, b.ax, b.hx, b.hy, zb + b.height, pitch, hip, 0.6f, roofCol, roofMat, packRGBA8(0.95f, 0.95f, 0.93f, 1),
+                            makeMat(MAT_PLASTER));
             }
-            bool hip = b.roof == ROOF_HIP;
-            float pitch = b.style == BS_VILLA ? 0.42f : r.range(0.35f, 0.6f);
-            pitchedRoof(x, b.c, b.ax, b.hx, b.hy, zb + b.height, pitch, hip, 0.6f, roofCol, roofMat, packRGBA8(0.95f, 0.95f, 0.93f, 1),
-                        makeMat(MAT_PLASTER));
-            if (stilts) {
+            if (stilts && b.arch != AR_SHACK_STILT) {   // (the stilt-house archetype builds its own posts and decks)
                 for (int k = -1; k <= 1; k += 2)
                     for (int j = -1; j <= 1; j += 2)
                         m.box(vec3(b.c + b.ax * (k * (b.hx - 0.3f)) + ay * (j * (b.hy - 0.3f)), z0 + 0.6f) - org, vec3(b.ax, 0), vec3(ay, 0), vec3(0, 0, 1),
@@ -849,7 +955,8 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 vec2 gc = b.c + b.ax * (side * (b.hx + gw)) + b.front * (b.hy - gd);
                 auto gfp = rectFP(gc, b.ax, gw, gd);
                 facadeWalls(x, gfp, z0 - 1.f, z0 + 2.9f, z0 + 100.f, b.facade, 20.f);
-                pitchedRoof(x, gc, b.ax, gw, gd, z0 + 2.9f, 0.35f, true, 0.4f, roofCol, roofMat, kWhite, makeMat(MAT_PLASTER));
+                if (b.arch == AR_HOUSE_MIMO || b.arch == AR_VILLA_MODERN) massing::eaveSlab(x, gfp, z0 + 2.9f, 0.5f, 0.22f, packRGBA8(0.96f, 0.96f, 0.95f, 1));
+                else pitchedRoof(x, gc, b.ax, gw, gd, z0 + 2.9f, 0.35f, true, 0.4f, roofCol, roofMat, kWhite, makeMat(MAT_PLASTER));
                 addCollision(x, gc, b.ax, gw, gd, z0 - 1.f, z0 + 3.5f);
                 // garage door
                 vec2 d0 = gc + b.front * (gd + 0.02f) - b.ax * 2.4f, d1 = gc + b.front * (gd + 0.02f) + b.ax * 2.4f;

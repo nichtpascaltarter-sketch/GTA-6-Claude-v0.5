@@ -5,6 +5,8 @@ set -e
 cd "$(dirname "$0")"
 mkdir -p build/gen bin
 CXX=${CXX:-x86_64-w64-mingw32-g++}
+# (under a shared memory cap, other builds go before the lead's snapshot checks: see tools/run.sh)
+if [ -z "$NT_LEAD_SLOT" ]; then echo 500 > /proc/self/oom_score_adj 2>/dev/null; fi
 if [ ! -x build/embed_shaders ] || [ tools/embed_shaders.cpp -nt build/embed_shaders ]; then
   g++ -O2 -std=c++17 tools/embed_shaders.cpp -o build/embed_shaders
 fi

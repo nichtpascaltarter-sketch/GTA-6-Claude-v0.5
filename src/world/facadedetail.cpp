@@ -1023,6 +1023,7 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
     // window trims and shutters
     int trimKind = villa ? 3 : d.r.irange(0, 2);
     bool shutters = !villa && !shack && d.r.chance(0.35f);
+    if (b.arch == AR_VILLA_COLONIAL) shutters = true;   // (dark louvred shutters on the white colonial)
     int bahama = (!shutters && !villa && d.r.chance(0.18f)) ? 1 : 0;
     const vec3 shutterPal[] = {vec3(0.1f, 0.3f, 0.2f), vec3(0.1f, 0.18f, 0.35f), vec3(0.15f, 0.5f, 0.5f), vec3(0.95f), vec3(0.08f),
                                vec3(0.85f, 0.4f, 0.3f), vec3(0.4f, 0.6f, 0.75f), vec3(0.55f, 0.75f, 0.45f)};
@@ -1047,14 +1048,21 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
             wbox(k, fw, sd - dw * 0.5f - 0.13f, sd + dw * 0.5f + 0.13f, zb + dh, zb + dh + 0.18f, 0.f, 0.09f, d.trim, d.trimMat, WF_LEDGE | WF_START | WF_END);
             // handle
             wbox(k, fw, sd + dw * 0.5f - 0.18f, sd + dw * 0.5f - 0.12f, zb + 0.95f, zb + 1.05f, 0.04f, 0.09f, pk(0.8f, 0.7f, 0.35f), MM(MAT_CHROME), WF_FRONT);
-            // stoop down to the ground
+            // stoop down to the ground (the stilt houses have their stair; the colonial villa its portico platform)
             vec2 sp = fw.a + fw.t * sd + fw.n * 0.8f;
             float gz = d.map->heightAt(sp.x, sp.y);
-            wbox(k, fw, sd - dw * 0.5f - 0.5f, sd + dw * 0.5f + 0.5f, Min(gz, zb) - 0.3f, zb - 0.02f, 0.f, 1.3f, pk(0.82f, 0.8f, 0.76f), MM(MAT_CONCRETE), WF_BOX);
-            if (zb - gz > 0.35f)
-                wbox(k, fw, sd - dw * 0.5f - 0.3f, sd + dw * 0.5f + 0.3f, gz - 0.3f, (zb + gz) * 0.5f, 1.3f, 1.65f, pk(0.82f, 0.8f, 0.76f), MM(MAT_CONCRETE), WF_FRONT | WF_TOP | WF_START | WF_END);
-            // porch roof (houses) or columned portico (villas)
-            if (villa) {
+            if (b.arch != AR_SHACK_STILT && b.arch != AR_VILLA_COLONIAL) {
+                wbox(k, fw, sd - dw * 0.5f - 0.5f, sd + dw * 0.5f + 0.5f, Min(gz, zb) - 0.3f, zb - 0.02f, 0.f, 1.3f, pk(0.82f, 0.8f, 0.76f), MM(MAT_CONCRETE), WF_BOX);
+                if (zb - gz > 0.35f)
+                    wbox(k, fw, sd - dw * 0.5f - 0.3f, sd + dw * 0.5f + 0.3f, gz - 0.3f, (zb + gz) * 0.5f, 1.3f, 1.65f, pk(0.82f, 0.8f, 0.76f), MM(MAT_CONCRETE), WF_FRONT | WF_TOP | WF_START | WF_END);
+            }
+            // porch roof (houses) or columned portico (villas); modern villas get a flat canopy
+            if (villa && b.arch == AR_VILLA_COLONIAL) {
+                // (the two-storey portico is part of the massing: buildmesh.cpp / massing.cpp)
+            } else if (villa && b.arch == AR_VILLA_MODERN) {
+                float pw = dw * 0.5f + 1.4f;
+                wbox(k, fw, sd - pw, sd + pw, zb + 2.9f, zb + 3.15f, 0.f, 2.2f, pk(0.96f), MM(MAT_PLASTER), WF_BOX | WF_BOTTOM);
+            } else if (villa) {
                 float pw = dw * 0.5f + 1.1f, pd = 2.4f, ph = Min(3.3f, f.groundH + 0.2f);
                 for (int e = 0; e < 2; e++) {
                     vec2 cp = fw.a + fw.t * (sd + (e ? pw - 0.25f : -pw + 0.25f)) + fw.n * (pd - 0.25f);
@@ -1267,10 +1275,16 @@ void warehouseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls
         if (walls[i].facing > walls[fi].facing) fi = i;
     const Wall& fw = walls[fi];
     // loading doors (buildmesh.cpp) are centered at u = -hx + (k + 0.5) * 2hx / doors along ax; convert to wall s
+    // (archetype warehouses: massing.cpp archLoadingDoors)
+    float doorU[8];
     int doors = Max(1, (int)(b.hx / 7.f));
-    bool alongAx = fabsf(dot(fw.t, b.ax)) > 0.7f;
+    if (b.arch != AR_NONE) doors = massing::archLoadingDoors(b, doorU, 8);
+    else
+        for (int kd = 0; kd < doors && kd < 8; kd++) doorU[kd] = -b.hx + (kd + 0.5f) * (2.f * b.hx / doors);
+    doors = Min(doors, 8);
+    bool alongAx = fabsf(dot(fw.t, b.ax)) > 0.7f && fw.facing > 0.9f;
     for (int kd = 0; kd < doors && alongAx; kd++) {
-        float u = -b.hx + (kd + 0.5f) * (2.f * b.hx / doors);
+        float u = doorU[kd];
         vec2 dp = b.c + b.ax * u + b.front * b.hy;
         float s = dot(dp - fw.a, fw.t);
         // dock bumpers and a wall pack light above each door
@@ -1438,6 +1452,343 @@ void wallAd(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
     }
 }
 
+// MiMo garden apartments: open walkways along the court-side walls on every upper floor - a slab on thin steel columns,
+// a solid spandrel band (the breeze-block balustrade) and a steel top rail
+void mimoWalkways(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls, bool interiorOnly = false) {
+    const Building& b = *d.b;
+    const FacadeGPU& f = *d.f;
+    FloorRow rows[32];
+    int nr = massFloors(f, ms.z0 - ms.vBase, ms.z1 - ms.vBase, rows, 32);
+    if (nr < 2) return;
+    vec2 ay = perp(b.ax);
+    u32 rail = (b.archFlags & ABF_ACCENT) ? d.frame : pk(0.95f);
+    u32 band = (b.archFlags & ABF_ACCENT) ? pk(rgbOf(d.frame) * 0.9f + vec3(0.08f)) : d.wallTone;
+    const float dep = 1.45f;
+    float zTopWalk = -1.f;
+    for (int ri = 0; ri < nr; ri++)
+        if (rows[ri].idx > 0) zTopWalk = ms.vBase + rows[ri].v0;
+    for (const Wall& w : walls) {
+        if (w.len < 5.f || !d.room()) continue;
+        if (interiorOnly) {
+            vec2 mid = (w.a + w.b) * 0.5f - b.c;
+            if (fabsf(dot(mid, b.ax)) > b.hx - 0.4f || fabsf(dot(mid, ay)) > b.hy - 0.4f) continue;
+        }
+        for (int ri = 0; ri < nr && d.room(); ri++) {
+            if (rows[ri].idx == 0) continue;
+            float z = ms.vBase + rows[ri].v0;
+            wbox(d.k, w, 0.25f, w.len - 0.25f, z - 0.2f, z, 0.f, dep, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
+            wbox(d.k, w, 0.25f, w.len - 0.25f, z, z + 0.5f, dep - 0.08f, dep, band, d.wallMat, WF_FRONT | WF_TOP | WF_START | WF_END);
+            wbox(d.k, w, 0.25f, w.len - 0.25f, z + 0.92f, z + 0.98f, dep - 0.06f, dep, rail, MM(MAT_METAL_PAINTED), WF_FRONT | WF_TOP | WF_BOTTOM);
+            for (float s = 0.3f; s < w.len - 0.25f; s += 1.5f) wbox(d.k, w, s, s + 0.04f, z + 0.5f, z + 0.92f, dep - 0.05f, dep - 0.01f, rail, MM(MAT_METAL_PAINTED), WF_FRONT);
+        }
+        // slim columns at the walkway edge, ground to the top walkway
+        if (zTopWalk > 0.f && fabsf(ms.z0 - ms.vBase) < 0.6f) {
+            int nc = Max(2, (int)(w.len / 4.8f) + 1);
+            for (int k = 0; k < nc; k++) {
+                float s = Lerp(0.5f, w.len - 0.5f, (float)k / (nc - 1));
+                wbox(d.k, w, s - 0.07f, s + 0.07f, ms.vBase - 0.2f, zTopWalk - 0.2f, dep - 0.35f, dep - 0.21f, rail, MM(MAT_METAL_PAINTED), WF_POST | WF_BACK);
+                wcollide(d.k, w, s - 0.08f, s + 0.08f, ms.vBase, zTopWalk, dep - 0.36f, dep - 0.2f);
+            }
+        }
+    }
+}
+
+// ------------------------------------------------------------------------------------------------ murals
+// A painted polygon on the wall plane: pts in (s along the wall, z up), clipped to the mural's rectangle
+void wallPaint(FD& d, const Wall& w, std::vector<vec2> pts, vec2 mn, vec2 mx, float o, vec3 col) {
+    pts = sitegeo::clipConvex(pts, mn, mx);
+    if (pts.size() < 3) return;
+    // convex: a fan in the wall plane, wound to face out of the wall (MeshData::polygon triangulates in plan only)
+    MeshData& m = *d.k.m;
+    vec3 n(w.n, 0.f), t(w.t, 0.f);
+    u32 base = (u32)m.verts.size();
+    u32 c = pk(col), mat = MM(MAT_PAINT_WHITE);
+    for (const vec2& p : pts) m.addVertex(WP(d.k, w, p.x, p.y, o), n, t, p, c, mat);
+    for (size_t i = 1; i + 1 < pts.size(); i++) {
+        u32 a = base, b = base + (u32)i, e = base + (u32)i + 1;
+        vec3 fn = cross(m.verts[b].pos - m.verts[a].pos, m.verts[e].pos - m.verts[a].pos);
+        if (dot(fn, n) < 0.f) m.tri(a, e, b);
+        else m.tri(a, b, e);
+    }
+}
+std::vector<vec2> discPts(vec2 c, float rx, float rz, int seg, float a0 = 0.f, float a1 = kTwoPi) {
+    std::vector<vec2> p;
+    bool full = a1 - a0 >= kTwoPi - 1e-3f;
+    if (!full) p.push_back(c);
+    int n = full ? seg : seg + 1;
+    for (int i = 0; i < n; i++) {
+        float a = a0 + (a1 - a0) * i / (full ? seg : seg);
+        p.push_back(c + vec2(cosf(a) * rx, sinf(a) * rz));
+    }
+    return p;
+}
+
+// Mural on an exposed wall from s0..s1, z0..z1: a sunset with palms, waves, a geometric field or a big word over
+// discs, in one of four palettes (Canvas District, Calle Luna, the Flats)
+void mural(FD& d, const Wall& w, float s0, float s1, float z0, float z1, Rng& r) {
+    float W = s1 - s0, H = z1 - z0;
+    if (W < 3.f || H < 2.4f) return;
+    static const vec3 pal[4][5] = {
+        {vec3(0.98f, 0.5f, 0.22f), vec3(0.95f, 0.28f, 0.45f), vec3(0.45f, 0.22f, 0.62f), vec3(1.f, 0.82f, 0.28f), vec3(0.14f, 0.1f, 0.22f)},
+        {vec3(0.1f, 0.45f, 0.75f), vec3(0.15f, 0.75f, 0.8f), vec3(0.95f, 0.95f, 0.9f), vec3(0.06f, 0.22f, 0.45f), vec3(1.f, 0.72f, 0.3f)},
+        {vec3(0.95f, 0.22f, 0.4f), vec3(0.2f, 0.7f, 0.95f), vec3(1.f, 0.85f, 0.12f), vec3(0.3f, 0.85f, 0.45f), vec3(0.08f, 0.08f, 0.1f)},
+        {vec3(0.55f, 0.3f, 0.85f), vec3(0.95f, 0.45f, 0.75f), vec3(0.3f, 0.9f, 0.8f), vec3(0.98f, 0.95f, 0.9f), vec3(0.2f, 0.15f, 0.35f)},
+    };
+    const vec3* P = pal[r.next() % 4];
+    vec2 mn(s0, z0), mx(s1, z1);
+    float o = 0.03f;
+    auto rect = [&](float a0, float a1, float b0, float b1, vec3 c, float oo) { wallPaint(d, w, {vec2(a0, b0), vec2(a1, b0), vec2(a1, b1), vec2(a0, b1)}, mn, mx, oo, c); };
+    int kind = r.irange(0, 3);
+    switch (kind) {
+        case 0: {
+            // sunset: graded bands, a half sun on the horizon, palm silhouettes
+            int nb = 5;
+            for (int i = 0; i < nb; i++) {
+                float t = (float)i / (nb - 1);
+                vec3 c = lerp(P[0], P[2], t);
+                rect(s0, s1, z0 + H * (0.35f + 0.65f * i / nb), z0 + H * (0.35f + 0.65f * (i + 1) / nb), c, o);
+            }
+            rect(s0, s1, z0, z0 + H * 0.35f, P[4], o);
+            float sr = Min(W * 0.22f, H * 0.3f);
+            wallPaint(d, w, discPts(vec2(s0 + W * r.range(0.35f, 0.65f), z0 + H * 0.35f), sr, sr, 16, 0.f, kPi), mn, mx, o + 0.005f, P[3]);
+            int np = r.irange(1, 3);
+            for (int k = 0; k < np; k++) {
+                float sx = s0 + W * r.range(0.1f, 0.9f), th = H * r.range(0.45f, 0.75f);
+                wallPaint(d, w, {vec2(sx - 0.12f, z0), vec2(sx + 0.12f, z0), vec2(sx + 0.35f, z0 + th), vec2(sx + 0.15f, z0 + th)}, mn, mx, o + 0.01f, P[4]);
+                for (int f = 0; f < 5; f++) {
+                    float a = kPi * (0.15f + 0.7f * f / 4.f);
+                    vec2 top(sx + 0.25f, z0 + th), dir(cosf(a), sinf(a) * 0.55f - 0.25f);
+                    float L = H * 0.18f;
+                    vec2 nn = vec2(-dir.y, dir.x) * 0.18f;
+                    wallPaint(d, w, {top, top + dir * (L * 0.5f) + nn, top + dir * L, top + dir * (L * 0.5f) - nn}, mn, mx, o + 0.012f, P[4]);
+                }
+            }
+            break;
+        }
+        case 1: {
+            // waves: stacked swells, a foam line on each
+            rect(s0, s1, z0, z1, P[2] * 0.95f, o);
+            int nw = r.irange(3, 5);
+            for (int i = 0; i < nw; i++) {
+                float zb = z0 + H * (0.75f - 0.18f * i), amp = H * 0.06f, ph = r.f() * kTwoPi;
+                vec3 c = lerp(P[1], P[3], (float)i / Max(1, nw - 1));
+                const int seg = 12;
+                for (int k = 0; k < seg; k++) {
+                    float a0 = s0 + W * k / seg, a1 = s0 + W * (k + 1) / seg;
+                    float h0 = zb + amp * sinf(ph + 6.f * k / seg * 2.f), h1 = zb + amp * sinf(ph + 6.f * (k + 1) / seg * 2.f);
+                    wallPaint(d, w, {vec2(a0, z0), vec2(a1, z0), vec2(a1, h1), vec2(a0, h0)}, mn, mx, o + 0.003f * (i + 1), c);
+                    wallPaint(d, w, {vec2(a0, h0 - 0.08f), vec2(a1, h1 - 0.08f), vec2(a1, h1), vec2(a0, h0)}, mn, mx, o + 0.003f * (i + 1) + 0.001f, P[2]);
+                }
+            }
+            break;
+        }
+        case 2: {
+            // geometric: diagonal stripes over a field, a few discs and triangles
+            rect(s0, s1, z0, z1, P[4], o);
+            float sw = r.range(0.8f, 1.6f), slope = r.chance(0.5f) ? 1.f : -1.f;
+            int ci = 0;
+            for (float a = s0 - H; a < s1 + H; a += sw * 2.f) {
+                vec3 c = P[ci++ % 4];
+                wallPaint(d, w, {vec2(a, z0), vec2(a + sw, z0), vec2(a + sw + slope * H, z1), vec2(a + slope * H, z1)}, mn, mx, o + 0.004f, c);
+            }
+            int nd = r.irange(2, 4);
+            for (int k = 0; k < nd; k++) {
+                float rr = Min(W, H) * r.range(0.12f, 0.24f);
+                vec2 c(s0 + r.range(rr, W - rr), z0 + r.range(rr, H - rr));
+                wallPaint(d, w, discPts(c, rr, rr, 14), mn, mx, o + 0.008f + 0.001f * k, P[(k + 2) % 5]);
+            }
+            break;
+        }
+        default: {
+            // a big word over coloured discs
+            rect(s0, s1, z0, z1, P[r.next() % 4] * 0.9f, o);
+            int nd = r.irange(3, 6);
+            for (int k = 0; k < nd; k++) {
+                float rr = Min(W, H) * r.range(0.15f, 0.35f);
+                vec2 c(s0 + r.range(0.f, W), z0 + r.range(0.f, H));
+                wallPaint(d, w, discPts(c, rr, rr, 14), mn, mx, o + 0.003f + 0.001f * k, P[(k + 1) % 4]);
+            }
+            static const char* kWords[] = {"LUNA", "AMOR", "SOL", "VIDA", "MAMBO", "SALSA", "PALMERA", "TIDE", "CANVAS", "RITMO", "ISLA", "FUEGO"};
+            const char* word = kWords[r.next() % ARRAY_COUNT(kWords)];
+            float th = Min(H * 0.42f, 3.f);
+            float tw = sitegeo::textAdvance(word, th, 0.2f);
+            if (tw > W * 0.9f) th *= W * 0.9f / tw, tw = W * 0.9f;
+            vec3 right(w.t, 0.f);
+            vec3 org3 = vec3(w.a + w.t * (s0 + (W - tw) * 0.5f) + w.n * (o + 0.02f), z0 + (H - th) * 0.5f);
+            sitegeo::G g;
+            g.m = d.k.m;
+            g.org = d.k.org;
+            sitegeo::strokeText(g, *d.k.m, word, org3 - vec3(0, 0, th * 0.06f) + right * (th * 0.05f), right, vec3(0, 0, 1), th, th * 0.2f, pk(P[4]), MM(MAT_PAINT_WHITE), 0.f, 0.2f);
+            sitegeo::strokeText(g, *d.k.m, word, org3 + vec3(w.n * 0.005f, 0.f), right, vec3(0, 0, 1), th, th * 0.13f, pk(vec3(0.98f, 0.97f, 0.92f)), MM(MAT_PAINT_WHITE),
+                                0.f, 0.2f);
+            break;
+        }
+    }
+}
+
+// The wall a mural goes on: the cross-street side of a corner lot, else the side wall that rises furthest above its
+// neighbour. Returns false when nothing is exposed enough.
+bool muralWall(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls, int& wi, float& z0, float& z1) {
+    const Building& b = *d.b;
+    wi = -1;
+    float bestArea = 0.f;
+    bool cornerLot = (b.archFlags & ABF_CORNER) != 0;
+    float cs = (b.archFlags & ABF_CORNER_LEFT) ? -1.f : 1.f;
+    for (int i = 0; i < (int)walls.size(); i++) {
+        const Wall& w = walls[i];
+        if (fabsf(w.facing) > 0.3f || w.len < 5.f) continue;
+        float side = dot(w.n, b.ax);
+        float cover = ms.vBase;
+        if (!(cornerLot && side * cs > 0.7f) && gBuildings)
+            for (int q = 1; q <= 3; q++) {
+                float top;
+                vec2 qp = w.a + w.t * (w.len * q * 0.25f) + w.n * 1.6f;
+                if (gBuildings->pointInBuilding(qp, 0.8f, &top)) cover = Max(cover, top + 0.6f);
+            }
+        float a0 = Max(cover + 0.3f, ms.vBase + 0.6f), a1 = ms.z1 - 0.4f;
+        float area = (a1 - a0) * w.len * ((cornerLot && side * cs > 0.7f) ? 3.f : 1.f);
+        if (a1 - a0 > 2.4f && area > bestArea) bestArea = area, wi = i, z0 = a0, z1 = a1;
+    }
+    return wi >= 0;
+}
+
+// ------------------------------------------------------------------------------------------------ arches
+// Fan from a corner of the wall plane through arc points (s, z): the spandrel over an arch (star-shaped from the corner)
+void wallFan(FD& d, const Wall& w, vec2 corner, const vec2* arc, int n, float o, u32 col, u32 mat) {
+    MeshData& m = *d.k.m;
+    vec3 nn(w.n, 0.f), t(w.t, 0.f);
+    u32 base = (u32)m.verts.size();
+    m.addVertex(WP(d.k, w, corner.x, corner.y, o), nn, t, corner, col, mat);
+    for (int i = 0; i < n; i++) m.addVertex(WP(d.k, w, arc[i].x, arc[i].y, o), nn, t, arc[i], col, mat);
+    for (int i = 0; i + 1 < n; i++) {
+        u32 a = base, b = base + 1 + i, c = base + 2 + i;
+        vec3 fn = cross(m.verts[b].pos - m.verts[a].pos, m.verts[c].pos - m.verts[a].pos);
+        if (dot(fn, nn) < 0.f) m.tri(a, c, b);
+        else m.tri(a, b, c);
+    }
+}
+// A round arch between s0 and s1 springing at zs: spandrels up to zTop (wall colour), an archivolt band on the curve
+void roundArch(FD& d, const Wall& w, float s0, float s1, float zs, float zTop, float o, u32 wallCol, u32 wallMat, bool spandrels) {
+    float R = (s1 - s0) * 0.5f, sc = (s0 + s1) * 0.5f;
+    const int seg = 8;
+    vec2 arc[seg + 1];
+    for (int k = 0; k <= seg; k++) {
+        float a = kPi * k / seg;   // 0: right springing, pi: left springing
+        arc[k] = vec2(sc + cosf(a) * R, zs + sinf(a) * R);
+    }
+    if (spandrels && zTop > zs + R + 0.02f) {
+        // right half from the top-right corner, left half from the top-left corner
+        wallFan(d, w, vec2(s1, zTop), arc, seg / 2 + 1, o, wallCol, wallMat);
+        wallFan(d, w, vec2(s0, zTop), arc + seg / 2, seg / 2 + 1, o, wallCol, wallMat);
+        // (the crown to the top: covered by both fans' top edges meeting at sc)
+    }
+    // archivolt: a band along the curve, standing a little proud
+    for (int k = 0; k < seg; k++) {
+        vec2 a0 = arc[k], a1 = arc[k + 1];
+        vec2 r0 = normalize(a0 - vec2(sc, zs)), r1 = normalize(a1 - vec2(sc, zs));
+        vec2 b0 = a0 + r0 * 0.16f, b1 = a1 + r1 * 0.16f;
+        d.k.m->quadFacing(WP(d.k, w, a0.x, a0.y, o + 0.05f), WP(d.k, w, a1.x, a1.y, o + 0.05f), WP(d.k, w, b1.x, b1.y, o + 0.05f), WP(d.k, w, b0.x, b0.y, o + 0.05f),
+                          vec2(0), vec2(1, 0), vec2(1), vec2(0, 1), d.trim, d.trimMat, vec3(w.n, 0.f));
+        // soffit of the arch (the curve's underside) on the arcade face
+        if (spandrels)
+            d.k.m->quadFacing(WP(d.k, w, a0.x, a0.y, o + 0.06f), WP(d.k, w, a1.x, a1.y, o + 0.06f), WP(d.k, w, a1.x, a1.y, o - 0.55f), WP(d.k, w, a0.x, a0.y, o - 0.55f),
+                              vec2(0), vec2(1, 0), vec2(1), vec2(0, 1), wallCol, wallMat, -(vec3(w.t * (r0.x + r1.x), r0.y + r1.y)));
+    }
+}
+
+// Arcade (AR_SHOP_ARCADE): round arches between the piers on the street line under the upper floors
+void arcadeArches(FD& d, const Wall& fw, const FacadeMass& upper) {
+    const Building& b = *d.b;
+    const FacadeGPU& f = *d.f;
+    float zg = upper.z0;
+    int bays = Max(1, (int)roundf(2.f * b.hx / Max(f.bayW, 0.5f)));
+    float bw = fw.len / bays;
+    for (int k = 0; k < bays && d.room(); k++) {
+        float s0 = k * bw + 0.3f, s1 = (k + 1) * bw - 0.3f;
+        if (k == 0) s0 = 0.6f;
+        if (k == bays - 1) s1 = fw.len - 0.6f;
+        if (s1 - s0 < 1.2f) continue;
+        float R = (s1 - s0) * 0.5f;
+        float zs = Max(upper.vBase + 2.3f, zg - 0.25f - R);
+        roundArch(d, fw, s0, s1, zs, zg, 0.f, d.wallTone, d.wallMat, true);
+        // impost blocks on the piers
+        wbox(d.k, fw, s0 - 0.36f, s0 + 0.02f, zs - 0.18f, zs, 0.f, 0.08f, d.trim, d.trimMat, WF_BOX);
+        wbox(d.k, fw, s1 - 0.02f, s1 + 0.36f, zs - 0.18f, zs, 0.f, 0.08f, d.trim, d.trimMat, WF_BOX);
+    }
+}
+
+// Mediterranean revival: round-arched heads over the upper windows of the street front (a dark fanlight in the arch,
+// a stucco archivolt around it)
+void archedHeads(FD& d, const Wall& w, const FacadeMass& ms) {
+    const FacadeGPU& f = *d.f;
+    if ((int)f.style != 0 && (int)f.style != 5) return;
+    FloorRow rows[16];
+    int nr = massFloors(f, ms.z0 - ms.vBase, ms.z1 - ms.vBase, rows, 16);
+    vec3 gl = rgbOf(f.glassColor) * 0.12f + vec3(0.02f);
+    for (int ri = 0; ri < nr && d.room(); ri++) {
+        WinSpec ws = winSpec(f, rows[ri].idx == 0);
+        if (ws.store) continue;
+        float z1 = ms.vBase + rows[ri].v0 + ws.sill + ws.h;
+        for (int i = 0; i < w.bays; i++) {
+            if (rows[ri].idx == 0 && i == d.doorBay && w.facing > 0.9f) continue;
+            float s0 = (i + ws.x0) * w.bw, s1 = s0 + ws.w * w.bw;
+            float R = (s1 - s0) * 0.5f;
+            if (z1 + R > ms.vBase + rows[ri].v0 + (rows[ri].idx == 0 ? f.groundH : f.floorH) - 0.05f) continue;   // no room under the floor above
+            // fanlight (half disc of glass) and the archivolt
+            std::vector<vec2> pts = discPts(vec2((s0 + s1) * 0.5f, z1), R, R, 8, 0.f, kPi);
+            wallPaint(d, w, pts, vec2(s0 - 1.f, z1 - 1.f), vec2(s1 + 1.f, z1 + R + 1.f), 0.015f, gl);
+            roundArch(d, w, s0, s1, z1, z1 + R, 0.f, d.wallTone, d.wallMat, false);
+        }
+    }
+}
+
+// Streamline moderne (AR_DECO_STREAMLINE): continuous eyebrow ledges wrapping the street walls and the rounded corners
+// at every floor, racing stripes under the roof, and a vertical fin with the hotel's name in neon at the corner
+void streamlineFront(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
+    const Building& b = *d.b;
+    const FacadeGPU& f = *d.f;
+    FloorRow rows[16];
+    int nr = massFloors(f, ms.z0 - ms.vBase, ms.z1 - ms.vBase, rows, 16);
+    u32 stripe = pk(rgbOf(d.frame) * 0.95f);
+    for (const Wall& w : walls) {
+        if (w.facing < -0.3f || w.len < 0.3f || !d.room()) continue;
+        for (int ri = 0; ri < nr; ri++) {
+            float fh = rows[ri].idx == 0 ? f.groundH : f.floorH;
+            float z = ms.vBase + rows[ri].v0 + fh - 0.25f;
+            wbox(d.k, w, -0.03f, w.len + 0.03f, z - 0.07f, z, 0.f, 0.55f, d.trim, d.trimMat, WF_FRONT | WF_TOP | WF_BOTTOM);
+        }
+        for (int j = 0; j < 3; j++) {
+            float z = ms.z1 - 0.35f - j * 0.24f;
+            wbox(d.k, w, -0.02f, w.len + 0.02f, z - 0.06f, z, 0.f, 0.04f, stripe, MM(MAT_PLASTER), WF_FRONT);
+        }
+    }
+    // corner fin: on the rounded corner nearest the cross street (or the middle of the front on mid-block lots)
+    int fi = -1;
+    float best = -1e9f;
+    bool cornerLot = (b.archFlags & ABF_CORNER) != 0;
+    float cs = (b.archFlags & ABF_CORNER_LEFT) ? -1.f : 1.f;
+    for (int i = 0; i < (int)walls.size(); i++) {
+        const Wall& w = walls[i];
+        if (w.facing < 0.25f || w.facing > 0.97f) continue;   // the arc segments of the rounded corners
+        float sc = dot((w.a + w.b) * 0.5f - b.c, b.ax) * (cornerLot ? cs : 1.f) + w.facing * 0.1f;
+        if (fabsf(w.facing - 0.707f) < 0.2f) sc += 50.f;      // the segment at 45 degrees
+        if (sc > best) best = sc, fi = i;
+    }
+    float zTop = ms.z1 + 2.6f;
+    const char* name = kHotelWords[d.r.next() % ARRAY_COUNT(kHotelWords)];
+    vec3 nc = neonHue(d.r);
+    if (fi >= 0) {
+        const Wall& w = walls[fi];
+        // a fin standing out of the curve: a blade sign perpendicular to the wall at its middle
+        bladeSign(d, w, w.len * 0.5f, ms.vBase + f.groundH + 0.2f, zTop, 0.05f, 1.35f, name, nc, pk(0.97f, 0.96f, 0.93f), d.r.chance(0.3f) ? 2u : 6u);
+    } else {
+        int fw = 0;
+        for (int i = 1; i < (int)walls.size(); i++)
+            if (walls[i].facing > walls[fw].facing) fw = i;
+        bladeSign(d, walls[fw], walls[fw].len * 0.5f, ms.vBase + f.groundH + 0.2f, zTop, 0.05f, 1.35f, name, nc, pk(0.97f, 0.96f, 0.93f), 6u);
+    }
+}
+
 }  // namespace facade_detail
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -1458,6 +1809,7 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac0, const WorldMap&
     d.v0 = m.verts.size();
     d.reg = b.region;
     d.old = b.region == REG_CALLE_LUNA || b.region == REG_FLATS || b.region == REG_MIDTOWN || b.region == REG_NORTH_CITY || b.region == REG_FORT_CASTELL;
+    if (b.arch != AR_NONE) d.old = (b.archFlags & ABF_OLD) != 0;   // archetypes (blockstyle.cpp) carry their own age
     d.graffiti = b.region == REG_CALLE_LUNA || b.region == REG_FLATS || b.region == REG_FORT_CASTELL;
     // colors: facade tone reproduced on the wall material, trims, accents
     MaterialId wm = MAT_STUCCO;
@@ -1489,6 +1841,17 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac0, const WorldMap&
     const bool industrial = b.style == BS_WAREHOUSE || b.style == BS_FACTORY || b.style == BS_BARN;
     // per-building architectural scheme
     int corniceKind = d.r.irange(0, 3);
+    switch (b.arch) {
+        case AR_SHOP_1920: case AR_MID_WALKUP: corniceKind = d.r.chance(0.7f) ? CO_CLASSIC : CO_STEPPED; break;
+        case AR_SHOP_TAXPAYER: case AR_SHOP_BODEGA: corniceKind = d.r.chance(0.6f) ? CO_BAND : CO_STEPPED; break;
+        case AR_SHOP_MED: case AR_MID_MED: case AR_SHOP_ARCADE: corniceKind = CO_BAND; break;
+        case AR_MID_MODERN: case AR_MID_OFFICE60: case AR_CONDO_GLASS: case AR_CONDO_PODIUM: case AR_CONDO_SLAB: corniceKind = CO_SLAB; break;
+        case AR_MID_LOFT: corniceKind = d.r.chance(0.5f) ? CO_BAND : CO_CLASSIC; break;
+        default: break;
+    }
+    // roofs that end in an eave, a pitched roof or a tile pent carry no cornice of their own
+    bool noCornice = b.arch != AR_NONE && (b.roofForm == RFM_EAVE || b.roofForm == RFM_TILE_HIP || b.roofForm == RFM_METAL_GABLE || b.roofForm == RFM_SAWTOOTH ||
+                                           b.roofForm == RFM_BUTTERFLY);
     if (b.style == BS_DECO) corniceKind = CO_STEPPED;
     if (b.style == BS_CONDO || b.style == BS_GARAGE || b.style == BS_STRIPMALL || b.style == BS_GASSTATION) corniceKind = CO_SLAB;
     if (industrial) corniceKind = CO_BAND;
@@ -1497,6 +1860,7 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac0, const WorldMap&
     int pilasterEvery = d.r.chance(0.4f) ? d.r.irange(2, 3) : 0;
     bool plinth = d.r.chance(0.7f);
 
+    bool muralDone = false;
     for (const FacadeMass& ms : masses) {
         // mixed cladding: a mass with its own facade record (podium, base band) uses that grid and colour scheme
         bool own = ms.facade != 0xffffffffu && ms.facade != b.facade && gBuildings && ms.facade < gBuildings->facades.size();
@@ -1509,6 +1873,17 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac0, const WorldMap&
         bool bottom = fabsf(ms.z0 - ms.vBase) < 0.6f;
         if (house && ms.kind == FM_HOUSE) {
             houseDetail(d, ms, walls);
+            continue;
+        }
+        if (ms.kind == FM_WING) {
+            // secondary volumes (house wings, corner towers, courtyard walls): sills and heads, a cornice band on flat tops
+            int tk = house ? 1 : trimKind;
+            for (const Wall& w : walls) {
+                if (w.len < 1.5f || !d.room()) continue;
+                windowTrims(d, w, ms, tk, false, 0, 0);
+                if (!house && ms.parapet) coping(d, w, ms.z1);
+            }
+            if (b.arch == AR_MID_MIMO && !house && d.room()) mimoWalkways(d, ms, walls);
             continue;
         }
         if (ms.kind == FM_DECO_TOWER) {
@@ -1554,6 +1929,10 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac0, const WorldMap&
             if (walls[i].facing > walls[fi].facing) fi = i;
         bool store = (fac.flags & 1u) != 0;
         int floors = (int)((ms.z1 - ms.vBase - fac.groundH) / Max(fac.floorH, 1.f) + 1.01f);
+        // arcade arches hang under the upper floors' street wall; Mediterranean fronts get arched window heads
+        if (b.arch == AR_SHOP_ARCADE && ms.kind == FM_TIER && fabsf(ms.z0 - (ms.vBase + fac.groundH)) < 0.3f && walls[fi].facing > 0.9f) arcadeArches(d, walls[fi], ms);
+        bool medFront = b.arch == AR_SHOP_MED || b.arch == AR_MID_MED || b.arch == AR_DECO_MED || b.arch == AR_SHOP_ARCADE;
+        if (medFront && walls[fi].facing > 0.9f && d.room()) archedHeads(d, walls[fi], ms);
         for (const Wall& w : walls) {
             if (w.len < 1.2f) continue;
             bool front = &w == &walls[fi];
@@ -1567,7 +1946,7 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac0, const WorldMap&
                 for (int ri = 0; ri < nr; ri++)
                     if (rows[ri].idx > 0) stringCourse(d, w, ms.vBase + rows[ri].v0 + fac.sillH - 0.05f, 0.1f, 0.08f, d.trim, d.trimMat);
             }
-            if (ms.z1 - ms.vBase > 2.5f && b.roof == ROOF_FLAT) cornice(d, w, ms.z1, corniceKind);
+            if (ms.z1 - ms.vBase > 2.5f && (b.roof == ROOF_FLAT || b.arch != AR_NONE) && !noCornice) cornice(d, w, ms.z1, corniceKind);
             if (ms.parapet) coping(d, w, ms.z1);
             // front: pilasters, window trims, storefront; other walls: sills only (older fabric) for the silhouette
             if (front) {
@@ -1690,8 +2069,23 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac0, const WorldMap&
             }
         }
         if (industrial) warehouseDetail(d, ms, walls);
-        // ---- art deco front
-        if (b.style == BS_DECO) decoFront(d, walls[fi], ms);
+        // ---- art deco front (the classic deco hotel); streamline moderne
+        if (b.style == BS_DECO && b.arch == AR_NONE) decoFront(d, walls[fi], ms);
+        if (b.arch == AR_DECO_STREAMLINE && d.room()) streamlineFront(d, ms, walls);
+        // ---- a mural on an exposed side wall (bodegas, lofts, body shops, sheds: blockstyle.cpp ABF_MURAL)
+        if ((b.archFlags & ABF_MURAL) && !muralDone && d.room()) {
+            int wi;
+            float mz0, mz1;
+            if (muralWall(d, ms, walls, wi, mz0, mz1)) {
+                Rng mr(b.seed ^ 0x3A11A1u);
+                const Wall& w = walls[wi];
+                float inset = Min(0.6f, w.len * 0.06f);
+                mural(d, w, inset, w.len - inset, mz0, mz1, mr);
+                muralDone = true;
+            }
+        }
+        // ---- MiMo garden apartments: walkways along the walls of the court (L, U)
+        if (b.arch == AR_MID_MIMO && d.room()) mimoWalkways(d, ms, walls, true);
         // ---- motel doors along the ground floor
         if (b.style == BS_MOTEL) {
             const Wall& w = walls[fi];
@@ -1721,7 +2115,7 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac0, const WorldMap&
         for (const FacadeMass& o : masses)
             if ((o.kind == FM_MAIN || o.kind == FM_PODIUM) && o.z1 > body->z1) body = &o;
         rooftopBillboard(d, *body, walls[fi]);
-        wallAd(d, *body, walls);
+        if (!muralDone) wallAd(d, *body, walls);
         break;
     }
 }
