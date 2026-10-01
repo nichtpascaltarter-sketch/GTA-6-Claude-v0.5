@@ -269,6 +269,12 @@ struct PostSystem {
         c->dispatch(1, 1, 1);
         c->csSetUAVs(0, 2, nullUav);
         c->csSetSRVs(0, 3, nullSrv);
+        // --exposurelog: the metering every 8th frame (a debug readback: it waits for the GPU)
+        if ((r.frameIndex & 7u) == 7u && Platform::hasArg("exposurelog")) {
+            float e[8] = {};
+            if (gfx::readbackBuffer(exposureBuf.buf, e, sizeof(e)))
+                LOG("exposure: frame %u EV %.2f, metered %.4f cd/m2, night %.2f, storm %.2f", r.frameIndex, e[1], e[2], night, storm);
+        }
 
         // Tonemap to back buffer
         gfx::RTV  bb = gfx::backbufferRTV();
