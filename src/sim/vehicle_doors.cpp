@@ -542,7 +542,7 @@ inline void buildBPillar(PMesh& m, const CarBody& b, const DoorLines& DL, const 
         vec3 p;
         r.ok = sc.at(side, yc, z, p);
         float xo = fabsf(p.x) - 0.02f;
-        float depth = z > zBelt ? 0.075f : 0.11f;
+        float depth = z > zBelt ? 0.035f : 0.11f;   // (above the belt only as deep as the pillar's old trim: head room)
         r.of = vec3(side * xo, yc + w, z);
         r.orr = vec3(side * xo, yc - w, z);
         r.inf = vec3(side * (xo - depth), yc + w, z);
@@ -726,6 +726,7 @@ inline AABB buildCarDoors(const CarBody& b, const InteriorLayout& I, const PMesh
         if (!sc.at(side, yg, zg, gp)) gp = vec3(side * b.s.halfW, yg, zg);
         D.grip = gp;
         // the opening
+        D.outline = o.P;
         D.yFront = o.yF;
         D.yRear = o.yR;
         D.sillZ = I.zFloor;
@@ -734,6 +735,13 @@ inline AABB buildCarDoors(const CarBody& b, const InteriorLayout& I, const PMesh
         D.sillX = sc.at(side, ym, DL.zLow + 0.01f, sp) ? fabsf(sp.x) : b.s.halfW;
         float ys = R.k == 0 ? I.yHipF : I.yHipR;
         D.roofZ = doorTopZ(b, Clamp(ys, o.yTop + 0.05f, o.yF - 0.05f)) - 0.03f;
+        // the top edge, rear to front, on the rail's underside (the jamb), at the side's line there
+        for (int k = 0; k < 6; k++) {
+            float y = lerp(o.yTop + 0.02f, o.yF - 0.02f, k / 5.f);
+            float z = doorTopZ(b, y) - 0.03f;
+            vec3 tp;
+            D.top[k] = sc.at(side, y, z, tp) ? tp : vec3(side * shellAt(b, y, b.pRail0).x, y, z);
+        }
     }
     return full.bounds;
 }

@@ -402,8 +402,14 @@ void GameWorld::updateVehicleFx(Vehicle& v, float dt) {
                 }
                 if (ws.contact && ws.slip > 0.45f && s.speed() > 3.f && !isBoat((int)(&v - &vehicles[0]))) {
                     bool dusty = ws.surface == Phys::SURF_DIRT || ws.surface == Phys::SURF_SAND || ws.surface == Phys::SURF_GRASS || ws.surface == Phys::SURF_MUD;
-                    spawnFx(dusty ? FX_DUST : FX_TIRE_SMOKE, s.body.pos + ws.contactPos, vec3(0, 0, 0.5f), 1,
-                                             Saturate(ws.slip), dusty ? vec3(1) : v.mods.smoke);
+                    // a skid on wet pavement throws spray, not smoke (the water keeps the rubber cool)
+                    float dry = dusty ? 1.f : 1.f - Saturate(((env ? env->wetness : 0.f) - 0.2f) / 0.4f);
+                    if (dry > 0.05f)
+                        spawnFx(dusty ? FX_DUST : FX_TIRE_SMOKE, s.body.pos + ws.contactPos, vec3(0, 0, 0.5f), 1,
+                                Saturate(ws.slip) * dry, dusty ? vec3(1) : v.mods.smoke);
+                    if (dry < 0.95f)
+                        spawnFx(FX_WAKE_SPRAY, s.body.pos + ws.contactPos + dvec3(0.0, 0.0, 0.1), vec3(0, 0, 0.6f) - v.sim.forward() * 0.8f, 1,
+                                (0.25f + 0.35f * Saturate(ws.slip)) * (1.f - dry), vec3(0.82f, 0.84f, 0.86f));
                 }
             }
             vec3 enginePos = rotate(s.body.rot, vec3(0, spec.boxCenter.y + spec.boxHalf.y * 0.7f, spec.boxCenter.z + spec.boxHalf.z * 0.6f));

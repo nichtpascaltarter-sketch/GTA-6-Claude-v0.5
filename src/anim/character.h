@@ -205,6 +205,7 @@ struct CarDoorInfo {
     vec3 handle, handleIn;       // outer and inner handle of the shut door
     vec3 grip;                   // top of the shut door near its rear edge (the roof rail is just above it)
     vec3 front, rear;            // front and rear end of the opening at the sill's outer edge
+    vec3 top[6];                 // the opening's top edge (the roof rail, down the A-pillar): 6 points rear to front
     float sillZ = 0.3f;          // top of the sill (the cabin floor)
     float roofZ = 1.3f;          // underside of the opening's top over the seat
     bool driver = true;          // seated: the hands go to the steering wheel (else to the lap)

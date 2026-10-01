@@ -2049,7 +2049,7 @@ void GameWorld::updatePopulation(float dt) {
             for (int attempt = 0; attempt < 6; attempt++) {
                 u32 h = nextSeed();
                 float ang = hashToFloat(h) * kTwoPi;
-                vec2 probe = ip + vec2(cosf(ang), sinf(ang)) * (170.f + hashToFloat(hash32(h)) * 90.f);
+                vec2 probe = ip + vec2(cosf(ang), sinf(ang)) * (120.f + hashToFloat(hash32(h)) * 60.f);   // (out of view, not far)
                 float u = 0.f;
                 int lane = laneGraph.nearestLane(probe, vec2(0), 50.f, &u);
                 if (lane < 0 || (laneGraph.lanes[lane].flags & (AI::LF_DIRT | AI::LF_NOTRAFFIC))) continue;
@@ -2057,6 +2057,10 @@ void GameWorld::updatePopulation(float dt) {
                 u = Clamp(u, L.u0 + 5.f, L.u1 - 10.f);
                 vec3 c = laneGraph.lanePos(lane, u);
                 if ((inCameraView(c, 8.f) && length(c.xy() - pp.xy()) < 250.f) || !traffic.laneFree(lane, u, vassets[model].spec.boxHalf.y, 8.f)) continue;
+                if (attempt < 4) {   // (a short way in - not round a block of one-way streets first)
+                    float rl = aiRouteLength(lane, u, ip);
+                    if (rl < 0.f || rl > length(c.xy() - ip) * 1.7f + 40.f) continue;
+                }
                 vec2 t = laneGraph.laneTangent(lane, u);
                 int vid = spawnVehicle(model, dvec3(c.x, c.y, c.z + 0.3f), AI::dirYaw(t), true, FAC_MEDIC);
                 if (vid < 0) break;

@@ -55,6 +55,8 @@ struct DoorSpec {
     // The opening (vehicle frame): along the length between yFront and yRear at the sill, sill top at sillZ reaching
     // out to sillX (|x| of the sill's outer edge), the roof rail's underside at roofZ over the seat
     float yFront = 0.f, yRear = 0.f, sillZ = 0.f, sillX = 0.f, roofZ = 0.f;
+    std::vector<vec2> outline;   // the door's shut lines (y, z) round it, as seen from its side
+    vec3 top[6];                 // the opening's top edge (roof rail, down the A-pillar) from its rear end to its front
 };
 
 struct LightSpec {

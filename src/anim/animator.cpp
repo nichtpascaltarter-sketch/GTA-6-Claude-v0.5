@@ -1450,27 +1450,61 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         snapRate = 6.f;
     }
     stanceClip = sClip;
+    bool leftSeat = false;   // this update takes the ped out of a vehicle seat
     if (st != stance) {
         snap = pose;
         snapW = 1.f;
         snapRate = stanceIsVehicle(st) || stanceIsVehicle(stance) ? 4.f : (stanceIsGuard(st) && stanceIsGuard(stance) ? 12.f : 3.f);
+        leftSeat = stanceIsVehicle(stance) && !stanceIsVehicle(st);
         prevStance = stance;
         stance = st;
         stanceTime = 0.f;
         stanceBlend = 0.f;
+        bool entered = false;
         // entering a vehicle seat ends the entry clip. The game re-roots the ped at the seat facing the vehicle's
         // front at that moment, i.e. turned 90 degrees from the entry frame: express the captured pose in the new
         // frame (undo the clip's quarter turn, take the seated hip placement) so the crossfade has no spin or slide.
         if (stanceIsVehicle(st) && action >= 0 && actionIsCar(action)) {
             if (action == CLIP_ENTER_CAR_L || action == CLIP_ENTER_CAR_R) {
-                float turn = action == CLIP_ENTER_CAR_L ? -kHalfPi : kHalfPi;
-                snap.rot[B_PELVIS] = normalize(qz(turn) * snap.rot[B_PELVIS]);
-                Pose seated;
-                sampleClip(sk, kStanceClip[st], 0.f, seated, seed);
-                snap.rootOffset = seated.rootOffset;
+                entered = true;
+                if (carIn.valid) {
+                    // through a door: the seat frame (origin 0.5 m under the seat's hip point, facing the vehicle's
+                    // front) as the door input gave it in the entry frame
+                    quat q = qz(-atan2f(-carIn.fwd.x, carIn.fwd.y));
+                    vec3 bp = sk.bindLocalPos[B_ROOT] + sk.bindLocalPos[B_PELVIS];
+                    vec3 o = carIn.seat - vec3(0.f, 0.f, 0.5f);
+                    snap.rot[B_PELVIS] = normalize(q * snap.rot[B_PELVIS]);
+                    snap.rootOffset = rotate(q, bp + snap.rootOffset - o) - bp;
+                    // buckling up next (the belt layer)
+                    if (carIn.belt && st != 3) {
+                        beltT = 0.f;
+                        beltSide = action == CLIP_ENTER_CAR_R;
+                    }
+                } else {
+                    float turn = action == CLIP_ENTER_CAR_L ? -kHalfPi : kHalfPi;
+                    snap.rot[B_PELVIS] = normalize(qz(turn) * snap.rot[B_PELVIS]);
+                    Pose seated;
+                    sampleClip(sk, kStanceClip[st], 0.f, seated, seed);
+                    snap.rootOffset = seated.rootOffset;
+                }
             }
             action = -1;
             actionFinished = true;
+            carIn.valid = false;
+            carDoorS = -1.f;
+        }
+        // the seat belt: buckled up after getting in through a door (beltT), already on when put straight in a seat;
+        // off out of the seat, unless getting out through a door unbuckles it (the exit clip)
+        if (stanceIsVehicle(st) && !entered) {
+            belted = st != 3;
+            beltT = -1.f;
+        } else if (stanceIsVehicle(st) && entered && beltT < 0.f) {
+            belted = st != 3;
+        }
+        bool exitClip = (in.action == CLIP_EXIT_CAR_L || in.action == CLIP_EXIT_CAR_R) && in.car.valid && in.car.belt;
+        if (!stanceIsVehicle(st) && !exitClip) {
+            belted = false;
+            beltT = -1.f;
         }
     }
     stanceTime += dt;
@@ -1494,6 +1528,17 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         }
         if (in.action == CLIP_GET_UP_FRONT || in.action == CLIP_GET_UP_BACK) {
             clearImpacts();   // getting up: nothing of the fall left over
+        }
+        carIn = in.car;
+        if (!actionIsCar(in.action)) carIn.valid = false;
+        if (carIn.valid && leftSeat && (in.action == CLIP_EXIT_CAR_L || in.action == CLIP_EXIT_CAR_R) && !extBlend) {
+            // getting out through a door: the game re-rooted the ped outside (carExitSpot); the seated pose captured
+            // in the seat frame goes into the new one so the clip's first (seated) frame picks it up seamlessly
+            quat q = qz(atan2f(-carIn.fwd.x, carIn.fwd.y));
+            vec3 bp = sk.bindLocalPos[B_ROOT] + sk.bindLocalPos[B_PELVIS];
+            vec3 o = carIn.seat - vec3(0.f, 0.f, 0.5f);
+            snap.rot[B_PELVIS] = normalize(q * snap.rot[B_PELVIS]);
+            snap.rootOffset = rotate(q, bp + snap.rootOffset) + o - bp;
         }
         action = in.action;
         actionTime = 0.f;
@@ -2005,18 +2050,28 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
 
     // ---------------------------------------------------------------- one-shot action
     Pose outp = base;
+    CarHand carHand;   // the hand on a car door (getting in / out through it)
+    carDoorS = -1.f;
     if (action >= 0) {
         const ClipInfo& ai = clipInfo((Clip)action);
+        // getting in / out through a door: keyed at run time for that door and seat (AnimInput::car)
+        const bool carDoorClip = actionIsCar(action) && carIn.valid;
+        const bool carEnter = action == CLIP_ENTER_CAR_L || action == CLIP_ENTER_CAR_R;
+        if (carDoorClip && in.car.valid) carIn = in.car;   // (the vehicle may be nudged meanwhile)
+        const float aDur = carDoorClip ? carDoorLen(carIn, carEnter) : ai.duration;
         // cancel by moving (get up, land, hits...) or by starting to fall
         bool cancel = false;
         if (!actionFinished && !actionHoldsEnd(action)) {
-            float ca = actionCancelAt(action) * ai.duration;
+            float ca = actionCancelAt(action) * aDur;
             if (actionTime >= ca && speedS > 1.0f && !actionUpper) cancel = true;
             if (in.swimming && action != CLIP_SWIM) cancel = true;
             if (action == CLIP_LAND && speedS > 2.5f) cancel = true;   // running landings just keep running
         }
         if (!actionFinished) actionTime += dt;
-        if (!actionFinished && (actionTime >= ai.duration || cancel)) {
+        // seated at the end of getting in through a door: held until the game puts the ped in the seat (the stance
+        // change ends it), or given up a while later
+        bool holdSeated = carDoorClip && carEnter && !cancel && actionTime < aDur + 0.5f;
+        if (!actionFinished && (actionTime >= aDur || cancel) && !holdSeated) {
             actionFinished = true;
             if (!actionHoldsEnd(action)) {
                 // hand back to the base layers with a crossfade from the last displayed pose
@@ -2026,7 +2081,14 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
                 action = -1;
             }
         }
-        if (action >= 0) {
+        if (action >= 0 && carDoorClip) {
+            float tc = Min(actionTime, aDur);
+            carDoorPose(sk, carIn, carEnter, action == CLIP_ENTER_CAR_R || action == CLIP_EXIT_CAR_R, tc, tmp, carHand);
+            carDoorS = carDoorOpen(carIn, carEnter, tc);
+            if (!carEnter && carIn.belt && tc >= kBeltOffAt) belted = false;   // unbuckled
+            outp = tmp;
+            footIK = false;
+        } else if (action >= 0) {
             sampleClip(sk, (Clip)action, Min(actionTime, ai.duration), tmp, seed);
             if (actionUpper) {
                 // upper body over the moving legs; the clip's hip turn (relative to its first frame) goes to the spine
@@ -2071,6 +2133,15 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         if (stance == 12 || stance == 21 || stance == 22 || stance == 24) cClip[0] = cClip[1] = -1;
         const bool free = action < 0 || actionFinished || actionUpper;
         impactPose(*this, in, outp, dt, cheap, free, cClip);
+    }
+
+    // ---------------------------------------------------------------- the hand on a car door, exactly on its handle
+    if (carHand.w > 0.f && !cheap) {
+        quat qu;
+        vec3 pu;
+        boneModel(sk, outp, carHand.right ? B_UPPERARM_R : B_UPPERARM_L, qu, pu);
+        holdGrip(sk, outp, carHand.right, carHand.pos, carHand.axis, carHand.palm, pu + carHand.poleDir * 0.5f, carHand.fingers,
+                 carHand.fingers * 0.8f, carHand.w);
     }
 
     // ---------------------------------------------------------------- takedown: choke arm onto the victim's real neck
@@ -2192,6 +2263,40 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         if (!cheap) driveHands(sk, outp, wheelTurn(), in);
     } else {
         steerS = 0.f;
+    }
+
+    // ---------------------------------------------------------------- buckling up after getting in (an arm layer: the
+    //                                                                  hand on the door's side reaches back for the
+    //                                                                  belt and clicks it in by the other hip)
+    if (beltT >= 0.f) {
+        if (!(stance == 1 || stance == 2) || (action >= 0 && !actionFinished)) {
+            beltT = -1.f;
+            belted = stance == 1 || stance == 2;
+        } else {
+            beltT += dt;
+            if (beltT >= kBeltOnClick) belted = true;
+            if (beltT >= kBeltOnLen) {
+                beltT = -1.f;
+            } else if (!cheap) {
+                static const u8 kArmL[6] = {B_CLAVICLE_L, B_UPPERARM_L, B_FOREARM_L, B_HAND_L, B_FINGERS_L, B_THUMB_L};
+                static const u8 kArmR[6] = {B_CLAVICLE_R, B_UPPERARM_R, B_FOREARM_R, B_HAND_R, B_FINGERS_R, B_THUMB_R};
+                static const u8 kTrunk[5] = {B_SPINE1, B_SPINE2, B_CHEST, B_NECK, B_HEAD};
+                const int ci = beltSide ? IC_BELT_ON_R : IC_BELT_ON_L;
+                const u8* arm = beltSide ? kArmR : kArmL;
+                Pose bp = outp, b0 = outp;
+                sampleClipBones(sk, ci, beltT, arm, 6, bp);
+                sampleClipBones(sk, ci, beltT, kTrunk, 5, bp);
+                sampleClipBones(sk, ci, 0.f, kTrunk, 5, b0);
+                float w = sstep(0.f, 0.15f, beltT) * (1.f - sstep(kBeltOnLen - 0.3f, kBeltOnLen, beltT));
+                for (int i = 0; i < 6; i++) outp.rot[arm[i]] = nlerp(outp.rot[arm[i]], bp.rot[arm[i]], w);
+                // the trunk turns and the head looks as authored, relative to the seated pose
+                for (int i = 0; i < 5; i++) {
+                    int b = kTrunk[i];
+                    quat d = normalize(conj(b0.rot[b]) * bp.rot[b]);
+                    outp.rot[b] = nlerp(outp.rot[b], normalize(outp.rot[b] * d), w);
+                }
+            }
+        }
     }
 
     // ---------------------------------------------------------------- lean into turns

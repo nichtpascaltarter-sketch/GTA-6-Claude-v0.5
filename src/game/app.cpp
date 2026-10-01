@@ -77,6 +77,7 @@ struct App {
     float uiShotAt = 0.f;        // --autoplay uishots: screenshot time into the current step
     int renderEvery = 1;         // --renderevery N: automated runs render every Nth gameplay frame (+ screenshot frames)
     float skippedDt = 0.f;       // game time since the last rendered frame
+    int shotSettle = 0;          // --renderevery N > 1: frames rendered in a row so far for the requested screenshot
     int frameCap = 0;            // Settings: frame-rate cap (0 = unlimited)
     bool lastFpSetting = false;  // last applied "first person on foot" default
     u32 playFrames = 0;
@@ -555,7 +556,7 @@ struct App {
             } else if (autoplay == "hurt") {
                 // a passer-by knocked down hard on a downtown sidewalk at midday (applyAutoplay): down hurt, the people who
                 // stop, the ambulance, the medic, up and into the ambulance
-                autoDuration = 110.5f;
+                autoDuration = 150.5f;   // (the ambulance comes from 120-180 m, the patient limps to it)
                 vec2 q(2713.f, 763.f);
                 p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
                 env.timeOfDay = 13.f;
@@ -2613,8 +2614,15 @@ struct App {
             UI::endFrame();
 #ifdef HAVE_GAMEPLAY
             if (state == AS_PLAYING && !game.requestScreenshot.empty()) {   // mission tests: shots include the HUD
-                gfx::saveScreenshotBMP(game.requestScreenshot.c_str());
-                game.requestScreenshot.clear();
+                // with --renderevery N the requested shot waits for a few frames rendered in a row: as the only frame
+                // after up to N - 1 skipped ones its TAA, reflection, occlusion and fog history would be stale or reset
+                if (renderEvery > 1 && shotSettle < 6) {
+                    shotSettle++;
+                } else {
+                    gfx::saveScreenshotBMP(game.requestScreenshot.c_str());
+                    game.requestScreenshot.clear();
+                    shotSettle = 0;
+                }
             }
             if (pendingPhoto) {   // the finished photo (the UI drew it without its panels this frame)
                 pendingPhoto = false;

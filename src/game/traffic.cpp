@@ -547,8 +547,10 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                 // off and out of the player's sight, on past the hold-up along the route (as with the siren going it
                 // would have got round it)
                 float toScene = length(vp.xy() - inc->pos.toVec3().xy());
-                va.heldUp = v.sim.speed() < 1.f ? va.heldUp + dt : 0.f;
-                if (va.heldUp > 4.f && toScene < 85.f) {
+                // (held up: stopped or crawling in stop-and-go traffic - the time builds while slower than 3 m/s and wears
+                //  off while moving faster)
+                va.heldUp = Clamp(va.heldUp + (v.sim.speed() < 3.f ? dt : -dt), 0.f, 10.f);
+                if (va.heldUp > 3.f && v.sim.speed() < 1.f && toScene < 85.f) {
                     va.heldUp = 0.f;
                     d->mode = AI::DM_PULLOVER;
                     d->holdTimer = -1.f;
@@ -556,7 +558,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                     va.taskTimer = 0.f;
                     va.stopTimer = 0.f;
                     LOG("population: %s %d held up %.0f m from the scene, the crew goes on foot", va.role == VR_AMBULANCE ? "ambulance" : "fire truck", vi, toScene);
-                } else if (va.heldUp > 4.f && !d->dummy && !inView && plD > 60.f) {
+                } else if (va.heldUp > 5.f && !d->dummy && !inView && plD > 60.f) {
                     va.heldUp = 0.f;
                     float hl = vassets[v.model].spec.boxHalf.y;
                     for (float ahead = 12.f; ahead <= 66.f; ahead += 6.f) {

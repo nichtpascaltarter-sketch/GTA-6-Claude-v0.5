@@ -574,16 +574,37 @@ struct Sim {
         if (respondAt < 0.f || time < respondAt) return;
         if (respondCar < 0) {
             if (respondCalls >= 3) return;
+            // (as the game's dispatch: a car 120-180 m off with a short way in - at most 1.7 times the straight line -
+            //  else the one nearest 150 m)
             float best = 1e9f;
+            int fallback = -1;
+            float fbBest = 1e9f;
             for (int i = 0; i < (int)cars.size(); i++) {
                 AI::Driver* d = tc.get(i);
-                if (!cars[i].used || !d || d->dummy || cars[i].info.bike) continue;
-                float e = fabsf(length(cars[i].s.body.pos.toVec3().xy() - respondGoal) - 150.f);
-                if (e < best) {
-                    best = e;
+                if (!cars[i].used || !d || d->dummy || cars[i].info.bike || cars[i].s.speed() < 2.f) continue;   // (a car on the move)
+                float dist = length(cars[i].s.body.pos.toVec3().xy() - respondGoal);
+                float e = fabsf(dist - 150.f);
+                if (e < fbBest) {
+                    fbBest = e;
+                    fallback = i;
+                }
+                if (e > 30.f) continue;
+                AI::Driver tmp;
+                tmp.path = d->path;
+                tmp.u = d->u;
+                tc.setDestination(tmp, respondGoal);
+                if (tmp.destEdges.empty()) continue;
+                float rl = 0.f;
+                for (int ed : tmp.destEdges) rl += w->roads.edges[ed].length;
+                rl -= 0.5f * w->roads.edges[tmp.destEdges.front()].length;
+                if (tmp.destEdges.size() >= 2) rl -= 0.5f * w->roads.edges[tmp.destEdges.back()].length;
+                if (rl > dist * 1.7f + 40.f) continue;
+                if (rl < best) {
+                    best = rl;
                     respondCar = i;
                 }
             }
+            if (respondCar < 0) respondCar = fallback;
             if (respondCar < 0) return;
             AI::Driver* d = tc.get(respondCar);
             d->mode = AI::DM_EMERGENCY;
