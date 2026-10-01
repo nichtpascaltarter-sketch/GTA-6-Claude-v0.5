@@ -85,7 +85,7 @@ struct CharacterDesc {
     vec3 hairColor = vec3(0.1f, 0.07f, 0.05f);
     int top = 0, bottom = 0, shoes = 0, hat = -1, glasses = -1, facialHair = -1;
     vec3 topColor = vec3(0.8f), bottomColor = vec3(0.2f, 0.25f, 0.4f), shoeColor = vec3(0.1f);
-    int role = 0;                 // 0 civilian, 1 police, 2 gang, 3 business, 4 beach, 5 worker, 6 medic
+    int role = 0;                 // 0 civilian, 1 police, 2 gang, 3 business, 4 beach, 5 worker, 6 medic, 7 prison inmate
     int ancestry = -1;            // face shape tendencies: 0 Latin American / Mediterranean, 1 African / Caribbean,
                                   // 2 European, 3 East Asian, 4 mixed / other; -1 = from the skin tone
     // Layering and accessories (-1 / 0 = none; ignored where they do not go with the top, see character.cpp)
@@ -275,6 +275,8 @@ struct Animator {
     float speedS = 0, leanS = 0, fireT = 10.f, reloadW = 0, reloadT = 0, airT = 0, stanceTime = 0;
     float footL = 0, footR = 0, snapW = 0, snapRate = 5.f, moveW = 0, legScale = 1.f, styleF = 0, steerS = 0;
     vec2 dirS = vec2(0, 1);
+    float hipTurn = 0.f;          // hips (and legs) turned towards the travel direction, + = right (the trunk faces ahead)
+    bool hipBack = false;         // travelling well behind: the legs back-pedal along it rather than walk forwards
     int lastInAction = -1;        // AnimInput::action of the previous update (actions start on a change)
     float blinkT = -1.f, blinkNext = 2.f, gazeNext = 1.f, lookW = 0.f, slopeS = 0.f;
     vec2 gaze, gazeTarget, slopeN;
@@ -313,6 +315,8 @@ struct Animator {
     float stepToYaw[2] = {0.f, 0.f};
     float legSink = 0.f;          // pelvis lowered so planted feet stay within reach
     bool planted[2] = {false, false};
+    float pinZ[2] = {0.f, 0.f};       // height correction holding a planted sole on the ground (eases out after lift-off)
+    float plantAge[2] = {0.f, 0.f};   // time since the foot was planted (the correction eases in)
     float plantOn = 0.f;          // foot planting weight (off in vehicles, actions, scenarios that move the feet)
     float bodyLag = 0.f;          // body yaw behind the root while turning on the spot (the feet step round)
     float headLead = 0.f;         // head / neck yaw leading into turns

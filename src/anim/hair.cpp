@@ -23,6 +23,8 @@ struct HairParams {
     float volume = 1.f;
     float partX = 0.f;        // head-space x of the parting (long hair / bob), 0 = centre
     float hairlineOff = 0.f;  // forehead height: hairline raised (+) / lowered (-) at the front (degrees)
+    float fade = 0.f;         // short men's cuts: sides and back clippered down towards the hairline (0 none .. 1 skin)
+    bool lineUp = false;      // edge-up: a crisp, straight hairline at the front and temples
     vec3 col;
 };
 
@@ -42,7 +44,27 @@ static HairParams hairParams(const BuildCtx& c) {
     h.partX = r.chance(0.45f) ? 0.f : (r.chance(0.5f) ? -1.f : 1.f) * r.range(0.015f, 0.028f);
     h.col = d.hairColor;
     h.hairlineOff = c.D->foreheadH;
+    {
+        // fades and line-ups (own stream: the draws above keep their values)
+        Rng f(hash32(d.seed * 0x3C6EF372u + 0x1Bu));
+        const bool shortCut = h.style == HAIR_SHORT || h.style == HAIR_BUZZ || h.style == HAIR_QUIFF || h.style == HAIR_SLICKED;
+        const float youth = 1.f - sstep(0.25f, 0.7f, d.age);
+        if (male && shortCut && f.chance(0.25f + 0.4f * youth)) {
+            h.fade = f.range(0.55f, 1.f);
+            h.lineUp = f.chance(0.55f);
+        }
+    }
     return h;
+}
+
+// Fade factor of a short cut at a scalp point: 0 where it is clippered to the skin (the lowest sides and nape) .. 1 at
+// full length (the top); the fade line sits around the temples.
+static float fadeKeep(const HairParams& h, float at, float ph) {
+    if (h.fade <= 0.f) return 1.f;
+    const float deg = kDegToRad;
+    float side = sstep(48.f * deg, 75.f * deg, at);   // the front keeps its length; sides and back fade
+    float k = sstep(-8.f * deg, 34.f * deg, ph);       // from the hairline up to the temple line
+    return 1.f - h.fade * side * (1.f - k);
 }
 
 static float hairlinePhi(const HairParams& h, float at) {
@@ -80,18 +102,20 @@ static float styleThickness(const BuildCtx& c, const HairParams& h, const BVert&
     switch (h.style) {
         case HAIR_BALD: return 0.f;
         case HAIR_BUZZ: T = 0.0025f; break;
-        case HAIR_SHORT: T = Lerp(0.0065f, 0.016f, top) * (1.f - 0.5f * nape) + 0.003f * front * top; break;
-        case HAIR_QUIFF: T = Lerp(0.004f, 0.013f, top) + 0.02f * front * bump(ph, 50.f * deg, 16.f * deg); T *= 1.f - 0.4f * nape; break;
-        case HAIR_SLICKED: T = Lerp(0.005f, 0.011f, top) * (1.f - 0.3f * nape); break;
-        case HAIR_PONYTAIL: case HAIR_BUN: T = Lerp(0.0045f, 0.008f, top); break;
+        // (volume: real hair stands 1.5-3 cm off the crown; thinner shells read as a helmet)
+        case HAIR_SHORT: T = Lerp(0.008f, 0.021f, top) * (1.f - 0.5f * nape) + 0.005f * front * top; break;
+        case HAIR_QUIFF: T = Lerp(0.005f, 0.016f, top) + 0.03f * front * bump(ph, 50.f * deg, 16.f * deg); T *= 1.f - 0.4f * nape; break;
+        // slicked back with height: lifted over the forehead (a pompadour's roll), flat and close at the sides
+        case HAIR_SLICKED: T = (Lerp(0.0055f, 0.013f, top) + 0.022f * front * bump(ph, 54.f * deg, 18.f * deg)) * (1.f - 0.3f * nape); break;
+        case HAIR_PONYTAIL: case HAIR_BUN: T = Lerp(0.005f, 0.0105f, top); break;
         case HAIR_BRAIDS: {
             // cornrows: ridges running front to back
             float ridge = fabsf(sinf(v.pa * 12.f));
             T = 0.0035f + 0.0045f * ridge;
             break;
         }
-        case HAIR_LONG: T = Lerp(0.009f, 0.015f, top) + 0.004f * back; break;
-        case HAIR_BOB: T = Lerp(0.011f, 0.018f, top) + 0.005f * back; break;
+        case HAIR_LONG: T = Lerp(0.011f, 0.019f, top) + 0.006f * back; break;
+        case HAIR_BOB: T = Lerp(0.013f, 0.021f, top) + 0.007f * back; break;
         case HAIR_CURLY: {
             // afro: outer surface approximates an ellipsoid around the skull
             vec3 A = c.head.origin + vec3(0, -0.014f, 0.085f) * hs;
@@ -114,6 +138,7 @@ static float styleThickness(const BuildCtx& c, const HairParams& h, const BVert&
         default: T = 0.008f; break;
     }
     if (h.crownBald > 0.f) T *= 1.f - h.crownBald * sstep(50.f * deg, 72.f * deg, ph);
+    T *= Lerp(0.12f, 1.f, fadeKeep(h, at, ph));
     return T * hs;
 }
 
@@ -131,7 +156,9 @@ static float hairCoverage(const BuildCtx& c, const HairParams& h, const BVert& v
     float at = v.pa > kPi ? kTwoPi - v.pa : v.pa;
     float cv = (v.pb - hairlinePhi(h, at)) * 0.1f * c.D->headS;
     u32 hsh = hash32((u32)(v.bp.x * 5000.f) * 73856093u ^ (u32)(v.bp.y * 5000.f) * 19349663u ^ (u32)(v.bp.z * 5000.f) * 83492791u);
-    cv += (hashToFloat(hsh) - 0.5f) * 0.004f;
+    // (a line-up's front and temples are cut straight: no irregularity there)
+    float jag = h.lineUp ? Lerp(0.0004f, 0.004f, sstep(60.f * kDegToRad, 85.f * kDegToRad, at)) : 0.004f;
+    cv += (hashToFloat(hsh) - 0.5f) * jag;
     if (h.crownBald > 0.7f) {
         // horseshoe pattern: top of the head bald
         cv = Min(cv, (62.f * kDegToRad - v.pb) * 0.1f * c.D->headS + 0.01f * (1.f - h.crownBald));
@@ -458,6 +485,42 @@ static void addCurtain(OutfitCtx& o, const HairParams& h, float thA, float lengt
 }
 
 // Tube of hair swept from a head point down the back (ponytail / braid).
+// Hair tie / scrunchie colour for a character: mostly black or dark, sometimes a colour that reads from a distance.
+static vec3 tieColor(u32 seed) {
+    static const vec3 kTie[] = {vec3(0.02f), vec3(0.02f), vec3(0.05f, 0.03f, 0.02f), vec3(0.45f, 0.03f, 0.04f), vec3(0.03f, 0.06f, 0.25f),
+                                vec3(0.75f, 0.25f, 0.45f), vec3(0.8f), vec3(0.85f, 0.55f, 0.1f)};
+    return kTie[hash32(seed * 0x45D9F3Bu + 0x7u) % 8u];
+}
+
+// A band (elastic tie) round an axis: a short closed tube of `seg` sides.
+static void addBand(MeshB& m, vec3 cen, vec3 axis, float r, float halfLen, int seg, vec3 col, const SkinW& sw) {
+    vec3 tng = normalize(axis);
+    vec3 a = normalize(anyPerp(tng)), b = cross(tng, a);
+    std::vector<u32> r0v(seg), r1v(seg);
+    for (int k = 0; k < seg; k++) {
+        float th = kTwoPi * k / seg;
+        vec3 d = a * cosf(th) + b * sinf(th);
+        BVert v;
+        v.p = cen + d * r - tng * halfLen;
+        v.bp = v.p;
+        v.n = d;
+        v.t = tng;
+        v.col = col;
+        v.mat = MAT_CLOTH;
+        v.part = PART_ACC;
+        v.sw = sw;
+        r0v[k] = m.add(v);
+        v.p = cen + d * r + tng * halfLen;
+        r1v[k] = m.add(v);
+    }
+    for (int k = 0; k < seg; k++) {
+        u32 a0 = r0v[k], a1 = r0v[(k + 1) % seg], b0 = r1v[k], b1 = r1v[(k + 1) % seg];
+        vec3 nn = cross(m.v[b0].p - m.v[a0].p, m.v[a1].p - m.v[a0].p);
+        if (dot(nn, m.v[a0].n) >= 0.f) m.quad(a0, b0, b1, a1);
+        else m.quad(a0, a1, b1, b0);
+    }
+}
+
 static void addHairTube(OutfitCtx& o, const HairParams& h, vec3 start, vec3 dir0, float length, float r0, float rMid, float rEnd, int seg,
                         bool tie) {
     BuildCtx& c = o.c;
@@ -524,34 +587,11 @@ static void addHairTube(OutfitCtx& o, const HairParams& h, vec3 start, vec3 dir0
         else m.tri(a0, ti, a1);
     }
     if (tie) {
-        // hair tie: short dark band at the base
+        // hair tie at the base: a band a little proud of the gathered hair (dark or a colour, per person)
         vec3 tng = normalize(pts[1] - pts[0]);
-        vec3 a = normalize(anyPerp(tng)), b = cross(tng, a);
         vec3 cc = lerp(pts[0], pts[1], 0.35f);
-        float rr = Lerp(rad[0], rad[1], 0.35f) + 0.0025f;
-        std::vector<u32> r0v(seg), r1v(seg);
-        for (int k = 0; k < seg; k++) {
-            float th = kTwoPi * k / seg;
-            vec3 d = a * cosf(th) + b * sinf(th);
-            BVert v;
-            v.p = cc + d * rr - tng * 0.006f;
-            v.bp = v.p;
-            v.n = d;
-            v.t = tng;
-            v.col = vec3(0.03f);
-            v.mat = MAT_CLOTH;
-            v.part = PART_ACC;
-            v.sw = sws[0];
-            r0v[k] = m.add(v);
-            v.p = cc + d * rr + tng * 0.006f;
-            r1v[k] = m.add(v);
-        }
-        for (int k = 0; k < seg; k++) {
-            u32 a0 = r0v[k], a1 = r0v[(k + 1) % seg], b0 = r1v[k], b1 = r1v[(k + 1) % seg];
-            vec3 nn = cross(m.v[b0].p - m.v[a0].p, m.v[a1].p - m.v[a0].p);
-            if (dot(nn, m.v[a0].n) >= 0.f) m.quad(a0, b0, b1, a1);
-            else m.quad(a0, a1, b1, b0);
-        }
+        float rr = Lerp(rad[0], rad[1], 0.35f) + 0.0035f * c.D->headS;
+        addBand(m, cc, tng, rr, 0.0075f * c.D->headS, seg, tieColor(c.d->seed), sws[0]);
     }
     m.computeNormals(0, 0);
     if (tie) {
@@ -586,7 +626,7 @@ static void addBun(OutfitCtx& o, const HairParams& h) {
     float th = kPi, ph = 38.f * kDegToRad;
     vec3 dir(cosf(ph) * sinf(th), cosf(ph) * cosf(th), sinf(ph));
     float t0 = c.sdf.castOut(H.C, dir, MK_HEAD, 0.25f * hs);
-    float R = 0.034f * hs * h.volume;
+    float R = 0.039f * hs * h.volume;
     vec3 cen = H.C + dir * (t0 + R * 0.75f);
     MeshB m;
     const int NU = 12, NV = 8;
@@ -617,6 +657,11 @@ static void addBun(OutfitCtx& o, const HairParams& h) {
             else m.quad(a, d, cc, b);
         }
     m.computeNormals(0, m.idx.size());
+    // the band holding it, where the bun meets the head
+    {
+        vec3 base = H.C + dir * (t0 + 0.004f * hs);
+        addBand(m, lerp(base, cen, 0.3f), dir, R * 0.62f, 0.0055f * hs, 12, tieColor(c.d->seed), skin1(B_HEAD));
+    }
     o.out.append(m);
     o.hideOut.resize(o.out.idx.size() / 3, 0);
 }
@@ -720,18 +765,24 @@ static void buildFacialHair(OutfitCtx& o) {
     // the shell fades into the skin colour over its outer ~8 mm (the strand cards carry the outline), so the beard
     // edge is soft rather than a painted-on patch
     g.colFn = [=](const BVert& v, vec3 cc) {
-        // clumpy brightness (a beard is never one flat tone) with a little light scattered through dark hair
+        // clumpy brightness (a beard is never one flat tone) with light scattered through it: on black hair the
+        // strands' sheen and dark-brown tips keep it from reading as a painted mask
         float hv = hashToFloat(hash32((u32)(v.bp.x * 9000.f) ^ (u32)(v.bp.z * 7000.f) * 2654435761u));
-        vec3 hairC = cc * 0.8f * (0.75f + 0.55f * hv) + vec3(0.01f, 0.008f, 0.006f) * (0.6f + 0.8f * hv);
-        float t = sstep(0.0f, 0.008f, region(v, must, chin, cheeks));
-        return lerp(lerp(v.col, hairC, 0.55f), hairC, t);
+        float strands = 0.5f + 0.5f * sinf(v.bp.x * 2300.f + 3.f * sinf(v.bp.z * 700.f));   // fine vertical streaks
+        vec3 hairC = cc * 0.8f * (0.7f + 0.65f * hv) + vec3(0.016f, 0.012f, 0.009f) * (0.4f + 0.8f * hv + 0.6f * strands);
+        // the edge: sparse (skin shows between the hairs), broken up per vertex rather than a smooth airbrushed fade
+        float cv = region(v, must, chin, cheeks);
+        float t = sstep(0.0f, 0.013f, cv);
+        float grain = hashToFloat(hash32((u32)(v.bp.x * 12000.f) * 73856093u ^ (u32)(v.bp.y * 12000.f) * 19349663u ^ (u32)(v.bp.z * 12000.f)));
+        t = Saturate(t + (grain - 0.5f) * 0.6f * (1.f - t) * sstep(-0.002f, 0.004f, cv));
+        return lerp(lerp(v.col, hairC, 0.4f), hairC, t);
     };
-    // tint the skin under the beard edge
+    // tint the skin under the beard edge (stubble-like: the skin darkens towards the hair without turning into it)
     for (size_t i = 0; i < c.surfaceIdxEnd; i++) {
         if (i >= c.m.v.size()) break;
         BVert& v = c.m.v[i];
         float cv = region(v, must, chin, cheeks);
-        if (cv > -0.005f) v.col = lerp(v.col, fcol * 0.7f, 0.5f * sstep(-0.005f, 0.005f, cv));
+        if (cv > -0.006f) v.col = lerp(v.col, mulColor(v.col, vec3(0.6f)) + fcol * 0.25f, 0.6f * sstep(-0.006f, 0.005f, cv));
     }
     emitGarment(o, g);
     // strand cards lying on the beard shell, combed down (the mustache down and out from the philtrum, the chin
@@ -752,6 +803,8 @@ static void buildFacialHair(OutfitCtx& o) {
         if (est > 1100.f) pick *= 1100.f / est;
     }
     const int NSg = kind == FH_SHORTBEARD ? 2 : 3;
+    // strand tips catch the light: black hair reads dark brown at the ends (a floor under the tip colour)
+    const vec3 tipCol = vmax(fcol * 1.15f, vec3(0.045f, 0.036f, 0.028f));
     CardPt pts[4];
     for (int j = 1; j < H.rows; j++)
         for (int k = 0; k < H.cols; k++) {
@@ -788,7 +841,7 @@ static void buildFacialHair(OutfitCtx& o) {
                 q = q1;
                 nq = n1;
             }
-            if (np >= 2) emitCard(cm, pts, np, CARD_BEARD, seed, fcol * 0.55f, fcol * 1.05f, 0.45f + 0.45f * edgeDens, PART_HEAD, &H);
+            if (np >= 2) emitCard(cm, pts, np, CARD_BEARD, seed, fcol * 0.6f, tipCol, 0.45f + 0.45f * edgeDens, PART_HEAD, &H);
         }
     size_t t0 = o.out.idx.size() / 3;
     o.out.append(cm);
@@ -818,7 +871,13 @@ void buildHairLayer(OutfitCtx& o) {
         BVert& v = c.m.v[i];
         if (v.part != PART_HEAD || v.pc < 1.2f) continue;
         float cv = hairCoverage(c, h, v);
-        if (cv > -0.01f) v.col = lerp(v.col, h.col * 0.75f, (h.style == HAIR_BUZZ ? 0.8f : 0.6f) * sstep(-0.01f, 0.006f, cv));
+        float at = v.pa > kPi ? kTwoPi - v.pa : v.pa;
+        // a fade shows the skin through the clippered sides, darkening up towards the full-length hair
+        float keep = fadeKeep(h, at, v.pb);
+        float amt = (h.style == HAIR_BUZZ ? 0.8f : 0.6f) * Lerp(0.25f, 1.f, keep);
+        if (cv > -0.01f) v.col = lerp(v.col, h.col * 0.75f, amt * sstep(-0.01f, 0.006f, cv));
+        // the line-up: a crisp, dense edge along the front hairline and the temples
+        if (h.lineUp && at < 80.f * kDegToRad && cv > -0.0005f) v.col = lerp(v.col, h.col * 0.6f, 0.8f * (1.f - sstep(0.0015f, 0.005f, cv)));
     }
     GarmentDef g;
     g.parts = 1u << PART_HEAD;

@@ -11,8 +11,8 @@
 //                         lets the exposure settle on interiors and night scenes).
 // Street encounters run through the same queue: "enc_<kind>" steers toward the first outcome, "enc_<kind>_b" toward
 // the second; the groups "encounters", "encounters_b" and "encounters_all" queue them all. Fishing: "fish_pier",
-// "fish_boat" (offshore), "fish_swamp", "fish_river", "fish_lake" land a fish of the habitat, "fish_market" sells a
-// cooler at a bait shop; the group "fishing" queues them all. The airboat tours are the side mission "sawgrass_tours"
+// "fish_boat" (offshore), "fish_swamp", "fish_river", "fish_lake" land a fish of the habitat, "fish_market" walks up
+// to a bait shop after dark (a frame of its marker) and sells a cooler there; the group "fishing" queues them all. The airboat tours are the side mission "sawgrass_tours"
 // (--tourroute 0|1|2 picks the route). "act4_card" checks the Act 4 unlock after the ending (title card, Lucha's call);
 // the group "act4" runs it before the six missions.
 #include "missions.h"

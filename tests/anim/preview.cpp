@@ -379,6 +379,17 @@ static void runScenario(int sc, float t, AnimInput& in) {
         case 38:   // falling (a long drop from 0.2 s)
             in.inAir = t > 0.2f;
             break;
+        case 39: {   // aiming a pistol while moving PREVIEW_DIR degrees off the facing (+ = right; default 90) at
+                     // PREVIEW_SPEED (default 1.6 m/s, the player's aiming walk; 2.9 the aiming jog)
+            const char* sv = getenv("PREVIEW_SPEED");
+            const char* dv = getenv("PREVIEW_DIR");
+            float a = (dv ? (float)atof(dv) : 90.f) * kPi / 180.f;
+            in.speed = Min(sv ? (float)atof(sv) : 1.6f, t * 11.f);
+            in.localMoveDir = vec2(sinf(a), cosf(a));
+            in.weaponKind = 1;
+            in.aiming = true;
+            break;
+        }
         case 37: {   // looking at a point 60 degrees to the left, switching to one 45 degrees to the right at 1 s
             float a = t < 1.f ? 1.05f : -0.8f;
             in.lookAt = vec3(-sinf(a) * 3.f, cosf(a) * 3.f, 1.6f);

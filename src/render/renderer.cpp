@@ -515,6 +515,9 @@ void Renderer::uploadInteriors() {
 
 void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     stats.reset();
+    // A camera jump (teleport, mission staging, a scripted cut, or many frames skipped by --renderevery) is a cut:
+    // history buffers, the reflection probe and the exposure must not carry over from the previous place
+    if (frameIndex > 0 && length(rel(cam.pos, camera.pos)) > 40.f) cameraCut = true;
     RenderPassTiming::skipFrame = cameraCut;
     auto* c = gfx::ctx;
     updateFrameConstants(cam, env, dt);

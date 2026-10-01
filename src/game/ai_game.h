@@ -141,6 +141,7 @@ struct PedAI {
     u8 venueMode = 0;
     bool venueDriver = false;   // VM_BOARD: takes the wheel (else a passenger seat)
     bool goInside = false;      // a walker headed for a door (walk.dest): gone once there (population.cpp)
+    bool browsing = false;      // ACT_SCENARIO: stopped at a shop window (pedai.cpp)
     int greetWith = -1;         // a greeting (CLIP_HUG / HANDSHAKE / CHEEK_KISS, started on both together): the partner,
                                 // from stepping in until they part (peds.cpp: their chest / head for the hands) ...
     float greetT = 0.f;         // ... and the time the clip has left (> 0 while it plays)

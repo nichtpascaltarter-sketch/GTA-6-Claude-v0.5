@@ -244,7 +244,8 @@ struct EnvProbeSystem {
         }
         int wantRes = Clamp(s.envProbeRes, 32, 512);
         if (wantRes != res) create(wantRes);
-        if (r.cameraCut || !valid) {
+        // full capture after cuts, on creation, and whenever the camera has left the captured surroundings
+        if (r.cameraCut || !valid || length(rel(r.camera.pos, frontPos)) > 150.0f) {
             cyclePos = r.camera.pos;
             gatherLights(r, env);
             for (int f = 0; f < 6; f++) captureFace(r, f);

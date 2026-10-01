@@ -36,7 +36,7 @@ vec3 jointPos(const Skeleton& sk, const Pose& p, int b) {
 void testMesh() {
     double tTotal = 0;
     int triTotal = 0, n = 0, triMin = 1 << 30, triMax = 0;
-    for (int role = 0; role < 7; role++) {
+    for (int role = 0; role < 8; role++) {   // (7: prison inmates)
         for (int k = 0; k < 4; k++) {
             u32 seed = 1000 + role * 37 + k * 101;
             CharacterDesc d = randomCharacter(seed, role);
@@ -1336,6 +1336,7 @@ void testClothingClip() {
     for (int k = 0; k < 3; k++) cases.push_back({8700u + (u32)k * 71u, k & 1 ? 3 : 0, k < 2 ? TOP_TSHIRT : TOP_DRESS_SHIRT, k & 1 ? BOT_SLACKS : BOT_JEANS, -2, -2, 0.95f});
     cases.push_back({9901u, 4, TOP_BIKINI, BOT_BIKINI, -1, -1, -1.f});
     cases.push_back({9902u, 2, TOP_TANK, -2, -1, -1, -1.f});
+    cases.push_back({9903u, 7, -2, -2, -2, -2, -1.f});   // prison inmate's coverall
     struct PoseDef {
         Clip c;
         float t;     // fraction of the clip

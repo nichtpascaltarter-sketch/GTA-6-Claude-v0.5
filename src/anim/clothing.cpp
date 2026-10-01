@@ -1724,7 +1724,7 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
             sleeve = 0.3f * s; hemZ = R.zCrotch - 0.02f * s; loose = 0.007f; g.smooth = 3; drift = 0.02f;
             rTop = D.rUpperArm * 1.45f + 0.01f * s; rEnd = D.rElbow * 1.75f + 0.01f * s; foldAmp = 1.2f; hang = 1.f;
             break;
-        case TOP_TANK: tank = true; loose = 0.003f; hemZ = R.zCrotch + 0.07f * s; drift = 0.3f; foldAmp = 0.4f; hang = 0.f; break;
+        case TOP_TANK: tank = true; loose = 0.003f; hemZ = R.zCrotch + 0.07f * s; drift = 0.16f; foldAmp = 0.4f; hang = 0.f; break;
         case TOP_POLO:
             sleeve = 0.155f * s; collar = true; buttons = true; nButtons = 2; drift = 0.1f;
             rTop = D.rUpperArm * 1.14f + 0.004f * s; rEnd = D.rUpperArm * 1.16f + 0.004f * s; foldAmp = 0.75f; hang = 0.4f;
@@ -1813,15 +1813,27 @@ static void buildTopGarments(OutfitCtx& o, const Ref& R, const CharacterDesc& d)
     // ---- base shell
     const float sl = sleeve, hz = hemZ, np = neckPc, vd = vDip, vw = vW;
     const bool tk = tank;
+    // tank tops: scoop depths front / back, the height where the straps join and the armhole's bottom
+    const float zScoopF = D.zNeckFront - 0.075f * s, zScoopB = D.zNeckBack - 0.1f * s, zStrapJ = D.zNeckFront - 0.025f * s, zArmHole = D.zArmpit - 0.02f * s;
     g.cov = [=, &R](const BVert& v) -> float {
         if (v.part == PART_TORSO || v.part == PART_NECK) {
             if (v.part == PART_NECK) return -1.f;
             float cv = covTorsoRange(R, v, hz, np, vd, vw);
             if (tk) {
-                // body up to a scoop (pc 0.89 front/back, a deep armhole 2 cm under the armpit, where the arm hanging
-                // at the side folds in); the straps are ribbons (addShoulderStraps)
-                float side = fabsf(sinf(v.pb));
-                cv = Min(cv, (0.765f + 0.125f * (1.f - side) - v.pc) * R.torsoLen);
+                // the body's top edge: a U scoop at the front (and a shallower one at the back) rising to where the
+                // straps join, then dropping into a deep armhole 2 cm under the armpit (where the arm hanging at the side
+                // folds in); the straps are ribbons (addShoulderStraps)
+                // (heights, not the grid's length fraction: over the shoulders the skin grid's rows are rays from the
+                // armpit, so a cut by row would come out scalloped)
+                // (across the panel by |x|: flat under the strap, which sits at |x| = 0.105 s, see addShoulderStraps)
+                float ax = fabsf(v.bp.x), cxs = 0.105f * s;
+                float zCentre = v.bp.y >= 0.f ? zScoopF : zScoopB;
+                float zTop = ax <= cxs ? Lerp(zCentre, zStrapJ, sstep(0.012f * s, cxs - 0.02f * s, ax))
+                                       : Lerp(zStrapJ, zArmHole, sstep(cxs + 0.022f * s, cxs + 0.07f * s, ax));
+                // (the armhole reaches its bottom at the side whatever the torso's width)
+                float th = fabsf(wrapAngle(v.pb)), a = th <= kHalfPi ? th : kPi - th;
+                zTop = Min(zTop, Lerp(zStrapJ + 0.1f * s, zArmHole, sstep(1.f, 1.38f, a)));
+                cv = Min(cv, zTop - v.bp.z);
             }
             return cv;
         }
@@ -2896,6 +2908,125 @@ static void buildBottomGarments(OutfitCtx& o, const Ref& R, const CharacterDesc&
 }
 
 // ------------------------------------------------------------------------------------------------
+// Coverall (TOP_JUMPSUIT, prison inmates): one shell over the torso, short sleeves and both legs, cut roomy (the seat
+// and the legs hang straight, the sleeves stand off the arm), with a shirt collar over a V that shows a white crew-neck
+// tee, a zip from the V to below the navel, a patch pocket on the left chest, a waist seam and side seams down the
+// legs. Plain: no lettering or badges.
+static void buildJumpsuit(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
+    BuildCtx& c = o.c;
+    const BodyDims& D = *c.D;
+    const float s = D.s;
+    const vec3 col = d.topColor;
+    // the tee underneath (only its neck shows in the V)
+    {
+        GarmentDef t;
+        t.parts = 1u << PART_TORSO;
+        t.col = srgbToLinear(vec3(0.9f, 0.9f, 0.88f));
+        t.thick = 0.0015f;
+        t.smooth = 0;
+        t.matParam = 0;
+        t.cov = [=, &R](const BVert& v) -> float {
+            if (v.part != PART_TORSO) return -1.f;
+            return covTorsoRange(R, v, R.zChest - 0.1f * s, 0.972f, 0.f, 0.3f);
+        };
+        emitGarment(o, t);
+    }
+    GarmentDef g;
+    g.parts = (1u << PART_TORSO) | (1u << PART_ARM) | (1u << PART_LEG);
+    g.col = col;
+    g.thick = 0.0035f;
+    g.matParam = 2;   // twill
+    const float sl = 0.16f * s, zCuff = R.zAnkle + 0.025f * s, vd = 0.1f, vw = 0.3f;
+    g.cov = [=, &R](const BVert& v) -> float {
+        if (v.part == PART_TORSO) return covTorsoRange(R, v, -10.f, 0.972f, vd, vw);
+        if (v.part == PART_ARM) return sl - v.pa;
+        if (v.part == PART_LEG) return v.bp.z - zCuff;
+        return -1.f;
+    };
+    // roomy: clears the tee, hangs looser towards the seat; the legs flare a little towards the hem
+    const float clearT = 0.0015f + 0.004f, zc = R.zCrotch, zw = R.zWaist;
+    g.extraFn = [=](const BVert& v) -> float {
+        if (v.part == PART_TORSO) return Max(clearT, 0.008f * (0.6f + 0.8f * sstep(zw + 0.1f, zc, v.bp.z)));
+        if (v.part == PART_LEG) return 0.01f + 0.006f * Saturate((zc - v.bp.z) / Max(zc - zCuff, 0.05f));
+        return 0.006f;
+    };
+    g.hangDrift = 0.06f;
+    g.hangTop = D.J[B_CHEST].z + 0.04f * s;
+    {
+        const float rk = D.rKnee, rt = D.rThigh;
+        const float aC = legAlongAtZ(D, D.zCrotch), aK = D.thigh, aH = legAlongAtZ(D, zCuff), rTop = rt * 1.03f + 0.006f * s;
+        const float rkn = rk * 1.32f + 0.009f * s, rhm = rk * 1.26f + 0.008f * s;
+        const float rsT = D.rUpperArm * 1.3f + 0.006f * s, rsE = D.rUpperArm * 1.4f + 0.006f * s;
+        g.tubeR = [=](const BVert& v) -> float {
+            if (v.part == PART_ARM) {
+                if (v.pa > sl + 0.01f * s) return 0.f;
+                return Lerp(rsT, rsE, lstep(0.08f * s, Max(sl, 0.1f * s), v.pa)) * sstep(0.035f * s, 0.1f * s, v.pa);
+            }
+            if (v.part != PART_LEG) return 0.f;
+            float a = v.pa;
+            if (a > aH + 0.02f * s) return 0.f;
+            float Rr = a < aK ? Lerp(rTop, rkn, lstep(aC, aK, a)) : Lerp(rkn, rhm, lstep(aK, Max(aH, aK + 0.05f), a));
+            return Rr * sstep(aC - 0.02f * s, aC + 0.03f * s, a);
+        };
+    }
+    {
+        FoldSpec fs;
+        fs.amp = 1.f;
+        fs.sleeveEnd = sl;
+        fs.legCuffZ = zCuff;
+        fs.legLong = true;
+        fs.waistZ = R.zWaist;   // the suit bunches a little at the waist
+        fs.hangTop = g.hangTop;
+        fs.hang = 0.4f;
+        fs.seed = d.seed * 19u + 11u;
+        g.foldFn = foldFnOf(makeFolds(c, fs), s);
+        g.refineTol = 0.0008f;
+    }
+    g.smooth = 2;
+    emitGarment(o, g);
+    o.topTorsoOff = o.botTorsoOff = g.thick + 0.012f;
+    o.topSleeveR = 0.f;
+    o.legHemZ = zCuff;
+    o.torsoOuter = std::make_shared<GarmentDef>(g);
+    // ---- details
+    const vec3 dark = darker(col, 0.8f);
+    auto decal = [&](CovFn cov, vec3 dcol, u8 mat, float extraOff, u32 parts, u32 mp) {
+        emitGarment(o, decalOf(g, cov, dcol, mat, extraOff, parts, mp));
+    };
+    CovFn base = g.cov;
+    const float zVBot = Lerp(D.zNeckFront, R.zChest, 0.55f) - 0.005f * s, zZipBot = R.zHip + 0.02f * s;
+    // zip: a narrow tape down the middle from the V to below the navel, with its pull at the top
+    decal([=](const BVert& v) {
+        if (v.part != PART_TORSO || v.bp.y < 0.f) return -1.f;
+        return Min(Min(base(v), 0.0055f * s - fabsf(v.bp.x)), Min(zVBot - v.bp.z, v.bp.z - zZipBot));
+    }, dark, MAT_CLOTH, 0.0009f, 1u << PART_TORSO, g.matParam);
+    // patch pocket on the left chest with a stitched rim
+    const float px = -0.065f * s, pz = R.zChest + 0.005f * s, pw = 0.042f * s, ph = 0.05f * s;
+    decal([=](const BVert& v) {
+        if (v.part != PART_TORSO || v.bp.y < 0.f) return -1.f;
+        return Min(base(v), Min(pw - fabsf(v.bp.x - px), ph - fabsf(v.bp.z - pz)));
+    }, darker(col, 0.95f), MAT_CLOTH, 0.0012f, 1u << PART_TORSO, g.matParam);
+    // collar over the V
+    addCollar(o, g.thick + 0.008f, darker(col, 0.97f), g.matParam, 0.5f, 0.3f, 1.f, true, 0.03f * s);
+    // waist seam all round and the side seams down the legs (ribbons on the shell)
+    seamAround(o, g, PART_TORSO, -1, R.zWaist, 0.f, kTwoPi, 0.0011f * s, dark, MAT_CLOTH, g.matParam);
+    for (int sd = 0; sd < 2; sd++) {
+        seamAlong(o, g, PART_LEG, sd, kHalfPi, 0.06f * s, legAlongAtZ(D, zCuff) - 0.01f * s, 0.0011f * s, dark, MAT_CLOTH, g.matParam);
+        seamAround(o, g, PART_ARM, sd, sl - 0.012f * s, 0.f, kTwoPi, 0.0009f * s, dark, MAT_CLOTH, g.matParam);   // sleeve hem stitch
+    }
+    // zip pull
+    {
+        MeshB bm;
+        vec3 n;
+        vec3 p = garmentTorsoPoint(o, g, zVBot - 0.006f * s, 0.f, n);
+        addBoxOriented(bm, p + n * 0.0022f, vec3(1, 0, 0), vec3(0, 0, 1), n, vec3(0.0035f, 0.008f, 0.0012f) * s, vec3(0.55f, 0.55f, 0.56f), MAT_CHROME,
+                       torsoSkinWeights(D, p));
+        o.out.append(bm);
+        o.hideOut.resize(o.out.idx.size() / 3, 0);
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
 // Shoes, socks and soles
 
 static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
@@ -2911,6 +3042,7 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
     // socks for closed shoes
     if (kind == SHOE_SNEAKER || kind == SHOE_RUNNER || kind == SHOE_DRESS || kind == SHOE_BOOT) {
         vec3 sockCol = kind == SHOE_DRESS ? vec3(0.03f) : (rng.chance(0.6f) ? vec3(0.9f) : vec3(0.05f));
+        if (d.role == 7) sockCol = vec3(0.9f);   // (state-issue white)
         float sockTop = ankZ + (kind == SHOE_DRESS ? 0.12f : (rng.chance(0.5f) ? 0.035f : 0.1f)) * s;
         // under full-length trousers only the band below the hem can show
         if (o.legHemZ > 0.f) sockTop = Min(sockTop, o.legHemZ + 0.02f * s);
@@ -2940,7 +3072,10 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
     // styles within a kind: sneakers are low-top trainers, canvas plimsolls or high-tops; boots are laced work boots or
     // Chelsea boots; sandals are thongs or two-strap slides
     Rng rs(hash32(d.seed * 0x632BE5ABu + 0x55u));
-    const int sneakStyle = rs.f() < 0.55f ? 0 : (rs.f() < 0.65f ? 1 : 2);
+    int sneakStyle = rs.f() < 0.55f ? 0 : (rs.f() < 0.65f ? 1 : 2);
+    // inmates' state-issue canvas slip-ons: the plimsoll without laces, a low throat with elastic gussets at its sides
+    const bool slipOn = kind == SHOE_SNEAKER && d.role == 7;
+    if (slipOn) sneakStyle = 1;
     const bool chelsea = kind == SHOE_BOOT && d.role != 5 && d.role != 1 && d.role != 6 && rs.chance(d.gender == FEMALE ? 0.7f : 0.35f);
     const bool slides = kind == SHOE_SANDAL && rs.chance(d.gender == FEMALE ? 0.5f : 0.3f);
     switch (kind) {
@@ -2948,6 +3083,7 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
             g.mat = MAT_CLOTH; soleMat = MAT_CLOTH; soleCol = rng.chance(0.7f) ? vec3(0.9f) : col * 0.5f;
             if (sneakStyle == 1) { soleCol = vec3(0.92f); g.matParam = 1; }                                        // canvas
             if (sneakStyle == 2) cutSide = cutBack = cutFront = ankZ + 0.055f * s;                               // high-top
+            if (slipOn) cutFront = ankZ - 0.008f * s;
             break;
         case SHOE_RUNNER: g.mat = MAT_CLOTH; soleMat = MAT_CLOTH; soleCol = vec3(0.92f); break;
         case SHOE_DRESS: g.mat = MAT_LEATHER; g.col = col * 3.f; cutSide = ankZ - 0.03f * s; cutBack = ankZ - 0.015f * s; cutFront = ankZ - 0.022f * s;
@@ -3065,7 +3201,7 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
                 if (v.part != PART_LEG || v.bp.z > ankZ) return -1.f;
                 float y = v.bp.y - ankOf(v).y;
                 return Max(y - (D.toeFwd - 0.035f * s), (lift + 0.014f * s) - v.bp.z);
-            }, vec3(0.9f, 0.89f, 0.85f), MAT_RUBBER, 0.001f);
+            }, vec3(0.9f, 0.89f, 0.85f), MAT_CLOTH, 0.001f);   // (white rubber: the rubber material is tyre-black)
         }
         if (kind == SHOE_SNEAKER && sneakStyle == 2) {
             // high-top: a round ankle patch on the outside
@@ -3096,6 +3232,15 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
                 return Min(Min(0.0025f * s - fabsf(y), 0.012f * s - fabsf(v.bp.x - a.x)), cosf(v.pb) - 0.6f);
             }, vec3(0.02f), MAT_LEATHER, 0.0024f);
         }
+        if (slipOn) {
+            // elastic gussets either side of the throat
+            decal([=](const BVert& v) {
+                if (v.part != PART_LEG || v.bp.z > ankZ + 0.01f * s) return -1.f;
+                vec3 a = ankOf(v);
+                float y = v.bp.y - a.y - 0.03f * s, side = fabsf(sinf(v.pb));
+                return Min(Min(0.011f * s - fabsf(y), side - 0.45f), v.bp.z - (ankZ - 0.03f * s)) * 0.5f + Min(0.f, 0.85f - side) * 0.02f;
+            }, vec3(0.62f, 0.62f, 0.6f), MAT_CLOTH, 0.0008f);
+        }
         if (chelsea) {
             // elastic gussets on both sides and a pull tab at the back
             decal([=](const BVert& v) {
@@ -3114,7 +3259,7 @@ static void buildShoes(OutfitCtx& o, const Ref& R, const CharacterDesc& d) {
     // extruded to the ground with a rounded bottom edge and a toe spring; sneakers / runners get a white midsole over
     // a darker outsole, dress shoes a thin sole with a heel block (the arch lifts off the ground), boots a thick lug
     // sole. Laced shoes get crossed laces over the tongue and a bow.
-    const bool laced = kind == SHOE_SNEAKER || kind == SHOE_RUNNER || (kind == SHOE_BOOT && !chelsea);
+    const bool laced = (kind == SHOE_SNEAKER && !slipOn) || kind == SHOE_RUNNER || (kind == SHOE_BOOT && !chelsea);
     const float upperThick = g.thick;
     for (int sd = 0; sd < 2; sd++) {
         const u32 FM = sd ? MK_FOOT_R : MK_FOOT_L;
@@ -4638,7 +4783,9 @@ void buildOutfit(BuildCtx& c, MeshB& out, std::vector<u8>& hideTri) {
         emitGarment(o, g);
         addShoulderStraps(o, g.cov, 0.09f * R.s, 0.0065f * R.s, 0.0045f, d.topColor * 0.95f, 1u);
     }
-    if (tucked) {
+    if (d.top == TOP_JUMPSUIT) {
+        buildJumpsuit(o, R, d);
+    } else if (tucked) {
         buildTopGarments(o, R, d);
         buildBottomGarments(o, R, d);
     } else {

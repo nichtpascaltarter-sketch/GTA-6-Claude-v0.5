@@ -755,12 +755,20 @@ void drawMarkers(GameWorld& g, const std::vector<Marker>& list) {
         if (!gMarkerModel) break;
         float d = pl ? length(rel(mk.pos, pl->pos)) : 1e9f;
         if (d > 400.f) continue;
+        // standing in it: the marker steps aside for the prompt (it would wall the player in)
+        if (pl) {
+            vec3 o = rel(pl->pos, mk.pos);
+            if (o.x * o.x + o.y * o.y < (mk.radius + 0.25f) * (mk.radius + 0.25f) && fabsf(o.z) < 2.5f) continue;
+        }
         Render::DrawItem di;
         di.model = gMarkerModel;
         di.pos = mk.pos;
         di.scale = vec3(mk.radius, mk.radius, 1.6f + 0.15f * sinf((float)g.time * 3.f));
         di.tint0 = vec4(mk.color, 0.f);
-        di.emissiveScale = 1.2f;
+        // see-through (half coverage, which TAA averages) with a soft glow: the emission is not exposure-relative, so
+        // a strong one turns into a white wall under the night exposure; by day the tinted glass-like body carries it
+        di.fade = 0.65f;
+        di.emissiveScale = 0.08f;
         di.castShadow = false;
         g.renderer->dynamic->submit(di);
     }

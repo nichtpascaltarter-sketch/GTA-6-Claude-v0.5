@@ -79,7 +79,7 @@ void grave(G& g, const Frame& F, const Grave& gv, int style) {
     vec3 sc = r.chance(0.5f) ? vec3(0.86f, 0.86f, 0.83f) : (r.chance(0.5f) ? vec3(0.62f, 0.62f, 0.63f) : vec3(0.7f, 0.66f, 0.6f));
     if (style == 1 && r.chance(0.3f)) sc = vec3(0.45f, 0.44f, 0.46f);   // darker granite in the mill town
     sc = sc * r.range(0.88f, 1.05f);
-    const u32 st = tint(sc), sm = r.chance(0.6f) ? M(MAT_STONE) : M(MAT_MARBLE), ink = rgb(0.18f, 0.17f, 0.16f);
+    const u32 st = tint(sc), sm = r.chance(0.6f) ? M(MAT_CURB) : M(MAT_MARBLE), ink = rgb(0.18f, 0.17f, 0.16f);   // plain dressed stone or marble
     const float lean = detail && (gv.kind == GK_SLAB || gv.kind == GK_FAMILY) ? r.range(-0.035f, 0.035f) : 0.f;   // old slabs lean a little
     auto stone = [&](float w, float h, float t) {   // upright slab with its face toward the street
         vec3 up = normalize(vec3(0, 0, 1) + V3(f, 0.f) * lean);

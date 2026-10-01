@@ -350,6 +350,7 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
             A.stepT[s] = -1.f;
             A.plantCorr[s] = vec3(0);
             A.corrYaw[s] = 0.f;
+            A.pinZ[s] = A.plantAge[s] = 0.f;
         }
     }
     // root motion of this update, in the new model space: world-fixed points move back by it and turn against it
@@ -535,9 +536,17 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
         vec3 toe = toeJ + rotate(fq[s] * p.rot[tb], vec3(0.f, sk.boneLength[tb], -(A.footAnkleH + sk.bindLocalPos[tb].z)));
         float low = Min(Min(heel[s].z, ball[s].z), toe.z);
         float pz = pivotA(s).z;
-        float down = A.planted[s] ? -pz : 0.f;
-        pin[s] = Max(down, -low) * w;
-        if (!A.planted[s]) pin[s] = Max(0.f, -low) * w;
+        // (proportions and mixed clips leave the pose's sole a centimetre or two off the ground at times: a planted
+        // foot is pulled onto it over its first 80 ms, and a lifted one lets go over 50 ms, not in a frame)
+        if (A.planted[s]) {
+            A.plantAge[s] += dt;
+            float hold = Max(-pz, -low);
+            A.pinZ[s] = A.plantAge[s] < 0.08f ? Lerp(A.pinZ[s], hold, Saturate(dt / Max(0.08f - A.plantAge[s] + dt, dt))) : hold;
+        } else {
+            A.plantAge[s] = 0.f;
+            A.pinZ[s] *= expf(-dt / 0.05f);
+        }
+        pin[s] = Max(A.pinZ[s], -low) * w;
     }
     bool any = fabsf(drop) > 1e-4f || fabsf(slopeY) > 0.01f || fabsf(slopeX) > 0.01f || fabsf(A.stepShift) > 1e-4f;
     for (int s = 0; s < 2; s++)
@@ -787,6 +796,8 @@ void Animator::init(const Skeleton* s, u32 variationSeed) {
     snapRate = 5.f;
     moveW = 0.f;
     dirS = vec2(0, 1);
+    hipTurn = 0.f;
+    hipBack = false;
     actionUpper = wasReloading = false;
     lastInAction = -1;
     extBlend = false;
@@ -1130,6 +1141,23 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         // faster than either clip alone; a plain L1 mix would leave the blended foot short of the ground speed)
         float cf = dirS.y, sf = dirS.x;
         float cw = crouchBlend;
+        // ---- the legs turned into the travel direction: moving diagonally or across, the hips - and with them the
+        //      forward gait - turn up to 46-57 deg towards it while the trunk keeps facing ahead (the aim; turned back
+        //      after the layers below), so the legs walk and run along the direction and the strafe / backward clips
+        //      only cover what is left. Well behind (beyond 117 deg; forwards again within 100) the legs back-pedal
+        //      along it instead.
+        {
+            float th = atan2f(dirS.x, dirS.y);   // + = to the right
+            if (hipBack ? fabsf(th) < 1.75f : fabsf(th) > 2.05f) hipBack = !hipBack;
+            float rel = hipBack ? wrapAngle(th - kPi) : th;
+            float maxT = Lerp(0.8f, 1.f, Saturate((v - 1.6f) / 1.4f));
+            bool can = !stanceIsGuard(stance) && !in.swimming && !in.inAir;
+            float target = can ? Clamp(rel, -maxT, maxT) * Saturate(v / 0.6f) * (1.f - cw) : 0.f;
+            hipTurn += (target - hipTurn) * (1.f - expf(-dt * 7.f));
+            if (fabsf(hipTurn) < 1e-4f) hipTurn = 0.f;
+            cf = cosf(th - hipTurn);
+            sf = sinf(th - hipTurn);
+        }
         float rateB = Max(v, 0.85f) / stride(CLIP_WALK_BACK), rateS = Max(v, 0.85f) / stride(CLIP_STRAFE_L);
         float rateC = Max(v, 0.6f) / stride(CLIP_CROUCH_WALK);
         float wF = Max(0.f, cf) * rateF * cadenceK, wBk = Max(0.f, -cf) * rateB, wR = Max(0.f, sf) * rateS, wL = Max(0.f, -sf) * rateS;
@@ -1569,6 +1597,23 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
         }
     }
 
+    // ---------------------------------------------------------------- hips turned into the travel direction (the
+    //                                                                  trunk turned back: it keeps facing ahead)
+    if (fabsf(hipTurn) > 1e-4f && !vehicleStance && (action < 0 || actionFinished || actionUpper)) {
+        const quat qh = qz(-hipTurn);
+        outp.rot[B_PELVIS] = normalize(qh * outp.rot[B_PELVIS]);
+        outp.rootOffset = rotate(qh, outp.rootOffset);
+        // spread over the spine (the lower back twists least)
+        static const u8 kChain[3] = {B_SPINE1, B_SPINE2, B_CHEST};
+        static const float kShare[3] = {0.3f, 0.35f, 0.35f};
+        for (int k = 0; k < 3; k++) {
+            quat qp;
+            vec3 pp;
+            boneModel(sk, outp, sk.parent[kChain[k]], qp, pp);
+            outp.rot[kChain[k]] = normalize(conj(qp) * qz(hipTurn * kShare[k]) * qp * outp.rot[kChain[k]]);
+        }
+    }
+
     // ---------------------------------------------------------------- takedown: choke arm onto the victim's real neck
     {
         float gwT = 0.f;
@@ -1745,6 +1790,7 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
                 stepT[s] = -1.f;
                 plantCorr[s] = vec3(0);
                 corrYaw[s] = 0.f;
+                pinZ[s] = plantAge[s] = 0.f;
             }
         }
     }

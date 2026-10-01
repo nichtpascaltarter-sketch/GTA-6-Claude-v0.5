@@ -672,7 +672,10 @@ struct GaitP {
     // running: anterior pelvic tilt (rad; the lower back arches over it, the trunk keeps its lean), so the hip joint's
     // extension at toe-off stays anatomical (about 15-20 degrees) while the thigh trails as far behind
     float tilt = 0.f;
+    // walking: the pelvis height over the cycle (kPelvisTab steps from phase 0, walkPelvis), else from this phase alone
+    const float* zTab = nullptr;
 };
+static const int kPelvisTab = 96;
 
 // Ankle position of a foot with the given pitch and yaw whose heel (pivot 0) or ball (pivot 1) touches the ground at p.
 static vec3 ankleFromPivotYaw(const AuthorCtx& A, vec3 p, float pitch, float yaw, int pivot) {
@@ -755,7 +758,9 @@ static void gaitPose(const AuthorCtx& A, const GaitP& g, float phase, Rig& r) {
             const float k0 = g.run ? 0.35f : 1.f, k1 = g.run ? 0.6f : 1.f;
             vec3 ank = a0 * h00 + m0 * (h10 * k0 + h11 * k1) + a1 * h01;
             ank.z = Lerp(a0.z, a1.z, e);
-            float h = g.lift * A.D.s * powf(smoothPulse(powf(u, swingK)), 0.8f);
+            // (eased in over the first eighth: the foot leaves its toes with the speed the roll-off gave it, rather
+            // than at once)
+            float h = g.lift * A.D.s * powf(smoothPulse(powf(u, swingK)), 0.8f) * (g.run ? 1.f : easeInOut(u * 8.f));
             if (g.run) h += g.kick * A.D.s * smoothPulse(Saturate(u * 1.6f)) * 0.9f;
             ank.z += h;
             if (g.run && fwd) ank = ank - dir3 * (g.kick * A.D.s * 0.15f * smoothPulse(Saturate(u * 1.6f)));   // heel kick (the knee folds)
@@ -808,7 +813,16 @@ static void gaitPose(const AuthorCtx& A, const GaitP& g, float phase, Rig& r) {
             float hz = ankles[s].z + sqrtf(Max(0.f, dLeg * dLeg - d.x * d.x - d.y * d.y)) - hip.z;
             best = sminf(best, hz + bonus, 0.02f * A.D.s);
         }
-        if (best < 1e8f) r.pelvis.z = best;
+        if (g.zTab) {
+            float f = phase * kPelvisTab;
+            int i0 = (int)floorf(f);
+            f -= (float)i0;
+            i0 = ((i0 % kPelvisTab) + kPelvisTab) % kPelvisTab;
+            float z = Lerp(g.zTab[i0], g.zTab[(i0 + 1) % kPelvisTab], f);
+            r.pelvis.z = best < 1e8f ? Min(z, best) : z;
+        } else if (best < 1e8f) {
+            r.pelvis.z = best;
+        }
     } else {
         // lower the pelvis where a leg would overstretch (limited: beyond that the foot simply leaves the ground a
         // bit early/late, which reads better than a crouching gait)
@@ -936,7 +950,7 @@ static void walkGait(int style, int band, GaitP& g) {
 static const ClipInfo kClipInfo[CLIP_COUNT] = {
     {"idle", 4.0f, true, 0.f},          {"idle_look", 6.0f, true, 0.f},      {"walk", 1.1f, true, 1.4f},
     {"jog", 0.74f, true, 3.0f},         {"run", 0.66f, true, 5.0f},          {"sprint", 0.6f, true, 7.0f},
-    {"walk_back", 1.15f, true, 1.2f},   {"strafe_l", 0.9f, true, 1.3f},      {"strafe_r", 0.9f, true, 1.3f},
+    {"walk_back", 0.85f, true, 1.2f},   {"strafe_l", 0.9f, true, 1.3f},      {"strafe_r", 0.9f, true, 1.3f},
     {"crouch_idle", 3.0f, true, 0.f},   {"crouch_walk", 1.3f, true, 1.0f},   {"jump_start", 0.35f, false, 0.f},
     {"fall", 1.0f, true, 0.f},          {"land", 0.55f, false, 0.f},         {"aim_pistol", 2.0f, true, 0.f},
     {"aim_rifle", 2.0f, true, 0.f},     {"fire_pistol", 0.3f, false, 0.f},   {"fire_rifle", 0.12f, false, 0.f},
@@ -1220,8 +1234,11 @@ static bool gaitParams(int id, GaitP& g) {
             g.armAbd = 0.35f;
             break;
         case CLIP_WALK_BACK:
+            // shorter, quicker steps than forwards, on softer knees (the stance foot still reaches the ground at both
+            // ends of its stance)
             g.shift = 0.02f;
             g.dir = vec2(0, -1); g.duty = 0.65f; g.lift = 0.05f; g.bob = 0.025f; g.armSwing = 0.18f; g.lean = 0.08f; g.yawA = 0.05f;
+            g.drop = 0.03f;
             break;
         case CLIP_STRAFE_L: case CLIP_STRAFE_R:
             g.shift = 0.f;
@@ -1238,10 +1255,51 @@ static bool gaitParams(int id, GaitP& g) {
     return true;
 }
 
+// A walk's pelvis height over the cycle: where the stance legs hold it (gaitPose), taken smoothly below that - the
+// lowest height within reach a little either side, averaged - so the body sinks into each double support ahead of the
+// heel strike instead of dropping onto the leading leg at it, and every planted foot still reaches the ground.
+static void walkPelvis(const AuthorCtx& A, const GaitP& g, float* tab) {
+    const int N = kPelvisTab, R = 3;   // averaging over two passes of +-R steps, so the lowest is taken over +-2R
+    float raw[kPelvisTab], lo[kPelvisTab], tmp[kPelvisTab];
+    GaitP g0 = g;
+    g0.zTab = nullptr;
+    for (int i = 0; i < N; i++) {
+        Rig r;
+        gaitPose(A, g0, (float)i / N, r);
+        raw[i] = r.pelvis.z;
+    }
+    for (int i = 0; i < N; i++) {
+        float m = raw[i];
+        for (int k = -2 * R; k <= 2 * R; k++) m = Min(m, raw[(i + k + N) % N]);
+        lo[i] = m;
+    }
+    for (int pass = 0; pass < 2; pass++) {
+        const float* src = pass ? tmp : lo;
+        float* dst = pass ? tab : tmp;
+        for (int i = 0; i < N; i++) {
+            float sum = 0.f;
+            for (int k = -R; k <= R; k++) sum += src[(i + k + N) % N];
+            dst[i] = sum / (2 * R + 1);
+        }
+    }
+}
+
 static void clipLocomotion(const AuthorCtx& A, int c, float t, Rig& r) {
     GaitP g;
     gaitParams(c, g);
     float phase = t / infoOf(c).duration;
+    // (the clips bake one after another, frame by frame: a walk's table is made at its first frame)
+    static const AuthorCtx* tabA = nullptr;
+    static int tabC = -1;
+    static float tab[kPelvisTab];
+    if (g.dir.y > 0.5f && !g.run) {
+        if (tabA != &A || tabC != c) {
+            walkPelvis(A, g, tab);
+            tabA = &A;
+            tabC = c;
+        }
+        g.zTab = tab;
+    }
     gaitPose(A, g, phase, r);
     if (c == CLIP_CROUCH_WALK) {
         for (int sd = 0; sd < 2; sd++) r.leg[sd].knee = normalize(vec3((sd ? 1.f : -1.f) * 0.35f, 1.f, 0.f));
