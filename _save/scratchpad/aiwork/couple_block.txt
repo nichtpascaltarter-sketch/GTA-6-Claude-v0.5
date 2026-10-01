@@ -1,0 +1,13 @@
+    // a couple walking hand in hand (pedai.cpp: PedAI::handWith on both, renewed every frame by the companion): each
+    // one's inner hand on the point between them at hand height (the animator picks the hand on that side)
+    if (in.grabWeight <= 0.f) {
+        int self = (int)(&p - peds.data());
+        const PedAI* q = self >= 0 && self < (int)ai.ped.size() && ai.ped[self].uid == p.uid ? &ai.ped[self] : nullptr;
+        int o = q ? q->handWith : -1;
+        if (o >= 0 && o < (int)peds.size() && o < (int)ai.ped.size() && peds[o].used && peds[o].uid == q->handUid && ai.ped[o].uid == peds[o].uid &&
+            ai.ped[o].handWith == self && time - q->handT < 0.3 && p.state == PS_ONFOOT && peds[o].state == PS_ONFOOT && !p.ragdoll && !peds[o].ragdoll) {
+            vec3 j = rel(peds[o].pos, p.pos) * 0.5f;
+            in.grabTarget = vec3(dot(vec2(j.x, j.y), rightV), dot(vec2(j.x, j.y), fwd) + 0.05f, 0.84f);
+            in.grabWeight = 1.f;
+        }
+    }

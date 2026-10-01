@@ -1,0 +1,10 @@
+src/game/assets.cpp 746bbbe35d3684aff8f44231bea76aa99b00042d
+src/game/population.cpp 4bcf0772fc32ce9d63fc65b36e327372088fe722
+src/game/interiors_game.cpp 9d65a00022b8050d5363c0cd9c22f429c6fab9bd
+src/game/transit_game.cpp 3b733cf376d9aed0214478fdb16ff16d36733028
+src/game/airboat_tours.cpp b34cbfd8dccd5d1124cbd0be83f8bb5d57ec5dd5
+src/game/story_act2.cpp 98c3a344a6590ab6bfa7abd946edbfce5d2e1543
+src/game/weather.cpp 7eb90d26c77e359be17adcb655307330b8766252
+src/game/fishing.cpp bcdb9cda302c9fa845e6b997371e1ebb2d60e803
+src/game/mission_util.cpp 261c655f607ca4f852f3a68b9040a8c7a41d4c40
+src/game/events.cpp f58704641a470bba72557a22e4c4d7afb5a6c52f

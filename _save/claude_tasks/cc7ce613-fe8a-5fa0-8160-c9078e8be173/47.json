@@ -1,0 +1,9 @@
+{
+  "id": "47",
+  "subject": "Renderer: GPU-driven vegetation (3 phases)",
+  "description": "- Phase 1: GPU-driven props via compute cull plus ExecuteIndirect, visually identical.\n- Phase 2: LODs and impostors, plus GPU ground cover and flowers.\n- Phase 3: palm, shrub and hedge content with wind.\nThe renderer owns the vegetation builders in propmesh.cpp. Each phase signs off on its own.",
+  "activeForm": "Building GPU-driven vegetation",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

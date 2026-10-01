@@ -1,0 +1,16 @@
+0 calle_luna_morning | peds 80 vehicles 58 | cpu ms ai 0.61 veh 1.17 peds 1.06
+1 diner_noon | peds 104 vehicles 58 | cpu ms ai 1.08 veh 0.87 peds 1.39
+2 downtown_afternoon | peds 113 vehicles 72 | cpu ms ai 0.53 veh 1.23 peds 1.77
+3 solaris_plaza | peds 110 vehicles 63 | cpu ms ai 1.03 veh 1.66 peds 1.32
+4 midtown_park | peds 92 vehicles 72 | cpu ms ai 0.47 veh 1.08 peds 1.24
+5 beach_condos | peds 125 vehicles 66 | cpu ms ai 0.57 veh 1.65 peds 2.20
+6 beach_pier_sunset | peds 110 vehicles 55 | cpu ms ai 0.78 veh 0.63 peds 2.64
+7 club_night | peds 201 vehicles 46 | cpu ms ai 0.81 veh 0.32 peds 4.39
+8 downtown_rain_night | peds 68 vehicles 66 | cpu ms ai 0.44 veh 1.28 peds 1.53
+9 port_gate | peds 52 vehicles 43 | cpu ms ai 0.38 veh 0.94 peds 0.51
+10 airport | peds 61 vehicles 46 | cpu ms ai 0.40 veh 1.56 peds 0.92
+11 key_coral_marina | peds 43 vehicles 31 | cpu ms ai 0.41 veh 0.43 peds 0.89
+12 sawgrass_dawn | peds 19 vehicles 7 | cpu ms ai 0.25 veh 0.69 peds 0.56
+13 grove_suburb | peds 46 vehicles 22 | cpu ms ai 0.30 veh 0.96 peds 0.46
+14 lake_town | peds 31 vehicles 26 | cpu ms ai 0.31 veh 0.51 peds 1.42
+15 fort_castell | peds 32 vehicles 30 | cpu ms ai 0.34 veh 0.57 peds 0.52

@@ -1,0 +1,9 @@
+{
+  "id": "16",
+  "subject": "Weapon attachments and tints",
+  "description": "Components + tints implemented, gun-shop pages by the story agent, verified visually with --weaponshowcase (suppressors/scopes/drum mag/grips aligned) and in-game (extended-mag ammo counts).",
+  "activeForm": "Adding weapon attachments",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

@@ -1,0 +1,275 @@
+[   0.001] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.909] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB
+[   0.918] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   1.023] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   1.164] UI font 'Impact' -> 'Liberation Sans'
+[   1.290] Font atlas built in 0.37 s
+[   1.437] Audio: no output device - audio disabled
+[   1.438] Audio: no output device, continuing silently
+[   3.720] UI icon atlas: 91 icons + 13 weapons in 2108 ms
+[  30.217] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[  30.259] Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.06 s)
+[  31.935] World map generated in 30.49 s
+[  34.147] Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+[  45.619] Road network: 6235 nodes, 9798 edges, 1699 signalized; hwy 61.7 km, streets 1185.8 km (13.68 s)
+[  52.378] Transit: 0 buildings cleared from the SkyLine corridor
+[  52.379] Buildings: 35883 (towers 346, midrise 2368, condo 485, deco 809, shops 4670, strip 636, houses 22044, villas 936, warehouses 1704) in 6.47 s
+[  52.381] Sites: 70 highway billboards
+[  52.382] Sites: 153 silos, 52 windmills
+[  52.491] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.04 s)
+[  52.495] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[  52.496] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[  52.507] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[  52.551] Transit: 4 bus routes, 62 stops (44 new shelters) (0.04 s); rejects class 1189 cut 1939 deck 74 road 97 avoid 0 pad 0 furn 269 stop 7
+[  52.567] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[  52.567] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[  52.584] Transit: bus 9   Sol Beach    7.1 km, 15 stops, 4 buses, headway 5.5 min
+[  52.585] Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+[  52.632] Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 33 stop signs), 228 poles, 4 streetcars, headway 4.9 min (0.03 s)
+[  52.659] Transit: streetcar stop 47th St              s     27 shelter (5175.0, 1602.1, 1.8) travel (-0.00, -1.00)
+[  52.663] Transit: streetcar stop 43rd St              s    416 shelter (5231.0, 1221.9, 1.8) travel (-0.00, -1.00)
+[  52.671] Transit: streetcar stop 39th St              s    805 shelter (5239.0, 833.9, 1.7) travel (0.00, -1.00)
+[  52.679] Transit: streetcar stop 35th St              s   1180 shelter (5207.0, 462.6, 1.8) travel (-0.00, -1.00)
+[  52.691] Transit: streetcar stop 31st St              s   1566 shelter (5223.0, 81.9, 2.0) travel (-0.00, -1.00)
+[  52.691] Transit: streetcar stop 27th St              s   1950 shelter (5231.0, -298.1, 1.9) travel (-0.00, -1.00)
+[  52.692] Transit: streetcar stop 23rd St              s   2329 shelter (5215.0, -676.9, 1.8) travel (-0.00, -1.00)
+[  52.692] Transit: streetcar stop 19th St              s   2714 shelter (5199.0, -1058.2, 1.9) travel (0.00, -1.00)
+[  52.692] Transit: streetcar stop Ferry Terminal       s   3141 shelter (4941.4, -1196.2, 2.4) travel (0.00, 1.00)
+[  52.692] Transit: streetcar stop 21st St              s   3535 shelter (4973.4, -807.2, 2.8) travel (0.00, 1.00)
+[  52.692] Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+[  52.692] Transit: streetcar stop 29th St              s   4299 shelter (4997.4, -47.2, 2.0) travel (0.00, 1.00)
+[  52.692] Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+[  52.692] Transit: streetcar stop 37th St              s   5063 shelter (4997.4, 704.8, 2.6) travel (0.00, 1.00)
+[  52.692] Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+[  52.692] Transit: streetcar stop 45th St              s   5845 shelter (4949.4, 1479.5, 2.9) travel (0.00, 1.00)
+[  52.693] Transit: SkyLine profile 12.9..25.5 m above the street, 274 piers (0 straddle bents) (0.31 s)
+[  52.693] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[  52.703] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  52.703] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  52.704] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  52.711] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  52.719] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  52.739] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  52.746] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  52.799] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  52.811] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  52.816] Site terminal             at (628, 1440, 4.6)
+[  52.827] Site control tower        at (730, 1832, 4.6)
+[  52.835] Site container ship       at (4625, -800, 0.0)
+[  52.843] Site container ship       at (4616, -330, 0.0)
+[  52.851] Site port gate            at (4008, -160, 3.0)
+[  52.859] Site Key Coral marina     at (4039, -4035, 0.0)
+[  52.863] Site beach club           at (4873, -3866, 1.2)
+[  52.875] Site beach club           at (4808, -4183, 2.2)
+[  52.880] Site Solaris One          at (3350, -750, 1.4)
+[  52.891] Site stadium              at (3565, 445, 1.6)
+[  52.894] Site City Hall            at (3000, 372, 2.0)
+[  52.896] Site Canvas Park          at (3100, 1800, 1.7)
+[  52.907] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  52.911] Site Ferris wheel         at (5504, 1270, 5.6)
+[  52.920] Site lighthouse           at (-2206, -8000, 0.5)
+[  52.934] Site radio mast           at (-6744, 7248, 166.1)
+[  52.934] Site sugar mill           at (1430, 7500, 8.1)
+[  52.934] Site Rio Sol marina       at (2280, 188, 0.0)
+[  52.935] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  52.935] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  52.935] Sites finalized: 921 elements (0.56 s)
+[  53.036] Interiors: 29 planned (convenience 7, gun shops 2) in 100.8 ms
+[  53.052]   interior 'Mari's Apartment' kind 0 building 28354 at (1747.48, 359.27, 3.79) ax (1.0000, 0.0000) x -3.54..7.08 depth 11.50 ceil 4.20: 3 rooms, 4 openings, 3 doors, 4 portals, 0 npc points
+[  53.067]   interior 'Mama Lucha's' kind 2 building 26888 at (1348.73, 340.70, 4.30) ax (-1.0000, -0.0000) x -5.87..5.87 depth 16.00 ceil 3.44: 4 rooms, 4 openings, 4 doors, 4 portals, 20 npc points
+[  53.079]   interior 'Rook's Garage' kind 3 building 27863 at (1692.44, 2265.39, 4.22) ax (1.0000, 0.0000) x -10.81..10.81 depth 20.00 ceil 6.96: 3 rooms, 6 openings, 4 doors, 6 portals, 5 npc points
+[  53.091]   interior 'Dex's Trailer' kind 1 building 25670 at (1160.68, 2669.40, 4.86) ax (1.0000, 0.0000) x -8.85..8.85 depth 16.91 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  53.093]   interior 'Police Headquarters' kind 5 building 32374 at (3018.96, -304.54, 2.13) ax (-0.0000, -1.0000) x -12.42..10.16 depth 16.00 ceil 5.02: 2 rooms, 11 openings, 2 doors, 11 portals, 13 npc points
+[  53.102]   interior 'Tidewater General Hospital' kind 6 building 27782 at (1668.46, 1070.96, 3.65) ax (1.0000, 0.0000) x -11.01..3.67 depth 16.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 11 npc points
+[  53.108]   interior 'Palmetto Arms' kind 7 building 25268 at (788.33, 2882.34, 5.00) ax (0.0000, 1.0000) x -6.07..6.07 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+[  53.118]   interior 'Northside Arms' kind 7 building 33286 at (3284.65, 3876.10, 1.91) ax (0.0000, 1.0000) x -5.57..5.57 depth 14.00 ceil 4.15: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  53.125]   interior 'Threads' kind 9 building 19713 at (5176.35, -280.64, 1.92) ax (-1.0000, 0.0000) x -6.27..9.40 depth 15.00 ceil 3.74: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+[  53.127]   interior 'Port Isle Warehouse' kind 12 building 35868 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  53.127]   interior 'TideStop Mart' kind 8 building 26995 at (1450.44, -259.31, 4.30) ax (-1.0000, -0.0000) x -7.42..7.42 depth 17.00 ceil 4.05: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  53.127]   interior 'Bodega La Luna' kind 8 building 29946 at (2244.44, 540.76, 2.92) ax (-1.0000, -0.0000) x -3.74..7.48 depth 17.00 ceil 3.82: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  53.127]   interior 'Canvas Corner Market' kind 8 building 32402 at (2981.23, 1490.49, 2.33) ax (0.0000, 1.0000) x -6.18..9.27 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  53.127]   interior 'Sunrise Food Mart' kind 8 building 19752 at (5227.66, 640.34, 1.78) ax (0.0000, 1.0000) x -8.51..6.62 depth 17.00 ceil 5.00: 2 rooms, 9 openings, 2 doors, 9 portals, 5 npc points
+[  53.127]   interior 'Northside Quick Stop' kind 8 building 30209 at (2286.82, 3861.72, 3.23) ax (1.0000, 0.0000) x -8.31..4.99 depth 17.00 ceil 3.60: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  53.127]   interior 'Flats Food & Fuel' kind 8 building 24825 at (359.96, 3165.41, 5.21) ax (1.0000, 0.0000) x -6.77..6.77 depth 17.00 ceil 3.50: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  53.128]   interior 'Grove Pantry' kind 8 building 1172 at (2167.43, -3044.47, 2.30) ax (0.0184, -0.9998) x -5.79..8.69 depth 17.00 ceil 3.60: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  53.128]   interior 'Palm Motors' kind 17 building 31350 at (2590.51, 1298.66, 2.81) ax (0.0000, 1.0000) x -8.63..8.63 depth 20.00 ceil 3.93: 2 rooms, 7 openings, 3 doors, 7 portals, 5 npc points
+[  53.128]   interior 'Tide Customs Calle Luna' kind 18 building 29896 at (2272.75, -140.76, 3.00) ax (1.0000, 0.0000) x -9.45..5.67 depth 18.00 ceil 3.80: 1 rooms, 5 openings, 2 doors, 5 portals, 3 npc points
+[  53.128]   interior 'Tide Customs Sol Beach' kind 18 building 19814 at (5131.60, 1999.34, 1.92) ax (-1.0000, 0.0000) x -8.07..8.07 depth 18.00 ceil 4.34: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  53.128]   interior 'Sunwash Car Wash' kind 19 building 28569 at (1779.02, 1587.83, 3.69) ax (0.0000, 1.0000) x -10.15..3.38 depth 20.00 ceil 8.17: 1 rooms, 4 openings, 3 doors, 4 portals, 2 npc points
+[  53.128]   interior 'Key Coral Villa' kind 0 building 23834 at (4509.83, -4202.27, 1.64) ax (0.9992, 0.0401) x -5.65..5.65 depth 12.00 ceil 2.80: 3 rooms, 4 openings, 3 doors, 4 portals, 0 npc points
+[  53.135]   interior 'Sol Beach Condo Lobby' kind 20 building 19468 at (5213.23, 1619.29, 2.12) ax (-1.0000, 0.0000) x -5.77..5.77 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+[  53.135]   interior 'Sol Beach Condo' kind 21 building 19468 at (5213.23, 1619.29, 33.05) ax (-1.0000, 0.0000) x -9.61..5.77 depth 12.00 ceil 2.79: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  53.135]   interior 'Downtown Penthouse Lobby' kind 20 building 33378 at (3388.84, -1009.58, 1.90) ax (0.0000, 1.0000) x -6.14..2.05 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[  53.135]   interior 'Downtown Penthouse' kind 21 building 33378 at (3388.84, -1009.58, 65.06) ax (0.0000, 1.0000) x -10.24..10.24 depth 14.00 ceil 2.60: 6 rooms, 5 openings, 5 doors, 5 portals, 0 npc points
+[  53.135]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 0.94) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  53.135]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[  53.135]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[  53.318] Material library: 57 layers at 256^2
+[  53.367] Props: 71 prototypes, 34282 verts
+[  69.253] Vehicle assets: 45 models in 12.99 s
+[ 117.883] Character assets: 86 characters in 48.63 s
+[ 117.886] Game assets built in 61.63 s
+[ 117.951] Story place near (800, -5400): no building frontage found, using the street
+[ 117.953] Story places resolved in 60.2 ms (diner 1349 342, Mari's 1749 358, Rook's 1696 2264, Pulse FM 3356 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[ 117.956] Missions registered: 48
+[ 119.416] Lane graph: 26064 lanes, 58641 connectors (1190077 pts), 36240 walk nodes, 52445 walk links, dead-end turning circles moved 3 / obstructed 0 (1.46 s)
+[ 120.359] UI map: base 2560x2560 in 811 ms, 9798 roads (44990 pts) in 39 ms, 30 labels in 92 ms
+[ 120.360] hudInit done in 942 ms
+[ 120.360] Init done in 118.92 s (shaders: 0 compiled in 0.00 s)
+[ 120.363] autoplay parking: sidewalk at 1707 378 beside lane 17976
+[ 120.417] autoplay parking t=0 | census r90: 0 on foot (in the water 0) | walk 0 (phone 0 smoke 0) group 0 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 0 parked 0 police 0 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 0 arrests 0 depart 0 arrive 0
+[ 120.443] Transit: SkyLine timetable built (26.2 ms): loop 12.4 / 12.4 min, 4 trains per direction, headway 3.1 min
+[ 120.455] Transit: 9 lines published to the map
+[ 120.465] Transit: SkyLine car models registered as vehicle assets 45 / 46
+[ 121.270] Transit: 4 route bus models (destination signs) in 804 ms
+[ 121.271] Transit: 62 bus stops registered with the AI (44 lane stops added, 230 waiting spots)
+[ 121.275] Transit: 15 buses on 4 routes
+[ 121.279] Transit: Bay Ferry timetable: loop 13.2 min, 2 ferries, headway 6.6 min
+[ 121.281] Transit: Sol Ferry model registered as vehicle asset 51
+[ 121.284] Transit: streetcar modules registered as vehicle assets 52 53 54
+[ 121.286] Transit: 16 streetcar stops registered (16 curb lanes kept clear)
+[ 121.295] Transit: 4 streetcars on the 6.24 km loop, 16 stops, 65/65 junction movements found
+[ 121.307] Stunt jumps: 0 road crests (0 candidates); ramps being placed
+[ 125.150] Interior 'Mari's Apartment' built: 15608 triangles, 12 lights, 25 colliders, 3 door leaves in 13.8 ms
+[ 125.152] Interior 'Mama Lucha's' built: 27732 triangles, 20 lights, 50 colliders, 5 door leaves in 2.3 ms
+[ 125.152] Stunt ramps: 10 placed (0 over water) in 1644 ms (25869 corridors tested); 10 unique stunt jumps
+[ 125.252] Wildlife: 28 species models ready (166 k triangles in the detailed LODs)
+[ 125.627] Interior 'Bodega La Luna' built: 107250 triangles, 18 lights, 14 colliders, 3 door leaves in 89.6 ms
+[ 266.584] autoplay t=2.6 pos 1707.4 378.5 3.8 state 0 health 200 veh -1 speed 0.0 | peds 79 vehicles 57 wanted 0 | cpu ms player 0.16 ai 0.56 veh 1.32 peds 1.02 | mem 1597 MB (private 0)
+[ 309.380] autoplay t=3.5 pos 1707.4 378.5 3.8 state 0 health 200 veh -1 speed 0.0 | peds 79 vehicles 57 wanted 0 | cpu ms player 0.19 ai 0.98 veh 1.31 peds 0.46 | mem 1599 MB (private 0)
+[ 362.040] autoplay t=5.5 pos 1707.4 378.5 3.8 state 0 health 200 veh -1 speed 0.0 | peds 79 vehicles 57 wanted 0 | cpu ms player 0.24 ai 0.37 veh 0.78 peds 0.85 | mem 1600 MB (private 0)
+[ 404.273] autoplay t=7.5 pos 1707.4 378.5 3.8 state 0 health 200 veh -1 speed 0.0 | peds 79 vehicles 57 wanted 0 | cpu ms player 0.13 ai 0.73 veh 0.78 peds 0.49 | mem 1602 MB (private 0)
+[ 404.330] autoplay parking: following departing car 19 (Kumo) at 1604 400, ped 79
+[ 404.330] autoplay parking: car 19 depart -> owner_walks_up (t 0.0) | pullOut 0 parking 0 parked 1 speed 0.0
+[ 440.633] autoplay t=9.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 75 vehicles 57 wanted 0 | cpu ms player 0.12 ai 0.46 veh 1.65 peds 0.34 | mem 1597 MB (private 0)
+[ 440.714] autoplay parking t=10 | census r90: 30 on foot (in the water 0) | walk 12 (phone 1 smoke 1) group 9 (talking 0) jog 0 | sit 0 talk 2 phone 2 dance 0 smoke 2 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 15 parked 31 police 0 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 0 arrests 0 depart 0 arrive 0
+[ 446.002] autoplay parking:   ped 79 at 1604.7 402.6 state 0 brain 1 activity 18 speed 1.5 | car at 1604.4 399.7
+[ 473.133] autoplay t=11.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 79 vehicles 57 wanted 0 | cpu ms player 0.85 ai 0.37 veh 0.58 peds 0.36 | mem 1627 MB (private 0)
+[ 503.744] autoplay t=13.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 82 vehicles 59 wanted 0 | cpu ms player 0.13 ai 0.38 veh 1.37 peds 0.36 | mem 1626 MB (private 0)
+[ 503.895] autoplay parking:   ped 79 at 1603.4 402.3 state 0 brain 1 activity 18 speed 0.2 | car at 1604.4 399.7
+[ 533.556] autoplay t=15.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 82 vehicles 59 wanted 0 | cpu ms player 0.11 ai 0.38 veh 0.57 peds 0.52 | mem 1626 MB (private 0)
+[ 538.535] autoplay parking:   ped 79 at 1603.1 400.5 state 0 brain 1 activity 18 speed 1.5 | car at 1604.4 399.7
+[ 541.368] autoplay parking: car 19 depart -> getting_in (t 9.3) | pullOut 0 parking 0 parked 1 speed 0.0
+[ 563.523] autoplay t=17.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 83 vehicles 59 wanted 0 | cpu ms player 0.20 ai 0.44 veh 0.53 peds 0.36 | mem 1626 MB (private 0)
+[ 566.127] autoplay parking: car 19 depart -> blinker_waiting (t 10.4) | pullOut 1 parking 0 parked 0 speed 0.0
+[ 593.865] autoplay t=19.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 83 vehicles 60 wanted 0 | cpu ms player 0.12 ai 0.37 veh 0.52 peds 0.32 | mem 1626 MB (private 0)
+[ 593.928] autoplay parking:   ped 79 at 1604.0 399.7 state 2 brain 7 activity 0 speed 0.0 | car at 1604.4 399.7
+[ 593.938] Transit: 1.438 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 593.943] autoplay parking t=20 | census r90: 31 on foot (in the water 0) | walk 9 (phone 0 smoke 0) group 9 (talking 0) jog 0 | sit 0 talk 2 phone 2 dance 0 smoke 2 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 2 (approach 2 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 16 parked 31 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 3 box 1 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 1 arrests 0 depart 1 arrive 0
+[ 598.713] autoplay parking: car 19 depart -> pulling_out (t 13.2) | pullOut 2 parking 0 parked 0 speed 0.0
+[ 624.744] autoplay t=21.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 84 vehicles 61 wanted 0 | cpu ms player 0.12 ai 0.41 veh 1.35 peds 0.76 | mem 1626 MB (private 0)
+[ 630.647] autoplay parking:   ped 79 at 1603.1 402.1 state 2 brain 7 activity 0 speed 2.7 | car at 1603.5 402.2
+[ 656.902] autoplay t=23.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 85 vehicles 61 wanted 0 | cpu ms player 0.13 ai 0.43 veh 0.89 peds 0.34 | mem 1627 MB (private 0)
+[ 661.363] autoplay parking: car 19 depart -> in_traffic (t 16.8) | pullOut 0 parking 0 parked 0 speed 2.3
+[ 684.652] autoplay t=25.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 89 vehicles 64 wanted 0 | cpu ms player 0.13 ai 0.49 veh 0.65 peds 1.27 | mem 1626 MB (private 0)
+[ 684.811] autoplay parking:   ped 79 at 1601.3 411.8 state 2 brain 7 activity 0 speed 6.1 | car at 1601.6 411.8
+[ 708.282] autoplay t=27.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 88 vehicles 64 wanted 0 | cpu ms player 0.13 ai 0.38 veh 0.63 peds 0.31 | mem 1626 MB (private 0)
+[ 711.683] autoplay parking: done with car 19 (seen through) after 20.8 s
+[ 736.199] autoplay t=29.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 88 vehicles 65 wanted 0 | cpu ms player 0.12 ai 0.51 veh 0.87 peds 0.35 | mem 1631 MB (private 0)
+[ 736.262] autoplay parking t=30 | census r90: 27 on foot (in the water 0) | walk 11 (phone 2 smoke 0) group 7 (talking 0) jog 0 | sit 0 talk 2 phone 2 dance 0 smoke 2 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 2 (approach 2 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 21 parked 30 police 0 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 4 box 2 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 1 arrests 0 depart 7 arrive 0
+[ 736.264] Wildlife: 121 animals (110 birds) in 17 groups, 68 drawn in 19 draws | update 0.139 ms, render 0.879 ms
+[ 771.124] autoplay t=31.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 89 vehicles 65 wanted 0 | cpu ms player 0.12 ai 0.59 veh 0.75 peds 0.87 | mem 1631 MB (private 0)
+[ 799.092] autoplay t=33.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 88 vehicles 64 wanted 0 | cpu ms player 0.43 ai 0.43 veh 0.84 peds 0.42 | mem 1631 MB (private 0)
+[ 828.580] autoplay t=35.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 87 vehicles 64 wanted 0 | cpu ms player 0.61 ai 0.58 veh 0.72 peds 0.87 | mem 1631 MB (private 0)
+[ 857.769] autoplay t=37.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 87 vehicles 64 wanted 0 | cpu ms player 0.14 ai 0.46 veh 1.37 peds 0.35 | mem 1631 MB (private 0)
+[ 884.456] autoplay t=39.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 87 vehicles 64 wanted 0 | cpu ms player 0.14 ai 0.48 veh 0.84 peds 0.42 | mem 1631 MB (private 0)
+[ 884.521] Transit: 0.044 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 884.526] autoplay parking t=40 | census r90: 25 on foot (in the water 0) | walk 12 (phone 2 smoke 1) group 6 (talking 0) jog 0 | sit 0 talk 2 phone 2 dance 0 smoke 0 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 2 (approach 2 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 18 parked 30 police 0 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 6 box 2 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 1 arrests 0 depart 7 arrive 0
+[ 909.688] autoplay t=41.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 87 vehicles 64 wanted 0 | cpu ms player 0.11 ai 0.38 veh 0.53 peds 0.33 | mem 1631 MB (private 0)
+[ 938.464] autoplay t=43.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 87 vehicles 64 wanted 0 | cpu ms player 0.11 ai 0.39 veh 0.67 peds 0.35 | mem 1631 MB (private 0)
+[ 965.120] autoplay t=45.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 87 vehicles 64 wanted 0 | cpu ms player 0.12 ai 0.38 veh 0.68 peds 0.32 | mem 1631 MB (private 0)
+[ 997.640] autoplay t=47.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 89 vehicles 64 wanted 0 | cpu ms player 0.22 ai 0.49 veh 0.79 peds 0.87 | mem 1631 MB (private 0)
+[1027.832] autoplay t=49.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 89 vehicles 64 wanted 0 | cpu ms player 0.13 ai 1.40 veh 1.65 peds 0.36 | mem 1631 MB (private 0)
+[1027.895] autoplay parking t=50 | census r90: 28 on foot (in the water 0) | walk 14 (phone 2 smoke 0) group 6 (talking 0) jog 0 | sit 0 talk 4 phone 1 dance 0 smoke 1 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 2 (approach 2 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 16 parked 30 police 0 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 7 box 2 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 1 arrests 0 depart 7 arrive 0
+[1058.158] autoplay t=51.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 89 vehicles 64 wanted 0 | cpu ms player 0.12 ai 0.40 veh 0.63 peds 1.22 | mem 1631 MB (private 0)
+[1088.766] autoplay t=53.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 89 vehicles 64 wanted 0 | cpu ms player 0.14 ai 0.75 veh 0.68 peds 0.75 | mem 1632 MB (private 0)
+[1119.864] autoplay t=55.5 pos 1606.7 382.7 3.9 state 0 health 200 veh -1 speed 0.0 | peds 89 vehicles 64 wanted 0 | cpu ms player 0.36 ai 0.40 veh 0.78 peds 0.73 | mem 1632 MB (private 0)
+[1123.388] autoplay parking: following arriving car 1 (Harbor) at 1505 483, ped 12
+[1123.388] autoplay parking: car 1 arrive -> easing_into_spot (t 0.0) | pullOut 0 parking 1 parked 0 speed 12.7
+[1149.879] autoplay t=57.5 pos 1510.0 458.2 3.6 state 0 health 200 veh -1 speed 0.0 | peds 54 vehicles 50 wanted 0 | cpu ms player 0.12 ai 0.46 veh 0.78 peds 0.27 | mem 1620 MB (private 0)
+[1171.264] autoplay parking:   ped 12 at 1507.2 506.1 state 2 brain 7 activity -1 speed 3.9 | car at 1507.5 506.3
+[1175.290] autoplay t=59.5 pos 1510.0 458.2 3.6 state 0 health 200 veh -1 speed 0.0 | peds 80 vehicles 53 wanted 0 | cpu ms player 0.12 ai 0.35 veh 0.83 peds 0.39 | mem 1620 MB (private 0)
+[1175.367] Transit: 0.045 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1175.375] autoplay parking t=60 | census r90: 24 on foot (in the water 0) | walk 12 (phone 2 smoke 2) group 7 (talking 0) jog 0 | sit 1 talk 4 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 4 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 5 parked 19 police 0 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 7 box 2 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 1 arrests 0 depart 7 arrive 0
+[1175.399] Wildlife: 100 animals (91 birds) in 14 groups, 16 drawn in 2 draws | update 0.118 ms, render 0.123 ms
+[1204.239] autoplay t=61.5 pos 1510.0 458.2 3.6 state 0 health 200 veh -1 speed 0.0 | peds 81 vehicles 58 wanted 0 | cpu ms player 0.17 ai 0.32 veh 0.44 peds 0.34 | mem 1620 MB (private 0)
+[1207.525] autoplay parking:   ped 12 at 1507.3 510.9 state 2 brain 7 activity -1 speed 0.8 | car at 1507.7 511.2
+[1233.292] autoplay t=63.5 pos 1510.0 458.2 3.6 state 0 health 200 veh -1 speed 0.0 | peds 81 vehicles 58 wanted 0 | cpu ms player 0.13 ai 0.35 veh 0.66 peds 0.56 | mem 1620 MB (private 0)
+[1235.831] autoplay parking: car 1 arrive -> out_and_round (t 8.1) | pullOut 0 parking 0 parked 1 speed 0.0
+[1257.623] autoplay parking:   ped 12 at 1506.2 510.4 state 0 brain 1 activity 19 speed 1.4 | car at 1507.7 511.9
+[1263.545] autoplay t=65.5 pos 1510.0 458.2 3.6 state 0 health 200 veh -1 speed 0.0 | peds 82 vehicles 59 wanted 0 | cpu ms player 0.14 ai 0.34 veh 0.36 peds 0.47 | mem 1620 MB (private 0)
+[1287.759] autoplay t=67.5 pos 1510.0 458.2 3.6 state 0 health 200 veh -1 speed 0.0 | peds 84 vehicles 60 wanted 0 | cpu ms player 0.12 ai 0.33 veh 0.32 peds 0.63 | mem 1620 MB (private 0)
+[1287.760] autoplay parking: car 1 arrive -> off_inside (t 11.1) | pullOut 0 parking 0 parked 1 speed 0.0
+[1292.191] autoplay parking:   ped 12 at 1508.5 508.3 state 0 brain 10 activity 10 speed 1.4 | car at 1507.7 511.9
+[1320.272] autoplay t=69.5 pos 1510.0 458.2 3.6 state 0 health 200 veh -1 speed 0.0 | peds 84 vehicles 60 wanted 0 | cpu ms player 0.13 ai 0.36 veh 0.33 peds 0.59 | mem 1620 MB (private 0)
+[1320.695] autoplay parking t=70 | census r90: 29 on foot (in the water 0) | walk 10 (phone 1 smoke 1) group 8 (talking 0) jog 0 | sit 1 talk 4 phone 0 dance 0 smoke 1 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 4 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 6 parked 23 police 0 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 7 box 2 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 2 arrests 0 depart 9 arrive 1
+[1325.545] autoplay parking: car 1 arrive -> parked (t 14.4) | pullOut 0 parking 0 parked 1 speed 0.0
+[1343.807] autoplay parking:   ped 12 at 1344.3 448.8 state 2 brain 5 activity 0 speed 1.9 | car at 1507.7 511.9
+[1351.589] autoplay t=71.5 pos 1510.0 458.2 3.6 state 0 health 200 veh -1 speed 0.0 | peds 86 vehicles 61 wanted 0 | cpu ms player 0.52 ai 0.38 veh 0.36 peds 0.36 | mem 1683 MB (private 0)
+[1351.591] autoplay parking: done with car 1 (seen through) after 15.1 s
+[1351.598] autoplay parking: following departing car 35 (Minnow) at 1436 446, ped 3
+[1351.598] autoplay parking: car 35 depart -> owner_walks_up (t 0.0) | pullOut 0 parking 0 parked 1 speed 0.0
+[1391.314] autoplay t=73.5 pos 1418.8 443.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 82 vehicles 49 wanted 0 | cpu ms player 1.02 ai 1.17 veh 0.54 peds 0.34 | mem 1678 MB (private 0)
+[1393.973] autoplay parking:   ped 3 at 1438.3 446.3 state 0 brain 1 activity 18 speed 0.3 | car at 1435.9 445.6
+[1422.841] autoplay t=75.5 pos 1418.8 443.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 82 vehicles 55 wanted 0 | cpu ms player 0.75 ai 0.36 veh 0.49 peds 0.92 | mem 1678 MB (private 0)
+[1455.510] autoplay t=77.5 pos 1418.8 443.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 83 vehicles 59 wanted 0 | cpu ms player 0.48 ai 0.39 veh 0.61 peds 0.30 | mem 1678 MB (private 0)
+[1455.515] autoplay parking:   ped 3 at 1437.6 446.8 state 0 brain 1 activity 18 speed 1.5 | car at 1435.9 445.6
+[1459.042] autoplay parking: car 35 depart -> getting_in (t 7.1) | pullOut 0 parking 0 parked 1 speed 0.0
+[1495.536] autoplay t=79.5 pos 1418.8 443.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 83 vehicles 58 wanted 0 | cpu ms player 0.11 ai 0.37 veh 0.50 peds 0.45 | mem 1678 MB (private 0)
+[1495.651] autoplay parking: car 35 depart -> blinker_waiting (t 8.2) | pullOut 1 parking 0 parked 0 speed 0.0
+[1498.543] Transit: 0.106 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1498.554] autoplay parking t=80 | census r90: 18 on foot (in the water 0) | walk 9 (phone 1 smoke 0) group 4 (talking 0) jog 0 | sit 0 talk 0 phone 1 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 1 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 1 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 7 parked 25 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 4 film 0 pit 7 box 2 rb 0 spikes 0 tackle 0 heli 0 units 1 rage 0 events 2 arrests 0 depart 11 arrive 1
+[1501.059] autoplay parking:   ped 3 at 1435.8 446.0 state 2 brain 7 activity 0 speed 0.0 | car at 1435.9 445.6
+[1515.683] autoplay parking: car 35 depart -> pulling_out (t 9.8) | pullOut 2 parking 0 parked 0 speed 0.0
+[1531.221] autoplay t=81.5 pos 1418.8 443.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 85 vehicles 59 wanted 0 | cpu ms player 0.76 ai 0.39 veh 0.74 peds 2.93 | mem 1678 MB (private 0)
+[1563.929] autoplay t=83.5 pos 1418.8 443.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 85 vehicles 60 wanted 0 | cpu ms player 0.13 ai 0.55 veh 0.51 peds 1.00 | mem 1678 MB (private 0)
+[1563.929] autoplay parking:   ped 3 at 1438.1 446.8 state 2 brain 7 activity 0 speed 2.6 | car at 1438.3 446.5
+[1571.462] autoplay parking: car 35 depart -> in_traffic (t 13.7) | pullOut 0 parking 0 parked 0 speed 2.8
+[1592.915] autoplay t=85.5 pos 1418.8 443.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 85 vehicles 60 wanted 0 | cpu ms player 0.12 ai 0.37 veh 0.72 peds 0.39 | mem 1685 MB (private 0)
+[1595.746] autoplay parking:   ped 3 at 1447.1 448.2 state 2 brain 7 activity 0 speed 4.2 | car at 1447.2 447.9
+[1631.263] autoplay t=87.5 pos 1418.8 443.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 86 vehicles 60 wanted 0 | cpu ms player 0.15 ai 0.66 veh 0.87 peds 0.53 | mem 1679 MB (private 0)
+[1638.057] autoplay parking: done with car 35 (seen through) after 17.7 s
+[1640.655] autoplay parking: following departing car 41 (Seiran) at 1396 515, ped 30
+[1640.655] autoplay parking: car 41 depart -> owner_walks_up (t 0.0) | pullOut 0 parking 0 parked 1 speed 0.0
+[1663.274] autoplay t=89.5 pos 1392.8 531.8 4.1 state 0 health 200 veh -1 speed 0.0 | peds 71 vehicles 49 wanted 0 | cpu ms player 0.15 ai 1.99 veh 0.66 peds 1.15 | mem 1687 MB (private 0)
+[1663.383] autoplay parking t=90 | census r90: 13 on foot (in the water 0) | walk 3 (phone 0 smoke 0) group 2 (talking 0) jog 0 | sit 2 talk 2 phone 0 dance 0 smoke 1 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 6 parked 15 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 1 | totals panic 5 film 0 pit 7 box 2 rb 0 spikes 0 tackle 0 heli 0 units 1 rage 0 events 2 arrests 0 depart 13 arrive 1
+[1666.861] Wildlife: 99 animals (89 birds) in 14 groups, 76 drawn in 17 draws | update 0.139 ms, render 0.249 ms
+[1697.850] autoplay t=91.5 pos 1392.8 531.8 4.1 state 0 health 200 veh -1 speed 0.0 | peds 82 vehicles 53 wanted 0 | cpu ms player 0.14 ai 0.40 veh 0.48 peds 0.37 | mem 1687 MB (private 0)
+[1700.816] autoplay parking:   ped 30 at 1396.5 512.2 state 0 brain 1 activity 18 speed 0.2 | car at 1395.6 514.9
+[1731.868] autoplay t=93.5 pos 1392.8 531.8 4.1 state 0 health 200 veh -1 speed 0.0 | peds 82 vehicles 58 wanted 0 | cpu ms player 0.21 ai 0.66 veh 0.56 peds 0.32 | mem 1687 MB (private 0)
+[1734.649] autoplay parking: car 41 depart -> blinker_waiting (t 5.2) | pullOut 1 parking 0 parked 0 speed 0.0
+[1746.854] autoplay parking:   ped 30 at 1396.4 511.5 state 0 brain 1 activity 0 speed 1.3 | car at 1395.6 514.9
+[1769.412] autoplay t=95.5 pos 1392.8 531.8 4.1 state 0 health 200 veh -1 speed 0.0 | peds 85 vehicles 61 wanted 0 | cpu ms player 0.80 ai 2.17 veh 0.81 peds 0.39 | mem 1687 MB (private 0)
+[1797.739] autoplay t=97.5 pos 1392.8 531.8 4.1 state 0 health 200 veh -1 speed 0.0 | peds 85 vehicles 62 wanted 0 | cpu ms player 0.19 ai 0.51 veh 0.90 peds 0.40 | mem 1687 MB (private 0)
+[1797.887] autoplay parking: car 41 depart -> pulling_out (t 8.6) | pullOut 2 parking 0 parked 0 speed 0.0
+[1803.311] autoplay parking:   ped 30 at 1393.7 509.7 state 0 brain 1 activity 0 speed 1.3 | car at 1395.6 514.7
+[1828.682] autoplay t=99.5 pos 1392.8 531.8 4.1 state 0 health 200 veh -1 speed 0.0 | peds 85 vehicles 62 wanted 0 | cpu ms player 0.15 ai 0.55 veh 0.95 peds 1.14 | mem 1687 MB (private 0)
+[1828.831] Transit: 0.083 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1828.841] autoplay parking t=100 | census r90: 22 on foot (in the water 0) | walk 5 (phone 0 smoke 0) group 4 (talking 0) jog 0 | sit 2 talk 4 phone 0 dance 0 smoke 2 lean 0 sun 0 queue 0 watch 0 bus 1 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 7 parked 24 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 5 film 0 pit 7 box 2 rb 0 spikes 0 tackle 0 heli 0 units 1 rage 0 events 2 arrests 0 depart 16 arrive 1
+[1835.679] autoplay parking:   ped 30 at 1393.1 505.7 state 0 brain 1 activity 0 speed 1.3 | car at 1398.0 507.9
+[1841.177] autoplay parking: car 41 depart -> in_traffic (t 12.1) | pullOut 0 parking 0 parked 0 speed 2.7
+[1861.144] autoplay t=101.5 pos 1392.8 531.8 4.1 state 0 health 200 veh -1 speed 0.0 | peds 86 vehicles 62 wanted 0 | cpu ms player 0.15 ai 1.24 veh 1.31 peds 0.43 | mem 1687 MB (private 0)
+[1888.125] autoplay t=103.5 pos 1392.8 531.8 4.1 state 0 health 200 veh -1 speed 0.0 | peds 86 vehicles 62 wanted 0 | cpu ms player 0.92 ai 0.51 veh 0.70 peds 0.57 | mem 1687 MB (private 0)
+[1889.722] autoplay parking:   ped 30 at 1393.1 501.7 state 0 brain 1 activity 0 speed 1.3 | car at 1398.4 489.3
+[1897.173] autoplay parking: done with car 41 (seen through) after 16.1 s
+[1899.475] autoplay parking: following departing car 60 (Palomino) at 1304 530, ped 3
+[1899.475] autoplay parking: car 60 depart -> owner_walks_up (t 0.0) | pullOut 0 parking 0 parked 1 speed 0.0
+[1910.954] autoplay t=105.5 pos 1306.5 512.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 60 vehicles 49 wanted 0 | cpu ms player 0.12 ai 0.36 veh 0.81 peds 0.27 | mem 1681 MB (private 0)
+[1933.672] autoplay t=107.5 pos 1306.5 512.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 84 vehicles 56 wanted 0 | cpu ms player 0.43 ai 0.41 veh 0.78 peds 0.28 | mem 1675 MB (private 0)
+[1936.040] autoplay parking:   ped 3 at 1304.6 525.9 state 0 brain 1 activity 18 speed 0.6 | car at 1304.4 529.5
+[1958.557] autoplay t=109.5 pos 1306.5 512.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 83 vehicles 56 wanted 0 | cpu ms player 0.59 ai 0.37 veh 0.65 peds 0.29 | mem 1676 MB (private 0)
+[1958.616] autoplay parking t=110 | census r90: 23 on foot (in the water 0) | walk 10 (phone 0 smoke 0) group 2 (talking 0) jog 0 | sit 1 talk 1 phone 0 dance 0 smoke 1 lean 0 sun 0 queue 0 watch 0 bus 1 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 2 (approach 2 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 12 parked 19 police 0 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 5 film 0 pit 7 box 2 rb 0 spikes 0 tackle 0 heli 0 units 1 rage 0 events 2 arrests 0 depart 19 arrive 1
+[1971.007] autoplay parking:   ped 3 at 1303.4 525.9 state 0 brain 1 activity 18 speed 0.2 | car at 1304.4 529.5
+[1984.540] autoplay t=111.5 pos 1306.5 512.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 82 vehicles 58 wanted 0 | cpu ms player 0.15 ai 0.56 veh 0.74 peds 0.62 | mem 1677 MB (private 0)
+[2006.890] autoplay t=113.5 pos 1306.5 512.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 83 vehicles 60 wanted 0 | cpu ms player 0.62 ai 0.37 veh 0.88 peds 0.31 | mem 1677 MB (private 0)
+[2008.447] autoplay parking:   ped 3 at 1303.0 525.9 state 0 brain 1 activity 18 speed 0.1 | car at 1304.4 529.5
+[2033.367] autoplay t=115.5 pos 1306.5 512.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 82 vehicles 59 wanted 0 | cpu ms player 0.55 ai 0.61 veh 0.90 peds 0.29 | mem 1676 MB (private 0)
+[2037.424] autoplay parking: car 60 depart -> getting_in (t 11.6) | pullOut 0 parking 0 parked 1 speed 0.0
+[2047.959] autoplay parking:   ped 3 at 1303.0 529.1 state 0 brain 1 activity 18 speed 0.0 | car at 1304.4 529.5
+[2064.065] autoplay t=117.5 pos 1306.5 512.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 84 vehicles 60 wanted 0 | cpu ms player 0.14 ai 0.41 veh 0.71 peds 0.60 | mem 1676 MB (private 0)
+[2064.142] autoplay parking: car 60 depart -> blinker_waiting (t 12.7) | pullOut 1 parking 0 parked 0 speed 0.0
+[2092.120] autoplay t=119.5 pos 1306.5 512.4 4.2 state 0 health 200 veh -1 speed 0.0 | peds 83 vehicles 60 wanted 0 | cpu ms player 1.17 ai 0.38 veh 0.52 peds 0.31 | mem 1675 MB (private 0)
+[2092.134] autoplay parking: car 60 depart -> pulling_out (t 14.3) | pullOut 2 parking 0 parked 0 speed 0.0
+[2095.040] Transit: 0.130 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[2095.043] autoplay parking t=120 | census r90: 23 on foot (in the water 0) | walk 7 (phone 0 smoke 0) group 3 (talking 0) jog 0 | sit 1 talk 1 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 1 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 2 (approach 2 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 16 parked 23 police 0 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 5 film 0 pit 7 box 2 rb 0 spikes 0 tackle 0 heli 0 units 1 rage 0 events 2 arrests 0 depart 22 arrive 1
+[2104.833] Shutdown complete.

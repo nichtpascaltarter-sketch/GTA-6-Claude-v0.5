@@ -1,0 +1,9 @@
+{
+  "id": "9",
+  "subject": "M9: Story campaign, missions, cutscenes, side activities, economy",
+  "description": "Original story with missions and in-engine cutscenes; races, jobs, collectibles, property; shops.",
+  "activeForm": "Story agent: campaign, side activities, economy",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

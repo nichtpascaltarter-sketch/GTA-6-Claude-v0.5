@@ -1,0 +1,27 @@
+=== 0 500
+  sim 60 s: collisions 1 (hard 1), red 0, stuck 2, deadlocks 0, ped hits 0, respawns 92 (wall 13 s)
+  sim 120 s: collisions 5 (hard 2), red 0, stuck 7, deadlocks 0, ped hits 0, respawns 187 (wall 24 s)
+  sim 180 s: collisions 6 (hard 2), red 0, stuck 13, deadlocks 0, ped hits 0, respawns 256 (wall 36 s)
+==== Traffic metrics (240 s simulated, 50 cars, 30 peds, 3.33 vehicle-hours) ====
+collisions: 7 (2.10 per vehicle-hour), hard (>3000 Ns): 2 (0.60/veh-h)
+static impacts (walls/props >2500 Ns): 6, props broken: 0
+stuck recoveries: 15, three-point turns: 16, relocalizations: 99, deadlocks (>60 s waits): 2, respawns: 317, lifted off ledges: 6
+pedestrians hit: 0
+=== -35 530
+  sim 60 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 94 (wall 13 s)
+  sim 120 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 177 (wall 25 s)
+  sim 180 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 5, ped hits 0, respawns 258 (wall 35 s)
+==== Traffic metrics (240 s simulated, 50 cars, 30 peds, 3.33 vehicle-hours) ====
+collisions: 0 (0.00 per vehicle-hour), hard (>3000 Ns): 0 (0.00/veh-h)
+static impacts (walls/props >2500 Ns): 0, props broken: 0
+stuck recoveries: 0, three-point turns: 15, relocalizations: 0, deadlocks (>60 s waits): 9, respawns: 343, lifted off ledges: 0
+pedestrians hit: 0
+=== -10 6210
+  sim 60 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 37 (wall 7 s)
+  sim 120 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 70 (wall 13 s)
+  sim 180 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 119 (wall 19 s)
+==== Traffic metrics (240 s simulated, 50 cars, 30 peds, 3.33 vehicle-hours) ====
+collisions: 0 (0.00 per vehicle-hour), hard (>3000 Ns): 0 (0.00/veh-h)
+static impacts (walls/props >2500 Ns): 0, props broken: 0
+stuck recoveries: 0, three-point turns: 0, relocalizations: 0, deadlocks (>60 s waits): 0, respawns: 169, lifted off ledges: 0
+pedestrians hit: 0

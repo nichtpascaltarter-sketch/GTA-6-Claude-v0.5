@@ -1,0 +1,13 @@
+Embedded 35 shader files.
+In file included from src/anim/anim_all.cpp:14,
+                 from src/main.cpp:49:
+src/anim/clips.cpp: In function 'void Anim::detail::clipClimbVault(const AuthorCtx&, Anim::Clip, float, Rig&)':
+src/anim/clips.cpp:2065: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 2065 |         for (int sd = 0; sd < 2; sd++) knee.arm[sd].target = vec3((sd ? 1.f : -1.f) * 0.24f * s, 0.35f * s, 0.35f * s);
+      | 
+src/anim/clips.cpp:2065: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 11718656 Oct  1 03:05 bin/missions2.exe
+
+real	7m28.682s
+user	3m36.844s
+sys	0m3.667s

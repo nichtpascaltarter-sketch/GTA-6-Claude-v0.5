@@ -1,0 +1,15 @@
+# batch 3: motels, strip malls, farms
+ks_motels_air aerial -8120 -9200 170 200 35 55 10
+wb_strips_air aerial -1548 -650 160 120 35 55 10
+redland_air aerial -560 -5200 220 200 35 55 10
+motel_mimo front 22133 22 3 -4 60 10
+motel_med front 22238 22 3 4 60 10
+motel_keys front 22220 22 3 -3 60 10
+motel_inn front 31436 24 3 3 60 10
+strip_mission front 2273 30 3 -5 60 10
+strip_mimo front 2274 30 3 4 60 10
+strip_modern front 2270 30 3 -4 60 10
+barn_gambrel front 10713 26 2 -5 60 10
+barn_pole front 10711 26 2 5 60 10
+barn_gable front 10707 26 2 -6 60 10
+farm_cracker front 10714 18 2 3 60 10

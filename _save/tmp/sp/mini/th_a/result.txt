@@ -1,0 +1,77 @@
+[OK ] parakeet  male       REF: say the word 3 again
+                           HYP: say the word 3 again
+[OK ] parakeet  female     REF: say the word 3 again
+                           HYP: say the word 3 again
+[ERR] parakeet  oldgruff   REF: say the word 3 again
+                           HYP: save a word free again
+[ERR] parakeet  presetM    REF: say the word 3 again
+                           HYP: say the word free again
+[ERR] parakeet  presetF    REF: say the word 3 again
+                           HYP: say the word free again
+[OK ] parakeet  male       REF: say the word free again
+                           HYP: say the word free again
+[OK ] parakeet  female     REF: say the word free again
+                           HYP: say the word free again
+[ERR] parakeet  oldgruff   REF: say the word free again
+                           HYP: save a word free again
+[OK ] parakeet  presetM    REF: say the word free again
+                           HYP: say the word free again
+[OK ] parakeet  presetF    REF: say the word free again
+                           HYP: say the word free again
+[OK ] parakeet  male       REF: 3 men walked into the bar
+                           HYP: 3 men walked into the bar
+[OK ] parakeet  female     REF: 3 men walked into the bar
+                           HYP: 3 men walked into the bar
+[OK ] parakeet  oldgruff   REF: 3 men walked into the bar
+                           HYP: 3 men walked into the bar
+[OK ] parakeet  presetM    REF: 3 men walked into the bar
+                           HYP: 3 men walked into the bar
+[ERR] parakeet  presetF    REF: 3 men walked into the bar
+                           HYP: 3 men walk into the bar
+[OK ] parakeet  male       REF: he threw the bag through the window
+                           HYP: he threw the bag through the window
+[OK ] parakeet  female     REF: he threw the bag through the window
+                           HYP: he threw the bag through the window
+[OK ] parakeet  oldgruff   REF: he threw the bag through the window
+                           HYP: he threw the bag through the window
+[OK ] parakeet  presetM    REF: he threw the bag through the window
+                           HYP: he threw the bag through the window
+[OK ] parakeet  presetF    REF: he threw the bag through the window
+                           HYP: he threw the bag through the window
+[OK ] parakeet  male       REF: i think the thief ran that way
+                           HYP: i think the thief ran that way
+[OK ] parakeet  female     REF: i think the thief ran that way
+                           HYP: i think the thief ran that way
+[OK ] parakeet  oldgruff   REF: i think the thief ran that way
+                           HYP: i think the thief ran that way
+[OK ] parakeet  presetM    REF: i think the thief ran that way
+                           HYP: i think the thief ran that way
+[OK ] parakeet  presetF    REF: i think the thief ran that way
+                           HYP: i think the thief ran that way
+[OK ] parakeet  male       REF: thanks for the ride see you on thursday
+                           HYP: thanks for the ride see you on thursday
+[OK ] parakeet  female     REF: thanks for the ride see you on thursday
+                           HYP: thanks for the ride see you on thursday
+[OK ] parakeet  oldgruff   REF: thanks for the ride see you on thursday
+                           HYP: thanks for the ride see you on thursday
+[OK ] parakeet  presetM    REF: thanks for the ride see you on thursday
+                           HYP: thanks for the ride see you on thursday
+[OK ] parakeet  presetF    REF: thanks for the ride see you on thursday
+                           HYP: thanks for the ride see you on thursday
+[OK ] parakeet  male       REF: we have 3 minutes to get out of here
+                           HYP: we have 3 minutes to get out of here
+[OK ] parakeet  female     REF: we have 3 minutes to get out of here
+                           HYP: we have 3 minutes to get out of here
+[OK ] parakeet  oldgruff   REF: we have 3 minutes to get out of here
+                           HYP: we have 3 minutes to get out of here
+[OK ] parakeet  presetM    REF: we have 3 minutes to get out of here
+                           HYP: we have 3 minutes to get out of here
+[OK ] parakeet  presetF    REF: we have 3 minutes to get out of here
+                           HYP: we have 3 minutes to get out of here
+== parakeet: overall WER 3.4% (8/235)
+   female       WER   0.0%  (0/47)
+   male         WER   0.0%  (0/47)
+   oldgruff     WER  10.6%  (5/47)
+   presetF      WER   4.3%  (2/47)
+   presetM      WER   2.1%  (1/47)
+SUMMARY parakeet=3.4%

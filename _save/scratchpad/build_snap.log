@@ -1,0 +1,9 @@
+Embedded 21 shader files.
+In file included from src/main.cpp:42:
+src/game/app.cpp: In member function 'void Game::App::drawDebugText()':
+src/game/app.cpp:289: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+  289 |         if (!showDebug) return;
+      | 
+src/game/app.cpp:289: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 2730496 Sep 29 21:49 bin/nt_chars.exe
+exit 0

@@ -1,0 +1,713 @@
+In file included from src/audio/audio_all.cpp:13,
+                 from src/main.cpp:51:
+src/audio/wasapi.cpp: In member function 'virtual HRESULT Audio::detail::wasapi::NotifyClient::OnDefaultDeviceChanged(EDataFlow, ERole, LPCWSTR)':
+src/audio/wasapi.cpp:53: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+   53 |         if (flow == eRender && role == eConsole) defaultChanged.store(true);
+      | 
+src/audio/wasapi.cpp:53: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+In file included from src/game/../game/game_all.cpp:52,
+                 from src/game/app.cpp:14,
+                 from src/main.cpp:63:
+src/game/../game/transit_models.cpp: In function 'void Game::TransitModels::hullSection(float, float&, float&, float&)':
+src/game/../game/transit_models.cpp:578: error: reference to 'kHalfLen' is ambiguous
+  578 |     float tb = Saturate((y - 7.f) / (kHalfLen - 7.f));   // 0 aft of the bow entry .. 1 at the stem
+      | 
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kHalfLen'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:568: note:                 'constexpr const float Game::TransitModels::fer::kHalfLen'
+  568 | constexpr float kHalfLen = 17.f, kHalfBeam = 4.8f;
+      | 
+src/game/../game/transit_models.cpp:580: error: reference to 'kHalfLen' is ambiguous
+  580 |     keel = -1.35f + 1.8f * powf(Saturate((y - 5.f) / (kHalfLen - 5.f)), 1.6f);
+      | 
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kHalfLen'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:568: note:                 'constexpr const float Game::TransitModels::fer::kHalfLen'
+  568 | constexpr float kHalfLen = 17.f, kHalfBeam = 4.8f;
+      | 
+src/game/../game/transit_models.cpp: In function 'void Game::TransitModels::buildFerry(int, MeshData&)':
+src/game/../game/transit_models.cpp:594: error: reference to 'kHalfLen' is ambiguous
+  594 |     const float y0 = -16.5f, y1 = kHalfLen;
+      | 
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kHalfLen'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:568: note:                 'constexpr const float Game::TransitModels::fer::kHalfLen'
+  568 | constexpr float kHalfLen = 17.f, kHalfBeam = 4.8f;
+      | 
+src/game/../game/transit_models.cpp:682: error: expected primary-expression before '(' token
+  682 |         b.quad(vec3(x, kCabY0, kDeckZ), vec3(x, kCabY1, kDeckZ), vec3(x, kCabY1, kWinZ0), vec3(x, kCabY0, kWinZ0), cWhite, mPaint, n);
+      | 
+src/game/../game/transit_models.cpp:682: error: reference to 'kWinZ0' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:682: error: expected primary-expression before '(' token
+  682 |         b.quad(vec3(x, kCabY0, kDeckZ), vec3(x, kCabY1, kDeckZ), vec3(x, kCabY1, kWinZ0), vec3(x, kCabY0, kWinZ0), cWhite, mPaint, n);
+      | 
+src/game/../game/transit_models.cpp:682: error: reference to 'kWinZ0' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:683: error: expected primary-expression before '(' token
+  683 |         b.quad(vec3(x, kCabY0, kWinZ0 - 0.3f), vec3(x, kCabY1, kWinZ0 - 0.3f), vec3(x, kCabY1, kWinZ0 - 0.12f), vec3(x, kCabY0, kWinZ0 - 0.12f), cBand, mPaint, n * 1.f);
+      | 
+src/game/../game/transit_models.cpp:683: error: reference to 'kWinZ0' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:683: error: expected primary-expression before '(' token
+  683 |         b.quad(vec3(x, kCabY0, kWinZ0 - 0.3f), vec3(x, kCabY1, kWinZ0 - 0.3f), vec3(x, kCabY1, kWinZ0 - 0.12f), vec3(x, kCabY0, kWinZ0 - 0.12f), cBand, mPaint, n * 1.f);
+      | 
+src/game/../game/transit_models.cpp:683: error: reference to 'kWinZ0' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:683: error: expected primary-expression before '(' token
+  683 |         b.quad(vec3(x, kCabY0, kWinZ0 - 0.3f), vec3(x, kCabY1, kWinZ0 - 0.3f), vec3(x, kCabY1, kWinZ0 - 0.12f), vec3(x, kCabY0, kWinZ0 - 0.12f), cBand, mPaint, n * 1.f);
+      | 
+src/game/../game/transit_models.cpp:683: error: reference to 'kWinZ0' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:683: error: expected primary-expression before '(' token
+  683 |         b.quad(vec3(x, kCabY0, kWinZ0 - 0.3f), vec3(x, kCabY1, kWinZ0 - 0.3f), vec3(x, kCabY1, kWinZ0 - 0.12f), vec3(x, kCabY0, kWinZ0 - 0.12f), cBand, mPaint, n * 1.f);
+      | 
+src/game/../game/transit_models.cpp:683: error: reference to 'kWinZ0' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:684: error: expected primary-expression before '(' token
+  684 |         b.quad(vec3(x, kCabY0, kWinZ1), vec3(x, kCabY1, kWinZ1), vec3(x, kCabY1, kRoofZ), vec3(x, kCabY0, kRoofZ), cWhite, mPaint, n);
+      | 
+src/game/../game/transit_models.cpp:684: error: reference to 'kWinZ1' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:684: error: expected primary-expression before '(' token
+  684 |         b.quad(vec3(x, kCabY0, kWinZ1), vec3(x, kCabY1, kWinZ1), vec3(x, kCabY1, kRoofZ), vec3(x, kCabY0, kRoofZ), cWhite, mPaint, n);
+      | 
+src/game/../game/transit_models.cpp:684: error: reference to 'kWinZ1' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:684: error: expected primary-expression before '(' token
+  684 |         b.quad(vec3(x, kCabY0, kWinZ1), vec3(x, kCabY1, kWinZ1), vec3(x, kCabY1, kRoofZ), vec3(x, kCabY0, kRoofZ), cWhite, mPaint, n);
+      | 
+src/game/../game/transit_models.cpp:684: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:684: error: expected primary-expression before '(' token
+  684 |         b.quad(vec3(x, kCabY0, kWinZ1), vec3(x, kCabY1, kWinZ1), vec3(x, kCabY1, kRoofZ), vec3(x, kCabY0, kRoofZ), cWhite, mPaint, n);
+      | 
+src/game/../game/transit_models.cpp:684: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:685: error: expected primary-expression before '(' token
+  685 |         b.quad(vec3(x, kCabY0, kWinZ0), vec3(x, kCabY1, kWinZ0), vec3(x, kCabY1, kWinZ1), vec3(x, kCabY0, kWinZ1), cGlass, makeMat(MAT_CAR_WINDOW), n);
+      | 
+src/game/../game/transit_models.cpp:685: error: reference to 'kWinZ0' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:685: error: expected primary-expression before '(' token
+  685 |         b.quad(vec3(x, kCabY0, kWinZ0), vec3(x, kCabY1, kWinZ0), vec3(x, kCabY1, kWinZ1), vec3(x, kCabY0, kWinZ1), cGlass, makeMat(MAT_CAR_WINDOW), n);
+      | 
+src/game/../game/transit_models.cpp:685: error: reference to 'kWinZ0' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:685: error: expected primary-expression before '(' token
+  685 |         b.quad(vec3(x, kCabY0, kWinZ0), vec3(x, kCabY1, kWinZ0), vec3(x, kCabY1, kWinZ1), vec3(x, kCabY0, kWinZ1), cGlass, makeMat(MAT_CAR_WINDOW), n);
+      | 
+src/game/../game/transit_models.cpp:685: error: reference to 'kWinZ1' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:685: error: expected primary-expression before '(' token
+  685 |         b.quad(vec3(x, kCabY0, kWinZ0), vec3(x, kCabY1, kWinZ0), vec3(x, kCabY1, kWinZ1), vec3(x, kCabY0, kWinZ1), cGlass, makeMat(MAT_CAR_WINDOW), n);
+      | 
+src/game/../game/transit_models.cpp:685: error: reference to 'kWinZ1' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:689: error: expected primary-expression before '(' token
+  689 |                 b.box(vec3(x, y, (kWinZ0 + kWinZ1) * 0.5f), vec3(0.04f, door ? 0.06f : 0.07f, (kWinZ1 - kWinZ0) * 0.5f), col(0.12f), mMetal);
+      | 
+src/game/../game/transit_models.cpp:689: error: reference to 'kWinZ0' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:689: error: reference to 'kWinZ1' is ambiguous
+  689 |                 b.box(vec3(x, y, (kWinZ0 + kWinZ1) * 0.5f), vec3(0.04f, door ? 0.06f : 0.07f, (kWinZ1 - kWinZ0) * 0.5f), col(0.12f), mMetal);
+      | 
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:689: error: expected primary-expression before '(' token
+  689 |                 b.box(vec3(x, y, (kWinZ0 + kWinZ1) * 0.5f), vec3(0.04f, door ? 0.06f : 0.07f, (kWinZ1 - kWinZ0) * 0.5f), col(0.12f), mMetal);
+      | 
+src/game/../game/transit_models.cpp:689: error: reference to 'kWinZ1' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:689: error: reference to 'kWinZ0' is ambiguous
+  689 |                 b.box(vec3(x, y, (kWinZ0 + kWinZ1) * 0.5f), vec3(0.04f, door ? 0.06f : 0.07f, (kWinZ1 - kWinZ0) * 0.5f), col(0.12f), mMetal);
+      | 
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:692: error: expected primary-expression before '(' token
+  692 |             b.quad(vec3(x + sd * 0.005f, -0.95f, kDeckZ + 0.05f), vec3(x + sd * 0.005f, 0.95f, kDeckZ + 0.05f), vec3(x + sd * 0.005f, 0.95f, kWinZ1),
+      | 
+src/game/../game/transit_models.cpp:692: error: reference to 'kWinZ1' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:693: error: expected primary-expression before '(' token
+  693 |                    vec3(x + sd * 0.005f, -0.95f, kWinZ1), cGlass, makeMat(MAT_CAR_WINDOW), n);
+      | 
+src/game/../game/transit_models.cpp:693: error: reference to 'kWinZ1' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:694: error: expected primary-expression before '(' token
+  694 |             for (int q = -1; q <= 1; q++) b.box(vec3(x + sd * 0.01f, q * 0.95f, (kDeckZ + kWinZ1) * 0.5f), vec3(0.03f, 0.04f, (kWinZ1 - kDeckZ) * 0.5f), col(0.2f), mSteel);
+      | 
+src/game/../game/transit_models.cpp:694: error: reference to 'kWinZ1' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:694: error: expected primary-expression before '(' token
+  694 |             for (int q = -1; q <= 1; q++) b.box(vec3(x + sd * 0.01f, q * 0.95f, (kDeckZ + kWinZ1) * 0.5f), vec3(0.03f, 0.04f, (kWinZ1 - kDeckZ) * 0.5f), col(0.2f), mSteel);
+      | 
+src/game/../game/transit_models.cpp:694: error: reference to 'kWinZ1' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:703: error: reference to 'kRoofZ' is ambiguous
+  703 |         vec3 a0(-kCabHW, kCabY1 + 0.6f, kDeckZ), a1(kCabHW, kCabY1 + 0.6f, kDeckZ), b0(-kCabHW, kCabY1 - 0.2f, kRoofZ), b1(kCabHW, kCabY1 - 0.2f, kRoofZ);
+      | 
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:703: error: reference to 'kRoofZ' is ambiguous
+  703 |         vec3 a0(-kCabHW, kCabY1 + 0.6f, kDeckZ), a1(kCabHW, kCabY1 + 0.6f, kDeckZ), b0(-kCabHW, kCabY1 - 0.2f, kRoofZ), b1(kCabHW, kCabY1 - 0.2f, kRoofZ);
+      | 
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp: In lambda function:
+src/game/../game/transit_models.cpp:704: error: reference to 'kRoofZ' is ambiguous
+  704 |         auto at = [&](vec3 lo, vec3 hi, float z) { return lerp(lo, hi, (z - kDeckZ) / (kRoofZ - kDeckZ)); };
+      | 
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp: In function 'void Game::TransitModels::buildFerry(int, MeshData&)':
+src/game/../game/transit_models.cpp:706: error: reference to 'kWinZ0' is ambiguous
+  706 |         b.quad(a0, a1, at(a1, b1, kWinZ0 + 0.1f), at(a0, b0, kWinZ0 + 0.1f), cWhite, mPaint, n);
+      | 
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:706: error: reference to 'kWinZ0' is ambiguous
+  706 |         b.quad(a0, a1, at(a1, b1, kWinZ0 + 0.1f), at(a0, b0, kWinZ0 + 0.1f), cWhite, mPaint, n);
+      | 
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:707: error: reference to 'kWinZ0' is ambiguous
+  707 |         b.quad(at(a0, b0, kWinZ0 + 0.1f), at(a1, b1, kWinZ0 + 0.1f), at(a1, b1, kWinZ1), at(a0, b0, kWinZ1), cGlass, makeMat(MAT_CAR_WINDOW), n);
+      | 
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:707: error: reference to 'kWinZ0' is ambiguous
+  707 |         b.quad(at(a0, b0, kWinZ0 + 0.1f), at(a1, b1, kWinZ0 + 0.1f), at(a1, b1, kWinZ1), at(a0, b0, kWinZ1), cGlass, makeMat(MAT_CAR_WINDOW), n);
+      | 
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:707: error: reference to 'kWinZ1' is ambiguous
+  707 |         b.quad(at(a0, b0, kWinZ0 + 0.1f), at(a1, b1, kWinZ0 + 0.1f), at(a1, b1, kWinZ1), at(a0, b0, kWinZ1), cGlass, makeMat(MAT_CAR_WINDOW), n);
+      | 
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:707: error: reference to 'kWinZ1' is ambiguous
+  707 |         b.quad(at(a0, b0, kWinZ0 + 0.1f), at(a1, b1, kWinZ0 + 0.1f), at(a1, b1, kWinZ1), at(a0, b0, kWinZ1), cGlass, makeMat(MAT_CAR_WINDOW), n);
+      | 
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:708: error: reference to 'kWinZ1' is ambiguous
+  708 |         b.quad(at(a0, b0, kWinZ1), at(a1, b1, kWinZ1), b1, b0, cWhite, mPaint, n);
+      | 
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:708: error: reference to 'kWinZ1' is ambiguous
+  708 |         b.quad(at(a0, b0, kWinZ1), at(a1, b1, kWinZ1), b1, b0, cWhite, mPaint, n);
+      | 
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:711: error: expected primary-expression before '(' token
+  711 |             b.quad(vec3(x, kCabY1, kDeckZ), vec3(x, kCabY1 + 0.6f, kDeckZ), vec3(x, kCabY1 - 0.2f, kRoofZ), vec3(x, kCabY1, kRoofZ), cWhite, mPaint, vec3((float)sd, 0, 0));
+      | 
+src/game/../game/transit_models.cpp:711: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:711: error: expected primary-expression before '(' token
+  711 |             b.quad(vec3(x, kCabY1, kDeckZ), vec3(x, kCabY1 + 0.6f, kDeckZ), vec3(x, kCabY1 - 0.2f, kRoofZ), vec3(x, kCabY1, kRoofZ), cWhite, mPaint, vec3((float)sd, 0, 0));
+      | 
+src/game/../game/transit_models.cpp:711: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:717: error: expected primary-expression before '(' token
+  717 |         b.quad(vec3(kCabHW, kCabY0, kDeckZ), vec3(-kCabHW, kCabY0, kDeckZ), vec3(-kCabHW, kCabY0, kRoofZ), vec3(kCabHW, kCabY0, kRoofZ), cWhite, mPaint, n);
+      | 
+src/game/../game/transit_models.cpp:717: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:717: error: expected primary-expression before '(' token
+  717 |         b.quad(vec3(kCabHW, kCabY0, kDeckZ), vec3(-kCabHW, kCabY0, kDeckZ), vec3(-kCabHW, kCabY0, kRoofZ), vec3(kCabHW, kCabY0, kRoofZ), cWhite, mPaint, n);
+      | 
+src/game/../game/transit_models.cpp:717: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:718: error: expected primary-expression before '(' token
+  718 |         b.quad(vec3(3.6f, kCabY0 - 0.01f, kWinZ0), vec3(1.0f, kCabY0 - 0.01f, kWinZ0), vec3(1.0f, kCabY0 - 0.01f, kWinZ1), vec3(3.6f, kCabY0 - 0.01f, kWinZ1), cGlass,
+      | 
+src/game/../game/transit_models.cpp:718: error: reference to 'kWinZ0' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:718: error: expected primary-expression before '(' token
+  718 |         b.quad(vec3(3.6f, kCabY0 - 0.01f, kWinZ0), vec3(1.0f, kCabY0 - 0.01f, kWinZ0), vec3(1.0f, kCabY0 - 0.01f, kWinZ1), vec3(3.6f, kCabY0 - 0.01f, kWinZ1), cGlass,
+      | 
+src/game/../game/transit_models.cpp:718: error: reference to 'kWinZ0' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:718: error: expected primary-expression before '(' token
+  718 |         b.quad(vec3(3.6f, kCabY0 - 0.01f, kWinZ0), vec3(1.0f, kCabY0 - 0.01f, kWinZ0), vec3(1.0f, kCabY0 - 0.01f, kWinZ1), vec3(3.6f, kCabY0 - 0.01f, kWinZ1), cGlass,
+      | 
+src/game/../game/transit_models.cpp:718: error: reference to 'kWinZ1' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:718: error: expected primary-expression before '(' token
+  718 |         b.quad(vec3(3.6f, kCabY0 - 0.01f, kWinZ0), vec3(1.0f, kCabY0 - 0.01f, kWinZ0), vec3(1.0f, kCabY0 - 0.01f, kWinZ1), vec3(3.6f, kCabY0 - 0.01f, kWinZ1), cGlass,
+      | 
+src/game/../game/transit_models.cpp:718: error: reference to 'kWinZ1' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:720: error: expected primary-expression before '(' token
+  720 |         b.quad(vec3(-1.0f, kCabY0 - 0.01f, kWinZ0), vec3(-3.6f, kCabY0 - 0.01f, kWinZ0), vec3(-3.6f, kCabY0 - 0.01f, kWinZ1), vec3(-1.0f, kCabY0 - 0.01f, kWinZ1), cGlass,
+      | 
+src/game/../game/transit_models.cpp:720: error: reference to 'kWinZ0' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:720: error: expected primary-expression before '(' token
+  720 |         b.quad(vec3(-1.0f, kCabY0 - 0.01f, kWinZ0), vec3(-3.6f, kCabY0 - 0.01f, kWinZ0), vec3(-3.6f, kCabY0 - 0.01f, kWinZ1), vec3(-1.0f, kCabY0 - 0.01f, kWinZ1), cGlass,
+      | 
+src/game/../game/transit_models.cpp:720: error: reference to 'kWinZ0' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ0'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ0'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:720: error: expected primary-expression before '(' token
+  720 |         b.quad(vec3(-1.0f, kCabY0 - 0.01f, kWinZ0), vec3(-3.6f, kCabY0 - 0.01f, kWinZ0), vec3(-3.6f, kCabY0 - 0.01f, kWinZ1), vec3(-1.0f, kCabY0 - 0.01f, kWinZ1), cGlass,
+      | 
+src/game/../game/transit_models.cpp:720: error: reference to 'kWinZ1' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:720: error: expected primary-expression before '(' token
+  720 |         b.quad(vec3(-1.0f, kCabY0 - 0.01f, kWinZ0), vec3(-3.6f, kCabY0 - 0.01f, kWinZ0), vec3(-3.6f, kCabY0 - 0.01f, kWinZ1), vec3(-1.0f, kCabY0 - 0.01f, kWinZ1), cGlass,
+      | 
+src/game/../game/transit_models.cpp:720: error: reference to 'kWinZ1' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:722: error: expected primary-expression before '(' token
+  722 |         b.quad(vec3(0.8f, kCabY0 - 0.01f, kDeckZ + 0.05f), vec3(-0.8f, kCabY0 - 0.01f, kDeckZ + 0.05f), vec3(-0.8f, kCabY0 - 0.01f, kWinZ1),
+      | 
+src/game/../game/transit_models.cpp:722: error: reference to 'kWinZ1' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:723: error: expected primary-expression before '(' token
+  723 |                vec3(0.8f, kCabY0 - 0.01f, kWinZ1), cGlass, makeMat(MAT_CAR_WINDOW), n);
+      | 
+src/game/../game/transit_models.cpp:723: error: reference to 'kWinZ1' is ambiguous
+src/game/../game/transit_models.cpp:15: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kWinZ1'
+   15 | constexpr float kWinZ0 = 1.95f, kWinZ1 = 2.95f, kDoorZ1 = 3.08f, kDoorHalf = 0.7f;
+      | 
+src/game/../game/transit_models.cpp:572: note:                 'constexpr const float Game::TransitModels::fer::kWinZ1'
+  572 | constexpr float kWinZ0 = 2.4f, kWinZ1 = 3.75f;
+      | 
+src/game/../game/transit_models.cpp:726: error: expected primary-expression before '(' token
+  726 |     b.box(vec3(0, (kCabY0 + kCabY1) * 0.5f, kRoofZ + 0.08f), vec3(kCabHW + 0.15f, (kCabY1 - kCabY0) * 0.5f + 0.3f, 0.08f), cWhite, mPaint);
+      | 
+src/game/../game/transit_models.cpp:726: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:728: error: expected primary-expression before '(' token
+  728 |         b.quad(vec3(sd * (kCabHW + 0.151f), kCabY0 - 0.3f, kRoofZ + 0.16f), vec3(sd * (kCabHW + 0.151f), kCabY1 + 0.3f, kRoofZ + 0.16f),
+      | 
+src/game/../game/transit_models.cpp:728: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:728: error: expected primary-expression before '(' token
+  728 |         b.quad(vec3(sd * (kCabHW + 0.151f), kCabY0 - 0.3f, kRoofZ + 0.16f), vec3(sd * (kCabHW + 0.151f), kCabY1 + 0.3f, kRoofZ + 0.16f),
+      | 
+src/game/../game/transit_models.cpp:728: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:729: error: expected primary-expression before '(' token
+  729 |                vec3(sd * (kCabHW + 0.151f), kCabY1 + 0.3f, kRoofZ), vec3(sd * (kCabHW + 0.151f), kCabY0 - 0.3f, kRoofZ), cBand, mPaint, vec3((float)sd, 0, 0));
+      | 
+src/game/../game/transit_models.cpp:729: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:729: error: expected primary-expression before '(' token
+  729 |                vec3(sd * (kCabHW + 0.151f), kCabY1 + 0.3f, kRoofZ), vec3(sd * (kCabHW + 0.151f), kCabY0 - 0.3f, kRoofZ), cBand, mPaint, vec3((float)sd, 0, 0));
+      | 
+src/game/../game/transit_models.cpp:729: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:731: error: expected primary-expression before '(' token
+  731 |     for (int sd = -1; sd <= 1; sd += 2) rail(vec3(sd * (kCabHW + 0.05f), kCabY0 - 0.2f, kRoofZ + 0.16f), vec3(sd * (kCabHW + 0.05f), kCabY1 + 0.2f, kRoofZ + 0.16f));
+      | 
+src/game/../game/transit_models.cpp:731: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:731: error: expected primary-expression before '(' token
+  731 |     for (int sd = -1; sd <= 1; sd += 2) rail(vec3(sd * (kCabHW + 0.05f), kCabY0 - 0.2f, kRoofZ + 0.16f), vec3(sd * (kCabHW + 0.05f), kCabY1 + 0.2f, kRoofZ + 0.16f));
+      | 
+src/game/../game/transit_models.cpp:731: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:732: error: expected primary-expression before '(' token
+  732 |     rail(vec3(-kCabHW, kCabY0 - 0.2f, kRoofZ + 0.16f), vec3(kCabHW, kCabY0 - 0.2f, kRoofZ + 0.16f));
+      | 
+src/game/../game/transit_models.cpp:732: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:732: error: expected primary-expression before '(' token
+  732 |     rail(vec3(-kCabHW, kCabY0 - 0.2f, kRoofZ + 0.16f), vec3(kCabHW, kCabY0 - 0.2f, kRoofZ + 0.16f));
+      | 
+src/game/../game/transit_models.cpp:732: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:735: error: reference to 'kRoofZ' is ambiguous
+  735 |         float z0 = kRoofZ + 0.16f, zw0 = z0 + 1.05f, zw1 = kWheelZ1 - 0.3f;
+      | 
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:739: error: 'zw0' was not declared in this scope; did you mean 'z0'?
+  739 |             b.quad(vec3(x, kWheelY0, z0), vec3(x, kWheelY1, z0), vec3(x, kWheelY1, zw0), vec3(x, kWheelY0, zw0), cWhite, mPaint, n);
+      | 
+src/game/../game/transit_models.cpp:740: error: 'zw1' was not declared in this scope
+  740 |             b.quad(vec3(x, kWheelY0, zw0), vec3(x, kWheelY1, zw0), vec3(x, kWheelY1, zw1), vec3(x, kWheelY0, zw1), col(0.2f, 0.26f, 0.3f, clarity * 0.8f),
+      | 
+src/game/../game/transit_models.cpp:745: error: 'zw0' was not declared in this scope; did you mean 'z0'?
+  745 |         b.quad(vec3(-kWheelHW, kWheelY1, z0), vec3(kWheelHW, kWheelY1, z0), vec3(kWheelHW, kWheelY1, zw0), vec3(-kWheelHW, kWheelY1, zw0), cWhite, mPaint, vec3(0, 1, 0));
+      | 
+src/game/../game/transit_models.cpp:746: error: 'zw1' was not declared in this scope
+  746 |         b.quad(vec3(-kWheelHW, kWheelY1, zw0), vec3(kWheelHW, kWheelY1, zw0), vec3(kWheelHW, kWheelY1 - 0.35f, zw1), vec3(-kWheelHW, kWheelY1 - 0.35f, zw1),
+      | 
+src/game/../game/transit_models.cpp:769: error: expected primary-expression before '(' token
+  769 |             for (int k = 0; k < 3; k++) b.cylZ(vec3(sd * 3.4f, -9.f + k * 1.2f, kRoofZ + 0.16f), 0.3f, 0.9f, 10, col(0.93f), makeMat(MAT_PLASTIC));
+      | 
+src/game/../game/transit_models.cpp:769: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:776: error: expected primary-expression before '(' token
+  776 |         b.quad(vec3(-kCabHW + 0.05f, kCabY0 + 0.05f, kRoofZ - 0.02f), vec3(-kCabHW + 0.05f, kCabY1, kRoofZ - 0.02f), vec3(kCabHW - 0.05f, kCabY1, kRoofZ - 0.02f),
+      | 
+src/game/../game/transit_models.cpp:776: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:776: error: expected primary-expression before '(' token
+  776 |         b.quad(vec3(-kCabHW + 0.05f, kCabY0 + 0.05f, kRoofZ - 0.02f), vec3(-kCabHW + 0.05f, kCabY1, kRoofZ - 0.02f), vec3(kCabHW - 0.05f, kCabY1, kRoofZ - 0.02f),
+      | 
+src/game/../game/transit_models.cpp:776: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:776: error: expected primary-expression before '(' token
+  776 |         b.quad(vec3(-kCabHW + 0.05f, kCabY0 + 0.05f, kRoofZ - 0.02f), vec3(-kCabHW + 0.05f, kCabY1, kRoofZ - 0.02f), vec3(kCabHW - 0.05f, kCabY1, kRoofZ - 0.02f),
+      | 
+src/game/../game/transit_models.cpp:776: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:777: error: expected primary-expression before '(' token
+  777 |                vec3(kCabHW - 0.05f, kCabY0 + 0.05f, kRoofZ - 0.02f), col(0.9f), makeMat(MAT_CEILING_TILE), vec3(0, 0, -1));
+      | 
+src/game/../game/transit_models.cpp:777: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:779: error: expected primary-expression before '(' token
+  779 |             b.quad(vec3(sd * 1.6f - 0.15f, kCabY0 + 0.5f, kRoofZ - 0.03f), vec3(sd * 1.6f - 0.15f, kCabY1 - 0.5f, kRoofZ - 0.03f), vec3(sd * 1.6f + 0.15f, kCabY1 - 0.5f, kRoofZ - 0.03f),
+      | 
+src/game/../game/transit_models.cpp:779: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:779: error: expected primary-expression before '(' token
+  779 |             b.quad(vec3(sd * 1.6f - 0.15f, kCabY0 + 0.5f, kRoofZ - 0.03f), vec3(sd * 1.6f - 0.15f, kCabY1 - 0.5f, kRoofZ - 0.03f), vec3(sd * 1.6f + 0.15f, kCabY1 - 0.5f, kRoofZ - 0.03f),
+      | 
+src/game/../game/transit_models.cpp:779: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:779: error: expected primary-expression before '(' token
+  779 |             b.quad(vec3(sd * 1.6f - 0.15f, kCabY0 + 0.5f, kRoofZ - 0.03f), vec3(sd * 1.6f - 0.15f, kCabY1 - 0.5f, kRoofZ - 0.03f), vec3(sd * 1.6f + 0.15f, kCabY1 - 0.5f, kRoofZ - 0.03f),
+      | 
+src/game/../game/transit_models.cpp:779: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp:780: error: expected primary-expression before '(' token
+  780 |                    vec3(sd * 1.6f + 0.15f, kCabY0 + 0.5f, kRoofZ - 0.03f), col(1.f, 0.97f, 0.92f, 0.5f), makeMat(MAT_EMISSIVE), vec3(0, 0, -1));
+      | 
+src/game/../game/transit_models.cpp:780: error: reference to 'kRoofZ' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kRoofZ'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:570: note:                 'constexpr const float Game::TransitModels::fer::kRoofZ'
+  570 | constexpr float kDeckZ = 1.65f, kRoofZ = 4.35f;
+      | 
+src/game/../game/transit_models.cpp: In function 'void Game::TransitModels::ferrySpec(Vehicles::VehicleModel&)':
+src/game/../game/transit_models.cpp:819: error: expected primary-expression before '{' token
+  819 |     o.seats.push_back(Vehicles::SeatSpec{vec3(0.6f, kWheelY1 - 1.4f, kRoofZ + 0.16f + 0.55f), true, false});   // master at the helm
+      | 
+src/game/../game/transit_models.cpp:826: error: expected primary-expression before '(' token
+  826 |     o.boxHalf = vec3(kHalfBeam, kHalfLen - 0.5f, 2.6f);
+      | 
+src/game/../game/transit_models.cpp:826: error: reference to 'kHalfLen' is ambiguous
+src/game/../game/transit_models.cpp:14: note: candidates are: 'constexpr const float Game::TransitModels::tm_detail::kHalfLen'
+   14 | constexpr float kHalfLen = 9.0f, kHalfW = 1.45f, kFloorZ = 1.12f, kRoofZ = 3.74f, kShoulderZ = 3.30f, kSkirtZ = 0.92f;
+      | 
+src/game/../game/transit_models.cpp:568: note:                 'constexpr const float Game::TransitModels::fer::kHalfLen'
+  568 | constexpr float kHalfLen = 17.f, kHalfBeam = 4.8f;
+      | 

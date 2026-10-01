@@ -1,0 +1,31 @@
+AI snapshot-safe, set 5 (on top of sets 3+4). Tested on nt_ai63 / nt_ai64 = HEAD <hash> plus the blobs below.
+[blobs]
+
+Street life:
+- A panhandler (EV_PANHANDLER, events.cpp): someone sitting against a wall with a paper cup. When the player walks by close
+  on foot (not wanted, no gun out), he gets up, comes over and asks. Standing still next to him gives $2 (the thanks, a wave);
+  walking on gets "no hard feelings". Then he goes back to his spot and sits down; he asks again after the player has been
+  30 m away. Now and then a passer-by stops and drops something in his cup, with a word and his thanks.
+- Running for the bus (traffic.cpp bus_run, pedai.cpp ACT_ENTER_VEH): when a bus pulls in at a stop, now and then someone
+  18-60 m along the sidewalk (in sight of it) waves, calls "Hold the bus!" and runs for the door. Within 16 m the driver
+  holds on for them (the timetabled buses already wait for anyone at the door), and they thank the driver at the door.
+  If it goes without them, they stand looking after it with a hand to the head and a word ("Seriously?!").
+- Startled pedestrians (pedai.cpp): a car tearing past close to the kerb (the player's over 54 km/h, anyone's over
+  70 km/h) makes them start back from it and stand looking after it; a word follows ("Slow down!"), more often when it
+  was the player.
+- Beat officers and jaywalkers (pedai.cpp): an officer who sees someone crossing mid-block close by calls across and points
+  ("Crosswalk's right there!"). The jaywalker trots the rest of the way, sometimes with a word back ("Sorry, officer!").
+- Personal space (pedai.cpp): the player standing right next to someone sitting or standing about for 3 s gets a look and
+  "Can I help you?"; after 9 s they get up and leave the other way ("Weirdo.").
+- Being followed (pedai.cpp): the player walking close behind someone for 7 s gets a look back and "Are you following
+  me?", and they walk faster. After 15 s, the timid hurry off ("Leave me alone!") and the bold square up ("Keep walking,
+  man.").
+- Rain: half of those running for it without an umbrella hold a hand over their head (the reach hook).
+Traffic:
+- Rubbernecking (ai.cpp ai_sights, traffic.cpp, traffic_core.cpp): passing a wreck, a car burning, a police car or
+  ambulance stopped with its lights going, someone lying in the street, a fender bender, a breakdown, a fight or a traffic
+  stop, three drivers in four slow to 14-25 km/h for a look (on highways, about half the limit). A new host cap in the
+  core does this: Driver::hostCap / hostCapT. The old speedCap was reset every plan() and could not be used from outside.
+- Cut up by the player (traffic.cpp): a driver who has to stamp on the brakes because the player's car pulled in close
+  ahead and much slower gives a long blast of the horn and a shout ("Learn to drive!").
+Tests: panhandle, busrun, nearmiss, jaywalk, crowded and followed modes; new census counters.

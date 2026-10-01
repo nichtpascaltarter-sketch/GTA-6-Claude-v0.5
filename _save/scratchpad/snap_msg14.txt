@@ -1,0 +1,13 @@
+Scorecard 4 (the Direct3D 12 district tour); smoother generated materials in automated runs; greeting holds end with the greeting
+
+- PROGRESS.md: Scorecard 4 - the 16-stop autoplay tour on the first Direct3D 12 build with the fence-wait fix (main
+  0854ac9) ran 63 minutes under Wine/vkd3d with no crash and every shot clean. Map 6, visual 4, world life 5,
+  vehicles 5, on-foot 6, AI 5, missions 5, audio 4, performance 4, each with evidence, plus the tour's follow-ups:
+  night exposure, lit lobbies blowing out at night, wardrobe by time and place, rural density, the Key Coral marina's
+  water level, heads through low car roofs.
+- Material generator: noise lattices finer than a layer can resolve (the 256-texel materials of automated runs) fade
+  into their mean instead of aliasing into speckle that magnified into blotches (the "leopard spots" on the airport
+  apron), and the normal strength is scaled to the layer size so small layers are no longer four times as steep.
+  The game's 1024-texel layers are unchanged.
+- Greetings: the hand/face hold onto the partner applies only while the hug, handshake or cheek-kiss clip plays or
+  starts, ready for the animator holding grab targets outside clips.

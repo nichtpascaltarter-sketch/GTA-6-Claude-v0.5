@@ -1,0 +1,3 @@
+Embedded 35 shader files.
+BUILD FAILED e2506643292df4e554920a40b6f9caa8ba7411b5
+x86_64-w64-mingw32-g++: fatal error: Killed signal terminated program cc1plus

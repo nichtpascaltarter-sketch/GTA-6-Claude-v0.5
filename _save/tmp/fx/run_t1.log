@@ -1,0 +1,82 @@
+[   0.016] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.586] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB
+[   0.598] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.679] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   0.753] UI font 'Impact' -> 'Liberation Sans'
+[   0.803] Font atlas built in 0.20 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   0.825] Audio: no output device - audio disabled
+[   0.825] Audio: no output device, continuing silently
+[   1.983] UI icon atlas: 86 icons + 13 weapons in 1105 ms
+[  11.893] Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.03 s)
+[  12.908] World map generated in 12.08 s
+[  13.047] Road gen: 22 interchanges
+[  14.563] Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (1.64 s)
+[  18.766] Buildings: 36093 (towers 358, midrise 2400, condo 485, deco 838, shops 4829, strip 693, houses 21872, villas 928, warehouses 1686) in 4.12 s
+[  18.768] Sites: 66 highway billboards
+[  18.768] Sites: 112 silos, 55 windmills
+[  18.771] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  18.771] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  18.771] Site terminal             at (628, 1440, 4.6)
+[  18.771] Site control tower        at (730, 1832, 4.6)
+[  18.771] Site container ship       at (4625, -800, 0.0)
+[  18.771] Site container ship       at (4616, -330, 0.0)
+[  18.771] Site port gate            at (4008, -160, 3.0)
+[  18.771] Site Key Coral marina     at (4039, -4035, 0.0)
+[  18.771] Site beach club           at (4873, -3866, 1.2)
+[  18.771] Site beach club           at (4808, -4183, 2.2)
+[  18.771] Site Solaris One          at (3350, -750, 1.4)
+[  18.771] Site stadium              at (3565, 445, 1.6)
+[  18.771] Site City Hall            at (3000, 372, 2.0)
+[  18.771] Site Canvas Park          at (3100, 1800, 1.7)
+[  18.771] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  18.771] Site Ferris wheel         at (5504, 1270, 5.6)
+[  18.771] Site lighthouse           at (-2206, -8000, 0.5)
+[  18.771] Site radio mast           at (-6744, 7248, 166.1)
+[  18.771] Site sugar mill           at (1430, 7500, 8.1)
+[  18.771] Site Rio Sol marina       at (2280, 188, 0.0)
+[  18.772] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  18.772] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  18.772] Sites finalized: 557 elements (0.01 s)
+[  18.774] Interiors: 7 planned (convenience 7) in 2.7 ms
+[  18.774]   interior 'TideStop Mart' kind 8 building 3378 at (1449.11, -259.30, 4.30) ax (-1.0000, -0.0000) x -6.22..6.22 depth 17.00 ceil 3.45: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  18.774]   interior 'Bodega La Luna' kind 8 building 6349 at (2248.50, 540.78, 2.92) ax (-1.0000, -0.0000) x -5.89..5.89 depth 17.00 ceil 3.52: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  18.775]   interior 'Canvas Corner Market' kind 8 building 8799 at (2981.20, 1582.59, 2.26) ax (0.0000, 1.0000) x -8.23..4.94 depth 17.00 ceil 3.44: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  18.775]   interior 'Sunrise Food Mart' kind 8 building 31838 at (5227.60, 643.36, 1.78) ax (0.0000, 1.0000) x -7.92..7.92 depth 17.00 ceil 3.66: 2 rooms, 7 openings, 2 doors, 7 portals, 5 npc points
+[  18.775]   interior 'Northside Quick Stop' kind 8 building 6599 at (2352.84, 3761.68, 3.08) ax (1.0000, 0.0000) x -6.39..6.39 depth 17.00 ceil 3.53: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  18.775]   interior 'Flats Food & Fuel' kind 8 building 1225 at (458.12, 3265.33, 5.16) ax (1.0000, 0.0000) x -5.58..5.58 depth 17.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 5 npc points
+[  18.775]   interior 'Grove Pantry' kind 8 building 12464 at (2167.47, -3046.89, 2.30) ax (0.0184, -0.9998) x -6.03..6.03 depth 17.00 ceil 3.78: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  18.848] Material library: 57 layers at 256^2
+[  18.912] Props: 51 prototypes, 22665 verts
+[  24.259] Vehicle assets: 45 models in 4.83 s
+[  35.321] Character assets: 86 characters in 11.06 s
+[  35.324] Game assets built in 15.90 s
+[  35.482] Story place near (4450, -4200): no building frontage found, using the street
+[  35.532] Story place near (800, -5400): no building frontage found, using the street
+[  35.575] Story places resolved in 247.7 ms (diner 1327 362, Mari's 1720 362, Rook's 1576 2265, Pulse FM 3356 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[  35.584] Missions registered: 36
+[  38.835] Lane graph: 26691 lanes, 59937 connectors (1215831 pts), 36768 walk nodes, 53089 walk links, dead-end turning circles moved 0 / obstructed 0 (3.25 s)
+[  41.184] UI map: base 2560x2560 in 2193 ms, 10030 roads (46402 pts) in 48 ms, 30 labels in 87 ms
+[  41.184] hudInit done in 2328 ms
+[  41.184] Init done in 40.36 s (shaders: 0 compiled in 0.00 s)
+[  41.192] autoplay tour stop 0 calle_luna_morning at 1720 357, 9.5 h
+[  41.230] Stunt jumps: 1 road crests (3 candidates); ramps being placed
+[  46.519] Interior 'Bodega La Luna' built: 209030 triangles, 18 lights, 12 colliders, 3 door leaves in 126.3 ms
+[  46.529] Stunt ramps: 10 placed (0 over water) in 754 ms (25853 corridors tested); 11 unique stunt jumps
+[1057.344] autoplay tour shot 0 calle_luna_morning | peds 60 vehicles 42 | cpu ms ai 0.27 veh 0.49 peds 0.32
+X connection to :105 broken (explicit kill or server shutdown).

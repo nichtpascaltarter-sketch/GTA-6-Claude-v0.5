@@ -1,0 +1,9 @@
+{
+  "id": "38",
+  "subject": "Keep camera preferences across new game / respawn",
+  "description": "Verified in snapshot dd402cf (tree 970af15): the smoke run starts a new game with --firstperson and drives in the cockpit view (earlier builds fell back to the third-person chase camera).",
+  "activeForm": "Fixing camera preference resets",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

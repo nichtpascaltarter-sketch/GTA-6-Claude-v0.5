@@ -1,0 +1,9 @@
+{
+  "id": "45",
+  "subject": "Faces, eyes and skin realism pass",
+  "description": "New faces agent (started about 11:40). It covers:\n- eye structure, lashes and brows;\n- skin micro-detail, colour zones and roughness;\n- lip, nose and ear shape and age cues;\n- beards built from strands.\nShader proposals go through the lead to the renderer after the bindless change lands. Sign-off phrase: \"faces snapshot-safe\".",
+  "activeForm": "Running the faces realism pass",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

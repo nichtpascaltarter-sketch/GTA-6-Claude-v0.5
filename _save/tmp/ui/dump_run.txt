@@ -1,0 +1,8 @@
+[   0.000] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.580] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16095 MB
+[   0.620] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.750] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   0.865] UI font 'Impact' -> 'Liberation Sans'
+[   0.957] Font atlas built in 0.34 s
+[   0.963] UI font atlas dumped to C:\users\root\AppData\Local\NeonTide\ui_font.bin
+[   3.105] UI icon atlas: 66 icons + 13 weapons in 2057 ms

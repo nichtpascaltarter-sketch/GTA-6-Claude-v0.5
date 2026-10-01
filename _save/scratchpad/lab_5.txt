@@ -1,0 +1,8 @@
+
+=== jazz seed 1619: 99 bpm, key 7 scale 0, variant 0, 80 bars, 196.4 s, swing 0.80
+  form: Intro4 Verse8 Verse8 Bridge8 Verse8 Solo8 Solo16 Verse8 Verse8 Outro4
+  MIX rms -19.2 dB, centroid 2565 Hz, peak 0.70
+  track 0 Drums  notes  1375                                  rms  -25.7 dB  centroid  6108 Hz  peak 0.54
+  track 1 Pluck  notes   301 range  30- 50 outKey 21.9% steps  36% leaps  21%  rms  -22.3 dB  centroid  1019 Hz  peak 0.66
+  track 2 Fm     notes   811 range  52- 87 outKey  3.0% steps  10% leaps  54%  rms  -24.8 dB  centroid  1127 Hz  peak 0.50
+  track 3 Sub    notes   390 range  60- 83 outKey  0.3% steps  71% leaps   1%  rms  -24.6 dB  centroid   518 Hz  peak 0.18

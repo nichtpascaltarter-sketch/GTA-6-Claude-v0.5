@@ -1,0 +1,109 @@
+Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.05 s)
+World map generated in 20.18 s
+Road gen: 22 interchanges
+Road network: 6285 nodes, 9995 edges, 1728 signalized; hwy 61.7 km, streets 1188.0 km (4.47 s)
+worldcheck: 0 cells, 0 colliders, 0 props
+
+[lanes] colliders intruding into drivable lanes: 0, props standing in lanes: 0
+
+[falls] road edges with a fall of more than 1.2 m: guarded 0 m, unguarded 122552 m
+  unguarded at (4612.7, 9243.2, 16.4)
+  unguarded at (4585.9, 9253.1, 16.4)
+  unguarded at (4611.3, 9239.4, 16.4)
+  unguarded at (4584.5, 9249.3, 16.4)
+  unguarded at (4609.9, 9235.7, 16.4)
+  unguarded at (4583.1, 9245.6, 16.4)
+  unguarded at (4608.5, 9231.9, 16.4)
+  unguarded at (4581.7, 9241.8, 16.4)
+  unguarded at (4607.3, 9228.3, 16.4)
+  unguarded at (4580.3, 9237.9, 16.4)
+  unguarded at (4605.9, 9224.6, 16.4)
+  unguarded at (4579.0, 9234.1, 16.4)
+  unguarded at (4604.6, 9220.8, 16.3)
+  unguarded at (4577.6, 9230.3, 16.3)
+  unguarded at (4603.3, 9217.0, 16.3)
+  unguarded at (4576.3, 9226.6, 16.3)
+  unguarded at (4602.0, 9213.4, 16.3)
+  unguarded at (4574.9, 9222.6, 16.3)
+  unguarded at (4600.7, 9209.6, 16.3)
+  unguarded at (4573.6, 9218.8, 16.3)
+  unguarded at (4599.4, 9205.8, 16.3)
+  unguarded at (4572.3, 9215.0, 16.3)
+  unguarded at (4598.1, 9202.1, 16.3)
+  unguarded at (4571.1, 9211.3, 16.3)
+  unguarded at (4596.9, 9198.3, 16.4)
+  unguarded at (4569.8, 9207.5, 16.4)
+  unguarded at (4595.6, 9194.6, 16.4)
+  unguarded at (4568.5, 9203.5, 16.4)
+  unguarded at (4594.4, 9190.8, 16.4)
+  unguarded at (4567.2, 9199.7, 16.4)
+  unguarded at (4593.1, 9187.0, 16.4)
+  unguarded at (4566.0, 9196.0, 16.4)
+  unguarded at (4591.9, 9183.2, 16.4)
+  unguarded at (4564.7, 9192.2, 16.4)
+  unguarded at (4590.6, 9179.4, 16.4)
+  unguarded at (4563.5, 9188.4, 16.4)
+  unguarded at (4589.4, 9175.7, 16.4)
+  unguarded at (4562.2, 9184.5, 16.4)
+  unguarded at (4588.2, 9171.9, 16.4)
+  unguarded at (4561.0, 9180.6, 16.4)
+
+[steps] lane surface vs physics ground: 1615684 samples, 71 off by more than 0.45 m at 12 places
+  step +2.40 m at (1518.7, 960.5) z 3.86 (terrain 3.32): Boulevard edge 1337 s 19 of 100 (cut 17/17) nodes 96->837; ground from Ramp edge 110
+  step +2.38 m at (2458.7, 42.9) z 2.08 (terrain 1.58): Boulevard edge 2199 s 59 of 75 (cut 17/0) nodes 1261->1290; ground from Ramp edge 34
+  step +2.36 m at (4450.6, 8892.5) z 7.41 (terrain 7.08): Street edge 8557 s 22 of 96 (cut 8/8) nodes 5414->5418; ground from Ramp edge 2
+  step +2.35 m at (-1569.1, 3816.4) z 4.92 (terrain 4.62): Lane edge 6639 s 0 of 362 (cut 0/8) nodes 4160->131; ground from Ramp edge 66
+  step +1.85 m at (-1761.1, -1516.3) z 5.18 (terrain 4.88): Lane edge 5805 s 68 of 355 (cut 0/8) nodes 3479->3475; ground from Ramp edge 87
+  step +1.71 m at (-104.5, 437.6) z 4.84 (terrain 4.54): Lane edge 6562 s 284 of 361 (cut 8/0) nodes 4079->4082; ground from Ramp edge 103
+  step +0.85 m at (2954.8, 168.4) z 2.97 (terrain -1.99): Boulevard edge 2938 s 161 of 214 (cut 17/17) nodes 1701->1703; ground from Boulevard edge 2938
+  step +0.80 m at (-1819.9, -1706.5) z 5.05 (terrain 4.75): Lane edge 5718 s 180 of 366 (cut 8/0) nodes 3203->3412; ground from Ramp edge 89
+  step +0.76 m at (-1261.3, 5420.4) z 7.38 (terrain 6.15): Expressway edge 61 s 2 of 5 (cut 2/2) nodes 52->55; ground from Expressway edge 58
+  step +0.57 m at (-203.7, 7090.6) z 16.87 (terrain 15.61): Ramp edge 55 s 136 of 314 (cut 6/16) nodes 46->47; ground from Expressway edge 52
+  step +0.55 m at (3711.2, -46.3) z 0.48 (terrain 0.18): Boulevard edge 3843 s 11 of 25 (cut 11/11) nodes 2121->2193; ground from Boulevard edge 3707
+  step +0.51 m at (3668.0, -1251.6) z 1.14 (terrain 0.84): Street edge 4184 s 13 of 20 (cut 9/0) nodes 2109->2389; ground from Boulevard edge 4183
+
+[grades] road profile segments steeper than 16%:
+  25% on Ramp edge 2 at (4486.2, 8949.8) z 16.58 -> 14.46 over 8.5 m (s 150 of 338)
+  21% on Ramp edge 3 at (4557.9, 9065.7) z 15.26 -> 13.14 over 10.3 m (s 17 of 61)
+  28% on Ramp edge 3 at (4555.3, 9055.8) z 13.14 -> 11.23 over 6.9 m (s 28 of 61)
+  21% on Ramp edge 3 at (4553.3, 9049.1) z 11.23 -> 9.77 over 6.9 m (s 35 of 61)
+  32% on Ramp edge 6 at (4414.6, 8627.7) z 14.08 -> 17.02 over 9.3 m (s 213 of 349)
+  20% on Ramp edge 10 at (3287.2, 7012.4) z 16.17 -> 14.50 over 8.5 m (s 210 of 261)
+  23% on Ramp edge 10 at (3283.1, 7004.9) z 14.50 -> 12.87 over 7.1 m (s 219 of 261)
+  27% on Ramp edge 10 at (3279.7, 6998.6) z 12.87 -> 10.93 over 7.1 m (s 226 of 261)
+  31% on Ramp edge 11 at (3314.8, 6990.6) z 15.46 -> 13.02 over 7.8 m (s 284 of 333)
+  24% on Ramp edge 11 at (3311.2, 6983.7) z 13.02 -> 11.45 over 6.5 m (s 293 of 333)
+  18% on Ramp edge 11 at (3308.1, 6978.0) z 11.45 -> 10.30 over 6.5 m (s 299 of 333)
+  27% on Ramp edge 24 at (2478.3, 3803.4) z 9.60 -> 12.06 over 9.1 m (s 160 of 293)
+  25% on Ramp edge 25 at (2515.3, 3805.8) z 9.91 -> 12.05 over 8.5 m (s 169 of 309)
+  17% on Ramp edge 29 at (2347.3, 1797.1) z 8.08 -> 9.18 over 6.4 m (s 53 of 93)
+  19% on Ramp edge 29 at (2347.2, 1790.7) z 9.18 -> 10.41 over 6.4 m (s 60 of 93)
+  26% on Ramp edge 34 at (2467.2, 115.7) z 12.00 -> 9.53 over 9.4 m (s 117 of 296)
+  23% on Ramp edge 37 at (2525.9, -301.0) z 9.90 -> 11.73 over 7.9 m (s 129 of 178)
+  19% on Ramp edge 38 at (2562.4, -310.5) z 7.10 -> 8.35 over 6.7 m (s 62 of 96)
+  19% on Ramp edge 38 at (2563.5, -317.1) z 8.35 -> 10.26 over 10.1 m (s 69 of 96)
+  39% on Expressway edge 61 at (-1258.2, 5420.2) z 8.14 -> 6.45 over 4.3 m (s 0 of 5)
+  28% on Ramp edge 62 at (-1257.6, 5445.1) z 10.97 -> 9.01 over 6.9 m (s 80 of 114)
+  33% on Ramp edge 64 at (-1238.1, 5415.6) z 10.43 -> 8.39 over 6.2 m (s 325 of 358)
+  20% on Ramp edge 64 at (-1242.6, 5411.3) z 8.39 -> 6.45 over 9.5 m (s 331 of 358)
+  56% on Ramp edge 69 at (-1595.9, 3691.8) z 14.06 -> 9.24 over 8.6 m (s 0 of 19)
+  37% on Ramp edge 87 at (-1788.7, -1451.4) z 14.42 -> 11.61 over 7.5 m (s 158 of 327)
+  31% on Ramp edge 89 at (-1804.6, -1778.5) z 11.15 -> 14.18 over 9.6 m (s 199 of 323)
+  35% on Ramp edge 95 at (-1461.4, -3373.0) z 9.71 -> 12.93 over 9.2 m (s 212 of 349)
+  17% on Ramp edge 96 at (-1396.0, -3452.9) z 8.77 -> 9.86 over 6.5 m (s 53 of 93)
+  19% on Ramp edge 96 at (-1393.9, -3459.0) z 9.86 -> 11.09 over 6.5 m (s 59 of 93)
+  16% on Ramp edge 100 at (-113.8, -4948.4) z 3.92 -> 5.41 over 9.3 m (s 12 of 39)
+  17% on Ramp edge 101 at (-102.8, -4914.5) z 3.36 -> 4.47 over 6.6 m (s 22 of 55)
+  31% on Ramp edge 103 at (-176.0, 451.5) z 14.00 -> 11.07 over 9.3 m (s 120 of 314)
+  17% on Ramp edge 106 at (169.9, 453.2) z 12.37 -> 14.05 over 9.7 m (s 188 of 304)
+  29% on Ramp edge 108 at (1278.7, 792.9) z 13.38 -> 11.35 over 7.0 m (s 31 of 214)
+  19% on Ramp edge 110 at (1516.0, 958.5) z 5.63 -> 7.58 over 10.5 m (s 18 of 70)
+  20% on Ramp edge 110 at (1524.9, 964.0) z 7.58 -> 9.68 over 10.5 m (s 29 of 70)
+  16% on Ramp edge 110 at (1533.8, 969.5) z 9.68 -> 11.33 over 10.2 m (s 40 of 70)
+  44% on Ramp edge 125 at (-7807.0, 5866.1) z 42.04 -> 46.08 over 9.1 m (s 323 of 356)
+  52% on Ramp edge 125 at (-7798.2, 5868.8) z 46.08 -> 50.88 over 9.1 m (s 333 of 356)
+  41% on Ramp edge 125 at (-7789.5, 5871.4) z 50.88 -> 53.44 over 6.2 m (s 343 of 356)
+  54 segments
+
+worldcheck: FAILED

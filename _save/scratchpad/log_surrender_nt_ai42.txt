@@ -1,0 +1,10 @@
+[   0.001] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.358] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   0.660] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   0.667] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.705] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   0.752] UI font 'Impact' -> 'Liberation Sans'
+[   0.790] Font atlas built in 0.12 s
+[   0.813] Audio: no output device - audio disabled
+[   0.814] Audio: no output device, continuing silently
+[   1.332] UI icon atlas: 92 icons + 13 weapons in 476 ms

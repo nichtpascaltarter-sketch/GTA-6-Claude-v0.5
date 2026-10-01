@@ -407,6 +407,44 @@ void GameWorld::aiBuildBodies() {
     }
 }
 
+// the ambient events drivers going past slow down for (events.cpp)
+namespace ev_sights {
+void collect(const GameWorld& g, std::vector<vec3>& out);
+}
+
+// what drivers going past slow down to look at (traffic.cpp rubbernecking), round the player: a wreck or a car burning,
+// a police car / ambulance / fire truck stopped with its lights going, somebody lying in the street or down hurt, a
+// fender bender, a breakdown, a fight, a traffic stop (events.cpp)
+namespace ai_sights {
+void collect(GameWorld& g) {
+    std::vector<vec3>& out = g.ai.sights;
+    out.clear();
+    const Ped* pl = g.playerPed();
+    if (!pl) return;
+    vec2 c = pl->pos.toVec3().xy();
+    for (int i = 0; i < (int)g.vehicles.size() && out.size() < 24; i++) {
+        const Vehicle& v = g.vehicles[i];
+        if (!v.used) continue;
+        vec3 p = v.sim.body.pos.toVec3();
+        if (length(p.xy() - c) > 320.f) continue;
+        u8 role = i < (int)g.ai.veh.size() && g.ai.veh[i].uid == v.uid ? g.ai.veh[i].role : (u8)VR_TRAFFIC;
+        bool service = v.faction == FAC_POLICE || role == VR_AMBULANCE || role == VR_FIRETRUCK;
+        bool lightsStopped = service && v.sirenOn && v.sim.speed() < 1.f && v.seats[0] < 0;   // (crew out at a scene)
+        if (v.sim.wrecked || v.exploded || v.fireTimer > 0.f || lightsStopped) out.push_back(p);
+    }
+    for (int i = 0; i < (int)g.peds.size() && out.size() < 24; i++) {
+        const Ped& q = g.peds[i];
+        if (!q.used || q.isPlayer) continue;
+        bool down = q.state == PS_DEAD || (q.state == PS_ONFOOT && i < (int)g.ai.ped.size() && g.ai.ped[i].uid == q.uid && g.ai.ped[i].activity == ACT_HURT);
+        if (!down) continue;
+        vec3 p = q.pos.toVec3();
+        if (length(p.xy() - c) < 320.f) out.push_back(p);
+    }
+    ev_sights::collect(g, out);
+    if (out.size() > 32) out.resize(32);
+}
+}  // namespace ai_sights
+
 // ------------------------------------------------------------------------------------------------------------------
 void GameWorld::updateAI(float dt) {
     double t0 = TimeSeconds();
@@ -414,6 +452,11 @@ void GameWorld::updateAI(float dt) {
     if (!ai.ready) return;
     ai.barkGlobal = Max(0.f, ai.barkGlobal - dt);
     for (auto& pa : ai.ped) pa.barkCooldown = Max(0.f, pa.barkCooldown - dt);
+    {   // (the rain coming on: pedai.cpp has the ones without an umbrella dash for it)
+        float r = env ? env->rain : 0.f;
+        if (r > 0.45f && ai.rainPrev <= 0.45f) ai.rainStartT = time;
+        ai.rainPrev = r;
+    }
     aiBuildBodies();
     traffic.beginTick(time);
     pedNav.time = time;
@@ -425,6 +468,11 @@ void GameWorld::updateAI(float dt) {
     updateEvents(dt);
     aiUpdateThreats(dt);
     aiStreetMeets(dt);
+    ai.sightsT -= dt;
+    if (ai.sightsT <= 0.f) {
+        ai.sightsT = 0.5f;
+        ai_sights::collect(*this);
+    }
     double t4 = TimeSeconds();
     double tTraffic = 0.0;
     for (int i = 0; i < (int)peds.size(); i++) {
@@ -617,7 +665,7 @@ std::string GameWorld::aiCensusText(float radius) const {
     vec2 c = pl->pos.toVec3().xy();
     // on foot: what the crowd is doing
     int total = 0, walk = 0, group = 0, jog = 0, wPhone = 0, wSmoke = 0, wTalk = 0, sit = 0, talk = 0, phone = 0, dance = 0, smoke = 0, lean = 0,
-        sun = 0, queue = 0, watch = 0, busStop = 0, taxi = 0, event = 0, venue = 0, vGuard = 0, vPace = 0, vTravel = 0, vOut = 0, vBoard = 0, vGreet = 0, meet = 0, browse = 0, hurt = 0, aid = 0, cuffed = 0, escorts = 0, witness = 0, taking = 0, stopped = 0, holding = 0, onBreak = 0;
+        sun = 0, queue = 0, watch = 0, busStop = 0, taxi = 0, event = 0, venue = 0, vGuard = 0, vPace = 0, vTravel = 0, vOut = 0, vBoard = 0, vGreet = 0, meet = 0, browse = 0, hurt = 0, aid = 0, cuffed = 0, escorts = 0, witness = 0, taking = 0, stopped = 0, holding = 0, onBreak = 0, ticketing = 0, rushing = 0, wStill = 0;
     int tourist = 0, business = 0, beach = 0, night = 0, gang = 0, worker = 0;
     int flee = 0, cower = 0, film = 0, inspect = 0, call = 0, hands = 0, rage = 0, fight = 0;
     int copFoot = 0, cover = 0, flank = 0, arrest = 0, search = 0, engage = 0, approach = 0, inWater = 0;
@@ -642,6 +690,7 @@ std::string GameWorld::aiCensusText(float radius) const {
             escorts += p.brain.type == BRAIN_GOTO && p.brain.target == -3;
             taking += p.brain.type == BRAIN_GOTO && p.brain.target == -4;
             onBreak += pa && pa->activity == ACT_COP_BREAK;
+            ticketing += p.brain.type == BRAIN_GOTO && p.brain.target == -6;
             continue;
         }
         if (p.brain.type == BRAIN_FLEE) flee++;
@@ -666,6 +715,9 @@ std::string GameWorld::aiCensusText(float radius) const {
                 walk++;
                 wPhone += pa->walkStance == 8;
                 wSmoke += pa->walkStance == 10;
+                // (on a sidewalk, meaning to walk, standing still: a hold-up for a moment - a lasting crowd of these is a
+                //  sign of people stuck)
+                wStill += pa->navOk && pa->walk.state == AI::WS_WALK && length(p.vel.xy()) < 0.15f;
                 break;
             case ACT_JOG: jog++; break;
             case ACT_SCENARIO:
@@ -705,6 +757,7 @@ std::string GameWorld::aiCensusText(float radius) const {
             case ACT_CUFFED: cuffed++; break;
             case ACT_STATEMENT: witness++; break;
             case ACT_STOPPED: stopped++; break;
+            case ACT_TICKET_RUSH: rushing++; break;
             default: break;
         }
         holding += pa && pa->leader >= 0 && pa->handWith >= 0 && time - pa->handT < 0.3;   // (couples hand in hand, counted once)
@@ -727,15 +780,15 @@ std::string GameWorld::aiCensusText(float radius) const {
         honking += v.hornOn;
     }
     const AIFrameStats& s = ai.stats;
-    return StrFormat("census r%.0f: %d on foot (in the water %d) | walk %d (phone %d smoke %d) group %d (talking %d) jog %d | sit %d talk %d phone %d dance %d smoke %d "
-                     "lean %d sun %d queue %d watch %d bus %d taxi %d event %d meet %d (so far %d) window %d hurt %d (helped by %d) cuffed %d (escorts %d) statement %d (officers %d) stopped %d hand in hand %d cops on a break %d | venue %d (guard %d pace %d outlook %d boarding %d greeting %d) travelers %d | tourist %d business %d beach %d night %d gang %d worker %d | "
+    return StrFormat("census r%.0f: %d on foot (in the water %d) | walk %d (phone %d smoke %d still %d) group %d (talking %d) jog %d | sit %d talk %d phone %d dance %d smoke %d "
+                     "lean %d sun %d queue %d watch %d bus %d taxi %d event %d meet %d (so far %d) window %d hurt %d (helped by %d) cuffed %d (escorts %d) statement %d (officers %d) stopped %d hand in hand %d cops on a break %d ticket %d (owner %d) | venue %d (guard %d pace %d outlook %d boarding %d greeting %d) travelers %d | tourist %d business %d beach %d night %d gang %d worker %d | "
                      "react flee %d cower %d film %d inspect %d call %d hands %d rage %d fight %d | cops on foot %d (approach %d cover %d flank %d "
                      "arrest %d search %d engage %d) | cars %d parked %d police %d swat %d heli %d boat %d roadblock %d ems %d horn %d | "
-                     "totals panic %d film %d pit %d box %d rb %d spikes %d tackle %d heli %d units %d rage %d events %d arrests %d custody %d transports %d statements %d shelters %d stops %d (warrants %d runs %d) breaks %d depart %d arrive %d",
-                     radius, total, inWater, walk, wPhone, wSmoke, group, wTalk, jog, sit, talk, phone, dance, smoke, lean, sun, queue, watch, busStop, taxi, event, meet, ai.meetsStarted, browse, hurt, aid, cuffed, escorts, witness, taking, stopped, holding, onBreak,
+                     "totals panic %d film %d pit %d box %d rb %d spikes %d tackle %d heli %d units %d rage %d events %d arrests %d custody %d transports %d statements %d shelters %d stops %d (warrants %d runs %d) breaks %d tickets %d (owners %d) greetings %d chats %d buttons %d lost %d laces %d rain shelters %d asked okay %d cop aid %d crash scenes %d bus runs %d (made %d missed %d) change %d (passers-by %d) gawks %d near misses %d jaywalk calls %d crowded %d (left %d) followed %d (sharp %d) cut offs %d depart %d arrive %d",
+                     radius, total, inWater, walk, wPhone, wSmoke, wStill, group, wTalk, jog, sit, talk, phone, dance, smoke, lean, sun, queue, watch, busStop, taxi, event, meet, ai.meetsStarted, browse, hurt, aid, cuffed, escorts, witness, taking, stopped, holding, onBreak, ticketing, rushing,
                      venue, vGuard, vPace, vOut, vBoard, vGreet, vTravel, tourist, business, beach, night, gang, worker, flee, cower, film, inspect, call, hands, rage, fight, copFoot, approach, cover, flank,
                      arrest, search, engage, traffic, parked, copCars, swat, heli, boats, blocks, ems, honking, s.panicSpread, s.filming, s.pitTries,
-                     s.boxing, s.roadblocks, s.spikeHits, s.tackles, s.heliUnits, s.unitsSent, s.roadRage, s.events, s.arrests, s.custody, s.transports, s.statements, s.shelters, s.stops, s.stopArrests, s.stopRuns, s.copBreaks, s.departures, s.arrivals);
+                     s.boxing, s.roadblocks, s.spikeHits, s.tackles, s.heliUnits, s.unitsSent, s.roadRage, s.events, s.arrests, s.custody, s.transports, s.statements, s.shelters, s.stops, s.stopArrests, s.stopRuns, s.copBreaks, s.tickets, s.ticketRushes, s.greetings, s.chats, s.buttons, s.lost, s.laces, s.rainShelters, s.askOkay, s.copAid, s.crashScenes, s.busRuns, s.busCaught, s.busMissed, s.panhandled, s.passerChange, s.gawks, s.nearMisses, s.jaywalkCalls, s.crowded, s.crowdedLeft, s.followed, s.followedSharp, s.cutOffs, s.departures, s.arrivals);
 }
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -775,9 +828,10 @@ void GameWorld::updateBrain(int id, float dt) {
         return;
     }
     if (p.moveMode == 2 || p.moveMode == 3) return;   // vaulting/climbing handled by the character controller
-    // (police on foot: after a suspect, -2 back to the car, -3 walking a prisoner, -4 taking a statement, -5 a sidewalk stop)
+    // (police on foot: after a suspect, -2 back to the car, -3 walking a prisoner, -4 taking a statement, -5 a sidewalk stop,
+    //  -6 writing up a parked car)
     if (p.faction == FAC_POLICE && (((b.type == BRAIN_COMBAT || b.type == BRAIN_ARREST || b.type == BRAIN_GOTO) && b.target >= 0) ||
-                                    (b.type == BRAIN_GOTO && b.target <= -2 && b.target >= -5))) {
+                                    (b.type == BRAIN_GOTO && b.target <= -2 && b.target >= -6))) {
         aiPoliceBrain(id, dt);
         return;
     }

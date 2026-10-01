@@ -1,0 +1,9 @@
+{
+  "id": "44",
+  "subject": "Renderer: character shading (signed off, snapshot 22)",
+  "description": "The bindless materials, per-draw instance data, table reuse and SkyLine downlights were signed off at 11:47; the blobs are in scratchpad/renderer_bl_blobs.txt. Next: skin subsurface scattering and specular, eyes and hair transparency, done together with the faces agent.",
+  "activeForm": "Landing night exposure and starting bindless materials",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

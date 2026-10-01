@@ -1,0 +1,1873 @@
+[OK ] parakeet  male       REF: say the word pat again
+                           HYP: say the word pat again
+[ERR] parakeet  male       REF: say the word bat again
+                           HYP: say the word that again
+[OK ] parakeet  male       REF: say the word tap again
+                           HYP: say the word tap again
+[ERR] parakeet  male       REF: say the word dad again
+                           HYP: say the word bad again
+[OK ] parakeet  male       REF: say the word cat again
+                           HYP: say the word cat again
+[OK ] parakeet  male       REF: say the word gap again
+                           HYP: say the word gap again
+[OK ] parakeet  male       REF: say the word fat again
+                           HYP: say the word fat again
+[ERR] parakeet  male       REF: say the word vat again
+                           HYP: say the word that again
+[OK ] parakeet  male       REF: say the word that again
+                           HYP: say the word that again
+[OK ] parakeet  male       REF: say the word sat again
+                           HYP: say the word sat again
+[OK ] parakeet  male       REF: say the word zap again
+                           HYP: say the word zap again
+[OK ] parakeet  male       REF: say the word chat again
+                           HYP: say the word chat again
+[ERR] parakeet  male       REF: say the word jab again
+                           HYP: say the word shab again
+[OK ] parakeet  male       REF: say the word shack again
+                           HYP: say the word shack again
+[ERR] parakeet  male       REF: say the word mat again
+                           HYP: say the word matt again
+[OK ] parakeet  male       REF: say the word nap again
+                           HYP: say the word nap again
+[OK ] parakeet  male       REF: say the word lap again
+                           HYP: say the word lap again
+[OK ] parakeet  male       REF: say the word rat again
+                           HYP: say the word rat again
+[OK ] parakeet  male       REF: say the word wax again
+                           HYP: say the word wax again
+[OK ] parakeet  male       REF: say the word yak again
+                           HYP: say the word yak again
+[OK ] parakeet  male       REF: say the word hat again
+                           HYP: say the word hat again
+[OK ] parakeet  male       REF: say the word thank again
+                           HYP: say the word thank again
+[OK ] parakeet  male       REF: say the word cap again
+                           HYP: say the word cap again
+[OK ] parakeet  male       REF: say the word cab again
+                           HYP: say the word cab again
+[OK ] parakeet  male       REF: say the word cut again
+                           HYP: say the word cut again
+[ERR] parakeet  male       REF: say the word cud again
+                           HYP: say the word cut again
+[OK ] parakeet  male       REF: say the word back again
+                           HYP: say the word back again
+[ERR] parakeet  male       REF: say the word bag again
+                           HYP: say the word back again
+[OK ] parakeet  male       REF: say the word calf again
+                           HYP: say the word calf again
+[OK ] parakeet  male       REF: say the word have again
+                           HYP: say the word have again
+[OK ] parakeet  male       REF: say the word bath again
+                           HYP: say the word bath again
+[OK ] parakeet  male       REF: say the word bass again
+                           HYP: say the word bass again
+[OK ] parakeet  male       REF: say the word jazz again
+                           HYP: say the word jazz again
+[OK ] parakeet  male       REF: say the word cash again
+                           HYP: say the word cash again
+[OK ] parakeet  male       REF: say the word badge again
+                           HYP: say the word badge again
+[OK ] parakeet  male       REF: say the word catch again
+                           HYP: say the word catch again
+[OK ] parakeet  male       REF: say the word ham again
+                           HYP: say the word ham again
+[OK ] parakeet  male       REF: say the word can again
+                           HYP: say the word can again
+[OK ] parakeet  male       REF: say the word bang again
+                           HYP: say the word bang again
+[OK ] parakeet  male       REF: say the word pal again
+                           HYP: say the word pal again
+[OK ] parakeet  male       REF: say the word car again
+                           HYP: say the word car again
+[OK ] parakeet  male       REF: say the word beat again
+                           HYP: say the word beat again
+[OK ] parakeet  male       REF: say the word bit again
+                           HYP: say the word bit again
+[OK ] parakeet  male       REF: say the word bait again
+                           HYP: say the word bait again
+[OK ] parakeet  male       REF: say the word bet again
+                           HYP: say the word bet again
+[ERR] parakeet  male       REF: say the word bought again
+                           HYP: say the word bot again
+[ERR] parakeet  male       REF: say the word boat again
+                           HYP: say the word vote again
+[OK ] parakeet  male       REF: say the word book again
+                           HYP: say the word book again
+[OK ] parakeet  male       REF: say the word boot again
+                           HYP: say the word boot again
+[OK ] parakeet  male       REF: say the word but again
+                           HYP: say the word but again
+[OK ] parakeet  male       REF: say the word bird again
+                           HYP: say the word bird again
+[ERR] parakeet  male       REF: say the word bite again
+                           HYP: say the word by it again
+[ERR] parakeet  male       REF: say the word bout again
+                           HYP: say the word about again
+[OK ] parakeet  male       REF: say the word boy again
+                           HYP: say the word boy again
+[OK ] parakeet  male       REF: say the word pot again
+                           HYP: say the word pot again
+[OK ] parakeet  male       REF: say the word hot again
+                           HYP: say the word hot again
+[OK ] parakeet  male       REF: say the word part again
+                           HYP: say the word part again
+[OK ] parakeet  male       REF: say the word heart again
+                           HYP: say the word heart again
+[OK ] parakeet  male       REF: say the word cot again
+                           HYP: say the word cot again
+[OK ] parakeet  male       REF: say the word cart again
+                           HYP: say the word cart again
+[OK ] parakeet  male       REF: say the word salt again
+                           HYP: say the word salt again
+[OK ] parakeet  male       REF: say the word south again
+                           HYP: say the word south again
+[OK ] parakeet  male       REF: say the word well again
+                           HYP: say the word well again
+[OK ] parakeet  male       REF: say the word whale again
+                           HYP: say the word whale again
+[ERR] parakeet  male       REF: say the word hole again
+                           HYP: say the word whole again
+[OK ] parakeet  male       REF: say the word howl again
+                           HYP: say the word howl again
+[OK ] parakeet  male       REF: say the word stop again
+                           HYP: say the word stop again
+[OK ] parakeet  male       REF: say the word spin again
+                           HYP: say the word spin again
+[OK ] parakeet  male       REF: say the word skip again
+                           HYP: say the word skip again
+[OK ] parakeet  male       REF: say the word street again
+                           HYP: say the word street again
+[OK ] parakeet  male       REF: say the word split again
+                           HYP: say the word split again
+[OK ] parakeet  male       REF: say the word scream again
+                           HYP: say the word scream again
+[OK ] parakeet  male       REF: say the word black again
+                           HYP: say the word black again
+[OK ] parakeet  male       REF: say the word bring again
+                           HYP: say the word bring again
+[OK ] parakeet  male       REF: say the word clean again
+                           HYP: say the word clean again
+[OK ] parakeet  male       REF: say the word crash again
+                           HYP: say the word crash again
+[OK ] parakeet  male       REF: say the word drive again
+                           HYP: say the word drive again
+[OK ] parakeet  male       REF: say the word dream again
+                           HYP: say the word dream again
+[OK ] parakeet  male       REF: say the word flat again
+                           HYP: say the word flat again
+[OK ] parakeet  male       REF: say the word fry again
+                           HYP: say the word fry again
+[OK ] parakeet  male       REF: say the word glass again
+                           HYP: say the word glass again
+[OK ] parakeet  male       REF: say the word green again
+                           HYP: say the word green again
+[OK ] parakeet  male       REF: say the word play again
+                           HYP: say the word play again
+[OK ] parakeet  male       REF: say the word pray again
+                           HYP: say the word pray again
+[OK ] parakeet  male       REF: say the word slow again
+                           HYP: say the word slow again
+[OK ] parakeet  male       REF: say the word smoke again
+                           HYP: say the word smoke again
+[OK ] parakeet  male       REF: say the word snake again
+                           HYP: say the word snake again
+[OK ] parakeet  male       REF: say the word swim again
+                           HYP: say the word swim again
+[ERR] parakeet  male       REF: say the word 3 again
+                           HYP: say the word free again
+[OK ] parakeet  male       REF: say the word train again
+                           HYP: say the word train again
+[OK ] parakeet  male       REF: say the word twin again
+                           HYP: say the word twin again
+[ERR] parakeet  male       REF: say the word quick again
+                           HYP: say the word click again
+[OK ] parakeet  male       REF: say the word shrink again
+                           HYP: say the word shrink again
+[OK ] parakeet  female     REF: say the word pat again
+                           HYP: say the word pat again
+[ERR] parakeet  female     REF: say the word bat again
+                           HYP: say the word that again
+[OK ] parakeet  female     REF: say the word tap again
+                           HYP: say the word tap again
+[OK ] parakeet  female     REF: say the word dad again
+                           HYP: say the word dad again
+[OK ] parakeet  female     REF: say the word cat again
+                           HYP: say the word cat again
+[OK ] parakeet  female     REF: say the word gap again
+                           HYP: say the word gap again
+[OK ] parakeet  female     REF: say the word fat again
+                           HYP: say the word fat again
+[ERR] parakeet  female     REF: say the word vat again
+                           HYP: say the word that again
+[OK ] parakeet  female     REF: say the word that again
+                           HYP: say the word that again
+[OK ] parakeet  female     REF: say the word sat again
+                           HYP: say the word sat again
+[OK ] parakeet  female     REF: say the word zap again
+                           HYP: say the word zap again
+[ERR] parakeet  female     REF: say the word chat again
+                           HYP: say the word shat again
+[ERR] parakeet  female     REF: say the word jab again
+                           HYP: say the word fab again
+[ERR] parakeet  female     REF: say the word shack again
+                           HYP: say the word sack again
+[ERR] parakeet  female     REF: say the word mat again
+                           HYP: say the word matt again
+[OK ] parakeet  female     REF: say the word nap again
+                           HYP: say the word nap again
+[OK ] parakeet  female     REF: say the word lap again
+                           HYP: say the word lap again
+[OK ] parakeet  female     REF: say the word rat again
+                           HYP: say the word rat again
+[OK ] parakeet  female     REF: say the word wax again
+                           HYP: say the word wax again
+[OK ] parakeet  female     REF: say the word yak again
+                           HYP: say the word yak again
+[OK ] parakeet  female     REF: say the word hat again
+                           HYP: say the word hat again
+[OK ] parakeet  female     REF: say the word thank again
+                           HYP: say the word thank again
+[OK ] parakeet  female     REF: say the word cap again
+                           HYP: say the word cap again
+[OK ] parakeet  female     REF: say the word cab again
+                           HYP: say the word cab again
+[OK ] parakeet  female     REF: say the word cut again
+                           HYP: say the word cut again
+[ERR] parakeet  female     REF: say the word cud again
+                           HYP: say the word cut again
+[OK ] parakeet  female     REF: say the word back again
+                           HYP: say the word back again
+[OK ] parakeet  female     REF: say the word bag again
+                           HYP: say the word bag again
+[OK ] parakeet  female     REF: say the word calf again
+                           HYP: say the word calf again
+[OK ] parakeet  female     REF: say the word have again
+                           HYP: say the word have again
+[OK ] parakeet  female     REF: say the word bath again
+                           HYP: say the word bath again
+[OK ] parakeet  female     REF: say the word bass again
+                           HYP: say the word bass again
+[ERR] parakeet  female     REF: say the word jazz again
+                           HYP: say the word has again
+[OK ] parakeet  female     REF: say the word cash again
+                           HYP: say the word cash again
+[OK ] parakeet  female     REF: say the word badge again
+                           HYP: say the word badge again
+[OK ] parakeet  female     REF: say the word catch again
+                           HYP: say the word catch again
+[OK ] parakeet  female     REF: say the word ham again
+                           HYP: say the word ham again
+[OK ] parakeet  female     REF: say the word can again
+                           HYP: say the word can again
+[OK ] parakeet  female     REF: say the word bang again
+                           HYP: say the word bang again
+[OK ] parakeet  female     REF: say the word pal again
+                           HYP: say the word pal again
+[OK ] parakeet  female     REF: say the word car again
+                           HYP: say the word car again
+[ERR] parakeet  female     REF: say the word beat again
+                           HYP: say the word meet again
+[OK ] parakeet  female     REF: say the word bit again
+                           HYP: say the word bit again
+[ERR] parakeet  female     REF: say the word bait again
+                           HYP: say the word date again
+[ERR] parakeet  female     REF: say the word bet again
+                           HYP: say the word that again
+[ERR] parakeet  female     REF: say the word bought again
+                           HYP: say the word bot again
+[OK ] parakeet  female     REF: say the word boat again
+                           HYP: say the word boat again
+[OK ] parakeet  female     REF: say the word book again
+                           HYP: say the word book again
+[OK ] parakeet  female     REF: say the word boot again
+                           HYP: say the word boot again
+[OK ] parakeet  female     REF: say the word but again
+                           HYP: say the word but again
+[OK ] parakeet  female     REF: say the word bird again
+                           HYP: say the word bird again
+[ERR] parakeet  female     REF: say the word bite again
+                           HYP: say the word by it again
+[ERR] parakeet  female     REF: say the word bout again
+                           HYP: say the word about again
+[OK ] parakeet  female     REF: say the word boy again
+                           HYP: say the word boy again
+[OK ] parakeet  female     REF: say the word pot again
+                           HYP: say the word pot again
+[OK ] parakeet  female     REF: say the word hot again
+                           HYP: say the word hot again
+[OK ] parakeet  female     REF: say the word part again
+                           HYP: say the word part again
+[OK ] parakeet  female     REF: say the word heart again
+                           HYP: say the word heart again
+[OK ] parakeet  female     REF: say the word cot again
+                           HYP: say the word cot again
+[OK ] parakeet  female     REF: say the word cart again
+                           HYP: say the word cart again
+[OK ] parakeet  female     REF: say the word salt again
+                           HYP: say the word salt again
+[OK ] parakeet  female     REF: say the word south again
+                           HYP: say the word south again
+[OK ] parakeet  female     REF: say the word well again
+                           HYP: say the word well again
+[OK ] parakeet  female     REF: say the word whale again
+                           HYP: say the word whale again
+[ERR] parakeet  female     REF: say the word hole again
+                           HYP: say the word whole again
+[OK ] parakeet  female     REF: say the word howl again
+                           HYP: say the word howl again
+[OK ] parakeet  female     REF: say the word stop again
+                           HYP: say the word stop again
+[OK ] parakeet  female     REF: say the word spin again
+                           HYP: say the word spin again
+[OK ] parakeet  female     REF: say the word skip again
+                           HYP: say the word skip again
+[OK ] parakeet  female     REF: say the word street again
+                           HYP: say the word street again
+[OK ] parakeet  female     REF: say the word split again
+                           HYP: say the word split again
+[OK ] parakeet  female     REF: say the word scream again
+                           HYP: say the word scream again
+[OK ] parakeet  female     REF: say the word black again
+                           HYP: say the word black again
+[OK ] parakeet  female     REF: say the word bring again
+                           HYP: say the word bring again
+[OK ] parakeet  female     REF: say the word clean again
+                           HYP: say the word clean again
+[OK ] parakeet  female     REF: say the word crash again
+                           HYP: say the word crash again
+[OK ] parakeet  female     REF: say the word drive again
+                           HYP: say the word drive again
+[OK ] parakeet  female     REF: say the word dream again
+                           HYP: say the word dream again
+[OK ] parakeet  female     REF: say the word flat again
+                           HYP: say the word flat again
+[OK ] parakeet  female     REF: say the word fry again
+                           HYP: say the word fry again
+[OK ] parakeet  female     REF: say the word glass again
+                           HYP: say the word glass again
+[OK ] parakeet  female     REF: say the word green again
+                           HYP: say the word green again
+[ERR] parakeet  female     REF: say the word play again
+                           HYP: say the word clay again
+[ERR] parakeet  female     REF: say the word pray again
+                           HYP: say the word gray again
+[OK ] parakeet  female     REF: say the word slow again
+                           HYP: say the word slow again
+[OK ] parakeet  female     REF: say the word smoke again
+                           HYP: say the word smoke again
+[OK ] parakeet  female     REF: say the word snake again
+                           HYP: say the word snake again
+[OK ] parakeet  female     REF: say the word swim again
+                           HYP: say the word swim again
+[ERR] parakeet  female     REF: say the word 3 again
+                           HYP: say the word free again
+[OK ] parakeet  female     REF: say the word train again
+                           HYP: say the word train again
+[OK ] parakeet  female     REF: say the word twin again
+                           HYP: say the word twin again
+[OK ] parakeet  female     REF: say the word quick again
+                           HYP: say the word quick again
+[OK ] parakeet  female     REF: say the word shrink again
+                           HYP: say the word shrink again
+[OK ] parakeet  oldgruff   REF: say the word pat again
+                           HYP: say the word pat again
+[OK ] parakeet  oldgruff   REF: say the word bat again
+                           HYP: say the word bat again
+[OK ] parakeet  oldgruff   REF: say the word tap again
+                           HYP: say the word tap again
+[OK ] parakeet  oldgruff   REF: say the word dad again
+                           HYP: say the word dad again
+[OK ] parakeet  oldgruff   REF: say the word cat again
+                           HYP: say the word cat again
+[OK ] parakeet  oldgruff   REF: say the word gap again
+                           HYP: say the word gap again
+[OK ] parakeet  oldgruff   REF: say the word fat again
+                           HYP: say the word fat again
+[ERR] parakeet  oldgruff   REF: say the word vat again
+                           HYP: say the word that again
+[OK ] parakeet  oldgruff   REF: say the word that again
+                           HYP: say the word that again
+[OK ] parakeet  oldgruff   REF: say the word sat again
+                           HYP: say the word sat again
+[OK ] parakeet  oldgruff   REF: say the word zap again
+                           HYP: say the word zap again
+[OK ] parakeet  oldgruff   REF: say the word chat again
+                           HYP: say the word chat again
+[OK ] parakeet  oldgruff   REF: say the word jab again
+                           HYP: say the word jab again
+[OK ] parakeet  oldgruff   REF: say the word shack again
+                           HYP: say the word shack again
+[ERR] parakeet  oldgruff   REF: say the word mat again
+                           HYP: say the word matt again
+[ERR] parakeet  oldgruff   REF: say the word nap again
+                           HYP: save a word nap again
+[OK ] parakeet  oldgruff   REF: say the word lap again
+                           HYP: say the word lap again
+[OK ] parakeet  oldgruff   REF: say the word rat again
+                           HYP: say the word rat again
+[OK ] parakeet  oldgruff   REF: say the word wax again
+                           HYP: say the word wax again
+[OK ] parakeet  oldgruff   REF: say the word yak again
+                           HYP: say the word yak again
+[OK ] parakeet  oldgruff   REF: say the word hat again
+                           HYP: say the word hat again
+[OK ] parakeet  oldgruff   REF: say the word thank again
+                           HYP: say the word thank again
+[OK ] parakeet  oldgruff   REF: say the word cap again
+                           HYP: say the word cap again
+[OK ] parakeet  oldgruff   REF: say the word cab again
+                           HYP: say the word cab again
+[OK ] parakeet  oldgruff   REF: say the word cut again
+                           HYP: say the word cut again
+[ERR] parakeet  oldgruff   REF: say the word cud again
+                           HYP: say the word cut again
+[OK ] parakeet  oldgruff   REF: say the word back again
+                           HYP: say the word back again
+[ERR] parakeet  oldgruff   REF: say the word bag again
+                           HYP: say the word back again
+[OK ] parakeet  oldgruff   REF: say the word calf again
+                           HYP: say the word calf again
+[OK ] parakeet  oldgruff   REF: say the word have again
+                           HYP: say the word have again
+[OK ] parakeet  oldgruff   REF: say the word bath again
+                           HYP: say the word bath again
+[OK ] parakeet  oldgruff   REF: say the word bass again
+                           HYP: say the word bass again
+[ERR] parakeet  oldgruff   REF: say the word jazz again
+                           HYP: say the word shaz again
+[OK ] parakeet  oldgruff   REF: say the word cash again
+                           HYP: say the word cash again
+[ERR] parakeet  oldgruff   REF: say the word badge again
+                           HYP: save a work patch again
+[OK ] parakeet  oldgruff   REF: say the word catch again
+                           HYP: say the word catch again
+[OK ] parakeet  oldgruff   REF: say the word ham again
+                           HYP: say the word ham again
+[OK ] parakeet  oldgruff   REF: say the word can again
+                           HYP: say the word can again
+[OK ] parakeet  oldgruff   REF: say the word bang again
+                           HYP: say the word bang again
+[OK ] parakeet  oldgruff   REF: say the word pal again
+                           HYP: say the word pal again
+[OK ] parakeet  oldgruff   REF: say the word car again
+                           HYP: say the word car again
+[OK ] parakeet  oldgruff   REF: say the word beat again
+                           HYP: say the word beat again
+[OK ] parakeet  oldgruff   REF: say the word bit again
+                           HYP: say the word bit again
+[OK ] parakeet  oldgruff   REF: say the word bait again
+                           HYP: say the word bait again
+[OK ] parakeet  oldgruff   REF: say the word bet again
+                           HYP: say the word bet again
+[ERR] parakeet  oldgruff   REF: say the word bought again
+                           HYP: say the word bot again
+[OK ] parakeet  oldgruff   REF: say the word boat again
+                           HYP: say the word boat again
+[OK ] parakeet  oldgruff   REF: say the word book again
+                           HYP: say the word book again
+[OK ] parakeet  oldgruff   REF: say the word boot again
+                           HYP: say the word boot again
+[ERR] parakeet  oldgruff   REF: say the word but again
+                           HYP: save the word but again
+[OK ] parakeet  oldgruff   REF: say the word bird again
+                           HYP: say the word bird again
+[ERR] parakeet  oldgruff   REF: say the word bite again
+                           HYP: say the word buy it again
+[ERR] parakeet  oldgruff   REF: say the word bout again
+                           HYP: say the word about again
+[OK ] parakeet  oldgruff   REF: say the word boy again
+                           HYP: say the word boy again
+[OK ] parakeet  oldgruff   REF: say the word pot again
+                           HYP: say the word pot again
+[OK ] parakeet  oldgruff   REF: say the word hot again
+                           HYP: say the word hot again
+[OK ] parakeet  oldgruff   REF: say the word part again
+                           HYP: say the word part again
+[OK ] parakeet  oldgruff   REF: say the word heart again
+                           HYP: say the word heart again
+[OK ] parakeet  oldgruff   REF: say the word cot again
+                           HYP: say the word cot again
+[OK ] parakeet  oldgruff   REF: say the word cart again
+                           HYP: say the word cart again
+[OK ] parakeet  oldgruff   REF: say the word salt again
+                           HYP: say the word salt again
+[OK ] parakeet  oldgruff   REF: say the word south again
+                           HYP: say the word south again
+[OK ] parakeet  oldgruff   REF: say the word well again
+                           HYP: say the word well again
+[OK ] parakeet  oldgruff   REF: say the word whale again
+                           HYP: say the word whale again
+[ERR] parakeet  oldgruff   REF: say the word hole again
+                           HYP: say the word whole again
+[OK ] parakeet  oldgruff   REF: say the word howl again
+                           HYP: say the word howl again
+[OK ] parakeet  oldgruff   REF: say the word stop again
+                           HYP: say the word stop again
+[OK ] parakeet  oldgruff   REF: say the word spin again
+                           HYP: say the word spin again
+[OK ] parakeet  oldgruff   REF: say the word skip again
+                           HYP: say the word skip again
+[OK ] parakeet  oldgruff   REF: say the word street again
+                           HYP: say the word street again
+[OK ] parakeet  oldgruff   REF: say the word split again
+                           HYP: say the word split again
+[OK ] parakeet  oldgruff   REF: say the word scream again
+                           HYP: say the word scream again
+[OK ] parakeet  oldgruff   REF: say the word black again
+                           HYP: say the word black again
+[OK ] parakeet  oldgruff   REF: say the word bring again
+                           HYP: say the word bring again
+[OK ] parakeet  oldgruff   REF: say the word clean again
+                           HYP: say the word clean again
+[OK ] parakeet  oldgruff   REF: say the word crash again
+                           HYP: say the word crash again
+[OK ] parakeet  oldgruff   REF: say the word drive again
+                           HYP: say the word drive again
+[OK ] parakeet  oldgruff   REF: say the word dream again
+                           HYP: say the word dream again
+[OK ] parakeet  oldgruff   REF: say the word flat again
+                           HYP: say the word flat again
+[OK ] parakeet  oldgruff   REF: say the word fry again
+                           HYP: say the word fry again
+[OK ] parakeet  oldgruff   REF: say the word glass again
+                           HYP: say the word glass again
+[OK ] parakeet  oldgruff   REF: say the word green again
+                           HYP: say the word green again
+[OK ] parakeet  oldgruff   REF: say the word play again
+                           HYP: say the word play again
+[OK ] parakeet  oldgruff   REF: say the word pray again
+                           HYP: say the word pray again
+[OK ] parakeet  oldgruff   REF: say the word slow again
+                           HYP: say the word slow again
+[OK ] parakeet  oldgruff   REF: say the word smoke again
+                           HYP: say the word smoke again
+[OK ] parakeet  oldgruff   REF: say the word snake again
+                           HYP: say the word snake again
+[OK ] parakeet  oldgruff   REF: say the word swim again
+                           HYP: say the word swim again
+[ERR] parakeet  oldgruff   REF: say the word 3 again
+                           HYP: say the word free again
+[OK ] parakeet  oldgruff   REF: say the word train again
+                           HYP: say the word train again
+[OK ] parakeet  oldgruff   REF: say the word twin again
+                           HYP: say the word twin again
+[OK ] parakeet  oldgruff   REF: say the word quick again
+                           HYP: say the word quick again
+[OK ] parakeet  oldgruff   REF: say the word shrink again
+                           HYP: say the word shrink again
+[OK ] parakeet  presetM    REF: say the word pat again
+                           HYP: say the word pat again
+[ERR] parakeet  presetM    REF: say the word bat again
+                           HYP: say the word that again
+[OK ] parakeet  presetM    REF: say the word tap again
+                           HYP: say the word tap again
+[OK ] parakeet  presetM    REF: say the word dad again
+                           HYP: say the word dad again
+[OK ] parakeet  presetM    REF: say the word cat again
+                           HYP: say the word cat again
+[OK ] parakeet  presetM    REF: say the word gap again
+                           HYP: say the word gap again
+[OK ] parakeet  presetM    REF: say the word fat again
+                           HYP: say the word fat again
+[ERR] parakeet  presetM    REF: say the word vat again
+                           HYP: say the word that again
+[OK ] parakeet  presetM    REF: say the word that again
+                           HYP: say the word that again
+[OK ] parakeet  presetM    REF: say the word sat again
+                           HYP: say the word sat again
+[OK ] parakeet  presetM    REF: say the word zap again
+                           HYP: say the word zap again
+[ERR] parakeet  presetM    REF: say the word chat again
+                           HYP: say the word fat again
+[OK ] parakeet  presetM    REF: say the word jab again
+                           HYP: say the word jab again
+[OK ] parakeet  presetM    REF: say the word shack again
+                           HYP: say the word shack again
+[ERR] parakeet  presetM    REF: say the word mat again
+                           HYP: say the word matt again
+[OK ] parakeet  presetM    REF: say the word nap again
+                           HYP: say the word nap again
+[OK ] parakeet  presetM    REF: say the word lap again
+                           HYP: say the word lap again
+[OK ] parakeet  presetM    REF: say the word rat again
+                           HYP: say the word rat again
+[OK ] parakeet  presetM    REF: say the word wax again
+                           HYP: say the word wax again
+[OK ] parakeet  presetM    REF: say the word yak again
+                           HYP: say the word yak again
+[OK ] parakeet  presetM    REF: say the word hat again
+                           HYP: say the word hat again
+[OK ] parakeet  presetM    REF: say the word thank again
+                           HYP: say the word thank again
+[OK ] parakeet  presetM    REF: say the word cap again
+                           HYP: say the word cap again
+[OK ] parakeet  presetM    REF: say the word cab again
+                           HYP: say the word cab again
+[OK ] parakeet  presetM    REF: say the word cut again
+                           HYP: say the word cut again
+[ERR] parakeet  presetM    REF: say the word cud again
+                           HYP: say the word cod again
+[OK ] parakeet  presetM    REF: say the word back again
+                           HYP: say the word back again
+[ERR] parakeet  presetM    REF: say the word bag again
+                           HYP: say the word back again
+[OK ] parakeet  presetM    REF: say the word calf again
+                           HYP: say the word calf again
+[OK ] parakeet  presetM    REF: say the word have again
+                           HYP: say the word have again
+[OK ] parakeet  presetM    REF: say the word bath again
+                           HYP: say the word bath again
+[OK ] parakeet  presetM    REF: say the word bass again
+                           HYP: say the word bass again
+[ERR] parakeet  presetM    REF: say the word jazz again
+                           HYP: say the word has again
+[OK ] parakeet  presetM    REF: say the word cash again
+                           HYP: say the word cash again
+[OK ] parakeet  presetM    REF: say the word badge again
+                           HYP: say the word badge again
+[OK ] parakeet  presetM    REF: say the word catch again
+                           HYP: say the word catch again
+[OK ] parakeet  presetM    REF: say the word ham again
+                           HYP: say the word ham again
+[OK ] parakeet  presetM    REF: say the word can again
+                           HYP: say the word can again
+[OK ] parakeet  presetM    REF: say the word bang again
+                           HYP: say the word bang again
+[OK ] parakeet  presetM    REF: say the word pal again
+                           HYP: say the word pal again
+[OK ] parakeet  presetM    REF: say the word car again
+                           HYP: say the word car again
+[OK ] parakeet  presetM    REF: say the word beat again
+                           HYP: say the word beat again
+[OK ] parakeet  presetM    REF: say the word bit again
+                           HYP: say the word bit again
+[OK ] parakeet  presetM    REF: say the word bait again
+                           HYP: say the word bait again
+[OK ] parakeet  presetM    REF: say the word bet again
+                           HYP: say the word bet again
+[ERR] parakeet  presetM    REF: say the word bought again
+                           HYP: say the word bot again
+[ERR] parakeet  presetM    REF: say the word boat again
+                           HYP: say the word vote again
+[OK ] parakeet  presetM    REF: say the word book again
+                           HYP: say the word book again
+[OK ] parakeet  presetM    REF: say the word boot again
+                           HYP: say the word boot again
+[OK ] parakeet  presetM    REF: say the word but again
+                           HYP: say the word but again
+[OK ] parakeet  presetM    REF: say the word bird again
+                           HYP: say the word bird again
+[ERR] parakeet  presetM    REF: say the word bite again
+                           HYP: say the word by it again
+[OK ] parakeet  presetM    REF: say the word bout again
+                           HYP: say the word bout again
+[OK ] parakeet  presetM    REF: say the word boy again
+                           HYP: say the word boy again
+[OK ] parakeet  presetM    REF: say the word pot again
+                           HYP: say the word pot again
+[OK ] parakeet  presetM    REF: say the word hot again
+                           HYP: say the word hot again
+[OK ] parakeet  presetM    REF: say the word part again
+                           HYP: say the word part again
+[OK ] parakeet  presetM    REF: say the word heart again
+                           HYP: say the word heart again
+[OK ] parakeet  presetM    REF: say the word cot again
+                           HYP: say the word cot again
+[OK ] parakeet  presetM    REF: say the word cart again
+                           HYP: say the word cart again
+[OK ] parakeet  presetM    REF: say the word salt again
+                           HYP: say the word salt again
+[OK ] parakeet  presetM    REF: say the word south again
+                           HYP: say the word south again
+[OK ] parakeet  presetM    REF: say the word well again
+                           HYP: say the word well again
+[OK ] parakeet  presetM    REF: say the word whale again
+                           HYP: say the word whale again
+[ERR] parakeet  presetM    REF: say the word hole again
+                           HYP: say the word whole again
+[OK ] parakeet  presetM    REF: say the word howl again
+                           HYP: say the word howl again
+[OK ] parakeet  presetM    REF: say the word stop again
+                           HYP: say the word stop again
+[OK ] parakeet  presetM    REF: say the word spin again
+                           HYP: say the word spin again
+[OK ] parakeet  presetM    REF: say the word skip again
+                           HYP: say the word skip again
+[OK ] parakeet  presetM    REF: say the word street again
+                           HYP: say the word street again
+[OK ] parakeet  presetM    REF: say the word split again
+                           HYP: say the word split again
+[OK ] parakeet  presetM    REF: say the word scream again
+                           HYP: say the word scream again
+[OK ] parakeet  presetM    REF: say the word black again
+                           HYP: say the word black again
+[OK ] parakeet  presetM    REF: say the word bring again
+                           HYP: say the word bring again
+[OK ] parakeet  presetM    REF: say the word clean again
+                           HYP: say the word clean again
+[OK ] parakeet  presetM    REF: say the word crash again
+                           HYP: say the word crash again
+[OK ] parakeet  presetM    REF: say the word drive again
+                           HYP: say the word drive again
+[OK ] parakeet  presetM    REF: say the word dream again
+                           HYP: say the word dream again
+[OK ] parakeet  presetM    REF: say the word flat again
+                           HYP: say the word flat again
+[OK ] parakeet  presetM    REF: say the word fry again
+                           HYP: say the word fry again
+[OK ] parakeet  presetM    REF: say the word glass again
+                           HYP: say the word glass again
+[OK ] parakeet  presetM    REF: say the word green again
+                           HYP: say the word green again
+[ERR] parakeet  presetM    REF: say the word play again
+                           HYP: say the word clay again
+[OK ] parakeet  presetM    REF: say the word pray again
+                           HYP: say the word pray again
+[OK ] parakeet  presetM    REF: say the word slow again
+                           HYP: say the word slow again
+[OK ] parakeet  presetM    REF: say the word smoke again
+                           HYP: say the word smoke again
+[OK ] parakeet  presetM    REF: say the word snake again
+                           HYP: say the word snake again
+[OK ] parakeet  presetM    REF: say the word swim again
+                           HYP: say the word swim again
+[ERR] parakeet  presetM    REF: say the word 3 again
+                           HYP: say the word free again
+[OK ] parakeet  presetM    REF: say the word train again
+                           HYP: say the word train again
+[OK ] parakeet  presetM    REF: say the word twin again
+                           HYP: say the word twin again
+[OK ] parakeet  presetM    REF: say the word quick again
+                           HYP: say the word quick again
+[OK ] parakeet  presetM    REF: say the word shrink again
+                           HYP: say the word shrink again
+[ERR] parakeet  presetF    REF: say the word pat again
+                           HYP: say the word pet again
+[ERR] parakeet  presetF    REF: say the word bat again
+                           HYP: say the word that again
+[OK ] parakeet  presetF    REF: say the word tap again
+                           HYP: say the word tap again
+[OK ] parakeet  presetF    REF: say the word dad again
+                           HYP: say the word dad again
+[OK ] parakeet  presetF    REF: say the word cat again
+                           HYP: say the word cat again
+[OK ] parakeet  presetF    REF: say the word gap again
+                           HYP: say the word gap again
+[OK ] parakeet  presetF    REF: say the word fat again
+                           HYP: say the word fat again
+[ERR] parakeet  presetF    REF: say the word vat again
+                           HYP: say the word that again
+[OK ] parakeet  presetF    REF: say the word that again
+                           HYP: say the word that again
+[OK ] parakeet  presetF    REF: say the word sat again
+                           HYP: say the word sat again
+[OK ] parakeet  presetF    REF: say the word zap again
+                           HYP: say the word zap again
+[OK ] parakeet  presetF    REF: say the word chat again
+                           HYP: say the word chat again
+[ERR] parakeet  presetF    REF: say the word jab again
+                           HYP: say the word shabby again
+[OK ] parakeet  presetF    REF: say the word shack again
+                           HYP: say the word shack again
+[ERR] parakeet  presetF    REF: say the word mat again
+                           HYP: say the word matt again
+[ERR] parakeet  presetF    REF: say the word nap again
+                           HYP: say the word map again
+[OK ] parakeet  presetF    REF: say the word lap again
+                           HYP: say the word lap again
+[OK ] parakeet  presetF    REF: say the word rat again
+                           HYP: say the word rat again
+[OK ] parakeet  presetF    REF: say the word wax again
+                           HYP: say the word wax again
+[OK ] parakeet  presetF    REF: say the word yak again
+                           HYP: say the word yak again
+[OK ] parakeet  presetF    REF: say the word hat again
+                           HYP: say the word hat again
+[OK ] parakeet  presetF    REF: say the word thank again
+                           HYP: say the word thank again
+[OK ] parakeet  presetF    REF: say the word cap again
+                           HYP: say the word cap again
+[OK ] parakeet  presetF    REF: say the word cab again
+                           HYP: say the word cab again
+[OK ] parakeet  presetF    REF: say the word cut again
+                           HYP: say the word cut again
+[ERR] parakeet  presetF    REF: say the word cud again
+                           HYP: say the word cut again
+[OK ] parakeet  presetF    REF: say the word back again
+                           HYP: say the word back again
+[OK ] parakeet  presetF    REF: say the word bag again
+                           HYP: say the word bag again
+[OK ] parakeet  presetF    REF: say the word calf again
+                           HYP: say the word calf again
+[OK ] parakeet  presetF    REF: say the word have again
+                           HYP: say the word have again
+[OK ] parakeet  presetF    REF: say the word bath again
+                           HYP: say the word bath again
+[OK ] parakeet  presetF    REF: say the word bass again
+                           HYP: say the word bass again
+[ERR] parakeet  presetF    REF: say the word jazz again
+                           HYP: say the word has again
+[OK ] parakeet  presetF    REF: say the word cash again
+                           HYP: say the word cash again
+[OK ] parakeet  presetF    REF: say the word badge again
+                           HYP: say the word badge again
+[OK ] parakeet  presetF    REF: say the word catch again
+                           HYP: say the word catch again
+[OK ] parakeet  presetF    REF: say the word ham again
+                           HYP: say the word ham again
+[OK ] parakeet  presetF    REF: say the word can again
+                           HYP: say the word can again
+[OK ] parakeet  presetF    REF: say the word bang again
+                           HYP: say the word bang again
+[OK ] parakeet  presetF    REF: say the word pal again
+                           HYP: say the word pal again
+[OK ] parakeet  presetF    REF: say the word car again
+                           HYP: say the word car again
+[OK ] parakeet  presetF    REF: say the word beat again
+                           HYP: say the word beat again
+[OK ] parakeet  presetF    REF: say the word bit again
+                           HYP: say the word bit again
+[ERR] parakeet  presetF    REF: say the word bait again
+                           HYP: say the word date again
+[ERR] parakeet  presetF    REF: say the word bet again
+                           HYP: say the word that again
+[ERR] parakeet  presetF    REF: say the word bought again
+                           HYP: say the word vote again
+[ERR] parakeet  presetF    REF: say the word boat again
+                           HYP: say the word vote again
+[OK ] parakeet  presetF    REF: say the word book again
+                           HYP: say the word book again
+[OK ] parakeet  presetF    REF: say the word boot again
+                           HYP: say the word boot again
+[OK ] parakeet  presetF    REF: say the word but again
+                           HYP: say the word but again
+[OK ] parakeet  presetF    REF: say the word bird again
+                           HYP: say the word bird again
+[ERR] parakeet  presetF    REF: say the word bite again
+                           HYP: say the word by it again
+[ERR] parakeet  presetF    REF: say the word bout again
+                           HYP: say the word about again
+[OK ] parakeet  presetF    REF: say the word boy again
+                           HYP: say the word boy again
+[OK ] parakeet  presetF    REF: say the word pot again
+                           HYP: say the word pot again
+[OK ] parakeet  presetF    REF: say the word hot again
+                           HYP: say the word hot again
+[OK ] parakeet  presetF    REF: say the word part again
+                           HYP: say the word part again
+[OK ] parakeet  presetF    REF: say the word heart again
+                           HYP: say the word heart again
+[ERR] parakeet  presetF    REF: say the word cot again
+                           HYP: say the word cut again
+[OK ] parakeet  presetF    REF: say the word cart again
+                           HYP: say the word cart again
+[OK ] parakeet  presetF    REF: say the word salt again
+                           HYP: say the word salt again
+[OK ] parakeet  presetF    REF: say the word south again
+                           HYP: say the word south again
+[OK ] parakeet  presetF    REF: say the word well again
+                           HYP: say the word well again
+[OK ] parakeet  presetF    REF: say the word whale again
+                           HYP: say the word whale again
+[ERR] parakeet  presetF    REF: say the word hole again
+                           HYP: say the word whole again
+[OK ] parakeet  presetF    REF: say the word howl again
+                           HYP: say the word howl again
+[OK ] parakeet  presetF    REF: say the word stop again
+                           HYP: say the word stop again
+[OK ] parakeet  presetF    REF: say the word spin again
+                           HYP: say the word spin again
+[OK ] parakeet  presetF    REF: say the word skip again
+                           HYP: say the word skip again
+[OK ] parakeet  presetF    REF: say the word street again
+                           HYP: say the word street again
+[OK ] parakeet  presetF    REF: say the word split again
+                           HYP: say the word split again
+[OK ] parakeet  presetF    REF: say the word scream again
+                           HYP: say the word scream again
+[OK ] parakeet  presetF    REF: say the word black again
+                           HYP: say the word black again
+[OK ] parakeet  presetF    REF: say the word bring again
+                           HYP: say the word bring again
+[OK ] parakeet  presetF    REF: say the word clean again
+                           HYP: say the word clean again
+[OK ] parakeet  presetF    REF: say the word crash again
+                           HYP: say the word crash again
+[OK ] parakeet  presetF    REF: say the word drive again
+                           HYP: say the word drive again
+[OK ] parakeet  presetF    REF: say the word dream again
+                           HYP: say the word dream again
+[OK ] parakeet  presetF    REF: say the word flat again
+                           HYP: say the word flat again
+[OK ] parakeet  presetF    REF: say the word fry again
+                           HYP: say the word fry again
+[OK ] parakeet  presetF    REF: say the word glass again
+                           HYP: say the word glass again
+[OK ] parakeet  presetF    REF: say the word green again
+                           HYP: say the word green again
+[ERR] parakeet  presetF    REF: say the word play again
+                           HYP: say the word clay again
+[ERR] parakeet  presetF    REF: say the word pray again
+                           HYP: say the word gray again
+[OK ] parakeet  presetF    REF: say the word slow again
+                           HYP: say the word slow again
+[OK ] parakeet  presetF    REF: say the word smoke again
+                           HYP: say the word smoke again
+[OK ] parakeet  presetF    REF: say the word snake again
+                           HYP: say the word snake again
+[ERR] parakeet  presetF    REF: say the word swim again
+                           HYP: say the words win again
+[OK ] parakeet  presetF    REF: say the word 3 again
+                           HYP: say the word 3 again
+[OK ] parakeet  presetF    REF: say the word train again
+                           HYP: say the word train again
+[OK ] parakeet  presetF    REF: say the word twin again
+                           HYP: say the word twin again
+[OK ] parakeet  presetF    REF: say the word quick again
+                           HYP: say the word quick again
+[OK ] parakeet  presetF    REF: say the word shrink again
+                           HYP: say the word shrink again
+== parakeet: overall WER 3.7% (87/2325)
+   female       WER   4.1%  (19/465)
+   male         WER   3.2%  (15/465)
+   oldgruff     WER   3.9%  (18/465)
+   presetF      WER   4.5%  (21/465)
+   presetM      WER   3.0%  (14/465)
+[ERR] whisper-base male       REF: say the word pat again
+                           HYP: save a word pat again
+[ERR] whisper-base male       REF: say the word bat again
+                           HYP: save the word back again
+[OK ] whisper-base male       REF: say the word tap again
+                           HYP: say the word tap again
+[ERR] whisper-base male       REF: say the word dad again
+                           HYP: save the work bad again
+[ERR] whisper-base male       REF: say the word cat again
+                           HYP: save a word cat again
+[ERR] whisper-base male       REF: say the word gap again
+                           HYP: say the word cap again
+[OK ] whisper-base male       REF: say the word fat again
+                           HYP: say the word fat again
+[ERR] whisper-base male       REF: say the word vat again
+                           HYP: say the word back again
+[OK ] whisper-base male       REF: say the word that again
+                           HYP: say the word that again
+[ERR] whisper-base male       REF: say the word sat again
+                           HYP: save a word sat again
+[ERR] whisper-base male       REF: say the word zap again
+                           HYP: say the words app again
+[OK ] whisper-base male       REF: say the word chat again
+                           HYP: say the word chat again
+[ERR] whisper-base male       REF: say the word jab again
+                           HYP: save a word tab again
+[OK ] whisper-base male       REF: say the word shack again
+                           HYP: say the word shack again
+[ERR] whisper-base male       REF: say the word mat again
+                           HYP: save a word matt again
+[OK ] whisper-base male       REF: say the word nap again
+                           HYP: say the word nap again
+[ERR] whisper-base male       REF: say the word lap again
+                           HYP: save a word lap again
+[ERR] whisper-base male       REF: say the word rat again
+                           HYP: save a word rat again
+[ERR] whisper-base male       REF: say the word wax again
+                           HYP: save the word wax again
+[ERR] whisper-base male       REF: say the word yak again
+                           HYP: say the word yack again
+[OK ] whisper-base male       REF: say the word hat again
+                           HYP: say the word hat again
+[OK ] whisper-base male       REF: say the word thank again
+                           HYP: say the word thank again
+[ERR] whisper-base male       REF: say the word cap again
+                           HYP: save a word cap again
+[ERR] whisper-base male       REF: say the word cab again
+                           HYP: save a word cab again
+[ERR] whisper-base male       REF: say the word cut again
+                           HYP: save a word cut again
+[ERR] whisper-base male       REF: say the word cud again
+                           HYP: save a word cut again
+[ERR] whisper-base male       REF: say the word back again
+                           HYP: save the words back again
+[ERR] whisper-base male       REF: say the word bag again
+                           HYP: save the work back again
+[ERR] whisper-base male       REF: say the word calf again
+                           HYP: save a word calf again
+[ERR] whisper-base male       REF: say the word have again
+                           HYP: save a word have again
+[ERR] whisper-base male       REF: say the word bath again
+                           HYP: save the word back again
+[ERR] whisper-base male       REF: say the word bass again
+                           HYP: save a word pass again
+[ERR] whisper-base male       REF: say the word jazz again
+                           HYP: save the work as again
+[OK ] whisper-base male       REF: say the word cash again
+                           HYP: say the word cash again
+[ERR] whisper-base male       REF: say the word badge again
+                           HYP: save a word badge again
+[OK ] whisper-base male       REF: say the word catch again
+                           HYP: say the word catch again
+[ERR] whisper-base male       REF: say the word ham again
+                           HYP: save a word time again
+[OK ] whisper-base male       REF: say the word can again
+                           HYP: say the word can again
+[ERR] whisper-base male       REF: say the word bang again
+                           HYP: save a word back again
+[ERR] whisper-base male       REF: say the word pal again
+                           HYP: save a word pal again
+[OK ] whisper-base male       REF: say the word car again
+                           HYP: say the word car again
+[OK ] whisper-base male       REF: say the word beat again
+                           HYP: say the word beat again
+[ERR] whisper-base male       REF: say the word bit again
+                           HYP: save a word bit again
+[ERR] whisper-base male       REF: say the word bait again
+                           HYP: save a word bait again
+[ERR] whisper-base male       REF: say the word bet again
+                           HYP: save a word bet again
+[ERR] whisper-base male       REF: say the word bought again
+                           HYP: save a word bought again
+[ERR] whisper-base male       REF: say the word boat again
+                           HYP: save a word both again
+[ERR] whisper-base male       REF: say the word book again
+                           HYP: save a word book again
+[ERR] whisper-base male       REF: say the word boot again
+                           HYP: save the word boot again
+[ERR] whisper-base male       REF: say the word but again
+                           HYP: save a word but again
+[ERR] whisper-base male       REF: say the word bird again
+                           HYP: save a word birth again
+[ERR] whisper-base male       REF: say the word bite again
+                           HYP: save a word by it again
+[ERR] whisper-base male       REF: say the word bout again
+                           HYP: save a word bout again
+[ERR] whisper-base male       REF: say the word boy again
+                           HYP: save a work boy again
+[ERR] whisper-base male       REF: say the word pot again
+                           HYP: save the word pot again
+[OK ] whisper-base male       REF: say the word hot again
+                           HYP: say the word hot again
+[ERR] whisper-base male       REF: say the word part again
+                           HYP: say the word power again
+[ERR] whisper-base male       REF: say the word heart again
+                           HYP: say the word hard again
+[ERR] whisper-base male       REF: say the word cot again
+                           HYP: save the word caught again
+[ERR] whisper-base male       REF: say the word cart again
+                           HYP: save a word call it again
+[ERR] whisper-base male       REF: say the word salt again
+                           HYP: save a word salt again
+[ERR] whisper-base male       REF: say the word south again
+                           HYP: say the words south again
+[ERR] whisper-base male       REF: say the word well again
+                           HYP: save the word well again
+[OK ] whisper-base male       REF: say the word whale again
+                           HYP: say the word whale again
+[ERR] whisper-base male       REF: say the word hole again
+                           HYP: say the word poll again
+[ERR] whisper-base male       REF: say the word howl again
+                           HYP: save a word howl again
+[ERR] whisper-base male       REF: say the word stop again
+                           HYP: say the words stop again
+[ERR] whisper-base male       REF: say the word spin again
+                           HYP: say the words spin again
+[ERR] whisper-base male       REF: say the word skip again
+                           HYP: save a word skip again
+[OK ] whisper-base male       REF: say the word street again
+                           HYP: say the word street again
+[OK ] whisper-base male       REF: say the word split again
+                           HYP: say the word split again
+[ERR] whisper-base male       REF: say the word scream again
+                           HYP: save a word stream again
+[OK ] whisper-base male       REF: say the word black again
+                           HYP: say the word black again
+[OK ] whisper-base male       REF: say the word bring again
+                           HYP: say the word bring again
+[OK ] whisper-base male       REF: say the word clean again
+                           HYP: say the word clean again
+[ERR] whisper-base male       REF: say the word crash again
+                           HYP: save a word crash again
+[ERR] whisper-base male       REF: say the word drive again
+                           HYP: save a word drive again
+[OK ] whisper-base male       REF: say the word dream again
+                           HYP: say the word dream again
+[ERR] whisper-base male       REF: say the word flat again
+                           HYP: save a word flat again
+[OK ] whisper-base male       REF: say the word fry again
+                           HYP: say the word fry again
+[ERR] whisper-base male       REF: say the word glass again
+                           HYP: save a word glass again
+[OK ] whisper-base male       REF: say the word green again
+                           HYP: say the word green again
+[OK ] whisper-base male       REF: say the word play again
+                           HYP: say the word play again
+[OK ] whisper-base male       REF: say the word pray again
+                           HYP: say the word pray again
+[ERR] whisper-base male       REF: say the word slow again
+                           HYP: save a word slow again
+[ERR] whisper-base male       REF: say the word smoke again
+                           HYP: say the words smoke again
+[ERR] whisper-base male       REF: say the word snake again
+                           HYP: say the words nake again
+[ERR] whisper-base male       REF: say the word swim again
+                           HYP: say the words lim again
+[OK ] whisper-base male       REF: say the word 3 again
+                           HYP: say the word 3 again
+[ERR] whisper-base male       REF: say the word train again
+                           HYP: save a word train again
+[OK ] whisper-base male       REF: say the word twin again
+                           HYP: say the word twin again
+[OK ] whisper-base male       REF: say the word quick again
+                           HYP: say the word quick again
+[ERR] whisper-base male       REF: say the word shrink again
+                           HYP: say the words shrink again
+[OK ] whisper-base female     REF: say the word pat again
+                           HYP: say the word pat again
+[OK ] whisper-base female     REF: say the word bat again
+                           HYP: say the word bat again
+[OK ] whisper-base female     REF: say the word tap again
+                           HYP: say the word tap again
+[OK ] whisper-base female     REF: say the word dad again
+                           HYP: say the word dad again
+[OK ] whisper-base female     REF: say the word cat again
+                           HYP: say the word cat again
+[OK ] whisper-base female     REF: say the word gap again
+                           HYP: say the word gap again
+[OK ] whisper-base female     REF: say the word fat again
+                           HYP: say the word fat again
+[ERR] whisper-base female     REF: say the word vat again
+                           HYP: say the word that again
+[ERR] whisper-base female     REF: say the word that again
+                           HYP: save a word that is again
+[OK ] whisper-base female     REF: say the word sat again
+                           HYP: say the word sat again
+[ERR] whisper-base female     REF: say the word zap again
+                           HYP: say the word lap again
+[OK ] whisper-base female     REF: say the word chat again
+                           HYP: say the word chat again
+[OK ] whisper-base female     REF: say the word jab again
+                           HYP: say the word jab again
+[OK ] whisper-base female     REF: say the word shack again
+                           HYP: say the word shack again
+[OK ] whisper-base female     REF: say the word mat again
+                           HYP: say the word mat again
+[ERR] whisper-base female     REF: say the word nap again
+                           HYP: save a word nap again
+[OK ] whisper-base female     REF: say the word lap again
+                           HYP: say the word lap again
+[OK ] whisper-base female     REF: say the word rat again
+                           HYP: say the word rat again
+[OK ] whisper-base female     REF: say the word wax again
+                           HYP: say the word wax again
+[OK ] whisper-base female     REF: say the word yak again
+                           HYP: say the word yak again
+[OK ] whisper-base female     REF: say the word hat again
+                           HYP: say the word hat again
+[ERR] whisper-base female     REF: say the word thank again
+                           HYP: say the word fank again
+[ERR] whisper-base female     REF: say the word cap again
+                           HYP: say the word cat again
+[OK ] whisper-base female     REF: say the word cab again
+                           HYP: say the word cab again
+[OK ] whisper-base female     REF: say the word cut again
+                           HYP: say the word cut again
+[ERR] whisper-base female     REF: say the word cud again
+                           HYP: say the word cut again
+[OK ] whisper-base female     REF: say the word back again
+                           HYP: say the word back again
+[OK ] whisper-base female     REF: say the word bag again
+                           HYP: say the word bag again
+[OK ] whisper-base female     REF: say the word calf again
+                           HYP: say the word calf again
+[OK ] whisper-base female     REF: say the word have again
+                           HYP: say the word have again
+[ERR] whisper-base female     REF: say the word bath again
+                           HYP: say the word back again
+[ERR] whisper-base female     REF: say the word bass again
+                           HYP: say the word best again
+[OK ] whisper-base female     REF: say the word jazz again
+                           HYP: say the word jazz again
+[ERR] whisper-base female     REF: say the word cash again
+                           HYP: say the word cache again
+[OK ] whisper-base female     REF: say the word badge again
+                           HYP: say the word badge again
+[OK ] whisper-base female     REF: say the word catch again
+                           HYP: say the word catch again
+[ERR] whisper-base female     REF: say the word ham again
+                           HYP: save a word time again
+[OK ] whisper-base female     REF: say the word can again
+                           HYP: say the word can again
+[ERR] whisper-base female     REF: say the word bang again
+                           HYP: say the word banned again
+[OK ] whisper-base female     REF: say the word pal again
+                           HYP: say the word pal again
+[OK ] whisper-base female     REF: say the word car again
+                           HYP: say the word car again
+[OK ] whisper-base female     REF: say the word beat again
+                           HYP: say the word beat again
+[OK ] whisper-base female     REF: say the word bit again
+                           HYP: say the word bit again
+[ERR] whisper-base female     REF: say the word bait again
+                           HYP: say the word date again
+[OK ] whisper-base female     REF: say the word bet again
+                           HYP: say the word bet again
+[OK ] whisper-base female     REF: say the word bought again
+                           HYP: say the word bought again
+[ERR] whisper-base female     REF: say the word boat again
+                           HYP: say the word vote again
+[OK ] whisper-base female     REF: say the word book again
+                           HYP: say the word book again
+[OK ] whisper-base female     REF: say the word boot again
+                           HYP: say the word boot again
+[OK ] whisper-base female     REF: say the word but again
+                           HYP: say the word but again
+[OK ] whisper-base female     REF: say the word bird again
+                           HYP: say the word bird again
+[ERR] whisper-base female     REF: say the word bite again
+                           HYP: say the word by it again
+[OK ] whisper-base female     REF: say the word bout again
+                           HYP: say the word bout again
+[OK ] whisper-base female     REF: say the word boy again
+                           HYP: say the word boy again
+[OK ] whisper-base female     REF: say the word pot again
+                           HYP: say the word pot again
+[OK ] whisper-base female     REF: say the word hot again
+                           HYP: say the word hot again
+[ERR] whisper-base female     REF: say the word part again
+                           HYP: say the word power again
+[OK ] whisper-base female     REF: say the word heart again
+                           HYP: say the word heart again
+[ERR] whisper-base female     REF: say the word cot again
+                           HYP: say the word caught again
+[OK ] whisper-base female     REF: say the word cart again
+                           HYP: say the word cart again
+[ERR] whisper-base female     REF: say the word salt again
+                           HYP: say the words all it again
+[ERR] whisper-base female     REF: say the word south again
+                           HYP: say the words out again
+[OK ] whisper-base female     REF: say the word well again
+                           HYP: say the word well again
+[OK ] whisper-base female     REF: say the word whale again
+                           HYP: say the word whale again
+[ERR] whisper-base female     REF: say the word hole again
+                           HYP: say the word whole again
+[OK ] whisper-base female     REF: say the word howl again
+                           HYP: say the word howl again
+[OK ] whisper-base female     REF: say the word stop again
+                           HYP: say the word stop again
+[ERR] whisper-base female     REF: say the word spin again
+                           HYP: say the words spin again
+[ERR] whisper-base female     REF: say the word skip again
+                           HYP: say the words skip again
+[OK ] whisper-base female     REF: say the word street again
+                           HYP: say the word street again
+[OK ] whisper-base female     REF: say the word split again
+                           HYP: say the word split again
+[OK ] whisper-base female     REF: say the word scream again
+                           HYP: say the word scream again
+[OK ] whisper-base female     REF: say the word black again
+                           HYP: say the word black again
+[OK ] whisper-base female     REF: say the word bring again
+                           HYP: say the word bring again
+[OK ] whisper-base female     REF: say the word clean again
+                           HYP: say the word clean again
+[OK ] whisper-base female     REF: say the word crash again
+                           HYP: say the word crash again
+[OK ] whisper-base female     REF: say the word drive again
+                           HYP: say the word drive again
+[OK ] whisper-base female     REF: say the word dream again
+                           HYP: say the word dream again
+[OK ] whisper-base female     REF: say the word flat again
+                           HYP: say the word flat again
+[OK ] whisper-base female     REF: say the word fry again
+                           HYP: say the word fry again
+[OK ] whisper-base female     REF: say the word glass again
+                           HYP: say the word glass again
+[OK ] whisper-base female     REF: say the word green again
+                           HYP: say the word green again
+[OK ] whisper-base female     REF: say the word play again
+                           HYP: say the word play again
+[OK ] whisper-base female     REF: say the word pray again
+                           HYP: say the word pray again
+[ERR] whisper-base female     REF: say the word slow again
+                           HYP: say the words slow again
+[ERR] whisper-base female     REF: say the word smoke again
+                           HYP: say the words smoke again
+[ERR] whisper-base female     REF: say the word snake again
+                           HYP: say the words nake again
+[ERR] whisper-base female     REF: say the word swim again
+                           HYP: say the words win again
+[OK ] whisper-base female     REF: say the word 3 again
+                           HYP: say the word 3 again
+[OK ] whisper-base female     REF: say the word train again
+                           HYP: say the word train again
+[OK ] whisper-base female     REF: say the word twin again
+                           HYP: say the word twin again
+[OK ] whisper-base female     REF: say the word quick again
+                           HYP: say the word quick again
+[ERR] whisper-base female     REF: say the word shrink again
+                           HYP: say the words shrink again
+[ERR] whisper-base oldgruff   REF: say the word pat again
+                           HYP: save a word pat again
+[ERR] whisper-base oldgruff   REF: say the word bat again
+                           HYP: save a word back again
+[ERR] whisper-base oldgruff   REF: say the word tap again
+                           HYP: save a word tap again
+[ERR] whisper-base oldgruff   REF: say the word dad again
+                           HYP: save a word that again
+[ERR] whisper-base oldgruff   REF: say the word cat again
+                           HYP: save a word cat again
+[ERR] whisper-base oldgruff   REF: say the word gap again
+                           HYP: say the word cap again
+[ERR] whisper-base oldgruff   REF: say the word fat again
+                           HYP: save a word fat again
+[ERR] whisper-base oldgruff   REF: say the word vat again
+                           HYP: save a word that again
+[OK ] whisper-base oldgruff   REF: say the word that again
+                           HYP: say the word that again
+[ERR] whisper-base oldgruff   REF: say the word sat again
+                           HYP: save a word sat again
+[ERR] whisper-base oldgruff   REF: say the word zap again
+                           HYP: save the work zap again
+[ERR] whisper-base oldgruff   REF: say the word chat again
+                           HYP: save a word chat again
+[ERR] whisper-base oldgruff   REF: say the word jab again
+                           HYP: say the word chat again
+[OK ] whisper-base oldgruff   REF: say the word shack again
+                           HYP: say the word shack again
+[ERR] whisper-base oldgruff   REF: say the word mat again
+                           HYP: save a word matt again
+[ERR] whisper-base oldgruff   REF: say the word nap again
+                           HYP: save a word nap again
+[OK ] whisper-base oldgruff   REF: say the word lap again
+                           HYP: say the word lap again
+[ERR] whisper-base oldgruff   REF: say the word rat again
+                           HYP: save a word rat again
+[OK ] whisper-base oldgruff   REF: say the word wax again
+                           HYP: say the word wax again
+[OK ] whisper-base oldgruff   REF: say the word yak again
+                           HYP: say the word yak again
+[ERR] whisper-base oldgruff   REF: say the word hat again
+                           HYP: save a word hat again
+[OK ] whisper-base oldgruff   REF: say the word thank again
+                           HYP: say the word thank again
+[OK ] whisper-base oldgruff   REF: say the word cap again
+                           HYP: say the word cap again
+[ERR] whisper-base oldgruff   REF: say the word cab again
+                           HYP: save a word cab again
+[ERR] whisper-base oldgruff   REF: say the word cut again
+                           HYP: save a word cut again
+[ERR] whisper-base oldgruff   REF: say the word cud again
+                           HYP: save a word cut again
+[ERR] whisper-base oldgruff   REF: say the word back again
+                           HYP: save a word back again
+[ERR] whisper-base oldgruff   REF: say the word bag again
+                           HYP: save a word back again
+[OK ] whisper-base oldgruff   REF: say the word calf again
+                           HYP: say the word calf again
+[ERR] whisper-base oldgruff   REF: say the word have again
+                           HYP: save a word have again
+[ERR] whisper-base oldgruff   REF: say the word bath again
+                           HYP: save a word bash again
+[ERR] whisper-base oldgruff   REF: say the word bass again
+                           HYP: save a word pass again
+[ERR] whisper-base oldgruff   REF: say the word jazz again
+                           HYP: say the word chaz again
+[ERR] whisper-base oldgruff   REF: say the word cash again
+                           HYP: save a word cache again
+[ERR] whisper-base oldgruff   REF: say the word badge again
+                           HYP: save a word badge again
+[ERR] whisper-base oldgruff   REF: say the word catch again
+                           HYP: save a word catch again
+[ERR] whisper-base oldgruff   REF: say the word ham again
+                           HYP: save a word time again
+[ERR] whisper-base oldgruff   REF: say the word can again
+                           HYP: save a word kind again
+[OK ] whisper-base oldgruff   REF: say the word bang again
+                           HYP: say the word bang again
+[ERR] whisper-base oldgruff   REF: say the word pal again
+                           HYP: save a word pal again
+[OK ] whisper-base oldgruff   REF: say the word car again
+                           HYP: say the word car again
+[ERR] whisper-base oldgruff   REF: say the word beat again
+                           HYP: save a word beat again
+[OK ] whisper-base oldgruff   REF: say the word bit again
+                           HYP: say the word bit again
+[OK ] whisper-base oldgruff   REF: say the word bait again
+                           HYP: say the word bait again
+[ERR] whisper-base oldgruff   REF: say the word bet again
+                           HYP: save a word bet again
+[ERR] whisper-base oldgruff   REF: say the word bought again
+                           HYP: save a word balt again
+[ERR] whisper-base oldgruff   REF: say the word boat again
+                           HYP: say the word both again
+[ERR] whisper-base oldgruff   REF: say the word book again
+                           HYP: save a word book again
+[ERR] whisper-base oldgruff   REF: say the word boot again
+                           HYP: save a word boot again
+[ERR] whisper-base oldgruff   REF: say the word but again
+                           HYP: save a word but again
+[ERR] whisper-base oldgruff   REF: say the word bird again
+                           HYP: save a word bird again
+[OK ] whisper-base oldgruff   REF: say the word bite again
+                           HYP: say the word bite again
+[ERR] whisper-base oldgruff   REF: say the word bout again
+                           HYP: save a word bout again
+[ERR] whisper-base oldgruff   REF: say the word boy again
+                           HYP: save a word boy again
+[ERR] whisper-base oldgruff   REF: say the word pot again
+                           HYP: save a word pot again
+[ERR] whisper-base oldgruff   REF: say the word hot again
+                           HYP: save a word hot again
+[OK ] whisper-base oldgruff   REF: say the word part again
+                           HYP: say the word part again
+[ERR] whisper-base oldgruff   REF: say the word heart again
+                           HYP: say the word hard again
+[ERR] whisper-base oldgruff   REF: say the word cot again
+                           HYP: save a word caught again
+[OK ] whisper-base oldgruff   REF: say the word cart again
+                           HYP: say the word cart again
+[ERR] whisper-base oldgruff   REF: say the word salt again
+                           HYP: save a word solved again
+[OK ] whisper-base oldgruff   REF: say the word south again
+                           HYP: say the word south again
+[ERR] whisper-base oldgruff   REF: say the word well again
+                           HYP: save a word well again
+[ERR] whisper-base oldgruff   REF: say the word whale again
+                           HYP: save a word whale again
+[ERR] whisper-base oldgruff   REF: say the word hole again
+                           HYP: say the word whole again
+[OK ] whisper-base oldgruff   REF: say the word howl again
+                           HYP: say the word howl again
+[ERR] whisper-base oldgruff   REF: say the word stop again
+                           HYP: save a word stop again
+[ERR] whisper-base oldgruff   REF: say the word spin again
+                           HYP: say the words thin again
+[ERR] whisper-base oldgruff   REF: say the word skip again
+                           HYP: say the words skip again
+[ERR] whisper-base oldgruff   REF: say the word street again
+                           HYP: save a word street again
+[ERR] whisper-base oldgruff   REF: say the word split again
+                           HYP: save a word split again
+[ERR] whisper-base oldgruff   REF: say the word scream again
+                           HYP: say the word stream again
+[ERR] whisper-base oldgruff   REF: say the word black again
+                           HYP: save a word black again
+[OK ] whisper-base oldgruff   REF: say the word bring again
+                           HYP: say the word bring again
+[ERR] whisper-base oldgruff   REF: say the word clean again
+                           HYP: save a word clean again
+[ERR] whisper-base oldgruff   REF: say the word crash again
+                           HYP: save a word crash again
+[ERR] whisper-base oldgruff   REF: say the word drive again
+                           HYP: save a word drive again
+[ERR] whisper-base oldgruff   REF: say the word dream again
+                           HYP: save a word dream again
+[ERR] whisper-base oldgruff   REF: say the word flat again
+                           HYP: save a word flat again
+[OK ] whisper-base oldgruff   REF: say the word fry again
+                           HYP: say the word fry again
+[ERR] whisper-base oldgruff   REF: say the word glass again
+                           HYP: save a word glass again
+[ERR] whisper-base oldgruff   REF: say the word green again
+                           HYP: save a word green again
+[OK ] whisper-base oldgruff   REF: say the word play again
+                           HYP: say the word play again
+[OK ] whisper-base oldgruff   REF: say the word pray again
+                           HYP: say the word pray again
+[OK ] whisper-base oldgruff   REF: say the word slow again
+                           HYP: say the word slow again
+[OK ] whisper-base oldgruff   REF: say the word smoke again
+                           HYP: say the word smoke again
+[ERR] whisper-base oldgruff   REF: say the word snake again
+                           HYP: say the words nake again
+[ERR] whisper-base oldgruff   REF: say the word swim again
+                           HYP: save a words swim again
+[ERR] whisper-base oldgruff   REF: say the word 3 again
+                           HYP: save a word free again
+[ERR] whisper-base oldgruff   REF: say the word train again
+                           HYP: save a word train again
+[ERR] whisper-base oldgruff   REF: say the word twin again
+                           HYP: save a word twin again
+[OK ] whisper-base oldgruff   REF: say the word quick again
+                           HYP: say the word quick again
+[ERR] whisper-base oldgruff   REF: say the word shrink again
+                           HYP: save a word shrink again
+[OK ] whisper-base presetM    REF: say the word pat again
+                           HYP: say the word pat again
+[ERR] whisper-base presetM    REF: say the word bat again
+                           HYP: say the word back again
+[ERR] whisper-base presetM    REF: say the word tap again
+                           HYP: save a word tap again
+[ERR] whisper-base presetM    REF: say the word dad again
+                           HYP: save a word that again
+[ERR] whisper-base presetM    REF: say the word cat again
+                           HYP: save a word cat again
+[OK ] whisper-base presetM    REF: say the word gap again
+                           HYP: say the word gap again
+[ERR] whisper-base presetM    REF: say the word fat again
+                           HYP: save a word fat again
+[ERR] whisper-base presetM    REF: say the word vat again
+                           HYP: say the word that again
+[ERR] whisper-base presetM    REF: say the word that again
+                           HYP: save a word that again
+[ERR] whisper-base presetM    REF: say the word sat again
+                           HYP: save a word sat again
+[ERR] whisper-base presetM    REF: say the word zap again
+                           HYP: save a word that again
+[OK ] whisper-base presetM    REF: say the word chat again
+                           HYP: say the word chat again
+[ERR] whisper-base presetM    REF: say the word jab again
+                           HYP: save a word chat again
+[ERR] whisper-base presetM    REF: say the word shack again
+                           HYP: save a word shack again
+[ERR] whisper-base presetM    REF: say the word mat again
+                           HYP: save a word matt again
+[ERR] whisper-base presetM    REF: say the word nap again
+                           HYP: say the word map again
+[OK ] whisper-base presetM    REF: say the word lap again
+                           HYP: say the word lap again
+[ERR] whisper-base presetM    REF: say the word rat again
+                           HYP: save a word rat again
+[ERR] whisper-base presetM    REF: say the word wax again
+                           HYP: save a word wax again
+[OK ] whisper-base presetM    REF: say the word yak again
+                           HYP: say the word yak again
+[ERR] whisper-base presetM    REF: say the word hat again
+                           HYP: save a word hat again
+[ERR] whisper-base presetM    REF: say the word thank again
+                           HYP: say the word fank again
+[OK ] whisper-base presetM    REF: say the word cap again
+                           HYP: say the word cap again
+[ERR] whisper-base presetM    REF: say the word cab again
+                           HYP: save a word cab again
+[ERR] whisper-base presetM    REF: say the word cut again
+                           HYP: save a word cut again
+[ERR] whisper-base presetM    REF: say the word cud again
+                           HYP: save a word cut again
+[ERR] whisper-base presetM    REF: say the word back again
+                           HYP: save a word back again
+[ERR] whisper-base presetM    REF: say the word bag again
+                           HYP: save a work back again
+[OK ] whisper-base presetM    REF: say the word calf again
+                           HYP: say the word calf again
+[OK ] whisper-base presetM    REF: say the word have again
+                           HYP: say the word have again
+[ERR] whisper-base presetM    REF: say the word bath again
+                           HYP: say the word back again
+[ERR] whisper-base presetM    REF: say the word bass again
+                           HYP: say the word pass again
+[ERR] whisper-base presetM    REF: say the word jazz again
+                           HYP: say the word has again
+[ERR] whisper-base presetM    REF: say the word cash again
+                           HYP: save a word cache again
+[ERR] whisper-base presetM    REF: say the word badge again
+                           HYP: save a word badge again
+[OK ] whisper-base presetM    REF: say the word catch again
+                           HYP: say the word catch again
+[ERR] whisper-base presetM    REF: say the word ham again
+                           HYP: save a word time again
+[ERR] whisper-base presetM    REF: say the word can again
+                           HYP: save a word can again
+[ERR] whisper-base presetM    REF: say the word bang again
+                           HYP: save the word back again
+[ERR] whisper-base presetM    REF: say the word pal again
+                           HYP: save a word pal again
+[OK ] whisper-base presetM    REF: say the word car again
+                           HYP: say the word car again
+[OK ] whisper-base presetM    REF: say the word beat again
+                           HYP: say the word beat again
+[OK ] whisper-base presetM    REF: say the word bit again
+                           HYP: say the word bit again
+[ERR] whisper-base presetM    REF: say the word bait again
+                           HYP: save a word date again
+[OK ] whisper-base presetM    REF: say the word bet again
+                           HYP: say the word bet again
+[ERR] whisper-base presetM    REF: say the word bought again
+                           HYP: save a word bought again
+[ERR] whisper-base presetM    REF: say the word boat again
+                           HYP: save a word vote again
+[OK ] whisper-base presetM    REF: say the word book again
+                           HYP: say the word book again
+[OK ] whisper-base presetM    REF: say the word boot again
+                           HYP: say the word boot again
+[ERR] whisper-base presetM    REF: say the word but again
+                           HYP: save a word but again
+[ERR] whisper-base presetM    REF: say the word bird again
+                           HYP: save a word bird again
+[ERR] whisper-base presetM    REF: say the word bite again
+                           HYP: save a word by it again
+[OK ] whisper-base presetM    REF: say the word bout again
+                           HYP: say the word bout again
+[ERR] whisper-base presetM    REF: say the word boy again
+                           HYP: save a word boy again
+[ERR] whisper-base presetM    REF: say the word pot again
+                           HYP: save a word pot again
+[OK ] whisper-base presetM    REF: say the word hot again
+                           HYP: say the word hot again
+[OK ] whisper-base presetM    REF: say the word part again
+                           HYP: say the word part again
+[ERR] whisper-base presetM    REF: say the word heart again
+                           HYP: say the word hard again
+[ERR] whisper-base presetM    REF: say the word cot again
+                           HYP: say the word caught again
+[OK ] whisper-base presetM    REF: say the word cart again
+                           HYP: say the word cart again
+[ERR] whisper-base presetM    REF: say the word salt again
+                           HYP: save a word salt again
+[OK ] whisper-base presetM    REF: say the word south again
+                           HYP: say the word south again
+[ERR] whisper-base presetM    REF: say the word well again
+                           HYP: save a word well again
+[ERR] whisper-base presetM    REF: say the word whale again
+                           HYP: save a word lail again
+[ERR] whisper-base presetM    REF: say the word hole again
+                           HYP: save a word poll again
+[OK ] whisper-base presetM    REF: say the word howl again
+                           HYP: say the word howl again
+[ERR] whisper-base presetM    REF: say the word stop again
+                           HYP: say the words stop again
+[ERR] whisper-base presetM    REF: say the word spin again
+                           HYP: say the words spin again
+[ERR] whisper-base presetM    REF: say the word skip again
+                           HYP: say the words skip again
+[ERR] whisper-base presetM    REF: say the word street again
+                           HYP: say the words treat again
+[OK ] whisper-base presetM    REF: say the word split again
+                           HYP: say the word split again
+[OK ] whisper-base presetM    REF: say the word scream again
+                           HYP: say the word scream again
+[ERR] whisper-base presetM    REF: say the word black again
+                           HYP: save a word black again
+[ERR] whisper-base presetM    REF: say the word bring again
+                           HYP: save a word bring again
+[OK ] whisper-base presetM    REF: say the word clean again
+                           HYP: say the word clean again
+[ERR] whisper-base presetM    REF: say the word crash again
+                           HYP: say the word trash again
+[OK ] whisper-base presetM    REF: say the word drive again
+                           HYP: say the word drive again
+[ERR] whisper-base presetM    REF: say the word dream again
+                           HYP: save a word dream again
+[OK ] whisper-base presetM    REF: say the word flat again
+                           HYP: say the word flat again
+[OK ] whisper-base presetM    REF: say the word fry again
+                           HYP: say the word fry again
+[OK ] whisper-base presetM    REF: say the word glass again
+                           HYP: say the word glass again
+[ERR] whisper-base presetM    REF: say the word green again
+                           HYP: say the word breen again
+[OK ] whisper-base presetM    REF: say the word play again
+                           HYP: say the word play again
+[ERR] whisper-base presetM    REF: say the word pray again
+                           HYP: save a word pray again
+[ERR] whisper-base presetM    REF: say the word slow again
+                           HYP: say the words slow again
+[OK ] whisper-base presetM    REF: say the word smoke again
+                           HYP: say the word smoke again
+[ERR] whisper-base presetM    REF: say the word snake again
+                           HYP: say the words nake again
+[ERR] whisper-base presetM    REF: say the word swim again
+                           HYP: say the words wim again
+[OK ] whisper-base presetM    REF: say the word 3 again
+                           HYP: say the word 3 again
+[OK ] whisper-base presetM    REF: say the word train again
+                           HYP: say the word train again
+[ERR] whisper-base presetM    REF: say the word twin again
+                           HYP: save a word twin again
+[OK ] whisper-base presetM    REF: say the word quick again
+                           HYP: say the word quick again
+[ERR] whisper-base presetM    REF: say the word shrink again
+                           HYP: save a word shrink again
+[ERR] whisper-base presetF    REF: say the word pat again
+                           HYP: say the word pet again
+[ERR] whisper-base presetF    REF: say the word bat again
+                           HYP: say the word back again
+[OK ] whisper-base presetF    REF: say the word tap again
+                           HYP: say the word tap again
+[ERR] whisper-base presetF    REF: say the word dad again
+                           HYP: say the word that again
+[ERR] whisper-base presetF    REF: say the word cat again
+                           HYP: say the word catch again
+[OK ] whisper-base presetF    REF: say the word gap again
+                           HYP: say the word gap again
+[OK ] whisper-base presetF    REF: say the word fat again
+                           HYP: say the word fat again
+[ERR] whisper-base presetF    REF: say the word vat again
+                           HYP: say the word that again
+[OK ] whisper-base presetF    REF: say the word that again
+                           HYP: say the word that again
+[ERR] whisper-base presetF    REF: say the word sat again
+                           HYP: say the word sad again
+[ERR] whisper-base presetF    REF: say the word zap again
+                           HYP: say the word lap again
+[OK ] whisper-base presetF    REF: say the word chat again
+                           HYP: say the word chat again
+[ERR] whisper-base presetF    REF: say the word jab again
+                           HYP: say the word cab again
+[OK ] whisper-base presetF    REF: say the word shack again
+                           HYP: say the word shack again
+[ERR] whisper-base presetF    REF: say the word mat again
+                           HYP: say the word met again
+[OK ] whisper-base presetF    REF: say the word nap again
+                           HYP: say the word nap again
+[OK ] whisper-base presetF    REF: say the word lap again
+                           HYP: say the word lap again
+[OK ] whisper-base presetF    REF: say the word rat again
+                           HYP: say the word rat again
+[OK ] whisper-base presetF    REF: say the word wax again
+                           HYP: say the word wax again
+[OK ] whisper-base presetF    REF: say the word yak again
+                           HYP: say the word yak again
+[OK ] whisper-base presetF    REF: say the word hat again
+                           HYP: say the word hat again
+[OK ] whisper-base presetF    REF: say the word thank again
+                           HYP: say the word thank again
+[OK ] whisper-base presetF    REF: say the word cap again
+                           HYP: say the word cap again
+[OK ] whisper-base presetF    REF: say the word cab again
+                           HYP: say the word cab again
+[OK ] whisper-base presetF    REF: say the word cut again
+                           HYP: say the word cut again
+[ERR] whisper-base presetF    REF: say the word cud again
+                           HYP: say the word cut again
+[OK ] whisper-base presetF    REF: say the word back again
+                           HYP: say the word back again
+[ERR] whisper-base presetF    REF: say the word bag again
+                           HYP: say the word back again
+[OK ] whisper-base presetF    REF: say the word calf again
+                           HYP: say the word calf again
+[OK ] whisper-base presetF    REF: say the word have again
+                           HYP: say the word have again
+[ERR] whisper-base presetF    REF: say the word bath again
+                           HYP: say the word pass again
+[ERR] whisper-base presetF    REF: say the word bass again
+                           HYP: say the word best again
+[ERR] whisper-base presetF    REF: say the word jazz again
+                           HYP: say the word has again
+[ERR] whisper-base presetF    REF: say the word cash again
+                           HYP: say the word cache again
+[OK ] whisper-base presetF    REF: say the word badge again
+                           HYP: say the word badge again
+[OK ] whisper-base presetF    REF: say the word catch again
+                           HYP: say the word catch again
+[ERR] whisper-base presetF    REF: say the word ham again
+                           HYP: say the word time again
+[OK ] whisper-base presetF    REF: say the word can again
+                           HYP: say the word can again
+[OK ] whisper-base presetF    REF: say the word bang again
+                           HYP: say the word bang again
+[ERR] whisper-base presetF    REF: say the word pal again
+                           HYP: save a word pal again
+[OK ] whisper-base presetF    REF: say the word car again
+                           HYP: say the word car again
+[OK ] whisper-base presetF    REF: say the word beat again
+                           HYP: say the word beat again
+[OK ] whisper-base presetF    REF: say the word bit again
+                           HYP: say the word bit again
+[ERR] whisper-base presetF    REF: say the word bait again
+                           HYP: say the word date again
+[OK ] whisper-base presetF    REF: say the word bet again
+                           HYP: say the word bet again
+[OK ] whisper-base presetF    REF: say the word bought again
+                           HYP: say the word bought again
+[ERR] whisper-base presetF    REF: say the word boat again
+                           HYP: say the word vote again
+[OK ] whisper-base presetF    REF: say the word book again
+                           HYP: say the word book again
+[OK ] whisper-base presetF    REF: say the word boot again
+                           HYP: say the word boot again
+[OK ] whisper-base presetF    REF: say the word but again
+                           HYP: say the word but again
+[OK ] whisper-base presetF    REF: say the word bird again
+                           HYP: say the word bird again
+[ERR] whisper-base presetF    REF: say the word bite again
+                           HYP: say the word bye again
+[OK ] whisper-base presetF    REF: say the word bout again
+                           HYP: say the word bout again
+[OK ] whisper-base presetF    REF: say the word boy again
+                           HYP: say the word boy again
+[OK ] whisper-base presetF    REF: say the word pot again
+                           HYP: say the word pot again
+[OK ] whisper-base presetF    REF: say the word hot again
+                           HYP: say the word hot again
+[OK ] whisper-base presetF    REF: say the word part again
+                           HYP: say the word part again
+[OK ] whisper-base presetF    REF: say the word heart again
+                           HYP: say the word heart again
+[ERR] whisper-base presetF    REF: say the word cot again
+                           HYP: say the word caught again
+[OK ] whisper-base presetF    REF: say the word cart again
+                           HYP: say the word cart again
+[ERR] whisper-base presetF    REF: say the word salt again
+                           HYP: say the words all it again
+[OK ] whisper-base presetF    REF: say the word south again
+                           HYP: say the word south again
+[ERR] whisper-base presetF    REF: say the word well again
+                           HYP: shame the word well again
+[OK ] whisper-base presetF    REF: say the word whale again
+                           HYP: say the word whale again
+[ERR] whisper-base presetF    REF: say the word hole again
+                           HYP: say the word call again
+[ERR] whisper-base presetF    REF: say the word howl again
+                           HYP: say the word how again
+[ERR] whisper-base presetF    REF: say the word stop again
+                           HYP: say the words stop again
+[ERR] whisper-base presetF    REF: say the word spin again
+                           HYP: say the words spin again
+[ERR] whisper-base presetF    REF: say the word skip again
+                           HYP: say the words skip again
+[OK ] whisper-base presetF    REF: say the word street again
+                           HYP: say the word street again
+[ERR] whisper-base presetF    REF: say the word split again
+                           HYP: say the words split again
+[OK ] whisper-base presetF    REF: say the word scream again
+                           HYP: say the word scream again
+[OK ] whisper-base presetF    REF: say the word black again
+                           HYP: say the word black again
+[OK ] whisper-base presetF    REF: say the word bring again
+                           HYP: say the word bring again
+[OK ] whisper-base presetF    REF: say the word clean again
+                           HYP: say the word clean again
+[OK ] whisper-base presetF    REF: say the word crash again
+                           HYP: say the word crash again
+[OK ] whisper-base presetF    REF: say the word drive again
+                           HYP: say the word drive again
+[OK ] whisper-base presetF    REF: say the word dream again
+                           HYP: say the word dream again
+[OK ] whisper-base presetF    REF: say the word flat again
+                           HYP: say the word flat again
+[OK ] whisper-base presetF    REF: say the word fry again
+                           HYP: say the word fry again
+[OK ] whisper-base presetF    REF: say the word glass again
+                           HYP: say the word glass again
+[OK ] whisper-base presetF    REF: say the word green again
+                           HYP: say the word green again
+[OK ] whisper-base presetF    REF: say the word play again
+                           HYP: say the word play again
+[OK ] whisper-base presetF    REF: say the word pray again
+                           HYP: say the word pray again
+[OK ] whisper-base presetF    REF: say the word slow again
+                           HYP: say the word slow again
+[OK ] whisper-base presetF    REF: say the word smoke again
+                           HYP: say the word smoke again
+[ERR] whisper-base presetF    REF: say the word snake again
+                           HYP: say the words nake again
+[ERR] whisper-base presetF    REF: say the word swim again
+                           HYP: say the words win again
+[OK ] whisper-base presetF    REF: say the word 3 again
+                           HYP: say the word 3 again
+[OK ] whisper-base presetF    REF: say the word train again
+                           HYP: say the word train again
+[OK ] whisper-base presetF    REF: say the word twin again
+                           HYP: say the word twin again
+[OK ] whisper-base presetF    REF: say the word quick again
+                           HYP: say the word quick again
+[ERR] whisper-base presetF    REF: say the word shrink again
+                           HYP: say the words ring again
+== whisper-base: overall WER 20.4% (474/2325)
+   female       WER   8.2%  (38/465)
+   male         WER  28.4%  (132/465)
+   oldgruff     WER  31.4%  (146/465)
+   presetF      WER   8.2%  (38/465)
+   presetM      WER  25.8%  (120/465)
+SUMMARY parakeet=3.7% whisper-base=20.4%

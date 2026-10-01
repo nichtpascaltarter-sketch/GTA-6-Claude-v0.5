@@ -1,0 +1,10 @@
+src/anim/anim_internal.h 967183aa0c23c8803b2f88b5ecee3aa59cb7c39f
+src/anim/animator.cpp c11320976ea88aceca13f82cb66e90871d3db111
+src/anim/character.h 2cdd9307d23837d72394a766c027b3e83a38b57c
+src/anim/clips.cpp d32d6306a1cf8aa4cbbecaebb159a7d2a6b46fcb
+src/game/game.h 430c52966101459b9d7a69d42f4da92bf64804fe
+src/game/player.cpp 5065f3490110106b2912819bc2813da220093eb0
+src/sim/vehicle_cardetail.cpp 36d010a7d1815fc6ced373ed86084bd6b0508512
+src/sim/vehicle_cars.cpp 87d2de0b475759dc05347bb1f02499b34465bcea
+src/sim/vehicle_models.h dcfa270857571d64653d92ebb13062529eb36a17
+tests/anim/carview.cpp 5134b0ecfa4ae6788aa0388a9d3185bbf7e52006

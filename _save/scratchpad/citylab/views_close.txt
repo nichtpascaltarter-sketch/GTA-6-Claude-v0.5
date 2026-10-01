@@ -1,0 +1,8 @@
+cl_close aerial 1771 357 160 210 35 55 10
+nc_close aerial 2600 4300 160 210 35 55 11
+wb_close aerial -1226 -594 110 210 35 55 12
+beach_close aerial 5079 1500 220 250 30 55 17.5
+canvas_close aerial 3052 2022 170 210 35 55 16.5
+grove_close aerial 1963 -3500 130 210 35 55 17
+flats_close aerial 635 3089 170 210 35 55 13
+ks_close aerial -8086 -9205 140 210 35 55 15

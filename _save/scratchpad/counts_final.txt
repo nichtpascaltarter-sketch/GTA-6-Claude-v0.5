@@ -1,0 +1,46 @@
+[ 0] Sakaki                 Minnow             cls= 0 body= 22996 wheel= 2004 rotor=   0 tail=   0 verts= 19874
+[ 1] Hoshida                Kiko               cls= 0 body= 22628 wheel= 1826 rotor=   0 tail=   0 verts= 20296
+[ 2] Aether                 Glint              cls= 0 body= 22182 wheel= 2106 rotor=   0 tail=   0 verts= 19276
+[ 3] Brennan                Harbor             cls= 1 body= 23906 wheel= 2106 rotor=   0 tail=   0 verts= 20498
+[ 4] Hoshida                Seiran             cls= 1 body= 26200 wheel= 2106 rotor=   0 tail=   0 verts= 23505
+[ 5] Nordwerk               Falke 7            cls= 1 body= 24534 wheel= 2330 rotor=   0 tail=   0 verts= 21149
+[ 6] Brennan                Governor           cls= 1 body= 23116 wheel= 2004 rotor=   0 tail=   0 verts= 19341
+[ 7] Ardent                 Cavell GT          cls= 2 body= 22404 wheel= 1938 rotor=   0 tail=   0 verts= 20360
+[ 8] Hoshida                Kaito              cls= 2 body= 22038 wheel= 1882 rotor=   0 tail=   0 verts= 19534
+[ 9] Brennan                Sawgrass           cls= 3 body= 27064 wheel= 1900 rotor=   0 tail=   0 verts= 23212
+[10] Hoshida                Kumo               cls= 3 body= 26924 wheel= 2124 rotor=   0 tail=   0 verts= 23757
+[11] Nordwerk               Ostgrat X5         cls= 3 body= 26912 wheel= 2236 rotor=   0 tail=   0 verts= 23217
+[12] Sakaki                 Tanuki             cls= 3 body= 23532 wheel= 2012 rotor=   0 tail=   0 verts= 20356
+[13] Brennan                Palomino           cls= 4 body= 26084 wheel= 1900 rotor=   0 tail=   0 verts= 22265
+[14] Hoshida                Tekko              cls= 4 body= 24516 wheel= 1900 rotor=   0 tail=   0 verts= 21011
+[15] Brennan                Cutter '74         cls= 4 body= 22184 wheel= 2004 rotor=   0 tail=   0 verts= 18496
+[16] Ardent                 Kestrel            cls= 5 body= 21516 wheel= 2106 rotor=   0 tail=   0 verts= 19798
+[17] Nordwerk               Spree GT           cls= 5 body= 19762 wheel= 2106 rotor=   0 tail=   0 verts= 16694
+[18] Sakaki                 Kaze               cls= 5 body= 18266 wheel= 2218 rotor=   0 tail=   0 verts= 16580
+[19] Castiglia              Orsa V12           cls= 6 body= 23018 wheel= 2106 rotor=   0 tail=   0 verts= 20961
+[20] Aether                 Arclight           cls= 6 body= 20870 wheel= 2218 rotor=   0 tail=   0 verts= 18102
+[21] Ridley                 Scorch 392         cls= 7 body= 22306 wheel= 1826 rotor=   0 tail=   0 verts= 19693
+[22] Ridley                 Gatorback '70      cls= 7 body= 22780 wheel= 1886 rotor=   0 tail=   0 verts= 19783
+[23] Hoshida                Tomo               cls= 8 body= 27066 wheel= 1900 rotor=   0 tail=   0 verts= 23154
+[24] Brennan                Governor Patrol    cls=12 body= 28122 wheel= 1994 rotor=   0 tail=   0 verts= 24574
+[25] Brennan                Sawgrass Pursuit   cls=12 body= 31584 wheel= 2012 rotor=   0 tail=   0 verts= 27648
+[26] Brennan                Governor Cab       cls=13 body= 25276 wheel= 2004 rotor=   0 tail=   0 verts= 22463
+[27] Dunmore                Stevedore          cls= 8 body= 25520 wheel= 2004 rotor=   0 tail=   0 verts= 21380
+[28] Dunmore                Parcel P70         cls=11 body= 26586 wheel= 2080 rotor=   0 tail=   0 verts= 23163
+[29] Dunmore                Packhorse 26       cls=10 body= 22882 wheel= 2116 rotor=   0 tail=   0 verts= 23138
+[30] Dunmore                Longbow 9          cls=10 body= 25100 wheel= 2116 rotor=   0 tail=   0 verts= 22749
+[31] Dunmore                Compactor          cls=11 body= 22478 wheel= 2116 rotor=   0 tail=   0 verts= 23480
+[32] Dunmore                Lifeline           cls=14 body= 21974 wheel= 2080 rotor=   0 tail=   0 verts= 23125
+[33] Dunmore                Guardian Pumper    cls=15 body= 25172 wheel= 2116 rotor=   0 tail=   0 verts= 25659
+[34] Civitas                Boulevard          cls= 9 body= 27684 wheel= 2116 rotor=   0 tail=   0 verts= 21707
+[35] Sakaki                 Raijin 1000        cls=16 body=  4972 wheel= 1736 rotor=   0 tail=   0 verts=  5519
+[36] Ridley                 Sundowner 1800     cls=16 body=  7400 wheel= 1876 rotor=   0 tail=   0 verts=  7738
+[37] Sakaki                 Mochi 125          cls=17 body=  3080 wheel= 1552 rotor=   0 tail=   0 verts=  3248
+[38] Coralline Marine       Sunchaser 24       cls=18 body=  9596 wheel=    0 rotor= 120 tail=   0 verts=  9702
+[39] Coralline Marine       Bonefish 28        cls=18 body= 10656 wheel=    0 rotor=   0 tail=   0 verts=  9981
+[40] Sakaki                 Wavekite           cls=19 body=  3992 wheel=    0 rotor=   0 tail=   0 verts=  3811
+[41] Okahatchee Boatworks   Skimmer            cls=20 body=  7672 wheel=    0 rotor= 228 tail=   0 verts=  8186
+[42] Corbett Aero           Tern 180           cls=21 body=  8366 wheel= 1520 rotor= 260 tail=   0 verts=  9799
+[43] Vesper Rotorcraft      Kite 4             cls=22 body=  7440 wheel=    0 rotor= 788 tail= 112 verts=  8527
+[44] Vesper Rotorcraft      Kite 4 Patrol      cls=22 body=  8356 wheel=    0 rotor= 788 tail= 112 verts=  9458
+total body tris 916712

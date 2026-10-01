@@ -1,0 +1,858 @@
+// Mission scripting library shared by the story, side activities and the open world: story locations resolved on the
+// road network, the story cast (named characters with their own looks and voices), spawn helpers, dialogue and phone
+// call helpers, cutscene shot builders, the adaptive score and small queries used by mission state machines.
+#include "missions.h"
+
+namespace Game {
+namespace mu {
+
+// ------------------------------------------------------------------------------------------------------------------
+// Speaker colors (RGBA8, r in the low byte)
+const u32 kColMari = 0xffcc55ffu;
+const u32 kColDex = 0xff66ddaau;
+const u32 kColTomas = 0xff55ccffu;
+const u32 kColLucha = 0xff7fb4ffu;
+const u32 kColRook = 0xff40a0e0u;
+const u32 kColKit = 0xfff0c040u;
+const u32 kColJonah = 0xff60c080u;
+const u32 kColSandoval = 0xffd0d0d0u;
+const u32 kColHolt = 0xffe08060u;
+const u32 kColCuervo = 0xff4040ffu;
+const u32 kColThug = 0xff6060e0u;
+const u32 kColOther = 0xffb0b0b0u;
+
+// ------------------------------------------------------------------------------------------------------------------
+// Story cast
+enum CastId : int {
+    CAST_TOMAS = 0, CAST_LUCHA, CAST_ROOK, CAST_KIT, CAST_JONAH, CAST_SANDOVAL, CAST_HOLT, CAST_CUERVO,
+    CAST_THUG_A, CAST_THUG_B, CAST_THUG_C, CAST_THUG_D,      // Cuervo gang members (black and red)
+    CAST_GUARD_A, CAST_GUARD_B,                              // Sandoval's private security (dark suits)
+    CAST_COP_A, CAST_COP_B,                                  // Holt's officers
+    CAST_BOUNCER, CAST_DOCKER, CAST_REPORTER, CAST_BANKER, CAST_PILOT, CAST_MECHANIC,
+    CAST_COUNT
+};
+
+struct CastInfo {
+    const char* key;
+    const char* name;
+    u32 color;
+};
+
+const CastInfo kCast[CAST_COUNT] = {
+    {"cast_tomas", "Tomas", kColTomas},       {"cast_lucha", "Lucha", kColLucha},
+    {"cast_rook", "Rook", kColRook},          {"cast_kit", "Kit", kColKit},
+    {"cast_jonah", "Jonah", kColJonah},       {"cast_sandoval", "Sandoval", kColSandoval},
+    {"cast_holt", "Holt", kColHolt},          {"cast_cuervo", "El Cuervo", kColCuervo},
+    {"cast_thug_a", "Cuervo", kColThug},      {"cast_thug_b", "Cuervo", kColThug},
+    {"cast_thug_c", "Cuervo", kColThug},      {"cast_thug_d", "Cuervo", kColThug},
+    {"cast_guard_a", "Guard", kColOther},     {"cast_guard_b", "Guard", kColOther},
+    {"cast_cop_a", "Officer", kColHolt},      {"cast_cop_b", "Officer", kColHolt},
+    {"cast_bouncer", "Bouncer", kColOther},   {"cast_docker", "Dock Worker", kColOther},
+    {"cast_reporter", "Reporter", kColOther}, {"cast_banker", "Banker", kColOther},
+    {"cast_pilot", "Pilot", kColOther},       {"cast_mechanic", "Mechanic", kColOther},
+};
+
+vec3 lin(float r, float g, float b) { return srgbToLinear(vec3(r, g, b)); }
+
+// CharacterDesc conventions: see anim/character.cpp (hairStyle/top/bottom/shoes/hat/glasses/facialHair indices).
+Anim::CharacterDesc castDesc(int id) {
+    Anim::CharacterDesc d;
+    d.seed = 0xC0FFEEu + (u32)id * 7919u;
+    switch (id) {
+        case CAST_TOMAS:   // 22, wiry, curly hair, oversized yellow tee, baggy jeans, backwards cap
+            d.gender = Anim::MALE; d.height = 1.74f; d.weight = 0.3f; d.muscle = 0.3f; d.age = 0.04f;
+            d.skinTone = vec3(0.6f, 0.42f, 0.31f); d.hairStyle = 3; d.hairColor = vec3(0.04f, 0.03f, 0.025f);
+            d.top = 16; d.topColor = lin(0.95f, 0.78f, 0.2f); d.bottom = 8; d.bottomColor = lin(0.35f, 0.4f, 0.55f);
+            d.shoes = 0; d.shoeColor = lin(0.95f, 0.95f, 0.95f); d.hat = 1; break;
+        case CAST_LUCHA:   // 63, short and sturdy, grey bun, red blouse, dark skirt, reading glasses
+            d.gender = Anim::FEMALE; d.height = 1.57f; d.weight = 0.78f; d.muscle = 0.35f; d.age = 0.75f;
+            d.skinTone = vec3(0.52f, 0.36f, 0.26f); d.hairStyle = 6; d.hairColor = vec3(0.42f, 0.42f, 0.42f);
+            d.top = 13; d.topColor = lin(0.78f, 0.16f, 0.2f); d.bottom = 4; d.bottomColor = lin(0.12f, 0.12f, 0.16f);
+            d.shoes = 5; d.shoeColor = lin(0.15f, 0.1f, 0.08f); d.glasses = 2; break;
+        case CAST_ROOK:    // 52, big, buzz cut, grey boxed beard, dark hawaiian shirt, work pants, boots, aviators
+            d.gender = Anim::MALE; d.height = 1.9f; d.weight = 0.72f; d.muscle = 0.55f; d.age = 0.55f;
+            d.skinTone = vec3(0.2f, 0.13f, 0.09f); d.hairStyle = 1; d.hairColor = vec3(0.3f, 0.3f, 0.3f); d.facialHair = 4;
+            d.top = 3; d.topColor = lin(0.12f, 0.3f, 0.22f); d.bottom = 10; d.bottomColor = lin(0.3f, 0.28f, 0.22f);
+            d.shoes = 2; d.shoeColor = lin(0.3f, 0.2f, 0.12f); d.glasses = 1; break;
+        case CAST_KIT:     // 26, teal bob, purple hoodie, black leggings, running shoes
+            d.gender = Anim::FEMALE; d.height = 1.63f; d.weight = 0.25f; d.muscle = 0.25f; d.age = 0.1f;
+            d.skinTone = vec3(0.78f, 0.6f, 0.47f); d.hairStyle = 9; d.hairColor = lin(0.1f, 0.62f, 0.6f);
+            d.top = 5; d.topColor = lin(0.42f, 0.18f, 0.62f); d.bottom = 9; d.bottomColor = lin(0.06f, 0.06f, 0.07f);
+            d.shoes = 6; d.shoeColor = lin(0.95f, 0.4f, 0.6f); break;
+        case CAST_JONAH:   // 60, lean, long grey hair, full beard, khaki shirt, work pants, boots, cap
+            d.gender = Anim::MALE; d.height = 1.81f; d.weight = 0.3f; d.muscle = 0.45f; d.age = 0.62f;
+            d.skinTone = vec3(0.74f, 0.52f, 0.37f); d.hairStyle = 5; d.hairColor = vec3(0.5f, 0.48f, 0.44f); d.facialHair = 3;
+            d.top = 4; d.topColor = lin(0.62f, 0.56f, 0.4f); d.bottom = 10; d.bottomColor = lin(0.26f, 0.3f, 0.2f);
+            d.shoes = 2; d.shoeColor = lin(0.25f, 0.17f, 0.1f); d.hat = 0; d.role = 5; break;
+        case CAST_SANDOVAL:  // 56, slicked salt-and-pepper hair, cream suit, aviators
+            d.gender = Anim::MALE; d.height = 1.84f; d.weight = 0.45f; d.muscle = 0.35f; d.age = 0.58f;
+            d.skinTone = vec3(0.8f, 0.62f, 0.5f); d.hairStyle = 8; d.hairColor = vec3(0.28f, 0.27f, 0.26f);
+            d.top = 6; d.topColor = lin(0.88f, 0.85f, 0.78f); d.bottom = 3; d.bottomColor = lin(0.85f, 0.82f, 0.75f);
+            d.shoes = 1; d.shoeColor = lin(0.35f, 0.2f, 0.1f); d.glasses = 1; d.role = 3; break;
+        case CAST_HOLT:    // 48, blonde bun, police captain uniform
+            d.gender = Anim::FEMALE; d.height = 1.73f; d.weight = 0.42f; d.muscle = 0.55f; d.age = 0.45f;
+            d.skinTone = vec3(0.86f, 0.68f, 0.56f); d.hairStyle = 6; d.hairColor = vec3(0.52f, 0.42f, 0.26f);
+            d.top = 7; d.topColor = lin(0.12f, 0.16f, 0.3f); d.bottom = 7; d.bottomColor = lin(0.1f, 0.12f, 0.22f);
+            d.shoes = 2; d.shoeColor = vec3(0.02f); d.role = 1; break;
+        case CAST_CUERVO:  // 35, muscular, buzz cut, goatee, black tank top, red bandana, sunglasses
+            d.gender = Anim::MALE; d.height = 1.79f; d.weight = 0.5f; d.muscle = 0.8f; d.age = 0.3f;
+            d.skinTone = vec3(0.5f, 0.34f, 0.24f); d.hairStyle = 1; d.hairColor = vec3(0.03f); d.facialHair = 2;
+            d.top = 1; d.topColor = lin(0.06f, 0.06f, 0.07f); d.bottom = 8; d.bottomColor = lin(0.1f, 0.1f, 0.12f);
+            d.shoes = 0; d.shoeColor = lin(0.08f, 0.08f, 0.08f); d.hat = 7; d.glasses = 0; d.role = 2; break;
+        case CAST_THUG_A: case CAST_THUG_B: case CAST_THUG_C: case CAST_THUG_D: {
+            int k = id - CAST_THUG_A;
+            d.gender = k == 3 ? Anim::FEMALE : Anim::MALE;
+            d.height = 1.72f + 0.05f * (k % 3); d.weight = 0.35f + 0.12f * k; d.muscle = 0.5f + 0.1f * (k & 1); d.age = 0.12f + 0.06f * k;
+            const vec3 skins[4] = {vec3(0.55f, 0.38f, 0.27f), vec3(0.42f, 0.28f, 0.19f), vec3(0.7f, 0.52f, 0.4f), vec3(0.6f, 0.43f, 0.31f)};
+            d.skinTone = skins[k];
+            const int hair[4] = {2, 1, 10, 4};
+            d.hairStyle = hair[k];
+            d.hairColor = vec3(0.03f);
+            const int tops[4] = {0, 5, 1, 15};
+            d.top = tops[k];
+            d.topColor = (k & 1) ? lin(0.7f, 0.08f, 0.1f) : lin(0.07f, 0.07f, 0.08f);
+            d.bottom = k == 3 ? 9 : 8;
+            d.bottomColor = lin(0.1f, 0.1f, 0.12f);
+            d.shoes = 0; d.shoeColor = (k & 1) ? lin(0.08f, 0.08f, 0.08f) : lin(0.75f, 0.1f, 0.1f);
+            const int hats[4] = {7, -1, 1, 7};
+            d.hat = hats[k];
+            d.facialHair = k == 1 ? 0 : (k == 2 ? 2 : -1);
+            d.role = 2;
+            break;
+        }
+        case CAST_GUARD_A: case CAST_GUARD_B: {
+            int k = id - CAST_GUARD_A;
+            d.gender = Anim::MALE; d.height = 1.86f + 0.03f * k; d.weight = 0.6f; d.muscle = 0.75f; d.age = 0.3f + 0.1f * k;
+            d.skinTone = k ? vec3(0.3f, 0.2f, 0.14f) : vec3(0.82f, 0.65f, 0.52f); d.hairStyle = k ? 1 : 2; d.hairColor = vec3(0.05f);
+            d.top = 6; d.topColor = lin(0.07f, 0.07f, 0.08f); d.bottom = 3; d.bottomColor = lin(0.07f, 0.07f, 0.08f);
+            d.shoes = 1; d.shoeColor = vec3(0.02f); d.glasses = 0; d.role = 3;
+            break;
+        }
+        case CAST_COP_A: case CAST_COP_B: {
+            int k = id - CAST_COP_A;
+            d.gender = Anim::MALE; d.height = 1.8f; d.weight = 0.55f + 0.1f * k; d.muscle = 0.6f; d.age = 0.35f + 0.1f * k;
+            d.skinTone = k ? vec3(0.62f, 0.44f, 0.32f) : vec3(0.86f, 0.7f, 0.58f); d.hairStyle = 1; d.hairColor = vec3(0.1f, 0.07f, 0.05f);
+            d.top = 7; d.topColor = lin(0.12f, 0.16f, 0.3f); d.bottom = 7; d.bottomColor = lin(0.1f, 0.12f, 0.22f);
+            d.shoes = 2; d.shoeColor = vec3(0.02f); d.hat = 2; d.glasses = k ? 1 : -1; d.facialHair = k ? 1 : -1; d.role = 1;
+            break;
+        }
+        case CAST_BOUNCER:
+            d.gender = Anim::MALE; d.height = 1.95f; d.weight = 0.8f; d.muscle = 0.9f; d.age = 0.35f;
+            d.skinTone = vec3(0.24f, 0.16f, 0.11f); d.hairStyle = 0; d.facialHair = 4; d.hairColor = vec3(0.03f);
+            d.top = 0; d.topColor = lin(0.05f, 0.05f, 0.06f); d.bottom = 3; d.bottomColor = lin(0.05f, 0.05f, 0.06f);
+            d.shoes = 1; d.shoeColor = vec3(0.02f); d.role = 3; break;
+        case CAST_DOCKER:
+            d.gender = Anim::MALE; d.height = 1.78f; d.weight = 0.6f; d.muscle = 0.65f; d.age = 0.45f;
+            d.skinTone = vec3(0.7f, 0.5f, 0.38f); d.hairStyle = 2; d.hairColor = vec3(0.2f, 0.14f, 0.08f); d.facialHair = 0;
+            d.top = 9; d.topColor = lin(0.95f, 0.55f, 0.1f); d.bottom = 10; d.bottomColor = lin(0.2f, 0.24f, 0.32f);
+            d.shoes = 2; d.shoeColor = lin(0.3f, 0.2f, 0.1f); d.hat = 3; d.role = 5; break;
+        case CAST_REPORTER:
+            d.gender = Anim::FEMALE; d.height = 1.7f; d.weight = 0.35f; d.muscle = 0.3f; d.age = 0.3f;
+            d.skinTone = vec3(0.45f, 0.3f, 0.21f); d.hairStyle = 5; d.hairColor = vec3(0.05f, 0.03f, 0.02f);
+            d.top = 13; d.topColor = lin(0.2f, 0.45f, 0.75f); d.bottom = 3; d.bottomColor = lin(0.15f, 0.15f, 0.18f);
+            d.shoes = 5; d.shoeColor = vec3(0.02f); d.role = 3; break;
+        case CAST_BANKER:
+            d.gender = Anim::MALE; d.height = 1.76f; d.weight = 0.55f; d.muscle = 0.2f; d.age = 0.5f;
+            d.skinTone = vec3(0.88f, 0.72f, 0.6f); d.hairStyle = 10; d.hairColor = vec3(0.35f, 0.3f, 0.25f); d.glasses = 2;
+            d.top = 6; d.topColor = lin(0.2f, 0.22f, 0.3f); d.bottom = 3; d.bottomColor = lin(0.2f, 0.22f, 0.3f);
+            d.shoes = 1; d.shoeColor = vec3(0.03f); d.role = 3; break;
+        case CAST_PILOT:
+            d.gender = Anim::FEMALE; d.height = 1.69f; d.weight = 0.35f; d.muscle = 0.45f; d.age = 0.32f;
+            d.skinTone = vec3(0.66f, 0.47f, 0.34f); d.hairStyle = 4; d.hairColor = vec3(0.12f, 0.08f, 0.05f); d.glasses = 1;
+            d.top = 4; d.topColor = lin(0.9f, 0.9f, 0.92f); d.bottom = 3; d.bottomColor = lin(0.12f, 0.14f, 0.2f);
+            d.shoes = 1; d.shoeColor = vec3(0.02f); d.role = 3; break;
+        case CAST_MECHANIC:
+        default:
+            d.gender = Anim::MALE; d.height = 1.75f; d.weight = 0.5f; d.muscle = 0.5f; d.age = 0.4f;
+            d.skinTone = vec3(0.58f, 0.4f, 0.28f); d.hairStyle = 2; d.hairColor = vec3(0.05f); d.facialHair = 1;
+            d.top = 1; d.topColor = lin(0.85f, 0.85f, 0.85f); d.bottom = 10; d.bottomColor = lin(0.2f, 0.25f, 0.4f);
+            d.shoes = 2; d.shoeColor = lin(0.2f, 0.15f, 0.1f); d.hat = 0; d.role = 5; break;
+    }
+    return d;
+}
+
+Audio::VoiceParams castVoice(int id) {
+    Audio::VoiceParams v;
+    switch (id) {
+        case CAST_TOMAS: v.pitch = 128.f; v.formantScale = 1.03f; v.speed = 1.08f; v.breathiness = 0.15f; v.roughness = 0.04f; v.expressiveness = 1.3f; break;
+        case CAST_LUCHA: v.pitch = 176.f; v.formantScale = 1.08f; v.speed = 0.94f; v.breathiness = 0.2f; v.roughness = 0.28f; v.expressiveness = 1.2f; break;
+        case CAST_ROOK: v.pitch = 86.f; v.formantScale = 0.92f; v.speed = 0.9f; v.breathiness = 0.1f; v.roughness = 0.38f; v.expressiveness = 0.9f; break;
+        case CAST_KIT: v.pitch = 214.f; v.formantScale = 1.17f; v.speed = 1.1f; v.breathiness = 0.12f; v.roughness = 0.f; v.expressiveness = 1.35f; break;
+        case CAST_JONAH: v.pitch = 100.f; v.formantScale = 0.97f; v.speed = 0.86f; v.breathiness = 0.22f; v.roughness = 0.45f; v.expressiveness = 1.05f; break;
+        case CAST_SANDOVAL: v.pitch = 104.f; v.formantScale = 0.98f; v.speed = 0.9f; v.breathiness = 0.08f; v.roughness = 0.1f; v.expressiveness = 0.8f; break;
+        case CAST_HOLT: v.pitch = 166.f; v.formantScale = 1.07f; v.speed = 1.f; v.breathiness = 0.05f; v.roughness = 0.12f; v.expressiveness = 0.75f; break;
+        case CAST_CUERVO: v.pitch = 94.f; v.formantScale = 0.95f; v.speed = 1.f; v.breathiness = 0.1f; v.roughness = 0.32f; v.expressiveness = 1.15f; break;
+        case CAST_THUG_D: case CAST_REPORTER: case CAST_PILOT: v = Speech::presetVoice(true, (u32)id * 13u + 5u); break;
+        default: v = Speech::presetVoice(false, (u32)id * 13u + 5u); break;
+    }
+    return v;
+}
+
+Audio::VoiceParams protagonistVoice(int who) { return Speech::presetVoice(who == 0, who == 0 ? 7u : 11u); }
+
+int castChar(GameWorld& g, int id) { return g.namedCharacter(kCast[id].key, castDesc(id)); }
+
+// Spawns a cast member as a mission ped (auto cleanup) with the cast voice.
+int spawnCast(GameWorld& g, int id, vec3 pos, float yaw, Faction f = FAC_FRIEND) {
+    int ci = castChar(g, id);
+    int p = g.mPed(ci, dvec3(pos), yaw, f);
+    if (p >= 0) {
+        g.peds[p].voice = castVoice(id);
+        g.peds[p].brain.type = BRAIN_NONE;
+    }
+    return p;
+}
+
+// ------------------------------------------------------------------------------------------------------------------
+// Locations
+float groundAt(GameWorld& g, float x, float y, float zRef = 200.f) {
+    float z = g.groundHeight(x, y, zRef);
+    if (z < -1e6f) z = g.map->heightAt(x, y);
+    return z;
+}
+
+bool driveableClass(const World::RoadEdge& e) {
+    if (e.flags & (World::RF_ELEVATED)) return false;
+    return e.cls != World::RC_HIGHWAY && e.cls != World::RC_RAMP;
+}
+
+// Nearest local street edge (no highways/ramps/elevated; bridges optional) within maxDist.
+int nearestStreet(GameWorld& g, vec2 p, float maxDist, float* sOut, float* sideOut, bool allowBridge = false) {
+    std::vector<int> cand;
+    g.roads->edgesInRect(p - vec2(maxDist), p + vec2(maxDist), cand);
+    int best = -1;
+    float bestD = maxDist, bestS = 0.f, bestSide = 1.f;
+    for (int ei : cand) {
+        const World::RoadEdge& e = g.roads->edges[ei];
+        if (!driveableClass(e)) continue;
+        if (!allowBridge && (e.flags & World::RF_BRIDGE)) continue;
+        float acc = 0.f;
+        for (size_t k = 0; k + 1 < e.pts.size(); k++) {
+            vec2 a = e.pts[k].xy(), b = e.pts[k + 1].xy();
+            float t;
+            float d = distPointSegment2D(p, a, b, &t);
+            float seg = length(b - a);
+            if (d < bestD) {
+                bestD = d;
+                best = ei;
+                bestS = acc + t * seg;
+                vec2 dir = normalize(b - a);
+                bestSide = cross(dir, p - a) >= 0.f ? 1.f : -1.f;   // +1 = left of travel direction
+            }
+            acc += seg;
+        }
+    }
+    if (best < 0) return g.roads->nearestEdge(p, maxDist * 2.f, sOut, nullptr, sideOut);
+    if (sOut) *sOut = bestS;
+    if (sideOut) *sideOut = bestSide;
+    return best;
+}
+
+struct Place {
+    vec2 hint;
+    vec3 pos;        // on the sidewalk (on-foot marker), facing the street direction
+    float yaw = 0.f;
+    vec3 curb;       // parking spot at the curb next to pos (right side of travel)
+    float curbYaw = 0.f;
+    vec3 door;       // a few meters from pos, away from the street (where people come out of buildings)
+    vec2 streetDir;  // unit direction of the street
+    vec2 outward;    // unit vector from the street toward the sidewalk
+    int edge = -1;
+};
+
+Place resolvePlace(GameWorld& g, vec2 hint, float along = 0.f, bool allowBridge = false) {
+    Place pl;
+    pl.hint = hint;
+    float s = 0.f, side = 1.f;
+    int e = nearestStreet(g, hint, 260.f, &s, &side, allowBridge);
+    pl.edge = e;
+    if (e < 0) {
+        float z = groundAt(g, hint.x, hint.y);
+        pl.pos = pl.curb = pl.door = vec3(hint, z);
+        pl.streetDir = vec2(0, 1);
+        pl.outward = vec2(1, 0);
+        return pl;
+    }
+    const World::RoadEdge& ed = g.roads->edges[e];
+    float lo = Min(ed.cut0 + 3.f, ed.length * 0.5f), hi = Max(ed.length - ed.cut1 - 3.f, ed.length * 0.5f);
+    s = Clamp(s + along, lo, hi);
+    vec3 c = ed.posAt(s);
+    vec3 t = ed.tangentAt(s);
+    vec2 dir = normalize(vec2(t.x, t.y));
+    vec2 left = perp(dir);
+    vec2 out = left * side;   // toward the hint's side of the street
+    pl.streetDir = dir;
+    pl.outward = out;
+    float walk = ed.halfWidth + Max(ed.sidewalk, 1.2f) * 0.5f;
+    vec2 sp = c.xy() + out * walk;
+    pl.pos = vec3(sp, groundAt(g, sp.x, sp.y, c.z + 3.f));
+    // curb: on the same side, in the parking/shoulder strip; heading so that the curb is on the right
+    const World::RoadClassInfo& info = World::roadInfo(ed.cls);
+    vec2 cp = c.xy() + out * (ed.halfWidth - Max(info.shoulder, 1.2f) * 0.5f - 0.4f);
+    pl.curb = vec3(cp, groundAt(g, cp.x, cp.y, c.z + 3.f));
+    // right side of travel = -left; if out == left the travel direction is -dir
+    vec2 travel = side > 0.f ? -dir : dir;
+    pl.curbYaw = atan2f(-travel.x, travel.y);
+    pl.yaw = atan2f(-dir.x, dir.y);
+    vec2 dp = sp + out * 4.5f;
+    pl.door = vec3(dp, groundAt(g, dp.x, dp.y, c.z + 3.f));
+    return pl;
+}
+
+// Deep enough water near hint (spiral search), z at the water surface.
+bool findWater(GameWorld& g, vec2 hint, float minDepth, vec3& out, float maxR = 900.f) {
+    for (float r = 0.f; r <= maxR; r += 12.f) {
+        int n = r < 1.f ? 1 : (int)(r * kTwoPi / 12.f);
+        for (int i = 0; i < n; i++) {
+            float a = kTwoPi * i / n;
+            vec2 p = hint + vec2(cosf(a), sinf(a)) * r;
+            float w = g.map->waterAt(p.x, p.y);
+            if (w <= World::kNoWater + 1.f) continue;
+            float h = g.map->heightAt(p.x, p.y);
+            if (w - h < minDepth) continue;
+            out = vec3(p, w);
+            return true;
+        }
+    }
+    out = vec3(hint, 0.f);
+    return false;
+}
+
+bool isWaterAt(GameWorld& g, vec2 p, float minDepth) {
+    float w = g.map->waterAt(p.x, p.y);
+    return w > World::kNoWater + 1.f && w - g.map->heightAt(p.x, p.y) >= minDepth;
+}
+
+// All story locations, resolved once per world. Hints follow the district layout (worldmap.cpp) and the landmark
+// sites (world/sites.cpp: Solaris One plaza, Sol Beach Pier, Port Isle terminal, airport helipad, Sawgrass dock).
+struct Places {
+    bool ready = false;
+    Place mariApt, boatyard, diner, vargasGarage, stashHouse, solarisPier, rookShop, dexTrailer, pulseFm, policeHq;
+    Place solarisOne, sandovalOffice, palmMotors, gunFlats, gunNorth, resprayCL, resprayBeach, threads, clubRiptide;
+    Place beachCondo, beachPier, portGate, keyCoral, keyCoralMarina, sandovalMansion, airport, carwash, taxiDepot, courierDepot;
+    Place hospital, raceCalle, raceBeach, raceHighway, raceGrove, raceKeys, rangeFlats, overseasStart, keySolano, sawgrassRoad;
+    Place tenPalms, lakeTown, fortCastell, northCity, grove, redland, harlow, midtownPark, cafeBeach, flatsYard, kitStudio;
+    Place downtownPenthouse, stadium;
+    vec3 riverLaunch;      // boatyard slip on the Rio Sol
+    vec3 riverMouth;       // where the river meets the bay
+    vec3 bayCenter, bayNorth, baySouth, portWater, keyCoralWater, beachSea;
+    vec3 sawgrassWater, sawgrassDeep, sawgrassDock;
+    vec3 gulfWater;        // off Ten Palms (rescue scene)
+    vec3 keySolanoMarina, keySolanoDock;
+    vec3 solarisPlaza;     // Solaris One plaza center (82 m square)
+    vec3 heliPad;          // airport helipad (a helicopter is parked there)
+    vec3 pierRamp, pierEnd, pierPlatform;   // Sol Beach Pier: promenade ramp, far end, amusement platform
+    vec3 portYard, portQuay, portTruck;     // Port Isle: yard lane, quay apron under the gantry cranes
+    vec3 lighthouse;
+};
+Places gPlaces;
+
+void computePlaces(GameWorld& g) {
+    Places& P = gPlaces;
+    if (P.ready) return;
+    double t0 = TimeSeconds();
+    P.mariApt = resolvePlace(g, vec2(1720, 360));
+    P.boatyard = resolvePlace(g, vec2(1650, 235));
+    P.diner = resolvePlace(g, vec2(1330, 330));
+    P.vargasGarage = resolvePlace(g, vec2(2200, -480));
+    P.stashHouse = resolvePlace(g, vec2(1150, -620));
+    P.solarisPier = resolvePlace(g, vec2(2560, 330));
+    P.rookShop = resolvePlace(g, vec2(1560, 2260));
+    P.dexTrailer = resolvePlace(g, vec2(1250, 2650));
+    P.pulseFm = resolvePlace(g, vec2(3350, 640));
+    P.policeHq = resolvePlace(g, vec2(3050, -350));
+    P.solarisOne = resolvePlace(g, vec2(3350, -810));
+    P.sandovalOffice = resolvePlace(g, vec2(3700, -1000));
+    P.palmMotors = resolvePlace(g, vec2(2700, 1300));
+    P.gunFlats = resolvePlace(g, vec2(800, 2900));
+    P.gunNorth = resolvePlace(g, vec2(3300, 3900));
+    P.resprayCL = resolvePlace(g, vec2(2300, -150));
+    P.resprayBeach = resolvePlace(g, vec2(5100, 2000));
+    P.threads = resolvePlace(g, vec2(5150, -300));
+    P.clubRiptide = resolvePlace(g, vec2(5380, 900));
+    P.beachCondo = resolvePlace(g, vec2(5120, 1500));
+    P.beachPier = resolvePlace(g, vec2(5380, 1250));
+    P.portGate = resolvePlace(g, vec2(4060, -200));
+    P.keyCoral = resolvePlace(g, vec2(4450, -4200));
+    P.keyCoralMarina = resolvePlace(g, vec2(4200, -3900));
+    P.sandovalMansion = resolvePlace(g, vec2(4300, 1300), 0.f, true);
+    P.airport = resolvePlace(g, vec2(760, 1200));
+    P.carwash = resolvePlace(g, vec2(1800, 1500));
+    P.taxiDepot = resolvePlace(g, vec2(2600, 700));
+    P.courierDepot = resolvePlace(g, vec2(1700, -300));
+    P.hospital = resolvePlace(g, vec2(1650, 1050));
+    P.raceCalle = resolvePlace(g, vec2(1100, -850));
+    P.raceBeach = resolvePlace(g, vec2(5150, -2300));
+    P.raceHighway = resolvePlace(g, vec2(300, -6000));
+    P.raceGrove = resolvePlace(g, vec2(1500, -2500));
+    P.raceKeys = resolvePlace(g, vec2(-7700, -9150));
+    P.rangeFlats = resolvePlace(g, vec2(700, 3050));
+    P.overseasStart = resolvePlace(g, vec2(200, -6100));
+    P.keySolano = resolvePlace(g, vec2(-7900, -9200));
+    P.sawgrassRoad = resolvePlace(g, vec2(-5060, 170), 0.f, true);
+    P.tenPalms = resolvePlace(g, vec2(-8600, -2300));
+    P.lakeTown = resolvePlace(g, vec2(250, 6750));
+    P.fortCastell = resolvePlace(g, vec2(4200, 7600));
+    P.northCity = resolvePlace(g, vec2(2600, 4300));
+    P.grove = resolvePlace(g, vec2(2000, -3500));
+    P.redland = resolvePlace(g, vec2(800, -5400));
+    P.harlow = resolvePlace(g, vec2(-5000, 4850));
+    P.midtownPark = resolvePlace(g, vec2(3100, 1600));
+    P.cafeBeach = resolvePlace(g, vec2(5200, 300));
+    P.flatsYard = resolvePlace(g, vec2(400, 3700));
+    P.kitStudio = resolvePlace(g, vec2(600, 3400));
+    P.downtownPenthouse = resolvePlace(g, vec2(3800, 200));
+    P.stadium = resolvePlace(g, vec2(3565, 620));
+    findWater(g, vec2(1650, 150), 1.5f, P.riverLaunch, 200.f);
+    findWater(g, vec2(3950, 160), 2.f, P.riverMouth, 400.f);
+    findWater(g, vec2(4400, 600), 2.5f, P.bayCenter);
+    findWater(g, vec2(4500, 2500), 2.5f, P.bayNorth);
+    findWater(g, vec2(4500, -1500), 2.5f, P.baySouth);
+    findWater(g, vec2(4700, -300), 2.5f, P.portWater);
+    findWater(g, vec2(4000, -3300), 2.5f, P.keyCoralWater);
+    findWater(g, vec2(5700, 800), 3.f, P.beachSea);
+    findWater(g, vec2(-5000, -130), 0.8f, P.sawgrassWater, 1500.f);
+    findWater(g, vec2(-5600, 300), 0.8f, P.sawgrassDeep, 1800.f);
+    findWater(g, vec2(-9200, -2600), 3.f, P.gulfWater);
+    findWater(g, vec2(-7600, -9500), 2.f, P.keySolanoMarina);
+    // landmark sites (fixed layout, see world/sites.cpp)
+    P.solarisPlaza = vec3(3350.f, -750.f, groundAt(g, 3350.f, -750.f));
+    P.heliPad = vec3(652.f, 1112.f, groundAt(g, 652.f, 1112.f));
+    {
+        float shoreX = 5480.f;
+        for (float x = 5000.f; x < 5900.f; x += 2.f)
+            if (g.map->isWater(x, 1250.f)) {
+                shoreX = x;
+                break;
+            }
+        P.pierRamp = vec3(shoreX - 74.f, 1250.f, groundAt(g, shoreX - 74.f, 1250.f));
+        P.pierPlatform = vec3(shoreX + 100.f, 1250.f, 5.6f);
+        P.pierEnd = vec3(shoreX + 385.f, 1250.f, 5.6f);
+        float z = g.groundHeight(P.pierEnd.x, P.pierEnd.y, 12.f);
+        if (z > 2.f && z < 9.f) P.pierEnd.z = z;
+        z = g.groundHeight(P.pierPlatform.x, P.pierPlatform.y, 12.f);
+        if (z > 2.f && z < 9.f) P.pierPlatform.z = z;
+    }
+    P.portYard = vec3(4290.f, -415.f, groundAt(g, 4290.f, -415.f, 10.f));
+    P.portQuay = vec3(4535.f, -380.f, groundAt(g, 4535.f, -380.f, 10.f));
+    P.portTruck = vec3(4535.f, -340.f, groundAt(g, 4535.f, -340.f, 10.f));
+    {
+        // Sawgrass airboat dock: shore south of the Old Trail road near the boardwalk
+        vec2 c(-5000.f, -40.f);
+        vec3 w;
+        findWater(g, c, 0.8f, w, 300.f);
+        vec2 dir = length(w.xy() - c) > 1.f ? normalize(w.xy() - c) : vec2(0, -1);
+        vec2 land = w.xy() - dir * 6.f;
+        for (int k = 0; k < 40 && g.map->isWater(land.x, land.y); k++) land -= dir * 2.f;
+        P.sawgrassDock = vec3(land, groundAt(g, land.x, land.y));
+    }
+    {
+        vec2 A(-400, -6750), B(-4000, -9450), C(-8400, -9200);
+        float t = 0.25f, u = 1.f - t;
+        vec2 kc = A * (u * u) + B * (2.f * u * t) + C * (t * t);
+        P.lighthouse = vec3(kc, groundAt(g, kc.x, kc.y));
+    }
+    {
+        vec3 w = P.keySolanoMarina;
+        vec2 dir = normalize(P.keySolano.pos.xy() - w.xy());
+        vec2 land = w.xy();
+        for (int k = 0; k < 200 && g.map->isWater(land.x, land.y); k++) land += dir * 3.f;
+        P.keySolanoDock = vec3(land, groundAt(g, land.x, land.y));
+    }
+    P.ready = true;
+    LOG("Story places resolved in %.1f ms (boatyard %.0f %.0f, river %.0f %.0f, sawgrass dock %.0f %.0f)", (TimeSeconds() - t0) * 1000.0,
+        P.boatyard.pos.x, P.boatyard.pos.y, P.riverLaunch.x, P.riverLaunch.y, P.sawgrassDock.x, P.sawgrassDock.y);
+}
+
+// Offset a place along its street / outward (meters), snapped to the ground.
+vec3 placeOffset(GameWorld& g, const Place& p, float along, float out) {
+    vec2 q = p.pos.xy() + p.streetDir * along + p.outward * out;
+    return vec3(q, groundAt(g, q.x, q.y, p.pos.z + 3.f));
+}
+
+vec3 curbOffset(GameWorld& g, const Place& p, float along) {
+    vec2 q = p.curb.xy() + p.streetDir * along;
+    return vec3(q, groundAt(g, q.x, q.y, p.curb.z + 3.f));
+}
+
+float yawTo(vec2 from, vec2 to) {
+    vec2 d = to - from;
+    return atan2f(-d.x, d.y);
+}
+
+vec2 dirFromYaw(float yaw) { return vec2(-sinf(yaw), cosf(yaw)); }
+
+// ------------------------------------------------------------------------------------------------------------------
+// Vehicles
+// First available model of the listed classes (in order of preference); -1 if none exists in this build.
+int pickModel(GameWorld& g, std::initializer_list<Vehicles::VehicleClass> classes, u32 seed = 0) {
+    for (Vehicles::VehicleClass c : classes) {
+        int m = g.findVehicleModel(c, seed);
+        if (m >= 0) return m;
+    }
+    return -1;
+}
+
+bool hasClass(GameWorld& g, Vehicles::VehicleClass c) { return g.findVehicleModel(c, 0) >= 0; }
+
+u32 classBit(Vehicles::VehicleClass c) { return 1u << (u32)c; }
+
+int modelByName(GameWorld& g, const char* name) {
+    for (int i = 0; i < (int)g.vassets.size(); i++)
+        if (g.vassets[i].spec.name == name) return i;
+    return -1;
+}
+
+// Mission vehicle at a position (z snapped by the vehicle sim), optional paint.
+int spawnCar(GameWorld& g, int model, vec3 pos, float yaw, vec3 color = vec3(-1.f)) {
+    if (model < 0) return -1;
+    int v = g.mVehicle(model, dvec3(pos + vec3(0, 0, 0.35f)), yaw);
+    if (v >= 0 && color.x >= 0.f) g.vehicles[v].color0 = color;
+    return v;
+}
+
+// Vehicle with a driver and optional armed passengers (all mission peds).
+int spawnCrewCar(GameWorld& g, int model, vec3 pos, float yaw, int driverChar, int passengers, int passengerChar, Faction f,
+                 WeaponType w, float accuracy, std::vector<int>* crewOut = nullptr) {
+    int v = spawnCar(g, model, pos, yaw);
+    if (v < 0) return -1;
+    int seats = Min((int)g.vassets[g.vehicles[v].model].spec.seats.size(), 4);
+    for (int s = 0; s <= passengers && s < seats; s++) {
+        int ci = s == 0 ? driverChar : passengerChar;
+        int p = g.mPed(ci, dvec3(pos), yaw, f);
+        if (p < 0) continue;
+        g.warpPedIntoVehicle(p, v, s);
+        if (w != WPN_FISTS) {
+            g.giveWeapon(p, w, weaponInfo(w).clipSize * 6);
+            g.peds[p].weapon = w;
+        }
+        g.peds[p].brain.accuracy = accuracy;
+        g.peds[p].brain.type = BRAIN_NONE;
+        if (crewOut) crewOut->push_back(p);
+    }
+    return v;
+}
+
+bool vehicleAlive(GameWorld& g, int v) { return v >= 0 && v < (int)g.vehicles.size() && g.vehicles[v].used && !g.vehicles[v].exploded && !g.vehicles[v].sim.wrecked; }
+
+bool vehicleDisabled(GameWorld& g, int v) {
+    if (!vehicleAlive(g, v)) return true;
+    const Vehicle& veh = g.vehicles[v];
+    return veh.sim.engineHealth <= 0.f || veh.sim.health <= 60.f || veh.sim.upsideDownTime > 3.f || veh.sim.engineFlooded;
+}
+
+float vehicleSpeed(GameWorld& g, int v) { return vehicleAlive(g, v) ? g.vehicles[v].sim.speed() : 0.f; }
+
+vec3 vehPos(GameWorld& g, int v) { return v >= 0 && g.vehicles[v].used ? g.vehicles[v].sim.body.pos.toVec3() : vec3(0); }
+
+void teleportVehicle(GameWorld& g, int v, vec3 pos, float yaw) {
+    if (v < 0 || !g.vehicles[v].used) return;
+    Vehicles::resetVehicle(g.vehicles[v].sim, dvec3(pos + vec3(0, 0, 0.3f)), yaw);
+    g.vehicles[v].sim.sleeping = false;
+}
+
+// ------------------------------------------------------------------------------------------------------------------
+// Peds
+bool pedAlive(GameWorld& g, int p) { return p >= 0 && p < (int)g.peds.size() && g.peds[p].used && g.peds[p].health > 0.f; }
+
+vec3 pedPos(GameWorld& g, int p) { return p >= 0 && g.peds[p].used ? g.peds[p].pos.toVec3() : vec3(0); }
+
+vec3 playerPos(GameWorld& g) {
+    Ped* pl = g.playerPed();
+    return pl ? pl->pos.toVec3() : vec3(0);
+}
+
+void arm(GameWorld& g, int p, WeaponType w, int clips = 6) {
+    if (p < 0) return;
+    g.giveWeapon(p, w, Max(weaponInfo(w).clipSize, 1) * clips);
+    g.peds[p].weapon = w;
+}
+
+void setCombat(GameWorld& g, int p, int target, float accuracy = -1.f) {
+    if (!pedAlive(g, p)) return;
+    Brain& b = g.peds[p].brain;
+    b.type = BRAIN_COMBAT;
+    b.target = target;
+    b.timer = 0.f;
+    b.thinkTimer = 0.f;
+    if (accuracy >= 0.f) b.accuracy = accuracy;
+    g.peds[p].animIn.stance = 0;
+}
+
+void setFollow(GameWorld& g, int p, int leader) {
+    if (!pedAlive(g, p)) return;
+    g.peds[p].brain.type = BRAIN_FOLLOW;
+    g.peds[p].brain.target = leader;
+    g.peds[p].animIn.stance = 0;
+}
+
+void setGoto(GameWorld& g, int p, vec3 goal, float speed) {
+    if (!pedAlive(g, p)) return;
+    g.peds[p].brain.type = BRAIN_GOTO;
+    g.peds[p].brain.goal = dvec3(goal);
+    g.peds[p].brain.speed = speed;
+    g.peds[p].animIn.stance = 0;
+}
+
+void setIdle(GameWorld& g, int p, int stance = 0) {
+    if (!pedAlive(g, p)) return;
+    g.peds[p].brain.type = BRAIN_NONE;
+    g.peds[p].animIn.stance = stance;
+    g.peds[p].vel = vec3(0);
+}
+
+void setFlee(GameWorld& g, int p, int from) {
+    if (!pedAlive(g, p)) return;
+    g.peds[p].brain.type = BRAIN_FLEE;
+    g.peds[p].brain.target = from;
+    g.peds[p].brain.timer = 0.f;
+}
+
+void facePed(GameWorld& g, int p, vec3 at) {
+    if (p < 0 || !g.peds[p].used) return;
+    g.peds[p].yaw = yawTo(g.peds[p].pos.toVec3().xy(), at.xy());
+}
+
+void placePed(GameWorld& g, int p, vec3 pos, float yaw) {
+    if (p < 0 || !g.peds[p].used) return;
+    if (g.peds[p].vehicle >= 0) g.removePedFromVehicle(p, false);
+    g.peds[p].pos = dvec3(pos.x, pos.y, groundAt(g, pos.x, pos.y, pos.z + 2.f));
+    g.peds[p].yaw = yaw;
+    g.peds[p].vel = vec3(0);
+}
+
+void gesture(GameWorld& g, int p, Anim::Clip c) {
+    if (p >= 0 && g.peds[p].used && g.peds[p].state == PS_ONFOOT) g.peds[p].pendingAction = c;
+}
+
+// Living enemies (FAC_ENEMY mission peds) from a list.
+int countAlive(GameWorld& g, const std::vector<int>& ids) {
+    int n = 0;
+    for (int id : ids) n += pedAlive(g, id) ? 1 : 0;
+    return n;
+}
+
+int nearestAlive(GameWorld& g, const std::vector<int>& ids, vec3 from, float* distOut = nullptr) {
+    int best = -1;
+    float bd = 1e30f;
+    for (int id : ids) {
+        if (!pedAlive(g, id)) continue;
+        float d = length(pedPos(g, id) - from);
+        if (d < bd) {
+            bd = d;
+            best = id;
+        }
+    }
+    if (distOut) *distOut = bd;
+    return best;
+}
+
+// Player placement for mission (re)starts: on foot at pos, or driving a new mission vehicle of `model`.
+int placePlayer(GameWorld& g, vec3 pos, float yaw, int model = -1, vec3 color = vec3(-1.f)) {
+    Ped* pl = g.playerPed();
+    if (!pl) return -1;
+    if (pl->vehicle >= 0) g.removePedFromVehicle(g.player, false);
+    freeRagdoll(pl->ragdoll);
+    pl->state = PS_ONFOOT;
+    pl->pos = dvec3(pos.x, pos.y, groundAt(g, pos.x, pos.y, pos.z + 3.f));
+    pl->yaw = yaw;
+    pl->vel = vec3(0);
+    pl->grounded = true;
+    g.rig.yaw = yaw;
+    g.rig.cut = true;
+    if (model < 0) return -1;
+    int v = spawnCar(g, model, pos, yaw, color);
+    if (v >= 0) g.warpPedIntoVehicle(g.player, v, 0);
+    return v;
+}
+
+// ------------------------------------------------------------------------------------------------------------------
+// Dialogue
+DialogueLine line(const char* speaker, const std::string& text, int ped, u32 color) {
+    DialogueLine l;
+    l.speaker = speaker;
+    l.text = text;
+    l.ped = ped;
+    l.color = color;
+    return l;
+}
+
+// A cast member speaks (positional if the ped exists, else as a voice-over with the cast voice).
+void say(GameWorld& g, int cast, int ped, const std::string& text, float pause = 0.25f) {
+    DialogueLine l = line(kCast[cast].name, text, pedAlive(g, ped) ? ped : -1, kCast[cast].color);
+    l.hasVoice = true;
+    l.voice = castVoice(cast);
+    l.pause = pause;
+    g.mSay(l);
+}
+
+// The protagonist `who` (0 Mari, 1 Dex) speaks; uses the player ped when that protagonist is the player.
+void sayP(GameWorld& g, int who, int ped, const std::string& text, float pause = 0.25f) {
+    int speaker = ped;
+    if (speaker < 0 && g.protagonistIndex == who) speaker = g.player;
+    DialogueLine l = line(who == 0 ? "Mari" : "Dex", text, pedAlive(g, speaker) ? speaker : -1, who == 0 ? kColMari : kColDex);
+    l.hasVoice = true;
+    l.voice = protagonistVoice(who);
+    l.pause = pause;
+    g.mSay(l);
+}
+
+void sayMe(GameWorld& g, const std::string& text, float pause = 0.25f) { sayP(g, g.protagonistIndex, g.player, text, pause); }
+
+void phoneLine(GameWorld& g, int cast, const std::string& text, float pause = 0.3f) {
+    DialogueLine l = line(kCast[cast].name, text, -1, kCast[cast].color);
+    l.phone = true;
+    l.hasVoice = true;
+    l.voice = castVoice(cast);
+    l.pause = pause;
+    g.mSay(l);
+}
+
+void narrator(GameWorld& g, const char* name, const std::string& text, bool female, u32 seed, u32 color = kColOther) {
+    DialogueLine l = line(name, text, -1, color);
+    l.female = female;
+    l.voiceSeed = seed;
+    g.mSay(l);
+}
+
+// Phonetic spellings for names the letter-to-sound rules would mangle (subtitles keep the real spelling).
+std::string speakableText(const std::string& text) {
+    static const char* const kMap[][2] = {
+        {"Calle Luna", "Kah-yeh Loona"}, {"Cuervos", "Kwair-vose"}, {"Cuervo", "Kwair-voh"}, {"Sandoval", "Sando-vahl"},
+        {"Tomas", "Toe-mahs"}, {"Mari", "Mah-ree"}, {"Marisol", "Mahree-sole"}, {"Lucha", "Loo-chah"}, {"Ortega", "Or-tay-guh"},
+        {"Navarro", "Nuh-varr-oh"}, {"Solaris", "So-lair-iss"}, {"Solano", "So-lah-no"}, {"Velez", "Veh-less"},
+        {"Riptide", "Rip-tide"}, {"Paredes", "Pah-ray-des"}, {"Ramiro", "Rah-mee-roh"}, {"Vargas", "Var-gus"},
+        {"mija", "mee-hah"}, {"mijo", "mee-hoe"}, {"Abuela", "Ah-bway-lah"}, {"Dios", "Dee-ose"}, {"gracias", "grah-see-us"},
+        {"Oye", "Oy-yeh"}, {"Palmetto", "Pahl-metto"}, {"Okahatchee", "Oka-hatchee"}, {"Isla Estrella", "Eesla Es-tray-ah"},
+    };
+    std::string s = text;
+    for (const auto& m : kMap) {
+        const std::string from = m[0], to = m[1];
+        size_t pos = 0;
+        while ((pos = s.find(from, pos)) != std::string::npos) {
+            bool startOk = pos == 0 || !isalpha((unsigned char)s[pos - 1]);
+            size_t end = pos + from.size();
+            bool endOk = end >= s.size() || !isalpha((unsigned char)s[end]);
+            if (startOk && endOk) {
+                s.replace(pos, from.size(), to);
+                pos += to.size();
+            } else {
+                pos = end;
+            }
+        }
+    }
+    return s;
+}
+
+// ------------------------------------------------------------------------------------------------------------------
+// Cutscene shots
+CutsceneShot shot(vec3 from, vec3 at, float duration, float fov = 50.f) {
+    CutsceneShot s;
+    s.pos = s.pos2 = dvec3(from);
+    s.target = s.target2 = dvec3(at);
+    s.duration = duration;
+    s.fov = fov;
+    return s;
+}
+
+CutsceneShot shotMove(vec3 from, vec3 at, vec3 from2, vec3 at2, float duration, float fov = 50.f) {
+    CutsceneShot s;
+    s.pos = dvec3(from);
+    s.target = dvec3(at);
+    s.pos2 = dvec3(from2);
+    s.target2 = dvec3(at2);
+    s.duration = duration;
+    s.fov = fov;
+    return s;
+}
+
+// Slow arc around a subject (chord approximation between two angles).
+CutsceneShot shotArc(vec3 center, float radius, float height, float a0, float a1, float duration, float fov = 45.f) {
+    vec3 p0 = center + vec3(cosf(a0) * radius, sinf(a0) * radius, height);
+    vec3 p1 = center + vec3(cosf(a1) * radius, sinf(a1) * radius, height);
+    return shotMove(p0, center + vec3(0, 0, 1.2f), p1, center + vec3(0, 0, 1.3f), duration, fov);
+}
+
+// Over-the-shoulder: camera behind `viewer` looking at `subject` (both feet positions).
+CutsceneShot shotOver(vec3 viewer, vec3 subject, float duration, float side = 1.f, float fov = 40.f) {
+    vec2 d = normalize(subject.xy() - viewer.xy());
+    vec2 r(d.y, -d.x);
+    vec3 cam = viewer + vec3(-d * 1.4f + r * (0.55f * side), 1.72f);
+    vec3 at = subject + vec3(0, 0, 1.55f);
+    vec3 cam2 = cam + vec3(d * 0.25f, 0.f);
+    return shotMove(cam, at, cam2, at, duration, fov);
+}
+
+// Two people in frame from the side of the line between them.
+CutsceneShot shotTwo(vec3 a, vec3 b, float duration, float dist = 4.2f, float fov = 42.f, float side = 1.f) {
+    vec3 mid = (a + b) * 0.5f;
+    vec2 d = normalize(b.xy() - a.xy());
+    vec2 n = perp(d) * side;
+    float sep = length(b.xy() - a.xy());
+    vec3 cam = mid + vec3(n * (dist + sep * 0.6f), 1.65f);
+    vec3 cam2 = cam + vec3(d * 0.6f, 0.05f);
+    return shotMove(cam, mid + vec3(0, 0, 1.45f), cam2, mid + vec3(0, 0, 1.5f), duration, fov);
+}
+
+// High establishing shot drifting toward a location.
+CutsceneShot shotEstablish(vec3 at, float yaw, float dist, float height, float duration, float fov = 55.f) {
+    vec2 back = -dirFromYaw(yaw);
+    vec3 p0 = at + vec3(back * dist, height);
+    vec3 p1 = at + vec3(back * (dist * 0.8f), height * 0.85f);
+    return shotMove(p0, at + vec3(0, 0, 4.f), p1, at + vec3(0, 0, 3.f), duration, fov);
+}
+
+// Chase-cam style shot looking at a vehicle from behind/side.
+CutsceneShot shotVehicle(GameWorld& g, int v, float duration, float side = 1.f, float fov = 50.f) {
+    vec3 p = vehPos(g, v);
+    vec3 f = v >= 0 ? g.vehicles[v].sim.forward() : vec3(0, 1, 0);
+    vec2 fd = normalize(f.xy());
+    vec2 r(fd.y, -fd.x);
+    vec3 cam = p + vec3(-fd * 7.f + r * (3.f * side), 2.2f);
+    vec3 cam2 = p + vec3(-fd * 5.f + r * (4.5f * side), 1.6f);
+    return shotMove(cam, p + vec3(0, 0, 0.8f), cam2, p + vec3(fd * 2.f, 0.9f), duration, fov);
+}
+
+// ------------------------------------------------------------------------------------------------------------------
+// Adaptive score: style 0 neon noir, 1 chase, 2 stealth, 3 heist (see audio/music.cpp ScoreGen::init)
+int scoreMood(int style, int variant) {
+    int found = 0;
+    for (int k = 1; k < 4000; k++) {
+        u32 seed = hash32((u32)k * 2654435761u + 0x5C0Eu);
+        if ((int)(seed % 4u) != style) continue;
+        if (found++ == variant) return k;
+    }
+    return style;
+}
+
+void score(int style, float intensity, int variant = 0) {
+#ifdef HAVE_AUDIO
+    Audio::setScore(scoreMood(style, variant), intensity);
+#else
+    (void)style;
+    (void)intensity;
+    (void)variant;
+#endif
+}
+
+enum ScoreStyle : int { SC_NOIR = 0, SC_CHASE = 1, SC_STEALTH = 2, SC_HEIST = 3 };
+
+// ------------------------------------------------------------------------------------------------------------------
+// Story flags (extended state lives at kExtBase..)
+int flag(GameWorld& g, int i) { return i >= 0 && i < (int)g.storyFlags.size() ? g.storyFlags[i] : 0; }
+void setFlag(GameWorld& g, int i, int v) {
+    if (i < 0) return;
+    if ((int)g.storyFlags.size() <= i) g.storyFlags.resize(Max(i + 1, (int)kFlagCount), 0);
+    g.storyFlags[i] = v;
+}
+
+void money(GameWorld& g, long long delta) {
+    g.pinfo.money += delta;
+    if (g.pinfo.money < 0) g.pinfo.money = 0;
+}
+
+}  // namespace mu
+
+std::string speakableText(const std::string& text) { return mu::speakableText(text); }
+
+}  // namespace Game

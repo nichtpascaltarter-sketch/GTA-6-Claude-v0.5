@@ -1,0 +1,10 @@
+Embedded 35 shader files.
+In file included from src/audio/audio_all.cpp:7,
+                 from src/main.cpp:53:
+src/audio/sfx.cpp: In function 'void Audio::detail::sfxgen::s_deerSnort(Buf&)':
+src/audio/sfx.cpp:1878: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 1878 |     if (b.chance(0.5f)) noise(b, d + b.rnd(0.15f, 0.3f), d * 0.8f, 0.6f, 0.003f, d * 0.25f, FBP, 1400.f, 800.f, 0.1f, 1.f, 1);
+      | 
+src/audio/sfx.cpp:1878: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 10519552 Sep 30 21:50 bin/places_agent.exe
+exit 0

@@ -1,0 +1,83 @@
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.11 s)
+World map generated in 29.09 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (2.65 s)
+Buildings: 36321 (towers 358, midrise 2411, condo 496, deco 859, shops 4885, strip 730, houses 21906, villas 942, warehouses 1707) in 2.19 s
+Sites: 65 highway billboards
+Sites: 117 silos, 53 windmills
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 559 elements (0.00 s)
+Lane graph: 26691 lanes, 59937 connectors (1215691 pts), 36768 walk nodes, 53089 walk links (0.98 s)
+Loaded 16 collision cells
+Simulating 3.0 minutes around (2390, 960) r=300 with 110 cars, 40 peds
+LATDEV t=3.5 car 60 (Mochi 125) at 2437.5 1058.0 lane 7087 u 62.5 latErr 0.91 v 7.8 vT 8.5 steer -0.29 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=7.2 car 57 (Spree GT) at 2407.6 681.6 lane 96 u 269.8 latErr -0.91 v 29.8 vT 29.9 steer 0.16 diag e 0.22 psi 0.01 ff -0.00 st -0.04
+LATDEV t=7.4 car 63 (Ostgrat X5) at 2392.9 834.0 lane 99 u 622.2 latErr -0.90 v 26.8 vT 27.6 steer 0.12 diag e 0.21 psi 0.02 ff 0.00 st -0.04
+LATDEV t=29.0 car 48 (Harbor) at 2299.3 884.7 lane 6862 u 15.3 latErr -0.91 v 3.5 vT 10.2 steer 1.00 diag e -1.76 psi -0.65 ff 0.00 st 1.28
+LATDEV t=39.7 car 43 (Raijin 1000) at 2237.3 943.8 lane 6544 u 37.3 latErr -0.92 v 13.4 vT 19.0 steer 0.40 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=41.0 car 77 (Sundowner 1800) at 2488.1 1253.1 lane 7107 u 11.9 latErr 1.43 v 6.6 vT 6.8 steer -0.32 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=51.0 car 77 (Sundowner 1800) at 2320.2 1256.2 lane 6568 u 79.8 latErr 1.20 v 18.5 vT 18.5 steer -0.38 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+  sim 60 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 52 (wall 14 s)
+LATDEV t=65.1 car 58 (Mochi 125) at 2254.2 1042.0 lane 6552 u 54.2 latErr 0.92 v 12.0 vT 20.8 steer -0.35 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=68.1 car 2 (Harbor) at 2360.6 1053.2 lane 90 u 720.9 latErr 0.92 v 28.1 vT 31.8 steer -0.22 diag e 0.01 psi -0.05 ff 0.00 st 0.04
+LATDEV t=69.8 car 49 (Seiran) at 2382.5 870.7 lane 97 u 79.1 latErr -0.92 v 31.9 vT 32.0 steer 0.26 diag e -0.00 psi 0.00 ff 0.00 st -0.00
+STUCK t=76.3 car 60 at 2130.4 1057.1 z 2.86 path 6149 u 69.6 lat 0.00 vT 9.6 stop 1000000000.0 obst 23.8(100) up 1.00 gear 1 wheels 2 sleep 0 imp 0 col -1 thr 0.57
+LATDEV t=78.0 car 98 (Ostgrat X5) at 2374.0 1036.3 lane 91 u 86.4 latErr -0.93 v 37.2 vT 40.9 steer 0.25 diag e -0.00 psi 0.00 ff -0.00 st -0.00
+STUCK t=81.1 car 91 at 2300.3 895.5 z 2.78 path 41723 u 9.7 lat 0.17 vT 2.8 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 25 col 1006 thr 0.53
+STATIC t=84.8 car 98 at 2358.0 1306.4 v=39.3 imp 4201 path 91 u 356.5 lat -1.77
+LATDEV t=95.9 car 27 (Seiran) at 2378.2 1029.6 lane 92 u 79.4 latErr -0.92 v 33.2 vT 33.2 steer 0.28 diag e 0.00 psi -0.00 ff -0.00 st 0.00
+LATDEV t=103.0 car 41 (Raijin 1000) at 2405.6 866.8 lane 7057 u 16.8 latErr 1.91 v 7.5 vT 7.7 steer -0.31 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=119.8 car 21 (Governor) at 2383.7 1029.1 lane 93 u 78.5 latErr 0.94 v 32.9 vT 33.0 steer -0.31 diag e -0.01 psi -0.00 ff 0.00 st 0.00
+  sim 120 s: collisions 0 (hard 0), red 0, stuck 2, deadlocks 0, ped hits 0, respawns 115 (wall 30 s)
+LATDEV t=122.8 car 87 (Mochi 125) at 2499.4 741.5 lane 7567 u 8.5 latErr -1.04 v 3.8 vT 12.8 steer 0.42 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=124.1 car 10 (Mochi 125) at 2200.6 758.5 lane 6533 u 8.5 latErr -1.00 v 3.8 vT 4.4 steer 0.41 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=124.6 car 23 (Sawgrass) at 2390.1 860.5 lane 99 u 648.8 latErr -0.92 v 28.0 vT 31.5 steer 0.24 diag e -0.04 psi -0.06 ff -0.00 st 0.06
+COLLISION t=126.23 imp 6959 at 2487.6 850.2
+   A 24: Boulevard v=3.0 vT=4.0 conn 15334 node 1299 turn 1 ctl 1 u=10.5/10.8 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+   B 56: Tomo v=3.9 vT=0.0 lane 7063(e2220 d1 i0) u=83.5/91.5 lc -1 lat 0.00 nudge 0.00 obst 0.0(24) stop 0.4 dummy 0
+COLLISION t=126.90 imp 2787 at 2478.9 848.1
+   A 11: Palomino v=0.7 vT=0.0 lane 7063(e2220 d1 i0) u=76.1/91.5 lc -1 lat 0.00 nudge 0.00 obst 0.0(56) stop 7.5 dummy 0
+   B 56: Tomo v=2.8 vT=0.0 lane 7063(e2220 d1 i0) u=81.8/91.5 lc -1 lat 0.00 nudge 0.00 obst 0.0(24) stop 1000000000.0 dummy 0
+LATDEV t=133.5 car 58 (Mochi 125) at 2744.2 1043.8 lane 8153 u 44.2 latErr -0.91 v 9.5 vT 15.5 steer 0.32 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=135.2 car 23 (Sawgrass) at 2366.4 1188.6 lane 92 u 239.1 latErr -0.91 v 31.5 vT 31.5 steer 0.14 diag e -0.04 psi -0.06 ff -0.00 st 0.06
+LATDEV t=144.8 car 10 (Mochi 125) at 2208.5 849.4 lane 6539 u 8.5 latErr -0.95 v 3.8 vT 4.5 steer 0.40 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=155.7 car 94 (Kumo) at 2396.6 800.7 lane 99 u 588.7 latErr -0.91 v 27.1 vT 32.5 steer 0.16 diag e 0.01 psi -0.05 ff -0.00 st 0.04
+LATDEV t=166.1 car 10 (Mochi 125) at 2299.4 841.5 lane 6858 u 8.5 latErr -1.01 v 3.8 vT 12.2 steer 0.41 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=167.3 car 94 (Kumo) at 2373.2 1170.5 lane 93 u 220.6 latErr 1.23 v 32.5 vT 32.5 steer -0.23 diag e 0.01 psi -0.05 ff -0.00 st 0.04
+LATDEV t=168.3 car 108 (Raijin 1000) at 2358.9 1056.2 lane 6555 u 41.1 latErr -0.92 v 14.4 vT 16.3 steer 0.31 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=169.6 car 50 (Seiran) at 2241.4 959.1 lane 105 u 570.5 latErr -0.90 v 29.3 vT 31.3 steer 0.19 diag e 0.15 psi -0.00 ff -0.00 st -0.02
+COLLISION t=173.33 imp 1 at 2477.5 847.9
+   A 11: Palomino v=0.0 vT=0.0 lane 7063(e2220 d1 i0) u=75.0/91.5 lc -1 lat 0.00 nudge 0.00 obst 0.0(56) stop 8.6 dummy 0
+   B 56: Tomo v=0.1 vT=0.4 lane 7063(e2220 d1 i0) u=80.1/91.5 lc -1 lat 0.00 nudge 0.00 obst 2.8(24) stop 1000000000.0 dummy 0
+
+==== Traffic metrics (180 s simulated, 110 cars, 40 peds, 5.50 vehicle-hours) ====
+collisions: 3 (0.55 per vehicle-hour), hard (>3000 Ns): 1 (0.18/veh-h)
+static impacts (walls/props >2500 Ns): 1, props broken: 1
+red-light violations: 0, stop-sign violations: 0
+stuck recoveries: 2, relocalizations: 13, deadlocks (>60 s waits): 0, respawns: 179
+pedestrians hit: 0
+average speed by road class (km/h):  highway 79.1 (742 s)  boulevard 13.7 (5821 s)  avenue 15.7 (3003 s)  street 13.3 (7711 s)
+lane-center error (RMS, lanes, v>3 m/s): 0.107 m
+AI cost per 60 Hz tick: traffic 0.332 ms + peds 0.015 ms (avg), p50 0.325 ms, p99 0.652 ms, max 1.052 ms
+physics per 120 Hz step: 0.848 ms (110 cars)

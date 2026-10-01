@@ -1,0 +1,10 @@
+{
+  "id": "34",
+  "subject": "Characters pass 4 agent: clothing, bodies, hair, crowd LODs",
+  "description": "New agent in the freed characters slot: garment folds/seams/layers/shoes/accessories, body variety without clipping, hair volume and beards, crowd-distance LODs.",
+  "status": "completed",
+  "blocks": [
+    "40"
+  ],
+  "blockedBy": []
+}

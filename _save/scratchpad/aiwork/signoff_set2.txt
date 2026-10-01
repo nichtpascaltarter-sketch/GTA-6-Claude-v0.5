@@ -1,0 +1,45 @@
+AI snapshot-safe, set 2. Tested on nt_ai59 = HEAD 23069e5 plus these blobs (written with git hash-object -w):
+src/game/ai.cpp       4aaaaf83c9c25dd882d7a86e72053be93205c361
+src/game/ai_game.h    39cbe3cad0acbfdb37faaa0961b57939879db89b
+src/game/app.cpp      ce58b661969e1f4c0b7983032a8b9ec54ad7f836
+src/game/barks.cpp    2f3c495f92e2c922f591d81bd58ef72d5e5581d6
+src/game/events.cpp   c11dea8a2fb11aea0a4cc0e02a3236783cfd584a
+src/game/pedai.cpp    b857ca56a51882839b5400ddac530f15b1f9576c
+src/game/police.cpp   58a65e7ea88f7ccd9809e8b0ccffa2e6dd30d7d8
+src/game/traffic.cpp  a35d366513736518e63a0c258b1b116e365e3b36
+Every other AI file is the same as HEAD (ai_core.h, gameworld.h, lanes.cpp, pednav.cpp, traffic_core.cpp). There are no game.h changes and nothing for peds.cpp beyond the couple block at the end, which is optional (without it, couples just walk side by side).
+
+What's in it:
+- Police on foot:
+  - Sidewalk stops by beat pairs. Each ends one of three ways: let go, a warrant (cuffs, then a transport), or the subject runs (chase and tackle).
+  - After an arrest, a witness statement: the officer walks up, asks, takes notes on the device, and the witness points at the scene.
+  - Patrol coffee breaks: the car pulls over at the kerb outside a shop, the crew stands by it with coffee, then they drive on.
+  - Beat officers' kerbside pauses.
+  - A partner brings the car round to an escort walking a prisoner from far off.
+  - Dispatch picks units by route length. Spawned units must have a route no longer than 1.7x the straight line, so they no longer drive away first.
+  - Held-up units go on foot. Foot chases follow a breadcrumb to the last seen spot.
+- Pedestrians:
+  - Fleeing bystanders duck into building doors. Cowering ones dash behind a parked car.
+  - Walkers sidestep runners. Strangers ask for directions (with a point).
+  - Couples walk hand in hand (the data; peds.cpp joins the hands).
+- Events: a passer-by gives chase after a purse snatch and sometimes tackles the thief.
+- A walk-round for static obstacles (aiWalkRound): benches, planters and bins are avoided by the escort, the prisoner, officers walking back to the car, and every generic GOTO walker.
+- Census and test modes: pedstop, copbreak and life; the arrest test window is now 260 s.
+
+Tests on nt_ai59 (QUICK=1; every run rc=0, no crashes, no GPU errors):
+- arrest
+- events: all six staged; the mugger and the purse thief were arrested, with statements
+- takeover: the unit drives straight in
+- pedstop: let go after 27 s; warrant with the prisoner in the transport after 102 s; the runner was chased, tackled and cuffed
+- panic, life, brawl
+Screenshots checked.
+
+Arrest test at 260 s:
+- Stage 1 completes: the thief is in the car 87 s after the cuffs, and the statement is taken.
+- Stage 3 still doesn't finish in the window. The unit was held up 69 m out at t=154 and the officers went on foot. Cuffs at t=171, then a statement. The partner brought the car round at t=220, but the jam held it, and the prisoner wasn't in by t=260.
+- Set 3 has three fixes for this:
+  - A transport held up within 60 m pulls over after 12 s.
+  - The escort waits with the prisoner on the kerb while the crewmate fetches the car.
+  - Units bail out to go on foot only when they're within 45 m (or have crawled for 8 s within 75 m).
+
+Couple block for peds.cpp, GameWorld::animatePed, just before the foot IK block (after the escort hand-hold block). It compiles. The visual check of the hands comes with my set-3 life run, whose test builds paste it in.

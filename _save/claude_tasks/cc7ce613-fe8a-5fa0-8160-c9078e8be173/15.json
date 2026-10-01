@@ -1,0 +1,9 @@
+{
+  "id": "15",
+  "subject": "First-person on-foot camera",
+  "description": "Add an on-foot first-person view (camera at the eyes, head/hair hidden via near clipping or a head-hide flag, weapons at eye level, smooth toggle with the view button), consistent with the existing vehicle hood/first-person view.",
+  "activeForm": "Adding first-person camera",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

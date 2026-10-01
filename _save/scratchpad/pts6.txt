@@ -1,0 +1,9 @@
+holt_villa 4450 -4200
+kc_north 4400 -3400
+kc_mid 4430 -4000
+kc_marina 4200 -3900
+kc_south 4400 -4700
+mari_apt 1720 360
+boatyard 1650 235
+palm_motors 2700 1300
+solaris_s 3350 -800

@@ -1,0 +1,41 @@
+clip library bake: 88.6 ms
+bind pose: max skinning deviation 1.9e-09
+IK: worst end-effector error 0.00000 m
+  fast joint: clip punch_r bone 13 t=0.184 50.8 rad/s
+  fast joint: clip punch_r bone 13 t=0.201 46.9 rad/s
+  fast joint: clip exit_car_l bone 12 t=0.617 36.9 rad/s
+  fast joint: clip exit_car_l bone 12 t=0.633 36.9 rad/s
+  fast joint: clip exit_car_r bone 8 t=0.617 36.2 rad/s
+  fast joint: clip exit_car_r bone 8 t=0.633 36.2 rad/s
+  fast joint: clip exit_car_r bone 8 t=0.650 35.2 rad/s
+  fast joint: clip exit_car_r bone 10 t=0.650 30.3 rad/s
+  fast joint: clip exit_car_r bone 8 t=0.667 35.2 rad/s
+  fast joint: clip exit_car_r bone 10 t=0.667 30.3 rad/s
+clips: worst loop seam 0.0017 (flee), fastest joint 50.8 rad/s (punch_r)
+gait walk         speed 1.4: lowest foot point 0.021, max ankle 0.203, mean stance slide 0.06 m/s
+gait jog          speed 3.0: lowest foot point 0.022, max ankle 0.318, mean stance slide 0.14 m/s
+gait run          speed 5.0: lowest foot point 0.020, max ankle 0.434, mean stance slide 0.19 m/s
+gait sprint       speed 7.0: lowest foot point 0.013, max ankle 0.553, mean stance slide 0.50 m/s
+gait walk_back    speed 1.2: lowest foot point 0.019, max ankle 0.165, mean stance slide 0.03 m/s
+gait strafe_l     speed 1.3: lowest foot point 0.023, max ankle 0.153, mean stance slide 0.04 m/s
+gait strafe_r     speed 1.3: lowest foot point 0.022, max ankle 0.153, mean stance slide 0.06 m/s
+gait crouch_walk  speed 1.0: lowest foot point 0.024, max ankle 0.180, mean stance slide 0.04 m/s
+male sit_drive: hip (0.00 0.00 0.50)
+   hands L (-0.19 0.50 1.00) R (0.19 0.50 1.00); chest y -0.11, shoulder z 1.02
+male sit_passenger: hip (0.00 0.00 0.50)
+male death_front   t=1.60: pelvis (0.00 -0.32 0.11) chest z 0.09 head (0.00 -0.95 0.16) face (0.16 0.20 0.97) lowest joint 0.00
+male death_back    t=1.60: pelvis (0.00 0.36 0.10) chest z 0.14 head (0.00 1.00 0.17) face (-0.93 0.37 0.00) lowest joint 0.00
+male get_up_front  t=0.00: pelvis (0.00 -0.00 0.10) chest z 0.14 head (-0.00 0.64 0.17) face (0.93 0.37 0.00) lowest joint 0.00
+male get_up_back   t=0.00: pelvis (0.00 -0.00 0.11) chest z 0.09 head (0.00 -0.63 0.16) face (0.00 0.20 0.98) lowest joint 0.00
+male sunbathe      t=6.00: pelvis (0.00 -0.00 0.11) chest z 0.09 head (0.00 -0.63 0.16) face (-0.10 0.39 0.92) lowest joint 0.00
+female sit_drive: hip (0.00 -0.00 0.50)
+   hands L (-0.16 0.48 0.94) R (0.16 0.48 0.94); chest y -0.08, shoulder z 0.96
+female sit_passenger: hip (0.00 -0.00 0.50)
+female death_front   t=1.60: pelvis (0.00 -0.29 0.10) chest z 0.10 head (0.00 -0.84 0.20) face (0.16 0.20 0.97) lowest joint 0.00
+female death_back    t=1.60: pelvis (0.00 0.33 0.09) chest z 0.10 head (-0.00 0.90 0.09) face (-0.93 0.37 0.00) lowest joint 0.00
+female get_up_front  t=0.00: pelvis (0.00 -0.00 0.09) chest z 0.10 head (0.00 0.57 0.09) face (0.93 0.37 0.00) lowest joint 0.00
+female get_up_back   t=0.00: pelvis (0.00 -0.00 0.10) chest z 0.10 head (0.00 -0.55 0.20) face (0.00 0.20 0.98) lowest joint 0.00
+female sunbathe      t=6.00: pelvis (0.00 -0.00 0.10) chest z 0.10 head (0.00 -0.55 0.20) face (-0.10 0.39 0.92) lowest joint 0.00
+animator: stress update 5.74 us, walking update 1.62 us, computeMatrices 1.60 us
+mesh: 28 characters, tris avg 16285 (min 14379, max 17917), build avg 54.4 ms
+ALL PASSED (0 failures)

@@ -1,0 +1,226 @@
+Sites: 83 pads, 320 elements, 23 roads, 21 buildings requested (0.13 s)
+World map generated in 22.83 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (2.07 s)
+Buildings: 36321 (towers 358, midrise 2411, condo 535, deco 859, shops 4885, strip 730, houses 21906, villas 903, warehouses 1707) in 1.35 s
+Sites: 65 highway billboards
+Sites: 117 silos, 53 windmills
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 555 elements (0.01 s)
+real done std-compact (cells 0.5 s)
+real done std-sedan (cells 1.0 s)
+real done std-coupe (cells 1.3 s)
+real done std-suv (cells 1.8 s)
+real world generated in 26.4 s (10030 roads, 36321 buildings)
+EVENT stuck(lane blocked by world collider) at (-2483.8 5046.9 6.0) route (-2480.5 5045.3 6.1) s=218 bridge=0 up=0.99
+EVENT stuck(lane blocked by world collider) at (-2511.5 5036.4 6.1) route (-2508.9 5041.2 6.1) s=247 bridge=0 up=1.00
+EVENT stuck(lane blocked by world collider) at (78.6 -1655.0 4.9) route (76.2 -1655.0 4.9) s=48 bridge=0 up=1.00
+EVENT stuck(lane blocked by world collider) at (107.0 -1654.9 4.9) route (105.3 -1654.9 4.9) s=77 bridge=0 up=1.00
+EVENT pitch -25 deg at (2535.4 4228.4 6.7) v=9.1 s=17 bridge=1
+EVENT pitch -26 deg at (2535.4 4228.4 6.7) v=9.1 s=17 bridge=1
+EVENT pitch -26 deg at (2535.3 4228.4 6.7) v=9.2 s=17 bridge=1
+EVENT pitch -27 deg at (2535.2 4228.4 6.6) v=9.2 s=17 bridge=1
+EVENT pitch -27 deg at (2535.2 4228.4 6.6) v=9.2 s=17 bridge=1
+EVENT pitch -28 deg at (2535.1 4228.4 6.6) v=9.3 s=17 bridge=1
+EVENT pitch -28 deg at (2535.0 4228.4 6.5) v=9.3 s=17 bridge=1
+EVENT pitch -29 deg at (2534.9 4228.4 6.5) v=9.4 s=17 bridge=1
+EVENT pitch -29 deg at (2534.9 4228.4 6.5) v=9.4 s=17 bridge=1
+EVENT pitch -30 deg at (2534.8 4228.4 6.4) v=9.5 s=17 bridge=1
+EVENT pitch -30 deg at (2534.7 4228.4 6.4) v=9.5 s=17 bridge=1
+EVENT pitch -31 deg at (2534.7 4228.3 6.4) v=9.6 s=17 bridge=1
+EVENT pitch -31 deg at (2534.6 4228.3 6.3) v=9.6 s=17 bridge=1
+EVENT pitch -32 deg at (2534.5 4228.3 6.3) v=9.7 s=17 bridge=1
+EVENT pitch -32 deg at (2534.4 4228.3 6.3) v=9.7 s=17 bridge=1
+EVENT pitch -33 deg at (2534.4 4228.3 6.2) v=9.8 s=17 bridge=1
+EVENT pitch -33 deg at (2534.3 4228.3 6.2) v=9.8 s=17 bridge=1
+EVENT pitch -34 deg at (2534.2 4228.3 6.1) v=9.9 s=17 bridge=1
+EVENT pitch -34 deg at (2534.2 4228.3 6.1) v=10.0 s=17 bridge=1
+EVENT pitch -35 deg at (2534.1 4228.3 6.1) v=10.0 s=17 bridge=1
+EVENT pitch -35 deg at (2534.0 4228.3 6.0) v=10.1 s=17 bridge=1
+EVENT pitch -36 deg at (2533.9 4228.3 6.0) v=10.1 s=17 bridge=1
+EVENT pitch -36 deg at (2533.9 4228.3 5.9) v=10.2 s=17 bridge=1
+EVENT pitch -36 deg at (2533.8 4228.3 5.9) v=10.2 s=17 bridge=1
+EVENT pitch -37 deg at (2533.7 4228.3 5.8) v=10.3 s=17 bridge=1
+EVENT pitch -37 deg at (2533.6 4228.3 5.8) v=10.3 s=17 bridge=1
+EVENT pitch -38 deg at (2533.6 4228.3 5.8) v=10.4 s=17 bridge=1
+EVENT pitch -38 deg at (2533.5 4228.3 5.7) v=10.4 s=17 bridge=1
+EVENT pitch -39 deg at (2533.4 4228.2 5.7) v=10.5 s=17 bridge=1
+EVENT pitch -39 deg at (2533.4 4228.2 5.6) v=10.6 s=17 bridge=1
+EVENT pitch -39 deg at (2533.3 4228.2 5.6) v=10.6 s=17 bridge=1
+EVENT pitch -40 deg at (2533.2 4228.2 5.5) v=10.7 s=17 bridge=1
+EVENT pitch -40 deg at (2533.1 4228.2 5.5) v=10.7 s=17 bridge=1
+EVENT pitch -41 deg at (2533.1 4228.2 5.4) v=10.8 s=17 bridge=1
+EVENT pitch -41 deg at (2533.0 4228.2 5.4) v=10.8 s=17 bridge=1
+EVENT pitch -42 deg at (2532.9 4228.2 5.3) v=10.9 s=17 bridge=1
+EVENT pitch -42 deg at (2532.8 4228.2 5.3) v=11.0 s=17 bridge=1
+EVENT pitch -42 deg at (2532.8 4228.2 5.2) v=11.0 s=17 bridge=1
+EVENT pitch -43 deg at (2532.7 4228.2 5.1) v=11.1 s=17 bridge=1
+EVENT pitch -43 deg at (2532.6 4228.2 5.1) v=11.1 s=17 bridge=1
+EVENT pitch -43 deg at (2532.5 4228.2 5.0) v=11.2 s=17 bridge=1
+EVENT pitch -44 deg at (2532.5 4228.2 5.0) v=11.3 s=17 bridge=1
+EVENT pitch -44 deg at (2532.4 4228.2 4.9) v=11.3 s=17 bridge=1
+EVENT pitch -45 deg at (2532.3 4228.2 4.9) v=7.7 s=17 bridge=1
+EVENT pitch -45 deg at (2532.3 4228.2 4.9) v=5.7 s=17 bridge=1
+EVENT pitch -45 deg at (2532.2 4228.2 4.9) v=5.7 s=17 bridge=1
+EVENT pitch -45 deg at (2532.2 4228.2 4.9) v=5.7 s=17 bridge=1
+EVENT pitch -46 deg at (2532.1 4228.2 4.9) v=5.7 s=17 bridge=1
+EVENT pitch -46 deg at (2532.1 4228.2 4.9) v=5.8 s=17 bridge=1
+EVENT pitch -46 deg at (2532.0 4228.2 4.8) v=5.8 s=17 bridge=1
+EVENT pitch -46 deg at (2532.0 4228.2 4.8) v=5.2 s=17 bridge=1
+EVENT pitch -47 deg at (2532.0 4228.2 4.9) v=4.9 s=17 bridge=1
+EVENT pitch -47 deg at (2531.9 4228.2 4.9) v=4.9 s=17 bridge=1
+EVENT pitch -47 deg at (2531.9 4228.2 4.9) v=4.8 s=17 bridge=1
+EVENT pitch -47 deg at (2531.9 4228.2 4.9) v=4.8 s=17 bridge=1
+EVENT pitch -47 deg at (2531.8 4228.3 4.9) v=4.8 s=17 bridge=1
+EVENT pitch -47 deg at (2531.8 4228.3 4.9) v=4.8 s=17 bridge=1
+EVENT pitch -47 deg at (2531.7 4228.3 4.9) v=4.8 s=17 bridge=1
+EVENT pitch -48 deg at (2531.7 4228.3 4.9) v=4.7 s=17 bridge=1
+EVENT pitch -48 deg at (2531.7 4228.3 4.9) v=4.7 s=17 bridge=1
+EVENT pitch -48 deg at (2531.6 4228.3 4.9) v=4.7 s=17 bridge=1
+EVENT pitch -48 deg at (2531.6 4228.3 4.9) v=4.6 s=17 bridge=1
+EVENT pitch -48 deg at (2531.6 4228.3 4.9) v=4.6 s=17 bridge=1
+EVENT pitch -48 deg at (2531.5 4228.3 5.0) v=4.6 s=17 bridge=1
+EVENT pitch -48 deg at (2531.5 4228.4 5.0) v=4.6 s=17 bridge=1
+EVENT pitch -48 deg at (2531.5 4228.4 5.0) v=4.5 s=17 bridge=1
+EVENT pitch -49 deg at (2531.4 4228.4 5.0) v=4.5 s=17 bridge=1
+EVENT pitch -49 deg at (2531.4 4228.4 5.0) v=4.5 s=17 bridge=1
+EVENT pitch -49 deg at (2531.4 4228.4 5.0) v=4.5 s=17 bridge=1
+EVENT pitch -49 deg at (2531.3 4228.4 5.0) v=4.4 s=17 bridge=1
+EVENT pitch -49 deg at (2531.3 4228.4 5.0) v=4.4 s=17 bridge=1
+EVENT pitch -49 deg at (2531.2 4228.4 5.0) v=4.4 s=17 bridge=1
+EVENT pitch -49 deg at (2531.2 4228.5 5.0) v=4.3 s=17 bridge=1
+EVENT pitch -49 deg at (2531.2 4228.5 5.0) v=4.3 s=17 bridge=1
+EVENT pitch -49 deg at (2531.2 4228.5 5.0) v=4.3 s=17 bridge=1
+EVENT pitch -50 deg at (2531.1 4228.5 5.0) v=4.2 s=17 bridge=1
+EVENT pitch -50 deg at (2531.1 4228.5 5.0) v=4.2 s=17 bridge=1
+EVENT pitch -50 deg at (2531.1 4228.5 5.0) v=4.2 s=17 bridge=1
+EVENT pitch -50 deg at (2531.0 4228.5 5.0) v=4.1 s=17 bridge=1
+EVENT pitch -50 deg at (2531.0 4228.5 5.0) v=4.1 s=17 bridge=1
+EVENT pitch -50 deg at (2531.0 4228.6 5.0) v=4.1 s=17 bridge=1
+EVENT pitch -50 deg at (2530.9 4228.6 5.0) v=4.0 s=17 bridge=1
+EVENT pitch -50 deg at (2530.9 4228.6 5.1) v=4.0 s=17 bridge=1
+EVENT pitch -50 deg at (2530.9 4228.6 5.1) v=4.0 s=17 bridge=1
+EVENT pitch -50 deg at (2530.8 4228.6 5.1) v=3.9 s=17 bridge=1
+EVENT pitch -50 deg at (2530.8 4228.6 5.1) v=3.9 s=17 bridge=1
+EVENT pitch -51 deg at (2530.8 4228.6 5.1) v=3.9 s=17 bridge=1
+EVENT pitch -51 deg at (2530.7 4228.6 5.1) v=3.8 s=17 bridge=1
+EVENT pitch -51 deg at (2530.7 4228.7 5.1) v=3.8 s=17 bridge=1
+EVENT pitch -51 deg at (2530.7 4228.7 5.1) v=3.7 s=17 bridge=1
+EVENT pitch -51 deg at (2530.7 4228.7 5.1) v=3.7 s=17 bridge=1
+EVENT pitch -51 deg at (2530.6 4228.7 5.1) v=3.7 s=17 bridge=1
+EVENT pitch -51 deg at (2530.6 4228.7 5.1) v=3.6 s=17 bridge=1
+EVENT pitch -51 deg at (2530.6 4228.7 5.1) v=3.6 s=17 bridge=1
+EVENT pitch -51 deg at (2530.6 4228.7 5.1) v=3.6 s=17 bridge=1
+EVENT pitch -51 deg at (2530.5 4228.7 5.1) v=3.5 s=17 bridge=1
+EVENT pitch -51 deg at (2530.5 4228.8 5.1) v=3.5 s=17 bridge=1
+EVENT pitch -51 deg at (2530.5 4228.8 5.1) v=3.4 s=17 bridge=1
+EVENT pitch -52 deg at (2530.4 4228.8 5.1) v=3.4 s=17 bridge=1
+EVENT pitch -52 deg at (2530.4 4228.8 5.1) v=3.4 s=17 bridge=1
+EVENT pitch -52 deg at (2530.4 4228.8 5.1) v=3.3 s=17 bridge=1
+EVENT pitch -52 deg at (2530.4 4228.8 5.1) v=3.3 s=17 bridge=1
+EVENT pitch -52 deg at (2530.3 4228.8 5.1) v=3.2 s=17 bridge=1
+EVENT pitch -52 deg at (2530.3 4228.8 5.1) v=3.2 s=17 bridge=1
+EVENT pitch -52 deg at (2530.3 4228.8 5.1) v=3.2 s=17 bridge=1
+EVENT pitch -52 deg at (2530.3 4228.9 5.1) v=3.1 s=17 bridge=1
+EVENT pitch -52 deg at (2530.3 4228.9 5.1) v=3.1 s=17 bridge=1
+EVENT pitch -52 deg at (2530.2 4228.9 5.1) v=3.0 s=17 bridge=1
+EVENT pitch -52 deg at (2530.2 4228.9 5.1) v=3.0 s=17 bridge=1
+EVENT pitch -52 deg at (2530.2 4228.9 5.2) v=2.9 s=17 bridge=1
+EVENT pitch -52 deg at (2530.2 4228.9 5.2) v=2.9 s=17 bridge=1
+EVENT pitch -52 deg at (2530.2 4228.9 5.2) v=2.9 s=17 bridge=1
+EVENT pitch -52 deg at (2530.1 4228.9 5.2) v=2.8 s=17 bridge=1
+EVENT pitch -52 deg at (2530.1 4228.9 5.2) v=2.8 s=17 bridge=1
+EVENT pitch -52 deg at (2530.1 4229.0 5.2) v=2.7 s=17 bridge=1
+EVENT pitch -53 deg at (2530.1 4229.0 5.2) v=2.7 s=17 bridge=1
+EVENT pitch -53 deg at (2530.1 4229.0 5.2) v=2.6 s=17 bridge=1
+EVENT pitch -53 deg at (2530.0 4229.0 5.2) v=2.6 s=17 bridge=1
+EVENT pitch -53 deg at (2530.0 4229.0 5.2) v=2.5 s=17 bridge=1
+EVENT pitch -53 deg at (2530.0 4229.0 5.2) v=2.5 s=17 bridge=1
+EVENT pitch -53 deg at (2530.0 4229.0 5.2) v=2.5 s=17 bridge=1
+EVENT pitch -53 dereal done std-pickup (cells 2.2 s)
+real done std-sports (cells 2.7 s)
+real done std-super (cells 3.2 s)
+real done std-muscle (cells 3.5 s)
+real done std-van (cells 3.9 s)
+real done std-bus (cells 4.4 s)
+real done std-truck (cells 4.7 s)
+real done std-police (cells 5.2 s)
+real done std-motorbike (cells 5.5 s)
+real done std-scooter (cells 5.8 s)
+g at (2530.0 4229.0 5.2) v=2.4 s=17 bridge=1
+EVENT pitch -53 deg at (2530.0 4229.0 5.2) v=2.4 s=17 bridge=1
+EVENT pitch -53 deg at (2529.9 4229.1 5.2) v=2.3 s=17 bridge=1
+EVENT pitch -53 deg at (2529.9 4229.1 5.2) v=2.3 s=17 bridge=1
+EVENT pitch -53 deg at (2529.9 4229.1 5.2) v=2.2 s=17 bridge=1
+EVENT pitch -53 deg at (2529.9 4229.1 5.2) v=2.2 s=17 bridge=1
+EVENT pitch -53 deg at (2529.9 4229.1 5.2) v=2.2 s=17 bridge=1
+EVENT pitch -53 deg at (2529.9 4229.1 5.2) v=2.1 s=17 bridge=1
+EVENT pitch -53 deg at (2529.9 4229.1 5.2) v=2.1 s=17 bridge=1
+EVENT pitch -53 deg at (2529.8 4229.1 5.3) v=2.1 s=17 bridge=1
+EVENT pitch -53 deg at (2529.8 4229.1 5.3) v=2.1 s=17 bridge=1
+EVENT pitch -53 deg at (2529.8 4229.2 5.3) v=2.1 s=17 bridge=1
+EVENT pitch -53 deg at (2529.8 4229.2 5.3) v=2.1 s=17 bridge=1
+EVENT pitch -53 deg at (2529.8 4229.2 5.3) v=2.1 s=17 bridge=1
+EVENT off-deck at (2528.4 4231.2 3.3) deck 5.8 v=4.9 s=17
+EVENT off-deck at (2472.5 3675.4 5.7) deck 8.2 v=7.4 s=630
+EVENT stuck(lane blocked by world collider) at (-1599.6 3554.6 4.9) route (-1599.0 3555.1 4.9) s=1037 bridge=0 up=1.00
+EVENT stuck at (-1601.4 3485.5 4.9) route (-1601.8 3485.0 4.9) s=1108 bridge=0 up=1.00
+EVENT stuck at (5314.6 3068.1 2.7) route (5320.0 3052.5 2.7) s=5032 bridge=0 up=1.00
+EVENT stuck(lane blocked by world collider) at (3313.6 -752.5 1.8) route (3316.7 -752.5 1.7) s=317 bridge=0 up=1.00
+EVENT pitch 25 deg at (3304.0 4080.5 3.0) v=19.2 s=1833 bridge=1
+EVENT pitch 28 deg at (3304.0 4080.7 3.1) v=19.2 s=1833 bridge=1
+EVENT pitch 31 deg at (3304.0 4080.8 3.2) v=19.1 s=1833 bridge=1
+EVENT pitch 33 deg at (3304.0 4081.0 3.2) v=19.1 s=1833 bridge=1
+EVENT pitch 35 deg at (3304.0 4081.2 3.2) v=19.1 s=1833 bridge=1
+EVENT pitch 37 deg at (3304.0 4081.3 3.3) v=19.1 s=1833 bridge=1
+EVENT off-deck at (-1612.0 3761.1 11.6) deck 14.1 v=31.3 s=1841
+EVENT pitch 38 deg at (3094.7 2854.3 2.7) v=10.9 s=2518 bridge=0
+EVENT pitch 40 deg at (3094.6 2854.4 2.8) v=11.1 s=2518 bridge=0
+EVENT pitch 43 deg at (3094.5 2854.4 2.8) v=11.3 s=2518 bridge=0
+EVENT pitch 45 deg at (3094.5 2854.4 2.9) v=11.5 s=2518 bridge=0
+EVENT pitch 48 deg at (3094.4 2854.4 2.9) v=11.7 s=2518 bridge=0
+EVENT pitch 51 deg at (3094.3 2854.4 3.0) v=11.8 s=2518 bridge=0
+EVENT pitch 53 deg at (3094.2 2854.5 3.0) v=11.9 s=2518 bridge=0
+EVENT pitch 56 deg at (3094.1 2854.5 3.1) v=12.0 s=2518 bridge=0
+EVENT pitch 59 deg at (3094.1 2854.5 3.1) v=12.1 s=2518 bridge=0
+EVENT pitch 61 deg at (3094.0 2854.6 3.1) v=12.2 s=2518 bridge=0
+
+### Real world (generated Palmera: random routes on the road graph, streamed LOD0 collision)
+
+| model | class | km driven | avg km/h | bridge/elevated km | max roll deg | max pitch deg | flips/crashes | stuck (other) / lane blocked by world | prop/bldg impacts | props broken | fell through a surface | drove off a deck edge | NaN | building @60: min speed after / inside / health | curb crossing s | us/step |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| std-compact | compact | 21.9 | 62 | 1.56 | 14 | 22 | 0 | 0 / 2 | 1 | 7 | 0 | 0 | 0 | 0.0 / no / 830 | 7.9 | 7.3 |
+| std-sedan | sedan | 19.9 | 55 | 0.81 | 14 | 21 | 0 | 0 / 2 | 1 | 0 | 0 | 0 | 0 | 0.1 / no / 868 | 9.2 | 6.4 |
+| std-coupe | coupe | 19.4 | 56 | 0.30 | 12 | 17 | 0 | 0 / 0 | 0 | 0 | 0 | 0 | 0 | 0.0 / no / 979 | 7.5 | 8.7 |
+| std-suv | suv | 18.1 | 42 | 0.24 | 10 | 13 | 0 | 0 / 0 | 0 | 5 | 0 | 0 | 0 | 0.0 / no / 922 | 7.3 | 4.6 |
+| std-pickup | pickup | 19.3 | 50 | 9.99 | 29 | 53 | 0 | 0 / 0 | 2 | 2 | 0 | 2 | 0 | 4.9 / no / 856 | -1.0 | 7.8 |
+| std-sports | sports | 19.6 | 51 | 0.69 | 8 | 16 | 0 | 0 / 0 | 0 | 0 | 0 | 0 | 0 | 0.3 / no / 887 | -1.0 | 9.8 |
+| std-super | super | 19.4 | 51 | 0.10 | 15 | 7 | 0 | 0 / 0 | 0 | 1 | 0 | 0 | 0 | -1.0 / no / 789 | 7.2 | 9.0 |
+| std-muscle | muscle | 18.8 | 50 | 0.00 | 15 | 7 | 0 | 0 / 0 | 1 | 2 | 0 | 0 | 0 | 2.7 / no / 852 | -1.0 | 9.2 |
+| std-van | van | 18.1 | 50 | 0.86 | 13 | 9 | 0 | 1 / 1 | 3 | 2 | 0 | 0 | 0 | -1.0 / no / 0 | 8.1 | 9.4 |
+| std-bus | bus | 18.8 | 47 | 0.20 | 23 | 7 | 0 | 1 / 0 | 3 | 4 | 0 | 0 | 0 | 0.0 / no / 1000 | 8.2 | 7.7 |
+| std-truck | truck | 19.4 | 49 | 0.49 | 7 | 11 | 0 | 0 / 0 | 1 | 3 | 0 | 0 | 0 | 0.6 / no / 959 | -1.0 | 11.5 |
+| std-police | police | 18.3 | 49 | 0.20 | 6 | 8 | 0 | 0 / 1 | 1 | 1 | 0 | 0 | 0 | 0.6 / no / 820 | -1.0 | 5.0 |
+| std-motorbike | motorbike | 18.5 | 66 | 2.83 | 67 | 61 | 3 | 0 / 0 | 1 | 0 | 0 | 1 | 0 | 0.0 / no / 858 | 7.1 | 5.8 |
+| std-scooter | scooter | 18.3 | 51 | 0.00 | 55 | 16 | 0 | 0 / 0 | 0 | 1 | 0 | 0 | 0 | -1.0 / no / 998 | 8.7 | 5.6 |

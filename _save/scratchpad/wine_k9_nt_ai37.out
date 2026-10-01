@@ -1,0 +1,232 @@
+[   0.001] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.327] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB
+[   0.333] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.391] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   0.444] UI font 'Impact' -> 'Liberation Sans'
+[   0.489] Font atlas built in 0.16 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   0.541] Audio: no output device - audio disabled
+[   0.541] Audio: no output device, continuing silently
+[   1.001] UI icon atlas: 92 icons + 13 weapons in 455 ms
+[   9.949] Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+[   9.954] Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+[   9.960] Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+[   9.961] Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+[   9.961] Places: Palmera Speedway at (400, 5790), ground 6.8
+[   9.968] Places: layout 0.020 s, 5 places, 624 anchors
+[   9.969] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[   9.980] Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.04 s)
+[  10.734] World map generated in 10.18 s
+[  11.654] Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+[  12.180] Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+[  14.607] Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+[  16.058] Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km (5.32 s)
+[  19.635] Transit: 0 buildings cleared from the SkyLine corridor
+[  19.649] Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+[  19.669] Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+[  19.670] Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+[  19.682] Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+[  19.741] Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+[  19.756] Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+[  19.758] Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+[  19.761] Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+[  19.777] Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+[  19.803] Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+[  19.815] Places: after the lots 0.179 s
+[  19.816] Buildings: 35617 (towers 352, midrise 2411, condo 427, deco 688, shops 4600, strip 640, houses 22192, villas 901, warehouses 1620) in 3.68 s
+[  19.829] Sites: 69 highway billboards
+[  19.835] Sites: 155 silos, 50 windmills
+[  19.836] Sites: 245 beach access paths
+[  19.888] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.02 s)
+[  19.895] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[  19.898] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[  19.898] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[  19.912] Transit: 4 bus routes, 64 stops (48 new shelters) (0.01 s); rejects class 1107 cut 1945 deck 72 road 119 avoid 0 pad 2 furn 283 stop 0
+[  19.916] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[  19.916] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[  19.916] Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+[  19.916] Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+[  19.925] Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.01 s)
+[  19.930] Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+[  19.930] Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+[  19.930] Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+[  19.930] Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+[  19.930] Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+[  19.934] Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+[  19.935] Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+[  19.935] Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+[  19.935] Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+[  19.935] Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+[  19.935] Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+[  19.935] Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+[  19.935] Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+[  19.935] Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+[  19.935] Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+[  19.935] Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+[  19.935] Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.10 s)
+[  19.935] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[  19.935] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  19.935] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  19.935] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  19.935] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  19.935] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  19.935] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  19.935] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  19.947] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  19.949] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  19.949] Site terminal             at (628, 1440, 4.6)
+[  19.949] Site control tower        at (730, 1832, 4.6)
+[  19.949] Site container ship       at (4625, -800, 0.0)
+[  19.949] Site container ship       at (4616, -330, 0.0)
+[  19.949] Site port gate            at (4008, -160, 3.0)
+[  19.949] Site Key Coral marina     at (4039, -4035, 0.0)
+[  19.949] Site beach club           at (4873, -3866, 1.2)
+[  19.949] Site beach club           at (4808, -4183, 2.2)
+[  19.949] Site Solaris One          at (3350, -750, 1.4)
+[  19.950] Site stadium              at (3565, 445, 1.6)
+[  19.950] Site City Hall            at (3000, 372, 2.0)
+[  19.950] Site Canvas Park          at (3100, 1800, 1.7)
+[  19.950] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  19.950] Site Ferris wheel         at (5504, 1270, 5.6)
+[  19.950] Site lighthouse           at (-2206, -8000, 0.5)
+[  19.952] Site radio mast           at (-6744, 7248, 166.1)
+[  19.952] Site sugar mill           at (1430, 7500, 8.1)
+[  19.952] Site Rio Sol marina       at (2280, 188, 0.0)
+[  19.952] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  19.952] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  19.952] Sites finalized: 1486 elements (0.12 s)
+[  19.971] Interiors: 29 planned (convenience 7, gun shops 2) in 18.7 ms
+[  19.971]   interior 'Mari's Apartment' kind 0 building 28142 at (1771.22, 359.23, 3.77) ax (1.0000, 0.0000) x -6.55..2.18 depth 11.50 ceil 3.84: 3 rooms, 3 openings, 3 doors, 3 portals, 0 npc points
+[  19.971]   interior 'Mama Lucha's' kind 2 building 26747 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+[  19.971]   interior 'Rook's Garage' kind 3 building 27288 at (1562.94, 2361.63, 4.30) ax (1.0000, 0.0000) x -9.74..9.74 depth 20.00 ceil 7.11: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+[  19.971]   interior 'Dex's Trailer' kind 1 building 25527 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  19.971]   interior 'Police Headquarters' kind 5 building 32504 at (3167.89, -240.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+[  19.971]   interior 'Tidewater General Hospital' kind 6 building 35599 at (1692.75, 1073.40, 3.63) ax (1.0000, 0.0000) x -9.55..9.55 depth 16.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+[  19.978]   interior 'Palmetto Arms' kind 7 building 25538 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+[  19.978]   interior 'Northside Arms' kind 7 building 32997 at (3284.62, 4017.67, 2.09) ax (0.0000, 1.0000) x -6.33..6.33 depth 14.00 ceil 4.03: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  19.978]   interior 'Threads' kind 9 building 19677 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+[  19.978]   interior 'Port Isle Warehouse' kind 12 building 35552 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  19.978]   interior 'TideStop Mart' kind 8 building 26846 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  19.978]   interior 'Bodega La Luna' kind 8 building 29652 at (2242.71, 540.72, 2.92) ax (-1.0000, -0.0000) x -5.85..5.85 depth 17.00 ceil 4.19: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  19.978]   interior 'Canvas Corner Market' kind 8 building 32545 at (3090.56, 1476.66, 2.21) ax (0.0000, 1.0000) x -7.40..7.40 depth 17.00 ceil 3.92: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  19.978]   interior 'Sunrise Food Mart' kind 8 building 19719 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  19.978]   interior 'Northside Quick Stop' kind 8 building 29914 at (2304.43, 3761.63, 3.12) ax (1.0000, 0.0000) x -6.89..6.89 depth 17.00 ceil 4.12: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  19.978]   interior 'Flats Food & Fuel' kind 8 building 24842 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[  19.978]   interior 'Grove Pantry' kind 8 building 1182 at (2175.56, -3114.24, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  19.978]   interior 'Palm Motors' kind 17 building 31294 at (2686.87, 1279.16, 2.69) ax (0.0000, 1.0000) x -9.08..12.11 depth 20.00 ceil 3.90: 2 rooms, 8 openings, 3 doors, 8 portals, 5 npc points
+[  19.978]   interior 'Tide Customs Calle Luna' kind 18 building 29601 at (2278.47, -140.75, 2.99) ax (1.0000, 0.0000) x -7.61..7.61 depth 18.00 ceil 4.17: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  19.978]   interior 'Tide Customs Sol Beach' kind 18 building 19788 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  19.978]   interior 'Sunwash Car Wash' kind 19 building 29044 at (1988.34, 1491.32, 3.44) ax (0.0000, 1.0000) x -7.41..7.41 depth 20.00 ceil 8.08: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+[  19.978]   interior 'Key Coral Villa' kind 0 building 23718 at (4515.96, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[  19.978]   interior 'Sol Beach Condo Lobby' kind 20 building 19771 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+[  19.978]   interior 'Sol Beach Condo' kind 21 building 19771 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  19.978]   interior 'Downtown Penthouse Lobby' kind 20 building 33543 at (3511.22, -715.16, 1.71) ax (-0.0000, -1.0000) x -5.25..5.25 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[  19.979]   interior 'Downtown Penthouse' kind 21 building 33543 at (3511.22, -715.16, 52.15) ax (-0.0000, -1.0000) x -10.49..10.49 depth 14.00 ceil 2.80: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  19.979]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  19.979]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[  19.979]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[  20.066] Material library: 57 layers at 256^2
+[  20.099] Props: 71 prototypes, 36644 verts
+[  28.586] Vehicle assets: 45 models in 7.58 s
+[  60.110] Character assets: 120 characters in 31.52 s
+[  60.119] Game assets built in 39.12 s
+[  60.167] Story place near (800, -5400): no building frontage found, using the street
+[  60.167] Story places resolved in 46.7 ms (diner 1350 342, Mari's 1771 358, Rook's 1566 2360, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[  60.168] Missions registered: 57
+[  61.087] Lane graph: 180 plaza walkways and 2 zebra crossings from the sites
+[  61.088] Lane graph: 25496 lanes, 56760 connectors (1154772 pts), 40687 walk nodes, 56441 walk links, dead-end turning circles moved 22 / obstructed 0 (0.92 s)
+[  61.722] UI map: base 2560x2560 in 484 ms, 9547 roads (43960 pts) in 11 ms, 37 labels in 139 ms
+[  61.722] hudInit done in 633 ms
+[  61.722] Init done in 61.18 s (shaders: 0 compiled in 0.00 s)
+[  61.725] autoplay k9: wanted 2 at 2711 764 heading 0.00 1.00 (walk link 53122)
+[  61.726] autoplay k9 t=0.0 wanted 2 seen 0 player 2710.6 764.2 state 0 | k9: none (trail 0, cooldown 30)
+[  61.728] Transit: SkyLine timetable built (2.1 ms): loop 12.4 / 12.4 min, 4 trains per direction, headway 3.1 min
+[  61.728] Transit: 9 lines published to the map
+[  61.731] Transit: SkyLine car models registered as vehicle assets 45 / 46
+[  62.198] Transit: 4 route bus models (destination signs) in 467 ms
+[  62.198] Transit: 64 bus stops registered with the AI (48 lane stops added, 240 waiting spots)
+[  62.198] Transit: 15 buses on 4 routes
+[  62.198] Transit: Bay Ferry timetable: loop 13.2 min, 2 ferries, headway 6.6 min
+[  62.199] Transit: Sol Ferry model registered as vehicle asset 51
+[  62.203] Transit: streetcar modules registered as vehicle assets 52 53 54
+[  62.205] Transit: 16 streetcar stops registered (16 curb lanes kept clear)
+[  62.205] Transit: 4 streetcars on the 6.24 km loop, 16 stops, 65/65 junction movements found
+[  62.250] population: venue Ocean Promenade slot 75 (mode 6) dropped at 5354.7 728.5: second spot
+[  62.262] population: venue Ocean Promenade slot 77 (mode 6) dropped at 5354.7 809.2: second spot
+[  62.262] population: venue Ocean Promenade slot 71 (mode 6) dropped at 5354.7 850.4: second spot
+[  62.262] population: venue Ocean Promenade slot 80 (mode 6) dropped at 5354.7 920.7: second spot
+[  62.264] population: venue Ocean Promenade slot 49 (mode 6) dropped at 5354.7 1046.1: second spot
+[  62.266] population: venues laid out: 64 (756 slots kept, 5 dropped on lanes / water / buildings) | port 23 | airport 35 (rank: 3 cabs, line of 4) | sawgrass 19 | Ocean Promenade 2 | Porto Sol University 2 | Porto Sol University 5 | Santa Marea Cemetery 2 | Palmera State Penitentiary 5 | Okahatchee Union Church 2 | Old Fort Church 2 | Ocean Promenade 34 | Ocean Promenade 76 | Ocean Promenade 72 | Ocean Promenade 81 | Ocean Promenade 49 | Ocean Promenade 7 | Ocean Promenade 6 | Ocean Promenade 2 | Ocean Promenade 4 | Ocean Promenade 3 | Porto Sol University 10 | Porto Sol University 6 | Porto Sol University 11 | Porto Sol University 19 | Porto Sol University 3 | Porto Sol University 7 | Santa Marea Cemetery 25 | Santa Marea Cemetery 17 | Santa Marea Cemetery 5 | Santa Marea Cemetery 3 | Santa Marea Cemetery 5 | Santa Marea Cemetery 8 | Santa Marea Cemetery 4 | Santa Marea Cemetery 9 | Palmera State Penitentiary 9 | Palmera State Penitentiary 6 | Palmera State Penitentiary 4 | Palmera State Penitentiary 3 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 2 | Palmera Speedway 16 | Palmera Speedway 28 | Palmera Speedway 12 | Okahatchee Union Church 22 | Old Fort Church 17 | Old Fort Church 4 | Tidewater General Hospital 3 | Tidewater General Hospital 2 | Tidewater General Hospital 3 | Midtown General 1 | Midtown General 7 | Westbrook Hospital 8 | Sol Beach Clinic 8 | Harlow County Hospital 5 | Harlow County Hospital 3 | Okahatchee Medical 8 | Redland Health 8 | Fort Castell Hospital 1 | Fort Castell Hospital 7
+[  62.277] Stunt jumps: 0 road crests (0 candidates); ramps being placed
+[  62.279] fishing: 9 spots (lake yes, 3 Keys docks)
+[  64.335] Interior 'Bodega La Luna' built: 116605 triangles, 18 lights, 14 colliders, 3 door leaves in 188.7 ms
+[  64.340] Stunt ramps: 10 placed (0 over water) in 809 ms (25869 corridors tested); 10 unique stunt jumps
+[  64.386] Wildlife: 28 species models ready (166 k triangles in the detailed LODs)
+[  76.036] autoplay k9: the run round the block toward 2756 809 (walk link 53122)
+[ 131.613] autoplay k9 t=2.1 wanted 2 seen 0 player 2710.1 762.2 state 0 | k9: none (trail 1, cooldown 28)
+[ 170.901] autoplay t=2.6 pos 2711.3 758.8 2.1 state 0 health 400 veh -1 speed 6.9 | peds 122 vehicles 79 wanted 2 | cpu ms player 0.16 ai 0.55 veh 4.82 peds 2.14 | mem 1820 MB (private 0)
+[ 194.648] autoplay k9 t=4.1 wanted 2 seen 0 player 2717.8 756.4 state 0 | k9: none (trail 7, cooldown 26)
+[ 228.022] autoplay k9 t=6.1 wanted 2 seen 0 player 2720.4 756.4 state 0 | k9: none (trail 9, cooldown 24)
+[ 260.756] autoplay k9 t=8.2 wanted 2 seen 0 player 2714.4 757.6 state 0 | k9: none (trail 12, cooldown 22)
+[ 300.190] autoplay k9 t=10.2 wanted 2 seen 0 player 2710.2 767.3 state 0 | k9: none (trail 18, cooldown 20)
+[ 340.485] autoplay k9 t=12.2 wanted 2 seen 0 player 2710.2 779.3 state 0 | k9: none (trail 24, cooldown 18)
+[ 369.484] autoplay k9 t=14.3 wanted 2 seen 0 player 2710.0 786.0 state 0 | k9: none (trail 27, cooldown 16)
+[ 395.544] autoplay k9 t=16.3 wanted 2 seen 0 player 2710.0 786.0 state 0 | k9: none (trail 27, cooldown 14)
+[ 422.068] autoplay k9 t=18.3 wanted 2 seen 0 player 2710.0 786.0 state 0 | k9: none (trail 27, cooldown 12)
+[ 447.174] Transit: 0.857 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 453.179] autoplay k9 t=20.4 wanted 2 seen 0 player 2710.0 786.0 state 0 | k9: none (trail 27, cooldown 10)
+[ 480.354] autoplay k9 t=22.4 wanted 2 seen 0 player 2710.0 786.0 state 0 | k9: none (trail 27, cooldown 8)
+[ 514.432] autoplay k9 t=24.4 wanted 2 seen 0 player 2710.0 786.0 state 0 | k9: none (trail 27, cooldown 6)
+[ 541.482] autoplay k9 t=26.5 wanted 2 seen 0 player 2710.0 786.0 state 0 | k9: none (trail 27, cooldown 3)
+[ 562.008] autoplay k9 t=28.5 wanted 2 seen 0 player 2710.0 786.0 state 0 | k9: none (trail 27, cooldown 1)
+[ 577.167] police: K9 unit sent (officer 21, dog group 17) at 2738 757, the trail 27 points from 2711 764
+[ 582.079] Wildlife: 135 animals (123 birds) in 18 groups, 117 drawn in 20 draws | update 0.467 ms, render 0.620 ms
+[ 590.081] autoplay k9 t=30.5 wanted 2 seen 0 player 2710.0 786.0 state 0 | k9: handler 21 at 2736.6 757.1 dog 17 at 2736.1 757.1 | trail 8/27 | found 0.0 lost 0.0 sent -1.0
+[ 619.740] autoplay k9 t=32.6 wanted 2 seen 0 player 2710.0 786.0 state 0 | k9: handler 21 at 2731.5 757.2 dog 17 at 2730.9 756.9 | trail 8/27 | found 0.0 lost 0.0 sent -1.0
+[ 648.454] autoplay k9 t=34.6 wanted 2 seen 0 player 2710.0 786.0 state 0 | k9: handler 21 at 2726.1 757.1 dog 17 at 2725.4 757.4 | trail 8/27 | found 0.0 lost 0.0 sent -1.0
+[ 673.912] autoplay k9 t=36.6 wanted 2 seen 0 player 2710.0 786.0 state 0 | k9: handler 21 at 2720.6 756.8 dog 17 at 2720.0 756.6 | trail 10/27 | found 0.0 lost 0.0 sent -1.0
+[ 700.547] autoplay k9 t=38.7 wanted 2 seen 0 player 2710.0 786.0 state 0 | k9: handler 21 at 2715.3 757.4 dog 17 at 2714.9 758.3 | trail 12/27 | found 0.0 lost 0.0 sent -1.0
+[ 718.072] Transit: 0.077 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 725.687] autoplay k9 t=40.7 wanted 2 seen 1 player 2710.0 786.0 state 0 | k9: handler 21 at 2713.3 765.9 dog 17 at 2712.9 764.5 | trail 12/1 | found 0.0 lost 0.0 sent -1.0
+[ 748.262] autoplay k9 t=42.7 wanted 2 seen 1 player 2710.0 786.0 state 0 | k9: handler 21 at 2712.1 772.4 dog 17 at 2712.0 772.4 | trail 12/1 | found 0.7 lost 0.0 sent -1.0
+[ 779.255] autoplay k9 t=44.8 wanted 2 seen 1 player 2710.0 786.0 state 0 | k9: handler 21 at 2710.0 775.6 dog 17 at 2710.5 776.8 | trail 12/1 | found 2.7 lost 0.0 sent -1.0
+[ 810.545] autoplay k9 t=46.8 wanted 2 seen 1 player 2710.0 786.0 state 0 | k9: handler 21 at 2712.3 775.8 dog 17 at 2711.5 777.1 | trail 12/1 | found 4.8 lost 0.0 sent -1.0
+[ 836.189] autoplay k9 t=48.8 wanted 2 seen 1 player 2710.0 786.0 state 0 | k9: handler 21 at 2711.0 775.7 dog 17 at 2711.4 777.2 | trail 12/1 | found 6.8 lost 0.0 sent -1.0
+[ 858.840] autoplay k9 t=50.9 wanted 2 seen 1 player 2710.0 786.0 state 0 | k9: handler 21 at 2710.3 775.6 dog 17 at 2710.2 776.9 | trail 12/1 | found 8.8 lost 0.0 sent -1.0
+[ 883.397] autoplay k9 t=52.9 wanted 2 seen 1 player 2710.0 786.0 state 0 | k9: handler 21 at 2712.4 775.9 dog 17 at 2712.2 777.2 | trail 12/1 | found 10.9 lost 0.0 sent -1.0
+[ 908.619] police: K9 released on the player (10.9 m, running 3.3 m/s)
+[ 914.778] autoplay k9 t=54.9 wanted 2 seen 1 player 2708.9 789.3 state 0 | k9: handler 21 at 2709.7 775.6 dog 17 at 2710.0 779.2 loose | trail 12/1 | found 12.4 lost 0.0 sent 0.5
+[ 945.773] autoplay k9 t=57.0 wanted 2 seen 1 player 2704.9 791.8 state 4 | k9: handler 21 at 2711.4 776.1 dog 17 at 2706.1 791.3 loose | trail 12/1 | found 12.4 lost 0.0 sent 2.6
+[ 975.774] autoplay k9 t=59.0 wanted 2 seen 1 player 2704.9 791.8 state 5 | k9: handler 21 at 2710.1 775.7 dog 17 at 2706.1 791.3 loose | trail 12/1 | found 12.4 lost 0.0 sent 4.6
+[ 989.152] Transit: 0.074 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 989.163] Wildlife: 135 animals (123 birds) in 18 groups, 119 drawn in 23 draws | update 0.275 ms, render 0.975 ms
+[1000.162] autoplay k9 t=61.0 wanted 2 seen 1 player 2703.3 792.4 state 4 | k9: handler 21 at 2710.0 775.7 dog 17 at 2707.5 782.1 loose | trail 12/1 | found 0.0 lost 0.0 sent -1.0
+[1016.263] autoplay t=61.5 pos 2703.3 792.4 2.4 state 4 health 207 veh -1 speed 0.0 | peds 125 vehicles 79 wanted 2 | cpu ms player 0.09 ai 0.96 veh 1.36 peds 1.58 | mem 1866 MB (private 0)
+[1034.730] autoplay k9 t=63.1 wanted 2 seen 1 player 2703.3 792.4 state 5 | k9: handler 21 at 2711.5 776.3 dog 17 at 2711.2 776.4 | trail 12/1 | found 0.0 lost 0.0 sent -1.0
+[1042.943] police: K9 released on the player (18.3 m, running 3.3 m/s)
+[1061.493] autoplay k9 t=65.1 wanted 2 seen 1 player 2701.1 795.4 state 0 | k9: handler 21 at 2710.3 778.1 dog 17 at 2707.1 784.1 loose | trail 12/1 | found 0.0 lost 0.0 sent 1.3
+[1093.718] autoplay k9 t=67.1 wanted 2 seen 1 player 2701.1 795.4 state 0 | k9: handler 21 at 2707.3 783.8 dog 17 at 2701.4 794.7 loose | trail 12/1 | found 0.0 lost 0.0 sent 3.4
+[1124.816] autoplay k9 t=69.2 wanted 2 seen 1 player 2700.4 796.3 state 5 | k9: handler 21 at 2704.5 783.7 dog 17 at 2701.2 794.9 loose | trail 12/1 | found 0.4 lost 0.0 sent -1.0
+[1151.506] autoplay k9 t=71.2 wanted 2 seen 1 player 2700.4 796.3 state 0 | k9: handler 21 at 2703.3 785.6 dog 17 at 2703.3 784.8 | trail 12/1 | found 2.4 lost 0.0 sent -1.0
+[1176.889] autoplay k9 t=73.2 wanted 2 seen 1 player 2700.4 796.3 state 0 | k9: handler 21 at 2704.0 786.4 dog 17 at 2704.0 787.8 | trail 12/1 | found 4.4 lost 0.0 sent -1.0
+[1204.543] autoplay k9 t=75.3 wanted 2 seen 1 player 2700.4 796.3 state 0 | k9: handler 21 at 2701.5 785.8 dog 17 at 2701.5 787.1 | trail 12/1 | found 6.5 lost 0.0 sent -1.0
+[1236.960] autoplay k9 t=77.3 wanted 2 seen 1 player 2700.4 796.3 state 0 | k9: handler 21 at 2704.6 786.6 dog 17 at 2703.6 787.7 | trail 12/1 | found 8.5 lost 0.0 sent -1.0
+[1270.124] autoplay k9 t=79.3 wanted 2 seen 1 player 2700.4 796.3 state 0 | k9: handler 21 at 2702.3 785.9 dog 17 at 2702.5 787.4 | trail 12/1 | found 10.5 lost 0.0 sent -1.0
+[1281.438] Transit: 0.105 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1290.660] Shutdown complete.
+X connection to :105 broken (explicit kill or server shutdown).

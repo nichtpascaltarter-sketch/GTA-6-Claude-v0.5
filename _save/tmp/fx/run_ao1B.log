@@ -1,0 +1,14 @@
+[   0.000] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.360] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16095 MB
+[   0.528] Font atlas built in 0.16 s
+[  17.769] World map generated in 17.23 s
+[  18.153] Road gen: 21 interchanges
+[  19.704] Road network: 6252 nodes, 10041 edges, 1732 signalized; hwy 60.1 km, streets 1186.7 km (1.93 s)
+[  21.420] Buildings: 36940 (towers 368, midrise 2449, condo 509, deco 844, shops 4788, strip 767, houses 22715, villas 794, warehouses 1673) in 1.68 s
+[  21.578] Material library: 52 layers at 256^2
+[  21.590] Props: 51 prototypes, 14371 verts
+[  22.360] Init done in 21.82 s (shaders: 0 compiled in 0.00 s)
+[ 184.201] Saved Z:\tmp\fx\ao1B\dt_noon.bmp
+[ 288.241] Saved Z:\tmp\fx\ao1B\flats.bmp
+[ 290.283] Shutdown complete.
+X connection to :100 broken (explicit kill or server shutdown).

@@ -1,0 +1,9 @@
+Embedded 35 shader files.
+In file included from src/anim/anim_all.cpp:14,
+                 from src/main.cpp:49:
+src/anim/clips.cpp: In function 'void Anim::detail::takedownVictim(const AuthorCtx&, float, Rig&)':
+src/anim/clips.cpp:3074: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 3074 |     for (int sd = 0; sd < 2; sd++) pull1.arm[sd].target = grab.arm[sd].target + vec3(0.f, 0.02f, -0.04f) * s;
+      | 
+src/anim/clips.cpp:3074: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 11616768 Oct  1 01:53 /home/user/GTA-6-Claude-v0.5/bin/nt_fx33.exe

@@ -1,0 +1,146 @@
+Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.03 s)
+World map generated in 17.00 s
+Road gen: 18 interchanges, 53 ramps (19 left out where they could not come down in time) 0.37 s DBGT
+Road network: 6252 nodes, 9927 edges, 1738 signalized; hwy 61.7 km, streets 1189.3 km (2.97 s)
+Transit: 0 buildings cleared from the SkyLine corridor
+Buildings: 35777 (towers 355, midrise 2365, condo 452, deco 818, shops 4714, strip 641, houses 21962, villas 921, warehouses 1616) in 1.55 s
+Sites: 76 highway billboards
+Sites: 131 silos, 43 windmills
+Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.00 s)
+Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+Transit: 4 bus routes, 63 stops (48 new shelters) (0.01 s); rejects class 1261 cut 1961 deck 87 road 88 avoid 0 pad 0 furn 283 stop 32
+Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+Transit: bus 9   Sol Beach    7.1 km, 15 stops, 4 buses, headway 5.5 min
+Transit: bus 12  Bayshore     9.0 km, 21 stops, 5 buses, headway 5.7 min
+Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 33 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.00 s)
+Transit: SkyLine profile 12.9..25.4 m above the street, 273 piers (0 straddle bents) (0.03 s)
+Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+Transit: station Canvas District  s   4644 at (2750, 1529) rail 15.6 street 2.2 exits -1/+1
+Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 897 elements (0.03 s)
+Interiors: no building for Police Headquarters near (3050, -350)
+Interiors: no building for Sunwash Car Wash near (1800, 1500)
+Interiors: 27 planned (convenience 7, gun shops 2) in 5.3 ms
+  interior 'Mari's Apartment' kind 0 building 28296 at (1768.62, 359.31, 3.78) ax (1.0000, 0.0000) x -7.36..4.42 depth 11.50 ceil 3.46: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+  interior 'Mama Lucha's' kind 2 building 26860 at (1367.79, 340.75, 4.27) ax (-1.0000, -0.0000) x -8.73..5.24 depth 16.00 ceil 3.67: 4 rooms, 5 openings, 4 doors, 5 portals, 22 npc points
+  interior 'Rook's Garage' kind 3 building 27802 at (1661.49, 2265.35, 4.22) ax (1.0000, 0.0000) x -7.53..7.53 depth 20.00 ceil 6.32: 3 rooms, 3 openings, 4 doors, 3 portals, 5 npc points
+  interior 'Dex's Trailer' kind 1 building 26387 at (1268.16, 2567.85, 4.72) ax (1.0000, 0.0000) x -8.33..8.33 depth 13.97 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+  interior 'Tidewater General Hospital' kind 6 building 27724 at (1667.54, 1070.98, 3.66) ax (1.0000, 0.0000) x -7.42..7.42 depth 16.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 11 npc points
+  interior 'Palmetto Arms' kind 7 building 25331 at (884.58, 2880.33, 4.90) ax (0.0000, 1.0000) x -5.90..5.90 depth 14.00 ceil 3.43: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+  interior 'Northside Arms' kind 7 building 33176 at (3284.66, 3897.79, 1.95) ax (0.0000, 1.0000) x -3.76..7.52 depth 14.00 ceil 3.98: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+  interior 'Threads' kind 9 building 19724 at (5177.22, -280.67, 1.92) ax (-1.0000, 0.0000) x -8.64..5.19 depth 15.00 ceil 3.67: 2 rooms, 5 openings, 2 doors, 5 portals, 4 npc points
+  interior 'Port Isle Warehouse' kind 12 building 35762 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+  interior 'TideStop Mart' kind 8 building 26969 at (1470.34, -259.27, 4.24) ax (-1.0000, -0.0000) x -8.95..5.37 depth 17.00 ceil 3.94: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Bodega La Luna' kind 8 building 29860 at (2270.69, 540.78, 2.90) ax (-1.0000, -0.0000) x -6.40..6.40 depth 17.00 ceil 4.03: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Canvas Corner Market' kind 8 building 32310 at (2981.24, 1489.43, 2.33) ax (0.0000, 1.0000) x -9.23..6.60 depth 17.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 5 npc points
+  interior 'Sunrise Food Mart' kind 8 building 19759 at (5227.62, 643.43, 1.78) ax (0.0000, 1.0000) x -7.72..7.72 depth 17.00 ceil 3.59: 2 rooms, 7 openings, 2 doors, 7 portals, 5 npc points
+  interior 'Northside Quick Stop' kind 8 building 30117 at (2278.87, 3761.67, 3.17) ax (1.0000, 0.0000) x -6.16..9.24 depth 17.00 ceil 4.20: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Flats Food & Fuel' kind 8 building 24934 at (479.02, 3361.65, 5.20) ax (1.0000, 0.0000) x -5.57..5.57 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+  interior 'Grove Pantry' kind 8 building 1174 at (2167.95, -3069.94, 2.30) ax (0.0194, -0.9998) x -8.41..5.04 depth 17.00 ceil 4.09: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Palm Motors' kind 17 building 31745 at (2790.51, 1319.70, 2.60) ax (0.0000, 1.0000) x -11.25..11.25 depth 20.00 ceil 3.83: 2 rooms, 9 openings, 3 doors, 9 portals, 5 npc points
+  interior 'Tide Customs Calle Luna' kind 18 building 29808 at (2268.09, -140.73, 3.02) ax (1.0000, 0.0000) x -10.07..6.04 depth 18.00 ceil 4.50: 1 rooms, 5 openings, 2 doors, 5 portals, 3 npc points
+  interior 'Tide Customs Sol Beach' kind 18 building 19826 at (5113.90, 1999.28, 1.92) ax (-1.0000, 0.0000) x -9.77..6.98 depth 18.00 ceil 4.15: 1 rooms, 7 openings, 2 doors, 7 portals, 3 npc points
+  interior 'Key Coral Villa' kind 0 building 23814 at (4425.49, -4048.65, 1.65) ax (0.7949, -0.6067) x -6.32..6.32 depth 12.00 ceil 2.80: 3 rooms, 4 openings, 3 doors, 4 portals, 0 npc points
+  interior 'Sol Beach Condo Lobby' kind 20 building 19807 at (5104.10, 1619.29, 1.85) ax (-1.0000, 0.0000) x -6.06..2.02 depth 10.00 ceil 4.02: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+  interior 'Sol Beach Condo' kind 21 building 19807 at (5104.10, 1619.29, 31.82) ax (-1.0000, 0.0000) x -6.06..6.06 depth 12.00 ceil 2.70: 5 rooms, 3 openings, 5 doors, 3 portals, 0 npc points
+  interior 'Downtown Penthouse Lobby' kind 20 building 33741 at (3511.16, -706.93, 1.71) ax (-0.0000, -1.0000) x -4.51..6.77 depth 10.00 ceil 4.61: 2 rooms, 6 openings, 2 doors, 6 portals, 2 npc points
+  interior 'Downtown Penthouse' kind 21 building 33741 at (3511.16, -706.93, 153.14) ax (-0.0000, -1.0000) x -9.03..11.29 depth 14.00 ceil 3.40: 6 rooms, 9 openings, 4 doors, 9 portals, 0 npc points
+  interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 0.94) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+  interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+  interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+worldcheck: 2145 cells, 459512 colliders, 408267 props
+
+[lanes] colliders intruding into drivable lanes: 2, props standing in lanes: 0, dead-end turning circles blocked: 35 (37 pulled back to fit)
+  turning circle blocked at dead end (1146.0, -2327.5) by oak at (1141.6, -2316.2, 3.1) he (0.3, 0.3, 6.3)
+  turning circle blocked at dead end (1228.8, -2351.9) by oak at (1224.6, -2339.0, 3.0) he (0.3, 0.3, 6.7)
+  turning circle blocked at dead end (1506.6, -2473.0) by oak at (1511.8, -2485.1, 3.0) he (0.3, 0.3, 6.0)
+  turning circle blocked at dead end (2291.6, -2852.7) by oak at (2279.4, -2856.8, 1.4) he (0.3, 0.3, 7.5)
+  turning circle blocked at dead end (2517.4, -2973.1) by oak at (2512.0, -2961.6, 1.3) he (0.3, 0.3, 6.5)
+  turning circle blocked at dead end (2757.5, -3161.4) by oak at (2769.5, -3166.1, 1.3) he (0.3, 0.3, 7.4)
+  turning circle blocked at dead end (3409.5, -3002.9) by stop sign at (3404.8, -2993.8, 0.7) he (0.1, 0.1, 1.0)
+  turning circle blocked at dead end (-1275.9, 311.7) by static box at (-1291.5, 316.7, 1.9) he (5.1, 0.1, 1.0)
+  turning circle blocked at dead end (-2950.0, -5200.0) by static box at (-2954.5, -5185.5, 6.8) he (1.7, 0.2, 0.6)
+  turning circle blocked at dead end (-2643.8, 292.3) by static box at (-2650.1, 300.6, 6.7) he (1.7, 0.2, 0.6)
+  turning circle blocked at dead end (-2028.6, 336.4) by static box at (-2034.5, 343.8, 3.5) he (2.5, 0.2, 0.6)
+  turning circle blocked at dead end (-1716.2, 382.4) by static box at (-1721.6, 391.7, 4.2) he (1.8, 0.2, 0.7)
+  turning circle blocked at dead end (-2216.9, 2648.6) by static box at (-2222.8, 2657.1, 4.0) he (1.7, 0.2, 0.6)
+  turning circle blocked at dead end (-1966.1, 2634.0) by static box at (-1960.4, 2625.5, 3.7) he (1.7, 0.2, 0.6)
+  turning circle blocked at dead end (-957.3, -3718.9) by static box at (-972.8, -3713.5, 1.6) he (5.1, 0.1, 0.9)
+  turning circle blocked at dead end (-1161.4, 2682.7) by static box at (-1144.6, 2687.3, 1.9) he (5.5, 0.1, 1.0)
+  turning circle blocked at dead end (922.1, -6059.1) by static box at (909.3, -6065.3, 0.9) he (4.6, 0.1, 0.6)
+  turning circle blocked at dead end (584.9, -2243.3) by power pole at (594.4, -2247.6, 1.0) he (0.2, 0.2, 8.0)
+  turning circle blocked at dead end (744.3, 229.3) by static box at (730.4, 234.9, 3.4) he (4.6, 0.1, 0.9)
+  turning circle blocked at dead end (648.4, 353.6) by static box at (664.7, 347.2, 3.0) he (5.5, 0.1, 1.0)
+  turning circle blocked at dead end (4420.0, 3300.0) by static box at (4426.0, 3286.5, 6.8) he (1.8, 0.2, 0.6)
+  turning circle blocked at dead end (-3200.0, 8250.0) by static box at (-3204.5, 8256.2, 6.9) he (2.1, 0.2, 0.6)
+  turning circle blocked at dead end (-8750.0, -2350.0) by static box at (-8755.1, -2338.7, 6.8) he (1.7, 0.2, 0.6)
+  turning circle blocked at dead end (-3900.0, 6350.0) by static box at (-3912.0, 6344.7, 10.8) he (1.6, 0.2, 0.6)
+  turning circle blocked at dead end (1506.5, -2432.0) by stop sign at (1501.8, -2419.3, 3.7) he (0.1, 0.1, 1.0)
+  turning circle blocked at dead end (1443.2, -2411.2) by power pole at (1452.7, -2406.7, 2.7) he (0.2, 0.2, 8.0)
+  turning circle blocked at dead end (1886.5, -2586.0) by oak at (1892.8, -2597.7, 2.1) he (0.3, 0.3, 7.7)
+  turning circle blocked at dead end (2615.5, -3054.0) by power pole at (2619.5, -3045.8, 1.1) he (0.2, 0.2, 8.0)
+  turning circle blocked at dead end (-2001.9, -5530.0) by static box at (-2008.7, -5544.8, 0.8) he (5.1, 0.1, 0.6)
+  turning circle blocked at dead end (-1720.5, -2047.5) by static box at (-1706.7, -2052.8, 1.8) he (4.6, 0.1, 0.8)
+  turning circle blocked at dead end (-1631.1, -2046.9) by static box at (-1644.8, -2052.4, 3.6) he (4.5, 0.1, 0.7)
+  turning circle blocked at dead end (-671.1, 320.6) by static box at (-661.8, 327.2, 2.7) he (2.0, 0.2, 0.6)
+  turning circle blocked at dead end (318.9, -2248.0) by static box at (303.6, -2242.4, 2.1) he (5.1, 0.1, 0.9)
+  turning circle blocked at dead end (-1925.0, 5600.0) by static box at (-1912.5, 5604.6, 5.5) he (4.2, 0.1, 0.7)
+  turning circle blocked at dead end (-425.0, 7200.0) by static box at (-418.8, 7204.5, 8.0) he (2.1, 0.2, 0.8)
+  colliders from static box       2
+  at (2568.2, 4217.3, 12.2): static box
+  at (-655.8, -4593.0, 12.0): static box
+
+[falls] road edges with a fall of more than 1.2 m: guarded 125320 m, unguarded 24 m
+  unguarded at (2956.7, 160.7, 3.1)
+  unguarded at (2960.2, 162.6, 2.8)
+  unguarded at (2971.4, 169.3, 2.0)
+  unguarded at (5054.1, -2503.4, 3.0)
+  unguarded at (-8750.6, -2034.1, 2.8)
+  unguarded at (-8750.6, -2032.7, 3.1)
+
+[steps] lane surface vs physics ground: 1612245 samples, 22 off by more than 0.45 m at 4 places
+  step +0.85 m at (2954.8, 168.4) z 2.97 (terrain -1.99): Boulevard edge 139 s 161 of 214 (cut 17/17) nodes 121->123; ground from Boulevard edge 139
+  step +0.57 m at (3713.2, -46.3) z 0.47 (terrain 0.17): Boulevard edge 9469 s 13 of 25 (cut 11/11) nodes 5892->229; ground from Boulevard edge 243
+  step +0.56 m at (2920.6, -3311.2) z 0.41 (terrain 0.03): Lane edge 1327 s 7 of 15 (cut 7/0) nodes 939->940; ground from Avenue edge 1329
+  step +0.51 m at (3668.0, -1248.4) z 1.14 (terrain 0.84): Street edge 210 s 13 of 20 (cut 9/0) nodes 197->199; ground from Boulevard edge 208
+
+[grades] road profile segments steeper than 16%:
+  0 segments
+
+[crossings] roads crossing without a junction less than 4.5 m apart:
+  Ramp edge 49 x Track edge 9895 at (-1200.0, 5453.7): 4.49 m apart
+  Street edge 5421 x Road edge 5422 at (500.0, 7200.0): 0.00 m apart
+  2 crossings
+
+worldcheck: FAILED

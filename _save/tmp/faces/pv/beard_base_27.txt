@@ -1,0 +1,2 @@
+char 0: seed 214813 role 6 gender 0 h 1.84 w 0.42 m 0.56 age 0.06 hair 1 top 8 bottom 10 shoes 2 hat -1 glasses -1 fh 3: 19917 verts 31701 tris
+mesh build avg 107.14 ms, avg tris 31701

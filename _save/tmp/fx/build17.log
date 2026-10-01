@@ -1,0 +1,9 @@
+Embedded 35 shader files.
+In file included from src/audio/audio_all.cpp:12,
+                 from src/main.cpp:53:
+src/audio/audio.cpp: In function 'void Audio::setMasterVolume(float)':
+src/audio/audio.cpp:1250: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 1250 |     if (!mix::g_inited.load()) return;
+      | 
+src/audio/audio.cpp:1250: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 9014272 Sep 30 10:48 /home/user/GTA-6-Claude-v0.5/bin/nt_fx17.exe

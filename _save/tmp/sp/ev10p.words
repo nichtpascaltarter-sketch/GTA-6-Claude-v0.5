@@ -1,0 +1,32 @@
+   female     word accuracy  93.5% (87/93)
+   male       word accuracy  91.4% (85/93)
+   oldgruff   word accuracy  90.3% (84/93)
+   presetF    word accuracy  87.1% (81/93)
+   presetM    word accuracy  86.0% (80/93)
+== parakeet: word accuracy 89.7%
+   vat      x5: say the word that again | say the word that again | say the word that again | say the word that again | say the word that again
+   bout     x5: say the word about again | say the word about again | say the word about again | say the word about again | say the word about again
+   three    x5: say the word free again | say the word free again | say the word free again | say the word free again | say the word free again
+   bite     x4: say the word by it again | save the word by it again | say the word by it again | say the word by it again
+   cud      x3: say the word cut again | say the word god again | say the word cut again
+   bath     x2: say the word bass again | say the word bass again
+   beat     x2: say the word meet again | say the word meet again
+   jab      x2: say the word zab again | say the word sab again
+   crash    x2: say the word trash again | say the word trash again
+   chat     x2: say the word fat again | say the word fat again
+   jazz     x2: say the word yaz again | say the word has again
+   boat     x1: say the word vote again
+   play     x1: say the word clay again
+   bat      x1: say the word back again
+   shack    x1: say the word shaq again
+   bag      x1: say the work back again
+   dad      x1: say the word bad again
+   cab      x1: say the word tab again
+   catch    x1: say the word patch again
+   car      x1: say the word tara then
+   cart     x1: say the word part again
+   green    x1: say the word breathe again
+   can      x1: say the word pen again
+   bought   x1: say the word bout again
+   pray     x1: say the word gray again
+SUMMARY 

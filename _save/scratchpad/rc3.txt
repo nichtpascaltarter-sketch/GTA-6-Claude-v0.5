@@ -1,0 +1,170 @@
+Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.11 s)
+World map generated in 28.79 s
+PLAN Interstate 38 x (4456, 8800) side -1: none land-fail 6  why 0 0 0 0 0 0 0 0 130 106 118 0  layer(-1,0,1) 0 130 0
+PLAN Interstate 38 x (4456, 8800) side 1: none land-fail 5  why 0 0 0 0 0 0 0 0 70 249 139 0  layer(-1,0,1) 0 70 0
+PLAN Interstate 38 x (3423, 7200) side -1: none land-fail 0  why 0 0 0 0 0 0 0 0 321 457 295 0  layer(-1,0,1) 0 321 0
+PLAN Interstate 38 x (3423, 7200) side 1: none land-fail 1  why 0 0 0 0 0 0 0 0 580 133 268 0  layer(-1,0,1) 0 580 0
+PLAN Interstate 38 x (3200, 6799) side -1: none land-fail 2  why 0 0 0 0 0 0 0 0 409 0 415 0  layer(-1,0,1) 0 409 0
+PLAN Interstate 38 x (3200, 6799) side 1: none land-fail 2  why 0 0 0 0 0 0 0 0 374 0 450 0  layer(-1,0,1) 0 374 0
+PLAN Interstate 38 x (2800, 5600) side -1: none land-fail 6  why 0 0 0 0 0 0 0 0 193 151 160 0  layer(-1,0,1) 0 193 0
+PLAN Interstate 38 x (2800, 5600) side 1: none land-fail 0  why 0 0 0 0 0 0 0 0 676 138 301 0  layer(-1,0,1) 0 676 0
+PLAN Interstate 38 x (2800, 5600) side -1: none land-fail 6  why 0 0 0 0 0 0 0 0 193 151 160 0  layer(-1,0,1) 0 193 0
+PLAN Interstate 38 x (2800, 5600) side 1: none land-fail 0  why 0 0 0 0 0 0 0 0 676 138 301 0  layer(-1,0,1) 0 676 0
+PLAN Interstate 38 x (2800, 5600) side -1: none land-fail 6  why 0 0 0 0 0 0 0 0 193 151 160 0  layer(-1,0,1) 0 193 0
+PLAN Interstate 38 x (2800, 5600) side 1: none land-fail 0  why 0 0 0 0 0 0 0 0 676 138 301 0  layer(-1,0,1) 0 676 0
+PLAN Interstate 38 x (2800, 5600) side -1: none land-fail 6  why 0 0 0 0 0 0 0 0 193 151 160 0  layer(-1,0,1) 0 193 0
+PLAN Interstate 38 x (2800, 5600) side 1: none land-fail 0  why 0 0 0 0 0 0 0 0 676 138 301 0  layer(-1,0,1) 0 676 0
+PLAN Interstate 38 x (2680, 5050) side -1: none land-fail 7  why 0 0 0 0 0 0 0 0 27 250 131 0  layer(-1,0,1) 0 27 0
+PLAN Interstate 38 x (2680, 5050) side 1: single land-fail 6  why 0 0 0 0 0 0 0 0 208 131 118 0  layer(-1,0,1) 0 208 0
+PLAN Interstate 38 x (2424, 3050) side -1: none land-fail 2  why 0 0 0 0 0 0 0 0 21 657 237 0  layer(-1,0,1) 0 21 0
+PLAN Interstate 38 x (2424, 3050) side 1: single land-fail 2  why 0 0 0 0 0 0 0 0 282 282 167 0  layer(-1,0,1) 0 282 0
+PLAN Interstate 38 x (2371, 1050) side -1: single land-fail 2  why 0 0 0 0 0 0 0 0 202 329 154 0  layer(-1,0,1) 0 167 35
+PLAN Interstate 38 x (2371, 1050) side 1: none land-fail 6  why 0 0 0 0 0 0 0 0 47 307 114 0  layer(-1,0,1) 18 29 0
+PLAN Palmera Turnpike x (-1092, 8800) side -1: none land-fail 2  why 0 0 0 0 0 0 0 0 586 2 195 0  layer(-1,0,1) 0 586 0
+PLAN Palmera Turnpike x (-1092, 8800) side 1: none land-fail 0  why 0 0 0 0 0 0 0 0 690 0 263 0  layer(-1,0,1) 0 690 0
+PLAN Palmera Turnpike x (-1054, 8567) side -1: none land-fail 1  why 0 0 0 0 0 0 0 0 713 0 260 0  layer(-1,0,1) 0 713 0
+PLAN Palmera Turnpike x (-1054, 8567) side 1: none land-fail 0  why 0 0 0 0 0 0 0 0 729 0 332 0  layer(-1,0,1) 0 729 0
+PLAN Palmera Turnpike x (-200, 7200) side -1: none land-fail 0  why 0 0 0 0 0 0 0 0 784 1 334 0  layer(-1,0,1) 0 784 0
+PLAN Palmera Turnpike x (-200, 7200) side 1: none land-fail 5  why 0 0 0 0 0 0 0 0 278 197 137 0  layer(-1,0,1) 0 278 0
+PLAN Palmera Turnpike x (-200, 7200) side -1: none land-fail 0  why 0 0 0 0 0 0 0 0 784 1 334 0  layer(-1,0,1) 0 784 0
+PLAN Palmera Turnpike x (-200, 7200) side 1: none land-fail 5  why 0 0 0 0 0 0 0 0 278 197 137 0  layer(-1,0,1) 0 278 0
+PLAN Palmera Turnpike x (-200, 7200) side -1: none land-fail 0  why 0 0 0 0 0 0 0 0 784 1 334 0  layer(-1,0,1) 0 784 0
+PLAN Palmera Turnpike x (-200, 7200) side 1: none land-fail 5  why 0 0 0 0 0 0 0 0 278 197 137 0  layer(-1,0,1) 0 278 0
+PLAN Palmera Turnpike x (-200, 7200) side -1: none land-fail 0  why 0 0 0 0 0 0 0 0 784 1 334 0  layer(-1,0,1) 0 784 0
+PLAN Palmera Turnpike x (-200, 7200) side 1: none land-fail 5  why 0 0 0 0 0 0 0 0 278 197 137 0  layer(-1,0,1) 0 278 0
+PLAN Palmera Turnpike x (-402, 6351) side -1: none land-fail 11  why 0 0 0 0 0 0 0 0 0 0 0 0  layer(-1,0,1) 0 0 0
+PLAN Palmera Turnpike x (-402, 6351) side 1: none land-fail 11  why 0 0 0 0 0 0 0 0 0 0 0 0  layer(-1,0,1) 0 0 0
+PLAN Palmera Turnpike x (-1048, 5600) side -1: none land-fail 3  why 0 0 0 0 0 0 0 0 483 0 294 0  layer(-1,0,1) 0 483 0
+PLAN Palmera Turnpike x (-1048, 5600) side 1: none land-fail 0  why 0 0 0 0 0 0 0 0 629 0 408 0  layer(-1,0,1) 0 629 0
+PLAN Palmera Turnpike x (-1508, 4800) side -1: pair land-fail 4  why 0 0 0 0 0 0 0 0 9 0 2 0  layer(-1,0,1) 0 9 0
+PLAN Palmera Turnpike x (-1508, 4800) side 1: single land-fail 0  why 0 0 0 0 0 0 0 0 326 0 113 0  layer(-1,0,1) 94 232 0
+PLAN Palmera Turnpike x (-1600, 3195) side -1: none land-fail 11  why 0 0 0 0 0 0 0 0 0 0 0 0  layer(-1,0,1) 0 0 0
+PLAN Palmera Turnpike x (-1600, 3195) side 1: none land-fail 11  why 0 0 0 0 0 0 0 0 0 0 0 0  layer(-1,0,1) 0 0 0
+PLAN Palmera Turnpike x (-1600, 3200) side -1: single land-fail 0  why 0 0 0 0 136 0 0 0 16 344 167 0  layer(-1,0,1) 0 16 0
+PLAN Palmera Turnpike x (-1600, 3200) side 1: single land-fail 0  why 0 0 0 0 123 0 0 0 301 201 212 0  layer(-1,0,1) 41 260 0
+PLAN Palmera Turnpike x (-1572, 1600) side -1: single land-fail 2  why 0 0 0 0 0 0 0 0 283 240 205 0  layer(-1,0,1) 0 0 283
+PLAN Palmera Turnpike x (-1572, 1600) side 1: pair land-fail 0  why 0 0 0 0 0 0 0 0 2 0 0 0  layer(-1,0,1) 0 2 0
+PLAN Palmera Turnpike x (-1715, 0) side -1: single land-fail 4  why 0 0 0 0 209 0 0 0 9 250 146 0  layer(-1,0,1) 0 9 0
+PLAN Palmera Turnpike x (-1715, 0) side 1: pair land-fail 0  why 0 0 0 0 0 0 0 0 4 1 2 0  layer(-1,0,1) 0 4 0
+PLAN Palmera Turnpike x (-1800, -1600) side -1: pair land-fail 2  why 0 0 0 0 0 0 0 0 15 27 10 0  layer(-1,0,1) 0 15 0
+PLAN Palmera Turnpike x (-1800, -1600) side 1: pair land-fail 0  why 0 0 0 0 0 0 0 0 8 4 4 0  layer(-1,0,1) 8 0 0
+PLAN Palmera Turnpike x (-1500, -3200) side -1: pair land-fail 8  why 0 0 0 0 0 0 0 0 3 66 12 0  layer(-1,0,1) 0 3 0
+PLAN Palmera Turnpike x (-1500, -3200) side 1: pair land-fail 3  why 0 0 0 0 50 0 0 0 133 14 59 0  layer(-1,0,1) 44 89 0
+PLAN Palmera Turnpike x (-354, -4800) side -1: single land-fail 3  why 0 0 0 0 0 0 0 0 215 21 158 0  layer(-1,0,1) 0 215 0
+PLAN Palmera Turnpike x (-354, -4800) side 1: pair land-fail 3  why 0 0 0 0 0 0 0 0 112 57 167 0  layer(-1,0,1) 0 112 0
+PLAN Sol Expressway x (0, 469) side -1: single land-fail 6  why 0 0 0 0 223 0 41 0 24 72 102 0  layer(-1,0,1) 0 24 0
+PLAN Sol Expressway x (0, 469) side 1: single land-fail 10  why 0 0 0 0 0 0 0 0 5 32 6 0  layer(-1,0,1) 5 0 0
+PLAN Sol Expressway x (1424, 950) side -1: none land-fail 9  why 0 0 0 0 0 0 0 0 9 54 118 0  layer(-1,0,1) 0 9 0
+PLAN Sol Expressway x (1424, 950) side 1: none land-fail 5  why 0 0 0 0 0 0 0 0 119 278 159 0  layer(-1,0,1) 0 119 0
+PLAN Sol Expressway x (1800, 995) side -1: none land-fail 7  why 0 0 0 0 0 0 0 0 0 248 100 0  layer(-1,0,1) 0 0 0
+PLAN Sol Expressway x (1800, 995) side 1: pair land-fail 5  why 0 0 0 0 0 0 0 0 0 0 0 0  layer(-1,0,1) 0 0 0
+PLAN Sawgrass Expressway x (-1600, 1898) side -1: single land-fail 7  why 0 0 0 0 0 0 0 0 3 0 3 0  layer(-1,0,1) 0 3 0
+PLAN Sawgrass Expressway x (-1600, 1898) side 1: single land-fail 4  why 0 0 0 0 0 0 0 0 26 0 16 0  layer(-1,0,1) 26 0 0
+PLAN Sawgrass Expressway x (-2952, 1832) side -1: none land-fail 0  why 0 0 0 0 243 0 314 0 272 17 276 0  layer(-1,0,1) 0 272 0
+PLAN Sawgrass Expressway x (-2952, 1832) side 1: none land-fail 11  why 0 0 0 0 0 0 0 0 0 0 0 0  layer(-1,0,1) 0 0 0
+PLAN Sawgrass Expressway x (-7800, 5800) side -1: none land-fail 11  why 0 0 0 0 0 0 0 0 0 0 0 0  layer(-1,0,1) 0 0 0
+PLAN Sawgrass Expressway x (-7800, 5800) side 1: none land-fail 0  why 0 0 0 0 0 0 144 0 263 0 209 0  layer(-1,0,1) 0 263 0
+PLAN Lake Connector x (0, 5985) side -1: none land-fail 0  why 0 0 0 0 0 0 0 0 710 0 247 0  layer(-1,0,1) 0 710 0
+PLAN Lake Connector x (0, 5985) side 1: none land-fail 0  why 0 0 0 0 0 0 0 0 712 0 245 0  layer(-1,0,1) 0 712 0
+PLAN Lake Connector x (1600, 5863) side -1: none land-fail 0  why 0 0 0 0 0 0 0 0 830 0 286 0  layer(-1,0,1) 0 830 0
+PLAN Lake Connector x (1600, 5863) side 1: none land-fail 0  why 0 0 0 0 0 0 0 0 837 0 279 0  layer(-1,0,1) 0 837 0
+PLAN Lake Connector x (2800, 5600) side -1: none land-fail 6  why 0 0 0 0 0 0 0 0 23 0 131 0  layer(-1,0,1) 0 23 0
+PLAN Lake Connector x (2800, 5600) side 1: none land-fail 0  why 0 0 0 0 0 0 0 0 286 0 330 0  layer(-1,0,1) 0 286 0
+PLAN Lake Connector x (2800, 5600) side -1: none land-fail 6  why 0 0 0 0 0 0 0 0 23 0 131 0  layer(-1,0,1) 0 23 0
+PLAN Lake Connector x (2800, 5600) side 1: none land-fail 0  why 0 0 0 0 0 0 0 0 286 0 330 0  layer(-1,0,1) 0 286 0
+Road gen: 13 interchanges, 31 ramps (21 left out where they could not come down in time)
+RAMPDBG edge 4 end 0 cnt 36 run 4 keep 4 zTop 12.94 zFar 4.26 flat 16.8 L 333.3 t[mid] 12.94
+RAMPDBG edge 6 end 1 cnt 33 run 4 keep 4 zTop 12.19 zFar 2.85 flat 16.8 L 310.7 t[mid] 11.89
+RAMPDBG edge 8 end 0 cnt 33 run 4 keep 4 zTop 12.18 zFar 2.87 flat 16.8 L 312.4 t[mid] 11.95
+RAMPDBG edge 17 end 0 cnt 39 run 4 keep 4 zTop 13.67 zFar 5.87 flat 16.8 L 368.1 t[mid] 13.67
+RAMPDBG edge 19 end 1 cnt 34 run 4 keep 4 zTop 14.65 zFar 5.87 flat 16.8 L 293.1 t[mid] 14.31
+RAMPDBG edge 21 end 0 cnt 48 run 4 keep 4 zTop 14.52 zFar 5.89 flat 16.8 L 423.3 t[mid] 14.52
+RAMPDBG edge 23 end 1 cnt 64 run 4 keep 4 zTop 14.09 zFar 4.96 flat 16.8 L 559.7 t[mid] 14.09
+RAMPDBG edge 25 end 0 cnt 35 run 4 keep 4 zTop 14.17 zFar 4.93 flat 16.8 L 304.6 t[mid] 13.50
+RAMPDBG edge 29 end 1 cnt 34 run 4 keep 4 zTop 14.07 zFar 5.00 flat 16.8 L 300.5 t[mid] 13.78
+RAMPDBG edge 31 end 0 cnt 34 run 4 keep 4 zTop 14.13 zFar 5.00 flat 16.8 L 316.0 t[mid] 13.52
+RAMPDBG edge 33 end 1 cnt 54 run 4 keep 4 zTop 14.28 zFar 5.01 flat 16.8 L 474.7 t[mid] 14.28
+RAMPDBG edge 37 end 1 cnt 34 run 4 keep 4 zTop 14.27 zFar 4.96 flat 16.8 L 299.3 t[mid] 13.71
+RAMPDBG edge 39 end 0 cnt 41 run 4 keep 4 zTop 14.11 zFar 4.96 flat 16.8 L 362.4 t[mid] 14.11
+RAMPDBG edge 41 end 1 cnt 54 run 4 keep 4 zTop 14.14 zFar 4.93 flat 16.8 L 475.5 t[mid] 14.14
+RAMPDBG edge 43 end 1 cnt 46 run 4 keep 4 zTop 14.33 zFar 5.16 flat 16.8 L 417.8 t[mid] 14.33
+RAMPDBG edge 45 end 0 cnt 35 run 4 keep 4 zTop 14.44 zFar 5.06 flat 16.8 L 312.8 t[mid] 13.93
+RAMPDBG edge 47 end 1 cnt 36 run 4 keep 4 zTop 14.15 zFar 5.06 flat 16.8 L 321.9 t[mid] 14.15
+RAMPDBG edge 49 end 0 cnt 47 run 4 keep 4 zTop 14.05 zFar 5.16 flat 16.8 L 405.3 t[mid] 14.05
+RAMPDBG edge 51 end 0 cnt 62 run 4 keep 4 zTop 13.33 zFar 3.53 flat 16.8 L 538.1 t[mid] 13.33
+RAMPDBG edge 53 end 1 cnt 41 run 4 keep 4 zTop 13.10 zFar 3.84 flat 16.8 L 371.2 t[mid] 13.10
+RAMPDBG edge 55 end 1 cnt 44 run 4 keep 4 zTop 12.97 zFar 3.53 flat 16.8 L 406.0 t[mid] 12.97
+RAMPDBG edge 57 end 0 cnt 44 run 4 keep 4 zTop 12.88 zFar 3.84 flat 16.8 L 406.0 t[mid] 12.88
+RAMPDBG edge 59 end 1 cnt 67 run 4 keep 4 zTop 11.78 zFar 2.76 flat 16.7 L 527.2 t[mid] 11.78
+RAMPDBG edge 61 end 1 cnt 52 run 4 keep 4 zTop 10.53 zFar 2.73 flat 16.7 L 415.2 t[mid] 10.53
+RAMPDBG edge 62 end 0 cnt 35 run 4 keep 4 zTop 10.16 zFar 2.76 flat 16.7 L 308.2 t[mid] 10.16
+RAMPDBG edge 64 end 1 cnt 34 run 4 keep 4 zTop 13.90 zFar 4.61 flat 16.7 L 300.4 t[mid] 13.37
+RAMPDBG edge 66 end 1 cnt 35 run 4 keep 4 zTop 14.08 zFar 4.82 flat 16.8 L 312.3 t[mid] 13.31
+RAMPDBG edge 68 end 1 cnt 36 run 4 keep 4 zTop 12.89 zFar 3.23 flat 16.8 L 322.0 t[mid] 12.65
+RAMPDBG edge 69 end 0 cnt 36 run 4 keep 4 zTop 12.10 zFar 3.23 flat 16.8 L 325.7 t[mid] 12.10
+RAMPDBG edge 71 end 1 cnt 35 run 4 keep 4 zTop 14.30 zFar 4.85 flat 16.8 L 306.3 t[mid] 13.49
+RAMPDBG edge 73 end 0 cnt 47 run 4 keep 4 zTop 14.36 zFar 4.87 flat 17.1 L 408.9 t[mid] 14.36
+Road network: 6215 nodes, 9865 edges, 1738 signalized; hwy 61.7 km, streets 1189.4 km (7.53 s)
+worldcheck: 0 cells, 0 colliders, 0 props
+
+[lanes] colliders intruding into drivable lanes: 0, props standing in lanes: 0
+
+[falls] road edges with a fall of more than 1.2 m: guarded 0 m, unguarded 136640 m
+  unguarded at (4612.7, 9243.2, 16.4)
+  unguarded at (4585.9, 9253.1, 16.4)
+  unguarded at (4611.3, 9239.4, 16.4)
+  unguarded at (4584.5, 9249.3, 16.4)
+  unguarded at (4609.9, 9235.7, 16.4)
+  unguarded at (4583.1, 9245.6, 16.4)
+  unguarded at (4608.5, 9231.9, 16.4)
+  unguarded at (4581.7, 9241.8, 16.4)
+  unguarded at (4607.3, 9228.3, 16.4)
+  unguarded at (4580.3, 9237.9, 16.4)
+  unguarded at (4605.9, 9224.6, 16.4)
+  unguarded at (4579.0, 9234.1, 16.4)
+  unguarded at (4604.6, 9220.8, 16.3)
+  unguarded at (4577.6, 9230.3, 16.3)
+  unguarded at (4603.3, 9217.0, 16.3)
+  unguarded at (4576.3, 9226.6, 16.3)
+  unguarded at (4602.0, 9213.4, 16.3)
+  unguarded at (4574.9, 9222.6, 16.3)
+  unguarded at (4600.7, 9209.6, 16.3)
+  unguarded at (4573.6, 9218.8, 16.3)
+  unguarded at (4599.4, 9205.8, 16.3)
+  unguarded at (4572.3, 9215.0, 16.3)
+  unguarded at (4598.1, 9202.1, 16.3)
+  unguarded at (4571.1, 9211.3, 16.3)
+  unguarded at (4596.9, 9198.3, 16.4)
+  unguarded at (4569.8, 9207.5, 16.4)
+  unguarded at (4595.6, 9194.6, 16.4)
+  unguarded at (4568.5, 9203.5, 16.4)
+  unguarded at (4594.4, 9190.8, 16.4)
+  unguarded at (4567.2, 9199.7, 16.4)
+  unguarded at (4593.1, 9187.0, 16.4)
+  unguarded at (4566.0, 9196.0, 16.4)
+  unguarded at (4591.9, 9183.2, 16.4)
+  unguarded at (4564.7, 9192.2, 16.4)
+  unguarded at (4590.6, 9179.4, 16.4)
+  unguarded at (4563.5, 9188.4, 16.4)
+  unguarded at (4589.4, 9175.7, 16.4)
+  unguarded at (4562.2, 9184.5, 16.4)
+  unguarded at (4588.2, 9171.9, 16.4)
+  unguarded at (4561.0, 9180.6, 16.4)
+
+[steps] lane surface vs physics ground: 1612949 samples, 20 off by more than 0.45 m at 3 places
+  step +0.85 m at (2954.8, 168.4) z 2.97 (terrain -1.99): Boulevard edge 2866 s 161 of 214 (cut 17/17) nodes 1647->1649; ground from Boulevard edge 2866
+  step +0.55 m at (3713.2, -46.3) z 0.48 (terrain 0.18): Boulevard edge 3771 s 13 of 25 (cut 11/11) nodes 2067->2139; ground from Boulevard edge 4127
+  step +0.51 m at (3668.0, -1251.6) z 1.14 (terrain 0.84): Street edge 4112 s 13 of 20 (cut 9/0) nodes 2055->2335; ground from Boulevard edge 4111
+
+[grades] road profile segments steeper than 16%:
+  17% on Boulevard edge 3949 at (4963.9, 3301.4) z 4.73 -> 3.59 over 6.7 m (s 1065 of 1101)
+  16% on Road edge 9711 at (-3200.0, 9566.7) z 5.68 -> 4.34 over 8.3 m (s 767 of 800)
+  17% on Road edge 9742 at (1600.0, 9541.7) z 3.84 -> 2.45 over 8.3 m (s 742 of 775)
+  19% on Road edge 9822 at (-8571.0, 8780.4) z 26.40 -> 25.21 over 6.4 m (s 2620 of 2655)
+  16% on Road edge 9822 at (-8576.3, 8783.9) z 25.21 -> 24.17 over 6.4 m (s 2626 of 2655)
+  18% on Road edge 9823 at (-7789.0, 5834.0) z 97.14 -> 95.96 over 6.5 m (s 1362 of 1398)
+  16% on Road edge 9823 at (-7791.0, 5827.8) z 95.96 -> 94.90 over 6.5 m (s 1369 of 1398)
+  7 segments
+
+worldcheck: FAILED

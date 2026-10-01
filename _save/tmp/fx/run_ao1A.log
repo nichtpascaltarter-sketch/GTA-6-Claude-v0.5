@@ -1,0 +1,58 @@
+[   0.003] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.480] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16095 MB
+[   1.096] Font atlas built in 0.60 s
+[  18.082] World map generated in 16.98 s
+[  18.193] Road gen: 21 interchanges
+[  19.734] Road network: 6252 nodes, 10041 edges, 1732 signalized; hwy 60.1 km, streets 1186.7 km (1.65 s)
+[  21.689] Buildings: 36940 (towers 368, midrise 2449, condo 509, deco 844, shops 4788, strip 767, houses 22715, villas 794, warehouses 1673) in 1.91 s
+[  21.909] Material library: 52 layers at 256^2
+[  21.920] Props: 51 prototypes, 14371 verts
+[  22.508] Init done in 21.40 s (shaders: 0 compiled in 0.00 s)
+[  79.382] GPU timers (frame 30):
+sky                 19.08 ms
+shadows            484.89 ms
+gbuffer            519.69 ms
+hiz+pyramid        129.75 ms
+ao+gi               56.10 ms
+clouds             184.12 ms
+lighting             8.87 ms
+water               47.35 ms
+post                91.44 ms
+
+[ 139.970] GPU timers (frame 60):
+sky                 24.80 ms
+shadows            653.72 ms
+gbuffer            599.86 ms
+hiz+pyramid        133.42 ms
+ao+gi               76.29 ms
+clouds             183.71 ms
+lighting            25.53 ms
+water               67.07 ms
+post               138.89 ms
+
+[ 189.589] Saved Z:\tmp\fx\ao1A\dt_noon.bmp
+[ 192.702] GPU timers (frame 90):
+sky                 31.80 ms
+shadows            654.80 ms
+gbuffer            602.18 ms
+hiz+pyramid        138.57 ms
+ao+gi               90.62 ms
+clouds             165.54 ms
+lighting             6.56 ms
+water               88.54 ms
+post               156.57 ms
+
+[ 247.752] GPU timers (frame 120):
+sky                 20.29 ms
+shadows            717.08 ms
+gbuffer            542.28 ms
+hiz+pyramid         85.47 ms
+ao+gi              109.97 ms
+clouds             134.15 ms
+lighting            10.44 ms
+water               29.89 ms
+post               161.07 ms
+
+[ 299.857] Saved Z:\tmp\fx\ao1A\flats.bmp
+[ 301.866] Shutdown complete.
+X connection to :99 broken (explicit kill or server shutdown).

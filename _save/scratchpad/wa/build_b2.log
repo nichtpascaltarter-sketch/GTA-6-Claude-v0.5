@@ -1,0 +1,11 @@
+Embedded 35 shader files.
+In file included from src/audio/audio_all.cpp:9,
+                 from src/main.cpp:53:
+src/audio/music.cpp: In member function 'const Audio::detail::music::Section& Audio::detail::music::Comp::sectionOfBar(int) const':
+src/audio/music.cpp:2234: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 2234 |             if (bar >= s.startBar && bar < s.startBar + s.bars) return s;
+      | 
+src/audio/music.cpp:2234: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+x86_64-w64-mingw32-g++: fatal error: Killed signal terminated program cc1plus
+compilation terminated.
+exit 1

@@ -1,0 +1,9 @@
+{
+  "id": "22",
+  "subject": "Interchange ramp layout rework (world agent)",
+  "description": "World agent: interchange ramps planned before planarisation (7% max, 4.75 m clearance, direction fix, tapers), 18 interchanges / 50 ramps; planariser, grade-limit and node-height fixes; site-collider-aware turning bulbs; worldcheck exits 0 in every category.",
+  "activeForm": "Reworking interchange ramps",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

@@ -1,0 +1,10 @@
+// Game UI unity include: HUD, map, menus, phone and Tidegram feed (included by main.cpp when present).
+#include "ui_internal.h"
+#include "ui_common.cpp"
+#include "settings.cpp"
+#include "icons.cpp"
+#include "mapview.cpp"
+#include "hud.cpp"
+#include "menus.cpp"
+#include "tidegram.cpp"
+#include "phone.cpp"

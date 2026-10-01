@@ -1,0 +1,15 @@
+In file included from src/audio/audio_all.cpp:10,
+                 from src/main.cpp:53:
+src/audio/radio.cpp: In function 'void Audio::detail::radio::materialize(Station&, double, double)':
+src/audio/radio.cpp:825: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+  825 |         if (end > t + ahead) break;
+      | 
+src/audio/radio.cpp:825: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+In file included from src/game/../game/game_all.cpp:36,
+                 from src/game/app.cpp:14,
+                 from src/main.cpp:65:
+src/game/../game/mission_util.cpp: In function 'Game::CutsceneShot Game::mu::shotRoom(const InteriorStage&, vec3, vec3, vec3, float)':
+src/game/../game/mission_util.cpp:400: error: 'shotMove' was not declared in this scope
+  400 |     return shotMove(cam, mid, cam + d * 0.12f, mid, duration, 48.f);
+      | 
+build exit 1

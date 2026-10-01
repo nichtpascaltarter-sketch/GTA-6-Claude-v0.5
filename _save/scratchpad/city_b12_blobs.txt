@@ -1,0 +1,10 @@
+100644 af7411feeff6c67115ee741f6ad2cee7672272b5 src/world/buildings.h
+100644 8eb43d427ec384706ab5a2c0ef46e671fb17f7a1 src/world/buildings.cpp
+100644 31aad3888df00854adc2f0f6bbd1712839c865f9 src/world/buildmesh.cpp
+100644 2088f1fbc51120b85de44da8bdd0c8fb6e18a007 src/world/facadedetail.cpp
+100644 f43ee69895b44eff4e94025f1bf8317143aadfd8 src/world/cellgen.cpp
+100644 f7adc461df87c1ffa76a0c223f782d56814b6807 src/world/blockstyle.cpp
+100644 6cea14ec174021006c34a16716f9b24846a92f3f src/world/massing.cpp
+100755 77fb4fa71c29d9665e47650ca254e586a075b9d9 build.sh
+100755 476881929a5200ffef3238a39c1e7362b73468e4 tools/memfree.sh
+100755 2f144a1a6cf80fd4fe40b68b172b912b94bd94fa tools/run.sh

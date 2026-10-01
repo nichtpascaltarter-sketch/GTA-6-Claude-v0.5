@@ -1,0 +1,9 @@
+{
+  "id": "46",
+  "subject": "City blocks variety between landmarks",
+  "description": "New city agent, started at about 13:30. Gives the ordinary blocks building palettes by district, Miami-style:\n- art-deco and MiMo, podium towers, mixed-use, strip malls, bungalows, warehouses;\n- varied footprints, setbacks and roofs.\nKeep the lots, anchors and interiors intact, and pass the campaign regression. Sign-off: \"city snapshot-safe\".",
+  "activeForm": "Varying the city blocks between landmarks",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

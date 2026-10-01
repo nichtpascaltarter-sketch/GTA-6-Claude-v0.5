@@ -1,0 +1,55 @@
+diff --git a/src/game/peds.cpp b/src/game/peds.cpp
+index 6384685..6bb51bd 100644
+--- a/src/game/peds.cpp
++++ b/src/game/peds.cpp
+@@ -588,7 +588,13 @@ void GameWorld::animatePed(Ped& p, float dt) {
+     vec2 hv(p.vel.x, p.vel.y);
+     float spd = length(hv);
+     in.speed = spd;
+-    in.turnRate = p.turnRate;
++    // the turn the animator gets is the yaw's own change since the last animation update, whatever turned the ped (the
++    // AI's turnTo or faceTowards, a script setting the yaw, a stop in mid-turn); a radian or more at once is a warp
++    {
++        float dy = wrapAngle(p.yaw - p.animYaw);
++        in.turnRate = dt > 0.f && fabsf(dy) < 1.f ? dy / dt : 0.f;
++        p.animYaw = p.yaw;
++    }
+     vec2 fwd(-sinf(p.yaw), cosf(p.yaw)), rightV(cosf(p.yaw), sinf(p.yaw));
+     in.localMoveDir = spd > 0.1f ? normalize(vec2(dot(hv, rightV), dot(hv, fwd))) : vec2(0, 1);
+     in.inAir = !p.grounded && p.state == PS_ONFOOT && p.airTime > 0.15f;
+@@ -838,6 +844,35 @@ void GameWorld::animatePed(Ped& p, float dt) {
+             in.grabWeight = 1.f;
+         }
+     }
++    // someone on foot passing close (the animator turns the near shoulder back and side-steps): of the people near the
++    // camera, the nearest one whose closest approach over the next 1.5 s comes within a metre
++    in.passWeight = 0.f;
++    if (upright && p.grounded && p.visibleDist < 30.f) {
++        float best = 2.6f;
++        int bj = -1;
++        vec2 brv(0.f);
++        for (int j = 0; j < (int)peds.size(); j++) {
++            const Ped& o = peds[j];
++            if (o.visibleDist > 33.f || !o.used || &o == &p || o.state != PS_ONFOOT || o.ragdoll || o.health <= 0.f) continue;
++            vec3 D = rel(o.pos, p.pos);
++            vec2 d2(D.x, D.y), rv(o.vel.x - p.vel.x, o.vel.y - p.vel.y);
++            float dist = length(d2), rv2 = length2(rv);
++            if (dist >= best || fabsf(D.z) > 1.2f) continue;
++            float tca = rv2 > 1e-3f ? Clamp(-dot(d2, rv) / rv2, 0.f, 1.5f) : 0.f;
++            if (length(d2 + rv * tca) > 1.f) continue;
++            best = dist;
++            bj = j;
++            brv = rv;
++        }
++        if (bj >= 0) {
++            const Ped& o = peds[bj];
++            vec3 c = rel(o.pos, p.pos) + rotate(yawQuat(o.yaw), o.bones[Anim::B_CHEST].c[3].xyz());
++            in.passBy = vec3(dot(vec2(c.x, c.y), rightV), dot(vec2(c.x, c.y), fwd), c.z);
++            in.passVel = vec2(dot(brv, rightV), dot(brv, fwd));
++            float k = Saturate((2.4f - best) / 1.3f);
++            in.passWeight = k * k * (3.f - 2.f * k);
++        }
++    }
+     // foot IK: probe the ground where each foot is planted / about to land (Animator::footProbe) and the slope under
+     // them (only for nearby peds)
+     in.groundOffsetL = in.groundOffsetR = 0.f;

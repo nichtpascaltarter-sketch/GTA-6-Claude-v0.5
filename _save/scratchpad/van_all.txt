@@ -1,0 +1,38 @@
+Sites: 85 pads, 322 elements, 23 roads, 21 buildings requested (0.12 s)
+World map generated in 31.23 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (3.32 s)
+Buildings: 36321 (towers 358, midrise 2411, condo 535, deco 859, shops 4885, strip 730, houses 21906, villas 903, warehouses 1707) in 2.43 s
+Sites: 65 highway billboards
+Sites: 117 silos, 53 windmills
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 557 elements (0.01 s)
+real done std-van (cells 0.0 s)
+real world generated in 37.0 s (10030 roads, 36321 buildings)
+
+### Real world (generated Palmera: random routes on the road graph, streamed LOD0 collision)
+
+| model | class | km driven | avg km/h | bridge/elevated km | max roll deg | max pitch deg | flips/crashes | stuck (other) / lane blocked by world | prop/bldg impacts | props broken | fell through a surface | drove off a deck edge | NaN | building @60: min speed after / inside / health | curb crossing s | us/step |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| std-van | van | 0.0 | 0 | 0.00 | 0 | 0 | 0 | 0 / 0 | 0 | 0 | 0 | 0 | 0 | -1.0 / no / 0 | 8.1 | 0.0 |

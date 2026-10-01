@@ -1,0 +1,13 @@
+Embedded 35 shader files.
+In file included from src/anim/anim_all.cpp:15,
+                 from src/main.cpp:49:
+src/anim/animator.cpp: In function 'void Anim::detail::footPlanting(Anim::Animator&, const Anim::AnimInput&, float, Anim::Pose&, bool, bool, float)':
+src/anim/animator.cpp:408: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+  408 |             for (int s = 0; s < 2; s++)
+      | 
+src/anim/animator.cpp:408: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+Terminated
+
+real	16m10.323s
+user	0m0.033s
+sys	0m0.006s

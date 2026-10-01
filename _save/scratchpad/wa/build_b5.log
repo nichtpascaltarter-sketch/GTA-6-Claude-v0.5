@@ -1,0 +1,10 @@
+Embedded 35 shader files.
+In file included from src/audio/audio_all.cpp:9,
+                 from src/main.cpp:53:
+src/audio/music.cpp: In function 'void Audio::detail::music::dk::renderPiece(int, Audio::detail::music::KitStyle, float, int, std::vector<float>&, u32)':
+src/audio/music.cpp:1046: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 1046 |                 p1 += 545.f * r * kInvSR; if (p1 >= 1.f) p1 -= 1.f;
+      | 
+src/audio/music.cpp:1046: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 10163200 Sep 30 19:54 bin/world_agent.exe
+exit 0

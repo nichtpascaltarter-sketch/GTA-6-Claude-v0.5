@@ -1,0 +1,2772 @@
+[
+{
+"file": "story_act1.cpp",
+"line": 67,
+"call": "phoneLine",
+"cls": "MissionLowTide",
+"fn": "start",
+"stage": "-",
+"text": "Mari, it's me. I messed up. I need you at the old Vargas garage, right now. Please hurry.",
+"q": 3113
+},
+{
+"file": "story_act1.cpp",
+"line": 68,
+"call": "sayMe",
+"cls": "MissionLowTide",
+"fn": "start",
+"stage": "-",
+"text": "Tomas? Hey, slow down. Stay there, I'm coming.",
+"q": 3224
+},
+{
+"file": "story_act1.cpp",
+"line": 88,
+"call": "say",
+"cls": "MissionLowTide",
+"fn": "update",
+"stage": "0",
+"text": "They took the money I was holding for them. Two guys from the Cuervos. They think I skimmed it.",
+"q": 4319
+},
+{
+"file": "story_act1.cpp",
+"line": 89,
+"call": "sayMe",
+"cls": "MissionLowTide",
+"fn": "update",
+"stage": "0",
+"text": "Did you?",
+"q": 4448
+},
+{
+"file": "story_act1.cpp",
+"line": 90,
+"call": "say",
+"cls": "MissionLowTide",
+"fn": "update",
+"stage": "0",
+"text": "No! I swear. Just get me to Lucha's. She'll know what to do.",
+"q": 4507
+},
+{
+"file": "story_act1.cpp",
+"line": 104,
+"call": "say",
+"cls": "MissionLowTide",
+"fn": "update",
+"stage": "1",
+"text": "Mari... that black car. It's them!",
+"q": 5137
+},
+{
+"file": "story_act1.cpp",
+"line": 116,
+"call": "say",
+"cls": "MissionLowTide",
+"fn": "update",
+"stage": "3",
+"text": "They're shooting at us! Drive, drive!",
+"q": 5793
+},
+{
+"file": "story_act1.cpp",
+"line": 117,
+"call": "sayMe",
+"cls": "MissionLowTide",
+"fn": "update",
+"stage": "3",
+"text": "Hold on to something.",
+"q": 5903
+},
+{
+"file": "story_act1.cpp",
+"line": 124,
+"call": "sayMe",
+"cls": "MissionLowTide",
+"fn": "update",
+"stage": "3",
+"text": "I think we lost them.",
+"q": 6240
+},
+{
+"file": "story_act1.cpp",
+"line": 125,
+"call": "say",
+"cls": "MissionLowTide",
+"fn": "update",
+"stage": "3",
+"text": "Lucha's gonna kill me.",
+"q": 6312
+},
+{
+"file": "story_act1.cpp",
+"line": 126,
+"call": "sayMe",
+"cls": "MissionLowTide",
+"fn": "update",
+"stage": "3",
+"text": "Lucha's gonna feed you. Then she's gonna kill you.",
+"q": 6368
+},
+{
+"file": "story_act1.cpp",
+"line": 148,
+"call": "say",
+"cls": "MissionLowTide",
+"fn": "update",
+"stage": "4",
+"text": "Marisol! Dios mio, what happened to him?",
+"q": 7796
+},
+{
+"file": "story_act1.cpp",
+"line": 149,
+"call": "sayMe",
+"cls": "MissionLowTide",
+"fn": "update",
+"stage": "4",
+"text": "Cuervos. He says he owes them money.",
+"q": 7870
+},
+{
+"file": "story_act1.cpp",
+"line": 150,
+"call": "say",
+"cls": "MissionLowTide",
+"fn": "update",
+"stage": "4",
+"text": "Inside, both of you. Nobody touches my boy under my roof.",
+"q": 7957
+},
+{
+"file": "story_act1.cpp",
+"line": 151,
+"call": "say",
+"cls": "MissionLowTide",
+"fn": "update",
+"stage": "4",
+"text": "Thank you, Lucha. I'll fix this, I swear.",
+"q": 8065
+},
+{
+"file": "story_act1.cpp",
+"line": 250,
+"call": "say",
+"cls": "MissionRepoMan",
+"fn": "start",
+"stage": "4",
+"text": "Dex. You look like you slept in a car again.",
+"q": 12434
+},
+{
+"file": "story_act1.cpp",
+"line": 251,
+"call": "sayMe",
+"cls": "MissionRepoMan",
+"fn": "start",
+"stage": "4",
+"text": "I did. What have you got for me, Rook?",
+"q": 12500
+},
+{
+"file": "story_act1.cpp",
+"line": 252,
+"call": "say",
+"cls": "MissionRepoMan",
+"fn": "start",
+"stage": "4",
+"text": "Green Gatorback. Belongs to a Cuervo lieutenant who stopped paying my cousin's lot. Four months.",
+"q": 12575
+},
+{
+"file": "story_act1.cpp",
+"line": 253,
+"call": "sayMe",
+"cls": "MissionRepoMan",
+"fn": "start",
+"stage": "4",
+"text": "A Cuervo. Great. And you want me to walk up and ask for the keys.",
+"q": 12693
+},
+{
+"file": "story_act1.cpp",
+"line": 254,
+"call": "say",
+"cls": "MissionRepoMan",
+"fn": "start",
+"stage": "4",
+"text": "I want it here, in one piece. Every dent comes out of your cut. It's parked in Calle Luna, south of the river.",
+"q": 12795
+},
+{
+"file": "story_act1.cpp",
+"line": 293,
+"call": "sayMe",
+"cls": "MissionRepoMan",
+"fn": "update",
+"stage": "1",
+"text": "There she is. And there's the welcome committee.",
+"q": 14682
+},
+{
+"file": "story_act1.cpp",
+"line": 300,
+"call": "say",
+"cls": "MissionRepoMan",
+"fn": "update",
+"stage": "2",
+"text": "Hey! That's Chuy's ride! Get him!",
+"q": 14990
+},
+{
+"file": "story_act1.cpp",
+"line": 329,
+"call": "sayMe",
+"cls": "MissionRepoMan",
+"fn": "update",
+"stage": "3",
+"text": "Nothing personal, fellas. Just business.",
+"q": 16450
+},
+{
+"file": "story_act1.cpp",
+"line": 336,
+"call": "sayMe",
+"cls": "MissionRepoMan",
+"fn": "update",
+"stage": "3",
+"text": "Clean getaway. Rook owes me a beer.",
+"q": 16894
+},
+{
+"file": "story_act1.cpp",
+"line": 354,
+"call": "say",
+"cls": "MissionRepoMan",
+"fn": "update",
+"stage": "4",
+"text": "Not a scratch. Look at you, a professional.",
+"q": 17997
+},
+{
+"file": "story_act1.cpp",
+"line": 355,
+"call": "sayMe",
+"cls": "MissionRepoMan",
+"fn": "update",
+"stage": "4",
+"text": "They had guns, Rook. You didn't mention guns.",
+"q": 18134
+},
+{
+"file": "story_act1.cpp",
+"line": 356,
+"call": "say",
+"cls": "MissionRepoMan",
+"fn": "update",
+"stage": "4",
+"text": "Everybody has guns. Listen. The bank has another job. A pickup truck at a boatyard on the river. Ortega's yard.",
+"q": 18228
+},
+{
+"file": "story_act1.cpp",
+"line": 357,
+"call": "sayMe",
+"cls": "MissionRepoMan",
+"fn": "update",
+"stage": "4",
+"text": "Boatyard. How hard can a boatyard be.",
+"q": 18373
+},
+{
+"file": "story_act1.cpp",
+"line": 437,
+"call": "phoneLine",
+"cls": "MissionDryDock",
+"fn": "start",
+"stage": "4",
+"text": "The truck's at the Ortega boatyard on the river. Bank papers are in the glovebox. In and out, Dex.",
+"q": 21904
+},
+{
+"file": "story_act1.cpp",
+"line": 438,
+"call": "sayMe",
+"cls": "MissionDryDock",
+"fn": "start",
+"stage": "4",
+"text": "In and out. Famous last words.",
+"q": 22024
+},
+{
+"file": "story_act1.cpp",
+"line": 484,
+"call": "sayP",
+"cls": "MissionDryDock",
+"fn": "update",
+"stage": "1",
+"text": "Step away from my truck. Slowly.",
+"q": 23996
+},
+{
+"file": "story_act1.cpp",
+"line": 485,
+"call": "sayMe",
+"cls": "MissionDryDock",
+"fn": "update",
+"stage": "1",
+"text": "Easy. I'm with the bank. Coastline Savings. You missed four payments.",
+"q": 24062
+},
+{
+"file": "story_act1.cpp",
+"line": 486,
+"call": "sayP",
+"cls": "MissionDryDock",
+"fn": "update",
+"stage": "1",
+"text": "Coastline bought our loan last month. Then they tripled it. You know who owns Coastline?",
+"q": 24173
+},
+{
+"file": "story_act1.cpp",
+"line": 487,
+"call": "sayMe",
+"cls": "MissionDryDock",
+"fn": "update",
+"stage": "1",
+"text": "I just drive the trucks, lady.",
+"q": 24295
+},
+{
+"file": "story_act1.cpp",
+"line": 488,
+"call": "sayP",
+"cls": "MissionDryDock",
+"fn": "update",
+"stage": "1",
+"text": "Victor Sandoval. He wants this whole riverfront. And he doesn't care how he gets it.",
+"q": 24367
+},
+{
+"file": "story_act1.cpp",
+"line": 489,
+"call": "sayMe",
+"cls": "MissionDryDock",
+"fn": "update",
+"stage": "1",
+"text": "Look, I'm sorry about your yard, but -",
+"q": 24485
+},
+{
+"file": "story_act1.cpp",
+"line": 490,
+"call": "sayP",
+"cls": "MissionDryDock",
+"fn": "update",
+"stage": "1",
+"text": "Wait. Hear that? Engines. Those aren't bankers.",
+"q": 24565
+},
+{
+"file": "story_act1.cpp",
+"line": 502,
+"call": "sayMe",
+"cls": "MissionDryDock",
+"fn": "update",
+"stage": "2",
+"text": "Cuervos. With firebombs. You've got friends.",
+"q": 25105
+},
+{
+"file": "story_act1.cpp",
+"line": 503,
+"call": "sayP",
+"cls": "MissionDryDock",
+"fn": "update",
+"stage": "2",
+"text": "They're here to burn us out. You can run, bank man, or you can help.",
+"q": 25191
+},
+{
+"file": "story_act1.cpp",
+"line": 510,
+"call": "sayMe",
+"cls": "MissionDryDock",
+"fn": "update",
+"stage": "3",
+"text": "Guess I'm helping.",
+"q": 25532
+},
+{
+"file": "story_act1.cpp",
+"line": 514,
+"call": "sayP",
+"cls": "MissionDryDock",
+"fn": "update",
+"stage": "3",
+"text": "More coming from the bridge!",
+"q": 25716
+},
+{
+"file": "story_act1.cpp",
+"line": 531,
+"call": "sayP",
+"cls": "MissionDryDock",
+"fn": "update",
+"stage": "3",
+"text": "You didn't have to do that.",
+"q": 26536
+},
+{
+"file": "story_act1.cpp",
+"line": 532,
+"call": "sayMe",
+"cls": "MissionDryDock",
+"fn": "update",
+"stage": "3",
+"text": "Yeah, I did. Dex Calloway. I used to pull people out of the water for a living.",
+"q": 26597
+},
+{
+"file": "story_act1.cpp",
+"line": 533,
+"call": "sayP",
+"cls": "MissionDryDock",
+"fn": "update",
+"stage": "3",
+"text": "Marisol Ortega. Mari. So. You still taking my truck?",
+"q": 26718
+},
+{
+"file": "story_act1.cpp",
+"line": 534,
+"call": "sayMe",
+"cls": "MissionDryDock",
+"fn": "update",
+"stage": "3",
+"text": "Truck got stolen. Tell the bank. If the Cuervos come back, call me.",
+"q": 26804
+},
+{
+"file": "story_act1.cpp",
+"line": 642,
+"call": "say",
+"cls": "MissionPressure",
+"fn": "start",
+"stage": "-",
+"text": "Mrs. Paredes, it's a generous offer. Twice what this place is worth.",
+"q": 31891
+},
+{
+"file": "story_act1.cpp",
+"line": 643,
+"call": "say",
+"cls": "MissionPressure",
+"fn": "start",
+"stage": "-",
+"text": "This place is worth forty years of my life. It is not for sale.",
+"q": 31998
+},
+{
+"file": "story_act1.cpp",
+"line": 644,
+"call": "say",
+"cls": "MissionPressure",
+"fn": "start",
+"stage": "-",
+"text": "Everything is for sale. The only question is the price, and how long you wait to accept it.",
+"q": 32101
+},
+{
+"file": "story_act1.cpp",
+"line": 645,
+"call": "say",
+"cls": "MissionPressure",
+"fn": "start",
+"stage": "-",
+"text": "Out. Before I get my frying pan.",
+"q": 32231
+},
+{
+"file": "story_act1.cpp",
+"line": 646,
+"call": "say",
+"cls": "MissionPressure",
+"fn": "start",
+"stage": "-",
+"text": "Think it over. The neighborhood is changing. Accidents happen.",
+"q": 32303
+},
+{
+"file": "story_act1.cpp",
+"line": 690,
+"call": "sayMe",
+"cls": "MissionPressure",
+"fn": "update",
+"stage": "1",
+"text": "Let's see who you really work for.",
+"q": 34556
+},
+{
+"file": "story_act1.cpp",
+"line": 699,
+"call": "sayMe",
+"cls": "MissionPressure",
+"fn": "update",
+"stage": "2",
+"text": "Nice car for a real estate guy.",
+"q": 35024
+},
+{
+"file": "story_act1.cpp",
+"line": 714,
+"call": "say",
+"cls": "MissionPressure",
+"fn": "update",
+"stage": "3",
+"text": "Hey! Who's there?",
+"q": 35670
+},
+{
+"file": "story_act1.cpp",
+"line": 728,
+"call": "say",
+"cls": "MissionPressure",
+"fn": "update",
+"stage": "3",
+"text": "The old woman won't sign. The Ortega girl is making noise.",
+"q": 36468
+},
+{
+"file": "story_act1.cpp",
+"line": 729,
+"call": "say",
+"cls": "MissionPressure",
+"fn": "update",
+"stage": "3",
+"text": "Then make her quiet. My officers won't answer calls from Calle Luna this month.",
+"q": 36579
+},
+{
+"file": "story_act1.cpp",
+"line": 731,
+"call": "say",
+"cls": "MissionPressure",
+"fn": "update",
+"stage": "3",
+"text": "Mister Sandoval wants the riverfront empty by summer. The Solaris Pier investors are nervous.",
+"q": 36762
+},
+{
+"file": "story_act1.cpp",
+"line": 732,
+"call": "say",
+"cls": "MissionPressure",
+"fn": "update",
+"stage": "3",
+"text": "Tell Victor his investors can relax. The Cuervos will handle the rest, and my reports will call it gang trouble.",
+"q": 36908
+},
+{
+"file": "story_act1.cpp",
+"line": 734,
+"call": "say",
+"cls": "MissionPressure",
+"fn": "update",
+"stage": "3",
+"text": "And your fee?",
+"q": 37124
+},
+{
+"file": "story_act1.cpp",
+"line": 735,
+"call": "say",
+"cls": "MissionPressure",
+"fn": "update",
+"stage": "3",
+"text": "Doubled. Neighborhoods don't burn themselves down.",
+"q": 37190
+},
+{
+"file": "story_act1.cpp",
+"line": 738,
+"call": "sayMe",
+"cls": "MissionPressure",
+"fn": "update",
+"stage": "3",
+"text": "Holt. The police captain. She's in Sandoval's pocket.",
+"q": 37363
+},
+{
+"file": "story_act1.cpp",
+"line": 860,
+"call": "say",
+"cls": "MissionCollateral",
+"fn": "start",
+"stage": "4",
+"text": "They took him from the bus stop, Mari. In broad daylight. They want the money by tonight.",
+"q": 43497
+},
+{
+"file": "story_act1.cpp",
+"line": 861,
+"call": "sayMe",
+"cls": "MissionCollateral",
+"fn": "start",
+"stage": "4",
+"text": "There is no money, Lucha. He never had it.",
+"q": 43608
+},
+{
+"file": "story_act1.cpp",
+"line": 862,
+"call": "sayP",
+"cls": "MissionCollateral",
+"fn": "start",
+"stage": "4",
+"text": "The Cuervos keep a stash house on the south side. Anybody they grab ends up there first.",
+"q": 43679
+},
+{
+"file": "story_act1.cpp",
+"line": 863,
+"call": "sayMe",
+"cls": "MissionCollateral",
+"fn": "start",
+"stage": "-",
+"text": "You're coming with me?",
+"q": 43789
+},
+{
+"file": "story_act1.cpp",
+"line": 864,
+"call": "sayP",
+"cls": "MissionCollateral",
+"fn": "start",
+"stage": "-",
+"text": "I owe your truck an apology. Let's go get your brother.",
+"q": 43840
+},
+{
+"file": "story_act1.cpp",
+"line": 899,
+"call": "sayP",
+"cls": "MissionCollateral",
+"fn": "update",
+"stage": "1",
+"text": "Your brother always this much trouble?",
+"q": 45402
+},
+{
+"file": "story_act1.cpp",
+"line": 900,
+"call": "sayMe",
+"cls": "MissionCollateral",
+"fn": "update",
+"stage": "1",
+"text": "Since he was six. He's a good kid. He just trusts the wrong people.",
+"q": 45474
+},
+{
+"file": "story_act1.cpp",
+"line": 901,
+"call": "sayP",
+"cls": "MissionCollateral",
+"fn": "update",
+"stage": "1",
+"text": "Runs in the neighborhood, I guess.",
+"q": 45582
+},
+{
+"file": "story_act1.cpp",
+"line": 904,
+"call": "sayP",
+"cls": "MissionCollateral",
+"fn": "update",
+"stage": "1",
+"text": "Four, five... more inside. Use the cars for cover.",
+"q": 45731
+},
+{
+"file": "story_act1.cpp",
+"line": 914,
+"call": "sayP",
+"cls": "MissionCollateral",
+"fn": "update",
+"stage": "2",
+"text": "Clear! Get your brother.",
+"q": 46141
+},
+{
+"file": "story_act1.cpp",
+"line": 927,
+"call": "say",
+"cls": "MissionCollateral",
+"fn": "update",
+"stage": "3",
+"text": "Mari! I knew you'd come. Who's the big guy?",
+"q": 46676
+},
+{
+"file": "story_act1.cpp",
+"line": 928,
+"call": "sayMe",
+"cls": "MissionCollateral",
+"fn": "update",
+"stage": "3",
+"text": "A friend. Can you run?",
+"q": 46753
+},
+{
+"file": "story_act1.cpp",
+"line": 929,
+"call": "say",
+"cls": "MissionCollateral",
+"fn": "update",
+"stage": "3",
+"text": "I can run. Let's go before the rest of them get back.",
+"q": 46826
+},
+{
+"file": "story_act1.cpp",
+"line": 950,
+"call": "sayP",
+"cls": "MissionCollateral",
+"fn": "update",
+"stage": "4",
+"text": "Company! Get Tomas in a car and get us out of here!",
+"q": 47960
+},
+{
+"file": "story_act1.cpp",
+"line": 967,
+"call": "say",
+"cls": "MissionCollateral",
+"fn": "update",
+"stage": "5",
+"text": "They said the money was never the point. They said Sandoval wants the whole block scared.",
+"q": 48886
+},
+{
+"file": "story_act1.cpp",
+"line": 968,
+"call": "sayP",
+"cls": "MissionCollateral",
+"fn": "update",
+"stage": "5",
+"text": "Then we make them scared instead.",
+"q": 49016
+},
+{
+"file": "story_act1.cpp",
+"line": 1170,
+"call": "say",
+"cls": "MissionPinkSlips",
+"fn": "start",
+"stage": "-",
+"text": "Repo man! You took my Gatorback. Tonight I take your ride and your dignity.",
+"q": 57722
+},
+{
+"file": "story_act1.cpp",
+"line": 1171,
+"call": "sayMe",
+"cls": "MissionPinkSlips",
+"fn": "start",
+"stage": "-",
+"text": "You stopped paying for it, Chuy. That's how cars work.",
+"q": 57823
+},
+{
+"file": "story_act1.cpp",
+"line": 1172,
+"call": "say",
+"cls": "MissionPinkSlips",
+"fn": "start",
+"stage": "-",
+"text": "Loser signs over his car. Winner takes the pot. Five grand.",
+"q": 57920
+},
+{
+"file": "story_act1.cpp",
+"line": 1173,
+"call": "sayMe",
+"cls": "MissionPinkSlips",
+"fn": "start",
+"stage": "-",
+"text": "Try to keep up.",
+"q": 58005
+},
+{
+"file": "story_act1.cpp",
+"line": 1233,
+"call": "say",
+"cls": "MissionPinkSlips",
+"fn": "update",
+"stage": "3",
+"text": "Who taught this guy to drive?",
+"q": 60600
+},
+{
+"file": "story_act1.cpp",
+"line": 1241,
+"call": "sayMe",
+"cls": "MissionPinkSlips",
+"fn": "update",
+"stage": "3",
+"text": "Pink slip, Chuy. Leave the keys with Rook.",
+"q": 61022
+},
+{
+"file": "story_act1.cpp",
+"line": 1242,
+"call": "say",
+"cls": "MissionPinkSlips",
+"fn": "update",
+"stage": "3",
+"text": "This isn't over. El Cuervo is going to hear about this.",
+"q": 61117
+},
+{
+"file": "story_act1.cpp",
+"line": 1394,
+"call": "say",
+"cls": "MissionLastCall",
+"fn": "start",
+"stage": "-",
+"text": "Eat, both of you. Nobody fights on an empty stomach in my diner.",
+"q": 68450
+},
+{
+"file": "story_act1.cpp",
+"line": 1395,
+"call": "sayMe",
+"cls": "MissionLastCall",
+"fn": "start",
+"stage": "-",
+"text": "Lucha, the Cuervos said they'd come back. Tonight.",
+"q": 68536
+},
+{
+"file": "story_act1.cpp",
+"line": 1396,
+"call": "sayP",
+"cls": "MissionLastCall",
+"fn": "start",
+"stage": "-",
+"text": "Then we'll be here. Rook lent me something with a bit more bite.",
+"q": 68615
+},
+{
+"file": "story_act1.cpp",
+"line": 1397,
+"call": "say",
+"cls": "MissionLastCall",
+"fn": "start",
+"stage": "-",
+"text": "Headlights. Three cars, no plates. Mari...",
+"q": 68718
+},
+{
+"file": "story_act1.cpp",
+"line": 1398,
+"call": "sayMe",
+"cls": "MissionLastCall",
+"fn": "start",
+"stage": "-",
+"text": "Everybody down! Lucha, stay behind the counter!",
+"q": 68782
+},
+{
+"file": "story_act1.cpp",
+"line": 1450,
+"call": "sayP",
+"cls": "MissionLastCall",
+"fn": "update",
+"stage": "2",
+"text": "Second car, from the south! Watch the firebombs!",
+"q": 70842
+},
+{
+"file": "story_act1.cpp",
+"line": 1452,
+"call": "sayMe",
+"cls": "MissionLastCall",
+"fn": "update",
+"stage": "2",
+"text": "Black SUV. That's him. That's El Cuervo.",
+"q": 70963
+},
+{
+"file": "story_act1.cpp",
+"line": 1453,
+"call": "say",
+"cls": "MissionLastCall",
+"fn": "update",
+"stage": "2",
+"text": "Ortega! You and your repo man cost me money. Tonight your diner burns!",
+"q": 71060
+},
+{
+"file": "story_act1.cpp",
+"line": 1460,
+"call": "say",
+"cls": "MissionLastCall",
+"fn": "update",
+"stage": "2",
+"text": "Forget this! Drive!",
+"q": 71491
+},
+{
+"file": "story_act1.cpp",
+"line": 1461,
+"call": "sayP",
+"cls": "MissionLastCall",
+"fn": "update",
+"stage": "2",
+"text": "He's running! Grab a car, I'll ride shotgun!",
+"q": 71551
+},
+{
+"file": "story_act1.cpp",
+"line": 1474,
+"call": "sayP",
+"cls": "MissionLastCall",
+"fn": "update",
+"stage": "5",
+"text": "Ram him! Put him into a wall!",
+"q": 72211
+},
+{
+"file": "story_act1.cpp",
+"line": 1475,
+"call": "sayMe",
+"cls": "MissionLastCall",
+"fn": "update",
+"stage": "5",
+"text": "He drives like a coward.",
+"q": 72313
+},
+{
+"file": "story_act1.cpp",
+"line": 1513,
+"call": "say",
+"cls": "MissionLastCall",
+"fn": "update",
+"stage": "5",
+"text": "Go ahead, Ortega. Pull the trigger. See what happens to your little street.",
+"q": 74851
+},
+{
+"file": "story_act1.cpp",
+"line": 1514,
+"call": "sayMe",
+"cls": "MissionLastCall",
+"fn": "update",
+"stage": "5",
+"text": "You don't get to burn us out. Not you. Not Sandoval.",
+"q": 74960
+},
+{
+"file": "story_act1.cpp",
+"line": 1515,
+"call": "say",
+"cls": "MissionLastCall",
+"fn": "update",
+"stage": "5",
+"text": "Porto Sol PD! Weapons down. Step away from the suspect.",
+"q": 75061
+},
+{
+"file": "story_act1.cpp",
+"line": 1516,
+"call": "sayMe",
+"cls": "MissionLastCall",
+"fn": "update",
+"stage": "5",
+"text": "Captain Holt. Funny. Your officers never answer calls from Calle Luna.",
+"q": 75150
+},
+{
+"file": "story_act1.cpp",
+"line": 1517,
+"call": "say",
+"cls": "MissionLastCall",
+"fn": "update",
+"stage": "5",
+"text": "I'll take it from here, Ms. Ortega. Go home. This neighborhood is changing. Change with it.",
+"q": 75269
+},
+{
+"file": "story_act1.cpp",
+"line": 1518,
+"call": "sayP",
+"cls": "MissionLastCall",
+"fn": "update",
+"stage": "5",
+"text": "Mari. Let it go. Not tonight.",
+"q": 75401
+},
+{
+"file": "story_act2.cpp",
+"line": 49,
+"call": "say",
+"cls": "MissionDeadAir",
+"fn": "start",
+"stage": "-",
+"text": "So you're the Ortega girl who punched a hole in the Cuervos. Tomas talks about you like you're a superhero.",
+"q": 2395
+},
+{
+"file": "story_act2.cpp",
+"line": 50,
+"call": "sayMe",
+"cls": "MissionDeadAir",
+"fn": "start",
+"stage": "-",
+"text": "Tomas talks too much. This is El Cuervo's phone. Can you crack it?",
+"q": 2524
+},
+{
+"file": "story_act2.cpp",
+"line": 51,
+"call": "say",
+"cls": "MissionDeadAir",
+"fn": "start",
+"stage": "-",
+"text": "Cheap case, expensive secrets. Give me an hour and a coffee.",
+"q": 2625
+},
+{
+"file": "story_act2.cpp",
+"line": 52,
+"call": "say",
+"cls": "MissionDeadAir",
+"fn": "start",
+"stage": "-",
+"text": "Oh no. Hear that? Holt's been trying to pull our license for a year. Somebody tipped her off.",
+"q": 2720
+},
+{
+"file": "story_act2.cpp",
+"line": 53,
+"call": "sayMe",
+"cls": "MissionDeadAir",
+"fn": "start",
+"stage": "-",
+"text": "Grab your gear. We're leaving.",
+"q": 2835
+},
+{
+"file": "story_act2.cpp",
+"line": 81,
+"call": "say",
+"cls": "MissionDeadAir",
+"fn": "update",
+"stage": "1",
+"text": "Drive! They'll have the whole block covered in a minute.",
+"q": 3804
+},
+{
+"file": "story_act2.cpp",
+"line": 89,
+"call": "say",
+"cls": "MissionDeadAir",
+"fn": "update",
+"stage": "3",
+"text": "You know what the worst part is? I was halfway through my best set of the year.",
+"q": 4123
+},
+{
+"file": "story_act2.cpp",
+"line": 90,
+"call": "sayMe",
+"cls": "MissionDeadAir",
+"fn": "update",
+"stage": "3",
+"text": "You can finish it in jail if we don't lose them.",
+"q": 4236
+},
+{
+"file": "story_act2.cpp",
+"line": 92,
+"call": "say",
+"cls": "MissionDeadAir",
+"fn": "update",
+"stage": "3",
+"text": "Left! No - your other left!",
+"q": 4388
+},
+{
+"file": "story_act2.cpp",
+"line": 95,
+"call": "say",
+"cls": "MissionDeadAir",
+"fn": "update",
+"stage": "3",
+"text": "We lost them. Head to the Flats. I keep a backup studio in a garage there. Don't judge.",
+"q": 4551
+},
+{
+"file": "story_act2.cpp",
+"line": 116,
+"call": "say",
+"cls": "MissionDeadAir",
+"fn": "update",
+"stage": "4",
+"text": "Okay. El Cuervo is careful, but his phone isn't. Messages from a blocked number. Friday. Club Riptide.",
+"q": 5689
+},
+{
+"file": "story_act2.cpp",
+"line": 117,
+"call": "say",
+"cls": "MissionDeadAir",
+"fn": "update",
+"stage": "4",
+"text": "Holt meets Sandoval's accountant in the VIP cabana. If I could get into her phone, we'd have everything.",
+"q": 5838
+},
+{
+"file": "story_act2.cpp",
+"line": 118,
+"call": "sayMe",
+"cls": "MissionDeadAir",
+"fn": "update",
+"stage": "4",
+"text": "Then we get into her phone.",
+"q": 5976
+},
+{
+"file": "story_act2.cpp",
+"line": 261,
+"call": "phoneLine",
+"cls": "MissionVelvetRope",
+"fn": "start",
+"stage": "-",
+"text": "Club Riptide. Holt's already in the VIP cabana. She always leaves her jacket on the couch.",
+"q": 12268
+},
+{
+"file": "story_act2.cpp",
+"line": 262,
+"call": "phoneLine",
+"cls": "MissionVelvetRope",
+"fn": "start",
+"stage": "-",
+"text": "Get the chip in the inside pocket and walk out like you own the place. Security will be on the rope.",
+"q": 12394
+},
+{
+"file": "story_act2.cpp",
+"line": 263,
+"call": "sayMe",
+"cls": "MissionVelvetRope",
+"fn": "start",
+"stage": "-",
+"text": "Walk in, plant it, walk out. Got it.",
+"q": 12516
+},
+{
+"file": "story_act2.cpp",
+"line": 308,
+"call": "say",
+"cls": "MissionVelvetRope",
+"fn": "update",
+"stage": "1",
+"text": "Now that's a dress. Go on in, miss.",
+"q": 14218
+},
+{
+"file": "story_act2.cpp",
+"line": 312,
+"call": "say",
+"cls": "MissionVelvetRope",
+"fn": "update",
+"stage": "1",
+"text": "Private party tonight. Not dressed like that.",
+"q": 14418
+},
+{
+"file": "story_act2.cpp",
+"line": 339,
+"call": "say",
+"cls": "MissionVelvetRope",
+"fn": "update",
+"stage": "2",
+"text": "Well, why didn't you say so. Enjoy your night.",
+"q": 15772
+},
+{
+"file": "story_act2.cpp",
+"line": 343,
+"call": "sayMe",
+"cls": "MissionVelvetRope",
+"fn": "update",
+"stage": "2",
+"text": "Fine. I'll be back.",
+"q": 16005
+},
+{
+"file": "story_act2.cpp",
+"line": 355,
+"call": "say",
+"cls": "MissionVelvetRope",
+"fn": "update",
+"stage": "3",
+"text": "Hey! VIP only! Get her!",
+"q": 16602
+},
+{
+"file": "story_act2.cpp",
+"line": 356,
+"call": "sayMe",
+"cls": "MissionVelvetRope",
+"fn": "update",
+"stage": "3",
+"text": "So much for walking out.",
+"q": 16659
+},
+{
+"file": "story_act2.cpp",
+"line": 366,
+"call": "phoneLine",
+"cls": "MissionVelvetRope",
+"fn": "update",
+"stage": "3",
+"text": "I'm in. Everything on her phone is ours. Now get out of there.",
+"q": 17167
+},
+{
+"file": "story_act2.cpp",
+"line": 473,
+"call": "phoneLine",
+"cls": "MissionBagman",
+"fn": "start",
+"stage": "4",
+"text": "Grey sedan leaving the precinct. That's Holt's bagman. He does two pickups, then takes it all back to her.",
+"q": 22187
+},
+{
+"file": "story_act2.cpp",
+"line": 474,
+"call": "phoneLine",
+"cls": "MissionBagman",
+"fn": "start",
+"stage": "4",
+"text": "Stay on him, stay invisible. When he heads home with the bag, you take it.",
+"q": 22330
+},
+{
+"file": "story_act2.cpp",
+"line": 475,
+"call": "sayMe",
+"cls": "MissionBagman",
+"fn": "start",
+"stage": "4",
+"text": "Robbing a crooked cop. My favorite kind of Tuesday.",
+"q": 22426
+},
+{
+"file": "story_act2.cpp",
+"line": 515,
+"call": "sayMe",
+"cls": "MissionBagman",
+"fn": "update",
+"stage": "0",
+"text": "One down. Where to next, pal?",
+"q": 24577
+},
+{
+"file": "story_act2.cpp",
+"line": 519,
+"call": "sayMe",
+"cls": "MissionBagman",
+"fn": "update",
+"stage": "0",
+"text": "That's the last stop. He's heading back to the precinct.",
+"q": 24835
+},
+{
+"file": "story_act2.cpp",
+"line": 528,
+"call": "sayMe",
+"cls": "MissionBagman",
+"fn": "update",
+"stage": "0",
+"text": "Nice and easy. Just another car in traffic.",
+"q": 25338
+},
+{
+"file": "story_act2.cpp",
+"line": 543,
+"call": "sayMe",
+"cls": "MissionBagman",
+"fn": "update",
+"stage": "1",
+"text": "Time to repossess some dirty money.",
+"q": 26286
+},
+{
+"file": "story_act2.cpp",
+"line": 549,
+"call": "say",
+"cls": "MissionBagman",
+"fn": "update",
+"stage": "1",
+"text": "You're dead! You know whose money this is?",
+"q": 26652
+},
+{
+"file": "story_act2.cpp",
+"line": 566,
+"call": "sayMe",
+"cls": "MissionBagman",
+"fn": "update",
+"stage": "3",
+"text": "Got it. Oh, that's a lot of money.",
+"q": 27361
+},
+{
+"file": "story_act2.cpp",
+"line": 575,
+"call": "sayMe",
+"cls": "MissionBagman",
+"fn": "update",
+"stage": "6",
+"text": "Holt's going to be real upset with somebody tonight.",
+"q": 27732
+},
+{
+"file": "story_act2.cpp",
+"line": 590,
+"call": "phoneLine",
+"cls": "MissionBagman",
+"fn": "update",
+"stage": "7",
+"text": "Two hundred grand of Holt's collections, and a ledger with every name that pays her. Kit's going to cry.",
+"q": 28415
+},
+{
+"file": "story_act2.cpp",
+"line": 591,
+"call": "sayMe",
+"cls": "MissionBagman",
+"fn": "update",
+"stage": "7",
+"text": "Split it with the neighborhood. Lucha's roof needs fixing.",
+"q": 28553
+},
+{
+"file": "story_act2.cpp",
+"line": 738,
+"call": "say",
+"cls": "MissionSawgrassRun",
+"fn": "start",
+"stage": "-",
+"text": "Well, look what the tide dragged in. The Coast Guard's favorite disappointment.",
+"q": 34956
+},
+{
+"file": "story_act2.cpp",
+"line": 739,
+"call": "sayMe",
+"cls": "MissionSawgrassRun",
+"fn": "start",
+"stage": "-",
+"text": "Hello, Jonah. You look old.",
+"q": 35057
+},
+{
+"file": "story_act2.cpp",
+"line": 740,
+"call": "say",
+"cls": "MissionSawgrassRun",
+"fn": "start",
+"stage": "-",
+"text": "I am old. Still alive, though, and that's partly your doing. Don't make that face. I never blamed you for that night.",
+"q": 35123
+},
+{
+"file": "story_act2.cpp",
+"line": 741,
+"call": "say",
+"cls": "MissionSawgrassRun",
+"fn": "start",
+"stage": "-",
+"text": "The Cuervos run airboats through my swamp every evening. Crates of rifles, from a boat in the Gulf.",
+"q": 35279
+},
+{
+"file": "story_act2.cpp",
+"line": 742,
+"call": "sayMe",
+"cls": "MissionSawgrassRun",
+"fn": "start",
+"stage": "-",
+"text": "Guns for Sandoval's little war on Calle Luna. Let's go sink some airboats.",
+"q": 35400
+},
+{
+"file": "story_act2.cpp",
+"line": 771,
+"call": "say",
+"cls": "MissionSawgrassRun",
+"fn": "update",
+"stage": "1",
+"text": "There. Three boats running dark, heading for the old channel. Get me close, I'll do the rest.",
+"q": 36562
+},
+{
+"file": "story_act2.cpp",
+"line": 795,
+"call": "say",
+"cls": "MissionSawgrassRun",
+"fn": "update",
+"stage": "2",
+"text": "Keep her steady! I can't hit a gator at this speed!",
+"q": 37622
+},
+{
+"file": "story_act2.cpp",
+"line": 796,
+"call": "sayMe",
+"cls": "MissionSawgrassRun",
+"fn": "update",
+"stage": "2",
+"text": "You taught me to drive one of these, remember? Hold on.",
+"q": 37746
+},
+{
+"file": "story_act2.cpp",
+"line": 800,
+"call": "say",
+"cls": "MissionSawgrassRun",
+"fn": "update",
+"stage": "2",
+"text": "That's all of them. Their cargo came off that hammock over there. Let's have a look.",
+"q": 38015
+},
+{
+"file": "story_act2.cpp",
+"line": 814,
+"call": "say",
+"cls": "MissionSawgrassRun",
+"fn": "update",
+"stage": "3",
+"text": "Rifles. Enough for a small war. And look at the stencil on the crates.",
+"q": 38669
+},
+{
+"file": "story_act2.cpp",
+"line": 815,
+"call": "sayMe",
+"cls": "MissionSawgrassRun",
+"fn": "update",
+"stage": "3",
+"text": "Solaris Pier Construction. He's not even hiding it.",
+"q": 38773
+},
+{
+"file": "story_act2.cpp",
+"line": 816,
+"call": "say",
+"cls": "MissionSawgrassRun",
+"fn": "update",
+"stage": "3",
+"text": "Men like Sandoval never think they need to hide.",
+"q": 38875
+},
+{
+"file": "story_act2.cpp",
+"line": 928,
+"call": "say",
+"cls": "MissionRiptide",
+"fn": "start",
+"stage": "3",
+"text": "Kit called. The cash boat leaves Port Isle at nine, heads for Key Coral. Two guards, fast hull.",
+"q": 43683
+},
+{
+"file": "story_act2.cpp",
+"line": 929,
+"call": "sayMe",
+"cls": "MissionRiptide",
+"fn": "start",
+"stage": "3",
+"text": "Faster than Dad's old racer? I rebuilt that engine twice.",
+"q": 43800
+},
+{
+"file": "story_act2.cpp",
+"line": 930,
+"call": "say",
+"cls": "MissionRiptide",
+"fn": "start",
+"stage": "-",
+"text": "Nothing's faster than Dad's old racer. Just bring it back in one piece, okay? It's all we have left of him.",
+"q": 43896
+},
+{
+"file": "story_act2.cpp",
+"line": 931,
+"call": "sayMe",
+"cls": "MissionRiptide",
+"fn": "start",
+"stage": "-",
+"text": "I'll bring it back. And a little something extra.",
+"q": 44025
+},
+{
+"file": "story_act2.cpp",
+"line": 964,
+"call": "sayMe",
+"cls": "MissionRiptide",
+"fn": "update",
+"stage": "2",
+"text": "Come on, old girl. Show them what an Ortega engine can do.",
+"q": 45233
+},
+{
+"file": "story_act2.cpp",
+"line": 973,
+"call": "sayMe",
+"cls": "MissionRiptide",
+"fn": "update",
+"stage": "3",
+"text": "There you are. Let's see what you've got.",
+"q": 45884
+},
+{
+"file": "story_act2.cpp",
+"line": 994,
+"call": "sayMe",
+"cls": "MissionRiptide",
+"fn": "update",
+"stage": "3",
+"text": "Money overboard! Grab the bags before they sink.",
+"q": 46979
+},
+{
+"file": "story_act2.cpp",
+"line": 1015,
+"call": "sayMe",
+"cls": "MissionRiptide",
+"fn": "update",
+"stage": "4",
+"text": "Sandoval's paying for the new roof on the diner. He just doesn't know it yet.",
+"q": 48035
+},
+{
+"file": "story_act2.cpp",
+"line": 1142,
+"call": "phoneLine",
+"cls": "MissionHeavyLift",
+"fn": "start",
+"stage": "-",
+"text": "Blue cab under the gantry cranes, container already on the chassis. Terminal security walks the lanes.",
+"q": 53933
+},
+{
+"file": "story_act2.cpp",
+"line": 1143,
+"call": "phoneLine",
+"cls": "MissionHeavyLift",
+"fn": "start",
+"stage": "-",
+"text": "Get in quiet. Once that engine starts, every guard on the island will know.",
+"q": 54072
+},
+{
+"file": "story_act2.cpp",
+"line": 1144,
+"call": "sayMe",
+"cls": "MissionHeavyLift",
+"fn": "start",
+"stage": "-",
+"text": "Quiet is my middle name.",
+"q": 54169
+},
+{
+"file": "story_act2.cpp",
+"line": 1145,
+"call": "sayMe",
+"cls": "MissionHeavyLift",
+"fn": "start",
+"stage": "-",
+"text": "It's actually Raymond. Don't tell anyone.",
+"q": 54215
+},
+{
+"file": "story_act2.cpp",
+"line": 1160,
+"call": "say",
+"cls": "MissionHeavyLift",
+"fn": "update",
+"stage": "1",
+"text": "Intruder in the yard!",
+"q": 54890
+},
+{
+"file": "story_act2.cpp",
+"line": 1167,
+"call": "sayMe",
+"cls": "MissionHeavyLift",
+"fn": "update",
+"stage": "1",
+"text": "Engine's loud. Here they come.",
+"q": 55230
+},
+{
+"file": "story_act2.cpp",
+"line": 1183,
+"call": "sayMe",
+"cls": "MissionHeavyLift",
+"fn": "update",
+"stage": "3",
+"text": "Big truck, small gate. This is going to hurt.",
+"q": 55991
+},
+{
+"file": "story_act2.cpp",
+"line": 1203,
+"call": "phoneLine",
+"cls": "MissionHeavyLift",
+"fn": "update",
+"stage": "4",
+"text": "Let's see what's inside... Cash, and ledgers. Solaris Pier Holdings paying the Cuervos, paying Holt.",
+"q": 57146
+},
+{
+"file": "story_act2.cpp",
+"line": 1204,
+"call": "phoneLine",
+"cls": "MissionHeavyLift",
+"fn": "update",
+"stage": "4",
+"text": "This is the first piece of real paper we've got on Sandoval himself. Good work, Dex.",
+"q": 57295
+},
+{
+"file": "story_act2.cpp",
+"line": 1323,
+"call": "say",
+"cls": "MissionFireworks",
+"fn": "start",
+"stage": "-",
+"text": "Friends. Porto Sol deserves a waterfront that shines. Solaris Pier will bring jobs, light, and a future.",
+"q": 62737
+},
+{
+"file": "story_act2.cpp",
+"line": 1324,
+"call": "say",
+"cls": "MissionFireworks",
+"fn": "start",
+"stage": "-",
+"text": "Some people fear change. I say, the tide always comes in. You can swim, or you can drown.",
+"q": 62886
+},
+{
+"file": "story_act2.cpp",
+"line": 1325,
+"call": "say",
+"cls": "MissionFireworks",
+"fn": "start",
+"stage": "-",
+"text": "Did he just threaten a whole neighborhood at his own party? I need that on tape. With Holt standing next to him.",
+"q": 63010
+},
+{
+"file": "story_act2.cpp",
+"line": 1326,
+"call": "sayMe",
+"cls": "MissionFireworks",
+"fn": "start",
+"stage": "-",
+"text": "End of the pier has the best angle. Stay close to me.",
+"q": 63144
+},
+{
+"file": "story_act2.cpp",
+"line": 1359,
+"call": "say",
+"cls": "MissionFireworks",
+"fn": "update",
+"stage": "1",
+"text": "I used to come here as a kid. The coaster was scarier back then.",
+"q": 64406
+},
+{
+"file": "story_act2.cpp",
+"line": 1361,
+"call": "say",
+"cls": "MissionFireworks",
+"fn": "update",
+"stage": "1",
+"text": "Perfect. Directional mic is up. Just keep his goons off me for a minute.",
+"q": 64601
+},
+{
+"file": "story_act2.cpp",
+"line": 1372,
+"call": "say",
+"cls": "MissionFireworks",
+"fn": "update",
+"stage": "3",
+"text": "Two of his security guys are coming this way. They saw the mic.",
+"q": 65125
+},
+{
+"file": "story_act2.cpp",
+"line": 1376,
+"call": "sayMe",
+"cls": "MissionFireworks",
+"fn": "update",
+"stage": "3",
+"text": "More of them! Keep recording!",
+"q": 65401
+},
+{
+"file": "story_act2.cpp",
+"line": 1383,
+"call": "say",
+"cls": "MissionFireworks",
+"fn": "update",
+"stage": "3",
+"text": "Got it! Sandoval, Holt, the threats, all of it. Now get me out of here!",
+"q": 65750
+},
+{
+"file": "story_act2.cpp",
+"line": 1412,
+"call": "say",
+"cls": "MissionFireworks",
+"fn": "update",
+"stage": "4",
+"text": "Remind me never to go to a party with you again. That was amazing.",
+"q": 67566
+},
+{
+"file": "story_act2.cpp",
+"line": 1497,
+"call": "phoneLine",
+"cls": "MissionSecondChance",
+"fn": "start",
+"stage": "5",
+"text": "Dex... Mayday. They put a hole in my boat. Off Ten Palms. Water's cold... I can't hold on long.",
+"q": 71138
+},
+{
+"file": "story_act2.cpp",
+"line": 1498,
+"call": "sayMe",
+"cls": "MissionSecondChance",
+"fn": "start",
+"stage": "5",
+"text": "Jonah! Stay with me. Keep your head up. I'm coming.",
+"q": 71255
+},
+{
+"file": "story_act2.cpp",
+"line": 1525,
+"call": "sayMe",
+"cls": "MissionSecondChance",
+"fn": "update",
+"stage": "0",
+"text": "Haven't flown one of these since the service. It's like riding a bike. A bike that wants to kill you.",
+"q": 72281
+},
+{
+"file": "story_act2.cpp",
+"line": 1531,
+"call": "phoneLine",
+"cls": "MissionSecondChance",
+"fn": "update",
+"stage": "2",
+"text": "Dex, I've got his radio beacon. Southwest of Ten Palms, about a mile out. Hurry.",
+"q": 72588
+},
+{
+"file": "story_act2.cpp",
+"line": 1534,
+"call": "sayMe",
+"cls": "MissionSecondChance",
+"fn": "update",
+"stage": "2",
+"text": "Four years ago it was a night like this. Two fishermen in the water. I got to one of them.",
+"q": 72781
+},
+{
+"file": "story_act2.cpp",
+"line": 1535,
+"call": "sayMe",
+"cls": "MissionSecondChance",
+"fn": "update",
+"stage": "2",
+"text": "Not this time. Nobody else drowns on my watch.",
+"q": 72905
+},
+{
+"file": "story_act2.cpp",
+"line": 1541,
+"call": "say",
+"cls": "MissionSecondChance",
+"fn": "update",
+"stage": "2",
+"text": "Dex! Over here!",
+"q": 73282
+},
+{
+"file": "story_act2.cpp",
+"line": 1564,
+"call": "say",
+"cls": "MissionSecondChance",
+"fn": "update",
+"stage": "3",
+"text": "Took your sweet time, Coast Guard.",
+"q": 74575
+},
+{
+"file": "story_act2.cpp",
+"line": 1565,
+"call": "sayMe",
+"cls": "MissionSecondChance",
+"fn": "update",
+"stage": "3",
+"text": "You're welcome. Now hold on, you're going to the hospital.",
+"q": 74643
+},
+{
+"file": "story_act2.cpp",
+"line": 1566,
+"call": "say",
+"cls": "MissionSecondChance",
+"fn": "update",
+"stage": "3",
+"text": "Dex. Thank you. Now we're even.",
+"q": 74752
+},
+{
+"file": "story_act2.cpp",
+"line": 1667,
+"call": "phoneLine",
+"cls": "MissionPaperTrail",
+"fn": "start",
+"stage": "4",
+"text": "Holt's at a police fundraiser downtown until midnight. Her private security walks the grounds.",
+"q": 79209
+},
+{
+"file": "story_act2.cpp",
+"line": 1668,
+"call": "phoneLine",
+"cls": "MissionPaperTrail",
+"fn": "start",
+"stage": "4",
+"text": "The safe is in the pool house out back. Crouch, stay in the shadows, and don't let them see you.",
+"q": 79339
+},
+{
+"file": "story_act2.cpp",
+"line": 1669,
+"call": "sayMe",
+"cls": "MissionPaperTrail",
+"fn": "start",
+"stage": "4",
+"text": "A police captain with a villa on Key Coral. Nobody ever asked how.",
+"q": 79457
+},
+{
+"file": "story_act2.cpp",
+"line": 1693,
+"call": "say",
+"cls": "MissionPaperTrail",
+"fn": "update",
+"stage": "4",
+"text": "Intruder! Around the pool!",
+"q": 80197
+},
+{
+"file": "story_act2.cpp",
+"line": 1711,
+"call": "phoneLine",
+"cls": "MissionPaperTrail",
+"fn": "update",
+"stage": "2",
+"text": "Is it there? Tell me it's there.",
+"q": 80884
+},
+{
+"file": "story_act2.cpp",
+"line": 1712,
+"call": "sayMe",
+"cls": "MissionPaperTrail",
+"fn": "update",
+"stage": "2",
+"text": "Leather ledger. Dates, amounts, initials. Sandoval's are on every page.",
+"q": 80950
+},
+{
+"file": "story_act2.cpp",
+"line": 1713,
+"call": "phoneLine",
+"cls": "MissionPaperTrail",
+"fn": "update",
+"stage": "2",
+"text": "That's it. That's the whole story. Get off that island.",
+"q": 81069
+},
+{
+"file": "story_act3.cpp",
+"line": 57,
+"call": "say",
+"cls": "MissionBlueprints",
+"fn": "start",
+"stage": "-",
+"text": "Solaris One. Ninety floors. Sandoval's private vault sits right under the penthouse.",
+"q": 3133
+},
+{
+"file": "story_act3.cpp",
+"line": 58,
+"call": "say",
+"cls": "MissionBlueprints",
+"fn": "start",
+"stage": "-",
+"text": "The Calle Luna deeds he stole with fake loans. The Cuervo payroll. And about four million in cash he never declared.",
+"q": 3252
+},
+{
+"file": "story_act3.cpp",
+"line": 59,
+"call": "say",
+"cls": "MissionBlueprints",
+"fn": "start",
+"stage": "-",
+"text": "Four million. I'm listening.",
+"q": 3405
+},
+{
+"file": "story_act3.cpp",
+"line": 60,
+"call": "sayMe",
+"cls": "MissionBlueprints",
+"fn": "start",
+"stage": "-",
+"text": "We're not doing this for the money, Rook.",
+"q": 3455
+},
+{
+"file": "story_act3.cpp",
+"line": 61,
+"call": "say",
+"cls": "MissionBlueprints",
+"fn": "start",
+"stage": "-",
+"text": "Speak for yourself. I've got a retirement to think about.",
+"q": 3533
+},
+{
+"file": "story_act3.cpp",
+"line": 62,
+"call": "sayP",
+"cls": "MissionBlueprints",
+"fn": "start",
+"stage": "-",
+"text": "The deeds are what matter. Every family he pushed out gets their home back.",
+"q": 3620
+},
+{
+"file": "story_act3.cpp",
+"line": 63,
+"call": "say",
+"cls": "MissionBlueprints",
+"fn": "start",
+"stage": "-",
+"text": "Then we plan it right. Nobody goes in blind.",
+"q": 3734
+},
+{
+"file": "story_act3.cpp",
+"line": 64,
+"call": "say",
+"cls": "MissionBlueprints",
+"fn": "start",
+"stage": "-",
+"text": "First we need eyes on the building. Dex, Mari, go take some pictures. Be tourists.",
+"q": 3813
+},
+{
+"file": "story_act3.cpp",
+"line": 98,
+"call": "sayP",
+"cls": "MissionBlueprints",
+"fn": "update",
+"stage": "1",
+"text": "My father fixed boats for forty years and never owned more than the yard. Sandoval owns a skyline.",
+"q": 5109
+},
+{
+"file": "story_act3.cpp",
+"line": 99,
+"call": "sayMe",
+"cls": "MissionBlueprints",
+"fn": "update",
+"stage": "1",
+"text": "Not for long.",
+"q": 5241
+},
+{
+"file": "story_act3.cpp",
+"line": 144,
+"call": "say",
+"cls": "MissionBlueprints",
+"fn": "update",
+"stage": "3",
+"text": "Two ways in. Quiet: we dress you as the maintenance crew and walk in the service door.",
+"q": 7841
+},
+{
+"file": "story_act3.cpp",
+"line": 145,
+"call": "say",
+"cls": "MissionBlueprints",
+"fn": "update",
+"stage": "3",
+"text": "Loud: we take an armored truck through the loading dock and blow the vault. Your call, Dex.",
+"q": 7976
+},
+{
+"file": "story_act3.cpp",
+"line": 168,
+"call": "say",
+"cls": "MissionBlueprints",
+"fn": "update",
+"stage": "5",
+"text": "Quiet it is. I'll find us a van and some very ugly uniforms.",
+"q": 9245
+},
+{
+"file": "story_act3.cpp",
+"line": 172,
+"call": "say",
+"cls": "MissionBlueprints",
+"fn": "update",
+"stage": "5",
+"text": "Loud. I was hoping you'd say that. I know an armored truck with a lazy route.",
+"q": 9485
+},
+{
+"file": "story_act3.cpp",
+"line": 252,
+"call": "phoneLine",
+"cls": "MissionDressRehearsal",
+"fn": "start",
+"stage": "5",
+"text": "Brightline Facilities keeps its maintenance vans at a depot in the Flats. White van, blue stripe.",
+"q": 13324
+},
+{
+"file": "story_act3.cpp",
+"line": 253,
+"call": "phoneLine",
+"cls": "MissionDressRehearsal",
+"fn": "start",
+"stage": "5",
+"text": "Uniforms are in the back. Two guards on the lot, and they will call it in.",
+"q": 13462
+},
+{
+"file": "story_act3.cpp",
+"line": 277,
+"call": "phoneLine",
+"cls": "MissionDressRehearsal",
+"fn": "start",
+"stage": "5",
+"text": "Armored truck, leaving Canvas Park on its cash run. Two guards with rifles. Stop it, drag them out, take it.",
+"q": 14867
+},
+{
+"file": "story_act3.cpp",
+"line": 295,
+"call": "sayMe",
+"cls": "MissionDressRehearsal",
+"fn": "update",
+"stage": "0",
+"text": "Got the van. Now to lose the tail.",
+"q": 15694
+},
+{
+"file": "story_act3.cpp",
+"line": 307,
+"call": "sayMe",
+"cls": "MissionDressRehearsal",
+"fn": "update",
+"stage": "0",
+"text": "Big, slow and heavy. Just like my ex.",
+"q": 16401
+},
+{
+"file": "story_act3.cpp",
+"line": 357,
+"call": "phoneLine",
+"cls": "MissionDressRehearsal",
+"fn": "update",
+"stage": "4",
+"text": "Beautiful. Four uniforms, one van, zero dignity. We go tomorrow night.",
+"q": 18628
+},
+{
+"file": "story_act3.cpp",
+"line": 467,
+"call": "say",
+"cls": "MissionSolarisOne",
+"fn": "start",
+"stage": "4",
+"text": "Look at you two. The cleanest window washers in Porto Sol.",
+"q": 23828
+},
+{
+"file": "story_act3.cpp",
+"line": 468,
+"call": "phoneLine",
+"cls": "MissionSolarisOne",
+"fn": "start",
+"stage": "4",
+"text": "I'll loop the cameras from the station. From the service door you'll have twenty minutes, not a second more.",
+"q": 23926
+},
+{
+"file": "story_act3.cpp",
+"line": 470,
+"call": "say",
+"cls": "MissionSolarisOne",
+"fn": "start",
+"stage": "-",
+"text": "Charges are set to cut the vault door, not the building. Try not to crash before you get there.",
+"q": 24092
+},
+{
+"file": "story_act3.cpp",
+"line": 471,
+"call": "phoneLine",
+"cls": "MissionSolarisOne",
+"fn": "start",
+"stage": "-",
+"text": "Police response to the tower is four minutes. Holt will send everyone she has. Make it quick.",
+"q": 24227
+},
+{
+"file": "story_act3.cpp",
+"line": 473,
+"call": "sayP",
+"cls": "MissionSolarisOne",
+"fn": "start",
+"stage": "-",
+"text": "For Calle Luna.",
+"q": 24360
+},
+{
+"file": "story_act3.cpp",
+"line": 474,
+"call": "sayMe",
+"cls": "MissionSolarisOne",
+"fn": "start",
+"stage": "-",
+"text": "For Calle Luna. Let's go.",
+"q": 24397
+},
+{
+"file": "story_act3.cpp",
+"line": 552,
+"call": "sayP",
+"cls": "MissionSolarisOne",
+"fn": "update",
+"stage": "1",
+"text": "Drive like a tired janitor. Slow and sad.",
+"q": 27473
+},
+{
+"file": "story_act3.cpp",
+"line": 565,
+"call": "phoneLine",
+"cls": "MissionSolarisOne",
+"fn": "update",
+"stage": "1",
+"text": "Cameras looping. Elevator to ninety is yours.",
+"q": 28386
+},
+{
+"file": "story_act3.cpp",
+"line": 566,
+"call": "sayP",
+"cls": "MissionSolarisOne",
+"fn": "update",
+"stage": "1",
+"text": "Twenty minutes. See you at the top.",
+"q": 28477
+},
+{
+"file": "story_act3.cpp",
+"line": 567,
+"call": "phoneLine",
+"cls": "MissionSolarisOne",
+"fn": "update",
+"stage": "1",
+"text": "Vault's open. Deeds, ledgers, cash, you're golden... wait. Sandoval's head of security just walked into the camera room.",
+"q": 28564
+},
+{
+"file": "story_act3.cpp",
+"line": 568,
+"call": "phoneLine",
+"cls": "MissionSolarisOne",
+"fn": "update",
+"stage": "1",
+"text": "He's seen the loop. The lobby is filling up. Get out, now!",
+"q": 28736
+},
+{
+"file": "story_act3.cpp",
+"line": 570,
+"call": "sayMe",
+"cls": "MissionSolarisOne",
+"fn": "update",
+"stage": "1",
+"text": "Knock, knock.",
+"q": 28861
+},
+{
+"file": "story_act3.cpp",
+"line": 571,
+"call": "phoneLine",
+"cls": "MissionSolarisOne",
+"fn": "update",
+"stage": "1",
+"text": "Charges are cutting. Sixty seconds. Hold that dock!",
+"q": 28927
+},
+{
+"file": "story_act3.cpp",
+"line": 609,
+"call": "phoneLine",
+"cls": "MissionSolarisOne",
+"fn": "update",
+"stage": "4",
+"text": "Vault's open! Load the cash into the truck and go!",
+"q": 31033
+},
+{
+"file": "story_act3.cpp",
+"line": 621,
+"call": "sayP",
+"cls": "MissionSolarisOne",
+"fn": "update",
+"stage": "5",
+"text": "Deeds are in the bag. Drive!",
+"q": 31653
+},
+{
+"file": "story_act3.cpp",
+"line": 650,
+"call": "sayP",
+"cls": "MissionSolarisOne",
+"fn": "update",
+"stage": "6",
+"text": "I'm holding every deed in Calle Luna in a gym bag.",
+"q": 33033
+},
+{
+"file": "story_act3.cpp",
+"line": 669,
+"call": "sayMe",
+"cls": "MissionSolarisOne",
+"fn": "update",
+"stage": "7",
+"text": "Count it later. We got the deeds.",
+"q": 33807
+},
+{
+"file": "story_act3.cpp",
+"line": 670,
+"call": "sayP",
+"cls": "MissionSolarisOne",
+"fn": "update",
+"stage": "7",
+"text": "We did it, Dex. We actually did it.",
+"q": 33882
+},
+{
+"file": "story_act3.cpp",
+"line": 823,
+"call": "phoneLine",
+"cls": "MissionOverseas",
+"fn": "start",
+"stage": "-",
+"text": "Mija! They took Tomas! Sandoval's men, right out of my kitchen. He says bring everything to Key Solano, or else.",
+"q": 40774
+},
+{
+"file": "story_act3.cpp",
+"line": 824,
+"call": "sayMe",
+"cls": "MissionOverseas",
+"fn": "start",
+"stage": "-",
+"text": "We're coming, Lucha. I promise.",
+"q": 40908
+},
+{
+"file": "story_act3.cpp",
+"line": 825,
+"call": "sayP",
+"cls": "MissionOverseas",
+"fn": "start",
+"stage": "-",
+"text": "It's a trap, Mari.",
+"q": 40968
+},
+{
+"file": "story_act3.cpp",
+"line": 826,
+"call": "sayMe",
+"cls": "MissionOverseas",
+"fn": "start",
+"stage": "-",
+"text": "Then we spring it.",
+"q": 41008
+},
+{
+"file": "story_act3.cpp",
+"line": 827,
+"call": "phoneLine",
+"cls": "MissionOverseas",
+"fn": "start",
+"stage": "-",
+"text": "Sandoval's convoy just got on the Overseas Highway. Four cars. Holt's own cruiser is riding with him.",
+"q": 41062
+},
+{
+"file": "story_act3.cpp",
+"line": 881,
+"call": "sayP",
+"cls": "MissionOverseas",
+"fn": "update",
+"stage": "1",
+"text": "There they are. Get me alongside, I'll take care of the escorts.",
+"q": 43347
+},
+{
+"file": "story_act3.cpp",
+"line": 914,
+"call": "sayP",
+"cls": "MissionOverseas",
+"fn": "update",
+"stage": "3",
+"text": "Holt's cruiser is in there too. No more badges between us and him.",
+"q": 44789
+},
+{
+"file": "story_act3.cpp",
+"line": 915,
+"call": "sayMe",
+"cls": "MissionOverseas",
+"fn": "update",
+"stage": "3",
+"text": "Seven miles of bridge and nowhere to hide. Good.",
+"q": 44928
+},
+{
+"file": "story_act3.cpp",
+"line": 926,
+"call": "sayP",
+"cls": "MissionOverseas",
+"fn": "update",
+"stage": "3",
+"text": "Escorts are done. He's running for Key Solano.",
+"q": 45540
+},
+{
+"file": "story_act3.cpp",
+"line": 979,
+"call": "sayMe",
+"cls": "MissionOverseas",
+"fn": "update",
+"stage": "6",
+"text": "He's running! Tomas, stay down!",
+"q": 48471
+},
+{
+"file": "story_act3.cpp",
+"line": 1040,
+"call": "say",
+"cls": "MissionOverseas",
+"fn": "update",
+"stage": "8",
+"text": "You think this changes anything? I own the land, the bank, the police. I own the tide.",
+"q": 51753
+},
+{
+"file": "story_act3.cpp",
+"line": 1041,
+"call": "sayMe",
+"cls": "MissionOverseas",
+"fn": "update",
+"stage": "8",
+"text": "You owned a gym bag full of stolen deeds. Now I do.",
+"q": 51869
+},
+{
+"file": "story_act3.cpp",
+"line": 1042,
+"call": "say",
+"cls": "MissionOverseas",
+"fn": "update",
+"stage": "8",
+"text": "Mari! You came. You actually came.",
+"q": 51967
+},
+{
+"file": "story_act3.cpp",
+"line": 1043,
+"call": "sayMe",
+"cls": "MissionOverseas",
+"fn": "update",
+"stage": "8",
+"text": "Always, little brother.",
+"q": 52031
+},
+{
+"file": "story_act3.cpp",
+"line": 1044,
+"call": "say",
+"cls": "MissionOverseas",
+"fn": "update",
+"stage": "8",
+"text": "Porto Sol PD! Nobody move. This is my collar, Ortega. Hand over whatever you took from that tower.",
+"q": 52099
+},
+{
+"file": "story_act3.cpp",
+"line": 1045,
+"call": "sayMe",
+"cls": "MissionOverseas",
+"fn": "update",
+"stage": "8",
+"text": "Not to you, Captain. Not ever.",
+"q": 52227
+},
+{
+"file": "story_act3.cpp",
+"line": 1046,
+"call": "say",
+"cls": "MissionOverseas",
+"fn": "update",
+"stage": "8",
+"text": "Then we'll see whose story this city believes.",
+"q": 52302
+},
+{
+"file": "story_act3.cpp",
+"line": 1047,
+"call": "sayP",
+"cls": "MissionOverseas",
+"fn": "update",
+"stage": "8",
+"text": "Funny you say that. We know a DJ.",
+"q": 52385
+},
+{
+"file": "story_act3.cpp",
+"line": 1185,
+"call": "say",
+"cls": "MissionSignal",
+"fn": "start",
+"stage": "-",
+"text": "It's all here. The tape from the pier. Holt's ledger. The deeds. Sandoval's books. I can go live in two minutes.",
+"q": 58865
+},
+{
+"file": "story_act3.cpp",
+"line": 1186,
+"call": "say",
+"cls": "MissionSignal",
+"fn": "start",
+"stage": "-",
+"text": "Or we sell it back. Holt would pay anything to make this go away. The yard, the diner, money for all of us.",
+"q": 59014
+},
+{
+"file": "story_act3.cpp",
+"line": 1187,
+"call": "say",
+"cls": "MissionSignal",
+"fn": "start",
+"stage": "-",
+"text": "Money comes and goes, mija. The neighborhood remembers what you did with it.",
+"q": 59160
+},
+{
+"file": "story_act3.cpp",
+"line": 1188,
+"call": "sayP",
+"cls": "MissionSignal",
+"fn": "start",
+"stage": "-",
+"text": "Your call, Mari. Whatever you decide, I'm with you.",
+"q": 59265
+},
+{
+"file": "story_act3.cpp",
+"line": 1231,
+"call": "sayP",
+"cls": "MissionSignal",
+"fn": "epilogue",
+"stage": "-",
+"text": "Think it'll stick?",
+"q": 61359
+},
+{
+"file": "story_act3.cpp",
+"line": 1232,
+"call": "sayP",
+"cls": "MissionSignal",
+"fn": "epilogue",
+"stage": "-",
+"text": "It's on the radio. Everybody heard it. That sticks.",
+"q": 61409
+},
+{
+"file": "story_act3.cpp",
+"line": 1233,
+"call": "sayP",
+"cls": "MissionSignal",
+"fn": "epilogue",
+"stage": "-",
+"text": "Stay for dinner. Lucha's making pozole.",
+"q": 61492
+},
+{
+"file": "story_act3.cpp",
+"line": 1234,
+"call": "sayP",
+"cls": "MissionSignal",
+"fn": "epilogue",
+"stage": "-",
+"text": "Wouldn't miss it.",
+"q": 61563
+},
+{
+"file": "story_act3.cpp",
+"line": 1238,
+"call": "sayP",
+"cls": "MissionSignal",
+"fn": "epilogue",
+"stage": "-",
+"text": "Two million dollars. The yard's yours. Nobody's losing their home.",
+"q": 61932
+},
+{
+"file": "story_act3.cpp",
+"line": 1239,
+"call": "sayP",
+"cls": "MissionSignal",
+"fn": "epilogue",
+"stage": "-",
+"text": "And Holt is still wearing a badge.",
+"q": 62030
+},
+{
+"file": "story_act3.cpp",
+"line": 1240,
+"call": "sayP",
+"cls": "MissionSignal",
+"fn": "epilogue",
+"stage": "-",
+"text": "We won, Mari. Mostly. Keep the copies somewhere safe.",
+"q": 62096
+},
+{
+"file": "story_act3.cpp",
+"line": 1241,
+"call": "sayP",
+"cls": "MissionSignal",
+"fn": "epilogue",
+"stage": "-",
+"text": "Somewhere safe. In this town. That'll be the day.",
+"q": 62181
+},
+{
+"file": "story_act3.cpp",
+"line": 1269,
+"call": "sayMe",
+"cls": "MissionSignal",
+"fn": "update",
+"stage": "1",
+"text": "Put it on the air, Kit. All of it.",
+"q": 63639
+},
+{
+"file": "story_act3.cpp",
+"line": 1270,
+"call": "say",
+"cls": "MissionSignal",
+"fn": "update",
+"stage": "1",
+"text": "Pulse FM, this is Kit Navarro, and tonight's show is about the people who sold our city. Stay tuned.",
+"q": 63724
+},
+{
+"file": "story_act3.cpp",
+"line": 1271,
+"call": "sayP",
+"cls": "MissionSignal",
+"fn": "update",
+"stage": "1",
+"text": "Here come Holt's loyalists. Everybody find cover.",
+"q": 63869
+},
+{
+"file": "story_act3.cpp",
+"line": 1274,
+"call": "sayMe",
+"cls": "MissionSignal",
+"fn": "update",
+"stage": "1",
+"text": "Call Holt. Tell her the Sol Beach Pier. Tonight. Come alone.",
+"q": 64028
+},
+{
+"file": "story_act3.cpp",
+"line": 1275,
+"call": "say",
+"cls": "MissionSignal",
+"fn": "update",
+"stage": "1",
+"text": "She won't come alone.",
+"q": 64139
+},
+{
+"file": "story_act3.cpp",
+"line": 1276,
+"call": "sayMe",
+"cls": "MissionSignal",
+"fn": "update",
+"stage": "1",
+"text": "I know.",
+"q": 64198
+},
+{
+"file": "story_act3.cpp",
+"line": 1298,
+"call": "say",
+"cls": "MissionSignal",
+"fn": "update",
+"stage": "3",
+"text": "It's out. Every station in the state is picking it up. They can't stop it now.",
+"q": 65487
+},
+{
+"file": "story_act3.cpp",
+"line": 1333,
+"call": "say",
+"cls": "MissionSignal",
+"fn": "update",
+"stage": "11",
+"text": "You have something of mine, Ortega.",
+"q": 67229
+},
+{
+"file": "story_act3.cpp",
+"line": 1334,
+"call": "sayMe",
+"cls": "MissionSignal",
+"fn": "update",
+"stage": "11",
+"text": "I have a lot of things of yours. Two million dollars. Every deed back where it belongs. And you never set foot in Calle Luna again.",
+"q": 67298
+},
+{
+"file": "story_act3.cpp",
+"line": 1335,
+"call": "say",
+"cls": "MissionSignal",
+"fn": "update",
+"stage": "11",
+"text": "Two million. Fine. The money is already moving. Pleasure doing business.",
+"q": 67478
+},
+{
+"file": "story_act3.cpp",
+"line": 1336,
+"call": "say",
+"cls": "MissionSignal",
+"fn": "update",
+"stage": "11",
+"text": "Take them.",
+"q": 67599
+},
+{
+"file": "story_act3.cpp",
+"line": 1337,
+"call": "sayP",
+"cls": "MissionSignal",
+"fn": "update",
+"stage": "11",
+"text": "Knew it!",
+"q": 67650
+},
+{
+"file": "story_act3.cpp",
+"line": 1355,
+"call": "phoneLine",
+"cls": "MissionSignal",
+"fn": "update",
+"stage": "13",
+"text": "Impressive. The money is in your account, Ortega. Keep your copies safe. I'll keep my badge.",
+"q": 68360
+},
+{
+"file": "story_act3.cpp",
+"line": 1356,
+"call": "sayMe",
+"cls": "MissionSignal",
+"fn": "update",
+"stage": "13",
+"text": "Stay out of my neighborhood, Captain.",
+"q": 68486
+},
+{
+"file": "economy.cpp",
+"line": 213,
+"call": "sayMe",
+"cls": "?",
+"fn": "?",
+"stage": "-",
+"text": "Hey, Dex. Just checking in.",
+"q": 10931
+},
+{
+"file": "economy.cpp",
+"line": 226,
+"call": "phoneLine",
+"cls": "?",
+"fn": "?",
+"stage": "-",
+"text": "I need you for something. Come find me, it's marked on your map. We call it %s.",
+"q": 11550
+},
+{
+"file": "economy.cpp",
+"line": 227,
+"call": "sayMe",
+"cls": "?",
+"fn": "?",
+"stage": "-",
+"text": "I'll be there.",
+"q": 11662
+}
+]

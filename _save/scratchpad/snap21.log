@@ -1,0 +1,8 @@
+Embedded 39 shader files.
+141 shaders, 0 failed
+[ 312.734] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.1 | peds 88 vehicles 63 wanted 0 | cpu ms player 0.06 ai 0.54 veh 0.82 peds 1.6
+[ 432.828] autoplay t=17.5 pos 1806.7 270.7 3.5 state 2 health 200 veh 1 speed 17.6 | peds 86 vehicles 66 wanted 0 | cpu ms player 0.19 ai 0.64 veh 0.65 peds 0.
+[ 460.162] autoplay t=13.5 pos 1791.3 160.9 6.5 state 0 health 188 veh -1 speed 0.0 | peds 97 vehicles 64 wanted 1 | cpu ms player 0.10 ai 0.54 veh 0.63 peds 1.
+a35e599 Rear doors: get in and out of the back seats through the door; rear passengers clear the wheel wells
+branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
+COMMITTED 516df5f10264f37e394e1c3ee1c11551ad5f976b

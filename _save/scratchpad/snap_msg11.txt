@@ -1,0 +1,14 @@
+Shorter police and ambulance response, spray from wet skids, settled test screenshots, car door choreography
+
+- Dispatch: police and ambulance units are sent from a lane whose way in to the scene is at most 1.7 times the
+  straight line (not round a block of one-way streets first), ambulances start 120-180 m out of view, and a unit
+  crawling in stop-and-go traffic counts as held up (moved past the jam out of sight after a few seconds). In the
+  traffic harness three calls took 38, 21 and 10 s (38, 47 and 92 s before the response work).
+- K9: the scent trail ends at a jump of over 15 m (a ride or a scripted move), so the dog never follows a trail
+  straight through a teleport.
+- Vehicles: a skid on wet pavement throws spray instead of tyre smoke.
+- Animation: the car door choreography (reaching for the handle, the door swinging in step, ducking under the roof
+  rail, the seat belt) is authored at run time from each car's door geometry; the game does not use it yet, so
+  getting in and out is unchanged. The B-pillar inside the opening is 4 cm less intrusive.
+- Tests: with --renderevery N a requested screenshot waits for six frames rendered in a row, so TAA, reflection,
+  occlusion and fog history settle as in play; the hurt test runs 150 s; traffic_sim dispatches like the game.

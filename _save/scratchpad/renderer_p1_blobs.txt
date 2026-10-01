@@ -1,0 +1,7 @@
+100644 2767a795933f8e168c458e9d5b0bb69a7cfa3e42 src/render/props_render.cpp
+100644 37ebab81fee5fc92185a90015fad90bb8078e5f6 src/render/renderer.cpp
+100644 ab119fdb2cd452b5c89f1662db51e709fd9143ce src/render/shadows.cpp
+100644 44798739a77c19371145cac479d5e3e017974088 src/shaders/propcull.hlsl
+100644 1aa4c153fff05c7e8b973a2ca0893499d13ca28c src/gfx/gfx_tools.cpp
+100644 d6f41f617ef6066213f78b835f8255558db9b2b2 src/shaders/gfxtest.hlsl
+100644 ed6a9f8aa9db113721a5a28bd6b0f8e8ac8b7088 PROGRESS.md

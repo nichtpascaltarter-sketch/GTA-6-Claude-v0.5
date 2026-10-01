@@ -1,0 +1,390 @@
+--- /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/loco/base/src/anim/animator.cpp	2026-10-01 17:35:18.212482406 +0000
++++ /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/loco/work/src/anim/animator.cpp	2026-10-01 18:50:07.587772717 +0000
+@@ -326,16 +326,61 @@
+ // coming together after a stop, a changed stance) steps over in a low arc, one foot at a time, with the pelvis
+ // shifting over the standing foot. Ground offsets under each foot lift / lower it (the pelvis drops to reach the
+ // lower one) and feet on the ground tilt with the slope.
+-static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bool planting, bool terrain, float duty) {
++static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bool planting, bool terrain, float duty, float cycle) {
+     const Skeleton& sk = *A.skel;
++    const bool walking = A.moveW > 0.3f && duty > 0.05f;
++    // how far through its swing each foot is (0 in stance or standing)
++    float swingU[2] = {0.f, 0.f};
++    if (walking)
++        for (int s = 0; s < 2; s++) {
++            float ph = A.phase - (s ? 0.5f : 0.f);
++            ph -= floorf(ph);
++            swingU[s] = ph > duty ? (ph - duty) / Max(1.f - duty, 0.05f) : 0.f;
++        }
+     const Bone ends[2] = {B_FOOT_L, B_FOOT_R};
+     const Bone ups[2] = {B_THIGH_L, B_THIGH_R}, lows[2] = {B_CALF_L, B_CALF_R};
+-    // ground under the feet (smoothed) and the slope plane
+-    float gl = terrain ? Clamp(in.groundOffsetL, -0.35f, 0.35f) : 0.f;
+-    float gr = terrain ? Clamp(in.groundOffsetR, -0.35f, 0.35f) : 0.f;
+-    float kg = 1.f - expf(-dt * 14.f);
+-    A.footL += (gl - A.footL) * kg;
+-    A.footR += (gr - A.footR) * kg;
++    // ground under the feet and the slope plane. The heights are kept with the world: the root's vertical motion this
++    // update (read off the ground under a foot that stayed planted, which does not move) comes out of them first, so a
++    // planted foot keeps its height exactly (no lag on a slope, a curb or a stair). A swinging foot's probe alternates
++    // between just ahead of it and where it will land; it swings over the higher of the two (up onto a curb or a stair
++    // early enough to clear its edge, down off one only once past the edge)
++    const float gIn[2] = {terrain ? Clamp(in.groundOffsetL, -0.35f, 0.35f) : 0.f, terrain ? Clamp(in.groundOffsetR, -0.35f, 0.35f) : 0.f};
++    {
++        float dzRoot = 0.f, sum = 0.f;
++        bool held[2] = {false, false};   // probed under a foot planted for the last two updates
++        int n = 0;
++        if (terrain && in.footProbes) {
++            for (int s = 0; s < 2; s++)
++                if (A.planted[s] && A.plantedPrev[s] && A.stepT[s] < 0.f) {
++                    held[s] = true;
++                    sum += A.groundRaw[s] - gIn[s];
++                    n++;
++                }
++            if (n) {
++                dzRoot = Clamp(sum / (float)n, -0.25f, 0.25f);
++                if (dt > 1e-4f) A.rootVz += (dzRoot / dt - A.rootVz) * (1.f - expf(-dt * 12.f));
++            } else {
++                dzRoot = Clamp(A.rootVz * dt, -0.05f, 0.05f);   // both feet off the ground (a run's flight): as it was going
++            }
++        } else {
++            A.rootVz = 0.f;
++        }
++        // (a swinging foot's two heights are each probed every other update: eased in quicker)
++        const float kg = 1.f - expf(-dt * 14.f), ks = 1.f - expf(-dt * 32.f);
++        float* fz[2] = {&A.footL, &A.footR};
++        for (int s = 0; s < 2; s++) {
++            A.groundAhead[s] -= dzRoot;
++            if (A.probeAhead[s]) {
++                A.groundAhead[s] += (gIn[s] - A.groundAhead[s]) * ks;
++                *fz[s] -= dzRoot;
++            } else {
++                *fz[s] += (gIn[s] - (*fz[s] - dzRoot)) * (held[s] ? 1.f : (swingU[s] > 0.f ? ks : kg)) - dzRoot;
++                if (swingU[s] <= 0.f) A.groundAhead[s] = *fz[s];
++            }
++            A.groundRaw[s] = gIn[s];
++            A.plantedPrev[s] = A.planted[s] && A.stepT[s] < 0.f;
++        }
++    }
+     vec3 gn = in.groundNormal;
+     float gnl = length(gn);
+     gn = gnl > 1e-4f && gn.z > 0.3f ? gn / gnl : vec3(0, 0, 1);
+@@ -355,6 +400,8 @@
+             A.plantCorr[s] = vec3(0);
+             A.corrYaw[s] = 0.f;
+             A.pinZ[s] = A.plantAge[s] = 0.f;
++            A.footHold[s] = false;
++            A.pivotW[s] = 0.f;
+         }
+     }
+     // root motion of this update, in the new model space: world-fixed points move back by it and turn against it
+@@ -376,7 +423,7 @@
+     const float scale = L / 0.197f;            // foot size relative to the male reference
+     vec3 fp[2], heel[2], ball[2];
+     quat fq[2];
+-    float fyaw[2], wBall[2];
++    float fyaw[2], wBall[2], toeZ[2];
+     // pelvis model transform (root -> pelvis), the legs from it
+     const quat qr = p.rot[B_ROOT];
+     const vec3 pr = sk.bindLocalPos[B_ROOT];
+@@ -397,6 +444,10 @@
+         heel[s] = fp[s] + rotate(fq[s], vec3(0.f, -A.footHeel, -A.footAnkleH));
+         ball[s] = fp[s] + rotate(fq[s], vec3(0.f, A.footBall, -A.footAnkleH));
+         wBall[s] = Saturate((-pitch - 0.02f) / 0.07f);
++        // toe tip on the sole under the (bent) toe bone
++        const int tb = s ? B_TOE_R : B_TOE_L;
++        const vec3 toeJ = fp[s] + rotate(fq[s], sk.bindLocalPos[tb]);
++        toeZ[s] = (toeJ + rotate(fq[s] * p.rot[tb], vec3(0.f, sk.boneLength[tb], -(A.footAnkleH + sk.bindLocalPos[tb].z)))).z;
+     }
+     auto pivotA = [&](int s) { return lerp(heel[s], ball[s], wBall[s]); };
+     // planted pivot: the same point of the sole on a footprint (heel point h, yaw y)
+@@ -406,35 +457,39 @@
+         vec3 pa = pivotA(s);
+         return pa + A.plantCorr[s] + rotate(qz(A.corrYaw[s]), heel[s] - pa);
+     };
+-    const bool walking = A.moveW > 0.3f && duty > 0.05f;
+     if (A.plantOn > 0.f) {
+         for (int s = 0; s < 2; s++) {
+             bool nearGround = pivotA(s).z < 0.05f * scale;
+             if (walking) {
++                // (a step under way - a turn step, or one settling the feet as the walk begins - lands first)
++                if (A.stepT[s] >= 0.f) continue;
+                 // gait contacts: plant at the heel strike (where the foot is shown; early when a late swing already
+                 // meets the ground, e.g. a slow walk blended with the idle, or ground higher than the pose expects),
+                 // release at toe-off
+                 float ph = A.phase - (s ? 0.5f : 0.f);
+                 ph -= floorf(ph);
+                 float swingU = ph > duty ? (ph - duty) / Max(1.f - duty, 0.05f) : 0.f;
+-                bool touching = Min(heel[s].z, ball[s].z) < 0.004f * scale;
++                bool touching = Min(Min(heel[s].z, ball[s].z), toeZ[s]) < 0.004f * scale;
+                 // (a foot still on the ground just after the gait's toe-off stays planted until it actually lifts:
+                 // blended gaits, e.g. a diagonal walk, lift a little later than their mixed duty)
+                 bool contact = (ph > 0.004f && ph < duty - 0.01f && nearGround) || (A.planted[s] && ph <= 0.004f) ||
+                                (swingU > 0.7f && touching) || (A.planted[s] && touching && swingU < 0.25f);
+-                A.stepT[s] = -1.f;   // a pending step gives way to the gait (its offset fades out)
+                 if (contact && !A.planted[s]) {
+                     A.planted[s] = true;
++                    A.footHold[s] = false;
+                     vec3 h = shownHeel(s);
+                     A.plantP[s] = vec3(h.x, h.y, 0.f);
+                     A.plantYaw[s] = wrapAngle(fyaw[s] + A.corrYaw[s]);
+                     A.footEvents |= 1u << s;
+                 } else if (!contact && A.planted[s]) {
++                    // toe-off: held where it is until the pose has lifted it clear (a foot never slides off)
+                     A.planted[s] = false;
++                    A.footHold[s] = true;
+                 }
+             } else if (A.stepT[s] < 0.f && !A.planted[s] && nearGround) {
+                 // standing: a foot that comes down stays down where it is shown
+                 A.planted[s] = true;
++                A.footHold[s] = false;
+                 vec3 h = shownHeel(s);
+                 A.plantP[s] = vec3(h.x, h.y, 0.f);
+                 A.plantYaw[s] = wrapAngle(fyaw[s] + A.corrYaw[s]);
+@@ -483,6 +538,19 @@
+     // their last correction fade
+     float lift[2] = {0.f, 0.f};
+     float shiftT = 0.f;
++    // a quick step from where the foot is to where the pose has it (walking: a foot the turn or the pose has left behind
++    // beyond the leg's comfortable reach lifts and steps over instead of being dragged)
++    auto quickStep = [&](int s) {
++        vec3 e = A.plantP[s] - heel[s];
++        float dist = length(vec2(e.x, e.y));
++        A.planted[s] = false;
++        A.footHold[s] = false;
++        A.stepT[s] = 0.f;
++        A.stepFrom[s] = A.plantP[s];
++        A.stepFromYaw[s] = A.plantYaw[s];
++        A.stepDur[s] = Clamp(0.15f + 0.22f * dist / scale, 0.15f, 0.26f);
++        A.stepLift[s] = Clamp(0.025f + 0.1f * dist / scale, 0.025f, 0.06f) * scale;
++    };
+     for (int s = 0; s < 2; s++) {
+         vec3 pa = pivotA(s);
+         if (A.stepT[s] >= 0.f) {
+@@ -511,27 +579,76 @@
+             if (A.stepT[s] >= 1.f) {
+                 A.stepT[s] = -1.f;
+                 A.planted[s] = true;
++                A.footHold[s] = false;
+                 A.plantP[s] = A.stepTo[s];
+                 A.plantYaw[s] = A.stepToYaw[s];
+                 A.footEvents |= 1u << s;
+             }
+-        } else if (A.planted[s]) {
++        } else if (A.planted[s] || A.footHold[s]) {
++            // on the ground (planted, or let go at toe-off while the pose still has it down): it stays where it is. Twisted
++            // further than the leg turns comfortably (a quick turn while walking), it pivots on its ball, which stays put,
++            // the heel coming up a little
++            const float tw = wrapAngle(A.plantYaw[s] - fyaw[s]), allow = walking ? 0.45f : 1.f;
++            bool piv = false;
++            if (fabsf(tw) > allow) {
++                const float ex = tw - Clamp(tw, -allow, allow);
++                const vec3 bw = A.plantP[s] + rotate(qz(A.plantYaw[s]), vec3(0.f, L, 0.f));
++                A.plantYaw[s] = wrapAngle(A.plantYaw[s] - ex);
++                A.plantP[s] = bw - rotate(qz(A.plantYaw[s]), vec3(0.f, L, 0.f));
++                piv = true;
++            }
++            A.pivotW[s] = approach(A.pivotW[s], piv ? 1.f : 0.f, dt * (piv ? 10.f : 4.f));
+             vec3 pp = pivotP(s, A.plantP[s], A.plantYaw[s]);
+             A.plantCorr[s] = vec3(pp.x - pa.x, pp.y - pa.y, 0.f);
+             A.corrYaw[s] = wrapAngle(A.plantYaw[s] - fyaw[s]);
+-            // too far from the pose (a fast turn, a shove): let go (standing feet wait longer for their step)
+-            float lim = walking ? 0.3f : (A.staggerT >= 0.f ? 0.55f : 0.38f), limY = walking ? 0.75f : 1.15f;
+-            if (length2(A.plantCorr[s]) > lim * lim * scale * scale || fabsf(A.corrYaw[s]) > limY) A.planted[s] = false;
+-        } else if (Min(heel[s].z, ball[s].z) > 0.012f * scale || A.moveW < 0.3f) {
+-            // released: the correction fades once the foot is off the ground (a toe still on it would slide)
+-            float k = expf(-dt / 0.07f);
+-            A.plantCorr[s] = A.plantCorr[s] * k;
+-            A.corrYaw[s] *= k;
++            if (A.footHold[s] && Min(Min(heel[s].z, ball[s].z), toeZ[s]) + A.pinZ[s] > 0.012f * scale) {
++                A.footHold[s] = false;   // a held foot goes once the pose has lifted it clear
++            } else {
++                // too far from the pose for the leg (a quick turn, a shove): walking, it steps over at once if the other foot
++                // is down (else it waits for it, the leg stretched); standing, it is let go for its step (standing feet wait
++                // longer)
++                // (a held foot is about to be lifted by the gait anyway: it waits longer)
++                const float lim = A.footHold[s] ? 0.5f : (walking ? 0.3f : (A.staggerT >= 0.f ? 0.55f : 0.38f)), limY = walking ? 0.75f : 1.15f;
++                const int o = 1 - s;
++                if (length2(A.plantCorr[s]) > lim * lim * scale * scale || fabsf(A.corrYaw[s]) > limY) {
++                    if (!walking && !A.footHold[s]) A.planted[s] = false;
++                    else if (A.stepT[o] < 0.f && (A.planted[o] || A.footHold[o])) quickStep(s);
++                    else if (A.stepT[o] >= 0.f) A.stepDur[o] = Max(0.12f, A.stepDur[o] - dt * 0.6f);   // (the other is
++                                                                                                       // stepping: hurried)
++                }
++            }
++        } else {
++            // let go: the correction fades once the foot is off the ground (a toe still on it would slide). One that comes
++            // down onto the ground again before the gait plants it (a late swing grazing it, the walk blending out to a
++            // stand) is held where it is shown
++            float ph = A.phase - (s ? 0.5f : 0.f);
++            ph -= floorf(ph);
++            const bool late = ph > duty + 0.5f * (1.f - duty) || A.moveW < 0.95f;
++            if (walking && late && Min(Min(heel[s].z, ball[s].z), toeZ[s]) + A.pinZ[s] < 0.006f * scale) {
++                const vec3 h = shownHeel(s);
++                A.plantP[s] = vec3(h.x, h.y, 0.f);
++                A.plantYaw[s] = wrapAngle(fyaw[s] + A.corrYaw[s]);
++                A.footHold[s] = true;
++            } else if (Min(heel[s].z, ball[s].z) > 0.012f * scale || A.moveW < 0.3f) {
++                float k = expf(-dt / 0.07f);
++                A.plantCorr[s] = A.plantCorr[s] * k;
++                A.corrYaw[s] *= k;
++            }
++            A.pivotW[s] = approach(A.pivotW[s], 0.f, dt * 4.f);
+         }
+     }
++    // a swing while the walk is still blending in or out (setting off, coming to a stop) keeps a walk's clearance: the
++    // blend with the standing pose would drag the foot over the ground
++    if (walking && A.moveW < 0.999f)
++        for (int s = 0; s < 2; s++)
++            if (swingU[s] > 0.f && !A.planted[s] && !A.footHold[s] && A.stepT[s] < 0.f)
++                lift[s] = Max(lift[s], (1.f - A.moveW) * 0.07f * scale * sinf(kPi * swingU[s]));
+     A.stepShift += (shiftT - A.stepShift) * (1.f - expf(-dt * 10.f));
+-    // terrain heights under the feet (probed there, or extrapolated along the slope from probes below the hips)
++    // terrain heights under the feet (probed there, or extrapolated along the slope from probes below the hips); a
++    // swinging foot over the higher of the ground near it and where it lands
+     float offs[2] = {A.footL, A.footR};
++    for (int s = 0; s < 2; s++)
++        if (swingU[s] > 0.f && !A.planted[s] && !A.footHold[s] && A.stepT[s] < 0.f) offs[s] = Max(offs[s], A.groundAhead[s]);
+     if (!in.footProbes)
+         for (int s = 0; s < 2; s++) offs[s] += Clamp(fp[s].y * slopeY, -0.3f, 0.3f);
+     float drop = Min(0.f, Min(offs[0], offs[1]));
+@@ -540,11 +657,7 @@
+     // reference leave it a few mm off), no foot sinks into it
+     float pin[2] = {0.f, 0.f};
+     for (int s = 0; s < 2; s++) {
+-        // toe tip on the sole under the (bent) toe bone
+-        const int tb = s ? B_TOE_R : B_TOE_L;
+-        vec3 toeJ = fp[s] + rotate(fq[s], sk.bindLocalPos[tb]);
+-        vec3 toe = toeJ + rotate(fq[s] * p.rot[tb], vec3(0.f, sk.boneLength[tb], -(A.footAnkleH + sk.bindLocalPos[tb].z)));
+-        float low = Min(Min(heel[s].z, ball[s].z), toe.z);
++        float low = Min(Min(heel[s].z, ball[s].z), toeZ[s]);
+         float pz = pivotA(s).z;
+         // (proportions and mixed clips leave the pose's sole a centimetre or two off the ground at times: a planted
+         // foot is pulled onto it over its first 80 ms, and a lifted one lets go over 50 ms, not in a frame)
+@@ -561,12 +674,19 @@
+     bool any = fabsf(drop) > 1e-4f || fabsf(slopeY) > 0.01f || fabsf(slopeX) > 0.01f || fabsf(A.stepShift) > 1e-4f;
+     for (int s = 0; s < 2; s++)
+         any = any || offs[s] - drop > 0.002f || length2(A.plantCorr[s]) * w * w > 1e-6f || fabsf(A.corrYaw[s]) * w > 0.002f || lift[s] > 1e-3f ||
+-              fabsf(pin[s]) > 5e-4f;
++              fabsf(pin[s]) > 5e-4f || A.pivotW[s] > 1e-3f;
+     // probe points for the next update: under the shown foot, ahead of a swinging one
+     for (int s = 0; s < 2; s++) {
+         vec3 pa = pivotA(s), mid = (heel[s] + ball[s]) * 0.5f;
+         vec3 m = pa + A.plantCorr[s] * w + rotate(qz(A.corrYaw[s] * w), mid - pa);
+-        if (!A.planted[s] && A.stepT[s] < 0.f) m = m + vec3(md.x, md.y, 0.f) * Min(0.35f, spd * 0.2f);
++        // (a swinging foot's probe: every other update where it will land - the rest of a stride ahead - else just ahead)
++        const bool swinging = swingU[s] > 0.f && cycle > 0.f && !A.planted[s] && !A.footHold[s] && A.stepT[s] < 0.f;
++        A.probeAhead[s] = swinging && !A.probeAhead[s];
++        if (A.probeAhead[s]) m = m + vec3(md.x, md.y, 0.f) * Clamp((1.f - swingU[s]) * cycle, 0.05f, 1.2f);
++        else if (!A.planted[s] && !A.footHold[s] && A.stepT[s] < 0.f) m = m + vec3(md.x, md.y, 0.f) * Min(swinging ? 0.15f : 0.35f, spd * 0.2f);
++        // (the game probes after its next move: carried back by one update's root motion, a planted foot's probe stays
++        // under it)
++        m = rotate(qBack, m) - d;
+         A.probeP[s] = vec3(m.x, m.y, 0.f);
+     }
+     // (a planted foot always goes through the IK: switching it off when the correction happens to be tiny would let
+@@ -605,10 +725,22 @@
+         float grounded = 1.f - sstep(0.02f, 0.08f, pa.z);
+         quat want = rc * fq[s];
+         if (grounded > 0.f && (fabsf(slopeY) > 0.01f || fabsf(slopeX) > 0.01f)) want = nlerp(want, tilt * want, grounded);
++        // pivoting on the ball: the heel comes up about it
++        if (A.pivotW[s] * w > 1e-3f) {
++            const quat rp = quatAxisAngle(rotate(want, vec3(1.f, 0.f, 0.f)), -0.2f * A.pivotW[s] * w);
++            const vec3 bp = target + rotate(want, vec3(0.f, A.footBall, -A.footAnkleH));
++            target = bp + rotate(rp, target - bp);
++            want = normalize(rp * want);
++        }
+         // the knee and the calf's forward axis give the pole
+         vec3 pole = knee[s] + rotate(qcalf[s], vec3(0.f, 0.4f, 0.f));
+         p.rot[ends[s]] = normalize(conj(qcalf[s]) * want);   // the IK keeps the foot's model rotation
+         legIK(sk, p, ups[s], lows[s], ends[s], qp, pp, target, pole);
++        // (pivoting: the toes stay flat on the ground)
++        if (A.pivotW[s] * w > 1e-3f) {
++            const int tb = s ? B_TOE_R : B_TOE_L;
++            p.rot[tb] = normalize(qx(0.2f * A.pivotW[s] * w) * p.rot[tb]);
++        }
+     }
+ }
+ 
+@@ -1639,7 +1771,7 @@
+     const float ls = Max(legScale, 0.3f);
+     bool vehicleStance = stanceIsVehicle(stance);
+     bool footIK = false;
+-    float locoDuty = 0.f;
++    float locoDuty = 0.f, locoCycle = 0.f;
+     if (vehicleStance) {
+         sampleClip(sk, kStanceClip[stance], stanceTime, base, seed);
+         moveW = 0.f;
+@@ -1708,7 +1840,9 @@
+         rate = wsum * (1.f - cw) + rateC * cw;
+         wF /= wsum; wBk /= wsum; wR /= wsum; wL /= wsum;
+         rate = Min(rate, 2.4f) / ls;
++        locoCycle = rate > 1e-3f ? v / rate : 0.f;   // ground covered per gait cycle (a foot's swing)
+         if (in.swimming) rate = Max(v, 0.5f) / stride(CLIP_SWIM) / ls;
++        const float moveW0 = moveW;
+         moveW = walkW;
+         // stance fraction of the blended gait (foot planting reads the contacts from the phase)
+         locoDuty = (wF * dutyF + wBk * dutyB + (wL + wR) * dutyS) * (1.f - cw) + clipDuty(CLIP_CROUCH_WALK) * cw;
+@@ -1734,6 +1868,12 @@
+             }
+             limpLurch = limpLurch * expf(-dt / 1.5f);
+         }
++        // setting off from standing: the foot without the weight steps first, at once - the gait starts with it in mid
++        // swing and the other in mid stance, both under the body as they stand (the first step is a short one)
++        if (moveW0 < 0.02f && walkW >= 0.02f && plantOn > 0.5f && cw < 0.5f && !in.swimming && !in.inAir &&
++            (action < 0 || actionFinished || actionUpper))
++            phase = 0.5f * Clamp(locoDuty, 0.3f, 0.8f) + (standW < 0.5f ? 0.f : 0.5f);   // (the weight on the left: the
++                                                                                           // right foot is free)
+         if (v > 0.02f || in.swimming) phase += dt * rate * limpF;
+         phase += dt * turnStep * 1.3f / ls;
+         phase -= floorf(phase);
+@@ -2467,6 +2607,40 @@
+         rotateLocal(outp, B_NECK, qy(-leanS * 0.5f));
+     }
+ 
++    // ---------------------------------------------------------------- someone passing close (AnimInput::passBy): the
++    //                                                                  near shoulder turns back, the trunk leans away
++    //                                                                  and the steps go a little aside
++    {
++        float wT = 0.f, yawT = 0.f, shiftT = 0.f;
++        const float side = in.passBy.x >= 0.f ? 1.f : -1.f;   // the passer on the right (+) or the left (-)
++        if (upright && !cheap && !in.aiming && in.passWeight > 0.f && crouchBlend < 0.5f && !stanceIsGuard(stance) && stance != 25 &&
++            !stanceLocksLegs(stance)) {
++            // the closer across they come, the more (two people square on need some 0.9 m between them); most while abreast
++            const float tight = sstep(1.05f, 0.5f, fabsf(in.passBy.x)), abreast = 1.f - sstep(0.5f, 1.8f, fabsf(in.passBy.y));
++            wT = Saturate(in.passWeight) * tight * (0.3f + 0.7f * abreast);
++            yawT = -side * 0.5f * wT;
++            shiftT = -side * 0.11f * wT;
++        }
++        const float kp = 1.f - expf(-dt * 7.f);
++        passW += (wT - passW) * kp;
++        passYaw += (yawT - passYaw) * kp;
++        passShift += (shiftT - passShift) * (1.f - expf(-dt * 4.f));
++        if (fabsf(passYaw) > 1e-4f) {
++            // the twist spread up the spine (the lower back least), most of it taken back by the neck and head (the eyes
++            // stay on the way ahead), the trunk leaning a little away from them
++            static const u8 kChain[5] = {B_SPINE1, B_SPINE2, B_CHEST, B_NECK, B_HEAD};
++            static const float kShare[5] = {0.25f, 0.35f, 0.4f, -0.35f, -0.35f};
++            for (int k = 0; k < 5; k++) {
++                quat qp;
++                vec3 pp;
++                boneModel(sk, outp, sk.parent[kChain[k]], qp, pp);
++                outp.rot[kChain[k]] = normalize(conj(qp) * qz(passYaw * kShare[k]) * qp * outp.rot[kChain[k]]);
++            }
++            rotateLocal(outp, B_SPINE2, qy(-0.12f * passYaw));
++        }
++        if (fabsf(passShift) > 1e-4f) outp.rootOffset.x += passShift;
++    }
++
+     // ---------------------------------------------------------------- start / stop lean, head leading into turns,
+     //                                                                  body following a turn on the spot
+     footEvents = 0;
+@@ -2505,7 +2679,7 @@
+         bool plantStance = stance == 0 || stance == 5 || stance == 7 || stance == 8 || stance == 10 || stance == 14 || stance == 15 ||
+                            stance == 17 || stance == 23 || stance == 25;
+         bool planting = !cheap && footIK && plantStance && (action < 0 || actionFinished || actionUpper) && swimBlend < 0.01f;
+-        if (!cheap) footPlanting(*this, in, dt, outp, planting, footIK, locoDuty);
++        if (!cheap) footPlanting(*this, in, dt, outp, planting, footIK, locoDuty, locoCycle);
+         else if (plantOn > 0.f || planted[0] || planted[1]) {
+             // distant (LOD2) peds: no foot work; start from free feet when they come close again
+             plantOn = legSink = stepShift = 0.f;

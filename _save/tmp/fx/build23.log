@@ -1,0 +1,9 @@
+Embedded 35 shader files.
+In file included from src/audio/audio_all.cpp:10,
+                 from src/main.cpp:53:
+src/audio/radio.cpp: In function 'void Audio::detail::radio::initStation(int)':
+src/audio/radio.cpp:634: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+  634 |                     for (auto& o : s.catalog)
+      | 
+src/audio/radio.cpp:634: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 9473024 Sep 30 16:09 /home/user/GTA-6-Claude-v0.5/bin/nt_fx23.exe

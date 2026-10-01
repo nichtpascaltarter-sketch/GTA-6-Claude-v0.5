@@ -1,0 +1,169 @@
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.15 s)
+World map generated in 47.40 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (4.63 s)
+Buildings: 36093 (towers 358, midrise 2400, condo 485, deco 838, shops 4829, strip 693, houses 21872, villas 928, warehouses 1686) in 4.83 s
+Sites: 66 highway billboards
+Sites: 112 silos, 55 windmills
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 557 elements (0.02 s)
+Lane graph: 26691 lanes, 59937 connectors (1215831 pts), 36768 walk nodes, 53089 walk links, dead-end turning circles moved 0 / obstructed 0 (2.65 s)
+Loaded 16 collision cells
+Simulating 4.0 minutes around (2390, 960) r=300 with 110 cars, 40 peds
+LATDEV t=7.1 car 57 (Spree GT) at 2407.4 683.1 lane 96 u 268.3 latErr -0.91 v 29.8 vT 29.9 steer 0.25 diag e 0.23 psi 0.01 ff -0.00 st -0.04
+LATDEV t=7.6 car 93 (Governor) at 2119.7 973.6 lane 102 u 261.4 latErr -0.92 v 28.6 vT 29.7 steer 0.30 diag e -0.01 psi -0.05 ff 0.00 st 0.04
+PSIJUMP t=8.0 car 44 psi -0.04 real -0.29 fp 104 fu 20.12 u 18.56 lcLane 103 lcU0 16.0 lcLen 16.0 lcFrom 0.00 lcTo -3.60 lat -0.24 nudge 0.00
+LATDEV t=8.1 car 22 (Falke 7) at 2197.1 966.3 lane 102 u 183.6 latErr -0.90 v 25.6 vT 26.5 steer 0.18 diag e 0.02 psi -0.03 ff 0.00 st 0.03
+LATDEV t=8.2 car 16 (Harbor) at 2136.8 972.0 lane 102 u 244.2 latErr -0.90 v 27.2 vT 29.2 steer 0.29 diag e -0.35 psi -0.02 ff 0.00 st 0.06
+PSIJUMP t=12.0 car 91 psi 0.06 real -0.19 fp 7070 fu 21.27 u 20.02 lcLane 7069 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.36 nudge 0.00
+PSIJUMP t=16.7 car 6 psi 0.12 real -0.13 fp 7046 fu 21.34 u 19.70 lcLane 7045 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.29 nudge 0.00
+PSIJUMP t=16.7 car 77 psi 0.10 real -0.16 fp 7811 fu 16.63 u 15.24 lcLane 7810 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+LATDEV t=18.7 car 44 (Tekko) at 2144.9 971.2 lane 102 u 236.1 latErr -0.90 v 33.0 vT 39.4 steer 0.18 diag e -0.10 psi 0.03 ff 0.00 st -0.02
+PSIJUMP t=25.6 car 21 psi 0.11 real -0.14 fp 7798 fu 21.23 u 19.96 lcLane 7797 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.35 nudge 0.00
+LATDEV t=28.1 car 108 (Harbor) at 2080.1 977.2 lane 102 u 301.2 latErr -0.90 v 24.8 vT 38.7 steer 0.25 diag e -0.22 psi -0.03 ff 0.00 st 0.05
+PSIJUMP t=29.8 car 12 psi 0.12 real -0.14 fp 7059 fu 21.39 u 20.00 lcLane 7058 lcU0 16.9 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.34 nudge 0.00
+PSIJUMP t=37.3 car 5 psi 0.12 real -0.13 fp 7059 fu 21.31 u 19.79 lcLane 7058 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.31 nudge 0.00
+PSIJUMP t=39.9 car 15 psi -0.09 real 0.16 fp 7057 fu 21.19 u 19.80 lcLane 7058 lcU0 16.7 lcLen 16.0 lcFrom 0.00 lcTo 3.40 lat 0.33 nudge 0.00
+LATDEV t=42.0 car 43 (Raijin 1000) at 2236.5 943.8 lane 6544 u 36.5 latErr -0.93 v 12.6 vT 19.0 steer 0.39 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+PSIJUMP t=45.5 car 47 psi 0.09 real -0.16 fp 7098 fu 16.61 u 15.37 lcLane 7097 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.39 nudge 0.00
+PSIJUMP t=46.1 car 18 psi 0.08 real -0.17 fp 6560 fu 16.60 u 15.20 lcLane 6559 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+PSIJUMP t=47.6 car 42 psi -0.09 real 0.16 fp 7107 fu 17.42 u 15.96 lcLane 7108 lcU0 12.0 lcLen 16.8 lcFrom 0.00 lcTo 3.30 lat 0.45 nudge 0.00
+PSIJUMP t=51.7 car 14 psi 0.09 real -0.16 fp 7603 fu 16.56 u 15.12 lcLane 7602 lcU0 11.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.36 nudge 0.00
+PSIJUMP t=54.5 car 107 psi 0.03 real -0.22 fp 8135 fu 21.54 u 20.07 lcLane 8134 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.35 nudge 0.00
+PSIJUMP t=55.2 car 100 psi 0.08 real -0.17 fp 6126 fu 16.65 u 15.42 lcLane 6125 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.40 nudge 0.00
+  sim 60 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 54 (wall 21 s)
+PSIJUMP t=61.2 car 39 psi 0.11 real -0.14 fp 7051 fu 21.36 u 20.00 lcLane 7050 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.35 nudge 0.00
+PSIJUMP t=67.6 car 35 psi 0.12 real -0.13 fp 8154 fu 52.35 u 50.91 lcLane 8153 lcU0 47.9 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.32 nudge 0.00
+PSIJUMP t=68.4 car 1 psi -0.09 real 0.16 fp 8126 fu 19.42 u 18.16 lcLane 8127 lcU0 12.1 lcLen 18.5 lcFrom 0.00 lcTo 3.30 lat 0.83 nudge 0.00
+PSIJUMP t=77.4 car 16 psi -0.10 real 0.15 fp 7588 fu 22.05 u 20.65 lcLane 7589 lcU0 17.5 lcLen 16.2 lcFrom 0.00 lcTo 3.40 lat 0.34 nudge 0.00
+PSIJUMP t=77.8 car 80 psi 0.02 real -0.23 fp 7106 fu 21.43 u 19.97 lcLane 7105 lcU0 16.7 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.35 nudge 0.00
+PSIJUMP t=79.1 car 68 psi 0.12 real -0.13 fp 7593 fu 21.34 u 19.80 lcLane 7592 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.31 nudge 0.00
+PSIJUMP t=81.3 car 46 psi -0.07 real 0.18 fp 6138 fu 24.31 u 22.93 lcLane 6139 lcU0 16.9 lcLen 18.9 lcFrom 0.00 lcTo 3.40 lat 0.81 nudge 0.00
+LATDEV t=81.8 car 19 (Mochi 125) at 2408.0 1095.3 lane 7078 u 45.3 latErr 0.91 v 9.5 vT 13.6 steer -0.34 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=82.4 car 35 (Ostgrat X5) at 2374.6 1029.2 lane 91 u 79.4 latErr -0.90 v 24.7 vT 36.0 steer 0.24 diag e -0.00 psi 0.00 ff -0.00 st -0.00
+PSIJUMP t=85.3 car 61 psi 0.09 real -0.17 fp 7597 fu 16.62 u 15.17 lcLane 7596 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.36 nudge 0.00
+LATDEV t=91.0 car 55 (Raijin 1000) at 2337.4 1155.9 lane 6562 u 62.6 latErr 0.91 v 13.5 vT 13.5 steer -0.28 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+PSIJUMP t=91.8 car 59 psi 0.08 real -0.17 fp 7805 fu 16.53 u 15.27 lcLane 7804 lcU0 11.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.39 nudge 0.00
+LATDEV t=92.5 car 14 (Raijin 1000) at 2408.3 730.3 lane 100 u 517.4 latErr -0.93 v 17.1 vT 33.8 steer 0.34 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+PSIJUMP t=93.2 car 46 psi -0.09 real 0.16 fp 5771 fu 48.31 u 46.92 lcLane 5772 lcU0 42.4 lcLen 17.7 lcFrom 0.00 lcTo 3.40 lat 0.56 nudge 0.00
+LATDEV t=102.5 car 14 (Raijin 1000) at 2375.8 1032.3 lane 92 u 82.4 latErr -3.09 v 33.8 vT 33.8 steer 0.16 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+PSIJUMP t=106.2 car 35 psi 0.11 real -0.15 fp 7094 fu 21.35 u 19.88 lcLane 7093 lcU0 16.9 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.32 nudge 0.00
+PSIJUMP t=109.1 car 39 psi 0.08 real -0.17 fp 7085 fu 23.38 u 22.02 lcLane 7084 lcU0 18.4 lcLen 16.6 lcFrom 0.00 lcTo -3.40 lat -0.41 nudge 0.00
+PSIJUMP t=112.1 car 20 psi 0.05 real -0.20 fp 7079 fu 21.37 u 19.90 lcLane 7078 lcU0 16.9 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.32 nudge 0.00
+PSIJUMP t=112.5 car 38 psi 0.11 real -0.14 fp 6553 fu 21.26 u 19.81 lcLane 6552 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.32 nudge 0.00
+PSIJUMP t=116.1 car 61 psi -0.08 real 0.17 fp 8158 fu 19.21 u 17.75 lcLane 8159 lcU0 11.9 lcLen 18.5 lcFrom 0.00 lcTo 3.30 lat 0.78 nudge 0.00
+PSIJUMP t=119.2 car 25 psi -0.13 real 0.13 fp 8143 fu 58.35 u 56.82 lcLane 8144 lcU0 53.8 lcLen 16.0 lcFrom 0.00 lcTo 3.40 lat 0.31 nudge 0.00
+  sim 120 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 107 (wall 37 s)
+PSIJUMP t=120.1 car 95 psi 0.11 real -0.14 fp 6122 fu 57.77 u 56.36 lcLane 6121 lcU0 53.0 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+PSIJUMP t=122.2 car 22 psi -0.11 real 0.14 fp 7581 fu 49.65 u 48.39 lcLane 7582 lcU0 45.1 lcLen 16.1 lcFrom 0.00 lcTo 3.40 lat 0.37 nudge 0.00
+PSIJUMP t=122.9 car 76 psi 0.08 real -0.18 fp 7073 fu 21.36 u 20.10 lcLane 7072 lcU0 16.9 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.36 nudge 0.00
+LATDEV t=127.8 car 19 (Mochi 125) at 2411.4 1192.7 lane 7091 u 42.7 latErr 0.92 v 9.1 vT 8.8 steer -0.34 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+PSIJUMP t=128.9 car 15 psi 0.04 real -0.21 fp 7096 fu 21.52 u 20.13 lcLane 7095 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+PSIJUMP t=130.0 car 48 psi 0.09 real -0.17 fp 8129 fu 16.60 u 15.22 lcLane 8128 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+PSIJUMP t=130.8 car 20 psi -0.06 real 0.19 fp 7090 fu 24.36 u 22.88 lcLane 7091 lcU0 16.7 lcLen 19.1 lcFrom 0.00 lcTo 3.40 lat 0.83 nudge 0.00
+DEADLOCK t=131.1 car 31 at 2411.8 750.9 conn 15022 turn 2 appr 1 node 1271 ctl 2 u 5.1/30.4 hold 6.0 committed 1 gateNode 1271 stopDist 1000000000.0 obst 2.4 (body 102) sig 0
+   -> car 102 lane e2218 d1 i0 u 2.5/91.5 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 32.7 gateConn -1 gateNode 1271 stopDone 0 lat 0.13
+   -> car 31 conn 15022 turn 2 node 1271 u 5.1/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.4(102) wait 60.0 gateConn 15022 gateNode 1271 stopDone 0 lat -0.14
+   -> car 102 lane e2218 d1 i0 u 2.5/91.5 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 32.7 gateConn -1 gateNode 1271 stopDone 0 lat 0.13
+   -> car 31 conn 15022 turn 2 node 1271 u 5.1/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.4(102) wait 60.0 gateConn 15022 gateNode 1271 stopDone 0 lat -0.14
+   -> car 102 lane e2218 d1 i0 u 2.5/91.5 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 32.7 gateConn -1 gateNode 1271 stopDone 0 lat 0.13
+DEADLOCK t=133.6 car 60 at 2424.3 751.6 lane e2218 d-1 i0 u 75.7/83.3 stopU 78.2 next conn 15024 turn 0 ctl 2 gateNode 1271 stopDist 0.4 obst 7.8 (body 31) sig 0
+   -> car 31 conn 15022 turn 2 node 1271 u 5.1/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 62.6 gateConn 15022 gateNode 1271 stopDone 0 lat -0.14
+   -> car 102 lane e2218 d1 i0 u 2.4/91.5 v=0.6 vT=0.3 stop 1000000000.0 obst 2.6(31) wait 35.2 gateConn -1 gateNode 1271 stopDone 0 lat 0.13
+   -> car 31 conn 15022 turn 2 node 1271 u 5.1/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 62.6 gateConn 15022 gateNode 1271 stopDone 0 lat -0.14
+   -> car 102 lane e2218 d1 i0 u 2.4/91.5 v=0.6 vT=0.3 stop 1000000000.0 obst 2.6(31) wait 35.2 gateConn -1 gateNode 1271 stopDone 0 lat 0.13
+   -> car 31 conn 15022 turn 2 node 1271 u 5.1/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 62.6 gateConn 15022 gateNode 1271 stopDone 0 lat -0.14
+PSIJUMP t=134.2 car 100 psi -0.10 real 0.15 fp 8132 fu 17.26 u 16.00 lcLane 8133 lcU0 11.9 lcLen 16.8 lcFrom 0.00 lcTo 3.30 lat 0.50 nudge 0.00
+LATDEV t=134.2 car 103 (Glint) at 2256.0 957.7 lane 105 u 585.3 latErr -0.91 v 26.5 vT 26.1 steer 0.25 diag e 0.04 psi -0.04 ff 0.00 st 0.03
+PSIJUMP t=137.7 car 84 psi 0.08 real -0.17 fp 6152 fu 16.63 u 15.24 lcLane 6151 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+PSIJUMP t=138.4 car 109 psi 0.02 real -0.24 fp 7603 fu 16.50 u 14.07 lcLane 7602 lcU0 11.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.18 nudge 0.00
+LATDEV t=139.3 car 46 (Sawgrass) at 2383.0 1038.0 lane 93 u 87.4 latErr 0.93 v 31.5 vT 34.9 steer -0.37 diag e -0.07 psi -0.06 ff -0.00 st 0.07
+PSIJUMP t=140.3 car 75 psi -0.08 real 0.17 fp 7598 fu 19.84 u 18.40 lcLane 7599 lcU0 11.8 lcLen 18.9 lcFrom 0.00 lcTo 3.30 lat 0.92 nudge 0.00
+PSIJUMP t=141.0 car 87 psi 0.09 real -0.16 fp 6126 fu 16.57 u 15.14 lcLane 6125 lcU0 11.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.36 nudge 0.00
+PSIJUMP t=141.3 car 86 psi 0.09 real -0.16 fp 98 fu 20.20 u 19.06 lcLane 97 lcU0 16.1 lcLen 16.0 lcFrom 0.00 lcTo -3.60 lat -0.33 nudge 0.00
+PSIJUMP t=145.0 car 74 psi -0.10 real 0.16 fp 7100 fu 38.46 u 36.64 lcLane 7101 lcU0 32.1 lcLen 18.1 lcFrom 0.00 lcTo 3.40 lat 0.54 nudge 0.00
+DEADLOCK t=154.3 car 63 at 2430.6 751.6 lane e2218 d-1 i0 u 69.4/83.3 stopU 78.2 next conn 15023 turn 1 ctl 2 gateNode 1271 stopDist 6.4 obst 1.9 (body 60) sig 0
+   -> car 60 lane e2218 d-1 i0 u 75.7/83.3 v=0.0 vT=0.2 stop 0.4 obst 7.9(31) wait 80.7 gateConn 15024 gateNode 1271 stopDone 1 lat 0.00
+   -> car 31 conn 15022 turn 2 node 1271 u 5.2/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 83.3 gateConn 15022 gateNode 1271 stopDone 0 lat -0.14
+   -> car 102 lane e2218 d1 i0 u 2.4/91.5 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 46.5 gateConn -1 gateNode 1271 stopDone 0 lat 0.34
+   -> car 31 conn 15022 turn 2 node 1271 u 5.2/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 83.3 gateConn 15022 gateNode 1271 stopDone 0 lat -0.14
+   -> car 102 lane e2218 d1 i0 u 2.4/91.5 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 46.5 gateConn -1 gateNode 1271 stopDone 0 lat 0.34
+LATDEV t=155.2 car 19 (Mochi 125) at 2553.0 1249.3 lane 7602 u 53.0 latErr -0.91 v 14.1 vT 15.9 steer 0.31 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=155.7 car 46 (Tomo) at 2391.8 844.0 lane 99 u 632.2 latErr -0.92 v 27.9 vT 36.2 steer 0.29 diag e 0.06 psi -0.03 ff 0.00 st 0.02
+PSIJUMP t=156.0 car 6 psi -0.08 real 0.17 fp 6115 fu 19.98 u 18.65 lcLane 6116 lcU0 11.9 lcLen 19.0 lcFrom 0.00 lcTo 3.30 lat 0.97 nudge 0.00
+STATIC t=156.0 car 46 at 2390.1 855.1 v=27.0 imp 4165 path 99 u 643.1 lat -1.46
+PSIJUMP t=158.3 car 2 psi -0.06 real 0.19 fp 7799 fu 26.35 u 24.55 lcLane 7800 lcU0 17.0 lcLen 19.9 lcFrom 0.00 lcTo 3.40 lat 1.10 nudge 0.00
+LATDEV t=165.4 car 85 (Raijin 1000) at 2410.8 627.5 lane 97 u 323.9 latErr -0.92 v 17.5 vT 29.6 steer 0.32 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=170.7 car 81 (Sundowner 1800) at 2033.5 961.7 lane 5772 u 66.5 latErr 1.20 v 16.5 vT 21.3 steer -0.30 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=175.9 car 43 (Raijin 1000) at 2395.2 633.2 lane 7036 u 16.8 latErr 1.08 v 6.8 vT 19.0 steer -0.23 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=178.5 car 88 (Minnow) at 2374.0 1037.1 lane 91 u 87.3 latErr -0.90 v 32.5 vT 32.5 steer 0.30 diag e 0.19 psi -0.01 ff -0.00 st -0.02
+PSIJUMP t=179.8 car 107 psi -0.08 real 0.17 fp 6157 fu 19.30 u 17.49 lcLane 6158 lcU0 12.0 lcLen 18.5 lcFrom 0.00 lcTo 3.30 lat 0.70 nudge 0.00
+  sim 180 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 3, ped hits 0, respawns 169 (wall 54 s)
+DEADLOCK t=180.2 car 102 at 2402.0 747.8 lane e2218 d1 i0 u 2.0/91.5 stopU 86.4 next conn 15324 turn 0 ctl 1 gateNode 1271 stopDist 1000000000.0 obst 2.6 (body 31) sig 4
+   -> car 31 conn 15022 turn 2 node 1271 u 5.5/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 109.0 gateConn 15022 gateNode 1271 stopDone 0 lat -0.14
+   -> car 102 lane e2218 d1 i0 u 2.0/91.5 v=0.4 vT=0.3 stop 1000000000.0 obst 2.6(31) wait 60.0 gateConn -1 gateNode 1271 stopDone 0 lat 0.59
+   -> car 31 conn 15022 turn 2 node 1271 u 5.5/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 109.0 gateConn 15022 gateNode 1271 stopDone 0 lat -0.14
+   -> car 102 lane e2218 d1 i0 u 2.0/91.5 v=0.4 vT=0.3 stop 1000000000.0 obst 2.6(31) wait 60.0 gateConn -1 gateNode 1271 stopDone 0 lat 0.59
+   -> car 31 conn 15022 turn 2 node 1271 u 5.5/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 109.0 gateConn 15022 gateNode 1271 stopDone 0 lat -0.14
+PSIJUMP t=186.8 car 61 psi -0.12 real 0.13 fp 8153 fu 50.44 u 48.99 lcLane 8154 lcU0 46.0 lcLen 16.0 lcFrom 0.00 lcTo 3.40 lat 0.31 nudge 0.00
+LATDEV t=187.2 car 21 (Raijin 1000) at 2393.8 986.9 lane 7069 u 63.1 latErr -0.92 v 16.1 vT 16.2 steer 0.29 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+PSIJUMP t=190.2 car 80 psi -0.07 real 0.18 fp 7788 fu 25.13 u 23.67 lcLane 7789 lcU0 16.9 lcLen 19.5 lcFrom 0.00 lcTo 3.40 lat 0.95 nudge 0.00
+LATDEV t=190.4 car 99 (Mochi 125) at 2187.1 1252.6 lane 6165 u 12.9 latErr 0.90 v 5.8 vT 13.3 steer -0.20 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+PSIJUMP t=191.0 car 101 psi 0.07 real -0.18 fp 7073 fu 21.25 u 20.00 lcLane 7072 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.36 nudge 0.00
+PSIJUMP t=193.0 car 37 psi 0.08 real -0.17 fp 6566 fu 16.61 u 15.09 lcLane 6565 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.35 nudge 0.00
+PSIJUMP t=194.3 car 58 psi -0.03 real 0.22 fp 97 fu 24.52 u 23.14 lcLane 98 lcU0 16.0 lcLen 20.5 lcFrom 0.00 lcTo 3.60 lat 1.00 nudge 0.00
+DEADLOCK t=202.3 car 91 at 2401.5 754.8 conn 15027 turn 2 appr 2 node 1271 ctl 2 u 13.4/30.4 hold 18.0 committed 0 gateNode 1271 stopDist 2.5 obst 0.0 (body 102) sig 2
+   -> car 102 lane e2218 d1 i0 u 1.9/91.5 v=0.1 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 72.7 gateConn -1 gateNode 1271 stopDone 0 lat 0.58
+   -> car 31 conn 15022 turn 2 node 1271 u 5.7/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.4(102) wait 130.9 gateConn 15022 gateNode 1271 stopDone 0 lat -0.14
+   -> car 102 lane e2218 d1 i0 u 1.9/91.5 v=0.1 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 72.7 gateConn -1 gateNode 1271 stopDone 0 lat 0.58
+   -> car 31 conn 15022 turn 2 node 1271 u 5.7/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.4(102) wait 130.9 gateConn 15022 gateNode 1271 stopDone 0 lat -0.14
+   -> car 102 lane e2218 d1 i0 u 1.9/91.5 v=0.1 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 72.7 gateConn -1 gateNode 1271 stopDone 0 lat 0.58
+PSIJUMP t=204.4 car 97 psi 0.09 real -0.16 fp 6120 fu 16.65 u 15.39 lcLane 6119 lcU0 12.0 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.39 nudge 0.00
+LATDEV t=205.0 car 58 (Seiran) at 2401.4 675.6 lane 98 u 275.0 latErr -1.18 v 35.7 vT 36.8 steer -0.01 diag e 0.45 psi 0.12 ff -0.00 st -0.17
+LATDEV t=206.2 car 9 (Tekko) at 2401.0 690.8 lane 97 u 259.8 latErr 0.91 v 21.7 vT 34.0 steer -0.23 diag e 0.00 psi -0.00 ff -0.00 st -0.00
+PSIJUMP t=220.5 car 44 psi 0.10 real -0.15 fp 7082 fu 21.24 u 19.65 lcLane 7081 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.29 nudge 0.00
+PSIJUMP t=220.8 car 46 psi -0.09 real 0.16 fp 7107 fu 18.45 u 16.94 lcLane 7108 lcU0 12.0 lcLen 17.9 lcFrom 0.00 lcTo 3.30 lat 0.62 nudge 0.00
+DEADLOCK t=224.8 car 49 at 2374.9 748.4 lane e2161 d1 i0 u 74.9/83.3 stopU 78.2 next conn 15030 turn 0 ctl 2 gateNode 1271 stopDist 0.4 obst 19.3 (body 102) sig 1
+   -> car 102 conn 15030 turn 0 node 1271 u 18.2/33.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 1.0 gateConn -1 gateNode 1271 stopDone 0 lat 0.60
+   -> car 31 conn 15022 turn 2 node 1271 u 6.2/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.3(102) wait 152.5 gateConn 15022 gateNode 1271 stopDone 0 lat -0.14
+   -> car 102 conn 15030 turn 0 node 1271 u 18.2/33.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 1.0 gateConn -1 gateNode 1271 stopDone 0 lat 0.60
+   -> car 31 conn 15022 turn 2 node 1271 u 6.2/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.3(102) wait 152.5 gateConn 15022 gateNode 1271 stopDone 0 lat -0.14
+   -> car 102 conn 15030 turn 0 node 1271 u 18.2/33.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 1.0 gateConn -1 gateNode 1271 stopDone 0 lat 0.60
+PSIJUMP t=226.1 car 90 psi -0.06 real 0.19 fp 7092 fu 25.81 u 24.56 lcLane 7093 lcU0 16.8 lcLen 19.8 lcFrom 0.00 lcTo 3.40 lat 1.15 nudge 0.00
+PSIJUMP t=226.9 car 40 psi 0.10 real -0.16 fp 6137 fu 21.30 u 19.97 lcLane 6136 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.35 nudge 0.00
+PSIJUMP t=227.3 car 68 psi 0.07 real -0.19 fp 7067 fu 21.22 u 19.97 lcLane 7066 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.35 nudge 0.00
+PSIJUMP t=228.9 car 29 psi -0.09 real 0.16 fp 8132 fu 17.29 u 15.91 lcLane 8133 lcU0 11.8 lcLen 16.8 lcFrom 0.00 lcTo 3.30 lat 0.49 nudge 0.00
+PSIJUMP t=234.7 car 67 psi -0.07 real 0.18 fp 7591 fu 24.96 u 23.63 lcLane 7592 lcU0 16.8 lcLen 19.4 lcFrom 0.00 lcTo 3.40 lat 0.97 nudge 0.00
+PSIJUMP t=237.5 car 11 psi 0.05 real -0.20 fp 7062 fu 21.20 u 19.81 lcLane 7061 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.32 nudge 0.00
+
+==== Traffic metrics (240 s simulated, 110 cars, 40 peds, 7.33 vehicle-hours) ====
+collisions: 0 (0.00 per vehicle-hour), hard (>3000 Ns): 0 (0.00/veh-h)
+static impacts (walls/props >2500 Ns): 1, props broken: 1
+red-light violations: 0, stop-sign violations: 0
+stuck recoveries: 0, relocalizations: 23, deadlocks (>60 s waits): 6, respawns: 240
+pedestrians hit: 0
+average speed by road class (km/h):  highway 77.0 (690 s)  boulevard 15.4 (6481 s)  avenue 15.8 (4434 s)  street 12.7 (11260 s)
+lane-center error (RMS, lanes, v>3 m/s): 0.066 m
+AI cost per 60 Hz tick: traffic 0.223 ms + peds 0.011 ms (avg), p50 0.227 ms, p99 0.400 ms, max 0.999 ms
+physics per 120 Hz step: 0.530 ms (110 cars)

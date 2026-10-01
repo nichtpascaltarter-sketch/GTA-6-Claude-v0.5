@@ -1,0 +1,25 @@
+camfade exit 0
+[ 299.052] autoplay camfade occluder_near: fade 0.24 fp 0 cam-ped 1.70 m
+[ 730.791] autoplay camfade occluder_mid: fade 0.69 fp 0 cam-ped 2.55 m
+[1198.326] autoplay camfade beside_player: fade 1.00 fp 0 cam-ped 3.93 m
+[1600.951] autoplay camfade fp_close: fade 1.00 fp 1 cam-ped 0.87 m
+[1695.508] autoplay camfade done
+fpguns exit 0
+[1727.835] autoplay fpguns shotgun_aim: hold 1.00 aim 1.00 scope 0.00 dot 0.00 block 0.00
+[1922.806] autoplay fpguns smg_irons: hold 1.00 aim 1.00 scope 0.00 dot 0.00 block 0.00
+[2121.236] autoplay fpguns revolver_aim: hold 1.00 aim 1.00 scope 0.00 dot 0.00 block 0.00
+[2321.391] autoplay fpguns pistol_hip: hold 1.00 aim 0.00 scope 0.00 dot 0.00 block 0.00
+[2574.055] autoplay fpguns rifle_reload: hold 1.00 aim 0.00 scope 0.00 dot 0.00 block 0.00
+[2979.838] autoplay fpguns pistol_sprint: hold 1.00 aim 0.00 scope 0.00 dot 0.00 block 0.00
+[3384.474] autoplay fpguns rpg_shoulder: hold 1.00 aim 0.00 scope 0.00 dot 0.00 block 0.00
+[3499.114] autoplay fpguns done
+tram exit 0
+[ 350.762] autoplay t=3.8 pos 4981.1 -423.3 2.5 state 0 health 200 veh -1 speed 0.0 | peds 117 vehicles 57 wanted 0 | cpu ms player 0.19 ai 1.02 veh 0.98 peds 2.15 | mem 1666 MB (private 0)
+[1158.381] autoplay t=91.5 pos 4982.9 -294.2 2.3 state 2 health 200 veh 42 speed 0.1 | peds 125 vehicles 61 wanted 0 | cpu ms player 0.08 ai 0.78 veh 0.59 peds 0.75 | mem 1703 MB (private 0)
+[1729.175] autoplay t=181.5 pos 4958.9 329.4 2.6 state 2 health 200 veh 42 speed 0.0 | peds 25 vehicles 21 wanted 0 | cpu ms player 0.41 ai 0.19 veh 0.25 peds 0.34 | mem 1703 MB (private 0)
+[1749.092] Transit test [tram]: PASSED rode, skipped and got off at (4962, 331) (stops served 4, riders on/off 5/3, bells 9)
+metro exit 0
+[ 407.511] autoplay t=3.7 pos 3285.7 401.4 1.5 state 0 health 200 veh -1 speed 0.0 | peds 119 vehicles 74 wanted 0 | cpu ms player 0.19 ai 0.67 veh 1.57 peds 4.35 | mem 1673 MB (private 0)
+[1364.066] autoplay t=91.5 pos 3276.3 1204.7 16.2 state 2 health 200 veh 76 speed 1.8 | peds 123 vehicles 57 wanted 0 | cpu ms player 0.07 ai 0.93 veh 0.81 peds 0.60 | mem 1691 MB (private 0)
+[2110.232] Transit test [metro]: PASSED got off at Canvas District (boardings 1 alightings 1 riders on/off 5/11)
+[2424.797] autoplay t=181.5 pos 2787.4 1535.6 17.5 state 0 health 200 veh -1 speed 0.2 | peds 114 vehicles 64 wanted 0 | cpu ms player 0.33 ai 0.62 veh 0.70 peds 4.35 | mem 1733 MB (private 0)

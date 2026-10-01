@@ -1,0 +1,10 @@
+Embedded 35 shader files.
+In file included from src/anim/anim_all.cpp:15,
+                 from src/main.cpp:49:
+src/anim/animator.cpp: In member function 'void Anim::Animator::update(const Anim::AnimInput&, float, bool)':
+src/anim/animator.cpp:1132: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 1132 |                     if (dot(q, armRest[s]) < 0.f) q = quat(-q.x, -q.y, -q.z, -q.w);
+      | 
+src/anim/animator.cpp:1132: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 11307008 Sep 30 23:44 bin/places_agent.exe
+exit 0

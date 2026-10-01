@@ -1,0 +1,117 @@
+Audio: no output device - audio disabled
+init() -> false (expected false on Linux: null backend)
+Audio: no output device - audio disabled
+bank + first render: 9.85 s
+== SFX
+== Engines
+== Emitters
+== Radio
+  Neon Coast 88.1              Synthwave / Retro 80s    rms -16.9 dB peak 0.85  now: Vapor Signal - Crimson Memory
+  The Heat 97.3                Hip-Hop / Trap           rms -18.5 dB peak 0.95  now: Kid Hurricane - Sunburnt Crown
+  Radio Calor 101.5            Reggaeton / Latin Pop    rms -17.0 dB peak 0.89  now: Rafa Fuego - Azucar y Sal
+  Pulse FM 104.8               House / EDM              rms -16.1 dB peak 0.93  now: Open Collective - Coastline Frequency
+  Riptide Rock 93.7            Rock                     rms -17.6 dB peak 0.75  now: The Broken Hounds - Motel Neon
+  Blue Lagoon Lounge 90.9      Jazz Lounge              rms -17.9 dB peak 0.78  now: Julian Whitfield - Porch Swing Ballad
+  Sawgrass Country 99.5        Country / Americana      rms -17.4 dB peak 0.93  now: Colt Tillman - Hurricane Honey
+  Tidepool FM 106.1            Lo-Fi / Chillhop         rms -17.6 dB peak 0.95  now: cassette coast - laundry day
+  Palmera Public Talk 1040 AM  Talk Radio               rms -19.0 dB peak 0.89  now: 
+== Radio music: catalogs, mastering, arrangement
+  Neon Coast 88.1              42 songs, 42 titles, 14 artists
+  The Heat 97.3                42 songs, 42 titles, 14 artists
+  Radio Calor 101.5            42 songs, 42 titles, 14 artists
+  Pulse FM 104.8               42 songs, 42 titles, 14 artists
+  Riptide Rock 93.7            42 songs, 42 titles, 14 artists
+  Blue Lagoon Lounge 90.9      42 songs, 42 titles, 14 artists
+  Sawgrass Country 99.5        42 songs, 42 titles, 14 artists
+  Tidepool FM 106.1            42 songs, 42 titles, 14 artists
+  Neon Coast 88.1              -14.0 LUFS   -2.6 dBTP  side/mid <110 Hz -27.4 dB, 2-12 kHz  -5.7 dB  (song+chain 5.6% of a core)
+  The Heat 97.3                -13.8 LUFS   -2.6 dBTP  side/mid <110 Hz -30.3 dB, 2-12 kHz -10.6 dB  (song+chain 6.1% of a core)
+  Radio Calor 101.5            -14.0 LUFS   -2.9 dBTP  side/mid <110 Hz -36.0 dB, 2-12 kHz -15.7 dB  (song+chain 5.9% of a core)
+  Pulse FM 104.8               -13.2 LUFS   -2.5 dBTP  side/mid <110 Hz -40.1 dB, 2-12 kHz -10.3 dB  (song+chain 6.8% of a core)
+  Riptide Rock 93.7            -14.0 LUFS   -3.4 dBTP  side/mid <110 Hz -23.6 dB, 2-12 kHz  -5.5 dB  (song+chain 11.9% of a core)
+  Blue Lagoon Lounge 90.9      -14.5 LUFS   -3.5 dBTP  side/mid <110 Hz -26.1 dB, 2-12 kHz  -7.2 dB  (song+chain 9.4% of a core)
+  Sawgrass Country 99.5        -13.8 LUFS   -3.1 dBTP  side/mid <110 Hz -28.3 dB, 2-12 kHz -10.0 dB  (song+chain 4.4% of a core)
+  Tidepool FM 106.1            -13.8 LUFS   -2.3 dBTP  side/mid <110 Hz -33.1 dB, 2-12 kHz -13.6 dB  (song+chain 10.6% of a core)
+  station loudness spread 1.3 LU (-14.5 .. -13.2 LUFS)
+  synthwave  8 songs 202-218 s, sub-styles 6/2/0, hooks with a transition 23/23, chorus->chorus 1
+  hiphop     8 songs 167-220 s, sub-styles 7/1/0, hooks with a transition 27/29, chorus->chorus 0
+  reggaeton  8 songs 197-235 s, sub-styles 8/0/0, hooks with a transition 23/24, chorus->chorus 0
+  house      8 songs 173-196 s, sub-styles 5/3/0, hooks with a transition 12/16, chorus->chorus 0
+  rock       8 songs 152-217 s, sub-styles 6/2/0, hooks with a transition 25/27, chorus->chorus 0
+  jazz       8 songs 166-198 s, sub-styles 8/0/0, hooks with a transition 0/0, chorus->chorus 0
+  country    8 songs 167-227 s, sub-styles 8/0/0, hooks with a transition 22/25, chorus->chorus 0
+  lofi       8 songs 192-214 s, sub-styles 7/1/0, hooks with a transition 12/16, chorus->chorus 0
+  last-chorus key changes: 11 of 32 pop / rock / country songs
+== Score
+  intensity 0.1 rms -27.2 dB
+  intensity 0.4 rms -20.3 dB
+  intensity 0.7 rms -19.1 dB
+  intensity 1.0 rms -18.2 dB
+== Ambience
+  city_day         rms -34.1 dB peak 0.11  <160 Hz 25%  0.5-1.6k 47%  2.2-10k  6%  >4k  2%
+  city_night       rms -38.2 dB peak 0.06  <160 Hz 39%  0.5-1.6k 36%  2.2-10k  5%  >4k  2%
+  downtown_day     rms -30.6 dB peak 0.15  <160 Hz 25%  0.5-1.6k 45%  2.2-10k  5%  >4k  2%
+  downtown_night   rms -37.2 dB peak 0.06  <160 Hz 38%  0.5-1.6k 33%  2.2-10k  4%  >4k  2%
+  port_day         rms -37.3 dB peak 0.07  <160 Hz 57%  0.5-1.6k 19%  2.2-10k  3%  >4k  1%
+  forest_day       rms -34.3 dB peak 0.21  <160 Hz 28%  0.5-1.6k 38%  2.2-10k  6%  >4k  5%
+  forest_night     rms -45.9 dB peak 0.06  <160 Hz  1%  0.5-1.6k  0%  2.2-10k 77%  >4k 84%
+  beach_day        rms -34.3 dB peak 0.14  <160 Hz 53%  0.5-1.6k  8%  2.2-10k  6%  >4k  7%
+  sawgrass_day     rms -37.4 dB peak 0.18  <160 Hz 24%  0.5-1.6k  7%  2.2-10k 42%  >4k 40%
+  sawgrass_night   rms -39.6 dB peak 0.10  <160 Hz 14%  0.5-1.6k 14%  2.2-10k 35%  >4k 33%
+  wetland_evening  rms -41.6 dB peak 0.10  <160 Hz 32%  0.5-1.6k 14%  2.2-10k  7%  >4k  7%
+  storm            rms -25.0 dB peak 0.35  <160 Hz 11%  0.5-1.6k 20%  2.2-10k 53%  >4k 28%
+  rain_open        rms -24.6 dB peak 0.36  <160 Hz 43%  0.5-1.6k 12%  2.2-10k 27%  >4k 14%
+  rain_sheltered   rms -23.1 dB peak 0.39  <160 Hz 35%  0.5-1.6k 39%  2.2-10k  7%  >4k  3%
+  rain_in_car      rms -32.0 dB peak 0.17  <160 Hz  6%  0.5-1.6k 64%  2.2-10k 12%  >4k  8%
+  rain_indoors     rms -43.4 dB peak 0.03  <160 Hz 46%  0.5-1.6k 14%  2.2-10k  0%  >4k  0%
+  underwater       rms -30.2 dB peak 0.12  <160 Hz 69%  0.5-1.6k  0%  2.2-10k  0%  >4k  0%
+  thunder 500 / 2000 / 6000 m: loud -10.8 / -10.5 / -21.0 dB, >1 kHz 6.8 / 0.0 / 0.0 %
+== Speech
+== Stress
+== Environment acoustics and gunfire
+  open     player pistol: 45-75 ms energy -20.0 dB re direct, loud -20.4 dB; NPC 30 m late/early -20.4 dB
+           zone: enclosed 0.00 canyon 0.00 cover 0.00  rtIn 1.13 rtOut 0.85 wetIn 0.00 wetOut 0.28 er 0.50 echo 0.65 flutter 0.00
+  street   player pistol: 45-75 ms energy -7.6 dB re direct, loud -18.1 dB; NPC 30 m late/early -17.7 dB
+           zone: enclosed 0.00 canyon 1.00 cover 0.00  rtIn 2.28 rtOut 1.85 wetIn 0.00 wetOut 0.88 er 0.85 echo 0.26 flutter 0.50
+  room     player pistol: 45-75 ms energy -10.7 dB re direct, loud -18.4 dB; NPC 30 m late/early -42.0 dB
+           zone: enclosed 1.00 canyon 0.00 cover 1.00  rtIn 0.53 rtOut 0.85 wetIn 0.70 wetOut 0.08 er 0.75 echo 0.00 flutter 0.10
+  tunnel   player pistol: 45-75 ms energy -4.8 dB re direct, loud -16.5 dB; NPC 30 m late/early -14.2 dB
+           zone: enclosed 1.00 canyon 0.00 cover 1.00  rtIn 3.60 rtOut 0.85 wetIn 0.95 wetOut 0.08 er 0.75 echo 0.00 flutter 0.26
+  station  player pistol: 45-75 ms energy -22.0 dB re direct, loud -20.2 dB; NPC 30 m late/early -24.5 dB
+           zone: enclosed 0.38 canyon 0.00 cover 1.00  rtIn 1.20 rtOut 0.85 wetIn 0.36 wetOut 0.20 er 0.59 echo 0.41 flutter 0.00
+  open: pistol at 170 m arrives after 0.497 s (expected 0.496)
+  street: rifle player -11.5 dB, NPC at 10 m -14.7 dB, suppressed -28.3 dB, 390 m away -32.5 dB; pistol -19.3 / suppressed -33.4 dB
+  energy above 2 kHz: near 33.1%, 390 m 0.2%
+  sniper round passing 3 m away: first arrival 0.376 s (crack), crack -28.4 dB, gap -57.1 dB, report -26.9 dB
+  occlusion (clear / behind a building / behind a low wall): engine -40.5 / -50.6 / -44.2 dB (HF 4.0 / 0.0 / 2.0 %), rifle -28.9 / -39.3 / -33.2 dB
+== Vehicles
+  surfaces (asphalt / wet / gravel / grass / wood): rms -33.0 / -32.6 / -29.0 / -34.2 / -30.7 dB, >3 kHz 1.6 / 16.7 / 37.4 / 0.9 / 0.1 %
+  V6 at 25 m/s: engine only -32.9 dB, with tyres and wind -25.9 dB
+  rev limiter envelope modulation 16.1 Hz
+  downshift: -29.4 dB before, -26.0 dB during the blip
+  kerb thump: -23.4 dB (<200 Hz 89%) vs -35.5 dB (<200 Hz 72%) before
+  cabin relay rhythm 2.82 Hz (tick-tock every 0.36 s)
+  V8 heard from the front / behind: <300 Hz 66% / 91%, 0.8-4 kHz 20% / 3%
+  bus stopping: 2-12 kHz energy -36.6 dB rolling, -18.0 dB after the stop (air brakes)
+== Drum kits (spectral sanity)
+  kit retro80s  kick<150Hz 96%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 92%
+  kit trap      kick<150Hz 93%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 90%
+  kit boombap   kick<150Hz 94%  closedHat>5k 78%  openHat>5k 88%  snare 150-10k 99%
+  kit dembow    kick<150Hz 96%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 90%
+  kit house     kick<150Hz 97%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 90%
+  kit rock      kick<150Hz 95%  closedHat>5k 80%  openHat>5k 81%  snare 150-10k 96%
+  kit jazz      kick<150Hz 100%  closedHat>5k 80%  openHat>5k 81%  snare 150-10k 97%
+  kit country   kick<150Hz 95%  closedHat>5k 80%  openHat>5k 81%  snare 150-10k 96%
+  kit lofi      kick<150Hz 94%  closedHat>5k 95%  openHat>5k 73%  snare 150-10k 100%
+  kit score     kick<150Hz 96%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 96%
+== Block-boundary clicks
+  siren_moving             boundary max d2 0.0642 vs interior p99.9 0.0667
+== Performance
+  perf (20 engines + 8 emitters): mixer 8.25% of one core, music production (radio + score) 4.06%
+  perf (6 engines + 2 emitters): mixer 6.71% of one core, music production (radio + score) 3.83%
+
+1470 checks, 0 failures, 71.4 s
+
+real	1m11.401s
+user	0m32.666s
+sys	0m0.447s

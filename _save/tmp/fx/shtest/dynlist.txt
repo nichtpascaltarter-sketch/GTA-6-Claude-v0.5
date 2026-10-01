@@ -1,0 +1,13 @@
+dynamic.hlsl vsRigid vs_5_1
+dynamic.hlsl vsSkinned vs_5_1
+dynamic.hlsl vsRigidShadow vs_5_1
+dynamic.hlsl vsSkinnedShadow vs_5_1
+dynamic.hlsl psDynamic ps_5_1
+dynamic.hlsl psGlass ps_5_1
+dynamic.hlsl psHairCard ps_5_1
+dynamic.hlsl vsSkinnedShadowCard vs_5_1
+dynamic.hlsl psHairCardShadow ps_5_1
+world.hlsl vsWorld vs_5_1
+world.hlsl psWorld ps_5_1
+props.hlsl psProp ps_5_1
+props.hlsl psPropShadow ps_5_1

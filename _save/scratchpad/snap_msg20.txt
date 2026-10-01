@@ -1,0 +1,24 @@
+Faces, batch 1: real eyes, lids and lashes, hair-by-hair brows, beards and a soft hairline; skin data for the new skin shading
+
+- Eyes: a clear cornea over the iris; the iris has a dark pupil, a warm inner ring on light eyes, a lighter
+  collarette, radial fibres and crypts and a dark limbal ring. The whites are yellower with age, a shade darker on very
+  dark skin, and darker in the corners and under the upper lid. Lids have thickness: a dark lash-root edge on the
+  upper lid, a moist waterline on the lower, a pink caruncle at the inner corner; the lid margins no longer sink into
+  the eyeball. Two rows of longer, curled upper lashes; short, lighter lower lashes.
+- Brows of 70-130 individual hairs in the natural growth pattern (head up, body outwards, tail running out), thinning
+  at the edges over a faint skin tint, instead of a painted band.
+- Skin: every skin vertex carries its region (lips, wet tissue, lids, ears, nose, nails, mouth), tissue thickness,
+  pore strength by zone and per-person oiliness, age band and melanin, for the skin shading to come (with today's
+  shaders nothing reads them). Colour: blush on the cheeks, nose and ears, a lid tint, a darker ring round the mouth on
+  medium and dark skin, shaped lip colour and fine lip lines; each person has an oily T-zone.
+- Ears: a deeper helix, antihelix and bowl.
+- Beards: two or three layers of short hair cards combed the way beards grow, with a few longer hairs at the edge;
+  the solid mass is only the dense core and fades into the skin; beards reach the lips. Stubble is a layer of short
+  hairs over the shaved shadow.
+- Hairline: the hair fades into the skin over its first ~9 mm with two staggered rows of fine short hairs; the edge
+  wanders smoothly instead of zig-zagging.
+- Budget: the close-up mesh goes from 33.6k to 36k triangles (the decimator takes it from flat body and clothing);
+  the far LODs are unchanged; crowd CPU at the 196-ped club stop unchanged (4.74 -> 4.47/4.62 ms). anim_test gains a
+  Faces test.
+- Test rig: while the lead's snapshot checks wait for memory, other games and builds hold back (tools/run.sh,
+  build.sh), so a verified commit no longer starves behind long agent runs.

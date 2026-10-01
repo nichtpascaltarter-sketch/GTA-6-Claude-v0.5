@@ -1,0 +1,323 @@
+[   0.000] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.431] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB
+[   0.440] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.515] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   0.566] UI font 'Impact' -> 'Liberation Sans'
+[   0.621] Font atlas built in 0.18 s
+[   0.642] Compiled ui.hlsl:vsUI (vs_5_0) in 0.01 s
+[   0.861] Compiled ui.hlsl:psUI (ps_5_0) in 0.22 s
+[   0.872] Compiled ui.hlsl:vsUIFull (vs_5_0) in 0.01 s
+[   0.884] Compiled ui.hlsl:psUIDown (ps_5_0) in 0.01 s
+[   0.895] Compiled ui.hlsl:psUIBlur (ps_5_0) in 0.01 s
+[   0.920] Audio: no output device - audio disabled
+[   0.920] Audio: no output device, continuing silently
+[   2.539] UI icon atlas: 91 icons + 13 weapons in 1579 ms
+[  15.899] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[  15.921] Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.07 s)
+[  17.365] World map generated in 16.44 s
+[  19.465] Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+[  28.705] Road network: 6235 nodes, 9798 edges, 1699 signalized; hwy 61.7 km, streets 1185.8 km (11.33 s)
+[  39.063] Transit: 0 buildings cleared from the SkyLine corridor
+[  39.077] Buildings: 35883 (towers 346, midrise 2368, condo 485, deco 809, shops 4670, strip 636, houses 22044, villas 936, warehouses 1704) in 10.21 s
+[  39.107] Sites: 70 highway billboards
+[  39.118] Sites: 153 silos, 52 windmills
+[  39.258] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.01 s)
+[  39.283] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[  39.283] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[  39.283] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[  39.306] Transit: 4 bus routes, 62 stops (44 new shelters) (0.02 s); rejects class 1189 cut 1939 deck 68 road 97 avoid 0 pad 0 furn 267 stop 7
+[  39.315] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[  39.315] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[  39.315] Transit: bus 9   Sol Beach    7.1 km, 15 stops, 4 buses, headway 5.5 min
+[  39.315] Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+[  39.335] Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 33 stop signs), 228 poles, 4 streetcars, headway 4.9 min (0.02 s)
+[  39.336] Transit: streetcar stop 47th St              s     27 shelter (5175.0, 1602.1, 1.8) travel (-0.00, -1.00)
+[  39.336] Transit: streetcar stop 43rd St              s    416 shelter (5231.0, 1221.9, 1.8) travel (-0.00, -1.00)
+[  39.336] Transit: streetcar stop 39th St              s    805 shelter (5239.0, 833.9, 1.7) travel (0.00, -1.00)
+[  39.336] Transit: streetcar stop 35th St              s   1180 shelter (5207.0, 462.6, 1.8) travel (-0.00, -1.00)
+[  39.336] Transit: streetcar stop 31st St              s   1566 shelter (5223.0, 81.9, 2.0) travel (-0.00, -1.00)
+[  39.336] Transit: streetcar stop 27th St              s   1950 shelter (5231.0, -298.1, 1.9) travel (-0.00, -1.00)
+[  39.336] Transit: streetcar stop 23rd St              s   2329 shelter (5215.0, -676.9, 1.8) travel (-0.00, -1.00)
+[  39.336] Transit: streetcar stop 19th St              s   2714 shelter (5199.0, -1058.2, 1.9) travel (0.00, -1.00)
+[  39.336] Transit: streetcar stop Ferry Terminal       s   3141 shelter (4941.4, -1196.2, 2.4) travel (0.00, 1.00)
+[  39.336] Transit: streetcar stop 21st St              s   3535 shelter (4973.4, -807.2, 2.8) travel (0.00, 1.00)
+[  39.336] Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+[  39.336] Transit: streetcar stop 29th St              s   4299 shelter (4997.4, -47.2, 2.0) travel (0.00, 1.00)
+[  39.336] Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+[  39.336] Transit: streetcar stop 37th St              s   5063 shelter (4997.4, 704.8, 2.6) travel (0.00, 1.00)
+[  39.336] Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+[  39.336] Transit: streetcar stop 45th St              s   5845 shelter (4949.4, 1479.5, 2.9) travel (0.00, 1.00)
+[  39.336] Transit: SkyLine profile 12.9..25.5 m above the street, 274 piers (0 straddle bents) (0.20 s)
+[  39.336] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[  39.336] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  39.336] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  39.336] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  39.336] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  39.336] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  39.336] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  39.336] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  39.347] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  39.347] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  39.347] Site terminal             at (628, 1440, 4.6)
+[  39.347] Site control tower        at (730, 1832, 4.6)
+[  39.347] Site container ship       at (4625, -800, 0.0)
+[  39.347] Site container ship       at (4616, -330, 0.0)
+[  39.347] Site port gate            at (4008, -160, 3.0)
+[  39.347] Site Key Coral marina     at (4039, -4035, 0.0)
+[  39.347] Site beach club           at (4873, -3866, 1.2)
+[  39.347] Site beach club           at (4808, -4183, 2.2)
+[  39.347] Site Solaris One          at (3350, -750, 1.4)
+[  39.347] Site stadium              at (3565, 445, 1.6)
+[  39.347] Site City Hall            at (3000, 372, 2.0)
+[  39.347] Site Canvas Park          at (3100, 1800, 1.7)
+[  39.347] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  39.347] Site Ferris wheel         at (5504, 1270, 5.6)
+[  39.347] Site lighthouse           at (-2206, -8000, 0.5)
+[  39.347] Site radio mast           at (-6744, 7248, 166.1)
+[  39.347] Site sugar mill           at (1430, 7500, 8.1)
+[  39.347] Site Rio Sol marina       at (2280, 188, 0.0)
+[  39.347] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  39.347] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  39.347] Sites finalized: 921 elements (0.24 s)
+[  39.366] Interiors: 29 planned (convenience 7, gun shops 2) in 18.1 ms
+[  39.375]   interior 'Mari's Apartment' kind 0 building 28354 at (1747.48, 359.27, 3.79) ax (1.0000, 0.0000) x -3.54..7.08 depth 11.50 ceil 4.20: 3 rooms, 4 openings, 3 doors, 4 portals, 0 npc points
+[  39.375]   interior 'Mama Lucha's' kind 2 building 26888 at (1348.73, 340.70, 4.30) ax (-1.0000, -0.0000) x -5.87..5.87 depth 16.00 ceil 3.44: 4 rooms, 4 openings, 4 doors, 4 portals, 20 npc points
+[  39.375]   interior 'Rook's Garage' kind 3 building 27863 at (1692.44, 2265.39, 4.22) ax (1.0000, 0.0000) x -10.81..10.81 depth 20.00 ceil 6.96: 3 rooms, 6 openings, 4 doors, 6 portals, 5 npc points
+[  39.375]   interior 'Dex's Trailer' kind 1 building 25670 at (1160.68, 2669.40, 4.86) ax (1.0000, 0.0000) x -8.85..8.85 depth 16.91 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  39.375]   interior 'Police Headquarters' kind 5 building 32374 at (3018.96, -304.54, 2.13) ax (-0.0000, -1.0000) x -12.42..10.16 depth 16.00 ceil 5.02: 2 rooms, 11 openings, 2 doors, 11 portals, 13 npc points
+[  39.375]   interior 'Tidewater General Hospital' kind 6 building 27782 at (1668.46, 1070.96, 3.65) ax (1.0000, 0.0000) x -11.01..3.67 depth 16.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 11 npc points
+[  39.375]   interior 'Palmetto Arms' kind 7 building 25268 at (788.33, 2882.34, 5.00) ax (0.0000, 1.0000) x -6.07..6.07 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+[  39.375]   interior 'Northside Arms' kind 7 building 33286 at (3284.65, 3876.10, 1.91) ax (0.0000, 1.0000) x -5.57..5.57 depth 14.00 ceil 4.15: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  39.375]   interior 'Threads' kind 9 building 19713 at (5176.35, -280.64, 1.92) ax (-1.0000, 0.0000) x -6.27..9.40 depth 15.00 ceil 3.74: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+[  39.375]   interior 'Port Isle Warehouse' kind 12 building 35868 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  39.375]   interior 'TideStop Mart' kind 8 building 26995 at (1450.44, -259.31, 4.30) ax (-1.0000, -0.0000) x -7.42..7.42 depth 17.00 ceil 4.05: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  39.375]   interior 'Bodega La Luna' kind 8 building 29946 at (2244.44, 540.76, 2.92) ax (-1.0000, -0.0000) x -3.74..7.48 depth 17.00 ceil 3.82: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  39.375]   interior 'Canvas Corner Market' kind 8 building 32402 at (2981.23, 1490.49, 2.33) ax (0.0000, 1.0000) x -6.18..9.27 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  39.375]   interior 'Sunrise Food Mart' kind 8 building 19752 at (5227.66, 640.34, 1.78) ax (0.0000, 1.0000) x -8.51..6.62 depth 17.00 ceil 5.00: 2 rooms, 9 openings, 2 doors, 9 portals, 5 npc points
+[  39.375]   interior 'Northside Quick Stop' kind 8 building 30209 at (2286.82, 3861.72, 3.23) ax (1.0000, 0.0000) x -8.31..4.99 depth 17.00 ceil 3.60: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  39.375]   interior 'Flats Food & Fuel' kind 8 building 24825 at (359.96, 3165.41, 5.21) ax (1.0000, 0.0000) x -6.77..6.77 depth 17.00 ceil 3.50: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  39.375]   interior 'Grove Pantry' kind 8 building 1172 at (2167.43, -3044.47, 2.30) ax (0.0184, -0.9998) x -5.79..8.69 depth 17.00 ceil 3.60: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  39.375]   interior 'Palm Motors' kind 17 building 31350 at (2590.51, 1298.66, 2.81) ax (0.0000, 1.0000) x -8.63..8.63 depth 20.00 ceil 3.93: 2 rooms, 7 openings, 3 doors, 7 portals, 5 npc points
+[  39.375]   interior 'Tide Customs Calle Luna' kind 18 building 29896 at (2272.75, -140.76, 3.00) ax (1.0000, 0.0000) x -9.45..5.67 depth 18.00 ceil 3.80: 1 rooms, 5 openings, 2 doors, 5 portals, 3 npc points
+[  39.375]   interior 'Tide Customs Sol Beach' kind 18 building 19814 at (5131.60, 1999.34, 1.92) ax (-1.0000, 0.0000) x -8.07..8.07 depth 18.00 ceil 4.34: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  39.375]   interior 'Sunwash Car Wash' kind 19 building 28569 at (1779.02, 1587.83, 3.69) ax (0.0000, 1.0000) x -10.15..3.38 depth 20.00 ceil 8.17: 1 rooms, 4 openings, 3 doors, 4 portals, 2 npc points
+[  39.375]   interior 'Key Coral Villa' kind 0 building 23834 at (4509.83, -4202.27, 1.64) ax (0.9992, 0.0401) x -5.65..5.65 depth 12.00 ceil 2.80: 3 rooms, 4 openings, 3 doors, 4 portals, 0 npc points
+[  39.375]   interior 'Sol Beach Condo Lobby' kind 20 building 19468 at (5213.23, 1619.29, 2.12) ax (-1.0000, 0.0000) x -5.77..5.77 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+[  39.375]   interior 'Sol Beach Condo' kind 21 building 19468 at (5213.23, 1619.29, 33.05) ax (-1.0000, 0.0000) x -9.61..5.77 depth 12.00 ceil 2.79: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  39.375]   interior 'Downtown Penthouse Lobby' kind 20 building 33378 at (3388.84, -1009.58, 1.90) ax (0.0000, 1.0000) x -6.14..2.05 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[  39.375]   interior 'Downtown Penthouse' kind 21 building 33378 at (3388.84, -1009.58, 65.06) ax (0.0000, 1.0000) x -10.24..10.24 depth 14.00 ceil 2.60: 6 rooms, 5 openings, 5 doors, 5 portals, 0 npc points
+[  39.375]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 0.94) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  39.375]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[  39.375]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[  39.428] Compiled post.hlsl:vsFullscreen (vs_5_0) in 0.03 s
+[  56.156] Compiled lighting.hlsl:csLighting (cs_5_0) in 16.72 s
+[  56.262] Compiled sky.hlsl:csTransmittance (cs_5_0) in 0.10 s
+[  57.306] Compiled sky.hlsl:csMultiScatter (cs_5_0) in 1.03 s
+[  57.518] Compiled sky.hlsl:csSkyView (cs_5_0) in 0.21 s
+[  57.588] Compiled sky.hlsl:csAerialPerspective (cs_5_0) in 0.07 s
+[  58.785] Compiled sky.hlsl:csSkySH (cs_5_0) in 1.20 s
+[  58.841] Compiled post.hlsl:csLumHist (cs_5_0) in 0.05 s
+[  61.430] Compiled post.hlsl:csExposure (cs_5_0) in 2.58 s
+[  61.499] Compiled post.hlsl:csBloomDown (cs_5_0) in 0.06 s
+[  61.544] Compiled post.hlsl:csBloomUp (cs_5_0) in 0.04 s
+[  61.621] Compiled post.hlsl:csSunShafts (cs_5_0) in 0.07 s
+[  61.965] Compiled taa.hlsl:csTAA (cs_5_0) in 0.34 s
+[  62.194] Compiled post.hlsl:psTonemap (ps_5_0) in 0.23 s
+[  62.439] Compiled motionblur.hlsl:csTileMax (cs_5_0) in 0.24 s
+[  62.492] Compiled motionblur.hlsl:csNeighborMax (cs_5_0) in 0.05 s
+[  62.713] Compiled motionblur.hlsl:csMotionBlur (cs_5_0) in 0.22 s
+[  62.774] Compiled terrain.hlsl:vsTerrain (vs_5_0) in 0.05 s
+[  62.815] Compiled terrain.hlsl:vsTerrainShadow (vs_5_0) in 0.03 s
+[  65.187] Compiled terrain.hlsl:psTerrain (ps_5_0) in 2.37 s
+[  66.111] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.92 s
+[  66.817] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.69 s
+[  67.678] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.85 s
+[  68.399] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.71 s
+[  68.948] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.55 s
+[  69.653] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.69 s
+[  70.226] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.57 s
+[  71.182] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.95 s
+[  75.061] Compiled matgen.hlsl:csGenerate (cs_5_0) in 3.86 s
+[  80.061] Compiled matgen.hlsl:csGenerate (cs_5_0) in 4.97 s
+[  80.627] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.56 s
+[  81.571] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.94 s
+[  82.632] Compiled matgen.hlsl:csGenerate (cs_5_0) in 1.06 s
+[  84.610] Compiled matgen.hlsl:csGenerate (cs_5_0) in 1.98 s
+[  85.121] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.51 s
+[  85.389] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.26 s
+[  85.533] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.14 s
+[  85.704] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.16 s
+[  85.977] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.26 s
+[  86.260] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.27 s
+[  86.480] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.21 s
+[  86.750] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.26 s
+[  87.100] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.34 s
+[  87.495] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.37 s
+[  89.875] Compiled matgen.hlsl:csGenerate (cs_5_0) in 2.37 s
+[  90.242] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.36 s
+[  90.293] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.05 s
+[  91.235] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.94 s
+[  91.237] Material library: 57 layers at 256^2
+[  91.301] Compiled world.hlsl:vsWorld (vs_5_0) in 0.06 s
+[  91.384] Compiled world.hlsl:vsWorldShadow (vs_5_0) in 0.08 s
+[ 105.472] Compiled world.hlsl:psWorld (ps_5_0) in 14.08 s
+[ 105.528] Compiled water.hlsl:vsWater (vs_5_0) in 0.05 s
+[ 107.350] Compiled water.hlsl:psWater (ps_5_0) in 1.82 s
+[ 107.402] Compiled water.hlsl:csWaveNormals (cs_5_0) in 0.05 s
+[ 107.449] Compiled water.hlsl:vsWake (vs_5_0) in 0.04 s
+[ 107.518] Compiled water.hlsl:psWake (ps_5_0) in 0.06 s
+[ 109.493] Compiled clouds.hlsl:csShapeNoise (cs_5_0) in 1.97 s
+[ 110.067] Compiled clouds.hlsl:csDetailNoise (cs_5_0) in 0.57 s
+[ 110.678] Compiled clouds.hlsl:csWeather (cs_5_0) in 0.61 s
+[ 111.187] Compiled clouds.hlsl:csCloudTrace (cs_5_0) in 0.51 s
+[ 111.257] Compiled clouds.hlsl:csCloudReconstruct (cs_5_0) in 0.07 s
+[ 111.308] Compiled clouds.hlsl:csCloudShadow (cs_5_0) in 0.05 s
+[ 111.746] Compiled props.hlsl:vsProp (vs_5_0) in 0.43 s
+[ 112.126] Compiled props.hlsl:vsPropShadow (vs_5_0) in 0.36 s
+[ 113.390] Compiled props.hlsl:psProp (ps_5_0) in 1.15 s
+[ 113.495] Compiled props.hlsl:psPropShadow (ps_5_0) in 0.10 s
+[ 117.729] Compiled foliage.hlsl:csFoliage (cs_5_0) in 4.23 s
+[ 117.736] Props: 71 prototypes, 34282 verts
+[ 118.298] Compiled dynamic.hlsl:vsRigid (vs_5_0) in 0.56 s
+[ 118.401] Compiled dynamic.hlsl:vsSkinned (vs_5_0) in 0.09 s
+[ 118.535] Compiled dynamic.hlsl:vsRigidShadow (vs_5_0) in 0.13 s
+[ 118.574] Compiled dynamic.hlsl:vsSkinnedShadow (vs_5_0) in 0.04 s
+[ 121.813] Compiled dynamic.hlsl:psDynamic (ps_5_0) in 3.23 s
+[ 122.562] Compiled dynamic.hlsl:psGlass (ps_5_0) in 0.74 s
+[ 122.676] Compiled dynamic.hlsl:psHairCard (ps_5_0) in 0.11 s
+[ 122.726] Compiled dynamic.hlsl:vsSkinnedShadowCard (vs_5_0) in 0.04 s
+[ 122.751] Compiled dynamic.hlsl:psHairCardShadow (ps_5_0) in 0.02 s
+[ 122.784] Compiled particles.hlsl:csEmit (cs_5_0) in 0.03 s
+[ 122.914] Compiled particles.hlsl:csSimulate (cs_5_0) in 0.13 s
+[ 122.959] Compiled particles.hlsl:csKeys (cs_5_0) in 0.04 s
+[ 123.257] Compiled particles.hlsl:csSortLocal (cs_5_0) in 0.30 s
+[ 123.299] Compiled particles.hlsl:csSortGlobal (cs_5_0) in 0.04 s
+[ 123.573] Compiled particles.hlsl:csSortMerge (cs_5_0) in 0.27 s
+[ 127.459] Compiled particles.hlsl:csGenAtlas (cs_5_0) in 3.88 s
+[ 128.536] Compiled particles.hlsl:vsParticle (vs_5_0) in 1.08 s
+[ 128.639] Compiled particles.hlsl:psParticle (ps_5_0) in 0.10 s
+[ 128.682] Compiled decals.hlsl:vsDecal (vs_5_0) in 0.03 s
+[ 128.852] Compiled decals.hlsl:psDecal (ps_5_0) in 0.16 s
+[ 128.864] Compiled decals.hlsl:vsSkid (vs_5_0) in 0.01 s
+[ 128.884] Compiled decals.hlsl:psSkid (ps_5_0) in 0.02 s
+[ 131.192] Compiled decals.hlsl:csGenDecals (cs_5_0) in 2.31 s
+[ 131.358] Compiled hiz.hlsl:csHiZFirst (cs_5_0) in 0.16 s
+[ 131.502] Compiled hiz.hlsl:csHiZDown (cs_5_0) in 0.12 s
+[ 131.527] Compiled hiz.hlsl:csColorDown (cs_5_0) in 0.02 s
+[ 131.976] Compiled gtao.hlsl:csGTAO (cs_5_0) in 0.44 s
+[ 132.132] Compiled gtao.hlsl:csGTAOTemporal (cs_5_0) in 0.14 s
+[ 132.652] Compiled gtao.hlsl:csGTAOBlur (cs_5_0) in 0.51 s
+[ 132.983] Compiled ssr.hlsl:csSSRTrace (cs_5_0) in 0.32 s
+[ 133.135] Compiled ssr.hlsl:csSSRResolve (cs_5_0) in 0.15 s
+[ 133.989] Compiled envprobe.hlsl:psProbeLight (ps_5_0) in 0.85 s
+[ 134.075] Compiled envprobe.hlsl:csPrefilter (cs_5_0) in 0.08 s
+[ 134.415] Compiled envprobe.hlsl:csProbeSH (cs_5_0) in 0.34 s
+[ 134.452] Compiled envprobe.hlsl:csCubeDown (cs_5_0) in 0.04 s
+[ 134.793] Compiled fog.hlsl:csFogInject (cs_5_0) in 0.34 s
+[ 134.836] Compiled fog.hlsl:csFogIntegrate (cs_5_0) in 0.04 s
+[ 135.083] Compiled fog.hlsl:csFogNoise (cs_5_0) in 0.24 s
+[ 135.138] Compiled overhead.hlsl:vsOverhead (vs_5_0) in 0.05 s
+[ 135.158] Compiled overhead.hlsl:psOverhead (ps_5_0) in 0.01 s
+[ 135.198] Compiled rain.hlsl:csOverheadHeight (cs_5_0) in 0.03 s
+[ 135.478] Compiled rain.hlsl:vsRain (vs_5_0) in 0.27 s
+[ 135.745] Compiled rain.hlsl:vsSplash (vs_5_0) in 0.26 s
+[ 135.800] Compiled rain.hlsl:vsBolt (vs_5_0) in 0.05 s
+[ 135.826] Compiled rain.hlsl:psRain (ps_5_0) in 0.02 s
+[ 135.859] Compiled rain.hlsl:psSplash (ps_5_0) in 0.03 s
+[ 135.884] Compiled rain.hlsl:psBolt (ps_5_0) in 0.02 s
+[ 136.389] Compiled grass.hlsl:csGrassPlace (cs_5_0) in 0.50 s
+[ 136.756] Compiled grass.hlsl:vsGrass (vs_5_0) in 0.36 s
+[ 136.855] Compiled grass.hlsl:psGrass (ps_5_0) in 0.10 s
+[ 143.428] Vehicle assets: 45 models in 5.79 s
+[ 178.864] Character assets: 86 characters in 35.42 s
+[ 178.871] Game assets built in 41.24 s
+[ 178.929] Story place near (800, -5400): no building frontage found, using the street
+[ 178.936] Story places resolved in 64.2 ms (diner 1349 342, Mari's 1749 358, Rook's 1696 2264, Pulse FM 3356 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[ 178.937] Missions registered: 50
+[ 180.173] Lane graph: 26064 lanes, 58591 connectors (1190523 pts), 36240 walk nodes, 52445 walk links, dead-end turning circles moved 3 / obstructed 0 (1.24 s)
+[ 180.927] UI map: base 2560x2560 in 629 ms, 9798 roads (44990 pts) in 25 ms, 30 labels in 93 ms
+[ 180.927] hudInit done in 748 ms
+[ 180.927] Init done in 180.01 s (shaders: 122 compiled in 96.87 s)
+[ 180.930] autoplay bender: cars 1 (held) and 2 (rolling) on lane 21006
+[ 180.947] autoplay bender t=0.0 | car 1 speed 0.0 parked 0 hazard 0 role 0 driver 1 | car 2 speed 0.0 parked 0 hazard 0 role 0 driver 2
+[ 180.948] Transit: SkyLine timetable built (1.7 ms): loop 12.4 / 12.4 min, 4 trains per direction, headway 3.1 min
+[ 180.959] Transit: 9 lines published to the map
+[ 180.960] Transit: SkyLine car models registered as vehicle assets 45 / 46
+[ 181.534] Transit: 4 route bus models (destination signs) in 574 ms
+[ 181.534] Transit: 62 bus stops registered with the AI (44 lane stops added, 230 waiting spots)
+[ 181.534] Transit: 15 buses on 4 routes
+[ 181.534] Transit: Bay Ferry timetable: loop 13.2 min, 2 ferries, headway 6.6 min
+[ 181.536] Transit: Sol Ferry model registered as vehicle asset 51
+[ 181.538] Transit: streetcar modules registered as vehicle assets 52 53 54
+[ 181.552] Transit: 16 streetcar stops registered (16 curb lanes kept clear)
+[ 181.555] Transit: 4 streetcars on the 6.24 km loop, 16 stops, 65/65 junction movements found
+[ 181.567] Stunt jumps: 0 road crests (0 candidates); ramps being placed
+[ 184.566] Interior 'Bodega La Luna' built: 107250 triangles, 18 lights, 14 colliders, 3 door leaves in 140.6 ms
+[ 184.574] Stunt ramps: 10 placed (0 over water) in 1936 ms (25869 corridors tested); 10 unique stunt jumps
+[ 184.632] Wildlife: 28 species models ready (166 k triangles in the detailed LODs)
+[ 246.279] autoplay bender t=2.1 | car 1 speed 0.0 parked 0 hazard 0 role 0 driver 1 | car 2 speed 1.6 parked 0 hazard 0 role 0 driver 2
+[ 275.663] autoplay t=2.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 103 vehicles 69 wanted 0 | cpu ms player 0.16 ai 1.17 veh 1.57 peds 0.77 | mem 1607 MB (private 0)
+[ 302.077] autoplay t=3.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 103 vehicles 69 wanted 0 | cpu ms player 0.11 ai 0.45 veh 0.85 peds 1.23 | mem 1608 MB (private 0)
+[ 307.658] autoplay bender t=4.1 | car 1 speed 0.0 parked 0 hazard 0 role 0 driver 1 | car 2 speed 4.5 parked 0 hazard 0 role 0 driver 2
+[ 324.207] autoplay bender: contact at t=5.4 gap 0.13 speed 2.2 impulse 0
+[ 324.207] ai: fender bender between cars 1 and 2 at 2746 748
+[ 339.472] autoplay t=5.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 103 vehicles 69 wanted 0 | cpu ms player 0.12 ai 0.62 veh 0.81 peds 2.86 | mem 1610 MB (private 0)
+[ 343.663] autoplay bender t=6.1 | car 1 speed 0.0 parked 0 hazard 1 role 10 driver 1 | car 2 speed 0.0 parked 0 hazard 1 role 10 driver 2 | ped 1 act 0 brain 0 state 2 at 2747.9 748.8 | ped 2 act 0 brain 0 state 2 at 2743.3 748.8
+[ 377.652] autoplay t=7.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 103 vehicles 69 wanted 0 | cpu ms player 0.12 ai 0.44 veh 1.12 peds 1.66 | mem 1612 MB (private 0)
+[ 383.603] autoplay bender t=8.2 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2748.5 749.8 | ped 2 act 11 brain 1 state 0 at 2742.7 749.7
+[ 414.822] autoplay t=9.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 105 vehicles 71 wanted 0 | cpu ms player 0.13 ai 0.50 veh 1.40 peds 1.17 | mem 1614 MB (private 0)
+[ 419.280] autoplay bender t=10.2 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9
+[ 449.040] autoplay t=11.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 105 vehicles 71 wanted 0 | cpu ms player 0.13 ai 0.51 veh 0.74 peds 1.27 | mem 1616 MB (private 0)
+[ 453.264] autoplay bender t=12.2 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9
+[ 482.068] autoplay t=13.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 107 vehicles 71 wanted 0 | cpu ms player 0.12 ai 0.66 veh 0.81 peds 1.19 | mem 1617 MB (private 0)
+[ 486.395] autoplay bender t=14.3 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 11 brain 1 state 0 at 2711.2 706.7 | ped 106 act 11 brain 1 state 0 at 2711.2 709.9
+[ 515.440] autoplay t=15.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 107 vehicles 71 wanted 0 | cpu ms player 0.30 ai 0.49 veh 0.75 peds 0.83 | mem 1617 MB (private 0)
+[ 519.919] autoplay bender t=16.3 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 11 brain 1 state 0 at 2711.2 706.7 | ped 106 act 11 brain 1 state 0 at 2711.2 709.9
+[ 546.040] autoplay t=17.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 107 vehicles 71 wanted 0 | cpu ms player 0.13 ai 0.50 veh 1.49 peds 3.74 | mem 1617 MB (private 0)
+[ 550.448] autoplay bender t=18.3 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 11 brain 1 state 0 at 2711.2 706.7 | ped 106 act 11 brain 1 state 0 at 2711.2 709.9
+[ 580.187] autoplay t=19.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 107 vehicles 71 wanted 0 | cpu ms player 0.12 ai 0.47 veh 0.68 peds 2.36 | mem 1617 MB (private 0)
+[ 582.502] Transit: 1.040 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 584.628] autoplay bender t=20.4 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 11 brain 1 state 0 at 2711.2 706.7 | ped 106 act 11 brain 1 state 0 at 2711.2 709.9
+[ 618.431] autoplay t=21.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 107 vehicles 71 wanted 0 | cpu ms player 0.11 ai 0.75 veh 0.69 peds 2.31 | mem 1680 MB (private 0)
+[ 623.339] autoplay bender t=22.4 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 11 brain 1 state 0 at 2711.2 706.7 | ped 106 act 11 brain 1 state 0 at 2711.2 709.9
+[ 660.907] autoplay t=23.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 107 vehicles 71 wanted 0 | cpu ms player 0.50 ai 0.71 veh 1.22 peds 0.87 | mem 1680 MB (private 0)
+[ 668.904] autoplay bender t=24.4 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 11 brain 1 state 0 at 2711.2 706.7 | ped 106 act 11 brain 1 state 0 at 2711.2 709.9
+[ 696.707] autoplay t=25.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 107 vehicles 71 wanted 0 | cpu ms player 0.76 ai 0.45 veh 1.05 peds 2.80 | mem 1681 MB (private 0)
+[ 704.199] autoplay bender t=26.5 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 11 brain 1 state 0 at 2711.2 706.7 | ped 106 act 11 brain 1 state 0 at 2711.2 709.9
+[ 732.684] autoplay t=27.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 106 vehicles 70 wanted 0 | cpu ms player 0.12 ai 0.45 veh 1.36 peds 1.73 | mem 1681 MB (private 0)
+[ 738.925] autoplay bender t=28.5 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 11 brain 1 state 0 at 2711.2 706.7 | ped 106 act 11 brain 1 state 0 at 2711.2 709.9
+[ 769.931] autoplay t=29.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 106 vehicles 70 wanted 0 | cpu ms player 0.45 ai 0.48 veh 1.43 peds 0.78 | mem 1681 MB (private 0)
+[ 775.405] Wildlife: 113 animals (106 birds) in 14 groups, 33 drawn in 10 draws | update 0.597 ms, render 0.123 ms
+[ 781.541] autoplay bender t=30.5 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 11 brain 1 state 0 at 2711.2 706.7 | ped 106 act 11 brain 1 state 0 at 2711.2 709.9
+[ 814.830] autoplay t=31.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 106 vehicles 70 wanted 0 | cpu ms player 0.37 ai 0.79 veh 0.65 peds 0.77 | mem 1681 MB (private 0)
+[ 822.830] autoplay bender t=32.6 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 11 brain 1 state 0 at 2711.2 706.7 | ped 106 act 11 brain 1 state 0 at 2711.2 709.9
+[ 856.316] autoplay t=33.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 106 vehicles 70 wanted 0 | cpu ms player 0.12 ai 0.43 veh 0.57 peds 2.70 | mem 1681 MB (private 0)
+[ 864.759] autoplay bender t=34.6 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 11 brain 1 state 0 at 2711.2 706.7 | ped 106 act 11 brain 1 state 0 at 2711.2 709.9
+[ 895.650] autoplay t=35.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 106 vehicles 70 wanted 0 | cpu ms player 0.13 ai 0.82 veh 0.60 peds 1.61 | mem 1681 MB (private 0)
+[ 904.421] autoplay bender t=36.6 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 11 brain 1 state 0 at 2711.2 706.7 | ped 106 act 11 brain 1 state 0 at 2711.2 709.9
+[ 935.015] autoplay t=37.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 106 vehicles 70 wanted 0 | cpu ms player 0.60 ai 0.61 veh 0.86 peds 0.81 | mem 1681 MB (private 0)
+[ 942.219] autoplay bender t=38.7 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 11 brain 1 state 0 at 2711.2 706.7 | ped 106 act 11 brain 1 state 0 at 2711.2 709.9
+[ 971.905] autoplay t=39.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 105 vehicles 70 wanted 0 | cpu ms player 0.14 ai 0.49 veh 0.87 peds 0.85 | mem 1682 MB (private 0)
+[ 973.940] Transit: 0.069 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 978.623] autoplay bender t=40.7 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 0 brain 1 state 0 at 2711.2 706.9 | ped 106 act 0 brain 1 state 0 at 2711.3 709.7
+[1004.678] autoplay t=41.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 105 vehicles 70 wanted 0 | cpu ms player 1.04 ai 0.47 veh 1.01 peds 0.83 | mem 1682 MB (private 0)
+[1011.387] autoplay bender t=42.7 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.3 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 0 brain 1 state 0 at 2710.7 709.6 | ped 106 act 0 brain 1 state 0 at 2711.7 708.7
+[1034.044] autoplay t=43.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 105 vehicles 70 wanted 0 | cpu ms player 0.42 ai 0.47 veh 0.90 peds 0.77 | mem 1683 MB (private 0)
+[1040.802] autoplay bender t=44.8 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 11 brain 1 state 0 at 2751.1 749.9 | ped 2 act 11 brain 1 state 0 at 2740.9 749.9 | ped 105 act 0 brain 1 state 0 at 2710.6 712.5 | ped 106 act 0 brain 1 state 0 at 2711.6 711.6
+[1061.656] autoplay t=45.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 105 vehicles 70 wanted 0 | cpu ms player 0.12 ai 0.84 veh 1.74 peds 0.78 | mem 1678 MB (private 0)
+[1067.994] autoplay bender t=46.8 | car 1 speed 0.0 parked 1 hazard 1 role 10 driver -1 | car 2 speed 0.0 parked 1 hazard 1 role 10 driver -1 | ped 1 act 0 brain 10 state 0 at 2750.9 749.9 | ped 2 act 0 brain 10 state 0 at 2741.0 749.9 | ped 105 act 0 brain 1 state 0 at 2710.6 715.3 | ped 106 act 0 brain 1 state 0 at 2711.5 711.9
+[1088.929] autoplay t=47.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 105 vehicles 70 wanted 0 | cpu ms player 0.16 ai 0.84 veh 0.97 peds 0.83 | mem 1678 MB (private 0)
+[1096.121] autoplay bender t=48.8 | car 1 speed 2.5 parked 0 hazard 0 role 0 driver 1 | car 2 speed 0.0 parked 0 hazard 0 role 0 driver 2
+[1129.024] autoplay t=49.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 105 vehicles 71 wanted 0 | cpu ms player 0.32 ai 0.96 veh 1.32 peds 2.17 | mem 1678 MB (private 0)
+[1144.013] autoplay bender t=50.9 | car 1 speed 8.9 parked 0 hazard 0 role 0 driver 1 | car 2 speed 1.8 parked 0 hazard 0 role 0 driver 2
+[1174.267] autoplay t=51.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 105 vehicles 71 wanted 0 | cpu ms player 0.33 ai 0.47 veh 0.87 peds 1.85 | mem 1682 MB (private 0)
+[1184.271] autoplay bender t=52.9 | car 1 speed 3.5 parked 0 hazard 0 role 0 driver 1 | car 2 speed 5.4 parked 0 hazard 0 role 0 driver 2
+[1215.230] autoplay t=53.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 105 vehicles 71 wanted 0 | cpu ms player 0.12 ai 0.68 veh 1.37 peds 0.72 | mem 1682 MB (private 0)
+[1227.927] autoplay bender t=54.9 | car 1 speed 0.0 parked 0 hazard 0 role 0 driver 1 | car 2 speed 3.2 parked 0 hazard 0 role 0 driver 2
+[1254.663] autoplay t=55.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 105 vehicles 71 wanted 0 | cpu ms player 0.94 ai 0.50 veh 1.48 peds 1.87 | mem 1682 MB (private 0)
+[1263.316] autoplay bender t=57.0 | car 1 speed 1.8 parked 0 hazard 0 role 0 driver 1 | car 2 speed 1.8 parked 0 hazard 0 role 0 driver 2
+[1291.359] autoplay t=57.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 104 vehicles 70 wanted 0 | cpu ms player 0.82 ai 0.46 veh 0.71 peds 0.77 | mem 1682 MB (private 0)
+[1301.739] autoplay bender t=59.0 | car 1 speed 0.6 parked 0 hazard 0 role 0 driver 1 | car 2 speed 1.7 parked 0 hazard 0 role 0 driver 2
+[1332.506] autoplay t=59.5 pos 2711.9 741.9 2.5 state 0 health 200 veh -1 speed 0.0 | peds 103 vehicles 69 wanted 0 | cpu ms player 0.91 ai 1.31 veh 0.65 peds 0.93 | mem 1683 MB (private 0)
+[1334.842] Transit: 0.078 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1346.684] Shutdown complete.

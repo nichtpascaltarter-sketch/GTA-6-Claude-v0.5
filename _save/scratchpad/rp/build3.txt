@@ -1,0 +1,8 @@
+Embedded 35 shader files.
+In file included from src/audio/audio_all.cpp:9,
+                 from src/main.cpp:53:
+src/audio/music.cpp: In function 'void Audio::detail::music::composeReggaeton(Comp&)':
+src/audio/music.cpp:3028: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 3028 |             for (float t = 0.f; t < 3.99f; t += 0.5f) c.hit(tPc, b, t, DK_SHAKER, 50);
+      | 
+src/audio/music.cpp:3028: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory

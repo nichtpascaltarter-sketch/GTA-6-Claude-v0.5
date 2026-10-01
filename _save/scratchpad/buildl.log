@@ -1,0 +1,4 @@
+attempt 1 14:44:29
+12:src/game/../game/mission_util.cpp:1123: error: expected primary-expression before ')' token
+attempt 2 14:54:55
+exit=0

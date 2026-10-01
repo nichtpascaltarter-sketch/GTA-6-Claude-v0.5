@@ -1,0 +1,10 @@
+
+=== hiphop seed 1311: 133 bpm, key 11 scale 1, variant 0, 100 bars, 183.0 s, swing 0.00
+  form: Intro4 Chorus8 Verse16 Chorus8 Verse16 Bridge4 Bridge8 Verse16 Chorus8 Chorus8 Outro4
+  MIX rms -13.0 dB, centroid 1572 Hz, peak 0.89
+  track 0 Drums  notes  1941                                  rms  -13.1 dB  centroid  1350 Hz  peak 0.87
+  track 1 808    notes   320 range  31- 47 outKey  0.0% steps  66% leaps  26%  rms  -21.5 dB  centroid    86 Hz  peak 0.22
+  track 2 Fm     notes  1300 range  79- 91 outKey  0.0% steps  80% leaps   6%  rms  -20.3 dB  centroid  4205 Hz  peak 0.41
+  track 3 Vox    notes   150 range  57- 71 outKey  0.0% steps   8% leaps  32%  rms  -24.2 dB  centroid   575 Hz  peak 0.38
+  track 4 Sub    notes    64 range  71- 86 outKey  0.0% steps  37% leaps  25%  rms  -30.6 dB  centroid   958 Hz  peak 0.17
+  track 5 Drums  notes    36                                  rms  -52.4 dB  centroid  2705 Hz  peak 0.18

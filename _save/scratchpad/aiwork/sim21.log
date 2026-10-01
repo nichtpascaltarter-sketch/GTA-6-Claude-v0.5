@@ -1,0 +1,54 @@
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.09 s)
+World map generated in 47.38 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (4.60 s)
+Buildings: 36093 (towers 358, midrise 2400, condo 485, deco 838, shops 4829, strip 693, houses 21872, villas 928, warehouses 1686) in 4.82 s
+Sites: 66 highway billboards
+Sites: 112 silos, 55 windmills
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 557 elements (0.02 s)
+Lane graph: 26691 lanes, 59937 connectors (1215831 pts), 36768 walk nodes, 53089 walk links, dead-end turning circles moved 0 / obstructed 0 (2.65 s)
+Loaded 12 collision cells
+Simulating 4.0 minutes around (2700, 750) r=200 with 100 cars, 40 peds
+  sim 60 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 49 (wall 4 s)
+PSIJUMP t=71.4 car 94 psi 0.08 real -0.17 fp 8123 fu 16.62 u 15.29 lcLane 8122 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+PSIJUMP t=74.3 car 5 psi 0.09 real -0.16 fp 8123 fu 16.58 u 15.15 lcLane 8122 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.36 nudge 0.00
+PSIJUMP t=94.5 car 9 psi 0.11 real -0.15 fp 8121 fu 16.62 u 15.21 lcLane 8120 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+  sim 120 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 122 (wall 7 s)
+PSIJUMP t=139.6 car 70 psi -0.06 real 0.19 fp 8120 fu 20.39 u 19.17 lcLane 8121 lcU0 11.8 lcLen 19.2 lcFrom 0.00 lcTo 3.30 lat 1.09 nudge 0.00
+PSIJUMP t=145.2 car 85 psi 0.10 real -0.15 fp 8121 fu 16.54 u 15.22 lcLane 8120 lcU0 11.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.38 nudge 0.00
+  sim 180 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 190 (wall 10 s)
+PSIJUMP t=190.4 car 38 psi 0.10 real -0.15 fp 8121 fu 16.60 u 15.20 lcLane 8120 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+PSIJUMP t=208.8 car 87 psi 0.09 real -0.16 fp 8123 fu 16.54 u 15.15 lcLane 8122 lcU0 11.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.36 nudge 0.00
+
+==== Traffic metrics (240 s simulated, 100 cars, 40 peds, 6.67 vehicle-hours) ====
+collisions: 0 (0.00 per vehicle-hour), hard (>3000 Ns): 0 (0.00/veh-h)
+static impacts (walls/props >2500 Ns): 0, props broken: 0
+red-light violations: 0, stop-sign violations: 0
+stuck recoveries: 0, relocalizations: 0, deadlocks (>60 s waits): 0, respawns: 246
+pedestrians hit: 0
+average speed by road class (km/h):  boulevard 0.0 (1504 s)  avenue 7.2 (2648 s)  street 0.9 (17239 s)
+lane-center error (RMS, lanes, v>3 m/s): 0.046 m
+AI cost per 60 Hz tick: traffic 0.060 ms + peds 0.008 ms (avg), p50 0.057 ms, p99 0.268 ms, max 0.553 ms
+physics per 120 Hz step: 0.048 ms (100 cars)

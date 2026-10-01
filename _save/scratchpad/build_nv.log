@@ -1,0 +1,20 @@
+Embedded 25 shader files.
+In file included from src/ui/ui_all.cpp:7,
+                 from src/main.cpp:39:
+src/ui/menus.cpp: In function 'bool UI::menus_ui::drawSettings(UI::MenuState&, const UI::uix::Layout&, const Nav&, float, float, float, float, float, float, bool&)':
+src/ui/menus.cpp:1178: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 1178 |     if (I.setRowHl < 0.f) I.setRowHl = rowTarget;
+      | 
+src/ui/menus.cpp:1178: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/ccdsyyTJ.o:main.cpp:(.text+0x80221): undefined reference to `World::SiteSet::padHeight(vec2, float*, float) const'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/ccdsyyTJ.o:main.cpp:(.text+0x8030a): undefined reference to `World::SiteSet::padHeight(vec2, float*, float) const'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/ccdsyyTJ.o:main.cpp:(.text+0xfc67a): undefined reference to `World::SiteSet::layout(World::WorldMap&)'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/ccdsyyTJ.o:main.cpp:(.text+0xff056): undefined reference to `World::SiteSet::blocksRoads(vec2) const'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/ccdsyyTJ.o:main.cpp:(.text+0x1001c6): undefined reference to `World::SiteSet::blocksRoads(vec2) const'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/ccdsyyTJ.o:main.cpp:(.text+0x148c4a): undefined reference to `World::SiteSet::blocksLots(vec2) const'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/ccdsyyTJ.o:main.cpp:(.text+0x148ef7): undefined reference to `World::SiteSet::blocksLots(vec2) const'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/ccdsyyTJ.o:main.cpp:(.text+0x14b79d): undefined reference to `World::SiteSet::makeFacades(World::BuildingSet&)'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/ccdsyyTJ.o:main.cpp:(.text+0x14b7b8): undefined reference to `World::SiteSet::finalize(World::WorldMap&, World::RoadNetwork const&, World::BuildingSet const&)'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/ccdsyyTJ.o:main.cpp:(.rdata$.refptr._ZN5World6gSitesE[.refptr._ZN5World6gSitesE]+0x0): undefined reference to `World::gSites'
+collect2: error: ld returned 1 exit status
+exit 1

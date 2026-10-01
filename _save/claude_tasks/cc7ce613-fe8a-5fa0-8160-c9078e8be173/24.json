@@ -1,0 +1,9 @@
+{
+  "id": "24",
+  "subject": "Swap transit slot for characters realism pass 3",
+  "description": "Done after the container restart: the transit agent was not resumed (its tram/metro final tests will be run by the lead); the characters agent (aa60ca9c787a2202f) resumed with scratchpad/characters_brief.md.",
+  "activeForm": "Waiting to swap the transit slot for characters",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

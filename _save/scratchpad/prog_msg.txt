@@ -1,0 +1,8 @@
+PROGRESS: wave 4 first-person melee, K9 units, known issues
+
+Adds first-person melee and the police K9 units to the wave 4 section. The known issues now name faces at
+conversation distance, the passes in progress (characters pass 4, animation, unique places) and the screen-quadrant
+tint seen in some first-person frames. The test-machine note describes the build lock, the four-game cap and QUICK=1.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Fsx2GTrhwusdowbWY9LHRP

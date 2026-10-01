@@ -1,0 +1,19 @@
+Carried props, zebra crossings, planted feet, layered clothing, street encounters, Act 4
+
+- Pedestrians carry things by context: wheeled suitcases, shopping bags, coffee, briefcases, umbrellas that open in
+  the rain, fishing rods, binoculars and surfboards; the civilian roster grows from 44 to 72 looks.
+- Camera preferences (shake, auto-center, head bob, first person in vehicles and on foot) now survive a new game and
+  a respawn.
+- Traffic and pedestrians: mid-block zebra crossings where cars stop for people on the stripes, plaza walkways in the
+  pedestrian graph, exit lanes that leave from their own side, buses and trucks kept to the kerb side when meeting,
+  motorbikes leaning to the curvature they need, K9 trails that hold an evasion until they go cold.
+- Animation: feet planted on the ground with probed footholds, steps when turning on the spot, a per-person gait
+  style, standing weight shifts, breathing and fidgets; footsteps come from the animated heel strikes.
+- Characters: open outer layers (overshirts, hoodies, cardigans, jackets, vests, blazers), backpacks, crossbody bags
+  and totes, and accessories.
+- World: an Ocean Promenade hotel row with a beachfront park, the Porto Sol University campus, an airport forecourt with
+  a garage stair tower and zebras to the terminal.
+- Missions: street encounters in free roam and Act 4 "Undertow" (in progress).
+- Renderer: the integrated fog volume is cleared before integration, the fog quadrant tint is mitigated, and urban
+  terrain is compacted ground instead of roof gravel.
+- PROGRESS: the Direct3D 12 plan (D3D12 only, no D3D11 fallback).

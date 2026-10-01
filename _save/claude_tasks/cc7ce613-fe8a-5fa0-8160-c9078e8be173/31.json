@@ -1,0 +1,9 @@
+{
+  "id": "31",
+  "subject": "UI screenshot pass (--autoplay uishots) and presentation review",
+  "description": "All 15 screens reviewed (HUD, pause/map, settings pages, stats, brief, phone home/contacts/messages/Tidegram/map, wanted HUD). Polished; fixed the BRIEF header (missionTitle / FREE ROAM).",
+  "activeForm": "Building the UI screenshot pass",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}
