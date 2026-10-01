@@ -98,6 +98,7 @@ struct SkySystem {
 #include "decals.cpp"
 #include "fxdemo.cpp"
 #include "grass.cpp"
+#include "skin.cpp"
 
 namespace UI { gfx::Texture buildSignAtlas(const std::vector<std::string>& names); }
 
@@ -159,6 +160,7 @@ bool Renderer::init(int w, int h) {
     shadowCB.create();
     vsFullscreen = gfx::loadVS("post.hlsl", "vsFullscreen", nullptr, 0);
     csLighting = gfx::loadCS("lighting.hlsl", "csLighting");
+    skinLUT = buildSkinLUT();
     lightBuf = gfx::createBuffer(kMaxLights * sizeof(LightGPU), sizeof(LightGPU), gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
     lightCB.create();
     // enterable interiors: volumes (4 x float4), portals (3 x float4), per-light volume ids (see uploadInteriors)
@@ -649,11 +651,11 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     c->csSetCBs(3, 1, scb);
     gfx::Resource  lcb[] = {lightCB.get()};
     c->csSetCBs(2, 1, lcb);
-    gfx::SRV  srvs[14] = {gbAlbedo.srv, gbNormal.srv, gbMaterial.srv, gbEmissive.srv, depth.srv,
+    gfx::SRV  srvs[15] = {gbAlbedo.srv, gbNormal.srv, gbMaterial.srv, gbEmissive.srv, depth.srv,
                                           aoSrv ? aoSrv : post->whiteTex.srv, settings.clouds ? clouds->output() : cloudsTex.srv,
                                           lightBuf.srv, ss->depthCur(), ss->halfNormal.srv, ssrSrv,
-                                          interiorBuf.srv, portalBuf.srv, lightVolumeBuf.srv};
-    c->csSetSRVs(0, 14, srvs);
+                                          interiorBuf.srv, portalBuf.srv, lightVolumeBuf.srv, skinLUT.srv};
+    c->csSetSRVs(0, 15, srvs);
     // debug views write their values to a texture of their own (the lit image keeps feeding TAA and the reflections)
     if (debugView > 0 && (!debugTex.res || debugTex.width != width || debugTex.height != height)) {
         debugTex.release();
@@ -663,7 +665,7 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     c->csSetUAVs(0, 2, luavs);
     c->setCS(csLighting);
     c->dispatch(gfx::divUp(width, 16), gfx::divUp(height, 16), 1);
-    gfx::unbindCSResources(14, 2);
+    gfx::unbindCSResources(15, 2);
     RenderPassTiming::end();
 
     // Water (forward, reads copies of the lit scene and depth)

@@ -310,6 +310,7 @@ public:
     World::WorldMap* map = nullptr;
 
     gfx::ComputeShader  csLighting = nullptr;
+    gfx::Texture skinLUT;   // pre-integrated skin scattering (skin.cpp), lighting pass t14
     gfx::Buffer lightBuf;
     struct LightCBData { u32 count, interiorCount, pad[2]; };
     gfx::CBuffer<LightCBData> lightCB;

@@ -271,5 +271,6 @@ float3 ambientIrradiance(float3 n, float dist) {
 #define SM_UNLIT 5
 #define SM_HAIR 6
 #define SM_CLOTH 7
+#define SM_EYE 8       // default BRDF; the AO channel (lid occlusion) also occludes the direct light
 
 #endif

@@ -869,9 +869,10 @@ void buildHeadGrid(BuildCtx& c) {
 
 // Eye encoding for the renderer (MAT_EYE param): bit 0 tooth / enamel, bit 1 "shader pupil" (rgb = the iris without
 // its pupil, tangent = the optical axis, colour alpha = the lids' occlusion; the renderer draws the pupil refracted
-// through the cornea and dilates it at night), bits 2-9 the eye radius (9 mm + 0.02 mm steps). Off until the renderer's
-// eye shading lands (both must ship together): the pupil and the lids' shade are painted into the colours then.
-static const bool kShaderPupil = false;
+// through the cornea and dilates it at night), bits 2-9 the eye radius (9 mm + 0.02 mm steps). On with the renderer's
+// eye shading (dynamic.hlsl SM_EYE; the two ship together). Off, the pupil and the lids' shade are painted into the
+// colours instead, for shaders without the eye path.
+static const bool kShaderPupil = true;
 
 // Eyeball: sclera sphere with a spherical corneal cap bulging over the iris (cornea radius 0.66 of the eye, meeting
 // the sclera at the limbus, 29 degrees from the axis). uv = (phase, polar angle) * 0.01 radians (the renderer's eye
