@@ -14,10 +14,14 @@ std::atomic<long long> g_compileMicros{0};
 std::string g_cacheDir;
 u32 g_shaderIds = 0;
 std::vector<ShaderObj*> g_shaders;
+// The shader sources in use: the embedded files, any of them replaced by a file of the same name in the folder given
+// with --shaderdir (development: a shader change can be tried without rebuilding the game)
+std::vector<EmbeddedFile> g_sources;
+std::vector<std::vector<char>> g_sourceOverrides;
 
 const EmbeddedFile* findEmbedded(const char* name) {
-    for (int i = 0; i < g_embeddedShaderCount; i++)
-        if (strcmp(g_embeddedShaders[i].name, name) == 0) return &g_embeddedShaders[i];
+    for (const EmbeddedFile& f : g_sources)
+        if (strcmp(f.name, name) == 0) return &f;
     return nullptr;
 }
 
@@ -191,9 +195,24 @@ bool shaderCompilerInit() {
     pD3DCompile = (PFN_D3DCompile)(void*)GetProcAddress(m, "D3DCompile");
     pD3DReflect = (PFN_D3DReflect)(void*)GetProcAddress(m, "D3DReflect");
     if (!pD3DCompile || !pD3DReflect) return false;
+    g_sources.assign(g_embeddedShaders, g_embeddedShaders + g_embeddedShaderCount);
+    if (const char* dir = Platform::argValue("shaderdir")) {
+        std::string base = dir;
+        if (!base.empty() && base.back() != '\\' && base.back() != '/') base += '\\';
+        g_sourceOverrides.reserve(g_sources.size());   // (the sources point into these buffers: no reallocation)
+        for (EmbeddedFile& f : g_sources) {
+            std::vector<u8> data;
+            if (!readFile(base + f.name, data)) continue;
+            g_sourceOverrides.emplace_back(data.begin(), data.end());
+            f.data = g_sourceOverrides.back().data();
+            f.size = (unsigned)g_sourceOverrides.back().size();
+            LOG("Shader source %s read from %s", f.name, base.c_str());
+        }
+    }
+    // the disk cache is keyed by the sources in use
     u64 h = 1469598103934665603ULL;
-    for (int i = 0; i < g_embeddedShaderCount; i++) {
-        h ^= hash64(g_embeddedShaders[i].data, g_embeddedShaders[i].size);
+    for (const EmbeddedFile& f : g_sources) {
+        h ^= hash64(f.data, f.size);
         h *= 1099511628211ULL;
     }
     g_bundleHash = h;

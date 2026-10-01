@@ -14,6 +14,7 @@ Texture2D<float4> tClouds : register(t6);
 Texture2D<float> tHalfDepth : register(t8);     // half-res linear depth (bilateral upsample of AO/GI)
 Texture2D<float2> tHalfNormal : register(t9);
 Texture2D<float4> tSSR : register(t10);         // screen-space reflections: rgb radiance (pre-exposed), a confidence
+Texture2D<float4> tSkinLUT : register(t14);     // pre-integrated skin scattering by N.L and scatter width (render/skin.cpp)
 RWTexture2D<float4> uHDR : register(u0);
 // --debugview output, shown by the tonemap pass in the debug region. The lit image keeps going to uHDR there too, so
 // TAA, exposure and the colour pyramid that screen-space reflections and GI sample stay physical (a debug view that
@@ -73,6 +74,11 @@ StructuredBuffer<uint> tLightVolume : register(t13);
 static int sInterior = -1;   // interior volume of the pixel being shaded (-1 outdoors)
 static bool sHairCard = false;   // SM_HAIR pixel from a strand card: sHairT holds its strand direction
 static float3 sHairT = float3(0, 0, -1);
+// SM_SKIN pixel (decoded from the G-buffer, see psDynamic): scatter width (0 flat .. 1 a 2 mm radius), melanin
+// (0 lightest .. 1 darkest skin) and thinness for transmission (0 none .. 1 an ear rim)
+static float sSkinScatter = 0;
+static float sSkinMelanin = 0;
+static float sSkinTransl = 0;
 
 int interiorAt(float3 relPos) {
     [loop] for (uint k = 0; k < gInteriorCount; k++) {
@@ -139,29 +145,43 @@ float3 interiorReflection(int k, float3 p, float3 R, float rough, float dist) {
 }
 
 // ---- Character shading models -----------------------------------------------------------------------------------
-// Skin: per-channel wrapped diffuse (red light scatters furthest under the skin, so the terminator and the shadow
-// edges turn warm), a two-lobe specular (broad + tight oily sheen, F0 0.028) and transmission through thin parts
-// lit from behind (ears, nostrils, fingers). g.extra = 0.5 + thinness / 2. `thickness` (m): how much tissue the
-// light crosses (from the shadow map; large = none).
+// Skin: pre-integrated subsurface scattering (render/skin.cpp: the diffuse falloff by N.L and scatter width, where red
+// light, travelling furthest under the skin, softens and warms the terminator), warm shadow edges, a two-lobe specular
+// (broad + tight oily sheen, F0 0.028) and transmission through thin parts lit from behind (ears, nostrils, fingers).
+// The scattering tint fades towards neutral with melanin: in dark skin the epidermis absorbs most of the light that
+// would travel under the surface, so its terminator stays deep brown instead of turning orange. `thickness` (m): how
+// much tissue the light crosses (the sun: from the shadow map; local lights: from the part's thinness; large = none).
+float skinScatterSat() { return lerp(1.0, 0.4, sSkinMelanin); }
+
+float3 skinDiffuseFalloff(float NoL) {
+    const float n = 64.0;
+    float2 uv = float2(NoL * 0.5 + 0.5, sSkinScatter) * ((n - 1.0) / n) + 0.5 / n;
+    float3 d = tSkinLUT.SampleLevel(sLinearClamp, uv, 0).rgb;
+    return lerp(dot(d, float3(0.2126, 0.7152, 0.0722)).xxx, d, skinScatterSat());
+}
+
 float3 skinDirect(GBufferData g, float3 N, float3 V, float3 L, float shadow, float thickness) {
-    float thin = saturate(g.extra * 2.0 - 1.0);
     float NoLr = dot(N, L);
-    // narrow per-channel wrap (a pre-integrated-skin look at face-scale curvature), wider on thin tight parts
-    float3 w = float3(0.12, 0.04, 0.02) + float3(0.22, 0.06, 0.03) * thin;
-    float3 wrapD = saturate((NoLr + w) / (1.0 + w));
+    float3 diffuse = skinDiffuseFalloff(NoLr);
     // shadow edges warm slightly (light scattered under the skin from the lit side); deep shadow stays neutral
     float sh = saturate(shadow);
-    float3 sh3 = saturate(sh + sh * (1.0 - sh) * float3(0.35, 0.0, -0.08));
+    float3 sh3 = saturate(sh + sh * (1.0 - sh) * float3(0.35, 0.0, -0.08) * skinScatterSat());
     float3 H = normalize(V + L);
     float NoV = max(dot(N, V), 1e-4), NoL = saturate(NoLr), NoH = saturate(dot(N, H)), VoH = saturate(dot(V, H));
-    float a1 = max(g.rough * g.rough, 0.01), a2 = max(sq(g.rough * 0.55), 0.004);
+    // the broad lobe of the skin's surface and a sharper one of its oil film (dual lobe, 85 / 15)
+    float a1 = max(g.rough * g.rough, 0.01), a2 = max(sq(g.rough * 0.7), 0.006);
     float F = 0.028 + 0.972 * pow5(1.0 - VoH);
-    float spec = (D_GGX(NoH, a1) * V_SmithGGXCorrelated(NoV, NoL, a1) * 0.8 + D_GGX(NoH, a2) * V_SmithGGXCorrelated(NoV, NoL, a2) * 0.2) * F;
-    float3 r = g.albedo / PI * wrapD * (1.0 - F) * sh3 + spec * NoL * saturate(shadow);
+    float spec = (D_GGX(NoH, a1) * V_SmithGGXCorrelated(NoV, NoL, a1) * 0.85 + D_GGX(NoH, a2) * V_SmithGGXCorrelated(NoV, NoL, a2) * 0.15) * F;
+    float3 r = g.albedo / PI * diffuse * (1.0 - F) * sh3 + spec * NoL * sh;
+    // peach fuzz: the vellus hairs catch grazing light (Charlie sheen with the Ashikhmin visibility), a velvet rim on
+    // side- and backlit faces where a smooth surface would only show a Fresnel glint; fainter on dark skin
+    float invA = 1.0 / sq(0.45);
+    float Dsheen = (2.0 + invA) * pow(max(1.0 - NoH * NoH, 1e-4), invA * 0.5) / (2.0 * PI);
+    r += 0.04 * lerp(1.0, 0.45, sSkinMelanin) * Dsheen / (4.0 * (NoL + NoV - NoL * NoV) + 1e-4) * NoL * sh;
     // A zero thickness is ambiguous (the part is not in the shadow map, e.g. distant crowd LODs, or the point is on
     // the lit surface itself): assume 2 cm of tissue then, so nothing glows unless it is really thin and backlit.
     float t = thickness < 0.003 ? 0.02 : thickness;
-    float3 transm = exp(-t / float3(0.012, 0.0045, 0.003)) * thin;
+    float3 transm = exp(-t / float3(0.012, 0.0045, 0.003)) * sSkinTransl * lerp(1.0, 0.5, sSkinMelanin);
     float fwd = saturate(dot(V, -L));
     r += g.albedo * transm * saturate(0.1 - NoLr) * fwd * fwd * (0.35 / PI);
     return r;
@@ -169,8 +189,13 @@ float3 skinDirect(GBufferData g, float3 N, float3 V, float3 L, float shadow, flo
 
 // Hair (Kajiya-Kay with Marschner-style shifts): strands run along the card tangent (strand cards) or the surface
 // projection of "down" (the opaque shell); a white primary highlight shifted towards the root (R) and a broader
-// highlight tinted by the hair colour, shifted towards the tip and sparkling per strand (TRT, g.extra); soft
-// wrapped diffuse for the scattering hair volume.
+// highlight tinted by the hair colour, shifted towards the tip and sparkling per strand (TRT, sHairRnd); soft
+// wrapped diffuse for the scattering hair volume. On cards the G-buffer's extra channel holds the strand's random
+// and the card's depth in the hair volume (sHairDepth): light reaching an inner layer has crossed the layers above
+// it, and no shadow map resolves strands, so inner layers get less of it and dimmer highlights.
+static float sHairDepth = 0;   // strand cards: 0 outermost .. 1 innermost layer
+static float sHairRnd = 0.5;   // per-strand random (cards) / strand noise (shell)
+
 float3 hairDirect(GBufferData g, float3 N, float3 V, float3 L) {
     float3 T;
     if (sHairCard) {
@@ -181,7 +206,7 @@ float3 hairDirect(GBufferData g, float3 N, float3 V, float3 L) {
         T = tl > 1e-3 ? T / tl : normalize(cross(N, float3(1, 0, 0)));
     }
     float3 H = normalize(L + V);
-    float jit = (g.extra - 0.5) * 0.35;   // per-strand tilt: the highlight band breaks up into strands
+    float jit = (sHairRnd - 0.5) * 0.35;   // per-strand tilt: the highlight band breaks up into strands
     float3 T1 = normalize(T + N * (0.1 + jit)), T2 = normalize(T - N * (0.15 - jit));
     float h1 = dot(T1, H), h2 = dot(T2, H);
     float e1 = clamp(2.0 / max(sq(g.rough * 0.5), 1e-3) - 2.0, 8.0, 400.0);   // narrow R lobe (~6 degrees)
@@ -195,9 +220,9 @@ float3 hairDirect(GBufferData g, float3 N, float3 V, float3 L) {
     const float F = 0.05;
     // per-strand sparkle: on cards a few strands carry most of the highlight, so it breaks up instead of forming a
     // satin band (curly and coily hair especially)
-    float sparkle = sHairCard ? 0.12 + 1.5 * g.extra * g.extra : 0.4 + 0.8 * g.extra;
-    float3 spec = (s1 * F * 0.35 * sparkle + s2 * g.albedo * (0.3 + g.extra * 0.9) * 0.2) * vis;
-    return g.albedo / PI * saturate(NoL * 0.6 + 0.4) * 0.85 + spec;
+    float sparkle = sHairCard ? 0.12 + 1.5 * sHairRnd * sHairRnd : 0.4 + 0.8 * sHairRnd;
+    float3 spec = (s1 * F * 0.35 * sparkle + s2 * g.albedo * (0.3 + sHairRnd * 0.9) * 0.2 * lerp(1.0, 0.45, sHairDepth)) * vis;
+    return (g.albedo / PI * saturate(NoL * 0.6 + 0.4) * 0.85 + spec) * lerp(1.0, 0.5, sHairDepth);
 }
 
 // Cloth: Lambert + Charlie sheen (Estevez & Kulla) with the Ashikhmin visibility; g.extra = sheen strength.
@@ -214,7 +239,8 @@ float3 clothDirect(GBufferData g, float3 N, float3 V, float3 L) {
 }
 
 float3 localLightBRDF(GBufferData g, float3 N, float3 V, float3 L) {
-    if (g.shadingModel == SM_SKIN) return skinDirect(g, N, V, L, 1.0, 1.0);
+    // thin parts let a lamp behind them through (the transmission weight is 0 where tissue backs the skin: lids, lips)
+    if (g.shadingModel == SM_SKIN) return skinDirect(g, N, V, L, 1.0, sSkinTransl > 0.0 ? lerp(0.006, 0.0015, sSkinTransl) : 1.0);
     if (g.shadingModel == SM_HAIR) return hairDirect(g, N, V, L);
     if (g.shadingModel == SM_CLOTH) return clothDirect(g, N, V, L);
     float3 H = normalize(V + L);
@@ -261,6 +287,38 @@ float contactShadow(float3 relPos, float viewDepth, uint2 pix) {
     }
     return 1.0;
 }
+
+// Feature shadows on faces and hands (skin, eyes and teeth within kFeatureShadowDist): the same march at the scale
+// of the features, which the shadow cascades and the contact shadows above are far too coarse for: the brow ridge
+// over the upper lids and the eyes, the nose on the cheek, the lips on the teeth, the fingers. Without it an
+// overhead lamp lights the upper lids as brightly as the brow, and the eyes read as goggles in a bright frame.
+// 8 steps over 4.5 cm, starting a pixel off the surface; an occluder more than 4 cm in front of the ray (another
+// person, a hand held up to the camera) casts nothing.
+static const float kFeatureShadowDist = 12.0;
+float featureShadow(float3 relPos, float3 N, float viewDepth, uint2 pix, float3 L) {
+    const int steps = 8;
+    float pxW = viewDepth * 2.0 * tan(gCamForward.w * 0.5) * gScreen.w;   // a pixel's size at this depth (m)
+    float bias = max(0.0015, pxW * 0.5);
+    float jit = ignTemporal(float2(pix), gTime.z, 7.0);
+    float3 stepV = L * (0.045 / steps);
+    float3 p = relPos + N * max(0.002, pxW * 0.75) + stepV * jit;
+    [loop] for (int i = 0; i < steps; i++) {
+        p += stepV;
+        float4 clip = mul(gViewProj, float4(p, 1));
+        if (clip.w <= 0.0) break;
+        float2 uv = clip.xy / clip.w * float2(0.5, -0.5) + 0.5;
+        if (any(uv <= 0.0) || any(uv >= 1.0)) break;
+        float d = tDepth.SampleLevel(sPointClamp, uv, 0);
+        if (d <= 0.0) continue;
+        float diff = clip.w - linearDepth(d);
+        if (diff > bias && diff < 0.04) return saturate((float)i / steps * 0.6);   // the far end of the march softer
+    }
+    return 1.0;
+}
+
+// Eyes and teeth sit in the orbit and behind the lips: light from steeply above is cut off by the brow ridge (the
+// upper lip for teeth) over 40-65 degrees of elevation, where the feature shadows find too little overhang
+float eyeSocketLight(float3 L) { return lerp(1.0, 0.2, smoothstep(0.64, 0.9, L.z)); }
 
 groupshared uint gsMinZ, gsMaxZ, gsLightCount;
 groupshared uint gsLights[256];
@@ -318,11 +376,13 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
     float3 mbB = -4.7951 * diffColor + 0.6417;
     float3 mbC = 2.7552 * diffColor + 0.6903;
     float3 aoMB = max(ao, ((ao * mbA + mbB) * ao + mbC) * ao);
+    // skin: red light scatters out of creases and pores, so their occlusion turns warm instead of grey
+    if (g.shadingModel == SM_SKIN) aoMB = pow(max(aoMB, 1e-4), lerp(1.0, float3(0.55, 0.85, 1.0), skinScatterSat()));
     // Sky/ground SH through the visibility term + one-bounce screen-space indirect diffuse (interiors: room ambient
     // + daylight through the openings)
     float3 ambIrr = sInterior >= 0 ? interiorIrradiance(sInterior, relPos, N, length(relPos)) : ambientIrradiance(N, length(relPos));
     float3 ambientDiffuse = diffColor * (ambIrr * aoMB + gi);
-    if (g.shadingModel == SM_SKIN) ambientDiffuse *= float3(1.06, 0.98, 0.95);   // ambient light scattered through skin
+    if (g.shadingModel == SM_SKIN) ambientDiffuse *= lerp(1.0, float3(1.06, 0.98, 0.95), skinScatterSat());   // scattered through skin
     float3 R = reflect(-V, N);
     float2 ab = envBRDFApprox(g.rough, NoV);
     float specOcc = saturate(pow(NoV + ao, exp2(-16.0 * g.rough - 1.0)) - 1.0 + ao);
@@ -330,8 +390,13 @@ float3 shadeSurface(GBufferData g, float3 relPos, float3 V, float3 sunE, float s
     float3 env = (sInterior >= 0 ? interiorReflection(sInterior, relPos, R, g.rough, length(relPos)) : envReflection(R, g.rough)) * specOcc;
     env = lerp(env, ssr.rgb / preExposure(), ssr.a);
     float3 ambientSpec = env * (f0 * ab.x + ab.y) * horizonOcclusion(R, N);
-    if (g.shadingModel == SM_HAIR) ambientSpec *= lerp(float3(0.2, 0.2, 0.2), g.albedo * 1.2, 0.5);   // strands, not a mirror
-    else if (g.shadingModel == SM_SKIN) ambientSpec *= 0.7;                                          // F0 0.028, not 0.04
+    // strands, not a mirror: the cuticle's weak white reflection plus the colour of the light that went through
+    // (dark hair no longer mirrors a grey sky sheen)
+    if (g.shadingModel == SM_HAIR) ambientSpec *= lerp(float3(0.07, 0.07, 0.07), g.albedo * 1.2, 0.5) * lerp(1.0, 0.5, sHairDepth);
+    else if (g.shadingModel == SM_SKIN) {
+        ambientSpec *= 0.7;   // F0 0.028, not 0.04
+        ambientSpec += 0.04 * lerp(1.0, 0.45, sSkinMelanin) * ambIrr * aoMB * pow(1.0 - NoV, 4.0);   // peach fuzz rim
+    }
     // cloth: fibres scatter ambient light forward at grazing angles (a soft sheen rim tinted by the dye), which
     // keeps clothing from reading flat and plastic in shade
     if (g.shadingModel == SM_CLOTH) ambientSpec += lerp(float3(0.04, 0.04, 0.04), g.albedo, 0.6) * g.extra * ambIrr * aoMB * pow(1.0 - NoV, 3.0) * 0.5;
@@ -404,6 +469,17 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
     if (g.shadingModel == SM_HAIR) {
         sHairCard = decodeHairTangent(g.normal, g.metal, sHairT);
         g.metal = 0;
+        // cards: per-strand random (high 5 bits) and depth in the hair volume (low 3 bits); the shell: strand noise
+        uint e = (uint)(g.extra * 255.0 + 0.5);
+        sHairRnd = sHairCard ? (e >> 3) / 31.0 : g.extra;
+        sHairDepth = sHairCard ? (e & 7u) / 7.0 : 0.0;
+    } else if (g.shadingModel == SM_SKIN) {
+        // metal channel: scatter width; extra: melanin (high nibble) and transmission thinness (low nibble)
+        uint e = (uint)(g.extra * 255.0 + 0.5);
+        sSkinScatter = g.metal;
+        sSkinMelanin = (e >> 4) / 15.0;
+        sSkinTransl = (e & 15u) / 15.0;
+        g.metal = 0;
     }
     float3 emissive = tEmissive[id.xy];
     float dist = length(relPos);
@@ -418,10 +494,18 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         color = g.albedo;
     } else {
         shadow = sampleSunShadow(relPos, g.normal, viewDepth, id.xy);
+        // eyes: the lids' shadow and the brow's (finer than any shadow map)
+        if (g.shadingModel == SM_EYE) shadow *= g.ao * eyeSocketLight(gSunDir.xyz);
         // contact shadows: not at grazing sun, where a march along the surface only finds the surface itself (the
         // shadow map covers that case)
         if (gRenderParams.z > 0.5 && shadow > 0.02 && viewDepth < 180.0 && dot(g.normal, gSunDir.xyz) > 0.2)
             shadow *= contactShadow(relPos, viewDepth, id.xy);
+        // faces and hands close by: feature shadows from the sun and the strongest lamps (front-lit only: light
+        // through an ear from behind is the transmission term's)
+        bool featurePix = gRenderParams.z > 0.5 && (g.shadingModel == SM_SKIN || g.shadingModel == SM_EYE) &&
+                          viewDepth < kFeatureShadowDist;
+        if (featurePix && shadow > 0.02 && dot(g.normal, gSunDir.xyz) > 0.1)
+            shadow *= featureShadow(relPos, g.normal, viewDepth, id.xy, gSunDir.xyz);
         aogi = upsampleAOGI(id.xy, linearDepth(depth), g.normal);
         ao = g.ao * aogi.a;
         ssr = gSSParams.z > 0.5 ? tSSR[id.xy] : float4(0, 0, 0, 0);
@@ -436,6 +520,7 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         float4 wl4 = gWaterLevelG.Gather(sPointClamp, (wpos.xy + 10240.0) / 20480.0);
         float waterZ = max(max(wl4.x, wl4.y), max(wl4.z, wl4.w));
         float submerged = waterZ > -999.0 && sInterior < 0 ? waterZ - wpos.z : 0.0;
+        uint featureMarches = 0;
         for (uint i = 0; i < n; i++) {
             if (tLightVolume[gsLights[i]] != (uint)(sInterior + 1)) continue;   // lights stay in their own volume
             LightGPU Lt = tLights[gsLights[i]];
@@ -453,8 +538,16 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
                 bool lampAbove = Lt.pos.z + gCamPos.z > waterZ;
                 att *= lampAbove ? 0.25 * exp(-0.7 * submerged / max(Lv.z, 0.2)) : exp(-0.35 * d);
             }
-            local += localLightBRDF(g, g.normal, V, Lv) * Lt.color * att;
+            float3 c = localLightBRDF(g, g.normal, V, Lv) * Lt.color * att;
+            if (g.shadingModel == SM_EYE) c *= eyeSocketLight(Lv);
+            // (at most two marches per pixel, for the lamps that light it visibly)
+            if (featurePix && featureMarches < 2u && dot(g.normal, Lv) > 0.1 && luminance(c) * preExposure() > 0.01) {
+                c *= featureShadow(relPos, g.normal, viewDepth, id.xy, Lv);
+                featureMarches++;
+            }
+            local += c;
         }
+        if (g.shadingModel == SM_EYE) local *= g.ao;
         color += local * lerp(0.6, 1.0, ao);
         if (gLightning.x > 0.0) {
             // lightning flash: sky-wide ambient burst + directional light from the bolt

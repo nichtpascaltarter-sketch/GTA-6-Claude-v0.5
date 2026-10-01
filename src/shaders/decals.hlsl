@@ -164,7 +164,7 @@ DecalOut psDecal(DecalVSOut i) {
                           dot(lp, d.axisZ.xyz) / dot(d.axisZ.xyz, d.axisZ.xyz));
     if (any(abs(local) > 1.0)) discard;
     uint model = (uint)(tMaterialCopy[pix].b * 255.0 + 0.5);
-    if (model == SM_CARPAINT || model == SM_SKIN || model == SM_HAIR || model == SM_CLOTH) discard;  // not on dynamic objects
+    if (model == SM_CARPAINT || model == SM_SKIN || model == SM_HAIR || model == SM_CLOTH || model == SM_EYE) discard;  // not on dynamic objects
     float3 Ng = octDecode(tNormalCopy[pix] * 2.0 - 1.0);
     float3 Nd = normalize(d.axisZ.xyz);
     float facing = dot(Ng, Nd);

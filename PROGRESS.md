@@ -16,7 +16,8 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
 - Linux cross-compile: `./build.sh` (MinGW-w64 g++ 13, static). `./build.sh debug` for symbols.
 - Shaders: plain HLSL in `src/shaders/*.hlsl(i)`, embedded into the exe by `tools/embed_shaders.cpp`
   (generates `build/gen/shaders_embedded.h`), compiled at runtime to SM 5.1 (vs/ps/cs_5_1) with `d3dcompiler_47.dll`
-  (ships with Windows 10/11) and cached in `%LOCALAPPDATA%\NeonTide\shadercache`.
+  (ships with Windows 10/11) and cached in `%LOCALAPPDATA%\NeonTide\shadercache`. `--shaderdir DIR` (development)
+  reads any shader file found in DIR instead of its embedded copy, so a shader change can be tried without a rebuild.
 - Unity build: `src/main.cpp` #includes every .cpp. File-local state must live in a *named* namespace
   (or `namespace X { namespace { ... } }`) because anonymous namespaces merge across the unity TU.
 
@@ -67,8 +68,22 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   shop sign atlas (GDI-rendered names) + neon trims, cell streaming (near detail 420 m / far 2.3 km), instanced props
   and alpha-tested foliage with wind, water (CDLOD + ocean skirt, Gerstner waves, refraction, absorption, foam, glint),
   tiled deferred local lights (street/neon/building lights), volumetric clouds (half-res + temporal, cloud shadows),
-  TAA, bloom, auto exposure, ACES tonemap, dynamic rigid + GPU-skinned object renderer with car paint/skin/hair/cloth
-  shading models, model viewer (`--viewer vehicles|characters`).
+  TAA, bloom, auto exposure, ACES tonemap, dynamic rigid + GPU-skinned object renderer with car paint/skin/hair/cloth/
+  eye shading models, model viewer (`--viewer vehicles|characters`; `--facecam i,dist,yaw` frames a character's face
+  for a `--shot`, `--viewerlamp[=cool]` adds a street lamp).
+- Character shading (lighting.hlsl, dynamic.hlsl, render/skin.cpp): skin uses a pre-integrated scattering LUT (d'Eon
+  six-Gaussian profile) by N.L and curvature, its red terminator moderated by melanin so dark skin stays brown, two
+  GGX lobes (F0 0.028) with roughness from the person's oiliness and the face region (wet lid margins, lips, nails),
+  specular anti-aliasing for the faded pores and grain, peach fuzz sheen and transmission through ears and nostrils
+  (sun: shadow-map thickness; lamps: the part's translucency). Feature shadows: skin, eyes and teeth within 12 m march
+  4.5 cm through the depth buffer towards the sun and the two strongest lamps, so the brow ridge shades the upper lids
+  and the eyes, the nose the cheek, the lips the teeth (no bright lids between dark brows and lash lines at night).
+  The faces' MAT_SKIN param carries region, translucency, pores, oiliness, age and melanin (dynamic.hlsl SM_SKIN
+  comment). Eyes and teeth shade as SM_EYE: the lids' occlusion, the feature shadows and the cut-off of steep light by
+  the brow ridge (the upper lip) reach their direct light. Eyes with the shader pupil (MAT_EYE param bit 1) refract
+  the view through the cornea onto the iris plane (iris parallax, the pupil widening at night, a dark limbal ring).
+  Hair: Kajiya-Kay with shifted lobes, strand cards shaded by their depth in the hair volume, strand edges filtered
+  over the pixel and soft tips under the TAA dither.
 - Audio (src/audio, done by agent): WASAPI mixer (192 voices, 3D, doppler, reverb, ducking), 79 synthesized SFX,
   9 engine kinds, sirens/horns/skids/rotors/boats, ambience beds, procedural music engine, 9 radio stations with DJs,
   ads and talk (live timelines), dynamic mission score. Formant TTS voices (src/audio/speech*).
@@ -346,9 +361,10 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   repeats; unique places (deco strip, campus, cemeteries, hospitals, prison, speedway) are in progress. Vehicles are
   procedural. A screen-quadrant tint (black, later orange) appears in some first-person frames; the renderer is
   looking at lights close to the lens in the froxel fog.
-- Renderer limitations: the curly hairstyle's top highlight reads white/grey, no iris parallax, env probe without
-  parallax correction and dynamic objects, froxel fog halos soft at 1440p, oil drips per lane (no stop-line data);
-  sand / unpaved ground turns into dark blotches under a grazing sunset sun (renderer agent).
+- Renderer limitations: the curly hairstyle's top highlight reads white/grey under an overhead lamp, iris parallax
+  shows only on eyes built with the shader pupil (faces), env probe without parallax correction and dynamic objects,
+  froxel fog halos soft at 1440p, oil drips per lane (no stop-line data); sand / unpaved ground turns into dark
+  blotches under a grazing sunset sun (renderer agent).
 - World: 18 lane/ground steps and a few interchange layouts where streets attach to ramps beside highways
   (planarisation fix in progress); worldcheck must exit clean.
 - Story: Downtown Penthouse needs an interior named "Downtown Penthouse"; penthouse vault marker (interiortower.cpp)

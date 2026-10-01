@@ -1811,6 +1811,7 @@ void testFaces() {
         nChars++;
         const SkinnedMeshData& m = L[0];
         int region[8] = {0, 0, 0, 0, 0, 0, 0, 0}, eyes = 0, eyeBad = 0, teeth = 0, beardCards = 0, cardDepthBad = 0, farCards = 0;
+        int shaderPupil = 0, lidOcc = 0;
         int mel = -1;
         bool melSame = true, skinBit = true;
         vec3 head = -sk.invBindModel[B_HEAD].c[3].xyz();
@@ -1829,6 +1830,14 @@ void testFaces() {
                     eyes++;
                     float r = 0.009f + 0.00002f * (float)((param >> 2) & 255u);
                     if (r < 0.0095f || r > 0.0145f) eyeBad++;
+                    if (param & 2u) {
+                        // shader-pupil eyes: the tangent is the optical axis (forward, as the eyes look in bind) and the
+                        // colour alpha the lids' occlusion
+                        shaderPupil++;
+                        vec3 tg = unpackNormalOct(v.tangent);
+                        if (tg.y < 0.95f) eyeBad++;
+                        if (unpackRGBA8(v.color).w < 0.999f) lidOcc++;
+                    }
                 }
             } else if (mat == MAT_HAIR) {
                 u32 kind = param & 15u;
@@ -1844,7 +1853,9 @@ void testFaces() {
               "faces: skin regions missing (k %u): lip %d mucosa %d lid %d ear %d nose %d mouth %d", k, region[1], region[2], region[3], region[4], region[5],
               region[7]);
         CHECK(melSame && mel >= 0, "faces: melanin must be one value per character (k %u)", k);
-        CHECK(eyes > 600 && eyeBad == 0, "faces: eyeballs %d, %d with an implausible radius (k %u)", eyes, eyeBad, k);
+        CHECK(eyes > 600 && eyeBad == 0, "faces: eyeballs %d, %d with an implausible radius or axis (k %u)", eyes, eyeBad, k);
+        CHECK(shaderPupil == 0 || (shaderPupil == eyes && lidOcc > 50), "faces: shader-pupil eyes mixed or without lid occlusion (k %u: %d of %d, %d)", k,
+              shaderPupil, eyes, lidOcc);
         CHECK(teeth > 100, "faces: teeth not flagged as enamel (k %u: %d)", k, teeth);
         CHECK(cardDepthBad == 0, "faces: card depth out of range (k %u)", k);
         CHECK(farCards == 0, "faces: %d lash / brow / beard card vertices away from the head (k %u)", farCards, k);

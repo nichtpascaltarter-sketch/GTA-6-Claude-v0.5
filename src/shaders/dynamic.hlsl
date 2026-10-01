@@ -292,12 +292,29 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
     } else if (matId == M_SKIN) {
         sm = SM_SKIN;
         // Character skin (material param bit 0) carries extra vertex data: colour.a = 1 - gloss (0 skin, ~0.2 oily
-        // T-zone, ~0.65 nails, ~0.9 lip vermilion) and uv = wrinkle channel (uv.x crease phase, crease centres at
+        // T-zone, glossier nails and lip vermilion) and uv = wrinkle channel (uv.x crease phase, crease centres at
         // frac = 0.5; uv.y crease depth in mm), so its uv is not a surface mapping and the material textures are not
-        // used. Other skin (animals) keeps its texture mapping.
-        bool charSkin = ((i.mat >> 8) & 1u) != 0u;
+        // used. Other skin (animals) keeps its texture mapping. The rest of the param describes the tissue (anim/
+        // face.cpp): bits 1-3 region (0 skin, 1 lip vermilion, 2 wet mucosa, 3 eyelid, 4 ear, 5 nose, 6 nail, 7 mouth
+        // interior), 4-7 translucency, 8-11 pore strength, then per character 12-15 oiliness (1..15), 16-18 age band
+        // and 19-22 melanin (0 lightest .. 15 darkest). Meshes from before those fields (all zero) get defaults that
+        // keep their look.
+        uint prm = (i.mat >> 8) & 0x7fffffu;
+        bool charSkin = (prm & 1u) != 0u;
+        bool tissue = charSkin && (prm >> 1) != 0u;
+        uint region = tissue ? (prm >> 1) & 7u : 0u;
+        float transl = tissue ? ((prm >> 4) & 15u) / 15.0 : 0.0;
+        float poreK = tissue ? ((prm >> 8) & 15u) / 15.0 : 0.55;
+        float oily = tissue ? ((prm >> 12) & 15u) / 15.0 : 0.35;
+        float ageK = tissue ? ((prm >> 16) & 7u) / 7.0 : 0.3;
+        // melanin: the generator's log scale of the skin tone's luminance (0.70 lightest .. 0.022 darkest), estimated
+        // from the albedo when the mesh does not say
+        float lumA = dot(i.color.rgb, float3(0.2126, 0.7152, 0.0722));
+        float melanin = tissue ? ((prm >> 19) & 15u) / 15.0 : saturate(log2(0.70 / max(lumA, 0.01)) / log2(0.70 / 0.022));
         float gloss = charSkin ? 1.0 - i.color.a : 0.0;
-        float nail = smoothstep(0.5, 0.6, gloss) * (1.0 - smoothstep(0.8, 0.85, gloss));
+        // nails: their region with the tissue fields; older meshes mark them by their gloss band
+        float nail = tissue ? (region == 6u ? 1.0 : 0.0)
+                            : smoothstep(0.5, 0.6, gloss) * (1.0 - smoothstep(0.8, 0.85, gloss));
         float drift = a.r;
         if (charSkin) {
             n = N;
@@ -309,30 +326,47 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         float mott = valueNoise3(i.localPos * 38.0) * 0.6 + valueNoise3(i.localPos * 95.0 + 3.1) * 0.4;
         albedo = i.color.rgb * lerp(0.9, 1.04, drift) * lerp(1.0, lerp(float3(0.975, 1.0, 1.01), float3(1.035, 0.975, 0.965), mott), 1.0 - nail);
         // Curvature (1/m) from screen-space derivatives: thin, tightly curved parts (ears, nostrils, fingers) let
-        // light through (stored for the transmission term), convex ridges (nose, brow, cheekbones) read oilier
+        // light through, convex ridges (nose, brow, cheekbones) read oilier
         float3 dPx = ddx(i.rel), dPy = ddy(i.rel);
         float pxLen = max(length(dPx) + length(dPy), 1e-6);
-        float curv = (length(ddx(N)) + length(ddy(N))) / pxLen;
+        float3 dNx = ddx(N), dNy = ddy(N);
+        float curv = (length(dNx) + length(dNy)) / pxLen;
         float thin = saturate((curv - 90.0) / 260.0);   // fingers ~125 /m, ear rims and nostril wings higher
         // right in front of the camera (first-person hands and forearms) pinched skinning makes the curvature
         // estimate spike: cap it below ~0.5 mm per pixel
-        thin = min(thin, lerp(0.6, 1.0, saturate((pxLen * 0.5 - 0.0003) / 0.0004)));
-        // character skin takes its oiliness from the gloss channel (T-zone, lips, lid margins), so its base stays
-        // satin; other skin gets it from convex curvature
-        rough = charSkin ? lerp(0.54, 0.44, saturate((curv - 20.0) / 90.0)) : lerp(0.5, 0.36, saturate((curv - 20.0) / 90.0));
+        float nearCap = lerp(0.6, 1.0, saturate((pxLen * 0.5 - 0.0003) / 0.0004));
+        thin = min(thin, nearCap);
+        float convex = saturate((curv - 20.0) / 90.0);
+        // base gloss: the person's oiliness (sebum), oilier on convex ridges; the gloss channel (T-zone, lips, lid
+        // margins) and the wet and mouth tissues on top
+        rough = charSkin ? lerp(lerp(0.63, 0.43, oily), lerp(0.53, 0.37, oily), convex) : lerp(0.5, 0.36, convex);
         // Pores and fine creases as a bump from the bind-pose position, faded before they could alias; lips and
-        // nails have none
+        // nails have none. Their slope variance goes into the roughness as they fade (specular anti-aliasing), so
+        // skin keeps its broad, broken-up sheen at a distance instead of turning into smooth plastic.
         float detailW = saturate(1.6 - pxLen * 0.5 / 0.0009);
+        float grainW = saturate(1.6 - pxLen * 0.5 / 0.003);
+        float poreAmt = poreK * (1.0 - gloss) * (1.0 - nail) * lerp(0.8, 1.35, oily * 0.5 + ageK * 0.5);
+        float lostVar = 0.0;
         float pore = 0;
         if (detailW > 0.0) {
             float h1 = valueNoise3(i.localPos * 1400.0);
             float h2 = valueNoise3(i.localPos * float3(240.0, 240.0, 1700.0) + 17.3);
-            pore = smoothstep(0.6, 0.9, h1) * (1.0 - gloss);
-            n = perturbBump(n, N, dPx, dPy, ((h2 - 0.5) * 0.4 - pore * 0.8) * 4e-5 * detailW * (1.0 - gloss));
+            pore = smoothstep(0.6, 0.9, h1) * saturate(poreAmt * 1.8);
+            float fine = (h2 - 0.5) * 0.4 * lerp(0.7, 1.6, ageK) * (1.0 - gloss);
+            n = perturbBump(n, N, dPx, dPy, (fine - pore * 0.8) * 4e-5 * detailW);
             rough = saturate(rough + pore * 0.08 * detailW);
             ao *= 1.0 - pore * 0.3 * detailW;   // micro-occlusion inside the pores
         }
+        lostVar += (1.0 - detailW) * 0.012 * saturate(poreAmt * 1.8 + 0.2);
+        // Skin grain: the 2-4 mm relief of the surface (follicle groups, skin lines), kept to ~3 mm per pixel
+        if (grainW > 0.0) {
+            float g1 = valueNoise3(i.localPos * 320.0 + 5.1) * 0.65 + valueNoise3(i.localPos * 540.0 + 9.7) * 0.35;
+            n = perturbBump(n, N, dPx, dPy, (g1 - 0.5) * 2.2e-5 * grainW * (1.0 - nail) * lerp(0.7, 1.3, ageK));
+        }
+        lostVar += (1.0 - grainW) * 0.006 * (1.0 - nail);
         rough = lerp(rough, 0.24, gloss);
+        if (region == 2u) rough = 0.07;        // tear film on the lid margins, the caruncle
+        else if (region == 7u) rough = 0.32;   // mouth interior
         // Wrinkles: creases across the lines, faded before they get closer than ~3 pixels apart
         float cv = saturate(1.0 - abs(frac(i.uv.x) - 0.5) / 0.17);
         cv *= cv;
@@ -341,7 +375,22 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         n = perturbBump(n, N, dPx, dPy, -cv * i.uv.y * 0.001 * cw);
         ao *= 1.0 - 0.4 * cv * cDepth * cw;
         albedo *= 1.0 - 0.06 * cv * cDepth * cw;
-        extra = 0.5 + 0.5 * thin;   // SM_SKIN: 0.5 + thinness / 2 (subsurface always on)
+        // Specular anti-aliasing (Kaplanyan & Hoffman 2016): the geometric normal's variance across the pixel and
+        // the detail that faded widen the lobe
+        float alpha = rough * rough;
+        float kernelVar = 0.25 * (dot(dNx, dNx) + dot(dNy, dNy));
+        alpha = sqrt(alpha * alpha + min(2.0 * kernelVar + lostVar, 0.18));
+        rough = sqrt(alpha);
+        // Lighting data (lighting.hlsl, SM_SKIN): the metal channel holds the scatter width (0 flat .. 1 a 2 mm
+        // radius: the pre-integrated falloff's curvature), extra holds melanin and the transmission thinness. The
+        // part's translucency sets a minimum width (ear 14, nose 8, lids 9, lips 6); tissue backed by other tissue
+        // (lips, wet mucosa, lids, mouth) scatters but lets nothing through.
+        float scatter = max(min(curv * 0.002, 0.25 * nearCap), transl * 0.5);
+        if (!tissue) scatter = max(scatter, thin * 0.5);
+        bool backed = region == 1u || region == 2u || region == 3u || region == 7u;
+        float trans = backed || nail > 0.5 ? 0.0 : (tissue ? transl : thin);
+        metal = nail > 0.5 ? 0.05 : scatter;
+        extra = (float)(((uint)(melanin * 15.0 + 0.5) << 4) | (uint)(trans * 15.0 + 0.5)) / 255.0;
     } else if (matId == M_HAIR) {
         sm = SM_HAIR;
         // Strand groups hang along the bind-pose vertical: per-strand brightness / hue jitter and dark gaps
@@ -414,25 +463,81 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         rough = saturate((denim ? 0.78 : 0.86) * lerp(0.94, 1.06, valueNoise3(i.localPos * 20.0)));
         extra = denim ? 0.35 : 0.75;   // sheen strength
     } else if (matId == M_EYE) {
-        // Eye sphere (face.cpp): uv = (phase, polar) * 0.01, polar measured from the eye axis. Vertex colours give
-        // pupil / iris / limbus / sclera rings; add iris fibres, a brighter collarette, sclera veins and lid shading.
+        // Eye sphere and teeth (face.cpp). Param bit 0: tooth enamel. Eyeballs: uv = (phase, polar) * 0.01, polar
+        // measured from the eye axis; the vertex colours give the iris, limbus and sclera rings.
+        // SM_EYE: the lids' occlusion (ao) and the feature shadows (the brow ridge, the lips) reach the direct light
+        // too, so under a lamp the eyes and teeth sit in the same shade as the lids and lips around them instead of
+        // shining out of a shaded socket or mouth.
+        uint eprm = (i.mat >> 8) & 0x7fffffu;
         float pd = i.uv.y * 100.0 * 57.29578;
         float phase = i.uv.x * 100.0;
-        if (pd > 11.0 && pd < 29.0) {
-            float fib = valueNoise(float2(phase * 11.0, pd * 0.35)) * 0.6 + valueNoise(float2(phase * 31.0, pd * 1.1)) * 0.4;
-            float collar = exp(-sq((pd - 17.5) / 1.6));
-            albedo = albedo * lerp(0.72, 1.25, fib) * (1.0 + collar * 0.25);
-            albedo *= lerp(1.0, 0.55, smoothstep(24.0, 28.5, pd));   // limbal ring
-        } else if (pd >= 29.0) {
-            float vein = smoothstep(0.9, 0.97, valueNoise(float2(phase * 16.0, pd * 0.45))) * saturate((pd - 42.0) / 35.0);
-            // sclera: off-white, and darker overall: the socket / brow shadow the shadow maps cannot resolve
-            albedo = lerp(albedo * float3(0.62, 0.6, 0.58), float3(0.45, 0.12, 0.1), vein * 0.4);
-        }
-        ao *= lerp(1.0, 0.45, saturate((pd - 45.0) / 35.0));   // the lids shade the edges of the eyeball
-        // wet cornea over the iris: sharp catchlights from the env probe / SSR; the sclera is moist but diffuse
-        rough = lerp(0.03, 0.24, smoothstep(26.0, 36.0, pd));
-        metal = 0;
         n = N;
+        metal = 0;
+        sm = SM_EYE;
+        if ((eprm & 1u) != 0u) {
+            rough = 0.18;   // enamel: wet and glossy, not a mirror
+        } else if ((eprm & 2u) != 0u) {
+            // Eyes with a shader-drawn pupil (bit 1): the tangent is the optical axis, bits 2-9 the eye radius
+            // (9 mm + 0.02 mm steps), colour.a the lid occlusion (1 open .. 0 under the lid). Over the cornea (inside
+            // the limbus, 29 degrees) the view ray is refracted into the eye and meets the iris plane, so the pupil,
+            // the iris pattern and the dark limbal ring sit behind the cornea and shift with the view (iris
+            // parallax); the pupil widens in the dark. Geometry in units of the eye radius r from the eye centre:
+            // cornea sphere radius 0.66 centred 0.4267 out, iris plane 0.845 out (recessed 0.03 behind the limbus),
+            // iris radius 0.4848, daylight pupil 0.165.
+            float3 A = normalize(i.tan);
+            float lidOcc = saturate(i.color.a);
+            // cornea (iris behind it) and sclera, blended over a degree each side of the limbus
+            float wC = 1.0 - smoothstep(28.0, 30.0, pd);
+            float3 irisC = albedo, scleraC = albedo;
+            if (wC > 0.0) {
+                float3 V = normalize(-i.rel);
+                float3 p = A * 0.4267 + N * 0.66;
+                float3 tr = refract(-V, N, 1.0 / 1.376);
+                float s = (0.845 - dot(p, A)) / min(dot(tr, A), -0.05);
+                float3 hit = p + tr * max(s, 0.0);
+                float rho = length(hit - A * dot(hit, A));
+                float aaw = fwidth(rho) * 0.75 + 0.004;
+                float pupil = lerp(0.165, 0.33, saturate(gExposure.w * 0.9));
+                float pm = smoothstep(pupil + aaw, pupil - aaw, rho);
+                float t = saturate((rho - pupil) / max(0.4848 - pupil, 1e-3));   // 0 pupil edge .. 1 limbus
+                // iris stroma: radial fibres and furrows (phase from the surface: the refraction shift is radial)
+                float fib = valueNoise(float2(phase * 11.0, t * 6.0)) * 0.6 + valueNoise(float2(phase * 31.0, t * 19.0)) * 0.4;
+                float collar = exp(-sq((t - 0.3) / 0.07));
+                irisC = irisC * lerp(0.72, 1.25, fib) * (1.0 + collar * 0.25);
+                irisC *= lerp(1.0, 0.35, smoothstep(0.8, 0.99, t));   // limbal ring at the iris edge, behind the cornea
+                irisC = lerp(irisC, float3(0.006, 0.005, 0.005), pm);
+            }
+            if (wC < 1.0) {
+                float vein = smoothstep(0.9, 0.97, valueNoise(float2(phase * 16.0, pd * 0.45))) * saturate((pd - 42.0) / 35.0);
+                scleraC = lerp(scleraC, float3(0.45, 0.12, 0.1), vein * 0.4);
+            }
+            albedo = lerp(scleraC, irisC, wC);
+            // the cornea's tear film gives sharp catchlights from the probe, SSR and the lights; the sclera is moist
+            rough = lerp(0.13, 0.02, wC);
+            ao = lidOcc;   // occludes the ambient and the reflections, and (SM_EYE) the direct light
+            // specular anti-aliasing: the cornea curves fast; at a distance its catchlight widens instead of flickering
+            float3 dNx = ddx(N), dNy = ddy(N);
+            float alpha = rough * rough;
+            alpha = sqrt(alpha * alpha + min(0.5 * (dot(dNx, dNx) + dot(dNy, dNy)), 0.18));
+            rough = sqrt(alpha);
+        } else {
+            // Older eyes: vertex colours give pupil / iris / limbus / sclera rings; add iris fibres, a brighter
+            // collarette, sclera veins and lid shading.
+            if (pd > 11.0 && pd < 29.0) {
+                float fib = valueNoise(float2(phase * 11.0, pd * 0.35)) * 0.6 + valueNoise(float2(phase * 31.0, pd * 1.1)) * 0.4;
+                float collar = exp(-sq((pd - 17.5) / 1.6));
+                albedo = albedo * lerp(0.72, 1.25, fib) * (1.0 + collar * 0.25);
+                albedo *= lerp(1.0, 0.55, smoothstep(24.0, 28.5, pd));   // limbal ring
+            } else if (pd >= 29.0) {
+                float vein = smoothstep(0.9, 0.97, valueNoise(float2(phase * 16.0, pd * 0.45))) * saturate((pd - 42.0) / 35.0);
+                // sclera: off-white, and darker overall: the socket's shade, which neither the AO pass nor the
+                // feature shadows resolve on these older eyes
+                albedo = lerp(albedo * float3(0.62, 0.6, 0.58), float3(0.45, 0.12, 0.1), vein * 0.4);
+            }
+            ao *= lerp(1.0, 0.45, saturate((pd - 45.0) / 35.0));   // the lids shade the edges of the eyeball
+            // wet cornea over the iris: sharp catchlights from the env probe / SSR; the sclera is moist but diffuse
+            rough = lerp(0.03, 0.24, smoothstep(26.0, 36.0, pd));
+        }
     }
     // Blood from wounds (skin, hair and clothing): irregular stains that spread downward, darker and glossier
     if (gObj.params2.x > 0.5 && (sm == SM_SKIN || sm == SM_CLOTH || sm == SM_HAIR || matId == M_CLOTH || matId == M_DENIM)) {
@@ -459,9 +564,10 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
 // Hair strand cards (LOD0 characters; drawn after the opaque hair shell, culling off). mat = MAT_HAIR | param << 8:
 // kind = (mat >> 8) & 15 (1 scalp / long hair, 2 eyelash, 3 eyebrow, 4 beard), seed = (mat >> 12) & 0xffff per card.
 // uv.x runs across the card, uv.y along the strands (0 root .. 1 tip); the tangent is the strand direction; colour.a
-// is the strand density. Coverage is a row of tapering, slightly wavy strands of individual lengths that resolves
-// to its average once the strands get thinner than a pixel; it is dithered against a per-frame threshold, which TAA
-// turns into soft, see-through edges and tips.
+// is the strand density; param bits 20-22 (mat >> 28) the card's depth in the hair volume (0 outermost .. 7). Coverage
+// is a row of tapering, slightly wavy strands of individual lengths, their edges filtered over the pixel and their tips
+// fading out, that resolves to its average once the strands get thinner than a pixel; it is dithered against a
+// per-frame threshold, which TAA turns into soft, see-through edges and tips.
 float hairHash(float x) { return frac(sin(x * 91.3458 + 17.17) * 47453.5453); }
 
 float hairCardCoverage(float2 uv, uint kind, float seed, float density, float footprint, out float strandRnd) {
@@ -476,9 +582,12 @@ float hairCardCoverage(float2 uv, uint kind, float seed, float density, float fo
     float wave = (kind == 4u ? 0.16 : 0.06) * sin(uv.y * (kind == 4u ? 23.0 : 9.0) + strandRnd * 6.283);
     float c = 0.5 + (hairHash(id + 7.7) - 0.5) * 0.3 + wave;
     float halfW = lerp(0.24, 0.4, hairHash(id + 5.3)) * (0.3 + 0.7 * sqrt(taper));
-    float prof = saturate((1.0 - abs(frac(x) - c) / max(halfW, 1e-3)) * 1.6) * alive;
+    float tipFade = saturate((1.0 - along) * 5.0);   // the last fifth of a strand fades: soft tips, no blunt spikes
+    // the strand's edges box-filtered over the pixel (in strand cells): smooth up close, no stair-stepping
+    float fw = max(footprint * strands, 1e-3);
+    float prof = saturate((halfW * 0.7 - abs(frac(x) - c)) / fw + 0.5) * alive * tipFade;
     // strand cells per pixel: sharp strands up close, their average coverage once they are sub-pixel
-    float cov = lerp(prof, halfW * 1.6 * alive, saturate(footprint * strands * 1.5 - 0.5));
+    float cov = lerp(prof, halfW * 1.6 * alive * tipFade, saturate(fw * 1.5 - 0.5));
     // thinner towards the card's side edges and the tips
     float edge = smoothstep(0.0, 0.14, uv.x) * smoothstep(1.0, 0.86, uv.x);
     return cov * edge * density * lerp(1.0, 0.7, smoothstep(0.55, 1.0, uv.y));
@@ -499,6 +608,8 @@ GBufferOut psHairCard(VSOut i, bool front : SV_IsFrontFace) {
     float3 hueJit = lerp(float3(1.04, 0.99, 0.94), float3(0.95, 1.0, 1.06), hairHash(rnd * 71.0 + 1.3));
     float3 albedo = i.color.rgb * lerp(0.75, 1.15, rnd) * hueJit * lerp(1.0, 1.12, smoothstep(0.5, 1.0, i.uv.y));
     float ao = kind == 1u ? lerp(0.5, 1.0, smoothstep(0.0, 0.55, i.uv.y)) : (kind == 2u ? 0.8 : 0.9);
+    uint depth = (i.mat >> 28) & 7u;
+    ao *= lerp(1.0, 0.55, depth / 7.0);   // inner layers sit in the shade of the outer ones
     // brows and beards are short, coarse, fairly matte hairs: broader, dimmer highlights (less per-strand sparkle)
     float rough = kind == 2u ? 0.5 : (kind == 3u ? 0.55 : (kind == 4u ? 0.48 : 0.38));
     if (kind == 3u || kind == 4u) rnd *= 0.5;
@@ -506,7 +617,9 @@ GBufferOut psHairCard(VSOut i, bool front : SV_IsFrontFace) {
     float wet = gWeather.y * (gObj.params.z > 0 ? 1.0 : (gObj.params.z < 0 ? 0.0 : 0.5));
     albedo *= lerp(1.0, 0.7, wet);
     rough = lerp(rough, 0.2, wet * 0.6);
-    return packGBuffer(albedo, ao, N, rough, encodeHairTangent(N, T), SM_HAIR, rnd, 0.0, i.curClip, i.prevClip);
+    // extra: the strand's random (high 5 bits) and the card's depth (low 3 bits), see hairDirect
+    float extra = (float)(((uint)(saturate(rnd) * 31.0 + 0.5) << 3) | depth) / 255.0;
+    return packGBuffer(albedo, ao, N, rough, encodeHairTangent(N, T), SM_HAIR, extra, 0.0, i.curClip, i.prevClip);
 }
 
 // Card shadows: alpha-tested at the card's average strand coverage (strands are far below a shadow texel)
