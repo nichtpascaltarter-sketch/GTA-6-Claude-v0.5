@@ -239,6 +239,32 @@ static bool runningOnWine() {
     return nt && GetProcAddress(nt, "wine_get_version") != nullptr;
 }
 
+// Self-test 14: signals the shared fence event every millisecond while a wait is in progress, the way the signals of
+// earlier waits can arrive late
+static std::atomic<bool> g_straySignals{false};
+static DWORD WINAPI straySignalThread(void*) {
+    while (g_straySignals.load()) {
+        SetEvent(g.fenceEvent);
+        Sleep(1);
+    }
+    return 0;
+}
+
+// h -> h * 1664525 + 1013904223 (mod 2^32) applied n times, as one map h -> a * h + c (the csSpin results)
+static void lcgSteps(u32 n, u32& a, u32& c) {
+    u32 ma = 1664525u, mc = 1013904223u;   // the map applied 2^k times
+    a = 1;
+    c = 0;
+    for (; n; n >>= 1) {
+        if (n & 1) {
+            a *= ma;
+            c = c * ma + mc;
+        }
+        mc = mc * ma + mc;
+        ma *= ma;
+    }
+}
+
 int selfTest() {
     int failures = 0;
     auto check = [&](bool ok, const char* name, const std::string& detail) {
@@ -621,6 +647,48 @@ int selfTest() {
         outB.release();
         clr.release();
         releaseShader(csReadGlobal);
+    }
+
+    // 14) 15) CPU waits end when the fence reaches its value, whatever happens to the shared wait event: a readback
+    //     right after long GPU work (screenshots, photo mode) gets the finished results. 14: a second thread signals
+    //     the event every millisecond during the wait. 15: waits that poll every millisecond, so they time out and
+    //     race the completion of their fence again and again.
+    {
+        ComputeShader csSpin = loadCS("gfxtest.hlsl", "csSpin");
+        Buffer out = createBuffer(N * 4, 4, BUF_STRUCTURED | BUF_UAV, nullptr, "selftest spin out");
+        auto spinRound = [&](u32 steps, u32 seed) {
+            u32 rc[2] = {steps, seed};
+            ctx->setCS(csSpin);
+            ctx->setRootConstants(true, 0, 2, rc);
+            ctx->csSetUAVs(0, 1, &out.uav);
+            ctx->dispatch(1, 1, 1);
+            unbindCSResources(1, 1);
+            std::vector<u32> r(N, 0);
+            readbackBuffer(out.buf, r.data(), N * 4);
+            u32 a, c;
+            lcgSteps(steps, a, c);
+            int bad = 0;
+            for (u32 i = 0; i < N; i++) bad += r[i] != a * (i ^ seed) + c;
+            return bad;
+        };
+        const u32 kSteps = 2000000;   // tens of milliseconds on a software rasterizer, a few on a GPU
+        g_straySignals = true;
+        HANDLE th = CreateThread(nullptr, 0, straySignalThread, nullptr, 0, nullptr);
+        int bad14 = spinRound(kSteps, 0x5a5a);
+        g_straySignals = false;
+        if (th) {
+            WaitForSingleObject(th, INFINITE);
+            CloseHandle(th);
+        }
+        check(th && bad14 == 0, "GPU wait with stray event signals", StrFormat("%d of %u values wrong", bad14, N));
+        u32 poll = g.fenceWaitPollMs;
+        g.fenceWaitPollMs = 1;
+        int bad15 = 0;
+        for (u32 k = 0; k < 24; k++) bad15 += spinRound(kSteps / 8, 100 + k);
+        g.fenceWaitPollMs = poll;
+        check(bad15 == 0, "GPU waits polling every millisecond", StrFormat("%d of %u values wrong in 24 readbacks", bad15, N * 24));
+        out.release();
+        releaseShader(csSpin);
     }
 
     releaseShader(csBindless);
