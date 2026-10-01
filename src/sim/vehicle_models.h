@@ -32,6 +32,8 @@ struct SeatSpec {
     bool driver;
     bool exitLeft;     // which side the occupant exits
     int door = -1;     // VehicleModel::doors entry the occupant gets in and out through (-1: no opening door)
+    float headZ = 9.f; // the cabin's ceiling over the seated occupant's head: headliner, visor (9: none known, an open top)
+    float floorZ = 0.f;  // the floor under the occupant's feet (0: not known)
 };
 
 // An opening side door (cars at full detail). `mesh` holds everything that swings with the door - outer skin, glass,
@@ -53,7 +55,8 @@ struct DoorSpec {
     vec3 grip;             // top of the door near its rear edge (a hand holding the open door)
     vec3 outward;          // unit outward normal of the closed door (horizontal)
     // The opening (vehicle frame): along the length between yFront and yRear at the sill, sill top at sillZ reaching
-    // out to sillX (|x| of the sill's outer edge), the roof rail's underside at roofZ over the seat
+    // out to sillX (|x| of the sill's outer edge), the roof rail's underside at roofZ over the seat (the cabin's
+    // ceiling over the occupant's head: SeatSpec::headZ)
     float yFront = 0.f, yRear = 0.f, sillZ = 0.f, sillX = 0.f, roofZ = 0.f;
     std::vector<vec2> outline;   // the door's shut lines (y, z) round it, as seen from its side
     vec3 top[6];                 // the opening's top edge (roof rail, down the A-pillar) from its rear end to its front

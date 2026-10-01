@@ -122,9 +122,30 @@ static CarDoorInfo doorInfo(const VehicleModel& vm, int seat, vec3 root, float y
     for (int k = 0; k < 6; k++) g.top[k] = P(D.top[k]);
     g.sillZ = D.sillZ;
     g.roofZ = D.roofZ;
+    g.headZ = getenv("CARVIEW_NOFIT") ? 9.f : ss.headZ;   // (CARVIEW_NOFIT: no headroom fit, the door clips' either)
     g.driver = ss.driver;
     g.belt = belt;
+    if (ss.driver && vm.steerWheelRadius > 0.f) {
+        g.wheelC = P(vm.steerWheelPos);
+        g.wheelN = V(normalize(vm.steerWheelAxis));
+        g.wheelR = vm.steerWheelRadius;
+    }
     return g;
+}
+
+// The seated inputs the game gives (peds.cpp animatePed): the driver's hands on this vehicle's own rim
+static void seatInputs(const VehicleModel& vm, int seat, AnimInput& in) {
+    in.wheelR = 0.f;
+    in.headroom = 0.f;
+    if ((in.stance == 1 || in.stance == 2) && seat < (int)vm.seats.size() && vm.seats[seat].headZ < 5.f && !getenv("CARVIEW_NOFIT"))
+        in.headroom = vm.seats[seat].headZ - (vm.seats[seat].pos.z - 0.5f);
+    if ((in.stance == 1 || in.stance == 2) && seat < (int)vm.seats.size() && vm.seats[seat].floorZ > 0.f && !getenv("CARVIEW_NOFIT"))
+        in.seatFloor = vm.seats[seat].floorZ - (vm.seats[seat].pos.z - 0.5f);
+    if (in.stance == 1 && vm.steerWheelRadius > 0.f && seat < (int)vm.seats.size()) {
+        in.wheelC = vm.steerWheelPos - (vm.seats[seat].pos - vec3(0.f, 0.f, 0.5f));
+        in.wheelN = normalize(vm.steerWheelAxis);
+        in.wheelR = vm.steerWheelRadius;
+    }
 }
 
 struct CarChar {
@@ -205,6 +226,7 @@ static void runCarClip(const VehicleModel& vm, const CarChar& ch, int seat, bool
         if (seated && enter) {
             in.action = -1;
         }
+        seatInputs(vm, seat, in);
         an.update(in, dt);
         bool inSeat = enter ? seated : tt < 0.f;
         out.root = inSeat ? seatRoot : spot;
@@ -225,6 +247,7 @@ struct ClipStats {
     float tRoof = -1, tPillar = -1, tSill = -1, tDoor = -1, tGround = -1;
     int bRoof = -1, bPillar = -1, bSill = -1, bDoor = -1, bGround = -1;   // the body part (bone) worst off
     float handOut = 0, handIn = 0, hipErr = 0, beltOn = -1, beltOff = -1;
+    float pop = 0, tPop = -1;   // the hips' largest move in one frame (vehicle frame): a jump between the clip and the seat
     float shell = 0, tShell = -1;     // deepest any vertex is inside the car's hard surfaces (moving in / out)
     int bShell = -1, shellFrames = 0; // ... the body part, and the frames with more than 1 cm
     float seatedShell = 0;            // ... while sitting in the seat (the seated pose itself)
@@ -363,17 +386,19 @@ struct HardGrid {
                 bt = (int)t;
             }
         }
-        // nearest to an edge or a corner several faces share: behind only if behind all of them (a point beyond an
-        // edge is in front of the face round it)
-        if (best < band && sgn < 0.f)
-            for (u32 t : cl) {
-                const Tri& T = tris[t];
-                vec3 q = closest(p, T.a, T.b, T.c);
-                if (length(p - q) < best + 0.002f && dot(p - q, T.n) >= 0.f) {
-                    sgn = 1.f;
-                    break;
-                }
+        // behind a face only when straight behind it: nearest to an edge or a corner (an open panel's edge, a seam
+        // several faces share), the point is beside it, not in it
+        if (best < band && sgn < 0.f) {
+            const Tri& T = tris[bt];
+            vec3 q = p - T.n * dot(p - T.a, T.n);
+            vec3 e0 = T.b - T.a, e1 = T.c - T.a, e2 = q - T.a;
+            float d00 = dot(e0, e0), d01 = dot(e0, e1), d11 = dot(e1, e1), d20 = dot(e2, e0), d21 = dot(e2, e1);
+            float den = d00 * d11 - d01 * d01;
+            if (fabsf(den) > 1e-14f) {
+                float v = (d11 * d20 - d01 * d21) / den, w = (d00 * d21 - d01 * d20) / den;
+                if (v < -1e-3f || w < -1e-3f || v + w > 1.001f) sgn = 1.f;
             }
+        }
         if (best < band && sgn < 0.f) {
             if (tri) *tri = bt;
             return best;
@@ -557,7 +582,7 @@ static void crossScan(std::vector<RunFrame>& F, const DoorSpec& D, const HardGri
                 cur.glassSrc[pt] = T.src;
                 cur.glassMat[pt] = T.mat;
             }
-            if (dmax > cs.worst) {
+            if (dmax > cs.worst && !cur.sitting) {
                 cs.worst = dmax;
                 cs.worstFrame = (int)f;
                 cs.worstVert = (int)v;
@@ -596,6 +621,7 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
     int clip = enter ? (D.left ? CLIP_ENTER_CAR_L : CLIP_ENTER_CAR_R) : (D.left ? CLIP_EXIT_CAR_L : CLIP_EXIT_CAR_R);
     CarDoorInfo g = doorInfo(vm, seat, spot, spotYaw, true);
     float len = carClipLength(clip, g);
+    const float wIn = enter ? Max(len - 2.74f, 0.f) : 0.f;   // (getting in: the steps to the doorway stretch everything after the pull)
     Animator an;
     an.init(&ch.sk, 77u);
     an.setCharacter(ch.d);
@@ -609,6 +635,7 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
     float tt = enter ? 0.f : -1.f;
     bool seated = !enter;
     bool wasBelt = !enter;
+    vec3 prevHips(0.f);
     std::vector<RunFrame> frames;
     std::vector<int> vbone(ch.mesh.verts.size());
     std::vector<u8> held(ch.mesh.verts.size());
@@ -636,6 +663,7 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
                 in.car = g;
             }
         }
+        seatInputs(vm, seat, in);
         an.update(in, dt);
         bool inSeat = enter ? seated : tt < 0.f;
         vec3 root = inSeat ? seatRoot : spot;
@@ -651,6 +679,20 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
         st.frames++;
         mat4 ms[B_COUNT], skin[B_COUNT];
         computeMatrices(ch.sk, an.pose, ms, skin);
+        {
+            vec3 hp = root + rotate(qr, (ms[B_THIGH_L].c[3].xyz() + ms[B_THIGH_R].c[3].xyz()) * 0.5f);
+            if (st.frames > 1 && length(hp - prevHips) > st.pop) {
+                st.pop = length(hp - prevHips);
+                st.tPop = tt;
+            }
+            if (getenv("CARVIEW_POPTRACE")) {
+                vec3 pl = root + rotate(qr, ms[B_PELVIS].c[3].xyz());
+                vec3 hd = root + rotate(qr, ms[B_HEAD].c[3].xyz());
+                printf("  t %.3f hips (%.3f %.3f %.3f) pelvis (%.3f %.3f %.3f) head (%.3f %.3f %.3f) step %.3f\n", tt, hp.x, hp.y, hp.z, pl.x, pl.y, pl.z, hd.x, hd.y,
+                       hd.z, length(hp - prevHips));
+            }
+            prevHips = hp;
+        }
         quat qd = quatAxisAngle(D.axis, -open * D.maxAngle);   // back to the shut door's frame
         HardGrid door;
         door.add(D.mesh, quatAxisAngle(D.axis, open * D.maxAngle), D.hinge, true, 2);
@@ -665,7 +707,7 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
         RunFrame& rf = frames.back();
         rf.t = tt;
         rf.open = open;
-        rf.sitting = enter ? tt > 1.92f : tt < 1.1f;
+        rf.sitting = enter ? tt > 1.9f + wIn : tt < 1.1f;
         rf.P.reserve(ch.mesh.verts.size());
         float frameShell = 0.f;
         const HardGrid::Tri* frameTri = nullptr;
@@ -687,13 +729,13 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
                 if (vx.weights[k] > vx.weights[0]) bone = vx.bones[k];
             float ax = p.x * side;   // out from the vehicle's centre on the door's side
             {
-                bool heldNow = heldPart(bone) && (enter ? (tt > 0.28f && tt < 1.2f) || (tt > 2.06f && tt < 2.52f) : true);
+                bool heldNow = heldPart(bone) && (enter ? (tt > 0.2f && tt < 1.2f + wIn) || (tt > 2.06f + wIn && tt < 2.52f + wIn) : true);   // (exit: every hold, and the let-go)
                 int tb = -1, td = -1;
-                float db = body.depth(p, &tb), dd = heldNow ? 0.f : door.depth(p, &td);
+                float db = heldNow ? 0.f : body.depth(p, &tb), dd = heldNow ? 0.f : door.depth(p, &td);
                 float dpt = Max(db, dd);
                 const HardGrid::Tri* hitTri = dd > db ? (td >= 0 ? &door.tris[td] : nullptr) : (tb >= 0 ? &body.tris[tb] : nullptr);
                 // the seated phases (the seated pose itself) apart from the moving ones
-                bool sitting = enter ? tt > 1.92f : tt < 1.1f;
+                bool sitting = enter ? tt > 1.9f + wIn : tt < 1.1f;
                 if (sitting) st.seatedShell = Max(st.seatedShell, dpt);
                 int pt = partOf(bone);
                 if (dpt > rf.shell[pt] && hitTri) {
@@ -766,6 +808,38 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
                 }
             }
         }
+        if (getenv("CARVIEW_HEADDBG")) {
+            // the head's real top against the key builder's head model and ceiling (as carDoorPose authors them)
+            using namespace Anim::detail;
+            float lo = 0.f, hi = 9.f;
+            sscanf(getenv("CARVIEW_HEADDBG"), "%f,%f", &lo, &hi);
+            if (tt >= lo && tt <= hi) {
+                vec3 topP(0.f, 0.f, -1.f);
+                for (size_t i = 0; i < rf.P.size(); i++)
+                    if (partOf(vbone[i]) == 0 && rf.P[i].z > topP.z) topP = rf.P[i];
+                const ClipLib& L = clipLib();
+                const AuthorCtx& A = L.ctx[skeletonStyle(ch.sk) > 0.5f ? 1 : 0];
+                float ls = Max(skelLegLen(ch.sk) / Max(skelLegLen(A.sk), 1e-3f), 0.3f);
+                CarDoorInfo gg = D.left ? g : mirrorDoor(g);
+                CarGeo cg = carGeo(scaleDoor(gg, 1.f / ls), &gg);
+                std::vector<Key> KK;
+                if (enter) carEntryKeys(A, cg, KK);
+                else carExitKeys(A, cg, KK);
+                Rig rr;
+                sampleKeys(A, KK, tt, false, KK.back().t, rr);
+                Pose ps;
+                rigToPose(A, rr, ps);
+                quat q;
+                vec3 hp;
+                boneModel(A.sk, ps, B_HEAD, q, hp);
+                const float rh = 0.105f * A.D.s, cz = A.D.H - A.headP.z - rh;
+                vec3 crown = hp + rotate(q, vec3(0.f, 0.02f * A.D.s, cz)) + vec3(0, 0, rh);
+                float ceilA = cg.ceilAt(crown);
+                vec3 crownV = root + rotate(qr, crown * ls);
+                printf("   t %.2f real top (%.3f %.3f %.3f)  model crown (%.3f %.3f %.3f)  ceiling %.3f (%.3f rail line d)\n", tt, topP.x, topP.y, topP.z,
+                       crownV.x, crownV.y, crownV.z, ceilA * ls, (dot(crown, cg.N) - cg.dRail) * ls);
+            }
+        }
         if (frameShell > 0.02f) st.shellFrames++;
         if (getenv("CARVIEW_SURF") && frameShell > 0.01f && frameTri)
             printf("   t %.2f %.3f b%d (%.2f %.2f %.2f) %s mat %u col %06x n (%.2f %.2f %.2f)\n", tt, frameShell, frameBone, frameP.x, frameP.y, frameP.z,
@@ -787,7 +861,7 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
                 printf("   t %.2f open %.2f hand-handle %.3f shoulder-handle %.3f arm %.3f shoulder (%.2f %.2f %.2f)\n", tt, open, length(hand - tg),
                        length(sh - tg), arm, sh.x, sh.y, sh.z);
             }
-            if (tt > 2.18f && tt < 2.44f) st.handIn = Max(st.handIn, length(hand - onDoor(D.handleIn + vec3(0, 0, 0.004f))));
+            if (tt > 2.18f + wIn && tt < 2.44f + wIn) st.handIn = Max(st.handIn, length(hand - onDoor(D.handleIn + vec3(0, 0, 0.004f))));
             if (getenv("CARVIEW_REACH") && tt > 2.0f && tt < 2.5f) {
                 int up = D.left ? B_UPPERARM_L : B_UPPERARM_R;
                 vec3 sh = root + rotate(qr, ms[up].c[3].xyz());
@@ -803,15 +877,16 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
     // through-surface crossings (getting in: forwards from outside; getting out: backwards from outside)
     {
         HardGrid dg, bg;
-        dg.add(D.mesh, quat(), vec3(0.f), true, 2, 2);
+        dg.add(D.mesh, quat(), vec3(0.f), true, 2, 0);
         dg.build(D.mesh.bounds.mn, D.mesh.bounds.mx);
-        bg.add(vm.body, quat(), vec3(0.f), true, 0, 2);
+        bg.add(vm.body, quat(), vec3(0.f), false, 0, 0);
         for (size_t d = 0; d < vm.doors.size(); d++)
-            if ((int)d != ss.door) bg.add(vm.doors[d].mesh, quat(), vec3(0.f), true, 1, 2);
+            if ((int)d != ss.door) bg.add(vm.doors[d].mesh, quat(), vec3(0.f), true, 1, 0);
         bg.build(vm.body.bounds.mn, vm.body.bounds.mx);
         CrossScan cs;
         crossScan(frames, D, bg, dg, held, vbone, enter, false, cs);
         for (size_t f = 0; f < frames.size(); f++) {
+            if (frames[f].sitting) continue;   // (the seated pose's own: apart)
             if (cs.frameCount[f] > 0 && cs.frameDepth[f] > 0.005f) st.crossFrames++;
             st.crossVerts = Max(st.crossVerts, cs.frameCount[f]);
             if (getenv("CARVIEW_SURF") && cs.frameCount[f] > 0)
@@ -838,7 +913,7 @@ static void checkRun(const VehicleModel& vm, const CarChar& ch, int seat, bool e
                         vec3 P = kind == 0 ? W.shellP[pt] : W.glassP[pt];
                         int src = kind == 0 ? W.shellSrc[pt] : W.glassSrc[pt];
                         u32 mat = kind == 0 ? W.shellMat[pt] : W.glassMat[pt];
-                        printf("    %s %-5s %.2f-%.2f%s max %.3f@%.2f (%.2f %.2f %.2f) %s mat %u\n", kind ? "GLASS" : "shell", kPartName[pt],
+                        printf("    %s %-5s %.2f-%.2f%s max %.3f@%.2f (%.2f %.2f %.2f) %s mat %u\n", kind ? "CROSS" : "shell", kPartName[pt],
                                frames[a].t, frames[f - 1].t, frames[a].sitting && frames[f - 1].sitting ? " (seated)" : "", val(w), W.t, P.x, P.y, P.z,
                                src == 0 ? "body" : src == 1 ? "other door" : "door", mat);
                     }
@@ -929,6 +1004,35 @@ int main(int argc, char** argv) {
         for (size_t s = 0; s < vm.seats.size(); s++)
             printf(" seat %zu (%.3f %.3f %.3f) door %d\n", s, vm.seats[s].pos.x, vm.seats[s].pos.y, vm.seats[s].pos.z, vm.seats[s].door);
     }
+    if (getenv("CARVIEW_HEADTOP")) {
+        // the check's characters standing: how far their head's top (hair included) is over the height they are given
+        const float heights[5] = {1.58f, 1.68f, 1.76f, 1.84f, 1.94f};
+        for (int hi = 0; hi < 5; hi++) {
+            for (u32 seed : {1000u + (u32)hi * 31u, 2000u + (u32)hi * 7u, 3000u + (u32)hi * 13u}) {
+                CarChar ch;
+                ch.d = randomCharacter(seed, 0);
+                ch.d.height = heights[hi];
+                ch.d.hat = -1;
+                buildSkeleton(ch.d, ch.sk);
+                buildCharacterMesh(ch.d, ch.sk, ch.mesh);
+                float top = 0.f, topSkin = 0.f;
+                for (const VtxSkinned& vx : ch.mesh.verts) {
+                    top = Max(top, vx.pos.z);
+                    if ((vx.mat & 0xffu) != MAT_HAIR) topSkin = Max(topSkin, vx.pos.z);
+                }
+                auto trunk = [](const Skeleton& k) {
+                    return length(k.bindLocalPos[B_SPINE1]) + length(k.bindLocalPos[B_SPINE2]) + length(k.bindLocalPos[B_CHEST]) +
+                           length(k.bindLocalPos[B_NECK]) + length(k.bindLocalPos[B_HEAD]);
+                };
+                auto leg = [](const Skeleton& k) { return length(k.bindLocalPos[B_CALF_L]) + length(k.bindLocalPos[B_FOOT_L]); };
+                CharacterDesc rd = randomCharacter(1u, 0);
+                rd.gender = ch.d.gender;
+                printf("h %.2f seed %u: top %.3f (+%.3f), without hair %.3f (+%.3f) hair style %d  trunk %.3f leg %.3f trunk/leg %.3f\n", heights[hi],
+                       seed, top, top - heights[hi], topSkin, topSkin - heights[hi], ch.d.hairStyle, trunk(ch.sk), leg(ch.sk), trunk(ch.sk) / leg(ch.sk));
+            }
+        }
+        return 0;
+    }
     if (const char* pr = getenv("CARVIEW_DEPTHPROBE")) {
         // the static metric at a point (body + shut doors): its depth and the triangles nearest to it
         vec3 q(0.f);
@@ -978,9 +1082,9 @@ int main(int argc, char** argv) {
     if (getenv("CARVIEW_SEATED")) {
         // the seated pose alone (the drive / passenger stance), every seat, three heights: the door frame's surfaces
         // and the cabin's linings it reaches into
-        const float heights[3] = {1.58f, 1.76f, 1.94f};
+        const float heights[5] = {1.58f, 1.68f, 1.76f, 1.84f, 1.94f};
         for (size_t si = 0; si < vm.seats.size(); si++)
-            for (int hi = 0; hi < 3; hi++) {
+            for (int hi = 0; hi < 5; hi++) {
                 CarChar ch;
                 ch.d = randomCharacter(1000u + (u32)hi * 31u, 0);
                 ch.d.height = heights[hi];
@@ -994,6 +1098,7 @@ int main(int argc, char** argv) {
                 for (int f = 0; f < 60; f++) {
                     AnimInput in;
                     in.stance = vm.seats[si].driver ? 1 : 2;
+                    seatInputs(vm, (int)si, in);
                     an.update(in, 1.f / 60.f);
                 }
                 HardGrid body;
@@ -1024,7 +1129,35 @@ int main(int argc, char** argv) {
                     }
                 }
                 vec3 head = root + ms[B_HEAD].c[3].xyz();
-                printf("%-12s seat %zu h %.2f: head joint (%.2f %.2f %.2f)", vm.name.c_str(), si, heights[hi], head.x, head.y, head.z);
+                float topZ = 0.f;
+                for (const VtxSkinned& vx : ch.mesh.verts) {
+                    int b = vx.bones[0];
+                    for (int k = 1; k < 4; k++)
+                        if (vx.weights[k] > vx.weights[0]) b = vx.bones[k];
+                    if (partOf(b) != 0) continue;
+                    mat4 m;
+                    for (int k = 0; k < 4; k++) m.c[k] = vec4(0);
+                    for (int k = 0; k < 4; k++) {
+                        float w = vx.weights[k] / 255.f;
+                        if (w <= 0) continue;
+                        for (int c = 0; c < 4; c++) m.c[c] = m.c[c] + skin[vx.bones[k]].c[c] * w;
+                    }
+                    topZ = Max(topZ, (root + transformPoint(m, vx.pos)).z);
+                }
+                float hz = vm.seats[si].headZ;
+                if (getenv("CARVIEW_SEATED_MARGIN")) {
+                    if (hi == 0) printf("%-16s seat %zu:", vm.name.c_str(), si);
+                    printf(" %+.3f", hz - topZ);
+                    if (hi == 4) printf("\n");
+                    continue;
+                }
+                printf("%-12s seat %zu h %.2f: head top %.3f headliner %.3f (%+.3f)  head joint (%.2f %.2f %.2f)", vm.name.c_str(), si, heights[hi], topZ, hz,
+                       hz - topZ, head.x, head.y, head.z);
+                if (getenv("CARVIEW_SEATED_SHORT")) {
+                    printf("\n");
+                    continue;
+                }
+                if (getenv("CARVIEW_SEATED_MARGIN")) continue;
                 for (int b = 0; b < B_COUNT; b++)
                     if (worst[b] > 0.01f) printf("  b%d %.3f@(%.2f %.2f %.2f)", b, worst[b], wp[b].x, wp[b].y, wp[b].z);
                 printf("\n");
@@ -1033,14 +1166,22 @@ int main(int argc, char** argv) {
     }
     if (check) {
         // every seat with a door, a short, a medium and a tall body
-        const float heights[3] = {1.58f, 1.76f, 1.94f};
+        std::vector<float> heights = {1.58f, 1.68f, 1.76f, 1.84f, 1.94f};
+        if (const char* hs = getenv("CARVIEW_HEIGHTS")) {
+            heights.clear();
+            for (const char* q = hs; *q;) {
+                heights.push_back((float)atof(q));
+                while (*q && *q != ',') q++;
+                if (*q) q++;
+            }
+        }
         const char* fSeat = getenv("CARVIEW_SEAT");
         const char* fH = getenv("CARVIEW_H");
         const char* fDir = getenv("CARVIEW_DIR");
         for (size_t si = 0; si < vm.seats.size(); si++) {
             if (vm.seats[si].door < 0) continue;
             if (fSeat && atoi(fSeat) != (int)si) continue;
-            for (int hi = 0; hi < 3; hi++) {
+            for (int hi = 0; hi < (int)heights.size(); hi++) {
                 if (fH && atoi(fH) != hi) continue;
                 CarChar ch;
                 ch.d = randomCharacter((u32)(charSeed >= 0 ? charSeed : 1000) + (u32)hi * 31u, 0);
@@ -1060,8 +1201,9 @@ int main(int argc, char** argv) {
                            st.tSill, st.bSill, st.door, st.tDoor, st.bDoor, st.ground, st.bGround, st.handOut, st.handIn);
                     printf("  SHELL %.3f@%.2f(b%d at %.2f %.2f %.2f) %d/%d frames, seated %.3f", st.shell, st.tShell, st.bShell, st.pShell.x, st.pShell.y,
                            st.pShell.z, st.shellFrames, st.frames, st.seatedShell);
-                    printf("  GLASS %.3f@%.2f(b%d at %.2f %.2f %.2f %s mat %u) %d frames, %d verts", st.cross, st.tCross, st.bCross, st.pCross.x,
+                    printf("  CROSS %.3f@%.2f(b%d at %.2f %.2f %.2f %s mat %u) %d frames, %d verts", st.cross, st.tCross, st.bCross, st.pCross.x,
                            st.pCross.y, st.pCross.z, st.sCross, st.mCross, st.crossFrames, st.crossVerts);
+                    printf(" pop %.3f@%.2f", st.pop, st.tPop);
                     if (e) printf(" hips %.3f belt on %.2f", st.hipErr, st.beltOn);
                     else printf(" belt off %.2f open %.2f", st.beltOff, st.maxOpen);
                     printf("  (%.0f ms)\n", (c1 - c0) * 1e3);
@@ -1118,6 +1260,7 @@ int main(int argc, char** argv) {
         const DoorSpec& D = vm.doors[d];
         float a = (door < 0 || door == (int)d) ? open * D.maxAngle : 0.f;
         if (runDoor >= 0) a = (int)d == runDoor ? runOpen * D.maxAngle : 0.f;
+        if (getenv("CARVIEW_HIDEDOOR") && (int)d == runDoor) continue;   // (a cut-away: the seat's door left out)
         addMesh(g, D.mesh, quatAxisAngle(D.axis, a), D.hinge, vec3(0.f));
     }
     if (vm.steerWheel.indices.size()) {
