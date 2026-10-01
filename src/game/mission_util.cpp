@@ -514,7 +514,18 @@ void computePlaces(GameWorld& g) {
     P.beachPier = resolvePlace(g, vec2(5380, 1250));
     P.portGate = resolvePlace(g, vec2(4060, -200));
     P.keyCoral = resolveFrontage(g, vec2(4450, -4200));
-    P.keyCoralMarina = resolvePlace(g, vec2(4200, -3900));
+    {
+        // the marina's landing (Yacht Club Way runs down to it, sites.cpp layoutKeyCoral): a street place there, not on
+        // the residential street nearest a rough hint 250 m inland (whose verge got the bait shop's marker)
+        vec2 hint(4200, -3900);
+        if (World::gSites)
+            for (const World::SiteElem& e : World::gSites->elems)
+                if (e.kind == World::SK_MARINA) {
+                    hint = e.c - e.ax * 50.f;
+                    break;
+                }
+        P.keyCoralMarina = resolvePlace(g, hint);
+    }
     P.sandovalMansion = resolvePlace(g, vec2(4300, 1300), 0.f, true);
     P.airport = resolvePlace(g, vec2(760, 1200));
     P.carwash = resolveBuilding(g, vec2(1800, 1500), World::IK_CARWASH, "Sunwash Car Wash");

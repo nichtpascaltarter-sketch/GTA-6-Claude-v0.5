@@ -206,7 +206,7 @@ public:
             float a = kTwoPi * i / 16.f, r = 3.f + (i % 3) * 2.5f;
             vec3 p = dance + vec3(cosf(a) * r, sinf(a) * r, 0.f);
             p.z = groundAt(g, p.x, p.y, dance.z + 3.f);
-            int ci = g.randomCivilianChar(0x7700u + (u32)i * 31u, i % 4 == 0 ? 4 : 0);
+            int ci = wardrobeChar(g, 0x7700u + (u32)i * 31u, LK_CLUB, p.xy());   // (a beach club's night: dressed for a night out)
             int d = g.mPed(ci, dvec3(p), a + kPi, FAC_CIVILIAN);
             if (d < 0) continue;
             setIdle(g, d, i % 5 == 0 ? 7 : 9);
@@ -1525,7 +1525,7 @@ public:
             float a = kTwoPi * i / 18.f;
             vec3 p = plat + vec3(-15.f + (i % 6) * 6.f, -15.f + (i / 6) * 8.f, 0.f);
             p.z = plat.z;
-            int ci = g.randomCivilianChar(0x9100u + (u32)i * 17u, i % 3 == 0 ? 4 : 0);
+            int ci = wardrobeChar(g, 0x9100u + (u32)i * 17u, LK_CIVIL, p.xy());   // (the pier at night: the promenade's evening crowd)
             int c = g.mPed(ci, dvec3(p), a, FAC_CIVILIAN);
             if (c < 0) continue;
             setIdle(g, c, i % 4 == 0 ? 0 : 9);

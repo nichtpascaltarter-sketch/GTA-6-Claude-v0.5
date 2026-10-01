@@ -388,7 +388,8 @@ int spawnCivilian(GameWorld& g, u32 seed, vec3 pos, float yaw) {
     if (g.chars.empty()) return -1;
     World::Region reg = g.map->regionAt(pos.x, pos.y);
     int role = (reg == World::REG_DOWNTOWN || reg == World::REG_FINANCIAL) && (seed & 3) == 0 ? 3 : ((seed % 11) == 5 ? 4 : 0);
-    int id = g.spawnPed(g.randomCivilianChar(seed, role), dvec3(pos), yaw, FAC_CIVILIAN);
+    // (dressed for the stop, the hour and the weather: a beach-goer only by the beach on a dry day, office clothes in office hours)
+    int id = g.spawnPed(wardrobeRoleChar(g, seed, role, pos.xy()), dvec3(pos), yaw, FAC_CIVILIAN);
     if (id < 0) return -1;
     g.peds[id].persistent = true;
     return id;

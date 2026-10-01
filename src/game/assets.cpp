@@ -4,6 +4,33 @@
 
 namespace Game {
 
+// The wardrobe (below, after randomCivilianChar): a person for a look, dressed for the place, the hour and the weather
+// at `pos`. The ambient population, venues, transit stops, interiors and scene extras pick their people through it.
+enum WardrobeLook : u8 {
+    LK_CIVIL = 0,   // whoever fits here now (dressed up in the nightlife districts after dark)
+    LK_BUSINESS,    // office clothes in office hours, thinning out after
+    LK_BEACH,       // a beach-goer: swimwear where it fits, else a cover-up / summer clothes, else an ordinary person
+    LK_SWIM,        // swimwear regardless (sunbathers on the sand, bathers in the water: the caller checked the place)
+    LK_TOURIST,     // sightseer
+    LK_WORKER,      // hi-vis and hard hat (at work)
+    LK_SPORT,       // sportswear (runners)
+    LK_NIGHT,       // dressed for a night out regardless
+    LK_CLUB,        // a club's crowd: dressed for a night out from the evening, the beach's crowd by day
+    LK_DOOR,        // door staff
+    LK_OUTDOOR,     // everyday outdoor clothes (anglers, birders, the marsh)
+    LK_COUNT
+};
+int wardrobeChar(GameWorld& g, u32 seed, int look, vec2 pos);
+// the roster roles as randomCivilianChar takes them (0 civilian, 3 business, 4 beach, 5 worker; the rest unchanged)
+int wardrobeRoleChar(GameWorld& g, u32 seed, int role, vec2 pos);
+// ... with the ped role as a hint (PR_TOURIST, PR_JOGGER): event actors
+int wardrobeActorChar(GameWorld& g, u32 seed, int charRole, u8 pedRole, vec2 pos);
+// swimwear or a cover-up over it (a beach-goer)
+bool wardrobeBeachLook(const GameWorld& g, int ci);
+// a beach look that no longer fits at pos (the rain came, the sun went down, they wandered off the beach): the
+// population lets such people go once nobody sees them
+bool wardrobeOutOfPlace(const GameWorld& g, int ci, vec2 pos);
+
 namespace asset_detail {
 
 // Cylinder between two points (arbitrary axis), optional caps.
@@ -569,6 +596,213 @@ void buildPhoneMesh(MeshData& m) {
 
 using namespace asset_detail;
 
+// ------------------------------------------------------------------------------------------------------------------
+// Wardrobe. The roster's people wear what their archetype gave them; who is handed out where is decided by the place,
+// the hour and the weather (wardrobeChar, after randomCivilianChar below): swimwear on the sand, in the water and on the
+// beach front on dry days; cover-ups and summer clothes on the way to and from the beach; dressed for a night out in the
+// nightlife districts after dark (the club lines and the door staff too); office clothes thinning out after hours;
+// sportswear for runners. Four looks the civilian archetypes do not draw are dressed here on seeded people, as the
+// protagonists' outfits are: a night out, door staff, sportswear and beach cover-ups. They stay out of the generic
+// civilian pools (charsMaleCivil / charsFemaleCivil), so stories and missions keep the crowd they always had.
+#ifdef HAVE_CHARACTERS
+namespace wardrobe_detail {
+
+enum DedicatedLook : u8 { DL_NIGHT = 0, DL_DOOR, DL_SPORT, DL_COVER, DL_COUNT };
+const int kDedicated[DL_COUNT] = {12, 3, 8, 6};
+
+// what someone in the roster is wearing (classified once from the descriptions)
+enum : u16 {
+    WF_SWIM = 1 << 0,     // bikini, swimsuit, bare-chested in trunks
+    WF_COVER = 1 << 1,    // a top over swim trunks, a beach dress: on the way to or from the water
+    WF_OFFICE = 1 << 2,   // suits, lanyards, the business roster
+    WF_WORK = 1 << 3,     // hi-vis and hard hats, the construction roster, uniforms
+    WF_SPORT = 1 << 4,    // running shoes with shorts / leggings under a tank, a tee or a crop top
+    WF_NIGHT = 1 << 5,    // dressed for a night out
+    WF_SUMMER = 1 << 6,   // shorts, hot pants or a sundress with sandals / sneakers: a hot day out
+    WF_TOURIST = 1 << 7,  // sightseer: loud shirt, sun hat, backpack, cargo shorts
+    WF_CASUAL = 1 << 8,   // everyday outdoor clothes: tee / tank / polo / hoodie, jeans / shorts, sneakers / boots / sandals
+    WF_YOUNG = 1 << 9,    // under ~45
+};
+
+struct Wardrobe {
+    bool built = false;
+    std::vector<u16> flags;               // per character of the roster (index < flags.size())
+    std::vector<int> look[DL_COUNT][2];   // the dedicated looks by gender (0 men, 1 women)
+};
+Wardrobe gWardrobe;
+
+u16 classify(const Anim::CharacterDesc& d, int role) {
+    using namespace Anim::detail;
+    const bool fem = d.gender == Anim::FEMALE;
+    const int t = d.top, b = d.bottom, s = d.shoes, hat = d.hat;
+    u16 f = 0;
+    if (t == TOP_BIKINI || t == TOP_ONEPIECE || t == TOP_NONE || b == BOT_BIKINI) f |= WF_SWIM;
+    else if (b == BOT_TRUNKS) f |= WF_COVER;
+    if (role == 3 || t == TOP_SUIT || (d.extras & ACC_LANYARD)) f |= WF_OFFICE;
+    if (role == 1 || role == 2 || role == 5 || role == 6 || role == 7 || t == TOP_HIVIS || t == TOP_POLICE || t == TOP_MEDIC || t == TOP_JUMPSUIT ||
+        hat == HAT_HARDHAT)
+        f |= WF_WORK;
+    const bool plain = !(f & (WF_SWIM | WF_COVER | WF_OFFICE | WF_WORK));
+    if (s == SHOE_RUNNER && (b == BOT_SHORTS || b == BOT_LEGGINGS) && (t == TOP_TANK || t == TOP_CROP || t == TOP_TSHIRT)) f |= WF_SPORT;
+    bool summer = b == BOT_SHORTS || b == BOT_CARGO || b == BOT_HOTPANTS || t == TOP_SUNDRESS;
+    if (plain && summer && (s == SHOE_SANDAL || s == SHOE_SNEAKER || s == SHOE_RUNNER || s == SHOE_FLATS)) f |= WF_SUMMER;
+    if (plain && b != BOT_SLACKS && (t == TOP_HAWAIIAN || hat == HAT_SUNHAT || d.bag == BAG_BACKPACK || b == BOT_CARGO)) f |= WF_TOURIST;
+    bool casualTop = t == TOP_TSHIRT || t == TOP_TANK || t == TOP_POLO || t == TOP_HAWAIIAN || t == TOP_HOODIE || t == TOP_OVERSIZED;
+    bool casualBottom = b == BOT_JEANS || b == BOT_SHORTS || b == BOT_CARGO || b == BOT_BAGGY || b == BOT_WORK;
+    if (plain && casualTop && casualBottom && (s == SHOE_SNEAKER || s == SHOE_BOOT || s == SHOE_SANDAL || s == SHOE_RUNNER)) f |= WF_CASUAL;
+    // a night out: a dress, a blouse or a going-out top with a skirt / jeans / slacks; a shirt or a polo with jeans or slacks;
+    // no gym or work shoes, no caps or sun hats, no backpack, cardigan or headphones
+    bool nightTop = fem ? (t == TOP_SUNDRESS || t == TOP_BLOUSE || t == TOP_CROP || t == TOP_TANK || t == TOP_TSHIRT || t == TOP_POLO)
+                        : (t == TOP_DRESS_SHIRT || t == TOP_POLO || t == TOP_HAWAIIAN || t == TOP_TSHIRT);
+    bool nightBottom = fem ? (b == BOT_SKIRT || b == BOT_HOTPANTS || b == BOT_JEANS || b == BOT_SLACKS) : (b == BOT_JEANS || b == BOT_SLACKS);
+    bool nightShoes = s == SHOE_SNEAKER || s == SHOE_DRESS || s == SHOE_LOAFER || s == SHOE_FLATS || (fem && s == SHOE_SANDAL);
+    if (plain && nightTop && nightBottom && nightShoes && (hat < 0 || hat == HAT_FEDORA) && d.bag != BAG_BACKPACK && d.outer != OUT_CARDIGAN &&
+        d.outer != OUT_ZIPHOODIE && !(d.extras & ACC_HEADPHONES))
+        f |= WF_NIGHT;
+    if (d.age < 27.f / 62.f) f |= WF_YOUNG;
+    return f;
+}
+
+// A dedicated look on a seeded person (the face, hair and build from the civilian draw, re-rolled until the gender and
+// the age fit the look; the clothes are set here)
+Anim::CharacterDesc dedicatedDesc(int look, int k) {
+    using namespace Anim::detail;
+    const bool wantFem = look != DL_DOOR && (k & 1) != 0;
+    // ages (normalized 0 = 18 .. 1 = 80): a night out and sportswear 21-42, door staff 25-48, beach cover-ups 18-62
+    float a0 = look == DL_COVER ? 0.f : (look == DL_DOOR ? 7.f / 62.f : 3.f / 62.f);
+    float a1 = look == DL_COVER ? 44.f / 62.f : (look == DL_DOOR ? 30.f / 62.f : 24.f / 62.f);
+    u32 seed = 0xD3E5u + (u32)look * 0x9E3779B9u + (u32)k * 0x85EBCA6Bu;
+    Anim::CharacterDesc d = Anim::randomCharacter(seed, 0);
+    for (int t = 0; t < 96 && ((d.gender == Anim::FEMALE) != wantFem || d.age < a0 || d.age > a1); t++) {
+        seed = hash32(seed + 0x9e37u);
+        d = Anim::randomCharacter(seed, 0);
+    }
+    const bool fem = d.gender == Anim::FEMALE;
+    auto L = [](float r, float g, float b) { return srgbToLinear(vec3(r, g, b)); };
+    d.hat = -1;
+    d.glasses = -1;
+    d.outer = -1;
+    d.bag = -1;
+    d.extras = ACC_EXPLICIT | (d.extras & (ACC_WATCH | ACC_EARRINGS | ACC_NECKLACE | ACC_BRACELET_L | ACC_BRACELET_R));
+    const int v = k >> 1;   // the variant within the gender
+    switch (look) {
+        case DL_NIGHT:
+            if (fem) {
+                // a black dress, a red dress, a white blouse with a black skirt, a gold crop top, an emerald top, a cobalt dress
+                // under a short black jacket
+                static const float tc[6][3] = {{0.05f, 0.05f, 0.06f}, {0.72f, 0.06f, 0.1f}, {0.95f, 0.93f, 0.88f}, {0.82f, 0.64f, 0.24f},
+                                               {0.04f, 0.42f, 0.3f}, {0.1f, 0.18f, 0.62f}};
+                static const int tops[6] = {TOP_SUNDRESS, TOP_SUNDRESS, TOP_BLOUSE, TOP_CROP, TOP_TANK, TOP_SUNDRESS};
+                d.top = tops[v % 6];
+                d.topColor = L(tc[v % 6][0], tc[v % 6][1], tc[v % 6][2]);
+                d.bottom = BOT_SKIRT;
+                d.bottomColor = d.top == TOP_SUNDRESS ? d.topColor : (v == 3 ? L(0.05f, 0.05f, 0.06f) : L(0.06f, 0.06f, 0.07f));
+                if (v == 3) d.bottom = BOT_HOTPANTS;
+                d.shoes = (v & 1) ? SHOE_FLATS : SHOE_DRESS;
+                d.shoeColor = v == 2 ? L(0.75f, 0.6f, 0.45f) : L(0.04f, 0.04f, 0.04f);
+                if (v == 5) {
+                    d.outer = OUT_JACKET;
+                    d.outerColor = L(0.05f, 0.05f, 0.06f);
+                }
+                if (v == 2 || v == 4) {
+                    d.bag = BAG_CROSSBODY;
+                    d.bagColor = L(0.06f, 0.05f, 0.05f);
+                }
+                d.extras |= ACC_EARRINGS | (v % 3 != 1 ? ACC_NECKLACE : 0u) | (v & 1 ? ACC_BRACELET_R : 0u);
+                if (d.hairStyle == HAIR_SHORT || d.hairStyle == HAIR_BUZZ) d.hairStyle = (v & 1) ? HAIR_BOB : HAIR_LONG;
+            } else {
+                // a black shirt, a white shirt with dark jeans, a black polo, a dark silk print shirt with cream slacks, a white
+                // tee under a navy blazer, a pale blue shirt with navy slacks
+                static const float tc[6][3] = {{0.05f, 0.05f, 0.06f}, {0.95f, 0.95f, 0.93f}, {0.06f, 0.06f, 0.07f}, {0.04f, 0.26f, 0.3f},
+                                               {0.95f, 0.95f, 0.94f}, {0.58f, 0.72f, 0.88f}};
+                static const int tops[6] = {TOP_DRESS_SHIRT, TOP_DRESS_SHIRT, TOP_POLO, TOP_HAWAIIAN, TOP_TSHIRT, TOP_DRESS_SHIRT};
+                d.top = tops[v % 6];
+                d.topColor = L(tc[v % 6][0], tc[v % 6][1], tc[v % 6][2]);
+                bool jeans = v == 1 || v == 4;
+                d.bottom = jeans ? BOT_JEANS : BOT_SLACKS;
+                d.bottomColor = jeans ? L(0.07f, 0.09f, 0.16f) : (v == 3 ? L(0.84f, 0.79f, 0.68f) : (v == 5 ? L(0.09f, 0.11f, 0.2f) : L(0.13f, 0.13f, 0.15f)));
+                d.shoes = v == 4 ? SHOE_SNEAKER : ((v & 1) ? SHOE_LOAFER : SHOE_DRESS);
+                d.shoeColor = v == 4 ? L(0.95f, 0.95f, 0.95f) : ((v == 1 || v == 3) ? L(0.36f, 0.21f, 0.1f) : L(0.04f, 0.04f, 0.04f));
+                if (d.top == TOP_DRESS_SHIRT && v != 1) d.extras |= ACC_ROLLED_SLEEVES;
+                if (v == 4) {
+                    d.outer = OUT_BLAZER;
+                    d.outerColor = L(0.1f, 0.12f, 0.24f);
+                }
+                d.extras |= ACC_WATCH | (v == 3 || v == 5 ? ACC_NECKLACE : 0u);
+                d.extras &= ~ACC_EARRINGS;
+            }
+            break;
+        case DL_DOOR:
+            // door staff: big, close-cropped, all in black
+            d.height = 1.87f + 0.03f * (float)k;
+            d.weight = 0.66f + 0.06f * (float)k;
+            d.muscle = 0.88f;
+            d.top = k == 0 ? TOP_TSHIRT : (k == 1 ? TOP_POLO : TOP_DRESS_SHIRT);
+            d.topColor = L(0.04f, 0.04f, 0.045f);
+            d.bottom = BOT_SLACKS;
+            d.bottomColor = L(0.05f, 0.05f, 0.055f);
+            d.shoes = k == 0 ? SHOE_BOOT : SHOE_DRESS;
+            d.shoeColor = L(0.03f, 0.03f, 0.03f);
+            d.hairStyle = k == 1 ? HAIR_BALD : HAIR_BUZZ;
+            d.extras = ACC_EXPLICIT | ACC_WATCH | (k == 2 ? ACC_ROLLED_SLEEVES : 0u);
+            break;
+        case DL_SPORT:
+            if (fem) {
+                static const float tc[4][3] = {{0.95f, 0.32f, 0.55f}, {0.06f, 0.06f, 0.07f}, {0.1f, 0.62f, 0.62f}, {0.95f, 0.95f, 0.95f}};
+                d.top = v == 1 ? TOP_CROP : (v == 3 ? TOP_TSHIRT : TOP_TANK);
+                d.topColor = L(tc[v % 4][0], tc[v % 4][1], tc[v % 4][2]);
+                d.bottom = v == 3 ? BOT_SHORTS : BOT_LEGGINGS;
+                d.bottomColor = v == 2 ? L(0.08f, 0.1f, 0.2f) : L(0.05f, 0.05f, 0.06f);
+                d.hairStyle = (v & 1) ? HAIR_BUN : HAIR_PONYTAIL;
+            } else {
+                static const float tc[4][3] = {{0.5f, 0.5f, 0.52f}, {0.85f, 0.95f, 0.2f}, {0.08f, 0.12f, 0.28f}, {0.05f, 0.05f, 0.06f}};
+                d.top = (v == 0 || v == 3) ? TOP_TANK : TOP_TSHIRT;
+                d.topColor = L(tc[v % 4][0], tc[v % 4][1], tc[v % 4][2]);
+                d.bottom = BOT_SHORTS;
+                d.bottomColor = v == 1 ? L(0.06f, 0.06f, 0.07f) : (v == 2 ? L(0.4f, 0.4f, 0.42f) : L(0.08f, 0.1f, 0.2f));
+                if (v == 1 || v == 2) d.hat = HAT_CAP;
+            }
+            d.shoes = SHOE_RUNNER;
+            d.shoeColor = (v & 1) ? L(0.95f, 0.95f, 0.95f) : L(0.2f, 0.75f, 0.95f);
+            d.extras = ACC_EXPLICIT | ACC_WATCH | ((k % 3) != 1 ? ACC_HEADPHONES : 0u) | (fem ? ACC_BRACELET_L : 0u);
+            break;
+        default:   // DL_COVER
+            if (fem) {
+                // a white beach dress with a sun hat and a straw tote, an oversized tee over denim hot pants, a coral tank and
+                // white shorts
+                d.top = v == 0 ? TOP_SUNDRESS : (v == 1 ? TOP_OVERSIZED : TOP_TANK);
+                d.topColor = v == 0 ? L(0.96f, 0.95f, 0.92f) : (v == 1 ? L(0.96f, 0.76f, 0.72f) : L(0.98f, 0.5f, 0.4f));
+                d.bottom = v == 0 ? BOT_SKIRT : (v == 1 ? BOT_HOTPANTS : BOT_SHORTS);
+                d.bottomColor = v == 0 ? d.topColor : (v == 1 ? L(0.34f, 0.45f, 0.66f) : L(0.95f, 0.95f, 0.93f));
+                if (v != 1) {
+                    d.hat = HAT_SUNHAT;
+                    d.bag = BAG_TOTE;
+                    d.bagColor = L(0.86f, 0.76f, 0.56f);
+                }
+                d.glasses = v == 1 ? -1 : GL_SUN;
+                if (v == 1) d.extras |= ACC_SUNGLASSES_UP;
+            } else {
+                // a top over swim trunks: a white tank, a loud orange print shirt, a sky blue tee
+                d.top = v == 0 ? TOP_TANK : (v == 1 ? TOP_HAWAIIAN : TOP_TSHIRT);
+                d.topColor = v == 0 ? L(0.95f, 0.95f, 0.93f) : (v == 1 ? L(0.95f, 0.58f, 0.2f) : L(0.3f, 0.62f, 0.86f));
+                d.bottom = BOT_TRUNKS;
+                d.bottomColor = v == 0 ? L(0.1f, 0.42f, 0.75f) : (v == 1 ? L(0.08f, 0.55f, 0.48f) : L(0.88f, 0.28f, 0.24f));
+                d.hat = v == 0 ? HAT_CAP : (v == 2 ? HAT_CAP_BACK : -1);
+                d.glasses = v == 1 ? -1 : GL_SUN;
+            }
+            d.shoes = SHOE_SANDAL;
+            d.shoeColor = (v & 1) ? L(0.36f, 0.24f, 0.14f) : L(0.9f, 0.82f, 0.66f);
+            break;
+    }
+    // hats sit on hair that fits under them (as the generator keeps them)
+    if (d.hat >= 0 && (d.hairStyle == HAIR_CURLY || d.hairStyle == HAIR_BUN || d.hairStyle == HAIR_LOCS)) d.hat = -1;
+    if (d.hat >= 0 || d.glasses >= 0) d.extras &= ~ACC_SUNGLASSES_UP;
+    return d;
+}
+
+}  // namespace wardrobe_detail
+#endif
+
 void tintWeaponMesh(MeshData& m, int tint);                            // weaponmods.cpp
 void buildWeaponCompMesh(WeaponType w, int compBit, MeshData& m);
 
@@ -628,13 +862,21 @@ void GameWorld::buildAssets() {
     int protoStart = (int)reqs.size();
     reqs.push_back({0xA11CEu, 0, 1});   // protagonist: Marisol "Mari" Ortega
     reqs.push_back({0xDE7u, 0, 0});     // protagonist: Dex Calloway
+    // the wardrobe's dedicated looks (a night out, door staff, sportswear, beach cover-ups) after the protagonists, out
+    // of the civilian pools: Req::seed is the variant, Req::role the look
+    using namespace wardrobe_detail;
+    int dedStart = (int)reqs.size();
+    for (int l = 0; l < DL_COUNT; l++)
+        for (int k = 0; k < kDedicated[l]; k++) reqs.push_back({(u32)k, l, -1});
     int n = (int)reqs.size();
     chars.resize(n);
     std::vector<SkinnedMeshData> meshes((size_t)n * 3);   // LOD0..2 per character
     Jobs::parallelFor(n, [&](int i) {
         const Req& r = reqs[i];
         Anim::CharacterDesc d;
-        if (i >= protoStart) {
+        if (i >= dedStart) {
+            d = dedicatedDesc(r.role, (int)r.seed);
+        } else if (i >= protoStart) {
             d = protagonistDesc(i - protoStart);   // protagonists.h: the seeded draw plus their fixed looks
         } else {
             u32 seed = r.seed;
@@ -646,7 +888,7 @@ void GameWorld::buildAssets() {
             }
         }
         chars[i].desc = d;
-        chars[i].role = r.role;
+        chars[i].role = i >= dedStart ? 0 : r.role;
         Anim::buildSkeleton(d, chars[i].skel);
         Anim::buildCharacterMeshLods(d, chars[i].skel, &meshes[(size_t)i * 3], 3);
     });
@@ -662,6 +904,26 @@ void GameWorld::buildAssets() {
     }
     protagonistChar[0] = protoStart;
     protagonistChar[1] = protoStart + 1;
+    // the wardrobe: what everyone in the roster wears, and the dedicated looks by gender
+    gWardrobe = Wardrobe();
+    gWardrobe.flags.resize(n);
+    for (int i = 0; i < n; i++) gWardrobe.flags[i] = (i >= protoStart && i < dedStart) ? (u16)WF_WORK : classify(chars[i].desc, i < protoStart ? chars[i].role : 0);
+    for (int i = dedStart; i < n; i++) gWardrobe.look[reqs[i].role][chars[i].desc.gender == Anim::FEMALE ? 1 : 0].push_back(i);
+    gWardrobe.built = true;
+    {
+        int night[2] = {0, 0}, office = 0, work = 0, swim = 0, sport = 0;
+        for (int i = 0; i < protoStart; i++) {
+            u16 f = gWardrobe.flags[i];
+            if ((f & WF_NIGHT) && chars[i].role == 0) night[chars[i].desc.gender == Anim::FEMALE ? 1 : 0]++;
+            office += (f & WF_OFFICE) != 0 && chars[i].role != 1;
+            work += (f & WF_WORK) != 0 && (chars[i].role == 0 || chars[i].role == 5);
+            swim += (f & WF_SWIM) != 0;
+            sport += (f & WF_SPORT) != 0;
+        }
+        LOG("Wardrobe: %d dedicated looks (night out %d, door staff %d, sportswear %d, cover-ups %d); roster dressed for a night out %d men / %d women, "
+            "office %d, work %d, swim %d, sport %d",
+            n - dedStart, kDedicated[DL_NIGHT], kDedicated[DL_DOOR], kDedicated[DL_SPORT], kDedicated[DL_COVER], night[0], night[1], office, work, swim, sport);
+    }
     // bake the clip library now (the first sampleClip builds it) instead of hitching on the first spawn in game
     if (n > 0) {
         Anim::Pose warm;
@@ -743,6 +1005,226 @@ int GameWorld::randomCivilianChar(u32 seed, int role) {
     const std::vector<int>& v = (seed & 1) ? charsFemaleCivil : charsMaleCivil;
     if (!v.empty()) return v[(seed >> 1) % v.size()];
     return chars.empty() ? -1 : (int)(seed % chars.size());
+}
+
+// ---- the wardrobe's picks (see wardrobe_detail above)
+#ifdef HAVE_CHARACTERS
+namespace wardrobe_detail {
+
+// what fits here, now
+struct Ctx {
+    float tod = 12.f, rain = 0.f;
+    float nightOut = 0.f;     // share of the crowd dressed for a night out (the nightlife districts after dark)
+    float officeKeep = 1.f;   // office clothes still about (thinning out after hours)
+    float workKeep = 1.f;     // hi-vis and hard hats (off the streets by the evening)
+    bool swimOk = false;      // on the sand, in the water or on the beach front on a dry day
+    bool coverOk = false;     // on the way to or from the beach on a dry day
+};
+
+bool beachyRegion(World::Region r) { return r == World::REG_BEACH || r == World::REG_KEY_CORAL || r == World::REG_KEYS || r == World::REG_KEY_TOWN; }
+
+// the most beach sand within `reach` of p (at p, and round it at half and full reach)
+float sandNear(const World::WorldMap& m, vec2 p, float reach) {
+    float best = m.beachSand(p.x, p.y);
+    for (int k = 0; k < 8 && best < 0.6f; k++) {
+        vec2 d(cosf(k * kPi * 0.25f), sinf(k * kPi * 0.25f));
+        best = Max(best, Max(m.beachSand(p.x + d.x * reach * 0.5f, p.y + d.y * reach * 0.5f), m.beachSand(p.x + d.x * reach, p.y + d.y * reach)));
+    }
+    return best;
+}
+
+Ctx context(const GameWorld& g, vec2 p) {
+    Ctx c;
+    if (g.env) {
+        c.tod = g.env->timeOfDay;
+        c.rain = g.env->rain;
+    }
+    float t = c.tod;
+    World::Region reg = g.map ? g.map->regionAt(p.x, p.y) : World::REG_OCEAN;
+    bool nightlife = reg == World::REG_BEACH || reg == World::REG_CALLE_LUNA;
+    // dressed up from dusk, the last of it into the small hours
+    float eve = t >= 12.f ? SmoothStep(18.8f, 20.3f, t) : 1.f - SmoothStep(4.f, 6.f, t);
+    c.nightOut = nightlife ? eve : 0.f;
+    // office clothes through the working day, thinning out over the evening (a few late workers), back from 6-7 am
+    c.officeKeep = (t >= 7.f && t <= 18.f) ? 1.f : (t > 18.f ? Lerp(1.f, 0.1f, SmoothStep(18.f, 21.f, t)) : Lerp(0.1f, 1.f, SmoothStep(6.f, 7.f, t)));
+    c.workKeep = (t >= 6.f && t <= 18.5f) ? 1.f : (nightlife ? 0.f : 0.15f);
+    if (g.map && c.rain < 0.15f) {
+        // swimwear: on the sand or in the water by day, on the beach front (the sand within ~30 m) through the beach day
+        bool onSand = g.map->beachSand(p.x, p.y) > 0.55f || g.map->isWater(p.x, p.y);
+        if (onSand && t >= 7.5f && t < 19.5f) c.swimOk = true;
+        else if (t >= 8.5f && t < 18.5f && sandNear(*g.map, p, 30.f) > 0.55f) c.swimOk = true;
+        // cover-ups and summer clothes: the beach districts' streets (and anywhere just off a beach) on a beach day
+        c.coverOk = t >= 8.f && t < 19.6f && ((beachyRegion(reg) && g.map->coastDistance(p.x, p.y) < 450.f) || sandNear(*g.map, p, 60.f) > 0.5f);
+    }
+    return c;
+}
+
+inline u16 flagsOf(int ci) { return ci >= 0 && ci < (int)gWardrobe.flags.size() ? gWardrobe.flags[ci] : 0; }
+inline float unit(u32 h) { return hashToFloat(h); }
+
+// a pick among the members of `pool` that pass `ok` (deterministic from the seed)
+template <class F>
+int pickWhere(const std::vector<int>& pool, u32 seed, F ok) {
+    int buf[192];
+    int m = 0;
+    for (int ci : pool)
+        if (m < 192 && ok(ci)) buf[m++] = ci;
+    return m ? buf[(seed >> 1) % (u32)m] : -1;
+}
+
+// one of the dedicated looks of the seed's gender (the other gender's when it has none)
+int dedicated(int look, u32 seed, u32 h) {
+    int fem = (int)(seed & 1u);
+    const std::vector<int>& v = !gWardrobe.look[look][fem].empty() ? gWardrobe.look[look][fem] : gWardrobe.look[look][fem ^ 1];
+    return v.empty() ? -1 : v[(h >> 7) % (u32)v.size()];
+}
+
+const std::vector<int>& civilPool(const GameWorld& g, u32 seed) { return (seed & 1u) ? g.charsFemaleCivil : g.charsMaleCivil; }
+
+// dressed for a night out: the dedicated looks for about half, the roster's own going-out clothes for the rest
+int nightChar(GameWorld& g, u32 seed, bool young) {
+    u32 h = hash32(seed * 0x2545F491u + 0x4E1u);
+    int ded = dedicated(DL_NIGHT, seed, h);
+    if (ded >= 0 && unit(h) < 0.55f) return ded;
+    int ci = pickWhere(civilPool(g, seed), seed, [&](int c) { u16 f = flagsOf(c); return (f & WF_NIGHT) && (!young || (f & WF_YOUNG)); });
+    return ci >= 0 ? ci : (ded >= 0 ? ded : g.randomCivilianChar(seed, 0));
+}
+
+// an ordinary person for here and now: the civilian roster less what does not fit (office clothes after hours, work
+// clothes in the evening, swimwear anywhere), dressed up in the nightlife districts after dark
+int civilChar(GameWorld& g, u32 seed, const Ctx& c) {
+    u32 h = hash32(seed * 0x9E3779B1u + 0xC1u);
+    if (c.nightOut > 0.f && unit(h) < c.nightOut) return nightChar(g, seed, false);
+    int ci = pickWhere(civilPool(g, seed), seed, [&](int x) {
+        u16 f = flagsOf(x);
+        if (f & WF_SWIM) return false;
+        u32 hx = hash32(seed ^ ((u32)x * 0x45D9F3Bu));
+        if ((f & WF_OFFICE) && unit(hx) >= c.officeKeep) return false;
+        if ((f & WF_WORK) && unit(hx >> 5) >= c.workKeep) return false;
+        return true;
+    });
+    return ci >= 0 ? ci : g.randomCivilianChar(seed, 0);
+}
+
+// on the way to or from the beach: a cover-up, a top over swim trunks, summer clothes
+int coverChar(GameWorld& g, u32 seed) {
+    u32 h = hash32(seed * 0x27D4EB2Fu + 0xC0u);
+    int ded = dedicated(DL_COVER, seed, h);
+    if (ded >= 0 && unit(h) < 0.4f) return ded;
+    int fem = (int)(seed & 1u);
+    if (unit(h >> 3) < 0.35f) {
+        int ci = pickWhere(g.charsByRole[4], h, [&](int x) { return (flagsOf(x) & WF_COVER) && (int)(g.chars[x].desc.gender == Anim::FEMALE) == fem; });
+        if (ci >= 0) return ci;
+    }
+    int ci = pickWhere(civilPool(g, seed), seed, [&](int x) { return (flagsOf(x) & WF_SUMMER) != 0; });
+    return ci >= 0 ? ci : (ded >= 0 ? ded : g.randomCivilianChar(seed, 0));
+}
+
+int sportChar(GameWorld& g, u32 seed) {
+    u32 h = hash32(seed * 0x165667B1u + 0x5Bu);
+    int ded = dedicated(DL_SPORT, seed, h);
+    if (ded >= 0 && unit(h) < 0.6f) return ded;
+    int ci = pickWhere(civilPool(g, seed), seed, [&](int x) { return (flagsOf(x) & WF_SPORT) != 0; });
+    return ci >= 0 ? ci : (ded >= 0 ? ded : g.randomCivilianChar(seed, 0));
+}
+
+// sightseers: loud shirts, sun hats, backpacks; by the beach some in cover-ups or swimwear; dressed up at night
+int touristChar(GameWorld& g, u32 seed, const Ctx& c) {
+    u32 h = hash32(seed * 0x61C88647u + 0x7Au);
+    if (c.nightOut > 0.f && unit(h) < c.nightOut) return nightChar(g, seed, false);
+    if (c.swimOk && unit(h >> 4) < 0.2f) return g.randomCivilianChar(seed, 4);
+    if (c.coverOk && unit(h >> 8) < 0.3f) return coverChar(g, seed);
+    int ci = pickWhere(civilPool(g, seed), seed, [&](int x) { return (flagsOf(x) & WF_TOURIST) != 0; });
+    if (ci < 0 || unit(h >> 12) < 0.3f) {
+        int cs = pickWhere(civilPool(g, seed), seed, [&](int x) { return (flagsOf(x) & (WF_SUMMER | WF_CASUAL)) != 0; });
+        if (cs >= 0) ci = cs;
+    }
+    return ci >= 0 ? ci : civilChar(g, seed, c);
+}
+
+}  // namespace wardrobe_detail
+#endif
+
+int wardrobeChar(GameWorld& g, u32 seed, int look, vec2 pos) {
+#ifdef HAVE_CHARACTERS
+    using namespace wardrobe_detail;
+    if (gWardrobe.built && !g.chars.empty()) {
+        Ctx c = context(g, pos);
+        switch (look) {
+            case LK_SWIM: return g.randomCivilianChar(seed, 4);
+            case LK_BEACH:
+                if (c.swimOk) return g.randomCivilianChar(seed, 4);
+                if (c.coverOk) return coverChar(g, seed);
+                return civilChar(g, seed, c);
+            case LK_BUSINESS: return unit(hash32(seed * 0xA24BAED5u + 3u)) < c.officeKeep ? g.randomCivilianChar(seed, 3) : civilChar(g, seed, c);
+            case LK_WORKER: return g.randomCivilianChar(seed, 5);
+            case LK_SPORT: return sportChar(g, seed);
+            case LK_TOURIST: return touristChar(g, seed, c);
+            case LK_NIGHT: return nightChar(g, seed, false);
+            case LK_CLUB:
+                // a club's crowd (the lines outside, the dance floor): dressed for a night out from the evening; by day a
+                // beach club's crowd is the beach's
+                if (c.tod >= 18.5f || c.tod < 6.f) return nightChar(g, seed, true);
+                if (c.swimOk) return g.randomCivilianChar(seed, 4);
+                return c.coverOk ? coverChar(g, seed) : civilChar(g, seed, c);
+            case LK_DOOR: {
+                int ci = dedicated(DL_DOOR, 0u, hash32(seed));
+                return ci >= 0 ? ci : g.randomCivilianChar(seed, 3);
+            }
+            case LK_OUTDOOR: {
+                int ci = pickWhere(civilPool(g, seed), seed, [&](int x) { return (flagsOf(x) & WF_CASUAL) != 0; });
+                return ci >= 0 ? ci : civilChar(g, seed, c);
+            }
+            default: return civilChar(g, seed, c);
+        }
+    }
+#endif
+    (void)pos;
+    return g.randomCivilianChar(seed, look == LK_BUSINESS ? 3 : (look == LK_SWIM || look == LK_BEACH ? 4 : (look == LK_WORKER ? 5 : 0)));
+}
+
+int wardrobeRoleChar(GameWorld& g, u32 seed, int role, vec2 pos) {
+    switch (role) {
+        case 0: return wardrobeChar(g, seed, LK_CIVIL, pos);
+        case 3: return wardrobeChar(g, seed, LK_BUSINESS, pos);
+        case 4: return wardrobeChar(g, seed, LK_BEACH, pos);
+        case 5: return wardrobeChar(g, seed, LK_WORKER, pos);
+        default: return g.randomCivilianChar(seed, role);
+    }
+}
+
+int wardrobeActorChar(GameWorld& g, u32 seed, int charRole, u8 pedRole, vec2 pos) {
+    if (charRole == 0 || charRole == 4) {
+        if (pedRole == PR_TOURIST) return wardrobeChar(g, seed, LK_TOURIST, pos);
+        if (pedRole == PR_JOGGER) return wardrobeChar(g, seed, LK_SPORT, pos);
+    }
+    return wardrobeRoleChar(g, seed, charRole, pos);
+}
+
+bool wardrobeOutOfPlace(const GameWorld& g, int ci, vec2 pos) {
+#ifdef HAVE_CHARACTERS
+    using namespace wardrobe_detail;
+    u16 f = flagsOf(ci);
+    if (!(f & (WF_SWIM | WF_COVER))) return false;
+    Ctx c = context(g, pos);
+    return (f & WF_SWIM) ? !c.swimOk : !(c.swimOk || c.coverOk);
+#else
+    (void)g;
+    (void)ci;
+    (void)pos;
+    return false;
+#endif
+}
+
+bool wardrobeBeachLook(const GameWorld& g, int ci) {
+#ifdef HAVE_CHARACTERS
+    (void)g;
+    return (wardrobe_detail::flagsOf(ci) & (wardrobe_detail::WF_SWIM | wardrobe_detail::WF_COVER)) != 0;
+#else
+    (void)g;
+    (void)ci;
+    return false;
+#endif
 }
 
 int GameWorld::findVehicleModel(Vehicles::VehicleClass cls, u32 seed) {

@@ -42,8 +42,12 @@ struct WeatherSystem {
     void setImmediate(WeatherKind k) {
         cur = next = k;
         blend = 1.f;
-        // jumping straight into rain (missions, tests, the benchmark) starts on ground that has been soaking for a while
+        // an instant change (missions, tests, the benchmark, the scorecard tour, a loaded game) starts on ground that has
+        // settled into that weather: soaking for a while in rain; dry under clear, fair and cloudy skies, no wetter than a
+        // dew in fog or a damp overcast (below the puddle threshold, render/weather.cpp). The ground used to keep what the
+        // last rain left - puddles across lawns and verges under a clear sky, read as flooding.
         if (k == WX_RAIN || k == WX_STORM) wetness = 1.f;
+        else wetness = Min(wetness, k == WX_FOG ? 0.1f : (k == WX_OVERCAST ? 0.08f : 0.f));
     }
     void transitionTo(WeatherKind k, float seconds) {
         if (k == next) return;

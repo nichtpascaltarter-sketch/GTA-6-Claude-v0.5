@@ -116,7 +116,7 @@ int gangChar(GameWorld& g, u32 seed, Faction f) {
 }
 
 int spawnActor(GameWorld& g, vec3 pos, float yaw, u32 seed, int charRole, Faction f, u8 role, int evId) {
-    int ci = (f == FAC_GANG_CUERVOS || f == FAC_GANG_SAINTS) ? gangChar(g, seed, f) : g.randomCivilianChar(seed, charRole);
+    int ci = (f == FAC_GANG_CUERVOS || f == FAC_GANG_SAINTS) ? gangChar(g, seed, f) : wardrobeActorChar(g, seed, charRole, role, pos.xy());
     if (ci < 0) return -1;
     int id = g.spawnPed(ci, dvec3(pos), yaw, f);
     if (id < 0) return -1;

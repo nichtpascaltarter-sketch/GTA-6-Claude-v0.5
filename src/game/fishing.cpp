@@ -225,8 +225,21 @@ void fishingSetupSpots(GameWorld& g) {
         s.hab = hab;
         F.spots.push_back(s);
     };
+    // the Key Coral marina's main pier (leisure.cpp genMarina: from 6 m inland of the shore out along the element's axis,
+    // deck p[1] above the water) and its landing by the yacht club sign: the fishing spot out on the pier, the bait shop
+    // where the pier meets the shore
+    vec3 kcPier = P.keyCoralMarina.pos, kcShop = P.keyCoralMarina.door;
+    if (World::gSites)
+        for (const World::SiteElem& e : World::gSites->elems)
+            if (e.kind == World::SK_MARINA) {
+                vec2 n = perp(e.ax), start = e.c - e.ax * 6.f;
+                kcPier = vec3(start + e.ax * (e.p[0] * 0.4f) + n * 0.9f, e.p[1] + 1.f);
+                vec2 land = e.c - e.ax * 9.f + n * 3.5f;
+                kcShop = vec3(land, g.map->heightAt(land.x, land.y));
+                break;
+            }
     spot("Fishing: Sol Beach Pier", P.pierEnd, HAB_COAST);
-    spot("Fishing: Key Coral Marina", P.keyCoralMarina.pos, HAB_COAST);
+    spot("Fishing: Key Coral Marina", kcPier, HAB_COAST);
     spot("Fishing: Rio Sol", P.riverLaunch, HAB_RIVER);
     spot("Fishing: Sawgrass causeway", P.sawgrassDock, HAB_SWAMP);
     spot("Fishing: Ten Palms", P.tenPalms.pos, HAB_COAST);
@@ -262,7 +275,7 @@ void fishingSetupSpots(GameWorld& g) {
     LOG("fishing: %d spots (lake %s, %d Keys docks)", (int)F.spots.size(), lake ? "yes" : "no", keys);
     market("Palmera Angler Bait & Tackle", P.pierRamp);
     market("Palmera Angler Bait & Tackle", P.sawgrassDock + vec3(normalize(P.sawgrassDock.xy() - P.sawgrassWater.xy() + vec2(1e-3f, 0.f)) * 14.f, 0.f));
-    market("Palmera Angler Bait & Tackle", P.keyCoralMarina.door);
+    market("Palmera Angler Bait & Tackle", kcShop);
     for (FishMarket& m : F.markets) m.pos.z = groundAt(g, m.pos.x, m.pos.y, m.pos.z + 3.f);
 }
 

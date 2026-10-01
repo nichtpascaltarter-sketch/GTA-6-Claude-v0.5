@@ -86,6 +86,51 @@ struct PopState {
 };
 PopState gPop;
 
+// How lived-in the streets round the player are, outside the city. The density table holds for a region's typical
+// street; a small town's main street, its stores and gas stations and the homes round them see more people and cars,
+// and the open country between the towns next to nobody. Stores, strip malls, gas stations and motels count most, homes a
+// little, the workshops by day. Recounted every few seconds or ~20 m.
+struct LocalLife {
+    vec2 at = vec2(1e9f);
+    double t = -1e9;
+    float peds = 0.f, traffic = 0.f, parked = 0.f;
+    bool open = false;   // nothing built within reach: open country
+};
+LocalLife gLife;
+
+bool cityRegion(World::Region r) {
+    return r == World::REG_DOWNTOWN || r == World::REG_FINANCIAL || r == World::REG_MIDTOWN || r == World::REG_NORTH_CITY || r == World::REG_CALLE_LUNA ||
+           r == World::REG_BEACH || r == World::REG_BAY_ISLAND || r == World::REG_KEY_CORAL || r == World::REG_PORT || r == World::REG_AIRPORT ||
+           r == World::REG_FLATS || r == World::REG_OCEAN;
+}
+
+void updateLocalLife(GameWorld& g, vec2 c, World::Region reg, float tod) {
+    if (length(c - gLife.at) < 20.f && g.time - gLife.t < 3.0) return;
+    gLife = LocalLife();
+    gLife.at = c;
+    gLife.t = g.time;
+    if (cityRegion(reg) || !g.buildings) return;
+    std::vector<int> blds;
+    g.buildings->buildingsNear(c, 130.f, blds);
+    float S = 0.f, H = 0.f, W = 0.f;
+    for (int i : blds) {
+        const World::Building& b = g.buildings->buildings[i];
+        if (length(b.c - c) > 130.f) continue;
+        switch (b.style) {
+            case World::BS_SHOPS: case World::BS_MOTEL: S += 1.f; break;
+            case World::BS_STRIPMALL: case World::BS_GASSTATION: S += 2.f; break;
+            case World::BS_HOUSE: case World::BS_VILLA: case World::BS_FARMHOUSE: case World::BS_SHACK: H += 1.f; break;
+            case World::BS_WAREHOUSE: case World::BS_FACTORY: W += 1.f; break;
+            default: break;
+        }
+    }
+    bool day = tod > 7.f && tod < 19.f;
+    gLife.peds = Min(0.55f * S + 0.16f * H + (day ? 0.25f : 0.06f) * W, 16.f);
+    gLife.traffic = Min(0.35f * S + 0.04f * H + (day ? 0.12f : 0.03f) * W, 10.f);
+    gLife.parked = Min(0.6f * S + 0.08f * H + 0.12f * W, 10.f);
+    gLife.open = S + H + W < 1.f;
+}
+
 constexpr int kMaxPeds = 90;
 constexpr int kMaxTraffic = 44;
 constexpr int kMaxParked = 36;
@@ -296,8 +341,16 @@ void updateQueues(GameWorld& g, float dt, vec2 pp, bool night, bool warm) {
 // warmup fade) and empties again once they are far away. Nobody stands on a live lane (every slot is checked against the
 // lane graph, buildings and water when the venue is laid out), and everybody stands at the level of the ground there -
 // never on a canopy or a roof above it.
-enum VenueLook : u8 { VL_WORKER = 0, VL_CIVIL, VL_BUSINESS, VL_BEACH, VL_TRAVELER, VL_UNIFORM, VL_MEDIC, VL_INMATE };
-enum VenueProp : u8 { VP_NONE = 0, VP_TRUCK, VP_TAXI, VP_AIRBOAT, VP_CAR };
+enum VenueLook : u8 {
+    VL_WORKER = 0, VL_CIVIL, VL_BUSINESS, VL_BEACH, VL_TRAVELER, VL_UNIFORM, VL_MEDIC, VL_INMATE,
+    VL_SPORT,     // runners
+    VL_TOURIST,   // sightseers (an airboat ride, the birders at the tower)
+    VL_OUTDOOR,   // anglers and marsh hands: everyday outdoor clothes
+    VL_NIGHT,     // dressed for a night out
+    VL_STAFF      // at work in shirt and slacks (a terrace's waiter): office clothes at any hour
+};
+// VP_PARKED: a car parked off the road (a driveway, a store's lot, a gas pump, the landing): no hazards, no lane
+enum VenueProp : u8 { VP_NONE = 0, VP_TRUCK, VP_TAXI, VP_AIRBOAT, VP_CAR, VP_PARKED };
 
 struct VenueSlot {
     vec2 pos;             // where they stand (or start)
@@ -321,6 +374,8 @@ struct VenueSlot {
     bool fairWeather = false;    // outdoors by choice (a cafe terrace, the lawn): nobody there in the rain
     bool fixedZ = false;         // z is the level of the spot as built (a terrace deck, a bleacher row): not the ground's
     bool trusted = false;        // a place's own anchor (sites.cpp put it by its seat / its table): no spot checks
+    bool propOnly = false;       // just the vehicle (a car in a driveway, in a lot): nobody stands in the slot
+    bool rural = false;          // VP_PARKED in the countryside: mostly pickups
     int route = -1;              // VM_JOG / VM_STROLL: the venue route (a ring or a chain of points) ...
     int routeAt = 0;             // ... the point they start at
     i8 routeDir = 1;             // ... and the way they go along it
@@ -348,6 +403,7 @@ struct Venue {
     float rankT = 25.f;
     std::vector<std::vector<vec3>> routes;   // runners' rings / strollers' chains (points in order)
     std::vector<u8> routeRing;               // ... 1 = closed ring
+    bool lazy = false;                       // slots checked (and their ground levels found) on the first visit (the towns)
 };
 
 // slots per venue (a ped's PedAI::venue is venue index * kVenueSlots + slot)
@@ -368,6 +424,8 @@ const u8 kCarryHandsFree = CARRY_HANDSFREE;
 // surfboard, sightseers and the shopping streets bags, travelers at the airport their luggage; joggers and beat cops
 // nothing, a worker now and then a coffee; everyone else the street default
 u8 ambientCarry(const GameWorld& g, u32 uid, u8 role, World::Region reg, float tod) {
+    // a night out in the nightlife districts: hands free (not the street default's briefcase or shopping)
+    if (isNight(tod) && nightlifeArea(reg) && (role == PR_CIVILIAN || role == PR_NIGHTLIFE || role == PR_TOURIST)) return kCarryHandsFree;
     switch (role) {
         case PR_BUSINESS: return g.pickCarry(uid, 3);
         case PR_BEACH: return g.pickCarry(uid, 4);
@@ -419,6 +477,29 @@ bool venueKerbLaneOk(const GameWorld& g, vec2 p, vec2 fwd) {
     if (ln < 0) return false;
     const AI::Lane& L = g.laneGraph.lanes[ln];
     return fabsf(lat) < 0.8f && L.right < 0 && L.left >= 0 && u > L.u0 + 4.f && u < L.u1 - 4.f;
+}
+
+// a spot a car can stand parked off the road (a driveway, a lot, a pump): its whole footprint clear of buildings,
+// structures, water and every lane, on ground near enough level under it
+bool venueParkOk(const GameWorld& g, vec2 p, float yaw) {
+    vec2 f = AI::yawDir(yaw), r = AI::rightOf(f);
+    float z0 = venueStandZ(g, p);
+    const vec2 offs[5] = {vec2(0.f), f * 2.3f, -f * 2.3f, r * 0.95f, -r * 0.95f};
+    for (const vec2& o : offs) {
+        vec2 q = p + o;
+        if (g.map->isWater(q.x, q.y)) return false;
+        if (World::gBuildings && World::gBuildings->pointInBuilding(q, 0.35f)) return false;
+        float z = venueStandZ(g, q);
+        if (fabsf(z - z0) > 0.45f) return false;
+        if (World::siteColliderNear(vec3(q, z + 0.3f), 0.45f, 1.3f)) return false;
+        float u = 0.f, lat = 0.f;
+        int ln = g.laneGraph.nearestLane(q, vec2(0.f), 8.f, &u, &lat);
+        if (ln >= 0) {
+            const AI::Lane& L = g.laneGraph.lanes[ln];
+            if (u > L.u0 - 1.f && u < L.u1 + 1.f && fabsf(lat) < L.width * 0.5f + 0.5f) return false;
+        }
+    }
+    return true;
 }
 
 // a route through its points smoothed into a Catmull-Rom curve, `sub` points per span (a lap of a track rounds its
@@ -475,11 +556,12 @@ void buildVenues(GameWorld& g) {
             VenueSlot& s = V.slots[si];
             bool tight = s.tight || s.mode == VM_TRAVEL_IN || s.mode == VM_TRAVEL_OUT || s.mode == VM_FAREWELL || s.mode == VM_SEEOFF;
             const char* why = nullptr;
-            if (!s.trusted && !((s.prop != VP_NONE && length2(s.propOff) > 0.f) || venueSpotOk(g, s.pos, tight))) why = "spot";
+            if (!s.trusted && !s.propOnly && !((s.prop != VP_NONE && length2(s.propOff) > 0.f) || venueSpotOk(g, s.pos, tight))) why = "spot";
             if (!why && s.mode == VM_PACE && !venueSpotOk(g, s.pos2, tight)) why = "second spot";
             if (!why && s.prop == VP_TRUCK && !venueSpotOk(g, s.propPos)) why = "rig spot";
             if (!why && (s.prop == VP_TAXI || s.prop == VP_CAR) && !venueKerbLaneOk(g, s.propPos, AI::yawDir(s.propYaw))) why = "kerb lane";
             if (!why && s.prop == VP_AIRBOAT && !g.map->isWater(s.propPos.x, s.propPos.y)) why = "boat water";
+            if (!why && s.prop == VP_PARKED && !venueParkOk(g, s.propPos, s.propYaw)) why = "parking spot";
             // a pair goes as a pair
             if (!why && s.follows && (ok.empty() || remap[si - 1] < 0)) why = "partner";
             bool good = why == nullptr;
@@ -882,7 +964,7 @@ void buildVenues(GameWorld& g) {
                     float edge = e.halfWidth - 0.4f;           // on the paved shoulder, past the lane edge
                     vec2 spot = c3.xy() + r * ((float)side * edge);
                     int mode = k % 4 == 3 ? VM_WORK : (k % 5 == 4 ? VM_SIT : VM_WATCH);
-                    VenueSlot s = mkSlot(spot, r * (float)side, (u8)mode, k % 2 ? VL_BEACH : VL_CIVIL, 5.f, 19.5f, 0.85f);
+                    VenueSlot s = mkSlot(spot, r * (float)side, (u8)mode, k % 2 ? VL_OUTDOOR : VL_CIVIL, 5.f, 19.5f, 0.85f);
                     s.carryCtx = 5;   // (a rod)
                     s.tight = true;
                     V.slots.push_back(s);
@@ -890,7 +972,7 @@ void buildVenues(GameWorld& g) {
                     if (k == 2) {
                         // a birder pair a few steps along, pointing out what flies over the sawgrass at first light
                         VenueSlot b1 = mkSlot(c3.xy() + t * 7.f + r * ((float)side * edge), r * (float)side + t * 0.4f, VM_SPOTTER, VL_CIVIL, 5.3f, 10.5f, 0.9f);
-                        VenueSlot b2 = mkSlot(c3.xy() + t * 7.9f + r * ((float)side * edge), r * (float)side - t * 0.4f, VM_SPOTTER, VL_BEACH, 5.3f, 10.5f, 1.f);
+                        VenueSlot b2 = mkSlot(c3.xy() + t * 7.9f + r * ((float)side * edge), r * (float)side - t * 0.4f, VM_SPOTTER, VL_TOURIST, 5.3f, 10.5f, 1.f);
                         b1.tight = b2.tight = true;
                         b1.carryCtx = b2.carryCtx = 6;   // (binoculars)
                         b2.follows = true;
@@ -904,7 +986,7 @@ void buildVenues(GameWorld& g) {
             for (int k = 0; k < 3; k++) {
                 float a = 2.4f + k * 0.9f;
                 vec2 off(cosf(a), sinf(a));
-                VenueSlot b = mkSlot(tower->c + off * (tower->hx + 2.5f + k * 1.2f), off, VM_SPOTTER, k == 1 ? VL_CIVIL : VL_BEACH, 5.3f, 10.5f, 0.85f);
+                VenueSlot b = mkSlot(tower->c + off * (tower->hx + 2.5f + k * 1.2f), off, VM_SPOTTER, k == 1 ? VL_OUTDOOR : VL_TOURIST, 5.3f, 10.5f, 0.85f);
                 b.carryCtx = 6;
                 V.slots.push_back(b);
             }
@@ -916,9 +998,77 @@ void buildVenues(GameWorld& g) {
             vec2 top = dock->c - d * 4.6f;
             V.slots.push_back(mkSlot(top + n * 1.9f, d, VM_STAND, VL_CIVIL, 6.5f, 18.5f, 0.95f));
             for (int k = 0; k < 2; k++) {
-                VenueSlot r = mkSlot(top - d * (2.2f + k * 0.9f) - n * (1.2f + k * 0.7f), k ? n : d, k ? VM_PHONE : VM_TALK, VL_BEACH, 8.f, 17.5f, 0.6f);
+                VenueSlot r = mkSlot(top - d * (2.2f + k * 0.9f) - n * (1.2f + k * 0.7f), k ? n : d, k ? VM_PHONE : VM_TALK, VL_TOURIST, 6.5f, 17.5f, 0.6f);
                 if (!k) r.carryProp = CARRY_COFFEE;
                 V.slots.push_back(r);
+            }
+            // the airboat crew from first light: one at work on the deck by the boats (leisure.cpp genDock: the deck 1.1 m
+            // over the water out along ax), one with a coffee at the top of the ramp; their pickup on the landing
+            VenueSlot w = mkSlot(dock->c + d * 3.5f + n * 0.4f, n, VM_WORK, VL_OUTDOOR, 5.5f, 19.f, 0.85f);
+            w.trusted = w.fixedZ = true;
+            w.z = dock->z + 1.1f;
+            V.slots.push_back(w);
+            VenueSlot c = mkSlot(top - n * 2.4f - d * 1.2f, d, VM_STAND, VL_OUTDOOR, 5.5f, 11.f, 0.8f);
+            c.carryProp = CARRY_COFFEE;
+            V.slots.push_back(c);
+            VenueSlot pk = mkSlot(top - d * 9.f + n * 5.f, n, VM_STAND, VL_CIVIL, 5.f, 20.5f, 0.9f);
+            pk.propOnly = true;
+            pk.prop = VP_PARKED;
+            pk.propPos = pk.pos;
+            pk.propYaw = AI::dirYaw(n);
+            pk.rural = true;
+            V.slots.push_back(pk);
+            // a hand carrying gear between the pickup and the boats at first light; anglers on the canal bank either side
+            VenueSlot hand = mkSlot(top - d * 7.f + n * 2.6f, d, VM_PACE, VL_OUTDOOR, 5.5f, 12.f, 0.8f);
+            hand.pos2 = top + n * 0.9f;
+            hand.yaw2 = AI::dirYaw(d);
+            V.slots.push_back(hand);
+            for (int k = -1; k <= 1; k += 2) {
+                VenueSlot a = mkSlot(dock->c - d * 1.8f + n * (9.f * (float)k), d, VM_WATCH, VL_OUTDOOR, 5.5f, 19.f, 0.7f);
+                a.carryCtx = 5;   // (a rod)
+                V.slots.push_back(a);
+            }
+        }
+        // the visitor center (sites.cpp: the shack by the boardwalk's start): the ranger at the door, early visitors with a
+        // coffee before the walk, the rangers' pickup beside it
+        if (World::gBuildings) {
+            std::vector<int> bl;
+            World::gBuildings->buildingsNear(V.c, 500.f, bl);
+            for (int bi : bl) {
+                const World::Building& b = World::gBuildings->buildings[bi];
+                if (b.style != World::BS_SHACK || g.map->regionAt(b.c.x, b.c.y) != World::REG_SAWGRASS) continue;
+                vec2 F = b.front, A = b.ax;
+                V.slots.push_back(mkSlot(b.c + F * (b.hy + 1.6f), F, VM_STAND, VL_OUTDOOR, 6.5f, 18.5f, 0.85f));
+                vec2 vc = b.c + F * (b.hy + 3.6f) + A * (b.hx * 0.4f);
+                VenueSlot x = mkSlot(vc - A * 0.5f, A, VM_TALK, VL_TOURIST, 6.f, 11.f, 0.75f);
+                VenueSlot y = mkSlot(vc + A * 0.5f, -A, VM_TALK, VL_TOURIST, 6.f, 11.f, 1.f);
+                x.carryProp = CARRY_COFFEE;
+                y.follows = true;
+                V.slots.push_back(x);
+                V.slots.push_back(y);
+                VenueSlot pk = mkSlot(b.c + A * (b.hx + 4.f) + F * (b.hy * 0.3f), F, VM_STAND, VL_CIVIL, 5.5f, 19.5f, 0.85f);
+                pk.propOnly = true;
+                pk.prop = VP_PARKED;
+                pk.propPos = pk.pos;
+                pk.propYaw = AI::dirYaw(F);
+                pk.rural = true;
+                V.slots.push_back(pk);
+                break;
+            }
+        }
+        // the boardwalk's start by the visitor shack (sites.cpp: the loop from (-5060, 190) north into the sawgrass): early
+        // birders heading out, a ranger at the start
+        if (const World::SiteElem* bw = findElem(World::SK_BOARDWALK, -1, V.c, 700.f)) {
+            if (bw->pts.size() >= 2) {
+                vec2 a = bw->pts[0], along = normalize(bw->pts[1] - bw->pts[0] + vec2(1e-4f, 0.f)), across = AI::rightOf(along);
+                VenueSlot r = mkSlot(a + along * 3.f + across * 0.6f, -along, VM_STAND, VL_OUTDOOR, 7.f, 18.f, 0.7f);
+                V.slots.push_back(r);
+                VenueSlot b1 = mkSlot(a + along * 14.f - across * 0.45f, along + across * 0.3f, VM_SPOTTER, VL_TOURIST, 5.5f, 10.5f, 0.85f);
+                VenueSlot b2 = mkSlot(a + along * 14.f + across * 0.45f, along - across * 0.3f, VM_SPOTTER, VL_TOURIST, 5.5f, 10.5f, 1.f);
+                b1.carryCtx = b2.carryCtx = 6;   // (binoculars)
+                b2.follows = true;
+                V.slots.push_back(b1);
+                V.slots.push_back(b2);
             }
         }
         finish(V);
@@ -982,11 +1132,13 @@ void buildVenues(GameWorld& g) {
             if (placeKind == World::PK_HOSPITAL && anchorKind == World::PA_WORK) return VL_MEDIC;   // the ambulance bay crew
             if (placeKind == World::PK_PRISON) return VL_INMATE;                                   // the yard
             if (placeKind == World::PK_HOSPITAL) return hh % 3 == 0 ? VL_BUSINESS : VL_CIVIL;     // visitors
-            if (anchorKind == World::PA_WORK) return placeKind == World::PK_SPEEDWAY ? VL_WORKER : VL_BUSINESS;
+            if (anchorKind == World::PA_WORK) return placeKind == World::PK_SPEEDWAY ? VL_WORKER : VL_STAFF;
+            if (anchorKind == World::PA_EXERCISE) return VL_SPORT;   // runners: sportswear
+            // the hotel row's terraces and walk: guests in office clothes (thinning out after hours), beach-goers (swimwear on
+            // the beach front by day, else a cover-up or summer clothes; the wardrobe decides), everyone else
             if (placeKind == World::PK_HOTEL_ROW) return hh % 3 == 0 ? VL_BUSINESS : (hh % 3 == 1 ? VL_BEACH : VL_CIVIL);
             if (placeKind == World::PK_CEMETERY || placeKind == World::PK_CHURCHYARD) return VL_BUSINESS;
-            if (anchorKind == World::PA_EXERCISE) return hh % 2 ? VL_BEACH : VL_CIVIL;
-            return hh % 4 == 0 ? VL_BEACH : VL_CIVIL;
+            return hh % 4 == 0 ? VL_TOURIST : VL_CIVIL;
         };
         const std::vector<World::PlaceAnchor>& AA = S.anchors;
         // the anchors of one group of one kind at one place, in the order they were laid out (a group's anchors need not
@@ -1134,10 +1286,277 @@ void buildVenues(GameWorld& g) {
             finish(V);
         }
     }
+    // ---------------------------------------------------------------- small towns, the suburbs and the countryside: the
+    // places a town's life gathers - the stores (the owner out front, customers with their shopping), the gas stations (a
+    // car at a pump, the clerk's smoke), the strip malls' lots, motels; porches, front yards and driveways (someone at the
+    // door, yard work, neighbours over the front walk, the family car); the docks and the lake's public landing (anglers,
+    // a boat owner, pickups in the lot, the bait kiosk); the warehouses' smoke breaks. The region's quota alone filled a
+    // town's main street no more than its edge of town, and nobody was where people gather. In ~110 m cells, so only the
+    // part of a town near the player fills; checked on the first visit (validateLazyVenue).
+    int townVenues = 0, townSlots = 0;
+    if (World::gBuildings && g.map) {
+        auto townRegion = [](int r) {
+            return r == World::REG_GROVE || r == World::REG_SUBURBS || r == World::REG_LAKE_TOWN || r == World::REG_HARLOW || r == World::REG_FORT_CASTELL ||
+                   r == World::REG_REDLAND || r == World::REG_FARMLAND || r == World::REG_GULF_TOWN || r == World::REG_KEY_TOWN || r == World::REG_KEYS ||
+                   r == World::REG_RIDGE || r == World::REG_SAWGRASS;
+        };
+        // how much goes on round the homes: the suburbs most (people at home, out front at the end of the day), the small
+        // towns less (their life is on main street), the farms and the keys in between
+        auto homeLife = [](int r) {
+            if (r == World::REG_GROVE || r == World::REG_SUBURBS) return 2.f;
+            if (r == World::REG_LAKE_TOWN || r == World::REG_HARLOW || r == World::REG_FORT_CASTELL) return 0.45f;
+            return 1.f;
+        };
+        auto ruralRegion = [](int r) {
+            return r == World::REG_REDLAND || r == World::REG_FARMLAND || r == World::REG_HARLOW || r == World::REG_RIDGE || r == World::REG_SAWGRASS ||
+                   r == World::REG_LAKE_TOWN || r == World::REG_GULF_TOWN;
+        };
+        const float kCell = 110.f;
+        std::vector<Venue> tv;
+        std::unordered_map<long long, int> cellOf;
+        auto townVenue = [&](vec2 p) -> int {
+            int cx = (int)floorf(p.x / kCell), cy = (int)floorf(p.y / kCell);
+            long long key = (long long)cx * 1000003LL + (long long)cy;
+            auto it = cellOf.find(key);
+            if (it != cellOf.end()) return it->second;
+            Venue V;
+            V.name = "town";
+            V.c = vec2((cx + 0.5f) * kCell, (cy + 0.5f) * kCell);
+            V.fillR = 170.f;
+            V.releaseR = 250.f;
+            V.lazy = true;
+            tv.push_back(V);
+            cellOf[key] = (int)tv.size() - 1;
+            return (int)tv.size() - 1;
+        };
+        auto parked = [](vec2 at, float yaw, float h0, float h1, float chance, bool rural) {
+            VenueSlot c = mkSlot(at, vec2(0.f, 1.f), VM_STAND, VL_CIVIL, h0, h1, chance);
+            c.propOnly = true;
+            c.prop = VP_PARKED;
+            c.propPos = at;
+            c.propYaw = yaw;
+            c.rural = rural;
+            return c;
+        };
+        auto pairAt = [](std::vector<VenueSlot>& out, vec2 c, vec2 across, u8 look, float h0, float h1, float chance, bool fair) {
+            VenueSlot a = mkSlot(c - across * 0.5f, across, VM_TALK, look, h0, h1, chance);
+            VenueSlot b = mkSlot(c + across * 0.5f, -across, VM_TALK, look, h0, h1, 1.f);
+            a.fairWeather = b.fairWeather = fair;
+            b.follows = true;
+            out.push_back(a);
+            out.push_back(b);
+        };
+        for (const World::Building& b : World::gBuildings->buildings) {
+            int reg = b.region;
+            if (!townRegion(reg) || b.siteElem >= 0 || reg == World::REG_SAWGRASS) continue;   // (the visitor center: the Sawgrass venue)
+            u32 hb = hash32(b.seed * 0x9E3779B1u + 0x70E7u);
+            const vec2 F = b.front, A = b.ax;
+            const bool rural = ruralRegion(reg);
+            float yard = dot(b.lotC - b.c, F) + b.lotHy - b.hy;   // the front yard: the house front to the lot's street edge
+            switch (b.style) {
+                case World::BS_HOUSE: case World::BS_VILLA: case World::BS_FARMHOUSE: case World::BS_SHACK: {
+                    std::vector<VenueSlot>& S = tv[townVenue(b.c)].slots;
+                    bool villa = b.style == World::BS_VILLA;
+                    float side = (b.seed & 64u) ? 1.f : -1.f;   // the garage wing's side (buildmesh.cpp)
+                    vec2 door = b.c + F * (b.hy + (villa ? 2.9f : 1.9f));   // the front walk below the stoop / the portico
+                    float act = hashToFloat(hb) / homeLife(reg);
+                    if (act < 0.2f) {
+                        // at the front door: a look up the street, a call, a smoke
+                        u32 m = (hb >> 9) % 3u;
+                        S.push_back(mkSlot(door, F, m == 0 ? VM_STAND : (m == 1 ? VM_PHONE : VM_SMOKE), VL_CIVIL, 7.5f, 21.5f, 0.65f));
+                    } else if (act < 0.34f && yard > 4.5f) {
+                        // yard work in the front garden, away from the driveway
+                        VenueSlot w = mkSlot(b.c + F * (b.hy + yard * 0.5f) - A * (side * b.hx * 0.5f), (hb & 512u) ? F : -F, VM_WORK, VL_OUTDOOR, 8.f, 18.f, 0.6f);
+                        w.fairWeather = true;
+                        S.push_back(w);
+                    } else if (act < 0.42f && yard > 3.5f) {
+                        // neighbours talking over the front walk
+                        pairAt(S, b.c + F * (b.hy + yard - 1.4f) - A * (side * b.hx * 0.25f), A, VL_CIVIL, 9.f, 20.5f, 0.55f, true);
+                    }
+                    // the car in the driveway (houses with a garage wing, villas: buildmesh.cpp), the farm truck by the farmhouse
+                    bool garage = (b.style == World::BS_HOUSE && (b.seed % 10u) < 7u) || villa;
+                    if (garage && yard > 4.9f && hashToFloat(hb >> 7) < (homeLife(reg) > 1.f ? 0.65f : 0.4f)) {
+                        vec2 cp = b.c + A * (side * (b.hx + 3.2f)) + F * (b.hy + Min(3.f, yard - 2.35f));
+                        VenueSlot c = parked(cp, AI::dirYaw(hashToFloat(hb >> 13) < 0.65f ? -F : F), 0.f, 24.f, 0.85f, rural);
+                        if (hashToFloat(hb >> 17) < 0.15f) {
+                            // someone at the car: washing it, at the trunk
+                            c.propOnly = false;
+                            c.mode = VM_WORK;
+                            c.look = VL_OUTDOOR;
+                            c.propOff = vec2((hb & 2048u) ? 1.f : -1.f, -0.35f);
+                            c.h0 = 9.f;
+                            c.h1 = 18.5f;
+                            c.chance = 0.7f;
+                            c.fairWeather = true;
+                        }
+                        S.push_back(c);
+                    } else if (b.style == World::BS_FARMHOUSE && hashToFloat(hb >> 7) < 0.7f) {
+                        float sd = (hb & 4096u) ? 1.f : -1.f;
+                        S.push_back(parked(b.c + A * (sd * (b.hx + 3.8f)) + F * (b.hy * 0.2f), AI::dirYaw((hb & 8192u) ? F : -F), 0.f, 24.f, 0.85f, true));
+                    }
+                    break;
+                }
+                case World::BS_SHOPS: {
+                    if (b.hx < 3.f) break;
+                    std::vector<VenueSlot>& S = tv[townVenue(b.c)].slots;
+                    vec2 front = b.c + F * b.hy;
+                    float lr = (hb & 2u) ? 1.f : -1.f;
+                    // the owner or a clerk out front: minding the door, a smoke
+                    if (hashToFloat(hb) < 0.38f) S.push_back(mkSlot(front + F * 1.1f + A * (lr * b.hx * 0.38f), F, (hb & 4u) ? VM_SMOKE : VM_STAND, VL_CIVIL, 8.f, 20.5f, 0.6f));
+                    // customers: a word outside with their shopping
+                    if (hashToFloat(hb >> 5) < 0.33f) {
+                        size_t at = S.size();
+                        pairAt(S, front + F * 2.1f - A * (lr * b.hx * 0.3f), A, VL_CIVIL, 9.f, 20.f, 0.55f, false);
+                        S[at].carryProp = CARRY_SHOPBAG;
+                    }
+                    // someone on the phone by the window
+                    if (hashToFloat(hb >> 11) < 0.2f) S.push_back(mkSlot(front + F * 1.5f + A * (lr * b.hx * 0.05f), A * lr, VM_PHONE, VL_CIVIL, 9.f, 21.f, 0.5f));
+                    break;
+                }
+                case World::BS_STRIPMALL:
+                case World::BS_GASSTATION: {
+                    // the forecourt / lot between the building and the street (buildmesh.cpp)
+                    vec2 lotFront = b.lotC + F * b.lotHy;
+                    vec2 pc = (lotFront + (b.c + F * b.hy)) * 0.5f;
+                    float pd = length(lotFront - (b.c + F * b.hy)) * 0.5f;
+                    if (pd < 4.f) break;
+                    std::vector<VenueSlot>& S = tv[townVenue(b.c)].slots;
+                    if (b.style == World::BS_GASSTATION) {
+                        // cars at the pumps, their drivers by the filler; the clerk's smoke by the door
+                        float cw = Min(b.hx * 2.2f, 16.f), cd = Min(pd * 0.8f, 9.f);
+                        for (int k = 0; k < 2; k++) {
+                            float kx = ((hb >> k) & 1u) ? 1.f : -1.f, jy = ((hb >> (k + 2)) & 1u) ? 1.f : -1.f;
+                            if (k == 1) kx = -kx;
+                            vec2 pump = pc + A * (kx * cw * 0.6f) + F * (jy * cd * 0.45f);
+                            vec2 car = pump - F * (jy * 2.4f) + A * 0.6f;   // alongside the island, under the canopy
+                            vec2 fwd = ((hb >> (k + 4)) & 1u) ? A : -A;
+                            VenueSlot s = mkSlot(car, fwd, VM_STAND, VL_CIVIL, 6.f, 23.5f, k == 0 ? 0.85f : 0.5f);
+                            s.prop = VP_PARKED;
+                            s.propPos = car;
+                            s.propYaw = AI::dirYaw(fwd);
+                            s.propOff = vec2(dot(AI::rightOf(fwd), F * jy) > 0.f ? 1.f : -1.f, -0.45f);   // (on the pump's side)
+                            s.rural = rural;
+                            S.push_back(s);
+                        }
+                        S.push_back(mkSlot(b.c + F * (b.hy + 0.9f) + A * (b.hx * 0.65f), F, VM_SMOKE, VL_CIVIL, 7.f, 22.5f, 0.5f));
+                    } else {
+                        // cars in the stalls by the stores (buildmesh.cpp's lines every 2.7 m), someone with their shopping at
+                        // the trunk, a word by the doors
+                        int ncar = 1 + (int)(hb % 3u);
+                        for (int k = 0; k < ncar; k++) {
+                            float u = (hashToFloat(hash32(hb + (u32)k * 77u)) * 1.6f - 0.8f) * b.hx;
+                            float stall = -b.hx + 2.f + 2.7f * floorf((u + b.hx - 2.f) / 2.7f) + 1.35f;
+                            vec2 cp = pc + A * stall - F * (pd - 1.f) + F * 2.5f;
+                            VenueSlot s = parked(cp, AI::dirYaw(-F), 8.f, 22.f, 0.75f, rural);
+                            if (k == 0 && hashToFloat(hb >> 9) < 0.5f) {
+                                s.propOnly = false;
+                                s.propOff = vec2(1.f, -0.9f);
+                                s.carryProp = CARRY_SHOPBAG;
+                                s.h0 = 9.f;
+                                s.h1 = 21.f;
+                                s.chance = 0.6f;
+                            }
+                            S.push_back(s);
+                        }
+                        pairAt(S, b.c + F * (b.hy + 1.6f) + A * (b.hx * 0.3f), A, VL_CIVIL, 9.f, 21.f, 0.45f, false);
+                    }
+                    break;
+                }
+                case World::BS_MOTEL: {
+                    std::vector<VenueSlot>& S = tv[townVenue(b.c)].slots;
+                    float lr = (hb & 2u) ? 1.f : -1.f;
+                    // a guest's smoke or call outside their room, morning and evening; a car or two in front of the rooms
+                    S.push_back(mkSlot(b.c + F * (b.hy + 1.3f) + A * (lr * b.hx * 0.4f), F, (hb & 4u) ? VM_SMOKE : VM_PHONE, VL_CIVIL, 17.f, 23.5f, 0.5f));
+                    S.push_back(mkSlot(b.c + F * (b.hy + 1.3f) - A * (lr * b.hx * 0.3f), F, VM_STAND, VL_TOURIST, 7.f, 10.5f, 0.45f));
+                    for (int k = 0; k < 2; k++)
+                        S.push_back(parked(b.c + F * (b.hy + 5.f) + A * ((k ? -0.35f : 0.25f) * b.hx), AI::dirYaw(-F), 0.f, 24.f, 0.6f, rural));
+                    break;
+                }
+                case World::BS_WAREHOUSE:
+                case World::BS_FACTORY: {
+                    if (reg != World::REG_FORT_CASTELL && reg != World::REG_REDLAND && reg != World::REG_FARMLAND) break;
+                    std::vector<VenueSlot>& S = tv[townVenue(b.c)].slots;
+                    // the shift's smoke break out front; the pickups and vans of the people inside
+                    if (hashToFloat(hb) < 0.25f) {
+                        size_t at = S.size();
+                        pairAt(S, b.c + F * (b.hy + 2.2f) + A * (b.hx * 0.45f), A, VL_WORKER, 7.f, 17.5f, 0.5f, false);
+                        S[at].mode = VM_SMOKE;
+                    }
+                    if (hashToFloat(hb >> 6) < 0.15f) S.push_back(parked(b.c + F * (b.hy + 5.5f) - A * (b.hx * 0.4f), AI::dirYaw(A), 6.f, 19.f, 0.7f, true));
+                    break;
+                }
+                default: break;
+            }
+        }
+        // the water: anglers on the docks (the lake's T-pier, the keys' fishing docks), a boat owner on the lake's marina dock,
+        // the public landing's lot, ramp and bait kiosk (rural.cpp genBoatRamp)
+        if (World::gSites)
+            for (const World::SiteElem& e : World::gSites->elems) {
+                if (e.kind != World::SK_DOCK && e.kind != World::SK_BOAT_RAMP) continue;
+                if (e.kind == World::SK_DOCK && !townRegion(g.map->regionAt(e.c.x, e.c.y)) && fabsf(e.z - World::kLakeLevel) > 0.5f) continue;
+                vec2 d = e.ax, n = perp(e.ax);
+                int vi = townVenue(e.c);
+                if (e.kind == World::SK_DOCK) {
+                    if (e.variant != 0 && e.variant != 2 && e.variant != 3) continue;   // (1: private yacht docks, 4: the Sawgrass airboat landing)
+                    float L = e.p[0], zDeck = e.z + 1.1f;
+                    auto angler = [&](vec2 at, vec2 face, float ch, float h0) {
+                        VenueSlot s = mkSlot(at, face, VM_WATCH, VL_OUTDOOR, h0, 20.f, ch);
+                        s.carryCtx = 5;   // (a rod)
+                        s.trusted = s.fixedZ = true;
+                        s.z = zDeck;
+                        tv[vi].slots.push_back(s);
+                    };
+                    if (e.variant == 2) {   // the T-shaped fishing pier: both arms of the T and half way out
+                        vec2 tee = e.c + d * L;
+                        angler(tee + n * 7.f + d * 1.1f, d, 0.8f, 5.5f);
+                        angler(tee - n * 6.f + d * 1.1f, d, 0.7f, 6.f);
+                        angler(e.c + d * (L * 0.5f) + n * 1.1f, n, 0.5f, 6.5f);
+                    } else if (e.variant == 3) {   // a marina dock: an owner busy at their boat
+                        VenueSlot s = mkSlot(e.c + d * (L * 0.5f) + n * 0.6f, n, VM_WORK, VL_OUTDOOR, 7.f, 19.f, 0.55f);
+                        s.trusted = s.fixedZ = true;
+                        s.z = zDeck;
+                        tv[vi].slots.push_back(s);
+                    } else {
+                        angler(e.c + d * Max(L - 1.5f, 3.f), d, 0.6f, 5.5f);
+                    }
+                } else {
+                    // the public landing: pickups in the lot (beside the static rigs), someone at the top of the ramp, a word at
+                    // the bait kiosk, two on the courtesy dock
+                    vec2 lot = e.c - d * 36.f;
+                    for (int k = 0; k < 3; k++) {
+                        static const float stalls[3] = {10.5f, 18.9f, -16.8f};   // (clear of the rigs at -12 / -3.6 / 4.8 and the lamp posts at +-14)
+                        tv[vi].slots.push_back(parked(lot + n * stalls[k] - d * 8.f, AI::dirYaw(k == 1 ? d : -d), 5.5f, 21.f, 0.75f, true));
+                    }
+                    tv[vi].slots.push_back(mkSlot(e.c - d * 10.f + n * 6.5f, d, VM_STAND, VL_OUTDOOR, 6.f, 19.f, 0.6f));
+                    vec2 kiosk = lot + n * 22.f;
+                    pairAt(tv[vi].slots, kiosk - n * 4.6f - d * 1.f, d, VL_OUTDOOR, 6.f, 19.f, 0.6f, false);
+                    vec2 dk0 = e.c + n * 7.f - d * 4.f;
+                    VenueSlot a = mkSlot(dk0 + d * 18.f - n * 0.5f, n, VM_TALK, VL_OUTDOOR, 6.f, 20.f, 0.5f);
+                    VenueSlot o = mkSlot(dk0 + d * 18.f + n * 0.5f, -n, VM_TALK, VL_OUTDOOR, 6.f, 20.f, 1.f);
+                    a.trusted = a.fixedZ = o.trusted = o.fixedZ = true;
+                    a.z = o.z = World::kLakeLevel + 0.6f;
+                    a.carryCtx = 5;
+                    o.follows = true;
+                    tv[vi].slots.push_back(a);
+                    tv[vi].slots.push_back(o);
+                }
+            }
+        for (Venue& V : tv) {
+            if (V.slots.empty()) continue;
+            vec2 c(0.f);
+            for (const VenueSlot& s : V.slots) c += s.pos;
+            V.c = c / (float)V.slots.size();
+            townVenues++;
+            townSlots += (int)V.slots.size();
+            gVenues.v.push_back(V);
+        }
+    }
     std::string what;
     for (const Venue& V : gVenues.v)
-        what += StrFormat(" | %s %d%s", V.name, (int)V.slots.size(), V.cab0 >= 0 ? StrFormat(" (rank: %d cabs, line of %d)", V.cabs, V.qn).c_str() : "");
-    LOG("population: venues laid out: %d (%d slots kept, %d dropped on lanes / water / buildings)%s", (int)gVenues.v.size(), kept, dropped, what.c_str());
+        if (!V.lazy) what += StrFormat(" | %s %d%s", V.name, (int)V.slots.size(), V.cab0 >= 0 ? StrFormat(" (rank: %d cabs, line of %d)", V.cabs, V.qn).c_str() : "");
+    LOG("population: venues laid out: %d (%d slots kept, %d dropped on lanes / water / buildings; %d town venues with %d slots, checked on the first "
+        "visit)%s",
+        (int)gVenues.v.size(), kept, dropped, townVenues, townSlots, what.c_str());
 }
 
 bool venuePedLive(const GameWorld& g, const VenueSlot& s) {
@@ -1150,16 +1569,23 @@ bool venueVehLive(const GameWorld& g, const VenueSlot& s) {
     return s.veh >= 0 && s.veh < (int)g.vehicles.size() && g.vehicles[s.veh].used && g.vehicles[s.veh].uid == s.vehUid;
 }
 
-int venueChar(GameWorld& g, u8 look, u32 seed) {
+// who stands in a slot: the slot's look, dressed for the place, the hour and the weather (the wardrobe, assets.cpp)
+int venueChar(GameWorld& g, u8 look, u32 seed, vec2 at) {
     switch (look) {
-        case VL_WORKER: return g.randomCivilianChar(seed, 5);
-        case VL_BUSINESS: return g.randomCivilianChar(seed, 3);
-        case VL_BEACH: return g.randomCivilianChar(seed, 4);
-        case VL_TRAVELER: return g.randomCivilianChar(seed >> 2, (seed % 5 == 0) ? 3 : ((seed % 5 == 1) ? 4 : 0));
+        case VL_WORKER: return wardrobeChar(g, seed, LK_WORKER, at);
+        case VL_BUSINESS: return wardrobeChar(g, seed, LK_BUSINESS, at);
+        case VL_STAFF: return g.randomCivilianChar(seed, 3);
+        case VL_BEACH: return wardrobeChar(g, seed, LK_BEACH, at);
+        // travelers: a fifth in office clothes (at any hour), a fifth sightseers, the rest whoever fits
+        case VL_TRAVELER: return seed % 5 == 0 ? g.randomCivilianChar(seed >> 2, 3) : wardrobeChar(g, seed >> 2, seed % 5 == 1 ? LK_TOURIST : LK_CIVIL, at);
         case VL_UNIFORM: return g.randomCivilianChar(seed, 1);   // (the uniformed look: guards)
         case VL_MEDIC: return g.randomCivilianChar(seed, 6);     // (paramedics: a hospital's ambulance bay)
         case VL_INMATE: return g.randomCivilianChar(seed, 7);    // (the prison yard: the inmates' roster, role 7)
-        default: return g.randomCivilianChar(seed, 0);
+        case VL_SPORT: return wardrobeChar(g, seed, LK_SPORT, at);
+        case VL_TOURIST: return wardrobeChar(g, seed, LK_TOURIST, at);
+        case VL_OUTDOOR: return wardrobeChar(g, seed, LK_OUTDOOR, at);
+        case VL_NIGHT: return wardrobeChar(g, seed, LK_NIGHT, at);
+        default: return wardrobeChar(g, seed, LK_CIVIL, at);
     }
 }
 
@@ -1330,12 +1756,43 @@ void venueTryDepart(GameWorld& g, int vid) {
         }
 }
 
+// A town venue's slots are checked the first time the player comes near (as buildVenues' finish() checks the others at
+// load: nobody on a lane, in water or in a building; cars on clear level ground off the road; a pair as a pair), and
+// stand at the level of the ground there. Thousands of them across the towns: checking them all at load would build
+// the site colliders of every town cell.
+void validateLazyVenue(GameWorld& g, Venue& V) {
+    V.lazy = false;
+    std::vector<VenueSlot> ok;
+    ok.reserve(V.slots.size());
+    bool prevKept = false;
+    for (size_t i = 0; i < V.slots.size(); i++) {
+        VenueSlot& s = V.slots[i];
+        bool good = !(s.follows && !prevKept);
+        if (good && !s.trusted && !s.propOnly && !(s.prop != VP_NONE && length2(s.propOff) > 0.f) && !venueSpotOk(g, s.pos, s.tight)) good = false;
+        if (good && s.prop == VP_PARKED) {
+            if (!venueParkOk(g, s.propPos, s.propYaw)) good = false;
+            for (const VenueSlot& o : ok)
+                if (good && o.prop != VP_NONE && length(o.propPos - s.propPos) < 5.f) good = false;   // (one car to a spot)
+        }
+        // room for it (and for its partner when one follows: nobody left talking to no one)
+        int need = (!s.follows && i + 1 < V.slots.size() && V.slots[i + 1].follows) ? 2 : 1;
+        if (good && (int)ok.size() + need > kVenueSlots) good = false;
+        prevKept = good;
+        if (!good) continue;
+        if (!s.fixedZ) s.z = venueStandZ(g, s.pos);
+        s.propZ = s.prop != VP_NONE ? venueStandZ(g, s.propPos) : 0.f;
+        ok.push_back(s);
+    }
+    V.slots.swap(ok);
+}
+
 void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
     if (!gVenues.built) buildVenues(g);
     for (int vi = 0; vi < (int)gVenues.v.size(); vi++) {
         Venue& V = gVenues.v[vi];
         float d = length(V.c - pp.xy());
         if (!V.active && d < V.fillR) {
+            if (V.lazy) validateLazyVenue(g, V);
             V.active = true;
             V.visits++;
             V.rankT = 20.f + hashToFloat(hash32(V.visits * 97u + (u32)vi)) * 20.f;
@@ -1343,6 +1800,7 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
         if (V.active && d > V.releaseR) {
             for (VenueSlot& s : V.slots) {
                 bool seen = venuePedLive(g, s) && g.inCameraView(g.peds[s.ped].pos.toVec3() + vec3(0, 0, 1.f), 1.f);
+                if (s.propOnly && venueVehLive(g, s)) seen = g.inCameraView(g.vehicles[s.veh].sim.body.pos.toVec3(), 3.f);
                 releaseVenueSlot(g, s, !seen);
                 s.cooldown = 0.f;
             }
@@ -1396,6 +1854,11 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
         for (int si = 0; si < (int)V.slots.size(); si++) {
             VenueSlot& s = V.slots[si];
             s.cooldown -= dt;
+            if (s.propOnly && s.veh >= 0) {
+                if (venueVehLive(g, s)) continue;   // (parked there)
+                s.veh = -1;                        // driven off, towed, wrecked: another car later
+                s.cooldown = 60.f;
+            }
             if (s.ped >= 0) {
                 // still ours? (fled from gunfire, got knocked down, walked off, boarded: let the slot go, a new face later)
                 bool live = venuePedLive(g, s);
@@ -1403,6 +1866,14 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
                 if (!live || g.peds[s.ped].health <= 0.f || !pa || pa->venue != vi * kVenueSlots + si) {
                     releaseVenueSlot(g, s, false);
                     s.cooldown = 50.f + hashToFloat(hash32(V.visits * 131u + si * 7u + (u32)g.time)) * 50.f;
+                    continue;
+                }
+                // a beach look the hour or the weather has overtaken (the evening came to the terrace, the rain): gone when
+                // nobody sees, the slot dressed for now a little later
+                if (((u32)si + (u32)(g.time * 20.0)) % 24u == 0u && s.prop == VP_NONE && s.mode != VM_BOARD && wardrobeOutOfPlace(g, g.peds[s.ped].charIndex, s.pos) &&
+                    !g.inCameraView(g.peds[s.ped].pos.toVec3() + vec3(0, 0, 1.f), 1.f)) {
+                    releaseVenueSlot(g, s, true);
+                    s.cooldown = 8.f + hashToFloat(hash32(V.visits * 37u + si * 11u)) * 20.f;
                     continue;
                 }
                 // a goodbye at the curb: a hug (a kiss on the cheek, a handshake) with the one who brought them, then in
@@ -1500,19 +1971,34 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
             if (s.prop != VP_NONE && !venueVehLive(g, s)) {
                 using namespace Vehicles;
                 VehicleClass cls = s.prop == VP_TRUCK ? VC_TRUCK : (s.prop == VP_TAXI ? VC_TAXI : (s.prop == VP_AIRBOAT ? VC_AIRBOAT : VC_SEDAN));
-                if (s.prop == VP_CAR) {
+                if (s.prop == VP_CAR || s.prop == VP_PARKED) {
                     static const VehicleClass kCars[4] = {VC_SEDAN, VC_SUV, VC_COMPACT, VC_PICKUP};
-                    cls = kCars[(h >> 6) % 4];
+                    static const VehicleClass kRural[4] = {VC_PICKUP, VC_PICKUP, VC_SUV, VC_SEDAN};
+                    cls = (s.rural ? kRural : kCars)[(h >> 6) % 4];
                 }
                 int model = g.findVehicleModel(cls, h >> 3);
-                if (model < 0 && s.prop == VP_CAR) model = g.findVehicleModel(VC_SEDAN, h >> 4);
+                if (model < 0 && (s.prop == VP_CAR || s.prop == VP_PARKED)) model = g.findVehicleModel(VC_SEDAN, h >> 4);
                 s.veh = -1;
                 if (model >= 0) {
                     float vz = s.prop == VP_AIRBOAT ? 0.4f : g.groundHeight(s.propPos.x, s.propPos.y, s.propZ + 1.2f) + 0.4f;
                     bool vSeen = !warm && g.inCameraView(vec3(s.propPos, vz), 4.f) && length(s.propPos - pp.xy()) < 160.f;
                     std::vector<int> there;
                     g.vehiclesNear(s.propPos, 4.6f, there);
-                    if (!vSeen && there.empty()) {
+                    // (a car off the road: nothing standing where it goes - a yard's tree, a post, a wall the layout cannot see,
+                    // nor anyone: the player on the drive after a fade-in, a neighbour crossing the lot)
+                    bool blocked = false;
+                    if (s.prop == VP_PARKED && Phys::gCollision) {
+                        vec2 vf = AI::yawDir(s.propYaw);
+                        vec3 push, nrm;
+                        for (int k = -1; k <= 1 && !blocked; k++)
+                            blocked = Phys::gCollision->capsuleOverlap(vec3(s.propPos + vf * (1.6f * (float)k), vz + 0.1f), 0.8f, 1.1f, push, nrm);
+                    }
+                    if (s.prop == VP_PARKED && !blocked) {
+                        std::vector<int> who;
+                        g.pedsNear(s.propPos, 3.2f, who);
+                        blocked = !who.empty();
+                    }
+                    if (!vSeen && there.empty() && !blocked) {
                         int vid = g.spawnVehicle(model, dvec3(s.propPos.x, s.propPos.y, vz), s.propYaw, false);
                         if (vid >= 0) {
                             Vehicle& v = g.vehicles[vid];
@@ -1526,7 +2012,11 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
                     }
                 }
                 if (s.veh < 0) {
-                    s.cooldown = 3.f;
+                    s.cooldown = s.prop == VP_PARKED ? 20.f : 3.f;
+                    continue;
+                }
+                if (s.propOnly) {   // (just the car)
+                    budget--;
                     continue;
                 }
             }
@@ -1548,7 +2038,7 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
                 vec2 side = vr * (s.propOff.x >= 0.f ? 1.f : -1.f);
                 at = v.sim.body.pos.toVec3().xy() + side * (bh.x + 0.55f) + vf * (s.propOff.y * bh.y);
                 atZ = (float)v.sim.body.pos.z;
-                faceYaw = AI::dirYaw(s.mode == VM_LEAN ? side : (s.propOff.y < 0.f ? -vf : vf));
+                faceYaw = AI::dirYaw(s.mode == VM_LEAN ? side : (s.mode == VM_WORK ? -side : (s.propOff.y < 0.f ? -vf : vf)));   // (at work on it: facing it)
             }
             bool onRoute = (s.mode == VM_JOG || s.mode == VM_STROLL) && s.route >= 0 && s.route < (int)V.routes.size() && !V.routes[s.route].empty();
             int startAt = onRoute ? Clamp(s.routeAt, 0, (int)V.routes[s.route].size() - 1) : 0;
@@ -1576,7 +2066,7 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
                 s.cooldown = 2.f;
                 continue;
             }
-            int ci = venueChar(g, s.look, h >> 5);
+            int ci = venueChar(g, s.look, h >> 5, s.pos);
             if (ci < 0) continue;
             float spawnYaw = out ? AI::dirYaw(normalize(s.pos - s.pos2 + vec2(1e-4f, 0.f))) : (walking ? AI::dirYaw(normalize(s.pos - s.pos2 + vec2(1e-4f, 0.f))) : faceYaw);
             int id = g.spawnPed(ci, dvec3(p3), spawnYaw, FAC_CIVILIAN);
@@ -1586,7 +2076,10 @@ void updateVenues(GameWorld& g, vec3 pp, float dt, bool warm, float tod) {
             PedAI& pa = g.pedAI(id);
             p.brain.type = BRAIN_WANDER;
             p.brain.edge = -1;
-            pa.role = s.look == VL_WORKER ? PR_WORKER : (s.look == VL_BUSINESS ? PR_BUSINESS : (s.look == VL_BEACH ? PR_BEACH : PR_CIVILIAN));
+            pa.role = s.look == VL_WORKER ? PR_WORKER : ((s.look == VL_BUSINESS || s.look == VL_STAFF) ? PR_BUSINESS : PR_CIVILIAN);
+            if (wardrobeBeachLook(g, ci)) pa.role = PR_BEACH;
+            else if (s.look == VL_TOURIST) pa.role = PR_TOURIST;
+            else if (s.look == VL_NIGHT) pa.role = PR_NIGHTLIFE;
             if (s.mode == VM_JOG) pa.role = PR_JOGGER;
             // in hand: the slot's own prop, one for the place (luggage, a rod, binoculars) or nothing (at work)
             p.carry = s.carryProp != CARRY_NONE ? s.carryProp : (s.carryCtx >= 0 ? g.pickCarry(p.uid, (int)s.carryCtx) : kCarryHandsFree);
@@ -1936,6 +2429,10 @@ void GameWorld::updatePopulation(float dt) {
     float tod = env ? env->timeOfDay : 12.f;
     float rain = env ? env->rain : 0.f;
     Density den = densityFor(reg);
+    updateLocalLife(*this, center.xy(), reg, tod);
+    den.peds = gLife.open ? den.peds * 0.5f : den.peds + gLife.peds;
+    den.traffic += gLife.traffic;
+    den.parked += gLife.parked;
     int wantPeds = Min((int)(den.peds * pedTimeFactor(reg, tod) * (rain > 0.4f ? 0.45f : 1.f) * pedDensityScale), kMaxPeds);
     int wantTraffic = Min((int)(den.traffic * trafficTimeFactor(tod) * trafficDensityScale), kMaxTraffic);
     int wantParked = Min((int)(den.parked * trafficDensityScale), kMaxParked);
@@ -1953,6 +2450,13 @@ void GameWorld::updatePopulation(float dt) {
         bool unseen = !inCameraView(p.pos.toVec3() + vec3(0, 0, 1.f), 1.f);
         if (d > (busy ? 420.f : pedDespawn) || (dead && p.stateTime > 60.f && d > 40.f && unseen) ||
             (!busy && d > 80.f && unseen && nPeds > wantPeds + 4)) {
+            despawnPed(i);
+            continue;
+        }
+        // a beach look that no longer fits (rain, nightfall, off the beach front): gone once out of sight, someone dressed
+        // for it takes their place (checked about once a second each)
+        if (!busy && !dead && unseen && d > 25.f && p.faction == FAC_CIVILIAN && ((u32)i + (u32)(time * 20.0)) % 24u == 0u &&
+            wardrobeOutOfPlace(*this, p.charIndex, p.pos.toVec3().xy())) {
             despawnPed(i);
             continue;
         }
@@ -1991,6 +2495,18 @@ void GameWorld::updatePopulation(float dt) {
         else if (!peds[drv].isPlayer && !isAircraft(i) && !isBoat(i)) nTraffic++;
     }
     updateQueues(*this, dt, pp.xy(), isNight(tod), warm);
+    // (--popdebug: the census every few seconds - the district's quota and what is out, the venues' people, the cars)
+    static bool popDebug = Platform::hasArg("popdebug");
+    static double popDebugT = 0.0;
+    if (popDebug && time - popDebugT > 4.0) {
+        popDebugT = time;
+        int venuePeds = venuePedsNear(*this, pp.xy(), 250.f), townActive = 0;
+        for (const Venue& V : gVenues.v) townActive += V.active && V.lazy == false && !strcmp(V.name, "town");
+        LOG("population: census at %.0f %.0f region %d %.1f h: peds %d / want %d (local +%.1f%s), venue peds %d (town venues active %d), traffic %d / %d, "
+            "parked %d / %d",
+            pp.x, pp.y, (int)reg, tod, nPeds, wantPeds, gLife.peds, gLife.open ? " open country" : "", venuePeds, townActive, nTraffic, wantTraffic, nParked,
+            wantParked);
+    }
     // ------------------------------------------------------------------ emergency services
     gPop.incidentTimer -= dt;
     if (gPop.incidentTimer <= 0.f) {
@@ -2196,7 +2712,7 @@ void GameWorld::updatePopulation(float dt) {
                 if (!ok) break;
                 vec3 p3(sp, groundHeight(sp.x, sp.y, map->heightAt(sp.x, sp.y) + 2.f));
                 if (visibleNear(p3) || tooClose(p3) || !freeStandingSpot(*this, p3)) break;
-                int id = spawnPed(randomCivilianChar(h >> 3, 4), dvec3(p3), hashToFloat(hash32(h)) * kTwoPi, FAC_CIVILIAN);
+                int id = spawnPed(wardrobeChar(*this, h >> 3, LK_SWIM, sp), dvec3(p3), hashToFloat(hash32(h)) * kTwoPi, FAC_CIVILIAN);
                 if (id < 0) break;
                 Ped& p = peds[id];
                 p.brain.type = BRAIN_WANDER;
@@ -2242,7 +2758,7 @@ void GameWorld::updatePopulation(float dt) {
                 int n = (h >> 9) % 3 == 0 ? 2 : 1;   // now and then a pair
                 for (int k = 0; k < n; k++) {
                     vec2 q = sp + AI::rightOf(AI::yawDir(faceShore)) * (k * 1.3f);
-                    int id = spawnPed(randomCivilianChar(hash32(h + k * 57u) >> 3, 4), dvec3(q.x, q.y, p3.z), faceShore + (k ? kPi * 0.5f : 0.f), FAC_CIVILIAN);
+                    int id = spawnPed(wardrobeChar(*this, hash32(h + k * 57u) >> 3, LK_SWIM, q), dvec3(q.x, q.y, p3.z), faceShore + (k ? kPi * 0.5f : 0.f), FAC_CIVILIAN);
                     if (id < 0) break;
                     Ped& p = peds[id];
                     p.brain.type = BRAIN_WANDER;
@@ -2281,7 +2797,7 @@ void GameWorld::updatePopulation(float dt) {
                 q.z = door3.z;
                 q.timer = 12.f + hashToFloat(h) * 12.f;
                 vec2 bp = q.door - q.along * 0.9f;
-                int bid = spawnPed(randomCivilianChar(hash32(h * 3u), 5), dvec3(vec3(bp, door3.z)), AI::dirYaw(-q.outward), FAC_CIVILIAN);
+                int bid = spawnPed(wardrobeChar(*this, hash32(h * 3u), LK_DOOR, bp), dvec3(vec3(bp, door3.z)), AI::dirYaw(-q.outward), FAC_CIVILIAN);
                 if (bid < 0) break;
                 peds[bid].brain.type = BRAIN_WANDER;
                 peds[bid].brain.edge = -1;
@@ -2301,7 +2817,7 @@ void GameWorld::updatePopulation(float dt) {
                     vec3 sp3(sp, groundHeight(sp.x, sp.y, door3.z + 1.f));
                     if (!freeStandingSpot(*this, sp3)) break;
                     u32 hk = hash32(h * 17u + k * 131u);
-                    int id = spawnPed(randomCivilianChar(hk >> 2, (hk & 3) == 0 ? 4 : 0), dvec3(sp3), AI::dirYaw(-q.along), FAC_CIVILIAN);
+                    int id = spawnPed(wardrobeChar(*this, hk >> 2, LK_CLUB, sp), dvec3(sp3), AI::dirYaw(-q.along), FAC_CIVILIAN);
                     if (id < 0) break;
                     peds[id].brain.type = BRAIN_WANDER;
                     peds[id].brain.edge = -1;
@@ -2344,7 +2860,7 @@ void GameWorld::updatePopulation(float dt) {
                 const AI::ScenarioPoint& sp = laneGraph.spots[pick];
                 bool bench = sp.kind == AI::SP_BENCH;
                 int role = business && (h & 3) == 0 ? 3 : 0;
-                int id = spawnPed(randomCivilianChar(h >> 3, role), dvec3(sp.pos), AI::dirYaw(sp.face), FAC_CIVILIAN);
+                int id = spawnPed(wardrobeChar(*this, h >> 3, role == 3 ? LK_BUSINESS : LK_CIVIL, sp.pos.xy()), dvec3(sp.pos), AI::dirYaw(sp.face), FAC_CIVILIAN);
                 if (id < 0) break;
                 Ped& p = peds[id];
                 p.brain.type = BRAIN_WANDER;
@@ -2376,7 +2892,7 @@ void GameWorld::updatePopulation(float dt) {
                     vec3 c3 = sideOffset(*this, s, 0.f, s.halfWidth * 0.35f);
                     if (visibleNear(c3) || tooClose(c3)) break;
                     Faction f = kind == PK_GANG ? (turfOwner(sreg) != FAC_CIVILIAN ? turfOwner(sreg) : turf) : FAC_CIVILIAN;
-                    int charRole = kind == PK_WORKER ? 5 : (kind == PK_NIGHTLIFE ? ((h >> 3) % 3 == 0 ? 4 : 0) : (business ? 3 : 0));
+                    int look = kind == PK_WORKER ? LK_WORKER : (kind == PK_NIGHTLIFE ? LK_NIGHT : (business ? LK_BUSINESS : LK_CIVIL));
                     float base = hashToFloat(hash32(h * 11u)) * kTwoPi;
                     for (int k = 0; k < n && nPeds < wantPeds + 2; k++) {
                         float a = base + k * kTwoPi / n;
@@ -2384,7 +2900,7 @@ void GameWorld::updatePopulation(float dt) {
                         vec3 p3(c3.xy() + off, groundHeight(c3.x + off.x, c3.y + off.y, c3.z + 1.f));
                         if (!freeStandingSpot(*this, p3)) continue;
                         u32 hk = hash32(h * 31u + k * 977u);
-                        int ci = f != FAC_CIVILIAN ? gangCharFor(*this, hk, f) : randomCivilianChar(hk >> 2, charRole);
+                        int ci = f != FAC_CIVILIAN ? gangCharFor(*this, hk, f) : wardrobeChar(*this, hk >> 2, look, p3.xy());
                         int id = spawnPed(ci, dvec3(p3), 0.f, f);
                         if (id < 0) continue;
                         Ped& p = peds[id];
@@ -2434,25 +2950,27 @@ void GameWorld::updatePopulation(float dt) {
                 bool fromDoor = !warm && sidewalk && (kind == PK_WALKER || kind == PK_BUSINESS) && hashToFloat(hash32(h * 41u)) < 0.3f &&
                                 aiBuildingDoorNear(*this, p3.xy(), 16.f, h, door) && length(door.xy() - pp.xy()) > 12.f && freeStandingSpot(*this, door);
                 if (!fromDoor && (visibleNear(p3) || tooClose(p3) || !freeStandingSpot(*this, p3))) break;
-                int charRole = 0;
+                // what they are out for (the wardrobe dresses them for the spot, the hour and the weather: the beach
+                // districts' beach-goers in swimwear on the beach front on a dry day, in a cover-up or summer clothes on the
+                // streets behind it, like everyone else after dark; runners in sportswear)
+                int look = LK_CIVIL;
                 u8 role = PR_CIVILIAN;
                 if (kind == PK_BUSINESS) {
-                    charRole = 3;
+                    look = LK_BUSINESS;
                     role = PR_BUSINESS;
                 } else if (kind == PK_WORKER) {
-                    charRole = 5;
+                    look = LK_WORKER;
                     role = PR_WORKER;
                 } else if (kind == PK_JOGGER) {
-                    charRole = (sreg == World::REG_BEACH || sreg == World::REG_KEY_CORAL) ? 4 : 0;
+                    look = LK_SPORT;
                     role = PR_JOGGER;
                 } else if (sreg == World::REG_BEACH || sreg == World::REG_KEY_CORAL || sreg == World::REG_KEYS) {
-                    charRole = (h % 3 == 0) ? 4 : 0;
-                    role = charRole == 4 ? PR_BEACH : PR_CIVILIAN;
+                    look = (h % 3 == 0) ? LK_BEACH : LK_CIVIL;
                 } else if (business && (h % 4 == 0)) {
-                    charRole = 3;
+                    look = LK_BUSINESS;
                     role = PR_BUSINESS;
                 } else if ((sreg == World::REG_PORT || sreg == World::REG_FLATS) && h % 4 == 0) {
-                    charRole = 5;
+                    look = LK_WORKER;
                     role = PR_WORKER;
                 }
                 if (night && nightlifeArea(sreg) && role == PR_CIVILIAN && h % 2 == 0) role = PR_NIGHTLIFE;
@@ -2460,14 +2978,12 @@ void GameWorld::updatePopulation(float dt) {
                 bool scenic = sreg == World::REG_BEACH || sreg == World::REG_DOWNTOWN || sreg == World::REG_KEY_CORAL || sreg == World::REG_BAY_ISLAND;
                 if (kind == PK_GROUP && scenic && !night && (h >> 17) % 2 == 0) {
                     role = PR_TOURIST;
-                    charRole = 4;
+                    look = LK_TOURIST;
                 }
                 bool beat = kind == PK_BEAT;
                 Faction fac = beat ? FAC_POLICE : FAC_CIVILIAN;
-                if (beat) {
-                    role = PR_COP;
-                    charRole = 1;
-                }
+                if (beat) role = PR_COP;
+                auto dress = [&](u32 seed, vec2 at) { return beat ? randomCivilianChar(seed, 1) : wardrobeChar(*this, seed, look, at); };
                 auto equipCop = [&](int pid) {   // sidearm holstered until needed; police accuracy 0.4-0.6
                     giveWeapon(pid, WPN_PISTOL, 60);
                     peds[pid].weapon = WPN_FISTS;
@@ -2476,7 +2992,9 @@ void GameWorld::updatePopulation(float dt) {
                 };
                 bool walkDir = (h >> 11) & 1;
                 vec2 heading = walkDir ? s.t : -s.t;
-                int id = spawnPed(randomCivilianChar(h >> 3, charRole), dvec3(fromDoor ? door : p3), fromDoor ? AI::dirYaw(normalize(p3.xy() - door.xy() + vec2(1e-3f, 0.f))) : AI::dirYaw(heading), fac);
+                int ci = dress(h >> 3, p3.xy());
+                if (look == LK_BEACH && role == PR_CIVILIAN && wardrobeBeachLook(*this, ci)) role = PR_BEACH;
+                int id = spawnPed(ci, dvec3(fromDoor ? door : p3), fromDoor ? AI::dirYaw(normalize(p3.xy() - door.xy() + vec2(1e-3f, 0.f))) : AI::dirYaw(heading), fac);
                 if (id < 0) break;
                 Ped& p = peds[id];
                 p.brain.type = BRAIN_WANDER;
@@ -2531,7 +3049,7 @@ void GameWorld::updatePopulation(float dt) {
                             vec2 fp = p3.xy() + AI::rightOf(heading) * slot.x + heading * slot.y;
                             vec3 f3(fp, groundHeight(fp.x, fp.y, p3.z + 1.f));
                             if (!freeStandingSpot(*this, f3)) continue;
-                            int fid = spawnPed(randomCivilianChar(hash32(h + k * 31u) >> 3, charRole), dvec3(f3), p.yaw, fac);
+                            int fid = spawnPed(dress(hash32(h + k * 31u) >> 3, f3.xy()), dvec3(f3), p.yaw, fac);
                             if (fid < 0) continue;
                             if (beat) equipCop(fid);
                             peds[fid].brain.type = BRAIN_WANDER;
@@ -2794,7 +3312,8 @@ void GameWorld::updatePopulation(float dt) {
                 if (who < 0 && aiBuildingDoorNear(*this, cp.xy(), 24.f, h, door) && length(door.xy() - pp.xy()) > 14.f && freeStandingSpot(*this, door)) {
                     World::Region creg = map->regionAt(cp.x, cp.y);
                     int charRole = (creg == World::REG_FINANCIAL || creg == World::REG_DOWNTOWN) && (h >> 7) % 3 == 0 ? 3 : 0;
-                    who = spawnPed(randomCivilianChar(h >> 3, charRole), dvec3(door), AI::dirYaw(normalize(cp.xy() - door.xy() + vec2(1e-3f, 0.f))), FAC_CIVILIAN);
+                    who = spawnPed(wardrobeChar(*this, h >> 3, charRole == 3 ? LK_BUSINESS : LK_CIVIL, door.xy()), dvec3(door),
+                                   AI::dirYaw(normalize(cp.xy() - door.xy() + vec2(1e-3f, 0.f))), FAC_CIVILIAN);
                     if (who >= 0) {
                         peds[who].brain.type = BRAIN_WANDER;
                         peds[who].brain.edge = -1;
