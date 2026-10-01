@@ -143,6 +143,16 @@ std::string gpuTimerReport() {
     return s;
 }
 
+const FrameStats& lastFrameStats() { return gLastStats; }
+
+std::string frameStatsReport() {
+    const FrameStats& f = gLastStats;
+    return StrFormat("draws %u, dispatches %u, indirect %u | CB writes %u (%.1f KB), dynamic %.1f KB | root CBVs %u, "
+                     "root constants %u | tables %u (%u descriptors) | pipelines %u",
+                     f.draws, f.dispatches, f.indirect, f.cbWrites, f.cbBytes / 1024.0, f.dynamicBytes / 1024.0, f.rootCBVs,
+                     f.rootConstantSets, f.tables, f.descriptors, f.pipelines);
+}
+
 bool saveScreenshotBMP(const char* path) {
     ResourceObj* bb = backbuffer();
     if (!bb) return false;
@@ -689,6 +699,149 @@ int selfTest() {
         check(bad15 == 0, "GPU waits polling every millisecond", StrFormat("%d of %u values wrong in 24 readbacks", bad15, N * 24));
         out.release();
         releaseShader(csSpin);
+    }
+
+    // 16) per-draw root constants selecting instance data from a structured upload buffer (VS and PS): constant 1 is
+    //     set once, the later draws change only constant 0 (one of them to the value it already has), and the last
+    //     draw changes only constant 1 (an update at a non-zero offset)
+    {
+        struct TestInstance {
+            float rect[4];
+            u32 color[4];
+        };
+        TestInstance inst[4];
+        for (u32 i = 0; i < 4; i++) {
+            float x0 = -1.f + 0.5f * (float)i;
+            inst[i] = {{x0, -1.f, x0 + 0.5f, 1.f}, {20 + 40 * i, 200 - 30 * i, 5 + 50 * i, 0}};
+        }
+        Buffer ib = createBuffer(sizeof(inst), sizeof(TestInstance), BUF_STRUCTURED | BUF_DYNAMIC, nullptr, "selftest instances");
+        updateBuffer(ib, inst, sizeof(inst));
+        Texture strip = createTexture2D(4, 1, DXGI_FORMAT_R8G8B8A8_UNORM, TEX_RTV | TEX_SRV);
+        VertexShader vsInst = loadVS("gfxtest.hlsl", "vsInstance", nullptr, 0);
+        PixelShader psInst = loadPS("gfxtest.hlsl", "psInstance");
+        ctx->setRenderTargets(1, &strip.rtv, nullptr);
+        setViewport(4, 1);
+        ctx->setVS(vsInst.vs);
+        ctx->setInputLayout(nullptr);
+        ctx->setPS(psInst);
+        ctx->setBlendState(states.opaque);
+        ctx->setDepthState(states.depthOff);
+        ctx->setRasterState(states.cullNone);
+        ctx->setTopology(TOPO_TRIANGLE_STRIP);
+        ctx->vsSetSRVs(22, 1, &ib.srv);
+        ctx->psSetSRVs(22, 1, &ib.srv);
+        const u32 order[5] = {0, 2, 2, 1, 3};
+        for (u32 k = 0; k < 5; k++) {
+            u32 rc[2] = {order[k], 77};
+            ctx->setRootConstants(false, 0, k == 0 ? 2 : 1, rc);
+            ctx->draw(4, 0);
+        }
+        u32 alpha99 = 99;
+        ctx->setRootConstants(false, 1, 1, &alpha99);
+        ctx->draw(4, 0);
+        ctx->setRenderTargets(0, nullptr, nullptr);
+        SRV nul = nullptr;
+        ctx->vsSetSRVs(22, 1, &nul);
+        ctx->psSetSRVs(22, 1, &nul);
+        ctx->setTopology(TOPO_TRIANGLE_LIST);
+        int bad = 0;
+        float px[4] = {};
+        for (u32 i = 0; i < 4; i++) {
+            readbackPixelsFloat4(strip.res, DXGI_FORMAT_R8G8B8A8_UNORM, (int)i, 0, px);
+            for (u32 ch = 0; ch < 3; ch++) bad += fabsf(px[ch] * 255.f - (float)inst[i].color[ch]) > 1.5f;
+            bad += fabsf(px[3] * 255.f - (i == 3 ? 99.f : 77.f)) > 1.5f;
+        }
+        check(bad == 0, "per-draw constants -> instance data", StrFormat("last pixel %.0f %.0f %.0f %.0f (expect 140 110 155 99), %d wrong",
+                                                                        px[0] * 255.f, px[1] * 255.f, px[2] * 255.f, px[3] * 255.f, bad));
+        ib.release();
+        strip.release();
+        releaseShader(vsInst.vs);
+        releaseShader(psInst);
+    }
+
+    // 17) bindless reads from a pixel shader: a texture array layer a compute pass wrote (prepareBindlessRead
+    //     transitions it out of the UAV state) and a structured buffer, both by their heap indices
+    {
+        Texture arr = createTexture2D(2, 2, DXGI_FORMAT_R8G8B8A8_UNORM, TEX_SRV | TEX_UAV, 1, 2);
+        u32 rows[8] = {11, 22, 33, 44, 55, 66, 77, 88};
+        Buffer sb = createBuffer(sizeof(rows), 16, BUF_STRUCTURED, rows, "selftest bindless structured");
+        ComputeShader csFill = loadCS("gfxtest.hlsl", "csFillArray");
+        PixelShader psArr = loadPS("gfxtest.hlsl", "psBindlessArray");
+        ctx->setCS(csFill);
+        ctx->csSetUAVs(0, 1, &arr.uav);
+        ctx->dispatch(1, 1, 1);
+        unbindCSResources(0, 1);
+        ctx->prepareBindlessRead(arr.res);
+        ctx->prepareBindlessRead(sb.buf);
+        Texture one = createTexture2D(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, TEX_RTV | TEX_SRV);
+        ctx->setRenderTargets(1, &one.rtv, nullptr);
+        setViewport(1, 1);
+        ctx->setVS(vsFull.vs);
+        ctx->setInputLayout(nullptr);
+        ctx->setPS(psArr);
+        u32 rc[2] = {bindlessIndex(arr.srv), bindlessIndex(sb.srv)};
+        ctx->setRootConstants(false, 0, 2, rc);
+        ctx->draw(3, 0);
+        ctx->setRenderTargets(0, nullptr, nullptr);
+        float px[4];
+        readbackPixelsFloat4(one.res, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 0, px);
+        bool ok = fabsf(px[0] * 255.f - 110.f) < 1.5f && fabsf(px[1] * 255.f - 8.f) < 1.5f && fabsf(px[2] * 255.f - 55.f) < 1.5f &&
+                  fabsf(px[3] * 255.f - 88.f) < 1.5f;
+        check(ok, "bindless array + structured (PS)", StrFormat("pixel %.0f %.0f %.0f %.0f (expect 110 8 55 88)", px[0] * 255.f,
+                                                               px[1] * 255.f, px[2] * 255.f, px[3] * 255.f));
+        arr.release();
+        sb.release();
+        one.release();
+        releaseShader(csFill);
+        releaseShader(psArr);
+    }
+
+    // 18) a pixel shader switch with unchanged bindings keeps the descriptor table when the new shader reads a subset
+    //     of its slots (no table built), and a binding change still rebuilds it
+    {
+        u32 r40 = 0xff000028u, r90 = 0xff00005au, r150 = 0xff000096u;
+        Texture tA = createTexture2D(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, TEX_SRV, 1, 1, &r40, 4);
+        Texture tB = createTexture2D(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, TEX_SRV, 1, 1, &r90, 4);
+        Texture tC = createTexture2D(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, TEX_SRV, 1, 1, &r150, 4);
+        Texture strip = createTexture2D(3, 1, DXGI_FORMAT_R8G8B8A8_UNORM, TEX_RTV | TEX_SRV);
+        PixelShader psTwo = loadPS("gfxtest.hlsl", "psTwo");
+        PixelShader psSecond = loadPS("gfxtest.hlsl", "psSecond");
+        ctx->setRenderTargets(1, &strip.rtv, nullptr);
+        ctx->setVS(vsFull.vs);
+        ctx->setInputLayout(nullptr);
+        ctx->setTopology(TOPO_TRIANGLE_LIST);
+        SRV two[2] = {tA.srv, tB.srv};
+        ctx->psSetSRVs(0, 2, two);
+        ctx->setPS(psTwo);
+        setViewport(1, 1, 0, 0);
+        ctx->draw(3, 0);
+        u32 tablesBefore = gStats.tables;
+        ctx->setPS(psSecond);
+        setViewport(1, 1, 1, 0);
+        ctx->draw(3, 0);
+        u32 built = gStats.tables - tablesBefore;
+        ctx->psSetSRVs(0, 1, &tC.srv);
+        ctx->setPS(psTwo);
+        setViewport(1, 1, 2, 0);
+        ctx->draw(3, 0);
+        ctx->setRenderTargets(0, nullptr, nullptr);
+        SRV nul2[2] = {};
+        ctx->psSetSRVs(0, 2, nul2);
+        const float expect[3][3] = {{40, 90, 0}, {0, 90, 255}, {150, 90, 0}};
+        int bad = 0;
+        float px[4] = {};
+        for (int i = 0; i < 3; i++) {
+            readbackPixelsFloat4(strip.res, DXGI_FORMAT_R8G8B8A8_UNORM, i, 0, px);
+            for (int ch = 0; ch < 3; ch++) bad += fabsf(px[ch] * 255.f - expect[i][ch]) > 1.5f;
+        }
+        check(bad == 0 && built == 0, "table kept across a shader switch",
+              StrFormat("%d channels wrong, %u tables built for the subset shader (expect 0)", bad, built));
+        tA.release();
+        tB.release();
+        tC.release();
+        strip.release();
+        releaseShader(psTwo);
+        releaseShader(psSecond);
     }
 
     releaseShader(csBindless);

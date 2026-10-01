@@ -11,11 +11,6 @@ const std::vector<int>& siteFarCells(float* range);  // world/sitecell.cpp: skyl
 
 namespace Render {
 
-struct DrawCBData {
-    vec4 cellOffset;
-    vec4 params;
-};
-
 struct StreamCell {
     int cx = 0, cy = 0, lod = 0;
     std::atomic<int> state{0};  // 0 queued, 1 generated (cpu ready), 2 uploaded, 3 empty
@@ -34,7 +29,6 @@ struct WorldRenderer {
     gfx::VertexShader vs, vsShadow;
     gfx::PixelShader  ps = nullptr;
     gfx::RasterState  decalRS = nullptr;
-    gfx::CBuffer<DrawCBData> drawCB;
     MaterialLibrary* mats = nullptr;
     gfx::Buffer facadeBuf;
     gfx::Buffer facadeLightBuf;   // per facade: night architectural lighting (see uploadFacades)
@@ -62,12 +56,34 @@ struct WorldRenderer {
         vs = gfx::loadVS("world.hlsl", "vsWorld", layout, 6);
         vsShadow = gfx::loadVS("world.hlsl", "vsWorldShadow", layout, 6);
         ps = gfx::loadPS("world.hlsl", "psWorld");
-        drawCB.create();
         gfx::RasterDesc rs;
         rs.cull = gfx::CULL_BACK;
         rs.depthBias = 8;
         rs.slopeBias = 2.f;
         decalRS = gfx::createRasterState(rs);
+        // The facade tables and the sign atlas are read through the bindless arrays every frame: until a building
+        // set arrives (Renderer::setWorld) they hold one blank facade and a blank sign
+        uploadFacades(World::BuildingSet());
+        u32 blank = 0;
+        signTex = gfx::createTexture2D(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV, 1, 1, &blank, 4);
+    }
+
+    // world.hlsl / overhead.hlsl: root constants 0..2 = the cell's origin relative to the view's reference point
+    static void setCellOffset(vec3 off) {
+        float o[3] = {off.x, off.y, off.z};
+        gfx::ctx->setRootConstants(false, 0, 3, o);
+    }
+
+    // Resources the world shaders read through the bindless arrays (facade.hlsli): their heap indices for the frame
+    // constants, and the transitions the slot model would otherwise make
+    void bindlessFrame(u32 idx[4]) {
+        idx[0] = gfx::bindlessIndex(facadeBuf.srv);
+        idx[1] = gfx::bindlessIndex(signTex.srv);
+        idx[2] = gfx::bindlessIndex(facadeLightBuf.srv);
+        idx[3] = 0;
+        gfx::ctx->prepareBindlessRead(facadeBuf.buf);
+        gfx::ctx->prepareBindlessRead(signTex.res);
+        gfx::ctx->prepareBindlessRead(facadeLightBuf.buf);
     }
 
     void uploadFacades(const World::BuildingSet& bs) {
@@ -261,14 +277,6 @@ struct WorldRenderer {
         return it != cells.end() && (it->second->state.load() >= 2);
     }
 
-    void bindCommon(Renderer& r) {
-        auto* c = gfx::ctx;
-        c->setInputLayout(vs.layout);
-        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
-        gfx::SRV  srvs[6] = {mats->table.srv, mats->albedoArr.srv, mats->normalArr.srv, facadeBuf.srv, signTex.srv, facadeLightBuf.srv};
-        c->psSetSRVs(10, 6, srvs);
-    }
-
     template <typename F>
     void forVisible(const Frustum& fr, dvec3 cam, bool decalsPass, F&& fn) {
         for (auto& kv : cells) {
@@ -291,17 +299,13 @@ struct WorldRenderer {
         auto* c = gfx::ctx;
         Frustum fr;
         fr.fromMatrix(vp);
-        bindCommon(r);
+        c->setInputLayout(vs.layout);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
         c->setVS(vs.vs);
         c->setPS(ps);
-        gfx::Resource  cbs[] = {drawCB.get()};
-        c->vsSetCBs(1, 1, cbs);
-        c->psSetCBs(1, 1, cbs);
         if (mainView) drawnCells = 0;
         forVisible(fr, refPos, false, [&](StreamCell* sc, vec3 off) {
-            drawCB.data.cellOffset = vec4(off, 0);
-            drawCB.data.params = vec4(0);
-            drawCB.upload();
+            setCellOffset(off);
             UINT stride = sizeof(VtxStatic), offset = 0;
             c->setVertexBuffers(0, 1, &sc->vb.buf, &stride, &offset);
             c->setIndexBuffer(sc->ib.buf, DXGI_FORMAT_R32_UINT, 0);
@@ -316,8 +320,7 @@ struct WorldRenderer {
         c->setRasterState(decalRS);
         if (withDecals) forVisible(fr, refPos, true, [&](StreamCell* sc, vec3 off) {
             if (!sc->decalCount) return;
-            drawCB.data.cellOffset = vec4(off, 0);
-            drawCB.upload();
+            setCellOffset(off);
             UINT stride = sizeof(VtxStatic), offset = 0;
             c->setVertexBuffers(0, 1, &sc->vb.buf, &stride, &offset);
             c->setIndexBuffer(sc->ib.buf, DXGI_FORMAT_R32_UINT, 0);
@@ -325,8 +328,6 @@ struct WorldRenderer {
             r.stats.drawCalls++;
         });
         c->setRasterState(gfx::states.cullBack);
-        gfx::SRV  nulls[6] = {};
-        c->psSetSRVs(10, 6, nulls);
     }
 
     void drawShadow(Renderer& r, const mat4& lightVP, int cascade) {
@@ -337,13 +338,10 @@ struct WorldRenderer {
         c->setTopology(gfx::TOPO_TRIANGLE_LIST);
         c->setVS(vsShadow.vs);
         c->setPS(nullptr);
-        gfx::Resource  cbs[] = {drawCB.get()};
-        c->vsSetCBs(1, 1, cbs);
         forVisible(fr, r.camera.pos, false, [&](StreamCell* sc, vec3 off) {
             // near cascades only need near cells
             if (cascade <= 1 && sc->lod == 1) return;
-            drawCB.data.cellOffset = vec4(off, 0);
-            drawCB.upload();
+            setCellOffset(off);
             UINT stride = sizeof(VtxStatic), offset = 0;
             c->setVertexBuffers(0, 1, &sc->vb.buf, &stride, &offset);
             c->setIndexBuffer(sc->ib.buf, DXGI_FORMAT_R32_UINT, 0);

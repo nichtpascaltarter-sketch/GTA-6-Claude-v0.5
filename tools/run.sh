@@ -36,9 +36,13 @@ if [ -e /tmp/neontide_build.lock ] && command -v flock >/dev/null 2>&1; then
     done
   fi
 fi
-# and a game starts only once there is room for it (up to 10 minutes' wait), so it can't push a compile over the cap
+# and a game starts only once there is room for it (up to 10 minutes' wait), so it can't push a compile over the cap.
+# The check and the start are one step under a launch lock, held 30 s longer (by a background sleep) until the new
+# game shows up in tools/memfree.sh's count: games started at the same moment used to pass the check together.
 if [ -e /tmp/neontide_build.lock ]; then
+  if command -v flock >/dev/null 2>&1; then exec 7>>/tmp/neontide_launch.lock; flock 7; fi
   n=0
   while [ "$(sh tools/memfree.sh 2>/dev/null || echo 100000)" -lt 3000 ] && [ $n -lt 40 ]; do sleep 15; n=$((n+1)); done
+  if command -v flock >/dev/null 2>&1; then sleep 30 </dev/null >/dev/null 2>&1 8>&- & exec 7>&-; fi
 fi
 exec timeout ${TIMEOUT:-600} xvfb-run -a -s "-screen 0 1920x1080x24" /usr/lib/wine/wine64 ${EXE:-bin/NeonTide.exe} --autotest "$@"

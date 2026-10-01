@@ -554,10 +554,11 @@ void stairFlight(G& g, const SF& f, const MetroStation& st, int side, bool farLo
                 g.m->box(vec3(base.x, base.y, (zb + zr1 + 0.25f) * 0.5f) - g.org, f.d, -f.r, vec3(0, 0, 1), vec3(0.06f, 0.06f, (zr1 + 0.25f - zb) * 0.5f), rgb(0.3f),
                          mSteel, false);
             }
-            // stair light under each roof panel
+            // stair light under each roof panel: a downlight (about 76 degrees off the vertical), so the panel it
+            // hangs 0.35 m under does not catch it at close range and glow white
             vec3 lp = (A0 + A1 + B0 + B1) * 0.25f - vec3(0, 0, 0.15f);
             lamp(g, lp, 0.18f, vec3(1.f, 0.95f, 0.85f), 0.6f, EA_NIGHT);
-            light(g, lp - vec3(0, 0, 0.2f), vec3(1.f, 0.93f, 0.82f) * 1400.f, 10.f, 1);
+            light(g, lp - vec3(0, 0, 0.2f), vec3(1.f, 0.93f, 0.82f) * 1400.f, 10.f, 1, vec3(0, 0, -1), 0.19f);
         }
     }
     // street landing: totem pylon with the SkyLine roundel, two ticket machines under a small canopy
@@ -714,13 +715,14 @@ void genStation(const SiteElem& e, G& g) {
                 }
         }
         // lighting under the roof: lamp strips + lights along both platforms (on all day: the platforms sit in the shade
-        // of the wing roof, brighter at night)
+        // of the wing roof, brighter at night). The strips light the platforms below them (downlights, about 78
+        // degrees off the vertical), not the roof 0.65 m above them.
         for (int sd = -1; sd <= 1; sd += 2) {
             float lat = sd * 5.3f;
             float zl = roofZ(lat) - 0.3f;
             for (float a = -H + 4.5f; a <= H - 4.4f; a += 8.4f) {
                 sbox(g, f, a, lat, zl, vec3(1.2f, 0.09f, 0.04f), rgb(1.f, 0.97f, 0.9f, 0.55f), emMat());
-                light(g, f.P(a, lat, zl - 0.35f), vec3(0.95f, 0.97f, 1.f) * 2600.f, 13.f, 2);
+                light(g, f.P(a, lat, zl - 0.35f), vec3(0.95f, 0.97f, 1.f) * 2600.f, 13.f, 2, vec3(0, 0, -1), 0.2f);
             }
         }
         // hanging name panels, next-train displays and speakers

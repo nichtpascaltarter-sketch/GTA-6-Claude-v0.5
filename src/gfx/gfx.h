@@ -416,7 +416,8 @@ public:
     void setCBs(Stage s, u32 slot, u32 n, const Resource* b);
     // initialCounts (optional, ~0u = keep): resets append / consume counters before the next dispatch
     void csSetUAVs(u32 slot, u32 n, const UAV* v, const u32* initialCounts = nullptr);
-    // Root constants at register(b0, space100): graphics (all stages) or compute
+    // Root constants at register(b0, space100): graphics (all stages) or compute. Only the DWORDs that changed are
+    // recorded (at the next draw / dispatch), so per-draw values such as an instance index cost a few bytes each.
     void setRootConstants(bool compute, u32 offset, u32 count, const void* data);
     void setVertexBuffers(u32 slot, u32 n, const Resource* b, const u32* strides, const u32* offsets);
     void setIndexBuffer(Resource b, DXGI_FORMAT fmt, u32 offset = 0);
@@ -448,6 +449,9 @@ public:
     void generateMips(const Texture& t);                               // TEX_GENMIPS textures (compute downsampler)
     // ---- explicit barriers (they update the automatic tracker, so both styles mix)
     void transition(Resource r, D3D12_RESOURCE_STATES state, u32 subresource = kAllSubresources);
+    // Shaders reading a resource only through the bindless arrays are invisible to the automatic transitions: this
+    // puts it into the shader-readable state of this queue before the draws / dispatches that read it.
+    void prepareBindlessRead(Resource r);
     void uavBarrier(Resource r);        // null: all UAV accesses
     void aliasingBarrier(Resource before, Resource after);
     void discard(Resource r);           // placed render targets / depth after an aliasing barrier
@@ -490,7 +494,7 @@ private:
     u32 uavInitCount[kMaxUAVSlots] = {};
     u8 uavInitMask = 0;              // append / consume counters to reset before the next dispatch
     u32 rootConst[2][kRootConstants] = {};
-    bool rootConstDirty[2] = {true, true};
+    u32 rootConstLo[2] = {0, 0}, rootConstHi[2] = {kRootConstants, kRootConstants};   // DWORDs [lo, hi) the list lacks
     Resource vbs[kMaxVertexBuffers] = {};
     u32 vbStride[kMaxVertexBuffers] = {}, vbOffset[kMaxVertexBuffers] = {};
     Resource ib = nullptr;
@@ -512,6 +516,11 @@ private:
     D3D12_INDEX_BUFFER_VIEW appliedIB = {};
     bool srvTableDirty[STAGE_COUNT][2] = {};
     bool uavTableDirty = true;
+    // The shader each applied descriptor table was built for, and its slots: a table also serves a later shader that
+    // reads a subset of those slots as the same kinds of resource (shader switches with unchanged bindings)
+    const ShaderObj* srvTableShader[STAGE_COUNT][2] = {};
+    u64 srvTableMask[STAGE_COUNT][2] = {};
+    const ShaderObj* uavTableShader = nullptr;
     bool psoDirty = true, rtDirty = true, vpDirty = true, scissorDirty = true, topoDirty = true;
     bool statesDirty[2] = {true, true};   // graphics / compute bindings that need resource transitions changed
     bool iaStatesDirty = true;            // vertex / index buffers changed
@@ -538,8 +547,11 @@ private:
     void prepareDispatch();
     void buildSRVTable(Stage st, u32 range, u32 rootParam, bool compute);
     void buildUAVTable();
+    bool srvTableCovers(Stage st, u32 range, const ShaderObj* s) const;
+    bool uavTableCovers(const ShaderObj* s) const;
     void applyRootCBVs(Stage st, bool compute);
     void applyPendingCounters();
+    void markRootConstantsDirty(int graphicsOrCompute);
     ID3D12PipelineState* resolveGraphicsPSO();
     void markUAVWrites();
     void afterUAVClear();
@@ -581,6 +593,22 @@ void setViewport(float w, float h, float x = 0, float y = 0);
 void clearBindings();            // unbind SRVs / UAVs / render targets in every stage
 void unbindCSResources(int srvCount = 16, int uavCount = 8);
 inline u32 divUp(u32 a, u32 b) { return (a + b - 1) / b; }
+
+// API work per presented frame, all contexts (--gfxstats): what the renderer's draw loops cost the CPU in commands,
+// upload-page writes and descriptor copies. lastFrameStats() is the last presented frame.
+struct FrameStats {
+    u32 draws = 0, dispatches = 0, indirect = 0;
+    u32 cbWrites = 0;            // dynamic constant buffer writes (an upload-page allocation and a new root CBV each)
+    u64 cbBytes = 0;
+    u64 dynamicBytes = 0;        // all upload-page writes of dynamic buffers
+    u32 rootCBVs = 0;            // root constant buffer views set
+    u32 rootConstantSets = 0;    // root constant blocks set (register(b0, space100))
+    u32 tables = 0;              // SRV / UAV descriptor tables built (copied into the ring)
+    u32 descriptors = 0;         // descriptors copied into those tables
+    u32 pipelines = 0;           // pipeline state changes
+};
+const FrameStats& lastFrameStats();
+std::string frameStatsReport();
 
 // GPU timing (optional overlay, --gputimers)
 void gpuTimerBegin(const char* name);

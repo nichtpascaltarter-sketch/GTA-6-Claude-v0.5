@@ -2,11 +2,10 @@
 // dry areas under roofs, grass exclusion) and the color target flags lawns / medians (grass material facing
 // up) so ground cover can grow on world meshes too.
 #include "common.hlsli"
+#include "bindless.hlsli"
 
-cbuffer DrawCB : register(b1) {
-    float4 gCellOffset;   // xyz: cell origin - camera position
-    float4 gDrawParams;
-};
+// Per-draw root constants (WorldRenderer::setCellOffset): 0..2 cell origin relative to the camera
+float3 cellOffset() { return asfloat(gRootConstants[0].xyz); }
 cbuffer ShadowPassCB : register(b2) {
     float4x4 gPassViewProj;
 };
@@ -27,7 +26,7 @@ struct VSOut {
 
 VSOut vsOverhead(VSIn i) {
     VSOut o;
-    o.pos = mul(gPassViewProj, float4(i.pos + gCellOffset.xyz, 1));
+    o.pos = mul(gPassViewProj, float4(i.pos + cellOffset(), 1));
     o.mat = i.mat & 0xffu;
     o.nz = octDecode(i.nrm).z;
     return o;

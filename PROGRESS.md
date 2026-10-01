@@ -243,11 +243,19 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   reflection, root signatures, pipelines), `gfx_tools.cpp` (GPU timers, readbacks, screenshots, self-test).
 - Binding model (the HLSL keeps its space0 registers): per stage b0..b3 as root CBVs; t0..t31 (per pass) and
   t32..t47 (frame globals) as two descriptor tables; u0..u7 for compute; 16 root-constant DWORDs at
-  register(b0, space100) (`setRootConstants`); the fixed sampler table s0..s6; and bindless arrays over the whole
-  heap: t spaces 1..15 and u spaces 1..8 (`shaders/bindless.hlsli`, index = `gfx::bindlessIndex(view)`).
+  register(b0, space100) (`setRootConstants`, which records only the DWORDs that changed); the fixed sampler table
+  s0..s6; and bindless arrays over the whole heap: t spaces 1..15 and u spaces 1..8 (`shaders/bindless.hlsli`,
+  index = `gfx::bindlessIndex(view)`; resources read only that way need `Context::prepareBindlessRead`, since the
+  automatic transitions see slot bindings only).
+- Per-draw data: world cells pass their offset as root constants; dynamic objects (vehicles, characters, props in
+  motion) index a per-frame object buffer (t0, filled once by `DynamicRenderer::prepare`) with one root constant;
+  props and terrain are instanced. The material set (table, albedo / normal arrays), the foliage cards and the
+  building facade tables are read through the bindless arrays (`shaders/materials.hlsli`, `facade.hlsli`) with
+  heap indices in the frame constants (`gBindlessMat`, `gBindlessFacade`), so no pass binds them.
 - Descriptors: one shader-visible heap of 1,000,000 descriptors: 262,144 persistent bindless slots, the rest a ring
   for per-draw tables (only the slots a shader uses are copied; unused ones get null descriptors of the type the
-  shader declares, from reflection). Pipelines are created on first use and cached by shaders, input layout,
+  shader declares, from reflection). A table is rebuilt when a binding changes, not when the shader changes to one
+  that reads a subset of its slots as the same kinds of resource. Pipelines are created on first use and cached by shaders, input layout,
   blend / raster / depth state, topology type and target formats.
 - Resources: automatic per-subresource state tracking with batched barriers (buffer promotion and decay per command
   list, UAV barriers between dependent dispatches, the D3D11 rule that an SRV of a resource bound as output reads
@@ -263,12 +271,15 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   `Context::wait` for cross-queue fences), ExecuteIndirect (`createCommandSignature`, count buffers, root-constant
   arguments), placed resources and aliasing (`createHeap`, `createPlacedTexture/Buffer`, `aliasingBarrier`,
   `discard`), root constants, bindless.
-- Tests and tools: `--gfxselftest` (and `tests/gfx`) runs 16 checks on the device (bindless + root constants,
+- Tests and tools: `--gfxselftest` (and `tests/gfx`) runs 19 checks on the device (bindless + root constants,
   tables, indirect draws and dispatches, async compute, append counters, read-only depth, placed resources,
   sRGB mip generation, a long dependent dispatch chain, root arguments across a UAV clear, CPU waits under stray
-  event signals and under 1 ms polling); `--d3ddebug` enables the
-  debug layer (Windows Graphics Tools); `--gputimers`/`--synctimers` per-pass timings; `--gfxsync` and
-  `--gfxsplit[=pass,...]` for GPU-fault and hazard hunting.
+  event signals and under 1 ms polling, per-draw root constants selecting instance data, bindless texture-array and
+  structured-buffer reads in a pixel shader, a descriptor table kept across a shader switch); `--d3ddebug` enables the
+  debug layer (Windows Graphics Tools); `--gputimers`/`--synctimers` per-pass timings; `--gfxstats` logs the API
+  work of a frame every 30 frames (draws, dispatches, constant-buffer writes, root CBVs and root-constant sets,
+  descriptor tables and descriptors copied, pipeline changes); `--gfxsync` and `--gfxsplit[=pass,...]` for
+  GPU-fault and hazard hunting.
 - Test rig (Wine 9.0, its vkd3d 1.10, lavapipe): no debug layer. Root signatures may not mix root descriptors with
   static samplers (hence the sampler table). vkd3d ignores custom border colors (the shadow sampler's white border:
   out-of-map shadow taps differ from Windows), read-only DSV flags, aliasing barriers and DiscardResource, and has no
@@ -278,9 +289,12 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   ResizeBuffers while presents are in flight, which corrupts memory; under that DXGI gfx always presents with
   interval 0 (no vsync), and test runs must keep a fixed window size.
 - Next on D3D12 (recommended order, each measured on real hardware before and after):
-  1. Bindless materials: material and instance data carry texture indices (root constants or instance buffers)
-     instead of per-draw SRV tables. Fewer descriptor copies and table switches per draw (CPU submit time), and the
-     prerequisite for GPU-driven drawing. Lowest risk.
+  1. Done: bindless materials and per-draw instance data (see "Per-draw data" above), plus descriptor tables kept
+     across shader switches. API work per frame on the test rig (`--gfxstats`, tour stops 2, 4, 7, 8 and three
+     street shots; the images are unchanged): dynamic constant-buffer writes 350-660 (100-290 KB) -> 68-72
+     (25-28 KB), root CBV sets 390-800 -> 83-87, descriptor tables 155-230 -> 145-151 with 1,200-2,500 -> 920-1,050
+     descriptors copied; the draws set 280-600 root constants instead (one to three DWORDs each). CPU submit time on
+     real hardware is still to be measured.
   2. GPU culling with ExecuteIndirect: a compute pass culls props, foliage and world cells against the frustum and
      the previous frame's HiZ pyramid and writes draw arguments plus a count; the shadow cascades reuse it per
      cascade. Removes most CPU gather and draw-call cost.
