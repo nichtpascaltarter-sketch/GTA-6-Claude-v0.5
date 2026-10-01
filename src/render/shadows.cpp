@@ -113,10 +113,15 @@ struct ShadowSystem {
         r.shadowCB.upload();
     }
 
-    void render(Renderer& r) {
+    // This frame's cascades (which ones re-render and their matrices); before render() and the prop cull, which
+    // culls for them.
+    void prepare(Renderer& r) {
         setResolution(r.settings.shadowRes);
         cascades = Clamp(r.settings.shadowCascades, 1, 4);
         computeCascades(r);
+    }
+
+    void render(Renderer& r) {
         auto* c = gfx::ctx;
         gfx::SRV  nullSrv = nullptr;
         c->psSetSRVs(35, 1, &nullSrv);

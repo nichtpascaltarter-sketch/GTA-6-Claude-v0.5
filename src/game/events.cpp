@@ -17,6 +17,10 @@ enum EvType : u8 {
     EV_BRAWL,          // a fight breaking out on the sidewalk: two men shouting in each other's faces (a friend trying to
                        // walk one away), mostly fists; the crowd backs off and films, somebody calls it in - the police
                        // come for the one who started it (run down, cuffed and taken away)
+    EV_PROPOSAL,       // a proposal on the sidewalk: down on one knee with the ring, passers-by stopping to watch and film -
+                       // mostly a yes (the hug, the crowd cheering, off hand in hand), now and then a no
+    EV_PANHANDLER,     // somebody down on their luck sitting against a wall: up and over to the player walking by to ask for
+                       // change - standing still by them gives $2 (the thanks), walking on is no hard feelings
     EV_COUNT
 };
 
@@ -163,9 +167,11 @@ void freeActor(GameWorld& g, int id) {
     pa.aimAt = -1;
     pa.eventId = -1;
     pa.navOk = false;
-    if (p.brain.type == BRAIN_GOTO && !(p.faction == FAC_POLICE && (p.brain.target == -2 || p.brain.target == -3))) {   // (an officer back to the
-        p.brain.type = BRAIN_WANDER;                                                                                    //  car / walking a prisoner
-        p.brain.edge = -1;                                                                                              //  carries on)
+    // (an officer on the way back to the car, walking a prisoner, taking a statement, stopping somebody or writing up a
+    //  parked car carries on)
+    if (p.brain.type == BRAIN_GOTO && !(p.faction == FAC_POLICE && p.brain.target <= -2 && p.brain.target >= -6)) {
+        p.brain.type = BRAIN_WANDER;
+        p.brain.edge = -1;
     }
 }
 
@@ -324,10 +330,15 @@ void releaseEvent(GameWorld& g, AmbientEvent& e) {
         int id = livePed(g, e.ped[k]);
         if (id < 0) continue;
         freeActor(g, id);
+        // (an officer the event had on foot - a fender bender's crew: back to the car, in and away)
+        int hv = g.peds[id].faction == FAC_POLICE && id < (int)g.ai.ped.size() ? g.ai.ped[id].homeVeh : -1;
+        if (hv >= 0 && hv < (int)g.vehicles.size() && g.vehicles[hv].used && !g.vehicles[hv].exploded && g.peds[id].brain.type == BRAIN_WANDER)
+            police_scene::crewBack(g, id, hv);
     }
     for (int k = 0; k < e.nv; k++) {
         int id = liveVeh(g, e.veh[k]);
         if (id < 0) continue;
+        police_scene::release(g, id);
         VehAI& va = g.vehAI(id);
         va.eventId = -1;
         if (va.role == VR_RACER || va.role == VR_EVENT || va.role == VR_BREAKDOWN) va.role = VR_TRAFFIC;
@@ -439,7 +450,8 @@ void GameWorld::updateEvents(float dt) {
     if (ai.forceEvent >= 0) gEv.timer = Min(gEv.timer, 2.f);
     int activeCount = 0;
     for (AmbientEvent& e : gEv.ev) activeCount += e.active;
-    if (gEv.timer <= 0.f && activeCount < 2 && !populationOff) {
+    int maxActive = ai.forceEvent >= 0 && ai.forceEvent < EV_COUNT ? 3 : 2;   // (tests: a forced one even with two still playing out)
+    if (gEv.timer <= 0.f && activeCount < maxActive && !populationOff) {
         u32 h = hash32(gEv.counter++ * 2654435761u + (u32)(time * 3.0));
         gEv.timer = 35.f + hashToFloat(h) * 40.f;
         float tod = env ? env->timeOfDay : 12.f;
@@ -467,6 +479,8 @@ void GameWorld::updateEvents(float dt) {
         w[EV_TRAFFIC_STOP] = pinfo.wanted == 0 && !policeSuppressed ? (urban ? 1.0f : 0.4f) : 0.f;
         w[EV_TAKEOVER] = !calmOnly && pinfo.wanted == 0 && urban ? ((tod > 19.5f || tod < 3.5f) ? 1.1f : 0.12f) : 0.f;
         w[EV_BRAWL] = !calmOnly && pinfo.wanted == 0 && urban ? (night ? (nightlife ? 1.4f : 0.6f) : 0.18f) : 0.f;
+        w[EV_PROPOSAL] = (tod > 10.f && tod < 23.f) && pinfo.wanted == 0 && !missionActive() && (scenic || urban) ? (scenic ? 0.45f : 0.2f) : 0.f;
+        w[EV_PANHANDLER] = (tod > 8.f && tod < 23.5f) && pinfo.wanted == 0 && !missionActive() && urban ? 0.5f : 0.f;
         for (int k = 0; k < EV_COUNT; k++) {
             if (time - gEv.lastOfType[k] < 150.0) w[k] = 0.f;
             for (AmbientEvent& e : gEv.ev)
@@ -506,6 +520,56 @@ void GameWorld::updateEvents(float dt) {
             for (int attempt = 0; attempt < 6 && !ok; attempt++) {
                 u32 ha = hash32(h + attempt * 7919u);
                 switch (type) {
+                    // ---------------------------------------------------------------- somebody asking for change
+                    case EV_PANHANDLER: {
+                        WalkSpot ws;
+                        if (!sidewalkSpot(*this, ringPoint(ha, pp, fwd, 28.f, 55.f), 30.f, ws)) break;
+                        vec3 spot = walkOffset(*this, ws, 0.f, ws.halfWidth * 0.85f);   // (against the building side)
+                        if (!hiddenFrom(*this, spot, 22.f, warm)) break;
+                        int id = spawnActor(*this, spot, AI::dirYaw(-ws.outward), ha, 0, FAC_CIVILIAN, PR_CIVILIAN, evId);
+                        if (id < 0) break;
+                        setActor(*this, id, evId, spot.xy(), AI::dirYaw(-ws.outward), 21, -1);   // (sitting on the ground)
+                        peds[id].carry = CARRY_HANDSFREE;
+                        e.ped[0] = refPed(*this, id);
+                        e.np = 1;
+                        e.pos = spot;
+                        e.dir = -ws.outward;   // (facing the street)
+                        ok = true;
+                        break;
+                    }
+                    // ---------------------------------------------------------------- a proposal
+                    case EV_PROPOSAL: {
+                        WalkSpot ws;
+                        if (!sidewalkSpot(*this, ringPoint(ha, pp, fwd, 25.f, 60.f), 30.f, ws)) break;
+                        if (ws.halfWidth < 1.3f) break;
+                        vec3 apos = walkOffset(*this, ws, -0.7f, ws.halfWidth * 0.3f);
+                        vec3 bpos = walkOffset(*this, ws, 0.7f, ws.halfWidth * 0.3f);
+                        if (!hiddenFrom(*this, apos, 22.f, warm) || !hiddenFrom(*this, bpos, 22.f, warm)) break;
+                        // (the one asking a man or a woman, the other mostly not the same: even seeds men, odd women)
+                        bool aMan = (ha >> 13) & 1u, same = (ha >> 17) % 100u < 15u;
+                        u32 sa = hash32(ha + 3u), sb = hash32(ha + 9u);
+                        sa = aMan ? (sa & ~1u) : (sa | 1u);
+                        sb = aMan != same ? (sb | 1u) : (sb & ~1u);
+                        int a = spawnActor(*this, apos, 0.f, sa, 0, FAC_CIVILIAN, PR_CIVILIAN, evId);
+                        int bb = a >= 0 ? spawnActor(*this, bpos, 0.f, sb, 0, FAC_CIVILIAN, PR_CIVILIAN, evId) : -1;
+                        if (bb < 0) {
+                            if (a >= 0) despawnPed(a);
+                            break;
+                        }
+                        setActor(*this, a, evId, apos.xy(), yawTowards(apos.xy(), bpos.xy()), 7, -1);
+                        setActor(*this, bb, evId, bpos.xy(), yawTowards(bpos.xy(), apos.xy()), 7, -1);
+                        peds[a].yaw = yawTowards(apos.xy(), bpos.xy());
+                        peds[bb].yaw = yawTowards(bpos.xy(), apos.xy());
+                        e.ped[0] = refPed(*this, a);
+                        e.ped[1] = refPed(*this, bb);
+                        e.np = 2;
+                        e.pos = (apos + bpos) * 0.5f;
+                        e.dir = ws.t;
+                        e.flag = ai.forceOutcome >= 0 ? (ai.forceOutcome ? 1 : 0) : ((ha >> 21) % 100u < 85u ? 1 : 0);   // (most say yes)
+                        ai.forceOutcome = -1;
+                        ok = true;
+                        break;
+                    }
                     // ---------------------------------------------------------------- a fight breaking out
                     case EV_BRAWL: {
                         WalkSpot ws;
@@ -678,6 +742,19 @@ void GameWorld::updateEvents(float dt) {
                         e.pos = vec3(mid, pa3.z);
                         e.dir = ls.t;
                         e.flag = (ha >> 12) % 10 < 3 ? 1 : 0;   // escalates into a fist fight
+                        // a patrol sent to it now and then (four in ten of the ones that stay words): pulled over behind,
+                        // one officer takes the details, the other waves the traffic round (tests: ai.forceOutcome 1)
+                        bool police = ai.forceOutcome >= 0 ? ai.forceOutcome == 1 : (e.flag == 0 && (ha >> 19) % 100u < 40u);
+                        if (ai.forceOutcome == 1) e.flag = 0;
+                        ai.forceOutcome = -1;
+                        if (police) {
+                            int unit = police_scene::callUnit(*this, pa3.xy() - ls.t * (hla + 8.f), ls.t);
+                            if (unit >= 0) {
+                                e.veh[2] = refVeh(*this, unit);
+                                e.nv = 3;
+                                e.amount = 1;
+                            }
+                        }
                         ok = true;
                         break;
                     }
@@ -1344,12 +1421,71 @@ void GameWorld::updateEvents(float dt) {
                         setActor(*this, victim, evId, vp.xy(), yawTowards(vp.xy(), peds[thief].pos.toVec3().xy()), 0, -1);
                         addCrimeIncident(*this, peds[thief].pos, thief);
                         setStage(e, ST_B);
+                        // a bold passer-by close by gives chase now and then (a have-a-go hero: a tackle if he catches up)
+                        if (e.np < 3 && hashToFloat(hash32(peds[thief].uid * 13u + 7u)) < 0.6f) {
+                            int hero = -1;
+                            float hd = 20.f;
+                            std::vector<int> around;
+                            pedsNear(vp.xy(), 20.f, around);
+                            for (int i : around) {
+                                if (i >= (int)ai.ped.size() || i == victim || i == thief) continue;
+                                const Ped& q = peds[i];
+                                const PedAI& qa = ai.ped[i];
+                                if (q.isPlayer || q.persistent || q.female || q.faction != FAC_CIVILIAN || q.state != PS_ONFOOT || q.brain.type != BRAIN_WANDER ||
+                                    qa.uid != q.uid || qa.temper != 2 || qa.activity != ACT_WALK || qa.leader >= 0 || qa.eventId >= 0 || qa.role == PR_DRUNK)
+                                    continue;
+                                float dq = length(q.pos.toVec3().xy() - vp.xy());
+                                if (dq < hd) {
+                                    hd = dq;
+                                    hero = i;
+                                }
+                            }
+                            if (hero >= 0) {
+                                e.ped[2] = refPed(*this, hero);
+                                e.np = 3;
+                                setActor(*this, hero, evId, peds[hero].pos.toVec3().xy(), peds[hero].yaw, 0, -1);
+                                Brain& hb = peds[hero].brain;
+                                hb.type = BRAIN_GOTO;
+                                hb.goal = peds[thief].pos;
+                                hb.speed = 5.8f;
+                                hb.timer = 0.f;
+                                aiSay(hero, BK_HERO, 1.f, true);
+                                LOG("events: passer-by %d gives chase to purse snatcher %d (%.0f m)", hero, thief, hd);
+                            }
+                        }
                     } else if (e.t > 25.f) {
                         tb.type = BRAIN_WANDER;
                         tb.edge = -1;
                         over = true;
                     }
                 } else if (e.stage == ST_B) {
+                    // the have-a-go hero: after the thief, a tackle on catching up (the bag drops: below); out of breath
+                    // and left behind after a while
+                    int hero = e.np > 2 ? livePed(*this, e.ped[2]) : -1;
+                    if (hero >= 0 && peds[hero].brain.type == BRAIN_GOTO && peds[hero].state == PS_ONFOOT) {
+                        Brain& hb = peds[hero].brain;
+                        vec2 hp = peds[hero].pos.toVec3().xy();
+                        if (thief >= 0 && !tDown && hb.timer < 16.f) {
+                            hb.goal = dvec3(peds[thief].pos.toVec3() + peds[thief].vel * 0.3f);
+                            vec2 to = peds[thief].pos.toVec3().xy() - hp;
+                            if (length(to) < 1.4f) {
+                                knockDown(thief, vec3(normalize(to + vec2(1e-4f, 0.f)) * 200.f, 50.f), false);
+                                setActor(*this, hero, evId, hp, yawTowards(hp, peds[thief].pos.toVec3().xy()), 0, -1);
+                                aiSay(hero, BK_HERO, 1.f, true);
+                                LOG("events: passer-by %d tackles purse snatcher %d", hero, thief);
+                            }
+                        } else {
+                            // too fast for him (or it is over): on his way, still catching his breath
+                            hb.type = BRAIN_WANDER;
+                            hb.edge = -1;
+                            PedAI& ha = pedAI(hero);
+                            ha.activity = ACT_WALK;
+                            ha.eventId = -1;
+                            ha.navOk = false;
+                            if (thief >= 0 && !tDown) aiSay(hero, BK_HERO_LOST, 1.f, true);
+                            e.ped[2] = Ref();
+                        }
+                    }
                     if (victim >= 0 && calmActor(*this, victim)) {
                         PedAI& va = pedAI(victim);
                         if (thief >= 0) va.anchorYaw = yawTowards(peds[victim].pos.toVec3().xy(), peds[thief].pos.toVec3().xy());
@@ -1459,13 +1595,128 @@ void GameWorld::updateEvents(float dt) {
                 }
                 if (e.stage == ST_A) {
                     bool calmA = calmActor(*this, da), calmB = calmActor(*this, db);
+                    int unit = e.nv > 2 ? liveVeh(*this, e.veh[2]) : -1;
+                    int o1 = e.amount == 2 && e.np > 2 ? livePed(*this, e.ped[2]) : -1, o2 = e.amount == 2 && e.np > 3 ? livePed(*this, e.ped[3]) : -1;
                     if (!calmA || !calmB) {
+                        for (int o : {o1, o2}) police_scene::crewBack(*this, o, unit);
+                        police_scene::release(*this, unit);
+                        e.amount = 3;
                         setStage(e, ST_C);
                         break;
                     }
+                    // the police (amount 1 on the way, 2 there, 3 gone): pulled over behind it - the crew out, one to the
+                    // two drivers for the details (a few questions, then the device), the other at the back of the car
+                    // waving the traffic round; done in under half a minute, back in and away, and the drivers too
+                    if (e.amount == 1 && (unit < 0 || vehAI(unit).task != PT_SCENE)) e.amount = 0;   // (never came)
+                    if (e.amount == 1 && vehAI(unit).transportState == 2) {
+                        Vehicle& uv = vehicles[unit];
+                        const Vehicles::VehicleModel& us = vassets[uv.model].spec;
+                        vec2 uf = uv.sim.forward().xy();
+                        uf = length2(uf) > 1e-6f ? normalize(uf) : e.dir;
+                        vec2 up = uv.sim.body.pos.toVec3().xy();
+                        int crew[2] = {uv.seats[0], -1};
+                        for (int st = 1; st < 8 && crew[1] < 0; st++)
+                            if (uv.seats[st] >= 0 && peds[uv.seats[st]].faction == FAC_POLICE) crew[1] = uv.seats[st];
+                        vec2 talk = e.pos.xy() + AI::rightOf(e.dir) * 1.4f;                          // (on the sidewalk side)
+                        vec2 wave = up - uf * (us.boxHalf.y + 2.6f) - AI::rightOf(uf) * 0.7f;       // (behind the car)
+                        for (int k = 0; k < 2; k++) {
+                            int o = crew[k];
+                            if (o < 0 || e.np >= 8) continue;
+                            removePedFromVehicle(o, true);
+                            vec2 sp = k == 0 ? talk : wave;
+                            setActor(*this, o, evId, sp, k == 0 ? yawTowards(sp, e.pos.xy()) : AI::dirYaw(-uf), k == 0 ? 7 : 15, -1);
+                            pedAI(o).homeVeh = unit;
+                            e.ped[e.np++] = refPed(*this, o);
+                        }
+                        uv.parked = true;
+                        e.amount = 2;
+                        e.hold = 0.f;
+                        e.fxT = 4.f;
+                        ai.stats.crashScenes++;
+                        LOG("events: the police at the fender bender at %.0f %.0f (unit %d)", e.pos.x, e.pos.y, unit);
+                        break;
+                    }
+                    if (e.amount == 2) {
+                        e.hold += dt;
+                        // (to their spots round the end of the patrol car, not through it: out of the driver's side to the
+                        //  sidewalk, out of the passenger's to the back of it)
+                        if (unit >= 0) {
+                            const Vehicle& cv = vehicles[unit];
+                            const Vehicles::VehicleModel& cs = vassets[cv.model].spec;
+                            vec2 cc = cv.sim.body.pos.toVec3().xy(), cf = cv.sim.forward().xy();
+                            cf = length2(cf) > 1e-6f ? normalize(cf) : e.dir;
+                            vec2 cr = AI::rightOf(cf);
+                            vec2 spots[2] = {e.pos.xy() + AI::rightOf(e.dir) * 1.4f, cc - cf * (cs.boxHalf.y + 2.6f) - cr * 0.7f};
+                            for (int k = 0; k < 2; k++) {
+                                int o = k == 0 ? o1 : o2;
+                                if (o < 0 || !calmActor(*this, o)) continue;
+                                vec2 lp = peds[o].pos.toVec3().xy() - cc, lt = spots[k] - cc;
+                                float lx = dot(lp, cr), ly = dot(lp, cf), tx = dot(lt, cr), ty = dot(lt, cf);
+                                vec2 goal = spots[k];
+                                Phys::Collider box;   // (the car's footprint: is it in the way of the straight walk?)
+                                box.kind = Phys::COL_BOX;
+                                box.c = vec3(cc, 0.f);
+                                box.ax = cr;
+                                box.he = vec3(cs.boxHalf.x, cs.boxHalf.y, 1.f);
+                                float tIn = 0.f;
+                                if (ai_walkround::crosses(box, peds[o].pos.toVec3().xy(), spots[k], 0.35f, tIn)) {
+                                    float endSign = aiCarEndToWalkRound(*this, unit, ty >= 0.f ? 1.f : -1.f);
+                                    float side = fabsf(ly) < cs.boxHalf.y + 0.6f || ly * endSign < 0.f ? (lx >= 0.f ? 1.f : -1.f) : (tx >= 0.f ? 1.f : -1.f);
+                                    goal = cc + cf * (endSign * (cs.boxHalf.y + 0.8f)) + cr * (side * (cs.boxHalf.x + 0.6f));
+                                }
+                                pedAI(o).anchor = goal;
+                            }
+                        }
+                        if (o1 >= 0 && calmActor(*this, o1)) {
+                            PedAI& qa = pedAI(o1);
+                            bool device = e.hold > 5.f && e.hold < 15.f;
+                            peds[o1].phoneBrowse = device;
+                            qa.stance = device ? 0 : 7;
+                            if ((e.hold >= 0.6f && e.hold - dt < 0.6f) || (e.hold >= 15.5f && e.hold - dt < 15.5f)) aiSay(o1, BK_COP_CRASH, 1.f, plDist < 25.f);
+                            for (int me : {da, db}) {   // (the drivers turned to the officer, giving their side of it)
+                                PedAI& ma = pedAI(me);
+                                ma.anchor = e.pos.xy() + e.dir * (me == da ? -0.8f : 0.8f);   // (back from the photos)
+                                ma.anchorYaw = yawTowards(ma.anchor, peds[o1].pos.toVec3().xy());
+                                ma.stance = 7;
+                            }
+                        }
+                        if (o2 >= 0 && calmActor(*this, o2) && e.fxT <= 0.f) {
+                            e.fxT = 7.f + hashToFloat(hash32((u32)(e.age * 10.f))) * 4.f;
+                            if (plDist < 35.f) aiSay(o2, BK_COP_WAVE, 1.f);
+                        }
+                        if (e.hold > 24.f) {
+                            for (int o : {o1, o2}) police_scene::crewBack(*this, o, unit);
+                            police_scene::release(*this, unit);
+                            e.amount = 3;
+                            setStage(e, ST_C);
+                        }
+                        break;   // (no arguing in front of the officer)
+                    }
+                    // (one that stays words: after a while the one hit walks round to the damage and photographs it,
+                    //  then back - the other one doing the talking meanwhile)
+                    bool photo = e.flag == 0 && e.t > 11.f && e.t < 19.f;
+                    {
+                        PedAI& qb = pedAI(db);
+                        const Vehicle& vb = vehicles[cb];
+                        vec2 bf = vb.sim.forward().xy();
+                        bf = length2(bf) > 1e-6f ? normalize(bf) : e.dir;
+                        const Vehicles::VehicleModel& bs = vassets[vb.model].spec;
+                        vec2 bumper = vb.sim.body.pos.toVec3().xy() - bf * bs.boxHalf.y;   // (where the two cars met)
+                        vec2 dmg = bumper + bf * 0.4f + AI::rightOf(bf) * (bs.boxHalf.x + 0.75f);   // (at its corner, kerb side)
+                        vec2 home = e.pos.xy() + e.dir * 0.8f;
+                        if (photo) {
+                            qb.anchor = dmg;
+                            qb.anchorYaw = yawTowards(dmg, bumper);
+                            qb.stance = 8;   // (the phone up: a picture of it)
+                        } else if (e.flag == 0 && e.t >= 19.f && e.t - dt < 19.f) {
+                            qb.anchor = home;
+                            qb.anchorYaw = yawTowards(home, e.pos.xy() - e.dir * 0.8f);
+                            qb.stance = 7;
+                        }
+                    }
                     if (e.barkT <= 0.f) {
                         e.barkT = 3.5f + hashToFloat(hash32((u32)(e.age * 10.f) + slot)) * 2.5f;
-                        int speaker = ((int)(e.age / 4.f) & 1) ? da : db;
+                        int speaker = photo ? da : (((int)(e.age / 4.f) & 1) ? da : db);
                         aiSay(speaker, BK_ARGUE, 0.9f, plDist < 20.f);
                         if (hash32((u32)(e.age * 7.f)) % 2 == 0) peds[speaker].pendingAction = Anim::CLIP_POINT;
                     }
@@ -1480,7 +1731,7 @@ void GameWorld::updateEvents(float dt) {
                         }
                         aiStimulus(dvec3(e.pos), STIM_FIGHT, da, 22.f, false);
                         setStage(e, ST_B);
-                    } else if (e.t > 30.f) {
+                    } else if (e.t > 30.f && !(e.amount == 1 && e.t < 110.f) && e.amount != 2) {
                         setStage(e, ST_C);
                     }
                 } else if (e.stage == ST_B) {
@@ -1544,6 +1795,225 @@ void GameWorld::updateEvents(float dt) {
                         }
                     }
                     if (drivingAway >= 2 || e.t > 40.f) over = true;
+                }
+                break;
+            }
+            // A: sitting against the wall until the player walks by close on foot (no gun out, not wanted); B: up and over
+            // to them; C: the ask - standing still next to them for a moment gives $2 (the thanks), walking off is no hard
+            // feelings; D: back to the wall and down again (once per player pass; gone when the player is far)
+            case EV_PANHANDLER: {
+                int me = livePed(*this, e.ped[0]);
+                if (!calmActor(*this, me)) {
+                    over = true;
+                    break;
+                }
+                Ped& m = peds[me];
+                PedAI& ma = pedAI(me);
+                vec2 mp = m.pos.toVec3().xy();
+                float toPl = length(pp - mp);
+                bool approachable = pl->state == PS_ONFOOT && pinfo.wanted == 0 && !pl->aiming && weaponInfo(pl->weapon).animKind == 0;
+                if (e.stage == ST_A) {
+                    ma.anchor = e.pos.xy();
+                    ma.stance = 21;
+                    if (!e.done && approachable && toPl < 11.f && e.t > 2.f) {
+                        ma.stance = 0;   // (up)
+                        setStage(e, ST_B);
+                        LOG("events: panhandler %d gets up for the player (%.1f m)", me, toPl);
+                    }
+                    if (plDist > 140.f || e.age > 400.f) over = true;
+                } else if (e.stage == ST_B) {
+                    // over to the player, a step short of them
+                    vec2 to = pp - mp;
+                    float d = length(to);
+                    ma.stance = 0;
+                    ma.anchor = d > 1.6f ? pp - to / Max(d, 1e-3f) * 1.4f : mp;
+                    ma.anchorYaw = yawTowards(mp, pp);
+                    if (d < 1.9f) {
+                        aiSay(me, BK_PANHANDLE, 1.f, true);
+                        if (!e.asked) {
+                            help("Stand still next to him to give $2", 4.f);
+                            e.asked = true;
+                        }
+                        e.hold = 0.f;
+                        setStage(e, ST_C);
+                    } else if (!approachable || d > 16.f || e.t > 14.f) {
+                        setStage(e, ST_D);   // (the player walked on)
+                        LOG("events: panhandler %d - the player is off before he gets there (%.1f m)", me, d);
+                    }
+                } else if (e.stage == ST_C) {
+                    ma.anchor = mp;
+                    ma.anchorYaw = yawTowards(mp, pp);
+                    ma.stance = 7;
+                    if (approachable && toPl < 2.6f && length(pl->vel.xy()) < 0.5f) e.hold += dt;
+                    if (e.hold > 1.5f) {
+                        if (pinfo.money >= 2) {
+                            pinfo.money -= 2;
+                            notify("Gave some change", "-$2");
+                            aiSay(me, BK_PANHANDLE_THANKS, 1.f, true);
+                            m.pendingAction = Anim::CLIP_WAVE;
+                            ai.stats.panhandled++;
+                            LOG("events: panhandler %d got $2 from the player", me);
+                        } else {
+                            aiSay(me, BK_PANHANDLE_NO, 1.f, true);
+                            LOG("events: panhandler %d - the player has no change", me);
+                        }
+                        e.done = true;
+                        setStage(e, ST_D);
+                    } else if (toPl > 5.f || e.t > 9.f || !approachable) {
+                        aiSay(me, BK_PANHANDLE_NO, 1.f, toPl < 15.f);
+                        e.done = true;
+                        setStage(e, ST_D);
+                        LOG("events: panhandler %d - the player walked on (%.1f m)", me, toPl);
+                    }
+                } else {
+                    // back to the wall, and down
+                    ma.anchor = e.pos.xy();
+                    ma.anchorYaw = AI::dirYaw(e.dir);
+                    ma.stance = length(mp - e.pos.xy()) < 0.5f ? 21 : 0;
+                    if (length(mp - e.pos.xy()) < 0.5f && e.t > 2.f) {
+                        // (again once the player is well away and comes back)
+                        if (toPl > 30.f) e.done = false;
+                        if (!e.done && approachable && toPl < 11.f) setStage(e, ST_B);
+                    }
+                    if (plDist > 140.f || e.age > 400.f) over = true;
+                }
+                break;
+            }
+            // A: a couple standing talking, face to face (until the player comes along), B: a word, then down on one knee
+            // with the ring held up - passers-by stop, phones out; C: the answer (yes: arms up, the crowd cheers; no: a
+            // step back and away, the crowd winces, the one asking left kneeling); D: the hug; E: off together hand in hand
+            // (or alone)
+            case EV_PROPOSAL: {
+                int a = livePed(*this, e.ped[0]), bb = livePed(*this, e.ped[1]);
+                bool yes = e.flag == 1;
+                // (anything else happening to either of them - a scare, a knock, a crime - and it is off)
+                if (!calmActor(*this, a) || (!calmActor(*this, bb) && !(e.stage >= ST_C && !yes))) {
+                    over = true;
+                    break;
+                }
+                Ped& A = peds[a];
+                vec2 ap = A.pos.toVec3().xy();
+                vec2 bp = bb >= 0 ? peds[bb].pos.toVec3().xy() : ap + e.dir;
+                vec2 mid = (ap + bp) * 0.5f;
+                if (e.stage == ST_A) {
+                    if (e.t > 150.f && plDist > 60.f) {
+                        over = true;
+                        break;
+                    }
+                    // (it starts with the player close by or looking this way)
+                    if ((plDist < 32.f || (plDist < 70.f && inCameraView(e.pos + vec3(0.f, 0.f, 1.f), 1.f))) && e.t > 3.f) {
+                        aiSay(a, BK_PROPOSE_ASK, 1.f, true);
+                        setStage(e, ST_B);
+                    }
+                } else if (e.stage == ST_B) {
+                    if (e.t >= 2.5f && !e.asked) {
+                        // down on one knee; the people passing stop to watch, most with their phones out
+                        e.asked = true;
+                        pedAI(a).stance = 18;
+                        std::vector<int> around;
+                        pedsNear(mid, 20.f, around);
+                        for (int id : around) {
+                            if (e.np >= 7) break;
+                            if (id == a || id == bb || id >= (int)ai.ped.size()) continue;
+                            const Ped& q = peds[id];
+                            const PedAI& qa = ai.ped[id];
+                            if (!q.used || q.isPlayer || q.persistent || q.faction != FAC_CIVILIAN || q.state != PS_ONFOOT || qa.uid != q.uid ||
+                                q.brain.type != BRAIN_WANDER || qa.activity != ACT_WALK || qa.eventId >= 0 || qa.leader >= 0 || qa.homeVeh >= 0 ||
+                                qa.role == PR_JOGGER || qa.greetWith >= 0 || qa.stmtWith >= 0 || qa.stopPed >= 0)
+                                continue;
+                            vec2 off = q.pos.toVec3().xy() - mid;
+                            float d = length(off);
+                            if (d < 2.f) continue;
+                            vec2 spot = mid + off / d * Clamp(d, 3.5f, 6.f);
+                            u32 hq = hash32(q.uid * 31u + 7u);
+                            setActor(*this, id, evId, spot, yawTowards(spot, mid), hq % 3u == 0u ? 0 : 8, -1);   // (two in three filming)
+                            e.ped[e.np++] = refPed(*this, id);
+                        }
+                    }
+                    if (e.t >= 3.5f && e.t - dt < 3.5f) aiSay(a, BK_PROPOSE, 1.f, true);
+                    if (e.t >= 5.6f && e.t - dt < 5.6f) aiSay(bb, BK_PROPOSED, 1.f, true);
+                    if (e.t >= 3.f) {
+                        // the ring held up to them (peds.cpp holds the hand there)
+                        PedAI& qa = pedAI(a);
+                        vec2 dir = normalize(bp - ap + vec2(1e-4f, 0.f));
+                        qa.reachAt = vec3(ap + dir * 0.42f, (float)A.pos.z + 0.95f);
+                        qa.reachT = time + 0.2;
+                    }
+                    if (e.t >= 9.f) {
+                        // the answer
+                        if (yes) {
+                            aiSay(bb, BK_PROPOSE_YES, 1.f, true);
+                            pedAI(bb).stance = 16;   // (arms up)
+                        } else {
+                            aiSay(bb, BK_PROPOSE_NO, 1.f, true);
+                            freeActor(*this, bb);   // (and walks away)
+                        }
+                        for (int k = 2; k < e.np; k++) {
+                            int w = livePed(*this, e.ped[k]);
+                            if (w >= 0 && calmActor(*this, w) && pedAI(w).stance == 0) pedAI(w).stance = yes ? 16 : 14;
+                        }
+                        LOG("events: a proposal at %.0f %.0f - %s (%d watching)", mid.x, mid.y, yes ? "yes" : "no", e.np - 2);
+                        setStage(e, ST_C);
+                    }
+                } else if (e.stage == ST_C) {
+                    // the crowd: a cheer or a wince, from one or two of them
+                    for (int k = 0; k < 2; k++) {
+                        float at = 0.8f + k * 1.1f;
+                        if (e.np > 2 && e.t >= at && e.t - dt < at) {
+                            int w = livePed(*this, e.ped[2 + (k + (int)e.age) % (e.np - 2)]);
+                            if (w >= 0) aiSay(w, yes ? BK_CROWD_AWW : BK_CROWD_OOH, 1.f, true);
+                        }
+                    }
+                    if (yes && e.t >= 2.6f) {
+                        // up, and the hug (a kiss on the cheek where a hug does not fit the two of them)
+                        PedAI& qa = pedAI(a);
+                        qa.stance = 0;
+                        pedAI(bb).stance = 0;
+                        int clip = -1;
+                        if (A.charIndex >= 0 && peds[bb].charIndex >= 0) {
+                            const Anim::CharacterDesc& da = chars[A.charIndex].desc;
+                            const Anim::CharacterDesc& db = chars[peds[bb].charIndex].desc;
+                            clip = Anim::greetingFits(Anim::CLIP_HUG, da, db) ? (int)Anim::CLIP_HUG
+                                                                              : (Anim::greetingFits(Anim::CLIP_CHEEK_KISS, da, db) ? (int)Anim::CLIP_CHEEK_KISS : -1);
+                        }
+                        e.amount = clip;
+                        e.hold = 0.f;
+                        if (clip >= 0) pop_detail::greetBegin(*this, a, bb, clip);
+                        setStage(e, clip >= 0 ? ST_D : ST_E);
+                    } else if (!yes) {
+                        if (e.t >= 4.f && e.t - dt < 4.f) {
+                            aiSay(a, BK_PROPOSE_SAD, 1.f, true);
+                            pedAI(a).stance = 0;   // (up again, slowly)
+                        }
+                        if (e.t >= 6.5f) setStage(e, ST_E);
+                    }
+                } else if (e.stage == ST_D) {
+                    // stepping in for the hug; it starts on both together, then they hold still while it plays
+                    if (e.hold <= 0.f && (pop_detail::greetReady(*this, a, bb) || e.t > 3.5f)) {
+                        e.hold = Max(pop_detail::greetStart(*this, a, bb, e.amount), 0.5f);
+                        e.fxT = e.hold;
+                    } else if (e.hold > 0.f && e.fxT <= 0.f) {
+                        setStage(e, ST_E);
+                    }
+                    if (e.t > 12.f) setStage(e, ST_E);
+                } else {
+                    // off: together, hand in hand (pedai.cpp: the companion beside the leader, a couple) - or the one
+                    // left behind on their own; the people watching go their way
+                    for (int k = 2; k < e.np; k++) freeActor(*this, livePed(*this, e.ped[k]));
+                    freeActor(*this, a);
+                    if (yes && bb >= 0) {
+                        freeActor(*this, bb);
+                        PedAI& qa = pedAI(a);
+                        PedAI& qb = pedAI(bb);
+                        qa.greetWith = qb.greetWith = -1;
+                        qa.leader = bb;
+                        qa.leaderUid = peds[bb].uid;
+                        qa.slot = vec2((A.uid & 1u) ? 0.85f : -0.85f, 0.f);
+                        qa.couple = 1;
+                        qa.actTimer = 1e4f;
+                        qb.actTimer = 60.f + hashToFloat(hash32(peds[bb].uid)) * 60.f;   // (a while before any stop)
+                    }
+                    over = true;
                 }
                 break;
             }
@@ -2048,6 +2518,13 @@ void GameWorld::updateEvents(float dt) {
                         over = true;
                         break;
                     }
+                    if ((e.flag & 1) == 1 && length(opos - window) < 1.2f) {
+                        // the driver's turn: the officer listens with a hand on the roof by the window (peds.cpp holds it)
+                        PedAI& oa = pedAI(off);
+                        oa.reachAt = vc.sim.body.pos.toVec3() + rotate(vc.sim.body.rot, vec3(side * Max(sa.boxHalf.x - 0.22f, 0.3f) + sa.boxCenter.x, 0.25f + sa.boxCenter.y,
+                                                                                         sa.boxCenter.z + sa.boxHalf.z - 0.03f));
+                        oa.reachT = time + 0.2;
+                    }
                     if (e.barkT <= 0.f && plDist < 45.f) {
                         // alternate: officer, driver, officer...
                         bool officer = (e.flag & 1) == 0;
@@ -2357,7 +2834,7 @@ void GameWorld::updateEvents(float dt) {
 
 std::string GameWorld::aiEventsText(int want, int* stage, vec3* pos) const {
     static const char* const kNames[EV_COUNT] = {"mugging", "purse", "crash", "racers", "chase", "shootout", "drunk", "musician",
-                                                 "tourists", "breakdown", "traffic stop", "takeover", "brawl"};
+                                                 "tourists", "breakdown", "traffic stop", "takeover", "brawl", "proposal", "panhandler"};
     std::string out;
     if (stage) *stage = -1;
     for (const AmbientEvent& e : gEv.ev) {
@@ -2380,6 +2857,18 @@ std::string GameWorld::aiEventsText(int want, int* stage, vec3* pos) const {
     }
     return out.empty() ? std::string("events: none") : out;
 }
+
+// what drivers going past slow down to look at (ai.cpp ai_sights, traffic.cpp): a fender bender with the drivers out, a
+// breakdown with the hood up, a fight, a traffic stop, a street takeover
+namespace ev_sights {
+void collect(const GameWorld& g, std::vector<vec3>& out) {
+    (void)g;
+    for (const AmbientEvent& e : gEv.ev) {
+        if (!e.active) continue;
+        if (e.type == EV_CRASH || e.type == EV_BREAKDOWN || e.type == EV_BRAWL || e.type == EV_TRAFFIC_STOP || e.type == EV_TAKEOVER) out.push_back(e.pos);
+    }
+}
+}  // namespace ev_sights
 
 std::string GameWorld::aiBrawlText(int* stage, vec3* pos, int* starter, u32* starterUid) const {
     for (const AmbientEvent& e : gEv.ev) {

@@ -507,6 +507,59 @@ int selfTest() {
         drawCount.release();
     }
 
+    // 5b) GPU-driven instancing, as the props draw (render/props_render.cpp): a compute pass writes the instance
+    //     stream (a vertex buffer), indexed draw arguments selecting a block of it through StartInstanceLocation and a
+    //     draw count; two additive instances of the named block must land, not the decoys or the uncounted command
+    {
+        ComputeShader csDraws = loadCS("gfxtest.hlsl", "csMakeInstanceDraws");
+        InputElement il[] = {{"INSTCOLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, PER_INSTANCE, 1}};
+        VertexShader vsStream = loadVS("gfxtest.hlsl", "vsInstanceStream", il, 1);
+        PixelShader psStream = loadPS("gfxtest.hlsl", "psInstanceStream");
+        Buffer stream = createBuffer(16 * 16, 16, BUF_VERTEX | BUF_STRUCTURED | BUF_UAV, nullptr, "selftest instance stream");
+        Buffer iargs = createBuffer(40, 4, BUF_RAW | BUF_UAV | BUF_INDIRECT, nullptr, "selftest indexed args");
+        Buffer icount = createBuffer(4, 4, BUF_RAW | BUF_UAV | BUF_INDIRECT, nullptr, "selftest indexed count");
+        u32 tri[3] = {0, 1, 2};
+        Buffer triIndices = createBuffer(12, 4, BUF_INDEX, tri, "selftest indices");
+        ctx->setCS(csDraws);
+        UAV u[3] = {stream.uav, iargs.uav, icount.uav};
+        ctx->csSetUAVs(0, 3, u);
+        ctx->dispatch(1, 1, 1);
+        unbindCSResources(0, 3);
+        CommandSignature sig = createCommandSignature(INDIRECT_DRAW_INDEXED);
+        float black[4] = {0, 0, 0, 0};
+        ctx->clearRTV(rt.rtv, black);
+        ctx->setRenderTargets(1, &rt.rtv, nullptr);
+        setViewport(16, 16);
+        ctx->setInputLayout(vsStream.layout);
+        ctx->setVS(vsStream.vs);
+        ctx->setPS(psStream);
+        ctx->setBlendState(states.additive);
+        ctx->setDepthState(states.depthOff);
+        Resource vbs[1] = {stream.buf};
+        u32 strides[1] = {16}, offsets[1] = {0};
+        ctx->setVertexBuffers(1, 1, vbs, strides, offsets);
+        ctx->setIndexBuffer(triIndices.buf, DXGI_FORMAT_R32_UINT, 0);
+        ctx->setTopology(TOPO_TRIANGLE_LIST);
+        ctx->executeIndirect(sig, 2, iargs.buf, 0, icount.buf, 0);
+        ctx->setRenderTargets(0, nullptr, nullptr);
+        ctx->setBlendState(states.opaque);
+        ctx->setInputLayout(nullptr);
+        Resource noVb[1] = {nullptr};
+        ctx->setVertexBuffers(1, 1, noVb, strides, offsets);
+        ctx->setIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
+        float px[4];
+        readbackPixelsFloat4(rt.res, DXGI_FORMAT_R8G8B8A8_UNORM, 6, 6, px);
+        check(fabsf(px[0] * 255.f - 60.f) < 1.5f && fabsf(px[1] * 255.f - 40.f) < 1.5f && fabsf(px[2] * 255.f - 20.f) < 1.5f,
+              "GPU-written instances, indexed indirect", StrFormat("pixel %.0f %.0f %.0f (expect 60 40 20)", px[0] * 255.f, px[1] * 255.f, px[2] * 255.f));
+        stream.release();
+        iargs.release();
+        icount.release();
+        triIndices.release();
+        releaseShader(csDraws);
+        releaseShader(vsStream.vs);
+        releaseShader(psStream);
+    }
+
     // 6) append counter: reset through initialCounts, count copied out (CopyStructureCount)
     {
         Buffer app = createBuffer(256 * 4, 4, BUF_STRUCTURED | BUF_UAV | BUF_APPEND, nullptr, "selftest append");

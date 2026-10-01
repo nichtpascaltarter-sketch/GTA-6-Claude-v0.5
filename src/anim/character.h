@@ -283,6 +283,12 @@ struct AnimInput {
     // groundOffsetL/R were probed under Animator::footProbe() (where each foot is / is about to land) instead of
     // below the hips: the animator then takes them as the ground under each foot as it is (no slope extrapolation)
     bool footProbes = false;
+    // someone on foot passing close (standing or walking): their chest point in this ped's model space, their velocity
+    // relative to this ped (model space, m/s) and how close it is (0 none .. 1 closing within ~1 m): the near shoulder
+    // turns back to let them by, the body leans and the feet side-step away (the heading stays)
+    vec3 passBy = vec3(0);
+    vec2 passVel = vec2(0);
+    float passWeight = 0;
     // steering wheel of the vehicle driven (stance 1), model space (origin 0.5 m below the seat hip point, the
     // vehicle's yaw): rim centre, unit column axis pointing at the driver, rim radius; wheelR 0 = a car's typical rim
     vec3 wheelC = vec3(0), wheelN = vec3(0);
@@ -398,6 +404,15 @@ struct Animator {
     vec3 stepTo[2];               // a step's landing footprint (heel point) and yaw, held still for its last quarter
     float stepToYaw[2] = {0.f, 0.f};
     float legSink = 0.f;          // pelvis lowered so planted feet stay within reach
+    float groundRaw[2] = {0.f, 0.f};          // last update's probed ground offsets (heights kept with the world)
+    float rootVz = 0.f;                       // the root's vertical speed, read off the ground under planted feet
+    bool plantedPrev[2] = {false, false};     // planted one update earlier (both probes under the same footprint)
+    bool footHold[2] = {false, false};        // let go at toe-off but still on the ground: held until it lifts
+    float pivotW[2] = {0.f, 0.f};             // pivoting on the ball in a quick turn (heel raised) 0..1
+    float groundAhead[2] = {0.f, 0.f};        // a swinging foot's ground where it will land (probed every other update)
+    bool probeAhead[2] = {false, false};      // the probe asked for is that landing spot (else near the foot)
+    float passW = 0.f, passYaw = 0.f, passShift = 0.f;   // passing someone close, smoothed: weight, shoulder turn (rad),
+                                                         // side-step (m)
     bool planted[2] = {false, false};
     float pinZ[2] = {0.f, 0.f};       // height correction holding a planted sole on the ground (eases out after lift-off)
     float plantAge[2] = {0.f, 0.f};   // time since the foot was planted (the correction eases in)

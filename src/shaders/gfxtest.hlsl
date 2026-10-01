@@ -125,3 +125,33 @@ float4 psTwo(float4 pos : SV_Position) : SV_Target {
     return float4(tFirst.Load(int3(0, 0, 0)).r, tSecond.Load(int3(0, 0, 0)).r, 0, 1);
 }
 float4 psSecond(float4 pos : SV_Position) : SV_Target { return float4(0, tSecond.Load(int3(0, 0, 0)).r, 1, 1); }
+
+// ---- GPU-driven instancing (render/props_render.cpp): a compute pass writes an instance stream that is also a vertex
+// buffer, indexed draw arguments whose StartInstanceLocation selects a block of it, and a draw count
+RWStructuredBuffer<float4> uInstanceStream : register(u0);
+RWByteAddressBuffer uIndexedArgs : register(u1);
+RWByteAddressBuffer uIndexedCount : register(u2);
+[numthreads(16, 1, 1)]
+void csMakeInstanceDraws(uint3 id : SV_DispatchThreadID) {
+    // instances 8 and 9 are the ones the first command names; the others are a decoy colour
+    uInstanceStream[id.x] = (id.x == 8u || id.x == 9u) ? float4(30, 20, 10, 0) / 255.0 : float4(100, 100, 100, 0) / 255.0;
+    if (id.x == 0u) {
+        uIndexedArgs.Store4(0, uint4(3, 2, 0, 0));   // 3 indices, 2 instances, first index 0, base vertex 0
+        uIndexedArgs.Store(16, 8u);                  // first instance
+        uIndexedArgs.Store4(20, uint4(3, 5, 0, 0));  // a second command, left out by the count
+        uIndexedArgs.Store(36, 0u);
+        uIndexedCount.Store(0, 1u);
+    }
+}
+struct InstanceStreamOut {
+    float4 pos : SV_Position;
+    float4 color : COLOR0;
+};
+InstanceStreamOut vsInstanceStream(uint vid : SV_VertexID, float4 color : INSTCOLOR) {
+    InstanceStreamOut o;
+    float2 uv = float2((vid << 1) & 2, vid & 2);
+    o.pos = float4(uv * float2(2, -2) + float2(-1, 1), 0.5, 1);
+    o.color = color;
+    return o;
+}
+float4 psInstanceStream(InstanceStreamOut i) : SV_Target { return i.color; }
