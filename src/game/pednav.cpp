@@ -73,6 +73,22 @@ bool PedCore::crossingClear(const Walker& w, int link) const {
     }
     if (L.kind != WL_CROSSWALK) return true;
     PedSignal ps = g->pedSignal(L.node, L.approach, time);
+    // a siren coming (it goes through on red): everyone waits at the kerb, whatever the little man says
+    if (traffic && traffic->sirens > 0) {
+        const WalkNode& A0 = g->walkNodes[L.a];
+        const WalkNode& B0 = g->walkNodes[L.b];
+        vec2 c0 = (A0.p.xy() + B0.p.xy()) * 0.5f;
+        vec2 across0 = normalize(B0.p.xy() - A0.p.xy() + vec2(1e-4f, 0.f));
+        bool siren = false;
+        traffic->hash.query(traffic->bodies, c0 - vec2(60.f), c0 + vec2(60.f), [&](int bi) {
+            const Body& b = traffic->bodies[bi];
+            if (siren || b.kind != BK_CAR || !(b.flags & BF_SIREN) || b.speed < 2.f) return;
+            vec2 rel = c0 - b.pos;
+            float d = length(rel);
+            if (d < 60.f && dot(b.vel, rel) > 0.f && fabsf(dot(rel, across0)) < L.length * 0.5f + 25.f) siren = true;   // (heading this way)
+        });
+        if (siren) return false;
+    }
     if (ps == PED_WALK) return true;
     bool gapNeeded = ps == PED_UNCONTROLLED || w.jaywalker;
     if (!gapNeeded) return false;

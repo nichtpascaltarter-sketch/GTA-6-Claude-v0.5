@@ -230,6 +230,17 @@ Vehicles::VehicleControls donutControls(const Vehicles::VehicleState& s, vec2 sp
         if (w > 0.9f) st.drift = approach(st.drift, fabsf(length(mid - spot) - r), dt * 3.f);
     }
     st.spinT += dt;
+    // pinned against something (a kerb, a post, one of the blocking cars) with the wheels spinning and going nowhere:
+    // back off it, the wheel the other way, and line up again
+    st.blockT = v < 0.6f && fabsf(s.body.angVel.z) < 0.4f && st.phaseT > 1.5f ? st.blockT + dt : 0.f;
+    if (st.blockT > 1.2f) {
+        st.phase = 3;
+        st.phaseT = 0.f;
+        st.backDist = 0.f;
+        st.backSteer = -(float)st.dir;
+        st.blockT = 0.f;
+        return c;
+    }
     // time to go round the other way: flick it over as it crosses the spot
     if (st.spinT > st.switchAt && dist < 2.2f && v > 2.f) {
         st.dir = -st.dir;

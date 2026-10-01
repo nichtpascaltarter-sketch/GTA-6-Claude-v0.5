@@ -823,6 +823,21 @@ void GameWorld::animatePed(Ped& p, float dt) {
             in.grabWeight = 1.f;
         }
     }
+    // walking a prisoner (police.cpp escort): the officer's hand on the suspect's right upper arm (the animator holds
+    // grabTarget outside clips; with the officer behind-right, the left hand takes it)
+    {
+        int self = (int)(&p - peds.data());
+        const PedAI* q = self >= 0 && self < (int)ai.ped.size() && ai.ped[self].uid == p.uid ? &ai.ped[self] : nullptr;
+        int s = q && p.brain.type == BRAIN_GOTO && p.brain.target == -3 ? q->escortPed : -1;
+        if (s >= 0 && s < (int)peds.size() && s < (int)ai.ped.size() && peds[s].used && peds[s].uid == q->escortUid && ai.ped[s].uid == peds[s].uid &&
+            ai.ped[s].activity == ACT_CUFFED && peds[s].state == PS_ONFOOT && !peds[s].ragdoll && peds[s].charIndex >= 0 && peds[s].animIn.stance == 25) {
+            const Ped& v = peds[s];
+            vec3 arm = v.bones[Anim::B_UPPERARM_R].c[3].xyz() * 0.55f + v.bones[Anim::B_FOREARM_R].c[3].xyz() * 0.45f;
+            vec3 j = rel(v.pos, p.pos) + rotate(yawQuat(v.yaw), arm);
+            in.grabTarget = vec3(dot(vec2(j.x, j.y), rightV), dot(vec2(j.x, j.y), fwd), j.z);
+            in.grabWeight = 1.f;
+        }
+    }
     // foot IK: probe the ground where each foot is planted / about to land (Animator::footProbe) and the slope under
     // them (only for nearby peds)
     in.groundOffsetL = in.groundOffsetR = 0.f;

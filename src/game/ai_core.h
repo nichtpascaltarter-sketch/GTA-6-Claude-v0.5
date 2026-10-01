@@ -314,7 +314,7 @@ struct DonutState {
     float phaseT = 0.f;
     float drift = 0.f;         // how far the middle of the circle has wandered off the spot (m, smoothed)
     float smoke = 0.f;         // how hard the rear tires are going (0..1) - for the crowd and the sound
-    float blockT = 0.f;        // lining up: pushing against something this long
+    float blockT = 0.f;        // lining up / going round: pushing against something this long
     float backSteer = 0.f;     // backing off: the lock held while reversing
     float backDist = 0.f;      // ... and how far it has gone
 };

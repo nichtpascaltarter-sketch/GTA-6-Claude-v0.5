@@ -142,6 +142,25 @@ const Line kSamaritan[] = {{"[calm:0.5]Are you okay? Don't try to move.", 0}, {"
                            {"[calm:0.4]Yes, someone's hurt, they're on the ground. Please hurry.", 0}, {"[calm:0.5]Hang in there, they're on their way.", 0},
                            {"[calm:0.5]Quedate quieto, ya viene la ambulancia.", LB_LUNA}};
 
+const Line kOnlooker[] = {{"[excited:0.5]Whoa, they got somebody.", 0}, {"[calm:0.4]What did they do?", 0}, {"[happy:0.5]Somebody's going to jail tonight.", 0},
+                          {"[happy:0.6]You seeing this? Get it on camera.", LB_BOLD}, {"[sad:0.4]Every week on this street, I swear.", 0},
+                          {"[calm:0.4]Don't stop, don't stare... okay, maybe a little.", 0}, {"[excited:0.4]Ay, se lo llevan.", LB_LUNA}};
+
+const Line kSuspect[] = {{"[angry:0.5]I didn't do anything!", 0}, {"[angry:0.5]This is harassment, man.", 0}, {"[angry:0.4]Easy! Watch the arm!", 0},
+                         {"[calm:0.4]I want a lawyer.", 0}, {"[angry:0.5]You got the wrong guy!", 0}, {"[sad:0.4]Ow, they're too tight...", 0},
+                         {"[sad:0.5]Somebody call my mom.", 0}, {"[angry:0.5]Yo, I know my rights!", LB_BOLD}, {"[angry:0.5]Yo no hice nada!", LB_LUNA}};
+const Line kCopEscort[] = {{"[calm:0.4]Keep walking.", 0}, {"[calm:0.4]You have the right to remain silent.", 0},
+                           {"[calm:0.4]Anything you say can and will be used against you.", 0}, {"[calm:0.4]Watch your head.", 0},
+                           {"[angry:0.3]Don't make this harder than it is.", 0}, {"[calm:0.4]Dispatch, one in custody, coming in.", 0}};
+const Line kCopTransport[] = {{"[calm:0.4]Dispatch, I need a unit for a transport, one in custody.", 0}, {"[calm:0.4]Requesting transport at my location.", 0},
+                              {"[calm:0.4]Copy. Holding one here.", 0}, {"[calm:0.4]Sit tight. Your ride's on the way.", 0}};
+
+const Line kBrawl[] = {{"[angry:0.7]You got a problem with me?", 0}, {"[angry:0.7]Say that again. Say it again!", 0}, {"[angry:0.6]Back up out my face!", 0},
+                       {"[angry:0.7]You want to go? Let's go!", 0}, {"[angry:0.6]You spilled my drink, man!", 0}, {"[angry:0.6]Who you think you're talking to?", 0},
+                       {"[angry:0.6]Keep walking, I'm not playing!", 0}, {"[angry:0.7]Que te pasa? Eh? Que te pasa?", LB_LUNA}};
+const Line kBrawlFriend[] = {{"[calm:0.5]Let it go, man. He's not worth it.", 0}, {"[calm:0.5]Come on, walk away. Walk away.", 0}, {"[scared:0.4]Not here, man, the cops...", 0},
+                             {"[calm:0.5]Hey, hey, hey, chill. Both of you.", 0}, {"[calm:0.4]Dejalo, hermano, no vale la pena.", LB_LUNA}};
+
 #define BANK(k, arr) {k, arr, (int)ARRAY_COUNT(arr)}
 const Bank kBanks[] = {
     BANK(BK_GREET, kGreet), BANK(BK_BUMP, kBump), BANK(BK_INSULT, kInsult), BANK(BK_PANIC, kPanic), BANK(BK_FLEE, kFlee),
@@ -158,7 +177,8 @@ const Bank kBanks[] = {
     BANK(BK_NICE_CAR, kNiceCar), BANK(BK_TICKET, kTicket), BANK(BK_TICKETED, kTicketed),
     BANK(BK_REUNION, kReunion), BANK(BK_SMALLTALK, kSmallTalk), BANK(BK_PARTING, kParting),
     BANK(BK_ARRIVAL, kArrival), BANK(BK_ARRIVED, kArrived), BANK(BK_SENDOFF, kSendoff), BANK(BK_LEAVING, kLeaving),
-    BANK(BK_HURT, kHurt), BANK(BK_SAMARITAN, kSamaritan),
+    BANK(BK_HURT, kHurt), BANK(BK_SAMARITAN, kSamaritan), BANK(BK_ONLOOKER, kOnlooker), BANK(BK_SUSPECT, kSuspect),
+    BANK(BK_COP_ESCORT, kCopEscort), BANK(BK_COP_TRANSPORT, kCopTransport), BANK(BK_BRAWL, kBrawl), BANK(BK_BRAWL_FRIEND, kBrawlFriend),
 };
 #undef BANK
 
