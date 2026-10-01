@@ -106,6 +106,7 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
     buildings.clear();
     facades.clear();
     signNames.clear();
+    openLots.clear();
     LotHash lots;
     Rng signRng(0xC0FFEEu);
     for (int i = 0; i < 512; i++) signNames.push_back(makeSignName(signRng));
@@ -292,6 +293,8 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
                 b.ax = lot.ax;
                 b.front = -out;
                 b.lotKind = 0;
+                b.face = (int)ei * 2 + (side > 0 ? 1 : 0);
+                if (e.cls <= RC_AVENUE) b.archFlags |= 0x80u;   // (frontage on a main road: read and cleared by restyleBlocks)
                 // Choose style
                 BuildingStyle st = BS_HOUSE;
                 float r = br.f();
@@ -664,6 +667,56 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
     gSites->finalize(map, roads, *this);
     // Enterable interiors: picks host buildings (story places, shops) and plans their openings (world/interiors.cpp)
     planInteriors(map, roads, *this);
+    // Architecture by district palette for every ordinary building without an interior (blockstyle.cpp): after the
+    // interiors, so their hosts and everything placed by the plain city is unchanged
+    restyleBlocks(map, roads);
+    // Behind the street fronts: back houses, garage rows, sheds, rear parking and yards in the middles of the blocks
+    // (blockstyle.cpp), appended after the interiors so no building index moves
+    size_t nStreet = buildings.size();
+    // (every street building stands inside its lot, so the lot hash covers them; site buildings stand on reserved ground)
+    auto freeRect = [&](vec2 c, vec2 ax, float hx, float hy) {
+        OBB2 o;
+        o.c = c;
+        o.ax = ax;
+        o.hx = hx;
+        o.hy = hy;
+        if (lots.overlaps(o)) return false;
+        vec2 ay = perp(ax);
+        for (int sx = -1; sx <= 1; sx++)
+            for (int sy = -1; sy <= 1; sy++) {
+                vec2 q = c + ax * (sx * hx) + ay * (sy * hy);
+                if (map.isWater(q.x, q.y) || reserved(q) || map.beachSand(q.x, q.y) > 0.1f) return false;   // (not out on the beach)
+            }
+        return !lotHitsRoad(o, -1) && !hitsBulb(o) && !pointInBuilding(c, 0.5f);
+    };
+    auto claimRect = [&](vec2 c, vec2 ax, float hx, float hy) {
+        OBB2 o;
+        o.c = c;
+        o.ax = ax;
+        o.hx = hx;
+        o.hy = hy;
+        lots.add(o);
+    };
+    auto nearStreet = [&](vec2 p) {
+        float s, dd, sd;
+        int e = roads.nearestEdge(p, 45.f, &s, &dd, &sd);
+        if (e < 0) return false;
+        const RoadEdge& ed = roads.edges[e];
+        return dd < ed.halfWidth + Max(ed.sidewalk, 1.2f) + 14.f;
+    };
+    infillBlocks(map, freeRect, claimRect, nearStreet);
+    for (size_t i = nStreet; i < buildings.size(); i++) {
+        int cx = Clamp((int)((buildings[i].c.x + kWorldHalf) / 256.f), 0, cps - 1);
+        int cy = Clamp((int)((buildings[i].c.y + kWorldHalf) / 256.f), 0, cps - 1);
+        cellLists[(size_t)cy * cps + cx].push_back((int)i);
+    }
+    openCellLists.assign((size_t)cps * cps, {});
+    for (size_t i = 0; i < openLots.size(); i++) {
+        int cx = Clamp((int)((openLots[i].c.x + kWorldHalf) / 256.f), 0, cps - 1);
+        int cy = Clamp((int)((openLots[i].c.y + kWorldHalf) / 256.f), 0, cps - 1);
+        openCellLists[(size_t)cy * cps + cx].push_back((int)i);
+    }
+    logRepetition();
 }
 
 void BuildingSet::addSiteBuilding(WorldMap& map, const SiteBuildingReq& q, u32 seed) {
@@ -780,3 +833,5 @@ bool BuildingSet::pointInBuilding(vec2 p, float margin, float* topZ) const {
 }
 
 }  // namespace World
+
+#include "blockstyle.cpp"

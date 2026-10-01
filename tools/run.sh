@@ -51,4 +51,7 @@ if [ -e /tmp/neontide_build.lock ]; then
   while [ "$(sh tools/memfree.sh 2>/dev/null || echo 100000)" -lt 3000 ] && [ $n -lt 40 ]; do sleep 15; n=$((n+1)); done
   if command -v flock >/dev/null 2>&1; then sleep 30 </dev/null >/dev/null 2>&1 8>&- & exec 7>&-; fi
 fi
+# when the container's memory cap is hit anyway, the kernel kills the "worst" process: other games go before the
+# lead's snapshot checks (raising one's own oom_score_adj needs no privilege)
+if [ -z "$NT_LEAD_SLOT" ]; then echo 500 > /proc/self/oom_score_adj 2>/dev/null; fi
 exec timeout ${TIMEOUT:-600} xvfb-run -a -s "-screen 0 1920x1080x24" /usr/lib/wine/wine64 ${EXE:-bin/NeonTide.exe} --autotest "$@"
