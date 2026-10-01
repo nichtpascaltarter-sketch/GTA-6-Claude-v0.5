@@ -22,7 +22,7 @@ mat4 Camera::viewRel() const {
 struct SkySystem {
     gfx::Texture transmittance, multiScatter, skyView, aerial;
     gfx::Buffer shBuf;
-    ID3D11ComputeShader *csTrans = nullptr, *csMulti = nullptr, *csView = nullptr, *csAerial = nullptr, *csSH = nullptr;
+    gfx::ComputeShader csTrans = nullptr, csMulti = nullptr, csView = nullptr, csAerial = nullptr, csSH = nullptr;
     float lastHaze = -1.f;
 
     void init() {
@@ -40,44 +40,40 @@ struct SkySystem {
 
     void update(Renderer& r, float haze) {
         auto* c = gfx::ctx;
-        ID3D11Buffer* cbs[] = {r.frameCB.get()};
-        c->CSSetConstantBuffers(0, 1, cbs);
-        ID3D11SamplerState* samps[] = {gfx::states.pointClamp, gfx::states.linearClamp};
-        c->CSSetSamplers(0, 2, samps);
+        gfx::Resource  cbs[] = {r.frameCB.get()};
+        c->csSetCBs(0, 1, cbs);
         if (fabsf(haze - lastHaze) > 0.02f) {
             lastHaze = haze;
-            c->CSSetShader(csTrans, nullptr, 0);
-            c->CSSetUnorderedAccessViews(0, 1, &transmittance.uav, nullptr);
-            c->Dispatch(gfx::divUp(256, 8), gfx::divUp(64, 8), 1);
+            c->setCS(csTrans);
+            c->csSetUAVs(0, 1, &transmittance.uav);
+            c->dispatch(gfx::divUp(256, 8), gfx::divUp(64, 8), 1);
             gfx::unbindCSResources(4, 2);
-            c->CSSetShader(csMulti, nullptr, 0);
-            c->CSSetShaderResources(0, 1, &transmittance.srv);
-            c->CSSetUnorderedAccessViews(0, 1, &multiScatter.uav, nullptr);
-            c->Dispatch(4, 4, 1);
+            c->setCS(csMulti);
+            c->csSetSRVs(0, 1, &transmittance.srv);
+            c->csSetUAVs(0, 1, &multiScatter.uav);
+            c->dispatch(4, 4, 1);
             gfx::unbindCSResources(4, 2);
         }
-        ID3D11ShaderResourceView* srvs[] = {transmittance.srv, multiScatter.srv};
-        c->CSSetShaderResources(0, 2, srvs);
-        c->CSSetShader(csView, nullptr, 0);
-        c->CSSetUnorderedAccessViews(0, 1, &skyView.uav, nullptr);
-        c->Dispatch(gfx::divUp(192, 8), gfx::divUp(108, 8), 1);
-        ID3D11UnorderedAccessView* nullU = nullptr;
-        c->CSSetUnorderedAccessViews(0, 1, &nullU, nullptr);
-        c->CSSetShader(csAerial, nullptr, 0);
-        c->CSSetUnorderedAccessViews(1, 1, &aerial.uav, nullptr);
-        c->Dispatch(8, 8, 8);
+        gfx::SRV  srvs[] = {transmittance.srv, multiScatter.srv};
+        c->csSetSRVs(0, 2, srvs);
+        c->setCS(csView);
+        c->csSetUAVs(0, 1, &skyView.uav);
+        c->dispatch(gfx::divUp(192, 8), gfx::divUp(108, 8), 1);
+        gfx::UAV  nullU = nullptr;
+        c->csSetUAVs(0, 1, &nullU);
+        c->setCS(csAerial);
+        c->csSetUAVs(1, 1, &aerial.uav);
+        c->dispatch(8, 8, 8);
         gfx::unbindCSResources(4, 3);
         // SH projection uses global bindings (t33 transmittance, t36 sky view)
-        ID3D11ShaderResourceView* g[] = {transmittance.srv};
-        c->CSSetShaderResources(33, 1, g);
-        c->CSSetShaderResources(36, 1, &skyView.srv);
-        ID3D11SamplerState* samps2[] = {gfx::states.pointClamp, gfx::states.linearClamp};
-        c->CSSetSamplers(0, 2, samps2);
-        c->CSSetShader(csSH, nullptr, 0);
-        c->CSSetUnorderedAccessViews(2, 1, &shBuf.uav, nullptr);
-        c->Dispatch(1, 1, 1);
-        ID3D11UnorderedAccessView* nulls[3] = {};
-        c->CSSetUnorderedAccessViews(0, 3, nulls, nullptr);
+        gfx::SRV  g[] = {transmittance.srv};
+        c->csSetSRVs(33, 1, g);
+        c->csSetSRVs(36, 1, &skyView.srv);
+        c->setCS(csSH);
+        c->csSetUAVs(2, 1, &shBuf.uav);
+        c->dispatch(1, 1, 1);
+        gfx::UAV  nulls[3] = {};
+        c->csSetUAVs(0, 3, nulls);
     }
 };
 
@@ -118,17 +114,8 @@ int index = 0, depth = 0;
 double startTime = 0;
 bool enabled = false, checked = false;
 bool skipFrame = false;   // camera-cut frames (histories reset, SSR off) are not representative: not accumulated
-ID3D11Query* idleQuery = nullptr;
 
-void waitIdle() {
-    if (!idleQuery) {
-        D3D11_QUERY_DESC qd = {D3D11_QUERY_EVENT, 0};
-        if (FAILED(gfx::dev->CreateQuery(&qd, &idleQuery))) return;
-    }
-    gfx::ctx->End(idleQuery);
-    BOOL done = FALSE;
-    while (gfx::ctx->GetData(idleQuery, &done, sizeof(done), 0) == S_FALSE) Sleep(0);
-}
+void waitIdle() { gfx::waitIdle(); }
 void begin(const char* name) {
     gfx::gpuTimerBegin(name);
     if (!checked) {
@@ -245,14 +232,8 @@ void Renderer::createTargets() {
     width = Max(64, (int)(outWidth * settings.renderScale));
     height = Max(64, (int)(outHeight * settings.renderScale));
     using namespace gfx;
-    depth = createTexture2D(width, height, DXGI_FORMAT_R32_TYPELESS, TEX_DSV | TEX_SRV);
-    {
-        D3D11_DEPTH_STENCIL_VIEW_DESC dv = {};
-        dv.Format = DXGI_FORMAT_D32_FLOAT;
-        dv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-        dv.Flags = D3D11_DSV_READ_ONLY_DEPTH;
-        gfx::dev->CreateDepthStencilView(depth.res, &dv, &depthRO);
-    }
+    depth = createTexture2D(width, height, DXGI_FORMAT_R32_TYPELESS, TEX_DSV | TEX_SRV | TEX_DSV_READONLY);
+    depthRO = depth.dsvRO;
     gbAlbedo = createTexture2D(width, height, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, TEX_RTV | TEX_SRV);
     gbNormal = createTexture2D(width, height, DXGI_FORMAT_R16G16_UNORM, TEX_RTV | TEX_SRV);
     gbMaterial = createTexture2D(width, height, DXGI_FORMAT_R8G8B8A8_UNORM, TEX_RTV | TEX_SRV);
@@ -275,7 +256,7 @@ void Renderer::createTargets() {
 }
 
 void Renderer::releaseTargets() {
-    SAFE_RELEASE(depthRO);
+    depthRO = nullptr;
     depth.release();
     gbAlbedo.release();
     gbNormal.release();
@@ -436,35 +417,29 @@ void Renderer::updateFrameConstants(const Camera& cam, const Environment& env, f
 }
 
 void Renderer::bindFrame() {
-    ID3D11Buffer* cbs[] = {frameCB.get()};
-    gfx::ctx->VSSetConstantBuffers(0, 1, cbs);
-    gfx::ctx->PSSetConstantBuffers(0, 1, cbs);
-    gfx::ctx->CSSetConstantBuffers(0, 1, cbs);
-    gfx::ctx->GSSetConstantBuffers(0, 1, cbs);
-    ID3D11SamplerState* samps[] = {gfx::states.pointClamp, gfx::states.linearClamp, gfx::states.linearWrap,
-                                   gfx::states.anisoWrap, gfx::states.shadowCmp, gfx::states.pointWrap, gfx::states.anisoClamp};
-    gfx::ctx->VSSetSamplers(0, 7, samps);
-    gfx::ctx->PSSetSamplers(0, 7, samps);
-    gfx::ctx->CSSetSamplers(0, 7, samps);
+    gfx::Resource  cbs[] = {frameCB.get()};
+    gfx::ctx->vsSetCBs(0, 1, cbs);
+    gfx::ctx->psSetCBs(0, 1, cbs);
+    gfx::ctx->csSetCBs(0, 1, cbs);
 }
 
 // Global shader resources (see common.hlsli): t32..t44
 static void bindGlobals(Renderer& r, bool withShadow) {
-    ID3D11ShaderResourceView* g[13] = {r.sky->shBuf.srv, r.sky->transmittance.srv, r.sky->aerial.srv,
+    gfx::SRV  g[13] = {r.sky->shBuf.srv, r.sky->transmittance.srv, r.sky->aerial.srv,
                                        withShadow ? r.shadows->map.srv : nullptr, r.sky->skyView.srv,
                                        withShadow ? r.clouds->shadowMap.srv : nullptr,
                                        r.fog->output(r.settings), r.envProbe->srv(), r.post->exposureBuf.srv,
                                        r.weather->overheadSrv(), r.terrain->waterTex.srv, r.terrain->heightTex.srv,
                                        r.envProbe->shSrv()};
-    gfx::ctx->VSSetShaderResources(32, 13, g);
-    gfx::ctx->PSSetShaderResources(32, 13, g);
-    gfx::ctx->CSSetShaderResources(32, 13, g);
+    gfx::ctx->vsSetSRVs(32, 13, g);
+    gfx::ctx->psSetSRVs(32, 13, g);
+    gfx::ctx->csSetSRVs(32, 13, g);
 }
 static void unbindGlobals() {
-    ID3D11ShaderResourceView* n[13] = {};
-    gfx::ctx->VSSetShaderResources(32, 13, n);
-    gfx::ctx->PSSetShaderResources(32, 13, n);
-    gfx::ctx->CSSetShaderResources(32, 13, n);
+    gfx::SRV  n[13] = {};
+    gfx::ctx->vsSetSRVs(32, 13, n);
+    gfx::ctx->psSetSRVs(32, 13, n);
+    gfx::ctx->csSetSRVs(32, 13, n);
 }
 
 // Enterable interiors (see InteriorVolume in renderer.h): camera-relative volume/portal records for the lighting
@@ -567,24 +542,24 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     // G-buffer
     RenderPassTiming::begin("gbuffer");
     float clear0[4] = {0, 0, 0, 0};
-    c->ClearRenderTargetView(gbAlbedo.rtv, clear0);
-    c->ClearRenderTargetView(gbNormal.rtv, clear0);
-    c->ClearRenderTargetView(gbMaterial.rtv, clear0);
-    c->ClearRenderTargetView(gbEmissive.rtv, clear0);
-    c->ClearRenderTargetView(gbVelocity.rtv, clear0);
-    c->ClearDepthStencilView(depth.dsv, D3D11_CLEAR_DEPTH, 0.f, 0);
-    ID3D11RenderTargetView* rts[5] = {gbAlbedo.rtv, gbNormal.rtv, gbMaterial.rtv, gbEmissive.rtv, gbVelocity.rtv};
-    c->OMSetRenderTargets(5, rts, depth.dsv);
+    c->clearRTV(gbAlbedo.rtv, clear0);
+    c->clearRTV(gbNormal.rtv, clear0);
+    c->clearRTV(gbMaterial.rtv, clear0);
+    c->clearRTV(gbEmissive.rtv, clear0);
+    c->clearRTV(gbVelocity.rtv, clear0);
+    c->clearDepth(depth.dsv, 0.f);
+    gfx::RTV  rts[5] = {gbAlbedo.rtv, gbNormal.rtv, gbMaterial.rtv, gbEmissive.rtv, gbVelocity.rtv};
+    c->setRenderTargets(5, rts, depth.dsv);
     gfx::setViewport((float)width, (float)height);
-    c->OMSetDepthStencilState(gfx::states.depthGreaterWrite, 0);
-    c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
-    c->RSSetState(gfx::states.cullBack);
+    c->setDepthState(gfx::states.depthGreaterWrite);
+    c->setBlendState(gfx::states.opaque);
+    c->setRasterState(gfx::states.cullBack);
     terrain->drawGBuffer(*this);
     grass->draw(*this);
     world->drawGBuffer(*this);
     props->drawGBuffer(*this, world->cells, materials);
     dynamic->drawGBuffer(*this);
-    c->OMSetRenderTargets(0, nullptr, nullptr);
+    c->setRenderTargets(0, nullptr, nullptr);
     RenderPassTiming::end();
 
     // Deferred decals + skid marks into the G-buffer
@@ -600,10 +575,10 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     RenderPassTiming::end();
     RenderPassTiming::begin("ao+gi");
     bindGlobals(*this, false);
-    ID3D11ShaderResourceView* aoSrv = ao->run(*this, *ss);
+    gfx::SRV  aoSrv = ao->run(*this, *ss);
     RenderPassTiming::end();
     RenderPassTiming::begin("ssr");
-    ID3D11ShaderResourceView* ssrSrv = ssrSys->run(*this, *ss);
+    gfx::SRV  ssrSrv = ssrSys->run(*this, *ss);
     RenderPassTiming::end();
     // Particles: emission (adds effect lights before the light gather) and GPU simulation / sort
     RenderPassTiming::begin("particles sim");
@@ -657,44 +632,44 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     // Lighting
     RenderPassTiming::begin("lighting");
     bindGlobals(*this, true);
-    ID3D11Buffer* scb[] = {shadowCB.get()};
-    c->CSSetConstantBuffers(3, 1, scb);
-    ID3D11Buffer* lcb[] = {lightCB.get()};
-    c->CSSetConstantBuffers(2, 1, lcb);
-    ID3D11ShaderResourceView* srvs[14] = {gbAlbedo.srv, gbNormal.srv, gbMaterial.srv, gbEmissive.srv, depth.srv,
+    gfx::Resource  scb[] = {shadowCB.get()};
+    c->csSetCBs(3, 1, scb);
+    gfx::Resource  lcb[] = {lightCB.get()};
+    c->csSetCBs(2, 1, lcb);
+    gfx::SRV  srvs[14] = {gbAlbedo.srv, gbNormal.srv, gbMaterial.srv, gbEmissive.srv, depth.srv,
                                           aoSrv ? aoSrv : post->whiteTex.srv, settings.clouds ? clouds->output() : cloudsTex.srv,
                                           lightBuf.srv, ss->depthCur(), ss->halfNormal.srv, ssrSrv,
                                           interiorBuf.srv, portalBuf.srv, lightVolumeBuf.srv};
-    c->CSSetShaderResources(0, 14, srvs);
-    c->CSSetUnorderedAccessViews(0, 1, &hdr.uav, nullptr);
-    c->CSSetShader(csLighting, nullptr, 0);
-    c->Dispatch(gfx::divUp(width, 16), gfx::divUp(height, 16), 1);
+    c->csSetSRVs(0, 14, srvs);
+    c->csSetUAVs(0, 1, &hdr.uav);
+    c->setCS(csLighting);
+    c->dispatch(gfx::divUp(width, 16), gfx::divUp(height, 16), 1);
     gfx::unbindCSResources(14, 1);
     RenderPassTiming::end();
 
     // Water (forward, reads copies of the lit scene and depth)
     RenderPassTiming::begin("water");
-    c->CopyResource(hdrCopy.res, hdr.res);
-    c->CopyResource(depthCopy.res, depth.res);
-    c->OMSetRenderTargets(1, &hdr.rtv, depth.dsv);
+    c->copyResource(hdrCopy.res, hdr.res);
+    c->copyResource(depthCopy.res, depth.res);
+    c->setRenderTargets(1, &hdr.rtv, depth.dsv);
     gfx::setViewport((float)width, (float)height);
-    c->OMSetDepthStencilState(gfx::states.depthGreaterWrite, 0);
+    c->setDepthState(gfx::states.depthGreaterWrite);
     water->draw(*this, *terrain, hdrCopy.srv, depthCopy.srv, env.wind, ss->hiz.srv, ss->hizMips);
-    c->OMSetRenderTargets(0, nullptr, nullptr);
+    c->setRenderTargets(0, nullptr, nullptr);
     RenderPassTiming::end();
 
     // Vehicle windows (forward, premultiplied over the lit cabins; depth test without write)
     RenderPassTiming::begin("glass");
-    c->OMSetRenderTargets(1, &hdr.rtv, depth.dsv);
+    c->setRenderTargets(1, &hdr.rtv, depth.dsv);
     gfx::setViewport((float)width, (float)height);
     dynamic->drawGlass(*this);
-    c->OMSetRenderTargets(0, nullptr, nullptr);
+    c->setRenderTargets(0, nullptr, nullptr);
     RenderPassTiming::end();
 
     // Particles (sorted, soft, lit), rain and lightning; both write the TAA reactive mask
     RenderPassTiming::begin("particles");
     float zero4[4] = {0, 0, 0, 0};
-    c->ClearRenderTargetView(reactive.rtv, zero4);
+    c->clearRTV(reactive.rtv, zero4);
     particles->draw(*this, reactive.rtv, weather->blend);
     RenderPassTiming::end();
     RenderPassTiming::begin("rain");

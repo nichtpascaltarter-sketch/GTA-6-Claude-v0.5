@@ -285,7 +285,7 @@ void buildBaseTexture() {
     }, 16);
     g_baseTex = gfx::createTexture2D(R, R, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_GENMIPS, 0, 1);
     gfx::uploadTexture2D(g_baseTex, 0, 0, px.data(), R * 4);
-    gfx::ctx->GenerateMips(g_baseTex.srv);
+    gfx::ctx->generateMips(g_baseTex);
 }
 
 // Label anchors: for each region the land point farthest from other regions (64 m grid)

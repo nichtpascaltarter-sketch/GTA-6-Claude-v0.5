@@ -66,7 +66,7 @@ gfx::Texture buildSignAtlas(const std::vector<std::string>& names) {
     DeleteDC(dc);
     gfx::Texture t = gfx::createTexture2D(W, H, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_GENMIPS, 0, 1);
     gfx::uploadTexture2D(t, 0, 0, pixels.data(), W * 4);
-    gfx::ctx->GenerateMips(t.srv);
+    gfx::ctx->generateMips(t);
     return t;
 }
 

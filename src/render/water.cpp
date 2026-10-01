@@ -31,13 +31,13 @@ struct WakeVtx {
 
 struct WaterRenderer {
     gfx::VertexShader vs;
-    ID3D11PixelShader* ps = nullptr;
-    ID3D11ComputeShader* csWave = nullptr;
+    gfx::PixelShader  ps = nullptr;
+    gfx::ComputeShader  csWave = nullptr;
     gfx::Texture waveTex;
     gfx::Buffer nodeBuf, skirtVB, skirtIB;
     int skirtIndexCount = 0;
     gfx::CBuffer<WaterCBData> cb;
-    ID3D11BlendState* blend = nullptr;
+    gfx::BlendState  blend = nullptr;
     std::vector<vec2> waterMax[TerrainRenderer::kLevels];  // x: max water level in node, y: unused
     std::vector<vec4> nodes;
     int drawn = 0;
@@ -49,24 +49,24 @@ struct WaterRenderer {
     gfx::Texture wakeTex;
     gfx::Buffer wakeVB;
     gfx::VertexShader vsWake;
-    ID3D11PixelShader* psWake = nullptr;
-    ID3D11BlendState* wakeBlend = nullptr;
+    gfx::PixelShader  psWake = nullptr;
+    gfx::BlendState  wakeBlend = nullptr;
     dvec3 wakeOrigin;   // z unused
     bool wakeActive = false;
 
     void init() {
-        D3D11_INPUT_ELEMENT_DESC layout[] = {{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}};
+        gfx::InputElement layout[] = {{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, gfx::PER_VERTEX, 0}};
         vs = gfx::loadVS("water.hlsl", "vsWater", layout, 1);
         ps = gfx::loadPS("water.hlsl", "psWater");
         csWave = gfx::loadCS("water.hlsl", "csWaveNormals");
         cb.create();
         nodeBuf = gfx::createBuffer(TerrainRenderer::kMaxNodes * 16, 16, gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
         waveTex = gfx::createTexture2D(512, 512, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_UAV | gfx::TEX_GENMIPS, 0, 1);
-        gfx::ctx->CSSetShader(csWave, nullptr, 0);
-        gfx::ctx->CSSetUnorderedAccessViews(0, 1, &waveTex.uav, nullptr);
-        gfx::ctx->Dispatch(64, 64, 1);
+        gfx::ctx->setCS(csWave);
+        gfx::ctx->csSetUAVs(0, 1, &waveTex.uav);
+        gfx::ctx->dispatch(64, 64, 1);
         gfx::unbindCSResources(1, 1);
-        gfx::ctx->GenerateMips(waveTex.srv);
+        gfx::ctx->generateMips(waveTex);
         // Ocean skirt ring: 256 angular x 24 radial
         std::vector<vec2> v;
         std::vector<u32> idx;
@@ -81,35 +81,20 @@ struct WaterRenderer {
         skirtIndexCount = (int)idx.size();
         skirtVB = gfx::createBuffer((u32)(v.size() * 8), 8, gfx::BUF_VERTEX, v.data());
         skirtIB = gfx::createBuffer((u32)(idx.size() * 4), 4, gfx::BUF_INDEX, idx.data());
-        D3D11_BLEND_DESC bd = {};
-        bd.RenderTarget[0].BlendEnable = TRUE;
-        bd.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-        bd.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-        bd.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-        bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
-        bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-        bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-        bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-        gfx::dev->CreateBlendState(&bd, &blend);
+        gfx::BlendDesc bd;
+        bd.rt[0] = {true, gfx::BLEND_SRC_ALPHA, gfx::BLEND_INV_SRC_ALPHA, gfx::BLENDOP_ADD, gfx::BLEND_ZERO, gfx::BLEND_ONE,
+                    gfx::BLENDOP_ADD, gfx::WRITE_ALL};
+        blend = gfx::createBlendState(bd);
         // wakes
-        D3D11_INPUT_ELEMENT_DESC wl[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TEXCOORD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0}};
+        gfx::InputElement wl[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, gfx::PER_VERTEX, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 16, gfx::PER_VERTEX, 0},
+            {"TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0, 32, gfx::PER_VERTEX, 0}};
         vsWake = gfx::loadVS("water.hlsl", "vsWake", wl, 3);
         psWake = gfx::loadPS("water.hlsl", "psWake");
         wakeTex = gfx::createTexture2D(kWakeRes, kWakeRes, DXGI_FORMAT_R16G16_FLOAT, gfx::TEX_RTV | gfx::TEX_SRV);
         wakeVB = gfx::createBuffer(kMaxWakeVerts * sizeof(WakeVtx), sizeof(WakeVtx), gfx::BUF_VERTEX | gfx::BUF_DYNAMIC);
-        D3D11_BLEND_DESC ab = {};
-        ab.RenderTarget[0].BlendEnable = TRUE;
-        ab.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
-        ab.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
-        ab.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-        ab.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-        ab.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-        ab.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-        ab.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-        gfx::dev->CreateBlendState(&ab, &wakeBlend);
+        wakeBlend = gfx::states.additive;
     }
 
     // A boat reports its bow position every frame; a new trail point every 2 m (or 0.5 s), history up to 30 s.
@@ -179,29 +164,29 @@ struct WaterRenderer {
             }
         }
         float clear0[4] = {0, 0, 0, 0};
-        c->ClearRenderTargetView(wakeTex.rtv, clear0);
+        c->clearRTV(wakeTex.rtv, clear0);
         if (wakeVerts.empty()) return false;
         gfx::updateBuffer(wakeVB, wakeVerts.data(), (u32)(wakeVerts.size() * sizeof(WakeVtx)));
         cb.data.wake = vec4((float)wakeOrigin.x, (float)wakeOrigin.y, kWakeSize, 1.f);
         cb.upload();
-        c->OMSetRenderTargets(1, &wakeTex.rtv, nullptr);
+        c->setRenderTargets(1, &wakeTex.rtv, nullptr);
         gfx::setViewport((float)kWakeRes, (float)kWakeRes);
-        c->OMSetBlendState(wakeBlend, nullptr, 0xffffffff);
-        c->OMSetDepthStencilState(gfx::states.depthOff, 0);
-        c->RSSetState(gfx::states.cullNone);
-        ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get()};
-        c->VSSetConstantBuffers(0, 2, cbs);
-        c->PSSetConstantBuffers(0, 2, cbs);
-        c->IASetInputLayout(vsWake.layout);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        c->setBlendState(wakeBlend);
+        c->setDepthState(gfx::states.depthOff);
+        c->setRasterState(gfx::states.cullNone);
+        gfx::Resource  cbs[] = {r.frameCB.get(), cb.get()};
+        c->vsSetCBs(0, 2, cbs);
+        c->psSetCBs(0, 2, cbs);
+        c->setInputLayout(vsWake.layout);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
         UINT stride = sizeof(WakeVtx), offset = 0;
-        c->IASetVertexBuffers(0, 1, &wakeVB.buf, &stride, &offset);
-        c->VSSetShader(vsWake.vs, nullptr, 0);
-        c->PSSetShader(psWake, nullptr, 0);
-        c->Draw((UINT)wakeVerts.size(), 0);
+        c->setVertexBuffers(0, 1, &wakeVB.buf, &stride, &offset);
+        c->setVS(vsWake.vs);
+        c->setPS(psWake);
+        c->draw((UINT)wakeVerts.size(), 0);
         r.stats.drawCalls++;
-        c->OMSetRenderTargets(0, nullptr, nullptr);
-        c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
+        c->setRenderTargets(0, nullptr, nullptr);
+        c->setBlendState(gfx::states.opaque);
         return true;
     }
 
@@ -255,22 +240,18 @@ struct WaterRenderer {
         return true;
     }
 
-    void draw(Renderer& r, TerrainRenderer& t, ID3D11ShaderResourceView* sceneColor, ID3D11ShaderResourceView* sceneDepth, float waveStrength,
-              ID3D11ShaderResourceView* hiz, int hizMips) {
+    void draw(Renderer& r, TerrainRenderer& t, gfx::SRV  sceneColor, gfx::SRV  sceneDepth, float waveStrength,
+              gfx::SRV  hiz, int hizMips) {
         auto* c = gfx::ctx;
         // Wake map first (it needs its own render target), then restore the HDR target for the water surface
-        ID3D11RenderTargetView* prevRT = nullptr;
-        ID3D11DepthStencilView* prevDS = nullptr;
-        c->OMGetRenderTargets(1, &prevRT, &prevDS);
-        D3D11_VIEWPORT prevVP;
-        UINT nvp = 1;
-        c->RSGetViewports(&nvp, &prevVP);
+        gfx::RTV  prevRT = nullptr;
+        gfx::DSV  prevDS = nullptr;
+        c->getRenderTargets(&prevRT, &prevDS);
+        gfx::Viewport prevVP = c->getViewport();
         wakeActive = renderWakes(r);
-        c->OMSetRenderTargets(1, &prevRT, prevDS);
-        c->RSSetViewports(1, &prevVP);
-        c->OMSetDepthStencilState(gfx::states.depthGreaterWrite, 0);
-        if (prevRT) prevRT->Release();
-        if (prevDS) prevDS->Release();
+        c->setRenderTargets(1, &prevRT, prevDS);
+        c->setViewport(prevVP);
+        c->setDepthState(gfx::states.depthGreaterWrite);
         Frustum fr;
         fr.fromMatrix(r.viewProjNoJitter);
         nodes.clear();
@@ -289,41 +270,41 @@ struct WaterRenderer {
         cb.data.reflection = vec4(ssr ? 1.f : 0.f, r.settings.ssrQuality >= 3 ? 64.f : 40.f, (float)(hizMips - 1), 0.f);
         cb.data.wake = vec4((float)wakeOrigin.x, (float)wakeOrigin.y, kWakeSize, wakeActive ? 1.f : 0.f);
         cb.upload();
-        ID3D11Buffer* cbs[] = {cb.get()};
-        c->VSSetConstantBuffers(1, 1, cbs);
-        c->PSSetConstantBuffers(1, 1, cbs);
-        ID3D11Buffer* scb[] = {r.shadowCB.get()};
-        c->PSSetConstantBuffers(3, 1, scb);
-        ID3D11ShaderResourceView* srvs[8] = {t.heightTex.srv, t.waterTex.srv, sceneColor, sceneDepth, waveTex.srv, hiz, nodeBuf.srv, wakeTex.srv};
-        c->VSSetShaderResources(0, 8, srvs);
-        c->PSSetShaderResources(0, 8, srvs);
-        c->IASetInputLayout(vs.layout);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        c->VSSetShader(vs.vs, nullptr, 0);
-        c->PSSetShader(ps, nullptr, 0);
-        c->OMSetBlendState(blend, nullptr, 0xffffffff);
-        c->RSSetState(gfx::states.cullNone);
+        gfx::Resource  cbs[] = {cb.get()};
+        c->vsSetCBs(1, 1, cbs);
+        c->psSetCBs(1, 1, cbs);
+        gfx::Resource  scb[] = {r.shadowCB.get()};
+        c->psSetCBs(3, 1, scb);
+        gfx::SRV  srvs[8] = {t.heightTex.srv, t.waterTex.srv, sceneColor, sceneDepth, waveTex.srv, hiz, nodeBuf.srv, wakeTex.srv};
+        c->vsSetSRVs(0, 8, srvs);
+        c->psSetSRVs(0, 8, srvs);
+        c->setInputLayout(vs.layout);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
+        c->setVS(vs.vs);
+        c->setPS(ps);
+        c->setBlendState(blend);
+        c->setRasterState(gfx::states.cullNone);
         if (drawn > 0) {
             gfx::updateBuffer(nodeBuf, nodes.data(), (u32)(nodes.size() * 16));
             UINT stride = 8, offset = 0;
-            c->IASetVertexBuffers(0, 1, &t.vb.buf, &stride, &offset);
-            c->IASetIndexBuffer(t.ib.buf, DXGI_FORMAT_R16_UINT, 0);
-            c->DrawIndexedInstanced((UINT)t.indexCount, (UINT)drawn, 0, 0, 0);
+            c->setVertexBuffers(0, 1, &t.vb.buf, &stride, &offset);
+            c->setIndexBuffer(t.ib.buf, DXGI_FORMAT_R16_UINT, 0);
+            c->drawIndexedInstanced((UINT)t.indexCount, (UINT)drawn, 0, 0, 0);
             r.stats.drawCalls++;
         }
         // Ocean skirt beyond the world square
         cb.data.mode.x = 1.f;
         cb.upload();
         UINT stride = 8, offset = 0;
-        c->IASetVertexBuffers(0, 1, &skirtVB.buf, &stride, &offset);
-        c->IASetIndexBuffer(skirtIB.buf, DXGI_FORMAT_R32_UINT, 0);
-        c->DrawIndexed((UINT)skirtIndexCount, 0, 0);
+        c->setVertexBuffers(0, 1, &skirtVB.buf, &stride, &offset);
+        c->setIndexBuffer(skirtIB.buf, DXGI_FORMAT_R32_UINT, 0);
+        c->drawIndexed((UINT)skirtIndexCount, 0, 0);
         r.stats.drawCalls++;
-        ID3D11ShaderResourceView* nulls[8] = {};
-        c->VSSetShaderResources(0, 8, nulls);
-        c->PSSetShaderResources(0, 8, nulls);
-        c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
-        c->RSSetState(gfx::states.cullBack);
+        gfx::SRV  nulls[8] = {};
+        c->vsSetSRVs(0, 8, nulls);
+        c->psSetSRVs(0, 8, nulls);
+        c->setBlendState(gfx::states.opaque);
+        c->setRasterState(gfx::states.cullBack);
     }
 };
 

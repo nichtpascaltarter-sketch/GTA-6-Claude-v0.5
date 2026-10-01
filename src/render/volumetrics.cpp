@@ -11,7 +11,7 @@ struct VolumetricFog {
     int cur = 0;
     bool historyValid = false;
     int w = 0, h = 0, d = 0;
-    ID3D11ComputeShader *csInject = nullptr, *csIntegrate = nullptr;
+    gfx::ComputeShader csInject = nullptr, csIntegrate = nullptr;
     gfx::Texture noise;   // tileable density variation
     gfx::CBuffer<FogCBData> cb;
     vec2 windOffset;
@@ -22,12 +22,12 @@ struct VolumetricFog {
         csIntegrate = gfx::loadCS("fog.hlsl", "csFogIntegrate");
         cb.create();
         noise = gfx::createTexture3D(64, 64, 64, DXGI_FORMAT_R8_UNORM, gfx::TEX_SRV | gfx::TEX_UAV, 1);
-        ID3D11ComputeShader* gen = gfx::loadCS("fog.hlsl", "csFogNoise");
-        gfx::ctx->CSSetShader(gen, nullptr, 0);
-        gfx::ctx->CSSetUnorderedAccessViews(1, 1, &noise.uav, nullptr);
-        gfx::ctx->Dispatch(16, 16, 16);
+        gfx::ComputeShader  gen = gfx::loadCS("fog.hlsl", "csFogNoise");
+        gfx::ctx->setCS(gen);
+        gfx::ctx->csSetUAVs(1, 1, &noise.uav);
+        gfx::ctx->dispatch(16, 16, 16);
         gfx::unbindCSResources(1, 2);
-        gen->Release();
+        gfx::releaseShader(gen);
     }
 
     void ensure(int quality) {
@@ -45,7 +45,7 @@ struct VolumetricFog {
     }
 
     bool enabled(const Settings& s) const { return s.volumetrics && s.fogQuality > 0; }
-    ID3D11ShaderResourceView* output(const Settings& s) const { return enabled(s) && integrated.srv ? integrated.srv : nullptr; }
+    gfx::SRV  output(const Settings& s) const { return enabled(s) && integrated.srv ? integrated.srv : nullptr; }
 
     // Fills the fog fields of the frame constants (called before the frame CB upload).
     void setFrameParams(Renderer& r, const Environment& env, FrameConstants& f) {
@@ -62,7 +62,7 @@ struct VolumetricFog {
         f.fogParams1 = vec4(g, 1.f / log2f(farD / kNear), kNear, 1.f);
     }
 
-    ID3D11ShaderResourceView* run(Renderer& r, const Environment& env, float dt) {
+    gfx::SRV  run(Renderer& r, const Environment& env, float dt) {
         if (!enabled(r.settings)) {
             historyValid = false;
             return nullptr;
@@ -70,10 +70,10 @@ struct VolumetricFog {
         ensure(r.settings.fogQuality);
         auto* c = gfx::ctx;
         // the integrated volume is also bound as a global (t38): unbind it while it is being written
-        ID3D11ShaderResourceView* nullSrv = nullptr;
-        c->CSSetShaderResources(38, 1, &nullSrv);
-        c->PSSetShaderResources(38, 1, &nullSrv);
-        c->VSSetShaderResources(38, 1, &nullSrv);
+        gfx::SRV  nullSrv = nullptr;
+        c->csSetSRVs(38, 1, &nullSrv);
+        c->psSetSRVs(38, 1, &nullSrv);
+        c->vsSetSRVs(38, 1, &nullSrv);
         windOffset += env.windDir * (1.f + env.wind * 6.f) * dt;
         if (length(windOffset) > 5000.f) windOffset = vec2(0);
         static const float halton2[8] = {0.5f, 0.25f, 0.75f, 0.125f, 0.625f, 0.375f, 0.875f, 0.0625f};
@@ -87,23 +87,23 @@ struct VolumetricFog {
         cb.data.misc = vec4(windOffset.x, windOffset.y, 0.35f + 0.3f * env.rain, 1.f + r.frame.lightning.x * 6.f);   // rain drops scatter forward
         cb.data.interior = vec4((float)r.lightCB.data.interiorCount, 0, 0, 0);
         cb.upload();
-        ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get(), nullptr, r.shadowCB.get()};
-        c->CSSetConstantBuffers(0, 4, cbs);
+        gfx::Resource  cbs[] = {r.frameCB.get(), cb.get(), nullptr, r.shadowCB.get()};
+        c->csSetCBs(0, 4, cbs);
         int prev = cur;
         cur ^= 1;
-        ID3D11ShaderResourceView* srvs[6] = {r.lightBuf.srv, inject[prev].srv, nullptr, noise.srv, r.interiorBuf.srv, r.lightVolumeBuf.srv};
-        c->CSSetShaderResources(0, 6, srvs);
-        c->CSSetUnorderedAccessViews(0, 1, &inject[cur].uav, nullptr);
-        c->CSSetShader(csInject, nullptr, 0);
-        c->Dispatch(gfx::divUp(w, 8), gfx::divUp(h, 8), d);
+        gfx::SRV  srvs[6] = {r.lightBuf.srv, inject[prev].srv, nullptr, noise.srv, r.interiorBuf.srv, r.lightVolumeBuf.srv};
+        c->csSetSRVs(0, 6, srvs);
+        c->csSetUAVs(0, 1, &inject[cur].uav);
+        c->setCS(csInject);
+        c->dispatch(gfx::divUp(w, 8), gfx::divUp(h, 8), d);
         gfx::unbindCSResources(6, 1);
-        c->CSSetShaderResources(2, 1, &inject[cur].srv);
+        c->csSetSRVs(2, 1, &inject[cur].srv);
         // start from clear air: columns the integration does not reach can never show a stale frame's fog
         const float clearAir[4] = {0.f, 0.f, 0.f, 1.f};
-        c->ClearUnorderedAccessViewFloat(integrated.uav, clearAir);
-        c->CSSetUnorderedAccessViews(0, 1, &integrated.uav, nullptr);
-        c->CSSetShader(csIntegrate, nullptr, 0);
-        c->Dispatch(gfx::divUp(w, 8), gfx::divUp(h, 8), 1);
+        c->clearUAVFloat(integrated.uav, clearAir);
+        c->csSetUAVs(0, 1, &integrated.uav);
+        c->setCS(csIntegrate);
+        c->dispatch(gfx::divUp(w, 8), gfx::divUp(h, 8), 1);
         gfx::unbindCSResources(3, 1);
         historyValid = true;
         return integrated.srv;

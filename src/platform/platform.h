@@ -66,7 +66,7 @@ bool isFullscreen();
 void setGamepadRumble(float low, float high);
 void setWindowTitle(const char* t);
 std::string userDataDir();  // created on demand, ends with separator
-void showMessageBox(const char* title, const char* msg);
+void showMessageBox(const char* title, const char* msg, bool error = false);
 double timeSeconds();
 void sleepMs(int ms);
 // Process memory in MB: working set and private (committed) bytes.

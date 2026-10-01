@@ -12,8 +12,8 @@ struct CloudSystem {
     gfx::Texture history[2];   // half-res reconstructed clouds: rgb inscatter (not exposed), a transmittance
     int cur = 0;
     bool valid = false;
-    ID3D11ComputeShader *csShape = nullptr, *csDetail = nullptr, *csWeather = nullptr, *csTrace = nullptr, *csReconstruct = nullptr,
-                        *csShadow = nullptr;
+    gfx::ComputeShader csShape = nullptr, csDetail = nullptr, csWeather = nullptr, csTrace = nullptr, csReconstruct = nullptr,
+                        csShadow = nullptr;
     gfx::CBuffer<CloudCBData> cb;
     vec2 windOffset;
     int w = 0, h = 0;          // half resolution (output)
@@ -34,16 +34,16 @@ struct CloudSystem {
         weather = gfx::createTexture2D(512, 512, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_UAV);
         shadowMap = gfx::createTexture2D(256, 256, DXGI_FORMAT_R16_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV);
         auto* c = gfx::ctx;
-        c->CSSetShader(csShape, nullptr, 0);
-        c->CSSetUnorderedAccessViews(0, 1, &shape.uav, nullptr);
-        c->Dispatch(32, 32, 32);
-        c->CSSetShader(csDetail, nullptr, 0);
-        c->CSSetUnorderedAccessViews(0, 1, &detail.uav, nullptr);
-        c->Dispatch(8, 8, 8);
+        c->setCS(csShape);
+        c->csSetUAVs(0, 1, &shape.uav);
+        c->dispatch(32, 32, 32);
+        c->setCS(csDetail);
+        c->csSetUAVs(0, 1, &detail.uav);
+        c->dispatch(8, 8, 8);
         gfx::unbindCSResources(1, 2);
-        c->CSSetShader(csWeather, nullptr, 0);
-        c->CSSetUnorderedAccessViews(1, 1, &weather.uav, nullptr);
-        c->Dispatch(64, 64, 1);
+        c->setCS(csWeather);
+        c->csSetUAVs(1, 1, &weather.uav);
+        c->dispatch(64, 64, 1);
         gfx::unbindCSResources(1, 2);
     }
 
@@ -67,7 +67,7 @@ struct CloudSystem {
         trace = gfx::createTexture2D(tw, th, DXGI_FORMAT_R16G16B16A16_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV);
     }
 
-    void update(Renderer& r, const Environment& env, float dt, ID3D11ShaderResourceView* hiz) {
+    void update(Renderer& r, const Environment& env, float dt, gfx::SRV  hiz) {
         auto* c = gfx::ctx;
         int q = Clamp(r.settings.cloudQuality, 0, 3);
         ensureTrace(q >= 3 ? 1 : 0);
@@ -88,33 +88,33 @@ struct CloudSystem {
         cb.data.c2 = vec4((float)tw, (float)th, (valid && !r.cameraCut) ? 1.f : 0.f, env.rain);
         cb.data.c3 = vec4(storm, stepScale[q], traceMode == 1 ? 0.f : (float)o[0], traceMode == 1 ? 0.f : (float)o[1]);
         cb.upload();
-        ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get()};
-        c->CSSetConstantBuffers(0, 2, cbs);
+        gfx::Resource  cbs[] = {r.frameCB.get(), cb.get()};
+        c->csSetCBs(0, 2, cbs);
         // 1) trace
-        ID3D11ShaderResourceView* srvs[6] = {shape.srv, detail.srv, weather.srv, nullptr, nullptr, hiz};
-        c->CSSetShaderResources(0, 6, srvs);
-        c->CSSetUnorderedAccessViews(1, 1, &trace.uav, nullptr);
-        c->CSSetShader(csTrace, nullptr, 0);
-        c->Dispatch(gfx::divUp(tw, 8), gfx::divUp(th, 8), 1);
-        ID3D11UnorderedAccessView* nu = nullptr;
-        c->CSSetUnorderedAccessViews(1, 1, &nu, nullptr);
+        gfx::SRV  srvs[6] = {shape.srv, detail.srv, weather.srv, nullptr, nullptr, hiz};
+        c->csSetSRVs(0, 6, srvs);
+        c->csSetUAVs(1, 1, &trace.uav);
+        c->setCS(csTrace);
+        c->dispatch(gfx::divUp(tw, 8), gfx::divUp(th, 8), 1);
+        gfx::UAV  nu = nullptr;
+        c->csSetUAVs(1, 1, &nu);
         // 2) reconstruct at half resolution
         int prev = cur;
         cur ^= 1;
-        ID3D11ShaderResourceView* rs[7] = {shape.srv, detail.srv, weather.srv, history[prev].srv, nullptr, hiz, trace.srv};
-        c->CSSetShaderResources(0, 7, rs);
-        c->CSSetUnorderedAccessViews(1, 1, &history[cur].uav, nullptr);
-        c->CSSetShader(csReconstruct, nullptr, 0);
-        c->Dispatch(gfx::divUp(w, 8), gfx::divUp(h, 8), 1);
-        c->CSSetUnorderedAccessViews(1, 1, &nu, nullptr);
+        gfx::SRV  rs[7] = {shape.srv, detail.srv, weather.srv, history[prev].srv, nullptr, hiz, trace.srv};
+        c->csSetSRVs(0, 7, rs);
+        c->csSetUAVs(1, 1, &history[cur].uav);
+        c->setCS(csReconstruct);
+        c->dispatch(gfx::divUp(w, 8), gfx::divUp(h, 8), 1);
+        c->csSetUAVs(1, 1, &nu);
         // 3) cloud shadow map
-        c->CSSetUnorderedAccessViews(1, 1, &shadowMap.uav, nullptr);
-        c->CSSetShader(csShadow, nullptr, 0);
-        c->Dispatch(32, 32, 1);
+        c->csSetUAVs(1, 1, &shadowMap.uav);
+        c->setCS(csShadow);
+        c->dispatch(32, 32, 1);
         gfx::unbindCSResources(7, 2);
         valid = true;
     }
-    ID3D11ShaderResourceView* output() const { return history[cur].srv; }
+    gfx::SRV  output() const { return history[cur].srv; }
 };
 
 }  // namespace Render

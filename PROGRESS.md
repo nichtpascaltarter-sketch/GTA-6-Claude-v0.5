@@ -15,7 +15,7 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
 - Windows: `build.bat` (auto-detects MSVC via vswhere, else MinGW g++). Output: `bin\NeonTide.exe`.
 - Linux cross-compile: `./build.sh` (MinGW-w64 g++ 13, static). `./build.sh debug` for symbols.
 - Shaders: plain HLSL in `src/shaders/*.hlsl(i)`, embedded into the exe by `tools/embed_shaders.cpp`
-  (generates `build/gen/shaders_embedded.h`), compiled at runtime with `d3dcompiler_47.dll`
+  (generates `build/gen/shaders_embedded.h`), compiled at runtime to SM 5.1 (vs/ps/cs_5_1) with `d3dcompiler_47.dll`
   (ships with Windows 10/11) and cached in `%LOCALAPPDATA%\NeonTide\shadercache`.
 - Unity build: `src/main.cpp` #includes every .cpp. File-local state must live in a *named* namespace
   (or `namespace X { namespace { ... } }`) because anonymous namespaces merge across the unity TU.
@@ -40,11 +40,11 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
 - Math: `src/core/math.h` column-major mat4, column vectors (M*v), HLSL default column_major + mul(M,v).
 - View: right-handed, camera looks down -Z. Projection: reversed-Z infinite (depth 1 near, 0 far).
   Depth test GREATER. Front faces are CCW (`FrontCounterClockwise = TRUE`).
-- Rendering: D3D11 FL 11.0, deferred PBR. Camera-relative rendering (subtract camera pos on CPU) to keep
-  float precision in a 20 km world.
+- Rendering: Direct3D 12 (feature level 11_0 or newer, resource binding tier 2 or newer), deferred PBR.
+  Camera-relative rendering (subtract camera pos on CPU) to keep float precision in a 20 km world.
 - Modules: core/ platform/ gfx/ render/ world/ sim/ anim/ audio/ game/ ui/ shaders/.
 - Threads: `Jobs` pool (core/jobs.h). World cells generate on low-priority jobs.
-- No third-party code, no external assets. Only Win32/D3D11/DXGI/XInput/WASAPI + C++ std lib.
+- No third-party code, no external assets. Only Win32/D3D12/DXGI/XInput/WASAPI + C++ std lib.
 
 ## Status (what exists)
 - M1 engine foundation: Win32 platform (raw input, XInput, crash handler, log), math, jobs, D3D11 wrapper, runtime
@@ -232,26 +232,59 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   - builds: `QUICK=1` -O1 builds, less GC work under the build lock, and a memory wait after taking it;
   - `tools/run.sh` sets up a fresh Wine prefix completely before the first launch.
 
-## Graphics API: moving to Direct3D 12 (user request, 2026-09-30 evening, in progress)
-- Why: D3D12 opens bindless descriptor tables (resource binding tier 3), async compute (GI, fog and particles
-  beside the graphics queue), ExecuteIndirect GPU-driven culling and multithreaded command recording. DXR and mesh
-  shaders need DXIL (SM 6), which the allowed toolchain can't produce (d3dcompiler_47 stops at SM 5.1, and DXC is
-  not part of Windows), so shaders stay HLSL SM 5.1.
-- Test rig: Wine 9.0's built-in vkd3d on lavapipe runs D3D12 headless. A smoke test (device, flip-model swap chain,
-  cs_5_1 through d3dcompiler_47, root signature, compute PSO, UAV dispatch, clear, readback, present) passes. It
-  reports resource binding tier 3 and shader model 5.1.
-- Plan (D3D12 only, per the user: no D3D11 fallback, so nothing is held to D3D11's limits). The D3D12 renderer is
-  built in a private copy while the main tree stays on D3D11 for the other agents. It lands in one switchover that
-  deletes every D3D11 path (no `--d3d11`, no -ld3d11); without a D3D12 device the game shows a clear requirement
-  message and exits. The gfx layer is designed around D3D12:
-  - bindless descriptor indices (tier 3 heap, SM 5.1 unbounded arrays), root constants;
-  - an async compute queue with cross-queue fences, ExecuteIndirect, placed or aliased transient targets;
-  - to port the existing passes quickly: a state tracker with a PSO cache keyed by state hash, root signatures over
-    the space0 register ranges (the HLSL is unchanged), per-draw descriptor tables from a shader-visible ring, upload
-    rings, automatic barriers (including UAV barriers between dependent dispatches), compute mip generation,
-    timestamp queries and screenshot readback.
-  Validation before landing: tour slices, first-person guns, UI shots and the benchmark, with screenshots compared to
-  the current D3D11 build.
+## Graphics API: Direct3D 12 (since 2026-10-01; D3D12 only, no D3D11 path or fallback)
+- User decision: Direct3D 12 only. Without a D3D12 device (a GPU or driver without D3D12, resource binding tier 1,
+  or Windows 7/8.1 without d3d12.dll) the game shows "Neon Tide - Direct3D 12 required" with the reason and exits
+  with code 1. d3d12.dll is loaded at run time (so that box can appear); the exe imports dxgi.dll only.
+- Shaders: HLSL SM 5.1 DXBC (vs/ps/cs_5_1) through d3dcompiler_47 with unbounded descriptor tables. DXIL / SM 6
+  (DXR, mesh shaders, wave ops) would need DXC, which is not part of Windows.
+- src/gfx: `gfx.h` (API), `gfx.cpp` (device, queues, descriptor heaps, upload pages, frames, resources, views),
+  `gfx_context.cpp` (command contexts: bindings, automatic barriers, tables, PSOs), `gfx_shaders.cpp` (compile,
+  reflection, root signatures, pipelines), `gfx_tools.cpp` (GPU timers, readbacks, screenshots, self-test).
+- Binding model (the HLSL keeps its space0 registers): per stage b0..b3 as root CBVs; t0..t31 (per pass) and
+  t32..t47 (frame globals) as two descriptor tables; u0..u7 for compute; 16 root-constant DWORDs at
+  register(b0, space100) (`setRootConstants`); the fixed sampler table s0..s6; and bindless arrays over the whole
+  heap: t spaces 1..15 and u spaces 1..8 (`shaders/bindless.hlsli`, index = `gfx::bindlessIndex(view)`).
+- Descriptors: one shader-visible heap of 1,000,000 descriptors: 262,144 persistent bindless slots, the rest a ring
+  for per-draw tables (only the slots a shader uses are copied; unused ones get null descriptors of the type the
+  shader declares, from reflection). Pipelines are created on first use and cached by shaders, input layout,
+  blend / raster / depth state, topology type and target formats.
+- Resources: automatic per-subresource state tracking with batched barriers (buffer promotion and decay per command
+  list, UAV barriers between dependent dispatches, the D3D11 rule that an SRV of a resource bound as output reads
+  null). Dynamic buffers write into per-frame upload pages (map/discard semantics; contents stay valid until
+  rewritten); initial data goes through staging pages. Every release waits for the fences of the work that may use
+  the object plus frames-in-flight + 1 frames. Released views and buffers are kept marked dead in a quarantine,
+  so code that binds one again stops with a fatal error naming it instead of reading freed memory.
+- Beyond D3D11, available to the renderer: async compute queue (`beginAsyncCompute` / `submitAsyncCompute`,
+  `Context::wait` for cross-queue fences), ExecuteIndirect (`createCommandSignature`, count buffers, root-constant
+  arguments), placed resources and aliasing (`createHeap`, `createPlacedTexture/Buffer`, `aliasingBarrier`,
+  `discard`), root constants, bindless.
+- Tests and tools: `--gfxselftest` (and `tests/gfx`) runs 14 checks on the device (bindless + root constants,
+  tables, indirect draws and dispatches, async compute, append counters, read-only depth, placed resources,
+  sRGB mip generation, a long dependent dispatch chain, root arguments across a UAV clear); `--d3ddebug` enables the
+  debug layer (Windows Graphics Tools); `--gputimers`/`--synctimers` per-pass timings; `--gfxsync` and
+  `--gfxsplit[=pass,...]` for GPU-fault and hazard hunting.
+- Test rig (Wine 9.0, its vkd3d 1.10, lavapipe): no debug layer. Root signatures may not mix root descriptors with
+  static samplers (hence the sampler table). vkd3d ignores custom border colors (the shadow sampler's white border:
+  out-of-map shadow taps differ from Windows), read-only DSV flags, aliasing barriers and DiscardResource, and has no
+  ExecuteIndirect root-constant arguments or dispatch count buffers (that self-test case is skipped under Wine).
+  vkd3d loses the compute root constants after ClearUnorderedAccessView* (gfx sets all compute root arguments again
+  after a clear). Wine's builtin DXGI rebuilds its Vulkan swap chain when the sync interval changes or on
+  ResizeBuffers while presents are in flight, which corrupts memory; under that DXGI gfx always presents with
+  interval 0 (no vsync), and test runs must keep a fixed window size.
+- Next on D3D12 (recommended order, each measured on real hardware before and after):
+  1. Bindless materials: material and instance data carry texture indices (root constants or instance buffers)
+     instead of per-draw SRV tables. Fewer descriptor copies and table switches per draw (CPU submit time), and the
+     prerequisite for GPU-driven drawing. Lowest risk.
+  2. GPU culling with ExecuteIndirect: a compute pass culls props, foliage and world cells against the frustum and
+     the previous frame's HiZ pyramid and writes draw arguments plus a count; the shadow cascades reuse it per
+     cascade. Removes most CPU gather and draw-call cost.
+  3. Async compute: sky LUTs, environment-probe filtering, particle simulation and the froxel fog inject/integrate
+     on the compute queue, overlapping the shadow and G-buffer rasterization, with a fence before lighting.
+     A GPU-time gain on GPUs with async compute; not measurable on the software test rig.
+  4. Multithreaded command recording: one context per worker (shadow cascades, G-buffer slices) with per-thread
+     descriptor and upload allocation and first-use barrier patching at submit. Only if CPU submit time still
+     dominates after 1 and 2.
 
 ## Gameplay architecture (src/game, src/sim)
 - `app.cpp`: states LOADING (world generated on a thread, loading screen) -> MENU (cinematic flyover + main menu)

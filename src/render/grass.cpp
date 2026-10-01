@@ -27,9 +27,9 @@ struct GrassSystem {
     };
     Lod lods[2];
     gfx::CBuffer<GrassCBData> cb;
-    ID3D11ComputeShader* csPlace = nullptr;
+    gfx::ComputeShader  csPlace = nullptr;
     gfx::VertexShader vs;
-    ID3D11PixelShader* ps = nullptr;
+    gfx::PixelShader  ps = nullptr;
     float time = 0.f, prevTime = 0.f;
     int quality = -1;
     float distance = 0.f;
@@ -100,17 +100,17 @@ struct GrassSystem {
             cb.data.g2 = vec4(0.35f + r.frame.weather.w * 0.9f + r.frame.weather.x * 0.4f, time, prevTime, (float)l.blades);
             cb.data.g3 = vec4((float)l.segments, (float)li, World::kWorldHalf, 0);
             cb.upload();
-            ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get()};
-            c->CSSetConstantBuffers(0, 2, cbs);
-            ID3D11ShaderResourceView* srvs[4] = {t.splat0Tex.srv, t.splat1Tex.srv, nullptr, r.weather->overheadValid ? r.weather->overheadGrass.srv : nullptr};
-            c->CSSetShaderResources(0, 4, srvs);
+            gfx::Resource  cbs[] = {r.frameCB.get(), cb.get()};
+            c->csSetCBs(0, 2, cbs);
+            gfx::SRV  srvs[4] = {t.splat0Tex.srv, t.splat1Tex.srv, nullptr, r.weather->overheadValid ? r.weather->overheadGrass.srv : nullptr};
+            c->csSetSRVs(0, 4, srvs);
             UINT zero = 0;
-            c->CSSetUnorderedAccessViews(0, 1, &l.instances.uav, &zero);
-            c->CSSetShader(csPlace, nullptr, 0);
-            c->Dispatch(gfx::divUp(n, 8), gfx::divUp(n, 8), 1);
-            ID3D11UnorderedAccessView* nu = nullptr;
-            c->CSSetUnorderedAccessViews(0, 1, &nu, nullptr);
-            c->CopyStructureCount(l.args.buf, 4, l.instances.uav);
+            c->csSetUAVs(0, 1, &l.instances.uav, &zero);
+            c->setCS(csPlace);
+            c->dispatch(gfx::divUp(n, 8), gfx::divUp(n, 8), 1);
+            gfx::UAV  nu = nullptr;
+            c->csSetUAVs(0, 1, &nu);
+            c->copyStructureCount(l.args.buf, 4, l.instances.uav);
         }
         gfx::unbindCSResources(4, 1);
     }
@@ -119,26 +119,26 @@ struct GrassSystem {
     void draw(Renderer& r) {
         if (quality <= 0 || r.settings.grassQuality <= 0 || !r.terrain->map) return;
         auto* c = gfx::ctx;
-        c->IASetInputLayout(nullptr);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        c->VSSetShader(vs.vs, nullptr, 0);
-        c->PSSetShader(ps, nullptr, 0);
-        c->RSSetState(gfx::states.cullNone);
+        c->setInputLayout(nullptr);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
+        c->setVS(vs.vs);
+        c->setPS(ps);
+        c->setRasterState(gfx::states.cullNone);
         for (int li = 0; li < 2; li++) {
             Lod& l = lods[li];
             cb.data.g2 = vec4(0.35f + r.frame.weather.w * 0.9f + r.frame.weather.x * 0.4f, time, prevTime, (float)l.blades);
             cb.data.g3 = vec4((float)l.segments, (float)li, World::kWorldHalf, 0);
             cb.upload();
-            ID3D11Buffer* cbs[] = {cb.get()};
-            c->VSSetConstantBuffers(1, 1, cbs);
-            c->PSSetConstantBuffers(1, 1, cbs);
-            c->VSSetShaderResources(2, 1, &l.instances.srv);
-            c->DrawInstancedIndirect(l.args.buf, 0);
+            gfx::Resource  cbs[] = {cb.get()};
+            c->vsSetCBs(1, 1, cbs);
+            c->psSetCBs(1, 1, cbs);
+            c->vsSetSRVs(2, 1, &l.instances.srv);
+            c->drawInstancedIndirect(l.args.buf, 0);
             r.stats.drawCalls++;
         }
-        ID3D11ShaderResourceView* nul = nullptr;
-        c->VSSetShaderResources(2, 1, &nul);
-        c->RSSetState(gfx::states.cullBack);
+        gfx::SRV  nul = nullptr;
+        c->vsSetSRVs(2, 1, &nul);
+        c->setRasterState(gfx::states.cullBack);
     }
 };
 

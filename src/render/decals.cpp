@@ -62,11 +62,11 @@ struct DecalSystem {
     gfx::Buffer instBuf, skidVB;
     int instCap = 0;
     static const int kMaxSkidVerts = kMaxSkidPoints * 6;
-    ID3D11BlendState* blend = nullptr;
-    ID3D11DepthStencilState* dsBack = nullptr;
-    ID3D11RasterizerState* rsSkid = nullptr;
+    gfx::BlendState  blend = nullptr;
+    gfx::DepthState  dsBack = nullptr;
+    gfx::RasterState  rsSkid = nullptr;
     gfx::VertexShader vs, vsSkid;
-    ID3D11PixelShader *ps = nullptr, *psSkid = nullptr;
+    gfx::PixelShader ps = nullptr, psSkid = nullptr;
     std::vector<DecalInstanceGPU> visible;
     std::vector<SkidVertex> skidVerts;
 
@@ -80,9 +80,9 @@ struct DecalSystem {
     void init() {
         vs = gfx::loadVS("decals.hlsl", "vsDecal", nullptr, 0);
         ps = gfx::loadPS("decals.hlsl", "psDecal");
-        D3D11_INPUT_ELEMENT_DESC layout[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TEXCOORD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        gfx::InputElement layout[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, gfx::PER_VERTEX, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, gfx::PER_VERTEX, 0},
         };
         vsSkid = gfx::loadVS("decals.hlsl", "vsSkid", layout, 2);
         psSkid = gfx::loadPS("decals.hlsl", "psSkid");
@@ -90,55 +90,37 @@ struct DecalSystem {
         // Atlases (4x4 cells of 256x256), generated once
         albedoAtlas = gfx::createTexture2D(1024, 1024, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_UAV | gfx::TEX_GENMIPS, 0, 1);
         normalAtlas = gfx::createTexture2D(1024, 1024, DXGI_FORMAT_R8G8B8A8_UNORM, gfx::TEX_SRV | gfx::TEX_UAV | gfx::TEX_GENMIPS, 0, 1);
-        ID3D11ComputeShader* gen = gfx::loadCS("decals.hlsl", "csGenDecals");
+        gfx::ComputeShader  gen = gfx::loadCS("decals.hlsl", "csGenDecals");
         auto* c = gfx::ctx;
-        ID3D11UnorderedAccessView* uavs[2] = {albedoAtlas.uav, normalAtlas.uav};
-        c->CSSetShader(gen, nullptr, 0);
-        c->CSSetUnorderedAccessViews(0, 2, uavs, nullptr);
-        c->Dispatch(1024 / 8, 1024 / 8, 1);
+        gfx::UAV  uavs[2] = {albedoAtlas.uav, normalAtlas.uav};
+        c->setCS(gen);
+        c->csSetUAVs(0, 2, uavs);
+        c->dispatch(1024 / 8, 1024 / 8, 1);
         gfx::unbindCSResources(1, 2);
-        c->GenerateMips(albedoAtlas.srv);
-        c->GenerateMips(normalAtlas.srv);
-        gen->Release();
+        c->generateMips(albedoAtlas);
+        c->generateMips(normalAtlas);
+        gfx::releaseShader(gen);
         // Blend: albedo / normal / roughness+metal lerp by alpha, emissive additive
-        D3D11_BLEND_DESC bd = {};
-        bd.IndependentBlendEnable = TRUE;
-        for (int i = 0; i < 3; i++) {
-            D3D11_RENDER_TARGET_BLEND_DESC& t = bd.RenderTarget[i];
-            t.BlendEnable = TRUE;
-            t.SrcBlend = D3D11_BLEND_SRC_ALPHA;
-            t.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-            t.BlendOp = D3D11_BLEND_OP_ADD;
-            t.SrcBlendAlpha = D3D11_BLEND_ZERO;
-            t.DestBlendAlpha = D3D11_BLEND_ONE;
-            t.BlendOpAlpha = D3D11_BLEND_OP_ADD;
-        }
-        bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_BLUE;
-        bd.RenderTarget[1].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_GREEN;
-        bd.RenderTarget[2].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_GREEN;
-        D3D11_RENDER_TARGET_BLEND_DESC& e = bd.RenderTarget[3];
-        e.BlendEnable = TRUE;
-        e.SrcBlend = D3D11_BLEND_ONE;
-        e.DestBlend = D3D11_BLEND_ONE;
-        e.BlendOp = D3D11_BLEND_OP_ADD;
-        e.SrcBlendAlpha = D3D11_BLEND_ZERO;
-        e.DestBlendAlpha = D3D11_BLEND_ONE;
-        e.BlendOpAlpha = D3D11_BLEND_OP_ADD;
-        e.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_BLUE;
-        gfx::dev->CreateBlendState(&bd, &blend);
-        D3D11_DEPTH_STENCIL_DESC ds = {};
-        ds.DepthEnable = TRUE;
-        ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-        ds.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;  // box back faces behind the scene surface (reversed Z)
-        gfx::dev->CreateDepthStencilState(&ds, &dsBack);
-        D3D11_RASTERIZER_DESC rs = {};
-        rs.FillMode = D3D11_FILL_SOLID;
-        rs.CullMode = D3D11_CULL_NONE;
-        rs.FrontCounterClockwise = TRUE;
-        rs.DepthClipEnable = TRUE;
-        rs.DepthBias = 16;
-        rs.SlopeScaledDepthBias = 2.f;
-        gfx::dev->CreateRasterizerState(&rs, &rsSkid);
+        gfx::BlendDesc bd;
+        bd.independent = true;
+        for (int i = 0; i < 3; i++)
+            bd.rt[i] = {true, gfx::BLEND_SRC_ALPHA, gfx::BLEND_INV_SRC_ALPHA, gfx::BLENDOP_ADD, gfx::BLEND_ZERO, gfx::BLEND_ONE,
+                        gfx::BLENDOP_ADD, gfx::WRITE_ALL};
+        bd.rt[0].writeMask = gfx::WRITE_RGB;
+        bd.rt[1].writeMask = gfx::WRITE_R | gfx::WRITE_G;
+        bd.rt[2].writeMask = gfx::WRITE_R | gfx::WRITE_G;
+        bd.rt[3] = {true, gfx::BLEND_ONE, gfx::BLEND_ONE, gfx::BLENDOP_ADD, gfx::BLEND_ZERO, gfx::BLEND_ONE, gfx::BLENDOP_ADD,
+                    gfx::WRITE_RGB};
+        blend = gfx::createBlendState(bd);
+        gfx::DepthDesc ds;
+        ds.write = false;
+        ds.func = gfx::CMP_LESS_EQUAL;  // box back faces behind the scene surface (reversed Z)
+        dsBack = gfx::createDepthState(ds);
+        gfx::RasterDesc rs;
+        rs.cull = gfx::CULL_NONE;
+        rs.depthBias = 16;
+        rs.slopeBias = 2.f;
+        rsSkid = gfx::createRasterState(rs);
     }
 
     void resize(int w, int h) {
@@ -248,17 +230,17 @@ struct DecalSystem {
         auto* c = gfx::ctx;
         // Copies of normal/material: the decal shader reads the underlying surface while blending into it
         if (!visible.empty()) {
-            c->CopyResource(normalCopy.res, r.gbNormal.res);
-            c->CopyResource(materialCopy.res, r.gbMaterial.res);
+            c->copyResource(normalCopy.res, r.gbNormal.res);
+            c->copyResource(materialCopy.res, r.gbMaterial.res);
         }
-        ID3D11RenderTargetView* rts[4] = {r.gbAlbedo.rtv, r.gbNormal.rtv, r.gbMaterial.rtv, r.gbEmissive.rtv};
-        c->OMSetRenderTargets(4, rts, r.depthRO);
+        gfx::RTV  rts[4] = {r.gbAlbedo.rtv, r.gbNormal.rtv, r.gbMaterial.rtv, r.gbEmissive.rtv};
+        c->setRenderTargets(4, rts, r.depthRO);
         gfx::setViewport((float)r.width, (float)r.height);
         float bf[4] = {0, 0, 0, 0};
-        c->OMSetBlendState(blend, bf, 0xffffffff);
-        ID3D11Buffer* cbs[] = {r.frameCB.get()};
-        c->VSSetConstantBuffers(0, 1, cbs);
-        c->PSSetConstantBuffers(0, 1, cbs);
+        c->setBlendState(blend);
+        gfx::Resource  cbs[] = {r.frameCB.get()};
+        c->vsSetCBs(0, 1, cbs);
+        c->psSetCBs(0, 1, cbs);
         if (!visible.empty()) {
             if ((int)visible.size() > instCap) {
                 instBuf.release();
@@ -266,38 +248,38 @@ struct DecalSystem {
                 instBuf = gfx::createBuffer((u32)(instCap * sizeof(DecalInstanceGPU)), sizeof(DecalInstanceGPU), gfx::BUF_STRUCTURED | gfx::BUF_DYNAMIC);
             }
             gfx::updateBuffer(instBuf, visible.data(), (u32)(visible.size() * sizeof(DecalInstanceGPU)));
-            ID3D11ShaderResourceView* srvs[6] = {instBuf.srv, r.depth.srv, normalCopy.srv, materialCopy.srv, albedoAtlas.srv, normalAtlas.srv};
-            c->VSSetShaderResources(0, 1, srvs);
-            c->PSSetShaderResources(0, 6, srvs);
-            c->OMSetDepthStencilState(dsBack, 0);
-            c->RSSetState(gfx::states.cullFront);
-            c->IASetInputLayout(nullptr);
-            c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            c->VSSetShader(vs.vs, nullptr, 0);
-            c->PSSetShader(ps, nullptr, 0);
-            c->DrawInstanced(36, (UINT)visible.size(), 0, 0);
+            gfx::SRV  srvs[6] = {instBuf.srv, r.depth.srv, normalCopy.srv, materialCopy.srv, albedoAtlas.srv, normalAtlas.srv};
+            c->vsSetSRVs(0, 1, srvs);
+            c->psSetSRVs(0, 6, srvs);
+            c->setDepthState(dsBack);
+            c->setRasterState(gfx::states.cullFront);
+            c->setInputLayout(nullptr);
+            c->setTopology(gfx::TOPO_TRIANGLE_LIST);
+            c->setVS(vs.vs);
+            c->setPS(ps);
+            c->drawInstanced(36, (UINT)visible.size(), 0, 0);
             r.stats.drawCalls++;
         }
         if (!skidVerts.empty()) {
             gfx::updateBuffer(skidVB, skidVerts.data(), (u32)(skidVerts.size() * sizeof(SkidVertex)));
             UINT stride = sizeof(SkidVertex), offset = 0;
-            c->IASetVertexBuffers(0, 1, &skidVB.buf, &stride, &offset);
-            c->IASetInputLayout(vsSkid.layout);
-            c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            c->OMSetDepthStencilState(gfx::states.depthGreaterEqualNoWrite, 0);
-            c->RSSetState(rsSkid);
-            c->VSSetShader(vsSkid.vs, nullptr, 0);
-            c->PSSetShader(psSkid, nullptr, 0);
-            c->Draw((UINT)skidVerts.size(), 0);
+            c->setVertexBuffers(0, 1, &skidVB.buf, &stride, &offset);
+            c->setInputLayout(vsSkid.layout);
+            c->setTopology(gfx::TOPO_TRIANGLE_LIST);
+            c->setDepthState(gfx::states.depthGreaterEqualNoWrite);
+            c->setRasterState(rsSkid);
+            c->setVS(vsSkid.vs);
+            c->setPS(psSkid);
+            c->draw((UINT)skidVerts.size(), 0);
             r.stats.drawCalls++;
         }
-        c->OMSetRenderTargets(0, nullptr, nullptr);
-        ID3D11ShaderResourceView* nulls[6] = {};
-        c->VSSetShaderResources(0, 6, nulls);
-        c->PSSetShaderResources(0, 6, nulls);
-        c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
-        c->OMSetDepthStencilState(gfx::states.depthGreaterWrite, 0);
-        c->RSSetState(gfx::states.cullBack);
+        c->setRenderTargets(0, nullptr, nullptr);
+        gfx::SRV  nulls[6] = {};
+        c->vsSetSRVs(0, 6, nulls);
+        c->psSetSRVs(0, 6, nulls);
+        c->setBlendState(gfx::states.opaque);
+        c->setDepthState(gfx::states.depthGreaterWrite);
+        c->setRasterState(gfx::states.cullBack);
     }
 
     void buildSkidVerts(dvec3 cam, const Frustum& fr) {

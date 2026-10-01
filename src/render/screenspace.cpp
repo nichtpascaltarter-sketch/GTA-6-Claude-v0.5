@@ -16,7 +16,7 @@ struct ScreenSpaceSystem {
     int cur = 0;
     int halfW = 0, halfH = 0, hizMips = 1, colorMips = 1;
     bool pyramidValid = false;
-    ID3D11ComputeShader *csHiZFirst = nullptr, *csHiZDown = nullptr, *csColorDown = nullptr;
+    gfx::ComputeShader csHiZFirst = nullptr, csHiZDown = nullptr, csColorDown = nullptr;
     gfx::CBuffer<HiZCBData> cb;
 
     void init() {
@@ -47,8 +47,8 @@ struct ScreenSpaceSystem {
         pyramidValid = false;
     }
 
-    ID3D11ShaderResourceView* depthCur() const { return halfDepth[cur].srv; }
-    ID3D11ShaderResourceView* depthPrev() const { return halfDepth[cur ^ 1].srv; }
+    gfx::SRV  depthCur() const { return halfDepth[cur].srv; }
+    gfx::SRV  depthPrev() const { return halfDepth[cur ^ 1].srv; }
 
     void setCB(u32 sw, u32 sh, u32 dw, u32 dh, float p0) {
         cb.data.srcW = sw;
@@ -63,53 +63,53 @@ struct ScreenSpaceSystem {
     void buildHiZ(Renderer& r) {
         auto* c = gfx::ctx;
         cur ^= 1;
-        ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get()};
-        c->CSSetConstantBuffers(0, 2, cbs);
+        gfx::Resource  cbs[] = {r.frameCB.get(), cb.get()};
+        c->csSetCBs(0, 2, cbs);
         setCB((u32)r.width, (u32)r.height, (u32)halfW, (u32)halfH, 0.f);
-        ID3D11ShaderResourceView* srvs[2] = {r.depth.srv, r.gbNormal.srv};
-        c->CSSetShaderResources(0, 2, srvs);
-        ID3D11UnorderedAccessView* uavs[3] = {hiz.mipUavs[0], halfDepth[cur].uav, halfNormal.uav};
-        c->CSSetUnorderedAccessViews(0, 3, uavs, nullptr);
-        c->CSSetShader(csHiZFirst, nullptr, 0);
-        c->Dispatch(gfx::divUp(halfW, 8), gfx::divUp(halfH, 8), 1);
+        gfx::SRV  srvs[2] = {r.depth.srv, r.gbNormal.srv};
+        c->csSetSRVs(0, 2, srvs);
+        gfx::UAV  uavs[3] = {hiz.mipUavs[0], halfDepth[cur].uav, halfNormal.uav};
+        c->csSetUAVs(0, 3, uavs);
+        c->setCS(csHiZFirst);
+        c->dispatch(gfx::divUp(halfW, 8), gfx::divUp(halfH, 8), 1);
         gfx::unbindCSResources(3, 3);
-        c->CSSetShader(csHiZDown, nullptr, 0);
+        c->setCS(csHiZDown);
         int sw = halfW, sh = halfH;
         for (int m = 1; m < hizMips; m++) {
             int dw = Max(1, sw / 2), dh = Max(1, sh / 2);
             setCB((u32)sw, (u32)sh, (u32)dw, (u32)dh, 0.f);
-            c->CSSetShaderResources(2, 1, &hiz.mipSrvs[m - 1]);
-            c->CSSetUnorderedAccessViews(0, 1, &hiz.mipUavs[m], nullptr);
-            c->Dispatch(gfx::divUp(dw, 8), gfx::divUp(dh, 8), 1);
-            ID3D11UnorderedAccessView* nu = nullptr;
-            c->CSSetUnorderedAccessViews(0, 1, &nu, nullptr);
-            ID3D11ShaderResourceView* ns = nullptr;
-            c->CSSetShaderResources(2, 1, &ns);
+            c->csSetSRVs(2, 1, &hiz.mipSrvs[m - 1]);
+            c->csSetUAVs(0, 1, &hiz.mipUavs[m]);
+            c->dispatch(gfx::divUp(dw, 8), gfx::divUp(dh, 8), 1);
+            gfx::UAV  nu = nullptr;
+            c->csSetUAVs(0, 1, &nu);
+            gfx::SRV  ns = nullptr;
+            c->csSetSRVs(2, 1, &ns);
             sw = dw;
             sh = dh;
         }
     }
 
     // Downsample chain of the previous frame's anti-aliased HDR image.
-    void buildColorPyramid(Renderer& r, ID3D11ShaderResourceView* src, bool valid) {
+    void buildColorPyramid(Renderer& r, gfx::SRV  src, bool valid) {
         pyramidValid = valid && src;
         if (!pyramidValid) return;
         auto* c = gfx::ctx;
-        ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get()};
-        c->CSSetConstantBuffers(0, 2, cbs);
-        c->CSSetShader(csColorDown, nullptr, 0);
+        gfx::Resource  cbs[] = {r.frameCB.get(), cb.get()};
+        c->csSetCBs(0, 2, cbs);
+        c->setCS(csColorDown);
         int sw = r.width, sh = r.height;
         for (int m = 0; m < colorMips; m++) {
             int dw = Max(1, halfW >> m), dh = Max(1, halfH >> m);
             setCB((u32)sw, (u32)sh, (u32)dw, (u32)dh, m == 0 ? 1.f : 0.f);
-            ID3D11ShaderResourceView* s = m == 0 ? src : colorPyramid.mipSrvs[m - 1];
-            c->CSSetShaderResources(3, 1, &s);
-            c->CSSetUnorderedAccessViews(3, 1, &colorPyramid.mipUavs[m], nullptr);
-            c->Dispatch(gfx::divUp(dw, 8), gfx::divUp(dh, 8), 1);
-            ID3D11UnorderedAccessView* nu = nullptr;
-            c->CSSetUnorderedAccessViews(3, 1, &nu, nullptr);
-            ID3D11ShaderResourceView* ns = nullptr;
-            c->CSSetShaderResources(3, 1, &ns);
+            gfx::SRV  s = m == 0 ? src : colorPyramid.mipSrvs[m - 1];
+            c->csSetSRVs(3, 1, &s);
+            c->csSetUAVs(3, 1, &colorPyramid.mipUavs[m]);
+            c->dispatch(gfx::divUp(dw, 8), gfx::divUp(dh, 8), 1);
+            gfx::UAV  nu = nullptr;
+            c->csSetUAVs(3, 1, &nu);
+            gfx::SRV  ns = nullptr;
+            c->csSetSRVs(3, 1, &ns);
             sw = dw;
             sh = dh;
         }

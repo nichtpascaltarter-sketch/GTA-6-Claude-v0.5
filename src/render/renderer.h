@@ -261,7 +261,7 @@ public:
     int width = 0, height = 0;       // render resolution
     int outWidth = 0, outHeight = 0; // output resolution
     gfx::Texture depth;
-    ID3D11DepthStencilView* depthRO = nullptr;  // read-only view: depth test while sampling depth (decals, particles)
+    gfx::DSV  depthRO = nullptr;  // read-only view: depth test while sampling depth (decals, particles)
     gfx::Texture gbAlbedo, gbNormal, gbMaterial, gbEmissive, gbVelocity;
     gfx::Texture hdr, hdrCopy, depthCopy;
     gfx::Texture reactive;  // R8 mask written by particles / rain: TAA favors the current frame there (no smearing)
@@ -306,7 +306,7 @@ public:
     GrassSystem* grass = nullptr;
     World::WorldMap* map = nullptr;
 
-    ID3D11ComputeShader* csLighting = nullptr;
+    gfx::ComputeShader  csLighting = nullptr;
     gfx::Buffer lightBuf;
     struct LightCBData { u32 count, interiorCount, pad[2]; };
     gfx::CBuffer<LightCBData> lightCB;

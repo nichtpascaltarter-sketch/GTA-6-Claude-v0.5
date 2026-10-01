@@ -421,7 +421,7 @@ std::string userDataDir() {
     return g_userDir;
 }
 
-void showMessageBox(const char* title, const char* msg) { MessageBoxA(g_hwnd, msg, title, MB_OK); }
+void showMessageBox(const char* title, const char* msg, bool error) { MessageBoxA(g_hwnd, msg, title, MB_OK | (error ? MB_ICONERROR : 0)); }
 
 double timeSeconds() {
     LARGE_INTEGER now;

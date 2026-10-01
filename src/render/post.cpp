@@ -23,23 +23,23 @@ struct PostSystem {
     gfx::Texture history[2];
     gfx::Texture bloomDown, bloomUp;
     gfx::Texture shaftA, shaftB;   // crepuscular rays: radial pass 0 (lit fraction), pass 1 (radiance)
-    ID3D11ComputeShader* csShafts = nullptr;
-    ID3D11ShaderResourceView* cloudSrv = nullptr;   // this frame's cloud layer (set by the renderer; null = none)
+    gfx::ComputeShader  csShafts = nullptr;
+    gfx::SRV  cloudSrv = nullptr;   // this frame's cloud layer (set by the renderer; null = none)
     int bloomLevels = 6;
     int historyIndex = 0;
     bool historyValid = false;
-    ID3D11ComputeShader *csReduce = nullptr, *csExposure = nullptr, *csTAA = nullptr, *csBloomDown = nullptr, *csBloomUp = nullptr;
-    ID3D11ComputeShader *csTileMax = nullptr, *csNeighborMax = nullptr, *csMotionBlur = nullptr;
+    gfx::ComputeShader csReduce = nullptr, csExposure = nullptr, csTAA = nullptr, csBloomDown = nullptr, csBloomUp = nullptr;
+    gfx::ComputeShader csTileMax = nullptr, csNeighborMax = nullptr, csMotionBlur = nullptr;
     gfx::Texture mbTiles, mbNeighbor, mbOut;
     gfx::CBuffer<MotionBlurCBData> mbCB;
     int tilesX = 0, tilesY = 0;
-    ID3D11ShaderResourceView* displaySrv = nullptr;  // TAA output after motion blur (bloom, exposure, tonemap input)
-    ID3D11PixelShader* psTonemap = nullptr;
+    gfx::SRV  displaySrv = nullptr;  // TAA output after motion blur (bloom, exposure, tonemap input)
+    gfx::PixelShader  psTonemap = nullptr;
     gfx::CBuffer<PostCBData> cb;
     gfx::CBuffer<TAACBData> taaCB;
     gfx::CBuffer<BloomCBData> bloomCB;
     float exposureCompensation = 0.3f;
-    ID3D11ShaderResourceView* finalSrv = nullptr;
+    gfx::SRV  finalSrv = nullptr;
 
     void init() {
         float initExp[8] = {2.5e-5f, 15.f, 0.f, 0.f, 2.5e-5f, 0.f, 0.f, 0.f};
@@ -100,24 +100,24 @@ struct PostSystem {
         float maxPx = 0.04f * (float)r.height;
         mbCB.data.params = vec4(shutter, maxPx, (float)tilesX, (float)tilesY);
         mbCB.upload();
-        ID3D11Buffer* cbs[] = {r.frameCB.get(), mbCB.get()};
-        c->CSSetConstantBuffers(0, 2, cbs);
-        ID3D11ShaderResourceView* srvs[3] = {finalSrv, r.gbVelocity.srv, r.depth.srv};
-        c->CSSetShaderResources(0, 3, srvs);
-        c->CSSetUnorderedAccessViews(0, 1, &mbTiles.uav, nullptr);
-        c->CSSetShader(csTileMax, nullptr, 0);
-        c->Dispatch(tilesX, tilesY, 1);
-        ID3D11UnorderedAccessView* nu[2] = {};
-        c->CSSetUnorderedAccessViews(0, 1, nu, nullptr);
-        c->CSSetShaderResources(3, 1, &mbTiles.srv);
-        c->CSSetUnorderedAccessViews(0, 1, &mbNeighbor.uav, nullptr);
-        c->CSSetShader(csNeighborMax, nullptr, 0);
-        c->Dispatch(gfx::divUp(tilesX, 8), gfx::divUp(tilesY, 8), 1);
-        c->CSSetUnorderedAccessViews(0, 1, nu, nullptr);
-        c->CSSetShaderResources(3, 1, &mbNeighbor.srv);
-        c->CSSetUnorderedAccessViews(1, 1, &mbOut.uav, nullptr);
-        c->CSSetShader(csMotionBlur, nullptr, 0);
-        c->Dispatch(gfx::divUp(r.width, 8), gfx::divUp(r.height, 8), 1);
+        gfx::Resource  cbs[] = {r.frameCB.get(), mbCB.get()};
+        c->csSetCBs(0, 2, cbs);
+        gfx::SRV  srvs[3] = {finalSrv, r.gbVelocity.srv, r.depth.srv};
+        c->csSetSRVs(0, 3, srvs);
+        c->csSetUAVs(0, 1, &mbTiles.uav);
+        c->setCS(csTileMax);
+        c->dispatch(tilesX, tilesY, 1);
+        gfx::UAV  nu[2] = {};
+        c->csSetUAVs(0, 1, nu);
+        c->csSetSRVs(3, 1, &mbTiles.srv);
+        c->csSetUAVs(0, 1, &mbNeighbor.uav);
+        c->setCS(csNeighborMax);
+        c->dispatch(gfx::divUp(tilesX, 8), gfx::divUp(tilesY, 8), 1);
+        c->csSetUAVs(0, 1, nu);
+        c->csSetSRVs(3, 1, &mbNeighbor.srv);
+        c->csSetUAVs(1, 1, &mbOut.uav);
+        c->setCS(csMotionBlur);
+        c->dispatch(gfx::divUp(r.width, 8), gfx::divUp(r.height, 8), 1);
         gfx::unbindCSResources(4, 2);
         displaySrv = mbOut.srv;
     }
@@ -127,13 +127,13 @@ struct PostSystem {
         int cur = historyIndex ^ 1;
         taaCB.data.params = vec4((!historyValid || r.cameraCut || !r.settings.taa) ? 1.f : 0.f, 0.08f, 0, 0);
         taaCB.upload();
-        ID3D11Buffer* cbs[] = {r.frameCB.get(), taaCB.get()};
-        c->CSSetConstantBuffers(0, 2, cbs);
-        ID3D11ShaderResourceView* srvs[5] = {r.hdr.srv, history[historyIndex].srv, r.gbVelocity.srv, r.depth.srv, r.reactive.srv};
-        c->CSSetShaderResources(0, 5, srvs);
-        c->CSSetUnorderedAccessViews(0, 1, &history[cur].uav, nullptr);
-        c->CSSetShader(csTAA, nullptr, 0);
-        c->Dispatch(gfx::divUp(r.width, 8), gfx::divUp(r.height, 8), 1);
+        gfx::Resource  cbs[] = {r.frameCB.get(), taaCB.get()};
+        c->csSetCBs(0, 2, cbs);
+        gfx::SRV  srvs[5] = {r.hdr.srv, history[historyIndex].srv, r.gbVelocity.srv, r.depth.srv, r.reactive.srv};
+        c->csSetSRVs(0, 5, srvs);
+        c->csSetUAVs(0, 1, &history[cur].uav);
+        c->setCS(csTAA);
+        c->dispatch(gfx::divUp(r.width, 8), gfx::divUp(r.height, 8), 1);
         gfx::unbindCSResources(5, 1);
         historyIndex = cur;
         historyValid = true;
@@ -142,37 +142,37 @@ struct PostSystem {
 
     void runBloom(Renderer& r) {
         auto* c = gfx::ctx;
-        ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get(), bloomCB.get()};
-        c->CSSetConstantBuffers(0, 3, cbs);
+        gfx::Resource  cbs[] = {r.frameCB.get(), cb.get(), bloomCB.get()};
+        c->csSetCBs(0, 3, cbs);
         // Downsample chain
-        c->CSSetShader(csBloomDown, nullptr, 0);
+        c->setCS(csBloomDown);
         for (int m = 0; m < bloomLevels; m++) {
             int w = Max(1, bloomDown.width >> m), h = Max(1, bloomDown.height >> m);
             bloomCB.data.params = vec4((float)w, (float)h, m == 0 ? 1.f : 0.f, 1.f);
             bloomCB.upload();
-            ID3D11ShaderResourceView* src = m == 0 ? displaySrv : bloomDown.mipSrvs[m - 1];
-            c->CSSetShaderResources(3, 1, &src);
-            c->CSSetUnorderedAccessViews(2, 1, &bloomDown.mipUavs[m], nullptr);
-            c->Dispatch(gfx::divUp(w, 8), gfx::divUp(h, 8), 1);
-            ID3D11UnorderedAccessView* nu = nullptr;
-            c->CSSetUnorderedAccessViews(2, 1, &nu, nullptr);
-            ID3D11ShaderResourceView* ns = nullptr;
-            c->CSSetShaderResources(3, 1, &ns);
+            gfx::SRV  src = m == 0 ? displaySrv : bloomDown.mipSrvs[m - 1];
+            c->csSetSRVs(3, 1, &src);
+            c->csSetUAVs(2, 1, &bloomDown.mipUavs[m]);
+            c->dispatch(gfx::divUp(w, 8), gfx::divUp(h, 8), 1);
+            gfx::UAV  nu = nullptr;
+            c->csSetUAVs(2, 1, &nu);
+            gfx::SRV  ns = nullptr;
+            c->csSetSRVs(3, 1, &ns);
         }
         // Upsample chain: up[last] = down[last] (copy via up with zero low), then accumulate upward
-        c->CSSetShader(csBloomUp, nullptr, 0);
+        c->setCS(csBloomUp);
         for (int m = bloomLevels - 1; m >= 0; m--) {
             int w = Max(1, bloomUp.width >> m), h = Max(1, bloomUp.height >> m);
             bloomCB.data.params = vec4((float)w, (float)h, 0, 1.f);
             bloomCB.upload();
-            ID3D11ShaderResourceView* srcs[2] = {bloomDown.mipSrvs[m], m == bloomLevels - 1 ? blackTex.srv : bloomUp.mipSrvs[m + 1]};
-            c->CSSetShaderResources(3, 2, srcs);
-            c->CSSetUnorderedAccessViews(2, 1, &bloomUp.mipUavs[m], nullptr);
-            c->Dispatch(gfx::divUp(w, 8), gfx::divUp(h, 8), 1);
-            ID3D11UnorderedAccessView* nu = nullptr;
-            c->CSSetUnorderedAccessViews(2, 1, &nu, nullptr);
-            ID3D11ShaderResourceView* ns[2] = {};
-            c->CSSetShaderResources(3, 2, ns);
+            gfx::SRV  srcs[2] = {bloomDown.mipSrvs[m], m == bloomLevels - 1 ? blackTex.srv : bloomUp.mipSrvs[m + 1]};
+            c->csSetSRVs(3, 2, srcs);
+            c->csSetUAVs(2, 1, &bloomUp.mipUavs[m]);
+            c->dispatch(gfx::divUp(w, 8), gfx::divUp(h, 8), 1);
+            gfx::UAV  nu = nullptr;
+            c->csSetUAVs(2, 1, &nu);
+            gfx::SRV  ns[2] = {};
+            c->csSetSRVs(3, 2, ns);
         }
     }
 
@@ -193,28 +193,28 @@ struct PostSystem {
 
     void runShafts(Renderer& r) {
         auto* c = gfx::ctx;
-        ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get(), bloomCB.get()};
-        c->CSSetConstantBuffers(0, 3, cbs);
-        c->CSSetShader(csShafts, nullptr, 0);
-        ID3D11ShaderResourceView* lut[1] = {r.sky->transmittance.srv};
-        c->CSSetShaderResources(33, 1, lut);
-        c->CSSetShaderResources(40, 1, &exposureBuf.srv);
+        gfx::Resource  cbs[] = {r.frameCB.get(), cb.get(), bloomCB.get()};
+        c->csSetCBs(0, 3, cbs);
+        c->setCS(csShafts);
+        gfx::SRV  lut[1] = {r.sky->transmittance.srv};
+        c->csSetSRVs(33, 1, lut);
+        c->csSetSRVs(40, 1, &exposureBuf.srv);
         for (int pass = 0; pass < 2; pass++) {
             gfx::Texture& dst = pass == 0 ? shaftA : shaftB;
             bloomCB.data.params = vec4((float)dst.width, (float)dst.height, (float)pass, 0.f);
             bloomCB.upload();
-            ID3D11ShaderResourceView* src = pass == 0 ? cloudSrv : shaftA.srv;
-            c->CSSetShaderResources(3, 1, &src);
-            c->CSSetUnorderedAccessViews(2, 1, &dst.uav, nullptr);
-            c->Dispatch(gfx::divUp(dst.width, 8), gfx::divUp(dst.height, 8), 1);
-            ID3D11UnorderedAccessView* nu = nullptr;
-            c->CSSetUnorderedAccessViews(2, 1, &nu, nullptr);
-            ID3D11ShaderResourceView* ns = nullptr;
-            c->CSSetShaderResources(3, 1, &ns);
+            gfx::SRV  src = pass == 0 ? cloudSrv : shaftA.srv;
+            c->csSetSRVs(3, 1, &src);
+            c->csSetUAVs(2, 1, &dst.uav);
+            c->dispatch(gfx::divUp(dst.width, 8), gfx::divUp(dst.height, 8), 1);
+            gfx::UAV  nu = nullptr;
+            c->csSetUAVs(2, 1, &nu);
+            gfx::SRV  ns = nullptr;
+            c->csSetSRVs(3, 1, &ns);
         }
-        ID3D11ShaderResourceView* ns1[1] = {};
-        c->CSSetShaderResources(33, 1, ns1);
-        c->CSSetShaderResources(40, 1, ns1);
+        gfx::SRV  ns1[1] = {};
+        c->csSetSRVs(33, 1, ns1);
+        c->csSetSRVs(40, 1, ns1);
     }
 
     void render(Renderer& r, float dt) {
@@ -249,45 +249,45 @@ struct PostSystem {
         runMotionBlur(r, dt);
         runBloom(r);
         if (shafts > 0.f) runShafts(r);
-        ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get()};
-        c->CSSetConstantBuffers(0, 2, cbs);
-        c->PSSetConstantBuffers(0, 2, cbs);
+        gfx::Resource  cbs[] = {r.frameCB.get(), cb.get()};
+        c->csSetCBs(0, 2, cbs);
+        c->psSetCBs(0, 2, cbs);
         // Exposure from the anti-aliased image: luminance histogram, then metering + adaptation
-        c->CSSetShader(csReduce, nullptr, 0);
-        c->CSSetShaderResources(0, 1, &displaySrv);
-        c->CSSetShaderResources(5, 1, &r.depth.srv);
-        c->CSSetShaderResources(40, 1, &exposureBuf.srv);
-        c->CSSetUnorderedAccessViews(0, 1, &lumHist.uav, nullptr);
-        c->Dispatch(gfx::divUp(r.width, 64), gfx::divUp(r.height, 64), 1);
-        ID3D11ShaderResourceView* nullSrv[6] = {};
-        ID3D11UnorderedAccessView* nullUav[2] = {};
-        c->CSSetShaderResources(0, 6, nullSrv);
-        c->CSSetShaderResources(40, 1, nullSrv);
-        c->CSSetShader(csExposure, nullptr, 0);
-        ID3D11UnorderedAccessView* expUavs[2] = {lumHist.uav, exposureBuf.uav};
-        c->CSSetUnorderedAccessViews(0, 2, expUavs, nullptr);
-        c->Dispatch(1, 1, 1);
-        c->CSSetUnorderedAccessViews(0, 2, nullUav, nullptr);
-        c->CSSetShaderResources(0, 3, nullSrv);
+        c->setCS(csReduce);
+        c->csSetSRVs(0, 1, &displaySrv);
+        c->csSetSRVs(5, 1, &r.depth.srv);
+        c->csSetSRVs(40, 1, &exposureBuf.srv);
+        c->csSetUAVs(0, 1, &lumHist.uav);
+        c->dispatch(gfx::divUp(r.width, 64), gfx::divUp(r.height, 64), 1);
+        gfx::SRV  nullSrv[6] = {};
+        gfx::UAV  nullUav[2] = {};
+        c->csSetSRVs(0, 6, nullSrv);
+        c->csSetSRVs(40, 1, nullSrv);
+        c->setCS(csExposure);
+        gfx::UAV  expUavs[2] = {lumHist.uav, exposureBuf.uav};
+        c->csSetUAVs(0, 2, expUavs);
+        c->dispatch(1, 1, 1);
+        c->csSetUAVs(0, 2, nullUav);
+        c->csSetSRVs(0, 3, nullSrv);
 
         // Tonemap to back buffer
-        ID3D11RenderTargetView* bb = gfx::backbufferRTV();
-        c->OMSetRenderTargets(1, &bb, nullptr);
+        gfx::RTV  bb = gfx::backbufferRTV();
+        c->setRenderTargets(1, &bb, nullptr);
         gfx::setViewport((float)r.outWidth, (float)r.outHeight);
-        c->OMSetDepthStencilState(gfx::states.depthOff, 0);
-        c->OMSetBlendState(gfx::states.opaque, nullptr, 0xffffffff);
-        c->RSSetState(gfx::states.cullNone);
-        c->IASetInputLayout(nullptr);
-        c->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        c->VSSetShader(r.vsFullscreen.vs, nullptr, 0);
-        c->PSSetShader(psTonemap, nullptr, 0);
-        ID3D11ShaderResourceView* srvs[6] = {displaySrv, bloomUp.srv, shafts > 0.f ? shaftB.srv : blackTex.srv, nullptr, nullptr, r.depth.srv};
-        c->PSSetShaderResources(0, 6, srvs);
-        c->PSSetShaderResources(40, 1, &exposureBuf.srv);
-        c->Draw(3, 0);
-        ID3D11ShaderResourceView* nullSrv6[6] = {};
-        c->PSSetShaderResources(0, 6, nullSrv6);
-        c->PSSetShaderResources(40, 1, nullSrv6);
+        c->setDepthState(gfx::states.depthOff);
+        c->setBlendState(gfx::states.opaque);
+        c->setRasterState(gfx::states.cullNone);
+        c->setInputLayout(nullptr);
+        c->setTopology(gfx::TOPO_TRIANGLE_LIST);
+        c->setVS(r.vsFullscreen.vs);
+        c->setPS(psTonemap);
+        gfx::SRV  srvs[6] = {displaySrv, bloomUp.srv, shafts > 0.f ? shaftB.srv : blackTex.srv, nullptr, nullptr, r.depth.srv};
+        c->psSetSRVs(0, 6, srvs);
+        c->psSetSRVs(40, 1, &exposureBuf.srv);
+        c->draw(3, 0);
+        gfx::SRV  nullSrv6[6] = {};
+        c->psSetSRVs(0, 6, nullSrv6);
+        c->psSetSRVs(40, 1, nullSrv6);
     }
 };
 

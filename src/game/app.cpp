@@ -95,8 +95,27 @@ struct App {
         if (!Platform::init("Neon Tide", w, h, !autotest && Platform::hasArg("fullscreen"), false)) return false;
         int workers = Max(2, (int)std::thread::hardware_concurrency() - 1);
         Jobs::init(workers);
-        if (!gfx::init(Platform::windowHandle(), Platform::clientWidth(), Platform::clientHeight(), Platform::hasArg("d3ddebug")))
-            FatalError("Could not initialize Direct3D 11. A DirectX 11 capable GPU and up-to-date drivers are required.");
+        if (!gfx::init(Platform::windowHandle(), Platform::clientWidth(), Platform::clientHeight(), Platform::hasArg("d3ddebug"))) {
+            std::string msg = StrFormat(
+                "Neon Tide requires Direct3D 12: a graphics card and driver with Direct3D 12 support, on Windows 10 or newer.\n\n"
+                "Direct3D 12 could not be started on this PC: %s.\n\n"
+                "Installing the latest graphics driver may help. The game will now close.",
+                gfx::initError());
+            LOG("FATAL: %s", msg.c_str());
+            if (!autotest) Platform::showMessageBox("Neon Tide - Direct3D 12 required", msg.c_str(), true);
+            gfx::shutdown();
+            Jobs::shutdown();
+            Platform::shutdown();
+            return false;
+        }
+        if (Platform::hasArg("gfxselftest")) {   // graphics layer self-test (bindless, indirect, async compute, aliasing...)
+            int failures = gfx::selfTest();
+            LOG("gfx self-test: %d failure(s)", failures);
+            gfx::shutdown();
+            Jobs::shutdown();
+            Platform::shutdown();
+            ExitProcess(failures == 0 ? 0 : 2);
+        }
         UI::init();
 #ifdef HAVE_AUDIO
         if (!Platform::hasArg("nosound") && !Audio::init()) LOG("Audio: no output device, continuing silently");
@@ -300,12 +319,11 @@ struct App {
     }
 
     void drawLoadingScreen(float dt) {
-        ID3D11RenderTargetView* rtv = gfx::backbufferRTV();
+        gfx::RTV  rtv = gfx::backbufferRTV();
         float clearColor[4] = {0.01f, 0.012f, 0.03f, 1.f};
-        gfx::ctx->OMSetRenderTargets(1, &rtv, nullptr);
-        gfx::ctx->ClearRenderTargetView(rtv, clearColor);
-        D3D11_VIEWPORT vp = {0, 0, (float)gfx::backbufferWidth(), (float)gfx::backbufferHeight(), 0, 1};
-        gfx::ctx->RSSetViewports(1, &vp);
+        gfx::ctx->setRenderTargets(1, &rtv, nullptr);
+        gfx::ctx->clearRTV(rtv, clearColor);
+        gfx::setViewport((float)gfx::backbufferWidth(), (float)gfx::backbufferHeight());
         UI::beginFrame(gfx::backbufferWidth(), gfx::backbufferHeight());
         float progress = Saturate((loadStage.load() + Saturate((float)(TimeSeconds() - loadStart) / 12.f)) / 4.f);
 #ifdef HAVE_GAME_UI

@@ -9,7 +9,7 @@ struct SSRSystem {
     gfx::Texture trace, history[2];
     int cur = 0;
     bool historyValid = false;
-    ID3D11ComputeShader *csTrace = nullptr, *csResolve = nullptr;
+    gfx::ComputeShader csTrace = nullptr, csResolve = nullptr;
     gfx::CBuffer<SSRCBData> cb;
 
     void init() {
@@ -27,7 +27,7 @@ struct SSRSystem {
     }
 
     // Returns the full-resolution reflection texture (rgb pre-exposed radiance, a confidence) or nullptr.
-    ID3D11ShaderResourceView* run(Renderer& r, ScreenSpaceSystem& ss) {
+    gfx::SRV  run(Renderer& r, ScreenSpaceSystem& ss) {
         const Settings& s = r.settings;
         if (!s.ssr || s.ssrQuality <= 0 || !ss.pyramidValid) {
             historyValid = false;
@@ -42,22 +42,22 @@ struct SSRSystem {
         cb.data.p0 = vec4(iters[q], (float)(ss.hizMips - 1), 400.f, maxRough);
         cb.data.p1 = vec4((historyValid && !r.cameraCut) ? 1.f : 0.f, (float)ss.colorMips, (float)o[0], (float)o[1]);
         cb.upload();
-        ID3D11Buffer* cbs[] = {r.frameCB.get(), cb.get()};
-        c->CSSetConstantBuffers(0, 2, cbs);
-        ID3D11ShaderResourceView* srvs[5] = {r.depth.srv, r.gbNormal.srv, r.gbMaterial.srv, ss.hiz.srv, ss.colorPyramid.srv};
-        c->CSSetShaderResources(0, 5, srvs);
-        c->CSSetUnorderedAccessViews(0, 1, &trace.uav, nullptr);
-        c->CSSetShader(csTrace, nullptr, 0);
-        c->Dispatch(gfx::divUp(ss.halfW, 8), gfx::divUp(ss.halfH, 8), 1);
+        gfx::Resource  cbs[] = {r.frameCB.get(), cb.get()};
+        c->csSetCBs(0, 2, cbs);
+        gfx::SRV  srvs[5] = {r.depth.srv, r.gbNormal.srv, r.gbMaterial.srv, ss.hiz.srv, ss.colorPyramid.srv};
+        c->csSetSRVs(0, 5, srvs);
+        c->csSetUAVs(0, 1, &trace.uav);
+        c->setCS(csTrace);
+        c->dispatch(gfx::divUp(ss.halfW, 8), gfx::divUp(ss.halfH, 8), 1);
         gfx::unbindCSResources(10, 1);
         int prev = cur;
         cur ^= 1;
-        ID3D11ShaderResourceView* rs[10] = {r.depth.srv, r.gbNormal.srv, r.gbMaterial.srv, nullptr, nullptr,
+        gfx::SRV  rs[10] = {r.depth.srv, r.gbNormal.srv, r.gbMaterial.srv, nullptr, nullptr,
                                             trace.srv, history[prev].srv, r.gbVelocity.srv, ss.depthCur(), ss.halfNormal.srv};
-        c->CSSetShaderResources(0, 10, rs);
-        c->CSSetUnorderedAccessViews(0, 1, &history[cur].uav, nullptr);
-        c->CSSetShader(csResolve, nullptr, 0);
-        c->Dispatch(gfx::divUp(r.width, 8), gfx::divUp(r.height, 8), 1);
+        c->csSetSRVs(0, 10, rs);
+        c->csSetUAVs(0, 1, &history[cur].uav);
+        c->setCS(csResolve);
+        c->dispatch(gfx::divUp(r.width, 8), gfx::divUp(r.height, 8), 1);
         gfx::unbindCSResources(10, 1);
         historyValid = true;
         return history[cur].srv;
