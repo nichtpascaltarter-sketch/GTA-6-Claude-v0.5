@@ -96,6 +96,10 @@ enum BuildingArch : u8 {
     AR_CHURCH_CLAPBOARD,  // white board church: steep gable, a central steeple with a belfry and a spire
     AR_CHURCH_BRICK,      // brick Gothic revival: steep slate gable, a square corner tower with pinnacles
     AR_CHURCH_AFRAME,     // 1960s A-frame: the roof down to the ground, a glass gable, a free-standing bell pylon
+    // houses of the working neighbourhoods and the old towns
+    AR_HOUSE_CBS,         // 1950s Florida block house: pastel stucco, low hip roof, aluminium window awnings, a carport
+    AR_HOUSE_VICTORIAN,   // folk Victorian: two-storey frame cross gable, a porch with turned posts and brackets, a gable truss
+    AR_HOUSE_RAISED,      // Keys house raised on concrete piers (the flood code): parking and storage under, a front deck and stair
     AR_COUNT
 };
 

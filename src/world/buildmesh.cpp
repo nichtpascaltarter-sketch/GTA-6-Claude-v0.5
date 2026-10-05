@@ -11,6 +11,13 @@ namespace buildmesh_detail {
 
 const u32 kWhite = 0xffffffffu;
 
+// Ground around a house kept clear of its yard trees: porches, decks, stairs, the cistern, the pool deck, the garage wing
+// and its driveway (centre, the two axes and the half extents along them); the house builders fill it, the yard trees read it
+struct YardKeep {
+    vec2 c, a, b;
+    float ha, hb;
+};
+
 struct Ctx {
     MeshData* m;
     vec3 org;  // cell origin (world) subtracted from all positions
@@ -21,7 +28,20 @@ struct Ctx {
     std::vector<FacadeMass>* masses = nullptr;  // facade masses for the street-level detail pass (LOD0)
     int interior = -1;  // enterable interior of the building (world/interiors.cpp): facade cut-outs, hollow collision
     u32 roofCol = 0xffe0e5e5u, roofMat = 0;      // flat roof finish of the building (roofFinish), set per building
+    std::vector<YardKeep>* keep = nullptr;       // the house's yard keep-outs (YardKeep), per building
 };
+
+inline void yardKeep(Ctx& x, vec2 c, vec2 a, vec2 b, float ha, float hb) {
+    if (x.keep) x.keep->push_back({c, a, b, fabsf(ha), fabsf(hb)});
+}
+inline bool yardKept(const Ctx& x, vec2 p, float margin) {
+    if (!x.keep) return false;
+    for (const YardKeep& k : *x.keep) {
+        vec2 d = p - k.c;
+        if (fabsf(dot(d, k.a)) < k.ha + margin && fabsf(dot(d, k.b)) < k.hb + margin) return true;
+    }
+    return false;
+}
 
 // Flat roof finish of a building: white or light-grey membrane, gravel ballast (grey to tan), silver coating or black
 // tar - newer buildings mostly membrane, the older fabric gravel, tar and silver (seeded, same in every LOD)
@@ -501,6 +521,97 @@ void awning(Ctx& x, vec2 a, vec2 b, vec2 out, float z, float depth, u32 color) {
                     makeMat(MAT_FABRIC), vec3(out, 0));
 }
 
+// The parking court of a strip mall or the forecourt of a gas station, between its front and the street (pc: the
+// court's centre, pd: its half depth toward the street). Usually asphalt on a grid that follows the ground - the parked
+// cars (population.cpp) and the shoppers stand on the ground - with a raised walk 1 m deep along the shopfronts (its
+// curb face to the asphalt, walkable when the step is low). Where the building stands well above the ground in front
+// (lifted to an embankment road's level) the court is a level plateau at the shop floors instead, walled down to the
+// ground and solid underfoot. Stall lines 2.7 m apart, 1 to 6 m out from the shopfronts. Returns the plateau's height,
+// or -1e9 when the court follows the ground (courtFoot() gives the surface under a canopy support or a pump).
+float stripCourt(Ctx& x, const Building& b, vec2 pc, float pd, bool lines) {
+    const WorldMap& map = *gMap;
+    const vec2 ay = perp(b.ax);
+    const vec3 X(b.ax, 0.f), Y(ay, 0.f), Z(0, 0, 1);
+    const float hxC = b.hx + 1.f, walk = 1.f, zw = b.baseZ - 0.08f;
+    const vec2 f0 = b.c + b.front * b.hy;   // the shopfronts' line (the court's back edge)
+    const float depth = 2.f * pd;
+    const u32 am = makeMat(MAT_ASPHALT_OLD), paint = makeMat(MAT_PAINT_WHITE);
+    // the ground along the walk's edge: a low curb, or a building lifted well above the ground
+    float gLo = 1e9f, gMin = 1e9f;
+    for (int i = 0; i <= 8; i++) {
+        vec2 p = f0 + b.ax * (-hxC + 2.f * hxC * i / 8.f) + b.front * walk;
+        gLo = Min(gLo, map.heightAt(p.x, p.y));
+    }
+    for (int j = 0; j <= 4; j++)
+        for (int i = 0; i <= 4; i++) {
+            vec2 p = f0 + b.ax * (-hxC + 2.f * hxC * i / 4.f) + b.front * (depth * j / 4.f);
+            gMin = Min(gMin, map.heightAt(p.x, p.y));
+        }
+    if (zw - (gLo + 0.05f) > 0.5f) {
+        // the plateau: one slab at the walk's level over the whole court, walls to the ground, a collider under it
+        const float zp = b.baseZ - 0.1f;
+        auto pfp = rectFP(pc, b.ax, hxC, pd);
+        std::vector<vec3> poly;
+        for (auto& p : pfp) poly.push_back(vec3(p, zp) - x.org);
+        x.m->polygon(poly, vec3(0, 0, 1), kWhite, am, 1.f);
+        plainWalls(x, pfp, gMin - 0.3f, zp, packRGBA8(0.85f, 0.84f, 0.8f, 1), makeMat(MAT_CONCRETE));
+        addCollision(x, pc, b.ax, hxC, pd, gMin - 0.5f, zp);
+        if (lines && x.detail && pd > 5.f)
+            for (float u = -b.hx + 2.f; u < b.hx - 1.f; u += 2.7f) {
+                vec2 s0 = f0 + b.ax * u + b.front * (walk + 0.05f), s1 = s0 + b.front * 5.f;
+                vec2 w = b.ax * 0.06f;
+                x.m->quadFacing(vec3(s0 - w, zp + 0.02f) - x.org, vec3(s0 + w, zp + 0.02f) - x.org, vec3(s1 + w, zp + 0.02f) - x.org, vec3(s1 - w, zp + 0.02f) - x.org,
+                                vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), kWhite, paint, vec3(0, 0, 1));
+            }
+        return zp;
+    }
+    // asphalt: a grid of about 5 m from the walk's curb to the street end (one quad far away)
+    {
+        float v0 = walk, v1 = depth;
+        int nx = x.detail ? Clamp((int)(2.f * hxC / 5.f), 1, 16) : 1, ny = x.detail ? Clamp((int)((v1 - v0) / 5.f), 1, 12) : 1;
+        thread_local std::vector<vec3> g;
+        g.assign((size_t)(nx + 1) * (ny + 1), vec3(0.f));
+        for (int j = 0; j <= ny; j++)
+            for (int i = 0; i <= nx; i++) {
+                vec2 p = f0 + b.ax * (-hxC + 2.f * hxC * i / nx) + b.front * (v0 + (v1 - v0) * j / ny);
+                g[(size_t)j * (nx + 1) + i] = vec3(p, map.heightAt(p.x, p.y) + 0.05f) - x.org;
+            }
+        for (int j = 0; j < ny; j++)
+            for (int i = 0; i < nx; i++) {
+                vec3 a = g[(size_t)j * (nx + 1) + i], c1 = g[(size_t)j * (nx + 1) + i + 1], c2 = g[(size_t)(j + 1) * (nx + 1) + i + 1], d = g[(size_t)(j + 1) * (nx + 1) + i];
+                x.m->quadFacing(a, c1, c2, d, vec2(a.x, a.y) * 0.25f, vec2(c1.x, c1.y) * 0.25f, vec2(c2.x, c2.y) * 0.25f, vec2(d.x, d.y) * 0.25f, kWhite, am, vec3(0, 0, 1));
+            }
+    }
+    // the walk along the shopfronts: concrete from below the ground to just under the shop floors, its face the curb
+    // (walkable: the curb is at most 0.5 m here, under a walker's step)
+    {
+        vec2 wc = f0 + b.front * (walk * 0.5f);
+        float zb = Min(gLo, zw) - 0.4f;
+        x.m->box(vec3(wc, (zb + zw) * 0.5f) - x.org, X, Y, Z, vec3(hxC, walk * 0.5f, (zw - zb) * 0.5f), packRGBA8(0.9f, 0.89f, 0.86f, 1), makeMat(MAT_SIDEWALK), true);
+        addCollision(x, wc, b.ax, hxC, walk * 0.5f, zb, zw);
+    }
+    // stall lines: 2.7 m apart, 1 to 6 m out from the shopfronts, on the asphalt
+    if (lines && x.detail && pd > 5.f) {
+        for (float u = -b.hx + 2.f; u < b.hx - 1.f; u += 2.7f) {
+            vec2 w = b.ax * 0.06f;
+            for (int sgm = 0; sgm < 2; sgm++) {
+                vec2 s0 = f0 + b.ax * u + b.front * (walk + 0.05f + 2.5f * sgm), s1 = s0 + b.front * 2.5f;
+                float z0s = map.heightAt(s0.x, s0.y) + 0.07f, z1s = map.heightAt(s1.x, s1.y) + 0.07f;
+                x.m->quadFacing(vec3(s0 - w, z0s) - x.org, vec3(s0 + w, z0s) - x.org, vec3(s1 + w, z1s) - x.org, vec3(s1 - w, z1s) - x.org, vec2(0, 0), vec2(1, 0),
+                                vec2(1, 1), vec2(0, 1), kWhite, paint, vec3(0, 0, 1));
+            }
+        }
+    }
+    return -1e9f;
+}
+
+// The surface of a court made by stripCourt under a point (a canopy support's or a pump's foot): the plateau, or the
+// asphalt on the ground (never above the shop floor)
+inline float courtFoot(float plateau, vec2 p, float z0) {
+    if (plateau > -1e8f) return plateau;
+    return gMap ? Min(gMap->heightAt(p.x, p.y) + 0.05f, z0) : z0;
+}
+
 }  // namespace buildmesh_detail
 
 using namespace buildmesh_detail;
@@ -534,6 +645,9 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
     thread_local std::vector<FacadeMass> masses;
     masses.clear();
     x.masses = detail ? &masses : nullptr;
+    thread_local std::vector<YardKeep> keeps;
+    keeps.clear();
+    x.keep = props ? &keeps : nullptr;
     Rng r(b.seed ^ 0xB111D1u);
     vec2 ay = perp(b.ax);
     float z0 = b.baseZ;
@@ -854,50 +968,87 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             vec2 lotFront = b.lotC + b.front * b.lotHy;
             vec2 pc = (lotFront + (b.c + b.front * b.hy)) * 0.5f;
             float pd = length(lotFront - (b.c + b.front * b.hy)) * 0.5f;
-            if (pd > 2.f) {
-                auto pfp = rectFP(pc, b.ax, b.hx + 1.f, pd);
-                std::vector<vec3> poly;
-                for (auto& p : pfp) poly.push_back(vec3(p, z0 - 0.1f) - org);
-                m.polygon(poly, vec3(0, 0, 1), kWhite, makeMat(MAT_ASPHALT_OLD), 1.f);
-                plainWalls(x, pfp, z0 - 1.f, z0 - 0.1f, kWhite, makeMat(MAT_CONCRETE));
-            }
+            // (asphalt on the ground, the walk along the shopfront, the stalls of a strip mall; a plateau above low ground)
+            float plateau = pd > 2.f ? stripCourt(x, b, pc, pd, b.style == BS_STRIPMALL) : -1e9f;
             if (b.style == BS_STRIPMALL && detail) {
-                // Covered walkway canopy with columns
+                // Covered walkway canopy with columns (standing on the court's asphalt)
                 vec2 cc = b.c + b.front * (b.hy + 1.6f);
                 m.box(vec3(cc, z0 + 3.6f) - org, vec3(b.ax, 0), vec3(ay, 0), vec3(0, 0, 1), vec3(b.hx, 1.6f, 0.25f), packRGBA8(0.92f, 0.9f, 0.86f, 1),
                       makeMat(MAT_PLASTER), true);
-                for (float u = -b.hx + 1.f; u <= b.hx; u += 6.f)
-                    m.box(vec3(b.c + b.front * (b.hy + 3.f) + b.ax * u, z0 + 1.7f) - org, vec3(b.ax, 0), vec3(ay, 0), vec3(0, 0, 1), vec3(0.2f, 0.2f, 1.8f),
-                          kWhite, makeMat(MAT_PLASTER));
-                // parking stall lines
-                if (pd > 5.f) {
-                    for (float u = -b.hx + 2.f; u < b.hx - 1.f; u += 2.7f) {
-                        vec2 s0 = pc + b.ax * u - b.front * (pd - 1.f), s1 = s0 + b.front * 5.f;
-                        vec2 w = b.ax * 0.06f;
-                        m.quadFacing(vec3(s0 - w, z0 - 0.08f) - org, vec3(s0 + w, z0 - 0.08f) - org, vec3(s1 + w, z0 - 0.08f) - org, vec3(s1 - w, z0 - 0.08f) - org,
-                                     vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), kWhite, makeMat(MAT_PAINT_WHITE), vec3(0, 0, 1));
-                    }
+                for (float u = -b.hx + 1.f; u <= b.hx; u += 6.f) {
+                    vec2 cp = b.c + b.front * (b.hy + 3.f) + b.ax * u;
+                    float gz = courtFoot(plateau, cp, z0 - 0.1f), zt = z0 + 3.5f;
+                    m.box(vec3(cp, (gz + zt) * 0.5f) - org, vec3(b.ax, 0), vec3(ay, 0), vec3(0, 0, 1), vec3(0.2f, 0.2f, (zt - gz) * 0.5f), kWhite, makeMat(MAT_PLASTER));
                 }
             }
             if (b.style == BS_GASSTATION && detail) {
-                // Canopy over pumps
+                // Canopy over the pumps in one of four kinds (seeded; the columns and pumps stay where population.cpp
+                // parks the cars): the flat canopy with a lit brand band, a sixties butterfly canopy on a middle row of
+                // tapered columns, a barrel-tile hip on stucco piers, or a slab carried out from the kiosk
                 vec2 cc = pc;
                 float cw = Min(b.hx * 2.2f, 16.f), cd = Min(pd * 0.8f, 9.f);
-                m.box(vec3(cc, z0 + 5.2f) - org, vec3(b.ax, 0), vec3(ay, 0), vec3(0, 0, 1), vec3(cw, cd, 0.45f), kWhite, makeMat(MAT_METAL_PAINTED), true);
                 vec3 bc = hsvToRgb(r.f(), 0.8f, 0.9f);
-                auto rim = rectFP(cc, b.ax, cw + 0.02f, cd + 0.02f);
-                plainWalls(x, rim, z0 + 4.8f, z0 + 5.3f, packRGBA8(bc.x, bc.y, bc.z, 0.15f), makeMat(MAT_EMISSIVE, 6u));
+                const u32 brand = packRGBA8(bc.x, bc.y, bc.z, 1), metal = makeMat(MAT_METAL_PAINTED);
+                const vec3 X(b.ax, 0.f), Y(ay, 0.f), Z(0, 0, 1);
+                u32 kh = hash32(b.seed ^ 0x6A5C0u) % 100u;
+                int kind = kh < 40u ? 0 : (kh < 65u ? 1 : (kh < 85u ? 2 : 3));
+                float zc = z0 + 4.8f;   // the canopy's underside
+                if (kind == 0) {
+                    m.box(vec3(cc, z0 + 5.2f) - org, X, Y, Z, vec3(cw, cd, 0.45f), kWhite, metal, true);
+                    auto rim = rectFP(cc, b.ax, cw + 0.02f, cd + 0.02f);
+                    plainWalls(x, rim, z0 + 4.8f, z0 + 5.3f, packRGBA8(bc.x, bc.y, bc.z, 0.15f), makeMat(MAT_EMISSIVE, 6u));
+                } else if (kind == 1) {
+                    // butterfly: two plates rising from a valley over the middle row, brand-coloured edges
+                    float zv = z0 + 4.6f, ze = z0 + 5.6f;
+                    zc = zv;
+                    for (int sd = -1; sd <= 1; sd += 2) {
+                        vec3 a0 = vec3(cc - b.ax * (cw + 0.3f), zv) - org, a1 = vec3(cc + b.ax * (cw + 0.3f), zv) - org;
+                        vec3 b0 = vec3(cc - b.ax * (cw + 0.3f) + b.front * (sd * (cd + 0.4f)), ze) - org, b1 = vec3(cc + b.ax * (cw + 0.3f) + b.front * (sd * (cd + 0.4f)), ze) - org;
+                        vec3 up = normalize(vec3(b.front * (-sd * (ze - zv)), cd + 0.4f));
+                        m.quadFacing(a0, a1, b1, b0, vec2(0, 0), vec2(2.f * cw, 0), vec2(2.f * cw, cd), vec2(0, cd), packRGBA8(0.96f, 0.96f, 0.95f, 1), makeMat(MAT_PLASTER), up);
+                        m.quadFacing(a0, b0, b1, a1, vec2(0, 0), vec2(cd, 0), vec2(cd, 2.f * cw), vec2(0, 2.f * cw), packRGBA8(0.9f, 0.9f, 0.88f, 1), makeMat(MAT_PLASTER), -up);
+                        // the edge fascia in the brand colour
+                        m.box(vec3(cc + b.front * (sd * (cd + 0.4f)), ze - 0.12f) - org, X, Y, Z, vec3(cw + 0.3f, 0.06f, 0.14f), brand, metal, true);
+                    }
+                    for (int k = -1; k <= 1; k += 2) {
+                        vec2 mp = cc + b.ax * (k * cw * 0.35f);
+                        float gm = courtFoot(plateau, mp, z0);
+                        m.cylinder(vec3(mp, gm) - org, 0.32f, 0.16f, zv - gm, 10, packRGBA8(0.95f, 0.95f, 0.94f, 1), makeMat(MAT_PLASTER), false);
+                    }
+                } else if (kind == 2) {
+                    // barrel-tile hip on a stucco frieze (the old service stations)
+                    m.box(vec3(cc, z0 + 5.05f) - org, X, Y, Z, vec3(cw + 0.2f, cd + 0.2f, 0.3f), packRGBA8(0.95f, 0.91f, 0.82f, 1), makeMat(MAT_STUCCO), true);
+                    pitchedRoof(x, cc, b.ax, cw + 0.2f, cd + 0.2f, z0 + 5.35f, 0.32f, true, 0.45f, packRGBA8(1.f, 0.95f, 0.92f, 1), makeMat(MAT_ROOF_TILE), kWhite,
+                                makeMat(MAT_PLASTER));
+                    m.box(vec3(cc, z0 + 4.95f) - org, X, Y, Z, vec3(cw + 0.22f, cd + 0.22f, 0.08f), brand, metal, false);
+                } else {
+                    // a slab carried out from the kiosk over the pumps, the kiosk's colours
+                    vec2 k0 = b.c + b.front * b.hy;
+                    float v1 = dot(cc - k0, b.front) + cd + 0.3f;
+                    vec2 sc = k0 + b.front * (v1 * 0.5f);
+                    m.box(vec3(sc, z0 + 5.15f) - org, X, Y, Z, vec3(cw + 0.3f, v1 * 0.5f, 0.35f), packRGBA8(0.97f, 0.97f, 0.96f, 1), makeMat(MAT_PLASTER), true);
+                    m.box(vec3(sc + b.front * (v1 * 0.5f), z0 + 5.15f) - org, X, Y, Z, vec3(cw + 0.32f, 0.04f, 0.36f), brand, metal, true);
+                }
                 for (int k = -1; k <= 1; k += 2)
                     for (int j = -1; j <= 1; j += 2) {
-                        vec2 cp = cc + b.ax * (k * cw * 0.6f) + b.front * (j * cd * 0.45f);
-                        m.box(vec3(cp, z0 + 2.4f) - org, vec3(b.ax, 0), vec3(ay, 0), vec3(0, 0, 1), vec3(0.25f, 0.25f, 2.4f), kWhite, makeMat(MAT_METAL_PAINTED));
-                        m.box(vec3(cp + b.ax * 1.2f, z0 + 0.8f) - org, vec3(b.ax, 0), vec3(ay, 0), vec3(0, 0, 1), vec3(0.5f, 0.3f, 0.8f), packRGBA8(bc.x, bc.y, bc.z, 1),
-                              makeMat(MAT_METAL_PAINTED));
+                        // (column and pump on the forecourt's asphalt, which follows the ground; the butterfly canopy stands
+                        // on its middle columns)
+                        vec2 cp = cc + b.ax * (k * cw * 0.6f) + b.front * (j * cd * 0.45f), pp = cp + b.ax * 1.2f;
+                        float gc = courtFoot(plateau, cp, z0), gp = courtFoot(plateau, pp, z0);
+                        if (kind != 1) {
+                            u32 colC = kind == 2 ? packRGBA8(0.95f, 0.91f, 0.82f, 1) : kWhite;
+                            u32 colM = kind == 2 ? makeMat(MAT_STUCCO) : metal;
+                            float hw = kind == 2 ? 0.34f : 0.25f;
+                            m.box(vec3(cp, (gc + zc) * 0.5f) - org, X, Y, Z, vec3(hw, hw, (zc - gc) * 0.5f), colC, colM);
+                        }
+                        // the pump island (a low curb) and the pump
+                        m.box(vec3(pp, gp + 0.08f) - org, X, Y, Z, vec3(0.9f, 0.45f, 0.08f), packRGBA8(0.85f, 0.84f, 0.8f, 1), makeMat(MAT_CONCRETE));
+                        m.box(vec3(pp, gp + 0.96f) - org, X, Y, Z, vec3(0.5f, 0.3f, 0.8f), brand, metal);
                     }
                 if (lights)
                     for (int k = -1; k <= 1; k += 2) {
                         LightInstance li;
-                        li.pos = vec3(cc + b.ax * (k * cw * 0.4f), z0 + 4.6f);
+                        li.pos = vec3(cc + b.ax * (k * cw * 0.4f), zc - 0.2f);
                         li.color = vec3(0.95f, 0.97f, 1.f) * 6000.f;
                         li.radius = 18.f;
                         li.dir = vec3(0, 0, -1);
@@ -905,6 +1056,16 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                         li.type = 1;
                         lights->push_back(li);
                     }
+                // the price sign on a pole at a street corner of the forecourt
+                if ((b.seed >> 9) % 10u < 7u) {
+                    float sd = (b.seed & 512u) ? 1.f : -1.f;
+                    vec2 sp = b.lotC + b.front * (b.lotHy - 1.2f) + b.ax * (sd * Min(b.lotHx - 1.2f, cw + 2.f));
+                    float gs = map.heightAt(sp.x, sp.y);
+                    m.box(vec3(sp, gs + 3.2f) - org, X, Y, Z, vec3(0.14f, 0.14f, 3.2f), packRGBA8(0.75f, 0.76f, 0.78f, 1), metal);
+                    m.box(vec3(sp, gs + 6.1f) - org, X, Y, Z, vec3(1.1f, 0.22f, 0.7f), packRGBA8(bc.x, bc.y, bc.z, 0.22f), makeMat(MAT_EMISSIVE, 6u), true);
+                    m.box(vec3(sp, gs + 4.7f) - org, X, Y, Z, vec3(1.0f, 0.2f, 0.6f), packRGBA8(0.98f, 0.98f, 0.96f, 0.15f), makeMat(MAT_EMISSIVE, 6u), true);
+                    addCollision(x, sp, b.ax, 0.15f, 0.15f, gs - 0.5f, gs + 7.f);
+                }
             }
             break;
         }
@@ -913,7 +1074,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
         case BS_FARMHOUSE:
         case BS_SHACK: {
             bool stilts = b.style == BS_SHACK;
-            float zb = z0 + (stilts ? (b.arch == AR_SHACK_STILT ? massing::shackStiltH(b) : 2.2f) : 0.f);
+            float zb = z0 + (stilts ? (b.arch == AR_SHACK_STILT ? massing::shackStiltH(b) : 2.2f) : (b.arch == AR_HOUSE_RAISED ? massing::stiltFloorH(b) : 0.f));
             u32 roofMat, roofCol;
             // archetype houses (massing.cpp): ranch, bungalow, Mediterranean, two-storey, MiMo, split level, conch, modern villa
             if (!buildArchHouseBody(x, b, fac, roofCol, roofMat)) {
@@ -950,7 +1111,73 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             // (deterministic from the seed: facadedetail.cpp keeps hedges and garden walls clear of this driveway)
             bool garage = (b.style == BS_HOUSE && (b.seed % 10u) < 7u) || b.style == BS_VILLA;
             float side = (b.seed & 64u) ? 1.f : -1.f;
-            if (garage) {
+            // (the block houses and the MiMo houses have a carport instead: a flat roof on posts, a utility room at the back)
+            const bool carport = b.arch == AR_HOUSE_CBS || b.arch == AR_HOUSE_MIMO;
+            if (garage && carport) {
+                float gw = 3.2f, gd = Min(b.hy, 3.4f);
+                vec2 gc = b.c + b.ax * (side * (b.hx + gw)) + b.front * (b.hy - gd);
+                const vec3 X(b.ax, 0.f), Y(ay, 0.f), Z(0, 0, 1);
+                const vec2 Fw = b.front;
+                const float zr = z0 + 2.7f;
+                const u32 white = packRGBA8(0.95f, 0.95f, 0.94f, 1), steel = makeMat(MAT_METAL_PAINTED);
+                // the roof slab, a little over the front and the outer side
+                vec2 rc = gc + Fw * 0.15f + b.ax * (side * 0.15f);
+                m.box(vec3(rc, zr + 0.11f) - org, X, Y, Z, vec3(gw + 0.15f, gd + 0.15f, 0.11f), white, makeMat(MAT_PLASTER), true);
+                addCollision(x, rc, b.ax, gw + 0.15f, gd + 0.15f, zr, zr + 0.22f);
+                // the utility room across the back (a door to the carport), the floor slab
+                float ud = Min(1.8f, gd * 0.5f);
+                vec2 uc = gc - Fw * (gd - ud);
+                auto ufp = rectFP(uc, b.ax, gw, ud);
+                facadeWalls(x, ufp, z0 - 1.f, zr, z0 + 100.f, b.facade, 20.f);
+                addCollision(x, uc, b.ax, gw, ud, z0 - 1.f, zr);
+                vec2 ud0 = uc + Fw * (ud + 0.02f) - b.ax * 0.45f, ud1 = ud0 + b.ax * 0.9f;
+                m.quadFacing(vec3(ud0, z0) - org, vec3(ud1, z0) - org, vec3(ud1, z0 + 2.05f) - org, vec3(ud0, z0 + 2.05f) - org, vec2(0, 0), vec2(0.9f, 0),
+                             vec2(0.9f, 2.05f), vec2(0, 2.05f), packRGBA8(0.85f, 0.85f, 0.82f, 1), makeMat(MAT_METAL_PAINTED), vec3(Fw, 0));
+                {
+                    auto ffp = rectFP(gc + Fw * ud, b.ax, gw, gd - ud);
+                    std::vector<vec3> poly;
+                    for (auto& p : ffp) poly.push_back(vec3(p, map.heightAt(p.x, p.y) + 0.06f) - org);
+                    m.polygon(poly, vec3(0, 0, 1), kWhite, makeMat(MAT_CONCRETE), 1.f);
+                }
+                // supports along the outer side: slender steel posts, or on the MiMo houses a screen of fins
+                float uo = side * (b.hx + 2.f * gw - 0.12f);
+                if (b.arch == AR_HOUSE_MIMO && (b.seed & 128u)) {
+                    float va = b.hy - 2.f * gd + 2.f * ud, vb = b.hy - 0.6f;
+                    for (float v = va + 0.15f; v < vb; v += 0.32f) {
+                        vec2 fp = b.c + b.ax * uo + Fw * v;
+                        m.box(vec3(fp, (z0 + zr) * 0.5f) - org, X, Y, Z, vec3(0.04f, 0.12f, (zr - z0) * 0.5f), white, makeMat(MAT_CONCRETE));
+                    }
+                    addCollision(x, b.c + b.ax * uo + Fw * ((va + vb) * 0.5f), b.ax, 0.08f, (vb - va) * 0.5f, z0 - 0.5f, zr);
+                }
+                for (int k = 0; k < 2; k++) {
+                    vec2 pp = b.c + b.ax * uo + Fw * (k ? b.hy - 0.12f : b.hy - 2.f * gd + 2.f * ud + 0.12f);
+                    m.box(vec3(pp, (z0 + zr) * 0.5f) - org, X, Y, Z, vec3(0.05f, 0.05f, (zr - z0) * 0.5f), white, steel);
+                    addCollision(x, pp, b.ax, 0.06f, 0.06f, z0 - 0.5f, zr);
+                }
+                yardKeep(x, gc, b.ax, ay, gw, gd);
+                // driveway to the street
+                vec2 dA = gc + Fw * gd, dB = b.lotC + Fw * (b.lotHy + 1.5f);
+                dB = dA + Fw * Max(1.f, dot(dB - dA, Fw));
+                auto dfp = rectFP((dA + dB) * 0.5f, b.ax, 2.6f, length(dB - dA) * 0.5f);
+                yardKeep(x, (dA + dB) * 0.5f, b.ax, ay, 2.6f, length(dB - dA) * 0.5f);
+                std::vector<vec3> poly;
+                for (auto& p : dfp) poly.push_back(vec3(p, map.heightAt(p.x, p.y) + 0.06f) - org);
+                m.polygon(poly, vec3(0, 0, 1), kWhite, makeMat(MAT_CONCRETE), 1.f);
+            } else if (garage && (b.arch == AR_HOUSE_VICTORIAN || b.arch == AR_HOUSE_RAISED)) {
+                // the old frame houses and the raised Keys houses (parking under the house) keep no garage wing: a concrete
+                // strip beside the house to the street (the car parks on it)
+                float gw = 3.2f, gd = Min(b.hy, 3.4f);
+                vec2 dA = b.c + b.ax * (side * (b.hx + gw)) + b.front * (b.hy - gd), dB = b.lotC + b.front * (b.lotHy + 1.5f);
+                dB = dA + b.front * Max(1.f, dot(dB - dA, b.front));
+                yardKeep(x, (dA + dB) * 0.5f, b.ax, ay, 1.6f, length(dB - dA) * 0.5f);
+                for (int k = -1; k <= 1; k += 2) {
+                    // (two wheel strips with grass between, the older driveway)
+                    auto dfp = rectFP((dA + dB) * 0.5f + b.ax * (k * 0.75f), b.ax, 0.38f, length(dB - dA) * 0.5f);
+                    std::vector<vec3> poly;
+                    for (auto& p : dfp) poly.push_back(vec3(p, map.heightAt(p.x, p.y) + 0.06f) - org);
+                    m.polygon(poly, vec3(0, 0, 1), kWhite, makeMat(MAT_CONCRETE), 1.f);
+                }
+            } else if (garage) {
                 float gw = 3.2f, gd = Min(b.hy, 3.4f);
                 vec2 gc = b.c + b.ax * (side * (b.hx + gw)) + b.front * (b.hy - gd);
                 auto gfp = rectFP(gc, b.ax, gw, gd);
@@ -958,6 +1185,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 if (b.arch == AR_HOUSE_MIMO || b.arch == AR_VILLA_MODERN) massing::eaveSlab(x, gfp, z0 + 2.9f, 0.5f, 0.22f, packRGBA8(0.96f, 0.96f, 0.95f, 1));
                 else pitchedRoof(x, gc, b.ax, gw, gd, z0 + 2.9f, 0.35f, true, 0.4f, roofCol, roofMat, kWhite, makeMat(MAT_PLASTER));
                 addCollision(x, gc, b.ax, gw, gd, z0 - 1.f, z0 + 3.5f);
+                yardKeep(x, gc, b.ax, ay, gw, gd);
                 // garage door
                 vec2 d0 = gc + b.front * (gd + 0.02f) - b.ax * 2.4f, d1 = gc + b.front * (gd + 0.02f) + b.ax * 2.4f;
                 m.quadFacing(vec3(d0, z0) - org, vec3(d1, z0) - org, vec3(d1, z0 + 2.2f) - org, vec3(d0, z0 + 2.2f) - org, vec2(0, 0), vec2(4.8f, 0),
@@ -966,6 +1194,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 vec2 dA = gc + b.front * gd, dB = b.lotC + b.front * (b.lotHy + 1.5f);
                 dB = dA + b.front * Max(1.f, dot(dB - dA, b.front));
                 auto dfp = rectFP((dA + dB) * 0.5f, b.ax, 2.6f, length(dB - dA) * 0.5f);
+                yardKeep(x, (dA + dB) * 0.5f, b.ax, ay, 2.6f, length(dB - dA) * 0.5f);
                 std::vector<vec3> poly;
                 for (auto& p : dfp) poly.push_back(vec3(p, map.heightAt(p.x, p.y) + 0.06f) - org);
                 m.polygon(poly, vec3(0, 0, 1), kWhite, makeMat(MAT_CONCRETE), 1.f);
@@ -979,6 +1208,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                     float pz = map.heightAt(pc.x, pc.y) + 0.1f;
                     // deck
                     auto deck = rectFP(pc, b.ax, pw + 1.5f, pdd + 1.5f);
+                    yardKeep(x, pc, b.ax, ay, pw + 1.5f, pdd + 1.5f);
                     auto pool = rectFP(pc, b.ax, pw, pdd);
                     std::vector<vec3> dpoly;
                     // deck as 4 strips around the pool; paver uvs in world metres at 20 x 10 cm bricks (see sitegeo kPaverUV),
@@ -1006,9 +1236,20 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             // Yard trees
             if (props) {
                 int nt = r.irange(1, b.style == BS_VILLA ? 5 : 3);
+                // the front and back yards measured from the house (a house set forward of its lot's centre has a short
+                // front yard: the trees used to be measured from the lot's centre and could stand inside the house)
+                const float off = dot(b.lotC - b.c, b.front), lat = dot(b.lotC - b.c, b.ax);
+                const float fLo = b.hy + 1.5f, fHi = off + b.lotHy - 1.f, bLo = off - b.lotHy + 0.6f, bHi = -(b.hy + 2.f);
                 for (int k = 0; k < nt; k++) {
                     PropInstance pi;
-                    vec2 p = b.lotC + b.ax * r.range(-b.hx * 1.1f, b.hx * 1.1f) + b.front * (r.chance(0.5f) ? r.range(b.hy + 1.5f, b.lotHy - 1.f) : -r.range(b.hy + 2.f, b.lotHy));
+                    float tu = r.range(-1.1f, 1.1f);
+                    bool inFront = r.chance(0.5f);
+                    float tv = r.f();
+                    if (inFront && fHi < fLo + 0.5f) inFront = false;
+                    if (!inFront && bHi < bLo + 0.5f) inFront = fHi >= fLo + 0.5f;
+                    float vy = inFront ? Lerp(fLo, Max(fLo, fHi), tv) : Lerp(bLo, Max(bLo, bHi), tv);
+                    float ux = Clamp(tu * b.hx, lat - b.lotHx + 0.8f, lat + b.lotHx - 0.8f);
+                    vec2 p = b.c + b.ax * ux + b.front * vy;
                     pi.pos = vec3(p, map.heightAt(p.x, p.y));
                     pi.yaw = r.f() * kTwoPi;
                     pi.scale = r.range(0.7f, 1.2f);
@@ -1017,6 +1258,16 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                                                                            : (r.chance(0.6f) ? PROP_PALM : (r.chance(0.5f) ? PROP_TREE_OAK : PROP_BUSH));
                     pi.variant = (u8)r.irange(0, 3);
                     pi.flags = 0;
+                    // (not through a porch, a deck or its stair, the pool, the garage or the driveway, nor a house or a
+                    // back-yard building: when the spot is taken, the spot mirrored across the house's middle, or the same
+                    // spot in the other yard)
+                    float vOther = inFront ? Lerp(bLo, Max(bLo, bHi), tv) : Lerp(fLo, Max(fLo, fHi), tv);
+                    const vec2 cand[3] = {p, b.c + b.ax * Clamp(-ux, lat - b.lotHx + 0.8f, lat + b.lotHx - 0.8f) + b.front * vy, b.c + b.ax * ux + b.front * vOther};
+                    int ok = -1;
+                    for (int ci = 0; ci < 3 && ok < 0; ci++)
+                        if (!yardKept(x, cand[ci], 0.5f) && !(gBuildings && gBuildings->pointInBuilding(cand[ci], 0.6f))) ok = ci;
+                    if (ok < 0) continue;
+                    if (ok > 0) pi.pos = vec3(cand[ok], map.heightAt(cand[ok].x, cand[ok].y));
                     props->push_back(pi);
                 }
             }
