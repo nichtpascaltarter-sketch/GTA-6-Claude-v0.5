@@ -596,6 +596,14 @@ void GameWorld::animatePed(Ped& p, float dt) {
         p.animYaw = p.yaw;
     }
     vec2 fwd(-sinf(p.yaw), cosf(p.yaw)), rightV(cosf(p.yaw), sinf(p.yaw));
+    // ... and the root's own move since then, in this update's frame, pushes and all (the ped-ped separation, a
+    // collider's push-out, a snap): the animator keeps planted feet in their places by it; a metre or more is a warp
+    {
+        vec3 D = rel(p.pos, p.animPos);
+        in.rootMove = vec3(dot(vec2(D.x, D.y), rightV), dot(vec2(D.x, D.y), fwd), D.z);
+        in.rootMoveValid = dt > 0.f && length(vec2(D.x, D.y)) < 1.f;
+        p.animPos = p.pos;
+    }
     in.localMoveDir = spd > 0.1f ? normalize(vec2(dot(hv, rightV), dot(hv, fwd))) : vec2(0, 1);
     in.inAir = !p.grounded && p.state == PS_ONFOOT && p.airTime > 0.15f;
     in.swimming = p.state == PS_SWIM;
