@@ -1268,6 +1268,7 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
 void warehouseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
     FD_STAT(d.k.m, FS_WARE);
     const Building& b = *d.b;
+    if (b.style == BS_BARN && b.arch != AR_NONE) return;   // (the barn types have their own doors and trim: massing.cpp)
     Sink& k = d.k;
     float z0 = ms.vBase;
     int fi = 0;
@@ -1851,7 +1852,7 @@ void buildFacadeDetail(const Building& b, const FacadeGPU& fac0, const WorldMap&
     }
     // roofs that end in an eave, a pitched roof or a tile pent carry no cornice of their own
     bool noCornice = b.arch != AR_NONE && (b.roofForm == RFM_EAVE || b.roofForm == RFM_TILE_HIP || b.roofForm == RFM_METAL_GABLE || b.roofForm == RFM_SAWTOOTH ||
-                                           b.roofForm == RFM_BUTTERFLY);
+                                           b.roofForm == RFM_BUTTERFLY || b.roofForm == RFM_MANSARD);
     if (b.style == BS_DECO) corniceKind = CO_STEPPED;
     if (b.style == BS_CONDO || b.style == BS_GARAGE || b.style == BS_STRIPMALL || b.style == BS_GASSTATION) corniceKind = CO_SLAB;
     if (industrial) corniceKind = CO_BAND;

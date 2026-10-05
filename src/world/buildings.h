@@ -78,6 +78,24 @@ enum BuildingArch : u8 {
     AR_VILLA_MED,         // Mediterranean-revival villa: barrel-tile hip roofs, a tower, a loggia portico
     AR_VILLA_COLONIAL,    // white two-storey colonial villa: hip roof, two-storey columned portico with a pediment
     AR_SHACK_STILT,       // Ten Palms / Keys stilt house: deck, stairs, porch roof, metal roof (gable, shed or hip)
+    // motels and strip malls (the arterials, Key Solano's side streets)
+    AR_MOTEL_MIMO,        // 1950s motor court: eave slab, steel walkway, accent panels, a boomerang pylon sign
+    AR_MOTEL_MED,         // Mediterranean motel: barrel-tile hip roof, stucco piers under the walkway, a monument sign
+    AR_MOTEL_KEYS,        // Keys motel: wood siding, metal roof, a two-level wooden gallery, a painted post sign
+    AR_MOTEL_INN,         // 1970s motor inn: shingled mansard, brick-red or beige, a pole sign
+    AR_STRIP_MISSION,     // mission-revival strip: tile pent roof, arcaded walkway on stucco piers, an entry tower
+    AR_STRIP_MIMO,        // 1960s strip: folded-plate canopy on pipe columns, a pylon sign
+    AR_STRIP_MODERN,      // power center: tall parapet, an anchor end, a metal canopy, stone and stucco
+    // farms (Redland, the Palmera farmlands): the farmhouses take the house types (cracker = conch, I-house = two-storey,
+    // ranch); the barns their own
+    AR_BARN_GAMBREL,      // gambrel-roofed barn: the big door and a hay door in the gable end, white trim
+    AR_BARN_POLE,         // open pole barn / machine shed: posts along the front, a corrugated back and end
+    AR_BARN_GABLE,        // steep gable barn with a cupola, a lean-to shed along one side
+    // churches (the suburbs' boulevards, the small towns)
+    AR_CHURCH_MISSION,    // mission revival: stucco, low tile gable, a stepped front gable, a corner bell tower
+    AR_CHURCH_CLAPBOARD,  // white board church: steep gable, a central steeple with a belfry and a spire
+    AR_CHURCH_BRICK,      // brick Gothic revival: steep slate gable, a square corner tower with pinnacles
+    AR_CHURCH_AFRAME,     // 1960s A-frame: the roof down to the ground, a glass gable, a free-standing bell pylon
     AR_COUNT
 };
 
@@ -89,7 +107,7 @@ enum MassingKind : u8 {
 };
 
 // Roof forms beyond RoofType (blockstyle.cpp picks one per archetype)
-enum RoofForm : u8 { RFM_PARAPET = 0, RFM_EAVE, RFM_TILE_HIP, RFM_TILE_PENT, RFM_TERRACE, RFM_METAL_GABLE, RFM_SAWTOOTH, RFM_BUTTERFLY, RFM_COUNT };
+enum RoofForm : u8 { RFM_PARAPET = 0, RFM_EAVE, RFM_TILE_HIP, RFM_TILE_PENT, RFM_TERRACE, RFM_METAL_GABLE, RFM_SAWTOOTH, RFM_BUTTERFLY, RFM_MANSARD, RFM_COUNT };
 
 // GPU facade record (matches FacadeGPU in shaders/facade.hlsli)
 struct FacadeGPU {
