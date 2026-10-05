@@ -26,7 +26,7 @@ Texture2D<float4> tSplat0 : register(t0);   // sand, grass, dirt, rock
 Texture2D<float4> tSplat1 : register(t1);   // mud, sawgrass, forest, urban
 AppendStructuredBuffer<GrassInstance> uGrass : register(u0);
 StructuredBuffer<GrassInstance> tGrass : register(t2);
-Texture2D<float> tOverheadGrass : register(t3);   // 1 where the top static surface is a lawn / median mesh
+Texture2D<float> tOverheadGrass : register(t3);   // 1 where the top static surface is a lawn / median mesh (0.25 beds)
 
 float2 worldToTerrainUV(float2 w) { return (w + gGrass3.z) / (2.0 * gGrass3.z); }
 

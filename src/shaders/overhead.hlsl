@@ -1,6 +1,7 @@
 // Overhead (top-down) pass over the static world cells: depth gives the highest static surface (rain occlusion,
-// dry areas under roofs, grass exclusion) and the color target flags lawns / medians (grass material facing
-// up) so ground cover can grow on world meshes too.
+// dry areas under roofs, grass exclusion) and the color target classes it: 1 lawns / medians (grass material facing
+// up) so ground cover can grow on world meshes too, 0.25 soil facing up (planting beds, where the decor plants grow),
+// 0 anything else.
 #include "common.hlsli"
 #include "bindless.hlsli"
 
@@ -33,5 +34,6 @@ VSOut vsOverhead(VSIn i) {
 }
 
 float psOverhead(VSOut i) : SV_Target {
-    return (i.mat == 25u && abs(i.nz) > 0.6) ? 1.0 : 0.0;   // MAT_GRASS surfaces facing up
+    if (i.mat == 25u && abs(i.nz) > 0.6) return 1.0;   // MAT_GRASS surfaces facing up
+    return (i.mat == 26u && i.nz > 0.6) ? 0.25 : 0.0;   // MAT_DIRT
 }
