@@ -88,6 +88,27 @@ void pentRoof(Ctx& x, vec2 a, vec2 b, float zTop, float out, u32 tile) {
     x.m->quadFacing(q0, q1, q1 - vec3(0, 0, 0.1f), q0 - vec3(0, 0, 0.1f), vec2(0, 0), vec2(len, 0), vec2(len, 0.1f), vec2(0, 0.1f), tile, makeMat(MAT_ROOF_TILE), vec3(n, 0.f));
 }
 
+// Shingled mansard band round a flat roof (1970s motor inns): from just outside the walls at the eave up and in to the
+// flat top
+void mansardRoof(Ctx& x, const std::vector<vec2>& fp, float z, float h, u32 col, u32 roofCol, u32 roofMat) {
+    std::vector<vec2> lo = offsetPoly(fp, 0.55f), hi = offsetPoly(fp, -0.45f);
+    int n = (int)fp.size();
+    for (int i = 0; i < n; i++) {
+        int j = (i + 1) % n;
+        vec3 a0 = vec3(lo[i], z - 0.15f) - x.org, a1 = vec3(lo[j], z - 0.15f) - x.org, b0 = vec3(hi[i], z + h) - x.org, b1 = vec3(hi[j], z + h) - x.org;
+        vec2 t = fp[j] - fp[i];
+        float len = length(t);
+        if (len < 0.05f) continue;
+        vec2 nn(t.y / len, -t.x / len);
+        float sl = sqrtf(1.f + h * h);
+        x.m->quadFacing(a0, a1, b1, b0, vec2(0, 0), vec2(len, 0), vec2(len, sl), vec2(0, sl), col, makeMat(MAT_ROOF_SHINGLE), vec3(nn * h, 1.f));
+        // the soffit under the band's overhang
+        vec3 s0 = vec3(fp[i], z - 0.15f) - x.org, s1 = vec3(fp[j], z - 0.15f) - x.org;
+        x.m->quadFacing(s0, s1, a1, a0, vec2(0, 0), vec2(len, 0), vec2(len, 0.55f), vec2(0, 0.55f), packRGBA8(0.85f, 0.83f, 0.8f, 1), makeMat(MAT_PLASTER), vec3(0, 0, -1));
+    }
+    flatRoof(x, hi, z + h, roofCol, roofMat);
+}
+
 // Sawtooth (north light) roof over a rectangle: teeth across the depth, glazed vertical faces, gable ends
 void sawtoothRoof(Ctx& x, const Env& e, float u0, float u1, float v0, float v1, float z, u32 roofCol, u32 wallCol, u32 wallMat) {
     float depth = v1 - v0;
@@ -468,6 +489,12 @@ void emitVolume(Ctx& x, const Building& b, const Env& e, const Vol& v, const Fac
             case RFM_BUTTERFLY:
                 for (const vec4& r : v.rects) butterflyRoof(x, e, r.x, r.y, r.z, r.w, v.z1, 0.8f, packRGBA8(0.85f, 0.86f, 0.87f, 1));
                 break;
+            case RFM_MANSARD: {
+                vec3 sc = vec3(0.32f, 0.26f, 0.22f) * (0.85f + 0.3f * hashToFloat(hash32(b.seed ^ 0x3A45u)));
+                if (hash32(b.seed ^ 0x3A46u) & 1u) sc = vec3(0.22f, 0.23f, 0.25f);
+                mansardRoof(x, fp, v.z1, 1.25f, packRGBA8(sc.x, sc.y, sc.z, 1), x.roofCol, x.roofMat);
+                break;
+            }
             default:
                 flatRoof(x, fp, v.z1 + 0.02f, x.roofCol, x.roofMat);
                 if (parapetOn && x.detail) parapet(x, fp, v.z1, rf == RFM_TERRACE ? 0.6f : 1.0f, 0.3f, packRGBA8(0.8f, 0.8f, 0.78f, 1), makeMat(MAT_CONCRETE));
@@ -561,10 +588,497 @@ void mimoCanopy(Ctx& x, const Building& b, const Env& e, float z, Rng& mr) {
 
 // Archetype building (non-house): volumes, roofs, rooftop dressing, canopies. Returns false to fall back to the plain
 // generator (no archetype, interiors).
+namespace massing {
+
+// Barns of the farm regions: a gambrel roof with the big door and a hay door in the gable end facing the yard, an open
+// pole barn (machine shed), a steep gable barn with a cupola; a lean-to shed along one side. The gable ends face the
+// street side of the lot (Building::front).
+void buildArchBarn(Ctx& x, const Building& b, const FacadeGPU& fac) {
+    Rng mr(b.seed ^ 0xBA4Bu);
+    Env e = envOf(b);
+    const float hx = b.hx, hy = b.hy, z0 = b.baseZ, zt = z0 + b.height;
+    vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
+    vec4 wl = unpackRGBA8(fac.wallColor);
+    const u32 wallTone = packRGBA8(Saturate(wl.x * 1.45f), Saturate(wl.y * 1.45f), Saturate(wl.z * 1.45f), 1);
+    const u32 wmat = makeMat((u32)fac.wallLayer), trim = packRGBA8(0.95f, 0.95f, 0.93f, 1), post = packRGBA8(0.5f, 0.45f, 0.38f, 1);
+    const vec3 roofs[] = {vec3(0.8f, 0.81f, 0.83f), vec3(0.55f, 0.22f, 0.18f), vec3(0.3f, 0.45f, 0.35f), vec3(0.5f, 0.36f, 0.26f), vec3(0.62f, 0.63f, 0.65f)};
+    vec3 rc = roofs[mr.next() % 5u];
+    const u32 roofCol = packRGBA8(rc.x, rc.y, rc.z, 1), roofMat = makeMat(MAT_ROOF_METAL);
+    const bool leanTo = b.arch != AR_BARN_POLE && (b.massing == MK_WINGS || mr.chance(0.35f));
+    const float ls = mr.chance(0.5f) ? 1.f : -1.f;
+    const float ld = mr.range(3.f, 4.2f);
+    auto wallQuad = [&](vec2 a, vec2 c, float za, float zb2, u32 col, u32 mat, vec2 out) {
+        float len = length(c - a);
+        x.m->quadFacing(vec3(a, za) - x.org, vec3(c, za) - x.org, vec3(c, zb2) - x.org, vec3(a, zb2) - x.org, vec2(0, 0), vec2(len, 0), vec2(len, zb2 - za),
+                        vec2(0, zb2 - za), col, mat, vec3(out, 0.f));
+    };
+    // a convex polygon in the vertical plane at v = vf (the gable end), facing dir
+    auto gableEnd = [&](float vf, const std::vector<vec2>& uz, vec2 dir) {
+        std::vector<u32> idx;
+        for (const vec2& q : uz) idx.push_back(x.m->addVertex(vec3(e.P(q.x, vf), q.y) - x.org, vec3(dir, 0.f), X, vec2(q.x, q.y - z0), wallTone, wmat));
+        for (size_t i = 1; i + 1 < idx.size(); i++) {
+            vec3 p0 = x.m->verts[idx[0]].pos, p1 = x.m->verts[idx[i]].pos, p2 = x.m->verts[idx[i + 1]].pos;
+            if (dot(cross(p1 - p0, p2 - p0), vec3(dir, 0.f)) >= 0.f) x.m->tri(idx[0], idx[i], idx[i + 1]);
+            else x.m->tri(idx[0], idx[i + 1], idx[i]);
+        }
+    };
+    if (b.arch == AR_BARN_POLE) {
+        // closed back and one end in corrugated sheet, posts along the open front, a low gable roof, a concrete pad
+        float es = mr.chance(0.5f) ? 1.f : -1.f;
+        vec2 bl = e.P(-hx, -hy), br = e.P(hx, -hy), el0 = e.P(es * hx, -hy), el1 = e.P(es * hx, hy);
+        wallQuad(bl, br, z0 - 0.3f, zt, wallTone, wmat, -e.fr);
+        wallQuad(br, bl, z0 - 0.3f, zt, wallTone, wmat, e.fr);
+        wallQuad(el0, el1, z0 - 0.3f, zt, wallTone, wmat, e.ax * es);
+        wallQuad(el1, el0, z0 - 0.3f, zt, wallTone, wmat, -e.ax * es);
+        addCollision(x, e.P(0.f, -hy + 0.05f), e.ax, hx, 0.08f, z0 - 1.f, zt);
+        addCollision(x, e.P(es * (hx - 0.05f), 0.f), e.ax, 0.08f, hy, z0 - 1.f, zt);
+        int np = Max(2, (int)roundf(2.f * hx / 4.5f) + 1);
+        for (int k = 0; k < np; k++) {
+            vec2 p = e.P(Lerp(-hx + 0.15f, hx - 0.15f, (float)k / (np - 1)), hy - 0.15f);
+            x.m->box(vec3(p, (z0 + zt) * 0.5f) - x.org, X, Y, Z, vec3(0.12f, 0.12f, (zt - z0) * 0.5f), post, makeMat(MAT_WOOD));
+            addCollision(x, p, e.ax, 0.13f, 0.13f, z0 - 1.f, zt);
+        }
+        // beams along the front and the middle
+        x.m->box(vec3(e.P(0.f, hy - 0.15f), zt - 0.15f) - x.org, X, Y, Z, vec3(hx, 0.1f, 0.15f), post, makeMat(MAT_WOOD));
+        // pad
+        x.m->box(vec3(e.P(0.f, 0.f), z0 - 0.1f) - x.org, X, Y, Z, vec3(hx + 0.2f, hy + 0.2f, 0.14f), packRGBA8(0.72f, 0.7f, 0.66f, 1), makeMat(MAT_CONCRETE), false);
+        pitchedPart(x, e, vec4(-hx, hx, -hy, hy), zt, mr.range(0.2f, 0.3f), false, 0.5f, roofCol, roofMat, wallTone, wmat, hx >= hy ? 0 : 1);
+        return;
+    }
+    // walls (the barn's facade grid: board siding, a few high windows), recorded for the detail pass
+    std::vector<vec2> fp = toWorld(e, rectUV(-hx, hx, -hy, hy));
+    recordMass(x, fp, z0, zt, z0, FM_MAIN, false);
+    facadeWalls(x, fp, z0 - 1.f, zt, z0, b.facade, fac.bayW);
+    float rTop;
+    if (b.arch == AR_BARN_GAMBREL) {
+        // gambrel across u (the ridge runs toward the street): steep lower slopes to the knee, shallow upper slopes
+        float ov = 0.35f, uk = hx * 0.55f, hk = (hx - uk) * 1.7f, hr = uk * 0.45f;
+        float zk = zt + hk, zr = zk + hr;
+        rTop = zr;
+        for (int sd = -1; sd <= 1; sd += 2) {
+            float u0 = sd * (hx + ov), u1 = sd * uk;
+            float z0e = zt - ov * 1.7f;
+            vec3 a0 = vec3(e.P(u0, -hy - ov), z0e) - x.org, a1 = vec3(e.P(u0, hy + ov), z0e) - x.org;
+            vec3 k0 = vec3(e.P(u1, -hy - ov), zk) - x.org, k1 = vec3(e.P(u1, hy + ov), zk) - x.org;
+            vec3 r0 = vec3(e.P(0.f, -hy - ov), zr) - x.org, r1 = vec3(e.P(0.f, hy + ov), zr) - x.org;
+            vec3 n1 = normalize(vec3(e.ax * (float)sd * hk, hx + ov - uk)), n2 = normalize(vec3(e.ax * (float)sd * hr, uk));
+            float l1 = length(k0 - a0), l2 = length(r0 - k0), L = 2.f * (hy + ov);
+            x.m->quadFacing(a0, a1, k1, k0, vec2(0, 0), vec2(L, 0), vec2(L, l1), vec2(0, l1), roofCol, roofMat, n1);
+            x.m->quadFacing(a0, k0, k1, a1, vec2(0, 0), vec2(l1, 0), vec2(l1, L), vec2(0, L), post, makeMat(MAT_WOOD), -n1);
+            x.m->quadFacing(k0, k1, r1, r0, vec2(0, 0), vec2(L, 0), vec2(L, l2), vec2(0, l2), roofCol, roofMat, n2);
+            x.m->quadFacing(k0, r0, r1, k1, vec2(0, 0), vec2(l2, 0), vec2(l2, L), vec2(0, L), post, makeMat(MAT_WOOD), -n2);
+        }
+        for (int sv = -1; sv <= 1; sv += 2)
+            gableEnd(sv * hy, {vec2(-hx, zt), vec2(hx, zt), vec2(uk, zk), vec2(0.f, zr), vec2(-uk, zk)}, e.fr * (float)sv);
+    } else {
+        // steep gable with the ridge toward the street, a cupola on the ridge
+        float ov = 0.4f, pitch = mr.range(0.75f, 1.f);
+        float zr = zt + hx * pitch;
+        rTop = zr;
+        pitchedPart(x, e, vec4(-hx, hx, -hy, hy), zt, pitch, false, ov, roofCol, roofMat, wallTone, wmat, 1);
+        if (mr.chance(0.6f)) {
+            vec2 cc = e.P(0.f, mr.range(-0.3f, 0.3f) * hy);
+            float cs = Clamp(hx * 0.18f, 0.8f, 1.3f);
+            std::vector<vec2> cfp = toWorld(e, rectUV(-cs, cs, -cs, cs));
+            for (vec2& q : cfp) q = q - e.c + cc;
+            plainWalls(x, cfp, zr - 0.6f, zr + 1.1f, trim, makeMat(MAT_WOOD_SIDING));
+            pitchedRoof(x, cc, e.ax, cs, cs, zr + 1.1f, 0.9f, true, 0.2f, roofCol, roofMat, trim, makeMat(MAT_PLASTER));
+        }
+    }
+    addCollision(x, e.c, e.ax, hx, hy, z0 - 2.f, rTop);
+    // the big door in the front gable end (white X-braced frame) and a hay door above it
+    {
+        float dw = Clamp(hx * 0.7f, 1.8f, 2.6f), dh = Min(zt - z0 - 0.6f, 4.2f);
+        vec2 dc = e.P(0.f, hy + 0.04f);
+        x.m->box(vec3(dc, z0 + dh * 0.5f) - x.org, X, Y, Z, vec3(dw, 0.04f, dh * 0.5f), wallTone, wmat);
+        if (x.detail) {
+            x.m->box(vec3(dc + e.fr * 0.05f, z0 + dh) - x.org, X, Y, Z, vec3(dw + 0.1f, 0.05f, 0.1f), trim, makeMat(MAT_PLASTER));
+            for (int sd = -1; sd <= 1; sd += 2) {
+                x.m->box(vec3(dc + e.fr * 0.05f + e.ax * (sd * dw), z0 + dh * 0.5f) - x.org, X, Y, Z, vec3(0.1f, 0.05f, dh * 0.5f), trim, makeMat(MAT_PLASTER));
+                x.m->box(vec3(dc + e.fr * 0.05f, z0 + dh * 0.5f) - x.org, X, Y, Z, vec3(0.06f, 0.05f, dh * 0.5f), trim, makeMat(MAT_PLASTER));
+                // the X braces of each leaf
+                vec2 lc = dc + e.fr * 0.06f + e.ax * (sd * dw * 0.5f);
+                for (int dg = -1; dg <= 1; dg += 2) {
+                    vec3 dir = normalize(vec3(e.ax * (dw * (float)dg), dh));
+                    vec3 up = normalize(cross(Y, dir));
+                    if (up.z < 0.f) up = -up;
+                    x.m->box(vec3(lc, z0 + dh * 0.5f) - x.org, dir, Y, up, vec3(sqrtf(dw * dw + dh * dh) * 0.5f - 0.1f, 0.03f, 0.07f), trim, makeMat(MAT_PLASTER));
+                }
+            }
+            float hz = z0 + dh + 1.4f;
+            if (hz + 0.8f < rTop - 0.8f) {
+                x.m->box(vec3(dc, hz + 0.5f) - x.org, X, Y, Z, vec3(0.7f, 0.05f, 0.6f), packRGBA8(0.25f, 0.2f, 0.16f, 1), makeMat(MAT_WOOD));
+                x.m->box(vec3(dc + e.fr * 0.05f, hz + 0.5f) - x.org, X, Y, Z, vec3(0.8f, 0.04f, 0.7f), trim, makeMat(MAT_PLASTER));
+            }
+            // corner boards
+            for (int su = -1; su <= 1; su += 2)
+                for (int sv = -1; sv <= 1; sv += 2)
+                    x.m->box(vec3(e.P(su * (hx + 0.02f), sv * (hy + 0.02f)), (z0 + zt) * 0.5f) - x.org, X, Y, Z, vec3(0.1f, 0.1f, (zt - z0) * 0.5f), trim, makeMat(MAT_PLASTER));
+        }
+    }
+    // lean-to shed along one side: a mono-pitch roof off the wall, open on posts or closed in the barn's boards
+    if (leanTo) {
+        float zh = zt - 0.3f, zl = Max(z0 + 2.4f, zh - ld * 0.35f);
+        float u0 = ls * hx, u1 = ls * (hx + ld);
+        vec3 a0 = vec3(e.P(u0, -hy), zh) - x.org, a1 = vec3(e.P(u0, hy), zh) - x.org, b0 = vec3(e.P(u1, -hy - 0.2f), zl) - x.org, b1 = vec3(e.P(u1, hy + 0.2f), zl) - x.org;
+        vec3 n = normalize(vec3(e.ax * (ls * (zh - zl)), ld));
+        x.m->quadFacing(a0, a1, b1, b0, vec2(0, 0), vec2(2.f * hy, 0), vec2(2.f * hy, ld), vec2(0, ld), roofCol, roofMat, n);
+        x.m->quadFacing(a0, b0, b1, a1, vec2(0, 0), vec2(ld, 0), vec2(ld, 2.f * hy), vec2(0, 2.f * hy), post, makeMat(MAT_WOOD), -n);
+        int np = Max(2, (int)roundf(2.f * hy / 3.5f) + 1);
+        for (int k = 0; k < np; k++) {
+            vec2 p = e.P(ls * (hx + ld - 0.15f), Lerp(-hy + 0.15f, hy - 0.15f, (float)k / (np - 1)));
+            x.m->box(vec3(p, (z0 + zl) * 0.5f) - x.org, X, Y, Z, vec3(0.1f, 0.1f, (zl - z0) * 0.5f), post, makeMat(MAT_WOOD));
+            addCollision(x, p, e.ax, 0.11f, 0.11f, z0 - 1.f, zl);
+        }
+    }
+}
+
+// Churches: the nave's gable toward the street (its long axis along the lot's depth), by type: a mission church with a
+// stepped front gable and a corner bell tower, a white board church with a central steeple, a brick Gothic church with a
+// pinnacled corner tower, a sixties A-frame with a glass gable and a free-standing bell pylon
+void buildArchChurch(Ctx& x, const Building& b, const FacadeGPU& fac) {
+    Rng mr(b.seed ^ 0xC4A4u);
+    Env e = envOf(b);
+    const float hx = b.hx, hy = b.hy, z0 = b.baseZ, zt = z0 + b.height;
+    vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
+    vec4 wl = unpackRGBA8(fac.wallColor);
+    const u32 wallTone = packRGBA8(Saturate(wl.x * 1.45f), Saturate(wl.y * 1.45f), Saturate(wl.z * 1.45f), 1);
+    const u32 wmat = makeMat((u32)fac.wallLayer), white = packRGBA8(0.96f, 0.96f, 0.94f, 1);
+    const float ts = mr.chance(0.5f) ? 1.f : -1.f;   // the tower's side
+    std::vector<vec2> fp = toWorld(e, rectUV(-hx, hx, -hy, hy));
+    auto tower = [&](float u0, float u1, float v0, float v1, float za, float zb2, u32 col, u32 mat) {
+        std::vector<vec2> tfp = toWorld(e, rectUV(u0, u1, v0, v1));
+        plainWalls(x, tfp, za, zb2, col, mat);
+        addCollision(x, e.P((u0 + u1) * 0.5f, (v0 + v1) * 0.5f), e.ax, (u1 - u0) * 0.5f, (v1 - v0) * 0.5f, z0 - 1.f, zb2);
+    };
+    if (b.arch == AR_CHURCH_AFRAME) {
+        // the roof planes from just above the ground to the ridge; glass in the front gable, the back gable walled
+        float ov = 0.6f, ze = z0 + 0.9f, zr = ze + (hx + ov) * 2.1f;
+        u32 rc = packRGBA8(0.32f, 0.3f, 0.3f, 1), rmat = makeMat(MAT_ROOF_SHINGLE);
+        if (mr.chance(0.4f)) rc = packRGBA8(0.75f, 0.76f, 0.78f, 1), rmat = makeMat(MAT_ROOF_METAL);
+        for (int sd = -1; sd <= 1; sd += 2) {
+            vec3 a0 = vec3(e.P(sd * (hx + ov), -hy - 0.4f), ze) - x.org, a1 = vec3(e.P(sd * (hx + ov), hy + 0.4f), ze) - x.org;
+            vec3 r0 = vec3(e.P(0.f, -hy - 0.4f), zr) - x.org, r1 = vec3(e.P(0.f, hy + 0.4f), zr) - x.org;
+            vec3 n = normalize(vec3(e.ax * ((float)sd * (zr - ze)), hx + ov));
+            float L = 2.f * hy + 0.8f, sl = length(r0 - a0);
+            x.m->quadFacing(a0, a1, r1, r0, vec2(0, 0), vec2(L, 0), vec2(L, sl), vec2(0, sl), rc, rmat, n);
+            x.m->quadFacing(a0, r0, r1, a1, vec2(0, 0), vec2(sl, 0), vec2(sl, L), vec2(0, L), packRGBA8(0.55f, 0.42f, 0.3f, 1), makeMat(MAT_WOOD), -n);
+            // the low side walls under the eaves
+            vec2 w0 = e.P(sd * hx, -hy), w1 = e.P(sd * hx, hy);
+            x.m->quadFacing(vec3(w0, z0 - 0.5f) - x.org, vec3(w1, z0 - 0.5f) - x.org, vec3(w1, ze + 0.25f) - x.org, vec3(w0, ze + 0.25f) - x.org, vec2(0, 0),
+                            vec2(2.f * hy, 0), vec2(2.f * hy, 1.6f), vec2(0, 1.6f), wallTone, wmat, vec3(e.ax * (float)sd, 0.f));
+        }
+        // gable ends: the front glazed (with a cross of mullions up close), the back in the wall finish
+        for (int sv = -1; sv <= 1; sv += 2) {
+            float v = sv * hy;
+            vec3 p0 = vec3(e.P(-hx, v), z0 - 0.3f) - x.org, p1 = vec3(e.P(hx, v), z0 - 0.3f) - x.org;
+            vec3 p2 = vec3(e.P(hx, v), ze + (ov) * 2.1f) - x.org, p3 = vec3(e.P(0.f, v), zr - 0.5f) - x.org, p4 = vec3(e.P(-hx, v), ze + (ov) * 2.1f) - x.org;
+            vec3 nn(e.fr * (float)sv, 0.f);
+            u32 col = sv > 0 ? packRGBA8(0.35f, 0.42f, 0.48f, 1) : wallTone, mat = sv > 0 ? makeMat(MAT_GLASS) : wmat;
+            vec3 pts[5] = {p0, p1, p2, p3, p4};
+            u32 idx[5];
+            for (int k = 0; k < 5; k++) idx[k] = x.m->addVertex(pts[k], nn, X, vec2(k, 0), col, mat);
+            for (int k = 1; k + 1 < 5; k++) {
+                if (dot(cross(pts[k] - pts[0], pts[k + 1] - pts[0]), nn) >= 0.f) x.m->tri(idx[0], idx[k], idx[k + 1]);
+                else x.m->tri(idx[0], idx[k + 1], idx[k]);
+            }
+            if (sv > 0 && x.detail) {
+                x.m->box(vec3(e.P(0.f, v + 0.05f), (z0 + zr - 0.5f) * 0.5f) - x.org, X, Y, Z, vec3(0.12f, 0.06f, (zr - 0.5f - z0) * 0.5f), white, makeMat(MAT_PLASTER));
+                x.m->box(vec3(e.P(0.f, v + 0.05f), z0 + (zr - z0) * 0.62f) - x.org, X, Y, Z, vec3(hx * 0.5f, 0.06f, 0.1f), white, makeMat(MAT_PLASTER));
+            }
+        }
+        addCollision(x, e.c, e.ax, hx + ov, hy, z0 - 1.f, zr);
+        // the free-standing bell pylon beside the front corner, a cross on top
+        vec2 pp = e.P(ts * (hx + 2.4f), hy - 1.f);
+        float ph = mr.range(10.f, 14.f);
+        x.m->box(vec3(pp, z0 + ph * 0.5f - 0.5f) - x.org, X, Y, Z, vec3(0.35f, 0.7f, ph * 0.5f + 0.5f), packRGBA8(0.85f, 0.84f, 0.8f, 1), makeMat(MAT_CONCRETE));
+        x.m->box(vec3(pp, z0 + ph + 1.f) - x.org, X, Y, Z, vec3(0.08f, 0.08f, 1.f), white, makeMat(MAT_METAL_PAINTED));
+        x.m->box(vec3(pp, z0 + ph + 1.4f) - x.org, X, Y, Z, vec3(0.08f, 0.5f, 0.08f), white, makeMat(MAT_METAL_PAINTED));
+        addCollision(x, pp, e.ax, 0.36f, 0.71f, z0 - 1.f, z0 + ph);
+        return;
+    }
+    recordMass(x, fp, z0, zt, z0, FM_MAIN, false);
+    facadeWalls(x, fp, z0 - 1.f, zt, z0, b.facade, fac.bayW);
+    addCollision(x, e.c, e.ax, hx, hy, z0 - 1.f, zt + hx);
+    if (b.arch == AR_CHURCH_MISSION) {
+        const float pitch = 0.32f;
+        pitchedPart(x, e, vec4(-hx, hx, -hy, hy), zt, pitch, false, 0.45f, b.roofTint, makeMat(MAT_ROOF_TILE), wallTone, wmat, 1);
+        // the stepped front gable (espadana) rising above the roof line, a niche bell in its top
+        float zApex = zt + hx * pitch;
+        float w0 = hx * 0.75f, w1 = hx * 0.45f, w2 = hx * 0.22f;
+        vec2 fc = e.P(0.f, hy - 0.2f);
+        x.m->box(vec3(fc, (zt + zApex + 1.2f) * 0.5f) - x.org, X, Y, Z, vec3(w0, 0.22f, (zApex + 1.2f - zt) * 0.5f), wallTone, wmat);
+        x.m->box(vec3(fc, zApex + 1.9f) - x.org, X, Y, Z, vec3(w1, 0.22f, 0.7f), wallTone, wmat);
+        x.m->box(vec3(fc, zApex + 3.1f) - x.org, X, Y, Z, vec3(w2, 0.22f, 0.5f), wallTone, wmat);
+        if (x.detail) x.m->box(vec3(fc + e.fr * 0.12f, zApex + 1.9f) - x.org, X, Y, Z, vec3(0.45f, 0.12f, 0.45f), packRGBA8(0.12f, 0.1f, 0.08f, 1), makeMat(MAT_PLASTER));
+        // the bell tower on a front corner: a belfry stage on four piers, a tile hip cap
+        float tsz = Clamp(hx * 0.32f, 1.8f, 2.8f);
+        float u0 = ts > 0.f ? hx - 2.f * tsz : -hx, u1 = u0 + 2.f * tsz, v1 = hy + 0.3f, v0 = v1 - 2.f * tsz;
+        float zb1 = zt + mr.range(3.5f, 5.5f), zb2 = zb1 + 3.f;
+        tower(u0, u1, v0, v1, z0 - 1.f, zb1, wallTone, wmat);
+        for (int i = 0; i < 2; i++)
+            for (int j = 0; j < 2; j++) {
+                vec2 pc = e.P(i ? u1 - 0.35f : u0 + 0.35f, j ? v1 - 0.35f : v0 + 0.35f);
+                x.m->box(vec3(pc, (zb1 + zb2) * 0.5f) - x.org, X, Y, Z, vec3(0.35f, 0.35f, (zb2 - zb1) * 0.5f), wallTone, wmat);
+            }
+        x.m->box(vec3(e.P((u0 + u1) * 0.5f, (v0 + v1) * 0.5f), zb2 + 0.15f) - x.org, X, Y, Z, vec3(tsz + 0.1f, tsz + 0.1f, 0.15f), wallTone, wmat, true);
+        pitchedPart(x, e, vec4(u0, u1, v0, v1), zb2 + 0.3f, 0.55f, true, 0.25f, b.roofTint, makeMat(MAT_ROOF_TILE), wallTone, wmat);
+        if (x.detail) x.m->box(vec3(e.P((u0 + u1) * 0.5f, (v0 + v1) * 0.5f), zb1 + 1.f) - x.org, X, Y, Z, vec3(0.4f, 0.4f, 0.5f), packRGBA8(0.55f, 0.42f, 0.2f, 1), makeMat(MAT_METAL_BRUSHED));
+    } else if (b.arch == AR_CHURCH_CLAPBOARD) {
+        u32 rc = mr.chance(0.6f) ? packRGBA8(0.3f, 0.3f, 0.32f, 1) : packRGBA8(0.3f, 0.4f, 0.32f, 1);
+        pitchedPart(x, e, vec4(-hx, hx, -hy, hy), zt, mr.range(0.8f, 1.f), false, 0.4f, rc, makeMat(MAT_ROOF_SHINGLE), white, makeMat(MAT_WOOD_SIDING), 1);
+        // the steeple over the front: a square base, an octagonal belfry, a spire
+        float sb = Clamp(hx * 0.3f, 1.5f, 2.1f);
+        float vc = hy - sb - 0.2f;
+        float zs1 = zt + hx * 0.9f + mr.range(1.5f, 3.f);
+        tower(-sb, sb, vc - sb, vc + sb, zt - 0.5f, zs1, white, makeMat(MAT_WOOD_SIDING));
+        x.m->box(vec3(e.P(0.f, vc), zs1 + 0.1f) - x.org, X, Y, Z, vec3(sb + 0.15f, sb + 0.15f, 0.12f), white, makeMat(MAT_PLASTER), true);
+        float rb = sb * 0.8f;
+        x.m->cylinder(vec3(e.P(0.f, vc), zs1 + 0.2f) - x.org, rb, rb, 2.4f, 8, white, makeMat(MAT_WOOD_SIDING), false);
+        if (x.detail) x.m->cylinder(vec3(e.P(0.f, vc), zs1 + 0.8f) - x.org, rb + 0.02f, rb + 0.02f, 1.2f, 8, packRGBA8(0.15f, 0.15f, 0.16f, 1), makeMat(MAT_WOOD), false);
+        x.m->cylinder(vec3(e.P(0.f, vc), zs1 + 2.6f) - x.org, rb + 0.05f, 0.04f, mr.range(6.f, 9.f), 8, mr.chance(0.6f) ? white : rc, makeMat(MAT_ROOF_SHINGLE), false);
+    } else {
+        // brick Gothic: a steep slate roof, a square corner tower with corner pinnacles
+        u32 rc = packRGBA8(0.28f, 0.29f, 0.31f, 1);
+        pitchedPart(x, e, vec4(-hx, hx, -hy, hy), zt, mr.range(0.95f, 1.15f), false, 0.35f, rc, makeMat(MAT_ROOF_SHINGLE), wallTone, wmat, 1);
+        float tsz = Clamp(hx * 0.36f, 2.f, 3.f);
+        float u0 = ts > 0.f ? hx - 2.f * tsz + 0.6f : -hx - 0.6f, u1 = u0 + 2.f * tsz, v1 = hy + 0.6f, v0 = v1 - 2.f * tsz;
+        float zT = zt + hx * 1.05f + mr.range(3.f, 6.f);
+        tower(u0, u1, v0, v1, z0 - 1.f, zT, wallTone, wmat);
+        flatRoof(x, toWorld(e, rectUV(u0, u1, v0, v1)), zT, packRGBA8(0.5f, 0.5f, 0.5f, 1), makeMat(MAT_CONCRETE));
+        for (int i = 0; i < 2; i++)
+            for (int j = 0; j < 2; j++) {
+                vec2 pc = e.P(i ? u1 - 0.3f : u0 + 0.3f, j ? v1 - 0.3f : v0 + 0.3f);
+                x.m->box(vec3(pc, zT + 0.9f) - x.org, X, Y, Z, vec3(0.3f, 0.3f, 0.9f), wallTone, wmat);
+                if (x.detail) pitchedRoof(x, pc, e.ax, 0.32f, 0.32f, zT + 1.8f, 2.2f, true, 0.02f, packRGBA8(0.6f, 0.58f, 0.55f, 1), makeMat(MAT_STONE), wallTone, wmat);
+            }
+        if (mr.chance(0.4f))
+            pitchedPart(x, e, vec4(u0 + 0.6f, u1 - 0.6f, v0 + 0.6f, v1 - 0.6f), zT, 2.f, true, 0.f, rc, makeMat(MAT_ROOF_SHINGLE), wallTone, wmat);
+    }
+}
+
+// Motel archetypes: the upper floor's walkway along the street face (over the sidewalk, as the generator's motels), its
+// rail, posts or piers, the gallery roof of the island motels, and the sign. Visual only, like the generator's walkway.
+void motelExtras(Ctx& x, const Building& b, const Env& e, const FacadeGPU& fac, const Plan& P, Rng& mr) {
+    vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
+    const float z0 = b.baseZ, zw = z0 + fac.groundH, zTop = z0 + b.height, hy = b.hy;
+    // the upper floor's run along the street face: the volumes that stand on the ground and reach above the walkway
+    float ua = 1e9f, ub = -1e9f;
+    for (const Vol& v : P.vols) {
+        if (!v.ground || v.z1 < zw + 2.f) continue;
+        for (const vec4& r : v.rects)
+            if (r.w >= hy - 0.05f) ua = Min(ua, r.x), ub = Max(ub, r.y);
+    }
+    if (ub - ua < 4.f) return;
+    const float wd = 2.1f, um = (ua + ub) * 0.5f, hw = (ub - ua) * 0.5f;
+    vec4 ac = unpackRGBA8(fac.frameColor), wcl = unpackRGBA8(fac.wallColor);
+    const u32 accent = packRGBA8(ac.x, ac.y, ac.z, 1), wallTone = packRGBA8(Saturate(wcl.x * 1.45f), Saturate(wcl.y * 1.45f), Saturate(wcl.z * 1.45f), 1);
+    const u32 conc = packRGBA8(0.86f, 0.85f, 0.82f, 1), steel = packRGBA8(0.88f, 0.88f, 0.86f, 1), dark = packRGBA8(0.12f, 0.12f, 0.13f, 1);
+    const u32 wood = packRGBA8(0.93f, 0.93f, 0.9f, 1);
+    const bool keys = b.arch == AR_MOTEL_KEYS, med = b.arch == AR_MOTEL_MED, inn = b.arch == AR_MOTEL_INN;
+    // walkway slab
+    x.m->box(vec3(e.P(um, hy + wd * 0.5f), zw - 0.11f) - x.org, X, Y, Z, vec3(hw, wd * 0.5f, 0.11f), keys ? packRGBA8(0.72f, 0.66f, 0.58f, 1) : conc,
+             makeMat(keys ? MAT_WOOD : MAT_CONCRETE), true);
+    // posts (piers on the Mediterranean motel, wood posts up to the gallery roof on the island motel)
+    float zPostTop = keys ? zTop - 0.75f : zw - 0.22f;
+    int np = Max(2, (int)roundf((ub - ua) / (med ? 3.6f : 4.f)) + 1);
+    for (int k = 0; k < np; k++) {
+        float u = Lerp(ua + 0.25f, ub - 0.25f, (float)k / (np - 1));
+        vec2 p = e.P(u, hy + wd - 0.2f);
+        if (!x.detail) break;
+        // (slender: the walkway overhangs the sidewalk, as the generator's motels do, and its posts stand on it)
+        if (med) x.m->box(vec3(p, (z0 + zw) * 0.5f - 0.11f) - x.org, X, Y, Z, vec3(0.12f, 0.12f, (zw - z0) * 0.5f - 0.11f), wallTone, makeMat(MAT_STUCCO));
+        else if (keys) x.m->box(vec3(p, (z0 + zPostTop) * 0.5f) - x.org, X, Y, Z, vec3(0.08f, 0.08f, (zPostTop - z0) * 0.5f), wood, makeMat(MAT_WOOD));
+        else if (inn) x.m->box(vec3(p, (z0 + zPostTop) * 0.5f) - x.org, X, Y, Z, vec3(0.1f, 0.1f, (zPostTop - z0) * 0.5f), conc, makeMat(MAT_CONCRETE));
+        else x.m->cylinder(vec3(p, z0) - x.org, 0.07f, 0.07f, zPostTop - z0, 8, steel, makeMat(MAT_METAL_PAINTED), false);
+    }
+    // the rail along the walkway's edge: accent panels (MiMo), a stucco parapet wall (Mediterranean), wood pickets
+    // (island), black steel pickets (inn)
+    vec2 rc = e.P(um, hy + wd - 0.05f);
+    if (med) x.m->box(vec3(rc, zw + 0.45f) - x.org, X, Y, Z, vec3(hw, 0.1f, 0.45f), wallTone, makeMat(MAT_STUCCO));
+    else {
+        u32 railCol = keys ? wood : (inn ? dark : steel);
+        x.m->box(vec3(rc, zw + 0.98f) - x.org, X, Y, Z, vec3(hw, 0.04f, 0.04f), railCol, makeMat(keys ? MAT_WOOD : MAT_METAL_PAINTED));
+        if (!keys && !inn) {
+            // MiMo: coloured panels between the posts, a gap above and below
+            x.m->box(vec3(rc, zw + 0.55f) - x.org, X, Y, Z, vec3(hw, 0.025f, 0.32f), accent, makeMat(MAT_METAL_PAINTED));
+        } else if (x.detail) {
+            for (float u = ua + 0.2f; u < ub - 0.1f; u += keys ? 0.16f : 0.14f)
+                x.m->box(vec3(e.P(u, hy + wd - 0.05f), zw + 0.48f) - x.org, X, Y, Z, vec3(0.018f, 0.018f, 0.48f), railCol, makeMat(keys ? MAT_WOOD : MAT_METAL_PAINTED));
+        }
+    }
+    // gallery roofs: a tin shed roof on the island motel's posts, a tile one over the Mediterranean walkway, a slab on the
+    // motor court's
+    if (keys || med) {
+        float zE = zTop - 0.75f;
+        vec3 a0 = vec3(e.P(ua - 0.2f, hy), zE + 0.7f) - x.org, a1 = vec3(e.P(ub + 0.2f, hy), zE + 0.7f) - x.org;
+        vec3 b0 = vec3(e.P(ua - 0.2f, hy + wd + 0.3f), zE) - x.org, b1 = vec3(e.P(ub + 0.2f, hy + wd + 0.3f), zE) - x.org;
+        u32 rcol = b.roofTint, rmat = makeMat(keys ? MAT_ROOF_METAL : MAT_ROOF_TILE);
+        x.m->quadFacing(a0, a1, b1, b0, vec2(0, 0), vec2(ub - ua, 0), vec2(ub - ua, wd), vec2(0, wd), rcol, rmat, vec3(e.fr, 2.f));
+        x.m->quadFacing(a0, b0, b1, a1, vec2(0, 0), vec2(wd, 0), vec2(wd, ub - ua), vec2(0, ub - ua), keys ? wood : packRGBA8(0.9f, 0.88f, 0.84f, 1),
+                        makeMat(keys ? MAT_WOOD : MAT_PLASTER), vec3(-e.fr, -2.f));
+        if (med) {
+            // the upper posts: slender stucco columns on the parapet wall
+            for (int k = 0; k < np && x.detail; k++) {
+                float u = Lerp(ua + 0.25f, ub - 0.25f, (float)k / (np - 1));
+                vec2 p = e.P(u, hy + wd - 0.2f);
+                x.m->box(vec3(p, (zw + 0.9f + zE) * 0.5f) - x.org, X, Y, Z, vec3(0.13f, 0.13f, (zE - zw - 0.9f) * 0.5f), wallTone, makeMat(MAT_STUCCO));
+            }
+        }
+    } else if (!inn) {
+        // motor court: the eave slab carried on over the walkway
+        x.m->box(vec3(e.P(um, hy + wd * 0.5f + 0.15f), zTop + 0.14f) - x.org, X, Y, Z, vec3(hw + 0.3f, wd * 0.5f + 0.15f, 0.14f), packRGBA8(0.96f, 0.96f, 0.95f, 1),
+                 makeMat(MAT_PLASTER), true);
+        for (int k = 0; k < np && x.detail; k++) {
+            float u = Lerp(ua + 0.25f, ub - 0.25f, (float)k / (np - 1));
+            x.m->cylinder(vec3(e.P(u, hy + wd - 0.2f), zw) - x.org, 0.06f, 0.06f, zTop - zw, 8, steel, makeMat(MAT_METAL_PAINTED), false);
+        }
+    }
+    // the sign
+    float ss = mr.chance(0.5f) ? 1.f : -1.f;
+    vec3 nc = hsvToRgb(mr.f(), 0.75f, 1.f);
+    u32 neon = packRGBA8(nc.x, nc.y, nc.z, 0.22f);
+    if (keys) {
+        // a painted board on the gallery rail, a small neon VACANCY under it
+        vec2 sp = e.P(um + ss * hw * 0.5f, hy + wd + 0.02f);
+        x.m->box(vec3(sp, zw + 1.6f) - x.org, X, Y, Z, vec3(Min(2.4f, hw * 0.4f), 0.05f, 0.45f), wallTone, makeMat(MAT_WOOD));
+        if (x.detail) x.m->box(vec3(sp + e.fr * 0.04f, zw + 1.6f) - x.org, X, Y, Z, vec3(Min(2.f, hw * 0.33f), 0.03f, 0.22f), accent, makeMat(MAT_PLASTER));
+        x.m->box(vec3(e.P(um + ss * hw * 0.5f, hy + wd + 0.02f), zw - 0.55f) - x.org, X, Y, Z, vec3(0.7f, 0.05f, 0.14f), neon, makeMat(MAT_EMISSIVE, 6u));
+    } else if (med) {
+        // a blade sign on the street corner of the walkway
+        vec2 sp = e.P(ss > 0.f ? ub - 0.3f : ua + 0.3f, hy + wd + 0.35f);
+        x.m->box(vec3(sp, zw + 1.6f) - x.org, X, Y, Z, vec3(0.08f, 0.45f, 1.4f), neon, makeMat(MAT_EMISSIVE, 6u), true);
+    } else if (b.massing != MK_CORNER_TOWER) {
+        // a pole sign on the roof: the motor court's tilted with a boomerang fin, the inn's a plain box (a corner tower
+        // carries the name itself)
+        vec2 sp = e.P(ss > 0.f ? ub - 2.f : ua + 2.f, hy - 1.2f);
+        float zr = zTop + (inn ? 1.25f : 0.3f);
+        x.m->box(vec3(sp, zr + 1.5f) - x.org, X, Y, Z, vec3(0.12f, 0.12f, 1.5f), steel, makeMat(MAT_METAL_PAINTED));
+        if (inn) x.m->box(vec3(sp, zr + 3.8f) - x.org, X, Y, Z, vec3(2.6f, 0.3f, 1.0f), neon, makeMat(MAT_EMISSIVE, 6u), true);
+        else {
+            vec3 tilt = normalize(vec3(e.ax * cosf(0.3f), sinf(0.3f)));
+            vec3 up = normalize(cross(Y, tilt));
+            if (up.z < 0.f) up = -up;
+            x.m->box(vec3(sp, zr + 3.9f) - x.org, tilt, Y, up, vec3(2.4f, 0.25f, 0.9f), neon, makeMat(MAT_EMISSIVE, 6u), true);
+            vec3 fin = normalize(vec3(e.ax * ss, 1.4f));
+            vec3 fup = normalize(cross(Y, fin));
+            if (fup.z < 0.f) fup = -fup;
+            x.m->box(vec3(sp + e.ax * (ss * 1.2f), zr + 5.4f) - x.org, fin, Y, fup, vec3(1.3f, 0.12f, 0.18f), accent, makeMat(MAT_METAL_PAINTED));
+        }
+    }
+}
+
+// Strip-mall archetypes: the parking court in front (as the generator's strip malls) and the walkway canopy - an arcade of
+// stucco piers under a tile shed roof (mission), a folded-plate canopy on pipe columns (MiMo), a flat metal canopy (power
+// center). Visual only, like the generator's canopy.
+void stripExtras(Ctx& x, const Building& b, const Env& e, const FacadeGPU& fac, Rng& mr) {
+    vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
+    const float z0 = b.baseZ, hx = b.hx, hy = b.hy;
+    vec4 wcl = unpackRGBA8(fac.wallColor), ac = unpackRGBA8(fac.frameColor);
+    const u32 wallTone = packRGBA8(Saturate(wcl.x * 1.45f), Saturate(wcl.y * 1.45f), Saturate(wcl.z * 1.45f), 1), accent = packRGBA8(ac.x, ac.y, ac.z, 1);
+    // parking court between the walkway and the street
+    vec2 lotFront = b.lotC + b.front * b.lotHy;
+    vec2 pc = (lotFront + (b.c + b.front * b.hy)) * 0.5f;
+    float pd = length(lotFront - (b.c + b.front * b.hy)) * 0.5f;
+    if (pd > 2.f) {
+        auto pfp = rectFP(pc, b.ax, hx + 1.f, pd);
+        std::vector<vec3> poly;
+        for (auto& p : pfp) poly.push_back(vec3(p, z0 - 0.1f) - x.org);
+        x.m->polygon(poly, vec3(0, 0, 1), kWhite, makeMat(MAT_ASPHALT_OLD), 1.f);
+        plainWalls(x, pfp, z0 - 1.f, z0 - 0.1f, kWhite, makeMat(MAT_CONCRETE));
+        if (x.detail && pd > 5.f)
+            for (float u = -hx + 2.f; u < hx - 1.f; u += 2.7f) {
+                vec2 s0 = pc + b.ax * u - b.front * (pd - 1.f), s1 = s0 + b.front * 5.f;
+                vec2 w = b.ax * 0.06f;
+                x.m->quadFacing(vec3(s0 - w, z0 - 0.08f) - x.org, vec3(s0 + w, z0 - 0.08f) - x.org, vec3(s1 + w, z0 - 0.08f) - x.org, vec3(s1 - w, z0 - 0.08f) - x.org,
+                                vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), kWhite, makeMat(MAT_PAINT_WHITE), vec3(0, 0, 1));
+            }
+    }
+    const float cd = b.arch == AR_STRIP_MISSION ? 3.2f : 3.0f;   // the canopy's depth over the walkway
+    // the canopy's supports stand on the stall lines (every other one), clear of the cars parked nose-in under it
+    std::vector<float> sup;
+    for (float u = -hx + 2.f; u < hx - 1.f; u += 5.4f) sup.push_back(u);
+    if (sup.size() < 2) sup = {-hx + 0.4f, hx - 0.4f};
+    if (b.arch == AR_STRIP_MISSION) {
+        // stucco piers, a tile shed roof from above the shopfronts
+        float zH = z0 + Min(4.4f, b.height - 0.4f), zL = zH - 0.75f;
+        for (float u : sup) {
+            vec2 p = e.P(u, hy + cd - 0.35f);
+            x.m->box(vec3(p, (z0 + zL) * 0.5f) - x.org, X, Y, Z, vec3(0.28f, 0.28f, (zL - z0) * 0.5f), wallTone, makeMat(MAT_STUCCO));
+        }
+        x.m->box(vec3(e.P(0.f, hy + cd - 0.35f), zL - 0.2f) - x.org, X, Y, Z, vec3(hx, 0.32f, 0.22f), wallTone, makeMat(MAT_STUCCO), true);
+        vec3 a0 = vec3(e.P(-hx - 0.3f, hy), zH) - x.org, a1 = vec3(e.P(hx + 0.3f, hy), zH) - x.org;
+        vec3 b0 = vec3(e.P(-hx - 0.3f, hy + cd + 0.2f), zL) - x.org, b1 = vec3(e.P(hx + 0.3f, hy + cd + 0.2f), zL) - x.org;
+        x.m->quadFacing(a0, a1, b1, b0, vec2(0, 0), vec2(2.f * hx, 0), vec2(2.f * hx, cd), vec2(0, cd), b.roofTint, makeMat(MAT_ROOF_TILE), vec3(e.fr, 2.f));
+        x.m->quadFacing(a0, b0, b1, a1, vec2(0, 0), vec2(cd, 0), vec2(cd, 2.f * hx), vec2(0, 2.f * hx), packRGBA8(0.9f, 0.88f, 0.84f, 1), makeMat(MAT_PLASTER), vec3(-e.fr, -2.f));
+    } else if (b.arch == AR_STRIP_MIMO) {
+        // folded plate: ridges and valleys across the canopy, pipe columns under the valleys (the far LOD: a slab)
+        float zV = z0 + 3.5f, zR = z0 + 4.1f;
+        int nb = Max(2, (int)roundf(2.f * hx / 3.4f));
+        float bw = 2.f * hx / nb;
+        u32 cc = packRGBA8(0.96f, 0.96f, 0.95f, 1);
+        if (!x.detail) {
+            x.m->box(vec3(e.P(0.f, hy + cd * 0.5f), (zV + zR) * 0.5f) - x.org, X, Y, Z, vec3(hx, cd * 0.5f, (zR - zV) * 0.5f), cc, makeMat(MAT_PLASTER), true);
+            nb = 0;
+        }
+        for (int k = 0; k < nb; k++) {
+            float u0 = -hx + k * bw, u1 = u0 + bw * 0.5f, u2 = u0 + bw;
+            for (int h2 = 0; h2 < 2; h2++) {
+                float ua = h2 ? u1 : u0, ub = h2 ? u2 : u1;
+                float za = h2 ? zR : zV, zb2 = h2 ? zV : zR;
+                vec3 p0 = vec3(e.P(ua, hy), za) - x.org, p1 = vec3(e.P(ub, hy), zb2) - x.org, p2 = vec3(e.P(ub, hy + cd), zb2) - x.org, p3 = vec3(e.P(ua, hy + cd), za) - x.org;
+                vec3 up = normalize(vec3(e.ax * ((h2 ? 1.f : -1.f) * (zR - zV)), bw * 0.5f));
+                x.m->quadFacing(p0, p1, p2, p3, vec2(0, 0), vec2(bw * 0.5f, 0), vec2(bw * 0.5f, cd), vec2(0, cd), cc, makeMat(MAT_PLASTER), up);
+                x.m->quadFacing(p0, p3, p2, p1, vec2(0, 0), vec2(cd, 0), vec2(cd, bw * 0.5f), vec2(0, bw * 0.5f), cc, makeMat(MAT_PLASTER), -up);
+                // the fascia's zigzag edge
+                vec3 q0 = p3, q1 = p2;
+                x.m->quadFacing(q0, q1, q1 - vec3(0, 0, 0.12f), q0 - vec3(0, 0, 0.12f), vec2(0, 0), vec2(bw * 0.5f, 0), vec2(bw * 0.5f, 0.12f), vec2(0, 0.12f), accent,
+                                makeMat(MAT_METAL_PAINTED), vec3(e.fr, 0.f));
+            }
+        }
+        for (float u : sup) {
+            if (!x.detail) break;
+            // (to the nearest valley of the folded plate)
+            float uv = -hx + roundf((u + hx) / bw) * bw;
+            float zc = zV + (zR - zV) * Min(1.f, fabsf(uv - u) / (bw * 0.5f));
+            x.m->cylinder(vec3(e.P(u, hy + cd - 0.3f), z0) - x.org, 0.08f, 0.08f, zc - z0, 8, accent, makeMat(MAT_METAL_PAINTED), false);
+        }
+        // a pylon sign at the street end of the court, beside the stalls (deep courts only)
+        float ss = mr.chance(0.5f) ? 1.f : -1.f;
+        vec3 nc = hsvToRgb(mr.f(), 0.7f, 1.f);
+        if (pd >= 4.f) {
+            vec2 sp = (b.lotC + b.front * (b.lotHy - 1.f)) + b.ax * (ss * (hx - 0.5f) + dot(b.c - b.lotC, b.ax));
+            float gz = gMap ? gMap->heightAt(sp.x, sp.y) : z0;
+            x.m->box(vec3(sp, gz + 4.f) - x.org, X, Y, Z, vec3(0.15f, 0.15f, 4.f), packRGBA8(0.9f, 0.9f, 0.88f, 1), makeMat(MAT_METAL_PAINTED));
+            x.m->box(vec3(sp, gz + 7.2f) - x.org, X, Y, Z, vec3(0.3f, 1.4f, 1.1f), packRGBA8(nc.x, nc.y, nc.z, 0.22f), makeMat(MAT_EMISSIVE, 6u), true);
+            addCollision(x, sp, e.ax, 0.16f, 0.16f, gz - 0.5f, gz + 8.f);
+        }
+    } else {
+        // power center: a flat metal canopy, square steel columns
+        float zc = z0 + Min(4.3f, b.height - 0.6f);
+        u32 dk = packRGBA8(0.32f, 0.33f, 0.35f, 1);
+        x.m->box(vec3(e.P(0.f, hy + cd * 0.5f), zc) - x.org, X, Y, Z, vec3(hx, cd * 0.5f, 0.2f), dk, makeMat(MAT_METAL_PAINTED), true);
+        for (float u : sup) {
+            vec2 p = e.P(u, hy + cd - 0.3f);
+            x.m->box(vec3(p, (z0 + zc) * 0.5f) - x.org, X, Y, Z, vec3(0.12f, 0.12f, (zc - z0) * 0.5f), dk, makeMat(MAT_METAL_PAINTED));
+        }
+    }
+}
+
+}  // namespace massing
+
 bool buildArchMesh(Ctx& x, const Building& b, const FacadeGPU& fac) {
     using namespace massing;
     if (b.arch == AR_NONE || b.interior >= 0) return false;
     if (b.style == BS_HOUSE || b.style == BS_VILLA || b.style == BS_FARMHOUSE || b.style == BS_SHACK) return false;   // houses: buildArchHouse
+    if (b.style == BS_BARN) {
+        massing::buildArchBarn(x, b, fac);
+        return true;
+    }
+    if (b.style == BS_CHURCH) {
+        massing::buildArchChurch(x, b, fac);
+        return true;
+    }
     Rng mr(b.seed ^ 0x4D455353u);
     Env e = envOf(b);
     Plan P = planVolumes(b, fac, mr);
@@ -582,11 +1096,13 @@ bool buildArchMesh(Ctx& x, const Building& b, const FacadeGPU& fac) {
         for (const vec4& r : v.rects)
             if ((r.y - r.x) * (r.w - r.z) > (best.y - best.x) * (best.w - best.z)) best = r;
         vec2 rc = e.P((best.x + best.y) * 0.5f, (best.z + best.w) * 0.5f);
-        float zr = v.z1 + (rf == RFM_EAVE ? 0.3f : 0.f);
+        float zr = v.z1 + (rf == RFM_EAVE ? 0.3f : (rf == RFM_MANSARD ? 1.25f : 0.f));
         if (rf == RFM_TERRACE) roofTerrace(x, e, best, v.z1, dr);
         else rooftopClutter(x, rc, b.ax, (best.y - best.x) * 0.45f, (best.w - best.z) * 0.45f, zr, dr, old ? 0.35f : 0.06f);
     }
     if (P.canopyZ > 0.f) mimoCanopy(x, b, e, P.canopyZ, mr);
+    if (b.style == BS_MOTEL) motelExtras(x, b, e, fac, P, mr);
+    if (b.style == BS_STRIPMALL) stripExtras(x, b, e, fac, mr);
     if (P.arcade) {
         // the arcade: its ceiling under the upper floors, piers on the street line (arches by the detail pass)
         float rec = arcadeDepth(b), zg = P.vols[1].z0;
@@ -690,6 +1206,7 @@ void houseRoofFinish(const Building& b, Rng& hr, u32& col, u32& mat) {
         case AR_SHACK_STILT: kind = 2; break;
         default: kind = 0; break;
     }
+    if (b.style == BS_FARMHOUSE && kind != 2 && hr.chance(0.75f)) kind = 2;   // (tin roofs on the farms)
     if (kind == 0) {
         float t = hr.range(0.85f, 1.12f);
         col = packRGBA8(Saturate(t), Saturate(t * hr.range(0.88f, 1.02f)), Saturate(t * hr.range(0.9f, 1.f)), 1);
@@ -732,20 +1249,22 @@ void housePorch(Ctx& x, const Env& e, float hy, float u0, float u1, float dep, f
     vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
     float um = (u0 + u1) * 0.5f, hw = (u1 - u0) * 0.5f;
     vec2 c = e.P(um, hy + dep * 0.5f);
-    // deck
-    x.m->box(vec3(c, zb - 0.12f) - x.org, X, Y, Z, vec3(hw, dep * 0.5f, 0.14f), packRGBA8(0.75f, 0.73f, 0.7f, 1), makeMat(roofKind != 0 ? MAT_WOOD : MAT_CONCRETE), true);
+    // deck (the far LOD keeps only the porch roof: deck, skirt, steps and posts are close-range detail)
+    if (x.detail)
+        x.m->box(vec3(c, zb - 0.12f) - x.org, X, Y, Z, vec3(hw, dep * 0.5f, 0.14f), packRGBA8(0.75f, 0.73f, 0.7f, 1), makeMat(roofKind != 0 ? MAT_WOOD : MAT_CONCRETE), true);
     if (zGround > -1e8f && zb - zGround > 0.25f) {
         // raised: solid underneath (lattice skirt), walkable on top, steps down at the entry
-        x.m->box(vec3(c, (zb - 0.26f + zGround - 0.3f) * 0.5f) - x.org, X, Y, Z, vec3(hw - 0.05f, dep * 0.5f - 0.05f, (zb - 0.26f - zGround + 0.3f) * 0.5f),
-                 packRGBA8(0.9f, 0.9f, 0.88f, 1), makeMat(MAT_WOOD_SIDING));
+        if (x.detail)
+            x.m->box(vec3(c, (zb - 0.26f + zGround - 0.3f) * 0.5f) - x.org, X, Y, Z, vec3(hw - 0.05f, dep * 0.5f - 0.05f, (zb - 0.26f - zGround + 0.3f) * 0.5f),
+                     packRGBA8(0.9f, 0.9f, 0.88f, 1), makeMat(MAT_WOOD_SIDING));
         addCollision(x, c, e.ax, hw, dep * 0.5f, zGround - 0.6f, zb + 0.02f);
-        if (steps) deckSteps(x, e, um, 1.5f, hy + dep, zb + 0.02f, zGround, packRGBA8(0.72f, 0.7f, 0.66f, 1), makeMat(MAT_WOOD));
+        if (steps && x.detail) deckSteps(x, e, um, 1.5f, hy + dep, zb + 0.02f, zGround, packRGBA8(0.72f, 0.7f, 0.66f, 1), makeMat(MAT_WOOD));
     }
     // posts
     int np = Max(2, (int)roundf((u1 - u0) / 2.6f) + 1);
     for (int k = 0; k < np; k++) {
         vec2 p = e.P(Lerp(u0 + 0.15f, u1 - 0.15f, (float)k / (np - 1)), hy + dep - 0.15f);
-        x.m->box(vec3(p, (zb + zEave) * 0.5f) - x.org, X, Y, Z, vec3(0.09f, 0.09f, (zEave - zb) * 0.5f), trim, makeMat(MAT_WOOD));
+        if (x.detail) x.m->box(vec3(p, (zb + zEave) * 0.5f) - x.org, X, Y, Z, vec3(0.09f, 0.09f, (zEave - zb) * 0.5f), trim, makeMat(MAT_WOOD));
         addCollision(x, p, e.ax, 0.1f, 0.1f, zb, zEave);
     }
     if (rail && x.detail) {
@@ -794,11 +1313,11 @@ void galleryPorch(Ctx& x, const Env& e, float hy, float u0, float u1, float dep,
     // upper posts, rail and balusters
     float zE = zTop - 0.75f;
     int np = Max(2, (int)roundf((u1 - u0) / 2.6f) + 1);
-    for (int k = 0; k < np; k++) {
+    for (int k = 0; k < np && x.detail; k++) {
         vec2 p = e.P(Lerp(u0 + 0.15f, u1 - 0.15f, (float)k / (np - 1)), hy + dep - 0.15f);
         x.m->box(vec3(p, (zUp + zE) * 0.5f) - x.org, X, Y, Z, vec3(0.08f, 0.08f, (zE - zUp) * 0.5f), trim, makeMat(MAT_WOOD));
     }
-    x.m->box(vec3(e.P(um, hy + dep - 0.15f), zUp + 0.95f) - x.org, X, Y, Z, vec3(hw, 0.035f, 0.035f), trim, makeMat(MAT_WOOD));
+    if (x.detail) x.m->box(vec3(e.P(um, hy + dep - 0.15f), zUp + 0.95f) - x.org, X, Y, Z, vec3(hw, 0.035f, 0.035f), trim, makeMat(MAT_WOOD));
     if (x.detail)
         for (float u = u0 + 0.25f; u < u1 - 0.2f; u += 0.14f)
             x.m->box(vec3(e.P(u, hy + dep - 0.15f), zUp + 0.47f) - x.org, X, Y, Z, vec3(0.018f, 0.018f, 0.47f), trim, makeMat(MAT_WOOD));
@@ -823,9 +1342,11 @@ void colonialPortico(Ctx& x, const Env& e, float hx, float hy, float zb, float z
     int nc = pw > 3.6f ? 6 : 4;
     for (int k = 0; k < nc; k++) {
         vec2 cp = e.P(Lerp(-pw + 0.35f, pw - 0.35f, (float)k / (nc - 1)), hy + pd - 0.4f);
-        x.m->cylinder(vec3(cp, zb + 0.18f) - x.org, 0.26f, 0.21f, zE - 0.75f - zb - 0.18f, 12, white, makeMat(MAT_PLASTER), false);
-        x.m->box(vec3(cp, zb + 0.3f) - x.org, X, Y, Z, vec3(0.34f, 0.34f, 0.12f), white, makeMat(MAT_PLASTER));
-        x.m->box(vec3(cp, zE - 0.82f) - x.org, X, Y, Z, vec3(0.32f, 0.32f, 0.07f), white, makeMat(MAT_PLASTER));
+        if (x.detail) {
+            x.m->cylinder(vec3(cp, zb + 0.18f) - x.org, 0.26f, 0.21f, zE - 0.75f - zb - 0.18f, 12, white, makeMat(MAT_PLASTER), false);
+            x.m->box(vec3(cp, zb + 0.3f) - x.org, X, Y, Z, vec3(0.34f, 0.34f, 0.12f), white, makeMat(MAT_PLASTER));
+            x.m->box(vec3(cp, zE - 0.82f) - x.org, X, Y, Z, vec3(0.32f, 0.32f, 0.07f), white, makeMat(MAT_PLASTER));
+        }
         addCollision(x, cp, e.ax, 0.27f, 0.27f, zb, zE);
     }
     // entablature
@@ -966,7 +1487,7 @@ void buildStiltShack(Ctx& x, const Building& b, const FacadeGPU& fac, u32& roofC
                 float u = Lerp(d.x + 0.12f, d.y - 0.12f, (float)i / nu), v = Lerp(d.z + 0.12f, d.w - 0.12f, (float)j / nv);
                 if (u > -hx && u < hx && v > -hy && v < hy) continue;   // under the house: inside its collision
                 vec2 pp = e.P(u, v);
-                x.m->box(vec3(pp, (z0 - 0.4f + zd - 0.24f) * 0.5f) - x.org, X, Y, Z, vec3(0.11f, 0.11f, (zd - 0.24f - z0 + 0.4f) * 0.5f), post, woodMat);
+                if (x.detail) x.m->box(vec3(pp, (z0 - 0.4f + zd - 0.24f) * 0.5f) - x.org, X, Y, Z, vec3(0.11f, 0.11f, (zd - 0.24f - z0 + 0.4f) * 0.5f), post, woodMat);
                 addCollision(x, pp, e.ax, 0.12f, 0.12f, z0 - 0.5f, zd - 0.24f);
             }
     }
@@ -977,7 +1498,7 @@ void buildStiltShack(Ctx& x, const Building& b, const FacadeGPU& fac, u32& roofC
             x.m->box(vec3(pp, (z0 - 0.4f + zf - 0.3f) * 0.5f) - x.org, X, Y, Z, vec3(0.13f, 0.13f, (zf - 0.3f - z0 + 0.4f) * 0.5f), post, woodMat);
         }
     // cross bracing on the front and the sides between the corner posts
-    if (brace) {
+    if (brace && x.detail) {
         float hb = zf - 0.4f - (z0 + 0.2f);
         for (int s = 0; s < 3; s++) {
             vec2 a, c;
@@ -1011,7 +1532,7 @@ void buildStiltShack(Ctx& x, const Building& b, const FacadeGPU& fac, u32& roofC
         vec2 lc = e.P(ue, front.w + 0.5f);
         x.m->box(vec3(lc, zd - 0.06f) - x.org, X, Y, Z, vec3(0.5f, 0.5f, 0.06f), deckCol, woodMat, true);
         addCollision(x, lc, e.ax, 0.5f, 0.5f, zd - 0.3f, zd);
-        for (int i = -1; i <= 1; i += 2)
+        for (int i = -1; i <= 1 && x.detail; i += 2)
             for (int j = 0; j < 2; j++) {
                 vec2 pp = e.P(ue + i * 0.42f, front.w + 0.08f + j * 0.84f);
                 x.m->box(vec3(pp, (z0 - 0.3f + zd - 0.12f) * 0.5f) - x.org, X, Y, Z, vec3(0.07f, 0.07f, (zd - 0.12f - z0 + 0.3f) * 0.5f), post, woodMat);
@@ -1022,9 +1543,10 @@ void buildStiltShack(Ctx& x, const Building& b, const FacadeGPU& fac, u32& roofC
         for (int k = 1; k < nSteps; k++) {
             float zt = zd - k * stepH;
             vec2 c = start + fdir * ((k - 0.5f) * run);
-            x.m->box(vec3(c, zt - 0.03f) - x.org, vec3(fdir, 0.f), vec3(fside, 0.f), Z, vec3(run * 0.5f + 0.02f, 0.46f, 0.03f), deckCol, woodMat);
+            if (x.detail) x.m->box(vec3(c, zt - 0.03f) - x.org, vec3(fdir, 0.f), vec3(fside, 0.f), Z, vec3(run * 0.5f + 0.02f, 0.46f, 0.03f), deckCol, woodMat);
             addCollision(x, c, fdir, run * 0.5f, 0.46f, zt - 0.4f, zt);
         }
+        // (the far LOD keeps the stringers: the stair's outline)
         for (int sd = -1; sd <= 1; sd += 2) {
             vec3 p0 = vec3(start + fside * (sd * 0.48f), zd - 0.12f), p1 = vec3(start + fdir * flight + fside * (sd * 0.48f), z0 - 0.05f);
             vec3 dir = p1 - p0;
@@ -1048,8 +1570,9 @@ void buildStiltShack(Ctx& x, const Building& b, const FacadeGPU& fac, u32& roofC
         if (len < 0.3f) return;
         t = t / len;
         vec3 T(t, 0.f), N(perp(t), 0.f);
+        if (!x.detail) return;
         x.m->box(vec3((wa + wb) * 0.5f, zr) - x.org, T, N, Z, vec3(len * 0.5f, 0.04f, 0.04f), railCol, woodMat);
-        if (x.detail) {
+        {
             int nb = Max(1, (int)(len / 1.2f));
             for (int i = 0; i <= nb; i++) {
                 vec2 pp = wa + t * (len * i / nb);
@@ -1086,7 +1609,7 @@ void buildStiltShack(Ctx& x, const Building& b, const FacadeGPU& fac, u32& roofC
             float u = Lerp(u0 + 0.12f, u1 - 0.12f, (float)k / (np - 1));
             if ((toStreet || alongFront) && fabsf(u - ue) < 0.6f) continue;
             vec2 pp = e.P(u, hy + dep - 0.12f);
-            x.m->box(vec3(pp, (zd + zE) * 0.5f) - x.org, X, Y, Z, vec3(0.07f, 0.07f, (zE - zd) * 0.5f), railCol, woodMat);
+            if (x.detail) x.m->box(vec3(pp, (zd + zE) * 0.5f) - x.org, X, Y, Z, vec3(0.07f, 0.07f, (zE - zd) * 0.5f), railCol, woodMat);
             addCollision(x, pp, e.ax, 0.08f, 0.08f, zd, zE);
         }
         vec3 a0 = vec3(e.P(u0 - 0.15f, hy), zE + 0.6f) - x.org, a1 = vec3(e.P(u1 + 0.15f, hy), zE + 0.6f) - x.org;
@@ -1098,11 +1621,13 @@ void buildStiltShack(Ctx& x, const Building& b, const FacadeGPU& fac, u32& roofC
     if (cistern) {
         vec2 cc = e.P(side * (hx - 1.f), -hy - (dk == 0 ? dw : 0.f) - 1.1f);
         float r = 0.75f, hh = 1.6f;
-        for (int i = -1; i <= 1; i += 2)
+        for (int i = -1; i <= 1 && x.detail; i += 2)
             for (int j = -1; j <= 1; j += 2)
                 x.m->box(vec3(cc + e.ax * (i * 0.55f) + e.fr * (j * 0.55f), (z0 + zf - 0.9f) * 0.5f) - x.org, X, Y, Z, vec3(0.07f, 0.07f, (zf - 0.9f - z0) * 0.5f), post, woodMat);
-        x.m->box(vec3(cc, zf - 0.95f) - x.org, X, Y, Z, vec3(0.75f, 0.75f, 0.06f), post, woodMat, true);
-        x.m->cylinder(vec3(cc, zf - 0.9f) - x.org, r, r, hh, 12, packRGBA8(0.88f, 0.88f, 0.86f, 1), makeMat(MAT_METAL_PAINTED), true);
+        if (x.detail) {
+            x.m->box(vec3(cc, zf - 0.95f) - x.org, X, Y, Z, vec3(0.75f, 0.75f, 0.06f), post, woodMat, true);
+            x.m->cylinder(vec3(cc, zf - 0.9f) - x.org, r, r, hh, 12, packRGBA8(0.88f, 0.88f, 0.86f, 1), makeMat(MAT_METAL_PAINTED), true);
+        }
         addCollision(x, cc, e.ax, 0.8f, 0.8f, z0 - 0.5f, zf - 0.9f + hh);
     }
 }
@@ -1118,7 +1643,7 @@ bool buildArchHouseBody(Ctx& x, const Building& b, const FacadeGPU& fac, u32& ro
         buildStiltShack(x, b, fac, roofCol, roofMat);
         return true;
     }
-    if (b.style != BS_HOUSE && b.style != BS_VILLA) return false;
+    if (b.style != BS_HOUSE && b.style != BS_VILLA && b.style != BS_FARMHOUSE) return false;
     Rng mr(b.seed ^ 0x4D455353u), hr(b.seed ^ 0x40053u);
     Env e = envOf(b);
     const float hx = b.hx, hy = b.hy;

@@ -118,7 +118,7 @@ void buildOpenLot(const OpenLot& L, const WorldMap& map, bool detail, vec3 org, 
     vec3 X(L.ax, 0.f), Y(ay, 0.f), Z(0, 0, 1);
     if (L.kind == OL_PARKING) {
         // asphalt on a grid that follows the ground
-        int nx = Clamp((int)(L.hx / 5.f), 1, 6), ny = Clamp((int)(L.hy / 5.f), 1, 6);
+        int nx = detail ? Clamp((int)(L.hx / 5.f), 1, 6) : 1, ny = detail ? Clamp((int)(L.hy / 5.f), 1, 6) : 1;   // (one quad in the far LOD)
         std::vector<vec3> g((size_t)(nx + 1) * (ny + 1));
         for (int j = 0; j <= ny; j++)
             for (int i = 0; i <= nx; i++) {
@@ -198,7 +198,7 @@ void buildOpenLot(const OpenLot& L, const WorldMap& map, bool detail, vec3 org, 
     // side (the neighbour's yard has the other), trees and shrubs, a dumpster and condensers in service yards
     {
         bool home = L.home != 0 || L.kind == OL_YARD;
-        int nx = Clamp((int)(L.hx / 6.f), 1, 5), ny = Clamp((int)(L.hy / 6.f), 1, 5);
+        int nx = detail ? Clamp((int)(L.hx / 6.f), 1, 5) : 1, ny = detail ? Clamp((int)(L.hy / 6.f), 1, 5) : 1;
         std::vector<vec3> g((size_t)(nx + 1) * (ny + 1));
         float lift = home ? 0.04f : 0.06f;
         for (int j = 0; j <= ny; j++)

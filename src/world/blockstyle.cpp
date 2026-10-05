@@ -68,6 +68,10 @@ const ArchInfo kArch[AR_COUNT] = {
     {"sawtooth", 1, 1, true},      {"ware office", 1, 1, false},  {"body shop", 1, 1, true},
     {"back house", 1, 2, false},   {"garage row", 1, 1, true},    {"shed", 1, 1, true},
     {"med villa", 2, 3, false},    {"colonial villa", 2, 2, false}, {"stilt house", 1, 1, true},
+    {"mimo motor court", 2, 2, false}, {"med motel", 2, 2, false}, {"keys motel", 2, 2, true}, {"motor inn", 2, 2, false},
+    {"mission strip", 1, 1, false}, {"mimo strip", 1, 1, false}, {"power center", 1, 1, false},
+    {"gambrel barn", 1, 1, true},  {"pole barn", 1, 1, true},     {"gable barn", 1, 1, true},
+    {"mission church", 1, 1, false}, {"board church", 1, 1, false}, {"brick church", 1, 1, true}, {"a-frame church", 1, 1, false},
 };
 static_assert(sizeof(kArch) / sizeof(kArch[0]) == AR_COUNT, "one ArchInfo per archetype");
 
@@ -175,6 +179,37 @@ int palette(int reg, int style, bool main, bool corner, Pick* out) {
             // the street lots of the fishing towns (the site shacks of the Sawgrass and the keys stay the generator's)
             if (reg == REG_GULF_TOWN || reg == REG_KEYS || reg == REG_KEY_TOWN) add(AR_SHACK_STILT, 1.f);
             break;
+        case BS_MOTEL:
+            // Key Solano's guest houses and motels lean to the islands' wood and tin; the arterials have the motor courts
+            // and the seventies inns
+            if (reg == REG_KEY_TOWN || reg == REG_KEYS || reg == REG_GULF_TOWN) {
+                add(AR_MOTEL_KEYS, 3.f); add(AR_MOTEL_MIMO, 1.5f); add(AR_MOTEL_MED, 1.2f); add(AR_MOTEL_INN, 0.5f);
+            } else {
+                add(AR_MOTEL_MIMO, 3.f); add(AR_MOTEL_INN, 2.f); add(AR_MOTEL_MED, 1.5f); add(AR_MOTEL_KEYS, 0.3f);
+            }
+            break;
+        case BS_FARMHOUSE:
+            // Florida farmhouses: the cracker house (a raised wood house with a deep porch and a tin roof: the conch
+            // house's mainland cousin), the two-storey I-house, the fifties ranch, the generator's plain house
+            add(AR_HOUSE_CONCH, 2.5f); add(AR_HOUSE_TWO, 1.5f); add(AR_HOUSE_RANCH, 1.2f); add(AR_NONE, 1.f);
+            break;
+        case BS_BARN:
+            add(AR_BARN_GAMBREL, 2.f); add(AR_BARN_POLE, 2.f); add(AR_BARN_GABLE, 1.5f);
+            break;
+        case BS_CHURCH:
+            if (reg == REG_LAKE_TOWN || reg == REG_HARLOW || reg == REG_FORT_CASTELL) {
+                add(AR_CHURCH_CLAPBOARD, 3.f); add(AR_CHURCH_BRICK, 2.f); add(AR_CHURCH_MISSION, 0.8f); add(AR_NONE, 0.8f);
+            } else if (reg == REG_GROVE || reg == REG_CALLE_LUNA) {
+                add(AR_CHURCH_MISSION, 3.f); add(AR_CHURCH_BRICK, 1.f); add(AR_CHURCH_AFRAME, 0.8f); add(AR_NONE, 0.8f);
+            } else {
+                add(AR_CHURCH_AFRAME, 2.f); add(AR_CHURCH_MISSION, 2.f); add(AR_CHURCH_CLAPBOARD, 1.5f); add(AR_CHURCH_BRICK, 1.f); add(AR_NONE, 1.f);
+            }
+            break;
+        case BS_STRIPMALL:
+            add(AR_STRIP_MISSION, reg == REG_GROVE ? 3.f : 2.f);
+            add(AR_STRIP_MIMO, 2.f);
+            add(AR_STRIP_MODERN, main ? 2.5f : 1.5f);
+            break;
         case BS_WAREHOUSE:
         case BS_FACTORY:
             if (reg == REG_PORT) break;
@@ -231,6 +266,19 @@ int massings(u8 arch, bool storefront, bool corner, float w, float d, Pick* out)
         case AR_VILLA_MED: add(MK_CORNER_TOWER, 2.f); add(MK_L, 1.5f); add(MK_WINGS, wide ? 1.5f : 0.4f); add(MK_BOX, 0.8f); break;
         case AR_VILLA_COLONIAL: add(MK_BOX, 2.f); add(MK_WINGS, wide ? 2.f : 0.5f); break;
         case AR_SHACK_STILT: add(MK_BOX, 3.f); add(MK_L, 1.3f); break;
+        // motels: the front with its walkway and the parking in front stays whole; a back corner cut away, a lower office
+        // end, a sign tower on a front corner
+        case AR_MOTEL_MIMO: add(MK_BOX, 2.f); add(MK_L, deep ? 1.5f : 0.f); add(MK_SPLIT, wide ? 2.f : 0.f); add(MK_CORNER_TOWER, 1.f); break;
+        case AR_MOTEL_MED: add(MK_BOX, 2.f); add(MK_L, deep ? 1.5f : 0.f); add(MK_SPLIT, wide ? 1.5f : 0.f); add(MK_CORNER_TOWER, 1.2f); break;
+        case AR_MOTEL_KEYS: add(MK_BOX, 3.f); add(MK_L, deep ? 1.5f : 0.f); break;
+        case AR_MOTEL_INN: add(MK_BOX, 2.f); add(MK_L, deep ? 1.5f : 0.f); add(MK_SPLIT, wide ? 1.5f : 0.f); break;
+        // strip malls: an anchor end, an entry tower, a lower back
+        case AR_STRIP_MISSION: add(MK_BOX, 1.5f); add(MK_CORNER_TOWER, 2.5f); add(MK_SPLIT, wide ? 1.5f : 0.f); break;
+        case AR_STRIP_MIMO: add(MK_BOX, 2.5f); add(MK_STEP_BACK, deep ? 1.f : 0.f); add(MK_SPLIT, wide ? 1.f : 0.f); break;
+        case AR_STRIP_MODERN: add(MK_SPLIT, wide ? 3.f : 0.f); add(MK_CORNER_TOWER, 1.5f); add(MK_BOX, 1.f); add(MK_STEP_BACK, deep ? 1.f : 0.f); break;
+        case AR_BARN_GAMBREL: case AR_BARN_POLE: add(MK_BOX, 1.f); break;
+        case AR_BARN_GABLE: add(MK_BOX, 1.5f); add(MK_WINGS, 1.f); break;
+        case AR_CHURCH_MISSION: case AR_CHURCH_CLAPBOARD: case AR_CHURCH_BRICK: case AR_CHURCH_AFRAME: add(MK_BOX, 1.f); break;
         case AR_DECO_STREAMLINE: add(MK_ROUNDED, 4.f); break;
         case AR_DECO_MED: add(MK_CORNER_TOWER, corner ? 3.f : 1.5f); add(MK_BOX, 1.5f); add(MK_U, wide && deep ? 1.f : 0.f); break;
         case AR_DECO_MIMO: add(MK_BOX, 1.5f); add(MK_WINGS, wide ? 1.5f : 0.f); add(MK_L, deep ? 1.5f : 0.f); add(MK_U, wide && deep ? 1.f : 0.f); break;
@@ -266,6 +314,16 @@ u8 roofFor(u8 arch, u8 massing, Rng& r) {
         case AR_VILLA_MODERN: return RFM_EAVE;
         case AR_VILLA_MED: return RFM_TILE_HIP;
         case AR_SHACK_STILT: return RFM_METAL_GABLE;
+        case AR_MOTEL_MIMO: return r.chance(0.75f) ? RFM_EAVE : RFM_BUTTERFLY;
+        case AR_MOTEL_MED: return RFM_TILE_HIP;
+        case AR_MOTEL_KEYS: return RFM_METAL_GABLE;
+        case AR_MOTEL_INN: return RFM_MANSARD;
+        case AR_STRIP_MISSION: return RFM_TILE_PENT;
+        case AR_STRIP_MIMO: return r.chance(0.6f) ? RFM_EAVE : RFM_PARAPET;
+        case AR_STRIP_MODERN: return RFM_PARAPET;
+        case AR_BARN_GAMBREL: case AR_BARN_POLE: case AR_BARN_GABLE: return RFM_METAL_GABLE;
+        case AR_CHURCH_MISSION: return RFM_TILE_HIP;
+        case AR_CHURCH_CLAPBOARD: case AR_CHURCH_BRICK: case AR_CHURCH_AFRAME: return RFM_METAL_GABLE;
         case AR_DECO_STREAMLINE: return r.chance(0.6f) ? RFM_EAVE : RFM_PARAPET;
         case AR_DECO_MED: return r.chance(0.55f) ? RFM_TILE_PENT : RFM_TILE_HIP;
         case AR_DECO_MIMO: return RFM_EAVE;
@@ -492,6 +550,85 @@ void facadeFor(Building& b, FacadeGPU& f, u8 arch, Rng& r, bool store) {
             flags |= 8u;
             break;
         }
+        case AR_MOTEL_MIMO:
+            style = r.chance(0.5f) ? 2 : 0; floorH = r.range(2.8f, 3.0f); groundH = r.range(3.0f, 3.3f); bay = r.range(3.6f, 4.4f); winW = r.range(0.4f, 0.5f); winH = 0.45f; sill = 1.1f;
+            wall = r.chance(0.55f) ? pick(kMimoWall, r) : pick(kDecoPastel, r);
+            frame = pick(kMimoAccent, r);
+            break;
+        case AR_MOTEL_MED:
+            style = 0; floorH = r.range(2.9f, 3.1f); groundH = r.range(3.1f, 3.4f); bay = r.range(3.6f, 4.4f); winW = r.range(0.3f, 0.38f); winH = 0.5f; sill = 0.95f;
+            wall = pick(kMedWarm, r);
+            frame = r.chance(0.6f) ? vec3(0.3f, 0.2f, 0.12f) : vec3(0.15f, 0.32f, 0.26f);
+            break;
+        case AR_MOTEL_KEYS:
+            style = 5; floorH = r.range(2.8f, 3.0f); groundH = r.range(3.0f, 3.2f); bay = r.range(3.4f, 4.2f); winW = r.range(0.36f, 0.44f); winH = 0.55f; sill = 0.9f;
+            mat = MAT_WOOD_SIDING; wall = pick(kConch, r);
+            frame = vec3(0.97f);
+            break;
+        case AR_MOTEL_INN: {
+            style = 0; floorH = r.range(2.8f, 3.0f); groundH = r.range(3.0f, 3.2f); bay = r.range(3.6f, 4.2f); winW = r.range(0.42f, 0.52f); winH = 0.48f; sill = 1.0f;
+            const vec3 inn[] = {vec3(0.95f, 0.88f, 0.75f), vec3(0.88f, 0.78f, 0.66f), vec3(0.98f, 0.95f, 0.88f), vec3(0.85f, 0.85f, 0.82f)};
+            if (r.chance(0.35f)) { mat = MAT_BRICK; wall = vec3(1.f) * r.range(0.85f, 1.f); }
+            else wall = pick(inn, r);
+            frame = r.chance(0.5f) ? vec3(0.12f) : vec3(0.4f, 0.28f, 0.18f);
+            break;
+        }
+        case AR_STRIP_MISSION:
+            style = 0; floorH = r.range(4.6f, 5.4f); groundH = floorH; bay = r.range(5.5f, 7.5f); winW = r.range(0.7f, 0.8f); winH = 0.62f; sill = 0.4f;
+            wall = pick(kMedWarm, r);
+            frame = r.chance(0.6f) ? vec3(0.3f, 0.2f, 0.12f) : vec3(0.15f, 0.32f, 0.26f);
+            break;
+        case AR_STRIP_MIMO:
+            style = 0; floorH = r.range(4.2f, 4.8f); groundH = floorH; bay = r.range(5.f, 6.5f); winW = r.range(0.75f, 0.85f); winH = 0.6f; sill = 0.4f;
+            wall = r.chance(0.5f) ? pick(kMimoWall, r) : pick(kDecoPastel, r);
+            frame = pick(kMimoAccent, r);
+            break;
+        case AR_STRIP_MODERN: {
+            style = 0; floorH = r.range(5.4f, 6.4f); groundH = floorH; bay = r.range(6.f, 8.f); winW = r.range(0.75f, 0.85f); winH = 0.55f; sill = 0.45f;
+            const vec3 eifs[] = {vec3(0.9f, 0.86f, 0.78f), vec3(0.82f, 0.78f, 0.7f), vec3(0.7f, 0.68f, 0.64f), vec3(0.95f, 0.93f, 0.88f), vec3(0.78f, 0.74f, 0.66f)};
+            wall = pick(eifs, r);
+            if (r.chance(0.3f)) mat = MAT_STONE, wall = vec3(0.9f, 0.86f, 0.78f);
+            frame = r.chance(0.5f) ? vec3(0.15f) : vec3(0.55f, 0.57f, 0.6f);
+            break;
+        }
+        case AR_BARN_GAMBREL: case AR_BARN_GABLE: {
+            style = 4; floorH = arch == AR_BARN_GAMBREL ? r.range(4.2f, 5.0f) : r.range(4.8f, 6.2f); groundH = floorH; bay = r.range(4.f, 6.f); winW = 0.35f; winH = 0.3f; sill = 2.2f;
+            mat = MAT_WOOD_SIDING;
+            float p = r.f();
+            wall = p < 0.5f ? vec3(0.62f, 0.16f, 0.11f) * r.range(0.85f, 1.05f) : (p < 0.65f ? vec3(0.95f) : (p < 0.9f ? vec3(0.58f, 0.55f, 0.5f) : vec3(0.3f, 0.42f, 0.3f)));
+            frame = vec3(0.95f);
+            break;
+        }
+        case AR_CHURCH_MISSION:
+            style = 0; floorH = r.range(7.f, 8.f); groundH = floorH; bay = r.range(3.6f, 4.4f); winW = r.range(0.22f, 0.28f); winH = 0.55f; sill = 2.4f;
+            wall = r.chance(0.5f) ? vec3(0.98f, 0.96f, 0.9f) : pick(kMedWarm, r);
+            frame = vec3(0.35f, 0.22f, 0.12f);
+            break;
+        case AR_CHURCH_CLAPBOARD:
+            style = 0; floorH = r.range(5.6f, 6.6f); groundH = floorH; bay = r.range(3.f, 3.6f); winW = r.range(0.3f, 0.36f); winH = 0.62f; sill = 1.4f;
+            mat = MAT_WOOD_SIDING; wall = vec3(0.97f);
+            frame = vec3(0.95f);
+            break;
+        case AR_CHURCH_BRICK:
+            style = 0; floorH = r.range(7.f, 8.5f); groundH = floorH; bay = r.range(3.6f, 4.4f); winW = r.range(0.28f, 0.34f); winH = 0.62f; sill = 2.f;
+            mat = MAT_BRICK; wall = vec3(1.f) * r.range(0.8f, 1.f);
+            frame = vec3(0.25f, 0.2f, 0.16f);
+            glass = vec3(0.45f, 0.4f, 0.55f);
+            break;
+        case AR_CHURCH_AFRAME:
+            style = 0; floorH = r.range(2.8f, 3.4f); groundH = floorH; bay = r.range(3.f, 4.f); winW = 0.6f; winH = 0.5f; sill = 1.f;
+            wall = r.chance(0.5f) ? vec3(0.95f) : vec3(0.8f, 0.72f, 0.62f);
+            if (r.chance(0.4f)) mat = MAT_STONE;
+            frame = vec3(0.2f);
+            break;
+        case AR_BARN_POLE: {
+            style = 4; floorH = r.range(4.4f, 5.4f); groundH = floorH; bay = r.range(4.f, 6.f); winW = 0.3f; winH = 0.25f; sill = 2.5f;
+            mat = MAT_CORRUGATED;
+            const vec3 galv[] = {vec3(0.8f, 0.81f, 0.82f), vec3(0.55f, 0.36f, 0.26f), vec3(0.42f, 0.55f, 0.45f), vec3(0.45f, 0.52f, 0.62f), vec3(0.7f, 0.68f, 0.6f)};
+            wall = pick(galv, r);
+            frame = vec3(0.3f);
+            break;
+        }
         case AR_DECO_STREAMLINE:
             style = r.chance(0.5f) ? 2 : 6; floorH = r.range(3.0f, 3.3f); groundH = r.range(4.0f, 4.6f); bay = r.range(2.2f, 3.0f); winW = r.range(0.5f, 0.62f); winH = r.range(0.5f, 0.58f); sill = 0.95f;
             wall = r.chance(0.55f) ? pick(kDecoPastel, r) : pick(kMimoWall, r);
@@ -530,6 +667,12 @@ void facadeFor(Building& b, FacadeGPU& f, u8 arch, Rng& r, bool store) {
             flags |= 2u;
             break;
         default: return;
+    }
+    // farmhouses: white, cream and weathered board whatever the type
+    if (b.style == BS_FARMHOUSE) {
+        const vec3 farm[] = {vec3(0.97f), vec3(0.95f, 0.92f, 0.82f), vec3(0.98f, 0.95f, 0.75f), vec3(0.82f, 0.88f, 0.8f), vec3(0.7f, 0.66f, 0.6f), vec3(0.9f, 0.9f, 0.88f)};
+        wall = pick(farm, r);
+        if (r.chance(0.8f)) mat = MAT_WOOD_SIDING;
     }
     // district colour: Calle Luna and the island towns paint their stucco in saturated Caribbean colours whatever the
     // style; the Canvas District paints its warehouses and walk-ups loud (brick too: painted masonry reads as stucco);
@@ -750,7 +893,8 @@ void BuildingSet::restyleBlocks(WorldMap& map, const RoadNetwork& roads) {
             hi = Max(lo, Min(hi, (int)(b.floors * 1.35f) + 2));
             if (b.region == REG_KEY_CORAL) lo = 4, hi = 9;
         }
-        if (b.style == BS_HOUSE || b.style == BS_VILLA || b.style == BS_WAREHOUSE || b.style == BS_FACTORY) floors = Clamp(floors, lo, hi);
+        if (b.style == BS_HOUSE || b.style == BS_VILLA || b.style == BS_WAREHOUSE || b.style == BS_FACTORY || b.style == BS_FARMHOUSE || b.style == BS_BARN)
+            floors = Clamp(floors, lo, hi);
         else floors = ar.irange(lo, Max(lo, hi));
         // neighbours of the same archetype differ in height
         if (sameFace && arch == prevArch && floors == prevFloors && hi > lo) floors = floors < hi ? floors + 1 : floors - 1;
@@ -783,10 +927,12 @@ void BuildingSet::restyleBlocks(WorldMap& map, const RoadNetwork& roads) {
         b.facade2 = wantPodium ? podiumFacade(*this, b, f, arch, ar, store) : 0xffffffffu;
         // heights from the new facade grid
         b.floors = (u16)Max(1, floors);
-        if (b.style == BS_WAREHOUSE || b.style == BS_FACTORY) b.height = f.floorH;
+        if (b.style == BS_WAREHOUSE || b.style == BS_FACTORY || b.style == BS_BARN) b.height = f.floorH;
         else b.height = f.groundH + (b.floors - 1) * f.floorH;
         b.roof = (b.roofForm == RFM_TILE_HIP) ? ROOF_HIP : (b.roofForm == RFM_METAL_GABLE ? ROOF_GABLE : b.roof);
-        if (b.style == BS_HOUSE || b.style == BS_VILLA) {
+        if (b.style == BS_MOTEL || b.style == BS_STRIPMALL)
+            b.roof = b.roofForm == RFM_TILE_HIP ? ROOF_HIP : (b.roofForm == RFM_METAL_GABLE ? ROOF_GABLE : ROOF_FLAT);
+        if (b.style == BS_HOUSE || b.style == BS_VILLA || b.style == BS_FARMHOUSE) {
             // houses: hip or gable by type (buildmesh.cpp reads the archetype for the rest)
             b.roof = (arch == AR_HOUSE_BUNGALOW || arch == AR_HOUSE_CONCH) ? ROOF_GABLE : (arch == AR_HOUSE_MIMO || arch == AR_VILLA_MODERN ? ROOF_FLAT : ROOF_HIP);
             if (arch == AR_HOUSE_CONCH && ar.chance(0.4f)) b.roof = ROOF_HIP;
