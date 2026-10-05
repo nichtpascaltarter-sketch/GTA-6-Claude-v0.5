@@ -176,6 +176,7 @@ struct Ped {
     // animation extras
     float turnRate = 0.f;
     float animYaw = 0.f;          // yaw at the last animation update (animatePed: the turn rate the animator gets)
+    dvec3 animPos;                // position at the last animation update (animatePed: the root motion the animator gets)
     int pendingAction = -1;
     // traversal (vault/climb) and cover
     int moveMode = 0;             // 0 normal, 1 in cover, 2 vaulting, 3 climbing

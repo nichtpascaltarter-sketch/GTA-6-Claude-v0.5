@@ -289,6 +289,10 @@ struct AnimInput {
     vec3 passBy = vec3(0);
     vec2 passVel = vec2(0);
     float passWeight = 0;
+    // the root's own displacement since the last update, in this update's model space (the game's position change,
+    // pushes and all): planted feet keep their places by it (else by speed x dt along localMoveDir)
+    vec3 rootMove = vec3(0);
+    bool rootMoveValid = false;
     // steering wheel of the vehicle driven (stance 1), model space (origin 0.5 m below the seat hip point, the
     // vehicle's yaw): rim centre, unit column axis pointing at the driver, rim radius; wheelR 0 = a car's typical rim
     vec3 wheelC = vec3(0), wheelN = vec3(0);

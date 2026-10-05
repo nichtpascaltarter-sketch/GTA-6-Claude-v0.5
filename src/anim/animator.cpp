@@ -409,7 +409,8 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
     float mdl = length(md);
     md = mdl > 1e-3f ? md / mdl : vec2(0, 1);
     const float spd = Max(0.f, in.speed);
-    const vec3 d = vec3(md.x, md.y, 0.f) * (spd * dt);
+    // (by the root's actual move when the game gives it: a push or a snap carries the body, not the planted feet)
+    const vec3 d = in.rootMoveValid ? vec3(in.rootMove.x, in.rootMove.y, 0.f) : vec3(md.x, md.y, 0.f) * (spd * dt);
     const float dpsi = in.turnRate * dt;
     const quat qBack = qz(-dpsi);
     for (int s = 0; s < 2; s++) {
