@@ -84,6 +84,19 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   the view through the cornea onto the iris plane (iris parallax, the pupil widening at night, a dark limbal ring).
   Hair: Kajiya-Kay with shifted lobes, strand cards shaded by their depth in the hair volume, strand edges filtered
   over the pixel and soft tips under the TAA dither.
+- Garden and woodland plants placed on the GPU (render/vegdecor.cpp, props_render.cpp, shaders/propcull.hlsl
+  csDecorPlace): every frame a world-anchored grid of 1.2 m cells around the camera (40 / 52 / 64 m by grass quality)
+  gets one candidate per cell, the same plant in the same place on every visit. The overhead pass's top surface and
+  class (lawn, bed soil, anything else) and the terrain splat decide: crotons, hibiscus and ixora as foundation
+  plantings where a lawn or a raised bed comes within 1.6 m of something over 1.2 m tall (a wall, the eaves, a tall
+  hedge or garden wall; not a stoop), flowers in those beds, a few flower clumps in lawns and meadows, ferns and saw
+  palmettos on the forest floor; nothing on roads, sidewalks, driveways, parking and service pads, roofs or decks
+  (none of them is lawn), on paved, sandy or rocky ground, in water or on slopes; every plant keeps its reach
+  (0.2-0.85 m) clear of walls, eaves, shrubs and paving, and shrubs stay 1.2 m from low paving (the step of a stoop,
+  paths, drives, sidewalks; flowers and ferns 0.6 m), so doors and paths stay open. 12 meshes (3 crotons, hibiscus,
+  ixora, 2 ferns, 2 palmettos, 3 flower clumps) built at start-up from the prop builders' leaf cards and fronds; up to
+  6,144 plants a frame go into a second instance buffer that the prop cull pass tests with the world's props, so they
+  draw and cast shadows in the same ExecuteIndirect calls. `--gfxstats` logs the plants placed and drawn.
 - Audio (src/audio, done by agent): WASAPI mixer (192 voices, 3D, doppler, reverb, ducking), 79 synthesized SFX,
   9 engine kinds, sirens/horns/skids/rotors/boats, ambience beds, procedural music engine, 9 radio stations with DJs,
   ads and talk (live timelines), dynamic mission score. Formant TTS voices (src/audio/speech*).
@@ -317,7 +330,10 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
      with one ExecuteIndirect (traffic signals stay CPU-instanced: their lamps follow the AI phases). The CPU gather
      over every near-cell prop, four times a frame, is gone; images are unchanged (tour stops 4-13). On the test rig
      the API draws drop 525 -> 468 a frame with 4 ExecuteIndirect calls, and the pass times are unchanged within the
-     machine-load noise. Still to do: world cells and the previous frame's HiZ for occlusion.
+     machine-load noise. The garden and woodland plants (see Status) are scattered on the GPU into a second instance
+     buffer each frame and go through the same cull and draws: 151 placed and 32 drawn at the Grove stop (quality 1),
+     no extra draw calls, pass times unchanged within the noise (tour stops 4-13 against the same build without them,
+     normalised by the lighting pass). Still to do: world cells and the previous frame's HiZ for occlusion.
   3. Async compute: sky LUTs, environment-probe filtering, particle simulation and the froxel fog inject/integrate
      on the compute queue, overlapping the shadow and G-buffer rasterization, with a fence before lighting.
      A GPU-time gain on GPUs with async compute; not measurable on the software test rig.

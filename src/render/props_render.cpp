@@ -1,9 +1,10 @@
 // Instanced prop / vegetation rendering, GPU-driven. Every prop of the near cells sits in a persistent instance buffer,
-// rebuilt when the set of near cells (or of props knocked down by gameplay) changes. Each frame one compute pass culls
-// them for the camera and the shadow cascades (distance per prototype, frustum) into per-prototype instance lists and
-// writes compacted draw arguments (shaders/propcull.hlsl), and each pass then draws every prototype with a single
-// ExecuteIndirect. Traffic signals, whose lamps follow the AI's phases every frame, keep a small CPU-instanced path.
-// Included from renderer.cpp.
+// rebuilt when the set of near cells (or of props knocked down by gameplay) changes; the decor plants around the camera
+// (vegdecor.cpp) are scattered into a second one by a compute pass each frame. One compute pass then culls both for the
+// camera and the shadow cascades (distance per prototype, frustum) into per-prototype instance lists and writes
+// compacted draw arguments (shaders/propcull.hlsl), and each pass draws every prototype with a single ExecuteIndirect.
+// Traffic signals, whose lamps follow the AI's phases every frame, keep a small CPU-instanced path. Included from
+// renderer.cpp.
 namespace World {
 struct PropPrototype;
 void buildPropPrototype(PropType type, int variant, PropPrototype& p);
@@ -27,7 +28,7 @@ struct PropProtoGPU {
     float radius, lodDistance;
     u32 shadow, indexCount, indexStart;
     int baseVertex;
-    u32 segBase, pad;
+    u32 segBase, segSize;
 };
 static_assert(sizeof(PropSourceGPU) == 32 && sizeof(PropProtoGPU) == 32, "must match propcull.hlsl");
 
@@ -35,11 +36,19 @@ struct PropCullCBData {
     vec4 camHi, camLo;
     vec4 planes[24];   // 4 views x 6 planes
     vec4 view[4];      // x distance scale, y culled this frame, z shadow view
-    u32 protoCount, slotsPerView, instanceCount, pad;
+    u32 protoCount, slotsPerView, instanceCount, decorCapacity;
+    vec4 decor0;       // decor grid: xy origin (world), z cell size, w cells per side
+    vec4 decor1;       // x radius, y first decor prototype, z world half size, w on
 };
 
 struct FoliageCBData {
     u32 layer, size, pad0, pad1;
+};
+
+// What the decor placement reads (Renderer::render passes it: the terrain splat and the overhead map's classes)
+struct DecorInputs {
+    gfx::SRV splat0 = nullptr, splat1 = nullptr, overheadClass = nullptr;
+    bool ready = false;   // terrain and overhead map available
 };
 
 struct PropRenderer {
@@ -50,6 +59,7 @@ struct PropRenderer {
         bool shadow = true, foliage = false;
     };
     std::vector<Proto> protos;
+    u32 worldProtos = 0;   // the world's prop prototypes come first, then the decor plants (vegdecor.cpp)
     int protoIndex[World::PROP_COUNT][8];
     int variantCount[World::PROP_COUNT];
     gfx::Buffer vb, ib, instBuf;
@@ -63,13 +73,15 @@ struct PropRenderer {
 
     // GPU path. Views: 0 the camera, 1-3 shadow cascades 0-2 (props cast into the first three cascades only).
     static const u32 kViews = 4;
-    gfx::ComputeShader csCull = nullptr, csArgs = nullptr;
+    gfx::ComputeShader csCull = nullptr, csArgs = nullptr, csDecor = nullptr;
     gfx::CommandSignature drawSig = nullptr;
     gfx::CBuffer<PropCullCBData> cullCB;
-    gfx::Buffer sources, protoTable, lists, counts, args, drawCount;
+    gfx::Buffer sources, protoTable, lists, counts, args, drawCount, decor, decorCount;
+    static const u32 kDecorCapacity = 6144;   // decor plants per frame (camera ring)
     gfx::Buffer statsReadback[3];
     u64 statsFrame[3] = {0, 0, 0};
-    u32 sourceCount = 0, sourceCapacity = 0, listSlots = 0;
+    u32 sourceCount = 0;                  // world props in the instance buffer
+    u32 slotCapacity = 0, listSlots = 0;  // list slots per view (all prototypes' segments), as allocated / in use
     std::vector<std::pair<int, StreamCell*>> sourceCells, cellScratch;
     size_t sourceBroken = 0;
     std::vector<PropSourceGPU> sourceCpu;
@@ -113,6 +125,23 @@ struct PropRenderer {
                 protos.push_back(p);
             }
         }
+        worldProtos = (u32)protos.size();
+        for (int t = 0; t < vegdecor::DECOR_TYPES; t++)
+            for (int v = 0; v < vegdecor::kVariants[t]; v++) {
+                vegdecor::DecorPrototype dp;
+                vegdecor::build(t, v, dp);
+                Proto p;
+                p.indexStart = (u32)idx.size();
+                p.indexCount = (u32)dp.mesh.indices.size();
+                p.baseVertex = (int)verts.size();
+                p.radius = dp.radius;
+                p.lodDistance = dp.lodDistance;
+                p.shadow = dp.shadow;
+                p.foliage = true;
+                verts.insert(verts.end(), dp.mesh.verts.begin(), dp.mesh.verts.end());
+                idx.insert(idx.end(), dp.mesh.indices.begin(), dp.mesh.indices.end());
+                protos.push_back(p);
+            }
         vb = gfx::createBuffer((u32)(verts.size() * sizeof(VtxStatic)), sizeof(VtxStatic), gfx::BUF_VERTEX, verts.data());
         ib = gfx::createBuffer((u32)(idx.size() * 4), 4, gfx::BUF_INDEX, idx.data());
         instBuf = gfx::createBuffer(kMaxInstances * sizeof(PropInstanceGPU), sizeof(PropInstanceGPU), gfx::BUF_VERTEX | gfx::BUF_DYNAMIC);
@@ -134,6 +163,7 @@ struct PropRenderer {
         // GPU-driven path
         csCull = gfx::loadCS("propcull.hlsl", "csPropCull");
         csArgs = gfx::loadCS("propcull.hlsl", "csPropArgs");
+        csDecor = gfx::loadCS("propcull.hlsl", "csDecorPlace");
         drawSig = gfx::createCommandSignature(gfx::INDIRECT_DRAW_INDEXED);
         cullCB.create();
         u32 np = (u32)protos.size();
@@ -142,8 +172,11 @@ struct PropRenderer {
         std::vector<u32> zeros(kViews * np * 5, 0u);
         counts = gfx::createBuffer(kViews * np * 4, 4, gfx::BUF_RAW | gfx::BUF_UAV, zeros.data(), "prop list lengths");
         args = gfx::createBuffer(kViews * np * 20, 4, gfx::BUF_RAW | gfx::BUF_UAV | gfx::BUF_INDIRECT, zeros.data(), "prop draw args");
-        drawCount = gfx::createBuffer(kViews * 4, 4, gfx::BUF_RAW | gfx::BUF_UAV | gfx::BUF_INDIRECT, zeros.data(), "prop draw counts");
-        for (gfx::Buffer& b : statsReadback) b = gfx::createBuffer(np * 20 + 4, 4, gfx::BUF_READBACK, nullptr, "prop draw stats");
+        // per view the draw count, then the frame's decor plant count (for the stats)
+        drawCount = gfx::createBuffer(kViews * 4 + 4, 4, gfx::BUF_RAW | gfx::BUF_UAV | gfx::BUF_INDIRECT, zeros.data(), "prop draw counts");
+        for (gfx::Buffer& b : statsReadback) b = gfx::createBuffer(np * 20 + kViews * 4 + 4, 4, gfx::BUF_READBACK, nullptr, "prop draw stats");
+        decor = gfx::createBuffer(kDecorCapacity * sizeof(PropSourceGPU), sizeof(PropSourceGPU), gfx::BUF_STRUCTURED | gfx::BUF_UAV, nullptr, "decor plants");
+        decorCount = gfx::createBuffer(4, 4, gfx::BUF_RAW | gfx::BUF_UAV, zeros.data(), "decor plant count");
         // Foliage textures
         int fsize = Platform::hasArg("autotest") ? 256 : 512;
         foliageArr = createMaterialArray(fsize, 6, true);
@@ -188,7 +221,7 @@ struct PropRenderer {
         }
         std::sort(cellScratch.begin(), cellScratch.end());
         size_t broken = Phys::gCollision ? Phys::gCollision->brokenCount() : 0;
-        if (cellScratch == sourceCells && broken == sourceBroken && sourceCapacity) return;
+        if (cellScratch == sourceCells && broken == sourceBroken && slotCapacity) return;
         sourceCells = cellScratch;
         sourceBroken = broken;
         u32 np = (u32)protos.size();
@@ -207,6 +240,8 @@ struct PropRenderer {
             }
         };
         visit([&](const World::PropInstance&, u32 pr) { perProto[pr]++; });
+        // list segments: each world prototype as many slots as it has instances, each decor prototype room for a whole
+        // frame's decor (one kind can fill a garden)
         u32 base = 0;
         for (u32 p = 0; p < np; p++) {
             const Proto& P = protos[p];
@@ -218,14 +253,16 @@ struct PropRenderer {
             g.indexStart = P.indexStart;
             g.baseVertex = P.baseVertex;
             g.segBase = base;
-            g.pad = 0;
-            base += perProto[p];
+            g.segSize = p < worldProtos ? perProto[p] : kDecorCapacity;
+            base += g.segSize;
         }
-        sourceCount = base;
+        sourceCount = 0;
+        for (u32 p = 0; p < worldProtos; p++) sourceCount += perProto[p];
+        u32 slots = base;
         sourceCpu.resize(sourceCount);
         std::vector<u32> fill(np, 0u);
         visit([&](const World::PropInstance& pi, u32 pr) {
-            PropSourceGPU& s = sourceCpu[protoCpu[pr].segBase + fill[pr]++];
+            PropSourceGPU& s = sourceCpu[protoCpu[pr].segBase + fill[pr]++];   // (world segments come first, packed)
             s.posScale = vec4(pi.pos, pi.scale);
             u32 bits = pr;
             float protoBits;
@@ -233,28 +270,29 @@ struct PropRenderer {
             s.rot = vec4(cosf(pi.yaw), sinf(pi.yaw), windPhase(pi), protoBits);
         });
         gfx::updateBuffer(protoTable, protoCpu.data(), np * (u32)sizeof(PropProtoGPU));
-        if (sourceCount > sourceCapacity || !sourceCapacity) {
+        if (slots > slotCapacity || !slotCapacity) {
             // grow in steps (the near world gains and loses cells while moving)
-            u32 cap = Max(Max(sourceCount, sourceCapacity + sourceCapacity / 2), 16384u);
+            u32 cap = Max(Max(slots, slotCapacity + slotCapacity / 2), 16384u);
             sources.release();
             lists.release();
             sources = gfx::createBuffer(cap * sizeof(PropSourceGPU), sizeof(PropSourceGPU), gfx::BUF_STRUCTURED, nullptr, "prop instances");
             lists = gfx::createBuffer(kViews * cap * sizeof(PropInstanceGPU), sizeof(PropInstanceGPU),
                                       gfx::BUF_VERTEX | gfx::BUF_STRUCTURED | gfx::BUF_UAV, nullptr, "prop instance lists");
-            sourceCapacity = cap;
+            slotCapacity = cap;
         }
-        listSlots = sourceCapacity;
+        listSlots = slotCapacity;
         if (sourceCount) gfx::updateBuffer(sources, sourceCpu.data(), sourceCount * (u32)sizeof(PropSourceGPU));
     }
 
-    // Culls every prop for the camera and the shadow cascades that render this frame. Runs after the cascades are set
-    // up and before the shadow and G-buffer passes draw.
+    // Scatters this frame's decor plants and culls every prop and plant for the camera and the shadow cascades that
+    // render this frame. Runs after the cascades are set up and before the shadow and G-buffer passes draw (frame
+    // constants and the global maps bound).
     template <typename CellMap>
-    void cull(Renderer& r, CellMap& cells, const mat4* cascadeVP, const bool* cascadeRenders, int cascadeCount) {
+    void cull(Renderer& r, CellMap& cells, const mat4* cascadeVP, const bool* cascadeRenders, int cascadeCount, const DecorInputs& in) {
         culled = false;
         syncSources(cells);
         readStats();
-        if (!sourceCount) return;
+        if (!slotCapacity) return;
         auto* c = gfx::ctx;
         PropCullCBData& d = cullCB.data;
         dvec3 cam = r.camera.pos;
@@ -271,31 +309,55 @@ struct PropRenderer {
         d.protoCount = (u32)protos.size();
         d.slotsPerView = listSlots;
         d.instanceCount = sourceCount;
-        d.pad = 0;
+        d.decorCapacity = kDecorCapacity;
+        // decor ring: a world-anchored grid of 1.2 m cells around the camera, by ground-cover quality (with the grass)
+        static const float kDecorRadius[4] = {0.f, 40.f, 52.f, 64.f};
+        int q = Clamp(r.settings.grassQuality, 0, 3);
+        bool decorOn = q > 0 && in.ready;
+        const float cell = 1.2f;
+        float radius = kDecorRadius[q];
+        double gx = floor((cam.x - radius) / cell) * cell, gy = floor((cam.y - radius) / cell) * cell;
+        int n = (int)ceilf(2.f * radius / cell) + 2;
+        d.decor0 = vec4((float)gx, (float)gy, cell, (float)n);
+        d.decor1 = vec4(radius, (float)worldProtos, World::kWorldHalf, decorOn ? 1.f : 0.f);
         cullCB.upload();
-        gfx::Resource cbs[] = {cullCB.get()};
-        c->csSetCBs(1, 1, cbs);
-        gfx::SRV srvs[2] = {sources.srv, protoTable.srv};
-        c->csSetSRVs(0, 2, srvs);
+        gfx::Resource cbs[] = {r.frameCB.get(), cullCB.get()};
+        c->csSetCBs(0, 2, cbs);
+        if (decorOn) {
+            gfx::SRV srvs[5] = {nullptr, nullptr, in.splat0, in.splat1, in.overheadClass};
+            c->csSetSRVs(0, 5, srvs);
+            gfx::UAV uavs[6] = {nullptr, nullptr, nullptr, nullptr, decor.uav, decorCount.uav};
+            c->csSetUAVs(0, 6, uavs);
+            c->setCS(csDecor);
+            c->dispatch(gfx::divUp((u32)n, 8), gfx::divUp((u32)n, 8), 1);
+            gfx::unbindCSResources(5, 6);
+        }
+        gfx::SRV srvs[7] = {sources.srv, protoTable.srv, nullptr, nullptr, nullptr, decor.srv, decorCount.srv};
+        c->csSetSRVs(0, 7, srvs);
         gfx::UAV uavs[4] = {lists.uav, counts.uav, args.uav, drawCount.uav};
         c->csSetUAVs(0, 4, uavs);
         c->setCS(csCull);
-        c->dispatch(gfx::divUp(sourceCount, 64), 1, 1);
-        c->uavBarrier(counts.buf);
+        c->dispatch(gfx::divUp(sourceCount + (decorOn ? kDecorCapacity : 0u), 64), 1, 1);
+        gfx::unbindCSResources(7, 4);
+        gfx::SRV argSrvs[2] = {nullptr, protoTable.srv};
+        c->csSetSRVs(0, 2, argSrvs);
+        gfx::UAV argUavs[6] = {nullptr, counts.uav, args.uav, drawCount.uav, nullptr, decorCount.uav};
+        c->csSetUAVs(0, 6, argUavs);
         c->setCS(csArgs);
         c->dispatch(1, 1, 1);
-        gfx::unbindCSResources(2, 4);
+        gfx::unbindCSResources(2, 6);
         // the camera view's draws, for the stats a couple of frames later
         u32 slot = (u32)(gfx::frameNumber() % 3);
         c->copyBufferRegion(statsReadback[slot].buf, 0, args.buf, 0, (u64)protos.size() * 20);
-        c->copyBufferRegion(statsReadback[slot].buf, (u64)protos.size() * 20, drawCount.buf, 0, 4);
+        c->copyBufferRegion(statsReadback[slot].buf, (u64)protos.size() * 20, drawCount.buf, 0, kViews * 4 + 4);
         statsFrame[slot] = gfx::frameNumber();
         culled = true;
     }
 
     // Instances and triangles the camera view drew, from the arguments of a frame the GPU has finished (frames in
-    // flight: 2, so the one two frames back)
-    int gpuInstances = 0, gpuTriangles = 0;
+    // flight: 2, so the one two frames back), and that frame's decor plants: placed (more than kDecorCapacity: the
+    // rest were dropped) and drawn by the camera
+    int gpuInstances = 0, gpuTriangles = 0, decorPlaced = 0, decorDrawn = 0;
     void readStats() {
         u64 f = gfx::frameNumber();
         if (f < 2) return;
@@ -305,11 +367,14 @@ struct PropRenderer {
         if (!a) return;
         u32 np = (u32)protos.size();
         u32 n = Min(a[np * 5], np);
-        gpuInstances = gpuTriangles = 0;
+        u32 decorIndexStart = worldProtos < np ? protos[worldProtos].indexStart : ~0u;   // decor meshes come last
+        gpuInstances = gpuTriangles = decorDrawn = 0;
         for (u32 i = 0; i < n; i++) {
             gpuInstances += (int)a[i * 5 + 1];
             gpuTriangles += (int)(a[i * 5] / 3 * a[i * 5 + 1]);
+            if (a[i * 5 + 2] >= decorIndexStart) decorDrawn += (int)a[i * 5 + 1];
         }
+        decorPlaced = (int)a[np * 5 + kViews];
     }
 
     void drawLists(Renderer& r, u32 view) {

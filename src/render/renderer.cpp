@@ -82,6 +82,7 @@ struct SkySystem {
 #include "terrain_render.cpp"
 #include "materials.cpp"
 #include "world_render.cpp"
+#include "vegdecor.cpp"
 #include "props_render.cpp"
 #include "dynamic.cpp"
 #include "shadows.cpp"
@@ -532,7 +533,14 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     // Shadows. The cascades first: the props are culled on the GPU for them and for the camera in one pass.
     shadows->prepare(*this);
     RenderPassTiming::begin("prop cull");
-    props->cull(*this, world->cells, shadows->cascadeVP, shadows->renderThis, shadows->cascades);
+    DecorInputs decorIn;
+    decorIn.ready = terrain->map && weather->overheadValid;
+    if (decorIn.ready) {
+        decorIn.splat0 = terrain->splat0Tex.srv;
+        decorIn.splat1 = terrain->splat1Tex.srv;
+        decorIn.overheadClass = weather->overheadGrass.srv;
+    }
+    props->cull(*this, world->cells, shadows->cascadeVP, shadows->renderThis, shadows->cascades, decorIn);
     RenderPassTiming::end();
     RenderPassTiming::begin("shadows");
     shadows->render(*this);
@@ -717,7 +725,11 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     cameraCut = false;
     RenderPassTiming::endFrame();
     if ((frameIndex % 30) == 0 && Platform::hasArg("gputimers")) LOG("GPU timers (frame %u):\n%s", frameIndex, gfx::gpuTimerReport().c_str());
-    if ((frameIndex % 30) == 0 && Platform::hasArg("gfxstats")) LOG("gfx (frame %u): %s", frameIndex, gfx::frameStatsReport().c_str());
+    if ((frameIndex % 30) == 0 && Platform::hasArg("gfxstats")) {
+        LOG("gfx (frame %u): %s", frameIndex, gfx::frameStatsReport().c_str());
+        LOG("props (frame %u): camera %d instances, %d triangles; decor plants %d placed (room for %u), %d drawn", frameIndex,
+            props->gpuInstances, props->gpuTriangles, props->decorPlaced, PropRenderer::kDecorCapacity, props->decorDrawn);
+    }
     if ((frameIndex % 30) == 0 && RenderPassTiming::enabled) LOG("Pass timings, device idle at boundaries (frame %u, %dx%d):\n%s", frameIndex, width, height, RenderPassTiming::report().c_str());
 }
 
