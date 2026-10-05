@@ -400,6 +400,18 @@ CharacterDesc randomCharacter(u32 seed, int role) {
     else if (g < 0.95f) st = r.range(0.12f, 0.42f), d.ancestry = 3;   // East Asian
     else st = r.range(0.2f, 0.85f), d.ancestry = 4;                   // mixed / other
     d.skinTone = skinFromT(st);
+    {
+        // undertone (own stream: the draws above and below keep their values): the palette is one warm ramp, but people
+        // of the same depth differ in hue: rosier (more blood showing) on some, more olive / golden on others, East
+        // Asian skin tends golden. A hue shift at constant luminance, a few percent per channel.
+        Rng ru(hash32(seed * 0x1B56C4E9u + 0x5Du));
+        float u = Clamp(ru.range(-1.f, 1.f) + (d.ancestry == 3 ? 0.35f : 0.f) - (d.ancestry == 2 ? 0.2f : 0.f), -1.f, 1.f);
+        vec3 tint = u >= 0.f ? lerp(vec3(1.f), vec3(0.985f, 1.02f, 0.9f), u) : lerp(vec3(1.f), vec3(1.035f, 0.975f, 1.0f), -u);
+        float lum0 = dot(d.skinTone, vec3(0.2126f, 0.7152f, 0.0722f));
+        vec3 t2 = mulColor(d.skinTone, tint);
+        float lum1 = dot(t2, vec3(0.2126f, 0.7152f, 0.0722f));
+        d.skinTone = t2 * (lum0 / Max(lum1, 1e-5f));
+    }
     bool darkSkin = st > 0.55f;
     // hair color
     int hc;

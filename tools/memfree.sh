@@ -26,6 +26,7 @@ if [ -n "$c" ] && { [ -z "$a" ] || [ "$c" -lt "$a" ]; }; then a=$c; fi
 o=$(ps -eo rss=,args= 2>/dev/null | awk '
   / src\/main\.cpp/ && $2 ~ /cc1plus$/ {t = 2200}
   $2 ~ /\.exe$/ && $3 == "--autotest" {t = 3000}
+  $2 ~ /showcase\.exe$/ && $3 == "--autotest" {t = 4000}   # (the 1080p showcase on the ultra preset peaks near 3.6 GB)
   t {r = $1 / 1024; if (r < t) o += t - r; t = 0}
   END {print int(o)}')
 if [ -n "$a" ]; then a=$((a - ${o:-0})); fi

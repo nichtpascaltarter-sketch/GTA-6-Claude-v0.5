@@ -845,9 +845,12 @@ void GameWorld::animatePed(Ped& p, float dt) {
         }
     }
     // someone on foot passing close (the animator turns the near shoulder back and side-steps): of the people near the
-    // camera, the nearest one whose closest approach over the next 1.5 s comes within a metre
-    in.passWeight = 0.f;
-    if (upright && p.grounded && p.visibleDist < 30.f) {
+    // camera, the nearest one whose closest approach over the next 1.5 s comes within a metre. Looked for every other
+    // frame, half the peds at a time (the animator eases it in and out; in between the last answer stands)
+    if (!upright || !p.grounded || p.visibleDist >= 30.f) {
+        in.passWeight = 0.f;
+    } else if (((p.uid + (u32)(time / Max(dtLast, 1e-3f) + 0.5)) & 1u) == 0u) {
+        in.passWeight = 0.f;
         float best = 2.6f;
         int bj = -1;
         vec2 brv(0.f);
