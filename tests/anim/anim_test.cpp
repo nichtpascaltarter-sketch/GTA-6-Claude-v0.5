@@ -1882,6 +1882,111 @@ void testFaces() {
     printf("faces: %d characters, LOD build avg %.1f ms\n", nChars, tb * 1000.0 / nChars);
 }
 
+// Face shape round the eyes and the mouth (face.cpp, bodymesh.cpp, hair.cpp): the head grid's normals round the eyes
+// change smoothly between neighbours (the lid-row fans at the corners used to fold into pleats, and the lid mound met
+// the socket in a groove); the brows sit above the lids' fold with skin between; the corneas sit behind the brow
+// ridge's front in profile; and a full beard's volume builds up gradually from the lips (no shelf under the lower lip).
+void testFaceShape() {
+    using namespace Anim::detail;
+    float worstJump = 0.f, worstMean = 0.f, minGap = 1e9f, minDepth = 1e9f, worstShelf = 0.f;
+    for (u32 k = 0; k < 10; k++) {
+        CharacterDesc d = randomCharacter(5300u + k * 7919u, (int)(k % 7));
+        if (k < 3) {
+            d.gender = MALE;
+            d.facialHair = FH_BEARD;
+        }
+        Skeleton sk;
+        buildSkeleton(d, sk);
+        BodyDims D;
+        computeDims(d, D);
+        BuildCtx bc;
+        bc.d = &d;
+        bc.D = &D;
+        bc.sk = &sk;
+        bc.skin = d.skinTone;
+        bc.lipCol = bc.skin;
+        bc.palmCol = bc.skin;
+        buildBody(bc);
+        const HeadInfo& H = bc.head;
+        const int NC = H.cols;
+        // neighbouring normals round the eyes (the margins' own edges excepted)
+        float worst = 0.f, sum = 0.f;
+        int cnt = 0;
+        for (int j = H.rowLidLo - 1; j <= H.rowBrow + 1; j++)
+            for (int c = 0; c < NC; c++) {
+                const BVert& v = bc.m.v[H.grid[(size_t)j * NC + c]];
+                float at = v.pa > kPi ? kTwoPi - v.pa : v.pa;
+                if (fabsf(at - H.thetaEye) > 30.f * kDegToRad) continue;
+                if (j == H.rowEyeHi || j == H.rowEyeLo || j + 1 == H.rowEyeLo || j - 1 == H.rowEyeHi) continue;
+                const BVert& a = bc.m.v[H.grid[(size_t)(j + 1) * NC + c]];
+                const BVert& b = bc.m.v[H.grid[(size_t)j * NC + (c + 1) % NC]];
+                float a1 = acosf(Clamp(dot(v.n, a.n), -1.f, 1.f)) * kRadToDeg, a2 = acosf(Clamp(dot(v.n, b.n), -1.f, 1.f)) * kRadToDeg;
+                worst = Max(worst, Max(a1, a2));
+                sum += a1 + a2;
+                cnt += 2;
+            }
+        float mean = sum / Max(cnt, 1);
+        CHECK(worst < 100.f && mean < 17.f, "face shape: eye-region normals fold (k %u: worst %.0f deg, mean %.1f deg)", k, worst, mean);
+        worstJump = Max(worstJump, worst);
+        worstMean = Max(worstMean, mean);
+        // the brow above the fold at the pupil's column (right eye)
+        vec3 e = D.J[B_EYE_R];
+        int best = 0;
+        float bd = 1e9f;
+        for (int c = 0; c < NC; c++) {
+            float pa = bc.m.v[H.grid[(size_t)H.rowEyeHi * NC + c]].pa;
+            if (pa < kPi && fabsf(pa - H.thetaEye) < bd) {
+                bd = fabsf(pa - H.thetaEye);
+                best = c;
+            }
+        }
+        float foldZ = bc.m.v[H.grid[(size_t)H.rowLidHi * NC + best]].p.z;
+        float browLo = 1e9f;
+        for (const BVert& v : bc.m.v)
+            if (v.mat == MAT_HAIR && cardKind(v) == CARD_BROW && fabsf(v.p.x - e.x) < 0.004f && (v.p.x > 0.f) == (e.x > 0.f)) browLo = Min(browLo, v.p.z);
+        CHECK(browLo - foldZ > 0.002f, "face shape: brow on the lid (k %u: brow %.1f mm above the fold)", k, (browLo - foldZ) * 1000.f);
+        minGap = Min(minGap, browLo - foldZ);
+        // the cornea's apex behind the brow ridge's front (profile through the eye centre, 8-22 mm above it)
+        float browY = -1e9f;
+        for (float dz = 0.008f; dz <= 0.022f; dz += 0.001f) {
+            float y = e.y + 0.08f;
+            for (int it = 0; it < 400; it++) {
+                float f = bc.sdf.eval(vec3(e.x, y, e.z + dz), MK_HEAD);
+                if (f <= 0.f) break;
+                y -= Max(f * 0.8f, 0.0001f);
+            }
+            browY = Max(browY, y);
+        }
+        float depth = browY - (e.y + 1.0867f * H.eyeR);
+        // (a low ridge with protruding eyes keeps only a few millimetres, as some East Asian faces do)
+        CHECK(depth > 0.0025f, "face shape: eyes level with the brow ridge (k %u: cornea %.1f mm behind it)", k, depth * 1000.f);
+        minDepth = Min(minDepth, depth);
+        // a full beard next to the lips: the shell's height over the skin within 6 mm of the lower lip
+        if (d.facialHair == FH_BEARD && d.gender == MALE) {
+            SkinnedMeshData m;
+            buildCharacterMesh(d, sk, m);
+            std::vector<vec3> lips;
+            for (const VtxSkinned& v : m.verts)
+                if ((v.mat & 0xffu) == MAT_SKIN && (((v.mat >> 9) & 7u) == 1u)) lips.push_back(v.pos);
+            float lipZ = 1e9f;
+            for (const vec3& p : lips) lipZ = Min(lipZ, p.z);
+            float shelf = 0.f;
+            for (const VtxSkinned& v : m.verts) {
+                if ((v.mat & 0xffu) != MAT_HAIR || ((v.mat >> 8) & 15u) != 0u || v.pos.z > lipZ + 0.002f) continue;
+                float dl = 1e9f;
+                for (const vec3& p : lips) dl = Min(dl, length(v.pos - p));
+                if (dl > 0.006f) continue;
+                shelf = Max(shelf, bc.sdf.eval(v.pos, MK_HEAD));
+            }
+            CHECK(!lips.empty() && shelf < 0.0035f, "face shape: beard shelf under the lower lip (k %u: shell %.1f mm over the skin)", k, shelf * 1000.f);
+            worstShelf = Max(worstShelf, shelf);
+        }
+    }
+    printf("face shape: eye-region normals worst %.0f deg (mean <= %.1f), brow >= %.1f mm above the fold, corneas >= %.1f mm behind the brow, beard "
+           "shell <= %.1f mm over the skin by the lips\n",
+           worstJump, worstMean, minGap * 1000.f, minDepth * 1000.f, worstShelf * 1000.f);
+}
+
 // Driving: the hands must stay on the steering wheel rim (absolute interior geometry) for any character size.
 void testDriving() {
     const vec3 wc(0.f, 0.5f, 0.9f), wn(0.f, -0.912f, 0.411f);
@@ -2174,6 +2279,7 @@ int main(int argc, char** argv) {
     run("DerivedBones", testDerivedBones);
     run("Lods", testLods);
     run("Faces", testFaces);
+    run("FaceShape", testFaceShape);
     run("Mesh", testMesh);
     run("ClothingClip", testClothingClip);
     printf("%s (%d failures)\n", gFail ? "FAILED" : "ALL PASSED", gFail);

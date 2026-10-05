@@ -52,6 +52,7 @@ inline Anim::CharacterDesc protagonistDesc(int who) {
         d.shoes = SHOE_BOOT;
         d.bag = -1;
         d.extras = ACC_EXPLICIT | ACC_WATCH;
+        d.facialHair = FH_STUBBLE;   // a few days' growth (the description above)
     }
     return d;
 }

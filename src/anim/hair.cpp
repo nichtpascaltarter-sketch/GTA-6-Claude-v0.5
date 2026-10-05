@@ -243,6 +243,15 @@ static float hairCoverage(const BuildCtx& c, const HairParams& h, const BVert& v
 // How far in from the hairline (coverage, m) the hair reaches its full thickness T: thick styles build up over a few
 // centimetres, so the front of the hair lies back from the hairline instead of standing up in a wig-like wall.
 static float hairRampLen(float T) { return 0.012f + Min(1.3f * T, 0.013f); }   // (at most 2.5 cm: a quiff or an afro keeps its front)
+// How far round the head a point is from the front hairline: 0 over the forehead, 1 at the temples and the sides (by the
+// eyes and the ears) and 0 again at the back. The soft hairline (a long thickness ramp, a skin-tinted edge) is for the
+// front: at the sides the hair hangs over the face's edge (curtains, coils, sideburns), and a thin, skin-tinted shell
+// there showed through the gaps between them as pale stripes beside the eyes.
+static float hairSideK(float th) {
+    const float at = th > kPi ? kTwoPi - th : th;
+    return sstep(35.f * kDegToRad, 55.f * kDegToRad, at) * (1.f - sstep(110.f * kDegToRad, 130.f * kDegToRad, at));
+}
+static float hairRamp(float T, float th) { return Lerp(hairRampLen(T), 0.012f, hairSideK(th)); }
 
 // ------------------------------------------------------------------------------------------------
 // Strand cards (conventions: CardKind in anim_internal.h). The shell stays underneath for coverage; cards lie on it
@@ -362,8 +371,13 @@ static void buildScalpCards(OutfitCtx& o, const HairParams& h, float shellFrac) 
                     u32 seed = r.next();
                     float len = r.range(len0, len1) * hs;
                     if (h.style == HAIR_QUIFF && (q - H.origin).y > 0.02f * hs && (q - H.origin).z > 0.1f * hs) len *= 1.35f;
-                    // (narrower and sparser cards near the hairline: the edge thins out into single hairs)
-                    const float nearEdge = sstep(0.003f, 0.022f, cvRoot);
+                    // (narrower and sparser cards near the front hairline: the edge thins out into single hairs. Not
+                    // at the temples and the sides, where the hairline runs down beside the eyes and the ears: thinned
+                    // cards over the faded edge read there as dark stripes on a pale band, so the side hair keeps full
+                    // cards over a shell that stays hair-coloured, and no tips fall past its edge)
+                    const float sideK = hairSideK(th);
+                    const float nearEdge = Max(sstep(0.003f, 0.022f, cvRoot), sideK);
+                    const float overhang = Lerp(0.006f, 0.001f, sideK);
                     float w = w0 * hs * r.range(0.85f, 1.15f) * Lerp(0.5f, 1.f, nearEdge);
                     float seg = len / NS;
                     int np = 0;
@@ -372,9 +386,9 @@ static void buildScalpCards(OutfitCtx& o, const HairParams& h, float shellFrac) 
                         float u = (float)sgi / NS;
                         BVert pq = headProbe(thq, phq, q);
                         float cq = hairCoverage(c, h, pq);
-                        if (sgi > 0 && cq < -0.006f) break;   // tips may fall 6 mm past the hairline, no further
+                        if (sgi > 0 && cq < -overhang) break;   // tips may fall 6 mm past the hairline (1 mm at the temples)
                         float Tf = styleThickness(c, h, pq);
-                        float T = Tf * sstep(-0.006f, hairRampLen(Tf), cq);
+                        float T = Tf * sstep(-0.006f, hairRamp(Tf, thq), cq);
                         float hgt = 0.0008f + T * Lerp(hRoot, hTip, sstep(0.f, 0.5f, u)) * (np == 0 ? 1.f : 1.f);
                         if (stand > 0.f) hgt += T * 0.25f * u;   // curls stand off the afro surface
                         if (hgt < T * shellFrac && sgi > 0 && layer == 0) hgt = T * shellFrac + 0.0006f;
@@ -439,7 +453,7 @@ static void buildScalpCards(OutfitCtx& o, const HairParams& h, float shellFrac) 
                     for (int sgi = 0; sgi <= 2; sgi++) {
                         BVert pq = headProbe(thq, phq, q);
                         float Tf = styleThickness(c, h, pq);
-                        float T = Tf * sstep(-0.006f, hairRampLen(Tf), hairCoverage(c, h, pq));
+                        float T = Tf * sstep(-0.006f, hairRamp(Tf, thq), hairCoverage(c, h, pq));
                         pts[np].p = q + nq * (0.0004f * hs + T * 0.55f + 0.0003f * hs * sgi);
                         pts[np].n = nq;
                         pts[np].w = w * (1.f - 0.3f * sgi);
@@ -1634,7 +1648,7 @@ static void buildFacialHair(OutfitCtx& o) {
     g.col = fcol;
     g.hem = false;
     g.hideMargin = 0.006f;
-    g.thick = 0.001f;
+    g.thick = 0.0006f;   // (a thin rim where the shell meets the skin: its step must not read as a cut line)
     g.smooth = 1;
     bool must = true, chin = kind == FH_GOATEE || kind == FH_BEARD || kind == FH_SHORTBEARD, cheeks = kind == FH_BEARD || kind == FH_SHORTBEARD;
     // the shell is the dense core only: it ends a few millimetres inside the beard's edge, where the strand cards over
@@ -1671,7 +1685,7 @@ static void buildFacialHair(OutfitCtx& o) {
         t = Saturate(t + (grain - 0.5f) * 0.6f * (1.f - t) * sstep(-0.002f, 0.004f, cv));
         // the skin shows between the hairs (more through a short beard), so the beard is never a flat painted mask
         vec3 inner = lerp(hairC, v.col * 0.6f, skinShow);
-        return lerp(lerp(v.col, hairC, 0.4f), inner, t);
+        return lerp(lerp(v.col, hairC, 0.2f), inner, t);
     };
     // tint the skin under the beard edge (stubble-like: the skin darkens towards the hair without turning into it)
     for (size_t i = 0; i < c.surfaceIdxEnd; i++) {
@@ -1763,7 +1777,7 @@ void buildHairLayer(OutfitCtx& o) {
     g.extraFn = [=](const BVert& v) -> float {
         float cv = hairCoverage(*cp, hp, v);
         float T = styleThickness(*cp, hp, v);
-        return T * shellFrac * sstep(0.f, hairRampLen(T), cv);
+        return T * shellFrac * sstep(0.f, hairRamp(T, v.pa), cv);
     };
     g.colFn = [=](const BVert& v, vec3 cc) {
         float n = hashToFloat(hash32((u32)(v.bp.x * 7000.f) * 2654435761u ^ (u32)(v.bp.y * 6000.f) ^ (u32)(v.bp.z * 5000.f) * 40503u));
@@ -1772,9 +1786,12 @@ void buildHairLayer(OutfitCtx& o) {
         // over its first few millimetres the shell takes on the (hair-tinted) skin under it, broken up per vertex, so
         // its edge is a thinning of hair rather than a cut line (the hairline's fine hairs lie over it)
         float cv = hairCoverage(*cp, hp, v);
-        float t = sstep(0.f, 0.009f, cv);
+        // (at the temples and the sides only a narrow fade: see buildScalpCards)
+        const float sideK = hairSideK(v.pa);
+        float t = sstep(0.f, Lerp(0.009f, 0.0025f, sideK), cv);
         t = Saturate(t + (n - 0.5f) * 0.5f * t * (1.f - t) * 4.f);
-        return lerp(lerp(v.col, hairC, 0.45f), hairC, t);
+        // (at the sides the edge itself is hair-coloured: the shell's rise there faces the camera beside the eyes)
+        return lerp(lerp(v.col, hairC, Lerp(0.45f, 1.f, sideK)), hairC, t);
     };
     size_t shellV0 = o.out.v.size();
     if (h.rope != ROPE_CORNROWS) emitGarment(o, g);   // cornrows lie on the bare scalp

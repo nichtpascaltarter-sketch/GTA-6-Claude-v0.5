@@ -4,15 +4,21 @@
 // Usage: preview out.ppm [--seed S] [--role R] [--count N] [--view front|side|back|face|three|top] [--clip C] [--t T]
 //                        [--w W] [--h H] [--dist D] [--yaw deg] [--height z] [--fov deg] [--mode lineup|single]
 //                        [--tiles] (one tile per character, camera on its head) [--ss N] (supersampling) [--lod L]
+//                        [--protagonist 0|1] (Mari / Dex, src/game/protagonists.h)
 // Env: PREVIEW_NOHAT, PREVIEW_HAIR / _HAIRCOL / _FH / _GENDER / _AGE / _TOP / _BOTTOM / _SHOES (override the desc),
 //      PREVIEW_SKINBITS=region|transl|pores|oil|melanin (the skin shading bits of face.cpp as false colours),
 //      PREVIEW_TGT=x,y,z (tile camera target offset from the head), PREVIEW_WIRE (triangle edges),
-//      PREVIEW_OPAQUECARDS (strand cards opaque and culled, as drawn before the renderer's card pass).
+//      PREVIEW_OPAQUECARDS (strand cards opaque and culled, as drawn before the renderer's card pass),
+//      PREVIEW_SHADE=albedo|normal|diffuse (one shading term alone: vertex colours, normals, the key light's diffuse).
 // Strand cards are alpha-tested with a stand-in strand pattern (cardAlpha) and drawn two-sided.
 #include "../../src/core/math.cpp"
 #include "../../src/render/mesh.cpp"
 #include "../../src/anim/anim_all.cpp"
 #include "../../tools/native_stubs.cpp"
+#ifndef HAVE_CHARACTERS
+#define HAVE_CHARACTERS 1
+#endif
+#include "../../src/game/protagonists.h"
 
 using namespace Anim;
 using Anim::detail::mulColor;
@@ -122,6 +128,7 @@ static float ditherAt(int x, int y) { return hashToFloat(hash32((u32)x * 7385609
 
 static bool wire = false;
 static bool opaqueCards = false;   // PREVIEW_OPAQUECARDS: draw strand cards like the current renderer (opaque, culled)
+static int shadeDbg = 0;           // PREVIEW_SHADE=albedo|normal|diffuse: one shading term alone
 static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const std::vector<vec3>& N, const std::vector<vec3>& A,
                      const std::vector<u32>& mats, const std::vector<u32>& idx, const std::vector<vec2>* UV = nullptr,
                      const std::vector<float>* AL = nullptr) {
@@ -204,6 +211,9 @@ static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const
                 col += vec3(powf(Max(0.f, dot(n, H)), gloss) * ks * (dot(n, L1) > 0 ? 1.f : 0.f));
                 float rim = powf(1.f - Max(0.f, dot(n, V)), 3.f) * 0.08f;
                 col += vec3(rim);
+                if (shadeDbg == 1) col = alb;                                 // vertex colours alone
+                else if (shadeDbg == 2) col = n * 0.5f + vec3(0.5f);          // normals
+                else if (shadeDbg == 3) col = vec3(0.15f + 0.85f * d1);        // the key light's wrapped diffuse alone
                 if (wire) {
                     // triangle edges: barycentric distance scaled to pixels
                     float e0 = w0 * fabsf(area) / Max(length(vec2(b.x - c.x, b.y - c.y)), 1e-3f);
@@ -449,6 +459,7 @@ int main(int argc, char** argv) {
     int lodSel = -1;
     bool tiles = false;
     int ss = 1;
+    int protag = -1;
     int fpMode = 0;
     float fpFov = 60.f;
     float stripDt = -1.f;
@@ -484,6 +495,7 @@ int main(int argc, char** argv) {
                                                                         // 3 pistol ADS, 4 pistol hip, 5 shotgun hip, 6 fists
         else if (!strcmp(argv[i], "--fpfov")) fpFov = (float)atof(nx());
         else if (!strcmp(argv[i], "--ss")) ss = Clamp(atoi(nx()), 1, 4); // supersampling factor
+        else if (!strcmp(argv[i], "--protagonist")) protag = Clamp(atoi(nx()), 0, 1);   // the fixed looks (src/game/protagonists.h)
         else if (!strcmp(argv[i], "--clips")) {
             // comma separated clip list, one per character
             const char* c = nx();
@@ -498,6 +510,7 @@ int main(int argc, char** argv) {
     H *= ss;
     wire = getenv("PREVIEW_WIRE") != nullptr;
     opaqueCards = getenv("PREVIEW_OPAQUECARDS") != nullptr;
+    if (const char* sv = getenv("PREVIEW_SHADE")) shadeDbg = !strcmp(sv, "albedo") ? 1 : (!strcmp(sv, "normal") ? 2 : (!strcmp(sv, "diffuse") ? 3 : 0));
     if (pair) {
         // takedown pair: character 0 = victim, character 1 = attacker 0.55 m behind it (same seed variations)
         clipList = {CLIP_TAKEDOWN_VICTIM, CLIP_TAKEDOWN_ATTACKER};
@@ -513,6 +526,7 @@ int main(int argc, char** argv) {
         u32 sd = lineup ? 1000 + i * 7919 : (pair ? seed + i * 7919 : (strip || visemes || !clipList.empty() ? seed : seed + i * 7919));
         int rl = role >= 0 ? role : (lineup ? i % 7 : 0);
         ch.d = randomCharacter(sd, rl);
+        if (protag >= 0) ch.d = Game::protagonistDesc(protag);   // --protagonist 0 (Mari) / 1 (Dex)
         if (getenv("PREVIEW_NOHAT")) { ch.d.hat = -1; ch.d.glasses = -1; }
         if (const char* hsv = getenv("PREVIEW_HAIR")) ch.d.hairStyle = atoi(hsv);
         if (const char* fhv = getenv("PREVIEW_FH")) ch.d.facialHair = atoi(fhv);
