@@ -1274,6 +1274,75 @@ void buildBody(BuildCtx& c) {
                 if (dot(gn, v.n) < 0.2f) continue;   // off the field (a grid vertex that did not land on it): keep
                 v.n = normalize(lerp(v.n, gn, j >= 4 ? 1.f : 0.5f));
             }
+        // round the eyes the lid rows converge on the corners, and the long thin triangles of those fans streak the
+        // shading wherever the field's normal turns quickly (the lid mound meeting the orbit): relax the normals there
+        // with a few passes over the grid neighbours (the lid margins keep theirs)
+        const int NC = H.cols;
+        if (H.rowEyeLo > 0 && H.rowBrow > H.rowEyeHi) {
+            float thI = 1e9f, thO = -1e9f;
+            for (int k = 0; k < NC; k++) {
+                const BVert& lo = c.m.v[H.grid[(size_t)H.rowEyeLo * NC + k]];
+                const BVert& hi = c.m.v[H.grid[(size_t)H.rowEyeHi * NC + k]];
+                if (lo.pa > kPi || hi.pb - lo.pb < 0.2f * kDegToRad) continue;
+                thI = Min(thI, lo.pa);
+                thO = Max(thO, lo.pa);
+            }
+            if (thO > thI) {
+                const int j0 = Max(2, H.rowLidLo - 2), j1 = Min(H.rows - 2, H.rowBrow + 1);
+                std::vector<float> wv((size_t)(j1 - j0 + 1) * NC, 0.f);
+                for (int j = j0; j <= j1; j++) {
+                    if (j == H.rowEyeHi || j == H.rowEyeLo) continue;
+                    float wr = j <= H.rowLidHi + 1 ? 1.f : (j <= H.rowBrow ? 0.6f : 0.3f);
+                    for (int k = 0; k < NC; k++) {
+                        float th = c.m.v[H.grid[(size_t)j * NC + k]].pa;
+                        float at = th > kPi ? kTwoPi - th : th;
+                        float dE = at < thI ? thI - at : (at > thO ? at - thO : 0.f);
+                        float wt = dE > 0.f ? 1.f - sstep(12.f * kDegToRad, 22.f * kDegToRad, dE) : 0.4f;
+                        wv[(size_t)(j - j0) * NC + k] = wr * wt;
+                    }
+                }
+                std::vector<vec3> nn((size_t)(j1 - j0 + 1) * NC);
+                for (int it = 0; it < 3; it++) {
+                    for (int j = j0; j <= j1; j++)
+                        for (int k = 0; k < NC; k++) {
+                            size_t li = (size_t)(j - j0) * NC + k;
+                            const vec3 n0 = c.m.v[H.grid[(size_t)j * NC + k]].n;
+                            nn[li] = n0;
+                            float w = wv[li];
+                            if (w <= 0.f) continue;
+                            vec3 s = c.m.v[H.grid[(size_t)(j - 1) * NC + k]].n + c.m.v[H.grid[(size_t)(j + 1) * NC + k]].n +
+                                     c.m.v[H.grid[(size_t)j * NC + (k + 1) % NC]].n + c.m.v[H.grid[(size_t)j * NC + (k + NC - 1) % NC]].n;
+                            nn[li] = normalize(lerp(n0, s * 0.25f, 0.6f * w));
+                        }
+                    for (int j = j0; j <= j1; j++)
+                        for (int k = 0; k < NC; k++) c.m.v[H.grid[(size_t)j * NC + k]].n = nn[(size_t)(j - j0) * NC + k];
+                }
+                // the upper lid's crease is a dent of the grid's crease row (finer than the field): the rows either side
+                // take part of the mesh's own normal so it reads in the light (the fold above facing down into it), away
+                // from the corners where the crease fades
+                const int rc = H.rowEyeHi + 3;
+                if (rc + 2 < H.rows && rc - 2 > H.rowEyeHi) {
+                    std::vector<vec3> mn(3 * (size_t)NC);
+                    for (int j = rc - 1; j <= rc + 1; j++)
+                        for (int k = 0; k < NC; k++) {
+                            auto P = [&](int jj, int kk) { return c.m.v[H.grid[(size_t)jj * NC + (kk + NC) % NC]].p; };
+                            vec3 n = cross(P(j, k + 1) - P(j, k - 1), P(j + 1, k) - P(j - 1, k));
+                            const vec3 n0 = c.m.v[H.grid[(size_t)j * NC + k]].n;
+                            if (dot(n, n0) < 0.f) n = -n;
+                            mn[(size_t)(j - rc + 1) * NC + k] = length2(n) > 1e-14f ? normalize(n) : n0;
+                        }
+                    for (int j = rc - 1; j <= rc + 1; j++)
+                        for (int k = 0; k < NC; k++) {
+                            BVert& v = c.m.v[H.grid[(size_t)j * NC + k]];
+                            float at = v.pa > kPi ? kTwoPi - v.pa : v.pa;
+                            float ue = (at - thI) / Max(thO - thI, 1e-4f);
+                            float wc = sstep(0.02f, 0.2f, ue) * (1.f - sstep(0.8f, 0.98f, ue));
+                            if (wc <= 0.f) continue;
+                            v.n = normalize(lerp(v.n, mn[(size_t)(j - rc + 1) * NC + k], 0.7f * wc));
+                        }
+                }
+            }
+        }
     }
     size_t fingerIdx0 = c.m.idx.size();
     buildFingers(c, 0);

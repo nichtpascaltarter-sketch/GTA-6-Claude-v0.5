@@ -72,11 +72,14 @@ void addHeadPrims(BuildCtx& c) {
     float fs = D.foreheadSlope;
     S.ellipsoid(P(0, 0.034f - 0.004f * fs, 0.088f), vec3(0.061f, 0.055f, 0.062f) * hs, HM, R(0.03f));
     // ---- brow ridge (glabella + supraorbital arches wrapping round to the temples)
+    // (the ridge stands a few millimetres proud of the corneas, so light from above leaves the eyes in its shade)
     float br = (0.0085f + 0.004f * D.browRidge);
-    S.ellipsoid(P(0, 0.0775f + 0.002f * D.browRidge, 0.0765f), vec3(0.015f, br * 1.0f, br * 1.05f) * hs, HM, R(0.018f));
+    const float brF = Lerp(1.f, 0.8f, fem);
+    S.ellipsoid(P(0, 0.0775f + 0.002f * brF + 0.002f * D.browRidge, 0.0765f), vec3(0.015f, br * 1.0f, br * 1.05f) * hs, HM, R(0.018f));
     for (int sd = 0; sd < 2; sd++) {
         float sx = sd ? 1.f : -1.f, bz = sd ? D.asymBrow : 0.f;
-        S.cone(P(sx * 0.011f, 0.0775f + 0.002f * D.browRidge, 0.0775f + bz), P(sx * 0.046f, 0.064f, 0.0785f + bz), R(br), R(br * 0.78f), HM, R(0.018f));
+        S.cone(P(sx * 0.011f, 0.0775f + 0.0035f * brF + 0.002f * D.browRidge, 0.0775f + bz), P(sx * 0.046f, 0.064f + 0.0025f * brF, 0.0785f + bz), R(br),
+               R(br * 0.78f), HM, R(0.018f));
     }
     // ---- mid face (maxilla + cheeks) and cheekbones
     S.ellipsoid(P(0, 0.028f, 0.012f), vec3(0.0615f * fw, 0.062f, 0.062f) * hs, HM, R(0.02f));
@@ -205,12 +208,17 @@ void addHeadPrims(BuildCtx& c) {
         float sx = sd ? 1.f : -1.f;
         vec3 e = L.eye[sd];
         float er = L.eyeR;
-        S.ellipsoid(Pv(e), vec3(er + 0.0009f) * hs, HM, R(0.003f));
+        // (the lid mound flows into the orbit: soft blends all round, so only the upper lid's crease reads as a line
+        // instead of a ring round the eye)
+        S.ellipsoid(Pv(e), vec3(er + 0.0009f) * hs, HM, R(0.008f));
         // upper lid (fuller for hooded / monolid eyes), thick margin
         float up = 0.0011f + 0.0016f * D.hood;
         // (narrower than the eyeball across, so the lids end at the eye corners instead of meeting in a crease beyond them)
-        S.ellipsoid(Pv(e + vec3(0, -0.0006f, 0.0032f)), vec3(er + 0.0002f, er + up + 0.0003f, er * 0.8f) * hs, HM, R(0.0045f));
-        S.ellipsoid(Pv(e + vec3(0, -0.001f, -0.0035f)), vec3(er - 0.0004f, er + 0.0011f, er * 0.62f) * hs, HM, R(0.0055f));
+        S.ellipsoid(Pv(e + vec3(0, -0.0006f, 0.0032f)), vec3(er + 0.0002f, er + up + 0.0003f, er * 0.8f) * hs, HM, R(0.008f));
+        S.ellipsoid(Pv(e + vec3(0, -0.001f, -0.0035f)), vec3(er - 0.0004f, er + 0.0011f, er * 0.62f) * hs, HM, R(0.008f));
+        // medial canthus: the skin of the nose's side sweeps into the inner corner (no ridge where the eye mound meets
+        // the nasal wall)
+        S.ellipsoid(Pv(e + vec3(-sx * 0.013f, 0.003f, 0.f)), vec3(0.004f, 0.006f, 0.008f) * hs, HM, R(0.008f));
         float bag = Saturate(1.2f * age - 0.35f + 0.3f * full);
         if (bag > 0.02f) S.ellipsoid(Pv(e + vec3(sx * 0.002f, 0.0052f, -0.0128f)), vec3(0.0105f, 0.0042f, 0.0042f) * (hs * (0.6f + 0.4f * bag)), HM, R(0.005f));
         // epicanthic fold: skin from the upper lid draped over the inner corner
@@ -920,7 +928,7 @@ static void addEyeball(BuildCtx& c, int sd, vec3 irisCol) {
     const float age = Saturate(c.d->age);
     const float skinLum = dot(c.skin, vec3(0.3f, 0.59f, 0.11f));
     vec3 scl = lerp(vec3(0.72f, 0.69f, 0.66f), vec3(0.71f, 0.65f, 0.56f), 0.65f * sstep(0.35f, 1.f, age));
-    scl = scl * Lerp(0.93f, 1.f, sstep(0.03f, 0.15f, skinLum));
+    scl = lerp(scl * 0.9f, scl, sstep(0.03f, 0.15f, skinLum));
     auto spokeRnd = [&](int k, u32 salt) { return hashToFloat(hash32((u32)k * 0x85EBCA6Bu ^ spokeSeed ^ salt)); };
     // the eye's radius for the renderer (MAT_EYE param bits 2-9: 9.0 mm + 0.02 mm steps)
     const u32 eyeRadiusCode = (u32)Clamp((int)lrintf((r - 0.009f) / 0.00002f), 0, 255);
@@ -1185,28 +1193,43 @@ static void addBrow(BuildCtx& c, int sd, vec3 col) {
     float thIn = H.thetaEye - 14.5f * deg, thOut = H.thetaEye + 19.5f * deg;
     // the brow lies on the supraorbital ridge: its lower edge ~1.5 cm above the eye centre (about 1 cm above the lid
     // margin), a little higher on women (browH)
-    float phBase = 18.4f * deg + 1.2f * deg * (D.browH - 1.f) * 5.f + (sd ? D.asymBrow / 0.09f : 0.f);
+    // (with a strip of brow-bone skin left between the brow and the lid's fold: a brow resting on the lid merges with
+    // the socket's shade and the lash line into one dark bar at a distance)
+    float phBase = 20.0f * deg + 1.2f * deg * (D.browH - 1.f) * 5.f + (sd ? D.asymBrow / 0.09f : 0.f);
     // brow shape in (lateral angle, elevation): lower edge + height along u (0 medial head .. 1 tail)
     auto lower = [&](float u) {
         float arch = (Lerp(1.2f, 2.6f, D.fem) * D.browArch * sinf(kPi * powf(u, 0.8f)) - 0.8f * u + D.browTilt * u * u) * deg;
-        float hgt = Lerp(5.0f, 1.7f, powf(u, 1.1f)) * deg * thick;
+        float hgt = Lerp(5.0f, 1.4f, powf(u, 1.1f)) * deg * thick;
         return phBase + arch - 0.45f * hgt;
     };
-    auto height = [&](float u) { return Lerp(5.0f, 1.7f, powf(u, 1.1f)) * deg * thick; };
+    auto height = [&](float u) { return Lerp(5.0f, 1.4f, powf(u, 1.1f)) * deg * thick; };
+    // the head primitives that can reach the brow: the marches below evaluate only those (in field order)
+    std::vector<u16> nearPrims;   // (not "near": a Windows header macro)
+    {
+        const float thM = 0.5f * (thIn + thOut), phMid = phBase + 2.f * deg;
+        const vec3 bc = H.C + vec3(cosf(phMid) * sinf(thM) * sx, cosf(phMid) * cosf(thM), sinf(phMid)) * (0.1f * D.headS);
+        const float reach = 0.08f * D.headS;
+        for (size_t i = 0; i < c.sdf.prims.size() && i < 65535; i++) {
+            const Prim& q = c.sdf.prims[i];
+            if ((q.mask & MK_HEAD) && length(bc - q.bc) - q.br - q.k <= reach) nearPrims.push_back((u16)i);
+        }
+    }
+    const float evCap = 0.08f * D.headS;
+    auto ev = [&](vec3 p) { return c.sdf.evalList(p, nearPrims.data(), (int)nearPrims.size(), evCap); };
     auto surf = [&](float at, float ph, vec3& p, vec3& n) {
         // outermost surface along the ray (from outside: the ray from the grid centre first leaves the solid inside
         // the carved eye socket under the brow ridge)
         vec3 dir(cosf(ph) * sinf(at) * sx, cosf(ph) * cosf(at), sinf(ph));
-        float t = 0.2f * D.headS;
-        float f = c.sdf.eval(H.C + dir * t, MK_HEAD);
+        float t = 0.14f * D.headS;
+        float f = ev(H.C + dir * t);
         for (int it = 0; it < 200 && f > 0.f; it++) {
             float tn = t - Max(f * 0.8f, 0.0003f);
-            float fn = c.sdf.eval(H.C + dir * tn, MK_HEAD);
+            float fn = ev(H.C + dir * tn);
             if (fn <= 0.f) {
                 float lo = tn, hi = t;   // inside at lo, outside at hi
-                for (int b = 0; b < 12; b++) {
+                for (int b = 0; b < 10; b++) {
                     float mid = 0.5f * (lo + hi);
-                    if (c.sdf.eval(H.C + dir * mid, MK_HEAD) <= 0.f) lo = mid;
+                    if (ev(H.C + dir * mid) <= 0.f) lo = mid;
                     else hi = mid;
                 }
                 t = 0.5f * (lo + hi);
@@ -1216,8 +1239,9 @@ static void addBrow(BuildCtx& c, int sd, vec3 col) {
             f = fn;
         }
         p = H.C + dir * t;
-        vec3 g = c.sdf.grad(p, MK_HEAD);
-        n = length2(g) > 1e-12f ? normalize(g) : dir;
+        const float h = 0.0006f;
+        vec3 g(ev(p + vec3(h, 0, 0)) - ev(p - vec3(h, 0, 0)), ev(p + vec3(0, h, 0)) - ev(p - vec3(0, h, 0)), ev(p + vec3(0, 0, h)) - ev(p - vec3(0, 0, h)));
+        n = length2(g) > 1e-14f ? normalize(g) : dir;
     };
     const SkinW sw = skin1(sd ? B_BROW_R : B_BROW_L);
     vec3 colRoot = col * 0.7f, colTip = col * 1.05f;
@@ -1231,7 +1255,9 @@ static void addBrow(BuildCtx& c, int sd, vec3 col) {
         float v = rb.f();
         float edgeV = Min(v, 1.f - v) * 2.f;                       // 0 at the upper / lower edge .. 1 mid-brow
         float edgeU = Min(sstep(0.f, 0.08f, u), 1.f - sstep(0.88f, 1.f, u));
-        if (rb.f() > Lerp(0.55f, 1.f, sstep(0.f, 0.45f, edgeV)) * Lerp(0.6f, 1.f, edgeU)) continue;
+        // (the head, by the nose, is sparser than the body: its hairs stand up apart)
+        const float headSparse = Lerp(0.72f, 1.f, sstep(0.05f, 0.22f, u));
+        if (rb.f() > Lerp(0.55f, 1.f, sstep(0.f, 0.45f, edgeV)) * Lerp(0.6f, 1.f, edgeU) * headSparse) continue;
         float at = Lerp(thIn, thOut, u);
         float ph = lower(u) + height(u) * (0.04f + 0.92f * v) - 0.35f * height(u);
         // growth direction in (lateral, up) angle space: the head stands up, the body's lower hairs sweep up and out
@@ -1279,7 +1305,9 @@ static void addBrow(BuildCtx& c, int sd, vec3 col) {
             float lo = lower(uc), hi = lo + height(uc);
             float inside = Min(Min(v.pb - lo, hi - v.pb) / (0.9f * deg), Min(u + 0.03f, 1.03f - u) * 9.f);
             float grain = hashToFloat(hash32((u32)j * 0x27D4EB2Fu ^ (u32)k * 0x165667B1u ^ tintSeed));
-            float w = sstep(-0.8f, 1.2f, inside) * (0.36f + 0.18f * grain);
+            // (stronger in the brow's body: on screen the strands thin out under the anti-aliasing, and the brow has
+            // to keep reading as a soft dark shape)
+            float w = sstep(-0.8f, 1.2f, inside) * (0.36f + 0.18f * grain + 0.14f * sstep(0.8f, 2.f, inside));
             if (w > 0.f) v.col = lerp(v.col, mulColor(v.col, col * 2.f) * 0.5f + col * 0.5f, w);
         }
 }
@@ -1355,11 +1383,11 @@ static void addLidDetails(BuildCtx& c, int sd, vec3 lashCol) {
             v.p = back;
             vec3 skinEdge = g.col;
             if (upper) v.col = lerp(skinEdge * 0.55f, lerp(lashCol, mucosa * 0.5f, 0.35f), 0.75f);   // lash roots
-            else v.col = lerp(skinEdge, mucosa * 1.05f, 0.55f + 0.35f * span);                          // the waterline
+            else v.col = lerp(skinEdge * 0.8f, mucosa * 0.82f, 0.5f + 0.3f * span);                     // the waterline (in the lashes' shade)
             v.alpha = 1.f - (upper ? 0.5f : 0.62f);   // gloss (applySkinChannels keeps a set gloss on these)
             mid.push_back(m.add(v));
             v.p = onEye;
-            v.col = upper ? lerp(mucosa * 0.4f, lashCol, 0.3f) : lerp(mucosa * 0.85f, vec3(0.62f, 0.52f, 0.5f), 0.25f * span);
+            v.col = upper ? lerp(mucosa * 0.4f, lashCol, 0.3f) : lerp(mucosa * 0.6f, vec3(0.5f, 0.42f, 0.4f), 0.25f * span);
             v.alpha = 1.f - 0.92f;    // the tear meniscus
             inner.push_back(m.add(v));
         }
@@ -1384,7 +1412,7 @@ static void addLidDetails(BuildCtx& c, int sd, vec3 lashCol) {
             float u = (ats[i] - ats[(size_t)iIn]) / Max(ats[(size_t)iOut] - ats[(size_t)iIn], 1e-4f);
             float w = sstep(0.f, 0.15f, u) * (1.f - sstep(0.85f, 1.f, u));
             BVert& g = m.v[up[i]];
-            g.col = lerp(g.col, g.col * 0.5f + lashCol * 0.25f, 0.6f * w);
+            g.col = lerp(g.col, g.col * 0.5f + lashCol * 0.25f, Lerp(0.42f, 0.6f, D.fem) * w);   // (lighter on men)
         }
     // the caruncle: a pink dome on the eyeball just inside the inner corner (skinned to the head: the eye turns under
     // it), plus the plica's pink fold lateral to it
@@ -1491,7 +1519,7 @@ static void addLidDetails(BuildCtx& c, int sd, vec3 lashCol) {
                     pts[k].sw = lerpSkin(a0.sw, a1.sw, 0.5f);
                 }
                 setCardDepth(m, emitCard(m, pts, NPt, CARD_LASH, r.next(), lid == 0 ? lashCol * 0.7f : lashCol * 1.1f, lashCol * 1.35f,
-                                         lid == 0 ? (row == 0 ? 0.95f : 0.55f) : 0.32f, PART_FACEDETAIL, nullptr), 0);
+                                         lid == 0 ? (row == 0 ? 0.95f : Lerp(0.32f, 0.55f, D.fem)) : 0.32f, PART_FACEDETAIL, nullptr), 0);
             }
     }
 }
@@ -1716,8 +1744,9 @@ static float paintSkinDetail(BuildCtx& c) {
         {
             // uneven pigmentation and redness at the centimetre scale (skin is never one flat colour); the renderer's
             // mottling adds the finer scale
+            // (older skin is blotchier)
             float n1 = skinNoise3(v.p, 28.f, seed ^ 0x51u), n2 = skinNoise3(v.p, 61.f, seed ^ 0xA7u);
-            float val = 1.f + 0.07f * (n1 - 0.5f) + 0.04f * (n2 - 0.5f);
+            float val = 1.f + (0.07f * (n1 - 0.5f) + 0.04f * (n2 - 0.5f)) * (1.f + 0.7f * sstep(0.45f, 1.f, d.age));
             vec3 hue = lerp(vec3(1.02f, 0.99f, 0.97f), vec3(0.985f, 1.005f, 1.02f), skinNoise3(v.p, 17.f, seed ^ 0x3Bu));
             v.col = mulColor(v.col, hue) * val;
             float exp = 0.f;
@@ -1730,7 +1759,7 @@ static float paintSkinDetail(BuildCtx& c) {
         vec3 hp = (v.p - D.J[B_HEAD]) / hs;
         vec3 col = v.col;
         float blush = 0.f;
-        if (v.part == PART_EAR) blush = 0.55f;
+        if (v.part == PART_EAR) blush = 0.4f;
         for (int sd = 0; sd < 2; sd++) {
             float sx = sd ? 1.f : -1.f;
             vec3 ck(sx * 0.037f, 0.074f, 0.014f);
@@ -1755,9 +1784,10 @@ static float paintSkinDetail(BuildCtx& c) {
                 float ring = sstep(Lm.eyeR + 0.0005f, Lm.eyeR + 0.004f, rr) * (1.f - sstep(Lm.eyeR + 0.008f, Lm.eyeR + 0.016f, rr));
                 float below = sstep(0.002f, -0.008f, de.z);
                 float inner = sstep(0.004f, -0.012f, de.x * (sd ? 1.f : -1.f));
-                orb = Max(orb, ring * (0.45f + 0.35f * below + 0.35f * inner));
+                // (mostly under the eye and at the inner corner: a ring all round reads as goggles)
+                orb = Max(orb, ring * (0.15f + 0.5f * below + 0.3f * inner));
             }
-            if (orb > 0.f) col = lerp(col, mulColor(col, Lerp(1.f, 0.72f, orbAmt) * lerp(vec3(0.93f, 0.9f, 0.96f), vec3(1.f), 1.f - fair)), Saturate(orb));
+            if (orb > 0.f) col = lerp(col, mulColor(col, Lerp(1.f, 0.76f, orbAmt) * lerp(vec3(0.93f, 0.9f, 0.96f), vec3(1.f), 1.f - fair)), Saturate(orb));
             // the upper lids (between the lash line and the crease): thin skin over the vessels, pinker on light skin and
             // a shade deeper on dark skin
             for (int sd = 0; sd < 2; sd++) {
@@ -2025,7 +2055,7 @@ void applySkinChannels(const BuildCtx& c, MeshB& fin) {
         }
         // gloss
         float gloss = 0.f;
-        if (v.flags & BuildCtx::F_LIP) gloss = 0.85f;
+        if (v.flags & BuildCtx::F_LIP) gloss = 0.65f;   // a satin sheen: lips are not lacquered
         if (v.part == PART_MOUTH) gloss = 0.8f;
         // lid margins (their back edge carries the tear film's wet line) and the caruncle: their own gloss (colour
         // alpha set by addLidDetails), else wet
@@ -2057,8 +2087,9 @@ void applySkinChannels(const BuildCtx& c, MeshB& fin) {
             if (v.part == PART_HEAD && hp.y > 0.02f) {
                 // forehead: horizontal lines ~9 mm apart between the brows and the hairline, gently wavy, fading at
                 // the temples
-                float w = sstep(browZ + 0.004f, browZ + 0.012f, hp.z) * (1.f - sstep(foreheadTop - 0.02f, foreheadTop, hp.z)) *
-                          (1.f - sstep(0.035f, 0.052f, fabsf(hp.x)));
+                // (above the glabella they begin higher up: a line across the frown lines' tops boxed them in)
+                float w = sstep(browZ + 0.004f, browZ + 0.012f, hp.z - 0.008f * (1.f - sstep(0.008f, 0.014f, fabsf(hp.x)))) *
+                          (1.f - sstep(foreheadTop - 0.02f, foreheadTop, hp.z)) * (1.f - sstep(0.035f, 0.052f, fabsf(hp.x)));
                 if (w > 0.f && kFore > 0.f) take((hp.z - browZ) / 0.009f + 0.12f * sinf(hp.x * 90.f + waveS), 0.35f * kFore * w);
                 // frown lines: a vertical crease each side of the glabella
                 float wg = sstep(Lm.nasion.z + 0.002f, Lm.nasion.z + 0.008f, hp.z) * (1.f - sstep(browZ + 0.006f, browZ + 0.016f, hp.z)) *

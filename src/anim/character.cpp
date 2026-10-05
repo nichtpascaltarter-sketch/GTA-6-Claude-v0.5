@@ -672,7 +672,8 @@ static void buildFinalMesh(const CharacterDesc& d, const Skeleton& skel, MeshB& 
     // lips: rosy on fair skin (hemoglobin shows through the thin vermilion), deeper and cooler on dark skin, whose inner
     // lip is lighter and pinker (two-tone lips)
     const float fairL = sstep(0.04f, 0.4f, lum);
-    c.lipCol = lerp(mulColor(c.skin, vec3(0.8f, 0.6f, 0.66f)), mulColor(c.skin, vec3(0.84f, 0.52f, 0.56f)), fairL);
+    // (men's lips are a shade less red than women's)
+    c.lipCol = lerp(mulColor(c.skin, vec3(0.8f, 0.6f, 0.66f)), mulColor(c.skin, lerp(vec3(0.86f, 0.6f, 0.61f), vec3(0.84f, 0.53f, 0.57f), D.fem)), fairL);
     c.lipInner = lerp(vmax(mulColor(c.skin, vec3(1.25f, 0.8f, 0.82f)), vec3(0.16f, 0.06f, 0.06f)), c.lipCol * vec3(1.02f, 0.94f, 0.96f), fairL);
     vec3 palmTarget = vec3(0.52f, 0.33f, 0.24f);
     c.palmCol = lerp(c.skin, vmax(c.skin, palmTarget), 0.7f);
