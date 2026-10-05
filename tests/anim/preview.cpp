@@ -9,7 +9,8 @@
 //      PREVIEW_SKINBITS=region|transl|pores|oil|melanin (the skin shading bits of face.cpp as false colours),
 //      PREVIEW_TGT=x,y,z (tile camera target offset from the head), PREVIEW_WIRE (triangle edges),
 //      PREVIEW_OPAQUECARDS (strand cards opaque and culled, as drawn before the renderer's card pass),
-//      PREVIEW_SHADE=albedo|normal|diffuse (one shading term alone: vertex colours, normals, the key light's diffuse).
+//      PREVIEW_SHADE=albedo|normal|diffuse (one shading term alone: vertex colours, normals, the key light's diffuse),
+//      PREVIEW_LIGHT=x,y,z (the key light's direction: y towards the camera, z up; e.g. 0,0.4,1 for a street lamp above).
 // Strand cards are alpha-tested with a stand-in strand pattern (cardAlpha) and drawn two-sided.
 #include "../../src/core/math.cpp"
 #include "../../src/render/mesh.cpp"
@@ -142,6 +143,11 @@ static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const
         vz[i] = -v.z;
     }
     vec3 L1 = normalize(vec3(0.35f, 0.75f, 0.65f)), L2 = normalize(vec3(-0.6f, 0.3f, 0.2f));
+    if (const char* lv = getenv("PREVIEW_LIGHT")) {   // the key light's direction (x, y towards the camera, z up)
+        vec3 l(0.35f, 0.75f, 0.65f);
+        sscanf(lv, "%f,%f,%f", &l.x, &l.y, &l.z);
+        if (length2(l) > 1e-8f) L1 = normalize(l);
+    }
     for (size_t t = 0; t + 2 < idx.size(); t += 3) {
         u32 i0 = idx[t], i1 = idx[t + 1], i2 = idx[t + 2];
         if (vz[i0] < gNear || vz[i1] < gNear || vz[i2] < gNear) continue;

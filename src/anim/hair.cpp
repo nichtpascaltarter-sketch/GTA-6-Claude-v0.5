@@ -33,6 +33,7 @@ struct HairParams {
     float ropeLen = 0.f;      // braids / locs: length hanging below the head (m); twists: their length
     bool ropeLong = false;    // cornrows: long braids from the rows (feed-in braids) instead of short tails
     vec3 ropeCol, ropeTip;    // braids / locs colour (extensions may differ from the natural hair) and at the ends
+    float sideburn = 1.f;     // how far the hairline dips into a sideburn in front of the ear (men ~1, women a little)
     float curlLen = 0.f;      // curly: length of the coils falling from the crown's volume (0: a rounded afro)
     vec3 col;
 };
@@ -52,6 +53,11 @@ static HairParams hairParams(const BuildCtx& c) {
     if (h.style == HAIR_BUZZ || h.style == HAIR_BRAIDS || h.style == HAIR_CURLY) h.crownBald *= 0.3f;
     h.fringe = (h.style == HAIR_BOB || h.style == HAIR_LONG) && r.chance(0.35f);
     h.coversEars = h.style == HAIR_LONG || h.style == HAIR_BOB || (h.style == HAIR_CURLY && !male);
+    {
+        // (own stream: the draws around keep their values) the sideburn: full on men, a short curve on most women
+        Rng sbr(hash32(d.seed * 0x51ED270Bu + 0x3Du));
+        h.sideburn = male ? sbr.range(0.75f, 1.f) : sbr.range(0.05f, 0.35f);
+    }
     h.volume = r.range(0.9f, 1.12f);
     h.partX = r.chance(0.45f) ? 0.f : (r.chance(0.5f) ? -1.f : 1.f) * r.range(0.015f, 0.028f);
     h.col = d.hairColor;
@@ -119,22 +125,38 @@ static float fadeKeep(const HairParams& h, float at, float ph) {
 }
 
 static float hairlinePhi(const HairParams& h, float at) {
-    // (|theta| deg, phi deg) control points: forehead, temples, sideburn, over the ear, nape
-    static const float T[][2] = {{0, 44}, {20, 43}, {32, 40}, {45, 33}, {58, 22}, {66, 9}, {72, 2}, {78, 9}, {86, 19}, {96, 23},
-                                 {106, 18}, {116, 4}, {128, -8}, {145, -16}, {180, -20}};
+    // (|theta| deg, phi deg) control points: forehead, temples, sideburn, over the ear, nape. The sideburn's dip is
+    // the person's (a man's sideburn comes down in front of the ear; on most women the hairline only curves down a
+    // little there), and the curve runs smoothly through the points (Catmull-Rom: linear segments put kinks into the
+    // hairline, a notch at the temple in profile).
+    float T[][2] = {{0, 44}, {20, 43}, {32, 40}, {45, 33}, {58, 22}, {66, 9}, {72, 2}, {78, 9}, {86, 19}, {96, 23},
+                    {106, 18}, {116, 4}, {128, -8}, {145, -16}, {180, -20}};
     const int n = (int)(sizeof(T) / sizeof(T[0]));
+    {
+        const float sb = Saturate(h.sideburn);
+        T[4][1] = Lerp(25.f, 22.f, sb);
+        T[5][1] = Lerp(15.f, 9.f, sb);
+        T[6][1] = Lerp(10.f, 2.f, sb);
+        T[7][1] = Lerp(13.f, 9.f, sb);
+    }
     float a = at * kRadToDeg;
     float ph = T[n - 1][1];
     for (int i = 0; i + 1 < n; i++)
         if (a <= T[i + 1][0]) {
-            float t = (a - T[i][0]) / (T[i + 1][0] - T[i][0]);
-            ph = Lerp(T[i][1], T[i + 1][1], t);
+            float t = Saturate((a - T[i][0]) / (T[i + 1][0] - T[i][0]));
+            float p0 = T[i > 0 ? i - 1 : 0][1], p1 = T[i][1], p2 = T[i + 1][1], p3 = T[i + 2 < n ? i + 2 : n - 1][1];
+            ph = 0.5f * (2.f * p1 + (p2 - p0) * t + (2.f * p0 - 5.f * p1 + 4.f * p2 - p3) * t * t + (3.f * p1 - p0 - 3.f * p2 + p3) * t * t * t);
             break;
         }
     // temple recession (M shape) and a slightly higher front for older men; the forehead height moves the front
     ph += h.recession * (14.f * bump(a, 34.f, 14.f) + 5.f * bump(a, 0.f, 25.f));
     ph += h.hairlineOff * (1.f - sstep(55.f, 110.f, a));
-    if (h.coversEars && a > 72.f && a < 120.f) ph = Min(ph, -6.f + 10.f * bump(a, 72.f, 6.f));
+    // hair over the ears: the hairline drops to the ear's lower half there (blended in from the temple, so it doesn't
+    // step where the sideburn's curve meets it)
+    if (h.coversEars) {
+        const float wE = sstep(62.f, 72.f, a) * (1.f - sstep(116.f, 124.f, a));
+        if (wE > 0.f) ph = Lerp(ph, Min(ph, -6.f + 10.f * bump(a, 72.f, 6.f)), wE);
+    }
     if (h.fringe && a < 42.f) ph = Min(ph, 27.f + 9.f * Sq(a / 42.f));
     return ph * kDegToRad;
 }
@@ -1572,6 +1594,7 @@ static void buildFacialHair(OutfitCtx& o) {
         float d = lipDist(v);
         return v.pb > phM ? (d - 0.0002f) * 6.f : (d - 0.0006f) * 5.f;
     };
+    const u32 edgeSeed = hash32(d.seed * 0x7A3D1C55u + 0x2Bu);
     auto region = [=](const BVert& v, bool mustache, bool chin, bool cheeks, bool cap = true) -> float {
         if (v.part != PART_HEAD || v.pc < 1.2f) return -1.f;
         float at = v.pa > kPi ? kTwoPi - v.pa : v.pa;
@@ -1592,10 +1615,16 @@ static void buildFacialHair(OutfitCtx& o) {
                                                                 (j >= rLipLo && j <= rLipHi) ? 0.01f : -1.f));
             best = Max(best, Max(c1, at > thMC * 0.85f ? c2 : -1.f));
         }
-        // cheeks + jaw + under the chin: up to a line from the sideburn to the mouth corner
+        // cheeks + jaw + under the chin: up to a line from the sideburn to the mouth corner. The back edge follows the
+        // jaw (in front of the ear at the sideburn, round the angle of the jaw lower down) instead of a vertical cut,
+        // both outer edges wander a few millimetres (a straight-edged beard reads as a mask in profile), and under the
+        // jaw the beard thins out over the last rows above the neck instead of ending in a shelf.
         if (cheeks) {
             float phTop = Lerp(-22.f, 6.f, sstep(thMC * kRadToDeg, 72.f, at * kRadToDeg)) * deg;
-            float cov = Min((phTop - v.pb) * 0.1f, (80.f * deg - at) * 0.1f);
+            float thBack = Lerp(80.f, 95.f, sstep(-8.f * deg, -48.f * deg, v.pb)) * deg;
+            float wander = (hairNoise3(v.bp, 45.f, edgeSeed) - 0.5f) * 0.006f + (hairNoise3(v.bp, 130.f, edgeSeed ^ 0x9E37u) - 0.5f) * 0.002f;
+            float cov = Min((phTop - v.pb) * 0.1f, (thBack - at) * 0.1f) + wander;
+            cov = Min(cov, ((float)j - 0.5f) * 0.004f);
             // keep lips clear
             bool lip = j > rLipLo && j <= rLipHi && at < thMC * 1.15f;
             if (lip) cov = -1.f;

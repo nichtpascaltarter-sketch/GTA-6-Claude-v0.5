@@ -158,8 +158,10 @@ void addHeadPrims(BuildCtx& c) {
         vec3 ulM(sx * 0.0115f * D.lipW, ulC.y - 0.0014f, ulC.z + 0.0003f), llM(sx * 0.0115f * D.lipW, llC.y - 0.0012f, llC.z - 0.0002f);
         S.cone(Pv(ulC), Pv(ulM), R(ulR), R(ulR * 0.95f), HM, R(0.003f));
         S.cone(Pv(ulM), Pv(mc + vec3(-sx * 0.002f, 0.0f, 0.0015f)), R(ulR * 0.95f), R(0.0022f), HM, R(0.003f));
-        S.ellipsoid(Pv(vec3(sx * 0.0062f * D.lipW, llC.y + 0.0002f, llC.z)), vec3(0.0092f * D.lipW, llR * 0.96f, llR * 0.9f) * hs, HM, R(0.003f));
-        S.cone(Pv(llM), Pv(mc + vec3(-sx * 0.002f, 0.0f, -0.0015f)), R(llR * 0.85f), R(0.0022f), HM, R(0.003f));
+        // (the lower lip's border blends softly into the skin below it: a tight blend left a groove all round it that
+        // the baked occlusion drew as a dark outline)
+        S.ellipsoid(Pv(vec3(sx * 0.0062f * D.lipW, llC.y + 0.0002f, llC.z)), vec3(0.0092f * D.lipW, llR * 0.96f, llR * 0.9f) * hs, HM, R(0.0048f));
+        S.cone(Pv(llM), Pv(mc + vec3(-sx * 0.002f, 0.0f, -0.0015f)), R(llR * 0.85f), R(0.0022f), HM, R(0.0042f));
     }
     // ---- nose: dorsum (bony bridge + cartilage, optional hump) ending short of the domed tip lobule, columella, alae
     {
@@ -225,6 +227,16 @@ void addHeadPrims(BuildCtx& c) {
         if (D.epicanthic > 0.f)
             S.ellipsoid(Pv(e + vec3(-sx * 0.0112f, 0.0068f, 0.0012f)), vec3(0.0038f, 0.0026f, 0.0048f) * (hs * (0.6f + 0.4f * D.epicanthic)), HM,
                         R(0.003f), vec3(0.8f * sx, 0.6f, 0.f), vec3(0, 0, 1));
+    }
+    // ---- age: the temples hollow behind the orbital rim as the fat there thins (more on lean faces, little on heavy ones)
+    {
+        const float hollow = Saturate(sstep(0.5f, 0.95f, age) * (1.f - 0.6f * full) + 0.35f * lean * sstep(0.3f, 0.7f, age));
+        if (hollow > 0.05f)
+            for (int sd = 0; sd < 2; sd++) {
+                float sx = sd ? 1.f : -1.f;
+                Prim& q = S.prims[S.ellipsoid(P(sx * 0.075f * fw, 0.04f, 0.056f), vec3(0.0134f + 0.0032f * hollow, 0.017f, 0.019f) * hs, HM, R(0.012f))];
+                q.op = OP_SUB;
+            }
     }
     // ear roots (the ears themselves are separate meshes)
     for (int sd = 0; sd < 2; sd++) S.ellipsoid(Pv(L.ear[sd] + vec3(0, 0.002f, 0)), vec3(0.008f, 0.016f, 0.021f) * hs, HM, R(0.008f));

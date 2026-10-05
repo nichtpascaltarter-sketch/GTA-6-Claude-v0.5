@@ -1889,6 +1889,7 @@ void testFaces() {
 void testFaceShape() {
     using namespace Anim::detail;
     float worstJump = 0.f, worstMean = 0.f, minGap = 1e9f, minDepth = 1e9f, worstShelf = 0.f;
+    int minJaw = 1 << 30;
     for (u32 k = 0; k < 10; k++) {
         CharacterDesc d = randomCharacter(5300u + k * 7919u, (int)(k % 7));
         if (k < 3) {
@@ -1980,11 +1981,25 @@ void testFaceShape() {
             }
             CHECK(!lips.empty() && shelf < 0.0035f, "face shape: beard shelf under the lower lip (k %u: shell %.1f mm over the skin)", k, shelf * 1000.f);
             worstShelf = Max(worstShelf, shelf);
+            // the beard wraps the angle of the jaw (its back edge follows the jaw instead of a vertical cut in front of
+            // it): beard strand cards rooted behind the cheek's middle, low on the jaw
+            const vec3 hj = -sk.invBindModel[B_HEAD].c[3].xyz();
+            int jawCards = 0;
+            for (const VtxSkinned& v : m.verts) {
+                if ((v.mat & 0xffu) != MAT_HAIR || ((v.mat >> 8) & 15u) != 4u) continue;
+                // (behind 86 degrees round the head from the face's front, seen from the head grid's centre; the old
+                // vertical cut was at 80)
+                vec3 dq = (v.pos - hj) / D.headS;
+                float thq = atan2f(fabsf(dq.x), dq.y - 0.006f) * kRadToDeg;
+                if (thq > 86.f && dq.z < -0.025f) jawCards++;
+            }
+            CHECK(jawCards > 40, "face shape: the beard stops short of the jaw's angle (k %u: %d card vertices there)", k, jawCards);
+            minJaw = Min(minJaw, jawCards);
         }
     }
     printf("face shape: eye-region normals worst %.0f deg (mean <= %.1f), brow >= %.1f mm above the fold, corneas >= %.1f mm behind the brow, beard "
-           "shell <= %.1f mm over the skin by the lips\n",
-           worstJump, worstMean, minGap * 1000.f, minDepth * 1000.f, worstShelf * 1000.f);
+           "shell <= %.1f mm over the skin by the lips, >= %d beard card vertices round the jaw's angle\n",
+           worstJump, worstMean, minGap * 1000.f, minDepth * 1000.f, worstShelf * 1000.f, minJaw);
 }
 
 // Driving: the hands must stay on the steering wheel rim (absolute interior geometry) for any character size.
