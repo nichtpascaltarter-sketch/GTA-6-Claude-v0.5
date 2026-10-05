@@ -36,6 +36,12 @@ const vec3 kSuburb[] = {vec3(1.0f, 0.95f, 0.85f), vec3(0.98f, 0.92f, 0.78f), vec
                         vec3(1.0f, 0.88f, 0.8f), vec3(0.95f, 0.9f, 0.82f), vec3(0.85f, 0.9f, 0.98f), vec3(1.0f, 0.97f, 0.82f)};
 const vec3 kConch[] = {vec3(0.72f, 0.95f, 0.9f), vec3(1.0f, 0.85f, 0.88f), vec3(0.75f, 0.85f, 1.0f), vec3(1.0f, 0.97f, 0.75f), vec3(1.0f, 1.0f, 1.0f),
                        vec3(0.85f, 0.95f, 0.75f), vec3(1.0f, 0.82f, 0.7f)};
+// fifties block houses: mint, butter, salmon, sky, seafoam, peach, lilac, sand, white
+const vec3 kCbs[] = {vec3(0.74f, 0.92f, 0.8f), vec3(1.0f, 0.94f, 0.66f), vec3(1.0f, 0.78f, 0.68f), vec3(0.72f, 0.87f, 0.98f), vec3(0.62f, 0.88f, 0.82f),
+                     vec3(1.0f, 0.84f, 0.66f), vec3(0.87f, 0.82f, 0.95f), vec3(0.94f, 0.88f, 0.74f), vec3(0.98f, 0.98f, 0.96f)};
+// folk Victorian paint: white, cream, butter, sage, porch blue, blush, grey
+const vec3 kVictorian[] = {vec3(0.98f, 0.98f, 0.96f), vec3(1.0f, 0.95f, 0.84f), vec3(1.0f, 0.92f, 0.68f), vec3(0.78f, 0.86f, 0.72f), vec3(0.76f, 0.86f, 0.94f),
+                           vec3(1.0f, 0.86f, 0.84f), vec3(0.82f, 0.83f, 0.84f)};
 const vec3 kPaintedBrick[] = {vec3(0.92f, 0.88f, 0.8f), vec3(0.75f, 0.78f, 0.74f), vec3(0.6f, 0.68f, 0.6f), vec3(0.8f, 0.7f, 0.6f), vec3(0.55f, 0.6f, 0.68f)};
 const vec3 kIndustrialWall[] = {vec3(0.82f, 0.82f, 0.8f), vec3(0.7f, 0.72f, 0.72f), vec3(0.62f, 0.68f, 0.74f), vec3(0.7f, 0.74f, 0.66f), vec3(0.85f, 0.8f, 0.7f),
                                 vec3(0.55f, 0.56f, 0.58f)};
@@ -72,6 +78,7 @@ const ArchInfo kArch[AR_COUNT] = {
     {"mission strip", 1, 1, false}, {"mimo strip", 1, 1, false}, {"power center", 1, 1, false},
     {"gambrel barn", 1, 1, true},  {"pole barn", 1, 1, true},     {"gable barn", 1, 1, true},
     {"mission church", 1, 1, false}, {"board church", 1, 1, false}, {"brick church", 1, 1, true}, {"a-frame church", 1, 1, false},
+    {"cbs house", 1, 1, false},    {"folk victorian", 2, 2, true}, {"raised keys house", 1, 2, false},
 };
 static_assert(sizeof(kArch) / sizeof(kArch[0]) == AR_COUNT, "one ArchInfo per archetype");
 
@@ -148,16 +155,26 @@ int palette(int reg, int style, bool main, bool corner, Pick* out) {
             break;
         case BS_HOUSE:
             switch (reg) {
-                case REG_SUBURBS: add(AR_HOUSE_RANCH, 4.f); add(AR_HOUSE_MED, 2.f); add(AR_HOUSE_SPLIT, 1.5f); add(AR_HOUSE_TWO, 1.2f); add(AR_HOUSE_MIMO, 1.f); add(AR_HOUSE_BUNGALOW, 1.f); break;
+                case REG_SUBURBS:
+                    add(AR_HOUSE_RANCH, 4.f); add(AR_HOUSE_MED, 2.f); add(AR_HOUSE_SPLIT, 1.5f); add(AR_HOUSE_TWO, 1.2f); add(AR_HOUSE_MIMO, 1.f); add(AR_HOUSE_BUNGALOW, 1.f);
+                    add(AR_HOUSE_CBS, 1.6f);
+                    break;
                 case REG_GROVE: add(AR_HOUSE_MED, 3.f); add(AR_HOUSE_TWO, 2.f); add(AR_HOUSE_RANCH, 1.5f); add(AR_HOUSE_BUNGALOW, 1.5f); add(AR_HOUSE_MIMO, 1.f); break;
                 case REG_NORTH_CITY: case REG_CALLE_LUNA: case REG_FLATS: case REG_MIDTOWN:
-                    add(AR_HOUSE_BUNGALOW, 4.f); add(AR_HOUSE_RANCH, 2.f); add(AR_HOUSE_MIMO, 1.5f); add(AR_HOUSE_MED, 1.5f); add(AR_HOUSE_TWO, 0.6f);
+                    // (the block houses of Little Havana, Allapattah and Hialeah alongside the bungalows)
+                    add(AR_HOUSE_BUNGALOW, 4.f); add(AR_HOUSE_CBS, 3.5f); add(AR_HOUSE_RANCH, 2.f); add(AR_HOUSE_MIMO, 1.5f); add(AR_HOUSE_MED, 1.5f);
+                    add(AR_HOUSE_TWO, 0.6f);
                     break;
                 case REG_LAKE_TOWN: case REG_HARLOW: case REG_FORT_CASTELL: case REG_REDLAND: case REG_FARMLAND:
-                    add(AR_HOUSE_BUNGALOW, 3.f); add(AR_HOUSE_TWO, 2.5f); add(AR_HOUSE_RANCH, 2.f); add(AR_HOUSE_CONCH, 0.5f);
+                    // the old county towns: frame Victorians and bungalows round the centre, block houses and ranches outside
+                    add(AR_HOUSE_BUNGALOW, 3.f); add(AR_HOUSE_TWO, 2.f); add(AR_HOUSE_RANCH, 2.f); add(AR_HOUSE_CONCH, 0.5f);
+                    add(AR_HOUSE_VICTORIAN, reg == REG_REDLAND || reg == REG_FARMLAND ? 0.8f : 2.4f); add(AR_HOUSE_CBS, 1.6f);
                     break;
-                case REG_KEY_TOWN: case REG_GULF_TOWN: case REG_KEYS: add(AR_HOUSE_CONCH, 5.f); add(AR_HOUSE_BUNGALOW, 1.f); add(AR_HOUSE_MIMO, 0.5f); break;
-                default: add(AR_HOUSE_RANCH, 2.f); add(AR_HOUSE_BUNGALOW, 2.f); add(AR_HOUSE_MED, 1.f); add(AR_HOUSE_TWO, 1.f); break;
+                case REG_KEY_TOWN: case REG_GULF_TOWN: case REG_KEYS:
+                    add(AR_HOUSE_CONCH, 5.f); add(AR_HOUSE_BUNGALOW, 1.f); add(AR_HOUSE_MIMO, 0.5f); add(AR_HOUSE_VICTORIAN, reg == REG_KEY_TOWN ? 1.5f : 0.f);
+                    add(AR_HOUSE_CBS, 0.8f); add(AR_HOUSE_RAISED, reg == REG_KEY_TOWN ? 1.6f : 2.4f);
+                    break;
+                default: add(AR_HOUSE_RANCH, 2.f); add(AR_HOUSE_BUNGALOW, 2.f); add(AR_HOUSE_MED, 1.f); add(AR_HOUSE_TWO, 1.f); add(AR_HOUSE_CBS, 1.f); break;
             }
             break;
         case BS_DECO:
@@ -170,7 +187,7 @@ int palette(int reg, int style, bool main, bool corner, Pick* out) {
         case BS_VILLA:
             // the classic generator's mansion, the white modernist villa, the Mediterranean-revival villa of Coral
             // Gables and Palm Beach, the white colonial with a two-storey portico
-            add(AR_NONE, 2.f);
+            add(AR_NONE, reg == REG_KEY_CORAL || reg == REG_BAY_ISLAND ? 0.6f : 2.f);   // (the island estates: mostly the types)
             add(AR_VILLA_MODERN, reg == REG_GROVE ? 1.2f : 2.f);
             add(AR_VILLA_MED, reg == REG_GROVE ? 2.5f : 1.8f);
             add(AR_VILLA_COLONIAL, reg == REG_GROVE ? 0.8f : 1.2f);
@@ -191,7 +208,7 @@ int palette(int reg, int style, bool main, bool corner, Pick* out) {
         case BS_FARMHOUSE:
             // Florida farmhouses: the cracker house (a raised wood house with a deep porch and a tin roof: the conch
             // house's mainland cousin), the two-storey I-house, the fifties ranch, the generator's plain house
-            add(AR_HOUSE_CONCH, 2.5f); add(AR_HOUSE_TWO, 1.5f); add(AR_HOUSE_RANCH, 1.2f); add(AR_NONE, 1.f);
+            add(AR_HOUSE_CONCH, 2.5f); add(AR_HOUSE_TWO, 1.5f); add(AR_HOUSE_RANCH, 1.2f); add(AR_NONE, 1.f); add(AR_HOUSE_VICTORIAN, 1.f);
             break;
         case BS_BARN:
             add(AR_BARN_GAMBREL, 2.f); add(AR_BARN_POLE, 2.f); add(AR_BARN_GABLE, 1.5f);
@@ -255,13 +272,16 @@ int massings(u8 arch, bool storefront, bool corner, float w, float d, Pick* out)
         case AR_CONDO_GLASS: add(MK_PODIUM_SLAB, 2.f); add(MK_CURVE, 1.5f); add(MK_STEP_BACK, 1.f); break;
         case AR_CONDO_MIMO: add(MK_CURVE, 2.5f); add(MK_WINGS, wide ? 1.5f : 0.f); add(MK_PODIUM_SLAB, 1.f); add(MK_BOX, 0.5f); break;
         case AR_CONDO_PODIUM: add(MK_PODIUM_SLAB, 4.f); break;
-        case AR_HOUSE_RANCH: add(MK_BOX, 2.f); add(MK_L, 2.f); break;
-        case AR_HOUSE_BUNGALOW: add(MK_BOX, 3.f); break;
+        case AR_HOUSE_RANCH: add(MK_BOX, 2.f); add(MK_L, 2.f); add(MK_STEP_FRONT, 1.6f); break;
+        case AR_HOUSE_BUNGALOW: add(MK_BOX, 3.f); add(MK_L, 1.2f); break;
         case AR_HOUSE_MED: add(MK_L, 2.f); add(MK_CORNER_TOWER, 1.f); add(MK_BOX, 1.f); break;
         case AR_HOUSE_TWO: add(MK_BOX, 3.f); add(MK_WINGS, 1.f); break;
         case AR_HOUSE_MIMO: add(MK_BOX, 2.f); add(MK_L, 1.5f); break;
         case AR_HOUSE_SPLIT: add(MK_SPLIT, 3.f); break;
         case AR_HOUSE_CONCH: add(MK_BOX, 3.f); add(MK_L, 1.f); break;
+        case AR_HOUSE_CBS: add(MK_BOX, 2.f); add(MK_L, 1.5f); add(MK_STEP_FRONT, 1.f); break;
+        case AR_HOUSE_VICTORIAN: add(MK_L, 3.f); add(MK_BOX, 1.f); break;
+        case AR_HOUSE_RAISED: add(MK_BOX, 3.f); add(MK_L, 1.f); break;
         case AR_VILLA_MODERN: add(MK_STEP_BACK, 2.f); add(MK_L, 2.f); add(MK_SPLIT, 1.5f); break;
         case AR_VILLA_MED: add(MK_CORNER_TOWER, 2.f); add(MK_L, 1.5f); add(MK_WINGS, wide ? 1.5f : 0.4f); add(MK_BOX, 0.8f); break;
         case AR_VILLA_COLONIAL: add(MK_BOX, 2.f); add(MK_WINGS, wide ? 2.f : 0.5f); break;
@@ -520,6 +540,24 @@ void facadeFor(Building& b, FacadeGPU& f, u8 arch, Rng& r, bool store) {
             style = 5; floorH = 3.0f; groundH = 3.2f; bay = r.range(2.6f, 3.4f); winW = r.range(0.36f, 0.44f); winH = 0.62f; sill = 0.8f;
             mat = MAT_WOOD_SIDING; wall = pick(kConch, r);
             frame = vec3(0.97f);
+            break;
+        case AR_HOUSE_CBS:
+            // wide, low awning windows in painted block; white or a darker tone of the wall for the trim
+            style = 5; floorH = 2.9f; groundH = 2.9f; bay = r.range(3.2f, 4.0f); winW = r.range(0.4f, 0.5f); winH = r.range(0.42f, 0.5f); sill = 1.05f;
+            mat = MAT_STUCCO; wall = pick(kCbs, r);
+            frame = r.chance(0.6f) ? vec3(0.97f) : wall * 0.72f;
+            break;
+        case AR_HOUSE_RAISED:
+            // board siding in the island colours or white, white trim, tall windows (hurricane shutters in facadedetail.cpp)
+            style = 5; floorH = 3.0f; groundH = 3.1f; bay = r.range(2.8f, 3.6f); winW = r.range(0.38f, 0.46f); winH = 0.6f; sill = 0.8f;
+            mat = MAT_WOOD_SIDING; wall = r.chance(0.35f) ? vec3(0.97f) : pick(kConch, r);
+            frame = vec3(0.97f);
+            break;
+        case AR_HOUSE_VICTORIAN:
+            // tall narrow two-over-two windows in board siding, white trim
+            style = 5; floorH = 3.0f; groundH = 3.3f; bay = r.range(2.5f, 3.1f); winW = r.range(0.28f, 0.34f); winH = r.range(0.6f, 0.66f); sill = 0.75f;
+            mat = MAT_WOOD_SIDING; wall = pick(kVictorian, r);
+            frame = r.chance(0.8f) ? vec3(0.97f) : vec3(0.3f, 0.36f, 0.3f);
             break;
         case AR_VILLA_MODERN:
             style = 0; floorH = 3.4f; groundH = 3.6f; bay = r.range(3.6f, 5.0f); winW = r.range(0.7f, 0.85f); winH = r.range(0.7f, 0.82f); sill = 0.3f;
@@ -860,6 +898,23 @@ void BuildingSet::restyleBlocks(WorldMap& map, const RoadNetwork& roads) {
         bool cl = crossStreetAt(roads, b, -1.f), cr = crossStreetAt(roads, b, 1.f);
         bool corner = cl || cr;
         if (corner) b.archFlags |= ABF_CORNER | (cl ? ABF_CORNER_LEFT : 0);
+        if (b.style == BS_GASSTATION) {
+            // gas stations: the kiosk dressed to the canopy kind buildmesh.cpp draws (same seeded pick): cream stucco
+            // under the tile hip, white with a coloured frame under the sixties butterfly
+            u32 kh = hash32(b.seed ^ 0x6A5C0u) % 100u;
+            Rng gr(b.seed ^ 0x6A5C1u);
+            if (kh >= 65u && kh < 85u) {
+                vec3 c = pick(kMedWarm, gr);
+                f.wallColor = rgb8(c.x, c.y, c.z);
+                f.wallLayer = (float)MAT_STUCCO;
+                f.frameColor = rgb8(0.35f, 0.22f, 0.12f);
+            } else if (kh >= 40u && kh < 65u) {
+                vec3 c = pick(kMimoAccent, gr);
+                f.wallColor = rgb8(0.97f, 0.97f, 0.95f);
+                f.frameColor = rgb8(c.x, c.y, c.z);
+            }
+            continue;
+        }
         Pick pal[16];
         int np = palette(b.region, b.style, main, corner, pal);
         if (np == 0) continue;
@@ -918,7 +973,9 @@ void BuildingSet::restyleBlocks(WorldMap& map, const RoadNetwork& roads) {
         switch (b.roofForm) {
             case RFM_TILE_HIP: case RFM_TILE_PENT: rc = pick(kTileRoof, ar); break;
             case RFM_METAL_GABLE: rc = pick(kMetalRoof, ar); break;
-            default: rc = (arch >= AR_HOUSE_RANCH && arch <= AR_HOUSE_CONCH) ? pick(kShingle, ar) : vec3(1.f); break;
+            default: rc = ((arch >= AR_HOUSE_RANCH && arch <= AR_HOUSE_CONCH) || arch == AR_HOUSE_CBS || arch == AR_HOUSE_VICTORIAN || arch == AR_HOUSE_RAISED) ? pick(kShingle, ar)
+                                                                                                                                                  : vec3(1.f);
+                break;
         }
         b.roofTint = rgb8(Saturate(rc.x * 0.95f), Saturate(rc.y * 0.95f), Saturate(rc.z * 0.95f));
         // facade record for the archetype; podium / office front cladding
@@ -934,7 +991,8 @@ void BuildingSet::restyleBlocks(WorldMap& map, const RoadNetwork& roads) {
             b.roof = b.roofForm == RFM_TILE_HIP ? ROOF_HIP : (b.roofForm == RFM_METAL_GABLE ? ROOF_GABLE : ROOF_FLAT);
         if (b.style == BS_HOUSE || b.style == BS_VILLA || b.style == BS_FARMHOUSE) {
             // houses: hip or gable by type (buildmesh.cpp reads the archetype for the rest)
-            b.roof = (arch == AR_HOUSE_BUNGALOW || arch == AR_HOUSE_CONCH) ? ROOF_GABLE : (arch == AR_HOUSE_MIMO || arch == AR_VILLA_MODERN ? ROOF_FLAT : ROOF_HIP);
+            b.roof = (arch == AR_HOUSE_BUNGALOW || arch == AR_HOUSE_CONCH || arch == AR_HOUSE_VICTORIAN) ? ROOF_GABLE
+                                                                                                     : (arch == AR_HOUSE_MIMO || arch == AR_VILLA_MODERN ? ROOF_FLAT : ROOF_HIP);
             if (arch == AR_HOUSE_CONCH && ar.chance(0.4f)) b.roof = ROOF_HIP;
             if (arch == AR_HOUSE_TWO && ar.chance(0.4f)) b.roof = ROOF_GABLE;
         }

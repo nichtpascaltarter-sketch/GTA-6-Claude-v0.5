@@ -301,6 +301,38 @@ void windowTrims(FD& d, const Wall& w, const FacadeMass& ms, int kind, bool shut
                     wbox(k, w, s0 - 0.03f - pw, s0 - 0.03f, z0 + 0.02f, z1 - 0.02f, 0.01f, 0.05f, shutterCol, MM(MAT_WOOD), WF_FRONT);
                     wbox(k, w, s1 + 0.03f, s1 + 0.03f + pw, z0 + 0.02f, z1 - 0.02f, 0.01f, 0.05f, shutterCol, MM(MAT_WOOD), WF_FRONT);
                 }
+            } else if (bahama == 2) {
+                // aluminium awning over the window (the fifties block houses): a sloped hood with its side cheeks and a
+                // short valance, in the awning colour with a white edge
+                float hw = (s1 - s0) * 0.5f + 0.12f, dep = 0.62f, drop = 0.42f;
+                vec3 top = vec3(w.a + w.t * sc + w.n * 0.02f, z1 + 0.22f), low = vec3(w.a + w.t * sc + w.n * dep, z1 + 0.22f - drop);
+                vec3 dn = normalize(low - top);
+                float L = length(low - top);
+                if (d.b->seed & 256u) {
+                    // striped: the awning colour and white in bands down the slope
+                    int ns = Max(3, (int)roundf(2.f * hw / 0.24f)) | 1;
+                    float sw = 2.f * hw / ns;
+                    for (int q = 0; q < ns; q++) {
+                        vec3 off = vec3(w.t * (-hw + sw * (q + 0.5f)), 0.f);
+                        obox(k, (top + low) * 0.5f + off, vec3(w.t, 0), dn, vec3(sw * 0.5f, L * 0.5f, 0.015f), (q & 1) ? pk(0.96f) : shutterCol, MM(MAT_METAL_PAINTED));
+                    }
+                } else {
+                    obox(k, (top + low) * 0.5f, vec3(w.t, 0), dn, vec3(hw, L * 0.5f, 0.015f), shutterCol, MM(MAT_METAL_PAINTED));
+                }
+                obox(k, low + vec3(0, 0, -0.07f), vec3(w.t, 0), vec3(w.n, 0), vec3(hw, 0.012f, 0.07f), pk(0.95f), MM(MAT_METAL_PAINTED));
+                for (int e = -1; e <= 1; e += 2) {
+                    // the cheek: a triangle under the hood's side edge, both faces
+                    vec2 eb = w.a + w.t * (sc + e * hw);
+                    vec3 p0 = vec3(eb + w.n * 0.02f, z1 + 0.2f), p1 = vec3(eb + w.n * (dep - 0.02f), z1 + 0.22f - drop), p2 = vec3(eb + w.n * 0.02f, z1 + 0.22f - drop);
+                    for (int f2 = 0; f2 < 2; f2++) {
+                        vec3 nn = vec3(w.t * (float)(f2 ? -1 : 1), 0.f);
+                        u32 i0 = k.m->addVertex(p0 - k.org, nn, vec3(w.n, 0.f), vec2(0, 0), shutterCol, MM(MAT_METAL_PAINTED));
+                        u32 i1 = k.m->addVertex(p1 - k.org, nn, vec3(w.n, 0.f), vec2(dep, 0), shutterCol, MM(MAT_METAL_PAINTED));
+                        u32 i2 = k.m->addVertex(p2 - k.org, nn, vec3(w.n, 0.f), vec2(0, drop), shutterCol, MM(MAT_METAL_PAINTED));
+                        if (dot(cross(p1 - p0, p2 - p0), nn) >= 0.f) k.m->tri(i0, i1, i2);
+                        else k.m->tri(i0, i2, i1);
+                    }
+                }
             } else if (bahama) {
                 // Bahama shutter: one panel hinged at the head, propped open at ~30 degrees
                 float hh = (z1 - z0) + 0.1f;
@@ -1014,10 +1046,35 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
     const FacadeGPU& f = *d.f;
     Sink& k = d.k;
     bool villa = b.style == BS_VILLA, shack = b.style == BS_SHACK, farm = b.style == BS_FARMHOUSE;
-    // front wall = the wall whose normal is closest to the street direction
+    // front wall = the wall whose normal is closest to the street direction (the folk Victorian's L: the recessed front
+    // under the porch)
     int fi = 0;
     for (int i = 1; i < (int)walls.size(); i++)
         if (walls[i].facing > walls[fi].facing) fi = i;
+    const bool notchPorch = (b.arch == AR_HOUSE_VICTORIAN || b.arch == AR_HOUSE_BUNGALOW) && b.massing == MK_L;
+    if (notchPorch) {
+        float best = 1e9f;
+        for (int i = 0; i < (int)walls.size(); i++) {
+            if (walls[i].facing < 0.9f || walls[i].len < 2.f) continue;
+            float v = dot((walls[i].a + walls[i].b) * 0.5f - b.c, b.front);
+            if (v < best) best = v, fi = i;
+        }
+    } else if (b.massing == MK_STEP_FRONT && b.arch != AR_NONE) {
+        // (a front bay: the entry in the longer of the set-back fronts beside it, or in the bay when they are too short
+        // for a door between two windows)
+        float vmax = -1e9f, best = 0.f;
+        for (const Wall& w : walls)
+            if (w.facing > 0.9f) vmax = Max(vmax, dot((w.a + w.b) * 0.5f - b.c, b.front));
+        int pick = -1;
+        for (int pass = 0; pass < 2 && pick < 0; pass++)
+            for (int i = 0; i < (int)walls.size(); i++) {
+                const Wall& w = walls[i];
+                bool recessed = dot((w.a + w.b) * 0.5f - b.c, b.front) < vmax - 0.3f;
+                if (w.facing < 0.9f || w.bays < 2 || (pass == 0 && !recessed)) continue;
+                if (w.len > best) best = w.len, pick = i;
+            }
+        if (pick >= 0) fi = pick;
+    }
     const Wall& fw = walls[fi];
     float zb = ms.vBase;
     // window trims and shutters
@@ -1028,8 +1085,17 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
     const vec3 shutterPal[] = {vec3(0.1f, 0.3f, 0.2f), vec3(0.1f, 0.18f, 0.35f), vec3(0.15f, 0.5f, 0.5f), vec3(0.95f), vec3(0.08f),
                                vec3(0.85f, 0.4f, 0.3f), vec3(0.4f, 0.6f, 0.75f), vec3(0.55f, 0.75f, 0.45f)};
     u32 shutterCol = pk(shutterPal[d.r.next() % ARRAY_COUNT(shutterPal)]);
+    if (b.arch == AR_HOUSE_RAISED && !shutters && hash32(b.seed ^ 0xA3D3u) % 10u < 6u) bahama = 1;   // (the Keys' storm shutters)
+    if (b.arch == AR_HOUSE_CBS && hash32(b.seed ^ 0xA3D1u) % 10u < 7u) {
+        // the block houses: aluminium awnings over the windows (green, white, brown, cream, turquoise, coral)
+        const vec3 awn[] = {vec3(0.25f, 0.5f, 0.35f), vec3(0.95f), vec3(0.45f, 0.32f, 0.22f), vec3(0.93f, 0.88f, 0.72f), vec3(0.25f, 0.65f, 0.65f), vec3(0.9f, 0.5f, 0.42f)};
+        shutters = false;
+        bahama = 2;
+        shutterCol = pk(awn[hash32(b.seed ^ 0xA3D2u) % 6u]);
+    }
     for (const Wall& w : walls)
-        if (w.len > 2.f && fabsf(w.facing) > 0.5f) windowTrims(d, w, ms, w.facing > 0.5f ? trimKind : 0, shutters && w.facing > 0.5f, shutterCol, bahama && w.facing > 0.5f);
+        if (w.len > 2.f && fabsf(w.facing) > 0.5f)
+            windowTrims(d, w, ms, w.facing > 0.5f ? trimKind : 0, shutters && w.facing > 0.5f, shutterCol, bahama == 2 ? 2 : (bahama && w.facing > 0.5f ? 1 : 0));
     // front door at the pier nearest the middle of the front wall
     if (fw.bays >= 2) {
         int bi = fw.bays / 2;
@@ -1051,7 +1117,7 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
             // stoop down to the ground (the stilt houses have their stair; the colonial villa its portico platform)
             vec2 sp = fw.a + fw.t * sd + fw.n * 0.8f;
             float gz = d.map->heightAt(sp.x, sp.y);
-            if (b.arch != AR_SHACK_STILT && b.arch != AR_VILLA_COLONIAL) {
+            if (b.arch != AR_SHACK_STILT && b.arch != AR_VILLA_COLONIAL && b.arch != AR_HOUSE_RAISED) {
                 wbox(k, fw, sd - dw * 0.5f - 0.5f, sd + dw * 0.5f + 0.5f, Min(gz, zb) - 0.3f, zb - 0.02f, 0.f, 1.3f, pk(0.82f, 0.8f, 0.76f), MM(MAT_CONCRETE), WF_BOX);
                 if (zb - gz > 0.35f)
                     wbox(k, fw, sd - dw * 0.5f - 0.3f, sd + dw * 0.5f + 0.3f, gz - 0.3f, (zb + gz) * 0.5f, 1.3f, 1.65f, pk(0.82f, 0.8f, 0.76f), MM(MAT_CONCRETE), WF_FRONT | WF_TOP | WF_START | WF_END);
@@ -1083,7 +1149,7 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
                 vec3 R2 = vec3(rc + fw.t * (pw * 0.6f) - fw.n * (pd * 0.5f), zb + ph + 1.2f), R3 = vec3(rc - fw.t * (pw * 0.6f) - fw.n * (pd * 0.5f), zb + ph + 1.2f);
                 k.m->quadFacing(R0 - k.org, R1 - k.org, R2 - k.org, R3 - k.org, vec2(0, 0), vec2(2 * pw, 0), vec2(2 * pw, pd), vec2(0, pd), pk(0.95f, 0.9f, 0.9f),
                                 MM(MAT_ROOF_TILE), vec3(fw.n, 1.f));
-            } else if (!shack && d.r.chance(0.55f)) {
+            } else if (!shack && d.r.chance(0.55f) && b.arch != AR_HOUSE_VICTORIAN && b.arch != AR_HOUSE_RAISED && !notchPorch) {
                 float pw = dw * 0.5f + 0.7f;
                 wbox(k, fw, sd - pw, sd + pw, zb + 2.55f, zb + 2.7f, 0.f, 1.35f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
                 for (int e = 0; e < 2; e++) {
@@ -1250,6 +1316,8 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
     // bougainvillea at a front corner (villas often, houses sometimes)
     if (d.r.chance(villa ? 0.6f : 0.15f)) {
         bool left = d.r.chance(0.5f);
+        // (on a front set back beside a bay or a leg: at its outer end, not in the inner corner under the eave's shade)
+        if (b.arch != AR_NONE && (b.massing == MK_STEP_FRONT || b.massing == MK_L)) left = fabsf(dot(fw.a - b.c, b.ax)) >= fabsf(dot(fw.b - b.c, b.ax));
         float s0 = left ? 0.1f : fw.len - 2.6f;
         vec2 mp = fw.a + fw.t * (s0 + 1.2f);
         bougainvillea(d, fw, s0, s0 + 2.5f, d.map->heightAt(mp.x, mp.y), zb + Min(f.groundH + 1.2f, ms.z1 - zb));
