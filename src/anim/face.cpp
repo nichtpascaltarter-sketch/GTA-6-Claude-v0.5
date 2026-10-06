@@ -435,9 +435,11 @@ void buildHeadGrid(BuildCtx& c) {
         {0.f, RK_EYEHI, 4, 4, 0.f, 0.f, 0, 1.f, 0},      {0.f, RK_LIDUP, 4, 4, 0.f, 0.9f, 0, 1.f, 0},
         {0.f, RK_LIDUP, 4, 4, 0.f, 2.0f, 0, 0.83f, 0},   {0.f, RK_LIDUP, 4, 4, 0.f, 3.1f, 0, 0.52f, 0},
         {0.f, RK_LIDUP, 4, 4, 0.f, 4.3f, 0, 0.15f, 0.3f},
-        // brows, forehead, scalp
+        // brows, forehead, scalp (through the brow's body the rows lie about 2 mm apart: the brow's tint on the skin
+        // is drawn by them, and a thin brow fell between rows 4 mm apart)
         {16.2f, RK_PLAIN, 4, 4, 0.f, 0, 0, 0, 0.75f},    {18.4f, RK_PLAIN, 4, 1, 0.2f, 0, 0, 0, 0.95f},
-        {20.8f, RK_PLAIN, 4, 1, 0.4f, 0, 0, 0, 1.f},     {23.5f, RK_PLAIN, 4, 1, 0.6f, 0, 0, 0, 0.9f},
+        {19.6f, RK_PLAIN, 4, 1, 0.3f, 0, 0, 0, 0.98f},   {20.8f, RK_PLAIN, 4, 1, 0.4f, 0, 0, 0, 1.f},
+        {22.15f, RK_PLAIN, 4, 1, 0.5f, 0, 0, 0, 0.95f},  {23.5f, RK_PLAIN, 4, 1, 0.6f, 0, 0, 0, 0.9f},
         {26.7f, RK_PLAIN, 4, 1, 0.8f, 0, 0, 0, 0.7f},    {30.5f, RK_PLAIN, 1, 1, 0.f, 0, 0, 0, 0.45f},
         {35.2f, RK_PLAIN, 1, 0, 0.2f, 0, 0, 0, 0.22f},   {40.6f, RK_PLAIN, 1, 0, 0.4f, 0, 0, 0, 0.08f},
         {46.5f, RK_PLAIN, 1, 0, 0.6f, 0, 0, 0, 0},       {53.0f, RK_PLAIN, 1, 0, 0.8f, 0, 0, 0, 0},
@@ -1301,10 +1303,14 @@ static void addBrow(BuildCtx& c, int sd, vec3 col) {
         float dens = Lerp(0.7f, 1.f, sstep(0.f, 0.4f, edgeV)) * Lerp(1.f, 0.82f, tail);
         setCardDepth(m, emitCard(m, pts, np, CARD_BROW, r.next(), colRoot, colTip, dens, PART_FACEDETAIL, nullptr), 1);
     }
-    // tint the skin under the brow (the follicles and the fine hairs between the strands): faint, broken up, fading out
-    // at the brow's edges rather than ending in a painted outline
+    // tint the skin under the brow (the follicles and the fine hairs between the strands), broken up per vertex and
+    // fading out over the brow's ends. On screen the strands thin out under the anti-aliasing (and overlapping cards
+    // share one dither threshold, so a brow's cards together cover about as much as one): the tint is what keeps a
+    // brow reading as a dark shape from a few metres. It covers the band the cards fill (see ph above), box-filtered
+    // over each vertex's share of its column (half way to the rows above and below), so a brow lying between two rows
+    // tints both a little instead of neither.
     const u32 tintSeed = hash32(c.d->seed * 0x9E3779B9u + 0x1Du + (u32)sd);
-    for (int j = 0; j < H.rows; j++)
+    for (int j = 1; j + 1 < H.rows; j++)
         for (int k = 0; k < H.cols; k++) {
             BVert& v = m.v[H.grid[(size_t)j * H.cols + k]];
             float th = v.pa;
@@ -1314,12 +1320,13 @@ static void addBrow(BuildCtx& c, int sd, vec3 col) {
             float u = (at - thIn) / (thOut - thIn);
             if (u < -0.08f || u > 1.08f) continue;
             float uc = Saturate(u);
-            float lo = lower(uc), hi = lo + height(uc);
-            float inside = Min(Min(v.pb - lo, hi - v.pb) / (0.9f * deg), Min(u + 0.03f, 1.03f - u) * 9.f);
+            const float lo = lower(uc) - 0.31f * height(uc), hi = lower(uc) + 0.61f * height(uc);
+            const float pbDn = m.v[H.grid[(size_t)(j - 1) * H.cols + k]].pb, pbUp = m.v[H.grid[(size_t)(j + 1) * H.cols + k]].pb;
+            const float a = 0.5f * (v.pb + Min(pbDn, v.pb)), b = 0.5f * (v.pb + Max(pbUp, v.pb));
+            float cover = b - a > 1e-6f ? Saturate((Min(b, hi) - Max(a, lo)) / (b - a)) : 0.f;
+            cover *= sstep(-0.06f, 0.06f, u) * (1.f - sstep(0.92f, 1.06f, u));
             float grain = hashToFloat(hash32((u32)j * 0x27D4EB2Fu ^ (u32)k * 0x165667B1u ^ tintSeed));
-            // (stronger in the brow's body: on screen the strands thin out under the anti-aliasing, and the brow has
-            // to keep reading as a soft dark shape)
-            float w = sstep(-0.8f, 1.2f, inside) * (0.36f + 0.18f * grain + 0.14f * sstep(0.8f, 2.f, inside));
+            float w = cover * (0.6f + 0.24f * grain);
             if (w > 0.f) v.col = lerp(v.col, mulColor(v.col, col * 2.f) * 0.5f + col * 0.5f, w);
         }
 }

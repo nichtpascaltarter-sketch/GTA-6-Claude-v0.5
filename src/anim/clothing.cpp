@@ -476,10 +476,32 @@ bool emitGarment(OutfitCtx& o, const GarmentDef& g) {
         }
     }
     size_t tStart = gm.idx.size();
+    // hair shells (scalp, beard): the edge lies on the skin (a hair under it, so the skin wins the depth test there)
+    // instead of ending in a rolled hem, so the shell rises out of the skin without a step. A step (the shell's
+    // thickness plus a hem lip) read as a cut line along the hairline and across a beard's cheeks: a depth edge for the
+    // screen-space shadows and occlusion, and a rim that caught a street lamp. (Only the positions move. Sunk deeper,
+    // the shell would come out of the skin along a zigzag through the first row of triangles instead of along the cut.)
+    // Where the shell is still thin it shades with the skin's normal: the thickness ramp tilts its own normals by about
+    // 20 degrees, which lit its edge past the skin's terminator on the far side of a face under a lamp.
+    const bool hairShell = g.mat == MAT_HAIR;
+    std::vector<vec3> skinN;
+    if (hairShell) {
+        skinN.resize(gn);
+        for (size_t i = 0; i < gn; i++) skinN[i] = length2(gm.v[i].n) > 1e-12f ? normalize(gm.v[i].n) : vec3(0);
+    }
     gm.computeNormals(0, tStart);
-    // rolled hem (along the shell normal)
-    for (size_t i = 0; i < gn; i++)
-        if (isB[i]) gm.v[i].p += gm.v[i].n * 0.0012f;
+    if (hairShell) {
+        for (size_t i = 0; i < gn; i++) {
+            BVert& v = gm.v[i];
+            if (isB[i]) v.p = v.bp - skinN[i] * 0.00005f;
+            vec3 nn = lerp(skinN[i], v.n, sstep(g.thick + 0.0005f, g.thick + 0.004f, off[i]));
+            if (length2(skinN[i]) > 0.f && length2(nn) > 1e-12f) v.n = normalize(nn);
+        }
+    } else {
+        // rolled hem (along the shell normal)
+        for (size_t i = 0; i < gn; i++)
+            if (isB[i]) gm.v[i].p += gm.v[i].n * 0.0012f;
+    }
     // hem: a rim turned in to the skin for close-fitting edges; loose openings (sleeves, trouser legs, hanging hems)
     // get an inside facing instead, so looking into the opening shows cloth, not a funnel to the skin
     if (g.hem) {

@@ -1888,7 +1888,7 @@ void testFaces() {
 // ridge's front in profile; and a full beard's volume builds up gradually from the lips (no shelf under the lower lip).
 void testFaceShape() {
     using namespace Anim::detail;
-    float worstJump = 0.f, worstMean = 0.f, minGap = 1e9f, minDepth = 1e9f, worstShelf = 0.f;
+    float worstJump = 0.f, worstMean = 0.f, minGap = 1e9f, minDepth = 1e9f, worstShelf = 0.f, worstTint = 0.f;
     int minJaw = 1 << 30;
     for (u32 k = 0; k < 10; k++) {
         CharacterDesc d = randomCharacter(5300u + k * 7919u, (int)(k % 7));
@@ -1947,6 +1947,25 @@ void testFaceShape() {
             if (v.mat == MAT_HAIR && cardKind(v) == CARD_BROW && fabsf(v.p.x - e.x) < 0.004f && (v.p.x > 0.f) == (e.x > 0.f)) browLo = Min(browLo, v.p.z);
         CHECK(browLo - foldZ > 0.002f, "face shape: brow on the lid (k %u: brow %.1f mm above the fold)", k, (browLo - foldZ) * 1000.f);
         minGap = Min(minGap, browLo - foldZ);
+        // the brow's tint on the skin under its strands (a brow reads as a dark shape from a few metres only through it:
+        // its cards cover about half the pixels): at the pupil's column, the darkest skin among the brow's rows against
+        // the forehead above them (the tint used to sit a third of the brow's height above its strands, between rows)
+        {
+            auto lumAt = [&](int j) { return dot(bc.m.v[H.grid[(size_t)j * NC + best]].col, vec3(0.3f, 0.59f, 0.11f)); };
+            float darkest = 1e9f, fore = 0.f;
+            int nf = 0;
+            for (int j = H.rowLidHi + 1; j < H.rows; j++) {
+                float ph = bc.m.v[H.grid[(size_t)j * NC + best]].pb * kRadToDeg;
+                if (ph >= 17.5f && ph < 27.f) darkest = Min(darkest, lumAt(j));
+                else if (ph >= 30.f && ph < 42.f) {
+                    fore += lumAt(j);
+                    nf++;
+                }
+            }
+            float ratio = nf ? darkest / Max(fore / (float)nf, 1e-4f) : 1.f;
+            CHECK(ratio < 0.8f, "face shape: no brow tint on the skin (k %u: darkest %.2f of the forehead)", k, ratio);
+            worstTint = Max(worstTint, ratio);
+        }
         // the cornea's apex behind the brow ridge's front (profile through the eye centre, 8-22 mm above it)
         float browY = -1e9f;
         for (float dz = 0.008f; dz <= 0.022f; dz += 0.001f) {
@@ -1997,9 +2016,9 @@ void testFaceShape() {
             minJaw = Min(minJaw, jawCards);
         }
     }
-    printf("face shape: eye-region normals worst %.0f deg (mean <= %.1f), brow >= %.1f mm above the fold, corneas >= %.1f mm behind the brow, beard "
-           "shell <= %.1f mm over the skin by the lips, >= %d beard card vertices round the jaw's angle\n",
-           worstJump, worstMean, minGap * 1000.f, minDepth * 1000.f, worstShelf * 1000.f, minJaw);
+    printf("face shape: eye-region normals worst %.0f deg (mean <= %.1f), brow >= %.1f mm above the fold, brow tint <= %.2f of the forehead, "
+           "corneas >= %.1f mm behind the brow, beard shell <= %.1f mm over the skin by the lips, >= %d beard card vertices round the jaw's angle\n",
+           worstJump, worstMean, minGap * 1000.f, worstTint, minDepth * 1000.f, worstShelf * 1000.f, minJaw);
 }
 
 // Driving: the hands must stay on the steering wheel rim (absolute interior geometry) for any character size.
