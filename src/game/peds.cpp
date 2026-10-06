@@ -853,8 +853,10 @@ void GameWorld::animatePed(Ped& p, float dt) {
         }
     }
     // someone on foot passing close (the animator turns the near shoulder back and side-steps): of the people near the
-    // camera, the nearest one whose closest approach over the next 1.5 s comes within a metre. Looked for every other
-    // frame, half the peds at a time (the animator eases it in and out; in between the last answer stands)
+    // camera, the nearest one whose closest approach over the next 1.5 s comes within a metre - while someone among them
+    // is going by (0.3 m/s or more between them). Walking together alone is not passing: a companion at the elbow has
+    // next to no speed relative to this ped, and with no one going by there is no one to make room for. Looked for every
+    // other frame, half the peds at a time (the animator eases it in and out; in between the last answer stands)
     if (!upright || !p.grounded || p.visibleDist >= 30.f) {
         in.passWeight = 0.f;
     } else if (((p.uid + (u32)(time / Max(dtLast, 1e-3f) + 0.5)) & 1u) == 0u) {
@@ -862,20 +864,23 @@ void GameWorld::animatePed(Ped& p, float dt) {
         float best = 2.6f;
         int bj = -1;
         vec2 brv(0.f);
+        bool goingBy = false;
         for (int j = 0; j < (int)peds.size(); j++) {
             const Ped& o = peds[j];
             if (o.visibleDist > 33.f || !o.used || &o == &p || o.state != PS_ONFOOT || o.ragdoll || o.health <= 0.f) continue;
             vec3 D = rel(o.pos, p.pos);
             vec2 d2(D.x, D.y), rv(o.vel.x - p.vel.x, o.vel.y - p.vel.y);
             float dist = length(d2), rv2 = length2(rv);
-            if (dist >= best || fabsf(D.z) > 1.2f) continue;
+            if (dist >= 2.6f || fabsf(D.z) > 1.2f) continue;
             float tca = rv2 > 1e-3f ? Clamp(-dot(d2, rv) / rv2, 0.f, 1.5f) : 0.f;
             if (length(d2 + rv * tca) > 1.f) continue;
+            goingBy = goingBy || rv2 >= 0.09f;
+            if (dist >= best) continue;
             best = dist;
             bj = j;
             brv = rv;
         }
-        if (bj >= 0) {
+        if (bj >= 0 && goingBy) {
             const Ped& o = peds[bj];
             vec3 c = rel(o.pos, p.pos) + rotate(yawQuat(o.yaw), o.bones[Anim::B_CHEST].c[3].xyz());
             in.passBy = vec3(dot(vec2(c.x, c.y), rightV), dot(vec2(c.x, c.y), fwd), c.z);
