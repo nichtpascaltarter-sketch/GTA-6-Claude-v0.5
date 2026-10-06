@@ -1347,7 +1347,7 @@ static void buildCoils(OutfitCtx& o, const HairParams& h) {
             R.seed = r.next();
             R.w = R.h = 0.0105f * hs * Lerp(0.85f, 1.15f, ropeRand(R.seed));   // a clump of curl, not a single strand
             const float pitch = 0.036f * hs * Lerp(0.85f, 1.2f, ropeRand(R.seed + 1u)), helixR = 0.008f * hs;
-            R.stepH = pitch / 3.f;
+            R.stepH = pitch / 6.f;   // (six stations a turn: at three the helix zigzagged into a twisted ribbon)
             R.clear = row ? 0.012f : 0.004f;
             R.flare = 0.3f;
             R.hang = h.curlLen * Lerp(0.75f, 1.15f, ropeRand(R.seed + 2u));
@@ -1378,7 +1378,7 @@ static void buildCoils(OutfitCtx& o, const HairParams& h) {
                 if (length2(tg) > 1e-12f) S[j].t = normalize(tg);
             }
             const float tone = Lerp(0.88f, 1.12f, ropeRand(R.seed + 5u));
-            emitRope(m, S, 4, false, h.col * tone, h.col * tone * 1.12f, true, 0);
+            emitRope(m, S, 5, false, h.col * tone, h.col * tone * 1.12f, true, 0);   // (a rounder clump than four sides)
         }
     }
     o.out.append(m);
@@ -1677,7 +1677,7 @@ static void buildFacialHair(OutfitCtx& o) {
     g.col = fcol;
     g.hem = false;
     g.hideMargin = 0.006f;
-    g.thick = 0.0006f;   // (a thin rim where the shell meets the skin: its step must not read as a cut line)
+    g.thick = 0.0006f;   // (thin where it rises out of the skin: see emitGarment, the hair shells' edges)
     g.smooth = 1;
     bool must = true, chin = kind == FH_GOATEE || kind == FH_BEARD || kind == FH_SHORTBEARD, cheeks = kind == FH_BEARD || kind == FH_SHORTBEARD;
     // the shell is the dense core only: it ends a few millimetres inside the beard's edge, where the strand cards over

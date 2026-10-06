@@ -8,8 +8,10 @@
 // Env: PREVIEW_NOHAT, PREVIEW_HAIR / _HAIRCOL / _FH / _GENDER / _AGE / _TOP / _BOTTOM / _SHOES (override the desc),
 //      PREVIEW_SKINBITS=region|transl|pores|oil|melanin (the skin shading bits of face.cpp as false colours),
 //      PREVIEW_TGT=x,y,z (tile camera target offset from the head), PREVIEW_WIRE (triangle edges),
+//      PREVIEW_FEATSHADOW (the renderer's feature shadows on skin from the key light; not with --tiles),
 //      PREVIEW_OPAQUECARDS (strand cards opaque and culled, as drawn before the renderer's card pass),
-//      PREVIEW_SHADE=albedo|normal|diffuse (one shading term alone: vertex colours, normals, the key light's diffuse),
+//      PREVIEW_SHADE=albedo|normal|diffuse|featshadow (one shading term alone: vertex colours, normals, the key light's
+//      diffuse, the feature shadow on skin),
 //      PREVIEW_LIGHT=x,y,z (the key light's direction: y towards the camera, z up; e.g. 0,0.4,1 for a street lamp above).
 // Strand cards are alpha-tested with a stand-in strand pattern (cardAlpha) and drawn two-sided.
 #include "../../src/core/math.cpp"
@@ -127,9 +129,35 @@ static float cardCoverage(u32 mat, vec2 uv, float density, float footprint) {
 }
 static float ditherAt(int x, int y) { return hashToFloat(hash32((u32)x * 73856093u ^ (u32)y * 19349663u)); }
 
+// PREVIEW_FEATSHADOW: the renderer's feature shadows on skin (lighting.hlsl featureShadow) from the key light: an
+// 8-step march of 4.5 cm towards it, tested against a depth pre-pass of the same view (cards dithered as drawn)
+static std::vector<float> gFeatZ;   // view depth of the pre-pass (empty: off)
+static float featShadow(const Cam& cam, int w, int h, vec3 pos, vec3 n, vec3 L, int px, int py) {
+    const int steps = 8;
+    const float viewDepth = -(cam.view * vec4(pos, 1.f)).z;
+    const float pxW = viewDepth * 2.f * tanf(cam.fov * kDegToRad * 0.5f) / (float)h;
+    const float bias = Max(0.0015f, pxW * 0.5f);
+    const float jit = hashToFloat(hash32((u32)px * 73856093u ^ (u32)py * 19349663u ^ 0x5bd1e995u));
+    const vec3 stepV = L * (0.045f / steps);
+    vec3 p = pos + n * Max(0.002f, pxW * 0.75f) + stepV * jit;
+    for (int i = 0; i < steps; i++) {
+        p += stepV;
+        vec4 v = cam.view * vec4(p, 1.f);
+        vec4 c = cam.proj * v;
+        if (c.w <= 0.f) break;
+        int ix = (int)((c.x / c.w * 0.5f + 0.5f) * w), iy = (int)((0.5f - c.y / c.w * 0.5f) * h);
+        if (ix < 0 || iy < 0 || ix >= w || iy >= h) break;
+        float d = gFeatZ[(size_t)iy * w + ix];
+        if (d >= 1e29f) continue;
+        float diff = -v.z - d;
+        if (diff > bias && diff < 0.04f) return Saturate((float)i / steps * 0.6f);
+    }
+    return 1.f;
+}
+
 static bool wire = false;
 static bool opaqueCards = false;   // PREVIEW_OPAQUECARDS: draw strand cards like the current renderer (opaque, culled)
-static int shadeDbg = 0;           // PREVIEW_SHADE=albedo|normal|diffuse: one shading term alone
+static int shadeDbg = 0;           // PREVIEW_SHADE=albedo|normal|diffuse|featshadow: one shading term alone
 static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const std::vector<vec3>& N, const std::vector<vec3>& A,
                      const std::vector<u32>& mats, const std::vector<u32>& idx, const std::vector<vec2>* UV = nullptr,
                      const std::vector<float>* AL = nullptr) {
@@ -208,18 +236,21 @@ static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const
                     }
                     skinGloss = 1.f - ((*AL)[i0] * w0 + (*AL)[i1] * w1 + (*AL)[i2] * w2);
                 }
+                const float fsh = skinM && !gFeatZ.empty() ? featShadow(cam, img.w, img.h, pos, n, L1, x, y) : 1.f;
+                d1 *= fsh;
                 vec3 col = alb * (d1 * 1.0f + d2 * 0.25f + amb);
                 if (skinM) col += mulColor(alb, vec3(0.12f, 0.03f, 0.02f)) * (1.f - Max(0.f, dot(n, L1)));
                 vec3 H = normalize(L1 + V);
                 float gloss = (mat & 0xff) == MAT_EYE || (mat & 0xff) == MAT_CAR_GLASS ? 200.f : ((mat & 0xff) == MAT_CHROME ? 60.f : 24.f + 60.f * skinGloss);
                 float ks = skinM ? 0.04f + 0.1f * skinGloss : ((mat & 0xff) == MAT_EYE || (mat & 0xff) == MAT_CAR_GLASS ? 0.5f : 0.03f);
                 if ((mat & 0xff) == MAT_CHROME) ks = 0.5f;
-                col += vec3(powf(Max(0.f, dot(n, H)), gloss) * ks * (dot(n, L1) > 0 ? 1.f : 0.f));
+                col += vec3(powf(Max(0.f, dot(n, H)), gloss) * ks * (dot(n, L1) > 0 ? 1.f : 0.f) * fsh);
                 float rim = powf(1.f - Max(0.f, dot(n, V)), 3.f) * 0.08f;
                 col += vec3(rim);
                 if (shadeDbg == 1) col = alb;                                 // vertex colours alone
                 else if (shadeDbg == 2) col = n * 0.5f + vec3(0.5f);          // normals
                 else if (shadeDbg == 3) col = vec3(0.15f + 0.85f * d1);        // the key light's wrapped diffuse alone
+                else if (shadeDbg == 4) col = skinM ? vec3(fsh) : vec3(0.3f, 0.3f, 0.6f);   // the feature shadow alone (skin)
                 if (wire) {
                     // triangle edges: barycentric distance scaled to pixels
                     float e0 = w0 * fabsf(area) / Max(length(vec2(b.x - c.x, b.y - c.y)), 1e-3f);
@@ -516,7 +547,8 @@ int main(int argc, char** argv) {
     H *= ss;
     wire = getenv("PREVIEW_WIRE") != nullptr;
     opaqueCards = getenv("PREVIEW_OPAQUECARDS") != nullptr;
-    if (const char* sv = getenv("PREVIEW_SHADE")) shadeDbg = !strcmp(sv, "albedo") ? 1 : (!strcmp(sv, "normal") ? 2 : (!strcmp(sv, "diffuse") ? 3 : 0));
+    if (const char* sv = getenv("PREVIEW_SHADE"))
+        shadeDbg = !strcmp(sv, "albedo") ? 1 : (!strcmp(sv, "normal") ? 2 : (!strcmp(sv, "diffuse") ? 3 : (!strcmp(sv, "featshadow") ? 4 : 0)));
     if (pair) {
         // takedown pair: character 0 = victim, character 1 = attacker 0.55 m behind it (same seed variations)
         clipList = {CLIP_TAKEDOWN_VICTIM, CLIP_TAKEDOWN_ATTACKER};
@@ -996,8 +1028,15 @@ int main(int argc, char** argv) {
             tc.setup(tw, H);
             drawMesh(tile, tc, P, N, A, M, ch.mesh.indices, &UVs, &ALs);
             img.blit(tile, i * tw);
-        } else
+        } else {
+            if (getenv("PREVIEW_FEATSHADOW")) {
+                Img pre(img.w, img.h);
+                drawMesh(pre, cam, P, N, A, M, ch.mesh.indices, &UVs, &ALs);
+                gFeatZ = pre.z;
+            }
             drawMesh(img, cam, P, N, A, M, ch.mesh.indices, &UVs, &ALs);
+            gFeatZ.clear();
+        }
         if (getenv("PREVIEW_PHONE")) {
             mat4 msp[B_COUNT];
             for (int b = 0; b < B_COUNT; b++) {

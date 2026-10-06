@@ -1288,7 +1288,7 @@ void buildBody(BuildCtx& c) {
                 thO = Max(thO, lo.pa);
             }
             if (thO > thI) {
-                const int j0 = Max(2, H.rowLidLo - 2), j1 = Min(H.rows - 2, H.rowBrow + 1);
+                const int j0 = Max(2, H.rowLidLo - 2), j1 = Min(H.rows - 2, H.rowBrow + 2);   // (up to the 20.8 degree row)
                 std::vector<float> wv((size_t)(j1 - j0 + 1) * NC, 0.f);
                 for (int j = j0; j <= j1; j++) {
                     if (j == H.rowEyeHi || j == H.rowEyeLo) continue;

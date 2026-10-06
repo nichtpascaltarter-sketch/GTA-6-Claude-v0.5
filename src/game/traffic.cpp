@@ -836,6 +836,22 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
             aiSay(drv, BK_HONK, 0.6f);
             va.hornBarkTimer = 8.f;
         }
+        // somebody out in the road ahead off the crossing (a jaywalker, one stepping out between cars): a tap of the
+        // horn and a word through the window, once - and they hurry on (a sorry, or a word back)
+        if (!playerBlock && bl.kind == AI::BK_PED && !(bl.flags & AI::BF_CROSSING) && va.hornBarkTimer <= 0.f && plD < 45.f && v.sim.speed() > 1.5f &&
+            bl.host >= 0 && bl.host < (int)peds.size() && bl.host < (int)ai.ped.size() && peds[bl.host].used && !peds[bl.host].isPlayer &&
+            ai.ped[bl.host].uid == peds[bl.host].uid && peds[bl.host].faction == FAC_CIVILIAN && ai.ped[bl.host].eventId < 0 &&
+            (ai.ped[bl.host].activity == ACT_WALK || ai.ped[bl.host].activity == ACT_CROSS) &&
+            (peds[bl.host].brain.type == BRAIN_WANDER || peds[bl.host].brain.type == BRAIN_GOTO) && length(bl.pos - v.sim.body.pos.toVec3().xy()) < 14.f) {
+            va.hornBarkTimer = 10.f;
+            d->hornHold = 0.35f;
+            aiSay(drv, BK_HONK_PED, 0.8f);
+            PedAI& qa = ai.ped[bl.host];
+            qa.walk.hurry = Max(qa.walk.hurry, 1.8f);
+            peds[bl.host].lookPed = drv;
+            peds[bl.host].lookT = 1.5f;
+            if (qa.barkCooldown <= 0.f) aiSay(bl.host, BK_BUMP, 0.5f);
+        }
     }
     (void)spec;
 }
