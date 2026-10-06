@@ -1313,17 +1313,19 @@ static void addBrow(BuildCtx& c, int sd, vec3 col) {
             pts[np].sw = sw;
             np++;
         }
-        float dens = Lerp(0.7f, 1.f, sstep(0.f, 0.4f, edgeV)) * Lerp(1.f, 0.82f, tail);
+        // (the renderer composites cards as hairs, overlapping ones adding up to 1 - prod(1 - coverage); eight or nine
+        // overlap through a brow's body, so each card is sparse, and together they leave a little skin showing between
+        // the hairs: a full brow, not a solid black stroke; anim_test FaceHairCoverage)
+        float dens = Lerp(0.315f, 0.45f, sstep(0.f, 0.4f, edgeV)) * Lerp(1.f, 0.82f, tail);
         // (the renderer's card depth: a brow is a mat of hairs lying on each other, and at depth 1 every strand caught
         // the sun's highlight along the brow, which turned dark brows into pale bands by day)
         setCardDepth(m, emitCard(m, pts, np, CARD_BROW, r.next(), colRoot, colTip, dens, PART_FACEDETAIL, nullptr), 3u + hash32((u32)i * 0x9E3779B1u ^ (c.d->seed * 0x2C1B3C6Du + (u32)sd)) % 3u);
     }
     // tint the skin under the brow (the follicles and the fine hairs between the strands), broken up per vertex and
-    // fading out over the brow's ends. On screen the strands thin out under the anti-aliasing (and overlapping cards
-    // share one dither threshold, so a brow's cards together cover about as much as one): the tint is what keeps a
-    // brow reading as a dark shape from a few metres. It covers the band the cards fill (see ph above), box-filtered
-    // over each vertex's share of its column (half way to the rows above and below), so a brow lying between two rows
-    // tints both a little instead of neither.
+    // fading out over the brow's ends: the skin that shows between the cards' strands. Once the strands are thinner
+    // than a pixel the tint is what keeps a brow reading as a dark shape from a few metres. It covers the band the
+    // cards fill (see ph above), box-filtered over each vertex's share of its column (half way to the rows above and
+    // below), so a brow lying between two rows tints both a little instead of neither.
     const u32 tintSeed = hash32(c.d->seed * 0x9E3779B9u + 0x1Du + (u32)sd);
     for (int j = 1; j + 1 < H.rows; j++)
         for (int k = 0; k < H.cols; k++) {
@@ -1563,9 +1565,11 @@ static void addLidDetails(BuildCtx& c, int sd, vec3 lashCol) {
                     pts[k].sw = lerpSkin(a0.sw, a1.sw, 0.5f);
                 }
                 // (in the renderer's card depth a little inside the hair volume: lashes are thin dark hairs in the shade of
-                // the lid's fold and of each other, and at depth 0 their highlight drew a pale band along the lid)
+                // the lid's fold and of each other, and at depth 0 their highlight drew a pale band along the lid. The
+                // renderer adds overlapping cards up, the two rows and their neighbours: densities for a fringe that
+                // blocks about half the light along the lash line, not a painted line; anim_test FaceHairCoverage)
                 setCardDepth(m, emitCard(m, pts, NPt, CARD_LASH, r.next(), lid == 0 ? lashCol * 0.7f : lashCol * 1.1f, lashCol * 1.35f,
-                                         lid == 0 ? (row == 0 ? 0.95f : Lerp(0.32f, 0.55f, D.fem)) : 0.32f, PART_FACEDETAIL, nullptr),
+                                         lid == 0 ? (row == 0 ? 0.71f : Lerp(0.24f, 0.41f, D.fem)) : 0.24f, PART_FACEDETAIL, nullptr),
                              lid == 0 ? (row == 0 ? 3u : 4u) : 3u);
             }
     }

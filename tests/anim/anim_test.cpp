@@ -1886,6 +1886,129 @@ void testFaces() {
 // change smoothly between neighbours (the lid-row fans at the corners used to fold into pleats, and the lid mound met
 // the socket in a groove); the brows sit above the lids' fold with skin between; the corneas sit behind the brow
 // ridge's front in profile; and a full beard's volume builds up gradually from the lips (no shelf under the lower lip).
+// Face hair coverage as the renderer composites strand cards (psHairCard): each card dithers its coverage against its
+// own offset of the pixel's threshold, so cards overlapping at a point cover it together, 1 - prod(1 - c). The card's
+// coverage at (uv) is hairCardCoverage's sub-pixel average (mean strand width, tips fading, the card's side edges and
+// its density). Sampled at the cards' own centre lines over the middle of each brow (the brow's body) and along the
+// upper lash line: a brow should read full but not solid (its skin shows between the hairs), lashes as a fringe.
+static float cardAvgCoverage(vec2 uv, float density) {
+    float along = uv.y;
+    float taper = Saturate(1.f - along);
+    float alive = along < 0.82f ? 1.f : Saturate((1.f - along) / 0.18f);   // strand lengths 0.82..1 of the card
+    float tipFade = Saturate((1.f - along / 0.91f) * 5.f);
+    float halfW = 0.32f * (0.3f + 0.7f * sqrtf(taper));
+    float edge = detail::sstep(0.f, 0.14f, uv.x) * detail::sstep(1.f, 0.86f, uv.x);
+    return Saturate(halfW * 1.6f * alive * tipFade) * edge * density * Lerp(1.f, 0.7f, detail::sstep(0.55f, 1.f, uv.y));
+}
+struct CardGeo {
+    vec3 c[4], b[4];   // centre line and across-vector (left edge -> right edge) per point
+    float v[4];        // uv.y per point
+    float density;
+    int n;
+};
+static void collectCards(const Anim::detail::MeshB& m, u8 kind, std::vector<CardGeo>& out) {
+    using namespace Anim::detail;
+    for (size_t i = 0; i + 1 < m.v.size();) {
+        const BVert& a = m.v[i];
+        if (cardKind(a) != kind || a.uv.x != 0.f || a.uv.y != 0.f) {
+            i++;
+            continue;
+        }
+        // a card: pairs (left uv.x 0, right uv.x 1) with rising uv.y, until uv.y reaches 1
+        CardGeo g;
+        g.n = 0;
+        g.density = a.alpha;
+        size_t j = i;
+        while (j + 1 < m.v.size() && g.n < 4 && cardKind(m.v[j]) == kind && m.v[j].matParam == a.matParam) {
+            g.c[g.n] = (m.v[j].p + m.v[j + 1].p) * 0.5f;
+            g.b[g.n] = m.v[j + 1].p - m.v[j].p;
+            g.v[g.n] = m.v[j].uv.y;
+            g.n++;
+            j += 2;
+            if (m.v[j - 2].uv.y >= 0.999f) break;
+        }
+        if (g.n >= 2) out.push_back(g);
+        i = j;
+    }
+}
+// accumulated coverage at point p over the given cards (cards whose ribbon passes within 2.5 mm of p)
+static float accumCoverage(const std::vector<CardGeo>& cards, vec3 p) {
+    float T = 1.f;
+    for (const CardGeo& g : cards) {
+        float best = 1e9f, bu = 0.f, bv = 0.f;
+        for (int k = 0; k + 1 < g.n; k++) {
+            vec3 d = g.c[k + 1] - g.c[k];
+            float L2 = Max(length2(d), 1e-12f);
+            float t = Saturate(dot(p - g.c[k], d) / L2);
+            vec3 q = g.c[k] + d * t;
+            vec3 bw = lerp(g.b[k], g.b[k + 1], t);
+            float w2 = Max(length2(bw), 1e-12f);
+            float across = dot(p - q, bw) / w2;   // -0.5 .. 0.5 over the card's width
+            vec3 off = p - q - bw * across;
+            float dist = length(off);
+            if (dist < best) {
+                best = dist;
+                bu = 0.5f + across;
+                bv = Lerp(g.v[k], g.v[k + 1], t);
+            }
+        }
+        if (best > 0.0025f || bu < 0.f || bu > 1.f) continue;
+        T *= 1.f - cardAvgCoverage(vec2(bu, bv), g.density);
+    }
+    return 1.f - T;
+}
+void testFaceHairCoverage() {
+    using namespace Anim::detail;
+    float browLo = 1.f, browHi = 0.f, lashLo = 1.f, lashHi = 0.f;
+    for (u32 k = 0; k < 8; k++) {
+        CharacterDesc d = randomCharacter(7100u + k * 7919u, (int)(k % 7));
+        Skeleton sk;
+        buildSkeleton(d, sk);
+        BodyDims D;
+        computeDims(d, D);
+        BuildCtx bc;
+        bc.d = &d;
+        bc.D = &D;
+        bc.sk = &sk;
+        bc.skin = d.skinTone;
+        bc.lipCol = bc.skin;
+        bc.palmCol = bc.skin;
+        buildBody(bc);
+        std::vector<CardGeo> brows, lashes;
+        collectCards(bc.m, CARD_BROW, brows);
+        collectCards(bc.m, CARD_LASH, lashes);
+        // the brows' body: card roots in the middle half of each brow's span across the face
+        float xmin[2] = {1e9f, 1e9f}, xmax[2] = {-1e9f, -1e9f};
+        for (const CardGeo& g : brows) {
+            int sd = g.c[0].x > 0.f ? 1 : 0;
+            xmin[sd] = Min(xmin[sd], fabsf(g.c[0].x));
+            xmax[sd] = Max(xmax[sd], fabsf(g.c[0].x));
+        }
+        std::vector<float> cov;
+        for (const CardGeo& g : brows) {
+            int sd = g.c[0].x > 0.f ? 1 : 0;
+            float u = (fabsf(g.c[0].x) - xmin[sd]) / Max(xmax[sd] - xmin[sd], 1e-4f);
+            if (u < 0.3f || u > 0.7f) continue;
+            cov.push_back(accumCoverage(brows, lerp(g.c[0], g.c[1], 0.5f)));
+        }
+        std::sort(cov.begin(), cov.end());
+        float browMed = cov.empty() ? 0.f : cov[cov.size() / 2];
+        // the upper lash line: a third of the way out along each upper lash card (the lower lashes point down)
+        std::vector<float> lc;
+        for (const CardGeo& g : lashes)
+            if (g.n == 4) lc.push_back(accumCoverage(lashes, lerp(g.c[0], g.c[1], 0.6f)));
+        std::sort(lc.begin(), lc.end());
+        float lashMed = lc.empty() ? 0.f : lc[lc.size() / 2];
+        CHECK(browMed > 0.6f && browMed < 0.9f, "face hair: brow body coverage %.2f (k %u; full but not solid: 0.6..0.9)", browMed, k);
+        CHECK(lashMed > 0.35f && lashMed < 0.62f, "face hair: upper lash line coverage %.2f (k %u; a fringe, not a painted line: 0.35..0.62)", lashMed, k);
+        browLo = Min(browLo, browMed);
+        browHi = Max(browHi, browMed);
+        lashLo = Min(lashLo, lashMed);
+        lashHi = Max(lashHi, lashMed);
+    }
+    printf("face hair: brow body coverage %.2f..%.2f, upper lash line %.2f..%.2f (cards composited as the renderer does)\n", browLo, browHi, lashLo, lashHi);
+}
+
 void testFaceShape() {
     using namespace Anim::detail;
     float worstJump = 0.f, worstMean = 0.f, minGap = 1e9f, minDepth = 1e9f, worstShelf = 0.f, worstTint = 0.f, worstTrench = 0.f;
@@ -2333,6 +2456,7 @@ int main(int argc, char** argv) {
     run("Lods", testLods);
     run("Faces", testFaces);
     run("FaceShape", testFaceShape);
+    run("FaceHairCoverage", testFaceHairCoverage);
     run("Mesh", testMesh);
     run("ClothingClip", testClothingClip);
     printf("%s (%d failures)\n", gFail ? "FAILED" : "ALL PASSED", gFail);
