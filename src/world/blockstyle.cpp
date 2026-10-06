@@ -1286,16 +1286,97 @@ void BuildingSet::logRepetition() const {
 // ------------------------------------------------------------------------------------------------ paved ground
 namespace blockstyle {
 
+// The back-yard pool of a house or villa (buildmesh.cpp backyardPool builds it): whether there is one, its centre, the
+// water's half extents along b.ax and across it, the deck's width round it and the shape (0 rectangle, 1 rounded ends,
+// 2 a lap pool), fitted inside the side hedges and the back lot line, clear of the house. Seeded streams of its own, so
+// the paved-ground map (pavedRects) and the scattered vegetation know it. pr is left where the deck's look goes on.
+bool poolDeck(const Building& b, Rng& pr, vec2& pc, float& pw, float& pdd, float& dw, int& kind) {
+    if ((b.style != BS_HOUSE && b.style != BS_VILLA) || b.region == REG_FARMLAND || b.siteElem >= 0) return false;
+    Rng q(b.seed ^ 0x9003Bu);
+    // (the houses' share by district: the suburbs and the Grove most, the islands' villas all; few in the old city's small
+    // lots, the small towns and the fishing village)
+    float share = 0.3f;
+    switch (b.region) {
+        case REG_SUBURBS: share = 0.38f; break;
+        case REG_GROVE: share = 0.5f; break;
+        case REG_KEY_CORAL:
+        case REG_BAY_ISLAND: share = 0.6f; break;
+        case REG_KEYS:
+        case REG_KEY_TOWN: share = 0.25f; break;
+        case REG_NORTH_CITY:
+        case REG_CALLE_LUNA:
+        case REG_FLATS:
+        case REG_MIDTOWN: share = 0.12f; break;
+        case REG_LAKE_TOWN:
+        case REG_HARLOW:
+        case REG_FORT_CASTELL:
+        case REG_REDLAND: share = 0.15f; break;
+        case REG_GULF_TOWN:
+        case REG_RIDGE:
+        case REG_SAWGRASS: share = 0.1f; break;
+        default: break;
+    }
+    if (b.style == BS_HOUSE && !q.chance(share)) return false;
+    const float backSpace = b.lotHy * 2.f - b.hy * 2.f - 6.f;
+    if (backSpace <= 6.f) return false;
+    pc = b.c - b.front * (b.hy + 2.f + Min(backSpace * 0.4f, 4.f)) + b.ax * q.range(-b.hx * 0.3f, b.hx * 0.3f);
+    pw = q.range(2.5f, 4.5f);
+    pdd = q.range(1.8f, 2.6f);
+    const bool villa = b.style == BS_VILLA;
+    const float shape = pr.f();
+    kind = shape < 0.3f ? 1 : 0;   // 1: rounded ends
+    if (villa && shape > 0.7f) kind = 2;   // a lap pool
+    dw = villa ? pr.range(1.6f, 2.4f) : pr.range(1.2f, 1.8f);
+    if (kind == 2) {
+        pdd = 1.3f;
+        pw = Max(pw, 6.5f);
+    }
+    // room for the deck: inside the side hedges and the back lot line, clear of the house's back wall
+    const float off = dot(b.lotC - b.c, b.front), lat = dot(b.lotC - b.c, b.ax);
+    const float pv = dot(pc - b.c, b.front), pu = dot(pc - b.c, b.ax);
+    const float roomU = b.lotHx - 0.9f - fabsf(pu - lat);
+    const float roomV = Min(pv - (off - b.lotHy) - 0.7f, -b.hy - pv - 0.4f);
+    pw = Min(pw, roomU - 0.9f);
+    pdd = Min(pdd, roomV - 0.9f);
+    if (pw < 1.6f || pdd < 1.f) return false;
+    dw = Clamp(Min(dw, Min(roomU - pw, roomV - pdd)), 0.9f, 2.4f);
+    return true;
+}
+
+// A paved front yard (the older city - Calle Luna, the Flats, North Porto Sol, Midtown - and a few in Westbrook): concrete
+// or brick pavers from the house's front to the lot's street edge (buildmesh.cpp), the driveway part of it; facadedetail.cpp
+// leaves the lawn and the front walk out there. 0 none, 1 concrete, 2 pavers.
+int frontPaved(const Building& b) {
+    if (b.style != BS_HOUSE || b.interior >= 0 || b.siteElem >= 0 || b.arch == AR_HOUSE_VICTORIAN || b.arch == AR_HOUSE_RAISED || b.arch == AR_HOUSE_CONCH)
+        return 0;
+    const float share = (b.region == REG_CALLE_LUNA || b.region == REG_FLATS) ? 0.28f
+                        : ((b.region == REG_NORTH_CITY || b.region == REG_MIDTOWN) ? 0.18f : (b.region == REG_SUBURBS ? 0.04f : 0.f));
+    if (hashToFloat(hash32(b.seed ^ 0xF4A7Eu)) >= share) return 0;
+    return hashToFloat(hash32(b.seed ^ 0xF4A7Fu)) < 0.6f ? 1 : 2;
+}
+
 // Paved rectangles of a building (centre, axis, half extents): the footprint, a house's garage wing and driveway (the
-// rules of buildmesh.cpp), a strip mall's or gas station's forecourt
+// rules of buildmesh.cpp), its pool deck and paved front yard, a strip mall's or gas station's forecourt
 struct PavedRect {
     vec2 c, ax;
     float hx, hy;
 };
+constexpr int kPavedRectsMax = 6;
 int pavedRects(const Building& b, PavedRect* out) {
     int n = 0;
     out[n++] = {b.c, b.ax, b.hx, b.hy};
     if (b.siteElem >= 0) return n;
+    {
+        Rng pr(b.seed ^ 0x9001Fu);
+        vec2 pc;
+        float pw, pdd, dw;
+        int kind;
+        if (poolDeck(b, pr, pc, pw, pdd, dw, kind)) out[n++] = {pc, b.ax, pw + dw, pdd + dw};
+    }
+    if (frontPaved(b)) {
+        const float off = dot(b.lotC - b.c, b.front), lat = dot(b.lotC - b.c, b.ax), v0 = b.hy - 0.05f, v1 = off + b.lotHy - 0.3f;
+        if (v1 - v0 > 1.f) out[n++] = {b.c + b.ax * lat + b.front * ((v0 + v1) * 0.5f), b.ax, b.lotHx - 0.15f, (v1 - v0) * 0.5f};
+    }
     if ((b.style == BS_HOUSE && (b.seed % 10u) < 7u) || b.style == BS_VILLA) {
         float side = (b.seed & 64u) ? 1.f : -1.f;
         float gw = 3.2f, gd = Min(b.hy, 3.4f);
@@ -1326,7 +1407,7 @@ bool BuildingSet::pavedAt(vec2 p) const {
     // buildings are bucketed by centre: their footprints and aprons reach at most ~80 m beyond it
     int x0 = Clamp((int)((p.x - 90.f + kWorldHalf) / kCellSize), 0, cps - 1), x1 = Clamp((int)((p.x + 90.f + kWorldHalf) / kCellSize), 0, cps - 1);
     int y0 = Clamp((int)((p.y - 90.f + kWorldHalf) / kCellSize), 0, cps - 1), y1 = Clamp((int)((p.y + 90.f + kWorldHalf) / kCellSize), 0, cps - 1);
-    PavedRect rr[4];
+    PavedRect rr[kPavedRectsMax];
     for (int y = y0; y <= y1; y++)
         for (int x = x0; x <= x1; x++) {
             if ((size_t)y * cps + x < cellLists.size())
@@ -1370,7 +1451,7 @@ int BuildingSet::pavedGrid(int cx, int cy, int n, std::vector<u8>& out) const {
                 }
             }
     };
-    PavedRect rr[4];
+    PavedRect rr[kPavedRectsMax];
     for (int y = Max(0, cy - 1); y <= Min(kCellsPerSide - 1, cy + 1); y++)
         for (int x = Max(0, cx - 1); x <= Min(kCellsPerSide - 1, cx + 1); x++) {
             size_t ci = (size_t)y * kCellsPerSide + x;

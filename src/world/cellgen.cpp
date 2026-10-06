@@ -39,6 +39,15 @@ void scatterVegetation(int cx, int cy, std::vector<PropInstance>& props) {
         }
         return false;
     };
+    // paved ground (BuildingSet::pavedGrid, 2 m squares): forecourts, driveways, pool decks, paved front yards, parking
+    thread_local std::vector<u8> paved;
+    const int pn = Max(1, (int)(kCellSize / 2.f));
+    if (gBuildings) gBuildings->pavedGrid(cx, cy, pn, paved);
+    else paved.assign((size_t)pn * pn, 0);
+    auto onPaved = [&](vec2 p) {
+        int ix = (int)((p.x - org.x) / kCellSize * pn), iy = (int)((p.y - org.y) / kCellSize * pn);
+        return ix >= 0 && iy >= 0 && ix < pn && iy < pn && paved[(size_t)iy * pn + ix] != 0;
+    };
     const float step = 7.f;
     int n = (int)(kCellSize / step);
     for (int iy = 0; iy < n; iy++)
@@ -80,6 +89,9 @@ void scatterVegetation(int cx, int cy, std::vector<PropInstance>& props) {
             if (gBuildings->pointInBuilding(p, 2.5f)) continue;
             if (gSites->blocksVegetation(p)) continue;
             if (!parking.empty() && onParking(p)) continue;
+            // (nor on a strip mall's or gas station's forecourt - a palm came up through the pump canopy - a driveway, a
+            // pool deck or a paved front yard: BuildingSet::pavedGrid)
+            if (type != PROP_SAWGRASS && type != PROP_MANGROVE && onPaved(p)) continue;
             PropInstance pi;
             pi.pos = vec3(p, gz);
             pi.yaw = hashToFloat(hash32(h ^ 0x1234u)) * kTwoPi;

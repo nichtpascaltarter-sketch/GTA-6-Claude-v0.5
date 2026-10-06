@@ -29,10 +29,17 @@ struct Ctx {
     int interior = -1;  // enterable interior of the building (world/interiors.cpp): facade cut-outs, hollow collision
     u32 roofCol = 0xffe0e5e5u, roofMat = 0;      // flat roof finish of the building (roofFinish), set per building
     std::vector<YardKeep>* keep = nullptr;       // the house's yard keep-outs (YardKeep), per building
+    std::vector<vec4>* holes = nullptr;          // paved ground the lawn leaves out (lawnHole), per building
 };
 
 inline void yardKeep(Ctx& x, vec2 c, vec2 a, vec2 b, float ha, float hb) {
     if (x.keep) x.keep->push_back({c, a, b, fabsf(ha), fabsf(hb)});
+}
+// Ground the house's lawn leaves out (facadedetail.cpp lawn()): the pool deck, the driveway, the carport floor. A rectangle
+// on the building's axes: centre and the half extents along b.ax and across it. (The lawn lies 3.5 cm over the ground and
+// used to cover the pool, which stood below it, and poke through the driveways on uneven ground.)
+inline void lawnHole(Ctx& x, vec2 c, float hu, float hv) {
+    if (x.holes) x.holes->push_back(vec4(c.x, c.y, fabsf(hu), fabsf(hv)));
 }
 inline bool yardKept(const Ctx& x, vec2 p, float margin) {
     if (!x.keep) return false;
@@ -612,6 +619,202 @@ inline float courtFoot(float plateau, vec2 p, float z0) {
     return gMap ? Min(gMap->heightAt(p.x, p.y) + 0.05f, z0) : z0;
 }
 
+// Back yard pool of a house or villa (blockstyle.cpp poolDeck decides whether there is one and fits it). The deck
+// stands on the highest ground under it, so the water clears the terrain and the lawn (which leaves the deck out:
+// lawnHole), and a skirt runs down to the ground round it. The pools used to sit below the lawn and read as squares of
+// grass from the air. Shapes: a rectangle, rounded ends, a lap pool behind the villas; a spa on the end of some; a coping
+// round the water; the deck in brick pavers, keystone, poured concrete or, in the Keys, wood. The water is a glossy
+// turquoise, lit from below at night on most.
+void backyardPool(Ctx& x, const Building& b) {
+    if (!gMap) return;
+    const WorldMap& map = *gMap;
+    MeshData& m = *x.m;
+    const vec3 org = x.org;
+    const vec2 ax = b.ax, ay = perp(b.ax);
+    Rng pr(b.seed ^ 0x9001Fu);
+    vec2 pc;
+    float pw, pdd, dw;
+    int kind;
+    if (!blockstyle::poolDeck(b, pr, pc, pw, pdd, dw, kind)) return;
+    const bool villa = b.style == BS_VILLA;
+    const bool keys = b.region == REG_KEYS || b.region == REG_KEY_TOWN || b.region == REG_GULF_TOWN;
+    const float du = pw + dw, dv = pdd + dw;
+    vec2 dc[4];   // the deck's corners (CCW from +ax +ay)
+    float gHi = map.heightAt(pc.x, pc.y);
+    for (int c = 0; c < 4; c++) {
+        float sx = (c == 0 || c == 3) ? 1.f : -1.f, sy = c < 2 ? 1.f : -1.f;
+        dc[c] = pc + ax * (sx * du) + ay * (sy * dv);
+        gHi = Max(gHi, map.heightAt(dc[c].x, dc[c].y));
+    }
+    const float pz = gHi + 0.1f;
+    yardKeep(x, pc, ax, ay, du, dv);
+    lawnHole(x, pc, du, dv);
+    // the deck: 0 brick pavers, 1 keystone, 2 poured concrete, 3 wood
+    const float dm = pr.f();
+    const int deck = keys ? (dm < 0.6f ? 3 : 2) : (villa ? (dm < 0.55f ? 1 : 0) : (dm < 0.45f ? 0 : (dm < 0.8f ? 2 : 1)));
+    u32 dcol, dmat;
+    switch (deck) {
+        case 0: {
+            const vec3 pav[] = {vec3(0.92f, 0.9f, 0.88f), vec3(1.f, 0.82f, 0.72f), vec3(0.86f, 0.86f, 0.86f)};
+            vec3 t = pav[pr.next() % 3u];
+            dcol = packRGBA8(t.x, t.y, t.z, 1);
+            dmat = makeMat(MAT_PAVERS);
+            break;
+        }
+        case 1: dcol = packRGBA8(1.f, 0.98f, 0.9f, 1); dmat = makeMat(MAT_STONE); break;
+        case 2: dcol = packRGBA8(1.f, 1.f, 0.97f, 1); dmat = makeMat(MAT_CONCRETE); break;
+        default: dcol = packRGBA8(0.95f, 0.85f, 0.75f, 1); dmat = makeMat(MAT_WOOD); break;
+    }
+    // the water: glossy turquoise (a flat colour on the smooth emissive material), its light on at night on most
+    const float wt = pr.range(-0.06f, 0.06f);
+    const bool lit = pr.chance(0.65f);
+    const u32 wcol = packRGBA8(0.12f + wt, 0.5f + wt * 0.5f, 0.62f - wt, lit ? 0.02f : 0.f), wmat = makeMat(MAT_EMISSIVE, 6u);
+    // (pavers: 20 x 10 cm bricks in world metres (sitegeo kPaverUV), wrapped every 1200 m; wood: boards along the pool)
+    const vec2 uvOrg(floorf(org.x / 1200.f) * 1200.f, floorf(org.y / 1200.f) * 1200.f);
+    auto duv = [&](vec2 p) {
+        vec2 q = p - uvOrg;
+        if (deck == 0) return q * (1.f / 0.6f);
+        if (deck == 3) return vec2(dot(q, ax), dot(q, ay));
+        return q;
+    };
+    const u32 copeCol = deck == 3 ? packRGBA8(0.98f, 0.97f, 0.94f, 1) : (deck == 1 ? packRGBA8(1.f, 1.f, 0.95f, 1) : packRGBA8(0.97f, 0.96f, 0.93f, 1));
+    const u32 copeMat = makeMat(deck == 1 ? MAT_STONE : MAT_CONCRETE);
+    // the outline: per corner (CCW from +ax +ay) the samples of its arc, or the corner itself; the coping's outer edge; and
+    // the deck's edge along the same rays (both offsets are dw + r, so the 45-degree ray meets the deck's corner)
+    const float r = kind == 1 ? Min(pw, pdd) * 0.96f : 0.f, cw = 0.32f;
+    struct Ring {
+        vec2 in, cop, out;
+    };
+    Ring ring[20];
+    int nr = 0;
+    for (int c = 0; c < 4; c++) {
+        float sx = (c == 0 || c == 3) ? 1.f : -1.f, sy = c < 2 ? 1.f : -1.f;
+        vec2 C = pc + ax * (sx * (pw - r)) + ay * (sy * (pdd - r));
+        int ns = r > 0.05f ? 5 : 1;
+        for (int i = 0; i < ns; i++) {
+            float th = (float)c * kHalfPi + (ns == 1 ? kHalfPi * 0.5f : kHalfPi * (float)i / (float)(ns - 1));
+            float ca = cosf(th), sa = sinf(th);
+            vec2 dir = ax * ca + ay * sa;
+            float t = Min(fabsf(ca) > 1e-4f ? (dw + r) / fabsf(ca) : 1e9f, fabsf(sa) > 1e-4f ? (dw + r) / fabsf(sa) : 1e9f);
+            ring[nr++] = {C + dir * r, C + dir * (r + cw * (ns == 1 ? 1.41421f : 1.f)), C + dir * t};
+        }
+    }
+    const vec3 up(0, 0, 1);
+    if (!x.detail) {
+        // the far LOD: the water alone as a rectangle (a rounded one a little smaller), a little higher (the coarser terrain
+        // far off), so the yards keep their pools from the air
+        const float sh = r > 0.f ? 0.88f : 1.f;
+        std::vector<vec3> water;
+        for (int c = 0; c < 4; c++) {
+            float sx = (c == 0 || c == 3) ? 1.f : -1.f, sy = c < 2 ? 1.f : -1.f;
+            water.push_back(vec3(pc + ax * (sx * pw * sh) + ay * (sy * pdd * sh), pz + 0.1f) - org);
+        }
+        m.polygon(water, up, wcol, wmat, 1.f);
+        return;
+    }
+    for (int i = 0; i < nr; i++) {
+        const Ring &a = ring[i], &c = ring[(i + 1) % nr];
+        m.quadFacing(vec3(a.in, pz) - org, vec3(c.in, pz) - org, vec3(c.cop, pz) - org, vec3(a.cop, pz) - org, duv(a.in), duv(c.in), duv(c.cop), duv(a.cop), copeCol,
+                     copeMat, up);
+        m.quadFacing(vec3(a.cop, pz) - org, vec3(c.cop, pz) - org, vec3(c.out, pz) - org, vec3(a.out, pz) - org, duv(a.cop), duv(c.cop), duv(c.out), duv(a.out), dcol,
+                     dmat, up);
+        // the pool's tiled side down to the water
+        vec2 mid = (a.in + c.in) * 0.5f;
+        float L = length(c.in - a.in);
+        if (L > 1e-3f)
+            m.quadFacing(vec3(a.in, pz) - org, vec3(c.in, pz) - org, vec3(c.in, pz - 0.12f) - org, vec3(a.in, pz - 0.12f) - org, vec2(0, 0), vec2(L, 0), vec2(L, 0.12f),
+                         vec2(0, 0.12f), packRGBA8(0.85f, 0.9f, 0.92f, 1), makeMat(MAT_TILE_POOL), vec3(pc - mid, 0.f));
+    }
+    {
+        std::vector<vec3> water;
+        for (int i = 0; i < nr; i++) water.push_back(vec3(ring[i].in, pz - 0.07f) - org);
+        m.polygon(water, up, wcol, wmat, 1.f);
+    }
+    // the skirt round the deck, down into the ground
+    for (int c = 0; c < 4; c++) {
+        vec2 a = dc[c], e = dc[(c + 1) % 4];
+        float zl = Min(map.heightAt(a.x, a.y), map.heightAt(e.x, e.y)) - 0.06f;
+        float L = length(e - a);
+        m.quadFacing(vec3(a, pz) - org, vec3(e, pz) - org, vec3(e, zl) - org, vec3(a, zl) - org, vec2(0, pz), vec2(L, pz), vec2(L, zl), vec2(0, zl), dcol, dmat,
+                     vec3((a + e) * 0.5f - pc, 0.f));
+    }
+    // a spa on one end of a rectangular pool (its rim over the coping, the water up to the brim)
+    if (kind == 0 && dw >= 1.f && pr.chance(villa ? 0.35f : 0.12f)) {
+        const float s = pr.chance(0.5f) ? 1.f : -1.f, hs = Min(0.95f, dw - 0.15f), rim = 0.16f, zt = pz + 0.42f;
+        const vec2 sc = pc + ax * (s * (pw + 0.1f));
+        const vec3 X(ax, 0.f), Y(ay, 0.f), Z(0, 0, 1);
+        for (int k = 0; k < 4; k++) {
+            bool alongU = (k & 1) == 0;
+            float sg = (k & 2) ? -1.f : 1.f;
+            vec2 wc = sc + (alongU ? ay * (sg * (hs - rim * 0.5f)) : ax * (sg * (hs - rim * 0.5f)));
+            vec3 he = alongU ? vec3(hs, rim * 0.5f, (zt - pz + 0.1f) * 0.5f) : vec3(rim * 0.5f, hs - rim, (zt - pz + 0.1f) * 0.5f);
+            m.box(vec3(wc, (zt + pz - 0.1f) * 0.5f) - org, X, Y, Z, he, copeCol, copeMat);
+        }
+        std::vector<vec3> sw;
+        for (int c = 0; c < 4; c++) {
+            float sx = (c == 0 || c == 3) ? 1.f : -1.f, sy = c < 2 ? 1.f : -1.f;
+            sw.push_back(vec3(sc + ax * (sx * (hs - rim)) + ay * (sy * (hs - rim)), zt - 0.05f) - org);
+        }
+        m.polygon(sw, up, packRGBA8(0.14f, 0.52f, 0.6f, 0.02f), makeMat(MAT_EMISSIVE, 6u), 1.f);
+    }
+}
+
+// Driveway surface by district and house: poured concrete; brick pavers (the suburbs, the Mediterranean houses, the villas
+// and the Grove); old asphalt (the older city, the towns); crushed shell and gravel (the Keys, the country). fp: the
+// driveway's corners, 6 cm over the ground
+void drivewaySurface(Ctx& x, const Building& b, const std::vector<vec2>& fp) {
+    if (!gMap) return;
+    const WorldMap& map = *gMap;
+    const u32 h = hash32(b.seed ^ 0xD71E5u);
+    const float p = hashToFloat(h);
+    int kind = 0;   // 0 concrete, 1 pavers, 2 asphalt, 3 gravel
+    switch (b.region) {
+        case REG_SUBURBS: kind = p < 0.5f ? 0 : (p < 0.82f ? 1 : 2); break;
+        case REG_GROVE:
+        case REG_KEY_CORAL:
+        case REG_BAY_ISLAND: kind = p < 0.55f ? 1 : (p < 0.82f ? 0 : 3); break;
+        case REG_CALLE_LUNA:
+        case REG_FLATS:
+        case REG_NORTH_CITY:
+        case REG_MIDTOWN: kind = p < 0.45f ? 0 : (p < 0.78f ? 2 : 1); break;
+        case REG_KEYS:
+        case REG_KEY_TOWN:
+        case REG_GULF_TOWN: kind = p < 0.45f ? 3 : (p < 0.8f ? 0 : 2); break;
+        case REG_LAKE_TOWN:
+        case REG_HARLOW:
+        case REG_FORT_CASTELL: kind = p < 0.4f ? 0 : (p < 0.72f ? 2 : 3); break;
+        case REG_REDLAND:
+        case REG_FARMLAND:
+        case REG_RIDGE:
+        case REG_SAWGRASS: kind = p < 0.5f ? 3 : (p < 0.8f ? 2 : 0); break;
+        default: kind = p < 0.6f ? 0 : (p < 0.85f ? 1 : 2); break;
+    }
+    if (b.style == BS_VILLA && kind == 2) kind = 1;
+    if ((b.arch == AR_HOUSE_MED || b.arch == AR_VILLA_MED) && kind == 0 && hashToFloat(hash32(h + 7u)) < 0.6f) kind = 1;
+    u32 col = kWhite, mat = makeMat(MAT_CONCRETE);
+    float uvs = 1.f;
+    switch (kind) {
+        case 1: {
+            const vec3 pav[] = {vec3(1.f, 0.82f, 0.72f), vec3(0.92f, 0.9f, 0.88f), vec3(0.86f, 0.86f, 0.86f), vec3(1.f, 0.95f, 0.8f)};
+            vec3 t = pav[(h >> 8) % 4u];
+            col = packRGBA8(t.x, t.y, t.z, 1);
+            mat = makeMat(MAT_PAVERS);
+            uvs = 1.f / 0.6f;
+            break;
+        }
+        case 2: mat = makeMat(MAT_ASPHALT_OLD); break;
+        case 3: col = packRGBA8(1.f, 1.f, 0.96f, 1); mat = makeMat(MAT_ROOF_GRAVEL); break;
+        default: {
+            float t = 0.9f + 0.1f * hashToFloat(h >> 12);
+            col = packRGBA8(t, t, t * 0.98f, 1);
+            break;
+        }
+    }
+    std::vector<vec3> poly;
+    for (const vec2& q : fp) poly.push_back(vec3(q, map.heightAt(q.x, q.y) + 0.06f) - x.org);
+    x.m->polygon(poly, vec3(0, 0, 1), col, mat, uvs);
+}
+
 }  // namespace buildmesh_detail
 
 using namespace buildmesh_detail;
@@ -626,8 +829,10 @@ void leafBlobEx(MeshData& m, vec3 org, vec3 c, vec3 ax, vec3 ay, vec3 R, vec3 ti
 namespace World {
 
 // facadedetail.cpp
+// (lawnHoles: paved ground the house's lawn leaves out, lawnHole above)
 void buildFacadeDetail(const Building& b, const FacadeGPU& fac, const WorldMap& map, vec3 org, MeshData& m, std::vector<CollisionBox>* col,
-                       std::vector<PropInstance>* props, std::vector<LightInstance>* lights, const std::vector<FacadeMass>& masses);
+                       std::vector<PropInstance>* props, std::vector<LightInstance>* lights, const std::vector<FacadeMass>& masses,
+                       const std::vector<vec4>* lawnHoles = nullptr);
 
 void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& map, bool detail, vec3 org, MeshData& m,
                        std::vector<CollisionBox>* col, std::vector<PropInstance>* props, std::vector<LightInstance>* lights) {
@@ -648,6 +853,9 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
     thread_local std::vector<YardKeep> keeps;
     keeps.clear();
     x.keep = props ? &keeps : nullptr;
+    thread_local std::vector<vec4> holes;
+    holes.clear();
+    x.holes = detail ? &holes : nullptr;
     Rng r(b.seed ^ 0xB111D1u);
     vec2 ay = perp(b.ax);
     float z0 = b.baseZ;
@@ -1106,7 +1314,40 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                               vec3(0.15f, 0.15f, 2.f), kWhite, makeMat(MAT_WOOD));
                 m.box(vec3(b.c, zb - 0.15f) - org, vec3(b.ax, 0), vec3(ay, 0), vec3(0, 0, 1), vec3(b.hx + 1.2f, b.hy + 1.2f, 0.12f), kWhite, makeMat(MAT_WOOD), true);
             }
-            if (!detail) break;
+            // Back yard pool (backyardPool: on the deck's highest corner, the lawn cut away under it; blockstyle.cpp poolDeck
+            // decides and fits it); in the far LOD its water alone
+            auto yardPool = [&]() { backyardPool(x, b); };
+            if (!detail) {
+                if (b.style == BS_HOUSE || b.style == BS_VILLA) yardPool();
+                break;
+            }
+            // a paved front yard (frontPaved): concrete or pavers from the house to the lawn's street edge; the driveways
+            // below then only cross the strip beyond it
+            const int paved = blockstyle::frontPaved(b);
+            const float pavedEdge = dot(b.lotC - b.c, b.front) + b.lotHy - 0.3f;   // (along b.front from b.c)
+            if (paved) {
+                const float lat = dot(b.lotC - b.c, b.ax), v0 = b.hy - 0.05f, hu = b.lotHx - 0.15f;
+                if (pavedEdge - v0 > 1.f) {
+                    const vec2 pcen = b.c + b.ax * lat + b.front * ((v0 + pavedEdge) * 0.5f);
+                    const float hv = (pavedEdge - v0) * 0.5f;
+                    lawnHole(x, pcen, hu, hv);
+                    std::vector<vec3> poly;
+                    for (int c = 0; c < 4; c++) {
+                        float sx = (c == 0 || c == 3) ? 1.f : -1.f, sy = c < 2 ? 1.f : -1.f;
+                        vec2 q = pcen + b.ax * (sx * hu) + b.front * (sy * hv);
+                        poly.push_back(vec3(q, map.heightAt(q.x, q.y) + 0.05f) - org);
+                    }
+                    const float t = 0.88f + 0.1f * hashToFloat(hash32(b.seed ^ 0xF4A80u));
+                    if (paved == 2) m.polygon(poly, vec3(0, 0, 1), packRGBA8(1.f, 0.86f * t + 0.1f, 0.78f * t + 0.1f, 1), makeMat(MAT_PAVERS), 1.f / 0.6f);
+                    else m.polygon(poly, vec3(0, 0, 1), packRGBA8(t, t, t * 0.98f, 1), makeMat(MAT_CONCRETE), 1.f);
+                }
+            }
+            // (a driveway from a to the street, only its part beyond a paved front yard)
+            auto drivewayFrom = [&](vec2 a) {
+                if (!paved) return a;
+                float va = dot(a - b.c, b.front);
+                return va < pavedEdge ? a + b.front * (pavedEdge - va) : a;
+            };
             // Garage wing (suburban houses / villas)
             // (deterministic from the seed: facadedetail.cpp keeps hedges and garden walls clear of this driveway)
             bool garage = (b.style == BS_HOUSE && (b.seed % 10u) < 7u) || b.style == BS_VILLA;
@@ -1135,6 +1376,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                              vec2(0.9f, 2.05f), vec2(0, 2.05f), packRGBA8(0.85f, 0.85f, 0.82f, 1), makeMat(MAT_METAL_PAINTED), vec3(Fw, 0));
                 {
                     auto ffp = rectFP(gc + Fw * ud, b.ax, gw, gd - ud);
+                    lawnHole(x, gc + Fw * ud, gw, gd - ud);
                     std::vector<vec3> poly;
                     for (auto& p : ffp) poly.push_back(vec3(p, map.heightAt(p.x, p.y) + 0.06f) - org);
                     m.polygon(poly, vec3(0, 0, 1), kWhite, makeMat(MAT_CONCRETE), 1.f);
@@ -1158,11 +1400,10 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 // driveway to the street
                 vec2 dA = gc + Fw * gd, dB = b.lotC + Fw * (b.lotHy + 1.5f);
                 dB = dA + Fw * Max(1.f, dot(dB - dA, Fw));
-                auto dfp = rectFP((dA + dB) * 0.5f, b.ax, 2.6f, length(dB - dA) * 0.5f);
                 yardKeep(x, (dA + dB) * 0.5f, b.ax, ay, 2.6f, length(dB - dA) * 0.5f);
-                std::vector<vec3> poly;
-                for (auto& p : dfp) poly.push_back(vec3(p, map.heightAt(p.x, p.y) + 0.06f) - org);
-                m.polygon(poly, vec3(0, 0, 1), kWhite, makeMat(MAT_CONCRETE), 1.f);
+                lawnHole(x, (dA + dB) * 0.5f, 2.6f, length(dB - dA) * 0.5f);
+                dA = drivewayFrom(dA);
+                if (dot(dB - dA, Fw) > 0.3f) drivewaySurface(x, b, rectFP((dA + dB) * 0.5f, b.ax, 2.6f, length(dB - dA) * 0.5f));
             } else if (garage && (b.arch == AR_HOUSE_VICTORIAN || b.arch == AR_HOUSE_RAISED)) {
                 // the old frame houses and the raised Keys houses (parking under the house) keep no garage wing: a concrete
                 // strip beside the house to the street (the car parks on it)
@@ -1173,6 +1414,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 for (int k = -1; k <= 1; k += 2) {
                     // (two wheel strips with grass between, the older driveway)
                     auto dfp = rectFP((dA + dB) * 0.5f + b.ax * (k * 0.75f), b.ax, 0.38f, length(dB - dA) * 0.5f);
+                    lawnHole(x, (dA + dB) * 0.5f + b.ax * (k * 0.75f), 0.38f, length(dB - dA) * 0.5f);
                     std::vector<vec3> poly;
                     for (auto& p : dfp) poly.push_back(vec3(p, map.heightAt(p.x, p.y) + 0.06f) - org);
                     m.polygon(poly, vec3(0, 0, 1), kWhite, makeMat(MAT_CONCRETE), 1.f);
@@ -1193,46 +1435,12 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 // driveway to the street
                 vec2 dA = gc + b.front * gd, dB = b.lotC + b.front * (b.lotHy + 1.5f);
                 dB = dA + b.front * Max(1.f, dot(dB - dA, b.front));
-                auto dfp = rectFP((dA + dB) * 0.5f, b.ax, 2.6f, length(dB - dA) * 0.5f);
                 yardKeep(x, (dA + dB) * 0.5f, b.ax, ay, 2.6f, length(dB - dA) * 0.5f);
-                std::vector<vec3> poly;
-                for (auto& p : dfp) poly.push_back(vec3(p, map.heightAt(p.x, p.y) + 0.06f) - org);
-                m.polygon(poly, vec3(0, 0, 1), kWhite, makeMat(MAT_CONCRETE), 1.f);
+                lawnHole(x, (dA + dB) * 0.5f, 2.6f, length(dB - dA) * 0.5f);
+                dA = drivewayFrom(dA);
+                if (dot(dB - dA, b.front) > 0.3f) drivewaySurface(x, b, rectFP((dA + dB) * 0.5f, b.ax, 2.6f, length(dB - dA) * 0.5f));
             }
-            // Back yard pool
-            if ((b.style == BS_VILLA || (b.style == BS_HOUSE && r.chance(0.35f))) && b.region != REG_FARMLAND) {
-                float backSpace = (b.lotHy * 2.f) - b.hy * 2.f - 6.f;
-                if (backSpace > 6.f) {
-                    vec2 pc = b.c - b.front * (b.hy + 2.f + Min(backSpace * 0.4f, 4.f)) + b.ax * r.range(-b.hx * 0.3f, b.hx * 0.3f);
-                    float pw = r.range(2.5f, 4.5f), pdd = r.range(1.8f, 2.6f);
-                    float pz = map.heightAt(pc.x, pc.y) + 0.1f;
-                    // deck
-                    auto deck = rectFP(pc, b.ax, pw + 1.5f, pdd + 1.5f);
-                    yardKeep(x, pc, b.ax, ay, pw + 1.5f, pdd + 1.5f);
-                    auto pool = rectFP(pc, b.ax, pw, pdd);
-                    std::vector<vec3> dpoly;
-                    // deck as 4 strips around the pool; paver uvs in world metres at 20 x 10 cm bricks (see sitegeo kPaverUV),
-                    // wrapped every 1200 m (a whole number of texture tiles)
-                    vec2 uvOrg(floorf(org.x / 1200.f) * 1200.f, floorf(org.y / 1200.f) * 1200.f);
-                    auto puv = [&](vec2 p) { return (p - uvOrg) * (1.f / 0.6f); };
-                    u32 deckTint = packRGBA8(0.92f, 0.9f, 0.88f, 1.f);
-                    for (int k = 0; k < 4; k++) {
-                        vec2 a0 = deck[k], a1 = deck[(k + 1) % 4], b0 = pool[k], b1 = pool[(k + 1) % 4];
-                        m.quadFacing(vec3(a0, pz) - org, vec3(a1, pz) - org, vec3(b1, pz) - org, vec3(b0, pz) - org, puv(a0), puv(a1), puv(b1), puv(b0),
-                                     deckTint, makeMat(MAT_PAVERS), vec3(0, 0, 1));
-                        // pool walls (inside)
-                        m.quadFacing(vec3(b0, pz) - org, vec3(b1, pz) - org, vec3(b1, pz - 1.6f) - org, vec3(b0, pz - 1.6f) - org, vec2(0, 0), vec2(length(b1 - b0), 0),
-                                     vec2(length(b1 - b0), 1.6f), vec2(0, 1.6f), kWhite, makeMat(MAT_TILE_POOL), vec3(pc - (b0 + b1) * 0.5f, 0));
-                    }
-                    std::vector<vec3> floor;
-                    for (auto& p : pool) floor.push_back(vec3(p, pz - 1.6f) - org);
-                    m.polygon(floor, vec3(0, 0, 1), kWhite, makeMat(MAT_TILE_POOL), 1.f);
-                    // water surface (emissive-free bright tile tinted); real water shading added by the water pass
-                    std::vector<vec3> water;
-                    for (auto& p : pool) water.push_back(vec3(p, pz - 0.15f) - org);
-                    m.polygon(water, vec3(0, 0, 1), packRGBA8(0.35f, 0.75f, 0.9f, 1), makeMat(MAT_GLASS), 1.f);
-                }
-            }
+            yardPool();
             // Yard trees
             if (props) {
                 int nt = r.irange(1, b.style == BS_VILLA ? 5 : 3);
@@ -1329,7 +1537,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
         }
     }
     // Street-level architectural detail and garden dressing (full-detail cells only)
-    if (detail && !masses.empty()) buildFacadeDetail(b, fac, map, org, m, col, props, lights, masses);
+    if (detail && !masses.empty()) buildFacadeDetail(b, fac, map, org, m, col, props, lights, masses, &holes);
 }
 
 }  // namespace World
