@@ -88,6 +88,20 @@ void pentRoof(Ctx& x, vec2 a, vec2 b, float zTop, float out, u32 tile) {
     x.m->quadFacing(q0, q1, q1 - vec3(0, 0, 0.1f), q0 - vec3(0, 0, 0.1f), vec2(0, 0), vec2(len, 0), vec2(len, 0.1f), vec2(0, 0.1f), tile, makeMat(MAT_ROOF_TILE), vec3(n, 0.f));
 }
 
+// The eyebrow of a Keys house: the roof's front eave brought down over the upper windows - a tin pent across the wall a..b
+// (n: outward) from above the wall top, out and down, with a painted soffit and a fascia board
+void eyebrowPent(Ctx& x, vec2 a, vec2 b, vec2 n, float zTop, float out, float drop, u32 col, u32 mat, u32 soffit) {
+    vec2 t = normalize(b - a);
+    vec2 a0 = a - t * 0.3f, b0 = b + t * 0.3f;
+    vec3 p0 = vec3(a0 - n * 0.15f, zTop + 0.2f) - x.org, p1 = vec3(b0 - n * 0.15f, zTop + 0.2f) - x.org;
+    vec3 q0 = vec3(a0 + n * out, zTop - drop) - x.org, q1 = vec3(b0 + n * out, zTop - drop) - x.org;
+    float len = length(b0 - a0);
+    x.m->quadFacing(p0, p1, q1, q0, vec2(0, 0), vec2(len, 0), vec2(len, out), vec2(0, out), col, mat, vec3(n, 1.5f));
+    x.m->quadFacing(p0, q0, q1, p1, vec2(0, 0), vec2(out, 0), vec2(out, len), vec2(0, len), soffit, makeMat(MAT_PLASTER), vec3(-n, -1.5f));
+    x.m->quadFacing(q0, q1, q1 - vec3(0, 0, 0.16f), q0 - vec3(0, 0, 0.16f), vec2(0, 0), vec2(len, 0), vec2(len, 0.16f), vec2(0, 0.16f), soffit, makeMat(MAT_PLASTER),
+                    vec3(n, 0.f));
+}
+
 // Shingled mansard band round a flat roof (1970s motor inns): from just outside the walls at the eave up and in to the
 // flat top
 void mansardRoof(Ctx& x, const std::vector<vec2>& fp, float z, float h, u32 col, u32 roofCol, u32 roofMat) {
@@ -480,9 +494,13 @@ void emitVolume(Ctx& x, const Building& b, const Env& e, const Vol& v, const Fac
             case RFM_TILE_HIP:
                 for (const vec4& r : v.rects) pitchedPart(x, e, r, v.z1, 0.36f, true, 0.45f, tile, makeMat(MAT_ROOF_TILE), wallTone, makeMat(MAT_PLASTER));
                 break;
-            case RFM_METAL_GABLE:
-                for (const vec4& r : v.rects) pitchedPart(x, e, r, v.z1, 0.5f, false, 0.4f, tile, makeMat(MAT_ROOF_METAL), wallTone, makeMat((u32)fac.wallLayer));
+            case RFM_METAL_GABLE: {
+                // (a tin hip roof on the Keys motels that blockstyle.cpp gives one)
+                const bool metalHip = b.style == BS_MOTEL && b.roof == ROOF_HIP;
+                for (const vec4& r : v.rects)
+                    pitchedPart(x, e, r, v.z1, metalHip ? 0.42f : 0.5f, metalHip, 0.4f, tile, makeMat(MAT_ROOF_METAL), wallTone, makeMat((u32)fac.wallLayer));
                 break;
+            }
             case RFM_SAWTOOTH:
                 for (const vec4& r : v.rects) sawtoothRoof(x, e, r.x, r.y, r.z, r.w, v.z1, packRGBA8(0.7f, 0.71f, 0.72f, 1), wallTone, makeMat((u32)fac.wallLayer));
                 break;
@@ -876,6 +894,16 @@ void motelExtras(Ctx& x, const Building& b, const Env& e, const FacadeGPU& fac, 
     const u32 conc = packRGBA8(0.86f, 0.85f, 0.82f, 1), steel = packRGBA8(0.88f, 0.88f, 0.86f, 1), dark = packRGBA8(0.12f, 0.12f, 0.13f, 1);
     const u32 wood = packRGBA8(0.93f, 0.93f, 0.9f, 1);
     const bool keys = b.arch == AR_MOTEL_KEYS, med = b.arch == AR_MOTEL_MED, inn = b.arch == AR_MOTEL_INN;
+    // the Keys motels' gallery rails: white, or painted turquoise, sea green, coral or butter yellow
+    u32 keysRail = wood;
+    if (keys) {
+        const vec3 rails[] = {vec3(0.25f, 0.7f, 0.72f), vec3(0.45f, 0.72f, 0.55f), vec3(0.95f, 0.55f, 0.45f), vec3(0.98f, 0.88f, 0.5f)};
+        u32 h = hash32(b.seed ^ 0x4A11u);
+        if (h % 100u >= 45u) {
+            vec3 c = rails[(h >> 8) % 4u];
+            keysRail = packRGBA8(c.x, c.y, c.z, 1);
+        }
+    }
     // walkway slab
     x.m->box(vec3(e.P(um, hy + wd * 0.5f), zw - 0.11f) - x.org, X, Y, Z, vec3(hw, wd * 0.5f, 0.11f), keys ? packRGBA8(0.72f, 0.66f, 0.58f, 1) : conc,
              makeMat(keys ? MAT_WOOD : MAT_CONCRETE), true);
@@ -888,7 +916,7 @@ void motelExtras(Ctx& x, const Building& b, const Env& e, const FacadeGPU& fac, 
         if (!x.detail) break;
         // (slender: the walkway overhangs the sidewalk, as the generator's motels do, and its posts stand on it)
         if (med) x.m->box(vec3(p, (z0 + zw) * 0.5f - 0.11f) - x.org, X, Y, Z, vec3(0.12f, 0.12f, (zw - z0) * 0.5f - 0.11f), wallTone, makeMat(MAT_STUCCO));
-        else if (keys) x.m->box(vec3(p, (z0 + zPostTop) * 0.5f) - x.org, X, Y, Z, vec3(0.08f, 0.08f, (zPostTop - z0) * 0.5f), wood, makeMat(MAT_WOOD));
+        else if (keys) x.m->box(vec3(p, (z0 + zPostTop) * 0.5f) - x.org, X, Y, Z, vec3(0.08f, 0.08f, (zPostTop - z0) * 0.5f), wood, makeMat(MAT_PLASTER));
         else if (inn) x.m->box(vec3(p, (z0 + zPostTop) * 0.5f) - x.org, X, Y, Z, vec3(0.1f, 0.1f, (zPostTop - z0) * 0.5f), conc, makeMat(MAT_CONCRETE));
         else x.m->cylinder(vec3(p, z0) - x.org, 0.07f, 0.07f, zPostTop - z0, 8, steel, makeMat(MAT_METAL_PAINTED), false);
     }
@@ -897,14 +925,15 @@ void motelExtras(Ctx& x, const Building& b, const Env& e, const FacadeGPU& fac, 
     vec2 rc = e.P(um, hy + wd - 0.05f);
     if (med) x.m->box(vec3(rc, zw + 0.45f) - x.org, X, Y, Z, vec3(hw, 0.1f, 0.45f), wallTone, makeMat(MAT_STUCCO));
     else {
-        u32 railCol = keys ? wood : (inn ? dark : steel);
-        x.m->box(vec3(rc, zw + 0.98f) - x.org, X, Y, Z, vec3(hw, 0.04f, 0.04f), railCol, makeMat(keys ? MAT_WOOD : MAT_METAL_PAINTED));
+        u32 railCol = keys ? keysRail : (inn ? dark : steel);
+        // (the Keys motel's rail is painted wood: plaster takes its colour, the wood texture would brown it)
+        x.m->box(vec3(rc, zw + 0.98f) - x.org, X, Y, Z, vec3(hw, 0.04f, 0.04f), railCol, makeMat(keys ? MAT_PLASTER : MAT_METAL_PAINTED));
         if (!keys && !inn) {
             // MiMo: coloured panels between the posts, a gap above and below
             x.m->box(vec3(rc, zw + 0.55f) - x.org, X, Y, Z, vec3(hw, 0.025f, 0.32f), accent, makeMat(MAT_METAL_PAINTED));
         } else if (x.detail) {
             for (float u = ua + 0.2f; u < ub - 0.1f; u += keys ? 0.16f : 0.14f)
-                x.m->box(vec3(e.P(u, hy + wd - 0.05f), zw + 0.48f) - x.org, X, Y, Z, vec3(0.018f, 0.018f, 0.48f), railCol, makeMat(keys ? MAT_WOOD : MAT_METAL_PAINTED));
+                x.m->box(vec3(e.P(u, hy + wd - 0.05f), zw + 0.48f) - x.org, X, Y, Z, vec3(0.018f, 0.018f, 0.48f), railCol, makeMat(keys ? MAT_PLASTER : MAT_METAL_PAINTED));
         }
     }
     // gallery roofs: a tin shed roof on the island motel's posts, a tile one over the Mediterranean walkway, a slab on the
@@ -1190,7 +1219,7 @@ void houseRoofFinish(const Building& b, Rng& hr, u32& col, u32& mat) {
     switch (b.arch) {
         case AR_HOUSE_MED: kind = 0; break;
         case AR_HOUSE_RANCH: kind = p < 0.4f ? 0 : (p < 0.52f ? 3 : 1); break;   // (tile, a white roof, shingle)
-        case AR_HOUSE_BUNGALOW: kind = p < 0.55f ? 1 : (p < 0.85f ? 2 : 0); break;
+        case AR_HOUSE_BUNGALOW: kind = blockstyle::houseForm(b) == blockstyle::HF_BUNG_MISSION ? 0 : (p < 0.55f ? 1 : (p < 0.85f ? 2 : 0)); break;
         case AR_HOUSE_TWO: kind = p < 0.7f ? 1 : 0; break;
         case AR_HOUSE_SPLIT: kind = p < 0.6f ? 1 : 0; break;
         case AR_HOUSE_CONCH: kind = 2; break;
@@ -1201,6 +1230,7 @@ void houseRoofFinish(const Building& b, Rng& hr, u32& col, u32& mat) {
         case AR_HOUSE_CBS: kind = p < 0.45f ? 3 : (p < 0.8f ? 0 : 2); break;   // (a white roof, tile, white metal)
         case AR_HOUSE_VICTORIAN: kind = p < 0.6f ? 2 : 1; break;
         case AR_HOUSE_RAISED: kind = 2; break;
+        case AR_HOUSE_TRAILER: kind = p < 0.72f ? 2 : 1; break;   // (tin, or a shingled roof-over added later)
         default: kind = 0; break;
     }
     if (b.style == BS_FARMHOUSE && kind != 2 && hr.chance(0.75f)) kind = 2;   // (tin roofs on the farms)
@@ -1231,7 +1261,7 @@ void houseRoofFinish(const Building& b, Rng& hr, u32& col, u32& mat) {
         mat = makeMat(MAT_ROOF_SHINGLE);
     } else {
         vec3 c = metal[hr.next() % 5];
-        if ((b.arch == AR_HOUSE_CONCH || b.arch == AR_SHACK_STILT || b.arch == AR_HOUSE_RAISED) && hr.chance(0.6f)) c = metal[hr.next() % 2];
+        if ((b.arch == AR_HOUSE_CONCH || b.arch == AR_SHACK_STILT || b.arch == AR_HOUSE_RAISED || b.arch == AR_HOUSE_TRAILER) && hr.chance(0.6f)) c = metal[hr.next() % 2];
         // (old tin on the fishing shacks: a rust brown)
         if (b.arch == AR_SHACK_STILT && hr.chance(0.2f)) c = vec3(0.52f, 0.36f, 0.26f);
         col = packRGBA8(c.x, c.y, c.z, 1);
@@ -1256,13 +1286,40 @@ void deckSteps(Ctx& x, const Env& e, float um, float w, float v0, float zTop, fl
     }
 }
 
-// Porch on posts in front of the house: roof (0 small front gable, 1 shed, 2 none: a gallery stands on it), posts,
-// deck; u0..u1 along u at the front. A deck raised above zGround (conch houses on piers) is walkable, with steps down
-// at stepU (the middle when NaN-free default) unless steps is false.
+// A triangle (world positions) wound to face `want`: hipped roof ends, gable ends
+void worldTri(Ctx& x, vec3 a, vec3 b, vec3 c, vec3 want, u32 col, u32 mat) {
+    vec3 n = cross(b - a, c - a);
+    float l = length(n);
+    if (l < 1e-6f) return;
+    n = n / l;
+    if (dot(n, want) < 0.f) {
+        std::swap(b, c);
+        n = -n;
+    }
+    vec3 t = normalize(b - a), bt = cross(n, t);
+    u32 i0 = x.m->addVertex(a - x.org, n, t, vec2(0, 0), col, mat);
+    u32 i1 = x.m->addVertex(b - x.org, n, t, vec2(dot(b - a, t), dot(b - a, bt)), col, mat);
+    u32 i2 = x.m->addVertex(c - x.org, n, t, vec2(dot(c - a, t), dot(c - a, bt)), col, mat);
+    x.m->tri(i0, i1, i2);
+}
+
+void porchRoof(Ctx& x, const Env& e, float hy, float u0, float u1, float dep, float zEave, int roofKind, u32 col, u32 mat, u32 trim);
+void porchKind(Ctx& x, const Env& e, float hy, float u0, float u1, float dep, float zb, float zEave, int roofKind, u32 col, u32 mat, u32 trim, bool rail,
+               float zGround, bool steps, float ue);
+
+// Porch on posts in front of the house: roof (0 small front gable, 1 shed, 2 none: a gallery or the house's own roof
+// stands on it, 3 a hipped shed), posts, deck; u0..u1 along u at the front. A deck raised above zGround (conch houses on
+// piers) is walkable, with steps down at the entry unless steps is false. The entry (the gap in the rail, the steps) is
+// the porch's middle, or uEntry (the door) when given. Posts by x.porchPosts: slim, Craftsman columns on piers with a knee
+// wall for the rail, or round columns.
 void housePorch(Ctx& x, const Env& e, float hy, float u0, float u1, float dep, float zb, float zEave, int roofKind, u32 col, u32 mat, u32 trim, bool rail,
-                float zGround = -1e9f, bool steps = true) {
+                float zGround = -1e9f, bool steps = true, float uEntry = 1e9f) {
     vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
     float um = (u0 + u1) * 0.5f, hw = (u1 - u0) * 0.5f;
+    if (x.porchPosts != 0 || uEntry < 1e8f) {
+        porchKind(x, e, hy, u0, u1, dep, zb, zEave, roofKind, col, mat, trim, rail, zGround, steps, uEntry < 1e8f ? Clamp(uEntry, u0 + 0.7f, u1 - 0.7f) : um);
+        return;
+    }
     vec2 c = e.P(um, hy + dep * 0.5f);
     yardKeep(x, c, e.ax, e.fr, hw, dep * 0.5f);
     // deck (the far LOD keeps only the porch roof: deck, skirt, steps and posts are close-range detail)
@@ -1280,27 +1337,151 @@ void housePorch(Ctx& x, const Env& e, float hy, float u0, float u1, float dep, f
     int np = Max(2, (int)roundf((u1 - u0) / 2.6f) + 1);
     for (int k = 0; k < np; k++) {
         vec2 p = e.P(Lerp(u0 + 0.15f, u1 - 0.15f, (float)k / (np - 1)), hy + dep - 0.15f);
-        if (x.detail) x.m->box(vec3(p, (zb + zEave) * 0.5f) - x.org, X, Y, Z, vec3(0.09f, 0.09f, (zEave - zb) * 0.5f), trim, makeMat(MAT_WOOD));
+        if (x.detail) x.m->box(vec3(p, (zb + zEave) * 0.5f) - x.org, X, Y, Z, vec3(0.09f, 0.09f, (zEave - zb) * 0.5f), trim, trimWood(x));
         addCollision(x, p, e.ax, 0.1f, 0.1f, zb, zEave);
     }
     if (rail && x.detail) {
-        x.m->box(vec3(e.P(um, hy + dep - 0.15f), zb + 0.9f) - x.org, X, Y, Z, vec3(hw, 0.03f, 0.03f), trim, makeMat(MAT_WOOD));
+        x.m->box(vec3(e.P(um, hy + dep - 0.15f), zb + 0.9f) - x.org, X, Y, Z, vec3(hw, 0.03f, 0.03f), trim, trimWood(x));
         for (float u = u0 + 0.3f; u < u1 - 0.2f; u += 0.14f)
-            if (fabsf(u - um) > 0.6f) x.m->box(vec3(e.P(u, hy + dep - 0.15f), zb + 0.45f) - x.org, X, Y, Z, vec3(0.018f, 0.018f, 0.45f), trim, makeMat(MAT_WOOD));
+            if (fabsf(u - um) > 0.6f) x.m->box(vec3(e.P(u, hy + dep - 0.15f), zb + 0.45f) - x.org, X, Y, Z, vec3(0.018f, 0.018f, 0.45f), trim, trimWood(x));
     }
-    // roof
+    porchRoof(x, e, hy, u0, u1, dep, zEave, roofKind, col, mat, trim);
+}
+
+// The porch's roof (housePorch's kinds 0, 1 and 3; 2 has none)
+void porchRoof(Ctx& x, const Env& e, float hy, float u0, float u1, float dep, float zEave, int roofKind, u32 col, u32 mat, u32 trim) {
+    const float um = (u0 + u1) * 0.5f, hw = (u1 - u0) * 0.5f;
     vec2 rc = e.P(um, hy + dep * 0.5f);
     if (roofKind == 2) return;
     if (roofKind == 0) {
         // front-facing gable over the porch
         pitchedRoof(x, rc, e.ax, hw + 0.2f, dep * 0.5f + 0.15f, zEave, 0.6f, false, 0.2f, col, mat, trim, makeMat(MAT_WOOD_SIDING), 1);
+    } else if (roofKind == 4) {
+        // a flat porch roof: a stucco slab with a deep fascia (the Mission bungalow's loggia; col / mat: the wall's)
+        vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
+        x.m->box(vec3(e.P(um, hy + (dep + 0.15f) * 0.5f), zEave + 0.2f) - x.org, X, Y, Z, vec3(hw + 0.15f, (dep + 0.15f) * 0.5f, 0.2f), col, mat, true);
+        if (x.detail) x.m->box(vec3(e.P(um, hy + dep + 0.13f), zEave + 0.47f) - x.org, X, Y, Z, vec3(hw + 0.15f, 0.04f, 0.07f), trim, trimWood(x));
+    } else if (roofKind == 3 && (u1 - u0) + 0.5f - 2.f * (dep + 0.25f) > 0.4f) {
+        // a hipped shed: the slope away from the wall at a low pitch, the ends hipped back to a ridge along the wall, a flat
+        // ceiling under it and a fascia board round the eave
+        const float o = 0.25f, run = dep + o, pp = 0.3f, rise = run * pp;
+        const float ua = u0 - o + run, ub = u1 + o - run;
+        auto P3 = [&](float u, float v, float z) { return vec3(e.P(u, v), z); };
+        const vec3 C0 = P3(u0 - o, hy + run, zEave), C1 = P3(u1 + o, hy + run, zEave), W0 = P3(u0 - o, hy, zEave), W1 = P3(u1 + o, hy, zEave);
+        const vec3 R0 = P3(ua, hy, zEave + rise), R1 = P3(ub, hy, zEave + rise);
+        const vec3 F(e.fr, 0.f), A(e.ax, 0.f), up(0, 0, 1);
+        const float sl = run * sqrtf(1.f + pp * pp);
+        x.m->quadFacing(C0 - x.org, C1 - x.org, R1 - x.org, R0 - x.org, vec2(0, 0), vec2(u1 - u0 + 2.f * o, 0), vec2(ub - u0 + o, sl), vec2(ua - u0 + o, sl), col, mat,
+                        F * pp + up);
+        worldTri(x, W0, C0, R0, -A * pp + up, col, mat);
+        worldTri(x, C1, W1, R1, A * pp + up, col, mat);
+        x.m->quadFacing(W0 - x.org, W1 - x.org, C1 - x.org, C0 - x.org, vec2(0, 0), vec2(u1 - u0 + 2.f * o, 0), vec2(u1 - u0 + 2.f * o, run), vec2(0, run), trim,
+                        trimWood(x), -up);
+        if (x.detail) {
+            vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
+            x.m->box(vec3(e.P(um, hy + run - 0.02f), zEave - 0.08f) - x.org, X, Y, Z, vec3(hw + o, 0.025f, 0.09f), trim, trimWood(x));
+            for (int s = -1; s <= 1; s += 2)
+                x.m->box(vec3(e.P(s < 0 ? u0 - o + 0.02f : u1 + o - 0.02f, hy + run * 0.5f), zEave - 0.08f) - x.org, X, Y, Z, vec3(0.025f, run * 0.5f, 0.09f), trim,
+                         trimWood(x));
+        }
     } else {
         // shed roof sloping away from the wall
         vec3 a0 = vec3(e.P(u0 - 0.2f, hy), zEave + 0.7f) - x.org, a1 = vec3(e.P(u1 + 0.2f, hy), zEave + 0.7f) - x.org;
         vec3 b0 = vec3(e.P(u0 - 0.2f, hy + dep + 0.3f), zEave) - x.org, b1 = vec3(e.P(u1 + 0.2f, hy + dep + 0.3f), zEave) - x.org;
         x.m->quadFacing(a0, a1, b1, b0, vec2(0, 0), vec2(u1 - u0, 0), vec2(u1 - u0, dep), vec2(0, dep), col, mat, vec3(e.fr, 2.f));
-        x.m->quadFacing(a0, b0, b1, a1, vec2(0, 0), vec2(dep, 0), vec2(dep, u1 - u0), vec2(0, u1 - u0), trim, makeMat(MAT_WOOD), vec3(-e.fr, -2.f));
+        x.m->quadFacing(a0, b0, b1, a1, vec2(0, 0), vec2(dep, 0), vec2(dep, u1 - u0), vec2(0, u1 - u0), trim, trimWood(x), vec3(-e.fr, -2.f));
     }
+}
+
+// The porch of the newer house forms (housePorch with Craftsman posts, round columns or an entry at the door): the deck,
+// the posts clear of the entry, the rail or a knee wall between the piers with the gap at the entry, steps down when
+// raised, the roof
+void porchKind(Ctx& x, const Env& e, float hy, float u0, float u1, float dep, float zb, float zEave, int roofKind, u32 col, u32 mat, u32 trim, bool rail,
+               float zGround, bool steps, float ue) {
+    vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
+    const float um = (u0 + u1) * 0.5f, hw = (u1 - u0) * 0.5f;
+    const vec2 c = e.P(um, hy + dep * 0.5f);
+    yardKeep(x, c, e.ax, e.fr, hw, dep * 0.5f);
+    if (x.detail)
+        x.m->box(vec3(c, zb - 0.12f) - x.org, X, Y, Z, vec3(hw, dep * 0.5f, 0.14f), packRGBA8(0.75f, 0.73f, 0.7f, 1),
+                 makeMat(x.porchPosts == 1 || roofKind == 0 ? MAT_CONCRETE : MAT_WOOD), true);
+    if (zGround > -1e8f && zb - zGround > 0.25f) {
+        if (x.detail)
+            x.m->box(vec3(c, (zb - 0.26f + zGround - 0.3f) * 0.5f) - x.org, X, Y, Z, vec3(hw - 0.05f, dep * 0.5f - 0.05f, (zb - 0.26f - zGround + 0.3f) * 0.5f),
+                     packRGBA8(0.9f, 0.9f, 0.88f, 1), makeMat(MAT_WOOD_SIDING));
+        addCollision(x, c, e.ax, hw, dep * 0.5f, zGround - 0.6f, zb + 0.02f);
+        if (steps && x.detail) deckSteps(x, e, ue, 1.5f, hy + dep, zb + 0.02f, zGround, packRGBA8(0.72f, 0.7f, 0.66f, 1), makeMat(MAT_WOOD));
+    }
+    // posts: the ends and between them at most 3.2 m apart, none in the entry - the door, and the middle of the house front
+    // where gameplay stands a resident at the door (population.cpp: 1.9 m out from the front)
+    const float vp = hy + dep - 0.2f;
+    const int kind = x.porchPosts;
+    const u32 pierC = x.pierCol ? x.pierCol : packRGBA8(0.72f, 0.44f, 0.36f, 1), pierM = x.pierMat ? x.pierMat : makeMat(MAT_BRICK);
+    const float pierH = 0.95f, pierW = 0.24f;
+    const bool mid = u0 < 0.f && u1 > 0.f;
+    const float g0 = (mid ? Min(0.f, ue) : ue) - 0.6f, g1 = (mid ? Max(0.f, ue) : ue) + 0.6f;   // the opening in the rail
+    float us[16];
+    int np = 0;
+    const int nSpan = Max(1, (int)ceilf((u1 - u0 - 0.4f) / 3.2f));
+    for (int k = 0; k <= nSpan && np < 16; k++) {
+        float u = Lerp(u0 + 0.2f, u1 - 0.2f, (float)k / nSpan);
+        if (k > 0 && k < nSpan && u > g0 - 0.15f && u < g1 + 0.15f) u = (u - g0 < g1 - u) ? g0 - 0.15f : g1 + 0.15f;
+        us[np++] = u;
+    }
+    for (int k = 0; k < np; k++) {
+        vec2 p = e.P(us[k], vp);
+        if (x.detail) {
+            if (kind == 1) {
+                // a square column on a pier, a cap where they meet
+                x.m->box(vec3(p, zb + pierH * 0.5f) - x.org, X, Y, Z, vec3(pierW, pierW, pierH * 0.5f), pierC, pierM);
+                x.m->box(vec3(p, zb + pierH + 0.04f) - x.org, X, Y, Z, vec3(pierW + 0.04f, pierW + 0.04f, 0.04f), trim, trimWood(x));
+                x.m->box(vec3(p, (zb + pierH + zEave) * 0.5f) - x.org, X, Y, Z, vec3(0.12f, 0.12f, (zEave - zb - pierH) * 0.5f), trim, trimWood(x));
+            } else if (kind == 3) {
+                // a square stucco pier the full height
+                x.m->box(vec3(p, (zb + zEave) * 0.5f) - x.org, X, Y, Z, vec3(0.2f, 0.2f, (zEave - zb) * 0.5f), pierC, pierM);
+            } else if (kind == 2) {
+                // a round column with a square base and capital
+                x.m->cylinder(vec3(p, zb + 0.12f) - x.org, 0.14f, 0.12f, zEave - zb - 0.26f, 10, trim, trimWood(x), false);
+                x.m->box(vec3(p, zb + 0.06f) - x.org, X, Y, Z, vec3(0.19f, 0.19f, 0.06f), trim, trimWood(x));
+                x.m->box(vec3(p, zEave - 0.08f) - x.org, X, Y, Z, vec3(0.18f, 0.18f, 0.07f), trim, trimWood(x));
+            } else {
+                x.m->box(vec3(p, (zb + zEave) * 0.5f) - x.org, X, Y, Z, vec3(0.09f, 0.09f, (zEave - zb) * 0.5f), trim, trimWood(x));
+            }
+        }
+        const float pc = kind == 1 ? pierW : (kind == 3 ? 0.2f : 0.14f);
+        addCollision(x, p, e.ax, pc, pc, zb, zEave);
+    }
+    // the rail (a knee wall between the piers) along the front, the entry left open
+    if (rail && x.detail) {
+        for (int k = 0; k + 1 < np; k++) {
+            const float pw2 = kind == 1 ? pierW : (kind == 3 ? 0.2f : 0.1f);
+            float a = us[k] + pw2, b2 = us[k + 1] - pw2;
+            if (b2 - a < 0.3f) continue;
+            // (the span less the opening)
+            float segs[2][2];
+            int ns = 0;
+            if (g1 <= a || g0 >= b2) segs[ns][0] = a, segs[ns][1] = b2, ns++;
+            else {
+                if (g0 > a) segs[ns][0] = a, segs[ns][1] = g0, ns++;
+                if (g1 < b2) segs[ns][0] = g1, segs[ns][1] = b2, ns++;
+            }
+            for (int s = 0; s < ns; s++) {
+                float s0 = segs[s][0], s1 = segs[s][1];
+                if (s1 - s0 < 0.25f) continue;
+                vec2 sc = e.P((s0 + s1) * 0.5f, vp);
+                if (kind == 1 || kind == 3) {
+                    x.m->box(vec3(sc, zb + 0.4f) - x.org, X, Y, Z, vec3((s1 - s0) * 0.5f, 0.11f, 0.4f), pierC, pierM);
+                    x.m->box(vec3(sc, zb + 0.83f) - x.org, X, Y, Z, vec3((s1 - s0) * 0.5f, 0.14f, 0.03f), trim, trimWood(x));
+                } else {
+                    x.m->box(vec3(sc, zb + 0.9f) - x.org, X, Y, Z, vec3((s1 - s0) * 0.5f, 0.03f, 0.03f), trim, trimWood(x));
+                    x.m->box(vec3(sc, zb + 0.1f) - x.org, X, Y, Z, vec3((s1 - s0) * 0.5f, 0.03f, 0.03f), trim, trimWood(x));
+                    for (float u = s0 + 0.07f; u < s1 - 0.05f; u += 0.14f)
+                        x.m->box(vec3(e.P(u, vp), zb + 0.5f) - x.org, X, Y, Z, vec3(0.018f, 0.018f, 0.38f), trim, trimWood(x));
+                }
+            }
+        }
+    }
+    porchRoof(x, e, hy, u0, u1, dep, zEave, roofKind, col, mat, trim);
 }
 
 // The frame of a side wall (sgn = +1: the +u side): u along the wall (the front's v), v outward; for porches on a side
@@ -1320,28 +1501,37 @@ Env sideEnv(const Env& e, float sgn) {
 inline float conchRaise(const Building& b) { return 0.55f + 0.4f * hashToFloat(hash32(b.seed ^ 0xC0C4u)); }
 
 // Two-storey conch house: a double gallery across the front, the upper deck on the lower posts, railed, under a shed roof
-void galleryPorch(Ctx& x, const Env& e, float hy, float u0, float u1, float dep, float zb, float zUp, float zTop, u32 col, u32 mat, u32 trim, float zGround) {
+void galleryPorch(Ctx& x, const Env& e, float hy, float u0, float u1, float dep, float zb, float zUp, float zTop, u32 col, u32 mat, u32 trim, float zGround,
+                  u32 ceiling = 0) {
     vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
     housePorch(x, e, hy, u0, u1, dep, zb, zUp - 0.2f, 2, col, mat, trim, true, zGround);
     float um = (u0 + u1) * 0.5f, hw = (u1 - u0) * 0.5f;
     // the upper deck (the lower porch's ceiling)
-    x.m->box(vec3(e.P(um, hy + dep * 0.5f), zUp - 0.1f) - x.org, X, Y, Z, vec3(hw, dep * 0.5f, 0.1f), packRGBA8(0.92f, 0.91f, 0.88f, 1), makeMat(MAT_WOOD), true);
+    const bool painted = ceiling && x.detail;
+    x.m->box(vec3(e.P(um, hy + dep * 0.5f), zUp - 0.1f) - x.org, X, Y, Z, vec3(hw, dep * 0.5f, 0.1f), packRGBA8(0.92f, 0.91f, 0.88f, 1), makeMat(MAT_WOOD), !painted);
+    // the ceiling under the deck's boards, painted (ceiling: its colour; 0 bare wood), in place of the box's underside
+    if (painted) {
+        const float zc = zUp - 0.2f;
+        vec3 c0 = vec3(e.P(um - hw, hy), zc) - x.org, c1 = vec3(e.P(um + hw, hy), zc) - x.org;
+        vec3 c2 = vec3(e.P(um + hw, hy + dep), zc) - x.org, c3 = vec3(e.P(um - hw, hy + dep), zc) - x.org;
+        x.m->quadFacing(c0, c1, c2, c3, vec2(0, 0), vec2(u1 - u0, 0), vec2(u1 - u0, dep), vec2(0, dep), ceiling, makeMat(MAT_PLASTER), vec3(0, 0, -1));
+    }
     // upper posts, rail and balusters
     float zE = zTop - 0.75f;
     int np = Max(2, (int)roundf((u1 - u0) / 2.6f) + 1);
     for (int k = 0; k < np && x.detail; k++) {
         vec2 p = e.P(Lerp(u0 + 0.15f, u1 - 0.15f, (float)k / (np - 1)), hy + dep - 0.15f);
-        x.m->box(vec3(p, (zUp + zE) * 0.5f) - x.org, X, Y, Z, vec3(0.08f, 0.08f, (zE - zUp) * 0.5f), trim, makeMat(MAT_WOOD));
+        x.m->box(vec3(p, (zUp + zE) * 0.5f) - x.org, X, Y, Z, vec3(0.08f, 0.08f, (zE - zUp) * 0.5f), trim, trimWood(x));
     }
-    if (x.detail) x.m->box(vec3(e.P(um, hy + dep - 0.15f), zUp + 0.95f) - x.org, X, Y, Z, vec3(hw, 0.035f, 0.035f), trim, makeMat(MAT_WOOD));
+    if (x.detail) x.m->box(vec3(e.P(um, hy + dep - 0.15f), zUp + 0.95f) - x.org, X, Y, Z, vec3(hw, 0.035f, 0.035f), trim, trimWood(x));
     if (x.detail)
         for (float u = u0 + 0.25f; u < u1 - 0.2f; u += 0.14f)
-            x.m->box(vec3(e.P(u, hy + dep - 0.15f), zUp + 0.47f) - x.org, X, Y, Z, vec3(0.018f, 0.018f, 0.47f), trim, makeMat(MAT_WOOD));
+            x.m->box(vec3(e.P(u, hy + dep - 0.15f), zUp + 0.47f) - x.org, X, Y, Z, vec3(0.018f, 0.018f, 0.47f), trim, trimWood(x));
     // shed roof under the main eave
     vec3 a0 = vec3(e.P(u0 - 0.2f, hy), zE + 0.7f) - x.org, a1 = vec3(e.P(u1 + 0.2f, hy), zE + 0.7f) - x.org;
     vec3 b0 = vec3(e.P(u0 - 0.2f, hy + dep + 0.3f), zE) - x.org, b1 = vec3(e.P(u1 + 0.2f, hy + dep + 0.3f), zE) - x.org;
     x.m->quadFacing(a0, a1, b1, b0, vec2(0, 0), vec2(u1 - u0, 0), vec2(u1 - u0, dep), vec2(0, dep), col, mat, vec3(e.fr, 2.f));
-    x.m->quadFacing(a0, b0, b1, a1, vec2(0, 0), vec2(dep, 0), vec2(dep, u1 - u0), vec2(0, u1 - u0), trim, makeMat(MAT_WOOD), vec3(-e.fr, -2.f));
+    x.m->quadFacing(a0, b0, b1, a1, vec2(0, 0), vec2(dep, 0), vec2(dep, u1 - u0), vec2(0, u1 - u0), trim, trimWood(x), vec3(-e.fr, -2.f));
 }
 
 // Colonial villa: a two-storey portico of columns across the middle of the front, entablature and pediment
@@ -1386,7 +1576,7 @@ void porchBrackets(Ctx& x, const Env& e, float hy, float u0, float u1, float dep
             vec3 dir = normalize(vec3(e.ax * (float)sd, 1.f));
             vec3 third = normalize(cross(dir, side));
             vec2 p = e.P(u + sd * 0.2f, hy + dep - 0.15f);
-            x.m->box(vec3(p, zEave - 0.22f) - x.org, dir, side, third, vec3(0.3f, 0.03f, 0.04f), trim, makeMat(MAT_WOOD));
+            x.m->box(vec3(p, zEave - 0.22f) - x.org, dir, side, third, vec3(0.3f, 0.03f, 0.04f), trim, trimWood(x));
         }
     }
 }
@@ -1397,7 +1587,7 @@ void gableTruss(Ctx& x, const Env& e, float vf, float u0, float u1, float zw, fl
     if (!x.detail) return;
     vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
     float um = (u0 + u1) * 0.5f, hw = (u1 - u0) * 0.5f, za = zw + hw * pitch;
-    const u32 wood = makeMat(MAT_WOOD);
+    const u32 wood = trimWood(x);
     float h = Min(1.1f, hw * pitch * 0.45f);
     // the king post, the collar tie and two struts
     x.m->box(vec3(e.P(um, vf + 0.05f), za - 0.15f - h * 0.5f) - x.org, X, Y, Z, vec3(0.05f, 0.05f, h * 0.5f), trim, wood);
@@ -1420,12 +1610,223 @@ void gableTruss(Ctx& x, const Env& e, float vf, float u0, float u1, float zw, fl
     }
 }
 
+// ------------------------------------------------------------------------------------------------ Craftsman, Foursquare
+// The main roof over a house body as pitchedRoof draws it (eave z at the overhang's edge, the planes rising at `pitch`
+// from the long eaves - and from the ends too when hipped): the height of its surface over a point of the envelope
+struct RoofShape {
+    float u0, u1, v0, v1, z, pitch, over;
+    bool hip, alongU;
+    float zAt(float u, float v) const {
+        const float du = (u1 - u0) * 0.5f + over - fabsf(u - (u0 + u1) * 0.5f), dv = (v1 - v0) * 0.5f + over - fabsf(v - (v0 + v1) * 0.5f);
+        const float d = hip ? Min(du, dv) : (alongU ? dv : du);
+        return z + Max(0.f, d) * pitch;
+    }
+};
+RoofShape roofShape(float u0, float u1, float v0, float v1, float z, float pitch, float over, bool hip, int ridge) {
+    RoofShape s{u0, u1, v0, v1, z, pitch, over, hip, ridge < 0 ? (u1 - u0) >= (v1 - v0) : ridge == 0};
+    return s;
+}
+
+// The pier nearest the middle of a front wall from u0 to u1 (facadedetail.cpp puts the house door there: bays from the
+// facade's bay width, the wall running from u1 toward -u, or from u0 toward +u when the winding is mirrored)
+inline float houseDoorU(const Env& e, float u0, float u1, float bayW) {
+    const int bays = Max(1, (int)roundf((u1 - u0) / Max(bayW, 0.5f)));
+    const float bw = (u1 - u0) / (float)bays;
+    return e.flip ? u0 + (bays / 2) * bw : u1 - (bays / 2) * bw;
+}
+
+// A band of windows on a wall from a to b (outward n), between zlo and zhi: trim plates and dark glass, up close only
+void windowBand(Ctx& x, vec2 a, vec2 b, vec2 n, float zlo, float zhi, int count, float ww, u32 trim) {
+    if (!x.detail || count <= 0 || zhi - zlo < 0.3f) return;
+    vec2 t = b - a;
+    const float len = length(t);
+    if (len < 0.6f) return;
+    t = t / len;
+    vec3 X(t, 0.f), Y(n, 0.f), Z(0, 0, 1);
+    const float step = len / count, hw = Min(ww * 0.5f, step * 0.5f - 0.1f), zc = (zlo + zhi) * 0.5f, hh = (zhi - zlo) * 0.5f;
+    if (hw < 0.15f) return;
+    for (int k = 0; k < count; k++) {
+        vec2 c = a + t * (step * (k + 0.5f));
+        x.m->box(vec3(c + n * 0.015f, zc) - x.org, X, Y, Z, vec3(hw + 0.06f, 0.015f, hh + 0.06f), trim, trimWood(x));
+        x.m->box(vec3(c + n * 0.045f, zc) - x.org, X, Y, Z, vec3(hw, 0.015f, hh), packRGBA8(0.12f, 0.13f, 0.15f, 1), makeMat(MAT_GLASS));
+    }
+}
+
+// A dormer on the front slope of a roof (the slope rising from the front eave toward -v): its face at vf, um the middle,
+// hw half wide; it runs back to the roof's middle, its walls start under the slope (hidden there). kind 0 a gable to the
+// street, 1 a shed rising back into the roof (the Craftsman's), 2 a low hip. Drawn only where the roof stands high
+// enough over it for a face of 0.7 m; returns whether it was.
+bool dormer(Ctx& x, const Env& e, const RoofShape& s, float um, float hw, float vf, int kind, int nWin, u32 wallCol, u32 wallMat, u32 roofCol, u32 roofMat,
+            u32 trim) {
+    const float o = 0.22f, vm = (s.v0 + s.v1) * 0.5f;
+    const float dd = vf - vm;
+    if (dd < 1.2f) return false;
+    const float vb = vm;
+    const float zFace = s.zAt(um, vf);
+    const float pd = kind == 0 ? 0.55f : (kind == 2 ? 0.35f : 0.12f);
+    // the dormer's top over its back corners and at the back of its ridge must stay under the main roof
+    float zd = zFace + 1.2f;
+    const float backCorner = Min(s.zAt(um - hw - o, vb), s.zAt(um + hw + o, vb));
+    if (kind == 0) zd = Min(zd, Min(s.zAt(um, vb) - (hw + o) * pd, backCorner) - 0.1f);
+    else if (kind == 2) {
+        const bool alongV = dd > 2.f * hw;
+        const float hs = (alongV ? hw : dd * 0.5f) + o, vRidgeBack = alongV ? vb + hw + o : (vb + vf) * 0.5f;
+        zd = Min(zd, Min(s.zAt(um, vRidgeBack) - hs * pd, backCorner) - 0.1f);
+    } else zd = Min(zd, backCorner - (dd + o) * pd - 0.1f);
+    if (zd - zFace < 0.7f) return false;
+    // walls (from the eave line: the part under the slope stays inside the roof)
+    plainWalls(x, toWorld(e, rectUV(um - hw, um + hw, vb, vf)), s.z, zd, wallCol, wallMat);
+    windowBand(x, e.P(um - hw, vf), e.P(um + hw, vf), e.fr, zFace + 0.22f, zd - 0.14f, nWin, kind == 1 ? 0.62f : 0.7f, trim);
+    const vec2 c = e.P(um, (vb + vf) * 0.5f);
+    if (kind == 0) pitchedRoof(x, c, e.ax, hw, dd * 0.5f, zd, pd, false, o, roofCol, roofMat, wallCol, wallMat, 1);
+    else if (kind == 2) pitchedRoof(x, c, e.ax, hw, dd * 0.5f, zd, pd, true, o, roofCol, roofMat, wallCol, wallMat, -1);
+    else {
+        // the shed: from the front edge (a little under the wall top) up the back; its cheeks close the sides
+        const float zf = zd - o * pd, zk = zd + dd * pd;
+        auto P3 = [&](float u, float v, float z) { return vec3(e.P(u, v), z); };
+        const vec3 f0 = P3(um - hw - o, vf + o, zf), f1 = P3(um + hw + o, vf + o, zf), k0 = P3(um - hw - o, vb, zk), k1 = P3(um + hw + o, vb, zk);
+        const vec3 F(e.fr, 0.f), up(0, 0, 1), A(e.ax, 0.f);
+        const float sl = (dd + o) * sqrtf(1.f + pd * pd);
+        x.m->quadFacing(f0 - x.org, f1 - x.org, k1 - x.org, k0 - x.org, vec2(0, 0), vec2(2.f * (hw + o), 0), vec2(2.f * (hw + o), sl), vec2(0, sl), roofCol, roofMat,
+                        F * pd + up);
+        x.m->quadFacing(f0 - x.org, f1 - x.org, k1 - x.org, k0 - x.org, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), trim, trimWood(x), -up);
+        for (int sd = -1; sd <= 1; sd += 2) {
+            const float u = um + sd * hw;
+            worldTri(x, P3(u, vf, zd), P3(u, vb, zd), P3(u, vb, zk), A * (float)sd, wallCol, wallMat);
+        }
+    }
+    return true;
+}
+
+// The Craftsman side gable: the ridge along the street; the front slope carries on past the front wall over a porch across
+// the whole front at a lower pitch, down to zPorch (returned) at the porch's edge. Gable ends up to the roof, a frieze
+// board between the front wall's top and the roof, a soffit under the back and the rakes, the porch ceiling under the
+// lower slope.
+float sweptGable(Ctx& x, const Env& e, float u0, float u1, float v0, float v1, float z, float pitch, float over, float pdep, u32 col, u32 mat, u32 gableCol,
+                 u32 gableMat, u32 trim) {
+    const float vm = (v0 + v1) * 0.5f, hs = (v1 - v0) * 0.5f;
+    const float zr = z + (hs + over) * pitch, zw = z + over * pitch;
+    const float po = 0.3f, pp = Min(pitch * 0.5f, 0.26f), run = pdep + po, zPorch = zw - run * pp;
+    const float ua = u0 - over, ub = u1 + over, L = ub - ua;
+    auto P3 = [&](float u, float v, float h) { return vec3(e.P(u, v), h) - x.org; };
+    const vec3 F(e.fr, 0.f), up(0, 0, 1);
+    const float s1 = (hs + over) * sqrtf(1.f + pitch * pitch), s0 = hs * sqrtf(1.f + pitch * pitch), s2 = run * sqrtf(1.f + pp * pp);
+    // back slope, front slope to the wall line, the porch slope and its ceiling
+    x.m->quadFacing(P3(ua, v0 - over, z), P3(ub, v0 - over, z), P3(ub, vm, zr), P3(ua, vm, zr), vec2(0, 0), vec2(L, 0), vec2(L, s1), vec2(0, s1), col, mat, -F + up);
+    x.m->quadFacing(P3(ub, v1, zw), P3(ua, v1, zw), P3(ua, vm, zr), P3(ub, vm, zr), vec2(0, 0), vec2(L, 0), vec2(L, s0), vec2(0, s0), col, mat, F + up);
+    x.m->quadFacing(P3(ub, v1 + run, zPorch), P3(ua, v1 + run, zPorch), P3(ua, v1, zw), P3(ub, v1, zw), vec2(0, 0), vec2(L, 0), vec2(L, s2), vec2(0, s2), col, mat,
+                    F * pp + up);
+    x.m->quadFacing(P3(ub, v1 + run, zPorch), P3(ua, v1 + run, zPorch), P3(ua, v1, zw), P3(ub, v1, zw), vec2(0, 0), vec2(L, 0), vec2(L, run), vec2(0, run), trim,
+                    trimWood(x), -up);
+    // gable ends: a pentagon on each end wall up to the roof
+    for (int sd = 0; sd < 2; sd++) {
+        const float u = sd ? u1 : u0;
+        const vec3 n(e.ax * (sd ? 1.f : -1.f), 0.f);
+        const vec3 a = P3(u, v0, z) + x.org, b = P3(u, v1, z) + x.org, c = P3(u, v1, zw) + x.org, d = P3(u, vm, zr) + x.org, f = P3(u, v0, zw) + x.org;
+        worldTri(x, a, b, c, n, gableCol, gableMat);
+        worldTri(x, a, c, d, n, gableCol, gableMat);
+        worldTri(x, a, d, f, n, gableCol, gableMat);
+    }
+    // the undersides of the overhangs (the back eave, the rakes) following the roof, and the frieze boards on the front and
+    // back wall lines between the walls' top and the roof
+    const u32 sof = trimWood(x);
+    x.m->quadFacing(P3(ua, v0 - over, z), P3(ub, v0 - over, z), P3(ub, v0, zw), P3(ua, v0, zw), vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), trim, sof, -up);
+    for (int sd = 0; sd < 2; sd++) {
+        const float a0 = sd ? u1 : ua, a1 = sd ? ub : u0;
+        x.m->quadFacing(P3(a0, v0, zw), P3(a1, v0, zw), P3(a1, vm, zr), P3(a0, vm, zr), vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), trim, sof, -up);
+        x.m->quadFacing(P3(a0, vm, zr), P3(a1, vm, zr), P3(a1, v1, zw), P3(a0, v1, zw), vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), trim, sof, -up);
+    }
+    x.m->quadFacing(P3(u0, v1, z), P3(u1, v1, z), P3(u1, v1, zw), P3(u0, v1, zw), vec2(0, 0), vec2(u1 - u0, 0), vec2(u1 - u0, zw - z), vec2(0, zw - z), trim, sof, F);
+    x.m->quadFacing(P3(u0, v0, z), P3(u1, v0, z), P3(u1, v0, zw), P3(u0, v0, zw), vec2(0, 0), vec2(u1 - u0, 0), vec2(u1 - u0, zw - z), vec2(0, zw - z), trim, sof, -F);
+    // the fascia along the porch eave, and knee braces under the rakes (up close)
+    if (x.detail) {
+        vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
+        x.m->box(vec3(e.P((ua + ub) * 0.5f, v1 + run - 0.02f), zPorch - 0.08f) - x.org, X, Y, Z, vec3(L * 0.5f, 0.025f, 0.09f), trim, trimWood(x));
+        for (int sd = -1; sd <= 1; sd += 2) {
+            const float u = sd < 0 ? u0 : u1;
+            for (int k = 0; k < 3; k++) {
+                const float v = Lerp(v0 + 0.7f, v1 - 0.7f, k / 2.f);
+                const float zRoof = z + (hs + over - fabsf(v - vm)) * pitch;
+                // (a diagonal brace from the wall out to the rake, under the roof's edge)
+                vec3 p0 = vec3(e.P(u, v), zRoof - 1.0f), p1 = vec3(e.P(u + sd * (over - 0.06f), v), zRoof - 0.06f);
+                vec3 dv = p1 - p0;
+                float l = length(dv);
+                if (l < 0.2f || zRoof - 1.0f < z - 0.4f) continue;
+                dv = dv / l;
+                x.m->box((p0 + p1) * 0.5f - x.org, dv, Y, normalize(cross(dv, Y)), vec3(l * 0.5f, 0.05f, 0.05f), trim, trimWood(x));
+            }
+        }
+    }
+    return zPorch;
+}
+
+// The airplane bungalow's upper room: a low, wide room astride the ridge (the "cockpit"), a band of windows along its long
+// sides, a low hip roof with wide eaves
+void upperRoom(Ctx& x, const Env& e, const RoofShape& s, float vc, u32 wallCol, u32 wallMat, u32 roofCol, u32 roofMat, u32 trim, const Building& b) {
+    const float hx = (s.u1 - s.u0) * 0.5f, hy = (s.v1 - s.v0) * 0.5f;
+    const float across = Clamp((s.alongU ? hy : hx) * 0.36f, 1.4f, 2.1f), along = Clamp((s.alongU ? hx : hy) * 0.5f, 1.8f, 3.4f);
+    const float au = s.alongU ? along : across, av = s.alongU ? across : along;
+    const float uc = 0.f, vcc = s.alongU ? 0.f : vc;
+    const float zr = s.zAt(uc, vcc), zc = zr + 0.45f;
+    plainWalls(x, toWorld(e, rectUV(uc - au, uc + au, vcc - av, vcc + av)), s.z, zc, wallCol, wallMat);
+    addCollision(x, e.P(uc, vcc), e.ax, au, av, s.z, zc + 0.6f);
+    // the windows on the two long sides (parallel to the ridge), over the roof there
+    for (int sd = -1; sd <= 1; sd += 2) {
+        vec2 a, bb, n;
+        float zl;
+        if (s.alongU) {
+            a = e.P(uc - au, vcc + sd * av), bb = e.P(uc + au, vcc + sd * av), n = e.fr * (float)sd;
+            zl = s.zAt(uc, vcc + sd * av);
+        } else {
+            a = e.P(uc + sd * au, vcc - av), bb = e.P(uc + sd * au, vcc + av), n = e.ax * (float)sd;
+            zl = s.zAt(uc + sd * au, vcc);
+        }
+        const int nw = Clamp((int)(length(bb - a) / 1.45f), 2, 5);
+        windowBand(x, a, bb, n, Max(zl + 0.3f, zc - 1.0f), zc - 0.18f, nw, 0.58f, trim);
+    }
+    pitchedRoof(x, e.P(uc, vcc), e.ax, au, av, zc, 0.3f, true, 0.65f, roofCol, roofMat, wallCol, wallMat, -1);
+    (void)b;
+}
+
+// The Mission bungalow's curved gable: the front wall carried up over the middle of the front (between ua and ub, its face
+// at vf, t thick) from the low parapet's top zBase in a curved shoulder to a flat crown `rise` higher, tile on the coping
+void missionGable(Ctx& x, const Env& e, float ua, float ub, float vf, float zBase, float rise, float t, u32 col, u32 mat, u32 tile) {
+    const float sk[] = {0.f, 0.17f, 0.3f, 0.4f, 0.6f, 0.7f, 0.83f, 1.f}, hk[] = {0.f, 0.55f, 0.88f, 1.f, 1.f, 0.88f, 0.55f, 0.f};
+    const float W = ub - ua;
+    const vec3 F(e.fr, 0.f), up(0, 0, 1);
+    for (int k = 0; k + 1 < 8; k++) {
+        const float s0 = ua + W * sk[k], s1 = ua + W * sk[k + 1], z0 = zBase + rise * hk[k], z1 = zBase + rise * hk[k + 1];
+        for (int sd = 0; sd < 2; sd++) {
+            const float v = sd ? vf - t : vf;
+            const vec3 a = vec3(e.P(s0, v), zBase) - x.org, b = vec3(e.P(s1, v), zBase) - x.org, c = vec3(e.P(s1, v), z1) - x.org, d = vec3(e.P(s0, v), z0) - x.org;
+            x.m->quadFacing(a, b, c, d, vec2(0, 0), vec2(s1 - s0, 0), vec2(s1 - s0, z1 - zBase), vec2(0, z0 - zBase), col, mat, sd ? -F : F);
+        }
+        // the coping over this stretch of the curve
+        const vec3 a = vec3(e.P(s0, vf + 0.03f), z0 + 0.02f) - x.org, b = vec3(e.P(s1, vf + 0.03f), z1 + 0.02f) - x.org;
+        const vec3 c = vec3(e.P(s1, vf - t - 0.03f), z1 + 0.02f) - x.org, d = vec3(e.P(s0, vf - t - 0.03f), z0 + 0.02f) - x.org;
+        const vec3 nrm = normalize(cross(b - a, vec3(-e.fr, 0.f)));
+        x.m->quadFacing(a, b, c, d, vec2(0, 0), vec2(s1 - s0, 0), vec2(s1 - s0, t), vec2(0, t), tile, makeMat(MAT_ROOF_TILE), dot(nrm, up) >= 0.f ? nrm : -nrm);
+    }
+}
+
 // Stilt house of the fishing towns (AR_SHACK_STILT): the floor on posts over the flats, decks round the front, a side
 // or the whole house with railings, a stair down to the yard, a porch roof, a metal roof (side or front gable, shed,
 // hip) and a rain-water cistern. Height of the floor above the ground from the seed (buildmesh.cpp reads it too).
 inline float shackStiltH(const Building& b) { return 1.4f + 1.2f * hashToFloat(hash32(b.seed ^ 0x5717u)); }
 // the floor of a stilt shack or of a raised Keys house (the flood code: a full storey of parking under the house)
 inline float stiltFloorH(const Building& b) { return b.arch == AR_HOUSE_RAISED ? 2.6f + 0.5f * hashToFloat(hash32(b.seed ^ 0x5718u)) : shackStiltH(b); }
+// A mobile home's depth across the lot: a single-wide, or a double-wide where the envelope is deep enough (buildTrailer;
+// the carport beside it and the back fence's returns follow it: buildmesh.cpp, facadedetail.cpp)
+inline float trailerDepth(const Building& b) {
+    const u32 h = hash32(b.seed ^ 0x7A1E6u);
+    const bool dbl = blockstyle::trailerDouble(b);
+    return Min(2.f * b.hy, dbl ? 7.8f + 0.7f * hashToFloat(h >> 1) : 4.1f + 0.3f * hashToFloat(h >> 1));
+}
+// The depth (half) of a house's garage wing or carport from the front: a mobile home's carport is no deeper than the home
+inline float carportHalfDepth(const Building& b) {
+    const float gd = Min(b.hy, 3.4f);
+    return b.arch == AR_HOUSE_TRAILER ? Min(gd, Max(1.6f, trailerDepth(b) * 0.5f)) : gd;
+}
 
 // Mono-pitch roof over a rectangle: high along v1 (the front), low along v0, side walls closed in the wall colour
 void shedRoofPart(Ctx& x, const Env& e, vec4 r, float z, float rise, float over, u32 col, u32 mat, u32 wallCol, u32 wallMat) {
@@ -1464,6 +1865,7 @@ void buildStiltShack(Ctx& x, const Building& b, const FacadeGPU& fac, u32& roofC
     vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
     const u32 post = raised ? packRGBA8(0.82f, 0.82f, 0.8f, 1) : packRGBA8(0.6f, 0.54f, 0.46f, 1), deckCol = packRGBA8(0.7f, 0.64f, 0.55f, 1);
     const u32 woodMat = makeMat(MAT_WOOD), postMat = raised ? makeMat(MAT_CONCRETE) : woodMat;
+    const u32 railMat = raised ? makeMat(MAT_PLASTER) : woodMat;   // (the raised Keys house's rails painted, the shack's bare)
     const float pr = raised ? 0.2f : 0.11f;   // a post's or pier's half width
     vec4 wc = unpackRGBA8(fac.frameColor);
     const u32 railCol = packRGBA8(wc.x, wc.y, wc.z, 1);
@@ -1475,11 +1877,13 @@ void buildStiltShack(Ctx& x, const Building& b, const FacadeGPU& fac, u32& roofC
     const float ls = mr.chance(0.5f) ? 1.f : -1.f;
     const float nw = 2.f * hx * mr.range(0.38f, 0.5f), nd = 2.f * hy * mr.range(0.35f, 0.5f);
     const float dkw[3] = {0.35f, 0.4f, 0.25f};
-    const int deckKind = mr.weighted(dkw, 3);   // 0 all round, 1 the front, 2 the front and a side (drawn: dk below)
+    (void)mr.weighted(dkw, 3);   // (the stream's draw kept: the kinds are seeded in blockstyle.cpp, which the repetition log reads)
+    const int deckKind = blockstyle::stiltDeckKind(b);   // 0 all round, 1 the front, 2 the front and a side (drawn: dk below)
     const float dw = mr.range(1.0f, 1.4f), df = mr.range(1.2f, 1.6f);
     const float side = mr.chance(0.5f) ? 1.f : -1.f;
     const float rkw[4] = {0.35f, 0.25f, 0.25f, 0.15f};
-    const int roofKind = mr.weighted(rkw, 4);   // side gable, front gable, shed, hip
+    (void)mr.weighted(rkw, 4);
+    const int roofKind = blockstyle::stiltRoofKind(b);   // side gable, front gable, shed, hip
     const float pitch = mr.range(0.36f, 0.55f);
     const bool porchRoof = deckKind != 0 ? mr.chance(raised ? 0.85f : 0.6f) : mr.chance(raised ? 0.5f : 0.25f);
     const bool brace = mr.chance(0.45f) && !raised;
@@ -1653,7 +2057,7 @@ void buildStiltShack(Ctx& x, const Building& b, const FacadeGPU& fac, u32& roofC
             x.m->box((p0 + p1) * 0.5f - x.org, dir, vec3(fside, 0.f), up, vec3(l * 0.5f, 0.03f, 0.13f), post, woodMat);
             if (x.detail) {
                 // handrail
-                x.m->box((p0 + p1) * 0.5f + vec3(0, 0, 0.95f) - x.org, dir, vec3(fside, 0.f), up, vec3(l * 0.5f, 0.025f, 0.03f), railCol, woodMat);
+                x.m->box((p0 + p1) * 0.5f + vec3(0, 0, 0.95f) - x.org, dir, vec3(fside, 0.f), up, vec3(l * 0.5f, 0.025f, 0.03f), railCol, railMat);
             }
         }
     }
@@ -1667,14 +2071,14 @@ void buildStiltShack(Ctx& x, const Building& b, const FacadeGPU& fac, u32& roofC
         t = t / len;
         vec3 T(t, 0.f), N(perp(t), 0.f);
         if (!x.detail) return;
-        x.m->box(vec3((wa + wb) * 0.5f, zr) - x.org, T, N, Z, vec3(len * 0.5f, 0.04f, 0.04f), railCol, woodMat);
+        x.m->box(vec3((wa + wb) * 0.5f, zr) - x.org, T, N, Z, vec3(len * 0.5f, 0.04f, 0.04f), railCol, railMat);
         {
             int nb = Max(1, (int)(len / 1.2f));
             for (int i = 0; i <= nb; i++) {
                 vec2 pp = wa + t * (len * i / nb);
-                x.m->box(vec3(pp, (zd + zr) * 0.5f) - x.org, T, N, Z, vec3(0.04f, 0.04f, (zr - zd) * 0.5f), railCol, woodMat);
+                x.m->box(vec3(pp, (zd + zr) * 0.5f) - x.org, T, N, Z, vec3(0.04f, 0.04f, (zr - zd) * 0.5f), railCol, railMat);
             }
-            x.m->box(vec3((wa + wb) * 0.5f, zd + 0.45f) - x.org, T, N, Z, vec3(len * 0.5f, 0.025f, 0.025f), railCol, woodMat);
+            x.m->box(vec3((wa + wb) * 0.5f, zd + 0.45f) - x.org, T, N, Z, vec3(len * 0.5f, 0.025f, 0.025f), railCol, railMat);
         }
     };
     for (size_t di = 0; di < decks.size(); di++) {
@@ -1705,7 +2109,7 @@ void buildStiltShack(Ctx& x, const Building& b, const FacadeGPU& fac, u32& roofC
             float u = Lerp(u0 + 0.12f, u1 - 0.12f, (float)k / (np - 1));
             if ((toStreet || alongFront) && fabsf(u - ue) < 0.6f) continue;
             vec2 pp = e.P(u, hy + dep - 0.12f);
-            if (x.detail) x.m->box(vec3(pp, (zd + zE) * 0.5f) - x.org, X, Y, Z, vec3(0.07f, 0.07f, (zE - zd) * 0.5f), railCol, woodMat);
+            if (x.detail) x.m->box(vec3(pp, (zd + zE) * 0.5f) - x.org, X, Y, Z, vec3(0.07f, 0.07f, (zE - zd) * 0.5f), railCol, railMat);
             addCollision(x, pp, e.ax, 0.08f, 0.08f, zd, zE);
         }
         vec3 a0 = vec3(e.P(u0 - 0.15f, hy), zE + 0.6f) - x.org, a1 = vec3(e.P(u1 + 0.15f, hy), zE + 0.6f) - x.org;
@@ -1733,6 +2137,103 @@ void buildStiltShack(Ctx& x, const Building& b, const FacadeGPU& fac, u32& roofC
 
 // Archetype house body: walls, roofs, porch and small tower; the garage wing, garden, pool and trees stay with the
 // generic house code (buildmesh.cpp), which gets the roof finish for the garage. Returns false for plain houses.
+// A mobile home (the fishing village, the Keys, the edges of the county towns, the farms): a long low box on blocks behind
+// a skirt, lap siding with small windows (the facade shader), on half of them a painted band, a very low tin gable or a
+// shingled roof-over. A wooden deck with steps and a rail at the door - facadedetail.cpp puts the door at the pier
+// nearest the middle of the front wall - sometimes under an aluminium awning. The box fills the envelope's front
+// (gameplay's door slot stands just in front of b.hy); a double-wide where the envelope is deep enough. The carport is
+// buildmesh.cpp's.
+void buildTrailer(Ctx& x, const Building& b, const FacadeGPU& fac, u32& roofCol, u32& roofMat) {
+    using namespace massing;
+    Rng mr(b.seed ^ 0x7A1E5u), hr(b.seed ^ 0x40053u);
+    Env e = envOf(b);
+    const float hx = b.hx, hy = b.hy;
+    x.trimMat = b.style == BS_FARMHOUSE ? 0u : makeMat(MAT_PLASTER);
+    houseRoofFinish(b, hr, roofCol, roofMat);
+    const float zf = b.baseZ + mr.range(0.55f, 0.8f), zTop = zf + b.height;
+    const float D = trailerDepth(b);
+    const float L = Min(2.f * hx, Max(6.f, 2.f * hx - mr.range(0.f, 0.8f)));
+    const float u0 = -L * 0.5f, u1 = L * 0.5f, v1 = hy, v0 = hy - D;
+    std::vector<vec2> fp = toWorld(e, rectUV(u0, u1, v0, v1));
+    recordMass(x, fp, zf, zTop, zf, FM_HOUSE, false);
+    facadeWalls(x, fp, zf - 0.02f, zTop, zf, b.facade, fac.bayW);
+    addCollision(x, e.P(0.f, (v0 + v1) * 0.5f), e.ax, L * 0.5f, D * 0.5f, b.baseZ - 1.f, zTop + 0.6f);
+    // the skirt from the ground up to the floor, a little in from the walls: vinyl lattice or painted block
+    const vec3 sk[] = {vec3(0.95f, 0.95f, 0.93f), vec3(0.88f, 0.84f, 0.74f), vec3(0.72f, 0.72f, 0.7f), vec3(0.8f, 0.78f, 0.74f)};
+    const vec3 skc = sk[mr.next() % 4u];
+    const bool block = mr.chance(0.25f);
+    plainWalls(x, toWorld(e, rectUV(u0 + 0.06f, u1 - 0.06f, v0 + 0.06f, v1 - 0.06f)), b.baseZ - 0.5f, zf, packRGBA8(skc.x, skc.y, skc.z, 1),
+               makeMat(block ? MAT_STUCCO : MAT_PLASTER));
+    // the painted band of the older ones: under the eaves above the windows, or low below the sills
+    if (mr.chance(0.5f)) {
+        const vec3 bands[] = {vec3(0.45f, 0.3f, 0.2f), vec3(0.2f, 0.35f, 0.55f), vec3(0.3f, 0.45f, 0.3f), vec3(0.6f, 0.2f, 0.18f), vec3(0.75f, 0.6f, 0.3f)};
+        const vec3 bc = bands[mr.next() % 5u];
+        const float zb0 = mr.chance(0.5f) ? zTop - 0.32f : zf + 0.25f, hb = mr.range(0.16f, 0.24f);
+        plainWalls(x, toWorld(e, rectUV(u0 - 0.015f, u1 + 0.015f, v0 - 0.015f, v1 + 0.015f)), zb0, zb0 + hb, packRGBA8(bc.x, bc.y, bc.z, 1),
+                   makeMat(MAT_METAL_PAINTED));
+    }
+    // roof: a very low tin gable along the length, or a shingled roof-over with a deeper overhang
+    const bool over = (roofMat & 0xffu) == MAT_ROOF_SHINGLE;
+    vec4 wc4 = unpackRGBA8(fac.wallColor);
+    const u32 gableCol = packRGBA8(Saturate(wc4.x * 1.45f), Saturate(wc4.y * 1.45f), Saturate(wc4.z * 1.45f), 1);
+    pitchedPart(x, e, vec4(u0, u1, v0, v1), zTop, over ? mr.range(0.22f, 0.3f) : mr.range(0.06f, 0.1f), false, over ? 0.35f : 0.1f, roofCol, roofMat, gableCol,
+                makeMat(MAT_WOOD_SIDING), 0);
+    // the deck at the door: the pier nearest the middle of the front wall, which runs from (u1, v1) toward -u (from (u0, v1)
+    // toward +u when the winding is mirrored)
+    const int bays = Max(1, (int)roundf(L / Max(fac.bayW, 0.5f)));
+    const float bw = L / (float)bays;
+    const float ud0 = e.flip ? u0 + (bays / 2) * bw : u1 - (bays / 2) * bw;
+    const float dkw = mr.range(1.1f, 1.5f), dkd = mr.range(1.6f, 2.3f);
+    const float ud = Clamp(ud0, u0 + dkw + 0.1f, u1 - dkw - 0.1f);
+    const u32 wood = packRGBA8(0.72f, 0.64f, 0.54f, 1), woodM = makeMat(MAT_WOOD);
+    const u32 rail = b.style == BS_FARMHOUSE ? wood : packRGBA8(0.95f, 0.95f, 0.93f, 1), railM = trimWood(x);
+    vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
+    const float zd = zf - 0.03f;
+    const vec2 dc = e.P(ud, v1 + dkd * 0.5f);
+    const float gz = gMap ? gMap->heightAt(dc.x, dc.y) : b.baseZ;
+    yardKeep(x, dc, e.ax, e.fr, dkw + 0.3f, dkd * 0.5f + 1.2f);
+    if (x.detail) {
+        x.m->box(vec3(dc, zd - 0.07f) - x.org, X, Y, Z, vec3(dkw, dkd * 0.5f, 0.07f), wood, woodM, true);
+        // posts under the deck's outer corners
+        for (int k = -1; k <= 1; k += 2) {
+            vec2 pp = e.P(ud + k * (dkw - 0.1f), v1 + dkd - 0.1f);
+            float pz = gMap ? gMap->heightAt(pp.x, pp.y) : b.baseZ;
+            x.m->box(vec3(pp, (pz + zd - 0.14f) * 0.5f) - x.org, X, Y, Z, vec3(0.06f, 0.06f, Max(0.05f, (zd - 0.14f - pz) * 0.5f + 0.1f)), wood, woodM);
+        }
+        // the rail along the two sides and the front either side of the steps
+        const float rh = 0.9f, sw = 0.55f;
+        for (int k = -1; k <= 1; k += 2) {
+            vec2 rc = e.P(ud + k * (dkw - 0.04f), v1 + dkd * 0.5f);
+            x.m->box(vec3(rc, zd + rh) - x.org, X, Y, Z, vec3(0.04f, dkd * 0.5f, 0.04f), rail, railM);
+            for (int q = 0; q < 2; q++) {
+                vec2 pc = e.P(ud + k * (dkw - 0.04f), v1 + (q ? dkd - 0.04f : 0.15f));
+                x.m->box(vec3(pc, zd + rh * 0.5f) - x.org, X, Y, Z, vec3(0.04f, 0.04f, rh * 0.5f), rail, railM);
+            }
+            float a0 = ud + k * sw, a1 = ud + k * (dkw - 0.04f);
+            vec2 fc = e.P((a0 + a1) * 0.5f, v1 + dkd - 0.04f);
+            x.m->box(vec3(fc, zd + rh) - x.org, X, Y, Z, vec3(fabsf(a1 - a0) * 0.5f, 0.04f, 0.04f), rail, railM);
+            vec2 sp = e.P(a0, v1 + dkd - 0.04f);
+            x.m->box(vec3(sp, zd + rh * 0.5f) - x.org, X, Y, Z, vec3(0.04f, 0.04f, rh * 0.5f), rail, railM);
+        }
+        // an aluminium awning over the deck on two slim posts
+        if (mr.chance(0.4f)) {
+            const u32 al = packRGBA8(0.93f, 0.93f, 0.92f, 1), alM = makeMat(MAT_METAL_PAINTED);
+            const float za = zTop - 0.12f;
+            vec3 a0 = vec3(e.P(ud - dkw - 0.2f, v1), za) - x.org, a1 = vec3(e.P(ud + dkw + 0.2f, v1), za) - x.org;
+            vec3 b0 = vec3(e.P(ud - dkw - 0.2f, v1 + dkd + 0.25f), za - 0.25f) - x.org, b1 = vec3(e.P(ud + dkw + 0.2f, v1 + dkd + 0.25f), za - 0.25f) - x.org;
+            x.m->quadFacing(a0, a1, b1, b0, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), al, alM, vec3(e.fr, 3.f));
+            x.m->quadFacing(a0, b0, b1, a1, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), al, alM, vec3(-e.fr, -3.f));
+            for (int k = -1; k <= 1; k += 2) {
+                vec2 pp = e.P(ud + k * (dkw + 0.1f), v1 + dkd + 0.1f);
+                x.m->box(vec3(pp, (zd + za - 0.25f) * 0.5f) - x.org, X, Y, Z, vec3(0.035f, 0.035f, (za - 0.25f - zd) * 0.5f), al, alM);
+            }
+        }
+    }
+    // the deck walkable from the ground: solid under its boards, steps down to the yard at the front
+    addCollision(x, dc, e.ax, dkw, dkd * 0.5f, gz - 0.6f, zd);
+    if (x.detail) deckSteps(x, e, ud, 1.0f, v1 + dkd, zd, gz, wood, woodM);
+}
+
 bool buildArchHouseBody(Ctx& x, const Building& b, const FacadeGPU& fac, u32& roofCol, u32& roofMat) {
     using namespace massing;
     if (b.arch == AR_NONE || b.interior >= 0) return false;
@@ -1740,7 +2241,12 @@ bool buildArchHouseBody(Ctx& x, const Building& b, const FacadeGPU& fac, u32& ro
         buildStiltShack(x, b, fac, roofCol, roofMat);
         return true;
     }
+    if ((b.style == BS_HOUSE || b.style == BS_FARMHOUSE) && b.arch == AR_HOUSE_TRAILER) {
+        buildTrailer(x, b, fac, roofCol, roofMat);
+        return true;
+    }
     if (b.style != BS_HOUSE && b.style != BS_VILLA && b.style != BS_FARMHOUSE) return false;
+    x.trimMat = b.style == BS_FARMHOUSE ? 0u : makeMat(MAT_PLASTER);   // (painted trim in town)
     Rng mr(b.seed ^ 0x4D455353u), hr(b.seed ^ 0x40053u);
     Env e = envOf(b);
     const float hx = b.hx, hy = b.hy;
@@ -1772,6 +2278,9 @@ bool buildArchHouseBody(Ctx& x, const Building& b, const FacadeGPU& fac, u32& ro
     std::vector<Part> parts;
     std::vector<vec2> mainUV = rectUV(-hx, hx, -hy, hy);
     bool flat = b.arch == AR_HOUSE_MIMO || b.arch == AR_VILLA_MODERN;
+    // a Mediterranean Revival house with a flat roof behind a parapet and a barrel-tile pent along the front (blockstyle.cpp
+    // gives a quarter of them ROOF_FLAT)
+    const bool medFlat = b.arch == AR_HOUSE_MED && b.roof == ROOF_FLAT;
     float pitch = 0.4f;
     bool hip = b.roof == ROOF_HIP;
     int ridge = -1;
@@ -1784,10 +2293,35 @@ bool buildArchHouseBody(Ctx& x, const Building& b, const FacadeGPU& fac, u32& ro
         case AR_HOUSE_CONCH: pitch = mr.range(0.5f, 0.68f); if (conchPorch == 1 && hx <= hy * 1.4f) ridge = 1; break;
         case AR_VILLA_MED: pitch = mr.range(0.3f, 0.36f); hip = true; break;
         case AR_VILLA_COLONIAL: pitch = mr.range(0.36f, 0.46f); hip = true; break;
-        case AR_HOUSE_CBS: pitch = mr.range(0.22f, 0.3f); hip = true; break;
+        case AR_HOUSE_CBS: pitch = mr.range(0.22f, 0.3f); break;   // (hip, or a side gable on a fifth: blockstyle.cpp)
         case AR_HOUSE_VICTORIAN: pitch = mr.range(0.75f, 0.95f); hip = false; ridge = 0; break;   // (side gables; the leg's to the street)
         default: break;
     }
+    // the forms inside the bungalow and the two-storey house (blockstyle.cpp houseForm): Craftsman side gable, hipped
+    // bungalow, airplane bungalow, American Foursquare - their own stream, so the plain ones keep theirs
+    const int form = blockstyle::houseForm(b);
+    const u32 fh = hash32(b.seed ^ 0xC2AF8u);
+    const float fq = hashToFloat(fh), fq2 = hashToFloat(hash32(fh + 7u)), fq3 = hashToFloat(hash32(fh + 13u));
+    const bool town = b.region == REG_LAKE_TOWN || b.region == REG_HARLOW || b.region == REG_FORT_CASTELL || b.region == REG_REDLAND || b.region == REG_FARMLAND;
+    float formOver = 0.6f;
+    const bool mission = form == blockstyle::HF_BUNG_MISSION;   // (a flat roof behind a parapet, the curved gable: blockstyle sets ROOF_FLAT)
+    if (form == blockstyle::HF_BUNG_SIDE) pitch = Min(pitch, 0.52f), ridge = 0, formOver = 0.75f;
+    else if (form == blockstyle::HF_BUNG_HIP) pitch *= 0.82f, ridge = -1, hip = true, formOver = 0.7f;
+    else if (form == blockstyle::HF_FOURSQUARE) pitch = 0.4f + 0.12f * fq, ridge = -1, hip = true, formOver = 0.75f;
+    // (the Craftsman porch: square columns on brick or stone piers on most of the Craftsman forms, on some foursquares; round
+    // columns on others)
+    if (form != blockstyle::HF_PLAIN || (b.arch == AR_HOUSE_BUNGALOW && b.massing == MK_BOX && fq2 < (town ? 0.45f : 0.25f))) {
+        const bool fs = form == blockstyle::HF_FOURSQUARE;
+        x.porchPosts = fs ? (fq2 < 0.45f ? 1 : (fq2 < 0.75f ? 2 : 0)) : (fq2 < 0.8f ? 1 : 0);
+        const u32 ph = hash32(b.seed ^ 0x9E12u) % 100u;
+        vec4 wc4 = unpackRGBA8(fac.wallColor);
+        if (ph < 50u) x.pierCol = packRGBA8(0.72f, 0.45f, 0.37f, 1), x.pierMat = makeMat(MAT_BRICK);
+        else if (ph < 75u) x.pierCol = packRGBA8(0.82f, 0.8f, 0.76f, 1), x.pierMat = makeMat(MAT_STONE);
+        else x.pierCol = packRGBA8(Saturate(wc4.x * 1.45f), Saturate(wc4.y * 1.45f), Saturate(wc4.z * 1.45f), 1), x.pierMat = makeMat((u32)fac.wallLayer == MAT_WOOD_SIDING ? MAT_WOOD_SIDING : MAT_PLASTER);
+        // (the Mission bungalow's loggia: square stucco piers in the wall's colour)
+        if (mission) x.porchPosts = 3, x.pierCol = gableCol, x.pierMat = gableMat;
+    }
+    float sweptDep = 0.f, sweptPorchZ = 0.f, sweptPitch = 0.f;   // (the Craftsman side gable's porch, from its roof)
     // massing: rectangles of the body (u0, u1, v0, v1) and their eave heights
     std::vector<vec2> uvPoly;
     switch (b.massing) {
@@ -1878,7 +2412,7 @@ bool buildArchHouseBody(Ctx& x, const Building& b, const FacadeGPU& fac, u32& ro
             if (isMain) mainDone = true;
         }
         vec2 cc = e.P((p.r.x + p.r.y) * 0.5f, (p.r.z + p.r.w) * 0.5f);
-        addCollision(x, cc, e.ax, (p.r.y - p.r.x) * 0.5f, (p.r.w - p.r.z) * 0.5f, b.baseZ - 2.f, p.z1 + (flat ? 0.3f : 2.f));
+        addCollision(x, cc, e.ax, (p.r.y - p.r.x) * 0.5f, (p.r.w - p.r.z) * 0.5f, b.baseZ - 2.f, p.z1 + (flat ? 0.3f : ((medFlat || mission) ? 0.8f : 2.f)));
     }
     // roofs
     for (const Part& p : parts) {
@@ -1886,6 +2420,32 @@ bool buildArchHouseBody(Ctx& x, const Building& b, const FacadeGPU& fac, u32& ro
         if (flat) {
             if (b.roofForm == RFM_BUTTERFLY && p.kind == FM_HOUSE) butterflyRoof(x, e, r.x, r.y, r.z, r.w, p.z1, 0.9f, roofCol);
             else eaveSlab(x, toWorld(e, rectUV(r.x, r.y, r.z, r.w)), p.z1, b.arch == AR_VILLA_MODERN ? 0.7f : 1.1f, 0.25f, packRGBA8(0.96f, 0.96f, 0.95f, 1));
+        } else if (mission) {
+            // the Mission bungalow: the flat roof behind a low parapet, the curved gable over the middle of the front
+            std::vector<vec2> fp = toWorld(e, rectUV(r.x, r.y, r.z, r.w));
+            flatRoof(x, fp, p.z1 + 0.02f, x.roofCol, x.roofMat);
+            const float ph = 0.55f;
+            if (x.detail) {
+                parapet(x, fp, p.z1, ph, 0.22f, gableCol, gableMat);
+                plainWalls(x, fp, p.z1, p.z1 + ph, gableCol, gableMat);
+            }
+            const float gw = Clamp((r.y - r.x) * (0.5f + 0.15f * fq3), 3.f, 7.f), gc = (r.x + r.y) * 0.5f;
+            missionGable(x, e, gc - gw * 0.5f, gc + gw * 0.5f, r.w, p.z1 + ph, 0.7f + 0.5f * fq, 0.22f, gableCol, gableMat, roofCol);
+        } else if (medFlat) {
+            // the flat roof behind a stucco parapet; the tile pent along the street side of the parts that reach it
+            std::vector<vec2> fp = toWorld(e, rectUV(r.x, r.y, r.z, r.w));
+            flatRoof(x, fp, p.z1 + 0.02f, x.roofCol, x.roofMat);
+            if (x.detail) {
+                // (the parapet's inner face and cap, and its outer face: the walls stop at the roof)
+                parapet(x, fp, p.z1, 0.75f, 0.22f, gableCol, gableMat);
+                plainWalls(x, fp, p.z1, p.z1 + 0.75f, gableCol, gableMat);
+            }
+            if (r.w > hy - 0.3f) {
+                // (pentRoof leans out to the right of a -> b: run it so that side is the street)
+                vec2 pa = e.P(r.x, r.w), pb = e.P(r.y, r.w), t = pb - pa;
+                if (dot(vec2(t.y, -t.x), e.fr) < 0.f) std::swap(pa, pb);
+                pentRoof(x, pa, pb, p.z1 + 0.1f, 0.85f, roofCol);
+            }
         } else {
             bool partHip = hip || p.kind == FM_WING;
             // the archetype's ridge (bungalow: gable to the street); the leg of an L and the wings along their longer side
@@ -1897,8 +2457,14 @@ bool buildArchHouseBody(Ctx& x, const Building& b, const FacadeGPU& fac, u32& ro
                 rd = &p != &parts[0] ? 1 : 0;
                 if (&p != &parts[0]) partHip = false;
             }
-            float over = b.arch == AR_HOUSE_RANCH ? 0.85f : (b.arch == AR_HOUSE_CBS ? 0.75f : (b.arch == AR_HOUSE_VICTORIAN ? 0.35f : 0.6f));
-            pitchedPart(x, e, r, p.z1, pitch, partHip, over, roofCol, roofMat, gableCol, gableMat, rd);
+            float over = b.arch == AR_HOUSE_RANCH ? 0.85f : (b.arch == AR_HOUSE_CBS ? 0.75f : (b.arch == AR_HOUSE_VICTORIAN ? 0.35f : formOver));
+            if (form == blockstyle::HF_BUNG_SIDE && parts.size() == 1) {
+                // the Craftsman side gable sweeps on down over the porch across the front
+                const float yardC = dot(b.lotC - b.c, b.front) + b.lotHy - hy;
+                sweptDep = Clamp(2.1f + 0.5f * fq2, 1.6f, Max(1.6f, yardC - 1.4f));
+                sweptPorchZ = sweptGable(x, e, r.x, r.y, r.z, r.w, p.z1, pitch, over, sweptDep, roofCol, roofMat, gableCol, gableMat, wallTrim);
+                sweptPitch = Min(pitch * 0.5f, 0.26f);
+            } else pitchedPart(x, e, r, p.z1, pitch, partHip, over, roofCol, roofMat, gableCol, gableMat, rd);
         }
     }
     // the cantilevered upper floor of a stepped villa: its underside over the recessed entrance
@@ -1931,39 +2497,134 @@ bool buildArchHouseBody(Ctx& x, const Building& b, const FacadeGPU& fac, u32& ro
         bool rail = mr.chance(0.5f);
         if (nu1 - nu0 > 2.f && dep > 1.2f) housePorch(x, e, vc, nu0 + 0.1f, nu1 - 0.1f, dep, zb, zb + 2.6f, 0, roofCol, roofMat, wallTrim, rail);
     } else if (b.arch == AR_HOUSE_BUNGALOW) {
-        float pw = 2.f * hx * mr.range(0.4f, 0.6f);
-        float off = -gs * (hx - pw * 0.5f - 0.3f) * mr.range(0.f, 1.f);
-        housePorch(x, e, hy, off - pw * 0.5f, off + pw * 0.5f, mr.range(1.9f, 2.4f), zb, zb + 2.6f, 0, roofCol, roofMat, wallTrim, mr.chance(0.5f));
+        // the porch over the door (facadedetail.cpp's door: the pier nearest the middle of the front)
+        const float ud = houseDoorU(e, -hx, hx, fac.bayW);
+        const float yardC = dot(b.lotC - b.c, b.front) + b.lotHy - hy;
+        const RoofShape rs = roofShape(-hx, hx, -hy, hy, zTop, pitch, formOver, hip, ridge);
+        if (form == blockstyle::HF_BUNG_SIDE && sweptDep > 0.f) {
+            // across the whole front under the swept roof: the posts up to its ceiling
+            const float zPost = sweptPorchZ + 0.3f * sweptPitch + 0.2f * sweptPitch;
+            housePorch(x, e, hy, -hx + 0.15f, hx - 0.15f, sweptDep, zb, zPost, 2, roofCol, roofMat, wallTrim, fq < 0.6f, -1e9f, true, ud);
+            // the dormer on the front slope: a shed with a band of windows, or a small gable
+            const float dw = Clamp(hx * 0.32f, 1.0f, 1.9f);
+            dormer(x, e, rs, 0.f, dw, hy - 0.55f, fq3 < 0.6f ? 1 : 0, dw > 1.35f ? 3 : 2, gableCol, gableMat, roofCol, roofMat, wallTrim);
+        } else {
+            float pw = 2.f * hx * mr.range(0.4f, 0.6f);
+            (void)mr.range(0.f, 1.f);   // (the porch used to stand anywhere along the front: now it is over the door)
+            float dep = mr.range(1.9f, 2.4f);
+            const bool rail = mr.chance(0.5f);
+            // the porch centred on the door (a hipped bungalow's wider, under a hipped shed)
+            if (form == blockstyle::HF_BUNG_HIP) pw = 2.f * hx * (0.55f + 0.2f * fq);
+            pw = Min(pw, 2.f * hx - 0.4f);
+            const float off = Clamp(ud, -hx + 0.2f + pw * 0.5f, hx - 0.2f - pw * 0.5f);
+            dep = Clamp(dep, 1.5f, Max(1.5f, yardC - 1.3f));
+            if (mission) {
+                const bool slab = fq < 0.5f;
+                housePorch(x, e, hy, off - pw * 0.5f, off + pw * 0.5f, dep, zb, zb + 2.6f, slab ? 4 : 1, slab ? gableCol : roofCol, slab ? gableMat : roofMat, wallTrim, rail,
+                           -1e9f, true, ud);
+            } else
+                housePorch(x, e, hy, off - pw * 0.5f, off + pw * 0.5f, dep, zb, zb + 2.6f, form == blockstyle::HF_BUNG_HIP ? 3 : 0, roofCol, roofMat, wallTrim, rail,
+                           -1e9f, true, ud);
+            if (form == blockstyle::HF_BUNG_HIP && fq3 < 0.75f) {
+                const float dw = Clamp(hx * 0.22f, 0.85f, 1.3f);
+                dormer(x, e, rs, 0.f, dw, hy - 0.5f, 2, dw > 1.05f ? 2 : 1, gableCol, gableMat, roofCol, roofMat, wallTrim);
+            }
+            if (form == blockstyle::HF_BUNG_AIRPLANE) upperRoom(x, e, rs, -hy * 0.12f, gableCol, gableMat, roofCol, roofMat, wallTrim, b);
+        }
+    } else if (form == blockstyle::HF_FOURSQUARE) {
+        // the American Foursquare: a porch across the front under a hipped shed (posts, piers or round columns), a hipped
+        // dormer on the front slope of the pyramid roof
+        const float ud = houseDoorU(e, -hx, hx, fac.bayW);
+        const float yardC = dot(b.lotC - b.c, b.front) + b.lotHy - hy;
+        const float dep = Clamp(2.2f + 0.5f * fq2, 1.6f, Max(1.6f, yardC - 1.3f));
+        housePorch(x, e, hy, -hx + 0.1f, hx - 0.1f, dep, zb, zb + fac.groundH - 0.3f, 3, roofCol, roofMat, wallTrim, fq < 0.7f, -1e9f, true, ud);
+        const RoofShape rs = roofShape(-hx, hx, -hy, hy, zTop, pitch, formOver, true, -1);
+        if (fq3 < 0.85f) {
+            const float dw = Clamp(hx * 0.26f, 1.0f, 1.5f);
+            dormer(x, e, rs, 0.f, dw, hy - 0.45f, 2, 2, gableCol, gableMat, roofCol, roofMat, wallTrim);
+        }
     } else if (conch) {
         float dep = mr.range(2.1f, 2.6f);
         // (the porch and its steps stay inside the front yard)
         float yardC = dot(b.lotC - b.c, b.front) + b.lotHy - hy;
         float stepsRun = Max(1.f, ceilf((zb + 0.02f - b.baseZ) / 0.2f) - 1.f) * 0.28f;
-        dep = Clamp(dep, 1.5f, Max(1.5f, yardC - stepsRun - 0.4f));
         float u0 = -hx + 0.2f, u1 = hx - 0.2f;
+        // the temple front: a gable-fronted bay forward of the front; the porch stands on the longer set-back front beside
+        // it (where the door is: facadedetail.cpp) and comes out a little past the bay's face
+        const bool bay = b.massing == MK_STEP_FRONT && parts.size() > 1;
+        float pv = hy, bu0 = 0.f, bu1 = 0.f;
+        if (bay) {
+            bu0 = parts[1].r.x;
+            bu1 = parts[1].r.y;
+            pv = parts[0].r.w;
+            if (bu0 + hx >= hx - bu1) u1 = bu0 - 0.05f;
+            else u0 = bu1 + 0.05f;
+            dep = Max(dep, hy - pv + 0.4f);
+            if (conchPorch == 2) conchPorch = 0;
+        }
+        // an L: the porch (or the gallery) in the inner corner beside the front leg, out to the leg's face, where the door
+        // is (facadedetail.cpp's notch porch). Before, it stood across the whole front at the leg's face and floated in
+        // front of the set-back part.
+        const bool notch = b.massing == MK_L && parts.size() > 1;
+        float notchW = 0.f;
+        if (notch) {
+            const vec4 leg = parts[1].r;
+            const float vc = parts[0].r.w;
+            const float nu0 = leg.x > -hx + 0.1f ? -hx : leg.y, nu1 = leg.x > -hx + 0.1f ? leg.x : hx;
+            notchW = nu1 - nu0;
+            u0 = nu0 + 0.1f;
+            u1 = nu1 - 0.05f;
+            pv = vc;
+            dep = Max(dep, hy - vc);
+            if (conchPorch == 2) conchPorch = 0;
+        }
+        dep = Clamp(dep, 1.5f, Max(1.5f, yardC + (hy - pv) - stepsRun - 0.4f));
         float zE = zb + Min(2.8f, fac.groundH - 0.2f);
-        if (conchPorch == 4) galleryPorch(x, e, hy, u0, u1, dep, zb, zb + fac.groundH, zTop, roofCol, roofMat, wallTrim, b.baseZ);
+        // (facadedetail.cpp puts a conch house's door in the longer set-back front, under the porch)
+        if (notch && notchW < 2.f) {
+            // (an inner corner under 2 m: the door is on the leg's face - facadedetail.cpp - under a small entry porch)
+            u0 = parts[1].r.x + 0.3f;
+            u1 = parts[1].r.y - 0.3f;
+            pv = hy;
+            conchPorch = 3;
+        }
+        if (bay && u1 - u0 < 1.5f) {
+            // (no room beside the bay: the entry is in the bay, under a small porch on its face)
+            u0 = bu0 + 0.2f;
+            u1 = bu1 - 0.2f;
+            pv = hy;
+            conchPorch = 3;
+        }
+        // (the lower porch's ceiling painted: in the Keys, on half of them, the pale haint blue)
+        const bool keysTown = b.region == REG_KEY_TOWN || b.region == REG_GULF_TOWN || b.region == REG_KEYS;
+        const u32 ceil = x.trimMat ? ((keysTown && (hash32(b.seed ^ 0xC311u) & 1u)) ? packRGBA8(0.72f, 0.87f, 0.9f, 1) : wallTrim) : 0u;
+        if (conchPorch == 4) galleryPorch(x, e, pv, u0, u1, dep, zb, zb + fac.groundH, zTop, roofCol, roofMat, wallTrim, b.baseZ, ceil);
         else if (conchPorch == 1) {
-            float pw = 2.f * hx * mr.range(0.45f, 0.6f);
-            float off = -gs * (hx - pw * 0.5f - 0.3f) * mr.range(0.f, 1.f);
-            housePorch(x, e, hy, off - pw * 0.5f, off + pw * 0.5f, dep, zb, zE, 0, roofCol, roofMat, wallTrim, true, b.baseZ);
+            float pw = Min(u1 - u0, 2.f * hx * mr.range(0.45f, 0.6f));
+            float um = (u0 + u1) * 0.5f, off = bay ? um - gs * ((u1 - u0) * 0.5f - pw * 0.5f) * mr.range(0.f, 1.f) : -gs * (hx - pw * 0.5f - 0.3f) * mr.range(0.f, 1.f);
+            housePorch(x, e, pv, off - pw * 0.5f, off + pw * 0.5f, dep, zb, zE, 0, roofCol, roofMat, wallTrim, true, b.baseZ);
         } else if (conchPorch == 3) {
-            float pw = mr.range(1.4f, 1.8f);
-            housePorch(x, e, hy, -pw, pw, mr.range(1.5f, 1.9f), zb, zE, 0, roofCol, roofMat, wallTrim, false, b.baseZ);
+            float pw = Min((u1 - u0) * 0.5f, mr.range(1.4f, 1.8f)), um = (u0 + u1) * 0.5f;
+            housePorch(x, e, pv, um - pw, um + pw, mr.range(1.5f, 1.9f), zb, zE, 0, roofCol, roofMat, wallTrim, false, b.baseZ);
         } else {
-            housePorch(x, e, hy, u0, u1, dep, zb, zE, 1, roofCol, roofMat, wallTrim, true, b.baseZ);
+            housePorch(x, e, pv, u0, u1, dep, zb, zE, 1, roofCol, roofMat, wallTrim, true, b.baseZ);
             if (conchPorch == 2) {
                 // round the corner along the side away from the garage
                 Env se = sideEnv(e, -gs);
                 housePorch(x, se, hx - 0.2f, -hy + 1.f, hy + dep, dep, zb, zE, 1, roofCol, roofMat, wallTrim, true, b.baseZ, false);
             }
         }
-        // piers under the raised floor
+        // the eyebrow house: a two-storey conch house without the double gallery brings its front eave down over the
+        // upper windows (after the porch, which stays)
+        if (b.floors >= 2 && conchPorch != 4 && parts.size() == 1 && hash32(b.seed ^ 0xE7EB0u) % 100u < 60u)
+            eyebrowPent(x, e.P(-hx, hy), e.P(hx, hy), e.fr, zTop, 1.05f, Min(0.7f, fac.floorH * 0.28f), roofCol, roofMat, wallTrim);
+        // piers under the raised floor (along the set-back front beside a bay)
         vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
+        const float vfr = bay ? parts[0].r.w : hy;
         if (x.detail)
             for (float u = -hx + 0.4f; u <= hx - 0.3f; u += 2.4f)
                 for (int k = 0; k < 2; k++) {
-                    vec2 p = e.P(u, k ? hy - 0.3f : -hy + 0.3f);
+                    vec2 p = e.P(u, k ? (bay && u > bu0 && u < bu1 ? hy : vfr) - 0.3f : -hy + 0.3f);
                     x.m->box(vec3(p, b.baseZ - 0.2f + 0.45f) - x.org, X, Y, Z, vec3(0.2f, 0.2f, 0.45f), packRGBA8(0.7f, 0.68f, 0.64f, 1), makeMat(MAT_CONCRETE));
                 }
     } else if (b.arch == AR_VILLA_COLONIAL) {

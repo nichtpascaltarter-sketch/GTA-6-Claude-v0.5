@@ -705,6 +705,9 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
         return dd < ed.halfWidth + Max(ed.sidewalk, 1.2f) + 14.f;
     };
     infillBlocks(map, freeRect, claimRect, nearStreet);
+    // The bare frontage left between the lots (towns, the older city): vacant lots, street parking, side and service yards -
+    // open lots only, so no building is added or moved (blockstyle.cpp)
+    fillFrontage(map, roads, freeRect, claimRect);
     for (size_t i = nStreet; i < buildings.size(); i++) {
         int cx = Clamp((int)((buildings[i].c.x + kWorldHalf) / 256.f), 0, cps - 1);
         int cy = Clamp((int)((buildings[i].c.y + kWorldHalf) / 256.f), 0, cps - 1);

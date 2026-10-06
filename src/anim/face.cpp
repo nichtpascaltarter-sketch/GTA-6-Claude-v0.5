@@ -228,6 +228,16 @@ void addHeadPrims(BuildCtx& c) {
             S.ellipsoid(Pv(e + vec3(-sx * 0.0112f, 0.0068f, 0.0012f)), vec3(0.0038f, 0.0026f, 0.0048f) * (hs * (0.6f + 0.4f * D.epicanthic)), HM,
                         R(0.003f), vec3(0.8f * sx, 0.6f, 0.f), vec3(0, 0, 1));
     }
+    // ---- lateral orbital rims: the frontal process of the cheekbone rising to the brow's tail closes each orbit at the
+    // side, where the socket's carve had left a trench at eye level out to the temple (its upper wall facing steeply
+    // down: under a lamp or a high sun its shade ran on from the socket to the side of the face, one dark band across
+    // the face instead of two sockets)
+    for (int sd = 0; sd < 2; sd++) {
+        float sx = sd ? 1.f : -1.f;
+        vec3 e = L.eye[sd];
+        vec3 top(sx * (fabsf(e.x) + 0.0195f), e.y - 0.0035f, e.z + 0.016f), bot(sx * (fabsf(e.x) + 0.0175f), e.y - 0.0045f, e.z - 0.014f);
+        S.cone(Pv(top), Pv(bot), R(0.008f), R(0.0085f), HM, R(0.01f));
+    }
     // ---- age: the temples hollow behind the orbital rim as the fat there thins (more on lean faces, little on heavy ones)
     {
         const float hollow = Saturate(sstep(0.5f, 0.95f, age) * (1.f - 0.6f * full) + 0.35f * lean * sstep(0.3f, 0.7f, age));
@@ -1426,9 +1436,19 @@ static void addLidDetails(BuildCtx& c, int sd, vec3 lashCol) {
         }
     };
     size_t i0 = m.idx.size();
+    // (the margins' skin-edge vertices are also the lids' front surfaces' last row: keep part of the lid's own normal
+    // there, or the strip's (facing straight up under the eye) lit the top of the lower lid as a pale crescent)
+    std::vector<vec3> loN(lo.size());
+    for (size_t i = 0; i < lo.size(); i++) loN[i] = m.v[lo[i]].n;
     tuck(up, true);
     tuck(lo, false);
     m.computeNormals(i0, m.idx.size());
+    for (size_t i = 0; i < lo.size(); i++) {
+        BVert& v = m.v[lo[i]];
+        if (length2(loN[i]) < 1e-12f) continue;
+        vec3 n = lerp(v.n, normalize(loN[i]), 0.6f);   // a rounded edge: about half way round from the lid to the margin
+        if (length2(n) > 1e-12f) v.n = normalize(n);
+    }
     // the upper lid's edge darkened by the lash roots along the open fissure (the natural "liner" that reads from a
     // distance)
     if (iIn >= 0 && iOut > iIn)

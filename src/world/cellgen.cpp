@@ -121,10 +121,135 @@ void scatterVegetation(int cx, int cy, std::vector<PropInstance>& props) {
     }
 }
 
+// (sitegeo.cpp: the for-sale board and the parking sign of the frontage lots, with the stroke font)
+void openLotSign(MeshData& m, vec3 org, vec2 p, vec2 fw, float z, int kind, u32 seed);
+
+// A vacant lot on the street frontage (blockstyle.cpp fillFrontage): rough grass drifting between green and dry straw,
+// patches of bare earth (sand in the Keys), sometimes the slab and driveway apron of a house or shop long gone, a
+// for-sale board near the sidewalk, a tree or two and scrub. Nothing on it collides but the trees.
+void buildVacantLot(const OpenLot& L, const WorldMap& map, bool detail, vec3 org, MeshData& m, std::vector<PropInstance>* props) {
+    Rng r(L.seed);
+    const vec2 ay = perp(L.ax);
+    const bool keys = L.region == REG_KEY_TOWN || L.region == REG_GULF_TOWN;
+    const bool city = L.region == REG_CALLE_LUNA || L.region == REG_NORTH_CITY || L.region == REG_FLATS || L.region == REG_MIDTOWN;
+    const float fs = dot(L.front, ay) >= 0.f ? 1.f : -1.f;   // the street side along ay
+    auto at = [&](float u, float v) { return L.c + L.ax * u + ay * v; };
+    auto gz = [&](vec2 p) { return map.heightAt(p.x, p.y); };
+    // the slab of a building long gone (and its driveway apron to the street): decided first, the grass keeps off it
+    const bool slab = r.chance(keys ? 0.2f : 0.35f) && L.hx >= 5.5f && L.hy >= 6.f;
+    const float sw = Min(L.hx * 1.4f, r.range(7.f, 11.f)) * 0.5f, sd = Min(L.hy * 1.1f, r.range(7.f, 10.f)) * 0.5f;
+    const float su = r.range(-1.f, 1.f) * Max(0.f, L.hx - sw - 1.f), sv = -fs * Max(0.f, L.hy - sd - 2.5f) * r.range(0.3f, 1.f);
+    const bool apron = slab && r.chance(0.55f);
+    const float au = su + r.range(-1.f, 1.f) * Max(0.f, sw - 1.6f);
+    // ground: rough grass on a grid following the terrain, its tint drifting between green and dry straw vertex to vertex
+    const int nx = detail ? Clamp((int)(L.hx / 2.5f + 0.5f), 1, 6) : 1, ny = detail ? Clamp((int)(L.hy / 2.5f + 0.5f), 1, 6) : 1;
+    const float dryShare = keys ? 0.6f : r.range(0.3f, 0.7f);
+    const u32 grass = makeMat(MAT_GRASS);
+    const u32 v0 = (u32)m.verts.size();
+    for (int j = 0; j <= ny; j++)
+        for (int i = 0; i <= nx; i++) {
+            float u = -L.hx + 0.15f + (2.f * L.hx - 0.3f) * i / nx, v = -L.hy + 0.15f + (2.f * L.hy - 0.3f) * j / ny;
+            vec2 p = at(u, v);
+            float dry = detail ? (r.f() < dryShare ? r.range(0.6f, 1.f) : r.range(0.f, 0.35f)) : dryShare;
+            vec3 t = lerp(vec3(0.85f, 1.05f, 0.72f), vec3(1.16f, 1.05f, 0.62f), dry) * r.range(0.92f, 1.06f);
+            m.addVertex(vec3(p, gz(p) + 0.04f) - org, vec3(0, 0, 1), vec3(L.ax, 0.f), p * 0.3f, packRGBA8(Saturate(t.x), Saturate(t.y), Saturate(t.z), 1), grass);
+        }
+    for (int j = 0; j < ny; j++)
+        for (int i = 0; i < nx; i++) {
+            u32 a = v0 + (u32)(j * (nx + 1) + i), b = a + 1, c = a + (u32)(nx + 1) + 1, d = a + (u32)(nx + 1);
+            m.tri(a, b, c);
+            m.tri(a, c, d);
+        }
+    // (the grid's triangles face up when ay = perp(ax) runs counter-clockwise from ax, which perp does)
+    if (!detail) return;
+    if (slab) {
+        // the slab stands on its highest corner, its edges skirted down to the ground
+        vec2 cs[4] = {at(su - sw, sv - sd), at(su + sw, sv - sd), at(su + sw, sv + sd), at(su - sw, sv + sd)};
+        float top = -1e9f, low = 1e9f;
+        for (vec2 q : cs) top = Max(top, gz(q)), low = Min(low, gz(q));
+        top += 0.12f;
+        const float t = r.range(0.78f, 0.9f);
+        const u32 sc = packRGBA8(t, t * 0.98f, t * 0.94f, 1), cm = makeMat(MAT_CONCRETE);
+        m.quadFacing(vec3(cs[0], top) - org, vec3(cs[1], top) - org, vec3(cs[2], top) - org, vec3(cs[3], top) - org, cs[0] * 0.5f, cs[1] * 0.5f, cs[2] * 0.5f,
+                     cs[3] * 0.5f, sc, cm, vec3(0, 0, 1));
+        for (int k = 0; k < 4; k++) {
+            vec2 qa = cs[k], qb = cs[(k + 1) % 4];
+            vec2 on = normalize(vec2(qb.y - qa.y, qa.x - qb.x));
+            if (dot(on, qa - at(su, sv)) < 0.f) on = -on;
+            m.quadFacing(vec3(qa, top) - org, vec3(qb, top) - org, vec3(qb, low - 0.1f) - org, vec3(qa, low - 0.1f) - org, vec2(0, 0), vec2(length(qb - qa), 0),
+                         vec2(length(qb - qa), top - low + 0.1f), vec2(0, top - low + 0.1f), sc, cm, vec3(on, 0.f));
+        }
+        if (apron) {
+            // the driveway apron from the slab's street edge to the sidewalk, following the ground
+            float va = sv + fs * sd, vb = fs * L.hy;
+            int n = Max(1, (int)(fabsf(vb - va) / 3.f));
+            for (int k = 0; k < n; k++) {
+                float v0 = va + (vb - va) * k / n, v1 = va + (vb - va) * (k + 1) / n;
+                vec2 qa = at(au - 1.5f, v0), qb = at(au + 1.5f, v0), qc = at(au + 1.5f, v1), qd = at(au - 1.5f, v1);
+                vec3 A(qa, gz(qa) + 0.09f), B(qb, gz(qb) + 0.09f), C(qc, gz(qc) + 0.09f), D(qd, gz(qd) + 0.09f);
+                m.quadFacing(A - org, B - org, C - org, D - org, qa * 0.5f, qb * 0.5f, qc * 0.5f, qd * 0.5f, sc, cm, vec3(0, 0, 1));
+            }
+        }
+    }
+    // bare patches of packed earth (sand in the Keys), irregular, off the slab
+    const int np = r.irange(keys ? 1 : 0, 2);
+    for (int k = 0; k < np; k++) {
+        float rad = r.range(1.2f, Min(2.8f, Min(L.hx, L.hy) * 0.45f));
+        float u = r.range(-L.hx + rad + 0.3f, L.hx - rad - 0.3f), v = r.range(-L.hy + rad + 0.3f, L.hy - rad - 0.3f);
+        if (slab && fabsf(u - su) < sw + rad && fabsf(v - sv) < sd + rad) continue;
+        vec3 t = keys ? vec3(0.95f, 0.92f, 0.85f) : vec3(0.66f, 0.56f, 0.44f) * r.range(0.9f, 1.08f);
+        const u32 pc = packRGBA8(Saturate(t.x), Saturate(t.y), Saturate(t.z), 1), pm = makeMat(keys ? MAT_SAND : MAT_ROOF_GRAVEL);
+        vec2 pcen = at(u, v);
+        const u32 ci = m.addVertex(vec3(pcen, gz(pcen) + 0.06f) - org, vec3(0, 0, 1), vec3(L.ax, 0.f), pcen * 0.5f, pc, pm);
+        const int ns = 9;
+        float ph = r.f() * kTwoPi;
+        for (int q = 0; q < ns; q++) {
+            float an = ph + kTwoPi * q / ns, rr = rad * r.range(0.65f, 1.f);
+            vec2 pq = pcen + L.ax * (cosf(an) * rr) + ay * (sinf(an) * rr * r.range(0.7f, 1.f));
+            m.addVertex(vec3(pq, gz(pq) + 0.06f) - org, vec3(0, 0, 1), vec3(L.ax, 0.f), pq * 0.5f, pc, pm);
+        }
+        for (int q = 0; q < ns; q++) m.tri(ci, ci + 1 + (u32)q, ci + 1 + (u32)((q + 1) % ns));
+    }
+    // the for-sale board near the sidewalk, beside the apron
+    vec2 signP(0.f);
+    bool sign = r.chance(city ? 0.45f : 0.35f);
+    if (sign) {
+        float u = r.range(-1.f, 1.f) * Max(0.f, L.hx - 1.5f);
+        if (apron && fabsf(u - au) < 2.5f) u = au + (u >= au ? 2.6f : -2.6f);
+        u = Clamp(u, -L.hx + 0.9f, L.hx - 0.9f);
+        signP = at(u, fs * (L.hy - 0.9f));
+        openLotSign(m, org, signP, L.front, gz(signP), 0, L.seed ^ 0x5A1Eu);
+    }
+    // a tree or two and scrub, off the slab and the board
+    if (props) {
+        int nt = r.irange(0, Clamp((int)(L.hx * L.hy / 40.f), 1, 4));
+        for (int k = 0; k < nt; k++) {
+            float u = r.range(-L.hx + 1.2f, L.hx - 1.2f), v = r.range(-L.hy + 1.2f, L.hy - 1.2f);
+            if (slab && fabsf(u - su) < sw + 1.2f && fabsf(v - sv) < sd + 1.2f) continue;
+            vec2 p = at(u, v);
+            if (sign && length(p - signP) < 2.5f) continue;
+            if (gBuildings && gBuildings->pointInBuilding(p, 1.8f)) continue;
+            float roll = r.f();
+            PropInstance pi;
+            pi.pos = vec3(p, gz(p));
+            pi.yaw = r.f() * kTwoPi;
+            pi.scale = r.range(0.7f, 1.1f);
+            pi.type = (u8)(keys ? (roll < 0.4f ? PROP_PALM : PROP_BUSH) : (roll < (city ? 0.3f : 0.5f) ? PROP_TREE_OAK : (roll < 0.85f ? PROP_BUSH : PROP_PALM)));
+            pi.variant = (u8)r.irange(0, 3);
+            pi.flags = 0;
+            props->push_back(pi);
+        }
+    }
+}
+
 // Open ground of the blocks (BuildingSet::openLots, blockstyle.cpp infill): rear surface parking - asphalt following
 // the ground, painted stalls in one or two rows, wheel stops, a lamp post - and yards with trees
 void buildOpenLot(const OpenLot& L, const WorldMap& map, bool detail, vec3 org, MeshData& m, std::vector<PropInstance>* props, std::vector<LightInstance>* lights,
                   std::vector<CollisionBox>* col) {
+    if (L.kind == OL_VACANT) {
+        buildVacantLot(L, map, detail, org, m, props);
+        return;
+    }
     Rng r(L.seed);
     vec2 ay = perp(L.ax);
     vec3 X(L.ax, 0.f), Y(ay, 0.f), Z(0, 0, 1);
@@ -171,6 +296,7 @@ void buildOpenLot(const OpenLot& L, const WorldMap& map, bool detail, vec3 org, 
         }
         // a lamp post at one corner, a dumpster at another
         vec2 lp = L.c + L.ax * (r.chance(0.5f) ? L.hx - 0.6f : -L.hx + 0.6f) + ay * (r.chance(0.5f) ? L.hy - 0.6f : -L.hy + 0.6f);
+        if (L.street && dot(lp - L.c, L.front) > 0.f) lp -= L.front * (2.f * dot(lp - L.c, L.front));   // (a street lot's lamp at the back, off the wall)
         float lz = map.heightAt(lp.x, lp.y);
         m.cylinder(vec3(lp, lz) - org, 0.09f, 0.07f, 7.f, 6, packRGBA8(0.45f, 0.46f, 0.48f, 1), makeMat(MAT_METAL_PAINTED), false);
         vec2 arm = normalize(L.c - lp);
@@ -193,7 +319,37 @@ void buildOpenLot(const OpenLot& L, const WorldMap& map, bool detail, vec3 org, 
             li.type = 0;
             lights->push_back(li);
         }
-        if (props && r.chance(0.5f)) {
+        if (L.street) {
+            // on the street frontage: a low wall along the sidewalk with the entrance at one end, and the sign beside it
+            Rng sr(L.seed ^ 0x5EE7u);
+            const float fs = dot(L.front, ay) >= 0.f ? 1.f : -1.f;
+            const float gapEnd = sr.chance(0.5f) ? 1.f : -1.f, gapW = Min(6.f, L.hx);
+            const float u0 = gapEnd > 0.f ? -L.hx + 0.3f : -L.hx + gapW, u1 = gapEnd > 0.f ? L.hx - gapW : L.hx - 0.3f;
+            const float wt = sr.range(0.8f, 0.95f);
+            const u32 wcol = packRGBA8(wt, wt * 0.98f, wt * 0.93f, 1), wmat = makeMat(sr.chance(0.6f) ? MAT_STUCCO : MAT_CONCRETE);
+            const float H = sr.range(0.55f, 0.75f), v = fs * (L.hy - 0.5f);
+            if (u1 - u0 > 1.f) {
+                int nseg = Max(1, (int)ceilf((u1 - u0) / 6.f));
+                for (int k = 0; k < nseg; k++) {
+                    float a = u0 + (u1 - u0) * k / nseg, b = u0 + (u1 - u0) * (k + 1) / nseg;
+                    vec2 p0 = L.c + L.ax * a + ay * v, p1 = L.c + L.ax * b + ay * v, mc = (p0 + p1) * 0.5f;
+                    float gzl = Min(map.heightAt(p0.x, p0.y), map.heightAt(p1.x, p1.y));
+                    m.box(vec3(mc, gzl + H * 0.5f - 0.1f) - org, X, Y, Z, vec3((b - a) * 0.5f, 0.1f, H * 0.5f + 0.1f), wcol, wmat, false);
+                    m.box(vec3(mc, gzl + H + 0.03f) - org, X, Y, Z, vec3((b - a) * 0.5f + 0.02f, 0.14f, 0.04f), wcol, makeMat(MAT_CONCRETE), false);   // cap
+                    if (col) {
+                        CollisionBox cb;
+                        cb.c = vec3(mc, gzl + H * 0.5f);
+                        cb.ax = L.ax;
+                        cb.he = vec3((b - a) * 0.5f, 0.12f, H * 0.5f + 0.05f);
+                        col->push_back(cb);
+                    }
+                }
+            }
+            // the sign at the end of the wall, beside the entrance
+            vec2 sp = L.c + L.ax * (gapEnd > 0.f ? u1 - 0.4f : u0 + 0.4f) + ay * (v - fs * 0.6f);
+            openLotSign(m, org, sp, L.front, map.heightAt(sp.x, sp.y), 1, L.seed ^ 0x9A2Bu);
+        }
+        if (props && !L.street && r.chance(0.5f)) {
             vec2 dp = L.c - L.ax * (L.hx - 1.2f) * (lp.x > L.c.x ? 1.f : -1.f) - ay * (L.hy - 1.f);
             PropInstance pi;
             pi.pos = vec3(dp, map.heightAt(dp.x, dp.y));

@@ -30,7 +30,14 @@ struct Ctx {
     u32 roofCol = 0xffe0e5e5u, roofMat = 0;      // flat roof finish of the building (roofFinish), set per building
     std::vector<YardKeep>* keep = nullptr;       // the house's yard keep-outs (YardKeep), per building
     std::vector<vec4>* holes = nullptr;          // paved ground the lawn leaves out (lawnHole), per building
+    u32 trimMat = 0;                             // painted porch posts, rails and brackets (0: bare wood), per building
+    int porchPosts = 0;                          // housePorch's posts: 0 slim, 1 Craftsman (column on a pier, knee wall), 2 round columns
+    u32 pierCol = 0, pierMat = 0;                // the Craftsman porch's piers and knee wall (brick, stone or the wall's cladding)
 };
+
+// The material of a porch's posts, rails, brackets and ceiling: painted in town (plaster takes the trim colour: the wood
+// texture browned the white trim), bare wood on the farmhouses and the stilt shacks
+inline u32 trimWood(const Ctx& x) { return x.trimMat ? x.trimMat : makeMat(MAT_WOOD); }
 
 inline void yardKeep(Ctx& x, vec2 c, vec2 a, vec2 b, float ha, float hb) {
     if (x.keep) x.keep->push_back({c, a, b, fabsf(ha), fabsf(hb)});
@@ -1352,10 +1359,11 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
             // (deterministic from the seed: facadedetail.cpp keeps hedges and garden walls clear of this driveway)
             bool garage = (b.style == BS_HOUSE && (b.seed % 10u) < 7u) || b.style == BS_VILLA;
             float side = (b.seed & 64u) ? 1.f : -1.f;
-            // (the block houses and the MiMo houses have a carport instead: a flat roof on posts, a utility room at the back)
-            const bool carport = b.arch == AR_HOUSE_CBS || b.arch == AR_HOUSE_MIMO;
+            // (the block houses, the MiMo houses and the mobile homes have a carport instead: a flat roof on posts, a utility
+            // room at the back)
+            const bool carport = b.arch == AR_HOUSE_CBS || b.arch == AR_HOUSE_MIMO || b.arch == AR_HOUSE_TRAILER;
             if (garage && carport) {
-                float gw = 3.2f, gd = Min(b.hy, 3.4f);
+                float gw = 3.2f, gd = massing::carportHalfDepth(b);   // (a mobile home's carport no deeper than the home)
                 vec2 gc = b.c + b.ax * (side * (b.hx + gw)) + b.front * (b.hy - gd);
                 const vec3 X(b.ax, 0.f), Y(ay, 0.f), Z(0, 0, 1);
                 const vec2 Fw = b.front;
