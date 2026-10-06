@@ -195,6 +195,7 @@ float3 skinDirect(GBufferData g, float3 N, float3 V, float3 L, float shadow, flo
 // it, and no shadow map resolves strands, so inner layers get less of it and dimmer highlights.
 static float sHairDepth = 0;   // strand cards: 0 outermost .. 1 innermost layer
 static float sHairRnd = 0.5;   // per-strand random (cards) / strand noise (shell)
+static bool sHairFace = false; // strand cards of lashes, brows and beards (feature shadows like the skin around them)
 
 float3 hairDirect(GBufferData g, float3 N, float3 V, float3 L) {
     float3 T;
@@ -222,7 +223,11 @@ float3 hairDirect(GBufferData g, float3 N, float3 V, float3 L) {
     // satin band (curly and coily hair especially)
     float sparkle = sHairCard ? 0.12 + 1.5 * sHairRnd * sHairRnd : 0.4 + 0.8 * sHairRnd;
     float3 spec = (s1 * F * 0.35 * sparkle + s2 * g.albedo * (0.3 + sHairRnd * 0.9) * 0.2 * lerp(1.0, 0.45, sHairDepth)) * vis;
-    return (g.albedo / PI * saturate(NoL * 0.6 + 0.4) * 0.85 + spec) * lerp(1.0, 0.5, sHairDepth);
+    // wrapped diffuse for the scattering volume of the strand cards; the opaque shell (a full beard, the hair's base)
+    // wraps little, close to the skin's terminator: lit further round than the cheek it grows from, it left a dark
+    // seam between them on the side away from a lamp
+    float wrap = sHairCard ? 0.4 : 0.15;
+    return (g.albedo / PI * saturate(NoL * (1.0 - wrap) + wrap) * 0.85 + spec) * lerp(1.0, 0.5, sHairDepth);
 }
 
 // Cloth: Lambert + Charlie sheen (Estevez & Kulla) with the Ashikhmin visibility; g.extra = sheen strength.
@@ -315,6 +320,14 @@ float featureShadow(float3 relPos, float3 N, float viewDepth, uint2 pix, float3 
     }
     return 1.0;
 }
+
+// What reaches a face in a lamp's feature shadow: the lamp's light bounced off the lit cheeks, forehead and ground, a
+// tenth of it (an eye socket under a street lamp sits 3-4 stops below the brow, not black)
+static const float kFeatureBounce = 0.1;
+// People close by also get the lamps' light bounced off the ground and their own lit side (screen-space GI misses
+// most of it at that scale) on the parts that face away: the eye sockets, the underside of the brow ridge, nose and
+// jaw under a high lamp. A fifth of the lamp's illuminance at the point, weighted towards normals facing down.
+static const float kLampBounce = 0.2;
 
 // Eyes and teeth sit in the orbit and behind the lips: light from steeply above is cut off by the brow ridge (the
 // upper lip for teeth) over 40-65 degrees of elevation, where the feature shadows find too little overhang
@@ -469,9 +482,11 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
     if (g.shadingModel == SM_HAIR) {
         sHairCard = decodeHairTangent(g.normal, g.metal, sHairT);
         g.metal = 0;
-        // cards: per-strand random (high 5 bits) and depth in the hair volume (low 3 bits); the shell: strand noise
+        // cards: per-strand random (high 4 bits), face hair (bit 3) and depth in the hair volume (low 3 bits); the
+        // shell: strand noise
         uint e = (uint)(g.extra * 255.0 + 0.5);
-        sHairRnd = sHairCard ? (e >> 3) / 31.0 : g.extra;
+        sHairRnd = sHairCard ? (e >> 4) / 15.0 : g.extra;
+        sHairFace = sHairCard && (e & 8u) != 0u;
         sHairDepth = sHairCard ? (e & 7u) / 7.0 : 0.0;
     } else if (g.shadingModel == SM_SKIN) {
         // metal channel: scatter width; extra: melanin (high nibble) and transmission thinness (low nibble)
@@ -501,8 +516,8 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         if (gRenderParams.z > 0.5 && shadow > 0.02 && viewDepth < 180.0 && dot(g.normal, gSunDir.xyz) > 0.2)
             shadow *= contactShadow(relPos, viewDepth, id.xy);
         // faces and hands close by: feature shadows from the sun and the strongest lamps (front-lit only: light
-        // through an ear from behind is the transmission term's)
-        bool featurePix = gRenderParams.z > 0.5 && (g.shadingModel == SM_SKIN || g.shadingModel == SM_EYE) &&
+        // through an ear from behind is the transmission term's); lashes, brows and beards with the skin they grow on
+        bool featurePix = gRenderParams.z > 0.5 && (g.shadingModel == SM_SKIN || g.shadingModel == SM_EYE || sHairFace) &&
                           viewDepth < kFeatureShadowDist;
         if (featurePix && shadow > 0.02 && dot(g.normal, gSunDir.xyz) > 0.1)
             shadow *= featureShadow(relPos, g.normal, viewDepth, id.xy, gSunDir.xyz);
@@ -512,7 +527,9 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
         color = shadeSurface(g, relPos, V, sunE, shadow, ao, aogi.rgb / preExposure(), ssr);
         // Local lights
         uint n = min(gsLightCount, 256u);
-        float3 local = 0;
+        float3 local = 0, bounceE = 0;
+        bool personPix = viewDepth < kFeatureShadowDist && (g.shadingModel == SM_SKIN || g.shadingModel == SM_EYE ||
+                         g.shadingModel == SM_HAIR || g.shadingModel == SM_CLOTH);
         // Submerged surfaces (seabed, pilings, hulls below the waterline): a lamp above the water reaches them only
         // through the surface (partly reflected, spread by refraction, absorbed on the way down); a lamp in the
         // water is absorbed along its path
@@ -540,15 +557,17 @@ void csLighting(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint gi 
             }
             float3 c = localLightBRDF(g, g.normal, V, Lv) * Lt.color * att;
             if (g.shadingModel == SM_EYE) c *= eyeSocketLight(Lv);
-            // (at most two marches per pixel, for the lamps that light it visibly)
+            // (at most two marches per pixel, for the lamps that light it visibly; the shadow keeps the bounce)
             if (featurePix && featureMarches < 2u && dot(g.normal, Lv) > 0.1 && luminance(c) * preExposure() > 0.01) {
-                c *= featureShadow(relPos, g.normal, viewDepth, id.xy, Lv);
+                c *= lerp(kFeatureBounce, 1.0, featureShadow(relPos, g.normal, viewDepth, id.xy, Lv));
                 featureMarches++;
             }
             local += c;
+            if (personPix) bounceE += Lt.color * att * (0.5 - 0.5 * g.normal.z);
         }
         if (g.shadingModel == SM_EYE) local *= g.ao;
         color += local * lerp(0.6, 1.0, ao);
+        if (personPix) color += g.albedo * (1.0 - g.metal) / PI * bounceE * kLampBounce * ao;
         if (gLightning.x > 0.0) {
             // lightning flash: sky-wide ambient burst + directional light from the bolt
             float3 diffC = g.albedo * (1.0 - g.metal);
