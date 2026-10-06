@@ -407,6 +407,106 @@ void GameWorld::aiBuildBodies() {
     }
 }
 
+// the ambient events drivers going past slow down for (events.cpp)
+namespace ev_sights {
+void collect(const GameWorld& g, std::vector<vec3>& out);
+}
+
+// what drivers going past slow down to look at (traffic.cpp rubbernecking), round the player: a wreck or a car burning,
+// a police car / ambulance / fire truck stopped with its lights going, somebody lying in the street or down hurt, a
+// fender bender, a breakdown, a fight, a traffic stop (events.cpp)
+namespace ai_sights {
+void collect(GameWorld& g) {
+    std::vector<vec3>& out = g.ai.sights;
+    out.clear();
+    const Ped* pl = g.playerPed();
+    if (!pl) return;
+    vec2 c = pl->pos.toVec3().xy();
+    for (int i = 0; i < (int)g.vehicles.size() && out.size() < 24; i++) {
+        const Vehicle& v = g.vehicles[i];
+        if (!v.used) continue;
+        vec3 p = v.sim.body.pos.toVec3();
+        if (length(p.xy() - c) > 320.f) continue;
+        u8 role = i < (int)g.ai.veh.size() && g.ai.veh[i].uid == v.uid ? g.ai.veh[i].role : (u8)VR_TRAFFIC;
+        bool service = v.faction == FAC_POLICE || role == VR_AMBULANCE || role == VR_FIRETRUCK;
+        bool lightsStopped = service && v.sirenOn && v.sim.speed() < 1.f && v.seats[0] < 0;   // (crew out at a scene)
+        if (v.sim.wrecked || v.exploded || v.fireTimer > 0.f || lightsStopped) out.push_back(p);
+    }
+    for (int i = 0; i < (int)g.peds.size() && out.size() < 24; i++) {
+        const Ped& q = g.peds[i];
+        if (!q.used || q.isPlayer) continue;
+        bool down = q.state == PS_DEAD || (q.state == PS_ONFOOT && i < (int)g.ai.ped.size() && g.ai.ped[i].uid == q.uid && g.ai.ped[i].activity == ACT_HURT);
+        if (!down) continue;
+        vec3 p = q.pos.toVec3();
+        if (length(p.xy() - c) < 320.f) out.push_back(p);
+    }
+    ev_sights::collect(g, out);
+    if (out.size() > 32) out.resize(32);
+}
+}  // namespace ai_sights
+
+// a car alarm going (set off by a knock, or by the player breaking in: player.cpp): the people about hear it (pedai.cpp
+// STIM_ALARM: a look over, a word), and now and then its owner comes (pedai.cpp ACT_ALARM_OWNER) - a few seconds on for
+// a knock (the key fob, a look along its side, then away), at once for a break-in (after the car)
+namespace car_alarm {
+// a key fob pressed at a car (locked, unlocked, its alarm stopped): the chirp, and `flash` seconds of the hazard lights
+// (updateAI runs them: about one blink in 0.6 s, two in 1.3 s)
+void fob(GameWorld& g, int vi, float flash) {
+    if (vi < 0 || vi >= (int)g.vehicles.size() || vi >= (int)g.ai.veh.size() || !g.vehicles[vi].used) return;
+    VehAI& va = g.ai.veh[vi];
+    va.fobT = g.time;
+    va.flashT = flash;
+    g.ai.stats.fobChirps++;
+#ifdef HAVE_AUDIO
+    Audio::play(Audio::SFX_CAR_ALARM_CHIRP, g.vehicles[vi].sim.body.pos.toVec3() + vec3(0.f, 0.f, 0.8f), 0.5f);
+#endif
+}
+
+void step(GameWorld& g, int vi, float dt) {
+    Vehicle& v = g.vehicles[vi];
+    VehAI& va = g.ai.veh[vi];
+    va.alarmStim -= dt;
+    if (va.alarmStim <= 0.f) {
+        va.alarmStim = 1.f;
+        g.aiStimulus(v.sim.body.pos, STIM_ALARM, -1, 26.f, va.alarmTheft);
+    }
+    if (va.alarmOwner != 0) return;
+    // (a given car: its owner about or not, the same every time; a test can make sure of one)
+    u32 h = hash32(v.uid * 0x2c1b3c6du + 0x77u);
+    float wait = va.alarmTheft ? 1.f : 4.f + hashToFloat(h) * 5.f;
+    if (va.alarmT < wait) return;
+    va.alarmOwner = 2;
+    bool comes = g.ai.forceAlarmOwner || hashToFloat(hash32(h)) < (va.alarmTheft ? 0.45f : 0.5f);
+    // (an ordinary car's owner: not a patrol car's, a bus's, a taxi's, one in an event's scene or a delivery van's whose
+    //  driver is at a door up the street)
+    if (!comes || g.populationOff || v.exploded || v.sim.wrecked || v.faction != FAC_CIVILIAN || va.role != VR_TRAFFIC || va.eventId >= 0 ||
+        va.errand != 0)
+        return;
+    vec2 cp = v.sim.body.pos.toVec3().xy();
+    int o = police_ticket::pickOwner(g, -1, cp);
+    if (o < 0) {
+        LOG("alarm: nobody comes for car %d", vi);
+        return;
+    }
+    Ped& q = g.peds[o];
+    PedAI& qa = g.pedAI(o);
+    qa.activity = ACT_ALARM_OWNER;
+    qa.alarmVeh = vi;
+    qa.alarmVehUid = v.uid;
+    qa.alarmStep = va.alarmTheft ? 4 : 0;
+    qa.alarmStepT = 0.f;
+    qa.actTimer = 70.f;
+    qa.walkStance = 0;
+    qa.stance = 0;
+    qa.clip = -1;
+    q.phoneBrowse = false;
+    va.alarmOwner = 1;
+    g.ai.stats.alarmOwners++;
+    g.aiSay(o, va.alarmTheft ? BK_ALARM_THEFT : BK_ALARM_OWNER, 1.f, true);
+    LOG("alarm: %d comes for car %d (%s, %.0f m off)", o, vi, va.alarmTheft ? "being taken" : "knocked", length(q.pos.toVec3().xy() - cp));
+}
+}  // namespace car_alarm
+
 // ------------------------------------------------------------------------------------------------------------------
 void GameWorld::updateAI(float dt) {
     double t0 = TimeSeconds();
@@ -419,6 +519,42 @@ void GameWorld::updateAI(float dt) {
         if (r > 0.45f && ai.rainPrev <= 0.45f) ai.rainStartT = time;
         ai.rainPrev = r;
     }
+    {   // (the player knocked flat by a car with an AI driver - vehicles.cpp makes the driver the attacker: seven in ten stop,
+        //  get out and come to see, sorry - traffic.cpp va.rage with rageSorry, pedai.cpp ACT_ROADRAGE's other way)
+        Ped* hp = playerPed();
+        int a = hp ? hp->lastAttacker : -1;
+        if (hp && hp->state == PS_RAGDOLL && time - hp->lastDamageTime < 0.25 && time - ai.playerHitT > 5.0 && a >= 0 && a < (int)peds.size() &&
+            peds[a].used && !peds[a].isPlayer && peds[a].state == PS_INVEHICLE && peds[a].seat == 0 && peds[a].vehicle >= 0 &&
+            peds[a].brain.type == BRAIN_DRIVER) {
+            int vi = peds[a].vehicle;
+            VehAI& hva = vehAI(vi);
+            ai.playerHitT = time;
+            bool stops = ai.forceSorry || hashToFloat(hash32(vehicles[vi].uid * 0x9e3779b9u + 7u)) < 0.7f;
+            if (hva.rage == 0 && vehicles[vi].faction == FAC_CIVILIAN && hva.role == VR_TRAFFIC && stops) {
+                hva.rage = 1;
+                hva.rageTimer = 0.f;
+                hva.rageSorry = true;
+                ai.stats.driverSorry++;
+            }
+            LOG("traffic: car %d knocked the player flat - %s", vi, hva.rageSorry ? "the driver stops to see" : "it goes on");
+        }
+    }
+    {   // (a police helicopter low over the streets near the player: pedai.cpp has people below look up at it)
+        ai.heliLow = false;
+        const Ped* hp = playerPed();
+        float best = 1e9f;
+        for (int i = 0; hp && i < (int)vehicles.size() && i < (int)ai.veh.size(); i++) {
+            const Vehicle& v = vehicles[i];
+            if (!v.used || ai.veh[i].uid != v.uid || ai.veh[i].role != VR_POLICE_HELI || v.exploded) continue;
+            vec3 hv = v.sim.body.pos.toVec3();
+            float d = length(hv.xy() - hp->pos.toVec3().xy());
+            if (d < 160.f && hv.z - (float)hp->pos.z < 140.f && d < best) {
+                best = d;
+                ai.heliAt = hv;
+                ai.heliLow = true;
+            }
+        }
+    }
     aiBuildBodies();
     traffic.beginTick(time);
     pedNav.time = time;
@@ -430,6 +566,11 @@ void GameWorld::updateAI(float dt) {
     updateEvents(dt);
     aiUpdateThreats(dt);
     aiStreetMeets(dt);
+    ai.sightsT -= dt;
+    if (ai.sightsT <= 0.f) {
+        ai.sightsT = 0.5f;
+        ai_sights::collect(*this);
+    }
     double t4 = TimeSeconds();
     double tTraffic = 0.0;
     for (int i = 0; i < (int)peds.size(); i++) {
@@ -479,20 +620,47 @@ void GameWorld::updateAI(float dt) {
     st.managed = nm;
     // crash telemetry: hard impacts of AI-driven cars (one per crash), those involving the player counted apart
     int pv = playerVehicle();
+    // (a car alarm going on a car the AI has no record of yet - a parked one nobody has driven: on record from now, so
+    //  that it times out and its owner can come: car_alarm below)
+    for (int i = 0; i < (int)vehicles.size(); i++)
+        if (vehicles[i].used && vehicles[i].alarm) vehAI(i);
     for (int i = 0; i < (int)vehicles.size() && i < (int)ai.veh.size(); i++) {
         Vehicle& v = vehicles[i];
         if (!v.used || ai.veh[i].uid != v.uid) continue;
         VehAI& va = ai.veh[i];
         va.impactCd = Max(0.f, va.impactCd - dt);
-        // a parked car's alarm (set off by a knock) wails for half a minute or so, then gives up
-        if (v.alarm && v.parked && v.seats[0] < 0) {
+        // a car alarm (set off by a knock, or a break-in) wails for half a minute or so, then gives up - one driven off
+        // sooner (car_alarm: the people about, and its owner now and then)
+        if (v.alarm) {
+            if (va.alarmT <= 0.f) {
+                st.alarms++;
+                va.alarmStim = 0.f;
+                // (the player at the door or at the wheel: a break-in; a car of the player's own: nobody else comes)
+                Ped* apl = playerPed();
+                bool theft = pv == i || (apl && apl->state == PS_ENTERING && length(rel(v.sim.body.pos, apl->pos)) < 4.f);
+                va.alarmTheft = theft && !v.playerUsed;
+                va.alarmOwner = v.playerUsed || (!theft && !(v.parked && v.seats[0] < 0)) ? 2 : 0;
+            }
             va.alarmT += dt;
-            if (va.alarmT > 25.f + hashToFloat(hash32(v.uid * 5u)) * 20.f) {
+            bool idle = v.parked && v.seats[0] < 0;
+            if (va.alarmT > (idle ? 25.f + hashToFloat(hash32(v.uid * 5u)) * 20.f : 14.f + hashToFloat(hash32(v.uid * 7u)) * 10.f)) {
                 v.alarm = false;
                 va.alarmT = 0.f;
+            } else {
+                car_alarm::step(*this, i, dt);
             }
         } else {
             va.alarmT = 0.f;
+        }
+        // locked with the key fob by the driver walking off from it (traffic.cpp parking), a few steps on
+        if (va.lockAt > 0.0 && time >= va.lockAt) {
+            va.lockAt = -1.0;
+            if (v.parked && v.seats[0] < 0 && !v.alarm && !v.playerUsed) car_alarm::fob(*this, i, 0.6f);
+        }
+        // a key fob's flash of the hazard lights (car_alarm::fob) - a parked car's: a driven one's are the driver's
+        if (va.flashT > 0.f) {
+            va.flashT -= dt;
+            if (v.seats[0] < 0) v.indicator = va.flashT > 0.f ? 2 : 0;
         }
         // this frame's knock: the physics keeps only the largest contact impulse of its last substep (one in an earlier
         // substep is cleared again), so also judge it from the change in horizontal velocity since the last frame -
@@ -741,11 +909,11 @@ std::string GameWorld::aiCensusText(float radius) const {
                      "lean %d sun %d queue %d watch %d bus %d taxi %d event %d meet %d (so far %d) window %d hurt %d (helped by %d) cuffed %d (escorts %d) statement %d (officers %d) stopped %d hand in hand %d cops on a break %d ticket %d (owner %d) | venue %d (guard %d pace %d outlook %d boarding %d greeting %d) travelers %d | tourist %d business %d beach %d night %d gang %d worker %d | "
                      "react flee %d cower %d film %d inspect %d call %d hands %d rage %d fight %d | cops on foot %d (approach %d cover %d flank %d "
                      "arrest %d search %d engage %d) | cars %d parked %d police %d swat %d heli %d boat %d roadblock %d ems %d horn %d | "
-                     "totals panic %d film %d pit %d box %d rb %d spikes %d tackle %d heli %d units %d rage %d events %d arrests %d custody %d transports %d statements %d shelters %d stops %d (warrants %d runs %d) breaks %d tickets %d (owners %d) greetings %d chats %d buttons %d lost %d laces %d rain shelters %d asked okay %d cop aid %d crash scenes %d depart %d arrive %d",
+                     "totals panic %d film %d pit %d box %d rb %d spikes %d tackle %d heli %d units %d rage %d events %d arrests %d custody %d transports %d statements %d shelters %d stops %d (warrants %d runs %d) breaks %d tickets %d (owners %d) greetings %d chats %d buttons %d lost %d laces %d rain shelters %d asked okay %d cop aid %d crash scenes %d bus runs %d (made %d missed %d) change %d (passers-by %d) gawks %d near misses %d jaywalk calls %d crowded %d (left %d) followed %d (sharp %d) cut offs %d anchor rewalks %d alarms %d (owners %d looks %d) fobs %d rides %d step backs %d sorry drivers %d depart %d arrive %d",
                      radius, total, inWater, walk, wPhone, wSmoke, wStill, group, wTalk, jog, sit, talk, phone, dance, smoke, lean, sun, queue, watch, busStop, taxi, event, meet, ai.meetsStarted, browse, hurt, aid, cuffed, escorts, witness, taking, stopped, holding, onBreak, ticketing, rushing,
                      venue, vGuard, vPace, vOut, vBoard, vGreet, vTravel, tourist, business, beach, night, gang, worker, flee, cower, film, inspect, call, hands, rage, fight, copFoot, approach, cover, flank,
                      arrest, search, engage, traffic, parked, copCars, swat, heli, boats, blocks, ems, honking, s.panicSpread, s.filming, s.pitTries,
-                     s.boxing, s.roadblocks, s.spikeHits, s.tackles, s.heliUnits, s.unitsSent, s.roadRage, s.events, s.arrests, s.custody, s.transports, s.statements, s.shelters, s.stops, s.stopArrests, s.stopRuns, s.copBreaks, s.tickets, s.ticketRushes, s.greetings, s.chats, s.buttons, s.lost, s.laces, s.rainShelters, s.askOkay, s.copAid, s.crashScenes, s.departures, s.arrivals);
+                     s.boxing, s.roadblocks, s.spikeHits, s.tackles, s.heliUnits, s.unitsSent, s.roadRage, s.events, s.arrests, s.custody, s.transports, s.statements, s.shelters, s.stops, s.stopArrests, s.stopRuns, s.copBreaks, s.tickets, s.ticketRushes, s.greetings, s.chats, s.buttons, s.lost, s.laces, s.rainShelters, s.askOkay, s.copAid, s.crashScenes, s.busRuns, s.busCaught, s.busMissed, s.panhandled, s.passerChange, s.gawks, s.nearMisses, s.jaywalkCalls, s.crowded, s.crowdedLeft, s.followed, s.followedSharp, s.cutOffs, s.anchorRewalks, s.alarms, s.alarmOwners, s.alarmLooks, s.fobChirps, s.rideAlongs, s.copStepBacks, s.driverSorry, s.departures, s.arrivals);
 }
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -756,6 +924,32 @@ void GameWorld::updateBrain(int id, float dt) {
     b.thinkTimer -= dt;
     if (p.state == PS_INVEHICLE) {
         if (p.vehicle < 0 || !vehicles[p.vehicle].used) return;
+        // somebody who rode along with its driver (pedai.cpp ACT_RIDE_ALONG): out once the driver is gone - the car
+        // stood with nobody at the wheel (on foot from there), or the player at it and slowed (away from them)
+        if (p.seat > 0 && id < (int)ai.ped.size() && ai.ped[id].uid == p.uid && ai.ped[id].rider) {
+            const Vehicle& rv = vehicles[p.vehicle];
+            int drv = rv.seats[0];
+            bool playerDrives = drv >= 0 && drv == player;
+            if ((drv < 0 && rv.sim.speed() < 0.5f) || (playerDrives && rv.sim.speed() < 3.f)) {
+                PedAI& ra = pedAI(id);
+                removePedFromVehicle(id, true);
+                ra.rider = false;
+                ra.activity = ACT_WALK;
+                ra.navOk = false;
+                ra.leader = -1;
+                if (playerDrives) {
+                    b.type = BRAIN_FLEE;
+                    b.target = player;
+                    b.goal = rv.sim.body.pos;
+                    b.timer = 0.f;
+                    aiSay(id, BK_FLEE, 0.9f, true);   // (their friend's car, not theirs: "I am out of here!")
+                } else {
+                    b.type = BRAIN_WANDER;
+                    b.edge = -1;
+                }
+            }
+            return;
+        }
         if (p.seat == 0) {
             if (b.type == BRAIN_DRIVER || b.type == BRAIN_FLEE || b.type == BRAIN_COMBAT || b.type == BRAIN_ARREST || b.type == BRAIN_GOTO) driveVehicleAI(p.vehicle, dt);
         }
@@ -780,11 +974,28 @@ void GameWorld::updateBrain(int id, float dt) {
         }
         return;
     }
+    if (id < (int)ai.ped.size() && ai.ped[id].uid == p.uid) ai.ped[id].rider = false;   // (out of the car, however)
     if (p.state == PS_ENTERING || p.state == PS_EXITING) {
         movePed(p, vec2(0, 0), dt, false);
         return;
     }
     if (p.moveMode == 2 || p.moveMode == 3) return;   // vaulting/climbing handled by the character controller
+    // an officer busy with somebody (a statement, a sidewalk stop, a ticket) or at a crash scene, the player stood right by
+    // them on foot: after a few seconds a look and "step back, please" - not again for a good while
+    if (p.faction == FAC_POLICE && p.state == PS_ONFOOT && id < (int)ai.ped.size() && ai.ped[id].uid == p.uid) {
+        PedAI& ca = ai.ped[id];
+        bool busy = (b.type == BRAIN_GOTO && b.target <= -4 && b.target >= -6) || (ca.activity == ACT_EVENT && ca.eventId >= 0);
+        const Ped* cpl = playerPed();
+        bool crowd = busy && cpl && cpl->state == PS_ONFOOT && pinfo.wanted == 0 && !cpl->aiming && length(rel(cpl->pos, p.pos)) < 2.4f;
+        ca.copCrowdT = crowd ? ca.copCrowdT + dt : 0.f;
+        if (ca.copCrowdT > 3.5f && time - ca.copCrowdSaidT > 30.0) {
+            ca.copCrowdSaidT = (float)time;
+            aiSay(id, BK_COP_STEP_BACK, 1.f, true);
+            p.lookPed = player;
+            p.lookT = 1.6f;
+            ai.stats.copStepBacks++;
+        }
+    }
     // (police on foot: after a suspect, -2 back to the car, -3 walking a prisoner, -4 taking a statement, -5 a sidewalk stop,
     //  -6 writing up a parked car)
     if (p.faction == FAC_POLICE && (((b.type == BRAIN_COMBAT || b.type == BRAIN_ARREST || b.type == BRAIN_GOTO) && b.target >= 0) ||

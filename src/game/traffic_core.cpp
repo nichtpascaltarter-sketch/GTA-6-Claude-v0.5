@@ -1252,6 +1252,10 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     if (d.routeLen < 4) planRoute(d);
     float front = d.info.frontLen;
     d.speedCap = 1e9f;
+    if (d.hostCapT > 0.f) {
+        d.speedCap = d.hostCap;
+        d.hostCapT -= dt;
+    }
     // ---- free speed
     float modeK = d.mode == DM_FLEE ? 1.45f : (d.mode == DM_EMERGENCY ? 1.35f : 1.f);
     float limit = G.pathSpeed(d.path) * P.speedFactor * modeK + (d.mode == DM_FLEE ? 4.f : 0.f);

@@ -237,6 +237,10 @@ int visibleSpecies(const Render::Camera& cam, float maxDist, int* outSpecies, in
 const char* speciesName(int species);
 int speciesCount();
 
+// The hand a pedestrian holds a dog's leash in (a pet walked on the sidewalk, or a police dog at heel): 0 left, 1 right;
+// -1 when they walk no dog on a leash. With pedUid (non-zero) only for that pedestrian (not one since spawned in the slot).
+int leashHand(int ped, u32 pedUid = 0);
+
 // ---- police dogs (K9, driven by police.cpp): a German shepherd on a leash at its handler's side -------------------------
 enum K9Cmd : u8 {
     K9_HEEL = 0,   // at the handler's side (a dog that was released runs back and is leashed again)

@@ -406,7 +406,9 @@ struct Driver {
     // lane-center error statistics (harness)
     double statErr2 = 0.0;
     int statErrN = 0;
-    float speedCap = 1e9f;      // host-imposed cap (e.g. emergency slowing, ped sim tests)
+    float speedCap = 1e9f;      // this tick's cap (plan(): finding a gap to merge, a sweep hold; and the host's below)
+    float hostCap = 1e9f;       // a cap the host imposes for hostCapT s (renewed while it holds: rubbernecking past a
+    float hostCapT = 0.f;       // scene, traffic.cpp)
     int stopPath = -1;          // host-requested stop point (taxi pickup, scene arrival): path + u of the front bumper
     float stopU = 0.f;
     float lastDriveTime = -1.f; // time of the last drive() call (stale drivers are relocalized)
@@ -512,6 +514,7 @@ struct Walker {
     u32 seed = 1;
     float hurry = 1.f;          // speed multiplier (crossing late, fleeing)
     vec2 lastDir = vec2(0, 1);
+    float goT = -1.f;           // waited at a light and the little man lit: stepping off when this runs out (-1 none)
 };
 
 class PedCore {
@@ -523,7 +526,8 @@ public:
     // place a walker on the graph near p; returns false if no sidewalk nearby
     bool place(Walker& w, vec2 p, u32 seed, float maxDist = 60.f);
     // desired horizontal velocity for the walker at position pos; selfBody = the walker's body index (or -1)
-    vec2 step(Walker& w, vec2 pos, float dt, int selfBody, float* faceYaw = nullptr);
+    // (ignore: bodies the walker does not keep its distance from - the company walking beside it)
+    vec2 step(Walker& w, vec2 pos, float dt, int selfBody, float* faceYaw = nullptr, const int* ignore = nullptr, int nIgnore = 0);
     // pick the next link at the end of the current one
     void chooseNext(Walker& w, int nodeId);
     bool crossingClear(const Walker& w, int link) const;

@@ -19,6 +19,8 @@ enum EvType : u8 {
                        // come for the one who started it (run down, cuffed and taken away)
     EV_PROPOSAL,       // a proposal on the sidewalk: down on one knee with the ring, passers-by stopping to watch and film -
                        // mostly a yes (the hug, the crowd cheering, off hand in hand), now and then a no
+    EV_PANHANDLER,     // somebody down on their luck sitting against a wall: up and over to the player walking by to ask for
+                       // change - standing still by them gives $2 (the thanks), walking on is no hard feelings
     EV_COUNT
 };
 
@@ -478,6 +480,7 @@ void GameWorld::updateEvents(float dt) {
         w[EV_TAKEOVER] = !calmOnly && pinfo.wanted == 0 && urban ? ((tod > 19.5f || tod < 3.5f) ? 1.1f : 0.12f) : 0.f;
         w[EV_BRAWL] = !calmOnly && pinfo.wanted == 0 && urban ? (night ? (nightlife ? 1.4f : 0.6f) : 0.18f) : 0.f;
         w[EV_PROPOSAL] = (tod > 10.f && tod < 23.f) && pinfo.wanted == 0 && !missionActive() && (scenic || urban) ? (scenic ? 0.45f : 0.2f) : 0.f;
+        w[EV_PANHANDLER] = (tod > 8.f && tod < 23.5f) && pinfo.wanted == 0 && !missionActive() && urban ? 0.5f : 0.f;
         for (int k = 0; k < EV_COUNT; k++) {
             if (time - gEv.lastOfType[k] < 150.0) w[k] = 0.f;
             for (AmbientEvent& e : gEv.ev)
@@ -517,6 +520,23 @@ void GameWorld::updateEvents(float dt) {
             for (int attempt = 0; attempt < 6 && !ok; attempt++) {
                 u32 ha = hash32(h + attempt * 7919u);
                 switch (type) {
+                    // ---------------------------------------------------------------- somebody asking for change
+                    case EV_PANHANDLER: {
+                        WalkSpot ws;
+                        if (!sidewalkSpot(*this, ringPoint(ha, pp, fwd, 28.f, 55.f), 30.f, ws)) break;
+                        vec3 spot = walkOffset(*this, ws, 0.f, ws.halfWidth * 0.85f);   // (against the building side)
+                        if (!hiddenFrom(*this, spot, 22.f, warm)) break;
+                        int id = spawnActor(*this, spot, AI::dirYaw(-ws.outward), ha, 0, FAC_CIVILIAN, PR_CIVILIAN, evId);
+                        if (id < 0) break;
+                        setActor(*this, id, evId, spot.xy(), AI::dirYaw(-ws.outward), 21, -1);   // (sitting on the ground)
+                        peds[id].carry = CARRY_COFFEE;   // (a paper cup for the change)
+                        e.ped[0] = refPed(*this, id);
+                        e.np = 1;
+                        e.pos = spot;
+                        e.dir = -ws.outward;   // (facing the street)
+                        ok = true;
+                        break;
+                    }
                     // ---------------------------------------------------------------- a proposal
                     case EV_PROPOSAL: {
                         WalkSpot ws;
@@ -1778,6 +1798,121 @@ void GameWorld::updateEvents(float dt) {
                 }
                 break;
             }
+            // A: sitting against the wall until the player walks by close on foot (no gun out, not wanted); B: up and over
+            // to them; C: the ask - standing still next to them for a moment gives $2 (the thanks), walking off is no hard
+            // feelings; D: back to the wall and down again (once per player pass; gone when the player is far)
+            case EV_PANHANDLER: {
+                int me = livePed(*this, e.ped[0]);
+                if (!calmActor(*this, me)) {
+                    over = true;
+                    break;
+                }
+                Ped& m = peds[me];
+                PedAI& ma = pedAI(me);
+                vec2 mp = m.pos.toVec3().xy();
+                float toPl = length(pp - mp);
+                bool approachable = pl->state == PS_ONFOOT && pinfo.wanted == 0 && !pl->aiming && weaponInfo(pl->weapon).animKind == 0;
+                // sat by the wall: now and then somebody walking past stops, drops something in the cup, a word (and
+                // his thanks)
+                if ((e.stage == ST_A || e.stage == ST_D) && e.fxT <= 0.f && length(mp - e.pos.xy()) < 0.5f) {
+                    e.fxT = 2.f;
+                    std::vector<int> close;
+                    pedsNear(mp, 4.f, close);
+                    for (int o : close) {
+                        if (o == me || o >= (int)ai.ped.size()) continue;
+                        Ped& q = peds[o];
+                        PedAI& qa = ai.ped[o];
+                        if (!q.used || q.isPlayer || qa.uid != q.uid || q.state != PS_ONFOOT || q.faction != FAC_CIVILIAN || qa.activity != ACT_WALK ||
+                            qa.leader >= 0 || qa.eventId >= 0 || q.brain.type != BRAIN_WANDER || length(q.vel.xy()) < 0.5f)
+                            continue;
+                        if (hashToFloat(hash32(q.uid * 7u + (u32)(e.age * 0.5f))) > 0.22f) continue;
+                        vec2 qp = q.pos.toVec3().xy(), off = qp - mp;
+                        vec2 dirOut = length(off) > 1e-3f ? off / length(off) : e.dir;   // (in front of him)
+                        qa.activity = ACT_SCENARIO;
+                        qa.anchor = mp + dirOut * 0.95f;
+                        qa.anchorYaw = yawTowards(qa.anchor, mp);
+                        qa.stance = 0;
+                        qa.clip = -1;
+                        qa.actTimer = 3.2f;
+                        qa.reachAt = m.pos.toVec3() + vec3(AI::yawDir(m.yaw) * 0.32f, 0.45f);   // (the cup)
+                        qa.reachT = time + 2.4;
+                        aiSay(o, BK_GIVE_CHANGE, 0.8f);
+                        ma.replyAt = (float)time + 2.2f;
+                        ma.replyTo = o;
+                        ma.replyKind = BK_PANHANDLE_THANKS;
+                        ai.stats.passerChange++;
+                        e.fxT = 25.f + hashToFloat(hash32(q.uid + (u32)e.age)) * 25.f;
+                        LOG("events: ped %d drops something in panhandler %d's cup", o, me);
+                        break;
+                    }
+                }
+                if (e.stage == ST_A) {
+                    ma.anchor = e.pos.xy();
+                    ma.stance = 21;
+                    if (!e.done && approachable && toPl < 11.f && e.t > 2.f) {
+                        ma.stance = 0;   // (up)
+                        setStage(e, ST_B);
+                        LOG("events: panhandler %d gets up for the player (%.1f m)", me, toPl);
+                    }
+                    if (plDist > 140.f || e.age > 400.f) over = true;
+                } else if (e.stage == ST_B) {
+                    // over to the player, a step short of them
+                    vec2 to = pp - mp;
+                    float d = length(to);
+                    ma.stance = 0;
+                    ma.anchor = d > 1.6f ? pp - to / Max(d, 1e-3f) * 1.4f : mp;
+                    ma.anchorYaw = yawTowards(mp, pp);
+                    if (d < 1.9f) {
+                        aiSay(me, BK_PANHANDLE, 1.f, true);
+                        if (!e.asked) {
+                            help("Stand still next to him to give $2", 4.f);
+                            e.asked = true;
+                        }
+                        e.hold = 0.f;
+                        setStage(e, ST_C);
+                    } else if (!approachable || d > 16.f || e.t > 14.f) {
+                        setStage(e, ST_D);   // (the player walked on)
+                        LOG("events: panhandler %d - the player is off before he gets there (%.1f m)", me, d);
+                    }
+                } else if (e.stage == ST_C) {
+                    ma.anchor = mp;
+                    ma.anchorYaw = yawTowards(mp, pp);
+                    ma.stance = 7;
+                    if (approachable && toPl < 2.6f && length(pl->vel.xy()) < 0.5f) e.hold += dt;
+                    if (e.hold > 1.5f) {
+                        if (pinfo.money >= 2) {
+                            pinfo.money -= 2;
+                            notify("Gave some change", "-$2");
+                            aiSay(me, BK_PANHANDLE_THANKS, 1.f, true);
+                            m.pendingAction = Anim::CLIP_WAVE;
+                            ai.stats.panhandled++;
+                            LOG("events: panhandler %d got $2 from the player", me);
+                        } else {
+                            aiSay(me, BK_PANHANDLE_NO, 1.f, true);
+                            LOG("events: panhandler %d - the player has no change", me);
+                        }
+                        e.done = true;
+                        setStage(e, ST_D);
+                    } else if (toPl > 5.f || e.t > 9.f || !approachable) {
+                        aiSay(me, BK_PANHANDLE_NO, 1.f, toPl < 15.f);
+                        e.done = true;
+                        setStage(e, ST_D);
+                        LOG("events: panhandler %d - the player walked on (%.1f m)", me, toPl);
+                    }
+                } else {
+                    // back to the wall, and down
+                    ma.anchor = e.pos.xy();
+                    ma.anchorYaw = AI::dirYaw(e.dir);
+                    ma.stance = length(mp - e.pos.xy()) < 0.5f ? 21 : 0;
+                    if (length(mp - e.pos.xy()) < 0.5f && e.t > 2.f) {
+                        // (again once the player is well away and comes back)
+                        if (toPl > 30.f) e.done = false;
+                        if (!e.done && approachable && toPl < 11.f) setStage(e, ST_B);
+                    }
+                    if (plDist > 140.f || e.age > 400.f) over = true;
+                }
+                break;
+            }
             // A: a couple standing talking, face to face (until the player comes along), B: a word, then down on one knee
             // with the ring held up - passers-by stop, phones out; C: the answer (yes: arms up, the crowd cheers; no: a
             // step back and away, the crowd winces, the one asking left kneeling); D: the hug; E: off together hand in hand
@@ -2733,7 +2868,7 @@ void GameWorld::updateEvents(float dt) {
 
 std::string GameWorld::aiEventsText(int want, int* stage, vec3* pos) const {
     static const char* const kNames[EV_COUNT] = {"mugging", "purse", "crash", "racers", "chase", "shootout", "drunk", "musician",
-                                                 "tourists", "breakdown", "traffic stop", "takeover", "brawl", "proposal"};
+                                                 "tourists", "breakdown", "traffic stop", "takeover", "brawl", "proposal", "panhandler"};
     std::string out;
     if (stage) *stage = -1;
     for (const AmbientEvent& e : gEv.ev) {
@@ -2756,6 +2891,18 @@ std::string GameWorld::aiEventsText(int want, int* stage, vec3* pos) const {
     }
     return out.empty() ? std::string("events: none") : out;
 }
+
+// what drivers going past slow down to look at (ai.cpp ai_sights, traffic.cpp): a fender bender with the drivers out, a
+// breakdown with the hood up, a fight, a traffic stop, a street takeover
+namespace ev_sights {
+void collect(const GameWorld& g, std::vector<vec3>& out) {
+    (void)g;
+    for (const AmbientEvent& e : gEv.ev) {
+        if (!e.active) continue;
+        if (e.type == EV_CRASH || e.type == EV_BREAKDOWN || e.type == EV_BRAWL || e.type == EV_TRAFFIC_STOP || e.type == EV_TAKEOVER) out.push_back(e.pos);
+    }
+}
+}  // namespace ev_sights
 
 std::string GameWorld::aiBrawlText(int* stage, vec3* pos, int* starter, u32* starterUid) const {
     for (const AmbientEvent& e : gEv.ev) {

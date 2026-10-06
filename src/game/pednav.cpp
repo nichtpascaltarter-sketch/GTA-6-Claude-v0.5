@@ -181,7 +181,7 @@ void PedCore::chooseNext(Walker& w, int nodeId) {
     }
 }
 
-vec2 PedCore::step(Walker& w, vec2 pos, float dt, int selfBody, float* faceYaw) {
+vec2 PedCore::step(Walker& w, vec2 pos, float dt, int selfBody, float* faceYaw, const int* ignore, int nIgnore) {
     if (w.link < 0) return vec2(0, 0);
     const WalkLink& L = g->walkLinks[w.link];
     vec2 desired(0, 0);
@@ -196,6 +196,19 @@ vec2 PedCore::step(Walker& w, vec2 pos, float dt, int selfBody, float* faceYaw) 
         vec2 to = onPath - pos;
         if (length(to) > 0.4f) desired = normalize(to) * 0.8f;
         if (crossingClear(w, w.link)) {
+            // the little man lit after a wait: a moment before stepping off, each their own (the eyes up from a phone,
+            // a glance along the road) - a crowd at the kerb does not move off as one, and now and then somebody
+            // is slow to notice
+            if (L.kind == WL_CROSSWALK && w.waitTimer > 1.f) {
+                if (w.goT < 0.f) {
+                    u32 h = hash32(w.seed * 0x27d4eb2du + (u32)(time * 4.0));
+                    float r = hashToFloat(h);
+                    w.goT = r < 0.1f ? 1.6f + hashToFloat(hash32(h)) * 1.2f : 0.15f + r * 1.05f;
+                }
+                w.goT -= dt;
+                if (w.goT > 0.f) return desired;
+            }
+            w.goT = -1.f;
             w.state = WS_CROSSING;
             w.hurry = 1.2f;
         } else if (w.waitTimer > 45.f) {
@@ -260,6 +273,8 @@ vec2 PedCore::step(Walker& w, vec2 pos, float dt, int selfBody, float* faceYaw) 
         vec2 myVel = desired;
         traffic->hash.query(traffic->bodies, pos - vec2(r + 7.f), pos + vec2(r + 7.f), [&](int bi) {
             if (bi == selfBody) return;
+            for (int k = 0; k < nIgnore; k++)
+                if (bi == ignore[k]) return;
             const Body& b = traffic->bodies[bi];
             vec2 rel = pos - b.pos;
             if (b.kind == BK_PED) {

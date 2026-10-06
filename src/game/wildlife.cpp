@@ -5912,6 +5912,14 @@ vec3 k9Pos(int group) {
     return gW.animals[gW.groups[group].members[0]].pos;
 }
 
+int leashHand(int ped, u32 pedUid) {
+    using namespace wild_detail;
+    if (ped < 0) return -1;
+    for (const Group& G : gW.groups)
+        if (G.used && G.type == GT_DOG_LEASH && G.owner == ped && (pedUid == 0 || G.ownerUid == pedUid)) return G.leashHand;
+    return -1;
+}
+
 bool k9Loose(int group) {
     using namespace wild_detail;
     if (group < 0 || group >= (int)gW.groups.size() || !gW.groups[group].used) return false;

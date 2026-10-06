@@ -1273,7 +1273,7 @@ int pickOwner(const GameWorld& g, int cop, vec2 carPos) {
         if (!q.used || q.isPlayer || q.persistent || q.faction != FAC_CIVILIAN || q.state != PS_ONFOOT || q.health <= 0.f || qa.uid != q.uid) continue;
         if (q.brain.type != BRAIN_WANDER || qa.activity != ACT_WALK || qa.leader >= 0 || qa.eventId >= 0 || qa.homeVeh >= 0 || qa.goInside ||
             qa.greetWith >= 0 || qa.stmtWith >= 0 || qa.stopPed >= 0 ||
-            (qa.role != PR_CIVILIAN && qa.role != PR_BUSINESS && qa.role != PR_NIGHTLIFE && qa.role != PR_BEACH))
+            (qa.role != PR_CIVILIAN && qa.role != PR_BUSINESS && qa.role != PR_NIGHTLIFE && qa.role != PR_BEACH && qa.role != PR_WORKER))
             continue;
         float d = length(q.pos.toVec3().xy() - carPos);
         if (d < 7.f || d > 45.f) continue;
@@ -1405,8 +1405,10 @@ void step(GameWorld& g, int id, float dt) {
         if (pa.ticketRush == 1 && T >= 3.5f) {
             // the owner sees it from up the street: picked as the writing starts, they come hurrying (pedai.cpp)
             vec2 cpos = g.vehicles[v].sim.body.pos.toVec3().xy();
-            int o = roomToPullOut(g, v) ? pickOwner(g, id, cpos) : -1;   // (one boxed in by the car in front: nobody comes for it)
+            bool room = roomToPullOut(g, v);
+            int o = room ? pickOwner(g, id, cpos) : -1;   // (one boxed in by the car in front: nobody comes for it)
             pa.ticketRush = o >= 0 ? 2 : 0;
+            if (o < 0) LOG("police: nobody comes for car %d (%s)", v, room ? "nobody about on their own" : "boxed in by the car in front");
             if (o >= 0) {
                 PedAI& qa = g.pedAI(o);
                 Ped& q = g.peds[o];
@@ -1459,8 +1461,11 @@ void consider(GameWorld& g, float dt) {
         g.vehiclesNear(cp, forced ? 30.f : 16.f, cars);
         int best = -1;
         float bd = 1e9f;
+        // (whether its owner is to come hurrying is settled first: then only a car that can pull out will do)
+        u32 h = hash32(c.uid * 613u + (u32)(g.time * 2.0));
+        bool rush = forced ? g.ai.forceTicket == 1 : hashToFloat(hash32(h)) < 0.3f;
         for (int v : cars) {
-            if (!ticketable(g, v)) continue;
+            if (!ticketable(g, v) || (rush && !roomToPullOut(g, v))) continue;
             const Vehicle& car = g.vehicles[v];
             vec2 vp = car.sim.body.pos.toVec3().xy();
             vec2 to = vp - cp;
@@ -1473,9 +1478,8 @@ void consider(GameWorld& g, float dt) {
             best = v;
         }
         if (best < 0) continue;
-        u32 h = hash32(c.uid * 613u + (u32)(g.time * 2.0));
         if (!forced && hashToFloat(h) > 0.3f) continue;
-        begin(g, i, best, forced ? g.ai.forceTicket == 1 : hashToFloat(hash32(h)) < 0.3f);
+        begin(g, i, best, rush);
         if (forced) g.ai.forceTicket = -1;
         return;
     }

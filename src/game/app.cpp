@@ -599,7 +599,9 @@ struct App {
             autoplay == "bender" || autoplay == "hwysoak" || autoplay == "venues" || autoplay == "takeover" || autoplay == "surrender" || autoplay == "search" || autoplay == "k9" ||
             autoplay == "places" || autoplay == "greet" || autoplay == "hurt" || autoplay == "arrest" || autoplay == "brawl" || autoplay == "events" ||
             autoplay == "pedstop" || autoplay == "copbreak" || autoplay == "life" || autoplay == "ticket" || autoplay == "proposal" ||
-            autoplay == "rain" || autoplay == "crashscene" || autoplay == "night") {
+            autoplay == "rain" || autoplay == "crashscene" || autoplay == "night" || autoplay == "panhandle" || autoplay == "busrun" ||
+            autoplay == "nearmiss" || autoplay == "jaywalk" || autoplay == "crowded" || autoplay == "followed" || autoplay == "couple" ||
+            autoplay == "walkby" || autoplay == "alarm" || autoplay == "rideoff" || autoplay == "crossing" || autoplay == "hitplayer") {
             // AI scenario tests: crowd variety at four places and hours / gunfire panic -> police response -> arrest /
             // night car chase at 4 stars (PIT, boxing, roadblocks, helicopter searchlight) / rear-ending a bold driver
             mu::setFlag(game, mu::EX_INTRO_DONE, 1);
@@ -651,6 +653,65 @@ struct App {
                 vec2 q(2713.f, 763.f);
                 p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
                 env.timeOfDay = 15.f;
+                game.ai.forceEvent = 99;
+            } else if (autoplay == "walkby") {
+                // a downtown sidewalk in the late afternoon (applyAutoplay): the player walking along it among the people
+                // coming the other way - the hellos, a jogger's "on your left", and once the player is hurt, "are you okay?"
+                // (every close pass gets its word here: ai.forceGreet - one in ten in the game)
+                autoDuration = 150.5f;
+                vec2 q(2713.f, 763.f);
+                p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+                env.timeOfDay = 17.f;
+                game.ai.forceEvent = 99;
+                game.ai.forceGreet = true;
+            } else if (autoplay == "couple") {
+                // a Calle Luna sidewalk on an evening out (applyAutoplay): couples walking hand in hand, close up (hands
+                // free at night in the nightlife districts: population.cpp ambientCarry; past 21:30, no more dogs out
+                // on a leash: wildlife.cpp)
+                autoDuration = 120.5f;
+                vec2 q(2713.f, 763.f);
+                p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+                env.timeOfDay = 22.f;
+                game.ai.forceEvent = 99;
+            } else if (autoplay == "followed") {
+                // a downtown sidewalk in the afternoon (applyAutoplay): the player walking close behind people, one after
+                // another
+                autoDuration = 100.5f;
+                vec2 q(2713.f, 763.f);
+                p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+                env.timeOfDay = 15.f;
+                game.ai.forceEvent = 99;
+            } else if (autoplay == "crowded") {
+                // a downtown sidewalk in the afternoon (applyAutoplay): the player standing right by people sat or
+                // standing about, one after another
+                autoDuration = 90.5f;
+                vec2 q(2713.f, 763.f);
+                p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+                env.timeOfDay = 15.f;
+                game.ai.forceEvent = 99;
+            } else if (autoplay == "jaywalk") {
+                // a narrow street near downtown at midday with a beat pair on it (applyAutoplay): people sent across
+                // mid-block in front of them now and then
+                autoDuration = 120.5f;
+                vec2 q(2713.f, 763.f);
+                p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+                env.timeOfDay = 12.f;
+                game.ai.forceEvent = 99;
+            } else if (autoplay == "busrun") {
+                // the morning commute at a bus stop near downtown (applyAutoplay): three buses pulling in, somebody along
+                // the sidewalk running for each (the nearest one in range, the farthest, then as it comes)
+                autoDuration = 170.5f;
+                vec2 q(2713.f, 763.f);
+                p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+                env.timeOfDay = 8.5f;
+                game.ai.forceEvent = 99;
+            } else if (autoplay == "panhandle") {
+                // somebody asking for change on a downtown sidewalk at midday (applyAutoplay): the player giving once, then
+                // stepping off mid-ask
+                autoDuration = 110.5f;
+                vec2 q(2713.f, 763.f);
+                p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+                env.timeOfDay = 12.f;
                 game.ai.forceEvent = 99;
             } else if (autoplay == "night") {
                 // street life at night (applyAutoplay, as "life"): the same sidewalk at eleven at night - the clubs, the
@@ -711,6 +772,41 @@ struct App {
                 p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
                 env.timeOfDay = 17.f;
                 game.ai.forceEvent = 99;   // (nothing else running into it)
+            } else if (autoplay == "hitplayer") {
+                // the player stepping out in front of a car on a downtown street in the afternoon, twice (applyAutoplay): the
+                // people about gasp, the nearest comes over to ask; the driver stops, gets out and comes to see, sorry
+                autoDuration = 100.5f;
+                vec2 q(2713.f, 763.f);
+                p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+                env.timeOfDay = 15.f;
+                game.ai.forceEvent = 99;   // (no ambient events running into it)
+                game.ai.forceSorry = true;
+            } else if (autoplay == "crossing") {
+                // the busiest signalled crosswalk near a downtown corner at lunchtime (applyAutoplay): the people waiting at
+                // the kerb looking along the road, and stepping off one by one when the little man lights
+                autoDuration = 90.5f;
+                vec2 q(2713.f, 763.f);
+                p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+                env.timeOfDay = 12.5f;
+                game.ai.forceEvent = 99;   // (no ambient events running into it)
+            } else if (autoplay == "rideoff") {
+                // two out walking together on a downtown sidewalk in the afternoon, the leader sent off to a car at the kerb
+                // to drive away (applyAutoplay, twice): the companion round to a passenger door and in, the car waiting
+                autoDuration = 120.5f;
+                vec2 q(2713.f, 763.f);
+                p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+                env.timeOfDay = 15.f;
+                game.ai.forceEvent = 99;   // (no ambient events running into it)
+            } else if (autoplay == "alarm") {
+                // car alarms on a downtown street in the early evening (applyAutoplay): one set off by a knock (the people
+                // about look over, its owner comes, stops it, looks it over), then the player breaking into one and
+                // driving off (its owner after it); the key fobs of people parking and leaving all along
+                autoDuration = 150.5f;
+                vec2 q(2713.f, 763.f);
+                p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
+                env.timeOfDay = 18.f;
+                game.ai.forceEvent = 99;   // (no ambient events running into it)
+                game.ai.forceAlarmOwner = true;
             } else if (autoplay == "ticket") {
                 // two parking tickets by officers walking a beat downtown in the late morning (applyAutoplay): one car
                 // written up and left, one whose owner comes hurrying, has a word and drives off
@@ -901,7 +997,7 @@ struct App {
             } else {
                 // the player's car on a long straight lane: chase = sports car at night, rage = sedan with a bold
                 // driver stopped 22 m ahead in the same lane
-                bool chase = autoplay == "chase", hwy = autoplay == "hwysoak", soak = autoplay == "soak" || hwy;
+                bool chase = autoplay == "chase", hwy = autoplay == "hwysoak", soak = autoplay == "soak" || hwy, nearmiss = autoplay == "nearmiss";
                 vec2 q = hwy ? vec2(2342.f, 1143.f) : (chase || soak ? vec2(2640.f, 700.f) : vec2(2713.f, 763.f));
                 int lane = -1;
                 float u = 0.f;
@@ -918,7 +1014,7 @@ struct App {
                     lane = li;
                     u = uu;
                 }
-                int model = game.findVehicleModel(chase ? Vehicles::VC_SPORTS : Vehicles::VC_SEDAN, 3);
+                int model = game.findVehicleModel(chase || nearmiss ? Vehicles::VC_SPORTS : Vehicles::VC_SEDAN, 3);
                 if (lane >= 0 && model >= 0) {
                     vec3 c3 = game.laneGraph.lanePos(lane, u);
                     float yaw = AI::dirYaw(game.laneGraph.laneTangent(lane, u));
@@ -928,9 +1024,9 @@ struct App {
                         game.vehicles[vid].persistent = true;
                         p.pos = game.vehicles[vid].sim.body.pos;   // (the population pass this frame measures from here)
                         game.rig.yaw = yaw;
-                        if (chase || soak) game.attachTraffic(vid, lane, u);
+                        if (chase || soak || nearmiss) game.attachTraffic(vid, lane, u);
                     }
-                    if (!chase && !soak) {
+                    if (!chase && !soak && !nearmiss) {
                         int nm = game.findVehicleModel(Vehicles::VC_COMPACT, 11);
                         vec3 n3 = game.laneGraph.lanePos(lane, u + 22.f);
                         int npc = nm >= 0 ? game.spawnVehicle(nm, dvec3(n3.x, n3.y, n3.z + 0.4f), yaw, true, FAC_CIVILIAN) : -1;
@@ -948,7 +1044,7 @@ struct App {
                         }
                     }
                 }
-                env.timeOfDay = chase ? 22.f : (soak ? 7.5f : 11.f);   // soak: morning rush hour, then the clock runs
+                env.timeOfDay = chase ? 22.f : (soak ? 7.5f : (nearmiss ? 13.f : 11.f));   // soak: morning rush hour, then the clock runs
                 if (chase && lane >= 0) {
                     // the cruiser that clocked us, 45 m back in the same lane with its lights on
                     int pm = game.findVehicleModel(Vehicles::VC_POLICE, 7);
@@ -1729,15 +1825,31 @@ struct App {
             std::string st = game.aiEventsText(2, &stage, &at);
             if (stage >= 0) {
                 game.ai.forceEvent = 99;
+                // (a clear view of the middle of it and of both ends of the two cars - an arcade's pillar or an awning
+                //  close in front blocks one of the three; up the street from it first)
                 auto clear = [&](vec2 o) {
-                    vec3 cam = at + vec3(o, 3.f);
-                    return game.lineOfSight(dvec3(cam), dvec3(at + vec3(0.f, 0.f, 1.f)), -1, -1) && game.lineOfSight(dvec3(at + vec3(0.f, 0.f, 1.f)), dvec3(cam), -1, -1);
+                    vec3 cam = at + vec3(o, 3.6f);
+                    vec2 side = AI::rightOf(normalize(o + vec2(1e-4f, 0.f)));
+                    for (int k = -1; k <= 1; k++) {
+                        vec3 tp = at + vec3(side * (2.5f * k), 1.f);
+                        if (!game.lineOfSight(dvec3(cam), dvec3(tp), -1, -1) || !game.lineOfSight(dvec3(tp), dvec3(cam), -1, -1)) return false;
+                    }
+                    return true;
                 };
+                static bool placed = false;
+                if (!placed) {
+                    placed = true;
+                    vec2 sd = vec2(1.f, 0.f);
+                    float x = 0.f;
+                    int li = game.laneGraph.nearestLane(at.xy(), vec2(0.f), 20.f, &x);
+                    if (li >= 0) sd = game.laneGraph.laneTangent(li, x);
+                    camOff = sd * 9.f + AI::rightOf(sd) * 2.f;
+                }
                 if (!clear(camOff)) {
                     float a0 = atan2f(camOff.y, camOff.x);
-                    for (int k = 1; k < 8; k++) {
-                        float a = a0 + (k & 1 ? 1.f : -1.f) * ((k + 1) / 2) * (kTwoPi / 8.f);
-                        vec2 o = vec2(cosf(a), sinf(a)) * 8.5f;
+                    for (int k = 1; k < 12; k++) {
+                        float a = a0 + (k & 1 ? 1.f : -1.f) * ((k + 1) / 2) * (kTwoPi / 12.f);
+                        vec2 o = vec2(cosf(a), sinf(a)) * 9.f;
                         if (clear(o)) {
                             camOff = o;
                             break;
@@ -1745,7 +1857,7 @@ struct App {
                     }
                 }
                 game.rig.scriptActive = true;
-                game.rig.scriptPos = dvec3(at + vec3(camOff, 3.f));
+                game.rig.scriptPos = dvec3(at + vec3(camOff, 3.6f));
                 game.rig.scriptTarget = dvec3(at + vec3(0.f, 0.f, 0.8f));
                 game.rig.scriptFov = 55.f;
                 shotT -= dt;
@@ -1806,9 +1918,9 @@ struct App {
             }
         } else if (autoplay == "life" || autoplay == "night") {
             // (the last minute or so with the player hurt and bleeding: what the people walking past say then)
-            if (t > 140.f && t - dt <= 140.f && game.playerPed()) {
-                game.playerPed()->health = game.playerPed()->maxHealth * 0.3f;
-                LOG("autoplay %s: the player hurt at t=%.1f", autoplay.c_str(), t);
+            if (t > 140.f && game.playerPed()) {
+                if (t - dt <= 140.f) LOG("autoplay %s: the player hurt from t=%.1f on", autoplay.c_str(), t);
+                game.playerPed()->health = Min(game.playerPed()->health, game.playerPed()->maxHealth * 0.3f);   // (kept there: player.cpp heals up to half)
             }
             // the camera turning slowly round the player; the census every 10 s (the totals: meetings, the way asked,
             // sidewalk stops, coffee breaks, statements, events, couples hand in hand at that moment)
@@ -1967,6 +2079,23 @@ struct App {
                         }
                     }
             }
+            // stage 1: the player put right by the officer doing the talking for 10 s (ai.cpp: "step back, please" after
+            // 3.5 s), then a few metres off again
+            static float crowdAt = -1.f;
+            if (stage == 1 && crowdAt < 0.f && pl && focus >= 0 && police_stop::stopping(game.peds[focus])) {
+                crowdAt = t;
+                const Ped& c = game.peds[focus];
+                vec2 cp = c.pos.toVec3().xy(), cf = AI::yawDir(c.yaw);
+                vec2 at = cp - cf * 1.2f + AI::rightOf(cf) * 1.4f;   // (at the officer's shoulder, off the line to the one stopped)
+                pl->pos = dvec3(at.x, at.y, game.groundHeight(at.x, at.y, (float)c.pos.z + 1.5f));
+                pl->vel = vec3(0.f);
+                pl->yaw = AI::dirYaw(cp - at);
+                LOG("autoplay pedstop: the player put right by officer %d at t=%.1f", focus, t);
+            } else if (crowdAt >= 0.f && t - crowdAt >= 10.f && t - crowdAt - dt < 10.f && pl) {
+                vec2 at = pl->pos.toVec3().xy() - AI::yawDir(pl->yaw) * 7.f;
+                pl->pos = dvec3(at.x, at.y, game.groundHeight(at.x, at.y, (float)pl->pos.z + 1.5f));
+                LOG("autoplay pedstop: the player stepped off again at t=%.1f", t);
+            }
             if (focus >= 0) {
                 const Ped& c = game.peds[focus];
                 vec3 P = c.pos.toVec3();
@@ -2077,6 +2206,1092 @@ struct App {
             if (logT <= 0.f) {
                 logT = 2.f;
                 LOG("autoplay proposal t=%.1f | %s | %s", t, st.c_str(), game.aiCensusText(30.f).c_str());
+            }
+        } else if (autoplay == "walkby") {
+            // the player walking the sidewalks at an easy pace (a walker of its own along the walk graph, the stick
+            // following it: player.cpp walks at 1.55 m/s x push / 0.5), the camera behind; hurt at 75 s (30% health) for
+            // the rest; the census every 5 s (the greetings, the "are you okay"s), a shot every 5 s
+            static AI::Walker w;
+            static bool init = false;
+            static float logT = 0.f, shotT = 4.f;
+            static int shots = 0;
+            Ped* pl = game.playerPed();
+            if (pl) {
+                vec2 pp = pl->pos.toVec3().xy();
+                if (!init && t > 2.f) {
+                    init = game.pedNav.place(w, pp, 0x5eedu, 40.f);
+                    w.speed = 1.35f;
+                    w.hurry = 1.f;
+                    w.avoidCrossing = false;
+                    LOG("autoplay walkby: walking from %.0f %.0f (walk link %d)", pp.x, pp.y, w.link);
+                }
+                if (init && w.link >= 0) {
+                    float fy = pl->yaw;
+                    vec2 v = game.pedNav.step(w, pp, dt, -1, &fy);
+                    if (length(v) > 0.2f) {
+                        // (round a bin, a bench or a pole in the way, as the people walking do: ai.cpp aiWalkRound)
+                        vec2 via = aiWalkRound(game, game.player, pp + normalize(v) * 3.f, 1.36f, dt) - pp;
+                        game.rig.yaw = AI::dirYaw(length(via) > 1e-3f ? normalize(via) : normalize(v));
+                        c.move = vec2(0.f, 0.44f);   // (about 1.36 m/s)
+                    }
+                    // (still caught on something for 3 s: on a few metres along the way)
+                    static float stuckT = 0.f;
+                    stuckT = length(v) > 0.2f && length(pl->vel.xy()) < 0.25f ? stuckT + dt : 0.f;
+                    if (stuckT > 3.f && w.link < (int)game.laneGraph.walkLinks.size()) {
+                        stuckT = 0.f;
+                        w.x = Min(w.x + 3.f, game.laneGraph.walkLinks[w.link].length - 0.1f);
+                        vec3 q = game.laneGraph.walkPos(w.link, w.x, w.lat, w.fromA);
+                        pl->pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, q.z + 2.f));
+                        LOG("autoplay walkby t=%.1f: caught on something - on along the walk", t);
+                    }
+                }
+                if (t > 75.f && t - dt <= 75.f) LOG("autoplay walkby: the player hurt from t=%.1f on", t);
+                if (t > 75.f) pl->health = Min(pl->health, pl->maxHealth * 0.3f);   // (kept there: player.cpp heals up to half)
+            }
+            shotT -= dt;
+            if (shotT <= 0.f && shots < 30) {
+                shotT = 5.f;
+                game.requestScreenshot = shotPath(StrFormat("auto_walkby_%02d", shots));
+                shots++;
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 5.f;
+                LOG("autoplay walkby t=%.1f | walk state %d link %d | %s", t, (int)w.state, w.link, game.aiCensusText(30.f).c_str());
+            }
+        } else if (autoplay == "couple") {
+            // the nearest couple walking hand in hand (pedai.cpp PedAI::handWith, peds.cpp joins the hands) within 70 m of
+            // the player, filmed from the side 3.2 m off at hand height; the player kept within 20 m of them (the street
+            // round them stays populated); a shot every 2 s while there is one, the state every 2 s
+            static int a = -1, b = -1;
+            static u32 ua = 0, ub = 0;
+            static float logT = 0.f, shotT = 1.f, moveT = 0.f, seen = 0.f;
+            static int shots = 0, pairs = 0;
+            Ped* pl = game.playerPed();
+            const int np = Min((int)game.peds.size(), (int)game.ai.ped.size());
+            auto holding = [&](int i, u32 u) {
+                if (i < 0 || i >= np || !game.peds[i].used || game.peds[i].uid != u || game.ai.ped[i].uid != u) return false;
+                const PedAI& q = game.ai.ped[i];
+                return q.handWith >= 0 && game.time - q.handT < 0.5;
+            };
+            if (!(holding(a, ua) && holding(b, ub)) && pl) {
+                a = b = -1;
+                float bd = 70.f;
+                vec2 pp = pl->pos.toVec3().xy();
+                for (int i = 0; i < np; i++) {
+                    const PedAI& q = game.ai.ped[i];
+                    if (!game.peds[i].used || q.uid != game.peds[i].uid || q.leader < 0 || q.handWith < 0 || game.time - q.handT > 0.5) continue;
+                    int o = q.handWith;
+                    if (o < 0 || o >= np || !game.peds[o].used) continue;
+                    float dd = length(game.peds[i].pos.toVec3().xy() - pp);
+                    if (dd < bd) {
+                        bd = dd;
+                        a = i;
+                        b = o;
+                    }
+                }
+                if (a >= 0) {
+                    ua = game.peds[a].uid;
+                    ub = game.peds[b].uid;
+                    pairs++;
+                    LOG("autoplay couple: %d - peds %d and %d hand in hand, %.0f m off (t=%.1f)", pairs, a, b, bd, t);
+                }
+            }
+            // (where a hand is in the world: its bone, turned by the body's facing)
+            auto handW = [&](const Ped& q, bool right) {
+                vec3 h = q.bones[right ? Anim::B_HAND_R : Anim::B_HAND_L].c[3].xyz();
+                return q.ragdoll ? h : q.pos.toVec3() + rotate(quatAxisAngle(vec3(0, 0, 1), q.yaw), h);
+            };
+            static float handGap = -1.f;
+            if (a >= 0 && holding(a, ua)) {
+                seen += dt;
+                const Ped& A = game.peds[a];
+                const Ped& B = game.peds[b];
+                vec3 mid = (A.pos.toVec3() + B.pos.toVec3()) * 0.5f;
+                vec2 f = length(A.vel.xy()) > 0.3f ? normalize(A.vel.xy()) : AI::yawDir(A.yaw);
+                vec2 side = AI::rightOf(f);
+                // (the two inner hands, wrist to wrist: in one clasp, a palm's length or so)
+                const PedAI& fa = game.ai.ped[a];   // (a: the companion)
+                bool lr = fa.slotSide > 0;          // (on the leader's right: its right hand, the companion's left)
+                handGap = length(handW(A, !lr) - handW(B, lr));
+                // (from behind them, a little to one side and above: the joined hands between them in view; to the
+                //  other side when that is blocked)
+                vec3 cam = mid + vec3(-f * 3.0f + side * 1.1f, 1.7f);
+                if (!game.lineOfSight(dvec3(cam), dvec3(mid + vec3(0.f, 0.f, 1.f)), -1, -1)) cam = mid + vec3(-f * 3.0f - side * 1.1f, 1.7f);
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(cam);
+                game.rig.scriptTarget = dvec3(mid + vec3(0.f, 0.f, 0.95f));
+                game.rig.scriptFov = 45.f;
+                shotT -= dt;
+                if (shotT <= 0.f && shots < 40) {
+                    shotT = 2.f;
+                    game.requestScreenshot = shotPath(StrFormat("auto_couple_%02d_p%d", shots, pairs));
+                    shots++;
+                }
+                moveT -= dt;
+                if (pl && moveT <= 0.f) {
+                    moveT = 4.f;
+                    if (length(pl->pos.toVec3().xy() - mid.xy()) > 20.f) {
+                        vec2 q = mid.xy() - f * 12.f;
+                        float x = 0.f;
+                        int wl = game.laneGraph.nearestWalk(q, 6.f, &x);
+                        if (wl >= 0) {
+                            vec3 w3 = game.laneGraph.walkPos(wl, x, 0.f, true);
+                            pl->pos = dvec3(w3.x, w3.y, game.groundHeight(w3.x, w3.y, w3.z + 2.f));
+                        }
+                    }
+                }
+            } else {
+                game.rig.scriptActive = false;
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 2.f;
+                std::string cs = "no couple";
+                if (a >= 0 && holding(a, ua) && holding(b, ub)) {
+                    const Ped& A = game.peds[a];
+                    const Ped& B = game.peds[b];
+                    cs = StrFormat("peds %d+%d %.2f m apart, %.1f m/s, held %.0f s, hand to hand %.2f m, grab %.1f (%.2f %.2f %.2f) / %.1f (%.2f %.2f %.2f), "
+                                   "hold %.2f (%s hand) / %.2f (%s hand)", a, b, length(rel(A.pos, B.pos)), length(A.vel.xy()), seen, handGap, A.animIn.grabWeight,
+                                   A.animIn.grabTarget.x, A.animIn.grabTarget.y, A.animIn.grabTarget.z, B.animIn.grabWeight, B.animIn.grabTarget.x, B.animIn.grabTarget.y,
+                                   B.animIn.grabTarget.z, A.anim.holdW, A.anim.holdSide ? "right" : "left", B.anim.holdW, B.anim.holdSide ? "right" : "left");
+                    // (the leader's pace and walker, and how far the companion is off its slot: ahead / to the side)
+                    const PedAI& fa2 = game.ai.ped[a];
+                    const PedAI& la2 = game.ai.ped[b];
+                    float ls = length(B.vel.xy());
+                    vec2 lf = ls > 0.5f ? B.vel.xy() / ls : AI::yawDir(B.yaw), lr = AI::rightOf(lf);
+                    vec2 slot = B.pos.toVec3().xy() + lr * (0.62f * fa2.slotSide) + lf * fa2.slot.y;
+                    vec2 off = A.pos.toVec3().xy() - slot;
+                    cs += StrFormat(" | leader %.2f m/s (walker %.2f x %.2f, state %d act %d), companion %.2f m ahead / %.2f m out of its slot, follow vel %.2f",
+                                    ls, la2.walk.speed, la2.walk.hurry, (int)la2.walk.state, (int)la2.activity, dot(off, lf), dot(off, lr), length(fa2.followVel));
+                }
+                LOG("autoplay couple t=%.1f | %s | %s", t, cs.c_str(), game.aiCensusText(40.f).c_str());
+            }
+        } else if (autoplay == "followed") {
+            // from 6 s, every 30 s: the nearest civilian walking alone within 40 m; the player put 3 m behind them and
+            // walked after them 2.2 m back (the stick, steering by the camera) - the look back and the word at 7 s, the
+            // sharper one at 15 s; the camera the player's own, the state every 2 s
+            static int target = -1, n = 0;
+            static u32 targetUid = 0;
+            static float nextAt = 6.f, logT = 0.f, shotT = 1.f;
+            static int shots = 0;
+            Ped* pl = game.playerPed();
+            const int np = Min((int)game.peds.size(), (int)game.ai.ped.size());
+            if (pl && t > nextAt && n < 3) {
+                nextAt = t + 30.f;
+                vec2 pp = pl->pos.toVec3().xy();
+                int best = -1;
+                float bd = 40.f;
+                for (int i = 0; i < np; i++) {
+                    const Ped& q = game.peds[i];
+                    const PedAI& qa = game.ai.ped[i];
+                    if (!q.used || q.isPlayer || qa.uid != q.uid || q.state != PS_ONFOOT || q.faction != FAC_CIVILIAN || qa.eventId >= 0 || i == target) continue;
+                    if (qa.activity != ACT_WALK || qa.leader >= 0 || qa.role == PR_JOGGER || qa.role == PR_DRUNK || qa.walk.state != AI::WS_WALK) continue;
+                    if (length(q.vel.xy()) < 0.6f) continue;
+                    float dd = length(q.pos.toVec3().xy() - pp);
+                    if (dd < bd) {
+                        bd = dd;
+                        best = i;
+                    }
+                }
+                if (best >= 0) {
+                    const Ped& q = game.peds[best];
+                    vec2 f = AI::yawDir(q.yaw);
+                    vec2 at = q.pos.toVec3().xy() - f * 3.f;
+                    pl->pos = dvec3(at.x, at.y, game.groundHeight(at.x, at.y, (float)q.pos.z + 1.5f));
+                    pl->yaw = q.yaw;
+                    game.rig.yaw = q.yaw;
+                    target = best;
+                    targetUid = q.uid;
+                    n++;
+                    LOG("autoplay followed: %d - ped %d (temper %d) at %.0f %.0f, %.0f m off (t=%.1f)", n, best, (int)game.ai.ped[best].temper, q.pos.x, q.pos.y, bd, t);
+                } else {
+                    LOG("autoplay followed: nobody walking alone within 40 m (t=%.1f)", t);
+                    nextAt = t + 4.f;
+                }
+            }
+            bool ok = target >= 0 && target < np && game.peds[target].used && game.peds[target].uid == targetUid && game.peds[target].state == PS_ONFOOT;
+            if (ok && pl && t < nextAt - 4.f) {
+                // after them, 2.2 m back: the stick pushed for the speed wanted (player.cpp: under half a push walks at
+                // 1.55 m/s x push / 0.5 - from 0.3 - a half push and more jogs at 4.1)
+                const Ped& q = game.peds[target];
+                vec2 qp = q.pos.toVec3().xy(), pp = pl->pos.toVec3().xy();
+                vec2 qf = length(q.vel.xy()) > 0.3f ? normalize(q.vel.xy()) : AI::yawDir(q.yaw);
+                vec2 goal = qp - qf * 2.2f, to = goal - pp;
+                float d = length(to);
+                float want = Clamp(length(q.vel.xy()) + (d - 0.3f) * 0.8f, 0.f, 4.f);
+                if (d > 0.15f && want > 0.4f) {
+                    game.rig.yaw = AI::dirYaw(to / d);
+                    float push = want <= 1.55f ? Max(0.3f, want * 0.5f / 1.55f) : (want < 2.6f ? 0.49f : 0.6f);
+                    c.move = vec2(0.f, push);
+                }
+                shotT -= dt;
+                if (shotT <= 0.f && shots < 40) {
+                    shotT = 2.5f;
+                    game.requestScreenshot = shotPath(StrFormat("auto_followed_%02d_n%d_s%d", shots, n, (int)game.ai.ped[target].followStep));
+                    shots++;
+                }
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 2.f;
+                std::string ts = "no target";
+                if (ok && pl) {
+                    const PedAI& qa = game.ai.ped[target];
+                    ts = StrFormat("ped %d act %d followedT %.1f step %d hurry %.2f speed %.1f | the player %.1f m behind at %.1f m/s", target, (int)qa.activity, qa.followedT,
+                                   (int)qa.followStep, qa.walk.hurry, length(game.peds[target].vel.xy()), length(rel(pl->pos, game.peds[target].pos)), length(pl->vel.xy()));
+                }
+                LOG("autoplay followed t=%.1f | %s | %s", t, ts.c_str(), game.aiCensusText(30.f).c_str());
+            }
+        } else if (autoplay == "crowded") {
+            // from 8 s, every 16 s: the nearest civilian sat or standing about (a scenario spot, a bus stop) within 45 m,
+            // the player put 0.9 m in front of them, facing them, and kept there still - the word at 3 s, up and off at 9 s;
+            // the camera from the side, the state every 2 s
+            static int target = -1, n = 0;
+            static u32 targetUid = 0;
+            static float nextAt = 8.f, logT = 0.f, shotT = 1.f;
+            static int shots = 0;
+            static vec2 standAt(0.f);
+            Ped* pl = game.playerPed();
+            const int np = Min((int)game.peds.size(), (int)game.ai.ped.size());
+            if (pl && t > nextAt && n < 5) {
+                nextAt = t + 16.f;
+                vec2 pp = pl->pos.toVec3().xy();
+                int best = -1;
+                float bd = 45.f;
+                for (int i = 0; i < np; i++) {
+                    const Ped& q = game.peds[i];
+                    const PedAI& qa = game.ai.ped[i];
+                    if (!q.used || q.isPlayer || qa.uid != q.uid || q.state != PS_ONFOOT || q.faction != FAC_CIVILIAN || qa.eventId >= 0) continue;
+                    if ((qa.activity != ACT_SCENARIO && qa.activity != ACT_WAIT_BUS) || qa.turnBack || qa.crowdStep != 0) continue;
+                    if (length(q.pos.toVec3().xy() - qa.anchor) > 0.6f) continue;   // (there, not on the way)
+                    float dd = length(q.pos.toVec3().xy() - pp);
+                    if (dd < bd && i != target) {
+                        bd = dd;
+                        best = i;
+                    }
+                }
+                if (best >= 0) {
+                    const Ped& q = game.peds[best];
+                    vec2 f = AI::yawDir(q.yaw);
+                    standAt = q.pos.toVec3().xy() + f * 0.9f;
+                    target = best;
+                    targetUid = q.uid;
+                    n++;
+                    LOG("autoplay crowded: %d - ped %d (act %d stance %d) at %.0f %.0f, %.0f m off (t=%.1f)", n, best, (int)game.ai.ped[best].activity,
+                        game.ai.ped[best].stance, q.pos.x, q.pos.y, bd, t);
+                } else {
+                    LOG("autoplay crowded: nobody sat or standing about within 45 m (t=%.1f)", t);
+                    nextAt = t + 4.f;
+                }
+            }
+            bool ok = target >= 0 && target < np && game.peds[target].used && game.peds[target].uid == targetUid;
+            if (ok && pl && t < nextAt - 3.f) {
+                // (kept still in front of them, facing them)
+                const Ped& q = game.peds[target];
+                pl->pos = dvec3(standAt.x, standAt.y, game.groundHeight(standAt.x, standAt.y, (float)q.pos.z + 1.5f));
+                pl->vel = vec3(0.f);
+                pl->yaw = atan2f(-(q.pos.toVec3().x - standAt.x), q.pos.toVec3().y - standAt.y);
+                vec2 side = AI::rightOf(normalize(q.pos.toVec3().xy() - standAt + vec2(1e-4f, 0.f)));
+                vec3 mid = (q.pos.toVec3() + vec3(standAt, (float)q.pos.z)) * 0.5f;
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(mid + vec3(side * 3.6f, 1.9f));
+                game.rig.scriptTarget = dvec3(mid + vec3(0.f, 0.f, 1.f));
+                game.rig.scriptFov = 55.f;
+                shotT -= dt;
+                if (shotT <= 0.f && shots < 40) {
+                    shotT = 2.f;
+                    game.requestScreenshot = shotPath(StrFormat("auto_crowded_%02d_n%d_s%d", shots, n, (int)game.ai.ped[target].crowdStep));
+                    shots++;
+                }
+            } else {
+                game.rig.scriptActive = false;
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 2.f;
+                std::string ts = "no target";
+                if (ok) {
+                    const PedAI& qa = game.ai.ped[target];
+                    ts = StrFormat("ped %d act %d stance %d crowdT %.1f step %d speed %.1f", target, (int)qa.activity, game.peds[target].animIn.stance, qa.crowdT,
+                                   (int)qa.crowdStep, length(game.peds[target].vel.xy()));
+                }
+                LOG("autoplay crowded t=%.1f | %s | %s", t, ts.c_str(), game.aiCensusText(30.f).c_str());
+            }
+        } else if (autoplay == "jaywalk") {
+            // the nearest narrow street (as pedai.cpp has people jaywalk: not a boulevard, a highway or a ramp): the player
+            // on its sidewalk, a beat pair put 6 m along; every 25 s from 8 s on somebody within 25 m ahead of the officers
+            // sent across mid-block - their call across and the point, the hurry, the word back; the player kept 8 m
+            // behind the officers, the camera on the one crossing (else the officers), the state every 2 s
+            static int setup = 0, ids[2] = {-1, -1};
+            static u32 uids[2] = {0, 0};
+            static float logT = 0.f, shotT = 2.f, nextForce = 8.f, followT = 5.f;
+            static int shots = 0, forced = 0;
+            Ped* pl = game.playerPed();
+            if (setup == 0 && t > 2.f && pl) {
+                setup = 1;
+                vec2 pp = pl->pos.toVec3().xy();
+                int best = -1;
+                float bd = 800.f, bs = 0.f;
+                for (int ei = 0; ei < (int)game.roads->edges.size(); ei++) {
+                    const World::RoadEdge& e = game.roads->edges[ei];
+                    if (e.halfWidth >= 7.5f || (e.cls != World::RC_STREET && e.cls != World::RC_LANE) || e.length < 80.f) continue;   // (with sidewalks)
+                    float dd = length(e.posAt(e.length * 0.5f).xy() - pp);
+                    if (dd < bd) {
+                        bd = dd;
+                        best = ei;
+                        bs = e.length * 0.5f;
+                    }
+                }
+                if (best >= 0) {
+                    const World::RoadEdge& e = game.roads->edges[best];
+                    vec3 c3 = e.posAt(bs);
+                    vec2 t2 = normalize(e.tangentAt(bs).xy() + vec2(1e-5f, 0.f));
+                    vec2 probe = c3.xy() + AI::rightOf(t2) * (e.halfWidth + 2.f);
+                    float x = 0.f;
+                    int wl = game.laneGraph.nearestWalk(probe, 6.f, &x);
+                    vec3 a3 = wl >= 0 ? game.laneGraph.walkPos(wl, x, 0.f, true) : vec3(probe, c3.z);
+                    pl->pos = dvec3(a3.x, a3.y, game.groundHeight(a3.x, a3.y, c3.z + 2.f));
+                    pl->yaw = AI::dirYaw(t2);
+                    for (int m = 0; m < 2; m++) {
+                        vec2 at = a3.xy() + t2 * 6.f + AI::rightOf(t2) * (m == 0 ? 0.f : 0.85f) - t2 * (m == 0 ? 0.f : 0.3f);
+                        int id = game.spawnPed(game.randomCivilianChar(hash32(0x7a1u + (u32)m * 17u), 1), dvec3(at.x, at.y, game.groundHeight(at.x, at.y, a3.z + 1.5f)),
+                                               AI::dirYaw(t2), FAC_POLICE);
+                        if (id < 0) break;
+                        ids[m] = id;
+                        uids[m] = game.peds[id].uid;
+                        game.giveWeapon(id, WPN_PISTOL, 60);
+                        game.peds[id].weapon = WPN_FISTS;
+                        game.peds[id].brain.type = BRAIN_WANDER;
+                        game.peds[id].brain.edge = -1;
+                        game.peds[id].brain.accuracy = 0.45f;
+                        PedAI& qa = game.pedAI(id);
+                        qa.role = PR_COP;
+                        qa.activity = ACT_WALK;
+                        qa.temper = 2;
+                        qa.homeVeh = -1;
+                        qa.actTimer = 1e4f;
+                        if (m == 1 && ids[0] >= 0) {
+                            qa.leader = ids[0];
+                            qa.leaderUid = uids[0];
+                            qa.slot = vec2(0.85f, 0.f);
+                        }
+                    }
+                    LOG("autoplay jaywalk: edge %d (half width %.1f, %.0f m off), the player at %.0f %.0f, officers %d and %d", best, e.halfWidth, bd, a3.x, a3.y, ids[0], ids[1]);
+                    game.ai.meetBoost = 3.f;   // (and people coming the other way stopping the officers to ask the way)
+                } else {
+                    LOG("autoplay jaywalk: no narrow street within 800 m");
+                }
+            }
+            int lead = ids[0] >= 0 && ids[0] < (int)game.peds.size() && game.peds[ids[0]].used && game.peds[ids[0]].uid == uids[0] ? ids[0] : -1;
+            if (lead >= 0 && pl) {
+                const Ped& c = game.peds[lead];
+                vec2 cp = c.pos.toVec3().xy(), cf = AI::yawDir(c.yaw);
+                // (the player kept close behind them: the street round them stays populated)
+                followT -= dt;
+                if (followT <= 0.f) {
+                    followT = 5.f;
+                    vec2 q = cp - cf * 8.f;
+                    float x = 0.f;
+                    int wl = game.laneGraph.nearestWalk(q, 5.f, &x);
+                    if (wl >= 0 && length(pl->pos.toVec3().xy() - cp) > 14.f) {
+                        vec3 a3 = game.laneGraph.walkPos(wl, x, 0.f, true);
+                        pl->pos = dvec3(a3.x, a3.y, game.groundHeight(a3.x, a3.y, a3.z + 2.f));
+                    }
+                }
+                if (t > nextForce && forced < 5) {
+                    game.ai.forceJaywalk = true;
+                    forced++;
+                    nextForce = t + 25.f;
+                    LOG("autoplay jaywalk: %d - somebody ahead of the officers to cross mid-block (t=%.1f)", forced, t);
+                }
+                game.ai.forceJaywalkAt = cp + cf * 10.f;
+                // the one crossing (if any) close to them
+                int crosser = -1;
+                float cd = 40.f;
+                const int np = Min((int)game.peds.size(), (int)game.ai.ped.size());
+                for (int i = 0; i < np; i++)
+                    if (game.peds[i].used && game.ai.ped[i].uid == game.peds[i].uid && game.ai.ped[i].activity == ACT_CROSS && length(game.peds[i].pos.toVec3().xy() - cp) < cd) {
+                        cd = length(game.peds[i].pos.toVec3().xy() - cp);
+                        crosser = i;
+                    }
+                vec3 focus = crosser >= 0 ? (game.peds[crosser].pos.toVec3() + c.pos.toVec3()) * 0.5f : c.pos.toVec3();
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(c.pos.toVec3() - vec3(cf * 5.f, 0.f) + vec3(AI::rightOf(cf) * 1.5f, 2.4f));
+                game.rig.scriptTarget = dvec3(focus + vec3(0.f, 0.f, 1.f));
+                game.rig.scriptFov = 60.f;
+                shotT -= dt;
+                if (shotT <= 0.f && shots < 40 && crosser >= 0) {
+                    shotT = 1.5f;
+                    game.requestScreenshot = shotPath(StrFormat("auto_jaywalk_%02d_f%d", shots, forced));
+                    shots++;
+                }
+                logT -= dt;
+                if (logT <= 0.f) {
+                    logT = 2.f;
+                    LOG("autoplay jaywalk t=%.1f | officer %d at %.0f %.0f act %d | crossing %d (%.0f m, called %d, speed %.1f) | %s", t, lead, cp.x, cp.y,
+                        (int)game.ai.ped[lead].activity, crosser, crosser >= 0 ? cd : -1.f, crosser >= 0 ? (int)game.ai.ped[crosser].jayCalled : 0,
+                        crosser >= 0 ? length(game.peds[crosser].vel.xy()) : 0.f, game.aiCensusText(40.f).c_str());
+                }
+            }
+        } else if (autoplay == "nearmiss") {
+            // the player's car hurried through downtown at midday by the traffic AI in flee mode (half again the limit,
+            // the lights run) past the people on the sidewalks: the census every 5 s (the near misses), a shot every 5 s;
+            // stuck for 10 s, back onto a lane further on
+            static float logT = 0.f, shotT = 6.f, stuckT = 0.f;
+            static int shots = 0;
+            int pv = game.playerVehicle();
+            if (pv >= 0) {
+                Vehicle& v = game.vehicles[pv];
+                vec2 vp = v.sim.body.pos.toVec3().xy();
+                vec2 f = normalize(v.sim.forward().xy() + vec2(1e-4f, 0.f));
+                if (AI::Driver* d = game.traffic.get(pv)) {
+                    if (d->mode != AI::DM_FLEE) {
+                        d->mode = AI::DM_FLEE;
+                        d->routeLen = 0;
+                    }
+                    d->threat = vp - f * 60.f;
+                }
+                game.driveVehicleAI(pv, dt);
+                const Vehicles::VehicleControls& vc = v.ctl;
+                c.accel = vc.throttle;
+                c.brake = vc.brake;
+                c.steer = vc.steer;
+                c.usingPad = true;
+                stuckT = v.sim.speed() < 0.5f ? stuckT + dt : 0.f;
+                if (stuckT > 10.f) {
+                    stuckT = 0.f;
+                    float u = 0.f;
+                    int lane = game.laneGraph.nearestLane(vp + f * 80.f, f, 60.f, &u);
+                    if (lane >= 0) {
+                        const AI::Lane& L = game.laneGraph.lanes[lane];
+                        u = Clamp(u, L.u0 + 4.f, L.u1 - 8.f);
+                        vec3 c3 = game.laneGraph.lanePos(lane, u);
+                        Vehicles::resetVehicle(v.sim, dvec3(c3.x, c3.y, c3.z + 0.4f), AI::dirYaw(game.laneGraph.laneTangent(lane, u)));
+                        game.traffic.detach(pv);
+                        game.attachTraffic(pv, lane, u);
+                        LOG("autoplay nearmiss t=%.1f: stuck, back onto lane %d further on", t, lane);
+                    }
+                }
+            }
+            shotT -= dt;
+            if (shotT <= 0.f && shots < 30) {
+                shotT = 5.f;
+                game.requestScreenshot = shotPath(StrFormat("auto_nearmiss_%02d", shots));
+                shots++;
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 5.f;
+                LOG("autoplay nearmiss t=%.1f speed %.1f | %s", t, pv >= 0 ? game.vehicles[pv].sim.speed() : 0.f, game.aiCensusText(40.f).c_str());
+            }
+        } else if (autoplay == "busrun") {
+            // a stop on a curb lane near downtown: the player on the sidewalk past it; a bus sent along the lane from 65 m
+            // back at 12 s, the next 15 s after each one has gone (three in all) - the first with the nearest walker in
+            // range running for it, the second the farthest, the third as it comes; the camera on the runner (or the stop),
+            // the state every 2 s
+            static int lane = -1, bus = -1, sent = 0;
+            static u32 busUid = 0;
+            static float stopU = 0.f, nextAt = -1.f, logT = 0.f, shotT = 2.f, heldFor = 0.f, sentAt = 0.f;
+            static int shots = 0;
+            static bool held = false;
+            Ped* pl = game.playerPed();
+            const AI::LaneGraph& G = game.laneGraph;
+            if (lane == -1 && t > 3.f && pl) {
+                vec2 pp = pl->pos.toVec3().xy();
+                float bd = 700.f;
+                for (int li = 0; li < (int)G.lanes.size(); li++) {
+                    const AI::Lane& L = G.lanes[li];
+                    if (L.busStops.empty() || L.right >= 0 || (L.flags & (AI::LF_DIRT | AI::LF_NOTRAFFIC | AI::LF_HIGHWAY))) continue;
+                    for (float bu : L.busStops) {
+                        if (bu - L.u0 < 75.f || L.u1 - bu < 20.f) continue;
+                        float dd = length(G.lanePos(li, bu).xy() - pp);
+                        if (dd < bd) {
+                            bd = dd;
+                            lane = li;
+                            stopU = bu;
+                        }
+                    }
+                }
+                if (lane >= 0) {
+                    vec3 c = G.lanePos(lane, stopU);
+                    vec2 tg = G.laneTangent(lane, stopU);
+                    vec2 probe = c.xy() + AI::rightOf(tg) * (G.lanes[lane].width * 0.5f + 2.5f) + tg * 14.f;
+                    float x = 0.f;
+                    int wl = G.nearestWalk(probe, 8.f, &x);
+                    vec3 sp = wl >= 0 ? G.walkPos(wl, x, 0.f, true) : vec3(probe, c.z);
+                    pl->pos = dvec3(sp.x, sp.y, game.groundHeight(sp.x, sp.y, c.z + 2.f));
+                    pl->yaw = AI::dirYaw(-tg);
+                    nextAt = t + 12.f;
+                    LOG("autoplay busrun: the stop on lane %d at u %.0f (%.0f %.0f), %.0f m from the start; the player at %.0f %.0f", lane, stopU, c.x, c.y, bd, sp.x, sp.y);
+                } else {
+                    LOG("autoplay busrun: no bus stop within 700 m");
+                    lane = -2;
+                }
+            }
+            bool busOk = bus >= 0 && bus < (int)game.vehicles.size() && game.vehicles[bus].used && game.vehicles[bus].uid == busUid;
+            if (lane >= 0 && !busOk && sent < 3 && nextAt >= 0.f && t > nextAt) {
+                // the bus 65 m back along the lane, in traffic
+                float u = stopU - 65.f;
+                vec3 c = G.lanePos(lane, u);
+                int model = game.findVehicleModel(Vehicles::VC_BUS, 0xb05u + (u32)sent * 77u);
+                if (model >= 0 && game.traffic.laneFree(lane, u, 7.f, 6.f)) {
+                    int vid = game.spawnVehicle(model, dvec3(c.x, c.y, c.z + 0.3f), AI::dirYaw(G.laneTangent(lane, u)), true, FAC_CIVILIAN);
+                    if (vid >= 0 && game.attachTraffic(vid, lane, u)) {
+                        int drv = game.vehicles[vid].seats[0];
+                        if (drv >= 0) game.peds[drv].brain.type = BRAIN_DRIVER;
+                        bus = vid;
+                        busUid = game.vehicles[vid].uid;
+                        sent++;
+                        sentAt = t;
+                        held = false;
+                        heldFor = 0.f;
+                        game.ai.forceBusRun = sent == 1 ? 1 : (sent == 2 ? 2 : 0);
+                        LOG("autoplay busrun: bus %d sent (%d of 3, runner %s) t=%.1f", vid, sent, sent == 1 ? "the nearest" : (sent == 2 ? "the farthest" : "as it comes"), t);
+                    } else if (vid >= 0) {
+                        game.despawnVehicle(vid, true);
+                    }
+                }
+                nextAt = t + 1.f;
+            }
+            busOk = bus >= 0 && bus < (int)game.vehicles.size() && game.vehicles[bus].used && game.vehicles[bus].uid == busUid;
+            const AI::Driver* bd = busOk ? game.traffic.get(bus) : nullptr;
+            if (bd && bd->mode == AI::DM_HOLD) {
+                held = true;
+                heldFor += dt;
+            }
+            if (busOk && held && bd && bd->mode != AI::DM_HOLD && nextAt < t) {
+                LOG("autoplay busrun: bus %d leaves the stop after %.1f s (t=%.1f)", bus, heldFor, t);
+                nextAt = t + 15.f;
+                held = false;
+                bus = -1;   // (the next one: this one drives on)
+            } else if (busOk && !held && t - sentAt > 60.f) {
+                LOG("autoplay busrun: bus %d never stopped (t=%.1f) - the next one", bus, t);
+                nextAt = t + 2.f;
+                bus = -1;
+            }
+            // the runner (if any)
+            int runner = -1;
+            const int np = Min((int)game.peds.size(), (int)game.ai.ped.size());
+            for (int i = 0; i < np; i++)
+                if (game.peds[i].used && game.ai.ped[i].uid == game.peds[i].uid && game.ai.ped[i].busRun != 0) runner = i;
+            if (lane >= 0) {
+                vec3 c = G.lanePos(lane, stopU);
+                vec2 tg = G.laneTangent(lane, stopU);
+                vec3 look = runner >= 0 ? game.peds[runner].pos.toVec3() : c + vec3(AI::rightOf(tg) * 3.f, 0.f);
+                vec2 side = AI::rightOf(tg);
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(look + vec3(-side * 6.5f - tg * 5.f, 2.8f));   // (out over the street)
+                game.rig.scriptTarget = dvec3(look + vec3(side * 0.5f, 1.f));
+                game.rig.scriptFov = 60.f;
+                shotT -= dt;
+                if (shotT <= 0.f && shots < 45 && (runner >= 0 || (bd && bd->mode == AI::DM_HOLD))) {
+                    shotT = 2.5f;
+                    game.requestScreenshot = shotPath(StrFormat("auto_busrun_%02d_b%d_r%d", shots, sent, runner >= 0 ? (int)game.ai.ped[runner].busRun : 0));
+                    shots++;
+                }
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 2.f;
+                std::string bs = "no bus";
+                if (bd) {
+                    bs = StrFormat("bus %d mode %d hold %.1f speed %.1f %.0f m from the stop", bus, (int)bd->mode, bd->holdTimer, game.vehicles[bus].sim.speed(),
+                                   length(game.vehicles[bus].sim.body.pos.toVec3().xy() - G.lanePos(lane, stopU).xy()));
+                }
+                std::string rs = "no runner";
+                if (runner >= 0) {
+                    const PedAI& ra = game.ai.ped[runner];
+                    rs = StrFormat("runner %d state %d act %d %.1f m/s for bus %d", runner, (int)ra.busRun, (int)ra.activity, length(game.peds[runner].vel.xy()), ra.targetVeh);
+                }
+                LOG("autoplay busrun t=%.1f | sent %d | %s | %s | %s", t, sent, bs.c_str(), rs.c_str(), game.aiCensusText(40.f).c_str());
+            }
+        } else if (autoplay == "panhandle") {
+            // somebody asking for change, forced at 4 s; the player put on the sidewalk 8 m along from him - the first
+            // pass standing still when he comes over (the $2, the thanks), then away (40 m) and back, the second pass
+            // stepping off 7 m mid-ask (no hard feelings); the camera on him from a few metres off, the state every 2 s
+            static int pass = 0;   // 0 forcing, 1 placed to give, 2 away, 3 placed to walk off, 4 stepped off
+            static float logT = 0.f, shotT = 2.f, passT = 0.f;
+            static int shots = 0;
+            static long long money0 = -1;
+            static vec2 camOff(4.5f, -4.5f), side(1.f, 0.f);
+            Ped* pl = game.playerPed();
+            int stage = -1;
+            vec3 at;
+            std::string st = game.aiEventsText(14, &stage, &at);   // (EV_PANHANDLER)
+            if (pass == 0 && stage < 0 && t > 4.f && game.ai.forceEvent != 14) {
+                game.ai.forceEvent = 14;
+                if (game.pinfo.money < 40) game.pinfo.money = 40;
+                money0 = game.pinfo.money;
+                LOG("autoplay panhandle: forcing the event (t=%.1f), money %lld", t, (long long)game.pinfo.money);
+            }
+            // the player on the sidewalk r m along from him (either way), on the ground, in view of him
+            auto place = [&](float r) -> bool {
+                float x = 0.f;
+                int link = game.laneGraph.nearestWalk(at.xy(), 8.f, &x);
+                if (link < 0 || !pl) return false;
+                for (int k = 0; k < 2; k++) {
+                    float sx = x + (k == 0 ? r : -r);
+                    if (sx < 0.f || sx > game.laneGraph.walkLinks[link].length) continue;
+                    vec3 q = game.laneGraph.walkPos(link, sx, 0.f, true);
+                    float z = game.groundHeight(q.x, q.y, at.z + 2.f);
+                    if (fabsf(z - at.z) > 0.6f) continue;
+                    if (!game.lineOfSight(dvec3(q.x, q.y, z + 1.f), dvec3(at + vec3(0.f, 0.f, 1.f)), -1, -1)) continue;
+                    pl->pos = dvec3(q.x, q.y, z);
+                    pl->vel = vec3(0.f);
+                    pl->yaw = atan2f(-(at.x - q.x), at.y - q.y);
+                    side = normalize(q.xy() - at.xy());
+                    return true;
+                }
+                return false;
+            };
+            if (stage >= 0) {
+                game.ai.forceEvent = 99;   // (that one is on: nothing else mixing in)
+                passT += dt;
+                if (pass == 0 && stage == 0 && passT > 2.f) {
+                    if (place(8.f)) {
+                        pass = 1;
+                        passT = 0.f;
+                        LOG("autoplay panhandle: pass 1 - the player 8 m along, standing still (t=%.1f)", t);
+                    }
+                } else if (pass == 1 && stage == 3 && passT > 6.f) {
+                    if (place(40.f)) {
+                        pass = 2;
+                        passT = 0.f;
+                        LOG("autoplay panhandle: away (t=%.1f), money %lld -> %lld", t, money0, (long long)game.pinfo.money);
+                    }
+                } else if (pass == 2 && passT > 8.f) {
+                    if (place(8.f)) {
+                        pass = 3;
+                        passT = 0.f;
+                        LOG("autoplay panhandle: pass 2 - the player back 8 m along (t=%.1f)", t);
+                    }
+                } else if (pass == 3 && stage == 2 && passT > 0.6f && pl) {
+                    vec2 q = pl->pos.toVec3().xy() + side * 7.f;
+                    pl->pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, (float)pl->pos.z + 2.f));
+                    pass = 4;
+                    passT = 0.f;
+                    LOG("autoplay panhandle: pass 2 - the player steps off mid-ask (t=%.1f)", t);
+                }
+                if (pass == 1 && stage < 2) passT = Min(passT, 0.f);   // (the clock starts on the way back)
+                auto clear = [&](vec2 o) {
+                    vec3 cam = at + vec3(o, 2.2f);
+                    return game.lineOfSight(dvec3(cam), dvec3(at + vec3(0.f, 0.f, 1.f)), -1, -1) && game.lineOfSight(dvec3(at + vec3(0.f, 0.f, 1.f)), dvec3(cam), -1, -1);
+                };
+                if (!clear(camOff)) {
+                    float a0 = atan2f(camOff.y, camOff.x);
+                    for (int k = 1; k < 8; k++) {
+                        float a = a0 + (k & 1 ? 1.f : -1.f) * ((k + 1) / 2) * (kTwoPi / 8.f);
+                        vec2 o = vec2(cosf(a), sinf(a)) * 6.3f;
+                        if (clear(o)) {
+                            camOff = o;
+                            break;
+                        }
+                    }
+                }
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(at + vec3(camOff, 2.2f) + vec3(side * 2.f, 0.f));
+                game.rig.scriptTarget = dvec3(at + vec3(side * 3.f, 0.9f));
+                game.rig.scriptFov = 55.f;
+                shotT -= dt;
+                if (shotT <= 0.f && shots < 40) {
+                    shotT = 2.5f;
+                    game.requestScreenshot = shotPath(StrFormat("auto_panhandle_%02d_p%d_s%d", shots, pass, stage));
+                    shots++;
+                }
+            } else {
+                game.rig.scriptActive = false;
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 2.f;
+                LOG("autoplay panhandle t=%.1f pass %d money %lld | %s | %s", t, pass, (long long)game.pinfo.money, st.c_str(), game.aiCensusText(30.f).c_str());
+            }
+        } else if (autoplay == "hitplayer") {
+            // at 8 s and 55 s: an ordinary car coming along at speed within 70 m of the player - the player put 5 m ahead of
+            // it in its lane, facing across (it cannot stop in time); the camera on the player from the kerb side, the state
+            // (the player, the driver, the one who came over) every 2 s
+            static int stage = 0, car = -1, driver = -1;
+            static u32 carUid = 0;
+            static float logT = 0.f, shotT = 1.f;
+            static int shots = 0;
+            Ped* pl = game.playerPed();
+            if (pl && pl->state == PS_ONFOOT && ((stage == 0 && t > 8.f) || (stage == 1 && t > 55.f))) {
+                vec2 pp = pl->pos.toVec3().xy();
+                int best = -1;
+                float bd = 70.f;
+                for (int v = 0; v < (int)game.vehicles.size(); v++) {
+                    const Vehicle& cv = game.vehicles[v];
+                    const AI::Driver* dd = game.traffic.get(v);
+                    if (!cv.used || cv.faction != FAC_CIVILIAN || cv.seats[0] < 0 || game.peds[cv.seats[0]].isPlayer || !dd || dd->dummy ||
+                        cv.sim.speed() < 8.f || game.vehAI(v).role != VR_TRAFFIC)
+                        continue;
+                    float d = length(cv.sim.body.pos.toVec3().xy() - pp);
+                    if (d < bd) {
+                        bd = d;
+                        best = v;
+                    }
+                }
+                if (best >= 0) {
+                    const Vehicle& cv = game.vehicles[best];
+                    vec2 f = normalize(cv.sim.forward().xy() + vec2(1e-4f, 0.f));
+                    float ahead = Max(5.f, cv.sim.speed() * 0.45f);   // (a little under half a second away)
+                    vec2 at = cv.sim.body.pos.toVec3().xy() + f * (ahead + game.vassets[cv.model].spec.boxHalf.y);
+                    pl->pos = dvec3(at.x, at.y, game.groundHeight(at.x, at.y, (float)cv.sim.body.pos.z + 1.5f));
+                    pl->vel = vec3(0.f);
+                    pl->yaw = AI::dirYaw(AI::rightOf(f));
+                    game.rig.yaw = pl->yaw;
+                    car = best;
+                    carUid = cv.uid;
+                    driver = cv.seats[0];
+                    LOG("autoplay hitplayer: stage %d at t=%.1f - the player put %.1f m ahead of car %d (%.1f m/s)", stage + 1, t, ahead, best, cv.sim.speed());
+                    stage++;
+                } else if (fmodf(t, 2.f) < dt) {
+                    LOG("autoplay hitplayer: no car coming along at speed within 70 m (t=%.1f)", t);
+                }
+            }
+            if (pl && stage > 0) {
+                vec3 P = pl->pos.toVec3();
+                vec2 f = AI::yawDir(pl->yaw);
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(P + vec3(-f * 5.5f + AI::rightOf(f) * 3.f, 2.6f));
+                game.rig.scriptTarget = dvec3(P + vec3(0.f, 0.f, 0.6f));
+                game.rig.scriptFov = 55.f;
+                shotT -= dt;
+                if (shotT <= 0.f && shots < 40) {
+                    shotT = 2.f;
+                    game.requestScreenshot = shotPath(StrFormat("auto_hitplayer_%02d_s%d", shots, stage));
+                    shots++;
+                }
+            }
+            logT -= dt;
+            if (logT <= 0.f && pl) {
+                logT = 2.f;
+                std::string fs = StrFormat("player state %d health %.0f", (int)pl->state, pl->health);
+                bool carOk = car >= 0 && car < (int)game.vehicles.size() && game.vehicles[car].used && game.vehicles[car].uid == carUid;
+                if (carOk) fs += StrFormat(" | car %d speed %.1f rage %d sorry %d", car, game.vehicles[car].sim.speed(), (int)game.vehAI(car).rage, (int)game.vehAI(car).rageSorry);
+                if (driver >= 0 && driver < (int)game.peds.size() && game.peds[driver].used && driver < (int)game.ai.ped.size())
+                    fs += StrFormat(" | driver %d state %d act %d, %.1f m off", driver, (int)game.peds[driver].state, (int)game.ai.ped[driver].activity,
+                                    length(rel(game.peds[driver].pos, pl->pos)));
+                int hp = game.ai.playerHelper;
+                if (hp >= 0 && hp < (int)game.peds.size() && game.peds[hp].used && hp < (int)game.ai.ped.size())
+                    fs += StrFormat(" | helper %d act %d, %.1f m off", hp, (int)game.ai.ped[hp].activity, length(rel(game.peds[hp].pos, pl->pos)));
+                LOG("autoplay hitplayer t=%.1f stage %d | %s | %s", t, stage, fs.c_str(), game.aiCensusText(40.f).c_str());
+            }
+        } else if (autoplay == "crossing") {
+            // the camera on the far side of the signalled crosswalk nearest the player (picked 3 s in), looking back at the
+            // kerb; every 2 s the people waiting there (how many have their head turned along the road: PedAI::lookAtT) and
+            // the signal; each one stepping off logged with its delay after the little man lit (pednav.cpp Walker::goT)
+            static int link = -1;
+            static vec3 camP(0.f), camT(0.f);
+            static float logT = 0.f, shotT = 0.f, walkAt = -1.f;
+            static int shots = 0, prevSig = -1;
+            static std::vector<std::pair<int, u32>> waiting;
+            Ped* pl = game.playerPed();
+            const int np = Min((int)game.peds.size(), (int)game.ai.ped.size());
+            if (link < 0 && t > 3.f && pl) {
+                vec2 pp = pl->pos.toVec3().xy();
+                float bd = 90.f;
+                for (int l = 0; l < (int)game.laneGraph.walkLinks.size(); l++) {
+                    const AI::WalkLink& L = game.laneGraph.walkLinks[l];
+                    if (L.kind != AI::WL_CROSSWALK || L.node < 0) continue;
+                    vec2 c = (game.laneGraph.walkNodes[L.a].p.xy() + game.laneGraph.walkNodes[L.b].p.xy()) * 0.5f;
+                    float d = length(c - pp);
+                    if (d < bd) {
+                        bd = d;
+                        link = l;
+                    }
+                }
+                if (link >= 0) {
+                    const AI::WalkLink& L = game.laneGraph.walkLinks[link];
+                    vec3 A = game.laneGraph.walkNodes[L.a].p, B = game.laneGraph.walkNodes[L.b].p;
+                    vec2 ab = normalize(A.xy() - B.xy() + vec2(1e-4f, 0.f));
+                    camP = B + vec3(-ab * 2.5f + AI::rightOf(ab) * 2.f, 1.7f);
+                    camT = A + vec3(0.f, 0.f, 1.2f);
+                    LOG("autoplay crossing: crosswalk %d (%.0f m long) at %.0f %.0f, %.0f m from the player", link, L.length, A.x, A.y, bd);
+                } else {
+                    LOG("autoplay crossing: no signalled crosswalk within 90 m");
+                    link = -2;
+                }
+            }
+            if (link >= 0) {
+                const AI::WalkLink& L = game.laneGraph.walkLinks[link];
+                int sig = (int)game.laneGraph.pedSignal(L.node, L.approach, game.time);
+                if (sig == AI::PED_WALK && prevSig != AI::PED_WALK) walkAt = t;
+                prevSig = sig;
+                // (each one waiting here seen stepping off: the delay after the little man lit)
+                for (size_t k = 0; k < waiting.size();) {
+                    int i = waiting[k].first;
+                    bool same = i < np && game.peds[i].used && game.peds[i].uid == waiting[k].second && game.ai.ped[i].uid == waiting[k].second;
+                    if (same && game.ai.ped[i].walk.link == link && game.ai.ped[i].walk.state == AI::WS_CROSSING) {
+                        if (walkAt >= 0.f) LOG("autoplay crossing: ped %d stepped off %.2f s after the light", i, t - walkAt);
+                        waiting.erase(waiting.begin() + (long)k);
+                    } else if (!same || game.ai.ped[i].walk.link != link) {
+                        waiting.erase(waiting.begin() + (long)k);
+                    } else {
+                        k++;
+                    }
+                }
+                int nWait = 0, nLook = 0;
+                for (int i = 0; i < np; i++) {
+                    const Ped& q = game.peds[i];
+                    const PedAI& qa = game.ai.ped[i];
+                    if (!q.used || qa.uid != q.uid || qa.walk.link != link || qa.walk.state != AI::WS_WAIT_CROSS) continue;
+                    nWait++;
+                    nLook += game.time < qa.lookAtT;
+                    bool known = false;
+                    for (auto& w : waiting) known = known || (w.first == i && w.second == q.uid);
+                    if (!known) waiting.push_back({i, q.uid});
+                }
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(camP);
+                game.rig.scriptTarget = dvec3(camT);
+                game.rig.scriptFov = 45.f;
+                shotT -= dt;
+                if (shotT <= 0.f && shots < 40 && t > 6.f) {
+                    shotT = 2.f;
+                    game.requestScreenshot = shotPath(StrFormat("auto_crossing_%02d_%s", shots, sig == AI::PED_WALK ? "walk" : "wait"));
+                    shots++;
+                }
+                logT -= dt;
+                if (logT <= 0.f) {
+                    logT = 2.f;
+                    LOG("autoplay crossing t=%.1f | signal %d, %d waiting (%d looking along the road) | %s", t, sig, nWait, nLook, game.aiCensusText(40.f).c_str());
+                }
+            }
+        } else if (autoplay == "rideoff") {
+            // at 6 s and 60 s: a pair walking together within 70 m, a car at the kerb near the leader (on its sidewalk side,
+            // room to pull out), the leader sent to it (ACT_DRIVE_OFF, as population.cpp's departures); the camera on the
+            // car from the sidewalk, the state every 2 s
+            static int stage = 0, leader = -1, comp = -1, car = -1;
+            static u32 leaderUid = 0, compUid = 0, carUid = 0;
+            static float logT = 0.f, shotT = 1.f;
+            static int shots = 0;
+            static vec3 camOff(0.f);
+            Ped* pl = game.playerPed();
+            const int np = Min((int)game.peds.size(), (int)game.ai.ped.size());
+            if (pl && ((stage == 0 && t > 6.f) || (stage == 1 && t > 60.f))) {
+                vec2 pp = pl->pos.toVec3().xy();
+                bool sent = false;
+                for (int j = 0; j < np && !sent; j++) {
+                    const Ped& F = game.peds[j];
+                    const PedAI& fa = game.ai.ped[j];
+                    if (!F.used || fa.uid != F.uid || F.faction != FAC_CIVILIAN || F.state != PS_ONFOOT || fa.activity != ACT_WALK || fa.leader < 0 ||
+                        fa.leader >= np)
+                        continue;
+                    int i = fa.leader;
+                    const Ped& L = game.peds[i];
+                    const PedAI& la = game.ai.ped[i];
+                    if (!L.used || L.uid != fa.leaderUid || la.uid != L.uid || L.faction != FAC_CIVILIAN || L.state != PS_ONFOOT || la.activity != ACT_WALK ||
+                        length(L.pos.toVec3().xy() - pp) > 70.f)
+                        continue;
+                    vec2 lp = L.pos.toVec3().xy();
+                    int best = -1;
+                    float bd = 30.f;
+                    for (int v = 0; v < (int)game.vehicles.size(); v++) {
+                        if (!police_ticket::ticketable(game, v) || !police_ticket::roomToPullOut(game, v)) continue;
+                        const Vehicle& cv = game.vehicles[v];
+                        vec2 cp = cv.sim.body.pos.toVec3().xy(), cf = normalize(cv.sim.forward().xy() + vec2(1e-4f, 0.f));
+                        float d = length(cp - lp);
+                        if (d < bd && dot(lp - cp, AI::rightOf(cf)) > 1.f) {
+                            bd = d;
+                            best = v;
+                        }
+                    }
+                    if (best < 0) continue;
+                    PedAI& lw = game.pedAI(i);
+                    lw.activity = ACT_DRIVE_OFF;
+                    lw.homeVeh = best;
+                    lw.actTimer = 45.f;
+                    lw.clipTimer = -1.f;
+                    lw.walkStance = 0;
+                    leader = i;
+                    leaderUid = L.uid;
+                    comp = j;
+                    compUid = F.uid;
+                    car = best;
+                    carUid = game.vehicles[best].uid;
+                    const Vehicle& cv = game.vehicles[best];
+                    vec2 cf = normalize(cv.sim.forward().xy() + vec2(1e-4f, 0.f));
+                    camOff = vec3(AI::rightOf(cf) * 6.f + cf * 5.f, 2.3f);
+                    sent = true;
+                    LOG("autoplay rideoff: stage %d at t=%.1f - leader %d with %d sent to car %d, %.0f m off", stage + 1, t, i, j, best, bd);
+                }
+                if (!sent) LOG("autoplay rideoff: stage %d at t=%.1f - no pair with a car at the kerb near them", stage + 1, t);
+                stage++;
+            }
+            bool carOk = car >= 0 && car < (int)game.vehicles.size() && game.vehicles[car].used && game.vehicles[car].uid == carUid;
+            if (carOk) {
+                vec3 P = game.vehicles[car].sim.body.pos.toVec3();
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(P + camOff);
+                game.rig.scriptTarget = dvec3(P + vec3(0.f, 0.f, 0.8f));
+                game.rig.scriptFov = 55.f;
+                shotT -= dt;
+                if (shotT <= 0.f && shots < 40) {
+                    shotT = 2.5f;
+                    game.requestScreenshot = shotPath(StrFormat("auto_rideoff_%02d_s%d", shots, stage));
+                    shots++;
+                }
+            } else {
+                game.rig.scriptActive = false;
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 2.f;
+                std::string fs = "no car";
+                if (carOk) {
+                    const Vehicle& cv = game.vehicles[car];
+                    const VehAI& cva = game.vehAI(car);
+                    fs = StrFormat("car %d parked %d pullOut %d hold %.1f speed %.1f seats %d/%d", car, (int)cv.parked, (int)cva.pullOut,
+                                   (float)(cva.escortHold - game.time), cv.sim.speed(), cv.seats[0], cv.seats[1]);
+                    auto who = [&](int k, u32 uid, const char* name) {
+                        if (k < 0 || k >= np || !game.peds[k].used || game.peds[k].uid != uid) return StrFormat(" | %s gone", name);
+                        const Ped& q = game.peds[k];
+                        const PedAI& qa = game.ai.ped[k];
+                        return StrFormat(" | %s %d act %d state %d veh %d seat %d, %.1f m off", name, k, (int)qa.activity, (int)q.state, q.vehicle, q.seat,
+                                         length(rel(q.pos, cv.sim.body.pos)));
+                    };
+                    fs += who(leader, leaderUid, "leader") + who(comp, compUid, "companion");
+                }
+                LOG("autoplay rideoff t=%.1f stage %d | %s | %s", t, stage, fs.c_str(), game.aiCensusText(40.f).c_str());
+            }
+        } else if (autoplay == "alarm") {
+            // stage 1 (8 s in): the player stood on the sidewalk by a car parked at the kerb, and the car knocked (its alarm
+            // goes; its owner always comes if anybody is about: ai.forceAlarmOwner); stage 2 (70 s): the player put at the
+            // door of another and breaking in (its alarm forced on), then off in it with the traffic AI at the wheel for
+            // 20 s. The camera on the car and its owner; the state every 2 s
+            static int stage = 0, car = -1, prevCar = -1;
+            static u32 carUid = 0;
+            static float logT = 0.f, shotT = 1.f, stageT = 0.f;
+            static int shots = 0;
+            static vec3 camOff(0.f);
+            static bool entered = false;
+            Ped* pl = game.playerPed();
+            const int np = Min((int)game.peds.size(), (int)game.ai.ped.size());
+            stageT += dt;
+            // (a car at the kerb with a sidewalk by it, the nearest in range: where the player is put, by it)
+            auto pickCar = [&](float dMin, float dMax, vec2& walkAt) {
+                vec2 pp = pl->pos.toVec3().xy();
+                int best = -1;
+                float bd = 1e9f;
+                for (int v = 0; v < (int)game.vehicles.size(); v++) {
+                    if (v == car || v == prevCar || !police_ticket::ticketable(game, v)) continue;
+                    const Vehicle& cv = game.vehicles[v];
+                    float d = length(cv.sim.body.pos.toVec3().xy() - pp);
+                    if (d < dMin || d > dMax || d >= bd) continue;
+                    const Vehicles::VehicleModel& cs = game.vassets[cv.model].spec;
+                    vec2 vp = cv.sim.body.pos.toVec3().xy(), vf = normalize(cv.sim.forward().xy() + vec2(1e-4f, 0.f));
+                    float x = 0.f;
+                    int wl = game.laneGraph.nearestWalk(vp + AI::rightOf(vf) * (cs.boxHalf.x + 2.2f), 4.f, &x);
+                    if (wl < 0 || game.laneGraph.walkLinks[wl].kind != AI::WL_SIDEWALK) continue;
+                    vec3 a3 = game.laneGraph.walkPos(wl, x, 0.f, true);
+                    if (dot(a3.xy() - vp, AI::rightOf(vf)) < cs.boxHalf.x + 0.5f) continue;   // (the near sidewalk)
+                    bd = d;
+                    best = v;
+                    walkAt = a3.xy();
+                }
+                return best;
+            };
+            if (pl && ((stage == 0 && t > 8.f) || (stage == 1 && t > 70.f))) {
+                vec2 walkAt(0.f);
+                int v = pickCar(stage == 0 ? 6.f : 4.f, 70.f, walkAt);
+                if (v >= 0) {
+                    Vehicle& cv = game.vehicles[v];
+                    const Vehicles::VehicleModel& cs = game.vassets[cv.model].spec;
+                    vec2 vp = cv.sim.body.pos.toVec3().xy(), vf = normalize(cv.sim.forward().xy() + vec2(1e-4f, 0.f));
+                    vec2 at;
+                    if (stage == 0) {
+                        at = walkAt + vf * 3.f;   // (on the sidewalk by it, a little ahead of it)
+                    } else {
+                        bool left = !cs.seats.empty() ? cs.seats[0].exitLeft : true;
+                        float sy = !cs.seats.empty() ? cs.seats[0].pos.y : 0.f;
+                        at = (cv.sim.body.pos.toVec3() + rotate(cv.sim.body.rot, vec3(left ? -(cs.boxHalf.x + 0.55f) : cs.boxHalf.x + 0.55f, sy, 0.f))).xy();
+                    }
+                    pl->pos = dvec3(at.x, at.y, game.groundHeight(at.x, at.y, (float)cv.sim.body.pos.z + 1.5f));
+                    pl->vel = vec3(0.f);
+                    pl->yaw = AI::dirYaw(vp - at);
+                    game.rig.yaw = pl->yaw;
+                    prevCar = car;
+                    car = v;
+                    carUid = cv.uid;
+                    vec2 out = normalize(walkAt - vp + vec2(1e-4f, 0.f));
+                    camOff = vec3(out * 6.5f + vf * 4.5f, 2.4f);
+                    if (stage == 0) game.damageVehicle(v, 12.f, game.player, vec3(0.f), vec3(0.f));   // (the knock: its alarm goes)
+                    entered = false;
+                    LOG("autoplay alarm: stage %d at t=%.1f - car %d (%s) %.0f m off, the player at %.1f %.1f%s", stage + 1, t, v, cs.name.c_str(),
+                        length(vp - walkAt), at.x, at.y, stage == 0 ? ", knocked" : ", at its door");
+                } else {
+                    LOG("autoplay alarm: stage %d at t=%.1f - no car at the kerb with a sidewalk by it", stage + 1, t);
+                }
+                stage++;
+                stageT = 0.f;
+            }
+            bool carOk = car >= 0 && car < (int)game.vehicles.size() && game.vehicles[car].used && game.vehicles[car].uid == carUid;
+            // stage 2: in through the door (the alarm going as the door opens), then away in it
+            if (stage == 2 && carOk && pl) {
+                Vehicle& cv = game.vehicles[car];
+                if (stageT > 0.6f && stageT - dt <= 0.6f) c.enter.pressed = true;
+                if (pl->state == PS_ENTERING && !cv.alarm && !entered) {
+                    cv.alarm = true;
+                    entered = true;
+                    LOG("autoplay alarm: the player breaking into car %d at t=%.1f - its alarm goes", car, t);
+                }
+                int pv = game.playerVehicle();
+                if (pv == car && stageT < 30.f) {
+                    game.driveVehicleAI(pv, dt);
+                    const Vehicles::VehicleControls& vc = cv.ctl;
+                    c.accel = vc.throttle;
+                    c.brake = vc.brake;
+                    c.steer = vc.steer;
+                    c.usingPad = true;
+                } else if (pv == car) {
+                    c.brake = 1.f;
+                    c.usingPad = true;
+                }
+            }
+            // the owner coming for it
+            int owner = -1;
+            for (int i = 0; i < np && carOk && owner < 0; i++)
+                if (game.peds[i].used && game.ai.ped[i].uid == game.peds[i].uid && game.ai.ped[i].activity == ACT_ALARM_OWNER && game.ai.ped[i].alarmVeh == car)
+                    owner = i;
+            if (carOk && stage > 0) {
+                vec3 P = game.vehicles[car].sim.body.pos.toVec3();
+                if (owner >= 0) {
+                    vec3 O = game.peds[owner].pos.toVec3();
+                    P = length(O - P) < 16.f ? (P + O) * 0.5f : O;
+                }
+                game.rig.scriptActive = true;
+                game.rig.scriptPos = dvec3(P + camOff);
+                game.rig.scriptTarget = dvec3(P + vec3(0.f, 0.f, 0.9f));
+                game.rig.scriptFov = 55.f;
+                shotT -= dt;
+                if (shotT <= 0.f && shots < 48) {
+                    shotT = 2.5f;
+                    game.requestScreenshot = shotPath(StrFormat("auto_alarm_%02d_s%d", shots, stage));
+                    shots++;
+                }
+            } else {
+                game.rig.scriptActive = false;
+            }
+            logT -= dt;
+            if (logT <= 0.f) {
+                logT = 2.f;
+                std::string fs = "no car";
+                if (carOk) {
+                    const Vehicle& cv = game.vehicles[car];
+                    const VehAI& cva = game.vehAI(car);
+                    fs = StrFormat("car %d alarm %d (%.1f s, owner %d theft %d) lights %d flash %.1f speed %.1f", car, (int)cv.alarm, cva.alarmT, (int)cva.alarmOwner,
+                                   (int)cva.alarmTheft, (int)cv.indicator, cva.flashT, cv.sim.speed());
+                    if (owner >= 0) {
+                        const Ped& q = game.peds[owner];
+                        const PedAI& qa = game.ai.ped[owner];
+                        fs += StrFormat(" | owner %d step %d %.1f s, %.1f m off, speed %.1f stance %d reach %d", owner, (int)qa.alarmStep, qa.alarmStepT,
+                                        length(rel(q.pos, cv.sim.body.pos)), length(q.vel.xy()), q.animIn.stance, (int)(game.time < qa.reachT));
+                    }
+                    if (pl) fs += StrFormat(" | player state %d veh %d, %.1f m off", (int)pl->state, game.playerVehicle(), length(rel(pl->pos, cv.sim.body.pos)));
+                }
+                LOG("autoplay alarm t=%.1f stage %d | %s | %s", t, stage, fs.c_str(), game.aiCensusText(40.f).c_str());
             }
         } else if (autoplay == "ticket") {
             // two stages: a beat pair put on the sidewalk 10 m behind a car parked at the kerb, a ticket forced (the second
@@ -2255,6 +3470,7 @@ struct App {
                     if (!q.used || q.isPlayer || q.persistent || q.faction != FAC_CIVILIAN || q.state != PS_ONFOOT || game.ai.ped[i].uid != q.uid ||
                         game.ai.ped[i].activity != ACT_WALK)
                         continue;
+                    if (hash32(q.uid * 13u + 7u) % 4u == 0u) continue;   // (one in four just gets up again: pedai.cpp - not this test's)
                     float d = length(rel(q.pos, pl->pos));
                     if (d < best) {
                         best = d;
