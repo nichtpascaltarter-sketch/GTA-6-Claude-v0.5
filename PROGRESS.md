@@ -77,13 +77,19 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   specular anti-aliasing for the faded pores and grain, peach fuzz sheen and transmission through ears and nostrils
   (sun: shadow-map thickness; lamps: the part's translucency). Feature shadows: skin, eyes and teeth within 12 m march
   4.5 cm through the depth buffer towards the sun and the two strongest lamps, so the brow ridge shades the upper lids
-  and the eyes, the nose the cheek, the lips the teeth (no bright lids between dark brows and lash lines at night).
-  The faces' MAT_SKIN param carries region, translucency, pores, oiliness, age and melanin (dynamic.hlsl SM_SKIN
-  comment). Eyes and teeth shade as SM_EYE: the lids' occlusion, the feature shadows and the cut-off of steep light by
-  the brow ridge (the upper lip) reach their direct light. Eyes with the shader pupil (MAT_EYE param bit 1) refract
-  the view through the cornea onto the iris plane (iris parallax, the pupil widening at night, a dark limbal ring).
-  Hair: Kajiya-Kay with shifted lobes, strand cards shaded by their depth in the hair volume, strand edges filtered
-  over the pixel and soft tips under the TAA dither.
+  and the eyes, the nose the cheek, the lips the teeth (no bright lids between dark brows and lash lines at night);
+  lashes, brows and beards are shadowed with the skin they grow on, and a lamp's feature shadow keeps a tenth of its
+  light (the bounce off the lit cheeks and the ground: an eye socket under a street lamp sits 3-4 stops below the
+  brow, not black). People within 12 m also get a fifth of each lamp's light bounced up from the ground on the
+  surfaces that face down (sockets, the underside of the nose and jaw). The faces' MAT_SKIN param carries region,
+  translucency, pores, oiliness, age and melanin (dynamic.hlsl SM_SKIN comment). Eyes and teeth shade as SM_EYE: the
+  lids' occlusion, the feature shadows and the cut-off of steep light by the brow ridge (the upper lip) reach their
+  direct light. Eyes with the shader pupil (MAT_EYE param bit 1) refract the view through the cornea onto the iris
+  plane (iris parallax, the pupil widening at night, a dark limbal ring). Hair: Kajiya-Kay with shifted lobes, strand
+  cards shaded by their depth in the hair volume, strand edges filtered over the pixel and soft tips under the TAA
+  dither; each card dithers with its own threshold, so overlapping cards add up (1 - prod(1 - coverage)) and brows,
+  beards and lashes read full; the opaque shell under the cards (a full beard) wraps its diffuse little, like the
+  skin, so no dark seam opens between beard and cheek.
 - Garden and woodland plants placed on the GPU (render/vegdecor.cpp, props_render.cpp, shaders/propcull.hlsl
   csDecorPlace): every frame a world-anchored grid of 1.2 m cells around the camera (40 / 52 / 64 m by grass quality)
   gets one candidate per cell, the same plant in the same place on every visit. The overhead pass's top surface and

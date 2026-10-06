@@ -599,7 +599,10 @@ GBufferOut psHairCard(VSOut i, bool front : SV_IsFrontFace) {
     float seed = (float)((i.mat >> 12) & 0xffffu) * (1.0 / 65535.0);
     float rnd;
     float cov = hairCardCoverage(i.uv, kind, seed, i.color.a, fwidth(i.uv.x), rnd);
-    clip(cov * camFadeCoverage() - ignTemporal(i.pos.xy, gTime.z, 3.0) - 0.002);   // one threshold for coverage and fade
+    // one threshold for coverage and fade, each card its own (the pixel's noise offset by the card's seed): cards
+    // overlapping at a pixel add up to 1 - prod(1 - coverage) instead of the largest single coverage, so brows,
+    // beards and lashes read full rather than as a hatch pattern
+    clip(cov * camFadeCoverage() - frac(ignTemporal(i.pos.xy, gTime.z, 3.0) + hairHash(seed * 37.0 + 0.11)) - 0.002);
     float3 N = normalize(i.nrm) * (front ? 1.0 : -1.0);
     float3 T = i.tan - N * dot(i.tan, N);
     float tl = length(T);
@@ -617,8 +620,10 @@ GBufferOut psHairCard(VSOut i, bool front : SV_IsFrontFace) {
     float wet = gWeather.y * (gObj.params.z > 0 ? 1.0 : (gObj.params.z < 0 ? 0.0 : 0.5));
     albedo *= lerp(1.0, 0.7, wet);
     rough = lerp(rough, 0.2, wet * 0.6);
-    // extra: the strand's random (high 5 bits) and the card's depth (low 3 bits), see hairDirect
-    float extra = (float)(((uint)(saturate(rnd) * 31.0 + 0.5) << 3) | depth) / 255.0;
+    // extra: the strand's random (high 4 bits), face hair (bit 3: lashes, brows, beards get the feature shadows of the
+    // skin they grow on) and the card's depth (low 3 bits), see hairDirect
+    uint faceHair = kind >= 2u && kind <= 4u ? 8u : 0u;
+    float extra = (float)(((uint)(saturate(rnd) * 15.0 + 0.5) << 4) | faceHair | depth) / 255.0;
     return packGBuffer(albedo, ao, N, rough, encodeHairTangent(N, T), SM_HAIR, extra, 0.0, i.curClip, i.prevClip);
 }
 
