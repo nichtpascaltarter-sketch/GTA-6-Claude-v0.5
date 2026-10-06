@@ -812,6 +812,7 @@ void GameWorld::animatePed(Ped& p, float dt) {
     if (p.braceT >= 0.f) in.fallDir = vec3(dot(vec2(p.braceImpulse.x, p.braceImpulse.y), rightV), dot(vec2(p.braceImpulse.x, p.braceImpulse.y), fwd), 0.f);
     // synced takedown: the attacker's choke arm finds the victim's actual neck (tall / short pairs still connect)
     in.grabWeight = 0.f;
+    in.grabAxis = vec3(0.f, 0.f, 1.f);
     if (p.takedownT >= 0.f && !p.takedownVictim && p.takedownPartner >= 0 && p.takedownPartner < (int)peds.size()) {
         const Ped& v = peds[p.takedownPartner];
         if (v.used && !v.ragdoll && v.charIndex >= 0) {
@@ -955,7 +956,7 @@ void GameWorld::animatePed(Ped& p, float dt) {
     // them (only for nearby peds)
     in.groundOffsetL = in.groundOffsetR = 0.f;
     in.groundNormal = vec3(0, 0, 1);
-    in.footProbes = false;
+    in.footProbes = in.groundScanValid = false;
     if (p.visibleDist < 30.f && p.grounded && p.state == PS_ONFOOT) {
         quat q = yawQuat(p.yaw);
         vec3 base = p.pos.toVec3();
@@ -963,11 +964,23 @@ void GameWorld::animatePed(Ped& p, float dt) {
         vec3 fl = base + rotate(q, vec3(pl.x, pl.y, 0.f)), fr = base + rotate(q, vec3(pr.x, pr.y, 0.f));
         Phys::GroundHit hl = Phys::gCollision->ground(fl.x, fl.y, base.z + 0.3f, kStepUp);
         Phys::GroundHit hr = Phys::gCollision->ground(fr.x, fr.y, base.z + 0.3f, kStepUp);
-        in.groundOffsetL = hl.z > -1e8f ? Clamp(hl.z - base.z, -0.3f, 0.3f) : 0.f;
-        in.groundOffsetR = hr.z > -1e8f ? Clamp(hr.z - base.z, -0.3f, 0.3f) : 0.f;
+        // (up to two risers from the root's tread: a foot landing on stairs)
+        in.groundOffsetL = hl.z > -1e8f ? Clamp(hl.z - base.z, -0.45f, 0.45f) : 0.f;
+        in.groundOffsetR = hr.z > -1e8f ? Clamp(hr.z - base.z, -0.45f, 0.45f) : 0.f;
         vec3 n = normalize(hl.normal + hr.normal + vec3(0, 0, 1e-3f));
         in.groundNormal = vec3(dot(vec2(n.x, n.y), rightV), dot(vec2(n.x, n.y), fwd), n.z);
         in.footProbes = true;
+        // a swing about to land where the ground steps (stairs, a kerb): the ground along the way ahead it asked for
+        // (Animator::wantsGroundScan, once a step at most), so it lands on one tread
+        if (p.anim.wantsGroundScan()) {
+            vec3 s0 = p.anim.groundScanFrom(), sd = p.anim.groundScanDir();
+            for (int k = 0; k < Anim::kGroundScan; k++) {
+                vec3 m = s0 + sd * (Anim::kGroundScanStep * (float)k), w = base + rotate(q, vec3(m.x, m.y, 0.f));
+                Phys::GroundHit h = Phys::gCollision->ground(w.x, w.y, base.z + 0.5f, kStepUp);
+                in.groundScan[k] = h.z > -1e8f ? Clamp(h.z - base.z, -1.f, 1.f) : 0.f;
+            }
+            in.groundScanValid = true;
+        }
     }
     // getting in / out through a door: the door in this ped's frame while its clip plays (the vehicle may move)
     in.car.valid = false;
@@ -995,6 +1008,14 @@ int GameWorld::freeSeat(int veh, bool driver) const {
     for (int s = 1; s < ns; s++)
         if (v.seats[s] < 0) return s;
     return -1;
+}
+
+// An AI ped getting in through the seat's door: placed at the door's spot facing its way, the door clip queued (the
+// door swings, and sounds, with it: animatePed). Returns the clip's length (s) - the caller warps the ped in once that
+// has run out - or -1 when the seat has no door (the caller's plain CLIP_ENTER_CAR_*).
+float GameWorld::startCarEntry(int ped, int veh, int seat) {
+    if (ped < 0 || ped >= (int)peds.size() || veh < 0 || veh >= (int)vehicles.size() || !peds[ped].used || !vehicles[veh].used) return -1.f;
+    return startCarDoorClip(*this, ped, veh, seat, true);
 }
 
 void GameWorld::warpPedIntoVehicle(int pid, int veh, int seat) {
