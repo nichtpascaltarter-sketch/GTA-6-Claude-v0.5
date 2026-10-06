@@ -166,6 +166,15 @@ enum BarkKind : int {
     BK_NIGHT_CHAT, BK_NIGHT_REPLY,                    // two walking together late at night: a line and the answer
     BK_CRASH_SEEN,                                    // somebody who saw a crash going past (not their car): a word
     BK_COP_ASK_SEEN, BK_NOT_SEEN,                     // an officer searching on foot asking somebody about, and "no, sorry"
+    BK_SHOW_CHEER, BK_SHOW_TUT, BK_SHOW_END,          // the player's car show (donuts, a burnout): the crowd egging it on,
+                                                      // the steadier sort walking past, and the last word when it is over
+    BK_COP_SHOW,                                      // ... an officer on foot calling out to the player to knock it off
+    BK_SCREECH,                                       // tyres screeching close by: a word after it
+    BK_WALKING_HERE, BK_SIDEWALK_CAR,                 // the player's car stood on the crosswalk they are crossing (the
+                                                      // bold slap the hood), and up on the sidewalk they are walking
+    BK_RUN_PAST,                                      // the player running past close on foot: after them
+    BK_GOOD_SONG, BK_LOUD_MUSIC,                      // the player's car stopped close by with the radio on: moving to
+                                                      // it ("turn it up!"), and the steadier sort ("turn that down")
     BK_COUNT
 };
 
@@ -309,6 +318,23 @@ struct PedAI {
     float heliLookT = -100.f;   // ... and up at a police helicopter low overhead
     float sirenLookT = -100.f;  // ... and round at a siren coming by (this vehicle, the head following it past)
     int sirenVeh = -1;
+    float screechLookT = -100.f;    // ... and round at tyres screeching close by (the head following the car: sirenVeh)
+    u16 showSeen = 0;           // the player's car show (AIState::showId) they last took notice of (pedai.cpp) ...
+    bool plShow = false;        // ... ACT_WATCH: stood watching it (the phone up to film it, a cheer now and then)
+    float hoodT = -100.f;       // the player's car stood on their crosswalk / up on their sidewalk: when they last had a word
+    double slapT = -1.0;        // ... and a slap on its hood: the thump when the hand lands (pedai.cpp)
+    float runPastT = -100.f;    // the player running past close: when they last turned after them (pedai.cpp)
+    float avoidT = -100.f;      // late at night, the player coming at them on a quiet sidewalk: when they last weighed
+                                // crossing over out of the way (pedai.cpp)
+    float musicT = -100.f;      // the player's car stopped by them with the radio on: when they last took to it or not ...
+    double vibeT = -1.0;        // ... and a few seconds' dance where they stand, till this (pedai.cpp)
+    int boardVeh = -1;          // getting in through a car's door (ai.cpp ai_board: GameWorld::startCarEntry - at the door's
+    u32 boardVehUid = 0;        // spot, the door clip, PS_ENTERING while it runs; updateBrain warps them in when it is over
+    i8 boardSeat = -1;          // and ai_board::boarded carries on with what they got in for) - the car, the seat, and when
+    double boardT = 0.0;        // the clip is over ...
+    u8 boardThen = 0;           // ... and then: 0 what their activity got them in for, 1 away at the wheel (an event's driver),
+                                // 2 nothing more (events.cpp carries on once it sees them in)
+    float doorWalkT = 0.f;      // an officer back at the car: how long walking round to the seat's door (police.cpp FT_RETURN)
     float plDownSeenT = -100.f; // the player knocked flat close by: the knock-down they last reacted to (pedai.cpp) ...
     bool plHelper = false;      // ... and the one come over to ask (ACT_WATCH by the player till they are up)
     float copCrowdT = 0.f;      // an officer busy at a scene: how long the player has stood right by them (ai.cpp) ...
@@ -390,6 +416,7 @@ struct VehAI {
     double ticketed = -1e9;       // parked: when a beat officer last left a ticket on it (police_ticket: not twice running)
     double plLeftT = -1e9;        // the player's car: when the player last got out of it (ai.cpp) ...
     bool plTicket = false;        // ... a ticket on it waiting for them (paid as they get back in: ai.cpp)
+    float screechT = 0.f;         // how long its tyres have been screeching (ai.cpp: braking hard, sliding, spinning)
     bool gawked = false;          // slowed down for a look at a scene going past (traffic.cpp rubbernecking; counted once) ...
     vec3 gawkAt = vec3(0.f);      // ... the scene, the heads in the car turned to it while gawkT (game time) is ahead (peds.cpp)
     double gawkT = -1.0;
@@ -501,7 +528,18 @@ struct AIFrameStats {
         sirenLooks = 0,                             // heads turned to a siren coming by
         playerKnocks = 0,                           // the player's car hitting something hard (a pole, a wall, a car)
         copAsks = 0,                                // officers searching on foot asking somebody about the suspect
-        plTickets = 0;                              // tickets on the player's car left in the street, paid on getting back in
+        plTickets = 0,                              // tickets on the player's car left in the street, paid on getting back in
+        shows = 0, showWatchers = 0, showFilmers = 0, showTuts = 0,   // the player's car shows; the people who stopped to
+                                                    // watch, filmed it, tutted and walked on
+        copShowCalls = 0,                           // ... officers on foot calling out to the player to knock it off
+        screechLooks = 0,                           // heads turned to tyres screeching close by
+        blockedCrossings = 0, hoodSlaps = 0,        // a word for the player's car stood on the crosswalk; the bold who slap
+                                                    // its hood
+        sidewalkCars = 0,                           // a word for the player's car stood up on the sidewalk
+        runPasts = 0,                               // a word after the player running past close
+        nightAvoids = 0, nightBerths = 0,           // late at night: over the street out of the player's way; a wide berth
+        radioDancers = 0, radioComplaints = 0,      // the player's car radio: a few seconds' dance to it; a word against it
+        doorEntries = 0, plainEntries = 0;          // AI peds getting into cars through the door (the door clip); without
     int hardImpacts = 0, impactsWithPlayer = 0;   // AI-driven cars: impulses > 3000 N s (sampled per frame)
     int unhung = 0;                               // cars lifted off a ledge back onto their lane
     int departures = 0, arrivals = 0;             // cars driven away from / parked at the curb by their owners
@@ -562,6 +600,27 @@ struct AIState {
     bool forceAsk = false;              // autoplay tests: any stranger able asks the player (20 s apart)
     bool askHinted = false;             // the "stand still to point the way" hint shown (once a session)
     double playerKnockT = -1e9;         // when the player's car last hit something hard (ai.cpp: a crash for the people about)
+    // the player showing off in a car (ai.cpp, every frame): donuts, a burnout, a slide going round in one spot a while -
+    // the people about stop to watch, film it and cheer, the steadier sort tut and walk on, an officer on foot calls out
+    // (pedai.cpp)
+    float showT = 0.f;                  // the build-up: seconds of spinning or tyre smoke lately, in one spot ...
+    vec2 showBuildAt = vec2(0.f);       // ... (where it began: the car 20 m off it - only driving hard round a corner or
+                                        // two - and it starts again from nothing)
+    bool showOn = false;                // a show going on now ...
+    u16 showId = 0;                     // ... which one (who has reacted to which: PedAI::showSeen)
+    vec2 showAt = vec2(0.f);            // ... where it started (the car gone 40 m off it: over)
+    int showVeh = -1;                   // ... the car
+    double showLastT = -1e9;            // ... the last moment of spinning or smoke (4 s without: over)
+    double showEndT = -1e9;             // when the last one ended (the watchers' last word)
+    float showBarkT = 0.f;              // no shout from the crowd before this (one voice at a time)
+    // tyres screeching close to the player (ai.cpp, every frame: cars on the ground braking hard, sliding, spinning within
+    // 80 m of the player): heads turn to them (pedai.cpp)
+    std::vector<int> screech;
+    float screechBarkT = 0.f;           // no word about one before this
+    bool plCarOnSidewalk = false;       // the player's car stood up on a sidewalk (ai.cpp, every frame: people walking round it
+                                        // have a word about it - pedai.cpp)
+    bool forceAvoid = false;            // autoplay tests: late at night everybody alone meeting the player crosses over if the
+                                        // street allows, however busy (pedai.cpp)
     // the player giving up (police.cpp): wanted, on foot, nothing in hand - hold the phone key and the hands go up;
     // officers who see it hold their fire, close in with guns trained and cuff them: a lighter bust (weapons kept, half
     // the fine back after the release). Moving, drawing or firing breaks it.
