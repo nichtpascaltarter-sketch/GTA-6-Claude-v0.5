@@ -434,6 +434,8 @@ struct Animator {
     u8 scanFoot = 0;                          // the landing foot it is for
     bool scanWant = false;                    // asked for before the next update
     bool scanDone[2] = {false, false};        // this swing's landing has been fitted to the ground ahead
+    vec3 scanLand[2] = {vec3(0), vec3(0)};    // where that fit had the swing landing (model space, kept with the world)
+    float plantSlack[2] = {0.f, 0.f};         // a planted foot's move onto its tread (m): it may stray that much further from the pose
     float stairShift[2] = {0.f, 0.f};         // the landing moved along the way onto one tread (m)
     float stairLand[2] = {-9.f, -9.f};        // that tread's height (kept with the world; -9: none): the swing clears it
     bool stairBall[2] = {false, false};       // that tread is up from the ground before it and the heel is to overhang its nose

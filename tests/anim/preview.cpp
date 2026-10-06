@@ -121,9 +121,12 @@ static float cardCoverage(u32 mat, vec2 uv, float density, float footprint) {
     float wave = (kind == 4u ? 0.16f : 0.06f) * sinf(uv.y * (kind == 4u ? 23.f : 9.f) + rnd * 6.283f);
     float c = 0.5f + (hairHashF(id + 7.7f) - 0.5f) * 0.3f + wave;
     float halfW = Lerp(0.24f, 0.4f, hairHashF(id + 5.3f)) * (0.3f + 0.7f * sqrtf(taper));
+    float tipFade = Saturate((1.f - along) * 5.f);
+    // the strand's edges box-filtered over the pixel (in strand cells), as the shader
+    float fw = Max(footprint * strands, 1e-3f);
     float fx = x - floorf(x);
-    float prof = Saturate((1.f - fabsf(fx - c) / Max(halfW, 1e-3f)) * 1.6f) * alive;
-    float cov = Lerp(prof, halfW * 1.6f * alive, Saturate(footprint * strands * 1.5f - 0.5f));
+    float prof = Saturate((halfW * 0.7f - fabsf(fx - c)) / fw + 0.5f) * alive * tipFade;
+    float cov = Lerp(prof, halfW * 1.6f * alive * tipFade, Saturate(fw * 1.5f - 0.5f));
     float edge = detail::sstep(0.f, 0.14f, uv.x) * detail::sstep(1.f, 0.86f, uv.x);
     return cov * edge * density * Lerp(1.f, 0.7f, detail::sstep(0.55f, 1.f, uv.y));
 }
@@ -212,7 +215,12 @@ static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const
                 if (card) {
                     vec2 uv = (*UV)[i0] * w0 + (*UV)[i1] * w1 + (*UV)[i2] * w2;
                     float dn = AL ? (*AL)[i0] * w0 + (*AL)[i1] * w1 + (*AL)[i2] * w2 : 1.f;
-                    if (cardCoverage(matT, uv, dn, uvFoot) - ditherAt(x, y) - 0.002f < 0.f) continue;
+                    // (each card its own offset into the pixel's threshold, as the renderer's psHairCard: overlapping
+                    // cards add up to 1 - prod(1 - coverage))
+                    const float cardOff = hairHashF((float)((matT >> 12) & 0xffffu) * (1.f / 65535.f) * 37.f + 0.11f);
+                    float thr = ditherAt(x, y) + cardOff;
+                    thr -= floorf(thr);
+                    if (cardCoverage(matT, uv, dn, uvFoot) - thr - 0.002f < 0.f) continue;
                 }
                 img.z[o] = z;
                 vec3 n = normalize(N[i0] * w0 + N[i1] * w1 + N[i2] * w2);
