@@ -95,6 +95,42 @@ void frond(MeshData& m, vec3 base, vec3 dir, float len, float droop, float width
     }
 }
 
+// Palm crown frond (the palm builders): a curved strip with leaflet texture, double sided. The rachis droops ever more steeply
+// towards the tip; the blade folds into a V along it, deeper in the middle, the leaflets hanging lower towards the tip,
+// and turns a little about the rachis on the way out, so the crown reads as feathery, not as flat paddles.
+void palmFrondStrip(MeshData& m, vec3 base, vec3 dir, float len, float droop, float width, u32 col) {
+    vec3 side0 = normalize(cross(dir, vec3(0, 0, 1)));
+    if (length2(side0) < 1e-6f) side0 = vec3(1, 0, 0);
+    const int N = 9;
+    float twist = (float)((hash32((u32)(int)(len * 1000.f) ^ (u32)(int)(dir.x * 7919.f)) & 255u) / 255.f - 0.5f) * 0.6f;
+    u32 start = (u32)m.verts.size();
+    for (int i = 0; i <= N; i++) {
+        float t = (float)i / N;
+        vec3 p = base + dir * (len * t) + vec3(0, 0, -droop * t * t * len);
+        vec3 tangent = normalize(dir * len + vec3(0, 0, -2.f * droop * t * len));
+        float w = width * sinf(Min(1.f, t * 1.1f + 0.08f) * kPi * 0.95f + 0.1f);
+        float a = twist * t;
+        vec3 up0 = normalize(cross(side0, tangent));
+        vec3 side = side0 * cosf(a) + up0 * sinf(a);
+        vec3 up = normalize(cross(side, tangent));
+        float fold = 0.18f + 0.22f * sinf(t * kPi);           // V depth (fraction of the half width)
+        vec3 hang = vec3(0, 0, -w * 0.3f * t * t);             // leaflets hang towards the tip
+        vec3 l = p - side * w + up * (w * fold) + hang, r = p + side * w + up * (w * fold) + hang;
+        vec3 n = up;
+        m.addVertex(l, n, side, vec2(0, 1.f - t), col, makeMat(MAT_PALM_FROND));
+        m.addVertex(p, n, side, vec2(0.5f, 1.f - t), col, makeMat(MAT_PALM_FROND));
+        m.addVertex(r, n, side, vec2(1, 1.f - t), col, makeMat(MAT_PALM_FROND));
+    }
+    for (int i = 0; i < N; i++) {
+        u32 a = start + i * 3;
+        m.quadIdx(a, a + 1, a + 4, a + 3);
+        m.quadIdx(a + 1, a + 2, a + 5, a + 4);
+        // back faces
+        m.quadIdx(a + 3, a + 4, a + 1, a);
+        m.quadIdx(a + 4, a + 5, a + 2, a + 1);
+    }
+}
+
 // Leaf cluster: several crossed cards around a center
 void leafCluster(MeshData& m, vec3 c, float size, u32 col, u32 mat, Rng& r) {
     for (int k = 0; k < 3; k++) {
@@ -206,7 +242,8 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
             vec3 leanDir(cosf(ang), sinf(ang), 0);
             std::vector<vec3> trunk;
             std::vector<float> rad;
-            // trunk: swollen bole at the base, leaf-scar rings on coconut palms, slight S-curve on leaning palms
+            // trunk: swollen bole at the base, slight S-curve on leaning palms; the leaf-scar rings are shaded on the
+            // bark (props.hlsl: material param 2 coconut palm, 3 royal palm)
             int rings = tall ? 14 : 22;
             vec3 wob(cosf(ang + 1.3f), sinf(ang + 1.3f), 0);
             for (int i = 0; i <= rings; i++) {
@@ -214,11 +251,10 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
                 trunk.push_back(leanDir * (lean * t * t) + wob * (tall ? 0.f : 0.25f * sinf(t * kPi)) + vec3(0, 0, h * t));
                 float base = tall ? Lerp(0.34f, 0.23f, t) + (t > 0.85f ? 0.05f : 0.f) + 0.04f * sinf(t * kPi) : Lerp(0.25f, 0.16f, t);
                 float bole = t < 0.1f ? (0.1f - t) * (tall ? 2.6f : 2.0f) : 0.f;
-                float scar = tall ? 0.f : ((i & 1) ? 0.016f : -0.01f);
-                rad.push_back(base + bole + scar);
+                rad.push_back(base + bole);
             }
             u32 barkC = tall ? packRGBA8(0.72f, 0.7f, 0.66f, 1) : packRGBA8(r.range(0.5f, 0.6f), r.range(0.43f, 0.5f), r.range(0.34f, 0.4f), 1);
-            tube(m, trunk, rad, 8, barkC, makeMat(MAT_BARK), 3.f);
+            tube(m, trunk, rad, 10, barkC, makeMat(MAT_BARK, tall ? 3u : 2u), 3.f);
             vec3 top = trunk.back();
             if (tall) {
                 // green crownshaft
@@ -241,13 +277,13 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
                 float len = (tall ? r.range(3.4f, 4.4f) : r.range(3.3f, 4.6f)) * (inner ? 0.8f : 1.f);
                 float droop = inner ? r.range(0.2f, 0.4f) : r.range(0.45f, 0.85f);
                 vec3 col = fc * (k % 6 == 0 ? vec3(0.95f, 0.85f, 0.6f) : vec3(1.f));
-                frond(m, top, d, len, droop, inner ? 0.62f : 0.75f, foliageColor(col, FOL_PALM_FROND));
+                palmFrondStrip(m, top, d, len, droop, inner ? 0.62f : 0.75f, foliageColor(col, FOL_PALM_FROND));
             }
             // spear: a couple of young upright fronds
             for (int k = 0; k < 2; k++) {
                 float a = r.f() * kTwoPi;
                 vec3 d = normalize(vec3(cosf(a) * 0.25f, sinf(a) * 0.25f, 1.f));
-                frond(m, top, d, r.range(1.6f, 2.2f), 0.05f, 0.4f, foliageColor(fc * vec3(1.05f, 1.1f, 0.9f), FOL_PALM_FROND));
+                palmFrondStrip(m, top, d, r.range(1.6f, 2.2f), 0.05f, 0.4f, foliageColor(fc * vec3(1.05f, 1.1f, 0.9f), FOL_PALM_FROND));
             }
             // skirt of dead fronds hanging against the trunk (some specimens)
             if (!tall && (variant & 1)) {
@@ -255,15 +291,31 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
                 for (int k = 0; k < nd; k++) {
                     float a = r.f() * kTwoPi;
                     vec3 d = normalize(vec3(cosf(a) * 0.45f, sinf(a) * 0.45f, -1.f));
-                    frond(m, top - vec3(0, 0, 0.3f), d, r.range(2.0f, 2.8f), 0.05f, 0.42f, foliageColor(vec3(0.75f, 0.55f, 0.3f), FOL_PALM_FROND));
+                    palmFrondStrip(m, top - vec3(0, 0, 0.3f), d, r.range(2.0f, 2.8f), 0.05f, 0.42f, foliageColor(vec3(0.75f, 0.55f, 0.3f), FOL_PALM_FROND));
                 }
             }
-            // coconut cluster
+            // coconut cluster: round nuts hanging under the crown, green and ripening brown
             if (!tall)
                 for (int k = 0; k < 6; k++) {
-                    float a = r.f() * kTwoPi;
-                    m.box(top + vec3(cosf(a) * 0.28f, sinf(a) * 0.28f, -0.3f - r.range(0.f, 0.25f)), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.12f),
-                          k & 1 ? packRGBA8(0.32f, 0.38f, 0.12f, 1) : packRGBA8(0.45f, 0.35f, 0.15f, 1), makeMat(MAT_BARK), true);
+                    float a = kTwoPi * k / 6.f + r.range(-0.3f, 0.3f);
+                    vec3 c = top + vec3(cosf(a) * 0.24f, sinf(a) * 0.24f, -0.32f - r.range(0.f, 0.22f));
+                    u32 nc = k & 1 ? packRGBA8(0.3f, 0.37f, 0.11f, 1) : packRGBA8(0.42f, 0.32f, 0.14f, 1);
+                    float rr = r.range(0.11f, 0.14f);
+                    const int SEG = 6, RING = 4;
+                    u32 b0 = (u32)m.verts.size();
+                    for (int j = 0; j <= RING; j++) {
+                        float th = kPi * j / RING;
+                        for (int q = 0; q <= SEG; q++) {
+                            float ph = kTwoPi * q / SEG;
+                            vec3 nrm(sinf(th) * cosf(ph), sinf(th) * sinf(ph), cosf(th));
+                            m.addVertex(c + vec3(nrm.x, nrm.y, nrm.z * 1.12f) * rr, nrm, vec3(-sinf(ph), cosf(ph), 0), vec2((float)q / SEG, (float)j / RING), nc, makeMat(MAT_BARK));
+                        }
+                    }
+                    for (int j = 0; j < RING; j++)
+                        for (int q = 0; q < SEG; q++) {
+                            u32 i0 = b0 + (u32)(j * (SEG + 1) + q);
+                            m.quadIdx(i0, i0 + SEG + 1, i0 + SEG + 2, i0 + 1);
+                        }
                 }
             p.radius = h + 5.f;
             p.lodDistance = tall ? 400.f : 300.f;

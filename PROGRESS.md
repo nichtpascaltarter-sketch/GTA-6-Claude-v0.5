@@ -97,6 +97,16 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   ixora, 2 ferns, 2 palmettos, 3 flower clumps) built at start-up from the prop builders' leaf cards and fronds; up to
   6,144 plants a frame go into a second instance buffer that the prop cull pass tests with the world's props, so they
   draw and cast shadows in the same ExecuteIndirect calls. `--gfxstats` logs the plants placed and drawn.
+- Palms and hedges (world/propmesh.cpp palm builders, props.hlsl, matgen.hlsl GEN 28): palm fronds are curved strips
+  folded into a V along the rachis, the leaflets hanging lower and the blade turning a little towards the tip, so a
+  crown reads feathery rather than as flat paddles; coconut palms carry close, deep leaf-scar rings and royal palms
+  shallow, wider ones, shaded on the bark (MAT_BARK param 2 / 3: wandering spacing, darker grooves, the normal tilted
+  into them, the lowest metre weathered paler); round coconuts hang under the crown. Hedges, garden shrub masses and
+  the other leafy world meshes (MAT_LEAVES in the cell geometry; props keep their foliage cards) use a leaf-canopy
+  material: three layers of pointed, domed leaves with midribs, the lower layers in the shade of the upper ones and
+  the dark inside of the mass between them.
+- Storefront glass (facade.hlsli): shop windows look into the lit shop through glass 60% towards clear rather than
+  through the building's curtain-wall tint, so a tower's storefronts no longer read darker than the street's shops.
 - Audio (src/audio, done by agent): WASAPI mixer (192 voices, 3D, doppler, reverb, ducking), 79 synthesized SFX,
   9 engine kinds, sirens/horns/skids/rotors/boats, ambience beds, procedural music engine, 9 radio stations with DJs,
   ads and talk (live timelines), dynamic mission score. Formant TTS voices (src/audio/speech*).

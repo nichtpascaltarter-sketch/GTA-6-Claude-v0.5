@@ -356,7 +356,8 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         // Interior radiance: lit rooms emit; unlit rooms show a dim daylight interior. The room is radiance seen
         // through the glass (not a surface lit on the facade), so shadows falling on the glass do not darken it.
         float dayInterior = saturate(gSunDir.z * 3.0 + 0.1) * (1.0 - gExposure.w);
-        float3 glassTint = glassC;
+        // storefronts look into a lit shop through clear glass, not through the tower's tinted curtain-wall glass
+        float3 glassTint = storefront ? lerp(glassC, float3(0.86, 0.9, 0.92), 0.6) : glassC;
         // daylight in the room: sky light through the windows plus sun patches on the floor bouncing around
         float3 dayE = evalSH9(N) * 0.4 + mainLightIlluminance() * saturate(dot(N, gSunDir.xyz)) * (0.12 / PI);
         float3 em = room * dayE * dayInterior;
