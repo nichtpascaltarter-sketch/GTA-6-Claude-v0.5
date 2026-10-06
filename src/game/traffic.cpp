@@ -84,7 +84,7 @@ bool pullOutStep(GameWorld& g, int vi, float dt) {
         // blinker on for a moment, then go at the first safe gap
         c.brake = 1.f;
         c.handbrake = true;
-        if (va.pullTimer > 1.6f && !laneBusy && !frontBlocked) {
+        if (va.pullTimer > 1.6f && !laneBusy && !frontBlocked && g.time >= va.escortHold) {   // (anybody still getting in)
             va.pullOut = 2;
             va.pullTimer = 0.f;
             v.parked = false;
@@ -113,6 +113,88 @@ bool pullOutStep(GameWorld& g, int vi, float dt) {
 }  // namespace traffic_detail
 
 using namespace traffic_detail;
+
+// running for the bus: somebody further along the sidewalk sees one pulled in at a stop and runs for it - the call and a
+// wave, a run to the front door (pedai.cpp ACT_ENTER_VEH with busRun), the driver holding on for them once they are
+// close (the timetabled buses wait for anyone at the door themselves), the thanks; or it goes without them
+namespace bus_run {
+
+// the front door (where the boarders walk to: pedai.cpp)
+vec3 door(const GameWorld& g, int vi) {
+    const Vehicle& v = g.vehicles[vi];
+    const Vehicles::VehicleModel& spec = g.vassets[v.model].spec;
+    return v.sim.body.pos.toVec3() + rotate(v.sim.body.rot, vec3(spec.boxHalf.x + 0.5f, spec.boxHalf.y * 0.7f, 0.f));
+}
+
+// somebody within r m of the door on their way on
+bool boarding(GameWorld& g, int vi, float r) {
+    std::vector<int> close;
+    g.pedsNear(door(g, vi).xy(), r, close);
+    for (int pi : close)
+        if (pi < (int)g.ai.ped.size() && g.ai.ped[pi].uid == g.peds[pi].uid && g.ai.ped[pi].activity == ACT_ENTER_VEH && g.ai.ped[pi].targetVeh == vi)
+            return true;
+    return false;
+}
+
+// now and then (two stops in five) one walker 18-60 m off on the sidewalk by the bus, on their own, runs for it (tests:
+// ai.forceBusRun - 1 the nearest one in range, 2 the farthest)
+void pick(GameWorld& g, int vi) {
+    const Vehicle& v = g.vehicles[vi];
+    int force = g.ai.forceBusRun;
+    u32 h = hash32(v.uid * 2654435761u + (u32)(g.time * 0.5));
+    if (!force && hashToFloat(h) > 0.4f) return;
+    vec3 dp = door(g, vi);
+    vec2 fwd = v.sim.forward().xy();
+    fwd = length2(fwd) > 1e-6f ? normalize(fwd) : vec2(0.f, 1.f);
+    vec2 rgt = AI::rightOf(fwd);
+    std::vector<int> close;
+    g.pedsNear(dp.xy(), 60.f, close);
+    int best = -1;
+    float bestScore = 1e9f;
+    for (int pi : close) {
+        if (pi == g.player || pi >= (int)g.ai.ped.size()) continue;
+        const Ped& q = g.peds[pi];
+        const PedAI& qa = g.ai.ped[pi];
+        if (!q.used || q.state != PS_ONFOOT || qa.uid != q.uid || q.persistent || q.faction != FAC_CIVILIAN || q.ragdoll) continue;
+        if (qa.activity != ACT_WALK || qa.eventId >= 0 || qa.leader >= 0 || qa.handWith >= 0 || qa.fear > 0.2f) continue;
+        if (qa.role != PR_CIVILIAN && qa.role != PR_WORKER && qa.role != PR_BUSINESS && qa.role != PR_TOURIST) continue;
+        vec2 rel = q.pos.toVec3().xy() - dp.xy();
+        float dd = length(rel), side = dot(rel, rgt);
+        if (dd < 18.f || dd > 60.f || side < -0.5f || side > 9.f) continue;   // (the sidewalk on the door side)
+        if (fabsf(q.pos.z - dp.z) > 2.f) continue;
+        // (a straight run there: nothing built in the way - round a corner they would not see it)
+        if (!g.lineOfSight(dvec3(q.pos.toVec3() + vec3(0.f, 0.f, 1.2f)), dvec3(dp + vec3(0.f, 0.f, 1.2f)), pi, vi)) continue;
+        // (not one leading company)
+        bool leads = false;
+        std::vector<int> round;
+        g.pedsNear(q.pos.toVec3().xy(), 4.f, round);
+        for (int o : round) leads |= o != pi && o < (int)g.ai.ped.size() && g.ai.ped[o].leader == pi;
+        if (leads) continue;
+        float score = force == 2 ? -dd : dd + hashToFloat(hash32(q.uid + h)) * 25.f;
+        if (score < bestScore) {
+            bestScore = score;
+            best = pi;
+        }
+    }
+    if (best < 0) {
+        if (force) LOG("bus: no runner for bus %d (%d close)", vi, (int)close.size());
+        return;
+    }
+    PedAI& pa = g.pedAI(best);
+    pa.activity = ACT_ENTER_VEH;
+    pa.targetVeh = vi;
+    pa.busRun = 1;
+    pa.busRunT = 0.f;
+    pa.navOk = false;
+    g.peds[best].phoneBrowse = false;
+    g.peds[best].pendingAction = Anim::CLIP_WAVE;
+    g.aiSay(best, BK_BUS_RUN, 1.f, true);
+    g.ai.stats.busRuns++;
+    if (force) g.ai.forceBusRun = 0;
+    LOG("bus: ped %d runs for bus %d (%.0f m to the door)", best, vi, length(g.peds[best].pos.toVec3().xy() - dp.xy()));
+}
+
+}  // namespace bus_run
 
 bool GameWorld::attachTraffic(int vi, int lane, float u, bool cautious) {
     if (!ai.ready || vi < 0 || vi >= (int)vehicles.size() || !vehicles[vi].used) return false;
@@ -285,7 +367,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
         va.rageTimer += dt;
         d->mode = AI::DM_HOLD;
         d->holdTimer = -1.f;
-        v.hornOn = va.rageTimer < 1.2f;
+        v.hornOn = !va.rageSorry && va.rageTimer < 1.2f;   // (no horn for the one who knocked the player flat)
         AI::DriveOut out;
         traffic.drive(vi, v.sim, dt, out);
         v.ctl = out.ctl;
@@ -294,17 +376,19 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                 removePedFromVehicle(drv, true);
                 PedAI& da = pedAI(drv);
                 da.activity = ACT_ROADRAGE;
-                ai.stats.roadRage++;
+                da.rageSorry = va.rageSorry;
+                if (!va.rageSorry) ai.stats.roadRage++;
                 da.homeVeh = vi;
-                da.actTimer = 10.f + hashToFloat(hash32(v.uid)) * 6.f;
+                da.actTimer = va.rageSorry ? 16.f : 10.f + hashToFloat(hash32(v.uid)) * 6.f;
                 da.shoutTimer = 0.8f;
                 da.linger = 0.f;
                 dp.brain.type = BRAIN_WANDER;
                 v.parked = true;
                 va.rage = 2;
-                aiSay(drv, BK_CRASH, 1.f, true);
+                aiSay(drv, va.rageSorry ? BK_DRIVER_SORRY : BK_CRASH, 1.f, true);
             } else {
                 va.rage = 0;   // the culprit is gone: drive on
+                va.rageSorry = false;
                 d->mode = AI::DM_NORMAL;
             }
         }
@@ -312,6 +396,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
     }
     if (va.rage == 2 && dp.state == PS_INVEHICLE) {
         va.rage = 0;
+        va.rageSorry = false;
         d->mode = AI::DM_NORMAL;
     }
     // ---- deliveries: a van or service truck double-parks on a multi-lane street, the driver takes something to a
@@ -601,6 +686,11 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
             // boarding/alighting while held at a stop
             if (d->mode == AI::DM_HOLD) {
                 va.stopTimer += dt;
+                // somebody further along sees it pulled in and runs for it; anyone close on their way on, the driver
+                // holds on for (a plain hold - the timetabled buses wait for the boarders themselves; at most half a
+                // minute at a stop)
+                if (va.stopTimer > 1.6f && va.stopTimer - dt <= 1.6f && !d->dummy) bus_run::pick(*this, vi);
+                if (d->holdTimer > 0.f && va.stopTimer < 30.f && bus_run::boarding(*this, vi, 16.f)) d->holdTimer = Max(d->holdTimer, 0.8f);
                 if (va.stopTimer > 1.0f && va.stopTimer - dt <= 1.0f) {
                     // waiting passengers board, one or two get off
                     std::vector<int> near_;
@@ -729,6 +819,39 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
     } else {
         if (inView || camD < kDummyNear || plD < kDummyNear || !calm) traffic.toPhysics(vi, v.sim);
     }
+    // ---- rubbernecking: going past a scene (ai.cpp ai_sights: a wreck, the lights going at a stop, somebody down, a
+    // fender bender, a fight), most drivers slow to a crawl for a look - each the same way every time, a quarter of them
+    // not at all; on a highway down to about half the limit
+    if (!d->dummy && calm && (va.role == VR_TRAFFIC || va.role == VR_TAXI || va.role == VR_BUS) && !ai.sights.empty() && va.parking == 0) {
+        u32 hc = hash32(v.uid * 0x9e3779b9u + 0x51u);
+        if (hashToFloat(hc) > 0.25f) {
+            vec2 fw = v.sim.forward().xy();
+            fw = length2(fw) > 1e-6f ? normalize(fw) : vec2(0.f, 1.f);
+            vec2 rt = AI::rightOf(fw);
+            bool near_ = false;
+            for (const vec3& s : ai.sights) {
+                vec2 r = s.xy() - vp.xy();
+                float along = dot(r, fw), lat = fabsf(dot(r, rt));
+                if (along > -5.f && along < 30.f && lat < 13.f && fabsf(s.z - vp.z) < 6.f && length(r) > 2.5f) {
+                    near_ = true;
+                    va.gawkAt = s;   // (the heads in the car turned to it: peds.cpp)
+                    va.gawkT = time + 0.6;
+                    break;
+                }
+            }
+            if (near_) {
+                float cap = 3.8f + hashToFloat(hash32(hc)) * 3.4f;
+                if (d->path >= 0 && d->path < (int)laneGraph.lanes.size() && (laneGraph.lanes[d->path].flags & AI::LF_HIGHWAY))
+                    cap = Max(cap, laneGraph.pathSpeed(d->path) * 0.5f);
+                d->hostCap = cap;
+                d->hostCapT = 0.6f;
+                if (!va.gawked) {
+                    va.gawked = true;
+                    ai.stats.gawks++;
+                }
+            }
+        }
+    }
     // ---- drive
     AI::DriveOut out;
     traffic.drive(vi, v.sim, dt, out);
@@ -753,6 +876,9 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
             removePedFromVehicle(drv, true);
             traffic.detach(vi);
             va.managed = false;
+            // (three in four lock it with the key fob a few steps off: ai.cpp, a chirp and a flash)
+            u32 hl = hash32(v.uid * 0x5bd1e995u + dp.uid);
+            if ((hl & 3u) != 0u) va.lockAt = time + 1.6 + hashToFloat(hl) * 1.6;
             PedAI& da = pedAI(drv);
             da.activity = ACT_LEAVE_CAR;
             da.homeVeh = vi;
@@ -761,6 +887,21 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
             da.navOk = false;
             dp.brain.type = BRAIN_WANDER;
             dp.brain.edge = -1;
+            // (anybody riding along out with them, and off to the same door)
+            for (int s = 1; s < 8; s++) {
+                int q = v.seats[s];
+                if (q < 0 || q >= (int)peds.size() || peds[q].isPlayer) continue;
+                removePedFromVehicle(q, true);
+                PedAI& qa = pedAI(q);
+                qa.activity = ACT_LEAVE_CAR;
+                qa.homeVeh = vi;
+                qa.anchor = va.parkDoor.xy();
+                qa.actTimer = 40.f;
+                qa.navOk = false;
+                qa.rider = false;
+                peds[q].brain.type = BRAIN_WANDER;
+                peds[q].brain.edge = -1;
+            }
             ai.stats.arrivals++;
             return;
         }
@@ -826,6 +967,18 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
             traffic.detach(vi);
             va.managed = false;
             return;
+        }
+    }
+    // ---- cut up by the player at speed (their car suddenly close ahead and much slower, a stamp on the brakes): a long
+    // blast of the horn and a word through the window
+    if (!d->dummy && calm && va.hornBarkTimer <= 0.f && plD < 40.f && d->obstBody >= 0 && d->obstBody < (int)traffic.bodies.size()) {
+        const AI::Body& ob = traffic.bodies[d->obstBody];
+        float vme = v.sim.speed();
+        if ((ob.flags & AI::BF_PLAYER) && ob.kind == AI::BK_CAR && d->obstDist < 9.f && vme > 7.f && out.ctl.brake > 0.5f && vme - ob.speed > 3.f) {
+            d->hornHold = 0.9f;
+            va.hornBarkTimer = 9.f;
+            aiSay(drv, BK_CUT_OFF, 0.8f, plD < 25.f);
+            ai.stats.cutOffs++;
         }
     }
     // ---- honking / shouting at whoever blocks the road

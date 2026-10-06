@@ -79,6 +79,11 @@ enum PedActivity : u8 {
                        // the car, a few minutes' talk, then back in and on patrol (pedai.cpp)
     ACT_TICKET_RUSH,   // the owner of a parked car a beat officer is writing up (police.cpp police_ticket): hurries over, has
                        // a word with the officer (to no avail), then gets in and drives off (pedai.cpp, then ACT_DRIVE_OFF)
+    ACT_ALARM_OWNER,   // the owner of a parked car whose alarm went off (ai.cpp car_alarm): over at a jog, the key fob from a
+                       // few metres off, a look along its side, a word, then away in it or on foot; the car being taken by
+                       // somebody: after it, shouting, and a hand to the head as it goes (pedai.cpp)
+    ACT_RIDE_ALONG,    // walking with company whose leader drives off in a car at the kerb (ACT_DRIVE_OFF): round to a
+                       // passenger door and in with them - the car waits (VehAI::escortHold; pedai.cpp)
 };
 
 // Ambient speech categories (barks.cpp)
@@ -105,6 +110,7 @@ enum BarkKind : int {
     BK_COP_RADIO,                                     // an officer by the car after an arrest, on the radio to dispatch
     BK_ASK_WAY, BK_GIVE_WAY, BK_WAY_THANKS,           // a stranger asking the way on the sidewalk, the answer (with a
                                                       // point), the thanks (pedai.cpp street meets)
+    BK_ASK_COP_WAY, BK_COP_GIVE_WAY,                  // ... an officer on the beat asked the way, and the officer's answer
     BK_HERO, BK_HERO_LOST,                            // a passer-by chasing a purse snatcher (events.cpp), and giving up
     BK_COP_PARKING, BK_COP_PARKING_REPLY,             // a beat officer writing up a parked car (the ticket on), the answer
     BK_PARKING_OWNER, BK_PARKING_PROTEST,             // to its owner, who comes hurrying (the call, the word with the
@@ -125,6 +131,30 @@ enum BarkKind : int {
     BK_ASK_OKAY,                                      // the player walking past hurt and bleeding: are you okay? (pedai.cpp)
     BK_COP_EMS,                                       // a beat officer with somebody down hurt: the radio, a word to them
     BK_HORNED,                                        // the player leaning on the horn by people on foot (pedai.cpp)
+    BK_PANHANDLE, BK_PANHANDLE_THANKS, BK_PANHANDLE_NO,   // somebody down on their luck asking the player for change, the
+                                                      // thanks, and no hard feelings (events.cpp)
+    BK_GIVE_CHANGE,                                   // a passer-by dropping something in his cup (events.cpp)
+    BK_BUS_RUN, BK_BUS_THANKS, BK_BUS_MISSED,         // running for a bus pulled in at a stop: the call, the thanks to the
+                                                      // driver for waiting, and the word after it when it goes (traffic.cpp)
+    BK_NEAR_MISS,                                     // a car tearing past close to the kerb: after it (pedai.cpp)
+    BK_COP_JAYWALK, BK_JAYWALK_REPLY,                 // an officer on the beat calling to somebody crossing mid-block, and
+                                                      // the word back (pedai.cpp)
+    BK_CROWDED, BK_CROWDED_LEAVE,                     // the player standing right by somebody sat or stood somewhere for a
+                                                      // while: a word, and the word on the way off (pedai.cpp)
+    BK_CUT_OFF,                                       // a driver the player cut up at speed, through the window (traffic.cpp)
+    BK_FOLLOWED, BK_FOLLOWED_SCARED, BK_FOLLOWED_BOLD, // the player walking close behind somebody a good while: the look
+                                                      // back and a word, then a sharper one (the timid hurry off, the bold
+                                                      // square up)
+    BK_ALARM_GRUMBLE, BK_ALARM_WITNESS,               // a car alarm going off nearby: a word about it; somebody seen
+                                                      // breaking into the car (pedai.cpp STIM_ALARM)
+    BK_ALARM_OWNER, BK_ALARM_CHECKED, BK_ALARM_ACCUSE, // its owner: hurrying over, the word after a look along its side,
+                                                      // and to the player stood right by it (pedai.cpp ACT_ALARM_OWNER)
+    BK_ALARM_THEFT, BK_ALARM_GONE,                    // ... the car being taken: after it, and the word as it goes
+    BK_COP_STEP_BACK,                                 // an officer busy at a stop, a statement, a ticket or a crash scene,
+                                                      // the player crowding them (ai.cpp)
+    BK_BUS_WAIT, BK_BUS_WAIT_REPLY,                   // two waiting at a bus stop a while: a word about the bus, the answer
+    BK_PLAYER_DOWN,                                   // the player knocked flat close by (a car, a fall, a blast): a gasp
+    BK_DRIVER_SORRY,                                  // a driver who knocked the player flat, out to see (pedai.cpp)
     BK_COUNT
 };
 
@@ -140,6 +170,8 @@ struct PedAI {
     // scenario
     vec2 anchor;
     float anchorYaw = 0.f;
+    bool anchorWalk = false;      // walking in to the anchor (pedai.cpp: from beyond 0.6 m - or to an anchor that has
+    vec2 anchorSet = vec2(1e9f);  // moved - until inside 0.2 m) ... and the anchor it settled on
     int stance = 0;
     int clip = -1;             // looping scenario clip re-issued when finished
     float clipTimer = 0.f;
@@ -149,6 +181,13 @@ struct PedAI {
     int leader = -1;
     u32 leaderUid = 0;
     vec2 slot;                 // formation offset (leader frame)
+    vec2 followVel = vec2(0.f);   // walking with company: the (smoothed) pace that keeps the slot (pedai.cpp) ...
+    i8 slotSide = 0;              // ... and the side of the leader kept: +1 right, -1 left (0: not set yet - the slot's)
+    i8 rideSeat = -1;             // ACT_RIDE_ALONG: the passenger seat they are getting into (pa.targetVeh's) ...
+    bool rider = false;           // ... and in it: out with the driver at a stop (traffic.cpp parking), or on their own
+                                  // when the driver is gone (ai.cpp: away from the player at the wheel)
+    int company[2] = {-1, -1};    // a leader: the companions walking with it, renewed every frame by them (pedai.cpp:
+    float companyT[2] = {-1.f, -1.f};   // its walk keeps no distance from them) ... and when
     vec2 chaseCrumb = vec2(1e9f);   // a foot chase (police.cpp): where the suspect was last seen from here - run there
                                     // while a corner or a wall hides them, not into the wall
     vec2 sidestep;             // someone running at them along the sidewalk (a chase): the way to step aside ...
@@ -166,6 +205,8 @@ struct PedAI {
     int threatPed = -1;
     float threatTime = -100.f;
     float linger = 0.f;        // gang: armed player loitering nearby
+    bool rageSorry = false;    // ACT_ROADRAGE the other way round: they knocked the player flat with their car - over to
+                               // see, sorry, then back to the car (pedai.cpp)
     bool provoked = false;
     // witness
     int report = -1;
@@ -211,6 +252,9 @@ struct PedAI {
     u32 ticketCopUid = 0;
     vec3 reachAt;              // a hand out to this point (world) while reachT (game time) is ahead - the ticket going under
     double reachT = -1.0;      // the wiper (peds.cpp holds the arm there: the animator's grabTarget)
+    vec3 lookAtPt;             // a look at this point (world) while lookAtT (game time) is ahead - both ways along the road
+    double lookAtT = -1.0;     // before stepping off, down the street for the bus, over at a car alarm (peds.cpp: the head
+                               // and eyes there, over any glance of their own)
     // events / vehicles
     int eventId = -1;          // ambient event slot this ped belongs to (events.cpp), -1 none
     int aimAt = -1;            // ACT_EVENT: ped held at gunpoint (mugger)
@@ -228,13 +272,34 @@ struct PedAI {
     bool browsing = false;      // ACT_SCENARIO: stopped at a shop window (pedai.cpp)
     bool turnBack = false;      // ACT_SCENARIO: stopped to look at the map on the phone - back the way they came after it
     bool rainShelter = false;   // ACT_SCENARIO: under a bus shelter out of a downpour - on once it eases
+    float flinchT = 0.f;        // a car tearing past close (pedai.cpp): the start back from the kerb, then stood looking
+    float flinchYaw = 0.f;      // after it (this way) for the rest of flinchT ...
+    float nearMissT = 0.f;      // ... and not again for this long
+    u8 busRun = 0;              // ACT_ENTER_VEH: running for the bus (traffic.cpp bus_run): 1 on the way, 3 at the door (the
+    float busRunT = 0.f;        // thanks said), 2 it went without them (stood looking after it, a hand to the head) - how long
     bool knockedDown = false;   // was down (a ragdoll, the get-up) since the brain last ran (ai.cpp)
     float hurtCare = 0.f;       // ACT_HURT: a medic has seen to them this long (-1: getting up)
     int aidPed = -1;            // ACT_AID: the one they are helping
     float sceneT = -100.f;      // when they last stopped to watch the police at work (STIM_ARREST: once per scene)
     float greetedT = -100.f;    // when they last passed the player close enough for a word (pedai.cpp: once a pass)
     float replyAt = -1.f;       // walking with company: the game time to answer what the companion just said (pedai.cpp)
-    int replyTo = -1;           // ... and who said it
+    int replyTo = -1;           // ... and who said it ...
+    int replyKind = -1;         // ... and what kind of answer (-1: a stroll's - BK_STROLL_REPLY)
+    bool jayCalled = false;     // crossing mid-block (ACT_CROSS): an officer has called to them already
+    float crowdT = 0.f;         // ACT_SCENARIO / ACT_WAIT_BUS: how long the player has stood right by them (pedai.cpp) ...
+    u8 crowdStep = 0;           // ... 1 a word said, 2 had enough and off
+    float followedT = 0.f;      // ACT_WALK: how long the player has walked close behind them (pedai.cpp) ...
+    u8 followStep = 0;          // ... 1 the look back and a word (a quicker step), 2 the sharper word (and a hurry)
+    int alarmVeh = -1;          // ACT_ALARM_OWNER: their car, its alarm going (ai.cpp car_alarm) ...
+    u32 alarmVehUid = 0;
+    u8 alarmStep = 0;           // ... 0 over to it, 1 the key fob, 2 a look along its side, 3 the word; 4 after it (being
+    float alarmStepT = 0.f;     // taken), 5 stood looking after it - and how long in the step
+    float alarmHeardT = -100.f; // when they last looked over at a car alarm going (pedai.cpp STIM_ALARM: once in a while)
+    float heliLookT = -100.f;   // ... and up at a police helicopter low overhead
+    float plDownSeenT = -100.f; // the player knocked flat close by: the knock-down they last reacted to (pedai.cpp) ...
+    bool plHelper = false;      // ... and the one come over to ask (ACT_WATCH by the player till they are up)
+    float copCrowdT = 0.f;      // an officer busy at a scene: how long the player has stood right by them (ai.cpp) ...
+    float copCrowdSaidT = -100.f;   // ... and when they last said "step back"
     int greetWith = -1;         // a greeting (CLIP_HUG / HANDSHAKE / CHEEK_KISS, started on both together): the partner,
                                 // from stepping in until they part (peds.cpp: their chest / head for the hands) ...
     float greetT = 0.f;         // ... and the time the clip has left (> 0 while it plays)
@@ -277,8 +342,10 @@ struct VehAI {
     // road rage after the player crashed into us: 0 none, 1 stopping, 2 driver out on foot
     u8 rage = 0;
     float rageTimer = 0.f;
+    bool rageSorry = false;       // ... the other way round: its driver knocked the player flat and stops to see (ai.cpp)
     u8 pursuitMove = 0;        // police: 0 chase, 1 PIT run, 2 boxing slot (counted on entry)
-    double escortHold = -1.0;  // police: an officer is bringing a prisoner to it - nobody drives off before this (game time)
+    double escortHold = -1.0;  // somebody on the way to it - nobody drives off before this (game time): police, an officer
+                               // bringing a prisoner; anybody's, a companion riding along (pedai.cpp ACT_RIDE_ALONG)
     int transportFor = -1;     // PT_TRANSPORT: the officer holding a suspect who called for this car ...
     u32 transportUid = 0;
     u8 transportState = 0;     // ... 0 on the way, 1 pulling over there, 2 waiting at the kerb
@@ -288,6 +355,9 @@ struct VehAI {
     u8 errand = 0;                // delivery stop: 1 pulling over, 2 driver out at a door
     u8 copBreak = 0;              // a patrol's coffee break: 1 pulling over, 2 the crew out by the car, 3 time to go
     double ticketed = -1e9;       // parked: when a beat officer last left a ticket on it (police_ticket: not twice running)
+    bool gawked = false;          // slowed down for a look at a scene going past (traffic.cpp rubbernecking; counted once) ...
+    vec3 gawkAt = vec3(0.f);      // ... the scene, the heads in the car turned to it while gawkT (game time) is ahead (peds.cpp)
+    double gawkT = -1.0;
     float errandTimer = 0.f;
     vec3 errandDoor;
     vec3 flyTgtPrev;              // helicopter autopilot: last target position and its smoothed velocity
@@ -300,7 +370,13 @@ struct VehAI {
     int parkLane = -1;
     float parkLat = 0.f;          // lateral offset of the spot from the lane center
     vec3 parkDoor;                // where the driver is headed
-    float alarmT = 0.f;           // how long a parked car's alarm has been going
+    float alarmT = 0.f;           // how long a car's alarm has been going (ai.cpp car_alarm) ...
+    u8 alarmOwner = 0;            // ... and its owner: 0 not settled yet, 1 on the way (pedai.cpp ACT_ALARM_OWNER), 2 nobody comes
+    bool alarmTheft = false;      // ... set off by the player breaking in (the owner comes after the car)
+    float alarmStim = 0.f;        // ... the next "alarm" stimulus (pedai.cpp STIM_ALARM: the people about look over)
+    float flashT = 0.f;           // a key fob's flash of the hazard lights (locked, unlocked, the alarm stopped): this long more
+    double fobT = -1e9;           // when its key fob was last pressed (ai.cpp car_alarm::fob: a chirp and a flash) ...
+    double lockAt = -1.0;         // ... and when the driver walking off from it locks it (traffic.cpp parking)
     vec2 lastVel = vec2(0.f);     // horizontal velocity last frame (knocks judged from the change: ai.cpp)
     bool lastVelOk = false;
 };
@@ -329,7 +405,8 @@ struct Stimulus {
 };
 enum StimulusKind : u8 {
     STIM_GUNFIRE = 0, STIM_EXPLOSION, STIM_FIGHT, STIM_BODY, STIM_CRASH, STIM_ARMED, STIM_SIREN, STIM_FIRE, STIM_PANIC, STIM_HORN,
-    STIM_ARREST   // the police with someone at gunpoint, hands up, on the ground or in cuffs (police.cpp): people stop to watch
+    STIM_ARREST,  // the police with someone at gunpoint, hands up, on the ground or in cuffs (police.cpp): people stop to watch
+    STIM_ALARM    // a parked car's alarm going (ai.cpp car_alarm; player: the player breaking into it): people about look over
 };
 
 // A place that needs emergency services (injured/dead ped, burning car, NPC crime) or police attention.
@@ -367,7 +444,21 @@ struct AIFrameStats {
         greetings = 0, chats = 0,                   // a word for the player walking past, lines overheard between two walking
         buttons = 0, lost = 0, laces = 0,           // the crossing button pressed, back the way they came, a shoelace tied
         rainShelters = 0,                           // under a bus shelter out of a downpour
-        askOkay = 0, copAid = 0, crashScenes = 0;   // the hurt player asked after; officers come to someone down; units at crashes
+        askOkay = 0, copAid = 0, crashScenes = 0,   // the hurt player asked after; officers come to someone down; units at crashes
+        busRuns = 0, busCaught = 0, busMissed = 0,  // running for a bus pulled in at a stop: made it, too late
+        panhandled = 0, passerChange = 0,           // change given to somebody asking (events.cpp): by the player; by passers-by
+        gawks = 0,                                  // drivers slowing for a look going past a scene (traffic.cpp)
+        nearMisses = 0,                             // people on the sidewalk startled by a car tearing past close
+        jaywalkCalls = 0,                           // officers on the beat calling to somebody crossing mid-block
+        crowded = 0, crowdedLeft = 0,               // the player standing right by somebody a while: a word; they went
+        followed = 0, followedSharp = 0,            // the player walking close behind somebody: the look back; the sharp word
+        cutOffs = 0,                                // drivers the player cut up at speed (the horn, a word)
+        anchorRewalks = 0,                          // people settled at a spot pushed 0.6 m off it, walking back in
+        alarms = 0, alarmOwners = 0, alarmLooks = 0, // car alarms set off, the owners who came, people stopping for a look
+        fobChirps = 0,                              // cars locked / unlocked with a chirp of the key fob (and its alarm stopped)
+        rideAlongs = 0,                             // companions getting in with the one driving off (ACT_RIDE_ALONG)
+        copStepBacks = 0,                           // officers busy at a scene telling the player crowding them to step back
+        driverSorry = 0;                            // drivers who knocked the player flat and stopped to see
     int hardImpacts = 0, impactsWithPlayer = 0;   // AI-driven cars: impulses > 3000 N s (sampled per frame)
     int unhung = 0;                               // cars lifted off a ledge back onto their lane
     int departures = 0, arrivals = 0;             // cars driven away from / parked at the curb by their owners
@@ -397,14 +488,28 @@ struct AIState {
     int forceStop = -1;                 // autoplay tests: a beat officer close by stops the next passer-by at once, with this
                                         // outcome (police_stop: 0 on their way, 1 a warrant, 2 a run for it); -1 none forced
     double lastParkArrive = -1e9;       // last time a traffic car started pulling into a parking spot (global spacing)
+    std::vector<vec3> sights;           // what drivers going past slow down to look at (ai.cpp, twice a second): a wreck, a
+    float sightsT = 0.f;                // car with its lights going at a stop, somebody down, a fender bender, a fight
     double lastCopBreak = -1e9;         // last time a patrol pulled over for a coffee break (one every few minutes)
     float rainPrev = 0.f;               // the rain last frame, and when it last came on (pedai.cpp: the dash for cover, a
     double rainStartT = -1e9;           // word about it)
+    double playerHitT = -1e9;           // when an AI driver last knocked the player flat (ai.cpp: now and then they stop to see)
+    double playerDownT = -1.0;          // when the player was last knocked flat (pedai.cpp: people close by gasp, the nearest
+    int playerHelper = -1;              // comes over to ask - this one) ...
+    vec3 heliAt = vec3(0.f);            // a police helicopter low over the streets near the player (ai.cpp, every frame):
+    bool heliLow = false;               // people below look up at it now and then (pedai.cpp)
     bool forceCopBreak = false;         // autoplay tests: the next patrol close by takes its break at once
+    bool forceJaywalk = false;          // autoplay tests: the next walker within 25 m of forceJaywalkAt deciding what to do
+    vec2 forceJaywalkAt;                // next crosses mid-block where the street allows (pedai.cpp)
+    int forceBusRun = 0;                // autoplay tests: the next bus held at a stop has a runner (1 the nearest walker in
+                                        // range, 2 the farthest)
     int forceTicket = -1;               // autoplay tests: a beat officer close by writes up a parked car at once (1: and its
                                         // owner comes hurrying; police_ticket); -1 none forced
     int forceOutcome = -1;              // autoplay tests: how the next forced ambient event ends where it can go two ways
                                         // (events.cpp: a proposal 1 yes, 0 no); -1 left to chance
+    bool forceAlarmOwner = false;       // autoplay tests: a car alarm's owner always comes, if anybody is about (ai.cpp)
+    bool forceGreet = false;            // autoplay tests: every close pass of the player gets its word (pedai.cpp)
+    bool forceSorry = false;            // autoplay tests: a driver who knocks the player flat always stops to see (ai.cpp)
     // the player giving up (police.cpp): wanted, on foot, nothing in hand - hold the phone key and the hands go up;
     // officers who see it hold their fire, close in with guns trained and cuff them: a lighter bust (weapons kept, half
     // the fine back after the release). Moving, drawing or firing breaks it.

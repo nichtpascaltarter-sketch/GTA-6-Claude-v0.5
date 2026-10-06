@@ -917,6 +917,40 @@ void GameWorld::animatePed(Ped& p, float dt) {
             in.grabWeight = 1.f;
         }
     }
+    // an AI look at a point (pedai.cpp: PedAI::lookAtPt while lookAtT is ahead - both ways along the road before stepping
+    // off, down the street for the bus, over at a car alarm): the head and eyes there, over any glance of their own
+    if (upright && !p.isPlayer) {
+        int self = (int)(&p - peds.data());
+        const PedAI* q = self >= 0 && self < (int)ai.ped.size() && ai.ped[self].uid == p.uid ? &ai.ped[self] : nullptr;
+        if (q && time < q->lookAtT) {
+            vec3 D = q->lookAtPt - p.pos.toVec3();
+            vec3 lk = vec3(dot(vec2(D.x, D.y), rightV), dot(vec2(D.x, D.y), fwd), D.z);
+            if (lk.y > -0.3f * length(vec2(D.x, D.y))) {   // (not round to something behind)
+                in.lookAt = lk;
+                in.lookWeight = 0.9f;
+            }
+        }
+    }
+    // AI drivers and passengers: the head turned to a scene the car is slowing past (traffic.cpp rubbernecking, while
+    // VehAI::gawkT is ahead), else - stopped in traffic - now and then to the player walking past close by
+    if (in.lookWeight <= 0.f && p.state == PS_INVEHICLE && !p.isPlayer && p.vehicle >= 0 && p.vehicle < (int)vehicles.size() && p.visibleDist < 45.f) {
+        const Vehicle& lv = vehicles[p.vehicle];
+        const VehAI* la = p.vehicle < (int)ai.veh.size() && ai.veh[p.vehicle].uid == lv.uid ? &ai.veh[p.vehicle] : nullptr;
+        vec3 D(0.f);
+        float w = 0.f;
+        if (la && time < la->gawkT) {
+            D = la->gawkAt - p.pos.toVec3() + vec3(0.f, 0.f, 0.5f);
+            w = 0.85f;
+        } else if (player >= 0 && peds[player].used && peds[player].state == PS_ONFOOT && lv.sim.speed() < 1.f &&
+                   (hash32(p.uid * 977u + (u32)(time * 0.2)) & 3u) == 0u) {
+            D = rel(peds[player].pos, p.pos) + vec3(0.f, 0.f, 1.5f);
+            w = length(vec2(D.x, D.y)) < 9.f ? 0.6f : 0.f;
+        }
+        if (w > 0.f) {
+            in.lookAt = vec3(dot(vec2(D.x, D.y), rightV), dot(vec2(D.x, D.y), fwd), D.z);
+            in.lookWeight = in.lookAt.y > -0.3f * length(vec2(D.x, D.y)) ? w : 0.f;   // (not round to somebody behind)
+        }
+    }
     // foot IK: probe the ground where each foot is planted / about to land (Animator::footProbe) and the slope under
     // them (only for nearby peds)
     in.groundOffsetL = in.groundOffsetR = 0.f;
