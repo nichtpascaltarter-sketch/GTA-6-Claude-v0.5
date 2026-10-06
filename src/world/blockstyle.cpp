@@ -863,7 +863,7 @@ void facadeFor(Building& b, FacadeGPU& f, u8 arch, Rng& r, bool store) {
     f.style = (float)style;
     f.wallColor = rgb8(Saturate(wall.x), Saturate(wall.y), Saturate(wall.z));
     f.frameColor = rgb8(Saturate(frame.x), Saturate(frame.y), Saturate(frame.z));
-    if (flags & 1u) glass = lerp(glass, vec3(0.82f, 0.88f, 0.9f), 0.45f);   // (a storefront's shop reads through the tint)
+    // (a storefront's shop glass: the facade shader takes it towards clear - renderer PR #35)
     f.glassColor = rgb8(glass.x, glass.y, glass.z);
     f.flags = flags;
     f.wallLayer = (float)mat;
@@ -919,7 +919,6 @@ void towerLook(Building& b, FacadeGPU& f, Rng& r) {
     if (style != 1) f.winW = winW, f.winH = winH;
     f.wallColor = rgb8(Saturate(wall.x), Saturate(wall.y), Saturate(wall.z));
     f.frameColor = rgb8(Saturate(frame.x), Saturate(frame.y), Saturate(frame.z));
-    if ((u32)f.flags & 1u) glass = lerp(glass, vec3(0.82f, 0.88f, 0.9f), 0.45f);   // (a lobby or shop storefront stays clear)
     f.glassColor = rgb8(Saturate(glass.x), Saturate(glass.y), Saturate(glass.z));
     f.wallLayer = (float)mat;
 }
