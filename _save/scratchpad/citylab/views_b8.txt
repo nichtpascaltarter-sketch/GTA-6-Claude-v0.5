@@ -1,0 +1,13 @@
+fl_vac1 street 222.2 2922.5 70 -3 60 10
+cl_vac1 street 1827.8 225.0 70 -3 60 10
+cl_park1 street 1618.9 529.5 70 -3 60 10
+fl_serv1 street 323.9 2922.9 70 -3 60 10
+lk_yard1 street 316.3 6460.5 70 -3 60 10
+lk_vac1 street 226.5 6501.8 70 -3 60 10
+ks_conch1 front 22128 15 2 3 60 10
+tp_conch_a front 23421 15 2 -3 60 10
+tp_conch_b front 23431 15 2 3 60 10
+km3 front 22177 22 3 4 60 10
+lk_air aerial 239 6735 120 200 40 55 10
+fl_air aerial 400 2900 140 200 40 55 10
+cv_air aerial 3093 1600 140 200 40 55 10

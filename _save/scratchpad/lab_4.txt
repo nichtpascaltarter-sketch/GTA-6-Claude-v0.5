@@ -1,0 +1,11 @@
+
+=== rock seed 1542: 109 bpm, key 0 scale 1, variant 0, 96 bars, 213.9 s, swing 0.00
+  form: Intro8 Verse16 Pre4 Chorus16 Verse8 Chorus16 Solo8 Chorus16 Outro4
+  MIX rms -14.8 dB, centroid 2582 Hz, peak 0.96
+  track 0 Drums  notes  1246                                  rms  -18.0 dB  centroid  4190 Hz  peak 0.97
+  track 1 Pluck  notes   729 range  29- 39 outKey  4.4% steps  95% leaps   0%  rms  -18.4 dB  centroid  1522 Hz  peak 0.43
+  track 2 Pluck  notes  1878 range  39- 60 outKey  0.0% steps   1% leaps  27%  rms  -19.6 dB  centroid  2102 Hz  peak 0.48
+  track 3 Pluck  notes  1662 range  39- 60 outKey  0.0% steps   1% leaps  26%  rms  -20.0 dB  centroid  2117 Hz  peak 0.47
+  track 4 Pluck  notes   371 range  60- 89 outKey  0.8% steps  73% leaps   5%  rms  -18.6 dB  centroid  1723 Hz  peak 0.51
+  track 5 Pluck  notes     0 range 127-  0 outKey  0.0% steps   0% leaps   0%  rms -120.0 dB  centroid     0 Hz  peak 0.00
+  track 6 Organ  notes    16 range  58- 72 outKey  0.0% steps  13% leaps  20%  rms  -36.3 dB  centroid   524 Hz  peak 0.28

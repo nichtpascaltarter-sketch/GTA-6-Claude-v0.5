@@ -1,0 +1,17 @@
+# batch 6: yards - pools that show, front fences and walls by district, driveways, mailboxes
+wb_pool_air aerial -1340 -860 150 200 38 55 10
+wb_pool_low aerial -1300 -900 70 160 45 50 10
+nc_pool_air aerial 2550 3820 120 200 42 55 10
+cl_street1 street 1700 300 35 -4 60 10
+cl_street2 street 1850 450 -35 -4 60 10
+nc_street street 2600 3800 35 -4 60 10
+wb_street1 street -1250 -620 35 -4 60 10
+wb_street2 street -1400 -900 -35 -4 60 10
+ks_street1 street -8100 -9230 35 -4 60 10
+ks_street2 street -8150 -9450 -35 -4 60 10
+grove_street street 1963 -3500 35 -4 60 10
+oka_street street 150 6450 35 -4 60 10
+har_street street -4800 5200 35 -4 60 10
+kc_air aerial 4500 -4150 120 200 42 55 10
+cl_air_low aerial 1771 357 80 160 45 55 10
+fl_air_low aerial 615 3089 80 200 45 55 10

@@ -1,0 +1,36 @@
+Stairs: feet land on the treads instead of sinking into the steps; a door-entry hook for AI car entries
+
+Animation (src/anim/animator.cpp, src/anim/character.h; src/game/peds.cpp, src/game/gameworld.h):
+- Stair gait:
+  - When a swinging foot is about to land where the ground steps (stairs, a kerb), the animator asks the game once
+    per step for 12 ground heights, 5 cm apart, along the way ahead.
+  - It moves the landing, by at most a fifth of a foot length, onto the nearest tread that fits: toes short of the
+    riser ahead, heel clear of the riser behind.
+  - Going up, a heel hanging over the nose stands and pivots on the forefoot. Going down, the ground is probed under
+    the heel until it clears the nose.
+  - The swing clears the tread, and the landing time is predicted from the walker's own steps.
+- Foot IK reaches up to two risers (0.45 m, was 0.3 m) from the root, so a foot landing on stairs no longer sinks.
+- Hand holding gets a hold axis (AnimInput::grabAxis). It is upright by default; the AI's couple block will use it so
+  held hands hang with the palms towards each other.
+- GameWorld::startCarEntry(ped, veh, seat) places an AI ped at the seat's door and queues the door clip, so the door
+  swings and sounds with it. It returns the clip's length, or -1 for a seat without a door. AI car entries use it next.
+
+Checks (animation agent):
+- Harness, HEAD vs this, 16x30 cm stairs:
+  - Planted sole 3 cm under the tread: up 59.7% -> 0.36%, down 18.6% -> 0%.
+  - Foot slide per step (mean): up 2.97 -> 0.64 cm, down 1.56 -> 0.13 cm.
+  - Scuffs going down: 20 -> 2.
+- Harness, metro-like 17x29 cm stairs: planted sole 3 cm under the tread up 54.7% -> 0.32%, down 26.8% -> 0%.
+- Harness, kerb up: toe in the riser -150 -> -30 mm.
+- Harness, other scenarios: every other scenario is unchanged within 1 mm. Animator time per update is unchanged
+  (5.6-5.7 us).
+- In game (--autoplay locostairs: 8 walkers on Calle Luna station's 33 m street stair, the same crowd in both runs):
+  - Planted sole 3 cm under its tread: up 58.8% -> 6.8%, down 29.0% -> 2.9%.
+  - Slide going up: 5.91 -> 1.99 cm a step.
+  - Scuffs: up 75 -> 24, down 131 -> 31.
+  - Peds CPU is 2.16 ms a frame in both runs.
+- anim_test ALL PASSED on 111efa9, cda29a1 and b907098, and the mingw syntax check is clean. The peds.cpp hunks are the
+  same on snapshot 38's peds.cpp; they don't touch the AI look block.
+- Still open:
+  - Going up, the trailing foot's toes roll into the next riser for a few frames at heel-off.
+  - Going down, a few frames reach -275 mm lowest sole (111efa9: -169 mm). Not traced yet.

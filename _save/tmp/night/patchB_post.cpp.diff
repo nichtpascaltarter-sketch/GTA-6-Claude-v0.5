@@ -1,0 +1,25 @@
+--- w/src/render/post.cpp	2026-10-06 05:07:25.542675804 +0000
++++ wb/src/render/post.cpp	2026-10-06 06:02:18.810677004 +0000
+@@ -263,13 +263,19 @@
+         // Storms: a little darker too (brooding sky instead of a blown-out grey dome)
+         float storm = r.frame.weather2.y;
+         cb.data.p0 = vec4(exposureCompensation - 0.55f * night - 0.35f * storm * (1.f - night), 2.2f, 1.4f, Clamp(dt, 0.f, 0.25f));
+-        cb.data.p1 = vec4(Lerp(0.06f, 0.115f, night), 0.22f + 0.08f * night, 0.012f, 1.08f + 0.06f * night);   // bloom: tighter chain (csBloomUp), stronger core
++        // (saturation: the night's dim surroundings lose their colour in the tonemap's night vision, lamp-lit colour stays)
++        cb.data.p1 = vec4(Lerp(0.06f, 0.115f, night), 0.22f + 0.08f * night, 0.012f, 1.08f);   // bloom: tighter chain (csBloomUp), stronger core
+         // Exposure limits. By day a dark surface right in front of the camera (an awning, a wall, a car) must not
+         // drive the exposure to night levels: the sunlit world around it would blow out. The floor follows the sun
+         // (fully shaded daytime streets meter around EV 12.5); inside interiors the exposure may open up further.
+         float minEV = Lerp(-3.f, 12.f, SmoothStep(-6.f, 15.f, r.sunElevation));
+-        if (r.cameraInInterior()) minEV = Min(minEV, 5.f);
+-        cb.data.p2 = vec4(1.04f, 0.6f, minEV, 16.f);
++        // At night the exposure does not open up beyond EV 1.8: a dark park or a moonlit suburb stays night-dark
++        // (moonlit ground sits near the toe, deep blue in the tonemap's night vision) instead of being lifted to
++        // a dusk grey; lamp pools, shop fronts and lit rooms set the exposure where they fill the frame
++        minEV = Max(minEV, Lerp(-3.f, 1.8f, night));
++        if (r.cameraInInterior()) minEV = Min(minEV, Lerp(5.f, 0.5f, night));
++        // white balance: the sub-tropical warm grade by day, neutral at night (moonlight, LED and sodium mixed)
++        cb.data.p2 = vec4(1.04f, Lerp(0.6f, 0.f, night), minEV, 16.f);
+         // Local exposure: at night large bright areas (a lit lobby or shop behind glass) are compressed above the pivot
+         // (pre-exposed luminance 0.35, where the filmic shoulder begins) while keeping their detail (post.hlsl)
+         float lxScale = Lerp(1.f, 0.5f, night);

@@ -1,0 +1,16 @@
+c3be0a108bc0e0ee59a408a25e86f6e2ed50cbe3 src/game/ai.cpp
+986fcd7f94941939678791606a842227f178e06d src/game/ai_core.h
+1c776cf3bf9bdaacc5acb75ed9f0bed4ab6a833a src/game/ai_game.h
+ea2c5df7a3516bd7ec6ede0f94c2e768f6658396 src/game/app.cpp
+cb7ae5cfe46b0b6151e8b8066951079605931562 src/game/barks.cpp
+3da7f2de7c05982617ca64ba1c7c30a65f560b43 src/game/events.cpp
+a72a48c34a2db96385180d4d17183ebb00ad9f81 src/game/gameworld.h
+7611cc48559b0d5b97ffdf8c6c76b1b445e6842b src/game/pedai.cpp
+4c411a54b2e76a86d00458bfd63304f092e7d37a src/game/pednav.cpp
+b8e4b644affc8d6a56df6c59b0c9f12032d900d9 src/game/police.cpp
+a35d366513736518e63a0c258b1b116e365e3b36 src/game/traffic.cpp
+5252221ea9d812df8ac1ea9b05461ac0e25efaf2 src/game/traffic_core.cpp
+56fe7d12aae8d603180d6d57016498bb9520c82d src/game/lanes.cpp
+4bcf0772fc32ce9d63fc65b36e327372088fe722 src/game/population.cpp
+edc3ba54bcec34371a7aa583e33809811db2db55 src/game/peds.cpp
+4fad4bbd288461d69453a02eebfc97af33341fa6 src/game/game.h

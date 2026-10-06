@@ -1,0 +1,64 @@
+12:30:09 stopped runner 1710 after its life run (children: 15349)
+arrest rc=0 wall=1739s shots=31 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_arrest_nt_ai62.txt
+couple rc=0 wall=2783s shots=40 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_couple_nt_ai64.txt
+ticket rc=0 wall=1443s shots=14 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_ticket_nt_ai62.txt
+couple rc=0 wall=2124s shots=42 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_couple_nt_ai65.txt
+walkby rc=0 wall=1277s shots=30 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_walkby_nt_ai65.txt
+couple rc=1 wall=1354s shots=13 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_couple_nt_ai66.txt
+proposal rc=0 wall=1624s shots=17 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_proposal_nt_ai62.txt
+crashscene rc=0 wall=1018s shots=27 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_crashscene_nt_ai62.txt
+couple rc=1 wall=2254s shots=20 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_couple_nt_ai68.txt
+rain rc=0 wall=1150s shots=14 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_rain_nt_ai62.txt
+couple rc=0 wall=1524s shots=34 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_couple_nt_ai69.txt
+walkby rc=0 wall=1439s shots=30 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_walkby_nt_ai69.txt
+couple rc=0 wall=1759s shots=31 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_couple_nt_ai70.txt
+hurt rc=0 wall=1303s shots=16 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_hurt_nt_ai62.txt
+couple rc=1 wall=2415s shots=23 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_couple_nt_ai71.txt
+19:35:40 stopped runner 8236 and the nt_ai71 couple run (diagnosis done: the leader shied off its companion); walkby, hurt and set 5 moved to nt_ai72
+19:51:55 build 7334 ended: 19:51:44 built bin/nt_ai72.exe after 1 tries; queue runner 7394 starts
+couple rc=1 wall=1264s shots=30 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_couple_nt_ai72.txt
+couple rc=0 wall=2014s shots=42 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_couple_nt_ai73.txt
+walkby rc=0 wall=1518s shots=30 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_walkby_nt_ai72.txt
+hurt rc=0 wall=1352s shots=15 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_hurt_nt_ai72.txt
+alarm rc=0 wall=2086s shots=51 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_alarm_nt_ai74.txt
+pedstop rc=0 wall=1842s shots=49 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_pedstop_nt_ai62.txt
+events rc=0 wall=2185s shots=30 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_events_nt_ai62.txt
+night rc=0 wall=1738s shots=20 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_night_nt_ai62.txt
+crowd rc=0 wall=1255s shots=5 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_crowd_nt_ai62.txt
+soak rc=0 wall=1208s shots=3 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_soak_nt_ai62.txt
+01:03:32 container restart at ~00:57 killed the nt_ai77 crossing run at t=84.4 (log saved as SP/log_crossing_nt_ai77.txt: step-offs 0.40/0.67/0.83/0.90 s after the light, up to 3 waiting looking along the road - enough; not rerun); queue runner relaunched
+rideoff rc=0 wall=900s shots=42 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_rideoff_nt_ai77.txt
+hitplayer rc=0 wall=1335s shots=42 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_hitplayer_nt_ai77.txt
+walkby rc=137 wall=821s shots=17 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_walkby_nt_ai77.txt
+02:05:20 walkby on nt_ai77 died rc=137 at t=86 (memory: three other games and a compile running); requeued at the top (partial log: SP/log_walkby_nt_ai77_killed.txt - greetings 5 by t=50)
+hitplayer rc=0 wall=2094s shots=42 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_hitplayer_nt_ai79.txt
+walkby rc=0 wall=1460s shots=30 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_walkby_nt_ai77.txt
+pedstop rc=0 wall=1729s shots=39 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_pedstop_nt_ai77.txt
+alarm rc=0 wall=2501s shots=51 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_alarm_nt_ai77.txt
+panhandle rc=0 wall=1390s shots=42 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_panhandle_nt_ai77.txt
+busrun rc=0 wall=927s shots=10 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_busrun_nt_ai77.txt
+jaywalk rc=0 wall=565s shots=2 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_jaywalk_nt_ai77.txt
+crowded rc=0 wall=1270s shots=34 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_crowded_nt_ai77.txt
+followed rc=0 wall=1551s shots=33 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_followed_nt_ai77.txt
+jaywalk rc=0 wall=1231s shots=30 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_jaywalk_nt_ai77f.txt
+hitplayer rc=0 wall=2058s shots=42 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_hitplayer_nt_ai77f.txt
+nearmiss rc=0 wall=1376s shots=23 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_nearmiss_nt_ai77f.txt
+rain rc=0 wall=1276s shots=14 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_rain_nt_ai77f.txt
+crashscene rc=0 wall=1052s shots=27 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_crashscene_nt_ai77f.txt
+life rc=0 wall=1997s shots=20 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_life_nt_ai77f.txt
+soak rc=0 wall=1044s shots=3 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_soak_nt_ai77f.txt
+tipoff rc=0 wall=1339s shots=2 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_tipoff_nt_ai83.txt
+askway rc=0 wall=1203s shots=21 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_askway_nt_ai83.txt
+hitped rc=0 wall=1748s shots=42 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_hitped_nt_ai83.txt
+night rc=0 wall=1334s shots=20 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_night_nt_ai83.txt
+hitplayer rc=0 wall=2113s shots=42 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_hitplayer_nt_ai83.txt
+plticket rc=0 wall=1685s shots=42 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_plticket_nt_ai83.txt
+tipoff rc=0 wall=2174s shots=17 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_tipoff_nt_ai83f.txt
+copask rc=0 wall=3463s shots=50 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_copask_nt_ai83f.txt
+hitped rc=0 wall=2031s shots=42 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_hitped_nt_ai83f.txt
+pedstop rc=0 wall=1732s shots=49 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_pedstop_nt_ai83.txt
+busrun rc=0 wall=903s shots=21 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_busrun_nt_ai83.txt
+nearmiss rc=0 wall=809s shots=23 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_nearmiss_nt_ai83.txt
+alarm rc=0 wall=1978s shots=51 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_alarm_nt_ai83.txt
+rideoff rc=0 wall=1614s shots=42 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_rideoff_nt_ai86.txt
+couple rc=0 wall=1101s shots=42 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_couple_nt_ai86.txt

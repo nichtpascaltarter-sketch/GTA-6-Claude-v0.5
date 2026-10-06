@@ -1,0 +1,10 @@
+Batch 12 - shop windows only on the walls that look onto a street (facade.hlsli:222)
+- The facade shader drew a storefront facade's shop windows (and its sign band) on every ground-floor wall: the backs
+  and sides of shop rows and walk-ups showed lit shop interiors into the neighbours' yards (the North Porto Sol corner).
+- buildmesh.cpp: facadeWalls marks a wall that does not look onto a street with vertex alpha 0.5 (streetFacing: the
+  building's front, or a street or its sidewalk within 12 m in front of the wall - corner buildings' side walls, a
+  block's back on another street); only storefront facades are tested. Every facade wall goes through facadeWalls, so
+  the plain generator, the archetype massings (massing.cpp) and the interiors' cut walls all carry the mark. Not the
+  interiors that own their shell (interiorFacadeRing, interiors.cpp): their walls keep alpha 1, as before.
+- facade.hlsli (HEAD's): shadeFacade takes the mark (world.hlsl passes i.color.a, unused for facades until now);
+  storefront and signBand also require it > 0.75. Nothing else in the shader changed.

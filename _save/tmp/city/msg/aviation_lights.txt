@@ -1,0 +1,13 @@
+Red aviation lights - what I'd need (I have added no light type, and no lights at all):
+- Today: towers push LightInstance type 4 ("aviation beacon", (1, 0.1, 0.05) x 400-500, radius 10-12) on spires,
+  stepped crowns and some antenna masts, plus a small MAT_EMISSIVE box on the masts (pattern 1 | phase 7). Both are
+  near-ring only (lights and rooftopAntennas are detail-only), so from 330 m the skyline has no red lights at all.
+- Geometry I would add (both LODs): a 0.35 m emissive box at each roof corner of towers over ~150 m and on top of the
+  tallest mast/spire, colour (1, 0.08, 0.04).
+- Emissive: the existing MAT_EMISSIVE patterns cover the behaviour - pattern 6 (night-only, steady: FAA L-810 style)
+  for the corner lights, a flashing pattern for the top light with a per-tower phase. Pattern 1 flashes 48 times a
+  minute; L-864 is 20-40 a minute, ~0.3 s on, so a slower variant would be more correct (e.g. frac(t*0.5+ph) < 0.15).
+- What I need from the night renderer: a minimum on-screen size for these markers. A 0.35 m light is under one
+  pixel past ~500 m at 1080p (0.27 m/px at 500 m, 0.5 m/px at 1 km), so it shimmers or vanishes. Either a "marker"
+  emissive pattern that the shader/bloom keeps at >= 2 px (like lineMask's minimum width), or drawing type-4 lights as
+  small bloom sprites out to the far ring. Intensity high enough to bloom at 2 km.

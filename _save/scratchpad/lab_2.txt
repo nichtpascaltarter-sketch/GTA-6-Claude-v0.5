@@ -1,0 +1,11 @@
+
+=== reggaeton seed 1388: 89 bpm, key 6 scale 1, variant 1, 84 bars, 229.0 s, swing 0.00
+  form: Intro8 Verse8 Pre4 Chorus16 Verse8 Pre4 Chorus16 Chorus16 Outro4
+  MIX rms -16.0 dB, centroid 1839 Hz, peak 0.81
+  track 0 Drums  notes   789                                  rms  -17.1 dB  centroid  2190 Hz  peak 0.76
+  track 1 Sub    notes   300 range  33- 49 outKey  0.0% steps  80% leaps   2%  rms  -21.3 dB  centroid    91 Hz  peak 0.23
+  track 2 Pluck  notes  1800 range  47- 69 outKey  0.0% steps  17% leaps  16%  rms  -27.4 dB  centroid  2758 Hz  peak 0.45
+  track 3 Sub    notes   100 range  69- 78 outKey  0.0% steps  61% leaps   2%  rms  -32.7 dB  centroid  1541 Hz  peak 0.29
+  track 4 Sub    notes   180 range  61- 78 outKey  1.1% steps   8% leaps  37%  rms  -28.2 dB  centroid   885 Hz  peak 0.34
+  track 5 Vox    notes   396 range  61- 78 outKey  0.0% steps  53% leaps  11%  rms  -23.8 dB  centroid   646 Hz  peak 0.37
+  track 6 Drums  notes  1368                                  rms  -30.9 dB  centroid  1721 Hz  peak 0.50

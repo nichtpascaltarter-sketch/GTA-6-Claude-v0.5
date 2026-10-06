@@ -1,0 +1,9 @@
+{
+  "id": "6",
+  "subject": "M6: Living world (pedestrians, police/wanted, ambient events)",
+  "description": "Living world: pedestrians, police/wanted, ambient events. PR #19 landed arrests with escorts, brawls and siren behaviour. The AI agent's second set is in progress: witness statements, fleeing into shops, sidewalk ID checks, coffee breaks, couples.",
+  "activeForm": "AI agent: traffic lanes, pedestrians, police tactics, ambient events",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

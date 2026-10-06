@@ -1,0 +1,83 @@
+World map generated in 27.22 s
+Road gen: 21 interchanges
+Road network: 6252 nodes, 10041 edges, 1732 signalized; hwy 60.1 km, streets 1186.7 km (2.73 s)
+Buildings: 36940 (towers 368, midrise 2449, condo 509, deco 844, shops 4788, strip 767, houses 22715, villas 794, warehouses 1673) in 2.01 s
+Lane graph: 26703 lanes, 60151 connectors (1219197 pts), 36936 walk nodes, 53395 walk links (0.52 s)
+Loaded 12 collision cells
+Simulating 5.0 minutes around (2700, 750) r=200 with 100 cars, 80 peds
+  sim 60 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 48 (wall 9 s)
+COLLISION t=87.77 imp 1173 at 2604.6 748.9
+   A 57: v=2.2 vT=0.0 conn 16037 node 1357 turn 2 ctl 1 u=3.2/15.8 lc -1 lat 0.00 nudge 0.00 obst -0.0(97) stop 1000000000.0 dummy 0
+   B 97: v=3.8 vT=4.6 conn 16034 node 1357 turn 1 ctl 1 u=5.9/10.8 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+COLLISION t=96.69 imp 4434 at 2590.7 649.9
+   A 45: v=2.4 vT=4.4 conn 16030 node 1356 turn 1 ctl 1 u=9.3/10.8 lc -1 lat 0.00 nudge 0.00 obst 34.5(69) stop 1000000000.0 dummy 0
+   B 89: v=2.0 vT=0.0 lane 7534(e2339 d1 i0) u=88.5/91.5 lc -1 lat 0.00 nudge 0.00 obst -0.0(45) stop 1000000000.0 dummy 0
+COLLISION t=113.03 imp 3743 at 2889.6 749.8
+   A 10: v=2.2 vT=0.0 lane 8612(e2707 d1 i0) u=87.2/91.5 lc -1 lat 0.00 nudge 0.00 obst 0.0(83) stop 1000000000.0 dummy 0
+   B 83: v=3.3 vT=4.4 conn 18595 node 1575 turn 1 ctl 1 u=10.3/10.8 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+COLLISION t=115.48 imp 1264 at 2855.9 649.5
+   A 5: v=0.9 vT=0.0 lane 8608(e2705 d1 i0) u=55.1/91.5 lc -1 lat 0.00 nudge 0.00 obst -0.0(44) stop 28.8 dummy 0
+   B 44: v=13.1 vT=14.3 lane 8609(e2705 d-1 i0) u=43.2/91.5 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 40.6 dummy 0
+COLLISION t=118.56 imp 3521 at 2889.6 649.8
+   A 0: v=0.9 vT=0.0 lane 8608(e2705 d1 i0) u=87.2/91.5 lc -1 lat 0.00 nudge 0.00 obst 0.0(20) stop 1000000000.0 dummy 0
+   B 20: v=3.2 vT=3.9 conn 18583 node 1574 turn 1 ctl 1 u=10.3/10.8 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+  sim 120 s: collisions 5 (hard 3), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 125 (wall 17 s)
+COLLISION t=150.93 imp 2920 at 2722.1 851.1
+   A 5: v=2.7 vT=4.5 lane 8103(e2548 d-1 i0) u=75.5/88.2 lc -1 lat 0.00 nudge -3.03 obst 12.3(48) stop 5.4 dummy 0
+   B 91: v=2.0 vT=0.6 lane 8103(e2548 d-1 i0) u=80.3/88.2 lc -1 lat 0.00 nudge 0.00 obst 8.0(48) stop 0.5 dummy 0
+DEADLOCK t=167.8 car 67 at 2692.5 849.2 path 43286 u 4.4 node 1404 stopDist 0.4 obst 2.5 (body 53)
+DEADLOCK t=172.3 car 53 at 2699.4 851.6 path 43279 u 12.4 node 1404 stopDist 1000000000.0 obst 2.5 (body 67)
+DEADLOCK t=172.8 car 72 at 2695.1 869.6 path 8101 u 80.4 node 1404 stopDist 0.4 obst 1000000000.0 (body -1)
+DEADLOCK t=174.1 car 48 at 2706.6 851.6 path 43279 u 5.3 node 1404 stopDist 1000000000.0 obst 2.5 (body 53)
+  sim 180 s: collisions 6 (hard 3), red 0, stuck 0, deadlocks 4, ped hits 0, respawns 184 (wall 25 s)
+DEADLOCK t=184.6 car 49 at 2698.4 869.6 path 8100 u 80.4 node 1404 stopDist 0.4 obst 14.9 (body 53)
+DEADLOCK t=186.3 car 15 at 2680.1 848.4 path 7750 u 80.1 node 1404 stopDist 0.4 obst 7.7 (body 67)
+COLLISION t=190.08 imp 308 at 2717.3 850.5
+   A 5: v=2.0 vT=1.7 lane 8103(e2548 d-1 i0) u=82.5/88.2 lc -1 lat 0.00 nudge 0.00 obst 5.3(48) stop 1000000000.0 dummy 0
+   B 91: v=2.0 vT=1.8 lane 8103(e2548 d-1 i0) u=82.9/88.2 lc -1 lat 0.00 nudge 0.00 obst 5.3(48) stop 1000000000.0 dummy 0
+DEADLOCK t=190.6 car 6 at 2704.9 830.5 path 8093 u 80.5 node 1404 stopDist 0.4 obst 18.0 (body 48)
+DEADLOCK t=191.4 car 16 at 2704.9 823.7 path 8093 u 73.7 node 1404 stopDist 7.1 obst 2.5 (body 6)
+DEADLOCK t=197.9 car 0 at 2677.6 848.4 path 7750 u 77.6 node 1404 stopDist 1000000000.0 obst 2.5 (body 15)
+DEADLOCK t=201.1 car 69 at 2670.0 848.4 path 7750 u 70.0 node 1404 stopDist 10.6 obst 2.5 (body 0)
+DEADLOCK t=203.8 car 79 at 2695.0 876.8 path 8101 u 73.2 node 1404 stopDist 7.7 obst 2.5 (body 72)
+DEADLOCK t=209.0 car 80 at 2662.9 848.4 path 7750 u 62.9 node 1404 stopDist 18.1 obst 2.6 (body 69)
+DEADLOCK t=220.6 car 95 at 2723.6 851.6 path 8103 u 76.4 node 1404 stopDist 4.1 obst 3.3 (body 5)
+DEADLOCK t=236.6 car 22 at 2701.7 830.1 path 8092 u 80.1 node 1404 stopDist 0.4 obst 2.8 (body 149)
+DEADLOCK t=239.3 car 88 at 2731.2 851.6 path 8103 u 68.8 node 1404 stopDist 1000000000.0 obst 2.5 (body 95)
+  sim 240 s: collisions 7 (hard 3), red 0, stuck 0, deadlocks 15, ped hits 0, respawns 252 (wall 30 s)
+DEADLOCK t=244.7 car 94 at 2738.3 851.6 path 8103 u 61.7 node 1404 stopDist 18.8 obst 2.6 (body 88)
+RED t=249.1 car 46 at 2705.0 630.7 v=0.7 path 8081 u 80.7 stopDist -0.0 vT 0.0
+COLLISION t=251.08 imp 664 at 2717.7 650.4
+   A 13: v=2.8 vT=0.9 lane 8091(e2544 d-1 i0) u=81.9/88.2 lc -1 lat 0.00 nudge 0.00 obst 0.1(97) stop 1000000000.0 dummy 0
+   B 97: v=4.6 vT=7.5 lane 8091(e2544 d-1 i0) u=82.6/88.2 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+COLLISION t=251.28 imp 2286 at 2677.6 648.8
+   A 12: v=2.5 vT=10.1 lane 7742(e2420 d1 i0) u=75.2/88.2 lc -1 lat 0.00 nudge -2.89 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+   B 55: v=1.5 vT=1.1 lane 7742(e2420 d1 i0) u=80.0/88.2 lc -1 lat 0.00 nudge 0.00 obst 32.8(13) stop 0.8 dummy 0
+DEADLOCK t=251.3 car 24 at 2655.4 848.4 path 7750 u 55.4 node 1404 stopDist 25.4 obst 3.3 (body 80)
+DEADLOCK t=252.3 car 15 at 2685.3 848.4 path 7750 u 85.3 node 1404 stopDist 1000000000.0 obst 2.6 (body 67)
+DEADLOCK t=254.0 car 5 at 2715.1 849.8 path 8103 u 84.9 node 1404 stopDist 1000000000.0 obst 0.0 (body 91)
+DEADLOCK t=254.7 car 91 at 2714.3 852.2 path 8103 u 85.7 node 1404 stopDist 1000000000.0 obst 2.6 (body 48)
+DEADLOCK t=256.7 car 1 at 2695.1 884.4 path 8101 u 65.6 node 1404 stopDist 14.9 obst 2.5 (body 79)
+DEADLOCK t=258.1 car 78 at 2745.7 851.6 path 8103 u 54.3 node 1404 stopDist 26.7 obst 2.6 (body 94)
+DEADLOCK t=261.8 car 32 at 2647.8 848.4 path 7750 u 47.8 node 1404 stopDist 32.7 obst 2.6 (body 24)
+DEADLOCK t=272.2 car 90 at 2638.7 848.4 path 7750 u 38.7 node 1404 stopDist 41.5 obst 3.3 (body 32)
+DEADLOCK t=273.2 car 89 at 2704.9 816.5 path 8093 u 66.5 node 1404 stopDist 14.3 obst 2.6 (body 16)
+DEADLOCK t=276.1 car 99 at 2701.6 821.9 path 8092 u 71.9 node 1404 stopDist 8.3 obst 2.5 (body 22)
+DEADLOCK t=279.0 car 51 at 2751.9 851.6 path 8103 u 48.1 node 1404 stopDist 1000000000.0 obst 1.9 (body 78)
+DEADLOCK t=291.5 car 61 at 2759.2 851.6 path 8103 u 40.8 node 1404 stopDist 39.9 obst 2.5 (body 51)
+COLLISION t=294.43 imp 2622 at 2723.3 651.1
+   A 33: v=1.6 vT=2.5 lane 8091(e2544 d-1 i0) u=79.1/88.2 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1.7 dummy 0
+   B 43: v=2.9 vT=5.6 lane 8091(e2544 d-1 i0) u=74.3/88.2 lc -1 lat 0.00 nudge -3.15 obst 1000000000.0(-1) stop 6.4 dummy 0
+DEADLOCK t=296.9 car 81 at 2704.9 810.3 path 8093 u 60.3 node 1404 stopDist 20.5 obst 1.9 (body 89)
+
+==== Traffic metrics (300 s simulated, 100 cars, 80 peds, 8.33 vehicle-hours) ====
+collisions: 10 (1.20 per vehicle-hour), hard (>3000 Ns): 3 (0.36/veh-h)
+static impacts (walls/props >2500 Ns): 0, props broken: 0
+red-light violations: 1, stop-sign violations: 0
+stuck recoveries: 0, relocalizations: 0, deadlocks (>60 s waits): 29, respawns: 310
+pedestrians hit: 0
+average speed by road class (km/h):  boulevard 15.3 (1399 s)  avenue 9.9 (4127 s)  street 13.4 (21051 s)
+lane-center error (RMS, lanes, v>3 m/s): 0.106 m
+AI cost per 60 Hz tick: traffic 0.168 ms + peds 0.023 ms (avg), p50 0.179 ms, p99 0.328 ms, max 1.650 ms
+physics per 120 Hz step: 0.408 ms (100 cars)
+done

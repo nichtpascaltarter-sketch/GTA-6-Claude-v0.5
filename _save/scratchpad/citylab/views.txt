@@ -1,0 +1,21 @@
+# name kind ...
+calle_luna_air aerial 1771 357 380 200 38 55 10
+downtown_air aerial 3168 -243 650 210 30 55 14
+canvas_air aerial 3052 2022 450 200 38 55 16.5
+beach_air aerial 5079 1500 560 255 28 55 17.5
+north_city_air aerial 2600 4300 400 200 40 55 11
+grove_air aerial 1963 -3500 350 200 40 55 17
+westbrook_air aerial -1226 -594 350 200 40 55 12
+flats_air aerial 635 3089 420 200 38 55 13
+fort_castell_air aerial 4203 7601 420 200 38 55 13
+lake_town_air aerial 239 6735 350 200 38 55 10.5
+key_solano_air aerial -8086 -9205 350 200 40 55 15
+calle_luna_street street 1771 357 25 3 60 10
+downtown_street street 3168 -243 20 8 60 14
+beach_street street 5079 1500 25 8 60 17.5
+canvas_street street 3052 2022 25 4 60 16.5
+north_city_street street 2600 4300 25 3 60 11
+fort_castell_street street 4203 7601 25 3 60 13
+lake_town_street street 239 6735 25 3 60 10.5
+grove_street street 1963 -3500 25 3 60 17
+flats_street street 635 3089 25 3 60 13

@@ -1759,6 +1759,7 @@ void GameWorld::updateEvents(float dt) {
                             drivingAway++;
                             continue;
                         }
+                        if (p.state == PS_ENTERING) continue;   // (in through the door: ai.cpp ai_board - away once in)
                         Vehicle& v = vehicles[car];
                         if (v.seats[0] >= 0 || v.sim.wrecked || v.exploded || (p.brain.type != BRAIN_WANDER && p.brain.type != BRAIN_GOTO)) {
                             drivingAway++;
@@ -1767,6 +1768,7 @@ void GameWorld::updateEvents(float dt) {
                         const Vehicles::VehicleModel& spec = vassets[v.model].spec;
                         vec3 door = v.sim.body.pos.toVec3() + rotate(v.sim.body.rot, vec3(-(spec.boxHalf.x + 0.6f), 0.3f, 0.f));
                         vec2 toD = door.xy() - p.pos.toVec3().xy();
+                        if (length(toD) < 1.1f && ai_board::beginThen(*this, me, car, 0, 1)) continue;   // (the door clip, then away)
                         if (length(toD) < 1.1f || e.t > 25.f) {
                             warpPedIntoVehicle(me, car, 0);
                             p.brain.type = BRAIN_DRIVER;
@@ -2484,12 +2486,15 @@ void GameWorld::updateEvents(float dt) {
                     }
                     Ped& p = peds[drv];
                     if (p.state == PS_INVEHICLE) {
+                        if (p.vehicle == car) vehAI(car).role = VR_TRAFFIC;   // (in through the door: ai_board drove it off)
                         if (e.t > 12.f) over = true;
                         break;
                     }
+                    if (p.state == PS_ENTERING) break;   // (getting in through the door: ai.cpp ai_board)
                     if (e.t < 2.f) break;   // cheering
                     vec3 door = v.sim.body.pos.toVec3() + rotate(v.sim.body.rot, vec3(-(spec.boxHalf.x + 0.6f), 0.3f, 0.f));
                     vec2 toD = door.xy() - p.pos.toVec3().xy();
+                    if (length(toD) < 1.2f && e.t <= 20.f && ai_board::beginThen(*this, drv, car, 0, 1)) break;   // (the door clip, then away)
                     if (length(toD) < 1.2f || e.t > 20.f) {
                         warpPedIntoVehicle(drv, car, 0);
                         p.brain.type = BRAIN_DRIVER;
@@ -2575,10 +2580,14 @@ void GameWorld::updateEvents(float dt) {
                         setStage(e, ST_D);
                     }
                 } else if (e.stage == ST_D) {
-                    if (length(opos - copDoor) < 1.2f || e.t > 20.f) {
+                    // (in through the cruiser's door - ai.cpp ai_board, the door clip - and once in, both drive off)
+                    bool in = o.state == PS_INVEHICLE && o.vehicle == cop;
+                    if (!in && o.state == PS_ENTERING) break;
+                    if (!in && length(opos - copDoor) < 1.2f && e.t <= 20.f && ai_board::beginThen(*this, off, cop, 0, 2)) break;
+                    if (in || length(opos - copDoor) < 1.2f || e.t > 20.f) {
                         pedAI(off).eventId = -1;
                         pedAI(drv).eventId = -1;
-                        warpPedIntoVehicle(off, cop, 0);
+                        if (!in) warpPedIntoVehicle(off, cop, 0);
                         o.brain.type = BRAIN_DRIVER;
                         peds[drv].brain.type = BRAIN_DRIVER;
                         vc.parked = vp.parked = false;

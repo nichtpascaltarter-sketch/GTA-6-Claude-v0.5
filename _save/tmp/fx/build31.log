@@ -1,0 +1,9 @@
+Embedded 35 shader files.
+In file included from src/audio/audio_all.cpp:5,
+                 from src/main.cpp:53:
+src/audio/audio_internal.h: In constructor 'Audio::detail::AcousticState::AcousticState()':
+src/audio/audio_internal.h:201: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+  201 |         for (float& v : h) v = acoustics::kProbeHMax;
+      | 
+src/audio/audio_internal.h:201: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 11113984 Oct  1 00:14 /home/user/GTA-6-Claude-v0.5/bin/nt_fx31.exe

@@ -1,0 +1,47 @@
+start 04:07:06
+check done
+build after_st rc 0
+-rwxr-xr-x 1 root root 12406272 Oct  6 04:16 bin/loco_after_st.exe
+built after_st 04:16:12
+build before_st rc 0
+-rwxr-xr-x 1 root root 12397568 Oct  6 04:23 bin/loco_before_st.exe
+built before_st 04:23:34
+run before_st exit 137
+[ 154.148] locostairs: station Calle Luna, stair top 1815.4 -638.0 17.6, foot 1848.1 -638.0 3.1, 32.7 m long
+[ 164.611] locostairs: 8 walkers
+run before_st incomplete, retrying
+run before_st exit 0
+[ 144.428] locostairs: station Calle Luna, stair top 1815.4 -638.0 17.6, foot 1848.1 -638.0 3.1, 32.7 m long
+[ 154.099] locostairs: 8 walkers
+[1532.824] locostairs up   steps  980 | slide cm/step mean 4.95 p90 13.31 max 43.55 | scuffs 420
+[1532.824] locostairs up   planted foot-frames 11043 | across a riser 83.2% | sunk 1 cm 64.3%, 3 cm 60.1% | lifted 8.8% | lowest sole -220.8 mm
+[1532.825] locostairs down steps  819 | slide cm/step mean 30.71 p90 65.40 max 96.99 | scuffs 722
+[1532.825] locostairs down planted foot-frames 8028 | across a riser 82.2% | sunk 1 cm 53.4%, 3 cm 51.3% | lifted 5.7% | lowest sole -254.9 mm
+[1532.825] locostairs trips 0 | peds cpu 1.79 ms per frame (mean over 3002 frames)
+ran before_st 05:04:58
+run after_st exit 0
+[ 145.145] locostairs: station Calle Luna, stair top 1815.4 -638.0 17.6, foot 1848.1 -638.0 3.1, 32.7 m long
+[ 154.084] locostairs: 8 walkers
+[1538.302] locostairs up   steps  964 | slide cm/step mean 1.51 p90 4.45 max 14.59 | scuffs 531
+[1538.302] locostairs up   planted foot-frames 11123 | across a riser 88.2% | sunk 1 cm 16.5%, 3 cm 16.0% | lifted 19.3% | lowest sole -182.6 mm
+[1538.303] locostairs down steps  745 | slide cm/step mean 38.21 p90 73.51 max 107.80 | scuffs 691
+[1538.303] locostairs down planted foot-frames 8129 | across a riser 77.7% | sunk 1 cm 65.3%, 3 cm 63.3% | lifted 5.9% | lowest sole -299.1 mm
+[1538.303] locostairs trips 0 | peds cpu 1.81 ms per frame (mean over 3002 frames)
+ran after_st 05:37:47
+== before_st
+[ 144.428] locostairs: station Calle Luna, stair top 1815.4 -638.0 17.6, foot 1848.1 -638.0 3.1, 32.7 m long
+[ 154.099] locostairs: 8 walkers
+[1532.824] locostairs up   steps  980 | slide cm/step mean 4.95 p90 13.31 max 43.55 | scuffs 420
+[1532.824] locostairs up   planted foot-frames 11043 | across a riser 83.2% | sunk 1 cm 64.3%, 3 cm 60.1% | lifted 8.8% | lowest sole -220.8 mm
+[1532.825] locostairs down steps  819 | slide cm/step mean 30.71 p90 65.40 max 96.99 | scuffs 722
+[1532.825] locostairs down planted foot-frames 8028 | across a riser 82.2% | sunk 1 cm 53.4%, 3 cm 51.3% | lifted 5.7% | lowest sole -254.9 mm
+[1532.825] locostairs trips 0 | peds cpu 1.79 ms per frame (mean over 3002 frames)
+== after_st
+[ 145.145] locostairs: station Calle Luna, stair top 1815.4 -638.0 17.6, foot 1848.1 -638.0 3.1, 32.7 m long
+[ 154.084] locostairs: 8 walkers
+[1538.302] locostairs up   steps  964 | slide cm/step mean 1.51 p90 4.45 max 14.59 | scuffs 531
+[1538.302] locostairs up   planted foot-frames 11123 | across a riser 88.2% | sunk 1 cm 16.5%, 3 cm 16.0% | lifted 19.3% | lowest sole -182.6 mm
+[1538.303] locostairs down steps  745 | slide cm/step mean 38.21 p90 73.51 max 107.80 | scuffs 691
+[1538.303] locostairs down planted foot-frames 8129 | across a riser 77.7% | sunk 1 cm 65.3%, 3 cm 63.3% | lifted 5.9% | lowest sole -299.1 mm
+[1538.303] locostairs trips 0 | peds cpu 1.81 ms per frame (mean over 3002 frames)
+orch3 done 05:37:47

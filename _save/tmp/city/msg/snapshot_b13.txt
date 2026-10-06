@@ -1,0 +1,81 @@
+city snapshot-safe: batches 6 + 8 + 9 in one sign-off (Keys and town houses, frontage fill and mobile homes, Craftsman / Mission / Foursquare house forms) plus your roads.cpp street-suffix fix. The 9 world files are copied into the shared tree on top of main 9e7ace0 (its src/world equals 8fb1e66's apart from PR #35's propmesh.cpp, which I don't touch). The blobs are written to the object store with git hash-object -w. MinGW syntax check in the shared tree (x86_64-w64-mingw32-g++-posix -std=c++17 -fsyntax-only -Ibuild/gen -Isrc src/main.cpp): 0 errors, 0 warnings; log /tmp/city/syntax_shared_b13.log.
+
+FILES (src/world), new blob (HEAD blob):
+- buildings.h 167c309fd59e73675c8c61fe195d70799312fd32 (HEAD a2221ad)
+- buildings.cpp b23f85d79a45efcbb8f7c04dcdf9a9c271e3c902 (HEAD 8eb43d4)
+- buildmesh.cpp 2215873c9fffd27130b0fef0239033d32051ac93 (HEAD f7d6ee6)
+- facadedetail.cpp c9f48bb9122f80e86d969c10a6e34d33f0faf4a9 (HEAD 37e7bad)
+- cellgen.cpp 93a2a0f7d542937a10548809e3f53268d9172a28 (HEAD a50f39b)
+- blockstyle.cpp 6dceec146c9fe83ff3a4fa78d6ba5ff3e0eb20d8 (HEAD 729fab9)
+- massing.cpp 22538b018bc162a188db70dd984b1244a41ddf98 (HEAD d603131)
+- sitegeo.cpp 2afd2c815ef130cda493d1809b3483dbd1700f53 (HEAD 6e38bbe)
+- roads.cpp 4569edfb93a3620c789d5b606f4fbfd3c6736a4a (HEAD 2d13c45)
+
+CHANGELOG (player-facing)
+Batch 6:
+- Keys motels: two in five now have a tin hip roof instead of the gable. Their gallery rails are painted white or, on just over half, turquoise, sea green, coral or butter yellow, and the gallery posts are white. Before, every Keys motel in Key Solano had the same gable and brown rails.
+- Painted porch trim: on town houses (bungalows, conch houses, folk Victorians, two-storey houses), the porch posts, rails and brackets, the upper gallery's posts and rails, the ceiling under the gallery roof and the gable trusses take the house's trim colour. Before, they showed the brown wood texture under a white tint. The deck rails of the raised Keys houses are painted too. Farmhouses and fishing shacks keep bare wood.
+- Eyebrow houses: on most two-storey conch houses without a double gallery, the front eave comes down over the upper windows (Key West's eyebrow house), in tin over a painted soffit.
+- Side-gabled ranches and block houses: a third of the ranch houses and a fifth of the block houses have a side-gable roof instead of the hip, so a Westbrook street is no longer one run of hip roofs. The gable ends are a lighter shade of the wall colour.
+- Flat-roofed Mediterranean Revival houses: a quarter of the Mediterranean houses (not the ones with a corner tower) have a flat roof behind a stucco parapet, with a barrel-tile pent along the street front, as in Coral Gables and Miami Shores.
+Batch 8:
+- Vacant lots and street parking. The bare ground left along the streets of the towns (Okahatchee, Harlow, Fort Castell, Key Solano, Ten Palms) and the older city (Calle Luna, North Porto Sol, the Flats, Midtown) is filled in by district:
+  - vacant lots of rough grass, green and dry straw, with patches of bare earth (sand in the Keys). Some have the slab and driveway apron of a house or shop long gone, a realtor's FOR SALE board near the sidewalk, a tree or two and scrub;
+  - small street parking lots: painted stalls, a lamp, a low wall along the sidewalk with the entrance at one end, and a P sign (PARKING, CUSTOMER PARKING, PUBLIC PARKING, PARKING $5);
+  - side yards in the towns: lawn, a board fence or block wall at the back and one side, trees;
+  - on the industrial streets of the Flats and Fort Castell: paved yards, some behind a block wall.
+  Before, a small-town block often had three or four houses on a side with open ground between them, and from the air the blocks read as empty.
+- Mobile homes in Ten Palms, the Keys, Harlow, Okahatchee and Fort Castell and on the farms. A single-wide or double-wide is a long low box on a vinyl-lattice or block skirt. It has lap siding in white, cream or a pale colour, small windows (half of them under aluminium awnings) and, on the older ones, a painted band. The roof is a low tin gable or a shingled roof-over. A wooden deck with steps and a rail stands at the door, some under an aluminium awning, and most in town have a carport. Lots are open, or have a post-and-rail or metal fence.
+- Temple-front conch houses: some conch houses in Key Solano, Ten Palms and the Keys have a gable-fronted bay forward of the front. The porch (or the two-level gallery) stands on the longer set-back front beside it, where the door is.
+- Keys motels with a lower office end: some of the Keys motels are two buildings, the two-storey room block with its gallery and a one-storey office end with its own roof.
+- L-shaped conch houses: the porch, or the two-level gallery, stands in the inner corner beside the front leg and reaches out to the leg's face, with the door under it. Before, it ran across the whole front at the leg's face and floated in front of the set-back part, with the roof behind showing through the gap.
+- Gallery ceilings: under the upper deck of a conch house's two-level gallery, the lower porch's ceiling is painted - white trim, or in the Keys on half of them the pale haint blue. Before, it was bare brown boards.
+Batch 9:
+- Bungalows now come in several types instead of one gabled box:
+  - Craftsman side-gabled bungalows: the roof runs on down over a porch across the whole front, with a shed or gable dormer on top.
+  - Hipped bungalows with a small hipped dormer.
+  - "Airplane" bungalows with a small windowed room sitting astride the ridge.
+  - In Calle Luna, North City, the Flats and Midtown (and a few in Westbrook and the Grove): stucco Mission bungalows with a flat roof, a curved gable over the front and a stucco loggia porch.
+- American Foursquares in Okahatchee, Harlow, Fort Castell and the farm towns, with some in the city: square two-storey houses with a pyramid roof, a hipped dormer and a porch across the front.
+- Craftsman porches: square columns on brick or stone piers with knee walls between them. Some foursquares have round columns instead.
+- Earth-tone board siding on the Craftsman houses in the towns (sage, olive, brown, barn red, mustard, slate) with cream trim. Foursquares come in brick, board or stucco.
+- Bungalow porches now stand over the front door, and the rail is open at the door and at the spot where a resident stands.
+- Flat-roofed Mediterranean houses: their parapet now has an outer face. Before, it showed as a thin edge.
+Roads:
+- The Grove's east-west streets get proper suffixes (Street, Avenue, Drive, Way, Road, Terrace, Court, Place, Lane, Boulevard). Most of them used to borrow a word from the street-name list instead, e.g. "Coral Gulfstream".
+
+TESTS. The build under test is /tmp/city/nt_dev13.exe: main d3c2c3f plus these 9 files. Its src/world is identical to 9e7ace0's apart from PR #35's propmesh.cpp.
+- Story regression (missiontest story): 27/27 passed, 0 changed against batch 5, no segfault (/tmp/city/reg_dev13_log.txt). Bagman passed at stage 8.
+- Story places: identical to batch 5. Same building count (35,617), same block infill, story places resolved at the same positions.
+- Transit and road setup log lines: bus routes, streetcar stops and stations are identical to batch 5's regression log. Only the runtime status lines differ. There is one more "Transit: 0 buildings cleared from the SkyLine corridor" line: batch 8's frontage fill prunes its open lots against the corridor. No warnings.
+- The street-suffix fix: no stop names or places changed in those logs.
+- ASan + bounds worldcheck on these files (-O1, no -g, recover): 0 reports, worldcheck passed. It covers all 2,139 cells at full detail: 657,181 colliders and 419,045 props, none in drivable lanes. Log: /tmp/city/wc_dev13_asan2.txt. The first run, before your roads fix, stopped at the roads.cpp:544 overflow.
+- MinGW on the private tree: 0 errors, 0 warnings.
+- In-game shots: all 43 on nt_dev13 are reviewed, in /tmp/city/dev13_shots:
+  - batch 9: Craftsman side gables, hipped and airplane bungalows, foursquares, Mission bungalows, the Mediterranean parapet;
+  - batch 8: vacant lots, street parking, side and service yards, mobile homes, temple-front and L conch houses, a Keys motel's office end;
+  - batch 6: Keys motels, an eyebrow house, a flat-roofed Mediterranean house, Westbrook's side gables.
+- The segfault in the first batch 6 regression (01:52, mission 10, bagman, stage 7) did not come back:
+  - 0 segfaults in 3 isolated runs each on nt_dev9 and on plain main 8fb1e66 (nt_m8);
+  - the isolated runs all time out at stage 7, because the SkyLine comes later when bagman runs alone;
+  - this full regression passed bagman.
+  - It is still unexplained.
+- Frame cost:
+  - Still one draw per visible cell: no draws added.
+  - Building triangles (citylab) at tour stops 2/3/4/5:
+    - near ring (420 m): 116k/79k/223k/163k, unchanged from batch 5;
+    - far ring (2.3 km): 125.9k/121.8k/133.2k/49.7k → 127.4k/123.8k/135.3k/49.7k.
+  - Batch 8's open lots add their own triangles at the four stops: near 4.9k/0.4k/24.6k/4.0k, far 4.1k/3.5k/5.1k/1.3k.
+  - Whole-map far LOD: 1.070 M → 1.100 M.
+  - Near rings: Westbrook 863.6k → 869.5k, Key Solano 495.4k → 475.3k (mobile homes replace some of the porch-heavy conch and raised houses), the Grove 486.8k → 489.2k.
+  - The in-game tours on nt_dev13 are running now: stops 2-5, then 13-15. Their draws, triangles and streaming follow.
+- Repetition (debug log metric), batch 5 → this: 2.9% → 2.1% overall.
+  - Westbrook 3.7 → 2.7, Okahatchee 4.9 → 3.5, Harlow 4.4 → 2.8, Key Solano 5.4 → 2.5.
+  - Ten Palms 11.3 → 1.6, mostly because the signature now counts the stilt houses' roof and deck kinds and the mobile homes' width and roof. Those always varied in the geometry but weren't counted.
+
+EVIDENCE ($S = /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad)
+- In game, nt_dev13: $S/city/sheets/game_b9/{bungalows,airplane_foursquare,foursquare_mission,b8_frontage,b8_mobile_conch,b6_keys}_ingame.png
+- Batch 6 before/after in game: $S/city/sheets/game_b6/pairs_{keys_motels,eyebrow_stilt,rest}.png
+- Batch 9 before/after in clay: $S/city/sheets/clay_b9/{forms_pairs1,forms_pairs2,med_parapet}.png
+
+NEXT: a small batch to drop the storefront glass stopgap (blockstyle.cpp:866 facadeFor, :922 towerLook), on top of this, now that PR #35 is merged.

@@ -1,0 +1,123 @@
+[   0.014] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.671] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB
+[   0.688] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.817] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   0.952] UI font 'Impact' -> 'Liberation Sans'
+[   1.084] Font atlas built in 0.40 s
+[   1.148] Audio: no output device - audio disabled
+[   1.148] Audio: no output device, continuing silently
+[   3.220] UI icon atlas: 86 icons + 13 weapons in 1931 ms
+[  25.486] Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.12 s)
+[  28.199] World map generated in 27.05 s
+[  29.084] Road gen: 22 interchanges
+[  34.571] Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (6.37 s)
+[  43.731] Buildings: 36093 (towers 358, midrise 2400, condo 485, deco 838, shops 4829, strip 693, houses 21872, villas 928, warehouses 1686) in 8.87 s
+[  43.738] Sites: 66 highway billboards
+[  43.739] Sites: 112 silos, 55 windmills
+[  43.757] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  43.757] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  43.757] Site terminal             at (628, 1440, 4.6)
+[  43.757] Site control tower        at (730, 1832, 4.6)
+[  43.757] Site container ship       at (4625, -800, 0.0)
+[  43.757] Site container ship       at (4616, -330, 0.0)
+[  43.757] Site port gate            at (4008, -160, 3.0)
+[  43.757] Site Key Coral marina     at (4039, -4035, 0.0)
+[  43.757] Site beach club           at (4873, -3866, 1.2)
+[  43.758] Site beach club           at (4808, -4183, 2.2)
+[  43.758] Site Solaris One          at (3350, -750, 1.4)
+[  43.758] Site stadium              at (3565, 445, 1.6)
+[  43.758] Site City Hall            at (3000, 372, 2.0)
+[  43.758] Site Canvas Park          at (3100, 1800, 1.7)
+[  43.758] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  43.758] Site Ferris wheel         at (5504, 1270, 5.6)
+[  43.758] Site lighthouse           at (-2206, -8000, 0.5)
+[  43.758] Site radio mast           at (-6744, 7248, 166.1)
+[  43.758] Site sugar mill           at (1430, 7500, 8.1)
+[  43.758] Site Rio Sol marina       at (2280, 188, 0.0)
+[  43.758] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  43.758] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  43.758] Sites finalized: 557 elements (0.02 s)
+[  43.764] Interiors: 7 planned (convenience 7) in 6.1 ms
+[  43.764]   interior 'TideStop Mart' kind 8 building 3378 at (1449.11, -259.30, 4.30) ax (-1.0000, -0.0000) x -6.22..6.22 depth 17.00 ceil 3.45: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  43.764]   interior 'Bodega La Luna' kind 8 building 6349 at (2248.50, 540.78, 2.92) ax (-1.0000, -0.0000) x -5.89..5.89 depth 17.00 ceil 3.52: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  43.764]   interior 'Canvas Corner Market' kind 8 building 8799 at (2981.20, 1582.59, 2.26) ax (0.0000, 1.0000) x -8.23..4.94 depth 17.00 ceil 3.44: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  43.764]   interior 'Sunrise Food Mart' kind 8 building 31838 at (5227.60, 643.36, 1.78) ax (0.0000, 1.0000) x -7.92..7.92 depth 17.00 ceil 3.66: 2 rooms, 7 openings, 2 doors, 7 portals, 5 npc points
+[  43.764]   interior 'Northside Quick Stop' kind 8 building 6599 at (2352.84, 3761.68, 3.08) ax (1.0000, 0.0000) x -6.39..6.39 depth 17.00 ceil 3.53: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  43.764]   interior 'Flats Food & Fuel' kind 8 building 1225 at (458.12, 3265.33, 5.16) ax (1.0000, 0.0000) x -5.58..5.58 depth 17.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 5 npc points
+[  43.764]   interior 'Grove Pantry' kind 8 building 12464 at (2167.47, -3046.89, 2.30) ax (0.0184, -0.9998) x -6.03..6.03 depth 17.00 ceil 3.78: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  44.023] Material library: 57 layers at 256^2
+[  44.083] Props: 51 prototypes, 22665 verts
+[  57.009] Vehicle assets: 45 models in 10.59 s
+[  76.279] Character assets: 86 characters in 19.22 s
+[  76.279] Game assets built in 29.86 s
+[  76.490] Story place near (4450, -4200): no building frontage found, using the street
+[  76.663] Story place near (800, -5400): no building frontage found, using the street
+[  76.896] Story places resolved in 616.5 ms (diner 1327 362, Mari's 1720 362, Rook's 1576 2265, Pulse FM 3356 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[  77.001] Missions registered: 36
+[  86.112] Lane graph: 26691 lanes, 59937 connectors (1215831 pts), 36768 walk nodes, 53089 walk links, dead-end turning circles moved 0 / obstructed 0 (9.11 s)
+[  87.986] UI map: base 2560x2560 in 1581 ms, 10030 roads (46402 pts) in 65 ms, 30 labels in 157 ms
+[  87.986] hudInit done in 1803 ms
+[  87.986] Init done in 86.84 s (shaders: 0 compiled in 0.00 s)
+[ 235.916] GPU timers (frame 30):
+sky                 34.49 ms
+shadows            2185.84 ms
+envprobe           1399.94 ms
+grass place          0.90 ms
+gbuffer            791.92 ms
+decals               0.00 ms
+hiz+pyramid        110.17 ms
+ao+gi               44.83 ms
+ssr                  0.00 ms
+particles sim        0.00 ms
+clouds             200.56 ms
+fog                274.34 ms
+lighting            19.28 ms
+water               51.17 ms
+glass                0.04 ms
+particles            1.03 ms
+rain                 0.00 ms
+post                57.17 ms
+
+[ 401.097] GPU timers (frame 60):
+sky                 28.01 ms
+shadows            2154.99 ms
+envprobe           1370.69 ms
+grass place          1.03 ms
+gbuffer            890.21 ms
+decals               0.00 ms
+hiz+pyramid        101.99 ms
+ao+gi               50.90 ms
+ssr                  0.02 ms
+particles sim        0.03 ms
+clouds             186.34 ms
+fog                346.31 ms
+lighting             5.26 ms
+water               43.22 ms
+glass                0.36 ms
+particles            3.95 ms
+rain                 0.00 ms
+post               108.20 ms
+
+[ 564.013] Saved Z:\tmp\fx\r2\gold_west.bmp
+[ 564.020] GPU timers (frame 90):
+sky                 34.36 ms
+shadows            2267.41 ms
+envprobe           657.99 ms
+grass place          5.28 ms
+gbuffer            899.18 ms
+decals               0.00 ms
+hiz+pyramid        136.06 ms
+ao+gi               49.45 ms
+ssr                 45.82 ms
+particles sim        0.00 ms
+clouds             214.70 ms
+fog                283.52 ms
+lighting            19.56 ms
+water               32.38 ms
+glass                0.03 ms
+particles            1.09 ms
+rain                 0.00 ms
+post               117.98 ms
+
+[ 649.919] Saved Z:\tmp\fx\r2\dry_night.bmp
+[ 657.737] Shutdown complete.

@@ -320,6 +320,10 @@ using namespace police_detail;
 //      with a hand on their arm; with no car close (an officer on a foot beat), one is called and the suspect sits on
 //      the kerb until it pulls over next to them; the car then drives off with them
 float aiCarEndToWalkRound(const GameWorld& g, int veh, float pref);   // ai.cpp: the end of a car to walk round (no car parked there)
+namespace ai_board {   // ai.cpp: getting into a car through its door (GameWorld::startCarEntry; PS_ENTERING while the clip runs)
+bool begin(GameWorld& g, int id, int veh, int seat);
+void boarded(GameWorld& g, int id, int veh, int seat);
+}  // namespace ai_board
 vec2 aiWalkRound(GameWorld& g, int id, vec2 goal, float want, float dt);   // ai.cpp: round a bench / planter in the way
 namespace police_statement {
 bool begin(GameWorld& g, int cop, vec2 scene);   // (below: a witness's statement once the suspect is in the car)
@@ -585,7 +589,7 @@ void escortStep(GameWorld& g, int id, float dt) {
         float d = length(to);
         if (d > 1.5f) desired = to / d * Min(2.6f, d * 1.5f);
         faceYaw = atan2f(-to.x, to.y);
-        if (g.ai.ped[s].clipTimer > 0.f && d < 1.6f && sp.state == PS_ONFOOT && !sp.ragdoll) {
+        if (g.ai.ped[s].clipTimer > 0.f && d < 1.6f && (sp.state == PS_ONFOOT || sp.state == PS_ENTERING) && !sp.ragdoll) {
             pa.reachAt = g.pedHeadPos(sp) + vec3(0.f, 0.f, 0.12f);
             pa.reachT = g.time + 0.2;
         }
@@ -3345,6 +3349,7 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
             vec2 tov = vp3.xy() - pos;
             float dv = length(tov);
             if (dv > 3.f) {
+                pa.doorWalkT = 0.f;
                 vec2 st = aiWalkRound(*this, id, vp3.xy(), 2.6f, dt) - pos;   // (round a bench or a planter on the way)
                 desired = st / Max(length(st), 1e-3f) * 2.6f;
                 faceYaw = atan2f(-desired.x, desired.y);
@@ -3396,16 +3401,29 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
                 bool driverFree = vehicles[hv].seats[0] < 0;
                 int seat = driverFree ? 0 : freeSeat(hv, false);
                 if (seat >= 0) {
-                    warpPedIntoVehicle(id, hv, seat);
-                    b.type = seat == 0 ? BRAIN_DRIVER : BRAIN_PASSENGER;
-                    b.target = -1;
-                    vehicles[hv].sirenOn = false;
-                    vehicles[hv].sirenSilent = false;
-                    vehicles[hv].parked = false;
-                    vehAI(hv).task = PT_NONE;
-                    vehAI(hv).role = VR_POLICE;
-                    vehAI(hv).copBreak = 0;
-                    return;
+                    // to that seat's door (round the car to one on the far side) and in through it - ai_board: the door clip,
+                    // back on patrol once in (ai_board::boarded); 8 s without getting to the door: in all the same
+                    const Vehicles::VehicleModel& hs = vassets[vehicles[hv].model].spec;
+                    vec2 door = vp3.xy();
+                    if (seat < (int)hs.seats.size()) {
+                        bool dl = hs.seats[seat].exitLeft;
+                        door = (vp3 + rotate(vehicles[hv].sim.body.rot, vec3(dl ? -(hs.boxHalf.x + 0.45f) : hs.boxHalf.x + 0.45f,
+                                                                             hs.seats[seat].pos.y - (seat == 0 ? 0.2f : 0.f), 0.f))).xy();
+                    }
+                    vec2 tod = door - pos;
+                    pa.doorWalkT += dt;
+                    if (length(tod) > 0.7f && pa.doorWalkT < 8.f) {
+                        float spd = Min(1.8f, length(tod) * 2.f + 0.4f);
+                        vec2 st = aiWalkRound(*this, id, door, spd, dt) - pos;
+                        desired = (length(st) > 1e-3f ? normalize(st) : normalize(tod)) * spd;
+                        faceYaw = atan2f(-desired.x, desired.y);
+                    } else {
+                        pa.doorWalkT = 0.f;
+                        if (ai_board::begin(*this, id, hv, seat)) return;
+                        warpPedIntoVehicle(id, hv, seat);
+                        ai_board::boarded(*this, id, hv, seat);
+                        return;
+                    }
                 }
             }
         } else {

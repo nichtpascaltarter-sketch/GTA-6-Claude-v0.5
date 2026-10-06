@@ -1,0 +1,12 @@
+--- w/src/shaders/lighting.hlsl	2026-10-06 05:00:39.433445361 +0000
++++ wb/src/shaders/lighting.hlsl	2026-10-06 06:02:54.452553993 +0000
+@@ -376,7 +376,8 @@
+         // Leaf / frond / blade translucency: sunlight through the thin tissue, strongest looking into the sun (the
+         // golden-hour glow of backlit palms and grass), tinted by the leaf (light leaves saturated yellow-green).
+         // Shadowed by other geometry, not by the leaf itself: sampled beyond the leaf towards the sun.
+-        float back = saturate(dot(-N, L)) * 0.45 + pow(saturate(dot(V, -L)), 4.0) * 1.3;
++        // (the forward lobe is the sun's: the dim, small moon gives backlit grass no glow worth the name)
++        float back = saturate(dot(-N, L)) * 0.45 + pow(saturate(dot(V, -L)), 4.0) * (gSunColor.w > 0.5 ? 0.3 : 1.3);
+         if (back > 0.01) {
+             float shT = sampleSunShadowGeo(relPos + L * 0.4, L, dot(relPos, gCamForward.xyz), uint2(0, 0)) * cloudShadowAt(relPos);
+             float3 tint = diffColor * (0.55 + diffColor * 2.2);

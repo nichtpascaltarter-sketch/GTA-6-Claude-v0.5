@@ -1,0 +1,51 @@
+Audio: no output device - audio disabled
+init() -> false (expected false on Linux: null backend)
+Audio: no output device - audio disabled
+bank + first render: 0.85 s
+== SFX
+== Engines
+== Emitters
+== Radio
+  Neon Coast 88.1              Synthwave / Retro 80s    rms -18.3 dB peak 0.95  now: Chrome Knights - Downtown Hologram
+  The Heat 97.3                Hip-Hop / Trap           rms -19.8 dB peak 0.60  now: Kilo Coast - Humidity
+  Radio Calor 101.5            Reggaeton / Latin Pop    rms -18.9 dB peak 0.89  now: Cami Playa - Fuego en la Playa
+  Pulse FM 104.8               House / EDM              rms -18.1 dB peak 0.83  now: Solar Assembly - Only Up From Here
+  Riptide Rock 93.7            Rock                     rms -18.4 dB peak 0.95  now: The Rolling Wires - Bad Blood Boulevard
+  Blue Lagoon Lounge 90.9      Jazz Lounge              rms -18.0 dB peak 0.72  now: Hazel Beaumont Trio - Moonlight over the Keys
+  Sawgrass Country 99.5        Country / Americana      rms -18.3 dB peak 0.95  now: Tammy Pruitt - Porch Light
+  Tidepool FM 106.1            Lo-Fi / Chillhop         rms -19.3 dB peak 0.95  now: humid dreams - leftover rice
+  Palmera Public Talk 1040 AM  Talk Radio               rms -18.8 dB peak 0.88  now: 
+== Score
+  intensity 0.1 rms -26.3 dB
+  intensity 0.4 rms -19.7 dB
+  intensity 0.7 rms -18.6 dB
+  intensity 1.0 rms -17.7 dB
+== Ambience
+  city_day         rms -33.9 dB peak 0.11
+  city_night       rms -35.2 dB peak 0.29
+  forest_day       rms -38.3 dB peak 0.13
+  forest_night     rms -44.8 dB peak 0.10
+  beach_day        rms -34.1 dB peak 0.11
+  wetland_evening  rms -41.3 dB peak 0.11
+  storm            rms -24.1 dB peak 0.43
+  underwater       rms -30.0 dB peak 0.15
+== Speech
+== Stress
+== Drum kits (spectral sanity)
+  kit retro80s  kick<150Hz 96%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 91%
+  kit trap      kick<150Hz 96%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 90%
+  kit boombap   kick<150Hz 94%  closedHat>5k 78%  openHat>5k 88%  snare 150-10k 99%
+  kit dembow    kick<150Hz 96%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 90%
+  kit house     kick<150Hz 97%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 90%
+  kit rock      kick<150Hz 95%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 96%
+  kit jazz      kick<150Hz 100%  closedHat>5k 100%  openHat>5k 99%  snare 150-10k 97%
+  kit country   kick<150Hz 95%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 96%
+  kit lofi      kick<150Hz 94%  closedHat>5k 95%  openHat>5k 73%  snare 150-10k 100%
+  kit score     kick<150Hz 96%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 96%
+== Block-boundary clicks
+  siren_moving             boundary max d2 0.0639 vs interior p99.9 0.0668
+== Performance
+  perf (20 engines + 8 emitters): mixer 6.66% of one core, music production (radio + score) 2.57%
+  perf (6 engines + 2 emitters): mixer 4.95% of one core, music production (radio + score) 2.86%
+
+1081 checks, 0 failures, 26.5 s

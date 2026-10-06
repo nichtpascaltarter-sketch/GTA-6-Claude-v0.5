@@ -1,0 +1,293 @@
+Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+Places: Palmera Speedway at (400, 5790), ground 6.8
+Places: layout 0.001 s, 5 places, 624 anchors
+Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.04 s)
+World map generated in 16.95 s
+Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km (4.24 s)
+Transit: 0 buildings cleared from the SkyLine corridor
+Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+Places: after the lots 0.183 s
+Buildings: 35617 (towers 352, midrise 2411, condo 427, deco 688, shops 4600, strip 640, houses 22192, villas 901, warehouses 1620) in 2.26 s
+Sites: 69 highway billboards
+Sites: 155 silos, 50 windmills
+Sites: 245 beach access paths
+Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.01 s)
+Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+Transit: 4 bus routes, 64 stops (48 new shelters) (0.01 s); rejects class 1107 cut 1945 deck 72 road 119 avoid 0 pad 2 furn 283 stop 0
+Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.01 s)
+Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.05 s)
+Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 1486 elements (0.06 s)
+Interiors: 29 planned (convenience 7, gun shops 2) in 9.1 ms
+  interior 'Mari's Apartment' kind 0 building 28142 at (1771.22, 359.23, 3.77) ax (1.0000, 0.0000) x -6.55..2.18 depth 11.50 ceil 3.84: 3 rooms, 3 openings, 3 doors, 3 portals, 0 npc points
+  interior 'Mama Lucha's' kind 2 building 26747 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+  interior 'Rook's Garage' kind 3 building 27288 at (1562.94, 2361.63, 4.30) ax (1.0000, 0.0000) x -9.74..9.74 depth 20.00 ceil 7.11: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+  interior 'Dex's Trailer' kind 1 building 25527 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+  interior 'Police Headquarters' kind 5 building 32504 at (3167.89, -240.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+  interior 'Tidewater General Hospital' kind 6 building 35599 at (1692.75, 1073.40, 3.63) ax (1.0000, 0.0000) x -9.55..9.55 depth 16.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+  interior 'Palmetto Arms' kind 7 building 25538 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+  interior 'Northside Arms' kind 7 building 32997 at (3284.62, 4017.67, 2.09) ax (0.0000, 1.0000) x -6.33..6.33 depth 14.00 ceil 4.03: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+  interior 'Threads' kind 9 building 19677 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+  interior 'Port Isle Warehouse' kind 12 building 35552 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+  interior 'TideStop Mart' kind 8 building 26846 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Bodega La Luna' kind 8 building 29652 at (2242.71, 540.72, 2.92) ax (-1.0000, -0.0000) x -5.85..5.85 depth 17.00 ceil 4.19: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+  interior 'Canvas Corner Market' kind 8 building 32545 at (3090.56, 1476.66, 2.21) ax (0.0000, 1.0000) x -7.40..7.40 depth 17.00 ceil 3.92: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Sunrise Food Mart' kind 8 building 19719 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Northside Quick Stop' kind 8 building 29914 at (2304.43, 3761.63, 3.12) ax (1.0000, 0.0000) x -6.89..6.89 depth 17.00 ceil 4.12: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Flats Food & Fuel' kind 8 building 24842 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+  interior 'Grove Pantry' kind 8 building 1182 at (2175.56, -3114.24, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Palm Motors' kind 17 building 31294 at (2686.87, 1279.16, 2.69) ax (0.0000, 1.0000) x -9.08..12.11 depth 20.00 ceil 3.90: 2 rooms, 8 openings, 3 doors, 8 portals, 5 npc points
+  interior 'Tide Customs Calle Luna' kind 18 building 29601 at (2278.47, -140.75, 2.99) ax (1.0000, 0.0000) x -7.61..7.61 depth 18.00 ceil 4.17: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+  interior 'Tide Customs Sol Beach' kind 18 building 19788 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+  interior 'Sunwash Car Wash' kind 19 building 29044 at (1988.34, 1491.32, 3.44) ax (0.0000, 1.0000) x -7.41..7.41 depth 20.00 ceil 8.08: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+  interior 'Key Coral Villa' kind 0 building 23718 at (4515.96, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+  interior 'Sol Beach Condo Lobby' kind 20 building 19771 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+  interior 'Sol Beach Condo' kind 21 building 19771 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+  interior 'Downtown Penthouse Lobby' kind 20 building 33543 at (3511.22, -715.16, 1.71) ax (-0.0000, -1.0000) x -5.25..5.25 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+  interior 'Downtown Penthouse' kind 21 building 33543 at (3511.22, -715.16, 52.15) ax (-0.0000, -1.0000) x -10.49..10.49 depth 14.00 ceil 2.80: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+  interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+  interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+  interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+Buildings: 33931 restyled by district palettes in 80.4 ms (taxpayer 1391, 1920s block 924, med revival 774, mimo shop 1036, bodega 339, arcade 118, gallery 11, walk-up 497, mimo apts 763, med apts 530, office 60s 129, modern 372, loft 80, condo slab 134, glass condo 113, mimo hotel 97, podium condo 78, ranch 5468, bungalow 2844, med house 3406, two-storey 2416, mimo house 1920, split level 2251, conch 281, modern villa 190, streamline 176, med hotel 117, mimo motel 133, sawtooth 540, ware office 551, body shop 282, med villa 307, colonial villa 135, stilt house 73, mimo motor court 161, med motel 90, keys motel 113, motor inn 90, mission strip 199, mimo strip 186, power center 255, gambrel barn 34, pole barn 43, gable barn 24, mission church 47, board church 46, brick church 25, a-frame church 43, cbs house 3244, folk victorian 438, raised keys house 66)
+Transit: 0 buildings cleared from the SkyLine corridor
+Buildings: block infill 3457 back buildings (garage rows 719, sheds 1872, back houses 866, 0 in the viaduct corridor dropped, 1213 near a street left as yards), 1465 rear parking lots, 5755 yards in 164.1 ms
+Buildings: repetition (neighbours within 150 m with the same style, archetype, massing, roof, height band and facade pattern): 2.9% overall, 46% of buildings without a twin; by district: Downtown Porto Sol 2.8%, Solaris 2.7%, Canvas District 0.8%, North Porto Sol 1.2%, Calle Luna 1.4%, Sol Beach 1.7%, Key Coral 5.8%, The Grove 2.7%, Palmetto Flats 1.5%, Westbrook 3.7%, Redland 4.7%, Ten Palms 11.8%, Palmera Farmlands 3.3%, Okahatchee 4.9%, Harlow 4.4%, Fort Castell 2.5%, Key Solano 5.4% (118.7 ms)
+world generated in 23.91 s (buildings 2.69 s)
+example Westbrook kind reja paved 0: b4 at (-875, 3792)
+example Westbrook kind coral paved 0: b5 at (-899, 3791)
+example Westbrook kind coral paved 0: b6 at (-923, 3793)
+example Westbrook kind alum paved 0: b8 at (-970, 3795)
+example Westbrook kind knee paved 0: b12 at (-1061, 3799)
+example Westbrook kind knee paved 0: b14 at (-1107, 3801)
+example Westbrook kind none paved 2: b15 at (-1129, 3801)
+example Westbrook kind none paved 2: b25 at (-986, 3850)
+example Westbrook kind alum paved 0: b27 at (-1029, 3851)
+example Westbrook kind reja paved 0: b36 at (-859, 3910)
+example Westbrook kind none paved 1: b39 at (-932, 3913)
+example Westbrook kind none paved 1: b50 at (-1177, 3922)
+example Westbrook kind reja paved 1: b90 at (-988, 4335)
+example Palmetto Flats kind alum paved 1: b99 at (-775, 4402)
+example Palmetto Flats kind reja paved 0: b100 at (-827, 4412)
+example Westbrook kind reja paved 1: b115 at (-822, 4470)
+example Westbrook kind picket paved 0: b120 at (-935, 4466)
+example Palmetto Flats kind knee paved 0: b131 at (-824, 4599)
+example Palmetto Flats kind reja paved 0: b132 at (-773, 4599)
+example North Porto Sol kind alum paved 0: b171 at (4024, 3998)
+example North Porto Sol kind reja paved 0: b175 at (4621, 5110)
+example North Porto Sol kind reja paved 0: b219 at (3834, 3325)
+example North Porto Sol kind none paved 2: b225 at (3864, 3425)
+example Palmetto Flats kind reja paved 1: b231 at (-683, 3578)
+example North Porto Sol kind alum paved 0: b242 at (3932, 3774)
+example North Porto Sol kind reja paved 2: b245 at (3929, 3874)
+example The Grove kind coral paved 0: b257 at (937, -3575)
+example The Grove kind picket paved 0: b263 at (934, -3369)
+example The Grove kind coral paved 0: b265 at (969, -3416)
+example The Grove kind picket paved 0: b267 at (930, -3261)
+example The Grove kind knee paved 0: b276 at (916, -2973)
+example The Grove kind knee paved 0: b284 at (882, -2468)
+example The Grove kind reja paved 0: b329 at (1032, -3472)
+example The Grove kind reja paved 0: b426 at (1097, -2177)
+example Westbrook kind coral paved 1: b1997 at (-1806, -3822)
+example Westbrook kind picket paved 0: b2045 at (-1813, -3723)
+example Westbrook kind alum paved 2: b2099 at (-1719, -2833)
+example Westbrook kind alum paved 2: b2106 at (-1881, -2839)
+example Westbrook kind knee paved 2: b2107 at (-1903, -2840)
+example Westbrook kind picket paved 2: b2137 at (-1905, -2717)
+example Westbrook kind reja paved 2: b2210 at (-1739, -2480)
+example Westbrook kind picket paved 2: b2407 at (-1481, 2800)
+example Westbrook kind knee paved 1: b2410 at (-1414, 2806)
+example Westbrook kind picket paved 1: b3168 at (-371, -1702)
+example Westbrook kind knee paved 2: b3500 at (369, 75)
+example Westbrook kind coral paved 1: b3926 at (-2029, -4433)
+example Westbrook kind alum paved 1: b3981 at (-1914, -4380)
+example Westbrook kind reja paved 2: b4211 at (-2117, -4117)
+example Westbrook kind knee paved 1: b4307 at (-2346, -4005)
+example Westbrook kind alum paved 1: b4890 at (-2549, -3120)
+example Westbrook kind picket paved 1: b5179 at (-2343, -2756)
+example Westbrook kind coral paved 2: b5966 at (-2885, -379)
+example Westbrook kind coral paved 2: b6050 at (-2803, -549)
+example Fort Castell kind picket paved 0: b20374 at (5011, 6868)
+example Fort Castell kind knee paved 0: b20381 at (5161, 6979)
+example Fort Castell kind alum paved 0: b20382 at (5206, 6994)
+example Fort Castell kind knee paved 0: b20383 at (5168, 6928)
+example Fort Castell kind picket paved 0: b20385 at (5257, 7007)
+example Fort Castell kind alum paved 0: b20395 at (5145, 7016)
+example Fort Castell kind rail paved 0: b20441 at (5129, 7153)
+example Fort Castell kind rail paved 0: b20454 at (5422, 7172)
+example Fort Castell kind reja paved 0: b20668 at (3829, 7545)
+example Fort Castell kind reja paved 0: b20932 at (3919, 7905)
+example Key Solano kind picket paved 0: b21883 at (-8781, -9365)
+example Key Solano kind picket paved 0: b21884 at (-8832, -9343)
+example Key Solano kind reja paved 0: b21885 at (-8800, -9295)
+example Key Solano kind coral paved 0: b21887 at (-8693, -9394)
+example Key Solano kind alum paved 0: b21893 at (-8707, -9327)
+example Key Solano kind alum paved 0: b21914 at (-8596, -9328)
+example Key Solano kind coral paved 0: b21924 at (-8734, -9138)
+example Key Solano kind reja paved 0: b21968 at (-8383, -9569)
+example Okahatchee kind picket paved 0: b22395 at (-313, 6633)
+example Okahatchee kind picket paved 0: b22396 at (-315, 6691)
+example Okahatchee kind knee paved 0: b22400 at (23, 6187)
+example Okahatchee kind rail paved 0: b22407 at (23, 6261)
+example Okahatchee kind rail paved 0: b22410 at (90, 6186)
+example Okahatchee kind knee paved 0: b22427 at (389, 6232)
+example Okahatchee kind alum paved 0: b22431 at (417, 6188)
+example Okahatchee kind reja paved 0: b22440 at (-178, 6613)
+example Okahatchee kind alum paved 0: b22449 at (-171, 6639)
+example Okahatchee kind reja paved 0: b22457 at (-54, 6279)
+example Harlow kind rail paved 0: b22921 at (-5184, 4382)
+example Harlow kind alum paved 0: b22922 at (-5208, 4380)
+example Harlow kind rail paved 0: b22923 at (-5183, 4428)
+example Harlow kind alum paved 0: b22924 at (-5208, 4427)
+example Harlow kind picket paved 0: b22927 at (-5098, 4435)
+example Harlow kind picket paved 0: b22928 at (-5126, 4387)
+example Harlow kind knee paved 0: b22937 at (-5366, 5005)
+example Harlow kind knee paved 0: b22940 at (-5449, 5093)
+example Harlow kind reja paved 0: b22942 at (-5406, 5107)
+example Harlow kind reja paved 0: b22973 at (-4933, 4493)
+example Ten Palms kind picket paved 0: b23338 at (-8742, -2821)
+example Ten Palms kind alum paved 0: b23339 at (-8765, -2816)
+example Ten Palms kind coral paved 0: b23346 at (-8695, -1964)
+example Ten Palms kind picket paved 0: b23352 at (-8665, -1957)
+example Ten Palms kind coral paved 0: b23379 at (-8541, -2037)
+example Ten Palms kind alum paved 0: b23386 at (-8453, -2331)
+example Key Coral kind reja paved 0: b23463 at (4333, -3386)
+example Key Coral kind reja paved 0: b23467 at (4428, -3528)
+example Key Coral kind coral paved 0: b23488 at (4700, -3364)
+example Key Coral kind coral paved 0: b23499 at (4496, -3158)
+example Palmetto Flats kind alum paved 1: b23774 at (-779, 2591)
+example Palmetto Flats kind reja paved 1: b23776 at (-686, 2573)
+example Palmetto Flats kind reja paved 2: b23778 at (-710, 2526)
+example Palmetto Flats kind none paved 2: b23779 at (-664, 2527)
+example Palmetto Flats kind knee paved 1: b23784 at (-700, 2625)
+example Palmetto Flats kind knee paved 0: b23786 at (-733, 2777)
+example Palmetto Flats kind knee paved 1: b23800 at (-824, 3998)
+example Palmetto Flats kind reja paved 2: b23829 at (-726, 4478)
+example Palmetto Flats kind alum paved 0: b23831 at (-738, 4426)
+example Palmetto Flats kind none paved 1: b23911 at (-468, 2872)
+example Palmetto Flats kind none paved 2: b23970 at (-734, 3473)
+example Palmetto Flats kind alum paved 0: b23991 at (-469, 3674)
+example Palmetto Flats kind knee paved 2: b24015 at (-477, 3824)
+example Palmetto Flats kind none paved 1: b24053 at (-534, 4575)
+example Palmetto Flats kind alum paved 2: b24101 at (-374, 2800)
+example Palmetto Flats kind knee paved 2: b24118 at (-351, 3426)
+example Palmetto Flats kind alum paved 2: b24190 at (-244, 3523)
+example Calle Luna kind reja paved 0: b25274 at (979, -895)
+example Calle Luna kind none paved 1: b25287 at (1046, -871)
+example Calle Luna kind alum paved 0: b25288 at (1065, -871)
+example Calle Luna kind reja paved 2: b25292 at (1021, -727)
+example Calle Luna kind reja paved 0: b25304 at (981, -595)
+example Calle Luna kind none paved 2: b25328 at (1021, -314)
+example Calle Luna kind alum paved 2: b25333 at (1030, -368)
+example Calle Luna kind knee paved 0: b25359 at (1021, 9)
+example Calle Luna kind knee paved 0: b25384 at (1019, 468)
+example Calle Luna kind knee paved 1: b25416 at (1018, 902)
+example North Porto Sol kind knee paved 1: b25557 at (1021, 3098)
+example North Porto Sol kind knee paved 0: b25558 at (1025, 3121)
+example North Porto Sol kind reja paved 2: b25572 at (1025, 3220)
+example North Porto Sol kind reja paved 1: b25599 at (978, 3373)
+example North Porto Sol kind knee paved 0: b25602 at (1025, 3392)
+example North Porto Sol kind alum paved 2: b25612 at (1116, 3328)
+example North Porto Sol kind none paved 1: b25613 at (1141, 3328)
+example North Porto Sol kind none paved 1: b25617 at (1023, 3491)
+example North Porto Sol kind reja paved 1: b25619 at (1050, 3474)
+example North Porto Sol kind alum paved 2: b25627 at (1095, 3426)
+example North Porto Sol kind knee paved 2: b25771 at (1024, 4570)
+example North Porto Sol kind none paved 2: b25793 at (1079, 4674)
+example North Porto Sol kind knee paved 1: b25828 at (1055, 4827)
+example Calle Luna kind none paved 1: b25914 at (1163, -770)
+example Calle Luna kind alum paved 0: b25929 at (1080, -411)
+example Calle Luna kind reja paved 2: b25953 at (1119, -194)
+example Calle Luna kind knee paved 1: b26003 at (1117, 500)
+example Calle Luna kind reja paved 1: b26035 at (1145, 831)
+example Calle Luna kind reja paved 1: b26128 at (1270, 328)
+example North Porto Sol kind alum paved 1: b26496 at (1280, 4429)
+example Calle Luna kind none paved 2: b26803 at (1473, -730)
+example Calle Luna kind alum paved 1: b26888 at (1471, 327)
+example Calle Luna kind knee paved 2: b26896 at (1442, 430)
+example North Porto Sol kind knee paved 2: b27079 at (1469, 4775)
+example Calle Luna kind alum paved 1: b27169 at (1570, -132)
+example Calle Luna kind alum paved 2: b27483 at (1619, -119)
+example Calle Luna kind knee paved 2: b27526 at (1617, 511)
+example North Porto Sol kind alum paved 1: b27733 at (1625, 3274)
+example Coral Keys kind picket paved 0: b35556 at (-2222, -7983)
+front boundaries picked by district (houses and villas; 'none' keeps the old hedge / wall / open lawn):
+  North Porto Sol         1591: none 41% knee 12% reja 35% alum 12%  | paved front yards 278
+  Calle Luna               381: none 39% knee 11% reja 39% alum 10%  | paved front yards 82
+  Key Coral                146: none 58% reja 28% coral 14%  | paved front yards 0
+  The Grove               1686: none 55% knee 5% reja 1% picket 3% coral 36%  | paved front yards 0
+  Palmetto Flats           706: none 40% knee 11% reja 38% alum 12%  | paved front yards 191
+  Westbrook              16635: none 64% knee 11% reja 11% picket 2% coral 4% alum 8%  | paved front yards 687
+  The Sawgrass               3: none 100%  | paved front yards 0
+  Ten Palms                 50: none 28% picket 46% coral 22% alum 4%  | paved front yards 0
+  Okahatchee               494: none 48% knee 5% reja 2% picket 28% rail 10% alum 7%  | paved front yards 0
+  Harlow                   371: none 46% knee 6% reja 2% picket 28% rail 11% alum 8%  | paved front yards 0
+  Fort Castell             721: none 47% knee 4% reja 1% picket 32% rail 10% alum 6%  | paved front yards 0
+  Coral Keys                 1: picket 100%  | paved front yards 0
+  Key Solano               305: none 26% reja 1% picket 61% coral 8% alum 5%  | paved front yards 0

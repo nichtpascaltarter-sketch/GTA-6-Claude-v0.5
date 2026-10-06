@@ -1,0 +1,45 @@
+Ordinary blocks get district architecture: about 35 building types, carved footprints, back lots filled in
+
+- Building types: ordinary lots now draw from district palettes of about 35 real types instead of a few generic
+  boxes (src/world/blockstyle.cpp, massing.cpp):
+  - shops and offices: 1920s shop blocks with cornices, Mediterranean-revival shops under tile pent roofs, MiMo
+    storefronts with canopy slabs, corner bodegas with murals, colonnaded arcades, 60s office slabs on pilotis, lofts;
+  - apartments: brick walk-ups with fire escapes and water tanks, MiMo garden apartments round courts,
+    Med-revival apartments with corner towers;
+  - Sol Beach: 70s balcony slabs, glass condos, MiMo resort hotels;
+  - houses: ranch, bungalow, colonial, split-level and Key West conch houses with walkable porch decks;
+  - villas: Mediterranean, colonial and modernist;
+  - the Keys: stilt houses with decks, walkable stairs and tin roofs;
+  - industry: sawtooth sheds, warehouses, body shops.
+- Footprints are carved inside each lot (L, U, courtyard, stepped, split, corner towers, chamfers, rounded ends,
+  wings, podium plus slab). Roofs vary: parapet, eave slab, tile hip or pent, terrace, metal gable, sawtooth,
+  butterfly. Flat roofs are white, gravel, silver or tar.
+- Variety along a street: each street side favours one type and avoids another, neighbours rarely repeat, and
+  corner lots get corner types. Colour and wear vary per building, with district colour palettes. Storefront glass
+  stays clear.
+- Street level (facadedetail.cpp): arcades, arched window heads, streamline eyebrows, MiMo walkways, murals,
+  loading doors, canopies, porches, porticos.
+- Block middles (cellgen.cpp):
+  - about 3,500 back houses, garage rows and sheds;
+  - rear parking lots with stalls, wheel stops, a lamp and a dumpster;
+  - fenced lawns and paved service yards.
+- Back buildings stay out of gameplay:
+  - They are appended after every existing building, so no index shifts.
+  - They sit 14 m clear of every street.
+  - They use the garage style, which AI doors, venues and police skip.
+- Towers get district glass (blue, teal, silver, bronze, dark), white ribbon slabs, precast, granite or
+  balcony-tower looks, some with special crowns.
+- BuildingSet::pavedAt and pavedGrid tell the renderer where ground is paved, for coming ground-cover work:
+  parking and service lots, building footprints, garages, driveways and forecourts.
+- Repetition (share of neighbours within 150 m that repeat a building's form): 14.4% -> 3.8% overall.
+  Key Solano is 21.6% -> 18.0%; its motels come in the next batch.
+- Gameplay is unchanged. The restyle runs after interiors are planned, and interior hosts and site buildings keep
+  the plain generator. Every building keeps its centre, axes, extents, front and lot, so doors, garages, storefront
+  lights and pointInBuilding behave as before. Story places are identical and 57 missions register.
+- Checks: story regression 27 of 27. The world check is clean: no lane intrusions, unguarded falls, steps or steep
+  grades. Colliders are up 24% (fences, lamps, porch decks, stairs, back buildings). Draws per tour stop are within
+  1%. Near meshes are lighter and the far LOD is heavier, though a far cell is still about 1% of a near one.
+  Generation takes about 0.2 s longer.
+- tools/memfree.sh reserves 3 GB for each still-growing game; under Direct3D 12 they reach 2.9-3.2 GB.
+- tools/run.sh and build.sh: games and builds that are not the lead's snapshot checks raise their own
+  oom_score_adj to 500. When the memory cap is hit, the kernel then kills one of them first.

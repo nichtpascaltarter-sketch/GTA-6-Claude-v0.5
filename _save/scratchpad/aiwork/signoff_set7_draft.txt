@@ -1,0 +1,17 @@
+AI snapshot-safe, set 7 (on top of sets 5+6). Tested on nt_ai75 = HEAD <hash> plus the blobs below.
+[blobs]
+
+- Riding along: a companion whose leader drives off in a car at the kerb (population.cpp departures pick leaders with
+  company too) no longer walks on alone: round to a passenger door (pedai.cpp ACT_RIDE_ALONG, a seat each for a group),
+  waits there till the driver is in, then in; the car waits for them (VehAI::escortHold, now "anybody on the way to
+  it"; traffic.cpp pullOutStep). Riders (PedAI::rider) get out with the driver when the car parks (to the same door),
+  and on their own when the driver is gone (the car stood empty at the wheel; or the player at the wheel and slowed:
+  out and away, "carjacked" line).
+- The AI look hook (PedAI::lookAtPt / lookAtT + the extended look block for peds.cpp below - it replaces the in-car-only
+  block of sets 5+6): people waiting at the kerb look along the road (the near traffic's way first; at a light only a
+  glance each way now and then, at a zebra a proper look) and that way once more as they step off; at a bus stop or
+  hailing a taxi, a look down the street the way it will come; a car alarm: the head turned to it (sat ones too); a
+  police helicopter low over the streets: a look up at it now and then (ai.cpp AIState::heliAt / heliLow).
+- Car alarm owners skip delivery vans whose driver is at a door.
+Tests: rideoff (a walking pair's leader sent to a kerbside car, twice) and crossing (the busiest signalled crosswalk:
+each step-off's delay after the light, how many waiting look along the road) modes; census "rides".

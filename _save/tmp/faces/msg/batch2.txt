@@ -1,0 +1,64 @@
+faces snapshot-safe — batch 2: no more "goggles" round the eyes; brows, lids and the brow ridge; the hair beside the eyes; lips, ears and older skin
+
+Files (6). They are in the shared tree now, replacing my own files; on main 06580c3 those were unchanged since 4b6357f (batch 1 plus the flip). Copies are in /tmp/faces/batch2/. Blob hashes (git hash-object):
+- a525660b5d5fc022a6ed342374161a29f2a74264  src/anim/face.cpp (kShaderPupil stays on)
+- b3668f8ed4e2b1ad8f9dd75700ce633080f6ce62  src/anim/hair.cpp
+- 623f0df689748928074d6def5ae93b8cbd160bf2  src/anim/character.cpp
+- 77c39e35abfdd17fc9d2c738857ce98098f63d57  src/anim/bodymesh.cpp
+- b86e88f9b85491e0c960f3007ff52f7487f80f9f  tests/anim/anim_test.cpp
+- f44bda92b29169d5a5f233a76ee772649092b318  tests/anim/preview.cpp
+character.h, anim_internal.h and the other anim sources are untouched. Verified tree: /tmp/faces/b2t6 (main 06580c3 plus the six files).
+
+What players see:
+Eyes ("goggles" gone)
+- The lids now flow into the eye socket. Before, the lid mound met the socket in a 3-4 mm groove that ringed each eye: the baked shade made it a dark ring, and the lid rows' fans at the corners folded into pleats that streaked out to the temples. Now:
+  - the lids blend softly into the socket;
+  - the inner corner is filled, so the nose's side sweeps into it;
+  - the shading round the eyes is relaxed;
+  - the upper lid's crease is carried by the lid rows themselves.
+- Dark skin round the eyes stays only under the eye and at the inner corner, instead of a ring all round.
+- The lower waterline is darker, as it sits in the lashes' shade, so there are no bright rims round the eyes.
+- Men get a lighter lash line.
+- Eye whites are a shade darker on very dark skin.
+- Together with the renderer's feature shadows on main, the eyes now sit in the socket's shade at night instead of glowing.
+Brows and brow ridge
+- Brows sit about 2.5 mm higher, leaving a strip of brow-bone skin above the lid's fold, so brow, socket and lashes no longer merge into one dark bar at 4 m.
+- The head of the brow, by the nose, is sparser and the tail thinner.
+- The skin tint under the brow body is a little stronger, so the brow still reads as a soft shape where the hairs thin out on screen.
+- The brow ridge stands a few millimetres prouder of the eyes. The cornea now sits on average 6.4 mm behind the brow front (it was 5.3), less for women. The renderer agreed this is enough for its brow shadow.
+Hair beside the eyes
+- Batch 1's dark and pale stripes at the temples are gone (worst on c17's curls). The soft, skin-tinted hair edge is now limited to the front hairline. At the temples and sides the hair keeps a solid, hair-coloured edge: curtains, coils and sideburns hang over the face's edge there, and the faded shell showed through between them as stripes.
+- Beards: a thinner rim where the beard meets the skin, and a softer edge colour.
+Lips, ears, skin
+- Lips have a satin sheen instead of lacquer (gloss 0.85 -> 0.65; the renderer agreed). Men's lips are a shade less red.
+- Ears are less red.
+- Older skin is a little blotchier.
+- Forehead lines no longer box in the frown lines.
+Speed
+- Brows are built about twice as fast. Building a character's full mesh is a few percent faster than batch 1 (anim_test side by side: 141->133 and 150->141 ms).
+
+Tests run (final files):
+- anim_test on main 06580c3 plus the six files (/tmp/faces/b2t6): ALL PASSED. tests/anim/carview.cpp, which includes preview.cpp, also compiles. anim_test also passes on the shared working tree as it stands now, which includes the animation agent's pending character.h and animator.cpp edits.
+  - The new "FaceShape" test checks four things, and fails on batch-1 code:
+    - eye-region normals don't fold (worst neighbour angle < 100 deg, mean < 17 deg; batch 1 had 127-147 deg, mean 22-24; batch 2 has 69, 13.8);
+    - the brow sits at least 2 mm above the lid's fold (batch 2: >= 3.9 mm; batch 1 had 0.9-1.9 mm);
+    - the cornea sits at least 2.5 mm behind the brow front (batch 2: >= 2.9);
+    - a full beard's shell is at most 3.5 mm over the skin next to the lower lip (1.8).
+  - Mesh triangles average 34471 (batch 1: 34506).
+- O2 build of 06580c3 plus the six files (/tmp/faces/nt_b2d_o2.exe): exit 0.
+- Wine D3D12: 8 portraits with that exe, day and night, logged no FATAL or vkd3d lines. Before the pause, a 30-portrait run on 4b6357f plus the same files (nt_b2c_o2.exe) was clean too.
+- Crowd perf, tour stop 7 (club_night, 196 peds), cpu ms peds: base 4.74; batch 1 4.47 / 4.62; batch 2 4.22 (measured before the final temple-hair fix, which only changes hair colours and heights). Unchanged.
+
+Montages: main 4b6357f vs batch 2, both on main's new shaders. 0.5 m, 1 m and 4 m by day; 1 m and 4 m at night under the lamp. Folder: /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/faces/
+- b2_c0.png: Mari
+- b2_c1.png: Dex
+- b2_c27.png: young dark-skinned bearded man
+- b2_c7.png: old woman
+- b2_c17.png: older light-skinned woman
+- b2_c38.png: full beard
+
+Optional hook in src/game/protagonists.h (yours). Dex's description says "short hair, stubble", but his desc never sets facialHair, so the seeded draw leaves him clean-shaven. One line, after `d.extras = ACC_EXPLICIT | ACC_WATCH;` in the Dex branch:
++        d.facialHair = FH_STUBBLE;   // a few days' growth (the description above)
+FH_STUBBLE resolves through the function's `using namespace Anim::detail;`. A preview of the result is at /tmp/faces/pv/dex_stubble.png.
+
+Next, batch 3: the temples hollow with age, a softer lower-lip border and per-person skin undertones; then faces under the new shading at night.

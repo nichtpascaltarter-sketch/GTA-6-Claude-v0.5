@@ -1,0 +1,19 @@
+Junctions without rain stripes, smoke that glows when backlit, sharper wet edges under roofs, cleaner materials
+
+- Roads: lane wheel tracks, the oil band, lane-joint cracks and the kerb furniture (gutter, drains, manholes) now
+  apply only to road segments. On junctions, turning bulbs and lots their world-aligned tracks repeated every 3.5 m
+  into glossy stripes across the junction in the rain; those surfaces get broad polished areas and scattered oil
+  stains instead, and a street lamp's reflection on a wet junction is one clean streak.
+- Smoke and spray: lights are chosen by how much of their beam reaches the puffs alive now, and local lights scatter
+  forward (Henyey-Greenstein), so smoke with a light behind it glows.
+- Wet and dry edges under roofs and awnings: the sky-exposure test filters over the overhead map's texels instead of
+  point-sampling them, so the line between dry and wet ground is no longer stair-stepped.
+- Materials: concrete pores, sand specks and metal scratches fade to their average where the texture can't resolve
+  them (no magnified squares at small material sizes), and grain, brushed metal, planks and rain streaks tile
+  without a seam.
+- Reflections: a screen-space hit must be reached by a ray travelling into the surface.
+- Debug views write to their own texture, so the lit image keeps feeding TAA, exposure and the colour pyramid
+  (debug view 13 no longer reflects itself).
+- Tests: the police search test hides 200 m away inside the search area and follows an officer working the search
+  plan; the car door choreography gets more authoring (still not used by the game).
+- Test rig: games wait for 3 GB free under the memory cap (D3D12 games use about 2.5-2.7 GB under vkd3d).

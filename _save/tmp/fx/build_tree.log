@@ -1,0 +1,9 @@
+Embedded 34 shader files.
+In file included from src/audio/audio_all.cpp:12,
+                 from src/main.cpp:39:
+src/audio/wasapi.cpp: In member function 'virtual HRESULT Audio::detail::wasapi::NotifyClient::OnDefaultDeviceChanged(EDataFlow, ERole, LPCWSTR)':
+src/audio/wasapi.cpp:53: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+   53 |         if (flow == eRender && role == eConsole) defaultChanged.store(true);
+      | 
+src/audio/wasapi.cpp:53: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 5537792 Sep 30 00:29 /home/user/GTA-6-Claude-v0.5/bin/nt_fx.exe

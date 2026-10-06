@@ -1,0 +1,15 @@
+Fix screenshots and photos that came out as noise on Direct3D 12 (a race in the GPU fence wait)
+
+- Every CPU wait for the GPU shared one auto-reset event. When a wait's 2 s poll timed out just as its fence
+  completed, the loop left without consuming the event's signal, and from then on every wait returned one fence
+  early, for the rest of the process. CPU readbacks - screenshots, photo-mode photos, the exposure and pixel probes,
+  GPU timer reports - then mapped their buffer before the copy had run and wrote out recycled heap memory (the
+  "noise" was freed index and vertex buffers). Presented frames were never affected; a resize could also call
+  ResizeBuffers with work still in flight. It needs a GPU wait over 2 s, so it struck the software test rig under
+  load and would be rare on Windows.
+- Fix: the event is reset before SetEventOnCompletion and the wait loops on the fence's completed value, so a
+  leftover signal costs one extra pass instead of an early return; a failed wait is fatal instead of a busy spin.
+- Self-test: two new cases (16 in all) - a thread signalling the event every millisecond during a long compute job,
+  and 24 readbacks with 1 ms polling - fail with the old wait (64/64 and 1152/1536 values wrong) and pass with the fix.
+- In game: the same drive with the old logic saved three noise screenshots (the settled re-read of the same buffer
+  was correct); with the fix all three shots are clean.

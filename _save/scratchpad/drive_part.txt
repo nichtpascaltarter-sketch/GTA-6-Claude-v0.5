@@ -1,0 +1,12 @@
+# smoke: a new game driven in the first-person view (also proves the camera preferences survive the new game)
+S=/tmp/snap_smoke; rm -rf $S; mkdir -p $S
+rm -f /tmp/wine_lead/drive_c/users/root/AppData/Local/NeonTide/log.txt   # never judge a run by the previous log
+cd $REPO
+$SP/memgate.sh 3200
+NT_LEAD_SLOT=1 EXE=$SP/snap_new.exe WINEPREFIX=/tmp/wine_lead TIMEOUT=3000 nice -n 6 tools/run.sh --width 800 --height 450 --play --firstperson --autoplay drive --autoduration 24 --autoevery 8 --renderevery 6 --quality 1 --shotdir "Z:\\tmp\\snap_smoke\\" > $S/run.txt 2>&1
+rc=$?
+cp /tmp/wine_lead/drive_c/users/root/AppData/Local/NeonTide/log.txt $S/log.txt 2>/dev/null
+if [ $rc -ne 0 ] || [ ! -s $S/log.txt ] || grep -qE "Unhandled|FATAL" $S/log.txt; then
+  echo "SMOKE FAILED rc=$rc $TREE"; grep -E "Unhandled|autoplay t=" $S/log.txt | tail -5; exit 1
+fi
+grep -E "autoplay t=" $S/log.txt | tail -2 | cut -c1-160

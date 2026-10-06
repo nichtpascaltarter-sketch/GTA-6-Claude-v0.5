@@ -1,0 +1,16 @@
+built 18:54
+=== series  (19:03)
+(no summary: the runner died)
+[ 556.116] [missiontest] series t=78.1: screenshot Z:\tmp\story\series_19_stage1_cut1.bmp
+Killed
+X connection to :108 broken (explicit kill or server shutdown).
+=== repo_man,pressure,blueprints  (19:09)
+(no summary: the runner died)
+[ 312.261] [missiontest] pressure t=6.7: screenshot Z:\tmp\story\pressure_03_stage2.bmp
+Killed
+X connection to :108 broken (explicit kill or server shutdown).
+=== solaris_one,bagman  (19:18)
+[ 550.433] [missiontest] SUMMARY: 2 passed, 0 failed
+[ 550.434] [missiontest]   solaris_one: passed (stage 8, 195 s)
+[ 550.434] [missiontest]   bagman: passed (stage 8, 463 s)
+/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/storytest/cycle4.sh: 31: Syntax error: "}" unexpected

@@ -1,0 +1,6 @@
+cl_houses_air aerial 1650 720 75 200 45 55 10
+cl_house1 front 27547 16 2 4 60 10
+cl_house2 front 28157 15 2 -4 60 10
+cl_house3 front 27550 16 2 4 60 10
+fl_houses_air aerial 800 3050 80 200 45 55 10
+fl_house1 front 25153 18 2 4 60 10

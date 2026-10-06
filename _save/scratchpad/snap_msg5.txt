@@ -1,0 +1,17 @@
+Prison inmates, hair fades and ties, hips that turn with the travel, window shopping, see-through markers
+
+- Characters: prison inmates (role 7). An orange coverall over a white tee with a zip, chest pocket, collar and
+  seams, and canvas slip-ons. Six in the roster; the prison yard uses them. Tank tops get a U scoop and a deep
+  armhole. Hair: fades and line-ups on short cuts, more volume over the crown, a pompadour lift, ties and scrunchies
+  on buns and ponytails, beards with a clumpy, broken edge, and strand tips that keep black hair from reading as a
+  mask. Brows stay darker than the skin. Canvas toe caps are cloth, no longer tyre-black.
+- Animation: moving diagonally or sideways, the hips turn into the travel direction while the trunk keeps facing
+  ahead (back-pedalling well behind). A walk's pelvis sinks into each double support before the heel strike. Planted
+  feet settle onto the ground over 80 ms, toe-off is eased, and backward steps are shorter on softer knees.
+- Living world: window shopping, a stop at a store window on the shopping streets (a tourist points something out).
+  The K9 dog picks the scent up where the unit meets the trail, with an autoplay chase scenario.
+- Markers (missions, shops, businesses, bait shops): see-through with a soft glow instead of an opaque white wall at
+  night, and hidden while the player stands inside.
+- Renderer: a camera jump of more than 40 m counts as a cut (histories reset, exposure snapped), and the reflection
+  probe recaptures after a move of more than 150 m.
+- Tests: the fish_market test walks up to the bait shop after dark; preview scenarios.

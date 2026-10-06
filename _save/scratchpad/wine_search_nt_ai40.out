@@ -1,0 +1,385 @@
+[   0.000] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.942] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   1.365] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   1.377] Compiled mipgen.hlsl:csMipGen (cs_5_1) in 0.01 s
+[   1.388] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   1.427] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   1.469] UI font 'Impact' -> 'Liberation Sans'
+[   1.524] Font atlas built in 0.14 s
+[   1.534] Compiled ui.hlsl:vsUI (vs_5_1) in 0.01 s
+[   1.666] Compiled ui.hlsl:psUI (ps_5_1) in 0.13 s
+[   1.672] Compiled ui.hlsl:vsUIFull (vs_5_1) in 0.00 s
+[   1.678] Compiled ui.hlsl:psUIDown (ps_5_1) in 0.00 s
+[   1.686] Compiled ui.hlsl:psUIBlur (ps_5_1) in 0.01 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   1.699] Audio: no output device - audio disabled
+[   1.699] Audio: no output device, continuing silently
+[   2.130] UI icon atlas: 92 icons + 13 weapons in 426 ms
+[  14.350] Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+[  14.350] Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+[  14.350] Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+[  14.350] Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+[  14.351] Places: Palmera Speedway at (400, 5790), ground 6.8
+[  14.351] Places: layout 0.001 s, 5 places, 624 anchors
+[  14.351] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[  14.357] Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.01 s)
+[  14.828] World map generated in 13.12 s
+[  15.190] Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+[  15.580] Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+[  18.106] Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+[  19.698] Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km (4.87 s)
+[  21.804] Transit: 0 buildings cleared from the SkyLine corridor
+[  21.808] Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+[  21.828] Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+[  21.829] Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+[  21.835] Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+[  21.936] Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+[  21.972] Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+[  21.978] Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+[  21.985] Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+[  22.023] Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+[  22.050] Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+[  22.062] Places: after the lots 0.257 s
+[  22.065] Buildings: 35617 (towers 352, midrise 2411, condo 427, deco 688, shops 4600, strip 640, houses 22192, villas 901, warehouses 1620) in 2.32 s
+[  22.069] Sites: 69 highway billboards
+[  22.070] Sites: 155 silos, 50 windmills
+[  22.073] Sites: 245 beach access paths
+[  22.106] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.00 s)
+[  22.107] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[  22.107] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[  22.107] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[  22.116] Transit: 4 bus routes, 64 stops (48 new shelters) (0.01 s); rejects class 1107 cut 1945 deck 72 road 119 avoid 0 pad 2 furn 283 stop 0
+[  22.116] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[  22.117] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[  22.117] Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+[  22.117] Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+[  22.124] Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.01 s)
+[  22.124] Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+[  22.124] Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+[  22.124] Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+[  22.124] Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+[  22.124] Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+[  22.125] Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+[  22.125] Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+[  22.125] Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+[  22.125] Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+[  22.125] Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+[  22.125] Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+[  22.125] Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+[  22.125] Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+[  22.125] Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+[  22.125] Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+[  22.125] Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+[  22.125] Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.05 s)
+[  22.125] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[  22.125] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  22.125] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  22.125] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  22.125] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  22.125] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  22.125] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  22.125] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  22.129] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  22.129] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  22.129] Site terminal             at (628, 1440, 4.6)
+[  22.129] Site control tower        at (730, 1832, 4.6)
+[  22.129] Site container ship       at (4625, -800, 0.0)
+[  22.129] Site container ship       at (4616, -330, 0.0)
+[  22.129] Site port gate            at (4008, -160, 3.0)
+[  22.129] Site Key Coral marina     at (4039, -4035, 0.0)
+[  22.129] Site beach club           at (4873, -3866, 1.2)
+[  22.129] Site beach club           at (4808, -4183, 2.2)
+[  22.129] Site Solaris One          at (3350, -750, 1.4)
+[  22.129] Site stadium              at (3565, 445, 1.6)
+[  22.129] Site City Hall            at (3000, 372, 2.0)
+[  22.129] Site Canvas Park          at (3100, 1800, 1.7)
+[  22.129] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  22.129] Site Ferris wheel         at (5504, 1270, 5.6)
+[  22.129] Site lighthouse           at (-2206, -8000, 0.5)
+[  22.129] Site radio mast           at (-6744, 7248, 166.1)
+[  22.129] Site sugar mill           at (1430, 7500, 8.1)
+[  22.129] Site Rio Sol marina       at (2280, 188, 0.0)
+[  22.130] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  22.130] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  22.130] Sites finalized: 1486 elements (0.06 s)
+[  22.137] Interiors: 29 planned (convenience 7, gun shops 2) in 7.5 ms
+[  22.138]   interior 'Mari's Apartment' kind 0 building 28142 at (1771.22, 359.23, 3.77) ax (1.0000, 0.0000) x -6.55..2.18 depth 11.50 ceil 3.84: 3 rooms, 3 openings, 3 doors, 3 portals, 0 npc points
+[  22.139]   interior 'Mama Lucha's' kind 2 building 26747 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+[  22.139]   interior 'Rook's Garage' kind 3 building 27288 at (1562.94, 2361.63, 4.30) ax (1.0000, 0.0000) x -9.74..9.74 depth 20.00 ceil 7.11: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+[  22.139]   interior 'Dex's Trailer' kind 1 building 25527 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  22.139]   interior 'Police Headquarters' kind 5 building 32504 at (3167.89, -240.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+[  22.139]   interior 'Tidewater General Hospital' kind 6 building 35599 at (1692.75, 1073.40, 3.63) ax (1.0000, 0.0000) x -9.55..9.55 depth 16.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+[  22.139]   interior 'Palmetto Arms' kind 7 building 25538 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+[  22.139]   interior 'Northside Arms' kind 7 building 32997 at (3284.62, 4017.67, 2.09) ax (0.0000, 1.0000) x -6.33..6.33 depth 14.00 ceil 4.03: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  22.139]   interior 'Threads' kind 9 building 19677 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+[  22.139]   interior 'Port Isle Warehouse' kind 12 building 35552 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  22.139]   interior 'TideStop Mart' kind 8 building 26846 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  22.139]   interior 'Bodega La Luna' kind 8 building 29652 at (2242.71, 540.72, 2.92) ax (-1.0000, -0.0000) x -5.85..5.85 depth 17.00 ceil 4.19: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  22.139]   interior 'Canvas Corner Market' kind 8 building 32545 at (3090.56, 1476.66, 2.21) ax (0.0000, 1.0000) x -7.40..7.40 depth 17.00 ceil 3.92: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  22.139]   interior 'Sunrise Food Mart' kind 8 building 19719 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  22.139]   interior 'Northside Quick Stop' kind 8 building 29914 at (2304.43, 3761.63, 3.12) ax (1.0000, 0.0000) x -6.89..6.89 depth 17.00 ceil 4.12: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  22.139]   interior 'Flats Food & Fuel' kind 8 building 24842 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[  22.139]   interior 'Grove Pantry' kind 8 building 1182 at (2175.56, -3114.24, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  22.139]   interior 'Palm Motors' kind 17 building 31294 at (2686.87, 1279.16, 2.69) ax (0.0000, 1.0000) x -9.08..12.11 depth 20.00 ceil 3.90: 2 rooms, 8 openings, 3 doors, 8 portals, 5 npc points
+[  22.139]   interior 'Tide Customs Calle Luna' kind 18 building 29601 at (2278.47, -140.75, 2.99) ax (1.0000, 0.0000) x -7.61..7.61 depth 18.00 ceil 4.17: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  22.139]   interior 'Tide Customs Sol Beach' kind 18 building 19788 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  22.139]   interior 'Sunwash Car Wash' kind 19 building 29044 at (1988.34, 1491.32, 3.44) ax (0.0000, 1.0000) x -7.41..7.41 depth 20.00 ceil 8.08: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+[  22.139]   interior 'Key Coral Villa' kind 0 building 23718 at (4515.96, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[  22.139]   interior 'Sol Beach Condo Lobby' kind 20 building 19771 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+[  22.139]   interior 'Sol Beach Condo' kind 21 building 19771 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  22.139]   interior 'Downtown Penthouse Lobby' kind 20 building 33543 at (3511.22, -715.16, 1.71) ax (-0.0000, -1.0000) x -5.25..5.25 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[  22.139]   interior 'Downtown Penthouse' kind 21 building 33543 at (3511.22, -715.16, 52.15) ax (-0.0000, -1.0000) x -10.49..10.49 depth 14.00 ceil 2.80: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  22.139]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  22.139]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[  22.139]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[  22.156] Compiled post.hlsl:vsFullscreen (vs_5_1) in 0.01 s
+[  33.295] Compiled lighting.hlsl:csLighting (cs_5_1) in 11.14 s
+[  33.797] Compiled sky.hlsl:csTransmittance (cs_5_1) in 0.08 s
+[  34.339] Compiled sky.hlsl:csMultiScatter (cs_5_1) in 0.53 s
+[  34.413] Compiled sky.hlsl:csSkyView (cs_5_1) in 0.06 s
+[  34.462] Compiled sky.hlsl:csAerialPerspective (cs_5_1) in 0.04 s
+[  34.935] Compiled sky.hlsl:csSkySH (cs_5_1) in 0.47 s
+[  34.971] Compiled post.hlsl:csLumHist (cs_5_1) in 0.02 s
+[  36.241] Compiled post.hlsl:csExposure (cs_5_1) in 1.26 s
+[  36.543] Compiled post.hlsl:csBloomDown (cs_5_1) in 0.03 s
+[  36.562] Compiled post.hlsl:csBloomUp (cs_5_1) in 0.01 s
+[  36.594] Compiled post.hlsl:csSunShafts (cs_5_1) in 0.03 s
+[  36.717] Compiled taa.hlsl:csTAA (cs_5_1) in 0.12 s
+[  36.803] Compiled post.hlsl:psTonemap (ps_5_1) in 0.07 s
+[  36.867] Compiled motionblur.hlsl:csTileMax (cs_5_1) in 0.06 s
+[  36.888] Compiled motionblur.hlsl:csNeighborMax (cs_5_1) in 0.02 s
+[  36.948] Compiled motionblur.hlsl:csMotionBlur (cs_5_1) in 0.06 s
+[  36.972] Compiled terrain.hlsl:vsTerrain (vs_5_1) in 0.02 s
+[  36.984] Compiled terrain.hlsl:vsTerrainShadow (vs_5_1) in 0.01 s
+[  38.062] Compiled terrain.hlsl:psTerrain (ps_5_1) in 1.08 s
+[  38.383] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.32 s
+[  38.701] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.28 s
+[  39.031] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.29 s
+[  39.346] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.28 s
+[  39.625] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.25 s
+[  39.907] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.25 s
+[  40.532] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.60 s
+[  40.826] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.20 s
+[  41.129] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.29 s
+[  41.488] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.33 s
+[  41.648] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.12 s
+[  41.975] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.31 s
+[  42.434] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.43 s
+[  43.167] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.70 s
+[  43.353] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.14 s
+[  43.444] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.07 s
+[  43.521] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.07 s
+[  43.631] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.10 s
+[  43.746] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.05 s
+[  43.846] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.09 s
+[  43.931] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.07 s
+[  44.001] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.06 s
+[  44.102] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.09 s
+[  44.243] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.13 s
+[  45.092] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.83 s
+[  45.264] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.13 s
+[  45.301] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.02 s
+[  45.629] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.27 s
+[  45.717] Material library: 57 layers at 256^2
+[  45.743] Compiled world.hlsl:vsWorld (vs_5_1) in 0.02 s
+[  45.758] Compiled world.hlsl:vsWorldShadow (vs_5_1) in 0.01 s
+[  51.543] Compiled world.hlsl:psWorld (ps_5_1) in 5.78 s
+[  51.599] Compiled water.hlsl:vsWater (vs_5_1) in 0.05 s
+[  52.744] Compiled water.hlsl:psWater (ps_5_1) in 1.14 s
+[  52.781] Compiled water.hlsl:csWaveNormals (cs_5_1) in 0.03 s
+[  52.799] Compiled water.hlsl:vsWake (vs_5_1) in 0.01 s
+[  52.836] Compiled water.hlsl:psWake (ps_5_1) in 0.04 s
+[  53.915] Compiled clouds.hlsl:csShapeNoise (cs_5_1) in 1.08 s
+[  54.269] Compiled clouds.hlsl:csDetailNoise (cs_5_1) in 0.30 s
+[  54.572] Compiled clouds.hlsl:csWeather (cs_5_1) in 0.28 s
+[  54.780] Compiled clouds.hlsl:csCloudTrace (cs_5_1) in 0.19 s
+[  54.837] Compiled clouds.hlsl:csCloudReconstruct (cs_5_1) in 0.04 s
+[  54.877] Compiled clouds.hlsl:csCloudShadow (cs_5_1) in 0.03 s
+[  54.945] Compiled props.hlsl:vsProp (vs_5_1) in 0.06 s
+[  54.988] Compiled props.hlsl:vsPropShadow (vs_5_1) in 0.04 s
+[  55.111] Compiled props.hlsl:psProp (ps_5_1) in 0.12 s
+[  55.121] Compiled props.hlsl:psPropShadow (ps_5_1) in 0.01 s
+[  55.578] Compiled foliage.hlsl:csFoliage (cs_5_1) in 0.45 s
+[  55.594] Props: 71 prototypes, 36644 verts
+[  55.721] Compiled dynamic.hlsl:vsRigid (vs_5_1) in 0.13 s
+[  55.788] Compiled dynamic.hlsl:vsSkinned (vs_5_1) in 0.06 s
+[  55.898] Compiled dynamic.hlsl:vsRigidShadow (vs_5_1) in 0.11 s
+[  55.929] Compiled dynamic.hlsl:vsSkinnedShadow (vs_5_1) in 0.03 s
+[  59.424] Compiled dynamic.hlsl:psDynamic (ps_5_1) in 3.49 s
+[  59.759] Compiled dynamic.hlsl:psGlass (ps_5_1) in 0.33 s
+[  59.824] Compiled dynamic.hlsl:psHairCard (ps_5_1) in 0.06 s
+[  59.852] Compiled dynamic.hlsl:vsSkinnedShadowCard (vs_5_1) in 0.02 s
+[  59.866] Compiled dynamic.hlsl:psHairCardShadow (ps_5_1) in 0.01 s
+[  59.887] Compiled particles.hlsl:csEmit (cs_5_1) in 0.02 s
+[  59.991] Compiled particles.hlsl:csSimulate (cs_5_1) in 0.10 s
+[  60.045] Compiled particles.hlsl:csKeys (cs_5_1) in 0.05 s
+[  60.206] Compiled particles.hlsl:csSortLocal (cs_5_1) in 0.15 s
+[  60.232] Compiled particles.hlsl:csSortGlobal (cs_5_1) in 0.02 s
+[  60.350] Compiled particles.hlsl:csSortMerge (cs_5_1) in 0.11 s
+[  62.680] Compiled particles.hlsl:csGenAtlas (cs_5_1) in 2.33 s
+[  63.194] Compiled particles.hlsl:vsParticle (vs_5_1) in 0.42 s
+[  63.271] Compiled particles.hlsl:psParticle (ps_5_1) in 0.08 s
+[  63.300] Compiled decals.hlsl:vsDecal (vs_5_1) in 0.02 s
+[  63.353] Compiled decals.hlsl:psDecal (ps_5_1) in 0.05 s
+[  63.365] Compiled decals.hlsl:vsSkid (vs_5_1) in 0.01 s
+[  63.385] Compiled decals.hlsl:psSkid (ps_5_1) in 0.02 s
+[  64.618] Compiled decals.hlsl:csGenDecals (cs_5_1) in 1.23 s
+[  64.704] Compiled hiz.hlsl:csHiZFirst (cs_5_1) in 0.03 s
+[  64.730] Compiled hiz.hlsl:csHiZDown (cs_5_1) in 0.02 s
+[  64.750] Compiled hiz.hlsl:csColorDown (cs_5_1) in 0.01 s
+[  64.943] Compiled gtao.hlsl:csGTAO (cs_5_1) in 0.19 s
+[  65.007] Compiled gtao.hlsl:csGTAOTemporal (cs_5_1) in 0.05 s
+[  65.398] Compiled gtao.hlsl:csGTAOBlur (cs_5_1) in 0.38 s
+[  65.536] Compiled ssr.hlsl:csSSRTrace (cs_5_1) in 0.10 s
+[  65.615] Compiled ssr.hlsl:csSSRResolve (cs_5_1) in 0.07 s
+[  66.164] Compiled envprobe.hlsl:psProbeLight (ps_5_1) in 0.54 s
+[  66.202] Compiled envprobe.hlsl:csPrefilter (cs_5_1) in 0.04 s
+[  66.341] Compiled envprobe.hlsl:csProbeSH (cs_5_1) in 0.13 s
+[  66.358] Compiled envprobe.hlsl:csCubeDown (cs_5_1) in 0.01 s
+[  66.601] Compiled fog.hlsl:csFogInject (cs_5_1) in 0.24 s
+[  66.685] Compiled fog.hlsl:csFogIntegrate (cs_5_1) in 0.05 s
+[  66.833] Compiled fog.hlsl:csFogNoise (cs_5_1) in 0.14 s
+[  66.884] Compiled overhead.hlsl:vsOverhead (vs_5_1) in 0.02 s
+[  66.891] Compiled overhead.hlsl:psOverhead (ps_5_1) in 0.00 s
+[  66.921] Compiled rain.hlsl:csOverheadHeight (cs_5_1) in 0.02 s
+[  67.113] Compiled rain.hlsl:vsRain (vs_5_1) in 0.18 s
+[  67.332] Compiled rain.hlsl:vsSplash (vs_5_1) in 0.22 s
+[  67.362] Compiled rain.hlsl:vsBolt (vs_5_1) in 0.03 s
+[  67.386] Compiled rain.hlsl:psRain (ps_5_1) in 0.02 s
+[  67.402] Compiled rain.hlsl:psSplash (ps_5_1) in 0.01 s
+[  67.422] Compiled rain.hlsl:psBolt (ps_5_1) in 0.01 s
+[  67.597] Compiled grass.hlsl:csGrassPlace (cs_5_1) in 0.17 s
+[  67.780] Compiled grass.hlsl:vsGrass (vs_5_1) in 0.15 s
+[  67.855] Compiled grass.hlsl:psGrass (ps_5_1) in 0.07 s
+[  72.555] Vehicle assets: 45 models in 4.38 s
+[ 104.011] Character assets: 120 characters in 31.46 s
+[ 104.024] Game assets built in 35.85 s
+[ 104.105] Story place near (800, -5400): no building frontage found, using the street
+[ 104.106] Story places resolved in 80.3 ms (diner 1350 342, Mari's 1771 358, Rook's 1566 2360, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[ 104.107] Missions registered: 57
+[ 107.187] Lane graph: 180 plaza walkways and 2 zebra crossings from the sites
+[ 107.188] Lane graph: 25496 lanes, 56760 connectors (1154772 pts), 40687 walk nodes, 56441 walk links, dead-end turning circles moved 22 / obstructed 0 (3.08 s)
+[ 133.561] UI map: base 2560x2560 in 26333 ms, 9547 roads (43960 pts) in 10 ms, 37 labels in 26 ms
+[ 133.561] hudInit done in 26369 ms
+[ 133.561] Init done in 131.86 s (shaders: 123 compiled in 43.49 s)
+[ 133.564] autoplay search: wanted 2 at 2713 763, money 3500
+[ 133.564] autoplay search t=0.0 wanted 2 seen 0 | census r90: 0 on foot (in the water 0) | walk 0 (phone 0 smoke 0) group 0 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 0 parked 0 police 0 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 0 arrests 0 depart 0 arrive 0
+[ 133.568] Transit: SkyLine timetable built (2.2 ms): loop 12.4 / 12.4 min, 4 trains per direction, headway 3.1 min
+[ 133.568] Transit: 9 lines published to the map
+[ 133.573] Transit: SkyLine car models registered as vehicle assets 45 / 46
+[ 133.971] Transit: 4 route bus models (destination signs) in 397 ms
+[ 133.971] Transit: 64 bus stops registered with the AI (48 lane stops added, 240 waiting spots)
+[ 133.971] Transit: 15 buses on 4 routes
+[ 133.971] Transit: Bay Ferry timetable: loop 13.2 min, 2 ferries, headway 6.6 min
+[ 133.972] Transit: Sol Ferry model registered as vehicle asset 51
+[ 133.975] Transit: streetcar modules registered as vehicle assets 52 53 54
+[ 133.976] Transit: 16 streetcar stops registered (16 curb lanes kept clear)
+[ 133.976] Transit: 4 streetcars on the 6.24 km loop, 16 stops, 65/65 junction movements found
+[ 134.009] population: venue Ocean Promenade slot 75 (mode 6) dropped at 5354.7 728.5: second spot
+[ 134.015] population: venue Ocean Promenade slot 77 (mode 6) dropped at 5354.7 809.2: second spot
+[ 134.020] population: venue Ocean Promenade slot 71 (mode 6) dropped at 5354.7 850.4: second spot
+[ 134.020] population: venue Ocean Promenade slot 80 (mode 6) dropped at 5354.7 920.7: second spot
+[ 134.021] population: venue Ocean Promenade slot 49 (mode 6) dropped at 5354.7 1046.1: second spot
+[ 134.021] population: venues laid out: 64 (756 slots kept, 5 dropped on lanes / water / buildings) | port 23 | airport 35 (rank: 3 cabs, line of 4) | sawgrass 19 | Ocean Promenade 2 | Porto Sol University 2 | Porto Sol University 5 | Santa Marea Cemetery 2 | Palmera State Penitentiary 5 | Okahatchee Union Church 2 | Old Fort Church 2 | Ocean Promenade 34 | Ocean Promenade 76 | Ocean Promenade 72 | Ocean Promenade 81 | Ocean Promenade 49 | Ocean Promenade 7 | Ocean Promenade 6 | Ocean Promenade 2 | Ocean Promenade 4 | Ocean Promenade 3 | Porto Sol University 10 | Porto Sol University 6 | Porto Sol University 11 | Porto Sol University 19 | Porto Sol University 3 | Porto Sol University 7 | Santa Marea Cemetery 25 | Santa Marea Cemetery 17 | Santa Marea Cemetery 5 | Santa Marea Cemetery 3 | Santa Marea Cemetery 5 | Santa Marea Cemetery 8 | Santa Marea Cemetery 4 | Santa Marea Cemetery 9 | Palmera State Penitentiary 9 | Palmera State Penitentiary 6 | Palmera State Penitentiary 4 | Palmera State Penitentiary 3 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 2 | Palmera Speedway 16 | Palmera Speedway 28 | Palmera Speedway 12 | Okahatchee Union Church 22 | Old Fort Church 17 | Old Fort Church 4 | Tidewater General Hospital 3 | Tidewater General Hospital 2 | Tidewater General Hospital 3 | Midtown General 1 | Midtown General 7 | Westbrook Hospital 8 | Sol Beach Clinic 8 | Harlow County Hospital 5 | Harlow County Hospital 3 | Okahatchee Medical 8 | Redland Health 8 | Fort Castell Hospital 1 | Fort Castell Hospital 7
+[ 134.023] police unit 7: around at 2502 599, 268 m from the suspect (lane 19982, attempt 1, suspect 0.0 m/s)
+[ 134.030] Stunt jumps: 0 road crests (0 candidates); ramps being placed
+[ 134.032] fishing: 9 spots (lake yes, 3 Keys docks)
+[ 135.108] Stunt ramps: 10 placed (0 over water) in 785 ms (25869 corridors tested); 10 unique stunt jumps
+[ 135.170] Wildlife: 28 species models ready (166 k triangles in the detailed LODs)
+[ 137.017] Interior 'Bodega La Luna' built: 116605 triangles, 18 lights, 14 colliders, 3 door leaves in 46.2 ms
+[ 174.559] autoplay search t=2.1 wanted 2 seen 0 | census r90: 25 on foot (in the water 0) | walk 17 (phone 5 smoke 2) group 5 (talking 0) jog 0 | sit 0 talk 1 phone 0 dance 0 smoke 2 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 14 parked 30 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 1 rage 0 events 0 arrests 0 depart 0 arrive 0
+[ 193.062] autoplay t=2.5 pos 2713.0 763.0 2.1 state 0 health 400 veh -1 speed 0.0 | peds 59 vehicles 56 wanted 2 | cpu ms player 0.14 ai 0.34 veh 0.84 peds 0.91 | mem 2557 MB (private 0)
+[ 210.120] autoplay search t=4.1 wanted 2 seen 0 | census r90: 25 on foot (in the water 0) | walk 17 (phone 5 smoke 2) group 5 (talking 0) jog 0 | sit 0 talk 1 phone 0 dance 0 smoke 2 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 14 parked 30 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 1 rage 0 events 0 arrests 0 depart 0 arrive 0
+[ 226.755] police unit 56: around at 2602 889, 168 m from the suspect (lane 20188, attempt 0, suspect 0.0 m/s)
+[ 233.081] autoplay search t=6.1 wanted 2 seen 0 | census r90: 25 on foot (in the water 0) | walk 17 (phone 5 smoke 2) group 5 (talking 0) jog 0 | sit 0 talk 1 phone 0 dance 0 smoke 2 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 14 parked 30 police 2 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 2 rage 0 events 0 arrests 0 depart 0 arrive 0
+[ 255.279] autoplay search t=8.2 wanted 2 seen 0 | census r90: 25 on foot (in the water 0) | walk 17 (phone 5 smoke 2) group 5 (talking 0) jog 0 | sit 0 talk 1 phone 0 dance 0 smoke 2 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 14 parked 30 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 2 rage 0 events 0 arrests 0 depart 0 arrive 0
+[ 273.677] autoplay search t=10.2 wanted 2 seen 0 | census r90: 25 on foot (in the water 0) | walk 17 (phone 5 smoke 2) group 5 (talking 0) jog 0 | sit 0 talk 1 phone 0 dance 0 smoke 2 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 14 parked 30 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 2 rage 0 events 0 arrests 0 depart 0 arrive 0
+[ 282.710] police unit 57: around at 2695 1009, 246 m from the suspect (lane 20531, attempt 1, suspect 0.0 m/s)
+[ 292.051] autoplay search t=12.2 wanted 2 seen 0 | census r90: 26 on foot (in the water 0) | walk 17 (phone 5 smoke 2) group 5 (talking 0) jog 0 | sit 0 talk 1 phone 1 dance 0 smoke 2 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 16 parked 30 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 3 rage 0 events 1 arrests 0 depart 0 arrive 0
+[ 311.800] autoplay search t=14.3 wanted 2 seen 0 | census r90: 26 on foot (in the water 0) | walk 17 (phone 5 smoke 2) group 5 (talking 0) jog 0 | sit 0 talk 1 phone 1 dance 0 smoke 2 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 16 parked 30 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 3 rage 0 events 1 arrests 0 depart 0 arrive 0
+[ 328.245] autoplay search t=16.3 wanted 2 seen 0 | census r90: 26 on foot (in the water 0) | walk 17 (phone 5 smoke 2) group 5 (talking 0) jog 0 | sit 0 talk 1 phone 1 dance 0 smoke 2 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 16 parked 30 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 3 rage 0 events 1 arrests 0 depart 0 arrive 0
+[ 332.553] police unit 58: around at 2498 838, 227 m from the suspect (lane 19991, attempt 0, suspect 0.0 m/s)
+[ 344.588] autoplay search t=18.3 wanted 2 seen 0 | census r90: 26 on foot (in the water 0) | walk 17 (phone 5 smoke 2) group 5 (talking 0) jog 0 | sit 0 talk 1 phone 1 dance 0 smoke 2 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 15 parked 30 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 4 rage 0 events 1 arrests 0 depart 0 arrive 0
+[ 358.355] Transit: 0.725 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 361.562] autoplay search t=20.4 wanted 2 seen 0 | census r90: 26 on foot (in the water 0) | walk 17 (phone 5 smoke 2) group 5 (talking 0) jog 0 | sit 0 talk 1 phone 1 dance 0 smoke 2 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 14 parked 30 police 2 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 4 rage 0 events 1 arrests 0 depart 0 arrive 0
+[ 377.530] autoplay search t=22.4 wanted 2 seen 0 | census r90: 26 on foot (in the water 0) | walk 17 (phone 5 smoke 1) group 5 (talking 0) jog 0 | sit 0 talk 1 phone 1 dance 0 smoke 2 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 14 parked 30 police 2 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 4 rage 0 events 1 arrests 0 depart 0 arrive 0
+[ 393.898] autoplay search t=24.4 wanted 2 seen 0 | census r90: 26 on foot (in the water 0) | walk 16 (phone 4 smoke 1) group 5 (talking 0) jog 0 | sit 0 talk 1 phone 1 dance 0 smoke 3 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 13 parked 30 police 3 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 4 rage 0 events 1 arrests 0 depart 0 arrive 0
+[ 410.732] autoplay search t=26.5 wanted 2 seen 1 | census r90: 27 on foot (in the water 0) | walk 16 (phone 3 smoke 1) group 5 (talking 0) jog 0 | sit 0 talk 1 phone 2 dance 0 smoke 3 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 12 parked 30 police 3 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 4 rage 0 events 1 arrests 0 depart 0 arrive 0
+[ 433.770] autoplay search t=28.5 wanted 2 seen 1 | census r90: 26 on foot (in the water 0) | walk 15 (phone 3 smoke 1) group 5 (talking 0) jog 0 | sit 0 talk 1 phone 2 dance 0 smoke 3 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 12 parked 30 police 3 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 4 rage 0 events 1 arrests 0 depart 0 arrive 0
+[ 444.024] autoplay search: hiding at 2793 685, 120 m from the nearest unit
+[ 444.024] autoplay search: slipped away at t=29.5 (2 officers on foot), last seen 2713 763
+[ 444.024] police unit 5: around at 2695 829, 174 m from the suspect (lane 20519, attempt 0, suspect 0.0 m/s)
+[ 449.518] Wildlife: 8 animals (0 birds) in 7 groups, 7 drawn in 7 draws | update 0.033 ms, render 0.071 ms
+[ 454.436] autoplay search t=30.5 wanted 2 seen 0 | census r90: 10 on foot (in the water 0) | walk 3 (phone 1 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 1 phone 2 dance 0 smoke 2 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 9 parked 24 police 4 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 5 rage 0 events 1 arrests 0 depart 0 arrive 0
+[ 479.593] autoplay search t=32.6 wanted 2 seen 0 | census r90: 10 on foot (in the water 0) | walk 3 (phone 1 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 1 phone 2 dance 0 smoke 2 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 7 parked 24 police 4 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 5 rage 0 events 1 arrests 0 depart 0 arrive 0
+[ 505.567] autoplay search t=34.6 wanted 2 seen 0 | census r90: 10 on foot (in the water 0) | walk 5 (phone 1 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 1 phone 2 dance 0 smoke 1 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 7 parked 24 police 4 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 5 rage 0 events 1 arrests 0 depart 0 arrive 0
+[ 528.998] autoplay search t=36.6 wanted 2 seen 0 | census r90: 10 on foot (in the water 0) | walk 5 (phone 2 smoke 0) group 1 (talking 0) jog 0 | sit 1 talk 1 phone 1 dance 0 smoke 1 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 8 parked 24 police 4 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 5 rage 0 events 1 arrests 0 depart 0 arrive 0
+[ 562.389] autoplay search t=38.7 wanted 2 seen 0 | census r90: 10 on foot (in the water 0) | walk 5 (phone 2 smoke 0) group 1 (talking 0) jog 0 | sit 1 talk 1 phone 1 dance 0 smoke 1 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 8 parked 24 police 4 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 5 rage 0 events 1 arrests 0 depart 0 arrive 1
+[ 578.191] Transit: 0.074 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 585.101] autoplay search t=40.7 wanted 2 seen 0 | census r90: 10 on foot (in the water 0) | walk 6 (phone 3 smoke 0) group 1 (talking 0) jog 0 | sit 1 talk 1 phone 0 dance 0 smoke 1 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 9 parked 24 police 4 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 5 rage 0 events 1 arrests 0 depart 0 arrive 1
+[ 616.939] autoplay search t=42.7 wanted 2 seen 0 | census r90: 10 on foot (in the water 0) | walk 6 (phone 3 smoke 0) group 1 (talking 0) jog 0 | sit 1 talk 1 phone 0 dance 0 smoke 1 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 9 parked 24 police 4 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 5 rage 0 events 1 arrests 0 depart 0 arrive 1
+[ 644.851] autoplay search t=44.8 wanted 2 seen 0 | census r90: 10 on foot (in the water 0) | walk 6 (phone 3 smoke 0) group 1 (talking 0) jog 0 | sit 1 talk 1 phone 0 dance 0 smoke 1 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 10 parked 24 police 5 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 5 rage 0 events 1 arrests 0 depart 0 arrive 1
+[ 667.905] autoplay search t=46.8 wanted 2 seen 0 | census r90: 10 on foot (in the water 0) | walk 5 (phone 2 smoke 0) group 1 (talking 0) jog 0 | sit 1 talk 1 phone 0 dance 0 smoke 1 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 10 parked 24 police 5 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 5 rage 0 events 1 arrests 0 depart 0 arrive 1
+[ 704.363] autoplay search t=48.8 wanted 2 seen 1 | census r90: 9 on foot (in the water 0) | walk 6 (phone 2 smoke 0) group 1 (talking 0) jog 0 | sit 1 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 8 parked 24 police 5 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 5 rage 0 events 1 arrests 0 depart 0 arrive 1
+[ 730.177] autoplay search t=50.9 wanted 2 seen 1 | census r90: 8 on foot (in the water 0) | walk 5 (phone 2 smoke 0) group 1 (talking 0) jog 0 | sit 1 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 8 parked 24 police 5 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 5 rage 0 events 1 arrests 0 depart 0 arrive 1
+[ 765.072] autoplay search t=52.9 wanted 2 seen 1 | census r90: 8 on foot (in the water 0) | walk 5 (phone 2 smoke 0) group 1 (talking 0) jog 0 | sit 1 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 8 parked 24 police 5 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 5 rage 0 events 1 arrests 0 depart 0 arrive 1
+[ 765.076] police unit 7: stuck in traffic 38 m out, the officers go on foot
+[ 765.085] police unit 28: around at 2655 452, 271 m from the suspect (lane 20175, attempt 2, suspect 0.0 m/s)
+[ 786.237] autoplay search t=54.9 wanted 2 seen 1 | census r90: 10 on foot (in the water 0) | walk 5 (phone 2 smoke 0) group 1 (talking 0) jog 0 | sit 1 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 2 (approach 0 cover 0 flank 2 arrest 0 search 0 engage 0) | cars 6 parked 24 police 6 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 6 rage 0 events 1 arrests 0 depart 0 arrive 1
+[ 808.037] autoplay search t=57.0 wanted 2 seen 1 | census r90: 9 on foot (in the water 0) | walk 4 (phone 2 smoke 0) group 1 (talking 0) jog 0 | sit 1 talk 0 phone 1 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 2 (approach 0 cover 0 flank 2 arrest 0 search 0 engage 0) | cars 7 parked 23 police 6 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 6 rage 0 events 1 arrests 0 depart 1 arrive 1
+[ 832.270] police unit 38: around at 3004 725, 215 m from the suspect (lane 21724, attempt 0, suspect 0.0 m/s)
+[ 832.285] autoplay search t=59.0 wanted 2 seen 1 | census r90: 12 on foot (in the water 0) | walk 4 (phone 2 smoke 0) group 1 (talking 0) jog 0 | sit 1 talk 0 phone 1 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 5 (approach 0 cover 1 flank 3 arrest 0 search 0 engage 1) | cars 7 parked 23 police 6 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 7 rage 0 events 1 arrests 0 depart 1 arrive 1
+[ 835.734] police unit 58: stuck in traffic 64 m out, the officers go on foot
+[ 841.379] Transit: 0.061 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 841.388] Wildlife: 3 animals (0 birds) in 3 groups, 3 drawn in 3 draws | update 0.022 ms, render 0.041 ms
+[ 849.756] autoplay search t=61.0 wanted 2 seen 1 | census r90: 14 on foot (in the water 0) | walk 4 (phone 1 smoke 0) group 1 (talking 0) jog 0 | sit 1 talk 0 phone 1 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 7 (approach 0 cover 1 flank 4 arrest 0 search 0 engage 2) | cars 7 parked 23 police 6 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 7 rage 0 events 1 arrests 0 depart 1 arrive 1
+[ 860.504] autoplay t=61.5 pos 2792.9 685.2 2.4 state 0 health 400 veh -1 speed 0.0 | peds 62 vehicles 58 wanted 2 | cpu ms player 0.17 ai 0.34 veh 0.51 peds 0.44 | mem 2495 MB (private 0)
+[ 879.178] autoplay search t=63.1 wanted 2 seen 1 | census r90: 14 on foot (in the water 0) | walk 4 (phone 1 smoke 0) group 1 (talking 0) jog 0 | sit 1 talk 0 phone 1 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 7 (approach 0 cover 1 flank 4 arrest 0 search 0 engage 2) | cars 7 parked 23 police 6 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 7 rage 0 events 1 arrests 0 depart 1 arrive 1
+[ 892.154] police unit 43: around at 2902 874, 218 m from the suspect (lane 21404, attempt 0, suspect 0.0 m/s)
+[ 896.923] autoplay search t=65.1 wanted 2 seen 1 | census r90: 14 on foot (in the water 0) | walk 5 (phone 1 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 1 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 7 (approach 0 cover 1 flank 4 arrest 0 search 0 engage 2) | cars 7 parked 23 police 6 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 8 rage 0 events 1 arrests 0 depart 1 arrive 1
+[ 914.625] autoplay search t=67.1 wanted 2 seen 1 | census r90: 14 on foot (in the water 0) | walk 3 (phone 1 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 1 dance 0 smoke 0 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 7 (approach 0 cover 1 flank 4 arrest 0 search 0 engage 2) | cars 7 parked 23 police 8 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 8 rage 0 events 1 arrests 0 depart 1 arrive 1
+[ 938.179] autoplay search t=69.2 wanted 2 seen 1 | census r90: 14 on foot (in the water 0) | walk 3 (phone 0 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 1 dance 0 smoke 0 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 7 (approach 0 cover 1 flank 4 arrest 0 search 0 engage 2) | cars 6 parked 23 police 8 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 1 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 8 rage 0 events 1 arrests 0 depart 1 arrive 1
+[ 954.309] autoplay search t=71.2 wanted 2 seen 1 | census r90: 14 on foot (in the water 0) | walk 3 (phone 0 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 1 dance 0 smoke 0 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 7 (approach 0 cover 1 flank 4 arrest 0 search 0 engage 2) | cars 6 parked 23 police 8 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 8 rage 0 events 1 arrests 0 depart 1 arrive 1
+[ 976.757] autoplay search t=73.2 wanted 2 seen 1 | census r90: 15 on foot (in the water 0) | walk 4 (phone 0 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 1 dance 0 smoke 0 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 1 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 6 (approach 0 cover 1 flank 3 arrest 0 search 0 engage 2) | cars 7 parked 24 police 8 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 8 rage 0 events 2 arrests 0 depart 1 arrive 1
+[ 993.945] autoplay search t=75.3 wanted 2 seen 1 | census r90: 15 on foot (in the water 0) | walk 4 (phone 0 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 1 dance 0 smoke 0 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 1 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 6 (approach 0 cover 1 flank 3 arrest 0 search 0 engage 2) | cars 7 parked 24 police 8 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 8 rage 0 events 2 arrests 0 depart 1 arrive 1
+[1002.395] police unit 43: past a hold-up in traffic, 30 m on (110 m from the suspect)
+[1012.533] autoplay search t=77.3 wanted 2 seen 1 | census r90: 15 on foot (in the water 0) | walk 4 (phone 0 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 1 dance 0 smoke 0 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 1 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 6 (approach 0 cover 1 flank 3 arrest 0 search 0 engage 2) | cars 8 parked 24 police 8 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 8 rage 0 events 2 arrests 0 depart 1 arrive 1
+[1038.199] autoplay search t=79.3 wanted 2 seen 1 | census r90: 15 on foot (in the water 0) | walk 5 (phone 0 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 1 dance 0 smoke 0 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 1 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 6 (approach 0 cover 1 flank 3 arrest 0 search 0 engage 2) | cars 10 parked 23 police 8 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 8 rage 0 events 2 arrests 0 depart 2 arrive 1
+[1040.072] police unit 59: around at 3025 552, 268 m from the suspect (lane 21723, attempt 2, suspect 0.0 m/s)
+[1042.936] police unit 28: stuck in traffic 45 m out, the officers go on foot
+[1045.952] Transit: 0.068 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1059.248] autoplay search t=81.4 wanted 2 seen 1 | census r90: 19 on foot (in the water 0) | walk 5 (phone 0 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 1 dance 0 smoke 0 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 1 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 10 (approach 0 cover 2 flank 5 arrest 0 search 0 engage 3) | cars 10 parked 23 police 9 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 9 rage 0 events 2 arrests 0 depart 2 arrive 1
+[1081.063] autoplay search t=83.4 wanted 2 seen 1 | census r90: 19 on foot (in the water 0) | walk 5 (phone 0 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 1 dance 0 smoke 0 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 1 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 10 (approach 0 cover 2 flank 5 arrest 0 search 0 engage 3) | cars 10 parked 23 police 9 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 1 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 9 rage 0 events 2 arrests 0 depart 2 arrive 1
+[1099.907] police unit 60: around at 2624 552, 215 m from the suspect (lane 20179, attempt 0, suspect 0.0 m/s)
+[1104.464] autoplay search t=85.4 wanted 2 seen 1 | census r90: 21 on foot (in the water 0) | walk 7 (phone 1 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 1 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 11 (approach 0 cover 2 flank 6 arrest 0 search 0 engage 3) | cars 10 parked 23 police 9 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 10 rage 0 events 2 arrests 0 depart 2 arrive 1
+[1126.229] autoplay search t=87.5 wanted 2 seen 1 | census r90: 21 on foot (in the water 0) | walk 7 (phone 1 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 1 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 11 (approach 0 cover 2 flank 6 arrest 0 search 0 engage 3) | cars 10 parked 23 police 9 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 10 rage 0 events 2 arrests 0 depart 2 arrive 1
+[1127.489] police unit 43: stuck in traffic 71 m out, the officers go on foot
+[1144.111] autoplay search t=89.5 wanted 2 seen 1 | census r90: 22 on foot (in the water 0) | walk 6 (phone 1 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 1 sun 0 queue 0 watch 0 bus 0 taxi 0 event 1 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 13 (approach 0 cover 2 flank 7 arrest 0 search 0 engage 4) | cars 10 parked 23 police 9 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 1 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 10 rage 0 events 2 arrests 0 depart 2 arrive 1
+[1149.060] Wildlife: 3 animals (0 birds) in 3 groups, 3 drawn in 3 draws | update 0.024 ms, render 0.033 ms
+[1155.360] police unit 61: around at 2902 808, 164 m from the suspect (lane 21400, attempt 0, suspect 0.0 m/s)
+[1162.132] autoplay search t=91.5 wanted 2 seen 1 | census r90: 22 on foot (in the water 0) | walk 7 (phone 1 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 1 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 13 (approach 0 cover 2 flank 7 arrest 0 search 0 engage 4) | cars 10 parked 23 police 10 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 11 rage 0 events 2 arrests 0 depart 2 arrive 1
+[1172.430] police unit 38: stuck in traffic 75 m out, the officers go on foot
+[1180.920] autoplay search t=93.6 wanted 2 seen 1 | census r90: 24 on foot (in the water 0) | walk 7 (phone 1 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 1 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 15 (approach 0 cover 2 flank 9 arrest 0 search 0 engage 4) | cars 11 parked 23 police 9 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 11 rage 0 events 2 arrests 0 depart 2 arrive 1
+[1198.909] autoplay search t=95.6 wanted 2 seen 1 | census r90: 25 on foot (in the water 0) | walk 8 (phone 1 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 1 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 15 (approach 0 cover 2 flank 9 arrest 0 search 0 engage 4) | cars 11 parked 23 police 9 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 1 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 11 rage 0 events 2 arrests 0 depart 2 arrive 1
+[1205.930] police unit 62: around at 2916 552, 182 m from the suspect (lane 21395, attempt 0, suspect 0.0 m/s)
+[1217.836] autoplay search t=97.6 wanted 2 seen 1 | census r90: 25 on foot (in the water 0) | walk 7 (phone 0 smoke 0) group 1 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 1 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 1 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 15 (approach 0 cover 2 flank 9 arrest 0 search 0 engage 4) | cars 11 parked 23 police 10 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 12 rage 0 events 2 arrests 0 depart 2 arrive 1
+[1236.673] autoplay search t=99.7 wanted 2 seen 1 | census r90: 23 on foot (in the water 0) | walk 6 (phone 0 smoke 0) group 0 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 1 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 1 meet 0 (so far 0) window 0 hurt 0 (helped by 0) | venue 0 (guard 0 pace 0 outlook 0 boarding 0 greeting 0) travelers 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 15 (approach 0 cover 2 flank 9 arrest 0 search 0 engage 4) | cars 10 parked 23 police 10 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 12 rage 0 events 2 arrests 0 depart 2 arrive 1
+[1238.137] police unit 59: stuck in traffic 41 m out, the officers go on foot
+[1240.958] Transit: 0.054 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1253.285] Shutdown complete.
+X connection to :104 broken (explicit kill or server shutdown).

@@ -1,0 +1,7 @@
+# renderer phase 3 (palms, leaf canopy, storefront glass), on main d3c2c3f (files unchanged since 06580c3; PROGRESS.md = phase 2's); git hash-object -w
+e2e3022801648123684a3430b3f239b8ba57108c src/world/propmesh.cpp
+169b5cdca17e04abcd5a4c4aecc1a15492cb0d54 src/shaders/props.hlsl
+3240e731abe46b95645907b024e0328330407a87 src/shaders/matgen.hlsl
+711e58df2cbe4c2ca725cdc0aa43de99451ecb66 src/render/materials.cpp
+eaa62db410e1eed2998e26c34c9939f9f7016e38 src/shaders/facade.hlsli
+74cbe50eebaa211f581a9c41f43ee223333dfd40 PROGRESS.md

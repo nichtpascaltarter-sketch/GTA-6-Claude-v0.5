@@ -1,0 +1,6 @@
+ks_conch1 front 22128 15 2 3 60 10
+ks_conch2 front 22180 15 2 -3 60 10
+ks_conch4 front 22126 15 2 -3 60 10
+km4 front 22068 22 3 -4 60 10
+km8 front 22134 22 3 -4 60 10
+vic_oka_L1 front 22575 18 2 4 60 10

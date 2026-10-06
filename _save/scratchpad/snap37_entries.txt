@@ -1,0 +1,11 @@
+100644 167c309fd59e73675c8c61fe195d70799312fd32	src/world/buildings.h
+100644 b23f85d79a45efcbb8f7c04dcdf9a9c271e3c902	src/world/buildings.cpp
+100644 2215873c9fffd27130b0fef0239033d32051ac93	src/world/buildmesh.cpp
+100644 c9f48bb9122f80e86d969c10a6e34d33f0faf4a9	src/world/facadedetail.cpp
+100644 93a2a0f7d542937a10548809e3f53268d9172a28	src/world/cellgen.cpp
+100644 6dceec146c9fe83ff3a4fa78d6ba5ff3e0eb20d8	src/world/blockstyle.cpp
+100644 22538b018bc162a188db70dd984b1244a41ddf98	src/world/massing.cpp
+100644 2afd2c815ef130cda493d1809b3483dbd1700f53	src/world/sitegeo.cpp
+100644 4569edfb93a3620c789d5b606f4fbfd3c6736a4a	src/world/roads.cpp
+100644 a8610b8ced705926fa3550bdad3ef4bde6b68bb4	src/anim/face.cpp
+100644 a60c092c0c958dbdbc67760e67f9bbdc7c778c47	tests/anim/anim_test.cpp

@@ -1,0 +1,30 @@
+City batch 3: motels, strip malls, farms and neighbourhood churches in real types; a lighter far LOD
+
+- Motels come in four types instead of one box:
+  - fifties MiMo motor courts: eave slab, steel walkway with coloured panels, boomerang pylon sign;
+  - Mediterranean motels: barrel-tile roofs, stucco piers and parapet, blade sign;
+  - Keys motels in wood and tin, with a two-level wooden gallery;
+  - seventies motor inns: shingled mansard, pole sign.
+  All have lobby ends, back wings and sign towers, and Key Solano's side streets no longer look stamped.
+- Strip malls come in three types:
+  - mission-revival strips: tile-roofed arcade on stucco piers, entry tower;
+  - MiMo strips: folded-plate canopy on pipe columns, pylon sign;
+  - power centres: tall parapet, anchor end, metal canopy.
+  Canopy supports stand on the stall lines, clear of parked cars.
+- Farms in Redland and the farmlands:
+  - Florida cracker farmhouses (raised, deep porch, tin roof), two-storey I-houses and ranch farmhouses;
+  - gambrel barns with X-braced doors, open pole barns, and gable barns with lean-to sheds.
+- Neighbourhood churches on the boulevards and in the small towns: mission revival (espadana gable with a bell,
+  corner bell tower), white clapboard with a steeple, brick Gothic with a pinnacled tower, and sixties A-frames with a
+  glazed front and a bell pylon. The church envelope and front are unchanged, so the bride encounter's chapel stop is
+  unaffected.
+- Far LOD: porches, columns, rails, posts, stairs and folded plates are drawn only up close. Whole-map far-LOD
+  triangles drop from 1.22 M to 1.01 M.
+- Gameplay is unchanged:
+  - Story places resolve to the same positions.
+  - Lot and back-building counts are unchanged (35617 lots, 3457 back buildings).
+  - worldcheck passed.
+- Tests (city agent, on 06580c3 plus exactly these files):
+  - Story regression: 27 of 27, identical mission by mission to batch 2.
+  - Mean draws per frame at tour stops 2-4 are within 2%, and 13% fewer at the Sol Beach condos.
+  - Repetition (the share of neighbours that repeat a building's form) drops from 3.8% to 3.2%.

@@ -1,0 +1,9 @@
+{
+  "id": "51",
+  "subject": "Clean wind-down for usage pause (agents finish fully, then save_all)",
+  "description": "User asked at 13:16 to stop cleanly because of usage, letting agents fully complete. Agents finish their in-flight work to sign-off, write resume notes, report \"done, nothing running\". Lead snapshots + auto-merges each sign-off, delivers showcase set 3, then wip_backup, save_all.sh (now incl. /tmp/night, /tmp/ai), disables the check-in trigger and sends the user a final summary.",
+  "activeForm": "Winding down: letting agents finish",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

@@ -1,0 +1,48 @@
+Harbor       s0 1.58 in  hand 0.000 0.064  SHELL   0/260 (0.014) seated 0.014  CROSS   3  pop 0.028
+Harbor       s0 1.58 out hand 0.000 0.000  SHELL   2/174 (0.024) seated 0.026  CROSS   9  pop 0.053
+Harbor       s0 1.76 in  hand 0.000 0.000  SHELL   0/260 (0.017) seated 0.060  CROSS  18  pop 0.039
+Harbor       s0 1.76 out hand 0.000 0.000  SHELL   5/174 (0.036) seated 0.056  CROSS  37  pop 0.066
+Harbor       s0 1.94 in  hand 0.002 0.000  SHELL   8/260 (0.058) seated 0.060  CROSS  41  pop 0.047
+Harbor       s0 1.94 out hand 0.000 0.000  SHELL  15/174 (0.060) seated 0.060  CROSS  15  pop 0.078
+Harbor       s1 1.58 in  hand 0.000 0.129  SHELL   0/260 (0.014) seated 0.040  CROSS   3  pop 0.028
+Harbor       s1 1.58 out hand 0.000 0.037  SHELL   1/174 (0.024) seated 0.026  CROSS   9  pop 0.053
+Harbor       s1 1.76 in  hand 0.000 0.003  SHELL   7/260 (0.025) seated 0.059  CROSS  30  pop 0.038
+Harbor       s1 1.76 out hand 0.000 0.000  SHELL   1/174 (0.023) seated 0.031  CROSS   8  pop 0.066
+Harbor       s1 1.94 in  hand 0.002 0.006  SHELL   8/260 (0.058) seated 0.057  CROSS  35  pop 0.047
+Harbor       s1 1.94 out hand 0.000 0.000  SHELL  14/174 (0.060) seated 0.059  CROSS  15  pop 0.078
+Kaito        s0 1.58 in  hand 0.000 0.000  SHELL   5/286 (0.060) seated 0.027  CROSS  15  pop 0.031
+Kaito        s0 1.58 out hand 0.000 0.000  SHELL   3/174 (0.058) seated 0.026  CROSS  11  pop 0.051
+Kaito        s0 1.76 in  hand 0.001 0.000  SHELL  16/286 (0.060) seated 0.060  CROSS  26  pop 0.042
+Kaito        s0 1.76 out hand 0.000 0.000  SHELL  14/174 (0.060) seated 0.060  CROSS  22  pop 0.067
+Kaito        s0 1.94 in  hand 0.001 0.000  SHELL  19/286 (0.060) seated 0.060  CROSS  43  pop 0.051
+Kaito        s0 1.94 out hand 0.000 0.000  SHELL  11/174 (0.060) seated 0.060  CROSS  19  pop 0.078
+Kaito        s1 1.58 in  hand 0.000 0.029  SHELL   5/286 (0.060) seated 0.026  CROSS  15  pop 0.031
+Kaito        s1 1.58 out hand 0.000 0.000  SHELL   2/174 (0.049) seated 0.026  CROSS  10  pop 0.051
+Kaito        s1 1.76 in  hand 0.001 0.000  SHELL  16/286 (0.060) seated 0.060  CROSS  26  pop 0.041
+Kaito        s1 1.76 out hand 0.000 0.000  SHELL  13/174 (0.060) seated 0.052  CROSS  23  pop 0.067
+Kaito        s1 1.94 in  hand 0.001 0.000  SHELL  20/286 (0.060) seated 0.060  CROSS  45  pop 0.070
+Kaito        s1 1.94 out hand 0.000 0.000  SHELL  11/174 (0.060) seated 0.060  CROSS  17  pop 0.078
+Tekko        s0 1.58 in  hand 0.000 0.013  SHELL   1/260 (0.024) seated 0.023  CROSS  43  pop 0.034
+Tekko        s0 1.58 out hand 0.000 0.000  SHELL   0/174 (0.006) seated 0.007  CROSS   5  pop 0.055
+Tekko        s0 1.76 in  hand 0.000 0.000  SHELL   4/260 (0.051) seated 0.044  CROSS  40  pop 0.033
+Tekko        s0 1.76 out hand 0.000 0.000  SHELL   8/174 (0.025) seated 0.060  CROSS  37  pop 0.053
+Tekko        s0 1.94 in  hand 0.000 0.000  SHELL  11/260 (0.060) seated 0.060  CROSS  45  pop 0.034
+Tekko        s0 1.94 out hand 0.000 0.000  SHELL  11/174 (0.060) seated 0.060  CROSS  15  pop 0.064
+Tekko        s1 1.58 in  hand 0.000 0.079  SHELL   1/260 (0.024) seated 0.055  CROSS  11  pop 0.034
+Tekko        s1 1.58 out hand 0.000 0.041  SHELL   0/174 (0.000) seated 0.026  CROSS   0  pop 0.055
+Tekko        s1 1.76 in  hand 0.000 0.028  SHELL  13/260 (0.052) seated 0.047  CROSS  30  pop 0.033
+Tekko        s1 1.76 out hand 0.000 0.002  SHELL   2/174 (0.022) seated 0.060  CROSS  12  pop 0.053
+Tekko        s1 1.94 in  hand 0.000 0.008  SHELL  10/260 (0.060) seated 0.034  CROSS  37  pop 0.034
+Tekko        s1 1.94 out hand 0.000 0.000  SHELL   9/174 (0.060) seated 0.060  CROSS  17  pop 0.060
+?? Gatorback '70 seat 0 h 1.58 in : roof 0.000@-1.00(b-1) pillar 0.000@-1.00(b-1) sill 0.022@2.02(b21) door 0.071@0.88(b37) ground 0.032(b17)  hand out 0.000 in 0.000  SHELL 0.060@0.87(b37 at -1.51 -0.61 0.88) 9/288 frames, seated 0.026  CROSS 0.060@0.87(b9 at -1.50 -0.72 0.93 door mat 36) 12 frames, 225 verts pop 0.031@1.93 hips 0.017 belt on 4.20  (7920 ms)
+?? Gatorback '70 seat 0 h 1.58 out: roof 0.001@1.15(b6) pillar 0.000@-1.00(b-1) sill 0.014@0.75(b17) door 0.026@1.40(b18) ground 0.036(b21)  hand out 0.000 in 0.000  SHELL 0.059@2.18(b37 at -1.39 -0.65 1.15) 13/174 frames, seated 0.030  CROSS 0.060@1.35(b18 at -1.30 0.17 0.34 door mat 36) 31 frames, 94 verts pop 0.058@1.65 belt off 0.30 open 0.97  (4399 ms)
+?? Gatorback '70 seat 0 h 1.76 in : roof 0.089@1.73(b6) pillar 0.329@1.75(b6) sill 0.067@4.27(b43) door 0.071@2.30(b18) ground 0.034(b17)  hand out 0.001 in 0.000  SHELL 0.060@2.30(b18 at -1.30 0.21 0.33) 18/288 frames, seated 0.060  CROSS 0.060@1.77(b6 at -0.72 -0.11 1.13 body mat 27) 33 frames, 653 verts pop 0.042@1.93 hips 0.080 belt on 4.20  (8927 ms)
+?? Gatorback '70 seat 0 h 1.76 out: roof 0.000@-1.00(b-1) pillar 0.000@-1.00(b-1) sill 0.043@1.52(b59) door 0.071@1.03(b18) ground 0.040(b21)  hand out 0.000 in 0.000  SHELL 0.060@1.23(b18 at -1.37 0.23 0.34) 15/174 frames, seated 0.060  CROSS 0.060@1.23(b18 at -1.37 0.23 0.34 door mat 36) 21 frames, 327 verts pop 0.066@1.77 belt off 0.30 open 0.97  (3476 ms)
+?? Gatorback '70 seat 0 h 1.94 in : roof 0.090@1.80(b6) pillar 0.399@1.80(b6) sill 0.104@4.23(b43) door 0.071@3.08(b8) ground 0.053(b17)  hand out 0.003 in 0.000  SHELL 0.060@2.28(b17 at -1.31 0.18 0.37) 25/288 frames, seated 0.060  CROSS 0.060@1.80(b6 at -0.74 0.03 1.08 body mat 27) 47 frames, 1861 verts pop 0.052@3.20 hips 0.129 belt on 4.20  (6717 ms)
+?? Gatorback '70 seat 0 h 1.94 out: roof 0.069@1.08(b6) pillar 0.046@1.28(b6) sill 0.120@0.15(b41) door 0.071@1.13(b17) ground 0.040(b21)  hand out 0.000 in 0.000  SHELL 0.060@1.23(b17 at -1.43 0.22 0.34) 13/174 frames, seated 0.060  CROSS 0.060@1.23(b6 at -0.75 0.29 0.99 body mat 22) 20 frames, 514 verts pop 0.080@1.08 belt off 0.30 open 0.97  (2068 ms)
+?? Gatorback '70 seat 1 h 1.58 in : roof 0.000@-1.00(b-1) pillar 0.000@-1.00(b-1) sill 0.024@2.05(b17) door 0.071@0.88(b38) ground 0.045(b21)  hand out 0.000 in 0.052  SHELL 0.060@0.87(b38 at 1.51 -0.61 0.88) 8/288 frames, seated 0.016  CROSS 0.060@0.87(b13 at 1.50 -0.72 0.93 door mat 36) 13 frames, 225 verts pop 0.031@1.93 hips 0.017 belt on 4.20  (3035 ms)
+?? Gatorback '70 seat 1 h 1.58 out: roof 0.003@1.17(b6) pillar 0.000@-1.00(b-1) sill 0.015@0.83(b22) door 0.027@1.40(b22) ground 0.036(b17)  hand out 0.000 in 0.000  SHELL 0.047@2.18(b38 at 1.38 -0.67 1.16) 12/174 frames, seated 0.028  CROSS 0.060@2.15(b38 at 1.41 -0.60 1.17 door mat 52) 31 frames, 103 verts pop 0.058@1.65 belt off 0.30 open 0.97  (1752 ms)
+?? Gatorback '70 seat 1 h 1.76 in : roof 0.090@1.73(b6) pillar 0.356@1.75(b6) sill 0.026@2.55(b22) door 0.071@2.30(b22) ground 0.036(b21)  hand out 0.001 in 0.000  SHELL 0.060@2.30(b22 at 1.30 0.21 0.33) 17/288 frames, seated 0.026  CROSS 0.060@2.38(b22 at 1.14 0.25 0.33 door mat 36) 29 frames, 631 verts pop 0.042@1.93 hips 0.080 belt on 4.20  (2765 ms)
+?? Gatorback '70 seat 1 h 1.76 out: roof 0.007@1.07(b6) pillar 0.000@-1.00(b-1) sill 0.049@0.13(b56) door 0.071@1.03(b22) ground 0.040(b17)  hand out 0.000 in 0.000  SHELL 0.060@1.23(b22 at 1.43 0.21 0.34) 14/174 frames, seated 0.060  CROSS 0.060@1.25(b22 at 1.41 0.24 0.34 door mat 36) 22 frames, 329 verts pop 0.066@1.77 belt off 0.30 open 0.97  (1819 ms)
+?? Gatorback '70 seat 1 h 1.94 in : roof 0.090@1.78(b6) pillar 0.398@1.80(b6) sill 0.080@4.27(b59) door 0.071@2.38(b22) ground 0.053(b21)  hand out 0.003 in 0.000  SHELL 0.060@2.28(b21 at 1.31 0.18 0.37) 24/288 frames, seated 0.060  CROSS 0.060@1.82(b6 at 0.71 0.06 1.11 body mat 52) 46 frames, 1642 verts pop 0.050@1.93 hips 0.128 belt on 4.20  (3140 ms)
+?? Gatorback '70 seat 1 h 1.94 out: roof 0.087@1.08(b6) pillar 0.077@1.28(b6) sill 0.120@0.18(b59) door 0.071@1.13(b21) ground 0.040(b17)  hand out 0.000 in 0.000  SHELL 0.060@1.23(b21 at 1.43 0.19 0.34) 13/174 frames, seated 0.060  CROSS 0.060@1.18(b6 at 0.65 0.30 1.01 body mat 48) 21 frames, 958 verts pop 0.081@1.08 belt off 0.30 open 0.97  (2003 ms)

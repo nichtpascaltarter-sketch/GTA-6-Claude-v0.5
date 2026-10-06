@@ -1,0 +1,36 @@
+Batch 13 - roofs for the aerial views; ranch-row colours and porches; Key Coral villa forms (on top of batch 11)
+Roofs (the lead's item 2):
+- buildmesh.cpp roofPlant(): the flat roofs of 3 floors and up (mid-rises, condos, offices, tower tops without a crown,
+  and the archetype roofs in massing.cpp) get a row of roof plant along the back of the roof: the stair bulkhead,
+  the lift motor room (5+ floors), 1-4 packaged HVAC units by roof area, a cooling tower on big roofs (6+ floors) and,
+  where set, the water tank. The small clutter (rooftopClutter: vents, dishes, solar, units) keeps to the rest of the
+  roof. In both LODs: the far LOD draws the masses (bulkhead, motor room, cooling tower and a 6-sided fan stack, the
+  first HVAC unit, the tank); the near LOD adds the copings, doors, louvres, fans and rails. Collision boxes for the
+  bulkhead, motor room, cooling tower and tank.
+- waterTank() (out of rooftopClutter, unchanged up close; its cross braces' bases made right-handed - one of the two
+  was culled): on most of the older walk-ups - 70% of the brick mid-rises in Calle Luna, North City, Midtown and the
+  Flats (35% of the others there), walk-up archetypes 70% brick / 45%, lofts 30% (was a 35-40% chance on the old
+  fabric, anywhere on the roof, up close only). The far LOD keeps a post, a 6-sided tank and its roof.
+- parapet(): the coping a shade lighter than the wall, so the roofs read with a light rim from the air (near LOD; in
+  the far LOD a 0.3 m coping is under half a pixel and cost 20k triangles in the downtown far ring, so it stays out).
+- balconyBands(): balcony slabs with glass railings at every floor on the residential towers (the beach's and Key
+  Coral's condo look, facade style 3: the long faces, all four on near-square towers), and on the front and back of the
+  condos' slab volumes (massing.cpp; the detail pass's rails and dividers sit on them). The far LOD: one band per slab.
+- The towers' glass-lantern crown (crown 4, emissive crown lights) in every LOD (the far LOD showed the bare roof).
+- massing.cpp: archetype roofs get the far-LOD copings, the roof plant (and tanks), and antennas on some 4+ floor roofs.
+Ranch rows and villas (item 3):
+- blockstyle.cpp: a ranch palette (kRanch: white, cream, butter, peach, coral, sage, mint, sky, grey-blue, warm grey,
+  tan, lilac): ranch walls a third in the suburban whites, the rest ranch colours, 17% brick; trim white, a deeper tone
+  of the wall or dark bronze (the rows were white on white). Two-storey houses 40% and split-levels 50% in ranch colours.
+- ranchPorch(): a long low porch under a shed roof across a box ranch's front (in the inner corner of an L): 55% in the
+  Grove, 38% in Westbrook's tract rows, 42% elsewhere (massing.cpp draws it with housePorch).
+- villaForm(): Mediterranean villas 38% plain, 34% an arcaded loggia across the front with a terrace on it, 28% a
+  balcony on corbels over the entry; colonial villas (box) half with a full-width veranda and balustraded balcony; modern
+  villas 55% a roof terrace with a pergola and glass rail (massing.cpp villaColonnade, villaBalcony, modernPergola).
+  facadedetail.cpp: no tiled door portico where the loggia, balcony or veranda is.
+- formKey counts the ranch porches and villa forms in the repetition signature. Garage doors white, almond, wood brown
+  or warm grey (buildmesh.cpp).
+- Repetition (log metric): 2.1% -> 2.0% overall; Key Coral 5.8% -> 4.6%, the Grove 2.3% -> 2.0%, Westbrook 2.7% -> 2.5%,
+  Harlow 2.8% -> 2.7%.
+@COST@
+@TESTS@

@@ -1,0 +1,148 @@
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.05 s)
+World map generated in 31.41 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (4.08 s)
+Buildings: 36321 (towers 358, midrise 2411, condo 535, deco 859, shops 4885, strip 730, houses 21906, villas 903, warehouses 1707) in 2.53 s
+Sites: 65 highway billboards
+Sites: 117 silos, 53 windmills
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 559 elements (0.04 s)
+Lane graph: 26691 lanes, 59937 connectors (1215831 pts), 36768 walk nodes, 53089 walk links (1.27 s)
+Loaded 16 collision cells
+Simulating 3.0 minutes around (2390, 960) r=300 with 110 cars, 40 peds
+LATDEV t=9.8 car 44 (Tekko) at 2348.4 958.7 lane 103 u 32.1 latErr 1.15 v 10.5 vT 39.4 steer 0.09 diag e 0.80 psi -0.22 ff 0.00 st 0.07
+LATDEV t=15.8 car 75 (Mochi 125) at 2408.3 982.8 lane 7066 u 32.8 latErr 1.23 v 6.3 vT 11.1 steer 0.00 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+STATIC t=16.2 car 48 at 2303.1 895.2 v=1.4 imp 3420 path 41723 u 4.5 lat 0.00
+LATDEV t=18.4 car 6 (Cutter '74) at 2391.7 717.0 lane 7045 u 33.0 latErr 1.16 v 10.4 vT 15.9 steer 0.10 diag e 0.80 psi -0.22 ff 0.00 st 0.07
+LATDEV t=19.4 car 78 (Sawgrass) at 2391.7 1217.0 lane 7093 u 33.0 latErr 1.16 v 10.2 vT 15.9 steer 0.10 diag e 0.82 psi -0.22 ff 0.00 st 0.06
+STUCK t=20.0 car 48 at 2303.3 895.2 z 2.78 path 41723 u 4.6 lat 0.15 vT 3.7 stop 1000000000.0 obst 6.6(131) up 1.00 gear 1 wheels 4 sleep 0 imp 21 col 1006 thr 0.63
+LATDEV t=22.2 car 21 (Tanuki) at 2632.7 1041.7 lane 7797 u 32.7 latErr 1.17 v 10.1 vT 16.0 steer 0.09 diag e 0.89 psi -0.22 ff 0.00 st 0.05
+LATDEV t=24.7 car 74 (Cutter '74) at 2096.2 721.5 lane 6116 u 28.5 latErr -1.12 v 10.4 vT 14.0 steer -0.08 diag e -0.78 psi 0.21 ff 0.00 st -0.06
+STATIC t=25.0 car 48 at 2303.7 895.2 v=1.4 imp 2609 path 41723 u 4.8 lat 0.55
+LATDEV t=26.2 car 94 (Minnow) at 2382.0 984.5 lane 92 u 34.2 latErr -1.05 v 10.7 vT 28.9 steer -0.12 diag e -0.77 psi 0.21 ff -0.00 st -0.07
+LATDEV t=28.6 car 81 (Stevedore) at 2096.2 719.7 lane 6116 u 30.3 latErr -1.11 v 10.7 vT 15.8 steer -0.09 diag e -0.77 psi 0.19 ff 0.00 st -0.04
+STUCK t=34.0 car 48 at 2303.8 895.2 z 2.78 path 41723 u 4.9 lat 0.60 vT 3.7 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 25 col 1006 thr 0.63
+STATIC t=38.9 car 48 at 2303.2 895.2 v=2.4 imp 3377 path 41723 u 4.6 lat 0.06
+LATDEV t=39.2 car 43 (Raijin 1000) at 2232.9 940.8 lane 6544 u 32.9 latErr 2.15 v 11.9 vT 19.0 steer -0.12 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=40.6 car 12 (Harbor) at 2408.3 883.0 lane 7058 u 33.0 latErr 1.19 v 10.8 vT 17.8 steer 0.08 diag e 0.88 psi -0.22 ff 0.00 st 0.06
+LATDEV t=41.0 car 77 (Sundowner 1800) at 2488.1 1253.0 lane 7107 u 11.9 latErr 1.38 v 6.6 vT 6.8 steer -0.31 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+STUCK t=42.6 car 48 at 2303.4 895.2 z 2.78 path 41723 u 4.7 lat 0.21 vT 3.7 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 20 col 1006 thr 0.63
+LATDEV t=44.6 car 8 (Minnow) at 2381.9 984.9 lane 92 u 34.6 latErr -1.02 v 10.9 vT 29.6 steer -0.12 diag e -0.75 psi 0.21 ff 0.00 st -0.07
+LATDEV t=45.9 car 47 (Kiko) at 2471.9 1152.7 lane 7097 u 28.1 latErr 1.09 v 11.6 vT 14.6 steer 0.07 diag e 0.82 psi -0.21 ff 0.00 st 0.07
+STATIC t=47.6 car 48 at 2304.0 895.2 v=1.9 imp 3408 path 41723 u 5.0 lat 0.74
+LATDEV t=47.8 car 18 (Seiran) at 2228.0 1147.3 lane 6559 u 28.0 latErr 1.05 v 9.4 vT 13.9 steer 0.09 diag e 0.76 psi -0.21 ff 0.00 st 0.05
+LATDEV t=48.1 car 70 (Harbor) at 2677.9 940.5 lane 7790 u 77.9 latErr -0.97 v 9.3 vT 10.7 steer -0.13 diag e -0.68 psi 0.21 ff 0.00 st -0.07
+LATDEV t=51.1 car 77 (Sundowner 1800) at 2316.7 1255.9 lane 6568 u 83.3 latErr 0.91 v 18.5 vT 18.5 steer -0.32 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+STUCK t=51.3 car 48 at 2304.1 895.2 z 2.78 path 41723 u 5.1 lat 0.82 vT 3.7 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 25 col 1006 thr 0.63
+LATDEV t=55.2 car 66 (Seiran) at 2227.9 1247.3 lane 6565 u 27.9 latErr 1.10 v 9.9 vT 14.4 steer 0.09 diag e 0.80 psi -0.21 ff 0.00 st 0.05
+LATDEV t=55.4 car 48 (Harbor) at 2303.3 890.9 lane 6861 u 40.9 latErr 1.74 v 3.0 vT 3.7 steer 0.82 diag e 0.69 psi -0.93 ff 0.08 st 0.51
+  sim 60 s: collisions 0 (hard 0), red 0, stuck 4, deadlocks 0, ped hits 0, respawns 53 (wall 17 s)
+STUCK t=60.3 car 48 at 2303.5 895.3 z 2.78 path 41723 u 4.9 lat 0.28 vT 3.7 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 19 col 1006 thr 0.63
+LATDEV t=60.3 car 5 (Sawgrass) at 2408.3 882.8 lane 7058 u 32.8 latErr 1.17 v 10.1 vT 19.0 steer 0.10 diag e 0.83 psi -0.22 ff 0.00 st 0.06
+LATDEV t=62.3 car 44 (Harbor) at 2167.1 1058.1 lane 6149 u 32.9 latErr 1.03 v 8.6 vT 8.4 steer 0.09 diag e 0.73 psi -0.21 ff 0.00 st 0.05
+LATDEV t=63.0 car 94 (Palomino) at 2096.2 719.3 lane 6116 u 30.7 latErr -1.17 v 12.1 vT 15.1 steer -0.11 diag e -0.83 psi 0.19 ff 0.00 st -0.05
+LATDEV t=63.7 car 72 (Seiran) at 2369.4 1056.2 lane 88 u 718.6 latErr -0.90 v 29.3 vT 32.0 steer 0.16 diag e 0.98 psi -0.19 ff -0.00 st 0.04
+LATDEV t=64.5 car 21 (Mochi 125) at 2251.0 1043.9 lane 6552 u 51.0 latErr -0.96 v 11.6 vT 20.8 steer -0.08 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+STATIC t=65.3 car 48 at 2304.2 895.2 v=1.7 imp 3146 path 41723 u 5.1 lat 0.91
+LATDEV t=67.1 car 1 (Tanuki) at 2703.9 780.7 lane 8127 u 30.7 latErr -1.00 v 11.9 vT 14.7 steer -0.09 diag e -0.74 psi 0.21 ff 0.00 st -0.09
+STUCK t=68.9 car 48 at 2304.3 895.2 z 2.78 path 41723 u 5.2 lat 0.96 vT 3.7 stop 1000000000.0 obst 20.0(137) up 1.00 gear 1 wheels 4 sleep 0 imp 25 col 1006 thr 0.63
+LATDEV t=70.3 car 83 (Parcel P70) at 2703.9 780.8 lane 8127 u 30.8 latErr -1.01 v 10.0 vT 13.8 steer -0.10 diag e -0.65 psi 0.18 ff 0.00 st -0.06
+LATDEV t=72.8 car 48 (Harbor) at 2303.7 890.9 lane 6861 u 40.9 latErr 2.08 v 3.0 vT 3.7 steer 0.90 diag e 0.95 psi -1.00 ff -0.00 st 0.56
+LATDEV t=73.0 car 39 (Arclight) at 2408.3 782.9 lane 7050 u 32.9 latErr 1.20 v 12.7 vT 21.4 steer 0.04 diag e 0.89 psi -0.23 ff 0.00 st 0.09
+STATIC t=74.0 car 48 at 2303.3 895.3 v=2.1 imp 4295 path 41723 u 4.7 lat 0.13
+LATDEV t=77.4 car 74 (Kaze) at 2432.9 1247.4 lane 7105 u 32.9 latErr 0.98 v 9.9 vT 13.5 steer 0.11 diag e 0.75 psi -0.20 ff 0.00 st 0.05
+STUCK t=77.7 car 48 at 2303.5 895.3 z 2.78 path 41723 u 4.9 lat 0.27 vT 3.7 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 22 col 1006 thr 0.63
+COLLISION t=79.30 imp 1819 at 2302.6 889.9
+   A 48: Harbor v=2.9 vT=3.7 conn 15032 node 1272 turn 3 ctl 0 u=1.7/35.3 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+   B 91: Kaito v=1.6 vT=0.0 lane 6861(e2162 d1 i0) u=37.6/41.0 lc -1 lat 0.00 nudge 0.00 obst 0.4(48) stop 1000000000.0 dummy 0
+STATIC t=82.1 car 48 at 2305.0 895.2 v=1.6 imp 3695 path 41723 u 5.5 lat 1.60
+LATDEV t=83.4 car 6 (Kiko) at 2132.8 1041.7 lane 6146 u 32.8 latErr 1.19 v 12.0 vT 15.8 steer 0.06 diag e 0.91 psi -0.23 ff 0.00 st 0.08
+LATDEV t=86.9 car 80 (Ostgrat X5) at 2432.9 1247.3 lane 7105 u 32.9 latErr 1.08 v 9.8 vT 10.1 steer 0.09 diag e 0.77 psi -0.21 ff 0.00 st 0.05
+LATDEV t=87.9 car 68 (Falke 7) at 2567.1 1058.3 lane 7592 u 32.9 latErr 1.20 v 11.1 vT 16.0 steer 0.07 diag e 0.85 psi -0.22 ff 0.00 st 0.07
+LATDEV t=88.4 car 42 (Scorch 392) at 2470.9 1253.9 lane 7108 u 29.1 latErr -1.10 v 11.6 vT 12.2 steer -0.07 diag e -0.78 psi 0.22 ff 0.00 st -0.08
+LATDEV t=88.6 car 65 (Tekko) at 2697.3 822.1 lane 8128 u 27.9 latErr 1.08 v 9.4 vT 14.0 steer 0.09 diag e 0.75 psi -0.21 ff 0.00 st 0.05
+LATDEV t=90.5 car 101 (Kiko) at 2391.7 1117.1 lane 7081 u 32.9 latErr 1.24 v 11.1 vT 10.8 steer 0.08 diag e 0.95 psi -0.23 ff 0.00 st 0.07
+LATDEV t=92.3 car 49 (Harbor) at 2528.1 1247.2 lane 7602 u 28.1 latErr 1.19 v 11.1 vT 17.4 steer 0.07 diag e 0.88 psi -0.22 ff 0.00 st 0.07
+LATDEV t=95.2 car 1 (Seiran) at 2376.7 1026.7 lane 91 u 76.7 latErr 0.97 v 33.2 vT 33.2 steer 0.13 diag e 1.01 psi -0.18 ff -0.00 st 0.03
+LATDEV t=102.8 car 108 (Kumo) at 2391.9 1117.2 lane 7081 u 32.8 latErr 1.05 v 9.1 vT 11.6 steer 0.11 diag e 0.75 psi -0.22 ff 0.00 st 0.06
+LATDEV t=109.2 car 73 (Harbor) at 2172.0 1152.8 lane 6157 u 28.0 latErr 1.11 v 10.0 vT 14.3 steer 0.09 diag e 0.82 psi -0.21 ff 0.00 st 0.05
+LATDEV t=118.4 car 106 (Packhorse 26) at 2437.4 944.0 lane 7072 u 37.4 latErr -1.08 v 9.9 vT 16.8 steer -0.08 diag e -0.64 psi 0.18 ff 0.00 st -0.05
+  sim 120 s: collisions 1 (hard 0), red 0, stuck 7, deadlocks 0, ped hits 0, respawns 110 (wall 32 s)
+LATDEV t=120.8 car 87 (Glint) at 2358.8 1313.0 lane 91 u 363.8 latErr -0.91 v 28.3 vT 30.8 steer 0.17 diag e 0.73 psi -0.19 ff 0.00 st 0.08
+LATDEV t=122.2 car 51 (Compactor) at 2406.1 787.2 lane 7050 u 37.2 latErr -1.05 v 9.8 vT 18.3 steer -0.09 diag e -0.60 psi 0.17 ff 0.00 st -0.05
+LATDEV t=122.4 car 97 (Minnow) at 2406.1 1285.5 lane 7100 u 35.5 latErr -0.97 v 10.8 vT 16.1 steer -0.11 diag e -0.72 psi 0.20 ff 0.00 st -0.07
+LATDEV t=123.4 car 62 (Governor) at 2377.2 1040.8 lane 92 u 90.7 latErr -0.92 v 34.8 vT 35.3 steer 0.30 diag e -1.03 psi 0.15 ff 0.00 st -0.00
+LATDEV t=123.8 car 9 (Governor) at 2102.8 1178.1 lane 6151 u 28.1 latErr 1.12 v 11.2 vT 15.6 steer 0.07 diag e 0.82 psi -0.21 ff 0.00 st 0.07
+LATDEV t=126.8 car 64 (Glint) at 2393.8 714.7 lane 7045 u 35.3 latErr -0.92 v 9.6 vT 14.5 steer -0.11 diag e -0.66 psi 0.19 ff 0.00 st -0.05
+STUCK t=128.9 car 48 at 2304.9 895.3 z 2.86 path 41723 u 5.6 lat 1.46 vT 3.7 stop 1000000000.0 obst 15.3(137) up 1.00 gear 1 wheels 4 sleep 0 imp 26 col 1006 thr 0.63
+LATDEV t=129.3 car 108 (Kumo) at 2367.1 958.1 lane 6547 u 32.9 latErr 1.04 v 9.2 vT 16.2 steer 0.11 diag e 0.75 psi -0.22 ff 0.00 st 0.06
+LATDEV t=132.4 car 72 (Governor) at 2167.0 958.3 lane 6139 u 33.0 latErr 1.16 v 11.3 vT 16.0 steer 0.08 diag e 0.83 psi -0.22 ff 0.00 st 0.08
+STATIC t=133.8 car 48 at 2303.4 895.2 v=0.6 imp 4596 path 41723 u 4.7 lat 0.25
+LATDEV t=134.1 car 36 (Boulevard) at 2571.7 1253.7 lane 7605 u 28.3 latErr -1.28 v 8.3 vT 13.4 steer -0.07 diag e -0.68 psi 0.20 ff 0.00 st -0.05
+STUCK t=137.4 car 48 at 2303.4 895.3 z 2.78 path 41723 u 4.8 lat 0.21 vT 3.7 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 26 col 1006 thr 0.63
+LATDEV t=138.6 car 4 (Kaze) at 2374.7 914.5 lane 98 u 34.9 latErr -1.04 v 12.4 vT 33.8 steer -0.09 diag e -0.78 psi 0.22 ff -0.00 st -0.10
+COLLISION t=138.81 imp 2889 at 2302.7 890.7
+   A 48: Harbor v=2.7 vT=3.7 conn 15032 node 1272 turn 3 ctl 0 u=2.7/35.3 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+   B 91: Kaito v=1.9 vT=0.0 lane 6861(e2162 d1 i0) u=38.5/41.0 lc -1 lat 0.00 nudge 0.00 obst 0.6(48) stop 1000000000.0 dummy 0
+LATDEV t=140.6 car 70 (Scorch 392) at 2569.4 1253.9 lane 7605 u 30.6 latErr -1.01 v 10.3 vT 10.1 steer -0.10 diag e -0.71 psi 0.20 ff 0.00 st -0.07
+STATIC t=141.3 car 48 at 2304.3 895.2 v=1.4 imp 3997 path 41723 u 5.2 lat 0.99
+DEADLOCK t=142.2 car 91 at 2301.1 887.8 lane e2162 d1 i0 u 37.8/41.0 stopU -1.0 next conn 15032 turn 3 ctl 0 gateNode 1272 stopDist 1000000000.0 obst 3.5 (body 48) sig 4
+   -> car 48 conn 15032 turn 3 node 1272 u 5.3/35.3 hold 0.0 committed 0 v=0.0 vT=3.7 stop 1000000000.0 obst 1000000000.0(-1) wait 0.0 gateConn -1 gateNode 1272 stopDone 0 lat 1.05
+LATDEV t=143.0 car 18 (Seiran) at 2239.6 1058.1 lane 6555 u 160.4 latErr 0.97 v 11.1 vT 16.1 steer 0.10 diag e 0.69 psi -0.20 ff 0.00 st 0.08
+STUCK t=145.0 car 48 at 2304.4 895.2 z 2.78 path 41723 u 5.3 lat 1.06 vT 3.7 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 24 col 1006 thr 0.63
+LATDEV t=145.4 car 98 (Mochi 125) at 2599.4 741.5 lane 7775 u 8.5 latErr -0.95 v 3.8 vT 4.4 steer 0.40 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=148.4 car 13 (Tomo) at 2380.6 1026.4 lane 92 u 76.1 latErr 1.22 v 33.8 vT 33.8 steer 0.10 diag e -0.00 psi -0.00 ff 0.00 st 0.00
+STATIC t=150.1 car 48 at 2303.4 895.3 v=1.9 imp 3576 path 41723 u 4.8 lat 0.17
+LATDEV t=151.9 car 9 (Kiko) at 2560.5 1040.6 lane 7590 u 60.5 latErr -1.06 v 9.5 vT 9.7 steer -0.11 diag e -0.79 psi 0.22 ff 0.00 st -0.06
+STUCK t=153.8 car 48 at 2303.5 895.3 z 2.78 path 41723 u 4.9 lat 0.27 vT 3.7 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 22 col 1006 thr 0.63
+COLLISION t=155.33 imp 1923 at 2302.4 890.2
+   A 48: Harbor v=3.7 vT=3.7 conn 15032 node 1272 turn 3 ctl 0 u=2.1/35.3 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+   B 91: Kaito v=1.0 vT=0.0 lane 6861(e2162 d1 i0) u=38.0/41.0 lc -1 lat 0.00 nudge 0.00 obst 0.0(48) stop 1000000000.0 dummy 0
+STATIC t=157.8 car 48 at 2304.2 895.2 v=1.3 imp 4098 path 41723 u 5.1 lat 0.94
+STUCK t=161.5 car 48 at 2304.3 895.2 z 2.78 path 41723 u 5.2 lat 1.00 vT 3.7 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 25 col 1006 thr 0.63
+LATDEV t=162.2 car 64 (Boulevard) at 2529.1 1146.3 lane 7597 u 29.1 latErr -1.23 v 8.6 vT 14.4 steer -0.08 diag e -0.65 psi 0.19 ff 0.00 st -0.05
+LATDEV t=165.3 car 48 (Harbor) at 2303.8 890.9 lane 6861 u 40.9 latErr 2.15 v 3.0 vT 3.7 steer 0.76 diag e 1.00 psi -1.02 ff 0.08 st 0.47
+STATIC t=166.6 car 48 at 2303.3 895.3 v=1.9 imp 3842 path 41723 u 4.7 lat 0.13
+LATDEV t=167.0 car 61 (Kiko) at 2162.2 1056.1 lane 6149 u 37.8 latErr -0.96 v 13.4 vT 15.0 steer -0.09 diag e -0.97 psi 0.21 ff 0.00 st -0.06
+LATDEV t=169.8 car 16 (Sundowner 1800) at 2083.2 961.4 lane 5772 u 16.8 latErr 0.92 v 15.3 vT 14.3 steer 0.00 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+STUCK t=170.3 car 48 at 2303.5 895.3 z 2.78 path 41723 u 4.9 lat 0.26 vT 3.7 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 22 col 1006 thr 0.63
+LATDEV t=171.7 car 47 (Kumo) at 2381.3 1026.7 lane 92 u 76.4 latErr 1.91 v 38.4 vT 39.7 steer -0.02 diag e -0.00 psi 0.00 ff -0.00 st -0.00
+COLLISION t=171.86 imp 3249 at 2302.1 890.0
+   A 48: Harbor v=2.8 vT=3.7 conn 15032 node 1272 turn 3 ctl 0 u=1.6/35.3 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+   B 91: Kaito v=2.1 vT=0.0 lane 6861(e2162 d1 i0) u=37.9/41.0 lc -1 lat 0.00 nudge 0.00 obst -0.0(48) stop 1000000000.0 dummy 0
+LATDEV t=172.5 car 68 (Mochi 125) at 2300.6 1247.4 lane 6565 u 100.6 latErr 0.94 v 11.2 vT 16.8 steer 0.08 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+STATIC t=174.3 car 48 at 2304.3 895.2 v=1.3 imp 3699 path 41723 u 5.2 lat 0.97
+STUCK t=177.9 car 48 at 2304.3 895.2 z 2.78 path 41723 u 5.2 lat 1.03 vT 3.7 stop 1000000000.0 obst 28.4(91) up 1.00 gear 1 wheels 4 sleep 0 imp 24 col 1006 thr 0.63
+LATDEV t=179.5 car 4 (Palomino) at 2236.6 944.0 lane 6544 u 36.6 latErr -1.14 v 12.1 vT 16.6 steer -0.12 diag e -0.80 psi 0.19 ff 0.00 st -0.05
+
+==== Traffic metrics (180 s simulated, 110 cars, 40 peds, 5.50 vehicle-hours) ====
+collisions: 4 (0.73 per vehicle-hour), hard (>3000 Ns): 1 (0.18/veh-h)
+static impacts (walls/props >2500 Ns): 13, props broken: 0
+red-light violations: 0, stop-sign violations: 0
+stuck recoveries: 14, relocalizations: 13, deadlocks (>60 s waits): 1, respawns: 185
+pedestrians hit: 0
+average speed by road class (km/h):  highway 80.7 (667 s)  boulevard 14.6 (5823 s)  avenue 16.0 (2973 s)  street 13.8 (7670 s)
+lane-center error (RMS, lanes, v>3 m/s): 0.103 m
+AI cost per 60 Hz tick: traffic 0.234 ms + peds 0.011 ms (avg), p50 0.238 ms, p99 0.410 ms, max 0.911 ms
+physics per 120 Hz step: 0.589 ms (110 cars)

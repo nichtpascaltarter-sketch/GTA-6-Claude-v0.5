@@ -1,0 +1,5 @@
+built 16:40
+=== bagman,solaris_one  (16:46)
+[ 350.474] [missiontest] SUMMARY: 2 passed, 0 failed
+[ 350.474] [missiontest]   bagman: passed (stage 8, 479 s)
+[ 350.474] [missiontest]   solaris_one: passed (stage 8, 191 s)

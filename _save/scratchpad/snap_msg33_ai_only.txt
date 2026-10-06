@@ -1,0 +1,45 @@
+Street life: parking tickets, police at fender benders, help for the hurt, couples hand in hand, proposals, rain
+
+AI sets 3+4 (src/game: ai.cpp, ai_game.h, app.cpp, barks.cpp, events.cpp, pedai.cpp, police.cpp, traffic.cpp; peds.cpp
+gets the couple and reach blocks in animatePed):
+- Police:
+  - Parking tickets: a beat officer goes round to a parked car's windscreen, writes the ticket on the device and puts
+    it under the wiper while the partner waits on the sidewalk.
+  - Fender benders: four in ten get a unit sent from out of view. It pulls over behind with the light bar on; one
+    officer takes the drivers' details, the other waves traffic round, and the driver who was hit photographs the
+    damage.
+  - Someone down hurt: a nearby beat pair comes over. One kneels with a hand on their shoulder, the other radios for
+    EMS.
+  - Arrests:
+    - The escort waits with the prisoner at the kerb while a crewmate brings the car round.
+    - A transport held up nearby pulls over.
+    - A hand on the prisoner's head at the car door.
+    - Units only go on foot when close.
+  - Officers call out cover and flanking moves. Beat pairs chat, and greet the player.
+- Pedestrians:
+  - A word for the player walking past: a greeting by time of day, "On your left" from joggers, "Are you okay?" when
+    the player is hurt, and a reaction to the horn.
+  - Pairs walking together are overheard: a line, then the answer. One pair in two is a couple, walking hand in hand,
+    and the pass-by lean is off while they hold hands.
+  - A mutter at long red lights, and a press of the crossing button on a pole within reach.
+  - Getting lost (a look at the map on the phone, then back the way they came), and stopping to tie a shoelace.
+  - Rain: people without umbrellas hurry, some jog, and some shelter under bus stops.
+  - A proposal on the sidewalk: down on one knee with a ring while passers-by film. Usually a yes (cheers, a hug, off
+    hand in hand), now and then a no.
+  - Drivers honk at jaywalkers, who hurry on.
+- An AI hand-reach hook (PedAI::reachAt/reachT) drives the arm for the ticket under the wiper, the ring, the crossing
+  button, the hand on a shoulder, and the hand on a prisoner's head.
+
+Checks (AI agent's autoplay runs, all rc 0, no crashes or GPU errors):
+- Arrest: transports pull over and the prisoner is in.
+- Ticket: written up twice.
+- Proposal: one yes and one no.
+- Crash scene: a unit is sent, pulls over and finishes.
+- Hurt: the beat pair comes over, then the ambulance and the medic, and the ped is up and in the ambulance.
+- Rain: 7 people under bus shelters.
+- Ped stops: warrants, a runner caught, transports.
+- Events: mugging, purse snatch, fender bender, police chase, breakdown and traffic stop.
+- Night and crowd: AI 0.3-0.9 ms.
+- Soak, 300 s across the map: traffic health all zero, and a clean shutdown.
+- Known: greetings are often drowned out by nearby phone talkers (0 in the walk-by run); this is fixed in a later
+  AI set.

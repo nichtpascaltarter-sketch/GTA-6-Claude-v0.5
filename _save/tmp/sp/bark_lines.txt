@@ -1,0 +1,213 @@
+[happy:0.4]Morning.
+[happy:0.4]Nice day, huh?
+[happy:0.4]Hey there.
+[happy:0.4]Buenas.
+[happy:0.4]Beautiful out here.
+[happy:0.4]Excuse me, running late.
+[happy:0.4]How you doing?
+[happy:0.4]Oye, que tal?
+[angry:0.5]Watch it!
+[angry:0.5]Hey, eyes up!
+[angry:0.5]Excuse you.
+[scared:0.4]Sorry, sorry.
+[angry:0.5]Do you mind?
+[angry:0.5]Careful, pal.
+[angry:0.5]Seriously?
+[angry:0.5]Mira por donde vas!
+[angry]You got a problem?
+[angry]Keep walking.
+[angry]Unbelievable.
+[angry]What is wrong with you?
+[angry]Back off!
+[angry:0.5]Tourists. Every time.
+[scared]Oh my god!
+[scared]What was that?
+[scared]Somebody help!
+[scared]No no no!
+[shout]Get down!
+[scared]Dios mio!
+[scared]Is that a gun?
+[scared]Are you kidding me?
+[scared]Run!
+[scared]Get out of here!
+[scared]Move, move!
+[scared]I am out of here!
+[scared]Corre, corre!
+[scared]Everybody run!
+[scared]Not today!
+[scared:1.2]Please don't hurt me!
+[scared:1.2]I have kids!
+[scared:1.2][whisper:0.4]Please, please.
+[scared:1.2]Leave me alone!
+[scared:1.2]Take whatever you want!
+[scared:1.2]Por favor, no!
+[angry:0.7]I'm calling the cops!
+[scared]Somebody call nine one one!
+[angry:0.7]I'm getting the police!
+[angry:0.7]You are so going to jail!
+[scared:0.8]Police? Somebody's shooting on the street!
+[scared:0.8]Yes, hello, there's a crazy person here!
+[scared:0.8]I need the police, right now!
+[scared:0.8]Someone just got attacked, send somebody!
+[scared:0.8]Hello? There's a guy with a gun!
+[scared]Okay, okay! Easy!
+[scared]Don't shoot!
+[scared]I don't want trouble!
+[scared]Whoa, whoa, calm down!
+[scared]Take it easy, please!
+[shout]Hey! That's my car!
+[angry]Are you crazy? Get out!
+[shout]My car! Somebody stop him!
+[angry]You're not taking my ride!
+[angry]Ladron! Mi carro!
+[angry:0.7]Move it!
+[angry:0.7]Come on, come on!
+[angry:0.7]Today, please!
+[shout]Get out of the road!
+[angry:0.7]Are you parked there?
+[angry:0.7]Vamos, muevete!
+[shout]Learn to drive!
+[angry]You hit my car!
+[angry]Look what you did!
+[angry]My insurance!
+[angry]Were you even looking?
+[angry]Brand new paint job!
+[happy]Thank you so much!
+[happy]You're a lifesaver!
+[happy]Thanks, I owe you one.
+[happy]Gracias, de verdad.
+[happy]Here, take this. You earned it.
+[scared:0.5]Hey! Can you help me?
+[scared:0.5]Excuse me, over here!
+[scared:0.5]Could you give me a hand?
+[scared:0.5]Please, I need some help!
+[drunk]Where did I park the boat?
+[drunk]Everybody loves me.
+[drunk]This sidewalk keeps moving.
+[drunk]One more round, for the road.
+[drunk]I'm fine. I'm totally fine.
+[drunk]Who turned the street sideways?
+[happy]Play another one!
+[happy]This guy is good!
+[happy]Love this song.
+[happy]Otra, otra!
+[happy]Get the palm trees in!
+[happy]Smile, honey!
+[happy]One more, with the ocean.
+[happy]Is this the famous street?
+[happy]Look at that sunset!
+[happy:0.6]Oh, this is going online.
+[happy:0.6]Are you getting this?
+[shout:0.6]Fight, fight!
+[happy:0.6]No way, look at this!
+[angry:0.4]You lost, homie?
+[angry:0.4]Wrong block, friend.
+[angry:0.5]Put that away before you get hurt.
+[angry:0.4]This is our street.
+[angry:0.4]Keep walking.
+[angry:0.4]Tu no eres de aqui.
+[angry:0.4]You looking for trouble?
+[shout]Get him!
+[shout]You asked for it!
+[shout]Light him up!
+[shout]Nobody disrespects the block!
+[shout]Dale, dale!
+[angry:0.6]That's what I thought.
+[angry:0.6]Run home!
+[angry:0.6]Don't come back!
+[shout]Freeze! Police!
+[shout]Police! Don't move!
+[shout]Drop the weapon!
+[shout]Hands where I can see them!
+[shout]Stop right there!
+[shout]Get on the ground!
+[shout]On your knees, now!
+[shout]Hands behind your head!
+[shout]Don't make this worse!
+[shout:0.7]Suspect spotted!
+[shout:0.7]I have eyes on the suspect!
+[shout:0.7]There he is!
+[shout:0.7]Visual on the suspect, moving in!
+[dispatch]We lost him.
+[dispatch]Suspect is out of sight.
+[dispatch]Where did he go?
+[dispatch]Lost visual.
+[dispatch]All units, suspect heading north.
+[dispatch]Requesting backup.
+[dispatch]Units converging on the location.
+[dispatch]Dispatch, we are in pursuit.
+[dispatch]Set up a perimeter.
+[dispatch]Air unit, do you have a visual?
+[dispatch]Suspect vehicle is fleeing, all units respond.
+[shout]Shots fired! Shots fired!
+[shout]Take him down!
+[shout]Open fire!
+[shout]Suspect is armed!
+[shout:0.8]Taking cover!
+[shout:0.8]Cover me!
+[shout:0.8]Flanking left!
+[shout:0.8]Moving up!
+[shout:0.8]I'm going around!
+[angry:0.4]You're under arrest.
+[angry:0.4]Turn around, slowly.
+[angry:0.4]It's over, give it up.
+[shout]Officer down!
+[shout]Man down, man down!
+[shout]We need medical, officer down!
+[angry:0.5]Wallet. Now.
+[angry:0.5]Give me the bag!
+[angry:0.5]Don't be a hero.
+[angry:0.5]Empty your pockets!
+[shout]Help! Thief!
+[scared]He took my bag!
+[shout]Stop him!
+[shout]Somebody stop that guy!
+[scared]Al ladron!
+[angry]You slammed right into me!
+[angry]Me? You stopped for no reason!
+[angry]I'm calling my lawyer!
+[angry]Show me your license!
+[angry]Look at my bumper!
+[angry]You came out of nowhere!
+[happy:0.7]Eat my dust!
+[happy:0.7]Let's see what you got!
+[happy:0.7]Green means go!
+[calm]Stay with me.
+[calm]We need a stretcher here.
+[shout:0.5]Pulse is weak, move!
+[calm]Step back, give us room.
+[angry:0.5]Of course. Of course it dies now.
+[angry:0.5]Come on, start!
+[angry:0.5]Anybody know engines?
+[scared]Whoa!
+[shout]Look out!
+[scared]Are you insane?
+[scared]Watch where you're going!
+[scared]Maniac!
+[scared]Whoa, he's got a gun!
+[angry:0.3]Easy with that thing.
+[scared]Oh no, no, no.
+[scared]Put that away, man.
+[scared]Is that real?
+[dispatch]Check the alleys.
+[dispatch]He's around here somewhere.
+[dispatch]Search the area.
+[dispatch]Keep your eyes open.
+[dispatch]Backup is on the way!
+[dispatch]Heavy units responding.
+[dispatch]Air support inbound.
+[scared]Okay, I hung up! I hung up!
+[scared]I didn't see anything!
+[scared]I won't call, I swear!
+[calm:0.4]Line starts back there.
+[calm:0.4]Not tonight, pal.
+[calm:0.4]Private party.
+[calm:0.4]Wait your turn.
+[calm:0.4]No sneakers after ten.
+[calm:0.4]Esperate en la fila.
+[shout]Get out of the car!
+[shout]You think you can just hit me?
+[shout]I got your plate, buddy!
+[shout]Come here! Look at this!
+[shout]You're paying for that!
+[shout]Estas loco o que?

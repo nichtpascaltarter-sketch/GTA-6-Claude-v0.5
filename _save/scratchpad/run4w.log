@@ -1,0 +1,47 @@
+[   0.012] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.578] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16095 MB
+[   1.006] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   1.064] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   1.122] UI font 'Impact' -> 'Liberation Sans'
+[   1.186] Font atlas built in 0.18 s
+[   2.588] UI icon atlas: 66 icons + 13 weapons in 1078 ms
+[  37.304] Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.14 s)
+[  41.444] World map generated in 40.13 s
+[  42.909] Road gen: 22 interchanges
+[  51.811] Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (10.36 s)
+[  63.992] Buildings: 36321 (towers 358, midrise 2411, condo 535, deco 859, shops 4885, strip 730, houses 21906, villas 903, warehouses 1707) in 11.92 s
+[  63.994] Sites: 65 highway billboards
+[  64.010] Sites: 117 silos, 53 windmills
+[  64.019] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  64.032] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  64.032] Site terminal             at (628, 1440, 4.6)
+[  64.032] Site control tower        at (730, 1832, 4.6)
+[  64.032] Site container ship       at (4625, -800, 0.0)
+[  64.032] Site container ship       at (4616, -330, 0.0)
+[  64.032] Site port gate            at (4008, -160, 3.0)
+[  64.032] Site Key Coral marina     at (4039, -4035, 0.0)
+[  64.032] Site beach club           at (4873, -3866, 1.2)
+[  64.032] Site beach club           at (4808, -4183, 2.2)
+[  64.032] Site Solaris One          at (3350, -750, 1.4)
+[  64.032] Site stadium              at (3565, 445, 1.6)
+[  64.032] Site City Hall            at (3000, 372, 2.0)
+[  64.032] Site Canvas Park          at (3100, 1800, 1.7)
+[  64.032] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  64.032] Site Ferris wheel         at (5504, 1270, 5.6)
+[  64.032] Site lighthouse           at (-2206, -8000, 0.5)
+[  64.032] Site radio mast           at (-6744, 7248, 166.1)
+[  64.032] Site sugar mill           at (1430, 7500, 8.1)
+[  64.032] Site Rio Sol marina       at (2280, 188, 0.0)
+[  64.032] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  64.032] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  64.033] Sites finalized: 559 elements (0.04 s)
+[  64.269] Material library: 52 layers at 256^2
+[  64.319] Props: 51 prototypes, 14371 verts
+[  67.268] UI map: base 2560x2560 in 1351 ms, 10030 roads (46402 pts) in 38 ms, 30 labels in 114 ms
+[  67.268] hudInit done in 1503 ms
+[  67.268] Init done in 65.95 s (shaders: 0 compiled in 0.00 s)
+[ 691.810] Saved Z:\tmp\world\c_mast_n.bmp
+[1401.584] Saved Z:\tmp\world\c_port_n.bmp
+[1403.611] Shutdown complete.
+X connection to :103 broken (explicit kill or server shutdown).
+done

@@ -1,0 +1,27 @@
+start 05:49:06
+check done
+build after_st2 rc 0
+-rwxr-xr-x 1 root root 12408320 Oct  6 06:19 bin/loco_after_st2.exe
+built after_st2 06:19:58
+build before_st2 rc 0
+-rwxr-xr-x 1 root root 12399104 Oct  6 06:41 bin/loco_before_st2.exe
+built before_st2 06:41:28
+run before_st2 exit 137
+[ 497.213] locostairs trace 175 dn a24.03 v 1.36 ph0.04 mw1.00 | 0 pl1 h  4.9 b  8.6 t  9.9 g -0.17, -0.17 | 1 pl1 h 11.7 b  1.1 t  0.0 g  0.17,  0.17
+[ 497.225] locostairs trace 175 dn a24.08 v 1.36 ph0.07 mw1.00 | 0 pl1 h  3.1 b  4.2 t  4.6 g -0.17, -0.17 | 1 pl1 h 14.0 b  1.5 t  0.0 g  0.17,  0.17
+[ 497.235] locostairs trace 175 dn a24.12 v 1.36 ph0.11 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl1 h 14.9 b  1.8 t  0.0 g  0.17,  0.17
+[ 501.538] locostairs trace 175 dn a24.16 v 1.36 ph0.15 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl0 h 19.2 b  6.3 t  4.1 g  0.17,  0.17
+[ 501.551] locostairs trace 175 dn a24.21 v 1.36 ph0.18 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl0 h 21.1 b  8.9 t 23.1 g  0.17,  0.00
+[ 501.565] locostairs trace 175 dn a24.25 v 1.36 ph0.22 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h  8.1 b 14.5 t 11.6 g  0.34,  0.17
+[ 501.570] locostairs trace 175 dn a24.30 v 1.36 ph0.25 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 22.0 b 14.2 t 28.6 g  0.17,  0.00
+[ 501.579] locostairs trace 175 dn a24.34 v 1.36 ph0.29 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h  4.0 b 16.4 t 14.8 g  0.17,  0.00
+[ 501.601] locostairs trace 175 dn a24.38 v 1.36 ph0.32 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 17.9 b 16.9 t 16.5 g  0.00,  0.00
+[ 505.384] locostairs trace 175 dn a24.43 v 1.36 ph0.36 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 10.2 b 12.4 t 13.2 g  0.00,  0.00
+[ 505.399] locostairs trace 175 dn a24.47 v 1.36 ph0.40 mw1.00 | 0 pl1 h  0.3 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h  8.1 b 12.7 t 14.4 g  0.00,  0.00
+[ 505.405] locostairs trace 175 dn a24.51 v 1.36 ph0.43 mw1.00 | 0 pl1 h  2.1 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h  4.3 b 10.2 t 12.4 g  0.00,  0.00
+run before_st2 incomplete, retrying
+run before_st2 exit 143
+Terminated
+run before_st2 incomplete, retrying
+ran before_st2 07:26:19
+Terminated

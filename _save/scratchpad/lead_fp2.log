@@ -1,0 +1,22 @@
+reload exit 0
+[ 256.679] autoplay fpguns rifle_reload: hold 1.00 aim 0.00 scope 0.00 dot 0.00 block 0.00
+[ 905.628] autoplay fpguns pistol_sprint: hold 1.00 aim 0.00 scope 0.00 dot 0.00 block 0.00
+[1447.484] autoplay fpguns rpg_shoulder: hold 1.00 aim 0.00 scope 0.00 dot 0.00 block 0.00
+[2093.070] autoplay fpguns shotgun_reload: hold 1.00 aim 0.00 scope 0.00 dot 0.00 block 0.00
+[2822.108] autoplay fpguns revolver_reload: hold 1.00 aim 0.00 scope 0.00 dot 0.00 block 0.00
+[3391.154] autoplay fpguns pistol_reload: hold 1.00 aim 0.00 scope 0.00 dot 0.00 block 0.00
+[4014.372] autoplay fpguns rpg_reload: hold 1.00 aim 0.00 scope 0.00 dot 0.00 block 0.00
+[4420.230] autoplay fpguns done
+melee exit 143
+[ 602.230] autoplay melee t=3.0 move 1 combo 1 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 1 health 194
+[ 734.247] autoplay t=3.9 pos 1784.3 160.2 6.7 state 0 health 194 veh -1 speed 0.7 | peds 93 vehicles 61 wanted 1 | cpu ms player 0.15 ai 0.71 veh 2.65 peds 1.88 | mem 1788 MB (private 0)
+[ 734.290] autoplay melee t=4.0 move 3 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 1 health 194
+[ 834.897] autoplay melee t=5.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target -1 health 194
+[ 869.543] autoplay t=5.1 pos 1784.3 160.3 6.7 state 0 health 194 veh -1 speed 0.0 | peds 93 vehicles 61 wanted 1 | cpu ms player 0.93 ai 0.50 veh 0.88 peds 2.39 | mem 1790 MB (private 0)
+[ 925.536] autoplay melee t=6.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target -1 health 194
+[1000.133] autoplay t=6.3 pos 1784.3 160.3 6.7 state 0 health 194 veh -1 speed 0.0 | peds 93 vehicles 61 wanted 1 | cpu ms player 0.20 ai 0.63 veh 1.00 peds 1.62 | mem 1790 MB (private 0)
+[1042.561] autoplay melee t=7.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target -1 health 194
+[1138.583] autoplay t=7.5 pos 1784.6 160.3 7.4 state 0 health 194 veh -1 speed 1.8 | peds 93 vehicles 61 wanted 1 | cpu ms player 0.22 ai 0.50 veh 0.74 peds 1.90 | mem 1791 MB (private 0)
+[1165.174] autoplay melee t=8.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 1 health 194
+[1267.663] autoplay t=8.7 pos 1784.5 161.1 6.7 state 0 health 188 veh -1 speed 0.0 | peds 93 vehicles 61 wanted 1 | cpu ms player 0.17 ai 0.53 veh 0.92 peds 3.74 | mem 1791 MB (private 0)
+[1290.862] autoplay melee t=9.0 move 2 combo 2 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 1 health 188

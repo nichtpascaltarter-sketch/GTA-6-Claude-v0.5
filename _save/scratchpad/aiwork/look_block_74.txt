@@ -1,0 +1,20 @@
+    // AI drivers and passengers: the head turned to a scene the car is slowing past (traffic.cpp rubbernecking, while
+    // VehAI::gawkT is ahead), else - stopped in traffic - now and then to the player walking past close by
+    if (in.lookWeight <= 0.f && p.state == PS_INVEHICLE && !p.isPlayer && p.vehicle >= 0 && p.vehicle < (int)vehicles.size() && p.visibleDist < 45.f) {
+        const Vehicle& lv = vehicles[p.vehicle];
+        const VehAI* la = p.vehicle < (int)ai.veh.size() && ai.veh[p.vehicle].uid == lv.uid ? &ai.veh[p.vehicle] : nullptr;
+        vec3 D(0.f);
+        float w = 0.f;
+        if (la && time < la->gawkT) {
+            D = la->gawkAt - p.pos.toVec3() + vec3(0.f, 0.f, 0.5f);
+            w = 0.85f;
+        } else if (player >= 0 && peds[player].used && peds[player].state == PS_ONFOOT && lv.sim.speed() < 1.f &&
+                   (hash32(p.uid * 977u + (u32)(time * 0.2)) & 3u) == 0u) {
+            D = rel(peds[player].pos, p.pos) + vec3(0.f, 0.f, 1.5f);
+            w = length(vec2(D.x, D.y)) < 9.f ? 0.6f : 0.f;
+        }
+        if (w > 0.f) {
+            in.lookAt = vec3(dot(vec2(D.x, D.y), rightV), dot(vec2(D.x, D.y), fwd), D.z);
+            in.lookWeight = in.lookAt.y > -0.3f * length(vec2(D.x, D.y)) ? w : 0.f;   // (not round to somebody behind)
+        }
+    }

@@ -1,0 +1,277 @@
+[   0.046] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.607] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   1.069] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   1.084] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   1.157] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   1.281] UI font 'Impact' -> 'Liberation Sans'
+[   1.367] Font atlas built in 0.28 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   1.422] Audio: no output device - audio disabled
+[   1.422] Audio: no output device, continuing silently
+[   2.457] UI icon atlas: 92 icons + 13 weapons in 1014 ms
+[  14.540] Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+[  14.540] Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+[  14.540] Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+[  14.540] Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+[  14.540] Places: Palmera Speedway at (400, 5790), ground 6.8
+[  14.540] Places: layout 0.001 s, 5 places, 624 anchors
+[  14.541] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[  14.548] Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.01 s)
+[  15.477] World map generated in 14.05 s
+[  16.089] Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+[  16.273] Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+[  18.526] Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+[  20.347] Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km (4.84 s)
+[  25.135] Transit: 0 buildings cleared from the SkyLine corridor
+[  25.139] Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+[  25.149] Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+[  25.151] Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+[  25.155] Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+[  25.306] Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+[  25.361] Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+[  25.370] Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+[  25.374] Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+[  25.403] Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+[  25.425] Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+[  25.428] Places: after the lots 0.293 s
+[  25.429] Buildings: 35617 (towers 352, midrise 2411, condo 427, deco 688, shops 4600, strip 640, houses 22192, villas 901, warehouses 1620) in 4.96 s
+[  25.431] Sites: 69 highway billboards
+[  25.432] Sites: 155 silos, 50 windmills
+[  25.433] Sites: 245 beach access paths
+[  25.474] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.01 s)
+[  25.484] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[  25.484] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[  25.484] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[  25.499] Transit: 4 bus routes, 64 stops (48 new shelters) (0.01 s); rejects class 1107 cut 1945 deck 72 road 119 avoid 0 pad 2 furn 283 stop 0
+[  25.506] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[  25.506] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[  25.506] Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+[  25.506] Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+[  25.517] Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.01 s)
+[  25.517] Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+[  25.517] Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+[  25.517] Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+[  25.517] Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+[  25.517] Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+[  25.517] Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+[  25.517] Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+[  25.517] Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+[  25.518] Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+[  25.518] Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+[  25.518] Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+[  25.519] Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+[  25.519] Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+[  25.519] Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+[  25.519] Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+[  25.519] Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+[  25.519] Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.09 s)
+[  25.519] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[  25.519] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  25.519] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  25.519] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  25.519] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  25.519] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  25.519] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  25.519] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  25.522] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  25.522] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  25.522] Site terminal             at (628, 1440, 4.6)
+[  25.522] Site control tower        at (730, 1832, 4.6)
+[  25.522] Site container ship       at (4625, -800, 0.0)
+[  25.522] Site container ship       at (4616, -330, 0.0)
+[  25.522] Site port gate            at (4008, -160, 3.0)
+[  25.522] Site Key Coral marina     at (4039, -4035, 0.0)
+[  25.522] Site beach club           at (4873, -3866, 1.2)
+[  25.522] Site beach club           at (4808, -4183, 2.2)
+[  25.522] Site Solaris One          at (3350, -750, 1.4)
+[  25.522] Site stadium              at (3565, 445, 1.6)
+[  25.522] Site City Hall            at (3000, 372, 2.0)
+[  25.522] Site Canvas Park          at (3100, 1800, 1.7)
+[  25.522] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  25.522] Site Ferris wheel         at (5504, 1270, 5.6)
+[  25.522] Site lighthouse           at (-2206, -8000, 0.5)
+[  25.522] Site radio mast           at (-6744, 7248, 166.1)
+[  25.522] Site sugar mill           at (1430, 7500, 8.1)
+[  25.522] Site Rio Sol marina       at (2280, 188, 0.0)
+[  25.522] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  25.522] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  25.522] Sites finalized: 1486 elements (0.09 s)
+[  25.529] Interiors: 29 planned (convenience 7, gun shops 2) in 6.3 ms
+[  25.529]   interior 'Mari's Apartment' kind 0 building 28142 at (1771.22, 359.23, 3.77) ax (1.0000, 0.0000) x -6.55..2.18 depth 11.50 ceil 3.84: 3 rooms, 3 openings, 3 doors, 3 portals, 0 npc points
+[  25.529]   interior 'Mama Lucha's' kind 2 building 26747 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+[  25.529]   interior 'Rook's Garage' kind 3 building 27288 at (1562.94, 2361.63, 4.30) ax (1.0000, 0.0000) x -9.74..9.74 depth 20.00 ceil 7.11: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+[  25.529]   interior 'Dex's Trailer' kind 1 building 25527 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  25.529]   interior 'Police Headquarters' kind 5 building 32504 at (3167.89, -240.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+[  25.529]   interior 'Tidewater General Hospital' kind 6 building 35599 at (1692.75, 1073.40, 3.63) ax (1.0000, 0.0000) x -9.55..9.55 depth 16.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+[  25.529]   interior 'Palmetto Arms' kind 7 building 25538 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+[  25.529]   interior 'Northside Arms' kind 7 building 32997 at (3284.62, 4017.67, 2.09) ax (0.0000, 1.0000) x -6.33..6.33 depth 14.00 ceil 4.03: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  25.529]   interior 'Threads' kind 9 building 19677 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+[  25.529]   interior 'Port Isle Warehouse' kind 12 building 35552 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  25.529]   interior 'TideStop Mart' kind 8 building 26846 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  25.529]   interior 'Bodega La Luna' kind 8 building 29652 at (2242.71, 540.72, 2.92) ax (-1.0000, -0.0000) x -5.85..5.85 depth 17.00 ceil 4.19: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  25.529]   interior 'Canvas Corner Market' kind 8 building 32545 at (3090.56, 1476.66, 2.21) ax (0.0000, 1.0000) x -7.40..7.40 depth 17.00 ceil 3.92: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  25.529]   interior 'Sunrise Food Mart' kind 8 building 19719 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  25.529]   interior 'Northside Quick Stop' kind 8 building 29914 at (2304.43, 3761.63, 3.12) ax (1.0000, 0.0000) x -6.89..6.89 depth 17.00 ceil 4.12: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  25.529]   interior 'Flats Food & Fuel' kind 8 building 24842 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[  25.529]   interior 'Grove Pantry' kind 8 building 1182 at (2175.56, -3114.24, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  25.529]   interior 'Palm Motors' kind 17 building 31294 at (2686.87, 1279.16, 2.69) ax (0.0000, 1.0000) x -9.08..12.11 depth 20.00 ceil 3.90: 2 rooms, 8 openings, 3 doors, 8 portals, 5 npc points
+[  25.529]   interior 'Tide Customs Calle Luna' kind 18 building 29601 at (2278.47, -140.75, 2.99) ax (1.0000, 0.0000) x -7.61..7.61 depth 18.00 ceil 4.17: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  25.529]   interior 'Tide Customs Sol Beach' kind 18 building 19788 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  25.529]   interior 'Sunwash Car Wash' kind 19 building 29044 at (1988.34, 1491.32, 3.44) ax (0.0000, 1.0000) x -7.41..7.41 depth 20.00 ceil 8.08: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+[  25.529]   interior 'Key Coral Villa' kind 0 building 23718 at (4515.96, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[  25.529]   interior 'Sol Beach Condo Lobby' kind 20 building 19771 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+[  25.530]   interior 'Sol Beach Condo' kind 21 building 19771 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  25.530]   interior 'Downtown Penthouse Lobby' kind 20 building 33543 at (3511.22, -715.16, 1.71) ax (-0.0000, -1.0000) x -5.25..5.25 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[  25.530]   interior 'Downtown Penthouse' kind 21 building 33543 at (3511.22, -715.16, 52.15) ax (-0.0000, -1.0000) x -10.49..10.49 depth 14.00 ceil 2.80: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  25.530]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  25.530]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[  25.530]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[  25.707] Buildings: 33925 restyled by district palettes in 176.9 ms (taxpayer 1391, 1920s block 924, med revival 774, mimo shop 1036, bodega 339, arcade 118, gallery 11, walk-up 497, mimo apts 763, med apts 530, office 60s 129, modern 372, loft 80, condo slab 134, glass condo 113, mimo hotel 97, podium condo 78, ranch 5434, bungalow 2805, med house 3406, two-storey 2419, mimo house 1933, split level 2251, conch 265, modern villa 190, streamline 176, med hotel 117, mimo motel 133, sawtooth 540, ware office 551, body shop 282, med villa 307, colonial villa 135, stilt house 73, mimo motor court 161, med motel 90, keys motel 113, motor inn 90, mission strip 199, mimo strip 186, power center 255, gambrel barn 34, pole barn 43, gable barn 24, mission church 47, board church 46, brick church 25, a-frame church 43, cbs house 3240, folk victorian 363, raised keys house 63, mobile home 149)
+[  25.929] Transit: 0 buildings cleared from the SkyLine corridor
+[  25.941] Buildings: block infill 3457 back buildings (garage rows 719, sheds 1872, back houses 866, 0 in the viaduct corridor dropped, 1213 near a street left as yards), 1465 rear parking lots, 5755 yards in 200.3 ms
+[  26.289] Transit: 0 buildings cleared from the SkyLine corridor
+[  26.296] Buildings: frontage fill 4299 gaps: 1675 vacant lots, 731 street parking lots, 649 side yards, 458 service yards, 786 left bare (350.7 ms)
+[  26.386] Buildings: repetition (neighbours within 150 m with the same style, archetype, massing, roof, height band and facade pattern): 2.1% overall, 54% of buildings without a twin; by district: Downtown Porto Sol 2.8%, Solaris 2.7%, Canvas District 0.8%, North Porto Sol 1.0%, Calle Luna 1.4%, Sol Beach 1.7%, Key Coral 5.8%, The Grove 2.3%, Palmetto Flats 1.2%, Westbrook 2.7%, Redland 3.0%, Ten Palms 1.6%, Palmera Farmlands 4.9%, Okahatchee 3.5%, Harlow 2.8%, Fort Castell 1.7%, Key Solano 2.5% (88.7 ms)
+[  29.139] Material library: 57 layers at 256^2
+[  29.473] Props: 83 prototypes, 42146 verts
+[  33.637] Vehicle assets: 45 models in 3.33 s
+[  64.467] Wardrobe: 29 dedicated looks (night out 12, door staff 3, sportswear 8, cover-ups 6); roster dressed for a night out 8 men / 9 women, office 9, work 6, swim 8, sport 6
+[  65.338] Character assets: 149 characters in 31.70 s
+[  65.375] Game assets built in 35.07 s
+[  65.451] Story place near (800, -5400): no building frontage found, using the street
+[  65.457] Story places resolved in 78.1 ms (diner 1350 342, Mari's 1771 358, Rook's 1566 2360, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[  65.458] Missions registered: 57
+[  68.559] Lane graph: 180 plaza walkways and 2 zebra crossings from the sites
+[  68.560] Lane graph: 25496 lanes, 56760 connectors (1154772 pts), 40687 walk nodes, 56441 walk links, dead-end turning circles moved 22 / obstructed 0 (3.10 s)
+[  90.038] UI map: base 2560x2560 in 21439 ms, 9547 roads (43960 pts) in 7 ms, 37 labels in 32 ms
+[  90.038] hudInit done in 21478 ms
+[  90.038] Init done in 88.62 s (shaders: 0 compiled in 0.00 s)
+[  90.041] autoplay tour stop 2 downtown_afternoon at 3168 -243, 14.0 h
+[  90.044] Transit: SkyLine timetable built (2.4 ms): loop 12.4 / 12.4 min, 4 trains per direction, headway 3.1 min
+[  90.044] Transit: 9 lines published to the map
+[  90.046] Transit: SkyLine car models registered as vehicle assets 45 / 46
+[  90.396] Transit: 4 route bus models (destination signs) in 350 ms
+[  90.396] Transit: 64 bus stops registered with the AI (48 lane stops added, 240 waiting spots)
+[  90.396] Transit: 15 buses on 4 routes
+[  90.396] Transit: Bay Ferry timetable: loop 13.2 min, 2 ferries, headway 6.6 min
+[  90.397] Transit: Sol Ferry model registered as vehicle asset 51
+[  90.399] Transit: streetcar modules registered as vehicle assets 52 53 54
+[  90.400] Transit: 16 streetcar stops registered (16 curb lanes kept clear)
+[  90.400] Transit: 4 streetcars on the 6.24 km loop, 16 stops, 65/65 junction movements found
+[  90.436] population: venue Ocean Promenade slot 75 (mode 6) dropped at 5354.7 728.5: second spot
+[  90.443] population: venue Ocean Promenade slot 77 (mode 6) dropped at 5354.7 809.2: second spot
+[  90.443] population: venue Ocean Promenade slot 71 (mode 6) dropped at 5354.7 850.4: second spot
+[  90.443] population: venue Ocean Promenade slot 80 (mode 6) dropped at 5354.7 920.7: second spot
+[  90.444] population: venue Ocean Promenade slot 49 (mode 6) dropped at 5354.7 1046.1: second spot
+[  90.454] population: venues laid out: 3956 (769 slots kept, 5 dropped on lanes / water / buildings; 3892 town venues with 38978 slots, checked on the first visit) | port 23 | airport 35 (rank: 3 cabs, line of 4) | sawgrass 32 | Ocean Promenade 2 | Porto Sol University 2 | Porto Sol University 5 | Santa Marea Cemetery 2 | Palmera State Penitentiary 5 | Okahatchee Union Church 2 | Old Fort Church 2 | Ocean Promenade 34 | Ocean Promenade 76 | Ocean Promenade 72 | Ocean Promenade 81 | Ocean Promenade 49 | Ocean Promenade 7 | Ocean Promenade 6 | Ocean Promenade 2 | Ocean Promenade 4 | Ocean Promenade 3 | Porto Sol University 10 | Porto Sol University 6 | Porto Sol University 11 | Porto Sol University 19 | Porto Sol University 3 | Porto Sol University 7 | Santa Marea Cemetery 25 | Santa Marea Cemetery 17 | Santa Marea Cemetery 5 | Santa Marea Cemetery 3 | Santa Marea Cemetery 5 | Santa Marea Cemetery 8 | Santa Marea Cemetery 4 | Santa Marea Cemetery 9 | Palmera State Penitentiary 9 | Palmera State Penitentiary 6 | Palmera State Penitentiary 4 | Palmera State Penitentiary 3 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 2 | Palmera Speedway 16 | Palmera Speedway 28 | Palmera Speedway 12 | Okahatchee Union Church 22 | Old Fort Church 17 | Old Fort Church 4 | Tidewater General Hospital 3 | Tidewater General Hospital 2 | Tidewater General Hospital 3 | Midtown General 1 | Midtown General 7 | Westbrook Hospital 8 | Sol Beach Clinic 8 | Harlow County Hospital 5 | Harlow County Hospital 3 | Okahatchee Medical 8 | Redland Health 8 | Fort Castell Hospital 1 | Fort Castell Hospital 7
+[  90.476] Stunt jumps: 0 road crests (0 candidates); ramps being placed
+[  90.477] fishing: 9 spots (lake yes, 3 Keys docks)
+[  91.560] Stunt ramps: 10 placed (0 over water) in 773 ms (25869 corridors tested); 10 unique stunt jumps
+[  91.634] Wildlife: 28 species models ready (166 k triangles in the detailed LODs)
+[  95.367] Interior 'Police Headquarters' built: 19990 triangles, 25 lights, 25 colliders, 3 door leaves in 2.5 ms
+[  95.379] Interior 'Downtown Penthouse Lobby' built: 6090 triangles, 6 lights, 11 colliders, 4 door leaves in 0.8 ms
+[ 100.567] Interior 'Downtown Penthouse' built: 22342 triangles, 26 lights, 47 colliders, 7 door leaves in 13.9 ms
+[ 100.569] Interior 'Solaris One Penthouse' built: 50468 triangles, 33 lights, 53 colliders, 2 door leaves in 30.5 ms
+[ 178.209] gfx (frame 30): draws 597, dispatches 83, indirect 6 | CB writes 91 (36.8 KB), dynamic 864.5 KB | root CBVs 102, root constants 544 | tables 179 (1211 descriptors) | pipelines 147
+[ 178.209] props (frame 30): camera 130 instances, 80104 triangles; decor plants 3 placed (room for 6144), 0 drawn
+[ 265.366] gfx (frame 60): draws 726, dispatches 69, indirect 6 | CB writes 79 (34.0 KB), dynamic 839.3 KB | root CBVs 95, root constants 678 | tables 158 (1029 descriptors) | pipelines 129
+[ 265.371] props (frame 60): camera 139 instances, 93544 triangles; decor plants 3 placed (room for 6144), 0 drawn
+[ 356.565] gfx (frame 90): draws 760, dispatches 52, indirect 6 | CB writes 64 (22.8 KB), dynamic 818.5 KB | root CBVs 78, root constants 713 | tables 149 (956 descriptors) | pipelines 117
+[ 356.565] props (frame 90): camera 139 instances, 93544 triangles; decor plants 3 placed (room for 6144), 0 drawn
+[ 448.911] gfx (frame 120): draws 737, dispatches 52, indirect 6 | CB writes 64 (22.8 KB), dynamic 775.1 KB | root CBVs 78, root constants 696 | tables 149 (956 descriptors) | pipelines 105
+[ 448.911] props (frame 120): camera 139 instances, 93544 triangles; decor plants 4 placed (room for 6144), 0 drawn
+[ 541.241] gfx (frame 150): draws 714, dispatches 52, indirect 6 | CB writes 64 (22.8 KB), dynamic 774.7 KB | root CBVs 78, root constants 673 | tables 149 (956 descriptors) | pipelines 109
+[ 541.242] props (frame 150): camera 138 instances, 93320 triangles; decor plants 4 placed (room for 6144), 0 drawn
+[ 631.259] gfx (frame 180): draws 651, dispatches 52, indirect 6 | CB writes 63 (22.2 KB), dynamic 740.8 KB | root CBVs 76, root constants 609 | tables 146 (931 descriptors) | pipelines 112
+[ 631.259] props (frame 180): camera 136 instances, 92872 triangles; decor plants 4 placed (room for 6144), 0 drawn
+[ 721.203] gfx (frame 210): draws 647, dispatches 69, indirect 6 | CB writes 79 (34.0 KB), dynamic 762.3 KB | root CBVs 95, root constants 602 | tables 158 (1029 descriptors) | pipelines 125
+[ 721.205] props (frame 210): camera 136 instances, 92872 triangles; decor plants 4 placed (room for 6144), 0 drawn
+[ 721.220] autoplay tour shot 2 downtown_afternoon | peds 113 vehicles 72 | cpu ms ai 0.69 veh 1.09 peds 2.74
+[ 809.402] gfx (frame 240): draws 643, dispatches 82, indirect 6 | CB writes 89 (35.5 KB), dynamic 749.5 KB | root CBVs 102, root constants 601 | tables 178 (1208 descriptors) | pipelines 124
+[ 809.402] props (frame 240): camera 136 instances, 92872 triangles; decor plants 4 placed (room for 6144), 0 drawn
+[ 857.640] autoplay tour stop 3 solaris_plaza at 3350 -843, 15.5 h
+[ 864.419] Interior 'Solaris One' built: 29672 triangles, 33 lights, 52 colliders, 6 door leaves in 13.6 ms
+[ 894.658] gfx (frame 270): draws 557, dispatches 69, indirect 6 | CB writes 74 (31.0 KB), dynamic 802.2 KB | root CBVs 89, root constants 529 | tables 152 (973 descriptors) | pipelines 95
+[ 894.660] props (frame 270): camera 111 instances, 53302 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[ 988.923] gfx (frame 300): draws 566, dispatches 69, indirect 6 | CB writes 74 (31.0 KB), dynamic 856.3 KB | root CBVs 89, root constants 537 | tables 152 (973 descriptors) | pipelines 95
+[ 988.928] props (frame 300): camera 125 instances, 71002 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[1075.579] gfx (frame 330): draws 567, dispatches 52, indirect 6 | CB writes 58 (19.0 KB), dynamic 909.1 KB | root CBVs 72, root constants 538 | tables 143 (900 descriptors) | pipelines 85
+[1075.579] props (frame 330): camera 125 instances, 71002 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[1163.715] gfx (frame 360): draws 566, dispatches 52, indirect 6 | CB writes 58 (19.0 KB), dynamic 891.8 KB | root CBVs 72, root constants 540 | tables 143 (900 descriptors) | pipelines 79
+[1163.715] props (frame 360): camera 125 instances, 71002 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[1249.043] gfx (frame 390): draws 557, dispatches 52, indirect 6 | CB writes 58 (19.0 KB), dynamic 872.0 KB | root CBVs 72, root constants 531 | tables 143 (900 descriptors) | pipelines 80
+[1249.043] props (frame 390): camera 122 instances, 70618 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[1332.783] gfx (frame 420): draws 557, dispatches 69, indirect 6 | CB writes 74 (31.0 KB), dynamic 881.4 KB | root CBVs 89, root constants 530 | tables 152 (973 descriptors) | pipelines 92
+[1332.784] props (frame 420): camera 121 instances, 70594 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[1417.871] gfx (frame 450): draws 546, dispatches 69, indirect 6 | CB writes 74 (31.0 KB), dynamic 880.3 KB | root CBVs 89, root constants 519 | tables 152 (973 descriptors) | pipelines 91
+[1417.871] props (frame 450): camera 122 instances, 70710 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[1464.786] autoplay tour shot 3 solaris_plaza | peds 113 vehicles 63 | cpu ms ai 0.87 veh 1.47 peds 1.45
+[1500.058] gfx (frame 480): draws 556, dispatches 70, indirect 6 | CB writes 74 (31.0 KB), dynamic 881.5 KB | root CBVs 89, root constants 529 | tables 153 (976 descriptors) | pipelines 92
+[1500.058] props (frame 480): camera 122 instances, 70710 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[1592.658] gfx (frame 510): draws 550, dispatches 69, indirect 6 | CB writes 74 (31.0 KB), dynamic 881.5 KB | root CBVs 89, root constants 523 | tables 152 (973 descriptors) | pipelines 91
+[1592.658] props (frame 510): camera 122 instances, 70710 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[1601.393] autoplay tour stop 4 midtown_park at 3093 1600, 16.5 h
+[1606.444] Interior 'Canvas Corner Market' built: 137525 triangles, 22 lights, 15 colliders, 3 door leaves in 94.2 ms
+[1606.446] Interior 'Palm Motors' built: 16692 triangles, 28 lights, 24 colliders, 4 door leaves in 1.5 ms
+[1683.868] gfx (frame 540): draws 312, dispatches 71, indirect 6 | CB writes 81 (34.5 KB), dynamic 714.0 KB | root CBVs 97, root constants 284 | tables 164 (1071 descriptors) | pipelines 134
+[1683.869] props (frame 540): camera 139 instances, 147656 triangles; decor plants 33 placed (room for 6144), 14 drawn
+[1777.004] gfx (frame 570): draws 348, dispatches 84, indirect 6 | CB writes 93 (37.2 KB), dynamic 698.4 KB | root CBVs 104, root constants 328 | tables 184 (1250 descriptors) | pipelines 126
+[1777.004] props (frame 570): camera 140 instances, 149632 triangles; decor plants 33 placed (room for 6144), 14 drawn
+[1777.010] police: officer 26 stops 3 on the sidewalk (10 m off, partner 27, nothing on them)
+[1862.190] Transit: 0.729 ms/frame avg, 2 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1862.198] gfx (frame 600): draws 451, dispatches 54, indirect 6 | CB writes 68 (24.5 KB), dynamic 694.2 KB | root CBVs 80, root constants 427 | tables 155 (998 descriptors) | pipelines 118
+[1862.198] props (frame 600): camera 140 instances, 149632 triangles; decor plants 33 placed (room for 6144), 14 drawn
+[1940.441] gfx (frame 630): draws 454, dispatches 54, indirect 6 | CB writes 68 (24.5 KB), dynamic 708.7 KB | root CBVs 80, root constants 430 | tables 155 (998 descriptors) | pipelines 113
+[1940.442] props (frame 630): camera 140 instances, 149632 triangles; decor plants 33 placed (room for 6144), 14 drawn
+[2014.666] gfx (frame 660): draws 439, dispatches 71, indirect 6 | CB writes 83 (35.8 KB), dynamic 715.0 KB | root CBVs 97, root constants 414 | tables 164 (1071 descriptors) | pipelines 125
+[2014.668] props (frame 660): camera 137 instances, 147904 triangles; decor plants 33 placed (room for 6144), 12 drawn
+[2109.549] gfx (frame 690): draws 429, dispatches 71, indirect 6 | CB writes 83 (35.8 KB), dynamic 713.2 KB | root CBVs 97, root constants 403 | tables 163 (1070 descriptors) | pipelines 126
+[2109.556] props (frame 690): camera 136 instances, 147824 triangles; decor plants 33 placed (room for 6144), 11 drawn
+[2201.382] gfx (frame 720): draws 329, dispatches 71, indirect 6 | CB writes 82 (35.2 KB), dynamic 702.6 KB | root CBVs 95, root constants 304 | tables 160 (1045 descriptors) | pipelines 125
+[2201.382] props (frame 720): camera 135 instances, 147778 triangles; decor plants 33 placed (room for 6144), 11 drawn
+[2207.349] autoplay tour shot 4 midtown_park | peds 94 vehicles 76 | cpu ms ai 0.61 veh 1.22 peds 1.35
+[2296.133] gfx (frame 750): draws 324, dispatches 71, indirect 6 | CB writes 83 (35.8 KB), dynamic 697.0 KB | root CBVs 97, root constants 297 | tables 163 (1070 descriptors) | pipelines 126
+[2296.137] props (frame 750): camera 135 instances, 147778 triangles; decor plants 33 placed (room for 6144), 11 drawn
+[2353.398] autoplay tour stop 5 beach_condos at 5079 1500, 17.5 h
+[2359.448] Interior 'Tide Customs Sol Beach' built: 11328 triangles, 11 lights, 17 colliders, 2 door leaves in 1.5 ms
+[2359.449] Interior 'Sol Beach Condo Lobby' built: 6284 triangles, 6 lights, 11 colliders, 4 door leaves in 0.9 ms
+[2365.706] Interior 'Sol Beach Condo' built: 20346 triangles, 22 lights, 43 colliders, 7 door leaves in 2.5 ms
+[2391.156] gfx (frame 780): draws 659, dispatches 69, indirect 6 | CB writes 77 (32.8 KB), dynamic 991.2 KB | root CBVs 90, root constants 632 | tables 152 (973 descriptors) | pipelines 99
+[2391.156] props (frame 780): camera 172 instances, 204488 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[2490.197] gfx (frame 810): draws 645, dispatches 71, indirect 6 | CB writes 79 (34.0 KB), dynamic 991.4 KB | root CBVs 92, root constants 617 | tables 155 (985 descriptors) | pipelines 104
+[2490.197] props (frame 810): camera 172 instances, 204488 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[2521.426] street meet 1: ped 89 asks 87 the way at 5087 1543
+[2595.192] gfx (frame 840): draws 651, dispatches 69, indirect 6 | CB writes 77 (32.8 KB), dynamic 996.4 KB | root CBVs 90, root constants 621 | tables 152 (973 descriptors) | pipelines 105
+[2595.193] props (frame 840): camera 221 instances, 272038 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[2696.174] gfx (frame 870): draws 689, dispatches 69, indirect 6 | CB writes 75 (31.5 KB), dynamic 999.9 KB | root CBVs 90, root constants 659 | tables 152 (973 descriptors) | pipelines 100
+[2696.174] props (frame 870): camera 221 instances, 272038 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[2794.847] gfx (frame 900): draws 718, dispatches 69, indirect 6 | CB writes 75 (31.5 KB), dynamic 1003.4 KB | root CBVs 90, root constants 685 | tables 152 (973 descriptors) | pipelines 105
+[2794.847] props (frame 900): camera 222 instances, 272126 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[2799.909] Wildlife: 301 animals (276 birds) in 31 groups, 62 drawn in 16 draws | update 0.733 ms, render 0.896 ms
+[2904.399] gfx (frame 930): draws 702, dispatches 70, indirect 6 | CB writes 75 (31.5 KB), dynamic 966.3 KB | root CBVs 90, root constants 669 | tables 153 (976 descriptors) | pipelines 100
+[2904.399] props (frame 930): camera 221 instances, 272038 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[3007.253] gfx (frame 960): draws 694, dispatches 69, indirect 6 | CB writes 75 (31.5 KB), dynamic 959.3 KB | root CBVs 90, root constants 666 | tables 152 (973 descriptors) | pipelines 90
+[3007.253] props (frame 960): camera 223 instances, 274982 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[3067.465] autoplay tour shot 5 beach_condos | peds 122 vehicles 66 | cpu ms ai 0.89 veh 1.13 peds 3.05
+[3104.608] gfx (frame 990): draws 701, dispatches 69, indirect 6 | CB writes 75 (31.5 KB), dynamic 984.0 KB | root CBVs 90, root constants 671 | tables 152 (973 descriptors) | pipelines 94
+[3104.608] props (frame 990): camera 223 instances, 274982 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[3181.054] gfx (frame 1020): draws 729, dispatches 70, indirect 6 | CB writes 75 (31.5 KB), dynamic 997.2 KB | root CBVs 90, root constants 698 | tables 153 (976 descriptors) | pipelines 97
+[3181.054] props (frame 1020): camera 223 instances, 274982 triangles; decor plants 0 placed (room for 6144), 0 drawn
+[3190.560] autoplay tour done: 4 stops
+[3206.178] Shutdown complete.
+X connection to :112 broken (explicit kill or server shutdown).

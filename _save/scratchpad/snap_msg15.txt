@@ -1,0 +1,11 @@
+Night reads as night: exposure keys down for dark scenes and holds detail in large lit areas
+
+- Auto exposure: the metering key now falls with the scene's luminance (Krawczyk et al.'s "auto key", taken three
+  quarters of the way), so a park or a street at night is no longer lifted to the mid-grey of a day scene. It only
+  ever darkens, by at most 1 EV, and anything metering above ~1.3 cd/m2 (day, dusk, lit interiors) is untouched.
+  Measured: the club park at night 0.8 EV darker, a downtown storefront street at 23:00 1 EV darker, a lamp-lit
+  residential street 0.3 EV darker; rain at night, dusk and afternoon unchanged.
+- Highlight constraint: when a large part of the frame is above the filmic shoulder (even the 88th percentile - a lit
+  lobby or shop front filling part of the frame at night), exposure pulls up to two thirds of the way towards keeping
+  the 97th percentile below it, instead of a third, so the bright area keeps its detail.
+- --exposurelog logs the metering every 8th frame (EV, metered cd/m2, the night and storm factors).

@@ -1,0 +1,10 @@
+cl_reja front 25274 14 2 3 60 10
+cl_reja_paved front 25292 14 2 -3 60 10
+cl_paved front 25287 14 2 3 60 10
+cl_alum front 25288 14 2 -3 60 10
+ks_picket front 21883 14 2 3 60 10
+ks_coral front 21887 14 2 -3 60 10
+gr_coral front 257 15 2 3 60 10
+gr_picket front 263 15 2 -3 60 10
+wb_knee_paved front 2107 15 2 3 60 10
+wb_reja front 4 15 2 -3 60 10

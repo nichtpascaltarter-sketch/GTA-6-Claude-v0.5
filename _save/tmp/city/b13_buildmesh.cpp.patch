@@ -1,0 +1,342 @@
+--- dev15/src/world/buildmesh.cpp	2026-10-06 11:25:17.958713985 +0000
++++ dev16/src/world/buildmesh.cpp	2026-10-06 12:11:53.091355082 +0000
+@@ -33,6 +33,7 @@
+     u32 trimMat = 0;                             // painted porch posts, rails and brackets (0: bare wood), per building
+     int porchPosts = 0;                          // housePorch's posts: 0 slim, 1 Craftsman (column on a pier, knee wall), 2 round columns
+     u32 pierCol = 0, pierMat = 0;                // the Craftsman porch's piers and knee wall (brick, stone or the wall's cladding)
++    bool farRoof = false;                        // the far LOD dresses the roof too (parapet, roof plant): 3 floors and up
+ };
+ 
+ // The material of a porch's posts, rails, brackets and ceiling: painted in town (plaster takes the trim colour: the wood
+@@ -157,9 +158,11 @@
+     x.m->polygon(poly, vec3(0, 0, 1), color, mat, 1.f);
+ }
+ 
+-// Parapet: a low wall ring inset by thickness, with top cap
++// Parapet: a low wall ring inset by thickness, with top cap (the coping, a shade lighter: it outlines the roofs from the air)
+ void parapet(Ctx& x, const std::vector<vec2>& fp, float z, float h, float t, u32 color, u32 mat) {
+     int n = (int)fp.size();
++    const vec4 cc = unpackRGBA8(color);
++    const u32 capC = packRGBA8(Saturate(cc.x * 1.1f + 0.04f), Saturate(cc.y * 1.1f + 0.04f), Saturate(cc.z * 1.1f + 0.04f), cc.w);
+     // centroid for inward direction
+     vec2 c(0, 0);
+     for (auto& p : fp) c += p;
+@@ -181,7 +184,7 @@
+         x.m->quad(p0, p1, p1 + up, p0 + up, vec2(0, 0), vec2(length(b - a), 0), vec2(length(b - a), h), vec2(0, h), color, mat);
+         vec2 oa = fp[i], ob = fp[(i + 1) % n];
+         x.m->quadFacing(vec3(oa, z + h) - x.org, vec3(ob, z + h) - x.org, vec3(b, z + h) - x.org, vec3(a, z + h) - x.org,
+-                        vec2(0, 0), vec2(1, 0), vec2(1, t), vec2(0, t), color, mat, vec3(0, 0, 1));
++                        vec2(0, 0), vec2(1, 0), vec2(1, t), vec2(0, t), capC, mat, vec3(0, 0, 1));
+     }
+ }
+ 
+@@ -254,6 +257,194 @@
+     x.col->push_back(b);
+ }
+ 
++// A wooden water tank on a braced steel stand (the older masonry walk-ups): staved tank, iron hoops, conical roof and
++// finial, a ladder up the stand. p: the stand's centre on the roof at z; woodR: the staves' red. The far LOD keeps the
++// stand's legs, the tank and its roof (8 sides).
++void waterTank(Ctx& x, vec2 p, vec2 ax, float z, float woodR) {
++    const vec2 ay = perp(ax);
++    const vec3 X(ax, 0), Y(ay, 0), Z(0, 0, 1);
++    const u32 steel = packRGBA8(0.2f, 0.2f, 0.21f, 1), wood = packRGBA8(woodR, 0.4f, 0.33f, 1), metal = makeMat(MAT_METAL_PAINTED);
++    const float sz = 2.2f;
++    const int seg = x.detail ? 10 : 8;
++    // braced stand and deck
++    for (int k = 0; k < 4; k++) {
++        vec2 lp = p + ax * ((k & 1) ? 1.15f : -1.15f) + ay * ((k & 2) ? 1.15f : -1.15f);
++        x.m->box(vec3(lp, z + sz * 0.5f) - x.org, X, Y, Z, vec3(0.09f, 0.09f, sz * 0.5f), steel, metal);
++    }
++    if (x.detail) {
++        for (int k = 0; k < 2; k++)
++            x.m->box(vec3(p + (k ? ay : ax) * 0.f, z + sz * 0.45f) - x.org, k ? Y : X, k ? X : Y, Z, vec3(1.2f, 0.05f, 0.05f), steel, metal);
++        x.m->cylinder(vec3(p, z + sz) - x.org, 1.95f, 1.95f, 0.14f, 10, steel, metal, false);
++    }
++    // staved tank, iron hoops, conical roof, finial
++    x.m->cylinder(vec3(p, z + sz + 0.14f) - x.org, 1.6f, 1.55f, 3.1f, seg, wood, makeMat(MAT_WOOD), !x.detail);
++    if (x.detail)
++        for (int h = 0; h < 2; h++)
++            x.m->cylinder(vec3(p, z + sz + 0.7f + h * 1.5f) - x.org, 1.63f, 1.63f, 0.07f, 10, steel, metal, false);
++    x.m->cylinder(vec3(p, z + sz + 3.2f) - x.org, 1.78f, 0.05f, 1.05f, seg, wood, makeMat(MAT_ROOF_SHINGLE), false);
++    if (!x.detail) return;
++    x.m->box(vec3(p, z + sz + 4.35f) - x.org, X, Y, Z, vec3(0.06f, 0.06f, 0.14f), steel, metal);
++    // ladder up the stand and tank side
++    for (int k = -1; k <= 1; k += 2)
++        x.m->box(vec3(p + ay * 1.72f + ax * (k * 0.22f), z + (sz + 3.2f) * 0.5f) - x.org, X, Y, Z, vec3(0.025f, 0.025f, (sz + 3.2f) * 0.5f), steel, metal);
++}
++
++// Roof plant that reads from the air, the same in every LOD (its own seeded stream): the stair bulkhead, with the lift
++// motor room beside it on the taller buildings, packaged HVAC units on their rails, a cooling tower on the big roofs and,
++// where tank is set, a wooden water tank on its stand - in a row along the back of the roof (fr: the building's front,
++// the roof rectangle c, ax, hx, hy). The far LOD gets the masses; the near LOD adds the doors, louvres and fan grilles.
++// Returns the depth of the band taken from the back edge (the small clutter keeps to the rest of the roof).
++float roofPlant(Ctx& x, vec2 c, vec2 ax, vec2 fr, float hx, float hy, float z, u32 seed, int floors, bool tank) {
++    if (hx < 4.f || hy < 3.5f) return 0.f;
++    const vec2 ay = perp(ax);
++    const float fs = dot(fr, ay) >= 0.f ? 1.f : -1.f;   // the front along ay
++    const vec3 X(ax, 0), Y(ay, 0), Z(0, 0, 1);
++    Rng q(seed ^ 0x9F1A7u);
++    struct Item { int kind; float w, d, h; };   // 0 stair bulkhead, 1 lift motor room, 2 HVAC unit, 3 cooling tower, 4 water tank
++    Item items[8];
++    int n = 0;
++    const float g = q.range(0.74f, 0.86f);
++    items[n++] = {0, q.range(2.7f, 3.3f), q.range(2.4f, 2.9f), q.range(2.7f, 3.1f)};
++    if (floors >= 5) items[n++] = {1, q.range(3.2f, 4.2f), q.range(2.8f, 3.6f), q.range(3.4f, 4.1f)};
++    if (tank) items[n++] = {4, 3.9f, 3.9f, 6.5f};
++    if (floors >= 6 && hx * hy >= 180.f && q.chance(0.6f)) items[n++] = {3, 4.2f, 4.2f, 3.1f};
++    int nh = Clamp(1 + (int)(hx * hy / 160.f), 1, 4);
++    for (int k = 0; k < nh && n < 8; k++) items[n++] = {2, q.range(2.2f, 3.8f), q.range(1.4f, 2.1f), q.range(1.2f, 1.75f)};
++    // along the back edge from one end, as many as fit (in that order)
++    const float gap = 1.1f, edge = 1.1f;
++    const float dir = q.chance(0.5f) ? 1.f : -1.f;
++    float u = -hx + edge, band = 0.f;
++    const u32 concrete = makeMat(MAT_CONCRETE), metal = makeMat(MAT_METAL_PAINTED), brushed = makeMat(MAT_METAL_BRUSHED);
++    const u32 dark = packRGBA8(0.14f, 0.15f, 0.16f, 1);
++    for (int i = 0; i < n; i++) {
++        Item it = items[i];
++        if (it.d > hy * 2.f - 2.f * edge) continue;
++        if (u + it.w > hx - edge) {
++            if (it.kind <= 1) return 0.f;   // (no room for the core: a small roof, the clutter only)
++            continue;
++        }
++        const float um = dir * (u + it.w * 0.5f), vm = -fs * (hy - edge - it.d * 0.5f - (it.kind == 2 ? q.range(0.f, 0.6f) : 0.f));
++        const vec2 p = c + ax * um + ay * vm;
++        u += it.w + gap;
++        band = Max(band, edge + it.d + (it.kind == 2 ? 0.6f : 0.f));
++        const vec3 base(p, z);
++        const vec3 Fv = Y * fs;   // the face towards the open roof
++        switch (it.kind) {
++            case 0:
++            case 1: {
++                // masonry box: a steel door (bulkhead) or a louvred vent panel (motor room) on the face towards the roof
++                const u32 col = packRGBA8(g, g * 0.985f, g * 0.95f, 1);
++                x.m->box(base + Z * (it.h * 0.5f) - x.org, X, Y, Z, vec3(it.w * 0.5f, it.d * 0.5f, it.h * 0.5f), col, concrete);
++                x.m->box(base + Z * (it.h + 0.06f) - x.org, X, Y, Z, vec3(it.w * 0.5f + 0.08f, it.d * 0.5f + 0.08f, 0.06f), packRGBA8(g * 0.9f, g * 0.9f, g * 0.88f, 1), concrete);
++                addCollision(x, p, ax, it.w * 0.5f, it.d * 0.5f, z, z + it.h);
++                if (x.detail) {
++                    vec3 fc = base + Fv * (it.d * 0.5f + 0.01f);
++                    if (it.kind == 0) {
++                        vec3 d0 = fc - X * 0.45f, d1 = fc + X * 0.45f;
++                        if (fs < 0.f) std::swap(d0, d1);
++                        x.m->quadFacing(d0 - x.org, d1 - x.org, d1 + Z * 2.05f - x.org, d0 + Z * 2.05f - x.org, vec2(0, 0), vec2(0.9f, 0), vec2(0.9f, 2.05f), vec2(0, 2.05f),
++                                        packRGBA8(0.33f, 0.36f, 0.4f, 1), metal, Fv);
++                    } else {
++                        vec3 l0 = fc - X * (it.w * 0.3f) + Z * 0.8f, l1 = fc + X * (it.w * 0.3f) + Z * 0.8f;
++                        x.m->quadFacing(l0 - x.org, l1 - x.org, l1 + Z * 1.4f - x.org, l0 + Z * 1.4f - x.org, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), dark, brushed, Fv);
++                    }
++                }
++                break;
++            }
++            case 2: {
++                // packaged unit on two rails, a fan or two on top, a louvred side
++                const u32 col = packRGBA8(0.8f, 0.8f, 0.77f, 1);
++                const float zb = z + 0.22f;
++                x.m->box(vec3(p, zb + it.h * 0.5f) - x.org, X, Y, Z, vec3(it.w * 0.5f, it.d * 0.5f, it.h * 0.5f), col, metal);
++                if (x.detail) {
++                    for (int k = -1; k <= 1; k += 2)
++                        x.m->box(vec3(p + ay * (k * it.d * 0.32f), z + 0.11f) - x.org, X, Y, Z, vec3(it.w * 0.5f + 0.15f, 0.07f, 0.11f), packRGBA8(0.4f, 0.4f, 0.42f, 1), metal);
++                    int fans = it.w > 2.9f ? 2 : 1;
++                    float fr2 = Min(it.d * 0.36f, it.w / (2.f * fans) * 0.8f);
++                    for (int f = 0; f < fans; f++) {
++                        vec2 fp = p + ax * (fans == 2 ? (f ? 0.25f : -0.25f) * it.w : 0.f);
++                        x.m->cylinder(vec3(fp, zb + it.h) - x.org, fr2, fr2, 0.18f, 8, col, metal, false);
++                        vec3 gc = vec3(fp, zb + it.h + 0.15f) - x.org, gx = X * (fr2 * 0.9f), gy = Y * (fr2 * 0.9f);
++                        x.m->quadFacing(gc - gx - gy, gc + gx - gy, gc + gx + gy, gc - gx + gy, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), dark, brushed, Z);
++                    }
++                    vec3 fc = vec3(p, zb) + Fv * (it.d * 0.5f + 0.01f);
++                    vec3 l0 = fc - X * (it.w * 0.42f) + Z * 0.15f, l1 = fc + X * (it.w * 0.42f) + Z * 0.15f;
++                    x.m->quadFacing(l0 - x.org, l1 - x.org, l1 + Z * (it.h - 0.3f) - x.org, l0 + Z * (it.h - 0.3f) - x.org, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), dark, brushed, Fv);
++                }
++                break;
++            }
++            case 3: {
++                // cooling tower: a louvred box, the fan stack on top
++                const u32 col = packRGBA8(0.62f, 0.66f, 0.66f, 1);
++                x.m->box(base + Z * (it.h * 0.5f) - x.org, X, Y, Z, vec3(it.w * 0.5f, it.d * 0.5f, it.h * 0.5f), col, metal);
++                x.m->cylinder(base + Z * it.h - x.org, 1.55f, 1.45f, 0.9f, x.detail ? 12 : 8, col, metal, true);
++                addCollision(x, p, ax, it.w * 0.5f, it.d * 0.5f, z, z + it.h);
++                if (x.detail) {
++                    for (int sgn = -1; sgn <= 1; sgn += 2) {
++                        vec3 fc = base + X * (sgn * (it.w * 0.5f + 0.01f));
++                        vec3 a0 = fc - Y * (it.d * 0.4f) + Z * 0.3f, a1 = fc + Y * (it.d * 0.4f) + Z * 0.3f;
++                        if (sgn < 0) std::swap(a0, a1);
++                        x.m->quadFacing(a0 - x.org, a1 - x.org, a1 + Z * (it.h - 0.8f) - x.org, a0 + Z * (it.h - 0.8f) - x.org, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), dark, brushed,
++                                        X * (float)sgn);
++                    }
++                    vec3 gc = base + Z * (it.h + 0.92f) - x.org, gx = X * 1.3f, gy = Y * 1.3f;
++                    x.m->quadFacing(gc - gx - gy, gc + gx - gy, gc + gx + gy, gc - gx + gy, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), dark, brushed, Z);
++                }
++                break;
++            }
++            default:
++                waterTank(x, p, ax, z, q.range(0.45f, 0.55f));
++                addCollision(x, p, ax, 1.25f, 1.25f, z, z + 2.2f);
++                break;
++        }
++    }
++    return band;
++}
++
++// Balcony slabs on a residential tower's or condo's faces, one at every floor line between z0 and z1 (the facade grid
++// from vBase: fac's ground and floor heights), dep deep, with a glass railing: white bands that read from the air. The
++// faces of the rectangle c, ax, hx, hy (ch: the corners chamfered off): faces 0 the long pair, 1 the pair along ax (the
++// front and back), 2 all four. The far LOD gets the slab's top and edge and the railing's face, the near LOD the slab box,
++// the glass and (rail) its top rail.
++void balconyBands(Ctx& x, vec2 c, vec2 ax, float hx, float hy, float ch, float z0, float z1, float vBase, const FacadeGPU& fac, float dep, int faces, bool rail) {
++    const vec2 ay = perp(ax);
++    const u32 slabC = packRGBA8(0.94f, 0.94f, 0.92f, 1), glassC = packRGBA8(0.5f, 0.62f, 0.7f, 1), railC = packRGBA8(0.8f, 0.82f, 0.84f, 1);
++    const u32 concrete = makeMat(MAT_CONCRETE), glass = makeMat(MAT_GLASS), brushed = makeMat(MAT_METAL_BRUSHED);
++    const vec3 Z(0, 0, 1);
++    for (int face = 0; face < 4; face++) {
++        const bool alongX = face < 2;   // the faces at +-ay (they run along ax)
++        if ((faces == 0 && alongX != (hx >= hy)) || (faces == 1 && !alongX)) continue;
++        const float sgn = (face & 1) ? -1.f : 1.f;
++        const vec2 n = alongX ? ay * sgn : ax * sgn, t = alongX ? ax : ay;
++        const float off = alongX ? hy : hx, half = (alongX ? hx : hy) - ch - 0.35f;
++        if (half < 2.f) continue;
++        const vec3 N(n, 0.f), T(t, 0.f);
++        const float gh = rail ? 1.04f : 1.1f;   // (the condos' top rail is the detail pass's: facadedetail.cpp)
++        for (int k = 1; k < 200; k++) {
++            const float z = vBase + fac.groundH + (k - 1) * fac.floorH;
++            if (z > z1 - 1.2f) break;
++            if (z < z0 + 0.5f) continue;
++            const vec2 mid = c + n * (off + dep * 0.5f);
++            if (x.detail) {
++                x.m->box(vec3(mid, z - 0.08f) - x.org, T, vec3(n, 0.f), Z, vec3(half, dep * 0.5f, 0.1f), slabC, concrete, true);
++                const vec2 e0 = c + n * (off + dep - 0.04f) - t * half, e1 = c + n * (off + dep - 0.04f) + t * half;
++                x.m->quadFacing(vec3(e0, z + 0.04f) - x.org, vec3(e1, z + 0.04f) - x.org, vec3(e1, z + gh) - x.org, vec3(e0, z + gh) - x.org, vec2(0, 0),
++                                vec2(2.f * half, 0), vec2(2.f * half, 1), vec2(0, 1), glassC, glass, N);
++                if (rail) x.m->box(vec3(c + n * (off + dep - 0.05f), z + 1.07f) - x.org, T, vec3(n, 0.f), Z, vec3(half, 0.04f, 0.03f), railC, brushed);
++            } else {
++                // top, the slab edge and the railing's face
++                const vec2 a0 = c + n * off - t * half, a1 = c + n * off + t * half, b0 = a0 + n * dep, b1 = a1 + n * dep;
++                x.m->quadFacing(vec3(a0, z + 0.02f) - x.org, vec3(a1, z + 0.02f) - x.org, vec3(b1, z + 0.02f) - x.org, vec3(b0, z + 0.02f) - x.org, vec2(0, 0), vec2(1, 0),
++                                vec2(1, 1), vec2(0, 1), slabC, concrete, Z);
++                x.m->quadFacing(vec3(b0, z - 0.18f) - x.org, vec3(b1, z - 0.18f) - x.org, vec3(b1, z + 0.02f) - x.org, vec3(b0, z + 0.02f) - x.org, vec2(0, 0), vec2(1, 0),
++                                vec2(1, 1), vec2(0, 1), slabC, concrete, N);
++                x.m->quadFacing(vec3(b0, z + 0.02f) - x.org, vec3(b1, z + 0.02f) - x.org, vec3(b1, z + gh) - x.org, vec3(b0, z + gh) - x.org, vec2(0, 0),
++                                vec2(2.f * half, 0), vec2(2.f * half, 1), vec2(0, 1), glassC, glass, N);
++            }
++        }
++    }
++}
++
+ // Rooftop equipment: packaged HVAC units with fan shrouds, vent stacks with rain caps, stair bulkheads, and (older
+ // districts mostly) a wooden water tank with hoops and a conical roof on a braced steel stand
+ void rooftopClutter(Ctx& x, vec2 c, vec2 ax, float hx, float hy, float z, Rng& r, float tankChance = 0.3f) {
+@@ -407,25 +598,7 @@
+     }
+     if (r.chance(tankChance)) {
+         vec2 p = c + ax * r.range(-hx * 0.5f, hx * 0.5f) + ay * r.range(-hy * 0.5f, hy * 0.5f);
+-        const u32 steel = packRGBA8(0.2f, 0.2f, 0.21f, 1), wood = packRGBA8(r.range(0.45f, 0.55f), 0.4f, 0.33f, 1);
+-        float sz = 2.2f;
+-        // braced stand and deck
+-        for (int k = 0; k < 4; k++) {
+-            vec2 lp = p + ax * ((k & 1) ? 1.15f : -1.15f) + ay * ((k & 2) ? 1.15f : -1.15f);
+-            x.m->box(vec3(lp, z + sz * 0.5f) - x.org, X, Y, Z, vec3(0.09f, 0.09f, sz * 0.5f), steel, metal);
+-        }
+-        for (int k = 0; k < 2; k++)
+-            x.m->box(vec3(p + (k ? ay : ax) * 0.f, z + sz * 0.45f) - x.org, k ? Y : X, k ? X : Y, Z, vec3(1.2f, 0.05f, 0.05f), steel, metal);
+-        x.m->cylinder(vec3(p, z + sz) - x.org, 1.95f, 1.95f, 0.14f, 10, steel, metal, false);
+-        // staved tank, iron hoops, conical roof, finial
+-        x.m->cylinder(vec3(p, z + sz + 0.14f) - x.org, 1.6f, 1.55f, 3.1f, 10, wood, makeMat(MAT_WOOD), false);
+-        for (int h = 0; h < 2; h++)
+-            x.m->cylinder(vec3(p, z + sz + 0.7f + h * 1.5f) - x.org, 1.63f, 1.63f, 0.07f, 10, steel, metal, false);
+-        x.m->cylinder(vec3(p, z + sz + 3.2f) - x.org, 1.78f, 0.05f, 1.05f, 10, wood, makeMat(MAT_ROOF_SHINGLE), false);
+-        x.m->box(vec3(p, z + sz + 4.35f) - x.org, X, Y, Z, vec3(0.06f, 0.06f, 0.14f), steel, metal);
+-        // ladder up the stand and tank side
+-        for (int k = -1; k <= 1; k += 2)
+-            x.m->box(vec3(p + ay * 1.72f + ax * (k * 0.22f), z + (sz + 3.2f) * 0.5f) - x.org, X, Y, Z, vec3(0.025f, 0.025f, (sz + 3.2f) * 0.5f), steel, metal);
++        waterTank(x, p, ax, z, r.range(0.45f, 0.55f));
+     }
+ }
+ 
+@@ -449,7 +622,7 @@
+     facadeWalls(x, fp, z0 - skirt, z1 + (parapetOn ? 1.0f : 0.f), vBase, facadeId, bay);
+     (void)roofColor;
+     flatRoof(x, fp, z1 + 0.02f, x.roofCol, x.roofMat ? x.roofMat : makeMat(MAT_ROOF_GRAVEL));
+-    if (parapetOn && x.detail) parapet(x, fp, z1, 1.0f, 0.3f, packRGBA8(0.8f, 0.8f, 0.78f, 1), makeMat(MAT_CONCRETE));
++    if (parapetOn && (x.detail || x.farRoof)) parapet(x, fp, z1, 1.0f, 0.3f, packRGBA8(0.8f, 0.8f, 0.78f, 1), makeMat(MAT_CONCRETE));
+ }
+ 
+ // Roof antennas: lattice or pole masts with dishes and panel antennas, red obstruction lamp on the tallest
+@@ -851,6 +1024,7 @@
+     x.props = props;
+     x.lights = lights;
+     x.interior = b.interior;
++    x.farRoof = b.floors >= 3 && b.style != BS_HOUSE && b.style != BS_VILLA && b.style != BS_FARMHOUSE;
+     roofFinish(b, x.roofCol, x.roofMat);
+     if (b.interior >= 0 && interiorOwnsShell(b.interior)) return;   // the whole structure streams with its interior
+     if (b.siteElem >= 0) return;   // hand-built by its site element (places.h): hotels, hospitals, campus halls, chapels
+@@ -904,10 +1078,18 @@
+                 float h = (t == tiers - 1) ? (topZ - zc) : remaining * r.range(0.45f, 0.65f);
+                 remaining -= h;
+                 std::vector<vec2> fp;
++                float ch = 0.f;
+                 if (shape <= 4) fp = rectFP(tc, b.ax, thx, thy);
+-                else if (shape <= 7) fp = chamferFP(tc, b.ax, thx, thy, Min(thx, thy) * r.range(0.2f, 0.4f));
+-                else fp = roundFP(tc, Min(thx, thy), 20, atan2f(b.ax.y, b.ax.x));
++                else if (shape <= 7) {
++                    ch = Min(thx, thy) * r.range(0.2f, 0.4f);
++                    fp = chamferFP(tc, b.ax, thx, thy, ch);
++                    ch = Min(ch, Min(thx, thy) * 0.45f);
++                } else fp = roundFP(tc, Min(thx, thy), 20, atan2f(b.ax.y, b.ax.x));
+                 flatMass(x, fp, zc, zc + h, z0, b.facade, bay, true, roofGray, hasPodium || t > 0 ? FM_TIER : FM_MAIN);
++                // the residential towers (the beach's and Key Coral's condo look): balcony slabs with glass railings
++                if ((int)fac.style == 3 && shape <= 7 && b.interior < 0)
++                    balconyBands(x, tc, b.ax, thx, thy, ch, zc, zc + h, z0, fac, 1.2f + 0.6f * hashToFloat(hash32(b.seed ^ 0xBA1Cu)), fabsf(thx - thy) < Min(thx, thy) * 0.15f ? 2 : 0,
++                                 true);
+                 addCollision(x, tc, b.ax, thx, thy, zc - (t == 0 && !hasPodium ? 3.f : 0.f), zc + h);
+                 zc += h;
+                 float sx = r.range(0.72f, 0.88f), sy = r.range(0.72f, 0.88f);
+@@ -1008,8 +1190,8 @@
+                 flatRoof(x, fp, zc + 0.35f, packRGBA8(0.25f, 0.25f, 0.27f, 1), makeMat(MAT_CONCRETE));
+                 plainWalls(x, fp, zc, zc + 0.35f, kWhite, makeMat(MAT_CONCRETE));
+                 helipadMarks(x, tc, Min(thx, thy) * 0.7f, zc + 0.37f, b.ax);
+-            } else if (crown == 4 && detail) {
+-                // glass lantern top with emissive crown lights
++            } else if (crown == 4) {
++                // glass lantern top with emissive crown lights (every LOD: the far one used to show the bare roof)
+                 auto fp = rectFP(tc, b.ax, thx * 0.8f, thy * 0.8f);
+                 facadeWalls(x, fp, zc, zc + 6.f, z0, b.facade, bay);
+                 flatRoof(x, fp, zc + 6.f, roofGray, makeMat(MAT_ROOF_GRAVEL));
+@@ -1018,8 +1200,11 @@
+                 vec3 lc = hsvToRgb(hue, 0.6f, 1.f);
+                 plainWalls(x, rim, zc + 6.f, zc + 6.3f, packRGBA8(lc.x, lc.y, lc.z, 0.6f), makeMat(MAT_EMISSIVE));
+             } else {
+-                rooftopClutter(x, tc, b.ax, thx, thy, zc, r);
+-                if (mr.chance(0.3f)) rooftopAntennas(x, tc, b.ax, thx * 0.5f, thy * 0.5f, zc, mr, true);
++                // the roof plant along the back (every LOD), the small equipment on the rest (a round top: inside the circle)
++                const float px = shape >= 8 ? Min(thx, thy) * 0.6f : thx, py = shape >= 8 ? Min(thx, thy) * 0.6f : thy;
++                const float band = roofPlant(x, tc, b.ax, b.front, px, py, zc, b.seed, b.floors, false);
++                rooftopClutter(x, tc + b.front * (band * 0.5f), b.ax, thx, thy - band * 0.5f, zc, r, band > 0.f ? 0.f : 0.3f);
++                if (mr.chance(0.3f)) rooftopAntennas(x, tc + b.front * (band * 0.5f), b.ax, thx * 0.5f, (thy - band * 0.5f) * 0.5f, zc, mr, true);
+             }
+             break;
+         }
+@@ -1055,7 +1240,7 @@
+                 recordMass(x, fp, zLow, zSet, z0, FM_MAIN, true, b.facade);
+                 facadeWalls(x, fp, zLow - (mixed ? 0.f : 3.f), zSet + 1.f, z0, b.facade, bay);
+                 flatRoof(x, fp, zSet + 0.02f, roofGray, makeMat(MAT_ROOF_GRAVEL));
+-                if (detail) parapet(x, fp, zSet, 1.0f, 0.3f, packRGBA8(0.8f, 0.8f, 0.78f, 1), makeMat(MAT_CONCRETE));
++                if (detail || x.farRoof) parapet(x, fp, zSet, 1.0f, 0.3f, packRGBA8(0.8f, 0.8f, 0.78f, 1), makeMat(MAT_CONCRETE));
+                 addCollision(x, b.c, b.ax, b.hx, b.hy, z0 - 3.f, zSet);
+                 if (topFloors) {
+                     roofC = b.c - b.front * (setD * 0.5f);
+@@ -1067,8 +1252,13 @@
+             }
+             if (!deck) {
+                 bool oldFabric = b.region == REG_CALLE_LUNA || b.region == REG_NORTH_CITY || b.region == REG_MIDTOWN || b.region == REG_FLATS;
+-                rooftopClutter(x, roofC, b.ax, b.hx, roofHy, zTop, r, b.style == BS_MIDRISE && oldFabric ? 0.4f : 0.12f);
+-                if (b.style != BS_GARAGE && mr.chance(b.style == BS_CONDO ? 0.15f : 0.25f)) rooftopAntennas(x, roofC, b.ax, b.hx * 0.6f, roofHy * 0.6f, zTop, mr, false);
++                // the roof plant along the back (every LOD; a water tank on most of the older brick walk-ups), the small
++                // equipment on the rest
++                const bool tank = b.style == BS_MIDRISE && oldFabric && hashToFloat(hash32(b.seed ^ 0x7A4Bu)) < ((int)fac.wallLayer == MAT_BRICK ? 0.7f : 0.35f);
++                const float band = b.style != BS_GARAGE && b.floors >= 3 ? roofPlant(x, roofC, b.ax, b.front, b.hx, roofHy, zTop, b.seed, b.floors, tank) : 0.f;
++                const vec2 cc = roofC + b.front * (band * 0.5f);
++                rooftopClutter(x, cc, b.ax, b.hx, roofHy - band * 0.5f, zTop, r, band > 0.f ? 0.f : (b.style == BS_MIDRISE && oldFabric ? 0.4f : 0.12f));
++                if (b.style != BS_GARAGE && mr.chance(b.style == BS_CONDO ? 0.15f : 0.25f)) rooftopAntennas(x, cc, b.ax, b.hx * 0.6f, (roofHy - band * 0.5f) * 0.6f, zTop, mr, false);
+             }
+             if (b.style == BS_CONDO && detail) {
+                 // balcony slabs on the front and back facades

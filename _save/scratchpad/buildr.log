@@ -1,0 +1,22 @@
+attempt 1 avail 6460
+12:src/game/../game/transit_models.cpp:578: error: reference to 'kHalfLen' is ambiguous
+21:src/game/../game/transit_models.cpp:580: error: reference to 'kHalfLen' is ambiguous
+31:src/game/../game/transit_models.cpp:594: error: reference to 'kHalfLen' is ambiguous
+40:src/game/../game/transit_models.cpp:682: error: expected primary-expression before '(' token
+43:src/game/../game/transit_models.cpp:682: error: reference to 'kWinZ0' is ambiguous
+50:src/game/../game/transit_models.cpp:682: error: expected primary-expression before '(' token
+53:src/game/../game/transit_models.cpp:682: error: reference to 'kWinZ0' is ambiguous
+60:src/game/../game/transit_models.cpp:683: error: expected primary-expression before '(' token
+63:src/game/../game/transit_models.cpp:683: error: reference to 'kWinZ0' is ambiguous
+70:src/game/../game/transit_models.cpp:683: error: expected primary-expression before '(' token
+73:src/game/../game/transit_models.cpp:683: error: reference to 'kWinZ0' is ambiguous
+80:src/game/../game/transit_models.cpp:683: error: expected primary-expression before '(' token
+83:src/game/../game/transit_models.cpp:683: error: reference to 'kWinZ0' is ambiguous
+90:src/game/../game/transit_models.cpp:683: error: expected primary-expression before '(' token
+93:src/game/../game/transit_models.cpp:683: error: reference to 'kWinZ0' is ambiguous
+100:src/game/../game/transit_models.cpp:684: error: expected primary-expression before '(' token
+103:src/game/../game/transit_models.cpp:684: error: reference to 'kWinZ1' is ambiguous
+110:src/game/../game/transit_models.cpp:684: error: expected primary-expression before '(' token
+113:src/game/../game/transit_models.cpp:684: error: reference to 'kWinZ1' is ambiguous
+120:src/game/../game/transit_models.cpp:684: error: expected primary-expression before '(' token
+exit=1

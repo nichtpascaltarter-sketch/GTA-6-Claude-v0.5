@@ -1,0 +1,4 @@
+club_hint 5380 900
+pier_ramp 5380 1250
+beach_x5420 5420 900
+beach_x5450 5450 900

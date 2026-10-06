@@ -1,0 +1,167 @@
+Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.05 s)
+World map generated in 16.30 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10029 edges, 1734 signalized; hwy 61.7 km, streets 1189.5 km (1.63 s)
+Transit: 0 buildings cleared from the SkyLine corridor
+Buildings: 35634 (towers 348, midrise 2352, condo 468, deco 823, shops 4704, strip 657, houses 21766, villas 914, warehouses 1638) in 1.71 s
+Sites: 66 highway billboards
+Sites: 139 silos, 49 windmills
+Transit: SkyLine profile 12.9..25.5 m above the street, 273 piers (0 straddle bents) (0.01 s)
+Transit: station Calle Luna       s    691 at (1850, -629) rail 16.6 street 3.1 exits -1/+1
+Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 721 elements (0.02 s)
+Interiors: 18 planned (convenience 7, gun shops 2) in 4.4 ms
+  interior 'Mari's Apartment' kind 0 building 4623 at (1742.99, 359.27, 3.79) ax (1.0000, 0.0000) x -6.35..6.35 depth 11.50 ceil 4.07: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+  interior 'Mama Lucha's' kind 2 building 3184 at (1344.20, 340.74, 4.30) ax (-1.0000, -0.0000) x -7.52..7.52 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 22 npc points
+  interior 'Rook's Garage' kind 3 building 4135 at (1653.58, 2361.70, 4.24) ax (1.0000, 0.0000) x -10.06..10.06 depth 20.00 ceil 7.79: 3 rooms, 6 openings, 4 doors, 6 portals, 5 npc points
+  interior 'Dex's Trailer' kind 1 building 2710 at (1313.66, 2666.61, 4.66) ax (1.0000, 0.0000) x -7.80..7.80 depth 17.92 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+  interior 'Police Headquarters' kind 5 building 9005 at (3164.81, -240.27, 1.87) ax (1.0000, 0.0000) x -12.31..8.80 depth 16.00 ceil 3.77: 2 rooms, 7 openings, 2 doors, 7 portals, 13 npc points
+  interior 'Tidewater General Hospital' kind 6 building 4058 at (1708.83, 1165.32, 3.62) ax (1.0000, 0.0000) x -11.37..8.12 depth 16.00 ceil 3.89: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+  interior 'Palmetto Arms' kind 7 building 1627 at (884.67, 2892.03, 4.89) ax (0.0000, 1.0000) x -5.49..5.49 depth 14.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+  interior 'Northside Arms' kind 7 building 9515 at (3284.66, 3989.33, 2.06) ax (0.0000, 1.0000) x -5.95..5.95 depth 14.00 ceil 3.92: 2 rooms, 5 openings, 2 doors, 5 portals, 3 npc points
+  interior 'Threads' kind 9 building 31459 at (5153.21, -280.72, 1.90) ax (-1.0000, 0.0000) x -9.32..6.66 depth 15.00 ceil 4.03: 2 rooms, 7 openings, 2 doors, 7 portals, 4 npc points
+  interior 'Port Isle Warehouse' kind 12 building 35619 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+  interior 'TideStop Mart' kind 8 building 3289 at (1449.11, -259.30, 4.30) ax (-1.0000, -0.0000) x -6.22..6.22 depth 17.00 ceil 3.45: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+  interior 'Bodega La Luna' kind 8 building 6217 at (2248.50, 540.78, 2.92) ax (-1.0000, -0.0000) x -5.89..5.89 depth 17.00 ceil 3.52: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Canvas Corner Market' kind 8 building 8637 at (2981.20, 1582.59, 2.26) ax (0.0000, 1.0000) x -8.23..4.94 depth 17.00 ceil 3.44: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Sunrise Food Mart' kind 8 building 31117 at (5280.88, 595.64, 2.76) ax (1.0000, -0.0000) x -7.70..7.70 depth 17.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+  interior 'Northside Quick Stop' kind 8 building 6466 at (2352.84, 3761.68, 3.08) ax (1.0000, 0.0000) x -6.39..6.39 depth 17.00 ceil 3.53: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Flats Food & Fuel' kind 8 building 1225 at (458.12, 3265.33, 5.16) ax (1.0000, 0.0000) x -5.58..5.58 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+  interior 'Grove Pantry' kind 8 building 12229 at (2168.80, -3111.40, 2.24) ax (0.0207, -0.9998) x -6.20..9.30 depth 17.00 ceil 3.81: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 0.94) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+worldcheck: 2147 cells, 392577 colliders, 337782 props
+  box c (-292.5, 7411.2, 10.1) he (2.5, 0.2, 0.8) in a lane of Ramp edge 51 (s 63 of 299, lat -0.7)
+  box c (-290.2, 7406.9, 10.4) he (2.5, 0.2, 0.8) in a lane of Ramp edge 51 (s 67 of 299, lat -0.7)
+  box c (-285.7, 7398.4, 10.9) he (2.5, 0.2, 0.8) in a lane of Ramp edge 51 (s 77 of 299, lat 0.1)
+  box c (-214.3, 6935.9, 12.2) he (0.6, 0.2, 0.7) in a lane of Ramp edge 55 (s 293 of 314, lat -0.7)
+  streetlight2 collider at (1300.5, 799.5, 14.1) in a lane of Street edge 1171 (s 50, lat 0.3, edge z 4.1)
+  streetlight2 collider at (2369.6, 1961.8, 13.1) in a lane of Boulevard edge 2178 (s 70, lat -11.9, edge z 2.9)
+  streetlight2 collider at (2366.2, 1851.8, 13.0) in a lane of Street edge 2240 (s 34, lat 2.0, edge z 3.0)
+  box c (3766.9, 746.4, 4.0) he (4.3, 0.2, 1.3) in a lane of Street edge 4232 (s 25 of 30, lat 2.8)
+  box c (-1598.1, -2940.7, 6.1) he (1.7, 0.2, 0.9) in a lane of Boulevard edge 5334 (s 258 of 338, lat 2.3)
+  box c (-1591.9, -2938.3, 6.7) he (1.7, 0.2, 0.9) in a lane of Boulevard edge 5334 (s 262 of 338, lat 8.0)
+  box c (-1594.4, 3710.8, 7.8) he (1.9, 0.2, 0.9) in a lane of Boulevard edge 5389 (s 36 of 207, lat 5.6)
+  box c (-1594.8, 3714.4, 7.2) he (1.9, 0.2, 0.9) in a lane of Boulevard edge 5389 (s 38 of 207, lat 5.6)
+  streetlight2 collider at (642.8, 471.2, 14.7) in a lane of Lane edge 7019 (s 252, lat -1.9, edge z 4.6)
+
+[lanes] colliders intruding into drivable lanes: 13, props standing in lanes: 0
+  colliders from streetlight2     4
+  colliders from static box       9
+  at (-292.6, 7411.1, 8.0): static box
+  at (-290.5, 7407.7, 8.0): static box
+  at (-286.0, 7398.8, 8.0): static box
+  at (-214.6, 6935.9, 11.0): static box
+  at (1300.3, 799.5, 4.1): streetlight2
+  at (2369.7, 1961.8, 2.9): streetlight2
+  at (2366.2, 1851.9, 3.0): streetlight2
+  at (3769.5, 747.2, 1.5): static box
+  at (-1597.7, -2942.2, 3.8): static box
+  at (-1592.1, -2938.2, 3.8): static box
+  at (-1594.4, 3710.8, 4.8): static box
+  at (-1594.4, 3712.8, 4.8): static box
+  at (642.8, 471.1, 4.6): streetlight2
+  fall: Ramp edge 5 s 142/167 side 1 drop 2.0 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Ramp edge 5 s 146/167 side -1 drop 2.1 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Ramp edge 5 s 146/167 side 1 drop 2.6 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Ramp edge 8 s 18/353 side -1 drop 3.0 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Expressway edge 12 s 82/270 side 1 drop 1.6 edgeLat 14.0 sidewalk 0.0 flags 9
+  fall: Expressway edge 12 s 86/270 side 1 drop 1.8 edgeLat 14.0 sidewalk 0.0 flags 9
+  fall: Expressway edge 12 s 90/270 side 1 drop 2.0 edgeLat 14.0 sidewalk 0.0 flags 9
+  fall: Ramp edge 27 s 18/201 side -1 drop 3.8 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Expressway edge 39 s 18/1506 side 1 drop 8.0 edgeLat 14.0 sidewalk 0.0 flags 9
+  fall: Expressway edge 40 s 18/811 side -1 drop 8.0 edgeLat 14.0 sidewalk 0.0 flags 9
+  fall: Expressway edge 43 s 138/556 side -1 drop 1.7 edgeLat 14.0 sidewalk 0.0 flags 9
+  fall: Expressway edge 52 s 34/537 side -1 drop 1.7 edgeLat 14.0 sidewalk 0.0 flags 13
+  fall: Expressway edge 52 s 34/537 side 1 drop 1.7 edgeLat 14.0 sidewalk 0.0 flags 13
+  fall: Ramp edge 55 s 288/314 side -1 drop 2.1 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Ramp edge 55 s 292/314 side -1 drop 3.0 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Ramp edge 66 s 18/80 side 1 drop 3.8 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Ramp edge 68 s 183/209 side -1 drop 1.6 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Ramp edge 68 s 183/209 side 1 drop 1.6 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Ramp edge 71 s 274/293 side -1 drop 3.9 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Ramp edge 77 s 169/195 side -1 drop 1.3 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Ramp edge 81 s 26/331 side 1 drop 2.0 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Ramp edge 86 s 26/321 side 1 drop 1.2 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Ramp edge 92 s 26/296 side -1 drop 1.7 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Ramp edge 92 s 26/296 side 1 drop 1.7 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Expressway edge 117 s 438/562 side -1 drop 1.8 edgeLat 14.0 sidewalk 0.0 flags 13
+  fall: Expressway edge 117 s 438/562 side 1 drop 1.8 edgeLat 14.0 sidewalk 0.0 flags 13
+  fall: Expressway edge 117 s 442/562 side -1 drop 1.6 edgeLat 14.0 sidewalk 0.0 flags 13
+  fall: Expressway edge 117 s 442/562 side 1 drop 1.6 edgeLat 14.0 sidewalk 0.0 flags 13
+  fall: Expressway edge 123 s 274/294 side 1 drop 1.5 edgeLat 14.0 sidewalk 0.0 flags 9
+  fall: Ramp edge 126 s 278/294 side -1 drop 1.3 edgeLat 3.3 sidewalk 0.0 flags 10
+  fall: Expressway edge 127 s 126/544 side 1 drop 1.6 edgeLat 14.0 sidewalk 0.0 flags 9
+  fall: Expressway edge 127 s 426/544 side 1 drop 1.6 edgeLat 14.0 sidewalk 0.0 flags 9
+  fall: Boulevard edge 2951 s 27/100 side 1 drop 1.7 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 2951 s 31/100 side 1 drop 1.5 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 2952 s 51/214 side -1 drop 4.6 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 2952 s 55/214 side -1 drop 4.7 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 2952 s 59/214 side -1 drop 11.0 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 2952 s 63/214 side -1 drop 11.0 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 2952 s 151/214 side -1 drop 4.8 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 2952 s 151/214 side 1 drop 7.8 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 2952 s 155/214 side -1 drop 3.6 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 2952 s 155/214 side 1 drop 6.1 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 2952 s 159/214 side -1 drop 1.6 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 2952 s 159/214 side 1 drop 9.6 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 2952 s 163/214 side -1 drop 1.4 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 2952 s 163/214 side 1 drop 9.2 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 2952 s 167/214 side -1 drop 1.4 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 2952 s 175/214 side 1 drop 7.1 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Boulevard edge 3091 s 203/300 side -1 drop 1.6 edgeLat 17.9 sidewalk 4.5 flags 1
+  fall: Street edge 3918 s 34/50 side 1 drop 1.2 edgeLat 8.6 sidewalk 3.0 flags 0
+  fall: Street edge 9764 s 22/62 side -1 drop 2.2 edgeLat 8.6 sidewalk 3.0 flags 1
+  fall: Street edge 9764 s 30/62 side 1 drop 2.2 edgeLat 8.6 sidewalk 3.0 flags 1
+
+[falls] road edges with a fall of more than 1.2 m: guarded 120420 m, unguarded 208 m
+  unguarded at (4337.5, 8535.7, 9.6)
+  unguarded at (4343.0, 8529.6, 10.3)
+  unguarded at (4336.2, 8532.0, 10.3)
+  unguarded at (3583.6, 7435.2, 12.0)
+  unguarded at (2835.3, 5784.9, 6.9)
+  unguarded at (2834.2, 5781.0, 7.1)
+  unguarded at (2833.2, 5777.1, 7.3)
+  unguarded at (2369.9, 2331.4, 6.8)
+  unguarded at (577.3, -5353.7, 9.5)
+  unguarded at (577.2, -5352.6, 9.5)
+  unguarded at (-1085.8, 8956.6, 9.0)
+  unguarded at (-269.5, 7428.6, 9.4)
+  unguarded at (-294.7, 7415.1, 9.4)
+  unguarded at (-211.2, 6940.4, 9.9)
+  unguarded at (-211.7, 6936.5, 10.8)
+  unguarded at (-1574.4, 3879.6, 8.5)
+  unguarded at (-1600.0, 3719.3, 6.1)
+  unguarded at (-1602.2, 3712.5, 6.1)
+  unguarded at (-1617.2, 3332.7, 8.5)
+  unguarded at (-1573.4, 1332.2, 6.6)
+
+worldcheck: FAILED

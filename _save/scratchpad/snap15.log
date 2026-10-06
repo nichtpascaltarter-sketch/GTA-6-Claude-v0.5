@@ -1,0 +1,6 @@
+Embedded 38 shader files.
+135 shaders, 0 failed
+[ 360.172] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.4 | peds 88 vehicles 63 wanted 0 | cpu ms player 0.05 ai 1.17 veh 0.85 peds 1.2
+[ 512.112] autoplay t=17.5 pos 1806.7 270.4 3.5 state 2 health 200 veh 1 speed 17.5 | peds 86 vehicles 66 wanted 0 | cpu ms player 0.06 ai 0.54 veh 0.57 peds 0.
+MELEE SMOKE FAILED rc=137 caf1a797f58d848d5c3a43081f727fefcb384a9b
+[ 258.928] autoplay t=2.6 pos 1784.3 159.6 6.7 state 0 health 188 veh -1 speed 1.6 | peds 90 vehicles 59 wanted 0 | cpu ms player 0.17 ai 1.48 veh 1.46 peds 1.87 | mem 2581 MB (private 0)

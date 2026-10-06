@@ -1,0 +1,14 @@
+# island and villa archetypes (batch 2)
+tp_air aerial -8560 -2040 150 210 35 55 10
+kc_air aerial 4480 -3760 220 200 35 55 10
+ks_air2 aerial -8120 -9160 160 200 35 55 10
+stilt_L front 23380 16 4 -4 60 10
+stilt_box front 23376 16 4 3 60 10
+stilt_3 front 23364 16 4 -3 60 10
+colonial_wings front 23683 30 3 -6 60 10
+colonial_box front 23699 28 3 5 60 10
+medvilla_tower front 1030 28 3 -6 60 10
+medvilla_L front 1029 28 3 6 60 10
+conch_2f front 22222 15 2 -3 60 10
+conch_1f front 22137 15 2 3 60 10
+conch_2f_b front 22186 15 2 2 60 10

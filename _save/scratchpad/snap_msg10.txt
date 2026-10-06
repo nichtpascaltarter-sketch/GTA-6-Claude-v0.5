@@ -1,0 +1,15 @@
+Opening car doors, ambulances that wait for their patient, K9 handlers that close in, far-LOD shades
+
+- Vehicles: every full-detail car (all 27 lofted models: compacts, sedans, coupes, SUVs, pickups, muscle cars, the
+  Tomo, police cars and taxis) is cut along its shut lines into the body and its doors. Closed, the car is the same as
+  before, vertex for vertex; open, a door shows painted jambs, a sill with a scuff plate, the B-pillar and rubber
+  seals, with its own shut faces and inner panel. The game draws each door turned about its hinge (the car stays at
+  full detail within 120 m while one is open), the garage display car draws its doors, and the vehicle viewer can
+  open them (-doors). Getting in and out through them comes next.
+- Animation: the groundwork for getting in and out of cars through the doors (the door input, authoring of the
+  enter and exit motions, two seat-belt clips); not used by the game yet.
+- Hurt pedestrians: an ambulance waits on scene for a patient walking to it (up to 100 s), a patched-up patient gets
+  a short limp instead of the long one, and the crew gets out only once the ambulance has stopped.
+- Police: the K9 handler closes in on an unarmed suspect on foot, so the dog gets near enough to count as a find.
+- Characters: far-LOD figures keep their sunglasses (the tint painted round the eyes), far eyes are less starey, and
+  denim overshirts get a faded denim blue instead of near black.

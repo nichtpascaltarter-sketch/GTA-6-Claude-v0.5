@@ -1,0 +1,51 @@
+[   0.005] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.571] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   0.963] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   0.987] Compiled mipgen.hlsl:csMipGen (cs_5_1) in 0.01 s
+[   0.991] gfx self-test on adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   0.999] Compiled gfxtest.hlsl:csBindless (cs_5_1) in 0.01 s
+[   1.011] Compiled gfxtest.hlsl:csWriteSeq (cs_5_1) in 0.00 s
+[   1.027] Compiled gfxtest.hlsl:csDouble (cs_5_1) in 0.01 s
+[   1.038] Compiled gfxtest.hlsl:csMakeArgs (cs_5_1) in 0.01 s
+[   1.052] Compiled gfxtest.hlsl:csIndirectTarget (cs_5_1) in 0.00 s
+[   1.060] Compiled gfxtest.hlsl:csAppend (cs_5_1) in 0.00 s
+[   1.070] Compiled gfxtest.hlsl:vsFull (vs_5_1) in 0.00 s
+[   1.081] Compiled gfxtest.hlsl:psTest (ps_5_1) in 0.00 s
+[   1.094] Compiled gfxtest.hlsl:psDepthRead (ps_5_1) in 0.00 s
+[   1.102] Compiled gfxtest.hlsl:psSolid (ps_5_1) in 0.00 s
+[   1.120] gfx self-test bindless + root constants + tables PASS  [5] = 1005030 (expect 1005030)
+[   1.127] gfx self-test draw: tables + root CBV + constants PASS  pixel 200 100 50 (expect 200 100 50)
+[   1.132] gfx self-test DrawInstancedIndirect              PASS  pixel 30 60 90 (expect 30 60 90)
+[   1.133] gfx self-test copy depth -> R32 texture          PASS  0.2500 (expect 0.25)
+[   1.139] gfx self-test read-only depth + depth SRV        PASS  0.2500 (expect 0.25)
+[   1.141] gfx self-test async compute + cross-queue fences PASS  [3] = 16 (expect 16), compute fence 1
+[   1.145] gfx self-test ExecuteIndirect: GPU-written dispatch PASS  102 (expect 102)
+[   1.145] gfx self-test ExecuteIndirect: constants + count SKIP  vkd3d has no root-constant arguments or dispatch count buffers
+[   1.147] gfx self-test ExecuteIndirect: multi-draw + count PASS  pixel 80 40 20 (expect 80 40 20)
+[   1.155] Compiled gfxtest.hlsl:csMakeInstanceDraws (cs_5_1) in 0.00 s
+[   1.169] Compiled gfxtest.hlsl:vsInstanceStream (vs_5_1) in 0.00 s
+[   1.183] Compiled gfxtest.hlsl:psInstanceStream (ps_5_1) in 0.00 s
+[   1.198] gfx self-test GPU-written instances, indexed indirect PASS  pixel 60 40 20 (expect 60 40 20)
+[   1.199] gfx self-test append counter + CopyStructureCount PASS  37 (expect 37: the counter restarts at 0 each pass)
+[   1.200] gfx self-test placed resources + aliasing        PASS  A 255 0, B 0 255 (heap 64 KB)
+[   1.205] gfx self-test mip generation (sRGB)              PASS  1x1 mip = 188 (expect ~188), 4 mips
+[   1.205] gfx self-test dependent dispatch chain, one list PASS  [3] = 67108864 (expect 67108864), 0 wrong
+[   1.211] Compiled gfxtest.hlsl:csReadGlobal (cs_5_1) in 0.00 s
+[   1.218] gfx self-test root arguments across a UAV clear  PASS  [5] = 22 (expect 22), 0 wrong
+[   1.224] Compiled gfxtest.hlsl:csSpin (cs_5_1) in 0.00 s
+[   1.525] gfx self-test GPU wait with stray event signals  PASS  0 of 64 values wrong
+[   2.276] gfx self-test GPU waits polling every millisecond PASS  0 of 1536 values wrong in 24 readbacks
+[   2.283] Compiled gfxtest.hlsl:vsInstance (vs_5_1) in 0.00 s
+[   2.300] Compiled gfxtest.hlsl:psInstance (ps_5_1) in 0.01 s
+[   2.311] gfx self-test per-draw constants -> instance data PASS  last pixel 140 110 155 99 (expect 140 110 155 99), 0 wrong
+[   2.318] Compiled gfxtest.hlsl:csFillArray (cs_5_1) in 0.00 s
+[   2.330] Compiled gfxtest.hlsl:psBindlessArray (ps_5_1) in 0.01 s
+[   2.339] gfx self-test bindless array + structured (PS)   PASS  pixel 110 8 55 88 (expect 110 8 55 88)
+[   2.345] Compiled gfxtest.hlsl:psTwo (ps_5_1) in 0.00 s
+[   2.354] Compiled gfxtest.hlsl:psSecond (ps_5_1) in 0.00 s
+[   2.360] gfx self-test table kept across a shader switch  PASS  0 channels wrong, 0 tables built for the subset shader (expect 0)
+[   2.361] gfx self-test: 0 failure(s), 9 pipelines, D3D12 debug-layer errors 0
+[   2.361] gfx self-test: 0 failure(s)
+[   4.406] Shutdown complete.
+X connection to :111 broken (explicit kill or server shutdown).
+exit 0

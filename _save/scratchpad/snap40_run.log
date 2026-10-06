@@ -1,0 +1,8 @@
+Embedded 40 shader files.
+148 shaders, 0 failed
+[ 374.186] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.2 | peds 88 vehicles 63 wanted 0 | cpu ms player 0.15 ai 0.57 veh 0.86 peds 1.0
+[ 505.622] autoplay t=17.5 pos 1806.7 270.4 3.5 state 2 health 200 veh 1 speed 17.5 | peds 88 vehicles 65 wanted 0 | cpu ms player 0.22 ai 0.61 veh 0.57 peds 0.
+[ 427.112] autoplay t=13.5 pos 1791.3 160.9 6.5 state 0 health 188 veh -1 speed 0.0 | peds 97 vehicles 64 wanted 1 | cpu ms player 0.09 ai 1.03 veh 1.31 peds 1.
+d37a088 Shop windows: the shop interiors are no longer washed out by a doubled glass lift
+branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
+COMMITTED 75fc3bad38ef0c054680e9d28104ccafc098fb45

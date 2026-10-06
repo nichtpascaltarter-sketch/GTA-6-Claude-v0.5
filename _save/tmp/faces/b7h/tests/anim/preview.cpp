@@ -1,0 +1,1152 @@
+// Native (Linux) character preview: builds characters with the real mesh/animation code and renders them with a
+// small software rasterizer (z-buffer, backface culling, simple lighting) into a PPM image.
+// Build: g++ -O2 -std=c++17 -I src tests/anim/preview.cpp -o /tmp/preview
+// Usage: preview out.ppm [--seed S] [--role R] [--count N] [--view front|side|back|face|three|top] [--clip C] [--t T]
+//                        [--w W] [--h H] [--dist D] [--yaw deg] [--height z] [--fov deg] [--mode lineup|single]
+//                        [--tiles] (one tile per character, camera on its head) [--ss N] (supersampling) [--lod L]
+//                        [--protagonist 0|1] (Mari / Dex, src/game/protagonists.h)
+// Env: PREVIEW_NOHAT, PREVIEW_HAIR / _HAIRCOL / _FH / _GENDER / _AGE / _TOP / _BOTTOM / _SHOES (override the desc),
+//      PREVIEW_SKINBITS=region|transl|pores|oil|melanin (the skin shading bits of face.cpp as false colours),
+//      PREVIEW_TGT=x,y,z (tile camera target offset from the head), PREVIEW_WIRE (triangle edges),
+//      PREVIEW_FEATSHADOW (the renderer's feature shadows on skin from the key light; not with --tiles),
+//      PREVIEW_OPAQUECARDS (strand cards opaque and culled, as drawn before the renderer's card pass),
+//      PREVIEW_SHADE=albedo|normal|diffuse|featshadow (one shading term alone: vertex colours, normals, the key light's
+//      diffuse, the feature shadow on skin),
+//      PREVIEW_LIGHT=x,y,z (the key light's direction: y towards the camera, z up; e.g. 0,0.4,1 for a street lamp above).
+// Strand cards are alpha-tested with a stand-in strand pattern (cardAlpha) and drawn two-sided.
+#include "../../src/core/math.cpp"
+#include "../../src/render/mesh.cpp"
+#include "../../src/anim/anim_all.cpp"
+#include "../../tools/native_stubs.cpp"
+#ifndef HAVE_CHARACTERS
+#define HAVE_CHARACTERS 1
+#endif
+#include "../../src/game/protagonists.h"
+
+using namespace Anim;
+using Anim::detail::mulColor;
+
+struct Img {
+    int w, h;
+    std::vector<vec3> c;
+    std::vector<float> z;
+    Img(int W, int H) : w(W), h(H), c((size_t)W * H, vec3(0.62f, 0.7f, 0.8f)), z((size_t)W * H, 1e30f) {
+        for (int y = 0; y < h; y++) {
+            float t = (float)y / h;
+            for (int x = 0; x < w; x++) c[(size_t)y * w + x] = lerp(vec3(0.55f, 0.65f, 0.8f), vec3(0.8f, 0.78f, 0.72f), t);
+        }
+    }
+    // box-filter by an integer factor (supersampling)
+    Img down(int f) const {
+        Img o(w / f, h / f);
+        for (int y = 0; y < o.h; y++)
+            for (int x = 0; x < o.w; x++) {
+                vec3 acc(0);
+                for (int j = 0; j < f; j++)
+                    for (int i = 0; i < f; i++) acc += c[(size_t)(y * f + j) * w + x * f + i];
+                o.c[(size_t)y * o.w + x] = acc / (float)(f * f);
+            }
+        return o;
+    }
+    void blit(const Img& t, int x0) {
+        for (int y = 0; y < t.h && y < h; y++)
+            for (int x = 0; x < t.w && x0 + x < w; x++) c[(size_t)y * w + x0 + x] = t.c[(size_t)y * t.w + x];
+    }
+    void save(const char* path) {
+        FILE* f = fopen(path, "wb");
+        fprintf(f, "P6\n%d %d\n255\n", w, h);
+        for (size_t i = 0; i < c.size(); i++) {
+            vec3 v = c[i];
+            unsigned char px[3];
+            for (int k = 0; k < 3; k++) {
+                float x = Saturate(v[k]);
+                x = x <= 0.0031308f ? 12.92f * x : 1.055f * powf(x, 1.f / 2.4f) - 0.055f;
+                px[k] = (unsigned char)(Saturate(x) * 255.f + 0.5f);
+            }
+            fwrite(px, 1, 3, f);
+        }
+        fclose(f);
+    }
+};
+
+static vec3 matAlbedo(u32 mat, vec3 col) {
+    switch (mat & 0xff) {
+        case MAT_SKIN: return col;
+        case MAT_HAIR: return col * 0.9f;
+        case MAT_CLOTH: case MAT_FABRIC: return col * 0.85f;
+        case MAT_DENIM: return mulColor(col, vec3(0.1f, 0.155f, 0.31f));
+        case MAT_LEATHER: return mulColor(col, vec3(0.11f, 0.065f, 0.037f));
+        case MAT_EYE: return col * 0.85f;
+        case MAT_RUBBER: return col * 0.03f;
+        case MAT_PLASTIC: return col * 0.034f;
+        case MAT_METAL_PAINTED: return col * 0.6f;
+        case MAT_CHROME: return col * 0.7f;
+        case MAT_CAR_GLASS: return vec3(0.02f);
+        case MAT_EMISSIVE: return col;
+        default: return col * 0.7f;
+    }
+}
+
+static float gNear = 0.1f;   // near clip (m); --fp views use 0.02
+
+struct Cam {
+    vec3 eye, target;
+    float fov = 30.f;
+    mat4 view, proj;
+    void setup(int w, int h) {
+        view = lookAtRH(eye, target, vec3(0, 0, 1));
+        float f = 1.f / tanf(fov * kDegToRad * 0.5f);
+        float a = (float)w / h;
+        proj = mat4(vec4(f / a, 0, 0, 0), vec4(0, f, 0, 0), vec4(0, 0, -1, -1), vec4(0, 0, -gNear, 0));
+    }
+};
+
+// Strand cards (MAT_HAIR with a card kind in the material param, see hair.cpp): the renderer's coverage function
+// (src/shaders/dynamic.hlsl hairCardCoverage) ported, dithered per pixel (supersampling with --ss stands in for TAA).
+static float hairHashF(float x) {
+    float v = sinf(x * 91.3458f + 17.17f) * 47453.5453f;
+    return v - floorf(v);
+}
+static float cardCoverage(u32 mat, vec2 uv, float density, float footprint) {
+    u32 kind = (mat >> 8) & 15u;
+    float seed = (float)((mat >> 12) & 0xffffu) * (1.f / 65535.f);
+    float strands = kind == 2u ? 3.f : (kind == 3u ? 5.f : (kind == 4u ? 6.f : 8.f));
+    float x = uv.x * strands;
+    float id = floorf(x) + seed * 977.f;
+    float rnd = hairHashF(id);
+    float len = Lerp(kind == 1u ? 0.7f : 0.82f, 1.f, hairHashF(id + 3.1f));
+    float along = uv.y / len;
+    float alive = along < 1.f ? 1.f : 0.f;
+    float taper = Saturate(1.f - along);
+    float wave = (kind == 4u ? 0.16f : 0.06f) * sinf(uv.y * (kind == 4u ? 23.f : 9.f) + rnd * 6.283f);
+    float c = 0.5f + (hairHashF(id + 7.7f) - 0.5f) * 0.3f + wave;
+    float halfW = Lerp(0.24f, 0.4f, hairHashF(id + 5.3f)) * (0.3f + 0.7f * sqrtf(taper));
+    float tipFade = Saturate((1.f - along) * 5.f);
+    // the strand's edges box-filtered over the pixel (in strand cells), as the shader
+    float fw = Max(footprint * strands, 1e-3f);
+    float fx = x - floorf(x);
+    float prof = Saturate((halfW * 0.7f - fabsf(fx - c)) / fw + 0.5f) * alive * tipFade;
+    float cov = Lerp(prof, halfW * 1.6f * alive * tipFade, Saturate(fw * 1.5f - 0.5f));
+    float edge = detail::sstep(0.f, 0.14f, uv.x) * detail::sstep(1.f, 0.86f, uv.x);
+    return cov * edge * density * Lerp(1.f, 0.7f, detail::sstep(0.55f, 1.f, uv.y));
+}
+static float ditherAt(int x, int y) { return hashToFloat(hash32((u32)x * 73856093u ^ (u32)y * 19349663u)); }
+
+// PREVIEW_FEATSHADOW: the renderer's feature shadows on skin (lighting.hlsl featureShadow) from the key light: an
+// 8-step march of 4.5 cm towards it, tested against a depth pre-pass of the same view (cards dithered as drawn)
+static std::vector<float> gFeatZ;   // view depth of the pre-pass (empty: off)
+static float featShadow(const Cam& cam, int w, int h, vec3 pos, vec3 n, vec3 L, int px, int py) {
+    const int steps = 8;
+    const float viewDepth = -(cam.view * vec4(pos, 1.f)).z;
+    const float pxW = viewDepth * 2.f * tanf(cam.fov * kDegToRad * 0.5f) / (float)h;
+    const float bias = Max(0.0015f, pxW * 0.5f);
+    const float jit = hashToFloat(hash32((u32)px * 73856093u ^ (u32)py * 19349663u ^ 0x5bd1e995u));
+    const vec3 stepV = L * (0.045f / steps);
+    vec3 p = pos + n * Max(0.002f, pxW * 0.75f) + stepV * jit;
+    for (int i = 0; i < steps; i++) {
+        p += stepV;
+        vec4 v = cam.view * vec4(p, 1.f);
+        vec4 c = cam.proj * v;
+        if (c.w <= 0.f) break;
+        int ix = (int)((c.x / c.w * 0.5f + 0.5f) * w), iy = (int)((0.5f - c.y / c.w * 0.5f) * h);
+        if (ix < 0 || iy < 0 || ix >= w || iy >= h) break;
+        float d = gFeatZ[(size_t)iy * w + ix];
+        if (d >= 1e29f) continue;
+        float diff = -v.z - d;
+        if (diff > bias && diff < 0.04f) return Saturate((float)i / steps * 0.6f);
+    }
+    return 1.f;
+}
+
+static bool wire = false;
+static bool opaqueCards = false;   // PREVIEW_OPAQUECARDS: draw strand cards like the current renderer (opaque, culled)
+static int shadeDbg = 0;           // PREVIEW_SHADE=albedo|normal|diffuse|featshadow: one shading term alone
+static void drawMesh(Img& img, const Cam& cam, const std::vector<vec3>& P, const std::vector<vec3>& N, const std::vector<vec3>& A,
+                     const std::vector<u32>& mats, const std::vector<u32>& idx, const std::vector<vec2>* UV = nullptr,
+                     const std::vector<float>* AL = nullptr) {
+    std::vector<vec3> sp(P.size());
+    std::vector<float> vz(P.size());
+    for (size_t i = 0; i < P.size(); i++) {
+        vec4 v = cam.view * vec4(P[i], 1.f);
+        vec4 c = cam.proj * v;
+        float iw = 1.f / c.w;
+        sp[i] = vec3((c.x * iw * 0.5f + 0.5f) * img.w, (0.5f - c.y * iw * 0.5f) * img.h, -v.z);
+        vz[i] = -v.z;
+    }
+    vec3 L1 = normalize(vec3(0.35f, 0.75f, 0.65f)), L2 = normalize(vec3(-0.6f, 0.3f, 0.2f));
+    if (const char* lv = getenv("PREVIEW_LIGHT")) {   // the key light's direction (x, y towards the camera, z up)
+        vec3 l(0.35f, 0.75f, 0.65f);
+        sscanf(lv, "%f,%f,%f", &l.x, &l.y, &l.z);
+        if (length2(l) > 1e-8f) L1 = normalize(l);
+    }
+    for (size_t t = 0; t + 2 < idx.size(); t += 3) {
+        u32 i0 = idx[t], i1 = idx[t + 1], i2 = idx[t + 2];
+        if (vz[i0] < gNear || vz[i1] < gNear || vz[i2] < gNear) continue;
+        vec3 a = sp[i0], b = sp[i1], c = sp[i2];
+        float area = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+        u32 matT = mats[i0];
+        bool card = UV && (matT & 0xff) == MAT_HAIR && ((matT >> 8) & 15u) != 0 && !opaqueCards;
+        if (area >= 0.f && !card) continue;   // backface (screen y down => CCW front has negative area); cards: two-sided
+        if (fabsf(area) < 1e-12f) continue;
+        int x0 = Max(0, (int)floorf(Min(a.x, Min(b.x, c.x)))), x1 = Min(img.w - 1, (int)ceilf(Max(a.x, Max(b.x, c.x))));
+        int y0 = Max(0, (int)floorf(Min(a.y, Min(b.y, c.y)))), y1 = Min(img.h - 1, (int)ceilf(Max(a.y, Max(b.y, c.y))));
+        if (x0 > x1 || y0 > y1) continue;
+        if (getenv("PREVIEW_DEBUG") && (x1 - x0 > 150 || y1 - y0 > 150))
+            printf("big tri %zu: (%.3f %.3f %.3f) (%.3f %.3f %.3f) (%.3f %.3f %.3f) mat %u\n", t / 3, P[i0].x, P[i0].y, P[i0].z, P[i1].x, P[i1].y, P[i1].z, P[i2].x, P[i2].y, P[i2].z, mats[i0] & 0xff);
+        float ia = 1.f / area;
+        u32 mat = mats[i0];
+        float uvFoot = 0.f;   // fwidth(uv.x) over this triangle (affine)
+        if (card) {
+            float d0x = (b.y - c.y) * ia, d0y = (c.x - b.x) * ia, d1x = (c.y - a.y) * ia, d1y = (a.x - c.x) * ia;
+            float ux = (*UV)[i0].x * d0x + (*UV)[i1].x * d1x + (*UV)[i2].x * (-d0x - d1x);
+            float uy = (*UV)[i0].x * d0y + (*UV)[i1].x * d1y + (*UV)[i2].x * (-d0y - d1y);
+            uvFoot = fabsf(ux) + fabsf(uy);
+        }
+        for (int y = y0; y <= y1; y++)
+            for (int x = x0; x <= x1; x++) {
+                float px = x + 0.5f, py = y + 0.5f;
+                float w0 = ((b.x - px) * (c.y - py) - (b.y - py) * (c.x - px)) * ia;
+                float w1 = ((c.x - px) * (a.y - py) - (c.y - py) * (a.x - px)) * ia;
+                float w2 = 1.f - w0 - w1;
+                if (w0 < 0.f || w1 < 0.f || w2 < 0.f) continue;
+                float z = w0 * a.z + w1 * b.z + w2 * c.z;
+                size_t o = (size_t)y * img.w + x;
+                if (z >= img.z[o]) continue;
+                if (card) {
+                    vec2 uv = (*UV)[i0] * w0 + (*UV)[i1] * w1 + (*UV)[i2] * w2;
+                    float dn = AL ? (*AL)[i0] * w0 + (*AL)[i1] * w1 + (*AL)[i2] * w2 : 1.f;
+                    // (each card its own offset into the pixel's threshold, as the renderer's psHairCard: overlapping
+                    // cards add up to 1 - prod(1 - coverage))
+                    const float cardOff = hairHashF((float)((matT >> 12) & 0xffffu) * (1.f / 65535.f) * 37.f + 0.11f);
+                    float thr = ditherAt(x, y) + cardOff;
+                    thr -= floorf(thr);
+                    if (cardCoverage(matT, uv, dn, uvFoot) - thr - 0.002f < 0.f) continue;
+                }
+                img.z[o] = z;
+                vec3 n = normalize(N[i0] * w0 + N[i1] * w1 + N[i2] * w2);
+                if (card && area > 0.f) n = -n;
+                vec3 alb = A[i0] * w0 + A[i1] * w1 + A[i2] * w2;
+                vec3 pos = P[i0] * w0 + P[i1] * w1 + P[i2] * w2;
+                vec3 V = normalize(cam.eye - pos);
+                bool skinM = (mat & 0xff) == MAT_SKIN;
+                float wrapK = skinM ? 0.45f : 0.15f;
+                float d1 = Max(0.f, (dot(n, L1) + wrapK) / (1.f + wrapK)), d2 = Max(0.f, dot(n, L2));
+                float amb = 0.42f + 0.18f * n.z;
+                float skinGloss = 0.f;
+                if (skinM && UV && AL) {
+                    // skin channels as the renderer's skin shader reads them: crease valleys from uv, gloss from alpha
+                    vec2 uv = (*UV)[i0] * w0 + (*UV)[i1] * w1 + (*UV)[i2] * w2;
+                    if (uv.y > 0.f) {
+                        float fr = uv.x - floorf(uv.x);
+                        float vv = Saturate(1.f - fabsf(fr - 0.5f) / 0.17f);
+                        vv *= vv;
+                        alb = alb * (1.f - 0.45f * vv * Saturate(uv.y / 0.25f));
+                    }
+                    skinGloss = 1.f - ((*AL)[i0] * w0 + (*AL)[i1] * w1 + (*AL)[i2] * w2);
+                }
+                const float fsh = skinM && !gFeatZ.empty() ? featShadow(cam, img.w, img.h, pos, n, L1, x, y) : 1.f;
+                d1 *= fsh;
+                vec3 col = alb * (d1 * 1.0f + d2 * 0.25f + amb);
+                if (skinM) col += mulColor(alb, vec3(0.12f, 0.03f, 0.02f)) * (1.f - Max(0.f, dot(n, L1)));
+                vec3 H = normalize(L1 + V);
+                float gloss = (mat & 0xff) == MAT_EYE || (mat & 0xff) == MAT_CAR_GLASS ? 200.f : ((mat & 0xff) == MAT_CHROME ? 60.f : 24.f + 60.f * skinGloss);
+                float ks = skinM ? 0.04f + 0.1f * skinGloss : ((mat & 0xff) == MAT_EYE || (mat & 0xff) == MAT_CAR_GLASS ? 0.5f : 0.03f);
+                if ((mat & 0xff) == MAT_CHROME) ks = 0.5f;
+                col += vec3(powf(Max(0.f, dot(n, H)), gloss) * ks * (dot(n, L1) > 0 ? 1.f : 0.f) * fsh);
+                float rim = powf(1.f - Max(0.f, dot(n, V)), 3.f) * 0.08f;
+                col += vec3(rim);
+                if (shadeDbg == 1) col = alb;                                 // vertex colours alone
+                else if (shadeDbg == 2) col = n * 0.5f + vec3(0.5f);          // normals
+                else if (shadeDbg == 3) col = vec3(0.15f + 0.85f * d1);        // the key light's wrapped diffuse alone
+                else if (shadeDbg == 4) col = skinM ? vec3(fsh) : vec3(0.3f, 0.3f, 0.6f);   // the feature shadow alone (skin)
+                if (wire) {
+                    // triangle edges: barycentric distance scaled to pixels
+                    float e0 = w0 * fabsf(area) / Max(length(vec2(b.x - c.x, b.y - c.y)), 1e-3f);
+                    float e1 = w1 * fabsf(area) / Max(length(vec2(c.x - a.x, c.y - a.y)), 1e-3f);
+                    float e2 = w2 * fabsf(area) / Max(length(vec2(a.x - b.x, a.y - b.y)), 1e-3f);
+                    if (Min(e0, Min(e1, e2)) < 0.9f) col = col * 0.55f;
+                }
+                img.c[o] = col;
+            }
+    }
+}
+
+struct Char {
+    CharacterDesc d;
+    Skeleton sk;
+    SkinnedMeshData mesh;
+};
+
+// Held weapon (bat: 1, knife: 2) along the right hand's grip (Anim::handGrip), as a simple lathe / blade mesh.
+static void drawWeapon(Img& img, const Cam& cam, int kind, vec3 G, vec3 D, vec3 P) {
+    std::vector<vec3> Ps, Ns, As;
+    std::vector<u32> Ms, Is;
+    D = normalize(D);
+    vec3 X = normalize(P - D * dot(P, D)), Y = cross(D, X);
+    auto lathe = [&](float a0, float a1, float r0, float r1, vec3 col, int segs) {
+        u32 b = (u32)Ps.size();
+        for (int k = 0; k <= segs; k++) {
+            float th = kTwoPi * k / segs;
+            vec3 rd = X * cosf(th) + Y * sinf(th);
+            Ps.push_back(G + D * a0 + rd * r0); Ns.push_back(rd); As.push_back(col); Ms.push_back(MAT_PLASTIC);
+            Ps.push_back(G + D * a1 + rd * r1); Ns.push_back(rd); As.push_back(col); Ms.push_back(MAT_PLASTIC);
+        }
+        for (int k = 0; k < segs; k++) {
+            u32 i0 = b + k * 2, i1 = i0 + 1, i2 = i0 + 2, i3 = i0 + 3;
+            Is.push_back(i0); Is.push_back(i2); Is.push_back(i1);
+            Is.push_back(i1); Is.push_back(i2); Is.push_back(i3);
+        }
+    };
+    if (kind == 1) {
+        vec3 wood(0.55f, 0.36f, 0.18f), grip(0.08f, 0.08f, 0.09f);
+        lathe(-0.15f, -0.14f, 0.026f, 0.026f, wood, 12);
+        lathe(-0.14f, 0.14f, 0.016f, 0.016f, grip, 12);
+        lathe(0.14f, 0.36f, 0.016f, 0.02f, wood, 12);
+        lathe(0.36f, 0.6f, 0.02f, 0.032f, wood, 12);
+        lathe(0.6f, 0.68f, 0.032f, 0.034f, wood, 12);
+        lathe(0.68f, 0.69f, 0.034f, 0.0f, wood, 12);
+    } else {
+        vec3 hcol(0.05f, 0.05f, 0.05f), steel(0.7f, 0.72f, 0.75f);
+        lathe(-0.05f, 0.06f, 0.011f, 0.011f, hcol, 8);
+        // flat blade in the plane of the handle and the finger side (edge towards -X)
+        u32 b = (u32)Ps.size();
+        vec3 q[4] = {G + D * 0.06f + X * 0.004f, G + D * 0.06f - X * 0.024f, G + D * 0.19f, G + D * 0.06f};
+        for (int k = 0; k < 3; k++) { Ps.push_back(q[k]); Ns.push_back(Y); As.push_back(steel); Ms.push_back(MAT_CHROME); }
+        for (int k = 0; k < 3; k++) { Ps.push_back(q[k]); Ns.push_back(-Y); As.push_back(steel); Ms.push_back(MAT_CHROME); }
+        Is.push_back(b); Is.push_back(b + 1); Is.push_back(b + 2);
+        Is.push_back(b + 3); Is.push_back(b + 5); Is.push_back(b + 4);
+    }
+    drawMesh(img, cam, Ps, Ns, As, Ms, Is);
+}
+
+// Scripted animator inputs for transition checks.
+static void runScenario(int sc, float t, AnimInput& in) {
+    switch (sc) {
+        case 1:   // speed ramp 0 -> 7 -> 0 m/s
+            in.speed = t < 7.f ? t : Max(0.f, 14.f - t);
+            break;
+        case 2:   // walk, stop, aim pistol, fire, reload, walk while aiming (strafe)
+            in.speed = t < 2.f ? 1.4f : (t < 6.f ? 0.f : 1.3f);
+            in.localMoveDir = t < 6.f ? vec2(0, 1) : vec2(1, 0);
+            in.weaponKind = 1;
+            in.aiming = t > 2.5f;
+            in.firing = t > 3.5f && t < 4.2f;
+            in.reloading = t > 4.5f && t < 5.5f;
+            in.aimPitch = 0.3f * sinf(t);
+            break;
+        case 3:   // enter car at 0.5 s (seated at 1.55 s), drive, exit at 4 s
+            in.action = t >= 0.5f && t < 0.52f ? CLIP_ENTER_CAR_L : (t >= 4.f && t < 4.02f ? CLIP_EXIT_CAR_L : -1);
+            in.stance = t >= 1.55f && t < 4.f ? 1 : 0;
+            break;
+        case 4:   // jog, jump, fall, land
+            in.speed = 3.f;
+            in.action = t >= 1.f && t < 1.02f ? CLIP_JUMP_START : (t >= 1.8f && t < 1.82f ? CLIP_LAND : -1);
+            in.inAir = t > 1.15f && t < 1.8f;
+            break;
+        case 5:   // walking with a rifle (carry), then aim
+            in.speed = 1.5f;
+            in.weaponKind = 2;
+            in.aiming = t > 2.f;
+            break;
+        case 6:   // phone while walking, then standing talking
+            in.stance = t < 3.f ? 8 : 7;
+            in.speed = t < 3.f ? 1.3f : 0.f;
+            break;
+        case 7:   // hit reactions while walking, then punches standing
+            in.speed = t < 2.f ? 1.4f : 0.f;
+            in.action = (t >= 0.8f && t < 0.82f) ? CLIP_HIT_FRONT : ((t >= 2.5f && t < 2.52f) ? CLIP_PUNCH_R : -1);
+            break;
+        case 9:   // turning on the spot
+            in.turnRate = t < 3.f ? 2.5f : -2.5f;
+            break;
+        case 8:   // driving with steering input in localMoveDir.x
+            in.stance = 1;
+            in.localMoveDir = vec2(sinf(t * 1.5f), 1.f);
+            break;
+        case 10:   // fighting guard standing: hook at 0.5 s, uppercut at 1.6 s
+            in.stance = 19;
+            in.action = (t >= 0.5f && t < 0.52f) ? CLIP_HOOK : ((t >= 1.6f && t < 1.62f) ? CLIP_UPPERCUT : -1);
+            break;
+        case 11:   // fighting guard strafing right, hook at 0.8 s (upper body over the strafe)
+            in.stance = 19;
+            in.speed = 1.3f;
+            in.localMoveDir = vec2(1.f, 0.f);
+            in.action = (t >= 0.8f && t < 0.82f) ? CLIP_HOOK : -1;
+            break;
+        case 12:   // block (stance 20) until 1.2 s, counter, back to the guard
+            in.stance = t < 1.2f ? 20 : 19;
+            in.action = (t >= 1.2f && t < 1.22f) ? CLIP_COUNTER : -1;
+            break;
+        case 13:   // bat: guard, swing at 0.5 s, overhead at 2.0 s
+            in.stance = 19;
+            in.meleeKind = 2;
+            in.weaponKind = 3;
+            in.action = (t >= 0.5f && t < 0.52f) ? CLIP_BAT_SWING : ((t >= 2.f && t < 2.02f) ? CLIP_BAT_OVERHEAD : -1);
+            break;
+        case 15:   // speaking with beat pulses every 0.45 s, then a phone call while walking from 4 s
+            in.speaking = t < 4.f;
+            in.beat = t < 4.f ? Max(0.f, sinf(kTwoPi * t / 0.45f)) : 0.f;
+            in.phoneCall = t >= 4.f;
+            in.speed = t >= 4.f ? 1.3f : 0.f;
+            break;
+        case 16:   // listening
+            in.listening = true;
+            break;
+        case 17:   // browsing a phone standing, then walking from 2.5 s
+            in.phoneBrowse = true;
+            in.speed = t >= 2.5f ? 1.4f : 0.f;
+            break;
+        case 14:   // knocked out from the guard at 0.3 s
+            in.stance = 19;
+            in.action = (t >= 0.3f && t < 0.32f) ? CLIP_KNOCKOUT : -1;
+            break;
+        // locomotion through the world (render with --rm to move the ped; PREVIEW_SPEED sets the speed, PREVIEW_GAIT
+        // the walk style); speeds change like the game's ped controller (11 m/s^2 up, 16 down)
+        case 30: {   // walk straight on
+            const char* sv = getenv("PREVIEW_SPEED");
+            in.speed = Min(sv ? (float)atof(sv) : 1.4f, t * 11.f);
+            break;
+        }
+        case 31: {   // walk, stop at 2.5 s and stand
+            const char* sv = getenv("PREVIEW_SPEED");
+            float v = sv ? (float)atof(sv) : 1.4f;
+            in.speed = t < 2.5f ? Min(v, t * 11.f) : Max(0.f, v - (t - 2.5f) * 16.f);
+            break;
+        }
+        case 32:   // stand, turn on the spot to the left from 0.5 s to 2.5 s
+            in.turnRate = t > 0.5f && t < 2.5f ? 1.6f : 0.f;
+            break;
+        case 33: {   // walk, a 90 degree left turn at 2 s (the AI's turn rate)
+            const char* sv = getenv("PREVIEW_SPEED");
+            in.speed = Min(sv ? (float)atof(sv) : 1.4f, t * 11.f);
+            in.turnRate = t > 2.f && t < 2.f + kHalfPi / 3.f ? 3.f : 0.f;
+            break;
+        }
+        case 34: {   // stand, then set off at 1 s
+            const char* sv = getenv("PREVIEW_SPEED");
+            in.speed = t < 1.f ? 0.f : Min(sv ? (float)atof(sv) : 1.4f, (t - 1.f) * 11.f);
+            break;
+        }
+        case 35:   // standing around (each character with its own animator seed: weight shifts, postures, fidgets)
+            break;
+        case 36:   // queueing (stance 23)
+            in.stance = 23;
+            break;
+        case 38:   // falling (a long drop from 0.2 s)
+            in.inAir = t > 0.2f;
+            break;
+        case 39: {   // aiming a pistol while moving PREVIEW_DIR degrees off the facing (+ = right; default 90) at
+                     // PREVIEW_SPEED (default 1.6 m/s, the player's aiming walk; 2.9 the aiming jog)
+            const char* sv = getenv("PREVIEW_SPEED");
+            const char* dv = getenv("PREVIEW_DIR");
+            float a = (dv ? (float)atof(dv) : 90.f) * kPi / 180.f;
+            in.speed = Min(sv ? (float)atof(sv) : 1.6f, t * 11.f);
+            in.localMoveDir = vec2(sinf(a), cosf(a));
+            in.weaponKind = 1;
+            in.aiming = true;
+            break;
+        }
+        case 40: {   // a hit at PREVIEW_HITT (default 0.5 s): PREVIEW_HIT = push x,y,strength,bone (default 0,-1,0.4,B_CHEST),
+                     // walking at PREVIEW_SPEED (default 0)
+            const char* sv = getenv("PREVIEW_SPEED");
+            const char* ht = getenv("PREVIEW_HITT");
+            in.speed = Min(sv ? (float)atof(sv) : 0.f, t * 11.f);
+            float at = ht ? (float)atof(ht) : 0.5f;
+            if (t >= at && t < at + 1.f / 60.f - 1e-4f) {
+                float hx = 0.f, hy = -1.f, hs = 0.4f;
+                int hb = B_CHEST;
+                if (const char* hv = getenv("PREVIEW_HIT")) sscanf(hv, "%f,%f,%f,%d", &hx, &hy, &hs, &hb);
+                in.hitDir = vec3(hx, hy, 0.f);
+                in.hitStrength = hs;
+                in.hitBone = hb;
+            }
+            break;
+        }
+        case 41: {   // hurt: PREVIEW_LIMP = hurt leg (0 / 1), PREVIEW_WOUNDED 0..1, PREVIEW_CLUTCH = Wound, PREVIEW_SPEED,
+                     // PREVIEW_CROUCH, PREVIEW_STANCE (24 lying hurt)
+            const char* sv = getenv("PREVIEW_SPEED");
+            in.speed = Min(sv ? (float)atof(sv) : 0.f, t * 11.f);
+            if (const char* lv = getenv("PREVIEW_LIMP")) in.legHurt[atoi(lv) & 1] = 1.f;
+            if (const char* wv = getenv("PREVIEW_WOUNDED")) in.wounded = (float)atof(wv);
+            if (const char* cv = getenv("PREVIEW_CLUTCH")) in.clutch = atoi(cv);
+            in.crouch = getenv("PREVIEW_CROUCH") != nullptr;
+            if (const char* st = getenv("PREVIEW_STANCE")) in.stance = atoi(st);
+            break;
+        }
+        case 42: {   // going over from 0.5 s: PREVIEW_FALLDIR = x,y (default 0,1)
+            float fx = 0.f, fy = 1.f;
+            if (const char* fv = getenv("PREVIEW_FALLDIR")) sscanf(fv, "%f,%f", &fx, &fy);
+            in.fallDir = vec3(fx, fy, 0.f);
+            in.fallBrace = t >= 0.5f ? 1.f : 0.f;
+            break;
+        }
+        case 37: {   // looking at a point 60 degrees to the left, switching to one 45 degrees to the right at 1 s
+            float a = t < 1.f ? 1.05f : -0.8f;
+            in.lookAt = vec3(-sinf(a) * 3.f, cosf(a) * 3.f, 1.6f);
+            in.lookWeight = 1.f;
+            break;
+        }
+        default: break;
+    }
+}
+
+#ifndef PREVIEW_NO_MAIN   // (tests/anim/carview.cpp reuses the rasterizer with a main of its own)
+int main(int argc, char** argv) {
+    const char* out = argc > 1 ? argv[1] : "/tmp/preview.ppm";
+    u32 seed = 1000;
+    int role = -1, count = 1, W = 900, H = 900, clip = -1;
+    float t = 0.f, dist = -1.f, yaw = 0.f, fov = 30.f, camZ = -1.f, spacing = 0.9f;
+    int scenario = 0;
+    const char* view = "front";
+    bool lineup = false, strip = false, floorOn = false, rootMotion = false, pair = false;
+    int weapon = 0, melee = -1;
+    bool visemes = false;
+    int lodSel = -1;
+    bool tiles = false;
+    int ss = 1;
+    int protag = -1;
+    int fpMode = 0;
+    float fpFov = 60.f;
+    float stripDt = -1.f;
+    std::vector<int> clipList;
+    for (int i = 2; i < argc; i++) {
+        auto nx = [&]() { return i + 1 < argc ? argv[++i] : "0"; };
+        if (!strcmp(argv[i], "--seed")) seed = (u32)atoi(nx());
+        else if (!strcmp(argv[i], "--role")) role = atoi(nx());
+        else if (!strcmp(argv[i], "--count")) count = atoi(nx());
+        else if (!strcmp(argv[i], "--view")) view = nx();
+        else if (!strcmp(argv[i], "--clip")) clip = atoi(nx());
+        else if (!strcmp(argv[i], "--t")) t = (float)atof(nx());
+        else if (!strcmp(argv[i], "--w")) W = atoi(nx());
+        else if (!strcmp(argv[i], "--h")) H = atoi(nx());
+        else if (!strcmp(argv[i], "--dist")) dist = (float)atof(nx());
+        else if (!strcmp(argv[i], "--yaw")) yaw = (float)atof(nx());
+        else if (!strcmp(argv[i], "--fov")) fov = (float)atof(nx());
+        else if (!strcmp(argv[i], "--height")) camZ = (float)atof(nx());
+        else if (!strcmp(argv[i], "--spacing")) spacing = (float)atof(nx());
+        else if (!strcmp(argv[i], "--lineup")) lineup = true;
+        else if (!strcmp(argv[i], "--strip")) strip = true;
+        else if (!strcmp(argv[i], "--dt")) stripDt = (float)atof(nx());
+        else if (!strcmp(argv[i], "--floor")) floorOn = true;
+        else if (!strcmp(argv[i], "--scenario")) scenario = atoi(nx());
+        else if (!strcmp(argv[i], "--rm")) rootMotion = true;          // apply the clip's root motion
+        else if (!strcmp(argv[i], "--pair")) pair = true;              // takedown pair: victim + attacker 0.55 m behind
+        else if (!strcmp(argv[i], "--weapon")) { const char* w = nx(); weapon = !strcmp(w, "bat") ? 1 : (!strcmp(w, "knife") ? 2 : 0); }
+        else if (!strcmp(argv[i], "--melee")) melee = atoi(nx());      // AnimInput::meleeKind for scenarios
+        else if (!strcmp(argv[i], "--visemes")) visemes = true;        // one character per viseme (0..14)
+        else if (!strcmp(argv[i], "--lod")) lodSel = atoi(nx());        // render this LOD (buildCharacterMeshLods)
+        else if (!strcmp(argv[i], "--tiles")) tiles = true;             // one tile per character, camera on its head
+        else if (!strcmp(argv[i], "--fp")) fpMode = atoi(nx());          // first-person hands: 1 rifle ADS, 2 rifle hip,
+                                                                        // 3 pistol ADS, 4 pistol hip, 5 shotgun hip, 6 fists
+        else if (!strcmp(argv[i], "--fpfov")) fpFov = (float)atof(nx());
+        else if (!strcmp(argv[i], "--ss")) ss = Clamp(atoi(nx()), 1, 4); // supersampling factor
+        else if (!strcmp(argv[i], "--protagonist")) protag = Clamp(atoi(nx()), 0, 1);   // the fixed looks (src/game/protagonists.h)
+        else if (!strcmp(argv[i], "--clips")) {
+            // comma separated clip list, one per character
+            const char* c = nx();
+            while (*c) {
+                clipList.push_back(atoi(c));
+                while (*c && *c != ',') c++;
+                if (*c == ',') c++;
+            }
+        }
+    }
+    W *= ss;
+    H *= ss;
+    wire = getenv("PREVIEW_WIRE") != nullptr;
+    opaqueCards = getenv("PREVIEW_OPAQUECARDS") != nullptr;
+    if (const char* sv = getenv("PREVIEW_SHADE"))
+        shadeDbg = !strcmp(sv, "albedo") ? 1 : (!strcmp(sv, "normal") ? 2 : (!strcmp(sv, "diffuse") ? 3 : (!strcmp(sv, "featshadow") ? 4 : 0)));
+    if (pair) {
+        // takedown pair: character 0 = victim, character 1 = attacker 0.55 m behind it (same seed variations)
+        clipList = {CLIP_TAKEDOWN_VICTIM, CLIP_TAKEDOWN_ATTACKER};
+    }
+    if (!clipList.empty()) count = (int)clipList.size();
+    if (visemes) count = 15;
+    Img img(W, H);
+    std::vector<Char> chars(count);
+    double tb = 0;
+    size_t totalTris = 0;
+    for (int i = 0; i < count; i++) {
+        Char& ch = chars[i];
+        u32 sd = lineup ? 1000 + i * 7919 : (pair ? seed + i * 7919 : (strip || visemes || !clipList.empty() ? seed : seed + i * 7919));
+        int rl = role >= 0 ? role : (lineup ? i % 7 : 0);
+        ch.d = randomCharacter(sd, rl);
+        if (protag >= 0) ch.d = Game::protagonistDesc(protag);   // --protagonist 0 (Mari) / 1 (Dex)
+        if (getenv("PREVIEW_NOHAT")) { ch.d.hat = -1; ch.d.glasses = -1; }
+        if (const char* hsv = getenv("PREVIEW_HAIR")) ch.d.hairStyle = atoi(hsv);
+        if (const char* fhv = getenv("PREVIEW_FH")) ch.d.facialHair = atoi(fhv);
+        if (const char* tv = getenv("PREVIEW_TOP")) ch.d.top = atoi(tv);
+        if (const char* bv = getenv("PREVIEW_BOTTOM")) ch.d.bottom = atoi(bv);
+        if (const char* sv = getenv("PREVIEW_SHOES")) ch.d.shoes = atoi(sv);
+        if (const char* ov = getenv("PREVIEW_OUTER")) ch.d.outer = atoi(ov);
+        if (const char* bv = getenv("PREVIEW_BAG")) ch.d.bag = atoi(bv);
+        if (const char* ev = getenv("PREVIEW_EXTRAS")) ch.d.extras = (u32)strtoul(ev, nullptr, 0);
+        if (const char* wv = getenv("PREVIEW_WEIGHT")) ch.d.weight = (float)atof(wv);
+        if (const char* mv = getenv("PREVIEW_MUSCLE")) ch.d.muscle = (float)atof(mv);
+        if (const char* hv = getenv("PREVIEW_HEIGHT")) ch.d.height = (float)atof(hv);
+        if (const char* hcv = getenv("PREVIEW_HAIRCOL")) sscanf(hcv, "%f,%f,%f", &ch.d.hairColor.x, &ch.d.hairColor.y, &ch.d.hairColor.z);
+        if (const char* gv = getenv("PREVIEW_GENDER")) ch.d.gender = atoi(gv) ? FEMALE : MALE;
+        if (const char* av = getenv("PREVIEW_AGE")) ch.d.age = (float)atof(av);
+        if (const char* anv = getenv("PREVIEW_ANC")) {
+            // ancestry (and a matching skin tone): comma list per character, cycling
+            std::vector<int> al;
+            for (const char* q = anv; *q;) {
+                al.push_back(atoi(q));
+                while (*q && *q != ',') q++;
+                if (*q == ',') q++;
+            }
+            if (!al.empty()) {
+                ch.d.ancestry = al[(size_t)i % al.size()];
+                const vec3 tones[5] = {srgbToLinear(vec3(0.78f, 0.57f, 0.42f)), srgbToLinear(vec3(0.36f, 0.23f, 0.16f)),
+                                       srgbToLinear(vec3(0.93f, 0.76f, 0.64f)), srgbToLinear(vec3(0.88f, 0.7f, 0.55f)),
+                                       srgbToLinear(vec3(0.6f, 0.42f, 0.3f))};
+                ch.d.skinTone = tones[Clamp(ch.d.ancestry, 0, 4)];
+            }
+        }
+        if (const char* gl = getenv("PREVIEW_GENDERS")) ch.d.gender = gl[(size_t)i % strlen(gl)] == 'f' ? FEMALE : MALE;
+        if (const char* hl = getenv("PREVIEW_HATS")) {   // hat per character (comma list, -1 none)
+            int k = 0;
+            for (const char* q = hl; *q; k++) {
+                if (k == i) ch.d.hat = atoi(q);
+                while (*q && *q != ',') q++;
+                if (*q == ',') q++;
+            }
+        }
+        if (const char* hl = getenv("PREVIEW_HEIGHTS")) {   // height per character (comma list)
+            int k = 0;
+            for (const char* q = hl; *q; k++) {
+                if (k == i) ch.d.height = (float)atof(q);
+                while (*q && *q != ',') q++;
+                if (*q == ',') q++;
+            }
+        }
+        if (const char* ag = getenv("PREVIEW_AGES")) {
+            std::vector<float> al;
+            for (const char* q = ag; *q;) {
+                al.push_back((float)atof(q));
+                while (*q && *q != ',') q++;
+                if (*q == ',') q++;
+            }
+            if (!al.empty()) ch.d.age = al[(size_t)i % al.size()];
+        }
+        buildSkeleton(ch.d, ch.sk);
+        double t0 = TimeSeconds();
+        if (getenv("PREVIEW_PARTS")) {
+            // debug: raw body build, vertex colors by part (alpha channel keeps nothing)
+            detail::BodyDims D;
+            detail::computeDims(ch.d, D);
+            detail::BuildCtx bc;
+            bc.d = &ch.d; bc.D = &D; bc.sk = &ch.sk; bc.skin = ch.d.skinTone; bc.lipCol = bc.skin; bc.palmCol = bc.skin;
+            detail::buildBody(bc);
+            const vec3 pc[] = {vec3(0.8f, 0.3f, 0.3f), vec3(0.3f, 0.8f, 0.3f), vec3(0.3f, 0.3f, 0.8f), vec3(0.8f, 0.8f, 0.3f), vec3(0.8f, 0.3f, 0.8f),
+                               vec3(0.3f, 0.8f, 0.8f), vec3(0.9f, 0.6f, 0.2f), vec3(0.5f, 0.5f, 0.9f), vec3(0.6f, 0.9f, 0.5f), vec3(1, 1, 1),
+                               vec3(0.2f, 0.2f, 0.2f), vec3(0.5f), vec3(0.7f), vec3(0.4f), vec3(0.6f)};
+            for (auto& v : bc.m.v) { v.col = pc[v.part % 15]; v.mat = MAT_SKIN; }
+            detail::emitMesh(bc.m, ch.mesh);
+        } else if (lodSel >= 0) {
+            SkinnedMeshData lods[3];
+            buildCharacterMeshLods(ch.d, ch.sk, lods, 3);
+            printf("lods: %zu / %zu / %zu tris\n", lods[0].indices.size() / 3, lods[1].indices.size() / 3, lods[2].indices.size() / 3);
+            ch.mesh = lods[Clamp(lodSel, 0, 2)];
+        } else
+            buildCharacterMesh(ch.d, ch.sk, ch.mesh);
+        tb += TimeSeconds() - t0;
+        totalTris += ch.mesh.indices.size() / 3;
+        printf("char %d: seed %u role %d gender %d h %.2f w %.2f m %.2f age %.2f hair %d top %d bottom %d shoes %d hat %d glasses %d fh %d: %zu verts %zu tris\n",
+               i, sd, rl, ch.d.gender, ch.d.height, ch.d.weight, ch.d.muscle, ch.d.age, ch.d.hairStyle, ch.d.top, ch.d.bottom, ch.d.shoes,
+               ch.d.hat, ch.d.glasses, ch.d.facialHair, ch.mesh.verts.size(), ch.mesh.indices.size() / 3);
+    }
+    printf("mesh build avg %.2f ms, avg tris %zu\n", tb * 1000.0 / count, totalTris / count);
+    // camera
+    float cx = (count - 1) * spacing * 0.5f;
+    Cam cam;
+    cam.fov = fov;
+    float Hc = chars[0].d.height;
+    float zc = camZ > 0 ? camZ : Hc * 0.52f;
+    float dd = dist > 0 ? dist : Max(Hc * 0.56f / tanf(fov * 0.5f * kDegToRad), (count * spacing * 0.55f) / (tanf(fov * 0.5f * kDegToRad) * W / H));
+    vec3 target(cx, 0, zc);
+    vec3 dir(0, 1, 0);
+    if (!strcmp(view, "side")) dir = vec3(1, 0, 0);
+    else if (!strcmp(view, "back")) dir = vec3(0, -1, 0);
+    else if (!strcmp(view, "three")) dir = normalize(vec3(0.7f, 1, 0.1f));
+    else if (!strcmp(view, "top")) dir = normalize(vec3(0.0f, 0.3f, 1.0f));
+    else if (!strcmp(view, "upper") || !strcmp(view, "upperside") || !strcmp(view, "upperback")) {
+        dir = !strcmp(view, "upper") ? vec3(0, 1, 0) : (!strcmp(view, "upperside") ? vec3(1, 0, 0) : vec3(0, -1, 0));
+        target = vec3(cx, 0, camZ > 0 ? camZ : Hc * 0.75f);
+        dd = dist > 0 ? dist : 1.5f;
+    } else if (!strcmp(view, "face") || !strcmp(view, "face3") || !strcmp(view, "faceside")) {
+        dir = !strcmp(view, "face") ? vec3(0, 1, 0) : (!strcmp(view, "face3") ? normalize(vec3(0.8f, 1, 0)) : vec3(1, 0, 0));
+        target = vec3(cx, 0.03f, camZ > 0 ? camZ : Hc * 0.93f);
+        dd = dist > 0 ? dist : 0.75f;
+    } else if (!strcmp(view, "shoulder") || !strcmp(view, "shoulderback") || !strcmp(view, "shouldertop")) {
+        dir = !strcmp(view, "shoulder") ? normalize(vec3(0.5f, 1, 0.1f)) : (!strcmp(view, "shoulderback") ? normalize(vec3(0.5f, -1, 0.1f)) : normalize(vec3(0.3f, 0.3f, 1)));
+        target = vec3(cx + 0.2f * Hc / 1.78f, 0.0f, camZ > 0 ? camZ : Hc * 0.8f);
+        dd = dist > 0 ? dist : 0.7f;
+    } else if (!strcmp(view, "throat")) {
+        dir = normalize(vec3(0.3f, 1, -0.5f));
+        target = vec3(cx, 0.03f, camZ > 0 ? camZ : Hc * 0.87f);
+        dd = dist > 0 ? dist : 0.45f;
+    } else if (!strcmp(view, "hand")) {
+        dir = normalize(vec3(0.6f, 1, -0.2f));
+        target = vec3(cx + 0.55f * Hc / 1.78f, 0.0f, camZ > 0 ? camZ : Hc * 0.43f);
+        dd = dist > 0 ? dist : 0.55f;
+    } else if (!strcmp(view, "feet")) {
+        dir = normalize(vec3(0.5f, 1, 0.4f));
+        target = vec3(cx, 0.05f, camZ > 0 ? camZ : 0.1f);
+        dd = dist > 0 ? dist : 0.9f;
+    }
+    dir = rotate(quatAxisAngle(vec3(0, 0, 1), yaw * kDegToRad), dir);
+    // screen-right direction (the camera looks along -dir)
+    vec3 sideAxis = length(vec3(dir.x, dir.y, 0.f)) < 1e-3f ? vec3(-1, 0, 0) : normalize(vec3(-dir.y, dir.x, 0.f));
+    if (getenv("PREVIEW_ALONGX")) sideAxis = vec3(1, 0, 0);
+    cam.eye = target + dir * dd;
+    cam.target = target;
+    cam.setup(W, H);
+    vec3 floorC(0.f);   // floor centre (follows a scenario's root motion)
+    for (int i = 0; i < count; i++) {
+        Char& ch = chars[i];
+        Pose pose;
+        for (int b = 0; b < B_COUNT; b++) pose.rot[b] = quat();
+        pose.rootOffset = vec3(0);
+        vec3 scenRoot(0.f);    // scenario root motion (with --rm): the ped's position and heading in the world
+        float scenYaw = 0.f;
+#ifdef ANIM_HAVE_CLIPS
+        int ci = !clipList.empty() ? clipList[i] : clip;
+        float ti = t;
+        if (strip && ci >= 0) ti = t + i * (stripDt > 0.f ? stripDt : clipInfo((Clip)ci).duration / Max(count - (clipInfo((Clip)ci).loop ? 0 : 1), 1));
+        if (strip) printf("frame %d: t=%.3f\n", i, ti);
+        if (ci >= 0) sampleClip(ch.sk, (Clip)ci, ti, pose, (u32)i);
+        if (const char* ic = getenv("PREVIEW_ICLIP")) {
+            // internal clips: base id + character index (CLIP_COUNT + n, see anim_internal.h)
+            detail::sampleClipId(ch.sk, atoi(ic) + (strip ? 0 : i), ti, pose, (u32)i);
+        }
+        if (pair && i == 1 && getenv("PREVIEW_PAIRIK")) {
+            // attacker through the animator with its choke arm IK'd onto the victim's (character 0's) actual neck
+            Animator an;
+            an.init(&ch.sk, 5u);
+            const float dt = 1.f / 60.f;
+            for (float tt = 0.f; tt < ti; tt += dt) {
+                AnimInput in;
+                in.action = tt < dt * 0.5f ? CLIP_TAKEDOWN_ATTACKER : -1;
+                if (tt < dt * 0.5f) in.action = CLIP_TAKEDOWN_ATTACKER;
+                Pose vp;
+                sampleClip(chars[0].sk, CLIP_TAKEDOWN_VICTIM, tt, vp, 0u);
+                mat4 vm[B_COUNT];
+                computeMatrices(chars[0].sk, vp, vm, nullptr);
+                vec3 neckW = vm[B_NECK].c[3].xyz() + clipRootMotion(chars[0].sk, CLIP_TAKEDOWN_VICTIM, tt);
+                vec3 attRoot = vec3(0.f, -0.55f, 0.f) + clipRootMotion(ch.sk, CLIP_TAKEDOWN_ATTACKER, tt);
+                in.grabTarget = neckW - attRoot;
+                in.grabWeight = 1.f;
+                an.update(in, dt);
+            }
+            pose = an.pose;
+        }
+        if (const char* gc = getenv("PREVIEW_GREET")) {
+            // a greeting between characters 0 and 1 (--count 2 --spacing 0): facing each other pairDistance apart, both
+            // animators stepped together, each given the other's chest (head for the kiss) as grabTarget
+            static Pose gp[2];
+            static float gd = 0.f;
+            Clip gcl = (Clip)atoi(gc);
+            if (i == 0 && count >= 2) {
+                Animator an[2];
+                for (int k = 0; k < 2; k++) {
+                    an[k].init(&chars[k].sk, 7u + (u32)k * 7919u);
+                    an[k].setCharacter(chars[k].d);
+                }
+                gd = pairDistance(gcl, chars[0].sk, chars[1].sk);
+                const float dt = 1.f / 60.f;
+                const int bone = gcl == CLIP_CHEEK_KISS ? B_HEAD : B_CHEST;
+                const bool fit = getenv("PREVIEW_NOFIT") == nullptr;
+                for (float tt = 0.f; tt < t; tt += dt) {
+                    vec3 pb[2];
+                    for (int k = 0; k < 2; k++) {
+                        quat q;
+                        detail::boneModel(chars[k].sk, an[k].pose, bone, q, pb[k]);
+                    }
+                    for (int k = 0; k < 2; k++) {
+                        AnimInput in;
+                        in.action = tt < 0.5f * dt ? (int)gcl : -1;
+                        if (tt < 0.25f) in.action = (int)gcl;
+                        vec3 o = pb[1 - k];
+                        in.grabTarget = vec3(-o.x, gd - o.y, o.z);   // the partner turned round, gd ahead
+                        in.grabWeight = fit ? 1.f : 0.f;
+                        an[k].update(in, dt);
+                    }
+                }
+                gp[0] = an[0].pose;
+                gp[1] = an[1].pose;
+                printf("greeting %d: distance %.3f m, t %.2f\n", (int)gcl, gd, t);
+            }
+            if (i < 2) {
+                pose = gp[i];
+                if (i == 1) {
+                    scenRoot = vec3(0.f, gd, 0.f);
+                    scenYaw = kPi;
+                }
+            }
+        } else if (scenario > 0) {
+            // run the Animator with scripted inputs up to time ti (character i: ti = t + i * dt)
+            Animator an;
+            an.init(&ch.sk, scenario == 35 || scenario == 36 ? 7u + (u32)i * 7919u : 7u);
+            an.setCharacter(ch.d);
+            if (const char* gv = getenv("PREVIEW_GAIT")) an.gaitStyle = atoi(gv);   // walk style override (detail::GaitStyle)
+            if (const char* gl = getenv("PREVIEW_GAITS")) {                          // per-character list "0,3,4,..."
+                int k = 0;
+                for (const char* q = gl; *q; k++) {
+                    if (k == i) an.gaitStyle = atoi(q);
+                    while (*q && *q != ',') q++;
+                    if (*q == ',') q++;
+                }
+            }
+            float T = strip ? t + i * (stripDt > 0.f ? stripDt : 0.5f) : t;
+            const float dt = 1.f / 60.f;
+            if (const char* fl = getenv("PREVIEW_FORCE")) {
+                // standing posture / fidget per character (internal clip ids, comma list): postures held from the start,
+                // fidgets starting at 0.5 s; the other schedulers wait
+                int k = 0, id = -1;
+                for (const char* q = fl; *q; k++) {
+                    if (k == i % 64) id = atoi(q);
+                    while (*q && *q != ',') q++;
+                    if (*q == ',') q++;
+                }
+                an.idleNext = an.fidgetNext = 1e9f;
+                if (id == detail::IC_IDLE_PHONE || id == detail::IC_IDLE_CROSSARMS || id == detail::IC_IDLE_POCKETS || id == detail::IC_IDLE_HIP ||
+                    id == detail::IC_IDLE_BEHIND || id == detail::IC_IDLE_CLASP) {
+                    an.idleVar = id;
+                    an.idleVarT = 0.f;
+                    an.idleVarDur = 1e9f;
+                } else if (id >= 0) {
+                    an.fidgetVar = id;
+                    an.fidgetT = -0.5f;
+                    an.fidgetDur = detail::clipInfoId(id).loop ? 3.f : detail::clipInfoId(id).duration;
+                }
+            }
+            for (float tt = 0.f; tt < T; tt += dt) {
+                AnimInput in;
+                in.footProbes = true;
+                runScenario(scenario, tt, in);
+                if (melee >= 0) in.meleeKind = melee;
+                if (const char* cl = getenv("PREVIEW_CARRY")) {   // prop in hand per character (AnimInput::carry, comma list)
+                    int k = 0;
+                    for (const char* q = cl; *q; k++) {
+                        if (k == i) in.carry = atoi(q);
+                        while (*q && *q != ',') q++;
+                        if (*q == ',') q++;
+                    }
+                    in.carryOpen = getenv("PREVIEW_CARRYOPEN") != nullptr;
+                }
+                // a staggering ped is moved by the stagger (the game's movePed does the same)
+                if (an.staggering()) {
+                    vec3 sv = an.staggerVelocity();
+                    in.speed = length(sv);
+                    in.localMoveDir = in.speed > 1e-3f ? vec2(sv.x, sv.y) / in.speed : vec2(0, 1);
+                }
+                // the ped moves and turns like the game moves its capsule (the animator sees the same speed / turn rate)
+                vec2 md = length(in.localMoveDir) > 1e-3f ? normalize(in.localMoveDir) : vec2(0, 1);
+                scenYaw += in.turnRate * dt;
+                scenRoot = scenRoot + rotate(quatAxisAngle(vec3(0, 0, 1), scenYaw), vec3(md.x, md.y, 0.f)) * (in.speed * dt);
+                an.update(in, dt);
+            }
+            if (!rootMotion) {
+                scenRoot = vec3(0.f);
+                scenYaw = 0.f;
+            }
+            if (getenv("PREVIEW_FOLLOW") && count == 1) {   // camera (and floor) follow the walking ped
+                cam.eye = cam.eye + scenRoot;
+                cam.target = cam.target + scenRoot;
+                cam.setup(W, H);
+            }
+            floorC = scenRoot;
+            pose = an.pose;
+            printf("scenario %d t=%.2f action %d stance %d | standing: weight %.2f posture %d (%.2f) fidget %d (%.2f) breath %.2f\n", scenario, T,
+                   an.action, an.stance, an.standW, an.idleVar, an.idleVarW, an.fidgetVar, an.fidgetW, an.breath);
+        }
+#else
+        (void)t;
+#endif
+        if (const char* ex = getenv("PREVIEW_EXPR")) {
+            // facial expression through the animator (idle, 1 s to settle)
+            Animator an;
+            an.init(&ch.sk, 7u);
+            AnimInput in;
+            in.expression = atoi(ex);
+            for (int f = 0; f < 60; f++) an.update(in, 1.f / 60.f);
+            an.blinkT = -1.f;
+            an.blinkNext = 5.f;
+            an.update(in, 1.f / 60.f);
+            pose = an.pose;
+        }
+        if (visemes || getenv("PREVIEW_VISEME")) {
+            int vi = visemes ? i : atoi(getenv("PREVIEW_VISEME"));
+            float shape[6];
+            detail::visemeShape(vi, 1.f, shape);
+            detail::applyMouthShape(pose, shape, shape[0]);
+        }
+        if (const char* ep = getenv("PREVIEW_EYEPITCH")) {
+            // debug: pitch both eye bones (the upper lids ride on them: -0.95 closes the eyes)
+            float a = (float)atof(ep);
+            pose.rot[B_EYE_L] = normalize(pose.rot[B_EYE_L] * quatAxisAngle(vec3(1, 0, 0), a));
+            pose.rot[B_EYE_R] = normalize(pose.rot[B_EYE_R] * quatAxisAngle(vec3(1, 0, 0), a));
+        }
+        if (const char* ey = getenv("PREVIEW_EYEYAW")) {
+            float a = (float)atof(ey);
+            pose.rot[B_EYE_L] = normalize(pose.rot[B_EYE_L] * quatAxisAngle(vec3(0, 0, 1), a));
+            pose.rot[B_EYE_R] = normalize(pose.rot[B_EYE_R] * quatAxisAngle(vec3(0, 0, 1), a));
+        }
+        if (const char* cv = getenv("PREVIEW_CURL")) {
+            // finger / thumb curl controllers (the clips' convention: fingers * 1.45, thumb * 0.9 rad), both hands;
+            // "f,t" for everyone, or a per-character list "f,t;f,t;..."
+            float fc = 0.35f, tc = 0.2f;
+            const char* e = cv;
+            for (int k = 0; k < i && strchr(e, ';'); k++) e = strchr(e, ';') + 1;
+            sscanf(e, "%f,%f", &fc, &tc);
+            for (int sd = 0; sd < 2; sd++) {
+                vec3 fing = normalize(ch.sk.bindLocalPos[sd ? B_FINGERS_R : B_FINGERS_L]);
+                vec3 pn = normalize(sd ? cross(vec3(0, 1, 0), fing) : cross(fing, vec3(0, 1, 0)));
+                vec3 td = normalize(fing * 0.62f + vec3(0, 1, 0) * 0.66f + pn * 0.42f);
+                pose.rot[sd ? B_FINGERS_R : B_FINGERS_L] = quatAxisAngle(normalize(cross(fing, pn)), fc * 1.45f);
+                pose.rot[sd ? B_THUMB_R : B_THUMB_L] = quatAxisAngle(normalize(cross(td, pn)), tc * 0.9f);
+            }
+        }
+        vec3 fpEye(0), fpW0(0), fpWx(1, 0, 0), fpWy(0, 1, 0), fpWz(0, 0, 1);
+        if (fpMode > 0) {
+            // first-person weapon hold as src/game/fpweapon.cpp does it: weapon placed in camera space (the camera at
+            // the eyes, looking along +Y), both hands IK'd onto its grips with Anim::holdGrip
+            mat4 m0[B_COUNT];
+            computeMatrices(ch.sk, pose, m0, nullptr);
+            fpEye = (m0[B_EYE_L].c[3].xyz() + m0[B_EYE_R].c[3].xyz()) * 0.5f + vec3(0.f, 0.02f, 0.f);
+            struct G { vec3 pos, axis, palm; };
+            auto pistolGrip = [](vec3 top, float ang) {
+                vec3 down(0.f, -sinf(ang), -cosf(ang));
+                return G{top + down * 0.035f, -down, vec3(-1.f, 0.12f, 0.f)};
+            };
+            auto cupGrip = [](const G& r) { return G{r.pos + vec3(-0.03f, 0.012f, -0.018f), r.axis, vec3(1.f, 0.1f, 0.3f)}; };
+            auto underGrip = [](vec3 p) { return G{p, vec3(0.f, 1.f, 0.f), vec3(0.25f, 0.f, 1.f)}; };
+            G gr, gl;
+            vec3 sight, hip;
+            float sightDist;
+            bool ads = fpMode == 1 || fpMode == 3, pistol = fpMode == 3 || fpMode == 4;
+            if (pistol) {
+                gr = pistolGrip(vec3(0.f, 0.f, 0.03f), 0.3f);
+                gl = cupGrip(gr);
+                sight = vec3(0.f, 0.16f, 0.078f), sightDist = 0.58f, hip = vec3(0.14f, 0.4f, -0.19f);
+            } else if (fpMode == 5) {
+                gr = G{vec3(0.f, -0.06f, 0.002f), vec3(0.f, 0.55f, 0.83f), vec3(-1.f, 0.1f, 0.f)};
+                gl = underGrip(vec3(0.f, 0.27f, 0.02f));
+                sight = vec3(0.f, 0.607f, 0.0752f), sightDist = 0.88f, hip = vec3(0.13f, 0.16f, -0.2f);
+            } else {
+                gr = pistolGrip(vec3(0.f, -0.02f, 0.02f), 0.3f);
+                gl = underGrip(vec3(0.f, 0.245f, 0.037f));
+                sight = vec3(0.f, 0.12f, 0.11f), sightDist = 0.17f, hip = vec3(0.13f, 0.21f, -0.21f);
+            }
+            vec3 wpos = ads ? vec3(0.f, sightDist, 0.f) - sight : hip;
+            quat wq = ads ? quat() : normalize(detail::qz(atan2f(hip.x, 12.f)) * detail::qx(atan2f(-hip.z, 12.f)) * detail::qy(pistol ? -0.05f : -0.08f));
+            mat3 wr = mat3FromQuat(wq);
+            fpW0 = fpEye + wpos;
+            fpWx = wr * vec3(1, 0, 0), fpWy = wr * vec3(0, 1, 0), fpWz = wr * vec3(0, 0, 1);
+            if (fpMode != 6) {
+                vec3 shR = m0[B_UPPERARM_R].c[3].xyz(), shL = m0[B_UPPERARM_L].c[3].xyz();
+                vec3 gp = fpW0 + wr * gr.pos;
+                holdGrip(ch.sk, pose, true, gp, normalize(wr * gr.axis), normalize(wr * gr.palm), (shR + gp) * 0.5f + vec3(0.3f, -0.05f, -0.3f), 0.9f,
+                         0.55f, 1.f);
+                gp = fpW0 + wr * gl.pos;
+                holdGrip(ch.sk, pose, false, gp, normalize(wr * gl.axis), normalize(wr * gl.palm), (shL + gp) * 0.5f + vec3(-0.2f, -0.05f, -0.35f),
+                         0.85f, 0.5f, 1.f);
+            } else {
+                // fists up in front of the face (guard)
+                vec3 shR = m0[B_UPPERARM_R].c[3].xyz(), shL = m0[B_UPPERARM_L].c[3].xyz();
+                holdGrip(ch.sk, pose, true, fpEye + vec3(0.12f, 0.3f, -0.12f), normalize(vec3(-0.3f, 0.2f, 1.f)), normalize(vec3(-0.6f, 0.2f, -0.2f)),
+                         (shR + fpEye) * 0.5f + vec3(0.3f, -0.05f, -0.4f), 1.f, 1.f, 1.f);
+                holdGrip(ch.sk, pose, false, fpEye + vec3(-0.13f, 0.34f, -0.1f), normalize(vec3(0.3f, 0.2f, 1.f)), normalize(vec3(0.6f, 0.2f, -0.2f)),
+                         (shL + fpEye) * 0.5f + vec3(-0.3f, -0.05f, -0.4f), 1.f, 1.f, 1.f);
+            }
+            gNear = 0.02f;
+            cam.eye = fpEye;
+            cam.target = fpEye + vec3(0.f, 1.f, 0.f);
+            cam.fov = fpFov;
+            cam.setup(W, H);
+        }
+        mat4 ms[B_COUNT], skin[B_COUNT];
+        computeMatrices(ch.sk, pose, ms, skin);
+        std::vector<vec3> P(ch.mesh.verts.size()), N(ch.mesh.verts.size()), A(ch.mesh.verts.size());
+        std::vector<u32> M(ch.mesh.verts.size());
+        std::vector<vec2> UVs(ch.mesh.verts.size());
+        std::vector<float> ALs(ch.mesh.verts.size());
+        // characters are lined up across the view direction
+        vec3 off = tiles ? vec3(0) : sideAxis * ((i - (count - 1) * 0.5f) * spacing) + vec3(cx, 0, 0);
+#ifdef ANIM_HAVE_CLIPS
+        if (pair) off = vec3(cx, i == 1 ? -0.55f : 0.f, 0.f);
+        if ((rootMotion || pair) && ci >= 0) off = off + clipRootMotion(ch.sk, (Clip)ci, ti);
+#endif
+        for (size_t v = 0; v < ch.mesh.verts.size(); v++) {
+            const VtxSkinned& vx = ch.mesh.verts[v];
+            mat4 m;
+            for (int k = 0; k < 4; k++) m.c[k] = vec4(0);
+            for (int k = 0; k < 4; k++) {
+                float w = vx.weights[k] / 255.f;
+                if (w <= 0) continue;
+                const mat4& s = skin[vx.bones[k]];
+                for (int c = 0; c < 4; c++) m.c[c] = m.c[c] + s.c[c] * w;
+            }
+            P[v] = rotate(quatAxisAngle(vec3(0, 0, 1), scenYaw), transformPoint(m, vx.pos)) + scenRoot + off;
+            N[v] = rotate(quatAxisAngle(vec3(0, 0, 1), scenYaw), normalize(transformDir(m, unpackNormalOct(vx.normal))));
+            vec4 cc = unpackRGBA8(vx.color);
+            A[v] = matAlbedo(vx.mat, cc.xyz());
+            if (getenv("PREVIEW_MATS")) {
+                u32 mm = vx.mat & 0xff;
+                A[v] = mm == MAT_EYE ? vec3(0, 1, 0) : (mm == MAT_HAIR ? vec3(1, 0, 0) : (mm == MAT_SKIN ? vec3(0.5f) : vec3(0, 0, 1)));
+            }
+            if (const char* sk = getenv("PREVIEW_SKINBITS")) {
+                // the skin shading bits (face.cpp): "region" colours the regions, "transl" / "pores" / "oil" / "melanin"
+                // show that field as grey levels (0 black .. 15 white); other materials dim grey
+                u32 mm = vx.mat & 0xff, prm = (vx.mat >> 8) & 0x7fffffu;
+                if (mm == MAT_SKIN) {
+                    static const vec3 rc[8] = {vec3(0.55f), vec3(0.9f, 0.1f, 0.15f), vec3(1.f, 0.5f, 0.8f), vec3(0.2f, 0.8f, 0.9f),
+                                               vec3(0.95f, 0.75f, 0.1f), vec3(0.2f, 0.85f, 0.25f), vec3(1.f), vec3(0.35f, 0.1f, 0.5f)};
+                    if (!strcmp(sk, "region")) A[v] = rc[(prm >> 1) & 7u];
+                    else {
+                        int sh = !strcmp(sk, "transl") ? 4 : (!strcmp(sk, "pores") ? 8 : (!strcmp(sk, "oil") ? 12 : 19));
+                        A[v] = vec3((float)((prm >> sh) & 15u) / 15.f);
+                    }
+                } else {
+                    A[v] = vec3(0.12f);
+                }
+            }
+            M[v] = vx.mat;
+            UVs[v] = vx.uv;
+            ALs[v] = cc.w;
+        }
+        if (tiles) {
+            // own camera on this character's head (face views), tile i of the image
+            int tw = W / count;
+            Img tile(tw, H);
+            Cam tc;
+            tc.fov = fov;
+            // PREVIEW_TILEBONE: aim at another bone's joint (e.g. 14 = right hand) instead of the face
+            int tb = getenv("PREVIEW_TILEBONE") ? Clamp(atoi(getenv("PREVIEW_TILEBONE")), 0, B_COUNT - 1) : (int)B_HEAD;
+            vec3 hp = ms[tb].c[3].xyz() + off;
+            tc.target = tb == B_HEAD ? hp + vec3(0, 0.03f, 0.035f) : hp;
+            if (const char* tg = getenv("PREVIEW_TGT")) {
+                vec3 o(0);
+                sscanf(tg, "%f,%f,%f", &o.x, &o.y, &o.z);
+                tc.target = hp + o;
+            }
+            tc.eye = tc.target + dir * (dist > 0 ? dist : 0.55f);
+            tc.setup(tw, H);
+            drawMesh(tile, tc, P, N, A, M, ch.mesh.indices, &UVs, &ALs);
+            img.blit(tile, i * tw);
+        } else {
+            if (getenv("PREVIEW_FEATSHADOW")) {
+                Img pre(img.w, img.h);
+                drawMesh(pre, cam, P, N, A, M, ch.mesh.indices, &UVs, &ALs);
+                gFeatZ = pre.z;
+            }
+            drawMesh(img, cam, P, N, A, M, ch.mesh.indices, &UVs, &ALs);
+            gFeatZ.clear();
+        }
+        if (getenv("PREVIEW_PHONE")) {
+            mat4 msp[B_COUNT];
+            for (int b = 0; b < B_COUNT; b++) {
+                msp[b] = ms[b];
+                msp[b].c[3] = vec4(ms[b].c[3].xyz() + off, 1.f);
+            }
+            vec3 pp, la, sc;
+            phoneFrame(ch.sk, msp, pp, la, sc);
+            vec3 wx = normalize(cross(la, sc));
+            std::vector<vec3> Ps, Ns, As;
+            std::vector<u32> Ms, Is;
+            vec3 hl = la * 0.073f, hw = wx * 0.035f, ht = sc * 0.004f;
+            vec3 corners[8];
+            for (int k = 0; k < 8; k++) corners[k] = pp + hl * ((k & 1) ? 1.f : -1.f) + hw * ((k & 2) ? 1.f : -1.f) + ht * ((k & 4) ? 1.f : -1.f);
+            const int faces[6][4] = {{4, 5, 7, 6}, {0, 2, 3, 1}, {0, 1, 5, 4}, {2, 6, 7, 3}, {0, 4, 6, 2}, {1, 3, 7, 5}};
+            for (int f = 0; f < 6; f++) {
+                u32 b0 = (u32)Ps.size();
+                vec3 fc(0);
+                for (int k = 0; k < 4; k++) fc += corners[faces[f][k]];
+                vec3 fn = normalize(fc * 0.25f - pp);
+                for (int k = 0; k < 4; k++) {
+                    Ps.push_back(corners[faces[f][k]]);
+                    Ns.push_back(fn);
+                    As.push_back(f == 0 ? vec3(0.1f, 0.25f, 0.5f) : vec3(0.05f));
+                    Ms.push_back(MAT_PLASTIC);
+                }
+                vec3 e1 = Ps[b0 + 1] - Ps[b0], e2 = Ps[b0 + 2] - Ps[b0];
+                bool flip = dot(cross(e1, e2), fn) < 0.f;
+                u32 q[6] = {b0, b0 + 1, b0 + 2, b0, b0 + 2, b0 + 3};
+                if (flip) { std::swap(q[1], q[2]); std::swap(q[4], q[5]); }
+                for (u32 x : q) Is.push_back(x);
+            }
+            drawMesh(img, cam, Ps, Ns, As, Ms, Is);
+        }
+        if (fpMode > 0 && fpMode != 6) {
+            // the gun as a few boxes in weapon space (receiver, barrel, grip / stock)
+            std::vector<vec3> Ps, Ns, As;
+            std::vector<u32> Ms, Is;
+            auto box = [&](vec3 c, vec3 he, vec3 col) {
+                const vec3 axes[3] = {fpWx, fpWy, fpWz};
+                for (int f = 0; f < 6; f++) {
+                    int ax = f / 2;
+                    float sg = (f & 1) ? 1.f : -1.f;
+                    vec3 n = axes[ax] * sg;
+                    vec3 u = axes[(ax + 1) % 3], v = axes[(ax + 2) % 3];
+                    float hu = he[(ax + 1) % 3], hv = he[(ax + 2) % 3];
+                    vec3 fc = fpW0 + fpWx * c.x + fpWy * c.y + fpWz * c.z + n * he[ax];
+                    u32 b = (u32)Ps.size();
+                    vec3 q[4] = {fc - u * hu - v * hv, fc + u * hu - v * hv, fc + u * hu + v * hv, fc - u * hu + v * hv};
+                    for (int k = 0; k < 4; k++) { Ps.push_back(q[k]); Ns.push_back(n); As.push_back(col); Ms.push_back(MAT_PLASTIC); }
+                    bool flip = dot(cross(q[1] - q[0], q[2] - q[0]), n) < 0.f;
+                    u32 id[6] = {b, b + 1, b + 2, b, b + 2, b + 3};
+                    if (flip) { std::swap(id[1], id[2]); std::swap(id[4], id[5]); }
+                    for (u32 x : id) Is.push_back(x);
+                }
+            };
+            vec3 gun(0.35f, 0.35f, 0.38f);
+            if (fpMode == 3 || fpMode == 4) {
+                box(vec3(0.f, 0.07f, 0.05f), vec3(0.013f, 0.095f, 0.016f), gun);
+                box(vec3(0.f, -0.012f, 0.0f), vec3(0.013f, 0.018f, 0.045f), gun * 0.6f);
+            } else {
+                box(vec3(0.f, 0.08f, 0.04f), vec3(0.018f, 0.16f, 0.03f), gun);
+                box(vec3(0.f, 0.35f, 0.04f), vec3(0.008f, 0.12f, 0.008f), gun * 0.8f);
+                box(vec3(0.f, 0.26f, 0.035f), vec3(0.022f, 0.07f, 0.024f), gun * 0.7f);
+                box(vec3(0.f, -0.03f, -0.01f), vec3(0.013f, 0.016f, 0.04f), gun * 0.6f);
+                box(vec3(0.f, -0.16f, 0.03f), vec3(0.015f, 0.08f, 0.03f), gun * 0.5f);
+            }
+            drawMesh(img, cam, Ps, Ns, As, Ms, Is);
+        }
+        if (weapon) {
+            mat4 msw[B_COUNT];
+            for (int b = 0; b < B_COUNT; b++) {
+                msw[b] = ms[b];
+                msw[b].c[3] = vec4(ms[b].c[3].xyz() + off, 1.f);
+            }
+            vec3 gp, ga, gpalm;
+            handGrip(ch.sk, msw, true, gp, ga, gpalm);
+            drawWeapon(img, cam, weapon, gp, ga, gpalm);
+        }
+    }
+    if (floorOn) {
+        // checkerboard floor (0.25 m tiles) at z = 0 to judge ground contact
+        std::vector<vec3> P, N, A;
+        std::vector<u32> M, I;
+        float ext = (count - 1) * spacing * 0.5f + 1.5f;
+        float tile = 0.25f;
+        float fx = floorf(floorC.x / tile) * tile, fy = floorf(floorC.y / tile) * tile;
+        float x0 = cx - ext + fx, x1 = cx + ext + fx, y0 = -ext - 1.f + fy, y1 = ext + 1.f + fy;
+        for (float y = y0; y < y1 - 1e-4f; y += tile)
+            for (float x = x0; x < x1 - 1e-4f; x += tile) {
+                int k = (int)floorf(x / tile + 1000.f) + (int)floorf(y / tile + 1000.f);
+                vec3 c = (k & 1) ? vec3(0.32f, 0.3f, 0.28f) : vec3(0.42f, 0.4f, 0.37f);
+                u32 b = (u32)P.size();
+                P.push_back(vec3(x, y, 0)); P.push_back(vec3(x + tile, y, 0)); P.push_back(vec3(x + tile, y + tile, 0)); P.push_back(vec3(x, y + tile, 0));
+                for (int q = 0; q < 4; q++) { N.push_back(vec3(0, 0, 1)); A.push_back(c); M.push_back(MAT_CLOTH); }
+                I.push_back(b); I.push_back(b + 1); I.push_back(b + 2);
+                I.push_back(b); I.push_back(b + 2); I.push_back(b + 3);
+            }
+        drawMesh(img, cam, P, N, A, M, I);
+    }
+    if (ss > 1) img.down(ss).save(out);
+    else img.save(out);
+    return 0;
+}
+#endif

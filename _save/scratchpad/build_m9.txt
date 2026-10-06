@@ -1,0 +1,12 @@
+In file included from src/anim/anim_all.cpp:14,
+                 from src/main.cpp:49:
+src/anim/clips.cpp: In function 'void Anim::detail::clipGuardLoop(const AuthorCtx&, int, float, Rig&)':
+src/anim/clips.cpp:2600: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 2600 |     else guardPose(A, r);
+      | 
+src/anim/clips.cpp:2600: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 11645440 Oct  1 01:40 bin/missions2.exe
+
+real	7m39.448s
+user	3m39.280s
+sys	0m3.643s

@@ -1,0 +1,5 @@
+ap1 front 22669 16 2 3 60 10
+ap2 front 22842 18 2 -3 60 10
+ap3 front 22829 16 2 3 60 10
+sg4 front 22673 18 2 -3 60 10
+med_fix front 0 15 2 3 60 10

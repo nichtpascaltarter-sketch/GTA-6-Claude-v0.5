@@ -1,0 +1,9 @@
+src/gfx/gfx_shaders.cpp ab3915f16c0d72e4b6d03ea47dd4c069c561da03
+src/render/renderer.cpp 3cafe6a1122a6621637407cf7d43b54a4fc24729
+src/render/renderer.h e20cb7eddedce9c4944f512f557835efdad64252
+src/render/skin.cpp f8b003890db710f8e8998bdbd7418eb74962cca4
+src/shaders/lighting.hlsl d569ecfe9fb29c1eebc45372591f0f9ae0ef66ea
+src/shaders/dynamic.hlsl e6988c2856e1853eacddd4cdc3c5272cbac6f9ea
+src/shaders/common.hlsli e43702f82ea85efb39ae306d3a688989010199df
+src/shaders/decals.hlsl 4b6a9ca770f60c5787be9700ad0cac93d49d5789
+PROGRESS.md 22ea2ec4bb7c15419790db2b1350a28c4d58c85a

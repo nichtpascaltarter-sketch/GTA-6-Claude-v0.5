@@ -1,0 +1,31 @@
+faces snapshot-safe — batch 5 (brows and lashes by day). One file; it applies cleanly on main d3c2c3f.
+
+FILES (blob written with git hash-object -w; the copy is in the shared tree now; also in /tmp/faces/batch5/)
+  src/anim/face.cpp   6c37695b2a46d8c2f72aeff118514dccc0ba2c92
+My other five files are unchanged from d3c2c3f (hair.cpp, clothing.cpp, bodymesh.cpp, anim_test.cpp, preview.cpp), and so is character.cpp. No character.h or shader changes.
+
+CHANGELOG (player-facing)
+- Eyebrows no longer catch the sun's highlight along their whole length. The brow hairs now lie in a herringbone: the lower hairs point up and out (~35 deg), the upper ones down and out (~25 deg), and few lie flat. Brow cards now sit at renderer card depth 3-5 (was 1), so they get the hair-volume dimming of the sun and sky highlight.
+- Eyelashes no longer draw a pale line along the lid by day: lash cards are at depth 3-4 (was 0).
+- The effect is honestly small. At 0.5 m by day, dark brows are a bit darker and more solid. At 1 m they are nearly identical to batch 4, and there's no visible change at night or at 4 m. Most of the brow gain came with batch 4 (the aligned brow tint). If one small file isn't worth its own snapshot slot, it can wait for my next batch.
+
+TESTS
+- anim_test: ALL PASSED on main d3c2c3f + this face.cpp (/tmp/faces/anim_test_b5t3.log), and on 8fb1e66 + batch 4 + this face.cpp (/tmp/faces/b5tree).
+- tests/anim/carview.cpp: compiles and runs (b5tree).
+- O2 build of b5tree: /tmp/faces/nt_b5_o2.exe.
+- Wine D3D12, 30 portraits (people 0, 1, 7, 17, 27, 38 at 0.5, 1 and 4 m by day; 1 and 4 m at night under the street lamp): 0 FATAL / vkd3d lines (/tmp/faces/log_b5.txt, shots in /tmp/faces/b5/). Albedo debug views: /tmp/faces/b5alb/.
+- Perf, --autoplay tour --tourstart 7 --tourcount 1: cpu ms peds 2.46 (batch 4: 3.69 / 2.88; main 91a6aba: 2.75 / 3.63). That is within run-to-run noise; peds reuse the roster meshes built at load. Assets built in 45.44 s (39.2-46.0 s across all my runs).
+
+MONTAGES (scratchpad = /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad)
+- scratchpad/faces/b5_c{0,1,7,17,27,38}.png: batch 4 vs batch 5 at 0.5, 1 and 4 m by day, and 1 and 4 m at night.
+- scratchpad/faces/b5_brows_1m_day.png: main / batch 4 / batch 5, six faces at 1 m by day.
+- scratchpad/faces/c17_brow_b3_b4_b5.png: c17's brows at 0.5 m by day, batches 3 / 4 / 5.
+
+WHAT STILL READS PALE AT 1 M (my finding; I'm working on it next)
+In the 960x540 shots a face at "1 m" is about 60 px wide, and a brow is 2 px tall. The vertical profile through c17's brow (lit shot vs albedo view) shows:
+- the brow itself is ~0.75-0.8 of the forehead (so it is darker);
+- there's a bright 1-px line just above it (lit/albedo 1.12 vs the forehead's 0.89);
+- the upper lid gets lit/albedo ~1.2.
+So the brow reads as a dark line outlined in pale, above a pale lid. That is the "pale brows / pale eye ring" read by day. The albedo and lit shots are separate runs, so the per-pixel ratio is approximate.
+
+Next: find where the lid's and the line's extra light comes from (normals, the skin gloss data, or the cards' highlight), using the preview's lighting, and fix it in my files. If it turns out to be shading, I'll send you the renderer-side detail instead.

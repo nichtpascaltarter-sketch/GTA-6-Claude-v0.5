@@ -1,0 +1,11 @@
+{
+  "id": "42",
+  "subject": "Fix D3D12 noise screenshots on long runs",
+  "description": "Tour shots 5-6 on snapshot 11's D3D12 exe and the renderer agent's HEAD tour stop 8 came out as full-screen noise, with no errors in the logs. The D3D12 agent (aeb175efafb6a6358) is root-causing it: is the frame or only the readback corrupt, and are allocations failing unchecked under memory pressure? Land the fix through the snapshot pipeline, then rerun the Scorecard 4 tour.",
+  "activeForm": "Root-causing the D3D12 noise screenshots",
+  "status": "completed",
+  "blocks": [
+    "40"
+  ],
+  "blockedBy": []
+}

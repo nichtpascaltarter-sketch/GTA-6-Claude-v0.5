@@ -1,0 +1,5 @@
+[ 652.572] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.3 | peds 88 vehicles 62 wanted 0 | cpu ms player 0.05 ai 0.52 veh 0.56 peds 0.9
+[ 847.519] autoplay t=17.5 pos 1806.7 247.5 3.5 state 2 health 200 veh 1 speed 10.9 | peds 88 vehicles 66 wanted 0 | cpu ms player 0.05 ai 0.83 veh 0.48 peds 1.
+64f3ef7 Live cockpit, fishing, airboat tours, cemetery and churchyards, carrying poses, greetings, Act 4 unlock
+branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
+COMMITTED 149dc8962ee698f551d1d28251c2f97a6fd36e97

@@ -1,0 +1,22 @@
+files: 66882 total, keep 55574 (2041 MB), skip 11308 (10687 MB), private-content files left out: 1
+  big kept: 21 MB /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/mb_drive.txt
+bundle /tmp/fx/cs2
+bundle /tmp/fx/bl
+bundle /tmp/fx/cs
+bundle /tmp/fx/gd2
+bundle /tmp/fx/gd3
+bundle /tmp/fx/gd
+bundle /tmp/fx/gd4
+sha256sum: /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/tmpview/stray_help.png: No such file or directory
+sha256sum: /tmp/ai/copbreak_nt_ai86/auto_copbreak_04_b2.bmp: No such file or directory
+sha256sum: /tmp/ai/copbreak_nt_ai86/auto_copbreak_08_b2.bmp: No such file or directory
+sha256sum: /tmp/ai/copbreak_nt_ai86/auto_copbreak_06_b2.bmp: No such file or directory
+sha256sum: /tmp/ai/copbreak_nt_ai86/auto_copbreak_00.bmp: No such file or directory
+sha256sum: /tmp/ai/copbreak_nt_ai86/auto_copbreak_07_b2.bmp: No such file or directory
+sha256sum: /tmp/ai/copbreak_nt_ai86/auto_copbreak_05_b2.bmp: No such file or directory
+sha256sum: /tmp/ai/copbreak_nt_ai86/auto_copbreak_01_b0.bmp: No such file or directory
+sha256sum: /tmp/ai/copbreak_nt_ai86/auto_copbreak_03_b2.bmp: No such file or directory
+sha256sum: /tmp/ai/copbreak_nt_ai86/auto_copbreak_02_b0.bmp: No such file or directory
+sha256sum: /tmp/ai/copbreak_nt_ai86/auto_copbreak_00_b0.bmp: No such file or directory
+fatal: could not open '/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/dev20c_save/buildmesh.cpp' for reading: No such file or directory
+HASH FAILED

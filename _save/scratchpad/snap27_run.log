@@ -1,0 +1,8 @@
+Embedded 40 shader files.
+146 shaders, 0 failed
+[ 332.672] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.1 | peds 88 vehicles 63 wanted 0 | cpu ms player 0.08 ai 0.63 veh 0.63 peds 1.1
+[ 454.946] autoplay t=17.5 pos 1806.7 270.7 3.5 state 2 health 200 veh 1 speed 17.6 | peds 86 vehicles 66 wanted 0 | cpu ms player 0.04 ai 0.91 veh 1.24 peds 1.
+[ 380.301] autoplay t=13.5 pos 1791.3 160.9 6.5 state 0 health 188 veh -1 speed 0.0 | peds 97 vehicles 64 wanted 1 | cpu ms player 0.08 ai 0.55 veh 0.70 peds 1.
+491a2c8 City batch 3: motels, strip malls, farms and neighbourhood churches in real types; a lighter far LOD
+branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
+COMMITTED d08436f95662da3345a797762df3853cfc17df6d

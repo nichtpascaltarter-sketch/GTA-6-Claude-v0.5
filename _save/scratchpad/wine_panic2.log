@@ -1,0 +1,234 @@
+[   0.014] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.611] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB
+[   0.626] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.718] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   0.769] UI font 'Impact' -> 'Liberation Sans'
+[   0.828] Font atlas built in 0.20 s
+[   0.847] Compiled ui.hlsl:vsUI (vs_5_0) in 0.02 s
+[   1.017] Compiled ui.hlsl:psUI (ps_5_0) in 0.17 s
+[   1.022] Compiled ui.hlsl:vsUIFull (vs_5_0) in 0.00 s
+[   1.028] Compiled ui.hlsl:psUIDown (ps_5_0) in 0.01 s
+[   1.034] Compiled ui.hlsl:psUIBlur (ps_5_0) in 0.01 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   1.049] Audio: no output device - audio disabled
+[   1.049] Audio: no output device, continuing silently
+[   2.199] UI icon atlas: 86 icons + 13 weapons in 1109 ms
+[  14.448] Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.05 s)
+[  16.190] World map generated in 15.13 s
+[  16.848] Road gen: 22 interchanges
+[  19.855] Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (3.63 s)
+[  22.888] Buildings: 36093 (towers 358, midrise 2400, condo 485, deco 838, shops 4829, strip 693, houses 21872, villas 928, warehouses 1686) in 2.71 s
+[  22.892] Sites: 66 highway billboards
+[  22.895] Sites: 112 silos, 55 windmills
+[  22.900] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  22.908] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  22.908] Site terminal             at (628, 1440, 4.6)
+[  22.909] Site control tower        at (730, 1832, 4.6)
+[  22.909] Site container ship       at (4625, -800, 0.0)
+[  22.909] Site container ship       at (4616, -330, 0.0)
+[  22.910] Site port gate            at (4008, -160, 3.0)
+[  22.910] Site Key Coral marina     at (4039, -4035, 0.0)
+[  22.910] Site beach club           at (4873, -3866, 1.2)
+[  22.910] Site beach club           at (4808, -4183, 2.2)
+[  22.911] Site Solaris One          at (3350, -750, 1.4)
+[  22.918] Site stadium              at (3565, 445, 1.6)
+[  22.918] Site City Hall            at (3000, 372, 2.0)
+[  22.921] Site Canvas Park          at (3100, 1800, 1.7)
+[  22.921] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  22.921] Site Ferris wheel         at (5504, 1270, 5.6)
+[  22.921] Site lighthouse           at (-2206, -8000, 0.5)
+[  22.921] Site radio mast           at (-6744, 7248, 166.1)
+[  22.921] Site sugar mill           at (1430, 7500, 8.1)
+[  22.921] Site Rio Sol marina       at (2280, 188, 0.0)
+[  22.921] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  22.921] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  22.922] Sites finalized: 557 elements (0.03 s)
+[  22.938] Interiors: 18 planned (convenience 7, gun shops 2) in 15.9 ms
+[  22.944]   interior 'Mari's Apartment' kind 0 building 4731 at (1742.99, 359.27, 3.79) ax (1.0000, 0.0000) x -6.35..6.35 depth 11.50 ceil 4.07: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[  22.944]   interior 'Mama Lucha's' kind 2 building 3268 at (1344.20, 340.74, 4.30) ax (-1.0000, -0.0000) x -7.52..7.52 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 22 npc points
+[  22.946]   interior 'Rook's Garage' kind 3 building 4240 at (1653.58, 2361.70, 4.24) ax (1.0000, 0.0000) x -10.06..10.06 depth 20.00 ceil 7.79: 3 rooms, 6 openings, 4 doors, 6 portals, 5 npc points
+[  22.954]   interior 'Dex's Trailer' kind 1 building 2793 at (1313.66, 2666.61, 4.66) ax (1.0000, 0.0000) x -7.80..7.80 depth 17.92 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  22.954]   interior 'Police Headquarters' kind 5 building 9169 at (3164.81, -240.27, 1.87) ax (1.0000, 0.0000) x -12.31..8.80 depth 16.00 ceil 3.77: 2 rooms, 7 openings, 2 doors, 7 portals, 13 npc points
+[  22.954]   interior 'Tidewater General Hospital' kind 6 building 4160 at (1708.83, 1165.32, 3.62) ax (1.0000, 0.0000) x -11.37..8.12 depth 16.00 ceil 3.89: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+[  22.954]   interior 'Palmetto Arms' kind 7 building 1627 at (884.67, 2892.03, 4.89) ax (0.0000, 1.0000) x -5.49..5.49 depth 14.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  22.957]   interior 'Northside Arms' kind 7 building 9707 at (3284.64, 3978.47, 2.04) ax (0.0000, 1.0000) x -3.67..7.35 depth 14.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  22.970]   interior 'Threads' kind 9 building 31794 at (5162.88, -280.71, 1.91) ax (-1.0000, 0.0000) x -8.18..4.91 depth 15.00 ceil 3.57: 2 rooms, 5 openings, 2 doors, 5 portals, 4 npc points
+[  22.972]   interior 'Port Isle Warehouse' kind 12 building 36078 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  22.974]   interior 'TideStop Mart' kind 8 building 3378 at (1449.11, -259.30, 4.30) ax (-1.0000, -0.0000) x -6.22..6.22 depth 17.00 ceil 3.45: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  22.976]   interior 'Bodega La Luna' kind 8 building 6349 at (2248.50, 540.78, 2.92) ax (-1.0000, -0.0000) x -5.89..5.89 depth 17.00 ceil 3.52: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  22.979]   interior 'Canvas Corner Market' kind 8 building 8799 at (2981.20, 1582.59, 2.26) ax (0.0000, 1.0000) x -8.23..4.94 depth 17.00 ceil 3.44: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  22.989]   interior 'Sunrise Food Mart' kind 8 building 31838 at (5227.60, 643.36, 1.78) ax (0.0000, 1.0000) x -7.92..7.92 depth 17.00 ceil 3.66: 2 rooms, 7 openings, 2 doors, 7 portals, 5 npc points
+[  22.990]   interior 'Northside Quick Stop' kind 8 building 6599 at (2352.84, 3761.68, 3.08) ax (1.0000, 0.0000) x -6.39..6.39 depth 17.00 ceil 3.53: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  22.990]   interior 'Flats Food & Fuel' kind 8 building 1225 at (458.12, 3265.33, 5.16) ax (1.0000, 0.0000) x -5.58..5.58 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[  22.990]   interior 'Grove Pantry' kind 8 building 12464 at (2167.47, -3046.89, 2.30) ax (0.0184, -0.9998) x -6.03..6.03 depth 17.00 ceil 3.78: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  22.990]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 0.94) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  23.062] Compiled post.hlsl:vsFullscreen (vs_5_0) in 0.05 s
+[  30.247] Compiled lighting.hlsl:csLighting (cs_5_0) in 7.17 s
+[  30.341] Compiled sky.hlsl:csTransmittance (cs_5_0) in 0.09 s
+[  30.829] Compiled sky.hlsl:csMultiScatter (cs_5_0) in 0.49 s
+[  30.910] Compiled sky.hlsl:csSkyView (cs_5_0) in 0.08 s
+[  30.968] Compiled sky.hlsl:csAerialPerspective (cs_5_0) in 0.06 s
+[  31.742] Compiled sky.hlsl:csSkySH (cs_5_0) in 0.77 s
+[  31.872] Compiled post.hlsl:csLumReduce (cs_5_0) in 0.12 s
+[  31.883] Compiled post.hlsl:csExposure (cs_5_0) in 0.01 s
+[  31.914] Compiled post.hlsl:csBloomDown (cs_5_0) in 0.03 s
+[  31.933] Compiled post.hlsl:csBloomUp (cs_5_0) in 0.02 s
+[  32.035] Compiled taa.hlsl:csTAA (cs_5_0) in 0.10 s
+[  32.106] Compiled post.hlsl:psTonemap (ps_5_0) in 0.07 s
+[  32.176] Compiled motionblur.hlsl:csTileMax (cs_5_0) in 0.07 s
+[  32.194] Compiled motionblur.hlsl:csNeighborMax (cs_5_0) in 0.02 s
+[  32.288] Compiled motionblur.hlsl:csMotionBlur (cs_5_0) in 0.09 s
+[  32.311] Compiled terrain.hlsl:vsTerrain (vs_5_0) in 0.02 s
+[  32.332] Compiled terrain.hlsl:vsTerrainShadow (vs_5_0) in 0.02 s
+[  33.093] Compiled terrain.hlsl:psTerrain (ps_5_0) in 0.76 s
+[  33.610] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.52 s
+[  34.084] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.47 s
+[  34.540] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.46 s
+[  35.007] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.47 s
+[  35.590] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.58 s
+[  36.297] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.70 s
+[  36.685] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.39 s
+[  40.384] Compiled matgen.hlsl:csGenerate (cs_5_0) in 3.70 s
+[  42.277] Compiled matgen.hlsl:csGenerate (cs_5_0) in 1.88 s
+[  44.316] Compiled matgen.hlsl:csGenerate (cs_5_0) in 2.04 s
+[  44.849] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.51 s
+[  45.088] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.24 s
+[  45.620] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.53 s
+[  46.546] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.92 s
+[  46.806] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.26 s
+[  46.928] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.12 s
+[  47.040] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.11 s
+[  47.204] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.16 s
+[  47.335] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.13 s
+[  47.497] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.16 s
+[  47.630] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.13 s
+[  47.693] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.06 s
+[  47.838] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.14 s
+[  48.103] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.26 s
+[  48.143] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.04 s
+[  48.363] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.22 s
+[  48.413] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.05 s
+[  49.144] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.72 s
+[  49.164] Material library: 57 layers at 256^2
+[  49.231] Compiled world.hlsl:vsWorld (vs_5_0) in 0.07 s
+[  49.284] Compiled world.hlsl:vsWorldShadow (vs_5_0) in 0.05 s
+[  54.398] Compiled world.hlsl:psWorld (ps_5_0) in 5.11 s
+[  54.473] Compiled water.hlsl:vsWater (vs_5_0) in 0.07 s
+[  55.256] Compiled water.hlsl:psWater (ps_5_0) in 0.78 s
+[  55.311] Compiled water.hlsl:csWaveNormals (cs_5_0) in 0.05 s
+[  57.091] Compiled clouds.hlsl:csShapeNoise (cs_5_0) in 1.78 s
+[  57.718] Compiled clouds.hlsl:csDetailNoise (cs_5_0) in 0.63 s
+[  58.173] Compiled clouds.hlsl:csWeather (cs_5_0) in 0.45 s
+[  58.389] Compiled clouds.hlsl:csCloudTrace (cs_5_0) in 0.22 s
+[  58.466] Compiled clouds.hlsl:csCloudReconstruct (cs_5_0) in 0.07 s
+[  58.500] Compiled clouds.hlsl:csCloudShadow (cs_5_0) in 0.03 s
+[  58.547] Compiled props.hlsl:vsProp (vs_5_0) in 0.04 s
+[  58.642] Compiled props.hlsl:vsPropShadow (vs_5_0) in 0.09 s
+[  59.241] Compiled props.hlsl:psProp (ps_5_0) in 0.60 s
+[  59.285] Compiled props.hlsl:psPropShadow (ps_5_0) in 0.02 s
+[  62.438] Compiled foliage.hlsl:csFoliage (cs_5_0) in 3.11 s
+[  62.478] Props: 51 prototypes, 22665 verts
+[  62.982] Compiled dynamic.hlsl:vsRigid (vs_5_0) in 0.50 s
+[  63.102] Compiled dynamic.hlsl:vsSkinned (vs_5_0) in 0.12 s
+[  63.293] Compiled dynamic.hlsl:vsRigidShadow (vs_5_0) in 0.18 s
+[  63.317] Compiled dynamic.hlsl:vsSkinnedShadow (vs_5_0) in 0.02 s
+[  63.729] Compiled dynamic.hlsl:psDynamic (ps_5_0) in 0.41 s
+[  64.186] Compiled dynamic.hlsl:psGlass (ps_5_0) in 0.45 s
+[  64.208] Compiled particles.hlsl:csEmit (cs_5_0) in 0.02 s
+[  64.304] Compiled particles.hlsl:csSimulate (cs_5_0) in 0.09 s
+[  64.345] Compiled particles.hlsl:csKeys (cs_5_0) in 0.03 s
+[  64.521] Compiled particles.hlsl:csSortLocal (cs_5_0) in 0.17 s
+[  64.540] Compiled particles.hlsl:csSortGlobal (cs_5_0) in 0.02 s
+[  64.676] Compiled particles.hlsl:csSortMerge (cs_5_0) in 0.13 s
+[  67.508] Compiled particles.hlsl:csGenAtlas (cs_5_0) in 2.83 s
+[  68.003] Compiled particles.hlsl:vsParticle (vs_5_0) in 0.49 s
+[  68.073] Compiled particles.hlsl:psParticle (ps_5_0) in 0.07 s
+[  68.113] Compiled decals.hlsl:vsDecal (vs_5_0) in 0.04 s
+[  68.246] Compiled decals.hlsl:psDecal (ps_5_0) in 0.12 s
+[  68.254] Compiled decals.hlsl:vsSkid (vs_5_0) in 0.01 s
+[  68.285] Compiled decals.hlsl:psSkid (ps_5_0) in 0.03 s
+[  69.904] Compiled decals.hlsl:csGenDecals (cs_5_0) in 1.61 s
+[  69.997] Compiled hiz.hlsl:csHiZFirst (cs_5_0) in 0.09 s
+[  70.049] Compiled hiz.hlsl:csHiZDown (cs_5_0) in 0.04 s
+[  70.099] Compiled hiz.hlsl:csColorDown (cs_5_0) in 0.05 s
+[  70.470] Compiled gtao.hlsl:csGTAO (cs_5_0) in 0.37 s
+[  70.580] Compiled gtao.hlsl:csGTAOTemporal (cs_5_0) in 0.11 s
+[  70.944] Compiled gtao.hlsl:csGTAOBlur (cs_5_0) in 0.36 s
+[  71.081] Compiled ssr.hlsl:csSSRTrace (cs_5_0) in 0.14 s
+[  71.199] Compiled ssr.hlsl:csSSRResolve (cs_5_0) in 0.11 s
+[  71.711] Compiled envprobe.hlsl:psProbeLight (ps_5_0) in 0.51 s
+[  71.761] Compiled envprobe.hlsl:csPrefilter (cs_5_0) in 0.05 s
+[  71.958] Compiled envprobe.hlsl:csProbeSH (cs_5_0) in 0.20 s
+[  72.151] Compiled fog.hlsl:csFogInject (cs_5_0) in 0.19 s
+[  72.182] Compiled fog.hlsl:csFogIntegrate (cs_5_0) in 0.02 s
+[  72.292] Compiled fog.hlsl:csFogNoise (cs_5_0) in 0.11 s
+[  72.316] Compiled overhead.hlsl:vsOverhead (vs_5_0) in 0.02 s
+[  72.321] Compiled overhead.hlsl:psOverhead (ps_5_0) in 0.00 s
+[  72.334] Compiled rain.hlsl:csOverheadHeight (cs_5_0) in 0.01 s
+[  72.498] Compiled rain.hlsl:vsRain (vs_5_0) in 0.16 s
+[  72.689] Compiled rain.hlsl:vsSplash (vs_5_0) in 0.19 s
+[  72.733] Compiled rain.hlsl:vsBolt (vs_5_0) in 0.04 s
+[  72.755] Compiled rain.hlsl:psRain (ps_5_0) in 0.02 s
+[  72.763] Compiled rain.hlsl:psSplash (ps_5_0) in 0.01 s
+[  72.776] Compiled rain.hlsl:psBolt (ps_5_0) in 0.01 s
+[  73.017] Compiled grass.hlsl:csGrassPlace (cs_5_0) in 0.24 s
+[  73.108] Compiled grass.hlsl:vsGrass (vs_5_0) in 0.09 s
+[  73.153] Compiled grass.hlsl:psGrass (ps_5_0) in 0.04 s
+[  75.667] Vehicle assets: 45 models in 2.11 s
+[  85.806] Character assets: 86 characters in 10.14 s
+[  85.807] Game assets built in 12.24 s
+[  85.829] Story place near (4450, -4200): no building frontage found, using the street
+[  85.843] Story place near (800, -5400): no building frontage found, using the street
+[  85.855] Story places resolved in 47.0 ms (diner 1342 342, Mari's 1745 358, Rook's 1657 2360, Pulse FM 3356 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[  85.855] Missions registered: 40
+[  86.610] Lane graph: 26691 lanes, 59937 connectors (1215831 pts), 36768 walk nodes, 53089 walk links, dead-end turning circles moved 0 / obstructed 0 (0.75 s)
+[  87.206] UI map: base 2560x2560 in 498 ms, 10030 roads (46402 pts) in 49 ms, 30 labels in 48 ms
+[  87.207] hudInit done in 595 ms
+[  87.207] Init done in 86.16 s (shaders: 115 compiled in 49.90 s)
+[  87.210] autoplay panic: patrol car 1 at 2863 752
+[  87.224] Stunt jumps: 1 road crests (3 candidates); ramps being placed
+[  89.159] Interior 'Bodega La Luna' built: 116744 triangles, 18 lights, 14 colliders, 3 door leaves in 82.7 ms
+[  89.160] Stunt ramps: 10 placed (0 over water) in 791 ms (25853 corridors tested); 11 unique stunt jumps
+[  89.181] Wildlife: 22 species models ready (141 k triangles in the detailed LODs)
+[ 132.840] autoplay panic t=2.0 wanted 0 heat 0.00 busted 0 | census r60: 27 on foot | walk 14 (phone 4 smoke 1) group 7 (talking 0) jog 0 | sit 0 talk 2 phone 2 dance 0 smoke 2 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 2 business 10 beach 0 night 0 gang 0 worker 0 | react flee 0 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 9 parked 11 police 0 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 0 film 0 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 0 arrests 0 | AI 0.54 ms (avg 0.41, max 7.34): traffic 0.28 peds 0.16 pop 0.05 police 0.00 events 0.00 | peds 78 cars 49 (AI 30, dummy 3)
+[ 164.026] autoplay t=2.5 pos 2713.0 763.0 2.1 state 0 health 200 veh -1 speed 0.0 | peds 79 vehicles 49 wanted 0 | cpu ms player 0.14 ai 0.76 veh 0.93 peds 0.47 | mem 1417 MB (private 0)
+[ 171.663] autoplay panic t=4.0 wanted 0 heat 0.00 busted 0 | census r60: 27 on foot | walk 4 (phone 0 smoke 2) group 2 (talking 0) jog 0 | sit 0 talk 2 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 2 business 10 beach 0 night 0 gang 0 worker 0 | react flee 16 cower 2 film 1 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 9 parked 11 police 0 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 2 | totals panic 1 film 1 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 0 arrests 0 | AI 0.25 ms (avg 0.51, max 13.20): traffic 0.14 peds 0.07 pop 0.02 police 0.00 events 0.00 | peds 78 cars 49 (AI 30, dummy 3)
+[ 196.410] autoplay t=5.5 pos 2713.0 763.0 2.1 state 0 health 200 veh -1 speed 0.0 | peds 79 vehicles 49 wanted 0 | cpu ms player 0.06 ai 0.34 veh 0.82 peds 0.41 | mem 1436 MB (private 0)
+[ 198.302] autoplay panic t=6.0 wanted 0 heat 0.00 busted 0 | census r60: 26 on foot | walk 1 (phone 0 smoke 0) group 2 (talking 0) jog 0 | sit 0 talk 2 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 2 business 10 beach 0 night 0 gang 0 worker 0 | react flee 18 cower 2 film 0 inspect 1 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 10 parked 11 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 2 film 1 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 0 arrests 0 | AI 0.25 ms (avg 0.46, max 9.77): traffic 0.14 peds 0.07 pop 0.02 police 0.00 events 0.00 | peds 78 cars 49 (AI 30, dummy 2)
+[ 207.663] autoplay panic t=8.0 wanted 0 heat 0.00 busted 0 | census r60: 17 on foot | walk 1 (phone 0 smoke 0) group 2 (talking 0) jog 0 | sit 0 talk 2 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 7 beach 0 night 0 gang 0 worker 0 | react flee 10 cower 2 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 10 parked 11 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 3 | totals panic 4 film 1 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 0 arrests 0 | AI 0.31 ms (avg 0.62, max 12.76): traffic 0.16 peds 0.10 pop 0.03 police 0.00 events 0.00 | peds 78 cars 49 (AI 30, dummy 3)
+[ 231.244] autoplay t=9.5 pos 2713.0 763.0 2.1 state 0 health 200 veh -1 speed 0.0 | peds 79 vehicles 49 wanted 0 | cpu ms player 0.23 ai 0.55 veh 1.08 peds 0.51 | mem 1443 MB (private 0)
+[ 233.473] autoplay panic t=10.0 wanted 0 heat 0.00 busted 0 | census r60: 16 on foot | walk 1 (phone 0 smoke 0) group 2 (talking 0) jog 0 | sit 0 talk 2 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 6 beach 0 night 0 gang 0 worker 0 | react flee 9 cower 2 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 10 parked 11 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 4 film 1 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 0 arrests 0 | AI 0.24 ms (avg 0.58, max 9.49): traffic 0.13 peds 0.07 pop 0.02 police 0.00 events 0.00 | peds 78 cars 49 (AI 30, dummy 3)
+[ 243.930] autoplay panic t=12.0 wanted 0 heat 0.00 busted 0 | census r60: 14 on foot | walk 1 (phone 0 smoke 0) group 2 (talking 0) jog 0 | sit 0 talk 2 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 5 beach 0 night 0 gang 0 worker 0 | react flee 7 cower 2 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 10 parked 11 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 3 | totals panic 4 film 1 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 0 arrests 0 | AI 0.27 ms (avg 0.45, max 7.03): traffic 0.14 peds 0.09 pop 0.02 police 0.00 events 0.00 | peds 78 cars 49 (AI 30, dummy 3)
+[ 264.374] autoplay t=13.5 pos 2713.0 763.0 2.1 state 0 health 200 veh -1 speed 0.0 | peds 82 vehicles 51 wanted 0 | cpu ms player 0.06 ai 0.38 veh 0.67 peds 0.39 | mem 1444 MB (private 0)
+[ 266.382] autoplay panic t=14.0 wanted 0 heat 0.00 busted 0 | census r60: 4 on foot | walk 0 (phone 0 smoke 0) group 0 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 3 cower 1 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 10 parked 11 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 10 film 1 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 1 arrests 0 | AI 0.27 ms (avg 0.36, max 5.20): traffic 0.15 peds 0.08 pop 0.02 police 0.00 events 0.00 | peds 81 cars 51 (AI 32, dummy 4)
+[ 276.685] autoplay panic t=16.0 wanted 0 heat 0.00 busted 0 | census r60: 5 on foot | walk 0 (phone 0 smoke 0) group 0 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 1 beach 0 night 0 gang 0 worker 0 | react flee 4 cower 1 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 9 parked 11 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 2 | totals panic 14 film 1 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 1 arrests 0 | AI 0.26 ms (avg 0.47, max 3.85): traffic 0.15 peds 0.08 pop 0.02 police 0.00 events 0.00 | peds 82 cars 51 (AI 32, dummy 6)
+[ 302.079] autoplay t=17.5 pos 2713.0 763.0 2.1 state 0 health 200 veh -1 speed 0.0 | peds 83 vehicles 51 wanted 0 | cpu ms player 0.04 ai 0.53 veh 0.75 peds 0.44 | mem 1448 MB (private 0)
+[ 303.935] autoplay panic t=18.0 wanted 0 heat 0.00 busted 0 | census r60: 5 on foot | walk 0 (phone 0 smoke 0) group 0 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 1 business 1 beach 0 night 0 gang 0 worker 0 | react flee 4 cower 1 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 10 parked 11 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 15 film 1 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 1 arrests 0 | AI 0.27 ms (avg 0.44, max 3.65): traffic 0.14 peds 0.08 pop 0.02 police 0.00 events 0.00 | peds 82 cars 51 (AI 32, dummy 6)
+[ 313.614] autoplay panic t=20.0 wanted 0 heat 0.00 busted 0 | census r60: 4 on foot | walk 0 (phone 0 smoke 0) group 0 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 1 business 0 beach 0 night 0 gang 0 worker 0 | react flee 4 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 10 parked 11 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 2 | totals panic 15 film 1 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 1 arrests 0 | AI 0.29 ms (avg 0.35, max 2.71): traffic 0.14 peds 0.12 pop 0.02 police 0.00 events 0.00 | peds 82 cars 51 (AI 32, dummy 6)
+[ 334.492] autoplay t=21.5 pos 2713.0 763.0 2.1 state 0 health 200 veh -1 speed 0.0 | peds 83 vehicles 51 wanted 0 | cpu ms player 0.04 ai 0.52 veh 1.02 peds 1.05 | mem 1445 MB (private 0)
+[ 336.760] autoplay panic t=22.0 wanted 0 heat 0.00 busted 0 | census r60: 4 on foot | walk 0 (phone 0 smoke 0) group 0 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 1 business 0 beach 0 night 0 gang 0 worker 0 | react flee 4 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 10 parked 11 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 15 film 1 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 1 arrests 0 | AI 0.33 ms (avg 0.37, max 2.65): traffic 0.16 peds 0.12 pop 0.03 police 0.00 events 0.00 | peds 82 cars 51 (AI 32, dummy 5)
+[ 346.566] autoplay panic t=24.0 wanted 0 heat 0.00 busted 0 | census r60: 1 on foot | walk 0 (phone 0 smoke 0) group 0 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 1 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 9 parked 11 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 1 | totals panic 15 film 1 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 1 arrests 0 | AI 0.32 ms (avg 0.49, max 8.54): traffic 0.18 peds 0.10 pop 0.03 police 0.00 events 0.00 | peds 83 cars 51 (AI 32, dummy 3)
+[ 365.952] autoplay t=25.5 pos 2713.0 763.0 2.1 state 0 health 200 veh -1 speed 0.0 | peds 84 vehicles 51 wanted 0 | cpu ms player 0.05 ai 0.49 veh 0.81 peds 0.30 | mem 1441 MB (private 0)
+[ 367.299] autoplay panic t=26.0 wanted 0 heat 0.00 busted 0 | census r60: 1 on foot | walk 0 (phone 0 smoke 0) group 0 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 1 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 9 parked 11 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 15 film 1 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 1 arrests 0 | AI 0.24 ms (avg 0.42, max 6.33): traffic 0.12 peds 0.08 pop 0.02 police 0.00 events 0.00 | peds 83 cars 51 (AI 32, dummy 4)
+[ 376.059] autoplay panic t=28.0 wanted 0 heat 0.00 busted 0 | census r60: 2 on foot | walk 0 (phone 0 smoke 0) group 0 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 2 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 9 parked 11 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 15 film 1 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 1 arrests 0 | AI 0.22 ms (avg 0.54, max 12.89): traffic 0.10 peds 0.08 pop 0.02 police 0.00 events 0.00 | peds 85 cars 51 (AI 32, dummy 4)
+[ 399.115] autoplay t=29.5 pos 2713.0 763.0 2.1 state 0 health 200 veh -1 speed 0.0 | peds 85 vehicles 50 wanted 0 | cpu ms player 0.05 ai 0.66 veh 0.65 peds 0.25 | mem 1445 MB (private 0)
+[ 400.901] autoplay panic t=30.0 wanted 0 heat 0.00 busted 0 | census r60: 2 on foot | walk 0 (phone 0 smoke 0) group 0 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 2 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 8 parked 11 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 15 film 1 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 1 arrests 0 | AI 0.24 ms (avg 0.56, max 9.54): traffic 0.11 peds 0.09 pop 0.02 police 0.00 events 0.00 | peds 84 cars 50 (AI 31, dummy 6)
+[ 400.903] Wildlife: 124 animals (118 birds) in 11 groups, 89 drawn in 11 draws | update 0.114 ms, render 0.243 ms
+[ 409.948] autoplay panic t=32.0 wanted 0 heat 0.00 busted 0 | census r60: 2 on foot | walk 0 (phone 0 smoke 0) group 0 (talking 0) jog 0 | sit 0 talk 0 phone 0 dance 0 smoke 0 lean 0 sun 0 queue 0 watch 0 bus 0 taxi 0 event 0 | tourist 0 business 0 beach 0 night 0 gang 0 worker 0 | react flee 2 cower 0 film 0 inspect 0 call 0 hands 0 rage 0 fight 0 | cops on foot 0 (approach 0 cover 0 flank 0 arrest 0 search 0 engage 0) | cars 8 parked 11 police 1 swat 0 heli 0 boat 0 roadblock 0 ems 0 horn 0 | totals panic 15 film 1 pit 0 box 0 rb 0 spikes 0 tackle 0 heli 0 units 0 rage 0 events 1 arrests 0 | AI 0.19 ms (avg 0.38, max 7.06): traffic 0.08 peds 0.07 pop 0.02 police 0.00 events 0.00 | peds 83 cars 49 (AI 30, dummy 5)
+[ 416.699] Shutdown complete.
+X connection to :106 broken (explicit kill or server shutdown).

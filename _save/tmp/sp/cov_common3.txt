@@ -1,0 +1,1153 @@
+ability          AH0 B IH1 L IH0 T IY0 
+abortion         AH0 B AO1 R SH AH0 N 
+access           AH0 K S EH1 S 
+according        AH0 K AO1 R D IH0 NG 
+accused          AH0 K Y UW1 Z T 
+achieve          AH0 CH IY1 V 
+acquire          AH0 K W AY1 ER0 
+active           AE1 K T IH0 V 
+activist         AH0 K T IH1 V IH0 S T 
+actual           AE1 K CH UW0 AH0 L 
+adapt            AH0 D AE1 P T 
+additional       AH0 D IH1 SH AH0 N AH0 L 
+adjust           AH0 D JH AH1 S T 
+administration   AE2 D M IH0 N IH0 S T R EY1 SH AH0 N 
+advance          AE1 D V AH0 N S 
+advantage        AH0 D V AE1 N T IH0 JH 
+affect           AH0 F EH1 K T 
+agenda           AH0 JH EH1 N D AH0 
+aggressive       AH0 G R EH1 S IH0 V 
+agreement        AH0 G R IY1 M AH0 N T 
+agriculture      AE2 G R IH0 K AH1 L CH ER0 
+airline          EH1 R L AY2 N 
+alcohol          AE1 L K AH0 HH AH0 L 
+alter            AO1 L T ER0 
+alternative      AH0 L T ER1 N AH0 T IH0 V 
+analysis         AH0 N AE1 L IH0 Z IH0 S 
+anniversary      AE1 N IH0 V ER0 S EH2 R IY0 
+annual           AE1 N Y UW0 AH0 L 
+anticipate       AH0 N T IH1 S IH0 P EY0 T 
+anxiety          AH0 N K S AY1 AH0 T IY0 
+appeal           AH0 P IY1 L 
+application      AE2 P L IH0 K EY1 SH AH0 N 
+appoint          AH0 P OY1 N T 
+appointment      AH0 P OY1 N T M AH0 N T 
+appreciate       AE1 P R AH0 SH EY0 T 
+appropriate      AH0 P R AA1 P R IY0 AH0 T 
+arise            AH0 R AY1 Z 
+arrangement      ER0 EY1 N JH M AH0 N T 
+arrival          ER0 AY1 V AH0 L 
+article          AA1 R T IH0 K AH0 L 
+artist           AA1 R T IH0 S T 
+artistic         AH0 R T IH1 S T IH0 K 
+asleep           AH0 S L IY1 P 
+aspect           AH0 S P EH1 K T 
+assault          AH0 S AO1 L T 
+assert           AH0 S ER1 T 
+assess           AH0 S EH1 S 
+assessment       AH0 S EH1 S M AH0 N T 
+asset            AH0 S EH1 T 
+assign           AH0 S AY1 N 
+assignment       AH0 S AY1 N M AH0 N T 
+assistance       AH0 S IH1 S T AH0 N S 
+assistant        AH0 S IH1 S T AH0 N T 
+associate        AE1 S AH0 SH EY0 T 
+association      AE2 S AH0 SH EY1 SH AH0 N 
+assumption       AH0 S AH1 M P SH AH0 N 
+athletic         AH0 TH L EH1 T IH0 K 
+atmosphere       AH0 T M AA1 S F IH0 R 
+attach           AH0 T AE1 CH 
+attitude         AE1 T IH0 T UW0 D 
+attract          AH0 T R AE1 K T 
+attractive       AH0 T R AE1 K T IH0 V 
+attribute        AE1 T R IH0 B Y UW0 T 
+authority        AH0 TH AO1 R IH0 T IY0 
+auto             AO1 T OW0 
+award            AH0 W AO1 R D 
+awareness        AH0 W EH1 R N AH0 S 
+awful            AO1 F AH0 L 
+balance          B AE1 L AH0 N S 
+ban              B AE1 N 
+barrier          B AE1 R IY0 ER0 
+baseball         B EY1 S B AO2 L 
+basket           B AE1 S K AH0 T 
+battery          B AE1 T AH0 R IY0 
+beauty           B Y UW1 T IY0 
+beginning        B IH0 G IH1 N IH0 NG 
+belief           B IH0 L IY1 F 
+belt             B EH1 L T 
+bench            B EH1 N CH 
+biological       B IY0 OW0 L AA1 JH IH0 K AH0 L 
+birth            B ER1 TH 
+bishop           B IH1 SH AH0 P 
+bitter           B IH1 T ER0 
+blade            B L EY1 D 
+blanket          B L AE1 NG K AH0 T 
+bombing          B AA1 M IH0 NG 
+bond             B AA1 N D 
+boom             B UW1 M 
+boot             B UW1 T 
+boundary         B AW1 N D EH2 R IY0 
+branch           B R AE1 N CH 
+brick            B R IH1 K 
+briefly          B R IY1 F L IY0 
+brilliant        B R IH1 L IY0 AH0 N T 
+brush            B R AH1 SH 
+burden           B ER1 D AH0 N 
+butter           B AH1 T ER0 
+buyer            B AY1 ER0 
+cabin            K AE1 B IH0 N 
+cabinet          K AE1 B IH0 N AH0 T 
+campus           K AE1 M P AH0 S 
+capability       K AE2 P AH0 B IH1 L IH0 T IY0 
+capable          K AE1 P AH0 B AH0 L 
+capacity         K AH0 P AE1 S IH0 T IY0 
+capture          K AE1 P CH ER0 
+carbon           K AA1 R B AH0 N 
+carrier          K AE1 R IY0 ER0 
+cast             K AE1 S T 
+category         K AE1 T AH0 G AO2 R IY0 
+ceiling          S IY1 L IH0 NG 
+celebration      S EH2 L AH0 B R EY1 SH AH0 N 
+central          S EH1 N T R AH0 L 
+chairman         CH EH1 R M AE2 N 
+chamber          CH AE1 M B ER0 
+championship     CH AE1 M P IY0 AH0 N SH IH2 P 
+changing         CH EY1 N JH IH0 NG 
+chapter          CH AE1 P T ER0 
+characteristic   K EH2 R AH0 K T AH0 R IH1 S T IH0 K 
+charity          CH EH1 R IH0 T IY0 
+cheek            CH IY1 K 
+chef             CH EH1 F 
+chemical         K EH1 M IH0 K AH0 L 
+childhood        CH AY1 L D HH UH2 D 
+chip             CH IH1 P 
+cite             S AY1 T 
+classroom        K L AE1 S R UW2 M 
+clinic           K L IH1 N IH0 K 
+clinical         K L IH1 N IH0 K AH0 L 
+closely          K L OW1 Z L IY0 
+closer           K L OW1 Z ER0 
+clue             K L UW1 
+cluster          K L AH1 S T ER0 
+coal             K OW1 L 
+coalition        K OW0 L IH1 SH AH0 N 
+cognitive        K AA1 G N IH0 T IH0 V 
+collapse         K AA1 L AH0 P S 
+colleague        K AA1 L IY0 G 
+collective       K AH0 L EH1 K T IH0 V 
+colonial         K AH0 L AA1 N IY0 AH0 L 
+combination      K AA2 M B IH0 N EY1 SH AH0 N 
+combine          K AH0 M B AY1 N 
+comedy           K AA1 M AH0 D IY0 
+command          K AH0 M AE1 N D 
+commander        K AH0 M AE1 N D ER0 
+comment          K AA1 M AH0 N T 
+commission       K AH0 M IH1 SH AH0 N 
+commitment       K AH0 M IH1 T M AH0 N T 
+communicate      K AH0 M Y UW1 N IH0 K EY0 T 
+communication    K AA2 M Y UW0 N IH0 K EY1 SH AH0 N 
+comparison       K AH0 M P EH1 R IH0 Z AH0 N 
+compete          K AH0 M P IY1 T 
+competition      K AA2 M P AH0 T IH1 SH AH0 N 
+competitive      K AH0 M P EH1 T IH0 T IH0 V 
+competitor       K AH0 M P EH1 T IH0 T ER0 
+complaint        K AH0 M P L EY1 N T 
+complex          K AH0 M P L EH1 K S 
+complicated      K AA1 M P L IH0 K EY0 T IH0 D 
+compose          K AH0 M P OW1 Z 
+composition      K AA2 M P AH0 Z IH1 SH AH0 N 
+comprehensive    K AA2 M P R AH0 HH EH1 N S IH0 V 
+concentrate      K AA1 N S AH0 N T R EY0 T 
+concentration    K AA2 N S AH0 N T R EY1 SH AH0 N 
+concept          K AH0 N S EH1 P T 
+concern          K AH0 N S ER1 N 
+concerned        K AH0 N S ER1 N D 
+conclude         K AH0 N K L UW1 D 
+conclusion       K AH0 N K L UW1 ZH AH0 N 
+concrete         K AH0 N K R IY1 T 
+conduct          K AH0 N D AH1 K T 
+conference       K AA1 N F AH0 R AH0 N S 
+confidence       K AA1 N F IH0 D AH0 N S 
+confident        K AA1 N F IH0 D AH0 N T 
+conflict         K AH0 N F L IH1 K T 
+confront         K AH0 N F R AA1 N T 
+confusion        K AH0 N F Y UW1 ZH AH0 N 
+congress         K AH0 NG G R EH1 S 
+congressional    K AH0 NG G R EH1 SH AH0 N AH0 L 
+connection       K AH0 N EH1 K SH AH0 N 
+consciousness    K AA1 N S IY0 AH0 S N AH0 S 
+consensus        K AH0 N S EH1 N S AH0 S 
+consequence      K AA1 N S AH0 K W AH0 N S 
+conservative     K AH0 N S ER1 V AH0 T IH0 V 
+considerable     K AH0 N S IH1 D ER0 AH0 B AH0 L 
+consideration    K AA2 N S IH0 D AH0 R EY1 SH AH0 N 
+consist          K AA1 N S IH0 S T 
+consistent       K AH0 N S IH1 S T AH0 N T 
+constant         K AA1 N S T AH0 N T 
+constantly       K AH0 N S T AE1 N T L IY0 
+constitute       K AA1 N S T IH0 T UW0 T 
+constitutional   K AA2 N S T IH0 T UW1 SH AH0 N AH0 L 
+construct        K AH0 N S T R AH1 K T 
+construction     K AH0 N S T R AH1 K SH AH0 N 
+consultant       K AH0 N S AH1 L T AH0 N T 
+consume          K AH0 N S UW1 M 
+consumer         K AH0 N S UW1 M ER0 
+consumption      K AH0 N S AH1 M P SH AH0 N 
+container        K AH0 N T EY1 N ER0 
+contemporary     K AH0 N T EH1 M P AH0 R EH2 R IY0 
+content          K AA1 N T AH0 N T 
+contest          K AA1 N T AH0 S T 
+context          K AH0 N T EH1 K S T 
+contract         K AH0 N T R AE1 K T 
+contrast         K AH0 N T R AE1 S T 
+contribution     K AA2 N T R IH0 B Y UW1 SH AH0 N 
+controversial    K AA2 N T R AH0 V ER1 S IY0 AH0 L 
+controversy      K AA2 N T R AH0 V ER1 S IY0 
+convention       K AH0 N V EH1 N SH AH0 N 
+conventional     K AH0 N V EH1 N SH AH0 N AH0 L 
+convert          K AH0 N V ER1 T 
+conviction       K AH0 N V IH1 K SH AH0 N 
+cookie           K UH1 K IY0 
+cooking          K UH1 K IH0 NG 
+cooperation      K UW2 P AH0 R EY1 SH AH0 N 
+cope             K OW1 P 
+core             K AO1 R 
+corporate        K AO1 R P AH0 R EY0 T 
+corporation      K AO2 R P AH0 R EY1 SH AH0 N 
+correspondent    K AO2 R R AH0 S P AA1 N D AH0 N T 
+council          K AW1 N S IH0 L 
+counselor        K AW1 N S AH0 L ER0 
+counter          K AW1 N T ER0 
+county           K AW1 N T IY0 
+crack            K R AE1 K 
+craft            K R AE1 F T 
+creature         K R IY1 CH ER0 
+critic           K R IH1 T IH0 K 
+critical         K R IH1 T IH0 K AH0 L 
+criticism        K R IH1 T IH0 S IH0 Z AH0 M 
+criticize        K R IH1 T IH0 S AY0 Z 
+crop             K R AA1 P 
+crucial          K R UW1 SH AH0 L 
+cultural         K AH1 L CH ER0 AH0 L 
+curious          K Y UH1 R IY0 AH0 S 
+curriculum       K ER2 R IH0 K Y UW1 L AH0 M 
+custom           K AH1 S T AH0 M 
+darkness         D AA1 R K N AH0 S 
+database         D EY1 T AH0 B EY2 S 
+deck             D EH1 K 
+declare          D AH0 K L EH1 R 
+decline          D AH0 K L AY1 N 
+decrease         D AH0 K R IY1 Z 
+deeply           D IY1 P L IY0 
+deer             D IH1 R 
+defeat           D IH0 F IY1 T 
+defendant        D IH0 F EH1 N D AH0 N T 
+defensive        D IH0 F EH1 N S IH0 V 
+define           D IY0 F AY1 N 
+definition       D IH0 F IH0 N IH1 SH AH0 N 
+demand           D IH0 M AE1 N D 
+democracy        D IH0 M AA1 K R AH0 S IY0 
+democratic       D IH0 M AH0 K R AE1 T IH0 K 
+demonstration    D IH0 M AH0 N S T R EY1 SH AH0 N 
+dependent        D IH0 P EH1 N D AH0 N T 
+depending        D IH0 P EH1 N D IH0 NG 
+depict           D IH0 P IH1 K T 
+depression       D AH0 P R EH1 SH AH0 N 
+depth            D EH1 P TH 
+description      D AH0 S K R IH1 P SH AH0 N 
+designer         D IH0 Z AY1 N ER0 
+desire           D IH0 Z AY1 ER0 
+desperate        D EH1 S P AH0 R EY0 T 
+despite          D AH0 S P AY1 T 
+destruction      D AH0 S T R AH1 K SH AH0 N 
+detailed         D IH0 T EY1 L D 
+detect           D IH0 T EH1 K T 
+developing       D IH0 V EH1 L AH0 P IH0 NG 
+development      D IH0 V EH1 L AH0 P M AH0 N T 
+devote           D IY0 V OW1 T 
+differently      D IH1 F ER0 AH0 N T L IY0 
+difficulty       D IH1 F AH0 K AH0 L T IY0 
+digital          D IH1 JH IH0 T AH0 L 
+dimension        D IH0 M EH1 N SH AH0 N 
+dining           D AY1 N IH0 NG 
+director         D ER0 EH1 K T ER0 
+disability       D IH2 Z AH0 B IH1 L IH0 T IY0 
+disaster         D IH0 Z AE1 S T ER0 
+discipline       D IH1 S IH0 P L AY0 N 
+discourse        D IH0 S K AO1 R S 
+discovery        D IH0 S K AH1 V ER0 IY0 
+discrimination   D IH2 S K R IH0 M IH0 N EY1 SH AH0 N 
+discussion       D IH0 S K AH1 SH AH0 N 
+dish             D IH1 SH 
+dismiss          D IH0 S M IH1 S 
+disorder         D IH0 S AO1 R D ER0 
+display          D IH0 S P L EY1 
+dispute          D IH0 S P Y UW1 T 
+distant          D IH1 S T AH0 N T 
+distinct         D IH0 S T IH1 N K T 
+distinction      D IH0 S T IH1 N K SH AH0 N 
+distinguish      D IH1 S T IH0 NG Y UW0 IH0 SH 
+distribution     D IH2 S T R IH0 B Y UW1 SH AH0 N 
+district         D IH0 S T R IH1 K T 
+diverse          D IH1 V ER0 S 
+diversity        D IH0 V ER1 S IH0 T IY0 
+divorce          D IH1 V AH0 R S 
+document         D AA1 K Y UW0 M AH0 N T 
+domestic         D AH0 M EH1 S T IH0 K 
+dominant         D AA1 M IH0 N AH0 N T 
+dominate         D AA1 M IH0 N EY0 T 
+draft            D R AE1 F T 
+dramatic         D R AH0 M AE1 T IH0 K 
+dramatically     D R AH0 M AE1 T IH0 K L IY0 
+due              D UW1 
+dust             D AH1 S T 
+eager            IY1 JH ER0 
+earnings         ER1 N IH0 NG Z 
+ease             IY1 Z 
+economic         EH2 K AH0 N AA1 M IH0 K 
+economics        EH2 K AH0 N AA1 M IH0 K S 
+economist        EH1 K AH0 N AH0 M IH0 S T 
+edition          AH0 D IH1 SH AH0 N 
+editor           EH1 D IH0 T ER0 
+educate          EH1 D UW0 K EY0 T 
+educational      EH2 JH AH0 K EY1 SH AH0 N AH0 L 
+educator         AH0 D UW1 K AH0 T ER0 
+effective        AH0 F EH1 K T IH0 V 
+effectively      EH2 F AH0 K T AY1 V AH0 L IY0 
+efficiency       AH0 F IH1 SH AH0 N S IY0 
+efficient        AH0 F IH1 SH AH0 N T 
+elderly          EH1 L D ER0 L IY0 
+elect            EH1 L AH0 K T 
+electricity      EH2 L AH0 K T R IH1 S IH0 T IY0 
+electronic       EH2 L AH0 K T R AA1 N IH0 K 
+element          EH1 L AH0 M AH0 N T 
+eliminate        AH0 L IH1 M IH0 N EY0 T 
+elite            EH1 L AY0 T 
+elsewhere        EH1 L S W EH2 R 
+embrace          AH0 M B R EY1 S 
+emerge           AH0 M ER1 JH 
+emission         AH0 M IH1 SH AH0 N 
+emotion          AH0 M OW1 SH AH0 N 
+emotional        AH0 M OW1 SH AH0 N AH0 L 
+emphasis         EH1 M F AH0 Z IH0 S 
+emphasize        EH1 M F AH0 Z AY0 Z 
+employ           AH0 M P L OY1 
+employer         AH0 M P L OY1 ER0 
+employment       AH0 M P L OY1 M AH0 N T 
+enable           EH1 N AH0 B AH0 L 
+encounter        AH0 N K AW1 N T ER0 
+enforcement      AH0 N F AO1 R S AH0 M AH0 N T 
+engage           EH1 NG G IH0 JH 
+engineering      EH2 N JH AH0 N IH1 R IH0 NG 
+enhance          EH1 N HH AH0 N S 
+enormous         AH0 N AO1 R M AH0 S 
+ensure           AH0 N SH UH1 R 
+enterprise       EH1 N T ER0 P R AY0 Z 
+entertainment    AH0 N T ER1 T EY0 N M AH0 N T 
+entirely         IH0 N T AY1 ER0 L IY0 
+entry            EH1 N T R IY0 
+equally          IY1 K W AH0 L IY0 
+equipment        EH1 K W IH0 P M AH0 N T 
+essay            AH0 S EY1 
+essential        AH0 S EH1 N SH AH0 L 
+essentially      AH0 S EH1 N SH AH0 L IY0 
+establishment    IH0 S T AE1 B L IH0 SH M AH0 N T 
+estate           AH0 S T EY1 T 
+estimate         EH1 S T IH0 M EY0 T 
+ethics           EH1 TH IH0 K S 
+ethnic           EH1 TH N IH0 K 
+european         Y UW1 R AH0 P IY0 N 
+evaluate         AH0 V AE1 L UW0 EY0 T 
+evaluation       EH2 V AH0 L UW0 EY1 SH AH0 N 
+evolution        EH2 V AH0 L UW1 SH AH0 N 
+examination      IH0 G Z AH0 M IH0 N EY1 SH AH0 N 
+examine          IH0 G Z AE1 M AY0 N 
+exceed           AH0 K S S IY1 D 
+exception        AH0 K S S EH1 P SH AH0 N 
+exchange         AH0 K S CH EY1 N JH 
+executive        IH0 G Z AH0 K Y UW1 T IH0 V 
+existence        IH0 G Z IH1 S T AH0 N S 
+existing         IH0 G Z IH1 S T IH0 NG 
+expand           AH0 K S P AE1 N D 
+expansion        AH0 K S P AE1 N SH AH0 N 
+expectation      EH2 K S P AH0 K T EY1 SH AH0 N 
+expense          AH0 K S P EH1 N S 
+explanation      EH2 K S P L AH0 N EY1 SH AH0 N 
+explore          AH0 K S P L AO1 R 
+expose           AH0 K S P OW1 Z 
+expression       AH0 K S P R EH1 SH AH0 N 
+extend           AH0 K S T EH1 N D 
+extension        AH0 K S T EH1 N SH AH0 N 
+extensive        AH0 K S T EH1 N S IH0 V 
+extent           EH1 K S T AH0 N T 
+external         AH0 K S T ER1 N AH0 L 
+extreme          AH0 K S T R IY1 M 
+extremely        EH1 K S T R AH0 M AH0 L IY0 
+fabric           F AE1 B R IH0 K 
+facility         F AH0 S IH1 L IH0 T IY0 
+factor           F AE1 K T ER0 
+fade             F EY1 D 
+fairly           F EH1 R L IY0 
+familiar         F AE1 M IH0 L IY0 AH0 R 
+fantasy          F AE1 N T AH0 Z IY0 
+farmer           F AA1 R M ER0 
+fat              F AE1 T 
+fate             F EY1 T 
+fellow           F EH1 L OW0 
+fiber            F AY1 B ER0 
+fiction          F IH1 K SH AH0 N 
+fighter          F AY1 T ER0 
+fighting         F AY1 T IH0 NG 
+financial        F IH0 N AE1 N SH AH0 L 
+finding          F AY1 N D IH0 NG 
+firm             F ER1 M 
+fishing          F IH1 SH IH0 NG 
+fitness          F IH1 T N AH0 S 
+flame            F L EY1 M 
+flavor           F L AE1 V ER0 
+flesh            F L EH1 SH 
+float            F L OW1 T 
+following        F AA1 L OW0 IH0 NG 
+formal           F AO1 R M AH0 L 
+formation        F AH0 R M EY1 SH AH0 N 
+former           F AO1 R M ER0 
+formula          F AH0 R M Y UW1 L AH0 
+forth            F AO1 R TH 
+foundation       F AW0 N D EY1 SH AH0 N 
+founder          F AW1 N D ER0 
+framework        F R EY1 M W ER2 K 
+friendly         F R EH1 N D L IY0 
+friendship       F R EH1 N D SH IH2 P 
+frustration      F R AH0 S T R EY1 SH AH0 N 
+function         F AH1 N K SH AH0 N 
+fundamental      F AH1 N D AH0 M AH0 N T AH0 L 
+funding          F AH1 N D IH0 NG 
+furniture        F ER1 N IH0 CH ER0 
+furthermore      F ER0 TH ER1 M AH0 R 
+gain             G EY1 N 
+gap              G AE1 P 
+garlic           G AA1 R L IH0 K 
+gay              G EY1 
+gaze             G EY1 Z 
+gender           JH EH1 N D ER0 
+gene             JH IY1 N 
+generally        JH EH1 N ER0 AH0 L IY0 
+generate         JH EH1 N AH0 R EY0 T 
+generation       JH EH2 N AH0 R EY1 SH AH0 N 
+genetic          JH AH0 N EH1 T IH0 K 
+gently           JH EH1 N T L IY0 
+german           JH ER1 M AH0 N 
+gesture          JH EH1 S CH ER0 
+gifted           G IH1 F T IH0 D 
+girlfriend       G ER1 L F R EH2 N D 
+glance           G L AE1 N S 
+global           G L AA1 B AH0 L 
+glove            G L OW1 V 
+gradually        G R AE1 JH UW0 AH0 L IY0 
+graduate         G R AE1 JH UW0 EY0 T 
+grain            G R EY1 N 
+grant            G R AE1 N T 
+grave            G R EY1 V 
+greatest         G R EY1 T IH0 S T 
+grocery          G R AA1 S AH0 R IY0 
+growing          G R OW1 IH0 NG 
+growth           G R OW1 TH 
+guarantee        G EH2 R AH0 N T IY1 
+guideline        G AY1 D L AY2 N 
+guitar           G IH1 T ER0 
+habitat          HH AE1 B IH0 T AH0 T 
+handful          HH AE1 N D F AH0 L 
+headquarters     HH EH1 D K W AO2 R T ER0 Z 
+healthy          HH EH1 L TH IY0 
+hearing          HH IH1 R IH0 NG 
+heavily          HH EH1 V AH0 L IY0 
+heel             HH IY1 L 
+helpful          HH EH1 L P F AH0 L 
+heritage         HH EH1 R IH0 T IH0 JH 
+highlight        HH AY1 L AY2 T 
+highly           HH AY1 L IY0 
+hip              HH IH1 P 
+historian        HH IH0 S T AO1 R IY0 AH0 N 
+historic         HH IH0 S T AO1 R IH0 K 
+historical       HH IH0 S T AO1 R IH0 K AH0 L 
+holy             HH OW1 L IY0 
+homeless         HH OW1 M L AH0 S 
+horizon          HH AO1 R IH0 Z AH0 N 
+household        HH AW1 S HH OW2 L D 
+housing          HH AW1 S IH0 NG 
+humor            HH Y UW1 M ER0 
+hunter           HH AH1 N T ER0 
+hypothesis       HH IH0 P AA1 TH AH0 Z IH0 S 
+illness          IH1 L N AH0 S 
+illustrate       IH1 L AH0 S T R EY0 T 
+imagination      IH2 M AH0 JH IH0 N EY1 SH AH0 N 
+immediate        IH0 M EH1 D IY0 AH0 T 
+immigrant        IH1 M IH0 G R AH0 N T 
+immigration      IH2 M IH0 G R EY1 SH AH0 N 
+impact           IH0 M P AE1 K T 
+implement        IH0 M P L EH1 M AH0 N T 
+implication      IH2 M P L IH0 K EY1 SH AH0 N 
+imply            IH1 M P L IY0 
+importance       IH0 M P AO1 R T AH0 N S 
+impose           IH0 M P OW1 Z 
+impossible       IH0 M P AA1 S IH0 B AH0 L 
+impress          IH0 M P R EH1 S 
+impression       IH0 M P R EH1 SH AH0 N 
+impressive       IH0 M P R EH1 S IH0 V 
+improvement      IH0 M P R UW1 V M AH0 N T 
+incentive        IH0 N S EH1 N T IH0 V 
+incident         IH1 N S IH0 D AH0 N T 
+including        IH0 N K L UW1 D IH0 NG 
+incorporate      IH0 N K AO1 R P AH0 R EY0 T 
+increased        IH0 N K R IY1 S T 
+increasing       IH0 N K R IY1 S IH0 NG 
+increasingly     IH0 N K R IY1 S IH0 NG L IY0 
+independence     IH2 N D AH0 P EH1 N D AH0 N S 
+independent      IH2 N D AH0 P EH1 N D AH0 N T 
+index            IH0 N D EH1 K S 
+indication       IH2 N D IH0 K EY1 SH AH0 N 
+individual       IH2 N D IH0 V IH1 JH UW0 AH0 L 
+industrial       IH0 N D AH1 S T R IY0 AH0 L 
+infant           IH1 N F AH0 N T 
+infection        IH0 N F EH1 K SH AH0 N 
+inflation        IH0 N F L EY1 SH AH0 N 
+influence        IH0 N F L UW1 AH0 N S 
+ingredient       IH0 N G R EH1 D IY0 AH0 N T 
+initial          IH0 N IH1 SH AH0 L 
+initially        IH0 N IH1 SH AH0 L IY0 
+inner            IH1 N ER0 
+inquiry          IH0 N K W AY1 R IY0 
+insight          IH0 N S AY1 T 
+inspire          IH0 N S P AY1 ER0 
+instance         IH1 N S T AH0 N S 
+institution      IH2 N S T IH0 T UW1 SH AH0 N 
+institutional    IH2 N S T IH0 T UW1 SH AH0 N AH0 L 
+instruction      IH0 N S T R AH1 K SH AH0 N 
+instructor       IH0 N S T R AH1 K T ER0 
+instrument       IH0 N S T R UW1 M AH0 N T 
+intellectual     IH2 N T AH0 L EH1 K CH UW0 AH0 L 
+intelligence     IH0 N T EH1 L IH0 JH AH0 N S 
+intense          IH0 N T EH1 N S 
+intensity        IH0 N T EH1 N S IH0 T IY0 
+intention        IH0 N T EH1 N SH AH0 N 
+interaction      IH2 N T ER0 AE1 K SH AH0 N 
+interested       IH1 N T R AH0 S T IH0 D 
+internal         IH0 N T ER1 N AH0 L 
+interpret        IH0 N T ER1 P R AH0 T 
+interpretation   IH2 N T ER0 P R AH0 T EY1 SH AH0 N 
+intervention     IH2 N T ER0 V EH1 N SH AH0 N 
+introduction     IH2 N T R AH0 D AH1 K SH AH0 N 
+invasion         IH0 N V EY1 ZH AH0 N 
+investigation    IH2 N V AH0 S T IH0 G EY1 SH AH0 N 
+investigator     IH0 N V EH1 S T AH0 G EY2 T ER0 
+investment       IH0 N V EH1 S T M AH0 N T 
+investor         IH0 N V EH1 S T ER0 
+involve          IH0 N V AA1 L V 
+involved         IH0 N V AA1 L V D 
+involvement      IH0 N V AA1 L V AH0 M AH0 N T 
+iraqi            AY1 R AH0 K IY0 
+irish            AY1 R IH0 SH 
+islamic          IH0 S L AE1 M IH0 K 
+jewish           JH UW1 IH0 SH 
+joint            JH OY1 N T 
+journal          JH AO1 R N AH0 L 
+journalist       JH AO1 R N AH0 L IH0 S T 
+journey          JH AO1 R N IY0 
+judgment         JH AH1 JH M AH0 N T 
+junior           JH UW1 N IY0 ER0 
+justify          JH AH1 S T AH0 F AY2 
+killing          K IH1 L IH0 NG 
+label            L AE1 B AH0 L 
+labor            L AE1 B ER0 
+lack             L AE1 K 
+landscape        L AE1 N D S K EY0 P 
+lap              L AE1 P 
+largely          L AA1 R JH L IY0 
+latin            L AE1 T IH0 N 
+latter           L AE1 T ER0 
+lawn             L AO1 N 
+lawsuit          L AO1 S UW2 T 
+layer            L EY1 ER0 
+leadership       L IY1 D ER0 SH IH2 P 
+leading          L IY1 D IH0 NG 
+leaf             L IY1 F 
+league           L IY1 G 
+learning         L ER1 N IH0 NG 
+leather          L EH1 DH ER0 
+legacy           L EH1 G AH0 S IY0 
+legend           L EH1 JH AH0 N D 
+legislation      L EH2 JH IH0 S L EY1 SH AH0 N 
+legitimate       L AH0 JH IH1 T IH0 M EY0 T 
+lemon            L EH1 M AH0 N 
+liberal          L IH1 B AH0 R AH0 L 
+lifestyle        L AY1 F S T AY2 L 
+lifetime         L AY1 F T AY2 M 
+limitation       L IH2 M IH0 T EY1 SH AH0 N 
+limited          L IH1 M AH0 T IH0 D 
+living           L IH1 V IH0 NG 
+locate           L OW1 K EY0 T 
+location         L OW0 K EY1 SH AH0 N 
+loss             L AA1 S 
+lover            L AH1 V ER0 
+lower            L OW1 ER0 
+lung             L AH1 NG 
+mail             M EY1 L 
+mainly           M EY1 N L IY0 
+maintain         M EY1 N T EY0 N 
+maintenance      M EY1 N T AH0 N AH0 N S 
+majority         M AH0 JH AO1 R IH0 T IY0 
+maker            M EY1 K ER0 
+management       M AE1 N AH0 JH M AH0 N T 
+manner           M AE1 N ER0 
+manufacturer     M AH0 N UW1 F AH0 K CH ER0 R 
+manufacturing    M AE2 N UW0 F AE1 K T AH0 R IH0 NG 
+margin           M AA1 R JH IH0 N 
+marketing        M AA1 R K AH0 T IH0 NG 
+married          M EH1 R IY0 D 
+mass             M AE1 S 
+massive          M AE1 S IH0 V 
+math             M AE1 TH 
+meaning          M IY1 N IH0 NG 
+measurement      M EH1 ZH ER0 M AH0 N T 
+medication       M EH2 D IH0 K EY1 SH AH0 N 
+membership       M EH1 M B ER0 SH IH2 P 
+mental           M EH1 N T AH0 L 
+mere             M IH1 R 
+mess             M EH1 S 
+mexican          M EH1 K S IH0 K AH0 N 
+minister         M IH1 N IH0 S T ER0 
+minority         M IH0 N AO1 R IH0 T IY0 
+mix              M IH1 K S 
+mixture          M IH1 K S CH ER0 
+mode             M OW1 D 
+moderate         M AA1 D AH0 R EY0 T 
+monitor          M AA1 N IH0 T ER0 
+moral            M AO1 R AH0 L 
+moreover         M AO1 R OW2 V ER0 
+mostly           M OW1 S T L IY0 
+motion           M OW1 SH AH0 N 
+motivation       M AA2 T IH0 V EY1 SH AH0 N 
+mount            M AW1 N T 
+multiple         M AH1 L T IH0 P AH0 L 
+muscle           M AH1 S K AH0 L 
+musical          M Y UW1 Z IH0 K AH0 L 
+musician         M Y UW0 Z IH1 SH AH0 N 
+muslim           M AH1 S L IH0 M 
+mutual           M Y UW1 CH UW0 AH0 L 
+mystery          M IH1 S T AH0 R IY0 
+myth             M IH1 TH 
+narrative        N AE1 R AH0 T IH0 V 
+narrow           N AE1 R OW0 
+naturally        N AE1 CH ER0 AH0 L IY0 
+necessarily      N EH1 S AH0 S EH2 R AH0 L IY0 
+negative         N EH1 G AH0 T IH0 V 
+nerve            N ER1 V 
+net              N EH1 T 
+newly            N UW1 L IY0 
+newspaper        N UW1 Z P EY2 P ER0 
+nod              N AA1 D 
+nomination       N AA2 M IH0 N EY1 SH AH0 N 
+notion           N OW1 SH AH0 N 
+numerous         N UW1 M AH0 R AH0 S 
+nut              N AH1 T 
+objective        AH0 B JH EH1 K T IH0 V 
+obligation       AA2 B L IH0 G EY1 SH AH0 N 
+observation      AA2 B S ER0 V EY1 SH AH0 N 
+observer         AH0 B Z ER1 V ER0 
+obtain           AH0 B T EY1 N 
+obvious          AA1 B V IY0 AH0 S 
+occasion         AH0 K EY1 ZH AH0 N 
+occasionally     AH0 K EY1 ZH AH0 N AH0 L IY0 
+occupation       AA2 K Y UW0 P EY1 SH AH0 N 
+odd              AA1 D 
+odds             AA1 D Z 
+offensive        AH0 F EH1 N S IH0 V 
+oil              OY1 L 
+olympic          AH0 L IH1 M P IH0 K 
+onion            AA1 N Y AH0 N 
+online           AA1 N L AY0 N 
+opening          OW1 P AH0 N IH0 NG 
+operating        AA1 P ER0 EY2 T IH0 NG 
+operation        AA2 P AH0 R EY1 SH AH0 N 
+operator         AA1 P ER0 EY2 T ER0 
+opinion          AH0 P IH1 N Y AH0 N 
+opposition       AA2 P AH0 Z IH1 SH AH0 N 
+option           AA1 P SH AH0 N 
+ordinary         AO1 R D IH0 N EH2 R IY0 
+organic          AH0 R G AE1 N IH0 K 
+organization     AO2 R G AH0 N IH0 Z EY1 SH AH0 N 
+orientation      AO2 R AY0 AH0 N T EY1 SH AH0 N 
+origin           AO1 R IH0 JH IH0 N 
+original         AH0 R IH1 JH IH0 N AH0 L 
+originally       AH0 R IH1 JH IH0 N AH0 L IY0 
+others           AH1 DH ER0 Z 
+outcome          AW2 T K AH1 M 
+overall          OW1 V ER0 AO2 L 
+overcome         OW2 V ER0 K AH1 M 
+overlook         OW2 V ER0 L UH1 K 
+pace             P EY1 S 
+painful          P EY1 N F AH0 L 
+painter          P EY1 N T ER0 
+painting         P EY1 N T IH0 NG 
+pale             P EY1 L 
+palestinian      P AE2 L AH0 S T IH1 N IY0 AH0 N 
+pan              P AE1 N 
+panel            P AE1 N AH0 L 
+pant             P AE1 N T 
+participant      P AH0 R T IH1 S IH0 P AH0 N T 
+participate      P AH0 R T IH1 S IH0 P EY0 T 
+participation    P AA2 R T IH0 S IH0 P EY1 SH AH0 N 
+particularly     P ER0 T IH1 K Y AH0 L ER0 L IY0 
+partly           P AA1 R T L IY0 
+partnership      P AA1 R T N ER0 SH IH2 P 
+passage          P AE1 S IH0 JH 
+passion          P AE1 SH AH0 N 
+patch            P AE1 T CH 
+path             P AE1 TH 
+patient          P EY1 SH AH0 N T 
+pause            P AO1 Z 
+peak             P IY1 K 
+peer             P IH1 R 
+pepper           P EH1 P ER0 
+perceive         P ER0 S IY1 V 
+percentage       P ER0 S EH1 N T IH0 JH 
+perception       P ER0 S EH1 P SH AH0 N 
+perfectly        P ER1 F IH0 K T L IY0 
+performance      P ER0 F AO1 R M AH0 N S 
+permanent        P ER1 M AH0 N AH0 N T 
+permission       P ER0 M IH1 SH AH0 N 
+personality      P ER2 S AH0 N AE1 L IH0 T IY0 
+perspective      P ER0 S P EH1 K T IH0 V 
+phase            F EY1 Z 
+phenomenon       F AH0 N AA1 M AH0 N AH0 N 
+philosophy       F IH0 L AA1 Z AH0 F IY0 
+photograph       F AA1 T AH0 G R AH0 F 
+physically       F IH1 Z IH0 K AH0 L IY0 
+physician        F IH0 Z IH1 SH AH0 N 
+piano            P IY0 AH0 N OW1 
+pie              P AY1 
+pile             P AY1 L 
+pine             P AY1 N 
+pipe             P AY1 P 
+pitch            P IH1 T CH 
+planet           P L AE1 N AH0 T 
+planning         P L AE1 N IH0 NG 
+platform         P L AE1 T F AH0 R M 
+plot             P L AA1 T 
+poet             P AA1 AH0 T 
+poetry           P AA1 AH0 T R IY0 
+policy           P AH0 L IY1 S IY0 
+politically      P AH0 L IH1 T AH0 K AH0 L IY0 
+politician       P AA2 L IH0 T IH1 SH AH0 N 
+poll             P AA1 L 
+pollution        P AH0 L UW1 SH AH0 N 
+pop              P AA1 P 
+population       P AA2 P Y UW0 L EY1 SH AH0 N 
+porch            P AO1 R CH 
+portion          P AO1 R SH AH0 N 
+portrait         P AO1 R T R EY0 T 
+portray          P AO1 R T R EY0 
+pose             P OW1 Z 
+positive         P AA1 Z IH0 T IH0 V 
+possess          P AA1 S AH0 S 
+possibility      P AA2 S IH0 B IH1 L IH0 T IY0 
+post             P OW1 S T 
+pot              P AA1 T 
+potato           P AA1 T AH0 T OW0 
+potential        P AH0 T EH1 N SH AH0 L 
+potentially      P AH0 T EH1 N SH AH0 L IY0 
+pound            P AW1 N D 
+poverty          P AH0 V ER1 T IY0 
+powder           P AW1 D ER0 
+powerful         P AW1 ER0 F AH0 L 
+practical        P R AE1 K T IH0 S AH0 L 
+prayer           P R EY1 ER0 
+precisely        P R AH0 S AY1 Z AH0 L IY0 
+predict          P R AH0 D IH1 K T 
+preference       P R EH1 F AH0 R AH0 N S 
+pregnancy        P R EH1 G N AH0 N S IY0 
+pregnant         P R EH1 G N AH0 N T 
+preparation      P R EH2 P AH0 R EY1 SH AH0 N 
+prescription     P R AH0 S K R IH1 P SH AH0 N 
+presence         P R EH1 Z AH0 N S 
+presentation     P R EH2 Z AH0 N T EY1 SH AH0 N 
+preserve         P R IY0 S ER1 V 
+presidential     P R EH2 Z IH0 D EH1 N SH AH0 L 
+prevent          P R EH1 V AH0 N T 
+previous         P R EH1 V IY0 AH0 S 
+previously       P R EH1 V IY0 AH0 S L IY0 
+priest           P R IY1 S T 
+primarily        P R AY1 M EH2 R AH0 L IY0 
+prime            P R AY1 M 
+principal        P R IH1 N S IH0 P AH0 L 
+principle        P R IH1 N S IH0 P AH0 L 
+print            P R IH1 N T 
+prisoner         P R IH1 Z AH0 N ER0 
+privacy          P R IH1 V AH0 S IY0 
+procedure        P R AA1 S AH0 D Y AH0 R 
+proceed          P R AH0 S IY1 D 
+producer         P R AH0 D UW1 S ER0 
+production       P R AH0 D AH1 K SH AH0 N 
+profession       P R AH0 F EH1 SH AH0 N 
+professional     P R AH0 F EH1 SH AH0 N AH0 L 
+profile          P R AH0 F AY1 L 
+progress         P R AH0 G R EH1 S 
+prominent        P R AA1 M IH0 N AH0 N T 
+promote          P R AH0 M OW1 T 
+prompt           P R AA1 M P T 
+proof            P R UW1 F 
+proportion       P R AH0 P AO1 R SH AH0 N 
+propose          P R AH0 P OW1 Z 
+proposed         P R AH0 P OW1 Z T 
+prospect         P R AH0 S P EH1 K T 
+protection       P R AH0 T EH1 K SH AH0 N 
+protein          P R AH0 T EY1 N 
+protest          P R OW1 T AH0 S T 
+provider         P R AH0 V AY1 D ER0 
+province         P R AH0 V IH1 N S 
+provision        P R AH0 V IH1 ZH AH0 N 
+psychological    S AY2 K AH0 L AA1 JH IH0 K AH0 L 
+psychologist     S AY1 K AH0 L AH0 JH IH0 S T 
+psychology       S AY0 K AA1 L AH0 JH IY0 
+publication      P AH2 B L IH0 K EY1 SH AH0 N 
+publicly         P AH1 B L IH0 K L IY0 
+publish          P AH1 B L IH0 SH 
+publisher        P AH1 B L IH0 SH ER0 
+punishment       P Y UW1 N IH0 SH M AH0 N T 
+purchase         P ER1 CH EY0 Z 
+pure             P Y UH1 R 
+qualify          K W AA1 L AH0 F AY2 
+quarterback      K W AO1 R T ER0 B AE2 K 
+quietly          K W AY1 AH0 T L IY0 
+racial           R EY1 SH AH0 L 
+radical          R AE1 D IH0 K AH0 L 
+rail             R EY1 L 
+rank             R AE1 NG K 
+rapid            R AE1 P IH0 D 
+rapidly          R AE1 P IH0 D L IY0 
+rare             R EH1 R 
+rarely           R EH1 R AH0 L IY0 
+rating           R EY1 T IH0 NG 
+ratio            R EY1 T IY0 OW0 
+raw              R AO1 
+reaction         R IY0 AE1 K SH AH0 N 
+reader           R IY1 D ER0 
+reading          R IY1 D IH0 NG 
+reasonable       R IY1 Z AH0 N AH0 B AH0 L 
+recall           R IY0 K AO1 L 
+recipe           R IH0 S AY1 P 
+recognition      R IH0 K AH0 G N IH1 SH AH0 N 
+recommend        R IH0 K AA1 M AH0 N D 
+recommendation   R IH0 K AH0 M AH0 N D EY1 SH AH0 N 
+recording        R IH0 K AO1 R D IH0 NG 
+recover          R IY0 K AH1 V ER0 
+recovery         R IY0 K AH1 V ER0 IY0 
+recruit          R AH0 K R UW1 IH0 T 
+reduction        R IH0 D AH1 K SH AH0 N 
+refer            R IH0 F ER1 
+reference        R IH0 F EH1 R AH0 N S 
+reflect          R AH0 F L EH1 K T 
+reflection       R AH0 F L EH1 K SH AH0 N 
+reform           R IY0 F AO1 R M 
+refugee          R IH0 F Y UW0 JH IY1 
+regard           R IH1 G ER0 D 
+regarding        R IH0 G AA1 R D IH0 NG 
+regardless       R IH0 G AA1 R D L AH0 S 
+regime           R IH0 JH AY1 M 
+regional         R IY1 JH AH0 N AH0 L 
+regular          R IH0 G Y UW1 L ER0 
+regularly        R IH0 G Y UW1 L AH0 R L IY0 
+regulate         R IH0 G Y UW1 L EY0 T 
+regulation       R IH0 G Y UW0 L EY1 SH AH0 N 
+reinforce        R EY0 N F AO1 R S 
+reject           R IH0 JH EH1 K T 
+relate           R IY0 L EY1 T 
+relation         R IH0 L EY1 SH AH0 N 
+relative         R IH0 L AE1 T IH0 V 
+relatively       R IH0 L AH0 T AY1 V AH0 L IY0 
+relevant         R IH0 L EH1 V AH0 N T 
+relief           R IH0 L IY1 F 
+religion         R IH0 L IH1 JH IY0 AH0 N 
+religious        R IH0 L IH1 JH IY0 AH0 S 
+remaining        R IH0 M EY1 N IH0 NG 
+remarkable       R IY0 M AA1 R K AH0 B AH0 L 
+remote           R IH0 M OW1 T 
+repeatedly       R IH0 P IY1 T IH0 D L IY0 
+reporter         R IH0 P AO1 R T ER0 
+representation   R EH2 P R AH0 Z AH0 N T EY1 SH AH0 N 
+representative   R EH2 P R AH0 Z EH1 N T AH0 T IH0 V 
+republican       R IH0 P AH1 B L IH0 K AH0 N 
+requirement      R IY0 K W AY1 ER0 M AH0 N T 
+researcher       R IY0 S ER1 CH ER0 
+resemble         R IH0 Z EH1 M B AH0 L 
+reservation      R IH0 Z ER0 V EY1 SH AH0 N 
+resistance       R IH0 Z IH1 S T AH0 N S 
+resolution       R IY0 S AH0 L UW1 SH AH0 N 
+resolve          R IY0 S AA1 L V 
+resort           R IY0 S AO1 R T 
+respondent       R AH0 S P AA1 N D AH0 N T 
+response         R AH0 S P AA1 N S 
+responsibility   R EH2 S P AH0 N S IH0 B IH1 L IH0 T IY0 
+responsible      R AH0 S P AA1 N S IH0 B AH0 L 
+restore          R IY0 S T AO1 R 
+restriction      R AH0 S T R IH1 K SH AH0 N 
+retain           R IH0 T EY1 N 
+retire           R IY0 T AY1 ER0 
+retirement       R IY0 T AY1 ER0 M AH0 N T 
+revenue          R IH0 V EH1 N UW0 
+review           R IY0 V Y UW1 
+revolution       R IH0 V AH0 L UW1 SH AH0 N 
+rice             R AY1 S 
+rid              R IH1 D 
+romantic         R AH0 M AE1 N T IH0 K 
+rough            R AH1 F 
+roughly          R OW1 L IY0 
+routine          R AW1 T AY0 N 
+rub              R AH1 B 
+running          R AH1 N IH0 NG 
+rural            R UH1 R AH0 L 
+russian          R AH1 S IY0 AH0 N 
+sacred           S AE1 K R D 
+sake             S EY1 K 
+salad            S AE1 L AH0 D 
+sales            S EY1 L Z 
+sanction         S AE1 N K SH AH0 N 
+satellite        S AE1 T AH0 L AY0 T 
+satisfaction     S AE2 T IH0 S F AE1 K SH AH0 N 
+satisfy          S AH0 T IH1 S F IY0 
+sauce            S AO1 S 
+saving           S EY1 V IH0 NG 
+scandal          S K AE1 N D AH0 L 
+scenario         S EH1 N AH0 R IY0 OW0 
+scheme           S K IY1 M 
+scholar          S K AA1 L ER0 
+scholarship      S K AA1 L AH0 R SH IH0 P 
+scientific       S AY2 AH0 N T IH1 F IH0 K 
+scientist        S AY1 AH0 N T IH0 S T 
+scope            S K OW1 P 
+script           S K R IH1 P T 
+secretary        S EH1 K R AH0 T EH2 R IY0 
+sector           S EH1 K T ER0 
+seed             S IY1 D 
+segment          S EH1 G M AH0 N T 
+seize            S EY1 Z 
+selection        S AH0 L EH1 K SH AH0 N 
+self             S EH1 L F 
+senate           S EH1 N EY0 T 
+senator          S EH1 N AH0 T ER0 
+senior           S EH1 N IY0 ER0 
+sensitive        S EH1 N S IH0 T IH0 V 
+sequence         S EH1 K W AH0 N S 
+session          S EH1 SH AH0 N 
+setting          S EH1 T IH0 NG 
+settlement       S EH1 T AH0 L M AH0 N T 
+severe           S EH1 V IH0 R 
+sexual           S EH1 K S Y UW0 AH0 L 
+shade            SH EY1 D 
+shadow           SH AE1 D OW0 
+sheet            SH IY1 T 
+shelf            SH EH1 L F 
+shell            SH EH1 L 
+shelter          SH EH1 L T ER0 
+shit             SH IH1 T 
+shock            SH AA1 K 
+shopping         SH AA1 P IH0 NG 
+shortly          SH AO1 R T L IY0 
+shrug            SH R AH1 G 
+sigh             S AY1 
+significant      S IH0 G N IH1 F IH0 K AH0 N T 
+significantly    S IH0 G N IH1 F IH0 K AH0 N T L IY0 
+similarly        S IH1 M AH0 L ER0 L IY0 
+sin              S IH1 N 
+singer           S IH1 NG ER0 
+ski              S K AY1 
+slave            S L EY1 V 
+slice            S L AY1 S 
+slight           S L AY1 T 
+slightly         S L AY1 T L IY0 
+slip             S L IH1 P 
+snap             S N AE1 P 
+soccer           S AA1 K S ER0 
+society          S AH0 S AY1 AH0 T IY0 
+software         S AA1 F T W AH0 R 
+solar            S AA1 L ER0 
+solid            S AA1 L IH0 D 
+sophisticated    S AH0 F IH1 S T IH0 K EY0 T IH0 D 
+soup             S UW1 P 
+speaker          S P IY1 K ER0 
+specialist       S P EH1 SH AH0 L IH0 S T 
+species          S P EH1 S IY0 Z 
+specific         S P AH0 S IH1 F IH0 K 
+specifically     S P AH0 S IH1 F IH0 K L IY0 
+spending         S P EH1 N D IH0 NG 
+spokesman        S P AH0 K EH1 S M AH0 N 
+stability        S T AH0 B IH1 L IH0 T IY0 
+stable           S T EY1 B AH0 L 
+staff            S T AE1 F 
+stair            S T EH1 R 
+stake            S T EY1 K 
+standing         S T AE1 N D IH0 NG 
+statistics       S T AH0 T IH1 S T IH0 K S 
+steady           S T EH1 D IY0 
+stir             S T ER1 
+storage          S T AO1 R IH0 JH 
+strategic        S T R AH0 T EH1 JH IH0 K 
+strength         S T R EH1 NG TH 
+strengthen       S T R EH1 NG TH AH0 N 
+stretch          S T R EH1 T CH 
+strip            S T R IH1 P 
+stroke           S T R OW1 K 
+strongly         S T R AO1 NG L IY0 
+structure        S T R AH1 K CH ER0 
+studio           S T UW1 D IY0 OW0 
+submit           S AH0 B M IH1 T 
+subsequent       S AH1 B S AH0 K W AH0 N T 
+substance        S AH1 B S T AH0 N S 
+substantial      S AH0 B S T AE1 N SH AH0 L 
+successful       S AH0 K S EH1 S F AH0 L 
+successfully     S AH0 K S EH1 S F AH0 L IY0 
+sudden           S AH1 D AH0 N 
+sue              S UW1 
+sufficient       S AH0 F IH1 SH AH0 N T 
+suggestion       S AH0 G JH EH1 S CH AH0 N 
+suicide          S UW1 IH0 S AY0 D 
+summit           S AH1 M IH0 T 
+super            S AH1 P ER0 
+supporter        S AH0 P AO1 R T ER0 
+supposed         S AH0 P OW1 Z D 
+supreme          S AH1 P R IY0 M 
+surely           SH UH1 R L IY0 
+surgery          S ER1 JH AH0 R IY0 
+surprised        S ER0 P R AY1 Z D 
+surprising       S ER0 P R AY1 Z IH0 NG 
+surprisingly     S ER0 P R AY1 Z IH0 NG L IY0 
+survey           S ER1 V IY0 
+survival         S ER0 V AY1 V AH0 L 
+survivor         S ER0 V AY1 V ER0 
+sustain          S AH1 S T EY0 N 
+symbol           S IH1 M B AH0 L 
+symptom          S IH1 M P T AH0 M 
+tablespoon       T EY2 B AH0 L S P UW1 N 
+tactic           T AE1 K T IH0 K 
+tail             T EY1 L 
+tale             T EY1 L 
+tank             T AE1 NG K 
+tape             T EY1 P 
+taxpayer         T AE1 K S P EY2 ER0 
+teaching         T IY1 CH IH0 NG 
+teaspoon         T IY0 S P UW1 N 
+technical        T EH1 CH N IH0 K AH0 L 
+technique        T AH0 CH N IY1 K 
+teen             T IY1 N 
+teenager         T IY1 N EY0 JH ER0 
+telephone        T EH1 L AH0 F OW0 N 
+telescope        T AH0 L EH1 S K OW0 P 
+temporary        T EH1 M P AH0 R EH2 R IY0 
+tend             T EH1 N D 
+tendency         T EH1 N D AH0 N S IY0 
+tennis           T EH1 N IH0 S 
+tent             T EH1 N T 
+terror           T ER1 R ER0 
+terrorism        T ER1 R AH0 R IH0 Z AH0 M 
+terrorist        T ER1 R AH0 R IH0 S T 
+testify          T EH1 S T AH0 F AY2 
+testing          T EH1 S T IH0 NG 
+theater          TH IY1 T ER0 
+theme            TH IY1 M 
+therapy          TH EH1 R AH0 P IY0 
+thinking         TH IH1 NG K IH0 NG 
+throat           TH R OW1 T 
+tight            T AY1 T 
+tissue           T IH1 S UW0 
+tobacco          T AA1 B AH0 K OW0 
+tomato           T AA1 M AH0 T OW0 
+toss             T AA1 S 
+tournament       T AO1 R N AH0 M AH0 N T 
+toy              T OY1 
+trace            T R EY1 S 
+traditional      T R AH0 D IH1 SH AH0 N AH0 L 
+tragedy          T R AE1 JH AH0 D IY0 
+trail            T R EY1 L 
+training         T R EY1 N IH0 NG 
+transfer         T R AE1 N S F ER0 
+transform        T R AE1 N S F AH0 R M 
+transformation   T R AE2 N S F AH0 R M EY1 SH AH0 N 
+transition       T R AH0 N S IH1 SH AH0 N 
+translate        T R AE1 N S L EY0 T 
+transportation   T R AE2 N S P AH0 R T EY1 SH AH0 N 
+treatment        T R IY1 T M AH0 N T 
+treaty           T R IY1 T IY0 
+tremendous       T R AH0 M EH1 N D AH0 S 
+trend            T R EH1 N D 
+tribe            T R AY1 B 
+troop            T R UW1 P 
+twin             T W IH1 N 
+typical          T IH1 P IH0 K AH0 L 
+typically        T IH1 P IH0 K L IY0 
+ultimate         AH1 L T IH0 M EY0 T 
+ultimately       AH2 L T IH0 M EY1 T AH0 L IY0 
+unable           AH0 N EY1 B AH0 L 
+undergo          AH0 N D ER1 G OW0 
+understanding    AH2 N D ER0 S T AE1 N D IH0 NG 
+unique           Y UW0 N IH1 K 
+united           Y UW1 N AH0 T IH0 D 
+universal        Y UW2 N IH0 V ER1 S AH0 L 
+universe         Y UW1 N IH0 V ER0 S 
+unknown          AH0 N N OW1 N 
+unlikely         AH0 N L AY1 K L IY0 
+unusual          AH0 N UW1 ZH UW0 AH0 L 
+upper            AH1 P ER0 
+urban            ER1 B AH0 N 
+urge             ER1 JH 
+used             Y UW1 Z D 
+useful           Y UW1 Z F AH0 L 
+usual            Y UW1 ZH UW0 AH0 L 
+utility          Y UW0 T IH1 L IH0 T IY0 
+valuable         V AE1 L Y UW0 AH0 B AH0 L 
+variable         V EH1 R IY0 AH0 B AH0 L 
+variation        V EH1 R IY0 AH0 SH AH0 N 
+variety          V AH0 R AY1 AH0 T IY0 
+vary             V EH1 R IY0 
+vast             V AE1 S T 
+vegetable        V EH1 G AH0 T AH0 B AH0 L 
+venture          V EH1 N CH ER0 
+vessel           V EH1 S AH0 L 
+veteran          V EH1 T AH0 R AH0 N 
+viewer           V Y UW1 ER0 
+violate          V IY0 OW1 L EY0 T 
+violation        V IY0 OW0 L EY1 SH AH0 N 
+violent          V IY0 OW1 L AH0 N T 
+virtually        V ER1 CH UW0 AH0 L IY0 
+virtue           V ER1 T UW0 
+virus            V AY1 R AH0 S 
+visible          V IH1 Z IH0 B AH0 L 
+visitor          V IH1 Z IH0 T ER0 
+visual           V IH1 ZH UW0 AH0 L 
+vital            V IH1 T AH0 L 
+volunteer        V AA2 L AH0 N T IH1 R 
+voter            V OW1 T ER0 
+vulnerable       V AH1 L N AH0 R AH0 B AH0 L 
+warning          W AO1 R N IH0 NG 
+wealth           W EH1 L TH 
+wealthy          W EH1 L TH IY0 
+weigh            W EY1 
+welfare          W EH1 L F AH0 R 
+wet              W EH1 T 
+whereas          W EH1 R IY0 S 
+widely           W AY1 D L IY0 
+widespread       W AY1 D S P R EH2 D 
+willing          W IH1 L IH0 NG 
+wing             W IH1 NG 
+wise             W AY1 Z 
+withdraw         W IH1 TH D R AH0 
+wooden           W UH1 D AH0 N 
+worker           W ER1 K ER0 
+working          W ER1 K IH0 NG 
+works            W ER1 K S 
+workshop         W ER1 K SH AA2 P 
+worried          W ER1 IY0 D 
+worth            W ER1 TH 
+writing          R AY1 T IH0 NG 
+yield            Y IY1 L D 
+youngster        Y UW1 NG S T ER0 

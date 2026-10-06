@@ -1,0 +1,732 @@
+[   0.005] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.407] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   0.882] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   0.890] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.967] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   1.034] UI font 'Impact' -> 'Liberation Sans'
+[   1.088] Font atlas built in 0.20 s
+[   1.132] Audio: no output device - audio disabled
+[   1.132] Audio: no output device, continuing silently
+[   2.090] UI icon atlas: 92 icons + 13 weapons in 922 ms
+[  14.278] Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+[  14.286] Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+[  14.313] Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+[  14.313] Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+[  14.313] Places: Palmera Speedway at (400, 5790), ground 6.8
+[  14.313] Places: layout 0.035 s, 5 places, 624 anchors
+[  14.314] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[  14.332] Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.07 s)
+[  15.002] World map generated in 13.87 s
+[  15.931] Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+[  16.284] Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+[  19.571] Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+[  21.709] Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km (6.71 s)
+[  25.061] Transit: 0 buildings cleared from the SkyLine corridor
+[  25.070] Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+[  25.130] Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+[  25.132] Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+[  25.174] Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+[  25.353] Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+[  25.397] Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+[  25.399] Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+[  25.403] Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+[  25.467] Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+[  25.495] Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+[  25.498] Places: after the lots 0.438 s
+[  25.501] Buildings: 35617 (towers 352, midrise 2411, condo 427, deco 688, shops 4600, strip 640, houses 22192, villas 901, warehouses 1620) in 3.72 s
+[  25.503] Sites: 69 highway billboards
+[  25.504] Sites: 155 silos, 50 windmills
+[  25.505] Sites: 245 beach access paths
+[  25.546] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.02 s)
+[  25.546] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[  25.546] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[  25.546] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[  25.554] Transit: 4 bus routes, 64 stops (48 new shelters) (0.01 s); rejects class 1107 cut 1945 deck 72 road 119 avoid 0 pad 2 furn 283 stop 0
+[  25.554] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[  25.554] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[  25.554] Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+[  25.555] Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+[  25.572] Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.02 s)
+[  25.572] Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+[  25.574] Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+[  25.574] Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+[  25.574] Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+[  25.574] Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+[  25.574] Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+[  25.574] Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+[  25.574] Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+[  25.574] Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+[  25.574] Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+[  25.574] Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+[  25.574] Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+[  25.574] Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+[  25.574] Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+[  25.574] Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+[  25.574] Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+[  25.574] Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.07 s)
+[  25.574] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[  25.574] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  25.574] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  25.574] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  25.575] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  25.575] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  25.575] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  25.575] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  25.581] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  25.584] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  25.584] Site terminal             at (628, 1440, 4.6)
+[  25.585] Site control tower        at (730, 1832, 4.6)
+[  25.585] Site container ship       at (4625, -800, 0.0)
+[  25.585] Site container ship       at (4616, -330, 0.0)
+[  25.585] Site port gate            at (4008, -160, 3.0)
+[  25.585] Site Key Coral marina     at (4039, -4035, 0.0)
+[  25.585] Site beach club           at (4873, -3866, 1.2)
+[  25.585] Site beach club           at (4808, -4183, 2.2)
+[  25.585] Site Solaris One          at (3350, -750, 1.4)
+[  25.585] Site stadium              at (3565, 445, 1.6)
+[  25.585] Site City Hall            at (3000, 372, 2.0)
+[  25.585] Site Canvas Park          at (3100, 1800, 1.7)
+[  25.585] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  25.585] Site Ferris wheel         at (5504, 1270, 5.6)
+[  25.585] Site lighthouse           at (-2206, -8000, 0.5)
+[  25.585] Site radio mast           at (-6744, 7248, 166.1)
+[  25.585] Site sugar mill           at (1430, 7500, 8.1)
+[  25.585] Site Rio Sol marina       at (2280, 188, 0.0)
+[  25.585] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  25.585] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  25.585] Sites finalized: 1486 elements (0.08 s)
+[  25.627] Interiors: 29 planned (convenience 7, gun shops 2) in 41.6 ms
+[  25.631]   interior 'Mari's Apartment' kind 0 building 28142 at (1771.22, 359.23, 3.77) ax (1.0000, 0.0000) x -6.55..2.18 depth 11.50 ceil 3.84: 3 rooms, 3 openings, 3 doors, 3 portals, 0 npc points
+[  25.631]   interior 'Mama Lucha's' kind 2 building 26747 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+[  25.631]   interior 'Rook's Garage' kind 3 building 27288 at (1562.94, 2361.63, 4.30) ax (1.0000, 0.0000) x -9.74..9.74 depth 20.00 ceil 7.11: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+[  25.631]   interior 'Dex's Trailer' kind 1 building 25527 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  25.631]   interior 'Police Headquarters' kind 5 building 32504 at (3167.89, -240.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+[  25.631]   interior 'Tidewater General Hospital' kind 6 building 35599 at (1692.75, 1073.40, 3.63) ax (1.0000, 0.0000) x -9.55..9.55 depth 16.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+[  25.632]   interior 'Palmetto Arms' kind 7 building 25538 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+[  25.632]   interior 'Northside Arms' kind 7 building 32997 at (3284.62, 4017.67, 2.09) ax (0.0000, 1.0000) x -6.33..6.33 depth 14.00 ceil 4.03: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  25.634]   interior 'Threads' kind 9 building 19677 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+[  25.637]   interior 'Port Isle Warehouse' kind 12 building 35552 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  25.637]   interior 'TideStop Mart' kind 8 building 26846 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  25.637]   interior 'Bodega La Luna' kind 8 building 29652 at (2242.71, 540.72, 2.92) ax (-1.0000, -0.0000) x -5.85..5.85 depth 17.00 ceil 4.19: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  25.637]   interior 'Canvas Corner Market' kind 8 building 32545 at (3090.56, 1476.66, 2.21) ax (0.0000, 1.0000) x -7.40..7.40 depth 17.00 ceil 3.92: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  25.637]   interior 'Sunrise Food Mart' kind 8 building 19719 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  25.637]   interior 'Northside Quick Stop' kind 8 building 29914 at (2304.43, 3761.63, 3.12) ax (1.0000, 0.0000) x -6.89..6.89 depth 17.00 ceil 4.12: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  25.637]   interior 'Flats Food & Fuel' kind 8 building 24842 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[  25.637]   interior 'Grove Pantry' kind 8 building 1182 at (2175.56, -3114.24, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  25.638]   interior 'Palm Motors' kind 17 building 31294 at (2686.87, 1279.16, 2.69) ax (0.0000, 1.0000) x -9.08..12.11 depth 20.00 ceil 3.90: 2 rooms, 8 openings, 3 doors, 8 portals, 5 npc points
+[  25.638]   interior 'Tide Customs Calle Luna' kind 18 building 29601 at (2278.47, -140.75, 2.99) ax (1.0000, 0.0000) x -7.61..7.61 depth 18.00 ceil 4.17: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  25.638]   interior 'Tide Customs Sol Beach' kind 18 building 19788 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  25.638]   interior 'Sunwash Car Wash' kind 19 building 29044 at (1988.34, 1491.32, 3.44) ax (0.0000, 1.0000) x -7.41..7.41 depth 20.00 ceil 8.08: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+[  25.638]   interior 'Key Coral Villa' kind 0 building 23718 at (4515.96, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[  25.638]   interior 'Sol Beach Condo Lobby' kind 20 building 19771 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+[  25.638]   interior 'Sol Beach Condo' kind 21 building 19771 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  25.638]   interior 'Downtown Penthouse Lobby' kind 20 building 33543 at (3511.22, -715.16, 1.71) ax (-0.0000, -1.0000) x -5.25..5.25 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[  25.638]   interior 'Downtown Penthouse' kind 21 building 33543 at (3511.22, -715.16, 52.15) ax (-0.0000, -1.0000) x -10.49..10.49 depth 14.00 ceil 2.80: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  25.638]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  25.638]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[  25.638]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[  25.839] Buildings: 32401 restyled by district palettes in 201.3 ms (taxpayer 1397, 1920s block 913, med revival 778, mimo shop 1035, bodega 341, arcade 118, gallery 11, walk-up 497, mimo apts 764, med apts 530, office 60s 129, modern 371, loft 80, condo slab 134, glass condo 113, mimo hotel 97, podium condo 78, ranch 6471, bungalow 3543, med house 3919, two-storey 3026, mimo house 2317, split level 2544, conch 370, modern villa 178, streamline 176, med hotel 117, mimo motel 133, sawtooth 540, ware office 551, body shop 282, med villa 294, colonial villa 130, stilt house 73)
+[  26.198] Transit: 0 buildings cleared from the SkyLine corridor
+[  26.207] Buildings: block infill 3457 back buildings (garage rows 719, sheds 1872, back houses 866, 0 in the viaduct corridor dropped, 1213 near a street left as yards), 1465 rear parking lots, 5755 yards in 367.5 ms
+[  26.360] Buildings: repetition (neighbours within 150 m with the same style, archetype, massing, roof, height band and facade pattern): 4.3% overall, 41% of buildings without a twin; by district: Downtown Porto Sol 2.8%, Solaris 2.7%, Canvas District 0.8%, North Porto Sol 1.7%, Calle Luna 1.5%, Sol Beach 1.7%, Key Coral 8.9%, The Grove 2.9%, Palmetto Flats 1.9%, Westbrook 5.7%, Redland 15.5%, Ten Palms 11.1%, Palmera Farmlands 15.5%, Okahatchee 6.0%, Harlow 6.8%, Fort Castell 3.0%, Key Solano 16.5% (152.7 ms)
+[  29.225] Material library: 57 layers at 256^2
+[  29.453] Props: 71 prototypes, 36644 verts
+[  33.569] Vehicle assets: 45 models in 3.43 s
+[  79.386] Wardrobe: 29 dedicated looks (night out 12, door staff 3, sportswear 8, cover-ups 6); roster dressed for a night out 8 men / 9 women, office 9, work 6, swim 8, sport 6
+[  80.865] Character assets: 149 characters in 47.29 s
+[  80.978] Game assets built in 50.84 s
+[  81.397] Story place near (800, -5400): no building frontage found, using the street
+[  81.398] Story places resolved in 387.7 ms (diner 1350 342, Mari's 1771 358, Rook's 1566 2360, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[  81.400] Missions registered: 57
+[  85.693] Lane graph: 180 plaza walkways and 2 zebra crossings from the sites
+[  85.743] Lane graph: 25496 lanes, 56760 connectors (1154772 pts), 40687 walk nodes, 56441 walk links, dead-end turning circles moved 22 / obstructed 0 (4.34 s)
+[ 108.371] UI map: base 2560x2560 in 22576 ms, 9547 roads (43960 pts) in 11 ms, 37 labels in 36 ms
+[ 108.371] hudInit done in 22624 ms
+[ 108.374] Init done in 107.24 s (shaders: 0 compiled in 0.00 s)
+[ 108.378] autoplay tour stop 4 midtown_park at 3093 1600, 16.5 h
+[ 108.381] Transit: SkyLine timetable built (2.5 ms): loop 12.4 / 12.4 min, 4 trains per direction, headway 3.1 min
+[ 108.381] Transit: 9 lines published to the map
+[ 108.384] Transit: SkyLine car models registered as vehicle assets 45 / 46
+[ 108.831] Transit: 4 route bus models (destination signs) in 447 ms
+[ 108.831] Transit: 64 bus stops registered with the AI (48 lane stops added, 240 waiting spots)
+[ 108.831] Transit: 15 buses on 4 routes
+[ 108.831] Transit: Bay Ferry timetable: loop 13.2 min, 2 ferries, headway 6.6 min
+[ 108.834] Transit: Sol Ferry model registered as vehicle asset 51
+[ 108.837] Transit: streetcar modules registered as vehicle assets 52 53 54
+[ 108.838] Transit: 16 streetcar stops registered (16 curb lanes kept clear)
+[ 108.838] Transit: 4 streetcars on the 6.24 km loop, 16 stops, 65/65 junction movements found
+[ 108.929] population: venue Ocean Promenade slot 75 (mode 6) dropped at 5354.7 728.5: second spot
+[ 108.938] population: venue Ocean Promenade slot 77 (mode 6) dropped at 5354.7 809.2: second spot
+[ 108.938] population: venue Ocean Promenade slot 71 (mode 6) dropped at 5354.7 850.4: second spot
+[ 108.938] population: venue Ocean Promenade slot 80 (mode 6) dropped at 5354.7 920.7: second spot
+[ 108.940] population: venue Ocean Promenade slot 49 (mode 6) dropped at 5354.7 1046.1: second spot
+[ 108.952] population: venues laid out: 3956 (769 slots kept, 5 dropped on lanes / water / buildings; 3892 town venues with 38978 slots, checked on the first visit) | port 23 | airport 35 (rank: 3 cabs, line of 4) | sawgrass 32 | Ocean Promenade 2 | Porto Sol University 2 | Porto Sol University 5 | Santa Marea Cemetery 2 | Palmera State Penitentiary 5 | Okahatchee Union Church 2 | Old Fort Church 2 | Ocean Promenade 34 | Ocean Promenade 76 | Ocean Promenade 72 | Ocean Promenade 81 | Ocean Promenade 49 | Ocean Promenade 7 | Ocean Promenade 6 | Ocean Promenade 2 | Ocean Promenade 4 | Ocean Promenade 3 | Porto Sol University 10 | Porto Sol University 6 | Porto Sol University 11 | Porto Sol University 19 | Porto Sol University 3 | Porto Sol University 7 | Santa Marea Cemetery 25 | Santa Marea Cemetery 17 | Santa Marea Cemetery 5 | Santa Marea Cemetery 3 | Santa Marea Cemetery 5 | Santa Marea Cemetery 8 | Santa Marea Cemetery 4 | Santa Marea Cemetery 9 | Palmera State Penitentiary 9 | Palmera State Penitentiary 6 | Palmera State Penitentiary 4 | Palmera State Penitentiary 3 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 2 | Palmera Speedway 16 | Palmera Speedway 28 | Palmera Speedway 12 | Okahatchee Union Church 22 | Old Fort Church 17 | Old Fort Church 4 | Tidewater General Hospital 3 | Tidewater General Hospital 2 | Tidewater General Hospital 3 | Midtown General 1 | Midtown General 7 | Westbrook Hospital 8 | Sol Beach Clinic 8 | Harlow County Hospital 5 | Harlow County Hospital 3 | Okahatchee Medical 8 | Redland Health 8 | Fort Castell Hospital 1 | Fort Castell Hospital 7
+[ 108.966] Stunt jumps: 0 road crests (0 candidates); ramps being placed
+[ 108.968] fishing: 9 spots (lake yes, 3 Keys docks)
+[ 113.353] Stunt ramps: 10 placed (0 over water) in 824 ms (25869 corridors tested); 10 unique stunt jumps
+[ 113.379] Wildlife: 28 species models ready (166 k triangles in the detailed LODs)
+[ 113.522] Interior 'Canvas Corner Market' built: 137525 triangles, 22 lights, 15 colliders, 3 door leaves in 69.9 ms
+[ 113.529] Interior 'Palm Motors' built: 16692 triangles, 28 lights, 24 colliders, 4 door leaves in 10.0 ms
+[ 197.928] gfx (frame 30): draws 4, dispatches 0, indirect 0 | CB writes 4 (1.0 KB), dynamic 87.1 KB | root CBVs 9, root constants 0 | tables 3 (21 descriptors) | pipelines 1
+[ 197.934] Pass timings, device idle at boundaries (frame 30, 960x540):
+sky                   23.90 ms
+prop cull              2.31 ms
+shadows              942.73 ms
+envprobe              52.01 ms
+grass place            7.57 ms
+gbuffer              841.03 ms
+decals                 0.91 ms
+hiz+pyramid           24.90 ms
+ao+gi                102.88 ms
+ssr                   49.98 ms
+particles sim         16.41 ms
+clouds                20.64 ms
+fog                   54.14 ms
+lighting             262.41 ms
+water                 33.40 ms
+glass                  4.07 ms
+particles              1.06 ms
+rain                   0.43 ms
+post                 282.31 ms
+total               2723.09 ms
+
+[ 263.526] autoplay tour shot 4 midtown_park | peds 92 vehicles 75 | cpu ms ai 0.54 veh 3.52 peds 2.04
+[ 304.638] gfx (frame 60): draws 328, dispatches 65, indirect 6 | CB writes 73 (28.8 KB), dynamic 597.2 KB | root CBVs 103, root constants 286 | tables 154 (983 descriptors) | pipelines 150
+[ 304.639] Pass timings, device idle at boundaries (frame 60, 960x540):
+sky                   20.42 ms
+prop cull              3.10 ms
+shadows             1366.30 ms
+envprobe              43.32 ms
+grass place            2.81 ms
+gbuffer             1320.57 ms
+decals                 0.13 ms
+hiz+pyramid           26.97 ms
+ao+gi                155.61 ms
+ssr                   75.77 ms
+particles sim         21.71 ms
+clouds                31.35 ms
+fog                   83.71 ms
+lighting             415.19 ms
+water                 29.19 ms
+glass                  0.49 ms
+particles              0.54 ms
+rain                   0.05 ms
+post                 381.96 ms
+total               3979.18 ms
+
+[ 393.279] gfx (frame 90): draws 323, dispatches 65, indirect 6 | CB writes 71 (27.5 KB), dynamic 596.0 KB | root CBVs 103, root constants 281 | tables 154 (983 descriptors) | pipelines 139
+[ 393.279] Pass timings, device idle at boundaries (frame 90, 960x540):
+sky                   18.50 ms
+prop cull              1.05 ms
+shadows              842.59 ms
+envprobe              27.94 ms
+grass place            5.65 ms
+gbuffer              786.37 ms
+decals                 0.68 ms
+hiz+pyramid           24.61 ms
+ao+gi                 99.82 ms
+ssr                   47.13 ms
+particles sim         16.44 ms
+clouds                19.84 ms
+fog                   51.35 ms
+lighting             263.69 ms
+water                 30.41 ms
+glass                  0.99 ms
+particles              0.48 ms
+rain                   0.07 ms
+post                 243.57 ms
+total               2481.21 ms
+
+[ 408.816] autoplay tour stop 5 beach_condos at 5079 1500, 17.5 h
+[ 408.921] Interior 'Tide Customs Sol Beach' built: 11328 triangles, 11 lights, 17 colliders, 2 door leaves in 1.2 ms
+[ 408.927] Interior 'Sol Beach Condo Lobby' built: 6284 triangles, 6 lights, 11 colliders, 4 door leaves in 0.8 ms
+[ 412.580] Interior 'Sol Beach Condo' built: 20346 triangles, 22 lights, 43 colliders, 7 door leaves in 3.1 ms
+[ 490.776] gfx (frame 120): draws 4, dispatches 0, indirect 0 | CB writes 4 (1.0 KB), dynamic 151.3 KB | root CBVs 9, root constants 0 | tables 3 (21 descriptors) | pipelines 1
+[ 490.776] Pass timings, device idle at boundaries (frame 120, 960x540):
+sky                   24.86 ms
+prop cull              1.76 ms
+shadows             1255.92 ms
+envprobe              30.92 ms
+grass place            7.76 ms
+gbuffer             1173.89 ms
+decals                 0.35 ms
+hiz+pyramid           23.50 ms
+ao+gi                151.42 ms
+ssr                  119.45 ms
+particles sim         19.84 ms
+clouds                14.57 ms
+fog                   77.79 ms
+lighting             382.86 ms
+water                 45.59 ms
+glass                  2.41 ms
+particles              0.64 ms
+rain                   0.05 ms
+post                 383.34 ms
+total               3716.91 ms
+
+[ 579.876] autoplay tour shot 5 beach_condos | peds 124 vehicles 65 | cpu ms ai 0.79 veh 3.30 peds 2.24
+[ 591.501] gfx (frame 150): draws 705, dispatches 64, indirect 6 | CB writes 75 (30.5 KB), dynamic 868.1 KB | root CBVs 109, root constants 678 | tables 155 (1000 descriptors) | pipelines 86
+[ 591.501] Pass timings, device idle at boundaries (frame 150, 960x540):
+sky                   20.50 ms
+prop cull              1.53 ms
+shadows             1096.58 ms
+envprobe              47.40 ms
+grass place            6.81 ms
+gbuffer              975.60 ms
+decals                 0.29 ms
+hiz+pyramid           24.25 ms
+ao+gi                127.33 ms
+ssr                   91.36 ms
+particles sim         20.54 ms
+clouds                12.88 ms
+fog                   69.40 ms
+lighting             323.41 ms
+water                 42.99 ms
+glass                  2.78 ms
+particles              1.06 ms
+rain                   0.05 ms
+post                 262.00 ms
+total               3126.77 ms
+
+[ 706.916] gfx (frame 180): draws 607, dispatches 76, indirect 6 | CB writes 85 (32.0 KB), dynamic 863.0 KB | root CBVs 115, root constants 582 | tables 174 (1176 descriptors) | pipelines 84
+[ 706.916] Pass timings, device idle at boundaries (frame 180, 960x540):
+sky                   21.42 ms
+prop cull              2.71 ms
+shadows             1145.21 ms
+envprobe              26.25 ms
+grass place            2.61 ms
+gbuffer             1124.06 ms
+decals                 0.24 ms
+hiz+pyramid           30.26 ms
+ao+gi                162.40 ms
+ssr                  119.15 ms
+particles sim         24.21 ms
+clouds                11.10 ms
+fog                   74.77 ms
+lighting             373.96 ms
+water                 37.66 ms
+glass                  2.86 ms
+particles              1.23 ms
+rain                   0.44 ms
+post                 285.37 ms
+total               3445.91 ms
+
+[ 744.265] autoplay tour stop 6 beach_pier_sunset at 5364 1238, 19.1 h
+[ 744.363] Interior 'Club Riptide' built: 43466 triangles, 28 lights, 80 colliders, 0 door leaves in 5.6 ms
+[ 744.417] Interior 'Sunrise Food Mart' built: 141940 triangles, 22 lights, 17 colliders, 3 door leaves in 83.9 ms
+[ 783.016] Transit: 0.964 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 793.408] gfx (frame 210): draws 4, dispatches 0, indirect 0 | CB writes 4 (1.0 KB), dynamic 101.8 KB | root CBVs 9, root constants 0 | tables 3 (21 descriptors) | pipelines 1
+[ 793.408] Pass timings, device idle at boundaries (frame 210, 960x540):
+sky                   16.76 ms
+prop cull              2.84 ms
+shadows              934.78 ms
+envprobe              38.48 ms
+grass place            8.69 ms
+gbuffer              745.61 ms
+decals                 1.97 ms
+hiz+pyramid           20.91 ms
+ao+gi                106.15 ms
+ssr                   48.53 ms
+particles sim         20.23 ms
+clouds                19.17 ms
+fog                   53.40 ms
+lighting             238.42 ms
+water                 62.74 ms
+glass                  4.02 ms
+particles              1.23 ms
+rain                   0.05 ms
+post                 267.29 ms
+total               2591.28 ms
+
+[ 869.402] gfx (frame 240): draws 556, dispatches 63, indirect 6 | CB writes 74 (30.0 KB), dynamic 1100.6 KB | root CBVs 103, root constants 535 | tables 148 (941 descriptors) | pipelines 92
+[ 869.402] Pass timings, device idle at boundaries (frame 240, 960x540):
+sky                   21.15 ms
+prop cull              1.95 ms
+shadows              853.78 ms
+envprobe              69.93 ms
+grass place            2.90 ms
+gbuffer              670.40 ms
+decals                 1.72 ms
+hiz+pyramid           23.96 ms
+ao+gi                 95.14 ms
+ssr                   51.38 ms
+particles sim         22.24 ms
+clouds                26.24 ms
+fog                   57.28 ms
+lighting             238.19 ms
+water                 66.38 ms
+glass                  3.09 ms
+particles              0.99 ms
+rain                   0.06 ms
+post                 238.87 ms
+total               2445.65 ms
+
+[ 874.172] autoplay tour shot 6 beach_pier_sunset | peds 108 vehicles 55 | cpu ms ai 0.57 veh 0.49 peds 1.56
+[ 943.458] gfx (frame 270): draws 586, dispatches 64, indirect 6 | CB writes 72 (28.8 KB), dynamic 1093.9 KB | root CBVs 103, root constants 565 | tables 149 (944 descriptors) | pipelines 87
+[ 943.458] Pass timings, device idle at boundaries (frame 270, 960x540):
+sky                   23.42 ms
+prop cull              2.00 ms
+shadows              913.46 ms
+envprobe              39.08 ms
+grass place            8.68 ms
+gbuffer              675.09 ms
+decals                 3.73 ms
+hiz+pyramid           20.24 ms
+ao+gi                102.39 ms
+ssr                   42.74 ms
+particles sim         20.12 ms
+clouds                20.58 ms
+fog                   46.94 ms
+lighting             241.88 ms
+water                 62.94 ms
+glass                  3.81 ms
+particles              1.40 ms
+rain                   0.13 ms
+post                 247.80 ms
+total               2476.44 ms
+
+[ 989.673] autoplay tour stop 7 club_night at 5372 900, 22.5 h
+[1021.595] gfx (frame 300): draws 4, dispatches 0, indirect 0 | CB writes 4 (1.0 KB), dynamic 78.5 KB | root CBVs 9, root constants 0 | tables 3 (21 descriptors) | pipelines 1
+[1021.595] Pass timings, device idle at boundaries (frame 300, 960x540):
+sky                   19.84 ms
+prop cull              3.97 ms
+shadows              895.56 ms
+envprobe              56.71 ms
+grass place            2.58 ms
+gbuffer              693.97 ms
+decals                 0.32 ms
+hiz+pyramid           31.88 ms
+ao+gi                104.85 ms
+ssr                   42.60 ms
+particles sim         18.97 ms
+clouds                21.16 ms
+fog                   75.26 ms
+lighting             272.96 ms
+water                 60.16 ms
+glass                  2.02 ms
+particles              1.16 ms
+rain                   0.05 ms
+post                 262.13 ms
+total               2566.16 ms
+
+[1049.631] Wildlife: 219 animals (182 birds) in 32 groups, 182 drawn in 52 draws | update 0.315 ms, render 2.148 ms
+[1099.010] gfx (frame 330): draws 588, dispatches 63, indirect 6 | CB writes 72 (28.8 KB), dynamic 1563.3 KB | root CBVs 102, root constants 564 | tables 148 (941 descriptors) | pipelines 93
+[1099.010] Pass timings, device idle at boundaries (frame 330, 960x540):
+sky                   23.71 ms
+prop cull              2.00 ms
+shadows              819.73 ms
+envprobe              24.29 ms
+grass place            3.23 ms
+gbuffer              692.99 ms
+decals                 0.09 ms
+hiz+pyramid           26.47 ms
+ao+gi                121.97 ms
+ssr                   50.89 ms
+particles sim         20.79 ms
+clouds                22.66 ms
+fog                   83.63 ms
+lighting             313.81 ms
+water                 60.01 ms
+glass                  1.41 ms
+particles              1.14 ms
+rain                   0.04 ms
+post                 226.34 ms
+total               2495.21 ms
+
+[1119.973] autoplay tour shot 7 club_night | peds 200 vehicles 46 | cpu ms ai 0.90 veh 0.51 peds 3.95
+[1174.191] gfx (frame 360): draws 585, dispatches 64, indirect 6 | CB writes 72 (28.8 KB), dynamic 1558.2 KB | root CBVs 102, root constants 563 | tables 149 (944 descriptors) | pipelines 96
+[1174.192] Pass timings, device idle at boundaries (frame 360, 960x540):
+sky                   18.67 ms
+prop cull              1.34 ms
+shadows              787.26 ms
+envprobe              41.75 ms
+grass place            3.50 ms
+gbuffer              698.63 ms
+decals                 0.08 ms
+hiz+pyramid           20.76 ms
+ao+gi                113.58 ms
+ssr                   41.52 ms
+particles sim         18.35 ms
+clouds                23.87 ms
+fog                   75.95 ms
+lighting             316.89 ms
+water                 55.20 ms
+glass                  1.35 ms
+particles              0.92 ms
+rain                   0.18 ms
+post                 213.26 ms
+total               2433.07 ms
+
+[1235.787] autoplay tour stop 8 downtown_rain_night at 3168 -243, 21.5 h
+[1238.492] Interior 'Police Headquarters' built: 19990 triangles, 25 lights, 25 colliders, 3 door leaves in 2.8 ms
+[1238.492] Interior 'Downtown Penthouse Lobby' built: 6090 triangles, 6 lights, 11 colliders, 4 door leaves in 1.0 ms
+[1238.498] Interior 'Downtown Penthouse' built: 22342 triangles, 26 lights, 47 colliders, 7 door leaves in 3.5 ms
+[1238.501] Interior 'Solaris One Penthouse' built: 50468 triangles, 33 lights, 53 colliders, 2 door leaves in 22.2 ms
+[1254.877] gfx (frame 390): draws 4, dispatches 0, indirect 0 | CB writes 4 (1.0 KB), dynamic 112.8 KB | root CBVs 9, root constants 0 | tables 3 (21 descriptors) | pipelines 1
+[1254.877] Pass timings, device idle at boundaries (frame 390, 960x540):
+sky                   24.47 ms
+prop cull              1.93 ms
+shadows              760.03 ms
+envprobe              48.61 ms
+grass place            1.63 ms
+gbuffer              790.88 ms
+decals                 0.08 ms
+hiz+pyramid           26.24 ms
+ao+gi                125.44 ms
+ssr                  133.85 ms
+particles sim         23.57 ms
+clouds                20.40 ms
+fog                  100.57 ms
+lighting             438.76 ms
+water                 44.06 ms
+glass                 23.76 ms
+particles              1.27 ms
+rain                  18.20 ms
+post                 257.75 ms
+total               2841.50 ms
+
+[1331.901] Transit: 0.146 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1356.138] gfx (frame 420): draws 714, dispatches 64, indirect 6 | CB writes 76 (31.2 KB), dynamic 580.8 KB | root CBVs 110, root constants 672 | tables 154 (989 descriptors) | pipelines 138
+[1356.138] Pass timings, device idle at boundaries (frame 420, 960x540):
+sky                   24.33 ms
+prop cull              2.05 ms
+shadows              866.47 ms
+envprobe              43.71 ms
+grass place            2.60 ms
+gbuffer             1079.08 ms
+decals                 1.43 ms
+hiz+pyramid           26.62 ms
+ao+gi                119.04 ms
+ssr                  175.19 ms
+particles sim         17.21 ms
+clouds                11.34 ms
+fog                  105.67 ms
+lighting             502.58 ms
+water                 43.96 ms
+glass                 30.66 ms
+particles              1.52 ms
+rain                  31.12 ms
+post                 285.62 ms
+total               3370.21 ms
+
+[1399.831] autoplay tour shot 8 downtown_rain_night | peds 69 vehicles 69 | cpu ms ai 0.58 veh 2.10 peds 1.40
+[1450.194] gfx (frame 450): draws 836, dispatches 64, indirect 6 | CB writes 75 (31.2 KB), dynamic 587.1 KB | root CBVs 112, root constants 793 | tables 157 (1014 descriptors) | pipelines 139
+[1450.194] Pass timings, device idle at boundaries (frame 450, 960x540):
+sky                   21.09 ms
+prop cull              1.74 ms
+shadows              870.93 ms
+envprobe              36.26 ms
+grass place            2.10 ms
+gbuffer              950.74 ms
+decals                 1.35 ms
+hiz+pyramid           22.42 ms
+ao+gi                113.75 ms
+ssr                  147.46 ms
+particles sim         16.72 ms
+clouds                 9.05 ms
+fog                   84.26 ms
+lighting             425.03 ms
+water                 30.62 ms
+glass                 32.52 ms
+particles              1.16 ms
+rain                  18.57 ms
+post                 205.76 ms
+total               2991.54 ms
+
+[1550.579] gfx (frame 480): draws 796, dispatches 64, indirect 6 | CB writes 74 (30.2 KB), dynamic 579.7 KB | root CBVs 112, root constants 753 | tables 157 (1014 descriptors) | pipelines 139
+[1550.579] Pass timings, device idle at boundaries (frame 480, 960x540):
+sky                   25.59 ms
+prop cull              5.42 ms
+shadows              966.25 ms
+envprobe              59.62 ms
+grass place            4.86 ms
+gbuffer             1005.04 ms
+decals                 2.50 ms
+hiz+pyramid           18.87 ms
+ao+gi                129.20 ms
+ssr                  181.91 ms
+particles sim         24.54 ms
+clouds                11.03 ms
+fog                  110.86 ms
+lighting             518.12 ms
+water                 39.89 ms
+glass                 48.25 ms
+particles              1.99 ms
+rain                  25.77 ms
+post                 249.71 ms
+total               3429.44 ms
+
+[1550.581] autoplay tour stop 9 port_gate at 4069 -200, 8.5 h
+[1630.096] gfx (frame 510): draws 4, dispatches 0, indirect 0 | CB writes 4 (1.0 KB), dynamic 62.3 KB | root CBVs 9, root constants 0 | tables 3 (21 descriptors) | pipelines 1
+[1630.097] Pass timings, device idle at boundaries (frame 510, 960x540):
+sky                   31.70 ms
+prop cull              2.25 ms
+shadows              661.86 ms
+envprobe              64.38 ms
+grass place            4.38 ms
+gbuffer              876.36 ms
+decals                 0.32 ms
+hiz+pyramid           29.00 ms
+ao+gi                111.89 ms
+ssr                  114.63 ms
+particles sim         21.23 ms
+clouds                19.12 ms
+fog                   46.96 ms
+lighting             255.79 ms
+water                 43.02 ms
+glass                  1.96 ms
+particles              0.73 ms
+rain                   0.30 ms
+post                 285.46 ms
+total               2571.34 ms
+
+[1680.427] autoplay tour shot 9 port_gate | peds 51 vehicles 42 | cpu ms ai 0.51 veh 1.20 peds 0.83
+[1705.223] gfx (frame 540): draws 308, dispatches 63, indirect 6 | CB writes 74 (30.0 KB), dynamic 351.3 KB | root CBVs 102, root constants 283 | tables 148 (941 descriptors) | pipelines 77
+[1705.223] Pass timings, device idle at boundaries (frame 540, 960x540):
+sky                   18.79 ms
+prop cull              1.73 ms
+shadows              669.67 ms
+envprobe              35.70 ms
+grass place            9.47 ms
+gbuffer              872.18 ms
+decals                 0.23 ms
+hiz+pyramid           26.96 ms
+ao+gi                100.47 ms
+ssr                   95.25 ms
+particles sim         20.55 ms
+clouds                24.63 ms
+fog                   51.69 ms
+lighting             259.22 ms
+water                 53.64 ms
+glass                  2.32 ms
+particles              0.92 ms
+rain                   0.08 ms
+post                 239.88 ms
+total               2483.39 ms
+
+[1779.763] gfx (frame 570): draws 294, dispatches 64, indirect 6 | CB writes 74 (30.0 KB), dynamic 324.1 KB | root CBVs 102, root constants 269 | tables 149 (944 descriptors) | pipelines 78
+[1779.763] Pass timings, device idle at boundaries (frame 570, 960x540):
+sky                   20.82 ms
+prop cull              3.75 ms
+shadows              657.57 ms
+envprobe              52.11 ms
+grass place            5.69 ms
+gbuffer              816.46 ms
+decals                 0.09 ms
+hiz+pyramid           29.80 ms
+ao+gi                 98.79 ms
+ssr                  101.91 ms
+particles sim         18.04 ms
+clouds                16.62 ms
+fog                   47.54 ms
+lighting             234.28 ms
+water                 46.20 ms
+glass                  2.11 ms
+particles              0.96 ms
+rain                   0.38 ms
+post                 239.38 ms
+total               2392.49 ms
+
+[1795.260] autoplay tour stop 10 airport at 751 1200, 11.0 h
+[1800.149] greeting: a hug at 698 1336
+[1800.174] greeting: a cheek_kiss at 752 1284
+[1804.799] ai: fender bender between cars 9 and 3 at 704 1271
+[1853.995] gfx (frame 600): draws 4, dispatches 0, indirect 0 | CB writes 4 (1.0 KB), dynamic 91.8 KB | root CBVs 9, root constants 0 | tables 3 (21 descriptors) | pipelines 1
+[1853.995] Pass timings, device idle at boundaries (frame 600, 960x540):
+sky                   22.76 ms
+prop cull              2.93 ms
+shadows              724.83 ms
+envprobe              18.71 ms
+grass place            4.17 ms
+gbuffer              805.13 ms
+decals                 0.70 ms
+hiz+pyramid           24.74 ms
+ao+gi                105.19 ms
+ssr                   64.38 ms
+particles sim         20.07 ms
+clouds                19.77 ms
+fog                   58.03 ms
+lighting             270.65 ms
+water                 28.91 ms
+glass                  6.25 ms
+particles              0.89 ms
+rain                   0.07 ms
+post                 276.67 ms
+total               2454.83 ms
+
+[1923.616] autoplay tour shot 10 airport | peds 61 vehicles 45 | cpu ms ai 0.51 veh 1.33 peds 2.31
+[1934.123] gfx (frame 630): draws 737, dispatches 63, indirect 6 | CB writes 70 (27.5 KB), dynamic 779.1 KB | root CBVs 102, root constants 700 | tables 148 (941 descriptors) | pipelines 149
+[1934.124] Pass timings, device idle at boundaries (frame 630, 960x540):
+sky                   17.63 ms
+prop cull              2.63 ms
+shadows              819.70 ms
+envprobe              45.27 ms
+grass place            8.69 ms
+gbuffer              926.40 ms
+decals                 0.33 ms
+hiz+pyramid           27.12 ms
+ao+gi                132.41 ms
+ssr                   68.46 ms
+particles sim         19.27 ms
+clouds                16.70 ms
+fog                   61.97 ms
+lighting             282.36 ms
+water                 29.73 ms
+glass                  6.26 ms
+particles              1.95 ms
+rain                   0.05 ms
+post                 233.19 ms
+total               2700.11 ms
+
+[2013.151] gfx (frame 660): draws 710, dispatches 64, indirect 6 | CB writes 70 (27.5 KB), dynamic 774.0 KB | root CBVs 102, root constants 672 | tables 149 (944 descriptors) | pipelines 152
+[2013.152] Pass timings, device idle at boundaries (frame 660, 960x540):
+sky                   22.89 ms
+prop cull              1.82 ms
+shadows              723.26 ms
+envprobe              21.14 ms
+grass place            6.38 ms
+gbuffer              898.61 ms
+decals                 0.09 ms
+hiz+pyramid           27.69 ms
+ao+gi                107.26 ms
+ssr                   70.26 ms
+particles sim         20.81 ms
+clouds                17.11 ms
+fog                   52.35 ms
+lighting             252.11 ms
+water                 29.19 ms
+glass                  6.81 ms
+particles              1.45 ms
+rain                   0.04 ms
+post                 214.56 ms
+total               2473.82 ms
+
+[2042.903] autoplay tour stop 11 key_coral_marina at 4089 -4028, 15.0 h
+[2042.953] Interior 'Key Coral Villa' built: 16170 triangles, 12 lights, 27 colliders, 3 door leaves in 2.8 ms
+[2045.654] Transit: 0.125 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[2047.630] Wildlife: 167 animals (154 birds) in 29 groups, 92 drawn in 19 draws | update 0.388 ms, render 0.284 ms
+[2061.303] street meet 1: ped 3 asks 1 the way at 4107 -4042
+[2080.179] gfx (frame 690): draws 4, dispatches 0, indirect 0 | CB writes 4 (1.0 KB), dynamic 83.3 KB | root CBVs 9, root constants 0 | tables 3 (21 descriptors) | pipelines 1
+[2080.179] Pass timings, device idle at boundaries (frame 690, 960x540):
+sky                   22.55 ms
+prop cull              2.64 ms
+shadows              544.92 ms
+envprobe              22.23 ms
+grass place           11.44 ms
+gbuffer              666.69 ms
+decals                 0.09 ms
+hiz+pyramid           24.40 ms
+ao+gi                 93.89 ms
+ssr                   30.89 ms
+particles sim         16.08 ms
+clouds                18.68 ms
+fog                   48.06 ms
+lighting             229.29 ms
+water                 66.84 ms
+glass                  1.64 ms
+particles              0.68 ms
+rain                   0.04 ms
+post                 240.06 ms
+total               2041.13 ms
+
+[2209.996] Direct3D 12: still waiting for the GPU (direct queue fence 29699, completed 29698)

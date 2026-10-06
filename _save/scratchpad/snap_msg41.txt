@@ -1,0 +1,44 @@
+Brows read as hair again and lashes as a fringe; on stairs the toes clear the next riser and quick steps no longer cut through one
+
+Faces batch 7 (src/anim/face.cpp, tests/anim/anim_test.cpp, tests/anim/preview.cpp):
+- Brows look like hair again, not solid black pencil strokes.
+  - Since snapshot 36, overlapping strand cards add up (1 - prod(1 - coverage)), and about nine overlap through a
+    brow's body.
+  - Brow cards are now 0.45x as dense. The body still reads full, a little skin shows between the hairs, and the edges
+    are soft.
+- Lashes look like a fringe again, not eyeliner. Lash cards are at 0.75x density: top row 0.95 -> 0.71, second row
+  0.32-0.55 -> 0.24-0.41, lower lid 0.32 -> 0.24.
+- Only card densities (vertex alpha) change. Shapes, colours, the skin tint under the brows, the LOD1/LOD2 brow painting
+  and beards are untouched, and vertex and triangle counts are identical. Brow cards now fall below the card shadow
+  pass's alpha cut, so they no longer cast into the sun's shadow map (far below a shadow texel either way).
+- New anim_test FaceHairCoverage composites the cards the way the renderer does over eight characters: brow body
+  0.78-0.85, upper lash line 0.42-0.51 (batch 6's densities fail it). tests/anim/preview.cpp dithers cards the way the
+  renderer does again.
+
+Animation, stair follow-up (src/anim/animator.cpp, src/anim/character.h: two additive Animator members):
+- Toe margin: going up, the planned landing keeps the toe tip 4.5 cm (was 2 cm) short of the next riser.
+- A swing's landing is fitted to a tread again whenever its predicted spot moves 3 cm or more (braking, speeding up,
+  being held back), with the move eased in before the foot lands.
+- A planted foot moved onto a tread may stray that much further before it quick-steps.
+- Quick steps on stairs probe where they will land and stay over the higher ground until 60% of the step, so they no
+  longer cut through a riser.
+
+Checks:
+- Faces agent:
+  - anim_test ALL PASSED on b49bc7f plus its files.
+  - 30 Wine D3D12 portraits (six people at 0.5, 1 and 4 m by day, 1 and 4 m at night): 0 FATAL / vkd3d.
+  - Brow darkness at 1 m back to the pre-snapshot-36 read (0.7-2.3 stops below the forehead).
+  - Hair under hats unchanged.
+  - cpu ms peds within noise of main on a loaded machine.
+- Animation agent:
+  - anim_test ALL PASSED on b49bc7f plus its files.
+  - Harness, 60/30 Hz: steady 17x29 ascent sunk 3 cm 0.32 -> 0% / 1.69 -> 0.13%; crowd ascent 18 -> 3-5%, descent
+    17-18 -> 6-8%; blocked descents' lowest sole -340 -> -170 mm. No metric outside the stair scenarios changes.
+  - In game (--autoplay locostairs):
+    - Sunk 3 cm: up 6.8 -> 3.1%, down 2.9 -> 1.2%.
+    - Down lowest sole -275 -> -169 mm; down slide max 56 -> 11 cm.
+- The two sign-offs touch disjoint files.
+- Still open:
+  - One ascent frame at -233 mm: a plant with no tread plan at a flight's top step (111efa9 had -238).
+  - One 43 cm ascent slide on an untraced walker.
+  - Crowd descent slide max at 60 Hz in the harness 7.7 -> 15.5 cm: one quick step whose heel crosses a riser.

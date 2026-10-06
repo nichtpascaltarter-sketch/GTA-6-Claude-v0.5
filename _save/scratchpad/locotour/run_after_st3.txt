@@ -1,0 +1,1237 @@
+[   0.039] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.849] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   1.316] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   1.343] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   1.419] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   1.478] UI font 'Impact' -> 'Liberation Sans'
+[   1.540] Font atlas built in 0.20 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   1.587] Audio: no output device - audio disabled
+[   1.588] Audio: no output device, continuing silently
+[   3.223] UI icon atlas: 92 icons + 13 weapons in 1608 ms
+[  18.946] Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+[  18.946] Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+[  18.946] Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+[  18.946] Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+[  18.947] Places: Palmera Speedway at (400, 5790), ground 6.8
+[  18.947] Places: layout 0.001 s, 5 places, 624 anchors
+[  18.947] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[  18.983] Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.10 s)
+[  20.915] World map generated in 19.32 s
+[  22.202] Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+[  22.612] Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+[  26.892] Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+[  29.646] Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km (8.73 s)
+[  34.334] Transit: 0 buildings cleared from the SkyLine corridor
+[  34.351] Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+[  34.369] Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+[  34.371] Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+[  34.375] Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+[  34.451] Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+[  34.471] Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+[  34.473] Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+[  34.478] Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+[  34.558] Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+[  34.587] Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+[  34.600] Places: after the lots 0.260 s
+[  34.602] Buildings: 35617 (towers 352, midrise 2411, condo 427, deco 688, shops 4600, strip 640, houses 22192, villas 901, warehouses 1620) in 4.91 s
+[  34.620] Sites: 69 highway billboards
+[  34.620] Sites: 155 silos, 50 windmills
+[  34.636] Sites: 245 beach access paths
+[  34.746] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.03 s)
+[  34.751] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[  34.751] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[  34.751] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[  34.762] Transit: 4 bus routes, 64 stops (48 new shelters) (0.01 s); rejects class 1107 cut 1945 deck 72 road 119 avoid 0 pad 2 furn 283 stop 0
+[  34.771] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[  34.771] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[  34.771] Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+[  34.772] Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+[  34.781] Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.01 s)
+[  34.781] Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+[  34.781] Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+[  34.781] Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+[  34.781] Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+[  34.781] Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+[  34.781] Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+[  34.781] Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+[  34.781] Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+[  34.781] Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+[  34.781] Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+[  34.781] Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+[  34.781] Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+[  34.781] Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+[  34.781] Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+[  34.781] Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+[  34.782] Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+[  34.782] Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.14 s)
+[  34.782] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[  34.782] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  34.782] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  34.782] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  34.782] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  34.782] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  34.782] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  34.782] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  34.793] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  34.793] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  34.794] Site terminal             at (628, 1440, 4.6)
+[  34.794] Site control tower        at (730, 1832, 4.6)
+[  34.794] Site container ship       at (4625, -800, 0.0)
+[  34.794] Site container ship       at (4616, -330, 0.0)
+[  34.794] Site port gate            at (4008, -160, 3.0)
+[  34.794] Site Key Coral marina     at (4039, -4035, 0.0)
+[  34.794] Site beach club           at (4873, -3866, 1.2)
+[  34.794] Site beach club           at (4808, -4183, 2.2)
+[  34.794] Site Solaris One          at (3350, -750, 1.4)
+[  34.794] Site stadium              at (3565, 445, 1.6)
+[  34.794] Site City Hall            at (3000, 372, 2.0)
+[  34.794] Site Canvas Park          at (3100, 1800, 1.7)
+[  34.794] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  34.794] Site Ferris wheel         at (5504, 1270, 5.6)
+[  34.794] Site lighthouse           at (-2206, -8000, 0.5)
+[  34.794] Site radio mast           at (-6744, 7248, 166.1)
+[  34.794] Site sugar mill           at (1430, 7500, 8.1)
+[  34.794] Site Rio Sol marina       at (2280, 188, 0.0)
+[  34.794] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  34.794] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  34.794] Sites finalized: 1486 elements (0.18 s)
+[  34.824] Interiors: 29 planned (convenience 7, gun shops 2) in 30.2 ms
+[  34.827]   interior 'Mari's Apartment' kind 0 building 28142 at (1771.22, 359.23, 3.77) ax (1.0000, 0.0000) x -6.55..2.18 depth 11.50 ceil 3.84: 3 rooms, 3 openings, 3 doors, 3 portals, 0 npc points
+[  34.827]   interior 'Mama Lucha's' kind 2 building 26747 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+[  34.827]   interior 'Rook's Garage' kind 3 building 27288 at (1562.94, 2361.63, 4.30) ax (1.0000, 0.0000) x -9.74..9.74 depth 20.00 ceil 7.11: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+[  34.827]   interior 'Dex's Trailer' kind 1 building 25527 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  34.827]   interior 'Police Headquarters' kind 5 building 32504 at (3167.89, -240.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+[  34.827]   interior 'Tidewater General Hospital' kind 6 building 35599 at (1692.75, 1073.40, 3.63) ax (1.0000, 0.0000) x -9.55..9.55 depth 16.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+[  34.827]   interior 'Palmetto Arms' kind 7 building 25538 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+[  34.829]   interior 'Northside Arms' kind 7 building 32997 at (3284.62, 4017.67, 2.09) ax (0.0000, 1.0000) x -6.33..6.33 depth 14.00 ceil 4.03: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  34.829]   interior 'Threads' kind 9 building 19677 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+[  34.829]   interior 'Port Isle Warehouse' kind 12 building 35552 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  34.829]   interior 'TideStop Mart' kind 8 building 26846 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  34.829]   interior 'Bodega La Luna' kind 8 building 29652 at (2242.71, 540.72, 2.92) ax (-1.0000, -0.0000) x -5.85..5.85 depth 17.00 ceil 4.19: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  34.829]   interior 'Canvas Corner Market' kind 8 building 32545 at (3090.56, 1476.66, 2.21) ax (0.0000, 1.0000) x -7.40..7.40 depth 17.00 ceil 3.92: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  34.829]   interior 'Sunrise Food Mart' kind 8 building 19719 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  34.829]   interior 'Northside Quick Stop' kind 8 building 29914 at (2304.43, 3761.63, 3.12) ax (1.0000, 0.0000) x -6.89..6.89 depth 17.00 ceil 4.12: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  34.829]   interior 'Flats Food & Fuel' kind 8 building 24842 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[  34.829]   interior 'Grove Pantry' kind 8 building 1182 at (2175.56, -3114.24, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  34.829]   interior 'Palm Motors' kind 17 building 31294 at (2686.87, 1279.16, 2.69) ax (0.0000, 1.0000) x -9.08..12.11 depth 20.00 ceil 3.90: 2 rooms, 8 openings, 3 doors, 8 portals, 5 npc points
+[  34.829]   interior 'Tide Customs Calle Luna' kind 18 building 29601 at (2278.47, -140.75, 2.99) ax (1.0000, 0.0000) x -7.61..7.61 depth 18.00 ceil 4.17: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  34.829]   interior 'Tide Customs Sol Beach' kind 18 building 19788 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  34.829]   interior 'Sunwash Car Wash' kind 19 building 29044 at (1988.34, 1491.32, 3.44) ax (0.0000, 1.0000) x -7.41..7.41 depth 20.00 ceil 8.08: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+[  34.829]   interior 'Key Coral Villa' kind 0 building 23718 at (4515.96, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[  34.830]   interior 'Sol Beach Condo Lobby' kind 20 building 19771 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+[  34.830]   interior 'Sol Beach Condo' kind 21 building 19771 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  34.830]   interior 'Downtown Penthouse Lobby' kind 20 building 33543 at (3511.22, -715.16, 1.71) ax (-0.0000, -1.0000) x -5.25..5.25 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[  34.830]   interior 'Downtown Penthouse' kind 21 building 33543 at (3511.22, -715.16, 52.15) ax (-0.0000, -1.0000) x -10.49..10.49 depth 14.00 ceil 2.80: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  34.831]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  34.831]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[  34.831]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[  35.008] Buildings: 33931 restyled by district palettes in 177.3 ms (taxpayer 1391, 1920s block 924, med revival 774, mimo shop 1036, bodega 339, arcade 118, gallery 11, walk-up 497, mimo apts 763, med apts 530, office 60s 129, modern 372, loft 80, condo slab 134, glass condo 113, mimo hotel 97, podium condo 78, ranch 5468, bungalow 2844, med house 3406, two-storey 2416, mimo house 1920, split level 2251, conch 281, modern villa 190, streamline 176, med hotel 117, mimo motel 133, sawtooth 540, ware office 551, body shop 282, med villa 307, colonial villa 135, stilt house 73, mimo motor court 161, med motel 90, keys motel 113, motor inn 90, mission strip 199, mimo strip 186, power center 255, gambrel barn 34, pole barn 43, gable barn 24, mission church 47, board church 46, brick church 25, a-frame church 43, cbs house 3244, folk victorian 438, raised keys house 66)
+[  35.354] Transit: 0 buildings cleared from the SkyLine corridor
+[  35.355] Buildings: block infill 3457 back buildings (garage rows 719, sheds 1872, back houses 866, 0 in the viaduct corridor dropped, 1213 near a street left as yards), 1465 rear parking lots, 5755 yards in 343.6 ms
+[  35.723] Buildings: repetition (neighbours within 150 m with the same style, archetype, massing, roof, height band and facade pattern): 2.9% overall, 46% of buildings without a twin; by district: Downtown Porto Sol 2.8%, Solaris 2.7%, Canvas District 0.8%, North Porto Sol 1.2%, Calle Luna 1.4%, Sol Beach 1.7%, Key Coral 5.8%, The Grove 2.7%, Palmetto Flats 1.5%, Westbrook 3.7%, Redland 4.7%, Ten Palms 11.8%, Palmera Farmlands 3.3%, Okahatchee 4.9%, Harlow 4.4%, Fort Castell 2.5%, Key Solano 5.4% (367.4 ms)
+[  38.469] Material library: 57 layers at 256^2
+[  38.779] Props: 71 prototypes, 36644 verts
+[  44.142] Vehicle assets: 45 models in 4.47 s
+[  84.672] Wardrobe: 29 dedicated looks (night out 12, door staff 3, sportswear 8, cover-ups 6); roster dressed for a night out 8 men / 9 women, office 9, work 6, swim 8, sport 6
+[  85.835] Character assets: 149 characters in 41.69 s
+[  85.917] Game assets built in 46.24 s
+[  86.151] Story place near (800, -5400): no building frontage found, using the street
+[  86.156] Story places resolved in 192.2 ms (diner 1350 342, Mari's 1771 358, Rook's 1566 2360, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[  86.157] Missions registered: 57
+[  90.248] Lane graph: 180 plaza walkways and 2 zebra crossings from the sites
+[  90.249] Lane graph: 25496 lanes, 56760 connectors (1154772 pts), 40687 walk nodes, 56441 walk links, dead-end turning circles moved 22 / obstructed 0 (4.09 s)
+[ 131.569] UI map: base 2560x2560 in 41217 ms, 9547 roads (43960 pts) in 32 ms, 37 labels in 60 ms
+[ 131.569] hudInit done in 41309 ms
+[ 131.570] Init done in 129.98 s (shaders: 0 compiled in 0.00 s)
+[ 131.577] Transit: SkyLine timetable built (2.9 ms): loop 12.4 / 12.4 min, 4 trains per direction, headway 3.1 min
+[ 131.577] Transit: 9 lines published to the map
+[ 131.580] Transit: SkyLine car models registered as vehicle assets 45 / 46
+[ 132.115] Transit: 4 route bus models (destination signs) in 534 ms
+[ 132.115] Transit: 64 bus stops registered with the AI (48 lane stops added, 240 waiting spots)
+[ 132.115] Transit: 15 buses on 4 routes
+[ 132.115] Transit: Bay Ferry timetable: loop 13.2 min, 2 ferries, headway 6.6 min
+[ 132.117] Transit: Sol Ferry model registered as vehicle asset 51
+[ 132.121] Transit: streetcar modules registered as vehicle assets 52 53 54
+[ 132.122] Transit: 16 streetcar stops registered (16 curb lanes kept clear)
+[ 132.122] Transit: 4 streetcars on the 6.24 km loop, 16 stops, 65/65 junction movements found
+[ 132.168] population: venue Ocean Promenade slot 75 (mode 6) dropped at 5354.7 728.5: second spot
+[ 132.178] population: venue Ocean Promenade slot 77 (mode 6) dropped at 5354.7 809.2: second spot
+[ 132.178] population: venue Ocean Promenade slot 71 (mode 6) dropped at 5354.7 850.4: second spot
+[ 132.178] population: venue Ocean Promenade slot 80 (mode 6) dropped at 5354.7 920.7: second spot
+[ 132.180] population: venue Ocean Promenade slot 49 (mode 6) dropped at 5354.7 1046.1: second spot
+[ 132.201] population: venues laid out: 3956 (769 slots kept, 5 dropped on lanes / water / buildings; 3892 town venues with 38978 slots, checked on the first visit) | port 23 | airport 35 (rank: 3 cabs, line of 4) | sawgrass 32 | Ocean Promenade 2 | Porto Sol University 2 | Porto Sol University 5 | Santa Marea Cemetery 2 | Palmera State Penitentiary 5 | Okahatchee Union Church 2 | Old Fort Church 2 | Ocean Promenade 34 | Ocean Promenade 76 | Ocean Promenade 72 | Ocean Promenade 81 | Ocean Promenade 49 | Ocean Promenade 7 | Ocean Promenade 6 | Ocean Promenade 2 | Ocean Promenade 4 | Ocean Promenade 3 | Porto Sol University 10 | Porto Sol University 6 | Porto Sol University 11 | Porto Sol University 19 | Porto Sol University 3 | Porto Sol University 7 | Santa Marea Cemetery 25 | Santa Marea Cemetery 17 | Santa Marea Cemetery 5 | Santa Marea Cemetery 3 | Santa Marea Cemetery 5 | Santa Marea Cemetery 8 | Santa Marea Cemetery 4 | Santa Marea Cemetery 9 | Palmera State Penitentiary 9 | Palmera State Penitentiary 6 | Palmera State Penitentiary 4 | Palmera State Penitentiary 3 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 2 | Palmera Speedway 16 | Palmera Speedway 28 | Palmera Speedway 12 | Okahatchee Union Church 22 | Old Fort Church 17 | Old Fort Church 4 | Tidewater General Hospital 3 | Tidewater General Hospital 2 | Tidewater General Hospital 3 | Midtown General 1 | Midtown General 7 | Westbrook Hospital 8 | Sol Beach Clinic 8 | Harlow County Hospital 5 | Harlow County Hospital 3 | Okahatchee Medical 8 | Redland Health 8 | Fort Castell Hospital 1 | Fort Castell Hospital 7
+[ 132.219] Stunt jumps: 0 road crests (0 candidates); ramps being placed
+[ 132.221] fishing: 9 spots (lake yes, 3 Keys docks)
+[ 134.175] Stunt ramps: 10 placed (0 over water) in 1665 ms (25869 corridors tested); 10 unique stunt jumps
+[ 134.276] Wildlife: 28 species models ready (166 k triangles in the detailed LODs)
+[ 137.059] Interior 'TideStop Mart' built: 110618 triangles, 18 lights, 14 colliders, 3 door leaves in 69.2 ms
+[ 137.064] Interior 'Tide Customs Calle Luna' built: 11390 triangles, 11 lights, 15 colliders, 2 door leaves in 1.4 ms
+[ 222.616] locostairs: station Calle Luna, stair top 1815.4 -638.0 17.6, foot 1848.1 -638.0 3.1, 32.7 m long
+[ 222.619] locostairs t 0: walkers (along / across the stair from its top, m): | trips 0
+[ 222.645] locostairs t 0: walkers (along / across the stair from its top, m): | trips 0
+[ 235.514] locostairs: 8 walkers
+[ 403.663] locostairs trace 176 up a24.53 v 1.30 ph0.80 mw1.00 | 0 pl0 h 44.0 b 40.8 t 39.7 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 403.715] locostairs trace 176 up a24.49 v 1.30 ph0.83 mw1.00 | 0 pl0 h 41.6 b 41.2 t 41.0 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 407.370] locostairs trace 176 up a24.44 v 1.30 ph0.86 mw1.00 | 0 pl0 h 40.3 b 25.4 t 26.2 g  0.00,  0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 407.380] locostairs trace 176 up a24.40 v 1.30 ph0.89 mw1.00 | 0 pl0 h 21.6 b 25.4 t 26.9 g  0.17,  0.17 | 1 pl1 h  0.1 b  0.0 t  0.0 g  0.00,  0.00
+[ 407.390] locostairs trace 176 up a24.36 v 1.30 ph0.92 mw1.00 | 0 pl0 h 20.4 b  8.5 t 10.4 g  0.17,  0.34 | 1 pl1 h  0.9 b  0.0 t  0.0 g  0.00,  0.00
+[ 407.399] locostairs trace 176 up a24.31 v 1.30 ph0.96 mw1.00 | 0 pl0 h 18.9 b  7.2 t  9.2 g  0.17,  0.34 | 1 pl1 h  2.6 b  0.0 t  0.0 g  0.00,  0.00
+[ 407.410] locostairs trace 176 up a24.27 v 1.30 ph0.99 mw1.00 | 0 pl0 h 17.5 b  5.4 t  7.2 g  0.17,  0.34 | 1 pl1 h  5.0 b  0.1 t  0.0 g  0.00,  0.00
+[ 407.421] locostairs trace 176 up a24.23 v 1.30 ph0.02 mw1.00 | 0 pl1 h 16.9 b  4.1 t  5.6 g  0.00,  0.17 | 1 pl1 h  7.5 b  0.3 t  0.0 g -0.17, -0.17
+[ 411.140] locostairs trace 176 up a24.18 v 1.30 ph0.05 mw1.00 | 0 pl1 h 16.9 b  2.4 t  3.2 g  0.00,  0.17 | 1 pl1 h  9.7 b  0.5 t  0.0 g -0.17, -0.17
+[ 411.177] locostairs trace 176 up a24.14 v 1.30 ph0.08 mw1.00 | 0 pl1 h 16.9 b  0.6 t  0.9 g  0.00,  0.17 | 1 pl1 h 11.5 b  0.7 t  0.0 g -0.17, -0.17
+[ 411.194] locostairs trace 176 up a24.10 v 1.30 ph0.11 mw1.00 | 0 pl1 h 16.9 b  0.1 t  0.2 g  0.00,  0.17 | 1 pl1 h 12.4 b  0.8 t  0.0 g -0.17, -0.17
+[ 411.200] locostairs trace 176 up a24.05 v 1.30 ph0.15 mw1.00 | 0 pl1 h 16.9 b  0.1 t  0.1 g  0.00,  0.17 | 1 pl0 h 14.7 b  3.3 t  2.3 g -0.17, -0.17
+[ 411.212] locostairs trace 176 up a24.01 v 1.30 ph0.18 mw1.00 | 0 pl1 h 16.9 b  0.1 t  0.1 g  0.00,  0.17 | 1 pl0 h 58.6 b 47.7 t 46.2 g -0.17, -0.17
+[ 411.223] locostairs trace 176 up a23.97 v 1.30 ph0.21 mw1.00 | 0 pl1 h 16.9 b  0.1 t  0.1 g  0.00,  0.17 | 1 pl0 h 72.1 b 45.5 t 43.5 g -0.17,  0.00
+[ 414.837] locostairs trace 176 up a23.92 v 1.30 ph0.24 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.1 g -0.17,  0.00 | 1 pl0 h 64.5 b 56.7 t 54.6 g -0.17, -0.17
+[ 414.879] locostairs trace 176 up a23.88 v 1.30 ph0.27 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.1 g -0.17,  0.00 | 1 pl0 h 62.2 b 39.9 t 38.2 g -0.17,  0.00
+[ 414.894] locostairs trace 176 up a23.84 v 1.30 ph0.30 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 51.5 b 48.8 t 31.0 g  0.00,  0.17
+[ 414.900] locostairs trace 176 up a23.79 v 1.30 ph0.34 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 49.2 b 32.3 t 32.3 g  0.00,  0.17
+[ 414.911] locostairs trace 176 up a23.75 v 1.30 ph0.37 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 33.1 b 18.6 t 19.5 g  0.17,  0.34
+[ 414.944] locostairs trace 176 up a23.71 v 1.30 ph0.40 mw1.00 | 0 pl1 h 17.1 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 38.2 b 25.4 t 27.0 g  0.17,  0.34
+[ 418.165] locostairs trace 176 up a23.66 v 1.30 ph0.43 mw1.00 | 0 pl1 h 18.1 b  0.0 t  0.0 g -0.34, -0.17 | 1 pl0 h 20.0 b 25.2 t 10.2 g  0.17,  0.34
+[ 418.184] locostairs trace 176 up a23.62 v 1.30 ph0.46 mw1.00 | 0 pl1 h 20.0 b  0.0 t  0.0 g -0.34, -0.17 | 1 pl0 h 18.6 b  6.9 t  8.9 g  0.17,  0.34
+[ 418.193] locostairs trace 176 up a23.58 v 1.30 ph0.49 mw1.00 | 0 pl1 h 22.3 b  0.1 t  0.0 g -0.34, -0.17 | 1 pl1 h 12.1 b  0.0 t  1.8 g  0.17,  0.34
+[ 418.202] locostairs trace 176 up a23.53 v 1.30 ph0.53 mw1.00 | 0 pl1 h  7.9 b  0.3 t  0.0 g -0.17, -0.17 | 1 pl1 h 13.1 b  0.0 t  1.4 g  0.17,  0.34
+[ 418.211] locostairs trace 176 up a23.49 v 1.30 ph0.56 mw1.00 | 0 pl1 h 10.1 b  0.5 t  0.0 g -0.17, -0.17 | 1 pl1 h 15.0 b  0.0 t  0.7 g  0.17,  0.34
+[ 418.223] locostairs trace 176 up a23.45 v 1.30 ph0.59 mw1.00 | 0 pl1 h 11.7 b  0.7 t  0.0 g -0.17, -0.17 | 1 pl1 h 16.5 b  0.0 t  0.1 g  0.17,  0.34
+[ 421.861] locostairs trace 176 up a23.40 v 1.30 ph0.62 mw1.00 | 0 pl1 h 12.4 b  0.8 t  0.0 g -0.17, -0.17 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.17,  0.34
+[ 421.888] locostairs trace 176 up a23.36 v 1.30 ph0.65 mw1.00 | 0 pl0 h 15.6 b  4.2 t  3.2 g -0.34, -0.34 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 421.900] locostairs trace 176 up a23.32 v 1.30 ph0.68 mw1.00 | 0 pl0 h 70.1 b 59.4 t 40.9 g -0.34, -0.17 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 421.912] locostairs trace 176 up a23.27 v 1.30 ph0.72 mw1.00 | 0 pl0 h 71.7 b 45.4 t 43.4 g -0.34, -0.17 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 421.924] locostairs trace 176 up a23.23 v 1.30 ph0.75 mw1.00 | 0 pl0 h 67.8 b 60.4 t 41.5 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 421.933] locostairs trace 176 up a23.19 v 1.30 ph0.78 mw1.00 | 0 pl0 h 65.5 b 43.7 t 42.1 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 425.007] locostairs trace 176 up a23.14 v 1.30 ph0.81 mw1.00 | 0 pl0 h 52.3 b 33.3 t 32.5 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 425.014] locostairs trace 176 up a23.10 v 1.30 ph0.84 mw1.00 | 0 pl0 h 33.2 b 33.7 t 33.9 g  0.17,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 425.024] locostairs trace 176 up a23.06 v 1.30 ph0.87 mw1.00 | 0 pl0 h 37.0 b 22.8 t 23.9 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 425.032] locostairs trace 176 up a23.01 v 1.30 ph0.90 mw1.00 | 0 pl0 h 21.3 b 25.8 t 27.4 g  0.17,  0.17 | 1 pl1 h 17.2 b  0.0 t  0.0 g -0.17,  0.00
+[ 425.043] locostairs trace 176 up a22.97 v 1.30 ph0.94 mw1.00 | 0 pl0 h 19.8 b  8.2 t 10.1 g  0.17,  0.34 | 1 pl1 h 18.4 b  0.0 t  0.0 g -0.17,  0.00
+[ 425.055] locostairs trace 176 up a22.93 v 1.30 ph0.97 mw1.00 | 0 pl0 h 18.4 b  6.7 t  8.6 g  0.17,  0.34 | 1 pl1 h 20.4 b  0.1 t  0.0 g -0.17,  0.00
+[ 427.449] locostairs trace 176 up a22.88 v 1.30 ph1.00 mw1.00 | 0 pl1 h 12.3 b  0.0 t  1.7 g  0.17,  0.34 | 1 pl1 h 22.8 b  0.2 t  0.0 g -0.17,  0.00
+[ 427.463] locostairs trace 176 up a22.84 v 1.30 ph0.03 mw1.00 | 0 pl1 h 13.3 b  0.0 t  1.3 g  0.17,  0.34 | 1 pl1 h 25.3 b  0.4 t  0.0 g -0.17,  0.00
+[ 427.477] locostairs trace 176 up a22.80 v 1.30 ph0.06 mw1.00 | 0 pl1 h 15.3 b  0.0 t  0.6 g  0.00,  0.17 | 1 pl1 h 27.4 b  0.6 t  0.0 g -0.34, -0.17
+[ 427.481] locostairs trace 176 up a22.75 v 1.30 ph0.09 mw1.00 | 0 pl1 h 16.7 b  0.0 t  0.1 g  0.00,  0.17 | 1 pl1 h 28.9 b  0.7 t  0.0 g -0.34, -0.17
+[ 427.488] locostairs trace 176 up a22.71 v 1.30 ph0.13 mw1.00 | 0 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl1 h 29.4 b  0.8 t  0.0 g -0.34, -0.17
+[ 427.502] locostairs trace 176 up a22.67 v 1.30 ph0.16 mw1.00 | 0 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 33.1 b  4.9 t  3.8 g -0.34, -0.17
+[ 430.254] locostairs trace 176 up a22.62 v 1.30 ph0.19 mw1.00 | 0 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 58.8 b 48.3 t 46.6 g -0.17, -0.17
+[ 430.281] locostairs trace 176 up a22.58 v 1.30 ph0.22 mw1.00 | 0 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 57.4 b 48.4 t 29.4 g -0.17,  0.00
+[ 430.297] locostairs trace 176 up a22.54 v 1.30 ph0.25 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 69.3 b 45.5 t 43.5 g -0.17,  0.00
+[ 430.301] locostairs trace 176 up a22.49 v 1.30 ph0.28 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 50.1 b 45.8 t 44.3 g -0.17, -0.17
+[ 430.312] locostairs trace 176 up a22.45 v 1.30 ph0.32 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 56.3 b 37.8 t 37.2 g -0.17,  0.00
+[ 430.312] locostairs t 10: walkers (along / across the stair from its top, m): v12.8/-0.1 ^22.4/0.1 v14.2/-0.1 ^23.7/0.1 v17.4/-0.1 ^27.3/0.2 v18.2/-0.1 ^29.3/0.2 | trips 0
+[ 430.320] locostairs trace 176 up a22.41 v 1.30 ph0.35 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 37.2 b 38.2 t 21.7 g  0.00,  0.17
+[ 432.972] locostairs trace 176 up a22.36 v 1.30 ph0.38 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 38.2 b 24.4 t 25.6 g  0.00,  0.17
+[ 432.979] locostairs trace 176 up a22.32 v 1.30 ph0.41 mw1.00 | 0 pl1 h 17.3 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 21.1 b 25.8 t 10.6 g  0.17,  0.34
+[ 432.985] locostairs trace 176 up a22.28 v 1.30 ph0.44 mw1.00 | 0 pl1 h 18.6 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 19.6 b  8.0 t 10.0 g  0.17,  0.34
+[ 432.995] locostairs trace 176 up a22.23 v 1.30 ph0.47 mw1.00 | 0 pl1 h 20.8 b  0.1 t  0.0 g -0.17,  0.00 | 1 pl0 h 18.2 b  6.3 t  8.2 g  0.17,  0.34
+[ 433.026] locostairs trace 176 up a22.19 v 1.30 ph0.51 mw1.00 | 0 pl1 h 23.3 b  0.2 t  0.0 g -0.34, -0.17 | 1 pl1 h 12.4 b  0.0 t  1.7 g  0.00,  0.17
+[ 433.042] locostairs trace 176 up a22.15 v 1.30 ph0.54 mw1.00 | 0 pl1 h 25.7 b  0.4 t  0.0 g -0.34, -0.17 | 1 pl1 h 13.7 b  0.0 t  1.2 g  0.00,  0.17
+[ 436.384] locostairs trace 176 up a22.10 v 1.30 ph0.57 mw1.00 | 0 pl1 h 27.7 b  0.6 t  0.0 g -0.34, -0.17 | 1 pl1 h 15.6 b  0.0 t  0.5 g  0.00,  0.17
+[ 436.402] locostairs trace 176 up a22.06 v 1.30 ph0.60 mw1.00 | 0 pl1 h 29.0 b  0.8 t  0.0 g -0.34, -0.17 | 1 pl1 h 16.7 b  0.0 t  0.1 g  0.00,  0.17
+[ 436.413] locostairs trace 176 up a22.02 v 1.30 ph0.63 mw1.00 | 0 pl1 h 29.4 b  0.9 t  0.0 g -0.34, -0.17 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 436.418] locostairs trace 176 up a21.97 v 1.30 ph0.66 mw1.00 | 0 pl0 h 33.3 b  5.2 t  4.0 g -0.34, -0.17 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 436.428] locostairs trace 176 up a21.93 v 1.30 ph0.70 mw1.00 | 0 pl0 h 69.5 b 59.2 t 40.5 g -0.34, -0.17 | 1 pl1 h 16.8 b  0.0 t  0.0 g -0.17,  0.00
+[ 436.436] locostairs trace 176 up a21.89 v 1.30 ph0.73 mw1.00 | 0 pl0 h 70.9 b 45.3 t 43.2 g -0.34, -0.17 | 1 pl1 h 16.8 b  0.0 t  0.0 g -0.17,  0.00
+[ 440.456] locostairs trace 176 up a21.84 v 1.30 ph0.76 mw1.00 | 0 pl0 h 66.9 b 60.4 t 41.6 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 440.463] locostairs trace 176 up a21.80 v 1.30 ph0.79 mw1.00 | 0 pl0 h 64.6 b 43.9 t 42.5 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 440.476] locostairs trace 176 up a21.76 v 1.30 ph0.82 mw1.00 | 0 pl0 h 51.5 b 33.5 t 33.1 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 440.481] locostairs trace 176 up a21.71 v 1.30 ph0.85 mw1.00 | 0 pl0 h 32.4 b 33.9 t 17.5 g  0.17,  0.34 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 440.489] locostairs trace 176 up a21.67 v 1.30 ph0.89 mw1.00 | 0 pl0 h 36.6 b 23.3 t 24.6 g  0.17,  0.34 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 440.500] locostairs trace 176 up a21.63 v 1.30 ph0.92 mw1.00 | 0 pl0 h 20.8 b 25.7 t 27.5 g  0.17,  0.17 | 1 pl1 h 17.5 b  0.0 t  0.0 g -0.34, -0.17
+[ 444.097] locostairs trace 176 up a21.58 v 1.30 ph0.95 mw1.00 | 0 pl0 h 19.2 b  7.7 t  9.7 g  0.17,  0.34 | 1 pl1 h 19.0 b  0.0 t  0.0 g -0.34, -0.17
+[ 444.106] locostairs trace 176 up a21.54 v 1.30 ph0.98 mw1.00 | 0 pl0 h 17.8 b  5.9 t  7.8 g  0.17,  0.34 | 1 pl1 h 21.3 b  0.1 t  0.0 g -0.34, -0.17
+[ 444.121] locostairs trace 176 up a21.50 v 1.30 ph0.01 mw1.00 | 0 pl1 h 12.6 b  0.0 t  1.6 g  0.17,  0.34 | 1 pl1 h 23.8 b  0.2 t  0.0 g -0.34, -0.17
+[ 444.130] locostairs trace 176 up a21.45 v 1.30 ph0.04 mw1.00 | 0 pl1 h 14.1 b  0.0 t  1.0 g  0.17,  0.34 | 1 pl1 h 26.1 b  0.4 t  0.0 g -0.34, -0.17
+[ 444.150] locostairs trace 176 up a21.41 v 1.30 ph0.08 mw1.00 | 0 pl1 h 15.9 b  0.0 t  0.4 g  0.17,  0.34 | 1 pl1 h 28.0 b  0.6 t  0.0 g -0.34, -0.17
+[ 444.160] locostairs trace 176 up a21.37 v 1.30 ph0.11 mw1.00 | 0 pl1 h 16.8 b  0.0 t  0.1 g  0.17,  0.34 | 1 pl1 h 29.1 b  0.8 t  0.0 g -0.34, -0.17
+[ 447.549] locostairs trace 176 up a21.32 v 1.30 ph0.14 mw1.00 | 0 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 30.6 b  2.1 t  1.2 g -0.51, -0.34
+[ 447.568] locostairs trace 176 up a21.28 v 1.30 ph0.17 mw1.00 | 0 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 68.9 b 57.9 t 39.6 g -0.34, -0.17
+[ 447.580] locostairs trace 176 up a21.24 v 1.30 ph0.20 mw1.00 | 0 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 69.4 b 42.5 t 40.6 g -0.34, -0.17
+[ 447.586] locostairs trace 176 up a21.19 v 1.30 ph0.23 mw1.00 | 0 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 68.7 b 60.4 t 58.3 g -0.17, -0.17
+[ 447.593] locostairs trace 176 up a21.15 v 1.30 ph0.26 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 66.6 b 43.7 t 41.8 g -0.17,  0.00
+[ 447.610] locostairs trace 176 up a21.11 v 1.30 ph0.30 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 53.5 b 50.2 t 32.1 g  0.00,  0.17
+[ 451.204] locostairs trace 176 up a21.06 v 1.30 ph0.33 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 51.1 b 33.6 t 33.4 g  0.00,  0.17
+[ 451.212] locostairs trace 176 up a21.02 v 1.30 ph0.36 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 37.9 b 22.8 t 23.5 g  0.00,  0.17
+[ 451.224] locostairs trace 176 up a20.98 v 1.30 ph0.39 mw1.00 | 0 pl1 h 17.0 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 37.5 b 24.4 t 25.9 g  0.00,  0.17
+[ 451.228] locostairs trace 176 up a20.93 v 1.30 ph0.42 mw1.00 | 0 pl1 h 17.7 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 20.4 b  8.6 t 10.4 g  0.17,  0.34
+[ 451.233] locostairs trace 176 up a20.89 v 1.30 ph0.45 mw1.00 | 0 pl1 h 19.4 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 18.9 b  7.3 t  9.3 g  0.17,  0.34
+[ 451.244] locostairs trace 176 up a20.85 v 1.30 ph0.49 mw1.00 | 0 pl1 h 21.8 b  0.1 t  0.0 g -0.17,  0.00 | 1 pl0 h 17.5 b  5.5 t  7.3 g  0.17,  0.34
+[ 455.103] locostairs trace 176 up a20.80 v 1.30 ph0.52 mw1.00 | 0 pl1 h 24.3 b  0.3 t  0.0 g -0.17,  0.00 | 1 pl1 h 16.9 b  4.1 t  5.6 g  0.17,  0.34
+[ 455.118] locostairs trace 176 up a20.76 v 1.30 ph0.55 mw1.00 | 0 pl1 h 26.5 b  0.5 t  0.0 g -0.34, -0.17 | 1 pl1 h 16.9 b  2.4 t  3.3 g  0.00,  0.17
+[ 455.127] locostairs trace 176 up a20.72 v 1.30 ph0.58 mw1.00 | 0 pl1 h 28.3 b  0.7 t  0.0 g -0.34, -0.17 | 1 pl1 h 16.9 b  0.7 t  1.0 g  0.00,  0.17
+[ 455.137] locostairs trace 176 up a20.67 v 1.30 ph0.61 mw1.00 | 0 pl1 h 29.2 b  0.8 t  0.0 g -0.34, -0.17 | 1 pl1 h 16.9 b  0.1 t  0.2 g  0.00,  0.17
+[ 455.146] locostairs trace 176 up a20.63 v 1.30 ph0.64 mw1.00 | 0 pl0 h 31.4 b  3.1 t  2.1 g -0.34, -0.17 | 1 pl1 h 16.9 b  0.1 t  0.1 g  0.00,  0.17
+[ 455.161] locostairs trace 176 up a20.59 v 1.30 ph0.68 mw1.00 | 0 pl0 h 58.4 b 47.5 t 46.1 g -0.17, -0.17 | 1 pl1 h 16.9 b  0.1 t  0.1 g  0.00,  0.17
+[ 458.110] locostairs trace 176 up a20.59 v 1.30 ph0.71 mw1.00 | 0 pl0 h 58.2 b 48.4 t 46.5 g -0.17, -0.17 | 1 pl1 h 16.9 b  0.1 t  0.1 g  0.00,  0.17
+[ 458.127] locostairs trace 176 up a20.59 v 1.30 ph0.74 mw1.00 | 0 pl0 h 70.4 b 62.5 t 60.4 g -0.17, -0.17 | 1 pl1 h 16.9 b  0.1 t  0.1 g  0.00,  0.17
+[ 458.145] locostairs trace 176 up a20.60 v 1.30 ph0.77 mw1.00 | 0 pl0 h 68.1 b 45.7 t 44.0 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.1 g  0.00,  0.17
+[ 458.156] locostairs trace 176 up a20.60 v 1.30 ph0.80 mw1.00 | 0 pl0 h 70.5 b 50.8 t 49.8 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 458.173] locostairs trace 176 up a20.60 v 1.30 ph0.83 mw1.00 | 0 pl0 h 51.3 b 51.2 t 34.3 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 458.187] locostairs trace 176 up a20.60 v 1.30 ph0.87 mw1.00 | 0 pl0 h 48.4 b 33.8 t 34.7 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 461.418] locostairs trace 176 up a20.59 v 1.30 ph0.90 mw1.00 | 0 pl0 h 38.1 b 42.2 t 43.7 g  0.17,  0.17 | 1 pl1 h 17.1 b  0.0 t  0.0 g  0.00,  0.17
+[ 461.439] locostairs trace 176 up a20.57 v 1.30 ph0.93 mw1.00 | 0 pl0 h 37.0 b 42.2 t 27.2 g  0.17,  0.34 | 1 pl1 h 18.0 b  0.0 t  0.0 g  0.00,  0.17
+[ 461.449] locostairs trace 176 up a20.55 v 1.30 ph0.96 mw1.00 | 0 pl0 h 35.6 b 23.9 t 25.9 g  0.17,  0.34 | 1 pl1 h 19.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 461.458] locostairs trace 175 dn a15.24 v 1.36 ph0.95 mw1.00 | 0 pl0 h 27.3 b 33.3 t 35.5 g -0.17, -0.17 | 1 pl1 h  3.7 b  0.1 t 16.9 g  0.17,  0.00
+[ 461.458] locostairs trace 176 up a20.52 v 1.30 ph0.99 mw1.00 | 0 pl1 h 34.0 b 21.9 t 23.7 g  0.17,  0.34 | 1 pl0 h 22.2 b  0.1 t  0.0 g  0.00,  0.17
+[ 461.469] locostairs trace 175 dn a15.29 v 1.36 ph0.99 mw1.00 | 0 pl0 h  9.1 b 14.7 t 33.7 g -0.17, -0.34 | 1 pl1 h  7.1 b  0.4 t 16.9 g  0.17,  0.00
+[ 461.469] locostairs trace 176 up a20.48 v 1.30 ph0.02 mw1.00 | 0 pl1 h 38.1 b 25.1 t 26.5 g  0.00,  0.17 | 1 pl0 h 37.5 b 13.1 t 12.8 g -0.17,  0.00
+[ 461.469] locostairs deep 181 dn foot 0: h -16.8 b   5.8 t   7.9 cm (g -0.17, -0.34, -0.34) | a 20.25 x-0.25 | v 1.24 along 1.23 yawOff  -2.7 | ph1.00 age0.03 ballProbe 0 strikeLead 0.29 pin -0.001 footZ -0.338
+[ 461.503] locostairs trace 175 dn a15.33 v 1.36 ph0.02 mw1.00 | 0 pl1 h  0.0 b  4.5 t 23.0 g -0.17, -0.34 | 1 pl1 h 10.6 b  0.9 t 16.9 g  0.17,  0.00
+[ 461.504] locostairs trace 176 up a20.45 v 1.30 ph0.06 mw1.00 | 0 pl1 h 16.9 b  2.0 t  2.8 g  0.00,  0.17 | 1 pl0 h 37.7 b 11.2 t 10.7 g -0.17,  0.00
+[ 464.368] locostairs trace 175 dn a15.38 v 1.36 ph0.06 mw1.00 | 0 pl1 h  0.0 b  1.9 t 19.5 g -0.17, -0.34 | 1 pl1 h 13.3 b  1.4 t 16.9 g  0.17,  0.00
+[ 464.368] locostairs trace 176 up a20.40 v 1.30 ph0.09 mw1.00 | 0 pl1 h 16.9 b  0.4 t  0.6 g  0.00,  0.17 | 1 pl0 h 38.0 b 10.1 t  9.4 g -0.17,  0.00
+[ 464.386] locostairs trace 175 dn a15.42 v 1.36 ph0.10 mw1.00 | 0 pl1 h  0.0 b  0.1 t 17.0 g  0.00, -0.17 | 1 pl1 h 14.8 b  1.7 t 16.9 g  0.34,  0.17
+[ 464.387] locostairs trace 176 up a20.37 v 1.30 ph0.12 mw1.00 | 0 pl1 h 16.9 b  0.1 t  0.1 g  0.00,  0.17 | 1 pl0 h 31.1 b 19.5 t  1.8 g -0.17,  0.00
+[ 464.409] locostairs trace 175 dn a15.47 v 1.36 ph0.13 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 16.4 b  3.3 t 18.3 g  0.34,  0.17
+[ 464.409] locostairs deep 176 up foot 0: h   0.0 b -16.8 t -16.8 cm (g  0.00,  0.17,  0.17) | a 20.36 x 0.35 | v 1.30 along-1.30 yawOff  -2.1 | ph0.15 age0.20 ballProbe 0 strikeLead 0.30 pin 0.000 footZ 0.000
+[ 464.409] locostairs trace 176 up a20.36 v 1.30 ph0.15 mw1.00 | 0 pl1 h  0.0 b-16.8 t-16.8 g  0.00,  0.17 | 1 pl0 h 18.2 b  6.8 t  5.9 g -0.17, -0.17
+[ 464.421] locostairs trace 175 dn a15.51 v 1.36 ph0.17 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 21.1 b 25.5 t 22.9 g  0.34,  0.17
+[ 464.421] locostairs deep 176 up foot 0: h   0.0 b -16.8 t -16.8 cm (g  0.00,  0.17,  0.17) | a 20.35 x 0.37 | v 1.30 along-1.30 yawOff  -2.1 | ph0.18 age0.23 ballProbe 0 strikeLead 0.30 pin 0.000 footZ 0.000
+[ 464.421] locostairs trace 176 up a20.35 v 1.30 ph0.18 mw1.00 | 0 pl1 h  0.0 b-16.8 t-16.8 g  0.00,  0.17 | 1 pl0 h 37.8 b 10.1 t  8.6 g -0.34, -0.17
+[ 464.451] locostairs trace 175 dn a15.56 v 1.36 ph0.20 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 25.7 b 14.6 t 11.6 g  0.17,  0.17
+[ 464.457] locostairs trace 176 up a20.33 v 1.30 ph0.21 mw1.00 | 0 pl1 h 16.9 b  0.1 t  0.1 g  0.00,  0.17 | 1 pl0 h 40.9 b 14.5 t 12.5 g -0.34, -0.17
+[ 464.458] locostairs deep 179 dn foot 0: h -16.9 b   5.1 t   7.0 cm (g  0.00, -0.17, -0.17) | a 19.90 x-0.03 | v 1.38 along 1.38 yawOff  -1.8 | ph1.00 age0.03 ballProbe 0 strikeLead 0.29 pin -0.000 footZ -0.169
+[ 464.468] locostairs trace 175 dn a15.60 v 1.36 ph0.24 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 23.2 b 31.2 t 28.5 g  0.17,  0.00
+[ 464.468] locostairs trace 176 up a20.30 v 1.30 ph0.25 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.1 g  0.00,  0.17 | 1 pl1 h 31.7 b  7.4 t  5.3 g -0.34, -0.17
+[ 464.469] locostairs deep 179 dn foot 0: h -16.9 b   3.8 t   5.2 cm (g  0.00, -0.17, -0.17) | a 19.93 x-0.05 | v 1.38 along 1.38 yawOff  -1.9 | ph0.03 age0.07 ballProbe 0 strikeLead 0.29 pin 0.000 footZ -0.169
+[ 467.671] locostairs trace 175 dn a15.65 v 1.36 ph0.27 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 33.3 b 44.4 t 42.4 g  0.00, -0.17
+[ 467.675] locostairs trace 176 up a20.28 v 1.30 ph0.28 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.1 g  0.00,  0.17 | 1 pl0 h 42.3 b 20.4 t 18.7 g -0.34, -0.17
+[ 467.675] locostairs deep 179 dn foot 0: h -16.9 b   1.4 t   1.9 cm (g  0.00, -0.17, -0.17) | a 19.96 x-0.07 | v 1.38 along 1.38 yawOff  -1.9 | ph0.07 age0.10 ballProbe 0 strikeLead 0.29 pin 0.000 footZ -0.169
+[ 467.699] locostairs trace 175 dn a15.69 v 1.36 ph0.31 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.17,  0.00 | 1 pl0 h 47.1 b 44.7 t 43.8 g  0.00,  0.00
+[ 467.703] locostairs trace 176 up a20.24 v 1.30 ph0.31 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 55.1 b 36.0 t 35.1 g -0.17,  0.00
+[ 467.731] locostairs trace 175 dn a15.74 v 1.36 ph0.35 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.17,  0.00 | 1 pl0 h 20.7 b 38.6 t 39.0 g  0.00, -0.17
+[ 467.732] locostairs trace 176 up a20.20 v 1.30 ph0.34 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 39.7 b 23.2 t 23.3 g  0.00,  0.17
+[ 467.755] locostairs trace 175 dn a15.79 v 1.36 ph0.38 mw1.00 | 0 pl1 h  0.1 b  0.0 t 16.9 g  0.17,  0.00 | 1 pl0 h 35.3 b 39.0 t 57.3 g -0.17, -0.34
+[ 467.755] locostairs trace 176 up a20.16 v 1.30 ph0.37 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 33.1 b 35.8 t 19.9 g  0.00,  0.17
+[ 467.771] locostairs trace 175 dn a15.83 v 1.36 ph0.42 mw1.00 | 0 pl1 h  1.2 b  0.0 t 16.9 g  0.17,  0.00 | 1 pl0 h 14.2 b 36.6 t 38.6 g -0.17, -0.34
+[ 467.772] locostairs trace 176 up a20.12 v 1.30 ph0.40 mw1.00 | 0 pl1 h 17.2 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 38.2 b 25.6 t 27.2 g  0.00,  0.17
+[ 467.803] locostairs trace 175 dn a15.88 v 1.36 ph0.45 mw1.00 | 0 pl1 h  3.8 b  0.1 t 16.9 g  0.17,  0.00 | 1 pl0 h 29.3 b 35.4 t 37.7 g -0.34, -0.34
+[ 467.803] locostairs trace 176 up a20.08 v 1.30 ph0.44 mw1.00 | 0 pl1 h 18.3 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 19.8 b 25.0 t 10.1 g  0.17,  0.34
+[ 473.279] locostairs trace 175 dn a15.92 v 1.36 ph0.49 mw1.00 | 0 pl1 h  7.2 b  0.4 t 16.9 g  0.17,  0.00 | 1 pl0 h 10.0 b 15.6 t 17.6 g -0.34, -0.34
+[ 473.280] locostairs trace 176 up a20.03 v 1.30 ph0.47 mw1.00 | 0 pl1 h 20.3 b  0.1 t  0.0 g -0.17,  0.00 | 1 pl0 h 18.4 b  6.7 t  8.6 g  0.17,  0.34
+[ 473.280] locostairs deep 179 dn foot 0: h -16.9 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 20.18 x-0.13 | v 1.38 along 1.38 yawOff  -2.2 | ph0.27 age0.30 ballProbe 0 strikeLead 0.29 pin -0.000 footZ 0.000
+[ 473.314] locostairs trace 175 dn a15.97 v 1.36 ph0.53 mw1.00 | 0 pl1 h 10.6 b  0.9 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  4.4 t 23.0 g -0.34, -0.51
+[ 473.314] locostairs trace 176 up a19.99 v 1.30 ph0.50 mw1.00 | 0 pl1 h 22.7 b  0.2 t  0.0 g -0.17,  0.00 | 1 pl1 h 12.2 b  0.0 t  1.7 g  0.17,  0.34
+[ 473.314] locostairs deep 179 dn foot 0: h -16.9 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 20.20 x-0.15 | v 1.38 along 1.38 yawOff  -2.3 | ph0.31 age0.33 ballProbe 0 strikeLead 0.29 pin -0.000 footZ 0.000
+[ 473.362] locostairs trace 175 dn a16.01 v 1.36 ph0.56 mw1.00 | 0 pl1 h 13.3 b  1.4 t 16.9 g  0.34,  0.17 | 1 pl1 h  0.0 b  1.9 t 19.5 g -0.17, -0.34
+[ 473.362] locostairs trace 176 up a19.95 v 1.30 ph0.53 mw1.00 | 0 pl1 h 25.2 b  0.3 t  0.0 g -0.17,  0.00 | 1 pl1 h 13.2 b  0.0 t  1.4 g  0.17,  0.34
+[ 473.362] locostairs deep 179 dn foot 0: h -16.9 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 20.22 x-0.17 | v 1.38 along 1.38 yawOff  -2.4 | ph0.34 age0.37 ballProbe 0 strikeLead 0.29 pin 0.000 footZ 0.000
+[ 473.368] locostairs trace 175 dn a16.06 v 1.36 ph0.60 mw1.00 | 0 pl1 h 14.8 b  1.7 t 16.9 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.2 t 17.2 g -0.17, -0.34
+[ 473.368] locostairs trace 176 up a19.90 v 1.30 ph0.56 mw1.00 | 0 pl1 h 27.3 b  0.6 t  0.0 g -0.17,  0.00 | 1 pl1 h 15.3 b  0.0 t  0.6 g  0.17,  0.34
+[ 473.377] locostairs trace 175 dn a16.10 v 1.36 ph0.63 mw1.00 | 0 pl0 h 17.3 b  4.2 t 19.2 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34
+[ 473.377] locostairs trace 176 up a19.86 v 1.30 ph0.59 mw1.00 | 0 pl1 h 28.8 b  0.7 t  0.0 g -0.34, -0.17 | 1 pl1 h 16.7 b  0.0 t  0.1 g  0.00,  0.17
+[ 473.391] locostairs trace 175 dn a16.15 v 1.36 ph0.67 mw1.00 | 0 pl0 h 21.5 b 25.9 t 23.3 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34
+[ 473.392] locostairs trace 176 up a19.82 v 1.30 ph0.62 mw1.00 | 0 pl1 h 29.4 b  0.8 t  0.0 g -0.34, -0.17 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 479.088] locostairs trace 175 dn a16.19 v 1.36 ph0.70 mw1.00 | 0 pl0 h 25.7 b 14.6 t 28.6 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34
+[ 479.088] locostairs trace 176 up a19.77 v 1.30 ph0.66 mw1.00 | 0 pl0 h 33.0 b  4.8 t  3.7 g -0.34, -0.17 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 479.096] locostairs trace 175 dn a16.24 v 1.36 ph0.74 mw1.00 | 0 pl0 h 23.1 b 31.2 t 28.5 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34
+[ 479.096] locostairs trace 176 up a19.73 v 1.30 ph0.69 mw1.00 | 0 pl0 h 40.4 b 29.9 t 28.2 g -0.17, -0.17 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 479.107] locostairs trace 175 dn a16.28 v 1.36 ph0.78 mw1.00 | 0 pl0 h 33.1 b 44.3 t 42.3 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 479.107] locostairs trace 176 up a19.69 v 1.30 ph0.72 mw1.00 | 0 pl0 h 39.1 b 30.0 t 11.0 g -0.17,  0.00 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 479.107] locostairs deep 178 up foot 0: h  13.4 b   6.6 t -12.5 cm (g -0.34, -0.34, -0.17) | a 20.39 x 0.35 | v 1.40 along-1.40 yawOff  -2.1 | ph0.77 age0.03 ballProbe 0 strikeLead 0.27 pin -0.029 footZ -0.338
+[ 479.113] locostairs trace 175 dn a16.33 v 1.36 ph0.81 mw1.00 | 0 pl0 h 47.0 b 44.7 t 43.9 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 479.113] locostairs trace 176 up a19.64 v 1.30 ph0.75 mw1.00 | 0 pl0 h 44.7 b 20.7 t 18.7 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 479.123] locostairs trace 175 dn a16.38 v 1.36 ph0.85 mw1.00 | 0 pl0 h 20.8 b 38.8 t 39.2 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 479.124] locostairs trace 176 up a19.60 v 1.30 ph0.78 mw1.00 | 0 pl0 h 25.5 b 21.0 t  2.6 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 479.135] locostairs trace 175 dn a16.42 v 1.36 ph0.88 mw1.00 | 0 pl0 h 35.3 b 39.2 t 57.5 g -0.17, -0.34 | 1 pl1 h  0.1 b  0.0 t 16.9 g  0.00, -0.17
+[ 479.135] locostairs trace 176 up a19.56 v 1.30 ph0.81 mw1.00 | 0 pl0 h 25.7 b  7.1 t  6.5 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 484.149] locostairs trace 175 dn a16.47 v 1.36 ph0.92 mw1.00 | 0 pl0 h 14.1 b 36.6 t 38.6 g -0.17, -0.34 | 1 pl1 h  1.3 b  0.0 t 16.9 g  0.00, -0.17
+[ 484.149] locostairs trace 176 up a19.51 v 1.30 ph0.85 mw1.00 | 0 pl0 h  6.6 b  7.5 t  7.8 g  0.00,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 484.149] locostairs deep 179 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 20.64 x-0.24 | v 1.38 along 1.38 yawOff  -2.8 | ph0.69 age0.20 ballProbe 0 strikeLead 0.29 pin 0.000 footZ 0.000
+[ 484.154] locostairs trace 175 dn a16.51 v 1.36 ph0.95 mw1.00 | 0 pl0 h 29.2 b 35.2 t 37.4 g -0.34, -0.34 | 1 pl1 h  3.9 b  0.1 t 16.9 g  0.00, -0.17
+[ 484.154] locostairs trace 176 up a19.47 v 1.30 ph0.88 mw1.00 | 0 pl0 h  5.5 b  8.6 t  9.7 g  0.00,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 484.154] locostairs deep 179 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 20.69 x-0.24 | v 1.38 along 1.38 yawOff  -2.8 | ph0.72 age0.23 ballProbe 0 strikeLead 0.29 pin 0.000 footZ 0.000
+[ 484.159] locostairs trace 175 dn a16.56 v 1.36 ph0.99 mw1.00 | 0 pl0 h  0.4 b  6.0 t 25.0 g -0.34, -0.51 | 1 pl1 h  7.3 b  0.4 t 16.9 g  0.00, -0.17
+[ 484.159] locostairs trace 176 up a19.43 v 1.30 ph0.91 mw1.00 | 0 pl0 h  3.8 b  8.4 t 10.1 g  0.00,  0.00 | 1 pl1 h 17.3 b  0.0 t  0.0 g -0.17,  0.00
+[ 484.159] locostairs deep 179 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 20.73 x-0.24 | v 1.38 along 1.38 yawOff  -2.8 | ph0.76 age0.27 ballProbe 0 strikeLead 0.29 pin -0.000 footZ 0.000
+[ 484.190] locostairs trace 175 dn a16.60 v 1.36 ph0.03 mw1.00 | 0 pl1 h  0.0 b  4.4 t 22.9 g -0.17, -0.34 | 1 pl1 h 10.7 b  0.9 t 16.9 g  0.17,  0.00
+[ 484.191] locostairs trace 176 up a19.38 v 1.30 ph0.94 mw1.00 | 0 pl0 h  2.5 b  7.9 t  9.9 g  0.00,  0.00 | 1 pl1 h 18.6 b  0.0 t  0.0 g -0.17,  0.00
+[ 484.196] locostairs deep 179 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.34,  0.17,  0.17) | a 20.77 x-0.23 | v 1.38 along 1.38 yawOff  -2.8 | ph0.79 age0.30 ballProbe 0 strikeLead 0.29 pin -0.000 footZ 0.169
+[ 484.207] locostairs trace 175 dn a16.65 v 1.36 ph0.06 mw1.00 | 0 pl1 h  0.0 b  1.7 t 19.3 g -0.17, -0.34 | 1 pl1 h 13.5 b  1.4 t 16.9 g  0.17,  0.00
+[ 484.207] locostairs trace 176 up a19.34 v 1.30 ph0.97 mw1.00 | 0 pl0 h  1.2 b  6.3 t  8.2 g  0.00,  0.00 | 1 pl1 h 20.7 b  0.1 t  0.0 g -0.17,  0.00
+[ 484.207] locostairs deep 179 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.34,  0.17,  0.17) | a 20.82 x-0.23 | v 1.38 along 1.38 yawOff  -2.8 | ph0.82 age0.33 ballProbe 0 strikeLead 0.29 pin 0.000 footZ 0.169
+[ 484.246] locostairs trace 175 dn a16.69 v 1.36 ph0.10 mw1.00 | 0 pl1 h  0.0 b  0.1 t 17.0 g -0.17, -0.34 | 1 pl1 h 14.8 b  1.8 t 16.9 g  0.17,  0.00
+[ 484.267] locostairs trace 176 up a19.30 v 1.30 ph0.00 mw1.00 | 0 pl1 h -0.9 b  3.6 t  5.3 g  0.00,  0.00 | 1 pl1 h 23.2 b  0.2 t  0.0 g -0.17,  0.00
+[ 484.275] locostairs deep 179 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.34,  0.17,  0.17) | a 20.86 x-0.23 | v 1.38 along 1.38 yawOff  -2.8 | ph0.86 age0.37 ballProbe 0 strikeLead 0.29 pin 0.000 footZ 0.169
+[ 489.306] locostairs trace 175 dn a16.74 v 1.36 ph0.13 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34 | 1 pl0 h 16.8 b  3.7 t 18.7 g  0.17,  0.00
+[ 489.306] locostairs deep 179 dn foot 1: h -16.7 b   0.0 t   0.0 cm (g  0.34,  0.17,  0.17) | a 20.90 x-0.22 | v 1.38 along 1.38 yawOff  -2.8 | ph0.89 age0.40 ballProbe 0 strikeLead 0.29 pin 0.001 footZ 0.169
+[ 489.346] locostairs trace 175 dn a16.78 v 1.36 ph0.17 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34 | 1 pl0 h 21.1 b  8.6 t 23.0 g  0.17,  0.00
+[ 489.347] locostairs deep 179 dn foot 1: h -15.5 b   0.0 t   0.0 cm (g  0.34,  0.17,  0.17) | a 20.95 x-0.22 | v 1.38 along 1.38 yawOff  -2.8 | ph0.93 age0.43 ballProbe 0 strikeLead 0.29 pin 0.001 footZ 0.169
+[ 489.356] locostairs trace 175 dn a16.83 v 1.36 ph0.21 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34 | 1 pl0 h  8.7 b 14.6 t 11.6 g  0.17,  0.00
+[ 489.366] locostairs trace 175 dn a16.88 v 1.36 ph0.24 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 23.1 b 14.4 t 11.6 g  0.17,  0.17
+[ 489.378] locostairs trace 175 dn a16.92 v 1.36 ph0.28 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 16.2 b 27.5 t 25.5 g  0.17,  0.00
+[ 489.403] locostairs trace 175 dn a16.97 v 1.36 ph0.31 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 30.0 b 27.8 t 43.9 g  0.00, -0.17
+[ 495.291] locostairs trace 175 dn a17.01 v 1.36 ph0.35 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 14.8 b 32.8 t 33.3 g  0.00, -0.17
+[ 495.305] locostairs trace 175 dn a17.06 v 1.36 ph0.38 mw1.00 | 0 pl1 h  0.1 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 29.4 b 33.2 t 51.6 g -0.17, -0.34
+[ 495.326] locostairs trace 175 dn a17.10 v 1.36 ph0.42 mw1.00 | 0 pl1 h  1.3 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 12.1 b 34.6 t 36.7 g -0.17, -0.34
+[ 495.333] locostairs trace 175 dn a17.15 v 1.36 ph0.46 mw1.00 | 0 pl1 h  3.9 b  0.1 t 16.9 g  0.17,  0.00 | 1 pl0 h 27.2 b 33.3 t 35.6 g -0.17, -0.17
+[ 495.349] locostairs trace 175 dn a17.19 v 1.36 ph0.49 mw1.00 | 0 pl1 h  7.4 b  0.4 t 16.9 g  0.17,  0.00 | 1 pl0 h  9.2 b 14.8 t 33.7 g -0.17, -0.34
+[ 495.368] locostairs trace 175 dn a17.24 v 1.36 ph0.53 mw1.00 | 0 pl1 h 10.8 b  0.9 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  4.3 t 22.8 g -0.17, -0.34
+[ 500.844] locostairs trace 175 dn a17.28 v 1.36 ph0.56 mw1.00 | 0 pl1 h 13.4 b  1.4 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  1.7 t 19.3 g -0.17, -0.34
+[ 500.855] locostairs trace 175 dn a17.33 v 1.36 ph0.60 mw1.00 | 0 pl1 h 14.8 b  1.7 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.2 t 17.2 g -0.17, -0.34
+[ 500.866] locostairs trace 175 dn a17.37 v 1.36 ph0.63 mw1.00 | 0 pl0 h 17.5 b  4.5 t 19.4 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34
+[ 500.876] locostairs trace 175 dn a17.42 v 1.36 ph0.67 mw1.00 | 0 pl0 h 21.5 b  9.0 t 23.3 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34
+[ 500.886] locostairs trace 175 dn a17.47 v 1.36 ph0.71 mw1.00 | 0 pl0 h  8.7 b 14.6 t 11.6 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 500.894] locostairs trace 175 dn a17.51 v 1.36 ph0.74 mw1.00 | 0 pl0 h 22.9 b 14.3 t 28.5 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 506.057] locostairs trace 175 dn a17.56 v 1.36 ph0.78 mw1.00 | 0 pl0 h  4.9 b 16.3 t 14.4 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 506.062] locostairs trace 175 dn a17.60 v 1.36 ph0.81 mw1.00 | 0 pl0 h 18.8 b 33.7 t 32.9 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 506.076] locostairs trace 175 dn a17.65 v 1.36 ph0.85 mw1.00 | 0 pl0 h 16.9 b 18.2 t 18.7 g -0.17, -0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 506.086] locostairs trace 175 dn a17.69 v 1.36 ph0.89 mw1.00 | 0 pl0 h 14.5 b 18.4 t 19.9 g -0.17, -0.17 | 1 pl1 h  0.1 b  0.0 t 16.9 g  0.00, -0.17
+[ 506.096] locostairs trace 175 dn a17.74 v 1.36 ph0.92 mw1.00 | 0 pl0 h  6.9 b 12.5 t 14.5 g  0.00,  0.00 | 1 pl1 h  1.4 b  0.0 t 16.9 g  0.17,  0.00
+[ 506.109] locostairs trace 175 dn a17.78 v 1.36 ph0.96 mw1.00 | 0 pl0 h  5.1 b 11.1 t 13.3 g  0.00,  0.00 | 1 pl1 h  4.1 b  0.1 t 16.9 g  0.17,  0.00
+[ 511.104] locostairs trace 175 dn a17.83 v 1.36 ph0.99 mw1.00 | 0 pl1 h  1.2 b  6.8 t  8.8 g  0.00,  0.00 | 1 pl1 h  7.5 b  0.4 t 16.9 g  0.17,  0.00
+[ 511.129] locostairs trace 175 dn a17.87 v 1.36 ph0.03 mw1.00 | 0 pl1 h  0.6 b  4.9 t  6.5 g  0.00,  0.00 | 1 pl1 h 10.9 b  0.9 t 16.9 g  0.17,  0.00
+[ 511.140] locostairs trace 175 dn a17.90 v 1.36 ph0.06 mw1.00 | 0 pl1 h  0.0 b  1.6 t  2.2 g  0.00,  0.00 | 1 pl1 h 13.6 b  1.4 t 16.9 g  0.17,  0.00
+[ 511.145] locostairs trace 175 dn a17.94 v 1.36 ph0.10 mw1.00 | 0 pl1 h  0.0 b  0.1 t  0.1 g  0.00,  0.00 | 1 pl1 h 14.9 b  1.8 t 16.9 g  0.17,  0.00
+[ 511.156] locostairs trace 175 dn a17.99 v 1.36 ph0.14 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 17.2 b  4.1 t 19.0 g  0.17,  0.00
+[ 516.589] locostairs trace 176 up a18.02 v 1.30 ph0.98 mw1.00 | 0 pl0 h 17.6 b  5.6 t  7.4 g  0.00,  0.17 | 1 pl1 h  4.7 b  0.1 t  0.0 g  0.00,  0.00
+[ 516.594] locostairs trace 176 up a17.97 v 1.30 ph0.02 mw1.00 | 0 pl1 h 16.9 b  4.1 t  5.7 g  0.00,  0.17 | 1 pl1 h  7.2 b  0.3 t  0.0 g  0.00,  0.00
+[ 516.605] locostairs trace 176 up a17.93 v 1.30 ph0.05 mw1.00 | 0 pl1 h 16.9 b  2.5 t  3.5 g  0.00,  0.17 | 1 pl1 h  9.6 b  0.5 t  0.0 g  0.00,  0.00
+[ 516.605] locostairs deep 179 dn foot 0: h -16.8 b   5.3 t   7.2 cm (g  0.00, -0.17, -0.17) | a 22.22 x-0.22 | v 1.38 along 1.38 yawOff  -3.0 | ph1.00 age0.03 ballProbe 0 strikeLead 0.30 pin -0.001 footZ -0.169
+[ 516.609] locostairs trace 176 up a17.89 v 1.30 ph0.08 mw1.00 | 0 pl1 h 16.9 b  0.8 t  1.1 g  0.00,  0.17 | 1 pl1 h 11.3 b  0.7 t  0.0 g  0.00,  0.00
+[ 516.609] locostairs deep 179 dn foot 0: h -16.9 b   4.0 t   5.5 cm (g  0.00, -0.17, -0.17) | a 22.25 x-0.24 | v 1.38 along 1.38 yawOff  -3.1 | ph0.03 age0.07 ballProbe 0 strikeLead 0.30 pin -0.000 footZ -0.169
+[ 516.617] locostairs trace 176 up a17.84 v 1.30 ph0.11 mw1.00 | 0 pl1 h 16.9 b  0.1 t  0.2 g  0.00,  0.17 | 1 pl1 h 12.3 b  0.8 t  0.0 g  0.00,  0.00
+[ 516.630] locostairs trace 176 up a17.80 v 1.30 ph0.14 mw1.00 | 0 pl1 h 16.9 b  0.1 t  0.1 g  0.00,  0.17 | 1 pl0 h 14.3 b  2.9 t  1.9 g  0.00,  0.00
+[ 522.243] locostairs trace 176 up a17.76 v 1.30 ph0.17 mw1.00 | 0 pl1 h 16.9 b  0.1 t  0.1 g  0.00,  0.17 | 1 pl0 h 47.2 b 36.3 t 34.8 g  0.00,  0.00
+[ 522.256] locostairs trace 176 up a17.71 v 1.30 ph0.21 mw1.00 | 0 pl1 h 16.9 b  0.1 t  0.1 g -0.17,  0.00 | 1 pl0 h 55.2 b 45.4 t 43.5 g -0.17, -0.17
+[ 522.266] locostairs trace 176 up a17.67 v 1.30 ph0.24 mw1.00 | 0 pl1 h 16.9 b  0.1 t  0.1 g -0.17,  0.00 | 1 pl0 h 66.7 b 58.7 t 56.5 g -0.17, -0.17
+[ 522.276] locostairs trace 176 up a17.62 v 1.30 ph0.27 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.1 g -0.17,  0.00 | 1 pl0 h 64.5 b 41.9 t 40.1 g -0.17,  0.00
+[ 522.285] locostairs trace 176 up a17.58 v 1.30 ph0.30 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 52.4 b 49.5 t 31.6 g  0.00,  0.17
+[ 522.297] locostairs trace 176 up a17.53 v 1.30 ph0.33 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 50.1 b 33.0 t 32.9 g  0.00,  0.17
+[ 527.925] locostairs trace 176 up a17.49 v 1.30 ph0.36 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 33.6 b 18.9 t 19.7 g  0.17,  0.34
+[ 527.925] locostairs deep 180 up foot 0: h   9.2 b   5.5 t -12.3 cm (g -0.34, -0.34, -0.17) | a 22.16 x 0.32 | v 1.25 along-1.25 yawOff  -1.9 | ph0.77 age0.03 ballProbe 0 strikeLead 0.31 pin -0.016 footZ -0.334
+[ 527.936] locostairs trace 176 up a17.44 v 1.30 ph0.40 mw1.00 | 0 pl1 h 17.0 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 21.1 b 25.1 t 26.6 g  0.34,  0.34
+[ 527.946] locostairs trace 176 up a17.40 v 1.30 ph0.43 mw1.00 | 0 pl1 h 17.9 b  0.0 t  0.0 g -0.34, -0.17 | 1 pl0 h 20.2 b  8.4 t 10.3 g  0.17,  0.34
+[ 527.956] locostairs trace 176 up a17.35 v 1.30 ph0.46 mw1.00 | 0 pl1 h 19.8 b  0.0 t  0.0 g -0.34, -0.17 | 1 pl0 h 18.7 b  7.1 t  9.0 g  0.17,  0.34
+[ 527.966] locostairs trace 176 up a17.31 v 1.30 ph0.49 mw1.00 | 0 pl1 h 22.1 b  0.1 t  0.0 g -0.34, -0.17 | 1 pl0 h 17.3 b  5.2 t  7.0 g  0.17,  0.34
+[ 527.980] locostairs trace 176 up a17.26 v 1.30 ph0.52 mw1.00 | 0 pl1 h 24.6 b  0.3 t  0.0 g -0.34, -0.17 | 1 pl1 h 13.0 b  0.0 t  1.5 g  0.17,  0.34
+[ 534.063] locostairs trace 176 up a17.22 v 1.30 ph0.55 mw1.00 | 0 pl1 h 26.9 b  0.5 t  0.0 g -0.34, -0.17 | 1 pl1 h 14.8 b  0.0 t  0.8 g  0.17,  0.34
+[ 534.063] locostairs deep 178 up foot 1: h  -3.6 b   0.4 t -15.0 cm (g  0.17,  0.17,  0.34) | a 17.82 x 0.44 | v 1.40 along-1.40 yawOff  -2.7 | ph0.53 age0.03 ballProbe 0 strikeLead 0.26 pin -0.000 footZ 0.133
+[ 534.083] locostairs trace 176 up a17.17 v 1.30 ph0.59 mw1.00 | 0 pl1 h 11.6 b  0.7 t  0.0 g -0.17, -0.17 | 1 pl1 h 16.4 b  0.0 t  0.2 g  0.17,  0.34
+[ 534.084] locostairs deep 178 up foot 1: h  -2.3 b  -0.4 t -16.6 cm (g  0.17,  0.17,  0.34) | a 17.77 x 0.44 | v 1.40 along-1.40 yawOff  -2.7 | ph0.56 age0.07 ballProbe 0 strikeLead 0.26 pin 0.000 footZ 0.146
+[ 534.084] locostairs deep 179 dn foot 1: h -16.9 b   0.6 t   0.8 cm (g  0.00, -0.17, -0.17) | a 22.95 x-0.23 | v 1.38 along 1.38 yawOff  -3.3 | ph0.58 age0.10 ballProbe 0 strikeLead 0.30 pin -0.000 footZ -0.169
+[ 534.096] locostairs trace 176 up a17.13 v 1.30 ph0.62 mw1.00 | 0 pl1 h 12.4 b  0.8 t  0.0 g -0.34, -0.34 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 534.096] locostairs deep 178 up foot 1: h   0.0 b   0.4 t -16.4 cm (g  0.17,  0.17,  0.34) | a 17.73 x 0.44 | v 1.40 along-1.40 yawOff  -2.7 | ph0.59 age0.10 ballProbe 0 strikeLead 0.26 pin 0.000 footZ 0.169
+[ 534.096] locostairs deep 179 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.00, -0.17, -0.17) | a 22.99 x-0.22 | v 1.38 along 1.38 yawOff  -3.3 | ph0.61 age0.13 ballProbe 0 strikeLead 0.30 pin 0.000 footZ -0.169
+[ 534.108] locostairs trace 176 up a17.08 v 1.30 ph0.65 mw1.00 | 0 pl0 h 15.4 b  4.0 t  3.0 g -0.34, -0.34 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 534.109] locostairs deep 178 up foot 1: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 17.68 x 0.43 | v 1.40 along-1.40 yawOff  -2.7 | ph0.62 age0.13 ballProbe 0 strikeLead 0.26 pin 0.000 footZ 0.000
+[ 534.109] locostairs deep 179 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.00, -0.17, -0.17) | a 23.04 x-0.22 | v 1.38 along 1.38 yawOff  -3.3 | ph0.65 age0.17 ballProbe 0 strikeLead 0.30 pin -0.000 footZ -0.169
+[ 534.122] locostairs trace 176 up a17.04 v 1.30 ph0.68 mw1.00 | 0 pl0 h 70.0 b 59.2 t 40.8 g -0.34, -0.17 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 534.122] locostairs deep 178 up foot 1: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 17.64 x 0.43 | v 1.40 along-1.40 yawOff  -2.7 | ph0.65 age0.17 ballProbe 0 strikeLead 0.26 pin 0.000 footZ 0.000
+[ 534.122] locostairs deep 179 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.00, -0.17, -0.17) | a 23.06 x-0.24 | v 1.38 along 1.38 yawOff  -3.3 | ph0.68 age0.20 ballProbe 0 strikeLead 0.30 pin 0.000 footZ -0.169
+[ 534.139] locostairs trace 176 up a16.99 v 1.30 ph0.71 mw1.00 | 0 pl0 h 71.9 b 45.5 t 43.4 g -0.34, -0.17 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 534.139] locostairs deep 178 up foot 1: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 17.59 x 0.43 | v 1.40 along-1.40 yawOff  -2.7 | ph0.68 age0.20 ballProbe 0 strikeLead 0.26 pin 0.000 footZ 0.000
+[ 539.249] locostairs trace 176 up a16.95 v 1.30 ph0.74 mw1.00 | 0 pl0 h 68.0 b 60.5 t 41.5 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 539.249] locostairs deep 178 up foot 1: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 17.55 x 0.43 | v 1.40 along-1.40 yawOff  -2.7 | ph0.71 age0.23 ballProbe 0 strikeLead 0.26 pin 0.000 footZ 0.000
+[ 539.249] locostairs deep 179 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 23.12 x-0.28 | v 1.38 along 1.38 yawOff  -3.5 | ph0.75 age0.27 ballProbe 0 strikeLead 0.30 pin 0.000 footZ 0.000
+[ 539.255] locostairs trace 176 up a16.90 v 1.30 ph0.78 mw1.00 | 0 pl0 h 65.7 b 43.7 t 42.0 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 539.255] locostairs deep 178 up foot 1: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 17.50 x 0.42 | v 1.40 along-1.40 yawOff  -2.7 | ph0.74 age0.27 ballProbe 0 strikeLead 0.26 pin 0.000 footZ 0.000
+[ 539.255] locostairs deep 179 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 23.15 x-0.30 | v 1.38 along 1.38 yawOff  -3.6 | ph0.79 age0.30 ballProbe 0 strikeLead 0.30 pin -0.000 footZ 0.000
+[ 539.268] locostairs trace 176 up a16.86 v 1.30 ph0.81 mw1.00 | 0 pl0 h 52.5 b 33.2 t 32.4 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 539.268] locostairs deep 178 up foot 1: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 17.46 x 0.42 | v 1.40 along-1.40 yawOff  -2.7 | ph0.77 age0.30 ballProbe 0 strikeLead 0.26 pin 0.000 footZ 0.000
+[ 539.268] locostairs deep 179 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 23.19 x-0.31 | v 1.38 along 1.38 yawOff  -3.7 | ph0.82 age0.33 ballProbe 0 strikeLead 0.30 pin 0.000 footZ 0.000
+[ 539.280] locostairs trace 176 up a16.81 v 1.30 ph0.84 mw1.00 | 0 pl0 h 33.4 b 33.6 t 16.8 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 539.280] locostairs deep 178 up foot 1: h   0.0 b   0.0 t -16.9 cm (g -0.17, -0.17,  0.00) | a 17.41 x 0.42 | v 1.40 along-1.40 yawOff  -2.7 | ph0.80 age0.33 ballProbe 0 strikeLead 0.26 pin 0.000 footZ -0.169
+[ 539.280] locostairs deep 179 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 23.24 x-0.32 | v 1.38 along 1.38 yawOff  -3.8 | ph0.86 age0.37 ballProbe 0 strikeLead 0.30 pin 0.000 footZ 0.000
+[ 539.289] locostairs trace 175 dn a19.31 v 1.36 ph0.21 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 19.6 b  8.8 t  5.8 g  0.00,  0.00
+[ 539.289] locostairs trace 176 up a16.77 v 1.30 ph0.87 mw1.00 | 0 pl0 h 37.1 b 22.8 t 23.8 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 539.289] locostairs deep 178 up foot 1: h   0.0 b   0.0 t -16.9 cm (g -0.17, -0.17,  0.00) | a 17.37 x 0.42 | v 1.40 along-1.40 yawOff  -2.7 | ph0.83 age0.37 ballProbe 0 strikeLead 0.26 pin 0.000 footZ -0.169
+[ 539.289] locostairs deep 179 dn foot 1: h -16.7 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 23.28 x-0.33 | v 1.38 along 1.38 yawOff  -3.9 | ph0.89 age0.40 ballProbe 0 strikeLead 0.30 pin 0.001 footZ 0.000
+[ 539.297] locostairs trace 175 dn a19.35 v 1.36 ph0.24 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 17.0 b  8.6 t  5.9 g  0.00,  0.00
+[ 539.297] locostairs trace 176 up a16.72 v 1.30 ph0.90 mw1.00 | 0 pl0 h 21.3 b 25.7 t 10.3 g  0.17,  0.34 | 1 pl1 h 17.1 b  0.0 t  0.0 g -0.17,  0.00
+[ 539.297] locostairs deep 178 up foot 1: h   0.0 b   0.0 t -16.9 cm (g -0.17, -0.17,  0.00) | a 17.32 x 0.41 | v 1.40 along-1.40 yawOff  -2.7 | ph0.87 age0.40 ballProbe 0 strikeLead 0.26 pin 0.000 footZ -0.169
+[ 539.297] locostairs deep 179 dn foot 1: h -15.7 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 23.33 x-0.32 | v 1.38 along 1.38 yawOff  -3.9 | ph0.92 age0.43 ballProbe 0 strikeLead 0.30 pin 0.001 footZ 0.000
+[ 544.663] locostairs trace 175 dn a19.40 v 1.36 ph0.28 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 13.8 b  8.5 t  6.7 g  0.00,  0.00
+[ 544.663] locostairs trace 176 up a16.68 v 1.30 ph0.93 mw1.00 | 0 pl0 h 19.9 b  8.2 t 10.1 g  0.17,  0.34 | 1 pl1 h 18.2 b  0.0 t  0.0 g -0.17,  0.00
+[ 544.663] locostairs deep 178 up foot 1: h   0.3 b   0.0 t -16.9 cm (g -0.17, -0.17,  0.00) | a 17.28 x 0.41 | v 1.40 along-1.40 yawOff  -2.7 | ph0.90 age0.43 ballProbe 0 strikeLead 0.26 pin 0.001 footZ -0.169
+[ 544.663] locostairs deep 179 dn foot 1: h -13.5 b   0.1 t   0.0 cm (g  0.17,  0.00,  0.00) | a 23.37 x-0.32 | v 1.38 along 1.38 yawOff  -3.9 | ph0.96 age0.47 ballProbe 0 strikeLead 0.30 pin 0.002 footZ 0.000
+[ 544.671] locostairs trace 175 dn a19.44 v 1.36 ph0.32 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 10.7 b  8.9 t 25.2 g  0.00, -0.17
+[ 544.671] locostairs trace 176 up a16.64 v 1.30 ph0.97 mw1.00 | 0 pl0 h 18.5 b  6.8 t  8.7 g  0.17,  0.34 | 1 pl1 h 20.2 b  0.1 t  0.0 g -0.17,  0.00
+[ 544.671] locostairs deep 178 up foot 1: h   1.4 b   0.0 t -16.9 cm (g -0.17, -0.17,  0.00) | a 17.23 x 0.41 | v 1.40 along-1.40 yawOff  -2.7 | ph0.93 age0.47 ballProbe 0 strikeLead 0.26 pin 0.001 footZ -0.169
+[ 544.671] locostairs deep 179 dn foot 0: h -16.7 b -11.6 t  -9.6 cm (g -0.17, -0.17, -0.17) | a 23.42 x-0.32 | v 1.38 along 1.38 yawOff  -3.9 | ph0.99 age0.03 ballProbe 0 strikeLead 0.30 pin -0.001 footZ -0.338
+[ 544.682] locostairs trace 175 dn a19.49 v 1.36 ph0.35 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h  8.0 b 26.4 t 27.0 g  0.00, -0.17
+[ 544.682] locostairs trace 176 up a16.59 v 1.30 ph1.00 mw1.00 | 0 pl1 h  0.1 b  4.8 t  6.5 g  0.34,  0.34 | 1 pl1 h 22.6 b  0.2 t  0.0 g -0.17,  0.00
+[ 544.682] locostairs deep 178 up foot 1: h   3.4 b   0.1 t -16.9 cm (g -0.17, -0.17,  0.00) | a 17.19 x 0.41 | v 1.40 along-1.40 yawOff  -2.7 | ph0.96 age0.50 ballProbe 0 strikeLead 0.26 pin 0.001 footZ -0.169
+[ 544.692] locostairs trace 175 dn a19.53 v 1.36 ph0.39 mw1.00 | 0 pl1 h  0.1 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 22.7 b 43.7 t 45.2 g -0.17, -0.34
+[ 544.692] locostairs trace 176 up a16.55 v 1.30 ph0.03 mw1.00 | 0 pl1 h  0.0 b  3.7 t  5.1 g  0.17,  0.17 | 1 pl1 h 25.1 b  0.3 t  0.0 g -0.34, -0.17
+[ 544.692] locostairs deep 178 up foot 1: h   6.2 b   0.3 t -16.9 cm (g -0.34, -0.34, -0.17) | a 17.14 x 0.41 | v 1.40 along-1.40 yawOff  -2.7 | ph0.99 age0.53 ballProbe 0 strikeLead 0.26 pin 0.003 footZ -0.338
+[ 544.732] locostairs trace 175 dn a19.58 v 1.36 ph0.42 mw1.00 | 0 pl1 h  1.5 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h  9.7 b 32.3 t 34.5 g -0.17, -0.34
+[ 544.732] locostairs trace 176 up a16.50 v 1.30 ph0.06 mw1.00 | 0 pl1 h  0.0 b  1.7 t  2.4 g  0.17,  0.17 | 1 pl1 h 10.4 b  0.5 t  0.0 g -0.17, -0.17
+[ 544.732] locostairs deep 178 up foot 1: h   9.0 b   0.5 t -16.9 cm (g -0.34, -0.34, -0.17) | a 17.10 x 0.40 | v 1.40 along-1.40 yawOff  -2.7 | ph0.02 age0.57 ballProbe 0 strikeLead 0.26 pin 0.006 footZ -0.338
+[ 544.772] locostairs trace 175 dn a19.62 v 1.36 ph0.46 mw1.00 | 0 pl1 h  4.3 b  0.1 t  0.0 g  0.17,  0.17 | 1 pl0 h 24.8 b 30.8 t 33.0 g -0.17, -0.17
+[ 544.772] locostairs trace 176 up a16.46 v 1.30 ph0.09 mw1.00 | 0 pl1 h  0.0 b  0.2 t  0.3 g  0.17,  0.17 | 1 pl1 h 11.9 b  0.7 t  0.0 g -0.17, -0.17
+[ 544.772] locostairs deep 178 up foot 1: h  11.6 b   0.9 t -16.9 cm (g -0.34, -0.34, -0.17) | a 17.05 x 0.40 | v 1.40 along-1.40 yawOff  -2.7 | ph0.05 age0.60 ballProbe 0 strikeLead 0.26 pin 0.009 footZ -0.338
+[ 548.501] locostairs trace 175 dn a19.67 v 1.36 ph0.50 mw1.00 | 0 pl1 h  7.8 b  0.5 t  0.0 g  0.17,  0.17 | 1 pl0 h  0.5 b  6.0 t 24.9 g -0.17, -0.34
+[ 548.501] locostairs trace 176 up a16.41 v 1.30 ph0.12 mw1.00 | 0 pl1 h  0.0 b  0.1 t  0.1 g  0.17,  0.17 | 1 pl1 h 12.5 b  0.8 t  0.0 g -0.17, -0.17
+[ 548.501] locostairs deep 178 up foot 1: h  13.5 b   1.2 t -16.9 cm (g -0.34, -0.34, -0.17) | a 17.01 x 0.40 | v 1.40 along-1.40 yawOff  -2.7 | ph0.08 age0.63 ballProbe 0 strikeLead 0.26 pin 0.013 footZ -0.338
+[ 548.507] locostairs trace 175 dn a19.71 v 1.36 ph0.53 mw1.00 | 0 pl1 h 11.1 b  1.0 t  0.0 g  0.17,  0.17 | 1 pl1 h  0.0 b  4.0 t 22.4 g -0.17, -0.34
+[ 548.507] locostairs trace 176 up a16.37 v 1.30 ph0.16 mw1.00 | 0 pl1 h  0.0 b  0.1 t  0.1 g  0.17,  0.17 | 1 pl0 h 16.0 b  4.6 t  3.6 g -0.17, -0.17
+[ 548.507] locostairs deep 178 up foot 1: h  14.5 b   1.4 t -16.9 cm (g -0.34, -0.34, -0.17) | a 16.96 x 0.40 | v 1.40 along-1.40 yawOff  -2.7 | ph0.11 age0.67 ballProbe 0 strikeLead 0.26 pin 0.015 footZ -0.338
+[ 548.507] locostairs deep 182 up foot 0: h  16.0 b -10.2 t -12.9 cm (g -0.34, -0.17, -0.17) | a 22.91 x 0.26 | v 1.28 along-1.28 yawOff  -1.7 | ph0.75 age0.03 ballProbe 0 strikeLead 0.28 pin -0.027 footZ -0.336
+[ 548.511] locostairs trace 175 dn a19.76 v 1.36 ph0.57 mw1.00 | 0 pl1 h 13.7 b  1.5 t  0.0 g  0.17,  0.17 | 1 pl1 h  0.0 b  1.4 t 18.9 g -0.17, -0.34
+[ 548.511] locostairs trace 176 up a16.32 v 1.30 ph0.19 mw1.00 | 0 pl1 h  0.0 b  0.1 t  0.1 g  0.17,  0.17 | 1 pl0 h 58.9 b 48.3 t 29.8 g -0.17,  0.00
+[ 548.515] locostairs trace 175 dn a19.81 v 1.36 ph0.60 mw1.00 | 0 pl1 h 14.9 b  1.8 t  0.0 g  0.17,  0.17 | 1 pl1 h  0.0 b  0.1 t 17.1 g -0.17, -0.34
+[ 548.515] locostairs trace 176 up a16.28 v 1.30 ph0.22 mw1.00 | 0 pl1 h  0.0 b  0.1 t  0.1 g  0.17,  0.17 | 1 pl0 h 71.5 b 45.4 t 43.4 g -0.17,  0.00
+[ 548.553] locostairs trace 175 dn a19.85 v 1.36 ph0.64 mw1.00 | 0 pl0 h 18.1 b  5.1 t  3.1 g  0.17,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34
+[ 548.557] locostairs trace 176 up a16.23 v 1.30 ph0.25 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.1 g  0.00,  0.00 | 1 pl0 h 63.7 b 56.6 t 37.7 g -0.17,  0.00
+[ 548.571] locostairs trace 175 dn a19.90 v 1.36 ph0.67 mw1.00 | 0 pl0 h 21.3 b  9.0 t  6.3 g  0.17,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34
+[ 548.571] locostairs trace 176 up a16.19 v 1.30 ph0.28 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.1 g  0.00,  0.00 | 1 pl0 h 61.4 b 39.9 t 38.4 g -0.17,  0.00
+[ 552.332] locostairs trace 175 dn a19.94 v 1.36 ph0.71 mw1.00 | 0 pl0 h 19.5 b 25.6 t 22.7 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 552.333] locostairs trace 176 up a16.14 v 1.30 ph0.31 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 50.8 b 32.0 t 31.3 g  0.00,  0.17
+[ 552.349] locostairs trace 175 dn a19.99 v 1.36 ph0.75 mw1.00 | 0 pl0 h 33.7 b 25.3 t 22.7 g  0.17,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 552.349] locostairs trace 176 up a16.10 v 1.30 ph0.34 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 31.6 b 32.4 t 32.7 g  0.17,  0.17
+[ 552.358] locostairs trace 175 dn a20.03 v 1.36 ph0.78 mw1.00 | 0 pl0 h 19.5 b 31.3 t 29.5 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 552.358] locostairs trace 176 up a16.05 v 1.30 ph0.38 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 34.5 b 20.6 t 21.7 g  0.17,  0.34
+[ 552.368] locostairs trace 175 dn a20.08 v 1.36 ph0.82 mw1.00 | 0 pl0 h 33.5 b 31.8 t 48.1 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 552.369] locostairs trace 176 up a16.01 v 1.30 ph0.41 mw1.00 | 0 pl1 h  0.3 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 21.2 b 25.8 t 27.5 g  0.34,  0.34
+[ 552.378] locostairs trace 175 dn a20.12 v 1.36 ph0.85 mw1.00 | 0 pl0 h 15.8 b 34.4 t 35.0 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 552.378] locostairs trace 176 up a15.96 v 1.30 ph0.44 mw1.00 | 0 pl1 h  1.6 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl0 h 19.7 b  8.1 t 10.1 g  0.17,  0.34
+[ 552.391] locostairs trace 175 dn a20.17 v 1.36 ph0.89 mw1.00 | 0 pl0 h 30.4 b 51.5 t 53.0 g -0.17, -0.34 | 1 pl1 h  0.2 b  0.0 t 16.9 g  0.00, -0.17
+[ 552.392] locostairs trace 176 up a15.92 v 1.30 ph0.47 mw1.00 | 0 pl1 h  3.7 b  0.1 t  0.0 g -0.17, -0.17 | 1 pl0 h 18.3 b  6.5 t  8.4 g  0.17,  0.34
+[ 555.856] locostairs trace 175 dn a20.21 v 1.36 ph0.92 mw1.00 | 0 pl0 h 12.2 b 34.8 t 36.9 g  0.00, -0.17 | 1 pl1 h  1.6 b  0.0 t 16.9 g  0.17,  0.00
+[ 555.856] locostairs trace 176 up a15.87 v 1.30 ph0.50 mw1.00 | 0 pl1 h  6.2 b  0.2 t  0.0 g -0.17, -0.17 | 1 pl0 h  8.0 b -4.3 t -2.6 g  0.17,  0.34
+[ 555.887] locostairs trace 175 dn a20.26 v 1.36 ph0.96 mw1.00 | 0 pl0 h 27.4 b 33.4 t 35.6 g -0.17, -0.17 | 1 pl1 h  4.4 b  0.2 t 16.9 g  0.17,  0.00
+[ 555.888] locostairs trace 176 up a15.83 v 1.30 ph0.53 mw1.00 | 0 pl1 h  8.6 b  0.4 t  0.0 g -0.17, -0.17 | 1 pl1 h 13.5 b  0.0 t  1.3 g  0.17,  0.34
+[ 555.900] locostairs trace 175 dn a20.29 v 1.36 ph1.00 mw1.00 | 0 pl1 h  0.1 b  5.6 t 24.5 g -0.17, -0.34 | 1 pl1 h  7.9 b  0.5 t 16.9 g  0.17,  0.00
+[ 555.900] locostairs trace 176 up a15.78 v 1.30 ph0.57 mw1.00 | 0 pl1 h 10.7 b  0.6 t  0.0 g -0.17, -0.17 | 1 pl1 h 15.5 b  0.0 t  0.5 g  0.17,  0.34
+[ 555.912] locostairs trace 175 dn a20.32 v 1.36 ph0.03 mw1.00 | 0 pl1 h  0.0 b  4.1 t 22.5 g -0.17, -0.34 | 1 pl1 h 11.3 b  1.0 t 16.9 g  0.17,  0.00
+[ 555.912] locostairs trace 176 up a15.74 v 1.30 ph0.60 mw1.00 | 0 pl1 h 12.0 b  0.7 t  0.0 g -0.17, -0.17 | 1 pl1 h 16.7 b  0.0 t  0.1 g  0.17,  0.34
+[ 555.924] locostairs trace 175 dn a20.36 v 1.36 ph0.07 mw1.00 | 0 pl1 h  0.0 b  1.4 t 18.8 g -0.17, -0.34 | 1 pl1 h 13.7 b  1.5 t 16.9 g  0.17,  0.00
+[ 555.924] locostairs trace 176 up a15.69 v 1.30 ph0.63 mw1.00 | 0 pl1 h 12.5 b  0.8 t  0.0 g -0.17, -0.17 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.17,  0.34
+[ 555.954] locostairs trace 175 dn a20.40 v 1.36 ph0.10 mw1.00 | 0 pl1 h  0.0 b  0.0 t 17.0 g -0.17, -0.34 | 1 pl1 h 14.9 b  1.8 t 16.9 g  0.17,  0.00
+[ 555.955] locostairs trace 176 up a15.65 v 1.30 ph0.66 mw1.00 | 0 pl0 h 16.3 b  5.1 t  3.9 g -0.34, -0.34 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 560.321] locostairs trace 175 dn a20.45 v 1.36 ph0.14 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34 | 1 pl0 h 18.0 b  5.0 t 19.8 g  0.17,  0.00
+[ 560.321] locostairs trace 176 up a15.60 v 1.30 ph0.69 mw1.00 | 0 pl0 h 69.7 b 42.4 t 40.6 g -0.34, -0.17 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 560.341] locostairs trace 175 dn a20.49 v 1.36 ph0.18 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 21.1 b 25.7 t 23.0 g  0.34,  0.17
+[ 560.341] locostairs trace 176 up a15.56 v 1.30 ph0.72 mw1.00 | 0 pl0 h 54.2 b 45.3 t 43.3 g -0.17, -0.17 | 1 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17
+[ 560.349] locostairs trace 175 dn a20.54 v 1.36 ph0.21 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h  8.5 b 14.6 t 11.6 g  0.34,  0.17
+[ 560.349] locostairs trace 176 up a15.51 v 1.30 ph0.76 mw1.00 | 0 pl0 h 67.1 b 43.5 t 41.5 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 560.357] locostairs trace 175 dn a20.58 v 1.36 ph0.25 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 22.6 b 14.3 t 28.6 g  0.17,  0.00
+[ 560.357] locostairs trace 176 up a15.47 v 1.30 ph0.79 mw1.00 | 0 pl0 h 47.9 b 43.8 t 42.4 g  0.00,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 560.364] locostairs trace 175 dn a20.63 v 1.36 ph0.28 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 15.6 b 27.4 t 25.6 g  0.17,  0.00
+[ 560.364] locostairs trace 176 up a15.42 v 1.30 ph0.82 mw1.00 | 0 pl0 h 51.7 b 33.4 t 32.9 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 560.375] locostairs trace 175 dn a20.67 v 1.36 ph0.32 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 29.4 b 44.8 t 44.2 g  0.00, -0.17
+[ 560.375] locostairs trace 176 up a15.38 v 1.30 ph0.85 mw1.00 | 0 pl0 h 32.6 b 33.8 t 17.4 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 564.692] locostairs trace 175 dn a20.72 v 1.36 ph0.35 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 31.3 b 33.0 t 33.6 g -0.17, -0.17
+[ 564.692] locostairs trace 176 up a15.33 v 1.30 ph0.88 mw1.00 | 0 pl0 h 36.5 b 23.0 t 24.2 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 564.706] locostairs trace 175 dn a20.76 v 1.36 ph0.39 mw1.00 | 0 pl1 h  0.2 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 29.1 b 50.2 t 51.8 g -0.17, -0.34
+[ 564.706] locostairs trace 176 up a15.29 v 1.30 ph0.91 mw1.00 | 0 pl0 h 20.9 b 25.8 t 10.6 g  0.17,  0.34 | 1 pl1 h 17.4 b  0.0 t  0.0 g -0.17,  0.00
+[ 564.718] locostairs trace 175 dn a20.81 v 1.36 ph0.43 mw1.00 | 0 pl1 h  1.6 b  0.0 t 16.9 g  0.17,  0.00 | 1 pl0 h 11.8 b 34.5 t 36.7 g  0.00, -0.17
+[ 564.718] locostairs trace 176 up a15.24 v 1.30 ph0.95 mw1.00 | 0 pl0 h 19.4 b  7.8 t  9.8 g  0.17,  0.34 | 1 pl1 h 18.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 564.722] locostairs trace 175 dn a20.85 v 1.36 ph0.46 mw1.00 | 0 pl1 h  4.5 b  0.2 t 16.9 g  0.17,  0.00 | 1 pl0 h 26.9 b 32.9 t 35.1 g -0.17, -0.17
+[ 564.723] Transit: 1.005 ms/frame avg, 1 trains materialized, 11 waiters, 2 walkers, boardings 0/0 riders 2/0
+[ 564.728] locostairs trace 175 dn a20.90 v 1.36 ph0.50 mw1.00 | 0 pl1 h  8.0 b  0.5 t 16.9 g  0.17,  0.00 | 1 pl0 h  0.4 b  5.9 t 24.8 g -0.17, -0.34
+[ 564.736] locostairs trace 175 dn a20.94 v 1.36 ph0.53 mw1.00 | 0 pl1 h 11.3 b  1.0 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  3.9 t 22.2 g -0.17, -0.34
+[ 568.859] locostairs trace 175 dn a20.99 v 1.36 ph0.57 mw1.00 | 0 pl1 h 13.8 b  1.5 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  1.3 t 18.7 g -0.17, -0.34
+[ 568.880] locostairs trace 175 dn a21.04 v 1.36 ph0.60 mw1.00 | 0 pl1 h 15.0 b  1.8 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.1 t 17.0 g -0.17, -0.34
+[ 568.893] locostairs trace 175 dn a21.08 v 1.36 ph0.64 mw1.00 | 0 pl0 h 18.3 b  5.3 t 20.2 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 568.898] locostairs trace 175 dn a21.13 v 1.36 ph0.68 mw1.00 | 0 pl0 h 21.3 b 25.9 t 23.2 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 568.909] locostairs trace 175 dn a21.17 v 1.36 ph0.71 mw1.00 | 0 pl0 h  8.3 b 14.5 t 11.6 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 568.917] locostairs trace 175 dn a21.20 v 1.36 ph0.75 mw1.00 | 0 pl0 h 22.5 b 14.3 t 28.6 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 572.352] locostairs trace 175 dn a21.23 v 1.36 ph0.78 mw1.00 | 0 pl0 h 15.6 b 27.5 t 25.7 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 572.378] locostairs trace 175 dn a21.27 v 1.36 ph0.82 mw1.00 | 0 pl0 h 29.6 b 28.1 t 44.4 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 572.385] locostairs trace 175 dn a21.31 v 1.36 ph0.86 mw1.00 | 0 pl0 h 14.4 b 33.0 t 33.7 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 572.390] locostairs trace 175 dn a21.36 v 1.36 ph0.89 mw1.00 | 0 pl0 h 29.0 b 50.2 t 51.7 g  0.00, -0.17 | 1 pl1 h  0.3 b  0.0 t 16.9 g  0.17,  0.00
+[ 572.401] locostairs trace 175 dn a21.40 v 1.36 ph0.93 mw1.00 | 0 pl0 h 11.7 b 34.3 t 36.5 g  0.00, -0.17 | 1 pl1 h  1.8 b  0.0 t 16.9 g  0.17,  0.00
+[ 572.409] locostairs trace 175 dn a21.45 v 1.36 ph0.96 mw1.00 | 0 pl0 h 26.9 b 32.8 t 35.0 g -0.17, -0.17 | 1 pl1 h  4.6 b  0.2 t 16.9 g  0.17,  0.00
+[ 576.817] locostairs trace 175 dn a21.49 v 1.36 ph1.00 mw1.00 | 0 pl1 h  0.0 b  5.5 t 24.4 g -0.17, -0.34 | 1 pl1 h  8.1 b  0.5 t 16.9 g  0.17,  0.00
+[ 576.838] locostairs trace 175 dn a21.54 v 1.36 ph0.03 mw1.00 | 0 pl1 h  0.0 b  3.9 t 22.3 g -0.17, -0.34 | 1 pl1 h 11.4 b  1.0 t 16.9 g  0.17,  0.00
+[ 576.860] locostairs trace 175 dn a21.58 v 1.36 ph0.07 mw1.00 | 0 pl1 h  0.0 b  1.3 t 18.7 g -0.17, -0.34 | 1 pl1 h 13.8 b  1.5 t 16.9 g  0.17,  0.00
+[ 576.868] locostairs trace 175 dn a21.63 v 1.36 ph0.11 mw1.00 | 0 pl1 h  0.0 b  0.0 t 17.0 g -0.17, -0.34 | 1 pl1 h 14.9 b  1.8 t 16.9 g  0.17,  0.00
+[ 576.877] locostairs trace 175 dn a21.67 v 1.36 ph0.14 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 18.4 b  5.4 t 20.2 g  0.34,  0.17
+[ 576.894] locostairs trace 175 dn a21.72 v 1.36 ph0.18 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 21.1 b 25.7 t 23.0 g  0.34,  0.17
+[ 581.463] locostairs trace 175 dn a21.76 v 1.36 ph0.21 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 25.3 b 14.6 t 11.6 g  0.17,  0.17
+[ 581.470] locostairs trace 175 dn a21.81 v 1.36 ph0.25 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 22.4 b 14.3 t 28.6 g  0.17,  0.00
+[ 581.477] locostairs trace 175 dn a21.85 v 1.36 ph0.28 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 15.4 b 27.4 t 25.7 g  0.17,  0.00
+[ 581.484] locostairs trace 175 dn a21.90 v 1.36 ph0.32 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 29.3 b 44.8 t 44.3 g  0.00, -0.17
+[ 581.495] locostairs trace 175 dn a21.94 v 1.36 ph0.36 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.17,  0.00 | 1 pl0 h 31.2 b 33.0 t 33.7 g  0.00,  0.00
+[ 581.507] locostairs trace 175 dn a21.99 v 1.36 ph0.39 mw1.00 | 0 pl1 h  0.2 b  0.0 t 16.9 g  0.17,  0.00 | 1 pl0 h 29.0 b 50.3 t 51.9 g  0.00, -0.17
+[ 585.688] locostairs trace 175 dn a22.04 v 1.36 ph0.43 mw1.00 | 0 pl1 h  1.8 b  0.0 t 16.9 g  0.17,  0.00 | 1 pl0 h 28.6 b 34.4 t 36.6 g -0.17, -0.17
+[ 585.703] locostairs trace 175 dn a22.08 v 1.36 ph0.46 mw1.00 | 0 pl1 h  4.7 b  0.2 t 16.9 g  0.17,  0.00 | 1 pl0 h 26.8 b 32.8 t 51.9 g -0.17, -0.34
+[ 585.709] locostairs trace 175 dn a22.13 v 1.36 ph0.50 mw1.00 | 0 pl1 h  8.2 b  0.5 t 16.9 g  0.17,  0.00 | 1 pl0 h  0.4 b  5.8 t 24.7 g -0.17, -0.34
+[ 585.716] locostairs trace 175 dn a22.17 v 1.36 ph0.54 mw1.00 | 0 pl1 h 11.5 b  1.0 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  3.8 t 22.1 g -0.17, -0.34
+[ 585.726] locostairs trace 175 dn a22.22 v 1.36 ph0.57 mw1.00 | 0 pl1 h 13.9 b  1.5 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  1.1 t 18.5 g -0.17, -0.34
+[ 585.735] locostairs trace 175 dn a22.26 v 1.36 ph0.61 mw1.00 | 0 pl1 h 15.0 b  1.8 t 16.9 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 590.312] locostairs trace 175 dn a22.31 v 1.36 ph0.64 mw1.00 | 0 pl0 h 18.5 b  5.6 t 20.4 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 590.331] locostairs trace 175 dn a22.35 v 1.36 ph0.68 mw1.00 | 0 pl0 h 21.2 b 25.9 t 23.2 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 590.338] locostairs trace 175 dn a22.40 v 1.36 ph0.71 mw1.00 | 0 pl0 h 25.1 b 14.5 t 28.5 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 590.352] locostairs trace 175 dn a22.44 v 1.36 ph0.75 mw1.00 | 0 pl0 h 22.3 b 31.2 t 28.6 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 590.368] locostairs trace 175 dn a22.49 v 1.36 ph0.79 mw1.00 | 0 pl0 h 32.3 b 44.5 t 42.7 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 590.382] locostairs trace 175 dn a22.53 v 1.36 ph0.82 mw1.00 | 0 pl0 h 46.3 b 45.0 t 44.5 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.17,  0.00
+[ 594.597] locostairs trace 175 dn a22.58 v 1.36 ph0.86 mw1.00 | 0 pl0 h 20.0 b 38.9 t 39.6 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.17,  0.00
+[ 594.625] locostairs trace 175 dn a22.62 v 1.36 ph0.89 mw1.00 | 0 pl0 h 34.7 b 39.0 t 57.6 g -0.17, -0.34 | 1 pl1 h  0.3 b  0.0 t 16.9 g  0.17,  0.00
+[ 594.631] locostairs trace 175 dn a22.67 v 1.36 ph0.93 mw1.00 | 0 pl0 h 13.6 b 36.3 t 38.4 g -0.17, -0.34 | 1 pl1 h  1.9 b  0.0 t 16.9 g  0.17,  0.00
+[ 594.647] locostairs trace 175 dn a22.71 v 1.36 ph0.96 mw1.00 | 0 pl0 h 28.8 b 34.7 t 36.9 g -0.34, -0.34 | 1 pl1 h  4.8 b  0.2 t 16.9 g  0.17,  0.00
+[ 594.661] locostairs trace 175 dn a22.76 v 1.36 ph0.00 mw1.00 | 0 pl0 h 16.9 b 22.3 t 24.3 g -0.34, -0.34 | 1 pl1 h  8.3 b  0.5 t 16.9 g  0.17,  0.00
+[ 594.676] locostairs trace 175 dn a22.81 v 1.36 ph0.04 mw1.00 | 0 pl1 h  0.0 b  3.8 t  5.2 g -0.17, -0.17 | 1 pl1 h 11.6 b  1.0 t 16.9 g  0.34,  0.17
+[ 598.764] locostairs trace 175 dn a22.85 v 1.36 ph0.07 mw1.00 | 0 pl1 h  0.0 b  1.2 t  1.6 g -0.17, -0.17 | 1 pl1 h 13.9 b  1.5 t 16.9 g  0.34,  0.17
+[ 598.790] locostairs trace 175 dn a22.89 v 1.36 ph0.11 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl1 h 14.9 b  1.8 t 16.9 g  0.34,  0.17
+[ 598.805] locostairs trace 175 dn a22.94 v 1.36 ph0.14 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl0 h 18.8 b  5.8 t 20.6 g  0.34,  0.17
+[ 598.810] locostairs trace 175 dn a22.98 v 1.36 ph0.18 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl0 h 21.1 b 25.8 t 23.1 g  0.34,  0.17
+[ 598.818] locostairs trace 175 dn a23.02 v 1.36 ph0.22 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl0 h 25.1 b 14.6 t 28.5 g  0.17,  0.00
+[ 598.828] locostairs trace 175 dn a23.07 v 1.36 ph0.25 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl0 h 39.1 b 31.2 t 28.6 g  0.00,  0.00
+[ 602.898] locostairs trace 175 dn a23.11 v 1.36 ph0.29 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 21.1 b 33.3 t 31.6 g  0.17,  0.00
+[ 602.916] locostairs trace 175 dn a23.16 v 1.36 ph0.32 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 35.0 b 33.8 t 50.2 g  0.00, -0.17
+[ 602.928] locostairs trace 175 dn a23.20 v 1.36 ph0.36 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 16.2 b 35.1 t 35.8 g  0.00, -0.17
+[ 602.942] locostairs trace 175 dn a23.24 v 1.36 ph0.39 mw1.00 | 0 pl1 h  0.2 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 30.9 b 52.3 t 54.0 g -0.17, -0.34
+[ 602.955] locostairs trace 175 dn a23.29 v 1.36 ph0.43 mw1.00 | 0 pl1 h  1.9 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 12.3 b 35.0 t 37.2 g -0.17, -0.34
+[ 602.963] locostairs trace 175 dn a23.33 v 1.36 ph0.47 mw1.00 | 0 pl1 h  4.9 b  0.2 t  0.0 g  0.00,  0.00 | 1 pl0 h 27.4 b 33.4 t 35.6 g -0.34, -0.34
+[ 606.225] locostairs trace 175 dn a23.38 v 1.36 ph0.50 mw1.00 | 0 pl1 h  8.4 b  0.5 t  0.0 g  0.00,  0.00 | 1 pl0 h 16.4 b 21.8 t 23.7 g -0.34, -0.34
+[ 606.257] locostairs trace 175 dn a23.42 v 1.36 ph0.54 mw1.00 | 0 pl1 h 11.6 b  1.0 t  0.0 g  0.17,  0.17 | 1 pl1 h  0.0 b  3.6 t  5.0 g -0.17, -0.17
+[ 606.263] locostairs trace 175 dn a23.46 v 1.36 ph0.57 mw1.00 | 0 pl1 h 14.0 b  1.5 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  1.0 t  1.4 g -0.17, -0.17
+[ 606.268] locostairs trace 175 dn a23.51 v 1.36 ph0.61 mw1.00 | 0 pl1 h 15.1 b  1.8 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17
+[ 606.274] locostairs trace 175 dn a23.55 v 1.36 ph0.64 mw1.00 | 0 pl0 h 18.8 b  5.8 t 20.6 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17
+[ 606.282] locostairs trace 175 dn a23.59 v 1.36 ph0.68 mw1.00 | 0 pl0 h 21.1 b  9.0 t 23.2 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17
+[ 609.468] locostairs trace 175 dn a23.64 v 1.36 ph0.72 mw1.00 | 0 pl0 h  8.1 b 14.5 t 11.6 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17
+[ 609.488] locostairs trace 175 dn a23.68 v 1.36 ph0.75 mw1.00 | 0 pl0 h 22.2 b 14.3 t 11.8 g  0.17,  0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 609.501] locostairs trace 175 dn a23.73 v 1.36 ph0.79 mw1.00 | 0 pl0 h 15.3 b 27.6 t 25.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 609.505] locostairs trace 175 dn a23.77 v 1.36 ph0.82 mw1.00 | 0 pl0 h 29.2 b 28.1 t 44.6 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 609.512] locostairs trace 175 dn a23.81 v 1.36 ph0.86 mw1.00 | 0 pl0 h 14.1 b 33.0 t 33.8 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 609.521] locostairs trace 175 dn a23.86 v 1.36 ph0.89 mw1.00 | 0 pl0 h 28.7 b 50.1 t 51.8 g -0.17, -0.34 | 1 pl1 h  0.4 b  0.0 t  0.0 g  0.00,  0.00
+[ 612.721] locostairs trace 175 dn a23.90 v 1.36 ph0.93 mw1.00 | 0 pl0 h 11.5 b 34.2 t 36.4 g -0.17, -0.34 | 1 pl1 h  2.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 612.741] locostairs trace 175 dn a23.94 v 1.36 ph0.97 mw1.00 | 0 pl0 h 26.7 b 32.6 t 34.8 g -0.34, -0.34 | 1 pl1 h  5.0 b  0.2 t 16.9 g  0.00, -0.17
+[ 612.751] locostairs trace 175 dn a23.99 v 1.36 ph0.00 mw1.00 | 0 pl0 h 15.7 b 21.0 t 23.0 g -0.17, -0.17 | 1 pl1 h  8.5 b  0.6 t 16.9 g  0.17,  0.00
+[ 612.760] locostairs trace 175 dn a24.03 v 1.36 ph0.04 mw1.00 | 0 pl1 h  0.0 b  3.6 t  5.0 g -0.17, -0.17 | 1 pl1 h 11.7 b  1.1 t 16.9 g  0.17,  0.00
+[ 612.769] locostairs trace 175 dn a24.08 v 1.36 ph0.07 mw1.00 | 0 pl1 h  0.0 b  1.1 t  1.5 g -0.17, -0.17 | 1 pl1 h 14.0 b  1.5 t 16.9 g  0.17,  0.00
+[ 612.785] locostairs trace 175 dn a24.12 v 1.36 ph0.11 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl1 h 14.9 b  1.8 t 16.9 g  0.17,  0.00
+[ 615.782] locostairs trace 175 dn a24.16 v 1.36 ph0.15 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl0 h 19.2 b  6.3 t 21.1 g  0.17,  0.00
+[ 615.820] locostairs trace 175 dn a24.21 v 1.36 ph0.18 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl0 h 21.1 b  8.9 t 23.1 g  0.17,  0.00
+[ 615.833] locostairs trace 175 dn a24.25 v 1.36 ph0.22 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h  8.1 b 14.5 t 11.6 g  0.34,  0.17
+[ 615.837] locostairs trace 175 dn a24.30 v 1.36 ph0.25 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 22.0 b 14.2 t 28.6 g  0.17,  0.00
+[ 615.851] locostairs trace 175 dn a24.34 v 1.36 ph0.29 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h  4.0 b 16.4 t 14.8 g  0.17,  0.00
+[ 615.858] locostairs trace 175 dn a24.38 v 1.36 ph0.32 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 17.9 b 16.9 t 16.5 g  0.00,  0.00
+[ 619.066] locostairs trace 175 dn a24.43 v 1.36 ph0.36 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 10.2 b 12.4 t 13.2 g  0.00,  0.00
+[ 619.082] locostairs trace 175 dn a24.47 v 1.36 ph0.40 mw1.00 | 0 pl1 h  0.3 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h  8.1 b 12.7 t 14.4 g  0.00,  0.00
+[ 619.099] locostairs trace 175 dn a24.51 v 1.36 ph0.43 mw1.00 | 0 pl1 h  2.1 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h  4.3 b 10.2 t 12.4 g  0.00,  0.00
+[ 636.332] locostairs trace 175 dn a25.83 v 1.36 ph0.51 mw1.00 | 0 pl1 h  8.8 b  0.6 t  0.0 g  0.00,  0.00 | 1 pl1 h  0.1 b  5.4 t  7.4 g -0.17, -0.17
+[ 636.340] locostairs trace 175 dn a25.87 v 1.36 ph0.54 mw1.00 | 0 pl1 h 12.0 b  1.1 t  0.0 g  0.00,  0.00 | 1 pl1 h  0.0 b  3.4 t  4.6 g -0.17, -0.17
+[ 636.347] locostairs trace 175 dn a25.92 v 1.36 ph0.58 mw1.00 | 0 pl1 h 14.2 b  1.6 t  0.0 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.7 t  1.0 g -0.17, -0.17
+[ 636.377] locostairs trace 175 dn a25.96 v 1.36 ph0.61 mw1.00 | 0 pl1 h 15.1 b  1.8 t  0.0 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17
+[ 639.773] locostairs trace 175 dn a26.00 v 1.36 ph0.65 mw1.00 | 0 pl0 h 19.0 b  6.1 t  4.0 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17
+[ 639.791] locostairs trace 175 dn a26.05 v 1.36 ph0.68 mw1.00 | 0 pl0 h 20.9 b  8.9 t  6.1 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17
+[ 639.804] locostairs trace 175 dn a26.09 v 1.36 ph0.72 mw1.00 | 0 pl0 h 18.9 b  8.6 t  5.7 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17
+[ 639.816] locostairs trace 175 dn a26.14 v 1.36 ph0.76 mw1.00 | 0 pl0 h 16.0 b  8.5 t 22.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 639.823] locostairs trace 175 dn a26.18 v 1.36 ph0.79 mw1.00 | 0 pl0 h 12.9 b 25.6 t 24.1 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 639.840] locostairs trace 175 dn a26.22 v 1.36 ph0.83 mw1.00 | 0 pl0 h 26.8 b 43.0 t 42.7 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 639.840] locostairs t 20: walkers (along / across the stair from its top, m): v26.2/0.1 ^9.7/0.2 v26.8/-0.0 ^10.3/0.0 v30.1/0.2 ^15.1/0.2 v30.7/0.1 ^16.7/0.2 | trips 0
+[ 643.136] locostairs trace 175 dn a26.27 v 1.36 ph0.86 mw1.00 | 0 pl0 h 30.0 b 32.4 t 33.2 g -0.17, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 643.159] locostairs trace 175 dn a26.31 v 1.36 ph0.90 mw1.00 | 0 pl0 h 27.8 b 49.4 t 51.2 g -0.17, -0.34 | 1 pl1 h  0.5 b  0.0 t  0.0 g  0.00,  0.00
+[ 643.175] locostairs trace 175 dn a26.36 v 1.36 ph0.93 mw1.00 | 0 pl0 h 11.1 b 33.9 t 36.1 g -0.17, -0.34 | 1 pl1 h  2.3 b  0.0 t  0.0 g  0.00,  0.00
+[ 643.180] locostairs trace 175 dn a26.40 v 1.36 ph0.97 mw1.00 | 0 pl0 h 26.3 b 32.2 t 34.4 g -0.34, -0.34 | 1 pl1 h  5.3 b  0.2 t  0.0 g  0.00,  0.00
+[ 643.188] locostairs trace 175 dn a26.44 v 1.36 ph0.01 mw1.00 | 0 pl1 h  0.0 b  5.2 t 24.0 g -0.17, -0.34 | 1 pl1 h  8.9 b  0.6 t 16.9 g  0.17,  0.00
+[ 643.206] locostairs trace 175 dn a26.49 v 1.36 ph0.04 mw1.00 | 0 pl1 h  0.0 b  3.3 t 21.4 g -0.17, -0.34 | 1 pl1 h 12.0 b  1.1 t 16.9 g  0.17,  0.00
+[ 646.844] locostairs trace 175 dn a26.53 v 1.36 ph0.08 mw1.00 | 0 pl1 h  0.0 b  0.9 t 18.1 g -0.17, -0.34 | 1 pl1 h 14.2 b  1.6 t 16.9 g  0.17,  0.00
+[ 646.854] locostairs trace 175 dn a26.57 v 1.36 ph0.11 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34 | 1 pl1 h 14.9 b  1.8 t 16.9 g  0.17,  0.00
+[ 646.872] locostairs trace 175 dn a26.62 v 1.36 ph0.15 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34 | 1 pl0 h 20.1 b  7.2 t 21.9 g  0.17,  0.00
+[ 646.882] locostairs trace 175 dn a26.66 v 1.36 ph0.19 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34 | 1 pl0 h 21.0 b  9.0 t 23.1 g  0.17,  0.00
+[ 646.887] locostairs trace 175 dn a26.71 v 1.36 ph0.22 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34 | 1 pl0 h  7.7 b 14.4 t 11.5 g  0.17,  0.00
+[ 646.903] locostairs trace 175 dn a26.75 v 1.36 ph0.26 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 21.7 b 14.2 t 28.7 g  0.17,  0.00
+[ 650.473] locostairs trace 175 dn a26.79 v 1.36 ph0.29 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 14.7 b 27.5 t 26.0 g  0.17,  0.00
+[ 650.479] locostairs trace 175 dn a26.84 v 1.36 ph0.33 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 28.7 b 45.0 t 44.8 g  0.00, -0.17
+[ 650.486] locostairs trace 175 dn a26.88 v 1.36 ph0.36 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 30.8 b 33.3 t 34.2 g -0.17, -0.17
+[ 650.497] locostairs trace 175 dn a26.92 v 1.36 ph0.40 mw1.00 | 0 pl1 h  0.4 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 28.5 b 50.2 t 52.0 g -0.17, -0.34
+[ 650.512] locostairs trace 175 dn a26.97 v 1.36 ph0.44 mw1.00 | 0 pl1 h  2.4 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 11.3 b 34.1 t 36.3 g -0.17, -0.34
+[ 650.524] locostairs trace 175 dn a27.01 v 1.36 ph0.47 mw1.00 | 0 pl1 h  5.4 b  0.2 t 16.9 g  0.17,  0.00 | 1 pl0 h 26.4 b 32.3 t 34.5 g -0.17, -0.17
+[ 654.141] locostairs trace 175 dn a27.06 v 1.36 ph0.51 mw1.00 | 0 pl1 h  9.0 b  0.6 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.1 b  5.3 t  7.3 g -0.17, -0.17
+[ 654.153] locostairs trace 175 dn a27.10 v 1.36 ph0.54 mw1.00 | 0 pl1 h 12.1 b  1.1 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  3.2 t  4.4 g -0.17, -0.17
+[ 654.186] locostairs trace 175 dn a27.14 v 1.36 ph0.58 mw1.00 | 0 pl1 h 14.3 b  1.6 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.6 t  0.9 g -0.17, -0.17
+[ 654.201] locostairs trace 175 dn a27.19 v 1.36 ph0.61 mw1.00 | 0 pl1 h 15.1 b  1.8 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17
+[ 654.217] locostairs trace 175 dn a27.23 v 1.36 ph0.65 mw1.00 | 0 pl0 h 19.1 b  6.3 t 21.0 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17
+[ 654.239] locostairs trace 175 dn a27.28 v 1.36 ph0.69 mw1.00 | 0 pl0 h 20.8 b 25.7 t 22.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17
+[ 657.183] locostairs trace 175 dn a27.32 v 1.36 ph0.72 mw1.00 | 0 pl0 h  7.6 b 14.4 t 11.5 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 657.200] locostairs trace 175 dn a27.36 v 1.36 ph0.76 mw1.00 | 0 pl0 h 21.7 b 14.3 t 28.8 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 657.219] locostairs trace 175 dn a27.41 v 1.36 ph0.79 mw1.00 | 0 pl0 h 14.7 b 27.6 t 26.1 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 657.223] locostairs trace 175 dn a27.45 v 1.36 ph0.83 mw1.00 | 0 pl0 h 28.6 b 45.0 t 44.8 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 657.229] locostairs trace 175 dn a27.49 v 1.36 ph0.87 mw1.00 | 0 pl0 h 30.5 b 33.1 t 34.0 g -0.17, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 657.237] locostairs trace 175 dn a27.54 v 1.36 ph0.90 mw1.00 | 0 pl0 h 28.4 b 50.1 t 51.9 g -0.17, -0.34 | 1 pl1 h  0.5 b  0.0 t  0.0 g  0.00,  0.00
+[ 660.636] locostairs trace 175 dn a27.58 v 1.36 ph0.94 mw1.00 | 0 pl0 h 28.1 b 34.1 t 36.4 g -0.34, -0.34 | 1 pl1 h  2.4 b  0.0 t  0.0 g  0.00,  0.00
+[ 660.642] locostairs trace 175 dn a27.63 v 1.36 ph0.97 mw1.00 | 0 pl0 h 26.4 b 32.3 t 51.4 g -0.17, -0.34 | 1 pl1 h  5.5 b  0.2 t 16.9 g  0.17,  0.00
+[ 660.651] locostairs trace 175 dn a27.67 v 1.36 ph0.01 mw1.00 | 0 pl1 h  0.0 b  5.1 t 23.9 g -0.17, -0.34 | 1 pl1 h  9.0 b  0.6 t 16.9 g  0.17,  0.00
+[ 660.662] locostairs trace 175 dn a27.71 v 1.36 ph0.04 mw1.00 | 0 pl1 h -0.0 b  3.1 t 21.2 g -0.17, -0.34 | 1 pl1 h 12.2 b  1.1 t 16.9 g  0.17,  0.00
+[ 660.668] locostairs trace 175 dn a27.76 v 1.36 ph0.08 mw1.00 | 0 pl1 h  0.0 b  0.8 t 17.9 g -0.17, -0.34 | 1 pl1 h 14.3 b  1.6 t 16.9 g  0.17,  0.00
+[ 660.683] locostairs trace 175 dn a27.80 v 1.36 ph0.12 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34 | 1 pl1 h 14.9 b  1.8 t 16.9 g  0.17,  0.00
+[ 663.683] locostairs trace 175 dn a27.85 v 1.36 ph0.15 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34 | 1 pl0 h 20.5 b  7.6 t 22.3 g  0.17,  0.00
+[ 663.696] locostairs trace 175 dn a27.89 v 1.36 ph0.19 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 20.9 b 25.8 t 23.0 g  0.34,  0.17
+[ 663.708] locostairs trace 175 dn a27.93 v 1.36 ph0.22 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h  7.5 b 14.4 t 11.5 g  0.34,  0.17
+[ 663.718] locostairs trace 175 dn a27.98 v 1.36 ph0.26 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 21.5 b 14.2 t 28.7 g  0.17,  0.00
+[ 663.730] locostairs trace 175 dn a28.02 v 1.36 ph0.29 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 14.6 b 27.5 t 26.1 g  0.17,  0.00
+[ 663.758] locostairs trace 175 dn a28.06 v 1.36 ph0.33 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 28.6 b 45.1 t 44.9 g  0.00, -0.17
+[ 666.792] locostairs trace 175 dn a28.11 v 1.36 ph0.37 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 30.6 b 33.3 t 34.3 g -0.17, -0.17
+[ 666.809] locostairs trace 175 dn a28.15 v 1.36 ph0.40 mw1.00 | 0 pl1 h  0.5 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 28.4 b 50.2 t 51.9 g -0.17, -0.34
+[ 666.819] locostairs trace 175 dn a28.20 v 1.36 ph0.44 mw1.00 | 0 pl1 h  2.5 b  0.1 t 16.9 g  0.17,  0.00 | 1 pl0 h 11.2 b 34.0 t 36.2 g  0.00, -0.17
+[ 666.828] locostairs trace 175 dn a28.24 v 1.36 ph0.47 mw1.00 | 0 pl1 h  5.6 b  0.2 t 16.9 g  0.17,  0.00 | 1 pl0 h 26.3 b 32.2 t 34.3 g -0.17, -0.17
+[ 666.837] locostairs trace 175 dn a28.28 v 1.36 ph0.51 mw1.00 | 0 pl1 h  9.2 b  0.6 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.1 b  5.3 t  7.2 g -0.17, -0.17
+[ 666.859] locostairs trace 175 dn a28.33 v 1.36 ph0.54 mw1.00 | 0 pl1 h 12.3 b  1.2 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  3.1 t 21.1 g -0.17, -0.34
+[ 670.333] locostairs trace 175 dn a28.37 v 1.36 ph0.58 mw1.00 | 0 pl1 h 14.4 b  1.6 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.6 t 17.7 g -0.17, -0.34
+[ 670.357] locostairs trace 175 dn a28.41 v 1.36 ph0.62 mw1.00 | 0 pl1 h 15.0 b  1.9 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34
+[ 670.366] locostairs trace 175 dn a28.46 v 1.36 ph0.65 mw1.00 | 0 pl0 h 19.3 b  6.5 t 21.1 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34
+[ 670.372] locostairs trace 175 dn a28.50 v 1.36 ph0.69 mw1.00 | 0 pl0 h 20.6 b 25.7 t 22.8 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 670.388] locostairs trace 175 dn a28.55 v 1.36 ph0.72 mw1.00 | 0 pl0 h 24.4 b 14.4 t 11.5 g  0.17,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 670.403] locostairs trace 175 dn a28.59 v 1.36 ph0.76 mw1.00 | 0 pl0 h 21.5 b 31.2 t 28.8 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 673.572] locostairs trace 175 dn a28.63 v 1.36 ph0.80 mw1.00 | 0 pl0 h 31.4 b 27.6 t 26.2 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 673.578] locostairs trace 175 dn a28.68 v 1.36 ph0.83 mw1.00 | 0 pl0 h 28.5 b 45.0 t 44.8 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 673.584] locostairs trace 175 dn a28.72 v 1.36 ph0.87 mw1.00 | 0 pl0 h 30.4 b 33.1 t 51.0 g -0.17, -0.34 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 673.588] locostairs trace 175 dn a28.77 v 1.36 ph0.90 mw1.00 | 0 pl0 h 28.3 b 50.1 t 52.0 g  0.00, -0.17 | 1 pl1 h  0.5 b  0.0 t 16.9 g  0.17,  0.00
+[ 673.613] locostairs trace 175 dn a28.81 v 1.36 ph0.94 mw1.00 | 0 pl0 h 28.1 b 34.1 t 36.3 g -0.17, -0.17 | 1 pl1 h  2.5 b  0.1 t 16.9 g  0.17,  0.00
+[ 673.638] locostairs trace 175 dn a28.85 v 1.36 ph0.97 mw1.00 | 0 pl0 h 26.3 b 32.1 t 51.2 g -0.17, -0.34 | 1 pl1 h  5.7 b  0.3 t 16.9 g  0.17,  0.00
+[ 676.530] locostairs trace 175 dn a28.90 v 1.36 ph0.01 mw1.00 | 0 pl1 h  0.0 b  5.0 t 23.8 g -0.17, -0.34 | 1 pl1 h  9.2 b  0.7 t 16.9 g  0.17,  0.00
+[ 676.564] locostairs trace 175 dn a28.94 v 1.36 ph0.05 mw1.00 | 0 pl1 h  0.0 b  3.0 t 21.0 g -0.17, -0.34 | 1 pl1 h 12.3 b  1.2 t 16.9 g  0.17,  0.00
+[ 676.575] locostairs trace 175 dn a28.98 v 1.36 ph0.08 mw1.00 | 0 pl1 h  0.0 b  0.7 t 17.8 g -0.17, -0.34 | 1 pl1 h 14.4 b  1.6 t 16.9 g  0.17,  0.00
+[ 676.588] locostairs trace 175 dn a29.03 v 1.36 ph0.12 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g -0.17, -0.34 | 1 pl1 h 15.0 b  1.8 t 16.9 g  0.17,  0.00
+[ 676.599] locostairs trace 175 dn a29.07 v 1.36 ph0.15 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 20.9 b  8.1 t 22.7 g  0.34,  0.17
+[ 676.615] locostairs trace 175 dn a29.12 v 1.36 ph0.19 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 20.7 b 25.8 t 23.0 g  0.34,  0.17
+[ 679.824] locostairs trace 175 dn a29.16 v 1.36 ph0.22 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 24.3 b 14.4 t 11.5 g  0.17,  0.17
+[ 679.832] locostairs trace 175 dn a29.20 v 1.36 ph0.26 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 21.3 b 31.1 t 28.8 g  0.17,  0.00
+[ 679.849] locostairs trace 175 dn a29.25 v 1.36 ph0.30 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 31.3 b 27.6 t 26.2 g  0.00,  0.00
+[ 679.854] locostairs trace 175 dn a29.29 v 1.36 ph0.33 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 28.5 b 45.2 t 45.1 g  0.00, -0.17
+[ 679.870] locostairs trace 175 dn a29.33 v 1.36 ph0.37 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.17,  0.00 | 1 pl0 h 30.5 b 33.2 t 34.3 g  0.00,  0.00
+[ 679.902] locostairs trace 175 dn a29.38 v 1.36 ph0.40 mw1.00 | 0 pl1 h  0.6 b  0.0 t 16.9 g  0.17,  0.00 | 1 pl0 h 28.3 b 50.1 t 51.9 g  0.00, -0.17
+[ 683.362] locostairs trace 175 dn a29.42 v 1.36 ph0.44 mw1.00 | 0 pl1 h  2.7 b  0.1 t 16.9 g  0.17,  0.00 | 1 pl0 h 28.0 b 33.9 t 36.1 g -0.17, -0.17
+[ 683.368] locostairs trace 175 dn a29.47 v 1.36 ph0.48 mw1.00 | 0 pl1 h  5.8 b  0.3 t 16.9 g  0.17,  0.00 | 1 pl0 h 26.2 b 32.1 t 34.2 g -0.17, -0.17
+[ 683.374] locostairs trace 175 dn a29.51 v 1.36 ph0.51 mw1.00 | 0 pl1 h  9.3 b  0.7 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  5.2 t 24.0 g -0.17, -0.34
+[ 683.379] locostairs trace 175 dn a29.55 v 1.36 ph0.55 mw1.00 | 0 pl1 h 12.4 b  1.2 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  2.9 t 20.9 g -0.17, -0.34
+[ 683.384] locostairs trace 175 dn a29.60 v 1.36 ph0.58 mw1.00 | 0 pl1 h 14.4 b  1.6 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.6 t 17.7 g -0.17, -0.34
+[ 683.393] locostairs trace 175 dn a29.64 v 1.36 ph0.62 mw1.00 | 0 pl1 h 15.0 b  1.9 t 16.9 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 686.869] locostairs trace 175 dn a29.69 v 1.36 ph0.65 mw1.00 | 0 pl0 h 19.4 b  6.6 t 21.2 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 686.897] locostairs trace 175 dn a29.73 v 1.36 ph0.69 mw1.00 | 0 pl0 h 20.5 b 25.6 t 22.8 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 686.925] locostairs trace 175 dn a29.77 v 1.36 ph0.73 mw1.00 | 0 pl0 h 24.2 b 14.4 t 28.4 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 686.934] locostairs trace 175 dn a29.82 v 1.36 ph0.76 mw1.00 | 0 pl0 h 38.2 b 31.2 t 28.8 g  0.00,  0.00 | 1 pl1 h -0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 686.942] locostairs trace 175 dn a29.86 v 1.36 ph0.80 mw1.00 | 0 pl0 h 20.1 b 33.4 t 32.1 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 686.951] locostairs trace 175 dn a29.90 v 1.36 ph0.83 mw1.00 | 0 pl0 h 34.1 b 33.9 t 50.8 g -0.17, -0.34 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[ 690.446] locostairs trace 175 dn a29.95 v 1.36 ph0.87 mw1.00 | 0 pl0 h 15.4 b 35.1 t 36.2 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.17,  0.00
+[ 690.463] locostairs trace 175 dn a29.99 v 1.36 ph0.90 mw1.00 | 0 pl0 h 30.2 b 52.2 t 54.0 g -0.17, -0.34 | 1 pl1 h  0.6 b  0.0 t 16.9 g  0.17,  0.00
+[ 690.473] locostairs trace 175 dn a30.04 v 1.36 ph0.94 mw1.00 | 0 pl0 h 11.8 b 34.7 t 37.0 g -0.17, -0.34 | 1 pl1 h  2.7 b  0.1 t 16.9 g  0.17,  0.00
+[ 690.483] locostairs trace 175 dn a30.08 v 1.36 ph0.98 mw1.00 | 0 pl0 h 26.9 b 32.7 t 34.8 g -0.34, -0.34 | 1 pl1 h  5.9 b  0.3 t 16.9 g  0.17,  0.00
+[ 690.492] locostairs trace 175 dn a30.12 v 1.36 ph0.01 mw1.00 | 0 pl1 h  0.0 b  5.0 t  6.8 g -0.34, -0.34 | 1 pl1 h  9.4 b  0.7 t 16.9 g  0.17,  0.00
+[ 690.515] locostairs trace 175 dn a30.17 v 1.36 ph0.05 mw1.00 | 0 pl1 h  0.0 b  2.9 t  3.9 g -0.34, -0.34 | 1 pl1 h 12.5 b  1.2 t 16.9 g  0.17,  0.00
+[ 694.094] locostairs trace 175 dn a30.21 v 1.36 ph0.08 mw1.00 | 0 pl1 h  0.0 b  0.5 t  0.7 g -0.17, -0.17 | 1 pl1 h 14.4 b  1.6 t 16.9 g  0.34,  0.17
+[ 694.100] locostairs trace 175 dn a30.25 v 1.36 ph0.12 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl1 h 15.0 b  1.8 t 16.9 g  0.34,  0.17
+[ 694.113] locostairs trace 175 dn a30.30 v 1.36 ph0.16 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl0 h 21.0 b  8.2 t 22.8 g  0.34,  0.17
+[ 694.117] locostairs trace 175 dn a30.34 v 1.36 ph0.19 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl0 h 20.6 b 25.8 t 22.9 g  0.34,  0.17
+[ 694.121] locostairs trace 175 dn a30.39 v 1.36 ph0.23 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl0 h 24.1 b 14.3 t 28.4 g  0.17,  0.00
+[ 694.142] locostairs trace 175 dn a30.43 v 1.36 ph0.26 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl0 h 21.2 b 31.1 t 28.8 g  0.17,  0.00
+[ 697.242] locostairs trace 175 dn a30.47 v 1.36 ph0.30 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17 | 1 pl0 h 20.1 b 33.5 t 32.2 g  0.00, -0.17
+[ 697.252] locostairs trace 175 dn a30.52 v 1.36 ph0.33 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 34.2 b 34.2 t 34.1 g  0.00,  0.00
+[ 697.263] locostairs trace 175 dn a30.56 v 1.36 ph0.37 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 15.4 b 35.2 t 36.3 g  0.00, -0.17
+[ 697.267] locostairs trace 175 dn a30.61 v 1.36 ph0.41 mw1.00 | 0 pl1 h  0.7 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 30.2 b 35.2 t 37.0 g -0.17, -0.17
+[ 697.276] locostairs trace 175 dn a30.65 v 1.36 ph0.44 mw1.00 | 0 pl1 h  2.8 b  0.1 t  0.0 g  0.00,  0.00 | 1 pl0 h 11.7 b 17.6 t 19.8 g -0.17, -0.17
+[ 697.286] locostairs trace 175 dn a30.69 v 1.36 ph0.48 mw1.00 | 0 pl1 h  6.0 b  0.3 t  0.0 g  0.00,  0.00 | 1 pl0 h  9.9 b 15.7 t 17.9 g -0.17, -0.17
+[ 700.536] locostairs trace 175 dn a30.74 v 1.36 ph0.51 mw1.00 | 0 pl1 h  9.5 b  0.7 t  0.0 g  0.00,  0.00 | 1 pl1 h  5.5 b 10.6 t 12.5 g -0.17, -0.17
+[ 700.556] locostairs trace 175 dn a30.78 v 1.36 ph0.55 mw1.00 | 0 pl1 h 12.6 b  1.2 t 16.9 g  0.17,  0.00 | 1 pl1 h  3.4 b  6.2 t  7.3 g  0.00,  0.00
+[ 700.572] locostairs trace 175 dn a30.82 v 1.36 ph0.58 mw1.00 | 0 pl1 h 14.5 b  1.7 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.5 t  0.7 g  0.00,  0.00
+[ 700.579] locostairs trace 175 dn a30.87 v 1.36 ph0.62 mw1.00 | 0 pl1 h 15.0 b  1.9 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 700.601] locostairs trace 175 dn a30.91 v 1.36 ph0.66 mw1.00 | 0 pl0 h 19.5 b  6.8 t 21.4 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 700.617] locostairs trace 175 dn a30.96 v 1.36 ph0.69 mw1.00 | 0 pl0 h 20.4 b  8.7 t 22.7 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 704.093] locostairs trace 175 dn a31.00 v 1.36 ph0.73 mw1.00 | 0 pl0 h  7.2 b 14.3 t 11.5 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 704.098] locostairs trace 175 dn a31.04 v 1.36 ph0.76 mw1.00 | 0 pl0 h 21.1 b 14.2 t 11.9 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 722.641] locostairs trace 175 dn a32.38 v 1.36 ph0.19 mw1.00 | 0 pl0 h  2.3 b  2.3 t  2.3 g  0.00,  0.00 | 1 pl0 h 20.2 b  8.6 t  5.8 g  0.00,  0.00
+[ 738.719] Wildlife: 106 animals (94 birds) in 17 groups, 53 drawn in 15 draws | update 0.271 ms, render 0.444 ms
+[ 741.903] locostairs deep 179 up foot 1: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 31.04 x 0.76 | v 1.38 along-1.38 yawOff  -2.2 | ph0.72 age0.23 ballProbe 0 strikeLead 0.30 pin -0.000 footZ 0.000
+[ 741.918] locostairs deep 179 up foot 1: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 30.99 x 0.76 | v 1.38 along-1.38 yawOff  -2.2 | ph0.76 age0.27 ballProbe 0 strikeLead 0.30 pin -0.000 footZ 0.000
+[ 741.948] locostairs deep 179 up foot 1: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 30.95 x 0.76 | v 1.38 along-1.38 yawOff  -2.2 | ph0.79 age0.30 ballProbe 0 strikeLead 0.30 pin -0.000 footZ 0.000
+[ 745.089] locostairs deep 179 up foot 1: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 30.90 x 0.76 | v 1.38 along-1.38 yawOff  -2.2 | ph0.83 age0.33 ballProbe 0 strikeLead 0.30 pin 0.000 footZ 0.000
+[ 745.110] locostairs deep 179 up foot 1: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 30.86 x 0.75 | v 1.38 along-1.38 yawOff  -2.2 | ph0.86 age0.37 ballProbe 0 strikeLead 0.30 pin 0.000 footZ 0.000
+[ 745.116] locostairs deep 179 up foot 1: h   0.2 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 30.81 x 0.75 | v 1.38 along-1.38 yawOff  -2.2 | ph0.89 age0.40 ballProbe 0 strikeLead 0.30 pin 0.001 footZ 0.000
+[ 745.121] locostairs deep 179 up foot 1: h   1.4 b   0.0 t -16.9 cm (g -0.17, -0.17,  0.00) | a 30.76 x 0.75 | v 1.38 along-1.38 yawOff  -2.2 | ph0.93 age0.43 ballProbe 0 strikeLead 0.30 pin 0.001 footZ -0.169
+[ 745.130] locostairs deep 179 up foot 1: h   3.7 b   0.1 t -16.9 cm (g -0.17, -0.17,  0.00) | a 30.72 x 0.75 | v 1.38 along-1.38 yawOff  -2.2 | ph0.96 age0.47 ballProbe 0 strikeLead 0.30 pin 0.002 footZ -0.169
+[ 745.142] locostairs deep 179 up foot 1: h   6.7 b   0.3 t -16.9 cm (g -0.17, -0.17,  0.00) | a 30.67 x 0.75 | v 1.38 along-1.38 yawOff  -2.2 | ph1.00 age0.50 ballProbe 0 strikeLead 0.30 pin 0.005 footZ -0.169
+[ 748.262] locostairs deep 179 up foot 1: h   9.8 b   0.7 t -16.9 cm (g -0.17, -0.17,  0.00) | a 30.63 x 0.75 | v 1.38 along-1.38 yawOff  -2.2 | ph0.03 age0.53 ballProbe 0 strikeLead 0.30 pin 0.008 footZ -0.169
+[ 748.294] locostairs deep 179 up foot 1: h  12.3 b   1.2 t -16.9 cm (g -0.17, -0.17,  0.00) | a 30.58 x 0.74 | v 1.38 along-1.38 yawOff  -2.2 | ph0.07 age0.57 ballProbe 0 strikeLead 0.30 pin 0.013 footZ -0.169
+[ 748.326] locostairs deep 179 up foot 1: h  13.7 b   1.5 t -16.9 cm (g -0.17, -0.17,  0.00) | a 30.53 x 0.74 | v 1.38 along-1.38 yawOff  -2.2 | ph0.10 age0.60 ballProbe 0 strikeLead 0.30 pin 0.016 footZ -0.169
+[ 777.685] locostairs trace 175 up a32.38 v 1.36 ph0.82 mw1.00 | 0 pl0 h 10.1 b  8.3 t  7.7 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 793.320] locostairs trace 175 up a31.07 v 1.36 ph0.85 mw1.00 | 0 pl0 h 40.4 b 25.2 t 25.8 g  0.00,  0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 793.331] locostairs trace 175 up a31.03 v 1.36 ph0.89 mw1.00 | 0 pl0 h 38.9 b 26.3 t 27.8 g  0.00,  0.17 | 1 pl1 h  0.2 b  0.0 t  0.0 g  0.00,  0.00
+[ 793.340] locostairs trace 175 up a30.98 v 1.36 ph0.93 mw1.00 | 0 pl0 h 20.6 b 26.3 t 11.5 g  0.17,  0.34 | 1 pl1 h  1.7 b  0.0 t  0.0 g  0.00,  0.00
+[ 793.349] locostairs trace 175 up a30.94 v 1.36 ph0.96 mw1.00 | 0 pl0 h 18.8 b  7.9 t 10.1 g  0.17,  0.34 | 1 pl1 h  4.5 b  0.2 t  0.0 g  0.00,  0.00
+[ 793.361] locostairs trace 175 up a30.89 v 1.36 ph1.00 mw1.00 | 0 pl1 h 11.4 b  0.0 t  2.0 g  0.17,  0.34 | 1 pl1 h  8.0 b  0.5 t  0.0 g  0.00,  0.00
+[ 796.285] locostairs trace 175 up a30.85 v 1.36 ph0.03 mw1.00 | 0 pl1 h 12.9 b  0.0 t  1.5 g  0.17,  0.34 | 1 pl1 h 11.4 b  1.0 t  0.0 g  0.00,  0.00
+[ 796.295] locostairs trace 175 up a30.80 v 1.36 ph0.07 mw1.00 | 0 pl1 h 15.6 b  0.0 t  0.5 g  0.17,  0.34 | 1 pl1 h 13.8 b  1.5 t  0.0 g  0.00,  0.00
+[ 796.309] locostairs trace 175 up a30.76 v 1.36 ph0.10 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl1 h 14.9 b  1.8 t  0.0 g -0.17, -0.17
+[ 796.314] locostairs trace 175 up a30.72 v 1.36 ph0.14 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 18.2 b  5.2 t  3.2 g -0.17, -0.17
+[ 796.322] locostairs trace 175 up a30.67 v 1.36 ph0.18 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 61.7 b 49.4 t 46.7 g -0.17, -0.17
+[ 796.335] locostairs trace 175 up a30.63 v 1.36 ph0.21 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 60.1 b 49.4 t 46.4 g -0.17, -0.17
+[ 799.523] locostairs trace 175 up a30.58 v 1.36 ph0.25 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 71.3 b 46.2 t 43.5 g -0.17,  0.00
+[ 799.546] locostairs trace 175 up a30.54 v 1.36 ph0.28 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 51.2 b 46.2 t 27.5 g  0.00,  0.17
+[ 799.576] locostairs trace 175 up a30.49 v 1.36 ph0.32 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 52.9 b 34.6 t 34.0 g  0.00,  0.17
+[ 799.576] locostairs deep 177 up foot 1: h  13.9 b   1.4 t -16.9 cm (g -0.34, -0.34, -0.17) | a 30.15 x 0.64 | v 1.27 along-1.27 yawOff  -2.0 | ph0.08 age0.63 ballProbe 0 strikeLead 0.27 pin 0.015 footZ -0.338
+[ 799.588] locostairs trace 175 up a30.45 v 1.36 ph0.36 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 33.4 b 18.3 t 18.9 g  0.00,  0.17
+[ 799.588] locostairs deep 177 up foot 1: h  14.6 b   1.6 t -16.9 cm (g -0.34, -0.34, -0.17) | a 30.11 x 0.64 | v 1.27 along-1.27 yawOff  -2.0 | ph0.11 age0.67 ballProbe 0 strikeLead 0.27 pin 0.014 footZ -0.338
+[ 799.595] locostairs trace 175 up a30.40 v 1.36 ph0.39 mw1.00 | 0 pl1 h 17.1 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 21.6 b 26.0 t 27.6 g  0.17,  0.17
+[ 799.605] locostairs trace 175 up a30.36 v 1.36 ph0.43 mw1.00 | 0 pl1 h 18.6 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 20.6 b  9.5 t 11.7 g  0.17,  0.34
+[ 803.080] locostairs trace 175 up a30.31 v 1.36 ph0.46 mw1.00 | 0 pl1 h 21.5 b  0.2 t  0.0 g -0.17,  0.00 | 1 pl0 h 18.8 b  7.9 t 10.1 g  0.17,  0.34
+[ 803.086] locostairs trace 175 up a30.27 v 1.36 ph0.50 mw1.00 | 0 pl1 h 25.0 b  0.5 t  0.0 g -0.17,  0.00 | 1 pl0 h 17.3 b  5.8 t  7.8 g  0.17,  0.34
+[ 803.092] locostairs trace 175 up a30.22 v 1.36 ph0.53 mw1.00 | 0 pl1 h 28.3 b  1.0 t  0.0 g -0.17,  0.00 | 1 pl1 h 13.1 b  0.0 t  1.4 g  0.17,  0.34
+[ 803.096] locostairs trace 175 up a30.18 v 1.36 ph0.57 mw1.00 | 0 pl1 h 30.8 b  1.5 t  0.0 g -0.34, -0.17 | 1 pl1 h 15.7 b  0.0 t  0.4 g  0.00,  0.17
+[ 803.128] locostairs trace 175 up a30.13 v 1.36 ph0.61 mw1.00 | 0 pl1 h 15.0 b  1.8 t  0.0 g -0.17, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 803.149] locostairs trace 175 up a30.09 v 1.36 ph0.64 mw1.00 | 0 pl0 h 35.3 b  5.5 t  3.4 g -0.34, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 803.149] locostairs t 30: walkers (along / across the stair from its top, m): ^30.1/0.1 v1.8/-0.0 ^29.8/0.6 v1.3/-0.5 ^25.7/0.6 ^2.6/-0.3 ^25.6/-0.3 ^4.0/-0.3 | trips 6
+[ 806.277] locostairs trace 175 up a30.04 v 1.36 ph0.68 mw1.00 | 0 pl0 h 61.8 b 49.6 t 46.9 g -0.17, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 806.298] locostairs trace 175 up a30.00 v 1.36 ph0.71 mw1.00 | 0 pl0 h 59.9 b 49.3 t 29.5 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 806.313] locostairs trace 175 up a29.95 v 1.36 ph0.75 mw1.00 | 0 pl0 h 71.1 b 46.1 t 43.5 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 806.318] locostairs trace 175 up a29.91 v 1.36 ph0.78 mw1.00 | 0 pl0 h 51.2 b 29.4 t 27.7 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 806.326] locostairs trace 175 up a29.86 v 1.36 ph0.82 mw1.00 | 0 pl0 h 39.8 b 38.5 t 38.0 g  0.00,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 806.336] locostairs trace 175 up a29.82 v 1.36 ph0.86 mw1.00 | 0 pl0 h 37.1 b 22.0 t 22.7 g  0.00,  0.17 | 1 pl1 h 16.9 b -0.0 t  0.0 g -0.17,  0.00
+[ 809.558] locostairs trace 175 up a29.77 v 1.36 ph0.89 mw1.00 | 0 pl0 h 21.6 b 26.0 t 27.6 g  0.17,  0.17 | 1 pl1 h 17.2 b  0.0 t  0.0 g -0.17,  0.00
+[ 809.563] locostairs trace 175 up a29.73 v 1.36 ph0.93 mw1.00 | 0 pl0 h 20.5 b  9.3 t 11.5 g  0.17,  0.34 | 1 pl1 h 18.7 b  0.0 t  0.0 g -0.17,  0.00
+[ 809.587] locostairs trace 175 up a29.68 v 1.36 ph0.96 mw1.00 | 0 pl0 h 18.8 b  7.8 t 10.0 g  0.17,  0.34 | 1 pl1 h 21.6 b  0.2 t  0.0 g -0.17,  0.00
+[ 809.591] locostairs trace 175 up a29.64 v 1.36 ph1.00 mw1.00 | 0 pl1 h  0.0 b  5.4 t  7.5 g  0.34,  0.34 | 1 pl1 h 25.1 b  0.5 t  0.0 g -0.17,  0.00
+[ 809.600] locostairs trace 175 up a29.59 v 1.36 ph0.04 mw1.00 | 0 pl1 h 16.9 b  3.8 t  5.3 g  0.00,  0.17 | 1 pl1 h 28.4 b  1.0 t  0.0 g -0.34, -0.17
+[ 809.612] locostairs trace 175 up a29.55 v 1.36 ph0.07 mw1.00 | 0 pl1 h 16.9 b  1.2 t  1.7 g  0.00,  0.17 | 1 pl1 h 13.9 b  1.5 t  0.0 g -0.17, -0.17
+[ 812.586] locostairs trace 175 up a29.50 v 1.36 ph0.11 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.1 g  0.00,  0.17 | 1 pl1 h 14.9 b  1.8 t  0.0 g -0.17, -0.17
+[ 812.592] locostairs trace 175 up a29.46 v 1.36 ph0.14 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 18.6 b  5.7 t  3.6 g -0.17, -0.17
+[ 812.603] locostairs trace 175 up a29.41 v 1.36 ph0.18 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 61.7 b 49.5 t 46.7 g -0.17, -0.17
+[ 812.623] locostairs trace 175 up a29.37 v 1.36 ph0.21 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 60.0 b 32.5 t 29.5 g -0.17,  0.00
+[ 812.632] locostairs trace 175 up a29.32 v 1.36 ph0.25 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 74.8 b 49.9 t 47.3 g -0.34, -0.17
+[ 812.666] locostairs trace 175 up a29.28 v 1.36 ph0.29 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 54.7 b 33.0 t 31.4 g -0.17,  0.00
+[ 816.181] locostairs trace 175 up a29.24 v 1.36 ph0.32 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 40.9 b 39.6 t 39.1 g  0.00,  0.00
+[ 816.191] locostairs trace 175 up a29.19 v 1.36 ph0.36 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 38.3 b 23.3 t 24.1 g  0.00,  0.17
+[ 816.200] locostairs trace 175 up a29.15 v 1.36 ph0.39 mw1.00 | 0 pl1 h 17.1 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 21.8 b 26.3 t 11.0 g  0.17,  0.34
+[ 816.209] locostairs trace 175 up a29.10 v 1.36 ph0.43 mw1.00 | 0 pl1 h 18.8 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 20.5 b  9.4 t 11.6 g  0.17,  0.34
+[ 816.218] locostairs trace 175 up a29.06 v 1.36 ph0.46 mw1.00 | 0 pl1 h  4.8 b  0.2 t  0.0 g  0.00,  0.00 | 1 pl0 h 18.7 b  7.8 t 10.0 g  0.17,  0.34
+[ 816.229] locostairs trace 175 up a29.01 v 1.36 ph0.50 mw1.00 | 0 pl1 h  8.3 b  0.5 t  0.0 g -0.17, -0.17 | 1 pl0 h  8.3 b -3.3 t -1.3 g  0.00,  0.17
+[ 819.336] locostairs trace 175 up a28.97 v 1.36 ph0.54 mw1.00 | 0 pl1 h 11.6 b  1.0 t  0.0 g -0.17, -0.17 | 1 pl1 h 16.9 b  3.7 t  5.0 g  0.00,  0.17
+[ 819.341] locostairs trace 175 up a28.92 v 1.36 ph0.57 mw1.00 | 0 pl1 h 14.0 b  1.5 t  0.0 g -0.17, -0.17 | 1 pl1 h 16.9 b  1.1 t  1.4 g  0.00,  0.17
+[ 819.354] locostairs trace 175 up a28.88 v 1.36 ph0.61 mw1.00 | 0 pl1 h 15.1 b  1.8 t  0.0 g -0.17, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 819.358] locostairs trace 175 up a28.83 v 1.36 ph0.64 mw1.00 | 0 pl0 h 18.7 b  5.8 t  3.7 g -0.17, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 819.372] locostairs trace 175 up a28.79 v 1.36 ph0.68 mw1.00 | 0 pl0 h 61.8 b 49.6 t 30.0 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 819.383] locostairs trace 175 up a28.74 v 1.36 ph0.72 mw1.00 | 0 pl0 h 59.8 b 32.4 t 29.5 g -0.34, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 822.728] locostairs trace 175 up a28.70 v 1.36 ph0.75 mw1.00 | 0 pl0 h 57.8 b 49.9 t 47.3 g -0.17, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 822.734] locostairs trace 175 up a28.65 v 1.36 ph0.79 mw1.00 | 0 pl0 h 54.8 b 33.2 t 31.5 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 822.743] locostairs trace 175 up a28.61 v 1.36 ph0.82 mw1.00 | 0 pl0 h 40.9 b 39.8 t 39.3 g  0.00,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 822.748] locostairs trace 175 up a28.56 v 1.36 ph0.86 mw1.00 | 0 pl0 h 38.2 b 23.3 t 24.1 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 822.760] locostairs trace 175 up a28.52 v 1.36 ph0.89 mw1.00 | 0 pl0 h 21.8 b 26.2 t 11.0 g  0.17,  0.34 | 1 pl1 h 17.2 b  0.0 t  0.0 g -0.17,  0.00
+[ 822.775] locostairs trace 175 up a28.47 v 1.36 ph0.93 mw1.00 | 0 pl0 h 20.4 b  9.3 t 11.5 g  0.17,  0.34 | 1 pl1 h 18.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 825.668] locostairs trace 175 up a28.43 v 1.36 ph0.97 mw1.00 | 0 pl0 h 18.7 b  7.7 t  9.9 g  0.00,  0.17 | 1 pl1 h 21.8 b  0.2 t  0.0 g -0.34, -0.17
+[ 825.673] locostairs trace 175 up a28.38 v 1.36 ph0.00 mw1.00 | 0 pl0 h  8.2 b -3.3 t -1.3 g  0.00,  0.17 | 1 pl1 h  8.4 b  0.5 t  0.0 g -0.17, -0.17
+[ 825.678] locostairs trace 175 up a28.34 v 1.36 ph0.04 mw1.00 | 0 pl1 h 16.9 b  3.7 t  5.0 g  0.00,  0.17 | 1 pl1 h 11.7 b  1.1 t  0.0 g -0.17, -0.17
+[ 825.683] locostairs trace 175 up a28.29 v 1.36 ph0.07 mw1.00 | 0 pl1 h 16.9 b  1.1 t  1.5 g  0.00,  0.17 | 1 pl1 h 14.0 b  1.5 t  0.0 g -0.17, -0.17
+[ 825.688] locostairs trace 175 up a28.25 v 1.36 ph0.11 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl1 h 14.9 b  1.8 t  0.0 g -0.17, -0.17
+[ 825.696] locostairs trace 175 up a28.20 v 1.36 ph0.14 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 19.1 b  6.1 t  4.0 g -0.17, -0.17
+[ 828.703] locostairs trace 175 up a28.16 v 1.36 ph0.18 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 65.4 b 53.3 t 33.6 g -0.34, -0.17
+[ 828.711] locostairs trace 175 up a28.11 v 1.36 ph0.22 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 56.8 b 46.3 t 43.4 g -0.17, -0.17
+[ 828.720] locostairs trace 175 up a28.07 v 1.36 ph0.25 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 66.3 b 41.6 t 39.0 g -0.17,  0.00
+[ 828.725] locostairs trace 175 up a28.02 v 1.36 ph0.29 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 46.3 b 41.7 t 23.2 g  0.00,  0.17
+[ 828.733] locostairs trace 175 up a27.98 v 1.36 ph0.32 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 51.1 b 33.1 t 32.7 g  0.00,  0.17
+[ 828.749] locostairs trace 175 up a27.93 v 1.36 ph0.36 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 31.9 b 17.1 t 17.9 g  0.17,  0.34
+[ 831.921] locostairs trace 175 up a27.89 v 1.36 ph0.40 mw1.00 | 0 pl1 h 17.1 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 21.9 b 26.5 t 28.2 g  0.34,  0.34
+[ 831.926] locostairs trace 175 up a27.84 v 1.36 ph0.43 mw1.00 | 0 pl1 h 18.9 b  0.0 t  0.0 g -0.34, -0.17 | 1 pl0 h 20.4 b 26.2 t 11.5 g  0.17,  0.34
+[ 831.954] locostairs trace 175 up a27.80 v 1.36 ph0.47 mw1.00 | 0 pl1 h 21.9 b  0.2 t  0.0 g -0.34, -0.17 | 1 pl0 h 18.6 b  7.6 t  9.8 g  0.17,  0.34
+[ 831.965] locostairs trace 175 up a27.75 v 1.36 ph0.50 mw1.00 | 0 pl1 h  8.5 b  0.6 t  0.0 g -0.17, -0.17 | 1 pl0 h  1.1 b-10.5 t -8.5 g  0.17,  0.34
+[ 831.974] locostairs trace 175 up a27.70 v 1.36 ph0.54 mw1.00 | 0 pl1 h 11.7 b  1.1 t  0.0 g -0.17, -0.17 | 1 pl1 h 13.4 b  0.0 t  1.3 g  0.17,  0.34
+[ 831.988] locostairs trace 175 up a27.66 v 1.36 ph0.57 mw1.00 | 0 pl1 h 14.1 b  1.6 t  0.0 g -0.17, -0.17 | 1 pl1 h 16.0 b  0.0 t  0.3 g  0.17,  0.34
+[ 834.627] locostairs trace 175 up a27.61 v 1.36 ph0.61 mw1.00 | 0 pl1 h 15.1 b  1.8 t  0.0 g -0.17, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.17,  0.34
+[ 834.632] locostairs trace 175 up a27.57 v 1.36 ph0.65 mw1.00 | 0 pl0 h 18.8 b  5.9 t  3.8 g -0.34, -0.34 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 834.636] locostairs trace 175 up a27.52 v 1.36 ph0.68 mw1.00 | 0 pl0 h 72.7 b 60.6 t 41.0 g -0.34, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 834.639] locostairs trace 175 up a27.48 v 1.36 ph0.72 mw1.00 | 0 pl0 h 56.7 b 46.3 t 43.4 g -0.17, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 834.643] locostairs trace 175 up a27.43 v 1.36 ph0.75 mw1.00 | 0 pl0 h 68.8 b 44.1 t 41.6 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 834.656] locostairs trace 175 up a27.39 v 1.36 ph0.79 mw1.00 | 0 pl0 h 48.9 b 44.4 t 25.9 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 837.896] locostairs trace 175 up a27.34 v 1.36 ph0.82 mw1.00 | 0 pl0 h 51.9 b 34.0 t 33.7 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 837.910] locostairs trace 175 up a27.30 v 1.36 ph0.86 mw1.00 | 0 pl0 h 32.4 b 17.6 t 18.4 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 837.920] locostairs trace 175 up a27.25 v 1.36 ph0.90 mw1.00 | 0 pl0 h 21.8 b 26.4 t 28.1 g  0.17,  0.17 | 1 pl1 h 17.3 b  0.0 t  0.0 g -0.17,  0.00
+[ 837.925] locostairs trace 175 up a27.21 v 1.36 ph0.93 mw1.00 | 0 pl0 h 20.3 b  9.3 t 11.4 g  0.17,  0.34 | 1 pl1 h 19.0 b  0.0 t  0.0 g -0.17,  0.00
+[ 837.935] locostairs trace 175 up a27.16 v 1.36 ph0.97 mw1.00 | 0 pl0 h 18.6 b  7.6 t  9.8 g  0.17,  0.34 | 1 pl1 h 22.0 b  0.2 t  0.0 g -0.17,  0.00
+[ 837.944] locostairs trace 175 up a27.12 v 1.36 ph0.00 mw1.00 | 0 pl0 h  0.8 b-10.8 t -8.8 g  0.17,  0.34 | 1 pl1 h 25.5 b  0.6 t  0.0 g -0.17,  0.00
+[ 841.019] locostairs trace 175 up a27.07 v 1.36 ph0.04 mw1.00 | 0 pl1 h 13.4 b  0.0 t  1.3 g  0.17,  0.34 | 1 pl1 h 28.7 b  1.1 t  0.0 g -0.17,  0.00
+[ 841.029] locostairs trace 175 up a27.03 v 1.36 ph0.08 mw1.00 | 0 pl1 h 15.9 b  0.0 t  0.4 g  0.17,  0.34 | 1 pl1 h 31.0 b  1.6 t  0.0 g -0.17,  0.00
+[ 841.040] locostairs trace 175 up a26.98 v 1.36 ph0.11 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl1 h 31.8 b  1.8 t  0.0 g -0.34, -0.17
+[ 841.045] locostairs trace 175 up a26.94 v 1.36 ph0.15 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 36.4 b  6.6 t  4.4 g -0.34, -0.17
+[ 841.055] locostairs trace 175 up a26.89 v 1.36 ph0.18 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 61.7 b 49.6 t 46.8 g -0.17, -0.17
+[ 841.070] locostairs trace 175 up a26.85 v 1.36 ph0.22 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 59.6 b 49.3 t 29.4 g -0.17,  0.00
+[ 843.927] locostairs trace 175 up a26.80 v 1.36 ph0.25 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 70.7 b 46.1 t 43.6 g -0.17,  0.00
+[ 843.954] locostairs trace 175 up a26.76 v 1.36 ph0.29 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 50.6 b 29.3 t 27.8 g  0.00,  0.17
+[ 843.964] locostairs trace 175 up a26.71 v 1.36 ph0.33 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 39.3 b 38.4 t 38.1 g  0.00,  0.00
+[ 843.967] locostairs trace 175 up a26.67 v 1.36 ph0.36 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 36.8 b 22.2 t 23.0 g  0.00,  0.17
+[ 843.978] locostairs trace 175 up a26.62 v 1.36 ph0.40 mw1.00 | 0 pl1 h 17.2 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 22.0 b 26.6 t 28.4 g  0.17,  0.17
+[ 843.993] locostairs trace 175 up a26.58 v 1.36 ph0.43 mw1.00 | 0 pl1 h 19.1 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 20.2 b  9.2 t 11.4 g  0.17,  0.34
+[ 846.412] locostairs trace 175 up a26.53 v 1.36 ph0.47 mw1.00 | 0 pl1 h 22.1 b  0.2 t  0.0 g -0.17,  0.00 | 1 pl0 h 18.5 b  7.5 t  9.7 g  0.17,  0.34
+[ 846.442] locostairs trace 175 up a26.48 v 1.36 ph0.50 mw1.00 | 0 pl1 h 25.6 b  0.6 t  0.0 g -0.17,  0.00 | 1 pl0 h  1.2 b-10.4 t -8.4 g  0.17,  0.34
+[ 846.452] locostairs trace 175 up a26.44 v 1.36 ph0.54 mw1.00 | 0 pl1 h 28.8 b  1.1 t  0.0 g -0.17,  0.00 | 1 pl1 h 13.5 b  0.0 t  1.3 g  0.17,  0.34
+[ 846.457] locostairs trace 175 up a26.39 v 1.36 ph0.58 mw1.00 | 0 pl1 h 31.1 b  1.6 t  0.0 g -0.34, -0.17 | 1 pl1 h 16.1 b  0.0 t  0.3 g  0.00,  0.17
+[ 846.468] locostairs trace 175 up a26.35 v 1.36 ph0.61 mw1.00 | 0 pl1 h 32.0 b  1.8 t  0.0 g -0.34, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 846.476] locostairs trace 175 up a26.30 v 1.36 ph0.65 mw1.00 | 0 pl0 h 35.9 b  6.1 t  3.9 g -0.34, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 848.949] locostairs trace 175 up a26.26 v 1.36 ph0.68 mw1.00 | 0 pl0 h 43.1 b 31.1 t 28.3 g -0.17, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 848.961] locostairs trace 175 up a26.21 v 1.36 ph0.72 mw1.00 | 0 pl0 h 41.1 b 13.9 t 11.0 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 848.974] locostairs trace 175 up a26.17 v 1.36 ph0.75 mw1.00 | 0 pl0 h 29.0 b 21.4 t 18.9 g  0.00,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 848.986] locostairs trace 175 up a26.12 v 1.36 ph0.79 mw1.00 | 0 pl0 h 25.9 b  4.7 t  3.2 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 848.996] locostairs trace 175 up a26.08 v 1.36 ph0.83 mw1.00 | 0 pl0 h  8.6 b  7.8 t  7.5 g  0.00,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 849.017] locostairs trace 175 up a26.03 v 1.36 ph0.86 mw1.00 | 0 pl0 h  5.9 b  8.3 t  9.1 g  0.00,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 851.914] locostairs trace 175 up a25.99 v 1.36 ph0.90 mw1.00 | 0 pl0 h  4.7 b  9.3 t 11.1 g  0.00,  0.00 | 1 pl1 h 17.3 b  0.0 t  0.0 g -0.17,  0.00
+[ 851.926] locostairs trace 175 up a25.94 v 1.36 ph0.93 mw1.00 | 0 pl0 h  2.8 b  8.8 t 11.0 g  0.00,  0.00 | 1 pl1 h 19.1 b  0.0 t  0.0 g -0.17,  0.00
+[ 851.937] locostairs trace 175 up a25.90 v 1.36 ph0.97 mw1.00 | 0 pl0 h  1.5 b  7.4 t  9.6 g  0.00,  0.00 | 1 pl1 h 22.1 b  0.2 t  0.0 g -0.17,  0.00
+[ 851.948] locostairs trace 175 up a25.85 v 1.36 ph0.01 mw1.00 | 0 pl0 h -1.8 b  3.4 t  5.4 g  0.00,  0.00 | 1 pl1 h 25.7 b  0.6 t  0.0 g -0.17,  0.00
+[ 862.221] locostairs deep 179 up foot 0: h  10.1 b   0.8 t -16.9 cm (g -0.17, -0.17,  0.00) | a 20.59 x 0.37 | v 1.38 along-1.38 yawOff  -2.2 | ph0.54 age0.53 ballProbe 0 strikeLead 0.28 pin 0.009 footZ -0.169
+[ 862.225] locostairs deep 179 up foot 0: h  12.5 b   1.2 t -16.9 cm (g -0.17, -0.17,  0.00) | a 20.55 x 0.37 | v 1.38 along-1.38 yawOff  -2.2 | ph0.57 age0.57 ballProbe 0 strikeLead 0.28 pin 0.013 footZ -0.169
+[ 862.236] locostairs deep 179 up foot 0: h  13.9 b   1.5 t -16.9 cm (g -0.17, -0.17,  0.00) | a 20.50 x 0.37 | v 1.38 along-1.38 yawOff  -2.2 | ph0.60 age0.60 ballProbe 0 strikeLead 0.28 pin 0.016 footZ -0.169
+[ 862.247] locostairs deep 179 up foot 0: h  14.0 b   1.6 t -16.9 cm (g -0.34, -0.34, -0.17) | a 20.45 x 0.37 | v 1.38 along-1.38 yawOff  -2.2 | ph0.64 age0.63 ballProbe 0 strikeLead 0.28 pin -0.003 footZ -0.338
+[ 873.343] locostairs trace 175 up a24.54 v 1.36 ph0.04 mw1.00 | 0 pl1 h 13.7 b  0.0 t  1.2 g  0.00,  0.17 | 1 pl1 h 12.1 b  1.1 t  0.0 g  0.00,  0.00
+[ 873.343] locostairs deep 177 up foot 0: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 24.52 x 0.54 | v 1.27 along-1.27 yawOff  -2.2 | ph0.17 age0.20 ballProbe 0 strikeLead 0.27 pin 0.000 footZ 0.000
+[ 873.349] locostairs trace 175 up a24.49 v 1.36 ph0.08 mw1.00 | 0 pl1 h 16.1 b  0.0 t  0.3 g  0.00,  0.17 | 1 pl1 h 14.2 b  1.6 t  0.0 g  0.00,  0.00
+[ 873.349] locostairs deep 177 up foot 0: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 24.48 x 0.54 | v 1.27 along-1.27 yawOff  -2.2 | ph0.20 age0.23 ballProbe 0 strikeLead 0.27 pin 0.000 footZ 0.000
+[ 873.366] locostairs trace 175 up a24.44 v 1.36 ph0.11 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl1 h 14.9 b  1.8 t  0.0 g  0.00,  0.00
+[ 873.366] locostairs deep 177 up foot 0: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 24.44 x 0.54 | v 1.27 along-1.27 yawOff  -2.2 | ph0.23 age0.27 ballProbe 0 strikeLead 0.27 pin 0.000 footZ 0.000
+[ 873.377] locostairs trace 175 up a24.40 v 1.36 ph0.15 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 20.3 b  7.5 t  5.2 g  0.00,  0.00
+[ 873.377] locostairs deep 177 up foot 0: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 24.40 x 0.53 | v 1.27 along-1.27 yawOff  -2.2 | ph0.26 age0.30 ballProbe 0 strikeLead 0.27 pin 0.000 footZ 0.000
+[ 879.645] locostairs trace 175 up a24.35 v 1.36 ph0.19 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 50.4 b 38.5 t 35.6 g  0.00,  0.00
+[ 879.645] locostairs deep 177 up foot 0: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 24.35 x 0.53 | v 1.27 along-1.27 yawOff  -2.2 | ph0.29 age0.33 ballProbe 0 strikeLead 0.27 pin 0.000 footZ 0.000
+[ 879.662] locostairs trace 175 up a24.31 v 1.36 ph0.22 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 48.2 b 38.1 t 35.2 g  0.00,  0.00
+[ 879.662] locostairs deep 177 up foot 0: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 24.31 x 0.53 | v 1.27 along-1.27 yawOff  -2.2 | ph0.32 age0.37 ballProbe 0 strikeLead 0.27 pin 0.000 footZ 0.000
+[ 879.693] locostairs trace 175 up a24.26 v 1.36 ph0.26 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 55.4 b 48.1 t 45.7 g  0.00,  0.00
+[ 879.693] locostairs deep 177 up foot 0: h   0.0 b   0.0 t -16.9 cm (g  0.00,  0.00,  0.17) | a 24.27 x 0.53 | v 1.27 along-1.27 yawOff  -2.2 | ph0.35 age0.40 ballProbe 0 strikeLead 0.27 pin 0.000 footZ 0.000
+[ 879.697] locostairs trace 175 up a24.22 v 1.36 ph0.29 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 52.3 b 31.4 t 30.0 g -0.17,  0.00
+[ 879.697] locostairs deep 177 up foot 0: h   0.1 b   0.0 t -16.9 cm (g -0.17, -0.17,  0.00) | a 24.23 x 0.53 | v 1.27 along-1.27 yawOff  -2.2 | ph0.39 age0.43 ballProbe 0 strikeLead 0.27 pin 0.000 footZ -0.169
+[ 879.709] locostairs trace 175 up a24.17 v 1.36 ph0.33 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 39.8 b 39.3 t 22.2 g  0.00,  0.17
+[ 879.709] locostairs deep 177 up foot 0: h   1.0 b   0.0 t -16.9 cm (g -0.17, -0.17,  0.00) | a 24.18 x 0.53 | v 1.27 along-1.27 yawOff  -2.2 | ph0.42 age0.47 ballProbe 0 strikeLead 0.27 pin 0.001 footZ -0.169
+[ 879.719] locostairs trace 175 up a24.13 v 1.36 ph0.37 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 37.3 b 23.0 t 23.9 g  0.00,  0.17
+[ 879.719] locostairs deep 177 up foot 0: h   2.9 b   0.1 t -16.9 cm (g -0.17, -0.17,  0.00) | a 24.14 x 0.53 | v 1.27 along-1.27 yawOff  -2.2 | ph0.45 age0.50 ballProbe 0 strikeLead 0.27 pin 0.002 footZ -0.169
+[ 885.454] locostairs trace 175 up a24.08 v 1.36 ph0.40 mw1.00 | 0 pl1 h 17.4 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 21.9 b 26.7 t 11.6 g  0.17,  0.34
+[ 885.455] locostairs deep 177 up foot 0: h   5.6 b   0.2 t -16.9 cm (g -0.17, -0.17,  0.00) | a 24.10 x 0.53 | v 1.27 along-1.27 yawOff  -2.2 | ph0.48 age0.53 ballProbe 0 strikeLead 0.27 pin 0.003 footZ -0.169
+[ 885.460] locostairs trace 175 up a24.04 v 1.36 ph0.44 mw1.00 | 0 pl1 h 19.4 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 20.0 b  9.1 t 11.3 g  0.17,  0.34
+[ 885.460] locostairs deep 177 up foot 0: h   8.6 b   0.5 t -16.9 cm (g -0.17, -0.17,  0.00) | a 24.06 x 0.52 | v 1.27 along-1.27 yawOff  -2.2 | ph0.51 age0.57 ballProbe 0 strikeLead 0.27 pin 0.007 footZ -0.169
+[ 885.465] locostairs trace 175 up a23.99 v 1.36 ph0.47 mw1.00 | 0 pl1 h 22.5 b  0.2 t  0.0 g -0.17,  0.00 | 1 pl0 h 18.3 b  7.3 t  9.4 g  0.17,  0.34
+[ 885.465] locostairs deep 177 up foot 0: h  11.3 b   0.9 t -16.9 cm (g -0.17, -0.17,  0.00) | a 24.01 x 0.52 | v 1.27 along-1.27 yawOff  -2.2 | ph0.54 age0.60 ballProbe 0 strikeLead 0.26 pin 0.010 footZ -0.169
+[ 885.469] locostairs trace 175 up a23.95 v 1.36 ph0.51 mw1.00 | 0 pl1 h 26.0 b  0.6 t  0.0 g -0.34, -0.17 | 1 pl1 h  0.1 b  5.3 t  7.2 g  0.17,  0.17
+[ 885.469] locostairs deep 177 up foot 0: h  13.3 b   1.3 t -16.9 cm (g -0.17, -0.17,  0.00) | a 23.97 x 0.52 | v 1.27 along-1.27 yawOff  -2.2 | ph0.57 age0.63 ballProbe 0 strikeLead 0.26 pin 0.014 footZ -0.169
+[ 885.477] locostairs trace 175 up a23.90 v 1.36 ph0.54 mw1.00 | 0 pl1 h 12.2 b  1.2 t  0.0 g -0.17, -0.17 | 1 pl1 h  0.0 b  3.1 t  4.3 g  0.17,  0.17
+[ 885.477] locostairs deep 177 up foot 0: h  14.4 b   1.5 t -16.9 cm (g -0.34, -0.34, -0.17) | a 23.93 x 0.52 | v 1.27 along-1.27 yawOff  -2.2 | ph0.60 age0.67 ballProbe 0 strikeLead 0.26 pin 0.017 footZ -0.338
+[ 885.484] locostairs trace 175 up a23.85 v 1.36 ph0.58 mw1.00 | 0 pl1 h 14.3 b  1.6 t  0.0 g -0.17, -0.17 | 1 pl1 h  0.0 b  0.6 t  0.8 g  0.17,  0.17
+[ 890.793] locostairs trace 175 up a23.81 v 1.36 ph0.62 mw1.00 | 0 pl1 h 15.1 b  1.8 t  0.0 g -0.17, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.17,  0.17
+[ 890.842] locostairs trace 175 up a23.76 v 1.36 ph0.65 mw1.00 | 0 pl0 h 19.2 b  6.4 t  4.2 g -0.17, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.17,  0.17
+[ 890.861] locostairs trace 175 up a23.72 v 1.36 ph0.69 mw1.00 | 0 pl0 h 61.3 b 49.4 t 29.7 g -0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.17,  0.17
+[ 890.867] locostairs trace 175 up a23.67 v 1.36 ph0.72 mw1.00 | 0 pl0 h 59.2 b 32.3 t 29.4 g -0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.17,  0.17
+[ 890.883] locostairs trace 175 up a23.63 v 1.36 ph0.76 mw1.00 | 0 pl0 h 57.2 b 49.9 t 47.5 g -0.17, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 890.904] locostairs trace 175 up a23.58 v 1.36 ph0.79 mw1.00 | 0 pl0 h 54.0 b 33.2 t 31.8 g -0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 895.976] locostairs trace 175 up a23.54 v 1.36 ph0.83 mw1.00 | 0 pl0 h 40.2 b 39.8 t 22.7 g  0.00,  0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 895.988] locostairs trace 175 up a23.49 v 1.36 ph0.87 mw1.00 | 0 pl0 h 37.7 b 23.4 t 24.4 g  0.00,  0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 896.002] locostairs trace 175 up a23.45 v 1.36 ph0.90 mw1.00 | 0 pl0 h 21.8 b  9.8 t 11.6 g  0.17,  0.34 | 1 pl1 h  0.5 b  0.0 t  0.0 g  0.00,  0.00
+[ 896.006] locostairs trace 175 up a23.40 v 1.36 ph0.94 mw1.00 | 0 pl0 h 20.0 b  9.2 t 11.4 g  0.17,  0.34 | 1 pl1 h  2.5 b  0.0 t  0.0 g  0.00,  0.00
+[ 896.015] locostairs trace 175 up a23.35 v 1.36 ph0.97 mw1.00 | 0 pl0 h  1.4 b  7.2 t  9.4 g  0.17,  0.17 | 1 pl1 h  5.6 b  0.2 t  0.0 g -0.17, -0.17
+[ 896.027] locostairs trace 175 up a23.31 v 1.36 ph0.01 mw1.00 | 0 pl0 h -6.4 b -1.4 t  0.5 g  0.17,  0.17 | 1 pl1 h  9.2 b  0.6 t  0.0 g -0.17, -0.17
+[ 901.335] locostairs trace 175 up a23.26 v 1.36 ph0.05 mw1.00 | 0 pl1 h  0.0 b  3.1 t  4.2 g  0.17,  0.17 | 1 pl1 h 12.3 b  1.2 t  0.0 g -0.17, -0.17
+[ 901.347] locostairs trace 175 up a23.22 v 1.36 ph0.08 mw1.00 | 0 pl1 h  0.0 b  0.7 t  0.9 g  0.17,  0.17 | 1 pl1 h 14.3 b  1.6 t  0.0 g -0.17, -0.17
+[ 901.356] locostairs trace 175 up a23.17 v 1.36 ph0.12 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.17,  0.17 | 1 pl1 h 15.0 b  1.8 t  0.0 g -0.17, -0.17
+[ 901.365] locostairs trace 175 up a23.13 v 1.36 ph0.15 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.17,  0.17 | 1 pl0 h 20.8 b  7.9 t  5.7 g -0.17, -0.17
+[ 901.374] locostairs trace 175 up a23.08 v 1.36 ph0.19 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 65.1 b 53.2 t 33.5 g -0.34, -0.17
+[ 901.387] locostairs trace 175 up a23.04 v 1.36 ph0.22 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 62.9 b 36.0 t 33.1 g -0.34, -0.17
+[ 905.572] locostairs trace 175 up a22.99 v 1.36 ph0.26 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 58.3 b 51.1 t 31.8 g -0.17,  0.00
+[ 905.613] locostairs trace 175 up a22.95 v 1.36 ph0.30 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 55.2 b 34.5 t 33.1 g -0.17,  0.00
+[ 905.633] locostairs trace 175 up a22.90 v 1.36 ph0.33 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 40.7 b 23.5 t 23.4 g  0.00,  0.17
+[ 905.645] locostairs trace 175 up a22.86 v 1.36 ph0.37 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 38.2 b 24.0 t 25.0 g  0.00,  0.17
+[ 905.658] locostairs trace 175 up a22.81 v 1.36 ph0.40 mw1.00 | 0 pl1 h  0.6 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 21.8 b  9.8 t 11.6 g  0.17,  0.34
+[ 905.690] locostairs trace 175 up a22.76 v 1.36 ph0.44 mw1.00 | 0 pl1 h  2.6 b  0.1 t  0.0 g -0.17, -0.17 | 1 pl0 h 19.9 b  9.0 t 11.2 g  0.00,  0.17
+[ 910.173] locostairs trace 175 up a22.72 v 1.36 ph0.47 mw1.00 | 0 pl1 h  5.7 b  0.3 t  0.0 g -0.17, -0.17 | 1 pl0 h  1.3 b  7.1 t  9.3 g  0.17,  0.17
+[ 910.191] locostairs trace 175 up a22.67 v 1.36 ph0.51 mw1.00 | 0 pl1 h  9.3 b  0.7 t  0.0 g -0.17, -0.17 | 1 pl1 h  0.1 b  5.2 t  7.1 g  0.17,  0.17
+[ 910.203] locostairs trace 175 up a22.63 v 1.36 ph0.55 mw1.00 | 0 pl1 h 12.4 b  1.2 t  0.0 g -0.17, -0.17 | 1 pl1 h  0.0 b  3.0 t  4.1 g  0.17,  0.17
+[ 910.210] locostairs deep 175 up foot 0: h  14.4 b   1.6 t -16.9 cm (g -0.17, -0.17,  0.00) | a 22.58 x-0.11 | v 1.36 along-1.36 yawOff  -0.8 | ph0.58 age0.53 ballProbe 0 strikeLead 0.28 pin 0.017 footZ -0.169
+[ 910.210] locostairs trace 175 up a22.58 v 1.36 ph0.58 mw1.00 | 0 pl1 h 14.4 b  1.6 t-16.9 g -0.17,  0.00 | 1 pl1 h  0.0 b  0.6 t  0.8 g  0.17,  0.17
+[ 910.224] locostairs deep 175 up foot 0: h  15.0 b   1.9 t -16.9 cm (g -0.17, -0.17,  0.00) | a 22.54 x-0.11 | v 1.36 along-1.36 yawOff  -0.8 | ph0.62 age0.57 ballProbe 0 strikeLead 0.28 pin 0.007 footZ -0.169
+[ 910.225] locostairs trace 175 up a22.54 v 1.36 ph0.62 mw1.00 | 0 pl1 h 15.0 b  1.9 t-16.9 g -0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.17,  0.17
+[ 910.247] locostairs trace 175 up a22.49 v 1.36 ph0.65 mw1.00 | 0 pl0 h 19.3 b  6.6 t  4.3 g -0.34, -0.34 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 916.316] locostairs trace 175 up a22.45 v 1.36 ph0.69 mw1.00 | 0 pl0 h 72.2 b 43.5 t 40.7 g -0.34, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 916.321] locostairs trace 175 up a22.40 v 1.36 ph0.73 mw1.00 | 0 pl0 h 56.1 b 46.2 t 43.3 g -0.17, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 916.341] locostairs trace 175 up a22.36 v 1.36 ph0.76 mw1.00 | 0 pl0 h 68.2 b 44.1 t 41.8 g -0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 916.346] locostairs trace 175 up a22.31 v 1.36 ph0.80 mw1.00 | 0 pl0 h 48.1 b 27.4 t 26.1 g  0.00,  0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 916.359] locostairs trace 175 up a22.27 v 1.36 ph0.83 mw1.00 | 0 pl0 h 34.3 b 34.1 t 34.0 g  0.17,  0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 916.386] locostairs trace 175 up a22.22 v 1.36 ph0.87 mw1.00 | 0 pl0 h 34.3 b 20.1 t 21.2 g  0.00,  0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17
+[ 920.520] locostairs trace 175 up a22.17 v 1.36 ph0.90 mw1.00 | 0 pl0 h 21.8 b 26.7 t 11.7 g  0.17,  0.34 | 1 pl1 h  0.6 b  0.0 t  0.0 g -0.17, -0.17
+[ 920.552] locostairs trace 175 up a22.13 v 1.36 ph0.94 mw1.00 | 0 pl0 h 20.0 b  9.1 t 11.4 g  0.17,  0.34 | 1 pl1 h  2.6 b  0.1 t  0.0 g -0.17, -0.17
+[ 920.576] locostairs trace 175 up a22.08 v 1.36 ph0.98 mw1.00 | 0 pl0 h 18.2 b  7.1 t  9.2 g  0.17,  0.34 | 1 pl1 h  5.8 b  0.3 t  0.0 g -0.17, -0.17
+[ 920.584] locostairs trace 175 up a22.04 v 1.36 ph0.01 mw1.00 | 0 pl0 h  7.8 b -4.1 t -2.3 g  0.17,  0.34 | 1 pl1 h  9.3 b  0.7 t  0.0 g -0.17, -0.17
+[ 920.584] Transit: 0.063 ms/frame avg, 1 trains materialized, 12 waiters, 1 walkers, boardings 0/0 riders 2/0
+[ 920.596] locostairs deep 175 up foot 1: h  12.4 b   1.2 t -16.9 cm (g -0.17, -0.17,  0.00) | a 21.99 x-0.12 | v 1.36 along-1.36 yawOff  -0.8 | ph0.05 age0.53 ballProbe 0 strikeLead 0.27 pin 0.013 footZ -0.169
+[ 920.596] locostairs trace 175 up a21.99 v 1.36 ph0.05 mw1.00 | 0 pl1 h 14.0 b  0.0 t  1.1 g  0.17,  0.34 | 1 pl1 h 12.4 b  1.2 t-16.9 g -0.17,  0.00
+[ 920.606] locostairs deep 175 up foot 1: h  14.4 b   1.6 t -16.9 cm (g -0.17, -0.17,  0.00) | a 21.95 x-0.12 | v 1.36 along-1.36 yawOff  -0.8 | ph0.08 age0.57 ballProbe 0 strikeLead 0.27 pin 0.017 footZ -0.169
+[ 920.606] locostairs trace 175 up a21.95 v 1.36 ph0.08 mw1.00 | 0 pl1 h 16.3 b  0.0 t  0.2 g  0.17,  0.34 | 1 pl1 h 14.4 b  1.6 t-16.9 g -0.17,  0.00
+[ 924.449] locostairs deep 175 up foot 1: h  15.0 b   1.8 t -16.9 cm (g -0.34, -0.34, -0.17) | a 21.90 x-0.12 | v 1.36 along-1.36 yawOff  -0.8 | ph0.12 age0.60 ballProbe 0 strikeLead 0.27 pin 0.012 footZ -0.338
+[ 924.449] locostairs trace 175 up a21.90 v 1.36 ph0.12 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl1 h 15.0 b  1.8 t-16.9 g -0.34, -0.17
+[ 924.466] locostairs trace 175 up a21.86 v 1.36 ph0.15 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 21.0 b  8.2 t-11.0 g -0.34, -0.17
+[ 924.475] locostairs trace 175 up a21.81 v 1.36 ph0.19 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 72.4 b 43.7 t 40.8 g -0.34, -0.17
+[ 924.480] locostairs trace 175 up a21.77 v 1.36 ph0.23 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 56.0 b 46.1 t 26.4 g -0.17,  0.00
+[ 924.486] locostairs trace 175 up a21.72 v 1.36 ph0.26 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 68.0 b 44.1 t 41.7 g -0.17,  0.00
+[ 924.486] locostairs deep 179 up foot 1: h  13.1 b   1.3 t -16.9 cm (g -0.17, -0.17,  0.00) | a 17.19 x 0.24 | v 1.38 along-1.38 yawOff  -2.2 | ph0.08 age0.57 ballProbe 0 strikeLead 0.29 pin 0.014 footZ -0.169
+[ 924.501] locostairs trace 175 up a21.67 v 1.36 ph0.30 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 48.0 b 27.5 t 26.2 g  0.00,  0.17
+[ 924.501] locostairs deep 179 up foot 1: h  14.0 b   1.5 t -16.9 cm (g -0.17, -0.17,  0.00) | a 17.14 x 0.24 | v 1.38 along-1.38 yawOff  -2.2 | ph0.12 age0.60 ballProbe 0 strikeLead 0.29 pin 0.016 footZ -0.169
+[ 929.316] locostairs trace 175 up a21.63 v 1.36 ph0.33 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 38.2 b 38.0 t 21.1 g  0.00,  0.17
+[ 929.329] locostairs trace 175 up a21.58 v 1.36 ph0.37 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 35.6 b 21.5 t 22.6 g  0.00,  0.17
+[ 929.338] locostairs trace 175 up a21.54 v 1.36 ph0.40 mw1.00 | 0 pl1 h 17.5 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 21.7 b 26.7 t 11.6 g  0.17,  0.34
+[ 929.343] locostairs trace 175 up a21.49 v 1.36 ph0.44 mw1.00 | 0 pl1 h 19.7 b  0.1 t  0.0 g -0.17,  0.00 | 1 pl0 h 19.8 b  8.9 t 11.1 g  0.17,  0.34
+[ 929.351] locostairs trace 175 up a21.45 v 1.36 ph0.48 mw1.00 | 0 pl1 h 22.8 b  0.3 t  0.0 g -0.17,  0.00 | 1 pl0 h 18.1 b  7.0 t  9.2 g  0.17,  0.34
+[ 929.365] locostairs trace 175 up a21.40 v 1.36 ph0.51 mw1.00 | 0 pl1 h 26.4 b  0.7 t  0.0 g -0.17,  0.00 | 1 pl0 h 10.2 b -1.5 t  0.4 g  0.17,  0.34
+[ 933.237] locostairs trace 175 up a21.36 v 1.36 ph0.55 mw1.00 | 0 pl1 h 12.5 b  1.2 t  0.0 g  0.00,  0.00 | 1 pl1 h 14.0 b  0.0 t  1.1 g  0.17,  0.34
+[ 933.255] locostairs trace 175 up a21.31 v 1.36 ph0.58 mw1.00 | 0 pl1 h 14.5 b  1.6 t  0.0 g -0.17, -0.17 | 1 pl1 h 16.4 b  0.0 t  0.2 g  0.00,  0.17
+[ 933.266] locostairs trace 175 up a21.27 v 1.36 ph0.62 mw1.00 | 0 pl1 h 15.0 b  1.9 t  0.0 g -0.17, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 933.275] locostairs trace 175 up a21.22 v 1.36 ph0.66 mw1.00 | 0 pl0 h 19.5 b  6.7 t  4.4 g -0.17, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 933.287] locostairs trace 175 up a21.18 v 1.36 ph0.69 mw1.00 | 0 pl0 h 61.0 b 49.3 t 29.5 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 933.315] locostairs trace 175 up a21.13 v 1.36 ph0.73 mw1.00 | 0 pl0 h 58.9 b 32.2 t 29.3 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 936.808] locostairs trace 175 up a21.08 v 1.36 ph0.76 mw1.00 | 0 pl0 h 53.0 b 46.1 t 43.8 g  0.00,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[ 936.818] locostairs trace 175 up a21.04 v 1.36 ph0.80 mw1.00 | 0 pl0 h 49.9 b 29.4 t 28.2 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 936.827] locostairs trace 175 up a20.99 v 1.36 ph0.83 mw1.00 | 0 pl0 h 38.6 b 38.5 t 21.6 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 936.836] locostairs trace 175 up a20.95 v 1.36 ph0.87 mw1.00 | 0 pl0 h 36.1 b 22.2 t 23.2 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[ 936.849] locostairs trace 175 up a20.90 v 1.36 ph0.91 mw1.00 | 0 pl0 h 21.7 b 26.8 t 11.7 g  0.17,  0.34 | 1 pl1 h 17.5 b  0.0 t  0.0 g -0.17,  0.00
+[ 936.875] locostairs trace 175 up a20.86 v 1.36 ph0.94 mw1.00 | 0 pl0 h 19.9 b  9.0 t 11.3 g  0.17,  0.34 | 1 pl1 h 19.7 b  0.1 t  0.0 g -0.17,  0.00
+[ 940.717] locostairs trace 175 up a20.81 v 1.36 ph0.98 mw1.00 | 0 pl0 h 18.1 b  6.9 t  9.1 g  0.17,  0.34 | 1 pl1 h 22.9 b  0.3 t  0.0 g -0.17,  0.00
+[ 940.738] locostairs trace 175 up a20.77 v 1.36 ph0.01 mw1.00 | 0 pl0 h -6.5 b -1.6 t  0.3 g  0.17,  0.17 | 1 pl1 h  9.5 b  0.7 t  0.0 g -0.17, -0.17
+[ 940.756] locostairs trace 175 up a20.72 v 1.36 ph0.05 mw1.00 | 0 pl1 h -2.7 b  0.0 t  1.0 g  0.17,  0.17 | 1 pl1 h 12.5 b  1.2 t  0.0 g -0.17, -0.17
+[ 940.764] locostairs trace 175 up a20.68 v 1.36 ph0.08 mw1.00 | 0 pl1 h -0.5 b  0.0 t  0.2 g  0.17,  0.17 | 1 pl1 h 14.5 b  1.7 t  0.0 g -0.17, -0.17
+[ 940.775] locostairs trace 175 up a20.63 v 1.36 ph0.12 mw1.00 | 0 pl1 h -0.0 b  0.0 t  0.0 g  0.17,  0.17 | 1 pl1 h 15.0 b  1.8 t  0.0 g -0.17, -0.17
+[ 940.782] locostairs trace 175 up a20.58 v 1.36 ph0.16 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.17,  0.17 | 1 pl0 h 21.0 b  8.2 t  5.9 g -0.17, -0.17
+[ 945.048] locostairs trace 175 up a20.54 v 1.36 ph0.19 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.17,  0.17 | 1 pl0 h 61.2 b 49.4 t 29.7 g -0.17,  0.00
+[ 945.075] locostairs trace 175 up a20.49 v 1.36 ph0.23 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.17,  0.17 | 1 pl0 h 58.8 b 32.2 t 29.4 g -0.17,  0.00
+[ 945.099] locostairs trace 175 up a20.45 v 1.36 ph0.26 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 56.7 b 49.8 t 30.6 g -0.17,  0.00
+[ 945.103] locostairs trace 175 up a20.40 v 1.36 ph0.30 mw1.00 | 0 pl1 h -0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 53.6 b 33.3 t 32.0 g -0.17,  0.00
+[ 945.114] locostairs trace 175 up a20.36 v 1.36 ph0.34 mw1.00 | 0 pl1 h -0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 40.0 b 23.1 t 23.2 g  0.00,  0.17
+[ 945.120] locostairs trace 175 up a20.31 v 1.36 ph0.37 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 20.5 b 23.5 t 24.6 g  0.17,  0.17
+[ 948.979] locostairs trace 175 up a20.27 v 1.36 ph0.41 mw1.00 | 0 pl1 h  0.7 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 21.6 b  9.7 t 11.6 g  0.17,  0.34
+[ 949.005] locostairs trace 175 up a20.22 v 1.36 ph0.44 mw1.00 | 0 pl1 h  2.9 b  0.1 t  0.0 g  0.00,  0.00 | 1 pl0 h 19.8 b  8.8 t 11.1 g  0.17,  0.34
+[ 949.011] locostairs trace 175 up a20.18 v 1.36 ph0.48 mw1.00 | 0 pl1 h  6.1 b  0.3 t  0.0 g -0.17, -0.17 | 1 pl0 h  1.1 b  6.9 t  9.0 g  0.17,  0.17
+[ 949.016] locostairs trace 175 up a20.13 v 1.36 ph0.51 mw1.00 | 0 pl1 h  9.7 b  0.7 t  0.0 g -0.17, -0.17 | 1 pl0 h -5.5 b -0.4 t  1.5 g  0.17,  0.17
+[ 949.029] locostairs trace 175 up a20.09 v 1.36 ph0.55 mw1.00 | 0 pl1 h 12.6 b  1.2 t  0.0 g -0.17, -0.17 | 1 pl1 h  0.0 b  2.7 t  3.7 g  0.17,  0.17
+[ 949.039] locostairs trace 175 up a20.04 v 1.36 ph0.59 mw1.00 | 0 pl1 h 14.5 b  1.7 t  0.0 g -0.17, -0.17 | 1 pl1 h  0.0 b  0.5 t  0.7 g  0.17,  0.17
+[ 952.711] locostairs trace 175 up a19.99 v 1.36 ph0.62 mw1.00 | 0 pl1 h 15.0 b  1.9 t  0.0 g -0.17, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.17,  0.17
+[ 952.723] locostairs trace 175 up a19.95 v 1.36 ph0.66 mw1.00 | 0 pl0 h 19.6 b  6.9 t  4.5 g -0.17, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.17,  0.17
+[ 952.732] locostairs trace 175 up a19.90 v 1.36 ph0.69 mw1.00 | 0 pl0 h 53.6 b 41.9 t 22.1 g -0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.17,  0.17
+[ 952.738] locostairs trace 175 up a19.86 v 1.36 ph0.73 mw1.00 | 0 pl0 h 51.4 b 24.9 t 22.0 g -0.34, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 952.745] locostairs trace 175 up a19.81 v 1.36 ph0.76 mw1.00 | 0 pl0 h 42.9 b 19.3 t 17.0 g -0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 952.755] locostairs trace 175 up a19.77 v 1.36 ph0.80 mw1.00 | 0 pl0 h 22.9 b 19.6 t 18.4 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 956.116] locostairs trace 175 up a19.72 v 1.36 ph0.84 mw1.00 | 0 pl0 h 24.0 b  7.2 t  7.2 g  0.00,  0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 956.138] locostairs trace 175 up a19.68 v 1.36 ph0.87 mw1.00 | 0 pl0 h  4.6 b  7.7 t  8.8 g  0.17,  0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 956.147] locostairs trace 175 up a19.63 v 1.36 ph0.91 mw1.00 | 0 pl0 h  4.0 b  9.2 t 11.1 g  0.17,  0.17 | 1 pl1 h  0.7 b  0.0 t  0.0 g  0.00,  0.00
+[ 956.157] locostairs trace 175 up a19.59 v 1.36 ph0.94 mw1.00 | 0 pl0 h  2.1 b  8.2 t 10.4 g  0.00,  0.00 | 1 pl1 h  2.9 b  0.1 t  0.0 g -0.17, -0.17
+[ 956.168] locostairs trace 175 up a19.54 v 1.36 ph0.98 mw1.00 | 0 pl0 h  0.8 b  6.5 t  8.7 g  0.00,  0.00 | 1 pl1 h  6.2 b  0.3 t  0.0 g -0.17, -0.17
+[ 956.193] locostairs trace 175 up a19.50 v 1.36 ph0.02 mw1.00 | 0 pl0 h -2.0 b  2.8 t  4.6 g  0.00,  0.00 | 1 pl1 h  9.7 b  0.7 t  0.0 g -0.17, -0.17
+[ 959.529] locostairs deep 175 up foot 1: h  12.7 b   1.3 t -16.9 cm (g -0.17, -0.17,  0.00) | a 19.45 x-0.15 | v 1.36 along-1.36 yawOff  -0.8 | ph0.05 age0.50 ballProbe 0 strikeLead 0.26 pin 0.013 footZ -0.169
+[ 959.529] locostairs trace 175 up a19.45 v 1.36 ph0.05 mw1.00 | 0 pl1 h -1.2 b  1.4 t  2.4 g  0.00,  0.00 | 1 pl1 h 12.7 b  1.3 t-16.9 g -0.17,  0.00
+[ 959.550] locostairs deep 175 up foot 1: h  14.6 b   1.7 t -16.9 cm (g -0.17, -0.17,  0.00) | a 19.40 x-0.16 | v 1.36 along-1.36 yawOff  -0.8 | ph0.09 age0.53 ballProbe 0 strikeLead 0.26 pin 0.017 footZ -0.169
+[ 959.550] locostairs trace 175 up a19.40 v 1.36 ph0.09 mw1.00 | 0 pl1 h -0.7 b -0.3 t -0.2 g  0.00,  0.00 | 1 pl1 h 14.6 b  1.7 t-16.9 g -0.17,  0.00
+[ 959.559] locostairs deep 175 up foot 1: h  15.0 b   1.8 t -16.9 cm (g -0.17, -0.17,  0.00) | a 19.36 x-0.16 | v 1.36 along-1.36 yawOff  -0.8 | ph0.12 age0.57 ballProbe 0 strikeLead 0.26 pin 0.010 footZ -0.169
+[ 959.559] locostairs trace 175 up a19.36 v 1.36 ph0.12 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl1 h 15.0 b  1.8 t-16.9 g -0.17,  0.00
+[ 959.568] locostairs trace 175 up a19.31 v 1.36 ph0.16 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 21.0 b  8.3 t-11.0 g -0.17,  0.00
+[ 982.411] locostairs trace 175 up a18.00 v 1.36 ph0.20 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 42.4 b 30.9 t 28.0 g  0.00,  0.00
+[ 982.415] locostairs trace 175 up a17.95 v 1.36 ph0.23 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 40.0 b 30.6 t 27.8 g  0.00,  0.00
+[ 982.426] locostairs trace 175 up a17.91 v 1.36 ph0.27 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 44.7 b 38.3 t 36.1 g  0.00,  0.00
+[ 982.439] locostairs trace 175 up a17.86 v 1.36 ph0.30 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 41.7 b 38.7 t 37.6 g  0.00,  0.00
+[ 986.013] locostairs trace 175 up a17.81 v 1.36 ph0.34 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 41.4 b 24.9 t 25.1 g  0.00,  0.17
+[ 986.039] locostairs trace 175 up a17.77 v 1.36 ph0.38 mw1.00 | 0 pl1 h  0.1 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 22.0 b 25.3 t 26.5 g  0.17,  0.17
+[ 986.058] locostairs trace 175 up a17.72 v 1.36 ph0.41 mw1.00 | 0 pl1 h  0.9 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 21.4 b  9.7 t 11.6 g  0.17,  0.34
+[ 986.075] locostairs trace 175 up a17.68 v 1.36 ph0.45 mw1.00 | 0 pl1 h  3.2 b  0.1 t  0.0 g -0.17, -0.17 | 1 pl0 h 19.6 b  8.7 t 10.9 g  0.00,  0.17
+[ 986.092] locostairs trace 175 up a17.63 v 1.36 ph0.48 mw1.00 | 0 pl1 h  6.5 b  0.3 t  0.0 g -0.17, -0.17 | 1 pl0 h  1.0 b  6.7 t  8.8 g  0.17,  0.17
+[ 986.103] locostairs trace 175 up a17.59 v 1.36 ph0.52 mw1.00 | 0 pl1 h 10.0 b  0.8 t  0.0 g -0.17, -0.17 | 1 pl1 h  0.0 b  4.9 t  6.7 g  0.17,  0.17
+[ 990.261] locostairs trace 175 up a17.54 v 1.36 ph0.55 mw1.00 | 0 pl1 h 12.9 b  1.3 t  0.0 g -0.17, -0.17 | 1 pl1 h  0.0 b  2.4 t  3.3 g  0.17,  0.17
+[ 990.269] locostairs trace 175 up a17.50 v 1.36 ph0.59 mw1.00 | 0 pl1 h 14.6 b  1.7 t  0.0 g -0.17, -0.17 | 1 pl1 h  0.0 b  0.4 t  0.5 g  0.17,  0.17
+[ 990.278] locostairs trace 175 up a17.45 v 1.36 ph0.63 mw1.00 | 0 pl0 h 16.3 b  3.2 t  1.3 g -0.17, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.17,  0.17
+[ 990.282] locostairs trace 175 up a17.41 v 1.36 ph0.66 mw1.00 | 0 pl0 h 72.2 b 59.6 t 40.2 g -0.34, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 990.303] locostairs trace 175 up a17.36 v 1.36 ph0.70 mw1.00 | 0 pl0 h 74.9 b 46.5 t 43.5 g -0.34, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 990.327] locostairs trace 175 up a17.32 v 1.36 ph0.73 mw1.00 | 0 pl0 h 70.5 b 61.1 t 41.4 g -0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 993.325] locostairs trace 175 up a17.27 v 1.36 ph0.77 mw1.00 | 0 pl0 h 50.5 b 44.1 t 41.9 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 993.334] locostairs trace 175 up a17.22 v 1.36 ph0.80 mw1.00 | 0 pl0 h 53.5 b 33.6 t 32.6 g  0.00,  0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 993.340] locostairs trace 175 up a17.18 v 1.36 ph0.84 mw1.00 | 0 pl0 h 33.8 b 34.2 t 17.5 g  0.17,  0.34 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[ 993.344] locostairs trace 175 up a17.13 v 1.36 ph0.88 mw1.00 | 0 pl0 h 37.3 b 23.7 t 25.0 g  0.00,  0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g -0.17, -0.17
+[ 993.357] locostairs trace 175 up a17.09 v 1.36 ph0.91 mw1.00 | 0 pl0 h 21.4 b 26.7 t 11.8 g  0.17,  0.34 | 1 pl1 h  0.8 b  0.0 t  0.0 g -0.17, -0.17
+[ 993.364] locostairs trace 175 up a17.04 v 1.36 ph0.95 mw1.00 | 0 pl0 h 19.5 b  8.7 t 10.9 g  0.17,  0.34 | 1 pl1 h  3.3 b  0.1 t  0.0 g -0.17, -0.17
+[ 996.555] locostairs trace 175 up a17.00 v 1.36 ph0.98 mw1.00 | 0 pl0 h 17.7 b  6.5 t  8.6 g  0.17,  0.34 | 1 pl1 h  6.6 b  0.3 t  0.0 g -0.17, -0.17
+[ 996.582] locostairs trace 175 up a16.95 v 1.36 ph0.02 mw1.00 | 0 pl0 h  8.1 b -4.1 t -2.4 g  0.17,  0.34 | 1 pl1 h 10.1 b  0.8 t  0.0 g -0.17, -0.17
+[ 996.589] locostairs trace 175 up a16.91 v 1.36 ph0.05 mw1.00 | 0 pl1 h 14.6 b  0.0 t  0.8 g  0.17,  0.34 | 1 pl1 h 13.0 b  1.3 t  0.0 g -0.17, -0.17
+[ 996.595] locostairs deep 175 up foot 1: h  14.7 b   1.7 t -16.9 cm (g -0.17, -0.17,  0.00) | a 16.86 x-0.19 | v 1.36 along-1.36 yawOff  -0.8 | ph0.09 age0.57 ballProbe 0 strikeLead 0.27 pin 0.018 footZ -0.169
+[ 996.595] locostairs trace 175 up a16.86 v 1.36 ph0.09 mw1.00 | 0 pl1 h 16.7 b  0.0 t  0.1 g  0.17,  0.34 | 1 pl1 h 14.7 b  1.7 t-16.9 g -0.17,  0.00
+[ 996.608] locostairs deep 175 up foot 1: h  15.0 b   1.9 t -16.9 cm (g -0.34, -0.34, -0.17) | a 16.82 x-0.19 | v 1.36 along-1.36 yawOff  -0.8 | ph0.13 age0.60 ballProbe 0 strikeLead 0.27 pin 0.005 footZ -0.338
+[ 996.608] locostairs trace 175 up a16.82 v 1.36 ph0.13 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl1 h 15.0 b  1.9 t-16.9 g -0.34, -0.17
+[ 996.623] locostairs trace 175 up a16.77 v 1.36 ph0.16 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 20.8 b  8.2 t  5.7 g -0.34, -0.34
+[ 999.500] locostairs trace 175 up a16.73 v 1.36 ph0.20 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 74.6 b 46.2 t 43.4 g -0.34, -0.17
+[ 999.518] locostairs trace 175 up a16.68 v 1.36 ph0.23 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 55.3 b 46.0 t 26.3 g -0.17,  0.00
+[ 999.538] locostairs trace 175 up a16.63 v 1.36 ph0.27 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 50.4 b 44.1 t 42.0 g  0.00,  0.00
+[ 999.542] locostairs trace 175 up a16.59 v 1.36 ph0.31 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 47.4 b 27.7 t 26.6 g  0.00,  0.17
+[ 999.556] locostairs trace 175 up a16.54 v 1.36 ph0.34 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 37.5 b 38.0 t 21.3 g  0.00,  0.17
+[ 999.556] locostairs deep 177 up foot 0: h  14.7 b   1.6 t -16.9 cm (g -0.34, -0.34, -0.17) | a 17.07 x 0.26 | v 1.27 along-1.27 yawOff  -2.2 | ph0.62 age0.70 ballProbe 0 strikeLead 0.26 pin 0.014 footZ -0.338
+[ 999.580] locostairs trace 175 up a16.50 v 1.36 ph0.38 mw1.00 | 0 pl1 h 17.0 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 36.3 b 22.8 t 24.1 g  0.00,  0.17
+[ 999.580] locostairs t 40: walkers (along / across the stair from its top, m): ^16.5/-0.2 v14.4/0.6 ^17.0/0.3 v14.3/-0.7 ^12.3/-0.0 v6.6/-0.5 ^13.5/-0.2 v6.2/-0.1 | trips 8
+[1003.047] locostairs trace 175 up a16.45 v 1.36 ph0.41 mw1.00 | 0 pl1 h 17.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 21.3 b 26.6 t 11.6 g  0.17,  0.34
+[1003.059] locostairs trace 175 up a16.41 v 1.36 ph0.45 mw1.00 | 0 pl1 h 20.3 b  0.1 t  0.0 g -0.17,  0.00 | 1 pl0 h 19.5 b  8.6 t 10.9 g  0.17,  0.34
+[1003.069] locostairs trace 175 up a16.36 v 1.36 ph0.48 mw1.00 | 0 pl1 h 23.6 b  0.3 t  0.0 g -0.17,  0.00 | 1 pl0 h 17.8 b  6.6 t  8.7 g  0.17,  0.34
+[1003.078] locostairs trace 175 up a16.32 v 1.36 ph0.52 mw1.00 | 0 pl1 h 27.1 b  0.8 t  0.0 g -0.17,  0.00 | 1 pl0 h 10.2 b -2.0 t -0.2 g  0.17,  0.34
+[1003.087] locostairs trace 175 up a16.27 v 1.36 ph0.56 mw1.00 | 0 pl1 h 13.0 b  1.3 t  0.0 g  0.00,  0.00 | 1 pl1 h 14.6 b  0.0 t  0.8 g  0.17,  0.34
+[1003.096] locostairs trace 175 up a16.23 v 1.36 ph0.59 mw1.00 | 0 pl1 h 14.7 b  1.7 t  0.0 g -0.17, -0.17 | 1 pl1 h 16.6 b  0.0 t  0.1 g  0.00,  0.17
+[1006.268] locostairs trace 175 up a16.18 v 1.36 ph0.63 mw1.00 | 0 pl0 h 16.6 b  3.5 t  1.5 g -0.17, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[1006.285] locostairs trace 175 up a16.13 v 1.36 ph0.66 mw1.00 | 0 pl0 h 61.4 b 48.8 t 46.3 g -0.17, -0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[1006.300] locostairs trace 175 up a16.09 v 1.36 ph0.70 mw1.00 | 0 pl0 h 60.9 b 49.5 t 29.6 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[1006.305] locostairs trace 175 up a16.04 v 1.36 ph0.73 mw1.00 | 0 pl0 h 72.3 b 46.2 t 43.4 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[1006.319] locostairs trace 175 up a16.00 v 1.36 ph0.77 mw1.00 | 0 pl0 h 52.3 b 46.1 t 27.1 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17
+[1006.331] locostairs trace 175 up a15.95 v 1.36 ph0.81 mw1.00 | 0 pl0 h 57.8 b 38.1 t 37.1 g -0.17,  0.00 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[1009.459] locostairs trace 175 up a15.91 v 1.36 ph0.84 mw1.00 | 0 pl0 h 38.1 b 21.8 t 22.1 g  0.00,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[1009.480] locostairs trace 175 up a15.86 v 1.36 ph0.88 mw1.00 | 0 pl0 h 21.8 b 25.3 t 26.6 g  0.17,  0.17 | 1 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00
+[1009.492] locostairs trace 175 up a15.82 v 1.36 ph0.91 mw1.00 | 0 pl0 h 21.3 b  9.8 t 11.8 g  0.17,  0.34 | 1 pl1 h 17.9 b  0.0 t  0.0 g -0.17,  0.00
+[1009.503] locostairs trace 175 up a15.77 v 1.36 ph0.95 mw1.00 | 0 pl0 h 19.4 b  8.5 t 10.8 g  0.17,  0.34 | 1 pl1 h 20.4 b  0.1 t  0.0 g -0.17,  0.00
+[1009.515] locostairs trace 175 up a15.73 v 1.36 ph0.99 mw1.00 | 0 pl0 h 17.6 b  6.4 t  8.5 g  0.17,  0.34 | 1 pl1 h 23.7 b  0.4 t  0.0 g -0.17,  0.00
+[1009.531] locostairs trace 175 up a15.68 v 1.36 ph0.02 mw1.00 | 0 pl0 h -8.9 b -4.3 t -2.6 g  0.17,  0.17 | 1 pl1 h 27.2 b  0.8 t  0.0 g -0.34, -0.17
+[1012.769] locostairs trace 175 up a15.64 v 1.36 ph0.06 mw1.00 | 0 pl1 h -2.1 b  0.0 t  0.8 g  0.17,  0.17 | 1 pl1 h 13.1 b  1.3 t  0.0 g -0.17, -0.17
+[1012.769] locostairs trace 176 dn a15.20 v 1.30 ph0.52 mw1.00 | 0 pl1 h  7.9 b  0.3 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  3.9 t 22.2 g -0.17, -0.34
+[1012.774] locostairs trace 175 up a15.59 v 1.36 ph0.09 mw1.00 | 0 pl1 h 16.8 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl1 h 14.8 b  1.7 t  0.0 g -0.17, -0.17
+[1012.774] locostairs trace 176 dn a15.25 v 1.30 ph0.56 mw1.00 | 0 pl1 h 10.1 b  0.5 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  2.0 t 19.7 g -0.17, -0.34
+[1012.783] locostairs trace 175 up a15.56 v 1.36 ph0.13 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl1 h 15.0 b  1.9 t  0.0 g -0.17, -0.17
+[1012.784] locostairs trace 176 dn a15.29 v 1.30 ph0.59 mw1.00 | 0 pl1 h 11.7 b  0.7 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.4 t 17.5 g -0.17, -0.34
+[1012.788] locostairs trace 175 up a15.52 v 1.36 ph0.16 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 20.7 b  8.1 t  5.6 g -0.17, -0.17
+[1012.788] locostairs trace 176 dn a15.33 v 1.30 ph0.62 mw1.00 | 0 pl1 h 12.4 b  0.8 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.1 t 17.0 g -0.17, -0.34
+[1012.798] locostairs trace 175 up a15.48 v 1.36 ph0.20 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 60.5 b 49.1 t 29.3 g -0.17,  0.00
+[1012.798] locostairs trace 176 dn a15.38 v 1.30 ph0.65 mw1.00 | 0 pl0 h 15.4 b  4.1 t 20.0 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.1 t 17.0 g -0.17, -0.34
+[1012.806] locostairs trace 175 up a15.44 v 1.36 ph0.24 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g  0.00,  0.17 | 1 pl0 h 58.1 b 32.1 t 29.3 g -0.17,  0.00
+[1012.806] locostairs trace 176 dn a15.42 v 1.30 ph0.68 mw1.00 | 0 pl0 h 18.5 b  7.7 t 23.0 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.1 t 17.0 g  0.00, -0.17
+[1015.963] locostairs trace 175 up a15.39 v 1.36 ph0.27 mw1.00 | 0 pl1 h -0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 56.0 b 49.9 t 30.9 g -0.17,  0.00
+[1015.963] locostairs trace 176 dn a15.46 v 1.30 ph0.71 mw1.00 | 0 pl0 h  6.2 b 13.7 t 11.6 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.1 t 17.0 g  0.00, -0.17
+[1015.976] locostairs trace 175 up a15.35 v 1.36 ph0.31 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 52.9 b 33.4 t 32.4 g -0.17,  0.00
+[1015.976] locostairs trace 176 dn a15.49 v 1.30 ph0.75 mw1.00 | 0 pl0 h  4.2 b 13.7 t 11.6 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.0 t 17.0 g  0.00, -0.17
+[1015.986] locostairs trace 175 up a15.30 v 1.36 ph0.34 mw1.00 | 0 pl1 h 16.9 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 39.3 b 23.1 t 23.3 g  0.00,  0.17
+[1015.987] locostairs trace 176 dn a15.51 v 1.30 ph0.78 mw1.00 | 0 pl0 h 26.1 b 21.1 t 36.4 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 17.0 g  0.00, -0.17
+[1015.990] locostairs trace 175 up a15.26 v 1.36 ph0.38 mw1.00 | 0 pl1 h 17.0 b  0.0 t  0.0 g -0.17,  0.00 | 1 pl0 h 19.9 b 23.5 t 24.8 g  0.17,  0.17
+[1015.990] locostairs trace 176 dn a15.54 v 1.30 ph0.81 mw1.00 | 0 pl0 h 23.7 b 38.4 t 37.6 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[1016.000] locostairs trace 176 dn a15.57 v 1.30 ph0.84 mw1.00 | 0 pl0 h 29.7 b 47.1 t 47.2 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[1016.000] locostairs deep 177 up foot 0: h  11.6 b   0.9 t -16.9 cm (g -0.17, -0.17,  0.00) | a 15.86 x 0.14 | v 1.27 along-1.27 yawOff  -2.0 | ph0.54 age0.60 ballProbe 0 strikeLead 0.26 pin 0.011 footZ -0.169
+[1016.010] locostairs trace 176 dn a15.61 v 1.30 ph0.87 mw1.00 | 0 pl0 h 27.7 b 47.3 t 48.3 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[1016.010] locostairs deep 177 up foot 0: h  13.6 b   1.3 t -16.9 cm (g -0.17, -0.17,  0.00) | a 15.82 x 0.12 | v 1.27 along-1.27 yawOff  -2.0 | ph0.58 age0.63 ballProbe 0 strikeLead 0.26 pin 0.014 footZ -0.169
+[1019.501] locostairs trace 176 dn a15.65 v 1.30 ph0.90 mw1.00 | 0 pl0 h 28.8 b 33.1 t 51.7 g -0.17, -0.34 | 1 pl1 h  0.3 b  0.0 t 16.9 g  0.00, -0.17
+[1019.501] locostairs deep 177 up foot 0: h  14.5 b   1.5 t -16.9 cm (g -0.17, -0.17,  0.00) | a 15.79 x 0.11 | v 1.27 along-1.27 yawOff  -1.9 | ph0.61 age0.67 ballProbe 0 strikeLead 0.26 pin 0.017 footZ -0.169
+[1019.515] locostairs trace 176 dn a15.69 v 1.30 ph0.94 mw1.00 | 0 pl0 h 27.2 b 49.3 t 51.3 g  0.00, -0.17 | 1 pl1 h  1.4 b  0.0 t 16.9 g  0.17,  0.00
+[1019.527] locostairs trace 176 dn a15.74 v 1.30 ph0.97 mw1.00 | 0 pl0 h 26.8 b 32.0 t 33.9 g -0.17, -0.17 | 1 pl1 h  3.4 b  0.1 t 16.9 g  0.17,  0.00
+[1019.532] locostairs trace 176 dn a15.78 v 1.30 ph1.00 mw1.00 | 0 pl1 h  0.0 b  4.7 t  6.4 g -0.17, -0.17 | 1 pl1 h  5.8 b  0.2 t 16.9 g  0.17,  0.00
+[1019.544] locostairs trace 176 dn a15.82 v 1.30 ph0.03 mw1.00 | 0 pl1 h  0.0 b  3.6 t  5.0 g -0.17, -0.17 | 1 pl1 h  8.3 b  0.3 t 16.9 g  0.17,  0.00
+[1019.557] locostairs trace 176 dn a15.87 v 1.30 ph0.06 mw1.00 | 0 pl1 h  0.0 b  1.6 t  2.2 g -0.17, -0.17 | 1 pl1 h 10.5 b  0.6 t 16.9 g  0.17,  0.00
+[1023.740] locostairs trace 176 dn a15.91 v 1.30 ph0.09 mw1.00 | 0 pl1 h  0.0 b  0.2 t  0.3 g -0.17, -0.17 | 1 pl1 h 11.9 b  0.7 t 16.9 g  0.17,  0.00
+[1023.763] locostairs trace 176 dn a15.95 v 1.30 ph0.13 mw1.00 | 0 pl1 h  0.0 b  0.1 t  0.1 g -0.17, -0.17 | 1 pl1 h 12.5 b  0.8 t 16.9 g  0.17,  0.00
+[1023.769] locostairs trace 176 dn a16.00 v 1.30 ph0.16 mw1.00 | 0 pl1 h  0.0 b  0.1 t  0.1 g  0.00,  0.00 | 1 pl0 h 16.1 b  4.8 t 20.6 g  0.34,  0.17
+[1023.781] locostairs trace 176 dn a16.04 v 1.30 ph0.19 mw1.00 | 0 pl1 h  0.0 b  0.1 t  0.1 g  0.00,  0.00 | 1 pl0 h 18.2 b 24.6 t 22.9 g  0.34,  0.17
+[1023.794] locostairs trace 176 dn a16.08 v 1.30 ph0.22 mw1.00 | 0 pl1 h  0.0 b  0.1 t  0.1 g  0.00,  0.00 | 1 pl0 h 22.7 b 13.6 t 11.5 g  0.17,  0.17
+[1023.802] locostairs trace 176 dn a16.13 v 1.30 ph0.25 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.1 g  0.00,  0.00 | 1 pl0 h 20.7 b 30.6 t 28.5 g  0.17,  0.00
+[1028.121] locostairs trace 176 dn a16.17 v 1.30 ph0.28 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.1 g  0.00,  0.00 | 1 pl0 h 31.4 b 27.0 t 42.4 g  0.00, -0.17
+[1028.130] locostairs trace 176 dn a16.21 v 1.30 ph0.32 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 29.1 b 44.3 t 43.7 g  0.00, -0.17
+[1028.149] locostairs trace 176 dn a16.26 v 1.30 ph0.35 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 31.4 b 49.2 t 49.5 g -0.17, -0.34
+[1028.153] locostairs trace 176 dn a16.30 v 1.30 ph0.38 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.17,  0.17 | 1 pl0 h 46.3 b 49.4 t 50.5 g -0.17, -0.17
+[1028.167] locostairs trace 176 dn a16.34 v 1.30 ph0.41 mw1.00 | 0 pl1 h  0.4 b  0.0 t  0.0 g  0.17,  0.17 | 1 pl0 h 18.1 b 39.6 t 41.4 g -0.17, -0.34
+[1028.194] locostairs trace 176 dn a16.39 v 1.30 ph0.44 mw1.00 | 0 pl1 h  1.7 b  0.0 t  0.0 g  0.17,  0.17 | 1 pl0 h 16.6 b 38.8 t 40.8 g -0.17, -0.34
+[1032.115] locostairs trace 176 dn a16.43 v 1.30 ph0.47 mw1.00 | 0 pl1 h  3.8 b  0.1 t  0.0 g  0.17,  0.17 | 1 pl0 h 23.0 b 28.1 t 30.0 g -0.34, -0.34
+[1032.136] locostairs trace 176 dn a16.47 v 1.30 ph0.50 mw1.00 | 0 pl1 h  6.3 b  0.2 t  0.0 g  0.17,  0.17 | 1 pl1 h  0.0 b  4.5 t 23.1 g -0.34, -0.51
+[1032.148] locostairs trace 176 dn a16.52 v 1.30 ph0.54 mw1.00 | 0 pl1 h  8.7 b  0.4 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  3.3 t 21.4 g -0.34, -0.51
+[1032.159] locostairs trace 176 dn a16.56 v 1.30 ph0.57 mw1.00 | 0 pl1 h 10.8 b  0.6 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  1.3 t 18.7 g -0.34, -0.51
+[1032.170] locostairs trace 176 dn a16.60 v 1.30 ph0.60 mw1.00 | 0 pl1 h 12.1 b  0.7 t 16.9 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.2 t 17.1 g -0.17, -0.34
+[1032.179] locostairs trace 176 dn a16.65 v 1.30 ph0.63 mw1.00 | 0 pl1 h 12.5 b  0.8 t 16.9 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.1 t 17.0 g -0.17, -0.34
+[1036.358] locostairs trace 176 dn a16.69 v 1.30 ph0.66 mw1.00 | 0 pl0 h 16.4 b  5.2 t 20.9 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.1 t 17.0 g -0.17, -0.34
+[1036.375] locostairs trace 176 dn a16.73 v 1.30 ph0.69 mw1.00 | 0 pl0 h 17.9 b 24.5 t 22.7 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.1 t 17.0 g -0.17, -0.34
+[1036.395] locostairs trace 176 dn a16.78 v 1.30 ph0.73 mw1.00 | 0 pl0 h 22.3 b 13.5 t 28.3 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.1 t 17.0 g -0.17, -0.34
+[1036.399] locostairs trace 176 dn a16.82 v 1.30 ph0.76 mw1.00 | 0 pl0 h 20.2 b 30.6 t 28.6 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 17.0 g -0.17, -0.34
+[1036.413] locostairs trace 176 dn a16.86 v 1.30 ph0.79 mw1.00 | 0 pl0 h 31.0 b 44.0 t 42.6 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 17.0 g  0.00, -0.17
+[1036.426] locostairs trace 176 dn a16.91 v 1.30 ph0.82 mw1.00 | 0 pl0 h 45.6 b 44.4 t 44.0 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[1039.663] locostairs trace 176 dn a16.95 v 1.30 ph0.85 mw1.00 | 0 pl0 h 19.9 b 38.2 t 38.7 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[1039.684] locostairs trace 176 dn a16.99 v 1.30 ph0.88 mw1.00 | 0 pl0 h 34.9 b 38.4 t 56.6 g -0.17, -0.34 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17
+[1039.697] locostairs trace 176 dn a17.04 v 1.30 ph0.92 mw1.00 | 0 pl0 h 14.0 b 35.8 t 37.5 g -0.17, -0.34 | 1 pl1 h  0.5 b  0.0 t 16.9 g  0.00, -0.17
+[1039.717] locostairs trace 176 dn a17.08 v 1.30 ph0.95 mw1.00 | 0 pl0 h 12.4 b 34.7 t 36.7 g -0.17, -0.34 | 1 pl1 h  2.1 b  0.0 t 16.9 g  0.00, -0.17
+[1039.726] locostairs trace 176 dn a17.12 v 1.30 ph0.98 mw1.00 | 0 pl0 h 21.3 b 26.4 t 28.2 g -0.34, -0.34 | 1 pl1 h  4.3 b  0.1 t 16.9 g  0.00, -0.17
+[1039.739] locostairs trace 176 dn a17.17 v 1.30 ph0.01 mw1.00 | 0 pl1 h  0.0 b  4.3 t 22.8 g -0.17, -0.34 | 1 pl1 h  6.8 b  0.2 t 16.9 g  0.17,  0.00
+[1042.949] locostairs trace 176 dn a17.21 v 1.30 ph0.04 mw1.00 | 0 pl1 h  0.0 b  2.9 t 20.9 g -0.17, -0.34 | 1 pl1 h  9.2 b  0.4 t 16.9 g  0.17,  0.00
+[1042.963] locostairs trace 176 dn a17.25 v 1.30 ph0.07 mw1.00 | 0 pl1 h  0.0 b  1.0 t 18.3 g -0.17, -0.34 | 1 pl1 h 11.1 b  0.6 t 16.9 g  0.17,  0.00
+[1042.976] locostairs trace 176 dn a17.30 v 1.30 ph0.11 mw1.00 | 0 pl1 h  0.0 b  0.2 t 17.1 g -0.17, -0.34 | 1 pl1 h 12.2 b  0.8 t 16.9 g  0.17,  0.00
+[1042.980] locostairs trace 176 dn a17.34 v 1.30 ph0.14 mw1.00 | 0 pl1 h  0.0 b  0.1 t 17.0 g -0.17, -0.34 | 1 pl0 h 13.5 b  2.0 t 18.0 g  0.17,  0.00
+[1042.995] locostairs trace 176 dn a17.38 v 1.30 ph0.17 mw1.00 | 0 pl1 h  0.0 b  0.1 t 17.0 g -0.17, -0.34 | 1 pl0 h 17.1 b  6.0 t 21.6 g  0.17,  0.00
+[1043.002] locostairs trace 176 dn a17.43 v 1.30 ph0.20 mw1.00 | 0 pl1 h  0.0 b  0.1 t 17.0 g -0.17, -0.34 | 1 pl0 h  6.7 b 13.5 t 11.7 g  0.17,  0.00
+[1046.135] locostairs trace 176 dn a17.47 v 1.30 ph0.23 mw1.00 | 0 pl1 h  0.0 b  0.1 t 17.0 g  0.00, -0.17 | 1 pl0 h  5.1 b 13.6 t 11.5 g  0.34,  0.17
+[1046.150] locostairs trace 176 dn a17.51 v 1.30 ph0.26 mw1.00 | 0 pl1 h  0.0 b  0.0 t 17.0 g  0.00, -0.17 | 1 pl0 h 16.1 b 26.9 t 25.0 g  0.17,  0.00
+[1046.156] locostairs trace 176 dn a17.56 v 1.30 ph0.30 mw1.00 | 0 pl1 h  0.0 b  0.0 t 17.0 g  0.00, -0.17 | 1 pl0 h 13.7 b 27.2 t 26.0 g  0.17,  0.00
+[1046.161] locostairs trace 176 dn a17.60 v 1.30 ph0.33 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 15.9 b 32.2 t 31.9 g  0.00, -0.17
+[1046.171] locostairs trace 176 dn a17.64 v 1.30 ph0.36 mw1.00 | 0 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 30.6 b 32.4 t 33.1 g -0.17, -0.17
+[1046.178] locostairs trace 176 dn a17.69 v 1.30 ph0.39 mw1.00 | 0 pl1 h  0.1 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 13.3 b 17.1 t 18.5 g -0.17, -0.17
+[1049.228] locostairs trace 176 dn a17.73 v 1.30 ph0.42 mw1.00 | 0 pl1 h  0.8 b  0.0 t 16.9 g  0.17,  0.00 | 1 pl0 h 11.6 b 16.6 t 18.5 g  0.00,  0.00
+[1049.250] locostairs trace 176 dn a17.77 v 1.30 ph0.45 mw1.00 | 0 pl1 h  2.5 b  0.0 t 16.9 g  0.17,  0.00 | 1 pl0 h  4.9 b 10.2 t 12.1 g  0.00,  0.00
+[1049.260] locostairs trace 176 dn a17.82 v 1.30 ph0.49 mw1.00 | 0 pl1 h  4.8 b  0.1 t 16.9 g  0.17,  0.00 | 1 pl0 h  3.4 b  8.4 t 10.2 g  0.00,  0.00
+[1049.264] locostairs trace 176 dn a17.86 v 1.30 ph0.52 mw1.00 | 0 pl1 h  7.3 b  0.3 t 16.9 g  0.17,  0.00 | 1 pl1 h  1.7 b  5.9 t  7.4 g  0.00,  0.00
+[1049.281] locostairs trace 176 dn a17.90 v 1.30 ph0.55 mw1.00 | 0 pl1 h  9.6 b  0.5 t 16.9 g  0.17,  0.00 | 1 pl1 h  1.1 b  3.6 t  4.5 g  0.00,  0.00
+[1049.301] locostairs trace 176 dn a17.95 v 1.30 ph0.58 mw1.00 | 0 pl1 h 11.4 b  0.7 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.8 t  1.0 g  0.00,  0.00
+[1052.629] locostairs trace 176 dn a17.99 v 1.30 ph0.61 mw1.00 | 0 pl1 h 12.3 b  0.8 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.1 t  0.2 g  0.00,  0.00
+[1069.692] locostairs trace 176 dn a19.33 v 1.30 ph0.59 mw1.00 | 0 pl1 h 11.9 b  0.7 t  0.0 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.2 t  0.3 g -0.17, -0.17
+[1069.705] locostairs trace 176 dn a19.38 v 1.30 ph0.62 mw1.00 | 0 pl1 h 12.5 b  0.8 t  0.0 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.1 t  0.1 g -0.17, -0.17
+[1069.720] locostairs trace 176 dn a19.42 v 1.30 ph0.66 mw1.00 | 0 pl0 h 16.0 b  4.7 t  3.6 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.1 t  0.1 g -0.17, -0.17
+[1069.739] locostairs trace 176 dn a19.46 v 1.30 ph0.69 mw1.00 | 0 pl0 h 18.3 b  7.7 t  6.1 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.1 t  0.1 g -0.17, -0.17
+[1069.759] locostairs trace 176 dn a19.51 v 1.30 ph0.72 mw1.00 | 0 pl0 h 17.0 b  7.8 t  5.7 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.1 t  0.1 g -0.17, -0.17
+[1073.680] locostairs trace 176 dn a19.55 v 1.30 ph0.75 mw1.00 | 0 pl0 h 14.9 b  7.9 t  5.8 g  0.00,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.1 g -0.17, -0.17
+[1073.692] locostairs trace 176 dn a19.59 v 1.30 ph0.78 mw1.00 | 0 pl0 h 12.6 b  8.1 t 23.4 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.1 g  0.00,  0.00
+[1073.735] locostairs trace 176 dn a19.64 v 1.30 ph0.81 mw1.00 | 0 pl0 h 10.3 b 25.4 t 24.7 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[1073.745] locostairs trace 176 dn a19.68 v 1.30 ph0.85 mw1.00 | 0 pl0 h 24.9 b 42.6 t 42.9 g  0.00, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[1073.755] locostairs trace 176 dn a19.72 v 1.30 ph0.88 mw1.00 | 0 pl0 h 39.8 b 42.8 t 44.0 g -0.17, -0.17 | 1 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00
+[1073.766] locostairs trace 176 dn a19.77 v 1.30 ph0.91 mw1.00 | 0 pl0 h 15.9 b 37.4 t 39.1 g -0.17, -0.34 | 1 pl1 h  0.3 b  0.0 t  0.0 g  0.00,  0.00
+[1076.922] locostairs trace 176 dn a19.81 v 1.30 ph0.94 mw1.00 | 0 pl0 h 14.4 b 36.6 t 38.6 g -0.17, -0.34 | 1 pl1 h  1.6 b  0.0 t  0.0 g  0.00,  0.00
+[1076.937] locostairs trace 176 dn a19.85 v 1.30 ph0.97 mw1.00 | 0 pl0 h 22.3 b 27.4 t 29.3 g -0.34, -0.34 | 1 pl1 h  3.7 b  0.1 t 16.9 g  0.00, -0.17
+[1076.953] locostairs trace 176 dn a19.90 v 1.30 ph0.00 mw1.00 | 0 pl0 h 20.9 b 25.4 t 27.1 g -0.34, -0.34 | 1 pl1 h  6.2 b  0.2 t 16.9 g  0.00, -0.17
+[1076.959] locostairs trace 176 dn a19.94 v 1.30 ph0.04 mw1.00 | 0 pl1 h  0.0 b  3.4 t  4.6 g -0.17, -0.17 | 1 pl1 h  8.6 b  0.4 t 16.9 g  0.17,  0.00
+[1076.965] locostairs trace 176 dn a19.98 v 1.30 ph0.07 mw1.00 | 0 pl1 h  0.0 b  1.4 t  1.9 g -0.17, -0.17 | 1 pl1 h 10.7 b  0.6 t 16.9 g  0.17,  0.00
+[1076.974] locostairs trace 176 dn a20.03 v 1.30 ph0.10 mw1.00 | 0 pl1 h  0.0 b  0.2 t  0.3 g -0.17, -0.17 | 1 pl1 h 12.0 b  0.7 t 16.9 g  0.17,  0.00
+[1080.046] locostairs trace 176 dn a20.07 v 1.30 ph0.13 mw1.00 | 0 pl1 h  0.0 b  0.1 t  0.1 g -0.17, -0.17 | 1 pl1 h 12.5 b  0.8 t 16.9 g  0.17,  0.00
+[1080.054] locostairs trace 176 dn a20.11 v 1.30 ph0.16 mw1.00 | 0 pl1 h  0.0 b  0.1 t  0.1 g -0.17, -0.17 | 1 pl0 h 16.3 b  5.1 t 20.8 g  0.17,  0.00
+[1080.060] locostairs trace 176 dn a20.16 v 1.30 ph0.19 mw1.00 | 0 pl1 h  0.0 b  0.1 t  0.1 g -0.17, -0.17 | 1 pl0 h 17.9 b  7.6 t 22.7 g  0.17,  0.00
+[1080.065] locostairs trace 176 dn a20.20 v 1.30 ph0.22 mw1.00 | 0 pl1 h  0.0 b  0.1 t  0.1 g  0.00,  0.00 | 1 pl0 h  5.4 b 13.5 t 11.5 g  0.34,  0.17
+[1080.070] locostairs trace 176 dn a20.24 v 1.30 ph0.26 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.1 g  0.00,  0.00 | 1 pl0 h 20.3 b 13.7 t 11.7 g  0.17,  0.17
+[1080.078] locostairs trace 176 dn a20.29 v 1.30 ph0.29 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.1 g  0.00,  0.00 | 1 pl0 h 14.2 b 27.1 t 25.7 g  0.17,  0.00
+[1083.331] locostairs trace 176 dn a20.33 v 1.30 ph0.32 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 28.8 b 27.5 t 43.9 g  0.00, -0.17
+[1083.343] locostairs trace 176 dn a20.37 v 1.30 ph0.35 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 14.2 b 32.4 t 32.8 g  0.00, -0.17
+[1083.348] locostairs trace 176 dn a20.42 v 1.30 ph0.38 mw1.00 | 0 pl1 h  0.0 b  0.0 t  0.0 g  0.00,  0.00 | 1 pl0 h 29.2 b 32.6 t 50.7 g -0.17, -0.34
+[1083.353] locostairs trace 176 dn a20.46 v 1.30 ph0.41 mw1.00 | 0 pl1 h  0.5 b  0.0 t 16.9 g  0.00, -0.17 | 1 pl0 h 12.1 b 33.8 t 35.6 g -0.17, -0.34
+[1083.358] locostairs trace 176 dn a20.50 v 1.30 ph0.45 mw1.00 | 0 pl1 h  2.0 b  0.0 t 16.9 g  0.17,  0.00 | 1 pl0 h 27.4 b 32.8 t 34.8 g -0.17, -0.17
+[1083.372] locostairs trace 176 dn a20.55 v 1.30 ph0.48 mw1.00 | 0 pl1 h  4.2 b  0.1 t 16.9 g  0.17,  0.00 | 1 pl0 h  9.6 b 14.7 t 33.4 g -0.17, -0.34
+[1086.622] locostairs trace 176 dn a20.59 v 1.30 ph0.51 mw1.00 | 0 pl1 h  6.7 b  0.2 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  4.4 t 22.9 g -0.17, -0.34
+[1086.633] locostairs trace 176 dn a20.63 v 1.30 ph0.54 mw1.00 | 0 pl1 h  9.1 b  0.4 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  3.0 t 21.0 g -0.17, -0.34
+[1086.641] locostairs trace 176 dn a20.68 v 1.30 ph0.57 mw1.00 | 0 pl1 h 11.0 b  0.6 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  1.1 t 18.4 g -0.17, -0.34
+[1086.648] locostairs trace 176 dn a20.72 v 1.30 ph0.60 mw1.00 | 0 pl1 h 12.2 b  0.8 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.2 t 17.1 g -0.17, -0.34
+[1086.657] locostairs trace 176 dn a20.76 v 1.30 ph0.64 mw1.00 | 0 pl1 h 12.5 b  0.9 t 16.9 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.1 t 17.0 g -0.17, -0.34
+[1086.668] locostairs trace 176 dn a20.81 v 1.30 ph0.67 mw1.00 | 0 pl0 h 16.5 b  5.4 t 21.0 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.1 t 17.0 g  0.00, -0.17
+[1089.767] locostairs trace 176 dn a20.85 v 1.30 ph0.70 mw1.00 | 0 pl0 h 17.6 b 24.3 t 22.5 g  0.34,  0.17 | 1 pl1 h  0.0 b  0.1 t 17.0 g  0.00, -0.17
+[1089.774] locostairs trace 176 dn a20.89 v 1.30 ph0.73 mw1.00 | 0 pl0 h 21.9 b 13.5 t 11.4 g  0.17,  0.17 | 1 pl1 h  0.0 b  0.1 t 17.0 g  0.00, -0.17
+[1089.783] locostairs trace 176 dn a20.94 v 1.30 ph0.76 mw1.00 | 0 pl0 h 19.9 b 30.6 t 28.7 g  0.17,  0.00 | 1 pl1 h  0.0 b  0.0 t 17.0 g  0.00, -0.17
+[1161.721] street meet 1: ped 16 asks 75 the way at 1880 -643
+[1165.564] locostairs t 50: walkers (along / across the stair from its top, m): ^3.1/-0.3 v27.3/0.5 ^4.4/-0.3 v28.2/0.1 ^-0.3/-0.4 v18.8/-0.3 ^1.5/-0.3 v17.4/-0.3 | trips 8
+[1258.541] Transit: 0.040 ms/frame avg, 0 trains materialized, 13 waiters, 0 walkers, boardings 0/0 riders 2/0
+[1261.754] Wildlife: 106 animals (94 birds) in 17 groups, 53 drawn in 15 draws | update 0.191 ms, render 0.322 ms
+[1274.044] locostairs deep 176 up foot 1: h   7.8 b -16.6 t -16.9 cm (g -0.17,  0.00,  0.00) | a 32.37 x 0.52 | v 1.30 along-1.30 yawOff  -1.7 | ph0.02 age0.57 ballProbe 0 strikeLead 0.30 pin 0.005 footZ -0.169
+[1301.517] locostairs deep 182 dn foot 1: h -16.9 b   4.2 t   5.7 cm (g  0.00, -0.17, -0.17) | a 28.45 x 0.26 | v 1.28 along 1.28 yawOff  -1.9 | ph0.53 age0.03 ballProbe 0 strikeLead 0.29 pin 0.000 footZ -0.169
+[1301.522] locostairs deep 180 dn foot 1: h -16.9 b   0.0 t   0.1 cm (g  0.17,  0.00,  0.00) | a 29.38 x 0.40 | v 1.25 along 1.25 yawOff  -0.5 | ph0.81 age0.30 ballProbe 0 strikeLead 0.31 pin 0.000 footZ 0.000
+[1301.522] locostairs deep 182 dn foot 1: h -16.9 b   2.1 t   2.9 cm (g  0.00, -0.17, -0.17) | a 28.49 x 0.27 | v 1.28 along 1.28 yawOff  -1.8 | ph0.56 age0.07 ballProbe 0 strikeLead 0.29 pin 0.000 footZ -0.169
+[1301.529] locostairs deep 180 dn foot 1: h -16.9 b   0.0 t   0.1 cm (g  0.17,  0.00,  0.00) | a 29.38 x 0.39 | v 1.25 along 1.25 yawOff  -0.6 | ph0.84 age0.33 ballProbe 0 strikeLead 0.31 pin 0.000 footZ 0.000
+[1301.529] locostairs deep 182 dn foot 1: h -16.9 b   0.5 t   0.7 cm (g  0.00, -0.17, -0.17) | a 28.53 x 0.28 | v 1.28 along 1.28 yawOff  -1.6 | ph0.59 age0.10 ballProbe 0 strikeLead 0.29 pin 0.000 footZ -0.169
+[1301.544] locostairs deep 180 dn foot 1: h -16.9 b   0.0 t   0.1 cm (g  0.17,  0.00,  0.00) | a 29.38 x 0.39 | v 1.25 along 1.25 yawOff  -0.6 | ph0.88 age0.37 ballProbe 0 strikeLead 0.31 pin 0.000 footZ 0.000
+[1301.544] locostairs deep 182 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.00, -0.17, -0.17) | a 28.58 x 0.28 | v 1.28 along 1.28 yawOff  -1.6 | ph0.62 age0.13 ballProbe 0 strikeLead 0.29 pin 0.000 footZ -0.169
+[1304.285] locostairs deep 180 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 29.38 x 0.38 | v 1.25 along 1.25 yawOff  -0.7 | ph0.91 age0.40 ballProbe 0 strikeLead 0.31 pin 0.000 footZ 0.000
+[1304.285] locostairs deep 182 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.00, -0.17, -0.17) | a 28.62 x 0.28 | v 1.28 along 1.28 yawOff  -1.6 | ph0.65 age0.17 ballProbe 0 strikeLead 0.29 pin 0.000 footZ -0.169
+[1304.298] locostairs deep 180 dn foot 1: h -16.6 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 29.38 x 0.38 | v 1.25 along 1.25 yawOff  -0.7 | ph0.95 age0.43 ballProbe 0 strikeLead 0.31 pin -0.000 footZ 0.000
+[1304.298] locostairs deep 182 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.00, -0.17, -0.17) | a 28.66 x 0.29 | v 1.28 along 1.28 yawOff  -1.6 | ph0.68 age0.20 ballProbe 0 strikeLead 0.29 pin 0.000 footZ -0.169
+[1304.308] locostairs deep 180 dn foot 1: h -15.7 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 29.38 x 0.37 | v 1.25 along 1.25 yawOff  -0.8 | ph0.99 age0.47 ballProbe 0 strikeLead 0.31 pin -0.000 footZ 0.000
+[1304.309] locostairs deep 182 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.00, -0.17, -0.17) | a 28.70 x 0.29 | v 1.28 along 1.28 yawOff  -1.6 | ph0.70 age0.23 ballProbe 0 strikeLead 0.29 pin 0.000 footZ -0.169
+[1304.313] locostairs deep 180 dn foot 0: h -27.5 b  -8.9 t  -8.3 cm (g  0.00, -0.17, -0.17) | a 29.38 x 0.36 | v 1.25 along 1.25 yawOff  -0.9 | ph0.02 age0.03 ballProbe 0 strikeLead 0.31 pin -0.000 footZ -0.275
+[1304.313] locostairs deep 180 dn foot 1: h -14.5 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 29.38 x 0.36 | v 1.25 along 1.25 yawOff  -0.9 | ph0.02 age0.50 ballProbe 0 strikeLead 0.31 pin 0.000 footZ 0.000
+[1304.313] locostairs deep 182 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.00, -0.17, -0.17) | a 28.75 x 0.29 | v 1.28 along 1.28 yawOff  -1.6 | ph0.73 age0.27 ballProbe 0 strikeLead 0.29 pin 0.000 footZ -0.169
+[1319.772] street meet: 16 asked 75 the way
+[1319.825] locostairs t 60: walkers (along / across the stair from its top, m): v7.8/-0.4 ^29.0/0.8 v6.4/-0.1 ^26.9/-0.3 v11.8/-0.4 v30.5/0.2 v8.0/0.2 v29.9/0.2 | trips 14
+[1472.555] locostairs t 70: walkers (along / across the stair from its top, m): v21.4/0.0 ^16.3/0.6 v19.1/0.1 ^13.1/-0.6 v25.3/0.1 ^26.2/-0.0 v20.2/0.2 ^26.8/0.4 | trips 16
+[1493.062] police: unit 14 sent to an NPC crime (perp 80) 187 m off
+[1563.292] Transit: 0.039 ms/frame avg, 0 trains materialized, 13 waiters, 0 walkers, boardings 0/0 riders 2/0
+[1585.849] population: ambulance 15 sent to the incident at 1994 -615 from 179 m
+[1625.037] locostairs t 80: walkers (along / across the stair from its top, m): v33.4/0.2 ^3.3/-0.2 v31.8/0.4 v-0.3/-0.4 ^32.1/0.8 ^14.0/-0.4 v32.4/0.2 ^15.5/0.4 | trips 18
+[1725.460] Wildlife: 106 animals (94 birds) in 17 groups, 52 drawn in 14 draws | update 0.312 ms, render 0.340 ms
+[1796.322] locostairs t 90: walkers (along / across the stair from its top, m): ^22.5/-0.2 v6.7/0.3 ^24.8/0.1 v12.7/-0.5 ^18.4/0.3 ^2.8/-0.5 ^24.4/0.5 ^3.7/-0.3 | trips 22
+[1912.705] Transit: 0.039 ms/frame avg, 1 trains materialized, 13 waiters, 0 walkers, boardings 0/0 riders 2/0
+[1988.188] locostairs t 100: walkers (along / across the stair from its top, m): ^9.6/-0.2 v19.3/0.7 ^12.5/-0.3 v25.9/-0.1 ^5.7/0.2 v7.6/-0.6 ^12.0/0.1 v6.3/-0.4 | trips 24
+[2137.657] locostairs up   steps  299 | slide cm/step mean 1.92 p90 4.49 max 29.41 | scuffs 25
+[2137.658] locostairs up   planted foot-frames 5994 | across a riser 68.0% | sunk 1 cm 4.1%, 3 cm 3.5% | lifted 1.5% | lowest sole -183.6 mm
+[2137.658] locostairs down steps  274 | slide cm/step mean 1.50 p90 4.78 max 56.43 | scuffs 31
+[2137.658] locostairs down planted foot-frames 5569 | across a riser 75.8% | sunk 1 cm 3.0%, 3 cm 2.9% | lifted 5.4% | lowest sole -275.0 mm
+[2137.658] locostairs trips 26 | peds cpu 2.40 ms per frame (mean over 3002 frames)
+[2151.197] Shutdown complete.
+X connection to :112 broken (explicit kill or server shutdown).

@@ -1,0 +1,60 @@
+Set 10 (on top of sets 5-9):
+
+- Tip-offs: civilians who see the wanted player note when, where and which way he went (pedai.cpp, within 35 m, in
+  sight). Once the police have lost him a while, somebody who saw him since, close to an officer on foot, calls out
+  ("Officer! He went that way!" - or, the player still in their sight, "He's right there!"), a wave from further off,
+  then turns and points the way (pedai.cpp ACT_TIP_OFF); the officer looks along the point and answers ("Copy. All
+  units, suspect seen heading that way."). As they point, the police get the sighting: the last-seen position and
+  time, the heading the units follow, a little off the evasion cooldown (police.cpp police_tip). Never the timid, half
+  the rest, nobody with the player within 5 m; each witness once in 2 minutes, 25-45 s between tip-offs.
+- Asked the way: now and then (4-8 minutes apart, a tourist more often than not) somebody walking the player's way
+  while the player stands or strolls on a sidewalk (not wanted, nothing in hand, no mission or cutscene) comes up and
+  asks the way. The player standing still by them a moment points down the street (CLIP_POINT on the player; a hint
+  the first time: "Stand still to point the way") - the thanks and a wave; walking off - "Oh - okay. Thanks anyway."
+  (pedai.cpp aiStreetMeets, meet kind 2).
+- Drivers who knock anybody on foot down (not only the player) stop seven times in ten and come to see (ai.cpp,
+  traffic.cpp, pedai.cpp ACT_ROADRAGE's sorry branch): up again, the one hit has a word for them ("You could've killed
+  me!"); hurt and staying down (or killed): the driver on the phone for an ambulance ("I hit somebody with my car!")
+  and staying by them till a medic comes (80 s at most; 40 s by a body). Sorry drivers are no longer scared off by the
+  stir round them.
+- Heads turn to a siren coming by (police, ambulance, fire truck): six in ten calm people within 38 m, the eyes
+  following it past (the look hook), once in 20 s each.
+- The player's car hitting something hard (a pole, a wall, a parked car) is a crash for the people about: they look,
+  the bold film, a few say something - and onlookers now have their own lines ("Whoa! Did you see that?"; before they
+  said the owner's "You hit my car!").
+- Two walking together late at night (21:30-04:30) have night-out lines ("Where's the after-party, though?" /
+  "You said that an hour ago.").
+Census: others hit, tip-offs, asked the way (pointed), night chats, siren looks, player knocks.
+Tests: tipoff, askway, hitped modes.
+peds.cpp / game.h: nothing new.
+
+Set 11:
+- Officers asking around: an officer on foot who has lost the suspect for 8 s or more (searching, or closing in at one star) now and then goes up to somebody calm close by and asks ("Police. You see anybody come by in a hurry?"). The person turns to them, listens, then answers (police.cpp police_tip::asking; pedai.cpp ACT_TIP_OFF with tipAsked):
+  - If they saw the player since the police last did, within a minute: they point the way, and the police get the sighting.
+  - If not: "No, sorry." with a gesture.
+  Asks are 30-55 s apart. Census: cop asks.
+- Walking round cars: aiWalkRound (ai.cpp) now steps round a parked or stopped car standing across the way, using the shorter way round its corners and staying clear of walls and posts. Before, only benches, planters and other static colliders were avoided, and a parked car between someone on the sidewalk and somebody down in the road stopped them for good (seen on nt_ai79 hitplayer). It is used by:
+  - the bystander coming over to the player knocked flat
+  - passers-by helping somebody down hurt
+  - sorry drivers and road-rage drivers, both ways
+  - officers walking up to ask somebody
+  - every other aiWalkRound user: officers back to their cars, dashes for cover, the ticket partner
+Tests: copask mode (the player wanted, seen running, then lying low 300 m off; the officers search where he was and ask people about).
+
+Set 12:
+- More walkers go round cars (aiWalkRound with the car detour):
+  - road-rage drivers, out to the player's window and back to their car
+  - delivery drivers, to the door and back to the van
+  - ambulance crews, back to the ambulance
+  The detour also treats the target car itself as in the way when the goal is a door on its far side. It no longer circles a car whose middle is the goal (walking up to get in).
+- Parking tickets on the player's car:
+  - A beat officer may write up a car the player left in the street (playerUsed) once it has stood there over a minute, with the player more than 25 m away and no mission running (police_ticket::ticketable). Nobody comes running for it.
+  - When the ticket goes under the wiper, VehAI::plTicket is set.
+  - Getting back in costs $45, with the notification "Parking ticket -$45" (ai.cpp tracks the player getting out and back in: AIState::plVehPrev, VehAI::plLeftT).
+  - Census: player tickets.
+- Tests: plticket mode (the player's car left at a kerb, the ticket forced on it, the player put back in 4 s later). The pedstop test now crowds the officer only once they are with the person stopped, so "step back" can be seen.
+
+Set 13:
+- Sidewalk stops: police_stop::pickSubject skips anyone across the street from the officer. It samples the line between them at 1/4, 1/2 and 3/4 for a driving lane. This was the likely cause of the nt_ai77 pedstop stage 2 give-up: the officer never got to someone 13 m off across the road.
+- Buses serve their stops: a bus with an unserved stop ahead in its kerb lane no longer leaves the lane for a mandatory change for a turn on its route. It re-routes from the kerb lane instead (traffic_core.cpp laneChangeLogic). On nt_ai77, two of the three busrun buses drove past both stops for this reason.
+- Tests: nearmiss is rewritten so the startle is exercised. The player's car runs a 150 m stretch of kerb lane, with four people standing right at the kerb 70-115 m ahead, the car's half width + 1.2 m out from the lane's middle (inside the startle band, outside the dive band).

@@ -1,0 +1,27 @@
+city snapshot-safe: batch 4 (block houses and folk Victorians, carports and awnings, front-bay ranches and L bungalows, tile blends, yard trees out of houses and porches, strip-mall forecourts on the ground). It is copied into the shared tree on top of @BASE@ and MinGW-syntax-checked there.
+
+FILES (src/world). Against batch 3: buildings.cpp and cellgen.cpp are unchanged.
+@BLOBS@
+
+CHANGELOG (player-facing)
+@CHANGELOG@
+
+TESTS
+The build under test is /tmp/city/nt_dev4.exe: 06580c3 plus these files. Before = nt_base4.exe, which is batch 3 on 06580c3.
+- Story regression: @REG@
+- Story places: @PLACES@
+- Tour stops 2-5, draws mean/max: @TOUR@
+- Building triangles (citylab), whole-map far LOD: 1.01 M -> 1.04 M. Near rings at the tour stops: @TRIS@
+- Repetition, batch 3 -> batch 4:
+  - debug log metric: 3.9% -> 2.9%;
+  - form twins: 3.2% -> 2.6%;
+  - Westbrook: 5.3% -> 3.7%;
+  - Okahatchee: 5.9% -> 4.9%;
+  - Harlow: 6.9% -> 4.4%;
+  - Key Solano: 6.9% -> 5.7%;
+  - Key Coral: 8.9% -> 5.8%.
+- Yard trees: 47,580 -> 47,235, of which inside a building footprint: 5,357 -> 0.
+- Forecourts: 834 strip-mall and gas-station forecourts. The walk's curb is 0.29 m at the median; the 9 courts more than 0.5 m above the ground get the plateau.
+
+EVIDENCE
+@EVIDENCE@

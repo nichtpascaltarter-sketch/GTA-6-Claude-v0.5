@@ -1,0 +1,9 @@
+# batch 4 (2): front-bay ranches and block houses, L bungalows, Key Coral villas
+ranch_bay_1 front 13926 17 2 4 60 10
+ranch_bay_2 front 14040 17 2 -4 60 10
+ranch_bay_3 front 13846 17 2 4 60 10
+cbs_bay front 30556 17 2 -4 60 10
+bung_L_oka front 22549 16 2 4 60 10
+bung_L_oka2 front 22589 17 2 -4 60 10
+bung_L_nc front 29988 16 2 4 60 10
+kc_villas_air aerial 4500 -4200 190 200 38 55 10

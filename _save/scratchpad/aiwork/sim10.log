@@ -1,0 +1,97 @@
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.04 s)
+World map generated in 26.59 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (2.89 s)
+Buildings: 36321 (towers 358, midrise 2411, condo 535, deco 859, shops 4885, strip 730, houses 21906, villas 903, warehouses 1707) in 2.04 s
+Sites: 65 highway billboards
+Sites: 117 silos, 53 windmills
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 559 elements (0.01 s)
+Lane graph: 26691 lanes, 59937 connectors (1215831 pts), 36768 walk nodes, 53089 walk links (0.87 s)
+Loaded 12 collision cells
+Simulating 5.0 minutes around (2700, 750) r=200 with 100 cars, 80 peds
+COLLISION t=19.63 imp 4701 at 2716.8 850.0
+   A 37: Minnow v=3.8 vT=0.0 lane 8137(e2558 d-1 i0) u=80.5/88.2 lc -1 lat 0.00 nudge 0.00 obst 0.0(44) stop 0.4 dummy 0
+   B 44: Packhorse 26 v=4.3 vT=14.3 lane 8136(e2558 d1 i0) u=14.1/91.5 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+COLLISION t=20.54 imp 518 at 2724.5 852.1
+   A 37: Minnow v=2.4 vT=3.7 lane 8137(e2558 d-1 i0) u=77.2/88.2 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 3.7 dummy 0
+   B 89: Kumo v=0.3 vT=0.0 lane 8137(e2558 d-1 i0) u=73.8/88.2 lc -1 lat 0.00 nudge 0.00 obst 0.0(37) stop 7.0 dummy 0
+COLLISION t=50.06 imp 7940 at 2816.0 650.2
+   A 39: Longbow 9 v=4.2 vT=10.8 lane 8642(e2715 d1 i0) u=12.6/91.5 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+   B 61: Palomino v=2.8 vT=0.0 lane 8643(e2715 d-1 i0) u=80.6/91.5 lc -1 lat 0.00 nudge 0.00 obst 0.0(39) stop 2.9 dummy 0
+COLLISION t=57.36 imp 736 at 2604.6 848.2
+   A 41: Compactor v=4.8 vT=4.9 conn 16120 node 1365 turn 2 ctl 1 u=3.3/15.8 lc -1 lat 0.00 nudge 0.00 obst 9.9(154) stop 1000000000.0 dummy 0
+   B 79: Seiran v=0.4 vT=0.0 conn 16117 node 1365 turn 1 ctl 1 u=5.3/10.8 lc -1 lat 0.00 nudge 0.00 obst 0.0(41) stop 1000000000.0 dummy 0
+   conflict A->B: none | appr A 1 B 0 to A 7779 B 7784 | enterTime A 56.70 B 55.63 committed 0 0
+  sim 60 s: collisions 4 (hard 2), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 48 (wall 11 s)
+COLLISION t=66.28 imp 1122 at 2807.4 849.1
+   A 38: Compactor v=3.8 vT=4.0 conn 17536 node 1480 turn 1 ctl 1 u=7.5/10.8 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+   B 71: Seiran v=0.7 vT=0.0 lane 8651(e2719 d-1 i0) u=91.0/91.5 lc -1 lat 0.00 nudge 0.00 obst 0.0(38) stop 1000000000.0 dummy 0
+DEADLOCK t=111.2 car 39 at 2815.7 648.3 lane e2715 d1 i0 u 15.7/91.5 stopU 86.4 next conn 18627 turn 0 ctl 1 gateNode 1478 stopDist 1000000000.0 obst 0.0 (body 61) sig 4
+   -> car 61 lane e2715 d-1 i0 u 78.4/91.5 v=0.0 vT=4.6 stop 5.1 obst 1000000000.0(-1) wait 1.2 gateConn 17516 gateNode 1478 stopDone 0 lat 0.68
+DEADLOCK t=112.3 car 73 at 2830.3 651.6 lane e2715 d-1 i0 u 69.7/91.5 stopU 86.4 next conn 17517 turn 0 ctl 1 gateNode 1478 stopDist 13.8 obst 2.6 (body 61) sig 4
+   -> car 61 lane e2715 d-1 i0 u 78.4/91.5 v=0.0 vT=4.6 stop 5.1 obst 1000000000.0(-1) wait 1.2 gateConn 17516 gateNode 1478 stopDone 0 lat 0.69
+  sim 120 s: collisions 5 (hard 2), red 0, stuck 0, deadlocks 2, ped hits 0, respawns 105 (wall 22 s)
+DEADLOCK t=133.0 car 29 at 2805.8 648.4 conn 17522 turn 0 appr 3 node 1478 ctl 1 u 14.3/17.0 hold 0.0 committed 0 gateNode 1478 stopDist 1000000000.0 obst 3.2 (body 39) sig 4
+   -> car 39 lane e2715 d1 i0 u 15.6/91.5 v=0.0 vT=0.0 stop 1000000000.0 obst 0.0(61) wait 81.8 gateConn 17512 gateNode 1478 stopDone 0 lat 0.12
+   -> car 61 lane e2715 d-1 i0 u 78.6/91.5 v=0.0 vT=4.5 stop 5.0 obst 1000000000.0(-1) wait 1.2 gateConn 17516 gateNode 1478 stopDone 0 lat 0.71
+DEADLOCK t=136.3 car 24 at 2839.6 651.6 lane e2715 d-1 i0 u 60.4/91.5 stopU 86.4 next conn 17517 turn 0 ctl 1 gateNode 1478 stopDist 23.0 obst 3.4 (body 73) sig 4
+   -> car 73 lane e2715 d-1 i0 u 69.9/91.5 v=0.0 vT=0.3 stop 13.6 obst 2.5(61) wait 84.0 gateConn 17517 gateNode 1478 stopDone 0 lat 0.00
+   -> car 61 lane e2715 d-1 i0 u 78.6/91.5 v=0.0 vT=4.5 stop 5.0 obst 1000000000.0(-1) wait 1.2 gateConn 17516 gateNode 1478 stopDone 0 lat 0.71
+DEADLOCK t=151.4 car 18 at 2849.0 651.6 lane e2715 d-1 i0 u 51.0/91.5 stopU 86.4 next conn 17517 turn 0 ctl 1 gateNode 1478 stopDist 33.2 obst 3.3 (body 24) sig 4
+   -> car 24 lane e2715 d-1 i0 u 60.5/91.5 v=0.0 vT=0.3 stop 22.9 obst 3.4(73) wait 75.1 gateConn 17517 gateNode 1478 stopDone 0 lat 0.00
+   -> car 73 lane e2715 d-1 i0 u 70.0/91.5 v=0.0 vT=0.3 stop 13.5 obst 2.6(61) wait 99.1 gateConn 17517 gateNode 1478 stopDone 0 lat 0.00
+   -> car 61 lane e2715 d-1 i0 u 78.7/91.5 v=0.0 vT=4.4 stop 4.9 obst 1000000000.0(-1) wait 1.2 gateConn 17516 gateNode 1478 stopDone 0 lat 0.73
+PEDHIT t=153.1 car 85 v=0.0 ped state 2 link kind 1 at 2800.4 840.0 obst 0.0 body 178 stop 1000000000.0
+DEADLOCK t=157.6 car 34 at 2856.2 651.6 lane e2715 d-1 i0 u 43.8/91.5 stopU 86.4 next conn 17515 turn 2 ctl 1 gateNode 1478 stopDist 40.3 obst 2.6 (body 18) sig 4
+   -> car 18 lane e2715 d-1 i0 u 51.0/91.5 v=0.0 vT=0.2 stop 33.1 obst 3.3(24) wait 66.1 gateConn 17517 gateNode 1478 stopDone 0 lat 0.00
+   -> car 24 lane e2715 d-1 i0 u 60.6/91.5 v=0.0 vT=0.3 stop 22.8 obst 3.4(73) wait 81.3 gateConn 17517 gateNode 1478 stopDone 0 lat 0.00
+   -> car 73 lane e2715 d-1 i0 u 70.0/91.5 v=0.0 vT=1.0 stop 13.5 obst 3.2(61) wait 104.9 gateConn 17517 gateNode 1478 stopDone 0 lat 0.00
+   -> car 61 lane e2715 d-1 i0 u 79.5/91.5 v=1.8 vT=4.0 stop 4.1 obst 1000000000.0(-1) wait 1.2 gateConn 17516 gateNode 1478 stopDone 0 lat 0.52
+DEADLOCK t=165.0 car 33 at 2863.3 651.6 lane e2715 d-1 i0 u 36.7/91.5 stopU 86.4 next conn 17516 turn 1 ctl 1 gateNode 1581 stopDist 1000000000.0 obst 2.9 (body 34) sig 4
+   -> car 34 lane e2715 d-1 i0 u 44.2/91.5 v=0.4 vT=1.0 stop 40.0 obst 3.7(18) wait 65.9 gateConn 17515 gateNode 1478 stopDone 0 lat 0.00
+   -> car 18 lane e2715 d-1 i0 u 52.6/91.5 v=1.1 vT=1.2 stop 31.6 obst 5.4(24) wait 70.3 gateConn 17517 gateNode 1478 stopDone 0 lat 0.00
+   -> car 24 lane e2715 d-1 i0 u 64.2/91.5 v=0.8 vT=0.6 stop 19.2 obst 4.0(73) wait 82.9 gateConn 17517 gateNode 1478 stopDone 0 lat 0.00
+   -> car 73 lane e2715 d-1 i0 u 74.3/91.5 v=0.0 vT=0.2 stop 9.2 obst 2.5(61) wait 107.2 gateConn 17517 gateNode 1478 stopDone 0 lat 0.00
+   -> car 61 lane e2715 d-1 i0 u 83.1/91.5 v=0.0 vT=0.2 stop 0.4 obst 1000000000.0(-1) wait 5.2 gateConn 17516 gateNode 1478 stopDone 1 lat 0.22
+  sim 180 s: collisions 5 (hard 2), red 0, stuck 0, deadlocks 7, ped hits 1, respawns 156 (wall 32 s)
+COLLISION t=181.57 imp 5851 at 2886.6 649.8
+   A 17: Longbow 9 v=4.1 vT=7.5 lane 8643(e2715 d-1 i0) u=10.3/91.5 lc -1 lat 0.00 nudge 0.00 obst 15.6(77) stop 1000000000.0 dummy 0
+   B 29: Harbor v=3.7 vT=0.0 lane 8642(e2715 d1 i0) u=83.6/91.5 lc -1 lat 0.00 nudge 0.00 obst 0.0(17) stop 1000000000.0 dummy 0
+COLLISION t=223.75 imp 8201 at 2683.1 550.0
+   A 45: Compactor v=3.7 vT=14.1 lane 7773(e2428 d-1 i0) u=13.7/91.5 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+   B 93: Sawgrass Pursuit v=3.0 vT=0.0 lane 7772(e2428 d1 i0) u=80.0/88.2 lc -1 lat 0.00 nudge 0.00 obst 0.0(45) stop 0.4 dummy 0
+  sim 240 s: collisions 7 (hard 4), red 0, stuck 0, deadlocks 7, ped hits 1, respawns 211 (wall 43 s)
+
+==== Traffic metrics (300 s simulated, 100 cars, 80 peds, 8.33 vehicle-hours) ====
+collisions: 7 (0.84 per vehicle-hour), hard (>3000 Ns): 4 (0.48/veh-h)
+static impacts (walls/props >2500 Ns): 0, props broken: 0
+red-light violations: 0, stop-sign violations: 0
+stuck recoveries: 0, relocalizations: 0, deadlocks (>60 s waits): 7, respawns: 266
+pedestrians hit: 1
+average speed by road class (km/h):  boulevard 16.1 (1291 s)  avenue 15.5 (3862 s)  street 11.8 (21656 s)
+lane-center error (RMS, lanes, v>3 m/s): 0.062 m
+AI cost per 60 Hz tick: traffic 0.205 ms + peds 0.025 ms (avg), p50 0.216 ms, p99 0.394 ms, max 9.535 ms
+physics per 120 Hz step: 0.435 ms (100 cars)
+done

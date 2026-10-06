@@ -1,0 +1,280 @@
+Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+Places: Palmera Speedway at (400, 5790), ground 6.8
+Places: layout 0.000 s, 5 places, 624 anchors
+Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.04 s)
+World map generated in 16.40 s
+Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km (3.89 s)
+Transit: 0 buildings cleared from the SkyLine corridor
+Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+Places: after the lots 0.245 s
+Buildings: 35617 (towers 352, midrise 2411, condo 427, deco 688, shops 4600, strip 640, houses 22192, villas 901, warehouses 1620) in 2.40 s
+Sites: 69 highway billboards
+Sites: 155 silos, 50 windmills
+Sites: 245 beach access paths
+Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.01 s)
+Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+Transit: 4 bus routes, 64 stops (48 new shelters) (0.02 s); rejects class 1107 cut 1945 deck 72 road 119 avoid 0 pad 2 furn 283 stop 0
+Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.01 s)
+Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.08 s)
+Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 1486 elements (0.08 s)
+Interiors: 29 planned (convenience 7, gun shops 2) in 11.5 ms
+  interior 'Mari's Apartment' kind 0 building 28142 at (1771.22, 359.23, 3.77) ax (1.0000, 0.0000) x -6.55..2.18 depth 11.50 ceil 3.84: 3 rooms, 3 openings, 3 doors, 3 portals, 0 npc points
+  interior 'Mama Lucha's' kind 2 building 26747 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+  interior 'Rook's Garage' kind 3 building 27288 at (1562.94, 2361.63, 4.30) ax (1.0000, 0.0000) x -9.74..9.74 depth 20.00 ceil 7.11: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+  interior 'Dex's Trailer' kind 1 building 25527 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+  interior 'Police Headquarters' kind 5 building 32504 at (3167.89, -240.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+  interior 'Tidewater General Hospital' kind 6 building 35599 at (1692.75, 1073.40, 3.63) ax (1.0000, 0.0000) x -9.55..9.55 depth 16.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+  interior 'Palmetto Arms' kind 7 building 25538 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+  interior 'Northside Arms' kind 7 building 32997 at (3284.62, 4017.67, 2.09) ax (0.0000, 1.0000) x -6.33..6.33 depth 14.00 ceil 4.03: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+  interior 'Threads' kind 9 building 19677 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+  interior 'Port Isle Warehouse' kind 12 building 35552 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+  interior 'TideStop Mart' kind 8 building 26846 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Bodega La Luna' kind 8 building 29652 at (2242.71, 540.72, 2.92) ax (-1.0000, -0.0000) x -5.85..5.85 depth 17.00 ceil 4.19: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+  interior 'Canvas Corner Market' kind 8 building 32545 at (3090.56, 1476.66, 2.21) ax (0.0000, 1.0000) x -7.40..7.40 depth 17.00 ceil 3.92: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Sunrise Food Mart' kind 8 building 19719 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Northside Quick Stop' kind 8 building 29914 at (2304.43, 3761.63, 3.12) ax (1.0000, 0.0000) x -6.89..6.89 depth 17.00 ceil 4.12: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Flats Food & Fuel' kind 8 building 24842 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+  interior 'Grove Pantry' kind 8 building 1182 at (2175.56, -3114.24, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Palm Motors' kind 17 building 31294 at (2686.87, 1279.16, 2.69) ax (0.0000, 1.0000) x -9.08..12.11 depth 20.00 ceil 3.90: 2 rooms, 8 openings, 3 doors, 8 portals, 5 npc points
+  interior 'Tide Customs Calle Luna' kind 18 building 29601 at (2278.47, -140.75, 2.99) ax (1.0000, 0.0000) x -7.61..7.61 depth 18.00 ceil 4.17: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+  interior 'Tide Customs Sol Beach' kind 18 building 19788 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+  interior 'Sunwash Car Wash' kind 19 building 29044 at (1988.34, 1491.32, 3.44) ax (0.0000, 1.0000) x -7.41..7.41 depth 20.00 ceil 8.08: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+  interior 'Key Coral Villa' kind 0 building 23718 at (4515.96, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+  interior 'Sol Beach Condo Lobby' kind 20 building 19771 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+  interior 'Sol Beach Condo' kind 21 building 19771 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+  interior 'Downtown Penthouse Lobby' kind 20 building 33543 at (3511.22, -715.16, 1.71) ax (-0.0000, -1.0000) x -5.25..5.25 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+  interior 'Downtown Penthouse' kind 21 building 33543 at (3511.22, -715.16, 52.15) ax (-0.0000, -1.0000) x -10.49..10.49 depth 14.00 ceil 2.80: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+  interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+  interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+  interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+Buildings: 33925 restyled by district palettes in 96.4 ms (taxpayer 1391, 1920s block 924, med revival 774, mimo shop 1036, bodega 339, arcade 118, gallery 11, walk-up 497, mimo apts 763, med apts 530, office 60s 129, modern 372, loft 80, condo slab 134, glass condo 113, mimo hotel 97, podium condo 78, ranch 5434, bungalow 2805, med house 3406, two-storey 2419, mimo house 1933, split level 2251, conch 265, modern villa 190, streamline 176, med hotel 117, mimo motel 133, sawtooth 540, ware office 551, body shop 282, med villa 307, colonial villa 135, stilt house 73, mimo motor court 161, med motel 90, keys motel 113, motor inn 90, mission strip 199, mimo strip 186, power center 255, gambrel barn 34, pole barn 43, gable barn 24, mission church 47, board church 46, brick church 25, a-frame church 43, cbs house 3240, folk victorian 363, raised keys house 63, mobile home 149)
+Transit: 0 buildings cleared from the SkyLine corridor
+Buildings: block infill 3457 back buildings (garage rows 719, sheds 1872, back houses 866, 0 in the viaduct corridor dropped, 1213 near a street left as yards), 1465 rear parking lots, 5755 yards in 201.5 ms
+Transit: 0 buildings cleared from the SkyLine corridor
+Buildings: frontage fill 4299 gaps: 1675 vacant lots, 731 street parking lots, 649 side yards, 458 service yards, 786 left bare (250.4 ms)
+Buildings: repetition (neighbours within 150 m with the same style, archetype, massing, roof, height band and facade pattern): 2.1% overall, 54% of buildings without a twin; by district: Downtown Porto Sol 2.8%, Solaris 3.0%, Canvas District 0.8%, North Porto Sol 1.0%, Calle Luna 1.4%, Sol Beach 1.7%, Key Coral 5.8%, The Grove 2.3%, Palmetto Flats 1.2%, Westbrook 2.7%, Redland 3.0%, Ten Palms 1.6%, Palmera Farmlands 4.9%, Okahatchee 3.5%, Harlow 2.8%, Fort Castell 1.7%, Key Solano 2.5% (97.1 ms)
+worldcheck: 2139 cells, 657181 colliders, 419045 props
+
+[lanes] colliders intruding into drivable lanes: 0, props standing in lanes: 0; dead-end turning circles without room: 0, obstructed: 0 (21 pulled back to fit)
+
+[falls] road edges with a fall of more than 1.2 m: guarded 125416 m, unguarded 0 m
+
+[steps] lane surface vs physics ground: 1587892 samples, 0 off by more than 0.45 m at 0 places
+
+[grades] road profile segments steeper than 16%:
+  0 segments
+
+[crossings] roads crossing without a junction less than 4.5 m apart:
+  0 crossings
+
+[footprints] buildings whose footprints overlap (envelopes, wings, garages, carports, porches):
+  (hand-built, by its site: b35599 x b35600 at (1692.2, 1089.9), 22.00 m - not counted)
+  (hand-built, by its site: b35602 x b35603 at (3692.2, 3184.3), 22.00 m - not counted)
+  b3202 house (part) x b3203 house (part) at (-261.2, -1751.8): 6.39 m into each other
+  b9474 house (part) x b9475 house (part) at (-2708.0, 3644.3): 6.12 m into each other
+  b16409 house (part) x b16410 house (part) at (297.8, -4129.5): 6.11 m into each other
+  b7600 house (part) x b7601 house (part) at (-2354.1, 914.7): 6.11 m into each other
+  b7344 house (part) x b7345 house (part) at (-2655.4, 1084.5): 6.10 m into each other
+  b4190 house (part) x b4191 house (part) at (-2560.8, -4084.8): 6.00 m into each other
+  b17132 house (part) x b17133 house (part) at (148.8, -2502.9): 5.95 m into each other
+  b12177 house (part) x b12178 house (part) at (-1297.6, -2623.7): 5.89 m into each other
+  b15500 house (part) x b15501 house (part) at (-858.4, 3333.4): 5.89 m into each other
+  b31961 house (part) x b31962 house (part) at (2958.9, 5329.5): 5.88 m into each other
+  b4579 house (part) x b4580 house (part) at (-2060.4, -3602.6): 5.88 m into each other
+  b4063 house (part) x b4064 house (part) at (-1851.4, -4288.2): 5.86 m into each other
+  b17600 house (part) x b17601 house (part) at (996.4, -1833.8): 5.84 m into each other
+  b16080 house (part) x b16081 house (part) at (-1494.8, 5061.5): 5.83 m into each other
+  b14602 house (part) x b14603 house (part) at (-460.7, -236.5): 5.83 m into each other
+  b16068 house (part) x b16069 house (part) at (-983.5, 5014.1): 5.82 m into each other
+  b17005 house (part) x b17006 house (part) at (645.0, -3026.5): 5.80 m into each other
+  b10680 house (part) x b10681 house (part) at (-1725.8, 5007.4): 5.79 m into each other
+  b3980 house (part) x b3981 house (part) at (-1925.8, -4383.8): 5.79 m into each other
+  b7511 house (part) x b7512 house (part) at (-2467.9, 954.4): 5.77 m into each other
+    church / house (a wing, garage or porch)                     1
+    factory / house (a wing, garage or porch)                    4
+    garage / house (a wing, garage or porch)                     5
+    gasstation / house (a wing, garage or porch)                 1
+    house / house (a wing, garage or porch)                      2455
+    house / midrise (a wing, garage or porch)                    150
+    house / motel (a wing, garage or porch)                      4
+    house / shops (a wing, garage or porch)                      125
+    house / stripmall (a wing, garage or porch)                  2
+    house / tower (a wing, garage or porch)                      1
+    house / villa (a wing, garage or porch)                      6
+    house / warehouse (a wing, garage or porch)                  13
+    villa / villa (a wing, garage or porch)                      2
+  by the parts that meet (deepest pair of boxes):
+    church other part x house garage wing                        1
+    factory envelope x house garage wing                         2
+    factory other part x house garage wing                       2
+    garage envelope x house garage wing                          4
+    garage envelope x house other part                           1
+    gasstation envelope x house garage wing                      1
+    house envelope x house garage wing                           9
+    house garage wing x house garage wing                        1851
+    house garage wing x house other part                         595
+    house garage wing x midrise envelope                         127
+    house garage wing x midrise other part                       23
+    house garage wing x motel envelope                           3
+    house garage wing x motel other part                         1
+    house garage wing x shops envelope                           117
+    house garage wing x shops other part                         8
+    house garage wing x stripmall envelope                       2
+    house garage wing x tower envelope                           1
+    house garage wing x villa garage wing                        5
+    house garage wing x villa other part                         1
+    house garage wing x warehouse envelope                       12
+    house garage wing x warehouse other part                     1
+    villa garage wing x villa garage wing                        1
+    villa garage wing x villa other part                         1
+  by district:
+    Calle Luna                                                   133
+    Fort Castell                                                 23
+    Harlow                                                       15
+    Key Solano                                                   5
+    North Porto Sol                                              270
+    Okahatchee                                                   16
+    Palmetto Flats                                               11
+    Ten Palms                                                    1
+    The Grove                                                    15
+    Westbrook                                                    2280
+  near: b20660 factory Fort Castell arch 29 seed%10 5 side +1 c (3845.2, 7456.3) ax (0.94, 0.34) front (0.34, -0.94) hx 12.07 hy 15.25 h 7.9 lot (3845.0, 7456.8) lotHx 12.82 lotHy 15.73 lat -0.00
+        box kind 2 c (3845.2, 7456.3) he 12.07 x 15.25 z 5.4..17.8
+        col c (3845.2, 7456.3, 11.6) ax (0.94, 0.34) he (12.07, 15.25, 6.21)
+  near: b20669 house Fort Castell arch 19 seed%10 7 side -1 c (3831.9, 7494.4) ax (0.94, 0.34) front (-0.34, 0.94) hx 8.74 hy 6.54 h 3.0 lot (3832.8, 7492.0) lotHx 13.42 lotHy 13.79 lat 0.00
+        box kind 2 c (3831.9, 7494.4) he 8.74 x 6.54 z 6.6..13.6
+        box kind 2 c (3831.9, 7494.4) he 3.40 x 2.10 z 11.6..15.9
+        box kind 2 c (3817.8, 7495.1) he 4.30 x 0.45 z 8.1..9.7
+        box kind 2 c (3820.7, 7487.1) he 4.30 x 0.45 z 8.1..9.6
+        box kind 2 c (3823.7, 7479.0) he 4.30 x 0.45 z 8.1..9.6
+        box kind 2 c (3842.3, 7504.1) he 4.30 x 0.45 z 8.1..9.7
+        box kind 2 c (3845.2, 7496.0) he 4.30 x 0.45 z 8.1..9.7
+        box kind 2 c (3848.1, 7487.9) he 4.30 x 0.45 z 8.1..9.7
+        box kind 2 c (3829.2, 7476.4) he 4.34 x 0.45 z 8.1..9.6
+        box kind 2 c (3837.4, 7479.4) he 4.34 x 0.45 z 8.1..9.6
+        box kind 2 c (3845.5, 7482.4) he 4.34 x 0.45 z 8.1..9.6
+        col c (3831.9, 7494.4, 10.1) ax (0.94, 0.34) he (8.74, 6.54, 3.50)
+        col c (3826.2, 7501.5, 9.9) ax (0.94, 0.34) he (0.24, 0.24, 1.30)
+        col c (3828.3, 7502.2, 9.9) ax (0.94, 0.34) he (0.24, 0.24, 1.30)
+        col c (3832.1, 7503.6, 9.9) ax (0.94, 0.34) he (0.24, 0.24, 1.30)
+        col c (3835.0, 7504.7, 9.9) ax (0.94, 0.34) he (0.24, 0.24, 1.30)
+        col c (3831.9, 7494.4, 13.7) ax (0.94, 0.34) he (3.40, 2.10, 2.15)
+        col c (3817.8, 7495.1, 8.9) ax (0.34, -0.94) he (4.30, 0.45, 0.78)
+        col c (3820.7, 7487.1, 8.9) ax (0.34, -0.94) he (4.30, 0.45, 0.78)
+        col c (3823.7, 7479.0, 8.9) ax (0.34, -0.94) he (4.30, 0.45, 0.78)
+        col c (3842.3, 7504.1, 8.9) ax (0.34, -0.94) he (4.30, 0.45, 0.78)
+        col c (3845.2, 7496.0, 8.9) ax (0.34, -0.94) he (4.30, 0.45, 0.78)
+        col c (3848.1, 7487.9, 8.9) ax (0.34, -0.94) he (4.30, 0.45, 0.78)
+        col c (3829.2, 7476.4, 8.9) ax (0.94, 0.34) he (4.34, 0.45, 0.78)
+        col c (3837.4, 7479.4, 8.9) ax (0.94, 0.34) he (4.34, 0.45, 0.78)
+        col c (3845.5, 7482.4, 8.9) ax (0.94, 0.34) he (4.34, 0.45, 0.78)
+        col c (3822.5, 7502.5, 8.6) ax (-0.94, -0.34) he (6.93, 0.09, 0.69)
+        col c (3835.6, 7507.3, 8.6) ax (-0.94, -0.34) he (5.18, 0.09, 0.70)
+  near: b37128 garage Fort Castell arch 33 seed%10 1 side +1 c (3841.6, 7477.3) ax (0.94, 0.34) front (-0.34, 0.94) hx 7.42 hy 3.43 h 2.9 lot (3838.8, 7475.5) lotHx 12.82 lotHy 3.25 lat -3.23
+        box kind 2 c (3841.6, 7477.3) he 7.42 x 3.43 z 5.2..11.2
+        col c (3841.6, 7477.3, 8.2) ax (0.94, 0.34) he (7.42, 3.43, 2.97)
+  near: pair b20669 (kind 2) x b37128 (kind 0) at (3839.5, 7478.3): 0.42 m
+  past their own lot line: 15117 buildings sideways (11544 more than 2 m, the furthest 13.20 m: b35554), 149 front or back
+    barn (envelope)                           2 buildings,     2 sideways,     1 more than 2 m,     0 front or back
+    barn (other part)                         1 buildings,     1 sideways,     0 more than 2 m,     0 front or back
+    garage                                 3479 buildings,     0 sideways,     0 more than 2 m,   149 front or back
+    house (garage wing)                   14701 buildings, 14701 sideways, 11500 more than 2 m,     0 front or back
+    shack (envelope)                          1 buildings,     1 sideways,     0 more than 2 m,     0 front or back
+    stripmall (other part)                    6 buildings,     6 sideways,     0 more than 2 m,     0 front or back
+    villa (garage wing)                     405 buildings,   405 sideways,    42 more than 2 m,     0 front or back
+    villa (other part)                        1 buildings,     1 sideways,     1 more than 2 m,     0 front or back
+  interior host b1182 villa interior 16 at (2186.7, -3114.0)
+  interior host b19677 shops interior 8 at (5141.2, -297.4)
+  interior host b19719 deco interior 13 at (5209.6, 641.7)
+  interior host b19771 condo interior 22 at (5114.6, 1602.3)
+  interior host b19788 deco interior 19 at (5127.3, 1986.5)
+  interior host b23718 villa interior 21 at (4515.5, -4191.7)
+  interior host b24842 warehouse interior 15 at (467.6, 3380.2)
+  interior host b25527 house interior 3 at (1106.8, 2674.7)
+  interior host b25538 warehouse interior 6 at (969.0, 2896.1)
+  interior host b26747 shops interior 1 at (1351.9, 329.5)
+  interior host b26846 midrise interior 10 at (1475.6, -271.7)
+  interior host b27288 warehouse interior 2 at (1562.9, 2374.7)
+  interior host b28142 midrise interior 0 at (1771.2, 370.6)
+  interior host b29044 warehouse interior 20 at (1975.3, 1491.3)
+  interior host b29601 shops interior 18 at (2278.5, -130.0)
+  interior host b29652 shops interior 11 at (2242.7, 527.5)
+  interior host b29914 midrise interior 14 at (2304.4, 3777.9)
+  interior host b31294 shops interior 17 at (2668.7, 1279.2)
+  interior host b32504 tower interior 4 at (3167.9, -221.6)
+  interior host b32545 shops interior 12 at (3077.1, 1476.7)
+  interior host b32997 shops interior 7 at (3272.8, 4017.7)
+  interior host b33543 condo interior 24 at (3527.4, -715.2)
+  interior host b35552 warehouse interior 9 at (4004.0, -820.0)
+  interior host b35599 midrise interior 5 at (1692.8, 1088.4)
+  2769 overlapping building pairs (0 of them envelope into envelope)
+
+worldcheck: passed

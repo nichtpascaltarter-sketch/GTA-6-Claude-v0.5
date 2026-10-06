@@ -1,0 +1,126 @@
+[   0.001] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.952] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16095 MB
+[   1.088] Font atlas built in 0.12 s
+[   1.098] Compiled ui.hlsl:vsUI (vs_5_0) in 0.00 s
+[   1.117] Compiled ui.hlsl:psUI (ps_5_0) in 0.01 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   1.137] Audio: no output device - audio disabled
+[   1.138] Audio: no output device, continuing silently
+[  12.952] World map generated in 11.81 s
+[  13.194] Road gen: 21 interchanges
+[  14.205] Road network: 6252 nodes, 10041 edges, 1732 signalized; hwy 60.1 km, streets 1186.7 km (1.25 s)
+[  15.339] Buildings: 36940 (towers 368, midrise 2449, condo 509, deco 844, shops 4788, strip 767, houses 22715, villas 794, warehouses 1673) in 1.11 s
+[  15.355] Compiled post.hlsl:vsFullscreen (vs_5_0) in 0.01 s
+[  16.990] Compiled lighting.hlsl:csLighting (cs_5_0) in 1.63 s
+[  17.033] Compiled sky.hlsl:csTransmittance (cs_5_0) in 0.04 s
+[  17.634] Compiled sky.hlsl:csMultiScatter (cs_5_0) in 0.60 s
+[  17.701] Compiled sky.hlsl:csSkyView (cs_5_0) in 0.07 s
+[  17.765] Compiled sky.hlsl:csAerialPerspective (cs_5_0) in 0.06 s
+[  18.155] Compiled sky.hlsl:csSkySH (cs_5_0) in 0.39 s
+[  18.231] Compiled post.hlsl:csLumReduce (cs_5_0) in 0.07 s
+[  18.244] Compiled post.hlsl:csExposure (cs_5_0) in 0.01 s
+[  18.270] Compiled post.hlsl:csBloomDown (cs_5_0) in 0.02 s
+[  18.282] Compiled post.hlsl:csBloomUp (cs_5_0) in 0.01 s
+[  18.381] Compiled taa.hlsl:csTAA (cs_5_0) in 0.10 s
+[  18.407] Compiled post.hlsl:psTonemap (ps_5_0) in 0.03 s
+[  18.426] Compiled terrain.hlsl:vsTerrain (vs_5_0) in 0.02 s
+[  18.435] Compiled terrain.hlsl:vsTerrainShadow (vs_5_0) in 0.01 s
+[  18.625] Compiled terrain.hlsl:psTerrain (ps_5_0) in 0.19 s
+[  19.130] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.50 s
+[  19.460] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.33 s
+[  19.947] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.49 s
+[  20.398] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.45 s
+[  20.814] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.41 s
+[  21.140] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.32 s
+[  21.395] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.25 s
+[  24.023] Compiled matgen.hlsl:csGenerate (cs_5_0) in 2.63 s
+[  25.019] Compiled matgen.hlsl:csGenerate (cs_5_0) in 1.00 s
+[  26.358] Compiled matgen.hlsl:csGenerate (cs_5_0) in 1.34 s
+[  26.650] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.29 s
+[  26.791] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.14 s
+[  27.285] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.49 s
+[  28.146] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.85 s
+[  28.387] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.24 s
+[  28.475] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.08 s
+[  28.561] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.08 s
+[  28.685] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.12 s
+[  28.771] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.08 s
+[  28.913] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.14 s
+[  29.011] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.09 s
+[  29.090] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.08 s
+[  29.214] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.12 s
+[  29.382] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.17 s
+[  29.417] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.03 s
+[  29.606] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.19 s
+[  29.637] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.03 s
+[  30.077] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.44 s
+[  30.083] Material library: 52 layers at 256^2
+[  30.156] Compiled world.hlsl:vsWorld (vs_5_0) in 0.07 s
+[  30.190] Compiled world.hlsl:vsWorldShadow (vs_5_0) in 0.01 s
+[  30.751] Compiled world.hlsl:psWorld (ps_5_0) in 0.54 s
+[  30.818] Compiled water.hlsl:vsWater (vs_5_0) in 0.07 s
+[  31.123] Compiled water.hlsl:psWater (ps_5_0) in 0.30 s
+[  31.161] Compiled water.hlsl:csWaveNormals (cs_5_0) in 0.04 s
+[  32.516] Compiled clouds.hlsl:csShapeNoise (cs_5_0) in 1.35 s
+[  32.963] Compiled clouds.hlsl:csDetailNoise (cs_5_0) in 0.44 s
+[  33.378] Compiled clouds.hlsl:csWeather (cs_5_0) in 0.41 s
+[  33.581] Compiled clouds.hlsl:csClouds (cs_5_0) in 0.19 s
+[  33.629] Compiled clouds.hlsl:csCloudShadow (cs_5_0) in 0.05 s
+[  33.828] Compiled props.hlsl:vsProp (vs_5_0) in 0.20 s
+[  33.979] Compiled props.hlsl:vsPropShadow (vs_5_0) in 0.14 s
+[  34.222] Compiled props.hlsl:psProp (ps_5_0) in 0.24 s
+[  34.267] Compiled props.hlsl:psPropShadow (ps_5_0) in 0.04 s
+[  37.388] Compiled foliage.hlsl:csFoliage (cs_5_0) in 3.11 s
+[  37.389] Props: 51 prototypes, 14371 verts
+[  37.415] Compiled dynamic.hlsl:vsRigid (vs_5_0) in 0.03 s
+[  37.455] Compiled dynamic.hlsl:vsSkinned (vs_5_0) in 0.04 s
+[  37.466] Compiled dynamic.hlsl:vsRigidShadow (vs_5_0) in 0.01 s
+[  37.522] Compiled dynamic.hlsl:vsSkinnedShadow (vs_5_0) in 0.05 s
+[  37.702] Compiled dynamic.hlsl:psDynamic (ps_5_0) in 0.16 s
+[  38.099] Vehicle 0: Sakaki Minnow (25722 tris)
+[  38.136] Vehicle 1: Hoshida Kiko (24852 tris)
+[  38.171] Vehicle 2: Aether Glint (24926 tris)
+[  38.209] Vehicle 3: Brennan Harbor (26132 tris)
+[  38.255] Vehicle 4: Hoshida Seiran (28212 tris)
+[  38.296] Vehicle 5: Nordwerk Falke 7 (27034 tris)
+[  38.333] Vehicle 6: Brennan Governor (25222 tris)
+[  38.371] Vehicle 7: Ardent Cavell GT (25192 tris)
+[  38.409] Vehicle 8: Hoshida Kaito (24308 tris)
+[  38.459] Vehicle 9: Brennan Sawgrass (29692 tris)
+[  38.511] Vehicle 10: Hoshida Kumo (28748 tris)
+[  38.557] Vehicle 11: Nordwerk Ostgrat X5 (29200 tris)
+[  38.591] Vehicle 12: Sakaki Tanuki (25854 tris)
+[  38.638] Vehicle 13: Brennan Palomino (28504 tris)
+[  38.685] Vehicle 14: Hoshida Tekko (26652 tris)
+[  38.722] Vehicle 15: Brennan Cutter '74 (23952 tris)
+[  38.765] Vehicle 16: Ardent Kestrel (24324 tris)
+[  38.811] Vehicle 17: Nordwerk Spree GT (21910 tris)
+[  38.842] Vehicle 18: Sakaki Kaze (19656 tris)
+[  38.880] Vehicle 19: Castiglia Orsa V12 (25132 tris)
+[  38.916] Vehicle 20: Aether Arclight (22968 tris)
+[  38.950] Vehicle 21: Ridley Scorch 392 (24216 tris)
+[  38.993] Vehicle 22: Ridley Gatorback '70 (24996 tris)
+[  39.032] Vehicle 23: Hoshida Tomo (29278 tris)
+[  39.079] Vehicle 24: Brennan Governor Patrol (30228 tris)
+[  39.142] Vehicle 25: Brennan Sawgrass Pursuit (34212 tris)
+[  39.184] Vehicle 26: Brennan Governor Cab (27382 tris)
+[  39.184] Init done in 38.05 s (shaders: 67 compiled in 22.16 s)
+[ 166.626] Saved Z:\tmp\vm_3.bmp
+[ 193.739] Saved Z:\tmp\vm_13.bmp
+[ 197.397] Shutdown complete.
+X connection to :100 broken (explicit kill or server shutdown).

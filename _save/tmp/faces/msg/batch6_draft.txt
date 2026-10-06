@@ -1,0 +1,21 @@
+faces snapshot-safe — batch 6 (eye sockets: lateral orbital rims, lower lid margin). Two files, based on main cda29a1.
+
+FILES (blobs written with git hash-object -w; copies in the shared tree and in /tmp/faces/batch6/)
+  src/anim/face.cpp          FACEHASH
+  tests/anim/anim_test.cpp   TESTHASH
+Unchanged from cda29a1: hair.cpp, clothing.cpp, bodymesh.cpp, character.cpp, preview.cpp. No character.h or shader changes.
+
+CHANGELOG (player-facing)
+- Each eye socket is now closed at the side by the lateral orbital rim: the cheekbone's frontal process rising to the brow's tail. Before, the socket's carve left a trench 6-10 mm deep at eye level, running past the outer eye corner to the temple. Its upper wall faced steeply down, so under a lamp or a high sun the socket's shade ran on to the side of the face. Now the skin beside the eye runs smoothly from the brow's tail to the cheekbone; the trench is at most 2.5 mm.
+- The pale crescent under each eye is gone. The lower lid's skin edge had taken the margin strip's normal (facing straight up, +68 deg), so the top of the lower lid lit up as a white "smile" under the iris. It now keeps a rounded edge (+24 deg), and only the 1 mm margin itself catches the light.
+- Honest size of the effect: it shows best at 0.5 m by day (the lower lids) and from three-quarter views under a lamp (no dark patch beside the outer eye corner). Straight on at 1 and 4 m it is subtle. The night "goggles" at 4 m stay: the sockets get almost no light at night (see the renderer note below).
+
+TESTS
+- anim_test: ALL PASSED on b6tree (cda29a1 + these two files), /tmp/faces/anim_test_b6.log. New check: "a trench beside the eye". It fails on cda29a1 for all 10 test faces (6.1-9.8 mm deep) and passes with batch 6 (<= 2.5 mm).
+- tests/anim/carview.cpp compiles and runs.
+- O2 build of b6tree: /tmp/faces/nt_b6_o2.exe.
+- Wine D3D12, 30 portraits (people 0 = Mari, 1 = Dex, 7, 17, 27, 38 at 0.5, 1 and 4 m by day; 1 and 4 m at night under the street lamp): PORTRAITS.
+- Perf, --autoplay tour --tourstart 7 --tourcount 1: PERF.
+
+MONTAGES (scratchpad = /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad)
+MONTAGELIST

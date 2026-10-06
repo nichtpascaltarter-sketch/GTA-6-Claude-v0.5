@@ -1,0 +1,3 @@
+medf1 front 14222 15 2 3 60 10
+medf2 front 14223 16 2 -3 60 10
+medf3 front 14170 15 2 3 60 10

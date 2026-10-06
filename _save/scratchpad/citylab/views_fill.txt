@@ -1,0 +1,12 @@
+fl_vac1 street 222.2 2922.5 70 -3 60 10
+fl_park1 street 276.0 3020.8 70 -3 60 10
+fl_park2 street 323.9 2922.9 70 -3 60 10
+cl_yard1 street 1679.5 329.1 70 -3 60 10
+cl_vac1 street 1827.8 225.0 70 -3 60 10
+cl_park1 street 1618.9 529.5 70 -3 60 10
+lk_yard1 street 316.3 6460.5 70 -3 60 10
+lk_park1 street 226.5 6501.8 70 -3 60 10
+fl_top aerial 400 2900 200 180 80 60 10
+nc_top aerial 2519 3736 200 180 80 60 10
+cv_top aerial 3000 1450 200 180 80 60 10
+cl_top aerial 1771 357 200 180 80 60 10

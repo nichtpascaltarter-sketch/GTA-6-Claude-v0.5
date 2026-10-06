@@ -1,0 +1,8 @@
+keys_t01 -1128 -7260
+keys_t03 -2700 -8200
+keys_t05 -4200 -8712
+keys_t07 -5900 -9100
+keys_t09 -7528 -9220
+mainland_south 0 -6300
+redland_a 800 -5400
+redland_b -1500 -5200

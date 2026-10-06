@@ -1,0 +1,10 @@
+sf_cl1 front 28153 16 1.7 3 60 14
+sf_cl2 front 28277 18 1.7 -3 60 14
+sf_cl3 front 26741 16 1.7 3 60 14
+sf_cl4 front 26880 17 1.7 -3 60 14
+sf_mt1 front 32029 18 1.7 3 60 14
+sf_sb1 front 19784 20 1.7 -3 60 14
+sf_bd1 front 29653 15 1.7 3 60 14
+sf_bd2 front 29003 15 1.7 -3 60 14
+sf_cl1n front 28153 16 1.7 3 60 21
+sf_sb1n front 19784 20 1.7 -3 60 21

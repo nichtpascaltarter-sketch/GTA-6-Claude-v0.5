@@ -1,0 +1,69 @@
+Set 14: the street watches the player's car.
+
+- Heads turn to screeching tyres:
+  - ai.cpp lists, every frame, the cars within 80 m of the player whose tyres have screeched for at least 0.25 s: braking hard, sliding or spinning, with wheel slip over 0.55 at over 4 m/s (VehAI::screechT, AIState::screech).
+  - Calm people within 30 m turn to look and follow the car with their eyes for 1.6-3 s, using the same follow as a passing siren.
+  - Now and then one says something ("Whoa!", "Slow down!" - BK_SCREECH), at least 7 s apart, from someone within 16 m of the car. Census: screech looks.
+- The player showing off in one spot (ai.cpp AIState::show*):
+  - A show starts after 2 s of the player's car spinning (yaw rate over 1.1 at over 2 m/s) or smoking its rear tyres (under 9 m/s), on the ground, within 20 m of where it began. No show while wanted or on a mission.
+  - It ends when the car leaves 40 m, stops for 4 s, or the player gets out.
+- Who reacts (pedai.cpp, once per show per person, within 36 m and in sight):
+  - Most stop to watch (ACT_WATCH with plShow): turned to the car as it goes round, stepping back out of its path, a cheer or a point every few seconds, and one shout at a time ("Yeah! Send it!" - BK_SHOW_CHEER). The bold mostly film it with the phone up.
+  - The steadier sort tut and walk on ("Grow up." - BK_SHOW_TUT); the timid hurry past.
+  - When it is over, the crowd breaks up over a few seconds, one in three with a last word ("That was insane!" - BK_SHOW_END).
+  - Officers on foot within 45 m call out ("Hey! Knock it off!" - BK_COP_SHOW) and go over for a look. There is no wanted level for it.
+  - Census: car shows (watchers, filming, tuts, cop calls).
+- The player's car standing over a crosswalk, or up on a sidewalk (pedai.cpp; AIState::plCarOnSidewalk from ai.cpp):
+  - People crossing round it (pednav.cpp already walks round a stopped car in the way) glare at the driver and say something: "Hey! I'm walking here!", "Really? On the crosswalk?" (BK_WALKING_HERE).
+  - The bold, with their hands free, slap the hood going past: a reach to the bodywork at hood height, and a soft metal thump.
+  - On a sidewalk: "Seriously? On the sidewalk?" (BK_SIDEWALK_CAR).
+  - Each person reacts at most once every 30 s, by temper: 90% of the bold, 50% of the rest, 20% of the timid.
+  - Census: crosswalk words (hood slaps), sidewalk car words.
+- The player's car stopped close by (under 1.5 m/s, within 9 m) with the radio on (pedai.cpp). Each person reacts at most once every 45 s; the reactions apply to people standing still (waiting at the kerb, or standing about or at a bus stop):
+  - The young, the out-on-the-town and the bold may dance to it for 4-8 s where they stand (stance 9 while still): 60% of the lively, 25% of the rest. Now and then one calls out ("Ayy, turn it up!" - BK_GOOD_SONG).
+  - The business sort and the timid look over, and 35% say something ("Turn that down!" - BK_LOUD_MUSIC).
+  - Census: radio dancers, radio complaints.
+- Show watchers are never picked from people out on a crosswalk, so nobody stops in the road to watch.
+- Tests:
+  - showoff: a muscle car in the middle of the nearest signalled crossing of two streets does 18 s of donuts (donutControls on the player's controls), stands 24 s, then drives off and does a handbrake slide at over 10 m/s.
+  - crosswalk: a sedan stops short of the nearest signalled crosswalk with the radio on from 6 s, moves up over the stripes with the radio off at 32 s, then goes up on the sidewalk by that corner at 64 s.
+- A possible hook for the UI owner (not done; not my files): a Tidegram event for a car show with three or more filming (TE_CAR_SHOW), so the feed posts about it.
+peds.cpp / game.h: nothing new for set 14. The hood slap uses the existing reach hook (PedAI::reachAt / reachT).
+
+Set 15: the player on foot, close by.
+
+- The player running past close (pedai.cpp): on foot, not wanted, at over 4.5 m/s within 2.3 m. People turn to look after them, and now and then say something ("Where's the fire?", "Jeez, slow down!" - BK_RUN_PAST; 45% of the bold, 25% of the rest, each person at most once every 20 s). Census: run pasts.
+- Late at night (22:00-05:00) on a quiet street (nobody else on foot within 25 m), someone walking alone who meets the player head-on 7-20 m off may be wary: the timid, 45% of women, 12% of the rest.
+  - The wary cross over to the other sidewalk if the street allows it (the same check as jaywalking: narrow, nothing coming, no car at the kerb in the way), with a look back.
+  - Otherwise they give the player as wide a berth as the sidewalk allows and walk a little faster.
+  - Census: night avoids (berths).
+  - pedai_detail::overTheStreet() is the jaywalk crossing check, moved into a helper without changes; jaywalking uses it too.
+- Tests:
+  - runby: the player sprints along downtown sidewalks for a minute, then walks a quiet Northside street at 23:30 (AIState::forceAvoid makes everyone alone wary).
+  - nightwalk: walkby's walk along Ocean Promenade at 22:30. This is the night-chat check for set 10: on nt_ai83's night run, downtown emptied at 23:00 and no pair passed close. It also exercises night avoids on the way.
+
+Set 16: getting into cars through the door (startCarEntry), and held hands.
+
+- ai.cpp namespace ai_board:
+  - begin: at the door, calls GameWorld::startCarEntry. On success the ped is held in PS_ENTERING (p.targetVehicle/targetSeat set; PedAI::boardVeh/boardVehUid/boardSeat/boardT), and pa.clipTimer is set to the clip length (police.cpp escortStep stands over a prisoner while it runs).
+  - step (updateBrain's PS_ENTERING branch): keeps the car's escortHold up so nobody drives off mid-clip. When the clip is over it calls warpPedIntoVehicle (which shuts the door) and then boarded().
+  - If the car is gone, wrecked or moving, or the seat is taken, the ped is put back on foot and the activity looks at the car again.
+  - boarded: each activity's own follow-up, moved there unchanged from the entry sites, so the door path and the plain path run the same code.
+- Entry sites switched (each falls back to today's plain CLIP_ENTER_CAR_* or warp when startCarEntry returns -1):
+  - pedai.cpp ACT_DRIVE_OFF (owners), ACT_RIDE_ALONG (companions; the car waits), ACT_CUFFED (the officer stands over the prisoner while the clip runs).
+  - Walk-backs, which now walk to the seat's door rather than to the car's middle:
+    - ACT_ERRAND (delivery drivers)
+    - ACT_ROADRAGE (road-rage and sorry drivers: to the driver's door, round the car)
+    - the EMS crew (to a free seat's door)
+    - ACT_COP_BREAK (the everybody-in check also counts a colleague still getting in)
+    - taxi fares (a kerb-side back seat's door)
+    - police.cpp officers returning to their car (to the seat's door; in all the same after 8 s if they can't reach it)
+  - Followers see a leader at its door as getting in: the ride-along checks accept PS_ENTERING with targetVehicle.
+- Kept instant: spawn-time warps, an officer bringing the car round to an escort, the jump back in during a chase, events.cpp's actors (they come in a later set), and BRAIN_FOLLOW.
+- Census: door entries (plain).
+- peds.cpp (the lead's): the couple block gets `in.grabAxis = vec3(0.f, 1.f, 0.f);`, so held hands hang fingers-down, palms square to the walk and to each other. The hunk:
+             in.grabTarget = vec3(dot(m, rightV), dot(m, fwd) + 0.05f, 0.93f);
+             in.grabWeight = 1.f;
++            in.grabAxis = vec3(0.f, 1.f, 0.f);   // (the clasp: both hands fingers-down, palms square to the walk and to each other)
+             in.passWeight = 0.f;   // (the other one at the elbow is no passer to lean away from)
+  nt_ai86 was built with b49bc7f's peds.cpp (5c6e2ff) plus this line: blob dbe0046df9d5d184571d212439191928fb836086.

@@ -1,0 +1,21 @@
+city snapshot-safe: district architecture for the ordinary blocks (batches 1+2), copied into the shared tree and MinGW-syntax-checked there.
+
+FILES (all src/world; blockstyle.cpp and massing.cpp are new and are included by buildings.cpp / buildmesh.cpp, not by main.cpp):
+  buildings.h, buildings.cpp, buildmesh.cpp, facadedetail.cpp, cellgen.cpp, blockstyle.cpp (new), massing.cpp (new)
+
+CHANGELOG (player-facing)
+- Ordinary buildings now come from district palettes of about 35 real types instead of a few generic boxes:
+  - shops: 1920s two-storey blocks with cornices, Mediterranean-revival shops under barrel-tile pent roofs, MiMo storefronts with canopy slabs, corner bodegas with side-wall murals, colonnaded arcades, island galleries;
+  - apartments and offices: brick walk-ups with fire escapes and water tanks, MiMo garden apartments round courts, Med-revival apartments with corner towers, 60s office slabs on pilotis, terraced modern mixed-use, brick lofts;
+  - Collins and Sol Beach: 70s balcony slabs, glass condos, MiMo resort hotels, podium condos, streamline-moderne and Med-revival hotels among the classic deco;
+  - houses: ranch, bungalow, Mediterranean, colonial two-storey, MiMo, split-level and Key West conch houses (double galleries, wrap-round porches, walkable porch decks with steps);
+  - villas: Mediterranean-revival with towers, white colonial with a two-storey columned portico, modernist;
+  - Ten Palms / Keys stilt houses (decks, stairs, porch roofs, gable / shed / hip tin roofs, cisterns);
+  - industry: sawtooth sheds, office-front warehouses, body shops.
+- Footprints are carved inside each lot (envelope, doors and interiors unchanged): L, U, courtyard, stepped front and back, split lots, corner towers, chamfered corners, rounded ends, wings, podium + slab. Roofs: parapets, eave slabs, tile hips and pents, terraces, metal gables, sawtooth, butterfly; flat roofs in white, gravel, silver or tar.
+- Each street side has a character (one type favoured, one avoided, neighbours rarely repeat); corner lots get corner types; per-building colour and wear. District colour: Caribbean in Calle Luna and the Flats, loud painted walls in the Canvas District, pastels on Sol Beach and in North Porto Sol, conch colours on the keys. Storefront glass stays clear so the shop reads through.
+- Street level: arcades with arches, arched window heads, streamline eyebrows, MiMo walkways, murals, loading doors, canopies, porches, porticos.
+- Block middles fill in: back houses, garage rows and sheds behind the street fronts, rear parking lots (stalls, wheel stops, a lamp, a dumpster), fenced lawns and paved service yards. Back buildings are style BS_GARAGE (skipped by AI doors/venues), kept 14 m clear of any street so story-place frontage search can't pick them.
+- Towers get district looks (blue / teal / silver / bronze / dark glass, white ribbon slabs, precast, granite, Collins balcony towers) and some special crowns.
+- For the renderer (ground cover): bool BuildingSet::pavedAt(vec2 p) const and int BuildingSet::pavedGrid(int cx, int cy, int n, std::vector<u8>& out) const (buildings.h). True on OL_PARKING / OL_SERVICE open lots, every building footprint (street, back, site), house garage wings and driveways, strip-mall / gas-station forecourts. Tested: pavedGrid matches pavedAt on 2.0 M samples over 490 cells (0 mismatches), 0.037 ms per 64x64 cell, pavedAt 0.29 us per call.
+- Debug log at load: "Buildings: repetition (...)" per district (blockstyle.cpp logRepetition).

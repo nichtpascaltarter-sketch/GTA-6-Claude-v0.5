@@ -1,0 +1,8 @@
+waiting for jobs13b and the dev14 build Tue Oct  6 06:37:22 UTC 2026
+jobs14 stopped: rebasing batch 10 on main b907098 Tue Oct  6 08:14:22 UTC 2026
+waiting for jobs13b and the dev14 build Tue Oct  6 08:14:39 UTC 2026
+start dev14 shots Tue Oct  6 08:32:40 UTC 2026
+start before shots (main b907098) Tue Oct  6 09:31:26 UTC 2026
+start dev14 regression Tue Oct  6 10:11:50 UTC 2026
+dev14 regression done: 27 passed, 0 segfaults Tue Oct  6 11:06:33 UTC 2026
+jobs14 done Tue Oct  6 11:06:33 UTC 2026

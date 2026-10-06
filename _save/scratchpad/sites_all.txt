@@ -1,0 +1,256 @@
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.10 s)
+World map generated in 29.49 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (3.14 s)
+Buildings: 36093 (towers 358, midrise 2400, condo 485, deco 838, shops 4829, strip 693, houses 21872, villas 928, warehouses 1686) in 2.37 s
+Sites: 66 highway billboards
+Sites: 112 silos, 55 windmills
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 557 elements (0.02 s)
+Interiors: 7 planned (convenience 7) in 1.8 ms
+  interior 'TideStop Mart' kind 8 building 3378 at (1449.11, -259.30, 4.30) ax (-1.0000, -0.0000) x -6.22..6.22 depth 17.00 ceil 3.45: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+  interior 'Bodega La Luna' kind 8 building 6349 at (2248.50, 540.78, 2.92) ax (-1.0000, -0.0000) x -5.89..5.89 depth 17.00 ceil 3.52: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Canvas Corner Market' kind 8 building 8799 at (2981.20, 1582.59, 2.26) ax (0.0000, 1.0000) x -8.23..4.94 depth 17.00 ceil 3.44: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Sunrise Food Mart' kind 8 building 31838 at (5227.60, 643.36, 1.78) ax (0.0000, 1.0000) x -7.92..7.92 depth 17.00 ceil 3.66: 2 rooms, 7 openings, 2 doors, 7 portals, 5 npc points
+  interior 'Northside Quick Stop' kind 8 building 6599 at (2352.84, 3761.68, 3.08) ax (1.0000, 0.0000) x -6.39..6.39 depth 17.00 ceil 3.53: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Flats Food & Fuel' kind 8 building 1225 at (458.12, 3265.33, 5.16) ax (1.0000, 0.0000) x -5.58..5.58 depth 17.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 5 npc points
+  interior 'Grove Pantry' kind 8 building 12464 at (2167.47, -3046.89, 2.30) ax (0.0184, -0.9998) x -6.03..6.03 depth 17.00 ceil 3.78: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+real world generated in 35.1 s (10030 roads, 36093 buildings)
+
+### Airport garage ramps and Port Isle (real models, streamed LOD0 collision)
+
+| model | route | completed | time | max pitch / roll deg | max drop per step m | scrape steps | impacts | stuck | health |
+|---|---|---|---|---|---|---|---|---|---|
+| Minnow | garage 1 ramp up -> roof | yes | 26 s | 7.0 / 2.7 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage1_down stuck at (909.1 1360.0 20.3) seg 3
+| Minnow | garage 1 roof -> ramp down | yes | 38 s | 7.1 / 2.6 | 0.01 | 0 | 0 | 1 | 999 |
+| Minnow | garage 2 ramp up -> roof | yes | 26 s | 7.0 / 2.7 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage2_down stuck at (909.1 1630.0 20.3) seg 3
+| Minnow | garage 2 roof -> ramp down | yes | 38 s | 7.1 / 2.6 | 0.01 | 0 | 0 | 1 | 1000 |
+| Minnow | Port Isle roads, crane rails, quay apron | yes | 159 s | 2.4 / 3.1 | 0.00 | 2 | 0 | 0 | 1000 |
+| Kiko | garage 1 ramp up -> roof | yes | 26 s | 7.0 / 2.0 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage1_down stuck at (909.2 1360.0 20.3) seg 3
+| Kiko | garage 1 roof -> ramp down | yes | 32 s | 7.0 / 2.9 | 0.01 | 0 | 1 | 1 | 999 |
+| Kiko | garage 2 ramp up -> roof | yes | 26 s | 7.0 / 2.0 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage2_down stuck at (909.3 1630.1 20.3) seg 3
+| Kiko | garage 2 roof -> ramp down | yes | 32 s | 7.1 / 2.8 | 0.01 | 0 | 1 | 1 | 999 |
+| Kiko | Port Isle roads, crane rails, quay apron | yes | 156 s | 1.9 / 2.2 | 0.00 | 0 | 0 | 0 | 1000 |
+| Glint | garage 1 ramp up -> roof | yes | 27 s | 7.0 / 2.2 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage1_down stuck at (908.6 1360.4 20.3) seg 3
+| Glint | garage 1 roof -> ramp down | yes | 55 s | 7.1 / 2.6 | 0.01 | 0 | 0 | 1 | 1000 |
+| Glint | garage 2 ramp up -> roof | yes | 27 s | 7.0 / 2.2 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage2_down stuck at (908.6 1629.6 20.3) seg 3
+| Glint | garage 2 roof -> ramp down | yes | 55 s | 7.1 / 2.2 | 0.01 | 0 | 0 | 1 | 1000 |
+| Glint | Port Isle roads, crane rails, quay apron | yes | 158 s | 1.8 / 2.5 | 0.00 | 12 | 0 | 0 | 1000 |
+| Harbor | garage 1 ramp up -> roof | yes | 26 s | 7.0 / 2.8 | 0.00 | 0 | 0 | 0 | 1000 |
+| Harbor | garage 1 roof -> ramp down | yes | 32 s | 7.1 / 2.7 | 0.01 | 0 | 0 | 0 | 1000 |
+| Harbor | garage 2 ramp up -> roof | yes | 26 s | 7.0 / 2.8 | 0.00 | 0 | 0 | 0 | 1000 |
+| Harbor | garage 2 roof -> ramp down | yes | 32 s | 7.1 / 2.7 | 0.01 | 0 | 0 | 0 | 1000 |
+| Harbor | Port Isle roads, crane rails, quay apron | yes | 158 s | 2.3 / 3.0 | 0.00 | 2 | 0 | 0 | 1000 |
+| Seiran | garage 1 ramp up -> roof | yes | 26 s | 7.0 / 2.6 | 0.00 | 0 | 0 | 0 | 1000 |
+| Seiran | garage 1 roof -> ramp down | yes | 32 s | 7.1 / 2.5 | 0.01 | 0 | 0 | 0 | 1000 |
+| Seiran | garage 2 ramp up -> roof | yes | 26 s | 7.0 / 2.6 | 0.00 | 0 | 0 | 0 | 1000 |
+| Seiran | garage 2 roof -> ramp down | yes | 31 s | 7.1 / 2.6 | 0.01 | 0 | 0 | 0 | 1000 |
+| Seiran | Port Isle roads, crane rails, quay apron | yes | 158 s | 2.1 / 2.8 | 0.00 | 4 | 0 | 0 | 1000 |
+| Falke 7 | garage 1 ramp up -> roof | yes | 26 s | 7.0 / 2.4 | 0.00 | 0 | 0 | 0 | 1000 |
+| Falke 7 | garage 1 roof -> ramp down | yes | 26 s | 7.1 / 3.5 | 0.01 | 0 | 0 | 0 | 1000 |
+| Falke 7 | garage 2 ramp up -> roof | yes | 26 s | 7.0 / 2.5 | 0.00 | 0 | 0 | 0 | 1000 |
+| Falke 7 | garage 2 roof -> ramp down | yes | 26 s | 7.1 / 3.7 | 0.01 | 0 | 0 | 0 | 1000 |
+| Falke 7 | Port Isle roads, crane rails, quay apron | yes | 158 s | 1.9 / 3.2 | 0.00 | 0 | 0 | 0 | 1000 |
+| Governor | garage 1 ramp up -> roof | yes | 26 s | 7.1 / 2.7 | 0.00 | 0 | 0 | 0 | 1000 |
+| Governor | garage 1 roof -> ramp down | yes | 26 s | 7.2 / 4.0 | 0.01 | 0 | 0 | 0 | 1000 |
+| Governor | garage 2 ramp up -> roof | yes | 26 s | 7.1 / 2.7 | 0.00 | 0 | 0 | 0 | 1000 |
+| Governor | garage 2 roof -> ramp down | yes | 26 s | 7.1 / 4.0 | 0.01 | 0 | 0 | 0 | 1000 |
+| Governor | Port Isle roads, crane rails, quay apron | yes | 160 s | 2.5 / 3.4 | 0.00 | 0 | 0 | 0 | 1000 |
+| Cavell GT | garage 1 ramp up -> roof | yes | 26 s | 7.0 / 1.5 | 0.00 | 0 | 0 | 0 | 1000 |
+| Cavell GT | garage 1 roof -> ramp down | yes | 26 s | 7.0 / 4.6 | 0.01 | 1 | 0 | 0 | 1000 |
+| Cavell GT | garage 2 ramp up -> roof | yes | 26 s | 7.0 / 1.4 | 0.00 | 0 | 0 | 0 | 1000 |
+| Cavell GT | garage 2 roof -> ramp down | yes | 26 s | 7.0 / 4.5 | 0.01 | 2 | 0 | 0 | 1000 |
+| Cavell GT | Port Isle roads, crane rails, quay apron | yes | 158 s | 1.4 / 1.4 | 0.00 | 0 | 0 | 0 | 1000 |
+| Kaito | garage 1 ramp up -> roof | yes | 26 s | 7.0 / 1.4 | 0.00 | 0 | 0 | 0 | 1000 |
+| Kaito | garage 1 roof -> ramp down | yes | 26 s | 7.1 / 4.4 | 0.01 | 0 | 0 | 0 | 999 |
+| Kaito | garage 2 ramp up -> roof | yes | 26 s | 7.0 / 1.4 | 0.00 | 0 | 0 | 0 | 1000 |
+| Kaito | garage 2 roof -> ramp down | yes | 26 s | 7.1 / 4.6 | 0.01 | 0 | 0 | 0 | 999 |
+| Kaito | Port Isle roads, crane rails, quay apron | yes | 159 s | 1.5 / 1.5 | 0.00 | 0 | 0 | 0 | 1000 |
+| Sawgrass | garage 1 ramp up -> roof | yes | 26 s | 7.3 / 3.0 | 0.00 | 0 | 0 | 0 | 1000 |
+| Sawgrass | garage 1 roof -> ramp down | yes | 26 s | 7.2 / 4.7 | 0.01 | 0 | 0 | 0 | 1000 |
+| Sawgrass | garage 2 ramp up -> roof | yes | 26 s | 7.3 / 3.0 | 0.00 | 0 | 0 | 0 | 1000 |
+| Sawgrass | garage 2 roof -> ramp down | yes | 26 s | 7.4 / 4.4 | 0.01 | 2 | 0 | 0 | 1000 |
+| Sawgrass | Port Isle roads, crane rails, quay apron | yes | 159 s | 2.9 / 3.4 | 0.00 | 0 | 0 | 0 | 1000 |
+| Kumo | garage 1 ramp up -> roof | yes | 26 s | 7.0 / 3.7 | 0.00 | 0 | 0 | 0 | 1000 |
+| Kumo | garage 1 roof -> ramp down | yes | 27 s | 7.2 / 3.5 | 0.01 | 0 | 0 | 0 | 1000 |
+| Kumo | garage 2 ramp up -> roof | yes | 26 s | 7.0 / 3.7 | 0.00 | 0 | 0 | 0 | 1000 |
+| Kumo | garage 2 roof -> ramp down | yes | 27 s | 7.1 / 3.5 | 0.01 | 0 | 0 | 0 | 1000 |
+| Kumo | Port Isle roads, crane rails, quay apron | yes | 158 s | 3.3 / 3.5 | 0.00 | 0 | 0 | 0 | 1000 |
+| Ostgrat X5 | garage 1 ramp up -> roof | yes | 26 s | 7.1 / 3.2 | 0.00 | 0 | 0 | 0 | 1000 |
+| Ostgrat X5 | garage 1 roof -> ramp down | yes | 25 s | 7.2 / 3.6 | 0.01 | 0 | 0 | 0 | 1000 |
+| Ostgrat X5 | garage 2 ramp up -> roof | yes | 26 s | 7.1 / 3.2 | 0.00 | 0 | 0 | 0 | 1000 |
+| Ostgrat X5 | garage 2 roof -> ramp down | yes | 25 s | 7.2 / 3.5 | 0.01 | 0 | 0 | 0 | 1000 |
+| Ostgrat X5 | Port Isle roads, crane rails, quay apron | yes | 157 s | 2.8 / 3.6 | 0.00 | 0 | 0 | 0 | 1000 |
+| Tanuki | garage 1 ramp up -> roof | yes | 26 s | 7.7 / 5.9 | 0.00 | 0 | 0 | 0 | 1000 |
+| Tanuki | garage 1 roof -> ramp down | yes | 26 s | 7.4 / 6.9 | 0.01 | 0 | 0 | 0 | 1000 |
+| Tanuki | garage 2 ramp up -> roof | yes | 26 s | 7.7 / 6.1 | 0.00 | 0 | 0 | 0 | 1000 |
+| Tanuki | garage 2 roof -> ramp down | yes | 26 s | 7.4 / 6.3 | 0.01 | 0 | 0 | 0 | 1000 |
+| Tanuki | Port Isle roads, crane rails, quay apron | yes | 158 s | 5.8 / 6.7 | 0.00 | 0 | 0 | 0 | 1000 |
+| Palomino | garage 1 ramp up -> roof | yes | 27 s | 7.3 / 3.0 | 0.00 | 0 | 0 | 0 | 1000 |
+| Palomino | garage 1 roof -> ramp down | yes | 27 s | 7.2 / 3.5 | 0.01 | 0 | 0 | 0 | 1000 |
+| Palomino | garage 2 ramp up -> roof | yes | 27 s | 7.3 / 3.0 | 0.00 | 0 | 0 | 0 | 1000 |
+| Palomino | garage 2 roof -> ramp down | yes | 27 s | 7.2 / 3.5 | 0.01 | 0 | 0 | 0 | 1000 |
+| Palomino | Port Isle roads, crane rails, quay apron | yes | 161 s | 2.1 / 3.4 | 0.00 | 0 | 0 | 0 | 1000 |
+| Tekko | garage 1 ramp up -> roof | yes | 27 s | 7.3 / 3.8 | 0.00 | 0 | 0 | 0 | 1000 |
+| Tekko | garage 1 roof -> ramp down | yes | 28 s | 7.3 / 4.2 | 0.01 | 0 | 0 | 0 | 1000 |
+| Tekko | garage 2 ramp up -> roof | yes | 27 s | 7.3 / 3.8 | 0.00 | 0 | 0 | 0 | 1000 |
+| Tekko | garage 2 roof -> ramp down | yes | 28 s | 7.3 / 3.8 | 0.01 | 0 | 0 | 0 | 1000 |
+| Tekko | Port Isle roads, crane rails, quay apron | yes | 160 s | 2.8 / 4.0 | 0.00 | 0 | 0 | 0 | 1000 |
+| Cutter '74 | garage 1 ramp up -> roof | yes | 27 s | 7.1 / 3.7 | 0.00 | 0 | 0 | 0 | 1000 |
+| Cutter '74 | garage 1 roof -> ramp down | yes | 29 s | 7.2 / 3.7 | 0.01 | 0 | 0 | 0 | 1000 |
+| Cutter '74 | garage 2 ramp up -> roof | yes | 27 s | 7.1 / 3.7 | 0.00 | 0 | 0 | 0 | 1000 |
+| Cutter '74 | garage 2 roof -> ramp down | yes | 29 s | 7.2 / 3.6 | 0.01 | 0 | 0 | 0 | 1000 |
+| Cutter '74 | Port Isle roads, crane rails, quay apron | yes | 167 s | 3.0 / 4.9 | 0.00 | 0 | 0 | 0 | 1000 |
+| Kestrel | garage 1 ramp up -> roof | yes | 26 s | 7.0 / 1.3 | 0.00 | 0 | 0 | 0 | 1000 |
+| Kestrel | garage 1 roof -> ramp down | yes | 25 s | 7.1 / 5.3 | 0.01 | 1 | 0 | 0 | 1000 |
+| Kestrel | garage 2 ramp up -> roof | yes | 26 s | 7.0 / 1.3 | 0.00 | 0 | 0 | 0 | 1000 |
+| Kestrel | garage 2 roof -> ramp down | yes | 25 s | 7.1 / 5.3 | 0.01 | 1 | 0 | 0 | 1000 |
+| Kestrel | Port Isle roads, crane rails, quay apron | yes | 158 s | 1.2 / 0.9 | 0.00 | 0 | 0 | 0 | 1000 |
+| Spree GT | garage 1 ramp up -> roof | yes | 26 s | 7.0 / 1.2 | 0.00 | 0 | 0 | 0 | 1000 |
+| Spree GT | garage 1 roof -> ramp down | yes | 25 s | 7.1 / 4.8 | 0.01 | 2 | 0 | 0 | 1000 |
+| Spree GT | garage 2 ramp up -> roof | yes | 26 s | 7.0 / 1.2 | 0.00 | 0 | 0 | 0 | 1000 |
+| Spree GT | garage 2 roof -> ramp down | yes | 25 s | 7.0 / 4.8 | 0.01 | 1 | 0 | 0 | 1000 |
+| Spree GT | Port Isle roads, crane rails, quay apron | yes | 158 s | 1.4 / 1.1 | 0.00 | 0 | 0 | 0 | 1000 |
+| Kaze | garage 1 ramp up -> roof | yes | 26 s | 7.0 / 1.3 | 0.00 | 0 | 0 | 0 | 1000 |
+| Kaze | garage 1 roof -> ramp down | yes | 26 s | 7.1 / 4.7 | 0.01 | 0 | 0 | 0 | 999 |
+| Kaze | garage 2 ramp up -> roof | yes | 26 s | 7.0 / 1.3 | 0.00 | 0 | 0 | 0 | 1000 |
+| Kaze | garage 2 roof -> ramp down | yes | 26 s | 7.1 / 4.8 | 0.01 | 0 | 0 | 0 | 999 |
+| Kaze | Port Isle roads, crane rails, quay apron | yes | 158 s | 1.5 / 1.2 | 0.00 | 0 | 0 | 0 | 1000 |
+| Orsa V12 | garage 1 ramp up -> roof | yes | 26 s | 7.0 / 1.2 | 0.00 | 0 | 0 | 0 | 1000 |
+| Orsa V12 | garage 1 roof -> ramp down | yes | 25 s | 7.0 / 4.5 | 0.01 | 2 | 0 | 0 | 1000 |
+| Orsa V12 | garage 2 ramp up -> roof | yes | 26 s | 7.0 / 1.2 | 0.00 | 0 | 0 | 0 | 1000 |
+| Orsa V12 | garage 2 roof -> ramp down | yes | 25 s | 7.0 / 4.6 | 0.01 | 2 | 0 | 0 | 1000 |
+| Orsa V12 | Port Isle roads, crane rails, quay apron | yes | 155 s | 0.8 / 0.5 | 0.00 | 0 | 0 | 0 | 1000 |
+| Arclight | garage 1 ramp up -> roof | yes | 26 s | 7.0 / 1.2 | 0.00 | 0 | 0 | 0 | 1000 |
+| Arclight | garage 1 roof -> ramp down | yes | 25 s | 7.1 / 4.8 | 0.01 | 2 | 0 | 0 | 1000 |
+| Arclight | garage 2 ramp up -> roof | yes | 26 s | 7.0 / 1.2 | 0.00 | 0 | 0 | 0 | 1000 |
+| Arclight | garage 2 roof -> ramp down | yes | 25 s | 7.0 / 5.0 | 0.01 | 2 | 0 | 0 | 1000 |
+| Arclight | Port Isle roads, crane rails, quay apron | yes | 154 s | 0.7 / 0.6 | 0.00 | 0 | 0 | 0 | 1000 |
+| Scorch 392 | garage 1 ramp up -> roof | yes | 26 s | 7.0 / 1.9 | 0.00 | 0 | 0 | 0 | 1000 |
+| Scorch 392 | garage 1 roof -> ramp down | yes | 27 s | 7.1 / 3.8 | 0.01 | 0 | 0 | 0 | 1000 |
+| Scorch 392 | garage 2 ramp up -> roof | yes | 26 s | 7.0 / 1.9 | 0.00 | 0 | 0 | 0 | 1000 |
+| Scorch 392 | garage 2 roof -> ramp down | yes | 27 s | 7.0 / 3.6 | 0.01 | 0 | 0 | 0 | 1000 |
+| Scorch 392 | Port Isle roads, crane rails, quay apron | yes | 160 s | 1.8 / 2.6 | 0.00 | 0 | 0 | 0 | 1000 |
+| Gatorback '70 | garage 1 ramp up -> roof | yes | 27 s | 7.0 / 2.0 | 0.00 | 0 | 0 | 0 | 1000 |
+| Gatorback '70 | garage 1 roof -> ramp down | yes | 28 s | 7.1 / 3.9 | 0.01 | 0 | 0 | 0 | 1000 |
+| Gatorback '70 | garage 2 ramp up -> roof | yes | 27 s | 7.0 / 2.0 | 0.00 | 0 | 0 | 0 | 1000 |
+| Gatorback '70 | garage 2 roof -> ramp down | yes | 28 s | 7.1 / 4.0 | 0.01 | 0 | 0 | 0 | 1000 |
+| Gatorback '70 | Port Isle roads, crane rails, quay apron | yes | 181 s | 2.0 / 3.5 | 0.00 | 6 | 0 | 0 | 1000 |
+| Tomo | garage 1 ramp up -> roof | yes | 26 s | 7.0 / 2.3 | 0.00 | 0 | 0 | 0 | 1000 |
+| Tomo | garage 1 roof -> ramp down | yes | 32 s | 7.1 / 2.8 | 0.01 | 0 | 0 | 0 | 1000 |
+| Tomo | garage 2 ramp up -> roof | yes | 26 s | 7.0 / 2.3 | 0.00 | 0 | 0 | 0 | 1000 |
+| Tomo | garage 2 roof -> ramp down | yes | 32 s | 7.2 / 2.7 | 0.01 | 0 | 0 | 0 | 1000 |
+| Tomo | Port Isle roads, crane rails, quay apron | yes | 160 s | 2.6 / 2.6 | 0.00 | 0 | 0 | 0 | 1000 |
+| Governor Patrol | garage 1 ramp up -> roof | yes | 26 s | 7.1 / 1.4 | 0.00 | 0 | 0 | 0 | 1000 |
+| Governor Patrol | garage 1 roof -> ramp down | yes | 26 s | 7.4 / 4.5 | 0.01 | 0 | 0 | 0 | 1000 |
+| Governor Patrol | garage 2 ramp up -> roof | yes | 26 s | 7.1 / 1.4 | 0.00 | 0 | 0 | 0 | 1000 |
+| Governor Patrol | garage 2 roof -> ramp down | yes | 26 s | 7.3 / 4.7 | 0.01 | 0 | 0 | 0 | 1000 |
+| Governor Patrol | Port Isle roads, crane rails, quay apron | yes | 159 s | 1.8 / 1.7 | 0.00 | 0 | 0 | 0 | 1000 |
+| Sawgrass Pursuit | garage 1 ramp up -> roof | yes | 26 s | 7.3 / 1.6 | 0.00 | 0 | 0 | 0 | 1000 |
+| Sawgrass Pursuit | garage 1 roof -> ramp down | yes | 26 s | 7.3 / 3.8 | 0.01 | 0 | 0 | 0 | 1000 |
+| Sawgrass Pursuit | garage 2 ramp up -> roof | yes | 26 s | 7.3 / 1.6 | 0.00 | 0 | 0 | 0 | 1000 |
+| Sawgrass Pursuit | garage 2 roof -> ramp down | yes | 26 s | 7.3 / 4.1 | 0.01 | 0 | 0 | 0 | 1000 |
+| Sawgrass Pursuit | Port Isle roads, crane rails, quay apron | yes | 157 s | 2.0 / 2.0 | 0.00 | 0 | 0 | 0 | 1000 |
+| Governor Cab | garage 1 ramp up -> roof | yes | 26 s | 7.1 / 2.7 | 0.00 | 0 | 0 | 0 | 1000 |
+| Governor Cab | garage 1 roof -> ramp down | yes | 26 s | 7.2 / 4.1 | 0.01 | 0 | 0 | 0 | 1000 |
+| Governor Cab | garage 2 ramp up -> roof | yes | 26 s | 7.1 / 2.7 | 0.00 | 0 | 0 | 0 | 1000 |
+| Governor Cab | garage 2 roof -> ramp down | yes | 26 s | 7.1 / 4.0 | 0.01 | 0 | 0 | 0 | 1000 |
+| Governor Cab | Port Isle roads, crane rails, quay apron | yes | 160 s | 2.5 / 3.4 | 0.00 | 0 | 0 | 0 | 1000 |
+| Stevedore | garage 1 ramp up -> roof | yes | 27 s | 7.1 / 2.3 | 0.00 | 0 | 0 | 0 | 1000 |
+| Stevedore | garage 1 roof -> ramp down | yes | 26 s | 7.1 / 3.2 | 0.01 | 0 | 0 | 0 | 1000 |
+| Stevedore | garage 2 ramp up -> roof | yes | 27 s | 7.1 / 2.3 | 0.00 | 0 | 0 | 0 | 1000 |
+| Stevedore | garage 2 roof -> ramp down | yes | 26 s | 7.1 / 2.8 | 0.01 | 0 | 0 | 0 | 1000 |
+| Stevedore | Port Isle roads, crane rails, quay apron | yes | 161 s | 1.8 / 3.0 | 0.00 | 0 | 0 | 0 | 1000 |
+| Parcel P70 | garage 1 ramp up -> roof | yes | 27 s | 7.1 / 2.8 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage1_down stuck at (913.7 1356.9 20.0) seg 3
+| Parcel P70 | garage 1 roof -> ramp down | NO | -1 s | 4.6 / 8.8 | 0.01 | 0 | 0 | 1 | 1000 |
+| Parcel P70 | garage 2 ramp up -> roof | yes | 27 s | 7.1 / 2.8 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage2_down stuck at (913.8 1633.5 20.0) seg 3
+| Parcel P70 | garage 2 roof -> ramp down | yes | 54 s | 7.1 / 9.1 | 0.01 | 0 | 0 | 1 | 1000 |
+| Parcel P70 | Port Isle roads, crane rails, quay apron | yes | 167 s | 1.4 / 2.0 | 0.00 | 0 | 0 | 0 | 1000 |
+| Packhorse 26 | garage 1 ramp up -> roof | yes | 28 s | 7.1 / 6.5 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage1_down stuck at (913.1 1358.2 20.1) seg 3
+| Packhorse 26 | garage 1 roof -> ramp down | NO | -1 s | 3.2 / 4.8 | 0.00 | 0 | 1 | 1 | 998 |
+| Packhorse 26 | garage 2 ramp up -> roof | yes | 28 s | 7.1 / 6.5 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage2_down stuck at (913.2 1632.0 20.1) seg 3
+| Packhorse 26 | garage 2 roof -> ramp down | NO | -1 s | 3.6 / 5.2 | 0.00 | 0 | 1 | 1 | 999 |
+| Packhorse 26 | Port Isle roads, crane rails, quay apron | yes | 170 s | 1.2 / 1.7 | 0.00 | 0 | 0 | 0 | 1000 |
+| Longbow 9 | garage 1 ramp up -> roof | yes | 28 s | 7.0 / 3.4 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage1_down stuck at (912.9 1357.8 20.1) seg 3
+EVENT garage1_down stuck at (913.0 1357.4 20.1) seg 3
+| Longbow 9 | garage 1 roof -> ramp down | yes | 48 s | 7.1 / 4.8 | 0.01 | 0 | 0 | 2 | 1000 |
+| Longbow 9 | garage 2 ramp up -> roof | yes | 28 s | 7.0 / 3.4 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage2_down stuck at (912.9 1632.0 20.1) seg 3
+EVENT garage2_down stuck at (913.0 1632.6 20.1) seg 3
+| Longbow 9 | garage 2 roof -> ramp down | yes | 63 s | 7.1 / 4.9 | 0.01 | 0 | 0 | 2 | 1000 |
+| Longbow 9 | Port Isle roads, crane rails, quay apron | yes | 170 s | 0.8 / 1.5 | 0.00 | 0 | 0 | 0 | 1000 |
+| Compactor | garage 1 ramp up -> roof | yes | 29 s | 7.1 / 4.9 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage1_down stuck at (912.6 1358.7 20.2) seg 3
+| Compactor | garage 1 roof -> ramp down | NO | -1 s | 2.3 / 2.4 | 0.00 | 0 | 1 | 1 | 997 |
+| Compactor | garage 2 ramp up -> roof | yes | 29 s | 7.1 / 4.9 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage2_down stuck at (912.6 1631.2 20.2) seg 3
+| Compactor | garage 2 roof -> ramp down | NO | -1 s | 2.0 / 2.1 | 0.01 | 0 | 0 | 1 | 999 |
+| Compactor | Port Isle roads, crane rails, quay apron | yes | 176 s | 0.8 / 1.5 | 0.00 | 0 | 0 | 0 | 1000 |
+| Lifeline | garage 1 ramp up -> roof | yes | 27 s | 7.1 / 2.3 | 0.00 | 0 | 0 | 0 | 1000 |
+| Lifeline | garage 1 roof -> ramp down | yes | 27 s | 7.1 / 10.1 | 0.01 | 1 | 0 | 0 | 1000 |
+| Lifeline | garage 2 ramp up -> roof | yes | 27 s | 7.1 / 2.3 | 0.00 | 0 | 0 | 0 | 1000 |
+| Lifeline | garage 2 roof -> ramp down | yes | 26 s | 7.2 / 4.9 | 0.01 | 2 | 0 | 0 | 1000 |
+| Lifeline | Port Isle roads, crane rails, quay apron | yes | 163 s | 1.6 / 3.0 | 0.00 | 0 | 0 | 0 | 1000 |
+| Guardian Pumper | garage 1 ramp up -> roof | yes | 29 s | 7.2 / 7.0 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage1_down stuck at (912.7 1358.5 20.2) seg 3
+| Guardian Pumper | garage 1 roof -> ramp down | NO | -1 s | 2.9 / 4.7 | 0.01 | 0 | 0 | 1 | 1000 |
+| Guardian Pumper | garage 2 ramp up -> roof | yes | 29 s | 7.2 / 7.0 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage2_down stuck at (912.7 1631.4 20.2) seg 3
+| Guardian Pumper | garage 2 roof -> ramp down | NO | -1 s | 2.9 / 4.7 | 0.00 | 0 | 0 | 1 | 1000 |
+| Guardian Pumper | Port Isle roads, crane rails, quay apron | yes | 175 s | 1.0 / 1.3 | 0.00 | 0 | 0 | 0 | 1000 |
+| Boulevard | garage 1 ramp up -> roof | yes | 29 s | 7.1 / 7.4 | 0.01 | 0 | 0 | 0 | 1000 |
+EVENT garage1_down stuck at (910.9 1359.8 20.2) seg 3
+| Boulevard | garage 1 roof -> ramp down | NO | -1 s | 1.5 / 2.2 | 0.01 | 0 | 0 | 1 | 1000 |
+| Boulevard | garage 2 ramp up -> roof | yes | 29 s | 7.1 / 7.4 | 0.01 | 0 | 0 | 0 | 1000 |
+EVENT garage2_down stuck at (910.9 1630.2 20.2) seg 3
+| Boulevard | garage 2 roof -> ramp down | NO | -1 s | 1.7 / 3.4 | 0.00 | 0 | 1 | 1 | 997 |
+| Boulevard | Port Isle roads, crane rails, quay apron | yes | 174 s | 0.7 / 1.3 | 0.00 | 0 | 0 | 0 | 1000 |
+| Raijin 1000 | garage 1 ramp up -> roof | yes | 26 s | 13.6 / 42.9 | 0.01 | 0 | 0 | 0 | 1000 |
+| Raijin 1000 | garage 1 roof -> ramp down | yes | 25 s | 13.4 / 42.3 | 0.01 | 0 | 0 | 0 | 1000 |
+| Raijin 1000 | garage 2 ramp up -> roof | yes | 26 s | 13.5 / 42.9 | 0.01 | 0 | 0 | 0 | 1000 |
+| Raijin 1000 | garage 2 roof -> ramp down | yes | 25 s | 13.4 / 42.1 | 0.01 | 0 | 0 | 0 | 1000 |
+| Raijin 1000 | Port Isle roads, crane rails, quay apron | yes | 167 s | 17.0 / 51.7 | 0.01 | 0 | 1 | 0 | 1000 |
+| Sundowner 1800 | garage 1 ramp up -> roof | yes | 26 s | 7.2 / 36.5 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage1_down rider off at (908.3 1360.7 20.3) seg 3
+| Sundowner 1800 | garage 1 roof -> ramp down | NO | 5 s | 3.1 / 27.3 | 0.01 | 0 | 1 | 0 | 997 |
+| Sundowner 1800 | garage 2 ramp up -> roof | yes | 26 s | 7.2 / 36.5 | 0.00 | 0 | 0 | 0 | 1000 |
+EVENT garage2_down rider off at (908.3 1629.3 20.3) seg 3
+| Sundowner 1800 | garage 2 roof -> ramp down | NO | 5 s | 3.1 / 27.2 | 0.01 | 0 | 1 | 0 | 997 |
+| Sundowner 1800 | Port Isle roads, crane rails, quay apron | yes | 163 s | 3.8 / 42.0 | 0.00 | 0 | 0 | 0 | 1000 |
+| Mochi 125 | garage 1 ramp up -> roof | yes | 30 s | 7.2 / 15.9 | 0.00 | 0 | 0 | 0 | 1000 |
+| Mochi 125 | garage 1 roof -> ramp down | yes | 31 s | 7.5 / 13.1 | 0.01 | 0 | 1 | 0 | 1000 |
+| Mochi 125 | garage 2 ramp up -> roof | yes | 30 s | 7.2 / 15.7 | 0.00 | 0 | 0 | 0 | 1000 |
+| Mochi 125 | garage 2 roof -> ramp down | yes | 31 s | 7.6 / 13.1 | 0.01 | 0 | 1 | 0 | 1000 |
+| Mochi 125 | Port Isle roads, crane rails, quay apron | yes | 177 s | 4.6 / 29.1 | 0.00 | 0 | 0 | 0 | 1000 |

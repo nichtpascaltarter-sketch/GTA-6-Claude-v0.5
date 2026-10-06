@@ -1,0 +1,137 @@
+Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+Places: Palmera Speedway at (400, 5790), ground 6.8
+Places: layout , 5 places, 624 anchors
+Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested 
+Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km 
+Transit: 0 buildings cleared from the SkyLine corridor
+Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+Places: after the lots 
+Sites: 69 highway billboards
+Sites: 155 silos, 50 windmills
+Sites: 245 beach access paths
+Transit: 3 ferry piers, 1 routes, 4.24 km of water path 
+Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+Transit: 4 bus routes, 64 stops (48 new shelters) ; rejects class 1107 cut 1945 deck 72 road 119 avoid 0 pad 2 furn 283 stop 0
+Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min 
+Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) 
+Transit: station Calle Luna       s    691 at (1850, -629) rail treet 3.1 exits -1/+1
+Transit: station Solaris          s   1891 at (3050, -629) rail treet 1.5 exits -1/+1
+Transit: station Civic Center     s   3068 at (3275, 400) rail treet 1.5 exits -1/+1
+Transit: station Midtown          s   3868 at (3275, 1200) rail treet 1.6 exits -1/+1
+Transit: station Canvas District  s   4644 at (2750, 1529) rail treet 2.2 exits -1/+1
+Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail treet 3.5 exits -1/+1
+Transit: station Airport          s   6567 at (979, 1300) rail treet 4.3 exits -1/+1
+Transit: station Westbrook        s   8067 at (979, -200) rail treet 4.4 exits -1/+1
+Sites finalized: 1486 elements 
+Transit: 0 buildings cleared from the SkyLine corridor
+Transit: 0 buildings cleared from the SkyLine corridor
+Transit: SkyLine timetable built : loop 12.4 / 12.4 min, 4 trains per direction, headway 3.1 min
+Transit: 9 lines published to the map
+Transit: SkyLine car models registered as vehicle assets 45 / 46
+Transit: 4 route bus models (destination signs) in 478 ms
+Transit: 64 bus stops registered with the AI (48 lane stops added, 240 waiting spots)
+Transit: 15 buses on 4 routes
+Transit: Bay Ferry timetable: loop 13.2 min, 2 ferries, headway 6.6 min
+Transit: Sol Ferry model registered as vehicle asset 51
+Transit: streetcar modules registered as vehicle assets 52 53 54
+Transit: 16 streetcar stops registered (16 curb lanes kept clear)
+Transit: 4 streetcars on the 6.24 km loop, 16 stops, 65/65 junction movements found
+Transit: /frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 0 trains materialized, 0 waiters, 4 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 0 trains materialized, 0 waiters, 2 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 0 trains materialized, 1 waiters, 3 walkers, boardings 0/0 riders 0/0
+Transit: /frame avg, 1 trains materialized, 0 waiters, 4 walkers, boardings 0/0 riders 1/1
+Transit: /frame avg, 1 trains materialized, 3 waiters, 2 walkers, boardings 0/0 riders 2/1
+Transit: /frame avg, 1 trains materialized, 4 waiters, 1 walkers, boardings 0/0 riders 2/1
+Transit: /frame avg, 1 trains materialized, 4 waiters, 2 walkers, boardings 0/0 riders 4/2
+Transit: /frame avg, 1 trains materialized, 0 waiters, 2 walkers, boardings 0/0 riders 4/2
+Transit: /frame avg, 1 trains materialized, 3 waiters, 5 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 5 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 1 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 2 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 2 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 2 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 1 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 1 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 4 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 1 trains materialized, 1 waiters, 8 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 1 trains materialized, 4 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 1 trains materialized, 4 waiters, 0 walkers, boardings 0/0 riders 5/5
+Transit: /frame avg, 1 trains materialized, 3 waiters, 1 walkers, boardings 0/0 riders 7/5
+Transit: /frame avg, 1 trains materialized, 4 waiters, 0 walkers, boardings 0/0 riders 7/5
+Transit: /frame avg, 1 trains materialized, 3 waiters, 2 walkers, boardings 0/0 riders 8/6
+Transit: /frame avg, 2 trains materialized, 0 waiters, 1 walkers, boardings 0/0 riders 8/6
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 10/7
+Transit: /frame avg, 2 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 10/7
+Transit: /frame avg, 2 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 10/7
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 10/7
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 10/7
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 10/7
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 10/7
+Transit: /frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 10/7

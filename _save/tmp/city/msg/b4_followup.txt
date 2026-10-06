@@ -1,0 +1,17 @@
+city batch 4 follow-up (no new files): tour numbers and in-game shots for snapshot 30 / PR #30. Also two batch-4 bugs I found on main; both are fixed in batch 5.
+
+TOUR STOPS 2-5 (--gfxstats, 960x540; main 8ee5699 vs 8ee5699 + batch 4, both from /tmp/city; draws mean/max, AI/vehicle/ped CPU ms):
+  - downtown_afternoon: 683/760 -> 682/760 draws; CPU ai/veh/peds 0.58/0.99/4.32 -> 0.66/1.04/1.70
+  - solaris_plaza: 558/567 -> 559/573; 0.68/1.42/1.42 -> 0.62/0.96/1.77
+  - midtown_park: 394/458 -> 375/445; 0.54/1.04/2.54 -> 0.51/1.18/1.30
+  - beach_condos: 583/595 -> 700/719; 0.81/1.35/2.25 -> 0.59/3.71/1.82
+  Stops 2-4 are unchanged or lower. Stop 5 is +115 draws (+110 root-constant sets, 85 -> 105 pipelines), but the building geometry there is the same: citylab near and far rings at stop 5 are 163k and 49.7k triangles in both. Vehicle CPU there was 3.7 ms against 1.4 ms, with the same 66-67 vehicles, so I suspect the traffic in view. A repeat of stop 5 on both builds is queued after my batch-5 runs; I will send the result.
+Load (same runs): world map 12.3 s -> 12.7 s; buildings 4.0 s -> 5.6 s; restyle 81 -> 204 ms; total init 82 s -> 96 s. The machine was shared during both runs, and the character assets, which batch 4 does not touch, also went from 28.5 s to 36.7 s, so I would not read much into the load figures. citylab times the restyle at 60-85 ms on a quiet machine.
+
+IN-GAME SHOTS (nt_dev4b.exe): $S/city/sheets/game_b4_new_types/gas_stations_raised_ingame.png. It shows the four gas station designs and the raised Keys houses in Key Solano and Ten Palms.
+
+BUGS ON MAIN FROM BATCH 4 (fixed in batch 5):
+- A third of the block houses (34%, about 1,110 of 3,244) have no garden at all: no lawn, hedges or mailbox. Their window awnings use up the house's facade-detail vertex budget, and the garden was skipped when the budget ran out. Batch 5 gives the garden a budget of its own. citylab: lawn present on 65.8% -> 100% of block houses.
+- A palm grows up through the tile canopy of a gas station (shot gas_tile). The scattered vegetation in cellgen.cpp was never kept off strip-mall and gas-station forecourts. Batch 5 keeps it off every paved rectangle (BuildingSet::pavedGrid: forecourts, driveways, pool decks, paved front yards).
+
+$S = /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad

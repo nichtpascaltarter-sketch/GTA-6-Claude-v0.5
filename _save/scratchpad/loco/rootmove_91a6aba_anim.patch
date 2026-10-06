@@ -1,0 +1,29 @@
+diff --git a/src/anim/animator.cpp b/src/anim/animator.cpp
+index ec04f5e..9ffc7f9 100644
+--- a/src/anim/animator.cpp
++++ b/src/anim/animator.cpp
+@@ -409,7 +409,8 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
+     float mdl = length(md);
+     md = mdl > 1e-3f ? md / mdl : vec2(0, 1);
+     const float spd = Max(0.f, in.speed);
+-    const vec3 d = vec3(md.x, md.y, 0.f) * (spd * dt);
++    // (by the root's actual move when the game gives it: a push or a snap carries the body, not the planted feet)
++    const vec3 d = in.rootMoveValid ? vec3(in.rootMove.x, in.rootMove.y, 0.f) : vec3(md.x, md.y, 0.f) * (spd * dt);
+     const float dpsi = in.turnRate * dt;
+     const quat qBack = qz(-dpsi);
+     for (int s = 0; s < 2; s++) {
+diff --git a/src/anim/character.h b/src/anim/character.h
+index 08062c9..5521db8 100644
+--- a/src/anim/character.h
++++ b/src/anim/character.h
+@@ -289,6 +289,10 @@ struct AnimInput {
+     vec3 passBy = vec3(0);
+     vec2 passVel = vec2(0);
+     float passWeight = 0;
++    // the root's own displacement since the last update, in this update's model space (the game's position change,
++    // pushes and all): planted feet keep their places by it (else by speed x dt along localMoveDir)
++    vec3 rootMove = vec3(0);
++    bool rootMoveValid = false;
+     // steering wheel of the vehicle driven (stance 1), model space (origin 0.5 m below the seat hip point, the
+     // vehicle's yaw): rim centre, unit column axis pointing at the driver, rim radius; wheelR 0 = a car's typical rim
+     vec3 wheelC = vec3(0), wheelN = vec3(0);

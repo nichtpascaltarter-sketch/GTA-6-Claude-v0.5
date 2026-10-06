@@ -1,0 +1,5 @@
+# batch 5: gas stations (four canopy kinds)
+gas_flat front 3083 34 3 6 60 10
+gas_bfly front 3081 34 3 -6 60 10
+gas_tile front 2284 34 3 6 60 10
+gas_slab front 2263 34 3 -6 60 10

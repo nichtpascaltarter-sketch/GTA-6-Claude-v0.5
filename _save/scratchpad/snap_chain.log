@@ -1,0 +1,7 @@
+baseline exe saved: snap_970af15.exe
+snapshot 2: cca50c8129c7775ed9f2098608044e09e54c9626
+snap2 exit 1
+BUILD FAILED cca50c8129c7775ed9f2098608044e09e54c9626
+src/game/../game/population.cpp:985: error: no match for 'operator/=' (operand types are 'vec2' and 'float')
+stop8 exit 0
+[ 391.940] autoplay tour shot 8 downtown_rain_night | peds 75 vehicles 68 | cpu ms ai 0.68 veh 1.47 peds 1.43

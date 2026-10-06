@@ -1,0 +1,22 @@
+interior 'Bodega La Luna' kind 8 building 29653 at (2255.23, 540.74
+interior 'Canvas Corner Market' kind 8 building 32545 at (3090.56, 1476.66
+interior 'Downtown Penthouse Lobby' kind 20 building 33543 at (3511.22, -715.16
+interior 'Downtown Penthouse' kind 21 building 33543 at (3511.22, -715.16
+interior 'Flats Food & Fuel' kind 8 building 24842 at (467.58, 3361.67
+interior 'Grove Pantry' kind 8 building 1182 at (2175.54, -3113.27
+interior 'Key Coral Villa' kind 0 building 23718 at (4516.12, -4203.72
+interior 'Northside Arms' kind 7 building 32997 at (3284.62, 4017.67
+interior 'Northside Quick Stop' kind 8 building 29914 at (2304.43, 3761.63
+interior 'Palm Motors' kind 17 building 31294 at (2686.87, 1279.16
+interior 'Palmetto Arms' kind 7 building 25538 at (988.27, 2896.06
+interior 'Police Headquarters' kind 5 building 32504 at (3167.89, -240.34
+interior 'Port Isle Warehouse' kind 12 building 35552 at (4034.00, -820.00
+interior 'Sol Beach Condo Lobby' kind 20 building 19771 at (5114.61, 1619.32
+interior 'Sol Beach Condo' kind 21 building 19771 at (5114.61, 1619.32
+interior 'Sunrise Food Mart' kind 8 building 19719 at (5227.62, 641.71
+interior 'Sunwash Car Wash' kind 19 building 29044 at (1988.34, 1491.32
+interior 'Threads' kind 9 building 19677 at (5141.16, -280.63
+interior 'Tide Customs Calle Luna' kind 18 building 29601 at (2278.47, -140.75
+interior 'Tide Customs Sol Beach' kind 18 building 19788 at (5127.28, 1999.35
+interior 'TideStop Mart' kind 8 building 26846 at (1475.59, -259.27
+interior 'Tidewater General Hospital' kind 6 building 35599 at (1692.75, 1073.40

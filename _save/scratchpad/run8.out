@@ -1,0 +1,11 @@
+built 19:36
+=== series  (19:43)
+[ 422.195] [missiontest] SUMMARY: 1 passed, 0 failed
+[ 422.196] [missiontest]   series: passed (stage 6, 102 s)
+=== repo_man,pressure  (19:49)
+[ 290.180] [missiontest] SUMMARY: 2 passed, 0 failed
+[ 290.180] [missiontest]   repo_man: passed (stage 5, 78 s)
+[ 290.180] [missiontest]   pressure: passed (stage 4, 104 s)
+=== blueprints  (19:52)
+[ 170.326] [missiontest] SUMMARY: 1 passed, 0 failed
+[ 170.326] [missiontest]   blueprints: passed (stage 6, 83 s)

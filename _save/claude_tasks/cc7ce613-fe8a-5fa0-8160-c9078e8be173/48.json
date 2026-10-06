@@ -1,0 +1,9 @@
+{
+  "id": "48",
+  "subject": "Renderer: night lighting realism (new agent)",
+  "description": "Night agent stopped for the usage pause (16:15 on 10-06): phases A and B parked, not signed off. Phase A (/tmp/night/a, nt_a1) self-test, shaders and night shots done; still needs the day before/after and timing tours. Phase B (/tmp/night/b, nt_b3): night shots good, sign-off runs not started. Phase C: draft in /tmp/night/c. See resume/night.md.",
+  "activeForm": "Running the night lighting pass",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

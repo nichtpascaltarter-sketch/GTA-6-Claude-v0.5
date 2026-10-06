@@ -1,0 +1,11 @@
+waiting for nt_dev15 Tue Oct  6 12:10:50 UTC 2026
+waiting for nt_dev15 Tue Oct  6 12:12:33 UTC 2026
+dev15_shots_log.txt rc=0: 12 files, 0 segfaults Tue Oct  6 14:11:01 UTC 2026
+dev15_before_shots_log.txt rc=0: 12 files, 0 segfaults Tue Oct  6 14:53:02 UTC 2026
+dev15_hq_log.txt rc=0: 1 files, 0 segfaults Tue Oct  6 15:06:28 UTC 2026
+dev15_hq_before_log.txt rc=0: 1 files, 0 segfaults Tue Oct  6 15:17:33 UTC 2026
+start dev15 regression Tue Oct  6 15:17:33 UTC 2026
+dev15 regression done: 27 passed, 0 segfaults Tue Oct  6 15:57:49 UTC 2026
+start stick-up encounter (dev15) Tue Oct  6 15:57:49 UTC 2026
+dev15 stick-up done: 0 passed, 0 failed, 0 segfaults Tue Oct  6 16:00:28 UTC 2026
+start tour 2-5 (dev15) Tue Oct  6 16:00:28 UTC 2026

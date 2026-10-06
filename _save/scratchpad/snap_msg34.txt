@@ -1,0 +1,22 @@
+Companions walking side by side no longer twist away from each other; brows and lashes lose their pale daytime line
+
+Animation (src/game/peds.cpp, the pass-by search in animatePed), fixing a regression from the pass-by lean:
+- Before, a companion at the elbow counted as a passer. Couples and friends walking abreast turned their chests up to
+  ~28 deg away from each other and side-stepped ~10 cm, as if making room.
+- Now the nearest candidate is picked exactly as before, but the lean only applies while someone among the candidates
+  is going by (0.3 m/s or more relative to the ped). A companion with no one else around gives no lean, and during
+  an encounter everything is as before. Hand-holding couples still drop the lean entirely (the AI couple block).
+- Checks (animation agent):
+  - Harness: head-on and overtaking passes are identical on every metric. Walking abreast at 0.6 m and 0.85 m, and
+    keeping pace 0.2 m/s apart, go from 22.8 / 8.4 / 22.6 deg of twist to 0.
+  - In game, tour stop 2, same crowd: 38 close passes before and after, the same single arm overlap (-2.0 cm,
+    unchanged), and smallest and mean clearances unchanged for strangers and walking groups. Ped-frames with a
+    companion leaning went from 178 to 63; the rest are during real passes.
+
+Faces batch 5 (src/anim/face.cpp):
+- Brow hairs lie in a herringbone (lower hairs up and out, upper ones down and out) instead of flat. Brow cards sit
+  deeper in the renderer's hair-card depth, so they get the hair-volume dimming of the sun and sky highlight and no
+  longer catch it along their whole length by day.
+- Eyelash cards likewise, so lashes no longer draw a pale line along the lid in daylight.
+- Checks (faces agent): anim_test all passed on d3c2c3f plus the file. O2 build; a 30-portrait Wine D3D12 run with no
+  FATAL or vkd3d lines. Crowd perf within noise.

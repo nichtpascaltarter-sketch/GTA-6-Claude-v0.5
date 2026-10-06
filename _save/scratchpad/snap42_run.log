@@ -1,0 +1,8 @@
+Embedded 40 shader files.
+148 shaders, 0 failed
+[ 325.104] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.2 | peds 88 vehicles 63 wanted 0 | cpu ms player 0.04 ai 0.80 veh 0.63 peds 0.9
+[ 447.795] autoplay t=17.5 pos 1806.7 270.4 3.5 state 2 health 200 veh 1 speed 17.5 | peds 88 vehicles 65 wanted 0 | cpu ms player 0.04 ai 0.57 veh 0.76 peds 0.
+[ 343.284] autoplay t=13.5 pos 1791.3 160.9 6.5 state 0 health 188 veh -1 speed 0.0 | peds 97 vehicles 64 wanted 1 | cpu ms player 0.13 ai 0.71 veh 0.95 peds 0.
+2a75d5d Street life 3: tip-offs and officers asking around, people asking the player the way, drivers stopping for anyone they hit, parking tickets
+branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
+COMMITTED 2d7111e70d993f4d98142cb30d2902311a172c87

@@ -1,0 +1,27 @@
+AI snapshot-safe, sets 5+6 (on top of sets 3+4). Tested on nt_ai74 = HEAD <hash> plus the blobs below.
+[blobs]
+
+Car alarms and key fobs:
+- A car alarm going off (a knock, or the player breaking in) is heard: people about stop for a look over at it, a few
+  grumble ("Somebody turn that thing off!" - more of them late at night), officers on the beat glance over. Seeing the
+  player at its door: "Hey! That's not your car!" (ai.cpp car_alarm: STIM_ALARM every second while it goes; pedai.cpp).
+- Now and then its owner comes (ai.cpp car_alarm, police_ticket::pickOwner; pedai.cpp ACT_ALARM_OWNER):
+  - knocked: over at a jog 4-9 s on, the key fob from a few metres off (the alarm stops with a chirp and a flash of the
+    hazards), round to its sidewalk side, crouched for a look at the paint, a word ("Not a scratch. Lucky." - or to the
+    player stood by: "Was that you?!"), then in and away half the time, else on foot;
+  - broken into: a run to the driver's door shouting ("Hey! That's my car!"); as it goes, stood looking after it with a
+    hand to the head ("Come back here!").
+- Key fobs: three in four drivers who park lock it a few steps off (a chirp, one flash; traffic.cpp sets VehAI::lockAt),
+  owners walking to their car unlock it 6 m off with the arm out (a chirp, two flashes; ACT_DRIVE_OFF).
+  SFX_CAR_ALARM_CHIRP existed but was not used anywhere.
+- Fixes: a stolen car's alarm never stopped while it was driven (ai.cpp timed out only parked, empty cars) - now
+  14-24 s; and a kerbside car (spawned without an AI record) knocked into wailing was never looked at by ai.cpp at all -
+  an alarm going now puts the car on record (vehAI), so it times out. Owners only come for ordinary civilian cars.
+Rubbernecking heads: drivers and passengers slowing past a scene turn their heads to it (traffic.cpp keeps
+VehAI::gawkAt / gawkT; the look block below), and drivers stopped in traffic now and then look at the player walking by
+close.
+Couples: the hand-in-hand block keeps in.passWeight at 0 while holding (belt and braces for the pass-by root fix).
+Crossings: when the little man lights after a wait, each person steps off after a moment of their own (0.15-1.2 s,
+one in ten 1.6-2.8 s - eyes up from a phone): a crowd at the kerb no longer moves off as one (pednav.cpp, Walker::goT).
+Small: the turn-rate cap leaves a startled start back from a car quick.
+Tests: alarm mode (a knock with the player stood by, then a break-in and away); census "alarms (owners looks) fobs".

@@ -1,0 +1,23 @@
+Direct3D 12: the game renders on D3D12 only, with no D3D11 path or fallback
+
+- The whole graphics stack runs on Direct3D 12 (feature level 11_0 or newer, resource binding tier 2): src/gfx,
+  every renderer pass, the UI, the map and the phone. There is no D3D11 path or fallback. Without a D3D12 device the
+  game shows "Neon Tide - Direct3D 12 required" with the reason and exits; d3d12.dll is loaded at run time so that
+  box can appear, and the exe imports only dxgi.dll.
+- Shaders: HLSL SM 5.1 through d3dcompiler_47 with unbounded descriptor tables; the existing shaders keep their
+  registers (a root signature maps them).
+- The gfx layer: device and queues, one shader-visible heap of a million descriptors (262,144 persistent bindless
+  slots plus a ring for per-draw tables), per-frame upload pages, automatic per-subresource state tracking with
+  batched barriers, pipelines created on first use and cached, and releases deferred past the fences of every frame
+  that may still use them, with a quarantine that stops with the object's name on any use after release.
+- Beyond D3D11, ready for the renderer: bindless resource arrays, root constants, an async compute queue,
+  ExecuteIndirect, placed resources and aliasing.
+- Tools: --gfxselftest (14 device checks, also tests/gfx), --d3ddebug, --gputimers / --synctimers, and
+  --gfxsync / --gfxsplit for GPU fault and hazard hunting.
+- Test rig (Wine 9.0, vkd3d 1.10, lavapipe): vkd3d drops the compute root arguments after a UAV clear (gfx sets them
+  again), and Wine's builtin DXGI rebuilds its swap chain on a sync-interval change or a resize while presents are
+  in flight (under that DXGI gfx presents with interval 0, and test runs keep a fixed window size). Windows is
+  unaffected by both workarounds.
+- Validated against the D3D11 build at the same views: exposure 2.86e-5 by day and 0.40 at night (D3D11: 2.84e-5
+  and 0.39), screenshots within 3.4-4.1/255 on average (PSNR 30-32 dB, edge and jitter differences only), a 60 s
+  drive with a clean shutdown, and all 134 shader entry points compiling.

@@ -1,0 +1,10 @@
+PROGRESS.md
+src/anim/clips.cpp
+src/anim/face.cpp
+src/game/peds.cpp
+src/game/player.cpp
+src/sim/vehicle_cardetail.cpp
+src/sim/vehicle_cars.cpp
+src/sim/vehicle_doors.cpp
+tests/anim/anim_test.cpp
+tests/anim/carview.cpp

@@ -1,0 +1,28 @@
+Locomotion: feet stay planted through turns, starts, stops, curbs and stairs; passers-by make room
+
+- The animator now gets the turn rate from the yaw's actual change since the last animation update (Ped::animYaw),
+  whatever turned the person: the AI's turnTo or faceTowards, a script setting the yaw, or a stop in mid-turn.
+  A radian or more in one update counts as a warp.
+- Foot placement: planted feet hold through turns, steps land properly on curbs, stairs and slopes, and starts step
+  off with the unloaded foot first. The work is in src/anim/animator.cpp; the new character.h fields are additive.
+- Close passes: when someone on foot will pass within a metre in the next 1.5 s, the near shoulder turns back and
+  the walker side-steps. peds.cpp checks the people near the camera.
+- In-game (tour stop 2 downtown, 64 s, every pedestrian within 25 m), slide per step, before -> after:
+  - all steps: mean 14.9 -> 7.4 cm, p90 41.6 -> 14.3 cm;
+  - walking straight: 4.97 -> 2.62 cm;
+  - walking and turning: 30.5 -> 14.3 cm;
+  - jog/run: 18.6 -> 9.0 cm.
+  Arm clearance in close passes went from 13.7 to 20.0 cm on average.
+- Step harness, 12 people, mean slide per step, before -> after:
+  - walking turns: 90 degrees 16.9 -> 1.4 cm, 180 degrees 34.5 -> 1.2 cm;
+  - starts: 4.2 -> 0.9 cm;
+  - walking down a 10% hill: 8.7 -> 1.9 cm;
+  - stepping down a curb: 5.9 -> 0.8 cm;
+  - stairs up 21.7 -> 3.0 cm, down 19.5 -> 1.6 cm;
+  - head-on pass: arm gap -2.0 -> 13.1 cm.
+- Known:
+  - In AI turns at about 6 rad/s at walking speed, the trailing foot still lifts 10-16 cm for about 4 frames. The
+    fix belongs in the AI (slow sharp turns) and is queued there.
+  - A few people slide 1-2.6 m while turning at about 3 rad/s. That is under investigation.
+- Tests: anim_test ALL PASSED, the MinGW syntax check is clean, and the O2 build has no warnings. The Wine runs
+  were clean.

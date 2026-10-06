@@ -1,0 +1,2 @@
+BUILD FAILED cca50c8129c7775ed9f2098608044e09e54c9626
+src/game/../game/population.cpp:985: error: no match for 'operator/=' (operand types are 'vec2' and 'float')

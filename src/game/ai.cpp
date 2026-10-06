@@ -595,6 +595,234 @@ void step(GameWorld& g, int vi, float dt) {
 }  // namespace car_alarm
 
 // ------------------------------------------------------------------------------------------------------------------
+// Getting into a car through its door (AI peds stood at it: an owner driving off, a companion riding along, a prisoner
+// put in the back, a crew back to its car): the door clip when the seat has a door (peds.cpp GameWorld::startCarEntry:
+// placed at the door's spot facing its way, the door swings - and sounds - with the clip), held in PS_ENTERING while it
+// runs (updateBrain: step), warped in when it is over and on with what they got in for (boarded); a seat without a
+// door - the caller's plain climb-in clip, as before
+namespace ai_board {
+
+bool beginThen(GameWorld& g, int id, int veh, int seat, u8 then) {
+    if (id < 0 || id >= (int)g.peds.size() || id >= (int)g.ai.ped.size() || veh < 0 || veh >= (int)g.vehicles.size() || seat < 0 || seat >= 8)
+        return false;
+    float len = g.startCarEntry(id, veh, seat);
+    if (len <= 0.f) {
+        g.ai.stats.plainEntries++;
+        return false;
+    }
+    Ped& p = g.peds[id];
+    PedAI& pa = g.ai.ped[id];
+    p.state = PS_ENTERING;
+    p.stateTime = 0.f;
+    p.vel = vec3(0.f);
+    p.targetVehicle = veh;
+    p.targetSeat = seat;
+    pa.boardVeh = veh;
+    pa.boardVehUid = g.vehicles[veh].uid;
+    pa.boardSeat = (i8)seat;
+    pa.boardT = g.time + len;
+    pa.clipTimer = len;   // (getting in: police.cpp escortStep stands over a prisoner while it runs)
+    pa.boardThen = then;
+    g.ai.stats.doorEntries++;
+    LOG("ai: ped %d into car %d (seat %d) through the door: a %.2f s clip (activity %d)", id, veh, seat, len, (int)pa.activity);
+    return true;
+}
+bool begin(GameWorld& g, int id, int veh, int seat) { return beginThen(g, id, veh, seat, 0); }
+
+// in: carried on with what they got in for (each activity's own follow-up - the same whether through the door clip or
+// the plain one)
+void boarded(GameWorld& g, int id, int veh, int seat) {
+    Ped& p = g.peds[id];
+    PedAI& pa = g.ai.ped[id];
+    Brain& b = p.brain;
+    u8 then = pa.boardThen;
+    pa.boardThen = 0;
+    if (then == 1) {
+        // an event's driver back at the wheel (events.cpp): the engine, and away into the traffic
+        b.type = BRAIN_DRIVER;
+        pa.activity = ACT_WALK;
+        pa.clipTimer = 0.f;
+        Vehicle& car = g.vehicles[veh];
+        car.parked = false;
+        car.sim.engineOn = true;
+        g.attachTraffic(veh);
+        return;
+    }
+    if (then == 2) {
+        pa.clipTimer = 0.f;   // (events.cpp carries on once it sees them in)
+        return;
+    }
+    if (p.faction == FAC_POLICE && b.type == BRAIN_GOTO && b.target == -2) {
+        // an officer back in the car (police.cpp aiPoliceBrain, returning): back on patrol
+        b.type = seat == 0 ? BRAIN_DRIVER : BRAIN_PASSENGER;
+        b.target = -1;
+        Vehicle& hv = g.vehicles[veh];
+        hv.sirenOn = false;
+        hv.sirenSilent = false;
+        hv.parked = false;
+        VehAI& hva = g.vehAI(veh);
+        hva.task = PT_NONE;
+        hva.role = VR_POLICE;
+        hva.copBreak = 0;
+        pa.clipTimer = 0.f;
+        return;
+    }
+    switch (pa.activity) {
+        case ACT_DRIVE_OFF: {
+            // the owner at the wheel: the engine, the lights after dark, and the car pulls out (traffic.cpp pullOutStep)
+            b.type = BRAIN_DRIVER;
+            pa.activity = ACT_WALK;
+            pa.homeVeh = -1;
+            pa.clipTimer = 0.f;
+            Vehicle& car = g.vehicles[veh];
+            car.sim.engineOn = true;
+            float tod = g.env ? g.env->timeOfDay : 12.f;
+            car.lightsOn = tod > 19.2f || tod < 6.6f || (g.env && g.env->rain > 0.5f);
+            VehAI& cva = g.vehAI(veh);
+            cva.pullOut = 1;
+            cva.pullTimer = 0.f;
+            cva.role = VR_TRAFFIC;
+            g.ai.stats.departures++;
+            break;
+        }
+        case ACT_RIDE_ALONG: {
+            b.type = BRAIN_PASSENGER;
+            b.target = -1;
+            pa.activity = ACT_WALK;
+            pa.targetVeh = -1;
+            pa.leader = -1;
+            pa.clipTimer = 0.f;
+            pa.rider = true;
+            g.ai.stats.rideAlongs++;
+            LOG("ride along: %d gets in car %d (seat %d) with its driver", id, veh, seat);
+            break;
+        }
+        case ACT_CUFFED: {
+            b.type = BRAIN_PASSENGER;
+            b.target = -1;
+            pa.activity = ACT_WALK;
+            pa.clipTimer = 0.f;
+            g.ai.stats.custody++;
+            break;
+        }
+        case ACT_ERRAND: {
+            // a delivery driver back at the wheel: away, and no new stop for a while
+            b.type = BRAIN_DRIVER;
+            pa.activity = ACT_WALK;
+            pa.homeVeh = -1;
+            pa.clipTimer = 0.f;
+            g.vehicles[veh].parked = false;
+            VehAI& hva = g.vehAI(veh);
+            hva.errand = 0;
+            hva.errandTimer = -60.f;
+            g.attachTraffic(veh);
+            break;
+        }
+        case ACT_ROADRAGE: {
+            // the driver back in after having words (or seeing to somebody they knocked down): on their way
+            b.type = BRAIN_DRIVER;
+            pa.activity = ACT_WALK;
+            pa.homeVeh = -1;
+            pa.linger = 0.f;
+            pa.rageSorry = false;
+            pa.sorryFor = -1;
+            pa.clipTimer = 0.f;
+            g.vehicles[veh].parked = false;
+            g.attachTraffic(veh);
+            VehAI& rva = g.vehAI(veh);
+            rva.rage = 0;
+            rva.rageSorry = false;
+            rva.rageFor = -1;
+            break;
+        }
+        case ACT_EVENT: {
+            // a crew back in its vehicle after a scene (an ambulance's: pedai.cpp) - the event carries on without them
+            pa.activity = ACT_WALK;
+            pa.homeVeh = -1;
+            pa.clipTimer = 0.f;
+            break;
+        }
+        case ACT_COP_BREAK: {
+            // in after the coffee break; everybody in (nobody still out or getting in) - back on patrol
+            b.type = seat == 0 ? BRAIN_DRIVER : BRAIN_PASSENGER;
+            pa.activity = ACT_WALK;
+            pa.clipTimer = 0.f;
+            p.carry = CARRY_NONE;
+            bool out = false;
+            for (int j = 0; j < (int)g.peds.size() && j < (int)g.ai.ped.size() && !out; j++)
+                out = j != id && g.peds[j].used && g.ai.ped[j].uid == g.peds[j].uid && g.ai.ped[j].activity == ACT_COP_BREAK && g.ai.ped[j].homeVeh == veh &&
+                      (g.peds[j].state == PS_ONFOOT || g.peds[j].state == PS_ENTERING) && g.peds[j].health > 0.f;
+            if (!out && g.vehicles[veh].seats[0] >= 0) {
+                VehAI& hva = g.vehAI(veh);
+                g.vehicles[veh].parked = false;
+                hva.copBreak = 0;
+                hva.errandTimer = -240.f;   // (no other break for a good while)
+                g.attachTraffic(veh);
+                LOG("police: patrol %d back on patrol after its break", veh);
+            }
+            break;
+        }
+        case ACT_HAIL_TAXI: {
+            // a fare in the back: a ride somewhere 400-1500 m away
+            VehAI& va = g.vehAI(veh);
+            va.fare = id;
+            vec2 at = g.vehicles[veh].sim.body.pos.toVec3().xy();
+            u32 h = hash32(p.uid * 77u + (u32)g.time);
+            float ang = hashToFloat(h) * kTwoPi, r = 400.f + hashToFloat(hash32(h)) * 1100.f;
+            vec2 dest = at + vec2(cosf(ang), sinf(ang)) * r;
+            float u = 0.f;
+            int ln = g.laneGraph.nearestLane(dest, vec2(0), 300.f, &u);
+            va.dest = ln >= 0 ? g.laneGraph.lanePos(ln, u).xy() : dest;
+            if (AI::Driver* dr = g.traffic.get(veh)) {
+                dr->hasDest = false;
+                dr->stopPath = -1;
+                dr->mode = AI::DM_NORMAL;
+            }
+            va.task = 0;
+            va.scene = -1;
+            pa.activity = ACT_WALK;
+            pa.targetVeh = -1;
+            pa.clipTimer = 0.f;
+            break;
+        }
+        default:
+            pa.clipTimer = 0.f;
+            break;
+    }
+}
+
+// (PS_ENTERING through a door: the clip over - in; the car gone, wrecked, moved off or its seat taken meanwhile - back on
+//  foot where they stand, and the activity looks again)
+void step(GameWorld& g, int id) {
+    Ped& p = g.peds[id];
+    PedAI& pa = g.ai.ped[id];
+    int veh = pa.boardVeh, seat = pa.boardSeat;
+    bool ok = veh >= 0 && veh < (int)g.vehicles.size() && g.vehicles[veh].used && g.vehicles[veh].uid == pa.boardVehUid && !g.vehicles[veh].exploded &&
+              !g.vehicles[veh].sim.wrecked && seat >= 0 && seat < 8 && (g.vehicles[veh].seats[seat] < 0 || g.vehicles[veh].seats[seat] == id) &&
+              g.vehicles[veh].sim.speed() < 1.5f;
+    if (!ok) {
+        pa.boardVeh = -1;
+        pa.boardThen = 0;
+        pa.clipTimer = -1.f;   // (ACT_DRIVE_OFF / RIDE_ALONG / CUFFED: not at the door - they look at the car again)
+        p.state = PS_ONFOOT;
+        p.stateTime = 0.f;
+        p.targetVehicle = p.targetSeat = -1;
+        LOG("ai: ped %d getting into car %d - the car gone or its seat taken: back on foot", id, veh);
+        return;
+    }
+    VehAI& hold = g.vehAI(veh);
+    hold.escortHold = Max(hold.escortHold, g.time + 0.6);   // (the car waits for anybody getting in: traffic.cpp pull-outs)
+    if (g.time < pa.boardT) return;
+    pa.boardVeh = -1;
+    p.targetVehicle = p.targetSeat = -1;
+    LOG("ai: ped %d in car %d (seat %d) after its door clip (%.1f s in PS_ENTERING)", id, veh, seat, p.stateTime);
+    g.warpPedIntoVehicle(id, veh, seat);   // (shuts the door the clip swung)
+    boarded(g, id, veh, seat);
+}
+
+}  // namespace ai_board
+
+// ------------------------------------------------------------------------------------------------------------------
 void GameWorld::updateAI(float dt) {
     double t0 = TimeSeconds();
     if (!ai.ready) initAI();
@@ -663,6 +891,74 @@ void GameWorld::updateAI(float dt) {
             ai.playerKnockT = time;
             ai.stats.playerKnocks++;
             aiStimulus(vehicles[kv].sim.body.pos, STIM_CRASH, player, 28.f, true);
+        }
+    }
+    {   // (tyres screeching near the player - a car braking hard, sliding, spinning: pedai.cpp turns heads to it - and the
+        //  player showing off in one: donuts, a burnout, a slide going round in one spot a while; pedai.cpp has the people
+        //  about stop to watch, film it and cheer, the steadier sort tut and walk on, an officer on foot call out)
+        ai.screech.clear();
+        ai.showBarkT = Max(0.f, ai.showBarkT - dt);
+        ai.screechBarkT = Max(0.f, ai.screechBarkT - dt);
+        const Ped* sp = playerPed();
+        if (sp) {
+            thread_local std::vector<int> around;
+            vehiclesNear(sp->pos.toVec3().xy(), 80.f, around);
+            for (int vi : around) {
+                if (vi < 0 || vi >= (int)vehicles.size() || vi >= (int)ai.veh.size() || !vehicles[vi].used || isAircraft(vi) || isBoat(vi)) continue;
+                const Vehicles::VehicleState& s = vehicles[vi].sim;
+                float slip = 0.f;
+                for (int w = 0; w < s.wheelCount; w++)
+                    if (s.wheels[w].contact) slip = Max(slip, s.wheels[w].slip);
+                VehAI& sva = ai.veh[vi];
+                bool squeal = s.wheelsOnGround >= 2 && s.speed() > 4.f && slip > 0.55f;
+                sva.screechT = squeal ? sva.screechT + dt : 0.f;
+                if (sva.screechT > 0.25f && ai.screech.size() < 8) ai.screech.push_back(vi);
+            }
+        }
+        int sv = sp && sp->state == PS_INVEHICLE ? sp->vehicle : -1;
+        bool carOk = sv >= 0 && sv < (int)vehicles.size() && vehicles[sv].used && !isAircraft(sv) && !isBoat(sv) && sp->seat == 0;
+        bool active = false;
+        vec2 cp(0.f);
+        if (carOk) {
+            const Vehicles::VehicleState& s = vehicles[sv].sim;
+            cp = s.body.pos.toVec3().xy();
+            float rearSlip = 0.f;
+            for (int w = 0; w < s.wheelCount; w++)
+                if (s.wheels[w].contact && s.tune.rear[w]) rearSlip = Max(rearSlip, s.wheels[w].slip);
+            bool spinning = fabsf(s.body.angVel.z) > 1.1f && s.speed() > 2.f;   // (as the takeover crowd's: events.cpp)
+            bool smoking = rearSlip > 0.6f && s.speed() < 9.f;                // (a burnout; a slow, smoky slide)
+            active = s.wheelsOnGround >= 3 && (spinning || smoking);
+        }
+        // (stood up on a sidewalk: its middle inside a sidewalk's walkable band)
+        ai.plCarOnSidewalk = false;
+        if (carOk && vehicles[sv].sim.speed() < 0.3f) {
+            float wx = 0.f, wlat = 0.f;
+            int wl = laneGraph.nearestWalk(cp, 3.f, &wx, &wlat);
+            ai.plCarOnSidewalk = wl >= 0 && laneGraph.walkLinks[wl].kind == AI::WL_SIDEWALK && fabsf(wlat) < laneGraph.walkLinks[wl].halfWidth;
+        }
+        bool allowed = carOk && pinfo.wanted == 0 && !missionActive();
+        if (active && allowed && (ai.showT <= 0.f || length(cp - ai.showBuildAt) > 20.f)) {
+            ai.showT = 0.f;
+            ai.showBuildAt = cp;
+        }
+        ai.showT = active && allowed ? Min(ai.showT + dt, 6.f) : Max(0.f, ai.showT - dt * 0.5f);
+        if (!ai.showOn && allowed && ai.showT > 2.f) {
+            ai.showOn = true;
+            ai.showId = (u16)(ai.showId + 1u);
+            if (ai.showId == 0) ai.showId = 1;   // (0: none seen yet)
+            ai.showAt = cp;
+            ai.showVeh = sv;
+            ai.showLastT = time;
+            ai.stats.shows++;
+            LOG("ai: the player's car %d is showing off at %.0f %.0f (show %d)", sv, cp.x, cp.y, (int)ai.showId);
+        } else if (ai.showOn) {
+            if (active && sv == ai.showVeh) ai.showLastT = time;
+            bool gone = sv != ai.showVeh || !carOk || length(cp - ai.showAt) > 40.f;
+            if (gone || !allowed || time - ai.showLastT > 4.0) {
+                ai.showOn = false;
+                ai.showEndT = time;
+                LOG("ai: the show is over (%s)", gone ? "the car gone" : (!allowed ? "wanted / a mission" : "it stopped"));
+            }
         }
     }
     {   // (a police helicopter low over the streets near the player: pedai.cpp has people below look up at it)
@@ -1035,11 +1331,11 @@ std::string GameWorld::aiCensusText(float radius) const {
                      "lean %d sun %d queue %d watch %d bus %d taxi %d event %d meet %d (so far %d) window %d hurt %d (helped by %d) cuffed %d (escorts %d) statement %d (officers %d) stopped %d hand in hand %d cops on a break %d ticket %d (owner %d) | venue %d (guard %d pace %d outlook %d boarding %d greeting %d) travelers %d | tourist %d business %d beach %d night %d gang %d worker %d | "
                      "react flee %d cower %d film %d inspect %d call %d hands %d rage %d fight %d | cops on foot %d (approach %d cover %d flank %d "
                      "arrest %d search %d engage %d) | cars %d parked %d police %d swat %d heli %d boat %d roadblock %d ems %d horn %d | "
-                     "totals panic %d film %d pit %d box %d rb %d spikes %d tackle %d heli %d units %d rage %d events %d arrests %d custody %d transports %d statements %d shelters %d stops %d (warrants %d runs %d) breaks %d tickets %d (owners %d) greetings %d chats %d buttons %d lost %d laces %d rain shelters %d asked okay %d cop aid %d crash scenes %d bus runs %d (made %d missed %d) change %d (passers-by %d) gawks %d near misses %d jaywalk calls %d crowded %d (left %d) followed %d (sharp %d) cut offs %d anchor rewalks %d alarms %d (owners %d looks %d) fobs %d rides %d step backs %d sorry drivers %d (others hit %d) tip-offs %d asked the way %d (pointed %d) night chats %d siren looks %d player knocks %d cop asks %d player tickets %d depart %d arrive %d",
+                     "totals panic %d film %d pit %d box %d rb %d spikes %d tackle %d heli %d units %d rage %d events %d arrests %d custody %d transports %d statements %d shelters %d stops %d (warrants %d runs %d) breaks %d tickets %d (owners %d) greetings %d chats %d buttons %d lost %d laces %d rain shelters %d asked okay %d cop aid %d crash scenes %d bus runs %d (made %d missed %d) change %d (passers-by %d) gawks %d near misses %d jaywalk calls %d crowded %d (left %d) followed %d (sharp %d) cut offs %d anchor rewalks %d alarms %d (owners %d looks %d) fobs %d rides %d step backs %d sorry drivers %d (others hit %d) tip-offs %d asked the way %d (pointed %d) night chats %d siren looks %d player knocks %d cop asks %d player tickets %d car shows %d (watchers %d filming %d tuts %d cop calls %d) screech looks %d crosswalk words %d (hood slaps %d) sidewalk car words %d run pasts %d night avoids %d (berths %d) radio dancers %d radio complaints %d door entries %d (plain %d) depart %d arrive %d",
                      radius, total, inWater, walk, wPhone, wSmoke, wStill, group, wTalk, jog, sit, talk, phone, dance, smoke, lean, sun, queue, watch, busStop, taxi, event, meet, ai.meetsStarted, browse, hurt, aid, cuffed, escorts, witness, taking, stopped, holding, onBreak, ticketing, rushing,
                      venue, vGuard, vPace, vOut, vBoard, vGreet, vTravel, tourist, business, beach, night, gang, worker, flee, cower, film, inspect, call, hands, rage, fight, copFoot, approach, cover, flank,
                      arrest, search, engage, traffic, parked, copCars, swat, heli, boats, blocks, ems, honking, s.panicSpread, s.filming, s.pitTries,
-                     s.boxing, s.roadblocks, s.spikeHits, s.tackles, s.heliUnits, s.unitsSent, s.roadRage, s.events, s.arrests, s.custody, s.transports, s.statements, s.shelters, s.stops, s.stopArrests, s.stopRuns, s.copBreaks, s.tickets, s.ticketRushes, s.greetings, s.chats, s.buttons, s.lost, s.laces, s.rainShelters, s.askOkay, s.copAid, s.crashScenes, s.busRuns, s.busCaught, s.busMissed, s.panhandled, s.passerChange, s.gawks, s.nearMisses, s.jaywalkCalls, s.crowded, s.crowdedLeft, s.followed, s.followedSharp, s.cutOffs, s.anchorRewalks, s.alarms, s.alarmOwners, s.alarmLooks, s.fobChirps, s.rideAlongs, s.copStepBacks, s.driverSorry, s.pedHitStops, s.tips, s.askedPlayer, s.pointedWay, s.nightChats, s.sirenLooks, s.playerKnocks, s.copAsks, s.plTickets, s.departures, s.arrivals);
+                     s.boxing, s.roadblocks, s.spikeHits, s.tackles, s.heliUnits, s.unitsSent, s.roadRage, s.events, s.arrests, s.custody, s.transports, s.statements, s.shelters, s.stops, s.stopArrests, s.stopRuns, s.copBreaks, s.tickets, s.ticketRushes, s.greetings, s.chats, s.buttons, s.lost, s.laces, s.rainShelters, s.askOkay, s.copAid, s.crashScenes, s.busRuns, s.busCaught, s.busMissed, s.panhandled, s.passerChange, s.gawks, s.nearMisses, s.jaywalkCalls, s.crowded, s.crowdedLeft, s.followed, s.followedSharp, s.cutOffs, s.anchorRewalks, s.alarms, s.alarmOwners, s.alarmLooks, s.fobChirps, s.rideAlongs, s.copStepBacks, s.driverSorry, s.pedHitStops, s.tips, s.askedPlayer, s.pointedWay, s.nightChats, s.sirenLooks, s.playerKnocks, s.copAsks, s.plTickets, s.shows, s.showWatchers, s.showFilmers, s.showTuts, s.copShowCalls, s.screechLooks, s.blockedCrossings, s.hoodSlaps, s.sidewalkCars, s.runPasts, s.nightAvoids, s.nightBerths, s.radioDancers, s.radioComplaints, s.doorEntries, s.plainEntries, s.departures, s.arrivals);
 }
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -1102,6 +1398,11 @@ void GameWorld::updateBrain(int id, float dt) {
     }
     if (id < (int)ai.ped.size() && ai.ped[id].uid == p.uid) ai.ped[id].rider = false;   // (out of the car, however)
     if (p.state == PS_ENTERING || p.state == PS_EXITING) {
+        // (through a car's door: in once the clip is over - ai_board)
+        if (p.state == PS_ENTERING && id < (int)ai.ped.size() && ai.ped[id].uid == p.uid && ai.ped[id].boardVeh >= 0) {
+            ai_board::step(*this, id);
+            if (p.state != PS_ENTERING) return;
+        }
         movePed(p, vec2(0, 0), dt, false);
         return;
     }

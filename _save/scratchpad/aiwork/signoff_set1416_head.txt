@@ -1,0 +1,27 @@
+AI sets 14-16 sign-off: one graft on top of main 894e7fb (sets 10-13 merged as snapshot 42, PR #42).
+- 7 files change against 894e7fb. Each is a whole-file blob written with git hash-object -w.
+  - The 6 AI blobs hold the whole file with sets 3-16.
+  - The peds.cpp blob is 894e7fb's peds.cpp (5c6e2ff, unchanged since snapshot 39) plus one line, shown under set 16.
+  51ccb8791da7269c1e664519c0432ae552efb67c src/game/ai.cpp
+  036e52e96d053db3f1b07efcd86c6c96d9ee2268 src/game/ai_game.h
+  d8ab90d326f6ec25676943873511101549ea56c7 src/game/app.cpp
+  57720843ed3141daaaa398df6cc5649680f712e6 src/game/barks.cpp
+  b79602b7255beb3e01f97b49d3dd9cd28c53d97d src/game/pedai.cpp
+  27a7a430ac9cb84bcb1ac5a100602ac72e60a334 src/game/police.cpp
+  dbe0046df9d5d184571d212439191928fb836086 src/game/peds.cpp
+  To apply: `git cat-file -p <blob> > src/game/<file>` for each.
+- Files shared with sets 10-13. Every AI file this graft changes was also in the sets 10-13 graft, so each blob contains sets 10-13 as well:
+  - ai.cpp, ai_game.h, app.cpp, barks.cpp, pedai.cpp and police.cpp each hold the merged sets 10-13 blob plus sets 14-16.
+    - I checked each diff from its 10-13 blob (73912f4, 9562392, 9b43215, 5060b5d, 57ce67e, 77d62c2). Every removed line is one that sets 14-16 rewrite, and nothing of sets 10-13 is dropped. The removed lines are:
+      - the census lines;
+      - the test-mode list, and walkby's branch (now shared with nightwalk);
+      - the stats list's last line (plTickets, now followed by the new counters);
+      - the watch, siren-look and taxi lines that now also cover the car show, screeches and the door;
+      - the car entry sites switched to the door (set 16);
+      - the jaywalk check, moved into pedai_detail::overTheStreet (set 15).
+  - traffic.cpp (2112f63) and traffic_core.cpp (d716924) were in the sets 10-13 graft and are in the build tree, but they are byte-identical to 894e7fb, so there is nothing to apply.
+  - peds.cpp is the only file that was not in sets 10-13. It had no hunks there.
+- Unchanged from 894e7fb: traffic.cpp, traffic_core.cpp, ai_core.h, events.cpp, pednav.cpp, lanes.cpp, population.cpp, wildlife.cpp/.h, game.h, gameworld.h. Nothing in src/anim or src/world.
+- Tested on nt_ai86 = git archive b49bc7f plus these blobs (and the 10-13 traffic.cpp/traffic_core.cpp blobs, now in main).
+  - 894e7fb differs from b49bc7f in src/game only by the sets 10-13 blobs, which these blobs contain.
+  - Otherwise, PRs #40-#42 touch src/anim (animator.cpp, face.cpp, and two new Animator fields in character.h), src/world/blockstyle.cpp and tests/anim. None of these is in this graft, and none changes an interface it uses. So the graft goes on top of 894e7fb as it is.

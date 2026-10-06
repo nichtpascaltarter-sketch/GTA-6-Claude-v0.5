@@ -1,0 +1,11 @@
+Batch 9: house types in the towns and the old city neighbourhoods
+- Bungalows now come in several types instead of one gabled box:
+  - Craftsman side-gabled bungalows: the roof runs on down over a porch across the whole front, with a shed or gable dormer on top.
+  - Hipped bungalows with a small hipped dormer.
+  - "Airplane" bungalows with a small windowed room sitting astride the ridge.
+  - In Calle Luna, North City, the Flats and Midtown (and a few in Westbrook and the Grove): stucco Mission bungalows with a flat roof, a curved gable over the front and a stucco loggia porch.
+- American Foursquares in Okahatchee, Harlow, Fort Castell and the farm towns, with some in the city: square two-storey houses with a pyramid roof, a hipped dormer and a porch across the front.
+- Craftsman porches: square columns on brick or stone piers with knee walls between them. Some foursquares have round columns instead.
+- Earth-tone board siding on the Craftsman houses in the towns (sage, olive, brown, barn red, mustard, slate) with cream trim. Foursquares come in brick, board or stucco.
+- Bungalow porches now stand over the front door, and the rail is open at the door and at the spot where a resident stands.
+- Flat-roofed Mediterranean houses: their parapet now has an outer face. Before, it showed as a thin edge.

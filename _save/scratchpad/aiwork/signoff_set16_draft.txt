@@ -1,0 +1,25 @@
+Set 16: getting into cars through the door (startCarEntry), and held hands.
+
+- ai.cpp namespace ai_board:
+  - begin: at the door, calls GameWorld::startCarEntry. On success the ped is held in PS_ENTERING (p.targetVehicle/targetSeat set; PedAI::boardVeh/boardVehUid/boardSeat/boardT), and pa.clipTimer is set to the clip length (police.cpp escortStep stands over a prisoner while it runs).
+  - step (updateBrain's PS_ENTERING branch): keeps the car's escortHold up so nobody drives off mid-clip. When the clip is over it calls warpPedIntoVehicle (which shuts the door) and then boarded().
+  - If the car is gone, wrecked or moving, or the seat is taken, the ped is put back on foot and the activity looks at the car again.
+  - boarded: each activity's own follow-up, moved there unchanged from the entry sites, so the door path and the plain path run the same code.
+- Entry sites switched (each falls back to today's plain CLIP_ENTER_CAR_* or warp when startCarEntry returns -1):
+  - pedai.cpp ACT_DRIVE_OFF (owners), ACT_RIDE_ALONG (companions; the car waits), ACT_CUFFED (the officer stands over the prisoner while the clip runs).
+  - Walk-backs, which now walk to the seat's door rather than to the car's middle:
+    - ACT_ERRAND (delivery drivers)
+    - ACT_ROADRAGE (road-rage and sorry drivers: to the driver's door, round the car)
+    - the EMS crew (to a free seat's door)
+    - ACT_COP_BREAK (the everybody-in check also counts a colleague still getting in)
+    - taxi fares (a kerb-side back seat's door)
+    - police.cpp officers returning to their car (to the seat's door; in all the same after 8 s if they can't reach it)
+  - Followers see a leader at its door as getting in: the ride-along checks accept PS_ENTERING with targetVehicle.
+- Kept instant: spawn-time warps, an officer bringing the car round to an escort, the jump back in during a chase, events.cpp's actors (they come in a later set), and BRAIN_FOLLOW.
+- Census: door entries (plain).
+- peds.cpp (the lead's): the couple block gets `in.grabAxis = vec3(0.f, 1.f, 0.f);`, so held hands hang fingers-down, palms square to the walk and to each other. The hunk:
+             in.grabTarget = vec3(dot(m, rightV), dot(m, fwd) + 0.05f, 0.93f);
+             in.grabWeight = 1.f;
++            in.grabAxis = vec3(0.f, 1.f, 0.f);   // (the clasp: both hands fingers-down, palms square to the walk and to each other)
+             in.passWeight = 0.f;   // (the other one at the elbow is no passer to lean away from)
+  nt_ai86 was built with b49bc7f's peds.cpp (5c6e2ff) plus this line: blob dbe0046df9d5d184571d212439191928fb836086.

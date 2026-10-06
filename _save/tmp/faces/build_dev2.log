@@ -1,0 +1,2 @@
+exit 143
+exit killed (redundant with b1 -O2)

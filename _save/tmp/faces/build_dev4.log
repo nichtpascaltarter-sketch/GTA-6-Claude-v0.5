@@ -1,0 +1,21 @@
+In file included from src/anim/anim_all.cpp:7,
+                 from src/main.cpp:49:
+src/anim/face.cpp: In function 'void Anim::detail::addBrow(BuildCtx&, int, vec3)':
+src/anim/face.cpp:1206:10: error: declaration does not declare anything [-fpermissive]
+ 1206 |     std::vector<u16> near;
+      |          ^~~~~~~~~~~
+src/anim/face.cpp:1213:84: error: expected primary-expression before '.' token
+ 1213 |             if ((q.mask & MK_HEAD) && length(bc - q.bc) - q.br - q.k <= reach) near.push_back((u16)i);
+      |                                                                                    ^
+src/anim/face.cpp: In lambda function:
+src/anim/face.cpp:1217:58: error: expected primary-expression before '.' token
+ 1217 |     auto ev = [&](vec3 p) { return c.sdf.evalList(p, near.data(), (int)near.size(), evCap); };
+      |                                                          ^
+src/anim/face.cpp:1217:68: error: expected primary-expression before 'int'
+ 1217 |     auto ev = [&](vec3 p) { return c.sdf.evalList(p, near.data(), (int)near.size(), evCap); };
+      |                                                                    ^~~
+src/anim/face.cpp:1217:68: error: expected ')' before 'int'
+ 1217 |     auto ev = [&](vec3 p) { return c.sdf.evalList(p, near.data(), (int)near.size(), evCap); };
+      |                                                                   ~^~~
+      |                                                                    )
+exit 1

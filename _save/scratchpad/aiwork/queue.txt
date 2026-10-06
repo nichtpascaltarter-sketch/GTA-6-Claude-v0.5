@@ -1,0 +1,5 @@
+bin/nt_ai86.exe copbreak:150:12:60:960x540
+bin/nt_ai86.exe showoff:120:12:60:960x540
+bin/nt_ai86.exe crosswalk:110:12:60:960x540
+bin/nt_ai86.exe runby:150:12:60
+bin/nt_ai86.exe nightwalk:150:12:60

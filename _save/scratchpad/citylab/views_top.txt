@@ -1,0 +1,4 @@
+lake_top aerial 239 6735 320 180 80 60 10
+harlow_top aerial -4795 5200 320 180 80 60 10
+fc_top aerial 4203 7601 320 180 80 60 10
+tp_top aerial -8500 -2080 320 180 80 60 10

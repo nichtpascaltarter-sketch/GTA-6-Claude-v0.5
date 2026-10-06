@@ -1,0 +1,10 @@
+# batch 14 (ranch colours and porches, Key Coral villas): clay views
+keycoral_air aerial 4500 -4150 230 160 32 60 14
+keycoral_air2 aerial 4300 -3700 230 200 32 60 14
+keycoral_st1 street 4516 -4190 35 -2 60 14
+keycoral_st2 street 4380 -3900 -35 -2 60 14
+westbrook_air aerial -1226 -594 180 200 35 60 14
+westbrook_st1 street -1226 -594 35 -2 60 14
+westbrook_st2 street -900 -1200 -35 -2 60 14
+grove_air aerial 1963 -3500 180 160 35 60 14
+grove_st1 street 1963 -3500 35 -2 60 14

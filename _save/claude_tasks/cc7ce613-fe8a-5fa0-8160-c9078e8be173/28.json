@@ -1,0 +1,11 @@
+{
+  "id": "28",
+  "subject": "Renderer: street-level realism (asphalt, night rain, lights, storefront glass)",
+  "description": "Renderer agent finished 01:30: street pass (asphalt binder plus per-pixel aggregate, tyre tracks, oil, manholes, drains, gutter water; night rain streaks and lamp cones; bloom tamed; window blinds and curtains glowing at night; storefront interiors by day), fog-quadrant mitigations, HQ lobby ambient, stop-0 stipple (camera-fade dither), camera-cut and probe recapture for teleports, character skin and cloth shading. Pending: the missions agent reruns fish_boat to confirm the horizon fix.",
+  "activeForm": "Improving street-level rendering",
+  "status": "completed",
+  "blocks": [
+    "40"
+  ],
+  "blockedBy": []
+}

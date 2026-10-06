@@ -1,0 +1,3 @@
+lods: 35999 / 4500 / 1499 tris
+char 0: seed 301922 role 3 gender 0 h 1.79 w 0.39 m 0.30 age 0.30 hair 10 top 6 bottom 3 shoes 1 hat -1 glasses -1 fh 3: 1149 verts 1499 tris
+mesh build avg 379.06 ms, avg tris 1499

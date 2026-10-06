@@ -1,0 +1,9 @@
+Embedded 40 shader files.
+148 shaders, 0 failed
+[ 358.107] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.2 | peds 88 vehicles 63 wanted 0 | cpu ms player 0.04 ai 0.64 veh 0.69 peds 1.2
+[ 488.045] autoplay t=17.5 pos 1806.7 270.4 3.5 state 2 health 200 veh 1 speed 17.5 | peds 88 vehicles 65 wanted 0 | cpu ms player 0.05 ai 0.57 veh 0.62 peds 0.
+[ 355.555] autoplay t=13.5 pos 1791.3 160.9 6.5 state 0 health 188 veh -1 speed 0.0 | peds 97 vehicles 64 wanted 1 | cpu ms player 0.13 ai 0.59 veh 0.77 peds 0.
+fatal: unable to access 'https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/': Failed to connect to 127.0.0.1 port 41469 after 0 ms: Couldn't connect to server
+afba78c Brows read as hair again and lashes as a fringe; on stairs the toes clear the next riser and quick steps no longer cut through one
+PUSH FAILED (committed locally)
+fatal: unable to access 'https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/': Failed to connect to 127.0.0.1 port 41469 after 0 ms: Couldn't connect to server

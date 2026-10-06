@@ -1,0 +1,4 @@
+100644 14eea6748c401413519b464c931ad1db1ef635fd	src/anim/animator.cpp
+100644 6e761ebe6a0d9df5bab1c6474c74380160fcb50d	src/anim/character.h
+100644 5c6e2ff79d7d1b37c488189789bf4a0a73b90282	src/game/peds.cpp
+100644 6890cafb565de98fefbee435cd7684bb50610506	src/game/gameworld.h

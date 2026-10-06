@@ -1,0 +1,8 @@
+
+=== lofi seed 1773: 79 bpm, key 11 scale 0, variant 0, 64 bars, 196.9 s, swing 0.62
+  form: Intro4 Verse16 Chorus16 Verse8 Chorus16 Outro4
+  MIX rms -18.8 dB, centroid 546 Hz, peak 0.84
+  track 0 Drums  notes  1010                                  rms  -22.2 dB  centroid   693 Hz  peak 0.56
+  track 1 Sub    notes   133 range  35- 54 outKey  3.0% steps  38% leaps  20%  rms  -26.0 dB  centroid   430 Hz  peak 0.30
+  track 2 Fm     notes   660 range  56- 76 outKey  0.0% steps   4% leaps  33%  rms  -20.9 dB  centroid   530 Hz  peak 0.47
+  track 3 Fm     notes    53 range  71- 80 outKey  0.0% steps  40% leaps   0%  rms  -31.8 dB  centroid  1171 Hz  peak 0.26

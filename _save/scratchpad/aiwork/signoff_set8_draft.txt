@@ -1,0 +1,16 @@
+AI snapshot-safe, set 8 (on top of set 7). Tested on nt_ai76 = HEAD <hash> plus the blobs below.
+[blobs]
+
+- Greetings that were never heard: phone talkers near the player said a line at every free moment (BK_PHONE_CHAT was
+  tried every frame), holding the street's one bark slot, so hellos and "are you okay?" were dropped - and a dropped one
+  used up the pass. Now a call's line comes once per 5 s per talker (walking or stood), and a greeting drowned out by
+  other talk is tried again within the same pass (pedai.cpp).
+- Officers busy with somebody (a statement, a sidewalk stop, a ticket) or at a crash scene tell the player standing
+  right by them to step back after a few seconds ("Step back, please." - BK_COP_STEP_BACK; ai.cpp; once per 30 s).
+- Riders whose car the player takes get out with a fleeing line, not "That's my car!".
+- Two waiting side by side at a bus stop a while, within earshot of the player: now and then a word about the bus and
+  the answer ("This bus is never on time." / "Tell me about it." - BK_BUS_WAIT / BK_BUS_WAIT_REPLY).
+- More lines in the most-heard banks: greetings (any time, morning, evening), bumps, phone calls, honks, filming, dives,
+  guns seen, joggers, tourists, music, drunks, crashes, insults, flee, cower, help, thanks (barks.cpp, text only).
+Tests: the walkby mode gives every close pass its word (ai.forceGreet), so the hellos and "are you okay?" are seen; the
+pedstop mode puts the player right by the talking officer for 10 s at the first stop; census "step backs".

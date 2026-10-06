@@ -1,0 +1,18 @@
+Faces at night get lamp light bounced up from the ground; brows, lashes and beards read full; no beard-cheek seam
+
+Renderer character-shading backlog, items 1, 2, 3 and 5 (src/shaders/lighting.hlsl, src/shaders/dynamic.hlsl):
+1. Night eye sockets: skin, eyes, hair and cloth within 12 m that face away from a street lamp get the lamp's light
+   bounced up from the ground (a fifth of its illuminance, weighted towards normals that face down), so the brow
+   ridge and upper lids no longer go black under a steep lamp. A lamp's feature shadow also keeps a tenth of its
+   light instead of going fully black.
+2. Strand cards dither with their own threshold (the pixel's noise offset by the card's seed), so overlapping brow,
+   beard and lash cards add up to 1 - prod(1 - coverage) instead of the largest single card's coverage: brows and
+   beards read full instead of as a hatch pattern.
+3. Lashes, brows and beards get the feature shadows of the skin they grow on. The hair G-buffer extra byte now holds
+   a face-hair flag in bit 3; the per-strand random drops to 4 bits and the card depth keeps its 3 bits.
+5. The opaque hair shell wraps its diffuse lighting at 0.15 (cards stay at 0.4), so no dark line opens between beard
+   and cheek at the shadow edge.
+
+Checks (renderer agent): facecams before and after at 1920x1080 under the street lamp, at night and by day. At 0.5 m
+at night the upper lids go from 5.9 to 4.2 stops below the forehead. Shader compile: 0 failed. Verified on main
+111efa9's face meshes; faces batch 5's deeper brow and lash depths still fit the 3 depth bits.

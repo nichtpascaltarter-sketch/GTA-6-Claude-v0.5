@@ -1,0 +1,68 @@
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.04 s)
+World map generated in 18.97 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (1.95 s)
+Buildings: 36093 (towers 358, midrise 2400, condo 485, deco 838, shops 4829, strip 693, houses 21872, villas 928, warehouses 1686) in 1.65 s
+Sites: 66 highway billboards
+Sites: 112 silos, 55 windmills
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 557 elements (0.01 s)
+Interiors: 18 planned (convenience 7, gun shops 2) in 7.9 ms
+  interior 'Mari's Apartment' kind 0 building 4731 at (1742.99, 359.27, 3.79) ax (1.0000, 0.0000) x -6.35..6.35 depth 11.50 ceil 4.07: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+  interior 'Mama Lucha's' kind 2 building 3268 at (1344.20, 340.74, 4.30) ax (-1.0000, -0.0000) x -7.52..7.52 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 22 npc points
+  interior 'Rook's Garage' kind 3 building 4240 at (1653.58, 2361.70, 4.24) ax (1.0000, 0.0000) x -10.06..10.06 depth 20.00 ceil 7.79: 3 rooms, 6 openings, 4 doors, 6 portals, 5 npc points
+  interior 'Dex's Trailer' kind 1 building 2793 at (1313.66, 2666.61, 4.66) ax (1.0000, 0.0000) x -7.80..7.80 depth 17.92 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+  interior 'Police Headquarters' kind 5 building 9169 at (3164.81, -240.27, 1.87) ax (1.0000, 0.0000) x -12.31..8.80 depth 16.00 ceil 3.77: 2 rooms, 7 openings, 2 doors, 7 portals, 13 npc points
+  interior 'Tidewater General Hospital' kind 6 building 4160 at (1708.83, 1165.32, 3.62) ax (1.0000, 0.0000) x -11.37..8.12 depth 16.00 ceil 3.89: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+  interior 'Palmetto Arms' kind 7 building 1627 at (884.67, 2892.03, 4.89) ax (0.0000, 1.0000) x -5.49..5.49 depth 14.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+  interior 'Northside Arms' kind 7 building 9707 at (3284.64, 3978.47, 2.04) ax (0.0000, 1.0000) x -3.67..7.35 depth 14.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+  interior 'Threads' kind 9 building 31794 at (5162.88, -280.71, 1.91) ax (-1.0000, 0.0000) x -8.18..4.91 depth 15.00 ceil 3.57: 2 rooms, 5 openings, 2 doors, 5 portals, 4 npc points
+  interior 'Port Isle Warehouse' kind 12 building 36078 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+  interior 'TideStop Mart' kind 8 building 3378 at (1449.11, -259.30, 4.30) ax (-1.0000, -0.0000) x -6.22..6.22 depth 17.00 ceil 3.45: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+  interior 'Bodega La Luna' kind 8 building 6349 at (2248.50, 540.78, 2.92) ax (-1.0000, -0.0000) x -5.89..5.89 depth 17.00 ceil 3.52: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Canvas Corner Market' kind 8 building 8799 at (2981.20, 1582.59, 2.26) ax (0.0000, 1.0000) x -8.23..4.94 depth 17.00 ceil 3.44: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Sunrise Food Mart' kind 8 building 31838 at (5227.60, 643.36, 1.78) ax (0.0000, 1.0000) x -7.92..7.92 depth 17.00 ceil 3.66: 2 rooms, 7 openings, 2 doors, 7 portals, 5 npc points
+  interior 'Northside Quick Stop' kind 8 building 6599 at (2352.84, 3761.68, 3.08) ax (1.0000, 0.0000) x -6.39..6.39 depth 17.00 ceil 3.53: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Flats Food & Fuel' kind 8 building 1225 at (458.12, 3265.33, 5.16) ax (1.0000, 0.0000) x -5.58..5.58 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+  interior 'Grove Pantry' kind 8 building 12464 at (2167.47, -3046.89, 2.30) ax (0.0184, -0.9998) x -6.03..6.03 depth 17.00 ceil 3.78: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+  interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 0.94) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+world 22.7 s
+Mari's Apartment         kind  0:   15060 tris (shell 978 furn 10732 detail 2506 leaves 3) 22635 verts, 12 lights, 25 cols: cpu 1.27 ms wall 1.27 ms
+Mama Lucha's             kind  2:   30603 tris (shell 7254 furn 15774 detail 6655 leaves 5) 40480 verts, 24 lights, 55 cols: cpu 1.98 ms wall 2.03 ms
+Rook's Garage            kind  3:   16068 tris (shell 2726 furn 6898 detail 5640 leaves 4) 19650 verts, 10 lights, 40 cols: cpu 0.81 ms wall 0.81 ms
+Dex's Trailer            kind  1:   13353 tris (shell 2744 furn 8288 detail 1477 leaves 3) 18854 verts, 10 lights, 44 cols: cpu 0.89 ms wall 0.89 ms
+Police Headquarters      kind  5:   15350 tris (shell 4404 furn 8906 detail 1564 leaves 3) 24409 verts, 22 lights, 23 cols: cpu 0.97 ms wall 0.97 ms
+Tidewater General Hospital kind  6:   16892 tris (shell 3020 furn 12564 detail 668 leaves 4) 28972 verts, 31 lights, 22 cols: cpu 1.26 ms wall 1.26 ms
+Palmetto Arms            kind  7:   17706 tris (shell 2656 furn 3170 detail 11404 leaves 3) 30228 verts, 11 lights, 18 cols: cpu 1.21 ms wall 1.22 ms
+Northside Arms           kind  7:   18204 tris (shell 2824 furn 3296 detail 11608 leaves 3) 30974 verts, 11 lights, 18 cols: cpu 1.19 ms wall 1.19 ms
+Threads                  kind  9:   33736 tris (shell 1662 furn 5504 detail 25978 leaves 3) 60096 verts, 19 lights, 25 cols: cpu 2.87 ms wall 6.88 ms
+Port Isle Warehouse      kind 12:   59460 tris (shell 3924 furn 16066 detail 38730 leaves 4) 94228 verts, 13 lights, 235 cols: cpu 3.70 ms wall 7.69 ms
+TideStop Mart            kind  8:  106707 tris (shell 4892 furn 3680 detail 97659 leaves 3) 158474 verts, 18 lights, 14 cols: cpu 9.15 ms wall 17.12 ms
+Bodega La Luna           kind  8:  116744 tris (shell 4840 furn 4034 detail 107394 leaves 3) 169951 verts, 18 lights, 14 cols: cpu 7.71 ms wall 15.73 ms
+Canvas Corner Market     kind  8:  118436 tris (shell 5322 furn 3948 detail 108690 leaves 3) 191245 verts, 18 lights, 15 cols: cpu 8.75 ms wall 17.00 ms
+Sunrise Food Mart        kind  8:  138238 tris (shell 5782 furn 3942 detail 128038 leaves 3) 200503 verts, 22 lights, 17 cols: cpu 11.26 ms wall 20.43 ms
+Northside Quick Stop     kind  8:  111434 tris (shell 4958 furn 4016 detail 101984 leaves 3) 169015 verts, 18 lights, 16 cols: cpu 7.48 ms wall 15.51 ms
+Flats Food & Fuel        kind  8:  118222 tris (shell 4316 furn 3998 detail 109432 leaves 3) 171967 verts, 18 lights, 16 cols: cpu 8.36 ms wall 16.68 ms
+Grove Pantry             kind  8:  111363 tris (shell 4878 furn 3884 detail 102125 leaves 3) 166748 verts, 18 lights, 16 cols: cpu 9.54 ms wall 15.58 ms
+Club Riptide             kind  4:   43466 tris (shell 2798 furn 32146 detail 8522 leaves 0) 49136 verts, 28 lights, 80 cols: cpu 2.31 ms wall 2.42 ms

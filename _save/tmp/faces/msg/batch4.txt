@@ -1,0 +1,44 @@
+faces snapshot-safe — batch 4: brows that hold their colour, cleaner hairlines and beard edges, rounder curls
+
+Files (6). They are in the shared tree now, replacing my own files (on main those hold batch 3; main is now 6afc8b2, and none of these files changed after 91a6aba). Copies are in /tmp/faces/batch4/. Blob hashes (git hash-object -w, so they are in the object store):
+- 4829269cb4df2195fbf012d12c5c24e276a5ec98  src/anim/face.cpp
+- cd741c5c1ce6dcf5ea0ff52cedad9f5299bf61e3  src/anim/hair.cpp
+- a96450779ff34272fcfb1d9ce0a5fa3057ef0652  src/anim/clothing.cpp
+- ce9f2affb63bc693967edbabbc182ba875941e90  src/anim/bodymesh.cpp
+- 9440c6ce1e32efcde91033764805e8e16054c59e  tests/anim/anim_test.cpp
+- 86f8a2bd680e185b1fc917bb8042f786890f2696  tests/anim/preview.cpp
+character.cpp, meshutil.cpp, decimate.cpp, character.h, anim_internal.h and the other anim sources are untouched. Verified trees: /tmp/faces/dev8 (main 91a6aba plus the files: the game build, portraits and perf ran on it) and /tmp/faces/b4t6 (main 6afc8b2 plus the files: anim_test and carview).
+
+What players see:
+Brows
+- The skin under each brow now carries the brow's colour across the brow's whole body, so brows read as dark shapes instead of a few loose hairs, most at a few metres. Before, that tint sat a third of the brow's height above the hairs and between two rows of the face mesh 4 mm apart, so most brows got almost none of it. anim_test now checks it: on main, 2 of 10 test faces had their darkest brow skin at 0.88 and 0.96 of the forehead; now every face is at 0.54 or below.
+- Two more rows of the face mesh run through the brow (about 2 mm apart there), so the tint follows the brow's shape, thin brows included.
+Hairlines and beard edges
+- Hair and beard shells now rise out of the skin at their edge instead of ending in a 1.2 mm rolled lip. Where they are still thin they shade with the skin's own normal, not their thickness ramp's, which tilted them about 20 degrees.
+- The buzz cut's hairline loses its light rim and the dark line under it (/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/faces/hairline_ab0_ab1_d8a.png).
+- The bearded men's night cheek line is much fainter on c27 and fainter on c38 (b4_1m_night_beards.png and b4_1m_night_highpass.png in the same folder). What is left is the hair shading's wrap on the beard shell against the skin's terminator. That fix is renderer-side; see my earlier message.
+Curls
+- Curly coils are rounder: five sides and six stations per turn, instead of four sides and three stations, which twisted into flat ribbons.
+
+Tests run (final files):
+- anim_test: ALL PASSED on main 91a6aba plus the files, and again on main 6afc8b2 plus the files (character.h's new rootMove fields).
+  - FaceShape gains the brow-tint check above.
+  - Mesh triangles average 34713 (main 34499: two face rows). Build CPU over 24 characters is within about 1% of main (user time; wall time on this loaded machine is too noisy to compare).
+  - tests/anim/carview.cpp, which includes preview.cpp, compiles and runs.
+- O2 build of the tree (/tmp/faces/nt_b4_o2.exe): exit 0.
+- Wine D3D12: a 30-portrait run with that exe logged no FATAL or vkd3d lines.
+- Crowd perf, tour stop 7 (club_night, 196 peds): batch 4 ran at 3.69 and 2.88 cpu ms peds, and main 91a6aba, built and run in the same hour, at 2.75 and 3.63. That is within this machine's noise; peds reuse roster meshes built at load, and Game assets built took 39.2 and 40.6 s against main's 46.0 and 40.9 s. None of the perf runs logged FATAL or vkd3d lines.
+- preview.cpp gains PREVIEW_FEATSHADOW (the renderer's skin feature shadows from the key light, marched through a depth pre-pass) and PREVIEW_SHADE=featshadow.
+
+Montages: before vs batch 4. The before is the batch 3 build (the same face code as main 91a6aba), against the O2 batch 4 build. 0.5 m, 1 m and 4 m by day; 1 m and 4 m at night under the lamp. Folder: /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/faces/
+- b4_c0.png: Mari
+- b4_c1.png: Dex
+- b4_c27.png: young dark-skinned bearded man
+- b4_c7.png: old woman
+- b4_c17.png: older light-skinned woman (also shows the rounder curls)
+- b4_c38.png: full beard
+
+Known, next:
+- By day in game the brow strands still catch the sun's highlight along their length and show as pale bands; c17 at 1 m shows it best. Batch 5 puts the brow cards deeper in the renderer's card-depth bits, which dims their highlight. It is building now.
+- Renderer-side (in my earlier messages): overlapping strand cards share one dither threshold, and there is the hair shell's wrap at the terminator.
+- Correction to my first message: the black night sockets ("goggles") are not the lamp's feature shadow. --quality 0, which turns contact and feature shadows off, leaves the sockets just as dark (the luminance profile through the eye matches within a few levels). The skin under the brow and the upper lid faces away from the steep lamp, and nothing fills it at night. The fix is still fill or bounce light on skin facing away from a lamp.

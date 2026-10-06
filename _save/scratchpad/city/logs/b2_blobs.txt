@@ -1,0 +1,7 @@
+buildings.h shared af7411f b2 af7411f
+buildings.cpp shared 8eb43d4 b2 8eb43d4
+buildmesh.cpp shared 31aad38 b2 31aad38
+facadedetail.cpp shared 2088f1f b2 2088f1f
+cellgen.cpp shared f43ee69 b2 f43ee69
+blockstyle.cpp shared f7adc46 b2 f7adc46
+massing.cpp shared 6cea14e b2 6cea14e

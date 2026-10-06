@@ -1,0 +1,8 @@
+Embedded 40 shader files.
+147 shaders, 0 failed
+[ 359.717] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.1 | peds 88 vehicles 63 wanted 0 | cpu ms player 0.10 ai 0.48 veh 0.53 peds 0.9
+[ 463.661] autoplay t=17.5 pos 1806.7 270.7 3.5 state 2 health 200 veh 1 speed 17.6 | peds 86 vehicles 66 wanted 0 | cpu ms player 0.05 ai 0.56 veh 0.54 peds 1.
+[ 366.499] autoplay t=13.5 pos 1791.3 160.9 6.5 state 0 health 188 veh -1 speed 0.0 | peds 97 vehicles 64 wanted 1 | cpu ms player 0.09 ai 0.51 veh 0.61 peds 1.
+41f1af1 Garden and woodland plants placed on the GPU: crotons, hibiscus and ixora along houses, ferns and palmettos in the woods
+branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
+COMMITTED bf2517016bee83ed5912be846a552234af17a827

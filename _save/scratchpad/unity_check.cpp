@@ -1,0 +1,7 @@
+#include "core/math.cpp"
+#include "core/noise.cpp"
+#include "core/jobs.cpp"
+#include "platform/win32.cpp"
+#include "gfx/gfx.cpp"
+#include "audio/audio_all.cpp"
+#include "audio/speech.cpp"

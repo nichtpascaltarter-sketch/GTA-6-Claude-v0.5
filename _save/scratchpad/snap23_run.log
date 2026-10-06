@@ -1,0 +1,8 @@
+Embedded 39 shader files.
+141 shaders, 0 failed
+[ 295.529] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.1 | peds 88 vehicles 63 wanted 0 | cpu ms player 0.13 ai 0.81 veh 0.59 peds 1.0
+[ 405.846] autoplay t=17.5 pos 1806.7 270.7 3.5 state 2 health 200 veh 1 speed 17.6 | peds 86 vehicles 66 wanted 0 | cpu ms player 0.05 ai 0.56 veh 0.58 peds 0.
+[ 370.653] autoplay t=13.5 pos 1791.3 160.9 6.5 state 0 health 188 veh -1 speed 0.0 | peds 97 vehicles 64 wanted 1 | cpu ms player 0.29 ai 0.53 veh 0.58 peds 1.
+b964d5e Ordinary blocks get district architecture: about 35 building types, carved footprints, back lots filled in
+branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
+COMMITTED 554fac8a569873f311f0d07ec54f2890e9f0f1ff

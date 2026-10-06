@@ -1,0 +1,9 @@
+Embedded 35 shader files.
+In file included from src/audio/audio_all.cpp:10,
+                 from src/main.cpp:53:
+src/audio/radio.cpp: In member function 'void Audio::detail::radio::StationProducer::renderBlock(float*, float*)':
+src/audio/radio.cpp:1276: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 1276 |             for (SpeechJob* j : nextJobs) speechJobRelease(j);
+      | 
+src/audio/radio.cpp:1276: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 9239552 Sep 30 14:30 /home/user/GTA-6-Claude-v0.5/bin/nt_fx21.exe

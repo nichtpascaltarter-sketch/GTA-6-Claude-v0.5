@@ -1,0 +1,377 @@
+[   0.043] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.362] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   0.703] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   0.717] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.781] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   0.852] UI font 'Impact' -> 'Liberation Sans'
+[   0.910] Font atlas built in 0.19 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   0.934] Audio: no output device - audio disabled
+[   0.934] Audio: no output device, continuing silently
+[   2.136] UI icon atlas: 92 icons + 13 weapons in 1164 ms
+[  19.460] Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+[  19.467] Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+[  19.467] Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+[  19.467] Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+[  19.467] Places: Palmera Speedway at (400, 5790), ground 6.8
+[  19.467] Places: layout 0.008 s, 5 places, 624 anchors
+[  19.468] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[  19.498] Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.07 s)
+[  20.790] World map generated in 19.86 s
+[  22.365] Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+[  23.403] Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+[  26.956] Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+[  28.821] Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km (8.03 s)
+[  34.303] Transit: 0 buildings cleared from the SkyLine corridor
+[  34.318] Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+[  34.345] Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+[  34.346] Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+[  34.371] Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+[  34.528] Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+[  34.554] Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+[  34.564] Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+[  34.568] Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+[  34.606] Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+[  34.626] Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+[  34.629] Places: after the lots 0.326 s
+[  34.630] Buildings: 35617 (towers 352, midrise 2411, condo 427, deco 688, shops 4600, strip 640, houses 22192, villas 901, warehouses 1620) in 5.77 s
+[  34.642] Sites: 69 highway billboards
+[  34.657] Sites: 155 silos, 50 windmills
+[  34.658] Sites: 245 beach access paths
+[  34.698] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.01 s)
+[  34.699] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[  34.699] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[  34.699] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[  34.708] Transit: 4 bus routes, 64 stops (48 new shelters) (0.01 s); rejects class 1107 cut 1945 deck 72 road 119 avoid 0 pad 2 furn 283 stop 0
+[  34.708] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[  34.708] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[  34.708] Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+[  34.708] Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+[  34.713] Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.01 s)
+[  34.713] Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+[  34.713] Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+[  34.713] Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+[  34.713] Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+[  34.713] Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+[  34.713] Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+[  34.713] Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+[  34.713] Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+[  34.714] Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+[  34.714] Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+[  34.714] Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+[  34.714] Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+[  34.714] Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+[  34.714] Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+[  34.714] Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+[  34.714] Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+[  34.714] Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.06 s)
+[  34.714] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[  34.714] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  34.714] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  34.714] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  34.714] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  34.714] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  34.714] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  34.714] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  34.718] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  34.718] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  34.718] Site terminal             at (628, 1440, 4.6)
+[  34.718] Site control tower        at (730, 1832, 4.6)
+[  34.718] Site container ship       at (4625, -800, 0.0)
+[  34.718] Site container ship       at (4616, -330, 0.0)
+[  34.718] Site port gate            at (4008, -160, 3.0)
+[  34.718] Site Key Coral marina     at (4039, -4035, 0.0)
+[  34.718] Site beach club           at (4873, -3866, 1.2)
+[  34.718] Site beach club           at (4808, -4183, 2.2)
+[  34.718] Site Solaris One          at (3350, -750, 1.4)
+[  34.718] Site stadium              at (3565, 445, 1.6)
+[  34.718] Site City Hall            at (3000, 372, 2.0)
+[  34.718] Site Canvas Park          at (3100, 1800, 1.7)
+[  34.718] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  34.718] Site Ferris wheel         at (5504, 1270, 5.6)
+[  34.718] Site lighthouse           at (-2206, -8000, 0.5)
+[  34.719] Site radio mast           at (-6744, 7248, 166.1)
+[  34.719] Site sugar mill           at (1430, 7500, 8.1)
+[  34.719] Site Rio Sol marina       at (2280, 188, 0.0)
+[  34.719] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  34.719] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  34.719] Sites finalized: 1486 elements (0.08 s)
+[  34.731] Interiors: 29 planned (convenience 7, gun shops 2) in 11.8 ms
+[  34.731]   interior 'Mari's Apartment' kind 0 building 28142 at (1771.22, 359.23, 3.77) ax (1.0000, 0.0000) x -6.55..2.18 depth 11.50 ceil 3.84: 3 rooms, 3 openings, 3 doors, 3 portals, 0 npc points
+[  34.731]   interior 'Mama Lucha's' kind 2 building 26747 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+[  34.731]   interior 'Rook's Garage' kind 3 building 27288 at (1562.94, 2361.63, 4.30) ax (1.0000, 0.0000) x -9.74..9.74 depth 20.00 ceil 7.11: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+[  34.731]   interior 'Dex's Trailer' kind 1 building 25527 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  34.731]   interior 'Police Headquarters' kind 5 building 32504 at (3167.89, -240.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+[  34.732]   interior 'Tidewater General Hospital' kind 6 building 35599 at (1692.75, 1073.40, 3.63) ax (1.0000, 0.0000) x -9.55..9.55 depth 16.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+[  34.732]   interior 'Palmetto Arms' kind 7 building 25538 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+[  34.732]   interior 'Northside Arms' kind 7 building 32997 at (3284.62, 4017.67, 2.09) ax (0.0000, 1.0000) x -6.33..6.33 depth 14.00 ceil 4.03: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  34.732]   interior 'Threads' kind 9 building 19677 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+[  34.732]   interior 'Port Isle Warehouse' kind 12 building 35552 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  34.732]   interior 'TideStop Mart' kind 8 building 26846 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  34.732]   interior 'Bodega La Luna' kind 8 building 29652 at (2242.71, 540.72, 2.92) ax (-1.0000, -0.0000) x -5.85..5.85 depth 17.00 ceil 4.19: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  34.732]   interior 'Canvas Corner Market' kind 8 building 32545 at (3090.56, 1476.66, 2.21) ax (0.0000, 1.0000) x -7.40..7.40 depth 17.00 ceil 3.92: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  34.732]   interior 'Sunrise Food Mart' kind 8 building 19719 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  34.732]   interior 'Northside Quick Stop' kind 8 building 29914 at (2304.43, 3761.63, 3.12) ax (1.0000, 0.0000) x -6.89..6.89 depth 17.00 ceil 4.12: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  34.732]   interior 'Flats Food & Fuel' kind 8 building 24842 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[  34.732]   interior 'Grove Pantry' kind 8 building 1182 at (2175.56, -3114.24, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  34.732]   interior 'Palm Motors' kind 17 building 31294 at (2686.87, 1279.16, 2.69) ax (0.0000, 1.0000) x -9.08..12.11 depth 20.00 ceil 3.90: 2 rooms, 8 openings, 3 doors, 8 portals, 5 npc points
+[  34.732]   interior 'Tide Customs Calle Luna' kind 18 building 29601 at (2278.47, -140.75, 2.99) ax (1.0000, 0.0000) x -7.61..7.61 depth 18.00 ceil 4.17: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  34.732]   interior 'Tide Customs Sol Beach' kind 18 building 19788 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  34.732]   interior 'Sunwash Car Wash' kind 19 building 29044 at (1988.34, 1491.32, 3.44) ax (0.0000, 1.0000) x -7.41..7.41 depth 20.00 ceil 8.08: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+[  34.732]   interior 'Key Coral Villa' kind 0 building 23718 at (4515.96, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[  34.732]   interior 'Sol Beach Condo Lobby' kind 20 building 19771 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+[  34.732]   interior 'Sol Beach Condo' kind 21 building 19771 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  34.732]   interior 'Downtown Penthouse Lobby' kind 20 building 33543 at (3511.22, -715.16, 1.71) ax (-0.0000, -1.0000) x -5.25..5.25 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[  34.732]   interior 'Downtown Penthouse' kind 21 building 33543 at (3511.22, -715.16, 52.15) ax (-0.0000, -1.0000) x -10.49..10.49 depth 14.00 ceil 2.80: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  34.732]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  34.732]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[  34.732]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[  38.863] Material library: 57 layers at 256^2
+[  39.171] Props: 71 prototypes, 36644 verts
+[  45.473] Vehicle assets: 45 models in 5.35 s
+[  77.172] Wardrobe: 29 dedicated looks (night out 12, door staff 3, sportswear 8, cover-ups 6); roster dressed for a night out 8 men / 9 women, office 9, work 6, swim 8, sport 6
+[  77.689] Character assets: 149 characters in 32.22 s
+[  77.726] Game assets built in 37.60 s
+[  77.840] Story place near (800, -5400): no building frontage found, using the street
+[  77.841] Story places resolved in 97.1 ms (diner 1350 342, Mari's 1771 358, Rook's 1566 2360, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[  77.843] Missions registered: 57
+[  81.847] Lane graph: 180 plaza walkways and 2 zebra crossings from the sites
+[  81.851] Lane graph: 25496 lanes, 56760 connectors (1154772 pts), 40687 walk nodes, 56441 walk links, dead-end turning circles moved 22 / obstructed 0 (4.00 s)
+[ 105.324] UI map: base 2560x2560 in 23395 ms, 9547 roads (43960 pts) in 18 ms, 37 labels in 56 ms
+[ 105.325] hudInit done in 23471 ms
+[ 105.327] Init done in 104.39 s (shaders: 0 compiled in 0.00 s)
+[ 105.330] locotour: stop 2 downtown_afternoon at 3168 -243
+[ 105.337] Transit: SkyLine timetable built (2.4 ms): loop 12.4 / 12.4 min, 4 trains per direction, headway 3.1 min
+[ 105.343] Transit: 9 lines published to the map
+[ 105.345] Transit: SkyLine car models registered as vehicle assets 45 / 46
+[ 105.774] Transit: 4 route bus models (destination signs) in 423 ms
+[ 105.779] Transit: 64 bus stops registered with the AI (48 lane stops added, 240 waiting spots)
+[ 105.779] Transit: 15 buses on 4 routes
+[ 105.779] Transit: Bay Ferry timetable: loop 13.2 min, 2 ferries, headway 6.6 min
+[ 105.780] Transit: Sol Ferry model registered as vehicle asset 51
+[ 105.783] Transit: streetcar modules registered as vehicle assets 52 53 54
+[ 105.786] Transit: 16 streetcar stops registered (16 curb lanes kept clear)
+[ 105.786] Transit: 4 streetcars on the 6.24 km loop, 16 stops, 65/65 junction movements found
+[ 105.827] population: venue Ocean Promenade slot 75 (mode 6) dropped at 5354.7 728.5: second spot
+[ 105.839] population: venue Ocean Promenade slot 77 (mode 6) dropped at 5354.7 809.2: second spot
+[ 105.840] population: venue Ocean Promenade slot 71 (mode 6) dropped at 5354.7 850.4: second spot
+[ 105.840] population: venue Ocean Promenade slot 80 (mode 6) dropped at 5354.7 920.7: second spot
+[ 105.841] population: venue Ocean Promenade slot 49 (mode 6) dropped at 5354.7 1046.1: second spot
+[ 105.857] population: venues laid out: 3956 (769 slots kept, 5 dropped on lanes / water / buildings; 3892 town venues with 38978 slots, checked on the first visit) | port 23 | airport 35 (rank: 3 cabs, line of 4) | sawgrass 32 | Ocean Promenade 2 | Porto Sol University 2 | Porto Sol University 5 | Santa Marea Cemetery 2 | Palmera State Penitentiary 5 | Okahatchee Union Church 2 | Old Fort Church 2 | Ocean Promenade 34 | Ocean Promenade 76 | Ocean Promenade 72 | Ocean Promenade 81 | Ocean Promenade 49 | Ocean Promenade 7 | Ocean Promenade 6 | Ocean Promenade 2 | Ocean Promenade 4 | Ocean Promenade 3 | Porto Sol University 10 | Porto Sol University 6 | Porto Sol University 11 | Porto Sol University 19 | Porto Sol University 3 | Porto Sol University 7 | Santa Marea Cemetery 25 | Santa Marea Cemetery 17 | Santa Marea Cemetery 5 | Santa Marea Cemetery 3 | Santa Marea Cemetery 5 | Santa Marea Cemetery 8 | Santa Marea Cemetery 4 | Santa Marea Cemetery 9 | Palmera State Penitentiary 9 | Palmera State Penitentiary 6 | Palmera State Penitentiary 4 | Palmera State Penitentiary 3 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 2 | Palmera Speedway 16 | Palmera Speedway 28 | Palmera Speedway 12 | Okahatchee Union Church 22 | Old Fort Church 17 | Old Fort Church 4 | Tidewater General Hospital 3 | Tidewater General Hospital 2 | Tidewater General Hospital 3 | Midtown General 1 | Midtown General 7 | Westbrook Hospital 8 | Sol Beach Clinic 8 | Harlow County Hospital 5 | Harlow County Hospital 3 | Okahatchee Medical 8 | Redland Health 8 | Fort Castell Hospital 1 | Fort Castell Hospital 7
+[ 105.879] Stunt jumps: 0 road crests (0 candidates); ramps being placed
+[ 105.880] fishing: 9 spots (lake yes, 3 Keys docks)
+[ 107.081] Stunt ramps: 10 placed (0 over water) in 892 ms (25869 corridors tested); 10 unique stunt jumps
+[ 107.142] Wildlife: 28 species models ready (166 k triangles in the detailed LODs)
+[ 109.435] Interior 'Police Headquarters' built: 19990 triangles, 25 lights, 25 colliders, 3 door leaves in 2.2 ms
+[ 109.436] Interior 'Downtown Penthouse Lobby' built: 6090 triangles, 6 lights, 11 colliders, 4 door leaves in 0.7 ms
+[ 109.562] Interior 'Downtown Penthouse' built: 22342 triangles, 26 lights, 47 colliders, 7 door leaves in 2.9 ms
+[ 109.564] Interior 'Solaris One Penthouse' built: 50468 triangles, 33 lights, 53 colliders, 2 door leaves in 7.1 ms
+[ 231.723] locotour big slide: ped 114 foot 0 92.2 cm over 23 frames (planted 19), pivot 78 deg, speed 1.45 m/s (fwd 1.22 side -0.02), turning 2.66 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 237.329] locotour big slide: ped 60 foot 1 54.1 cm over 22 frames (planted 9), pivot 107 deg, speed 0.45 m/s (fwd 1.15 side -0.00), turning 2.58 rad/s | stance 7 action -1 t0.00 moveW 0.76 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 237.354] locotour big slide: ped 114 foot 1 108.8 cm over 21 frames (planted 17), pivot 78 deg, speed 1.68 m/s (fwd 2.01 side 0.06), turning 2.92 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 245.707] locotour big slide: ped 114 foot 0 117.6 cm over 23 frames (planted 17), pivot 78 deg, speed 1.67 m/s (fwd 0.98 side 0.33), turning 2.85 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 245.805] locotour big slide: ped 114 foot 0 45.9 cm over 3 frames (planted 0), pivot 33 deg, speed 1.62 m/s (fwd 2.23 side 0.01), turning 6.00 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 254.003] locotour big slide: ped 13 foot 1 24.5 cm over 6 frames (planted 4), pivot 13 deg, speed 2.31 m/s (fwd 2.36 side 0.00), turning 0.45 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 7 moveMode 0
+[ 256.442] locotour big slide: ped 13 foot 0 30.6 cm over 6 frames (planted 3), pivot 1 deg, speed 2.40 m/s (fwd 2.34 side 0.00), turning 0.47 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 7 moveMode 0
+[ 256.451] locotour big slide: ped 60 foot 0 23.2 cm over 16 frames (planted 13), pivot 26 deg, speed 0.48 m/s (fwd 0.91 side 0.07), turning 2.28 rad/s | stance 0 action -1 t0.00 moveW 0.49 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 256.461] locotour big slide: ped 114 foot 0 87.8 cm over 18 frames (planted 9), pivot 179 deg, speed 0.98 m/s (fwd 0.80 side -0.21), turning 4.12 rad/s | stance 0 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 259.213] locotour big slide: ped 59 foot 0 60.8 cm over 30 frames (planted 21), pivot 75 deg, speed 0.64 m/s (fwd 1.33 side -0.00), turning 1.09 rad/s | stance 7 action -1 t0.00 moveW 0.88 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 265.049] locotour big slide: ped 59 foot 1 56.3 cm over 30 frames (planted 29), pivot 68 deg, speed 0.64 m/s (fwd 1.39 side -0.00), turning 1.30 rad/s | stance 7 action -1 t0.00 moveW 0.86 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 265.051] locotour big slide: ped 114 foot 1 187.8 cm over 44 frames (planted 29), pivot 282 deg, speed 1.09 m/s (fwd -0.15 side 0.25), turning 3.46 rad/s | stance 0 action -1 t0.00 moveW 0.78 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 267.767] locotour big slide: ped 13 foot 0 84.5 cm over 18 frames (planted 7), pivot 17 deg, speed 1.60 m/s (fwd 2.30 side 0.00), turning 0.48 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 7 moveMode 0
+[ 267.847] locotour big slide: ped 13 foot 1 54.2 cm over 17 frames (planted 17), pivot 13 deg, speed 1.66 m/s (fwd 2.20 side 0.00), turning 0.49 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 7 moveMode 0
+[ 267.847] locotour big slide: ped 113 foot 0 97.7 cm over 37 frames (planted 26), pivot 261 deg, speed 0.49 m/s (fwd 1.09 side -0.00), turning 3.94 rad/s | stance 7 action -1 t0.00 moveW 0.74 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 267.867] locotour big slide: ped 114 foot 0 34.3 cm over 15 frames (planted 14), pivot 63 deg, speed 0.59 m/s (fwd 0.00 side 0.00), turning 2.25 rad/s | stance 0 action -1 t0.00 moveW 0.23 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 272.702] locotour big slide: ped 13 foot 0 32.0 cm over 12 frames (planted 12), pivot 4 deg, speed 2.25 m/s (fwd 2.46 side 0.00), turning 0.47 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 7 moveMode 0
+[ 286.234] locotour big slide: ped 114 foot 0 26.2 cm over 18 frames (planted 16), pivot 71 deg, speed 0.88 m/s (fwd 0.44 side 0.61), turning 4.00 rad/s | stance 0 action -1 t0.00 moveW 0.91 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 286.253] locotour big slide: ped 113 foot 1 259.2 cm over 90 frames (planted 62), pivot 486 deg, speed 0.59 m/s (fwd 2.18 side 0.22), turning 3.09 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 291.666] locotour big slide: ped 59 foot 0 57.9 cm over 33 frames (planted 30), pivot 62 deg, speed 0.50 m/s (fwd 0.77 side 0.00), turning 1.03 rad/s | stance 7 action -1 t0.00 moveW 0.66 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 297.342] locotour big slide: ped 13 foot 1 100.7 cm over 31 frames (planted 19), pivot 99 deg, speed 0.66 m/s (fwd 0.13 side 0.48), turning 2.28 rad/s | stance 7 action -1 t0.00 moveW 0.42 state 0 brain 1 activity 0 walkStance 0 leader 7 moveMode 0
+[ 300.086] locotour big slide: ped 13 foot 0 70.5 cm over 23 frames (planted 18), pivot 86 deg, speed 0.29 m/s (fwd 0.00 side -0.00), turning 2.42 rad/s | stance 7 action -1 t0.00 moveW 0.26 state 0 brain 1 activity 0 walkStance 0 leader 7 moveMode 0
+[ 300.087] locotour big slide: ped 60 foot 1 44.3 cm over 5 frames (planted 0), pivot 5 deg, speed 0.89 m/s (fwd -0.03 side 0.33), turning 1.55 rad/s | stance 0 action -1 t0.00 moveW 0.68 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 300.099] locotour big slide: ped 59 foot 1 129.3 cm over 65 frames (planted 55), pivot 126 deg, speed 0.55 m/s (fwd 0.96 side 0.00), turning 1.07 rad/s | stance 7 action -1 t0.00 moveW 0.72 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 303.276] locotour burst 0 (feet) at t=14.0: ped 35, camera 3162.2 -245.2 2.2 looking at 3161.8 -242.6 2.1
+[ 337.327] locotour shot 0.00: speed 0.92 planted 10 phase 0.50 | apart 0.00 m, passing weight 0.71 / 0.00
+[ 341.536] locotour shot 0.01: speed 0.85 planted 11 phase 0.60 | apart 0.00 m, passing weight 0.71 / 0.00
+[ 349.566] locotour shot 0.02: speed 0.81 planted 01 phase 0.70 | apart 0.00 m, passing weight 0.67 / 0.00
+[ 354.311] locotour shot 0.03: speed 0.83 planted 01 phase 0.80 | apart 0.00 m, passing weight 0.68 / 0.00
+[ 362.516] locotour shot 0.04: speed 0.73 planted 01 phase 0.90 | apart 0.00 m, passing weight 0.82 / 0.00
+[ 366.969] locotour shot 0.05: speed 0.80 planted 11 phase 0.00 | apart 0.00 m, passing weight 0.69 / 0.00
+[ 374.960] locotour big slide: ped 59 foot 1 24.1 cm over 22 frames (planted 19), pivot 26 deg, speed 0.61 m/s (fwd -0.00 side 0.00), turning 0.75 rad/s | stance 0 action -1 t0.00 moveW 0.57 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 374.961] locotour shot 0.06: speed 0.73 planted 11 phase 0.10 | apart 0.00 m, passing weight 0.62 / 0.00
+[ 379.132] locotour shot 0.07: speed 0.81 planted 11 phase 0.20 | apart 0.00 m, passing weight 0.52 / 0.00
+[ 387.400] locotour shot 0.08: speed 1.06 planted 10 phase 0.30 | apart 0.00 m, passing weight 0.46 / 0.00
+[ 391.440] locotour shot 0.09: speed 1.30 planted 10 phase 0.40 | apart 0.00 m, passing weight 0.45 / 0.00
+[ 399.834] locotour shot 0.10: speed 1.20 planted 11 phase 0.51 | apart 0.00 m, passing weight 0.43 / 0.00
+[ 401.870] locotour big slide: ped 13 foot 0 107.9 cm over 21 frames (planted 15), pivot 182 deg, speed 2.06 m/s (fwd 2.30 side 0.00), turning 5.47 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 7 moveMode 0
+[ 403.944] locotour shot 0.11: speed 1.26 planted 11 phase 0.62 | apart 0.00 m, passing weight 0.33 / 0.00
+[ 411.359] locotour big slide: ped 131 foot 0 29.2 cm over 22 frames (planted 20), pivot 152 deg, speed 0.37 m/s (fwd 0.00 side -0.00), turning 4.09 rad/s | stance 10 action -1 t0.00 moveW 0.23 state 0 brain 1 activity 1 walkStance 0 leader -1 moveMode 0
+[ 413.989] locotour big slide: ped 59 foot 0 124.3 cm over 68 frames (planted 55), pivot 135 deg, speed 0.55 m/s (fwd 1.03 side -0.00), turning 1.06 rad/s | stance 7 action -1 t0.00 moveW 0.63 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 414.010] locotour big slide: ped 131 foot 1 32.6 cm over 15 frames (planted 11), pivot 105 deg, speed 0.19 m/s (fwd -0.00 side 0.00), turning 4.80 rad/s | stance 10 action -1 t0.00 moveW 0.07 state 0 brain 1 activity 1 walkStance 0 leader -1 moveMode 0
+[ 414.048] locotour big slide: ped 13 foot 1 28.8 cm over 17 frames (planted 17), pivot 43 deg, speed 1.60 m/s (fwd 2.22 side -0.00), turning 2.22 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 7 moveMode 0
+[ 416.810] locotour big slide: ped 60 foot 1 51.8 cm over 36 frames (planted 27), pivot 47 deg, speed 0.65 m/s (fwd 0.42 side 0.27), turning 2.80 rad/s | stance 0 action -1 t0.00 moveW 0.53 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 419.436] locotour big slide: ped 59 foot 1 45.1 cm over 27 frames (planted 26), pivot 54 deg, speed 0.60 m/s (fwd 0.89 side 0.00), turning 1.23 rad/s | stance 7 action -1 t0.00 moveW 0.78 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 424.992] locotour big slide: ped 113 foot 0 66.6 cm over 31 frames (planted 25), pivot 29 deg, speed 0.86 m/s (fwd 1.69 side 0.00), turning 0.97 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 427.859] locotour big slide: ped 59 foot 0 34.4 cm over 21 frames (planted 18), pivot 70 deg, speed 0.48 m/s (fwd 1.04 side -0.00), turning 1.78 rad/s | stance 7 action -1 t0.00 moveW 0.48 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 433.803] locotour big slide: ped 60 foot 1 89.5 cm over 24 frames (planted 14), pivot 68 deg, speed 0.81 m/s (fwd 0.73 side -0.01), turning 2.09 rad/s | stance 0 action -1 t0.00 moveW 0.65 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 436.326] locotour big slide: ped 59 foot 1 40.5 cm over 27 frames (planted 21), pivot 54 deg, speed 0.26 m/s (fwd 0.37 side -0.00), turning 0.84 rad/s | stance 7 action -1 t0.00 moveW 0.28 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 441.489] locotour big slide: ped 52 foot 0 31.2 cm over 13 frames (planted 12), pivot 31 deg, speed 1.39 m/s (fwd 1.40 side -0.00), turning 1.72 rad/s | stance 0 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 1 walkStance 8 leader -1 moveMode 0
+[ 444.511] locotour big slide: ped 113 foot 0 125.5 cm over 31 frames (planted 19), pivot 12 deg, speed 1.11 m/s (fwd 0.00 side 0.00), turning 0.19 rad/s | stance 0 action -1 t0.00 moveW 0.35 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 446.976] locotour big slide: ped 113 foot 1 250.9 cm over 65 frames (planted 50), pivot 81 deg, speed 1.08 m/s (fwd 1.47 side 0.03), turning 0.65 rad/s | stance 7 action -1 t0.00 moveW 0.71 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 452.346] locotour big slide: ped 13 foot 1 256.3 cm over 70 frames (planted 51), pivot 182 deg, speed 1.19 m/s (fwd 2.15 side 0.26), turning 1.31 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 7 moveMode 0
+[ 452.351] locotour big slide: ped 60 foot 1 50.5 cm over 6 frames (planted 0), pivot 30 deg, speed 0.80 m/s (fwd 0.51 side 0.02), turning 2.98 rad/s | stance 0 action -1 t0.00 moveW 0.72 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 452.357] locotour big slide: ped 13 foot 0 384.7 cm over 84 frames (planted 52), pivot 201 deg, speed 1.34 m/s (fwd 2.50 side 0.06), turning 1.22 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 7 moveMode 0
+[ 452.357] locotour big slide: ped 113 foot 0 23.8 cm over 10 frames (planted 8), pivot 24 deg, speed 2.05 m/s (fwd 1.81 side -0.00), turning 1.10 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 458.154] locotour big slide: ped 113 foot 1 38.8 cm over 21 frames (planted 20), pivot 12 deg, speed 1.72 m/s (fwd 2.53 side 0.00), turning 0.97 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 460.645] locotour big slide: ped 114 foot 1 55.9 cm over 8 frames (planted 3), pivot 29 deg, speed 1.09 m/s (fwd 1.92 side 0.17), turning 3.15 rad/s | stance 0 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 463.486] locotour big slide: ped 114 foot 0 67.7 cm over 22 frames (planted 11), pivot 67 deg, speed 1.58 m/s (fwd 0.93 side 0.00), turning 2.76 rad/s | stance 0 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 469.481] Transit: 0.798 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 469.521] locotour big slide: ped 113 foot 1 20.7 cm over 17 frames (planted 15), pivot 4 deg, speed 2.06 m/s (fwd 1.71 side -0.00), turning 0.92 rad/s | stance 0 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 472.563] locotour big slide: ped 59 foot 1 53.2 cm over 32 frames (planted 31), pivot 39 deg, speed 0.52 m/s (fwd 1.10 side 0.03), turning 0.68 rad/s | stance 0 action -1 t0.00 moveW 0.60 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 472.630] locotour big slide: ped 60 foot 1 47.1 cm over 10 frames (planted 5), pivot 28 deg, speed 0.56 m/s (fwd 0.37 side -0.03), turning 1.53 rad/s | stance 7 action -1 t0.00 moveW 0.39 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 475.804] locotour big slide: ped 15 foot 1 32.1 cm over 23 frames (planted 19), pivot 4 deg, speed 1.45 m/s (fwd 1.45 side 0.00), turning 0.43 rad/s | stance 0 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader -1 moveMode 0
+[ 478.332] locotour big slide: ped 60 foot 0 39.9 cm over 28 frames (planted 23), pivot 93 deg, speed 0.50 m/s (fwd 1.46 side -0.06), turning 2.46 rad/s | stance 7 action -1 t0.00 moveW 0.75 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 478.344] locotour burst 1 (body) at t=20.7: ped 130, camera 3176.8 -252.8 2.8 looking at 3177.1 -256.9 2.7
+[ 478.375] locotour big slide: ped 114 foot 0 33.4 cm over 11 frames (planted 10), pivot 55 deg, speed 1.58 m/s (fwd 1.85 side 0.00), turning 3.60 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 78 moveMode 0
+[ 488.236] locotour big slide: ped 59 foot 0 186.0 cm over 100 frames (planted 72), pivot 98 deg, speed 0.54 m/s (fwd 1.45 side 0.07), turning 0.73 rad/s | stance 0 action -1 t0.00 moveW 0.68 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 500.329] locotour big slide: ped 60 foot 0 22.9 cm over 9 frames (planted 3), pivot 55 deg, speed 0.54 m/s (fwd 0.89 side -0.06), turning 3.65 rad/s | stance 7 action -1 t0.00 moveW 0.62 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 510.495] locotour shot 1.00: speed 1.45 planted 10 phase 0.21 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 518.294] locotour shot 1.01: speed 1.45 planted 10 phase 0.31 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 524.547] locotour shot 1.02: speed 1.45 planted 10 phase 0.42 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 528.520] locotour big slide: ped 60 foot 0 23.5 cm over 10 frames (planted 10), pivot 48 deg, speed 0.38 m/s (fwd 0.35 side -0.12), turning 2.75 rad/s | stance 7 action -1 t0.00 moveW 0.37 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 528.520] locotour shot 1.03: speed 1.45 planted 11 phase 0.52 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 536.519] locotour shot 1.04: speed 1.45 planted 11 phase 0.62 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 540.075] locotour shot 1.05: speed 1.45 planted 01 phase 0.72 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 546.645] locotour shot 1.06: speed 1.45 planted 01 phase 0.82 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 550.533] locotour big slide: ped 60 foot 0 22.3 cm over 6 frames (planted 0), pivot 45 deg, speed 0.67 m/s (fwd 1.16 side 0.04), turning 5.00 rad/s | stance 7 action -1 t0.00 moveW 0.69 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 550.533] locotour shot 1.07: speed 1.45 planted 01 phase 0.92 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 558.218] locotour shot 1.08: speed 1.45 planted 11 phase 0.03 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 562.367] locotour shot 1.09: speed 1.45 planted 11 phase 0.13 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 568.182] locotour shot 1.10: speed 1.45 planted 10 phase 0.23 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 573.783] locotour shot 1.11: speed 1.45 planted 10 phase 0.33 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 581.046] locotour big slide: ped 60 foot 1 25.4 cm over 15 frames (planted 9), pivot 95 deg, speed 0.63 m/s (fwd 1.09 side 0.01), turning 3.77 rad/s | stance 7 action -1 t0.00 moveW 0.66 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 599.196] locotour big slide: ped 60 foot 0 47.5 cm over 24 frames (planted 17), pivot 132 deg, speed 0.49 m/s (fwd 0.44 side 0.00), turning 3.21 rad/s | stance 7 action -1 t0.00 moveW 0.45 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 599.215] locotour big slide: ped 60 foot 1 60.3 cm over 31 frames (planted 30), pivot 171 deg, speed 0.47 m/s (fwd 0.98 side 0.06), turning 3.08 rad/s | stance 7 action -1 t0.00 moveW 0.60 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 614.915] locotour big slide: ped 60 foot 0 22.4 cm over 7 frames (planted 0), pivot 39 deg, speed 0.67 m/s (fwd 1.71 side -0.00), turning 3.83 rad/s | stance 7 action -1 t0.00 moveW 0.96 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 617.912] locotour big slide: ped 38 foot 0 21.7 cm over 24 frames (planted 20), pivot 10 deg, speed 1.45 m/s (fwd 1.45 side 0.00), turning 0.35 rad/s | stance 8 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 8 leader -1 moveMode 0
+[ 658.778] locotour big slide: ped 34 foot 0 21.2 cm over 20 frames (planted 20), pivot 1 deg, speed 1.50 m/s (fwd 1.50 side 0.00), turning 0.01 rad/s | stance 0 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader -1 moveMode 0
+[ 705.065] Wildlife: 75 animals (72 birds) in 10 groups, 28 drawn in 9 draws | update 0.117 ms, render 0.137 ms
+[ 735.471] locotour burst 2 (feet) at t=32.3: ped 15, camera 3172.9 -240.5 2.2 looking at 3172.9 -243.1 2.1
+[ 767.409] locotour shot 2.00: speed 1.45 planted 01 phase 0.91 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 775.537] locotour shot 2.01: speed 1.45 planted 11 phase 0.01 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 781.693] locotour shot 2.02: speed 1.45 planted 11 phase 0.11 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 788.065] locotour shot 2.03: speed 1.45 planted 10 phase 0.21 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 794.082] locotour shot 2.04: speed 1.45 planted 10 phase 0.32 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 800.186] locotour shot 2.05: speed 1.45 planted 10 phase 0.42 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 806.649] locotour shot 2.06: speed 1.45 planted 11 phase 0.52 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 810.639] locotour shot 2.07: speed 1.45 planted 11 phase 0.62 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 816.859] locotour shot 2.08: speed 1.45 planted 01 phase 0.72 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 822.837] locotour shot 2.09: speed 1.45 planted 01 phase 0.83 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 830.285] locotour shot 2.10: speed 1.45 planted 01 phase 0.93 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 833.747] locotour shot 2.11: speed 1.45 planted 11 phase 0.03 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 851.341] locotour big slide: ped 107 foot 0 32.6 cm over 480 frames (planted 343), pivot 40 deg, speed 0.00 m/s (fwd -0.00 side 0.00), turning 0.00 rad/s | stance 0 action -1 t1.63 moveW 0.00 state 0 brain 1 activity 9 walkStance 0 leader -1 moveMode 0
+[ 867.371] locotour big slide: ped 108 foot 1 20.6 cm over 270 frames (planted 264), pivot 27 deg, speed 0.02 m/s (fwd 1.53 side 0.00), turning 0.05 rad/s | stance 0 action -1 t0.00 moveW 0.99 state 0 brain 1 activity 0 walkStance 0 leader -1 moveMode 0
+[ 906.589] locotour burst 3 (feet) at t=39.0: ped 15, camera 3164.0 -245.0 2.2 looking at 3163.8 -242.4 2.1
+[ 937.637] locotour shot 3.00: speed 1.63 planted 01 phase 0.70 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 946.250] locotour shot 3.01: speed 1.68 planted 01 phase 0.80 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 950.537] locotour shot 3.02: speed 1.68 planted 01 phase 0.91 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 958.803] locotour shot 3.03: speed 1.64 planted 11 phase 0.02 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 963.158] locotour shot 3.04: speed 1.48 planted 10 phase 0.13 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 972.223] locotour shot 3.05: speed 1.70 planted 10 phase 0.24 | apart 0.00 m, passing weight 0.00 / 0.00
+[ 972.223] Transit: 0.038 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 976.431] locotour shot 3.06: speed 1.70 planted 10 phase 0.35 | apart 0.00 m, passing weight 0.01 / 0.00
+[ 982.847] locotour big slide: ped 60 foot 0 24.2 cm over 23 frames (planted 19), pivot 51 deg, speed 0.39 m/s (fwd 1.46 side -0.00), turning 2.72 rad/s | stance 7 action -1 t0.00 moveW 0.73 state 0 brain 1 activity 0 walkStance 0 leader 36 moveMode 0
+[ 982.849] locotour shot 3.07: speed 1.70 planted 10 phase 0.46 | apart 0.00 m, passing weight 0.03 / 0.00
+[ 989.225] locotour shot 3.08: speed 1.69 planted 11 phase 0.57 | apart 0.00 m, passing weight 0.07 / 0.00
+[ 995.031] locotour shot 3.09: speed 1.66 planted 01 phase 0.68 | apart 0.00 m, passing weight 0.12 / 0.00
+[1002.252] locotour shot 3.10: speed 1.42 planted 01 phase 0.79 | apart 0.00 m, passing weight 0.19 / 0.00
+[1008.947] locotour shot 3.11: speed 1.37 planted 01 phase 0.90 | apart 0.00 m, passing weight 0.30 / 0.00
+[1055.564] street meet 1: peds 9 and 19 (hug) at 3193 -226, 4.0 m apart
+[1069.220] locotour big slide: ped 15 foot 0 20.2 cm over 23 frames (planted 22), pivot 47 deg, speed 1.12 m/s (fwd 1.40 side -0.00), turning 2.97 rad/s | stance 0 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 1 walkStance 8 leader -1 moveMode 0
+[1077.623] greeting: a hug at 3192 -227
+[1083.116] locotour burst 4 (body) at t=45.7: ped 108, camera 3174.4 -247.7 2.8 looking at 3174.0 -243.5 2.7
+[1100.351] locotour big slide: ped 15 foot 0 36.2 cm over 25 frames (planted 16), pivot 93 deg, speed 0.94 m/s (fwd -0.00 side 0.00), turning 1.92 rad/s | stance 11 action -1 t0.00 moveW 0.00 state 0 brain 1 activity 1 walkStance 8 leader -1 moveMode 0
+[1119.196] locotour shot 4.00: speed 1.48 planted 11 phase 0.09 | apart 0.00 m, passing weight 0.00 / 0.00
+[1122.903] locotour shot 4.01: speed 1.48 planted 10 phase 0.19 | apart 0.00 m, passing weight 0.00 / 0.00
+[1128.877] locotour shot 4.02: speed 1.48 planted 10 phase 0.29 | apart 0.00 m, passing weight 0.00 / 0.00
+[1132.379] locotour shot 4.03: speed 1.48 planted 10 phase 0.38 | apart 0.00 m, passing weight 0.00 / 0.00
+[1142.395] locotour shot 4.04: speed 1.48 planted 10 phase 0.48 | apart 0.00 m, passing weight 0.00 / 0.00
+[1149.175] locotour shot 4.05: speed 1.47 planted 11 phase 0.57 | apart 0.00 m, passing weight 0.00 / 0.00
+[1164.748] locotour shot 4.06: speed 1.47 planted 01 phase 0.67 | apart 0.00 m, passing weight 0.00 / 0.00
+[1170.273] locotour shot 4.07: speed 1.47 planted 01 phase 0.76 | apart 0.00 m, passing weight 0.00 / 0.00
+[1179.279] locotour shot 4.08: speed 1.47 planted 01 phase 0.86 | apart 0.00 m, passing weight 0.00 / 0.00
+[1184.139] locotour shot 4.09: speed 1.47 planted 01 phase 0.96 | apart 0.00 m, passing weight 0.00 / 0.00
+[1194.226] locotour shot 4.10: speed 1.47 planted 11 phase 0.05 | apart 0.00 m, passing weight 0.00 / 0.00
+[1199.154] locotour shot 4.11: speed 1.47 planted 10 phase 0.15 | apart 0.00 m, passing weight 0.00 / 0.00
+[1349.032] locotour burst 5 (feet) at t=57.3: ped 108, camera 3191.4 -245.6 2.1 looking at 3190.8 -243.1 2.1
+[1375.796] locotour shot 5.00: speed 1.30 planted 10 phase 0.24 | apart 0.00 m, passing weight 0.00 / 0.00
+[1381.016] locotour shot 5.01: speed 1.43 planted 10 phase 0.34 | apart 0.00 m, passing weight 0.00 / 0.00
+[1386.395] locotour shot 5.02: speed 1.43 planted 10 phase 0.44 | apart 0.00 m, passing weight 0.00 / 0.00
+[1393.810] locotour shot 5.03: speed 1.42 planted 11 phase 0.54 | apart 0.00 m, passing weight 0.00 / 0.00
+[1397.500] locotour shot 5.04: speed 1.42 planted 11 phase 0.64 | apart 0.00 m, passing weight 0.00 / 0.00
+[1406.383] locotour shot 5.05: speed 1.41 planted 01 phase 0.74 | apart 0.00 m, passing weight 0.00 / 0.00
+[1411.924] locotour shot 5.06: speed 1.41 planted 01 phase 0.83 | apart 0.00 m, passing weight 0.00 / 0.00
+[1420.369] locotour shot 5.07: speed 1.41 planted 01 phase 0.93 | apart 0.00 m, passing weight 0.00 / 0.00
+[1422.373] locotour big slide: ped 220 foot 0 36.6 cm over 11 frames (planted 9), pivot 63 deg, speed 1.61 m/s (fwd -0.03 side -1.06), turning 4.95 rad/s | stance 7 action -1 t1.63 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 113 moveMode 0
+[1424.255] locotour shot 5.08: speed 1.40 planted 11 phase 0.02 | apart 0.00 m, passing weight 0.00 / 0.00
+[1430.525] locotour shot 5.09: speed 1.40 planted 11 phase 0.12 | apart 0.00 m, passing weight 0.00 / 0.00
+[1436.916] locotour shot 5.10: speed 1.39 planted 10 phase 0.21 | apart 0.00 m, passing weight 0.00 / 0.00
+[1446.032] locotour shot 5.11: speed 1.39 planted 10 phase 0.30 | apart 0.00 m, passing weight 0.00 / 0.00
+[1462.352] Transit: 0.038 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1465.196] Wildlife: 75 animals (72 birds) in 10 groups, 46 drawn in 11 draws | update 0.225 ms, render 0.182 ms
+[1468.149] locotour big slide: ped 108 foot 0 27.9 cm over 24 frames (planted 20), pivot 2 deg, speed 1.40 m/s (fwd 1.41 side -0.00), turning 0.07 rad/s | stance 0 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader -1 moveMode 0
+[1520.680] locotour burst 6 (feet) at t=64.1: ped 7, camera 3148.6 -241.0 2.2 looking at 3148.6 -243.6 2.1
+[1547.425] locotour shot 6.00: speed 0.77 planted 10 phase 0.24 | apart 0.00 m, passing weight 0.00 / 0.00
+[1554.980] locotour shot 6.01: speed 0.97 planted 10 phase 0.32 | apart 0.00 m, passing weight 0.00 / 0.00
+[1560.273] locotour shot 6.02: speed 0.37 planted 11 phase 0.41 | apart 0.00 m, passing weight 0.00 / 0.00
+[1566.127] locotour shot 6.03: speed 0.57 planted 11 phase 0.49 | apart 0.00 m, passing weight 0.00 / 0.00
+[1569.730] locotour shot 6.04: speed 0.37 planted 11 phase 0.57 | apart 0.00 m, passing weight 0.00 / 0.00
+[1575.370] locotour shot 6.05: speed 0.57 planted 11 phase 0.65 | apart 0.00 m, passing weight 0.00 / 0.00
+[1581.530] locotour shot 6.06: speed 0.77 planted 01 phase 0.74 | apart 0.00 m, passing weight 0.00 / 0.00
+[1588.607] locotour shot 6.07: speed 0.97 planted 01 phase 0.82 | apart 0.00 m, passing weight 0.00 / 0.00
+[1592.801] locotour shot 6.08: speed 0.37 planted 01 phase 0.90 | apart 0.00 m, passing weight 0.00 / 0.00
+[1600.165] locotour shot 6.09: speed 0.57 planted 11 phase 0.98 | apart 0.00 m, passing weight 0.00 / 0.00
+[1604.157] locotour shot 6.10: speed 0.37 planted 11 phase 0.06 | apart 0.00 m, passing weight 0.00 / 0.00
+[1612.134] locotour shot 6.11: speed 0.57 planted 11 phase 0.15 | apart 0.00 m, passing weight 0.00 / 0.00
+[1658.912] street meet: peds 9 and 19 part after 5 lines
+[1687.644] locotour burst 7 (body) at t=70.8: ped 7, camera 3145.1 -239.4 2.9 looking at 3145.1 -243.6 2.8
+[1731.556] locotour shot 7.00: speed 0.73 planted 01 phase 0.76 | apart 0.00 m, passing weight 0.00 / 0.00
+[1736.975] locotour shot 7.01: speed 0.03 planted 01 phase 0.84 | apart 0.00 m, passing weight 0.00 / 0.00
+[1747.479] locotour shot 7.02: speed 0.73 planted 01 phase 0.92 | apart 0.00 m, passing weight 0.00 / 0.00
+[1751.898] locotour shot 7.03: speed 0.03 planted 11 phase 0.00 | apart 0.00 m, passing weight 0.00 / 0.00
+[1761.096] locotour shot 7.04: speed 0.23 planted 11 phase 0.09 | apart 0.00 m, passing weight 0.00 / 0.00
+[1765.838] locotour shot 7.05: speed 0.43 planted 11 phase 0.17 | apart 0.00 m, passing weight 0.00 / 0.00
+[1773.413] locotour shot 7.06: speed 0.73 planted 10 phase 0.25 | apart 0.00 m, passing weight 0.00 / 0.00
+[1778.207] locotour shot 7.07: speed 0.03 planted 10 phase 0.33 | apart 0.00 m, passing weight 0.00 / 0.00
+[1786.333] locotour shot 7.08: speed 0.73 planted 11 phase 0.42 | apart 0.00 m, passing weight 0.00 / 0.00
+[1790.367] locotour shot 7.09: speed 0.03 planted 11 phase 0.50 | apart 0.00 m, passing weight 0.00 / 0.00
+[1799.407] locotour shot 7.10: speed 0.23 planted 11 phase 0.58 | apart 0.00 m, passing weight 0.00 / 0.00
+[1803.665] locotour big slide: ped 89 foot 1 28.1 cm over 33 frames (planted 31), pivot 70 deg, speed 0.52 m/s (fwd 2.43 side 0.00), turning 1.24 rad/s | stance 7 action -1 t0.00 moveW 1.00 state 0 brain 1 activity 0 walkStance 0 leader 59 moveMode 0
+[1803.692] locotour shot 7.11: speed 0.43 planted 11 phase 0.66 | apart 0.00 m, passing weight 0.00 / 0.00
+[1807.752] locotour steps standing          n   62 | slide cm/step mean 3.50 p90 15.19 max 32.60 | pivot deg/step mean 7.6 | scuffs 6
+[1807.752] locotour steps walking straight  n  487 | slide cm/step mean 3.04 p90 2.38 max 250.87 | pivot deg/step mean 1.1 | scuffs 9
+[1807.752] locotour steps walking, turning  n  340 | slide cm/step mean 12.69 p90 36.57 max 384.68 | pivot deg/step mean 24.2 | scuffs 37
+[1807.752] locotour steps jogging/running   n   18 | slide cm/step mean 6.62 p90 30.64 max 32.02 | pivot deg/step mean 12.7 | scuffs 2
+[1807.752] locotour steps all               n  907 | slide cm/step mean 6.76 p90 11.57 max 384.68 | scuffs 54
+[1807.752] locotour feet: 74444 foot-frames, planted but more than 15 mm off the ground 398, lowest sole point -299.8 mm
+[1807.752] locotour close passes (within 0.9 m): 28 | arms' clearance cm: smallest 1.4, mean of each pass's smallest 20.0 | arms through each other 0
+[1807.752] locotour passing body language: 64 events, 3273 ped-frames
+[1807.752] locotour slides over 20 cm by stance: 0:23 7:43 8:1 10:2 11:1 | by AI activity: 0:64 1:5 9:1
+[1807.752] locotour peds cpu 1.82 ms per frame (mean over 1934 frames)
+[1819.361] Shutdown complete.
+X connection to :105 broken (explicit kill or server shutdown).

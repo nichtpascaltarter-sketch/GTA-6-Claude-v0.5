@@ -1,0 +1,50 @@
+Bungalows, foursquares, mobile homes, Keys motels and filled-in frontage; eye sockets closed at the sides
+
+City batches 6, 8 and 9 (src/world: buildings.h/.cpp, buildmesh.cpp, facadedetail.cpp, cellgen.cpp, blockstyle.cpp,
+massing.cpp, sitegeo.cpp) and a street-name fix (roads.cpp):
+- House forms (batch 9):
+  - Bungalows come in several types: Craftsman side-gabled ones with the roof running down over a full-width porch and a
+    dormer on top, hipped bungalows with a hipped dormer, and "airplane" bungalows with a small windowed room astride
+    the ridge. In the older city there are also stucco Mission bungalows with a flat roof, a curved gable and a loggia.
+  - American Foursquares in the towns and some in the city: square two-storey houses with a pyramid roof, a hipped
+    dormer and a porch across the front, in brick, board or stucco.
+  - Craftsman porches have square columns on brick or stone piers with knee walls; town Craftsman houses get earth-tone
+    siding with cream trim. Porches stand over the front door, with the rail open at the door.
+- The Keys and the towns (batch 6):
+  - Two in five Keys motels have a tin hip roof, with gallery rails painted white or turquoise, sea green, coral or
+    butter yellow.
+  - Porch posts, rails, brackets, gallery ceilings and gable trusses on town houses take the house's trim colour
+    instead of bare brown wood; raised Keys houses get painted deck rails.
+  - Eyebrow houses: on most two-storey conch houses the front eave comes down over the upper windows.
+  - A third of ranch houses and a fifth of block houses have a side-gable roof instead of a hip.
+  - A quarter of the Mediterranean houses have a flat roof behind a stucco parapet with a barrel-tile pent.
+- Bare frontage filled in (batch 8): along the streets of the towns and the older city, the open ground between houses
+  becomes vacant lots (rough grass, bare earth, an old slab, a FOR SALE board, scrub), small street parking lots with
+  painted stalls, a lamp, a low wall and a P sign, side yards with fences, and paved yards on the industrial streets.
+- Mobile homes in Ten Palms, the Keys, the towns and on the farms: single- and double-wides on lattice or block skirts,
+  with decks, awnings and carports.
+- Conch houses: temple-front houses with a gable-fronted bay, and L-shaped houses whose porch sits in the inner corner
+  (it used to float in front of the set-back part). Some Keys motels get a lower office end. Gallery ceilings are
+  painted, some in haint blue.
+- The Grove's east-west streets get proper suffixes (Street, Avenue, Terrace...). Their suffix index went negative, so
+  most read a word from before the suffix table (an out-of-bounds read: "Coral Gulfstream").
+
+Checks (city agent, on main d3c2c3f plus these files; src/world equals current main's apart from PR #35's propmesh.cpp):
+- Story regression: 27/27 passed, no segfault. Story places, building counts, bus routes, streetcar stops and stations
+  are identical to batch 5.
+- ASan + bounds worldcheck over all 2,139 cells at full detail: 0 reports, nothing in drivable lanes.
+- 43 in-game shots reviewed. Repetition metric 2.9% -> 2.1%.
+- Frame cost: no draws added (one per visible cell). Near rings at tour stops 2-5 unchanged; far rings +1-2%; open lots
+  add 0.4k-25k near triangles at those stops; whole-map far LOD 1.070 M -> 1.100 M.
+- One earlier regression run (batch 6) segfaulted once in mission 10. It did not reproduce: 0 in 6 isolated runs (3 on
+  this batch, 3 on plain main) and none in this full run. It is still unexplained.
+
+Faces batch 6 (src/anim/face.cpp, tests/anim/anim_test.cpp):
+- Each eye socket is closed at the side, where the cheekbone rises to the tail of the brow. Before, the socket left a
+  6-10 mm trench at eye level running past the outer corner of the eye, so under a lamp or a high sun its shade ran
+  across the side of the face. The dip is now at most 2.5 mm.
+- No pale crescent under the eyes: the lower lid's skin edge had the lid margin's straight-up normal and lit as a white
+  "smile" under the iris; the edge is now rounded, so only the 1 mm margin catches the light.
+- Checks (faces agent, on cda29a1 plus the two files): anim_test all passed, with a new trench-beside-the-eye check
+  (fails on main for all 10 test faces at 6.1-9.8 mm, passes with the batch at <= 2.5 mm); O2 build; 30 Wine D3D12
+  portraits with no FATAL or vkd3d lines; crowd perf within noise.

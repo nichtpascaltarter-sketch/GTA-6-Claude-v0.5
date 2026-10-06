@@ -1,0 +1,55 @@
+- crossing (90 s, cut at t=84 by the container restart): one light change with 4 waiting. They stepped off at 0.40, 0.67, 0.83 and 0.90 s after the light, not as one. Up to 3 of the 4 had their heads turned along the road while waiting. The second cycle had nobody waiting.
+- rideoff (120 s): two pairs, each with the leader sent to a car at the kerb. Stage 1: leader 4 and companion 5, the car 24 m off. Both reached it; the companion got in on the passenger side (seat 1) at t=30, just after the driver, and the car pulled out. Stage 2: leader 16 and companion 40, the car 3 m off. The driver was in at t=69; the car held (escortHold) until the companion was in at t=71, then pulled out at t=75 and drove off with both. Census: rides 2.
+- hitplayer (100 s, 960x540): stage 1, t=8: the player put 5.3 m ahead of car 14 (11.8 m/s) and knocked flat. A man on the sidewalk gasped ("Don't move, don't move!"). The driver stopped without the horn, got out (t=12), came over to the player (1.9 m at t=16) while the player got up, and was back in the car and away by t=20. Stage 2, t=55: the player was hit by a motorcycle (13 m/s). The rider stopped, came over ("I didn't see you! Are you okay?!", 1.2 m, t=61-63), and rode on at t=67. Census: sorry drivers 2.
+  Bug found: in stage 1 the bystander picked to come over (playerHelper) gave up at once, so "asked okay" stayed 0. Their spot by the player was set while the player was still sliding from the hit, and the player ended up more than 4 m from it. Fix in pedai.cpp: the spot follows the player while they are down, and the helper hurries over at 2.6 m/s. The patched sets 5-9 pedai.cpp blob is f6363200ec6c4ef56fa3eef6d4afe7a3cd75a9cf; the fix is to be checked on nt_ai79. In stage 2 nobody was close enough to come over.
+- hitplayer again on nt_ai79 (the helper fix; same scenes):
+  - Stage 1: the bystander (ped 6) now stays by the player (ACT_WATCH from t=10). But a car parked at the kerb stood between him on the sidewalk and the player in the road, and he waited there 4.4 m off until his time ran out. The way round parked cars comes with a later set.
+  - Stage 2: he hurried over from 9.5 m (4.3 m at t=59, 2.0 m at t=61) and asked "are you okay?" once the player was up. Census: asked okay 1.
+  - The sorry drivers and the motorcyclist behaved as on nt_ai77.
+- walkby (150 s): the first try was OOM-killed at t=86 (someone else's compile), so this is the rerun. It ended with greetings 9 and "are you okay?" 4 (nt_ai72 had 0 and 0). The okays came after the player's health was held low from t=75.
+  - Lines seen in the shots: "Hey, nice day, huh?" from a woman walking her dog, an overheard "Hmm, that way I think. Ask again at the corner.", and "Whoa. You need a doctor, man.".
+  - Phone talkers no longer drown the street out.
+- pedstop (240 s):
+  - Stage 1: the stop of ped 20 ("Hold up a second for me.") ended with them let go after 27 s.
+  - Stage 2: the forced warrant stop was abandoned. Officer 49 had just left a ticket on a car at the kerb; he started the stop 14 m off, did not move for 25 s, then logged "never got to 21 for the stop". That give-up is the designed fallback from sets 3+4. A car standing in the way is the likely cause; the way round cars comes with a later set and will be checked there.
+  - Stage 3: the runner was caught and cuffed, a transport was sent from 169 m out of view, the partner took a witness statement (21 s), and the transport pulled over 22 m off just as the test ended.
+  - Two parking tickets were written in between. Census: stops 3 (runs 1), transports 1, statements 1, tickets 2.
+  - "Step back, please" was not seen. The test put the player by the officer while the officer was still walking up, so the officer left the player behind. The test is fixed to wait until the officer is with the stopped ped; it will be checked in a later build.
+- alarm (150 s, 960x540): as on nt_ai74.
+  - Stage 1: car 58 knocked with the player beside it. The owner came from 17 m, stopped the alarm with the fob from 7.1 m, crouched for a look along its side and walked on.
+  - Stage 2: the player broke into car 77 (t=70.7). The owner came running from 26 m as it pulled away and stood looking after it. The stolen car's alarm stopped by itself 16 s in.
+  - Census: alarms 2 (owners 2, looks 9), fobs 7.
+- panhandle (110 s):
+  - Pass 1: the panhandler got up for the player standing 8 m off, came over and asked. The player stood still and gave $2 (the "Gave some change -$2" notice; money 3500 -> 3498), and got the thanks.
+  - Pass 2: the player walked off mid-ask; "no hard feelings", and he went back to his spot and sat down.
+  - Later a passer-by dropped something in his cup. Census: change 1 (passers-by 1).
+- busrun (170 s; the first run of this test): three buses were sent along a kerb lane with two stops.
+  - Bus 2 stopped at the first stop. Ped 67 saw it and ran for it from 53 m to the door; the driver held on, the runner made it, and the bus left after 16.6 s. Census: bus runs 1 (made 1, missed 0).
+  - Buses 1 and 3 drove past both stops. A bus that has to move out of the kerb lane for a turn on its route never served the stop (traffic_core, older than these sets). It is fixed in a later set: a bus keeps to the kerb lane while a stop is ahead and takes its way on from there.
+- crowded (90 s): the player was put right next to five people in turn: three smoking, two leaning on a wall. All five said a word after about 3 s ("You need something?", "Do I know you?"). Three of them left after about 9 s. Census: crowded 5 (left 3).
+- followed (100 s): the player walked close behind three people in turn.
+  - Ped 70 (bold): after 7 s he looked back with a word and quickened his step, then stopped and faced the player.
+  - Ped 66: kept stopping, so the clock never ran long enough; it only counts while they walk.
+  - Ped 4: the look back and a word at 11 s, then at 15.7 s the sharper word and a hurry (1.75 x).
+  Census: followed 2 (sharp 1).
+- jaywalk (120 s): on nt_ai77 nobody crossed in any of the five tries, which is how the parked-car bug was found.
+  - On nt_ai77f (with the fix) four people crossed mid-block in gaps between the parked cars. The officer on the beat called to two of them from 12 and 14 m ("Use the crosswalk, please!").
+  - Census: jaywalk calls 2.
+- hitplayer on nt_ai77f (the exact graft): the same as on nt_ai79.
+  - Stage 1: the bystander waited by the player but was kept off by the parked car.
+  - Stage 2: he hurried over from 9.5 m to 2.1 m and asked "are you okay?".
+  - Census: sorry drivers 2, asked okay 1.
+- nearmiss (120 s): the player's car ran downtown in flee mode at up to 22 m/s, but nobody was standing close enough to the kerb as it went by, so near misses stayed at 0. The startle was not exercised, though nothing went wrong.
+  - The test is rewritten for a later set: four people stand right at the kerb ahead of the car's kerb lane. Its result will come with that set.
+- rain (90 s): the rain came on at t=20. Umbrellas went up at the crossing, and those without one hurried, some holding a hand over the head (set 5's reach hook). Six took shelter under bus shelters. Census: rain shelters 6.
+- crashscene (150 s): a fender bender at the kerb, both drivers out arguing. Unit 71 was sent from 144 m, pulled over 25 m back at t≈52 and worked the scene; the scene was cleared by t≈80. Passing drivers slowed for a look. Census: crash scenes 1, gawks 3.
+- life (200 s, the camera circling the player at a downtown corner): 20-35 people on foot within 60 m throughout, no stuck walkers.
+  - Officer 49 wrote up a car at the kerb (ticket left after 17 s), then stopped ped 91 on the sidewalk and let him go after 22 s.
+  - Ped 21 asked the officer the way ("Officer? Sorry - we're a little lost." / "Have a good one.").
+  - Two riders got in with a driver (rides 2). Also: alarms 2 (looks 1), fobs 9, laces 7, lost 3, greetings 2, chats 2, gawks 3.
+  - AI 0.6-1.0 ms a frame; clean shutdown.
+  - Nobody walked past the hurt player in the last minute, so "are you okay?" stayed 0, as on nt_ai62. walkby covers that.
+- soak (300 s, the morning rush from 07:30): the player's car driven across downtown and up to Northside and back.
+  - Traffic health was clean at every 20 s sample: stuck>30s 0, blocked>45s 0, wait>90s 0, no unsticks, no respawns.
+  - One sample (t=200) showed an empty motorcycle on its side 200 m off ("rolled 1"); it was gone by the next sample.
+  - Impacts 2 (none with the player). AI 0.6-0.8 ms a frame; clean shutdown.

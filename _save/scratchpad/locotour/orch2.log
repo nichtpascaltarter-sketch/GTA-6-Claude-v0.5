@@ -1,0 +1,49 @@
+start 02:33:42
+build after_pb3 rc 0
+Embedded 40 shader files.
+-rwxr-xr-x 1 root root 12388352 Oct  6 03:11 bin/loco_after_pb3.exe
+built after_pb3 03:11:27
+built before_st 03:11:27
+built after_st 03:11:27
+run after_pb3 exit 0
+[1692.296] locotour pass 13-89: arms' clearance 8.0 cm, centres 0.60 m, 3.86 m/s between, passing weight 0.98, strangers
+[1692.296] locotour pass 13-90: arms' clearance -2.0 cm, centres 0.65 m, 2.21 m/s between, passing weight 0.99, strangers
+[1692.296] locotour pass 13-131: arms' clearance 9.4 cm, centres 0.57 m, 2.61 m/s between, passing weight 1.00, strangers
+[1692.296] locotour pass 35-53: arms' clearance 24.7 cm, centres 0.76 m, 0.62 m/s between, passing weight 0.76, strangers
+[1692.296] locotour pass 35-88: arms' clearance 61.4 cm, centres 0.87 m, 2.01 m/s between, passing weight 0.68, strangers
+[1692.296] locotour pass 35-90: arms' clearance 27.2 cm, centres 0.84 m, 0.71 m/s between, passing weight 0.94, strangers
+[1692.296] locotour pass 35-123: arms' clearance 17.3 cm, centres 0.86 m, 2.17 m/s between, passing weight 0.37, strangers
+[1692.296] locotour pass 53-108: arms' clearance 26.6 cm, centres 0.65 m, 0.62 m/s between, passing weight 0.65, strangers
+[1692.296] locotour pass 53-123: arms' clearance 18.0 cm, centres 0.68 m, 1.27 m/s between, passing weight 0.68, strangers
+[1692.296] locotour pass 53-131: arms' clearance 40.7 cm, centres 0.85 m, 1.05 m/s between, passing weight 0.89, strangers
+[1692.296] locotour pass 58-59: arms' clearance 20.0 cm, centres 0.81 m, 0.90 m/s between, passing weight 0.44, one walking group
+[1692.296] locotour pass 88-89: arms' clearance 10.8 cm, centres 0.61 m, 1.24 m/s between, passing weight 0.99, one walking group
+[1692.296] locotour pass 88-90: arms' clearance 27.3 cm, centres 0.69 m, 2.72 m/s between, passing weight 0.73, one walking group
+[1692.296] locotour pass 100-101: arms' clearance 38.4 cm, centres 0.87 m, 0.67 m/s between, passing weight 0.24, one walking group
+[1692.296] locotour pass 107-108: arms' clearance 24.7 cm, centres 0.69 m, 0.80 m/s between, passing weight 0.66, strangers
+[1692.296] locotour pass 107-123: arms' clearance 26.8 cm, centres 0.74 m, 0.76 m/s between, passing weight 0.62, strangers
+[1692.296] locotour pass 112-113: arms' clearance 7.7 cm, centres 0.57 m, 2.89 m/s between, passing weight 1.00, one walking group
+[1692.296] locotour pass 112-114: arms' clearance 21.7 cm, centres 0.60 m, 1.97 m/s between, passing weight 0.98, one walking group
+[1692.296] locotour pass 112-123: arms' clearance 11.8 cm, centres 0.78 m, 2.40 m/s between, passing weight 0.69, strangers
+[1692.296] locotour pass 113-114: arms' clearance 5.3 cm, centres 0.69 m, 3.61 m/s between, passing weight 0.98, one walking group
+[1692.296] locotour pass 113-131: arms' clearance 6.7 cm, centres 0.60 m, 2.20 m/s between, passing weight 0.99, strangers
+[1692.296] locotour pass 114-123: arms' clearance 1.4 cm, centres 0.60 m, 2.77 m/s between, passing weight 0.98, strangers
+[1692.296] locotour pass 123-128: arms' clearance 20.9 cm, centres 0.74 m, 1.81 m/s between, passing weight 0.68, strangers
+[1692.296] locotour pass 219-220: arms' clearance 21.3 cm, centres 0.70 m, 1.36 m/s between, passing weight 0.61, one walking group
+[1692.296] locotour close passes, between strangers: 29 | arms' clearance cm: smallest -2.0, mean 18.9 | arms through each other 1
+[1692.296] locotour close passes, within a walking group: 9 | arms' clearance cm: smallest 1.6, mean 17.1 | arms through each other 0
+[1692.296] locotour passing body language: 88 events, 2775 ped-frames
+[1692.297] locotour walking together (within 1.2 m, under 0.3 m/s apart): 181 pair-frames | ped-frames with the passing lean 63 | twist max 28.2 deg | side-step max 10.3 cm
+[1692.297] locotour slides over 20 cm by stance: 0:25 7:43 8:3 10:2 11:1 | by AI activity: 0:68 1:5 9:1
+[1692.297] locotour peds cpu 1.66 ms per frame (mean over 1934 frames)
+== after_pb3
+[1692.295] locotour close passes (within 0.9 m): 38 | arms' clearance cm: smallest -2.0, mean of each pass's smallest 18.5 | arms through each other 1
+[1692.296] locotour close passes, between strangers: 29 | arms' clearance cm: smallest -2.0, mean 18.9 | arms through each other 1
+[1692.296] locotour close passes, within a walking group: 9 | arms' clearance cm: smallest 1.6, mean 17.1 | arms through each other 0
+[1692.296] locotour passing body language: 88 events, 2775 ped-frames
+[1692.297] locotour walking together (within 1.2 m, under 0.3 m/s apart): 181 pair-frames | ped-frames with the passing lean 63 | twist max 28.2 deg | side-step max 10.3 cm
+[1692.297] locotour peds cpu 1.66 ms per frame (mean over 1934 frames)
+pass runs done 03:54:53
+run before_st exit 143
+[  76.092] locostairs: station Calle Luna side 0, stair top 1815.4 -638.0 3.1, foot 1815.4 -638.0 3.1, 0.0 m long
+[ 114.533] locostairs: 8 walkers

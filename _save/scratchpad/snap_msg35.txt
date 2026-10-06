@@ -1,0 +1,23 @@
+Palms with folded, drooping fronds and ringed trunks; hedges with a leaf canopy; clear storefront glass
+
+Renderer vegetation phase 3 (src/world/propmesh.cpp palm builders, src/shaders/props.hlsl, src/shaders/matgen.hlsl,
+src/render/materials.cpp, src/shaders/facade.hlsli):
+- Palms:
+  - Fronds are V-folded strips that droop and turn towards the tip.
+  - Leaf-scar rings are shaded on the bark: close and deep on coconut palms, shallow and wider on royal palms.
+  - Coconuts are round instead of boxes.
+  - Palm footprint, collision and anchors are unchanged.
+- Hedges, garden shrub masses and the other leaf-material world meshes get a three-layer leaf-canopy material instead
+  of flat green.
+- Storefront glass: shop windows look into the lit shop through glass 60% towards clear, instead of through the
+  tower's tinted curtain-wall glass. (The city's interim storefront-glass stopgap in blockstyle.cpp still stacks with
+  this until it is removed.)
+- materials.cpp: the material generator table grows to 32 slots with a range check. The leaf-canopy generator (id 28)
+  overran the old array in a first test build; it was caught before anything was shared.
+
+Checks (renderer agent):
+- --gfxselftest: 19 PASS, 1 SKIP, 0 failures, 0 debug-layer errors. Shader compile: 0 failed.
+- 1080p comparisons at Key Coral and the Grove, phase 2 vs phase 3: the only differences are palms, hedges and shrub
+  masses.
+- Cost (960x540 tour, normalised by the lighting pass): after trimming the palm detail, prop triangles drawn are
+  +10-19%. Pass totals move -6% to +14% per stop (about +4-7% summed; per-stop noise is about 10%).

@@ -1,0 +1,9 @@
+{
+  "id": "50",
+  "subject": "Deliver 5 showcase screenshots every check-in (standing user request)",
+  "description": "showcase.sh renders a rotating set of 5 free-camera 1920x1080 ultra views from the newest verified build into /tmp/showcase/<stamp>/; when one finishes, spot-check it and send all 5 to the user. Set 1 (build ea94690) is waiting for memory, started 09:58.",
+  "activeForm": "Rendering showcase screenshots",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

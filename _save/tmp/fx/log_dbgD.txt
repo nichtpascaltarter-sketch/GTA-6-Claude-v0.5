@@ -1,0 +1,228 @@
+[   0.009] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   1.033] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB
+[   1.041] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   1.264] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   1.401] UI font 'Impact' -> 'Liberation Sans'
+[   1.482] Font atlas built in 0.44 s
+[   1.511] Compiled ui.hlsl:vsUI (vs_5_0) in 0.02 s
+[   1.919] Compiled ui.hlsl:psUI (ps_5_0) in 0.41 s
+[   1.940] Compiled ui.hlsl:vsUIFull (vs_5_0) in 0.01 s
+[   1.958] Compiled ui.hlsl:psUIDown (ps_5_0) in 0.02 s
+[   2.004] Compiled ui.hlsl:psUIBlur (ps_5_0) in 0.03 s
+[   2.056] Audio: no output device - audio disabled
+[   2.056] Audio: no output device, continuing silently
+[   5.235] UI icon atlas: 91 icons + 13 weapons in 3048 ms
+[  41.936] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[  42.005] Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.13 s)
+[  44.919] World map generated in 42.86 s
+[  46.273] Road gen: 22 interchanges
+[ 124.447] Road network: 6285 nodes, 10015 edges, 1735 signalized; hwy 61.7 km, streets 1189.4 km (79.53 s)
+[ 135.445] Transit: 0 buildings cleared from the SkyLine corridor
+[ 135.471] Buildings: 35762 (towers 346, midrise 2383, condo 473, deco 825, shops 4712, strip 674, houses 21779, villas 926, warehouses 1709) in 10.96 s
+[ 135.482] Sites: 70 highway billboards
+[ 135.523] Sites: 132 silos, 48 windmills
+[ 135.666] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.03 s)
+[ 135.666] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[ 135.666] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[ 135.666] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[ 135.702] Transit: 4 bus routes, 65 stops (43 new shelters) (0.04 s); rejects class 1441 cut 1929 deck 60 road 90 avoid 0 pad 0 furn 279 stop 28
+[ 135.716] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[ 135.716] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[ 135.716] Transit: bus 9   Sol Beach    7.1 km, 16 stops, 4 buses, headway 5.6 min
+[ 135.716] Transit: bus 12  Bayshore     9.0 km, 21 stops, 5 buses, headway 5.7 min
+[ 135.716] Transit: SkyLine profile 12.9..25.5 m above the street, 273 piers (0 straddle bents) (0.19 s)
+[ 135.716] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[ 135.716] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[ 135.716] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[ 135.716] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[ 135.716] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[ 135.716] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[ 135.716] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[ 135.716] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[ 135.719] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[ 135.735] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[ 135.735] Site terminal             at (628, 1440, 4.6)
+[ 135.736] Site control tower        at (730, 1832, 4.6)
+[ 135.736] Site container ship       at (4625, -800, 0.0)
+[ 135.736] Site container ship       at (4616, -330, 0.0)
+[ 135.736] Site port gate            at (4008, -160, 3.0)
+[ 135.736] Site Key Coral marina     at (4039, -4035, 0.0)
+[ 135.736] Site beach club           at (4873, -3866, 1.2)
+[ 135.736] Site beach club           at (4808, -4183, 2.2)
+[ 135.736] Site Solaris One          at (3350, -750, 1.4)
+[ 135.736] Site stadium              at (3565, 445, 1.6)
+[ 135.736] Site City Hall            at (3000, 372, 2.0)
+[ 135.736] Site Canvas Park          at (3100, 1800, 1.7)
+[ 135.736] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[ 135.736] Site Ferris wheel         at (5504, 1270, 5.6)
+[ 135.736] Site lighthouse           at (-2206, -8000, 0.5)
+[ 135.736] Site radio mast           at (-6744, 7248, 166.1)
+[ 135.736] Site sugar mill           at (1430, 7500, 8.1)
+[ 135.736] Site Rio Sol marina       at (2280, 188, 0.0)
+[ 135.736] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[ 135.736] Site Sawgrass tower       at (-4873, 420, 0.6)
+[ 135.736] Sites finalized: 785 elements (0.26 s)
+[ 135.737] Interiors: no building for Police Headquarters near (3050, -350)
+[ 135.750] Interiors: no building for Sunwash Car Wash near (1800, 1500)
+[ 135.763] Interiors: 27 planned (convenience 7, gun shops 2) in 26.3 ms
+[ 135.776]   interior 'Mari's Apartment' kind 0 building 4768 at (1854.91, 359.25, 3.68) ax (1.0000, 0.0000) x -5.57..5.57 depth 11.50 ceil 4.03: 3 rooms, 4 openings, 3 doors, 4 portals, 0 npc points
+[ 135.776]   interior 'Mama Lucha's' kind 2 building 3183 at (1344.20, 340.74, 4.30) ax (-1.0000, -0.0000) x -7.52..7.52 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 22 npc points
+[ 135.776]   interior 'Rook's Garage' kind 3 building 4152 at (1656.05, 2265.35, 4.22) ax (1.0000, 0.0000) x -9.87..9.87 depth 20.00 ceil 7.12: 3 rooms, 4 openings, 4 doors, 4 portals, 5 npc points
+[ 135.776]   interior 'Dex's Trailer' kind 1 building 2709 at (1313.66, 2666.61, 4.66) ax (1.0000, 0.0000) x -7.80..7.80 depth 17.92 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[ 135.776]   interior 'Tidewater General Hospital' kind 6 building 4066 at (1719.39, 1070.99, 3.56) ax (1.0000, 0.0000) x -9.06..9.06 depth 16.00 ceil 4.11: 2 rooms, 6 openings, 2 doors, 6 portals, 12 npc points
+[ 135.776]   interior 'Palmetto Arms' kind 7 building 1627 at (884.67, 2892.03, 4.89) ax (0.0000, 1.0000) x -5.49..5.49 depth 14.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[ 135.776]   interior 'Northside Arms' kind 7 building 9282 at (3188.32, 3789.28, 1.96) ax (0.0000, 1.0000) x -8.59..5.15 depth 14.00 ceil 3.81: 2 rooms, 5 openings, 2 doors, 5 portals, 3 npc points
+[ 135.776]   interior 'Threads' kind 9 building 31597 at (5145.02, -280.71, 1.89) ax (-1.0000, 0.0000) x -5.48..8.22 depth 15.00 ceil 3.50: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+[ 135.776]   interior 'Port Isle Warehouse' kind 12 building 35747 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[ 135.776]   interior 'TideStop Mart' kind 8 building 3293 at (1466.98, -259.25, 4.25) ax (-1.0000, -0.0000) x -8.94..5.36 depth 17.00 ceil 3.37: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[ 135.776]   interior 'Bodega La Luna' kind 8 building 6220 at (2269.99, 540.78, 2.90) ax (-1.0000, -0.0000) x -5.47..5.47 depth 17.00 ceil 3.43: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[ 135.776]   interior 'Canvas Corner Market' kind 8 building 9069 at (3090.52, 1371.80, 2.23) ax (0.0000, 1.0000) x -8.93..5.36 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[ 135.776]   interior 'Sunrise Food Mart' kind 8 building 31640 at (5227.63, 644.48, 1.78) ax (0.0000, 1.0000) x -7.33..7.33 depth 17.00 ceil 3.85: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[ 135.776]   interior 'Northside Quick Stop' kind 8 building 6476 at (2313.57, 3761.67, 3.11) ax (1.0000, 0.0000) x -6.97..6.97 depth 17.00 ceil 3.72: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[ 135.776]   interior 'Flats Food & Fuel' kind 8 building 1225 at (458.12, 3265.33, 5.16) ax (1.0000, 0.0000) x -5.58..5.58 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[ 135.776]   interior 'Grove Pantry' kind 8 building 12271 at (2167.34, -3038.04, 2.30) ax (0.0184, -0.9998) x -5.94..8.92 depth 17.00 ceil 3.94: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[ 135.776]   interior 'Palm Motors' kind 17 building 8092 at (2790.57, 1275.47, 2.58) ax (0.0000, 1.0000) x -9.23..9.23 depth 20.00 ceil 4.03: 2 rooms, 6 openings, 3 doors, 6 portals, 4 npc points
+[ 135.776]   interior 'Tide Customs Calle Luna' kind 18 building 6168 at (2275.03, -140.73, 2.99) ax (1.0000, 0.0000) x -6.08..6.08 depth 17.40 ceil 3.65: 1 rooms, 5 openings, 2 doors, 5 portals, 3 npc points
+[ 135.776]   interior 'Tide Customs Sol Beach' kind 18 building 32061 at (5048.99, 1999.30, 1.91) ax (-1.0000, 0.0000) x -7.75..7.75 depth 18.00 ceil 3.63: 1 rooms, 5 openings, 2 doors, 5 portals, 3 npc points
+[ 135.779]   interior 'Key Coral Villa' kind 0 building 35669 at (4444.57, -4064.21, 1.69) ax (0.7772, -0.6293) x -8.21..4.93 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[ 135.779]   interior 'Sol Beach Condo Lobby' kind 20 building 31691 at (5111.25, 1524.34, 1.80) ax (-1.0000, 0.0000) x -4.04..4.04 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[ 135.779]   interior 'Sol Beach Condo' kind 21 building 31691 at (5111.25, 1524.34, 31.01) ax (-1.0000, 0.0000) x -4.04..8.09 depth 12.00 ceil 2.60: 5 rooms, 3 openings, 5 doors, 3 portals, 0 npc points
+[ 135.780]   interior 'Downtown Penthouse Lobby' kind 20 building 9638 at (3411.16, -707.08, 1.80) ax (-0.0000, -1.0000) x -6.59..4.71 depth 10.00 ceil 5.12: 2 rooms, 7 openings, 2 doors, 7 portals, 2 npc points
+[ 135.780]   interior 'Downtown Penthouse' kind 21 building 9638 at (3411.16, -707.08, 269.87) ax (-0.0000, -1.0000) x -10.36..10.36 depth 14.00 ceil 3.14: 6 rooms, 11 openings, 4 doors, 11 portals, 0 npc points
+[ 135.780]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 0.94) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[ 135.780]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[ 135.780]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[ 135.884] Compiled post.hlsl:vsFullscreen (vs_5_0) in 0.04 s
+[ 166.657] Compiled lighting.hlsl:csLighting (cs_5_0) in 30.77 s
+[ 166.885] Compiled sky.hlsl:csTransmittance (cs_5_0) in 0.22 s
+[ 169.660] Compiled sky.hlsl:csMultiScatter (cs_5_0) in 2.77 s
+[ 170.007] Compiled sky.hlsl:csSkyView (cs_5_0) in 0.34 s
+[ 170.255] Compiled sky.hlsl:csAerialPerspective (cs_5_0) in 0.23 s
+[ 172.290] Compiled sky.hlsl:csSkySH (cs_5_0) in 2.03 s
+[ 172.424] Compiled post.hlsl:csLumHist (cs_5_0) in 0.12 s
+[ 176.291] Compiled post.hlsl:csExposure (cs_5_0) in 3.86 s
+[ 176.406] Compiled post.hlsl:csBloomDown (cs_5_0) in 0.10 s
+[ 176.475] Compiled post.hlsl:csBloomUp (cs_5_0) in 0.06 s
+[ 176.582] Compiled post.hlsl:csSunShafts (cs_5_0) in 0.10 s
+[ 177.048] Compiled taa.hlsl:csTAA (cs_5_0) in 0.46 s
+[ 177.305] Compiled post.hlsl:psTonemap (ps_5_0) in 0.26 s
+[ 177.573] Compiled motionblur.hlsl:csTileMax (cs_5_0) in 0.25 s
+[ 177.619] Compiled motionblur.hlsl:csNeighborMax (cs_5_0) in 0.04 s
+[ 177.807] Compiled motionblur.hlsl:csMotionBlur (cs_5_0) in 0.18 s
+[ 177.878] Compiled terrain.hlsl:vsTerrain (vs_5_0) in 0.06 s
+[ 177.908] Compiled terrain.hlsl:vsTerrainShadow (vs_5_0) in 0.02 s
+[ 180.972] Compiled terrain.hlsl:psTerrain (ps_5_0) in 3.06 s
+[ 181.940] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.96 s
+[ 182.875] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.92 s
+[ 183.812] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.93 s
+[ 184.618] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.80 s
+[ 185.242] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.62 s
+[ 185.944] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.69 s
+[ 186.604] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.65 s
+[ 189.364] Compiled matgen.hlsl:csGenerate (cs_5_0) in 2.76 s
+[ 193.678] Compiled matgen.hlsl:csGenerate (cs_5_0) in 4.29 s
+[ 197.197] Compiled matgen.hlsl:csGenerate (cs_5_0) in 3.46 s
+[ 197.666] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.46 s
+[ 198.022] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.34 s
+[ 199.080] Compiled matgen.hlsl:csGenerate (cs_5_0) in 1.05 s
+[ 201.507] Compiled matgen.hlsl:csGenerate (cs_5_0) in 2.39 s
+[ 202.295] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.78 s
+[ 202.590] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.27 s
+[ 202.832] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.23 s
+[ 203.101] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.26 s
+[ 203.315] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.20 s
+[ 203.647] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.31 s
+[ 204.043] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.39 s
+[ 204.272] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.21 s
+[ 204.737] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.42 s
+[ 205.376] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.63 s
+[ 205.615] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.22 s
+[ 206.296] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.65 s
+[ 206.396] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.10 s
+[ 207.682] Compiled matgen.hlsl:csGenerate (cs_5_0) in 1.26 s
+[ 207.700] Material library: 57 layers at 256^2
+[ 207.892] Compiled world.hlsl:vsWorld (vs_5_0) in 0.19 s
+[ 208.005] Compiled world.hlsl:vsWorldShadow (vs_5_0) in 0.11 s
+[ 223.786] Compiled world.hlsl:psWorld (ps_5_0) in 15.77 s
+[ 223.914] Compiled water.hlsl:vsWater (vs_5_0) in 0.11 s
+[ 226.742] Compiled water.hlsl:psWater (ps_5_0) in 2.82 s
+[ 226.852] Compiled water.hlsl:csWaveNormals (cs_5_0) in 0.10 s
+[ 226.913] Compiled water.hlsl:vsWake (vs_5_0) in 0.06 s
+[ 227.180] Compiled water.hlsl:psWake (ps_5_0) in 0.25 s
+[ 230.281] Compiled clouds.hlsl:csShapeNoise (cs_5_0) in 3.10 s
+[ 231.204] Compiled clouds.hlsl:csDetailNoise (cs_5_0) in 0.91 s
+[ 231.997] Compiled clouds.hlsl:csWeather (cs_5_0) in 0.79 s
+[ 232.584] Compiled clouds.hlsl:csCloudTrace (cs_5_0) in 0.57 s
+[ 232.706] Compiled clouds.hlsl:csCloudReconstruct (cs_5_0) in 0.12 s
+[ 232.797] Compiled clouds.hlsl:csCloudShadow (cs_5_0) in 0.08 s
+[ 233.567] Compiled props.hlsl:vsProp (vs_5_0) in 0.75 s
+[ 234.128] Compiled props.hlsl:vsPropShadow (vs_5_0) in 0.56 s
+[ 235.835] Compiled props.hlsl:psProp (ps_5_0) in 1.67 s
+[ 235.930] Compiled props.hlsl:psPropShadow (ps_5_0) in 0.08 s
+[ 241.711] Compiled foliage.hlsl:csFoliage (cs_5_0) in 5.75 s
+[ 241.720] Props: 71 prototypes, 34282 verts
+[ 242.368] Compiled dynamic.hlsl:vsRigid (vs_5_0) in 0.65 s
+[ 242.504] Compiled dynamic.hlsl:vsSkinned (vs_5_0) in 0.13 s
+[ 242.678] Compiled dynamic.hlsl:vsRigidShadow (vs_5_0) in 0.17 s
+[ 242.734] Compiled dynamic.hlsl:vsSkinnedShadow (vs_5_0) in 0.05 s
+[ 247.120] Compiled dynamic.hlsl:psDynamic (ps_5_0) in 4.38 s
+[ 247.957] Compiled dynamic.hlsl:psGlass (ps_5_0) in 0.83 s
+[ 248.120] Compiled dynamic.hlsl:psHairCard (ps_5_0) in 0.16 s
+[ 248.192] Compiled dynamic.hlsl:vsSkinnedShadowCard (vs_5_0) in 0.07 s
+[ 248.233] Compiled dynamic.hlsl:psHairCardShadow (ps_5_0) in 0.03 s
+[ 248.284] Compiled particles.hlsl:csEmit (cs_5_0) in 0.05 s
+[ 248.461] Compiled particles.hlsl:csSimulate (cs_5_0) in 0.17 s
+[ 248.527] Compiled particles.hlsl:csKeys (cs_5_0) in 0.06 s
+[ 249.138] Compiled particles.hlsl:csSortLocal (cs_5_0) in 0.60 s
+[ 249.221] Compiled particles.hlsl:csSortGlobal (cs_5_0) in 0.07 s
+[ 249.686] Compiled particles.hlsl:csSortMerge (cs_5_0) in 0.45 s
+[ 255.018] Compiled particles.hlsl:csGenAtlas (cs_5_0) in 5.32 s
+[ 256.299] Compiled particles.hlsl:vsParticle (vs_5_0) in 1.27 s
+[ 256.442] Compiled particles.hlsl:psParticle (ps_5_0) in 0.14 s
+[ 256.493] Compiled decals.hlsl:vsDecal (vs_5_0) in 0.03 s
+[ 256.772] Compiled decals.hlsl:psDecal (ps_5_0) in 0.28 s
+[ 256.802] Compiled decals.hlsl:vsSkid (vs_5_0) in 0.03 s
+[ 256.882] Compiled decals.hlsl:psSkid (ps_5_0) in 0.08 s
+[ 260.016] Compiled decals.hlsl:csGenDecals (cs_5_0) in 3.11 s
+[ 260.185] Compiled hiz.hlsl:csHiZFirst (cs_5_0) in 0.16 s
+[ 260.371] Compiled hiz.hlsl:csHiZDown (cs_5_0) in 0.15 s
+[ 260.404] Compiled hiz.hlsl:csColorDown (cs_5_0) in 0.01 s
+[ 260.792] Compiled gtao.hlsl:csGTAO (cs_5_0) in 0.38 s
+[ 260.976] Compiled gtao.hlsl:csGTAOTemporal (cs_5_0) in 0.17 s
+[ 261.476] Compiled gtao.hlsl:csGTAOBlur (cs_5_0) in 0.50 s
+[ 261.729] Compiled ssr.hlsl:csSSRTrace (cs_5_0) in 0.24 s
+[ 261.903] Compiled ssr.hlsl:csSSRResolve (cs_5_0) in 0.16 s
+[ 263.175] Compiled envprobe.hlsl:psProbeLight (ps_5_0) in 1.25 s
+[ 263.274] Compiled envprobe.hlsl:csPrefilter (cs_5_0) in 0.09 s
+[ 263.723] Compiled envprobe.hlsl:csProbeSH (cs_5_0) in 0.44 s
+[ 264.137] Compiled fog.hlsl:csFogInject (cs_5_0) in 0.40 s
+[ 264.187] Compiled fog.hlsl:csFogIntegrate (cs_5_0) in 0.05 s
+[ 264.366] Compiled fog.hlsl:csFogNoise (cs_5_0) in 0.17 s
+[ 264.413] Compiled overhead.hlsl:vsOverhead (vs_5_0) in 0.04 s
+[ 264.429] Compiled overhead.hlsl:psOverhead (ps_5_0) in 0.01 s
+[ 264.454] Compiled rain.hlsl:csOverheadHeight (cs_5_0) in 0.02 s
+[ 264.748] Compiled rain.hlsl:vsRain (vs_5_0) in 0.29 s
+[ 265.032] Compiled rain.hlsl:vsSplash (vs_5_0) in 0.28 s
+[ 265.130] Compiled rain.hlsl:vsBolt (vs_5_0) in 0.09 s
+[ 265.178] Compiled rain.hlsl:psRain (ps_5_0) in 0.04 s
+[ 265.212] Compiled rain.hlsl:psSplash (ps_5_0) in 0.03 s
+[ 265.244] Compiled rain.hlsl:psBolt (ps_5_0) in 0.03 s
+[ 265.796] Compiled grass.hlsl:csGrassPlace (cs_5_0) in 0.55 s
+[ 266.124] Compiled grass.hlsl:vsGrass (vs_5_0) in 0.32 s
+[ 266.384] Compiled grass.hlsl:psGrass (ps_5_0) in 0.26 s
+[ 271.564] Vehicle assets: 45 models in 4.23 s
+[ 289.769] Character assets: 86 characters in 18.20 s
+[ 289.771] Game assets built in 22.43 s
+[ 289.859] Story place near (800, -5400): no building frontage found, using the street
+[ 289.861] Story places resolved in 89.0 ms (diner 1342 342, Mari's 1855 358, Rook's 1661 2264, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[ 289.861] Missions registered: 48
+[ 290.801] Lane graph: 26679 lanes, 59903 connectors (1215736 pts), 36768 walk nodes, 53091 walk links, dead-end turning circles moved 0 / obstructed 0 (0.93 s)
+[ 291.578] UI map: base 2560x2560 in 640 ms, 10015 roads (46349 pts) in 45 ms, 30 labels in 89 ms
+[ 291.578] hudInit done in 774 ms
+[ 291.578] Init done in 289.52 s (shaders: 121 compiled in 129.77 s)
+[ 291.596] Interior 'Sol Beach Condo Lobby' built: 6052 triangles, 6 lights, 11 colliders, 4 door leaves in 0.9 ms
+[ 298.633] Interior 'Sunrise Food Mart' built: 124813 triangles, 22 lights, 17 colliders, 3 door leaves in 168.5 ms
+[ 298.634] Interior 'Sol Beach Condo' built: 14612 triangles, 14 lights, 34 colliders, 7 door leaves in 23.0 ms
+[ 298.636] Interior 'Club Riptide' built: 43466 triangles, 28 lights, 80 colliders, 0 door leaves in 14.5 ms
+[ 682.759] Saved Z:\tmp\fx\dbgD\d10.bmp
+[ 690.277] Shutdown complete.

@@ -1,0 +1,53 @@
+city snapshot-safe: batch 13, roofs for the aerial views (your item 2) plus ranch-row colours and porches and the Key Coral villa forms (item 3). It sits on top of batch 11: 4 world files, copied into the shared tree over batch 11's. buildings.h and buildings.cpp stay batch 11's. Blobs written with git hash-object -w. MinGW syntax check in the shared tree: @SHAREDSYN@. No shader, render or prop changes. The storefront back-wall gate and the soft trash bags stay parked (resume notes).
+
+FILES (src/world), new blob (base blob: batch 11's, or HEAD's where batch 11 didn't touch the file):
+- buildmesh.cpp f6747fbdf47249cb4f6bc3384540ec5aaa55d32a (batch 11 7061638)
+- blockstyle.cpp 7da1951e4af7ec1fc65ff2fa42005b81737772bd (batch 11 bfb494a)
+- massing.cpp ccf1712cf46b9ab392e071242a7ded1affec56c4 (HEAD 22538b0)
+- facadedetail.cpp 1c903d097a67ccd81abc265c02a9395bae768e6d (HEAD c9f48bb)
+
+CHANGELOG (player-facing)
+Roofs from the air:
+- Roof plant. Flat roofs of three floors and up now carry a row of plant along the back of the roof. That covers mid-rises, condos, offices, tower tops without a crown, and the walk-ups' and lofts' roofs. The row has:
+  - the stair bulkhead;
+  - the lift motor room on five floors and up;
+  - one to four packaged HVAC units, by roof size;
+  - on big roofs, a cooling tower with its fan stack.
+  The small clutter (vents, dishes, units, solar panels) keeps to the rest of the roof. The masses show at every distance. Close up they get copings, a steel door, louvres, fans and rails. The bulkhead, motor room, cooling tower and tank have collision.
+- Water tanks. Wooden tanks on braced steel stands, along the back of the roof, now stand on most of the older walk-ups in Calle Luna, North Porto Sol, Midtown and the Flats: 7 in 10 brick walk-ups, fewer of the others, some lofts. They show from afar. Before, a tank came by chance, sat anywhere on the roof and showed only up close.
+- Copings. A parapet's cap is a shade lighter than its wall, so the roofs read with a light rim from the air.
+- Balconies. The beach's and Key Coral's residential towers have a balcony slab with a glass railing at every floor, on the long faces or on all four faces of a near-square tower. The condo blocks have them on the front and back. From a distance they read as white bands.
+- The towers' glass-lantern crowns now show from afar too. Past 420 m they used to drop out and leave a bare roof.
+- Antenna masts and dishes on some of the taller mid-rise roofs (4 floors and up).
+Ranch rows and villas:
+- Ranch houses (Westbrook, the Grove) have their own palette: white, cream, butter, peach, coral, sage, mint, sky, grey-blue, warm grey, tan, lilac. About a sixth are brick. Trim is white, a deeper tone of the wall, or dark bronze. The rows used to be white on white. Two-storey and split-level houses take some of the ranch colours too.
+- Ranch porches: a long low porch under a shed roof over the door on box ranches, and one in the inner corner on L ranches. 55% of the Grove's ranches have one, 38% of Westbrook's tract rows.
+- Villas (Key Coral, the Grove, Bay Isles):
+  - Mediterranean villas come plain (with the tiled door portico), with an arcaded loggia across the front and a terrace on it, or with a balcony on stone corbels over the entry.
+  - Half the box-shaped colonial villas have a full-width veranda of round white columns with a balustraded balcony on top.
+  - Modern villas: just over half have a roof terrace with a white pergola and a glass rail.
+- Garage doors come in white, almond, wood brown or warm grey.
+
+FRAME COST (no new draws: still one per cell; building triangles from citylab, batch 11 -> batch 13)
+- Near ring (420 m): tour stop 2 +2.6%, stop 3 +6.0%, stop 4 +9.0%, stop 5 +11.1%; Calle Luna +1.3%, North Porto Sol +1.5%, the Grove +1.1%, Westbrook +0.3%. Largest near cell: 36.2k -> 39.7k (stop 4).
+- Far ring (2.3 km): stop 2 127.4k -> 165.7k (+30%), stop 3 123.7k -> 159.9k (+29%), stop 4 135.1k -> 172.7k (+28%), stop 5 49.7k -> 75.6k (+52%); Calle Luna +17%, North Porto Sol +21%, the Grove +16%, Westbrook +1%.
+- What the far ring pays for, at stop 2 (each part measured on its own): roof plant +22.6k (2.3k of it tanks), balcony bands +10.1k, everything else +5.6k (the crowns, villa and ranch forms). At the beach (stop 5): plant +14.3k, balconies +11.4k.
+- Kept cheap: the far LOD gets only the masses (the first HVAC unit of a row, 6-sided tanks and fan stacks, one quad per balcony band). The far copings are left out: past 420 m a 0.3 m coping is under half a pixel, and it cost another 20k at stop 2.
+- If the far ring needs trimming: dropping the far balcony bands saves 10k (11k at the beach), but the beach towers would lose their banding from afar.
+- In-game tours (stops 2-5, 13): @TOUR@
+Repetition (debug log metric), batch 11 -> 13: 2.1% -> 2.0% overall. Key Coral 5.8 -> 4.6, the Grove 2.3 -> 2.0, Westbrook 2.7 -> 2.5, Harlow 2.8 -> 2.7. The metric counts porches and villa forms, not wall colour.
+
+RED AVIATION LIGHTS (what I would need; I added no light type and no lights)
+@AVIATION@
+
+TESTS. Build under test: /tmp/city/nt_dev20.exe = nt_dev15 (main b907098 + batch 10 + batch 11) + these files. Before: nt_dev15.
+- worldcheck: passed. 0 overlapping building pairs. 0 colliders and 0 props in drivable lanes. 0 turning circles without room or obstructed. Colliders 650,625 -> 659,605 (roof plant, loggia piers); props 419,317 -> 419,246.
+- ASan + bounds worldcheck (-O1, no -g, recover): 0 reports, passed (/tmp/city/wc_dev20_asan.txt).
+- MinGW on the private tree: 0 errors, 0 warnings.
+- In-game shots, 16 before/after at 960x540: @SHOTS@
+- Showcase views at 1920x1080 ultra, before/after (downtown aerial at night, Sol Beach aerial at sunset, Grove street): @HQ@
+- Story regression: @REG@
+
+EVIDENCE ($S = /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad)
+@EVID@
+- Triangle counts: /tmp/city/clab_dev15_perf.txt, clab_dev20d_perf.txt; the far-ring breakdown: /tmp/city/clab_dev20m_*.txt

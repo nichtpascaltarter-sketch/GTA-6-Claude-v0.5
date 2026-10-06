@@ -1,0 +1,30 @@
+city snapshot-safe: batch 11, house garages kept on their own lots (the North Porto Sol overlap). The 4 world files are copied into the shared tree on top of HEAD a2cd96b (its src/world is b907098's plus batch 10, the base I tested on). Blobs written with git hash-object -w. MinGW syntax check in the shared tree (x86_64-w64-mingw32-g++-posix -std=c++17 -fsyntax-only -Ibuild/gen -Isrc src/main.cpp): @SHAREDSYN@.
+
+FILES (src/world), new blob (HEAD blob):
+- buildings.h fda7b1f3b156af2ca92f480fca4baba5b0375e69 (HEAD 167c309)
+- buildings.cpp 4ef3fdb15650249491094be705ad0031fa00828d (HEAD b23f85d)
+- buildmesh.cpp 70616389162c453b66c16804b22b30ad5f74baae (HEAD 2215873)
+- blockstyle.cpp bfb494a14f3a55257ab0d8f75967cec07dd5da35 (HEAD 298c02d)
+
+CHANGELOG (player-facing)
+- House garages stay on their own lots. The garage wing or carport beside a house (seven in ten houses, every villa) used to reach past the lot line into the next lot: into the neighbour's garage or house, a shop or a walk-up. 15,293 of the 16,262 wings and carports did (94%), 11,543 of them by more than 2 m. In North Porto Sol a garage stood 2.5 m inside the corner walk-up's lot, against its storefront.
+- Now a house with a garage sits off the middle of its lot, away from the garage side, and keeps a 1.8 m side yard. On a narrow lot the house is up to 40% narrower so the garage still fits. Where it can't, the house gets a driveway strip (two concrete wheel tracks) beside it instead. Where even that doesn't fit, it has no garage, and no car is parked beside it (population.cpp follows the same rule). A house never shifts towards a dead end's turning circle.
+- Totals: 15,760 garage wings or carports (was 16,262), 726 driveway strips (was 282, all on the frame and raised houses), 6,607 houses without a garage (was 6,549).
+- Back garage rows are no deeper than their plot. One stood 0.42 m into a house's back part.
+- Bodega La Luna moves to the next shop east, building 29652 -> 29653 (12.5 m along the same street). interiors.cpp's garageIntrudes used to reject 29653 because a neighbour's garage reached into it; now it doesn't, so the bodega takes its first choice again. Grove Pantry (a villa) moves 0.97 m with its house, and Key Coral Villa 0.16 m. The other 26 interiors are unchanged. The stick-up encounter (encounters.cpp) finds the bodega when it runs, so it now plays at the new one: see TESTS.
+- Technical notes: buildings.h adds garageKind(b) (1 wing or carport, 2 driveway strip, 0 none), houseGarage(), garageSide(), kGarageWingRoom 7.1 m and kGarageStripRoom 4.6 m. buildings.cpp handles the lot placement and the dead-end guard (every two-way dead end, searched within 16 m). buildmesh.cpp draws the wing, carport or strip by garageKind. blockstyle.cpp: pavedRects marks the strip, and the back garage rows are clamped to their plots.
+
+TESTS. Build under test: /tmp/city/nt_dev15.exe = main b907098 + batch 10 + these 4 files. Before: nt_dev14 = b907098 + batch 10.
+- worldcheck, new footprint pass: every building's envelope and ground-standing collision boxes against every other building's, all 2,139 cells. 2,769 overlapping pairs before (none envelope into envelope), 0 after. Lanes: 0 colliders and 0 props in drivable lanes. Turning circles: 0 without room, 0 obstructed, 21 pulled back (unchanged).
+- ASan + bounds worldcheck on these files (-O1, no -g, recover): 0 reports, passed (/tmp/city/wc_dev15_asan.txt).
+- MinGW on the private tree: 0 errors, 0 warnings.
+- In-game shots, 12 before/after at 960x540: North Porto Sol, Calle Luna, the Grove, the Flats, Westbrook (street and air), Ten Palms, Okahatchee, Harlow, Fort Castell, Key Solano. Every garage now stands on its own lot. Narrow lots show the strip. The North Porto Sol garage is clear of the walk-up's storefront. The North Porto Sol showcase street at 1920x1080 ultra, before/after.
+- Story regression (missiontest story): 27/27 passed, 0 changed against nt_dev14, no segfault (/tmp/city/reg_dev15_log.txt). Story places resolve at the same positions, and the building count is the same (35,617). Restyle counts: b29652, no longer an interior host, is now restyled (taxpayer +1). b29653, the new host, keeps the plain generator (bodega -1). Block infill: garage rows 719 -> 720, yards 5,755 -> 5,760.
+- Stick-up encounter (missiontest enc_stickup,enc_stickup_b) on nt_dev15: staged at (2254, 542), at the new Bodega La Luna (building 29653, interior origin 2255.2, 540.7). Both passed: outcome 1 in 9 s, outcome 2 ('till kept') in 8 s, with the clerk, the robber and the getaway car at the shop front (/tmp/city/enc_dev15_log.txt, frames /tmp/city/enc_dev15/, sheet $S/city/sheets/b11/stickup.png).
+- Tours 2-5 on nt_dev15 against tour_dev13_log: @TOUR@
+- Frame cost, building triangles (citylab, nt_dev14 -> nt_dev15): near ring 0 to -4.6% (fewer wings: Key Solano -4.6%, Ten Palms -3.8%, Westbrook -3.0%), far ring 0 to -0.9%. Draws unchanged (one per cell).
+
+EVIDENCE ($S = /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad)
+- Before/after in game: $S/city/sheets/b11/pairs1.png, pairs2.png; HQ: $S/city/sheets/b11/hq_before_after.png
+- Shots: /tmp/city/dev15_shots, /tmp/city/dev15_before_shots, /tmp/city/dev15_hq, /tmp/city/dev15_hq_before
+- worldcheck logs: $S/wc/fp_b4.txt (before), $S/wc/fp_a4.txt (after)

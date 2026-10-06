@@ -1,0 +1,50 @@
+Street life 3: tip-offs and officers asking around, people asking the player the way, drivers stopping for anyone they hit, parking tickets
+
+AI sets 10-13 (src/game: ai.cpp, ai_game.h, app.cpp, barks.cpp, pedai.cpp, police.cpp, traffic.cpp, traffic_core.cpp):
+- Tip-offs:
+  - Civilians who see the wanted player note when, where and which way he went.
+  - Once the police have lost him a while, one of them may call out to an officer on foot ("Officer! He went that way!") and
+    point the way. The police then get the sighting: last-seen position and time, and the heading the units follow.
+  - Who and how often: never the timid, each witness once in 2 minutes, 25-45 s between tip-offs.
+- Officers asking around: an officer on foot who has lost the suspect for 8 s or more asks someone calm nearby ("Police.
+  You see anybody come by in a hurry?"). The person answers or points the way, but only if they saw the player more
+  recently than the police did.
+- Asked the way:
+  - Every 4-8 minutes, someone (more often a tourist) asks the player the way while the player is on a sidewalk, not
+    wanted, with nothing in hand.
+  - Standing still points down the street (the first time a hint shows) and gets thanks and a wave.
+  - Walking off gets "Oh - okay. Thanks anyway."
+- Drivers who knock down anyone on foot, not only the player, stop seven times in ten and come to see.
+  - A victim who gets up has a word for the driver.
+  - If the victim stays down, the driver phones for an ambulance and stays until a medic comes.
+- Parking tickets: a beat officer may write up a car the player left in the street for over a minute, with the player
+  more than 25 m away and no mission running. Getting back in costs $45 ("Parking ticket -$45").
+- Walking round cars: people walking up to someone (the bystander coming to the player knocked flat, helpers, sorry and
+  road-rage drivers, officers, delivery drivers, ambulance crews) now step round a parked or stopped car standing across
+  the way, taking the shorter way round its corners.
+- Smaller changes:
+  - Calm people within 38 m turn their heads to follow a passing siren.
+  - Onlookers to the player's car crashing have their own lines.
+  - Two people walking together get night-out lines between 21:30 and 04:30.
+- Fixes:
+  - Officers no longer pick someone across the street to stop. This was the cause of an earlier stop test giving up.
+  - A bus with an unserved stop ahead stays in its kerb lane instead of leaving it for a turn.
+- Tests (app.cpp test code): tipoff, askway, copask, plticket and hitped modes, and a rewritten nearmiss test. The tipoff
+  and copask tests keep the player hidden 85-105 m off, so the witnesses aren't recycled.
+
+Checks (AI agent; no crashes or GPU errors, clean shutdowns):
+- Builds: nt_ai83f is exactly this graft on e4efe94. These 8 files are unchanged from e4efe94 to this commit's parent.
+- Passed:
+  - tipoff: a witness called an officer over and pointed. The police's last-seen went from 46 s to 9 s ago.
+  - copask: officers asked about 6 people.
+  - askway: the player pointed the way.
+  - hitplayer: the bystander now goes round a parked car.
+  - plticket: ticketed, then $45 paid on getting back in.
+  - pedstop: all three stages.
+  - busrun: all three buses serve the stop.
+  - nearmiss: 4 startles.
+  - alarm.
+- Not fully covered:
+  - hitped: drivers stopped for the people they knocked down, but the victim walked off before the driver reached them,
+    so the exchange didn't happen. A fix (the victim holds, facing the driver) is planned for a later set.
+  - night: too few walking pairs downtown at 23:00 to pass the player. The nightwalk test covers this with the next sets.
