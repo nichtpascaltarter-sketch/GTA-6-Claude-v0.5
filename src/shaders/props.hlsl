@@ -150,6 +150,24 @@ GBufferOut psProp(VSOut i, bool front : SV_IsFrontFace) {
         n = normalize(T * nxy.x + B * nxy.y + N * sqrt(saturate(1.0 - dot(nxy, nxy))));
         rough = saturate(nr.z * m.roughScale);
         ao = nr.w;
+        uint barkKind = matId == 33u ? (i.mat >> 8) & 0x7fffffu : 0u;
+        if (barkKind == 2u || barkKind == 3u) {
+            // Palm trunks (world/propmesh.cpp; uv.y = 3 x height along the trunk, uv.x around it in metres): leaf-scar
+            // rings, deep and close on coconut palms (param 2), shallow and wider on the smooth grey royal palm (3).
+            // The ring spacing wanders a little; the grooves are darker, and the lowest metre is weathered paler.
+            bool royal = barkKind == 3u;
+            float along = i.uv.y / 3.0;
+            float spacing = royal ? 0.19 : 0.085;
+            float wob = valueNoise(float2(along * 3.0, i.inst.z * 5.0)) * 0.35 + valueNoise(float2(i.uv.x * 6.0, along * 11.0)) * 0.15;
+            float ph = frac(along / spacing + wob);
+            float groove = smoothstep(0.0, 0.18, ph) * (1.0 - smoothstep(0.72, 1.0, ph));   // 1 on the ring's face
+            float slope = (ph < 0.18 ? 1.0 : (ph > 0.72 ? -1.0 : 0.0)) * (royal ? 0.25 : 0.6);
+            n = normalize(n + T * slope * (1.0 - groove));
+            albedo *= lerp(royal ? 0.82 : 0.62, 1.0, groove);
+            albedo = lerp(albedo, albedo * float3(1.12, 1.1, 1.06), (1.0 - smoothstep(0.4, 1.4, along)) * (royal ? 0.3 : 0.6));
+            ao *= lerp(royal ? 0.9 : 0.7, 1.0, groove);
+            rough = saturate(rough + (royal ? -0.05 : 0.08));
+        }
         if ((uint)m.flags & 16u) {
             // Emissive: street lamps glow at night; traffic lamps follow the signal state
             float night = gExposure.w;

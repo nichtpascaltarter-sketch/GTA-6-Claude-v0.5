@@ -15,7 +15,8 @@ enum MatFlags { MF_PAINT = 1, MF_GLASS = 2, MF_FACADE = 4, MF_FOLIAGE = 8, MF_EM
 struct MaterialLibrary {
     gfx::Texture albedoArr, normalArr;
     gfx::Buffer table;
-    gfx::ComputeShader  gens[28] = {};
+    static const int kGenerators = 32;   // matgen.hlsl GEN ids 0..31
+    gfx::ComputeShader  gens[kGenerators] = {};
     int size = 1024;
     int layerCount = 0;
     MaterialInfoGPU infos[MAT_COUNT];
@@ -64,7 +65,7 @@ struct MaterialLibrary {
             {MAT_CHROME, 19, vec3(0.95f), vec3(0.95f), vec3(0.9f), vec4(0, 0, 0, 1), 1.f, 0.3f, 1.f, 0, 0},
             {MAT_CONCRETE_PANEL, 26, vec3(0.42f, 0.41f, 0.39f), vec3(0.52f, 0.5f, 0.47f), vec3(0.3f, 0.28f, 0.25f), vec4(0, 0, 0, 4), 4.f, 1.f, 0, 0, 0},
             {MAT_FACADE, 11, vec3(0.86f), vec3(0.45f, 0.4f, 0.32f), vec3(0.3f), vec4(0, 0, 0, 3), 3.f, 1.f, 0, MF_FACADE, 0},
-            {MAT_LEAVES, 1, vec3(0.05f, 0.12f, 0.03f), vec3(0.1f, 0.18f, 0.04f), vec3(0.2f, 0.2f, 0.06f), vec4(0.1f, 0, 0, 4), 2.f, 1.f, 0, MF_FOLIAGE, 0},
+            {MAT_LEAVES, 28, vec3(0.045f, 0.1f, 0.03f), vec3(0.1f, 0.18f, 0.045f), vec3(0.24f, 0.23f, 0.07f), vec4(0, 0, 0, 5), 2.f, 1.f, 0, MF_FOLIAGE, 0},
             {MAT_BARK, 22, vec3(0.2f, 0.15f, 0.1f), vec3(0.3f, 0.24f, 0.17f), vec3(0.12f, 0.1f, 0.08f), vec4(0, 0, 0, 8), 1.5f, 1.f, 0, 0, 0},
             {MAT_PALM_FROND, 1, vec3(0.06f, 0.14f, 0.03f), vec3(0.12f, 0.2f, 0.05f), vec3(0.3f, 0.28f, 0.12f), vec4(0.3f, 0, 0, 4), 2.f, 1.f, 0, MF_FOLIAGE, 0},
             {MAT_SAND, 0, vec3(0.45f, 0.38f, 0.26f), vec3(0.58f, 0.5f, 0.36f), vec3(0.2f, 0.18f, 0.16f), vec4(0, 0, 0, 4), 4.f, 1.f, 0, 0, 0},
@@ -99,6 +100,10 @@ struct MaterialLibrary {
         c->csSetUAVs(0, 2, uavs);
         for (size_t i = 0; i < defs.size(); i++) {
             const Def& d = defs[i];
+            if (d.gen < 0 || d.gen >= kGenerators) {
+                LOG("Material %d: generator %d out of range (matgen.hlsl GEN 0..%d)", (int)d.id, d.gen, kGenerators - 1);
+                continue;
+            }
             if (!gens[d.gen]) {
                 std::string g = std::to_string(d.gen);
                 gens[d.gen] = gfx::loadCS("matgen.hlsl", "csGenerate", {{"GEN", g.c_str()}});

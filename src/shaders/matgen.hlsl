@@ -605,6 +605,54 @@ Surf genPaint(float2 uv) {
     return s;
 }
 
+// Dense foliage on the world meshes (hedges, the shrub masses of gardens, climbers): three overlapping layers of pointed
+// leaves on jittered grids, each leaf domed across, creased along its midrib and tilted its own way, the upper layers
+// lit and the lower ones in their shade; between the leaves the dark inside of the mass. Leaf colours from A (old,
+// dark) to B (young, light), a few yellowing towards C.
+Surf genLeafCanopy(float2 uv) {
+    Surf s;
+    const float N = 14.0;   // leaves per tile side and layer
+    float best = -1.0;
+    float3 col = gColorA.rgb * 0.32;
+    float rough = 0.8, ao = 0.35;
+    [unroll] for (int layer = 0; layer < 3; layer++) {
+        float2 p = uv * N + float2(0.37, 0.61) * layer;
+        float2 ci = floor(p);
+        [unroll] for (int dy = -1; dy <= 1; dy++)
+            [unroll] for (int dx = -1; dx <= 1; dx++) {
+                float2 cell = ci + float2(dx, dy);
+                float2 key = cell + float2(layer * 5.0, layer * 11.0);
+                float h0 = hashP(key, N), h1 = hashP(key + float2(3, 7), N), h2 = hashP(key + float2(13, 1), N), h3 = hashP(key + float2(9, 17), N);
+                float2 c = cell + 0.15 + 0.7 * float2(h0, h1);
+                float ang = h2 * TWO_PI;
+                float L = 0.95 + 0.5 * h3, W = L * (0.36 + 0.14 * h0);
+                float2 d = p - c;
+                float2 q = float2(cos(ang) * d.x + sin(ang) * d.y, -sin(ang) * d.x + cos(ang) * d.y);
+                float t = q.x / L + 0.5;
+                if (t <= 0.0 || t >= 1.0) continue;
+                float hw = 0.5 * W * pow(sin(t * PI), 0.8);
+                float across = abs(q.y) / max(hw, 1e-4);
+                if (across >= 1.0) continue;
+                float2 tilt = float2(h1 - 0.5, h3 - 0.5);
+                float h = layer * 0.22 + h0 * 0.08 + (1.0 - across * across) * 0.07 * sin(t * PI) - 0.018 * (1.0 - smoothstep(0.0, 0.12, across)) + dot(tilt, d) * 0.06;
+                if (h <= best) continue;
+                best = h;
+                float3 leaf = lerp(gColorA.rgb, gColorB.rgb, h2 * 0.7 + layer * 0.15);
+                leaf = lerp(leaf, gColorC.rgb, step(0.93, h3) * 0.45);
+                leaf *= lerp(1.12, 0.85, across * across);                          // lighter at the midrib, darker edges
+                leaf = lerp(leaf, leaf * 1.25, 1.0 - smoothstep(0.0, 0.08, across)); // the midrib itself
+                col = leaf;
+                rough = lerp(0.55, 0.75, h1);   // waxy to matte leaves (a hedge is a mass of them: no mirror sheen)
+                ao = 0.55 + 0.22 * layer;
+            }
+    }
+    s.albedo = col;
+    s.height = best < 0.0 ? 0.0 : 0.25 + best;
+    s.rough = rough;
+    s.ao = ao;
+    return s;
+}
+
 #ifndef GEN
 #define GEN 0
 #endif
@@ -663,6 +711,8 @@ Surf evalSurf(float2 uv) {
     return genPoolTile(uv);
 #elif GEN == 26
     return genPanel(uv);
+#elif GEN == 28
+    return genLeafCanopy(uv);
 #else
     return genPaint(uv);
 #endif
