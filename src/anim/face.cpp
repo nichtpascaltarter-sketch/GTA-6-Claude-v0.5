@@ -1277,7 +1277,10 @@ static void addBrow(BuildCtx& c, int sd, vec3 col) {
         // growth direction in (lateral, up) angle space: the head stands up, the body's lower hairs sweep up and out
         // and its upper ones out and down (meeting mid-brow), the tail runs out and a little down
         float head = 1.f - sstep(0.08f, 0.24f, u), tail = sstep(0.55f, 0.85f, u);
-        float bodyUp = Lerp(0.55f, -0.3f, sstep(0.25f, 0.75f, v));
+        // (the body's two rows meet along a line, the brow's herringbone: the lower hairs ~35 degrees up and out, the
+        // upper ones ~25 degrees down and out; few lie flat along the brow, where each would catch the sun's highlight
+        // along its whole length)
+        float bodyUp = Lerp(0.7f, -0.45f, sstep(0.38f, 0.62f, v));
         float up = Lerp(Lerp(bodyUp, -0.18f, tail), 2.2f, head) + 0.2f * (rb.f() - 0.5f);
         float out = 1.f;
         float len = Lerp(0.0045f, 0.0072f, sstep(0.f, 0.3f, u)) * Lerp(1.f, 0.85f, tail) * Lerp(0.72f, 1.f, edgeV) * D.headS * (0.85f + 0.3f * rb.f());
@@ -1301,7 +1304,9 @@ static void addBrow(BuildCtx& c, int sd, vec3 col) {
             np++;
         }
         float dens = Lerp(0.7f, 1.f, sstep(0.f, 0.4f, edgeV)) * Lerp(1.f, 0.82f, tail);
-        setCardDepth(m, emitCard(m, pts, np, CARD_BROW, r.next(), colRoot, colTip, dens, PART_FACEDETAIL, nullptr), 1);
+        // (the renderer's card depth: a brow is a mat of hairs lying on each other, and at depth 1 every strand caught
+        // the sun's highlight along the brow, which turned dark brows into pale bands by day)
+        setCardDepth(m, emitCard(m, pts, np, CARD_BROW, r.next(), colRoot, colTip, dens, PART_FACEDETAIL, nullptr), 3u + hash32((u32)i * 0x9E3779B1u ^ (c.d->seed * 0x2C1B3C6Du + (u32)sd)) % 3u);
     }
     // tint the skin under the brow (the follicles and the fine hairs between the strands), broken up per vertex and
     // fading out over the brow's ends. On screen the strands thin out under the anti-aliasing (and overlapping cards
@@ -1537,8 +1542,11 @@ static void addLidDetails(BuildCtx& c, int sd, vec3 lashCol) {
                     pts[k].w = (length(a1.p - a0.p) * (lid == 0 ? 1.5f : 1.7f) + 0.0005f) * (1.f - 0.35f * f);
                     pts[k].sw = lerpSkin(a0.sw, a1.sw, 0.5f);
                 }
+                // (in the renderer's card depth a little inside the hair volume: lashes are thin dark hairs in the shade of
+                // the lid's fold and of each other, and at depth 0 their highlight drew a pale band along the lid)
                 setCardDepth(m, emitCard(m, pts, NPt, CARD_LASH, r.next(), lid == 0 ? lashCol * 0.7f : lashCol * 1.1f, lashCol * 1.35f,
-                                         lid == 0 ? (row == 0 ? 0.95f : Lerp(0.32f, 0.55f, D.fem)) : 0.32f, PART_FACEDETAIL, nullptr), 0);
+                                         lid == 0 ? (row == 0 ? 0.95f : Lerp(0.32f, 0.55f, D.fem)) : 0.32f, PART_FACEDETAIL, nullptr),
+                             lid == 0 ? (row == 0 ? 3u : 4u) : 3u);
             }
     }
 }
