@@ -532,4 +532,61 @@ void drawPads(G& g) {
 }
 
 }  // namespace sitegeo
+
+// The signs of the frontage lots (cellgen.cpp buildOpenLot), standing at p on the ground z and facing fw (toward the
+// street): 0 a realtor's for-sale board on two posts, 1 a parking sign on a pole (a blue P panel over a white name panel)
+void openLotSign(MeshData& m, vec3 org, vec2 p, vec2 fw, float z, int kind, u32 seed) {
+    using namespace sitegeo;
+    G g;
+    g.m = &m;
+    g.org = org;
+    Rng r(seed);
+    fw = normalize(fw);
+    const vec2 rt = perp(fw);   // the text's right (cross(right, up) = fw)
+    const vec3 R(rt, 0.f), F(fw, 0.f), U(0, 0, 1);
+    if (kind == 0) {
+        // two 4x4 posts, a board 1.2 x 0.8 m: a coloured header band, FOR SALE, a phone line
+        const u32 post = rgb(0.86f, 0.85f, 0.82f), postM = M(MAT_PLASTER);
+        // (the posts at the board's ends and a little behind it, clear of the lettering)
+        for (int sgn = -1; sgn <= 1; sgn += 2) box(g, vec3(p + rt * (0.645f * sgn) - fw * 0.03f, z + 0.85f), R, F, vec3(0.045f, 0.045f, 0.85f), post, postM);
+        const vec3 hdr[] = {vec3(0.72f, 0.1f, 0.1f), vec3(0.1f, 0.25f, 0.6f), vec3(0.1f, 0.45f, 0.25f), vec3(0.85f, 0.55f, 0.1f)};
+        vec3 hc = hdr[r.next() % 4u];
+        vec3 bc(p, z + 1.25f);
+        box(g, bc, R, F, vec3(0.6f, 0.02f, 0.4f), rgb(0.95f, 0.95f, 0.93f), M(MAT_METAL_PAINTED));
+        // the header band on both faces
+        for (int face = -1; face <= 1; face += 2) {
+            vec3 o = bc + F * (0.021f * face);
+            vec3 rr = R * (float)face;   // (text reads left to right on both faces)
+            quad(g, m, o - rr * 0.6f + U * 0.18f, o + rr * 0.6f + U * 0.18f, o + rr * 0.6f + U * 0.4f, o - rr * 0.6f + U * 0.4f, rgbv(hc), M(MAT_PAINT_WHITE), F * (float)face);
+            const char* t1 = "FOR SALE";
+            float th = 0.17f, tw = textAdvance(t1, th, 0.3f);
+            strokeText(g, m, t1, o + F * (0.002f * face) - rr * (tw * 0.5f) - U * 0.06f, rr, U, th, 0.032f, rgbv(hc), M(MAT_PAINT_WHITE), 0.f, 0.3f);
+            // the realtor's number on the street face only
+            char ph[24];
+            snprintf(ph, sizeof(ph), "555-%04u", 1000u + r.next() % 9000u);
+            float th2 = 0.09f, tw2 = textAdvance(ph, th2, 0.3f);
+            if (face > 0)
+                strokeText(g, m, ph, o + F * (0.002f * face) - rr * (tw2 * 0.5f) - U * 0.3f, rr, U, th2, 0.018f, rgb(0.15f, 0.15f, 0.16f), M(MAT_PAINT_WHITE), 0.f, 0.3f);
+        }
+    } else {
+        // a 3.2 m pole; a blue panel with a white P over a white panel with the name
+        const u32 pole = rgb(0.55f, 0.56f, 0.58f), poleM = M(MAT_METAL_PAINTED);
+        m.cylinder(vec3(p, z) - org, 0.05f, 0.05f, 3.3f, 6, pole, poleM, false);
+        vec3 pc(p + fw * 0.08f, z + 2.75f), nc(p + fw * 0.08f, z + 2.12f);
+        box(g, pc, R, F, vec3(0.38f, 0.02f, 0.38f), rgb(0.08f, 0.25f, 0.62f), M(MAT_METAL_PAINTED));
+        box(g, nc, R, F, vec3(0.45f, 0.02f, 0.22f), rgb(0.95f, 0.95f, 0.93f), M(MAT_METAL_PAINTED));
+        const char* names[] = {"PARKING", "CUSTOMER PARKING", "PUBLIC PARKING", "PARKING $5"};
+        const char* nm = names[r.next() % 4u];
+        for (int face = -1; face <= 1; face += 2) {
+            vec3 rr = R * (float)face;
+            vec3 o = pc + F * (0.021f * face + 0.002f * face);
+            float th = 0.5f, tw = textAdvance("P", th, 0.f);
+            strokeText(g, m, "P", o - rr * (tw * 0.5f) - U * 0.25f, rr, U, th, 0.09f, rgb(0.97f, 0.97f, 0.97f), M(MAT_PAINT_WHITE), 0.f, 0.f);
+            vec3 o2 = nc + F * (0.021f * face + 0.002f * face);
+            float th2 = Min(0.16f, 0.82f / Max(0.1f, textAdvance(nm, 1.f, 0.3f))), tw2 = textAdvance(nm, th2, 0.3f);
+            strokeText(g, m, nm, o2 - rr * (tw2 * 0.5f) - U * (th2 * 0.5f), rr, U, th2, th2 * 0.17f, rgb(0.08f, 0.25f, 0.62f), M(MAT_PAINT_WHITE), 0.f, 0.3f);
+        }
+    }
+}
+
 }  // namespace World

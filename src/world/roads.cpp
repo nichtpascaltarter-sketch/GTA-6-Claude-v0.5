@@ -541,11 +541,11 @@ void RoadNetwork::generate(WorldMap& map) {
                 bool ok = groveValid(p) && !map.isWater(p.x, p.y);
                 if (ok) line.push_back(p);
                 else {
-                    if (line.size() >= 3) b.add(line, cls, 0, 0, StrFormat("%s %s", kStreetNames[(iy * 13 + 1) % ARRAY_COUNT(kStreetNames)], kStreetSuffix[(iy + 3) % 10]).c_str());
+                    if (line.size() >= 3) b.add(line, cls, 0, 0, StrFormat("%s %s", kStreetNames[(iy * 13 + 1) % ARRAY_COUNT(kStreetNames)], kStreetSuffix[((iy + 3) % 10 + 10) % 10]).c_str());
                     line.clear();
                 }
             }
-            if (line.size() >= 3) b.add(line, cls, 0, 0, StrFormat("%s %s", kStreetNames[(iy * 13 + 1) % ARRAY_COUNT(kStreetNames)], kStreetSuffix[(iy + 3) % 10]).c_str());
+            if (line.size() >= 3) b.add(line, cls, 0, 0, StrFormat("%s %s", kStreetNames[(iy * 13 + 1) % ARRAY_COUNT(kStreetNames)], kStreetSuffix[((iy + 3) % 10 + 10) % 10]).c_str());
         }
         // Coastal scenic drive through the Grove
         b.add(smoothPath(kmPts({2.72f, -2.0f, 2.9f, -2.6f, 2.95f, -3.2f, 2.7f, -3.9f, 2.3f, -4.4f, 1.8f, -4.85f}), 25.f), RC_AVENUE, 0, 0,

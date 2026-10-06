@@ -1348,7 +1348,8 @@ void backYardFence(FD& d, bool garage, float gside) {
     const float off = dot(b.lotC - b.c, F), lat = dot(b.lotC - b.c, A);
     const float uL = lat - (b.lotHx - 0.4f), uR = lat + (b.lotHx - 0.4f), vB = off - b.lotHy + 0.4f;
     float vr = -b.hy + 1.6f;
-    if (garage) vr = Min(vr, b.hy - 2.f * Min(b.hy, 3.4f) - 0.3f);
+    if (b.arch == AR_HOUSE_TRAILER) vr = b.hy - massing::trailerDepth(b) + 1.f;   // (the returns meet the mobile home's sides)
+    if (garage) vr = Min(vr, b.hy - 2.f * massing::carportHalfDepth(b) - 0.3f);
     if (vr - vB < 3.f) return;
     float H;
     u32 col, mat, cap = pk(0.96f);
@@ -1425,6 +1426,8 @@ void frontBoundaryLook(FD& d, bool villa, int& fbk, FenceLook& L) {
         if ((b.arch == AR_HOUSE_VICTORIAN || b.arch == AR_HOUSE_CONCH) && pick < 0 && q < 0.45f) pick = FB_PICKET;
         if (b.arch == AR_HOUSE_MED && pick == FB_PICKET) pick = FB_KNEE;
         if ((b.arch == AR_HOUSE_CBS || b.arch == AR_HOUSE_MED) && pick < 0 && q < 0.15f) pick = FB_REJA;
+        // (a mobile home's lot is open, or has a post-and-rail or a plain metal fence: no pickets, garden walls or rejas)
+        if (b.arch == AR_HOUSE_TRAILER && pick != FB_RAIL && pick != FB_ALUM) pick = q < 0.6f ? -1 : (q < 0.85f ? FB_RAIL : FB_ALUM);
     }
     if (pick >= 0) fbk = pick;
     // the look: the stucco in the house's colour, white or a pastel; the steel black, white, green or bronze
@@ -1488,7 +1491,7 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
     int fi = 0;
     for (int i = 1; i < (int)walls.size(); i++)
         if (walls[i].facing > walls[fi].facing) fi = i;
-    const bool notchPorch = (b.arch == AR_HOUSE_VICTORIAN || b.arch == AR_HOUSE_BUNGALOW) && b.massing == MK_L;
+    const bool notchPorch = (b.arch == AR_HOUSE_VICTORIAN || b.arch == AR_HOUSE_BUNGALOW || b.arch == AR_HOUSE_CONCH) && b.massing == MK_L;
     if (notchPorch) {
         float best = 1e9f;
         for (int i = 0; i < (int)walls.size(); i++) {
@@ -1498,8 +1501,10 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
         }
     } else if (b.massing == MK_STEP_FRONT && b.arch != AR_NONE) {
         // (a front bay: the entry in the longer of the set-back fronts beside it, or in the bay when they are too short
-        // for a door between two windows)
+        // for a door between two windows; a conch house's porch stands on the longer set-back front whatever its
+        // windows - massing.cpp - so its door goes there too)
         float vmax = -1e9f, best = 0.f;
+        const int minBays = b.arch == AR_HOUSE_CONCH ? 1 : 2;
         for (const Wall& w : walls)
             if (w.facing > 0.9f) vmax = Max(vmax, dot((w.a + w.b) * 0.5f - b.c, b.front));
         int pick = -1;
@@ -1507,7 +1512,7 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
             for (int i = 0; i < (int)walls.size(); i++) {
                 const Wall& w = walls[i];
                 bool recessed = dot((w.a + w.b) * 0.5f - b.c, b.front) < vmax - 0.3f;
-                if (w.facing < 0.9f || w.bays < 2 || (pass == 0 && !recessed)) continue;
+                if (w.facing < 0.9f || w.bays < minBays || (pass == 0 && !recessed)) continue;
                 if (w.len > best) best = w.len, pick = i;
             }
         if (pick >= 0) fi = pick;
@@ -1523,8 +1528,9 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
                                vec3(0.85f, 0.4f, 0.3f), vec3(0.4f, 0.6f, 0.75f), vec3(0.55f, 0.75f, 0.45f)};
     u32 shutterCol = pk(shutterPal[d.r.next() % ARRAY_COUNT(shutterPal)]);
     if (b.arch == AR_HOUSE_RAISED && !shutters && hash32(b.seed ^ 0xA3D3u) % 10u < 6u) bahama = 1;   // (the Keys' storm shutters)
-    if (b.arch == AR_HOUSE_CBS && hash32(b.seed ^ 0xA3D1u) % 10u < 7u) {
-        // the block houses: aluminium awnings over the windows (green, white, brown, cream, turquoise, coral)
+    if ((b.arch == AR_HOUSE_CBS && hash32(b.seed ^ 0xA3D1u) % 10u < 7u) || (b.arch == AR_HOUSE_TRAILER && hash32(b.seed ^ 0xA3D1u) % 10u < 5u)) {
+        // the block houses and half the mobile homes: aluminium awnings over the windows (green, white, brown, cream,
+        // turquoise, coral)
         const vec3 awn[] = {vec3(0.25f, 0.5f, 0.35f), vec3(0.95f), vec3(0.45f, 0.32f, 0.22f), vec3(0.93f, 0.88f, 0.72f), vec3(0.25f, 0.65f, 0.65f), vec3(0.9f, 0.5f, 0.42f)};
         shutters = false;
         bahama = 2;
@@ -1558,7 +1564,7 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
             float gz = d.map->heightAt(sp.x, sp.y);
             doorAt = fw.a + fw.t * sd;
             hasDoor = true;
-            if (b.arch != AR_SHACK_STILT && b.arch != AR_VILLA_COLONIAL && b.arch != AR_HOUSE_RAISED) {
+            if (b.arch != AR_SHACK_STILT && b.arch != AR_VILLA_COLONIAL && b.arch != AR_HOUSE_RAISED && b.arch != AR_HOUSE_TRAILER) {
                 wbox(k, fw, sd - dw * 0.5f - 0.5f, sd + dw * 0.5f + 0.5f, Min(gz, zb) - 0.3f, zb - 0.02f, 0.f, 1.3f, pk(0.82f, 0.8f, 0.76f), MM(MAT_CONCRETE), WF_BOX);
                 if (zb - gz > 0.35f)
                     wbox(k, fw, sd - dw * 0.5f - 0.3f, sd + dw * 0.5f + 0.3f, gz - 0.3f, (zb + gz) * 0.5f, 1.3f, 1.65f, pk(0.82f, 0.8f, 0.76f), MM(MAT_CONCRETE), WF_FRONT | WF_TOP | WF_START | WF_END);
@@ -1590,7 +1596,9 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
                 vec3 R2 = vec3(rc + fw.t * (pw * 0.6f) - fw.n * (pd * 0.5f), zb + ph + 1.2f), R3 = vec3(rc - fw.t * (pw * 0.6f) - fw.n * (pd * 0.5f), zb + ph + 1.2f);
                 k.m->quadFacing(R0 - k.org, R1 - k.org, R2 - k.org, R3 - k.org, vec2(0, 0), vec2(2 * pw, 0), vec2(2 * pw, pd), vec2(0, pd), pk(0.95f, 0.9f, 0.9f),
                                 MM(MAT_ROOF_TILE), vec3(fw.n, 1.f));
-            } else if (!shack && d.r.chance(0.55f) && b.arch != AR_HOUSE_VICTORIAN && b.arch != AR_HOUSE_RAISED && !notchPorch) {
+            } else if (!shack && b.arch != AR_HOUSE_TRAILER && d.r.chance(0.55f) && b.arch != AR_HOUSE_VICTORIAN && b.arch != AR_HOUSE_RAISED && !notchPorch &&
+                       !blockstyle::massingPorch(b)) {
+                // (a door canopy where the house has no porch of its own over the door)
                 float pw = dw * 0.5f + 0.7f;
                 wbox(k, fw, sd - pw, sd + pw, zb + 2.55f, zb + 2.7f, 0.f, 1.35f, d.trim, d.trimMat, WF_BOX | WF_BOTTOM);
                 for (int e = 0; e < 2; e++) {
@@ -1631,7 +1639,8 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
     gardenHoles.clear();
     if (d.holes) gardenHoles = *d.holes;
     const std::vector<vec4>* holes0 = d.holes;
-    const bool walkable = hasDoor && b.arch != AR_HOUSE_RAISED && b.arch != AR_SHACK_STILT && b.arch != AR_VILLA_COLONIAL && !blockstyle::frontPaved(b);
+    const bool walkable = hasDoor && b.arch != AR_HOUSE_RAISED && b.arch != AR_SHACK_STILT && b.arch != AR_VILLA_COLONIAL && b.arch != AR_HOUSE_TRAILER &&
+                          !blockstyle::frontPaved(b);
     if (walkable) {
         const vec2 F = b.front, A = b.ax;
         const float u = dot(doorAt - b.lotC, A), v0 = dot(doorAt + fw.n * 1.3f - b.lotC, F), v1 = b.lotHy - 0.3f;

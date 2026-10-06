@@ -79,8 +79,80 @@ const ArchInfo kArch[AR_COUNT] = {
     {"gambrel barn", 1, 1, true},  {"pole barn", 1, 1, true},     {"gable barn", 1, 1, true},
     {"mission church", 1, 1, false}, {"board church", 1, 1, false}, {"brick church", 1, 1, true}, {"a-frame church", 1, 1, false},
     {"cbs house", 1, 1, false},    {"folk victorian", 2, 2, true}, {"raised keys house", 1, 2, false},
+    {"mobile home", 1, 1, true},
 };
 static_assert(sizeof(kArch) / sizeof(kArch[0]) == AR_COUNT, "one ArchInfo per archetype");
+
+// House forms inside an archetype, seeded from the envelope (massing.cpp builds them, facadedetail.cpp and the repetition
+// log read them; the same answer in every LOD): the bungalow's Craftsman variants - side-gabled with the porch under the
+// main roof and a dormer, hipped with a hipped dormer, the "airplane" with a small upper room astride the ridge - the
+// city's Mission bungalow (stucco, a flat roof behind a parapet with a curved gable over the front, a loggia porch), and
+// the two-storey house's American Foursquare (a square block, a pyramid hip with a dormer, a porch across the front).
+enum HouseForm : int { HF_PLAIN = 0, HF_BUNG_SIDE, HF_BUNG_HIP, HF_BUNG_AIRPLANE, HF_FOURSQUARE, HF_BUNG_MISSION, HF_COUNT };
+inline int houseForm(const Building& b) {
+    if (b.style != BS_HOUSE || b.interior >= 0 || b.massing != MK_BOX) return HF_PLAIN;
+    const float p = hashToFloat(hash32(b.seed ^ 0xF0F1Au));
+    const bool town = b.region == REG_LAKE_TOWN || b.region == REG_HARLOW || b.region == REG_FORT_CASTELL || b.region == REG_REDLAND || b.region == REG_FARMLAND;
+    const bool city = b.region == REG_NORTH_CITY || b.region == REG_CALLE_LUNA || b.region == REG_FLATS || b.region == REG_MIDTOWN;
+    if (b.arch == AR_HOUSE_BUNGALOW) {
+        // (side-gabled only where the house is about as wide as deep or wider; the upper room wants a roomy box; the Mission
+        // bungalows in the city's old neighbourhoods and a few in the suburbs)
+        const bool sub = b.region == REG_GROVE || b.region == REG_SUBURBS;
+        const float pSide = b.hx >= b.hy * 0.85f && b.hx >= 3.6f ? (town ? 0.32f : (city ? 0.18f : 0.24f)) : 0.f;
+        const float pHip = town ? 0.22f : (city ? 0.2f : 0.24f);
+        const float pAir = b.hx >= 4.2f && b.hy >= 4.2f ? (town ? 0.16f : (city ? 0.06f : 0.1f)) : 0.f;
+        const float pMission = b.hx >= 3.4f ? (city ? 0.28f : (sub ? 0.14f : 0.f)) : 0.f;
+        if (p < pSide) return HF_BUNG_SIDE;
+        if (p < pSide + pHip) return HF_BUNG_HIP;
+        if (p < pSide + pHip + pAir) return HF_BUNG_AIRPLANE;
+        if (p < pSide + pHip + pAir + pMission) return HF_BUNG_MISSION;
+        return HF_PLAIN;
+    }
+    if (b.arch == AR_HOUSE_TWO) {
+        const float r = b.hx / Max(b.hy, 0.1f);
+        if (r < 0.7f || r > 1.45f || b.hx < 3.6f || b.hy < 3.6f) return HF_PLAIN;
+        if (p < (town ? 0.55f : (city ? 0.4f : 0.15f))) return HF_FOURSQUARE;
+    }
+    return HF_PLAIN;
+}
+// The stilt house's roof (0 side gable, 1 front gable, 2 shed, 3 hip) and decks (0 all round, 1 the front, 2 the front and a
+// side), and the mobile home's width (a double-wide where the lot is deep enough) and roof (tin, or a shingled roof-over):
+// seeded here so that the repetition log sees what massing.cpp builds
+inline int pickHashed(u32 h, const float* w, int n) {
+    float sum = 0.f;
+    for (int k = 0; k < n; k++) sum += w[k];
+    float p = hashToFloat(h) * sum;
+    for (int k = 0; k < n; k++) {
+        if (p < w[k]) return k;
+        p -= w[k];
+    }
+    return n - 1;
+}
+inline int stiltRoofKind(const Building& b) {
+    const float w[4] = {0.35f, 0.25f, 0.25f, 0.15f};
+    return pickHashed(hash32(b.seed ^ 0x57A1Fu), w, 4);
+}
+inline int stiltDeckKind(const Building& b) {
+    const float w[3] = {0.35f, 0.4f, 0.25f};
+    return pickHashed(hash32(b.seed ^ 0x57A20u), w, 3);
+}
+inline bool trailerDouble(const Building& b) { return 2.f * b.hy >= 8.4f && (hash32(b.seed ^ 0x7A1E6u) & 1u); }
+inline bool trailerRoofOver(const Building& b) {
+    Rng hr(b.seed ^ 0x40053u);   // (houseRoofFinish's stream: its first draw picks tin or the roof-over; tin on most farms)
+    if (hr.f() < 0.72f) return false;
+    return !(b.style == BS_FARMHOUSE && hr.chance(0.75f));
+}
+// What the repetition signature adds for a building's form inside its archetype and massing
+inline u32 formKey(const Building& b) {
+    if (b.arch == AR_SHACK_STILT || b.arch == AR_HOUSE_RAISED) return 16u + (u32)stiltRoofKind(b) * 4u + (u32)stiltDeckKind(b);
+    if (b.arch == AR_HOUSE_TRAILER) return 32u + (trailerDouble(b) ? 1u : 0u) + (trailerRoofOver(b) ? 2u : 0u);
+    return (u32)houseForm(b);
+}
+
+// The house's porch comes with its massing (massing.cpp), over the door: facadedetail.cpp adds no door canopy of its own
+inline bool massingPorch(const Building& b) {
+    return b.interior < 0 && ((b.style == BS_HOUSE && b.arch == AR_HOUSE_BUNGALOW && b.massing == MK_BOX) || houseForm(b) == HF_FOURSQUARE);
+}
 
 struct Pick {
     u8 arch;
@@ -169,10 +241,13 @@ int palette(int reg, int style, bool main, bool corner, Pick* out) {
                     // the old county towns: frame Victorians and bungalows round the centre, block houses and ranches outside
                     add(AR_HOUSE_BUNGALOW, 3.f); add(AR_HOUSE_TWO, 2.f); add(AR_HOUSE_RANCH, 2.f); add(AR_HOUSE_CONCH, 0.5f);
                     add(AR_HOUSE_VICTORIAN, reg == REG_REDLAND || reg == REG_FARMLAND ? 0.8f : 2.4f); add(AR_HOUSE_CBS, 1.6f);
+                    // (mobile homes on the edges of the county towns, more out on the farm roads)
+                    add(AR_HOUSE_TRAILER, reg == REG_REDLAND || reg == REG_FARMLAND ? 1.8f : (reg == REG_HARLOW ? 1.1f : 0.6f));
                     break;
                 case REG_KEY_TOWN: case REG_GULF_TOWN: case REG_KEYS:
                     add(AR_HOUSE_CONCH, 5.f); add(AR_HOUSE_BUNGALOW, 1.f); add(AR_HOUSE_MIMO, 0.5f); add(AR_HOUSE_VICTORIAN, reg == REG_KEY_TOWN ? 1.5f : 0.f);
                     add(AR_HOUSE_CBS, 0.8f); add(AR_HOUSE_RAISED, reg == REG_KEY_TOWN ? 1.6f : 2.4f);
+                    add(AR_HOUSE_TRAILER, reg == REG_KEY_TOWN ? 0.6f : 1.5f);   // (the fishing village's and the Keys' mobile homes)
                     break;
                 default: add(AR_HOUSE_RANCH, 2.f); add(AR_HOUSE_BUNGALOW, 2.f); add(AR_HOUSE_MED, 1.f); add(AR_HOUSE_TWO, 1.f); add(AR_HOUSE_CBS, 1.f); break;
             }
@@ -209,6 +284,7 @@ int palette(int reg, int style, bool main, bool corner, Pick* out) {
             // Florida farmhouses: the cracker house (a raised wood house with a deep porch and a tin roof: the conch
             // house's mainland cousin), the two-storey I-house, the fifties ranch, the generator's plain house
             add(AR_HOUSE_CONCH, 2.5f); add(AR_HOUSE_TWO, 1.5f); add(AR_HOUSE_RANCH, 1.2f); add(AR_NONE, 1.f); add(AR_HOUSE_VICTORIAN, 1.f);
+            add(AR_HOUSE_TRAILER, 1.f);   // (the mobile home by the barn)
             break;
         case BS_BARN:
             add(AR_BARN_GAMBREL, 2.f); add(AR_BARN_POLE, 2.f); add(AR_BARN_GABLE, 1.5f);
@@ -282,6 +358,7 @@ int massings(u8 arch, bool storefront, bool corner, float w, float d, Pick* out)
         case AR_HOUSE_CBS: add(MK_BOX, 2.f); add(MK_L, 1.5f); add(MK_STEP_FRONT, 1.f); break;
         case AR_HOUSE_VICTORIAN: add(MK_L, 3.f); add(MK_BOX, 1.f); break;
         case AR_HOUSE_RAISED: add(MK_BOX, 3.f); add(MK_L, 1.f); break;
+        case AR_HOUSE_TRAILER: add(MK_BOX, 1.f); break;   // (single- or double-wide: massing.cpp buildTrailer)
         case AR_VILLA_MODERN: add(MK_STEP_BACK, 2.f); add(MK_L, 2.f); add(MK_SPLIT, 1.5f); break;
         case AR_VILLA_MED: add(MK_CORNER_TOWER, 2.f); add(MK_L, 1.5f); add(MK_WINGS, wide ? 1.5f : 0.4f); add(MK_BOX, 0.8f); break;
         case AR_VILLA_COLONIAL: add(MK_BOX, 2.f); add(MK_WINGS, wide ? 2.f : 0.5f); break;
@@ -290,7 +367,7 @@ int massings(u8 arch, bool storefront, bool corner, float w, float d, Pick* out)
         // end, a sign tower on a front corner
         case AR_MOTEL_MIMO: add(MK_BOX, 2.f); add(MK_L, deep ? 1.5f : 0.f); add(MK_SPLIT, wide ? 2.f : 0.f); add(MK_CORNER_TOWER, 1.f); break;
         case AR_MOTEL_MED: add(MK_BOX, 2.f); add(MK_L, deep ? 1.5f : 0.f); add(MK_SPLIT, wide ? 1.5f : 0.f); add(MK_CORNER_TOWER, 1.2f); break;
-        case AR_MOTEL_KEYS: add(MK_BOX, 3.f); add(MK_L, deep ? 1.5f : 0.f); break;
+        case AR_MOTEL_KEYS: add(MK_BOX, 3.f); add(MK_L, deep ? 1.5f : 0.f); add(MK_SPLIT, wide ? 1.6f : 0.8f); break;   // (a lower office end)
         case AR_MOTEL_INN: add(MK_BOX, 2.f); add(MK_L, deep ? 1.5f : 0.f); add(MK_SPLIT, wide ? 1.5f : 0.f); break;
         // strip malls: an anchor end, an entry tower, a lower back
         case AR_STRIP_MISSION: add(MK_BOX, 1.5f); add(MK_CORNER_TOWER, 2.5f); add(MK_SPLIT, wide ? 1.5f : 0.f); break;
@@ -553,6 +630,16 @@ void facadeFor(Building& b, FacadeGPU& f, u8 arch, Rng& r, bool store) {
             mat = MAT_WOOD_SIDING; wall = r.chance(0.35f) ? vec3(0.97f) : pick(kConch, r);
             frame = vec3(0.97f);
             break;
+        case AR_HOUSE_TRAILER: {
+            // lap siding (vinyl or aluminium) in white, cream, beige or a pale colour; small low windows; aluminium frames
+            style = 5; floorH = 2.45f; groundH = 2.45f; bay = r.range(2.3f, 2.9f); winW = r.range(0.34f, 0.44f); winH = r.range(0.4f, 0.48f); sill = 1.0f;
+            mat = MAT_WOOD_SIDING;
+            const vec3 col[] = {vec3(0.98f, 0.98f, 0.96f), vec3(1.f, 0.96f, 0.86f), vec3(0.94f, 0.9f, 0.8f), vec3(0.84f, 0.9f, 0.96f), vec3(0.86f, 0.94f, 0.86f),
+                                vec3(1.f, 0.95f, 0.76f), vec3(0.9f, 0.88f, 0.86f)};
+            wall = pick(col, r);
+            frame = r.chance(0.6f) ? vec3(0.88f, 0.88f, 0.86f) : vec3(0.97f);
+            break;
+        }
         case AR_HOUSE_VICTORIAN:
             // tall narrow two-over-two windows in board siding, white trim
             style = 5; floorH = 3.0f; groundH = 3.3f; bay = r.range(2.5f, 3.1f); winW = r.range(0.28f, 0.34f); winH = r.range(0.6f, 0.66f); sill = 0.75f;
@@ -727,6 +814,39 @@ void facadeFor(Building& b, FacadeGPU& f, u8 arch, Rng& r, bool store) {
             wall = pal[r.next() % (u32)np];
             if (mat == MAT_BRICK) mat = MAT_STUCCO;
             if (reg == REG_MIDTOWN && r.chance(0.5f)) wall = lerp(wall, vec3(1.f), 0.25f);   // (a little chalkier)
+        }
+    }
+    // the Craftsman bungalows of the county towns (and of some city lots): board siding in earth tones - sage, olive, brown,
+    // barn red, mustard, slate, cream - with cream trim; the foursquares in brick, board or stucco (their own stream)
+    {
+        const int hf = houseForm(b);
+        const bool town = reg == REG_LAKE_TOWN || reg == REG_HARLOW || reg == REG_FORT_CASTELL || reg == REG_REDLAND || reg == REG_FARMLAND;
+        Rng cr(b.seed ^ 0xC2AF7u);
+        if ((hf == HF_BUNG_SIDE || hf == HF_BUNG_AIRPLANE || (hf == HF_BUNG_HIP && cr.chance(0.5f))) && (town || cr.chance(0.45f))) {
+            const vec3 earth[] = {vec3(0.68f, 0.76f, 0.6f), vec3(0.64f, 0.64f, 0.48f), vec3(0.66f, 0.52f, 0.4f), vec3(0.7f, 0.4f, 0.34f),
+                                  vec3(0.92f, 0.78f, 0.48f), vec3(0.58f, 0.66f, 0.72f), vec3(0.96f, 0.92f, 0.78f)};
+            mat = MAT_WOOD_SIDING;
+            wall = pick(earth, cr);
+            frame = cr.chance(0.7f) ? vec3(0.96f, 0.93f, 0.84f) : vec3(0.97f);
+        } else if (hf == HF_BUNG_MISSION) {
+            // (smooth stucco in the warm Mediterranean tones, a pastel or white; dark wood or white window frames)
+            mat = MAT_STUCCO;
+            const float p = cr.f();
+            wall = p < 0.5f ? pick(kMedWarm, cr) : (p < 0.8f ? pick(kPastels, cr) : vec3(0.97f, 0.96f, 0.93f));
+            frame = cr.chance(0.5f) ? vec3(0.35f, 0.22f, 0.12f) : vec3(0.96f);
+        } else if (hf == HF_FOURSQUARE) {
+            const float p = cr.f();
+            if (p < (town ? 0.4f : 0.25f)) {
+                mat = MAT_BRICK;
+                wall = cr.chance(0.7f) ? vec3(1.f) * cr.range(0.85f, 1.02f) : vec3(1.f, 0.9f, 0.8f);
+            } else if (p < 0.8f) {
+                mat = MAT_WOOD_SIDING;
+                wall = cr.chance(0.5f) ? pick(kVictorian, cr) : pick(kSuburb, cr);
+            } else {
+                mat = MAT_STUCCO;
+                wall = pick(kSuburb, cr);
+            }
+            frame = vec3(0.97f);
         }
     }
     // per-building drift: colour and wear (older fabric a little darker and greyer)
@@ -956,6 +1076,8 @@ void BuildingSet::restyleBlocks(WorldMap& map, const RoadNetwork& roads) {
         // massing
         Pick ms[12];
         int nm = massings(arch, store, corner, 2.f * b.hx, 2.f * b.hy, ms);
+        // (the temple-front conch house - a gable-fronted bay with the porch beside it - in the towns, not on the farms)
+        if (b.style == BS_HOUSE && arch == AR_HOUSE_CONCH && nm < 12) ms[nm++] = {MK_STEP_FRONT, 1.3f};
         float mw[12];
         for (int k = 0; k < nm; k++) mw[k] = ms[k].w * ((sameFace && ms[k].arch == prevMass) ? 0.5f : 1.f);
         u8 mass = nm > 0 ? ms[ar.weighted(mw, nm)].arch : MK_BOX;
@@ -989,12 +1111,23 @@ void BuildingSet::restyleBlocks(WorldMap& map, const RoadNetwork& roads) {
         b.roof = (b.roofForm == RFM_TILE_HIP) ? ROOF_HIP : (b.roofForm == RFM_METAL_GABLE ? ROOF_GABLE : b.roof);
         if (b.style == BS_MOTEL || b.style == BS_STRIPMALL)
             b.roof = b.roofForm == RFM_TILE_HIP ? ROOF_HIP : (b.roofForm == RFM_METAL_GABLE ? ROOF_GABLE : ROOF_FLAT);
+        // (the Keys motels: a tin hip roof on two in five - massing.cpp reads b.roof under the metal roof form)
+        if (arch == AR_MOTEL_KEYS && hashToFloat(hash32(b.seed ^ 0x6E7Bu)) < 0.4f) b.roof = ROOF_HIP;
         if (b.style == BS_HOUSE || b.style == BS_VILLA || b.style == BS_FARMHOUSE) {
             // houses: hip or gable by type (buildmesh.cpp reads the archetype for the rest)
-            b.roof = (arch == AR_HOUSE_BUNGALOW || arch == AR_HOUSE_CONCH || arch == AR_HOUSE_VICTORIAN) ? ROOF_GABLE
+            b.roof = (arch == AR_HOUSE_BUNGALOW || arch == AR_HOUSE_CONCH || arch == AR_HOUSE_VICTORIAN || arch == AR_HOUSE_TRAILER) ? ROOF_GABLE
                                                                                                      : (arch == AR_HOUSE_MIMO || arch == AR_VILLA_MODERN ? ROOF_FLAT : ROOF_HIP);
             if (arch == AR_HOUSE_CONCH && ar.chance(0.4f)) b.roof = ROOF_HIP;
             if (arch == AR_HOUSE_TWO && ar.chance(0.4f)) b.roof = ROOF_GABLE;
+            // side-gabled ranches and block houses: a third of the ranches, a fifth of the block houses (massing.cpp)
+            if (arch == AR_HOUSE_RANCH && hashToFloat(hash32(b.seed ^ 0x6AB1Eu)) < 0.33f) b.roof = ROOF_GABLE;
+            if (arch == AR_HOUSE_CBS && hashToFloat(hash32(b.seed ^ 0x6AB1Fu)) < 0.2f) b.roof = ROOF_GABLE;
+            // Mediterranean Revival with a flat roof behind a parapet and a tile pent on a quarter (not with the corner tower)
+            if (arch == AR_HOUSE_MED && mass != MK_CORNER_TOWER && hashToFloat(hash32(b.seed ^ 0x6AB20u)) < 0.25f) b.roof = ROOF_FLAT;
+            // the hipped bungalows and the foursquares (houseForm: massing.cpp)
+            const int hf = houseForm(b);
+            if (hf == HF_BUNG_HIP || hf == HF_FOURSQUARE) b.roof = ROOF_HIP;
+            if (hf == HF_BUNG_MISSION) b.roof = ROOF_FLAT;
         }
         prevArch = arch;
         prevMass = mass;
@@ -1211,6 +1344,119 @@ void BuildingSet::infillBlocks(WorldMap& map, const std::function<bool(vec2, vec
         added.size(), counts[0], counts[1], counts[2], before - added.size(), nStreetSide, nPark, nYard, (TimeSeconds() - t0) * 1000.0);
 }
 
+// The bare street frontage left between the lots. In the towns a block side often had three or four houses with open
+// ground between them, and the older city has a gap here and there. Each gap wide enough for a lot becomes an open lot
+// of the district's kind: a vacant lot (rough grass, sometimes the slab of a house long gone, a for-sale board), a small
+// street parking lot (stalls, a low wall and a sign at the sidewalk), a side yard (lawn, a fence, trees) or, on the
+// industrial streets, a paved yard behind a block wall. Open lots only: no building is added or moved, and some of the
+// gaps stay bare ground.
+namespace blockstyle {
+
+struct FrontMix {
+    float p;                              // share of the gaps that get a lot
+    float vacant, park, yard, service;    // kind weights
+    float setback, dMin, dMax;            // from the sidewalk; depth range
+};
+
+FrontMix frontMix(int reg) {
+    switch (reg) {
+        case REG_CALLE_LUNA: case REG_NORTH_CITY: case REG_MIDTOWN: return {0.8f, 0.5f, 0.33f, 0.12f, 0.05f, 2.f, 16.f, 24.f};
+        case REG_FLATS: return {0.8f, 0.45f, 0.22f, 0.08f, 0.25f, 2.f, 16.f, 24.f};   // (the industrial streets: paved yards behind block walls)
+        case REG_LAKE_TOWN: case REG_HARLOW: return {0.85f, 0.42f, 0.13f, 0.45f, 0.f, 3.f, 18.f, 26.f};
+        case REG_FORT_CASTELL: return {0.85f, 0.4f, 0.15f, 0.3f, 0.15f, 3.f, 18.f, 26.f};
+        case REG_KEY_TOWN: case REG_GULF_TOWN: return {0.8f, 0.55f, 0.15f, 0.3f, 0.f, 3.f, 16.f, 24.f};
+        default: return {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+    }
+}
+
+}  // namespace blockstyle
+
+void BuildingSet::fillFrontage(WorldMap& map, const RoadNetwork& roads, const std::function<bool(vec2, vec2, float, float)>& free,
+                               const std::function<void(vec2, vec2, float, float)>& claim) {
+    using namespace blockstyle;
+    double t0 = TimeSeconds();
+    int counts[4] = {}, gaps = 0;
+    std::vector<OpenLot> fill;
+    std::vector<int> fillKind;
+    for (size_t ei = 0; ei < roads.edges.size(); ei++) {
+        const RoadEdge& e = roads.edges[ei];
+        if (e.cls == RC_HIGHWAY || e.cls == RC_RAMP || e.cls == RC_DIRT || e.cls == RC_RURAL) continue;
+        if (e.flags & (RF_BRIDGE | RF_ELEVATED | RF_NOSIDEWALK)) continue;
+        for (int side = -1; side <= 1; side += 2) {
+            Rng rng(hash32(e.seed ^ (side > 0 ? 0xF1A7E1u : 0xF1A7E2u)));
+            float s = e.cut0 + 4.f;
+            const float limit = e.length - e.cut1 - 4.f;
+            while (s + 10.f <= limit) {
+                vec3 p3 = e.posAt(s);
+                const FrontMix fm = frontMix(map.regionAt(p3.x, p3.y));
+                if (fm.p <= 0.f) {
+                    s += 8.f;
+                    continue;
+                }
+                const float d = rng.range(fm.dMin, fm.dMax);
+                const float off = e.halfWidth + e.sidewalk + fm.setback;
+                // a free plot 10 m along the street starting here, widened 2 m at a time while it stays free (up to 26 m)
+                float W = 0.f;
+                vec2 c, ax, out;
+                for (float w = 10.f; w <= Min(26.f, limit - s); w += 2.f) {
+                    float sc = s + w * 0.5f;
+                    vec3 C = e.posAt(sc);
+                    vec2 t2 = normalize(e.tangentAt(sc).xy());
+                    vec2 o = vec2(t2.y, -t2.x) * (float)side;
+                    vec2 cc = C.xy() + o * (off + d * 0.5f);
+                    if (frontMix(map.regionAt(cc.x, cc.y)).p <= 0.f || !free(cc, t2, w * 0.5f, d * 0.5f)) break;
+                    W = w;
+                    c = cc;
+                    ax = t2;
+                    out = o;
+                }
+                if (W <= 0.f) {
+                    s += 3.f;
+                    continue;
+                }
+                claim(c, ax, W * 0.5f, d * 0.5f);
+                s += W + 0.6f;
+                gaps++;
+                Rng lr(hash32(e.seed ^ (u32)(s * 7.f) ^ (side > 0 ? 0x10Au : 0x20Bu)));
+                if (!lr.chance(fm.p)) continue;
+                // parking wants a lot deep enough for two rows of stalls and an aisle, or one row on a shallow lot
+                float wt[4] = {fm.vacant, W >= 12.f ? fm.park * (e.cls <= RC_AVENUE ? 1.6f : 1.f) : 0.f, fm.yard, fm.service};
+                int kind = lr.weighted(wt, 4);
+                OpenLot ol;
+                ol.c = c;
+                ol.ax = ax;
+                ol.hx = W * 0.5f;
+                ol.hy = d * 0.5f;
+                ol.front = -out;
+                ol.z = map.heightAt(c.x, c.y);
+                ol.kind = kind == 0 ? OL_VACANT : (kind == 1 ? OL_PARKING : (kind == 2 ? OL_YARD : OL_SERVICE));
+                ol.region = (u8)map.regionAt(c.x, c.y);
+                ol.seed = hash32(lr.next() ^ 0xF00Du);
+                ol.home = kind == 2 ? 1 : 0;
+                ol.street = 1;
+                fill.push_back(ol);
+                fillKind.push_back(kind);
+            }
+        }
+    }
+    // (the SkyLine viaduct corridor and its stations stay clear, as for the buildings: transit.cpp)
+    std::vector<Building> probe(fill.size());
+    for (size_t i = 0; i < fill.size(); i++) {
+        probe[i].c = fill[i].c;
+        probe[i].ax = fill[i].ax;
+        probe[i].hx = fill[i].hx;
+        probe[i].hy = fill[i].hy;
+        probe[i].seed = (u32)i;
+    }
+    transitPruneBuildings(probe);
+    for (const Building& pb : probe) {
+        openLots.push_back(fill[pb.seed]);
+        counts[fillKind[pb.seed]]++;
+    }
+    LOG("Buildings: frontage fill %d gaps: %d vacant lots, %d street parking lots, %d side yards, %d service yards, %d left bare (%.1f ms)", gaps, counts[0],
+        counts[1], counts[2], counts[3], gaps - counts[0] - counts[1] - counts[2] - counts[3], (TimeSeconds() - t0) * 1000.0);
+}
+
 // Repetition of the ordinary blocks (debug log): for every building, how many buildings within 150 m share its
 // signature (style + archetype + massing + roof form + height band + facade pattern), per district. Lower is better.
 void BuildingSet::logRepetition() const {
@@ -1244,6 +1490,7 @@ void BuildingSet::logRepetition() const {
         u32 h = hash32((u32)b.style * 131u + (u32)b.arch);
         h = hashCombine(h, (u32)b.massing * 17u + (u32)b.roofForm * 3u + (u32)b.roof * 101u);
         h = hashCombine(h, (u32)band(b.height));
+        h = hashCombine(h, blockstyle::formKey(b) * 7919u);   // (the house's form within its type: massing.cpp)
         h = hashCombine(h, (u32)(int)f.style * 7u + (u32)lay * 61u + (f.flags & 1u));
         if ((int)f.style == 1) h = hashCombine(h, (u32)family(f.glassColor) * 977u + (u32)family(f.frameColor));
         sig[i] = h;
@@ -1291,7 +1538,7 @@ namespace blockstyle {
 // 2 a lap pool), fitted inside the side hedges and the back lot line, clear of the house. Seeded streams of its own, so
 // the paved-ground map (pavedRects) and the scattered vegetation know it. pr is left where the deck's look goes on.
 bool poolDeck(const Building& b, Rng& pr, vec2& pc, float& pw, float& pdd, float& dw, int& kind) {
-    if ((b.style != BS_HOUSE && b.style != BS_VILLA) || b.region == REG_FARMLAND || b.siteElem >= 0) return false;
+    if ((b.style != BS_HOUSE && b.style != BS_VILLA) || b.region == REG_FARMLAND || b.siteElem >= 0 || b.arch == AR_HOUSE_TRAILER) return false;
     Rng q(b.seed ^ 0x9003Bu);
     // (the houses' share by district: the suburbs and the Grove most, the islands' villas all; few in the old city's small
     // lots, the small towns and the fishing village)
@@ -1347,7 +1594,8 @@ bool poolDeck(const Building& b, Rng& pr, vec2& pc, float& pw, float& pdd, float
 // or brick pavers from the house's front to the lot's street edge (buildmesh.cpp), the driveway part of it; facadedetail.cpp
 // leaves the lawn and the front walk out there. 0 none, 1 concrete, 2 pavers.
 int frontPaved(const Building& b) {
-    if (b.style != BS_HOUSE || b.interior >= 0 || b.siteElem >= 0 || b.arch == AR_HOUSE_VICTORIAN || b.arch == AR_HOUSE_RAISED || b.arch == AR_HOUSE_CONCH)
+    if (b.style != BS_HOUSE || b.interior >= 0 || b.siteElem >= 0 || b.arch == AR_HOUSE_VICTORIAN || b.arch == AR_HOUSE_RAISED || b.arch == AR_HOUSE_CONCH ||
+        b.arch == AR_HOUSE_TRAILER)
         return 0;
     const float share = (b.region == REG_CALLE_LUNA || b.region == REG_FLATS) ? 0.28f
                         : ((b.region == REG_NORTH_CITY || b.region == REG_MIDTOWN) ? 0.18f : (b.region == REG_SUBURBS ? 0.04f : 0.f));

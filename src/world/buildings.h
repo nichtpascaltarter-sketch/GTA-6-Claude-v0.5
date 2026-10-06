@@ -100,6 +100,7 @@ enum BuildingArch : u8 {
     AR_HOUSE_CBS,         // 1950s Florida block house: pastel stucco, low hip roof, aluminium window awnings, a carport
     AR_HOUSE_VICTORIAN,   // folk Victorian: two-storey frame cross gable, a porch with turned posts and brackets, a gable truss
     AR_HOUSE_RAISED,      // Keys house raised on concrete piers (the flood code): parking and storage under, a front deck and stair
+    AR_HOUSE_TRAILER,     // mobile home: a long low box on a skirt, aluminium or vinyl siding, a low roof, a deck and steps, a carport
     AR_COUNT
 };
 
@@ -170,7 +171,8 @@ struct FacadeMass {
     u32 facade = 0xffffffffu;  // facade record of this mass when it differs from the building's (mixed cladding)
 };
 
-// Open ground the blocks keep (blockstyle.cpp infill): surface parking behind the street fronts, vacant lots, yards.
+// Open ground the blocks keep (blockstyle.cpp infill and fillFrontage): surface parking behind the street fronts and on
+// them, vacant lots, yards.
 // Drawn by the cells (cellgen.cpp); not buildings, so walkable and invisible to the building queries.
 enum OpenLotKind : u8 { OL_PARKING = 0, OL_VACANT, OL_YARD, OL_SERVICE };
 struct OpenLot {
@@ -182,6 +184,7 @@ struct OpenLot {
     u8 region;
     u32 seed;
     u8 home = 0;     // a yard of a house (lawn, wood fence) rather than of a shop or a shed (paving, block wall)
+    u8 street = 0;   // on the street frontage (fillFrontage): its front edge is at the sidewalk, not behind a building
 };
 
 struct BuildingSet {
@@ -199,7 +202,8 @@ struct BuildingSet {
     void logRepetition() const;
     // Paved ground for the renderer's ground cover (grass, flowers): true on rear parking lots and paved service yards
     // (openLots OL_PARKING / OL_SERVICE), every building footprint (street, back and site buildings), a house's garage
-    // wing and driveway, a strip mall's or gas station's forecourt. Per-cell lists: a few dozen rectangle tests.
+    // wing and driveway, its pool deck and paved front yard (blockstyle.cpp poolDeck / frontPaved), a strip mall's or gas
+    // station's forecourt. Per-cell lists: a few dozen rectangle tests.
     bool pavedAt(vec2 p) const;
     // The same for a whole streaming cell at once: out[iy * n + ix] = 1 where the centre of square (ix, iy) of an n x n
     // grid over cell (cx, cy) (origin cellOrigin(cx, cy), side kCellSize) is paved, else 0; returns the paved count.
@@ -211,6 +215,11 @@ struct BuildingSet {
     // a facade up to 12 m behind the sidewalk, mission_util.cpp resolveFrontage)
     void infillBlocks(WorldMap& map, const std::function<bool(vec2, vec2, float, float)>& free, const std::function<void(vec2, vec2, float, float)>& claim,
                       const std::function<bool(vec2)>& nearStreet);
+    // Bare street frontage of the towns and the older city, after the infill (blockstyle.cpp): vacant lots, small street
+    // parking lots, side yards and paved service yards as open lots (not buildings: no building index or count changes),
+    // so a block no longer reads as empty ground between its houses. free / claim as for infillBlocks.
+    void fillFrontage(WorldMap& map, const RoadNetwork& roads, const std::function<bool(vec2, vec2, float, float)>& free,
+                      const std::function<void(vec2, vec2, float, float)>& claim);
     // Collision query: returns true if p (xy) is inside any building footprint (with margin)
     bool pointInBuilding(vec2 p, float margin, float* topZ = nullptr) const;
     void buildingsNear(vec2 p, float r, std::vector<int>& out) const;

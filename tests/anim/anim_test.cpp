@@ -1888,7 +1888,7 @@ void testFaces() {
 // ridge's front in profile; and a full beard's volume builds up gradually from the lips (no shelf under the lower lip).
 void testFaceShape() {
     using namespace Anim::detail;
-    float worstJump = 0.f, worstMean = 0.f, minGap = 1e9f, minDepth = 1e9f, worstShelf = 0.f, worstTint = 0.f;
+    float worstJump = 0.f, worstMean = 0.f, minGap = 1e9f, minDepth = 1e9f, worstShelf = 0.f, worstTint = 0.f, worstTrench = 0.f;
     int minJaw = 1 << 30;
     for (u32 k = 0; k < 10; k++) {
         CharacterDesc d = randomCharacter(5300u + k * 7919u, (int)(k % 7));
@@ -1981,6 +1981,24 @@ void testFaceShape() {
         // (a low ridge with protruding eyes keeps only a few millimetres, as some East Asian faces do)
         CHECK(depth > 0.0025f, "face shape: eyes level with the brow ridge (k %u: cornea %.1f mm behind it)", k, depth * 1000.f);
         minDepth = Min(minDepth, depth);
+        // beside the eye, over the lateral orbital rim (19 mm out from the eye centre), the face runs down from the brow's
+        // tail to the cheekbone without a trench at eye level: the socket's shade stops at the rim instead of running on
+        // to the temple, one dark band across the face
+        {
+            auto frontAt = [&](float x, float z) {
+                float y = e.y + 0.08f;
+                for (int it = 0; it < 400; it++) {
+                    float f = bc.sdf.eval(vec3(x, y, z), MK_HEAD);
+                    if (f <= 0.f) break;
+                    y -= Max(f * 0.8f, 0.0001f);
+                }
+                return y;
+            };
+            const float xr = e.x + (e.x > 0.f ? 1.f : -1.f) * 0.019f * D.headS, dzr = 0.014f * D.headS;
+            float trench = 0.5f * (frontAt(xr, e.z + dzr) + frontAt(xr, e.z - dzr)) - frontAt(xr, e.z);
+            CHECK(trench < 0.004f, "face shape: a trench beside the eye (k %u: %.1f mm deep)", k, trench * 1000.f);
+            worstTrench = Max(worstTrench, trench);
+        }
         // a full beard next to the lips: the shell's height over the skin within 6 mm of the lower lip
         if (d.facialHair == FH_BEARD && d.gender == MALE) {
             SkinnedMeshData m;
@@ -2017,8 +2035,9 @@ void testFaceShape() {
         }
     }
     printf("face shape: eye-region normals worst %.0f deg (mean <= %.1f), brow >= %.1f mm above the fold, brow tint <= %.2f of the forehead, "
-           "corneas >= %.1f mm behind the brow, beard shell <= %.1f mm over the skin by the lips, >= %d beard card vertices round the jaw's angle\n",
-           worstJump, worstMean, minGap * 1000.f, worstTint, minDepth * 1000.f, worstShelf * 1000.f, minJaw);
+           "corneas >= %.1f mm behind the brow, trench beside the eyes <= %.1f mm, beard shell <= %.1f mm over the skin by the lips, >= %d beard card "
+           "vertices round the jaw's angle\n",
+           worstJump, worstMean, minGap * 1000.f, worstTint, minDepth * 1000.f, worstTrench * 1000.f, worstShelf * 1000.f, minJaw);
 }
 
 // Driving: the hands must stay on the steering wheel rim (absolute interior geometry) for any character size.
