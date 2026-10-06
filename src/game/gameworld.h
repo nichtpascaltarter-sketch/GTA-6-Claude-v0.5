@@ -269,6 +269,10 @@ struct GameWorld {
     int findVehicleModel(Vehicles::VehicleClass cls, u32 seed);
     void warpPedIntoVehicle(int ped, int veh, int seat);
     void removePedFromVehicle(int ped, bool exitAnim);
+    // An AI ped getting in through the seat's door (peds.cpp): placed at the door's spot, the door clip queued (the door
+    // swings with it); returns the clip's length (s) - warp the ped in once it has run out - or -1 when the seat has no
+    // door (the plain CLIP_ENTER_CAR_* then)
+    float startCarEntry(int ped, int veh, int seat);
     int freeSeat(int veh, bool driver) const;
     int driverOf(int veh) const { return (veh >= 0 && vehicles[veh].used) ? vehicles[veh].seats[0] : -1; }
     bool isAircraft(int veh) const;

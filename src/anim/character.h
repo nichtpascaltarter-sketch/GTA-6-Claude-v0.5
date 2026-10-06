@@ -226,6 +226,11 @@ void carExitSpot(const CarDoorInfo& door, vec3& pos, float& yaw);
 // Length (s) of a car clip with this door (the plain clip's length when the door is not valid).
 float carClipLength(int clip, const CarDoorInfo& door);
 
+// A ground scan along the way ahead of a foot about to land where the ground steps (stairs, a curb): this many
+// heights, this far apart (m) - AnimInput::groundScan, Animator::wantsGroundScan.
+constexpr int kGroundScan = 12;
+constexpr float kGroundScanStep = 0.05f;
+
 // High level animation state machine driven by gameplay each frame.
 struct AnimInput {
     float speed = 0;          // horizontal speed (m/s)
@@ -279,6 +284,10 @@ struct AnimInput {
     // ~0.2 s with grabWeight and letting go when it is beyond the arm's reach; the body stands or walks on as usual.
     vec3 grabTarget = vec3(0);
     float grabWeight = 0;
+    // ... and the axis of what it closes round (model space): upright by default (an arm, a rail: the thumb up); a hand
+    // held while walking gives the way ahead (the hand hangs from the arm, the fingers down, the palm turned square to
+    // the way towards the other hand)
+    vec3 grabAxis = vec3(0, 0, 1);
     vec3 groundNormal = vec3(0, 0, 1);  // terrain normal under the ped in its model space (feet align to slopes)
     // groundOffsetL/R were probed under Animator::footProbe() (where each foot is / is about to land) instead of
     // below the hips: the animator then takes them as the ground under each foot as it is (no slope extrapolation)
@@ -293,6 +302,10 @@ struct AnimInput {
     // pushes and all): planted feet keep their places by it (else by speed x dt along localMoveDir)
     vec3 rootMove = vec3(0);
     bool rootMoveValid = false;
+    // the ground along the line Animator::groundScanFrom/Dir asked for (kGroundScan heights kGroundScanStep apart,
+    // relative to the root like groundOffsetL/R): a foot landing on stairs or at a curb comes down on one tread
+    float groundScan[kGroundScan] = {};
+    bool groundScanValid = false;
     // steering wheel of the vehicle driven (stance 1), model space (origin 0.5 m below the seat hip point, the
     // vehicle's yaw): rim centre, unit column axis pointing at the driver, rim radius; wheelR 0 = a car's typical rim
     vec3 wheelC = vec3(0), wheelN = vec3(0);
@@ -417,6 +430,16 @@ struct Animator {
     bool probeAhead[2] = {false, false};      // the probe asked for is that landing spot (else near the foot)
     float passW = 0.f, passYaw = 0.f, passShift = 0.f;   // passing someone close, smoothed: weight, shoulder turn (rad),
                                                          // side-step (m)
+    vec3 scanFrom = vec3(0), scanDir = vec3(0, 1, 0);   // a ground scan asked for (model space): its start and direction
+    u8 scanFoot = 0;                          // the landing foot it is for
+    bool scanWant = false;                    // asked for before the next update
+    bool scanDone[2] = {false, false};        // this swing's landing has been fitted to the ground ahead
+    float stairShift[2] = {0.f, 0.f};         // the landing moved along the way onto one tread (m)
+    float stairLand[2] = {-9.f, -9.f};        // that tread's height (kept with the world; -9: none): the swing clears it
+    bool stairBall[2] = {false, false};       // that tread is up from the ground before it and the heel is to overhang its nose
+    bool ballProbe[2] = {false, false};       // a foot down so: the ground is probed under its ball, not its middle (it stands on it)
+    float stairSeen = 99.f;                   // s since steps were last found ahead (scans keep coming meanwhile)
+    float strikeLead = 0.3f;                  // where the pose's heel strikes land ahead of the body, in strides (learned)
     bool planted[2] = {false, false};
     float pinZ[2] = {0.f, 0.f};       // height correction holding a planted sole on the ground (eases out after lift-off)
     float plantAge[2] = {0.f, 0.f};   // time since the foot was planted (the correction eases in)
@@ -482,6 +505,12 @@ struct Animator {
     // Model-space ground point the game should probe for each foot (0 left, 1 right) before the next update: under
     // a planted foot, ahead of a swinging one (see AnimInput::footProbes).
     vec3 footProbe(int side) const { return probeP[side & 1]; }
+    // Model-space line the game should sample the ground along before the next update (AnimInput::groundScan): from
+    // groundScanFrom() along groundScanDir() (a unit vector), kGroundScan heights kGroundScanStep apart. Asked for once a
+    // swing by a foot about to land where the ground steps (stairs, a curb).
+    bool wantsGroundScan() const { return scanWant; }
+    vec3 groundScanFrom() const { return scanFrom; }
+    vec3 groundScanDir() const { return scanDir; }
     // Steering wheel turn (rad, + = right) the hands hold while driving: draw the rim rotated by -wheelTurn() about
     // AnimInput::wheelN so it and the hands agree.
     float wheelTurn() const { return steerS * 1.2f; }
