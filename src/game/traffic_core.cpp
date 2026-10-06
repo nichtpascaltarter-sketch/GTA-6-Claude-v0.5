@@ -1181,6 +1181,24 @@ void TrafficCore::laneChangeLogic(Driver& d, float v, float distToEnd) {
         d.indicator = d.lcTo > 0.f ? 1 : -1;
         d.indicatorTimer = 0.f;
     };
+    if (need >= 0 && d.info.bus && d.busStopCooldown <= 0.f && L.right < 0 && d.mode == DM_NORMAL) {
+        // a bus with a stop still ahead in this kerb lane: it serves the stop - and takes a way on from this lane instead
+        // of moving out for a turn (it went straight past its stops whenever the route turned off from another lane)
+        bool stopAhead = false;
+        for (float bu : L.busStops) stopAhead |= bu > d.u + d.info.frontLen - 3.f;
+        if (stopAhead) {
+            int c = chooseConnector(d, d.path, true);
+            for (int k = 0; k < 6 && (c < 0 || G.conns[c].from != d.path); k++) c = chooseConnector(d, d.path, true);
+            int cl = c >= 0 && G.conns[c].from == d.path ? c : (!L.out.empty() ? L.out[hash32(d.uid + (u32)time) % L.out.size()] : -1);
+            if (cl >= 0) {
+                d.routeLen = 0;
+                d.route[d.routeLen++] = NL + cl;
+                planRoute(d);
+                d.indicator = 0;
+                return;
+            }
+        }
+    }
     if (need >= 0) {
         int step = G.lanes[need].index > L.index ? 1 : -1;
         int target = step > 0 ? L.right : L.left;
