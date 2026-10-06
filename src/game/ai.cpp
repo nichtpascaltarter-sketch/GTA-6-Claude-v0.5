@@ -153,6 +153,93 @@ bool aiStaticDetour(vec2 pos, float z, vec2 goal, vec2& via, float ahead) {
 // their arm, somebody making for a door) steers at: round a bench, a planter or a bin on the line (looked for a few
 // times a second, at once when held up against something), a step aside when held up by somebody, else the goal.
 // `want` is the speed asked for (0: standing, no hold-up to notice).
+namespace ai_cardetour {
+
+// segment a-b in a box's own frame (x along its length, y across, centred) against |x| < hx, |y| < hy: where it enters
+bool segBox(vec2 a, vec2 b, float hx, float hy, float& tOut) {
+    vec2 d = b - a;
+    float t0 = 0.f, t1 = 1.f;
+    for (int k = 0; k < 2; k++) {
+        float o = k ? a.y : a.x, dd = k ? d.y : d.x, h = k ? hy : hx;
+        if (fabsf(dd) < 1e-6f) {
+            if (fabsf(o) > h) return false;
+            continue;
+        }
+        float ta = (-h - o) / dd, tb = (h - o) / dd;
+        if (ta > tb) std::swap(ta, tb);
+        t0 = Max(t0, ta);
+        t1 = Min(t1, tb);
+        if (t0 > t1) return false;
+    }
+    tOut = t0;
+    return true;
+}
+
+// a car standing across the walk from pos towards goal (parked, stopped, or barely moving - the ones going along are the
+// dive and near-miss code's business): the corner of it to make for, the shorter way round and clear of walls and
+// posts. False with none in the way, or with the goal at the car itself (walking up to its door)
+bool detour(GameWorld& g, vec2 pos, float z, vec2 goal, vec2& via, float ahead) {
+    vec2 to = goal - pos;
+    float dist = length(to);
+    if (dist < 0.4f) return false;
+    vec2 dir = to / dist;
+    vec2 a = pos, b = pos + dir * Min(dist, ahead);
+    const float body = 0.36f;   // (a hair over the ped radius)
+    int best = -1;
+    float bestT = 1e9f;
+    vec2 mn(Min(a.x, b.x) - 4.f, Min(a.y, b.y) - 4.f), mx(Max(a.x, b.x) + 4.f, Max(a.y, b.y) + 4.f);
+    g.traffic.hash.query(g.traffic.bodies, mn, mx, [&](int bi) {
+        const AI::Body& vb = g.traffic.bodies[bi];
+        if (vb.kind != AI::BK_CAR || vb.speed > 1.5f || fabsf(vb.z - z) > 2.f) return;
+        vec2 fy = AI::rightOf(vb.fwd), og = goal - vb.pos;
+        float hx = vb.halfLen + body, hy = vb.halfWid + body;
+        vec2 la(dot(a - vb.pos, vb.fwd), dot(a - vb.pos, fy)), lb(dot(b - vb.pos, vb.fwd), dot(b - vb.pos, fy));
+        float t;
+        if (fabsf(dot(og, vb.fwd)) < hx + 0.5f && fabsf(dot(og, fy)) < hy + 0.5f) {
+            // the goal is at this car: the car itself (its middle - walking up to get in) is nothing to go round; one of
+            // its doors is, when the walk there would cut through it (a door on its far side)
+            vec2 lg(dot(og, vb.fwd), dot(og, fy));
+            if (fabsf(lg.x) < vb.halfLen && fabsf(lg.y) < vb.halfWid) return;
+            if (!segBox(la, lg, vb.halfLen - 0.1f, vb.halfWid - 0.1f, t)) return;
+            t = 0.f;
+            if (t < bestT) {
+                bestT = t;
+                best = bi;
+            }
+            return;
+        }
+        if (segBox(la, lb, hx, hy, t) && t < bestT) {
+            bestT = t;
+            best = bi;
+        }
+    });
+    if (best < 0) return false;
+    const AI::Body& vb = g.traffic.bodies[best];
+    vec2 fy = AI::rightOf(vb.fwd);
+    const float room = 0.7f;
+    float bestCost = 1e9f;
+    bool found = false;
+    vec2 lp(dot(pos - vb.pos, vb.fwd), dot(pos - vb.pos, fy));
+    for (int k = 0; k < 4; k++) {
+        vec2 q = vb.pos + vb.fwd * ((k & 1 ? 1.f : -1.f) * (vb.halfLen + room)) + fy * ((k & 2 ? 1.f : -1.f) * (vb.halfWid + room));
+        if (length(q - pos) < 0.4f) continue;   // (there already)
+        vec2 lq(dot(q - vb.pos, vb.fwd), dot(q - vb.pos, fy));
+        float t;
+        if (segBox(lp, lq, vb.halfLen + 0.15f, vb.halfWid + 0.15f, t)) continue;   // (round the far side: through it)
+        vec3 push, nrm;
+        if (Phys::gCollision && Phys::gCollision->capsuleOverlap(vec3(q, z + 0.05f), 0.3f, 1.7f, push, nrm) && length(push) > 0.05f) continue;
+        float cost = length(q - pos) + length(goal - q);
+        if (cost < bestCost) {
+            bestCost = cost;
+            via = q;
+            found = true;
+        }
+    }
+    return found;
+}
+
+}  // namespace ai_cardetour
+
 vec2 aiWalkRound(GameWorld& g, int id, vec2 goal, float want, float dt) {
     Ped& p = g.peds[id];
     PedAI& pa = g.pedAI(id);
@@ -168,7 +255,7 @@ vec2 aiWalkRound(GameWorld& g, int id, vec2 goal, float want, float dt) {
         // held up: what is in the way of the walk being made (the corner being made for, or the goal)
         pa.stuckTimer = 0.f;
         vec2 aim = pa.detourT > 0.f ? pa.detour : goal;
-        if (aiStaticDetour(pos, z, aim, via, ahead)) {
+        if (aiStaticDetour(pos, z, aim, via, ahead) || ai_cardetour::detour(g, pos, z, aim, via, ahead)) {
             pa.detour = via;
             pa.detourT = 4.f;
         } else {
@@ -187,7 +274,7 @@ vec2 aiWalkRound(GameWorld& g, int id, vec2 goal, float want, float dt) {
         pa.detourT -= dt;
         if (length(pa.detour - pos) < 0.4f) {
             // round that corner: on for the goal, or on to the next corner while the obstacle is still in the way
-            if (aiStaticDetour(pos, z, goal, via, ahead)) {
+            if (aiStaticDetour(pos, z, goal, via, ahead) || ai_cardetour::detour(g, pos, z, goal, via, ahead)) {
                 pa.detour = via;
                 pa.detourT = 4.f;
             } else {
@@ -195,7 +282,7 @@ vec2 aiWalkRound(GameWorld& g, int id, vec2 goal, float want, float dt) {
             }
         }
     } else if (want > 0.f && floorf((float)g.time * 2.5f + id * 0.37f) != floorf((float)(g.time - dt) * 2.5f + id * 0.37f) &&
-               aiStaticDetour(pos, z, goal, via, ahead)) {
+               (aiStaticDetour(pos, z, goal, via, ahead) || ai_cardetour::detour(g, pos, z, goal, via, ahead))) {
         pa.detour = via;
         pa.detourT = 4.f;
     }
@@ -519,24 +606,63 @@ void GameWorld::updateAI(float dt) {
         if (r > 0.45f && ai.rainPrev <= 0.45f) ai.rainStartT = time;
         ai.rainPrev = r;
     }
-    {   // (the player knocked flat by a car with an AI driver - vehicles.cpp makes the driver the attacker: seven in ten stop,
-        //  get out and come to see, sorry - traffic.cpp va.rage with rageSorry, pedai.cpp ACT_ROADRAGE's other way)
-        Ped* hp = playerPed();
-        int a = hp ? hp->lastAttacker : -1;
-        if (hp && hp->state == PS_RAGDOLL && time - hp->lastDamageTime < 0.25 && time - ai.playerHitT > 5.0 && a >= 0 && a < (int)peds.size() &&
-            peds[a].used && !peds[a].isPlayer && peds[a].state == PS_INVEHICLE && peds[a].seat == 0 && peds[a].vehicle >= 0 &&
-            peds[a].brain.type == BRAIN_DRIVER) {
+    {   // (somebody on foot knocked down by a car with an AI driver - vehicles.cpp makes the driver the attacker: the player
+        //  or anybody else; seven in ten stop, get out and come to see, sorry - traffic.cpp va.rage with rageSorry,
+        //  pedai.cpp ACT_ROADRAGE's other way)
+        for (int i = 0; i < (int)peds.size(); i++) {
+            Ped& hp = peds[i];
+            if (!hp.used || (hp.state != PS_RAGDOLL && (hp.state != PS_DEAD || i == player)) || time - hp.lastDamageTime >= 0.25) continue;
+            int a = hp.lastAttacker;
+            if (a < 0 || a >= (int)peds.size() || a == i || !peds[a].used || peds[a].isPlayer || peds[a].state != PS_INVEHICLE || peds[a].seat != 0 ||
+                peds[a].vehicle < 0 || peds[a].vehicle >= (int)vehicles.size() || peds[a].brain.type != BRAIN_DRIVER)
+                continue;
             int vi = peds[a].vehicle;
             VehAI& hva = vehAI(vi);
-            ai.playerHitT = time;
+            if (time - hva.knockT < 3.0) continue;   // (this one seen to already)
+            hva.knockT = time;
+            bool isPl = i == player;
+            if (isPl) ai.playerHitT = time;
             bool stops = ai.forceSorry || hashToFloat(hash32(vehicles[vi].uid * 0x9e3779b9u + 7u)) < 0.7f;
-            if (hva.rage == 0 && vehicles[vi].faction == FAC_CIVILIAN && hva.role == VR_TRAFFIC && stops) {
+            if (hva.rage == 0 && vehicles[vi].faction == FAC_CIVILIAN && hva.role == VR_TRAFFIC && !vehicles[vi].playerUsed && stops) {
                 hva.rage = 1;
                 hva.rageTimer = 0.f;
                 hva.rageSorry = true;
-                ai.stats.driverSorry++;
+                hva.rageFor = isPl ? -1 : i;
+                hva.rageForUid = hp.uid;
+                if (isPl) ai.stats.driverSorry++;
+                else ai.stats.pedHitStops++;
             }
-            LOG("traffic: car %d knocked the player flat - %s", vi, hva.rageSorry ? "the driver stops to see" : "it goes on");
+            if (isPl) LOG("traffic: car %d knocked the player flat - %s", vi, hva.rageSorry ? "the driver stops to see" : "it goes on");
+            else LOG("traffic: car %d knocked ped %d down%s - %s", vi, i, hp.state == PS_DEAD ? " (dead)" : "", hva.rageSorry ? "the driver stops to see" : "it goes on");
+        }
+    }
+    {   // (the player out of a car - when, for a beat officer's ticket on it if it is left in the street a while - and back in
+        //  one with a ticket under the wiper: the fine paid then - police.cpp police_ticket)
+        Ped* tp = playerPed();
+        int now = tp && (tp->state == PS_INVEHICLE || tp->state == PS_ENTERING) ? tp->vehicle : -1;
+        int prev = ai.plVehPrev;
+        if (now != prev) {
+            if (prev >= 0 && prev < (int)vehicles.size() && vehicles[prev].used) vehAI(prev).plLeftT = time;
+            if (now >= 0 && now < (int)vehicles.size() && vehicles[now].used && vehAI(now).plTicket && tp->state == PS_INVEHICLE) {
+                const long long fine = 45;
+                vehAI(now).plTicket = false;
+                pinfo.money = Max(0ll, pinfo.money - fine);
+                notify("Parking ticket", StrFormat("-$%lld", fine));
+                ai.stats.plTickets++;
+                LOG("police: the player back in car %d - a parking ticket on it, $%lld paid", now, fine);
+            }
+            if (now < 0 || tp->state == PS_INVEHICLE) ai.plVehPrev = now;   // (getting in: settled once in)
+        }
+    }
+    {   // (the player's car hitting something hard - a pole, a wall, a parked car: a crash for the people about to look at -
+        //  pedai.cpp STIM_CRASH; ramming another car is reported as well, and the two merge)
+        Ped* kp = playerPed();
+        int kv = kp && kp->state == PS_INVEHICLE ? kp->vehicle : -1;
+        if (kv >= 0 && kv < (int)vehicles.size() && vehicles[kv].used && !isAircraft(kv) && !isBoat(kv) && vehicles[kv].sim.impactImpulse > 6000.f &&
+            time - ai.playerKnockT > 2.0) {
+            ai.playerKnockT = time;
+            ai.stats.playerKnocks++;
+            aiStimulus(vehicles[kv].sim.body.pos, STIM_CRASH, player, 28.f, true);
         }
     }
     {   // (a police helicopter low over the streets near the player: pedai.cpp has people below look up at it)
@@ -909,11 +1035,11 @@ std::string GameWorld::aiCensusText(float radius) const {
                      "lean %d sun %d queue %d watch %d bus %d taxi %d event %d meet %d (so far %d) window %d hurt %d (helped by %d) cuffed %d (escorts %d) statement %d (officers %d) stopped %d hand in hand %d cops on a break %d ticket %d (owner %d) | venue %d (guard %d pace %d outlook %d boarding %d greeting %d) travelers %d | tourist %d business %d beach %d night %d gang %d worker %d | "
                      "react flee %d cower %d film %d inspect %d call %d hands %d rage %d fight %d | cops on foot %d (approach %d cover %d flank %d "
                      "arrest %d search %d engage %d) | cars %d parked %d police %d swat %d heli %d boat %d roadblock %d ems %d horn %d | "
-                     "totals panic %d film %d pit %d box %d rb %d spikes %d tackle %d heli %d units %d rage %d events %d arrests %d custody %d transports %d statements %d shelters %d stops %d (warrants %d runs %d) breaks %d tickets %d (owners %d) greetings %d chats %d buttons %d lost %d laces %d rain shelters %d asked okay %d cop aid %d crash scenes %d bus runs %d (made %d missed %d) change %d (passers-by %d) gawks %d near misses %d jaywalk calls %d crowded %d (left %d) followed %d (sharp %d) cut offs %d anchor rewalks %d alarms %d (owners %d looks %d) fobs %d rides %d step backs %d sorry drivers %d depart %d arrive %d",
+                     "totals panic %d film %d pit %d box %d rb %d spikes %d tackle %d heli %d units %d rage %d events %d arrests %d custody %d transports %d statements %d shelters %d stops %d (warrants %d runs %d) breaks %d tickets %d (owners %d) greetings %d chats %d buttons %d lost %d laces %d rain shelters %d asked okay %d cop aid %d crash scenes %d bus runs %d (made %d missed %d) change %d (passers-by %d) gawks %d near misses %d jaywalk calls %d crowded %d (left %d) followed %d (sharp %d) cut offs %d anchor rewalks %d alarms %d (owners %d looks %d) fobs %d rides %d step backs %d sorry drivers %d (others hit %d) tip-offs %d asked the way %d (pointed %d) night chats %d siren looks %d player knocks %d cop asks %d player tickets %d depart %d arrive %d",
                      radius, total, inWater, walk, wPhone, wSmoke, wStill, group, wTalk, jog, sit, talk, phone, dance, smoke, lean, sun, queue, watch, busStop, taxi, event, meet, ai.meetsStarted, browse, hurt, aid, cuffed, escorts, witness, taking, stopped, holding, onBreak, ticketing, rushing,
                      venue, vGuard, vPace, vOut, vBoard, vGreet, vTravel, tourist, business, beach, night, gang, worker, flee, cower, film, inspect, call, hands, rage, fight, copFoot, approach, cover, flank,
                      arrest, search, engage, traffic, parked, copCars, swat, heli, boats, blocks, ems, honking, s.panicSpread, s.filming, s.pitTries,
-                     s.boxing, s.roadblocks, s.spikeHits, s.tackles, s.heliUnits, s.unitsSent, s.roadRage, s.events, s.arrests, s.custody, s.transports, s.statements, s.shelters, s.stops, s.stopArrests, s.stopRuns, s.copBreaks, s.tickets, s.ticketRushes, s.greetings, s.chats, s.buttons, s.lost, s.laces, s.rainShelters, s.askOkay, s.copAid, s.crashScenes, s.busRuns, s.busCaught, s.busMissed, s.panhandled, s.passerChange, s.gawks, s.nearMisses, s.jaywalkCalls, s.crowded, s.crowdedLeft, s.followed, s.followedSharp, s.cutOffs, s.anchorRewalks, s.alarms, s.alarmOwners, s.alarmLooks, s.fobChirps, s.rideAlongs, s.copStepBacks, s.driverSorry, s.departures, s.arrivals);
+                     s.boxing, s.roadblocks, s.spikeHits, s.tackles, s.heliUnits, s.unitsSent, s.roadRage, s.events, s.arrests, s.custody, s.transports, s.statements, s.shelters, s.stops, s.stopArrests, s.stopRuns, s.copBreaks, s.tickets, s.ticketRushes, s.greetings, s.chats, s.buttons, s.lost, s.laces, s.rainShelters, s.askOkay, s.copAid, s.crashScenes, s.busRuns, s.busCaught, s.busMissed, s.panhandled, s.passerChange, s.gawks, s.nearMisses, s.jaywalkCalls, s.crowded, s.crowdedLeft, s.followed, s.followedSharp, s.cutOffs, s.anchorRewalks, s.alarms, s.alarmOwners, s.alarmLooks, s.fobChirps, s.rideAlongs, s.copStepBacks, s.driverSorry, s.pedHitStops, s.tips, s.askedPlayer, s.pointedWay, s.nightChats, s.sirenLooks, s.playerKnocks, s.copAsks, s.plTickets, s.departures, s.arrivals);
 }
 
 // ------------------------------------------------------------------------------------------------------------------

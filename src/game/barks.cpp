@@ -394,6 +394,51 @@ const Line kPlayerDown[] = {{"[scared:0.7]Oh my God!", 0}, {"[scared:0.7]Whoa! A
 const Line kDriverSorry[] = {{"[scared:0.7]Oh my God, I'm so sorry!", 0}, {"[scared:0.7]I didn't see you! Are you okay?!", 0},
                              {"[scared:0.6]Should I call an ambulance?", 0}, {"[angry:0.4]You stepped right out - I couldn't stop!", LB_BOLD},
                              {"[scared:0.8]Please be okay, please be okay...", LB_TIMID}, {"[scared:0.7]Ay, perdon! Esta bien?", LB_LUNA}};
+// a witness to an officer on foot who has lost the wanted player: the way he went, or he is right there; the officer's word
+const Line kTipOff[] = {{"[shout:0.6]Officer! He went that way!", 0}, {"[shout:0.6]Hey! The guy you're after - he ran down there!", 0},
+                        {"[shout:0.6]Over here! He went that way, just now!", 0}, {"[calm:0.5]Looking for him? That way. He was in a hurry.", LB_BOLD},
+                        {"[shout:0.6]That way! He went round the corner!", 0}, {"[scared:0.5]Um, officer? He went... that way.", LB_TIMID},
+                        {"[shout:0.6]Oficial! Se fue por alla!", LB_LUNA}};
+const Line kTipHere[] = {{"[shout:0.7]He's right there! Over there!", 0}, {"[shout:0.7]Officer! That's him, right there!", 0},
+                         {"[shout:0.7]There! He's hiding over there!", 0}, {"[shout:0.7]That's the guy! Right there!", LB_BOLD},
+                         {"[shout:0.7]Ahi esta! Es el!", LB_LUNA}};
+const Line kCopTip[] = {{"[calm:0.6]Copy. All units, suspect seen heading that way.", 0}, {"[calm:0.6]Thanks. Stay back now.", 0},
+                        {"[calm:0.6]Dispatch, a witness puts him moving that way.", 0}, {"[calm:0.6]Got it. Get somewhere safe.", 0},
+                        {"[calm:0.6]Copy that - moving.", 0}, {"[calm:0.6]Gracias. Quedese aqui.", LB_LUNA}};
+// a stranger who asked the player the way, the player off without a word
+const Line kAskSnubbed[] = {{"[calm:0.4]Oh - okay. Thanks anyway.", 0}, {"[calm:0.4]Never mind, I'll figure it out.", 0},
+                            {"[angry:0.4]Wow. Okay then.", LB_BOLD}, {"[calm:0.3]Sorry to bother you...", LB_TIMID},
+                            {"[calm:0.4]Um... okay. Have a nice day?", 0}, {"[calm:0.4]Bueno... gracias igual.", LB_LUNA}};
+// somebody knocked down by a car, up again: at the driver come to see; the driver with the one hit still down: the phone
+const Line kHitAngry[] = {{"[angry:0.7]Are you blind?! I was right there!", 0}, {"[angry:0.7]You could've killed me!", 0},
+                          {"[angry:0.6]Watch where you're driving!", 0}, {"[sad:0.5]Ow... I'm okay. I think I'm okay.", LB_TIMID},
+                          {"[angry:0.8]Look at me! You hit me!", LB_BOLD}, {"[angry:0.7]Casi me matas!", LB_LUNA}};
+const Line kDriverCall[] = {{"[scared:0.8]Hello? I need an ambulance - I hit somebody with my car!", 0},
+                            {"[scared:0.8]Yes, there's someone down in the road, please hurry!", 0},
+                            {"[scared:0.8]They're not moving - please send someone!", 0},
+                            {"[scared:0.8]Necesito una ambulancia, rapido, por favor!", LB_LUNA}};
+// somebody who saw a crash going past (not their car): a word
+const Line kCrashSeen[] = {{"[excited:0.6]Whoa! Did you see that?", 0}, {"[scared:0.5]Oh! Oh, that's bad.", 0}, {"[calm:0.5]That's gonna leave a mark.", 0},
+                           {"[laugh]Nice driving, genius!", LB_BOLD}, {"[scared:0.5]Is everybody okay?", LB_TIMID},
+                           {"[calm:0.5]Somebody's calling their insurance tonight.", 0}, {"[shout:0.5]Learn to drive!", LB_BOLD},
+                           {"[excited:0.5]Ay, que choque!", LB_LUNA}, {"[calm:0.5]Oof.", 0}};
+// an officer searching on foot asking somebody about the suspect; the answer when they saw nobody
+const Line kCopAskSeen[] = {{"[calm:0.6]Excuse me - did you see a man run through here?", 0}, {"[calm:0.6]Police. You see anybody come by in a hurry?", 0},
+                            {"[calm:0.6]Hey - you see a guy go past here just now?", 0}, {"[calm:0.6]Quick question - anybody run by you?", 0},
+                            {"[calm:0.6]Disculpe, vio pasar a un hombre corriendo?", LB_LUNA}};
+const Line kNotSeen[] = {{"[calm:0.4]No, sorry.", 0}, {"[calm:0.4]Didn't see anybody.", 0}, {"[calm:0.4]Sorry, I just got here.", 0},
+                         {"[calm:0.4]I mind my own business, officer.", LB_BOLD}, {"[scared:0.3]N-no... sorry.", LB_TIMID},
+                         {"[calm:0.4]No, lo siento.", LB_LUNA}};
+// two walking together late at night: a line and the answer
+const Line kNightChat[] = {{"I'm not even tired. Are you tired?", 0}, {"Where's the after-party, though?", 0}, {"My feet are killing me.", 0},
+                           {"Did you see the line at that place?", 0}, {"Text me when you get home, okay?", 0},
+                           {"Okay, one more place. One.", 0}, {"[laugh]I can't believe you said that to him.", 0},
+                           {"Who has the keys? Tell me you have the keys.", 0}, {"I'm starving. Is anything still open?", 0},
+                           {"The DJ was so good tonight.", LB_BEACH}, {"I have work in six hours. Six.", LB_DOWNTOWN},
+                           {"Vamos a comer algo? Tengo un hambre...", LB_LUNA}};
+const Line kNightReply[] = {{"[laugh]Absolutely not.", 0}, {"You said that an hour ago.", 0}, {"[happy:0.4]Okay, okay. One more.", 0},
+                            {"Shh, people are sleeping.", 0}, {"Pizza. Pizza is open.", 0}, {"[laugh]Stop, I can't.", 0},
+                            {"Mm. I'm calling a car.", 0}, {"Dale, dale.", LB_LUNA}};
 const Line kAlarmGone[] = {{"[angry:0.7]Come back here!", 0}, {"[sad:0.6]Are you kidding me?!", 0}, {"[sad:0.6]I just paid it off!", 0},
                            {"[angry:0.6]Somebody call the cops!", 0}, {"[angry:0.7]You'd better run!", LB_BOLD}, {"[sad:0.6]No me lo puedo creer!", LB_LUNA}};
 // the player standing right by somebody sat or stood somewhere for a while: a word, and the word on the way off
@@ -493,6 +538,9 @@ const Bank kBanks[] = {
     BANK(BK_ALARM_ACCUSE, kAlarmAccuse), BANK(BK_ALARM_THEFT, kAlarmTheft), BANK(BK_ALARM_GONE, kAlarmGone),
     BANK(BK_COP_STEP_BACK, kCopStepBack), BANK(BK_BUS_WAIT, kBusWait), BANK(BK_BUS_WAIT_REPLY, kBusWaitReply),
     BANK(BK_PLAYER_DOWN, kPlayerDown), BANK(BK_DRIVER_SORRY, kDriverSorry),
+    BANK(BK_TIP_OFF, kTipOff), BANK(BK_TIP_HERE, kTipHere), BANK(BK_COP_TIP, kCopTip), BANK(BK_ASK_SNUBBED, kAskSnubbed),
+    BANK(BK_HIT_ANGRY, kHitAngry), BANK(BK_DRIVER_CALL, kDriverCall), BANK(BK_NIGHT_CHAT, kNightChat), BANK(BK_NIGHT_REPLY, kNightReply),
+    BANK(BK_CRASH_SEEN, kCrashSeen), BANK(BK_COP_ASK_SEEN, kCopAskSeen), BANK(BK_NOT_SEEN, kNotSeen),
 };
 #undef BANK
 

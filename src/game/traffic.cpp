@@ -372,11 +372,18 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
         traffic.drive(vi, v.sim, dt, out);
         v.ctl = out.ctl;
         if (va.rageTimer > 1.6f && v.sim.speed() < 0.8f) {
-            if (pl && plD < 35.f) {
+            // (the one to see: the player - or somebody else knocked down, still lying there or about)
+            int vic = va.rageSorry ? va.rageFor : -1;
+            bool inReach = vic >= 0 ? vic < (int)peds.size() && peds[vic].used && peds[vic].uid == va.rageForUid && length(rel(v.sim.body.pos, peds[vic].pos)) < 35.f
+                                 : pl && plD < 35.f;
+            if (inReach) {
                 removePedFromVehicle(drv, true);
                 PedAI& da = pedAI(drv);
                 da.activity = ACT_ROADRAGE;
                 da.rageSorry = va.rageSorry;
+                da.sorryFor = vic;
+                da.sorryForUid = vic >= 0 ? va.rageForUid : 0u;
+                da.sorryCalled = false;
                 if (!va.rageSorry) ai.stats.roadRage++;
                 da.homeVeh = vi;
                 da.actTimer = va.rageSorry ? 16.f : 10.f + hashToFloat(hash32(v.uid)) * 6.f;
@@ -389,6 +396,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
             } else {
                 va.rage = 0;   // the culprit is gone: drive on
                 va.rageSorry = false;
+                va.rageFor = -1;
                 d->mode = AI::DM_NORMAL;
             }
         }
@@ -397,6 +405,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
     if (va.rage == 2 && dp.state == PS_INVEHICLE) {
         va.rage = 0;
         va.rageSorry = false;
+        va.rageFor = -1;
         d->mode = AI::DM_NORMAL;
     }
     // ---- deliveries: a van or service truck double-parks on a multi-lane street, the driver takes something to a
