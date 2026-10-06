@@ -205,6 +205,7 @@ struct FD {
     bool graffiti = false; // Calle Luna, the Flats
     size_t v0 = 0, budget = 9000;
     int doorBay = -1;      // front bay holding an enterable interior's entrance (interiors.h): kept clear
+    const std::vector<vec4>* holes = nullptr;   // paved ground the lawn leaves out (buildmesh.cpp lawnHole): centre, half extents on b.ax
     bool room() const { return k.m->verts.size() - v0 < budget; }
 };
 
@@ -901,16 +902,58 @@ void lawn(FD& d) {
     // keep a 0.3 m margin to the sidewalk edge
     float hx = b.lotHx - 0.15f, hy = b.lotHy - 0.3f;
     vec2 c = b.lotC - fr * 0.15f;
-    std::vector<vec3> grid((size_t)(nx + 1) * (ny + 1));
-    for (int j = 0; j <= ny; j++)
-        for (int i = 0; i <= nx; i++) {
-            vec2 p = c + b.ax * (-hx + 2.f * hx * i / nx) + ay * (-hy + 2.f * hy * j / ny);
-            grid[(size_t)j * (nx + 1) + i] = vec3(p, d.map->heightAt(p.x, p.y) + 0.035f) - k.org;
+    // grid lines across the lot (u along b.ax, v along ay from c), and along the edges of the paved ground the lawn leaves
+    // out (the pool deck, the driveway, the carport floor: buildmesh.cpp lawnHole); the cells inside them are skipped
+    thread_local std::vector<float> us, vs;
+    us.clear();
+    vs.clear();
+    for (int i = 0; i <= nx; i++) us.push_back(-hx + 2.f * hx * i / nx);
+    for (int j = 0; j <= ny; j++) vs.push_back(-hy + 2.f * hy * j / ny);
+    struct Hole {
+        float u0, u1, v0, v1;
+    };
+    Hole hs[8];
+    int nh = 0;
+    if (d.holes)
+        for (const vec4& h : *d.holes) {
+            if (nh >= 8) break;
+            // (on the same axes as the lawn: the holes are rectangles on b.ax)
+            vec2 hc = vec2(h.x, h.y) - c;
+            float cu = dot(hc, b.ax), cv = dot(hc, ay);
+            Hole o = {Max(cu - h.z, -hx), Min(cu + h.z, hx), Max(cv - h.w, -hy), Min(cv + h.w, hy)};
+            if (o.u1 - o.u0 < 0.05f || o.v1 - o.v0 < 0.05f) continue;
+            hs[nh++] = o;
+            us.push_back(o.u0);
+            us.push_back(o.u1);
+            vs.push_back(o.v0);
+            vs.push_back(o.v1);
         }
-    for (int j = 0; j < ny; j++)
-        for (int i = 0; i < nx; i++) {
-            vec3 a = grid[(size_t)j * (nx + 1) + i], bb = grid[(size_t)j * (nx + 1) + i + 1];
-            vec3 cc = grid[(size_t)(j + 1) * (nx + 1) + i + 1], dd = grid[(size_t)(j + 1) * (nx + 1) + i];
+    auto tidy = [](std::vector<float>& t) {
+        std::sort(t.begin(), t.end());
+        size_t n = 0;
+        for (size_t i = 0; i < t.size(); i++)
+            if (n == 0 || t[i] - t[n - 1] > 0.03f) t[n++] = t[i];
+            else if (i + 1 == t.size()) t[n - 1] = t[i];   // (keep the outer edge)
+        t.resize(n);
+    };
+    tidy(us);
+    tidy(vs);
+    const int NU = (int)us.size(), NV = (int)vs.size();
+    thread_local std::vector<vec3> grid;
+    grid.resize((size_t)NU * NV);
+    for (int j = 0; j < NV; j++)
+        for (int i = 0; i < NU; i++) {
+            vec2 p = c + b.ax * us[i] + ay * vs[j];
+            grid[(size_t)j * NU + i] = vec3(p, d.map->heightAt(p.x, p.y) + 0.035f) - k.org;
+        }
+    for (int j = 0; j + 1 < NV; j++)
+        for (int i = 0; i + 1 < NU; i++) {
+            float mu = (us[i] + us[i + 1]) * 0.5f, mv = (vs[j] + vs[j + 1]) * 0.5f;
+            bool paved = false;
+            for (int h = 0; h < nh && !paved; h++) paved = mu > hs[h].u0 && mu < hs[h].u1 && mv > hs[h].v0 && mv < hs[h].v1;
+            if (paved) continue;
+            vec3 a = grid[(size_t)j * NU + i], bb = grid[(size_t)j * NU + i + 1];
+            vec3 cc = grid[(size_t)(j + 1) * NU + i + 1], dd = grid[(size_t)(j + 1) * NU + i];
             k.m->quadFacing(a, bb, cc, dd, vec2(a.x, a.y), vec2(bb.x, bb.y), vec2(cc.x, cc.y), vec2(dd.x, dd.y), col, mat, vec3(0, 0, 1));
         }
 }
@@ -1039,6 +1082,400 @@ void bougainvillea(FD& d, const Wall& w, float s0, float s1, float zg, float zTo
     wbox(k, w, s0 + 0.2f, s0 + 0.28f, zg - 0.2f, zg + (zTop - zg) * 0.6f, 0.02f, 0.1f, pk(0.35f, 0.25f, 0.18f), MM(MAT_BARK), WF_FRONT | WF_START | WF_END);
 }
 
+// Front boundaries of house lots by district (houseDetail): a low hedge (hedge above), a stucco garden wall with pillars
+// and caps, a stucco knee wall under a steel railing between pillars (the rejas of the older city), a white picket fence
+// (the Keys, the towns, the Victorians), a coral-rock wall (the Grove, the islands), a ranch rail fence (the country) or a
+// black aluminium picket fence. FB_GWALL is the villas' tall garden wall.
+enum FrontBoundary { FB_NONE = 0, FB_HEDGE, FB_GWALL, FB_KNEE, FB_REJA, FB_PICKET, FB_CORAL, FB_RAIL, FB_ALUM };
+
+struct FenceLook {
+    float h = 1.f;       // the top over the ground (the railing's, the pickets', the wall's)
+    float knee = 0.5f;   // FB_REJA: the stucco knee wall under the railing
+    float panel = 2.5f;  // post / pillar spacing
+    u32 wall = 0xffffffffu, wallMat = 0, cap = 0xffffffffu, capMat = 0, metal = 0xff202020u, wood = 0xffffffffu, woodMat = 0;
+};
+
+// One straight run of a front boundary on the lot's front line, q0..q1, standing on the ground: panels between posts or
+// pillars (stepped down a slope), posts at both ends (so the gaps for the walk and the driveway get gate posts), a
+// collider per panel. Stops before the vertex cap (vCap: the mesh size the garden may reach).
+void fenceRun(FD& d, vec2 q0, vec2 q1, int kind, const FenceLook& L, size_t vCap) {
+    Sink& k = d.k;
+    const Building& b = *d.b;
+    // the run's frame: t along the line with n = (t.y, -t.x) the street side (wbox: s along, z up, o toward the street)
+    Wall w;
+    w.t = vec2(-b.front.y, b.front.x);
+    if (dot(q1 - q0, w.t) < 0.f) std::swap(q0, q1);
+    w.a = q0;
+    w.b = q1;
+    w.n = b.front;
+    w.len = dot(q1 - q0, w.t);
+    if (w.len < 0.6f) return;
+    const int np = Max(1, (int)ceilf(w.len / L.panel));
+    const float pl = w.len / (float)np;
+    auto ground = [&](float s) {
+        vec2 p = w.a + w.t * s;
+        return d.map->heightAt(p.x, p.y);
+    };
+    // colliders: one box per stretch of level panels (a new one where the ground steps more than 15 cm), the end pillars or
+    // blocks included; the pillars between need none of their own
+    struct Span {
+        float s0 = 0.f, s1 = 0.f, z0 = 0.f, z1 = 0.f, th = 0.f;
+        bool on = false;
+    } span;
+    auto flush = [&]() {
+        if (span.on && k.col && span.s1 - span.s0 > 0.05f) {
+            CollisionBox cb;
+            cb.c = vec3(w.a + w.t * ((span.s0 + span.s1) * 0.5f), (span.z0 + span.z1) * 0.5f);
+            cb.ax = w.t;
+            cb.he = vec3((span.s1 - span.s0) * 0.5f, span.th, (span.z1 - span.z0) * 0.5f);
+            k.col->push_back(cb);
+        }
+        span.on = false;
+    };
+    const float endExt = (kind == FB_KNEE || kind == FB_REJA) ? 0.18f : (kind == FB_CORAL ? 0.25f : 0.f);
+    auto collide = [&](float s0, float s1, float z0, float z1, float th) {
+        if (s0 < 0.01f) s0 -= endExt;
+        if (s1 > w.len - 0.01f) s1 += endExt;
+        if (span.on && fabsf(z0 - span.z0) < 0.15f && fabsf(z1 - span.z1) < 0.15f && s0 <= span.s1 + 0.01f) {
+            span.s1 = s1;
+            span.z0 = Min(span.z0, z0);
+            span.z1 = Max(span.z1, z1);
+            span.th = Max(span.th, th);
+            return;
+        }
+        flush();
+        span = {s0, s1, z0, z1, th, true};
+    };
+    const u32 sides = WF_FRONT | WF_BACK, post = WF_FRONT | WF_BACK | WF_START | WF_END | WF_TOP;
+    for (int i = 0; i <= np; i++) {
+        if (k.m->verts.size() >= vCap) break;
+        const float s = pl * (float)i, gs = ground(s);
+        // the post or pillar at s
+        switch (kind) {
+            case FB_KNEE:
+            case FB_REJA: {
+                float top = gs + (kind == FB_KNEE ? L.h + 0.2f : L.h + 0.12f), hw = 0.18f;
+                wbox(k, w, s - hw, s + hw, gs - 0.25f, top, -hw, hw, L.wall, L.wallMat, WF_FRONT | WF_BACK | WF_START | WF_END);
+                wbox(k, w, s - hw - 0.05f, s + hw + 0.05f, top, top + 0.08f, -hw - 0.05f, hw + 0.05f, L.cap, L.capMat, post | WF_BOTTOM);
+                break;
+            }
+            case FB_PICKET: wbox(k, w, s - 0.045f, s + 0.045f, gs - 0.2f, gs + L.h + 0.08f, -0.05f, 0.04f, L.wood, L.woodMat, post); break;
+            case FB_RAIL: wbox(k, w, s - 0.06f, s + 0.06f, gs - 0.2f, gs + L.h + 0.05f, -0.06f, 0.06f, L.wood, L.woodMat, post); break;
+            case FB_ALUM: wbox(k, w, s - 0.03f, s + 0.03f, gs - 0.2f, gs + L.h + 0.04f, -0.03f, 0.03f, L.metal, MM(MAT_METAL_PAINTED), post); break;
+            case FB_CORAL:
+                if (i == 0 || i == np) {
+                    // a squared end block
+                    float top = gs + L.h + 0.12f;
+                    wbox(k, w, s - 0.25f, s + 0.25f, gs - 0.25f, top, -0.25f, 0.25f, L.wall, L.wallMat, post);
+                }
+                break;
+            default: break;
+        }
+        if (i == np) break;
+        // the panel s .. s + pl (on the lower of its two ends' ground)
+        const float s0 = s, s1 = s + pl, gz = Min(gs, ground(s1));
+        switch (kind) {
+            case FB_KNEE: {
+                wbox(k, w, s0, s1, gz - 0.25f, gz + L.h, -0.11f, 0.11f, L.wall, L.wallMat, sides);
+                wbox(k, w, s0, s1, gz + L.h, gz + L.h + 0.06f, -0.14f, 0.14f, L.cap, L.capMat, sides | WF_TOP | WF_BOTTOM);
+                collide(s0, s1, gz - 0.25f, gz + L.h + 0.06f, 0.14f);
+                break;
+            }
+            case FB_REJA: {
+                wbox(k, w, s0, s1, gz - 0.25f, gz + L.knee, -0.11f, 0.11f, L.wall, L.wallMat, sides);
+                wbox(k, w, s0, s1, gz + L.knee, gz + L.knee + 0.05f, -0.13f, 0.13f, L.cap, L.capMat, sides | WF_TOP);
+                // the railing: a bottom and a top rail, bars between (the pillars' half width clear at each end)
+                const float zb = gz + L.knee + 0.05f, zt = gz + L.h, a0 = s0 + 0.18f, a1 = s1 - 0.18f;
+                if (a1 - a0 > 0.2f) {
+                    wbox(k, w, a0, a1, zb + 0.06f, zb + 0.1f, -0.02f, 0.02f, L.metal, MM(MAT_METAL_PAINTED), sides | WF_TOP | WF_BOTTOM);
+                    wbox(k, w, a0, a1, zt - 0.05f, zt, -0.025f, 0.025f, L.metal, MM(MAT_METAL_PAINTED), sides | WF_TOP | WF_BOTTOM);
+                    int nb = Max(1, (int)floorf((a1 - a0) / 0.3f));
+                    float sp = (a1 - a0) / (float)(nb + 1);
+                    for (int j = 1; j <= nb; j++) {
+                        float sb = a0 + sp * (float)j;
+                        wbox(k, w, sb - 0.012f, sb + 0.012f, zb, zt - 0.05f, -0.012f, 0.012f, L.metal, MM(MAT_METAL_PAINTED), sides);
+                    }
+                }
+                collide(s0, s1, gz - 0.25f, gz + L.h, 0.13f);
+                break;
+            }
+            case FB_PICKET: {
+                // two rails behind the pickets, the pickets with a gap of about their width
+                wbox(k, w, s0 + 0.045f, s1 - 0.045f, gz + 0.22f, gz + 0.3f, -0.05f, -0.015f, L.wood, L.woodMat, sides | WF_TOP);
+                wbox(k, w, s0 + 0.045f, s1 - 0.045f, gz + L.h - 0.26f, gz + L.h - 0.18f, -0.05f, -0.015f, L.wood, L.woodMat, sides | WF_TOP);
+                int nb = Max(1, (int)floorf((pl - 0.09f) / 0.17f));
+                float sp = (pl - 0.09f) / (float)nb;
+                for (int j = 0; j < nb; j++) {
+                    float sb = s0 + 0.045f + sp * ((float)j + 0.5f);
+                    wbox(k, w, sb - 0.042f, sb + 0.042f, gz + 0.05f, gz + L.h, -0.015f, 0.005f, L.wood, L.woodMat, sides);
+                }
+                collide(s0, s1, gz - 0.2f, gz + L.h, 0.08f);
+                break;
+            }
+            case FB_RAIL: {
+                for (int j = 0; j < 3; j++) {
+                    float zc = gz + L.h * (0.27f + 0.31f * (float)j);
+                    wbox(k, w, s0 + 0.06f, s1 - 0.06f, zc - 0.075f, zc + 0.075f, 0.06f, 0.09f, L.wood, L.woodMat, sides | WF_TOP | WF_BOTTOM);
+                }
+                collide(s0, s1, gz - 0.2f, gz + L.h, 0.09f);
+                break;
+            }
+            case FB_ALUM: {
+                const float a0 = s0 + 0.03f, a1 = s1 - 0.03f;
+                wbox(k, w, a0, a1, gz + 0.1f, gz + 0.14f, -0.015f, 0.015f, L.metal, MM(MAT_METAL_PAINTED), sides | WF_TOP | WF_BOTTOM);
+                wbox(k, w, a0, a1, gz + L.h - 0.1f, gz + L.h - 0.06f, -0.015f, 0.015f, L.metal, MM(MAT_METAL_PAINTED), sides | WF_TOP | WF_BOTTOM);
+                int nb = Max(1, (int)floorf((a1 - a0) / 0.28f));
+                float sp = (a1 - a0) / (float)(nb + 1);
+                for (int j = 1; j <= nb; j++) {
+                    float sb = a0 + sp * (float)j;
+                    wbox(k, w, sb - 0.01f, sb + 0.01f, gz + 0.04f, gz + L.h, -0.01f, 0.01f, L.metal, MM(MAT_METAL_PAINTED), sides | WF_TOP);
+                }
+                collide(s0, s1, gz - 0.2f, gz + L.h, 0.06f);
+                break;
+            }
+            case FB_CORAL: {
+                // rough blocks of oolite: the top stepping a little from panel to panel
+                float hh = L.h + 0.07f * (hashToFloat(hash32(b.seed + (u32)i * 7919u)) * 2.f - 1.f);
+                wbox(k, w, s0, s1, gz - 0.25f, gz + hh, -0.2f, 0.2f, L.wall, L.wallMat, sides | WF_TOP | WF_START | WF_END);
+                collide(s0, s1, gz - 0.25f, gz + L.h + 0.07f, 0.2f);
+                break;
+            }
+            default: break;
+        }
+    }
+    flush();
+}
+
+// One straight run of a back-yard fence or wall, q0..q1, standing on the ground in panels (stepped down a slope): kind 1 a
+// wood board fence on posts, 2 a painted block wall with a cap, 3 a white vinyl privacy fence. Panels standing in a building
+// (a back-yard shed, a garage row) are left out; a collider per panel. Stops before the vertex cap vCap.
+void backRun(FD& d, vec2 q0, vec2 q1, int kind, float H, u32 col, u32 mat, u32 capCol, size_t vCap) {
+    Sink& k = d.k;
+    Wall w;
+    w.a = q0;
+    w.b = q1;
+    vec2 dv = q1 - q0;
+    w.len = length(dv);
+    if (w.len < 0.8f) return;
+    w.t = dv / w.len;
+    w.n = vec2(w.t.y, -w.t.x);
+    const float panel = kind == 2 ? 3.f : 4.8f, th = kind == 2 ? 0.1f : 0.03f;   // (wood and vinyl: a post every 4.8 m)
+    const int np = Max(1, (int)ceilf(w.len / panel));
+    const float pl = w.len / (float)np;
+    auto ground = [&](float s) {
+        vec2 p = w.a + w.t * s;
+        return d.map->heightAt(p.x, p.y);
+    };
+    const u32 sides = WF_FRONT | WF_BACK;
+    float gPrev = ground(0.f);
+    // colliders: one box per stretch of standing, level panels
+    float c0 = 0.f, c1 = 0.f, cz0 = 0.f, cz1 = 0.f;
+    bool cOn = false;
+    auto flush = [&]() {
+        if (cOn && k.col && c1 - c0 > 0.05f) {
+            CollisionBox cb;
+            cb.c = vec3(w.a + w.t * ((c0 + c1) * 0.5f), (cz0 + cz1) * 0.5f);
+            cb.ax = w.t;
+            cb.he = vec3((c1 - c0) * 0.5f, Max(th, 0.06f), (cz1 - cz0) * 0.5f);
+            k.col->push_back(cb);
+        }
+        cOn = false;
+    };
+    for (int i = 0; i < np; i++) {
+        if (k.m->verts.size() >= vCap) break;
+        const float s0 = pl * (float)i, s1 = s0 + pl, g1 = ground(s1), gz = Min(gPrev, g1);
+        const vec2 mid = w.a + w.t * ((s0 + s1) * 0.5f);
+        const bool blocked = gBuildings && (gBuildings->pointInBuilding(mid, 0.25f) || gBuildings->pointInBuilding(w.a + w.t * (s0 + 0.15f), 0.1f) ||
+                                            gBuildings->pointInBuilding(w.a + w.t * (s1 - 0.15f), 0.1f));
+        if (!blocked) {
+            wbox(k, w, s0, s1, gz - 0.2f, gz + H, -th, th, col, mat, sides | WF_TOP | (i == 0 ? WF_START : 0u) | (i == np - 1 ? WF_END : 0u));
+            if (kind == 2) wbox(k, w, s0, s1, gz + H, gz + H + 0.05f, -th - 0.03f, th + 0.03f, capCol, MM(MAT_PLASTER), sides | WF_TOP | WF_BOTTOM);
+            if (kind != 2) {
+                // a post at the panel's start (and at the run's end): its faces across the run and its top (the sides hide
+                // in the boards)
+                for (int e = 0; e < (i == np - 1 ? 2 : 1); e++) {
+                    float s = e ? s1 : s0, gs = e ? g1 : gPrev, hw = kind == 3 ? 0.06f : 0.045f;
+                    wbox(k, w, s - hw, s + hw, gs - 0.2f, gs + H + (kind == 3 ? 0.08f : 0.03f), -hw, hw, kind == 3 ? capCol : col, mat, WF_FRONT | WF_BACK | WF_TOP);
+                }
+            }
+            const float z0 = gz - 0.2f, z1 = gz + H;
+            if (cOn && fabsf(z0 - cz0) < 0.15f && s0 <= c1 + 0.01f) {
+                c1 = s1;
+                cz0 = Min(cz0, z0);
+                cz1 = Max(cz1, z1);
+            } else {
+                flush();
+                c0 = s0, c1 = s1, cz0 = z0, cz1 = z1, cOn = true;
+            }
+        } else {
+            flush();
+        }
+        gPrev = g1;
+    }
+    flush();
+}
+
+// The back yard's fence of a house without hedges, by district: the back lot line (built by one of the two lots that
+// share it), one side line (the neighbour builds the other), and returns from the side lot lines to the house behind the
+// garage, with a gate beside the house on the other side. Not round the conch, Victorian, raised and stilt houses (their
+// porches and decks run round the sides).
+void backYardFence(FD& d, bool garage, float gside) {
+    const Building& b = *d.b;
+    if (b.arch == AR_HOUSE_CONCH || b.arch == AR_HOUSE_VICTORIAN || b.arch == AR_HOUSE_RAISED || b.arch == AR_SHACK_STILT || b.arch == AR_VILLA_COLONIAL) return;
+    Rng br(b.seed ^ 0xBAC4u);
+    const float p = br.f();
+    int kind = 0;   // 1 wood boards, 2 block wall, 3 white vinyl
+    switch (b.region) {
+        case REG_SUBURBS: kind = p < 0.35f ? 1 : (p < 0.5f ? 2 : (p < 0.6f ? 3 : 0)); break;
+        case REG_CALLE_LUNA:
+        case REG_FLATS:
+        case REG_NORTH_CITY:
+        case REG_MIDTOWN: kind = p < 0.4f ? 2 : (p < 0.6f ? 1 : 0); break;
+        case REG_GROVE: kind = p < 0.2f ? 1 : (p < 0.3f ? 2 : 0); break;
+        case REG_LAKE_TOWN:
+        case REG_HARLOW:
+        case REG_FORT_CASTELL: kind = p < 0.35f ? 1 : (p < 0.4f ? 3 : 0); break;
+        case REG_KEYS:
+        case REG_KEY_TOWN:
+        case REG_GULF_TOWN: kind = p < 0.3f ? 1 : 0; break;
+        case REG_REDLAND:
+        case REG_FARMLAND:
+        case REG_RIDGE: kind = p < 0.2f ? 1 : 0; break;
+        default: kind = p < 0.3f ? 1 : 0; break;
+    }
+    if (kind == 0) return;
+    const vec2 A = b.ax, F = b.front;
+    const float off = dot(b.lotC - b.c, F), lat = dot(b.lotC - b.c, A);
+    const float uL = lat - (b.lotHx - 0.4f), uR = lat + (b.lotHx - 0.4f), vB = off - b.lotHy + 0.4f;
+    float vr = -b.hy + 1.6f;
+    if (garage) vr = Min(vr, b.hy - 2.f * Min(b.hy, 3.4f) - 0.3f);
+    if (vr - vB < 3.f) return;
+    float H;
+    u32 col, mat, cap = pk(0.96f);
+    switch (kind) {
+        case 1: {
+            H = br.range(1.7f, 1.85f);
+            float t = br.range(0.8f, 1.f);
+            col = br.chance(0.6f) ? pk(vec3(0.95f, 0.86f, 0.75f) * t) : pk(vec3(0.82f, 0.8f, 0.78f) * t);
+            mat = MM(MAT_WOOD);
+            break;
+        }
+        case 2: {
+            H = br.range(1.6f, 1.9f);
+            float c = br.f();
+            col = c < 0.5f ? d.wallTone : (c < 0.8f ? pk(0.92f, 0.91f, 0.88f) : pk(0.8f, 0.8f, 0.78f));
+            mat = MM(MAT_STUCCO);
+            cap = c < 0.5f ? d.trim : pk(0.95f);
+            break;
+        }
+        default: H = 1.8f; col = pk(0.97f, 0.97f, 0.95f); mat = MM(MAT_PLASTER); cap = pk(0.98f); break;
+    }
+    const size_t vCap = d.k.m->verts.size() + 900;
+    auto P = [&](float u, float v) { return b.c + A * u + F * v; };
+    const vec2 W(1.f, 1.0001f);
+    if (dot(F, W) > 0.f) backRun(d, P(uL, vB), P(uR, vB), kind, H, col, mat, cap, vCap);
+    const float us = dot(A, W) > 0.f ? uL : uR;   // (the side whose outward normal points away from W)
+    backRun(d, P(us, vB), P(us, vr), kind, H, col, mat, cap, vCap);
+    for (int e = -1; e <= 1; e += 2) {
+        const float uo = e < 0 ? uL : uR, uh = (float)e * b.hx;
+        if ((float)e * (uo - uh) < 1.4f) continue;   // (no side yard to close)
+        const bool gate = garage ? (float)e != gside : e > 0;
+        backRun(d, P(uo, vr), P(gate ? uh + (float)e * 1.05f : uh, vr), kind, H, col, mat, cap, vCap);
+    }
+}
+
+// The front boundary of a house lot by district and house type (FrontBoundary) and its look. fbk comes in as the old
+// choice (a low hedge, the villas' garden wall or none) and stays where the district draws none of its own.
+void frontBoundaryLook(FD& d, bool villa, int& fbk, FenceLook& L) {
+    const Building& b = *d.b;
+    Rng fr(b.seed ^ 0xF0E7Cu);
+    const float p = fr.f(), q = fr.f();
+    int pick = -1;
+    if (villa) {
+        switch (b.region) {
+            case REG_GROVE: pick = p < 0.4f ? FB_CORAL : -1; break;
+            case REG_KEY_CORAL:
+            case REG_BAY_ISLAND: pick = p < 0.25f ? FB_REJA : (p < 0.45f ? FB_CORAL : -1); break;
+            default: pick = p < 0.2f ? FB_REJA : -1; break;
+        }
+    } else {
+        switch (b.region) {
+            case REG_CALLE_LUNA:
+            case REG_FLATS:
+            case REG_NORTH_CITY:
+            case REG_MIDTOWN: pick = p < 0.36f ? FB_REJA : (p < 0.48f ? FB_KNEE : (p < 0.58f ? FB_ALUM : -1)); break;
+            case REG_SUBURBS: pick = p < 0.08f ? FB_REJA : (p < 0.18f ? FB_KNEE : (p < 0.26f ? FB_ALUM : (p < 0.3f ? FB_CORAL : (p < 0.33f ? FB_PICKET : -1)))); break;
+            case REG_GROVE: pick = p < 0.35f ? FB_CORAL : (p < 0.45f ? FB_PICKET : (p < 0.5f ? FB_KNEE : -1)); break;
+            case REG_KEY_CORAL:
+            case REG_BAY_ISLAND: pick = p < 0.3f ? FB_CORAL : (p < 0.45f ? FB_KNEE : -1); break;
+            case REG_KEYS:
+            case REG_KEY_TOWN:
+            case REG_GULF_TOWN: pick = p < 0.45f ? FB_PICKET : (p < 0.55f ? FB_CORAL : (p < 0.6f ? FB_ALUM : -1)); break;
+            case REG_LAKE_TOWN:
+            case REG_HARLOW:
+            case REG_FORT_CASTELL: pick = p < 0.25f ? FB_PICKET : (p < 0.35f ? FB_RAIL : (p < 0.42f ? FB_ALUM : (p < 0.47f ? FB_KNEE : -1))); break;
+            case REG_REDLAND:
+            case REG_FARMLAND:
+            case REG_RIDGE:
+            case REG_SAWGRASS: pick = p < 0.35f ? FB_RAIL : (p < 0.45f ? FB_PICKET : -1); break;
+            default: pick = p < 0.1f ? FB_KNEE : (p < 0.18f ? FB_ALUM : (p < 0.22f ? FB_PICKET : -1)); break;
+        }
+        // picket fences before the Victorians and the conch houses; rejas and garden walls before the Mediterranean and the
+        // block houses
+        if ((b.arch == AR_HOUSE_VICTORIAN || b.arch == AR_HOUSE_CONCH) && pick < 0 && q < 0.45f) pick = FB_PICKET;
+        if (b.arch == AR_HOUSE_MED && pick == FB_PICKET) pick = FB_KNEE;
+        if ((b.arch == AR_HOUSE_CBS || b.arch == AR_HOUSE_MED) && pick < 0 && q < 0.15f) pick = FB_REJA;
+    }
+    if (pick >= 0) fbk = pick;
+    // the look: the stucco in the house's colour, white or a pastel; the steel black, white, green or bronze
+    const vec3 pastel[] = {vec3(0.98f, 0.9f, 0.78f), vec3(0.95f, 0.85f, 0.85f), vec3(0.85f, 0.93f, 0.88f), vec3(0.98f, 0.95f, 0.8f)};
+    const float wc = fr.f();
+    L.wall = wc < 0.55f ? d.wallTone : (wc < 0.85f ? pk(0.96f, 0.95f, 0.92f) : pk(pastel[fr.next() % 4u]));
+    L.wallMat = MM(MAT_STUCCO);
+    L.cap = fr.chance(0.6f) ? d.trim : pk(0.97f, 0.96f, 0.93f);
+    L.capMat = MM(MAT_PLASTER);
+    const float mc = fr.f();
+    L.metal = mc < 0.45f ? pk(0.06f) : (mc < 0.7f ? pk(1.f) : (mc < 0.85f ? pk(0.1f, 0.25f, 0.15f) : pk(0.3f, 0.2f, 0.12f)));
+    switch (fbk) {
+        case FB_KNEE:
+            L.h = villa ? fr.range(1.f, 1.3f) : fr.range(0.55f, 0.85f);
+            L.panel = fr.range(2.6f, 3.4f);
+            break;
+        case FB_REJA:
+            L.knee = fr.range(0.4f, 0.6f);
+            L.h = villa ? fr.range(1.7f, 1.9f) : fr.range(1.15f, 1.5f);
+            L.panel = fr.range(2.4f, 3.2f);
+            break;
+        case FB_PICKET: {
+            L.h = fr.range(0.9f, 1.05f);
+            L.panel = 2.4f;
+            L.wood = fr.chance(0.75f) ? pk(0.97f, 0.97f, 0.95f) : d.trim;
+            L.woodMat = MM(MAT_PLASTER);
+            break;
+        }
+        case FB_CORAL:
+            L.h = villa ? fr.range(0.9f, 1.2f) : fr.range(0.65f, 0.95f);
+            L.panel = fr.range(1.6f, 2.3f);
+            L.wall = pk(vec3(0.95f, 0.92f, 0.85f) * fr.range(0.92f, 1.05f));
+            L.wallMat = MM(MAT_STONE);
+            break;
+        case FB_RAIL: {
+            L.h = fr.range(1.1f, 1.2f);
+            L.panel = 2.4f;
+            bool painted = fr.chance(0.5f);
+            L.wood = painted ? pk(0.95f) : pk(0.95f, 0.88f, 0.8f);
+            L.woodMat = MM(painted ? MAT_PLASTER : MAT_WOOD);
+            break;
+        }
+        case FB_ALUM:
+            L.h = fr.range(1.15f, 1.25f);
+            L.panel = 1.8f;
+            L.metal = pk(0.05f);
+            break;
+        default: break;
+    }
+}
+
 // House and villa: door, stoop, porch roof / portico, window trims and shutters, AC condenser, garden
 void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
     FD_STAT(d.k.m, FS_HOUSE);
@@ -1097,6 +1534,8 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
         if (w.len > 2.f && fabsf(w.facing) > 0.5f)
             windowTrims(d, w, ms, w.facing > 0.5f ? trimKind : 0, shutters && w.facing > 0.5f, shutterCol, bahama == 2 ? 2 : (bahama && w.facing > 0.5f ? 1 : 0));
     // front door at the pier nearest the middle of the front wall
+    vec2 doorAt(0.f);
+    bool hasDoor = false;
     if (fw.bays >= 2) {
         int bi = fw.bays / 2;
         float sd = bi * fw.bw;
@@ -1117,6 +1556,8 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
             // stoop down to the ground (the stilt houses have their stair; the colonial villa its portico platform)
             vec2 sp = fw.a + fw.t * sd + fw.n * 0.8f;
             float gz = d.map->heightAt(sp.x, sp.y);
+            doorAt = fw.a + fw.t * sd;
+            hasDoor = true;
             if (b.arch != AR_SHACK_STILT && b.arch != AR_VILLA_COLONIAL && b.arch != AR_HOUSE_RAISED) {
                 wbox(k, fw, sd - dw * 0.5f - 0.5f, sd + dw * 0.5f + 0.5f, Min(gz, zb) - 0.3f, zb - 0.02f, 0.f, 1.3f, pk(0.82f, 0.8f, 0.76f), MM(MAT_CONCRETE), WF_BOX);
                 if (zb - gz > 0.35f)
@@ -1179,9 +1620,89 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
         wbox(k, w, s - 0.03f, s + 0.03f, gz + 0.5f, gz + 1.4f, 0.02f, 0.08f, pk(0.9f), MM(MAT_METAL_PAINTED), WF_FRONT);
         break;
     }
-    if (!d.room()) return;
-    // --- garden
+    // --- garden (with a vertex budget of its own: the window awnings of a block house could use up the facade's and left a
+    // third of them without a lawn, hedges, fences or a mailbox)
+    d.v0 = k.m->verts.size();
+    d.budget = villa ? 2600 : 1800;
+    // the front walk from the stoop to the front lot line (through the gap in the front boundary): poured concrete, brick
+    // pavers (the Mediterranean houses, the villas) or stepping stones (the Keys, the Grove). The lawn leaves it out; a yard
+    // tree standing on it goes.
+    thread_local std::vector<vec4> gardenHoles;
+    gardenHoles.clear();
+    if (d.holes) gardenHoles = *d.holes;
+    const std::vector<vec4>* holes0 = d.holes;
+    const bool walkable = hasDoor && b.arch != AR_HOUSE_RAISED && b.arch != AR_SHACK_STILT && b.arch != AR_VILLA_COLONIAL && !blockstyle::frontPaved(b);
+    if (walkable) {
+        const vec2 F = b.front, A = b.ax;
+        const float u = dot(doorAt - b.lotC, A), v0 = dot(doorAt + fw.n * 1.3f - b.lotC, F), v1 = b.lotHy - 0.3f;
+        const u32 wh = hash32(b.seed ^ 0x5A1CEu);
+        const float wq = hashToFloat(wh);
+        const bool med = villa || b.arch == AR_HOUSE_MED;
+        const bool stones = (b.region == REG_KEYS || b.region == REG_KEY_TOWN || b.region == REG_GULF_TOWN || b.region == REG_GROVE) && !med && wq < 0.35f;
+        const bool pavers = !stones && (med ? wq < 0.7f : wq > 0.82f);
+        const float hw = villa ? 0.8f : (wq < 0.5f ? 0.5f : 0.6f);
+        if (v1 - v0 > 0.8f) {
+            const vec2 wc = b.lotC + A * u + F * ((v0 + v1) * 0.5f);
+            const float hv = (v1 - v0) * 0.5f;
+            if (stones) {
+                int n = Max(1, (int)floorf((v1 - v0) / 0.85f));
+                for (int i = 0; i < n; i++) {
+                    vec2 pc = b.lotC + A * (u + 0.06f * (float)((i & 1) ? 1 : -1)) + F * (v0 + 0.42f + 0.85f * (float)i);
+                    float gz = d.map->heightAt(pc.x, pc.y);
+                    obox(k, vec3(pc, gz + 0.02f), vec3(A, 0.f), vec3(F, 0.f), vec3(0.3f, 0.24f, 0.04f), pk(0.93f, 0.9f, 0.84f), MM(MAT_STONE));
+                }
+            } else {
+                gardenHoles.push_back(vec4(wc.x, wc.y, hw, hv));
+                std::vector<vec3> poly;
+                for (int c = 0; c < 4; c++) {
+                    float sx = (c == 0 || c == 3) ? 1.f : -1.f, sy = c < 2 ? 1.f : -1.f;
+                    vec2 q = wc + A * (sx * hw) + F * (sy * hv);
+                    poly.push_back(vec3(q, d.map->heightAt(q.x, q.y) + 0.05f) - k.org);
+                }
+                k.m->polygon(poly, vec3(0, 0, 1), pavers ? pk(1.f, 0.85f, 0.75f) : pk(0.95f, 0.95f, 0.93f), MM(pavers ? MAT_PAVERS : MAT_CONCRETE), pavers ? 1.f / 0.6f : 1.f);
+            }
+            if (k.props) {
+                // a yard tree on the walk moves aside, off the driveway, the pool deck and the house; where there is no room it
+                // goes
+                const bool garage = (b.style == BS_HOUSE && (b.seed % 10u) < 7u) || villa;
+                const float gU = dot(b.c + b.ax * (((b.seed & 64u) ? 1.f : -1.f) * (b.hx + 3.2f)) - b.lotC, A);
+                auto paved = [&](vec2 q) {
+                    if (d.holes)
+                        for (const vec4& h : *d.holes) {
+                            vec2 e = q - vec2(h.x, h.y);
+                            if (fabsf(dot(e, A)) < h.z + 0.6f && fabsf(dot(e, perp(A))) < h.w + 0.6f) return true;
+                        }
+                    return false;
+                };
+                std::vector<PropInstance>& P = *k.props;
+                size_t gone = 0;
+                for (PropInstance& pi : P) {
+                    if (pi.type != PROP_PALM && pi.type != PROP_PALM_TALL && pi.type != PROP_TREE_OAK && pi.type != PROP_TREE_PINE && pi.type != PROP_BUSH) continue;
+                    vec2 q = vec2(pi.pos.x, pi.pos.y) - wc;
+                    float qu = dot(q, A), qv = dot(q, F);
+                    if (fabsf(qu) >= hw + 0.8f || fabsf(qv) >= hv + 0.4f) continue;
+                    bool moved = false;
+                    for (int side = 0; side < 2 && !moved; side++) {
+                        float su = ((qu >= 0.f) == (side == 0) ? 1.f : -1.f) * (hw + 1.1f);
+                        float lu = u + su;   // (along the lot from its centre)
+                        if (fabsf(lu) > b.lotHx - 0.9f || (garage && fabsf(lu - gU) < 3.4f)) continue;
+                        vec2 np = wc + A * su + F * qv;
+                        if (paved(np) || (gBuildings && gBuildings->pointInBuilding(np, 0.6f))) continue;
+                        pi.pos = vec3(np, d.map->heightAt(np.x, np.y));
+                        moved = true;
+                    }
+                    if (!moved) {
+                        pi.scale = -1.f;   // (dropped below)
+                        gone++;
+                    }
+                }
+                if (gone) P.erase(std::remove_if(P.begin(), P.end(), [](const PropInstance& pi) { return pi.scale < 0.f; }), P.end());
+            }
+        }
+    }
+    d.holes = &gardenHoles;
     lawn(d);
+    d.holes = holes0;
     vec2 ay = perp(b.ax);
     // garage wing position (same rule as buildmesh.cpp) so hedges and walls leave the driveway open
     bool garage = (b.style == BS_HOUSE && (b.seed % 10u) < 7u) || villa;
@@ -1229,9 +1750,16 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
         if (!(garage && gside < 0.f)) hedge(d, fl + b.front * -1.f, bl, hh, hw, hedgeTint, true, hstyle);
         if (!(garage && gside > 0.f)) hedge(d, frt + b.front * -1.f, brt, hh, hw, hedgeTint, true, hstyle);
         if (d.r.chance(0.6f)) hedge(d, bl, brt, hh, hw, hedgeTint, true, hstyle);
+    } else if (!villa && b.interior < 0) {
+        backYardFence(d, garage, gside);
     }
-    // front boundary: low hedge or stucco garden wall with gaps for the driveway and the front walk
-    if ((hedges && d.r.chance(0.6f)) || gardenWall) {
+    // front boundary with gaps for the driveway and the front walk: by district and house type (frontBoundaryLook), else
+    // the low hedge or the villas' garden wall as before (and always so on the houses with an enterable interior)
+    const bool legacyFront = (hedges && d.r.chance(0.6f)) || gardenWall;
+    int fbk = legacyFront ? (gardenWall ? FB_GWALL : FB_HEDGE) : FB_NONE;
+    FenceLook fence;
+    if (b.interior < 0) frontBoundaryLook(d, villa, fbk, fence);
+    if (fbk != FB_NONE) {
         float dAlong = dot(gcen - lotCenterAlong, b.ax);
         float walkAlong = dot(fw.a + fw.t * (fw.bays / 2 * fw.bw) - lotCenterAlong, b.ax);
         struct Gap { float a0, a1; } gaps[2] = {{dAlong - 3.2f, dAlong + 3.2f}, {walkAlong - 0.9f, walkAlong + 0.9f}};
@@ -1241,13 +1769,14 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
         if (ng == 2 && gaps[1].a0 < gaps[0].a0) std::swap(gaps[0], gaps[1]);
         float cur = -hx;
         // clipped balls or cones mark the openings in a front hedge (the hedge stops short of them)
-        int tkind = villa ? (int)(d.r.next() % 3u) : 0;
+        int tkind = (villa && legacyFront) ? (int)(d.r.next() % 3u) : 0;
         float tsize = tkind == 1 ? 1.5f : (tkind == 2 ? 1.6f : 0.9f);
-        bool gateTopiary = topiaries && !gardenWall;
+        bool gateTopiary = topiaries && fbk == FB_HEDGE;
         auto lotFront = [&](float along) { return lotCenterAlong + b.ax * along + b.front * (b.lotHy - 0.4f); };
+        const size_t vCap = k.m->verts.size() + 1100;   // (the fences' share of the garden)
         for (int gi = 0; gi <= ng; gi++) {
             float end = gi < ng ? gaps[gi].a0 : hx;
-            if (gateTopiary && !gardenWall) {
+            if (gateTopiary) {
                 float c0 = cur, c1 = end;
                 if (gi > 0 && c1 - c0 > 1.6f) {
                     topiary(d, lotFront(c0 + 0.3f), tkind, tsize, topiaryTint);
@@ -1260,7 +1789,12 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
             }
             if (end - cur > 0.8f) {
                 vec2 p0 = lotFront(cur), p1 = lotFront(end);
-                if (gardenWall) {
+                if (fbk >= FB_KNEE) {
+                    // (left open where a dead end's turning room reaches the lot line)
+                    std::vector<vec2> keep;
+                    clearOfTurnarounds(p0, p1, 0.25f, keep);
+                    for (const vec2& kp : keep) fenceRun(d, lerp(p0, p1, kp.x), lerp(p0, p1, kp.y), fbk, fence, vCap);
+                } else if (fbk == FB_GWALL) {
                     // (left open where a dead end's turning room reaches the lot line)
                     std::vector<vec2> keep;
                     clearOfTurnarounds(p0, p1, 0.25f, keep);
@@ -1287,7 +1821,7 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
                     hedge(d, p0, p1, hstyle == HEDGE_WILD ? 0.95f : 0.75f, hstyle == HEDGE_WILD ? 0.95f : 0.7f, hedgeTint, false, hstyle);
                 }
             }
-            if (gi < ng) cur = gaps[gi].a1;
+            if (gi < ng) cur = Max(cur, gaps[gi].a1);
         }
     }
     // flower beds along the front wall, left and right of the door
@@ -1322,13 +1856,52 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
         vec2 mp = fw.a + fw.t * (s0 + 1.2f);
         bougainvillea(d, fw, s0, s0 + 2.5f, d.map->heightAt(mp.x, mp.y), zb + Min(f.groundH + 1.2f, ms.z1 - zb));
     }
-    // mailbox at the front lot line next to the driveway (or the walk)
+    // mailbox at the front lot line next to the driveway (or the walk); with a fence or a wall along the front, in the gap
+    // beside the driveway. A wooden post, a stucco pillar with a slot (the suburbs, the villas, in front of a garden wall)
+    // or a black box on a steel post (the country)
     {
-        float dAlong = garage ? dot(gcen - lotCenterAlong, b.ax) + (gside > 0.f ? -3.6f : 3.6f) : dot(b.c - lotCenterAlong, b.ax) + 1.4f;
+        const bool fenced = fbk >= FB_GWALL;
+        float dAlong = garage ? dot(gcen - lotCenterAlong, b.ax) + (gside > 0.f ? -1.f : 1.f) * (fenced ? 2.9f : 3.6f) : dot(b.c - lotCenterAlong, b.ax) + 1.4f;
+        if (!garage && fenced) {
+            float walkAlong = dot(fw.a + fw.t * (fw.bays / 2 * fw.bw) - lotCenterAlong, b.ax);
+            dAlong = walkAlong + (dAlong > walkAlong ? 0.62f : -0.62f);
+        }
         vec2 mp = lotCenterAlong + b.ax * Clamp(dAlong, -hx, hx) + b.front * (b.lotHy - 0.6f);
         float gz = d.map->heightAt(mp.x, mp.y);
-        k.m->cylinder(vec3(mp, gz) - k.org, 0.045f, 0.045f, 1.08f, 4, pk(0.95f), MM(MAT_WOOD), false);
-        obox(k, vec3(mp, gz + 1.18f), vec3(b.front, 0.f), vec3(b.ax, 0.f), vec3(0.25f, 0.12f, 0.1f), villa ? pk(0.15f) : pk(0.2f, 0.25f, 0.45f), MM(MAT_METAL_PAINTED));
+        const u32 mh = hash32(b.seed ^ 0x3A11Bu);
+        const float mq = hashToFloat(mh);
+        const int reg = b.region;
+        const bool suburb = reg == REG_SUBURBS || reg == REG_GROVE || reg == REG_KEY_CORAL || reg == REG_BAY_ISLAND;
+        const bool country = reg == REG_FARMLAND || reg == REG_REDLAND || reg == REG_RIDGE || reg == REG_HARLOW || reg == REG_LAKE_TOWN || reg == REG_SAWGRASS;
+        int mk = 0;
+        if (b.interior < 0) {
+            if (villa) mk = mq < 0.7f ? 1 : 0;
+            else if (suburb) mk = mq < 0.3f ? 1 : 0;
+            else if (country) mk = mq < 0.5f ? 2 : 0;
+            if (fbk == FB_KNEE || fbk == FB_REJA || fbk == FB_GWALL) mk = 1;
+        }
+        const vec3 F(b.front, 0.f), A(b.ax, 0.f);
+        if (mk == 1) {
+            const bool wallLook = fbk == FB_KNEE || fbk == FB_REJA;
+            const u32 pc = wallLook ? fence.wall : d.wallTone, pm = wallLook ? fence.wallMat : d.wallMat;
+            const u32 cc = wallLook ? fence.cap : d.trim, cm = wallLook ? fence.capMat : d.trimMat;
+            obox(k, vec3(mp, gz + 0.5f), F, A, vec3(0.24f, 0.24f, 0.75f), pc, pm, false);
+            obox(k, vec3(mp, gz + 1.29f), F, A, vec3(0.29f, 0.29f, 0.04f), cc, cm, true);
+            obox(k, vec3(mp + b.front * 0.245f, gz + 1.0f), F, A, vec3(0.01f, 0.15f, 0.05f), pk(0.12f), MM(MAT_METAL_PAINTED), false);
+            if (k.col) {
+                CollisionBox cb;
+                cb.c = vec3(mp, gz + 0.62f);
+                cb.ax = b.ax;
+                cb.he = vec3(0.26f, 0.26f, 0.7f);
+                k.col->push_back(cb);
+            }
+        } else if (mk == 2) {
+            obox(k, vec3(mp, gz + 0.55f), F, A, vec3(0.035f, 0.035f, 0.62f), pk(0.15f), MM(MAT_METAL_PAINTED), false);
+            obox(k, vec3(mp + b.front * 0.05f, gz + 1.25f), F, A, vec3(0.3f, 0.13f, 0.12f), pk(0.08f), MM(MAT_METAL_PAINTED));
+        } else {
+            k.m->cylinder(vec3(mp, gz) - k.org, 0.045f, 0.045f, 1.08f, 4, pk(0.95f), MM(MAT_WOOD), false);
+            obox(k, vec3(mp, gz + 1.18f), F, A, vec3(0.25f, 0.12f, 0.1f), villa ? pk(0.15f) : pk(0.2f, 0.25f, 0.45f), MM(MAT_METAL_PAINTED));
+        }
     }
 }
 
@@ -1862,9 +2435,11 @@ void streamlineFront(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls
 
 // ---------------------------------------------------------------------------------------------------------------
 void buildFacadeDetail(const Building& b, const FacadeGPU& fac0, const WorldMap& map, vec3 org, MeshData& m, std::vector<CollisionBox>* col,
-                       std::vector<PropInstance>* props, std::vector<LightInstance>* lights, const std::vector<FacadeMass>& masses) {
+                       std::vector<PropInstance>* props, std::vector<LightInstance>* lights, const std::vector<FacadeMass>& masses,
+                       const std::vector<vec4>* lawnHoles) {
     using namespace facade_detail;
     FD d;
+    d.holes = lawnHoles;
     d.k.m = &m;
     d.k.org = org;
     d.k.col = col;
