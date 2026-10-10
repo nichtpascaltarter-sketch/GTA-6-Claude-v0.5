@@ -1,0 +1,36 @@
+name: Windows build
+
+on:
+  push:
+    branches: [main, fix/windows-build]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  msvc:
+    name: Windows x64 / MSVC
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build game
+        shell: cmd
+        run: call build.bat
+      - name: Upload Windows executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeonTide-Windows-x64
+          path: bin/NeonTide.exe
+          if-no-files-found: error
+          retention-days: 14
