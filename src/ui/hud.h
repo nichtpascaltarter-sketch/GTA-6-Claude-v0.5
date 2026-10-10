@@ -348,6 +348,9 @@ struct MenuState {
 };
 
 namespace Menus {
+// Start a fresh pause-menu session. The first update draws but ignores the input
+// that opened it (Esc, controller Start, a remapped key, or a phone-map click).
+void openPause(MenuState& state, MenuScreen screen = MENU_PAUSE);
 // Process input and draw the active screen. Call every frame while state.screen != MENU_NONE (after rendering the
 // world/HUD, before UI::endFrame). Returns the action chosen this frame (MA_NONE most frames).
 // Navigation: MENU_MAIN is the front-end root; MENU_PAUSE opens the tabbed pause menu (MAP, BRIEF, STATS, SETTINGS,

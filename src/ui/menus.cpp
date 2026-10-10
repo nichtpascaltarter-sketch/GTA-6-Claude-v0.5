@@ -31,6 +31,7 @@ enum DialogKind {
 struct Internal {
     MenuScreen lastScreen = MENU_NONE;
     MenuScreen root = MENU_NONE;
+    bool ignoreOpeningInput = false;  // consume the opening frame, not a timed debounce
     float screenT = 0.f, openT = 0.f, tabT = 0.f;
     int lastTab = -1;
     vec2 lastMouse = vec2(-1.f, -1.f);
@@ -2152,7 +2153,7 @@ MenuAction updatePause(MenuState& st, const Layout& L, const Nav& n, float dt, f
         PromptItem pi[] = {{"ESC", "B", "Resume"}};
         footer(L, pi, 1, n.pad, a);
     }
-    if (n.start && I.dialog == DLG_NONE && I.openT > 0.2f) exit = true;   // not the press that opened the menu
+    if (n.start && I.dialog == DLG_NONE) exit = true;   // opening input is consumed by openPause/update
     if (exit && act.type == MA_NONE) {
         act.type = MA_RESUME;
         st.screen = MENU_NONE;
@@ -2202,6 +2203,16 @@ const std::vector<DisplayMode>& displayModes() {
 
 void reset() { menus_ui::I = menus_ui::Internal(); }
 
+void openPause(MenuState& st, MenuScreen screen) {
+    // update() is only called while a menu is visible, so it may never observe
+    // MENU_NONE between sessions. Explicitly clear stale dialogs, focus and tabs.
+    reset();
+    st.screen = screen;
+    st.prevScreen = MENU_NONE;
+    st.cursor = st.tab = 0;
+    menus_ui::I.ignoreOpeningInput = true;
+}
+
 void testSettingsPage(int cat) {
     using namespace menus_ui;
     I.setCat = Clamp(cat, 0, (int)SC_COUNT - 1);
@@ -2209,8 +2220,18 @@ void testSettingsPage(int cat) {
     I.setScroll = 0.f;
 }
 
-MenuAction update(MenuState& st, const InputState& in, float dt) {
+MenuAction update(MenuState& st, const InputState& rawInput, float dt) {
     using namespace menus_ui;
+    // The app opens the menu and updates it in the same frame. Keep pointer/pad
+    // presentation, but do not reuse the opening press as Back, Confirm or a map
+    // click. Later updates use the real previous-key state, so holding Esc cannot
+    // close the menu; a fresh press works immediately, at any frame rate.
+    InputState openingInput;
+    openingInput.mousePos = rawInput.mousePos;
+    openingInput.lastInputWasPad = rawInput.lastInputWasPad;
+    openingInput.pad.connected = rawInput.pad.connected;
+    const InputState& in = I.ignoreOpeningInput ? openingInput : rawInput;
+    I.ignoreOpeningInput = false;
     MenuAction act;
     uix::ensureIcons();
     uix::advanceTime(dt);
