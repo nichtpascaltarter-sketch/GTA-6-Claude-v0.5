@@ -1,0 +1,27 @@
+name: Inspect Escape regression
+on:
+  push:
+    branches: [fix/windows-build]
+    paths: [.github/workflows/inspect-escape.yml]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Export exact source for regression investigation
+        run: |
+          git rev-parse HEAD > SOURCE_COMMIT.txt
+          git archive --format=zip --output=neontide-source.zip HEAD
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: escape-investigation-source
+          path: |
+            neontide-source.zip
+            SOURCE_COMMIT.txt
+          retention-days: 1
+          if-no-files-found: error
