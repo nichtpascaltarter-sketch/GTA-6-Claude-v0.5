@@ -39,7 +39,7 @@ jobs:
                   raise RuntimeError(f'{path} changed; refusing to overwrite unrelated work')
 
           header = Path('src/core/bits.h')
-          test = Path('tests/build/bit_scan_test.cpp')
+          test = Path('tests/compiler/bit_scan_test.cpp')
           if header.exists() or test.exists():
               raise RuntimeError('Refusing to overwrite an existing helper or test')
           header.write_text('''// Portable 64-bit bit scans. An empty mask returns 64, outside the valid indices.
@@ -127,13 +127,13 @@ jobs:
           '''.replace('\n          ', '\n'), encoding='utf-8')
       - name: Test portable bit scans
         run: |
-          g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined tests/build/bit_scan_test.cpp -o /tmp/neontide-bit-scan-test
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined tests/compiler/bit_scan_test.cpp -o /tmp/neontide-bit-scan-test
           /tmp/neontide-bit-scan-test
           git diff --check
       - name: Commit only the reviewed repair files
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/core/bits.h src/gfx/gfx_context.cpp src/main.cpp build.bat tests/build/bit_scan_test.cpp
+          git add src/core/bits.h src/gfx/gfx_context.cpp src/main.cpp build.bat tests/compiler/bit_scan_test.cpp
           git commit -m 'fix: support MSVC bit scans and isolate Windows small macro'
           git push origin HEAD:fix/windows-build
