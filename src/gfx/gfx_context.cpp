@@ -1,5 +1,7 @@
 // Command context: slot bindings resolved into pipeline states, descriptor tables and root parameters at each
 // draw / dispatch, with automatic resource transitions. Included from gfx.cpp.
+#include "../core/bits.h"
+
 namespace gfx {
 namespace {
 
@@ -9,8 +11,8 @@ const D3D12_RESOURCE_STATES kGraphicsOnlyStates =
     D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_STREAM_OUT | D3D12_RESOURCE_STATE_RESOLVE_DEST |
     D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
 
-inline u32 lowestBit(u64 m) { return (u32)__builtin_ctzll(m); }
-inline u32 highestBit(u64 m) { return 63u - (u32)__builtin_clzll(m); }
+inline u32 lowestBit(u64 m) { return BitScan::lowestSetBit64(m); }
+inline u32 highestBit(u64 m) { return BitScan::highestSetBit64(m); }
 inline u64 rangeMask(u32 range) { return range == 0 ? 0xffffffffull : (0xffffull << kLocalSRVSlots); }
 
 bool viewsOverlap(const ViewObj* a, const ViewObj* b) {

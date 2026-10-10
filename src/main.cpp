@@ -5,6 +5,11 @@
 #include "core/jobs.cpp"
 #include "platform/win32.cpp"
 #include "gfx/gfx.cpp"
+// The Windows SDK RPC headers define small as char. Do not leak that macro
+// into the game modules below, which use small as an ordinary identifier.
+#ifdef small
+#undef small
+#endif
 #include "ui/draw2d.cpp"
 #include "ui/signs.cpp"
 #include "render/mesh.cpp"
