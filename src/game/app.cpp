@@ -5803,9 +5803,11 @@ struct App {
     }
 
     void openPause(UI::MenuScreen s) {
-        menu.screen = s;
-        menu.cursor = 0;
-        menu.tab = 0;
+        UI::Menus::openPause(menu, s);
+        game.paused = true;
+        game.ctl = Controls();
+        Platform::setMouseCaptured(false);
+        Platform::setGamepadRumble(0.f, 0.f);
 #ifdef HAVE_AUDIO
         Audio::setPaused(true);
         Audio::play2D(Audio::SFX_UI_SELECT, 0.6f);
@@ -5878,6 +5880,8 @@ struct App {
                 break;
             case UI::MA_RESUME:
                 menu.screen = UI::MENU_NONE;
+                game.paused = false;
+                Platform::setMouseCaptured(Platform::hasFocus() && !autotest);
 #ifdef HAVE_AUDIO
                 Audio::setPaused(false);
 #endif
