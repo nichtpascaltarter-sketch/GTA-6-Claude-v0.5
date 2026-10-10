@@ -2,7 +2,7 @@ name: Windows build
 
 on:
   push:
-    branches: [main, fix/windows-build]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -21,16 +21,37 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+      - name: Test MSVC bit scans
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSINSTALL=%%i"
+          call "%VSINSTALL%\VC\Auxiliary\Build\vcvars64.bat" >nul || exit /b 1
+          if not exist build mkdir build
+          cl /nologo /std:c++17 /utf-8 /O2 /EHsc /W4 /WX tests\compiler\bit_scan_test.cpp /Fe:build\bit_scan_test.exe /Fo:build\bit_scan_test.obj || exit /b 1
+          build\bit_scan_test.exe || exit /b 1
       - name: Build game
         shell: cmd
         run: call build.bat
       - name: Upload Windows executable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: NeonTide-Windows-x64
           path: bin/NeonTide.exe
           if-no-files-found: error
           retention-days: 14
+  gcc:
+    name: GCC bit-scan regression tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Test GCC bit scans with undefined-behavior sanitizer
+        run: |
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined tests/compiler/bit_scan_test.cpp -o /tmp/neontide-bit-scan-test
+          /tmp/neontide-bit-scan-test
