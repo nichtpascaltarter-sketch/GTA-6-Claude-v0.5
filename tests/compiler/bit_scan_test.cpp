@@ -5,8 +5,8 @@ static bool check(std::uint64_t mask) {
     unsigned lo = 64, hi = 64;
     for (unsigned i = 0; i < 64; ++i) {
         if (mask & (std::uint64_t(1) << i)) {
-  if (lo == 64) lo = i;
-  hi = i;
+            if (lo == 64) lo = i;
+            hi = i;
         }
     }
     if (BitScan::lowestSetBit64(mask) == lo && BitScan::highestSetBit64(mask) == hi) return true;
@@ -19,7 +19,7 @@ int main() {
     for (unsigned i = 0; i < 64; ++i) {
         if (!check(std::uint64_t(1) << i)) return 1;
         for (unsigned j = i; j < 64; ++j) {
-  if (!check((std::uint64_t(1) << i) | (std::uint64_t(1) << j))) return 1;
+            if (!check((std::uint64_t(1) << i) | (std::uint64_t(1) << j))) return 1;
         }
     }
     std::uint64_t state = 0x9e3779b97f4a7c15ULL;
