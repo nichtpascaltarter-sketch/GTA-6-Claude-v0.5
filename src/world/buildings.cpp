@@ -130,6 +130,33 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
         for (int y = y0; y <= y1; y++)
             for (int x = x0; x <= x1; x++) bulbGrid[bulbKey(x, y)].push_back((int)i);
     }
+    // the distance from a rectangle to the nearest two-way dead end within 16 m (16 when none): the lane graph's turning circle
+    // there (src/game/lanes.cpp) keeps 4.2 m from the buildings round a half circle of up to 6.5 m
+    std::unordered_map<long long, std::vector<vec2>> deadEndGrid;
+    for (const RoadNode& nd : roads.nodes) {
+        if (nd.edges.size() != 1) continue;
+        const RoadEdge& de = roads.edges[nd.edges[0]];
+        if ((de.flags & RF_ONEWAY) || de.lanesF == 0 || de.lanesB == 0) continue;
+        deadEndGrid[bulbKey((int)floorf(nd.p.x / kBulbCell), (int)floorf(nd.p.y / kBulbCell))].push_back(nd.p);
+    }
+    auto deadEndDist = [&](vec2 c, vec2 ax, float hx, float hy) {
+        float best = 16.f;
+        const float rr = sqrtf(hx * hx + hy * hy) + 16.f;
+        int x0 = (int)floorf((c.x - rr) / kBulbCell), x1 = (int)floorf((c.x + rr) / kBulbCell);
+        int y0 = (int)floorf((c.y - rr) / kBulbCell), y1 = (int)floorf((c.y + rr) / kBulbCell);
+        const vec2 ay = perp(ax);
+        for (int y = y0; y <= y1; y++)
+            for (int x = x0; x <= x1; x++) {
+                auto it = deadEndGrid.find(bulbKey(x, y));
+                if (it == deadEndGrid.end()) continue;
+                for (vec2 q : it->second) {
+                    vec2 d = q - c;
+                    float qx = Max(fabsf(dot(d, ax)) - hx, 0.f), qy = Max(fabsf(dot(d, ay)) - hy, 0.f);
+                    best = Min(best, sqrtf(qx * qx + qy * qy));
+                }
+            }
+        return best;
+    };
     auto hitsBulb = [&](const OBB2& o) {
         float rr = sqrtf(o.hx * o.hx + o.hy * o.hy);
         int x0 = (int)floorf((o.c.x - rr) / kBulbCell), x1 = (int)floorf((o.c.x + rr) / kBulbCell);
@@ -351,12 +378,60 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
                     case BS_CHURCH: fx = lot.hx * 0.45f; fy = lot.hy * 0.7f; break;
                     default: fx = lot.hx * br.range(0.9f, 0.98f); fy = lot.hy * br.range(0.85f, 0.97f); break;
                 }
+                // A house with a garage (garageKind, buildings.h) sits off the lot's middle, away from its garage side, so the
+                // garage wing stays on the house's own lot: centred, the wings reached up to 5 m past the lot line, into the
+                // neighbour's garage, shop front or mid-rise. On a narrow lot the house gets up to 40% narrower; where
+                // that is not enough a driveway strip beside the house takes the wing's place, and where even the strip has no
+                // room the house keeps no garage (its seed's garage digit moves past 6: houseGarage(), which population.cpp's
+                // parked car follows too).
+                float gShift = 0.f;   // along the lot, towards the garage side
+                if ((st == BS_HOUSE && (b.seed % 10u) < 7u) || st == BS_VILLA) {
+                    const float side = (b.seed & 64u) ? 1.f : -1.f, fx0 = fx;
+                    const vec2 fcy = lot.c + b.front * ((lot.hy - fy) * 0.35f);   // (the house's place across the lot: below)
+                    // the room the garage needs beside the house (the wing, else the strip) and the house's width for it, with
+                    // sideYard kept on the other side
+                    auto fit = [&](float sideYard, float& w, float& need) {
+                        const float fxWing = lot.hx - (kGarageWingRoom + sideYard) * 0.5f, fxStrip = lot.hx - (kGarageStripRoom + sideYard) * 0.5f;
+                        w = fx0;
+                        need = kGarageWingRoom;
+                        if (w <= fxWing) return true;
+                        if (fxWing >= Max(3.8f, fx0 * 0.6f)) {
+                            w = fxWing;
+                            return true;
+                        }
+                        need = kGarageStripRoom;
+                        if (st == BS_VILLA || fxStrip >= 2.9f) {
+                            w = Min(w, Max(fxStrip, 2.9f));
+                            return true;
+                        }
+                        return false;
+                    };
+                    float need = 0.f;
+                    bool ok = fit(1.8f, fx, need);
+                    if (ok) {
+                        gShift = Min(0.f, lot.hx - fx - need);
+                        // (not towards a dead end: its turning circle wants the room - the house stays in the lot's middle, narrower
+                        // or with the strip)
+                        if (gShift < 0.f && deadEndDist(fcy + lot.ax * (side * gShift), lot.ax, fx, fy) < Min(11.5f, deadEndDist(fcy, lot.ax, fx0, fy))) {
+                            gShift = 0.f;
+                            const float wW = lot.hx - kGarageWingRoom, wS = lot.hx - kGarageStripRoom;
+                            if (wW >= Max(3.8f, fx0 * 0.75f)) fx = Min(fx0, wW);
+                            else if (wS >= 2.9f) fx = Min(fx0, wS);
+                            else ok = false;
+                        }
+                    }
+                    if (!ok) {
+                        fx = fx0;
+                        gShift = 0.f;
+                        b.seed = b.seed >= 10u ? b.seed - b.seed % 10u - 1u : 9u;
+                    }
+                }
                 b.hx = fx;
                 b.hy = fy;
                 // Place footprint: houses sit toward the street with a front yard; strip malls at the back
                 float frontGap = lot.hy - fy;
                 vec2 fc = lot.c;
-                if (st == BS_HOUSE || st == BS_VILLA) fc = lot.c + b.front * (frontGap * 0.35f);
+                if (st == BS_HOUSE || st == BS_VILLA) fc = lot.c + b.front * (frontGap * 0.35f) + lot.ax * (garageSide(b) * gShift);
                 else if (st == BS_STRIPMALL || st == BS_GASSTATION || st == BS_CHURCH) fc = lot.c - b.front * (frontGap * 0.9f);
                 else if (st == BS_FARMHOUSE || st == BS_BARN || st == BS_SHACK) fc = lot.c + lot.ax * br.range(-lot.hx * 0.3f, lot.hx * 0.3f);
                 else fc = lot.c + b.front * (frontGap * 0.95f);
