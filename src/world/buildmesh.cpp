@@ -1356,13 +1356,14 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 return va < pavedEdge ? a + b.front * (pavedEdge - va) : a;
             };
             // Garage wing (suburban houses / villas)
-            // (deterministic from the seed: facadedetail.cpp keeps hedges and garden walls clear of this driveway)
-            bool garage = (b.style == BS_HOUSE && (b.seed % 10u) < 7u) || b.style == BS_VILLA;
-            float side = (b.seed & 64u) ? 1.f : -1.f;
+            // (deterministic from the seed and the lot, garageKind: facadedetail.cpp keeps hedges and garden walls clear of
+            // this driveway)
+            const int gk = garageKind(b);
+            float side = garageSide(b);
             // (the block houses, the MiMo houses and the mobile homes have a carport instead: a flat roof on posts, a utility
             // room at the back)
             const bool carport = b.arch == AR_HOUSE_CBS || b.arch == AR_HOUSE_MIMO || b.arch == AR_HOUSE_TRAILER;
-            if (garage && carport) {
+            if (gk == 1 && carport) {
                 float gw = 3.2f, gd = massing::carportHalfDepth(b);   // (a mobile home's carport no deeper than the home)
                 vec2 gc = b.c + b.ax * (side * (b.hx + gw)) + b.front * (b.hy - gd);
                 const vec3 X(b.ax, 0.f), Y(ay, 0.f), Z(0, 0, 1);
@@ -1412,9 +1413,9 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                 lawnHole(x, (dA + dB) * 0.5f, 2.6f, length(dB - dA) * 0.5f);
                 dA = drivewayFrom(dA);
                 if (dot(dB - dA, Fw) > 0.3f) drivewaySurface(x, b, rectFP((dA + dB) * 0.5f, b.ax, 2.6f, length(dB - dA) * 0.5f));
-            } else if (garage && (b.arch == AR_HOUSE_VICTORIAN || b.arch == AR_HOUSE_RAISED)) {
-                // the old frame houses and the raised Keys houses (parking under the house) keep no garage wing: a concrete
-                // strip beside the house to the street (the car parks on it)
+            } else if (gk == 2) {
+                // the old frame houses and the raised Keys houses (parking under the house) keep no garage wing, nor does a
+                // house on a lot too narrow for one: a concrete strip beside the house to the street (the car parks on it)
                 float gw = 3.2f, gd = Min(b.hy, 3.4f);
                 vec2 dA = b.c + b.ax * (side * (b.hx + gw)) + b.front * (b.hy - gd), dB = b.lotC + b.front * (b.lotHy + 1.5f);
                 dB = dA + b.front * Max(1.f, dot(dB - dA, b.front));
@@ -1427,7 +1428,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
                     for (auto& p : dfp) poly.push_back(vec3(p, map.heightAt(p.x, p.y) + 0.06f) - org);
                     m.polygon(poly, vec3(0, 0, 1), kWhite, makeMat(MAT_CONCRETE), 1.f);
                 }
-            } else if (garage) {
+            } else if (gk == 1) {
                 float gw = 3.2f, gd = Min(b.hy, 3.4f);
                 vec2 gc = b.c + b.ax * (side * (b.hx + gw)) + b.front * (b.hy - gd);
                 auto gfp = rectFP(gc, b.ax, gw, gd);

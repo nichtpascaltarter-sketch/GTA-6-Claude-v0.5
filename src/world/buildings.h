@@ -158,6 +158,22 @@ struct Building {
 
 enum ArchFlags : u8 { ABF_CORNER = 1, ABF_MURAL = 2, ABF_CORNER_LEFT = 4, ABF_OLD = 8, ABF_ACCENT = 16 };
 
+// A house's garage (buildmesh.cpp builds it, facadedetail.cpp keeps hedges and walls off its driveway, population.cpp parks
+// the car on the driveway 3.2 m out beside the house): the houses with seed % 10 < 7 and every villa, on the side seed & 64.
+// 1: a garage wing or a carport, 6.4 m wide beside the house (its roof up to 0.5 m over), which the lot placement
+// (buildings.cpp) leaves room for on the house's own lot; 2: a driveway strip beside the house to the street, for the old
+// frame houses and the raised Keys houses (parking under the house) and where the lot is too narrow for the wing; 0: none.
+constexpr float kGarageWingRoom = 7.1f;    // beside the house to its lot line: the wing, its eave and 0.2 m
+constexpr float kGarageStripRoom = 4.6f;   // the strip's two wheel tracks (3.2 m out, 1.13 m either side) and 0.27 m
+inline bool houseGarage(const Building& b) { return (b.style == BS_HOUSE && (b.seed % 10u) < 7u) || b.style == BS_VILLA; }
+inline float garageSide(const Building& b) { return (b.seed & 64u) ? 1.f : -1.f; }
+inline int garageKind(const Building& b) {
+    if (!houseGarage(b)) return 0;
+    if (b.arch == AR_HOUSE_VICTORIAN || b.arch == AR_HOUSE_RAISED) return 2;
+    if (b.siteElem >= 0) return 1;
+    return b.lotHx + garageSide(b) * dot(b.lotC - b.c, b.ax) - b.hx >= kGarageWingRoom - 0.15f ? 1 : 2;
+}
+
 // A facade-covered mass of a building mesh (main block, podium, tower tier, deco tower, house body), recorded by
 // buildmesh.cpp so the street-level detail pass (facadedetail.cpp) can align moldings with the shader's window grid.
 // FM_WING: a secondary volume of an archetype house or a corner tower (window trims only, no garden, door or storefront)

@@ -1260,7 +1260,13 @@ void BuildingSet::infillBlocks(WorldMap& map, const std::function<bool(vec2, vec
             rb.face = -1;
             float hx, hy;
             u8 arch;
-            if (kind == 1) { arch = AR_REAR_GARAGE; hx = Min(W * 0.5f - 0.6f, br.range(4.5f, 11.f)); hy = br.range(3.f, 3.6f); }
+            if (kind == 1) {
+                // (no deeper than the plot: a garage row used to stand out of a shallow plot into the house lot beside it)
+                arch = AR_REAR_GARAGE;
+                hx = Min(W * 0.5f - 0.6f, br.range(4.5f, 11.f));
+                hy = Min(D * 0.5f - 0.6f, br.range(3.f, 3.6f));
+                if (hy < 2.6f) hy = 0.f;
+            }
             else if (kind == 2) { arch = AR_REAR_SHED; hx = Min(W * 0.5f - 0.6f, br.range(2.2f, home ? 3.2f : 7.f)); hy = Min(D * 0.5f - 0.6f, br.range(1.8f, 4.5f)); }
             else { arch = AR_REAR_COTTAGE; hx = Min(W * 0.5f - 0.8f, br.range(3.5f, 5.2f)); hy = Min(D * 0.5f - 1.5f, br.range(3.f, 4.4f)); }
             if (hx < 1.6f || hy < 1.5f) {
@@ -1624,14 +1630,15 @@ int pavedRects(const Building& b, PavedRect* out) {
         const float off = dot(b.lotC - b.c, b.front), lat = dot(b.lotC - b.c, b.ax), v0 = b.hy - 0.05f, v1 = off + b.lotHy - 0.3f;
         if (v1 - v0 > 1.f) out[n++] = {b.c + b.ax * lat + b.front * ((v0 + v1) * 0.5f), b.ax, b.lotHx - 0.15f, (v1 - v0) * 0.5f};
     }
-    if ((b.style == BS_HOUSE && (b.seed % 10u) < 7u) || b.style == BS_VILLA) {
-        float side = (b.seed & 64u) ? 1.f : -1.f;
+    if (const int gk = garageKind(b)) {
+        // (the wing and its driveway, or the driveway strip beside the house from the wing's middle: buildmesh.cpp)
+        float side = garageSide(b);
         float gw = 3.2f, gd = Min(b.hy, 3.4f);
         vec2 gc = b.c + b.ax * (side * (b.hx + gw)) + b.front * (b.hy - gd);
-        out[n++] = {gc, b.ax, gw, gd};
-        vec2 dA = gc + b.front * gd, dB = b.lotC + b.front * (b.lotHy + 1.5f);
+        if (gk == 1) out[n++] = {gc, b.ax, gw, gd};
+        vec2 dA = gk == 1 ? gc + b.front * gd : gc, dB = b.lotC + b.front * (b.lotHy + 1.5f);
         dB = dA + b.front * Max(1.f, dot(dB - dA, b.front));
-        out[n++] = {(dA + dB) * 0.5f, b.ax, 2.6f, length(dB - dA) * 0.5f};
+        out[n++] = {(dA + dB) * 0.5f, b.ax, gk == 1 ? 2.6f : 1.15f, length(dB - dA) * 0.5f};
     }
     if (b.style == BS_STRIPMALL || b.style == BS_GASSTATION) {
         vec2 lotFront = b.lotC + b.front * b.lotHy, face = b.c + b.front * b.hy;
