@@ -123,8 +123,12 @@ bool hasLoadingDoors(const Building& b) { return b.style == BS_WAREHOUSE || b.st
 int loadingDoorCount(const Building& b) { return Max(1, (int)(b.hx / 7.f)); }
 float loadingDoorU(const Building& b, int k) { return -b.hx + (k + 0.5f) * (2.f * b.hx / loadingDoorCount(b)); }
 
-// A neighbour's attached garage wing (buildmesh.cpp: suburban houses and villas) reaching into a building's footprint:
-// its walls, roof and collision would stand inside the interior
+// A neighbour's garage wing or carport reaching into a building's footprint: its walls, roof and collision would stand
+// inside the interior. The same rectangle buildmesh.cpp's house branch builds: garageKind 1 (the driveway strip of kind 2
+// and the houses without a garage stand nothing up), on garageSide, 3.2 m half wide beside the house, carportHalfDepth
+// deep from its front, with the roof - the carport's slab 0.15 m over the front and the outer side, the wing's eave all
+// round (0.5 m where buildmesh puts an eave slab on it, 0.4 m on a pitched roof). Site-element houses are hand-built
+// (places.h) and have none.
 bool garageIntrudes(const BuildingSet& bs, int bi) {
     const Building& b = bs.buildings[bi];
     std::vector<int> around;
@@ -133,13 +137,22 @@ bool garageIntrudes(const BuildingSet& bs, int bi) {
     for (int j : around) {
         if (j == bi) continue;
         const Building& h = bs.buildings[j];
-        bool garage = (h.style == BS_HOUSE && (h.seed % 10u) < 7u) || h.style == BS_VILLA;
-        if (!garage) continue;
-        float side = (h.seed & 64u) ? 1.f : -1.f;
-        float gw = 3.2f, gd = Min(h.hy, 3.4f);
+        if (garageKind(h) != 1 || h.siteElem >= 0) continue;
+        const float side = garageSide(h);
+        const bool carport = h.arch == AR_HOUSE_CBS || h.arch == AR_HOUSE_MIMO || h.arch == AR_HOUSE_TRAILER;
+        float gw = 3.2f, gd = massing::carportHalfDepth(h);
         vec2 gc = h.c + h.ax * (side * (h.hx + gw)) + h.front * (h.hy - gd);
+        if (carport) {
+            gc += h.front * 0.15f + h.ax * (side * 0.15f);
+            gw += 0.15f;
+            gd += 0.15f;
+        } else {
+            const float eave = (h.arch == AR_HOUSE_MIMO || h.arch == AR_VILLA_MODERN) ? 0.5f : 0.4f;
+            gw += eave;
+            gd += eave;
+        }
         vec2 hy2 = perp(h.ax);
-        // separating axis test between the two rectangles (garage wing vs footprint, 0.2 m tolerance)
+        // separating axis test between the two rectangles (garage vs footprint, 0.2 m tolerance)
         vec2 axes[4] = {b.ax, by, h.ax, hy2};
         bool overlap = true;
         for (vec2 a : axes) {
