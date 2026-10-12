@@ -11,7 +11,7 @@ cbuffer PostCB : register(b1) {
     float4 gPost0;  // x exposure compensation EV, y adaptation speed up, z speed down, w dt
     float4 gPost1;  // x bloom strength, y vignette, z grain, w saturation
     float4 gPost2;  // x contrast, y warmth, z min EV, w max EV
-    float4 gPost3;  // x unused, y camera cut, z sharpen, w unused
+    float4 gPost3;  // x local exposure highlight scale (1 = off), y camera cut, z sharpen, w local exposure pivot (log2)
     // Gameplay screen effects (Renderer::postFx)
     float4 gFx0;    // x saturation, y vignette, z chromatic aberration, w flash
     float4 gFx1;    // rgb tint, w blur
@@ -21,6 +21,9 @@ cbuffer PostCB : register(b1) {
     float4 gCb1;
     float4 gCb2;
     float4 gShaft;  // crepuscular rays: xy sun position (uv), z strength (0 = off)
+};
+cbuffer BloomCB : register(b2) {
+    float4 gBloom;  // xy dst size, z first level (karis), w upsample radius (local exposure: xy grid size in tiles)
 };
 Texture2D<float> tSceneDepth : register(t5);
 Texture2D<float4> tDebugView : register(t6);   // --debugview values (lighting pass), shown in the debug region
@@ -62,6 +65,22 @@ void csLumHist(uint3 gid : SV_GroupID, uint3 tid : SV_GroupThreadID, uint gi : S
 
 float histLog(float bin) { return (bin + 0.5) / kHistScale + kHistMin; }
 
+// Local exposure (night): the eye adapts to a lit room seen through a window, a camera does not. Large bright areas
+// (a lit lobby or shop, a floodlit wall) are compressed towards the street's exposure while keeping their own
+// detail, like the local exposure of film scanners and UE5: the image's log luminance goes into a bilateral grid
+// (Chen et al. 2007; 32x32 pixel tiles x 16 luminance bins), which gives every pixel the smooth "base" luminance of
+// the region it belongs to without bleeding across edges (a dark window frame keeps its own base); the base above a
+// pivot is scaled by gPost3.x (1 = off), detail within a region is kept. Small bright things (lamps, neon) blend
+// towards the tile neighbourhood's mean, so they stay bright points with their bloom.
+// gPost3.w: pivot, log2 of the pre-exposed luminance where the compression starts.
+static const float kLxMin = -10.0;    // log2 pre-exposed luminance at the bottom of bin 0
+static const float kLxStep = 1.25;    // log2 units per bin
+static const float kLxBins = 16.0;
+static const float kLxMeanBlend = 0.45;   // share of the tile neighbourhood's mean in the base
+// The compression on the histogram's log values (absolute log2 luminance) for the metering, matching the image the
+// player sees: a lit window filling part of the frame no longer darkens the street around it.
+float lxCompressAbs(float l, float pivotAbs) { return l > pivotAbs ? pivotAbs + (l - pivotAbs) * gPost3.x : l; }
+
 // 2) Metering + adaptation (clears the histogram for the next frame). gPost3.y > 0.5: camera cut, snap exposure.
 [numthreads(1, 1, 1)]
 void csExposure() {
@@ -77,13 +96,16 @@ void csExposure() {
     }
     float4 prev = uExposure[0];
     if (total <= 0.0) return;
+    // local exposure (gPost3.x < 1): the metering sees the bright regions compressed as the player does
+    float pivotAbs = gPost3.w - log2(max(prev.x, 1e-12));
+    bool lx = gPost3.x < 0.999 && prev.w > 0.5;
     // trimmed geometric mean between the 8th and 94th percentiles
     float lo = total * 0.08, hi = total * 0.94;
     float cum = 0, s = 0, ws = 0;
     [unroll] for (int k = 0; k < 64; k++) {
         float a = cum, bnd = cum + h[k];
         float take = max(min(bnd, hi) - max(a, lo), 0.0);
-        s += histLog((float)k) * take;
+        s += (lx ? lxCompressAbs(histLog((float)k), pivotAbs) : histLog((float)k)) * take;
         ws += take;
         cum = bnd;
     }
@@ -116,6 +138,7 @@ void csExposure() {
                 found = true;
             }
         }
+        if (lx) { p97 = lxCompressAbs(p97, pivotAbs); p88 = lxCompressAbs(p88, pivotAbs); }
         float evHL = p97 - log2(1.2 * 3.5);
         float pull = lerp(0.35, 0.65, saturate((p88 - log2(1.2 * 3.5) - targetEV) * 0.75));
         if (evHL > targetEV) targetEV = lerp(targetEV, evHL, pull);
@@ -153,13 +176,73 @@ void csExposure() {
 }
 
 // ------------------------------------------------------------------------------------------------
+// Local exposure grid (see kLxMin above). 1) Each 16x16 group bins one 32x32 pixel tile of the anti-aliased image
+// (2x2 pixels a thread) by log luminance: per bin the mean log luminance and the share of the tile's pixels.
+RWTexture3D<float2> uLxGrid : register(u3);   // (mean log luminance * weight, weight) per tile and bin
+RWTexture2D<float> uLxMean : register(u4);    // mean log luminance of the tile's neighbourhood
+Texture3D<float2> tLxRaw : register(t7);
+groupshared uint gsLxSum[16], gsLxCnt[16];
+[numthreads(16, 16, 1)]
+void csLocalExpGrid(uint3 gid : SV_GroupID, uint3 tid : SV_GroupThreadID, uint gi : SV_GroupIndex) {
+    if (gi < 16) { gsLxSum[gi] = 0; gsLxCnt[gi] = 0; }
+    GroupMemoryBarrierWithGroupSync();
+    [unroll] for (int k = 0; k < 4; k++) {
+        uint2 p = gid.xy * 32 + tid.xy * 2 + uint2(k & 1, k >> 1);
+        if (p.x < (uint)gScreen.x && p.y < (uint)gScreen.y) {
+            float l = log2(max(luminance(tHDR[p].rgb), 1e-7));
+            if (l == l) {   // NaN guard
+                float lb = clamp(l, kLxMin, kLxMin + kLxBins * kLxStep - 0.01) - kLxMin;
+                uint bi = min((uint)(lb / kLxStep), 15u);
+                InterlockedAdd(gsLxSum[bi], (uint)(lb * 64.0 + 0.5));
+                InterlockedAdd(gsLxCnt[bi], 1u);
+            }
+        }
+    }
+    GroupMemoryBarrierWithGroupSync();
+    if (gi < 16) {
+        float n = (float)gsLxCnt[gi];
+        float mean = n > 0.0 ? (float)gsLxSum[gi] / (64.0 * n) + kLxMin : 0.0;
+        float w = n / 1024.0;
+        uLxGrid[uint3(gid.xy, gi)] = float2(mean * w, w);
+    }
+}
+
+// 2) Blur of the grid: a tent over 3x3 tiles and 3 bins (the bilateral base), and the mean log luminance over 5x5
+// tiles (all bins: the neighbourhood's geometric mean). gBloom.xy: grid size in tiles.
+[numthreads(8, 8, 1)]
+void csLocalExpBlur(uint3 id : SV_DispatchThreadID) {
+    int2 dim = (int2)gBloom.xy;
+    if (id.x >= (uint)dim.x || id.y >= (uint)dim.y) return;
+    float2 m = 0;
+    [unroll] for (int y = -2; y <= 2; y++) {
+        [unroll] for (int x = -2; x <= 2; x++) {
+            int2 q = clamp((int2)id.xy + int2(x, y), int2(0, 0), dim - 1);
+            float wt = (3.0 - abs((float)x)) * (3.0 - abs((float)y));
+            [loop] for (int b = 0; b < 16; b++) m += tLxRaw[uint3(q, b)] * wt;
+        }
+    }
+    uLxMean[id.xy] = m.y > 1e-6 ? m.x / m.y : kLxMin;
+    [loop] for (int z = 0; z < 16; z++) {
+        float2 s = 0;
+        [unroll] for (int dz = -1; dz <= 1; dz++) {
+            int zz = z + dz;
+            if (zz < 0 || zz > 15) continue;
+            [unroll] for (int y2 = -1; y2 <= 1; y2++) {
+                [unroll] for (int x2 = -1; x2 <= 1; x2++) {
+                    int2 q = clamp((int2)id.xy + int2(x2, y2), int2(0, 0), dim - 1);
+                    s += tLxRaw[uint3(q, zz)] * ((2.0 - abs((float)x2)) * (2.0 - abs((float)y2)) * (2.0 - abs((float)dz)));
+                }
+            }
+        }
+        uLxGrid[uint3(id.xy, z)] = s / 64.0;
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
 // Bloom: 13-tap downsample (with Karis average on the first level) and tent upsample.
 Texture2D<float4> tBloomSrc : register(t3);
 Texture2D<float4> tBloomLow : register(t4);
 RWTexture2D<float4> uBloomDst : register(u2);
-cbuffer BloomCB : register(b2) {
-    float4 gBloom;  // xy dst size, z first level (karis), w upsample radius
-};
 float3 karis(float3 c) { return c / (1.0 + luminance(c)); }
 
 [numthreads(8, 8, 1)]
@@ -263,6 +346,24 @@ float3 acesFitted(float3 v) {
     return saturate(mul(outM, v));
 }
 
+// Local exposure factor of a pixel (see csLocalExpGrid): the bilateral grid sliced at the pixel's position and log
+// luminance gives its region's base; the base's part above the pivot is scaled by gPost3.x.
+Texture3D<float2> tLxGrid : register(t8);
+Texture2D<float> tLxMean : register(t9);
+float localExposure(float3 c, float2 uv) {
+    float l = log2(max(luminance(c), 1e-7));
+    float2 gdim = ceil(gScreen.xy / 32.0);
+    float2 guv = uv * gScreen.xy / (32.0 * gdim);
+    float z = (clamp(l, kLxMin, kLxMin + kLxBins * kLxStep) - kLxMin) / (kLxStep * kLxBins);
+    float2 g = tLxGrid.SampleLevel(sLinearClamp, float3(guv, z), 0);
+    float base = g.y > 1e-5 ? g.x / g.y : l;
+    // small bright things in a darker neighbourhood (lamps, neon, a lit window far away) lean towards the
+    // neighbourhood's mean and keep most of their brightness; a dark frame next to a lit room keeps its own base
+    // (no dark halo)
+    base -= kLxMeanBlend * max(base - tLxMean.SampleLevel(sLinearClamp, guv, 0), 0.0);
+    return exp2(-max(base - gPost3.w, 0.0) * (1.0 - gPost3.x));
+}
+
 // Disc blur of the HDR image (gameplay blur / underwater softening), radius in pixels.
 float3 discBlur(float2 uv, float radius) {
     float3 s = tHDR.SampleLevel(sLinearClamp, uv, 0).rgb;
@@ -291,9 +392,12 @@ float4 psTonemap(VSOut i) : SV_Target {
     }
     // light sharpening (compensates TAA softness)
     float2 px = 1.0 / gScreen.xy;
-    float3 nb = tHDR.SampleLevel(sLinearClamp, uv + float2(px.x, 0), 0).rgb + tHDR.SampleLevel(sLinearClamp, uv - float2(px.x, 0), 0).rgb +
-                tHDR.SampleLevel(sLinearClamp, uv + float2(0, px.y), 0).rgb + tHDR.SampleLevel(sLinearClamp, uv - float2(0, px.y), 0).rgb;
-    float3 sharp = c + (c - nb * 0.25) * gPost3.z;
+    float3 n0 = tHDR.SampleLevel(sLinearClamp, uv + float2(px.x, 0), 0).rgb, n1 = tHDR.SampleLevel(sLinearClamp, uv - float2(px.x, 0), 0).rgb;
+    float3 n2 = tHDR.SampleLevel(sLinearClamp, uv + float2(0, px.y), 0).rgb, n3 = tHDR.SampleLevel(sLinearClamp, uv - float2(0, px.y), 0).rgb;
+    float3 nb = n0 + n1 + n2 + n3;
+    // the overshoot stays within the neighbourhood's range: no pale halo along a dark edge (a brow or lash line
+    // against skin, a window frame against a lit room), detail between the extremes is still sharpened
+    float3 sharp = clamp(c + (c - nb * 0.25) * gPost3.z, min(c, min(min(n0, n1), min(n2, n3))), max(c, max(max(n0, n1), max(n2, n3))));
     c = max(lerp(c, sharp, saturate(1.0 - luminance(c) * 0.2)), 0.0);
     // Chromatic aberration: radial red/blue split
     float ca = gFx0.z;
@@ -305,6 +409,7 @@ float4 psTonemap(VSOut i) : SV_Target {
     float blurAmt = saturate(gFx1.w + uw * 0.25);
     if (blurAmt > 0.0) c = lerp(c, discBlur(uv, 2.0 + blurAmt * 10.0), saturate(blurAmt * 2.0));
     c = lerp(c, tBloom.SampleLevel(sLinearClamp, uv, 0).rgb, gPost1.x);
+    if (gPost3.x < 0.999) c *= localExposure(c, i.uv);
     if (gShaft.z > 0.0) {
         // crepuscular rays over the sky and distant scenery (the froxel fog handles the air near the camera)
         float d0 = tSceneDepth.SampleLevel(sPointClamp, i.uv, 0);

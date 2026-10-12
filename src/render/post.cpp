@@ -31,6 +31,10 @@ struct PostSystem {
     gfx::ComputeShader csReduce = nullptr, csExposure = nullptr, csTAA = nullptr, csBloomDown = nullptr, csBloomUp = nullptr;
     gfx::ComputeShader csTileMax = nullptr, csNeighborMax = nullptr, csMotionBlur = nullptr;
     gfx::Texture mbTiles, mbNeighbor, mbOut;
+    // Local exposure at night (post.hlsl csLocalExpGrid): bilateral grid of the log luminance, 32x32 pixel tiles x 16 bins
+    gfx::Texture lxRaw, lxGrid, lxMean;
+    gfx::ComputeShader csLxGrid = nullptr, csLxBlur = nullptr;
+    int lxW = 0, lxH = 0;
     gfx::CBuffer<MotionBlurCBData> mbCB;
     int tilesX = 0, tilesY = 0;
     gfx::SRV  displaySrv = nullptr;  // TAA output after motion blur (bloom, exposure, tonemap input)
@@ -59,6 +63,8 @@ struct PostSystem {
         csTileMax = gfx::loadCS("motionblur.hlsl", "csTileMax");
         csNeighborMax = gfx::loadCS("motionblur.hlsl", "csNeighborMax");
         csMotionBlur = gfx::loadCS("motionblur.hlsl", "csMotionBlur");
+        csLxGrid = gfx::loadCS("post.hlsl", "csLocalExpGrid");
+        csLxBlur = gfx::loadCS("post.hlsl", "csLocalExpBlur");
         mbCB.create();
         cb.create();
         taaCB.create();
@@ -88,6 +94,39 @@ struct PostSystem {
         mbTiles = gfx::createTexture2D(tilesX, tilesY, DXGI_FORMAT_R16G16_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV);
         mbNeighbor = gfx::createTexture2D(tilesX, tilesY, DXGI_FORMAT_R16G16_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV);
         mbOut = gfx::createTexture2D(w, h, DXGI_FORMAT_R16G16B16A16_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV);
+        lxRaw.release();
+        lxGrid.release();
+        lxMean.release();
+        lxW = (w + 31) / 32;
+        lxH = (h + 31) / 32;
+        lxRaw = gfx::createTexture3D(lxW, lxH, 16, DXGI_FORMAT_R16G16_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV);
+        lxGrid = gfx::createTexture3D(lxW, lxH, 16, DXGI_FORMAT_R16G16_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV);
+        lxMean = gfx::createTexture2D(lxW, lxH, DXGI_FORMAT_R16_FLOAT, gfx::TEX_SRV | gfx::TEX_UAV);
+    }
+
+    // Local exposure grid of the anti-aliased image (see csLocalExpGrid): bin, then blur
+    void runLocalExposure(Renderer& r) {
+        auto* c = gfx::ctx;
+        gfx::Resource  cbs[] = {r.frameCB.get(), cb.get(), bloomCB.get()};
+        c->csSetCBs(0, 3, cbs);
+        bloomCB.data.params = vec4((float)lxW, (float)lxH, 0.f, 0.f);
+        bloomCB.upload();
+        c->setCS(csLxGrid);
+        c->csSetSRVs(0, 1, &displaySrv);
+        c->csSetUAVs(3, 1, &lxRaw.uav);
+        c->dispatch(lxW, lxH, 1);
+        gfx::UAV  nu = nullptr;
+        gfx::SRV  ns = nullptr;
+        c->csSetUAVs(3, 1, &nu);
+        c->csSetSRVs(0, 1, &ns);
+        c->setCS(csLxBlur);
+        c->csSetSRVs(7, 1, &lxRaw.srv);
+        gfx::UAV  outs[2] = {lxGrid.uav, lxMean.uav};
+        c->csSetUAVs(3, 2, outs);
+        c->dispatch(gfx::divUp(lxW, 8), gfx::divUp(lxH, 8), 1);
+        gfx::UAV  nu2[2] = {};
+        c->csSetUAVs(3, 2, nu2);
+        c->csSetSRVs(7, 1, &ns);
     }
 
     // Motion blur of the TAA output into mbOut (the TAA history itself stays sharp).
@@ -231,7 +270,11 @@ struct PostSystem {
         float minEV = Lerp(-3.f, 12.f, SmoothStep(-6.f, 15.f, r.sunElevation));
         if (r.cameraInInterior()) minEV = Min(minEV, 5.f);
         cb.data.p2 = vec4(1.04f, 0.6f, minEV, 16.f);
-        cb.data.p3 = vec4(0.f, r.cameraCut ? 1.f : 0.f, 0.35f, 0);
+        // Local exposure: at night large bright areas (a lit lobby or shop behind glass) are compressed above the pivot
+        // (pre-exposed luminance 0.25, below the filmic shoulder) to 0.4 of their log range while keeping their detail
+        // (post.hlsl csLocalExpGrid); by day it is off
+        float lxScale = Lerp(1.f, 0.4f, night);
+        cb.data.p3 = vec4(lxScale, r.cameraCut ? 1.f : 0.f, 0.35f, -2.f);
         const PostFxControls& fx = r.postFx;
         cb.data.fx0 = vec4(Max(fx.saturation, 0.f), Saturate(fx.vignette), Saturate(fx.chromatic), Saturate(fx.flash));
         cb.data.fx1 = vec4(fx.tint, Saturate(fx.blur));
@@ -249,6 +292,7 @@ struct PostSystem {
         runMotionBlur(r, dt);
         runBloom(r);
         if (shafts > 0.f) runShafts(r);
+        if (lxScale < 0.999f) runLocalExposure(r);
         gfx::Resource  cbs[] = {r.frameCB.get(), cb.get()};
         c->csSetCBs(0, 2, cbs);
         c->psSetCBs(0, 2, cbs);
@@ -287,13 +331,13 @@ struct PostSystem {
         c->setTopology(gfx::TOPO_TRIANGLE_LIST);
         c->setVS(r.vsFullscreen.vs);
         c->setPS(psTonemap);
-        gfx::SRV  srvs[7] = {displaySrv, bloomUp.srv, shafts > 0.f ? shaftB.srv : blackTex.srv, nullptr, nullptr, r.depth.srv,
-                             r.debugView > 0 && r.debugTex.srv ? r.debugTex.srv : blackTex.srv};
-        c->psSetSRVs(0, 7, srvs);
+        gfx::SRV  srvs[10] = {displaySrv, bloomUp.srv, shafts > 0.f ? shaftB.srv : blackTex.srv, nullptr, nullptr, r.depth.srv,
+                              r.debugView > 0 && r.debugTex.srv ? r.debugTex.srv : blackTex.srv, nullptr, lxGrid.srv, lxMean.srv};
+        c->psSetSRVs(0, 10, srvs);
         c->psSetSRVs(40, 1, &exposureBuf.srv);
         c->draw(3, 0);
-        gfx::SRV  nullSrv6[7] = {};
-        c->psSetSRVs(0, 7, nullSrv6);
+        gfx::SRV  nullSrv6[10] = {};
+        c->psSetSRVs(0, 10, nullSrv6);
         c->psSetSRVs(40, 1, nullSrv6);
     }
 };

@@ -904,6 +904,7 @@ void GameWorld::animatePed(Ped& p, float dt) {
             vec2 m = vec2(j.x, j.y) * 0.5f + normalize(vec2(j.x, j.y) + vec2(1e-4f, 0.f)) * 0.08f;
             in.grabTarget = vec3(dot(m, rightV), dot(m, fwd) + 0.05f, 0.93f);
             in.grabWeight = 1.f;
+            in.grabAxis = vec3(0.f, 1.f, 0.f);   // (the clasp: both hands fingers-down, palms square to the walk and to each other)
             in.passWeight = 0.f;   // (the other one at the elbow is no passer to lean away from)
         }
     }
@@ -1134,6 +1135,15 @@ void GameWorld::updatePeds(float dt) {
                 float wa = a.isPlayer ? 0.25f : 0.5f, wb = b.isPlayer ? 0.25f : 0.5f;
                 a.pos = a.pos - dvec3(n.x * push * wa * 2.f, n.y * push * wa * 2.f, 0);
                 b.pos = b.pos + dvec3(n.x * push * wb * 2.f, n.y * push * wb * 2.f, 0);
+                // ... and between two people the game moves, the closing part of their relative velocity goes too, shared the
+                // same way (as movePed does against a static collider): someone walking into another's back carries the speed
+                // they actually make, which their gait (animatePed) and the stuck test of the AI's walk (aiWalkRound) then
+                // see. (Not with the player: a push through a crowd, or one taken from it, feels as it did)
+                const float vc = (b.vel.x - a.vel.x) * n.x + (b.vel.y - a.vel.y) * n.y;
+                if (vc < 0.f && !a.isPlayer && !b.isPlayer) {
+                    a.vel = a.vel + vec3(n.x, n.y, 0.f) * (vc * wa);
+                    b.vel = b.vel - vec3(n.x, n.y, 0.f) * (vc * wb);
+                }
             }
         }
     }

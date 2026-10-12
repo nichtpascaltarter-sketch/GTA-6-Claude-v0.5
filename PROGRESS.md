@@ -113,6 +113,18 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   the dark inside of the mass between them.
 - Storefront glass (facade.hlsli): shop windows look into the lit shop through glass 60% towards clear rather than
   through the building's curtain-wall tint, so a tower's storefronts no longer read darker than the street's shops.
+- Night interiors through glass (post.hlsl local exposure, facade.hlsli): at night the tonemap compresses large bright
+  areas towards the street's exposure and keeps their detail, as the eye adapts to a lit room seen from the street.
+  The image's log luminance goes into a bilateral grid (32x32 pixel tiles x 16 bins); a pixel's region base above a
+  pivot (pre-exposed 0.25) keeps 0.4 of its range, small bright things (lamps, neon, a distant window) lean towards
+  their neighbourhood and stay bright, a dark frame next to a lit room keeps its own base (no halo), and the
+  exposure meters the compressed image, so a lit lobby filling half the frame no longer darkens the street (off by
+  day). Home and office windows show rooms lit by their own lamp: a ceiling fixture, a table lamp in a back corner or
+  only the TV (inverse-square falloff plus bounce, the shade, ceiling panels or screen glowing), from candle-warm
+  2200 K to cool LED (homes mostly 2700-3000 K, offices 3500-5200 K), levels spread over three stops; fewer homes are
+  lit at night, a tower's tinted glass filters lamp light only half as much, a bookcase stands in some rooms, and
+  shop shelves and rails hold muted colours. The tonemap's sharpening stays within each pixel's neighbourhood range
+  (no pale line along dark brows, lash lines or window frames).
 - Audio (src/audio, done by agent): WASAPI mixer (192 voices, 3D, doppler, reverb, ducking), 79 synthesized SFX,
   9 engine kinds, sirens/horns/skids/rotors/boats, ambience beds, procedural music engine, 9 radio stations with DJs,
   ads and talk (live timelines), dynamic mission score. Formant TTS voices (src/audio/speech*).
