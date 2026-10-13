@@ -639,11 +639,17 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                     }
                 }
             } else if (d->mode == AI::DM_PULLOVER && va.task == 1) {
-                // waiting for a hailing ped to board
+                // waiting for a hailing ped to board - through the door clip too (ai.cpp ai_board: PS_ENTERING, boardVeh
+                // this cab; ai_board::begin leaves targetVeh set): the cab stands until they are in, not off as they reach
+                // for the door (it was, and the boarding was cancelled with the cab under way)
                 va.stopTimer += dt;
                 int hail = va.scene;
-                bool valid = hail >= 0 && hail < (int)peds.size() && peds[hail].used && peds[hail].state == PS_ONFOOT && pedAI(hail).targetVeh == vi;
-                if (!valid || va.stopTimer > 25.f) {
+                bool known = hail >= 0 && hail < (int)peds.size() && peds[hail].used;
+                bool valid = known && pedAI(hail).targetVeh == vi &&
+                             (peds[hail].state == PS_ONFOOT || (peds[hail].state == PS_ENTERING && pedAI(hail).boardVeh == vi));
+                if (!valid || (va.stopTimer > 25.f && peds[hail].state != PS_ENTERING)) {   // (never mid-clip)
+                    // (not in it, and still counting on it: off this cab, free to hail another)
+                    if (known && pedAI(hail).targetVeh == vi && peds[hail].state != PS_INVEHICLE) pedAI(hail).targetVeh = -1;
                     d->mode = AI::DM_NORMAL;
                     d->stopPath = -1;
                     va.task = 0;

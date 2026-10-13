@@ -1107,10 +1107,25 @@ bool buildArchMesh(Ctx& x, const Building& b, const FacadeGPU& fac) {
     Plan P = planVolumes(b, fac, mr);
     Rng dr(b.seed ^ 0xD37A11u);
     for (const Vol& v : P.vols) emitVolume(x, b, e, v, fac, dr);
-    // rooftop dressing on the open roofs (water tanks on the older fabric; nothing on back-yard garages and sheds)
+    // the condos' balcony slabs on the front and back of their slab volumes (every LOD; the detail pass puts the rails and
+    // the unit dividers on them: facadedetail.cpp)
+    if (b.style == BS_CONDO)
+        for (const Vol& v : P.vols) {
+            if (v.kind == FM_PODIUM || v.kind == FM_WING || v.uv.size() != 4 || !v.hole.empty() || v.rects.empty()) continue;
+            const vec4 r = v.rects[0];
+            balconyBands(x, e.P((r.x + r.y) * 0.5f, (r.z + r.w) * 0.5f), e.ax, (r.y - r.x) * 0.5f, (r.w - r.z) * 0.5f, 0.f, v.z0, v.z1, b.baseZ, fac, 1.6f, 1, false);
+        }
+    // rooftop dressing on the open roofs (water tanks on the older fabric; nothing on back-yard garages and sheds): from 3
+    // floors the roof plant along the back of the roof (every LOD: bulkhead, motor room, HVAC units, cooling tower, the
+    // older walk-ups' water tank), the small equipment on the rest
     bool old = (b.archFlags & ABF_OLD) != 0;
     bool rear = b.arch == AR_REAR_COTTAGE || b.arch == AR_REAR_GARAGE || b.arch == AR_REAR_SHED;
+    const bool brick = (int)fac.wallLayer == MAT_BRICK;
+    const float pTank = b.arch == AR_MID_WALKUP ? (brick ? 0.7f : 0.45f) : (b.arch == AR_MID_LOFT ? 0.3f : (old && b.style == BS_MIDRISE ? 0.2f : 0.f));
+    bool tank = hashToFloat(hash32(b.seed ^ 0x7A4Bu)) < pTank, antennas = false;
+    int vi = 0;
     for (const Vol& v : P.vols) {
+        vi++;
         if (!v.top || v.kind == FM_WING || rear) continue;
         u8 rf = v.roof;
         if (rf == RFM_TILE_HIP || rf == RFM_METAL_GABLE || rf == RFM_SAWTOOTH || rf == RFM_BUTTERFLY) continue;
@@ -1121,7 +1136,19 @@ bool buildArchMesh(Ctx& x, const Building& b, const FacadeGPU& fac) {
         vec2 rc = e.P((best.x + best.y) * 0.5f, (best.z + best.w) * 0.5f);
         float zr = v.z1 + (rf == RFM_EAVE ? 0.3f : (rf == RFM_MANSARD ? 1.25f : 0.f));
         if (rf == RFM_TERRACE) roofTerrace(x, e, best, v.z1, dr);
-        else rooftopClutter(x, rc, b.ax, (best.y - best.x) * 0.45f, (best.w - best.z) * 0.45f, zr, dr, old ? 0.35f : 0.06f);
+        else {
+            const float hu = (best.y - best.x) * 0.5f, hv = (best.w - best.z) * 0.5f;
+            float band = 0.f;
+            if (b.floors >= 3 && v.z1 - b.baseZ > 8.f) band = roofPlant(x, rc, b.ax, b.front, hu, hv, zr, b.seed + (u32)vi * 977u, b.floors, tank);
+            if (band > 0.f) tank = false;
+            rooftopClutter(x, rc + b.front * (band * 0.5f), b.ax, hu * 0.9f, (hv - band * 0.5f) * 0.9f, zr, dr, band > 0.f ? 0.f : (old ? 0.35f : 0.06f));
+            // antenna masts and dishes on some of the taller roofs (their own stream: the far LOD draws none)
+            if (band > 0.f && b.floors >= 4 && !antennas) {
+                antennas = true;
+                Rng ar(b.seed ^ 0xA27E1u);
+                if (ar.chance(old ? 0.45f : 0.3f)) rooftopAntennas(x, rc + b.front * (band * 0.5f), b.ax, hu * 0.5f, (hv - band * 0.5f) * 0.5f, zr, ar, false);
+            }
+        }
     }
     if (P.canopyZ > 0.f) mimoCanopy(x, b, e, P.canopyZ, mr);
     if (b.style == BS_MOTEL) motelExtras(x, b, e, fac, P, mr);
@@ -1561,6 +1588,150 @@ void colonialPortico(Ctx& x, const Env& e, float hx, float hy, float zb, float z
     x.m->box(vec3(ec, zE - 0.4f) - x.org, X, Y, Z, vec3(pw + 0.15f, pd * 0.5f + 0.05f, 0.36f), white, makeMat(MAT_PLASTER), true);
     // pediment: a front gable over the portico, the house roof's finish
     pitchedRoof(x, ec, e.ax, pw + 0.15f, pd * 0.5f + 0.05f, zE - 0.04f, 0.42f, false, 0.25f, roofCol, roofMat, white, makeMat(MAT_PLASTER), 1);
+}
+
+// A one-storey colonnade along a villa's front (the wall at v = vf, from u0 to u1, dep deep) with a terrace on its flat
+// roof: the Mediterranean villa's arcaded loggia (square stucco piers, an arched opening between each pair, a solid
+// parapet with a tile cap) or the colonial villa's veranda (round white columns, a balustrade). zR: the roof's top (the
+// floor above). The far LOD keeps the roof, the piers or columns as boxes and the parapet.
+void villaColonnade(Ctx& x, const Env& e, float vf, float u0, float u1, float dep, float zb, float zR, bool arcade, u32 wallCol, u32 wallMat, u32 capCol) {
+    const vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
+    const u32 white = packRGBA8(0.97f, 0.97f, 0.95f, 1), stone = packRGBA8(0.86f, 0.84f, 0.8f, 1);
+    const float um = (u0 + u1) * 0.5f, hw = (u1 - u0) * 0.5f;
+    const vec2 c = e.P(um, vf + dep * 0.5f);
+    yardKeep(x, c, e.ax, e.fr, hw, dep * 0.5f);
+    // the floor: a stone platform
+    x.m->box(vec3(c, zb - 0.12f) - x.org, X, Y, Z, vec3(hw, dep * 0.5f, 0.26f), stone, makeMat(MAT_PAVERS), true);
+    addCollision(x, c, e.ax, hw, dep * 0.5f, zb - 1.f, zb + 0.14f);
+    // piers or columns along the outer edge, at the ends and every 2.4-3.4 m - none on the house's middle (u = 0: the front
+    // walk, population.cpp's resident at the door)
+    int nb = Max(1, (int)roundf((u1 - u0) / 2.9f));
+    for (int tries = 0; tries < 3; tries++) {
+        const float w = (u1 - u0) / (float)nb;
+        bool clear = true;
+        for (int k = 0; k <= nb; k++) clear &= fabsf(u0 + k * w) > 0.9f;
+        if (clear) break;
+        nb = (tries & 1) ? nb - 2 : nb + 1;
+        nb = Max(1, nb);
+    }
+    const float bw = (u1 - u0) / (float)nb, zTopC = zR - 0.55f, vp = vf + dep - 0.3f;
+    for (int k = 0; k <= nb; k++) {
+        const float u = Clamp(u0 + k * bw, u0 + 0.3f, u1 - 0.3f);
+        const vec2 cp = e.P(u, vp);
+        if (arcade || !x.detail) x.m->box(vec3(cp, (zb + zTopC) * 0.5f) - x.org, X, Y, Z, vec3(arcade ? 0.3f : 0.22f, arcade ? 0.3f : 0.22f, (zTopC - zb) * 0.5f), arcade ? wallCol : white,
+                                        arcade ? wallMat : makeMat(MAT_PLASTER));
+        else {
+            x.m->cylinder(vec3(cp, zb + 0.14f) - x.org, 0.21f, 0.18f, zTopC - zb - 0.14f, 12, white, makeMat(MAT_PLASTER), false);
+            x.m->box(vec3(cp, zb + 0.24f) - x.org, X, Y, Z, vec3(0.28f, 0.28f, 0.1f), white, makeMat(MAT_PLASTER));
+            x.m->box(vec3(cp, zTopC - 0.06f) - x.org, X, Y, Z, vec3(0.27f, 0.27f, 0.06f), white, makeMat(MAT_PLASTER));
+        }
+        addCollision(x, cp, e.ax, 0.3f, 0.3f, zb, zTopC);
+    }
+    // arches between the piers (up close): the spandrels over each opening, the arch's curve in five steps
+    if (arcade && x.detail)
+        for (int k = 0; k < nb; k++) {
+            const float a0 = Clamp(u0 + k * bw, u0 + 0.3f, u1 - 0.3f) + 0.3f, a1 = Clamp(u0 + (k + 1) * bw, u0 + 0.3f, u1 - 0.3f) - 0.3f;
+            const float r = (a1 - a0) * 0.5f, zs = zTopC - r * 0.75f;   // (the springing line; a flattened arch)
+            if (r < 0.3f) continue;
+            for (int j = 0; j < 5; j++) {
+                const float t0 = (float)j / 5.f, t1 = (float)(j + 1) / 5.f;
+                const float ua = a0 + (a1 - a0) * t0, ub = a0 + (a1 - a0) * t1;
+                const float du = (ua + ub) * 0.5f - (a0 + a1) * 0.5f;
+                const float hm = sqrtf(Max(0.f, 1.f - du * du / (r * r))) * r * 0.75f;
+                x.m->box(vec3(e.P((ua + ub) * 0.5f, vp), (zs + hm + zTopC) * 0.5f) - x.org, X, Y, Z, vec3((ub - ua) * 0.5f + 0.01f, 0.25f, Max(0.02f, (zTopC - zs - hm) * 0.5f)),
+                         wallCol, wallMat);
+            }
+        }
+    // the roof slab (and the entablature round its edge), the terrace's parapet or balustrade
+    const vec2 rc = e.P(um, vf + dep * 0.5f);
+    x.m->box(vec3(rc, zR - 0.28f) - x.org, X, Y, Z, vec3(hw + 0.12f, dep * 0.5f + 0.06f, 0.28f), arcade ? wallCol : white, arcade ? wallMat : makeMat(MAT_PLASTER), true);
+    addCollision(x, rc, e.ax, hw + 0.12f, dep * 0.5f + 0.06f, zR - 0.56f, zR);
+    const float ph = arcade ? 0.95f : 1.0f;
+    for (int sd = 0; sd < 3; sd++) {
+        // front, then the two ends
+        vec2 pc;
+        vec3 PA, PB;
+        float L;
+        if (sd == 0) pc = e.P(um, vf + dep - 0.08f), PA = X, PB = Y, L = hw + 0.08f;
+        else pc = e.P(sd == 1 ? u0 + 0.04f : u1 - 0.04f, vf + dep * 0.5f), PA = Y, PB = -X, L = dep * 0.5f;   // (right-handed: the faces outward)
+        if (arcade || !x.detail) {
+            x.m->box(vec3(pc, zR + ph * 0.5f) - x.org, PA, PB, Z, vec3(L, 0.12f, ph * 0.5f), arcade ? wallCol : white, arcade ? wallMat : makeMat(MAT_PLASTER));
+            x.m->box(vec3(pc, zR + ph + 0.05f) - x.org, PA, PB, Z, vec3(L + 0.04f, 0.17f, 0.05f), capCol, arcade ? makeMat(MAT_ROOF_TILE) : makeMat(MAT_PLASTER));
+        } else {
+            // the balustrade: rails and a baluster every 0.3 m
+            x.m->box(vec3(pc, zR + 0.95f) - x.org, PA, PB, Z, vec3(L, 0.09f, 0.05f), white, makeMat(MAT_PLASTER));
+            x.m->box(vec3(pc, zR + 0.08f) - x.org, PA, PB, Z, vec3(L, 0.09f, 0.08f), white, makeMat(MAT_PLASTER));
+            const vec2 dirA = sd == 0 ? e.ax : e.fr;
+            for (float s = -L + 0.15f; s <= L - 0.15f; s += 0.3f)
+                x.m->box(vec3(pc + dirA * s, zR + 0.53f) - x.org, PA, PB, Z, vec3(0.045f, 0.045f, 0.37f), white, makeMat(MAT_PLASTER));
+        }
+    }
+}
+
+// A balcony on corbels over a villa's entry (the upper floor at zf, centred on u at the wall v = vf): a stone slab, two
+// corbels under it, a wrought-iron rail. Up close only the corbels and the bars; the far LOD keeps the slab and the rail's
+// face.
+void villaBalcony(Ctx& x, const Env& e, float vf, float u, float hw, float dep, float zf, u32 slabCol) {
+    const vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
+    const u32 iron = packRGBA8(0.08f, 0.08f, 0.09f, 1);
+    const vec2 c = e.P(u, vf + dep * 0.5f);
+    x.m->box(vec3(c, zf - 0.08f) - x.org, X, Y, Z, vec3(hw, dep * 0.5f, 0.1f), slabCol, makeMat(MAT_STONE), true);
+    if (!x.detail) {
+        const vec2 a = e.P(u - hw, vf + dep), b = e.P(u + hw, vf + dep);
+        x.m->quadFacing(vec3(a, zf) - x.org, vec3(b, zf) - x.org, vec3(b, zf + 1.0f) - x.org, vec3(a, zf + 1.0f) - x.org, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), iron,
+                        makeMat(MAT_METAL_PAINTED), Y);
+        return;
+    }
+    for (int sd = -1; sd <= 1; sd += 2) {
+        const vec2 cp = e.P(u + sd * (hw - 0.35f), vf + dep * 0.35f);
+        x.m->box(vec3(cp, zf - 0.45f) - x.org, X, Y, Z, vec3(0.14f, dep * 0.35f, 0.27f), slabCol, makeMat(MAT_STONE));
+    }
+    // the rail round the three open sides: a top rail, a bottom rail, bars
+    for (int sd = 0; sd < 3; sd++) {
+        vec2 pc;
+        vec3 PA, PB;
+        float L;
+        if (sd == 0) pc = e.P(u, vf + dep - 0.04f), PA = X, PB = Y, L = hw - 0.02f;
+        else pc = e.P(sd == 1 ? u - hw + 0.04f : u + hw - 0.04f, vf + dep * 0.5f), PA = Y, PB = -X, L = dep * 0.5f;
+        x.m->box(vec3(pc, zf + 1.0f) - x.org, PA, PB, Z, vec3(L, 0.03f, 0.025f), iron, makeMat(MAT_METAL_PAINTED));
+        x.m->box(vec3(pc, zf + 0.12f) - x.org, PA, PB, Z, vec3(L, 0.02f, 0.02f), iron, makeMat(MAT_METAL_PAINTED));
+        const vec2 dirA = sd == 0 ? e.ax : e.fr;
+        for (float s = -L + 0.06f; s <= L - 0.06f; s += 0.13f)
+            x.m->box(vec3(pc + dirA * s, zf + 0.56f) - x.org, PA, PB, Z, vec3(0.012f, 0.012f, 0.44f), iron, makeMat(MAT_METAL_PAINTED));
+    }
+}
+
+// The modern villa's roof terrace (the roof rectangle r at the slab top z): a pergola of white beams and slats on four
+// posts over part of it, a glass rail round the roof's edge. The far LOD keeps the posts, the beams and the rail's face.
+void modernPergola(Ctx& x, const Env& e, vec4 r, float z, float side) {
+    const vec3 X(e.ax, 0.f), Y(e.fr, 0.f), Z(0, 0, 1);
+    const u32 white = packRGBA8(0.96f, 0.96f, 0.95f, 1), glassC = packRGBA8(0.55f, 0.66f, 0.72f, 1);
+    const float ru0 = r.x + 0.3f, ru1 = r.y - 0.3f, rv0 = r.z + 0.3f, rv1 = r.w - 0.3f;
+    if (ru1 - ru0 < 4.f || rv1 - rv0 < 3.f) return;
+    // the pergola over the half of the roof on one side, the front
+    const float pu0 = side > 0.f ? (ru0 + ru1) * 0.5f : ru0, pu1 = side > 0.f ? ru1 : (ru0 + ru1) * 0.5f, pv0 = Lerp(rv0, rv1, 0.35f), pv1 = rv1;
+    const float zp = z + 2.7f;
+    for (int k = 0; k < 4; k++) {
+        const vec2 pp = e.P((k & 1) ? pu1 - 0.1f : pu0 + 0.1f, (k & 2) ? pv1 - 0.1f : pv0 + 0.1f);
+        x.m->box(vec3(pp, (z + zp) * 0.5f) - x.org, X, Y, Z, vec3(0.08f, 0.08f, (zp - z) * 0.5f), white, makeMat(MAT_PLASTER));
+    }
+    for (int k = 0; k < 2; k++) {
+        const vec2 bc = e.P((pu0 + pu1) * 0.5f, k ? pv1 - 0.1f : pv0 + 0.1f);
+        x.m->box(vec3(bc, zp + 0.1f) - x.org, X, Y, Z, vec3((pu1 - pu0) * 0.5f, 0.07f, 0.1f), white, makeMat(MAT_PLASTER));
+    }
+    if (x.detail)
+        for (float u = pu0 + 0.2f; u < pu1 - 0.1f; u += 0.45f)
+            x.m->box(vec3(e.P(u, (pv0 + pv1) * 0.5f), zp + 0.26f) - x.org, X, Y, Z, vec3(0.04f, (pv1 - pv0) * 0.5f + 0.15f, 0.06f), white, makeMat(MAT_PLASTER));
+    // the glass rail round the edge
+    const vec2 c0 = e.P(r.x + 0.05f, r.z + 0.05f), c1 = e.P(r.y - 0.05f, r.z + 0.05f), c2 = e.P(r.y - 0.05f, r.w - 0.05f), c3 = e.P(r.x + 0.05f, r.w - 0.05f);
+    const vec2 cs[4] = {c0, c1, c2, c3};
+    const vec2 ctr = e.P((r.x + r.y) * 0.5f, (r.z + r.w) * 0.5f);
+    for (int k = 0; k < 4; k++) {
+        const vec2 a = cs[k], b = cs[(k + 1) % 4];
+        const vec2 mid = (a + b) * 0.5f;
+        x.m->quadFacing(vec3(a, z) - x.org, vec3(b, z) - x.org, vec3(b, z + 1.05f) - x.org, vec3(a, z + 1.05f) - x.org, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), glassC,
+                        makeMat(MAT_GLASS), vec3(normalize(mid - ctr), 0.f));
+    }
 }
 
 // Gingerbread on a porch's posts (the posts of housePorch: the same spacing): a pair of curved braces up to the beam,
@@ -2627,8 +2798,49 @@ bool buildArchHouseBody(Ctx& x, const Building& b, const FacadeGPU& fac, u32& ro
                     vec2 p = e.P(u, k ? (bay && u > bu0 && u < bu1 ? hy : vfr) - 0.3f : -hy + 0.3f);
                     x.m->box(vec3(p, b.baseZ - 0.2f + 0.45f) - x.org, X, Y, Z, vec3(0.2f, 0.2f, 0.45f), packRGBA8(0.7f, 0.68f, 0.64f, 1), makeMat(MAT_CONCRETE));
                 }
+    } else if (const int rp = blockstyle::ranchPorch(b)) {
+        // the ranch porch: long and low under a shed roof, slim posts or round columns, across the middle of the front over
+        // the door; on an L in the inner corner beside the front leg
+        const float yardC = dot(b.lotC - b.c, b.front) + b.lotHy - hy;
+        const u32 ph = hash32(b.seed ^ 0x2A0C5u);
+        x.porchPosts = (ph & 3u) == 0u ? 2 : 0;
+        const bool rail = ((ph >> 2) & 3u) == 0u;
+        if (rp == 2 && parts.size() > 1) {
+            const vec4 leg = parts[1].r;
+            const float vc = parts[0].r.w;
+            const float nu0 = leg.x > -hx + 0.1f ? -hx : leg.y, nu1 = leg.x > -hx + 0.1f ? leg.x : hx;
+            const float dep = Min(2.3f, hy - vc - 0.1f);
+            if (nu1 - nu0 > 2.4f && dep > 1.2f) housePorch(x, e, vc, nu0 + 0.15f, nu1 - 0.1f, dep, zb, zb + 2.5f, 1, roofCol, roofMat, wallTrim, rail);
+        } else if (rp == 1) {
+            const float ud = houseDoorU(e, -hx, hx, fac.bayW);
+            const float pw = Min(2.f * hx - 0.6f, 2.f * hx * (0.48f + 0.22f * hashToFloat(ph >> 8)));
+            const float off = Clamp(ud, -hx + 0.3f + pw * 0.5f, hx - 0.3f - pw * 0.5f);
+            const float dep = Clamp(1.8f + 0.5f * hashToFloat(ph >> 16), 1.4f, Max(1.4f, yardC - 1.3f));
+            housePorch(x, e, hy, off - pw * 0.5f, off + pw * 0.5f, dep, zb, zb + 2.5f, 1, roofCol, roofMat, wallTrim, rail, -1e9f, true, ud);
+        }
+    } else if (b.arch == AR_VILLA_MED && blockstyle::villaForm(b) != 0) {
+        const float yardC = dot(b.lotC - b.c, b.front) + b.lotHy - hy;
+        if (blockstyle::villaForm(b) == 1) {
+            // the arcaded loggia across the front, a terrace on it (beside the corner tower: the corner away from the garage)
+            float u0 = -hx + 0.25f, u1 = hx - 0.25f;
+            if (b.massing == MK_CORNER_TOWER) {
+                const float ts = Clamp(Min(hx, hy) * 0.5f, 3.6f, 5.2f);
+                if (gs > 0.f) u0 = -hx + ts + 0.15f;
+                else u1 = hx - ts - 0.15f;
+            }
+            const float dep = Clamp(3.0f, 2.2f, Max(2.2f, yardC - 1.6f));
+            if (u1 - u0 > 4.f) villaColonnade(x, e, hy, u0, u1, dep, zb, zb + fac.groundH, true, gableCol, gableMat, roofCol);
+        } else {
+            // a balcony on corbels over the entry
+            villaBalcony(x, e, hy, houseDoorU(e, -hx, hx, fac.bayW), 1.6f, 1.15f, zb + fac.groundH, packRGBA8(0.88f, 0.86f, 0.8f, 1));
+        }
     } else if (b.arch == AR_VILLA_COLONIAL) {
-        colonialPortico(x, e, hx, hy, zb, zTop, roofCol, roofMat, mr);
+        if (blockstyle::villaForm(b) == 1) {
+            // a full-width veranda, round columns, a balustraded balcony on it
+            const float yardC = dot(b.lotC - b.c, b.front) + b.lotHy - hy;
+            villaColonnade(x, e, hy, -hx + 0.2f, hx - 0.2f, Clamp(2.9f, 2.f, Max(2.f, yardC - 1.6f)), zb, zb + fac.groundH, false, wallTrim, makeMat(MAT_PLASTER), wallTrim);
+        } else
+            colonialPortico(x, e, hx, hy, zb, zTop, roofCol, roofMat, mr);
     } else if (b.arch == AR_HOUSE_VICTORIAN) {
         // the porch: in the L's inner corner across the body's front (the entry), or across the whole front of a box; a
         // shed roof on posts with brackets, a rail; the front gable's truss
@@ -2649,6 +2861,13 @@ bool buildArchHouseBody(Ctx& x, const Building& b, const FacadeGPU& fac, u32& ro
             housePorch(x, e, hy, -hx + 0.2f, hx - 0.2f, dep, zb, zE, 1, roofCol, roofMat, wallTrim, true);
             porchBrackets(x, e, hy, -hx + 0.2f, hx - 0.2f, dep, zE, wallTrim);
         }
+    }
+    // the modern villa's roof terrace: a pergola over half of its highest roof (away from the garage side), a glass rail
+    if (b.arch == AR_VILLA_MODERN && blockstyle::villaForm(b) == 1 && !parts.empty()) {
+        const Part* top = &parts[0];
+        for (const Part& p : parts)
+            if (p.z1 > top->z1 + 0.1f || (fabsf(p.z1 - top->z1) < 0.1f && (p.r.y - p.r.x) * (p.r.w - p.r.z) > (top->r.y - top->r.x) * (top->r.w - top->r.z))) top = &p;
+        modernPergola(x, e, top->r, top->z1 + 0.25f, -gs);
     }
     return true;
 }
