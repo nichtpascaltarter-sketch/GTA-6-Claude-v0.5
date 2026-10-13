@@ -9,8 +9,23 @@ struct LightGPU {
     float3 color;      // luminous intensity (cd) * rgb
     float spotCos;     // cos of the outer cone angle; <= -1 for point lights
     float3 dir;        // spot direction
-    float spotInner;   // cos of the inner cone angle; > 1.5 marks a vehicle headlight (low-beam pattern)
+    float spotInner;   // cos of the inner cone angle; 1.5 .. 2.5 marks a vehicle headlight (low-beam pattern), > 2.5 a
+                       // street lamp (road-lighting distribution, dir: main axis tilted towards the road)
 };
+
+// Road lighting (a full cut-off street lamp): the intensity rises from the nadir to a peak ~60 degrees out, where it
+// reaches along the road, and falls to nothing by 80 degrees (no light above: the lamp's pool has an edge); behind the
+// pole, over the pavement and the houses, about a third (the reflector throws the light over the road). axis: the
+// lamp's main axis (down, tilted towards the road); d: lamp -> surface.
+float streetLampPattern(float3 axis, float3 d) {
+    float cn = -d.z;                                   // cos of the angle from the nadir
+    if (cn <= 0.17) return 0.0;
+    float vert = lerp(0.55, 1.0, smoothstep(0.98, 0.5, cn)) * smoothstep(0.17, 0.42, cn);
+    float sn = sqrt(saturate(1.0 - cn * cn));
+    float side = dot(d.xy, normalize(axis.xy + 1e-6)) / max(sn, 1e-4);   // +1 over the road, -1 behind the pole
+    float lat = lerp(1.0, lerp(0.32, 1.0, smoothstep(-0.45, 0.35, side)), smoothstep(0.12, 0.55, sn));
+    return vert * lat;
+}
 
 // Low-beam headlight pattern: sharp cut-off just below the horizon with a raised right-hand (kerb side)
 // shoulder, wide horizontal spread and a hot core on the road; faint spill above the cut-off.
@@ -33,6 +48,7 @@ float headlightPattern(float3 fwd, float3 d) {
 // Angular attenuation of a light for the direction Lv (normalized, surface -> light).
 float lightAngular(LightGPU L, float3 Lv) {
     if (L.spotCos <= -1.0) return 1.0;
+    if (L.spotInner > 2.5) return streetLampPattern(L.dir, -Lv);
     if (L.spotInner > 1.5) return headlightPattern(L.dir, -Lv);
     return smoothstep(L.spotCos, max(L.spotInner, L.spotCos + 1e-4), dot(-Lv, L.dir));   // equal edges: 0/0
 }

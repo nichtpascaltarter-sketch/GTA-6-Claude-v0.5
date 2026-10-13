@@ -237,7 +237,7 @@ struct ParticleSystem {
     // lights and inside the cone (a headlight's low beam taken as ~40 degrees), fading over ~11 degrees outside it.
     static float puffBeam(const LightGPU& L, vec3 dirToPuff, float angRadius) {
         if (L.spotCos <= -1.f) return 1.f;
-        float cone = L.spotInner > 1.5f ? 0.7f : acosf(Clamp(L.spotCos, -1.f, 1.f));
+        float cone = L.spotInner > 2.5f ? 1.35f : (L.spotInner > 1.5f ? 0.7f : acosf(Clamp(L.spotCos, -1.f, 1.f)));   // street lamp / headlight
         float off = acosf(Clamp(dot(dirToPuff, L.dir), -1.f, 1.f)) - asinf(Min(angRadius, 1.f));
         return Saturate(1.f - (off - cone) / 0.2f);
     }

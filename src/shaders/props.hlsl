@@ -92,6 +92,19 @@ void psPropShadow(VSShadowOut i) {
     }
 }
 
+// Street lamp colour of an installation (a 160 m grid; must match world_render.cpp streetLampColor): high-pressure
+// sodium, warm-white, neutral or cool-white LED, at unit luminance
+float3 lampColorAt(float3 worldP) {
+    int2 c = (int2)floor(worldP.xy / 160.0);
+    uint h = (uint)c.x * 73856093u ^ (uint)c.y * 19349663u;
+    h ^= h >> 13;
+    h *= 0x5bd1e995u;
+    h ^= h >> 15;
+    float r = (float)(h & 1023u) / 1023.0;
+    float3 k = r < 0.38 ? float3(1.0, 0.46, 0.11) : (r < 0.62 ? float3(1.0, 0.61, 0.31) : (r < 0.86 ? float3(1.0, 0.76, 0.52) : float3(1.0, 0.87, 0.74)));
+    return k / luminance(k);
+}
+
 // Traffic signal phase: 0 red, 1 yellow, 2 green. Driven by the traffic system through instRot.w (phase*4 + 0.5)
 // or by a local timer when w < 0.
 float signalState(float4 inst) {
@@ -180,7 +193,10 @@ GBufferOut psProp(VSOut i, bool front : SV_IsFrontFace) {
                 emissive = i.color.rgb * on * 900.0;
                 albedo = i.color.rgb * 0.15;
             } else {
-                emissive = i.color.rgb * intensity * (0.03 + night) * 6.0;
+                // street lamp lenses (colour alpha 0.6) glow in their installation's colour (sodium .. cool LED), the
+                // colour world_render.cpp gives the lamp's light (streetLampColor: same 160 m grid and hash)
+                float3 lc = abs(i.color.a - 0.6) < 0.03 ? lampColorAt(i.rel + gCamPos.xyz) * luminance(i.color.rgb) : i.color.rgb;
+                emissive = lc * intensity * (0.03 + night) * 6.0;
                 albedo = i.color.rgb * 0.8;
             }
         }
