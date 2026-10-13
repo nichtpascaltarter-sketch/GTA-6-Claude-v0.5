@@ -633,17 +633,38 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                         va.fare = -1;
                         d->hasDest = false;
                         d->destEdges.clear();
-                        d->mode = AI::DM_NORMAL;
-                        d->nudgeTarget = 0.f;
+                        // (stood until they are out - not off with them halfway through the door clip and the door
+                        //  swinging on the move: task 2)
+                        va.task = 2;
+                        va.scene = fare;
+                        va.stopTimer = 0.f;
                         va.taskTimer = 25.f;   // no new fare for a while
                     }
                 }
+            } else if (d->mode == AI::DM_PULLOVER && va.task == 2) {
+                // a fare just set down, getting out through the door (PS_EXITING): off once they are out, 6 s at most
+                va.stopTimer += dt;
+                int dropped = va.scene;
+                bool exiting = dropped >= 0 && dropped < (int)peds.size() && peds[dropped].used && peds[dropped].state == PS_EXITING &&
+                               peds[dropped].doorVehicle == vi;
+                if (!exiting || va.stopTimer > 6.f) {
+                    d->mode = AI::DM_NORMAL;
+                    d->nudgeTarget = 0.f;
+                    va.task = 0;
+                    va.scene = -1;
+                }
             } else if (d->mode == AI::DM_PULLOVER && va.task == 1) {
-                // waiting for a hailing ped to board
+                // waiting for a hailing ped to board - through the door clip too (ai.cpp ai_board: PS_ENTERING, boardVeh
+                // this cab; ai_board::begin leaves targetVeh set): the cab stands until they are in, not off as they reach
+                // for the door (it was, and the boarding was cancelled with the cab under way)
                 va.stopTimer += dt;
                 int hail = va.scene;
-                bool valid = hail >= 0 && hail < (int)peds.size() && peds[hail].used && peds[hail].state == PS_ONFOOT && pedAI(hail).targetVeh == vi;
-                if (!valid || va.stopTimer > 25.f) {
+                bool known = hail >= 0 && hail < (int)peds.size() && peds[hail].used;
+                bool valid = known && pedAI(hail).targetVeh == vi &&
+                             (peds[hail].state == PS_ONFOOT || (peds[hail].state == PS_ENTERING && pedAI(hail).boardVeh == vi));
+                if (!valid || (va.stopTimer > 25.f && peds[hail].state != PS_ENTERING)) {   // (never mid-clip)
+                    // (not in it, and still counting on it: off this cab, free to hail another)
+                    if (known && pedAI(hail).targetVeh == vi && peds[hail].state != PS_INVEHICLE) pedAI(hail).targetVeh = -1;
                     d->mode = AI::DM_NORMAL;
                     d->stopPath = -1;
                     va.task = 0;

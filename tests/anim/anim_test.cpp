@@ -1885,7 +1885,9 @@ void testFaces() {
 // Face shape round the eyes and the mouth (face.cpp, bodymesh.cpp, hair.cpp): the head grid's normals round the eyes
 // change smoothly between neighbours (the lid-row fans at the corners used to fold into pleats, and the lid mound met
 // the socket in a groove); the brows sit above the lids' fold with skin between; the corneas sit behind the brow
-// ridge's front in profile; and a full beard's volume builds up gradually from the lips (no shelf under the lower lip).
+// ridge's front in profile; under the brow the face rises to the ridge as a slope (no ledge) and between the brows the
+// midline is no groove (together they made the eye region read as goggles under a lamp); and a full beard's volume
+// builds up gradually from the lips (no shelf under the lower lip).
 // Face hair coverage as the renderer composites strand cards (psHairCard): each card dithers its coverage against its
 // own offset of the pixel's threshold, so cards overlapping at a point cover it together, 1 - prod(1 - c). The card's
 // coverage at (uv) is hairCardCoverage's sub-pixel average (mean strand width, tips fading, the card's side edges and
@@ -1957,6 +1959,89 @@ static float accumCoverage(const std::vector<CardGeo>& cards, vec3 p) {
     }
     return 1.f - T;
 }
+// Buzz cuts (hair.cpp): short hair over the scalp rather than a smooth painted cap. At LOD0 a buzz cut carries short
+// strand cards (its grain up close, a soft silhouette and a soft front edge) within the scalp cards' triangle budget,
+// lying close over the head's surface (the hair shell, or the skin past the hairline: nothing stands off the head); the
+// crowd LODs drop them.
+static vec3 closestOnTriangle(vec3 p, vec3 a, vec3 b, vec3 c) {
+    vec3 ab = b - a, ac = c - a, ap = p - a;
+    float d1 = dot(ab, ap), d2 = dot(ac, ap);
+    if (d1 <= 0.f && d2 <= 0.f) return a;
+    vec3 bp = p - b;
+    float d3 = dot(ab, bp), d4 = dot(ac, bp);
+    if (d3 >= 0.f && d4 <= d3) return b;
+    float vc = d1 * d4 - d3 * d2;
+    if (vc <= 0.f && d1 >= 0.f && d3 <= 0.f) return a + ab * (d1 / (d1 - d3));
+    vec3 cp = p - c;
+    float d5 = dot(ab, cp), d6 = dot(ac, cp);
+    if (d6 >= 0.f && d5 <= d6) return c;
+    float vb = d5 * d2 - d1 * d6;
+    if (vb <= 0.f && d2 >= 0.f && d6 <= 0.f) return a + ac * (d2 / (d2 - d6));
+    float va = d3 * d6 - d5 * d4;
+    if (va <= 0.f && d4 - d3 >= 0.f && d5 - d6 >= 0.f) return b + (c - b) * ((d4 - d3) / ((d4 - d3) + (d5 - d6)));
+    float den = 1.f / (va + vb + vc);
+    return a + ab * (vb * den) + ac * (vc * den);
+}
+void testBuzzCut() {
+    using namespace Anim::detail;
+    int minTris = 1 << 30, maxTris = 0;
+    float worst = 0.f, worstFrac = 0.f;
+    for (u32 k = 0; k < 6; k++) {
+        CharacterDesc d = randomCharacter(8300u + k * 7919u, (int)(k % 7));
+        d.hairStyle = HAIR_BUZZ;
+        d.hat = -1;
+        Skeleton sk;
+        buildSkeleton(d, sk);
+        SkinnedMeshData L[2];
+        buildCharacterMeshLods(d, sk, L, 2);
+        const SkinnedMeshData& m = L[0];
+        auto onHead = [](const VtxSkinned& v) {
+            for (int i = 0; i < 4; i++)
+                if (v.bones[i] == B_HEAD && v.weights[i] >= 200) return true;
+            return false;
+        };
+        // the head's surface: its skin and the hair shell (the scalp under the hair is hidden)
+        std::vector<vec3> tri;
+        int tris = 0;
+        for (size_t t = 0; t + 2 < m.indices.size(); t += 3) {
+            const VtxSkinned& v = m.verts[m.indices[t]];
+            u32 mat = v.mat & 0xffu, kind = (v.mat >> 8) & 15u;
+            if (mat == MAT_HAIR && kind == CARD_SCALP) tris++;
+            if ((mat == MAT_SKIN || (mat == MAT_HAIR && kind == 0u)) && onHead(v))
+                for (int j = 0; j < 3; j++) tri.push_back(m.verts[m.indices[t + j]].pos);
+        }
+        // how far the cards' points lie off that surface
+        float off = 0.f;
+        int n = 0, over4 = 0;
+        for (const VtxSkinned& v : m.verts) {
+            if ((v.mat & 0xffu) != MAT_HAIR || ((v.mat >> 8) & 15u) != CARD_SCALP) continue;
+            float best = 1e9f;
+            for (size_t j = 0; j + 2 < tri.size(); j += 3) {
+                if (length2(tri[j] - v.pos) > 0.03f * 0.03f) continue;
+                best = Min(best, length2(closestOnTriangle(v.pos, tri[j], tri[j + 1], tri[j + 2]) - v.pos));
+            }
+            best = sqrtf(best);
+            off = Max(off, best);
+            n++;
+            if (best > 0.004f) over4++;
+        }
+        int lodCards = 0;
+        for (const VtxSkinned& v : L[1].verts)
+            if ((v.mat & 0xffu) == MAT_HAIR && ((v.mat >> 8) & 15u) != 0u) lodCards++;
+        const float frac = n > 0 ? (float)over4 / (float)n : 1.f;
+        CHECK(tris >= 1000 && tris <= 4400, "buzz cut: %d scalp card triangles (k %u)", tris, k);
+        // (the farthest are a few at the temples' corners, where the head's surface falls away under the hairline)
+        CHECK(off < 0.01f && frac < 0.03f, "buzz cut: card points up to %.1f mm off the head, %.1f%% over 4 mm (k %u)", off * 1000.f, frac * 100.f, k);
+        CHECK(lodCards == 0, "buzz cut: %d strand card vertices left at LOD1 (k %u)", lodCards, k);
+        minTris = Min(minTris, tris);
+        maxTris = Max(maxTris, tris);
+        worst = Max(worst, off);
+        worstFrac = Max(worstFrac, frac);
+    }
+    printf("buzz cut: scalp cards %d..%d triangles; card points at most %.1f mm off the head, at most %.1f%% over 4 mm\n", minTris, maxTris,
+           worst * 1000.f, worstFrac * 100.f);
+}
+
 void testFaceHairCoverage() {
     using namespace Anim::detail;
     float browLo = 1.f, browHi = 0.f, lashLo = 1.f, lashHi = 0.f;
@@ -2012,6 +2097,7 @@ void testFaceHairCoverage() {
 void testFaceShape() {
     using namespace Anim::detail;
     float worstJump = 0.f, worstMean = 0.f, minGap = 1e9f, minDepth = 1e9f, worstShelf = 0.f, worstTint = 0.f, worstTrench = 0.f;
+    float worstSteep = 0.f, worstGroove = 0.f;
     int minJaw = 1 << 30;
     for (u32 k = 0; k < 10; k++) {
         CharacterDesc d = randomCharacter(5300u + k * 7919u, (int)(k % 7));
@@ -2121,6 +2207,18 @@ void testFaceShape() {
             float trench = 0.5f * (frontAt(xr, e.z + dzr) + frontAt(xr, e.z - dzr)) - frontAt(xr, e.z);
             CHECK(trench < 0.004f, "face shape: a trench beside the eye (k %u: %.1f mm deep)", k, trench * 1000.f);
             worstTrench = Max(worstTrench, trench);
+            // under the brow, through the eye's centre, the face rises from the lid to the brow ridge as a slope (its
+            // steepest rise per millimetre of height), not a ledge; and between the brows the midline is no groove
+            // behind the brows' heads (half way out to the eye). Either way a lamp or a high sun would leave a hard dark
+            // band across the face, the eye sockets joined into goggles
+            float steep = 0.f, groove = 0.f;
+            for (float dz = 0.006f; dz < 0.022f; dz += 0.001f)
+                steep = Max(steep, (frontAt(e.x, e.z + dz + 0.001f) - frontAt(e.x, e.z + dz)) / 0.001f);
+            for (float dz = 0.004f; dz <= 0.0141f; dz += 0.001f) groove = Max(groove, frontAt(0.5f * e.x, e.z + dz) - frontAt(0.f, e.z + dz));
+            CHECK(steep < 2.f, "face shape: a ledge under the brow (k %u: the face steps %.1f mm forward per mm of height)", k, steep);
+            CHECK(groove < 0.002f, "face shape: a groove between the brows (k %u: the midline %.1f mm behind the brows' heads)", k, groove * 1000.f);
+            worstSteep = Max(worstSteep, steep);
+            worstGroove = Max(worstGroove, groove);
         }
         // a full beard next to the lips: the shell's height over the skin within 6 mm of the lower lip
         if (d.facialHair == FH_BEARD && d.gender == MALE) {
@@ -2158,9 +2256,10 @@ void testFaceShape() {
         }
     }
     printf("face shape: eye-region normals worst %.0f deg (mean <= %.1f), brow >= %.1f mm above the fold, brow tint <= %.2f of the forehead, "
-           "corneas >= %.1f mm behind the brow, trench beside the eyes <= %.1f mm, beard shell <= %.1f mm over the skin by the lips, >= %d beard card "
-           "vertices round the jaw's angle\n",
-           worstJump, worstMean, minGap * 1000.f, worstTint, minDepth * 1000.f, worstTrench * 1000.f, worstShelf * 1000.f, minJaw);
+           "corneas >= %.1f mm behind the brow, trench beside the eyes <= %.1f mm, rise under the brow <= %.2f mm/mm, groove between the brows "
+           "<= %.1f mm, beard shell <= %.1f mm over the skin by the lips, >= %d beard card vertices round the jaw's angle\n",
+           worstJump, worstMean, minGap * 1000.f, worstTint, minDepth * 1000.f, worstTrench * 1000.f, worstSteep, worstGroove * 1000.f, worstShelf * 1000.f,
+           minJaw);
 }
 
 // Driving: the hands must stay on the steering wheel rim (absolute interior geometry) for any character size.
@@ -2457,6 +2556,7 @@ int main(int argc, char** argv) {
     run("Faces", testFaces);
     run("FaceShape", testFaceShape);
     run("FaceHairCoverage", testFaceHairCoverage);
+    run("BuzzCut", testBuzzCut);
     run("Mesh", testMesh);
     run("ClothingClip", testClothingClip);
     printf("%s (%d failures)\n", gFail ? "FAILED" : "ALL PASSED", gFail);

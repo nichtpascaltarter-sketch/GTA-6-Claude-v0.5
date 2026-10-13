@@ -442,6 +442,7 @@ struct Animator {
     bool ballProbe[2] = {false, false};       // a foot down so: the ground is probed under its ball, not its middle (it stands on it)
     float stairSeen = 99.f;                   // s since steps were last found ahead (scans keep coming meanwhile)
     float strikeLead = 0.3f;                  // where the pose's heel strikes land ahead of the body, in strides (learned)
+    float rootRatio = 1.f;                    // the share of its gait's travel the body actually covers (held back: below 1)
     bool planted[2] = {false, false};
     float pinZ[2] = {0.f, 0.f};       // height correction holding a planted sole on the ground (eases out after lift-off)
     float plantAge[2] = {0.f, 0.f};   // time since the foot was planted (the correction eases in)

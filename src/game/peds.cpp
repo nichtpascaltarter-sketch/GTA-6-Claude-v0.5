@@ -892,8 +892,9 @@ void GameWorld::animatePed(Ped& p, float dt) {
     }
     // a couple walking hand in hand (pedai.cpp: PedAI::handWith on both, renewed every frame by the companion): each
     // one's inner hand on the point between them, a little above where it hangs (an arm at full stretch is let go of:
-    // the animator's reach), the animator picking the hand on that side. The animator closes a fist round a handle a
-    // little short of the point, so each one's point is a fist's width past the middle: the two hands in one clasp.
+    // the animator's reach), the animator picking the hand on that side. The animator closes the hand round a handle a
+    // little short of the point, and the clasp's handle is the other one's hand: each one's point is that much past
+    // the middle, the palms meeting there.
     if (in.grabWeight <= 0.f) {
         int self = (int)(&p - peds.data());
         const PedAI* q = self >= 0 && self < (int)ai.ped.size() && ai.ped[self].uid == p.uid ? &ai.ped[self] : nullptr;
@@ -901,9 +902,10 @@ void GameWorld::animatePed(Ped& p, float dt) {
         if (o >= 0 && o < (int)peds.size() && o < (int)ai.ped.size() && peds[o].used && peds[o].uid == q->handUid && ai.ped[o].uid == peds[o].uid &&
             ai.ped[o].handWith == self && time - q->handT < 0.3 && p.state == PS_ONFOOT && peds[o].state == PS_ONFOOT && !p.ragdoll && !peds[o].ragdoll) {
             vec3 j = rel(peds[o].pos, p.pos);
-            vec2 m = vec2(j.x, j.y) * 0.5f + normalize(vec2(j.x, j.y) + vec2(1e-4f, 0.f)) * 0.08f;
+            vec2 m = vec2(j.x, j.y) * 0.5f + normalize(vec2(j.x, j.y) + vec2(1e-4f, 0.f)) * 0.05f;
             in.grabTarget = vec3(dot(m, rightV), dot(m, fwd) + 0.05f, 0.93f);
             in.grabWeight = 1.f;
+            in.grabAxis = vec3(0.f, 1.f, 0.f);   // (the clasp: both hands fingers-down, palms square to the walk and to each other)
             in.passWeight = 0.f;   // (the other one at the elbow is no passer to lean away from)
         }
     }
@@ -1134,6 +1136,15 @@ void GameWorld::updatePeds(float dt) {
                 float wa = a.isPlayer ? 0.25f : 0.5f, wb = b.isPlayer ? 0.25f : 0.5f;
                 a.pos = a.pos - dvec3(n.x * push * wa * 2.f, n.y * push * wa * 2.f, 0);
                 b.pos = b.pos + dvec3(n.x * push * wb * 2.f, n.y * push * wb * 2.f, 0);
+                // ... and between two people the game moves, the closing part of their relative velocity goes too, shared the
+                // same way (as movePed does against a static collider): someone walking into another's back carries the speed
+                // they actually make, which their gait (animatePed) and the stuck test of the AI's walk (aiWalkRound) then
+                // see. (Not with the player: a push through a crowd, or one taken from it, feels as it did)
+                const float vc = (b.vel.x - a.vel.x) * n.x + (b.vel.y - a.vel.y) * n.y;
+                if (vc < 0.f && !a.isPlayer && !b.isPlayer) {
+                    a.vel = a.vel + vec3(n.x, n.y, 0.f) * (vc * wa);
+                    b.vel = b.vel - vec3(n.x, n.y, 0.f) * (vc * wb);
+                }
             }
         }
     }

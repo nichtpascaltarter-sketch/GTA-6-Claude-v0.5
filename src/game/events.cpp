@@ -88,11 +88,13 @@ int liveVeh(const GameWorld& g, const Ref& r) {
 // (a ped being taken down by the player counts as down: melee.cpp drives it)
 bool isDown(const Ped& p) { return p.health <= 0.f || p.state == PS_DEAD || p.state == PS_RAGDOLL || p.state == PS_GETUP || p.takedownT >= 0.f; }
 
-// alive, on its feet and still doing what the event asked (not fleeing / cowering because of something else)
+// alive, on its feet and still doing what the event asked (not fleeing / cowering because of something else) - or getting
+// out through a car's door, the clip the event's own removePedFromVehicle started (PS_EXITING: an officer out for a traffic
+// stop, the drivers of a fender bender), not a reason to call it off
 bool calmActor(GameWorld& g, int id) {
     if (id < 0) return false;
     const Ped& p = g.peds[id];
-    if (isDown(p) || p.state != PS_ONFOOT) return false;
+    if (isDown(p) || (p.state != PS_ONFOOT && p.state != PS_EXITING)) return false;
     return p.brain.type == BRAIN_WANDER && g.pedAI(id).activity == ACT_EVENT;
 }
 

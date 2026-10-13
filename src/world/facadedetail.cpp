@@ -1575,6 +1575,8 @@ void houseDetail(FD& d, const FacadeMass& ms, const std::vector<Wall>& walls) {
             } else if (villa && b.arch == AR_VILLA_MODERN) {
                 float pw = dw * 0.5f + 1.4f;
                 wbox(k, fw, sd - pw, sd + pw, zb + 2.9f, zb + 3.15f, 0.f, 2.2f, pk(0.96f), MM(MAT_PLASTER), WF_BOX | WF_BOTTOM);
+            } else if (villa && blockstyle::villaForm(b) != 0) {
+                // (the Mediterranean villa's loggia or its balcony over the entry: massing.cpp)
             } else if (villa) {
                 float pw = dw * 0.5f + 1.1f, pd = 2.4f, ph = Min(3.3f, f.groundH + 0.2f);
                 for (int e = 0; e < 2; e++) {

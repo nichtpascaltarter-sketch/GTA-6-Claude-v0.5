@@ -344,6 +344,13 @@ static vec3 scalpFlow(const BuildCtx& c, const HairParams& h, vec3 p, vec3 n, u3
             break;
         }
     }
+    if (h.style == HAIR_BUZZ) {
+        // a buzz cut's short hairs point every which way about that flow: up close their highlights scatter into a
+        // fine sprinkle instead of lining up into a band (or into dark patches outside it)
+        Rng jr(hash32(cardSeed * 0x2545F491u + 7u));
+        const float fl = length(f);
+        f = (fl > 1e-6f ? f / fl : f) + vec3(jr.range(-1.f, 1.f), jr.range(-1.f, 1.f), jr.range(-1.f, 1.f)) * 0.8f;
+    }
     f = f - n * dot(f, n);
     return length2(f) > 1e-10f ? normalize(f) : normalize(anyPerp(n));
 }
@@ -362,8 +369,13 @@ static void buildScalpCards(OutfitCtx& o, const HairParams& h, float shellFrac) 
         case HAIR_PONYTAIL: case HAIR_BUN: len0 = 0.05f; len1 = 0.08f; w0 = 0.015f; spacing = 0.013f; NS = 4; break;
         case HAIR_LONG: case HAIR_BOB: len0 = 0.055f; len1 = 0.085f; w0 = 0.016f; spacing = 0.0135f; NS = 4; break;
         case HAIR_CURLY: len0 = 0.016f; len1 = 0.026f; w0 = 0.012f; spacing = 0.0135f; NS = 3; stand = 1.f; dens = 0.85f; break;
-        default: return;   // bald, buzz cut, cornrows: the shell and scalp tint carry them
+        // a buzz cut: many small cards of short hairs close over the scalp (one segment each, so twice as many fit the
+        // budget). With the shell alone it read as a smooth, shiny cap; the cards give it a fine grain up close, a soft
+        // silhouette and a soft front edge
+        case HAIR_BUZZ: len0 = 0.004f; len1 = 0.006f; w0 = 0.007f; spacing = 0.008f; NS = 1; dens = 0.5f; stand = 0.4f; break;
+        default: return;   // bald, cornrows: the shell and scalp tint carry them
     }
+    const bool buzz = h.style == HAIR_BUZZ;
     // the cards of the densest styles are capped (~3.4k triangles): past that the spacing opens up a little
     const int kCardBudget = 3400;
     MeshB m;
@@ -371,7 +383,8 @@ static void buildScalpCards(OutfitCtx& o, const HairParams& h, float shellFrac) 
         m = MeshB();
         Rng r(hash32(c.d->seed * 6131u + 17u));
         const float R0 = 0.095f * hs;
-        const vec3 colRoot = h.col * 0.5f, colTip = h.col * 1.08f;
+        // (a buzz cut's tips are freshly cut, not lightened by the sun)
+        const vec3 colRoot = h.col * (buzz ? 0.45f : 0.5f), colTip = h.col * (buzz ? 0.9f : 1.08f);
         CardPt pts[8];
         for (int layer = 0; layer < 2; layer++) {
             float sp = spacing * hs * (layer ? 1.2f : 1.f);
@@ -390,8 +403,11 @@ static void buildScalpCards(OutfitCtx& o, const HairParams& h, float shellFrac) 
                     BVert pr = headProbe(th, php, q);
                     float cvRoot = hairCoverage(c, h, pr);
                     if (cvRoot < 0.002f) continue;
+                    // (a faded buzz cut: shorter hairs down the clippered sides, none where it is taken to the skin)
+                    const float keep = buzz ? fadeKeep(h, th > kPi ? kTwoPi - th : th, php) : 1.f;
+                    if (keep < 0.3f) continue;
                     u32 seed = r.next();
-                    float len = r.range(len0, len1) * hs;
+                    float len = r.range(len0, len1) * hs * Lerp(0.5f, 1.f, keep);
                     if (h.style == HAIR_QUIFF && (q - H.origin).y > 0.02f * hs && (q - H.origin).z > 0.1f * hs) len *= 1.35f;
                     // (narrower and sparser cards near the front hairline: the edge thins out into single hairs. Not
                     // at the temples and the sides, where the hairline runs down beside the eyes and the ears: thinned
@@ -426,9 +442,11 @@ static void buildScalpCards(OutfitCtx& o, const HairParams& h, float shellFrac) 
                         q = q1;
                         nq = n1;
                     }
+                    // (a buzz cut's short hairs sit deeper in the shade of the volume: up close their highlights stay a
+                    // sprinkle over the shell's soft sheen instead of a bright frost along the front)
                     if (np >= 2)
                         setCardDepth(m, emitCard(m, pts, np, CARD_SCALP, seed, colRoot, colTip, dens * (layer ? 0.8f : 1.f) * Lerp(0.7f, 1.f, nearEdge), PART_HEAD, &H),
-                                     layer ? 1u : 4u);
+                                     buzz ? (layer ? 3u : 5u) : (layer ? 1u : 4u));
                 }
             }
         }
@@ -468,6 +486,7 @@ static void buildScalpCards(OutfitCtx& o, const HairParams& h, float shellFrac) 
                     const float wT = 1.f - sstep(34.f * kDegToRad, 60.f * kDegToRad, at);
                     if (rf.f() > Lerp(0.3f, 1.f, wT)) continue;
                     float len = rf.range(0.005f, 0.0095f) * hs * (row ? 1.15f : 0.85f) * Lerp(0.45f, 1.f, wT);
+                    if (buzz) len *= 0.5f;   // (clippered: the edge hairs are as short as the rest)
                     float w = rf.range(0.0032f, 0.0048f) * hs * Lerp(0.7f, 1.f, wT);
                     float seg = len / 2.f;
                     float thq = th, phq = ph;
@@ -494,7 +513,8 @@ static void buildScalpCards(OutfitCtx& o, const HairParams& h, float shellFrac) 
                         q = q1;
                         nq = n1;
                     }
-                    setCardDepth(m, emitCard(m, pts, np, CARD_SCALP, seed, colRoot, colTip, rf.range(0.45f, 0.72f), PART_HEAD, &H), 0);
+                    setCardDepth(m, emitCard(m, pts, np, CARD_SCALP, seed, colRoot, colTip, rf.range(0.45f, 0.72f) * (buzz ? 0.6f : 1.f), PART_HEAD, &H),
+                                 buzz ? 4u : 0u);
                 }
             }
     }
@@ -1800,7 +1820,7 @@ void buildHairLayer(OutfitCtx& o) {
     HairParams hp = h;
     g.cov = [=](const BVert& v) { return hairCoverage(*cp, hp, v); };
     // styles with strand cards: the shell sits a little lower and darker (the inner volume, in the cards' shade)
-    const bool cards = h.style != HAIR_BUZZ && h.rope < 0;
+    const bool cards = h.rope < 0;
     const bool ropes = h.rope >= 0;
     const float shellFrac = cards ? 0.82f : 1.f;
     g.extraFn = [=](const BVert& v) -> float {

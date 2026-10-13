@@ -44,8 +44,63 @@ struct FacadeResult {
     bool isWindow;
 };
 
-// Interior mapping: returns radiance-ish color (0..1 albedo when lit by room light) of a virtual room.
-float3 interiorRoom(float3 roomPos, float3 dir, float3 roomSize, uint roomHash, out float lightAmt, bool office) {
+// Colour of a lamp by its correlated colour temperature (Kelvin), linear sRGB at unit luminance: candle-warm
+// 2200 K table lamps, 2700-3000 K homes, 4000 K kitchens and offices, 5000-6500 K LED panels.
+float3 lampCCT(float k) {
+    float3 c = k < 2700.0 ? lerp(float3(1.0, 0.42, 0.12), float3(1.0, 0.55, 0.24), saturate((k - 2200.0) / 500.0))
+             : (k < 3000.0 ? lerp(float3(1.0, 0.55, 0.24), float3(1.0, 0.61, 0.31), (k - 2700.0) / 300.0)
+             : (k < 4000.0 ? lerp(float3(1.0, 0.61, 0.31), float3(1.0, 0.76, 0.52), (k - 3000.0) / 1000.0)
+             : (k < 5000.0 ? lerp(float3(1.0, 0.76, 0.52), float3(1.0, 0.87, 0.74), (k - 4000.0) / 1000.0)
+                           : lerp(float3(1.0, 0.87, 0.74), float3(0.95, 0.97, 1.0), saturate((k - 5000.0) / 1500.0)))));
+    return c / dot(c, float3(0.2126, 0.7152, 0.0722));
+}
+
+// The lamp of a home or office room seen through a window (room space: x along the facade, y up, z into the room).
+// kind 0: a ceiling fixture, 1: a table or floor lamp near a back corner (cosy, uneven), 2: office troffers (even
+// light, glowing ceiling panels), 3: only the TV on the back wall.
+struct RoomLamp {
+    float3 pos;
+    uint kind;
+};
+RoomLamp roomLamp(float3 size, uint h, bool office) {
+    RoomLamp L;
+    float k = hashF(h + 33u), a = hashF(h + 34u), b = hashF(h + 35u);
+    if (office) { L.kind = 2u; L.pos = float3(size.x * 0.5, size.y - 0.05, size.z * 0.5); }
+    else if (k < 0.55) { L.kind = 0u; L.pos = float3(size.x * (0.35 + 0.3 * a), size.y - 0.45, size.z * (0.4 + 0.25 * b)); }
+    else if (k < 0.88) { L.kind = 1u; L.pos = float3(size.x * (a < 0.5 ? 0.16 : 0.84), 1.2, size.z * (0.6 + 0.28 * b)); }
+    else { L.kind = 3u; L.pos = float3(size.x * (0.35 + 0.3 * a), 0.95, size.z - 0.12); }
+    return L;
+}
+// Light from the room's lamp on a surface point p with normal n (relative illuminance, ~1 on average): inverse
+// square falloff from the lamp with a soft core, plus the light bounced around the room
+float roomLampLight(float3 p, float3 n, RoomLamp L) {
+    if (L.kind == 2u) return 1.0;
+    float3 d = L.pos - p;
+    float d2 = max(dot(d, d), 0.01);
+    float cosT = saturate(dot(n, d * rsqrt(d2)));
+    float r2 = L.kind == 0u ? 4.8 : (L.kind == 1u ? 1.7 : 2.5);   // squared distance at which the direct light halves
+    float bounce = L.kind == 0u ? 0.3 : (L.kind == 1u ? 0.14 : 0.08);
+    return (cosT * r2 / (r2 + d2) + bounce) * (L.kind == 0u ? 1.6 : 2.2);
+}
+
+// What the view ray sees in a virtual room (interior mapping): the albedo there, the relative light of the room's lamp
+// on it, a light source seen directly (the lamp's shade, an office ceiling panel, the TV screen; in units of the
+// lamp level) and the distance along the ray.
+struct RoomView {
+    float3 albedo;
+    float lamp;
+    float glow;
+    float depth;
+};
+// Ray (entry point o, direction dir, both room space) against an axis-aligned box: entry distance (or -1) and normal
+float roomBox(float3 o, float3 invD, float3 bmin, float3 bmax, float tMax, out float3 n) {
+    float3 t0 = (bmin - o) * invD, t1 = (bmax - o) * invD;
+    float3 tmin = min(t0, t1), tmax = max(t0, t1);
+    float tn = max(max(tmin.x, tmin.y), tmin.z), tf = min(min(tmax.x, tmax.y), tmax.z);
+    n = tn == tmin.x ? float3(-sign(invD.x), 0, 0) : (tn == tmin.y ? float3(0, -sign(invD.y), 0) : float3(0, 0, -sign(invD.z)));
+    return tn < tf && tn > 0.0 && tn < tMax ? tn : -1.0;
+}
+RoomView interiorRoom(float3 roomPos, float3 dir, float3 roomSize, uint roomHash, bool office, RoomLamp L) {
     // roomPos: entry point in room space (x along facade, y up, z into room), dir into room (z>0)
     float3 invD = 1.0 / (dir + (dir == 0) * 1e-5);
     float3 tPlanes = max((roomSize * (dir > 0) - roomPos) * invD, 0.0);
@@ -56,33 +111,70 @@ float3 interiorRoom(float3 roomPos, float3 dir, float3 roomSize, uint roomHash, 
     if (h2 > 0.8) wallC = float3(0.72, 0.55, 0.45);
     float3 floorC = office ? float3(0.25, 0.26, 0.28) : lerp(float3(0.35, 0.22, 0.12), float3(0.6, 0.58, 0.55), h3);
     float3 ceilC = float3(0.85, 0.85, 0.83);
-    float3 c;
+    RoomView v;
+    v.glow = 0.0;
+    float3 c, n;
     if (t == tPlanes.z) {
+        n = float3(0, 0, -1);
         c = wallC * 0.85;
         // picture / shelf / window on the back wall
         float2 q = hit.xy / roomSize.xy;
         if (!office && h0 > 0.4 && abs(q.x - 0.5) < 0.18 && abs(q.y - 0.55) < 0.12) c = lerp(float3(0.2, 0.3, 0.45), float3(0.6, 0.3, 0.2), h2);
         if (office && abs(frac(q.x * 3.0) - 0.5) < 0.35 && q.y < 0.45) c = float3(0.3, 0.3, 0.32);
+        // the TV on the back wall
+        if (L.kind == 3u && abs(hit.x - L.pos.x) < 0.55 && abs(hit.y - 1.05) < 0.32) { c = float3(0.02, 0.02, 0.025); v.glow = 2.2; }
     } else if (t == tPlanes.y) {
+        n = float3(0, dir.y > 0 ? -1 : 1, 0);
         c = dir.y > 0 ? ceilC : floorC;
         if (dir.y > 0 && office) {
             float2 q = frac(hit.xz / float2(1.2, 1.2));
-            if (abs(q.x - 0.5) < 0.35 && abs(q.y - 0.5) < 0.1) c = float3(1.4, 1.4, 1.35);
+            if (abs(q.x - 0.5) < 0.35 && abs(q.y - 0.5) < 0.1) { c = float3(1.4, 1.4, 1.35); v.glow = 1.6; }
         }
     } else {
+        n = float3(dir.x > 0 ? -1 : 1, 0, 0);
         c = wallC;
     }
     // Furniture box (sofa / desk) near the back
     float3 bmin = float3(roomSize.x * (0.15 + h0 * 0.3), 0.0, roomSize.z * (0.55 + h1 * 0.2));
     float3 bmax = bmin + float3(roomSize.x * 0.35, office ? 0.75 : 0.85, roomSize.z * 0.25);
-    float3 t0 = (bmin - roomPos) * invD, t1 = (bmax - roomPos) * invD;
-    float3 tmin = min(t0, t1), tmax = max(t0, t1);
-    float tn = max(max(tmin.x, tmin.y), tmin.z), tf = min(min(tmax.x, tmax.y), tmax.z);
-    if (tn < tf && tn > 0 && tn < t) c = office ? float3(0.35, 0.33, 0.3) : lerp(float3(0.3, 0.12, 0.08), float3(0.15, 0.2, 0.35), h2);
-    // depth darkening
-    c *= lerp(1.0, 0.55, saturate(t / (roomSize.z * 1.5)));
-    lightAmt = 1;
-    return c;
+    float3 nb;
+    float tb = roomBox(roomPos, invD, bmin, bmax, t, nb);
+    if (tb > 0.0) { c = office ? float3(0.35, 0.33, 0.3) : lerp(float3(0.3, 0.12, 0.08), float3(0.15, 0.2, 0.35), h2); t = tb; n = nb; v.glow = 0.0; }
+    // homes: a tall cabinet or bookcase against the side wall away from a corner lamp
+    if (!office && h3 > 0.35) {
+        bool left = L.kind == 1u ? L.pos.x > roomSize.x * 0.5 : h1 > 0.5;
+        float w = min(0.45, roomSize.x * 0.15);
+        float3 cmin = float3(left ? 0.0 : roomSize.x - w, 0.0, roomSize.z * (0.3 + h0 * 0.25));
+        float3 cmax = cmin + float3(w, 1.95, min(1.1, roomSize.z * 0.3));
+        float tc = roomBox(roomPos, invD, cmin, cmax, t, nb);
+        if (tc > 0.0) {
+            float3 p = roomPos + dir * tc;
+            c = lerp(float3(0.32, 0.2, 0.12), float3(0.62, 0.58, 0.52), h2);
+            if (nb.x != 0.0 && h0 > 0.5 && frac(p.y / 0.38) > 0.12) c = lerp(float3(0.25, 0.22, 0.2), float3(0.5, 0.36, 0.22), frac(p.z * 7.3)) * 0.8;   // books
+            t = tc; n = nb; v.glow = 0.0;
+        }
+    }
+    hit = roomPos + dir * t;
+    // the lamp itself: a pendant or table-lamp shade lit from inside, in front of whatever the ray meets
+    if (L.kind <= 1u) {
+        float rs = L.kind == 0u ? 0.2 : 0.17;
+        float3 oc = roomPos - L.pos;
+        float b = dot(oc, dir), disc = b * b - (dot(oc, oc) - rs * rs);
+        if (disc > 0.0) {
+            float ts = -b - sqrt(disc);
+            if (ts > 0.0 && ts < t) {
+                v.albedo = float3(0.85, 0.8, 0.7);
+                v.lamp = 0.4;
+                v.glow = L.kind == 0u ? 5.0 : 3.5;
+                v.depth = ts;
+                return v;
+            }
+        }
+    }
+    v.albedo = c;
+    v.lamp = roomLampLight(hit, n, L);
+    v.depth = t;
+    return v;
 }
 
 // Shelf wall of a shop: boards every 0.42 m up to 2.1 m holding rows of products (boxes, bottles, packaging).
@@ -95,7 +187,8 @@ float3 shelfPattern(float u, float v, uint h, float kind, float3 wallC) {
     uint ph = hash3u(uint3((uint)(cell + 4096.0), (uint)row, h));
     float fill = 0.5 + hashF(ph) * 0.45;
     if (fu < 0.07 || fu > 0.93 || fv > 0.07 + fill * 0.93) return wallC * 0.25;   // shadowed shelf back
-    float3 pc = hsvToRgbF(hashF(ph + 1u)) * lerp(0.35, 0.85, hashF(ph + 2u)) + 0.06;
+    // packaging: varied but mostly muted colours (pure hues only on a few)
+    float3 pc = lerp(float3(0.5, 0.5, 0.5), hsvToRgbF(hashF(ph + 1u)), lerp(0.25, 0.85, hashF(ph + 4u))) * lerp(0.35, 0.85, hashF(ph + 2u)) + 0.06;
     if (hashF(ph + 3u) < 0.3) pc = lerp(pc, float3(0.9, 0.9, 0.88), 0.7);   // white packaging
     if (kind >= 0.9) pc = lerp(float3(0.92, 0.93, 0.95), pc, 0.3);          // pharmacy: mostly white boxes
     return pc * lerp(0.8, 1.0, fu);
@@ -110,7 +203,7 @@ float3 garmentPattern(float u, float v, uint h, float3 wallC) {
     float len = 0.5 + hashF(gh) * 0.5;
     if (v < 1.61 - len || fg < 0.05) return wallC * 0.6;
     uint grp = hash3u(uint3((uint)(floor(u / 0.6) + 8192.0), 5u, h));
-    float3 c = hsvToRgbF(hashF(grp) + (hashF(gh + 1u) - 0.5) * 0.08) * lerp(0.25, 0.75, hashF(grp + 2u)) + 0.05;
+    float3 c = lerp(float3(0.45, 0.45, 0.45), hsvToRgbF(hashF(grp) + (hashF(gh + 1u) - 0.5) * 0.08), lerp(0.15, 0.75, hashF(grp + 3u))) * lerp(0.25, 0.75, hashF(grp + 2u)) + 0.05;
     return c * lerp(0.75, 1.0, sin(fg * PI));
 }
 
@@ -301,10 +394,15 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         float shopIdx = floor(bayIdx / 3.0);
         uint shopHash = hash3u(uint3((uint)(shopIdx + 2000.0), 77u, seed));
         uint lh = storefront ? shopHash : roomHash;
-        float la;
         float3 room;
+        RoomLamp lamp = roomLamp(float3(bay, fh, f.roomDepth), roomHash, office);
+        RoomView rv;
+        rv.albedo = 0; rv.lamp = 0; rv.glow = 0; rv.depth = 0;
         if (storefront) room = shopInterior(float3(fx + (bayIdx - shopIdx * 3.0) * bay, fy, 0.02), dir, float3(bay * 3.0, fh, f.roomDepth * 1.4), shopHash);
-        else room = interiorRoom(float3(fx, fy, 0.02), dir, float3(bay, fh, f.roomDepth), roomHash, la, office);
+        else {
+            rv = interiorRoom(float3(fx, fy, 0.02), dir, float3(bay, fh, f.roomDepth), roomHash, office, lamp);
+            room = rv.albedo * lerp(1.0, 0.55, saturate(rv.depth / (f.roomDepth * 1.5)));   // (daylight: dimmer deeper in)
+        }
         // Window coverings (homes and offices): none, a roller blind pulled down to some height, venetian blinds
         // (25 mm slats, tilted partly open) or a pair of curtains drawn in from the sides (folds). Lit rooms glow
         // through them (translucent fabric, light between the slats).
@@ -338,7 +436,7 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         // one at dusk and go dark gradually through the night (some stay lit all night, early risers at dawn).
         float hour = gTime.y;
         float hc = hour < 12.0 ? hour + 24.0 : hour;             // evening-continuous clock: 12..36
-        bool occupied = hashF(roomHash + 11u) < f.litFrac * 0.85;
+        bool occupied = hashF(roomHash + 11u) < f.litFrac * (office ? 0.85 : 0.65);
         float onT = 17.0 + hashF(roomHash + 15u) * 3.8;
         float offT = 21.3 + pow(hashF(roomHash + 16u), 1.6) * 7.0;
         bool allNight = hashF(roomHash + 17u) < 0.06;
@@ -349,9 +447,18 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         bool display = storefront && hashF(lh + 27u) < 0.4;   // closed shops that keep their display lighting on
         bool lit = storefront ? (shopOpen || display)
                               : (occupied && (office ? officeLit || (eveningLit && hashF(roomHash + 26u) < 0.3) : (eveningLit || morningLit)));
-        float3 lightC = office ? lerp(float3(0.95, 0.9, 0.8), float3(0.85, 0.93, 1.0), hashF(roomHash + 12u))
-                               : lerp(float3(1.0, 0.6, 0.3), float3(1.0, 0.82, 0.6), hashF(roomHash + 12u) * 0.8);
-        if (!office && hashF(roomHash + 13u) > 0.93) lightC = float3(0.4, 0.55, 1.0);  // TV glow
+        // Lamp colour by colour temperature: homes mostly warm 2700-3000 K with some 4000 K kitchens and cool LED, table
+        // lamps candle-warm, offices 3500-5200 K, the TV a flickering blue; shops halogen .. LED
+        float cctH = hashF(roomHash + 12u);
+        float kelvin = office ? lerp(3500.0, 5200.0, cctH)
+                     : (lamp.kind == 1u ? lerp(2200.0, 2900.0, cctH)
+                     : (cctH < 0.45 ? 2700.0 + cctH * 660.0 : (cctH < 0.75 ? 3000.0 + (cctH - 0.45) * 3300.0 : 4000.0 + (cctH - 0.75) * 9000.0)));
+        float3 lightC = lampCCT(kelvin);
+        if (!storefront && lamp.kind == 3u) {
+            float ph = hashF(roomHash + 13u) * 40.0, tt = gTime.x;
+            float flick = gRenderFlags.x > 0.5 ? 0.9 + 0.1 * sin(tt * 0.9 + ph) : 0.75 + 0.25 * sin(tt * 7.3 + ph) * sin(tt * 2.9 + ph * 0.7);
+            lightC = float3(0.62, 0.78, 1.25) * flick;   // TV glow (unit luminance)
+        }
         if (storefront) lightC = lerp(float3(1.0, 0.8, 0.58), float3(0.86, 0.94, 1.0), hashF(lh + 28u));  // halogen .. LED
         // Interior radiance: lit rooms emit; unlit rooms show a dim daylight interior. The room is radiance seen
         // through the glass (not a surface lit on the facade), so shadows falling on the glass do not darken it.
@@ -362,16 +469,25 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         float3 dayE = evalSH9(N) * 0.4 + mainLightIlluminance() * saturate(dot(N, gSunDir.xyz)) * (0.12 / PI);
         float3 em = room * dayE * dayInterior;
         // shops are brightly lit inside (~160 nits of interior by day reads through the glass; 14 at night, when the
-        // exposure has opened up), homes and offices keep a constant lamp level
+        // exposure has opened up). Homes and offices: the lamp lights the room unevenly (roomLampLight: bright near a
+        // ceiling fixture or a corner lamp, darker corners, the shade or panels glowing); room light levels vary over
+        // three stops (a reading lamp .. a bright kitchen), a TV alone lights a room dimly.
         float shopNits = lerp(160.0, 14.0, gExposure.w);
-        float lampNits = (storefront ? shopNits : 9.0) * (0.45 + 0.9 * hashF(lh + 14u));
-        if (lit) em += room * lightC * lampNits;
+        float lampNits = storefront ? shopNits * (0.45 + 0.9 * hashF(lh + 14u))
+                       : (office ? 12.0 * exp2(hashF(lh + 14u) - 0.5)
+                                 : 10.0 * exp2(hashF(lh + 14u) * 3.0 - 1.8) * (lamp.kind == 1u ? 0.55 : (lamp.kind == 3u ? 0.3 : 1.0)));
+        float3 emLamp = 0;
+        if (lit) emLamp = (storefront ? room : rv.albedo * rv.lamp + rv.glow) * lightC * lampNits;
         // a covering right behind the glass is lit from the street (albedo) and glows with the room light behind it
         float3 coverEm = lit ? coverC * coverTrans * lightC * lampNits : 0.0;
-        em = lerp(em, coverEm, cover);
-        // Glass surface: dark and reflective (Fresnel reflections of the street from SSR and the probe on top)
+        em = lerp(em, 0.0, cover);
+        emLamp = lerp(emLamp, coverEm, cover);
+        // Glass surface: dark and reflective (Fresnel reflections of the street from SSR and the probe on top). Lamp
+        // light seen through tinted glass keeps most of its own colour (a tint is a filter of a few percent per
+        // channel, not a colour wash)
         outAlbedo = lerp(glassTint * 0.02, coverC * glassTint * 0.8, cover);
-        r.emissive = em * glassTint * 1.2;
+        float3 glassLamp = storefront ? glassTint : lerp(dot(glassTint, float3(0.2126, 0.7152, 0.0722)).xxx, glassTint, 0.5);
+        r.emissive = (em * glassTint + emLamp * glassLamp) * 1.2;
         rough = 0.04;
         r.metal = 0.0;
         outN = N;

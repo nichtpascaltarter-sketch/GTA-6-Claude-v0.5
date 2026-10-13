@@ -553,8 +553,11 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     envProbe->update(*this, env);
     bindFrame();
     frame.envProbe = envProbe->valid ? vec4(rel(envProbe->frontPos, cam.pos), (float)(envProbe->mips - 1)) : vec4(0.f);
-    frame.ambientParams.z = envProbe->shValid ? 1.f : 0.f;
-    frame.ambientParams.w = 280.f;
+    // The probe's irradiance (what the camera's surroundings bounce: one-bounce GI) applies near the camera. At night
+    // it holds the lamp-lit street and the lit windows and signs around the camera, light that falls off within a few
+    // tens of metres of its sources: weaker and closer in, so unlit corners and the surroundings stay night-dark.
+    frame.ambientParams.z = envProbe->shValid ? Lerp(1.f, 0.6f, nightFactor) : 0.f;
+    frame.ambientParams.w = Lerp(280.f, 80.f, nightFactor);
     frameCB.data = frame;
     frameCB.upload();
     bindGlobals(*this, false);

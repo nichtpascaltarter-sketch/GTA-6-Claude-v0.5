@@ -168,10 +168,13 @@ void addHeadPrims(BuildCtx& c) {
         float nw = D.noseW;
         vec3 N = L.nasion, T = L.noseTip, Sn = L.subnasale;
         vec3 d2 = T + vec3(0, -0.0105f, 0.0098f);   // supratip: the dorsum blends into the lobule here
-        // deepen the nasion (the brow ridge and mid-face blends fill it in)
+        // deepen the nasion a little (the brow ridge and mid-face blends fill it in), and keep the glabella over it level
+        // with the brows' heads either side: between the brows the midline had sunk into a groove 2-6 mm behind them,
+        // which a lamp or a high sun left in shade, the dark bridge joining the eye sockets into one bar ("goggles")
         {
-            Prim& q = S.prims[S.ellipsoid(Pv(N + vec3(0, 0.0096f, -0.001f)), vec3(0.0095f, 0.0065f, 0.0085f) * hs, HM, R(0.013f))];
+            Prim& q = S.prims[S.ellipsoid(Pv(N + vec3(0, 0.0166f, -0.001f)), vec3(0.0095f, 0.0065f, 0.0085f) * hs, HM, R(0.013f))];
             q.op = OP_SUB;
+            S.ellipsoid(Pv(N + vec3(0, 0.003f, 0.003f)), vec3(0.0065f, 0.006f, 0.0075f) * hs, HM, R(0.006f));
         }
         // nasal pyramid: the sidewalls from the face up to the ridge (the ridge cone alone would float in front of
         // the face and leave a pocket behind the tip)
@@ -217,6 +220,10 @@ void addHeadPrims(BuildCtx& c) {
         float up = 0.0011f + 0.0016f * D.hood;
         // (narrower than the eyeball across, so the lids end at the eye corners instead of meeting in a crease beyond them)
         S.ellipsoid(Pv(e + vec3(0, -0.0006f, 0.0032f)), vec3(er + 0.0002f, er + up + 0.0003f, er * 0.8f) * hs, HM, R(0.008f));
+        // under the brow ridge, over the lid's fold: the face rises from the lid to the brow as a slope. The lid's dome
+        // used to meet the ridge in a ledge 4-7 mm deep: under a lamp or a high sun a lit dome below a hard shadow line,
+        // the eye region framed like goggles at 1 m
+        S.ellipsoid(Pv(e + vec3(0, 0.0125f, 0.0135f)), vec3(0.013f, 0.00525f, 0.0025f) * hs, HM, R(0.006f));
         S.ellipsoid(Pv(e + vec3(0, -0.001f, -0.0035f)), vec3(er - 0.0004f, er + 0.0011f, er * 0.62f) * hs, HM, R(0.008f));
         // medial canthus: the skin of the nose's side sweeps into the inner corner (no ridge where the eye mound meets
         // the nasal wall)
