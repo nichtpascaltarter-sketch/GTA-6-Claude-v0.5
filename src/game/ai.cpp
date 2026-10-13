@@ -35,32 +35,35 @@ void connectSignalLamps(R*, std::function<int(int, vec2)>, long) {}
 
 using namespace ai_detail;
 
-// Which end of a car (+1 front, -1 rear) to walk round, preferring `pref` unless another vehicle stands right there
-// (parked cars can be bumper to bumper). Used by people walking round cars to a door or to the curb.
-float aiCarEndToWalkRound(const GameWorld& g, int veh, float pref) {
+// Is the end `e` of a car (+1 front, -1 rear) free to walk round - no other vehicle standing right there (parked cars can
+// be bumper to bumper; two in a crash are)?
+bool aiCarEndFree(const GameWorld& g, int veh, float e) {
     const Vehicle& v = g.vehicles[veh];
     const Vehicles::VehicleModel& spec = g.vassets[v.model].spec;
-    vec2 cc = v.sim.body.pos.toVec3().xy();
+    vec2 cc = (v.sim.body.pos.toVec3() + rotate(v.sim.body.rot, spec.boxCenter)).xy();   // (the middle of its box)
     vec2 f = v.sim.forward().xy();
     f = length2(f) > 1e-6f ? normalize(f) : vec2(0, 1);
+    vec2 q = cc + f * (e * (spec.boxHalf.y + 0.8f));
     thread_local std::vector<int> around;
-    for (int k = 0; k < 2; k++) {
-        float e = k == 0 ? pref : -pref;
-        vec2 q = cc + f * (e * (spec.boxHalf.y + 0.8f));
-        around.clear();
-        g.vehiclesNear(q, 8.f, around);
-        bool blocked = false;
-        for (int o : around) {
-            if (o == veh || blocked) continue;
-            const Vehicle& ov = g.vehicles[o];
-            const Vehicles::VehicleModel& os = g.vassets[ov.model].spec;
-            vec2 of = ov.sim.forward().xy();
-            of = length2(of) > 1e-6f ? normalize(of) : vec2(0, 1);
-            vec2 d = q - ov.sim.body.pos.toVec3().xy();
-            if (fabsf(dot(d, of)) < os.boxHalf.y + 0.4f && fabsf(dot(d, AI::rightOf(of))) < os.boxHalf.x + 0.4f) blocked = true;
-        }
-        if (!blocked) return e;
+    around.clear();
+    g.vehiclesNear(q, 8.f, around);
+    for (int o : around) {
+        if (o == veh) continue;
+        const Vehicle& ov = g.vehicles[o];
+        const Vehicles::VehicleModel& os = g.vassets[ov.model].spec;
+        vec2 of = ov.sim.forward().xy();
+        of = length2(of) > 1e-6f ? normalize(of) : vec2(0, 1);
+        vec2 d = q - (ov.sim.body.pos.toVec3() + rotate(ov.sim.body.rot, os.boxCenter)).xy();
+        if (fabsf(dot(d, of)) < os.boxHalf.y + 0.4f && fabsf(dot(d, AI::rightOf(of))) < os.boxHalf.x + 0.4f) return false;
     }
+    return true;
+}
+
+// Which end of a car (+1 front, -1 rear) to walk round, preferring `pref` unless another vehicle stands right there.
+// Used by people walking round cars to a door or to the curb.
+float aiCarEndToWalkRound(const GameWorld& g, int veh, float pref) {
+    if (aiCarEndFree(g, veh, pref)) return pref;
+    if (aiCarEndFree(g, veh, -pref)) return -pref;
     return pref;
 }
 
@@ -602,7 +605,34 @@ void step(GameWorld& g, int vi, float dt) {
 // door - the caller's plain climb-in clip, as before
 namespace ai_board {
 
-bool begin(GameWorld& g, int id, int veh, int seat) {
+// a seat somebody is getting into through its door this moment (PS_ENTERING, the clip running): Vehicle::seats only has
+// them once the clip is over (step's warp), so the seat choices that lead to begin() ask this as well - two officers back
+// to one car went for the driver's door together and both played the clip into the one seat. The claim ends with the
+// clip: in, called off (step), or the claimant down or gone
+bool claimed(const GameWorld& g, int veh, int seat, int except) {
+    if (veh < 0 || veh >= (int)g.vehicles.size()) return false;
+    u32 vu = g.vehicles[veh].uid;
+    for (int i = 0; i < (int)g.peds.size() && i < (int)g.ai.ped.size(); i++) {
+        const Ped& q = g.peds[i];
+        const PedAI& qa = g.ai.ped[i];
+        if (i != except && q.used && qa.uid == q.uid && q.state == PS_ENTERING && qa.boardVeh == veh && qa.boardVehUid == vu && qa.boardSeat == seat)
+            return true;
+    }
+    return false;
+}
+
+// GameWorld::freeSeat leaving out the seats somebody is getting into: the driver's (0), or a passenger's; -1 if none
+int openSeat(const GameWorld& g, int veh, bool driver, int except) {
+    if (veh < 0 || veh >= (int)g.vehicles.size() || !g.vehicles[veh].used) return -1;
+    const Vehicle& v = g.vehicles[veh];
+    int ns = Min((int)g.vassets[v.model].spec.seats.size(), 8);
+    if (driver) return ns > 0 && v.seats[0] < 0 && !claimed(g, veh, 0, except) ? 0 : -1;
+    for (int s = 1; s < ns; s++)
+        if (v.seats[s] < 0 && !claimed(g, veh, s, except)) return s;
+    return -1;
+}
+
+bool beginThen(GameWorld& g, int id, int veh, int seat, u8 then) {
     if (id < 0 || id >= (int)g.peds.size() || id >= (int)g.ai.ped.size() || veh < 0 || veh >= (int)g.vehicles.size() || seat < 0 || seat >= 8)
         return false;
     float len = g.startCarEntry(id, veh, seat);
@@ -622,9 +652,12 @@ bool begin(GameWorld& g, int id, int veh, int seat) {
     pa.boardSeat = (i8)seat;
     pa.boardT = g.time + len;
     pa.clipTimer = len;   // (getting in: police.cpp escortStep stands over a prisoner while it runs)
+    pa.boardThen = then;
     g.ai.stats.doorEntries++;
+    LOG("ai: ped %d into car %d (seat %d) through the door: a %.2f s clip (activity %d)", id, veh, seat, len, (int)pa.activity);
     return true;
 }
+bool begin(GameWorld& g, int id, int veh, int seat) { return beginThen(g, id, veh, seat, 0); }
 
 // in: carried on with what they got in for (each activity's own follow-up - the same whether through the door clip or
 // the plain one)
@@ -632,6 +665,23 @@ void boarded(GameWorld& g, int id, int veh, int seat) {
     Ped& p = g.peds[id];
     PedAI& pa = g.ai.ped[id];
     Brain& b = p.brain;
+    u8 then = pa.boardThen;
+    pa.boardThen = 0;
+    if (then == 1) {
+        // an event's driver back at the wheel (events.cpp): the engine, and away into the traffic
+        b.type = BRAIN_DRIVER;
+        pa.activity = ACT_WALK;
+        pa.clipTimer = 0.f;
+        Vehicle& car = g.vehicles[veh];
+        car.parked = false;
+        car.sim.engineOn = true;
+        g.attachTraffic(veh);
+        return;
+    }
+    if (then == 2) {
+        pa.clipTimer = 0.f;   // (events.cpp carries on once it sees them in)
+        return;
+    }
     if (p.faction == FAC_POLICE && b.type == BRAIN_GOTO && b.target == -2) {
         // an officer back in the car (police.cpp aiPoliceBrain, returning): back on patrol
         b.type = seat == 0 ? BRAIN_DRIVER : BRAIN_PASSENGER;
@@ -782,6 +832,7 @@ void step(GameWorld& g, int id) {
               g.vehicles[veh].sim.speed() < 1.5f;
     if (!ok) {
         pa.boardVeh = -1;
+        pa.boardThen = 0;
         pa.clipTimer = -1.f;   // (ACT_DRIVE_OFF / RIDE_ALONG / CUFFED: not at the door - they look at the car again)
         p.state = PS_ONFOOT;
         p.stateTime = 0.f;
@@ -794,8 +845,13 @@ void step(GameWorld& g, int id) {
     if (g.time < pa.boardT) return;
     pa.boardVeh = -1;
     p.targetVehicle = p.targetSeat = -1;
+    // (a driver who got in on the passenger side - their car boxed in at both ends, no way round to their own door:
+    //  events.cpp - slides across to the wheel)
+    int to = pa.boardThen == 1 && seat != 0 && g.vehicles[veh].seats[0] < 0 ? 0 : seat;
+    LOG("ai: ped %d in car %d (seat %d) after its door clip (%.1f s in PS_ENTERING)%s", id, veh, seat, p.stateTime, to != seat ? " - across to the wheel" : "");
     g.warpPedIntoVehicle(id, veh, seat);   // (shuts the door the clip swung)
-    boarded(g, id, veh, seat);
+    if (to != seat) g.warpPedIntoVehicle(id, veh, to);
+    boarded(g, id, veh, to);
 }
 
 }  // namespace ai_board
@@ -837,6 +893,13 @@ void GameWorld::updateAI(float dt) {
                 hva.rageForUid = hp.uid;
                 if (isPl) ai.stats.driverSorry++;
                 else ai.stats.pedHitStops++;
+                if (!isPl && hp.state != PS_DEAD && i < (int)ai.ped.size() && ai.ped[i].uid == hp.uid) {
+                    // (the one hit waits for them once up: pedai.cpp)
+                    PedAI& wa = ai.ped[i];
+                    wa.waitDrv = a;
+                    wa.waitDrvUid = peds[a].uid;
+                    wa.waitT = -1.f;
+                }
             }
             if (isPl) LOG("traffic: car %d knocked the player flat - %s", vi, hva.rageSorry ? "the driver stops to see" : "it goes on");
             else LOG("traffic: car %d knocked ped %d down%s - %s", vi, i, hp.state == PS_DEAD ? " (dead)" : "", hva.rageSorry ? "the driver stops to see" : "it goes on");

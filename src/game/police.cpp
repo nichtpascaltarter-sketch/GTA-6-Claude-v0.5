@@ -323,6 +323,8 @@ float aiCarEndToWalkRound(const GameWorld& g, int veh, float pref);   // ai.cpp:
 namespace ai_board {   // ai.cpp: getting into a car through its door (GameWorld::startCarEntry; PS_ENTERING while the clip runs)
 bool begin(GameWorld& g, int id, int veh, int seat);
 void boarded(GameWorld& g, int id, int veh, int seat);
+bool claimed(const GameWorld& g, int veh, int seat, int except);       // (somebody getting into that seat through its door)
+int openSeat(const GameWorld& g, int veh, bool driver, int except);    // (freeSeat without those)
 }  // namespace ai_board
 vec2 aiWalkRound(GameWorld& g, int id, vec2 goal, float want, float dt);   // ai.cpp: round a bench / planter in the way
 namespace police_statement {
@@ -3362,7 +3364,8 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
                 // instead (the car pulls over by them as a transport would: police_escort waits for it, the prisoner
                 // on the kerb)
                 int esc = -1;
-                if (vehicles[hv].seats[0] < 0 && vehAI(hv).task != PT_TRANSPORT && !vehicles[hv].playerUsed && !isAircraft(hv) && !isBoat(hv))
+                if (vehicles[hv].seats[0] < 0 && !ai_board::claimed(*this, hv, 0, id) && vehAI(hv).task != PT_TRANSPORT && !vehicles[hv].playerUsed &&
+                    !isAircraft(hv) && !isBoat(hv))
                     for (int i = 0; i < (int)peds.size() && i < (int)ai.ped.size() && esc < 0; i++) {
                         const Ped& c = peds[i];
                         const PedAI& ca = ai.ped[i];
@@ -3398,8 +3401,10 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
                     pa.shoutTimer = 9.f + hashToFloat(hash32(p.uid + (u32)time)) * 8.f;
                 }
             } else {
-                bool driverFree = vehicles[hv].seats[0] < 0;
-                int seat = driverFree ? 0 : freeSeat(hv, false);
+                // (the wheel if nobody is at it or getting in there - two back at once: one each, not both through the
+                //  driver's door into the one seat)
+                int seat = ai_board::openSeat(*this, hv, true, id);
+                if (seat < 0) seat = ai_board::openSeat(*this, hv, false, id);
                 if (seat >= 0) {
                     // to that seat's door (round the car to one on the far side) and in through it - ai_board: the door clip,
                     // back on patrol once in (ai_board::boarded); 8 s without getting to the door: in all the same
@@ -3464,7 +3469,8 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
             faceYaw = atan2f(-desired.x, desired.y);
         } else {
             Vehicle& hv = vehicles[pa.homeVeh];
-            int seat = hv.seats[0] < 0 ? 0 : freeSeat(pa.homeVeh, false);
+            int seat = ai_board::openSeat(*this, pa.homeVeh, true, id);
+            if (seat < 0) seat = ai_board::openSeat(*this, pa.homeVeh, false, id);
             if (seat >= 0) {
                 warpPedIntoVehicle(id, pa.homeVeh, seat);
                 hv.parked = false;

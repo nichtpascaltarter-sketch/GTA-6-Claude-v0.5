@@ -305,6 +305,7 @@ struct PedAI {
     float replyAt = -1.f;       // walking with company: the game time to answer what the companion just said (pedai.cpp)
     int replyTo = -1;           // ... and who said it ...
     int replyKind = -1;         // ... and what kind of answer (-1: a stroll's - BK_STROLL_REPLY)
+    float chatT = 0.f;          // walking with company, the player close: the next try at a line overheard (pedai.cpp)
     bool jayCalled = false;     // crossing mid-block (ACT_CROSS): an officer has called to them already
     float crowdT = 0.f;         // ACT_SCENARIO / ACT_WAIT_BUS: how long the player has stood right by them (pedai.cpp) ...
     u8 crowdStep = 0;           // ... 1 a word said, 2 had enough and off
@@ -331,7 +332,9 @@ struct PedAI {
     int boardVeh = -1;          // getting in through a car's door (ai.cpp ai_board: GameWorld::startCarEntry - at the door's
     u32 boardVehUid = 0;        // spot, the door clip, PS_ENTERING while it runs; updateBrain warps them in when it is over
     i8 boardSeat = -1;          // and ai_board::boarded carries on with what they got in for) - the car, the seat, and when
-    double boardT = 0.0;        // the clip is over
+    double boardT = 0.0;        // the clip is over ...
+    u8 boardThen = 0;           // ... and then: 0 what their activity got them in for, 1 away at the wheel (an event's driver),
+                                // 2 nothing more (events.cpp carries on once it sees them in)
     float doorWalkT = 0.f;      // an officer back at the car: how long walking round to the seat's door (police.cpp FT_RETURN)
     float plDownSeenT = -100.f; // the player knocked flat close by: the knock-down they last reacted to (pedai.cpp) ...
     bool plHelper = false;      // ... and the one come over to ask (ACT_WATCH by the player till they are up)
@@ -354,7 +357,10 @@ struct PedAI {
     int sorryFor = -1;          // ACT_ROADRAGE with rageSorry: the one they knocked down (-1: the player) ...
     u32 sorryForUid = 0;
     bool sorryCalled = false;   // ... on the phone for an ambulance already (the one hit down and not getting up)
-    int greetWith = -1;         // a greeting (CLIP_HUG / HANDSHAKE / CHEEK_KISS, started on both together): the partner,
+    int waitDrv = -1;           // knocked down by a car whose driver stopped to see (ai.cpp): that driver - once up, they
+    u32 waitDrvUid = 0;         // ... stay where they are, facing them as they come over, for their word (pedai.cpp) ...
+    float waitT = -1.f;         // ... until this game time (-1: not up yet; 8 s from getting up)
+    int greetWith = -1;        // a greeting (CLIP_HUG / HANDSHAKE / CHEEK_KISS, started on both together): the partner,
                                 // from stepping in until they part (peds.cpp: their chest / head for the hands) ...
     float greetT = 0.f;         // ... and the time the clip has left (> 0 while it plays)
     i16 routeAt = 0;            // VM_JOG / VM_STROLL: the point of the venue route they are heading for

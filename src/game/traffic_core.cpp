@@ -1594,7 +1594,10 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
             acc = i < 0 ? G.pathLength(d.path) - d.u - front : acc + G.pathLength(p2) - s0;
         }
     }
-    if (d.mode == DM_PULLOVER) {
+    if (d.mode == DM_PULLOVER && d.stopPath != d.path) {
+        // in to the kerb and stop there - but with a stop point of the host's in this lane (a cab for a hailer) on to that
+        // point in the lane instead (drive(): no move over): on nt_ai94c the cab stopped at the kerb at once, 36 m short of
+        // the hailer, and gave up as they walked up to it
         float remaining = fabsf(d.nudgeTarget - d.nudge);
         stopDist = Min(stopDist, Max(0.f, remaining * 4.f + v * 0.5f));
     }
@@ -2083,7 +2086,9 @@ void TrafficCore::drive(int vid, Vehicles::VehicleState& s, float dt, DriveOut& 
     }
     if (d.mode == DM_PULLOVER && d.path < (int)g->lanes.size()) {
         const Lane& L = g->lanes[d.path];
-        d.nudgeTarget = L.right < 0 ? L.width * 0.5f + 0.6f : 0.f;
+        // (not over to the kerb for a stop point of the host's - a cab for a hailer stops in its lane beside them: moving over
+        //  on the way, on nt_ai98 it ran up behind a car parked at the kerb and could not pull out round it with the fare in)
+        d.nudgeTarget = L.right < 0 && d.stopPath != d.path ? L.width * 0.5f + 0.6f : 0.f;
         d.nudgeTimer = 1.f;
     }
     d.planTimer -= dt;
